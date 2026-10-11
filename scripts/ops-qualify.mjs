@@ -136,7 +136,7 @@ for (const t of ['a', 'b']) {
 // worker from /srv/app (QUALIFY_APP), a shared quota of RUNS_PER_MINUTE submissions, a moderator's token file, and the
 // daily challenge with the reference's published test key.
 const RUNS_PER_MINUTE = 6;
-const fingerprintScript = join(base, 'fingerprint.ts');
+const fingerprintScript = join(base, 'fingerprint.mts'); // an ES module: its top-level await
 writeFileSync(
   fingerprintScript,
   `const { approvedContext } = await import(${JSON.stringify(join(ROOT, 'tools', 'speedrun', 'package.ts'))});\nconsole.log(JSON.stringify((await approvedContext(process.env.GAME_DIR)).fingerprint));\n`,
