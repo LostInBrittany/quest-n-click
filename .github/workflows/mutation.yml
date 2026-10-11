@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
     inputs:
       set:
-        description: 'The set (core, reality, runs, remix, speedrun, connectors, reality-store)'
+        description: 'The set (gated: core, reality, runs, remix, speedrun, connectors-pure, reality-store; measured: connectors-edge, reality-store-postgres)'
         required: true
       ref:
         description: 'The branch or SHA to measure'
@@ -22,6 +22,18 @@ jobs:
   mutation:
     runs-on: ubuntu-24.04
     timeout-minutes: 240
+    # A Postgres for the sets whose tests need one (reality-store-postgres, 4.1.19); the others never open it.
+    services:
+      postgres:
+        image: mirror.gcr.io/library/postgres:16@sha256:65b16a8b326e0cfbdf33fa7e783f2a0cb352a61448616ccccfd616ef42aa0f65
+        env:
+          POSTGRES_USER: bridge
+          POSTGRES_PASSWORD: bridge
+          POSTGRES_DB: bridge
+        ports: ['5432:5432']
+        options: --health-cmd "pg_isready -U bridge" --health-interval 2s --health-retries 30
+    env:
+      BRIDGE_PG_URL: postgres://bridge:bridge@127.0.0.1:5432/bridge
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:

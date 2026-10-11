@@ -616,7 +616,7 @@ written by the baseline; a links script. Left for later, said as such: the human
 The last qualification before 4.2 "Stable World" (`docs/dev/PLAN-4.1.18-DRESS-REHEARSAL.md`, D32, four pull requests
 and the release). No new mechanic. The people's passes become reports bound to the candidate they tried (the Field
 Kit: `npm run field:check` and its siblings), each an open `field-pass` issue the maintainer closes once made. `connectors` and
-`reality-store` are gated mutation sets (322 survivors read; an SSH backspace bug found). The candidate packs the four
+`reality-store` (the connectors' pure parts and the stores the Postgres adapter rests on, said exactly since 4.1.19) are gated mutation sets (322 survivors read; an SSH backspace bug found). The candidate packs the four
 archives once, installs them outside the repository on Ubuntu, macOS and Windows (a 4.1.17 game moved to them, the
 Bridge and a connector scenario from their archives; two Windows bugs of the package found and fixed) and the release
 publishes those very files. The Bridge has a reproducible qualification profile (`ops/qualify/`: HTTPS, three

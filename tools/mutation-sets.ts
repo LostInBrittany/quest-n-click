@@ -19,8 +19,10 @@ export const SETS = {
     'bridge/src/policy.ts',
   ],
   // The connectors' pure parts (4.1.9): a set of its own, so the Reality set does not double in time. Gated since
-  // 4.1.18 (D32): its 204 survivors read one by one (tests/connectors-*-mutants.test.ts, or named).
-  connectors: [
+  // 4.1.18 (D32): its 204 survivors read one by one (tests/connectors-*-mutants.test.ts, or named). Named for what it
+  // holds since 4.1.19 (plan §8.1: `connectors` said more than these six files): the SDK, the MIME reader, the line
+  // editor, the virtual disk, the badge's crypto and its fetch. `connectors` stays an alias until 4.2.
+  'connectors-pure': [
     'connectors/src/sdk.ts',
     'connectors/src/email/mime.ts',
     'connectors/src/terminal/line.ts',
@@ -56,6 +58,27 @@ export const SETS = {
     'bridge/src/streams.ts',
     'bridge/src/sign.ts',
   ],
+  // Measured, not gated (4.1.19, plan §8.1): what `connectors-pure` leaves out — configuration and start, the email
+  // connector (webhook and IMAP), the badge's verification, the terminal's guard and shell, SSH and Telnet. Gated only
+  // once every survivor is read.
+  'connectors-edge': [
+    'connectors/src/config.ts',
+    'connectors/src/run.ts',
+    'connectors/src/http.ts',
+    'connectors/src/registry.ts',
+    'connectors/src/email/connector.ts',
+    'connectors/src/email/imap.ts',
+    'connectors/src/email/parse.ts',
+    'connectors/src/badges/verify.ts',
+    'connectors/src/badges/connector.ts',
+    'connectors/src/terminal/guard.ts',
+    'connectors/src/terminal/shell.ts',
+    'connectors/src/ssh/connector.ts',
+    'connectors/src/telnet/connector.ts',
+  ],
+  // Measured, not gated (4.1.19): the Postgres adapter, which `reality-store` does not mutate (it mutates what the
+  // adapter rests on, store-sql.ts). Its tests need a database: BRIDGE_PG_URL (the mutation workflow gives one).
+  'reality-store-postgres': ['bridge/src/store-postgres.ts'],
 };
 export type MutationSet = keyof typeof SETS;
 /** The tests a set's mutants are judged by (vitest `include` globs). */
@@ -86,7 +109,13 @@ export const TESTS: Record<MutationSet, string[]> = {
     'tests/bridge-leaderboard.test.ts',
     'tests/bridge-admission.test.ts',
   ],
-  connectors: ['tests/connectors-*.test.ts'],
+  'connectors-pure': ['tests/connectors-*.test.ts'],
+  'connectors-edge': ['tests/connectors-*.test.ts'],
+  'reality-store-postgres': [
+    'tests/bridge-reality-store.test.ts',
+    'tests/bridge-backup.test.ts',
+    'tests/bridge-fanout.test.ts',
+  ],
   'reality-store': [
     'tests/bridge-reality-store.test.ts',
     'tests/bridge-fanout.test.ts',
@@ -107,6 +136,27 @@ export const TESTS: Record<MutationSet, string[]> = {
 /** The sets `all` runs and the gate judges: every set, each a job of its own in ci, the nightly, the candidate and the release. */
 // `remix` and `speedrun` (4.1.16, measured) joined in 4.1.17; `connectors` and `reality-store` in 4.1.18 (D32, plan
 // §6): their survivors read one by one, each killed by a test or named in docs/dev/mutants.json.
-export const GATED: MutationSet[] = ['core', 'reality', 'runs', 'remix', 'speedrun', 'connectors', 'reality-store'];
+export const GATED: MutationSet[] = [
+  'core',
+  'reality',
+  'runs',
+  'remix',
+  'speedrun',
+  'connectors-pure',
+  'reality-store',
+];
+/** Measured on demand (`gh workflow run mutation -f set=…`) and every night, gating nothing until their survivors are read. */
+export const MEASURED: MutationSet[] = ['connectors-edge', 'reality-store-postgres'];
+
+/** Old names still taken (4.1.19): `connectors` is `connectors-pure` until 4.2. */
+export const ALIASES: Record<string, MutationSet> = { connectors: 'connectors-pure' };
+
+/** A set's name as given on a command line, its alias resolved; throws on a name that is no set. */
+export function setNamed(name: string): MutationSet | 'all' {
+  if (name === 'all' || name in SETS) return name as MutationSet | 'all';
+  const alias = ALIASES[name];
+  if (alias) return alias;
+  throw new Error(`no mutation set "${name}": ${[...Object.keys(SETS), ...Object.keys(ALIASES)].join(', ')}`);
+}
 
 export const setsOf = (set: MutationSet | 'all'): MutationSet[] => (set === 'all' ? GATED : [set]);

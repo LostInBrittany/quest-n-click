@@ -36,7 +36,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        set: [core, reality, runs, remix, speedrun, connectors, reality-store]
+        set: [core, reality, runs, remix, speedrun, connectors-pure, reality-store]
     env:
       TAG: ${{ github.event.workflow_run.head_branch }}
     steps:
@@ -61,26 +61,30 @@ jobs:
         shell: bash
         run: |
           code=0
-          npx tsx -e "import('./tools/mutation-sets.ts').then((m) => process.exit(!Array.isArray(m.GATED) ? 4 : m.GATED.includes('${{ matrix.set }}') ? 0 : 3), (e) => { console.error(e); process.exit(2); })" || code=$?
+          # 4.1.19: `connectors` became `connectors-pure` (the same six files); a tag before it knows the old name only.
+          set='${{ matrix.set }}'
+          if [ "$set" = connectors-pure ] && ! grep -q "'connectors-pure'" tools/mutation-sets.ts; then set=connectors; fi
+          echo "name=$set" >> "$GITHUB_OUTPUT"
+          npx tsx -e "import('./tools/mutation-sets.ts').then((m) => process.exit(!Array.isArray(m.GATED) ? 4 : m.GATED.includes('$set') ? 0 : 3), (e) => { console.error(e); process.exit(2); })" || code=$?
           case "$code" in
             0) echo "set=yes" >> "$GITHUB_OUTPUT" ;;
-            3) echo "::notice::the set ${{ matrix.set }} is not gated by this tag's commit" ;;
-            4) case "${{ matrix.set }}" in
-                 connectors|reality-store) echo "::notice::the set ${{ matrix.set }} was gated from 4.1.18 on, after this tag" ;;
-                 *) if grep -Eq "^  '?${{ matrix.set }}'?: \[" tools/mutation-sets.ts; then echo "set=yes" >> "$GITHUB_OUTPUT"; else echo "::notice::the set ${{ matrix.set }} predates this tag"; fi ;;
+            3) echo "::notice::the set $set is not gated by this tag's commit" ;;
+            4) case "$set" in
+                 connectors|reality-store) echo "::notice::the set $set was gated from 4.1.18 on, after this tag" ;;
+                 *) if grep -Eq "^  '?$set'?: \[" tools/mutation-sets.ts; then echo "set=yes" >> "$GITHUB_OUTPUT"; else echo "::notice::the set $set predates this tag"; fi ;;
                esac ;;
             *) echo "::error::tools/mutation-sets.ts could not be read (exit $code): no gate is skipped on a failure"; exit 1 ;;
           esac
       - id: inputs
         if: steps.has.outputs.set == 'yes'
-        run: echo "hash=$(npx tsx tools/mutate.ts --set=${{ matrix.set }} --hash)" >> "$GITHUB_OUTPUT"
+        run: echo "hash=$(npx tsx tools/mutate.ts --set=${{ steps.has.outputs.name }} --hash)" >> "$GITHUB_OUTPUT"
       - if: steps.has.outputs.set == 'yes'
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: .cache/mutation
           key: mutation-${{ matrix.set }}-${{ steps.inputs.outputs.hash }}
       - if: steps.has.outputs.set == 'yes'
-        run: npm run test:mutation:core -- --set=${{ matrix.set }} | tee mutation-${{ matrix.set }}.txt
+        run: npm run test:mutation:core -- --set=${{ steps.has.outputs.name }} | tee mutation-${{ matrix.set }}.txt
         shell: bash
       - if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
@@ -88,7 +92,7 @@ jobs:
           name: mutation-${{ matrix.set }}
           path: |
             mutation-${{ matrix.set }}.txt
-            .cache/mutation/report-${{ matrix.set }}.json
+            .cache/mutation/report-${{ steps.has.outputs.name }}.json
           include-hidden-files: true
           if-no-files-found: ignore
   release:
