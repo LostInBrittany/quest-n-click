@@ -137,6 +137,10 @@ jobs:
           # 4.1.18 (plan §7): the four packages the candidate packed and installed outside the repository on three
           # systems; a 4.1.17 candidate has none (its manifest names none, the check below says so either way).
           gh run download "$run" -n candidate-pack -D .candidate/pack 2>/dev/null || echo "::notice::run $run packed no packages"
+          # 4.1.19 (plan §6.2–6.3): the Bridge's image the candidate built once (archive, identities, SBOM) and the four
+          # archives' SBOMs; an older candidate has neither (the check below says whether its manifest named them).
+          gh run download "$run" -n candidate-image -D .candidate/image 2>/dev/null || echo "::notice::run $run built no image"
+          gh run download "$run" -n candidate-sbom -D .candidate/sbom 2>/dev/null || echo "::notice::run $run made no SBOM"
           node tools/release/candidate.mjs check .candidate-manifest/candidate-manifest.json --sha="$SHA" --run="$run" --dir=.candidate
           echo "CANDIDATE=$run" >> "$GITHUB_ENV"
         env:
@@ -196,7 +200,13 @@ jobs:
         run: |
           tar -czf "web-scumm-$TAG-dist.tar.gz" -C dist .
           cp dist/licenses/assets-manifest.json "web-scumm-$TAG-assets-manifest.json"
-          npm sbom --sbom-format cyclonedx --omit dev > "web-scumm-$TAG-sbom.cdx.json"
+          # The SBOMs (4.1.19): the candidate's, made from what its archives hold, one per archive and the image's; an
+          # older tag makes the root's here, as it always did.
+          if [ -d .candidate/sbom ]; then
+            cp .candidate/sbom/web-scumm.cdx.json "web-scumm-$TAG-sbom.cdx.json"
+          else
+            npm sbom --sbom-format cyclonedx --omit dev > "web-scumm-$TAG-sbom.cdx.json"
+          fi
           # The engine as packages (3.9): what `npm install <tarball>` and `npx create-web-scumm` take. Since 4.1.18 the
           # candidate's own archives (checked against its manifest above), the ones installed outside the repository on
           # three systems, never packed again here; an older tag packs them as it always did.
@@ -213,7 +223,21 @@ jobs:
           # The reference Reality Bridge (4.1.1): web-scumm-bridge-<version>.tgz, its own package, with its own SBOM
           # (4.1.2): the root's SBOM lists the engine's runtime dependencies, not the Bridge's.
           # `npm sbom` reads the installed tree, not a lockfile: a real install of the package's two dependencies.
-          (cd pack/web-scumm-bridge && npm install --omit=dev --ignore-scripts --no-audit --no-fund >/dev/null && npm sbom --sbom-format cyclonedx --omit dev) > "web-scumm-bridge-$TAG-sbom.cdx.json"
+          if [ -d .candidate/sbom ]; then
+            cp .candidate/sbom/web-scumm-bridge.cdx.json "web-scumm-bridge-$TAG-sbom.cdx.json"
+            cp .candidate/sbom/web-scumm-connectors.cdx.json "web-scumm-connectors-$TAG-sbom.cdx.json"
+            cp .candidate/sbom/create-web-scumm.cdx.json "create-web-scumm-$TAG-sbom.cdx.json"
+            extra="$extra web-scumm-connectors-$TAG-sbom.cdx.json create-web-scumm-$TAG-sbom.cdx.json"
+          else
+            (cd pack/web-scumm-bridge && npm install --omit=dev --ignore-scripts --no-audit --no-fund >/dev/null && npm sbom --sbom-format cyclonedx --omit dev) > "web-scumm-bridge-$TAG-sbom.cdx.json"
+          fi
+          # The Bridge's image as the candidate built and qualified it (4.1.19): its archive, its three identities, its SBOM.
+          if [ -d .candidate/image ]; then
+            cp .candidate/image/web-scumm-bridge-image.tar "web-scumm-bridge-image-$TAG.tar"
+            cp .candidate/image/web-scumm-bridge-image.json "web-scumm-bridge-image-$TAG.json"
+            cp .candidate/image/web-scumm-bridge-image.cdx.json "web-scumm-bridge-image-$TAG-sbom.cdx.json"
+            extra="$extra web-scumm-bridge-image-$TAG.tar web-scumm-bridge-image-$TAG.json web-scumm-bridge-image-$TAG-sbom.cdx.json"
+          fi
           # A complete speedrun of the reference chapter (4.1.14, its ninth asset): verified by the very tool a
           # leaderboard runs before it is attached; a run the engine of this tag refuses stops the release.
           # This workflow runs from main's copy while it checks out the tag's commit: a tag older than 4.1.14 has no
@@ -253,6 +277,9 @@ jobs:
             create-web-scumm-*.tgz
             web-scumm-bridge-*.tgz
             web-scumm-connectors-*.tgz
+            web-scumm-connectors-*-sbom.cdx.json
+            create-web-scumm-*-sbom.cdx.json
+            web-scumm-bridge-image-*
       - run: |
           # A pre-release tag (`v4.1.8-rc.1`, 4.1.8) is published as a GitHub pre-release: same files, same checks.
           pre=""; case "$TAG" in *-*) pre="--prerelease";; esac

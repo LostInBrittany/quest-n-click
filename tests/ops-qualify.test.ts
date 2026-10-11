@@ -21,6 +21,9 @@ describe('the qualification profile', () => {
       expect(i).toMatch(/@sha256:[0-9a-f]{64}$/);
     expect(dockerfile).toContain('COPY web-scumm-bridge.tgz');
     expect(dockerfile).not.toMatch(/COPY \.\s|COPY bridge\//);
+    // 4.1.19 (plan §6.1): `npm ci` from the image's versioned lock, never an install that resolves ranges.
+    expect(dockerfile).toContain('npm ci --omit=dev');
+    expect(dockerfile).not.toMatch(/npm install/);
   });
 
   it('publishes only the proxy, on 127.0.0.1, and keeps the store and the Bridges on internal networks', () => {
@@ -61,6 +64,22 @@ describe('the qualification profile', () => {
 });
 
 describe('BRIDGE_STORE_FILE', () => {
+  it('runs the proxy as the operator, read-only, its writable folders bounded tmpfs (4.1.19)', () => {
+    const proxy = compose.slice(compose.indexOf('  proxy:'), compose.indexOf('\nnetworks:'));
+    for (const want of [
+      "user: '${QUALIFY_UID:-1000}:${QUALIFY_GID:-1000}'",
+      'read_only: true',
+      '/data:rw,size=16m',
+      '/config:rw,size=4m',
+      'cap_drop: [ALL]',
+      'no-new-privileges:true',
+    ])
+      expect(proxy, want).toContain(want);
+    // The one capability left is the one the binary carries; no volume the proxy writes.
+    expect(proxy.match(/cap_add: \[([^\]]*)\]/)?.[1]).toBe('NET_BIND_SERVICE');
+    expect(proxy).not.toMatch(/caddy:\/data/);
+  });
+
   it('names the store from a file, after --store= and BRIDGE_STORE, before the configuration', () => {
     const dir = mkdtempSync(join(tmpdir(), 'store-file-'));
     try {
