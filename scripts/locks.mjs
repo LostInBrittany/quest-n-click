@@ -4,7 +4,7 @@
 // copy of the root lock, then `npm install --package-lock-only`, which keeps every version the root lock already
 // resolved and drops the rest. Run it when a dependency of those packages changes; review the diff; commit it.
 // `npm run locks -- --check` (and tests/pack-locks.test.ts) says whether each lock still fits its manifest and the
-// root lock, without the network.
+// root lock, without the network. A package the root lock does not resolve is pinned in OUTSIDE_ROOT below.
 import { execFileSync } from 'node:child_process';
 import { copyFileSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -15,14 +15,36 @@ const ROOT = resolve(import.meta.dirname, '..');
 const root = JSON.parse(readFileSync(join(ROOT, 'package.json'), 'utf8'));
 const rootLock = JSON.parse(readFileSync(join(ROOT, 'package-lock.json'), 'utf8'));
 
+/**
+ * The packages a lock holds that the root lock does not resolve (second reading of 4.1.19 PR 2): the connectors' native
+ * optionals, which the root replaces by a stand-in (`overrides`), and OpenTelemetry's API, which the repository does
+ * not install. Each is pinned here: `npm run locks` that moves one fails its check until this list is changed too.
+ */
+const OUTSIDE_ROOT = {
+  'web-scumm-connectors:node_modules/buildcheck': '0.0.7',
+  'web-scumm-connectors:node_modules/ssh2/node_modules/cpu-features': '0.0.10',
+  'web-scumm-connectors:node_modules/ssh2/node_modules/nan': '2.29.0',
+  'web-scumm-bridge-image:node_modules/@opentelemetry/api': '1.9.1',
+};
+
 /** What is wrong with a versioned lock: against its manifest, then a version the root lock resolves otherwise. */
 export function problems(entry, lock = JSON.parse(readFileSync(join(ROOT, entry.lock), 'utf8'))) {
   const manifest = entry.manifest(root);
   const bad = lockProblems(lock, { ...manifest, name: entry.name });
   for (const [path, p] of Object.entries(lock.packages ?? {})) {
+    if (!path) continue;
     const there = rootLock.packages[path];
-    if (path && there && there.version !== p.version)
-      bad.push(`${path}: ${p.version} here, ${there.version} in the root lock (npm run locks)`);
+    if (there && !there.link) {
+      if (there.version !== p.version)
+        bad.push(`${path}: ${p.version} here, ${there.version} in the root lock (npm run locks)`);
+      continue;
+    }
+    // Not in the root lock (or a stand-in there): its version is written here, reviewed, and a new one is a diff.
+    const pinned = OUTSIDE_ROOT[`${entry.name}:${path}`];
+    if (pinned !== p.version)
+      bad.push(
+        `${path}: ${p.version} is not in the root lock and not pinned in scripts/locks.mjs (${pinned ?? 'none'})`,
+      );
   }
   return bad;
 }

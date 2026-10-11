@@ -67,8 +67,9 @@ function manifestDigest(archive) {
   }
 }
 
-/** The npm packages installed in the image, read inside it, with the base image named as a component. */
+/** The npm packages installed in the image, read inside it, the Bridge and the base image named as components. */
 function imageSbom(identity) {
+  const version = identity.version;
   const sbom = JSON.parse(
     docker([
       'run',
@@ -85,8 +86,19 @@ function imageSbom(identity) {
     ]),
   );
   const base = baseImage();
+  const root = sbom.metadata?.component ?? {};
+  // The Bridge itself (unpacked in /opt/bridge, outside the tree `npm sbom` reads in /opt), by its archive's SHA-256.
+  const bridge = {
+    type: 'library',
+    'bom-ref': `web-scumm-bridge@${version}`,
+    name: 'web-scumm-bridge',
+    version,
+    purl: `pkg:npm/web-scumm-bridge@${version}`,
+    hashes: [{ alg: 'SHA-256', content: identity.bridgeSha256 }],
+  };
   sbom.components = [
     ...(sbom.components ?? []),
+    bridge,
     {
       type: 'container',
       name: base.split('@')[0],
@@ -94,12 +106,17 @@ function imageSbom(identity) {
       description: 'The base image (its operating system packages are not listed here)',
     },
   ];
+  // The root keeps the `bom-ref` npm gave it: `dependencies[0].ref` names it (second reading of 4.1.19 PR 2).
+  sbom.dependencies = (sbom.dependencies ?? []).map((d) =>
+    d.ref === root['bom-ref'] ? { ...d, dependsOn: [...new Set([...(d.dependsOn ?? []), bridge['bom-ref']])] } : d,
+  );
   sbom.metadata = {
     ...sbom.metadata,
     component: {
+      ...root,
       type: 'container',
       name: 'web-scumm-bridge-image',
-      version: root.version,
+      version,
       hashes: [{ alg: 'SHA-256', content: identity.archiveSha256 }],
       properties: [
         { name: 'web-scumm:configDigest', value: identity.configDigest },
@@ -137,6 +154,7 @@ if (import.meta.url === pathToFileURL(process.argv[1] ?? '').href) {
         manifestDigest: manifestDigest(archive),
         archive: ARCHIVE,
         archiveSha256: sha256(archive),
+        bridgeSha256: sha256(tgz),
         docker: docker(['version', '--format', '{{.Server.Version}}']).trim(),
       };
       writeFileSync(join(out, IDENTITY), `${JSON.stringify(identity, null, 2)}\n`);

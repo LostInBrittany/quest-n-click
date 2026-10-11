@@ -10,6 +10,8 @@
     qualified, with its identities and SBOM.
 - **Five CycloneDX SBOMs, made by the candidate** (4.1.19): one each for the engine, `create-web-scumm`, the Bridge,
   the connectors and the image. Each is made from what its archive holds, and the release no longer installs anything
-  to make one.
+  to make one. `web-scumm-<tag>-sbom.cdx.json` keeps its name but now describes the engine package (its dependencies
+  as a game installs them, Vite and its tools included), no longer the repository root's five runtime dependencies. The
+  image's SBOM names the Bridge and its base image too.
 - **The qualification proxy runs unprivileged** (4.1.19): Caddy runs as the operator's uid, read-only, with bounded
   tmpfs. The worker's image is pulled by its digest.

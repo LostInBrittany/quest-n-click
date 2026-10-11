@@ -18,6 +18,15 @@ describe('the versioned locks', () => {
     expect(problems(e)).toEqual([]);
   });
 
+  it('a package the root lock does not resolve is pinned here, and moves only with a reviewed change', () => {
+    const connectors = (LOCKED as Entry[]).find((e) => e.name === 'web-scumm-connectors')!;
+    const lock = read(connectors);
+    lock.packages['node_modules/ssh2/node_modules/nan'].version = '2.30.0';
+    expect(problems(connectors, lock).join()).toMatch(/nan: 2\.30\.0 is not in the root lock and not pinned/);
+    lock.packages['node_modules/left-pad'] = { ...lock.packages['node_modules/asn1'], version: '1.3.0' };
+    expect(problems(connectors, lock).join()).toMatch(/left-pad: 1\.3\.0 is not in the root lock/);
+  });
+
   it('the image installs its peers at exact, locked versions', () => {
     const image = (LOCKED as Entry[]).find((e) => e.name === 'web-scumm-bridge-image')!;
     const lock = read(image);

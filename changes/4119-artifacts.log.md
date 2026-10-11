@@ -25,4 +25,12 @@
   `NET_BIND_SERVICE`, which its binary carries as a file capability.
 - The worker's image is pulled by its digest in the candidate and the nightly.
 
+- **Second reading** (an automated second context) found three defects, all fixed:
+  - the image SBOM's root lost its `bom-ref`, which left its dependency graph dangling;
+  - the Bridge itself was missing from the image SBOM;
+  - four packages are absent from the root lock: the connectors' native optionals, which the root replaces with a
+    stand-in, and OpenTelemetry's API. These were resolved at generation and never checked. They are now pinned in
+    `OUTSIDE_ROOT`, and a move fails the check.
+- The `qualify` workflow on a branch still builds its own image; only the candidate carries one.
+
 → next: Claude · the Field Kit v2 and `tools/release/provenance.mjs` (the rest of plan §6)
