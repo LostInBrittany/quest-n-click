@@ -8,10 +8,9 @@
   never begins a character, is dropped. A backspace after one no longer erased a column of the prompt. A character
   split between two network chunks stays whole.
 - **The live RTA after a resume starts at 0 when the run had not started** (4.1.19): it used to count from the resume.
-  The chunk's head now says whether the run had started; an older chunk is read by its `rtaMs`. Sealed times,
-  `.wsrun` and `rulesVersion` are unchanged.
+  Whether it had started is read from the replayed tape. Logical times, `.wsrun` and `rulesVersion` are unchanged.
 
 ### Changes
 
-- **`external-consumer` checks the older engine against its release's sums** (4.1.19). The candidate creates a game on
+- **`external-consumer` checks the older engine against its release's sums and a SHA-256 it knows** (4.1.19). The candidate creates a game on
   4.1.17, on 4.1.16, and on the pre-release 4.1.18-rc.1, then moves it to the candidate.

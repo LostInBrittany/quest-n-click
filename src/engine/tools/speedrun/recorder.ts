@@ -37,11 +37,6 @@ export interface ResumePoint {
   draws: { seed: string; state: [number, number, number, number] } | null;
   next: number;
   rtaMs: number;
-  /**
-   * Whether the run had started when the chunk closed (4.1.19): a resume before the start keeps the live RTA at 0 until
-   * the start happens. Absent in a chunk written before 4.1.19: started when its `rtaMs` is above 0.
-   */
-  started?: boolean;
   excluded: ExcludedInterval[];
   loads: RunLoad[];
   inputs: string[];
@@ -223,7 +218,6 @@ export class SpeedrunRecorder {
       draws: eng.sessions.drawState(),
       next: (this.last?.index ?? -1) + 1,
       rtaMs: this.rtaMs(),
-      started: this.t0 !== null,
       excluded: structuredClone(this.excluded),
       loads: structuredClone(this.loads),
       inputs: [...this.inputs],
@@ -407,10 +401,11 @@ export class SpeedrunRecorder {
     eng.runClock.restore(point.clock);
     if (point.draws) eng.sessions.restoreDraws(point.draws);
     r.loads.push({ before: point.next, from: point.next - 1, resume: true });
-    // The live RTA goes on from where the chunk closed (the time the page was closed is not counted); a run that had not
-    // started yet shows 0 until its start (4.1.19: it used to count from the resume). Display only: the sealed times
-    // are the logical clock's, untouched.
-    r.t0 = (point.started ?? point.rtaMs > 0) ? r.now() - point.rtaMs : null;
+    // The live RTA goes on from where the chunk closed (the time the page was closed is not counted); a run whose tape
+    // holds no start yet (the tracker fed every stored link above, the start included even when it closed a chunk)
+    // shows 0 until its start, 4.1.19 (it used to count from the resume). The logical times are untouched; the RTA
+    // intervals it excludes start from the run's start, as on a run never interrupted.
+    r.t0 = r.tracker.started ? r.now() - point.rtaMs : null;
     return r;
   }
 }

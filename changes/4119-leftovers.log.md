@@ -8,11 +8,14 @@
 - **Terminal line editor** (`connectors/src/terminal/line.ts`): a stray continuation byte, and the bytes `0xC0`,
   `0xC1` and `0xF8`–`0xFF`, are dropped. The buffer itself is the state, so a character split across chunks stays
   whole. A backspace takes a column back only for a character that was shown.
-- **Recorder** (`speedrun/recorder.ts`): `ResumePoint.started` was added. A run resumed before its start shows an RTA
-  of 0 until the start. A chunk written before 4.1.19 counts as started when its `rtaMs` is above 0. This is display
-  only; the logical clock is untouched.
+- **Recorder** (`speedrun/recorder.ts`): a run resumed before its start shows an RTA of 0 until the start. Whether
+  the run had started is read from the replayed tape (the split tracker), not from a flag in the chunk's head: the
+  second reading found a start in the very link that closes a chunk recorded as not started, which stopped the RTA
+  for good. The logical times are untouched. The excluded RTA intervals now start from the run's start, as on a run
+  never interrupted.
 - **Older engine**: `external-consumer` checks the older engine's tarball against `web-scumm-<tag>-SHA256SUMS`
-  (`sumFor`, unit-tested). The candidate's matrix takes it from 4.1.17, 4.1.16 and 4.1.18-rc.1.
+  (`sumFor`, unit-tested), and against the SHA-256 the script knows for each (`KNOWN_ENGINES`: the sums file is on the
+  same host as the tarball). The candidate's matrix takes it from 4.1.17, 4.1.16 and 4.1.18-rc.1.
 - The `livesplit-obs` pass (#81) stays open: this PR fixes what a machine sees, not what a person sees.
 
 → next: Claude · PR 2 (artefacts and Field Kit); the DSL checkpoint before PR 3

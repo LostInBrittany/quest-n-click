@@ -33,3 +33,14 @@ export function sumFor(sums, asset) {
 
 /** The sums file of a release tag (`v4.1.16`, `v4.1.18-rc.1`). */
 export const sumsAsset = (tag) => `web-scumm-${tag}-SHA256SUMS`;
+
+/**
+ * The SHA-256 of the older engines the candidate creates games on (4.1.19, plan §7.4), written here once read from
+ * their releases: the release's sums file is the same host as the tarball (integrity), this list is not (a release
+ * changed after the fact is refused).
+ */
+export const KNOWN_ENGINES = {
+  'v4.1.16': 'bcebeeb68ef85efa0866442f4fd9085be6cceb5f7fefa1cdd88d1e1e9b9feb9b',
+  'v4.1.17': 'eb63041433fb1af65a9faad928488ead74a963c5ba06ca3027cbca5c644a995c',
+  'v4.1.18-rc.1': 'bbe54b8593ff4fb09bb0091633805ed47cfad6e7c02eaddaa65afcb37b478836',
+};

@@ -34,7 +34,7 @@ import {
 } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
-import { sumFor, sumsAsset, upgradeSource } from './upgrade-source.mjs';
+import { KNOWN_ENGINES, sumFor, sumsAsset, upgradeSource } from './upgrade-source.mjs';
 
 const ROOT = resolve(import.meta.dirname, '..');
 const WIN = process.platform === 'win32';
@@ -202,6 +202,8 @@ else {
   const want = sumFor(await s.text(), src.asset);
   const got = createHash('sha256').update(bytes).digest('hex');
   if (got !== want) throw new Error(`${src.asset}: SHA-256 ${got}, the release says ${want}`);
+  const known = KNOWN_ENGINES[src.tag];
+  if (known && got !== known) throw new Error(`${src.asset}: SHA-256 ${got}, this script knows ${known}`);
   console.log(`  ✔ ${src.asset} matches ${src.tag}'s sums (${want.slice(0, 12)}…)`);
   writeFileSync(oldTgz, bytes);
 }

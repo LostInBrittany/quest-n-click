@@ -2,7 +2,7 @@
 // `web-scumm-v4.1.15.tgz`; a pre-release asked for a tarball no release carries. The three forms, without the network.
 import { describe, expect, it } from 'vitest';
 // @ts-expect-error: a plain .mjs script without declarations
-import { sumFor, sumsAsset, upgradeSource } from '../scripts/upgrade-source.mjs';
+import { KNOWN_ENGINES, sumFor, sumsAsset, upgradeSource } from '../scripts/upgrade-source.mjs';
 
 const none = () => false;
 
@@ -41,5 +41,10 @@ describe('upgrade-check --from', () => {
     expect(sumFor(sums, 'web-scumm-v4.1.18-rc.1-dist.tar.gz')).toBe('b'.repeat(64));
     expect(() => sumFor(sums, 'web-scumm-4.1.16.tgz')).toThrow(/not named/);
     expect(() => sumFor(`${sums}${'c'.repeat(64)}  web-scumm-4.1.18.tgz\n`, 'web-scumm-4.1.18.tgz')).toThrow(/twice/);
+  });
+
+  it('knows the older engines the candidate creates on, by tag', () => {
+    for (const from of ['4.1.16', '4.1.17', '4.1.18-rc.1'])
+      expect(KNOWN_ENGINES[upgradeSource(from, none).tag as keyof typeof KNOWN_ENGINES]).toMatch(/^[0-9a-f]{64}$/);
   });
 });
