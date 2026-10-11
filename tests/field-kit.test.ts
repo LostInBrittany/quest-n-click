@@ -6,6 +6,7 @@ import { spawnSync } from 'node:child_process';
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { gunzipSync, gzipSync } from 'node:zlib';
 import { afterAll, describe, expect, it } from 'vitest';
 import { manualPasses } from '../scripts/release-notes.mjs';
 import {
@@ -16,11 +17,12 @@ import {
   main,
   renderPasses,
   sha256,
-  stageBundle,
   TAR,
   writePasses,
 } from '../tools/field/field';
+import { ATTESTATION, makeBundle, verifyBundle } from '../tools/field/bundle';
 import { type FieldReport, PASS_IDS } from '../tools/field/schema';
+import { BUDGET, readTarGz, writeTarGz } from '../tools/field/tar';
 import { hardSecrets, redact, reportLeaks } from '../tools/field/secrets';
 
 const temps: string[] = [];
@@ -243,41 +245,229 @@ describe('field:report', () => {
   });
 });
 
-describe('field:bundle', () => {
-  it('carries the report and its evidence, logs redacted, with the SHA-256 of what it carries', () => {
+describe('field:bundle (schema 2, 4.1.19)', () => {
+  it('carries the report, its evidence (logs redacted, under the path the report names) and the candidate manifest', () => {
     const dir = folder({
       'bridge-postgres-https': (r, d) =>
         passed(r, d, 'from 203.0.113.7 ops@example.org token=s3cr3tvalue Authorization: Bearer abcdefghijkl\nok\n'),
     });
-    const stage = tmp();
-    const { files, redacted } = stageBundle(join(dir, 'bridge-postgres-https.json'), stage);
-    expect(files).toEqual(['report.json', 'bundle-manifest.json', 'evidence/evidence/run.log']);
+    const { bytes, redacted } = makeBundle(join(dir, 'bridge-postgres-https.json'));
+    const files = readTarGz(bytes);
+    // 4.1.18's bundles wrote evidence/evidence/…: the path the report names, once.
+    expect([...files.keys()].sort()).toEqual(['bundle-manifest.json', MANIFEST, 'evidence/run.log', 'report.json']);
     expect(redacted.sort()).toEqual(['a bearer', 'a password or token value', 'an IPv4 address', 'an email address']);
-    const log = readFileSync(join(stage, 'evidence/evidence/run.log'), 'utf8');
+    const log = files.get('evidence/run.log')!.toString('utf8');
     expect(log).toBe('from <ip> <email> token=<redacted> Authorization: Bearer <redacted>\nok\n');
-    const m = JSON.parse(readFileSync(join(stage, 'bundle-manifest.json'), 'utf8'));
-    expect(m).toMatchObject({ passId: 'bridge-postgres-https', commit: SHA, candidateRun: '42' });
-    expect(m.files[0]).toMatchObject({ path: 'evidence/evidence/run.log', sha256: sha256(log) });
-    expect(m.report).toBe(sha256(readFileSync(join(stage, 'report.json'))));
+    const m = JSON.parse(files.get('bundle-manifest.json')!.toString('utf8'));
+    expect(m).toMatchObject({
+      schema: 2,
+      passId: 'bridge-postgres-https',
+      commit: SHA,
+      candidateRun: '42',
+      attestation: null,
+    });
+    expect(m.files[0]).toMatchObject({ path: 'evidence/run.log', sha256: sha256(log) });
+    expect(m.candidateManifest).toBe(sha256(files.get(MANIFEST)!));
+    // The same files give the same bytes.
+    expect(sha256(makeBundle(join(dir, 'bridge-postgres-https.json')).bytes)).toBe(sha256(bytes));
   });
 
   it('refuses a key or a token in the evidence, and evidence that is not the file the report names', () => {
     const keyed = folder({ 'bridge-postgres-https': (r, d) => passed(r, d, 'ghp_abcdefghijklmnopqrstuvwxyz0123\n') });
-    expect(() => stageBundle(join(keyed, 'bridge-postgres-https.json'), tmp())).toThrow(/a GitHub token: refused/);
+    expect(() => makeBundle(join(keyed, 'bridge-postgres-https.json'))).toThrow(/a GitHub token: refused/);
     const changed = folder({ 'bridge-postgres-https': passed });
     writeFileSync(join(changed, 'evidence/run.log'), 'other\n');
-    expect(() => stageBundle(join(changed, 'bridge-postgres-https.json'), tmp())).toThrow(
-      /not the file the report names/,
-    );
+    expect(() => makeBundle(join(changed, 'bridge-postgres-https.json'))).toThrow(/not the file the report names/);
   });
 
-  it('packs a tar.gz through `tar` (present on Linux, macOS and Windows)', () => {
+  it('field:bundle writes it; `tar` reads it on every system', () => {
     const dir = folder({ 'livesplit-obs': passed });
     const out = join(tmp(), 'b.tar.gz');
     expect(main(['bundle', `--report=${join(dir, 'livesplit-obs.json')}`, `--out=${out}`])).toBe(0);
     const list = spawnSync(TAR, ['-tzf', out], { encoding: 'utf8' }).stdout;
     expect(list).toContain('bundle-manifest.json');
-    expect(list).toContain('evidence/evidence/run.log');
+    expect(list).toContain('evidence/run.log');
+    expect(list).not.toContain('evidence/evidence');
+  });
+});
+
+describe('a bundle read by someone else (tar.ts): nothing but regular files, under budget', () => {
+  /** A one-entry tar.gz whose header is then changed (its type, its name), the checksum written again. */
+  function forged(name: string, type: string, body = Buffer.from('x')) {
+    const tar = gunzipSync(writeTarGz(new Map([[name, body]])));
+    tar.write(type, 156);
+    tar.write('        ', 148);
+    let sum = 0;
+    for (let i = 0; i < 512; i++) sum += tar[i]!;
+    tar.write(`${sum.toString(8).padStart(6, '0')}\0 `, 148);
+    return gzipSync(tar);
+  }
+  it('refuses links, devices, extended headers', () => {
+    for (const [type, why] of [
+      ['2', /symbolic link/],
+      ['1', /hard link/],
+      ['3', /device/],
+      ['6', /FIFO/],
+      ['x', /extended header/],
+    ] as const)
+      expect(() => readTarGz(forged('evidence/a.log', type)), type).toThrow(why);
+  });
+  it('refuses absolute paths, `..`, backslashes and a name twice', () => {
+    const raw = (name: string) => {
+      const tar = gunzipSync(writeTarGz(new Map([['placeholder', Buffer.from('x')]])));
+      tar.fill(0, 0, 100);
+      tar.write(name, 0);
+      tar.write('        ', 148);
+      let sum = 0;
+      for (let i = 0; i < 512; i++) sum += tar[i]!;
+      tar.write(`${sum.toString(8).padStart(6, '0')}\0 `, 148);
+      return gzipSync(tar);
+    };
+    for (const name of ['/etc/passwd', '../escape', 'evidence/../../x', 'evidence\\x', 'C:/x'])
+      expect(() => readTarGz(raw(name)), name).toThrow(/not a name a bundle may hold/);
+    const twice = gunzipSync(writeTarGz(new Map([['a', Buffer.from('1')]])));
+    const doubled = Buffer.concat([twice.subarray(0, 1024), twice]);
+    expect(() => readTarGz(gzipSync(doubled))).toThrow(/twice/);
+  });
+  it('refuses a file, a total or a count above its budget, and a gzip that inflates past it', () => {
+    const budget = { ...BUDGET, maxFileBytes: 10, maxTotalBytes: 15, maxEntries: 2 };
+    expect(() => readTarGz(writeTarGz(new Map([['a', Buffer.alloc(11)]])), budget)).toThrow(/more than 10/);
+    expect(() =>
+      readTarGz(
+        writeTarGz(
+          new Map([
+            ['a', Buffer.alloc(8)],
+            ['b', Buffer.alloc(8)],
+          ]),
+        ),
+        budget,
+      ),
+    ).toThrow(/once inflated/);
+    expect(() => readTarGz(writeTarGz(new Map(['a', 'b', 'c'].map((n) => [n, Buffer.alloc(1)]))), budget)).toThrow(
+      /more than 2 files/,
+    );
+    // A bomb: a few kilobytes that inflate to megabytes stop at the budget.
+    expect(() => readTarGz(gzipSync(Buffer.alloc(8 << 20)), budget)).toThrow(/budget/);
+  });
+});
+
+describe('field:verify-bundle', () => {
+  /** A `gh` that answers as GitHub would for run 42 (green candidate, attested), or as told. */
+  function fakeGh(o: { runId?: string; conclusion?: string; verifies?: boolean; manifest?: string } = {}) {
+    const d = tmp();
+    const bin = join(d, 'gh');
+    const statement = JSON.stringify([
+      {
+        verificationResult: {
+          statement: {
+            predicate: {
+              runDetails: {
+                metadata: {
+                  invocationId: `https://github.com/wanoo/web-scumm/actions/runs/${o.runId ?? '42'}/attempts/1`,
+                },
+              },
+            },
+          },
+        },
+      },
+    ]);
+    writeFileSync(join(d, 'statement.json'), statement);
+    writeFileSync(
+      join(d, 'run.json'),
+      JSON.stringify({
+        workflowName: 'candidate',
+        status: 'completed',
+        conclusion: o.conclusion ?? 'success',
+        event: 'workflow_dispatch',
+        headBranch: 'main',
+        headSha: SHA,
+      }),
+    );
+    writeFileSync(join(d, MANIFEST), o.manifest ?? JSON.stringify(manifest));
+    writeFileSync(
+      bin,
+      `#!/bin/sh\necho "$@" >> "${d}/calls"\ncase "$1 $2" in\n  "attestation verify") ${o.verifies === false ? 'echo "verification failed" >&2; exit 1' : `cat "${d}/statement.json"`} ;;\n  "run view") cat "${d}/run.json" ;;\n  "run download") shift 2; while [ "$1" != "-D" ]; do shift; done; mkdir -p "$2"; cp "${d}/${MANIFEST}" "$2/" ;;\n  *) exit 3 ;;\nesac\n`,
+      { mode: 0o755 },
+    );
+    return { gh: bin, calls: () => readFileSync(join(d, 'calls'), 'utf8') };
+  }
+  const bundled = (attest = false, edit?: (dir: string) => void) => {
+    const dir = folder({ 'livesplit-obs': passed });
+    if (attest)
+      writeFileSync(join(dir, ATTESTATION), '{"mediaType":"application/vnd.dev.sigstore.bundle.v0.3+json"}\n');
+    edit?.(dir);
+    return makeBundle(join(dir, 'livesplit-obs.json')).bytes;
+  };
+
+  it.skipIf(process.platform === 'win32')(
+    'offline: the attestation against a trusted root, nothing asked of GitHub',
+    () => {
+      const gh = fakeGh();
+      const v = verifyBundle(bundled(true), { offline: true, trustedRoot: '/roots/trusted-root.jsonl', gh: gh.gh });
+      expect(v.problems).toEqual([]);
+      expect(v.authenticity).toEqual({ level: 'attested', mode: 'offline', runId: '42' });
+      expect(gh.calls()).toContain('--custom-trusted-root /roots/trusted-root.jsonl');
+      expect(gh.calls()).not.toMatch(/run view|run download/);
+      // Without a trusted root, or without an attestation: integrity only, said so.
+      expect(verifyBundle(bundled(true), { offline: true, gh: gh.gh }).authenticity.level).toBe('unverified');
+      expect(verifyBundle(bundled(false), { offline: true, gh: gh.gh }).authenticity).toMatchObject({
+        level: 'unverified',
+        why: /before 4\.1\.19/,
+      });
+    },
+  );
+
+  it.skipIf(process.platform === 'win32')(
+    'an attestation of another run, or one that does not verify, is refused',
+    () => {
+      expect(
+        verifyBundle(bundled(true), { offline: true, trustedRoot: 'r', gh: fakeGh({ runId: '7' }).gh }).problems.join(),
+      ).toMatch(/names run 7/);
+      expect(() =>
+        verifyBundle(bundled(true), { offline: true, trustedRoot: 'r', gh: fakeGh({ verifies: false }).gh }),
+      ).toThrow(/does not verify/);
+    },
+  );
+
+  it.skipIf(process.platform === 'win32')(
+    'online: the run read now; without an attestation, the manifest the run keeps',
+    () => {
+      expect(verifyBundle(bundled(true), { gh: fakeGh().gh })).toMatchObject({
+        problems: [],
+        authenticity: { level: 'attested', mode: 'online' },
+      });
+      expect(verifyBundle(bundled(true), { gh: fakeGh({ conclusion: 'failure' }).gh }).problems.join()).toMatch(
+        /green candidate/,
+      );
+      expect(verifyBundle(bundled(false), { gh: fakeGh().gh })).toMatchObject({
+        problems: [],
+        authenticity: { level: 'run-manifest', runId: '42' },
+      });
+      const other = fakeGh({ manifest: JSON.stringify({ ...manifest, createdAt: '2026-10-11T00:00:00.000Z' }) });
+      expect(verifyBundle(bundled(false), { gh: other.gh }).problems.join()).toMatch(/not the manifest run 42 keeps/);
+    },
+  );
+
+  it('integrity: a file changed or added, a report of another candidate, are refused', () => {
+    const files = readTarGz(bundled());
+    const changed = new Map(files);
+    changed.set('evidence/run.log', Buffer.from('replayed: invalid\n'));
+    expect(verifyBundle(writeTarGz(changed), { offline: true }).problems.join()).toMatch(
+      /evidence\/run\.log: its SHA-256 differs/,
+    );
+    const added = new Map(files);
+    added.set('evidence/extra.log', Buffer.from('x'));
+    expect(verifyBundle(writeTarGz(added), { offline: true }).problems.join()).toMatch(/not named by the bundle/);
+    const other = new Map(files);
+    other.set(MANIFEST, Buffer.from(JSON.stringify({ ...manifest, sha: 'b'.repeat(40) })));
+    expect(verifyBundle(writeTarGz(other), { offline: true }).problems.join()).toMatch(/not the one the bundle names/);
+  });
+
+  it('field:check says when evidence passes what a bundle may carry', () => {
+    const dir = folder({
+      'livesplit-obs': (r, d) => passed(r, d, 'x'.repeat(BUDGET.maxFileBytes + 1)),
+    });
+    expect(checkDir(dir).problems.join()).toMatch(/more than 16777216/);
   });
 });
 

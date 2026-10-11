@@ -51,6 +51,9 @@ npm run field:init -- --release=4.1.18 --candidate=<run id>     # the thirteen r
 npm run field:check -- --dir=.cache/field/4.1.18                # schema, candidate, evidence SHA-256, leak scan
 npm run field:report -- --dir=.cache/field/4.1.18 --out=docs/dev/passes/4.1.18.md
 npm run field:bundle -- --report=<report.json> --out=<bundle.tar.gz>   # what a reproduction ticket carries
+npm run field:verify-bundle -- <bundle.tar.gz>                          # integrity, then authenticity on GitHub
+gh attestation trusted-root > trusted-root.jsonl                        # once, while online
+npm run field:verify-bundle -- <bundle.tar.gz> --offline --trusted-root=trusted-root.jsonl
 ```
 
 - **Four words, never merged**: `not-run`, `blocked`, `failed`, `passed`. Only `passed` is done in the release notes,
@@ -59,8 +62,10 @@ npm run field:bundle -- --report=<report.json> --out=<bundle.tar.gz>   # what a 
 - **What a pass tried says**: an operator (a pseudonym or a role, never an identity), when it started and finished, on
   what (OS, browser, device or versions) and the scenario. `passed` lists its evidence (each file's SHA-256 is
   checked) and no failure; `failed` says what failed; `blocked` says why in `notes`.
-- **Nothing private**: the schema refuses a field it does not name; a report holding a key, a token, an email address
-  or a bearer is refused. A bundle carries only the evidence its report lists: logs are redacted (addresses, bearers,
+- **Nothing private, as far as a scan can tell**: the schema refuses a field it does not name; a report holding a key,
+  a token, an email address or a bearer is refused. The leak scan is a hygiene barrier made of patterns, not a proof:
+  it cannot see a secret it has no pattern for, and in an image or a binary it looks for keys and tokens only. Read
+  what you attach. A bundle carries only the evidence its report lists: logs are redacted (addresses, bearers,
   password values, IPs), a key or a token refuses the bundle, and its `bundle-manifest.json` gives every file's
   SHA-256. Reports and small redacted evidence may be committed under `docs/dev/field/<version>/` (`npm run audit`
   reads them); bundles stay run artefacts.
@@ -70,7 +75,17 @@ npm run field:bundle -- --report=<report.json> --out=<bundle.tar.gz>   # what a 
 - **Integrity, not authenticity**: a report is checked against the `candidate-manifest.json` beside it, as given;
   `field:init` downloads it from the run itself (`gh run download`), and a folder whose manifest was edited checks
   against that edit. The release's own gate reads the run's manifest, never the folder's.
-- **Evidence is a file under `evidence/`**, read where it is: not a link, not outside the folder once resolved, not an
+- **A bundle stands on its own** (4.1.19, schema 2): it carries the report, its evidence, the candidate's manifest and,
+  from 4.1.19, the manifest's provenance attestation, which the candidate's gate signs after every job succeeded
+  (`field:init` downloads it beside the manifest). `field:verify-bundle` reads the archive itself under budgets (16 MiB
+  a file, 64 MiB in all, 256 files, 32 MiB compressed, one minute); a link, a device, an absolute path, a `..` or a
+  name twice refuses it. It then checks every file against the bundle's manifest and the report against its
+  candidate (integrity), and says who made the manifest (authenticity): offline, the attestation against a trusted root
+  saved once, which proves a `candidate.yml` run on main signed it and names the run; online, the attestation looked
+  up and the run read now (a candidate, green, started by hand on main). A bundle of an older candidate (no
+  attestation) is checked online against the manifest the run keeps; offline it is said unverified.
+- **Evidence is a file under `evidence/`** (at most 16 MiB, 64 MiB for one report; `field:check` says so before a
+  bundle is tried), read where it is: not a link, not outside the folder once resolved, not an
   archive (what is inside cannot be read for a leak), never a report or the manifest.
 - **Another commit, another pass**: a report of another candidate run, or whose file digests are not the candidate's,
   does not check. A fix that changes the package makes the reports it touches void until they are made again.
