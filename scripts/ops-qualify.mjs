@@ -209,6 +209,8 @@ function appTree() {
     { cwd: ROOT },
   );
   sh('tar', ['-xf', tar, '-C', dir]);
+  // The mount point of the modules: the tree is mounted read-only, so the folder must exist in it already.
+  mkdirSync(join(dir, 'node_modules'));
   return dir;
 }
 const SHORT = args.includes('--short');
