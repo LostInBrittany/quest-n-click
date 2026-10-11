@@ -83,7 +83,12 @@ describe('BRIDGE_STORE_FILE', () => {
   it('mounts the worker and its game read-only into the Bridges (4.1.19)', () => {
     const bridge = compose.slice(compose.indexOf('x-bridge:'), compose.indexOf('services:'));
     expect(bridge).toContain('${QUALIFY_APP:?ops:qualify sets QUALIFY_APP}:/srv/app:ro');
-    expect(readFileSync('scripts/ops-qualify.mjs', 'utf8')).toContain("'/srv/app/tools/speedrun/worker.ts'");
+    expect(bridge).toContain('${QUALIFY_MODULES:?ops:qualify sets QUALIFY_MODULES}:/srv/app/node_modules:ro');
+    const script = readFileSync('scripts/ops-qualify.mjs', 'utf8');
+    expect(script).toContain('cd /srv/app && exec node node_modules/tsx/dist/cli.mjs tools/speedrun/worker.ts');
+    // The committed tree of what the worker reads, never the checkout (its .git, its private folders).
+    expect(script).toMatch(/'archive',\s*'--format=tar'/);
+    expect(script).not.toMatch(/QUALIFY_APP: ROOT/);
   });
 
   it('names the store from a file, after --store= and BRIDGE_STORE, before the configuration', () => {

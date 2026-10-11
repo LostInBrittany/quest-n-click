@@ -65,7 +65,13 @@ and `grant`, brings everything up and checks, writing `ops-qualify.json`:
 
 What it does not do, said as such: the 24 to 48 hours behind a real domain are a person's pass; the verification
 worker here runs as the Bridge's child inside the Bridge's own confined container (`worker-container` judges the
-worker's own container profile); the volume is written in SQL, not submitted (each submission is a worker's run).
+worker's own container profile, and `tests/bridge-runs-worker.test.ts` a worker killed alone, its Bridge alive: the
+run answered `inconclusive`, never retried); here the whole instance is killed, worker included; the volume is
+written in SQL, not submitted (each submission is a worker's run).
+
+`--short` (the candidate's `deployment-smoke`) leaves out the long steps: the lease takeover, the quota's minute, the
+volume (200 runs instead of 20 000) and the 4.1.17 store; the `qualify` workflow runs them all. `--old-bridge=<tgz>`
+gives the 4.1.17 archive offline.
 
 **Rootful Docker.** The Bridges run as the operator's uid so they can read the tenants' files (mode 600): `ops:qualify`
 sets `QUALIFY_UID`/`QUALIFY_GID`; by hand, set them to your own (`id -u`, `id -g`), else 1000 is assumed. Rootless

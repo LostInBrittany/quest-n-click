@@ -21,4 +21,22 @@
     `doctor` and `migrate` report schema 4 with nothing to do. The two releases share schema 4.
 - Reads are polled every 1.5 s, because each instance gives one client address 60 anonymous requests a minute.
 
+- The second reading (an automated second context) found three checks that could pass while what they named was
+  false, plus a 4.1.17 step weaker than its title. All are fixed:
+  - **Daily token**: the token is a deterministic signature, so three instances agree even without a store. The check
+    now reads the `daily_kv` row, names the day, and compares that row before and after the restore.
+  - **Takeover**: counting rows on the primary key proved nothing. The check now reads the row under `bridge-1`'s
+    lease after the kill, retries if the run was verified before the kill, waits for `done` after the lease's end, and
+    requires exactly one `run.verified` from another instance.
+  - **Quota**: the per-address limit also answers 429. The check now requires the quota's own message and exactly
+    `perMinute` submissions allowed.
+  - **4.1.17 store**: the 4.1.17 code now writes real data, through its own `restore` of a schema 1 backup of tenant
+    a. This Bridge's `backup` then finds the tenant, its signals and the run.
+  - **The worker's code** is a `git archive` of what it reads, with the modules mounted beside it, instead of the
+    whole checkout. The job's token is no longer kept in `.git/config` (`persist-credentials: false`).
+  - **`--short`**: the candidate's `deployment-smoke` runs the profile without its long steps. `--old-bridge=` serves
+    offline runs. The download is retried with a timeout, the base image is pulled first, and the compose project name
+    is fixed.
+  - **Disclosed**: a worker killed alone, its Bridge alive, is `bridge-runs-worker`'s case, not this profile's.
+
 → next: Claude · the DSL checkpoint, then PR 3 (coverage truth)
