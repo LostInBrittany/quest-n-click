@@ -51,6 +51,8 @@ const step = (name, ok, detail = {}) => {
 const sh = (cmd, a, o = {}) => {
   const r = spawnSync(cmd, a, {
     encoding: 'utf8',
+    // A backup of 20 000 runs is megabytes on stdout: the default buffer (1 MiB) would kill the command.
+    maxBuffer: 1 << 28,
     stdio: o.input !== undefined ? ['pipe', 'pipe', 'pipe'] : ['ignore', 'pipe', 'pipe'],
     ...o,
   });
@@ -161,7 +163,9 @@ const moderator = randomBytes(24).toString('hex');
   const config = JSON.parse(readFileSync(file, 'utf8'));
   config.runs = {
     games: { reference: { dir: '/srv/app/games/reference', fingerprint } },
-    worker: ['node', '/srv/app/node_modules/tsx/dist/cli.mjs', '/srv/app/tools/speedrun/worker.ts'],
+    // From the checkout's root, as its container profile runs it (tools/speedrun/container.mjs): the Bridge gives a
+    // worker no working directory of its own.
+    worker: ['sh', '-c', 'cd /srv/app && exec node node_modules/tsx/dist/cli.mjs tools/speedrun/worker.ts'],
     workers: 1,
     perMinute: RUNS_PER_MINUTE,
     adminTokenFile: 'moderation.token',
@@ -508,6 +512,7 @@ try {
     verdict: done.json?.verdict,
     code: done.json?.code,
     trust: done.json?.trust,
+    reason: String(done.json?.reason ?? '').slice(0, 200),
   });
   const dup = await submit(PORT + 2, 'someone-else');
   step('the same run on another instance is a duplicate', dup.status === 409, { status: dup.status });
@@ -533,12 +538,26 @@ try {
   });
   dc(['pause', 'bridge-2', 'bridge-3']);
   const again = await submit(PORT + 1, 'resubmitted');
+  // Watched in the store, not over HTTP (each instance gives one address 60 requests a minute): verifying, leased.
+  const safeId = String(again.json?.id).replace(/[^\w-]/g, '');
   let claimed = false;
-  try {
-    claimed =
-      (await runOf(again.json?.id, PORT + 1, (r) => r.json?.status === 'verifying', 60)).json?.status === 'verifying';
-  } catch {
-    /* said below */
+  for (let i = 0; i < 300 && !claimed; i++) {
+    const row = dc(
+      [
+        'exec',
+        '-T',
+        'postgres',
+        'psql',
+        '-U',
+        'bridge',
+        '-tAc',
+        `SELECT status || '|' || COALESCE(lease_owner, '') FROM runs WHERE tenant_id = 'a' AND id = '${safeId}'`,
+      ],
+      { allowFail: true },
+    ).stdout.trim();
+    if (/^verifying\|.+/.test(row)) claimed = true;
+    else if (row.startsWith('done')) break;
+    else await sleep(100);
   }
   dc(['kill', 'bridge-1']);
   dc(['unpause', 'bridge-2', 'bridge-3']);
@@ -552,7 +571,7 @@ try {
     '-U',
     'bridge',
     '-tAc',
-    `SELECT COUNT(*) FROM runs WHERE tenant_id = 'a' AND id = '${String(again.json?.id).replace(/[^\w-]/g, '')}'`,
+    `SELECT COUNT(*) FROM runs WHERE tenant_id = 'a' AND id = '${safeId}'`,
   ]).stdout.trim();
   step(
     'a run whose instance was killed while it verified it is verified once by another instance',
