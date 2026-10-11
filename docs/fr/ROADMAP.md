@@ -599,6 +599,20 @@ par la baseline ; un script de liens. Laissé pour plus tard, dit comme tel : le
 (`docs/dev/passes/4.1.8.md`), l'accélération du workflow de release (son propre lot), les 845 lignes de l'onglet
 assistant.
 
+## v4.1.19 « Field Closure » (livrée en octobre 2026) : ce que la seconde lecture de la 4.1.18 laissait ouvert
+
+Aucune mécanique nouvelle (`docs/dev/PLAN-4.1.19-FIELD-CLOSURE.md`, D33, six pull requests et la release ; la fenêtre
+DSL n'a rien admis). La sauvegarde du Bridge est un seul instantané et sa restauration tout ou rien (schéma 3, ADR
+0021). Le Bridge et les connecteurs sont livrés avec leurs locks ; le candidat construit une fois l'image du Bridge,
+avec ses trois identités, et cinq SBOM CycloneDX que la release publie tels quels. Un bundle du Field Kit porte le
+manifeste attesté de son candidat et se vérifie à partir du seul bundle. Les ensembles de mutation sont nommés d'après
+ce qu'ils mutent (`connectors-pure` ; `connectors-edge` et `reality-store-postgres` mesurés) ; les quatre connecteurs
+sont joués depuis leurs archives ; la configuration Vite ne charge plus le Studio. Le profil de qualification couvre
+le classement : un worker tué en pleine vérification, un quota partagé, 20 000 runs, un store écrit par la 4.1.17. Le
+README est réécrit autour de trois promesses : créer un jeu comme des données, le façonner dans le Studio, le prouver
+et le livrer. Les passes humaines démarrent sur le candidat de cette release : le GO / NO-GO 4.2 reste NO-GO tant
+qu'elles ne sont pas faites.
+
 ## v4.1.18 « Dress Rehearsal » (livrée le 10 octobre 2026) : la répétition générale de la 4.2
 
 La dernière qualification avant la 4.2 « Stable World » (`docs/dev/PLAN-4.1.18-DRESS-REHEARSAL.md`, D32, quatre pull

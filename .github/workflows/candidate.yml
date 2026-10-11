@@ -408,6 +408,8 @@ jobs:
       contents: read
       id-token: write
       attestations: write
+      # The run's own jobs, read for the baseline's durations (4.1.19, plan §12.2).
+      actions: read
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     steps:
@@ -427,6 +429,15 @@ jobs:
         env:
           NEEDS: ${{ toJSON(needs) }}
         run: node tools/release/candidate.mjs gate | tee gate.txt
+      # The release's exact baseline (4.1.19, plan §12.2): read from this run's artifacts and jobs, nothing measured
+      # again; under candidate-release/baseline it enters the manifest, is attested with it and published by release.yml.
+      - name: The baseline of this candidate
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh api "repos/${{ github.repository }}/actions/runs/${{ github.run_id }}/jobs?per_page=100" > jobs.json || echo '{"jobs":[]}' > jobs.json
+          node tools/release/baseline.mjs --dir=artifacts --sha=${{ needs.target.outputs.sha }} --run=${{ github.run_id }} --jobs=jobs.json --out=artifacts/candidate-release/baseline
+          cat artifacts/candidate-release/baseline/*.md >> "$GITHUB_STEP_SUMMARY"
       - name: The manifest of this candidate
         run: |
           # The packages beside the runs (4.1.18): one manifest, one SHA-256 per file the release publishes.
@@ -479,6 +490,12 @@ jobs:
         uses: actions/attest-build-provenance@e8998f949152b193b063cb0ec769d69d929409be # v2
         with:
           subject-path: candidate-manifest.json
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: candidate-baseline
+          path: artifacts/candidate-release/baseline
+          if-no-files-found: error
+          overwrite: true
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           name: candidate-manifest
