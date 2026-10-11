@@ -16,3 +16,31 @@ export function upgradeSource(from, exists) {
     throw new Error(`--from=${from}: not a version, "previous" or a .tgz`);
   return { kind: 'release', tag: `v${v}`, asset: `web-scumm-${v.replace(/-.*$/, '')}.tgz`, version: v };
 }
+
+/**
+ * The SHA-256 a release's sums file gives an asset (4.1.19: the older engine is checked against its release's own
+ * `web-scumm-<tag>-SHA256SUMS`, never trusted because a URL answered). Throws when the file does not name it once.
+ */
+export function sumFor(sums, asset) {
+  const found = String(sums)
+    .split(/\r?\n/)
+    .map((l) => /^([0-9a-f]{64}) [ *]?(.+)$/.exec(l.trim()))
+    .filter((m) => m && m[2] === asset);
+  if (found.length !== 1)
+    throw new Error(`${asset}: ${found.length ? 'named twice' : 'not named'} in the release's sums`);
+  return found[0][1];
+}
+
+/** The sums file of a release tag (`v4.1.16`, `v4.1.18-rc.1`). */
+export const sumsAsset = (tag) => `web-scumm-${tag}-SHA256SUMS`;
+
+/**
+ * The SHA-256 of the older engines the candidate creates games on (4.1.19, plan §7.4), written here once read from
+ * their releases: the release's sums file is the same host as the tarball (integrity), this list is not (a release
+ * changed after the fact is refused).
+ */
+export const KNOWN_ENGINES = {
+  'v4.1.16': 'bcebeeb68ef85efa0866442f4fd9085be6cceb5f7fefa1cdd88d1e1e9b9feb9b',
+  'v4.1.17': 'eb63041433fb1af65a9faad928488ead74a963c5ba06ca3027cbca5c644a995c',
+  'v4.1.18-rc.1': 'bbe54b8593ff4fb09bb0091633805ed47cfad6e7c02eaddaa65afcb37b478836',
+};
