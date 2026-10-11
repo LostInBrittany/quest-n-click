@@ -4,9 +4,9 @@
 import { readFileSync, readlinkSync } from 'node:fs';
 import { basename, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
-import type { GameDef, Layout } from '../src/engine/core/types';
-import type { Minigame } from '../src/engine/minigames/types';
-import type { CustomCommands } from '../src/engine/core/custom';
+import type { GameDef, Layout } from '../src/engine/core/types.ts';
+import type { Minigame } from '../src/engine/minigames/types.ts';
+import type { CustomCommands } from '../src/engine/core/custom.ts';
 
 // import.meta.url (not import.meta.dirname): vite.config.ts bundles this file and only rewrites import.meta.url.
 export const ROOT = resolve(fileURLToPath(new URL('.', import.meta.url)), '..');

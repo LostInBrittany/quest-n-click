@@ -9,7 +9,7 @@ if (at > 0 && process.argv[at + 1]) process.env.GAME = process.argv[at + 1];
 const asJson = process.argv.includes('--json');
 
 const { GAME_DIR, loadGameModule } = await import('./game');
-const { gameIR } = await import('./extensions');
+const { gameIR } = await import('./game-ir');
 const mod = await loadGameModule();
 const ir = gameIR(mod, resolve(GAME_DIR));
 

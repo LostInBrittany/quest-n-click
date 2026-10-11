@@ -604,7 +604,7 @@ assistant.
 La dernière qualification avant la 4.2 « Stable World » (`docs/dev/PLAN-4.1.18-DRESS-REHEARSAL.md`, D32, quatre pull
 requests et la release). Aucune mécanique nouvelle. Les passes humaines deviennent des rapports liés au candidat
 essayé (le Field Kit : `npm run field:check` et ses voisines), chacune une issue `field-pass` ouverte que le mainteneur ferme une fois
-faite. `connectors` et `reality-store` deviennent des ensembles de mutation bloquants (322 survivants lus ; un bug de
+faite. `connectors` et `reality-store` (les parties pures des connecteurs et les stores sur lesquels repose l'adaptateur Postgres, dit exactement depuis la 4.1.19) deviennent des ensembles de mutation bloquants (322 survivants lus ; un bug de
 retour arrière SSH trouvé). Le candidat emballe une fois les quatre archives, les installe hors du dépôt sous Ubuntu,
 macOS et Windows (un jeu 4.1.17 mis à niveau, le Bridge et un scénario de connecteur depuis leurs archives ; deux bugs
 Windows du package trouvés et corrigés) et la release publie ces fichiers mêmes. Le Bridge a un profil de

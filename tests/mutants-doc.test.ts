@@ -4,7 +4,7 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { type KnownSurvivor, withSurvivorsTable } from '../tools/mutate';
-import { SETS } from '../tools/mutation-sets';
+import { GATED, MEASURED, SETS, setNamed } from '../tools/mutation-sets';
 
 const known = JSON.parse(readFileSync('docs/dev/mutants.json', 'utf8')) as KnownSurvivor[];
 
@@ -26,5 +26,19 @@ describe('the named survivors', () => {
         expect(lines, `${k.file}: the line "${k.context}" moved or changed`).toContain(k.context);
       }
     }
+  });
+
+  it('MUTANTS.md names every set, gated or measured, and no set is both (4.1.19, plan §8.1)', () => {
+    const doc = readFileSync('docs/dev/MUTANTS.md', 'utf8');
+    for (const s of Object.keys(SETS)) expect(doc, s).toContain(`| \`${s}\``);
+    for (const s of GATED) expect(MEASURED, s).not.toContain(s);
+    expect([...GATED, ...MEASURED].sort()).toEqual(Object.keys(SETS).sort());
+  });
+
+  it('`connectors` still names `connectors-pure` until 4.2; a name that is no set is refused', () => {
+    expect(setNamed('connectors')).toBe('connectors-pure');
+    expect(setNamed('connectors-pure')).toBe('connectors-pure');
+    expect(setNamed('all')).toBe('all');
+    expect(() => setNamed('connector')).toThrow(/no mutation set "connector"/);
   });
 });
