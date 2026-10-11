@@ -52,6 +52,9 @@ npm run field:init -- --release=4.1.18 --candidate=<run id>     # les treize rap
 npm run field:check -- --dir=.cache/field/4.1.18                # schéma, candidat, SHA-256 des preuves, recherche de fuites
 npm run field:report -- --dir=.cache/field/4.1.18 --out=docs/dev/passes/4.1.18.md
 npm run field:bundle -- --report=<report.json> --out=<bundle.tar.gz>   # ce que porte un ticket de reproduction
+npm run field:verify-bundle -- <bundle.tar.gz>                          # intégrité, puis authenticité sur GitHub
+gh attestation trusted-root > trusted-root.jsonl                        # une fois, en ligne
+npm run field:verify-bundle -- <bundle.tar.gz> --offline --trusted-root=trusted-root.jsonl
 ```
 
 - **Quatre mots, jamais confondus** : `not-run`, `blocked`, `failed`, `passed`. Seul `passed` compte comme fait dans
@@ -60,8 +63,10 @@ npm run field:bundle -- --report=<report.json> --out=<bundle.tar.gz>   # ce que 
 - **Ce que dit une passe essayée** : un opérateur (pseudonyme ou rôle, jamais une identité), son début et sa fin, sur
   quoi (OS, navigateur, appareil ou versions) et le scénario. `passed` liste ses preuves (le SHA-256 de chaque fichier
   est vérifié) et aucun échec ; `failed` dit ce qui a échoué ; `blocked` dit pourquoi dans `notes`.
-- **Rien de privé** : le schéma refuse un champ qu'il ne nomme pas ; un rapport qui contient une clé, un token, une
-  adresse email ou un bearer est refusé. Un bundle ne porte que les preuves listées par son rapport : les logs sont
+- **Rien de privé, autant qu'une recherche peut le dire** : le schéma refuse un champ qu'il ne nomme pas ; un rapport
+  qui contient une clé, un token, une adresse email ou un bearer est refusé. La recherche de fuites est une barrière
+  d'hygiène faite de motifs, pas une preuve : elle ne voit pas un secret sans motif, et dans une image ou un binaire
+  elle ne cherche que des clés et des tokens. Relire ce qu'on joint. Un bundle ne porte que les preuves listées par son rapport : les logs sont
   expurgés (adresses, bearers, valeurs de mot de passe, IP), une clé ou un token refuse le bundle, et son
   `bundle-manifest.json` donne le SHA-256 de chaque fichier. Les rapports et les petites preuves expurgées peuvent être
   committés sous `docs/dev/field/<version>/` (`npm run audit` les lit) ; les bundles restent des artefacts de run.
@@ -71,7 +76,18 @@ npm run field:bundle -- --report=<report.json> --out=<bundle.tar.gz>   # ce que 
 - **Intégrité, pas authenticité** : un rapport est vérifié contre le `candidate-manifest.json` posé à côté, tel quel ;
   `field:init` le télécharge depuis le run lui-même (`gh run download`), et un dossier dont le manifeste a été modifié se
   vérifie contre cette modification. La gate de la release lit le manifeste du run, jamais celui du dossier.
-- **Une preuve est un fichier sous `evidence/`**, lu là où il est : pas un lien, pas hors du dossier une fois résolu,
+- **Un bundle se suffit à lui-même** (4.1.19, schéma 2) : il porte le rapport, ses preuves, le manifeste du candidat
+  et, depuis la 4.1.19, l'attestation de provenance de ce manifeste, que la vérification finale du candidat signe une
+  fois chaque job réussi (`field:init` la télécharge à côté du manifeste). `field:verify-bundle` lit l'archive lui-même
+  sous des limites (16 Mio par fichier, 64 Mio en tout, 256 fichiers, 64 Mio compressés, une minute, appels à GitHub compris) ; un lien, un
+  périphérique, un chemin absolu, un `..` ou un nom en double le refuse. Il vérifie ensuite chaque fichier contre le
+  manifeste du bundle et le rapport contre son candidat (intégrité), puis dit qui a fait le manifeste (authenticité) :
+  hors ligne, l'attestation contre une racine de confiance enregistrée une fois, qui prouve qu'un run de
+  `candidate.yml` sur main l'a signée et nomme ce run ; en ligne, la même attestation vérifiée contre la racine de
+  confiance publique, et le run lu maintenant (un candidat vert, lancé à la main sur main). Le bundle d'un candidat plus ancien (sans attestation) se vérifie en ligne
+  contre le manifeste que garde le run ; hors ligne il est dit non vérifié.
+- **Une preuve est un fichier sous `evidence/`** (16 Mio au plus, 64 Mio pour un rapport ; `field:check` le dit avant
+  qu'un bundle soit tenté), lu là où il est : pas un lien, pas hors du dossier une fois résolu,
   pas une archive (son contenu ne peut pas être fouillé), jamais un rapport ni le manifeste.
 - **Autre commit, autre passe** : un rapport d'un autre candidate run, ou dont les empreintes ne sont pas celles du
   candidat, ne passe pas la vérification. Un correctif qui change le package rend caducs les rapports qu'il touche

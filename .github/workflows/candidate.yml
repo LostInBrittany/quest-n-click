@@ -422,6 +422,11 @@ jobs:
     needs: [target, release-core, heavy, bridge-load-sqlite, bridge-load-postgres, cross-runtime, worker-container, mutation, pack, image, external-consumer, connector-archive-e2e, deployment-smoke]
     # A pull request without `full-ci` skips `target`: then there is no candidate to judge, and no red check either.
     if: always() && needs.target.result != 'skipped'
+    # The manifest's provenance attestation (4.1.19, plan §6.5): only this job may sign, and only the manifest.
+    permissions:
+      contents: read
+      id-token: write
+      attestations: write
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     steps:
@@ -486,6 +491,13 @@ jobs:
             echo '### Artifacts missing'
             for a in candidate-release candidate-pack candidate-sbom candidate-image heavy-1 heavy-2 heavy-3 bridge-load-sqlite bridge-load-postgres; do [ -d "artifacts/$a" ] || echo "- $a"; done
           } >> "$GITHUB_STEP_SUMMARY"
+      # Who wrote the manifest (4.1.19, plan §6.5): signed by this run, after every job succeeded. A Field Kit bundle
+      # carries the attestation, so anyone can check it offline (npm run field:verify-bundle).
+      # A pull request's run (full-ci) is information only: never attested, so no bundle can stand on it.
+      - if: github.event_name == 'workflow_dispatch'
+        uses: actions/attest-build-provenance@e8998f949152b193b063cb0ec769d69d929409be # v2
+        with:
+          subject-path: candidate-manifest.json
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           name: candidate-manifest

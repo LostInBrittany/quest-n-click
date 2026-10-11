@@ -23,6 +23,7 @@ import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync } from 'node:f
 import { join } from 'node:path';
 import { checkAncestry } from './ancestry.mjs';
 import { candidateOf, requiresCandidate, tagMessage } from './candidate.mjs';
+import { candidateRunProblem, queryRun, readCandidateManifest, verifyAttestation } from './provenance.mjs';
 import {
   gh,
   ghJson,
@@ -215,20 +216,14 @@ async function main(sha) {
  */
 function verifyCandidate(runId, full) {
   if (!/^\d+$/.test(runId ?? '')) throw new Error(`--candidate=<run id> is required: ${runId ?? 'none given'}`);
-  const r = ghJson(['run', 'view', runId, '--json', 'workflowName,status,conclusion,event,headBranch']);
-  if (r.workflowName !== 'candidate') throw new Error(`run ${runId} is a ${r.workflowName} run, not a candidate run`);
-  // A pull request's run (full-ci) or a run started from another branch judges that branch's copy of candidate.yml.
-  if (r.event !== 'workflow_dispatch' || r.headBranch !== 'main')
-    throw new Error(
-      `candidate run ${runId} is a ${r.event} run on ${r.headBranch}: a tag names one started by hand on main`,
-    );
-  if (r.status !== 'completed' || r.conclusion !== 'success')
-    throw new Error(`candidate run ${runId}: ${r.status} ${r.conclusion ?? ''}; a tag stands on a green candidate`);
+  // tools/release/provenance.mjs (4.1.19): the same contract the Field Kit's bundles are verified with.
+  const why = candidateRunProblem(queryRun(runId), runId);
+  if (why) throw new Error(why);
   const dir = join('.cache', 'candidate', runId);
   rmSync(dir, { recursive: true, force: true }); // `gh run download` never overwrites a file a previous attempt left
   mkdirSync(dir, { recursive: true });
   gh(['run', 'download', runId, '-n', 'candidate-manifest', '-D', dir]);
-  const m = JSON.parse(readFileSync(join(dir, 'candidate-manifest.json'), 'utf8'));
+  const m = readCandidateManifest(readFileSync(join(dir, 'candidate-manifest.json'), 'utf8'));
   if (m.sha !== full) throw new Error(`candidate run ${runId} tested ${m.sha}, not ${full}`);
   if (m.candidateRunId !== runId) throw new Error(`the manifest of run ${runId} names run ${m.candidateRunId}`);
   say(`candidate run ${runId}: green on ${full.slice(0, 12)}, ${m.artifacts.length} files in its manifest`);
@@ -348,7 +343,7 @@ async function verify(versionArg) {
   if (/FAILED/.test(check)) throw new Error(`${name}: a checksum failed`);
   let attested = 0;
   for (const f of files) {
-    run('gh', ['attestation', 'verify', join(dir, f), '--repo', REPO]);
+    verifyAttestation(join(dir, f), { repo: REPO });
     attested++;
   }
   say(`${name}: ${files.length} files, sums ok, ${attested} attestations verified`);
