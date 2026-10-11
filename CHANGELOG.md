@@ -1,5 +1,128 @@
 # Changelog
 
+## 4.1.19 — 2026-10-11
+
+"Field Closure" (LOG #168): no new mechanic; it closes what 4.1.18's second reading found. A Bridge backup is one
+snapshot and a restore all or nothing (schema 3, ADR 0021). The Bridge and the connectors ship with their locks; the
+candidate builds the Bridge's image once, with its three identities, and five CycloneDX SBOMs, and the release
+publishes them as made, with the baseline the candidate wrote of itself. A Field Kit bundle carries its candidate's
+attested manifest and is checked from the bundle alone. Mutation sets are named for what they mutate; the four
+connectors are played from their archives; the qualification profile covers the leaderboard. The README is rewritten
+around three promises (create as data, the Studio, prove and ship) and its quick start is played from the candidate's
+archive. The DSL window (D33) admitted nothing. [GO / NO-GO 4.2](docs/dev/GO-NO-GO-4.2.md): NO-GO, the people's
+passes start on this release's candidate. The tag is not signed and nothing is published to npm (D30, D18).
+
+### Breaking
+
+- **`restore` into the JSON-lines journal is refused** (4.1.19): it could not be done all or nothing (`--force` used
+  to delete then fail). Migrate the journal to SQLite (`migrate --from=jsonl --to=sqlite`), then restore.
+
+### Fixed
+
+- **The connector SDK no longer calls an answering Bridge unreachable** (4.1.19): a body `null` (or any JSON that is not
+  an object) used to throw while it was read, and the proposal was retried then refused `unreachable`. It now reads
+  as an empty answer. An acceptance without a valid sequence is sent again with the same key; if the Bridge never
+  gives the sequence, the refusal is `bridge`. The log line is `signal.malformed-answer`.
+- **The terminal connectors keep UTF-8 whole** (4.1.19): a continuation byte that continues nothing, or a byte that
+  never begins a character, is dropped. A backspace after one no longer erased a column of the prompt. A character
+  split between two network chunks stays whole.
+- **The live RTA after a resume starts at 0 when the run had not started** (4.1.19): it used to count from the resume.
+  Whether it had started is read from the replayed tape. Logical times, `.wsrun` and `rulesVersion` are unchanged.
+
+### Changes
+
+- **4.1.19 "Field Closure" planned** (4.1.19): `docs/dev/PLAN-4.1.19-FIELD-CLOSURE.md` (French) and D33. It closes
+  what 4.1.18's second reading found: the Bridge's backup and restore, reproducible images and SBOMs, a Field bundle
+  that can be checked on its own, mutation sets named for what they cover, and a baseline measured on the tagged SHA.
+  The DSL keeps every existing name and meaning; additive elements may enter through a gate before the coverage PR.
+
+- **A Bridge backup is one snapshot; a restore is all or nothing** (4.1.19, ADR 0021). `backup` writes schema 3: every
+  tenant, run and daily record read in one read-only transaction, an envelope naming the backend, the Bridge and SQL
+  schema versions, the counts and a SHA-256 of the payload, bounded (`--max-rows`, `--max-bytes`) and written to a
+  temporary file then renamed. `restore` reads the file bounded, checks every row before opening the store (schemas 1,
+  2 and 3), then writes tenants, runs and daily records in one transaction compared with the file before it commits:
+  a failed restore leaves the store as it was and says "nothing restored". A daily record already held is now a
+  conflict (refused without `--force`, replaced with it) instead of being kept silently.
+
+- **`external-consumer` checks the older engine against its release's sums and a SHA-256 it knows** (4.1.19). The candidate creates a game on
+  4.1.17, on 4.1.16, and on the pre-release 4.1.18-rc.1, then moves it to the candidate.
+
+- **The Bridge and the connectors ship with their lock** (4.1.19): `npm-shrinkwrap.json` inside each archive, made
+  from locks kept in the repository (`scripts/locks/`, `npm run locks`, every version the root lock's). An install
+  of either archive resolves nothing. A lock that no longer fits its manifest stops the pack.
+- **The Bridge's qualification image is reproducible and traceable** (4.1.19):
+  - `npm ci` from the image's own lock, with `pg` and OpenTelemetry's API at exact versions;
+  - built once by the candidate and saved with its config digest, OCI manifest digest and archive SHA-256;
+  - loaded and checked by `deployment-smoke` (`ops:qualify --image-from=`), then published by the release as it was
+    qualified, with its identities and SBOM.
+- **Five CycloneDX SBOMs, made by the candidate** (4.1.19): one each for the engine, `create-web-scumm`, the Bridge,
+  the connectors and the image. Each is made from what its archive holds, and the release no longer installs anything
+  to make one. `web-scumm-<tag>-sbom.cdx.json` keeps its name but now describes the engine package (its dependencies
+  as a game installs them, Vite and its tools included), no longer the repository root's five runtime dependencies. The
+  image's SBOM names the Bridge and its base image too.
+- **The qualification proxy runs unprivileged** (4.1.19): Caddy runs as the operator's uid, read-only, with bounded
+  tmpfs. The worker's image is pulled by its digest.
+
+- **A Field Kit bundle can be checked by someone who holds only the bundle** (4.1.19, schema 2). It now carries the
+  candidate's manifest and that manifest's provenance attestation, which the candidate's gate signs from 4.1.19.
+  `npm run field:verify-bundle` reads the archive itself under budgets: links, devices, `..` and absolute paths
+  refused, at most 16 MiB a file and 64 MiB in all. It checks every file and the report against its candidate, then
+  says who made the manifest: offline against a trusted root saved once, or online by the attestation and the run read
+  now.
+- **Bundled evidence keeps the path its report names** (4.1.19): 4.1.18 wrote `evidence/evidence/…`.
+- **Evidence is bounded** (4.1.19): `field:check` says when a file or a report's evidence passes what a bundle may
+  carry.
+- **FIELD (en/fr) says the leak scan is a hygiene barrier, not a proof** (4.1.19).
+- **`ship` and the Field Kit share one provenance contract** (4.1.19, `tools/release/provenance.mjs`): the manifest
+  read strictly, digests, attestation (offline or online) and the run.
+
+- **The Bridge's qualification profile covers the leaderboard too** (4.1.19, `npm run ops:qualify`, `ops/qualify/`). It
+  now checks, in the HTTPS, three-instance, Postgres topology:
+  - Daily and Mystery across instances;
+  - a run verified by the speedrun worker, its duplicate refused, and moderation by a token file;
+  - an instance killed while its worker verifies, with the run taken by another instance and verified once;
+  - one submission quota shared by the three instances;
+  - the board after 20 000 runs;
+  - a schema 3 backup with runs and daily records, restored after the topology and its database are destroyed;
+  - a store made by the published 4.1.17 Bridge, read by this one.
+
+- **Mutation sets named for what they mutate** (4.1.19).
+  - `connectors` becomes `connectors-pure`: the SDK, the MIME reader, the line editor, the virtual disk, and the badge
+    crypto and fetch. The old name still works until 4.2.
+  - Two new sets, measured every night but gating nothing yet: `connectors-edge` (configuration, email, badge
+    verification, the terminal's guard and shell, SSH, Telnet) and `reality-store-postgres` (the Postgres adapter).
+  - MUTANTS, TOOLS and ROADMAP now say exactly what each set covers.
+- **The four connectors are played from their archive** (4.1.19, `npm run connector-archive-e2e`, a candidate job):
+  - email by webhook and by IMAP;
+  - Telnet, with UTF-8 and an over-long line;
+  - SSH, with a backspace, the virtual disk and a wrong password;
+  - Open Badge, with a valid `did:key` credential, an invalid one and a private address refused.
+- **The Vite configuration no longer loads the Studio** (4.1.19). The dev server loads the Studio itself, and the demo
+  snapshot is built in a process of its own.
+  - The configuration loads 7 modules besides itself, instead of the whole Studio and engine.
+  - Vite's 500 warnings about imports without a file extension are gone.
+  - Where Node strips types, the native configuration loader can load it.
+  - The player's bundle is the same, byte for byte.
+- **Known flakes are now observed, not retried blind** (4.1.19):
+  - an SSH test key pair is checked whole, and kept when refused;
+  - a browser error now reports its kind, stack, page and arguments;
+  - Biscuit's first call is warmed up and each verdict is timed.
+- `external-consumer` and the new archive script share `scripts/lib/archive-harness.mjs`. Each step has an id and a
+  duration, and a failure names the step and the command that reproduces it.
+
+- **The README rewritten around three promises** (4.1.19): create a game as data, shape it in the Studio, prove and
+  ship it. The first screen is the game, the Studio and a quick start; Reality, Remix and speedrun come after.
+  - Captures of this release from the real player and Studio (`docs/img/readme/4119-*`, `npm run docs:screenshots`).
+  - A maturity table that agrees with SUPPORT and the GO / NO-GO (`tests/readme-truth.test.ts`).
+  - The quick start names Python 3 with Pillow, which `npm run assets` needs; `npx web-scumm doctor` replaces an
+    `npm run doctor` that a created game does not have.
+- **The README's quick start is played from the candidate's archive** (4.1.19, `npm run readme-quickstart`, a
+  candidate job): its lines as written, in a folder outside the repository. After the tag, `--published` checks that
+  the README's URL answers with the SHA-256 the release lists.
+- **The release publishes the baseline its candidate wrote** (4.1.19, `tools/release/baseline.mjs`):
+  `web-scumm-<tag>-baseline.json` and `.md`, read from the candidate's own jobs, in its manifest and attested. A
+  measure the candidate did not make is written as such.
+
 ## 4.1.18 — 2026-10-10
 
 "Dress Rehearsal" (LOG #160): no new mechanic; the rehearsal of 4.2 "Stable World". The people's passes become

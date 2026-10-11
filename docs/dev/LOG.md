@@ -3880,3 +3880,324 @@ sources; the recorder's live RTA counts from a resume before the run's start (it
 → next: the maintainer · the thirteen `field-pass` issues; then Claude · the field fixes (`fix/4118-field-<id>`) and
   4.2.0 "Stable World" once the GO / NO-GO turns
 
+## #161 · 2026-10-11 · Claude · proposal · 4.1.19 "Field Closure": the plan in Git, D33
+
+- The maintainer's goal of 11 October: "release 4.1.19". The plan `docs/dev/PLAN-4.1.19-FIELD-CLOSURE.md` (French,
+  the source; revision 3) was checked against `c00d0e8` and read three times by the maintainer. The checks found:
+  the backup's tenant exports are concurrent (`Promise.all`, one Postgres snapshot each), not sequential; a restore
+  into the JSONL store cannot succeed; every Field bundle writes `evidence/evidence/`; `external-consumer` plays the
+  email webhook only; the 4.1.18 baseline measures candidate 38047300736 (PR #73); and the plan said SPDX where the
+  releases publish CycloneDX.
+- The maintainer's readings changed the plan:
+  - the passes start only on the final candidate, because any later commit that changes an archive voids a Field
+    report;
+  - the DSL window is additive, closes before the coverage PR's branch, and admits a primitive complete or not at
+    all;
+  - compatibility is judged on results, and `schemaVersion` stays 3 only by default;
+  - the Bridge and connectors locks are dedicated and versioned, so `pack` resolves nothing;
+  - one `tools/release/provenance.mjs` is shared by `ship` and the Field Kit;
+  - ADR 0021 and 0022 are reserved;
+  - a red nightly is classified before it opens a 4.1.20.
+- This PR commits the plan; it is byte-identical to the read copy (SHA-256
+  `fb687c3e…`) before the second reading's amendments, which this PR's diff shows. From now on only the copy in Git counts.
+
+→ next: Claude · PR 1 (backup/restore), PR 2 (artefacts and Field Kit), PR 4 (leftovers and RTA) in parallel; the
+  DSL checkpoint before PR 3
+
+
+## #162 · 2026-10-11 · Claude · proposal · 4.1.19 PR 1: the backup is one snapshot, the restore all or nothing (ADR 0021)
+
+- Plan §5. The 4.1.18 defects were reproduced by the new tests: tenant exports run concurrently (one Postgres snapshot
+  each), then runs and daily records in a later transaction; a restore wrote each tenant in its own transaction, then
+  the runs; a JSONL restore could not succeed; the file was cast unchecked, read whole and written in place.
+- `bridge/src/backup.ts`, an operator's capability over `SqlRealityStore`. `RealityStore` does not grow.
+  - **Backup schema 3**: one read-only transaction and one envelope (backend, versions, start and end, counts, SHA-256
+    of the canonical payload). Rows are counted before loading, and the size is bounded. The file is written to a
+    temporary file and renamed.
+  - **Restore**: the file is read bounded with `fstat` and checked by a strict zod schema for schemas 1, 2 and 3,
+    including relations and the digest. The columns written come from the Bridge's own list. Every conflict is found
+    before the first write. Everything is written in one transaction and compared with the file before the commit; an
+    audit follows the commit (exit code 3 means P0).
+  - **The journal** is refused before it is touched.
+- `store-sql.ts`: `exportTenantIn` and `importTenantIn` take the caller's transaction.
+- The `migrations.ts` `>`→`>=` equivalent is killed by a test that counts transactions, and removed from
+  `mutants.json`.
+- `tests/bridge-backup.test.ts` covers:
+  - the round trip, conflicts and `--force`;
+  - a late database error that undoes the tenants already written;
+  - a read-back difference that rolls back;
+  - a writer that commits a run and its daily record together while backups run;
+  - the bounds, links, the atomic write, a forged digest, counts, columns, types, duplicates and relations;
+  - schemas 1 and 2, including a Postgres BIGINT given as text;
+  - the journal refused.
+- It runs on SQLite, and on Postgres in CI's `bridge-postgres` job, one database per case.
+
+- The second reading (an automated second context) found eight defects, all fixed:
+  - **The read-back compared the database's order.** Under a non-C collation (en_US, the default of most Postgres),
+    a real leaderboard would have failed every restore. Both sides are now ordered by code unit, and so is the
+    backup itself: the same store gives the same file from SQLite and from Postgres. The tests now create their
+    Postgres databases in en_US, with mixed-case ids.
+  - **A schema 1 file deleted leaderboards it never knew of under `--force`.** Only files that carry runs now speak
+    for their tenants' runs.
+  - **The `IN` lists were not chunked.** They now go in chunks of 500.
+  - **An audit difference was announced as a P0 whatever its cause.** REALITY-OPS now says to stop the Bridge
+    during a restore, and the audit's own failure is caught.
+  - **A lost answer to the COMMIT was said as "rolled back".** It is now said as unknown, with exit code 3.
+  - **`--max-bytes=abc` disabled the bound.** A bound must now be a positive integer, otherwise the exit code is 2.
+  - **The file read could follow a swapped link.** It is now opened with `O_NOFOLLOW` and its `ino` and `dev` are
+    compared.
+  - **Text caps were narrower than what produces the rows.** They were widened, and `envelope` is now bounded by the
+    file.
+
+→ next: Claude · PR 2 (artefacts and Field Kit), PR 4 (leftovers)
+
+
+## #163 · 2026-10-11 · Claude · proposal · 4.1.19 PR 4: the reviewers' leftovers and the RTA after a resume
+
+- Plan §7. Each fault from the 4.1.18 handout §4 was reproduced first.
+- **Connector SDK** (`connectors/src/sdk.ts`): only an object counts as an answer. A body `null` used to throw in
+  `r.json.sequence`, so it was retried as a lost connection and refused `unreachable`. A 2xx whose sequence is not a
+  positive safe integer is retried with the same key: the Bridge's `duplicate` gives the sequence, otherwise the
+  refusal is `bridge`.
+- **Terminal line editor** (`connectors/src/terminal/line.ts`): a stray continuation byte, and the bytes `0xC0`,
+  `0xC1` and `0xF8`–`0xFF`, are dropped. The buffer itself is the state, so a character split across chunks stays
+  whole. A backspace takes a column back only for a character that was shown.
+- **Recorder** (`speedrun/recorder.ts`): a run resumed before its start shows an RTA of 0 until the start. Whether
+  the run had started is read from the replayed tape (the split tracker), not from a flag in the chunk's head: the
+  second reading found a start in the very link that closes a chunk recorded as not started, which stopped the RTA
+  for good. The logical times are untouched. The excluded RTA intervals now start from the run's start, as on a run
+  never interrupted.
+- **Older engine**: `external-consumer` checks the older engine's tarball against `web-scumm-<tag>-SHA256SUMS`
+  (`sumFor`, unit-tested), and against the SHA-256 the script knows for each (`KNOWN_ENGINES`: the sums file is on the
+  same host as the tarball). The candidate's matrix takes it from 4.1.17, 4.1.16 and 4.1.18-rc.1.
+- The `livesplit-obs` pass (#81) stays open: this PR fixes what a machine sees, not what a person sees.
+
+→ next: Claude · PR 2 (artefacts and Field Kit); the DSL checkpoint before PR 3
+
+
+## #164 · 2026-10-11 · Claude · proposal · 4.1.19 PR 2: reproducible artefacts (locks, the image built once, five SBOMs, the proxy unprivileged)
+
+- Plan §6.1–6.4.
+- **Locks**: `scripts/pack-manifests.mjs` writes the manifests of the Bridge, the connectors and the image. Pack and
+  `scripts/locks.mjs` share it.
+  - The locks in `scripts/locks/` are made from the root lock: the root lock is copied beside the manifest, then
+    `npm install --package-lock-only` keeps every version it already has.
+  - They are checked by `lockProblems`: lockfile 3, the manifest's dependencies, registry-only with sha512, and the
+    root lock's versions (`tests/pack-locks.test.ts`).
+  - Pack copies them as `npm-shrinkwrap.json`. `ops:qualify` installs its host Bridge with `npm ci`.
+- **Image**: `scripts/bridge-image.mjs` has three commands:
+  - `context`: the Dockerfile, the archive, the image's manifest and its lock;
+  - `build`: `docker save`, then the config digest, the OCI manifest digest from `index.json`, the archive's SHA-256,
+    and a CycloneDX SBOM read inside the image (`npm sbom` in `/opt`) with the base image named by its digest;
+  - `load`: loads the archive and checks all three identities.
+  - `Dockerfile.bridge` runs `npm ci` in `/opt`, and the Bridge resolves its dependencies from the parent folder.
+  - The candidate's new `image` job builds the image once. `deployment-smoke` takes `--image-from`, and the gate puts
+    the image in the candidate's manifest.
+- **SBOMs**: `scripts/sbom.mjs` writes four package SBOMs.
+  - The Bridge and the connectors use their own shrinkwrap, read with `npm sbom --package-lock-only`.
+  - The engine has no lock in its archive, so its dependencies are resolved from the root lock and read the same way.
+  - `create-web-scumm` lists its one dependency, the engine archive, by its SHA-256.
+  - `release.yml` publishes the candidate's SBOMs and image; a tag older than 4.1.19 keeps the old way.
+- **Proxy**: Caddy runs as the operator's uid, read-only, with `/data` and `/config` in tmpfs. It keeps only
+  `NET_BIND_SERVICE`, which its binary carries as a file capability.
+- The worker's image is pulled by its digest in the candidate and the nightly.
+
+- **Second reading** (an automated second context) found three defects, all fixed:
+  - the image SBOM's root lost its `bom-ref`, which left its dependency graph dangling;
+  - the Bridge itself was missing from the image SBOM;
+  - four packages are absent from the root lock: the connectors' native optionals, which the root replaces with a
+    stand-in, and OpenTelemetry's API. These were resolved at generation and never checked. They are now pinned in
+    `OUTSIDE_ROOT`, and a move fails the check.
+- The `qualify` workflow on a branch still builds its own image; only the candidate carries one.
+
+→ next: Claude · the Field Kit v2 and `tools/release/provenance.mjs` (the rest of plan §6)
+
+
+## #165 · 2026-10-11 · Claude · proposal · 4.1.19 PR 2b: the Field Kit v2 and one provenance contract
+
+- Plan §6.5.
+- **`tools/release/provenance.mjs`** has four composable functions; only the last one asks GitHub:
+  1. `readCandidateManifest`;
+  2. `digestProblems`;
+  3. `verifyAttestation`: offline with `--bundle` and `--custom-trusted-root`, else online, with the signer workflow
+     and the source ref;
+  4. `queryRun`, with `candidateRunProblem`.
+  `ship` uses them (`verifyCandidate`, `verify`). The file is `.mjs`, because `ship` runs on plain Node 22.12.
+- **`tools/field/tar.ts`** reads and writes the bundles in memory. It never hands someone else's archive to a system
+  `tar`. It keeps regular files only, refuses unsafe names and duplicates, and enforces budgets set before inflating,
+  so a gzip bomb stops at the budget. Its output is deterministic.
+- **`tools/field/bundle.ts`**, bundle schema 2: the report, the evidence under the report's own paths (no more
+  `evidence/evidence/`), `candidate-manifest.json` and its attestation. `verifyBundle` says integrity, candidate and
+  authenticity apart:
+  - **offline**: the attestation against a trusted root, signed by `candidate.yml` on main, naming the manifest's run;
+  - **online**: the same attestation, plus the run read now;
+  - **an older candidate**: the manifest the run keeps.
+- **Attestation and budgets**: the candidate's gate attests `candidate-manifest.json`, on `workflow_dispatch` only and
+  with job-level permissions. `field:init` downloads the attestation. `field:check` enforces the evidence budgets and
+  does not scan a file above them.
+- **Tests**: a stand-in `gh` answers as GitHub would. They cover links, devices, extended headers, unsafe names, a name
+  twice, the budgets, a bomb, an altered or added file, another candidate, attestations offline and online, a run that
+  is not green, and the manifest a run keeps.
+
+- **Second reading** (an automated second context) confirmed that the `gh` flags are real and that offline mode does
+  not touch the network. It also found:
+  - **A bundle could fail its own check.** The compressed limit was below the total, and `makeBundle` ignored it. The
+    limits are now aligned at 64 MiB, and `makeBundle` counts every file.
+  - **The tar writer cut long UTF-8 names by characters.** It now cuts by bytes, or refuses the name.
+  - **`field:init` could keep the previous candidate's attestation.** It now removes it first and says why a download
+    failed.
+  - **`verifyBundle` missed some checks.** It now refuses an archive or a path outside `evidence/`, scans
+    `report.json`, and names a schema 1 bundle instead of throwing a raw schema error.
+  - **The `gh` calls were outside the one-minute budget.** They are now bounded by it.
+  - **The ustar prefix was read without checking the magic.** It is read only after the magic.
+  - Recorded deviation from plan §6.5: the run's `headSha` is main's tip, not the tested SHA. The attestation, or the
+    manifest the run keeps, binds the SHA instead.
+
+→ next: Claude · the second reading of #103 (SBOM bom-ref, the Bridge in the image's SBOM, stricter locks)
+
+
+## #166 · 2026-10-11 · Claude · proposal · 4.1.19 PR 5: the qualification profile complete (runs, workers, Daily and Mystery, quotas, moderation, 4.1.17)
+
+- Plan §9. Tenant a gets `runs` and `daily` sections:
+  - the reference game approved by its fingerprint, computed with `approvedContext` on the host;
+  - the speedrun worker from this checkout, mounted read-only at `/srv/app`, run by the Bridge as its child inside its
+    confined container;
+  - `perMinute` 6, a moderator token file (mode 600), and the reference's published daily test key.
+- New steps:
+  - the daily token is the same on the three instances;
+  - a Mystery committed on one instance is revealed alike on the two others;
+  - a run is verified, and its duplicate is answered 409;
+  - a moderation bearer is refused with 401 and accepted with 200, giving `moderator-verified`;
+  - `bridge-2` and `bridge-3` are paused, `bridge-1` claims the run and is killed while its worker verifies; another
+    instance takes the run when its lease ends and verifies it once (one row in `runs`);
+  - after the bucket refills, junk submissions spread over the three instances are refused past six, from at least
+    two instances;
+  - 20 000 runs are written in SQL and the board is read 20 times through the proxy (p95 bound 1.5 s);
+  - after the schema 3 restore, the board, the daily token and the run are compared;
+  - the 4.1.17 Bridge archive, checked against its release's SHA-256 and run in a one-off container of the same base
+    image, makes its schema in a database of its own; a run is written there in its shape, and this Bridge's
+    `doctor` and `migrate` report schema 4 with nothing to do. The two releases share schema 4.
+- Reads are polled every 1.5 s, because each instance gives one client address 60 anonymous requests a minute.
+
+- The second reading (an automated second context) found three checks that could pass while what they named was
+  false, plus a 4.1.17 step weaker than its title. All are fixed:
+  - **Daily token**: the token is a deterministic signature, so three instances agree even without a store. The check
+    now reads the `daily_kv` row, names the day, and compares that row before and after the restore.
+  - **Takeover**: counting rows on the primary key proved nothing. The check now reads the row under `bridge-1`'s
+    lease after the kill, retries if the run was verified before the kill, waits for `done` after the lease's end, and
+    requires exactly one `run.verified` from another instance.
+  - **Quota**: the per-address limit also answers 429. The check now requires the quota's own message and exactly
+    `perMinute` submissions allowed.
+  - **4.1.17 store**: the 4.1.17 code now writes real data, through its own `restore` of a schema 1 backup of tenant
+    a. This Bridge's `backup` then finds the tenant, its signals and the run.
+  - **The worker's code** is a `git archive` of what it reads, with the modules mounted beside it, instead of the
+    whole checkout. The job's token is no longer kept in `.git/config` (`persist-credentials: false`).
+  - **`--short`**: the candidate's `deployment-smoke` runs the profile without its long steps. `--old-bridge=` serves
+    offline runs. The download is retried with a timeout, the base image is pulled first, and the compose project name
+    is fixed.
+  - **Disclosed**: a worker killed alone, its Bridge alive, is `bridge-runs-worker`'s case, not this profile's.
+
+→ next: Claude · the DSL checkpoint, then PR 3 (coverage truth)
+
+
+## #167 · 2026-10-11 · Claude · proposal · 4.1.19 PR 3: coverage said exactly, the connectors from their archive, Vite's configuration, the flakes
+
+- DSL admission (plan §2.3), closed before this branch was made:
+  - accepted: none
+  - deferred: none
+  - rejected: none
+  - reserved ADR 0022: unused
+  - window: closed. No proposal came from the maintainer. A need found later goes to 4.2.x or 4.3, unless the
+    maintainer reopens the window.
+- §8.1, mutation sets:
+  - `tools/mutation-sets.ts` takes `connectors-pure` as the canonical name. `ALIASES` maps `connectors` to it, and
+    `setNamed` resolves it in `mutate.ts` and the vitest configuration.
+  - The workflows use the canonical name. `release.yml` uses the old name for a tag older than 4.1.19.
+  - `MEASURED` holds `connectors-edge` and `reality-store-postgres`. They run every night (`continue-on-error`,
+    Postgres as a service) and on demand; `mutation.yml` now has a Postgres too.
+  - MUTANTS.md lists each set, the files it mutates and whether it gates, and a test holds it to `SETS`.
+- §8.2, connectors from their archive: `scripts/connector-archive-e2e.mjs` and the candidate's
+  `connector-archive-e2e` job. The Bridge and the connectors are installed from their archives:
+  - email by webhook, and by IMAP against a server in Node of the script's own;
+  - Telnet: pairing, a command, an unknown command, UTF-8 with a stray byte, an over-long line;
+  - SSH: a wrong password, the pairing code as password, a backspace, a file read, a path outside refused;
+  - Open Badge: an OB3 credential from a `did:key` issuer verified offline, one for someone else, a private address.
+  - A redirect and a DNS change at a public issuer cannot be reached from the archive, by design: they stay part of
+    pass #79.
+- §8.3, Vite: the Studio's plugin loads the Studio through `server.ssrLoadModule`; `StudioError` moves to
+  `tools/studio/errors.ts` and is matched by its status. The demo snapshot is written by a child `tsx`.
+  - The imports still in the graph name their `.ts`, with `allowImportingTsExtensions` (tools and the config only).
+  - Measured: from 500 warnings to 0; 7 modules besides the configuration (11 before the second reading moved
+    `gameIR`; corrected at the release, measured again with `loadConfigFromFile`). The native loader loads the configuration under
+    `--experimental-strip-types`. The 44 JavaScript files of the player's build are byte-identical to main's.
+  - `tests/vite-config-graph.test.ts` holds this.
+- §8.4: `scripts/lib/archive-harness.mjs`, shared by `external-consumer` and the archive e2e, gives each step an id
+  and a duration, and a failure the command that reproduces it. `ops-qualify` is split in PR 5, which extends it.
+- §8.5, flakes:
+  - `sshKeyPair()` signs with the private half and verifies with the public one, and keeps a refused pair under
+    `.cache/flakes/`;
+  - e2e browser errors carry their kind, name, message, stack and page, and a console error's location and arguments;
+  - `reality-xcheck` warms Biscuit's WebAssembly and times each verdict, and a timeout says it was a time limit.
+    No budget was raised.
+
+- The second reading (an automated second context) found these defects, all fixed:
+  - **The engine's own imports given `.ts` broke type-checking in game projects**: a generated project's tsconfig
+    does not allow `.ts` import paths. `gameIR` moved to `tools/game-ir.ts`, so the configuration no longer reaches
+    the engine's compiler. `src/engine` is untouched, and the configuration has 7 dependencies and no warning.
+  - **`mutation.yml` gave every set a Postgres**, which changed how its mutants were judged. Only
+    `reality-store-postgres` gets one now.
+  - **That set was judged by too few tests**: it is now judged by every test that runs the adapter, and `mutate`
+    refuses to measure it without a database.
+  - **The archive e2e did not use the shared harness**: it now does. A failure prints the end of every process log.
+  - **Badge verdicts were not checked at the Bridge**: each one is now read in the Bridge's journal.
+  - **The SSH wrong-password check accepted any error**: it now requires an authentication failure.
+  - **The IMAP password was never checked**: the IMAP server now checks it, and a duplicate letter was added.
+  - **`StudioError` was matched by its status alone**: it is now branded, with the status bounded to 400–599.
+  - **The snapshot's stdout went into a buffer**: it is now ignored.
+  - **The flake evidence never left the runner**: the connectors job now uploads it.
+
+→ next: Claude · PR 5 (the qualification profile), then PR 6 (README, docs, release)
+
+
+## #168 · 2026-10-11 · Claude · release · 4.1.19 "Field Closure": version, README, docs, the candidate's baseline
+
+- Plan §11–§13. Version 4.1.19; the golden save `demo-4.1.19.json`; the reference run re-recorded (engine 4.1.19).
+- **README en/fr rewritten** from the drafts reviewed with the plan: logo, value sentence, play / Studio / start,
+  the hero capture, the quick start, "Build a game", "Prove and ship it", "Further", the maturity table, how it is
+  made, figures between their markers only. Captures retaken (`docs/img/readme/4119-*`, the `v36-*` kept): hero,
+  conversation, minigame, map, ending, Studio rooms, storyboard, assets, check, the puzzle graph. A Studio Remix
+  capture was tried and left out: the tab is unstyled tables, not a page to show first.
+- **What the second look found in the drafts:** the quick start ran `npm run assets` (Python 3 and Pillow) while the
+  text called Python optional, and pointed at `npm run doctor`, which a created game does not have. Both corrected;
+  `tests/readme-truth.test.ts` now checks every `npm run` of the block against `cli/create.mjs` and every
+  `npx web-scumm <cmd>` against the CLI.
+- **`readme-quickstart`** (`scripts/readme-quickstart.mjs`): the block under "## Start" read from README.md, its `T=`
+  required to be this version's URL, then pointed at `file:` the candidate's archive; `npm run dev` runs until it
+  answers, then the commands its comment names. The script runs in a process group of its own, stopped by its id.
+  Locally: green from a fresh `pack` (create, install, assets, dev answering, verify, build).
+- **The candidate's baseline** (`tools/release/baseline.mjs`, plan §12.2): `candidate-gate` reads its artifacts
+  (heavy ×3, both loads and leaderboards, every mutation report, `ops-qualify.json`, the archives, the SBOMs, the
+  image's identities) and its jobs (`actions: read`), writes `baseline-<version>.json` and `.md` into the manifest's
+  folder and uploads `candidate-baseline`; `release.yml` publishes them as `web-scumm-<tag>-baseline.*`. The
+  committed sheet `docs/dev/baselines/4.1.19.md` holds thresholds and protocols and no run number.
+- Docs: UPGRADING §31 (backup schema 3, the JSON-lines restore refused, `connectors-pure`, the locks, the five SBOMs
+  and the engine SBOM's new meaning), ROADMAP, PROGRAM, SUPPORT, `docs/dev/passes/4.1.19.md` (the §14 criteria, the
+  thirteen passes not-run), GO / NO-GO 4.2 (machine proof updated, every verdict unchanged, NO-GO).
+
+- **Second reading** (an automated second context), no blocker; fixed: the baseline's fixed "warm" cache claim (each
+  mutation set now says whether its report was reused and from which commit), skips, commands, mutation sources and a
+  real critical path through `needs` added; the jobs API call fails the step instead of publishing "not measured";
+  the README's "publishes those very files" narrowed (the release still builds `dist` itself), `prove` named as a
+  command, a hand-written "twenty" mechanics removed; the truth test compares the French quick start and the Limited
+  column; the capture prefix derived from the version; `--published` and the full `qualify` run are rows of the pass
+  sheet. Left as is: test declarations and proofs come from the commit's ratchet, which the release-core job enforces.
+
+- **The full qualification profile on the tag's code** (pass sheet row 15): `qualify` run 38165708216 on `main` at
+  43dac1b, the merge of PR 5 (after it nothing in `scripts/ops-qualify.mjs` or `ops/qualify/` changes); green before on
+  PR 5's last head (38159101208, 23 steps).
+- **A flake seen and not retried blind:** PR 3's `pwa-firefox` failed once with five cached frames of the cat refused
+  offline by Firefox's worker (`MAX_REFUSED` is 2; every file in the cache), the documented Firefox oddity
+  (SUPPORT, `e2e-pwa.mjs`); PR 3 does not touch the PWA test, the job re-run green. Still `firefox-real-offline` (#80).
+
+→ next: the final candidate on this SHA, `field:init` on #75–#87, the RC and the stable tag on that run, the nightly
+classified.
