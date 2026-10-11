@@ -40,6 +40,7 @@ export function collect({ dir, sha, run, version, root = '.', jobs = null, env =
       attempt: i,
       passed: r.numPassedTests,
       total: r.numTotalTests,
+      skipped: (r.numPendingTests ?? 0) + (r.numTodoTests ?? 0),
       seconds: Math.round(tests.reduce((s, x) => s + (x.duration || 0), 0) / 1000),
     };
   });
@@ -77,6 +78,10 @@ export function collect({ dir, sha, run, version, root = '.', jobs = null, env =
           killed: r.killed,
           total: r.total,
           inputHash: r.inputHash,
+          // A report of identical inputs is reused from the Actions cache: said, with the commit it was measured on.
+          measuredOn: r.commitSha,
+          reused: r.commitSha !== sha,
+          sources: [...new Set((r.results ?? []).map((m) => m.file))].sort(),
         };
     }
   }
@@ -121,7 +126,10 @@ export function collect({ dir, sha, run, version, root = '.', jobs = null, env =
       image: env.ImageOS ?? null,
       node: process.version,
     },
-    cache: 'warm: npm and the mutation reports of identical inputs come from the Actions cache',
+    // npm's cache is setup-node's where a job asks for it; a mutation report's reuse is said per set (`reused`).
+    cache:
+      'npm from the Actions cache where a job sets `cache: npm`; each mutation set says whether its report was reused',
+    commands: COMMANDS,
     tests: q ? { declarations: q.tests?.declarations, files: q.tests?.files } : NOT_MEASURED,
     proofs: q
       ? Object.fromEntries(['demo', 'reference'].map((g) => [g, q.games?.[g]?.proof ?? NOT_MEASURED]))
@@ -147,12 +155,68 @@ export function collect({ dir, sha, run, version, root = '.', jobs = null, env =
     duration: done.length
       ? {
           wallSeconds: seconds(first, last),
-          // The longest job bounds the run from below: the gate waits for every job.
           longestJob: [...timed].sort((a, b) => b.seconds - a.seconds)[0],
+          criticalPath: criticalPath(timed, needsOf(root)),
           jobs: timed,
         }
       : NOT_MEASURED,
   };
+}
+
+/** What each family runs (candidate.yml), so a figure says which command made it. */
+export const COMMANDS = {
+  heavy: 'npm run test:heavy',
+  load: 'npm run bridge:load -- --store=<sqlite|postgres://…>; npm run runs:load -- --runs=100000 --max-p95-ms=2000 --max-rss-mb=512',
+  mutation: 'npm run test:mutation:core -- --set=<set>',
+  qualification: 'npm run ops:qualify -- --tarballs=candidate-pack --image-from=candidate-image --short',
+  externalConsumer: 'npm run external-consumer (the candidate archives)',
+  connectorArchiveE2e: 'npm run connector-archive-e2e (the candidate archives)',
+  readmeQuickstart: 'node scripts/readme-quickstart.mjs --tarballs=candidate-pack',
+};
+
+/** Each job's `needs` in candidate.yml, by job id. */
+export function needsOf(root) {
+  const f = join(root, '.github/workflows/candidate.yml');
+  if (!existsSync(f)) return {};
+  const out = {};
+  let job = null;
+  for (const line of readFileSync(f, 'utf8').split('\n')) {
+    const j = line.match(/^ {2}([a-z0-9-]+):\s*$/);
+    if (j) job = j[1];
+    const n = line.match(/^ {4}needs: (?:\[([^\]]*)\]|([a-z0-9-]+))\s*$/);
+    if (job && n)
+      out[job] = (n[1] ?? n[2])
+        .split(',')
+        .map((s) => s.trim())
+        .filter(Boolean);
+  }
+  return out;
+}
+
+/** The chain of jobs through `needs` whose durations add up to the most (a matrix job counts its slowest line). */
+export function criticalPath(timed, needs) {
+  const id = (name) => name.split(' (')[0];
+  const dur = {};
+  for (const j of timed) dur[id(j.name)] = Math.max(dur[id(j.name)] ?? 0, j.seconds ?? 0);
+  const memo = {};
+  const best = (job, seen) => {
+    if (memo[job]) return memo[job];
+    if (seen.has(job)) return { seconds: 0, jobs: [] };
+    seen.add(job);
+    let tail = { seconds: 0, jobs: [] };
+    for (const n of needs[job] ?? []) {
+      const b = best(n, seen);
+      if (b.seconds > tail.seconds) tail = b;
+    }
+    memo[job] = { seconds: tail.seconds + (dur[job] ?? 0), jobs: [...tail.jobs, job] };
+    return memo[job];
+  };
+  let top = { seconds: 0, jobs: [] };
+  for (const job of Object.keys(dur)) {
+    const b = best(job, new Set());
+    if (b.seconds > top.seconds) top = b;
+  }
+  return top;
 }
 
 const cell = (v) => (v === NOT_MEASURED ? `*${NOT_MEASURED}*` : v === undefined || v === null ? '—' : String(v));
@@ -177,7 +241,7 @@ export function toMarkdown(b) {
   L.push(`| Player's first visit (KB of JS, gzipped) | ${cell(b.playerFirstVisitKB)} |`);
   for (const h of b.heavy)
     L.push(
-      `| Heavy suite, attempt ${h.attempt} | ${h.passed === undefined ? cell(NOT_MEASURED) : `${h.passed}/${h.total} passed, ${h.seconds} s of tests`} |`,
+      `| Heavy suite, attempt ${h.attempt} | ${h.passed === undefined ? cell(NOT_MEASURED) : `${h.passed}/${h.total} passed, ${h.skipped} skipped, ${h.seconds} s of tests`} |`,
     );
   L.push('', '## The Bridge', '', '| Store | Proposals | Leaderboard |', '|---|---|---|');
   for (const [s, v] of Object.entries(b.load)) {
@@ -198,8 +262,11 @@ export function toMarkdown(b) {
   L.push('', '## Mutation', '');
   if (b.mutation === NOT_MEASURED) L.push(cell(NOT_MEASURED));
   else {
-    L.push('| Set | Status | Killed or named |', '|---|---|---|');
-    for (const [s, m] of Object.entries(b.mutation)) L.push(`| ${s} | ${m.status} | ${m.killed}/${m.total} |`);
+    L.push('| Set | Status | Killed or named | Report | Source files |', '|---|---|---|---|---|');
+    for (const [s, m] of Object.entries(b.mutation))
+      L.push(
+        `| ${s} | ${m.status} | ${m.killed}/${m.total} | ${m.reused ? `reused, measured on ${String(m.measuredOn).slice(0, 12)}` : 'measured here'} | ${m.sources.length} |`,
+      );
   }
   L.push('', '## Installs and connectors', '');
   for (const [k, v] of [
@@ -215,11 +282,13 @@ export function toMarkdown(b) {
   if (b.sboms === NOT_MEASURED) L.push(`- SBOMs: ${cell(NOT_MEASURED)}`);
   else for (const s of b.sboms) L.push(`- ${s.name}: ${s.components ?? '?'} components, \`${s.sha256}\``);
   L.push(`- image: ${b.image === NOT_MEASURED ? cell(NOT_MEASURED) : '`' + JSON.stringify(b.image) + '`'}`);
+  L.push('', '## Commands', '');
+  for (const [k, c] of Object.entries(b.commands)) L.push(`- ${k}: \`${c}\``);
   L.push('', "## People's passes", '', b.field, '', '## Duration', '');
   if (b.duration === NOT_MEASURED) L.push(cell(NOT_MEASURED));
   else {
     L.push(
-      `${b.duration.wallSeconds} s from the first job's start to the last job's end; the longest job: ${b.duration.longestJob?.name} (${b.duration.longestJob?.seconds} s).`,
+      `${b.duration.wallSeconds} s from the first job's start to the last job's end; the longest job: ${b.duration.longestJob?.name} (${b.duration.longestJob?.seconds} s); the critical path through \`needs\`: ${b.duration.criticalPath.jobs.join(' → ')} (${b.duration.criticalPath.seconds} s).`,
       '',
     );
     L.push('| Job | Conclusion | Seconds |', '|---|---|---|');

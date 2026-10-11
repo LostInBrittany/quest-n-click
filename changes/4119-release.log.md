@@ -23,5 +23,13 @@
   and the engine SBOM's new meaning), ROADMAP, PROGRAM, SUPPORT, `docs/dev/passes/4.1.19.md` (the §14 criteria, the
   thirteen passes not-run), GO / NO-GO 4.2 (machine proof updated, every verdict unchanged, NO-GO).
 
+- **Second reading** (an automated second context), no blocker; fixed: the baseline's fixed "warm" cache claim (each
+  mutation set now says whether its report was reused and from which commit), skips, commands, mutation sources and a
+  real critical path through `needs` added; the jobs API call fails the step instead of publishing "not measured";
+  the README's "publishes those very files" narrowed (the release still builds `dist` itself), `prove` named as a
+  command, a hand-written "twenty" mechanics removed; the truth test compares the French quick start and the Limited
+  column; the capture prefix derived from the version; `--published` and the full `qualify` run are rows of the pass
+  sheet. Left as is: test declarations and proofs come from the commit's ratchet, which the release-core job enforces.
+
 → next: the final candidate on this SHA, `field:init` on #75–#87, the RC and the stable tag on that run, the nightly
 classified.

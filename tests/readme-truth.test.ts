@@ -47,8 +47,14 @@ describe('the README', () => {
     expect(images(en).filter((f) => f.includes('/v36-'))).toEqual([]);
   });
 
-  it('has the same sections in English and French', () => {
+  it('has the same sections and the same quick start in English and French', () => {
     expect(sections(en).length).toBe(sections(fr).length);
+    // The French block is the English one with the game's folder and title translated.
+    const block = (s: string) =>
+      quickStart(s.replace('\n## Commencer', '\n## Start'))
+        .lines.map((l: string) => l.replace(/\s+#.*$/, ''))
+        .join('\n');
+    expect(block(fr).replaceAll('mon-jeu', 'my-game').replace('"Mon jeu"', '"My Game"')).toBe(block(en));
   });
 
   it('promotes nothing the GO / NO-GO does not', () => {
@@ -57,7 +63,20 @@ describe('the README', () => {
       const i = rows.findIndex((l) => /^\| (Stable|Stable) \| (Limited|Limité) \|/.test(l));
       return rows[i + 2]!.split('|').slice(1, -1);
     };
-    const [stable, , experimental] = table(en);
+    const [stable, limited, experimental] = table(en);
+    expect(stable).toMatch(/content format/);
+    // What GO / NO-GO calls limited is never in the stable column (its people's passes not made).
+    for (const [word, surface] of [
+      ['Safari', 'PWA, Safari'],
+      ['Firefox', 'Firefox'],
+      ['speedrun', 'Speedrun and Remix'],
+      ['archives', 'Archives and install'],
+      ['phones', 'Player, DOM'],
+    ] as const) {
+      expect(stable).not.toContain(word);
+      expect(limited).toContain(word);
+      expect(verdict(surface)).not.toMatch(/^\s*\*\*stable\*\*/);
+    }
     expect(stable).toMatch(/desktop Chromium PWA/);
     expect(verdict('PWA, Chromium')).toMatch(/\*\*stable\*\*/);
     expect(stable).toMatch(/SQLite/);

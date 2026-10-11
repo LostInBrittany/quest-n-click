@@ -4,7 +4,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
 // @ts-expect-error: a plain .mjs module without declarations
-import { collect, NOT_MEASURED, toMarkdown } from '../tools/release/baseline.mjs';
+import { collect, criticalPath, NOT_MEASURED, needsOf, toMarkdown } from '../tools/release/baseline.mjs';
 
 let dir = '';
 afterEach(() => rmSync(dir, { recursive: true, force: true }));
@@ -15,6 +15,26 @@ const put = (rel: string, body: unknown) => {
 };
 
 describe('the candidate baseline', () => {
+  it('finds the critical path through needs, a matrix job counted by its slowest line', () => {
+    const needs = {
+      pack: ['target'],
+      image: ['target', 'pack'],
+      smoke: ['target', 'pack', 'image'],
+      heavy: ['target'],
+    };
+    const timed = [
+      { name: 'target', seconds: 5 },
+      { name: 'pack', seconds: 100 },
+      { name: 'image', seconds: 200 },
+      { name: 'smoke', seconds: 300 },
+      { name: 'heavy (1)', seconds: 400 },
+      { name: 'heavy (2)', seconds: 550 },
+    ];
+    expect(criticalPath(timed, needs)).toEqual({ seconds: 605, jobs: ['target', 'pack', 'image', 'smoke'] });
+    // The workflow's own graph is read.
+    expect(needsOf('.')['candidate-gate']).toContain('deployment-smoke');
+  });
+
   it('reads every artifact it knows and the run jobs, without measuring again', () => {
     dir = mkdtempSync(join(tmpdir(), 'baseline-'));
     put('heavy-1/heavy-1.json', {
@@ -41,6 +61,8 @@ describe('the candidate baseline', () => {
       killed: 10,
       total: 10,
       inputHash: 'h',
+      commitSha: 'old',
+      results: [{ file: 'a.ts' }, { file: 'a.ts' }],
     });
     put('deployment-smoke/ops-qualify.json', {
       steps: [
@@ -89,11 +111,17 @@ describe('the candidate baseline', () => {
       version: '4.1.19',
       run: '42',
     });
-    expect(b.heavy[0]).toEqual({ attempt: 1, passed: 9, total: 9, seconds: 4 });
+    expect(b.heavy[0]).toEqual({ attempt: 1, passed: 9, total: 9, skipped: 0, seconds: 4 });
     expect(b.heavy[1]).toEqual({ attempt: 2, measured: false });
     expect(b.load.sqlite.proposals.perSecond).toBe(370);
     expect(b.load.postgres.proposals).toBe(NOT_MEASURED);
-    expect(b.mutation.core).toMatchObject({ killed: 10, total: 10 });
+    expect(b.mutation.core).toMatchObject({
+      killed: 10,
+      total: 10,
+      reused: true,
+      measuredOn: 'old',
+      sources: ['a.ts'],
+    });
     expect(b.qualification).toMatchObject({ steps: 2, passed: 1 });
     expect(b.archives[0]).toMatchObject({
       name: 'web-scumm-4.1.19.tgz',
@@ -114,6 +142,7 @@ describe('the candidate baseline', () => {
     expect(b.connectorArchiveE2e).toBe(NOT_MEASURED);
     expect(b.duration.wallSeconds).toBe(2400);
     expect(b.duration.longestJob.name).toBe('heavy (1)');
+
     // The tests and proofs from the commit's own ratchet.
     const q = JSON.parse(readFileSync('tests/quality-baseline.json', 'utf8'));
     expect(b.tests.declarations).toBe(q.tests.declarations);

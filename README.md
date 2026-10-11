@@ -52,7 +52,7 @@ export const garden: RoomDef = {
 
 A rule is a verb, a target, a condition and a list of commands. What a game needs beyond them, a custom command, is
 TypeScript of its own: trusted code, named in the game and hashed with it ([CONTENT_GUIDE](docs/en/CONTENT_GUIDE.md),
-[ENGINE](docs/en/ENGINE.md)). Twenty famous mechanics of the genre are written this way in [CLASSICS](docs/en/CLASSICS.md).
+[ENGINE](docs/en/ENGINE.md)). Famous mechanics of the genre are written this way in [CLASSICS](docs/en/CLASSICS.md).
 
 **The Studio is the real engine with an editor on top**: rooms with their placements, the storyboard panel by panel,
 every sprite sheet and where it is used, the checks after every save, a play tab that explains a rule and replays a
@@ -69,8 +69,8 @@ sprites ([PROMPTS](docs/en/PROMPTS.md)); chip-tune music arranged from a MIDI an
 ## Prove and ship it
 
 - **Validated**: broken references, unreachable rooms and untranslated lines are found before anyone plays.
-- **Solved**: the solver runs the real engine (no second model of the content). `verify` asks for a **witness**, a
-  path to an ending; `prove` explores **every reachable state** and fails on a softlock or a truncated search. These
+- **Solved**: the solver runs the real engine (no second model of the content). `npm run verify` asks for a
+  **witness**, a path to an ending; `npx web-scumm solve --prove` explores **every reachable state** and fails on a softlock or a truncated search. These
   are two different promises, and the release asks for the second ([BENCH](docs/en/BENCH.md) says what the proof can
   and cannot do).
 - **Replayed**: a session is the unit of reproduction; saves load across versions, one frozen save per release from
@@ -136,7 +136,8 @@ Measured on this commit of `main` by the automated gates (`npm run quality:basel
 <!-- metric:tests -->1866<!-- /metric --> unit test declarations, on Node 22 and 24, with coverage floors and gated
 mutation testing; the reference game proved in <!-- metric:referenceStates -->288<!-- /metric --> states; the player's
 first visit <!-- metric:initialJsKB -->133<!-- /metric --> KB of JavaScript, gzipped. Each release is built from the
-commit its candidate tested and publishes those very files, with SHA-256 sums, SBOMs and provenance attestations.
+commit its candidate tested; its archives, the Bridge's image, the SBOMs and the baseline are the very files the
+candidate made, published with SHA-256 sums and provenance attestations.
 
 ## Documentation
 

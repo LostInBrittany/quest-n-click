@@ -53,7 +53,7 @@ export const garden: RoomDef = {
 
 Une règle, c'est un verbe, une cible, une condition et une liste de commandes. Ce qu'un jeu demande au-delà, une
 commande à lui, est du TypeScript propre au jeu : du code de confiance, nommé dans le jeu et pris dans son empreinte
-([CONTENT_GUIDE](docs/fr/CONTENT_GUIDE.md), [ENGINE](docs/fr/ENGINE.md)). Vingt mécaniques célèbres du genre sont
+([CONTENT_GUIDE](docs/fr/CONTENT_GUIDE.md), [ENGINE](docs/fr/ENGINE.md)). Des mécaniques célèbres du genre sont
 écrites ainsi dans [CLASSICS](docs/fr/CLASSICS.md).
 
 **Le Studio, c'est le vrai moteur avec un éditeur par-dessus** : les pièces et leurs placements, le storyboard case par
@@ -73,8 +73,8 @@ avant la release.
 
 - **Validé** : les références cassées, les pièces inatteignables et les répliques non traduites sont trouvées avant
   que quiconque joue.
-- **Résolu** : le solveur fait tourner le vrai moteur (pas de second modèle du contenu). `verify` demande un
-  **témoin**, un chemin vers une fin ; `prove` explore **chaque état atteignable** et échoue sur un blocage ou une
+- **Résolu** : le solveur fait tourner le vrai moteur (pas de second modèle du contenu). `npm run verify` demande un
+  **témoin**, un chemin vers une fin ; `npx web-scumm solve --prove` explore **chaque état atteignable** et échoue sur un blocage ou une
   recherche tronquée. Ce sont deux promesses différentes, et la release demande la seconde ([BENCH](docs/fr/BENCH.md)
   dit ce que la preuve peut et ne peut pas faire).
 - **Rejoué** : une session est l'unité de reproduction ; les sauvegardes se chargent d'une version à l'autre, une
@@ -141,8 +141,9 @@ Mesuré sur ce commit de `main` par les vérifications automatiques (`npm run qu
 <!-- metric:tests -->1866<!-- /metric --> déclarations de tests unitaires, sous Node 22 et 24, avec des planchers de
 couverture et des tests de mutation bloquants ; le jeu de référence prouvé en <!-- metric:referenceStates -->288<!-- /metric -->
 états ; la première visite du joueur, <!-- metric:initialJsKB -->133<!-- /metric --> Ko de JavaScript compressé. Chaque
-release est construite depuis le commit que son candidat a testé et publie ces fichiers-là, avec leurs sommes
-SHA-256, leurs SBOM et leurs attestations de provenance.
+release est construite depuis le commit que son candidat a testé ; ses archives, l'image du Bridge, les SBOM et la
+baseline sont les fichiers mêmes que le candidat a produits, publiés avec leurs sommes SHA-256 et leurs attestations
+de provenance.
 
 ## Documentation
 

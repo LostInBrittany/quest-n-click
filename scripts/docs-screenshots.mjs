@@ -1,9 +1,10 @@
 // npm run docs:screenshots: the README's images, taken from the real production bundle and the real Studio, never
 // mock-ups. Builds the game into .cache/docs-dist, serves it and the Studio, plays the sample game through the e2e
-// harness and drives the Studio with Playwright, then writes WebP files to docs/img/readme/ (Pillow, quality 85, 1440
-// px wide at most), named for the release that took them (4.1.19: `4119-<name>.webp`; the earlier `*` stay, AGENTS.md). `--only=game|studio`, `--keep-png` (the raw captures stay in .cache/docs-shots).
+// harness and drives the Studio with Playwright, then writes WebP files to docs/img/readme/ (Pillow, quality 85, at
+// most 1440 px wide), named for the release that took them (`4119-<name>.webp` at 4.1.19). Earlier captures stay
+// where they are (AGENTS.md). `--only=game|studio`, `--keep-png` (the raw captures stay in .cache/docs-shots).
 import { spawn, spawnSync } from 'node:child_process';
-import { mkdirSync, rmSync } from 'node:fs';
+import { mkdirSync, readFileSync, rmSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { chromium } from 'playwright';
 import { launch } from './e2e/lib.mjs';
@@ -13,7 +14,10 @@ const args = process.argv.slice(2);
 const only = args.find((a) => a.startsWith('--only='))?.slice(7);
 const RAW = resolve(ROOT, '.cache/docs-shots');
 const IMG = resolve(ROOT, 'docs/img/readme');
-const PREFIX = '4119-';
+// 4.1.19 → `4119-`: a release's captures never overwrite another's.
+const PREFIX = `${JSON.parse(readFileSync(resolve(ROOT, 'package.json'), 'utf8'))
+  .version.split('-')[0]
+  .replaceAll('.', '')}-`;
 const GAME_PORT = 4317,
   STUDIO_PORT = 5317;
 rmSync(RAW, { recursive: true, force: true });

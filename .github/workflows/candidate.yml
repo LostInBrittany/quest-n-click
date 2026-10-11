@@ -459,7 +459,8 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh api "repos/${{ github.repository }}/actions/runs/${{ github.run_id }}/jobs?per_page=100" > jobs.json || echo '{"jobs":[]}' > jobs.json
+          # No fallback: `actions: read` is granted, so a failed call is a fault to see, not a baseline without durations.
+          gh api "repos/${{ github.repository }}/actions/runs/${{ github.run_id }}/jobs?per_page=100" > jobs.json
           node tools/release/baseline.mjs --dir=artifacts --sha=${{ needs.target.outputs.sha }} --run=${{ github.run_id }} --jobs=jobs.json --out=artifacts/candidate-release/baseline
           cat artifacts/candidate-release/baseline/*.md >> "$GITHUB_STEP_SUMMARY"
       - name: The manifest of this candidate
