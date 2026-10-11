@@ -401,8 +401,11 @@ export class SpeedrunRecorder {
     eng.runClock.restore(point.clock);
     if (point.draws) eng.sessions.restoreDraws(point.draws);
     r.loads.push({ before: point.next, from: point.next - 1, resume: true });
-    // The live RTA goes on from where the chunk closed (the time the page was closed is not counted).
-    r.t0 = r.now() - point.rtaMs;
+    // The live RTA goes on from where the chunk closed (the time the page was closed is not counted); a run whose tape
+    // holds no start yet (the tracker fed every stored link above, the start included even when it closed a chunk)
+    // shows 0 until its start, 4.1.19 (it used to count from the resume). The logical times are untouched; the RTA
+    // intervals it excludes start from the run's start, as on a run never interrupted.
+    r.t0 = r.tracker.started ? r.now() - point.rtaMs : null;
     return r;
   }
 }
