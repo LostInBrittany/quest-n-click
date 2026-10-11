@@ -48,14 +48,24 @@ and `grant`, brings everything up and checks, writing `ops-qualify.json`:
 4. every player's sequence contiguous from 1, and a stream held on `bridge-1` receiving, in order and once, what the
    other instances accepted;
 5. a tenant's capability and connector token refused by the other tenant;
-6. `backup`, the whole topology destroyed with its database volume, a new empty database, `restore` by a one-off
-   container (before the instances, which would register their tenants), the instances up: every player's signals as
-   before, and a new proposal continuing the sequence.
+6. (4.1.19) tenant a keeps a leaderboard: the daily token alike on the three instances; a Mystery committed on one
+   and revealed alike on the others; the reference run submitted on `bridge-1`, verified by the speedrun worker (from
+   this checkout, mounted read-only at `/srv/app`: the worker is not in the Bridge's archive) and read on `bridge-3`;
+   the same run again refused as a duplicate; a moderator's bearer (a token file, mode 600) ranks it, another is
+   refused; `bridge-2` and `bridge-3` paused, a run claimed by `bridge-1`, `bridge-1` killed while its worker verifies:
+   another instance takes the run when its lease ends and verifies it once; one submission quota for the three
+   instances (refused past `perMinute`, wherever the requests land); the board read through the proxy after 20 000
+   runs written in SQL;
+7. `backup` (schema 3: tenants, runs and daily records in one snapshot), the whole topology destroyed with its
+   database volume, a new empty database, `restore` by a one-off container (before the instances, which would
+   register their tenants), the instances up: every player's signals, the board and the daily token as before, and a
+   new proposal continuing the sequence;
+8. a store made by the published 4.1.17 Bridge (its archive checked against its release's SHA-256), in a database of
+   its own, read by this Bridge: schema 4, nothing to migrate (the two releases share their schema).
 
-What it does not do, said as such: the speedrun queue and its confined workers, Daily and Mystery, quotas, moderation
-and the migration of a 4.1.17 store are judged by their own jobs (`bridge-load`, `runs-load`, `worker-container`,
-`e2e:remix-speedrun`, the Postgres store tests), not inside this topology yet; the 24 to 48 hours behind a real domain
-are a person's pass.
+What it does not do, said as such: the 24 to 48 hours behind a real domain are a person's pass; the verification
+worker here runs as the Bridge's child inside the Bridge's own confined container (`worker-container` judges the
+worker's own container profile); the volume is written in SQL, not submitted (each submission is a worker's run).
 
 **Rootful Docker.** The Bridges run as the operator's uid so they can read the tenants' files (mode 600): `ops:qualify`
 sets `QUALIFY_UID`/`QUALIFY_GID`; by hand, set them to your own (`id -u`, `id -g`), else 1000 is assumed. Rootless

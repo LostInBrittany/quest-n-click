@@ -9,14 +9,20 @@
 //   4. an instance killed in the middle, then started again; a connector repeats what failed (its dedupeKey);
 //   5. every player's sequence contiguous, each proposal applied once, duplicates said so, the stream in order;
 //   6. a tenant's capability and token refused by the other tenant;
-//   7. `backup`, the whole topology destroyed (its database volume too), brought up empty, `restore`, then every
-//      player's signals compared and a new proposal continuing the sequence.
+//   7. (4.1.19) the leaderboard of tenant a: the daily token alike on the three instances, a Mystery committed on one
+//      and revealed on the others, a run verified by the speedrun worker and read elsewhere, its duplicate refused, a
+//      moderator's bearer, an instance killed while its worker verifies (another takes the run when the lease ends,
+//      verifies it once), one submission quota for the three instances, the board after 20 000 runs;
+//   8. `backup` (schema 3: tenants, runs and daily records in one snapshot), the whole topology destroyed (its database
+//      volume too), brought up empty, `restore`, then every player's signals, the board and the daily token compared,
+//      and a new proposal continuing the sequence;
+//   9. a store made by the published 4.1.17 Bridge read by this one.
 //
 // Writes <out>/ops-qualify.json (format web-scumm-ops-qualify, schema 1: the commit, the images, each step and what
 // it measured) and exits 1 when a step fails. Docker with Compose v2 on Linux; the human pass behind a real domain for
 // 24-48 h (`bridge-postgres-https`) uses the same profile (ops/qualify/README.md).
 import { spawnSync } from 'node:child_process';
-import { randomBytes } from 'node:crypto';
+import { createHash, randomBytes } from 'node:crypto';
 import { chmodSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { request } from 'node:https';
 import { tmpdir } from 'node:os';
@@ -126,6 +132,50 @@ for (const t of ['a', 'b']) {
     '--pair',
   ]).stdout.trim();
 }
+// Tenant a also keeps a leaderboard (4.1.19, plan §9): the reference game approved by its fingerprint, the speedrun
+// worker from /srv/app (QUALIFY_APP), a shared quota of RUNS_PER_MINUTE submissions, a moderator's token file, and the
+// daily challenge with the reference's published test key.
+const RUNS_PER_MINUTE = 6;
+const fingerprintScript = join(base, 'fingerprint.ts');
+writeFileSync(
+  fingerprintScript,
+  `const { approvedContext } = await import(${JSON.stringify(join(ROOT, 'tools', 'speedrun', 'package.ts'))});\nconsole.log(JSON.stringify((await approvedContext(process.env.GAME_DIR)).fingerprint));\n`,
+);
+const fingerprint = JSON.parse(
+  sh(process.execPath, [join(ROOT, 'node_modules', 'tsx', 'dist', 'cli.mjs'), fingerprintScript], {
+    cwd: ROOT,
+    env: { ...process.env, GAME_DIR: join(ROOT, 'games', 'reference') },
+  })
+    .stdout.trim()
+    .split('\n')
+    .at(-1),
+);
+const moderator = randomBytes(24).toString('hex');
+{
+  const dir = join(data, 'a');
+  const file = join(dir, 'config.json');
+  const daily = JSON.parse(readFileSync(join(ROOT, 'tests', 'fixtures', 'reference-daily-key.json'), 'utf8'));
+  writeFileSync(join(dir, 'daily.jwk'), JSON.stringify(daily.jwk), { mode: 0o600 });
+  writeFileSync(join(dir, 'daily.secret'), `${randomBytes(24).toString('hex')}\n`, { mode: 0o600 });
+  writeFileSync(join(dir, 'moderation.token'), `${moderator}\n`, { mode: 0o600 });
+  const config = JSON.parse(readFileSync(file, 'utf8'));
+  config.runs = {
+    games: { reference: { dir: '/srv/app/games/reference', fingerprint } },
+    worker: ['node', '/srv/app/node_modules/tsx/dist/cli.mjs', '/srv/app/tools/speedrun/worker.ts'],
+    workers: 1,
+    perMinute: RUNS_PER_MINUTE,
+    adminTokenFile: 'moderation.token',
+  };
+  config.daily = {
+    games: { reference: { daily: 'daily', mystery: 'mystery' } },
+    kid: daily.kid,
+    keyFile: 'daily.jwk',
+    secretFile: 'daily.secret',
+  };
+  writeFileSync(file, `${JSON.stringify(config, null, 2)}\n`, { mode: 0o600 });
+}
+const envelope = readFileSync(join(ROOT, 'tests', 'fixtures', 'speedrun', 'reference-any.wsrun'), 'utf8');
+
 const secrets = join(base, 'secrets');
 mkdirSync(secrets, { mode: 0o700 });
 const pw = randomBytes(18).toString('hex');
@@ -138,6 +188,7 @@ const env = {
   ...process.env,
   QUALIFY_BUILD: build,
   QUALIFY_DATA: data,
+  QUALIFY_APP: ROOT,
   QUALIFY_SECRETS: secrets,
   QUALIFY_UID: String(process.getuid?.() ?? 1000),
   QUALIFY_GID: String(process.getgid?.() ?? 1000),
@@ -162,7 +213,7 @@ const up = () => (
 );
 
 let ca = '';
-const https = (port, method, path, { tenant, bearer, body } = {}) =>
+const https = (port, method, path, { tenant, bearer, body, deleteToken } = {}) =>
   new Promise((ok, ko) => {
     const data = body === undefined ? undefined : JSON.stringify(body);
     const req = request(
@@ -176,6 +227,7 @@ const https = (port, method, path, { tenant, bearer, body } = {}) =>
         headers: {
           ...(tenant ? { 'x-web-scumm-tenant': tenant } : {}),
           ...(bearer ? { authorization: `Bearer ${bearer}` } : {}),
+          ...(deleteToken ? { 'x-delete-token': deleteToken } : {}),
           ...(data ? { 'content-type': 'application/json', 'content-length': Buffer.byteLength(data) } : {}),
           host: `localhost:${port}`,
         },
@@ -418,6 +470,142 @@ try {
     },
   );
 
+  // ------------------------------------------------ the leaderboard, its workers, Daily and Mystery (4.1.19, plan §9)
+  const A = { tenant: 'a' };
+  // Daily: one token for the day, whichever instance signs it first.
+  const days = await Promise.all([1, 2, 3].map((i) => insist(PORT + i, 'GET', '/v1/daily?game=reference', A)));
+  step(
+    'the daily token is the same on the three instances',
+    days.every((d) => d.status === 200 && d.json?.token) && new Set(days.map((d) => d.json.token)).size === 1,
+    { statuses: days.map((d) => d.status) },
+  );
+  // Mystery: committed on one instance, revealed on the two others, the reveal written once.
+  const commit = await insist(PORT + 1, 'POST', '/v1/commit', { ...A, body: { game: 'reference' } });
+  const reveals = await Promise.all([2, 3].map((i) => insist(PORT + i, 'GET', `/v1/reveal/${commit.json?.id}`, A)));
+  step(
+    'a Mystery committed on one instance is revealed alike on the others',
+    commit.status === 201 &&
+      reveals.every((r) => r.status === 200 && r.json?.seed) &&
+      new Set(reveals.map((r) => `${r.json?.seed}|${r.json?.nonce}|${r.json?.revealedAt}`)).size === 1,
+    { commit: commit.status, reveals: reveals.map((r) => r.status) },
+  );
+  // A run: submitted on bridge-1, verified by a worker, read on bridge-3; the same run again is a duplicate.
+  // Read every 1.5 s at most: each instance gives one client address 60 anonymous requests a minute, then 429.
+  const runOf = async (id, port = PORT + 3, until = (r) => r.json?.status === 'done', seconds = 240) => {
+    const end = Date.now() + seconds * 1000;
+    while (Date.now() < end) {
+      const r = await insist(port, 'GET', `/v1/runs/${id}`, A);
+      if (until(r)) return r;
+      await sleep(r.status === 429 ? 5000 : 1500);
+    }
+    throw new Error(`run ${id}: not as expected in ${seconds} s`);
+  };
+  const submit = (port, player = 'qualifier') => insist(port, 'POST', '/v1/runs', { ...A, body: { player, envelope } });
+  const first = await submit(PORT + 1);
+  const done = await runOf(first.json?.id);
+  step('a run submitted on one instance is verified by a worker and read on another', done.json?.verdict === 'valid', {
+    submitted: first.status,
+    verdict: done.json?.verdict,
+    code: done.json?.code,
+    trust: done.json?.trust,
+  });
+  const dup = await submit(PORT + 2, 'someone-else');
+  step('the same run on another instance is a duplicate', dup.status === 409, { status: dup.status });
+  // Moderation: refused without the token file's bearer, accepted with it, counted.
+  const refusedMod = await insist(PORT + 2, 'POST', `/v1/runs/${first.json?.id}/moderate`, {
+    ...A,
+    bearer: 'x'.repeat(48),
+  });
+  const moderated = await insist(PORT + 2, 'POST', `/v1/runs/${first.json?.id}/moderate`, { ...A, bearer: moderator });
+  step(
+    "a moderator's bearer ranks the run; another bearer is refused",
+    refusedMod.status === 401 &&
+      moderated.status === 200 &&
+      (await runOf(first.json?.id)).json?.trust === 'moderator-verified',
+    { refused: refusedMod.status, accepted: moderated.status },
+  );
+  // A worker's instance killed while it verifies: bridge-2 and bridge-3 paused, the run claimed by bridge-1, bridge-1
+  // killed mid-verification, the others resumed: one of them takes the run when its lease ends and verifies it once.
+  // The run counted once already: a second run of the same envelope needs the first deleted (its delete token).
+  const del = await https(PORT + 1, 'DELETE', `/v1/runs/${first.json?.id}`, {
+    ...A,
+    deleteToken: first.json?.deleteToken,
+  });
+  dc(['pause', 'bridge-2', 'bridge-3']);
+  const again = await submit(PORT + 1, 'resubmitted');
+  let claimed = false;
+  try {
+    claimed =
+      (await runOf(again.json?.id, PORT + 1, (r) => r.json?.status === 'verifying', 60)).json?.status === 'verifying';
+  } catch {
+    /* said below */
+  }
+  dc(['kill', 'bridge-1']);
+  dc(['unpause', 'bridge-2', 'bridge-3']);
+  const taken = await runOf(again.json?.id, PORT + 2, (r) => r.json?.status === 'done', 300);
+  dc(['up', '-d', '--wait', 'bridge-1']);
+  const copies = dc([
+    'exec',
+    '-T',
+    'postgres',
+    'psql',
+    '-U',
+    'bridge',
+    '-tAc',
+    `SELECT COUNT(*) FROM runs WHERE tenant_id = 'a' AND id = '${String(again.json?.id).replace(/[^\w-]/g, '')}'`,
+  ]).stdout.trim();
+  step(
+    'a run whose instance was killed while it verified it is verified once by another instance',
+    del.status === 204 && claimed && taken.json?.verdict === 'valid' && copies === '1',
+    { deleted: del.status, claimedByTheKilled: claimed, verdict: taken.json?.verdict, rows: copies },
+  );
+  // The quota, one bucket for the three instances: submissions spread over them, refused past RUNS_PER_MINUTE.
+  await sleep(61_000);
+  const seen = [];
+  for (let i = 0; i < 3 * RUNS_PER_MINUTE; i++) {
+    const port = PORT + 1 + (i % 3);
+    const r = await insist(port, 'POST', '/v1/runs', { ...A, body: { player: 'quota', envelope: 'not a run' } });
+    seen.push({ port, status: r.status });
+    if (r.status === 429) break;
+  }
+  const before429 = seen.filter((s) => s.status !== 429);
+  step(
+    'the submission quota is one for the three instances',
+    seen.at(-1)?.status === 429 &&
+      before429.length <= RUNS_PER_MINUTE &&
+      new Set(before429.map((s) => s.port)).size >= 2,
+    { allowed: before429.length, perMinute: RUNS_PER_MINUTE, instances: new Set(before429.map((s) => s.port)).size },
+  );
+  // The leaderboard after volume: 20 000 verified runs written in SQL, the board read through the proxy.
+  dc([
+    'exec',
+    '-T',
+    'postgres',
+    'psql',
+    '-U',
+    'bridge',
+    '-v',
+    'ON_ERROR_STOP=1',
+    '-c',
+    "INSERT INTO runs (tenant_id, id, game_id, category_id, player, submitted_at, status, verdict, trust, ranked, leaderboard_key, run_key, delete_token_hash, envelope) SELECT 'a', 'vol_' || g, 'reference', 'any%', 'p' || (g % 5000), 1700000000000 + g, 'done', 'valid', 'replay-valid', (150000000 + ((g * 104729) % 50000000))::text, 'any%', 'vol-' || g, repeat('0', 64), '' FROM generate_series(1, 20000) AS g; ANALYZE runs;",
+  ]);
+  const times = [];
+  let board = null;
+  for (let i = 0; i < 20; i++) {
+    const t0 = performance.now();
+    board = await insist(PORT, 'GET', '/v1/runs?game=reference&category=any%25', A);
+    times.push(performance.now() - t0);
+  }
+  times.sort((x, y) => x - y);
+  const p95 = Math.round(times[Math.floor(times.length * 0.95) - 1]);
+  const rows = board?.json?.runs ?? board?.json?.rows ?? board?.json;
+  step('the leaderboard after 20 000 runs answers through the proxy', board?.status === 200 && p95 < 1500, {
+    p95Ms: p95,
+    rows: Array.isArray(rows) ? rows.length : null,
+  });
+  const boardBefore = JSON.stringify(board?.json);
+  const dailyBefore = days[0].json?.token;
+
   // Backup, the topology destroyed with its database, brought up empty, restore, compared.
   const backup = dc([
     'exec',
@@ -461,6 +649,16 @@ try {
       players: Object.keys(after).length,
     },
   );
+  const boardAfter = await insist(PORT, 'GET', '/v1/runs?game=reference&category=any%25', A);
+  const dailyAfter = await insist(PORT + 2, 'GET', '/v1/daily?game=reference', A);
+  const modAfter = await insist(PORT + 3, 'GET', `/v1/runs/${again.json?.id}`, A);
+  step(
+    'backup schema 3 and restore: the leaderboard, the daily token and the runs as before',
+    JSON.stringify(boardAfter.json) === boardBefore &&
+      dailyAfter.json?.token === dailyBefore &&
+      modAfter.json?.verdict === 'valid',
+    { board: boardAfter.status, daily: dailyAfter.status, run: modAfter.status },
+  );
   const next = await insist(PORT, 'POST', '/v1/signals', {
     tenant: 'a',
     bearer: tokens.a,
@@ -484,6 +682,79 @@ try {
     {
       status: next.status,
       sequence: next.json?.sequence,
+    },
+  );
+
+  // ------------------------------------------------ a store made by the published 4.1.17 Bridge (plan §9)
+  // Its archive, checked against the SHA-256 its release published, installed beside this run (it has no lock: the
+  // install of an older release, as an operator made it), run in a one-off container of the same base image on the
+  // store's network: it makes its schema in a database of its own, a run is written there in its shape, then this
+  // Bridge reads that store. 4.1.17 and this Bridge share schema 4: nothing is migrated, which is what is checked.
+  const OLD_SHA = 'a362ca2bbba48d06593d265ad4d6b01efdbc92d95b7165d988c5c2dffbe33d6f';
+  const got = await fetch('https://github.com/wanoo/web-scumm/releases/download/v4.1.17/web-scumm-bridge-4.1.17.tgz');
+  const oldBytes = Buffer.from(await got.arrayBuffer());
+  if (createHash('sha256').update(oldBytes).digest('hex') !== OLD_SHA)
+    throw new Error('web-scumm-bridge-4.1.17.tgz: not the archive the 4.1.17 release published');
+  const oldDir = join(base, 'bridge-4.1.17');
+  mkdirSync(oldDir);
+  writeFileSync(join(base, 'bridge-4.1.17.tgz'), oldBytes);
+  sh('tar', ['-xzf', join(base, 'bridge-4.1.17.tgz'), '-C', oldDir, '--strip-components=1']);
+  sh('npm', ['install', '--omit=dev', '--ignore-scripts', '--no-audit', '--no-fund'], { cwd: oldDir });
+  sh('npm', ['install', '--no-save', '--ignore-scripts', '--no-audit', '--no-fund', 'pg@8.23.1'], { cwd: oldDir });
+  dc(['exec', '-T', 'postgres', 'createdb', '-U', 'bridge', 'bridge4117']);
+  const oldUrl = `postgres://bridge:${pw}@postgres:5432/bridge4117`;
+  const made = sh(
+    'docker',
+    [
+      'run',
+      '--rm',
+      '--network',
+      'web-scumm-qualify_store',
+      '--user',
+      `${env.QUALIFY_UID}:${env.QUALIFY_GID}`,
+      '-v',
+      `${oldDir}:/old:ro`,
+      '-v',
+      `${join(data, 'a')}:/srv/bridge/a:ro`,
+      '--read-only',
+      '--tmpfs',
+      '/tmp',
+      from[0],
+      'node',
+      '/old/bin.mjs',
+      'migrate',
+      '--dir=/srv/bridge/a',
+      `--store=${oldUrl}`,
+    ],
+    { allowFail: true },
+  );
+  dc([
+    'exec',
+    '-T',
+    'postgres',
+    'psql',
+    '-U',
+    'bridge',
+    '-d',
+    'bridge4117',
+    '-v',
+    'ON_ERROR_STOP=1',
+    '-c',
+    "INSERT INTO runs (tenant_id, id, game_id, category_id, player, submitted_at, status, verdict, trust, ranked, leaderboard_key, run_key, delete_token_hash, envelope) VALUES ('a', 'run_4117', 'reference', 'any%', 'old', 1700000000000, 'done', 'valid', 'replay-valid', '0042', 'any%', 'k4117', repeat('0', 64), '')",
+  ]);
+  const read = (cmd) =>
+    dc(['run', '--rm', '--no-deps', '-T', 'bridge-1', cmd, '--dir=/srv/bridge/a', `--store=${oldUrl}`], {
+      allowFail: true,
+    });
+  const doctor = read('doctor');
+  const migrated = read('migrate');
+  step(
+    'a store made by the 4.1.17 Bridge read by this one (schema 4, nothing to migrate)',
+    made.status === 0 && /schema 4/.test(doctor.stdout + doctor.stderr) && /nothing to do/.test(migrated.stdout),
+    {
+      made: made.status,
+      doctor: (doctor.stdout + doctor.stderr).trim().split('\n').slice(-2).join(' | ').slice(0, 300),
+      migrate: migrated.stdout.trim().slice(0, 120),
     },
   );
 } catch (e) {

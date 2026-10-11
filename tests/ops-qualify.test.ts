@@ -80,6 +80,12 @@ describe('BRIDGE_STORE_FILE', () => {
     expect(proxy).not.toMatch(/caddy:\/data/);
   });
 
+  it('mounts the worker and its game read-only into the Bridges (4.1.19)', () => {
+    const bridge = compose.slice(compose.indexOf('x-bridge:'), compose.indexOf('services:'));
+    expect(bridge).toContain('${QUALIFY_APP:?ops:qualify sets QUALIFY_APP}:/srv/app:ro');
+    expect(readFileSync('scripts/ops-qualify.mjs', 'utf8')).toContain("'/srv/app/tools/speedrun/worker.ts'");
+  });
+
   it('names the store from a file, after --store= and BRIDGE_STORE, before the configuration', () => {
     const dir = mkdtempSync(join(tmpdir(), 'store-file-'));
     try {
