@@ -499,3 +499,54 @@ Chaque ensemble de mutation est bloquant (`connectors` et `reality-store` aussi)
 `npm run external-consumer` installe les quatre archives hors du dépôt. La sauvegarde de référence de la 4.1.18
 rejoint `tests/save-v3.test.ts`.
 
+
+## 31. De la 4.1.18 à la 4.1.19 « Field Closure »
+
+**Rien à changer dans un jeu.** Aucun nom ni sens de l'écriture ne bouge (la fenêtre DSL de D33 n'a rien admis) ; une
+sauvegarde 4.1.18 se charge et atteint sa fin, et un projet 4.1.18 se met à niveau avec `migrate`. Le candidat porte
+vers les nouvelles archives des jeux créés en 4.1.17, 4.1.16 et 4.1.18-rc.1, chaque ancien moteur vérifié d'abord
+contre les sommes de sa release.
+
+**Pour un opérateur de Bridge.**
+
+- `backup` écrit le **schéma 3** (ADR 0021) : un seul instantané en lecture seule de chaque tenant, run et
+  enregistrement du jour, avec le backend, les versions du Bridge et du schéma SQL, les comptes et un SHA-256 de la
+  charge utile, écrit dans un fichier temporaire puis renommé. `--max-rows` et `--max-bytes` le bornent. Refaire une
+  sauvegarde après la mise à niveau.
+- `restore` lit les schémas 1, 2 et 3, de façon bornée, vérifie chaque ligne avant d'ouvrir le store, et écrit tout
+  dans une seule transaction comparée au fichier avant le commit. Un échec laisse le store tel qu'il était et dit
+  « rien de restauré » ; le code de sortie 3 signifie que l'issue du commit est inconnue, ou que la relecture qui le suit
+  diffère (un P0) : vérifier le store avant de recommencer. Un enregistrement du jour déjà présent est désormais un conflit : refusé sans `--force`, remplacé avec.
+- **Rupture :** `restore` vers le journal JSON lines est refusé. Migrer d'abord le journal
+  (`migrate --from=jsonl --to=sqlite`), puis restaurer.
+- Les archives du Bridge et des connecteurs portent leur `npm-shrinkwrap.json` : une installation ne résout rien.
+- La release joint l'image de qualification du Bridge telle que le candidat l'a construite et qualifiée :
+  `web-scumm-bridge-image-<tag>.tar`, ses identités dans `web-scumm-bridge-image-<tag>.json` (empreinte de la config,
+  du manifeste OCI, SHA-256 de l'archive) et son SBOM. Le Caddy d'`ops/qualify/` tourne sans privilège et en lecture
+  seule.
+- `npm run ops:qualify` répète aussi Daily et Mystery entre instances, un run vérifié, son doublon et sa modération,
+  une instance tuée pendant que son worker vérifie, le quota de soumission partagé, 20 000 runs, une restauration après
+  la destruction de la topologie, et un store écrit par le Bridge 4.1.17 (`--old-bridge=<tgz>` hors ligne). `--short`
+  (le `deployment-smoke` du candidat) laisse de côté la reprise, le quota et le store 4.1.17, et met 200 runs au
+  classement.
+
+**SBOM.** Cinq fichiers CycloneDX, produits par le candidat depuis le contenu de chaque archive :
+`web-scumm-<tag>-sbom.cdx.json`, `create-web-scumm-<tag>-sbom.cdx.json`, `web-scumm-bridge-<tag>-sbom.cdx.json`,
+`web-scumm-connectors-<tag>-sbom.cdx.json` et `web-scumm-bridge-image-<tag>-sbom.cdx.json`. Le premier garde son nom
+mais change de sens : il décrit le **paquet du moteur** tel qu'un jeu l'installe (Vite et ses outils compris), et non
+plus les dépendances d'exécution de la racine du dépôt. Un outil qui le lisait ainsi lit désormais le `package.json` de
+la racine.
+
+**Pour les mainteneurs.**
+
+- L'ensemble de mutation `connectors` devient `connectors-pure` ; l'ancien nom reste un alias jusqu'à la 4.2
+  (`--set=connectors` marche encore, et `release.yml` traduit le nom d'un tag plus ancien). `connectors-edge` et
+  `reality-store-postgres` sont mesurés chaque nuit et ne bloquent rien encore (`docs/dev/MUTANTS.md`).
+- Les locks du Bridge et des connecteurs vivent dans `scripts/locks/` (`npm run locks`, puis commit) ; un lock qui ne
+  correspond plus à son `package.json` arrête `pack`.
+- Un bundle du Field Kit est au schéma 2 : il porte le manifeste du candidat et son attestation, et
+  `npm run field:verify-bundle` le vérifie à partir du seul bundle (hors ligne contre une racine de confiance
+  enregistrée, ou en ligne). `ship` et le Field Kit partagent `tools/release/provenance.mjs`.
+- `npm run connector-archive-e2e` joue les quatre connecteurs depuis leurs archives. La configuration Vite ne charge plus
+  le Studio ; un plugin à vous qui importait du code du Studio depuis `vite.config.ts` le charge par le serveur de dev.
+- La sauvegarde de référence de la 4.1.19 rejoint `tests/save-v3.test.ts`.

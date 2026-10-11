@@ -55,9 +55,9 @@ opens no browser, no Windows runner and no Node 24 (`CONTRIBUTING.md`, "What CI 
 | Windows | a `windows-latest` job (4.1.8; on a pull request, when code changed): `doctor`, the type checks, the unit suite but six files that assume POSIX (file modes, `/` in paths; named in `ci.yml`) and, since 4.1.9, the Telnet and SSH tests, `build`, the production server answering | `npm run dev` and the Studio on Windows; the six test files, ported |
 | Python | optional: the art tools and the audio pipeline, Pillow, NumPy, SciPy pinned in `requirements.txt` | — |
 | Reality Bridge | Node 22.12+, Chromium and WebKit e2e, a Rust cross-check of the protocol (`SignalV2` included) | a Bridge behind HTTPS with a real connector |
-| Bridge, `local` profile (4.1.10) | SQLite through `node:sqlite` (Node 22.13+): the store contract, tenants crossed in property tests, three processes on one file with one killed during 1 000 proposals, backup and restore rehearsed; a load run of 50 000 proposals every night | a long-running install on a real machine |
-| Bridge, `distributed` profile (4.1.10, `experimental`) | Postgres 16 in CI (`bridge-postgres`): the same contract, tenants and fan-out between instances; the nightly load run | a real deployment: until one, `experimental` |
-| Connectors (4.1.9), **experimental** (D19) | email (signed webhook, IMAP), Telnet, SSH, Open Badges 2 and 3: the same contract on all four, abuse and fuzz tests, a run under `--disallow-code-generation-from-strings`, the sample chapter's replays; Telnet and SSH tests not on Windows yet | a real email provider, a real badge from a real issuer, SSH and Telnet exposed in a controlled environment |
+| Bridge, `local` profile (4.1.10) | SQLite through `node:sqlite` (Node 22.13+): the store contract, tenants crossed in property tests, three processes on one file with one killed during 1 000 proposals, backup as one snapshot and restore all or nothing (4.1.19, schema 3); a load run of 50 000 proposals every night | a long-running install on a real machine |
+| Bridge, `distributed` profile (4.1.10, `experimental`) | Postgres 16 in CI (`bridge-postgres`): the same contract, tenants and fan-out between instances; the nightly load run; the qualification profile (`ops/qualify/`: HTTPS, three instances, the leaderboard, a worker killed mid-verification, a restore after the topology is destroyed) in the `qualify` workflow, its `--short` form in every candidate | a real deployment: until one, `experimental` |
+| Connectors (4.1.9), **experimental** (D19) | email (signed webhook, IMAP), Telnet, SSH, Open Badges 2 and 3: the same contract on all four, abuse and fuzz tests, a run under `--disallow-code-generation-from-strings`, the sample chapter's replays; the four played from their archive in the candidate (4.1.19); Telnet and SSH tests not on Windows yet | a real email provider, a real badge from a real issuer, SSH and Telnet exposed in a controlled environment |
 ## Deprecation
 
 A name or an option to be removed is first **deprecated** in a minor: marked `@deprecated` in its type (editors show
@@ -75,5 +75,6 @@ newer than the game it is loaded into is refused, never half read. A speedrun's 
 ## Releases
 
 Each release is built from the commit CI tested, carries its licences inside the archive, attaches an assets manifest,
-an SBOM, SHA-256 sums and a provenance attestation, and is never replaced once published (`docs/en/TOOLS.md`). What
+five CycloneDX SBOMs (the engine, `create-web-scumm`, the Bridge, the connectors and the Bridge's image, 4.1.19),
+SHA-256 sums and a provenance attestation, and is never replaced once published (`docs/en/TOOLS.md`). What
 only people and real devices can check is reported in its notes (`docs/en/FIELD.md`).

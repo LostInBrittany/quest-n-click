@@ -145,6 +145,8 @@ jobs:
           # archives' SBOMs; an older candidate has neither (the check below says whether its manifest named them).
           gh run download "$run" -n candidate-image -D .candidate/image 2>/dev/null || echo "::notice::run $run built no image"
           gh run download "$run" -n candidate-sbom -D .candidate/sbom 2>/dev/null || echo "::notice::run $run made no SBOM"
+          # 4.1.19 (plan §12.2): the baseline the candidate wrote of itself; an older candidate wrote none.
+          gh run download "$run" -n candidate-baseline -D .candidate/baseline 2>/dev/null || echo "::notice::run $run wrote no baseline"
           node tools/release/candidate.mjs check .candidate-manifest/candidate-manifest.json --sha="$SHA" --run="$run" --dir=.candidate
           echo "CANDIDATE=$run" >> "$GITHUB_ENV"
         env:
@@ -242,6 +244,12 @@ jobs:
             cp .candidate/image/web-scumm-bridge-image.cdx.json "web-scumm-bridge-image-$TAG-sbom.cdx.json"
             extra="$extra web-scumm-bridge-image-$TAG.tar web-scumm-bridge-image-$TAG.json web-scumm-bridge-image-$TAG-sbom.cdx.json"
           fi
+          # The candidate's baseline (4.1.19): its measures of this very SHA, checked against the manifest above.
+          for f in .candidate/baseline/baseline-*.json .candidate/baseline/baseline-*.md; do
+            [ -f "$f" ] || continue
+            cp "$f" "web-scumm-$TAG-baseline.${f##*.}"
+            extra="$extra web-scumm-$TAG-baseline.${f##*.}"
+          done
           # A complete speedrun of the reference chapter (4.1.14, its ninth asset): verified by the very tool a
           # leaderboard runs before it is attached; a run the engine of this tag refuses stops the release.
           # This workflow runs from main's copy while it checks out the tag's commit: a tag older than 4.1.14 has no
@@ -276,6 +284,7 @@ jobs:
             web-scumm-*-wsrun-manifest.json
             web-scumm-*-e2e-remix-speedrun.txt
             web-scumm-*-candidate.json
+            web-scumm-*-baseline.*
             web-scumm-${{ env.TAG }}-SHA256SUMS
             web-scumm-[0-9]*.tgz
             create-web-scumm-*.tgz

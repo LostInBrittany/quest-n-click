@@ -471,3 +471,51 @@ Postgres) to carry elsewhere; `npm run ops:qualify` rehearses it. The release no
 gated (`connectors` and `reality-store` too); `release.yml` asks the tag's own `GATED`. `npm run external-consumer`
 installs the four archives outside the repository. The golden save of 4.1.18 joins `tests/save-v3.test.ts`.
 
+
+## 31. From 4.1.18 to 4.1.19 "Field Closure"
+
+**Nothing to change in a game.** No authoring name or meaning moves (the DSL window of D33 admitted nothing); a 4.1.18
+save loads and reaches its ending, and a 4.1.18 project upgrades with `migrate`. The candidate moves games made on
+4.1.17, 4.1.16 and 4.1.18-rc.1 to the new archives, each older engine checked against its release's sums first.
+
+**For a Bridge operator.**
+
+- `backup` writes **schema 3** (ADR 0021): one read-only snapshot of every tenant, run and daily record, with the
+  backend, the Bridge and SQL schema versions, the counts and a SHA-256 of the payload, written to a temporary file
+  then renamed. `--max-rows` and `--max-bytes` bound it. Take a new backup after upgrading.
+- `restore` reads schemas 1, 2 and 3, bounded, checks every row before it opens the store, and writes everything in one
+  transaction compared with the file before it commits. A failure leaves the store as it was and says "nothing
+  restored"; exit code 3 means the commit's outcome is unknown, or the read-back after it differs (a P0): check the store before
+  trying again. A daily record
+  already held is now a conflict: refused without `--force`, replaced with it.
+- **Breaking:** `restore` into the JSON-lines journal is refused. Migrate the journal first
+  (`migrate --from=jsonl --to=sqlite`), then restore.
+- The Bridge and connectors archives carry their `npm-shrinkwrap.json`: an install resolves nothing.
+- The release attaches the Bridge's qualification image as the candidate built and qualified it:
+  `web-scumm-bridge-image-<tag>.tar`, its identities in `web-scumm-bridge-image-<tag>.json` (config digest, OCI
+  manifest digest, archive SHA-256) and its SBOM. `ops/qualify/`'s Caddy runs unprivileged and read-only.
+- `npm run ops:qualify` now also rehearses Daily and Mystery across instances, a run verified, its duplicate and its
+  moderation, an instance killed while its worker verifies, the shared submission quota, 20 000 runs, a restore after
+  the topology is destroyed, and a store made by the 4.1.17 Bridge (`--old-bridge=<tgz>` offline). `--short` (the
+  candidate's `deployment-smoke`) leaves out the takeover, the quota and the 4.1.17 store, and puts 200 runs on the board.
+
+**SBOMs.** Five CycloneDX files, made by the candidate from what each archive holds: `web-scumm-<tag>-sbom.cdx.json`,
+`create-web-scumm-<tag>-sbom.cdx.json`, `web-scumm-bridge-<tag>-sbom.cdx.json`,
+`web-scumm-connectors-<tag>-sbom.cdx.json` and `web-scumm-bridge-image-<tag>-sbom.cdx.json`. The first keeps its name
+but changes meaning: it describes the **engine package** as a game installs it (Vite and its tools included), no
+longer the repository root's runtime dependencies. A tool that read it as the latter reads the root's `package.json`
+instead.
+
+**For maintainers.**
+
+- The mutation set `connectors` is renamed `connectors-pure`; the old name is an alias until 4.2 (`--set=connectors`
+  still works, and `release.yml` maps an older tag's name). `connectors-edge` and `reality-store-postgres` are
+  measured every night and gate nothing yet (`docs/dev/MUTANTS.md`).
+- The locks of the Bridge and the connectors live in `scripts/locks/` (`npm run locks`, then commit); a lock that no
+  longer fits its `package.json` stops `pack`.
+- A Field Kit bundle is schema 2: it carries the candidate's manifest and its attestation, and
+  `npm run field:verify-bundle` checks it from the bundle alone (offline against a saved trusted root, or online).
+  `ship` and the Field Kit share `tools/release/provenance.mjs`.
+- `npm run connector-archive-e2e` plays the four connectors from their archives. The Vite configuration no longer
+  loads the Studio; a plugin of yours that imported Studio code from `vite.config.ts` loads it through the dev server.
+- The golden save of 4.1.19 joins `tests/save-v3.test.ts`.

@@ -1,9 +1,10 @@
 // npm run docs:screenshots: the README's images, taken from the real production bundle and the real Studio, never
 // mock-ups. Builds the game into .cache/docs-dist, serves it and the Studio, plays the sample game through the e2e
-// harness and drives the Studio with Playwright, then writes WebP files to docs/img/ (Pillow, quality 85, 1440 px
-// wide at most). `--only=game|studio`, `--keep-png` (the raw captures stay in .cache/docs-shots).
+// harness and drives the Studio with Playwright, then writes WebP files to docs/img/readme/ (Pillow, quality 85, at
+// most 1440 px wide), named for the release that took them (`4119-<name>.webp` at 4.1.19). Earlier captures stay
+// where they are (AGENTS.md). `--only=game|studio`, `--keep-png` (the raw captures stay in .cache/docs-shots).
 import { spawn, spawnSync } from 'node:child_process';
-import { mkdirSync, rmSync } from 'node:fs';
+import { mkdirSync, readFileSync, rmSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { chromium } from 'playwright';
 import { launch } from './e2e/lib.mjs';
@@ -12,15 +13,24 @@ const ROOT = resolve(import.meta.dirname, '..');
 const args = process.argv.slice(2);
 const only = args.find((a) => a.startsWith('--only='))?.slice(7);
 const RAW = resolve(ROOT, '.cache/docs-shots');
-const IMG = resolve(ROOT, 'docs/img');
+const IMG = resolve(ROOT, 'docs/img/readme');
+// 4.1.19 → `4119-`: a release's captures never overwrite another's.
+const PREFIX = `${JSON.parse(readFileSync(resolve(ROOT, 'package.json'), 'utf8'))
+  .version.split('-')[0]
+  .replaceAll('.', '')}-`;
 const GAME_PORT = 4317,
   STUDIO_PORT = 5317;
 rmSync(RAW, { recursive: true, force: true });
 mkdirSync(RAW, { recursive: true });
+mkdirSync(IMG, { recursive: true });
 
 const procs = [];
 const serve = (cmd, argv, env = {}) => {
-  const p = spawn(cmd, argv, { cwd: ROOT, env: { ...process.env, ...env }, stdio: 'ignore' });
+  const p = spawn(cmd, argv, {
+    cwd: ROOT,
+    env: { ...process.env, ...env },
+    stdio: 'ignore',
+  });
   procs.push(p);
   return p;
 };
@@ -61,12 +71,12 @@ if im.width > 1440: im = im.resize((1440, round(im.height * 1440 / im.width)), I
 im.save(sys.argv[2], 'WEBP', quality=85, method=6)
 print(im.width, im.height)`,
       png,
-      resolve(IMG, `${name}.webp`),
+      resolve(IMG, `${PREFIX}${name}.webp`),
     ],
     { encoding: 'utf8' },
   );
   if (r.status) throw new Error(r.stderr);
-  console.log(`docs:screenshots ${name}.webp ${r.stdout.trim()}`);
+  console.log(`docs:screenshots ${PREFIX}${name}.webp ${r.stdout.trim()}`);
 }
 
 async function game() {
@@ -80,7 +90,10 @@ async function game() {
   const url = `http://127.0.0.1:${GAME_PORT}/`;
   await up(url);
   const solved = JSON.parse(
-    spawnSync('npx', ['tsx', 'tools/solve.ts', '--json'], { cwd: ROOT, encoding: 'utf8' })
+    spawnSync('npx', ['tsx', 'tools/solve.ts', '--json'], {
+      cwd: ROOT,
+      encoding: 'utf8',
+    })
       .stdout.trim()
       .split('\n')
       .pop(),
@@ -100,7 +113,7 @@ async function game() {
     await h.walkthrough(solved.steps.slice(0, 1));
     await h.waitIdle();
     await settle();
-    await shot('v36-hero');
+    await shot('hero');
     // The tutorial guides the first actions: follow the solver's path until it lets go.
     for (let i = 1; i < solved.steps.length && (await page.evaluate(() => !!window.__game.engine.guiding)); i++)
       await h.walkthrough([solved.steps[i]]);
@@ -117,7 +130,7 @@ async function game() {
     await h.target(talker);
     await page.waitForSelector('.choices .choice', { timeout: 15000 });
     await settle(1500);
-    await shot('v36-player-scene');
+    await shot('player-scene');
     await page.locator('.choices .choice').last().click();
     await h.waitIdle();
     await settle();
@@ -139,7 +152,7 @@ async function game() {
     });
     await page.waitForSelector('.overlay .mg-skip', { timeout: 10000 });
     await settle(1500);
-    await shot('v36-player-minigame');
+    await shot('player-minigame');
     await page.locator('.overlay .mg-skip').click({ force: true });
     await h.waitIdle();
     // The map, late in the game (more places open).
@@ -152,7 +165,7 @@ async function game() {
     await settle();
     await h.openMap();
     await settle();
-    await shot('v36-player-map');
+    await shot('player-map');
     await page.keyboard.press('Escape').catch(() => {});
   } finally {
     await h.close();
@@ -164,20 +177,25 @@ async function game() {
     await e.walkthrough(solved.steps);
     if (!(await e.ended())) throw new Error('the walkthrough did not reach the ending');
     await e.page.waitForTimeout(4000);
-    const f = `${RAW}/v36-player-ending.png`;
+    const f = `${RAW}/player-ending.png`;
     await e.page.screenshot({ path: f });
-    webp(f, 'v36-player-ending');
+    webp(f, 'player-ending');
   } finally {
     await e.close();
   }
 }
 
 async function studio() {
-  serve('npx', ['vite', '--port', String(STUDIO_PORT), '--strictPort'], { STUDIO: '1' });
+  serve('npx', ['vite', '--port', String(STUDIO_PORT), '--strictPort'], {
+    STUDIO: '1',
+  });
   const base = `http://127.0.0.1:${STUDIO_PORT}/__studio/`;
   await up(base, 90000);
   const browser = await chromium.launch();
-  const page = await browser.newPage({ viewport: { width: 1440, height: 900 }, deviceScaleFactor: 1 });
+  const page = await browser.newPage({
+    viewport: { width: 1440, height: 900 },
+    deviceScaleFactor: 1,
+  });
   const shot = async (name, el) => {
     const f = `${RAW}/${name}.png`;
     await (el ?? page).screenshot({ path: f });
@@ -189,20 +207,20 @@ async function studio() {
     await page.waitForTimeout(2500);
     await page.locator('.entities .ent', { hasText: 'pantry' }).first().click();
     await page.waitForTimeout(1500);
-    await shot('v36-studio-rooms');
+    await shot('studio-rooms');
     await page.goto(`${base}#storyboard`);
     await page.reload();
     await page.waitForTimeout(4000);
-    await shot('v36-studio-storyboard');
+    await shot('studio-storyboard');
     await page.goto(`${base}#assets`);
     await page.reload();
     await page.waitForTimeout(4000);
-    await shot('v36-studio-assets');
+    await shot('studio-assets');
     await page.goto(`${base}#check`);
     await page.reload();
     await page.waitForSelector('.badge.ok, .badge.warn', { timeout: 120000 });
     await page.waitForTimeout(1500);
-    await shot('v36-studio-check');
+    await shot('studio-check');
     // The proof: the puzzle graph with the critical path and the solver's heat.
     await page.locator('label', { hasText: 'Critical path' }).locator('input').check();
     await page.locator('label', { hasText: 'Heat' }).locator('select').selectOption('solver');
@@ -214,11 +232,16 @@ async function studio() {
     await page.waitForTimeout(800);
     const box = await page.locator('label', { hasText: 'Critical path' }).evaluate((el) => {
       const r = el.closest('.panel').getBoundingClientRect();
-      return { x: r.x, y: r.y, width: r.width, height: Math.min(r.height, innerHeight - r.y) };
+      return {
+        x: r.x,
+        y: r.y,
+        width: r.width,
+        height: Math.min(r.height, innerHeight - r.y),
+      };
     });
-    const f = `${RAW}/v36-proof-graph.png`;
+    const f = `${RAW}/proof-graph.png`;
     await page.screenshot({ path: f, clip: box });
-    webp(f, 'v36-proof-graph');
+    webp(f, 'proof-graph');
   } finally {
     await browser.close();
   }

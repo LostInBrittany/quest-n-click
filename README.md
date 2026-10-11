@@ -2,11 +2,8 @@
 
 # web-scumm
 
-**Write a point-and-click adventure as data, prove it can be finished, ship it to a phone.**
-
-web-scumm is a SCUMM-style engine for the browser, a visual Studio to make the game, and a toolchain that checks the
-content, proves every puzzle has a way out, and builds a web game that installs on a phone and plays offline. A game is
-rooms, props, rules and lines, all plain data: a person writes it, an AI assistant writes it, a solver reads it.
+**Make a point-and-click adventure for the browser: write it as data, shape it in a visual Studio, check that it can
+be finished, and ship it as a web game that installs on a phone and plays offline.**
 
 *[Version française](README.fr.md)*
 
@@ -14,165 +11,105 @@ rooms, props, rules and lines, all plain data: a person writes it, an AI assista
 |---|---|
 | 🎮 **Play** | [The Pantry Key](https://wanoo.github.io/web-scumm/), the sample game, on a phone in landscape or on a desktop |
 | 🛠 **Studio** | [Open the Studio](https://wanoo.github.io/web-scumm/studio.html) in demo mode: edit the sample game, your edits stay in your browser |
-| ⏱ **Start** | [A first room in fifteen minutes](docs/en/TUTORIAL.md), then [make your own game](#make-your-own-game) |
-| 📚 **Docs** | [The method](docs/en/WORKFLOW.md) · [the content format](docs/en/CONTENT_GUIDE.md) · [every page](#documentation) |
+| ⏱ **Start** | [Your own game in its own folder](#start), then [a first room in fifteen minutes](docs/en/TUTORIAL.md) |
 
-![The Pantry Key: Grandma's living room, nine verbs, the bag](docs/img/v36-hero.webp)
+![The Pantry Key: Grandma's living room, nine verbs, the bag](docs/img/readme/4119-hero.webp)
 
-## Three commands
+## Start
+
+Node 22.12 or newer and Python 3 with Pillow (`npm run assets` prepares the art with them), on Windows, macOS or
+Linux. The engine installs from a release's archive (npm publishing comes
+with 4.2):
 
 ```bash
-npm install && npm run new-game lamp "The Lamp"   # a complete one-room game from the template
-npm run dev                                       # play it; npm run studio opens the Studio next to it
-npm run verify:game && npm run build              # checked, proved, built into dist/ for any static host
+T=https://github.com/wanoo/web-scumm/releases/download/v4.1.19/web-scumm-4.1.19.tgz
+npx --package=$T web-scumm create my-game "My Game" --engine=$T
+cd my-game && npm install
+npm run assets && npm run dev        # play it; then npm run verify, npm run build
 ```
 
-Needs Node 22.12 or newer. Python 3 and ffmpeg serve the art tools and the sound pipeline: optional, and `npm run
-doctor` says which one is missing. Windows, macOS and Linux ([SUPPORT](docs/en/SUPPORT.md) has the matrix).
+`npm run build` writes `dist/`, a static site any host serves. ffmpeg serves the sound pipeline and is optional;
+`npx web-scumm doctor` says what is missing. [PACKAGE](docs/en/PACKAGE.md) is the whole guide;
+[TUTORIAL](docs/en/TUTORIAL.md) walks the first room.
 
-## What you get
+## Build a game
 
-| For | web-scumm gives |
-|---|---|
-| **The player** | nine classic verbs and a bag, dialogue with topics and choices, hints from a character, cutscenes and phone calls, rooms wider than the screen, several playable characters, seven minigames, an optional sealed ending, autosave and save slots, translations, settings, touch, mouse and keyboard, the whole game offline after the first visit |
-| **The writer** | a storyboard first, then rooms, props with states, characters, items, rules, topics, hints, scripts and events, as data with no code in it; twenty famous mechanics of the genre written with it ([CLASSICS](docs/en/CLASSICS.md)) |
-| **The artist** | a prompt for every sprite sheet, object and backdrop in one style, sheets cut into sprites, chip-tune music arranged from a MIDI and sound effects from one palette ([PROMPTS](docs/en/PROMPTS.md), [AUDIO](docs/en/AUDIO.md)) |
-| **The studio** | a visual Studio over the real engine (rooms, storyboard, assets, checks, play, notes with an assistant), the same operations as MCP tools for any AI client, and a command line ([STUDIO](docs/en/STUDIO.md), [MCP](docs/en/MCP.md), [TOOLS](docs/en/TOOLS.md)) |
-| **The release** | a validator for broken references and untranslated lines, a solver that proves a path to the ending and names every state where it is lost, saves that load across versions, the licence of every shipped file, what a phone has to download, real browsers on every change ([ENGINE](docs/en/ENGINE.md), [BENCH](docs/en/BENCH.md)) |
-| **The outside** | a game can react to a fact from the world (an email answered, a webhook called) through a signed signal, without its content touching the network ([REALITY](docs/en/REALITY.md)) |
-
-## What the player sees
-
-<table>
-<tr><td width="50%" valign="top"><img src="docs/img/v36-player-scene.webp" alt="Talking to Grandma: her topics in the side column" width="100%"><br><sub>Conversations with topics, choices and a transcript</sub></td><td width="50%" valign="top"><img src="docs/img/v36-player-minigame.webp" alt="The pipes minigame: bring the water to the mushrooms" width="100%"><br><sub>Minigames, playable by touch or keyboard</sub></td></tr>
-<tr><td width="50%" valign="top"><img src="docs/img/v36-player-map.webp" alt="The world map with characters pinned on it" width="100%"><br><sub>A world map, characters who move between places</sub></td><td width="50%" valign="top"><img src="docs/img/v36-player-ending.webp" alt="The final card: Pixel found the sardines" width="100%"><br><sub>An ending that remembers what the player guessed</sub></td></tr>
-</table>
-
-## What the author sees
-
-<table>
-<tr><td width="50%" valign="top"><img src="docs/img/v36-studio-rooms.webp" alt="Studio, Rooms tab: the pantry selected, its look lines and reactions editable" width="100%"><br><sub><b>Rooms</b>: the real engine, a placement editor on top, every line editable in place</sub></td><td width="50%" valign="top"><img src="docs/img/v36-studio-storyboard.webp" alt="Studio, Storyboard tab: boards and panels, 100% implemented" width="100%"><br><sub><b>Storyboard</b>: the story panel by panel, checked against the game</sub></td></tr>
-<tr><td width="50%" valign="top"><img src="docs/img/v36-studio-assets.webp" alt="Studio, Assets tab: Pixel's sprite sheet, cell by cell, with where each cell is used" width="100%"><br><sub><b>Assets</b>: every sheet and cell, where it is used, the prompt to make it</sub></td><td width="50%" valign="top"><img src="docs/img/v36-studio-check.webp" alt="Studio, Check tab: validator, solver path and solver health" width="100%"><br><sub><b>Check</b>: the validator and the solver, run again after every save</sub></td></tr>
-</table>
-
-<img src="docs/img/v36-proof-graph.webp" alt="The puzzle graph with the critical path and the solver's heat" width="420" align="right">
-
-The puzzle graph shows what each item, flag and room leads to. With **Critical path** on, what does not lead to the
-end fades. With **Heat**, the rules the solver went through most turn red. The Studio also has a Play tab with a rule
-explainer and session replay, shared notes with the AI, and an Assistant that works with any model.
-
-<br clear="right">
-
-## How a game is written
-
-Everything is data: rooms, props with states, characters, items, rules, topics, hints, scripts, events. There is no
-code in the content, so every tool can read it, check it and play it.
+**The content is data.** Rooms, props with states, characters, items, rules, conversations, hints, scripts and
+events are plain TypeScript objects, with no code in them, so every tool can read, check and play them:
 
 ```ts
 export const garden: RoomDef = {
   id: 'garden', name: 'The garden', decor: 'garden',
   props: { tank: { name: 'water tank', states: { full: 'tank_full', empty: 'tank_empty' } } },
-  actors: { grandpa: { char: 'grandpa' } },
   exits: { back_door: { name: 'back door', to: 'house', entry: 'garden' } },
   on: [
     { verb: 'use', a: 'pipe', b: 'tank', if: '!tank_drained',
-      do: [{ minigame: 'pipes', params: { /* see games/demo */ } }, { lose: 'pipe' }, { set: 'tank_drained' }, { prop: ['tank', 'empty'] }] },
+      do: [{ minigame: 'pipes' }, { lose: 'pipe' }, { set: 'tank_drained' }, { prop: ['tank', 'empty'] }] },
   ],
-  talk: { grandpa: [{ topic: 'Where is the key?', if: '!tank_drained', do: [{ say: ['grandpa', 'It fell in the tank. Plop.'] }] }] },
   hints: [{ until: 'tank_drained', lines: ['Use the pipe on the water tank.'] }],
 };
 ```
 
-A rule is a verb, a target, a condition and a list of commands. The solver plays these rules the way the engine does,
-which is why it can prove the game: the same `Engine`, the same `resolve`, no second model of the content.
+A rule is a verb, a target, a condition and a list of commands. What a game needs beyond them, a custom command, is
+TypeScript of its own: trusted code, named in the game and hashed with it ([CONTENT_GUIDE](docs/en/CONTENT_GUIDE.md),
+[ENGINE](docs/en/ENGINE.md)). Famous mechanics of the genre are written this way in [CLASSICS](docs/en/CLASSICS.md).
 
-## Why an AI can really work on it
+**The Studio is the real engine with an editor on top**: rooms with their placements, the storyboard panel by panel,
+every sprite sheet and where it is used, the checks after every save, a play tab that explains a rule and replays a
+session, and notes shared with an AI assistant ([STUDIO](docs/en/STUDIO.md)).
 
-- The content is declarative, so an assistant reads and writes it like any other file; `AGENTS.md` holds the rules.
-- Every operation is a command, and the same operations are MCP tools for Claude Code, Cursor, Codex, Gemini CLI or
-  any MCP client ([MCP](docs/en/MCP.md)). The Studio's Assistant gives them to any model.
-- After each change the assistant can validate, solve, replay a session and take a screenshot, so it sees its own
-  mistakes before a person does. Every result stays reviewable, in the Studio and in Git.
+<table>
+<tr><td width="50%" valign="top"><img src="docs/img/readme/4119-studio-rooms.webp" alt="Studio, Rooms tab: the pantry selected, its look lines and reactions editable" width="100%"><br><sub><b>Rooms</b>: the real engine, a placement editor on top, every line editable in place</sub></td><td width="50%" valign="top"><img src="docs/img/readme/4119-studio-check.webp" alt="Studio, Check tab: validator, solver path and solver health" width="100%"><br><sub><b>Check</b>: the validator and the solver, run again after every save</sub></td></tr>
+</table>
 
-## Make your own game
+**Art, sound and languages.** A prompt for every sprite sheet, object and backdrop in one style, sheets cut into
+sprites ([PROMPTS](docs/en/PROMPTS.md)); chip-tune music arranged from a MIDI and sound effects from one palette
+([AUDIO](docs/en/AUDIO.md)); every line translatable, a missing translation found before release.
 
-**In its own project** ([PACKAGE](docs/en/PACKAGE.md)): the engine installs from a release's tarball (npm publishing
-is planned for 4.2, then `npx create-web-scumm my-game`):
+## Prove and ship it
 
-```bash
-T=https://github.com/wanoo/web-scumm/releases/download/v4.1.18/web-scumm-4.1.18.tgz
-npx --package=$T web-scumm create my-game "My Game" --engine=$T
-cd my-game && npm install
-npm run assets && npm run dev        # then npm run verify, npm run build, npm run release
-```
+- **Validated**: broken references, unreachable rooms and untranslated lines are found before anyone plays.
+- **Solved**: the solver runs the real engine (no second model of the content). `npm run verify` asks for a
+  **witness**, a path to an ending; `npx web-scumm solve --prove` explores **every reachable state** and fails on a softlock or a truncated search. These
+  are two different promises, and the release asks for the second ([BENCH](docs/en/BENCH.md) says what the proof can
+  and cannot do).
+- **Replayed**: a session is the unit of reproduction; saves load across versions, one frozen save per release from
+  3.0.0 on.
+- **Shipped**: a PWA that installs and plays offline after the first visit, with what a phone has to download held by
+  a budget and every file accounted for with its licence.
+- **Accessible as far as a machine can tell**: axe-core on every screen, keyboard and touch play in CI. That is not a
+  WCAG conformance claim: screen-reader and real-device passes are a person's to make ([FIELD](docs/en/FIELD.md)).
 
-**In this repository**, beside the sample games:
+<table>
+<tr><td width="50%" valign="top"><img src="docs/img/readme/4119-player-scene.webp" alt="Talking to Grandma: her topics in the side column" width="100%"><br><sub>Conversations with topics, choices and a transcript</sub></td><td width="50%" valign="top"><img src="docs/img/readme/4119-proof-graph.webp" alt="The puzzle graph with the critical path and the solver's heat" width="100%"><br><sub>The puzzle graph: what each item and flag leads to, the critical path, the solver's heat</sub></td></tr>
+</table>
 
-```bash
-npm install
-npm run doctor                       # Node and Chromium required; Python modules, ffmpeg, Firefox, WebKit optional
-npm run new-game my-game "My Game"   # games/my-game from the template, set as the current game
-npm run assets                       # prepares the placeholder art
-npm run studio                       # the Studio: rooms, story, assets, checks, play
-```
+## Further
 
-Then, before anyone plays it: `npm run verify:game` (validation, a path to the ending, chapters, translations, lint,
-playtests), `npm run prove:game` (every reachable state: softlocks and truncation fail), `npm run build` (type check,
-tests, bundle and audits, into `dist/` for any static host). `npm run dev` plays your game on this computer,
-`npm run dev:lan` on your phone. [TUTORIAL](docs/en/TUTORIAL.md) walks the first room; [WORKFLOW](docs/en/WORKFLOW.md)
-is the whole method.
+- **Several playable characters**, a world map, minigames playable by touch or keyboard, cutscenes and phone calls,
+  autosave and save slots.
+- **Remix**: worlds generated from a seed, each one validated and solved before it ships ([REMIX](docs/en/REMIX.md)).
+- **Speedrun**: runs recorded, sealed and verified by a replay; leaderboards on the Bridge.
+- **Reality**: a game reacts to a fact from the world (an email answered, a terminal command, a badge) through a
+  signed signal from a Bridge, without its content touching the network ([REALITY](docs/en/REALITY.md),
+  [REALITY-OPS](docs/en/REALITY-OPS.md)).
 
-## In numbers
+<table>
+<tr><td width="50%" valign="top"><img src="docs/img/readme/4119-player-minigame.webp" alt="The pipes minigame: tiles to turn between a water tank and the mushrooms" width="100%"><br><sub>A minigame, played by touch or with the keyboard</sub></td><td width="50%" valign="top"><img src="docs/img/readme/4119-player-map.webp" alt="The world map: Grandma and Grandpa pinned on it, the places to go in the side column" width="100%"><br><sub>The world map, the characters where they are</sub></td></tr>
+</table>
 
-Measured on this commit of `main`, by the automated gates that run on every change (`npm run quality:baseline` writes
-the three figures from `tests/quality-baseline.json`):
+## What is stable
 
-| What | Result |
-|---|---|
-| Unit tests | <!-- metric:tests -->1864<!-- /metric --> declarations, in Node 22 and 24, with coverage floors per module and mutation testing on what a save, a session, a condition and a signal rest on |
-| Browser tests | the sample game played to its ending by touch and by keyboard in Chromium and WebKit at a phone's size, in English and French, with the DOM and the Canvas painter; a second game and the reference game too; every minigame won at the keyboard; axe-core on every screen |
-| Saves | one frozen save per release from 3.0.0 to 4.1.18 loads and reaches the ending |
-| Proof | the sample game's every reachable state in seconds; a 40-room reference game in <!-- metric:referenceStates -->288<!-- /metric --> states; 500 random games of each of three kinds compared to an explicit search every night, 0 divergences ([BENCH](docs/en/BENCH.md)) |
-| A new game | packed, created from the tarball, installed, verified, built and played to its end by CI; a game made on the previous release upgraded and its save played to the end |
-| The player's first visit | <!-- metric:initialJsKB -->133<!-- /metric --> KB of JavaScript, gzipped, held by a budget; every byte fetched predicted by the asset graph |
-| The release | built from the commit CI tested, every file accounted for with its licence, SBOM, SHA-256 sums and a provenance attestation, never replaced once published |
+Each surface is promised only as far as its proofs go ([SUPPORT](docs/en/SUPPORT.md), [GO / NO-GO 4.2](docs/dev/GO-NO-GO-4.2.md)):
+
+| Stable | Limited | Experimental |
+|---|---|---|
+| the content format and its tools; the desktop Chromium PWA; the Reality Bridge on SQLite | the DOM player on phones and screen readers (untried by a person); the Safari PWA; Firefox (the PWA only); speedrun and Remix; voices; the archives (until a person installs them) | the Canvas painter; the Bridge on Postgres (`distributed`); the four connectors |
 
 What only people and real devices can check is listed, not claimed: [FIELD](docs/en/FIELD.md), and each release's
 notes say which passes were made.
 
-## Documentation
-
-| Read | For |
-|---|---|
-| [TUTORIAL](docs/en/TUTORIAL.md) · [WORKFLOW](docs/en/WORKFLOW.md) | a first room in fifteen minutes; the method from the first idea to the release |
-| [CONTENT_GUIDE](docs/en/CONTENT_GUIDE.md) · [CLASSICS](docs/en/CLASSICS.md) · [DESIGN](docs/en/DESIGN.md) | writing content, famous mechanics, making it a good game |
-| [STUDIO](docs/en/STUDIO.md) · [TOOLS](docs/en/TOOLS.md) · [MCP](docs/en/MCP.md) | the Studio, every command, the AI tools |
-| [ENGINE](docs/en/ENGINE.md) · [BENCH](docs/en/BENCH.md) · [FIELD](docs/en/FIELD.md) | how the engine works, what the proof can and cannot do, what only people and real devices check |
-| [PROMPTS](docs/en/PROMPTS.md) · [AUDIO](docs/en/AUDIO.md) · [PAGES](docs/en/PAGES.md) | images, sound, the review pages |
-| [REALITY](docs/en/REALITY.md) · [REALITY-OPS](docs/en/REALITY-OPS.md) | a game that reacts to the world outside, and how to run its Bridge |
-| [PACKAGE](docs/en/PACKAGE.md) · [API](docs/en/API.md) · [SUPPORT](docs/en/SUPPORT.md) | a game in its own project, the public API with its signatures, what stays stable and on which platforms |
-| [ARCHITECTURE](docs/en/ARCHITECTURE.md) · [CODE_TOUR](docs/en/CODE_TOUR.md) · [CONTRIBUTING](CONTRIBUTING.md) | how the code is put together, a half-hour tour of it, how to change it (and the decisions in `docs/dev/adr/`) |
-| [ROADMAP](docs/en/ROADMAP.md) · [CHANGELOG](CHANGELOG.md) · [UPGRADING](docs/en/UPGRADING.md) | where it comes from, every release, moving to a new version |
-
-Every page also exists in French under `docs/fr/`, and a test keeps the two in step. `docs/dev/` is the work log.
-
-## Releases
-
-Current release: [v4.1.18 "Dress Rehearsal"](https://github.com/wanoo/web-scumm/releases/tag/v4.1.18): no new
-mechanic, the rehearsal of 4.2 "Stable World". The four archives are installed outside the repository on Linux,
-macOS and Windows by the candidate itself; a reference deployment of the Bridge (HTTPS, three instances, Postgres) is
-killed, destroyed and restored without a lost or doubled signal; every mutation set is gated, the connectors and the
-stores included; and the thirteen passes only people can make are reports bound to the candidate they tried (the
-Field Kit), each an open issue until it is made. No surface is promoted without the pass it needs: [GO / NO-GO 4.2](docs/dev/GO-NO-GO-4.2.md)
-says which can enter 4.2. On 4.1.17's candidate gate, 4.1.16's convergence (a run bound to its world, durable leaderboards), 4.1.15's worlds,
-4.1.14's runs and proofs, 4.1.13's solver, 4.1.12's game-as-data, 4.1.11's scene frame, 4.1.10's durable Bridge,
-4.1.9's connectors and 4.1.8's foundation.
-From 4.1.1 to 4.1.7 every release added only what was optional, and a game written against one ran on the next;
-from 4.1.8 the 4.1.x line is an incubation line, where a release may break a public name or a format, documented
-and with a migration, until 4.2.0 restores strict SemVer ([SUPPORT](docs/en/SUPPORT.md)). The story
-from v1.3 to here is in the [ROADMAP](docs/en/ROADMAP.md), every change in the [CHANGELOG](CHANGELOG.md).
-
-## Repository map
+## How it is made
 
 ```
 src/engine/      core (the DSL, the engine), tools (validate, solve, lint, i18n…), dom (the player), minigames, reality
@@ -180,17 +117,43 @@ games/demo/      the sample game: rooms, layouts, art, audio, locales, storyboar
 games/_template/ copied by npm run new-game
 tools/           the commands, the Studio, the MCP server, the art and audio pipelines, the Vite plugins
 bridge/          the Reality Bridge (the package web-scumm-bridge)
-scripts/         the browser tests, the sealed ending, new-game, the README screenshots
+connectors/      the connectors of the world outside (the package web-scumm-connectors)
 docs/en docs/fr  the documentation; docs/dev: the work log, the decisions, each release's passes
 ```
 
-The images of this page come from the production bundle and the Studio, taken by `npm run docs:screenshots`.
+The engine, the solver and the replay share one code path; [ARCHITECTURE](docs/en/ARCHITECTURE.md) and a half-hour
+[CODE_TOUR](docs/en/CODE_TOUR.md) explain how it fits together.
+
+**Made with an AI assistant, reviewed by people.** The content is declarative, so an assistant reads and writes it
+like any other file (`AGENTS.md` holds the rules); every operation is a command and an MCP tool
+([MCP](docs/en/MCP.md)); after each change it can validate, solve, replay and take a screenshot, so it sees its own
+mistakes before a person does. Every result stays reviewable, in the Studio and in Git.
+[CONTRIBUTING](CONTRIBUTING.md) says how to change it.
+
+## In numbers
+
+Measured on this commit of `main` by the automated gates (`npm run quality:baseline` writes these figures):
+<!-- metric:tests -->1872<!-- /metric --> unit test declarations, on Node 22 and 24, with coverage floors and gated
+mutation testing; the reference game proved in <!-- metric:referenceStates -->288<!-- /metric --> states; the player's
+first visit <!-- metric:initialJsKB -->133<!-- /metric --> KB of JavaScript, gzipped. Each release is built from the
+commit its candidate tested; its archives, the Bridge's image, the SBOMs and the baseline are the very files the
+candidate made, published with SHA-256 sums and provenance attestations.
+
+## Documentation
+
+Every page exists in English (`docs/en/`) and French (`docs/fr/`), and a test keeps the two in step: the
+[TUTORIAL](docs/en/TUTORIAL.md), the [WORKFLOW](docs/en/WORKFLOW.md) from the first idea to the release, every
+command in [TOOLS](docs/en/TOOLS.md), what changed in the [CHANGELOG](CHANGELOG.md), moving to a new version in
+[UPGRADING](docs/en/UPGRADING.md), and where it comes from in the [ROADMAP](docs/en/ROADMAP.md).
+
+Current release: [v4.1.19 "Field Closure"](https://github.com/wanoo/web-scumm/releases/tag/v4.1.19). The 4.1.x line is
+an incubation line, where a release may break a public name or a format, documented and with a migration, until
+4.2.0 restores strict SemVer.
 
 ## Licences
 
 Code: MIT. Sample artwork, sound effects and theme: CC BY 4.0 (attribution "Wano"); the theme is Tchaikovsky's *Swan
-Lake* (public domain), written out and arranged for the project, so the sample game passes `npm run verify:commercial`.
-Fonts: SIL OFL. See `CREDITS.md`.
+Lake* (public domain), written out and arranged for the project. Fonts: SIL OFL. See `CREDITS.md`.
 
 web-scumm is an independent project. "SCUMM-style" names a kind of game; the project is not affiliated with, endorsed
 by or derived from LucasArts, Lucasfilm, Disney or the ScummVM project, and ships none of their code, data or art.

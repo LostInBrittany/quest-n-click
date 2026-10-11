@@ -611,6 +611,19 @@ views with 105 tests; every public export carries `@public` or `@extension` and 
 written by the baseline; a links script. Left for later, said as such: the human passes of the sheet
 (`docs/dev/passes/4.1.8.md`), the release workflow's acceleration (its own lot), the assistant tab's 845 lines.
 
+## v4.1.19 "Field Closure" (shipped October 2026): what 4.1.18's second reading left open
+
+No new mechanic (`docs/dev/PLAN-4.1.19-FIELD-CLOSURE.md`, D33, six pull requests and the release; the DSL window
+admitted nothing). The Bridge's backup is one snapshot and its restore all or nothing (schema 3, ADR 0021). The Bridge
+and the connectors ship with their locks; the candidate builds the Bridge's image once, with its three identities, and
+five CycloneDX SBOMs that the release publishes as they were made. A Field Kit bundle carries its candidate's attested
+manifest and is checked from the bundle alone. The mutation sets are named for what they mutate (`connectors-pure`;
+`connectors-edge` and `reality-store-postgres` measured); the four connectors are played from their archives; the
+Vite configuration no longer loads the Studio. The qualification profile covers the leaderboard: a worker killed
+mid-verification, a shared quota, 20 000 runs, a store made by 4.1.17. The README is rewritten around three promises:
+create a game as data, shape it in the Studio, prove and ship it. The people's passes start on this release's own
+candidate: GO / NO-GO 4.2 stays NO-GO until they are made.
+
 ## v4.1.18 "Dress Rehearsal" (shipped 10 October 2026): the rehearsal of 4.2
 
 The last qualification before 4.2 "Stable World" (`docs/dev/PLAN-4.1.18-DRESS-REHEARSAL.md`, D32, four pull requests
