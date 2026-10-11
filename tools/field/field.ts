@@ -12,8 +12,12 @@
 //                the people's passes table, written between `<!-- field:begin -->` and `<!-- field:end -->` (or in place of
 //                the sheet's "## People's passes" section, or as a new sheet)
 //   field:bundle --report=<report.json> --out=<bundle.tar.gz>
-//                the report and only the evidence it lists, logs redacted, refused on a key or a token, with its own
-//                SHA-256 manifest: what a reproduction ticket carries
+//                the report and only the evidence it lists, logs redacted, refused on a key or a token, the candidate's
+//                manifest and its attestation, with its own SHA-256 manifest: what a reproduction ticket carries
+//                (tools/field/bundle.ts, schema 2 since 4.1.19)
+//   field:verify-bundle <bundle.tar.gz> [--offline --trusted-root=<file>]
+//                the bundle read under its budgets, its files, its report against its candidate, then who made the
+//                manifest: its attestation (offline with a trusted root), or the run read on GitHub
 import { spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import {
@@ -28,10 +32,14 @@ import {
   writeFileSync,
 } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { basename, dirname, join, resolve, sep } from 'node:path';
+import { join, resolve, sep } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { FIELD_STATUSES, type FieldReport, FieldReportSchema, PASS_IDS, PASS_LABELS, type PassId } from './schema';
-import { hardSecrets, redact, reportLeaks } from './secrets';
+import { makeBundle, verifyBundle, ATTESTATION } from './bundle';
+import { hardSecrets, reportLeaks } from './secrets';
+import { BUDGET } from './tar';
+// @ts-expect-error: a plain .mjs module
+import { REPO } from '../release/provenance.mjs';
 
 /** The candidate's manifest (tools/release/candidate.mjs): the commit, the run, the digest of each file it judged. */
 export interface CandidateManifest {
@@ -44,8 +52,8 @@ export interface CandidateManifest {
 }
 export const MANIFEST = 'candidate-manifest.json';
 /** Archives are refused as evidence: what is inside cannot be read for a leak. Text is told from binary by content. */
-const ARCHIVE = /\.(gz|tgz|zip|tar|7z|br|zst|xz|bz2|rar)$/i;
-const isText = (b: Buffer) => !b.subarray(0, 8192).includes(0);
+export const ARCHIVE = /\.(gz|tgz|zip|tar|7z|br|zst|xz|bz2|rar)$/i;
+export const isText = (b: Buffer) => !b.subarray(0, 8192).includes(0);
 
 /**
  * One piece of evidence read safely (4.1.18, second reading): under the folder's `evidence/`, a regular file and not
@@ -157,6 +165,7 @@ export function checkDir(dir: string, require: readonly string[] = []): { proble
     if (r.candidateRun !== m.candidateRunId)
       problems.push(`${f}: tried run ${r.candidateRun}, the candidate is run ${m.candidateRunId}`);
     if (!sameDigests(r.packageDigests, want)) problems.push(`${f}: its file digests are not the candidate's`);
+    let evidenceBytes = 0;
     for (const e of r.evidence) {
       const read = readEvidence(dir, e.path);
       if ('why' in read) {
@@ -164,10 +173,21 @@ export function checkDir(dir: string, require: readonly string[] = []): { proble
         continue;
       }
       const b = read.bytes;
+      // Bounded (4.1.19): what a bundle can carry, said here before anyone tries to bundle it; a file above it is not
+      // scanned (the scan of megabytes of one character would take minutes).
+      evidenceBytes += b.length;
+      if (b.length > BUDGET.maxFileBytes) {
+        problems.push(`${f}: evidence ${e.path} holds ${b.length} bytes, more than ${BUDGET.maxFileBytes}`);
+        continue;
+      }
       if (sha256(b) !== e.sha256) problems.push(`${f}: evidence ${e.path} is not the file it names (SHA-256 differs)`);
       const leaks = isText(b) ? reportLeaks(b.toString('utf8')) : hardSecrets(b.toString('latin1'));
       for (const leak of leaks) problems.push(`${f}: evidence ${e.path} holds ${leak}`);
     }
+    if (evidenceBytes > BUDGET.maxTotalBytes)
+      problems.push(
+        `${f}: its evidence holds ${evidenceBytes} bytes, more than ${BUDGET.maxTotalBytes} for one bundle`,
+      );
     reports.push(r);
   }
   // One release per folder, and the one its packages name when the candidate packed them (`pack/web-scumm-x.y.z.tgz`).
@@ -245,55 +265,6 @@ export function writePasses(sheet: string | null, section: string, release: stri
   return sheet.slice(0, h) + block + (next < 0 ? '' : sheet.slice(next + 1));
 }
 
-/**
- * A reproduction bundle: the report and the evidence it lists, text redacted (addresses, bearers, password values,
- * IPs), refused when a key or a token remains, each file's SHA-256 in `bundle-manifest.json`. Returns the staging
- * folder (the caller packs it).
- */
-export function stageBundle(reportFile: string, into: string): { files: string[]; redacted: string[] } {
-  const dir = dirname(reportFile);
-  const r = FieldReportSchema.parse(JSON.parse(readFileSync(reportFile, 'utf8')));
-  const leaks = reportLeaks(readFileSync(reportFile, 'utf8'));
-  if (leaks.length) throw new Error(`${basename(reportFile)} holds ${leaks.join(', ')}: refused`);
-  const files: { path: string; sha256: string; source: string; redacted: string[] }[] = [];
-  const redacted = new Set<string>();
-  for (const e of r.evidence) {
-    const read = readEvidence(dir, e.path);
-    if ('why' in read) throw new Error(`evidence ${e.path} ${read.why}: refused`);
-    const src = read.bytes;
-    if (sha256(src) !== e.sha256) throw new Error(`evidence ${e.path} is not the file the report names`);
-    let out: Buffer = src;
-    let cut: string[] = [];
-    if (isText(src)) {
-      const text = src.toString('utf8');
-      const hard = hardSecrets(text);
-      if (hard.length) throw new Error(`evidence ${e.path} holds ${hard.join(', ')}: refused, never bundled`);
-      const red = redact(text);
-      out = Buffer.from(red.text);
-      cut = red.redacted;
-    } else if (hardSecrets(src.toString('latin1')).length) {
-      throw new Error(`evidence ${e.path} holds a key or a token: refused, never bundled`);
-    }
-    for (const k of cut) redacted.add(k);
-    const to = join(into, 'evidence', e.path);
-    mkdirSync(dirname(to), { recursive: true });
-    writeFileSync(to, out);
-    files.push({ path: `evidence/${e.path}`, sha256: sha256(out), source: e.sha256, redacted: cut });
-  }
-  writeFileSync(join(into, 'report.json'), `${JSON.stringify(r, null, 1)}\n`);
-  const manifest = {
-    format: 'web-scumm-field-bundle',
-    schema: 1,
-    passId: r.passId,
-    commit: r.commit,
-    candidateRun: r.candidateRun,
-    report: sha256(readFileSync(join(into, 'report.json'))),
-    files,
-  };
-  writeFileSync(join(into, 'bundle-manifest.json'), `${JSON.stringify(manifest, null, 1)}\n`);
-  return { files: ['report.json', 'bundle-manifest.json', ...files.map((f) => f.path)], redacted: [...redacted] };
-}
-
 const flag = (args: string[], k: string) => args.find((a) => a.startsWith(`--${k}=`))?.slice(k.length + 3);
 
 export function main(args: string[]): number {
@@ -315,6 +286,20 @@ export function main(args: string[]): number {
     const m = readManifest(manifestFile);
     if (m.candidateRunId !== run) throw new Error(`the manifest is run ${m.candidateRunId}'s, not ${run}'s`);
     writeFileSync(join(dir, MANIFEST), readFileSync(manifestFile));
+    // The manifest's provenance attestation (4.1.19): what lets a bundle be checked offline, by anyone.
+    rmSync(join(dir, ATTESTATION), { force: true }); // never the attestation of the candidate before
+    const att = mkdtempSync(join(tmpdir(), 'field-attestation-'));
+    const g = spawnSync('gh', ['attestation', 'download', join(dir, MANIFEST), '--repo', REPO], {
+      cwd: att,
+      encoding: 'utf8',
+    });
+    const got = g.status === 0 ? readdirSync(att).find((f) => f.endsWith('.jsonl')) : undefined;
+    if (got) writeFileSync(join(dir, ATTESTATION), readFileSync(join(att, got)));
+    else
+      console.log(
+        `ℹ  no attestation of the manifest downloaded (${g.status === 0 ? 'none: a candidate before 4.1.19' : (g.stderr || '').trim().split('\n').at(-1)}): its bundles are checked online`,
+      );
+    rmSync(att, { recursive: true, force: true });
     let made = 0;
     for (const id of PASS_IDS) {
       const f = join(dir, `${id}.json`);
@@ -361,18 +346,34 @@ export function main(args: string[]): number {
     const report = flag(args, 'report');
     const out = flag(args, 'out');
     if (!report || !out) throw new Error('field:bundle --report=<report.json> --out=<bundle.tar.gz>');
-    const stage = mkdtempSync(join(tmpdir(), 'field-bundle-'));
-    try {
-      const { files, redacted } = stageBundle(resolve(report), stage);
-      const r = spawnSync(TAR, ['-czf', resolve(out), '-C', stage, '.'], { stdio: 'inherit' });
-      if (r.status !== 0) throw new Error('tar failed');
-      console.log(`✔  ${out}: ${files.length} files${redacted.length ? `, redacted: ${redacted.join(', ')}` : ''}`);
-    } finally {
-      rmSync(stage, { recursive: true, force: true });
-    }
+    const { bytes, redacted } = makeBundle(resolve(report));
+    writeFileSync(resolve(out), bytes);
+    console.log(`✔  ${out}: ${bytes.length} bytes${redacted.length ? `, redacted: ${redacted.join(', ')}` : ''}`);
     return 0;
   }
-  console.error('npm run field:<init|check|report|bundle> -- … (tools/field/field.ts)');
+  if (cmd === 'verify-bundle') {
+    const file = args.find((a, i) => i > 0 && !a.startsWith('--'));
+    if (!file) throw new Error('field:verify-bundle <bundle.tar.gz> [--offline --trusted-root=<file>]');
+    const offline = args.includes('--offline');
+    const trustedRoot = flag(args, 'trusted-root');
+    const v = verifyBundle(readFileSync(resolve(file)), {
+      offline,
+      ...(trustedRoot ? { trustedRoot: resolve(trustedRoot) } : {}),
+    });
+    for (const p of v.problems) console.error(`  ✖ ${p}`);
+    const a = v.authenticity;
+    const said =
+      a.level === 'attested'
+        ? `attested by candidate run ${a.runId} (${a.mode})`
+        : a.level === 'run-manifest'
+          ? `the manifest run ${a.runId} keeps (online)`
+          : `not verified: ${a.why}`;
+    console.log(
+      `${v.problems.length ? '✖' : '✔'}  ${v.passId} (${v.status}) on ${v.commit.slice(0, 12)}, run ${v.candidateRun}: integrity ${v.problems.length ? 'refused' : 'ok'}; authenticity ${said}`,
+    );
+    return v.problems.length || a.level === 'unverified' ? 1 : 0;
+  }
+  console.error('npm run field:<init|check|report|bundle|verify-bundle> -- … (tools/field/field.ts)');
   return 2;
 }
 
