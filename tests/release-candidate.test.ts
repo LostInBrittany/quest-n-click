@@ -154,7 +154,9 @@ describe('the workflows that judge a candidate', () => {
     expect(text).toContain('actions: read');
     // Only a run started by hand on main: a pull request's run judges its own copy of candidate.yml.
     expect(text).toContain('"candidate completed success workflow_dispatch main"');
-    expect(readFileSync('tools/release/ship.mjs', 'utf8')).toMatch(
+    // ship.mjs asks tools/release/provenance.mjs (4.1.19), the contract the Field Kit's bundles are verified with too.
+    expect(readFileSync('tools/release/ship.mjs', 'utf8')).toMatch(/candidateRunProblem\(queryRun\(runId\), runId\)/);
+    expect(readFileSync('tools/release/provenance.mjs', 'utf8')).toMatch(
       /r\.event !== 'workflow_dispatch' \|\| r\.headBranch !== 'main'/,
     );
   });

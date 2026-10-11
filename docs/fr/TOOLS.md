@@ -209,6 +209,7 @@ npm run field:init -- --release=<x.y.z> --candidate=<run id>   # le Field Kit (4
 npm run field:check -- --dir=<dossier> [--require=<id,…>]   # chaque rapport face à son candidat (commit, run, empreintes), le SHA-256 de ses preuves et la recherche de fuites
 npm run field:report -- --dir=<dossier> --out=docs/dev/passes/<x.y.z>.md   # le tableau des passes humaines généré depuis les rapports
 npm run field:bundle -- --report=<report.json> --out=<bundle.tar.gz>   # le rapport et ses preuves listées, logs expurgés, refusé sur une clé ou un token
+npm run field:verify-bundle -- <bundle.tar.gz> [--offline --trusted-root=<fichier>]   # 4.1.19 : intégrité, le candidat, puis qui a fait son manifeste (son attestation, ou le run)
 npm run verify:field               # verify:commercial, puis ces quotas : ce qu'il faut à une release testée par des joueurs (pas une étape de release-check, D12)
 npm run e2e:perf -- <url> [--renderer=canvas|dom --cpu=4 --min=30 --room=<id>]   # images par seconde pendant que le héros marche, CPU ralenti (le substitut du téléphone)
 npm run e2e:music -- <url> [--only=offline|live|game --live=chromium|webkit]   # le directeur musical : 30 min hors ligne sans dérive, 100 changements sans clic, gigue en temps réel, les stems du thème dans le jeu
