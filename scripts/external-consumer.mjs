@@ -19,7 +19,7 @@
 // Exit 0 when every step passes. Portable: Node's own APIs (no `mv`, `curl` or process groups), npm and npx through the
 // shell on Windows.
 import { spawnSync } from 'node:child_process';
-import { createHmac, randomBytes } from 'node:crypto';
+import { createHash, createHmac, randomBytes } from 'node:crypto';
 import {
   copyFileSync,
   existsSync,
@@ -34,7 +34,7 @@ import {
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { harness, WIN, waitFor } from './lib/archive-harness.mjs';
-import { upgradeSource } from './upgrade-source.mjs';
+import { KNOWN_ENGINES, sumFor, sumsAsset, upgradeSource } from './upgrade-source.mjs';
 
 const ROOT = resolve(import.meta.dirname, '..');
 const args = process.argv.slice(2);
@@ -132,7 +132,18 @@ else {
   console.log(`\n▶ the older engine: ${url}`);
   const r = await fetch(url);
   if (!r.ok) throw new Error(`${url}: ${r.status}`);
-  writeFileSync(oldTgz, Buffer.from(await r.arrayBuffer()));
+  const bytes = Buffer.from(await r.arrayBuffer());
+  // Checked against the release's own sums (4.1.19): a stable tag and a pre-release alike.
+  const sumsUrl = `https://github.com/wanoo/web-scumm/releases/download/${src.tag}/${sumsAsset(src.tag)}`;
+  const s = await fetch(sumsUrl);
+  if (!s.ok) throw new Error(`${sumsUrl}: ${s.status}`);
+  const want = sumFor(await s.text(), src.asset);
+  const got = createHash('sha256').update(bytes).digest('hex');
+  if (got !== want) throw new Error(`${src.asset}: SHA-256 ${got}, the release says ${want}`);
+  const known = KNOWN_ENGINES[src.tag];
+  if (known && got !== known) throw new Error(`${src.asset}: SHA-256 ${got}, this script knows ${known}`);
+  console.log(`  ✔ ${src.asset} matches ${src.tag}'s sums (${want.slice(0, 12)}…)`);
+  writeFileSync(oldTgz, bytes);
 }
 const oldPkg = unpack(oldTgz, join(base, 'old-engine'));
 const oldVersion = json(join(oldPkg, 'package.json')).version;

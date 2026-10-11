@@ -88,12 +88,19 @@ export class LineAssembler {
           let gone: number;
           do gone = this.bytes.pop()!;
           while ((gone & 0xc0) === 0x80);
+          // The buffer never begins with a continuation byte (4.1.19, below), so this loop always ends on a character
+          // that was shown, and the column it takes back is never one of the prompt's.
           this.on.echo?.('\b \b');
         }
         return;
       }
     }
     if (b < 0x20 || b === 0x7f) return;
+    // UTF-8 kept well formed (4.1.19): a continuation byte that continues nothing, or a byte that never leads one,
+    // is dropped, so the buffer never holds a continuation byte without its lead; a character split across two network
+    // chunks is still whole (this state is the buffer itself). A lead in 0xF5–0xF7, an overlong or a surrogate form is
+    // kept: it decodes to U+FFFD, and one backspace removes it whole.
+    if ((b & 0xc0) === 0x80 ? !this.continues() : b >= 0xf8 || b === 0xc0 || b === 0xc1) return;
     if (this.overflow) return;
     if (this.bytes.length >= this.maxLine) {
       this.overflow = true;
@@ -103,5 +110,15 @@ export class LineAssembler {
     this.bytes.push(b);
     if (this.pty && b < 0x80) this.on.echo?.(String.fromCharCode(b));
     else if (this.pty && (b & 0xc0) !== 0x80) this.on.echo?.('·');
+  }
+
+  /** Whether the buffer ends inside a character, waiting for a continuation byte. */
+  private continues(): boolean {
+    let k = this.bytes.length - 1;
+    while (k >= 0 && (this.bytes[k]! & 0xc0) === 0x80) k--;
+    if (k < 0) return false;
+    const lead = this.bytes[k]!;
+    const need = lead >= 0xf0 ? 3 : lead >= 0xe0 ? 2 : lead >= 0xc0 ? 1 : 0;
+    return this.bytes.length - 1 - k < need;
   }
 }

@@ -304,6 +304,7 @@ jobs:
           cache: npm
       - run: for i in 1 2 3; do (npm ci) && break; [ "$i" = 3 ] && exit 1; echo "retry $i"; sleep 15; done
         timeout-minutes: 8
-      - run: for i in 1 2 3; do (docker pull node:22-bookworm-slim) && break; [ "$i" = 3 ] && exit 1; echo "retry $i"; sleep 15; done
+      # The worker's image by its digest (4.1.19, plan §6.2), the same one the Bridge's image starts from.
+      - run: for i in 1 2 3; do (docker pull mirror.gcr.io/library/node:22-bookworm-slim@sha256:c3de60bf2f9dd0ac6370e6117950ff62d6e339527e7472301c9c78a017978392) && break; [ "$i" = 3 ] && exit 1; echo "retry $i"; sleep 15; done
         timeout-minutes: 8
-      - run: npm run e2e:worker-container
+      - run: npm run e2e:worker-container -- --image=mirror.gcr.io/library/node:22-bookworm-slim@sha256:c3de60bf2f9dd0ac6370e6117950ff62d6e339527e7472301c9c78a017978392
