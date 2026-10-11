@@ -18,7 +18,7 @@
 //      duplicate, a bad signature refused.
 // Exit 0 when every step passes. Portable: Node's own APIs (no `mv`, `curl` or process groups), npm and npx through the
 // shell on Windows.
-import { spawn, spawnSync } from 'node:child_process';
+import { spawnSync } from 'node:child_process';
 import { createHash, createHmac, randomBytes } from 'node:crypto';
 import {
   copyFileSync,
@@ -27,19 +27,16 @@ import {
   mkdtempSync,
   readdirSync,
   readFileSync,
-  renameSync,
   rmSync,
   statSync,
   writeFileSync,
 } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
+import { harness, WIN, waitFor } from './lib/archive-harness.mjs';
 import { KNOWN_ENGINES, sumFor, sumsAsset, upgradeSource } from './upgrade-source.mjs';
 
 const ROOT = resolve(import.meta.dirname, '..');
-const WIN = process.platform === 'win32';
-// Windows' own tar (bsdtar): Git's GNU tar, first on a bash PATH, reads `D:\…` as a remote host.
-const TAR = WIN ? join(process.env.SystemRoot ?? 'C:\\Windows', 'System32', 'tar.exe') : 'tar';
 const args = process.argv.slice(2);
 const flag = (k) => args.find((a) => a.startsWith(`--${k}=`))?.slice(k.length + 3);
 const base = resolve(flag('dir') ?? mkdtempSync(join(tmpdir(), 'web-scumm-consumer-')));
@@ -60,68 +57,9 @@ const fail = (what) => {
   failed++;
 };
 
-/** One command in `cwd`, its output shown; throws on a non-zero exit. npm and npx are .cmd files on Windows. */
-/** Through the shell (npm and npx on Windows), an argument with a space is quoted, or cmd.exe splits it. */
-const quoted = (shell, a) => (shell ? a.map((x) => (/[\s"]/.test(x) ? `"${x.replaceAll('"', '\\"')}"` : x)) : a);
-function run(title, cmd, a, cwd, o = {}) {
-  console.log(`\n▶ ${title}`);
-  const shell = WIN && (cmd === 'npm' || cmd === 'npx');
-  const r = spawnSync(shell ? `${cmd}.cmd` : cmd, quoted(shell, a), {
-    cwd,
-    stdio: o.capture ? ['ignore', 'pipe', 'inherit'] : 'inherit',
-    encoding: 'utf8',
-    env: { ...ENV, ...(o.env ?? {}) },
-    shell,
-  });
-  if (r.status !== 0) throw new Error(`${title}: exit ${r.status}${r.error ? ` (${r.error.message})` : ''}`);
-  return r.stdout ?? '';
-}
+const { run, unpack, serve } = harness({ env: ENV, base });
 const node = (title, a, cwd, o) => run(title, process.execPath, a, cwd, o);
 const json = (f) => JSON.parse(readFileSync(f, 'utf8'));
-/** A tarball unpacked into `into` (its `package/` folder renamed): `tar` is on Linux, macOS and Windows 10+. */
-function unpack(tgz, into) {
-  const tmp = mkdtempSync(join(base, 'unpack-'));
-  run(`unpack ${tgz.split(/[\\/]/).pop()}`, TAR, ['-xzf', tgz, '-C', tmp], base);
-  renameSync(join(tmp, 'package'), into);
-  rmSync(tmp, { recursive: true, force: true });
-  return into;
-}
-/** A process left running (a server); stopped by its PID, the whole tree on Windows. */
-/**
- * A process left running (a server). `exited` says when it stopped (one that dies at once, a port taken, is seen);
- * `stop()` ends it, the whole tree on Windows, and waits for its exit (a SIGKILL after five seconds).
- */
-function serve(cmd, a, cwd) {
-  const shell = WIN && (cmd === 'npm' || cmd === 'npx');
-  const p = spawn(shell ? `${cmd}.cmd` : cmd, quoted(shell, a), { cwd, env: ENV, stdio: 'ignore', shell });
-  let exited = null;
-  const gone = new Promise((ok) => p.on('exit', (code, signal) => ok((exited = { code, signal }))));
-  return {
-    get exited() {
-      return exited;
-    },
-    async stop() {
-      if (!p.pid || exited) return;
-      if (WIN) spawnSync('taskkill', ['/pid', String(p.pid), '/T', '/F'], { stdio: 'ignore' });
-      else p.kill('SIGTERM');
-      const kill = setTimeout(() => p.kill('SIGKILL'), 5000);
-      await gone;
-      clearTimeout(kill);
-    },
-  };
-}
-async function waitFor(url, test = (r) => r.ok, tries = 80) {
-  for (let i = 0; i < tries; i++) {
-    try {
-      const r = await fetch(url, { signal: AbortSignal.timeout(2000) });
-      if (await test(r)) return r;
-    } catch {
-      /* not up yet */
-    }
-    await new Promise((ok) => setTimeout(ok, 500));
-  }
-  throw new Error(`${url} never answered`);
-}
 /** Every text file under `dir` (node_modules and builds left out) that names the checkout or a private engine path. */
 function leaksIn(dir) {
   const out = [];

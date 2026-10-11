@@ -2,13 +2,13 @@
 // Studio page itself (/__studio/ → studio.html, entry src/studio/main.ts). Every operation is a call into core.ts.
 import { createReadStream, watch, type FSWatcher } from 'node:fs';
 import type { IncomingMessage, ServerResponse } from 'node:http';
+import { fileURLToPath } from 'node:url';
 import type { Plugin } from 'vite';
-import { assetsMiddleware } from './assets';
-import { registerAssistant } from './assistant';
-import { createStudio, StudioError, type Studio } from './core';
-import type { AddEntity, EntityKind, NoteEdit, StudioEvent } from './types';
-import type { Point } from '../../src/engine/core/types';
-import { authorizeStudioRequest } from './security';
+import type { Studio } from './core.ts';
+import { isStudioError, StudioError } from './errors.ts';
+import type { AddEntity, EntityKind, NoteEdit, StudioEvent } from './types.ts';
+import type { Point } from '../../src/engine/core/types.ts';
+import { authorizeStudioRequest } from './security.ts';
 
 const MAX_BODY = 8 * 1024 * 1024;
 
@@ -176,8 +176,15 @@ export function studioPlugin(): Plugin {
   return {
     name: 'web-scumm-studio',
     apply: 'serve',
-    configureServer(server) {
+    async configureServer(server) {
       if (process.env.VITEST) return;
+      // The Studio and the engine it runs, loaded by the dev server itself (4.1.19): the configuration's own import
+      // graph holds this file, never the Studio, the solver and the engine behind it.
+      const load = <T>(file: string) =>
+        server.ssrLoadModule(fileURLToPath(new URL(file, import.meta.url))) as Promise<T>;
+      const { createStudio } = await load<typeof import('./core.ts')>('./core.ts');
+      const { registerAssistant } = await load<typeof import('./assistant')>('./assistant.ts');
+      const { assetsMiddleware } = await load<typeof import('./assets')>('./assets.ts');
       const studio = createStudio();
       const table = routes(studio);
       const clients = new Set<ServerResponse>();
@@ -280,7 +287,7 @@ export function studioPlugin(): Plugin {
             error: matchedPath ? `method ${method} not allowed on ${path}` : `no such endpoint: ${path}`,
           });
         } catch (e) {
-          const status = e instanceof StudioError ? e.status : 500;
+          const status = isStudioError(e) ? e.status : 500;
           const extra = (e as { body?: object }).body ?? {};
           if (status >= 500 && status !== 501)
             server.config.logger.error(`[studio] ${method} ${path}: ${(e as Error).stack ?? e}`);

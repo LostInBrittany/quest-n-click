@@ -26,7 +26,7 @@ import { parseSessionFile } from '../../src/engine/tools/replay';
 import { lintContent, lintMarkdown } from '../../src/engine/tools/lint';
 import { loadAssets, loadLayouts, loadLocales } from '../../src/engine/tools/load';
 import { GAME_DIR, ROOT, type GameModule } from '../game';
-import { gameIR } from '../extensions';
+import { gameIR } from '../game-ir';
 import type { GameIR } from '../../src/engine/core/ir';
 import { normalizeStoryboard, storyboardMarkdown, storyboardProblems } from '../pages/storyboard-data';
 import {
@@ -71,14 +71,9 @@ import type {
   PuzzleData,
 } from './types';
 
-export class StudioError extends Error {
-  constructor(
-    message: string,
-    readonly status = 400,
-  ) {
-    super(message);
-  }
-}
+import { StudioError } from './errors';
+
+export { StudioError };
 
 export interface StudioOptions {
   /** The game folder (default: GAME_DIR, see tools/game.ts). */

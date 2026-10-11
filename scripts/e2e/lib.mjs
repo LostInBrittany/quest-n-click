@@ -69,9 +69,42 @@ export async function launch(url, opts = {}) {
   if (cdp && process.env.E2E_CPU)
     await cdp.send('Emulation.setCPUThrottlingRate', { rate: Number(process.env.E2E_CPU) });
   const errors = [];
-  page.on('pageerror', (e) => errors.push(e.stack ?? String(e)));
+  // Each error with what a reproduction needs (4.1.19, plan §8.5: WebKit reported "1 browser error" with an empty
+  // message): its kind, name, message and stack, the page's address; a console error's source location and, when its
+  // text is empty, its arguments as the page sees them.
+  page.on('pageerror', (e) =>
+    errors.push(
+      `pageerror ${e?.name ?? typeof e}: ${e?.message || '(empty message)'} on ${page.url()}\n${e?.stack ?? String(e)}`,
+    ),
+  );
   page.on('console', (m) => {
-    if (m.type() === 'error') errors.push(m.text());
+    if (m.type() !== 'error') return;
+    const at = m.location();
+    const where = at?.url ? ` at ${at.url}:${at.lineNumber ?? '?'}:${at.columnNumber ?? '?'}` : '';
+    const text = m.text();
+    if (text) {
+      errors.push(`console.error${where}: ${text}`);
+      return;
+    }
+    // Its arguments arrive after it: an entry printed through `toString`, so it says them once they are read.
+    const entry = {
+      text: `console.error${where} on ${page.url()}: (empty text)`,
+      toString() {
+        return this.text;
+      },
+    };
+    errors.push(entry);
+    Promise.all(
+      m.args().map((a) =>
+        a.jsonValue().then(
+          (v) => JSON.stringify(v),
+          (x) => `<${x?.message ?? x}>`,
+        ),
+      ),
+    ).then(
+      (args) => (entry.text += ` args ${args.join(', ').slice(0, 500)}`),
+      () => {},
+    );
   });
 
   const dest = new URL(url);

@@ -159,7 +159,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        set: [core, reality, runs, remix, speedrun, connectors, reality-store]
+        set: [core, reality, runs, remix, speedrun, connectors-pure, reality-store]
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
@@ -233,6 +233,15 @@ jobs:
         timeout-minutes: 20
       - if: env.RUN == 'true'
         run: npx vitest run tests/connectors-*.test.ts tests/dist-no-server-code.test.ts
+      # A key pair ssh2 refused, kept with why (tests/fixtures/connectors/harness.ts, 4.1.19): the flake's evidence.
+      - if: always() && env.RUN == 'true'
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: flakes-connectors
+          path: .cache/flakes
+          include-hidden-files: true
+          if-no-files-found: ignore
+          overwrite: true
       - if: env.RUN == 'true'
         run: npm run fuzz:connectors -- --cases=10000 --seconds=30
       - if: env.RUN == 'true'
