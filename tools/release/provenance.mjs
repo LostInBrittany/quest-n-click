@@ -63,7 +63,7 @@ export const runOfStatement = (json) => /\/actions\/runs\/(\d+)(?:\/attempts\/\d
  */
 export function verifyAttestation(
   file,
-  { repo = REPO, bundle, trustedRoot, signerWorkflow, sourceRef, gh = 'gh' } = {},
+  { repo = REPO, bundle, trustedRoot, signerWorkflow, sourceRef, gh = 'gh', timeoutMs } = {},
 ) {
   const args = ['attestation', 'verify', file, '--repo', repo, '--format', 'json'];
   if (bundle) args.push('--bundle', bundle);
@@ -72,7 +72,12 @@ export function verifyAttestation(
   if (sourceRef) args.push('--source-ref', sourceRef);
   let out;
   try {
-    out = execFileSync(gh, args, { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'], maxBuffer: 1 << 26 });
+    out = execFileSync(gh, args, {
+      encoding: 'utf8',
+      stdio: ['ignore', 'pipe', 'pipe'],
+      maxBuffer: 1 << 26,
+      ...(timeoutMs ? { timeout: timeoutMs } : {}),
+    });
   } catch (e) {
     const why = String(e.stderr || e.message)
       .trim()
@@ -84,13 +89,18 @@ export function verifyAttestation(
   return { runId: runOfStatement(out) };
 }
 
-/** What GitHub says of a run now. */
-export function queryRun(runId, { gh = 'gh', repo = REPO } = {}) {
+/**
+ * What GitHub says of a run now. Its `headSha` is not the SHA a candidate tested: a run started by hand on main has
+ * main's tip there, and the SHA it tested is its `inputs.sha`, written into the manifest. The manifest's attestation (or
+ * the manifest the run keeps) binds that SHA to the run; comparing `headSha` would refuse every candidate of an older
+ * commit (second reading of 4.1.19 PR 2b, plan §6.5 said to compare it).
+ */
+export function queryRun(runId, { gh = 'gh', repo = REPO, timeoutMs } = {}) {
   if (!/^\d+$/.test(String(runId ?? ''))) throw new Error(`not a run id: ${runId}`);
   const out = execFileSync(
     gh,
     ['run', 'view', String(runId), '--repo', repo, '--json', 'workflowName,status,conclusion,event,headBranch,headSha'],
-    { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] },
+    { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'], ...(timeoutMs ? { timeout: timeoutMs } : {}) },
   );
   return JSON.parse(out);
 }

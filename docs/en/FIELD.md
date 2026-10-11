@@ -78,11 +78,11 @@ npm run field:verify-bundle -- <bundle.tar.gz> --offline --trusted-root=trusted-
 - **A bundle stands on its own** (4.1.19, schema 2): it carries the report, its evidence, the candidate's manifest and,
   from 4.1.19, the manifest's provenance attestation, which the candidate's gate signs after every job succeeded
   (`field:init` downloads it beside the manifest). `field:verify-bundle` reads the archive itself under budgets (16 MiB
-  a file, 64 MiB in all, 256 files, 32 MiB compressed, one minute); a link, a device, an absolute path, a `..` or a
+  a file, 64 MiB in all, 256 files, 64 MiB compressed, one minute, the calls to GitHub included); a link, a device, an absolute path, a `..` or a
   name twice refuses it. It then checks every file against the bundle's manifest and the report against its
   candidate (integrity), and says who made the manifest (authenticity): offline, the attestation against a trusted root
-  saved once, which proves a `candidate.yml` run on main signed it and names the run; online, the attestation looked
-  up and the run read now (a candidate, green, started by hand on main). A bundle of an older candidate (no
+  saved once, which proves a `candidate.yml` run on main signed it and names the run; online, the same attestation
+  verified against the public trusted root, and the run read now (a candidate, green, started by hand on main). A bundle of an older candidate (no
   attestation) is checked online against the manifest the run keeps; offline it is said unverified.
 - **Evidence is a file under `evidence/`** (at most 16 MiB, 64 MiB for one report; `field:check` says so before a
   bundle is tried), read where it is: not a link, not outside the folder once resolved, not an

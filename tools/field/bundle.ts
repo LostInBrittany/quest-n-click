@@ -17,7 +17,7 @@ import { join } from 'node:path';
 import { z } from 'zod';
 // @ts-expect-error: a plain .mjs module (tools/release), typed by its JSDoc-free contract here
 import * as provenance from '../release/provenance.mjs';
-import { type CandidateManifest, digestsOf, isText, MANIFEST, readEvidence, sha256 } from './field';
+import { ARCHIVE, type CandidateManifest, digestsOf, isText, MANIFEST, readEvidence, sha256 } from './field';
 import { FieldReportSchema } from './schema';
 import { hardSecrets, redact, reportLeaks } from './secrets';
 import { BUDGET, type Budget, readTarGz, writeTarGz } from './tar';
@@ -28,9 +28,16 @@ const P = provenance as {
   digestProblems(m: CandidateManifest, files: Map<string, Buffer | string>, o?: { all?: boolean }): string[];
   verifyAttestation(
     file: string,
-    o: { bundle?: string; trustedRoot?: string; signerWorkflow?: string; sourceRef?: string; gh?: string },
+    o: {
+      bundle?: string;
+      trustedRoot?: string;
+      signerWorkflow?: string;
+      sourceRef?: string;
+      gh?: string;
+      timeoutMs?: number;
+    },
   ): { runId: string | null };
-  queryRun(runId: string, o?: { gh?: string }): Record<string, string>;
+  queryRun(runId: string, o?: { gh?: string; timeoutMs?: number }): Record<string, string>;
   candidateRunProblem(r: Record<string, string>, runId: string): string | null;
   CANDIDATE_WORKFLOW: string;
 };
@@ -128,7 +135,14 @@ export function makeBundle(reportFile: string, budget: Budget = BUDGET): { bytes
     files,
   };
   out.set('bundle-manifest.json', Buffer.from(`${JSON.stringify(bm, null, 1)}\n`));
-  return { bytes: writeTarGz(out), redacted: [...redacted] };
+  // Every file counts, as the reader counts them; a bundle its own check would refuse is never written.
+  const all = [...out.values()].reduce((n, b) => n + b.length, 0);
+  if (all > budget.maxTotalBytes)
+    throw new Error(`the bundle would hold ${all} bytes, more than ${budget.maxTotalBytes}`);
+  const bytes = writeTarGz(out);
+  if (bytes.length > budget.maxArchiveBytes)
+    throw new Error(`the bundle would be ${bytes.length} bytes compressed, more than ${budget.maxArchiveBytes}`);
+  return { bytes, redacted: [...redacted] };
 }
 
 export interface BundleVerdict {
@@ -154,9 +168,12 @@ export function verifyBundle(
   o: { offline?: boolean; trustedRoot?: string; budget?: Budget; maxMs?: number; gh?: string } = {},
 ): BundleVerdict {
   const started = Date.now();
+  const budgetMs = o.maxMs ?? 60_000;
   const late = () => {
-    if (Date.now() - started > (o.maxMs ?? 60_000)) throw new Error(`the check took more than ${o.maxMs ?? 60_000} ms`);
+    if (Date.now() - started > budgetMs) throw new Error(`the check took more than ${budgetMs} ms`);
   };
+  /** What is left of the minute: every call to `gh` is bounded by it, not only the steps between them. */
+  const left = () => Math.max(1_000, budgetMs - (Date.now() - started));
   const files = readTarGz(archive, o.budget ?? BUDGET);
   late();
   const problems: string[] = [];
@@ -165,9 +182,13 @@ export function verifyBundle(
     if (!b) throw new Error(`the bundle holds no ${name}`);
     return b;
   };
-  const bm = BundleManifestSchema.parse(JSON.parse(get('bundle-manifest.json').toString('utf8')));
+  const raw = JSON.parse(get('bundle-manifest.json').toString('utf8')) as { schema?: unknown };
+  if (raw?.schema === 1)
+    throw new Error('a bundle of schema 1 (4.1.18) carries no candidate manifest: it cannot be verified on its own');
+  const bm = BundleManifestSchema.parse(raw);
   const reportBytes = get('report.json');
   const r = FieldReportSchema.parse(JSON.parse(reportBytes.toString('utf8')));
+  for (const leak of reportLeaks(reportBytes.toString('utf8'))) problems.push(`report.json: holds ${leak}`);
   const manifestBytes = get(MANIFEST);
   const m = P.readCandidateManifest(manifestBytes.toString('utf8'));
   const attestation = files.get(ATTESTATION) ?? null;
@@ -181,6 +202,9 @@ export function verifyBundle(
     problems.push(`${ATTESTATION}: not the one the bundle names`);
   const listed = new Map(r.evidence.map((e) => [e.path, e.sha256]));
   for (const f of bm.files) {
+    // Evidence only, never an archive whose inside cannot be read (as field:check refuses it at the source).
+    if (!f.path.startsWith('evidence/')) problems.push(`${f.path}: evidence lies under evidence/`);
+    if (ARCHIVE.test(f.path)) problems.push(`${f.path}: an archive inside the bundle`);
     const b = files.get(f.path);
     if (!b) problems.push(`${f.path}: missing`);
     else if (sha256(b) !== f.sha256) problems.push(`${f.path}: its SHA-256 differs from the bundle's`);
@@ -216,11 +240,15 @@ export function verifyBundle(
         // Started on main: a candidate a tag (or a pass) may stand on, said by the attestation itself offline.
         sourceRef: 'refs/heads/main',
         ...(o.gh ? { gh: o.gh } : {}),
+        timeoutMs: left(),
       });
       if (runId !== m.candidateRunId)
         problems.push(`the attestation names run ${runId}, the manifest run ${m.candidateRunId}`);
       if (!o.offline) {
-        const why = P.candidateRunProblem(P.queryRun(m.candidateRunId, o.gh ? { gh: o.gh } : {}), m.candidateRunId);
+        const why = P.candidateRunProblem(
+          P.queryRun(m.candidateRunId, { ...(o.gh ? { gh: o.gh } : {}), timeoutMs: left() }),
+          m.candidateRunId,
+        );
         if (why) problems.push(why);
       }
       authenticity = { level: 'attested', mode: o.offline ? 'offline' : 'online', runId: runId ?? '' };
@@ -233,11 +261,15 @@ export function verifyBundle(
       };
     } else {
       // No attestation: the run itself, then the manifest it keeps, byte for byte.
-      const why = P.candidateRunProblem(P.queryRun(m.candidateRunId, o.gh ? { gh: o.gh } : {}), m.candidateRunId);
+      const why = P.candidateRunProblem(
+        P.queryRun(m.candidateRunId, { ...(o.gh ? { gh: o.gh } : {}), timeoutMs: left() }),
+        m.candidateRunId,
+      );
       if (why) problems.push(why);
       const dl = join(tmp, 'run');
       const g = spawnSync(o.gh ?? 'gh', ['run', 'download', m.candidateRunId, '-n', 'candidate-manifest', '-D', dl], {
         encoding: 'utf8',
+        timeout: left(),
       });
       if (g.status !== 0) throw new Error(`the manifest of run ${m.candidateRunId} could not be downloaded`);
       if (sha256(readFileSync(join(dl, MANIFEST))) !== sha256(manifestBytes))

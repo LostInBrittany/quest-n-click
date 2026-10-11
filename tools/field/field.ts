@@ -52,7 +52,7 @@ export interface CandidateManifest {
 }
 export const MANIFEST = 'candidate-manifest.json';
 /** Archives are refused as evidence: what is inside cannot be read for a leak. Text is told from binary by content. */
-const ARCHIVE = /\.(gz|tgz|zip|tar|7z|br|zst|xz|bz2|rar)$/i;
+export const ARCHIVE = /\.(gz|tgz|zip|tar|7z|br|zst|xz|bz2|rar)$/i;
 export const isText = (b: Buffer) => !b.subarray(0, 8192).includes(0);
 
 /**
@@ -287,6 +287,7 @@ export function main(args: string[]): number {
     if (m.candidateRunId !== run) throw new Error(`the manifest is run ${m.candidateRunId}'s, not ${run}'s`);
     writeFileSync(join(dir, MANIFEST), readFileSync(manifestFile));
     // The manifest's provenance attestation (4.1.19): what lets a bundle be checked offline, by anyone.
+    rmSync(join(dir, ATTESTATION), { force: true }); // never the attestation of the candidate before
     const att = mkdtempSync(join(tmpdir(), 'field-attestation-'));
     const g = spawnSync('gh', ['attestation', 'download', join(dir, MANIFEST), '--repo', REPO], {
       cwd: att,
@@ -294,7 +295,10 @@ export function main(args: string[]): number {
     });
     const got = g.status === 0 ? readdirSync(att).find((f) => f.endsWith('.jsonl')) : undefined;
     if (got) writeFileSync(join(dir, ATTESTATION), readFileSync(join(att, got)));
-    else console.log(`ℹ  no attestation of the manifest (a candidate before 4.1.19): its bundles are checked online`);
+    else
+      console.log(
+        `ℹ  no attestation of the manifest downloaded (${g.status === 0 ? 'none: a candidate before 4.1.19' : (g.stderr || '').trim().split('\n').at(-1)}): its bundles are checked online`,
+      );
     rmSync(att, { recursive: true, force: true });
     let made = 0;
     for (const id of PASS_IDS) {

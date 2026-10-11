@@ -329,6 +329,14 @@ describe('a bundle read by someone else (tar.ts): nothing but regular files, und
     const doubled = Buffer.concat([twice.subarray(0, 1024), twice]);
     expect(() => readTarGz(gzipSync(doubled))).toThrow(/twice/);
   });
+  it('keeps a long name in UTF-8 whole: cut by bytes, never truncated', () => {
+    const name = `evidence/${'é'.repeat(70)}/a.txt`; // 149 bytes of prefix: once cut by characters
+    expect([...readTarGz(writeTarGz(new Map([[name, Buffer.from('x')]]))).keys()]).toEqual([name]);
+    expect(() => writeTarGz(new Map([[`evidence/${'é'.repeat(130)}.txt`, Buffer.from('x')]]))).toThrow(/too long/);
+    // 159 bytes of prefix, 84 characters: 4.1.19's first writer cut it at 155 bytes and lost the name.
+    expect(() => writeTarGz(new Map([[`evidence/${'é'.repeat(75)}/a.txt`, Buffer.from('x')]]))).toThrow(/too long/);
+  });
+
   it('refuses a file, a total or a count above its budget, and a gzip that inflates past it', () => {
     const budget = { ...BUDGET, maxFileBytes: 10, maxTotalBytes: 15, maxEntries: 2 };
     expect(() => readTarGz(writeTarGz(new Map([['a', Buffer.alloc(11)]])), budget)).toThrow(/more than 10/);
@@ -461,6 +469,25 @@ describe('field:verify-bundle', () => {
     const other = new Map(files);
     other.set(MANIFEST, Buffer.from(JSON.stringify({ ...manifest, sha: 'b'.repeat(40) })));
     expect(verifyBundle(writeTarGz(other), { offline: true }).problems.join()).toMatch(/not the one the bundle names/);
+  });
+
+  it('refuses an archive or a file outside evidence/ even in a bundle made by hand, and says a schema 1 bundle', () => {
+    const files = readTarGz(bundled());
+    const bm = JSON.parse(files.get('bundle-manifest.json')!.toString('utf8'));
+    const report = JSON.parse(files.get('report.json')!.toString('utf8'));
+    const zip = Buffer.from('PK');
+    report.evidence.push({ path: 'evidence/x.zip', sha256: sha256(zip), kind: 'log' });
+    const reportBytes = Buffer.from(`${JSON.stringify(report, null, 1)}\n`);
+    bm.report = sha256(reportBytes);
+    bm.files.push({ path: 'evidence/x.zip', sha256: sha256(zip), source: sha256(zip), redacted: [] });
+    const forged = new Map(files);
+    forged.set('evidence/x.zip', zip);
+    forged.set('report.json', reportBytes);
+    forged.set('bundle-manifest.json', Buffer.from(JSON.stringify(bm)));
+    expect(verifyBundle(writeTarGz(forged), { offline: true }).problems.join()).toMatch(/an archive inside the bundle/);
+    const old = new Map(files);
+    old.set('bundle-manifest.json', Buffer.from(JSON.stringify({ ...bm, schema: 1 })));
+    expect(() => verifyBundle(writeTarGz(old), { offline: true })).toThrow(/schema 1 \(4\.1\.18\)/);
   });
 
   it('field:check says when evidence passes what a bundle may carry', () => {

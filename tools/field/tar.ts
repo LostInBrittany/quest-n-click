@@ -16,7 +16,8 @@ export interface Budget {
   maxEntries: number;
 }
 export const BUDGET: Budget = {
-  maxArchiveBytes: 32 * 1024 * 1024,
+  // Never below the total: a bundle of evidence that does not compress (recordings, images) is still one bundle.
+  maxArchiveBytes: 64 * 1024 * 1024,
   maxFileBytes: 16 * 1024 * 1024,
   maxTotalBytes: 64 * 1024 * 1024,
   maxEntries: 256,
@@ -63,7 +64,8 @@ export function readTarGz(archive: Buffer, budget: Budget = BUDGET): Map<string,
     for (let i = 0; i < BLOCK; i++) sum += i >= 148 && i < 156 ? 32 : h[i]!;
     if (sum !== octal(h, 148, 8)) throw new Error('a tar header does not check');
     const type = String.fromCharCode(h[156]!);
-    const prefix = field(h, 345, 155);
+    // The prefix is ustar's: an old GNU header keeps other fields there (second reading of 4.1.19 PR 2b).
+    const prefix = h.subarray(257, 263).toString('latin1') === 'ustar\0' ? field(h, 345, 155) : '';
     const raw = (prefix ? `${prefix}/` : '') + field(h, 0, 100);
     const size = octal(h, 124, 12);
     if (!Number.isSafeInteger(size)) throw new Error(`${raw}: a size that does not read`);
@@ -94,9 +96,13 @@ function header(name: string, size: number): Buffer {
   const h = Buffer.alloc(BLOCK);
   let base = name;
   let prefix = '';
+  // Cut by bytes, never by characters: a name in UTF-8 is never truncated or split (second reading of 4.1.19 PR 2b).
   if (Buffer.byteLength(name) > 100) {
-    const cut = name.lastIndexOf('/', 155);
-    if (cut <= 0 || Buffer.byteLength(name.slice(cut + 1)) > 100) throw new Error(`${name}: too long for a bundle`);
+    const cuts = [...name.matchAll(/\//g)].map((m) => m.index!);
+    const cut = cuts.find(
+      (i) => Buffer.byteLength(name.slice(0, i)) <= 155 && Buffer.byteLength(name.slice(i + 1)) <= 100,
+    );
+    if (cut === undefined) throw new Error(`${name}: too long for a bundle`);
     prefix = name.slice(0, cut);
     base = name.slice(cut + 1);
   }

@@ -79,12 +79,12 @@ npm run field:verify-bundle -- <bundle.tar.gz> --offline --trusted-root=trusted-
 - **Un bundle se suffit à lui-même** (4.1.19, schéma 2) : il porte le rapport, ses preuves, le manifeste du candidat
   et, depuis la 4.1.19, l'attestation de provenance de ce manifeste, que la vérification finale du candidat signe une
   fois chaque job réussi (`field:init` la télécharge à côté du manifeste). `field:verify-bundle` lit l'archive lui-même
-  sous des limites (16 Mio par fichier, 64 Mio en tout, 256 fichiers, 32 Mio compressés, une minute) ; un lien, un
+  sous des limites (16 Mio par fichier, 64 Mio en tout, 256 fichiers, 64 Mio compressés, une minute, appels à GitHub compris) ; un lien, un
   périphérique, un chemin absolu, un `..` ou un nom en double le refuse. Il vérifie ensuite chaque fichier contre le
   manifeste du bundle et le rapport contre son candidat (intégrité), puis dit qui a fait le manifeste (authenticité) :
   hors ligne, l'attestation contre une racine de confiance enregistrée une fois, qui prouve qu'un run de
-  `candidate.yml` sur main l'a signée et nomme ce run ; en ligne, l'attestation cherchée et le run lu maintenant (un
-  candidat vert, lancé à la main sur main). Le bundle d'un candidat plus ancien (sans attestation) se vérifie en ligne
+  `candidate.yml` sur main l'a signée et nomme ce run ; en ligne, la même attestation vérifiée contre la racine de
+  confiance publique, et le run lu maintenant (un candidat vert, lancé à la main sur main). Le bundle d'un candidat plus ancien (sans attestation) se vérifie en ligne
   contre le manifeste que garde le run ; hors ligne il est dit non vérifié.
 - **Une preuve est un fichier sous `evidence/`** (16 Mio au plus, 64 Mio pour un rapport ; `field:check` le dit avant
   qu'un bundle soit tenté), lu là où il est : pas un lien, pas hors du dossier une fois résolu,
