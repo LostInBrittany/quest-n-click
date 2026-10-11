@@ -71,14 +71,9 @@ import type {
   PuzzleData,
 } from './types';
 
-export class StudioError extends Error {
-  constructor(
-    message: string,
-    readonly status = 400,
-  ) {
-    super(message);
-  }
-}
+import { StudioError } from './errors';
+
+export { StudioError };
 
 export interface StudioOptions {
   /** The game folder (default: GAME_DIR, see tools/game.ts). */

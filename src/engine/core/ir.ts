@@ -4,8 +4,8 @@
 // fingerprint's `logic` hashes, what the Studio's IR view and forms, the generated DSL page and the tests read. Which
 // field is logic is said once, in core/ir-fields.ts. Pure: no file is read here; the tools hand the sources in for the
 // provenance (`provenanceOf`).
-import { FIELD_CLASSES, type FieldClass } from './ir-fields';
-import { sourceKeys, type SourceKey } from './source-keys';
+import { FIELD_CLASSES, type FieldClass } from './ir-fields.ts';
+import { sourceKeys, type SourceKey } from './source-keys.ts';
 import type {
   Cmd,
   Cond,
@@ -20,10 +20,10 @@ import type {
   RealityDef,
   Rule,
   VerbId,
-} from './types';
-import type { CompiledGame } from './define';
-import type { AnchorDef, VariationManifest } from './remix/manifest';
-import type { WorldVariant } from './remix/compile';
+} from './types.ts';
+import type { CompiledGame } from './define.ts';
+import type { AnchorDef, VariationManifest } from './remix/manifest.ts';
+import type { WorldVariant } from './remix/compile.ts';
 
 /** The IR's schema: 1 since 4.1.12. A field added is additive; a field's meaning never changes within a schema. */
 export const IR_SCHEMA_VERSION = 1;

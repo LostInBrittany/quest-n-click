@@ -13,7 +13,7 @@ import type {
   PropDef,
   RoomDef,
   StageDef,
-} from './types';
+} from './types.ts';
 
 /** How a field of the content counts for the IR and the fingerprint. */
 export type FieldClass = 'logic' | 'presentation' | 'both' | 'meta';

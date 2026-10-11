@@ -6,10 +6,10 @@
 import { createHash } from 'node:crypto';
 import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
 import { join, relative, resolve } from 'node:path';
-import { canonicalJson } from '../src/engine/core/canonical';
-import { compileGame } from '../src/engine/core/define';
-import { compileIR, type GameIR } from '../src/engine/core/ir';
-import { ROOT, WORK, type GameModule } from './game';
+import { canonicalJson } from '../src/engine/core/canonical.ts';
+import { compileGame } from '../src/engine/core/define.ts';
+import { compileIR, type GameIR } from '../src/engine/core/ir.ts';
+import { ROOT, WORK, type GameModule } from './game.ts';
 
 /** Folders of a game that hold no code it runs (assets, data, tests, private files). */
 const NOT_CODE = new Set([

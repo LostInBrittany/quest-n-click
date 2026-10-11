@@ -8,10 +8,9 @@ import { execFileSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { createRequire } from 'node:module';
 import { join, resolve } from 'node:path';
-import { GAME, GAME_DIR, PROJECT, WORK } from '../game';
-import { writeSnapshot } from '../studio/snapshot';
-import { engineVersion, trustedExtensionsHash } from '../extensions';
-import { authorizeStudioRequest } from '../studio/security';
+import { GAME, GAME_DIR, PROJECT, WORK } from '../game.ts';
+import { engineVersion, trustedExtensionsHash } from '../extensions.ts';
+import { authorizeStudioRequest } from '../studio/security.ts';
 
 /** A path next to the engine's pages (index.html, studio.html), wherever it is installed. */
 const r = (p: string) => fileURLToPath(new URL('../../' + p.replace(/^\.\//, ''), import.meta.url));
@@ -82,7 +81,18 @@ export function studioDemo(): Plugin {
     },
     async buildStart() {
       if (process.env.STUDIO !== '1') return;
-      const s = await writeSnapshot();
+      // In a process of its own (4.1.19): the snapshot runs the Studio and the engine, which the configuration's import
+      // graph does not hold.
+      const tsx = createRequire(import.meta.url).resolve('tsx/cli');
+      execFileSync(process.execPath, [tsx, fileURLToPath(new URL('../studio/snapshot.ts', import.meta.url))], {
+        stdio: ['ignore', 'pipe', 'inherit'],
+      });
+      const s = JSON.parse(
+        readFileSync(
+          resolve(fileURLToPath(new URL('../..', import.meta.url)), 'public', 'studio-demo', 'snapshot.json'),
+          'utf8',
+        ),
+      ) as { rooms: object; game: { id: string } };
       this.info(`Studio snapshot: ${Object.keys(s.rooms).length} rooms of "${s.game.id}"`);
     },
     closeBundle() {
