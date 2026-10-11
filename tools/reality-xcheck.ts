@@ -16,7 +16,7 @@ const DIR = resolve(ROOT, 'bridge/test-vectors/biscuit');
 const EXCLUDED: Record<string, string> = {
   'test035_ffi.bc': 'extern functions provided by the host (FFI): the Bridge registers none',
 };
-type Verdict = { file: string; validation: string; verdict: string; revocation: number };
+type Verdict = { file: string; validation: string; verdict: string; revocation: number; ms?: number };
 
 interface Samples {
   root_public_key: string;
@@ -36,10 +36,22 @@ async function javascript(): Promise<Verdict[]> {
   const b = await biscuitLib();
   const root = b.PublicKey.fromString(samples.root_public_key.replace(/^ed25519\//, ''), b.SignatureAlgorithm.Ed25519);
   const out: Verdict[] = [];
+  // One authorization first, unmeasured (4.1.19, plan §8.5): the WebAssembly's first call (compilation, the first
+  // pages of memory) is not charged to the first sample. test013 once answered Execution (its time limit) under load;
+  // each verdict now carries how long it took, so a timeout says whether it was the machine or the sample.
+  try {
+    const warm = b.Biscuit.fromBytes(readFileSync(join(DIR, samples.testcases[0]!.filename)), root);
+    const a = new b.AuthorizerBuilder();
+    a.addCode('allow if true;');
+    a.buildAuthenticated(warm).authorizeWithLimits({ max_time_micro: 1_000_000 });
+  } catch {
+    /* only a warm-up */
+  }
   for (const t of samples.testcases)
     for (const [validation, v] of Object.entries(t.validations)) {
       let verdict = 'Ok';
       let revocation = 0;
+      let ms = 0;
       try {
         const token = b.Biscuit.fromBytes(readFileSync(join(DIR, t.filename)), root);
         revocation = token.getRevocationIdentifiers().length;
@@ -47,14 +59,19 @@ async function javascript(): Promise<Verdict[]> {
         a.addCode(v.authorizer_code ?? '');
         try {
           // 1 s, not the default millisecond: a slow CI runner must not turn a verdict into a timeout.
-          a.buildAuthenticated(token).authorizeWithLimits({ max_time_micro: 1_000_000 });
+          const t0 = performance.now();
+          try {
+            a.buildAuthenticated(token).authorizeWithLimits({ max_time_micro: 1_000_000 });
+          } finally {
+            ms = Math.round(performance.now() - t0);
+          }
         } catch (e) {
           verdict = errorClass(e);
         }
       } catch {
         verdict = 'Format';
       }
-      out.push({ file: t.filename, validation, verdict, revocation });
+      out.push({ file: t.filename, validation, verdict, revocation, ms });
     }
   return out;
 }
@@ -93,7 +110,10 @@ for (const t of samples.testcases)
     const j = js.find(key);
     const r = rs?.find(key);
     const tag = `${t.filename}${validation ? ` [${validation}]` : ''}`;
-    if (j?.verdict !== want) problems.push(`${tag}: JavaScript says ${j?.verdict}, the specification ${want}`);
+    if (j?.verdict !== want)
+      problems.push(
+        `${tag}: JavaScript says ${j?.verdict}, the specification ${want} (${j?.ms ?? '?'} ms of a 1 000 ms limit${j?.verdict === 'Execution' ? ': a time limit reached, read the machine’s load before the sample' : ''})`,
+      );
     if (rs && r?.verdict !== want) problems.push(`${tag}: Rust says ${r?.verdict}, the specification ${want}`);
     if (want !== 'Format' && j && j.revocation !== v.revocation_ids.length)
       problems.push(

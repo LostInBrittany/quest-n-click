@@ -3,11 +3,11 @@
 // signal's protocol, the engine's receive, the client and the Bridge. The rest of the suite is not run per mutant.
 import { defineConfig } from 'vitest/config';
 import base from './vite.config';
-import { setsOf, TESTS, type MutationSet } from './tools/mutation-sets';
+import { setNamed, setsOf, TESTS } from './tools/mutation-sets';
 
 // The base's `include` is replaced, not merged (mergeConfig would concatenate the lists). The lists live in
 // tools/mutation-sets.ts (4.1.8), with the sources each set mutates.
-const set = (process.env.MUTATION_SET ?? 'core') as MutationSet | 'all';
+const set = setNamed(process.env.MUTATION_SET ?? 'core');
 
 export default defineConfig({
   ...base,

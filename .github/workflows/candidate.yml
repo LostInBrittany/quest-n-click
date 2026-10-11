@@ -233,7 +233,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        set: [core, reality, runs, remix, speedrun, connectors, reality-store]
+        set: [core, reality, runs, remix, speedrun, connectors-pure, reality-store]
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
@@ -365,6 +365,25 @@ jobs:
           for i in $(seq 1 30); do docker exec consumer-pg pg_isready -U bridge && break; sleep 2; done
           echo "CONSUMER_PG_URL=postgres://bridge:bridge@127.0.0.1:55432/bridge" >> "$GITHUB_ENV"
       - run: node scripts/external-consumer.mjs --tarballs=candidate-pack --from=${{ matrix.from }}
+  # The four connectors played end to end from their archive (4.1.19, plan §8.2): email by webhook and by IMAP (a
+  # server of the script's own), Telnet, SSH and Open Badge, each against a Bridge from its archive. Linux only:
+  # `external-consumer` proves the packages on three systems, this proves what the connectors do once started.
+  connector-archive-e2e:
+    needs: [target, pack]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: ${{ needs.target.outputs.sha }}
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        with:
+          node-version: 22
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: candidate-pack
+          path: candidate-pack
+      - run: node scripts/connector-archive-e2e.mjs --tarballs=candidate-pack
   # The Bridge's qualification profile (4.1.18, plan §8) built from this candidate's own `web-scumm-bridge` archive:
   # three instances behind HTTPS on Postgres, an instance killed with proposals in flight, the tenants apart, backup,
   # the topology destroyed and restored (scripts/ops-qualify.mjs; its report kept with the run).
@@ -403,7 +422,7 @@ jobs:
           overwrite: true
   # The terminal gate: every job above `success` (a skipped or cancelled job is red), then the manifest of this run.
   candidate-gate:
-    needs: [target, release-core, heavy, bridge-load-sqlite, bridge-load-postgres, cross-runtime, worker-container, mutation, pack, image, external-consumer, deployment-smoke]
+    needs: [target, release-core, heavy, bridge-load-sqlite, bridge-load-postgres, cross-runtime, worker-container, mutation, pack, image, external-consumer, connector-archive-e2e, deployment-smoke]
     # A pull request without `full-ci` skips `target`: then there is no candidate to judge, and no red check either.
     if: always() && needs.target.result != 'skipped'
     # The manifest's provenance attestation (4.1.19, plan §6.5): only this job may sign, and only the manifest.
