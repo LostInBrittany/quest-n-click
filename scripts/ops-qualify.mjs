@@ -202,7 +202,8 @@ function appTree() {
       'HEAD',
       'src',
       'tools',
-      'games/reference',
+      // The games the reference imports from (its art and audio come from the sample game's).
+      'games',
       'package.json',
       'tsconfig.json',
     ],
