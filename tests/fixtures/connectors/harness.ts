@@ -2,6 +2,8 @@
 // HTTP on a free port, tokens minted per connector, pairing codes asked as the game would, the journal counted. Every
 // line a connector logs is kept, so a test can grep the fixtures in it ("a log without content").
 import { createHash } from 'node:crypto';
+import { mkdirSync, writeFileSync } from 'node:fs';
+import { join } from 'node:path';
 import ssh2 from 'ssh2';
 import type { AddressInfo } from 'node:net';
 import { Bridge, type BridgeConfig } from '../../../bridge/src/bridge';
@@ -124,7 +126,32 @@ export async function contextFor(
 export function sshKeyPair(): { private: string; public: string } {
   for (let i = 0; i < 20; i++) {
     const k = ssh2.utils.generateKeyPairSync('ed25519');
-    if (!(ssh2.utils.parseKey(k.private) instanceof Error)) return k;
+    // Read back both halves and sign with one, verify with the other (4.1.19, plan §8.5): a pair ssh2 cannot use in
+    // full is drawn again, and kept with why, so the flake's next occurrence says what ssh2 refused.
+    const why = keyProblem(k);
+    if (!why) return k;
+    flakeEvidence('ssh-key', `${why}\n${k.private}\n${k.public}`);
   }
-  throw new Error('ssh2 produced no readable ed25519 key in 20 draws');
+  throw new Error('ssh2 produced no usable ed25519 key pair in 20 draws (.cache/flakes/ holds them)');
+}
+
+function keyProblem(k: { private: string; public: string }): string | null {
+  const priv = ssh2.utils.parseKey(k.private);
+  if (priv instanceof Error) return `private: ${priv.message}`;
+  const pub = ssh2.utils.parseKey(k.public);
+  if (pub instanceof Error) return `public: ${pub.message}`;
+  const data = Buffer.from('web-scumm ssh key check');
+  const sig = (priv as unknown as { sign(d: Buffer): Buffer | Error }).sign(data);
+  if (sig instanceof Error) return `sign: ${sig.message}`;
+  return (pub as unknown as { verify(d: Buffer, s: Buffer): boolean | Error }).verify(data, sig) === true
+    ? null
+    : 'the public half does not verify what the private half signed';
+}
+
+/** What a flaky draw was, kept under .cache/flakes/ (a CI artefact when a job uploads it), never only retried. */
+function flakeEvidence(kind: string, text: string): void {
+  const dir = join(process.cwd(), '.cache', 'flakes');
+  mkdirSync(dir, { recursive: true });
+  writeFileSync(join(dir, `${kind}-${Date.now()}-${process.pid}.txt`), text);
+  console.warn(`[flake] ${kind}: ${text.split('\n')[0]} (kept in .cache/flakes/)`);
 }
