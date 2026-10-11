@@ -713,5 +713,29 @@
   "to": "<=",
   "context": "i = close < 0 ? html.length : close + 1;",
   "why": "htmlToText: the `>` closing `</script` is searched from that tag's index (at least 1), so when found it is never 0: `close <= 0` and `close < 0` agree on every input"
+ },
+ {
+  "file": "connectors/src/terminal/line.ts",
+  "operator": "operator",
+  "from": ">=",
+  "to": ">",
+  "context": "while (k >= 0 && (this.bytes[k]! & 0xc0) === 0x80) k--;",
+  "why": "the buffer never begins with a continuation byte (a continuation that continues nothing is dropped before it is pushed), so the walk back always stops on a lead at k >= 0 before reaching index 0 as a continuation: stopping at k > 0 leaves k on the same lead"
+ },
+ {
+  "file": "connectors/src/terminal/line.ts",
+  "operator": "condition false",
+  "from": "k < 0",
+  "to": "false",
+  "context": "if (k < 0) return false;",
+  "why": "k is below 0 only on an empty buffer (a buffer of continuations alone cannot exist); then the lead read is undefined, every comparison is false, `need` is 0 and `0 < 0` returns false as the guard does"
+ },
+ {
+  "file": "connectors/src/terminal/line.ts",
+  "operator": "operator",
+  "from": ">=",
+  "to": ">",
+  "context": "const need = lead >= 0xf0 ? 3 : lead >= 0xe0 ? 2 : lead >= 0xc0 ? 1 : 0;",
+  "why": "of the three, `lead >= 0xc0` → `> 0xc0` survives: 0xC0 (and 0xC1) never lead a character, they are dropped before they are pushed, so no lead is 0xC0; 0xE0 and 0xF0 are killed by tests/connectors-terminal-mutants.test.ts"
  }
 ]

@@ -76,6 +76,15 @@ describe('line assembler', () => {
     expect(run([0xff, 0xc0, 0xf8, 0x61, 0x0d], 16, true)).toMatchObject({ lines: ['a'] });
   });
 
+  it('two, three and four bytes, each lead at its boundary (0xE0, 0xF0), whole; a continuation never echoed', () => {
+    // U+0100 (c4 80): one dot shown, the 0x80 that ends it never echoed as a character of its own.
+    expect(run([0x61, 0xc4, 0x80, 0x0d], 16, true)).toMatchObject({ lines: ['aĀ'], echo: 'a·\r\n' });
+    // U+0800 (e0 a0 80) and U+1F600 (f0 9f 98 80): every continuation kept, the line whole.
+    expect(run([0xe0, 0xa0, 0x80, 0x0d], 16, true)).toMatchObject({ lines: ['\u0800'] });
+    expect(run([0xf0, 0x9f, 0x98, 0x80, 0x0d], 16, true)).toMatchObject({ lines: ['😀'] });
+    expect(run([0xf4, 0x8f, 0xbf, 0xbf, 0x0d], 16, true)).toMatchObject({ lines: ['\u{10FFFF}'] });
+  });
+
   it('a character split between two network chunks stays whole, and backspace removes it once', () => {
     const lines: string[] = [];
     const echo: string[] = [];
