@@ -8,10 +8,23 @@ import { execFileSync } from 'node:child_process';
 import { cpSync, mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { buildSync } from 'esbuild';
+import { bridgeManifest, connectorsManifest, lockFor, lockProblems } from './pack-manifests.mjs';
 
 const ROOT = resolve(import.meta.dirname, '..');
 const out = resolve(ROOT, process.argv.find((a) => a.startsWith('--out='))?.slice(6) ?? '.cache/pack');
 const root = JSON.parse(readFileSync(join(ROOT, 'package.json'), 'utf8'));
+
+/**
+ * A package's package.json and its versioned lock as npm-shrinkwrap.json (4.1.19, plan §6.1): the lock checked against
+ * the manifest first, nothing resolved here. A lock that no longer fits stops the pack: `npm run locks` makes it again.
+ */
+function writeLocked(dir, manifest, lockFile) {
+  writeFileSync(join(dir, 'package.json'), `${JSON.stringify(manifest, null, 2)}\n`);
+  const lock = JSON.parse(readFileSync(join(ROOT, lockFile), 'utf8'));
+  const bad = lockProblems(lock, manifest);
+  if (bad.length) throw new Error(`${lockFile} does not fit ${manifest.name}: ${bad.join('; ')} (npm run locks)`);
+  writeFileSync(join(dir, 'npm-shrinkwrap.json'), `${JSON.stringify(lockFor(lock, manifest), null, 2)}\n`);
+}
 
 /** What the package ships, by tracked path. */
 const SHIP = [
@@ -173,33 +186,7 @@ writeFileSync(
   join(bridge, 'bin.mjs'),
   `#!/usr/bin/env node\n// web-scumm-bridge <init|serve|grant|rotate|revoke|doctor|compact|migrate|tenant|backup|restore>: the reference Reality Bridge on its own, for a\n// game that is already built: \`init --manifest=<game>/dist/reality-manifest.json\`, then \`serve\`. docs/en/REALITY-OPS.md.\nconst { main } = await import('./src/cli.mjs');\nprocess.exitCode = await main(process.argv.slice(2));\n`,
 );
-writeFileSync(
-  join(bridge, 'package.json'),
-  JSON.stringify(
-    {
-      name: 'web-scumm-bridge',
-      version: root.version,
-      description:
-        'The reference Reality Bridge for web-scumm games: signals from the world outside, signed, delivered at least once.',
-      license: 'MIT',
-      type: 'module',
-      engines: root.engines,
-      repository: { type: 'git', url: 'git+https://github.com/wanoo/web-scumm.git' },
-      bin: { 'web-scumm-bridge': 'bin.mjs' },
-      exports: { './cli': './src/cli.mjs', './package.json': './package.json' },
-      dependencies: {
-        '@biscuit-auth/biscuit-wasm': root.devDependencies['@biscuit-auth/biscuit-wasm'],
-        zod: root.dependencies.zod,
-      },
-      // Optional (4.1.10): `pg` for the distributed profile (Postgres), OpenTelemetry's API for the measures. npm does
-      // not install an optional peer: the `local` profile (SQLite, node:sqlite) needs neither.
-      peerDependencies: { pg: root.devDependencies.pg, '@opentelemetry/api': '^1.9.0' },
-      peerDependenciesMeta: { pg: { optional: true }, '@opentelemetry/api': { optional: true } },
-    },
-    null,
-    2,
-  ) + '\n',
-);
+writeLocked(bridge, bridgeManifest(root), 'scripts/locks/web-scumm-bridge.json');
 cpSync(join(ROOT, 'LICENSE'), join(bridge, 'LICENSE'));
 writeFileSync(
   join(bridge, 'README.md'),
@@ -220,26 +207,7 @@ writeFileSync(
   join(connectors, 'bin.mjs'),
   `#!/usr/bin/env node\n// web-scumm-connector <email|telnet|ssh|open-badge> --config <file.json>: one connector of the world outside, as its own\n// process, beside a web-scumm-bridge. docs/en/CONNECTORS.md.\nconst { main } = await import('./src/run.mjs');\nprocess.exitCode = await main(process.argv.slice(2));\n`,
 );
-writeFileSync(
-  join(connectors, 'package.json'),
-  JSON.stringify(
-    {
-      name: 'web-scumm-connectors',
-      version: root.version,
-      description:
-        'Connectors of the world outside for web-scumm games (email, Telnet, SSH, Open Badges): each its own process, proposing signals to a web-scumm-bridge. Experimental.',
-      license: 'MIT',
-      type: 'module',
-      engines: root.engines,
-      repository: { type: 'git', url: 'git+https://github.com/wanoo/web-scumm.git' },
-      bin: { 'web-scumm-connector': 'bin.mjs' },
-      exports: { './run': './src/run.mjs', './package.json': './package.json' },
-      dependencies: { ssh2: root.devDependencies.ssh2 },
-    },
-    null,
-    2,
-  ) + '\n',
-);
+writeLocked(connectors, connectorsManifest(root), 'scripts/locks/web-scumm-connectors.json');
 cpSync(join(ROOT, 'LICENSE'), join(connectors, 'LICENSE'));
 writeFileSync(
   join(connectors, 'README.md'),

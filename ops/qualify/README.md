@@ -13,6 +13,15 @@ client ──HTTPS──▶ proxy (Caddy) ──▶ bridge-1 ─┐
 
 - **Built from the candidate's tarball** (`web-scumm-bridge-<version>.tgz`), never from a checkout: the image is the
   package, its production dependencies and the Postgres peer.
+- **Nothing resolved at build time** (4.1.19): the image installs its dependencies, `pg` and OpenTelemetry's API
+  included, with `npm ci` from a lock kept in the repository (`scripts/locks/web-scumm-bridge-image.json`, made by
+  `npm run locks` from the root lock). The candidate builds it **once** (`scripts/bridge-image.mjs build`) and saves it
+  with three identities: its config digest (what runs), its OCI manifest digest and the SHA-256 of the saved archive
+  (what was carried). `--image-from=<dir>` loads that archive and checks them instead of building; the release
+  publishes the same archive, its identities and its SBOM.
+- **The proxy unprivileged** (4.1.19): Caddy runs as the operator's uid, its image read-only, its certificates and
+  configuration in bounded tmpfs (a new local CA at each start). It keeps one capability, the one its binary carries as
+  a file capability (`cap_net_bind_service`), without which the kernel will not run it.
 - **Every image pinned by digest**, pulled from `mirror.gcr.io` (the same digests as Docker Hub's official images; a
   shared runner meets Docker Hub's anonymous rate limit).
 - **The Bridges** run as the operator's uid, read-only, with a bounded `/tmp`, no capability, no new privilege, limits
