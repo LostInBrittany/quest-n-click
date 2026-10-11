@@ -1,4 +1,4 @@
-// npm run e2e:worker-container [-- --image=node:22-bookworm-slim] (4.1.17, plan §10.3, Linux with Docker): the speedrun
+// npm run e2e:worker-container [-- --image=<image, by digest by default>] (4.1.17, plan §10.3, Linux with Docker): the speedrun
 // worker in the container profile REALITY-OPS documents (tools/speedrun/container.mjs), started the way the Bridge's
 // queue starts it (`runWorker`, bridge/src/runs.ts):
 // 1. the reference run, verified inside the container: `valid`, its answer signed with the job's key;
@@ -17,7 +17,9 @@ import { runWorker } from '../bridge/src/runs';
 import { PIDS_LIMIT, workerContainerArgs } from '../tools/speedrun/container.mjs';
 
 const ROOT = resolve(import.meta.dirname, '..');
-const image = process.argv.find((a) => a.startsWith('--image='))?.slice(8) ?? 'node:22-bookworm-slim';
+const image =
+  process.argv.find((a) => a.startsWith('--image='))?.slice(8) ??
+  'mirror.gcr.io/library/node:22-bookworm-slim@sha256:c3de60bf2f9dd0ac6370e6117950ff62d6e339527e7472301c9c78a017978392';
 let failed = 0;
 const check = (ok: boolean, what: string) => {
   console.log(`${ok ? '✔' : '✖'}  ${what}`);

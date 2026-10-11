@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// npm run ops:qualify -- [--tarballs=<dir>] [--out=<dir>] [--keep] (4.1.18 "Dress Rehearsal", plan §8.3): the Bridge's
+// npm run ops:qualify -- [--tarballs=<dir>] [--image-from=<dir>] [--out=<dir>] [--keep] (4.1.18 "Dress Rehearsal", plan §8.3): the Bridge's
 // qualification profile (ops/qualify/compose.yml) built from the candidate's `web-scumm-bridge` tarball, brought up
 // behind HTTPS with three instances on one Postgres and two tenants, then driven the way an operator's bad day goes:
 //
@@ -17,19 +17,11 @@
 // 24-48 h (`bridge-postgres-https`) uses the same profile (ops/qualify/README.md).
 import { spawnSync } from 'node:child_process';
 import { randomBytes } from 'node:crypto';
-import {
-  chmodSync,
-  copyFileSync,
-  existsSync,
-  mkdirSync,
-  mkdtempSync,
-  readFileSync,
-  rmSync,
-  writeFileSync,
-} from 'node:fs';
+import { chmodSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { request } from 'node:https';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
+import { buildContext, IDENTITY } from './bridge-image.mjs';
 
 const ROOT = resolve(import.meta.dirname, '..');
 const PROFILE = join(ROOT, 'ops', 'qualify');
@@ -78,16 +70,31 @@ if (!tarballs) {
 }
 const bridgeTgz = join(resolve(tarballs), `web-scumm-bridge-${version}.tgz`);
 if (!existsSync(bridgeTgz)) throw new Error(`${bridgeTgz}: no Bridge archive of ${version}`);
-const build = join(base, 'build');
-mkdirSync(build);
-copyFileSync(join(PROFILE, 'Dockerfile.bridge'), join(build, 'Dockerfile.bridge'));
-copyFileSync(bridgeTgz, join(build, 'web-scumm-bridge.tgz'));
+// The image (4.1.19, plan §6.2): the candidate's, loaded and checked by its digests (`--image-from=`, built once by
+// scripts/bridge-image.mjs in the candidate); else built here from the archive and the image's versioned lock.
+const imageFrom = flag('image-from');
+const build = buildContext(bridgeTgz, join(base, 'build'));
+let image = { built: 'here' };
+if (imageFrom) {
+  sh(process.execPath, [join(ROOT, 'scripts', 'bridge-image.mjs'), 'load', `--from=${resolve(imageFrom)}`], {
+    stdio: 'inherit',
+  });
+  image = JSON.parse(readFileSync(join(resolve(imageFrom), IDENTITY), 'utf8'));
+}
+step(
+  'the Bridge image',
+  true,
+  imageFrom
+    ? { configDigest: image.configDigest, manifestDigest: image.manifestDigest, archiveSha256: image.archiveSha256 }
+    : { built: 'from the archive and the versioned lock' },
+);
 
 // ---------------------------------------------------------------- 2. the tenants, by the package's own commands
 const host = join(base, 'host-bridge');
 mkdirSync(host);
 sh('tar', ['-xzf', bridgeTgz, '-C', host, '--strip-components=1']);
-sh('npm', ['install', '--omit=dev', '--no-audit', '--no-fund'], { cwd: host });
+// The archive's own lock (npm-shrinkwrap.json, 4.1.19): `ci`, nothing resolved.
+sh('npm', ['ci', '--omit=dev', '--ignore-scripts', '--no-audit', '--no-fund'], { cwd: host });
 const BIN = join(host, 'bin.mjs');
 const manifest = {
   format: 'web-scumm-reality-manifest',
@@ -149,7 +156,10 @@ function pull() {
     sh('sleep', [String(15 * i)]);
   }
 }
-const up = () => (pull(), dc(['up', '-d', '--build', '--wait', '--wait-timeout', '180'], { stdio: 'inherit' }));
+const up = () => (
+  pull(),
+  dc(['up', '-d', imageFrom ? '--no-build' : '--build', '--wait', '--wait-timeout', '180'], { stdio: 'inherit' })
+);
 
 let ca = '';
 const https = (port, method, path, { tenant, bearer, body } = {}) =>
@@ -222,7 +232,15 @@ async function readyCa() {
 const signalsOf = async (tenant, cap) =>
   (await insist(PORT, 'GET', '/v1/signals', { tenant, bearer: cap })).json ?? null;
 
-const report = { format: 'web-scumm-ops-qualify', schema: 1, version, commit: '', images: [...images, ...from], steps };
+const report = {
+  format: 'web-scumm-ops-qualify',
+  schema: 1,
+  version,
+  commit: '',
+  images: [...images, ...from],
+  image,
+  steps,
+};
 report.commit = sh('git', ['rev-parse', 'HEAD'], { cwd: ROOT, allowFail: true }).stdout.trim();
 let failedHard = null;
 try {
