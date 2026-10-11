@@ -33,6 +33,12 @@ x-bridge: &bridge
   volumes:
     - ${QUALIFY_DATA:?ops:qualify sets QUALIFY_DATA}/a:/srv/bridge/a:ro
     - ${QUALIFY_DATA}/b:/srv/bridge/b:ro
+    # 4.1.19 (plan §9): the speedrun worker and the game it verifies, read-only: the committed tree of what it reads (a
+    # `git archive`, never the checkout with its .git or private folders) and the installed modules. The worker is not in the Bridge's
+    # archive (an operator gives it, as here, with the game's sources); the Bridge runs it as a child, confined by
+    # this container: no network but the store's, read-only, bounded memory and processes.
+    - ${QUALIFY_APP:?ops:qualify sets QUALIFY_APP}:/srv/app:ro
+    - ${QUALIFY_MODULES:?ops:qualify sets QUALIFY_MODULES}:/srv/app/node_modules:ro
   read_only: true
   tmpfs:
     - /tmp:rw,size=64m
