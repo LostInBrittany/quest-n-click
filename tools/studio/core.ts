@@ -26,7 +26,7 @@ import { parseSessionFile } from '../../src/engine/tools/replay';
 import { lintContent, lintMarkdown } from '../../src/engine/tools/lint';
 import { loadAssets, loadLayouts, loadLocales } from '../../src/engine/tools/load';
 import { GAME_DIR, ROOT, type GameModule } from '../game';
-import { gameIR } from '../extensions';
+import { gameIR } from '../game-ir';
 import type { GameIR } from '../../src/engine/core/ir';
 import { normalizeStoryboard, storyboardMarkdown, storyboardProblems } from '../pages/storyboard-data';
 import {

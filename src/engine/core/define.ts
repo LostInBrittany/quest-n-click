@@ -1,4 +1,4 @@
-import type { Cmd, GameDef, Layout, RoomDef, Rule, VerbId } from './types.ts';
+import type { Cmd, GameDef, Layout, RoomDef, Rule, VerbId } from './types';
 
 /** A game as its sources write it: a `GameDef` before compilation. @public */
 export type GameSource = GameDef;

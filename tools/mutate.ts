@@ -306,6 +306,12 @@ if (process.argv[1]?.endsWith('mutate.ts')) {
   const setArg = setNamed(given);
   if (setArg !== given)
     console.error(`ℹ  --set=${given} is --set=${setArg} since 4.1.19 (the old name works until 4.2)`);
+  // Without a database its tests skip their Postgres cases: every mutant would survive, a measure of nothing.
+  const measuring = !process.argv.includes('--doc') && !process.argv.includes('--hash');
+  if (setArg === 'reality-store-postgres' && !process.env.BRIDGE_PG_URL && measuring) {
+    console.error('✖  --set=reality-store-postgres needs BRIDGE_PG_URL (a Postgres its tests run against)');
+    process.exit(2);
+  }
   const setOf = (f: string): MutationSet | 'all' =>
     (Object.keys(SETS) as MutationSet[]).find((k) => SETS[k].includes(f)) ?? 'all';
   const set: MutationSet | 'all' = only ? setOf(only) : setArg;

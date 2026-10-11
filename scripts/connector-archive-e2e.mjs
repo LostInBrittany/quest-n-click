@@ -16,15 +16,15 @@
 // What only a person checks stays a pass (`connectors-real-security`, #79): real providers, real exposure, a redirect
 // and a DNS change at a public issuer (the archive cannot reach the test-only network overrides, by design).
 // Nothing here is imported from the checkout: the archives are the candidate's (`--tarballs=`) or packed from it.
-import { spawn, spawnSync } from 'node:child_process';
+import { spawn } from 'node:child_process';
 import { createHmac, randomBytes } from 'node:crypto';
 import {
   createWriteStream,
   existsSync,
   mkdirSync,
   mkdtempSync,
+  readdirSync,
   readFileSync,
-  renameSync,
   rmSync,
   writeFileSync,
 } from 'node:fs';
@@ -32,27 +32,32 @@ import { createRequire } from 'node:module';
 import { connect, createServer } from 'node:net';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
+import { harness } from './lib/archive-harness.mjs';
 
 const ROOT = resolve(import.meta.dirname, '..');
 const args = process.argv.slice(2);
 const flag = (k) => args.find((a) => a.startsWith(`--${k}=`))?.slice(k.length + 3);
 const version = JSON.parse(readFileSync(join(ROOT, 'package.json'), 'utf8')).version;
 const base = mkdtempSync(join(tmpdir(), 'connector-archive-e2e-'));
-const WIN = process.platform === 'win32';
+const _WIN = process.platform === 'win32';
 let failed = 0;
 const step = (name, ok, detail = '') => {
   console.log(`${ok ? '✔' : '✖'}  ${name}${detail ? ` (${detail})` : ''}`);
   if (!ok) failed++;
 };
-const run = (cmd, a, o = {}) => {
-  const r = spawnSync(WIN && /^np[mx]$/.test(cmd) ? `${cmd}.cmd` : cmd, a, { encoding: 'utf8', shell: WIN, ...o });
-  if (r.status !== 0) throw new Error(`${cmd} ${a.join(' ')}: exit ${r.status}\n${r.stderr}`);
-  return r.stdout;
-};
+// Every command a step of scripts/lib/archive-harness.mjs: an id, a duration, the command that reproduces a failure.
+const h = harness({ base });
 const sleep = (ms) => new Promise((ok) => setTimeout(ok, ms));
 const children = [];
-process.on('exit', () => {
+process.on('exit', (code) => {
   for (const c of children) c.kill('SIGKILL');
+  // A failure keeps what each process said (second reading of 4.1.19 PR 3): the end of every log, then the folder
+  // removed unless --keep.
+  if (code !== 0)
+    for (const f of readdirSync(base).filter((x) => x.endsWith('.log'))) {
+      const lines = readFileSync(join(base, f), 'utf8').trimEnd().split('\n');
+      console.error(`\n--- ${f} (last ${Math.min(30, lines.length)} lines)\n${lines.slice(-30).join('\n')}`);
+    }
   if (!args.includes('--keep')) rmSync(base, { recursive: true, force: true });
 });
 
@@ -60,20 +65,17 @@ process.on('exit', () => {
 let tarballs = flag('tarballs');
 if (!tarballs) {
   tarballs = join(base, 'pack');
-  run(process.execPath, [join(ROOT, 'scripts', 'pack.mjs'), `--out=${tarballs}`], {
-    stdio: ['ignore', 'ignore', 'inherit'],
-  });
+  h.run(
+    'pack this checkout (no --tarballs: a local try)',
+    process.execPath,
+    [join(ROOT, 'scripts', 'pack.mjs'), `--out=${tarballs}`],
+    ROOT,
+  );
 }
 const tgz = (name) => {
   const f = join(resolve(tarballs), `${name}-${version}.tgz`);
   if (!existsSync(f)) throw new Error(`${f}: missing`);
   return f;
-};
-const unpack = (file, into) => {
-  mkdirSync(into, { recursive: true });
-  run('tar', ['-xzf', file, '-C', into]);
-  renameSync(join(into, 'package'), join(into, 'pkg'));
-  return join(into, 'pkg');
 };
 
 // ---------------------------------------------------------------- the Bridge, from its archive, on SQLite
@@ -109,18 +111,17 @@ const manifest = {
     'open-badge': { issuers: [issuer], valid: 'badge.valid', invalid: 'badge.refused', indeterminate: 'badge.refused' },
   },
 };
-const bridgeDir = unpack(tgz('web-scumm-bridge'), join(base, 'bridge'));
-run('npm', ['install', '--omit=dev', '--no-audit', '--no-fund'], { cwd: bridgeDir });
+const bridgeDir = h.unpack(tgz('web-scumm-bridge'), join(base, 'bridge'));
+h.run('the Bridge installed from its archive', 'npm', ['install', '--omit=dev', '--no-audit', '--no-fund'], bridgeDir);
 const BIN = join(bridgeDir, 'bin.mjs');
 const data = join(base, 'data');
 writeFileSync(join(base, 'manifest.json'), JSON.stringify(manifest));
-run(process.execPath, [
-  BIN,
+h.run(
   'init',
-  `--dir=${data}`,
-  `--manifest=${join(base, 'manifest.json')}`,
-  '--no-demo-webhooks',
-]);
+  process.execPath,
+  [BIN, 'init', `--dir=${data}`, `--manifest=${join(base, 'manifest.json')}`, '--no-demo-webhooks'],
+  base,
+);
 const PORT = 6100 + Math.floor(Math.random() * 400);
 const URLB = `http://127.0.0.1:${PORT}/`;
 const serve = (cmd, a, log) => {
@@ -171,23 +172,26 @@ const journal = async (cap) =>
 const operator = join(base, 'operator');
 mkdirSync(operator);
 writeFileSync(join(operator, 'package.json'), JSON.stringify({ name: 'operator', private: true }));
-run('npm', ['install', '--omit=optional', '--ignore-scripts', '--no-audit', '--no-fund', tgz('web-scumm-connectors')], {
-  cwd: operator,
-});
+h.run(
+  'the connectors installed from their archive',
+  'npm',
+  ['install', '--omit=optional', '--ignore-scripts', '--no-audit', '--no-fund', tgz('web-scumm-connectors')],
+  operator,
+);
 const CBIN = join(operator, 'node_modules', 'web-scumm-connectors', 'bin.mjs');
 const grant = (name, source, signals) => {
   const f = join(base, `${name}.token`);
   writeFileSync(
     f,
-    run(process.execPath, [
-      BIN,
-      'grant',
-      `--dir=${data}`,
-      `--connector=${name}`,
-      `--source=${source}`,
-      `--signals=${signals}`,
-      '--pair',
-    ]).trim(),
+    h
+      .run(
+        `grant ${name}`,
+        process.execPath,
+        [BIN, 'grant', `--dir=${data}`, `--connector=${name}`, `--source=${source}`, `--signals=${signals}`, '--pair'],
+        base,
+        { capture: true },
+      )
+      .trim(),
     { mode: 0o600 },
   );
   return f;
@@ -284,7 +288,11 @@ const imap = createServer((s) => {
       const [tag, ...rest] = line.split(' ');
       const cmd = rest.join(' ');
       const ok = () => s.write(`${tag} OK done\r\n`);
-      if (/^(LOGIN|SELECT)\b/i.test(cmd)) ok();
+      if (/^LOGIN\b/i.test(cmd)) {
+        // The password file read by the connector, checked here (second reading of 4.1.19 PR 3).
+        if (/^LOGIN "?gate"? "?letmein"?$/i.test(cmd)) ok();
+        else s.write(`${tag} NO [AUTHENTICATIONFAILED] wrong\r\n`);
+      } else if (/^SELECT\b/i.test(cmd)) ok();
       else if (/^UID SEARCH UNSEEN/i.test(cmd)) {
         s.write(
           `* SEARCH ${box
@@ -358,9 +366,12 @@ await new Promise((ok) => imap.listen(P.imapServer, '127.0.0.1', ok));
   put(eml('plain-open-door.eml', { player: who.playerId }).replace('<m01@', '<i01@'));
   put(eml('hostile-attachment.eml', { player: who.playerId }).replace('<m15@', '<i15@'));
   await until('the IMAP letters', () => box.length === 1 && box[0].flags.has('\\Flagged'), 20_000);
+  // The same letter again (its Message-ID): a duplicate, deleted, no second signal.
+  put(eml('plain-open-door.eml', { player: who.playerId }).replace('<m01@', '<i01@'));
+  await until('the duplicate letter', () => box.length === 1, 20_000);
   const sigs = await journal(who.capability);
   step(
-    'email (IMAP): polled, paired, a letter accepted and deleted, an attachment refused and flagged',
+    'email (IMAP): its password checked, paired, a letter accepted and deleted, again a duplicate, an attachment refused and flagged',
     sigs.length === 1 && box.length === 1 && box[0].flags.has('\\Seen'),
     `${sigs.length} signal, ${box.length} letter left, flags ${[...(box[0]?.flags ?? [])].join(' ')}`,
   );
@@ -463,7 +474,7 @@ const login = (password) =>
   let wrong = 'accepted';
   await login('AAAA2222').then(
     (c) => c.end(),
-    () => (wrong = 'refused'),
+    (e) => (wrong = e?.level === 'client-authentication' ? 'refused' : `failed otherwise: ${e?.message}`),
   );
   const code = await pairing();
   const c = await login(code);
@@ -511,13 +522,16 @@ await listening(P.badge);
     fixtures['ob3-wrong-recipient'].submission.email,
   );
   const local = await submit('https://127.0.0.1/assertion', 'robin@player.example');
+  // Each verdict reaches the Bridge as the signal the game declared for it: one in each player's journal.
+  const reached = await Promise.all([valid, wrong, local].map(async (x) => (await journal(x.who?.capability)).length));
   step(
-    'Open Badge: an OB3 credential of a did:key issuer valid offline, one for someone else invalid, a private address refused',
+    'Open Badge: an OB3 credential of a did:key issuer valid offline, one for someone else invalid, a private address refused; each verdict a signal',
     valid.status === 202 &&
       valid.json?.status === 'valid' &&
       wrong.json?.status === 'invalid' &&
-      local.json?.status === 'indeterminate',
-    `${valid.json?.status} ${wrong.json?.status} ${local.json?.status}`,
+      local.json?.status === 'indeterminate' &&
+      reached.every((n) => n === 1),
+    `${valid.json?.status} ${wrong.json?.status} ${local.json?.status}, signals ${reached.join(' ')}`,
   );
 }
 

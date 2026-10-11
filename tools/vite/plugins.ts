@@ -85,7 +85,7 @@ export function studioDemo(): Plugin {
       // graph does not hold.
       const tsx = createRequire(import.meta.url).resolve('tsx/cli');
       execFileSync(process.execPath, [tsx, fileURLToPath(new URL('../studio/snapshot.ts', import.meta.url))], {
-        stdio: ['ignore', 'pipe', 'inherit'],
+        stdio: ['ignore', 'ignore', 'inherit'],
       });
       const s = JSON.parse(
         readFileSync(

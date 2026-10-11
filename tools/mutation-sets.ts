@@ -111,10 +111,16 @@ export const TESTS: Record<MutationSet, string[]> = {
   ],
   'connectors-pure': ['tests/connectors-*.test.ts'],
   'connectors-edge': ['tests/connectors-*.test.ts'],
+  // Every test that runs the Postgres adapter when BRIDGE_PG_URL names a database.
   'reality-store-postgres': [
     'tests/bridge-reality-store.test.ts',
     'tests/bridge-backup.test.ts',
     'tests/bridge-fanout.test.ts',
+    'tests/bridge-tenancy.test.ts',
+    'tests/bridge-hardening.test.ts',
+    'tests/bridge-admission.test.ts',
+    'tests/bridge-runs-durable.test.ts',
+    'tests/bridge-leaderboard.test.ts',
   ],
   'reality-store': [
     'tests/bridge-reality-store.test.ts',
