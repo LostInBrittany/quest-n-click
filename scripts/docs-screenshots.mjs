@@ -2,18 +2,18 @@
 // mock-ups. Builds the game into .cache/docs-dist, serves it and the Studio, plays the sample game through the e2e
 // harness and drives the Studio with Playwright, then writes WebP files to docs/img/readme/ (Pillow, quality 85, 1440
 // px wide at most), named for the release that took them (4.1.19: `4119-<name>.webp`; the earlier `*` stay, AGENTS.md). `--only=game|studio`, `--keep-png` (the raw captures stay in .cache/docs-shots).
-import { spawn, spawnSync } from "node:child_process";
-import { mkdirSync, rmSync } from "node:fs";
-import { resolve } from "node:path";
-import { chromium } from "playwright";
-import { launch } from "./e2e/lib.mjs";
+import { spawn, spawnSync } from 'node:child_process';
+import { mkdirSync, rmSync } from 'node:fs';
+import { resolve } from 'node:path';
+import { chromium } from 'playwright';
+import { launch } from './e2e/lib.mjs';
 
-const ROOT = resolve(import.meta.dirname, "..");
+const ROOT = resolve(import.meta.dirname, '..');
 const args = process.argv.slice(2);
-const only = args.find((a) => a.startsWith("--only="))?.slice(7);
-const RAW = resolve(ROOT, ".cache/docs-shots");
-const IMG = resolve(ROOT, "docs/img/readme");
-const PREFIX = "4119-";
+const only = args.find((a) => a.startsWith('--only='))?.slice(7);
+const RAW = resolve(ROOT, '.cache/docs-shots');
+const IMG = resolve(ROOT, 'docs/img/readme');
+const PREFIX = '4119-';
 const GAME_PORT = 4317,
   STUDIO_PORT = 5317;
 rmSync(RAW, { recursive: true, force: true });
@@ -25,7 +25,7 @@ const serve = (cmd, argv, env = {}) => {
   const p = spawn(cmd, argv, {
     cwd: ROOT,
     env: { ...process.env, ...env },
-    stdio: "ignore",
+    stdio: 'ignore',
   });
   procs.push(p);
   return p;
@@ -51,14 +51,14 @@ const stop = () => {
     }
   }
 };
-process.on("exit", stop);
+process.on('exit', stop);
 
 /** PNG → WebP under docs/img (Pillow), at most 1440 px wide. */
 function webp(png, name) {
   const r = spawnSync(
-    "python3",
+    'python3',
     [
-      "-c",
+      '-c',
       `
 import sys
 from PIL import Image
@@ -69,45 +69,32 @@ print(im.width, im.height)`,
       png,
       resolve(IMG, `${PREFIX}${name}.webp`),
     ],
-    { encoding: "utf8" },
+    { encoding: 'utf8' },
   );
   if (r.status) throw new Error(r.stderr);
   console.log(`docs:screenshots ${PREFIX}${name}.webp ${r.stdout.trim()}`);
 }
 
 async function game() {
-  console.log("docs:screenshots building the production bundle");
-  const b = spawnSync(
-    "npx",
-    ["vite", "build", "--outDir", ".cache/docs-dist", "--emptyOutDir"],
-    {
-      cwd: ROOT,
-      encoding: "utf8",
-    },
-  );
+  console.log('docs:screenshots building the production bundle');
+  const b = spawnSync('npx', ['vite', 'build', '--outDir', '.cache/docs-dist', '--emptyOutDir'], {
+    cwd: ROOT,
+    encoding: 'utf8',
+  });
   if (b.status) throw new Error(b.stderr || b.stdout);
-  serve("npx", [
-    "vite",
-    "preview",
-    "--outDir",
-    ".cache/docs-dist",
-    "--port",
-    String(GAME_PORT),
-    "--strictPort",
-  ]);
+  serve('npx', ['vite', 'preview', '--outDir', '.cache/docs-dist', '--port', String(GAME_PORT), '--strictPort']);
   const url = `http://127.0.0.1:${GAME_PORT}/`;
   await up(url);
   const solved = JSON.parse(
-    spawnSync("npx", ["tsx", "tools/solve.ts", "--json"], {
+    spawnSync('npx', ['tsx', 'tools/solve.ts', '--json'], {
       cwd: ROOT,
-      encoding: "utf8",
+      encoding: 'utf8',
     })
       .stdout.trim()
-      .split("\n")
+      .split('\n')
       .pop(),
   );
-  if (solved.status !== "solved")
-    throw new Error(`the solver says ${solved.status}`);
+  if (solved.status !== 'solved') throw new Error(`the solver says ${solved.status}`);
 
   const h = await launch(url, { dev: false, out: RAW });
   const { page } = h;
@@ -122,34 +109,25 @@ async function game() {
     await h.walkthrough(solved.steps.slice(0, 1));
     await h.waitIdle();
     await settle();
-    await shot("hero");
+    await shot('hero');
     // The tutorial guides the first actions: follow the solver's path until it lets go.
-    for (
-      let i = 1;
-      i < solved.steps.length &&
-      (await page.evaluate(() => !!window.__game.engine.guiding));
-      i++
-    )
+    for (let i = 1; i < solved.steps.length && (await page.evaluate(() => !!window.__game.engine.guiding)); i++)
       await h.walkthrough([solved.steps[i]]);
     await h.waitIdle();
     await settle();
     const talker = await page.evaluate(() => {
       const g = window.__game;
       const r = g.engine.room();
-      return (
-        Object.keys(r.talk ?? {}).find((a) =>
-          g.engine.targets(r).includes(a),
-        ) ?? null
-      );
+      return Object.keys(r.talk ?? {}).find((a) => g.engine.targets(r).includes(a)) ?? null;
     });
-    if (!talker) throw new Error("nobody to talk to in the first room");
+    if (!talker) throw new Error('nobody to talk to in the first room');
     // Tapped like a player: the verb, then the character; the topics come up as choices.
-    await h.verbById("talk");
+    await h.verbById('talk');
     await h.target(talker);
-    await page.waitForSelector(".choices .choice", { timeout: 15000 });
+    await page.waitForSelector('.choices .choice', { timeout: 15000 });
     await settle(1500);
-    await shot("player-scene");
-    await page.locator(".choices .choice").last().click();
+    await shot('player-scene');
+    await page.locator('.choices .choice').last().click();
     await h.waitIdle();
     await settle();
     // A minigame: the sample game's own pipes command, run by the engine.
@@ -157,21 +135,21 @@ async function game() {
       const g = window.__game;
       let found = null;
       const walk = (x) => {
-        if (found || !x || typeof x !== "object") return;
-        if (x.minigame === "pipes") {
+        if (found || !x || typeof x !== 'object') return;
+        if (x.minigame === 'pipes') {
           found = x;
           return;
         }
         for (const v of Object.values(x)) walk(v);
       };
       walk(g.game.rooms);
-      if (!found) throw new Error("no pipes minigame in the sample game");
-      void g.engine.script([{ minigame: "pipes", params: found.params }]);
+      if (!found) throw new Error('no pipes minigame in the sample game');
+      void g.engine.script([{ minigame: 'pipes', params: found.params }]);
     });
-    await page.waitForSelector(".overlay .mg-skip", { timeout: 10000 });
+    await page.waitForSelector('.overlay .mg-skip', { timeout: 10000 });
     await settle(1500);
-    await shot("player-minigame");
-    await page.locator(".overlay .mg-skip").click({ force: true });
+    await shot('player-minigame');
+    await page.locator('.overlay .mg-skip').click({ force: true });
     await h.waitIdle();
     // The map, late in the game (more places open).
     await page.evaluate(async () => {
@@ -183,8 +161,8 @@ async function game() {
     await settle();
     await h.openMap();
     await settle();
-    await shot("player-map");
-    await page.keyboard.press("Escape").catch(() => {});
+    await shot('player-map');
+    await page.keyboard.press('Escape').catch(() => {});
   } finally {
     await h.close();
   }
@@ -193,20 +171,19 @@ async function game() {
   const e = await launch(url, { dev: false, out: `${RAW}/ending` });
   try {
     await e.walkthrough(solved.steps);
-    if (!(await e.ended()))
-      throw new Error("the walkthrough did not reach the ending");
+    if (!(await e.ended())) throw new Error('the walkthrough did not reach the ending');
     await e.page.waitForTimeout(4000);
     const f = `${RAW}/player-ending.png`;
     await e.page.screenshot({ path: f });
-    webp(f, "player-ending");
+    webp(f, 'player-ending');
   } finally {
     await e.close();
   }
 }
 
 async function studio() {
-  serve("npx", ["vite", "--port", String(STUDIO_PORT), "--strictPort"], {
-    STUDIO: "1",
+  serve('npx', ['vite', '--port', String(STUDIO_PORT), '--strictPort'], {
+    STUDIO: '1',
   });
   const base = `http://127.0.0.1:${STUDIO_PORT}/__studio/`;
   await up(base, 90000);
@@ -222,68 +199,57 @@ async function studio() {
   };
   try {
     await page.goto(`${base}#rooms/house`);
-    await page.waitForSelector(".entities .ent", { timeout: 60000 });
+    await page.waitForSelector('.entities .ent', { timeout: 60000 });
     await page.waitForTimeout(2500);
-    await page.locator(".entities .ent", { hasText: "pantry" }).first().click();
+    await page.locator('.entities .ent', { hasText: 'pantry' }).first().click();
     await page.waitForTimeout(1500);
-    await shot("studio-rooms");
+    await shot('studio-rooms');
     await page.goto(`${base}#storyboard`);
     await page.reload();
     await page.waitForTimeout(4000);
-    await shot("studio-storyboard");
+    await shot('studio-storyboard');
     await page.goto(`${base}#assets`);
     await page.reload();
     await page.waitForTimeout(4000);
-    await shot("studio-assets");
+    await shot('studio-assets');
     await page.goto(`${base}#check`);
     await page.reload();
-    await page.waitForSelector(".badge.ok, .badge.warn", { timeout: 120000 });
+    await page.waitForSelector('.badge.ok, .badge.warn', { timeout: 120000 });
     await page.waitForTimeout(1500);
-    await shot("studio-check");
+    await shot('studio-check');
     // The proof: the puzzle graph with the critical path and the solver's heat.
-    await page
-      .locator("label", { hasText: "Critical path" })
-      .locator("input")
-      .check();
-    await page
-      .locator("label", { hasText: "Heat" })
-      .locator("select")
-      .selectOption("solver");
+    await page.locator('label', { hasText: 'Critical path' }).locator('input').check();
+    await page.locator('label', { hasText: 'Heat' }).locator('select').selectOption('solver');
     await page.waitForTimeout(1000);
     // The panel at the top of the screen, its toggles and the start of the graph.
     await page
-      .locator("label", { hasText: "Critical path" })
-      .evaluate((el) =>
-        el.closest(".panel")?.scrollIntoView({ block: "start" }),
-      );
+      .locator('label', { hasText: 'Critical path' })
+      .evaluate((el) => el.closest('.panel')?.scrollIntoView({ block: 'start' }));
     await page.waitForTimeout(800);
-    const box = await page
-      .locator("label", { hasText: "Critical path" })
-      .evaluate((el) => {
-        const r = el.closest(".panel").getBoundingClientRect();
-        return {
-          x: r.x,
-          y: r.y,
-          width: r.width,
-          height: Math.min(r.height, innerHeight - r.y),
-        };
-      });
+    const box = await page.locator('label', { hasText: 'Critical path' }).evaluate((el) => {
+      const r = el.closest('.panel').getBoundingClientRect();
+      return {
+        x: r.x,
+        y: r.y,
+        width: r.width,
+        height: Math.min(r.height, innerHeight - r.y),
+      };
+    });
     const f = `${RAW}/proof-graph.png`;
     await page.screenshot({ path: f, clip: box });
-    webp(f, "proof-graph");
+    webp(f, 'proof-graph');
   } finally {
     await browser.close();
   }
 }
 
 try {
-  if (only !== "studio") await game();
-  if (only !== "game") await studio();
-  if (!args.includes("--keep-png"))
-    rmSync(RAW, { recursive: true, force: true });
-  console.log("docs:screenshots done");
+  if (only !== 'studio') await game();
+  if (only !== 'game') await studio();
+  if (!args.includes('--keep-png')) rmSync(RAW, { recursive: true, force: true });
+  console.log('docs:screenshots done');
 } catch (err) {
-  console.error("docs:screenshots FAILED —", err.message);
+  console.error('docs:screenshots FAILED —', err.message);
   process.exitCode = 1;
 } finally {
   stop();
