@@ -1,6 +1,6 @@
 # web-scumm 4.1.20 « Last Mile » : plan de release
 
-> **Révision 4 : plan vérifié contre `origin/main` (`aa2462e`) après v4.1.19, puis relu deux fois par le maintainer
+> **Révision 4 : plan vérifié contre `origin/main` (`aa2462e`) après v4.1.19, puis relu deux fois par le mainteneur
 > (12 octobre 2026). Points ajoutés : complétude du backup, modes de restauration toujours explicites, maintenance par
 > lease, version pertinente pour les passes, attestations de report séparées des rapports, runbook npm.**  
 > **Source normative :** ce fichier, dans Git, depuis la PR de cadrage `docs/4120-plan`. Toute copie hors du dépôt,
@@ -90,7 +90,7 @@ Les affirmations ci-dessus ont été relues contre `origin/main`. Celles qui cha
 10. **Les mesures des ensembles mesurés** sont au §4.1.
 11. **`reality-store-postgres` ne peut pas être mesuré sur `main`** : le nightly du 12 octobre et une relance
     (`mutation`, sur `main`) s'arrêtent avant le premier mutant, car les tests de référence échouent. Reproduit en local
-    sur Postgres 15, la cause est double, et elle ne vient pas du produit :
+    sur Postgres 15, le défaut a deux causes et révèle deux lacunes, et il ne vient pas du produit :
     - la seconde lecture de la PR 3 de la 4.1.19 a ajouté cinq fichiers à l'ensemble après sa dernière mesure. Dans
       `tests/bridge-leaderboard.test.ts`, chaque `make()` SQLite ouvre un fichier neuf, mais le `make()` Postgres
       rouvre la même base, si bien que les lignes s'accumulent d'un test à l'autre. Avec une base vidée par `make()`,
@@ -131,7 +131,7 @@ Elle ne doit pas :
 
 Le nom proposé est **4.1.20 « Last Mile »**.
 
-## 3. Décisions (acceptées par le maintainer le 12 octobre 2026)
+## 3. Décisions (acceptées par le mainteneur le 12 octobre 2026)
 
 ### D34 — Dernière release de code avant 4.2
 
@@ -149,7 +149,7 @@ Précisions du 12 octobre :
   et le même run. La version étant pertinente (D35), c'est le seul moyen que les passes qualifient la 4.2 sans report ;
 - **le risque qu'un tiers réserve les quatre noms npm avant 4.2 est accepté**. Un job non bloquant du nightly
   (PR 3b) vérifie chaque jour qu'ils restent libres, et `preflight-stable` le vérifie aussi à chaque appel ;
-- les releases GitHub immuables et un ruleset de tags `v*` sont activés pendant la 4.1.20, par le maintainer, après la
+- les releases GitHub immuables et un ruleset de tags `v*` sont activés pendant la 4.1.20, par le mainteneur, après la
   PR qui fait passer `release.yml` en brouillon ;
 - le tag 4.1.20 reste non signé (D30), mais le candidat répète la signature SSH de 4.2 avec une clé éphémère.
 
@@ -270,12 +270,16 @@ Sans sharding, le candidat passerait de 79 minutes à plus de trois heures : le 
 | 4 | 3 | `ci/4120-exact-qualification` | découpage d'`ops-qualify`, manifeste d'artefacts, qualification exacte, performance | 1b |
 | 5 | 4 | `feature/4120-field-carry` | surfaces, attestations de report, `allowed_signers` | 3 |
 | 5 | 3b | `ci/4120-stable-rehearsal` | release en brouillon, signature répétée, `preflight-stable`, veille des noms npm, runbook npm | 3 |
-| 6 | — | réglage GitHub | le maintainer active l'immuabilité et le ruleset `v*` | 3b |
+| 6 | — | réglage GitHub | le mainteneur active l'immuabilité et le ruleset `v*` | 3b |
 | 7 | — | candidat technique | obligatoire, sans passe | 1a à 4, 2e, 3b |
-| 8 | 6 | `release/4.1.20` | version, docs, baseline | 7 vert |
-| 9 | — | candidat final, RC, stable 4.1.20 | vérification humaine de la RC | 6 |
+| 8 | 6 | `release/4.1.20` | version, docs, baseline | ordres 6 et 7 (réglage fait, candidat technique vert) |
+| 9 | — | candidat final, RC, stable 4.1.20 | vérification humaine de la RC | PR 6 |
 | 10 | 7 | `release/4.2.0-rc` | la version 4.2.0, les notes, sans code | tag 4.1.20, nightly classé |
-| 11 | — | candidat `4.2.0-rc`, puis `v4.2.0-rc.1` | `field:init`, puis campagne terrain | 7 |
+| 11 | — | candidat `4.2.0-rc`, `preflight-stable`, puis `v4.2.0-rc.1` signé | issues commentées, `field:init`, campagne | PR 7 |
+| 12 | 8 | `release/4.2.0-status` | les fichiers de statut seuls, d'après les passes | campagne |
+| 13 | — | candidat `rc.2`, `field:carry`, `v4.2.0` | attestations signées par le mainteneur | PR 8 |
+
+La colonne « Dépend de » nomme des PR (« PR 6 ») ou des ordres (« ordre 7 »).
 
 **Pourquoi cet ordre.**
 - La PR 1a ne touche aucun ensemble de mutation, et `mutants.json` n'a aucune entrée pour `backup.ts`. Elle avance donc
@@ -284,8 +288,9 @@ Sans sharding, le candidat passerait de 79 minutes à plus de trois heures : le 
   schéma d'exemption de la 2a.
 - 2b–2d avancent côte à côte, et 2e ferme l'ensemble en dernier.
 - La PR 3 attend la 1b, parce que la qualification joue les deux modes et la migration 0005.
-- Enfin, 4 et 3b. Une seule suite de tests tourne à la fois sur la machine
-du mainteneur. Les mutations, Docker et la qualification tournent sur les runners. Chaque PR reçoit le label
+- Enfin, 4 et 3b.
+
+Une seule suite de tests tourne à la fois sur la machine du mainteneur. Les mutations, Docker et la qualification tournent sur les runners. Chaque PR reçoit le label
 `full-ci` et une seconde lecture automatisée avant fusion.
 
 **Il n'y a plus de PR de refactoring en fin de cycle.** Un découpage « neutre » juste avant le candidat produit des
@@ -390,7 +395,8 @@ bridge restore --from=<file> --mode=replace-store --yes-replace-store --safety-o
 `merge` :
 
 - refuse les conflits sans `--force` ;
-- avec `--force`, remplace uniquement les données dont le fichier parle : ses tenants, leurs runs et leurs quotas,
+- avec `--force`, remplace uniquement les familles que le fichier porte : ses tenants, leurs runs et, pour un schéma 4,
+  leurs quotas (un schéma 1 à 3 ne touche pas aux quotas),
   ainsi que les clés Daily qu'il porte. `daily_kv` n'a pas de tenant, donc ce sont les clés qui comptent ;
 - conserve les tenants, runs, quotas et clés Daily étrangers au backup ;
 - l'ensemble des tenants d'un fichier inclut ceux qui n'ont que des lignes de quota ;
@@ -429,11 +435,31 @@ verrou. La maintenance devient donc un protocole transactionnel dans le store, a
 | `expires_at` | expiration |
 
 Une contrainte interdit deux leases `exclusive`. **Toutes les heures viennent de la base**, jamais de l'horloge d'une
-instance. Elles sont stockées en millisecondes epoch (`BIGINT`), comme les autres tables. Sur Postgres, la source est
-`clock_timestamp()`, car `now()` reste figé au début de la transaction. Sur SQLite, c'est `unixepoch('subsec')`.
+instance. Elles sont stockées en millisecondes epoch (`BIGINT`), comme les autres tables, et calculées dans la couche
+de dialecte, puisque les migrations sont neutres :
 
-**Les écrivains** : `serve`, mais aussi chaque commande d'écriture de la CLI (`grant`, `rotate`, `revoke`,
-`tenant delete`, `migrate`…). Chacun prend une lease `serving` pour la durée de son écriture.
+| Base | Expression | Pourquoi |
+|---|---|---|
+| Postgres | `(extract(epoch FROM clock_timestamp()) * 1000)::bigint` | `now()` reste figé au début de la transaction |
+| SQLite | `CAST(unixepoch('subsec') * 1000 AS INTEGER)` | `node:sqlite` embarque SQLite 3.47, et `subsec` existe depuis 3.42 |
+
+**Les écrivains** sont toutes les commandes qui ouvrent le store en écriture, migrations comprises :
+
+- `serve` ;
+- `migrate`, dans ses deux formes ;
+- `tenant delete` ;
+- `restore` ;
+- toute commande qui ouvre le store avec `migrate: true`, le défaut de `openStore`, comme `backup` ou `tenant export`.
+  Appliquer une migration en attente, c'est écrire.
+
+Chacun prend une lease `serving` pour la durée de son écriture. `grant`, `rotate` et `revoke` n'ouvrent pas le store :
+le premier signe un jeton avec la clé racine, le deuxième réécrit `config.json`, le troisième appelle un `serve`
+vivant.
+
+**Amorçage.** La table `maintenance` n'existe qu'après la migration 0005. Les migrations jusqu'à 0005 s'exécutent donc
+sous le seul verrou du dialecte : l'advisory lock de migration sur Postgres, `BEGIN IMMEDIATE` sur SQLite. Ensuite,
+toute ouverture prend sa lease. Un retour sous le schéma 5 (`migrate --schema=N`, avec N < 5) exige la maintenance et
+supprime la table `maintenance` en dernier, dans la même transaction.
 
 **`restore`, dans les deux modes :**
 
@@ -628,7 +654,7 @@ Une entrée de `mutants.json` n'est pas une décharge. Chacune porte :
 - une version de réexamen.
 
 Un test refuse une entrée incomplète ou dont la version de réexamen est dépassée. Les 93 équivalents existants
-migrent vers ce format dans la PR 2a, sur les chemins issus de la PR 1a.
+migrent vers ce format dans la PR 2a.
 
 ### 7.5 Critères de sortie
 
@@ -656,7 +682,7 @@ scripts/ops-qualify/report.mjs
 
 Chaque étape garde son identifiant stable, son budget, sa commande de reproduction, sa durée et son premier défaut.
 Une caractérisation prouve que le rapport JSON est identique avant et après, hors durées. Ce commit précède tout
-changement de comportement.
+changement de comportement. Le filtre de chemins de `.github/workflows/qualify.yml` suit le nouveau dossier.
 
 ### 8.1 Profil complet obligatoire
 
@@ -801,7 +827,10 @@ L'attestation est committée dans `docs/dev/passes/carry/`, dans un commit sign�
   signature, que Claude ne peut pas produire ;
 - `approvedBy` doit être le principal que `allowed_signers` associe à la clé signataire. Ce n'est pas un texte libre ;
 - la signature vérifiée est celle du commit qui a réellement introduit ou modifié l'attestation, y compris à travers
-  des merges non squashés. Un merge signé ne couvre pas un commit non signé.
+  des merges non squashés. Un merge signé ne couvre pas un commit non signé ;
+- les PR qui portent `allowed_signers` ou une attestation sont fusionnées **par commit de merge** (`ship merge`, qui
+  utilise déjà `--merge`, comme le ruleset de `main`). Un squash ou un rebase recrée les commits sous la clé de GitHub,
+  que `allowed_signers` refuse.
 
 Claude n'écrit jamais d'attestation `approved`.
 
@@ -831,7 +860,8 @@ L'agrégateur compte la passe comme `passed` pour le nouveau candidat uniquement
 - l'attestation est `approved` et sa signature passe la racine de confiance ;
 - aucune surface dépendante n'a changé.
 
-Entre une RC et la stable, même SHA et même run, les octets sont identiques et le report est immédiat. Il n'existe
+Entre une RC et une stable de même SHA et de même run, il n'y a rien à reporter : `field:check` accepte déjà un
+rapport `x.y.z-rc.N` contre les archives `x.y.z` de ce run. Il n'existe
 pas de `--force`.
 
 ### 9.5 Critères de sortie
@@ -842,7 +872,9 @@ pas de `--force`.
 - une modification de `store-postgres.ts` refuse la passe Bridge ;
 - une modification du mixage refuse la passe voix ;
 - **la version seule refuse les passes PWA, Mystery, reprise de run, speedrun et archive**, sauf exclusion prouvée ;
-- RC → stable sur le même run se transporte ;
+- RC → stable sur le même run n'a pas besoin de report ;
+- un `rc.2` qui ne change que des fichiers de statut (§12) se transporte pour les treize passes, avec des attestations
+  signées ;
 - une attestation non signée, signée par une clé ajoutée dans la même PR ou dont `approvedBy` ne correspond pas est
   refusée ;
 - le schéma `FieldReport` refuse tout statut nouveau ;
@@ -879,7 +911,7 @@ page de galerie ou être renommées `_v1`, jamais supprimées.
 la relit. Un rerun sur une release déjà publiée s'arrête sans rien modifier. Une RC ratée ne se corrige pas : elle
 donne une `rc.N+1`.
 
-Le maintainer active ensuite les releases immuables et un ruleset `v*` (création réservée, ni suppression ni
+Le mainteneur active ensuite les releases immuables et un ruleset `v*` (création réservée, ni suppression ni
 force-push).
 
 **`ship verify`** appelle aussi `gh release verify <tag>` et `gh release verify-asset <tag> <fichier>` pour chaque
@@ -924,9 +956,12 @@ Il ne signe, ne publie et ne change aucun réglage. Il dit séparément :
 - L'étape de publication de `release.yml` épingle des **versions exactes** de Node et de npm, choisies et validées
   dans la PR 3b. Il faut au moins Node 22.14.0, npm 11.5.1 pour le trusted publishing et **npm 11.15.0 pour
   `npm stage`**. Aucune plage : un test refuse `>=`.
-- Les quatre noms n'existent pas encore. Le bootstrap de chaque package se fait par `npm stage publish`, depuis une
-  session locale 2FA du mainteneur ou avec un token stage-only. On configure ensuite le trusted publisher OIDC sur
-  chaque package.
+- Les quatre noms n'existent pas encore. Le bootstrap de chaque package se fait par `npm stage publish` d'une
+  **version de réservation** (`0.0.0-bootstrap.0`, jamais `4.2.0`), depuis une session locale 2FA du mainteneur ou
+  avec un token stage-only. Une publication locale ne porte pas de provenance OIDC, c'est pourquoi elle ne porte jamais
+  une version du produit. Le runbook vérifie dans la documentation npm si une version mise en scène, sans promotion,
+  suffit à créer le package, et ne promeut le bootstrap que si c'est nécessaire. On configure ensuite le trusted
+  publisher OIDC sur chaque package. La 4.2.0, publiée depuis le run de `rc.2`, est la première version du produit.
 - Une configuration de trusted publisher doit réussir sa première publication en moins de deux jours, faute de quoi
   elle expire.
 - Par défaut, la configuration est **stage-only** : la CI met en scène, le mainteneur promeut avec sa 2FA.
@@ -986,13 +1021,21 @@ Il ne signe, ne publie et ne change aucun réglage. Il dit séparément :
 
 ## 12. Campagne terrain après la 4.1.20
 
-Les passes commencent sur le **candidat `4.2.0-rc`** (D34) :
-- il est construit depuis la PR 7, qui ne change que la version et les notes ;
-- `v4.2.0-rc.1` porte ce candidat ;
-- `field:init --release=4.2.0-rc.1` commente les issues #75–#87.
+Les passes commencent sur le **candidat `4.2.0-rc`** (D34), ni sur la 4.1.20, ni sur une branche intermédiaire :
 
-Ce n'est ni la 4.1.20 ni une branche intermédiaire. La stable `v4.2.0` sortira du même SHA et du même run, ce qui
-rend tout report inutile.
+1. La PR 7 ne change que la version et les notes. Son candidat passe `preflight-stable`.
+2. `v4.2.0-rc.1` est tagué sur ce candidat, signé avec la clé du mainteneur. Cette RC répète la signature de la 4.2,
+   et D30 ne s'applique plus.
+3. Chaque issue #75–#87 reçoit un commentaire avec le run, les SHA-256 et la commande. C'est une étape manuelle, comme
+   en 4.1.19. Chaque passe s'ouvre par `field:init --release=4.2.0-rc.1 --candidate=<run>`.
+4. Après la campagne, la PR 8 (`release/4.2.0-status`) écrit **seulement les fichiers de statut** d'après les
+   rapports : README, SUPPORT, GO / NO-GO, la fiche des passes et les rapports eux-mêmes. Ces fichiers n'entrent ni
+   dans les archives (`scripts/pack.mjs` n'emporte ni `README.md` ni `docs/`), ni dans le site. Les artefacts des
+   surfaces restent donc identiques. Un test le prouve en déclarant ces fichiers comme classe `status` dans
+   `surfaces.json`.
+5. Le candidat `rc.2` est construit. `field:carry` prouve, pour les treize passes, que seule la classe `status` a
+   changé. Le mainteneur signe les attestations.
+6. La stable `v4.2.0` est taguée sur `rc.2`, signée, et publiée sur npm depuis ce même run.
 
 Ordre recommandé :
 
@@ -1094,11 +1137,11 @@ Les treize passes peuvent rester `not-run` au tag 4.1.20 conformément à D12. E
 Après la campagne terrain sur le candidat `4.2.0-rc` :
 
 - chaque surface annoncée stable a sa preuve machine et sa passe humaine ;
-- chaque passe vient du candidat `4.2.0-rc` qui porte la stable, ou d'une `rc` antérieure, transportée par une
-  empreinte identique et une attestation signée ;
+- chaque passe vient d'un candidat `4.2.0-rc`, et elle est transportée vers le candidat de la stable (`rc.2`, fichiers
+  de statut seuls) par une empreinte identique et une attestation signée ;
 - aucun P0/P1 terrain n'est ouvert ;
 - les surfaces sans passe restent limitées, expérimentales ou hors périmètre ;
-- le candidat 4.2 ne change aucun fichier qualifié après les passes ;
+- le candidat de la stable ne change aucun fichier qualifié après les passes, seulement la classe `status` ;
 - le tag est signé ;
 - la release GitHub est immuable ;
 - les packages exacts du candidat sont publiés sur npm avec provenance ;
