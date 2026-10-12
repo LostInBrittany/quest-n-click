@@ -27,7 +27,7 @@ place. A restore into the JSON-lines journal could not succeed (`--force` delete
    the transaction. Before the commit each tenant is exported again and compared with the file, and the runs and daily
    records are read back: a difference rolls everything back. After the commit a separate reading audits the result; a
    difference there is a fault of the backend, said as a P0 (exit code 3), not a late failure of the command.
-4. **An operator's capability, not the runtime's.** It lives in `bridge/src/backup.ts` over `SqlRealityStore`
+4. **An operator's capability, not the runtime's.** It lives in `bridge/src/backup/` (one file until 4.1.20; `index.ts` is its public face) over `SqlRealityStore`
    (`exportTenantIn`, `importTenantIn` on a caller's transaction); `RealityStore` does not grow. The journal is refused
    before it is touched: migrate it to SQLite (`migrate --from=jsonl --to=sqlite`), then restore.
 
