@@ -1101,5 +1101,17 @@
   "proof": "argument",
   "owner": "@wanoo",
   "revisit": "4.3.0"
+ },
+ {
+  "file": "bridge/src/store-postgres.ts",
+  "operator": "condition true",
+  "from": "this.retryTimer",
+  "to": "true",
+  "context": "if (this.retryTimer) clearTimeout(this.retryTimer);",
+  "why": "`close` clears a pending retry: forced true, it calls `clearTimeout(undefined)` when none is pending, which the timers API defines as doing nothing; the case where one is pending is the same either way (the false mutant is killed by tests/reality-store-postgres-mutants.test.ts)",
+  "category": "equivalent",
+  "proof": "argument",
+  "owner": "@wanoo",
+  "revisit": "4.3.0"
  }
 ]

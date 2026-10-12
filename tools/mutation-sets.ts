@@ -121,6 +121,7 @@ export const TESTS: Record<MutationSet, string[]> = {
     'tests/bridge-admission.test.ts',
     'tests/bridge-runs-durable.test.ts',
     'tests/bridge-leaderboard.test.ts',
+    'tests/reality-store-postgres-mutants.test.ts',
   ],
   'reality-store': [
     'tests/bridge-reality-store.test.ts',
@@ -150,9 +151,12 @@ export const GATED: MutationSet[] = [
   'speedrun',
   'connectors-pure',
   'reality-store',
+  // 4.1.20 PR 2a: its 41 mutants read on a real Postgres, 40 killed (tests/reality-store-postgres-mutants.test.ts), one
+  // named; every job that mutates it has a Postgres service.
+  'reality-store-postgres',
 ];
 /** Measured on demand (`gh workflow run mutation -f set=…`) and every night, gating nothing until their survivors are read. */
-export const MEASURED: MutationSet[] = ['connectors-edge', 'reality-store-postgres'];
+export const MEASURED: MutationSet[] = ['connectors-edge'];
 
 /**
  * The shards a set's mutation runs in (4.1.20 PR 2a, plan §7.3), one job each, merged into the set's report. A set not
