@@ -225,6 +225,7 @@ const semverCore = (v: string) => /^(\d+)\.(\d+)\.(\d+)(?:-[0-9A-Za-z.-]+)?$/.ex
 export function checkKnown(known: KnownSurvivor[], version: string): string[] {
   const now = semverCore(version);
   const out: string[] = [];
+  if (!now) out.push(`the repository's version ${version} is not x.y.z: no revisit can be judged`);
   for (const k of known) {
     const at = `${k.file} ${k.operator}: ${k.from} → ${k.to}`;
     if (!SURVIVOR_CATEGORIES.includes(k.category)) out.push(`${at}: a category (${SURVIVOR_CATEGORIES.join(', ')})`);
@@ -388,14 +389,16 @@ if (process.argv[1]?.endsWith('mutate.ts')) {
     console.error(`ℹ  --set=${given} is --set=${setArg} since 4.1.19 (the old name works until 4.2)`);
   // Without a database its tests skip their Postgres cases: every mutant would survive, a measure of nothing.
   const measuring = !['--doc', '--hash', '--merge'].some((f) => process.argv.includes(f));
-  if (setArg === 'reality-store-postgres' && !process.env.BRIDGE_PG_URL && measuring) {
-    console.error('✖  --set=reality-store-postgres needs BRIDGE_PG_URL (a Postgres its tests run against)');
-    process.exit(2);
-  }
   const setOf = (f: string): MutationSet | 'all' =>
     (Object.keys(SETS) as MutationSet[]).find((k) => SETS[k].includes(f)) ?? 'all';
   const set: MutationSet | 'all' = only ? setOf(only) : setArg;
   let files = only ? [only] : setsOf(set).flatMap((k) => SETS[k]);
+  if (setsOf(set).includes('reality-store-postgres') && !process.env.BRIDGE_PG_URL && measuring) {
+    console.error(
+      `✖  --set=${set} mutates reality-store-postgres, which needs BRIDGE_PG_URL (a Postgres its tests run against)`,
+    );
+    process.exit(2);
+  }
   if (process.argv.includes('--doc')) {
     const known = JSON.parse(readFileSync(resolve(ROOT, 'docs/dev/mutants.json'), 'utf8')) as KnownSurvivor[];
     const doc = resolve(ROOT, 'docs/dev/MUTANTS.md');
@@ -461,8 +464,8 @@ if (process.argv[1]?.endsWith('mutate.ts')) {
   if (shardArg) {
     const m = /^(\d+)\/(\d+)$/.exec(shardArg);
     const [i, n] = m ? [Number(m[1]), Number(m[2])] : [0, 0];
-    if (!m || only || set === 'all' || i < 1 || i > n) {
-      console.error('✖  --shard=<i>/<n> takes a set (not --file, not all), 1 ≤ i ≤ n');
+    if (!m || only || set === 'all' || i < 1 || i > n || n > SETS[set].length) {
+      console.error('✖  --shard=<i>/<n> takes a set (not --file, not all), 1 ≤ i ≤ n, n at most its files');
       process.exit(2);
     }
     files = cutOf(set, n)[i - 1]!;

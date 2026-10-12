@@ -350,7 +350,11 @@ jobs:
       - if: env.RUN == 'true'
         # Every file that judges the Postgres adapter (4.1.20 PR 2a: five of the eight were run here before), from the set's
         # one list, one file after the other (each in a database of its own, tests/fixtures/pg-database.ts).
-        run: npx vitest run $(npx tsx tools/mutation-sets.ts --tests=reality-store-postgres) --maxWorkers=1 --no-file-parallelism
+        # The list first: a failed listing stops the step instead of running the whole suite.
+        run: |
+          files=$(npx tsx tools/mutation-sets.ts --tests=reality-store-postgres)
+          [ -n "$files" ]
+          npx vitest run $files --maxWorkers=1 --no-file-parallelism
   # Reality Bridge end to end (4.1.1, scripts/e2e-reality.mjs): the sample game games/signals built for production, a
   # reference Bridge, pairing from the pause menu, the same webhook twice, offline then online, applied once, the
   # session replayed with the Bridge stopped. WebKit cannot reopen offline under automation (as e2e:pwa). Its own build
@@ -913,7 +917,7 @@ jobs:
   # may be `skipped` where it does not run (an ordinary pull request). The candidate single required check: the
   # ruleset still requires the seventeen names until a few runs of this job have been green (the maintainer's move).
   pr-gate:
-    needs: [plan, check, coverage, mutation, reality-xcheck, connectors, bridge-postgres, reality, node-24, windows, second-game, e2e, pwa-firefox, fresh-install, external-consumer, upgrade, reference, cross-runtime]
+    needs: [plan, check, coverage, mutation-plan, mutation, mutation-merge, reality-xcheck, connectors, bridge-postgres, reality, node-24, windows, second-game, e2e, pwa-firefox, fresh-install, external-consumer, upgrade, reference, cross-runtime]
     if: always()
     runs-on: ubuntu-24.04
     timeout-minutes: 5
@@ -926,9 +930,11 @@ jobs:
           bad=0
           for row in $(echo "$NEEDS" | jq -r 'to_entries[] | "\(.key)=\(.value.result)"'); do
             job=${row%%=*}; result=${row#*=}
-            if [ "$job" = mutation ] && [ "$result" = skipped ] && [ "$MUTATION" != true ]; then
-              echo "✔ mutation: skipped (main, the nightly, release-check and full-ci only)"; continue
-            fi
+            case "$job" in mutation|mutation-plan|mutation-merge)
+              if [ "$result" = skipped ] && [ "$MUTATION" != true ]; then
+                echo "✔ $job: skipped (main, the nightly, release-check and full-ci only)"; continue
+              fi ;;
+            esac
             if [ "$result" = success ]; then echo "✔ $job"; else echo "::error::$job: $result"; bad=1; fi
           done
           exit $bad

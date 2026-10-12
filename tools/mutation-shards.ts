@@ -2,7 +2,7 @@
 // candidate's budget. A shard mutates whole files of its set, chosen by a deterministic cut balanced on the mutants each
 // file holds; the shards' reports are merged into the set's report (`.cache/mutation/report-<set>.json`, the one the
 // gates, the baseline and the summaries already read) by `mergeReports`, which refuses any shard missing, doubled,
-// cancelled, of other inputs, of another cut, of another set or of another commit. `mutationMatrix` is the one matrix
+// cancelled, of other inputs, of another cut or of another set (a commit apart is fine: the same inputs, reused). `mutationMatrix` is the one matrix
 // the workflows run (ci, candidate, nightly, release): no workflow writes its list of sets by hand.
 import { type KnownSurvivor, type MutationReport, sameMutant } from './mutate';
 import { GATED, MEASURED, type MutationSet, SETS, SHARDS } from './mutation-sets';
@@ -40,12 +40,12 @@ export interface ExpectedSet {
 
 /**
  * The shards' reports merged into the set's report. Throws on a shard missing (a job cancelled or never uploaded),
- * given twice, of other inputs, of another cut or set or commit: a gate never passes on a part of its set. The merged
+ * given twice, of other inputs, of another cut or set: a gate never passes on a part of its set (shards of one inputs
+ * measured on two commits are one measure, the cache's reuse). The merged
  * report fails when a shard failed or when a survivor is named by no entry of docs/dev/mutants.json.
  */
 export function mergeReports(reports: ShardReport[], e: ExpectedSet): MutationReport & { shards: string[] } {
   const n = e.shards.length;
-  const commits = new Set(reports.map((r) => r.commitSha));
   const byIndex = new Map<number, ShardReport>();
   for (const r of reports) {
     const at = `shard ${r.shard?.index}/${n}`;
@@ -61,7 +61,6 @@ export function mergeReports(reports: ShardReport[], e: ExpectedSet): MutationRe
     if (r.results.some((x) => !want.includes(x.file))) throw new Error(`${at} judged a file outside its cut`);
     byIndex.set(r.shard.index, r);
   }
-  if (commits.size > 1) throw new Error(`the shards of ${e.set} were measured on another commit than each other`);
   for (let i = 1; i <= n; i++) if (!byIndex.has(i)) throw new Error(`shard ${i}/${n} is missing`);
   const shards = [...byIndex.keys()].sort((a, b) => a - b).map((i) => byIndex.get(i)!);
   const results = shards.flatMap((r) => r.results);
@@ -70,7 +69,9 @@ export function mergeReports(reports: ShardReport[], e: ExpectedSet): MutationRe
     v: 1,
     set: e.set,
     inputHash: e.inputHash,
-    commitSha: shards[0]!.commitSha,
+    // Shards of the same inputs may come from different commits (a report reused from the cache, 4.1.8: the key is the
+    // inputs, never the commit); the merged report says each, and the baseline says it was reused.
+    commitSha: [...new Set(shards.map((r) => r.commitSha))].join(','),
     at: shards
       .map((r) => r.at)
       .sort()

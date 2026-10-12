@@ -84,7 +84,7 @@ describe('the shards merged into the set', () => {
     expect(() => mergeReports([...all(), report(2, 3, cut[1]!)], expected)).toThrow(/shard 2\/3 is given twice/);
   });
 
-  it('refuse a shard of other inputs, of another cut, of another set or of another commit', () => {
+  it('refuse a shard of other inputs, of another cut or of another set; the same inputs on two commits are one measure', () => {
     const r = all();
     expect(() => mergeReports([r[0]!, { ...r[1]!, inputHash: 'stale00000000000' }, r[2]!], expected)).toThrow(
       /shard 2\/3 measured other inputs/,
@@ -94,9 +94,10 @@ describe('the shards merged into the set', () => {
     );
     expect(() => mergeReports([r[0]!, report(2, 4, cut[1]!), r[2]!], expected)).toThrow(/shard 2 is one of 4, not 3/);
     expect(() => mergeReports([r[0]!, { ...r[1]!, set: 'reality' }, r[2]!], expected)).toThrow(/set reality/);
-    expect(() => mergeReports([r[0]!, { ...r[1]!, commitSha: 'd'.repeat(40) }, r[2]!], expected)).toThrow(
-      /another commit/,
-    );
+    // A shard's report reused from the cache (same inputs, another commit): merged, both commits said.
+    const mixed = mergeReports([r[0]!, { ...r[1]!, commitSha: 'd'.repeat(40) }, r[2]!], expected);
+    expect(mixed.status).toBe('passed');
+    expect(mixed.commitSha).toBe(`${'c'.repeat(40)},${'d'.repeat(40)}`);
   });
 
   it('fail the set when a shard failed, or when a survivor is named by no entry of docs/dev/mutants.json', () => {

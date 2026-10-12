@@ -24,6 +24,7 @@ name whose mutant no longer survives is reported as stale. This page explains th
 Since 4.1.20 (plan §7.4) an entry is an exemption with its terms: a `category` (`equivalent`, `unreachable`,
 `instrumentation`, `out-of-contract`), its `why`, a `proof` (`argument` for an equivalent mutant, where the why is the
 proof; a test file otherwise), an `owner` and a `revisit` version from which it is refused until it is read again. A
+An entry due stops every set, whatever its file: it is read again before any release of that version. A
 long set runs in shards (`--shard=i/n`, `SHARDS` in `tools/mutation-sets.ts`), merged into its report (`--merge`) by
 a step that refuses a shard missing, doubled, cancelled or of other inputs.
 
