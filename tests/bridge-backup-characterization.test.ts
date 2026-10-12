@@ -181,6 +181,9 @@ describe('the backup before and after its split', () => {
       'payload',
       'digest',
     ]);
+    // The version is the repository's here (the packed Bridge reads its own package's): a file moved deeper must
+    // still find it, never write "unknown".
+    expect(b.bridge.version).toBe(JSON.parse(readFileSync('package.json', 'utf8')).version);
     const fixed = { ...b, startedAt: '-', endedAt: '-', bridge: { version: '-' } };
     expect({ store: b.store, counts: b.counts, digest: b.digest.value.slice(0, 16) }).toEqual({
       store: { kind: 'sqlite', schema: 4 },
