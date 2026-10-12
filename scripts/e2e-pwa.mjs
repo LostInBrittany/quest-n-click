@@ -114,6 +114,15 @@ page.on('pageerror', (e) => void (closing || errors.push(e.message)));
 page.on('console', (m) => {
   if (m.type() === 'error' && !closing) errors.push(m.text());
 });
+// The interrupted update's own failure (4.1.19, Playwright 1.64): while `sw.js` is made to fail, WebKit now also
+// reports the server's deliberate 500 as a console error. That answer is the scenario, not a finding: each such
+// response excuses one "status of 500" console line, and only while the failure is armed.
+let swMadeToFail = false;
+let swDeliberate500 = 0;
+page.on('response', (r) => {
+  if (swMadeToFail && r.status() === 500 && new URL(r.url()).pathname === '/sw.js' && !r.fromServiceWorker())
+    swDeliberate500++;
+});
 
 try {
   await page.goto(url, { waitUntil: 'networkidle' });
@@ -180,6 +189,7 @@ try {
       // Published, but the worker's fetch fails once: no banner, the old worker keeps serving, the game still runs.
       served.switchTo(second);
       served.fail('/sw.js');
+      swMadeToFail = true;
       await page.reload({ waitUntil: 'networkidle' });
       await page.evaluate(async () => (await navigator.serviceWorker.getRegistration())?.update().catch(() => {}));
       await page.waitForTimeout(1500);
@@ -189,6 +199,7 @@ try {
       if (!(await workerUrl())) throw new Error('interrupted update: the worker is gone');
       console.log(`pwa: ${name} interrupted update: no banner, the old worker serves, the game runs`);
       served.restore('/sw.js');
+      swMadeToFail = false;
       served.switchTo(resolve(serveDir));
     }
 
@@ -373,7 +384,17 @@ const refusedCached = (e, i) =>
   name === 'firefox' && /ServiceWorker intercepted the request/.test(e) && cachedNote[i] === 'in the cache';
 const refused = errors.filter(refusedCached);
 const tolerated = refused.length <= MAX_REFUSED;
-const failures = [...errors.entries()].filter(([i, e]) => !(tolerated && refusedCached(e, i)));
+const swMiss = /^Failed to load resource: the server responded with a status of 500\b/;
+let swExcused = 0;
+const failures = [...errors.entries()].filter(([i, e]) => {
+  if (tolerated && refusedCached(e, i)) return false;
+  if (swExcused < swDeliberate500 && swMiss.test(e)) return !++swExcused;
+  return true;
+});
+if (swExcused)
+  console.log(
+    `pwa: ${name}: ${swExcused} deliberate 500(s) of the interrupted update reported by the browser (the scenario; not counted)`,
+  );
 if (refused.length && tolerated) {
   const text = `the worker refused ${refused.length} cached file(s) offline (a Firefox worker error, the files are in the cache; reported, not counted)`;
   console.log(`pwa: WARNING ${name}: ${text}:\n${refused.map((w) => `  ${w}`).join('\n')}`);
