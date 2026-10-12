@@ -154,6 +154,9 @@ export const GATED: MutationSet[] = [
 /** Measured on demand (`gh workflow run mutation -f set=…`) and every night, gating nothing until their survivors are read. */
 export const MEASURED: MutationSet[] = ['connectors-edge', 'reality-store-postgres'];
 
+/** The sets whose test files run one after the other: their tests share a real Postgres server (4.1.20 PR 2a). */
+export const SERIAL: (MutationSet | 'all')[] = ['reality-store-postgres'];
+
 /** Old names still taken (4.1.19): `connectors` is `connectors-pure` until 4.2. */
 export const ALIASES: Record<string, MutationSet> = { connectors: 'connectors-pure' };
 
@@ -166,3 +169,23 @@ export function setNamed(name: string): MutationSet | 'all' {
 }
 
 export const setsOf = (set: MutationSet | 'all'): MutationSet[] => (set === 'all' ? GATED : [set]);
+
+// `npx tsx tools/mutation-sets.ts --tests=<set>` prints the test files that judge a set, one per line (4.1.20 PR 2a):
+// CI's `bridge-postgres` job runs exactly the files of `reality-store-postgres` from here, never a list of its own.
+if (process.argv[1]?.endsWith('mutation-sets.ts')) {
+  const name = process.argv.find((a) => a.startsWith('--tests='))?.slice('--tests='.length);
+  if (!name) {
+    console.error('usage: tsx tools/mutation-sets.ts --tests=<set>');
+    process.exit(2);
+  }
+  try {
+    console.log(
+      setsOf(setNamed(name))
+        .flatMap((k) => TESTS[k])
+        .join('\n'),
+    );
+  } catch (e) {
+    console.error(`✖  ${(e as Error).message}`);
+    process.exit(2);
+  }
+}

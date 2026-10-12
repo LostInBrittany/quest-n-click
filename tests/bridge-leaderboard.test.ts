@@ -20,6 +20,7 @@ import { BOARD_LIMIT, RunQueue, runsRoute } from '../bridge/src/runs';
 import { SqliteRealityStore } from '../bridge/src/store-sqlite';
 import { type PgModule, PostgresRealityStore } from '../bridge/src/store-postgres';
 import type { SqlDb } from '../bridge/src/store-sql';
+import { pgDatabase } from './fixtures/pg-database';
 
 const dir = mkdtempSync(join(tmpdir(), 'bridge-board-'));
 const closers: (() => Promise<unknown>)[] = [];
@@ -73,7 +74,7 @@ if (PG_URL)
     make: async () => {
       const pg = ((await import(/* @vite-ignore */ process.env.BRIDGE_PG_MODULE ?? 'pg')) as { default: PgModule })
         .default;
-      const s = await PostgresRealityStore.open(PG_URL, { pg });
+      const s = await PostgresRealityStore.open(await pgDatabase('bridge_board'), { pg });
       closers.push(() => s.close());
       return new SqlRunStore(s.db);
     },

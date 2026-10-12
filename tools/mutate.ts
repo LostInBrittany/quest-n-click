@@ -266,18 +266,42 @@ export function mutants(file: string, src: string): Mutant[] {
 export const apply = (src: string, m: Mutant) => src.slice(0, m.start) + m.to + src.slice(m.end);
 
 /**
+ * What a failed vitest run says, short (4.1.20 PR 2a): each failed test (at most ten) with its first error line, then
+ * the totals; the last lines when vitest named no failure (a crash, a configuration that does not load). Pure.
+ */
+export function failureSummary(output: string): string[] {
+  const lines = output.split('\n').map((l) => l.replace(/\s+$/, ''));
+  const out: string[] = [];
+  let failed = 0;
+  for (let i = 0; i < lines.length; i++) {
+    const l = lines[i]!.trim();
+    if (!l.startsWith('FAIL ')) continue;
+    if (++failed > 10) continue;
+    out.push(l);
+    const error = lines.slice(i + 1).find((x) => x.trim() && !x.trim().startsWith('FAIL '));
+    if (error) out.push(`  ${error.trim()}`);
+  }
+  if (failed > 10) out.push(`… and ${failed - 10} more failed tests`);
+  else if (failed) for (const l of lines) if (/^(Test Files|Tests) /.test(l.trim())) out.push(l.trim());
+  return failed ? out : lines.filter((l) => l.trim()).slice(-20);
+}
+
+/**
  * The set's tests against the source as it stands. A run that exceeds three minutes is a timeout, counted as killed;
  * the whole process group goes with it (vitest's forked workers included: a timed-out parent alone left orphans that
  * slowed CI's runner to a crawl, 4.1.8).
  */
-function runTests(set: MutationSet | 'all'): Promise<'killed' | 'survived' | 'timeout'> {
+function runTests(set: MutationSet | 'all', o: { output?: string[] } = {}): Promise<'killed' | 'survived' | 'timeout'> {
   return new Promise((done) => {
+    // The output is kept only when asked (the run before the first mutant): a mutant's run says killed or survived.
     const child = spawn('npx', ['vitest', 'run', '--config', 'vitest.mutation.config.ts', '--bail', '1'], {
       cwd: ROOT,
-      stdio: 'ignore',
+      stdio: o.output ? ['ignore', 'pipe', 'pipe'] : 'ignore',
       detached: true,
       env: { ...process.env, MUTATION_SET: set },
     });
+    child.stdout?.on('data', (d: Buffer) => o.output?.push(d.toString()));
+    child.stderr?.on('data', (d: Buffer) => o.output?.push(d.toString()));
     let timedOut = false;
     const timer = setTimeout(() => {
       timedOut = true;
@@ -346,8 +370,10 @@ if (process.argv[1]?.endsWith('mutate.ts')) {
     restore();
     process.exit(130);
   });
-  if ((await runTests(set)) !== 'survived') {
+  const before: string[] = [];
+  if ((await runTests(set, { output: before })) !== 'survived') {
     console.error('✖  the tests fail before any mutation: fix them first');
+    for (const l of failureSummary(before.join(''))) console.error(`   ${l}`);
     process.exit(2);
   }
   const results: (Mutant & { status: string })[] = [];

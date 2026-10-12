@@ -16,6 +16,7 @@ import { RunQueue, runsRoute } from '../bridge/src/runs';
 import { SqliteRealityStore } from '../bridge/src/store-sqlite';
 import { type PgModule, PostgresRealityStore } from '../bridge/src/store-postgres';
 import type { SqlDb } from '../bridge/src/store-sql';
+import { pgDatabase } from './fixtures/pg-database';
 
 const dir = mkdtempSync(join(tmpdir(), 'bridge-admit-'));
 const closers: (() => Promise<unknown>)[] = [];
@@ -104,8 +105,9 @@ describe.skipIf(!PG_URL)('admit and the quota on Postgres, connections racing', 
     const pg = ((await import(/* @vite-ignore */ process.env.BRIDGE_PG_MODULE ?? 'pg')) as { default: PgModule })
       .default;
     const dbs: SqlDb[] = [];
+    const url = await pgDatabase('bridge_admit');
     for (let i = 0; i < 10; i++) {
-      const s = await PostgresRealityStore.open(PG_URL!, { pg });
+      const s = await PostgresRealityStore.open(url, { pg });
       closers.push(() => s.close());
       dbs.push(s.db);
     }

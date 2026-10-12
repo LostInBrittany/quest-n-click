@@ -3,7 +3,7 @@
 // signal's protocol, the engine's receive, the client and the Bridge. The rest of the suite is not run per mutant.
 import { defineConfig } from 'vitest/config';
 import base from './vite.config';
-import { setNamed, setsOf, TESTS } from './tools/mutation-sets';
+import { SERIAL, setNamed, setsOf, TESTS } from './tools/mutation-sets';
 
 // The base's `include` is replaced, not merged (mergeConfig would concatenate the lists). The lists live in
 // tools/mutation-sets.ts (4.1.8), with the sources each set mutates.
@@ -14,5 +14,9 @@ export default defineConfig({
   test: {
     ...base.test,
     include: setsOf(set).flatMap((k) => TESTS[k]),
+    // The files that run against a real Postgres, one after the other (4.1.20 PR 2a): side by side they hold more
+    // connections than a server's default hundred, as CI's `bridge-postgres` job knew (`--maxWorkers=1`). Each still
+    // has a database of its own (tests/fixtures/pg-database.ts).
+    ...(SERIAL.includes(set) ? { fileParallelism: false } : {}),
   },
 });
