@@ -4,7 +4,7 @@
 import { createHash } from 'node:crypto';
 import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { join, sep } from 'node:path';
 import { afterAll, describe, expect, it } from 'vitest';
 import { realityManifest } from '@engine/reality/manifest';
 import {
@@ -211,7 +211,10 @@ describe('the backup before and after its split', () => {
     const out = join(dir, 'b.json');
     const lines = async (args: string[]) => {
       const r = await cli([...args, `--dir=${dir}`, `--store=${url}`]);
+      // The folder and its separator (`\\` on Windows) as one placeholder: the line, not the platform, is pinned.
       const masked = r.out
+        .split(`${dir}${sep}`)
+        .join('<dir>/')
         .split(dir)
         .join('<dir>')
         .replace(/sha256 [0-9a-f]{12}/, 'sha256 <hash>')
