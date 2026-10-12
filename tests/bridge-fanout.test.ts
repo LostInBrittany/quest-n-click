@@ -7,7 +7,7 @@ import { randomBytes } from 'node:crypto';
 import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { afterAll, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { realityManifest } from '@engine/reality/manifest';
 import type { RealityStore } from '../bridge/src/store-async';
 import { MemoryRealityStore } from '../bridge/src/store-memory';
@@ -25,6 +25,7 @@ import {
 } from '../tools/bridge-cluster';
 import { eventKey, tenantBridge } from './fixtures/bridge-tenant';
 import { signals } from './fixtures/signals';
+import { pgDatabase } from './fixtures/pg-database';
 
 const dir = mkdtempSync(join(tmpdir(), 'bridge-fanout-'));
 const opened: RealityStore[] = [];
@@ -62,8 +63,9 @@ if (process.env.BRIDGE_PG_URL)
     open: async () => {
       const pg = ((await import(/* @vite-ignore */ process.env.BRIDGE_PG_MODULE ?? 'pg')) as { default: PgModule })
         .default;
-      const a = await PostgresRealityStore.open(process.env.BRIDGE_PG_URL!, { pg });
-      const b = await PostgresRealityStore.open(process.env.BRIDGE_PG_URL!, { pg });
+      const url = await pgDatabase('bridge_fanout');
+      const a = await PostgresRealityStore.open(url, { pg });
+      const b = await PostgresRealityStore.open(url, { pg });
       await b.listening();
       opened.push(a, b);
       return [a, b];
@@ -128,8 +130,12 @@ describe('one instance, its limits and its quarantine', () => {
 // On Postgres when CI's job gives one and `pg` resolves from the repository (a local run that loads `pg` from
 // elsewhere, BRIDGE_PG_MODULE, cannot hand it to the spawned processes: that variant runs in CI only).
 const CLUSTERS = [{ name: 'SQLite file', store: 'sqlite', env: {} as Record<string, string> }];
-if (process.env.BRIDGE_PG_URL && !process.env.BRIDGE_PG_MODULE)
-  CLUSTERS.push({ name: 'Postgres database', store: 'jsonl', env: { BRIDGE_STORE: process.env.BRIDGE_PG_URL } });
+if (process.env.BRIDGE_PG_URL && !process.env.BRIDGE_PG_MODULE) {
+  // A database of this file's own (tests/fixtures/pg-database.ts), named before the processes start.
+  const env: Record<string, string> = {};
+  beforeAll(async () => void (env.BRIDGE_STORE = await pgDatabase('bridge_cluster')));
+  CLUSTERS.push({ name: 'Postgres database', store: 'jsonl', env });
+}
 
 describe.each(CLUSTERS)('three processes, one $name, one killed', ({ store, env }) => {
   it('1 000 proposals, one instance killed with SIGKILL: none lost, none applied twice, sequences contiguous', async () => {

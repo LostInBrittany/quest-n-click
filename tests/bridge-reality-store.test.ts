@@ -17,6 +17,7 @@ import type { ProposedSignalRow, RealityStore } from '../bridge/src/store-async'
 import { fromBridgeStore, MemoryRealityStore } from '../bridge/src/store-memory';
 import { type PgModule, PostgresRealityStore } from '../bridge/src/store-postgres';
 import { SqliteRealityStore } from '../bridge/src/store-sqlite';
+import { pgDatabase } from './fixtures/pg-database';
 
 const dir = mkdtempSync(join(tmpdir(), 'bridge-store-'));
 const opened: RealityStore[] = [];
@@ -70,8 +71,9 @@ if (PG_URL)
     multiTenant: true,
     open: async () => {
       const pg = await pgModule();
-      const a = await PostgresRealityStore.open(PG_URL, { pg });
-      const b = await PostgresRealityStore.open(PG_URL, { pg });
+      const url = await pgDatabase('bridge_contract');
+      const a = await PostgresRealityStore.open(url, { pg });
+      const b = await PostgresRealityStore.open(url, { pg });
       opened.push(a, b);
       await b.listening();
       return { a, b };

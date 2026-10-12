@@ -14,6 +14,7 @@ import { MemoryDailyStore, SqlDailyStore, dailyRoutes } from '../bridge/src/dail
 import { SqliteRealityStore } from '../bridge/src/store-sqlite';
 import { type PgModule, PostgresRealityStore } from '../bridge/src/store-postgres';
 import type { SqlDb } from '../bridge/src/store-sql';
+import { pgDatabase } from './fixtures/pg-database';
 
 const dir = mkdtempSync(join(tmpdir(), 'bridge-runs-'));
 const closers: (() => Promise<unknown>)[] = [];
@@ -75,8 +76,9 @@ if (PG_URL)
     name: 'postgres',
     open: async () => {
       const pg = await pgModule();
+      const url = await pgDatabase('bridge_durable');
       const one = async () => {
-        const s = await PostgresRealityStore.open(PG_URL, { pg });
+        const s = await PostgresRealityStore.open(url, { pg });
         closers.push(() => s.close());
         return s.db;
       };
