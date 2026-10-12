@@ -1,7 +1,7 @@
 // The engine's layers (3.9, src/engine/BOUNDARIES.md): what each folder may import, checked on the sources, so the
 // player never carries the solver, the validator or the Studio, and the core runs anywhere (Node, a worker, tests).
 import { readdirSync, readFileSync, statSync } from 'node:fs';
-import { dirname, join, relative, resolve } from 'node:path';
+import { dirname, join, relative, resolve, sep } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
 const ROOT = resolve('src/engine');
@@ -145,19 +145,25 @@ describe("the engine's layers", () => {
 
   it('the Bridge reaches neither the Studio, the tools, nor a game: only the protocol it shares with the player', () => {
     // Plain packages the Bridge ships with (`zod/mini` for its journal's schema, 4.1.8; Biscuit) are not layers.
+    // Every file, sub-folders included (4.1.20: `bridge/src/backup/`); a relative import must stay in `bridge/src` or
+    // reach the shared protocol, wherever the file is.
     const dir = resolve('bridge/src');
-    const offending = readdirSync(dir)
-      .filter((f) => f.endsWith('.ts'))
-      .flatMap((f) =>
-        [...readFileSync(join(dir, f), 'utf8').matchAll(/from '([^']+)'/g)]
-          .map((m) => m[1]!)
-          .filter(
-            (spec) =>
-              !/^(node:|\.\/|@biscuit-auth\/|zod\/mini$)/.test(spec) &&
-              !/^\.\.\/\.\.\/src\/engine\/reality\//.test(spec),
-          )
-          .map((spec) => `bridge/src/${f} → ${spec}`),
-      );
+    const reality = resolve('src/engine/reality');
+    const walk = (d: string): string[] =>
+      readdirSync(d).flatMap((f) => (statSync(join(d, f)).isDirectory() ? walk(join(d, f)) : [join(d, f)]));
+    const files = walk(dir).filter((f) => f.endsWith('.ts'));
+    expect(files.some((f) => f.includes(`${join('bridge', 'src', 'backup')}`))).toBe(true);
+    const offending = files.flatMap((f) =>
+      [...readFileSync(f, 'utf8').matchAll(/from '([^']+)'/g)]
+        .map((m) => m[1]!)
+        .filter((spec) => {
+          if (/^(node:|@biscuit-auth\/|zod\/mini$)/.test(spec)) return false;
+          if (!spec.startsWith('.')) return true;
+          const to = resolve(dirname(f), spec);
+          return !(to.startsWith(`${dir}${sep}`) || to.startsWith(`${reality}${sep}`));
+        })
+        .map((spec) => `${relative(process.cwd(), f)} → ${spec}`),
+    );
     expect(offending).toEqual([]);
   });
 });
