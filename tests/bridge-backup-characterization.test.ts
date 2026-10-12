@@ -215,7 +215,9 @@ describe('the backup before and after its split', () => {
         .split(dir)
         .join('<dir>')
         .replace(/sha256 [0-9a-f]{12}/, 'sha256 <hash>')
-        .replace(/\d{4}-\d\d-\d\dT[\d:.]+Z/g, '<date>');
+        .replace(/\d{4}-\d\d-\d\dT[\d:.]+Z/g, '<date>')
+        // The file's size counts the version's characters: 4.2.0 is one shorter than 4.1.19.
+        .replace(/would be \d+ bytes/, 'would be <n> bytes');
       return `${r.code} ${masked}`;
     };
     const forged = join(dir, 'forged.json');
@@ -237,7 +239,7 @@ describe('the backup before and after its split', () => {
   });
 });
 
-/** What the code said on 12 October 2026, before the split (`aa2462e` + the plan). */
+/** What the code said on 12 October 2026, before the split (`8bd6575`). `store.schema` moves with a migration (PR 1b). */
 const PINNED = {
   digest: 'c14732dbba6803c6',
   envelope: '3ca0f4ed838bf42a',
@@ -246,7 +248,7 @@ const PINNED = {
     backup:
       '0 ✔  2 tenant(s), 2 signal(s), 2 run(s), 1 daily record(s) backed up to <dir>/b.json (schema 3, one snapshot, sha256 <hash>…)',
     tooBig:
-      "1 ✖  the backup would be 2771 bytes, more than 100 (--max-bytes=): no file written; use pg_dump or the provider's snapshots",
+      "1 ✖  the backup would be <n> bytes, more than 100 (--max-bytes=): no file written; use pg_dump or the provider's snapshots",
     held: '1 ✖  the store already holds tenant(s) t-a, t-b, 2 run(s) of these tenants, 1 daily record(s): restore into an empty store, or --force; nothing restored',
     forged: '1 ✖  the payload does not match its digest: the file was changed or truncated: nothing restored',
     forced:
