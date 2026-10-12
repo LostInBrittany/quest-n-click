@@ -27,11 +27,11 @@ jobs:
     outputs:
       plan: ${{ steps.plan.outputs.plan }}
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           # A pull request is checked out as its merge commit: HEAD^1 is the base it merges into.
           fetch-depth: 2
-      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 22
       # No `npm ci`: the plan imports nothing but Node. A git error, or `--all`, runs everything.
@@ -50,10 +50,10 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0 # the fragments' check diffs against main's merge base (tools/changes.ts, 4.1.9)
-      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 22
           cache: npm
@@ -92,7 +92,7 @@ jobs:
         env:
           STUDIO: '1'
           VITE_STUDIO_DEMO: '1'
-      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: dist
           path: dist
@@ -116,10 +116,10 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 45
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0 # the fragments' check diffs against main's merge base (tools/changes.ts, 4.1.9)
-      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 22
           cache: npm
@@ -135,7 +135,7 @@ jobs:
         timeout-minutes: 20
       - run: npm run test:coverage
       - run: npx tsx tools/coverage-ratchet.ts ${{ github.event_name != 'pull_request' && '--strict' || '' }}
-      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: always()
         with:
           name: coverage-summary
@@ -161,8 +161,8 @@ jobs:
       matrix:
         set: [core, reality, runs, remix, speedrun, connectors-pure, reality-store]
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
-      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 22
           cache: npm
@@ -177,7 +177,7 @@ jobs:
       - run: npm run test:mutation:core -- --set=${{ matrix.set }} | tee mutation-${{ matrix.set }}.txt
         shell: bash
       - if: always()
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: mutation-${{ matrix.set }}
           path: |
@@ -197,9 +197,9 @@ jobs:
       - if: env.RUN != 'true'
         run: echo "::notice::reality-xcheck not needed by the plan (no Reality path changed)"
       - if: env.RUN == 'true'
-        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - if: env.RUN == 'true'
-        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 22
           cache: npm
@@ -222,9 +222,9 @@ jobs:
       - if: env.RUN != 'true'
         run: echo "::notice::connectors not needed by the plan (no Reality path changed)"
       - if: env.RUN == 'true'
-        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - if: env.RUN == 'true'
-        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 22
           cache: npm
@@ -235,7 +235,7 @@ jobs:
         run: npx vitest run tests/connectors-*.test.ts tests/dist-no-server-code.test.ts
       # A key pair ssh2 refused, kept with why (tests/fixtures/connectors/harness.ts, 4.1.19): the flake's evidence.
       - if: always() && env.RUN == 'true'
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: flakes-connectors
           path: .cache/flakes
@@ -279,9 +279,9 @@ jobs:
       - if: env.RUN != 'true'
         run: echo "::notice::bridge-postgres not needed by the plan (no Reality path changed)"
       - if: env.RUN == 'true'
-        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - if: env.RUN == 'true'
-        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 22
           cache: npm
@@ -308,9 +308,9 @@ jobs:
       - if: env.RUN != 'true'
         run: echo "::notice::reality (${{ matrix.browser }}) not needed by the plan (no Reality path changed)"
       - if: env.RUN == 'true'
-        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - if: env.RUN == 'true'
-        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 22
           cache: npm
@@ -359,9 +359,9 @@ jobs:
       - if: env.RUN != 'true'
         run: echo "::notice::node-24 not needed by the plan (no code changed)"
       - if: env.RUN == 'true'
-        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - if: env.RUN == 'true'
-        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 24
           cache: npm
@@ -398,9 +398,9 @@ jobs:
       - if: env.RUN != 'true'
         run: echo "::notice::windows not needed by the plan (no code changed)"
       - if: env.RUN == 'true'
-        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - if: env.RUN == 'true'
-        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 22
           cache: npm
@@ -444,9 +444,9 @@ jobs:
       - if: env.RUN != 'true'
         run: echo "::notice::second-game not needed by the plan (no template, package or authoring path changed)"
       - if: env.RUN == 'true'
-        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - if: env.RUN == 'true'
-        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 22
           cache: npm
@@ -533,9 +533,9 @@ jobs:
       - if: env.RUN != 'true'
         run: echo "::notice::e2e (${{ matrix.browser }}, ${{ matrix.mode }}) not needed by the plan (nothing the sample game's browser rows play changed)"
       - if: env.RUN == 'true'
-        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - if: env.RUN == 'true'
-        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 22
           cache: npm
@@ -547,7 +547,7 @@ jobs:
         timeout-minutes: 20
       # The two-entry build (game + Studio demo) `check` made from this very commit.
       - if: env.RUN == 'true'
-        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           name: dist
           path: dist
@@ -606,7 +606,7 @@ jobs:
         env:
           E2E_BROWSER: ${{ matrix.browser }}
       - if: failure() && env.RUN == 'true'
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: e2e-screenshots-${{ matrix.browser }}-${{ matrix.mode }}
           path: |
@@ -625,9 +625,9 @@ jobs:
       - if: env.RUN != 'true'
         run: echo "::notice::pwa-firefox not needed by the plan (no PWA path changed)"
       - if: env.RUN == 'true'
-        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - if: env.RUN == 'true'
-        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 22
           cache: npm
@@ -638,7 +638,7 @@ jobs:
         run: for i in 1 2 3; do (npx playwright install --with-deps firefox) && break; [ "$i" = 3 ] && exit 1; echo "retry $i"; sleep 15; done
         timeout-minutes: 20
       - if: env.RUN == 'true'
-        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           name: dist
           path: dist
@@ -655,8 +655,8 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
-      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 22
           cache: npm
@@ -681,9 +681,9 @@ jobs:
       - if: env.RUN != 'true'
         run: echo "::notice::fresh-install not needed by the plan (no package, template or authoring path changed)"
       - if: env.RUN == 'true'
-        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - if: env.RUN == 'true'
-        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 22
           cache: npm
@@ -722,9 +722,9 @@ jobs:
       - if: env.RUN != 'true'
         run: echo "::notice::external-consumer not needed by the plan (no package, template or authoring path changed)"
       - if: env.RUN == 'true'
-        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - if: env.RUN == 'true'
-        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 22
           cache: npm
@@ -755,9 +755,9 @@ jobs:
       - if: env.RUN != 'true'
         run: echo "::notice::upgrade not needed by the plan (no save, migration or package path changed)"
       - if: env.RUN == 'true'
-        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - if: env.RUN == 'true'
-        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 22
           cache: npm
@@ -794,9 +794,9 @@ jobs:
       - if: env.RUN != 'true'
         run: echo "::notice::reference (${{ matrix.browser }}) not needed by the plan (nothing the reference chapter plays changed)"
       - if: env.RUN == 'true'
-        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - if: env.RUN == 'true'
-        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 22
           cache: npm
@@ -844,7 +844,7 @@ jobs:
       - if: env.RUN == 'true'
         run: npm run e2e:taps -- http://127.0.0.1:5175/ --browser=${{ matrix.browser }}
       - if: failure() && env.RUN == 'true'
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: e2e-reference-${{ matrix.browser }}
           path: /tmp/e2e-reference-*
