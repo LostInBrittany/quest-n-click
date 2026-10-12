@@ -145,8 +145,10 @@ Précisions du 12 octobre :
 
 - la 4.1.20 ne publie rien sur npm ;
 - **la campagne terrain a lieu sur le candidat `4.2.0-rc`**, pas sur la 4.1.20. Après le tag 4.1.20, une PR sans code
-  monte la version à 4.2.0. Son candidat porte `v4.2.0-rc.1`, les treize passes, puis la stable `v4.2.0` sur le même SHA
-  et le même run. La version étant pertinente (D35), c'est le seul moyen que les passes qualifient la 4.2 sans report ;
+  monte la version à 4.2.0. Son candidat porte `v4.2.0-rc.1`, signé, et les treize passes. La version étant pertinente
+  (D35), c'est le seul moyen de faire qualifier la 4.2 par les passes. Ensuite, une PR ne change que les fichiers de
+  statut. Son candidat, le `rc` suivant, reçoit les passes par `field:carry` avec des attestations signées, et
+  `v4.2.0` est taguée et publiée depuis ce run (§12) ;
 - **le risque qu'un tiers réserve les quatre noms npm avant 4.2 est accepté**. Un job non bloquant du nightly
   (PR 3b) vérifie chaque jour qu'ils restent libres, et `preflight-stable` le vérifie aussi à chaque appel ;
 - les releases GitHub immuables et un ruleset de tags `v*` sont activés pendant la 4.1.20, par le mainteneur, après la
@@ -174,8 +176,8 @@ Précisions du 12 octobre :
   `.github/allowed_signers` tel qu'il était au candidat source. Claude n'en écrit jamais ;
 - il n'y a pas de revue CODEOWNERS obligatoire : le mainteneur est seul collaborateur et ne peut pas approuver ses
   propres PR. CODEOWNERS reste informatif ;
-- grâce à la campagne sur le candidat `4.2.0-rc` (D34), `field:carry` ne sert qu'entre deux `rc` de la 4.2, après un
-  correctif P0/P1.
+- grâce à la campagne sur le candidat `4.2.0-rc` (D34), `field:carry` ne sert qu'entre deux `rc` de la 4.2 : après un
+  correctif P0/P1, et du `rc` des passes vers le `rc` des fichiers de statut.
 
 ### D36 — Sémantique explicite de la restauration
 
@@ -188,7 +190,7 @@ Précisions du 12 octobre, qui remplacent « le mode par défaut est `merge` » 
 
 - **`--mode` est toujours obligatoire**. Un `restore` sans mode est refusé avec un message qui nomme les deux modes.
   C'est un changement explicite, décrit dans UPGRADING ;
-- **les deux modes exigent la maintenance** : aucun écrivain vivant (`serve` ou commande d'écriture de la CLI), prouvé
+- **les deux modes exigent la maintenance** : aucun écrivain vivant (`serve`, ou toute commande qui ouvre le store en écriture, migrations comprises), prouvé
   par le protocole de lease du §6.4. Le restore refuse au lieu d'attendre la fin d'une lease. Seul le verrou consultatif
   de Postgres est réessayé, et dans un délai borné ;
 - `replace-store` n'accepte qu'un backup de schéma 4 complet (§6.1), du même schéma SQL que la destination, et
@@ -262,22 +264,22 @@ Sans sharding, le candidat passerait de 79 minutes à plus de trois heures : le 
 | Ordre | PR | Branche | Contenu | Dépend de |
 |---:|---:|---|---|---|
 | 1 | C | `docs/4120-plan` | ce plan, D34–D36, réservations | — |
-| 2 | 1a | `refactor/4120-backup-split` | caractérisation et découpage neutre de `backup.ts` | C |
-| 2 | 2a | `test/4120-mutation-shards` | tests Postgres isolés, sharding, matrice unique, exemptions, `reality-store-postgres` bloquant | C |
-| 3 | 1b | `fix/4120-backup-contract` | backup 4, complétude, maintenance, modes ; `bridge/src/backup/*` dans `reality-store` | 1a, 2a |
-| 3 | 2b–2d | `test/4120-edge-<famille>` | survivants de `connectors-edge` : badges, email, terminal | 2a |
-| 4 | 2e | `test/4120-edge-rest` | le reste de `connectors-edge`, puis l'ensemble dans `GATED` | 2b–2d |
-| 4 | 3 | `ci/4120-exact-qualification` | découpage d'`ops-qualify`, manifeste d'artefacts, qualification exacte, performance | 1b |
-| 5 | 4 | `feature/4120-field-carry` | surfaces, attestations de report, `allowed_signers` | 3 |
-| 5 | 3b | `ci/4120-stable-rehearsal` | release en brouillon, signature répétée, `preflight-stable`, veille des noms npm, runbook npm | 3 |
-| 6 | — | réglage GitHub | le mainteneur active l'immuabilité et le ruleset `v*` | 3b |
-| 7 | — | candidat technique | obligatoire, sans passe | 1a à 4, 2e, 3b |
+| 2 | 1a | `refactor/4120-backup-split` | caractérisation et découpage neutre de `backup.ts` | PR C |
+| 2 | 2a | `test/4120-mutation-shards` | tests Postgres isolés, sharding, matrice unique, exemptions, `reality-store-postgres` bloquant | PR C |
+| 3 | 1b | `fix/4120-backup-contract` | backup 4, complétude, maintenance, modes ; `bridge/src/backup/*` dans `reality-store` | PR 1a, PR 2a |
+| 3 | 2b–2d | `test/4120-edge-<famille>` | survivants de `connectors-edge` : badges, email, terminal | PR 2a |
+| 4 | 2e | `test/4120-edge-rest` | le reste de `connectors-edge`, puis l'ensemble dans `GATED` | PR 2b–2d |
+| 4 | 3 | `ci/4120-exact-qualification` | découpage d'`ops-qualify`, manifeste d'artefacts, qualification exacte, performance | PR 1b |
+| 5 | 4 | `feature/4120-field-carry` | surfaces, attestations de report, `allowed_signers` | PR 3 |
+| 5 | 3b | `ci/4120-stable-rehearsal` | release en brouillon, signature répétée, `preflight-stable`, veille des noms npm, runbook npm | PR 3 |
+| 6 | — | réglage GitHub | le mainteneur active l'immuabilité et le ruleset `v*` | PR 3b |
+| 7 | — | candidat technique | obligatoire, sans passe | PR 1a à PR 4, PR 2e, PR 3b |
 | 8 | 6 | `release/4.1.20` | version, docs, baseline | ordres 6 et 7 (réglage fait, candidat technique vert) |
 | 9 | — | candidat final, RC, stable 4.1.20 | vérification humaine de la RC | PR 6 |
-| 10 | 7 | `release/4.2.0-rc` | la version 4.2.0, les notes, sans code | tag 4.1.20, nightly classé |
+| 10 | 7 | `release/4.2.0-rc` | la version 4.2.0, les notes, sans code | ordre 9 (tag 4.1.20, nightly classé) |
 | 11 | — | candidat `4.2.0-rc`, `preflight-stable`, puis `v4.2.0-rc.1` signé | issues commentées, `field:init`, campagne | PR 7 |
-| 12 | 8 | `release/4.2.0-status` | les fichiers de statut seuls, d'après les passes | campagne |
-| 13 | — | candidat `rc.2`, `field:carry`, `v4.2.0` | attestations signées par le mainteneur | PR 8 |
+| 12 | 8 | `release/4.2.0-status` | les fichiers de statut seuls, d'après les passes | ordre 11 (campagne) |
+| 13 | — | candidat de statut (`rc.2` ou suivant), `field:carry`, `v4.2.0` | attestations signées par le mainteneur | PR 8 |
 
 La colonne « Dépend de » nomme des PR (« PR 6 ») ou des ordres (« ordre 7 »).
 
@@ -452,14 +454,22 @@ de dialecte, puisque les migrations sont neutres :
 - toute commande qui ouvre le store avec `migrate: true`, le défaut de `openStore`, comme `backup` ou `tenant export`.
   Appliquer une migration en attente, c'est écrire.
 
-Chacun prend une lease `serving` pour la durée de son écriture. `grant`, `rotate` et `revoke` n'ouvrent pas le store :
-le premier signe un jeton avec la clé racine, le deuxième réécrit `config.json`, le troisième appelle un `serve`
-vivant.
+Chacun prend une lease `serving` pour la durée de son écriture, **sauf `restore` et la descente de `migrate`**, qui
+prennent la lease `exclusive` (ci-dessous) : une lease `serving` les ferait se refuser eux-mêmes.
+
+`grant`, `rotate` et `revoke` n'ouvrent pas le store : le premier signe un jeton avec la clé racine, le deuxième
+réécrit `config.json`, le troisième appelle un `serve` vivant. `doctor` ouvre le store sans migrer. Sur une base vide,
+il crée seulement `schema_migrations`, ce qui est sans effet sur les données.
 
 **Amorçage.** La table `maintenance` n'existe qu'après la migration 0005. Les migrations jusqu'à 0005 s'exécutent donc
 sous le seul verrou du dialecte : l'advisory lock de migration sur Postgres, `BEGIN IMMEDIATE` sur SQLite. Ensuite,
-toute ouverture prend sa lease. Un retour sous le schéma 5 (`migrate --schema=N`, avec N < 5) exige la maintenance et
-supprime la table `maintenance` en dernier, dans la même transaction.
+toute ouverture prend sa lease.
+
+**Descente sous le schéma 5** (`migrate --schema=N`, avec N < 5). `migrate` défait une étape par transaction, en ordre
+inverse : la 0005 est donc défaite la première, et la table `maintenance` disparaît avec elle. Le protocole ne protège
+plus les étapes suivantes. La descente prend d'abord la lease `exclusive`. UPGRADING impose, comme avant la 4.1.20,
+l'arrêt de tous les écrivains pendant l'opération, car un `serve` ou un `backup` ouvert avec `migrate: true`
+remonterait le schéma.
 
 **`restore`, dans les deux modes :**
 
@@ -788,7 +798,11 @@ Exemples :
   `site.json`. La version y est donc pertinente ;
 - `connectors-real-security` couvre Bridge, SDK, quatre connecteurs, locks, image et profil de déploiement ;
 - `voices-listening` couvre le pipeline voix, le directeur audio et les fichiers effectivement écoutés ;
-- `archive-human-install` couvre les quatre archives, au bit près, le README d'installation et leurs sommes.
+- `archive-human-install` couvre les quatre archives au bit près, les README que `scripts/pack.mjs` écrit dans
+  chacune, leurs sommes, et **la section d'installation du README du dépôt**, délimitée par des marqueurs générés ;
+- le reste du README du dépôt (tableau de maturité, statuts) est dans la classe `status`, hors de toute surface. Un
+  test refuse une PR de statut qui touche la section d'installation. Si l'installation de la 4.2 change (par npm),
+  elle change dans la PR 7, avant les passes.
 
 La liste est déclarée dans `docs/dev/surfaces.json` et vérifiée contre le manifeste d'artefacts du §8.4. Un fichier
 public non classé fait échouer la génération.
@@ -873,7 +887,7 @@ pas de `--force`.
 - une modification du mixage refuse la passe voix ;
 - **la version seule refuse les passes PWA, Mystery, reprise de run, speedrun et archive**, sauf exclusion prouvée ;
 - RC → stable sur le même run n'a pas besoin de report ;
-- un `rc.2` qui ne change que des fichiers de statut (§12) se transporte pour les treize passes, avec des attestations
+- un candidat qui ne change que des fichiers de statut (§12) se transporte pour les treize passes, avec des attestations
   signées ;
 - une attestation non signée, signée par une clé ajoutée dans la même PR ou dont `approvedBy` ne correspond pas est
   refusée ;
@@ -961,7 +975,7 @@ Il ne signe, ne publie et ne change aucun réglage. Il dit séparément :
   avec un token stage-only. Une publication locale ne porte pas de provenance OIDC, c'est pourquoi elle ne porte jamais
   une version du produit. Le runbook vérifie dans la documentation npm si une version mise en scène, sans promotion,
   suffit à créer le package, et ne promeut le bootstrap que si c'est nécessaire. On configure ensuite le trusted
-  publisher OIDC sur chaque package. La 4.2.0, publiée depuis le run de `rc.2`, est la première version du produit.
+  publisher OIDC sur chaque package. La 4.2.0, publiée depuis le run du candidat de statut, est la première version du produit.
 - Une configuration de trusted publisher doit réussir sa première publication en moins de deux jours, faute de quoi
   elle expire.
 - Par défaut, la configuration est **stage-only** : la CI met en scène, le mainteneur promeut avec sa 2FA.
@@ -1029,13 +1043,14 @@ Les passes commencent sur le **candidat `4.2.0-rc`** (D34), ni sur la 4.1.20, ni
 3. Chaque issue #75–#87 reçoit un commentaire avec le run, les SHA-256 et la commande. C'est une étape manuelle, comme
    en 4.1.19. Chaque passe s'ouvre par `field:init --release=4.2.0-rc.1 --candidate=<run>`.
 4. Après la campagne, la PR 8 (`release/4.2.0-status`) écrit **seulement les fichiers de statut** d'après les
-   rapports : README, SUPPORT, GO / NO-GO, la fiche des passes et les rapports eux-mêmes. Ces fichiers n'entrent ni
+   rapports : les sections de statut du README (jamais sa section d'installation), SUPPORT, GO / NO-GO, la fiche des
+   passes et les rapports eux-mêmes. Ces fichiers n'entrent ni
    dans les archives (`scripts/pack.mjs` n'emporte ni `README.md` ni `docs/`), ni dans le site. Les artefacts des
    surfaces restent donc identiques. Un test le prouve en déclarant ces fichiers comme classe `status` dans
    `surfaces.json`.
-5. Le candidat `rc.2` est construit. `field:carry` prouve, pour les treize passes, que seule la classe `status` a
+5. Le candidat suivant (`rc.2`, ou `rc.N+1` après un correctif) est construit. `field:carry` prouve, pour les treize passes, que seule la classe `status` a
    changé. Le mainteneur signe les attestations.
-6. La stable `v4.2.0` est taguée sur `rc.2`, signée, et publiée sur npm depuis ce même run.
+6. La stable `v4.2.0` est taguée sur ce candidat de statut, signée, et publiée sur npm depuis ce même run.
 
 Ordre recommandé :
 
@@ -1137,7 +1152,7 @@ Les treize passes peuvent rester `not-run` au tag 4.1.20 conformément à D12. E
 Après la campagne terrain sur le candidat `4.2.0-rc` :
 
 - chaque surface annoncée stable a sa preuve machine et sa passe humaine ;
-- chaque passe vient d'un candidat `4.2.0-rc`, et elle est transportée vers le candidat de la stable (`rc.2`, fichiers
+- chaque passe vient d'un candidat `4.2.0-rc`, et elle est transportée vers le candidat de la stable (le `rc` de statut, fichiers
   de statut seuls) par une empreinte identique et une attestation signée ;
 - aucun P0/P1 terrain n'est ouvert ;
 - les surfaces sans passe restent limitées, expérimentales ou hors périmètre ;
