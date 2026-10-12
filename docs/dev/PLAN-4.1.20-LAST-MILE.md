@@ -276,7 +276,7 @@ Sans sharding, le candidat passerait de 79 minutes à plus de trois heures : le 
 | 7 | — | candidat technique | obligatoire, sans passe | PR 1a à PR 4, PR 2e, PR 3b |
 | 8 | 6 | `release/4.1.20` | version, docs, baseline | ordres 6 et 7 (réglage fait, candidat technique vert) |
 | 9 | — | candidat final, RC, stable 4.1.20 | vérification humaine de la RC | PR 6 |
-| 10 | 7 | `release/4.2.0-rc` | la version 4.2.0, les notes, sans code | ordre 9 (tag 4.1.20, nightly classé) |
+| 10 | 7 | `release/4.2.0-rc` | la version 4.2.0, les notes, sans code | ordre 9 (tag 4.1.20) et nightly suivant classé |
 | 11 | — | candidat `4.2.0-rc`, `preflight-stable`, puis `v4.2.0-rc.1` signé | issues commentées, `field:init`, campagne | PR 7 |
 | 12 | 8 | `release/4.2.0-status` | les fichiers de statut seuls, d'après les passes | ordre 11 (campagne) |
 | 13 | — | candidat de statut (`rc.2` ou suivant), `field:carry`, `v4.2.0` | attestations signées par le mainteneur | PR 8 |
@@ -459,7 +459,7 @@ prennent la lease `exclusive` (ci-dessous) : une lease `serving` les ferait se r
 
 `grant`, `rotate` et `revoke` n'ouvrent pas le store : le premier signe un jeton avec la clé racine, le deuxième
 réécrit `config.json`, le troisième appelle un `serve` vivant. `doctor` ouvre le store sans migrer. Sur une base vide,
-il crée seulement `schema_migrations`, ce qui est sans effet sur les données.
+il crée le fichier (SQLite, en WAL) et `schema_migrations`, puis échoue faute de tables, sans toucher à aucune donnée.
 
 **Amorçage.** La table `maintenance` n'existe qu'après la migration 0005. Les migrations jusqu'à 0005 s'exécutent donc
 sous le seul verrou du dialecte : l'advisory lock de migration sur Postgres, `BEGIN IMMEDIATE` sur SQLite. Ensuite,
@@ -802,7 +802,10 @@ Exemples :
   chacune, leurs sommes, et **la section d'installation du README du dépôt**, délimitée par des marqueurs générés ;
 - le reste du README du dépôt (tableau de maturité, statuts) est dans la classe `status`, hors de toute surface. Un
   test refuse une PR de statut qui touche la section d'installation. Si l'installation de la 4.2 change (par npm),
-  elle change dans la PR 7, avant les passes.
+  elle change dans la PR 7, avant les passes ;
+- ces marqueurs n'existent pas encore : la section `## Start` du README écrit `v4.1.19` en dur. **La PR 4** ajoute
+  les marqueurs autour de la section d'installation, en anglais et en français, avec leur générateur et leur contrôle
+  (`tests/readme-truth.test.ts`). Les PR 6 et 7 ne font qu'en rafraîchir le contenu, par exemple la version.
 
 La liste est déclarée dans `docs/dev/surfaces.json` et vérifiée contre le manifeste d'artefacts du §8.4. Un fichier
 public non classé fait échouer la génération.
