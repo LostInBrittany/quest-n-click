@@ -18,6 +18,7 @@ import { MemoryRealityStore } from '../bridge/src/store-memory';
 import { type PgModule, PostgresRealityStore } from '../bridge/src/store-postgres';
 import { SqliteRealityStore } from '../bridge/src/store-sqlite';
 import { eventKey, tenantBridge } from './fixtures/bridge-tenant';
+import { pgDatabase } from './fixtures/pg-database';
 
 const dir = mkdtempSync(join(tmpdir(), 'bridge-tenancy-'));
 const opened: RealityStore[] = [];
@@ -45,7 +46,7 @@ if (process.env.BRIDGE_PG_URL)
     open: async () => {
       const pg = ((await import(/* @vite-ignore */ process.env.BRIDGE_PG_MODULE ?? 'pg')) as { default: PgModule })
         .default;
-      const s = await PostgresRealityStore.open(process.env.BRIDGE_PG_URL!, { pg });
+      const s = await PostgresRealityStore.open(await pgDatabase('bridge_tenancy'), { pg });
       opened.push(s);
       return s;
     },

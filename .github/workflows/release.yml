@@ -23,24 +23,18 @@ permissions:
   # 4.1.17: the files of the candidate run the tag names are downloaded from that run.
   actions: read
 jobs:
-  # The two mutation sets beside release-check instead of inside it (4.1.10): each set is a job of its own, about half
-  # an hour, and the release waits for both; the hour they took in sequence, after release-check's twenty minutes, was
-  # the longest part of a tag's chain. A report of these very inputs left by a previous tag on the same commit (the
-  # final after its candidate) is reused through the cache (tools/mutate.ts); ci's and the nightly's `--set=all` reports
-  # are keyed by the hash of both sets, so they are not. Neither job installs Python, ffmpeg or a browser: the nightly
-  # runs both sets with this bare setup.
-  mutation:
+  # The mutation matrix (4.1.20 PR 2a, plan §7.3): every shard of every gated set, from
+  # tools/mutation-shards.ts — no workflow writes its list of sets by hand (tests/mutate-shards.test.ts).
+  mutation-plan:
     if: github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push' && startsWith(github.event.workflow_run.head_branch, 'v') && contains(github.event.workflow_run.head_branch, '.')
     runs-on: ubuntu-24.04
-    timeout-minutes: 120
-    strategy:
-      fail-fast: false
-      matrix:
-        set: [core, reality, runs, remix, speedrun, connectors-pure, reality-store]
-    env:
-      TAG: ${{ github.event.workflow_run.head_branch }}
+    timeout-minutes: 15
+    outputs:
+      matrix: ${{ steps.m.outputs.matrix }}
     steps:
       - name: A SemVer tag
+        env:
+          TAG: ${{ github.event.workflow_run.head_branch }}
         run: |
           echo "$TAG" | grep -Eq '^v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(-[0-9A-Za-z.-]+)?$' || { echo "::notice::$TAG is not a release tag"; exit 1; }
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -52,51 +46,105 @@ jobs:
           cache: npm
       - run: for i in 1 2 3; do (npm ci) && break; [ "$i" = 3 ] && exit 1; echo "retry $i"; sleep 15; done
         timeout-minutes: 20
-      # 4.1.16: a set the tag's commit does not gate is not this tag's gate (a set added to the matrix later). 4.1.18:
-      # read from that commit's `GATED` (`connectors` and `reality-store` existed, measured and not gated, long before
-      # 4.1.18 gated them): 0 gated, 3 not gated, 4 no `GATED` export (a tag before 4.1.17: the sets it defines, as before,
-      # but never the two gated from 4.1.18 on); anything else — an import that fails, tsx that does not start — stops the release rather
-      # than skip a gate (second reading of 4.1.18 PR 2).
-      - id: has
+      - id: m
         shell: bash
         run: |
-          code=0
-          # 4.1.19: `connectors` became `connectors-pure` (the same six files); a tag before it knows the old name only.
-          set='${{ matrix.set }}'
-          if [ "$set" = connectors-pure ] && ! grep -q "'connectors-pure'" tools/mutation-sets.ts; then set=connectors; fi
-          echo "name=$set" >> "$GITHUB_OUTPUT"
-          npx tsx -e "import('./tools/mutation-sets.ts').then((m) => process.exit(!Array.isArray(m.GATED) ? 4 : m.GATED.includes('$set') ? 0 : 3), (e) => { console.error(e); process.exit(2); })" || code=$?
-          case "$code" in
-            0) echo "set=yes" >> "$GITHUB_OUTPUT" ;;
-            3) echo "::notice::the set $set is not gated by this tag's commit" ;;
-            4) case "$set" in
-                 connectors|reality-store) echo "::notice::the set $set was gated from 4.1.18 on, after this tag" ;;
-                 *) if grep -Eq "^  '?$set'?: \[" tools/mutation-sets.ts; then echo "set=yes" >> "$GITHUB_OUTPUT"; else echo "::notice::the set $set predates this tag"; fi ;;
-               esac ;;
-            *) echo "::error::tools/mutation-sets.ts could not be read (exit $code): no gate is skipped on a failure"; exit 1 ;;
-          esac
+          # The tag's own commit says what it gates (4.1.20): a commit that generates no matrix is not released by this
+          # workflow, rather than released on a matrix of another commit's sets.
+          if [ ! -f tools/mutation-shards.ts ]; then
+            echo "::error::this tag's commit has no tools/mutation-shards.ts (4.1.20): release.yml judges a tag on the matrix its own commit generates"
+            exit 1
+          fi
+          echo "matrix=$(npx tsx tools/mutation-shards.ts --matrix=gated)" >> "$GITHUB_OUTPUT"
+  # One job per shard (4.1.17: a set's length never cuts another's result short; 4.1.20: a long set in shards). Each
+  # job has a Postgres service; only the set that needs one is given its URL (the others' tests would run their
+  # Postgres cases too and judge mutants otherwise than the gate).
+  mutation:
+    needs: [mutation-plan]
+    if: github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push' && startsWith(github.event.workflow_run.head_branch, 'v') && contains(github.event.workflow_run.head_branch, '.')
+    name: mutation (${{ matrix.name }})
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.mutation-plan.outputs.matrix) }}
+    services:
+      postgres:
+        image: mirror.gcr.io/library/postgres:16@sha256:65b16a8b326e0cfbdf33fa7e783f2a0cb352a61448616ccccfd616ef42aa0f65
+        env:
+          POSTGRES_USER: bridge
+          POSTGRES_PASSWORD: bridge
+          POSTGRES_DB: bridge
+        ports: ['5432:5432']
+        options: --health-cmd "pg_isready -U bridge" --health-interval 2s --health-retries 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 22
+          cache: npm
+      - run: for i in 1 2 3; do (npm ci) && break; [ "$i" = 3 ] && exit 1; echo "retry $i"; sleep 15; done
+        timeout-minutes: 20
       - id: inputs
-        if: steps.has.outputs.set == 'yes'
-        run: echo "hash=$(npx tsx tools/mutate.ts --set=${{ steps.has.outputs.name }} --hash)" >> "$GITHUB_OUTPUT"
-      - if: steps.has.outputs.set == 'yes'
-        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        run: echo "hash=$(npx tsx tools/mutate.ts --set=${{ matrix.set }} --hash)" >> "$GITHUB_OUTPUT"
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: .cache/mutation
-          key: mutation-${{ matrix.set }}-${{ steps.inputs.outputs.hash }}
-      - if: steps.has.outputs.set == 'yes'
-        run: npm run test:mutation:core -- --set=${{ steps.has.outputs.name }} | tee mutation-${{ matrix.set }}.txt
+          key: mutation-${{ matrix.name }}-${{ steps.inputs.outputs.hash }}
+      - run: npm run test:mutation:core -- --set=${{ matrix.set }} --shard=${{ matrix.shard }}/${{ matrix.shards }} | tee mutation-${{ matrix.name }}.txt
         shell: bash
+        env:
+          BRIDGE_PG_URL: ${{ matrix.pg && 'postgres://bridge:bridge@127.0.0.1:5432/bridge' || '' }}
       - if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
-          name: mutation-${{ matrix.set }}
+          name: mutation-shard-${{ matrix.name }}
           path: |
-            mutation-${{ matrix.set }}.txt
-            .cache/mutation/report-${{ steps.has.outputs.name }}.json
+            mutation-${{ matrix.name }}.txt
+            .cache/mutation/report-${{ matrix.set }}.shard-${{ matrix.shard }}of${{ matrix.shards }}.json
+          include-hidden-files: true
+          if-no-files-found: ignore
+  # Each set's shards merged into its report (`mutation-<set>`, the artifact the gate, the baseline and the summaries
+  # read): a shard missing, doubled, cancelled or of other inputs fails it, so no gate passes on part of a set.
+  mutation-merge:
+    needs: [mutation-plan, mutation]
+    if: always() && needs.mutation-plan.result == 'success' && github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 22
+          cache: npm
+      - run: for i in 1 2 3; do (npm ci) && break; [ "$i" = 3 ] && exit 1; echo "retry $i"; sleep 15; done
+        timeout-minutes: 20
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          pattern: mutation-shard-*
+          path: shards
+      - shell: bash
+        run: |
+          code=0
+          for set in $(echo '${{ needs.mutation-plan.outputs.matrix }}' | node -e "let s='';process.stdin.on('data',d=>s+=d).on('end',()=>console.log([...new Set(JSON.parse(s).include.filter(e=>e.gated).map(e=>e.set))].join(' ')))"); do
+            npx tsx tools/mutate.ts --set="$set" --merge --from=shards || code=1
+            mkdir -p merged/.cache/mutation && { cp ".cache/mutation/report-$set.json" merged/.cache/mutation/ 2>/dev/null || true; }
+          done
+
+          exit $code
+      - if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: mutation-merged
+          path: merged
           include-hidden-files: true
           if-no-files-found: ignore
   release:
-    needs: mutation
+    needs: [mutation-plan, mutation, mutation-merge]
     if: github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push' && startsWith(github.event.workflow_run.head_branch, 'v') && contains(github.event.workflow_run.head_branch, '.')
     runs-on: ubuntu-24.04
     timeout-minutes: 120

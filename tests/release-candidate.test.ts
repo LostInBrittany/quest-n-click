@@ -5,7 +5,6 @@ import { afterAll, describe, expect, it } from 'vitest';
 import { mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { GATED } from '../tools/mutation-sets';
 import {
   buildManifest,
   candidateOf,
@@ -80,31 +79,42 @@ describe('the workflows that judge a candidate', () => {
   const wf = (name: string) => readFileSync(`.github/workflows/${name}.yml`, 'utf8');
   const jobs = (text: string) => [...text.matchAll(/^ {2}([a-z][a-z0-9-]*):$/gm)].map((m) => m[1]);
 
-  it('run each gated mutation set as a job of its own, never `--set=all` in one process', () => {
-    for (const name of ['candidate', 'nightly', 'ci']) {
+  it('run every shard of every gated set from the one generated matrix, never a list of their own (4.1.20)', () => {
+    for (const name of ['candidate', 'nightly', 'ci', 'release']) {
       const text = wf(name);
-      const sets = text
-        .match(/^ {8}set: \[([^\]]*)\]$/m)?.[1]
-        ?.split(',')
-        .map((s) => s.trim());
-      expect(sets, name).toEqual(GATED);
+      expect(text, name).not.toMatch(/^ {8}set: \[/m);
       expect(text, name).not.toMatch(/--set=all/);
+      const kind = name === 'nightly' ? 'nightly' : 'gated';
+      expect(text, name).toContain(`npx tsx tools/mutation-shards.ts --matrix=${kind}`);
+      expect(text, name).toContain('matrix: ${{ fromJSON(needs.mutation-plan.outputs.matrix) }}');
+      expect(text, name).toContain('--shard=${{ matrix.shard }}/${{ matrix.shards }}');
+      expect(jobs(text), name).toEqual(expect.arrayContaining(['mutation-plan', 'mutation', 'mutation-merge']));
+      // The merge judges the set: a shard missing, doubled or of other inputs fails it (tools/mutation-shards.ts).
+      expect(text, name).toContain('npx tsx tools/mutate.ts --set="$set" --merge --from=shards || code=1');
+      // Postgres for the one set whose tests need it (the others would judge mutants otherwise than the gate).
+      expect(text, name).toContain(
+        "BRIDGE_PG_URL: ${{ matrix.pg && 'postgres://bridge:bridge@127.0.0.1:5432/bridge' || '' }}",
+      );
     }
-    // release.yml keeps its own matrix, guarded per set for tags older than a set.
-    expect(
-      wf('release')
-        .match(/^ {8}set: \[([^\]]*)\]$/m)?.[1]
-        ?.split(',')
-        .map((s) => s.trim()),
-    ).toEqual(GATED);
+    expect(wf('nightly')).toContain('continue-on-error: ${{ !matrix.gated }}');
+    for (const name of ['candidate', 'ci', 'release'])
+      expect(wf(name), name).not.toContain('continue-on-error: ${{ !matrix.gated }}');
   });
 
-  it("let release.yml skip a mutation set only when the tag's commit says it is not gated, never on a failure", () => {
-    const step = wf('release').slice(wf('release').indexOf('- id: has'), wf('release').indexOf('- id: inputs'));
-    expect(step).toContain('m.GATED.includes(');
-    expect(step).toMatch(/\*\) echo "::error::[^"]*"; exit 1 ;;/);
-    expect(step).toMatch(/connectors\|reality-store\) echo "::notice::/);
-    expect(step).not.toMatch(/if npx tsx/);
+  it('judge a candidate and a release only once every set is merged', () => {
+    const gate = wf('candidate').slice(wf('candidate').indexOf('\n  candidate-gate:'));
+    expect(gate.slice(0, gate.indexOf('\n    if:'))).toMatch(/needs: \[[^\]]*mutation-plan, mutation, mutation-merge/);
+    const release = wf('release').slice(wf('release').indexOf('\n  release:'));
+    expect(release.slice(0, 200)).toContain('needs: [mutation-plan, mutation, mutation-merge]');
+  });
+
+  it('release.yml judges a tag on the matrix its own commit generates, and refuses a commit that generates none', () => {
+    const plan = wf('release').slice(
+      wf('release').indexOf('\n  mutation-plan:'),
+      wf('release').indexOf('\n  mutation:'),
+    );
+    expect(plan).toContain('ref: ${{ github.event.workflow_run.head_sha }}');
+    expect(plan).toMatch(/if \[ ! -f tools\/mutation-shards\.ts \]; then\n\s+echo "::error::[^"]+"\n\s+exit 1/);
   });
 
   it('never let a pipe hide a failure: every step piped into tee runs under `shell: bash` (pipefail)', () => {

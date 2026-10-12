@@ -64,6 +64,16 @@ describe('the candidate baseline', () => {
       commitSha: 'old',
       results: [{ file: 'a.ts' }, { file: 'a.ts' }],
     });
+    // A shard's report beside its set's merged one (4.1.20): the set is read from the merged report only.
+    put('mutation-shard-core-1of1/.cache/mutation/report-core.shard-1of1.json', {
+      set: 'core',
+      status: 'failed',
+      killed: 1,
+      total: 5,
+      inputHash: 'shard',
+      commitSha: 'old',
+      results: [{ file: 'z.ts' }],
+    });
     put('deployment-smoke/ops-qualify.json', {
       steps: [
         { name: 'a', ok: true },
