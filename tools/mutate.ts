@@ -14,7 +14,8 @@ import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 
 import { dirname, relative, resolve } from 'node:path';
 import ts from '@typescript/typescript6';
 import { ROOT } from './game';
-import { SETS, setNamed, setsOf, TESTS, type MutationSet } from './mutation-sets';
+import { SETS, SHARDS, setNamed, setsOf, TESTS, type MutationSet } from './mutation-sets';
+import { mergeReports, type ShardReport, shardFiles } from './mutation-shards';
 
 export { SETS, type MutationSet };
 export const TARGETS = SETS.core;
@@ -140,9 +141,9 @@ export function survivorsTable(known: KnownSurvivor[]): string {
     .sort((a, b) => a.file.localeCompare(b.file) || a.from.localeCompare(b.from))
     .map(
       (k) =>
-        `| \`${k.file}\`${k.context ? ` (\`${k.context.replace(/\|/g, '\\|')}\`)` : ''} | \`${k.operator}\`: \`${k.from}\` → \`${k.to}\` | ${k.why} |`,
+        `| \`${k.file}\`${k.context ? ` (\`${k.context.replace(/\|/g, '\\|')}\`)` : ''} | \`${k.operator}\`: \`${k.from}\` → \`${k.to}\` | ${k.category}${k.proof === 'argument' ? '' : `, \`${k.proof}\``} | ${k.why} |`,
     );
-  return `| Where | Mutant | Why it is equivalent |\n|---|---|---|\n${rows.join('\n')}\n`;
+  return `| Where | Mutant | Kind | Why |\n|---|---|---|---|\n${rows.join('\n')}\n`;
 }
 export const DOC_MARKERS = ['<!-- mutants:start -->', '<!-- mutants:end -->'] as const;
 /** MUTANTS.md with the table of docs/dev/mutants.json between its markers (the text outside them is the author's). */
@@ -162,19 +163,38 @@ const commitSha = () => {
   }
 };
 
-/** A report of this set with the current input hash, if one is there. */
-export function reusableReport(set: MutationSet | 'all', hash: string): MutationReport | null {
-  const file = resolve(ROOT, `.cache/mutation/report-${set}.json`);
+/** A report of this set (or of this shard of it) with the current inputs, if one is there. */
+export function reusableReport(
+  set: MutationSet | 'all',
+  hash: string,
+  shard?: ShardReport['shard'],
+): MutationReport | null {
+  const file = resolve(ROOT, `.cache/mutation/${reportName(set, shard)}.json`);
   if (!existsSync(file)) return null;
   try {
-    const r = JSON.parse(readFileSync(file, 'utf8')) as Partial<MutationReport>;
-    return r.v === 1 && r.inputHash === hash && r.status === 'passed' && Array.isArray(r.results)
+    const r = JSON.parse(readFileSync(file, 'utf8')) as Partial<ShardReport>;
+    return r.v === 1 &&
+      r.inputHash === hash &&
+      r.status === 'passed' &&
+      Array.isArray(r.results) &&
+      r.shard?.inputHash === shard?.inputHash
       ? (r as MutationReport)
       : null;
   } catch {
     return null;
   }
 }
+
+/** A report's file name in .cache/mutation: the set's, or one shard's (`report-<set>.shard-<i>of<n>`). */
+export const reportName = (set: string, shard?: { index: number; total: number }) =>
+  shard ? `report-${set}.shard-${shard.index}of${shard.total}` : `report-${set}`;
+
+/** The cut of a set into `n` shards, by the mutants each of its files holds now (4.1.20 PR 2a). */
+export function cutOf(set: MutationSet, n: number): string[][] {
+  return shardFiles(SETS[set], n, (f) => mutants(f, readFileSync(resolve(ROOT, f), 'utf8')).length);
+}
+/** The shards a set runs in: SHARDS, never more than its files. */
+export const shardsOf = (set: MutationSet) => Math.min(SHARDS[set] ?? 1, SETS[set].length);
 
 /** An equivalent mutant, as docs/dev/mutants.json names it: the line may move, the edit itself may not. */
 export interface KnownSurvivor {
@@ -188,6 +208,42 @@ export interface KnownSurvivor {
    * same edit (`+` → `-` anywhere), and a new survivor on another line would hide behind an old equivalent.
    */
   context?: string;
+  /** What kind of survivor it is (4.1.20 PR 2a, plan §7.4): never "the score is good enough". */
+  category: (typeof SURVIVOR_CATEGORIES)[number];
+  /** `argument` (the `why` proves it: an equivalent mutant only), or the test that pins what makes it so. */
+  proof: string;
+  /** Who reads it again. */
+  owner: string;
+  /** The version at which it is read again: an entry is refused from that version on (its pre-releases included). */
+  revisit: string;
+}
+export const SURVIVOR_CATEGORIES = ['equivalent', 'unreachable', 'instrumentation', 'out-of-contract'] as const;
+
+const semverCore = (v: string) => /^(\d+)\.(\d+)\.(\d+)(?:-[0-9A-Za-z.-]+)?$/.exec(v)?.slice(1, 4).map(Number);
+
+/** What is wrong with the entries of docs/dev/mutants.json at this version; empty when every one holds (pure). */
+export function checkKnown(known: KnownSurvivor[], version: string): string[] {
+  const now = semverCore(version);
+  const out: string[] = [];
+  for (const k of known) {
+    const at = `${k.file} ${k.operator}: ${k.from} → ${k.to}`;
+    if (!SURVIVOR_CATEGORIES.includes(k.category)) out.push(`${at}: a category (${SURVIVOR_CATEGORIES.join(', ')})`);
+    if (typeof k.why !== 'string' || k.why.length <= 20) out.push(`${at}: a why that says it`);
+    if (typeof k.owner !== 'string' || !k.owner.trim()) out.push(`${at}: an owner`);
+    if (k.proof === 'argument') {
+      if (k.category !== 'equivalent') out.push(`${at}: a proof by a test (only an equivalent mutant is argued)`);
+    } else if (
+      typeof k.proof !== 'string' ||
+      !/^tests\/.+\.test\.ts$/.test(k.proof) ||
+      !existsSync(resolve(ROOT, k.proof))
+    )
+      out.push(`${at}: a proof, \`argument\` or a test file that exists`);
+    const due = typeof k.revisit === 'string' ? semverCore(k.revisit) : undefined;
+    if (!due) out.push(`${at}: a revisit version (x.y.z)`);
+    else if (now && (now[0]! - due[0]! || now[1]! - due[1]! || now[2]! - due[2]!) >= 0)
+      out.push(`${at}: to be read again at ${k.revisit} (this is ${version})`);
+  }
+  return out;
 }
 export const sameMutant = (a: Pick<Mutant, 'file' | 'operator' | 'from' | 'to' | 'context'>, b: KnownSurvivor) =>
   a.file === b.file &&
@@ -331,7 +387,7 @@ if (process.argv[1]?.endsWith('mutate.ts')) {
   if (setArg !== given)
     console.error(`ℹ  --set=${given} is --set=${setArg} since 4.1.19 (the old name works until 4.2)`);
   // Without a database its tests skip their Postgres cases: every mutant would survive, a measure of nothing.
-  const measuring = !process.argv.includes('--doc') && !process.argv.includes('--hash');
+  const measuring = !['--doc', '--hash', '--merge'].some((f) => process.argv.includes(f));
   if (setArg === 'reality-store-postgres' && !process.env.BRIDGE_PG_URL && measuring) {
     console.error('✖  --set=reality-store-postgres needs BRIDGE_PG_URL (a Postgres its tests run against)');
     process.exit(2);
@@ -339,7 +395,7 @@ if (process.argv[1]?.endsWith('mutate.ts')) {
   const setOf = (f: string): MutationSet | 'all' =>
     (Object.keys(SETS) as MutationSet[]).find((k) => SETS[k].includes(f)) ?? 'all';
   const set: MutationSet | 'all' = only ? setOf(only) : setArg;
-  const files = only ? [only] : setsOf(set).flatMap((k) => SETS[k]);
+  let files = only ? [only] : setsOf(set).flatMap((k) => SETS[k]);
   if (process.argv.includes('--doc')) {
     const known = JSON.parse(readFileSync(resolve(ROOT, 'docs/dev/mutants.json'), 'utf8')) as KnownSurvivor[];
     const doc = resolve(ROOT, 'docs/dev/MUTANTS.md');
@@ -352,12 +408,75 @@ if (process.argv[1]?.endsWith('mutate.ts')) {
     console.log(hash);
     process.exit(0);
   }
+  const known = JSON.parse(readFileSync(resolve(ROOT, 'docs/dev/mutants.json'), 'utf8')) as KnownSurvivor[];
+  const version = (JSON.parse(readFileSync(resolve(ROOT, 'package.json'), 'utf8')) as { version: string }).version;
+  const incomplete = checkKnown(known, version);
+  if (incomplete.length) {
+    console.error(
+      `✖  docs/dev/mutants.json: ${incomplete.length} entr${incomplete.length > 1 ? 'ies' : 'y'} do not hold:`,
+    );
+    for (const l of incomplete.slice(0, 20)) console.error(`   ${l}`);
+    process.exit(2);
+  }
+  // The shards' reports of a set merged into its report (4.1.20 PR 2a): every shard of the cut this commit gives, of
+  // these inputs, or the merge refuses and the gate fails (`--merge [--from=<dir>]`, the reports found anywhere below).
+  if (process.argv.includes('--merge')) {
+    if (only || set === 'all') {
+      console.error('✖  --merge takes a set (not --file, not all)');
+      process.exit(2);
+    }
+    const from = resolve(
+      ROOT,
+      process.argv.find((a) => a.startsWith('--from='))?.slice('--from='.length) ?? '.cache/mutation',
+    );
+    const prefix = `report-${set}.shard-`;
+    const found: string[] = [];
+    const walk = (d: string) => {
+      for (const f of readdirSync(d, { withFileTypes: true }))
+        if (f.isDirectory()) walk(resolve(d, f.name));
+        else if (f.name.startsWith(prefix) && f.name.endsWith('.json')) found.push(resolve(d, f.name));
+    };
+    if (existsSync(from)) walk(from);
+    let merged: ReturnType<typeof mergeReports>;
+    try {
+      merged = mergeReports(
+        found.map((f) => JSON.parse(readFileSync(f, 'utf8')) as ShardReport),
+        { set, inputHash: hash, shards: cutOf(set, shardsOf(set)), known },
+      );
+    } catch (e) {
+      console.error(`✖  ${set}: ${(e as Error).message}; nothing merged, the set is not judged`);
+      process.exit(2);
+    }
+    const out = resolve(ROOT, '.cache/mutation');
+    if (!existsSync(out)) mkdirSync(out, { recursive: true });
+    writeFileSync(resolve(out, `report-${set}.json`), JSON.stringify(merged, null, 1));
+    console.log(
+      `${merged.status === 'passed' ? '✔' : '✖'}  ${set}: ${merged.killed}/${merged.total} mutants killed in ${merged.shards.length} shard(s), ${merged.status}; report in .cache/mutation/report-${set}.json (inputs ${hash})`,
+    );
+    process.exit(merged.status === 'passed' ? 0 : 1);
+  }
+  // One shard of the set (4.1.20 PR 2a): the files the cut gives it, its inputs the set's and its cut's.
+  const shardArg = process.argv.find((a) => a.startsWith('--shard='))?.slice('--shard='.length);
+  let shard: ShardReport['shard'] | undefined;
+  if (shardArg) {
+    const m = /^(\d+)\/(\d+)$/.exec(shardArg);
+    const [i, n] = m ? [Number(m[1]), Number(m[2])] : [0, 0];
+    if (!m || only || set === 'all' || i < 1 || i > n) {
+      console.error('✖  --shard=<i>/<n> takes a set (not --file, not all), 1 ≤ i ≤ n');
+      process.exit(2);
+    }
+    files = cutOf(set, n)[i - 1]!;
+    const shardHash = createHash('sha256')
+      .update(`${hash}\0${i}/${n}\0${files.join('\n')}`)
+      .digest('hex');
+    shard = { index: i, total: n, files, inputHash: shardHash.slice(0, 16) };
+  }
   // A report of these very inputs says what this run would say (4.1.8): reused, unless --fresh.
   if (!only && !process.argv.includes('--fresh')) {
-    const r = reusableReport(set, hash);
+    const r = reusableReport(set, hash, shard);
     if (r) {
       console.log(
-        `✔  ${r.killed}/${r.total} mutants killed (set ${set}, inputs ${hash}, measured on ${r.commitSha.slice(0, 7)} at ${r.at}): the same inputs, the report reused (--fresh runs again)`,
+        `✔  ${r.killed}/${r.total} mutants killed (set ${set}${shard ? `, shard ${shard.index}/${shard.total}` : ''}, inputs ${hash}, measured on ${r.commitSha.slice(0, 7)} at ${r.at}): the same inputs, the report reused (--fresh runs again)`,
       );
       process.exit(0);
     }
@@ -406,7 +525,6 @@ if (process.argv[1]?.endsWith('mutate.ts')) {
   }
   // The equivalent mutants, each named in docs/dev/mutants.json (and explained in MUTANTS.md): a survivor not named
   // there fails the run, in every mode, whatever the count; a name whose mutant no longer exists is reported too.
-  const known = JSON.parse(readFileSync(resolve(ROOT, 'docs/dev/mutants.json'), 'utf8')) as KnownSurvivor[];
   const survivors = results.filter((r) => r.status === 'survived');
   const unexplained = survivors.filter((r) => !known.some((k) => sameMutant(r, k)));
   const stale = known.filter((k) => files.includes(k.file) && !survivors.some((r) => sameMutant(r, k)));
@@ -416,7 +534,7 @@ if (process.argv[1]?.endsWith('mutate.ts')) {
     );
   for (const k of stale)
     console.log(`  ⚠ named in docs/dev/mutants.json but killed or gone: ${k.file} ${k.operator}: ${k.from} → ${k.to}`);
-  const report: MutationReport = {
+  const report: MutationReport & { shard?: ShardReport['shard'] } = {
     v: 1,
     set: only ? 'file' : set,
     inputHash: hash,
@@ -426,10 +544,12 @@ if (process.argv[1]?.endsWith('mutate.ts')) {
     killed,
     total: results.length,
     results: results.map(({ start, end, ...r }) => r),
+    ...(shard ? { shard } : {}),
   };
-  writeFileSync(resolve(out, `report-${report.set}.json`), JSON.stringify(report, null, 1));
+  const name = reportName(report.set, shard);
+  writeFileSync(resolve(out, `${name}.json`), JSON.stringify(report, null, 1));
   console.log(
-    `${unexplained.length ? '✖' : '✔'}  ${killed}/${results.length} mutants killed, ${survivors.length - unexplained.length} survivors explained, ${unexplained.length} not; report in .cache/mutation/report-${report.set}.json (inputs ${hash})`,
+    `${unexplained.length ? '✖' : '✔'}  ${killed}/${results.length} mutants killed, ${survivors.length - unexplained.length} survivors explained, ${unexplained.length} not; report in .cache/mutation/${name}.json (inputs ${hash})`,
   );
   if (unexplained.length) process.exitCode = 1;
 }

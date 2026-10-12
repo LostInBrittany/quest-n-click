@@ -70,7 +70,8 @@ export function collect({ dir, sha, run, version, root = '.', jobs = null, env =
   }
   const mutation = {};
   for (const d of files(dir, /^mutation-/)) {
-    for (const f of files(join(dir, d, '.cache/mutation'), /^report-.*\.json$/)) {
+    // A shard's report is part of its set's (4.1.20): the set is read from its merged report, never from one shard.
+    for (const f of files(join(dir, d, '.cache/mutation'), /^report-(?!.*\.shard-).*\.json$/)) {
       const r = json(join(dir, d, '.cache/mutation', f));
       if (r)
         mutation[r.set] = {

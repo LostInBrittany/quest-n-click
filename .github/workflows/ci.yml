@@ -141,25 +141,47 @@ jobs:
           name: coverage-summary
           path: .cache/coverage/coverage-summary.json
           if-no-files-found: ignore
-  # Mutation testing of both sets (4.1.8, tools/mutate.ts): every mutant of the core and of the Reality code killed by a
-  # test, or named in docs/dev/mutants.json. The verdict depends on the sources, the tests, the configurations and the
-  # lockfile, hashed by `--hash`: a cache keyed by that hash carries the report to the next commit that changes none of
-  # them (docs, a version), and to the release, which reuses it instead of running the sets again.
-  # Both sets, cached by the hash of their inputs: on a pull request labelled `full-ci` only. On an ordinary pull
-  # request the sets would run for an hour whenever the core or Reality moved (7 October 2026: 90 then 52 min); the
-  # nightly and release-check measure them. release-check reuses a report of the same inputs when a `full-ci` run
-  # (or the nightly, which writes the same cache) left one; without it, the release pays the hour.
-  mutation:
-    # Not on a push to main either (4.1.9, lot 0): a main run must stay short, since the release chain waits for the run
-    # of the exact commit it tags and a later merge cancels a run still going. The nightly and release-check measure.
+  # The mutation matrix (4.1.20 PR 2a, plan §7.3): every shard of every gated set, from
+  # tools/mutation-shards.ts — no workflow writes its list of sets by hand (tests/mutate-shards.test.ts).
+  mutation-plan:
     if: github.event_name == 'pull_request' && contains(github.event.pull_request.labels.*.name, 'full-ci')
     runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    outputs:
+      matrix: ${{ steps.m.outputs.matrix }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 22
+          cache: npm
+      - run: for i in 1 2 3; do (npm ci) && break; [ "$i" = 3 ] && exit 1; echo "retry $i"; sleep 15; done
+        timeout-minutes: 20
+      - id: m
+        shell: bash
+        run: |
+          echo "matrix=$(npx tsx tools/mutation-shards.ts --matrix=gated)" >> "$GITHUB_OUTPUT"
+  # One job per shard (4.1.17: a set's length never cuts another's result short; 4.1.20: a long set in shards). Each
+  # job has a Postgres service; only the set that needs one is given its URL (the others' tests would run their
+  # Postgres cases too and judge mutants otherwise than the gate).
+  mutation:
+    needs: [mutation-plan]
+    if: github.event_name == 'pull_request' && contains(github.event.pull_request.labels.*.name, 'full-ci')
+    name: mutation (${{ matrix.name }})
+    runs-on: ubuntu-24.04
     timeout-minutes: 120
-    # One job per gated set (4.1.17): a set's length never cuts another's result short.
     strategy:
       fail-fast: false
-      matrix:
-        set: [core, reality, runs, remix, speedrun, connectors-pure, reality-store]
+      matrix: ${{ fromJSON(needs.mutation-plan.outputs.matrix) }}
+    services:
+      postgres:
+        image: mirror.gcr.io/library/postgres:16@sha256:65b16a8b326e0cfbdf33fa7e783f2a0cb352a61448616ccccfd616ef42aa0f65
+        env:
+          POSTGRES_USER: bridge
+          POSTGRES_PASSWORD: bridge
+          POSTGRES_DB: bridge
+        ports: ['5432:5432']
+        options: --health-cmd "pg_isready -U bridge" --health-interval 2s --health-retries 30
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
@@ -173,16 +195,53 @@ jobs:
       - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: .cache/mutation
-          key: mutation-${{ matrix.set }}-${{ steps.inputs.outputs.hash }}
-      - run: npm run test:mutation:core -- --set=${{ matrix.set }} | tee mutation-${{ matrix.set }}.txt
+          key: mutation-${{ matrix.name }}-${{ steps.inputs.outputs.hash }}
+      - run: npm run test:mutation:core -- --set=${{ matrix.set }} --shard=${{ matrix.shard }}/${{ matrix.shards }} | tee mutation-${{ matrix.name }}.txt
         shell: bash
+        env:
+          BRIDGE_PG_URL: ${{ matrix.pg && 'postgres://bridge:bridge@127.0.0.1:5432/bridge' || '' }}
       - if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
-          name: mutation-${{ matrix.set }}
+          name: mutation-shard-${{ matrix.name }}
           path: |
-            mutation-${{ matrix.set }}.txt
-            .cache/mutation/report-${{ matrix.set }}.json
+            mutation-${{ matrix.name }}.txt
+            .cache/mutation/report-${{ matrix.set }}.shard-${{ matrix.shard }}of${{ matrix.shards }}.json
+          include-hidden-files: true
+          if-no-files-found: ignore
+  # Each set's shards merged into its report (`mutation-<set>`, the artifact the gate, the baseline and the summaries
+  # read): a shard missing, doubled, cancelled or of other inputs fails it, so no gate passes on part of a set.
+  mutation-merge:
+    needs: [mutation-plan, mutation]
+    if: always() && needs.mutation-plan.result == 'success' && github.event_name == 'pull_request' && contains(github.event.pull_request.labels.*.name, 'full-ci')
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 22
+          cache: npm
+      - run: for i in 1 2 3; do (npm ci) && break; [ "$i" = 3 ] && exit 1; echo "retry $i"; sleep 15; done
+        timeout-minutes: 20
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          pattern: mutation-shard-*
+          path: shards
+      - shell: bash
+        run: |
+          code=0
+          for set in $(echo '${{ needs.mutation-plan.outputs.matrix }}' | node -e "let s='';process.stdin.on('data',d=>s+=d).on('end',()=>console.log([...new Set(JSON.parse(s).include.filter(e=>e.gated).map(e=>e.set))].join(' ')))"); do
+            npx tsx tools/mutate.ts --set="$set" --merge --from=shards || code=1
+            mkdir -p merged/.cache/mutation && { cp ".cache/mutation/report-$set.json" merged/.cache/mutation/ 2>/dev/null || true; }
+          done
+
+          exit $code
+      - if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: mutation-merged
+          path: merged
           include-hidden-files: true
           if-no-files-found: ignore
   # Biscuit's official samples in the JavaScript build the Bridge runs and in the Rust crate (4.1.1, D16): the same

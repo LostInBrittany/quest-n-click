@@ -15,7 +15,7 @@ describe('the tests that run against a real Postgres', () => {
     const reading = readdirSync('tests')
       .filter((f) => f.endsWith('.test.ts') && f !== 'bridge-postgres-isolation.test.ts')
       .map((f) => `tests/${f}`)
-      .filter((f) => text(f).includes('BRIDGE_PG_URL'));
+      .filter((f) => text(f).includes('process.env.BRIDGE_PG_URL'));
     expect(reading.length).toBeGreaterThan(0);
     for (const f of reading) expect(PG_TESTS, f).toContain(f);
   });
