@@ -7,6 +7,7 @@ on:
     paths:
       - 'ops/**'
       - 'scripts/ops-qualify.mjs'
+      - 'scripts/ops-qualify/**'
       - 'scripts/pack.mjs'
       - 'bridge/**'
       - 'package.json'
@@ -19,6 +20,7 @@ on:
     paths:
       - 'ops/**'
       - 'scripts/ops-qualify.mjs'
+      - 'scripts/ops-qualify/**'
       - 'scripts/pack.mjs'
       - 'bridge/**'
       - 'package.json'

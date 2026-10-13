@@ -5,7 +5,7 @@
 import { createServer, type Server } from 'node:http';
 import type { AddressInfo } from 'node:net';
 import { afterEach, describe, expect, it } from 'vitest';
-import { fetchRetry } from '../scripts/lib/fetch-retry.mjs';
+import { backoff, fetchRetry } from '../scripts/lib/fetch-retry.mjs';
 
 const servers: Server[] = [];
 afterEach(async () => {
@@ -56,8 +56,7 @@ describe('fetchRetry', () => {
     expect(waits).toEqual([1, 2]);
   });
 
-  it('waits longer each time by default (5 s, then 10 s…)', async () => {
-    const { backoff } = await import('../scripts/lib/fetch-retry.mjs');
+  it('waits longer each time by default (5 s, then 10 s…)', () => {
     expect([1, 2, 3].map(backoff)).toEqual([5000, 10_000, 15_000]);
   });
 });
