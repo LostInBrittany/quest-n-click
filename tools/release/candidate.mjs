@@ -10,6 +10,8 @@
 //   manifest --sha= --run= --dir= --out=   write the manifest of every file under --dir
 //   check <manifest> --sha= --run= --dir=  the manifest is this SHA's and this run's, and every file under --dir matches it
 //   run-of <tag>                           the candidate run a local annotated tag names (empty when none)
+//   qualification <report> --sha= --run= --pack=<dir> --image=<dir>
+//                                          the full qualification of this SHA and run, on its archives and image (4.1.20)
 import { createHash } from 'node:crypto';
 import { spawnSync } from 'node:child_process';
 import { readdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
@@ -21,7 +23,7 @@ import { versionOf } from './lib.mjs';
 export const FIRST = '4.1.17';
 
 const parts = (v) => v.split('-')[0].split('.').map(Number);
-const atLeast = (a, b) => {
+export const atLeast = (a, b) => {
   const [x, y] = [parts(a), parts(b)];
   for (let i = 0; i < 3; i++) if (x[i] !== y[i]) return x[i] > y[i];
   return true;
@@ -92,6 +94,35 @@ export function checkManifest(manifest, { sha, runId, dir }) {
   return bad;
 }
 
+/**
+ * What is wrong with the qualification a tag would stand on (4.1.20, plan §8.1): it must be the full profile, of this
+ * commit, for this candidate run, every step of the catalogue run once and passed, on the archives the candidate
+ * packed (`archives`: name and SHA-256) and the image it built (`image`: its three identities), every id of
+ * `catalogue` (scripts/ops-qualify/steps.mjs). [] when nothing is.
+ */
+export function qualificationProblems(report, { sha, run, archives, image, catalogue }) {
+  if (report?.format !== 'web-scumm-ops-qualify' || report.schema !== 2)
+    return ['not an ops-qualify report of schema 2'];
+  const bad = [];
+  if (report.profile !== 'full') bad.push('the short profile (--short): a tag stands on the full one');
+  if (report.commit !== sha) bad.push(`qualified ${report.commit}, not ${sha}`);
+  if (String(report.candidateRun) !== String(run)) bad.push(`qualified for run ${report.candidateRun}, not ${run}`);
+  for (const { id } of catalogue) {
+    const runs = (report.steps ?? []).filter((s) => s.id === id);
+    if (!runs.length) bad.push(`${id}: not run`);
+    else if (runs.length > 1) bad.push(`${id}: run twice`);
+    else if (runs[0].ok !== true) bad.push(`${id}: failed (${runs[0].firstDefect ?? 'no defect said'})`);
+  }
+  const want = new Map(archives.map((a) => [a.name, a.sha256]));
+  const got = new Map((report.archives ?? []).map((a) => [a.name, a.sha256]));
+  const off = [...new Set([...want.keys(), ...got.keys()])].filter((n) => want.get(n) !== got.get(n)).sort();
+  if (off.length) bad.push(`the archives installed are not the candidate's (${off.join(', ')})`);
+  const keys = ['configDigest', 'manifestDigest', 'archiveSha256'];
+  const wrong = keys.filter((k) => !image?.[k] || report.image?.[k] !== image[k]);
+  if (wrong.length) bad.push(`the image is not the candidate's (${wrong.join(', ')})`);
+  return bad;
+}
+
 const flag = (k) => process.argv.find((a) => a.startsWith(`--${k}=`))?.slice(k.length + 3);
 
 if (import.meta.url === pathToFileURL(process.argv[1] ?? '').href) {
@@ -114,11 +145,32 @@ if (import.meta.url === pathToFileURL(process.argv[1] ?? '').href) {
     for (const b of bad) console.error(`✖  ${b}`);
     if (!bad.length) console.log(`✔  every file is the candidate's (run ${flag('run')}, ${flag('sha')?.slice(0, 12)})`);
     process.exit(bad.length ? 1 : 0);
+  } else if (cmd === 'qualification' && arg) {
+    const pack = flag('pack');
+    const archives = readdirSync(pack)
+      .filter((f) => f.endsWith('.tgz'))
+      .map((name) => ({ name, sha256: sha256(join(pack, name)) }));
+    const image = JSON.parse(readFileSync(join(flag('image'), 'web-scumm-bridge-image.json'), 'utf8'));
+    // The catalogue from the checkout (scripts/ is not shipped with tools/ in the web-scumm package: never imported
+    // statically, second reading of 4.1.20 PR 3).
+    const { CATALOGUE } = await import(pathToFileURL(join(process.cwd(), 'scripts', 'ops-qualify', 'steps.mjs')).href);
+    const bad = qualificationProblems(JSON.parse(readFileSync(arg, 'utf8')), {
+      sha: flag('sha'),
+      run: flag('run'),
+      archives,
+      image,
+      catalogue: CATALOGUE,
+    });
+    for (const b of bad) console.error(`✖  ${b}`);
+    if (!bad.length) console.log(`✔  the full qualification of ${flag('sha')?.slice(0, 12)}, run ${flag('run')}`);
+    process.exit(bad.length ? 1 : 0);
   } else if (cmd === 'run-of' && arg) {
     const r = spawnSync('git', ['for-each-ref', '--format=%(contents)', `refs/tags/${arg}`], { encoding: 'utf8' });
     console.log(candidateOf(r.stdout ?? '') ?? '');
   } else {
-    console.error('usage: node tools/release/candidate.mjs <gate|manifest|check|run-of> … (see its header)');
+    console.error(
+      'usage: node tools/release/candidate.mjs <gate|manifest|check|qualification|run-of> … (see its header)',
+    );
     process.exit(2);
   }
 }

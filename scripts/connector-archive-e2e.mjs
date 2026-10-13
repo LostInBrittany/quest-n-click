@@ -447,7 +447,23 @@ await listening(P.telnet);
 
 // ---- SSH: the operator's own ssh2 as the client
 const ssh2 = createRequire(join(operator, 'package.json'))('ssh2');
-const hostKey = ssh2.utils.generateKeyPairSync('ed25519').private;
+// Drawn again until ssh2 reads it back (4.1.20 PR 3): `generateKeyPairSync` now and then writes an ed25519 key its own
+// `parseKey` calls "Malformed OpenSSH private key" (#111, 12 October), as the tests' `sshKeyPair()` found in 4.1.11.
+function hostKeyPair() {
+  for (let i = 0; i < 20; i++) {
+    const k = ssh2.utils.generateKeyPairSync('ed25519');
+    const priv = ssh2.utils.parseKey(k.private);
+    const pub = ssh2.utils.parseKey(k.public);
+    const data = Buffer.from('web-scumm host key');
+    const sig = priv instanceof Error || pub instanceof Error ? null : priv.sign(data);
+    if (sig && !(sig instanceof Error) && pub.verify(data, sig) === true) return k;
+    console.warn(
+      `[flake] ssh host key draw ${i + 1}: ${priv.message ?? pub.message ?? sig?.message ?? 'does not verify'}`,
+    );
+  }
+  throw new Error('ssh2 produced no usable ed25519 host key in 20 draws');
+}
+const hostKey = hostKeyPair().private;
 writeFileSync(join(base, 'ssh_host_key'), hostKey, { mode: 0o600 });
 start(
   'ssh',

@@ -2,7 +2,7 @@
 // every image pinned by digest, Postgres and the Bridges never published, the store and Bridge networks internal, the
 // Bridges read-only, unprivileged, their tenants mounted read-only, the secrets as files. The `qualify` workflow
 // brings it up and drives it (scripts/ops-qualify.mjs). And `BRIDGE_STORE_FILE`, the store URL read from a file.
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
@@ -84,7 +84,13 @@ describe('BRIDGE_STORE_FILE', () => {
     const bridge = compose.slice(compose.indexOf('x-bridge:'), compose.indexOf('services:'));
     expect(bridge).toContain('${QUALIFY_APP:?ops:qualify sets QUALIFY_APP}:/srv/app:ro');
     expect(bridge).toContain('${QUALIFY_MODULES:?ops:qualify sets QUALIFY_MODULES}:/srv/app/node_modules:ro');
-    const script = readFileSync('scripts/ops-qualify.mjs', 'utf8');
+    // The steps live in scripts/ops-qualify/ since 4.1.20 (PR 3): the entry and its modules, read as one.
+    const script = [
+      'scripts/ops-qualify.mjs',
+      ...readdirSync('scripts/ops-qualify').map((f) => `scripts/ops-qualify/${f}`),
+    ]
+      .map((f) => readFileSync(f, 'utf8'))
+      .join('\n');
     expect(script).toContain('cd /srv/app && exec node node_modules/tsx/dist/cli.mjs tools/speedrun/worker.ts');
     // The committed tree of what the worker reads, never the checkout (its .git, its private folders).
     expect(script).toMatch(/'archive',\s*'--format=tar'/);

@@ -1,0 +1,236 @@
+#!/usr/bin/env node
+// node tools/release/artifacts.mjs <command> … (4.1.20 PR 3, docs/dev/PLAN-4.1.20-LAST-MILE.md §8.4): the one manifest of
+// what a release is made of. Each file says who makes it (a candidate job and the Actions artifact it uploads, or the
+// release job), where it sits in the candidate's manifest (`candidate-release/…`), the name the release publishes it
+// under, and the SBOM that describes it. candidate.yml, release.yml and `ship verify` are checked against it, so a file
+// forgotten or made twice is a failing test, never two YAML files that drifted apart; PR 4's surfaces read it too.
+//
+//   release-files --tag=<vX.Y.Z> --candidate=<candidate.json>   the names the release publishes, one per line
+//   check-release --tag=<vX.Y.Z> --candidate=<candidate.json> --dir=<dir>   those files, and no other, under --dir
+import { existsSync, readdirSync, readFileSync } from 'node:fs';
+import { join } from 'node:path';
+import { pathToFileURL } from 'node:url';
+import { atLeast } from './candidate.mjs';
+
+/**
+ * Every file of a release. `candidate`: its path in the candidate's manifest (`{pkg}` the package version, `{v}` the
+ * version, `*` a run's name), `artifact` and `job` the candidate job that uploads it; `null` when the release job makes
+ * it. `published`: its name on the release (`{tag}` the tag). `sbom`: the published SBOM that describes it.
+ */
+export const ARTIFACTS = [
+  // The four packages (4.1.18), packed once by the candidate, installed outside the repository on three systems.
+  ...['web-scumm', 'create-web-scumm', 'web-scumm-bridge', 'web-scumm-connectors'].map((p) => ({
+    id: `package:${p}`,
+    kind: 'package',
+    candidate: `pack/${p}-{pkg}.tgz`,
+    artifact: 'candidate-pack',
+    job: 'pack',
+    published: `${p}-{pkg}.tgz`,
+    sbom: `${p}-{tag}-sbom.cdx.json`,
+  })),
+  // Their SBOMs (4.1.19), from what each archive holds.
+  ...['web-scumm', 'create-web-scumm', 'web-scumm-bridge', 'web-scumm-connectors'].map((p) => ({
+    id: `sbom:${p}`,
+    kind: 'sbom',
+    candidate: `sbom/${p}.cdx.json`,
+    artifact: 'candidate-sbom',
+    job: 'pack',
+    published: `${p}-{tag}-sbom.cdx.json`,
+  })),
+  // The Bridge's qualification image (4.1.19): its archive, its three identities, its SBOM.
+  {
+    id: 'image:archive',
+    kind: 'image',
+    candidate: 'image/web-scumm-bridge-image.tar',
+    artifact: 'candidate-image',
+    job: 'image',
+    published: 'web-scumm-bridge-image-{tag}.tar',
+    sbom: 'web-scumm-bridge-image-{tag}-sbom.cdx.json',
+  },
+  {
+    id: 'image:identity',
+    kind: 'image',
+    candidate: 'image/web-scumm-bridge-image.json',
+    artifact: 'candidate-image',
+    job: 'image',
+    published: 'web-scumm-bridge-image-{tag}.json',
+  },
+  {
+    id: 'image:sbom',
+    kind: 'sbom',
+    candidate: 'image/web-scumm-bridge-image.cdx.json',
+    artifact: 'candidate-image',
+    job: 'image',
+    published: 'web-scumm-bridge-image-{tag}-sbom.cdx.json',
+  },
+  // The runs the Remix × Time Attack check wrote (4.1.17), their manifest and the check's report.
+  {
+    id: 'runs:wsrun',
+    kind: 'run',
+    candidate: 'wsrun/*.wsrun',
+    artifact: 'candidate-release',
+    job: 'cross-runtime',
+    published: 'web-scumm-{tag}-*.wsrun',
+  },
+  {
+    id: 'runs:manifest',
+    kind: 'run',
+    candidate: 'wsrun/wsrun-manifest.json',
+    artifact: 'candidate-release',
+    job: 'cross-runtime',
+    published: 'web-scumm-{tag}-wsrun-manifest.json',
+  },
+  {
+    id: 'runs:report',
+    kind: 'report',
+    candidate: 'e2e-remix-speedrun.txt',
+    artifact: 'candidate-release',
+    job: 'cross-runtime',
+    published: 'web-scumm-{tag}-e2e-remix-speedrun.txt',
+  },
+  // The candidate's baseline of itself (4.1.19) and its manifest (4.1.17), written by its gate.
+  ...['json', 'md'].map((ext) => ({
+    id: `baseline:${ext}`,
+    kind: 'report',
+    candidate: `baseline/baseline-{v}.${ext}`,
+    artifact: 'candidate-baseline',
+    job: 'candidate-gate',
+    published: `web-scumm-{tag}-baseline.${ext}`,
+  })),
+  {
+    id: 'candidate:manifest',
+    kind: 'report',
+    // The manifest lists the files under candidate-release/, never itself.
+    candidate: null,
+    artifact: 'candidate-manifest',
+    job: 'candidate-gate',
+    published: 'web-scumm-{tag}-candidate.json',
+  },
+  // What the release job makes from the tag's commit: the built game, its assets manifest, the root SBOM's name kept
+  // for the engine (the candidate's, copied), the Remix catalogues proved, the reference speedrun, the sums.
+  {
+    id: 'game:dist',
+    kind: 'game',
+    candidate: null,
+    job: 'release',
+    published: 'web-scumm-{tag}-dist.tar.gz',
+    sbom: 'web-scumm-{tag}-sbom.cdx.json',
+  },
+  {
+    id: 'game:assets',
+    kind: 'game',
+    candidate: null,
+    job: 'release',
+    published: 'web-scumm-{tag}-assets-manifest.json',
+  },
+  ...['demo', 'reference'].map((g) => ({
+    id: `remix:${g}`,
+    kind: 'report',
+    candidate: null,
+    job: 'release',
+    published: `web-scumm-{tag}-remix-${g}.json`,
+  })),
+  {
+    id: 'speedrun:reference',
+    kind: 'run',
+    candidate: null,
+    job: 'release',
+    published: 'web-scumm-{tag}-reference-any.wsrun',
+  },
+  { id: 'sums', kind: 'sums', candidate: null, job: 'release', published: 'web-scumm-{tag}-SHA256SUMS' },
+];
+
+const fill = (s, { tag, version }) =>
+  s.replaceAll('{tag}', tag).replaceAll('{v}', version).replaceAll('{pkg}', version.replace(/-.*$/, ''));
+
+/** The version a tag names (`v4.1.20-rc.1` → `4.1.20-rc.1`). */
+const versionOfTag = (tag) => {
+  if (!/^v\d+\.\d+\.\d+(-[0-9A-Za-z.-]+)?$/.test(tag)) throw new Error(`not a release tag: ${tag}`);
+  return tag.slice(1);
+};
+
+/** The names of the runs a candidate wrote (`wsrun/run-daily.wsrun` → `run-daily`), from its manifest's files. */
+const runsOf = (candidateFiles) =>
+  candidateFiles
+    .filter((f) => /^wsrun\/[^/]+\.wsrun$/.test(f))
+    .map((f) => f.slice('wsrun/'.length, -'.wsrun'.length))
+    .sort();
+
+/** The files a candidate's manifest must list for a version (the runs as the manifest names them). */
+export function candidateFiles(version, runs) {
+  return ARTIFACTS.filter((a) => a.candidate)
+    .flatMap((a) =>
+      a.candidate.includes('*')
+        ? runs.map((r) => fill(a.candidate.replace('*', r), { tag: `v${version}`, version }))
+        : [fill(a.candidate, { tag: `v${version}`, version })],
+    )
+    .sort();
+}
+
+/** The names a release publishes for a tag, given the files its candidate's manifest lists. */
+export function releaseFiles(tag, candidate) {
+  const version = versionOfTag(tag);
+  const runs = runsOf(candidate);
+  return ARTIFACTS.flatMap((a) =>
+    a.published.includes('*')
+      ? runs.map((r) => fill(a.published.replace('*', r), { tag, version }))
+      : [fill(a.published, { tag, version })],
+  ).sort();
+}
+
+/** What is wrong with a folder of release files against the manifest: each file missing or not in it. */
+export function checkRelease(tag, candidate, present) {
+  const want = new Set(releaseFiles(tag, candidate));
+  const got = new Set(present);
+  return [
+    ...[...want].filter((f) => !got.has(f)).map((f) => `${f}: missing`),
+    ...[...got].filter((f) => !want.has(f)).map((f) => `${f}: not in tools/release/artifacts.mjs`),
+  ];
+}
+
+/** The first release whose published files must be exactly the manifest's (`ship verify`). */
+export const FIRST = '4.1.20';
+
+/**
+ * What `ship verify` finds wrong with a published release's files (`files`, downloaded into `dir`): from 4.1.20, each
+ * file missing or extra against the manifest, the runs named by the candidate's own manifest the release carries.
+ */
+export function publishedProblems(tag, files, dir) {
+  if (!atLeast(versionOfTag(tag), FIRST)) return [];
+  const cand = `web-scumm-${tag}-candidate.json`;
+  if (!files.includes(cand)) return [`${cand}: missing (the candidate's manifest names the runs)`];
+  return checkRelease(tag, filesOfManifest(join(dir, cand)), files);
+}
+
+/** The candidate's manifest's own list of files (`candidate.json`, format web-scumm-candidate). */
+export const filesOfManifest = (file) => JSON.parse(readFileSync(file, 'utf8')).artifacts.map((a) => a.name);
+
+const flag = (k) => process.argv.find((a) => a.startsWith(`--${k}=`))?.slice(k.length + 3);
+
+if (import.meta.url === pathToFileURL(process.argv[1] ?? '').href) {
+  const [cmd] = process.argv.slice(2).filter((a) => !a.startsWith('--'));
+  const tag = flag('tag');
+  const cand = flag('candidate');
+  if ((cmd === 'release-files' || cmd === 'check-release') && tag && cand && existsSync(cand)) {
+    if (cmd === 'release-files') console.log(releaseFiles(tag, filesOfManifest(cand)).join('\n'));
+    else {
+      const dir = flag('dir') ?? '.';
+      const ours = new Set(ARTIFACTS.map((a) => a.published.split('{')[0]));
+      // The folder holds more than the release (the checkout): only names that start as one of ours are judged.
+      const present = readdirSync(dir).filter((f) => [...ours].some((p) => f.startsWith(p)) && releaseLike(f, tag));
+      const bad = checkRelease(tag, filesOfManifest(cand), present);
+      for (const b of bad) console.error(`✖  ${b}`);
+      if (!bad.length) console.log(`✔  ${present.length} files, as tools/release/artifacts.mjs lists them for ${tag}`);
+      process.exit(bad.length ? 1 : 0);
+    }
+  } else {
+    console.error('usage: node tools/release/artifacts.mjs <release-files|check-release> --tag= --candidate= [--dir=]');
+    process.exit(2);
+  }
+}
+
+/** A file name of this tag's release: the tag, or the package version, in it. */
+function releaseLike(f, tag) {
+  const v = versionOfTag(tag);
+  return f.includes(tag) || f.includes(`-${v.replace(/-.*$/, '')}.tgz`);
+}
