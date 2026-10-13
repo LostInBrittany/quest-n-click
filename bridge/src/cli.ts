@@ -28,7 +28,7 @@ import { SqlLimiter } from './runs-limiter';
 import { bridgeServer, type ServeOptions, type WebhookConfig } from './server';
 import type { SqlDb } from './store-sql';
 import { JsonlBridgeStore } from './store';
-import { DEFAULT_TENANT, type RealityStore } from './store-async';
+import { DEFAULT_TENANT, type RealityStore, StoreBusyError } from './store-async';
 import { loadTelemetry, type Telemetry } from './telemetry';
 
 /**
@@ -290,7 +290,8 @@ export async function main(args: string[], game?: { manifest: RealityManifest | 
         onPollError: (e) => console.log(JSON.stringify({ event: 'store.poll.failed', error: String(e) })),
       });
     } catch (e) {
-      if (e instanceof MaintenanceError) {
+      // Refused by a lease, or by SQLite's write lock while a restore runs: said, not a stack.
+      if (e instanceof MaintenanceError || e instanceof StoreBusyError) {
         console.error(`✖  ${e.message}: not serving`);
         return 1;
       }

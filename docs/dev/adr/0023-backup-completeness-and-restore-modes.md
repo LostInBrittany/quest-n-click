@@ -41,14 +41,17 @@ built on it could have deleted runs and daily records that the file never held.
 6. **Maintenance, by leases in the store** (4.1.20 PR 1c). Migration 0005 adds the `maintenance` table: one row per
    lease, `serving` or `exclusive`, and at most one exclusive (a partial unique index).
    - `serve` and every writing command hold `serving`. `restore` and a migration down take `exclusive`.
-   - A live lease in the way is refused at once and named, never waited for. An expired lease is deleted in the same
+   - A live lease in the way is refused and named, never waited for (at once on SQLite; on Postgres after the
+     advisory lock's `--lock-timeout` at most). An expired lease is deleted in the same
      transaction.
    - Every time is the database's: `clock_timestamp()` on Postgres, `unixepoch('subsec')` on SQLite, in epoch ms,
      read once per lease.
    - On Postgres an advisory lock rides beside the lease, on a dedicated connection: shared for serving, exclusive for
      a restore, tried for `--lock-timeout` and never waited for longer, taken before the lease everywhere.
    - A lease lost (not renewed, or its lock's connection dropped) holds the store's writes: they answer 503 and
-     `/readyz` fails until a new lease is taken. A restore checks that its lease still holds just before its commit,
+     `/readyz` fails until a new lease is taken. A holder also refuses its writes on its own monotonic clock past two
+     thirds of its lease without a renewal (a process stalled), before the database could call it expired. One
+     renewal at a time; a lease taken after `stop` is released at once. A restore checks that its lease still holds just before its commit,
      and rolls back if it does not.
    - The protocol is cooperative: a Bridge older than 4.1.20 takes no lease, so UPGRADING asks that every older
      instance be stopped before the first restore. Below schema 5 there is no lease table: those migrations run under

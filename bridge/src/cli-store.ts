@@ -95,23 +95,35 @@ export async function openStore(
     onPollError?: (e: unknown) => void;
   } = {},
 ): Promise<RealityStore> {
-  const store = await openStoreOnly(spec, dir, file, o);
   const kind = o.lease ?? (o.migrate === false ? false : 'serving');
-  if (!kind || !(store instanceof SqlRealityStore) || (await store.schemaVersion()) < 5) return store;
-  let kept: Awaited<ReturnType<typeof keepLease>>;
+  const migrateUp = o.migrate ?? true;
+  // A SQL store under a lease migrates under it (second reading of 4.1.20 PR 1c): opened as it is, the lease taken from
+  // schema 5 on, then brought up; below 5 there is no lease table, so it is brought up first (the dialect's lock).
+  const store = await openStoreOnly(spec, dir, file, kind ? { ...o, migrate: false } : o);
+  if (!kind || !(store instanceof SqlRealityStore)) {
+    if (kind && migrateUp && store instanceof SqlRealityStore) await store.migrate();
+    return store;
+  }
+  let kept: Awaited<ReturnType<typeof keepLease>> | undefined;
   try {
+    if ((await store.schemaVersion()) < 5 && migrateUp) await store.migrate();
+    if ((await store.schemaVersion()) < 5) return store;
     kept = await keepLease(store, kind, {
       ttlMs: o.leaseMs ?? (kind === 'exclusive' ? LEASE_MS.exclusive : LEASE_MS.command),
       ...(o.lockTimeoutMs !== undefined ? { lockTimeoutMs: o.lockTimeoutMs } : {}),
       ...(o.onLeaseEvent ? { onEvent: o.onLeaseEvent } : {}),
     });
+    if (migrateUp) await store.migrate();
   } catch (e) {
+    await kept?.stop();
     await store.close();
     throw e;
   }
+  if (!kept) return store;
+  const stopLease = kept.stop;
   const close = store.close.bind(store);
   store.close = async () => {
-    await kept.stop();
+    await stopLease();
     await close();
   };
   return store;

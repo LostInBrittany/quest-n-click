@@ -125,49 +125,81 @@ export async function takeLease(
  * until a new lease is taken; `stop` releases it. The store is any SQL store (`holdWrites`).
  */
 export async function keepLease(
-  store: Leasable & { holdWrites(why: string | undefined): void },
+  store: Leasable & {
+    holdWrites(why: string | undefined): void;
+    /** Writes refused past this monotonic instant (`performance.now()`) unless the lease is renewed before it. */
+    writableUntil?(until: number | undefined): void;
+  },
   kind: LeaseKind,
   o: { ttlMs: number; instanceId?: string; lockTimeoutMs?: number; onEvent?: (e: Record<string, unknown>) => void },
 ): Promise<{ lease: () => Lease; stop(): Promise<void> }> {
-  let lease = await takeLease(store, kind, o);
+  // A local deadline, renewed with the lease (second reading of 4.1.20 PR 1c): a process that stalls past its lease
+  // (paused, its event loop blocked) refuses its writes on its own clock, before the database calls the lease expired
+  // and a restore may take the store, never only at its next tick.
+  const margin = Math.floor(o.ttlMs / 3);
+  const fresh = () => store.writableUntil?.(performance.now() + o.ttlMs - margin);
+  let lease: Lease | undefined = await takeLease(store, kind, o);
+  fresh();
+  let current = lease;
   let stopped = false;
   // Lost (a renewal refused, the lock's connection dropped): writes held, and every tick tries a new lease.
   let held = false;
   const lose = (why: string) => {
     if (held) return;
     held = true;
-    store.holdWrites(`the maintenance lease ${lease.instanceId} is lost (${why}): writes held until it is taken again`);
-    o.onEvent?.({ event: 'maintenance.lease.lost', instance: lease.instanceId, why });
+    store.holdWrites(
+      `the maintenance lease ${current.instanceId} is lost (${why}): writes held until it is taken again`,
+    );
+    o.onEvent?.({ event: 'maintenance.lease.lost', instance: current.instanceId, why });
   };
   const watchLock = (l: Lease) => void l.lost.then((e) => !stopped && lease === l && lose(String(e.message ?? e)));
   watchLock(lease);
+  // One tick at a time: a retake may wait for the lock longer than a tick's period, and two of them would release the
+  // same lease twice, then each take a lease of which only one is kept.
+  let inFlight: Promise<void> | undefined;
+  const tick = async () => {
+    if (!held && lease && (await lease.renew())) {
+      fresh();
+      return;
+    }
+    lose('not renewed');
+    const old = lease;
+    lease = undefined;
+    await old?.release().catch(() => {});
+    const taken = await takeLease(store, kind, o);
+    if (stopped) {
+      // Stopped while it was taken: released at once, never left holding a row and a lock.
+      await taken.release().catch(() => {});
+      return;
+    }
+    lease = current = taken;
+    watchLock(taken);
+    fresh();
+    held = false;
+    store.holdWrites(undefined);
+    o.onEvent?.({ event: 'maintenance.lease.taken', instance: taken.instanceId });
+  };
   const timer = setInterval(
-    async () => {
-      if (stopped) return;
-      try {
-        if (!held) {
-          if (await lease.renew()) return;
-          lose('not renewed');
-        }
-        await lease.release().catch(() => {});
-        lease = await takeLease(store, kind, o);
-        watchLock(lease);
-        held = false;
-        store.holdWrites(undefined);
-        o.onEvent?.({ event: 'maintenance.lease.taken', instance: lease.instanceId });
-      } catch (e) {
-        lose(String((e as Error).message ?? e));
-      }
+    () => {
+      if (stopped || inFlight) return;
+      inFlight = tick()
+        .catch((e: unknown) => lose(String((e as Error).message ?? e)))
+        .finally(() => {
+          inFlight = undefined;
+        });
     },
-    Math.max(50, Math.floor(o.ttlMs / 3)),
+    Math.max(50, margin),
   );
   timer.unref?.();
   return {
-    lease: () => lease,
+    lease: () => current,
     stop: async () => {
       stopped = true;
       clearInterval(timer);
-      await lease.release().catch(() => {});
+      await inFlight;
+      store.writableUntil?.(undefined);
+      await lease?.release().catch(() => {});
+      lease = undefined;
     },
   };
 }

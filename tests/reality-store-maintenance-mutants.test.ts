@@ -299,3 +299,80 @@ describe('the maintenance lock on Postgres', () => {
     await sb.close();
   });
 });
+
+// Second reading of 4.1.20 PR 1c: one renewal at a time (a retake may wait for the lock longer than a tick), a lease
+// taken after `stop` released, and a holder that stalls refusing its writes on its own clock.
+describe('a lease kept, against its races', () => {
+  it('never runs two ticks at once: a slow retake is not doubled, and the old lease is released once', async () => {
+    vi.useFakeTimers();
+    const { s, store } = harness();
+    let releases = 0;
+    let gate!: () => void;
+    let slow = false;
+    const slowStore = {
+      ...store,
+      maintenanceLock: async () => {
+        if (slow) await new Promise<void>((ok) => (gate = ok));
+        return {
+          lost: new Promise<Error>(() => {}),
+          release: async () => void releases++,
+        };
+      },
+    };
+    const k = await keepLease(slowStore, 'serving', { ttlMs: 300, instanceId: 'i' });
+    s.renew = false;
+    slow = true;
+    // The first tick finds the lease not renewed and waits for the lock; the ticks after it must not start meanwhile.
+    await vi.advanceTimersByTimeAsync(1_000);
+    await flush();
+    expect(releases).toBe(1);
+    expect(s.takes).toBe(1);
+    gate();
+    await flush();
+    expect(s.takes).toBe(2);
+    await k.stop();
+    expect(releases).toBe(2);
+  });
+
+  it('stopped while a lease is being taken: that lease is released at once', async () => {
+    vi.useFakeTimers();
+    const { s, store } = harness();
+    let releases = 0;
+    let gate!: () => void;
+    let slow = false;
+    const slowStore = {
+      ...store,
+      maintenanceLock: async () => {
+        if (slow) await new Promise<void>((ok) => (gate = ok));
+        return { lost: new Promise<Error>(() => {}), release: async () => void releases++ };
+      },
+    };
+    const k = await keepLease(slowStore, 'serving', { ttlMs: 300, instanceId: 'i' });
+    s.renew = false;
+    slow = true;
+    await vi.advanceTimersByTimeAsync(100);
+    await flush();
+    const stopping = k.stop();
+    gate();
+    await stopping;
+    // The first lease, released by the tick; the one taken after stop, released too: none left holding a lock.
+    expect(releases).toBe(2);
+  });
+
+  it('a holder that stalls refuses its writes on its own clock, before its lease could expire in the database', async () => {
+    let now = 1_000;
+    vi.spyOn(performance, 'now').mockImplementation(() => now);
+    const a = await SqliteRealityStore.open(':memory:', { pollMs: 0 });
+    const k = await keepLease(a, 'serving', { ttlMs: 300, instanceId: 'stalls' });
+    expect(a.heldBecause).toBeUndefined();
+    await a.db.run('DELETE FROM daily_kv');
+    // No tick ran (the event loop was blocked) and two thirds of the lease went by.
+    now += 201;
+    expect(a.heldBecause).toMatch(/not renewed in time/);
+    await expect(a.db.run('DELETE FROM daily_kv')).rejects.toBeInstanceOf(WritesHeldError);
+    await expect(a.ping()).rejects.toBeInstanceOf(WritesHeldError);
+    await k.stop();
+    expect(a.heldBecause).toBeUndefined();
+    await a.close();
+  });
+});

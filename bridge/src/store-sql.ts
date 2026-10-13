@@ -241,17 +241,25 @@ export abstract class SqlRealityStore implements RealityStore {
   /** The database as it is, for the maintenance leases only (bridge/src/maintenance.ts). */
   readonly leaseDb: SqlDb;
   private writesHeld: string | undefined;
+  private writableBefore: number | undefined;
   constructor(db: SqlDb) {
     this.leaseDb = db;
-    this.db = guarded(db, () => this.writesHeld);
+    this.db = guarded(db, () => this.heldBecause);
   }
   /** Holds every write with `why` (a lease lost), or lets them go again (`undefined`). */
   holdWrites(why: string | undefined): void {
     this.writesHeld = why;
   }
-  /** Why writes are held, if they are. */
+  /** Writes refused past `until` (a monotonic `performance.now()` instant), unless it is moved on: the lease's own clock. */
+  writableUntil(until: number | undefined): void {
+    this.writableBefore = until;
+  }
+  /** Why writes are held, if they are: a lease lost, or not renewed in time on this process's clock. */
   get heldBecause(): string | undefined {
-    return this.writesHeld;
+    if (this.writesHeld) return this.writesHeld;
+    if (this.writableBefore !== undefined && performance.now() > this.writableBefore)
+      return 'the maintenance lease was not renewed in time (this process stalled?): writes held until it is';
+    return undefined;
   }
 
   /** Brings the schema to `to` (the latest by default); the versions applied, negative when undone. */
@@ -265,7 +273,8 @@ export abstract class SqlRealityStore implements RealityStore {
 
   /** The store answers, and its writes are not held (`/readyz` fails while its maintenance lease is lost). */
   async ping(): Promise<void> {
-    if (this.writesHeld) throw new WritesHeldError(this.writesHeld);
+    const held = this.heldBecause;
+    if (held) throw new WritesHeldError(held);
     await this.db.all('SELECT 1 AS one');
   }
   async tenants(): Promise<string[]> {
