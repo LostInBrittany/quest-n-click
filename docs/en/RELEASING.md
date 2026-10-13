@@ -25,7 +25,8 @@ RC is not fixed: it becomes an `rc.N+1`.
 - **Immutable releases**: Settings → General → Releases. A published release then keeps its files and its tag.
 - **A ruleset on the release tags**: target `tag`, `refs/tags/v*`, active. It restricts creation, refuses deletion
   and forbids force-push.
-- `npm run ship -- preflight-stable --candidate=<run>` must then see both.
+- `npm run ship -- preflight-stable --candidate=<run>` must then see both. **Before the first 4.1.20 tag**: `ship tag`
+  refuses to tag while immutable releases are off (release.yml's token cannot read that setting).
 
 ## Signing 4.2's tags
 
@@ -67,7 +68,7 @@ ours (D34: squatting is an accepted risk until 4.2).
 
 1. **Versions.** Staged publishing needs npm 11.15.0 and Node 22.14.0 at least ([npm docs][staged]). release.yml pins
    the publishing step to **exact** versions, `NPM_PUBLISH_NODE: 22.23.3` and `NPM_PUBLISH_NPM: 11.21.0`. A test
-   refuses a range.
+   refuses a range. Node 22.23.3 ships npm 10.9.9: the step installs npm 11.21.0 itself (`npm install -g npm@11.21.0`).
 2. **The account.** The maintainer's npm account has 2FA on.
 3. **Bootstrap, once per package.** The packages do not exist yet. Stage a **reservation version**, never a product
    version:

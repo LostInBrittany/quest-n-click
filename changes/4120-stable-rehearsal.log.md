@@ -17,3 +17,20 @@
 - The preflight reads a signing key on GitHub through the public `users/<login>/ssh_signing_keys`, which needs no
   extra token scope. The tests use fake gh/npm/git and check that no call writes.
 - `ship tag --sign` is refused below 4.2.0 (D30).
+- Second reading (subagent, 13 Oct, read-only probes of gh, npm 11.21.0's source and docs.npmjs.com). Fixed:
+  - **P0: `ship preflight-stable` always crashed.** lib's `gh()` adds `-R`, which `gh api` refuses. It now asks
+    `gh api user` directly.
+  - **P1: a release could go public before `gh release verify` could pass.** That command needs immutable releases.
+    `ship tag` now refuses to tag from 4.1.20 while they are off. It runs with the maintainer's admin access;
+    release.yml's token cannot read that setting, which needs admin read.
+  - "Not published yet" stops on any error of gh but "release not found".
+  - **P1: the stage-only check read a field npm does not print.** npm prints one indented object per configuration,
+    with `permissions` (createPackage: may publish; createStagedPackage: may stage). The check now reads each object
+    and blocks on createPackage. The tests use that real shape.
+  - Smaller fixes:
+    - gh error bodies are no list: no crash, said missing;
+    - a name is ours by its exact npm user (`npm whoami`), never a prefix; unknown when not logged in;
+    - the nightly tells a 404 from a network error, and its job no longer sits under heavy's comment;
+    - a tag ruleset with no bypass would block the maintainer too, so it is not `ok`;
+    - the GO / NO-GO read is the sheet's last verdict;
+    - the runbook says Node 22.23.3 ships npm 10.9.9, so the step installs npm 11.21.0 itself.

@@ -214,11 +214,17 @@ jobs:
       # stays) and made again from the same candidate. A failed RC is not fixed: it is an rc.N+1.
       - name: Not published yet
         run: |
-          state=$(gh release view "$TAG" --json isDraft --jq 'if .isDraft then "draft" else "published" end' 2>/dev/null || echo none)
+          # "release not found" is none; any other error of gh (auth, network) stops here rather than read as none.
+          if out=$(gh release view "$TAG" --json isDraft --jq 'if .isDraft then "draft" else "published" end' 2>&1); then state="$out"
+          elif echo "$out" | grep -qi 'release not found'; then state=none
+          else echo "::error::gh release view $TAG: $out"; exit 1; fi
           case "$state" in
             published) echo "::error::$TAG is published: a published release is never changed (a new version is a new tag)"; exit 1 ;;
             draft) echo "::notice::$TAG: a draft left by an earlier run, deleted (never published)"; gh release delete "$TAG" --yes ;;
           esac
+          # Immutable releases are required from 4.1.20 (`ship verify` asks for GitHub's release attestation, which only
+          # an immutable release has): `ship tag` checks it before it pushes the tag, with the maintainer's own access;
+          # this job's token cannot read that setting (it needs admin read).
         env:
           GH_TOKEN: ${{ github.token }}
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0

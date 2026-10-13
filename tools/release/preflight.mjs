@@ -36,10 +36,43 @@ export function pinProblems(pins) {
   return bad;
 }
 
+/**
+ * The JSON objects a command printed one after the other (`npm trust list --json` prints one indented object per
+ * configuration, second reading of PR 3b), each parsed; text that is no object is skipped.
+ */
+export function jsonObjects(text) {
+  const out = [];
+  let depth = 0;
+  let start = -1;
+  let inString = false;
+  for (let i = 0; i < text.length; i++) {
+    const ch = text[i];
+    if (inString) {
+      if (ch === '\\') i++;
+      else if (ch === '"') inString = false;
+    } else if (ch === '"') inString = true;
+    else if (ch === '{') {
+      if (depth++ === 0) start = i;
+    } else if (ch === '}' && depth > 0 && --depth === 0) {
+      try {
+        out.push(JSON.parse(text.slice(start, i + 1)));
+      } catch {
+        /* not JSON */
+      }
+    }
+  }
+  return out;
+}
+
+/** An npm maintainer (`name <email>`) as its user name alone. */
+const npmName = (m) => String(m).split(' ')[0];
+
 /** Whether a ruleset protects the release tags: active, on `refs/tags/v*`, refusing deletion, force-push and creation by others. */
 export function guardsTags(rs) {
   const types = new Set((rs?.rules ?? []).map((r) => r.type));
+  // Creation restricted to someone: with no bypass, the maintainer could not tag either.
   return (
+    (rs?.bypass_actors ?? []).length > 0 &&
     rs?.target === 'tag' &&
     rs.enforcement === 'active' &&
     (rs.conditions?.ref_name?.include ?? []).some((p) => p === 'refs/tags/v*' || p === '~ALL') &&
@@ -52,7 +85,7 @@ export function guardsTags(rs) {
  * `pack`, the folder of its four archives); `o.version` the stable version; `o.root` the checkout; `o.login` the
  * maintainer's GitHub login.
  */
-export function preflight({ exec, repo, login, version, root = '.', candidate }) {
+export function preflight({ exec, repo, login, npmUser, version, root = '.', candidate }) {
   const rows = [];
   const add = (id, state, say) => rows.push({ id, state, say });
   const ok = (r) => r.status === 0;
@@ -73,7 +106,9 @@ export function preflight({ exec, repo, login, version, root = '.', candidate })
   if (!pub || format !== 'ssh')
     add('signing-key', 'missing', 'no SSH signing key here (git config gpg.format ssh, user.signingkey <key>)');
   else add('signing-key', 'ok', `${pubFile}`);
-  const registered = json(exec('gh', ['api', `users/${login}/ssh_signing_keys`])) ?? [];
+  // An error body (a 403, a 404) is JSON too: only a list is a list.
+  const list = (v) => (Array.isArray(v) ? v : []);
+  const registered = list(json(exec('gh', ['api', `users/${login}/ssh_signing_keys`])));
   if (!pub) add('signing-key-on-github', 'missing', 'no local key to look for');
   else if (registered.some((k) => String(k.key).startsWith(pub)))
     add('signing-key-on-github', 'ok', `registered for ${login}`);
@@ -101,7 +136,7 @@ export function preflight({ exec, repo, login, version, root = '.', candidate })
     imm?.enabled ? 'ok' : 'missing',
     imm?.enabled ? 'enabled' : 'disabled (Settings → General → Releases: immutable)',
   );
-  const ids = (json(exec('gh', ['api', `repos/${repo}/rulesets`])) ?? []).map((r) => r.id);
+  const ids = list(json(exec('gh', ['api', `repos/${repo}/rulesets`]))).map((r) => r.id);
   const tagged = ids.map((id) => json(exec('gh', ['api', `repos/${repo}/rulesets/${id}`]))).filter(guardsTags);
   add(
     'tag-ruleset',
@@ -144,30 +179,31 @@ export function preflight({ exec, repo, login, version, root = '.', candidate })
       );
       add(`${p}:trusted-publisher`, 'missing', 'configurable once the package exists');
     } else {
-      const who = JSON.stringify(json(view)?.maintainers ?? []);
-      add(
-        `${p}:name`,
-        who.includes(login) ? 'ok' : 'blocked',
-        who.includes(login) ? `ours (${login})` : `taken by someone else: ${who}`,
-      );
+      const names = list(json(view)?.maintainers).map(npmName);
+      if (!npmUser)
+        add(`${p}:name`, 'missing', `taken by ${names.join(', ')}: whose cannot be told (npm whoami: not logged in)`);
+      else if (names.includes(npmUser)) add(`${p}:name`, 'ok', `ours (${npmUser})`);
+      else add(`${p}:name`, 'blocked', `taken by someone else: ${names.join(', ')}`);
       add(`${p}:bootstrap`, 'ok', 'the package exists');
       const trust = exec('npm', ['trust', 'list', p, '--json']);
-      const t = ok(trust) ? json(trust) : null;
-      const entries = Array.isArray(t) ? t : t ? [t] : [];
-      const gh = entries.find((e) => JSON.stringify(e).includes(repo));
-      if (!gh)
+      // One object per configuration; `permissions`: createPackage (may publish), createStagedPackage (may stage).
+      const entries = ok(trust) ? jsonObjects(trust.stdout) : [];
+      const ours = entries.filter((e) => e.type === 'github' && Object.values(e).includes(repo));
+      if (!ours.length)
         add(
           `${p}:trusted-publisher`,
           'missing',
           `no trusted publisher for ${repo} (npm trust github ${p} --repo ${repo} --file release.yml --allow-stage-publish)`,
         );
-      else if (JSON.stringify(gh).includes('"allowPublish":true'))
+      else if (entries.some((e) => list(e.permissions).includes('createPackage')))
         add(
           `${p}:trusted-publisher`,
           'blocked',
-          'it may publish directly: stage-only is the rule (the maintainer promotes with 2FA)',
+          'a configuration may publish directly: stage-only is the rule (the maintainer promotes with 2FA)',
         );
-      else add(`${p}:trusted-publisher`, 'ok', 'configured, stage-only');
+      else if (ours.every((e) => list(e.permissions).includes('createStagedPackage')))
+        add(`${p}:trusted-publisher`, 'ok', 'configured, stage-only');
+      else add(`${p}:trusted-publisher`, 'missing', 'configured, but npm names no permission for it');
     }
     const published = exists && ok(exec('npm', ['view', `${p}@${pkgVersion}`, 'version']));
     add(
@@ -194,7 +230,8 @@ export function preflight({ exec, repo, login, version, root = '.', candidate })
 
   // GO / NO-GO against the people's reports of this version.
   const go = readFileSync(join(root, 'docs', 'dev', 'GO-NO-GO-4.2.md'), 'utf8');
-  const verdict = /\*\*(NO-GO|GO) for 4\.2/.exec(go)?.[1] ?? 'NO-GO';
+  // The last verdict the sheet writes (an older one may stay above it).
+  const verdict = [...go.matchAll(/\*\*(NO-GO|GO) for 4\.2/g)].at(-1)?.[1] ?? 'NO-GO';
   const field = join(root, 'docs', 'dev', 'field', version);
   const statuses = existsSync(field)
     ? readdirSync(field)

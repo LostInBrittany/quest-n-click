@@ -263,6 +263,17 @@ async function tag(versionArg, sha) {
       throw new Error(`${name} on ${full.slice(0, 7)}: ${line.reason} (merge that tag into the branch first, 4.1.16)`);
     say(`${name}: ${line.reason}`);
     if (requiresCandidate(version) || candidate) verifyCandidate(candidate, full);
+    // From 4.1.20 a release is published only immutable (second reading of 4.1.20 PR 3b): `ship verify` asks GitHub
+    // for its release attestation, which only an immutable release has. Checked here, with the maintainer's access
+    // (release.yml's token cannot read the setting), before the tag exists: never a release published unverifiable.
+    if (atLeast(version, FIRST_LISTED)) {
+      const imm = JSON.parse(run('gh', ['api', `repos/${REPO}/immutable-releases`]) || '{}');
+      if (imm.enabled !== true)
+        throw new Error(
+          `immutable releases are off on ${REPO} (Settings → General → Releases): ${name} is not tagged (docs/en/RELEASING.md)`,
+        );
+      say(`${REPO}: immutable releases on`);
+    }
     if (process.argv.includes('--now'))
       say(`tagging without waiting for main's run (--now): the tag's run is the gate`);
     else await main(full);
@@ -410,9 +421,12 @@ async function preflightStable() {
   } catch (e) {
     problems.push(String(e.message ?? e).split('\n')[0]);
   }
-  const login = ghJson(['api', 'user']).login;
+  // `gh api` takes no `-R` (lib's `gh` adds it): asked directly (second reading of PR 3b).
+  const login = JSON.parse(run('gh', ['api', 'user'])).login;
   const exec = (cmd, args) => spawnSync(cmd, args, { encoding: 'utf8' });
-  const rows = preflight({ exec, repo: REPO, login, version, candidate: { run: runId, problems, pack } });
+  const who = exec('npm', ['whoami']);
+  const npmUser = who.status === 0 ? who.stdout.trim() : undefined;
+  const rows = preflight({ exec, repo: REPO, login, npmUser, version, candidate: { run: runId, problems, pack } });
   for (const r of rows) console.log(`${r.state === 'ok' ? '✔' : r.state === 'missing' ? '·' : '✖'} ${r.id}: ${r.say}`);
   const blocked = rows.filter((r) => r.state === 'blocked').length;
   const missing = rows.filter((r) => r.state === 'missing').length;

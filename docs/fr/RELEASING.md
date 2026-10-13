@@ -25,7 +25,9 @@ se corrige pas : elle devient une `rc.N+1`.
 - **Les releases immuables** : Settings → General → Releases. Une release publiée garde alors ses fichiers et son tag.
 - **Un ruleset sur les tags de release** : cible `tag`, `refs/tags/v*`, actif. Il réserve la création, refuse la
   suppression et interdit le force-push.
-- `npm run ship -- preflight-stable --candidate=<run>` doit alors voir les deux.
+- `npm run ship -- preflight-stable --candidate=<run>` doit alors voir les deux. **Avant le premier tag de 4.1.20** :
+  `ship tag` refuse de taguer tant que les releases immuables sont désactivées (le token de release.yml ne peut pas
+  lire ce réglage).
 
 ## Signer les tags de 4.2
 
@@ -68,7 +70,7 @@ Rien n'est publié sur npm en 4.1.x. Les quatre noms (`web-scumm`, `create-web-s
 
 1. **Versions.** La publication en étapes demande au moins npm 11.15.0 et Node 22.14.0 ([doc npm][staged]).
    release.yml épingle l'étape de publication à des versions **exactes**, `NPM_PUBLISH_NODE: 22.23.3` et
-   `NPM_PUBLISH_NPM: 11.21.0`. Un test refuse une plage.
+   `NPM_PUBLISH_NPM: 11.21.0`. Un test refuse une plage. Node 22.23.3 livre npm 10.9.9 : l'étape installe elle-même npm 11.21.0 (`npm install -g npm@11.21.0`).
 2. **Le compte.** Le compte npm du mainteneur a la 2FA activée.
 3. **Bootstrap, une fois par package.** Les packages n'existent pas encore. On met en scène une **version de
    réservation**, jamais une version du produit :

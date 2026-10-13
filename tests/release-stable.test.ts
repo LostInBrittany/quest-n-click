@@ -7,7 +7,15 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterAll, describe, expect, it } from 'vitest';
 // @ts-expect-error: a plain .mjs module without declarations
-import { guardsTags, MINIMUM, PACKAGES, pinProblems, pinsOf, preflight } from '../tools/release/preflight.mjs';
+import {
+  guardsTags,
+  jsonObjects,
+  MINIMUM,
+  PACKAGES,
+  pinProblems,
+  pinsOf,
+  preflight,
+} from '../tools/release/preflight.mjs';
 // @ts-expect-error: a plain .mjs module without declarations
 import { rehearse, tagArgs } from '../tools/release/signing.mjs';
 
@@ -165,25 +173,39 @@ describe('ship preflight-stable', () => {
 
   it('blocks on a candidate that does not verify, a name taken, a version published, a publisher that may publish', () => {
     const { d, pack } = root();
+    const cfg = (id: string, permissions: string[]) =>
+      JSON.stringify({ id, type: 'github', repository: 'o/r', file: 'release.yml', permissions }, null, 2);
     const { exec } = fakes({
-      'npm view web-scumm name': { stdout: '{"maintainers":["squatter <s@x>"]}' },
+      'npm view web-scumm name': { stdout: '{"maintainers":["me-too <s@x>"]}' },
       'npm view web-scumm@4.2.0': { stdout: '4.2.0' },
       'npm view create-web-scumm name': { stdout: '{"maintainers":["me <me@x>"]}' },
-      'npm trust list create-web-scumm': { stdout: '[{"type":"github","repository":"o/r","allowPublish":true}]' },
+      'npm view web-scumm-bridge name': { stdout: '{"maintainers":["me <me@x>"]}' },
+      // npm 11.21.0's own shape: one indented object per configuration, its permissions beside its values.
+      'npm trust list create-web-scumm': {
+        stdout: `${cfg('a', ['createStagedPackage'])}\n${cfg('b', ['createPackage', 'createStagedPackage'])}\n`,
+      },
+      'npm trust list web-scumm-bridge': { stdout: `${cfg('c', ['createStagedPackage'])}\n` },
     });
-    const rows = preflight({
-      exec,
-      repo: 'o/r',
-      login: 'me',
-      version: '4.2.0',
-      root: d,
-      candidate: { run: '1', problems: ['not green'], pack },
-    });
+    const at = (o: Record<string, unknown>) =>
+      preflight({
+        exec,
+        repo: 'o/r',
+        login: 'me',
+        version: '4.2.0',
+        root: d,
+        candidate: { run: '1', problems: ['not green'], pack },
+        ...o,
+      });
+    const rows = at({ npmUser: 'me' });
     expect(state(rows, 'candidate')).toBe('blocked');
+    // `me-too` is not `me`: a name is ours by its exact npm user, never a prefix.
     expect(state(rows, 'web-scumm:name')).toBe('blocked');
     expect(state(rows, 'web-scumm:version')).toBe('blocked');
     expect(state(rows, 'create-web-scumm:name')).toBe('ok');
     expect(state(rows, 'create-web-scumm:trusted-publisher')).toBe('blocked');
+    expect(state(rows, 'web-scumm-bridge:trusted-publisher')).toBe('ok');
+    // Not logged in to npm: whose a taken name is cannot be told, said, not guessed.
+    expect(state(at({}), 'create-web-scumm:name')).toBe('missing');
   });
 
   it('sees a ruleset on the release tags, immutability, and a GO the reports contradict', () => {
@@ -192,15 +214,19 @@ describe('ship preflight-stable', () => {
       name: 'tags',
       target: 'tag',
       enforcement: 'active',
+      bypass_actors: [{ actor_type: 'RepositoryRole', actor_id: 5, bypass_mode: 'always' }],
       conditions: { ref_name: { include: ['refs/tags/v*'] } },
       rules: [{ type: 'creation' }, { type: 'deletion' }, { type: 'non_fast_forward' }],
     };
     expect(guardsTags(rs)).toBe(true);
+    // Creation restricted to nobody: the maintainer could not tag either.
+    expect(guardsTags({ ...rs, bypass_actors: [] })).toBe(false);
     expect(guardsTags({ ...rs, enforcement: 'evaluate' })).toBe(false);
     expect(guardsTags({ ...rs, rules: [{ type: 'deletion' }] })).toBe(false);
     expect(guardsTags({ ...rs, target: 'branch' })).toBe(false);
     const { d, pack } = root();
-    writeFileSync(join(d, 'docs', 'dev', 'GO-NO-GO-4.2.md'), '**GO for 4.2**');
+    // The last verdict the sheet writes counts (an older one may stay above it).
+    writeFileSync(join(d, 'docs', 'dev', 'GO-NO-GO-4.2.md'), '**NO-GO for 4.2 today**\n\nlater: **GO for 4.2**');
     const { exec } = fakes({
       'gh api repos/o/r/rulesets/7': { stdout: JSON.stringify(rs) },
       'gh api repos/o/r/rulesets': { stdout: '[{"id":7}]' },
@@ -217,6 +243,26 @@ describe('ship preflight-stable', () => {
     expect(state(rows, 'tag-ruleset')).toBe('ok');
     expect(state(rows, 'immutable-releases')).toBe('ok');
     expect(state(rows, 'go-no-go')).toBe('blocked');
+  });
+
+  it("reads npm's objects one after the other, and a gh error body is no list", () => {
+    expect(jsonObjects('{\n  "a": "}"\n}\n{"b": [1, {"c": 2}]}\nnoise')).toEqual([{ a: '}' }, { b: [1, { c: 2 }] }]);
+    const { d, pack } = root();
+    // gh answers a 403 with a JSON body on stdout: no crash, the checks are missing.
+    const exec = (cmd: string) =>
+      cmd === 'gh'
+        ? { status: 1, stdout: '{"message":"Forbidden","status":"403"}', stderr: '' }
+        : { status: 1, stdout: '', stderr: 'E404' };
+    const rows = preflight({
+      exec,
+      repo: 'o/r',
+      login: 'me',
+      version: '4.2.0',
+      root: d,
+      candidate: { run: '1', problems: [], pack },
+    });
+    expect(state(rows, 'tag-ruleset')).toBe('missing');
+    expect(state(rows, 'signing-key-on-github')).toBe('missing');
   });
 });
 
