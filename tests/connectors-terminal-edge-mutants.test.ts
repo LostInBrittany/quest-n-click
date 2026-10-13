@@ -382,6 +382,12 @@ class FakeSocket extends EventEmitter {
     this.destroyed = true;
     return this;
   }
+  /** A paused socket emits no `data`, as a net.Socket. */
+  paused = false;
+  pause() {
+    this.paused = true;
+    return this;
+  }
   text() {
     return this.out.map((x) => (typeof x === 'string' ? x : Buffer.from(x).toString('latin1'))).join('');
   }
@@ -525,6 +531,8 @@ describe('the Telnet server', () => {
     const late = telnetSession(c, ctx, Object.assign(new FakeSocket(), { remoteAddress: '10.0.0.3' }));
     await stopped;
     expect(late.ends).toEqual(['The terminal is busy. Try again later.\r\n']);
+    // Stopping pauses the session: nothing more is read before its socket is destroyed.
+    expect(s.paused).toBe(true);
     s.out.length = 0;
     pair.resolve({ ok: true, playerId: PLAYER });
     await flush();
