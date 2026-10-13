@@ -58,6 +58,8 @@ function candidate(version: string, over: Record<string, string> = {}) {
     'manifest.webmanifest': h('2'),
     'og.png': h('3'),
     'assets/index-x.js': h('4'),
+    'assets/index-x.css': h('7'),
+    'data/dossier.bin': h('8'),
     'assets/audio/voice-1.ogg': h('5'),
     'assets/img/room.webp': h('6'),
   };
