@@ -67,9 +67,9 @@ export const SETS = {
     // The maintenance leases (4.1.20 PR 1c).
     'bridge/src/maintenance.ts',
   ],
-  // Measured, not gated (4.1.19, plan §8.1): what `connectors-pure` leaves out — configuration and start, the email
-  // connector (webhook and IMAP), the badge's verification, the terminal's guard and shell, SSH and Telnet. Gated only
-  // once every survivor is read.
+  // What `connectors-pure` leaves out (4.1.19, plan §8.1) — configuration and start, the email connector (webhook and
+  // IMAP), the badge's verification, the terminal's guard and shell, SSH and Telnet. Gated since 4.1.20 (PR 2b–2e),
+  // every survivor killed or named, in four shards.
   'connectors-edge': [
     'connectors/src/config.ts',
     'connectors/src/run.ts',
@@ -85,8 +85,9 @@ export const SETS = {
     'connectors/src/ssh/connector.ts',
     'connectors/src/telnet/connector.ts',
   ],
-  // Measured, not gated (4.1.19): the Postgres adapter, which `reality-store` does not mutate (it mutates what the
-  // adapter rests on, store-sql.ts). Its tests need a database: BRIDGE_PG_URL (the mutation workflow gives one).
+  // The Postgres adapter (4.1.19), which `reality-store` does not mutate (it mutates what the adapter rests on,
+  // store-sql.ts). Gated since 4.1.20 (PR 2a). Its tests need a database: BRIDGE_PG_URL (the mutation workflow gives
+  // one).
   'reality-store-postgres': ['bridge/src/store-postgres.ts'],
 };
 export type MutationSet = keyof typeof SETS;
@@ -173,9 +174,13 @@ export const GATED: MutationSet[] = [
   // 4.1.20 PR 2a: its 41 mutants read on a real Postgres, 40 killed (tests/reality-store-postgres-mutants.test.ts), one
   // named; every job that mutates it has a Postgres service.
   'reality-store-postgres',
+  // 4.1.20 PR 2b–2e: its 488 survivors read family by family (badges, email, terminal, the rest): 469 killed by
+  // tests/connectors-*-edge-mutants.test.ts, 19 named. Run in 4 shards.
+  'connectors-edge',
 ];
 /** Measured on demand (`gh workflow run mutation -f set=…`) and every night, gating nothing until their survivors are read. */
-export const MEASURED: MutationSet[] = ['connectors-edge'];
+// Empty since 4.1.20 (plan §7.5): every set is gated; a set added later is measured here until its survivors are read.
+export const MEASURED: MutationSet[] = [];
 
 /**
  * The shards a set's mutation runs in (4.1.20 PR 2a, plan §7.3), one job each, merged into the set's report. A set not
