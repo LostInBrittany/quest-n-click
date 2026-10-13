@@ -7,8 +7,9 @@
 // This is an operator's capability of the SQL stores, not of `RealityStore`: the runtime never restores.
 // 4.1.20 PR 1a: split by responsibility (schema, canonical, files, snapshot, restore); this module is its public face.
 export { payloadDigest, stableJson } from './canonical';
-export { readBounded, writeAtomic } from './files';
+export { readBounded, writeAtomic, writeNew } from './files';
 export { auditRestore, RestoreUnknown, restoreBackup } from './restore';
+export { TABLES } from './tables';
 export {
   BackupError,
   type BackupPayload,

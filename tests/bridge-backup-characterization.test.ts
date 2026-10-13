@@ -1,6 +1,8 @@
 // The backup's behaviour pinned before `bridge/src/backup.ts` is split into `bridge/src/backup/` (4.1.20 PR 1a, plan
 // §6.0): the messages a refused file gets, the command line's exit codes and lines, and the canonical form of a backup
-// (everything but its dates and the Bridge's version). The split changes where the code lives, nothing of this.
+// (everything but its dates and the Bridge's version). The split changed where the code lives, nothing of this; PR 1b
+// changed it on purpose (schema 4, ADR 0023: the envelope's digest, the completeness, the quota, the mode said), and
+// pinned it again here.
 import { createHash } from 'node:crypto';
 import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -135,12 +137,13 @@ describe('the backup before and after its split', () => {
     const v3 = (f: (b: Record<string, any>) => void) =>
       edit((b) => {
         f(b);
-        b.digest.value = payloadDigest(b.payload);
+        const { format: _f, schema: _s, digest: _d, ...covered } = b;
+        b.digest.value = createHash('sha256').update(stableJson(covered)).digest('hex');
       });
     expect({
       notJson: refusal('{').replace(/: .*/, ': …'),
       otherFormat: refusal(JSON.stringify({ format: 'x', schema: 3 })),
-      schema4: refusal(edit((b) => void (b.schema = 4))),
+      schema5: refusal(edit((b) => void (b.schema = 5))),
       digest: refusal(edit((b) => void (b.payload.daily[0].v = 'changed'))),
       counts: refusal(edit((b) => void (b.counts.runs = 3))),
       unknownField: refusal(edit((b) => void (b.surprise = 1))),
@@ -154,11 +157,12 @@ describe('the backup before and after its split', () => {
       legacy: refusal(JSON.stringify({ format: 'web-scumm-bridge-backup', schema: 2, at: 'x', tenants: 'no' })),
     }).toEqual({
       notJson: 'not JSON: …',
-      otherFormat: 'not a Bridge backup of schema 1, 2 or 3',
-      schema4: 'not a Bridge backup of schema 1, 2 or 3',
-      digest: 'the payload does not match its digest: the file was changed or truncated',
-      counts: 'the counts do not match the payload',
-      unknownField: 'schema 3 refused: (root): Invalid input',
+      otherFormat: 'not a Bridge backup of schema 1, 2, 3 or 4',
+      schema5: 'not a Bridge backup of schema 1, 2, 3 or 4',
+      digest: 'the envelope does not match its digest: the file was changed or truncated',
+      // Schema 4: the counts are under the digest, which a changed count breaks first.
+      counts: 'the envelope does not match its digest: the file was changed or truncated',
+      unknownField: 'schema 4 refused: (root): Invalid input',
       tenantTwice: 'tenant t-a appears twice',
       strayRun: 'a run belongs to tenant t-c, which the backup does not carry',
       ackOfNoPlayer: 'tenant t-a: an acknowledgement names a player it does not hold',
@@ -175,6 +179,7 @@ describe('the backup before and after its split', () => {
       'schema',
       'bridge',
       'store',
+      'completeness',
       'startedAt',
       'endedAt',
       'counts',
@@ -184,8 +189,11 @@ describe('the backup before and after its split', () => {
     // The version is the repository's here (the packed Bridge reads its own package's): a file moved deeper must
     // still find it, never write "unknown".
     expect(b.bridge.version).toBe(JSON.parse(readFileSync('package.json', 'utf8')).version);
-    const fixed = { ...b, startedAt: '-', endedAt: '-', bridge: { version: '-' } };
-    expect({ store: b.store, counts: b.counts, digest: b.digest.value.slice(0, 16) }).toEqual({
+    // Schema 4's digest covers the dates, so it moves with every backup: the payload's own hash is pinned instead, and
+    // the envelope's with its dates, version and digest aside.
+    const { digest: _digest, ...envelope } = b;
+    const fixed = { ...envelope, startedAt: '-', endedAt: '-', bridge: { version: '-' } };
+    expect({ store: b.store, counts: b.counts, digest: payloadDigest(b.payload).slice(0, 16) }).toEqual({
       store: { kind: 'sqlite', schema: 4 },
       counts: {
         tenants: 2,
@@ -198,6 +206,7 @@ describe('the backup before and after its split', () => {
         pairings: 2,
         runs: 2,
         daily: 1,
+        quotas: 0,
       },
       digest: PINNED.digest,
     });
@@ -228,14 +237,14 @@ describe('the backup before and after its split', () => {
       usage: await lines(['backup']),
       backup: await lines(['backup', `--out=${out}`]),
       tooBig: await lines(['backup', `--out=${join(dir, 'x.json')}`, '--max-bytes=100']),
-      held: await lines(['restore', `--from=${out}`]),
+      held: await lines(['restore', `--from=${out}`, '--mode=merge']),
       forged: await (async () => {
         const f = JSON.parse(readFileSync(out, 'utf8'));
         f.payload.daily[0].v = 'changed';
         writeFileSync(forged, JSON.stringify(f));
-        return lines(['restore', `--from=${forged}`, '--force']);
+        return lines(['restore', `--from=${forged}`, '--mode=merge', '--force']);
       })(),
-      forced: await lines(['restore', `--from=${out}`, '--force']),
+      forced: await lines(['restore', `--from=${out}`, '--mode=merge', '--force']),
       restoreUsage: await lines(['restore']),
     };
     expect(seen).toEqual(PINNED.cli);
@@ -244,18 +253,19 @@ describe('the backup before and after its split', () => {
 
 /** What the code said on 12 October 2026, before the split (`8bd6575`). `store.schema` moves with a migration (PR 1b). */
 const PINNED = {
-  digest: 'c14732dbba6803c6',
-  envelope: '3ca0f4ed838bf42a',
+  digest: 'e8676e68d52fcf7a',
+  envelope: '61e40179766dd662',
   cli: {
     usage: '2 usage: backup --out=<file> [--max-bytes=<n>] [--max-rows=<n>]',
     backup:
-      '0 ✔  2 tenant(s), 2 signal(s), 2 run(s), 1 daily record(s) backed up to <dir>/b.json (schema 3, one snapshot, sha256 <hash>…)',
+      '0 ✔  2 tenant(s), 2 signal(s), 2 run(s), 1 daily record(s) backed up to <dir>/b.json (schema 4, one snapshot, sha256 <hash>…)',
     tooBig:
       "1 ✖  the backup would be <n> bytes, more than 100 (--max-bytes=): no file written; use pg_dump or the provider's snapshots",
     held: '1 ✖  the store already holds tenant(s) t-a, t-b, 2 run(s) of these tenants, 1 daily record(s): restore into an empty store, or --force; nothing restored',
-    forged: '1 ✖  the payload does not match its digest: the file was changed or truncated: nothing restored',
+    forged: '1 ✖  the envelope does not match its digest: the file was changed or truncated: nothing restored',
     forced:
-      '0 ✔  2 tenant(s), 2 run(s), 1 daily record(s) restored from <date> (schema 3), checked before and after the commit',
-    restoreUsage: '2 usage: restore --from=<backup file> [--force] [--max-bytes=<n>]',
+      '0 ✔  2 tenant(s), 2 run(s), 1 daily record(s), 0 quota row(s) restored from <date> (schema 4, merge), checked before and after the commit',
+    restoreUsage:
+      '2 usage: restore --from=<backup file> --mode=merge [--force] [--max-bytes=<n>]\n       restore --from=<backup file> --mode=replace-store --yes-replace-store --safety-out=<new file> [--max-bytes=<n>]',
   },
 };

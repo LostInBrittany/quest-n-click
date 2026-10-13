@@ -16,8 +16,27 @@ export function stableJson(v: unknown): string {
     .map((k) => `${JSON.stringify(k)}:${stableJson(o[k])}`)
     .join(',')}}`;
 }
-/** The SHA-256 of a payload's canonical text; the envelope's digest, which never covers itself. */
+/** The SHA-256 of a payload's canonical text: schema 3's digest, which covers the payload only. */
 export const payloadDigest = (p: BackupPayload): string => createHash('sha256').update(stableJson(p)).digest('hex');
+/**
+ * Schema 4's digest (4.1.20 PR 1b): the canonical text of the whole envelope but `format`, `schema` and `digest`
+ * itself — the Bridge and the store it names, its completeness, its dates, its counts and its payload. A check against
+ * a file changed or truncated by accident; whoever can change the file can compute it again (not a signature).
+ */
+export function envelopeDigest(b: {
+  bridge: unknown;
+  store: unknown;
+  completeness: unknown;
+  startedAt: string;
+  endedAt: string;
+  counts: unknown;
+  payload: unknown;
+}): string {
+  const { bridge, store, completeness, startedAt, endedAt, counts, payload } = b;
+  return createHash('sha256')
+    .update(stableJson({ bridge, store, completeness, startedAt, endedAt, counts, payload }))
+    .digest('hex');
+}
 
 export function countsOf(p: BackupPayload): BackupCounts {
   const sum = (f: (t: TenantExport) => number) => p.tenants.reduce((n, t) => n + f(t), 0);
@@ -32,6 +51,8 @@ export function countsOf(p: BackupPayload): BackupCounts {
     pairings: sum((t) => t.pairings?.length ?? 0),
     runs: p.runs.length,
     daily: p.daily.length,
+    // Schema 4 counts the quota; a file of schema 3 or older carries none and counts none.
+    ...(p.quotas ? { quotas: p.quotas.length } : {}),
   };
 }
 
@@ -50,7 +71,7 @@ export function normalRow(r: Row, cols: readonly string[]): Row {
   }
   return out;
 }
-const isBig = (c: string) => c === 'submitted_at' || c === 'lease_until' || c === 'created_at';
+const isBig = (c: string) => c === 'submitted_at' || c === 'lease_until' || c === 'created_at' || c === 'at';
 
 /** A tenant as an export reads it back: what a restore must find in the store before it commits. */
 export function normalTenant(x: TenantExport): TenantExport {

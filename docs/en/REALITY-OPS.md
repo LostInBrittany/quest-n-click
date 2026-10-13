@@ -198,19 +198,40 @@ tenants apart, then backs up, destroys the topology with its database and restor
   the backlog and a proposal's latency. In the process always; through OpenTelemetry's metrics API when
   `@opentelemetry/api` is installed beside the Bridge, exported over OTLP when `OTEL_EXPORTER_OTLP_ENDPOINT` is set and
   `@opentelemetry/sdk-node` is installed. Attributes: the tenant and a code, never a player or a payload.
-- `npm run bridge -- backup --out=<file>` (4.1.19, schema 3, ADR 0021) writes the whole store as **one snapshot**
-  (tenants, runs, daily records read in one read-only transaction) to a file of mode 600, written to a temporary file
-  then renamed: hashes of capabilities, never a capability or a key. Its envelope gives the backend, the Bridge and SQL
-  schema versions, the start and end, the counts per family and a SHA-256 of the payload. Bounded: a store above
-  `--max-rows` (2 000 000) or a file above `--max-bytes` (256 MiB) is refused, no file written.
-- `restore --from=<file>` is **all or nothing**: the file is read bounded and checked whole (schemas 1, 2 and 3; every
-  row, duplicates, relations, schema 3's counts and digest) before the store is opened; tenants, runs and daily
-  records are written in one transaction, read back and compared before it commits. A conflict (a tenant, a run of its
-  tenants, a daily key) refuses it without `--force`; with `--force` they are replaced in the same transaction. A
-  failure says "nothing restored" and leaves the store as it was; a difference found after the commit is said as a P0
+- `npm run bridge -- backup --out=<file>` (schema 4 since 4.1.20, ADR 0023; schema 3 in 4.1.19, ADR 0021) writes the
+  whole store as **one snapshot** (tenants, runs, daily records and the speedrun quota, read in one read-only
+  transaction) to a file of mode 600, written to a temporary file then renamed: hashes of capabilities, never a
+  capability or a key. Its envelope gives the backend, the Bridge and SQL schema versions, what it holds
+  (`completeness`: `whole-store` for a SQL store, `tenants-only` for the journal or memory), the start and end, the
+  counts per family, and a SHA-256 of all of it (`scope: envelope`). **The digest is an integrity check against a file
+  changed or truncated by accident, not a signature:** whoever can change the file can compute it again. Bounded: a
+  store above `--max-rows` (2 000 000) or a file above `--max-bytes` (256 MiB) is refused, no file written.
+- `restore --from=<file> --mode=…` is **all or nothing** in both of its modes, and **the mode is always said**: without
+  `--mode` nothing is restored. The file is read bounded and checked whole (schemas 1 to 4; every row, duplicates,
+  relations, schema 3's counts and payload digest, schema 4's envelope digest, dates, version and completeness) before
+  the store is opened; it is written in one transaction, read back and compared before it commits.
+  - `--mode=merge [--force]` (4.1.19's restore): a conflict (a tenant, a run or a quota of its tenants, a daily key)
+    refuses it without `--force`; with `--force` the file's families replace what they clash with, and **what the file
+    does not speak of stays** (another tenant, another daily key). Any schema, 1 to 4.
+
+    ```bash
+    npm run bridge -- restore --from=backup.json --mode=merge          # into an empty store, or refused
+    npm run bridge -- restore --from=backup.json --mode=merge --force  # the file's tenants replaced, the others kept
+    ```
+  - `--mode=replace-store --yes-replace-store --safety-out=<new file>`: **the store becomes the file**; every table but
+    the control ones (`schema_migrations`) is emptied in the same transaction, then the file is written and read back,
+    nothing more held. Only a schema 4 backup of a whole SQL store, of this store's SQL schema; first, a backup of the
+    store being replaced is written to a path that must not exist (no link either), read back and checked, or nothing
+    is deleted; its path is said in every outcome.
+
+    ```bash
+    npm run bridge -- restore --from=backup.json --mode=replace-store --yes-replace-store --safety-out=before.json
+    ```
+  A failure says "nothing restored" and leaves the store as it was; a difference found after the commit is said as a P0
   (exit code 3; stop the Bridge's instances during a restore, so that a difference cannot come from their writes; a
-  lost answer to the commit itself is said as such, also with code 3). It needs a SQL store: the JSON-lines journal is refused before it is touched (migrate it to SQLite,
-  then restore). Rehearsed by `tests/bridge-backup.test.ts` and `tests/bridge-ops.test.ts`.
+  lost answer to the commit itself is said as such, also with code 3). It needs a SQL store: the JSON-lines journal is
+  refused before it is touched (migrate it to SQLite, then restore). Rehearsed by `tests/bridge-backup.test.ts`,
+  `tests/bridge-backup-v4.test.ts` and `tests/bridge-ops.test.ts`.
 - The backup is logical, portable and bounded. For a large deployment, `pg_dump` or the provider's snapshots remain
   the backup of the database itself.
 - `tenant export --tenant=<id> [--out=<file>]`, `tenant delete --tenant=<id> --yes`: one tenant's rows, in every table.

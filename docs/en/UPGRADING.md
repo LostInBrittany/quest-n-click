@@ -519,3 +519,17 @@ instead.
 - `npm run connector-archive-e2e` plays the four connectors from their archives. The Vite configuration no longer
   loads the Studio; a plugin of yours that imported Studio code from `vite.config.ts` loads it through the dev server.
 - The golden save of 4.1.19 joins `tests/save-v3.test.ts`.
+
+## 32. From 4.1.19 to 4.1.20 "Last Mile"
+
+**For operators of a Bridge.**
+
+- **`restore` says its mode.** `restore --from=<file>` without `--mode` is refused (exit code 2) and restores
+  nothing. A script of 4.1.19 adds `--mode=merge`, which is 4.1.19's restore unchanged (`--force` included).
+  `--mode=replace-store --yes-replace-store --safety-out=<new file>` is new: it makes the store the backup
+  (`docs/en/REALITY-OPS.md`).
+- **A backup is schema 4.** It carries the speedrun quota, says what it holds (`completeness`) and has a digest of the
+  whole envelope. Files of schemas 1 to 3 are still read, for `--mode=merge` only: nothing under their digest says that
+  they hold every family, so `replace-store` refuses them. Two backups of the same store no longer share a digest,
+  since it covers their dates.
+

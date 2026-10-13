@@ -57,6 +57,13 @@ export const SETS = {
     'bridge/src/migrations.ts',
     'bridge/src/streams.ts',
     'bridge/src/sign.ts',
+    // The backup and the restore (4.1.20 PR 1b, plan §6.0): in no set until then.
+    'bridge/src/backup/canonical.ts',
+    'bridge/src/backup/files.ts',
+    'bridge/src/backup/restore.ts',
+    'bridge/src/backup/schema.ts',
+    'bridge/src/backup/snapshot.ts',
+    'bridge/src/backup/tables.ts',
   ],
   // Measured, not gated (4.1.19, plan §8.1): what `connectors-pure` leaves out — configuration and start, the email
   // connector (webhook and IMAP), the badge's verification, the terminal's guard and shell, SSH and Telnet. Gated only
@@ -122,6 +129,7 @@ export const TESTS: Record<MutationSet, string[]> = {
     'tests/bridge-runs-durable.test.ts',
     'tests/bridge-leaderboard.test.ts',
     'tests/reality-store-postgres-mutants.test.ts',
+    'tests/bridge-backup-v4.test.ts',
   ],
   'reality-store': [
     'tests/bridge-reality-store.test.ts',
@@ -130,6 +138,10 @@ export const TESTS: Record<MutationSet, string[]> = {
     'tests/reality-store-sql-mutants.test.ts',
     'tests/reality-store-sqlite-mutants.test.ts',
     'tests/reality-store-memory-mutants.test.ts',
+    'tests/bridge-backup.test.ts',
+    'tests/bridge-backup-v4.test.ts',
+    'tests/bridge-backup-characterization.test.ts',
+    'tests/bridge-ops.test.ts',
   ],
   remix: [
     'tests/remix-*.test.ts',
@@ -162,7 +174,7 @@ export const MEASURED: MutationSet[] = ['connectors-edge'];
  * The shards a set's mutation runs in (4.1.20 PR 2a, plan §7.3), one job each, merged into the set's report. A set not
  * named here is one shard. `connectors-edge` ran 2 h 02 in one job; `reality` was the candidate's longest (79 min).
  */
-export const SHARDS: Partial<Record<MutationSet, number>> = { 'connectors-edge': 4, reality: 2 };
+export const SHARDS: Partial<Record<MutationSet, number>> = { 'connectors-edge': 4, reality: 2, 'reality-store': 2 };
 
 /** The sets whose test files run one after the other: their tests share a real Postgres server (4.1.20 PR 2a). */
 export const SERIAL: (MutationSet | 'all')[] = ['reality-store-postgres'];
