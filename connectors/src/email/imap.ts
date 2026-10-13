@@ -98,7 +98,8 @@ export class ImapClient {
         clearTimeout(t);
         this.greeted = null;
         if (good) ok();
-        else ko(this.dead ?? new Error('the IMAP server refused the connection'));
+        // A greeting that is not OK closes the socket too, never left open behind the refusal.
+        else ko(this.dead ?? this.fail('the IMAP server refused the connection'));
       };
     });
   }

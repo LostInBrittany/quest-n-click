@@ -99,7 +99,8 @@ export async function main(
         res.end(JSON.stringify(data));
       };
       if (req.method === 'GET' && req.url === '/health') {
-        const h = await connector.health();
+        // A health that throws is unhealthy, never an unhandled rejection of this handler.
+        const h = await connector.health().catch(() => ({ ok: false, detail: 'health failed' }));
         return send(h.ok ? 200 : 503, { connector: id, ...h });
       }
       if (req.method === 'GET' && req.url === '/metrics') return send(200, { connector: id, ...ctx.metrics() });

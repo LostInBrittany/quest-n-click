@@ -175,7 +175,8 @@ export class TelnetConnector implements RealityConnector {
       if (this.sessions.delete(socket)) this.gate.leave(address);
     });
     socket.on('data', (d: Buffer) => {
-      if (!open) return;
+      // Stopping: nothing more is read, in the second before the socket is destroyed.
+      if (!open || this.stopping) return;
       if (!guard.bytes(d.length)) {
         this.refusedConnections++;
         ctx.reject('too-fast');
