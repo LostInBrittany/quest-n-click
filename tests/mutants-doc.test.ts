@@ -35,6 +35,15 @@ describe('the named survivors', () => {
     expect([...GATED, ...MEASURED].sort()).toEqual(Object.keys(SETS).sort());
   });
 
+  it('MUTANTS.md says each set gated or measured as tools/mutation-sets.ts does (4.1.20: a merge once kept a stale row)', () => {
+    const doc = readFileSync('docs/dev/MUTANTS.md', 'utf8');
+    for (const s of Object.keys(SETS)) {
+      const row = doc.split('\n').find((l) => l.startsWith(`| \`${s}\``));
+      const status = row?.split('|').at(-2)?.trim() ?? '';
+      expect(status, s).toMatch((GATED as string[]).includes(s) ? /^gated\b/ : /^measured\b/);
+    }
+  });
+
   it('every file of the backup is mutated by a gated set (4.1.20 PR 1b: none was before)', () => {
     const gated = new Set(GATED.flatMap((k) => SETS[k]));
     const files = readdirSync('bridge/src/backup').filter((f) => f.endsWith('.ts') && f !== 'index.ts');

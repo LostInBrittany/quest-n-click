@@ -9,7 +9,7 @@
 // Measured on a runner (the candidate's `backup-memory` job), never on a laptop.
 import { spawnSync } from 'node:child_process';
 import { randomBytes } from 'node:crypto';
-import { mkdtempSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdtempSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
@@ -53,12 +53,12 @@ function measured(cmd: string[], env: NodeJS.ProcessEnv = {}): Phase {
     /* the process died before its exit handler */
   }
   rmSync(dir, { recursive: true, force: true });
-  // The last line the command said, Node's own warnings (SQLite's experimental one) left out.
-  const said = `${r.stdout}\n${r.stderr}`
+  // What the command said: its error when it died of one (never Node's trailing "Node.js v22…" line), else its last
+  // line, Node's own warnings (SQLite's experimental one) left out.
+  const lines = `${r.stdout}\n${r.stderr}`
     .split('\n')
-    .filter((l) => l.trim() && !/ExperimentalWarning|--trace-warnings/.test(l))
-    .at(-1)
-    ?.slice(0, 200);
+    .filter((l) => l.trim() && !/ExperimentalWarning|--trace-warnings|^Node\.js v\d/.test(l));
+  const said = (lines.find((l) => /^\s*(\w*Error|✖)/.test(l)) ?? lines.at(-1))?.slice(0, 200);
   return { rssMb: Math.round(kb / 1024), seconds, code: r.status ?? -1, ...(said ? { said } : {}) };
 }
 
@@ -125,13 +125,10 @@ if (process.argv[2] === '--phase=read') {
   const sizes = (flag('sizes') ?? '64,128,256').split(',').map(Number);
   const containerMb = Number(flag('container-mb') ?? 512);
   const bin = flag('bridge') ? join(resolve(flag('bridge')!), 'bin.mjs') : join(ROOT, 'bridge', 'bin.mjs');
-  // The read uses the same Bridge as the other phases: the archive's sources (it ships them, run through tsx).
-  const backupModule = join(
-    flag('bridge') ? resolve(flag('bridge')!) : join(ROOT, 'bridge'),
-    'src',
-    'backup',
-    'index.ts',
-  );
+  // The read is the checkout's backup module, run through tsx: the archive ships one bundle (src/cli.mjs) that exports
+  // no `readBackup`, and the candidate checks out the very commit it packs, so these are the sources of that bundle.
+  const backupModule = join(ROOT, 'bridge', 'src', 'backup', 'index.ts');
+  if (!existsSync(backupModule)) throw new Error(`backup-memory: no ${backupModule}`);
   const dir = mkdtempSync(join(tmpdir(), 'backup-memory-'));
   const manifest = join(dir, 'manifest.json');
   writeFileSync(
@@ -149,6 +146,9 @@ if (process.argv[2] === '--phase=read') {
     schema: 1,
     store: spec === 'sqlite' ? 'sqlite' : 'postgres',
     containerMb,
+    // Export and restore run the Bridge named by --bridge (the candidate's archive); the read, its sources at this commit.
+    bridge: flag('bridge') ? 'archive' : 'checkout',
+    readModule: 'checkout:bridge/src/backup/index.ts',
     runner: { os: process.env.RUNNER_OS ?? process.platform, image: process.env.ImageOS ?? 'local' },
     // What the Bridge takes before any backup: `doctor` on an empty store, the same process shape.
     sizes: [] as unknown[],

@@ -214,7 +214,7 @@ export default defineConfig({
         // by the e2e, not here).
         lines: 73,
         statements: 72,
-        functions: 69,
+        functions: 71,
         branches: 68,
         // What a save, a session, a condition and a migration rest on: every branch.
         'src/engine/core/cond.ts': { branches: 100 },
