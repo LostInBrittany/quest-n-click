@@ -142,6 +142,7 @@ export const TESTS: Record<MutationSet, string[]> = {
     'tests/bridge-backup-v4.test.ts',
     'tests/bridge-backup-characterization.test.ts',
     'tests/bridge-ops.test.ts',
+    'tests/reality-store-backup-mutants.test.ts',
   ],
   remix: [
     'tests/remix-*.test.ts',
