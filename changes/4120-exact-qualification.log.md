@@ -29,7 +29,16 @@
     the file does not hold is now written after the backup. The refused replace-store must leave it (and write no
     safety file); the real one must remove it, and its safety backup must count one signal more than the file.
   - backup-memory's read peak was tsx's wrapper (tsx re-spawns a child the exit hook never sees). It is now measured
-    in one process (`node --import tsx`), through the candidate archive's own sources.
+    in one process (`node --import tsx`), through the checkout's `bridge/src/backup` at the candidate's commit.
+- First CI of #119 (13 Oct): `backup-memory` red on both stores. The read imported
+  `<archive>/src/backup/index.ts`, but the Bridge archive ships one bundle (`src/cli.mjs`) and no sources; locally,
+  without `--bridge`, the checkout's sources were found. Export and restore still run the archive. The read now runs
+  the checkout's module, which the bundle is built from at the same commit, and the report says so (`bridge`,
+  `readModule`). A dying command now reports its error line, not Node's trailing `Node.js v22…`. Reproduced on the
+  extracted archive with `--bridge` before and after.
+- Measured there (warnings, not failures): SQLite's merge restore peaks at 1.4 GB for a 64 MiB backup and 3 GB for
+  256 MiB, export at 0.7 to 2.4 GB, far above the 512 MiB container. PR 6 writes the envelope from these figures in
+  REALITY-OPS; reducing it is a 4.2 follow-up, not a 4.1.20 change.
   - `tools/release/candidate.mjs` imported `scripts/`, which the web-scumm package does not ship: the catalogue is now
     passed in, loaded by the CLI from the checkout, with a test that no release tool imports scripts/.
   - release.yml's manifest check is guarded on the file, as every step a tag may predate.
