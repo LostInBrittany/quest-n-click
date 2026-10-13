@@ -43,3 +43,6 @@
     store (`tools/bridge-load.ts:119`) and runs-load deletes its runs.
   - Carried by hand when 1c was merged in: its 4.1.17 hunk (migrate to schema 5) into
     `scripts/ops-qualify/backup.mjs`.
+- `e2e:pwa` on WebKit: "Context is stopped", once every check of the scenario passed, seen a second time (#118, 13 Oct,
+  after #111). As the 4.1.20 plan said to do if it came back, it is now reported (a warning) and not counted, only
+  after every check passed and only that exact WebKit message. Any other browser error still fails.
