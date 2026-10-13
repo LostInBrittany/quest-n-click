@@ -1377,5 +1377,17 @@
   "proof": "tests/connectors-terminal-edge-mutants.test.ts",
   "owner": "@wanoo",
   "revisit": "4.3.0"
+ },
+ {
+  "file": "bridge/src/store-postgres.ts",
+  "operator": "condition false",
+  "from": "given",
+  "to": "false",
+  "context": "if (given) return;",
+  "why": "maintenanceLock's `giveBack`: it is called once per path, in the catch that then throws (no lock returned, so no release follows) or by `release`, whose own `if (given) return;` stops a second call before it; forced false, the guard is never reached a second time. The same edit on `release`'s guard, which shares this line's text, is killed by tests/reality-store-postgres-mutants.test.ts (one unlock, one release however often it is released)",
+  "category": "unreachable",
+  "proof": "tests/reality-store-postgres-mutants.test.ts",
+  "owner": "@wanoo",
+  "revisit": "4.3.0"
  }
 ]

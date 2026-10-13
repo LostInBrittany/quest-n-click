@@ -20,14 +20,15 @@ import { manifestHash, type RealityManifest } from '../../src/engine/reality/man
 import { Bridge, type BridgeConfig, type Limits } from './bridge';
 import { biscuitLib } from './biscuit';
 import { grantToken } from './policy';
-import { opt, openStore, storeCommand, storeSpec } from './cli-store';
+import { LEASE_MS, opt, openStore, storeCommand, storeSpec } from './cli-store';
+import { MaintenanceError } from './maintenance';
 import { dailyRoutes, SqlDailyStore } from './daily';
 import { type ApprovedGame, RunQueue, SqlRunStore } from './runs';
 import { SqlLimiter } from './runs-limiter';
 import { bridgeServer, type ServeOptions, type WebhookConfig } from './server';
 import type { SqlDb } from './store-sql';
 import { JsonlBridgeStore } from './store';
-import { DEFAULT_TENANT, type RealityStore } from './store-async';
+import { DEFAULT_TENANT, type RealityStore, StoreBusyError } from './store-async';
 import { loadTelemetry, type Telemetry } from './telemetry';
 
 /**
@@ -276,12 +277,28 @@ export async function main(args: string[], game?: { manifest: RealityManifest | 
     const telemetry = await loadTelemetry(process.env, (line) =>
       console.log(JSON.stringify({ event: 'telemetry', what: line })),
     );
-    const hold: { store?: RealityStore; telemetry?: Telemetry; signalVersion?: 1 | 2 } = {
-      store: await openStore(spec, tenants[0]!, first, {
+    // A serving lease (4.1.20 PR 1c): refused while a restore or a migration down holds the store; renewed while it
+    // serves; lost, its writes are held and /readyz fails until it is taken again.
+    let served: RealityStore;
+    try {
+      served = await openStore(spec, tenants[0]!, first, {
+        lease: 'serving',
+        leaseMs: LEASE_MS.serve,
+        onLeaseEvent: (e) => console.log(JSON.stringify(e)),
         onRepair: (what) => console.log(JSON.stringify({ event: 'journal.repaired', what })),
         // A failed poll of the other instances' acceptances (SQLite busy past its wait): said, then tried again.
         onPollError: (e) => console.log(JSON.stringify({ event: 'store.poll.failed', error: String(e) })),
-      }),
+      });
+    } catch (e) {
+      // Refused by a lease, or by SQLite's write lock while a restore runs: said, not a stack.
+      if (e instanceof MaintenanceError || e instanceof StoreBusyError) {
+        console.error(`✖  ${e.message}: not serving`);
+        return 1;
+      }
+      throw e;
+    }
+    const hold: { store?: RealityStore; telemetry?: Telemetry; signalVersion?: 1 | 2 } = {
+      store: served,
       telemetry,
       ...(files.length > 1 ? { signalVersion: 2 as const } : {}),
     };

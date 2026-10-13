@@ -534,4 +534,8 @@ instead.
   they hold every family, so `replace-store` refuses them. Two backups of the same store no longer share a digest,
   since it covers their dates. **A 4.1.19 Bridge cannot read a schema 4 file**: going back to 4.1.19 after a backup
   taken by 4.1.20 needs a backup taken by 4.1.19 (or `pg_dump`).
+- **Maintenance leases (schema 5).** The store goes to schema 5 when a 4.1.20 Bridge or command opens it (migration
+  0005, the `maintenance` table). From then on `restore` refuses while any instance serves or any command writes.
+  **Stop every Bridge older than 4.1.20 before the first restore**: an older Bridge takes no lease and would not be
+  seen. `migrate --schema=4` (or lower) undoes 0005 first; stop every writer for it, as before 4.1.20.
 

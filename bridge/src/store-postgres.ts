@@ -4,6 +4,7 @@
 // the row with `pg_notify` (sent at commit): every instance `LISTEN`s and wakes the streams of that player. The
 // database stays the source of truth: a lost notification delays a stream until its next read, never drops a signal.
 import { checkTenant } from './store-async';
+import { type HeldLock, type LeaseKind, MaintenanceError } from './maintenance';
 import { type Row, type SqlDb, type SqlQuery, SqlRealityStore } from './store-sql';
 
 /** The part of `pg` this store uses (typed here: `pg` is optional and not imported for its types). */
@@ -12,6 +13,7 @@ interface PgClient {
   release(err?: Error): void;
   on(ev: 'notification', fn: (m: { channel: string; payload?: string }) => void): void;
   on(ev: 'error', fn: (e: Error) => void): void;
+  removeListener?(ev: 'error', fn: (e: Error) => void): void;
 }
 interface PgPool {
   query(sql: string, params?: unknown[]): Promise<{ rows: Row[]; rowCount: number | null }>;
@@ -117,6 +119,61 @@ export class PostgresRealityStore extends SqlRealityStore {
     const store = new PostgresRealityStore(new PgDb(pool));
     if (o.migrate !== false) await store.migrate();
     return store;
+  }
+
+  /**
+   * The maintenance advisory lock (4.1.20 PR 1c): on a connection of its own, shared for `serve` and the writing
+   * commands, exclusive for a restore; tried every 200 ms for `timeoutMs` at most, never waited for indefinitely.
+   * `lost` resolves when that connection drops: its holder then stops writing (bridge/src/maintenance.ts).
+   */
+  async maintenanceLock(kind: LeaseKind, o: { timeoutMs: number }): Promise<HeldLock> {
+    const c = await this.pg.pool.connect();
+    const shared = kind === 'serving';
+    const key = "hashtextextended('web-scumm:maintenance', 0)";
+    // Listened from the start (a connection that drops during the tries must not crash the process), removed with the
+    // lock (a client back in the pool keeps no listener of a lease gone).
+    let lost!: (e: Error) => void;
+    let broken: Error | undefined;
+    const dropped = new Promise<Error>((ok) => (lost = ok));
+    const onError = (e: Error) => {
+      broken = e;
+      lost(e);
+    };
+    c.on('error', onError);
+    let given = false;
+    const giveBack = () => {
+      if (given) return;
+      given = true;
+      c.removeListener?.('error', onError);
+      // A connection that dropped goes back with its error: the pool discards it rather than hand it out again.
+      c.release(broken);
+    };
+    try {
+      const deadline = Date.now() + o.timeoutMs;
+      for (;;) {
+        const [r] = (await c.query(`SELECT pg_try_advisory_lock${shared ? '_shared' : ''}(${key}) AS ok`)).rows;
+        if (r?.ok === true) break;
+        if (Date.now() >= deadline)
+          throw new MaintenanceError(
+            `the maintenance lock is held (${shared ? 'a restore or a migration down is running' : 'the store is served or written'}): refused after ${o.timeoutMs} ms`,
+          );
+        await new Promise((ok) => setTimeout(ok, 200));
+      }
+    } catch (e) {
+      broken ??= e instanceof MaintenanceError ? undefined : e instanceof Error ? e : new Error(String(e));
+      giveBack();
+      throw e;
+    }
+    return {
+      lost: dropped,
+      release: async () => {
+        if (given) return;
+        await c.query(`SELECT pg_advisory_unlock${shared ? '_shared' : ''}(${key})`).catch((e: unknown) => {
+          broken ??= e instanceof Error ? e : new Error(String(e));
+        });
+        giveBack();
+      },
+    };
   }
 
   /** Transactions tried again after a transient conflict. */

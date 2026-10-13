@@ -566,4 +566,9 @@ la racine.
   du même store n'ont plus la même empreinte, puisqu'elle couvre leurs dates. **Un Bridge 4.1.19 ne lit pas un
   fichier de schéma 4** : revenir à la 4.1.19 après une sauvegarde prise par la 4.1.20 demande une sauvegarde prise par
   la 4.1.19 (ou `pg_dump`).
+- **Baux de maintenance (schéma 5).** Le store passe au schéma 5 dès qu'un Bridge ou une commande 4.1.20 l'ouvre
+  (migration 0005, la table `maintenance`). Dès lors, `restore` refuse tant qu'une instance sert ou qu'une commande
+  écrit. **Arrêter tous les Bridges antérieurs à la 4.1.20 avant la première restauration** : un ancien Bridge ne prend
+  aucun bail et ne serait pas vu. `migrate --schema=4` (ou moins) défait d'abord 0005 ; arrêter alors tous les
+  écrivains, comme avant la 4.1.20.
 

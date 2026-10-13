@@ -13,11 +13,17 @@ interface FakeClient {
   query(sql: string, params?: unknown[]): Promise<{ rows: never[]; rowCount: number }>;
   release(e?: unknown): void;
   on(ev: string, fn: Handler): void;
+  removeListener(ev: string): void;
 }
 
 /** A `pg` whose queries a test scripts: `fail(sql)` returns the error a statement throws (or nothing). */
 function fakePg(
-  o: { fail?: (sql: string) => unknown; connectFails?: () => boolean; connectWaits?: () => Promise<void> } = {},
+  o: {
+    fail?: (sql: string) => unknown;
+    rows?: (sql: string) => unknown[] | undefined;
+    connectFails?: () => boolean;
+    connectWaits?: () => Promise<void>;
+  } = {},
 ) {
   const state = { connects: 0, released: [] as unknown[], clients: [] as FakeClient[] };
   const mod = {
@@ -36,11 +42,14 @@ function fakePg(
             c.queries.push({ sql, params });
             const e = o.fail?.(sql);
             if (e !== undefined) throw e;
-            return { rows: [], rowCount: 0 };
+            return { rows: (o.rows?.(sql) ?? []) as never[], rowCount: 0 };
           },
           release: (e?: unknown) => void state.released.push(e),
           on(ev, fn) {
             c.handlers[ev] = fn;
+          },
+          removeListener(ev: string) {
+            delete c.handlers[ev];
           },
         };
         state.clients.push(c);
@@ -218,5 +227,58 @@ describe('listening on Postgres', () => {
     drop(state.clients[0]!);
     await vi.advanceTimersByTimeAsync(120_000);
     expect(state.connects).toBe(1);
+  });
+});
+
+describe('a read-only transaction, and the maintenance lock (4.1.20 PR 1c)', () => {
+  it('is one snapshot when read-only, a plain BEGIN otherwise', async () => {
+    const { mod, state } = fakePg();
+    const store = await open(mod);
+    await store.db.tx(undefined, async () => {}, { readOnly: true });
+    await store.db.tx(undefined, async () => {});
+    const begins = state.clients.flatMap((c) => c.queries.map((q) => q.sql)).filter((q) => q.startsWith('BEGIN'));
+    expect(begins).toEqual(['BEGIN ISOLATION LEVEL REPEATABLE READ READ ONLY', 'BEGIN']);
+    await store.close();
+  });
+
+  it('is given back once, however often it is released: one unlock, one release', async () => {
+    const { mod, state } = fakePg({
+      rows: (sql) => (sql.includes('pg_try_advisory_lock') ? [{ ok: true }] : undefined),
+    });
+    const store = await open(mod);
+    const before = state.released.length;
+    const lock = await store.maintenanceLock('exclusive', { timeoutMs: 1000 });
+    await lock.release();
+    await lock.release();
+    const c = state.clients.at(-1)!;
+    expect(c.queries.filter((q) => q.sql.includes('pg_advisory_unlock'))).toHaveLength(1);
+    expect(state.released.length - before).toBe(1);
+    expect(state.released.at(-1)).toBeUndefined();
+    expect(c.handlers.error).toBeUndefined();
+    await store.close();
+  });
+
+  it('given back after a refusal: healthy on a timeout, with the very error when its connection failed', async () => {
+    // Refused on time: the connection is healthy, back to the pool without an error.
+    const held = fakePg();
+    const a = await open(held.mod);
+    await expect(a.maintenanceLock('exclusive', { timeoutMs: 0 })).rejects.toThrow(/refused after 0 ms/);
+    expect(held.state.released.at(-1)).toBeUndefined();
+    await a.close();
+    // The connection failed: back with that very Error, which the pool discards it for.
+    const boom = new Error('terminating connection');
+    const failing = fakePg({ fail: (sql) => (sql.includes('pg_try_advisory_lock') ? boom : undefined) });
+    const b = await open(failing.mod);
+    await expect(b.maintenanceLock('exclusive', { timeoutMs: 1000 })).rejects.toBe(boom);
+    expect(failing.state.released.at(-1)).toBe(boom);
+    await b.close();
+    // Something thrown that is no Error: back with an Error that says it.
+    const odd = fakePg({ fail: (sql) => (sql.includes('pg_try_advisory_lock') ? 'socket gone' : undefined) });
+    const c = await open(odd.mod);
+    await expect(c.maintenanceLock('exclusive', { timeoutMs: 1000 })).rejects.toBe('socket gone');
+    const back = odd.state.released.at(-1);
+    expect(back).toBeInstanceOf(Error);
+    expect((back as Error).message).toBe('socket gone');
+    await c.close();
   });
 });
