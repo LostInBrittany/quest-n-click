@@ -13,6 +13,7 @@ import { main } from '../bridge/src/cli';
 import type { TenantExport } from '../bridge/src/store-async';
 import { type PgModule, PostgresRealityStore } from '../bridge/src/store-postgres';
 import type { SqlRealityStore } from '../bridge/src/store-sql';
+import { MemoryRealityStore } from '../bridge/src/store-memory';
 import { SqliteRealityStore } from '../bridge/src/store-sqlite';
 import { pgDatabase } from './fixtures/pg-database';
 import { signals } from './fixtures/signals';
@@ -307,6 +308,40 @@ describe('restore from the command line names its mode', () => {
     expect(existsSync(safety)).toBe(true);
     expect(readBackup(readFileSync(safety, 'utf8')).schema).toBe(4);
     expect(await state(s)).toBe(before);
+  });
+});
+
+describe('a file that speaks for its tenants only', () => {
+  it('merged with --force into a SQL store, leaves that store’s runs and quotas of its tenants as they are', async () => {
+    const { s, url } = await KINDS[0]!.open();
+    const dir = tmp();
+    expect((await cli(['init', `--dir=${dir}`, '--no-demo-webhooks'])).code).toBe(0);
+    await fill(s, payload(['t-a']));
+    const before = (await makeBackup(s)).payload;
+    // A journal's (or memory's) backup: schema 4, `tenants-only`, the same tenant.
+    const memory = new MemoryRealityStore();
+    await memory.importTenant(tenant('t-a'));
+    const file = join(dir, 'tenants-only.json');
+    writeFileSync(file, JSON.stringify(await makeBackup(memory)));
+    expect(readBackup(readFileSync(file, 'utf8')).completeness?.scope).toBe('tenants-only');
+    const r = await cli(['restore', `--dir=${dir}`, `--store=${url}`, `--from=${file}`, '--mode=merge', '--force']);
+    expect(r.code, r.out).toBe(0);
+    const after = (await makeBackup(s)).payload;
+    expect(after.runs).toEqual(before.runs);
+    expect(after.quotas).toEqual(before.quotas);
+  });
+
+  it('merge refuses the options of replace-store: they would say a safety backup that is never taken', async () => {
+    const { url } = await KINDS[0]!.open();
+    const dir = tmp();
+    expect((await cli(['init', `--dir=${dir}`, '--no-demo-webhooks'])).code).toBe(0);
+    const out = join(dir, 'b.json');
+    expect((await cli(['backup', `--dir=${dir}`, `--store=${url}`, `--out=${out}`])).code).toBe(0);
+    for (const extra of [`--safety-out=${join(dir, 's.json')}`, '--yes-replace-store']) {
+      const r = await cli(['restore', `--dir=${dir}`, `--store=${url}`, `--from=${out}`, '--mode=merge', extra]);
+      expect(r.code, extra).toBe(2);
+      expect(r.out).toMatch(/replace-store's/);
+    }
   });
 });
 

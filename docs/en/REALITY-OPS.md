@@ -222,7 +222,10 @@ tenants apart, then backs up, destroys the topology with its database and restor
     the control ones (`schema_migrations`) is emptied in the same transaction, then the file is written and read back,
     nothing more held. Only a schema 4 backup of a whole SQL store, of this store's SQL schema; first, a backup of the
     store being replaced is written to a path that must not exist (no link either), read back and checked, or nothing
-    is deleted; its path is said in every outcome.
+    is deleted; its path is said in every outcome. The safety backup and the replacement are two transactions: stop
+    every writer between them (from 4.1.20's maintenance leases on, the store refuses them). The safety file is
+    written through a hard link, which never replaces a name: give a path on a filesystem that has them (not FAT or
+    exFAT).
 
     ```bash
     npm run bridge -- restore --from=backup.json --mode=replace-store --yes-replace-store --safety-out=before.json

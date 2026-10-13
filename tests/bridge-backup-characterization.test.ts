@@ -267,6 +267,6 @@ const PINNED = {
     forced:
       '0 ✔  2 tenant(s), 2 run(s), 1 daily record(s), 0 quota row(s) restored from <date> (schema 4, merge), checked before and after the commit',
     restoreUsage:
-      '2 usage: restore --from=<backup file> --mode=merge [--force] [--max-bytes=<n>] [--lock-timeout=<ms>]\n       restore --from=<backup file> --mode=replace-store --yes-replace-store --safety-out=<new file> [--max-bytes=<n>] [--lock-timeout=<ms>]',
+      "2 usage: restore --from=<backup file> --mode=merge [--force] [--max-bytes=<n>] [--lock-timeout=<ms>]   (a backup's digest is an integrity check, not a signature)\n       restore --from=<backup file> --mode=replace-store --yes-replace-store --safety-out=<new file> [--max-bytes=<n>] [--max-rows=<n>] [--lock-timeout=<ms>]",
   },
 };

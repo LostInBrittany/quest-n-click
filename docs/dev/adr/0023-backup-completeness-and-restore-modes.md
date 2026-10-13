@@ -18,7 +18,7 @@ built on it could have deleted runs and daily records that the file never held.
    - The reader checks strict ISO dates, `endedAt ≥ startedAt`, a SemVer version (or `unknown`), and a completeness
      that fits the backend.
    - **The digest is an integrity check against a file changed or truncated by accident, not a signature.** Whoever
-     can change the file can compute it again. ADR, REALITY-OPS and the usage line say so.
+     can change the file can compute it again. This ADR, REALITY-OPS and `restore`'s usage line say so.
 2. **Completeness, decided under the digest.**
    - A SQL store writes `whole-store`: the families `tenants`, `runs`, `daily` and `run-quotas`, and the control
      families `schema-migrations` and `maintenance`, which are never restored.
@@ -28,7 +28,8 @@ built on it could have deleted runs and daily records that the file never held.
      name.
 3. **The quota is a family.** It is exported, counted, restored and compared, by its tenants.
 4. **A restore always says its mode.** Without `--mode`, nothing is restored (exit code 2).
-   - `merge` is 4.1.19's restore, kept: refused on a conflict without `--force`; with it, the file's families replace
+   - `merge` is 4.1.19's restore, kept, for the families the file speaks for (schema 4 says them: a `tenants-only`
+     file speaks for no run and no quota): refused on a conflict without `--force`; with it, the file's families replace
      what they clash with, and what the file does not speak of stays. Schemas 1 to 4.
    - `replace-store` makes the store the file. In one transaction, every table but the control ones is emptied, the
      file is written, and the store is read back as the file and nothing more. It takes only a schema 4 `whole-store`
