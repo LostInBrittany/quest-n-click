@@ -133,6 +133,7 @@ export const TESTS: Record<MutationSet, string[]> = {
     'tests/reality-store-postgres-mutants.test.ts',
     'tests/bridge-backup-v4.test.ts',
     'tests/bridge-maintenance.test.ts',
+    'tests/reality-store-maintenance-mutants.test.ts',
   ],
   'reality-store': [
     'tests/bridge-reality-store.test.ts',
@@ -147,6 +148,7 @@ export const TESTS: Record<MutationSet, string[]> = {
     'tests/bridge-ops.test.ts',
     'tests/reality-store-backup-mutants.test.ts',
     'tests/bridge-maintenance.test.ts',
+    'tests/reality-store-maintenance-mutants.test.ts',
   ],
   remix: [
     'tests/remix-*.test.ts',
