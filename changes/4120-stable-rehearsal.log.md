@@ -34,3 +34,9 @@
     - a tag ruleset with no bypass would block the maintainer too, so it is not `ok`;
     - the GO / NO-GO read is the sheet's last verdict;
     - the runbook says Node 22.23.3 ships npm 10.9.9, so the step installs npm 11.21.0 itself.
+- **The jobs listing (13 Oct, while #120 was merging).** For an hour, GitHub's `actions/runs/<id>/jobs` answered HTTP
+  502 to about two calls in three, for every run, while the rest of the API answered and githubstatus said all
+  operational. #120's `candidate-gate` failed four times with every job green. The step also read a single page of
+  100, which would drop a candidate's jobs past 100 in silence. `run-jobs.mjs` (tested against a fake API: a 502 then
+  a 200, three pages, a 404 at once, every try spent, a total that does not add up) and a guard against any bare
+  `gh api …/jobs` call in the workflows.

@@ -21,3 +21,6 @@
   bootstrap by staged publishing of a reservation version, stage-only trusted publishing, the two-day window, the 2FA
   promotion, and the dual-use classification of the connectors (not declared; staged with a 2FA promotion anyway). A
   nightly job that does not gate watches that the four npm names stay free.
+- **The candidate's baseline reads every job, and retries** (4.1.20): `tools/release/run-jobs.mjs` reads every page of
+  the run's jobs (a candidate runs more than 100), retries a 5xx or a 429, and refuses a listing that does not add up
+  to its `total_count`. It replaces the one bare `gh api …/jobs?per_page=100` call.
