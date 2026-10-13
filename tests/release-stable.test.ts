@@ -6,7 +6,6 @@ import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'nod
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterAll, describe, expect, it } from 'vitest';
-// @ts-expect-error: a plain .mjs module without declarations
 import {
   guardsTags,
   jsonObjects,
@@ -15,6 +14,7 @@ import {
   pinProblems,
   pinsOf,
   preflight,
+  // @ts-expect-error: a plain .mjs module without declarations
 } from '../tools/release/preflight.mjs';
 // @ts-expect-error: a plain .mjs module without declarations
 import { rehearse, tagArgs } from '../tools/release/signing.mjs';
