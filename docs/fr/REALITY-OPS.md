@@ -239,6 +239,9 @@ la passe humaine derrière un vrai domaine (24 à 48 heures) n'est pas `passed`.
     fichier est écrit et relu, rien d'autre ne reste. Seulement une sauvegarde de schéma 4 d'un store SQL entier, du
     même schéma SQL que ce store ; d'abord, une sauvegarde du store remplacé est écrite à un chemin qui ne doit pas
     exister (ni être un lien), relue et vérifiée, sinon rien n'est supprimé ; son chemin est dit dans chaque issue.
+    La sauvegarde de sécurité et le remplacement sont deux transactions : arrêter tout écrivain entre les deux (avec
+    les baux de maintenance de la 4.1.20, le store les refuse). Le fichier de sécurité est écrit par un lien physique,
+    qui ne remplace jamais un nom : choisir un chemin sur un système de fichiers qui en a (pas FAT ni exFAT).
 
     ```bash
     npm run bridge -- restore --from=backup.json --mode=replace-store --yes-replace-store --safety-out=avant.json

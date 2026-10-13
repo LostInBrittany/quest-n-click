@@ -9,7 +9,7 @@
 //   doctor [--dir=…]                                                                           reads the store, says what it holds
 //   compact [--dir=…] [--retention-days=90]                                                    rewrites the journal (Bridge stopped)
 // 4.1.10 (bridge/src/cli-store.ts): migrate --from=jsonl --to=sqlite[:file]|postgres://…, migrate [--schema=N],
-//   tenant <export|delete> --tenant=<id>, backup --out=<file>, restore --from=<file>; serve --tenants=<dir>,<dir> for
+//   tenant <export|delete> --tenant=<id>, backup --out=<file>, restore --from=<file> --mode=merge|replace-store; serve --tenants=<dir>,<dir> for
 //   several tenants on one store; init --store=sqlite --tenant=<id> --environment=prod|staging|dev --signal-version=2.
 // Every secret `init` makes is written under --dir (not committed: .cache/ is ignored), never printed but the paths.
 // The Biscuit root's private half goes to `root.key`, read by `grant` only: `serve` never loads it (4.1.2).

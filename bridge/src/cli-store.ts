@@ -16,6 +16,7 @@ import {
   readBounded,
   RestoreUnknown,
   restoreBackup,
+  stableJson,
   writeAtomic,
   writeNew,
 } from './backup';
@@ -297,8 +298,8 @@ export async function storeCommand(
     // the file, after a safety backup of the store, written and read back first.
     const mode = opt(args, 'mode');
     const usage =
-      'usage: restore --from=<backup file> --mode=merge [--force] [--max-bytes=<n>]\n' +
-      '       restore --from=<backup file> --mode=replace-store --yes-replace-store --safety-out=<new file> [--max-bytes=<n>]';
+      "usage: restore --from=<backup file> --mode=merge [--force] [--max-bytes=<n>]   (a backup's digest is an integrity check, not a signature)\n" +
+      '       restore --from=<backup file> --mode=replace-store --yes-replace-store --safety-out=<new file> [--max-bytes=<n>] [--max-rows=<n>]';
     const from = opt(args, 'from');
     if (!from || (mode !== 'merge' && mode !== 'replace-store')) {
       console.error(
@@ -318,6 +319,12 @@ export async function storeCommand(
       );
       return 2;
     }
+    if (!replace && (safetyArg || args.includes('--yes-replace-store'))) {
+      console.error(
+        `${usage}\n✖  --safety-out and --yes-replace-store are replace-store's: merge deletes nothing the file does not speak of; nothing restored`,
+      );
+      return 2;
+    }
     if (replace && !safetyArg) {
       console.error(
         `${usage}\n✖  replace-store first backs up the store it replaces: --safety-out=<a new file>; nothing restored`,
@@ -326,7 +333,9 @@ export async function storeCommand(
     }
     // Everything is read and checked before the store is opened: a file refused touches nothing.
     const maxBytes = bound(args, 'max-bytes', MAX_BACKUP_BYTES);
-    if (maxBytes === undefined) return 2;
+    // The safety backup's row bound (replace-store), as `backup --max-rows`.
+    const maxRows = bound(args, 'max-rows', MAX_BACKUP_ROWS);
+    if (maxBytes === undefined || maxRows === undefined) return 2;
     let read: ReturnType<typeof readBackup>;
     try {
       read = readBackup(readBounded(resolve(from), maxBytes));
@@ -358,8 +367,10 @@ export async function storeCommand(
         console.error('✖  restore needs a SQL store (--store=sqlite or postgres://…): nothing restored');
         return 1;
       }
-      const carriesRuns = read.schema >= 2;
-      const carriesQuotas = read.schema >= 4;
+      // What the file speaks for: schema 4 says it (`completeness`); before it, runs from schema 2, quotas never. A
+      // journal's or memory's file (`tenants-only`) speaks for no run and no quota: merge leaves them as they are.
+      const carriesRuns = read.completeness ? read.completeness.families.includes('runs') : read.schema >= 2;
+      const carriesQuotas = read.completeness?.families.includes('run-quotas') ?? false;
       const at = await store.schemaVersion();
       if (read.storeSchema !== null && read.storeSchema > at) {
         console.error(
@@ -376,14 +387,15 @@ export async function storeCommand(
       if (replace && safety) {
         // The safety backup, before any deletion: written to a new file only, read back and checked, or nothing goes.
         try {
-          const b = await makeBackup(store);
+          const b = await makeBackup(store, { maxRows });
           const content = `${JSON.stringify(b)}\n`;
           if (Buffer.byteLength(content) > maxBytes)
             throw new BackupError(
               `the store's safety backup would be ${Buffer.byteLength(content)} bytes, more than ${maxBytes} (--max-bytes=)`,
             );
           writeNew(safety, content);
-          if (readBackup(readBounded(safety, maxBytes)).payload.tenants.length !== b.payload.tenants.length)
+          // Read back whole: its digest checked by readBackup, its payload the very snapshot taken.
+          if (stableJson(readBackup(readBounded(safety, maxBytes)).payload) !== stableJson(b.payload))
             throw new BackupError(`${safety} does not read back as written`);
         } catch (e) {
           console.error(
