@@ -1197,5 +1197,53 @@
   "proof": "argument",
   "owner": "@wanoo",
   "revisit": "4.3.0"
+ },
+ {
+  "file": "connectors/src/badges/verify.ts",
+  "operator": "condition true",
+  "from": "typeof d.kty === 'string'",
+  "to": "true",
+  "context": "(typeof d.kty === 'string' ? jwkKey(d) : null) ??",
+  "why": "keyOf: forced true, `jwkKey(d)` is called on a key document whose `kty` is not a string; node:crypto's createPublicKey refuses a JWK without a string `kty` and jwkKey's catch answers null, which is what the condition gave, so the `??` goes on to `publicKeyJwk` and `publicKeyMultibase` the same (the false mutant is killed by tests/connectors-badges-edge-mutants.test.ts, a bare JWK)",
+  "category": "equivalent",
+  "proof": "argument",
+  "owner": "@wanoo",
+  "revisit": "4.3.0"
+ },
+ {
+  "file": "connectors/src/badges/verify.ts",
+  "operator": "condition true",
+  "from": "isObj(d.publicKeyJwk)",
+  "to": "true",
+  "context": "(isObj(d.publicKeyJwk) ? jwkKey(d.publicKeyJwk) : null) ??",
+  "why": "keyOf: forced true, `jwkKey` gets a `publicKeyJwk` that is not an object (absent, null, a string, a number: its own first check answers null) or an array (createPublicKey throws, its catch answers null): null either way, as the condition gave (the false mutant is killed by tests/connectors-badges-edge-mutants.test.ts, a wrapped JWK)",
+  "category": "equivalent",
+  "proof": "argument",
+  "owner": "@wanoo",
+  "revisit": "4.3.0"
+ },
+ {
+  "file": "connectors/src/badges/connector.ts",
+  "operator": "condition true",
+  "from": "this.c.testing",
+  "to": "true",
+  "context": "...(this.c.testing ? { testing: this.c.testing } : {}),",
+  "why": "start: forced true, the SafeFetcher gets `testing: undefined` instead of no `testing`; it only reads `this.p.testing?.allowHttp` and `this.p.testing?.allowAddresses ?? []`, which are undefined and [] both ways (the false mutant is killed by tests/connectors-badges-edge-mutants.test.ts, a local http badge)",
+  "category": "equivalent",
+  "proof": "argument",
+  "owner": "@wanoo",
+  "revisit": "4.3.0"
+ },
+ {
+  "file": "connectors/src/badges/connector.ts",
+  "operator": "condition true",
+  "from": "this.c.resolve",
+  "to": "true",
+  "context": "...(this.c.resolve ? { resolve: this.c.resolve } : {}),",
+  "why": "start: forced true, the SafeFetcher gets `resolve: undefined` instead of no `resolve`; it only reads `this.p.resolve ?? <the system lookup>`, which takes the system lookup both ways (the false mutant is killed by tests/connectors-badges-edge-mutants.test.ts, a local http badge)",
+  "category": "equivalent",
+  "proof": "argument",
+  "owner": "@wanoo",
+  "revisit": "4.3.0"
  }
 ]
