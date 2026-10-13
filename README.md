@@ -104,7 +104,7 @@ Each surface is promised only as far as its proofs go ([SUPPORT](docs/en/SUPPORT
 
 | Stable | Limited | Experimental |
 |---|---|---|
-| the content format and its tools; the desktop Chromium PWA; the Reality Bridge on SQLite | the DOM player on phones and screen readers (untried by a person); the Safari PWA; Firefox (the PWA only); speedrun and Remix; voices; the four package archives (until a person installs them) | the Canvas painter; the Bridge on Postgres (`distributed`); the four connectors |
+| the content format and its tools; the desktop Chromium PWA; the Reality Bridge on SQLite | the DOM player on phones and screen readers (untried by a person); the Safari PWA; Firefox (the PWA only); speedrun and Remix; voices; the archives (until a person installs them) | the Canvas painter; the Bridge on Postgres (`distributed`); the four connectors |
 
 What only people and real devices can check is listed, not claimed: [FIELD](docs/en/FIELD.md), and each release's
 notes say which passes were made.
@@ -133,13 +133,11 @@ mistakes before a person does. Every result stays reviewable, in the Studio and 
 ## In numbers
 
 Measured on this commit of `main` by the automated gates (`npm run quality:baseline` writes these figures):
-<!-- metric:tests -->1993<!-- /metric --> unit test declarations, on Node 22 and 24, with coverage floors and gated
+<!-- metric:tests -->1996<!-- /metric --> unit test declarations, on Node 22 and 24, with coverage floors and gated
 mutation testing; the reference game proved in <!-- metric:referenceStates -->288<!-- /metric --> states; the player's
 first visit <!-- metric:initialJsKB -->133<!-- /metric --> KB of JavaScript, gzipped. Each release is built from the
-commit its candidate tested. The candidate makes the four package archives, the Bridge's image, the SBOMs, the runs and
-the baseline, and the release publishes those very files; the release makes only the built game, its assets manifest,
-the proved Remix catalogues, the reference speedrun and the sums, from the same commit. Every file is published with
-its SHA-256 sum and a provenance attestation ([the list](tools/release/artifacts.mjs)).
+commit its candidate tested; its archives, the Bridge's image, the SBOMs and the baseline are the very files the
+candidate made, published with SHA-256 sums and provenance attestations.
 
 ## Documentation
 
