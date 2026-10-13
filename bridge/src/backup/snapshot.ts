@@ -1,22 +1,43 @@
 // A backup (4.1.19, ADR 0021): one logical snapshot of the whole store, read in one read-only transaction and written
-// with its envelope (schema 3). Split from `bridge/src/backup.ts` (4.1.20 PR 1a).
+// with its envelope (schema 4 since 4.1.20 PR 1b). Split from `bridge/src/backup.ts` (4.1.20 PR 1a).
 import type { RealityStore, TenantExport } from '../store-async';
 import { exportTenantIn, SqlRealityStore } from '../store-sql';
-import { byCodeUnit, countsOf, normalRow, normalTenant, payloadDigest, runKey, withoutCapabilities } from './canonical';
+import {
+  byCodeUnit,
+  countsOf,
+  envelopeDigest,
+  normalRow,
+  normalTenant,
+  runKey,
+  withoutCapabilities,
+} from './canonical';
 import { bridgeVersion } from './files';
 import {
   BACKUP_FORMAT,
   type BackupPayload,
   BackupError,
-  type BackupV3,
+  type BackupV4,
   DAILY_COLUMNS,
   MAX_BACKUP_ROWS,
+  QUOTA_COLUMNS,
   RUN_COLUMNS,
+  TENANTS_ONLY,
+  WHOLE_STORE,
 } from './schema';
 
 export const TENANTS_SQL =
-  'SELECT tenant_id FROM players UNION SELECT tenant_id FROM signals UNION SELECT tenant_id FROM signing_keys UNION SELECT tenant_id FROM revoked_tokens UNION SELECT tenant_id FROM pairings UNION SELECT tenant_id FROM quarantine UNION SELECT tenant_id FROM runs';
-const COUNTED = ['players', 'signals', 'signing_keys', 'revoked_tokens', 'pairings', 'quarantine', 'runs', 'daily_kv'];
+  'SELECT tenant_id FROM players UNION SELECT tenant_id FROM signals UNION SELECT tenant_id FROM signing_keys UNION SELECT tenant_id FROM revoked_tokens UNION SELECT tenant_id FROM pairings UNION SELECT tenant_id FROM quarantine UNION SELECT tenant_id FROM runs UNION SELECT tenant_id FROM run_quota';
+const COUNTED = [
+  'players',
+  'signals',
+  'signing_keys',
+  'revoked_tokens',
+  'pairings',
+  'quarantine',
+  'runs',
+  'daily_kv',
+  'run_quota',
+];
 
 /**
  * Every family of a SQL store read in one read-only transaction (Postgres: REPEATABLE READ READ ONLY; SQLite in WAL:
@@ -48,14 +69,20 @@ async function sqlSnapshot(
       const daily = (await q.all(`SELECT ${DAILY_COLUMNS.join(', ')} FROM daily_kv`))
         .map((r) => normalRow(r, DAILY_COLUMNS))
         .sort(byCodeUnit((r) => String(r.k)));
-      return { payload: { tenants, runs, daily }, schema: Number(v?.v ?? 0) };
+      const quotas = (await q.all(`SELECT ${QUOTA_COLUMNS.join(', ')} FROM run_quota`))
+        .map((r) => normalRow(r, QUOTA_COLUMNS))
+        .sort(byCodeUnit((r) => `${String(r.tenant_id)}\u0000${String(r.client_key)}`));
+      return { payload: { tenants, runs, daily, quotas }, schema: Number(v?.v ?? 0) };
     },
     { readOnly: true },
   );
 }
 
-/** A backup of the whole store (schema 3). The journal holds one tenant read at once: its export is one instant. */
-export async function makeBackup(store: RealityStore, o: { maxRows?: number } = {}): Promise<BackupV3> {
+/**
+ * A backup of the whole store (schema 4): a SQL store's every family, one snapshot (`whole-store`); a journal's or a
+ * memory store's tenants (`tenants-only`), one tenant read at once (its export is one instant).
+ */
+export async function makeBackup(store: RealityStore, o: { maxRows?: number } = {}): Promise<BackupV4> {
   const startedAt = new Date().toISOString();
   let payload: BackupPayload;
   let schema: number | null = null;
@@ -63,17 +90,21 @@ export async function makeBackup(store: RealityStore, o: { maxRows?: number } = 
   else {
     const tenants: TenantExport[] = [];
     for (const t of await store.tenants()) tenants.push(withoutCapabilities(await store.exportTenant(t)));
-    payload = { tenants, runs: [], daily: [] };
+    payload = { tenants, runs: [], daily: [], quotas: [] };
   }
-  return {
-    format: BACKUP_FORMAT,
-    schema: 3,
+  const envelope = {
     bridge: { version: bridgeVersion() },
     store: { kind: store.kind, schema },
+    completeness: store instanceof SqlRealityStore ? WHOLE_STORE : TENANTS_ONLY,
     startedAt,
     endedAt: new Date().toISOString(),
     counts: countsOf(payload),
     payload,
-    digest: { alg: 'sha256', value: payloadDigest(payload) },
+  };
+  return {
+    format: BACKUP_FORMAT,
+    schema: 4,
+    ...envelope,
+    digest: { alg: 'sha256', scope: 'envelope', value: envelopeDigest(envelope) },
   };
 }

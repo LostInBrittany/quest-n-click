@@ -7,6 +7,7 @@ import {
   existsSync,
   fstatSync,
   fsyncSync,
+  linkSync,
   lstatSync,
   openSync,
   readFileSync,
@@ -55,7 +56,11 @@ export function readBounded(path: string, max: number): string {
  * the new one, never half of one.
  */
 export function writeAtomic(path: string, content: string): void {
-  const tmp = join(dirname(path), `.${basename(path)}.${process.pid}.${randomBytes(6).toString('hex')}.tmp`);
+  // A short temporary name (a long target's would exceed the system's limit on a name).
+  const tmp = join(
+    dirname(path),
+    `.${basename(path).slice(0, 64)}.${process.pid}.${randomBytes(6).toString('hex')}.tmp`,
+  );
   const fd = openSync(tmp, 'wx', 0o600);
   try {
     const buf = Buffer.from(content, 'utf8');
@@ -83,6 +88,65 @@ export function writeAtomic(path: string, content: string): void {
     }
   } catch {
     /* a folder cannot be flushed on every system (Windows): the rename is what makes it whole */
+  }
+}
+
+/** Removes a temporary file, never hiding the error that made it go. */
+function rmQuietly(f: string): void {
+  try {
+    unlinkSync(f);
+  } catch {
+    /* already gone, or not removable: the first error is the one said */
+  }
+}
+
+/**
+ * Writes a file that must not exist yet (4.1.20 PR 1b, `restore --safety-out`): a path that exists — a file, a link,
+ * even one that points nowhere, anything else — is refused before a byte is written; the content goes to a private
+ * temporary file beside it (mode 600), flushed, then linked to its name (a link never replaces an existing name, so a
+ * file that appeared meanwhile is refused too), the temporary name removed and the folder flushed where the system
+ * allows.
+ * A hard link is how no name is ever replaced: a filesystem without them (FAT, exFAT, some network shares) refuses
+ * the safety backup, and replace-store with it; give a path on one that has them.
+ */
+export function writeNew(path: string, content: string): void {
+  if (lstatSync(path, { throwIfNoEntry: false }))
+    throw new BackupError(`${path} already exists (a file, a link or anything else): give a new path`);
+  // A short temporary name (a long target's would exceed the system's limit on a name).
+  const tmp = join(
+    dirname(path),
+    `.${basename(path).slice(0, 64)}.${process.pid}.${randomBytes(6).toString('hex')}.tmp`,
+  );
+  const fd = openSync(tmp, 'wx', 0o600);
+  try {
+    const buf = Buffer.from(content, 'utf8');
+    let off = 0;
+    while (off < buf.length) off += writeSync(fd, buf, off, buf.length - off);
+    fsyncSync(fd);
+  } catch (e) {
+    closeSync(fd);
+    rmQuietly(tmp);
+    throw e;
+  }
+  closeSync(fd);
+  try {
+    linkSync(tmp, path);
+  } catch (e) {
+    rmQuietly(tmp);
+    if ((e as NodeJS.ErrnoException).code === 'EEXIST')
+      throw new BackupError(`${path} already exists: give a new path`);
+    throw e;
+  }
+  unlinkSync(tmp);
+  try {
+    const dir = openSync(dirname(path), 'r');
+    try {
+      fsyncSync(dir);
+    } finally {
+      closeSync(dir);
+    }
+  } catch {
+    /* a folder cannot be flushed on every system (Windows): the link is what makes it whole */
   }
 }
 

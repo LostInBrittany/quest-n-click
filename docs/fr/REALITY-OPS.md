@@ -211,22 +211,47 @@ la passe humaine derrière un vrai domaine (24 à 48 heures) n'est pas `passed`.
   d'OpenTelemetry quand `@opentelemetry/api` est installé à côté du Bridge, exportées en OTLP quand
   `OTEL_EXPORTER_OTLP_ENDPOINT` est défini et `@opentelemetry/sdk-node` installé. Attributs : le tenant et un code,
   jamais un joueur ni un contenu.
-- `npm run bridge -- backup --out=<fichier>` (4.1.19, schéma 3, ADR 0021) écrit tout le store comme **un seul
-  instantané** (tenants, runs et enregistrements quotidiens lus dans une seule transaction en lecture) dans un fichier
-  en mode 600, écrit dans un fichier temporaire puis renommé : des empreintes de capacités, jamais une capacité ni une
-  clé. Son enveloppe donne le backend, les versions du Bridge et du schéma SQL, le début et la fin, les comptes par
-  famille et un SHA-256 du contenu. Borné : un store au-delà de `--max-rows` (2 000 000) ou un fichier au-delà de
-  `--max-bytes` (256 Mio) est refusé, sans fichier écrit.
-- `restore --from=<fichier>` est **tout ou rien** : le fichier est lu de façon bornée et vérifié en entier (schémas 1,
-  2 et 3 ; chaque ligne, les doublons, les relations, les comptes et l'empreinte du schéma 3) avant l'ouverture du
-  store ; tenants, runs et enregistrements quotidiens sont écrits dans une seule transaction, relus et comparés avant
-  sa validation. Un conflit (un tenant, une run de ses tenants, une clé quotidienne) le refuse sans `--force` ; avec
-  `--force`, ils sont remplacés dans la même transaction. Un échec dit « rien restauré » et laisse le store tel qu'il
-  était ; une différence trouvée après la validation est annoncée comme un P0 (code de sortie 3 ; arrêter les instances
-  du Bridge pendant une restauration, pour qu'une différence ne puisse pas venir de leurs écritures ; une réponse perdue
-  à la validation elle-même est dite comme telle, avec le code 3 aussi). Il faut un store
-  SQL : le journal JSON-lines est refusé avant d'être touché (le migrer vers SQLite, puis restaurer). Répété par
-  `tests/bridge-backup.test.ts` et `tests/bridge-ops.test.ts`.
+- `npm run bridge -- backup --out=<fichier>` (schéma 4 depuis la 4.1.20, ADR 0023 ; schéma 3 en 4.1.19, ADR 0021)
+  écrit tout le store comme **un seul instantané** (tenants, runs, enregistrements quotidiens et quota des speedruns,
+  lus dans une seule transaction en lecture) dans un fichier en mode 600, écrit dans un fichier temporaire puis
+  renommé : des empreintes de capacités, jamais une capacité ni une clé. Son enveloppe donne le backend, les versions du
+  Bridge et du schéma SQL, ce qu'elle contient (`completeness` : `whole-store` pour un store SQL, `tenants-only` pour le
+  journal ou la mémoire), le début et la fin, les comptes par famille, et un SHA-256 de l'ensemble (`scope:
+  envelope`). **L'empreinte est un contrôle d'intégrité contre un fichier modifié ou tronqué par accident, pas une
+  signature :** qui peut modifier le fichier peut aussi la recalculer. Borné : un store au-delà de `--max-rows`
+  (2 000 000) ou un fichier au-delà de `--max-bytes` (256 Mio) est refusé, sans fichier écrit.
+- `restore --from=<fichier> --mode=…` est **tout ou rien** dans ses deux modes, et **le mode est toujours dit** : sans
+  `--mode`, rien n'est restauré. Le fichier est lu de façon bornée et vérifié en entier (schémas 1 à 4 ; chaque ligne,
+  les doublons, les relations, les comptes et l'empreinte du contenu du schéma 3, l'empreinte de l'enveloppe, les
+  dates, la version et la complétude du schéma 4) avant l'ouverture du store ; il est écrit dans une seule transaction,
+  relu et comparé avant sa validation.
+  - `--mode=merge [--force]` (la restauration de la 4.1.19) : un conflit (un tenant, une run ou un quota de ses
+    tenants, une clé quotidienne) la refuse sans `--force` ; avec `--force`, les familles du fichier remplacent ce
+    qu'elles rencontrent, et **ce dont le fichier ne parle pas reste** (un autre tenant, une autre clé quotidienne).
+    Tout schéma, de 1 à 4.
+
+    ```bash
+    npm run bridge -- restore --from=backup.json --mode=merge          # dans un store vide, sinon refusé
+    npm run bridge -- restore --from=backup.json --mode=merge --force  # les tenants du fichier remplacés, les autres gardés
+    ```
+  - `--mode=replace-store --yes-replace-store --safety-out=<nouveau fichier>` : **le store devient le fichier** ;
+    toutes les tables sauf celles de contrôle (`schema_migrations`) sont vidées dans la même transaction, puis le
+    fichier est écrit et relu, rien d'autre ne reste. Seulement une sauvegarde de schéma 4 d'un store SQL entier, du
+    même schéma SQL que ce store ; d'abord, une sauvegarde du store remplacé est écrite à un chemin qui ne doit pas
+    exister (ni être un lien), relue et vérifiée, sinon rien n'est supprimé ; son chemin est dit dans chaque issue.
+    La sauvegarde de sécurité et le remplacement sont deux transactions : arrêter tout écrivain entre les deux (avec
+    les baux de maintenance de la 4.1.20, le store les refuse). Le fichier de sécurité est écrit par un lien physique,
+    qui ne remplace jamais un nom : choisir un chemin sur un système de fichiers qui en a (pas FAT ni exFAT).
+
+    ```bash
+    npm run bridge -- restore --from=backup.json --mode=replace-store --yes-replace-store --safety-out=avant.json
+    ```
+  Un échec dit « rien restauré » et laisse le store tel qu'il était ; une différence trouvée après la validation est
+  annoncée comme un P0 (code de sortie 3 ; arrêter les instances du Bridge pendant une restauration, pour qu'une
+  différence ne puisse pas venir de leurs écritures ; une réponse perdue à la validation elle-même est dite comme
+  telle, avec le code 3 aussi). Il faut un store SQL : le journal JSON-lines est refusé avant d'être touché (le migrer
+  vers SQLite, puis restaurer). Répété par `tests/bridge-backup.test.ts`, `tests/bridge-backup-v4.test.ts` et
+  `tests/bridge-ops.test.ts`.
 - La sauvegarde est logique, portable et bornée. Pour un gros déploiement, `pg_dump` ou les instantanés du
   fournisseur restent la sauvegarde de la base elle-même.
 - `tenant export --tenant=<id> [--out=<fichier>]`, `tenant delete --tenant=<id> --yes` : les lignes d'un tenant, dans

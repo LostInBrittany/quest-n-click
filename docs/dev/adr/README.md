@@ -26,3 +26,4 @@ what it costs, what would change it. The maintainer's decisions themselves are d
 | [0019](0019-run-world-binding.md) | A run is bound to the world it was played in (4.1.16) |
 | [0020](0020-minigame-transcripts.md) | A minigame's result is computed again from its transcript (4.1.17) |
 | [0021](0021-backup-snapshot-and-atomic-restore.md) | A backup is one snapshot; a restore is all or nothing (4.1.19) |
+| [0023](0023-backup-completeness-and-restore-modes.md) | A backup says what it holds; a restore says its mode (4.1.20) |

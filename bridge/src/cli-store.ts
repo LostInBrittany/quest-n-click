@@ -16,7 +16,9 @@ import {
   readBounded,
   RestoreUnknown,
   restoreBackup,
+  stableJson,
   writeAtomic,
+  writeNew,
 } from './backup';
 import { inspectJournal, JsonlBridgeStore } from './store';
 import { DEFAULT_TENANT, type RealityStore } from './store-async';
@@ -265,7 +267,7 @@ export async function storeCommand(
     if (maxBytes === undefined || maxRows === undefined) return 2;
     const store = await openStore(spec, dir, file, { lock: false });
     try {
-      // Schema 3 (4.1.19, ADR 0021): one snapshot of every family, its counts and digest in the envelope.
+      // Schema 4 (4.1.20, ADR 0023): one snapshot of every family, its completeness, counts and envelope digest.
       const b = await makeBackup(store, { maxRows });
       const content = `${JSON.stringify(b)}\n`;
       const bytes = Buffer.byteLength(content);
@@ -278,7 +280,7 @@ export async function storeCommand(
       writeAtomic(resolve(out), content);
       const c = b.counts;
       say(
-        `✔  ${c.tenants} tenant(s), ${c.signals} signal(s), ${c.runs} run(s), ${c.daily} daily record(s) backed up to ${resolve(out)} (schema 3, one snapshot, sha256 ${b.digest.value.slice(0, 12)}…)`,
+        `✔  ${c.tenants} tenant(s), ${c.signals} signal(s), ${c.runs} run(s), ${c.daily} daily record(s) backed up to ${resolve(out)} (schema 4, one snapshot, sha256 ${b.digest.value.slice(0, 12)}…)`,
       );
       return 0;
     } catch (e) {
@@ -292,14 +294,48 @@ export async function storeCommand(
     }
   }
   if (cmd === 'restore') {
+    // 4.1.20 PR 1b (ADR 0023): the mode is always said. `merge` is 4.1.19's restore; `replace-store` makes the store
+    // the file, after a safety backup of the store, written and read back first.
+    const mode = opt(args, 'mode');
+    const usage =
+      "usage: restore --from=<backup file> --mode=merge [--force] [--max-bytes=<n>]   (a backup's digest is an integrity check, not a signature)\n" +
+      '       restore --from=<backup file> --mode=replace-store --yes-replace-store --safety-out=<new file> [--max-bytes=<n>] [--max-rows=<n>]';
     const from = opt(args, 'from');
-    if (!from) {
-      console.error('usage: restore --from=<backup file> [--force] [--max-bytes=<n>]');
+    if (!from || (mode !== 'merge' && mode !== 'replace-store')) {
+      console.error(
+        `${usage}\n${from ? '✖  say the mode: --mode=merge keeps what the file does not speak of, --mode=replace-store makes the store the file; nothing restored' : ''}`.trimEnd(),
+      );
+      return 2;
+    }
+    const replace = mode === 'replace-store';
+    const safetyArg = opt(args, 'safety-out');
+    if (replace && args.includes('--force')) {
+      console.error(`${usage}\n✖  --force is merge's: replace-store replaces everything already; nothing restored`);
+      return 2;
+    }
+    if (replace && !args.includes('--yes-replace-store')) {
+      console.error(
+        `${usage}\n✖  replace-store deletes what the file does not hold: say it with --yes-replace-store; nothing restored`,
+      );
+      return 2;
+    }
+    if (!replace && (safetyArg || args.includes('--yes-replace-store'))) {
+      console.error(
+        `${usage}\n✖  --safety-out and --yes-replace-store are replace-store's: merge deletes nothing the file does not speak of; nothing restored`,
+      );
+      return 2;
+    }
+    if (replace && !safetyArg) {
+      console.error(
+        `${usage}\n✖  replace-store first backs up the store it replaces: --safety-out=<a new file>; nothing restored`,
+      );
       return 2;
     }
     // Everything is read and checked before the store is opened: a file refused touches nothing.
     const maxBytes = bound(args, 'max-bytes', MAX_BACKUP_BYTES);
-    if (maxBytes === undefined) return 2;
+    // The safety backup's row bound (replace-store), as `backup --max-rows`.
+    const maxRows = bound(args, 'max-rows', MAX_BACKUP_ROWS);
+    if (maxBytes === undefined || maxRows === undefined) return 2;
     let read: ReturnType<typeof readBackup>;
     try {
       read = readBackup(readBounded(resolve(from), maxBytes));
@@ -310,6 +346,12 @@ export async function storeCommand(
       }
       throw e;
     }
+    if (replace && (read.schema !== 4 || read.completeness?.scope !== 'whole-store')) {
+      console.error(
+        `✖  replace-store needs a schema 4 backup of a whole SQL store (this one is schema ${read.schema}${read.completeness ? `, ${read.completeness.scope}` : ''}: nothing under its digest says it holds every family); restore it with --mode=merge, or take a new backup; nothing restored`,
+      );
+      return 1;
+    }
     if (normal(spec) === 'jsonl') {
       console.error(
         '✖  the JSON-lines journal cannot be restored all or nothing: migrate it to SQLite first (migrate --from=jsonl --to=sqlite), then restore with --store=sqlite; nothing restored',
@@ -317,12 +359,18 @@ export async function storeCommand(
       return 1;
     }
     const store = await openStore(spec, dir, file);
+    const safety = safetyArg ? resolve(safetyArg) : undefined;
+    // The way back is said in every outcome once it exists: success, failure, an unknown commit.
+    const back = () => (safety && existsSync(safety) ? ` (the store before: ${safety})` : '');
     try {
       if (!(store instanceof SqlRealityStore)) {
         console.error('✖  restore needs a SQL store (--store=sqlite or postgres://…): nothing restored');
         return 1;
       }
-      const carriesRuns = read.schema >= 2;
+      // What the file speaks for: schema 4 says it (`completeness`); before it, runs from schema 2, quotas never. A
+      // journal's or memory's file (`tenants-only`) speaks for no run and no quota: merge leaves them as they are.
+      const carriesRuns = read.completeness ? read.completeness.families.includes('runs') : read.schema >= 2;
+      const carriesQuotas = read.completeness?.families.includes('run-quotas') ?? false;
       const at = await store.schemaVersion();
       if (read.storeSchema !== null && read.storeSchema > at) {
         console.error(
@@ -330,38 +378,69 @@ export async function storeCommand(
         );
         return 1;
       }
+      if (replace && read.storeSchema !== at) {
+        console.error(
+          `✖  replace-store needs a backup of this store's SQL schema (${at}); the file is of schema ${read.storeSchema}: a family it does not know would be lost; nothing restored`,
+        );
+        return 1;
+      }
+      if (replace && safety) {
+        // The safety backup, before any deletion: written to a new file only, read back and checked, or nothing goes.
+        try {
+          const b = await makeBackup(store, { maxRows });
+          const content = `${JSON.stringify(b)}\n`;
+          if (Buffer.byteLength(content) > maxBytes)
+            throw new BackupError(
+              `the store's safety backup would be ${Buffer.byteLength(content)} bytes, more than ${maxBytes} (--max-bytes=)`,
+            );
+          writeNew(safety, content);
+          // Read back whole: its digest checked by readBackup, its payload the very snapshot taken.
+          if (stableJson(readBackup(readBounded(safety, maxBytes)).payload) !== stableJson(b.payload))
+            throw new BackupError(`${safety} does not read back as written`);
+        } catch (e) {
+          console.error(
+            `✖  the safety backup could not be written and checked (${(e as Error).message}): nothing deleted, nothing restored`,
+          );
+          return 1;
+        }
+      }
       let outcome: Awaited<ReturnType<typeof restoreBackup>>;
       try {
-        outcome = await restoreBackup(store, read.payload, { force: args.includes('--force'), carriesRuns });
+        outcome = await restoreBackup(store, read.payload, {
+          force: args.includes('--force'),
+          carriesRuns,
+          carriesQuotas,
+          mode,
+        });
       } catch (e) {
         if (e instanceof RestoreUnknown) {
           console.error(
-            `✖  the commit's answer was lost (${e.message}): the restore may or may not be in the store; run \`doctor\` and take a backup to see which`,
+            `✖  the commit's answer was lost (${e.message}): the restore may or may not be in the store; run \`doctor\` and take a backup to see which${back()}`,
           );
           return 3;
         }
-        console.error(`✖  the restore failed and was rolled back, nothing restored: ${(e as Error).message}`);
+        console.error(`✖  the restore failed and was rolled back, nothing restored: ${(e as Error).message}${back()}`);
         return 1;
       }
       if (!outcome.ok) {
-        console.error(`✖  ${outcome.why}; nothing restored`);
+        console.error(`✖  ${outcome.why}; nothing restored${back()}`);
         return 1;
       }
       // An audit after the commit: a difference here is the backend's fault, a P0, said as such.
       let wrong: string | undefined;
       try {
-        wrong = await auditRestore(store, read.payload, { carriesRuns });
+        wrong = await auditRestore(store, read.payload, { carriesRuns, carriesQuotas, mode });
       } catch (e) {
         wrong = `the audit could not read it back (${(e as Error).message})`;
       }
       if (wrong) {
         console.error(
-          `✖  P0: the restore committed but ${wrong}. If a Bridge was serving this store meanwhile, its writes may explain it; otherwise keep this store for inspection`,
+          `✖  P0: the restore committed but ${wrong}. If a Bridge was serving this store meanwhile, its writes may explain it; otherwise keep this store for inspection${back()}`,
         );
         return 3;
       }
       say(
-        `✔  ${outcome.tenants} tenant(s), ${outcome.runs} run(s), ${outcome.daily} daily record(s) restored from ${read.at} (schema ${read.schema}), checked before and after the commit`,
+        `✔  ${outcome.tenants} tenant(s), ${outcome.runs} run(s), ${outcome.daily} daily record(s)${outcome.quotas !== undefined ? `, ${outcome.quotas} quota row(s)` : ''} restored from ${read.at} (schema ${read.schema}, ${mode}), checked before and after the commit${back()}`,
       );
       return 0;
     } finally {

@@ -1113,5 +1113,89 @@
   "proof": "argument",
   "owner": "@wanoo",
   "revisit": "4.3.0"
+ },
+ {
+  "file": "bridge/src/backup/canonical.ts",
+  "operator": "condition false",
+  "from": "x === undefined",
+  "to": "false",
+  "context": "if (Array.isArray(v)) return `[${v.map((x) => (x === undefined ? 'null' : stableJson(x))).join(',')}]`;",
+  "why": "stableJson: an undefined array item given to stableJson itself is `JSON.stringify(undefined) ?? 'null'`, the same 'null' the condition wrote",
+  "category": "equivalent",
+  "proof": "argument",
+  "owner": "@wanoo",
+  "revisit": "4.3.0"
+ },
+ {
+  "file": "bridge/src/backup/canonical.ts",
+  "operator": "condition true",
+  "from": "key(a) > key(b)",
+  "to": "true",
+  "context": "[...xs].sort((a, b) => (key(a) < key(b) ? -1 : key(a) > key(b) ? 1 : 0));",
+  "why": "normalTenant's sort: V8's Array.prototype.sort (TimSort) reads a comparison only as `< 0`; this result is negative exactly when key(a) < key(b), as before, and answering 1 or 0 when key(a) >= key(b) sorts every list the same (byCodeUnit's own comparisons are pinned by tests/reality-store-backup-mutants.test.ts)",
+  "category": "equivalent",
+  "proof": "argument",
+  "owner": "@wanoo",
+  "revisit": "4.3.0"
+ },
+ {
+  "file": "bridge/src/backup/canonical.ts",
+  "operator": "condition false",
+  "from": "key(a) > key(b)",
+  "to": "false",
+  "context": "[...xs].sort((a, b) => (key(a) < key(b) ? -1 : key(a) > key(b) ? 1 : 0));",
+  "why": "normalTenant's sort: V8's Array.prototype.sort (TimSort) reads a comparison only as `< 0`; this result is negative exactly when key(a) < key(b), as before, and answering 1 or 0 when key(a) >= key(b) sorts every list the same (byCodeUnit's own comparisons are pinned by tests/reality-store-backup-mutants.test.ts)",
+  "category": "equivalent",
+  "proof": "argument",
+  "owner": "@wanoo",
+  "revisit": "4.3.0"
+ },
+ {
+  "file": "bridge/src/backup/canonical.ts",
+  "operator": "operator",
+  "from": ">",
+  "to": ">=",
+  "context": "[...xs].sort((a, b) => (key(a) < key(b) ? -1 : key(a) > key(b) ? 1 : 0));",
+  "why": "normalTenant's sort: V8's Array.prototype.sort (TimSort) reads a comparison only as `< 0`; this result is negative exactly when key(a) < key(b), as before, and answering 1 or 0 when key(a) >= key(b) sorts every list the same (byCodeUnit's own comparisons are pinned by tests/reality-store-backup-mutants.test.ts)",
+  "category": "equivalent",
+  "proof": "argument",
+  "owner": "@wanoo",
+  "revisit": "4.3.0"
+ },
+ {
+  "file": "bridge/src/backup/files.ts",
+  "operator": "condition false",
+  "from": "got === buf.length",
+  "to": "false",
+  "context": "if (got === buf.length) break;",
+  "why": "readBounded: once got reaches buf.length (st.size + 1: the file grew) the next readSync asks for 0 bytes and returns 0, which breaks the loop just the same; `got !== st.size` then refuses the file either way",
+  "category": "equivalent",
+  "proof": "argument",
+  "owner": "@wanoo",
+  "revisit": "4.3.0"
+ },
+ {
+  "file": "bridge/src/backup/files.ts",
+  "operator": "condition false",
+  "from": "!existsSync(f)",
+  "to": "false",
+  "context": "if (!existsSync(f)) continue;",
+  "why": "bridgeVersion: without the check, readFileSync of a missing package.json throws inside the try, whose catch goes on to the next candidate: the same as `continue`",
+  "category": "equivalent",
+  "proof": "argument",
+  "owner": "@wanoo",
+  "revisit": "4.3.0"
+ },
+ {
+  "file": "bridge/src/backup/restore.ts",
+  "operator": "condition true",
+  "from": "o.force",
+  "to": "true",
+  "context": "if (o.force)",
+  "why": "restoreBackup: without --force a restore reaches these deletes only when the store held no run of runTenants, no daily key of the file (heldDaily empty) and no quota of quotaTenants, so each DELETE (of runs, heldDaily, quotas) matches no row or is never sent",
+  "category": "equivalent",
+  "proof": "argument",
+  "owner": "@wanoo",
+  "revisit": "4.3.0"
  }
 ]

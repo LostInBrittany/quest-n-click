@@ -194,10 +194,11 @@ describe('the backup file', () => {
     opened.push(s);
     await fill(s, payload());
     const b = await makeBackup(s);
-    expect(b.schema).toBe(3);
+    // Schema 4 since 4.1.20 (tests/bridge-backup-v4.test.ts): the digest covers the whole envelope.
+    expect(b.schema).toBe(4);
     expect(b.store).toEqual({ kind: 'sqlite', schema: 4 });
-    expect(b.counts).toMatchObject({ tenants: 2, players: 5, signals: 15, runs: 4, daily: 2, pairings: 2 });
-    expect(b.digest.value).toBe(payloadDigest(b.payload));
+    expect(b.counts).toMatchObject({ tenants: 2, players: 5, signals: 15, runs: 4, daily: 2, pairings: 2, quotas: 0 });
+    expect(b.digest.value).not.toBe(payloadDigest(b.payload));
     const text = JSON.stringify(b);
     expect(readBackup(text).payload).toEqual(b.payload);
     const forged = JSON.parse(text);
@@ -205,7 +206,7 @@ describe('the backup file', () => {
     expect(() => readBackup(JSON.stringify(forged))).toThrow(/digest/);
     const recounted = JSON.parse(text);
     recounted.counts.runs = 5;
-    expect(() => readBackup(JSON.stringify(recounted))).toThrow(/counts/);
+    expect(() => readBackup(JSON.stringify(recounted))).toThrow(/digest/);
     expect(() => readBackup(text.slice(0, -20))).toThrow(BackupError);
   });
 
@@ -310,7 +311,8 @@ describe.each(KINDS)('restore on $name: all or nothing', (kind) => {
     const { a: target } = await kind.open();
     const r = await restoreBackup(target, readBackup(JSON.stringify(b)).payload, { force: false, carriesRuns: true });
     expect(r).toEqual({ ok: true, tenants: 2, runs: 4, daily: 2 });
-    expect((await makeBackup(target)).digest.value).toBe(b.digest.value);
+    // The same payload; not the same digest since 4.1.20, which also covers each backup's own dates.
+    expect(stableJson((await makeBackup(target)).payload)).toBe(stableJson(b.payload));
   });
 
   it('a conflict without --force is found before the first write; with --force, replaced in one transaction', async () => {
@@ -398,7 +400,7 @@ describe.each(KINDS)('restore on $name: all or nothing', (kind) => {
     const out = join(dir, 'backup.json');
     const b = await cli(['backup', `--dir=${dir}`, `--store=${url}`, `--out=${out}`]);
     expect(b.code, b.out).toBe(0);
-    expect(b.out).toContain('schema 3, one snapshot');
+    expect(b.out).toContain('schema 4, one snapshot');
     const small = join(dir, 'small.json');
     const big = await cli(['backup', `--dir=${dir}`, `--store=${url}`, `--out=${small}`, '--max-bytes=100']);
     expect(big.code).toBe(1);
@@ -416,15 +418,16 @@ describe.each(KINDS)('restore on $name: all or nothing', (kind) => {
       `--dir=${dir}`,
       `--store=${url}`,
       `--from=${join(dir, 'forged.json')}`,
+      '--mode=merge',
       '--force',
     ]);
     expect(refused.code).toBe(1);
     expect(refused.out).toContain('nothing restored');
     expect(await state(s)).toBe(before);
-    const again = await cli(['restore', `--dir=${dir}`, `--store=${url}`, `--from=${out}`]);
+    const again = await cli(['restore', `--dir=${dir}`, `--store=${url}`, `--from=${out}`, '--mode=merge']);
     expect(again.code).toBe(1);
     expect(again.out).toContain('already holds');
-    const forced = await cli(['restore', `--dir=${dir}`, `--store=${url}`, `--from=${out}`, '--force']);
+    const forced = await cli(['restore', `--dir=${dir}`, `--store=${url}`, `--from=${out}`, '--mode=merge', '--force']);
     expect(forced.code, forced.out).toBe(0);
     expect(forced.out).toContain('checked before and after the commit');
     expect(await state(s)).toBe(before);
@@ -476,7 +479,7 @@ describe('the journal', () => {
     const config = JSON.parse(readFileSync(join(dir, 'config.json'), 'utf8')) as { journal: string };
     const journal = join(dir, config.journal);
     const bytes = existsSync(journal) ? readFileSync(journal) : undefined;
-    const r = await cli(['restore', `--dir=${dir}`, `--from=${file}`, '--force']);
+    const r = await cli(['restore', `--dir=${dir}`, `--from=${file}`, '--mode=merge', '--force']);
     expect(r.code).toBe(1);
     expect(r.out).toContain('migrate it to SQLite first');
     expect(existsSync(journal) ? readFileSync(journal) : undefined).toEqual(bytes);

@@ -550,3 +550,20 @@ la racine.
 - `npm run connector-archive-e2e` joue les quatre connecteurs depuis leurs archives. La configuration Vite ne charge plus
   le Studio ; un plugin à vous qui importait du code du Studio depuis `vite.config.ts` le charge par le serveur de dev.
 - La sauvegarde de référence de la 4.1.19 rejoint `tests/save-v3.test.ts`.
+
+## 32. De la 4.1.19 à la 4.1.20 « Last Mile »
+
+**Pour qui exploite un Bridge.**
+
+- **`restore` dit son mode.** `restore --from=<fichier>` sans `--mode` est refusé (code de sortie 2) et ne restaure
+  rien. Un script de la 4.1.19 ajoute `--mode=merge` : la restauration de la 4.1.19 inchangée pour un fichier de
+  schéma 1 à 3 (`--force` compris) ; un fichier de schéma 4 parle aussi des quotas de speedrun de ses tenants, sauf
+  s'il vient d'un journal (`tenants-only`). `--mode=replace-store --yes-replace-store --safety-out=<nouveau fichier>` est nouveau : il fait du store la
+  sauvegarde (`docs/fr/REALITY-OPS.md`).
+- **Une sauvegarde est de schéma 4.** Elle porte le quota des speedruns, dit ce qu'elle contient (`completeness`) et a
+  une empreinte de toute l'enveloppe. Les fichiers des schémas 1 à 3 sont toujours lus, pour `--mode=merge` seulement :
+  rien sous leur empreinte ne dit qu'ils contiennent chaque famille, donc `replace-store` les refuse. Deux sauvegardes
+  du même store n'ont plus la même empreinte, puisqu'elle couvre leurs dates. **Un Bridge 4.1.19 ne lit pas un
+  fichier de schéma 4** : revenir à la 4.1.19 après une sauvegarde prise par la 4.1.20 demande une sauvegarde prise par
+  la 4.1.19 (ou `pg_dump`).
+

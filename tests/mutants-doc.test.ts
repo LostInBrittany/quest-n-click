@@ -1,7 +1,7 @@
 // The named survivors (4.1.8): docs/dev/mutants.json is what the mutation gate reads; MUTANTS.md shows the same
 // list, written by `npm run test:mutation:core -- --doc` between its markers; and an entry that names the source
 // line it sits on (`context`) must still find that line in its file, or the code moved and the entry is stale.
-import { readFileSync } from 'node:fs';
+import { readdirSync, readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { type KnownSurvivor, withSurvivorsTable } from '../tools/mutate';
 import { GATED, MEASURED, SETS, setNamed } from '../tools/mutation-sets';
@@ -33,6 +33,13 @@ describe('the named survivors', () => {
     for (const s of Object.keys(SETS)) expect(doc, s).toContain(`| \`${s}\``);
     for (const s of GATED) expect(MEASURED, s).not.toContain(s);
     expect([...GATED, ...MEASURED].sort()).toEqual(Object.keys(SETS).sort());
+  });
+
+  it('every file of the backup is mutated by a gated set (4.1.20 PR 1b: none was before)', () => {
+    const gated = new Set(GATED.flatMap((k) => SETS[k]));
+    const files = readdirSync('bridge/src/backup').filter((f) => f.endsWith('.ts') && f !== 'index.ts');
+    expect(files.length).toBeGreaterThan(4);
+    for (const f of files) expect(gated, f).toContain(`bridge/src/backup/${f}`);
   });
 
   it('`connectors` still names `connectors-pure` until 4.2; a name that is no set is refused', () => {

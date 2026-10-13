@@ -111,7 +111,7 @@ describe('moving a 4.1.9 journal into SQLite', () => {
 });
 
 describe('backup and restore, rehearsed', () => {
-  it('carries the leaderboards and the daily challenge too (schema 2 in 4.1.18, 3 since 4.1.19), and refuses a column it cannot name', async () => {
+  it('carries the leaderboards and the daily challenge too (schema 2 in 4.1.18, 3 in 4.1.19, 4 since 4.1.20), and refuses a column it cannot name', async () => {
     const dir = tmp('backup-runs');
     await journalWithSignals(dir);
     expect((await cli(['migrate', `--dir=${dir}`, '--from=jsonl', '--to=sqlite'])).code).toBe(0);
@@ -153,23 +153,23 @@ describe('backup and restore, rehearsed', () => {
     const backup = join(dir, 'backup.json');
     const b = await cli(['backup', `--dir=${dir}`, `--out=${backup}`]);
     expect(b.out).toContain('2 run(s), 1 daily record(s)');
-    expect(JSON.parse(readFileSync(backup, 'utf8')).schema).toBe(3);
+    expect(JSON.parse(readFileSync(backup, 'utf8')).schema).toBe(4);
     for (const f of ['bridge.sqlite', 'bridge.sqlite-wal', 'bridge.sqlite-shm']) rmSync(join(dir, f), { force: true });
-    const r = await cli(['restore', `--dir=${dir}`, `--from=${backup}`]);
+    const r = await cli(['restore', `--dir=${dir}`, `--from=${backup}`, '--mode=merge']);
     expect(r.code, r.out).toBe(0);
-    expect(r.out).toContain('2 run(s), 1 daily record(s) restored');
+    expect(r.out).toContain('2 run(s), 1 daily record(s), 0 quota row(s) restored');
     const again = new DatabaseSync(join(dir, 'bridge.sqlite'));
     expect(again.prepare('SELECT * FROM runs ORDER BY id').all()).toEqual(before.runs);
     expect(again.prepare('SELECT * FROM daily_kv').all()).toEqual(before.daily);
     again.close();
     // Over the runs it holds: refused, then replaced with --force (4.1.19: the daily record too, in the same transaction).
-    expect((await cli(['restore', `--dir=${dir}`, `--from=${backup}`])).code).toBe(1);
-    expect((await cli(['restore', `--dir=${dir}`, `--from=${backup}`, '--force'])).code).toBe(0);
+    expect((await cli(['restore', `--dir=${dir}`, `--from=${backup}`, '--mode=merge'])).code).toBe(1);
+    expect((await cli(['restore', `--dir=${dir}`, `--from=${backup}`, '--mode=merge', '--force'])).code).toBe(0);
     // A backup naming a column that is not an identifier: nothing spliced into a statement.
     const forged = JSON.parse(readFileSync(backup, 'utf8'));
     forged.payload.runs[0] = { 'id) VALUES (1); DROP TABLE runs; --': 'x' };
     writeFileSync(backup, JSON.stringify(forged));
-    const refused = await cli(['restore', `--dir=${dir}`, `--from=${backup}`, '--force']);
+    const refused = await cli(['restore', `--dir=${dir}`, `--from=${backup}`, '--mode=merge', '--force']);
     expect(refused.code).not.toBe(0);
     const still = new DatabaseSync(join(dir, 'bridge.sqlite'));
     expect(still.prepare('SELECT COUNT(*) AS n FROM runs').get()).toEqual({ n: 2 });
@@ -186,11 +186,11 @@ describe('backup and restore, rehearsed', () => {
     expect(readFileSync(backup, 'utf8')).not.toContain('capability"'); // hashes only, never a capability
     // The disaster: the database file is gone.
     for (const f of ['bridge.sqlite', 'bridge.sqlite-wal', 'bridge.sqlite-shm']) rmSync(join(dir, f), { force: true });
-    const r = await cli(['restore', `--dir=${dir}`, `--from=${backup}`]);
+    const r = await cli(['restore', `--dir=${dir}`, `--from=${backup}`, '--mode=merge']);
     expect(r.code, r.out).toBe(0);
     // Restoring over a store that holds the tenant needs --force.
-    expect((await cli(['restore', `--dir=${dir}`, `--from=${backup}`])).code).toBe(1);
-    expect((await cli(['restore', `--dir=${dir}`, `--from=${backup}`, '--force'])).code).toBe(0);
+    expect((await cli(['restore', `--dir=${dir}`, `--from=${backup}`, '--mode=merge'])).code).toBe(1);
+    expect((await cli(['restore', `--dir=${dir}`, `--from=${backup}`, '--mode=merge', '--force'])).code).toBe(0);
     const file = JSON.parse(readFileSync(join(dir, 'config.json'), 'utf8'));
     const hold: Parameters<typeof loadBridge>[2] = {};
     const bridge = await loadBridge(file, dir, hold);
