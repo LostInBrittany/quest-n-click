@@ -5,6 +5,7 @@
 import { describe, expect, it } from 'vitest';
 import type { MutationReport } from '../tools/mutate';
 import { mergeReports, mutationMatrix, type ShardReport, shardFiles } from '../tools/mutation-shards';
+import { MEASURED } from '../tools/mutation-sets';
 
 const COUNTS: Record<string, number> = { 'a.ts': 358, 'b.ts': 201, 'c.ts': 99, 'd.ts': 97, 'e.ts': 83, 'f.ts': 4 };
 const FILES = Object.keys(COUNTS);
@@ -147,6 +148,9 @@ describe('the matrix of the workflows', () => {
     const nightly = mutationMatrix('nightly');
     expect(nightly.include.length).toBeGreaterThanOrEqual(gated.include.length);
     for (const e of nightly.include.filter((x) => !x.gated)) expect(sets).not.toContain(e.set);
+    // Nothing measured only (4.1.20: every set gated): the nightly runs the gated matrix, no more.
+    if (MEASURED.length === 0) expect(nightly).toEqual(gated);
+    else expect(nightly.include.some((x) => !x.gated)).toBe(true);
   });
 
   it('gives Postgres to the set that needs it only, and names each job and artifact uniquely', () => {

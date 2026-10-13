@@ -65,9 +65,9 @@ export const SETS = {
     'bridge/src/backup/snapshot.ts',
     'bridge/src/backup/tables.ts',
   ],
-  // Measured, not gated (4.1.19, plan §8.1): what `connectors-pure` leaves out — configuration and start, the email
-  // connector (webhook and IMAP), the badge's verification, the terminal's guard and shell, SSH and Telnet. Gated only
-  // once every survivor is read.
+  // What `connectors-pure` leaves out (4.1.19, plan §8.1) — configuration and start, the email connector (webhook and
+  // IMAP), the badge's verification, the terminal's guard and shell, SSH and Telnet. Gated since 4.1.20 (PR 2b–2e),
+  // every survivor killed or named, in four shards.
   'connectors-edge': [
     'connectors/src/config.ts',
     'connectors/src/run.ts',
@@ -83,8 +83,9 @@ export const SETS = {
     'connectors/src/ssh/connector.ts',
     'connectors/src/telnet/connector.ts',
   ],
-  // Measured, not gated (4.1.19): the Postgres adapter, which `reality-store` does not mutate (it mutates what the
-  // adapter rests on, store-sql.ts). Its tests need a database: BRIDGE_PG_URL (the mutation workflow gives one).
+  // The Postgres adapter (4.1.19), which `reality-store` does not mutate (it mutates what the adapter rests on,
+  // store-sql.ts). Gated since 4.1.20 (PR 2a). Its tests need a database: BRIDGE_PG_URL (the mutation workflow gives
+  // one).
   'reality-store-postgres': ['bridge/src/store-postgres.ts'],
 };
 export type MutationSet = keyof typeof SETS;

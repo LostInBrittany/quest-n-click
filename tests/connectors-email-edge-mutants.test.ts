@@ -41,7 +41,10 @@ vi.mock('node:tls', async (orig) => {
   return { ...real, connect, default: { ...real, connect } };
 });
 
-afterEach(() => {
+/** Every connector a test made, stopped after it even when an assertion failed first (no server or poll loop left). */
+const made: EmailConnector[] = [];
+afterEach(async () => {
+  for (const e of made.splice(0)) await e.stop().catch(() => {});
   vi.useRealTimers();
   vi.restoreAllMocks();
   net.peer = null;
@@ -363,6 +366,7 @@ const tagged = (player = PLAYER) => ({ to: [`gate+${player}@garden.example`] });
 /** A connector whose MIME reader reads JSON (no worker). */
 function connector(c: Partial<EmailConfig> = {}) {
   const e = new EmailConnector({ mode: 'webhook', domain: 'garden.example', ...c });
+  made.push(e);
   const parse = vi.fn(async (b: Uint8Array): Promise<MimeResult> => {
     const s = Buffer.from(b).toString();
     return s === 'unreadable' ? { ok: false, reason: 'no' } : { ok: true, mail: JSON.parse(s) as ParsedMail };
@@ -709,6 +713,14 @@ describe('the IMAP pass', () => {
       mailbox: 'Letters',
     });
     expect('tls' in o).toBe(false);
+  });
+
+  it('reads an empty mailbox name (the file is not validated) as none: INBOX, never an empty one', async () => {
+    const { open } = mailbox({});
+    const e = imapConnector({ mailbox: '' });
+    (e as unknown as { ctx: ConnectorContext }).ctx = fakeCtx();
+    await e.poll();
+    expect('mailbox' in open.mock.calls[0]![0]).toBe(false);
   });
 
   it('flags a message over `maxBytes` unread, and reads one of `maxBytes` exactly', async () => {

@@ -840,3 +840,16 @@ describe('the SSH server', () => {
     await stopped;
   });
 });
+
+// The SSH key loader reads `utils.parseKey` as ssh2 1.17 defines it (docs/dev/mutants.json names its array branch
+// unreachable on that ground): one key or an Error, never an array. A bump of ssh2 that changes it fails here first.
+describe("ssh2's parseKey, as the key loader counts on it", () => {
+  it('gives one key for a private or a public key, and an Error for anything but a string or a Buffer', () => {
+    for (const k of [host.private, host.public]) {
+      const parsed = ssh2.utils.parseKey(k);
+      expect(Array.isArray(parsed)).toBe(false);
+      expect(parsed).not.toBeInstanceOf(Error);
+    }
+    expect(ssh2.utils.parseKey(42 as unknown as string)).toBeInstanceOf(Error);
+  });
+});

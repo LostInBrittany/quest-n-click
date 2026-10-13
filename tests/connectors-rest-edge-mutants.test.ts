@@ -299,6 +299,25 @@ describe('the web-scumm-connector process, in-process', () => {
     await run(['telnet', '--config', config(file)]);
     expect(seen.ctx!.tenantId).toBe('default');
     expect(seen.ctx!.limits).toEqual({ maxBytes: 4096, maxPerMinute: 60, timeoutMs: 5000 });
+    // An empty tenant (the file is not validated) is no tenant: the default, never ''.
+    await run(['telnet', '--config', config({ ...file, tenantId: '' })]);
+    expect(seen.ctx!.tenantId).toBe('default');
+  });
+
+  // A pipe's name as the health "port" (the file is not validated): `address()` is then that string, not an
+  // AddressInfo. No health URL is said, and the connector runs on rather than throw on a URL of no port.
+  it.skipIf(process.platform === 'win32')('says no health URL for a health server on a socket path', async () => {
+    stubTelnet();
+    const sock = join(dir(), 'h.sock');
+    const r = await run([
+      'telnet',
+      '--config',
+      config({ ...base, manifestFile: 'manifest.json', health: { port: sock } }),
+    ]);
+    expect(r.code).toBe(0);
+    expect(r.infos).toEqual([{}]);
+    const started = JSON.parse(r.lines.find((l) => l.includes('connector.started'))!) as Record<string, unknown>;
+    expect(started).not.toHaveProperty('healthPort');
   });
 
   it('serves no health port unless asked, and says so', async () => {
