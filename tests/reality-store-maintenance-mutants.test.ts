@@ -186,6 +186,22 @@ describe('a lease kept', () => {
   });
 });
 
+describe('the local deadline', () => {
+  it('lets writes go at the deadline itself, and holds them just past it', async () => {
+    const store = await SqliteRealityStore.open(':memory:', { pollMs: 0 });
+    const now = vi.spyOn(performance, 'now');
+    store.writableUntil(1000);
+    now.mockReturnValue(1000);
+    expect(store.heldBecause).toBeUndefined();
+    now.mockReturnValue(1000.5);
+    expect(store.heldBecause).toMatch(/not renewed in time/);
+    store.writableUntil(undefined);
+    expect(store.heldBecause).toBeUndefined();
+    now.mockRestore();
+    await store.close();
+  });
+});
+
 describe('writes held', () => {
   it('still let a read-only transaction run, never a write', async () => {
     const store = await SqliteRealityStore.open(':memory:', { pollMs: 0 });
