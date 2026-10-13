@@ -34,7 +34,14 @@ listening or 48 hours of deployment. Carrying a pass blindly would be wrong too:
      left out, but the file at HEAD must be the bytes the last signed commit wrote.
    - No commit that writes the attestation may touch the root. A range (a pull request) that changes both is refused
      (`field:carry --check-range`, run by `ci` on every pull request).
-   - `approvedBy` must be the principal the root names for the signing key.
+   - `approvedBy` must be the principal the root names for the signing key, and the report beside the carry is held
+     to the same rule, signed by the same principal. The bytes judged are the committed ones, never the working tree's.
+   - The source commit must be on the first-parent line of the history judged (main's): an attestation cannot name a
+     commit of its own branch as its root. A key added then removed within a branch is refused in every commit of the
+     range, not only its net diff (second reading of PR 4).
+   - A carry fills only a pass not tried on the target candidate: a failure made there is never covered.
+   - Every commit on a carry's path is the maintainer's, the pending one included: `field:carry` writes the files and
+     commits nothing, and one unsigned commit leaves the carry refused for good.
    - A key rotation is its own pull request, then a candidate that attests it, and holds from that candidate on.
 5. **Counted, not rewritten.** `field:check` and `field:report` count a carried pass as `passed` for the target
    candidate only when its attestation is approved and trusted, its source report is the bytes it names and `passed`,

@@ -670,10 +670,10 @@ jobs:
           if [ -d artifacts/candidate-site ]; then mkdir -p artifacts/candidate-release/site && cp artifacts/candidate-site/* artifacts/candidate-release/site/; fi
           # The surfaces of the people's passes (4.1.20 PR 4, ADR 0024), from the files above and the checkout's
           # docs/dev/surfaces.json, before the manifest: attested with it. A file in no surface fails here.
-          if [ -f artifacts/candidate-release/site/site-files.json ]; then
-            mkdir -p artifacts/candidate-release/surfaces
-            node tools/field/surfaces.mjs --dir=artifacts/candidate-release --out=artifacts/candidate-release/surfaces/qualification-surfaces.json
-          fi
+          # No site, no surfaces: refused here, before anything is attested (second reading of PR 4).
+          test -f artifacts/candidate-release/site/site-files.json || { echo "::error::no site-files.json from release-core: the surfaces cannot be written"; exit 1; }
+          mkdir -p artifacts/candidate-release/surfaces
+          node tools/field/surfaces.mjs --dir=artifacts/candidate-release --out=artifacts/candidate-release/surfaces/qualification-surfaces.json
           node tools/release/candidate.mjs manifest --sha=${{ needs.target.outputs.sha }} --run=${{ github.run_id }} --dir=artifacts/candidate-release --out=candidate-manifest.json
           node tools/release/candidate.mjs check candidate-manifest.json --sha=${{ needs.target.outputs.sha }} --run=${{ github.run_id }} --dir=artifacts/candidate-release
       - if: always()

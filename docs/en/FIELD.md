@@ -105,8 +105,10 @@ npm run field:carry -- --from=.cache/field/4.1.20 --to=.cache/field/4.1.21 --pas
 - `field:carry` refuses any relevant difference and says which file. There is no force: run the pass again.
 - Otherwise it writes a `pending` attestation and the source report's exact copy under
   `docs/dev/passes/carry/4.1.21/`.
-- The maintainer approves it (`decision`, `approvedBy`) in a commit signed with their key. The trust root is
-  `.github/allowed_signers` as the **source** candidate's commit holds it.
+- The maintainer commits it and approves it (`decision`, `approvedBy`), each commit signed with their key: one unsigned
+  commit on that path leaves the carry refused for good. The trust root is `.github/allowed_signers` as the **source**
+  candidate's commit (on main's first-parent line) holds it.
+- A carry fills only a pass not tried on the new candidate: a failure made there is never covered.
 - `field:check` and `field:report` then count the pass as `passed` for the new candidate. The person's report is never
   rewritten: its four statuses stay four.
 - A README-only change carries the PWA pass. A change to the service worker, the Bridge's archive or the mixing

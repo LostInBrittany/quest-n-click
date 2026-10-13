@@ -161,6 +161,13 @@ export function carriedPass(o: {
   if (hex(o.sourceReportBytes) !== x.sourceReportDigest)
     return { counts: false, why: 'the source report is not the one carried' };
   if (o.sourceReport.status !== 'passed') return { counts: false, why: 'the source report is not passed' };
+  // The report is the source candidate's, for this pass (second reading of PR 4): never one of another run.
+  if (
+    o.sourceReport.passId !== x.passId ||
+    o.sourceReport.commit !== x.from.commit ||
+    o.sourceReport.candidateRun !== x.from.candidateRun
+  )
+    return { counts: false, why: "the source report is not this pass's on the source candidate" };
   if (JSON.stringify(x.to) !== JSON.stringify(o.targetRef))
     return { counts: false, why: 'carried to another candidate' };
   const t = o.target.surfaces.find((s) => s.id === x.passId);

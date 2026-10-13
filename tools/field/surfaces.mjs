@@ -25,10 +25,13 @@ export const stable = (v) =>
           .join(',')}}`
       : JSON.stringify(v);
 
-/** A glob of the declaration as a regular expression: `**` any path, `*` within a segment. */
+// A glob of the declaration as a regular expression: `**` then a slash, any folders or none (as workbox reads it);
+// `**` any path; `*` within a segment.
 export const globRe = (g) =>
   new RegExp(
     `^${g
+      .split('**/')
+      .join('\u0000')
       .split('**')
       .map((p) =>
         p
@@ -36,7 +39,8 @@ export const globRe = (g) =>
           .map((x) => x.replace(/[.+?^${}()|[\]\\]/g, '\\$&'))
           .join('[^/]*'),
       )
-      .join('.*')}$`,
+      .join('.*')
+      .replaceAll('\u0000', '(?:.*/)?')}$`,
   );
 
 /** The README's install section, as the PR 4 markers delimit it, in both languages: what `readme:install` reads. */

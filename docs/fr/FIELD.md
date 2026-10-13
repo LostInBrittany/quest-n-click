@@ -107,8 +107,10 @@ npm run field:carry -- --from=.cache/field/4.1.20 --to=.cache/field/4.1.21 --pas
 
 - `field:carry` refuse toute différence pertinente et nomme le fichier. Il n'y a pas de `--force` : on rejoue la passe.
 - Sinon, il écrit une attestation `pending` et la copie exacte du rapport source sous `docs/dev/passes/carry/4.1.21/`.
-- Le mainteneur l'approuve (`decision`, `approvedBy`) dans un commit signé avec sa clé. La racine de confiance est
-  `.github/allowed_signers` tel que le commit du candidat **source** le porte.
+- Le mainteneur la commite et l'approuve (`decision`, `approvedBy`), chaque commit signé avec sa clé : un seul commit
+  non signé sur ce chemin laisse le report refusé pour de bon. La racine de confiance est `.github/allowed_signers` tel
+  que le commit du candidat **source** (sur la ligne first-parent de main) le porte.
+- Un report ne remplit qu'une passe non essayée sur le nouveau candidat : il ne couvre jamais un échec fait là.
 - `field:check` et `field:report` comptent alors la passe comme `passed` pour le nouveau candidat. Le rapport de la
   personne n'est jamais réécrit : ses quatre statuts restent quatre.
 - Un changement du seul README reporte la passe PWA. Un changement du service worker, de l'archive du Bridge ou du

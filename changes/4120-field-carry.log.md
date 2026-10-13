@@ -21,3 +21,24 @@
     (PR 4 itself brings both).
 - **Left for the maintainer:** the first `.github/allowed_signers` (`id_ed25519_sk`), in a commit signed by that key,
   in this pull request, merged with a merge commit. Claude cannot sign it.
+- Second reading (subagent, 13 Oct, with a git/ssh probe). Fixed:
+  - **P0: an attestation named its own trust root.** A branch added a key to allowed_signers, removed it, and signed
+    an approval with it whose `from.commit` was the first commit. The net diff held no key change, and the principal
+    is free text. Now:
+    - the source commit must be on the first-parent line of the history judged (main's);
+    - the range check reads every commit, not the net diff;
+    - the source report must be the attestation's pass on its `from` candidate, and be signed by the same principal.
+  - Committed bytes only: a working-tree edit counts for nothing.
+  - A carry fills only a pass not tried on the target: a failure there is never covered.
+  - Every commit on a carry's path is the maintainer's: documented in the ADR, FIELD (EN and FR), the folder's README
+    and field:carry's message.
+  - Smaller fixes:
+    - `**/` matches the root as workbox does, so the og.png proof is no longer vacuous;
+    - the voices surface also reads the root scripts (the service worker), `data/` and CSS;
+    - the merge check reads git's exit status;
+    - a malformed attestation, or a folder without its site files, is said and does not crash;
+    - one file per pass, named by its id;
+    - the gate refuses a candidate with no site before it attests anything.
+  - Each new test was run against the code before the fix and failed there.
+  - Left as is: release-core's field:check runs on a shallow checkout, so a carry it lists there says "no trust root".
+    That is information only: counting a carry needs main's history, as in `field:check --require` on main.

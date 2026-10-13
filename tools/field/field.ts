@@ -154,39 +154,74 @@ export function carriedPasses(
 ): Map<string, { counts: boolean; why?: string; from?: string }> {
   const out = new Map<string, { counts: boolean; why?: string; from?: string }>();
   if (!existsSync(carried)) return out;
-  const target = existsSync(join(dir, SURFACES)) ? candidateOf(dir) : null;
+  let target: ReturnType<typeof candidateOf> | null = null;
+  let targetWhy = `${dir} keeps no surfaces of its candidate`;
+  try {
+    if (existsSync(join(dir, SURFACES))) target = candidateOf(dir);
+  } catch (e) {
+    targetWhy = (e as Error).message;
+  }
+  const seen = new Map<string, string>();
   for (const f of readdirSync(carried).filter((x) => x.endsWith('.json') && !x.endsWith('.report.json'))) {
     const p = join(carried, f);
-    const parsed = CarryAttestationSchema.safeParse(JSON.parse(readFileSync(p, 'utf8')));
+    const rel = (q: string) => relative(resolve(repo), resolve(q)).split(sep).join('/');
+    // The committed bytes, signed as the trust root requires; never what the working tree holds (an edit not
+    // committed counts for nothing, second reading of PR 4).
+    let json: unknown;
+    try {
+      json = JSON.parse(readFileSync(p, 'utf8'));
+    } catch {
+      out.set(f, { counts: false, why: 'not JSON' });
+      continue;
+    }
+    const from = (json as { from?: { commit?: string } })?.from?.commit ?? '';
+    const att = trustedApproval({ repo, path: rel(p), sourceCommit: from });
+    if (!att.ok) {
+      const id = (json as { passId?: string })?.passId ?? f;
+      out.set(id, { counts: false, why: att.why });
+      continue;
+    }
+    const parsed = CarryAttestationSchema.safeParse(JSON.parse(att.bytes));
     if (!parsed.success) {
       out.set(f, { counts: false, why: `not a carry attestation: ${parsed.error.issues[0]?.message}` });
       continue;
     }
     const a = parsed.data;
-    const reportFile = p.replace(/\.json$/, '.report.json');
+    if (f !== `${a.passId}.json`) {
+      out.set(a.passId, { counts: false, why: `${f} holds the carry of ${a.passId}: one file per pass, by its id` });
+      continue;
+    }
+    if (seen.has(a.passId)) {
+      out.set(a.passId, { counts: false, why: `two carries of ${a.passId}` });
+      continue;
+    }
+    seen.set(a.passId, f);
     if (!target) {
-      out.set(a.passId, { counts: false, why: `${dir} keeps no surfaces of its candidate` });
+      out.set(a.passId, { counts: false, why: targetWhy });
       continue;
     }
-    if (!existsSync(reportFile)) {
-      out.set(a.passId, { counts: false, why: `${reportFile}: the source report is not beside its carry` });
+    const reportPath = p.replace(/\.json$/, '.report.json');
+    const rep = trustedApproval({ repo, path: rel(reportPath), sourceCommit: a.from.commit });
+    if (!rep.ok) {
+      out.set(a.passId, { counts: false, why: `the source report beside the carry: ${rep.why}` });
       continue;
     }
-    const bytes = readFileSync(reportFile, 'utf8');
-    const report = FieldReportSchema.safeParse(JSON.parse(bytes));
+    if (rep.principal !== att.principal) {
+      out.set(a.passId, { counts: false, why: 'the carry and its source report are signed by two principals' });
+      continue;
+    }
+    const report = FieldReportSchema.safeParse(JSON.parse(rep.bytes));
     if (!report.success) {
       out.set(a.passId, { counts: false, why: 'the source report beside the carry is not a report' });
       continue;
     }
-    const path = relative(resolve(repo), resolve(p)).split(sep).join('/');
-    const trusted = trustedApproval({ repo, path, sourceCommit: a.from.commit });
     const r = carriedPass({
       attestation: a,
       sourceReport: report.data,
-      sourceReportBytes: bytes,
+      sourceReportBytes: rep.bytes,
       target: target.surfaces,
       targetRef: refOf(target.m, release),
-      trusted,
+      trusted: att,
     });
     out.set(a.passId, r.counts ? { counts: true, from: a.from.candidateRun } : { counts: false, why: r.why });
   }
@@ -307,11 +342,20 @@ export function checkDir(
   for (const id of PASS_IDS) if (!seen.has(id)) problems.push(`${id}: no report`);
   for (const id of require) {
     if (!(PASS_IDS as readonly string[]).includes(id)) problems.push(`--require=${id}: not a pass`);
-    else if (reports.find((r) => r.passId === id)?.status !== 'passed' && !carried.get(id)?.counts)
+    else if (
+      !filledBy(
+        reports.find((r) => r.passId === id),
+        carried.get(id),
+      )
+    )
       problems.push(`${id}: required, not passed (nor carried by an approved, signed attestation)`);
   }
   return { problems, reports };
 }
+
+/** Whether a pass counts as passed here: its own report passed, or not run and filled by a counted carry. */
+const filledBy = (r: FieldReport | undefined, c: { counts: boolean } | undefined) =>
+  r?.status === 'passed' || ((!r || r.status === 'not-run') && !!c?.counts);
 
 /** A table cell from a person's text: one line, its backslashes, pipes and markup escaped (no row, comment or tag). */
 const cell = (s: string | undefined) =>
@@ -333,7 +377,8 @@ export function renderPasses(
   const rows = PASS_IDS.map((id) => {
     const r = by.get(id);
     // A pass carried here by an approved, signed attestation counts as passed; its report stays the person's (ADR 0024).
-    const carry = r?.status !== 'passed' ? carried.get(id) : undefined;
+    // Only where the person tried nothing on this candidate: a carry never covers a failure made here.
+    const carry = !r || r.status === 'not-run' ? carried.get(id) : undefined;
     const status = carry?.counts ? 'passed' : (r?.status ?? 'not-run');
     count[status]++;
     const env = r
@@ -546,7 +591,7 @@ export function main(args: string[]): number {
     // The person's report as they wrote it, byte for byte: what the attestation's digest names.
     writeFileSync(join(out, `${pass}.report.json`), reportBytes);
     console.log(
-      `✔  ${pass}: its surface is unchanged (${r.attestation.changedFiles.length} other file(s) changed); a pending carry in ${out}. The maintainer approves it (decision "approved", approvedBy their principal) in a commit signed with their key; Claude never does.`,
+      `✔  ${pass}: its surface is unchanged (${r.attestation.changedFiles.length} other file(s) changed); a pending carry in ${out}. The maintainer commits it and approves it (decision "approved", approvedBy their principal), every commit signed with their key: one unsigned commit on that path refuses it for good. Claude commits nothing there.`,
     );
     return 0;
   }

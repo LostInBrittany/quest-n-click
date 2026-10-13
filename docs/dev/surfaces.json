@@ -170,6 +170,9 @@
    "artifacts": [
     "site:assets/audio/**",
     "site:assets/*.js",
+    "site:assets/*.css",
+    "site:*.js",
+    "site:data/**",
     "site:index.html",
     "site:site.json"
    ],

@@ -2,6 +2,7 @@
 // candidate only when none of them changed (the version included), and counted only through an attestation the
 // maintainer approved in a commit signed by a key the source candidate's .github/allowed_signers names.
 import { spawnSync } from 'node:child_process';
+import { createHash } from 'node:crypto';
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -240,6 +241,22 @@ describe('a carry counted', () => {
   const count = (attestation: CarryAttestation, trusted: Parameters<typeof carriedPass>[0]['trusted']) =>
     carriedPass({ attestation, sourceReport: report, sourceReportBytes: bytes, target, targetRef: TO, trusted });
 
+  it("counts no report but the source candidate's own for this pass", () => {
+    const other = { ...report, candidateRun: '999' };
+    const otherBytes = JSON.stringify(other);
+    const a = { ...approved, sourceReportDigest: createHash('sha256').update(otherBytes).digest('hex') };
+    expect(
+      carriedPass({
+        attestation: a,
+        sourceReport: other,
+        sourceReportBytes: otherBytes,
+        target,
+        targetRef: TO,
+        trusted: { ok: true, principal: 'maintainer' },
+      }),
+    ).toMatchObject({ counts: false, why: /not this pass's on the source candidate/ });
+  });
+
   it('only approved, signed by the principal it names, for this target', () => {
     expect(count(approved, { ok: true, principal: 'maintainer' })).toEqual({ counts: true });
     expect(count(pending, { ok: true, principal: 'maintainer' })).toMatchObject({ counts: false, why: /pending/ });
@@ -313,7 +330,7 @@ describe('the trust root', () => {
       '.github/allowed_signers': `${maintainer.line('maintainer')}\n`,
     });
     r.commit('approve', { [ATT]: '{"decision":"approved"}' }, maintainer.file);
-    expect(trustedApproval({ repo: r.dir, path: ATT, sourceCommit: source })).toEqual({
+    expect(trustedApproval({ repo: r.dir, path: ATT, sourceCommit: source })).toMatchObject({
       ok: true,
       principal: 'maintainer',
     });
@@ -384,7 +401,7 @@ describe('the trust root', () => {
     r.g(['checkout', '-q', 'main']);
     r.commit('other work', { 'other.txt': 'x' });
     r.g(['merge', '-q', '--no-ff', '--no-gpg-sign', '-m', 'merge (as GitHub would, under its own key)', 'pr']);
-    expect(trustedApproval({ repo: r.dir, path: ATT, sourceCommit: source })).toEqual({
+    expect(trustedApproval({ repo: r.dir, path: ATT, sourceCommit: source })).toMatchObject({
       ok: true,
       principal: 'maintainer',
     });
@@ -399,6 +416,36 @@ describe('the trust root', () => {
     expect(trustedApproval({ repo: r.dir, path: ATT, sourceCommit: source })).toMatchObject({
       ok: false,
       why: /merge/,
+    });
+  });
+});
+
+describe('the trust root, against a key slipped in and out (second reading of PR 4)', () => {
+  it('refuses a root named on the branch itself, even once its key is gone, and the range that did it', () => {
+    const keys = tmp();
+    const maintainer = key(keys, 'maintainer');
+    const evil = key(keys, 'evil');
+    const r = repo();
+    const main0 = r.commit('main', { '.github/allowed_signers': `${maintainer.line('maintainer')}\n` });
+    r.g(['checkout', '-q', '-b', 'pr']);
+    const x = r.commit('add a key', {
+      '.github/allowed_signers': `${maintainer.line('maintainer')}\n${evil.line('maintainer')}\n`,
+    });
+    r.commit('remove it', { '.github/allowed_signers': `${maintainer.line('maintainer')}\n` });
+    r.commit('approve', { [ATT]: JSON.stringify({ from: { commit: x } }) }, evil.file);
+    // The pull request's own commits: the root and an attestation, refused though the net diff holds no key change.
+    expect(rangeProblems(r.dir, `main...pr`)[0]).toMatch(/allowed_signers and docs\/dev\/passes\/carry/);
+    r.g(['checkout', '-q', 'main']);
+    r.g(['merge', '-q', '--no-ff', '--no-gpg-sign', '-m', 'merged anyway', 'pr']);
+    // On main, X is no candidate: not on the first-parent line, so no root.
+    expect(trustedApproval({ repo: r.dir, path: ATT, sourceCommit: x })).toMatchObject({
+      ok: false,
+      why: /first-parent/,
+    });
+    // Named by main's own commit, the root is the maintainer's: the evil key is refused.
+    expect(trustedApproval({ repo: r.dir, path: ATT, sourceCommit: main0 })).toMatchObject({
+      ok: false,
+      why: /not a key/,
     });
   });
 });
@@ -465,6 +512,25 @@ describe('field:carry, end to end', () => {
     expect(readFileSync(join(out, 'phone-both-renderers.report.json'), 'utf8')).toBe(JSON.stringify(report));
     // Pending: written, not counted.
     expect(carriedPasses(to, out, '4.1.21', r.dir).get('phone-both-renderers')).toMatchObject({ counts: false });
+    // The pending carry committed by the maintainer, signed; then an approval edited in the working tree, not
+    // committed: nothing counts (the committed bytes are judged).
+    r.g(['add', '-A']);
+    r.g([
+      '-c',
+      'gpg.format=ssh',
+      '-c',
+      `user.signingkey=${maintainer.file}`,
+      'commit',
+      '-q',
+      '-S',
+      '-m',
+      'the pending carry',
+    ]);
+    writeFileSync(
+      join(out, 'phone-both-renderers.json'),
+      JSON.stringify({ ...pending, decision: 'approved', approvedBy: 'maintainer' }),
+    );
+    expect(carriedPasses(to, out, '4.1.21', r.dir).get('phone-both-renderers')).toMatchObject({ counts: false });
     // The maintainer approves it in a commit signed with their key (Claude never does).
     writeFileSync(
       join(out, 'phone-both-renderers.json'),
@@ -492,5 +558,38 @@ describe('field:carry, end to end', () => {
     r.g(['add', '-A']);
     r.g(['-c', 'gpg.format=ssh', '-c', `user.signingkey=${other.file}`, 'commit', '-q', '-S', '-m', 'approve again']);
     expect(carriedPasses(to, out, '4.1.21', r.dir).get('phone-both-renderers')).toMatchObject({ counts: false });
+  });
+});
+
+describe('a carry and the sheet', () => {
+  it('fills a pass not run here, never one that failed or was blocked here', async () => {
+    const { renderPasses } = await import('../tools/field/field');
+    const m = {
+      format: 'web-scumm-candidate' as const,
+      schema: 1 as const,
+      sha: 'b'.repeat(40),
+      candidateRunId: '200',
+      createdAt: '',
+      artifacts: [] as { name: string; sha256: string }[],
+    };
+    const base = { ...passed('safari-ios-offline-update'), release: '4.1.21', commit: m.sha, candidateRun: '200' };
+    const carried = new Map([['safari-ios-offline-update', { counts: true, from: '100' }]]);
+    const notRun = {
+      ...base,
+      status: 'not-run' as const,
+      operator: undefined,
+      startedAt: undefined,
+      finishedAt: undefined,
+      scenario: undefined,
+      evidence: [],
+    };
+    const failed = {
+      ...base,
+      status: 'failed' as const,
+      failures: [{ step: 's', expected: 'e', observed: 'o', reproducible: true }],
+    };
+    expect(renderPasses([notRun], m, carried)).toContain('| passed, carried from run 100 |');
+    expect(renderPasses([failed], m, carried)).not.toContain('carried');
+    expect(renderPasses([failed], m, carried)).toMatch(/\| failed \|/);
   });
 });
