@@ -110,6 +110,7 @@ let second = null; // the second build, published by the scenarios; removed in t
 const cachedNote = [];
 const MAX_REFUSED = 2; // Firefox cache oddities tolerated per run (see the end of the file)
 let closing = false; // the checks are over: what the teardown interrupts (a fetch the worker had in hand) is not a finding
+let checked = false; // every check of the scenario passed (set after the last one)
 page.on('pageerror', (e) => void (closing || errors.push(e.message)));
 page.on('console', (m) => {
   if (m.type() === 'error' && !closing) errors.push(m.text());
@@ -359,6 +360,7 @@ try {
       `pwa: ${name} installed, opened offline (${title}), ${urls.length} files of the plan in the cache, room "${decor.room}" never visited rendered from it`,
     );
   } else console.log(`pwa: ${name} installed and opened offline (${title})`);
+  checked = true;
 } finally {
   // Before the teardown: for each "Failed to load <url>" the browser reported, whether that url is in a cache.
   for (const [i, e] of errors.entries()) {
@@ -386,7 +388,18 @@ const refused = errors.filter(refusedCached);
 const tolerated = refused.length <= MAX_REFUSED;
 const swMiss = /^Failed to load resource: the server responded with a status of 500\b/;
 let swExcused = 0;
+// WebKit's "Context is stopped" (4.1.20, seen twice on CI, #111 and #118): the browser's context stopping as the run
+// ends, after every check of the scenario passed. Reported, not counted, then only; before, it is a failure.
+const contextStopped = (e) => checked && name === 'webkit' && e.trim() === 'Context is stopped';
+const stopped = errors.filter(contextStopped).length;
+if (stopped) {
+  console.log(
+    `pwa: ${name}: "Context is stopped" after every check passed (WebKit tearing down; reported, not counted)`,
+  );
+  if (process.env.GITHUB_ACTIONS) console.log(`::warning::pwa ${name}: "Context is stopped" after every check passed`);
+}
 const failures = [...errors.entries()].filter(([i, e]) => {
+  if (contextStopped(e)) return false;
   if (tolerated && refusedCached(e, i)) return false;
   if (swExcused < swDeliberate500 && swMiss.test(e)) return !++swExcused;
   return true;

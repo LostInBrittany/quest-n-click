@@ -42,3 +42,7 @@
   - Each new test was run against the code before the fix and failed there.
   - Left as is: release-core's field:check runs on a shallow checkout, so a carry it lists there says "no trust root".
     That is information only: counting a carry needs main's history, as in `field:check --require` on main.
+- Merging main (13 Oct, after #119): two generated-file conflicts had been resolved by taking main's whole file, and that dropped hand-written lines.
+  - **README EN/FR:** #119's wording about the four package archives and which files the candidate and the release each make was missing on main. It is restored here by reapplying #119's README diff, with the figures kept current.
+  - **MUTANTS.md:** the `connectors-edge` row still said "measured (nightly)" after #118 gated it. It is fixed, and a new mutants-doc test checks that every set's row agrees with `tools/mutation-sets.ts`. It is red on main's MUTANTS.md.
+  - Lesson: resolve a generated file's conflict hunk by hunk, or regenerate it. Taking `--theirs` for the whole file loses the branch's own lines.
