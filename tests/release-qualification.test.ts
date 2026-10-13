@@ -26,7 +26,7 @@ const report = (over: Record<string, unknown> = {}) => ({
   steps: ids.map((id) => ({ id, name: id, ok: true, ms: 1 })),
   ...over,
 });
-const at = { sha: SHA, run: '42', archives: ARCHIVES, image: IMAGE };
+const at = { sha: SHA, run: '42', archives: ARCHIVES, image: IMAGE, catalogue: CATALOGUE };
 
 describe('the qualification a tag stands on', () => {
   it('is the full profile of this commit and run, every step passed, on the candidate archives and image', () => {
@@ -119,5 +119,13 @@ describe('candidate.yml', () => {
     expect(gate.slice(i, gate.indexOf('\n', i))).toContain(
       '--pack=artifacts/candidate-pack --image=artifacts/candidate-image',
     );
+  });
+});
+
+describe('the release tools, as the web-scumm package ships them', () => {
+  it('import nothing from scripts/ statically (tools/ ships, scripts/ does not)', async () => {
+    const { readdirSync } = await import('node:fs');
+    for (const f of readdirSync('tools/release').filter((x) => x.endsWith('.mjs')))
+      expect(readFileSync(`tools/release/${f}`, 'utf8'), f).not.toMatch(/^import [^;]*from '\.\.\/\.\.\/scripts\//m);
   });
 });

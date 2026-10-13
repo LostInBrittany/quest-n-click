@@ -668,10 +668,11 @@ jobs:
             cat gate.txt 2>/dev/null || echo 'not judged'
             echo '```'
             echo '### Load (backend actually opened)'
-            for f in artifacts/bridge-load-*/runs-load-*.json; do
+            # Each load once per store (4.1.20: three loads, their files -1 to -3; the median is said below).
+            for f in artifacts/bridge-load-*/runs-load-sqlite.json artifacts/bridge-load-*/runs-load-postgres.json; do
               [ -f "$f" ] && node -e "const r=require('./$f'); console.log('- leaderboard on ' + r.store + ': ' + r.runs + ' runs, p95 ' + r.latencyMs.p95 + ' ms (bound ' + r.bounds.p95Ms + '), ' + r.rssMb.after + ' MB')"
             done
-            for f in artifacts/bridge-load-*/bridge-load-*.json; do
+            for f in artifacts/bridge-load-*/bridge-load-sqlite.json artifacts/bridge-load-*/bridge-load-postgres.json; do
               [ -f "$f" ] && node -e "const r=require('./$f'); console.log('- ' + r.store + ': ' + r.proposals + ' proposals, ' + r.perSecond + '/s, p95 ' + r.latencyMs.p95 + ' ms, gaps ' + r.gaps + ', commit ' + String(r.commit).slice(0, 12))"
             done
             echo '### Solver (heavy, per attempt)'
@@ -689,7 +690,10 @@ jobs:
             echo '### Human passes still open'
             echo "- $(ls docs/dev/passes/*.md | sort -V | tail -1): every row is a human's to record (D18); none is marked here"
             echo '### Artifacts missing'
-            for a in candidate-release candidate-pack candidate-sbom candidate-image heavy-1 heavy-2 heavy-3 bridge-load-sqlite bridge-load-postgres; do [ -d "artifacts/$a" ] || echo "- $a"; done
+            for f in artifacts/bridge-load-*/load-median-*.json; do
+              [ -f "$f" ] && node -e "const r=require('./$f'); for (const k of ['proposals','leaderboard']) console.log('- ' + r.store + ' ' + k + ', three loads: median p95 ' + r[k].medianMs + ' ms (' + r[k].minMs + '–' + r[k].maxMs + ')' + (r[k].baseline && r[k].baseline.ratio ? ', ×' + r[k].baseline.ratio + ' the baseline' : '') + (r[k].alert ? ' ⚠' : ''))"
+            done
+            for a in candidate-release candidate-pack candidate-sbom candidate-image heavy-1 heavy-2 heavy-3 bridge-load-sqlite bridge-load-postgres backup-memory-sqlite backup-memory-postgres deployment-smoke; do [ -d "artifacts/$a" ] || echo "- $a"; done
           } >> "$GITHUB_STEP_SUMMARY"
       # Who wrote the manifest (4.1.19, plan §6.5): signed by this run, after every job succeeded. A Field Kit bundle
       # carries the attestation, so anyone can check it offline (npm run field:verify-bundle).

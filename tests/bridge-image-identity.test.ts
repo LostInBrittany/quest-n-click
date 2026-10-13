@@ -1,5 +1,5 @@
 // The Bridge image's identity, schema 2 (4.1.20 PR 3, plan §8.2): beside its three digests, the OS and architecture it
-// runs on, the Docker engine and BuildKit that built it, the archive's compression and size. Built from what `docker`
+// runs on, the Docker engine and the buildx that built it, the archive's compression and size. Built from what `docker`
 // answers (a stand-in here, so no engine is needed) and the saved archive itself.
 import { createHash } from 'node:crypto';
 import { mkdtempSync, writeFileSync } from 'node:fs';
@@ -47,8 +47,14 @@ describe('the image identity', () => {
       archiveBytes: 16,
       bridgeSha256: sum('a bridge archive'),
       docker: '28.5.1',
-      buildkit: 'v0.29.1',
+      buildx: 'v0.29.1',
     });
     for (const a of asked.filter((x) => x[0] === 'image')) expect(a.at(-1)).toBe(TAG);
+    // A host without buildx still builds: the field is null.
+    const none = (args: string[]) => {
+      if (args[0] === 'buildx') throw new Error('docker: unknown command buildx');
+      return run(args);
+    };
+    expect(identityFor({ run: none, archive, tgz, version: '4.1.20', base: 'b', digest: () => 'd' }).buildx).toBeNull();
   });
 });

@@ -35,7 +35,7 @@ client ──HTTPS──▶ proxy (Caddy) ──▶ bridge-1 ─┐
 ## The qualification
 
 ```sh
-npm run ops:qualify -- [--tarballs=<candidate packages>] [--out=.cache/field/deployment] [--keep]
+npm run ops:qualify -- [--tarballs=<candidate packages>] [--image-from=<candidate image>] [--short] [--candidate-run=<id>] [--out=.cache/field/deployment] [--keep]
 ```
 
 It writes the environment the profile needs (`QUALIFY_*`), initialises two tenants with the package's own `init`
@@ -69,7 +69,7 @@ worker's own container profile, and `tests/bridge-runs-worker.test.ts` a worker 
 run answered `inconclusive`, never retried); here the whole instance is killed, worker included; the volume is
 written in SQL, not submitted (each submission is a worker's run).
 
-`--short` (the candidate's `deployment-smoke`) leaves out the long steps: the lease takeover, the quota's minute, the
+`--short` (a pull request's `deployment-smoke`; since 4.1.20 a candidate started by hand runs the full profile, and its gate refuses less) leaves out the long steps: the lease takeover, the quota's minute, the
 volume (200 runs instead of 20 000) and the 4.1.17 store; the `qualify` workflow runs them all. `--old-bridge=<tgz>`
 gives the 4.1.17 archive offline.
 

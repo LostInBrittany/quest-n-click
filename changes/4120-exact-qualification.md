@@ -14,7 +14,7 @@
   manifest before uploading and makes nothing the candidate made. `ship verify` refuses a release whose files are not
   exactly the manifest's. It gives back the 4.1.19 release file for file.
 - **The Bridge image says how it was made** (4.1.20): its identity (schema 2) adds the OS, the architecture, the
-  Docker engine and BuildKit, the archive's compression and size.
+  Docker engine and the buildx that built it, the archive's compression and size.
 - **Load figures are medians of three** (4.1.20): the candidate loads each store three times. The median of the three
   p95 is compared with a baseline of the same runner and protocol (`docs/dev/baselines/load.json`). It raises an
   alert past 25 %, and fails only past the absolute budget (proposals under 1 s, the leaderboard under 2 s) or when

@@ -12,7 +12,17 @@ const transient = (status) => status === 429 || status >= 500;
 export async function fetchRetry(url, { tries = 5, waitMs = backoff, timeoutMs = 60_000, init = {} } = {}) {
   for (let i = 1; ; i++) {
     try {
-      const r = await fetch(url, { signal: AbortSignal.timeout(timeoutMs), ...init });
+      // The timeout bounds the wait for an answer (its headers), not the read of a large body after it; a caller's own
+      // signal still aborts either.
+      const ctl = new AbortController();
+      const timer = setTimeout(() => ctl.abort(new Error(`no answer in ${timeoutMs} ms`)), timeoutMs);
+      const signal = init.signal ? AbortSignal.any([init.signal, ctl.signal]) : ctl.signal;
+      let r;
+      try {
+        r = await fetch(url, { ...init, signal });
+      } finally {
+        clearTimeout(timer);
+      }
       if (!transient(r.status) || i >= tries) return r;
       await r.body?.cancel();
     } catch (e) {

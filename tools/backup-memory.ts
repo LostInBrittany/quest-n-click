@@ -13,7 +13,6 @@ import { mkdtempSync, readFileSync, rmSync, statSync, writeFileSync } from 'node
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
-import { readBackup, readBounded } from '../bridge/src/backup';
 import type { SqlRealityStore } from '../bridge/src/store-sql';
 
 const ROOT = resolve(import.meta.dirname, '..');
@@ -40,6 +39,8 @@ function measured(cmd: string[], env: NodeJS.ProcessEnv = {}): Phase {
   );
   const t = performance.now();
   const r = spawnSync(process.execPath, ['--require', preload, ...cmd], {
+    // From the checkout's root: `--import tsx` resolves there.
+    cwd: ROOT,
     encoding: 'utf8',
     maxBuffer: 1 << 26,
     env: { ...process.env, ...env },
@@ -109,7 +110,12 @@ async function fill(store: SqlRealityStore, t: string, bytes: number): Promise<n
 }
 
 if (process.argv[2] === '--phase=read') {
-  // The read alone, in this process: the file read under its bound, parsed, its envelope's digest checked.
+  // The read alone, in this very process (`node --import tsx`, so the peak is the read's, not a wrapper's): the file
+  // read under its bound, parsed, its envelope's digest checked, by the Bridge's own module (the candidate archive's
+  // sources when --bridge names it; tsx would re-spawn a child the exit hook never sees).
+  const { readBackup, readBounded } = (await import(
+    pathToFileURL(process.argv[5]!).href
+  )) as typeof import('../bridge/src/backup');
   const r = readBackup(readBounded(process.argv[3]!, Number(process.argv[4])));
   console.log(`read: schema ${r.schema}`);
 } else if (import.meta.url === pathToFileURL(process.argv[1] ?? '').href) {
@@ -118,7 +124,13 @@ if (process.argv[2] === '--phase=read') {
   const sizes = (flag('sizes') ?? '64,128,256').split(',').map(Number);
   const containerMb = Number(flag('container-mb') ?? 512);
   const bin = flag('bridge') ? join(resolve(flag('bridge')!), 'bin.mjs') : join(ROOT, 'bridge', 'bin.mjs');
-  const tsx = join(ROOT, 'node_modules', 'tsx', 'dist', 'cli.mjs');
+  // The read uses the same Bridge as the other phases: the archive's sources (it ships them, run through tsx).
+  const backupModule = join(
+    flag('bridge') ? resolve(flag('bridge')!) : join(ROOT, 'bridge'),
+    'src',
+    'backup',
+    'index.ts',
+  );
   const dir = mkdtempSync(join(tmpdir(), 'backup-memory-'));
   const manifest = join(dir, 'manifest.json');
   writeFileSync(
@@ -172,7 +184,7 @@ if (process.argv[2] === '--phase=read') {
         `--max-bytes=${max}`,
       ]);
       const bytes = exportPhase.code === 0 ? statSync(file).size : 0;
-      const read = measured([tsx, import.meta.filename, '--phase=read', file, max]);
+      const read = measured(['--import', 'tsx', import.meta.filename, '--phase=read', file, max, backupModule]);
       const dst = await freshStore(spec, dir, `dst${mb}`);
       await dst.store.close();
       // One byte above the bound, one row above it: refused before anything is restored (the store still empty after).

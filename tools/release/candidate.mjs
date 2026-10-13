@@ -17,7 +17,6 @@ import { spawnSync } from 'node:child_process';
 import { readdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
 import { join, relative } from 'node:path';
 import { pathToFileURL } from 'node:url';
-import { CATALOGUE } from '../../scripts/ops-qualify/steps.mjs';
 import { versionOf } from './lib.mjs';
 
 /** The first release whose tags must name a candidate run; older tags were published without one. */
@@ -98,16 +97,17 @@ export function checkManifest(manifest, { sha, runId, dir }) {
 /**
  * What is wrong with the qualification a tag would stand on (4.1.20, plan §8.1): it must be the full profile, of this
  * commit, for this candidate run, every step of the catalogue run once and passed, on the archives the candidate
- * packed (`archives`: name and SHA-256) and the image it built (`image`: its three identities). [] when nothing is.
+ * packed (`archives`: name and SHA-256) and the image it built (`image`: its three identities), every id of
+ * `catalogue` (scripts/ops-qualify/steps.mjs). [] when nothing is.
  */
-export function qualificationProblems(report, { sha, run, archives, image }) {
+export function qualificationProblems(report, { sha, run, archives, image, catalogue }) {
   if (report?.format !== 'web-scumm-ops-qualify' || report.schema !== 2)
     return ['not an ops-qualify report of schema 2'];
   const bad = [];
   if (report.profile !== 'full') bad.push('the short profile (--short): a tag stands on the full one');
   if (report.commit !== sha) bad.push(`qualified ${report.commit}, not ${sha}`);
   if (String(report.candidateRun) !== String(run)) bad.push(`qualified for run ${report.candidateRun}, not ${run}`);
-  for (const { id } of CATALOGUE) {
+  for (const { id } of catalogue) {
     const runs = (report.steps ?? []).filter((s) => s.id === id);
     if (!runs.length) bad.push(`${id}: not run`);
     else if (runs.length > 1) bad.push(`${id}: run twice`);
@@ -151,11 +151,15 @@ if (import.meta.url === pathToFileURL(process.argv[1] ?? '').href) {
       .filter((f) => f.endsWith('.tgz'))
       .map((name) => ({ name, sha256: sha256(join(pack, name)) }));
     const image = JSON.parse(readFileSync(join(flag('image'), 'web-scumm-bridge-image.json'), 'utf8'));
+    // The catalogue from the checkout (scripts/ is not shipped with tools/ in the web-scumm package: never imported
+    // statically, second reading of 4.1.20 PR 3).
+    const { CATALOGUE } = await import(pathToFileURL(join(process.cwd(), 'scripts', 'ops-qualify', 'steps.mjs')).href);
     const bad = qualificationProblems(JSON.parse(readFileSync(arg, 'utf8')), {
       sha: flag('sha'),
       run: flag('run'),
       archives,
       image,
+      catalogue: CATALOGUE,
     });
     for (const b of bad) console.error(`✖  ${b}`);
     if (!bad.length) console.log(`✔  the full qualification of ${flag('sha')?.slice(0, 12)}, run ${flag('run')}`);

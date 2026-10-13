@@ -1,7 +1,7 @@
 // Backup and restore (4.1.20 PR 3, plan §8.0, split from scripts/ops-qualify.mjs): the topology destroyed with its
 // database, brought up empty, restored, compared; then a store made by the published 4.1.17 Bridge read by this one.
 import { createHash } from 'node:crypto';
-import { chmodSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { chmodSync, existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { sleep } from './steps.mjs';
 
@@ -125,22 +125,47 @@ export async function backupRestore(c) {
     'node /opt/bridge/bin.mjs backup --dir=/srv/bridge/a --out=/tmp/backup-whole.json >&2 && cat /tmp/backup-whole.json',
   ]).stdout;
   writeFileSync(join(backups, 'backup-whole.json'), whole, { mode: 0o600 });
-  const refused = restore('merge', ['--lock-timeout=2000']);
-  const said = `${refused.stdout}\n${refused.stderr}`;
-  step(
-    'restore refused at once while the Bridges serve (their leases named), nothing restored',
-    refused.status === 1 && /in use/.test(said) && /nothing restored/.test(said),
-    {
-      status: refused.status,
-      said: said.trim().split('\n').at(-1)?.slice(0, 200),
-    },
-  );
-  // Then replace-store, the instances stopped (their leases released): the store becomes the file, after a safety
-  // backup of what it held, written and read back before anything is deleted. Every player's signals and the board are
-  // as the file holds them, and the safety backup is a backup.
+  // What the file holds, then one proposal it does not (second reading of 4.1.20 PR 3): a replace-store that deleted
+  // nothing, or merged, would leave it; a refused one must leave it too.
   const signalsBefore = {};
   for (const t of ['a', 'b']) for (const p of players[t]) signalsBefore[`${t}/${p.id}`] = await signalsOf(t, p.cap);
   const boardWhole = JSON.stringify((await insist(PORT, 'GET', '/v1/runs?game=reference&category=any%25', A)).json);
+  const extraPlayer = players.a[1];
+  const extra = await insist(PORT, 'POST', '/v1/signals', {
+    tenant: 'a',
+    bearer: tokens.a,
+    body: { playerId: extraPlayer.id, signal: 'letter.unclear', source: 'email', dedupeKey: 'not-in-the-file' },
+  });
+  const extraSeq = extra.json?.sequence;
+  const holdsExtra = async () => ((await signalsOf('a', extraPlayer.cap))?.sequences ?? []).includes(extraSeq);
+  // While the three Bridges serve, replace-store is refused at once, names their leases, writes no safety backup and
+  // deletes nothing: the proposal the file does not hold is still there.
+  const refused = restore('replace-store', [
+    '--yes-replace-store',
+    '--safety-out=/backup/safety-refused.json',
+    '--lock-timeout=2000',
+  ]);
+  const said = `${refused.stdout}\n${refused.stderr}`;
+  const keptExtra = await holdsExtra();
+  step(
+    'restore refused at once while the Bridges serve (their leases named), nothing restored',
+    extra.status === 202 &&
+      refused.status === 1 &&
+      /in use/.test(said) &&
+      /nothing restored/.test(said) &&
+      keptExtra &&
+      !existsSync(join(backups, 'safety-refused.json')),
+    {
+      status: refused.status,
+      said: said.trim().split('\n').at(-1)?.slice(0, 200),
+      extra: extra.status,
+      keptExtra,
+    },
+  );
+  // Then replace-store, the instances stopped (their leases released): the store becomes the file, after a safety
+  // backup of what it held, written and read back before anything is deleted. The proposal the file does not hold is
+  // gone, every player's signals and the board are the file's, and the safety backup holds that proposal (one signal
+  // more than the file).
   dc(['stop', 'bridge-1', 'bridge-2', 'bridge-3']);
   const replaced = restore('replace-store', ['--yes-replace-store', '--safety-out=/backup/safety.json']);
   up();
@@ -154,18 +179,23 @@ export async function backupRestore(c) {
   } catch {
     /* said below */
   }
+  const fileSignals = JSON.parse(whole).counts?.signals;
   step(
     'replace-store, the Bridges stopped: the store is the file, after a safety backup of what it held',
     replaced.status === 0 &&
       JSON.stringify(signalsAfter) === JSON.stringify(signalsBefore) &&
       boardReplaced === boardWhole &&
-      safety?.format === 'web-scumm-bridge-backup',
+      safety?.format === 'web-scumm-bridge-backup' &&
+      typeof fileSignals === 'number' &&
+      safety?.counts?.signals === fileSignals + 1,
     {
       status: replaced.status,
       said: `${replaced.stdout}\n${replaced.stderr}`.trim().split('\n').at(-1)?.slice(0, 200),
       signals: JSON.stringify(signalsAfter) === JSON.stringify(signalsBefore),
       board: boardReplaced === boardWhole,
       safety: safety?.format ?? null,
+      safetySignals: safety?.counts?.signals ?? null,
+      fileSignals: fileSignals ?? null,
     },
   );
   return { backup, backups };

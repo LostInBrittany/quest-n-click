@@ -7,7 +7,7 @@
 //   - the OCI manifest digest (index.json of the saved layout, Docker 25+: what a registry would name);
 //   - the SHA-256 of the archive carried between jobs and published (what was transported).
 // Schema 2 (4.1.20 PR 3, plan §8.2) adds what the image is for and how it was made: its OS and architecture, the Docker
-// engine and BuildKit that built it, the archive's compression (`docker save` writes a plain tar) and its size.
+// engine and the buildx that built it, the archive's compression (`docker save` writes a plain tar) and its size.
 // Its SBOM (CycloneDX, the npm packages installed in /opt, read inside the image itself) is written beside it, with the
 // base image named by its digest.
 //
@@ -60,7 +60,15 @@ const docker = (args, o = {}) => execFileSync('docker', args, { encoding: 'utf8'
  */
 export function identityFor({ run, archive, tgz, version, base, digest = manifestDigest }) {
   const inspect = (f) => run(['image', 'inspect', '--format', f, TAG]).trim();
-  const buildx = run(['buildx', 'version']).trim();
+  // The builder that made it (`docker buildx version`), when the host has buildx: never a reason not to build.
+  let buildx = null;
+  try {
+    const said = run(['buildx', 'version']).trim();
+    // `github.com/docker/buildx v0.29.1 a1b2c3d` → `v0.29.1`.
+    buildx = said.split(/\s+/).find((w) => /^v\d/.test(w)) ?? said;
+  } catch {
+    /* no buildx on this host */
+  }
   return {
     format: 'web-scumm-bridge-image',
     schema: 2,
@@ -78,8 +86,7 @@ export function identityFor({ run, archive, tgz, version, base, digest = manifes
     archiveBytes: statSync(archive).size,
     bridgeSha256: sha256(tgz),
     docker: run(['version', '--format', '{{.Server.Version}}']).trim(),
-    // `github.com/docker/buildx v0.29.1 a1b2c3d` → `v0.29.1`.
-    buildkit: buildx.split(/\s+/).find((w) => /^v\d/.test(w)) ?? buildx,
+    buildx,
   };
 }
 
