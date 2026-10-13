@@ -718,6 +718,8 @@ try {
       'restore',
       '--dir=/srv/bridge/a',
       '--from=/backup/backup.json',
+      // Into a new, empty database: a merge (4.1.20: the mode is always said).
+      '--mode=merge',
     ],
     { stdio: 'inherit' },
   );
