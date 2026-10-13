@@ -589,6 +589,28 @@ jobs:
           path: backup-memory-${{ matrix.store }}.json
           if-no-files-found: error
           overwrite: true
+  # The signing of 4.2's tags, rehearsed with no secret (4.1.20 PR 3b, plan §11.1, tools/release/signing.mjs): an
+  # ephemeral SSH key made here, a signed tag of this commit never pushed, `git verify-tag` against a temporary
+  # allowed_signers, the key and the tag destroyed; the report goes into the manifest.
+  signing-rehearsal:
+    needs: target
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ needs.target.outputs.sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 22
+      - run: mkdir -p candidate-signing && node tools/release/signing.mjs rehearse --out=candidate-signing/signing-rehearsal.json
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: candidate-signing
+          path: candidate-signing
+          if-no-files-found: error
+          overwrite: true
   # The README's quick start as a reader copies it (4.1.19, plan §11.1): its lines run as written outside the repository,
   # the archive URL (which exists only after the tag) pointed at this candidate's own archive.
   readme-quickstart:
@@ -615,7 +637,7 @@ jobs:
       - run: node scripts/readme-quickstart.mjs --tarballs=candidate-pack
   # The terminal gate: every job above `success` (a skipped or cancelled job is red), then the manifest of this run.
   candidate-gate:
-    needs: [target, release-core, heavy, bridge-load-sqlite, bridge-load-postgres, cross-runtime, worker-container, mutation-plan, mutation, mutation-merge, pack, image, external-consumer, connector-archive-e2e, deployment-smoke, backup-memory, readme-quickstart]
+    needs: [target, release-core, heavy, bridge-load-sqlite, bridge-load-postgres, cross-runtime, worker-container, mutation-plan, mutation, mutation-merge, pack, image, external-consumer, connector-archive-e2e, deployment-smoke, backup-memory, signing-rehearsal, readme-quickstart]
     # A pull request without `full-ci` skips `target`: then there is no candidate to judge, and no red check either.
     if: always() && needs.target.result != 'skipped'
     # The manifest's provenance attestation (4.1.19, plan §6.5): only this job may sign, and only the manifest.
@@ -668,6 +690,8 @@ jobs:
           if [ -d artifacts/candidate-sbom ]; then mkdir -p artifacts/candidate-release/sbom && cp artifacts/candidate-sbom/* artifacts/candidate-release/sbom/; fi
           # The site (4.1.20): its archive, assets manifest and file digests, made once by release-core.
           if [ -d artifacts/candidate-site ]; then mkdir -p artifacts/candidate-release/site && cp artifacts/candidate-site/* artifacts/candidate-release/site/; fi
+          # The signing rehearsal's report (4.1.20 PR 3b).
+          if [ -d artifacts/candidate-signing ]; then mkdir -p artifacts/candidate-release/signing && cp artifacts/candidate-signing/* artifacts/candidate-release/signing/; fi
           # The surfaces of the people's passes (4.1.20 PR 4, ADR 0024), from the files above and the checkout's
           # docs/dev/surfaces.json, before the manifest: attested with it. A file in no surface fails here.
           # No site, no surfaces: refused here, before anything is attested (second reading of PR 4).

@@ -223,6 +223,10 @@
   {
    "path": "e2e-remix-speedrun.txt",
    "reason": "the report of that check"
+  },
+  {
+   "path": "signing/*",
+   "reason": "the candidate's rehearsal of 4.2's tag signing: a report on the release process, read by no pass"
   }
  ]
 }

@@ -1,0 +1,231 @@
+// The rehearsal of 4.2's operations (4.1.20 PR 3b, plan §11.1–11.2): a release made a draft, filled, published, then
+// read back; a tag signed with an SSH key (`ship tag --sign`, inactive for 4.1.x), rehearsed by the candidate with an
+// ephemeral key; and `ship preflight-stable`, which says what 4.2 still needs without changing anything.
+import { spawnSync } from 'node:child_process';
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { afterAll, describe, expect, it } from 'vitest';
+// @ts-expect-error: a plain .mjs module without declarations
+import { guardsTags, MINIMUM, PACKAGES, pinProblems, pinsOf, preflight } from '../tools/release/preflight.mjs';
+// @ts-expect-error: a plain .mjs module without declarations
+import { rehearse, tagArgs } from '../tools/release/signing.mjs';
+
+const temps: string[] = [];
+afterAll(() => {
+  for (const d of temps) rmSync(d, { recursive: true, force: true });
+});
+const tmp = () => {
+  const d = mkdtempSync(join(tmpdir(), 'release-stable-'));
+  temps.push(d);
+  return d;
+};
+const release = readFileSync('.github/workflows/release.yml', 'utf8');
+
+describe('release.yml', () => {
+  it('makes a draft, uploads every file, publishes it, then reads it back', () => {
+    const create = release.indexOf('gh release create "$TAG" --draft --verify-tag');
+    const upload = release.indexOf('gh release upload "$TAG"');
+    const publish = release.indexOf('gh release edit "$TAG" --draft=false');
+    const verify = release.indexOf('node tools/release/ship.mjs verify "$TAG"');
+    expect(create).toBeGreaterThan(0);
+    expect(create < upload && upload < publish && publish < verify).toBe(true);
+    // Never "create unless it exists": a published release is never touched again.
+    expect(release).not.toMatch(/gh release view "\$TAG" >\/dev\/null 2>&1 \|\| gh release create/);
+  });
+
+  it('stops on a published release without changing it, and makes again a draft an earlier run left', () => {
+    const step = release.slice(
+      release.indexOf('- name: Not published yet'),
+      release.indexOf('- uses: actions/setup-node', release.indexOf('- name: Not published yet')),
+    );
+    expect(step).toMatch(/published\) echo "::error::.*exit 1 ;;/);
+    expect(step).toMatch(/draft\) .*gh release delete "\$TAG" --yes ;;/);
+    expect(step).not.toMatch(/--cleanup-tag/);
+  });
+
+  it('pins the future publishing step to exact versions, never a range', () => {
+    const pins = pinsOf(release);
+    expect(pinProblems(pins)).toEqual([]);
+    expect(pins.npm.split('.').map(Number)[1]).toBeGreaterThanOrEqual(15);
+    expect(pinProblems({ node: '>=22.14.0', npm: '11.21.0' })).toEqual(['node: >=22.14.0 is not an exact version']);
+    expect(pinProblems({ node: '22.12.0', npm: '^11.15.0' })).toEqual([
+      'node: 22.12.0, below 22.14.0',
+      'npm: ^11.15.0 is not an exact version',
+    ]);
+    expect(pinProblems({ npm: '11.14.9' })).toEqual(['node: not pinned', 'npm: 11.14.9, below 11.15.0']);
+    expect(MINIMUM.npm).toBe('11.15.0');
+  });
+});
+
+describe('a tag signed with an SSH key', () => {
+  it('is annotated by default, signed with --sign', () => {
+    expect(tagArgs({ name: 'v4.2.0', sha: 'abc', message: 'm' })).toEqual(['tag', '-a', 'v4.2.0', 'abc', '-m', 'm']);
+    expect(tagArgs({ name: 'v4.2.0', sha: 'abc', message: 'm', sign: true, key: '/k' })).toEqual([
+      '-c',
+      'gpg.format=ssh',
+      '-c',
+      'user.signingkey=/k',
+      'tag',
+      '-s',
+      'v4.2.0',
+      'abc',
+      '-m',
+      'm',
+    ]);
+  });
+
+  it('is rehearsed with an ephemeral key: signed, verified, the key and the tag destroyed, nothing pushed', () => {
+    const dir = tmp();
+    const g = (args: string[]) =>
+      spawnSync('git', ['-c', 'user.name=t', '-c', 'user.email=t@e.org', ...args], { cwd: dir, encoding: 'utf8' });
+    g(['init', '-q']);
+    writeFileSync(join(dir, 'a.txt'), 'a');
+    g(['add', '-A']);
+    g(['commit', '-q', '--no-gpg-sign', '-m', 'one']);
+    const { ok, report } = rehearse({ cwd: dir, now: new Date(0) });
+    expect(ok).toBe(true);
+    expect(report).toMatchObject({
+      format: 'web-scumm-signing-rehearsal',
+      signed: true,
+      verified: true,
+      keyDestroyed: true,
+      tagDeleted: true,
+      pushed: false,
+    });
+    expect(report.principal).toBe('rehearsal@web-scumm.invalid');
+    expect(g(['tag', '-l']).stdout.trim()).toBe('');
+  });
+});
+
+describe('ship preflight-stable', () => {
+  /** gh, npm and git answering as a repository before any 4.2 setup. */
+  function fakes(over: Record<string, { status?: number; stdout?: string; stderr?: string }> = {}) {
+    const calls: string[] = [];
+    const exec = (cmd: string, args: string[]) => {
+      const k = `${cmd} ${args.join(' ')}`;
+      calls.push(k);
+      for (const [p, r] of Object.entries(over))
+        if (k.startsWith(p)) return { status: 0, stdout: '', stderr: '', ...r };
+      if (k.startsWith('npm view')) return { status: 1, stdout: '', stderr: 'E404' };
+      if (k.startsWith('npm publish --dry-run')) return { status: 0, stdout: '', stderr: '' };
+      if (k.startsWith('gh api repos/o/r/immutable-releases'))
+        return { status: 0, stdout: '{"enabled":false}', stderr: '' };
+      if (k.startsWith('gh api repos/o/r/rulesets')) return { status: 0, stdout: '[]', stderr: '' };
+      if (k.startsWith('gh api users/')) return { status: 0, stdout: '[]', stderr: '' };
+      return { status: 1, stdout: '', stderr: '' };
+    };
+    return { exec, calls };
+  }
+  const root = () => {
+    const d = tmp();
+    mkdirSync(join(d, '.github', 'workflows'), { recursive: true });
+    mkdirSync(join(d, 'docs', 'dev'), { recursive: true });
+    writeFileSync(join(d, '.github', 'workflows', 'release.yml'), release);
+    writeFileSync(join(d, 'docs', 'dev', 'GO-NO-GO-4.2.md'), '**NO-GO for 4.2 today**');
+    const pack = join(d, 'pack');
+    mkdirSync(pack);
+    for (const p of PACKAGES) writeFileSync(join(pack, `${p}-4.2.0.tgz`), 'x');
+    return { d, pack };
+  };
+  const state = (rows: { id: string; state: string }[], id: string) => rows.find((r) => r.id === id)?.state;
+
+  it('says each step still to take, apart, and changes nothing', () => {
+    const { d, pack } = root();
+    const { exec, calls } = fakes();
+    const rows = preflight({
+      exec,
+      repo: 'o/r',
+      login: 'me',
+      version: '4.2.0',
+      root: d,
+      candidate: { run: '1', problems: [], pack },
+    });
+    for (const id of ['signing-key', 'signing-key-on-github', 'allowed-signers', 'immutable-releases', 'tag-ruleset'])
+      expect(state(rows, id), id).toBe('missing');
+    for (const p of PACKAGES) {
+      expect(state(rows, `${p}:archive`)).toBe('ok');
+      expect(state(rows, `${p}:name`)).toBe('ok');
+      expect(state(rows, `${p}:bootstrap`)).toBe('missing');
+      expect(state(rows, `${p}:trusted-publisher`)).toBe('missing');
+      expect(state(rows, `${p}:oidc`)).toBe('missing');
+      expect(state(rows, `${p}:version`)).toBe('ok');
+    }
+    expect(state(rows, 'candidate')).toBe('ok');
+    expect(state(rows, 'publish-pins')).toBe('ok');
+    expect(state(rows, 'go-no-go')).toBe('ok');
+    expect(rows.filter((r: { state: string }) => r.state === 'blocked')).toEqual([]);
+    // Nothing that writes: no publish but its dry run, no gh call but reads, no git but config reads.
+    for (const c of calls) {
+      expect(c).not.toMatch(/^npm (publish(?! --dry-run)|stage|trust (github|revoke)|dist-tag|unpublish)/);
+      expect(c).not.toMatch(/^gh (release (create|edit|upload|delete)|api .* -X|api .* --method)/);
+      expect(c).not.toMatch(/^git (tag|push|commit|config (?!--get))/);
+    }
+  });
+
+  it('blocks on a candidate that does not verify, a name taken, a version published, a publisher that may publish', () => {
+    const { d, pack } = root();
+    const { exec } = fakes({
+      'npm view web-scumm name': { stdout: '{"maintainers":["squatter <s@x>"]}' },
+      'npm view web-scumm@4.2.0': { stdout: '4.2.0' },
+      'npm view create-web-scumm name': { stdout: '{"maintainers":["me <me@x>"]}' },
+      'npm trust list create-web-scumm': { stdout: '[{"type":"github","repository":"o/r","allowPublish":true}]' },
+    });
+    const rows = preflight({
+      exec,
+      repo: 'o/r',
+      login: 'me',
+      version: '4.2.0',
+      root: d,
+      candidate: { run: '1', problems: ['not green'], pack },
+    });
+    expect(state(rows, 'candidate')).toBe('blocked');
+    expect(state(rows, 'web-scumm:name')).toBe('blocked');
+    expect(state(rows, 'web-scumm:version')).toBe('blocked');
+    expect(state(rows, 'create-web-scumm:name')).toBe('ok');
+    expect(state(rows, 'create-web-scumm:trusted-publisher')).toBe('blocked');
+  });
+
+  it('sees a ruleset on the release tags, immutability, and a GO the reports contradict', () => {
+    const rs = {
+      id: 7,
+      name: 'tags',
+      target: 'tag',
+      enforcement: 'active',
+      conditions: { ref_name: { include: ['refs/tags/v*'] } },
+      rules: [{ type: 'creation' }, { type: 'deletion' }, { type: 'non_fast_forward' }],
+    };
+    expect(guardsTags(rs)).toBe(true);
+    expect(guardsTags({ ...rs, enforcement: 'evaluate' })).toBe(false);
+    expect(guardsTags({ ...rs, rules: [{ type: 'deletion' }] })).toBe(false);
+    expect(guardsTags({ ...rs, target: 'branch' })).toBe(false);
+    const { d, pack } = root();
+    writeFileSync(join(d, 'docs', 'dev', 'GO-NO-GO-4.2.md'), '**GO for 4.2**');
+    const { exec } = fakes({
+      'gh api repos/o/r/rulesets/7': { stdout: JSON.stringify(rs) },
+      'gh api repos/o/r/rulesets': { stdout: '[{"id":7}]' },
+      'gh api repos/o/r/immutable-releases': { stdout: '{"enabled":true}' },
+    });
+    const rows = preflight({
+      exec,
+      repo: 'o/r',
+      login: 'me',
+      version: '4.2.0',
+      root: d,
+      candidate: { run: '1', problems: [], pack },
+    });
+    expect(state(rows, 'tag-ruleset')).toBe('ok');
+    expect(state(rows, 'immutable-releases')).toBe('ok');
+    expect(state(rows, 'go-no-go')).toBe('blocked');
+  });
+});
+
+describe('the nightly', () => {
+  it('watches the four npm names without gating', () => {
+    const nightly = readFileSync('.github/workflows/nightly.yml', 'utf8');
+    const job = nightly.slice(nightly.indexOf('\n  npm-names:'), nightly.indexOf('\n  heavy:'));
+    expect(job).toContain('continue-on-error: true');
+    for (const p of PACKAGES) expect(job).toContain(p);
+    expect(job).toContain('::warning title=npm name taken::');
+  });
+});

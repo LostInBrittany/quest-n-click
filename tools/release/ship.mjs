@@ -12,17 +12,27 @@
 //                                this SHA, green, its manifest naming this SHA and this run; the tag's annotation names it
 //                                and release.yml publishes that run's files (tools/release/candidate.mjs)
 //   ship watch <version>         wait for the tag's `ci` run, then for the `release` run; exit by its conclusion
-//   ship verify <version>        download the release, check the SHA-256 sums and every provenance attestation
+//   ship verify <version>        download the release, check the SHA-256 sums and every provenance attestation; from 4.1.20
+//                                also `gh release verify` and `gh release verify-asset` of each file (immutable releases)
+//   ship preflight-stable --candidate=<run id> [--version=<x.y.z>]
+//                                (4.1.20) what 4.2 stable still needs, check by check (tools/release/preflight.mjs):
+//                                signing key, allowed_signers, immutability, the tag ruleset, the candidate, npm per
+//                                package, the publishing pins, GO / NO-GO; signs, publishes and changes nothing
+//   ship tag … --sign [--key=<file>] (4.1.20) the tag signed with an SSH key (`git tag -s`); inactive for 4.1.x (D30)
 //   ship chain <pr> <version>    merge → tag → watch → verify (`--now` passes to tag); refused from 4.1.17, whose tags
 //                                need a candidate run of the merge commit (merge, candidate, then tag)
 //
 // A pre-release version (`4.1.8-rc.1`) is tagged the same way; release.yml marks it a pre-release on GitHub.
 // Every command writes its PID to `.cache/pids/ship-<command>.pid` (`SHIP_PIDS` to choose the folder): stop that
 // PID, not a pattern.
+import { spawnSync } from 'node:child_process';
 import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
 import { checkAncestry } from './ancestry.mjs';
-import { publishedProblems } from './artifacts.mjs';
+import { FIRST as FIRST_LISTED, publishedProblems } from './artifacts.mjs';
+import { atLeast } from './candidate.mjs';
+import { preflight } from './preflight.mjs';
+import { tagArgs } from './signing.mjs';
 import { candidateOf, requiresCandidate, tagMessage } from './candidate.mjs';
 import { candidateRunProblem, queryRun, readCandidateManifest, verifyAttestation } from './provenance.mjs';
 import {
@@ -271,7 +281,11 @@ async function tag(versionArg, sha) {
       say(`${name} already here at ${full.slice(0, 7)} (a push that failed before): pushing it`);
     } else {
       say(`tagging ${name} on ${full.slice(0, 7)}${isPrerelease(version) ? ' (pre-release)' : ''}`);
-      git(['tag', '-a', name, full, '-m', candidate ? tagMessage(version, candidate) : version]);
+      // Annotated, or signed with the maintainer's SSH key (`--sign`, 4.1.20 PR 3b): 4.1.x tags stay annotated (D30).
+      const sign = process.argv.includes('--sign');
+      if (sign && !atLeast(version, '4.2.0')) throw new Error(`--sign is 4.2's: ${name} stays an annotated tag (D30)`);
+      const key = process.argv.find((a) => a.startsWith('--key='))?.slice('--key='.length);
+      git(tagArgs({ name, sha: full, message: candidate ? tagMessage(version, candidate) : version, sign, key }));
     }
     git(['push', 'origin', `refs/tags/${name}`]);
   }
@@ -347,6 +361,12 @@ async function verify(versionArg) {
     verifyAttestation(join(dir, f), { repo: REPO });
     attested++;
   }
+  // GitHub's own release attestation (4.1.20 PR 3b, immutable releases): the release, then each of its files.
+  if (atLeast(version, FIRST_LISTED)) {
+    gh(['release', 'verify', name]);
+    for (const f of files) gh(['release', 'verify-asset', name, join(dir, f)]);
+    say(`${name}: gh release verify and verify-asset passed for ${files.length} files`);
+  }
   // The release's files, exactly the one manifest's (4.1.20, plan §8.4): none forgotten, none extra.
   const listed = publishedProblems(name, files, dir);
   if (listed.length)
@@ -369,7 +389,38 @@ async function chain(pr, version) {
   return tag(version, sha);
 }
 
-const COMMANDS = { checks, merge, main, tag, watch, verify, chain };
+/** What 4.2 stable still needs (4.1.20 PR 3b): every check said; exit 1 only on one `blocked`. */
+async function preflightStable() {
+  const runId = candidateFlag();
+  if (!/^\d+$/.test(runId ?? '')) throw new Error('--candidate=<run id> is required');
+  const version = process.argv.find((a) => a.startsWith('--version='))?.slice('--version='.length) ?? '4.2.0';
+  const problems = [];
+  const why = candidateRunProblem(queryRun(runId), runId);
+  if (why) problems.push(why);
+  const dir = join('.cache', 'preflight', runId);
+  rmSync(dir, { recursive: true, force: true });
+  mkdirSync(dir, { recursive: true });
+  let pack;
+  try {
+    gh(['run', 'download', runId, '-n', 'candidate-manifest', '-D', dir]);
+    readCandidateManifest(readFileSync(join(dir, 'candidate-manifest.json'), 'utf8'));
+    verifyAttestation(join(dir, 'candidate-manifest.json'), { repo: REPO });
+    gh(['run', 'download', runId, '-n', 'candidate-pack', '-D', join(dir, 'pack')]);
+    pack = join(dir, 'pack');
+  } catch (e) {
+    problems.push(String(e.message ?? e).split('\n')[0]);
+  }
+  const login = ghJson(['api', 'user']).login;
+  const exec = (cmd, args) => spawnSync(cmd, args, { encoding: 'utf8' });
+  const rows = preflight({ exec, repo: REPO, login, version, candidate: { run: runId, problems, pack } });
+  for (const r of rows) console.log(`${r.state === 'ok' ? '✔' : r.state === 'missing' ? '·' : '✖'} ${r.id}: ${r.say}`);
+  const blocked = rows.filter((r) => r.state === 'blocked').length;
+  const missing = rows.filter((r) => r.state === 'missing').length;
+  say(`preflight for ${version}: ${rows.length - blocked - missing} ok, ${missing} still to do, ${blocked} blocked`);
+  if (blocked) throw new Error(`${blocked} check(s) blocked`);
+}
+
+const COMMANDS = { checks, merge, main, tag, watch, verify, chain, 'preflight-stable': preflightStable };
 if (!command || !(command in COMMANDS)) {
   console.error(
     `usage: npm run ship -- <${Object.keys(COMMANDS).join('|')}> …  (see the header of tools/release/ship.mjs)`,

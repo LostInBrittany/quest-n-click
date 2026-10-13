@@ -151,6 +151,11 @@ jobs:
     env:
       TAG: ${{ github.event.workflow_run.head_branch }}
       SHA: ${{ github.event.workflow_run.head_sha }}
+      # The future npm publishing step's exact Node and npm (4.1.20 PR 3b, plan §11.2): npm 11.15.0 at least for
+      # `npm stage`, Node 22.14.0 at least; never a range (tests/release-stable.test.ts, ship preflight-stable). Nothing
+      # is published to npm in 4.1.x.
+      NPM_PUBLISH_NODE: '22.23.3'
+      NPM_PUBLISH_NPM: '11.21.0'
     steps:
       - name: A SemVer tag
         run: |
@@ -199,14 +204,21 @@ jobs:
           # has neither (its manifest names neither, the check below says so either way).
           gh run download "$run" -n candidate-site -D .candidate/site 2>/dev/null || echo "::notice::run $run kept no site"
           gh run download "$run" -n candidate-surfaces -D .candidate/surfaces 2>/dev/null || echo "::notice::run $run wrote no surfaces"
+          gh run download "$run" -n candidate-signing -D .candidate/signing 2>/dev/null || echo "::notice::run $run rehearsed no signing"
           node tools/release/candidate.mjs check .candidate-manifest/candidate-manifest.json --sha="$SHA" --run="$run" --dir=.candidate
           echo "CANDIDATE=$run" >> "$GITHUB_ENV"
         env:
           GH_TOKEN: ${{ github.token }}
+      # Published releases are immutable (4.1.20 PR 3b): one that exists stops this run before anything is made, and
+      # changes nothing. A draft left by a run that failed before publishing was never public: it is deleted (its tag
+      # stays) and made again from the same candidate. A failed RC is not fixed: it is an rc.N+1.
       - name: Not published yet
         run: |
-          n=$(gh release view "$TAG" --json assets --jq '.assets | length' 2>/dev/null || echo 0)
-          test "$n" = 0 || { echo "::error::$TAG already has $n file(s): a published release is never replaced"; exit 1; }
+          state=$(gh release view "$TAG" --json isDraft --jq 'if .isDraft then "draft" else "published" end' 2>/dev/null || echo none)
+          case "$state" in
+            published) echo "::error::$TAG is published: a published release is never changed (a new version is a new tag)"; exit 1 ;;
+            draft) echo "::notice::$TAG: a draft left by an earlier run, deleted (never published)"; gh release delete "$TAG" --yes ;;
+          esac
         env:
           GH_TOKEN: ${{ github.token }}
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
@@ -258,11 +270,13 @@ jobs:
         run: |
           # The site the candidate built and qualified (4.1.20): published as it is, never built again for the release
           # (release-check above builds one to check, not to publish). Its file digests and the surfaces beside it.
-          for d in site surfaces; do test -d ".candidate/$d" || { echo "::error::run $CANDIDATE has no candidate-$d: nothing is made again here"; exit 1; }; done
+          for d in site surfaces signing; do test -d ".candidate/$d" || { echo "::error::run $CANDIDATE has no candidate-$d: nothing is made again here"; exit 1; }; done
           cp .candidate/site/dist.tar.gz "web-scumm-$TAG-dist.tar.gz"
           cp .candidate/site/assets-manifest.json "web-scumm-$TAG-assets-manifest.json"
           cp .candidate/site/site-files.json "web-scumm-$TAG-site-files.json"
           cp .candidate/surfaces/qualification-surfaces.json "web-scumm-$TAG-surfaces.json"
+          # The signing rehearsal's report (4.1.20 PR 3b), as the candidate's manifest lists it.
+          cp .candidate/signing/signing-rehearsal.json "web-scumm-$TAG-signing-rehearsal.json"
           # Since 4.1.20 (plan §8.4) this job makes nothing the candidate made: the four archives (packed once, installed
           # outside the repository on three systems), their SBOMs, the Bridge's image (its archive, identities and SBOM)
           # are the candidate's, checked against its manifest above, copied under the names tools/release/artifacts.mjs
@@ -271,7 +285,7 @@ jobs:
           cp .candidate/sbom/web-scumm.cdx.json "web-scumm-$TAG-sbom.cdx.json"
           cp .candidate/pack/web-scumm-[0-9]*.tgz .candidate/pack/create-web-scumm-*.tgz .candidate/pack/web-scumm-bridge-*.tgz .
           cp .candidate/pack/web-scumm-connectors-*.tgz .
-          extra="$(ls web-scumm-connectors-*.tgz) web-scumm-$TAG-site-files.json web-scumm-$TAG-surfaces.json"
+          extra="$(ls web-scumm-connectors-*.tgz) web-scumm-$TAG-site-files.json web-scumm-$TAG-surfaces.json web-scumm-$TAG-signing-rehearsal.json"
           cp .candidate/sbom/web-scumm-bridge.cdx.json "web-scumm-bridge-$TAG-sbom.cdx.json"
           cp .candidate/sbom/web-scumm-connectors.cdx.json "web-scumm-connectors-$TAG-sbom.cdx.json"
           cp .candidate/sbom/create-web-scumm.cdx.json "create-web-scumm-$TAG-sbom.cdx.json"
@@ -330,6 +344,7 @@ jobs:
             web-scumm-*-baseline.*
             web-scumm-*-site-files.json
             web-scumm-*-surfaces.json
+            web-scumm-*-signing-rehearsal.json
             web-scumm-${{ env.TAG }}-SHA256SUMS
             web-scumm-[0-9]*.tgz
             create-web-scumm-*.tgz
@@ -341,8 +356,10 @@ jobs:
       - run: |
           # A pre-release tag (`v4.1.8-rc.1`, 4.1.8) is published as a GitHub pre-release: same files, same checks.
           pre=""; case "$TAG" in *-*) pre="--prerelease";; esac
-          gh release view "$TAG" >/dev/null 2>&1 || gh release create "$TAG" --title "$TAG" --notes-file notes.md $pre
+          # Draft, every file, then published (4.1.20 PR 3b): an immutable release takes its files while it is a draft.
+          gh release create "$TAG" --draft --verify-tag --title "$TAG" --notes-file notes.md $pre
           gh release upload "$TAG" "web-scumm-$TAG-dist.tar.gz" "web-scumm-$TAG-assets-manifest.json" "web-scumm-$TAG-sbom.cdx.json" "web-scumm-bridge-$TAG-sbom.cdx.json" $EXTRA_ASSETS ${REMIX_ASSETS:-} web-scumm-[0-9]*.tgz create-web-scumm-*.tgz web-scumm-bridge-*.tgz "web-scumm-$TAG-SHA256SUMS"
+          gh release edit "$TAG" --draft=false
         env:
           GH_TOKEN: ${{ github.token }}
       # What was published, read back (4.1.8): every file downloaded, the sums checked, every attestation verified.
