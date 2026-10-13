@@ -1341,5 +1341,29 @@
   "proof": "tests/connectors-email.test.ts",
   "owner": "@wanoo",
   "revisit": "4.3.0"
+ },
+ {
+  "file": "connectors/src/ssh/connector.ts",
+  "operator": "condition true",
+  "from": "playerId",
+  "to": "true",
+  "context": "...(playerId ? { playerId } : {}),",
+  "why": "forced true, an unbound shell gets `{ playerId: null }` instead of `{}`; `VirtualShell` reads `o.playerId ?? null`, so both give `null`, and a bound one gets the same `{ playerId }` either way",
+  "category": "equivalent",
+  "proof": "argument",
+  "owner": "@wanoo",
+  "revisit": "4.3.0"
+ },
+ {
+  "file": "connectors/src/ssh/connector.ts",
+  "operator": "condition false",
+  "from": "Array.isArray(k)",
+  "to": "false",
+  "context": "return Array.isArray(k) ? (k[0] ?? null) : k;",
+  "why": "ssh2 1.17's `utils.parseKey` returns one parsed key or an Error, never an array (lib/protocol/keyParser.js returns `ret[0]` for an OpenSSH private file), and a declared key that is not a string or a Buffer is an Error: the array branch is never taken (tests/connectors-terminal-edge-mutants.test.ts pins it for public, private, garbage and non-string keys)",
+  "category": "unreachable",
+  "proof": "tests/connectors-terminal-edge-mutants.test.ts",
+  "owner": "@wanoo",
+  "revisit": "4.3.0"
  }
 ]
