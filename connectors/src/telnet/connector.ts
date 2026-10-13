@@ -200,6 +200,8 @@ export class TelnetConnector implements RealityConnector {
     const closing = server ? new Promise<void>((ok) => server.close(() => ok())) : Promise.resolve();
     for (const [socket, shell] of this.sessions) {
       shell.closed = true;
+      // Nothing more is read in the second before the socket is destroyed, even if the connector starts again.
+      socket.pause();
       socket.end('\r\nThe terminal closes.\r\n');
       setTimeout(() => socket.destroy(), 1000).unref();
     }

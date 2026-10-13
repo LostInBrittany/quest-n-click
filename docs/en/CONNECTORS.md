@@ -33,9 +33,10 @@ game, its limits, an optional health port, and a section named after the connect
 
 The game's Reality manifest comes from the Bridge (`GET /v1/manifest`), or from `"manifestFile"`. A token minted with
 `--pair` may confirm the pairing codes players give; grant each connector only the signals it proposes. With
-`health`, `GET /health` and `GET /metrics` answer on 127.0.0.1 (counts of proposals, duplicates, refusals by code,
+`health`, `GET /health` (200 when healthy, 503 otherwise) and `GET /metrics` answer on 127.0.0.1 (counts of proposals, duplicates, refusals by code,
 inputs rejected, retries). SIGTERM or Ctrl-C stops it: no new input, work in flight drained for at most five seconds,
-exit 0. Install the package without native code: `npm install --omit=optional --ignore-scripts web-scumm-connectors`.
+exit 0. Secrets come from files (`secretFile`, `passwordFile`, `tokenFile`); an inline `secret`, `password` or `token`
+is a development shortcut and must be a string, or the connector refuses to start. Install the package without native code: `npm install --omit=optional --ignore-scripts web-scumm-connectors`.
 
 ## Declare what the connectors may do
 

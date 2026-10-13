@@ -176,7 +176,8 @@ export class EmailConnector implements RealityConnector {
 
   private track<T>(p: Promise<T>): Promise<T> {
     this.inFlight.add(p);
-    void p.finally(() => this.inFlight.delete(p));
+    // The caller has the rejection; this bookkeeping chain never leaves an unhandled one.
+    void p.finally(() => this.inFlight.delete(p)).catch(() => {});
     return p;
   }
 
@@ -216,9 +217,11 @@ export class EmailConnector implements RealityConnector {
       const every = (this.c.imap.pollS ?? 60) * 1000;
       const tick = () => {
         if (this.stopping) return;
-        void this.track(this.poll()).finally(() => {
-          if (!this.stopping) this.timer = setTimeout(tick, every);
-        });
+        void this.track(this.poll())
+          .catch(() => ctx.log('email.poll-failed'))
+          .finally(() => {
+            if (!this.stopping) this.timer = setTimeout(tick, every);
+          });
       };
       tick();
     }

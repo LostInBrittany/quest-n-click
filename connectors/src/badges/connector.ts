@@ -73,7 +73,8 @@ export class OpenBadgeConnector implements RealityConnector {
         if (!body || typeof body !== 'object' || typeof body.code !== 'string') throw new HttpError(400, 'shape');
         const work = this.submit(ctx, decl, body);
         this.inFlight.add(work);
-        void work.finally(() => this.inFlight.delete(work));
+        // Its rejection is the request's (awaited below), never an unhandled one of this bookkeeping chain.
+        void work.finally(() => this.inFlight.delete(work)).catch(() => {});
         const r = await work;
         sendJson(res, r.http, r.body);
       } catch (e) {

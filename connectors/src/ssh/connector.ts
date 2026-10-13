@@ -136,12 +136,19 @@ export class SshConnector implements RealityConnector {
         return a.accept();
       }
       if (a.method === 'password' && typeof a.password === 'string' && a.password.length <= 64) {
-        void bindPlayer(ctx, this.resume, a.password).then((r) => {
-          if ('refusal' in r) return fail();
-          playerId = r.playerId;
-          word = r.word;
-          a.accept();
-        });
+        void bindPlayer(ctx, this.resume, a.password)
+          .then((r) => {
+            if ('refusal' in r) return fail();
+            playerId = r.playerId;
+            word = r.word;
+            a.accept();
+          })
+          // A pairing that throws (or a connection gone before the answer) is a refusal, never an unhandled rejection.
+          .catch(() => {
+            try {
+              fail();
+            } catch {}
+          });
         return;
       }
       if (a.method === 'none') return a.reject(['password', 'publickey']);
