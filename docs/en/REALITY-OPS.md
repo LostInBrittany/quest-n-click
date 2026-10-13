@@ -235,6 +235,23 @@ tenants apart, then backs up, destroys the topology with its database and restor
   lost answer to the commit itself is said as such, also with code 3). It needs a SQL store: the JSON-lines journal is
   refused before it is touched (migrate it to SQLite, then restore). Rehearsed by `tests/bridge-backup.test.ts`,
   `tests/bridge-backup-v4.test.ts` and `tests/bridge-ops.test.ts`.
+- **Memory: size the machine to the backup, not the reverse** (4.1.20, measured by `backup-memory` on the candidate,
+  Linux runner, the archive's Bridge). `backup`, `tenant export` and `restore` hold the whole file in memory, parsed
+  and canonical; a restore holds it twice (the file, then the store read back to compare). Peak RSS, against a Bridge at
+  about 72 MB:
+
+  | Backup | export | restore (SQLite) | restore (Postgres) |
+  |---:|---:|---:|---:|
+  | 64 MiB | 0.6 GB | 1.4 GB | 1.3 GB |
+  | 128 MiB | 1.1–1.3 GB | 2.7 GB | 2.4 GB |
+  | 256 MiB | 2.1–2.2 GB | 3.1 GB | 3.7 GB |
+
+  So count about **10 MB of memory per MiB of file for a backup, 20 MB for a restore**. In the 512 MiB container
+  of the deployment profile, a restore holds up to about 20 MiB of backup: run a larger one from a machine that has
+  the memory (it only needs to reach the store), or lower `--max-bytes` and `--max-rows` to what the machine holds,
+  so that a file too large is refused before it is parsed. Past a few hundred MiB, use the database's own tools
+  (`pg_dump`, the provider's snapshots, a copy of the SQLite file with the Bridge stopped). Lowering this footprint
+  is planned for 4.2.
 - **Maintenance leases** (4.1.20, ADR 0023): from schema 5 (migration 0005), every writer holds a lease in the store
   itself. `serve` and every command that writes (`migrate`, `tenant delete`, `backup` and `tenant export`, which bring
   the schema up) hold a `serving` lease, side by side. `restore`, and `migrate --schema=N` going down, take the

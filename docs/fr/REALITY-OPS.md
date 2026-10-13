@@ -252,6 +252,23 @@ la passe humaine derrière un vrai domaine (24 à 48 heures) n'est pas `passed`.
   telle, avec le code 3 aussi). Il faut un store SQL : le journal JSON-lines est refusé avant d'être touché (le migrer
   vers SQLite, puis restaurer). Répété par `tests/bridge-backup.test.ts`, `tests/bridge-backup-v4.test.ts` et
   `tests/bridge-ops.test.ts`.
+- **Mémoire : dimensionner la machine selon le backup, pas l’inverse** (4.1.20, mesuré par `backup-memory` sur le
+  candidat, runner Linux, Bridge de l’archive). `backup`, `tenant export` et `restore` gardent le fichier entier en
+  mémoire, parsé et canonique ; une restauration le tient deux fois (le fichier, puis le store relu pour comparer).
+  Pic de RSS, pour un Bridge à environ 72 Mo :
+
+  | Backup | export | restore (SQLite) | restore (Postgres) |
+  |---:|---:|---:|---:|
+  | 64 Mio | 0,6 Go | 1,4 Go | 1,3 Go |
+  | 128 Mio | 1,1–1,3 Go | 2,7 Go | 2,4 Go |
+  | 256 Mio | 2,1–2,2 Go | 3,1 Go | 3,7 Go |
+
+  Comptez donc environ **10 Mo de mémoire par Mio de fichier pour un backup, 20 Mo pour une restauration**. Dans le
+  conteneur de 512 Mio du profil de déploiement, une restauration tient jusqu’à environ 20 Mio de backup : lancez-en
+  une plus grande depuis une machine qui a la mémoire (il lui suffit d’atteindre le store), ou abaissez `--max-bytes`
+  et `--max-rows` à ce que la machine tient, pour qu’un fichier trop grand soit refusé avant d’être parsé. Au-delà de
+  quelques centaines de Mio, utilisez les outils de la base (`pg_dump`, les snapshots de l’hébergeur, une copie du
+  fichier SQLite Bridge arrêté). Réduire cette empreinte est prévu pour la 4.2.
 - **Baux de maintenance** (4.1.20, ADR 0023) : à partir du schéma 5 (migration 0005), chaque écrivain tient un bail
   dans le store lui-même. `serve` et chaque commande qui écrit (`migrate`, `tenant delete`, `backup` et
   `tenant export`, qui montent le schéma) tiennent un bail `serving`, côte à côte. `restore`, et `migrate --schema=N`
