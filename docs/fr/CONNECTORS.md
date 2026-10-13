@@ -34,9 +34,11 @@ jeu, ses limites, un port de santé facultatif, et une section au nom du connect
 
 Le manifeste Reality du jeu vient du Bridge (`GET /v1/manifest`), ou de `"manifestFile"`. Un jeton émis avec
 `--pair` peut confirmer les codes d'appairage que donnent les joueurs ; n'accordez à chaque connecteur que les signaux
-qu'il propose. Avec `health`, `GET /health` et `GET /metrics` répondent sur 127.0.0.1 (nombre de propositions, de
+qu'il propose. Avec `health`, `GET /health` (200 en bonne santé, 503 sinon) et `GET /metrics` répondent sur 127.0.0.1 (nombre de propositions, de
 doublons, de refus par code, d'entrées rejetées, de nouvelles tentatives). SIGTERM ou Ctrl-C l'arrête : plus d'entrée
-nouvelle, le travail en cours vidé en cinq secondes au plus, sortie 0. Installer le paquet sans code natif :
+nouvelle, le travail en cours vidé en cinq secondes au plus, sortie 0. Les secrets viennent de fichiers (`secretFile`, `passwordFile`, `tokenFile`) ; un `secret`, un `password`
+ou un `token` en ligne est un raccourci de développement et doit être une chaîne, sinon le connecteur refuse de démarrer.
+Installer le paquet sans code natif :
 `npm install --omit=optional --ignore-scripts web-scumm-connectors`.
 
 ## Déclarer ce que les connecteurs peuvent faire

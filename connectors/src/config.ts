@@ -1,5 +1,5 @@
 // The operator's configuration (4.1.9): secrets come from files next to it (mode 600), never from the command line or
-// a log. An inline value is accepted for tests and said to be a development shortcut in docs/en/CONNECTORS.md.
+// a log. An inline value (a string) is accepted for tests, a development shortcut docs/en/CONNECTORS.md names.
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 

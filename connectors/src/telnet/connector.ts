@@ -175,8 +175,7 @@ export class TelnetConnector implements RealityConnector {
       if (this.sessions.delete(socket)) this.gate.leave(address);
     });
     socket.on('data', (d: Buffer) => {
-      // Stopping: nothing more is read, in the second before the socket is destroyed.
-      if (!open || this.stopping) return;
+      if (!open) return;
       if (!guard.bytes(d.length)) {
         this.refusedConnections++;
         ctx.reject('too-fast');
@@ -201,6 +200,8 @@ export class TelnetConnector implements RealityConnector {
     const closing = server ? new Promise<void>((ok) => server.close(() => ok())) : Promise.resolve();
     for (const [socket, shell] of this.sessions) {
       shell.closed = true;
+      // Nothing more is read in the second before the socket is destroyed, even if the connector starts again.
+      socket.pause();
       socket.end('\r\nThe terminal closes.\r\n');
       setTimeout(() => socket.destroy(), 1000).unref();
     }

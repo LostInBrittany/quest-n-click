@@ -11,5 +11,14 @@
   - `TelnetConnector.stop()` ended the sockets, but their data handler kept reading until they were destroyed.
 - `tests/connectors-hardening.test.ts`: 5 tests, each red on the previous code (all 5 failed with the fixes stashed),
   green with them.
+- Second reading (sub-agent, 13 Oct): no P0 or P1; it repeated the red check itself (each test red for its own reason,
+  never only vitest's handler). Folded in:
+  - the same class in `ssh/connector.ts`: `void bindPlayer(...).then(...)` had no catch; a pairing that throws now
+    refuses the login;
+  - Telnet pauses each socket in `stop()` rather than reading a connector-wide flag, which `start()` reset;
+  - the 503 answer carries `since`, as every health answer does;
+  - an inline `bridge.token` that is not a string is refused too (it bypassed `readSecret`);
+  - `config.ts` claimed CONNECTORS.md named the inline shortcut: both docs (FR in French) now say it, and the 503.
+- Tests: 9, the 3 added ones red on the first commit, all 9 red on main.
 
-→ next: CI, second reading, merge; then the technical candidate.
+→ next: CI, merge; then the technical candidate.
