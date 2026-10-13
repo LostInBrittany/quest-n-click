@@ -146,6 +146,24 @@ export function withMetrics(page: string, m: Record<string, string>): string {
   );
 }
 
+/**
+ * The README's install section (4.1.20 PR 4, plan §9.2): between `<!-- install:begin -->` and `<!-- install:end -->`,
+ * in both languages, the archive URL of this version, written here with the figures. Its text is the
+ * `archive-human-install` pass's surface (`readme:install`, docs/dev/surfaces.json): only a release changes it.
+ */
+const INSTALL = /(<!-- install:begin -->)([\s\S]*?)(<!-- install:end -->)/;
+export function withInstall(page: string, version: string): string {
+  return page.replace(
+    INSTALL,
+    (_all, open: string, body: string, close: string) =>
+      `${open}${body.replace(
+        /https:\/\/github\.com\/wanoo\/web-scumm\/releases\/download\/v[^/\s]+\/web-scumm-[^\s/]+?\.tgz/g,
+        `https://github.com/wanoo/web-scumm/releases/download/v${version}/web-scumm-${version}.tgz`,
+      )}${close}`,
+  );
+}
+const VERSION = (JSON.parse(readFileSync(resolve(ROOT, 'package.json'), 'utf8')) as { version: string }).version;
+
 /** The policy parts that got better than the baseline (4.1.3): said, so the baseline is ratcheted on purpose. */
 export function improvements(want: Baseline, got: Baseline): string[] {
   const out: string[] = [];
@@ -210,7 +228,7 @@ if (import.meta.url === `file://${process.argv[1]}` || process.argv[1]?.endsWith
     for (const r of READMES) {
       const file = resolve(ROOT, r);
       const page = readFileSync(file, 'utf8');
-      const next = withMetrics(page, metricsOf(got));
+      const next = withInstall(withMetrics(page, metricsOf(got)), VERSION);
       if (next !== page) {
         writeFileSync(file, next);
         console.log(`  ✔ ${r}: the figures written`);
@@ -227,6 +245,8 @@ if (import.meta.url === `file://${process.argv[1]}` || process.argv[1]?.endsWith
       const page = readFileSync(resolve(ROOT, r), 'utf8');
       if (withMetrics(page, metricsOf({ ...got, bundle: got.bundle ?? want.bundle })) !== page)
         diff.push(`${r}: a figure is behind the baseline (npm run quality:baseline writes it)`);
+      if (withInstall(page, VERSION) !== page)
+        diff.push(`${r}: the install section names another version (npm run quality:baseline writes it)`);
     }
     for (const d of diff) console.log('  ✖ ' + d);
     for (const d of improvements(want, got))

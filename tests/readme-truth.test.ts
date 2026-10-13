@@ -3,6 +3,7 @@
 // same sections and images; its maturity table agrees with the GO / NO-GO; no figure is written by hand.
 import { existsSync, readFileSync, statSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
+import { withInstall } from '../tools/quality-baseline';
 // @ts-expect-error: a plain .mjs module without declarations
 import { archiveUrl, quickStart } from '../scripts/readme-quickstart.mjs';
 
@@ -35,6 +36,23 @@ describe('the README', () => {
     for (const r of [en, fr])
       for (const [, cmd] of r.matchAll(/npx web-scumm ([\w-]+)/g))
         expect(cli).toMatch(new RegExp(`^\\s+'?${cmd}'?: \\[`, 'm'));
+  });
+
+  it('keeps its install section between generated markers, once per language, naming this version (4.1.20 PR 4)', () => {
+    for (const r of [en, fr]) {
+      expect(r.split('<!-- install:begin -->')).toHaveLength(2);
+      expect(r.split('<!-- install:end -->')).toHaveLength(2);
+      const section = r.slice(r.indexOf('<!-- install:begin -->'), r.indexOf('<!-- install:end -->'));
+      // The whole quick start is inside: the archive-human-install pass reads exactly this (docs/dev/surfaces.json).
+      expect(section).toContain(archiveUrl(version));
+      expect(section).toContain('npm run assets && npm run dev');
+      expect(withInstall(r, version)).toBe(r);
+    }
+    // The writer moves only the URL, and only between the markers.
+    const page = `T=x/v1.0.0/web-scumm-1.0.0.tgz\n<!-- install:begin -->\nT=https://github.com/wanoo/web-scumm/releases/download/v1.0.0/web-scumm-1.0.0.tgz\n<!-- install:end -->`;
+    expect(withInstall(page, '4.2.0')).toBe(
+      page.replace('download/v1.0.0/web-scumm-1.0.0.tgz', 'download/v4.2.0/web-scumm-4.2.0.tgz'),
+    );
   });
 
   it('shows images that exist, under budget, the same in both languages', () => {

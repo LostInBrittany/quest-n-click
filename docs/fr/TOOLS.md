@@ -210,6 +210,7 @@ npm run field:check -- --dir=<dossier> [--require=<id,…>]   # chaque rapport f
 npm run field:report -- --dir=<dossier> --out=docs/dev/passes/<x.y.z>.md   # le tableau des passes humaines généré depuis les rapports
 npm run field:bundle -- --report=<report.json> --out=<bundle.tar.gz>   # le rapport et ses preuves listées, logs expurgés, refusé sur une clé ou un token
 npm run field:verify-bundle -- <bundle.tar.gz> [--offline --trusted-root=<fichier>]   # 4.1.19 : intégrité, le candidat, puis qui a fait son manifeste (son attestation, ou le run)
+npm run field:carry -- --from=<dossier> --to=<dossier> --pass=<id>   # 4.1.20 (ADR 0024) : une passe reportée sur un nouveau candidat quand aucun fichier de sa surface n'a changé (version comprise) : une attestation en attente que le mainteneur approuve dans un commit signé ; --check-range=<a..b> refuse une plage qui change la racine de confiance et une attestation
 npm run verify:field               # verify:commercial, puis ces quotas : ce qu'il faut à une release testée par des joueurs (pas une étape de release-check, D12)
 npm run e2e:perf -- <url> [--renderer=canvas|dom --cpu=4 --min=30 --room=<id>]   # images par seconde pendant que le héros marche, CPU ralenti (le substitut du téléphone)
 npm run e2e:music -- <url> [--only=offline|live|game --live=chromium|webkit]   # le directeur musical : 30 min hors ligne sans dérive, 100 changements sans clic, gigue en temps réel, les stems du thème dans le jeu

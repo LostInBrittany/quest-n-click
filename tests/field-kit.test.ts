@@ -178,7 +178,7 @@ describe('field:check', () => {
     const dir = folder({ 'firefox-real-offline': passed });
     expect(checkDir(dir, ['firefox-real-offline']).problems).toEqual([]);
     expect(checkDir(dir, ['safari-ios-offline-update', 'nope']).problems).toEqual([
-      'safari-ios-offline-update: required, not passed',
+      'safari-ios-offline-update: required, not passed (nor carried by an approved, signed attestation)',
       '--require=nope: not a pass',
     ]);
   });
