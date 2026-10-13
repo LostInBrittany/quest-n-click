@@ -235,6 +235,17 @@ tenants apart, then backs up, destroys the topology with its database and restor
   lost answer to the commit itself is said as such, also with code 3). It needs a SQL store: the JSON-lines journal is
   refused before it is touched (migrate it to SQLite, then restore). Rehearsed by `tests/bridge-backup.test.ts`,
   `tests/bridge-backup-v4.test.ts` and `tests/bridge-ops.test.ts`.
+- **Maintenance leases** (4.1.20, ADR 0023): from schema 5 (migration 0005), every writer holds a lease in the store
+  itself. `serve` and every command that writes (`migrate`, `tenant delete`, `backup` and `tenant export`, which bring
+  the schema up) hold a `serving` lease, side by side. `restore`, and `migrate --schema=N` going down, take the
+  `exclusive` one: they are **refused**, naming who holds the store and until when, while anything else holds a live
+  lease (at once on SQLite; on Postgres after the advisory lock's `--lock-timeout` at most). An expired lease (a process killed) is deleted, never in the way. Every time is the database's own.
+  On Postgres an advisory lock rides beside the lease, on a connection of its own, tried for `--lock-timeout` (30 s by
+  default) and never waited for longer. A `serve` whose lease is lost (not renewed, or its lock's connection dropped)
+  holds its writes, which answer 503, and fails `/readyz` until it takes a lease again; so does a process that stalls
+  past two thirds of its lease, on its own clock, before the database could call the lease expired. A restore whose lease is lost
+  before its commit is rolled back. A Bridge older than 4.1.20 takes no lease: stop every older instance before the
+  first restore. `migrate --schema=N` below 5 drops the lease table with its first step, so stop every writer for it.
 - The backup is logical, portable and bounded. For a large deployment, `pg_dump` or the provider's snapshots remain
   the backup of the database itself.
 - `tenant export --tenant=<id> [--out=<file>]`, `tenant delete --tenant=<id> --yes`: one tenant's rows, in every table.

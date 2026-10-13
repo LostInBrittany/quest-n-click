@@ -39,7 +39,8 @@ type Inner = {
   patiently<T>(fn: () => T): Promise<T>;
   tx<T>(k: string | undefined, fn: (q: { all(sql: string): Promise<Row[]> }) => Promise<T>, o?: object): Promise<T>;
 };
-const inner = (s: SqliteRealityStore) => s.db as unknown as Inner;
+// The SQLite connection itself, past the write guard of 4.1.20 (`db` holds writes when a maintenance lease is lost).
+const inner = (s: SqliteRealityStore) => s.leaseDb as unknown as Inner;
 
 const dir = mkdtempSync(join(tmpdir(), 'reality-store-sqlite-'));
 const opened: SqliteRealityStore[] = [];

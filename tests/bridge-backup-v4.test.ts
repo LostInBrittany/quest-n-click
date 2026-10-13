@@ -175,6 +175,8 @@ describe.each(KINDS)('backup schema 4 on $name', (kind) => {
     };
     expect(bad((x) => (x.startedAt = 'yesterday'))).toThrow(/startedAt/);
     expect(bad((x) => (x.endedAt = '2000-01-01T00:00:00.000Z'))).toThrow(/endedAt/);
+    // A snapshot within one millisecond ends when it starts: accepted (the bound is "before", not "at").
+    expect(bad((x) => (x.endedAt = x.startedAt))).not.toThrow();
     expect(bad((x) => (x.bridge.version = 'latest'))).toThrow(/version/);
     expect(bad((x) => (x.completeness.families = ['tenants']))).toThrow(/completeness/);
     expect(bad((x) => (x.counts.quotas = 7))).toThrow(/counts/);

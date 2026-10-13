@@ -19,6 +19,8 @@ export interface RestoreOptions {
   /** The file speaks for its tenants' quotas (schema 4). */
   carriesQuotas?: boolean;
   mode?: RestoreMode;
+  /** Why the store may no longer be written (its maintenance lease lost, 4.1.20 PR 1c): checked before the commit. */
+  stillHeld?: () => string | undefined;
 }
 const quotaKey = (r: Row) => `${String(r.tenant_id)}\u0000${String(r.client_key)}`;
 /** The tenants whose quotas a file speaks for: all its tenants when it carries quotas, its quotas' own otherwise. */
@@ -123,6 +125,8 @@ export async function restoreBackup(
       // in the same order here (by code unit), never the database's: a collation may order ids otherwise.
       const why = (await differs(q, p, runTenants, quotaTenants)) ?? (replace ? await beyond(q, p) : undefined);
       if (why) throw new RestoreMismatch(why);
+      const lost = o.stillHeld?.();
+      if (lost) throw new RestoreMismatch(lost);
       committing = true;
       return {
         ok: true,

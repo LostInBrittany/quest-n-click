@@ -194,7 +194,8 @@ describe('the backup before and after its split', () => {
     const { digest: _digest, ...envelope } = b;
     const fixed = { ...envelope, startedAt: '-', endedAt: '-', bridge: { version: '-' } };
     expect({ store: b.store, counts: b.counts, digest: payloadDigest(b.payload).slice(0, 16) }).toEqual({
-      store: { kind: 'sqlite', schema: 4 },
+      // The store's SQL schema: 5 since 4.1.20 PR 1c (the maintenance leases).
+      store: { kind: 'sqlite', schema: 5 },
       counts: {
         tenants: 2,
         players: 2,
@@ -254,7 +255,7 @@ describe('the backup before and after its split', () => {
 /** What the code said on 12 October 2026, before the split (`8bd6575`). `store.schema` moves with a migration (PR 1b). */
 const PINNED = {
   digest: 'e8676e68d52fcf7a',
-  envelope: '61e40179766dd662',
+  envelope: '07d985f7510274bd',
   cli: {
     usage: '2 usage: backup --out=<file> [--max-bytes=<n>] [--max-rows=<n>]',
     backup:
@@ -266,6 +267,6 @@ const PINNED = {
     forced:
       '0 ✔  2 tenant(s), 2 run(s), 1 daily record(s), 0 quota row(s) restored from <date> (schema 4, merge), checked before and after the commit',
     restoreUsage:
-      "2 usage: restore --from=<backup file> --mode=merge [--force] [--max-bytes=<n>]   (a backup's digest is an integrity check, not a signature)\n       restore --from=<backup file> --mode=replace-store --yes-replace-store --safety-out=<new file> [--max-bytes=<n>] [--max-rows=<n>]",
+      "2 usage: restore --from=<backup file> --mode=merge [--force] [--max-bytes=<n>] [--lock-timeout=<ms>]   (a backup's digest is an integrity check, not a signature)\n       restore --from=<backup file> --mode=replace-store --yes-replace-store --safety-out=<new file> [--max-bytes=<n>] [--max-rows=<n>] [--lock-timeout=<ms>]",
   },
 };
