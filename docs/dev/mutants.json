@@ -1197,17 +1197,5 @@
   "proof": "argument",
   "owner": "@wanoo",
   "revisit": "4.3.0"
- },
- {
-  "file": "bridge/src/maintenance.ts",
-  "operator": "condition false",
-  "from": "stopped",
-  "to": "false",
-  "context": "if (stopped) return;",
-  "why": "keepLease’s tick: `stop` sets `stopped` and clears the interval in one synchronous step, and the check is the first statement of the tick, so no tick ever begins with `stopped` true (a tick already running past it never reads it again); forced false, the guard changes nothing. The rest of `stop` is killed by tests/reality-store-maintenance-mutants.test.ts",
-  "category": "equivalent",
-  "proof": "argument",
-  "owner": "@wanoo",
-  "revisit": "4.3.0"
  }
 ]
