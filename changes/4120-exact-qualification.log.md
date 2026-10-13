@@ -41,5 +41,5 @@
   - SUPPORT (EN and FR), ops/qualify/README and GO-NO-GO no longer say the candidate runs `--short`.
   - Not a finding: the three Postgres loads share one protocol, since bridge-load deletes its tenant on an external
     store (`tools/bridge-load.ts:119`) and runs-load deletes its runs.
-  - Still to carry by hand when 1c is merged in: its 4.1.17 hunk (migrate to schema 5) into
+  - Carried by hand when 1c was merged in: its 4.1.17 hunk (migrate to schema 5) into
     `scripts/ops-qualify/backup.mjs`.
