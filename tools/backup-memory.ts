@@ -70,7 +70,8 @@ async function freshStore(spec: string, dir: string, name: string): Promise<{ ur
     return { url: `sqlite:${file}`, store: await SqliteRealityStore.open(file) };
   }
   const { PostgresRealityStore } = await import('../bridge/src/store-postgres');
-  const pg = (await import('pg')).default as never;
+  // As the tests load it: the module named at run time (BRIDGE_PG_MODULE, else pg), its types the adapter's own.
+  const pg = ((await import(/* @vite-ignore */ process.env.BRIDGE_PG_MODULE ?? 'pg')) as { default: never }).default;
   const admin = await PostgresRealityStore.open(spec, { pg, migrate: false });
   const db = `bm_${name}_${randomBytes(3).toString('hex')}`;
   await admin.db.run(`CREATE DATABASE ${db}`);

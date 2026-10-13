@@ -10,7 +10,7 @@ import { join } from 'node:path';
 const sha256 = (f) => createHash('sha256').update(readFileSync(f)).digest('hex');
 
 /** The four archives the run installed (`--tarballs=`, else the ones it packed), by name and SHA-256. */
-export const archivesIn = (dir) =>
+const archivesIn = (dir) =>
   readdirSync(dir)
     .filter((f) => f.endsWith('.tgz'))
     .sort()

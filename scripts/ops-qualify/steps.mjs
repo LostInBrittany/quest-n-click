@@ -77,7 +77,7 @@ export const CATALOGUE = [
 ];
 
 /** The first thing a failed step says went wrong (its error, its first refusal, else what it measured), shortened. */
-export function firstDefect(detail) {
+function firstDefect(detail) {
   const first = detail.error ?? detail.refused?.[0] ?? detail.reason;
   return String(first ?? JSON.stringify(detail)).slice(0, 300);
 }
