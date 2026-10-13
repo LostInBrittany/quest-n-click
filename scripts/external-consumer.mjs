@@ -34,6 +34,7 @@ import {
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { harness, WIN, waitFor } from './lib/archive-harness.mjs';
+import { fetchRetry } from './lib/fetch-retry.mjs';
 import { KNOWN_ENGINES, sumFor, sumsAsset, upgradeSource } from './upgrade-source.mjs';
 
 const ROOT = resolve(import.meta.dirname, '..');
@@ -130,12 +131,13 @@ else {
   oldTgz = join(base, src.asset);
   const url = `https://github.com/wanoo/web-scumm/releases/download/${src.tag}/${src.asset}`;
   console.log(`\n▶ the older engine: ${url}`);
-  const r = await fetch(url);
+  // Tried again on a 5xx (4.1.20 PR 3): a 504 from GitHub's releases failed candidate 38236552662 on two runners.
+  const r = await fetchRetry(url);
   if (!r.ok) throw new Error(`${url}: ${r.status}`);
   const bytes = Buffer.from(await r.arrayBuffer());
   // Checked against the release's own sums (4.1.19): a stable tag and a pre-release alike.
   const sumsUrl = `https://github.com/wanoo/web-scumm/releases/download/${src.tag}/${sumsAsset(src.tag)}`;
-  const s = await fetch(sumsUrl);
+  const s = await fetchRetry(sumsUrl);
   if (!s.ok) throw new Error(`${sumsUrl}: ${s.status}`);
   const want = sumFor(await s.text(), src.asset);
   const got = createHash('sha256').update(bytes).digest('hex');
