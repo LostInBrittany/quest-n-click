@@ -1007,6 +1007,66 @@
   "revisit": "4.3.0"
  },
  {
+  "file": "connectors/src/run.ts",
+  "operator": "operator",
+  "from": ">=",
+  "to": ">",
+  "context": "if (i >= 0) return args[i + 1];",
+  "why": "arg: `i >= 0` and `i > 0` differ only when the flag is at index 0, and main reads its flags only after args[0] has passed `CONNECTOR_IDS.includes(id)`: `--config` is no connector id, so `main(['--config', …])` returns 2 before `arg` is called (pinned by tests/connectors-rest-edge-mutants.test.ts)",
+  "category": "unreachable",
+  "proof": "tests/connectors-rest-edge-mutants.test.ts",
+  "owner": "@wanoo",
+  "revisit": "4.3.0"
+ },
+ {
+  "file": "connectors/src/run.ts",
+  "operator": "condition true",
+  "from": "cfg.tenantId",
+  "to": "true",
+  "context": "...(cfg.tenantId ? { tenantId: cfg.tenantId } : {}),",
+  "why": "forced true, a configuration without a tenant gives createContext `{ tenantId: undefined }` instead of no key; createContext reads only `o.tenantId ?? 'default'`, so both give 'default', and a configured tenant is passed either way",
+  "category": "equivalent",
+  "proof": "argument",
+  "owner": "@wanoo",
+  "revisit": "4.3.0"
+ },
+ {
+  "file": "connectors/src/run.ts",
+  "operator": "condition true",
+  "from": "cfg.limits",
+  "to": "true",
+  "context": "...(cfg.limits ? { limits: cfg.limits } : {}),",
+  "why": "forced true, a configuration without limits gives createContext `{ limits: undefined }` instead of no key; createContext reads only `{ ...DEFAULT_LIMITS, ...o.limits }`, and spreading undefined adds nothing, so the limits are the defaults either way",
+  "category": "equivalent",
+  "proof": "argument",
+  "owner": "@wanoo",
+  "revisit": "4.3.0"
+ },
+ {
+  "file": "connectors/src/run.ts",
+  "operator": "condition true",
+  "from": "a && typeof a === 'object'",
+  "to": "true",
+  "context": "healthUrl = a && typeof a === 'object' ? `http://${cfg.health.host ?? '127.0.0.1'}:${a.port}/` : undefined;",
+  "why": "the health server is a node:http server listening on a TCP port and host (`listen(port, host, ok)`), and `address()` is read in that listen callback: it is always an AddressInfo object, never null nor a pipe's string, so the condition is always true",
+  "category": "equivalent",
+  "proof": "argument",
+  "owner": "@wanoo",
+  "revisit": "4.3.0"
+ },
+ {
+  "file": "connectors/src/run.ts",
+  "operator": "operator",
+  "from": "&&",
+  "to": "||",
+  "context": "healthUrl = a && typeof a === 'object' ? `http://${cfg.health.host ?? '127.0.0.1'}:${a.port}/` : undefined;",
+  "why": "the health server is a node:http server listening on a TCP port and host, and `address()` is read in its listen callback: always a truthy AddressInfo object, for which `a && typeof a === 'object'` and `a || typeof a === 'object'` are both true",
+  "category": "equivalent",
+  "proof": "argument",
+  "owner": "@wanoo",
+  "revisit": "4.3.0"
+ },
+ {
   "file": "connectors/src/email/mime.ts",
   "operator": "operator",
   "from": "<",
