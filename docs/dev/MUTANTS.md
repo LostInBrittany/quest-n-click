@@ -13,7 +13,7 @@ against each mutant. Each set is named for exactly the files it mutates (4.1.19,
 | `speedrun` | a run's envelope, the recorder, the verifier | gated |
 | `connectors-pure` (`connectors` until 4.2) | the connectors' pure parts: SDK, MIME reader, line editor, virtual disk, badge crypto and fetch | gated |
 | `reality-store` | the Bridge's stores in memory, SQL and SQLite, migrations, streams, signing (not the Postgres adapter) | gated |
-| `connectors-edge` | configuration and start, the email connector (webhook, IMAP, parse), badge verification, terminal guard and shell, SSH, Telnet | measured (nightly) |
+| `connectors-edge` | configuration and start, the email connector (webhook, IMAP, parse), badge verification, terminal guard and shell, SSH, Telnet | gated (4.1.20) |
 | `reality-store-postgres` | `bridge/src/store-postgres.ts`, judged on a Postgres (its own database per test file, the files one after the other) | gated (4.1.20) |
 
 A gated set fails its job on any survivor not named below; a measured set reports, toward being read and gated. The
