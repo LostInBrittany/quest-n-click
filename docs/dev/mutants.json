@@ -1113,5 +1113,101 @@
   "proof": "argument",
   "owner": "@wanoo",
   "revisit": "4.3.0"
+ },
+ {
+  "file": "connectors/src/email/connector.ts",
+  "operator": "condition true",
+  "from": "sender",
+  "to": "true",
+  "context": "const linked = sender ? this.links.get(sender) : undefined;",
+  "why": "forced true, a message without a sender looks up `this.links.get('')`; the empty key is never written, since `link` is only called `if (sender)`, so the lookup is undefined, which is what the condition gave (that guard is pinned by tests/connectors-email-edge-mutants.test.ts, a pairing code without a sender links nothing)",
+  "category": "equivalent",
+  "proof": "argument",
+  "owner": "@wanoo",
+  "revisit": "4.3.0"
+ },
+ {
+  "file": "connectors/src/email/connector.ts",
+  "operator": "condition false",
+  "from": "this.stopping",
+  "to": "false",
+  "context": "if (this.stopping) return;",
+  "why": "`tick` never runs while stopping: it runs once from `start()` (which sets `stopping` to false), then only from the timer the previous pass's `finally` sets when not stopping, and `stop()` sets `stopping` then clears that timer, so no tick can fire after it; the guard is defence in depth (tests/connectors-email-edge-mutants.test.ts pins that no pass runs or is scheduled after `stop()`)",
+  "category": "unreachable",
+  "proof": "tests/connectors-email-edge-mutants.test.ts",
+  "owner": "@wanoo",
+  "revisit": "4.3.0"
+ },
+ {
+  "file": "connectors/src/email/connector.ts",
+  "operator": "condition true",
+  "from": "c.mailbox",
+  "to": "true",
+  "context": "...(c.mailbox ? { mailbox: c.mailbox } : {}),",
+  "why": "forced true, an unconfigured mailbox is passed as `mailbox: undefined`, which ImapClient reads through `o.mailbox ?? 'INBOX'` exactly as an absent key: the same SELECT \"INBOX\" (the false mutant is killed by tests/connectors-email-edge-mutants.test.ts, a configured mailbox passed on)",
+  "category": "equivalent",
+  "proof": "argument",
+  "owner": "@wanoo",
+  "revisit": "4.3.0"
+ },
+ {
+  "file": "connectors/src/email/imap.ts",
+  "operator": "condition false",
+  "from": "this.dead",
+  "to": "false",
+  "context": "if (this.dead) return;",
+  "why": "`onData` after death: every path that sets `dead` goes through `die`, which destroys the socket in the same call, and a destroyed socket emits no more `data`; the bytes left in the chunk being read are cut by the `return this.die(...)` of each bound, so the guard is defence in depth (the same edit on `die`'s own `if (this.dead) return;`, which shares this line, is killed by tests/connectors-email-edge-mutants.test.ts, which also pins that a dead client keeps its first reason and sends nothing)",
+  "category": "unreachable",
+  "proof": "tests/connectors-email-edge-mutants.test.ts",
+  "owner": "@wanoo",
+  "revisit": "4.3.0"
+ },
+ {
+  "file": "connectors/src/email/imap.ts",
+  "operator": "condition true",
+  "from": "this.buf.length",
+  "to": "true",
+  "context": "this.buf = this.buf.length ? Buffer.concat([this.buf, d]) : d;",
+  "why": "forced true, an empty buffer is concatenated with the chunk: `Buffer.concat([empty, d])` is a copy of `d` with the same bytes, read the same; only the allocation differs (the false mutant is killed by tests/connectors-email-edge-mutants.test.ts, a line split across two reads)",
+  "category": "equivalent",
+  "proof": "argument",
+  "owner": "@wanoo",
+  "revisit": "4.3.0"
+ },
+ {
+  "file": "connectors/src/email/imap.ts",
+  "operator": "operator",
+  "from": "<",
+  "to": "<=",
+  "context": "if (this.buf.length < this.literalLeft) return;",
+  "why": "with `<=`, a literal whose last byte ends the chunk is taken at the next chunk instead of this one; IMAP always follows a literal with at least the rest of its response line and the tagged answer, so the next chunk always comes before anything is resolved, and a connection that dies first dies the same either way",
+  "category": "equivalent",
+  "proof": "argument",
+  "owner": "@wanoo",
+  "revisit": "4.3.0"
+ },
+ {
+  "file": "connectors/src/email/imap.ts",
+  "operator": "condition true",
+  "from": "!this.dead",
+  "to": "true",
+  "context": "if (!this.dead) await this.command('LOGOUT');",
+  "why": "forced true, a dead client calls `command('LOGOUT')`, which returns `Promise.reject(this.dead)` before writing anything; `logout` catches it and calls `die`, a no-op once dead: nothing sent, the same end (the false and negation mutants are killed by tests/connectors-email-edge-mutants.test.ts, LOGOUT said when alive)",
+  "category": "equivalent",
+  "proof": "argument",
+  "owner": "@wanoo",
+  "revisit": "4.3.0"
+ },
+ {
+  "file": "connectors/src/email/parse.ts",
+  "operator": "condition true",
+  "from": "new URL(import.meta.url).pathname.endsWith('.ts')",
+  "to": "true",
+  "context": "new URL(import.meta.url).pathname.endsWith('.ts')",
+  "why": "the mutation runs on the sources, where this module's path always ends in `.ts`, so the condition is true there; the other branch (`mime-worker.mjs`) only runs in the bundled package (scripts/pack.mjs), which the connectors-edge tests do not run; the worker read from the sources is pinned by tests/connectors-email.test.ts",
+  "category": "unreachable",
+  "proof": "tests/connectors-email.test.ts",
+  "owner": "@wanoo",
+  "revisit": "4.3.0"
  }
 ]
