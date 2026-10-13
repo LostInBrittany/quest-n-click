@@ -64,6 +64,8 @@ export const SETS = {
     'bridge/src/backup/schema.ts',
     'bridge/src/backup/snapshot.ts',
     'bridge/src/backup/tables.ts',
+    // The maintenance leases (4.1.20 PR 1c).
+    'bridge/src/maintenance.ts',
   ],
   // Measured, not gated (4.1.19, plan §8.1): what `connectors-pure` leaves out — configuration and start, the email
   // connector (webhook and IMAP), the badge's verification, the terminal's guard and shell, SSH and Telnet. Gated only
@@ -130,6 +132,8 @@ export const TESTS: Record<MutationSet, string[]> = {
     'tests/bridge-leaderboard.test.ts',
     'tests/reality-store-postgres-mutants.test.ts',
     'tests/bridge-backup-v4.test.ts',
+    'tests/bridge-maintenance.test.ts',
+    'tests/reality-store-maintenance-mutants.test.ts',
   ],
   'reality-store': [
     'tests/bridge-reality-store.test.ts',
@@ -143,6 +147,8 @@ export const TESTS: Record<MutationSet, string[]> = {
     'tests/bridge-backup-characterization.test.ts',
     'tests/bridge-ops.test.ts',
     'tests/reality-store-backup-mutants.test.ts',
+    'tests/bridge-maintenance.test.ts',
+    'tests/reality-store-maintenance-mutants.test.ts',
   ],
   remix: [
     'tests/remix-*.test.ts',

@@ -15,6 +15,7 @@ export const TABLES: Record<string, { kind: TableKind; family?: 'tenants' | 'run
   daily_kv: { kind: 'backed-up', family: 'daily' },
   run_quota: { kind: 'backed-up', family: 'run-quotas' },
   schema_migrations: { kind: 'control' },
+  maintenance: { kind: 'control' },
 };
 
 /** The tables a `replace-store` empties before it writes the snapshot: everything but the control tables. */

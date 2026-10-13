@@ -20,6 +20,7 @@ import {
   writeAtomic,
   writeNew,
 } from './backup';
+import { keepLease, type LeaseKind, MaintenanceError } from './maintenance';
 import { inspectJournal, JsonlBridgeStore } from './store';
 import { DEFAULT_TENANT, type RealityStore } from './store-async';
 import { fromBridgeStore } from './store-memory';
@@ -68,11 +69,67 @@ export const storeSpec = (file: StoreFile, args: string[], env = process.env): s
 /** `sqlite` alone means the file `bridge.sqlite` beside config.json. */
 const normal = (spec: string) => (spec === 'sqlite' ? 'sqlite:bridge.sqlite' : spec);
 
+/** How long a maintenance lease lives without a renewal (renewed every third of it). */
+export const LEASE_MS = { serve: 30_000, command: 60_000, exclusive: 10 * 60_000 } as const;
+
 /**
  * Opens a store. The journal takes its lock (one process per journal, 4.1.8) unless `lock: false` (a read-only
- * command); SQL stores bring their schema up unless `migrate: false`.
+ * command); SQL stores bring their schema up unless `migrate: false`. A SQL store from schema 5 on (4.1.20 PR 1c) is
+ * held under a maintenance lease (bridge/src/maintenance.ts): `serving` by default whenever the store may be written,
+ * `exclusive` for a restore, none for a command that only reads (`migrate: false`) or that leases itself; the lease
+ * goes with `close`. Below schema 5 there is no lease table: the migrations up to it run under the dialect's own lock.
  */
 export async function openStore(
+  spec: string,
+  dir: string,
+  file: StoreFile,
+  o: {
+    lock?: boolean;
+    migrate?: boolean;
+    lease?: LeaseKind | false;
+    leaseMs?: number;
+    /** Postgres: how long the maintenance advisory lock is tried before the lease is refused (30 s by default). */
+    lockTimeoutMs?: number;
+    onLeaseEvent?: (e: Record<string, unknown>) => void;
+    onRepair?: (what: string) => void;
+    onPollError?: (e: unknown) => void;
+  } = {},
+): Promise<RealityStore> {
+  const kind = o.lease ?? (o.migrate === false ? false : 'serving');
+  const migrateUp = o.migrate ?? true;
+  // A SQL store under a lease migrates under it (second reading of 4.1.20 PR 1c): opened as it is, the lease taken from
+  // schema 5 on, then brought up; below 5 there is no lease table, so it is brought up first (the dialect's lock).
+  const store = await openStoreOnly(spec, dir, file, kind ? { ...o, migrate: false } : o);
+  if (!kind || !(store instanceof SqlRealityStore)) {
+    if (kind && migrateUp && store instanceof SqlRealityStore) await store.migrate();
+    return store;
+  }
+  let kept: Awaited<ReturnType<typeof keepLease>> | undefined;
+  try {
+    if ((await store.schemaVersion()) < 5 && migrateUp) await store.migrate();
+    if ((await store.schemaVersion()) < 5) return store;
+    kept = await keepLease(store, kind, {
+      ttlMs: o.leaseMs ?? (kind === 'exclusive' ? LEASE_MS.exclusive : LEASE_MS.command),
+      ...(o.lockTimeoutMs !== undefined ? { lockTimeoutMs: o.lockTimeoutMs } : {}),
+      ...(o.onLeaseEvent ? { onEvent: o.onLeaseEvent } : {}),
+    });
+    if (migrateUp) await store.migrate();
+  } catch (e) {
+    await kept?.stop();
+    await store.close();
+    throw e;
+  }
+  if (!kept) return store;
+  const stopLease = kept.stop;
+  const close = store.close.bind(store);
+  store.close = async () => {
+    await stopLease();
+    await close();
+  };
+  return store;
+}
+
+async function openStoreOnly(
   spec: string,
   dir: string,
   file: StoreFile,
@@ -127,16 +184,36 @@ export async function storeCommand(
     if (from === undefined) {
       // The SQL schema: up to the latest, or to a version (`--schema=0` undoes everything).
       const target = await openStore(spec, dir, file, { migrate: false });
+      let kept: Awaited<ReturnType<typeof keepLease>> | undefined;
       try {
         if (!(target instanceof SqlRealityStore)) {
           console.error('✖  the JSON-lines journal has no schema: migrate --from=jsonl --to=sqlite moves it');
           return 1;
         }
         const version = opt(args, 'schema');
+        // A migration down takes the store alone; up, it serves beside the others (4.1.20 PR 1c). Below schema 5 there
+        // is no lease table: the dialect's lock of each step is all (and a descent below 5 asks every writer stopped).
+        const at = await target.schemaVersion();
+        if (at >= 5) {
+          const down = version !== undefined && Number(version) < at;
+          try {
+            const lockTimeout = bound(args, 'lock-timeout', 30_000);
+            if (lockTimeout === undefined) return 2;
+            kept = await keepLease(target, down ? 'exclusive' : 'serving', {
+              ttlMs: down ? LEASE_MS.exclusive : LEASE_MS.command,
+              lockTimeoutMs: lockTimeout,
+            });
+          } catch (e) {
+            if (!(e instanceof MaintenanceError)) throw e;
+            console.error(`✖  ${e.message}; nothing migrated`);
+            return 1;
+          }
+        }
         const done = await target.migrate(version === undefined ? {} : { to: Number(version) });
         say(`✔  schema ${await target.schemaVersion()}${done.length ? ` (${done.join(', ')})` : ' (nothing to do)'}`);
         return 0;
       } finally {
+        await kept?.stop();
         await target.close();
       }
     }
@@ -298,8 +375,8 @@ export async function storeCommand(
     // the file, after a safety backup of the store, written and read back first.
     const mode = opt(args, 'mode');
     const usage =
-      "usage: restore --from=<backup file> --mode=merge [--force] [--max-bytes=<n>]   (a backup's digest is an integrity check, not a signature)\n" +
-      '       restore --from=<backup file> --mode=replace-store --yes-replace-store --safety-out=<new file> [--max-bytes=<n>] [--max-rows=<n>]';
+      "usage: restore --from=<backup file> --mode=merge [--force] [--max-bytes=<n>] [--lock-timeout=<ms>]   (a backup's digest is an integrity check, not a signature)\n" +
+      '       restore --from=<backup file> --mode=replace-store --yes-replace-store --safety-out=<new file> [--max-bytes=<n>] [--max-rows=<n>] [--lock-timeout=<ms>]';
     const from = opt(args, 'from');
     if (!from || (mode !== 'merge' && mode !== 'replace-store')) {
       console.error(
@@ -358,7 +435,19 @@ export async function storeCommand(
       );
       return 1;
     }
-    const store = await openStore(spec, dir, file);
+    // Maintenance (4.1.20 PR 1c): the store alone, or nothing; refused at once while anything serves or writes it.
+    const lockTimeout = bound(args, 'lock-timeout', 30_000);
+    if (lockTimeout === undefined) return 2;
+    let store: RealityStore;
+    try {
+      store = await openStore(spec, dir, file, { lease: 'exclusive', lockTimeoutMs: lockTimeout });
+    } catch (e) {
+      if (e instanceof MaintenanceError) {
+        console.error(`✖  ${e.message}; nothing restored`);
+        return 1;
+      }
+      throw e;
+    }
     const safety = safetyArg ? resolve(safetyArg) : undefined;
     // The way back is said in every outcome once it exists: success, failure, an unknown commit.
     const back = () => (safety && existsSync(safety) ? ` (the store before: ${safety})` : '');
@@ -411,6 +500,8 @@ export async function storeCommand(
           carriesRuns,
           carriesQuotas,
           mode,
+          // The exclusive lease lost meanwhile (Postgres: its lock's connection dropped): rolled back before the commit.
+          stillHeld: () => (store as SqlRealityStore).heldBecause,
         });
       } catch (e) {
         if (e instanceof RestoreUnknown) {
