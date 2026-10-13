@@ -16,6 +16,7 @@ import {
   type RealityStore,
   type StoredSignal,
   type TenantExport,
+  StoreBusyError,
 } from './store-async';
 
 export type Row = Record<string, unknown>;
@@ -201,9 +202,57 @@ export async function importTenantIn(q: SqlQuery, x: TenantExport, replace: bool
     );
 }
 
+/**
+ * Raised when a store's writes are held (4.1.20 PR 1c): its maintenance lease is lost. A `StoreBusyError`, so the server
+ * answers 503, tried again later, as for a store that stays busy.
+ */
+export class WritesHeldError extends StoreBusyError {}
+
+/** `db` with its writes refused while `held()` says why (a write: `run`, `exec`, a transaction not read-only). */
+function guarded(db: SqlDb, held: () => string | undefined): SqlDb {
+  const check = () => {
+    const why = held();
+    if (why) throw new WritesHeldError(why);
+  };
+  return {
+    get dialect() {
+      return db.dialect;
+    },
+    all: (sql, params) => db.all(sql, params),
+    run: async (sql, params) => {
+      check();
+      return db.run(sql, params);
+    },
+    exec: async (sql) => {
+      check();
+      return db.exec(sql);
+    },
+    tx: async (lockKey, fn, o) => {
+      if (!o?.readOnly) check();
+      return db.tx(lockKey, fn, o);
+    },
+    close: () => db.close(),
+  };
+}
+
 export abstract class SqlRealityStore implements RealityStore {
   abstract readonly kind: 'sqlite' | 'postgres';
-  constructor(readonly db: SqlDb) {}
+  readonly db: SqlDb;
+  /** The database as it is, for the maintenance leases only (bridge/src/maintenance.ts). */
+  readonly leaseDb: SqlDb;
+  private writesHeld: string | undefined;
+  constructor(db: SqlDb) {
+    this.leaseDb = db;
+    this.db = guarded(db, () => this.writesHeld);
+  }
+  /** Holds every write with `why` (a lease lost), or lets them go again (`undefined`). */
+  holdWrites(why: string | undefined): void {
+    this.writesHeld = why;
+  }
+  /** Why writes are held, if they are. */
+  get heldBecause(): string | undefined {
+    return this.writesHeld;
+  }
 
   /** Brings the schema to `to` (the latest by default); the versions applied, negative when undone. */
   migrate(o: { to?: number } = {}): Promise<number[]> {
@@ -214,7 +263,9 @@ export abstract class SqlRealityStore implements RealityStore {
     return schemaVersion(this.db);
   }
 
+  /** The store answers, and its writes are not held (`/readyz` fails while its maintenance lease is lost). */
   async ping(): Promise<void> {
+    if (this.writesHeld) throw new WritesHeldError(this.writesHeld);
     await this.db.all('SELECT 1 AS one');
   }
   async tenants(): Promise<string[]> {

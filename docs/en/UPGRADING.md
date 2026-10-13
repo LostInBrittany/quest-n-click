@@ -532,4 +532,8 @@ instead.
   whole envelope. Files of schemas 1 to 3 are still read, for `--mode=merge` only: nothing under their digest says that
   they hold every family, so `replace-store` refuses them. Two backups of the same store no longer share a digest,
   since it covers their dates.
+- **Maintenance leases (schema 5).** The store goes to schema 5 when a 4.1.20 Bridge or command opens it (migration
+  0005, the `maintenance` table). From then on `restore` refuses while any instance serves or any command writes.
+  **Stop every Bridge older than 4.1.20 before the first restore**: an older Bridge takes no lease and would not be
+  seen. `migrate --schema=4` (or lower) undoes 0005 first; stop every writer for it, as before 4.1.20.
 

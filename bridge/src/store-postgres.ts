@@ -4,6 +4,7 @@
 // the row with `pg_notify` (sent at commit): every instance `LISTEN`s and wakes the streams of that player. The
 // database stays the source of truth: a lost notification delays a stream until its next read, never drops a signal.
 import { checkTenant } from './store-async';
+import { type HeldLock, type LeaseKind, MaintenanceError } from './maintenance';
 import { type Row, type SqlDb, type SqlQuery, SqlRealityStore } from './store-sql';
 
 /** The part of `pg` this store uses (typed here: `pg` is optional and not imported for its types). */
@@ -117,6 +118,46 @@ export class PostgresRealityStore extends SqlRealityStore {
     const store = new PostgresRealityStore(new PgDb(pool));
     if (o.migrate !== false) await store.migrate();
     return store;
+  }
+
+  /**
+   * The maintenance advisory lock (4.1.20 PR 1c): on a connection of its own, shared for `serve` and the writing
+   * commands, exclusive for a restore; tried every 200 ms for `timeoutMs` at most, never waited for indefinitely.
+   * `lost` resolves when that connection drops: its holder then stops writing (bridge/src/maintenance.ts).
+   */
+  async maintenanceLock(kind: LeaseKind, o: { timeoutMs: number }): Promise<HeldLock> {
+    const c = await this.pg.pool.connect();
+    const shared = kind === 'serving';
+    const key = "hashtextextended('web-scumm:maintenance', 0)";
+    const deadline = Date.now() + o.timeoutMs;
+    for (;;) {
+      const [r] = (await c.query(`SELECT pg_try_advisory_lock${shared ? '_shared' : ''}(${key}) AS ok`)).rows;
+      if (r?.ok === true) break;
+      if (Date.now() >= deadline) {
+        c.release();
+        throw new MaintenanceError(
+          `the maintenance lock is held (${shared ? 'a restore or a migration down is running' : 'the store is served or written'}): refused after ${o.timeoutMs} ms`,
+        );
+      }
+      await new Promise((ok) => setTimeout(ok, 200));
+    }
+    let lost!: (e: Error) => void;
+    let broken: Error | undefined;
+    const dropped = new Promise<Error>((ok) => (lost = ok));
+    c.on('error', (e) => {
+      broken = e;
+      lost(e);
+    });
+    return {
+      lost: dropped,
+      release: async () => {
+        await c.query(`SELECT pg_advisory_unlock${shared ? '_shared' : ''}(${key})`).catch((e: unknown) => {
+          broken ??= e instanceof Error ? e : new Error(String(e));
+        });
+        // A connection that dropped goes back with its error: the pool discards it rather than hand it out again.
+        c.release(broken);
+      },
+    };
   }
 
   /** Transactions tried again after a transient conflict. */

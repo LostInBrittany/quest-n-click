@@ -105,8 +105,8 @@ describe('moving a 4.1.9 journal into SQLite', () => {
     await hold.store?.close();
     // Twice is refused: the target already holds the tenant.
     expect((await cli(['migrate', `--dir=${dir}`, '--from=jsonl', '--to=sqlite'])).code).toBe(1);
-    expect((await cli(['doctor', `--dir=${dir}`])).out).toContain('sqlite store readable (schema 4)');
-    expect((await cli(['migrate', `--dir=${dir}`, '--schema=4'])).out).toContain('schema 4 (nothing to do)');
+    expect((await cli(['doctor', `--dir=${dir}`])).out).toContain('sqlite store readable (schema 5)');
+    expect((await cli(['migrate', `--dir=${dir}`, '--schema=5'])).out).toContain('schema 5 (nothing to do)');
   });
 });
 

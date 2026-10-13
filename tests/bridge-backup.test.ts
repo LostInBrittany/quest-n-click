@@ -196,7 +196,7 @@ describe('the backup file', () => {
     const b = await makeBackup(s);
     // Schema 4 since 4.1.20 (tests/bridge-backup-v4.test.ts): the digest covers the whole envelope.
     expect(b.schema).toBe(4);
-    expect(b.store).toEqual({ kind: 'sqlite', schema: 4 });
+    expect(b.store).toEqual({ kind: 'sqlite', schema: 5 });
     expect(b.counts).toMatchObject({ tenants: 2, players: 5, signals: 15, runs: 4, daily: 2, pairings: 2, quotas: 0 });
     expect(b.digest.value).not.toBe(payloadDigest(b.payload));
     const text = JSON.stringify(b);

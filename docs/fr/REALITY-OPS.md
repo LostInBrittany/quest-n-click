@@ -249,6 +249,17 @@ la passe humaine derrière un vrai domaine (24 à 48 heures) n'est pas `passed`.
   telle, avec le code 3 aussi). Il faut un store SQL : le journal JSON-lines est refusé avant d'être touché (le migrer
   vers SQLite, puis restaurer). Répété par `tests/bridge-backup.test.ts`, `tests/bridge-backup-v4.test.ts` et
   `tests/bridge-ops.test.ts`.
+- **Baux de maintenance** (4.1.20, ADR 0023) : à partir du schéma 5 (migration 0005), chaque écrivain tient un bail
+  dans le store lui-même. `serve` et chaque commande qui écrit (`migrate`, `tenant delete`, `backup` et
+  `tenant export`, qui montent le schéma) tiennent un bail `serving`, côte à côte. `restore`, et `migrate --schema=N`
+  vers le bas, prennent le bail `exclusive` : ils sont **refusés tout de suite**, avec le nom de qui tient le store et
+  jusqu'à quand, tant qu'un autre bail est vivant. Un bail expiré (un processus tué) est supprimé, jamais gênant. Toutes
+  les heures sont celles de la base. Sur Postgres, un verrou consultatif accompagne le bail, sur une connexion à lui,
+  tenté pendant `--lock-timeout` (30 s par défaut) et jamais attendu plus longtemps. Un `serve` qui perd son bail (non
+  renouvelé, ou la connexion de son verrou coupée) retient ses écritures, qui répondent 503, et échoue `/readyz`
+  jusqu'à reprendre un bail. Une restauration qui perd son bail avant sa validation est annulée. Un Bridge antérieur à
+  la 4.1.20 ne prend aucun bail : arrêter toutes les anciennes instances avant la première restauration.
+  `migrate --schema=N` sous 5 supprime la table des baux dès sa première étape : arrêter alors tous les écrivains.
 - La sauvegarde est logique, portable et bornée. Pour un gros déploiement, `pg_dump` ou les instantanés du
   fournisseur restent la sauvegarde de la base elle-même.
 - `tenant export --tenant=<id> [--out=<fichier>]`, `tenant delete --tenant=<id> --yes` : les lignes d'un tenant, dans

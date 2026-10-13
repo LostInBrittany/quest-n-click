@@ -781,9 +781,9 @@ try {
   // published, installed beside this run (it has no lock: the install of an older release, as an operator made it), run
   // in a one-off container of the same base image on the store's network. The 4.1.17 code itself writes a tenant into
   // a database of its own: its `restore` of a schema 1 backup of tenant a (players, signals, keys); a run is added in
-  // its table's shape. This Bridge then reads that store: `doctor` and `migrate` (schema 4, nothing to migrate: the two
-  // releases share it) and a `backup` that finds the tenant, its signals and the run (second reading of 4.1.19 PR 5:
-  // the 4.1.17 code wrote no data before). `--short` leaves it out.
+  // its table's shape. This Bridge then reads that store: `doctor` (schema 4, as the 4.1.17 code left it), `migrate`
+  // (one step, to schema 5: 4.1.20's maintenance leases) and a `backup` that finds the tenant, its signals and the run
+  // (second reading of 4.1.19 PR 5: the 4.1.17 code wrote no data before). `--short` leaves it out.
   if (!SHORT) {
     const OLD_SHA = 'a362ca2bbba48d06593d265ad4d6b01efdbc92d95b7165d988c5c2dffbe33d6f';
     let oldBytes = flag('old-bridge') ? readFileSync(resolve(flag('old-bridge'))) : null;
@@ -884,10 +884,10 @@ try {
       /* said below */
     }
     step(
-      'a store written by the 4.1.17 Bridge read by this one (its tenant, signals and run; schema 4, nothing to migrate)',
+      'a store written by the 4.1.17 Bridge read by this one (its tenant, signals and run; schema 4, migrated to 5)',
       made.status === 0 &&
         /schema 4/.test(doctor.stdout + doctor.stderr) &&
-        /nothing to do/.test(migrated.stdout) &&
+        /schema 5 \(5\)/.test(migrated.stdout) &&
         counts?.tenants === 1 &&
         counts?.signals === tenantA.signals.length &&
         counts?.signals > 0 &&

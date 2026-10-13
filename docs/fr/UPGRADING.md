@@ -563,4 +563,9 @@ la racine.
   une empreinte de toute l'enveloppe. Les fichiers des schémas 1 à 3 sont toujours lus, pour `--mode=merge` seulement :
   rien sous leur empreinte ne dit qu'ils contiennent chaque famille, donc `replace-store` les refuse. Deux sauvegardes
   du même store n'ont plus la même empreinte, puisqu'elle couvre leurs dates.
+- **Baux de maintenance (schéma 5).** Le store passe au schéma 5 dès qu'un Bridge ou une commande 4.1.20 l'ouvre
+  (migration 0005, la table `maintenance`). Dès lors, `restore` refuse tant qu'une instance sert ou qu'une commande
+  écrit. **Arrêter tous les Bridges antérieurs à la 4.1.20 avant la première restauration** : un ancien Bridge ne prend
+  aucun bail et ne serait pas vu. `migrate --schema=4` (ou moins) défait d'abord 0005 ; arrêter alors tous les
+  écrivains, comme avant la 4.1.20.
 
