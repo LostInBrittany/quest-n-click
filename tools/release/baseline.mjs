@@ -48,7 +48,21 @@ export function collect({ dir, sha, run, version, root = '.', jobs = null, env =
   for (const store of ['sqlite', 'postgres']) {
     const b = json(join(dir, `bridge-load-${store}`, `bridge-load-${store}.json`));
     const r = json(join(dir, `bridge-load-${store}`, `runs-load-${store}.json`));
+    // The three loads' medians (4.1.20, plan §8.3): the figure a release compares, with its spread and its baseline.
+    const m = json(join(dir, `bridge-load-${store}`, `load-median-${store}.json`));
+    const median = (k) =>
+      m?.[k]
+        ? {
+            medianP95Ms: m[k].medianMs,
+            minP95Ms: m[k].minMs,
+            maxP95Ms: m[k].maxMs,
+            baseline: m[k].baseline,
+            alert: m[k].alert,
+            runner: m[k].runner,
+          }
+        : NOT_MEASURED;
     load[store] = {
+      medians: m ? { proposals: median('proposals'), leaderboard: median('leaderboard') } : NOT_MEASURED,
       proposals: b
         ? {
             count: b.proposals,
@@ -87,6 +101,24 @@ export function collect({ dir, sha, run, version, root = '.', jobs = null, env =
     }
   }
   const qualify = json(join(dir, 'deployment-smoke', 'ops-qualify.json'));
+  // What a large backup costs in memory (4.1.20, plan §6.5): each size's peaks and durations, per store.
+  const backupMemory = {};
+  for (const store of ['sqlite', 'postgres']) {
+    const m = json(join(dir, `backup-memory-${store}`, `backup-memory-${store}.json`));
+    backupMemory[store] = m
+      ? m.sizes.map((x) => ({
+          targetMb: x.targetMb,
+          bytes: x.bytes,
+          baseRssMb: x.baseRssMb,
+          exportRssMb: x.export.rssMb,
+          readRssMb: x.read.rssMb,
+          restoreRssMb: x.restore.rssMb,
+          seconds: { export: x.export.seconds, read: x.read.seconds, restore: x.restore.seconds },
+          ofContainer: x.ofContainer,
+          bounds: x.byteOver.refused && x.rowOver.refused && x.rowOver.atBoundWritten,
+        }))
+      : NOT_MEASURED;
+  }
   const archives = files(join(dir, 'candidate-pack'), /\.tgz$/).map((f) => {
     const p = join(dir, 'candidate-pack', f);
     return { name: f, bytes: statSync(p).size, sha256: sha256(p) };
@@ -139,13 +171,24 @@ export function collect({ dir, sha, run, version, root = '.', jobs = null, env =
     heavy,
     load,
     mutation: Object.keys(mutation).length ? mutation : NOT_MEASURED,
-    qualification: qualify
-      ? {
-          steps: qualify.steps.length,
-          passed: qualify.steps.filter((s) => s.ok).length,
-          names: qualify.steps.map((s) => s.name),
-        }
-      : NOT_MEASURED,
+    // This candidate's own qualification only (4.1.20, plan §8.5): a report of another commit is refused, said, never
+    // counted (4.1.19's baseline pointed at a qualification of 43dac1b).
+    qualification: !qualify
+      ? NOT_MEASURED
+      : qualify.commit !== sha
+        ? { refused: `qualified ${qualify.commit ?? 'no commit'}, not this candidate's ${sha}` }
+        : {
+            profile: qualify.profile ?? 'short',
+            candidateRun: qualify.candidateRun ?? null,
+            steps: qualify.steps.length,
+            passed: qualify.steps.filter((s) => s.ok).length,
+            names: qualify.steps.map((s) => s.name),
+            seconds: Object.fromEntries(qualify.steps.map((s) => [s.id ?? s.name, Math.round((s.ms ?? 0) / 1000)])),
+            failed: qualify.steps
+              .filter((s) => !s.ok)
+              .map((s) => ({ id: s.id ?? s.name, firstDefect: s.firstDefect ?? null })),
+          },
+    backupMemory,
     externalConsumer: jobOf(/^external-consumer/).length ? jobOf(/^external-consumer/) : NOT_MEASURED,
     connectorArchiveE2e: jobOf(/^connector-archive-e2e/).length ? jobOf(/^connector-archive-e2e/) : NOT_MEASURED,
     archives: archives.length ? archives : NOT_MEASURED,
@@ -169,7 +212,8 @@ export const COMMANDS = {
   heavy: 'npm run test:heavy',
   load: 'npm run bridge:load -- --store=<sqlite|postgres://…>; npm run runs:load -- --runs=100000 --max-p95-ms=2000 --max-rss-mb=512',
   mutation: 'npm run test:mutation:core -- --set=<set>',
-  qualification: 'npm run ops:qualify -- --tarballs=candidate-pack --image-from=candidate-image --short',
+  qualification:
+    'npm run ops:qualify -- --tarballs=candidate-pack --image-from=candidate-image --candidate-run=<run> (a pull request: --short)',
   externalConsumer: 'npm run external-consumer (the candidate archives)',
   connectorArchiveE2e: 'npm run connector-archive-e2e (the candidate archives)',
   readmeQuickstart: 'node scripts/readme-quickstart.mjs --tarballs=candidate-pack',
@@ -256,9 +300,30 @@ export function toMarkdown(b) {
         : `${v.leaderboard.runs} runs, p95 ${v.leaderboard.p95Ms} ms (bound ${v.leaderboard.boundMs}), ${v.leaderboard.rssMb} MB`;
     L.push(`| ${s} | ${p} | ${r} |`);
   }
+  // The medians of three loads (4.1.20, plan §8.3), against the baseline of the same runner and protocol.
+  const med = (x) =>
+    x === NOT_MEASURED
+      ? cell(NOT_MEASURED)
+      : `median p95 ${x.medianP95Ms} ms (${x.minP95Ms}–${x.maxP95Ms})${x.baseline?.ratio ? `, ×${x.baseline.ratio} the baseline${x.alert ? ', ALERT' : ''}` : x.baseline?.refused ? `, not compared: ${x.baseline.refused}` : ''}`;
+  L.push('', '| Store | Proposals, three loads | Leaderboard, three loads |', '|---|---|---|');
+  for (const [s, v] of Object.entries(b.load))
+    L.push(
+      v.medians === NOT_MEASURED
+        ? `| ${s} | ${cell(NOT_MEASURED)} | ${cell(NOT_MEASURED)} |`
+        : `| ${s} | ${med(v.medians.proposals)} | ${med(v.medians.leaderboard)} |`,
+    );
+  // The memory of a large backup (4.1.20, plan §6.5): the peak of each command against the qualification container.
+  L.push('', '| Store | Backup | Export | Read | Restore | Of the container |', '|---|---|---|---|---|---|');
+  for (const [s, v] of Object.entries(b.backupMemory ?? {}))
+    if (v === NOT_MEASURED) L.push(`| ${s} | ${cell(NOT_MEASURED)} | | | | |`);
+    else
+      for (const x of v)
+        L.push(
+          `| ${s} | ${x.targetMb} MiB | ${x.exportRssMb} MB, ${x.seconds.export} s | ${x.readRssMb} MB, ${x.seconds.read} s | ${x.restoreRssMb} MB, ${x.seconds.restore} s | ${Math.round(x.ofContainer * 100)} %${x.bounds ? '' : ', a bound NOT refused'} |`,
+        );
   L.push(
     '',
-    `Qualification profile: ${b.qualification === NOT_MEASURED ? cell(NOT_MEASURED) : `${b.qualification.passed}/${b.qualification.steps} steps`}.`,
+    `Qualification profile: ${b.qualification === NOT_MEASURED ? cell(NOT_MEASURED) : b.qualification.refused ? `refused (${b.qualification.refused})` : `${b.qualification.profile}, ${b.qualification.passed}/${b.qualification.steps} steps`}.`,
   );
   L.push('', '## Mutation', '');
   if (b.mutation === NOT_MEASURED) L.push(cell(NOT_MEASURED));

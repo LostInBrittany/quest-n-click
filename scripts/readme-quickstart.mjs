@@ -12,6 +12,7 @@ import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'no
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
+import { fetchRetry } from './lib/fetch-retry.mjs';
 
 const ROOT = resolve(import.meta.dirname, '..');
 
@@ -59,7 +60,7 @@ export function script(lines, archive, port) {
 async function published(version) {
   const url = archiveUrl(version);
   const sumsUrl = `https://github.com/wanoo/web-scumm/releases/download/v${version}/web-scumm-v${version}-SHA256SUMS`;
-  const [tgz, sums] = await Promise.all([fetch(url), fetch(sumsUrl)]);
+  const [tgz, sums] = await Promise.all([fetchRetry(url), fetchRetry(sumsUrl)]);
   if (!tgz.ok || !sums.ok) throw new Error(`${url}: ${tgz.status}; ${sumsUrl}: ${sums.status}`);
   const got = createHash('sha256')
     .update(Buffer.from(await tgz.arrayBuffer()))

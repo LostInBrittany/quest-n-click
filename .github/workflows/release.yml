@@ -254,44 +254,23 @@ jobs:
         run: |
           tar -czf "web-scumm-$TAG-dist.tar.gz" -C dist .
           cp dist/licenses/assets-manifest.json "web-scumm-$TAG-assets-manifest.json"
-          # The SBOMs (4.1.19): the candidate's, made from what its archives hold, one per archive and the image's; an
-          # older tag makes the root's here, as it always did.
-          if [ -d .candidate/sbom ]; then
-            cp .candidate/sbom/web-scumm.cdx.json "web-scumm-$TAG-sbom.cdx.json"
-          else
-            npm sbom --sbom-format cyclonedx --omit dev > "web-scumm-$TAG-sbom.cdx.json"
-          fi
-          # The engine as packages (3.9): what `npm install <tarball>` and `npx create-web-scumm` take. Since 4.1.18 the
-          # candidate's own archives (checked against its manifest above), the ones installed outside the repository on
-          # three systems, never packed again here; an older tag packs them as it always did.
-          extra=""
-          if [ -d .candidate/pack ]; then
-            cp .candidate/pack/web-scumm-[0-9]*.tgz .candidate/pack/create-web-scumm-*.tgz .candidate/pack/web-scumm-bridge-*.tgz .
-            cp .candidate/pack/web-scumm-connectors-*.tgz .
-            extra="$(ls web-scumm-connectors-*.tgz)"
-            mkdir -p pack/web-scumm-bridge && tar -xzf web-scumm-bridge-*.tgz -C pack/web-scumm-bridge --strip-components=1
-          else
-            node scripts/pack.mjs --out=pack
-            cp pack/web-scumm-*.tgz pack/create-web-scumm-*.tgz .
-          fi
-          # The reference Reality Bridge (4.1.1): web-scumm-bridge-<version>.tgz, its own package, with its own SBOM
-          # (4.1.2): the root's SBOM lists the engine's runtime dependencies, not the Bridge's.
-          # `npm sbom` reads the installed tree, not a lockfile: a real install of the package's two dependencies.
-          if [ -d .candidate/sbom ]; then
-            cp .candidate/sbom/web-scumm-bridge.cdx.json "web-scumm-bridge-$TAG-sbom.cdx.json"
-            cp .candidate/sbom/web-scumm-connectors.cdx.json "web-scumm-connectors-$TAG-sbom.cdx.json"
-            cp .candidate/sbom/create-web-scumm.cdx.json "create-web-scumm-$TAG-sbom.cdx.json"
-            extra="$extra web-scumm-connectors-$TAG-sbom.cdx.json create-web-scumm-$TAG-sbom.cdx.json"
-          else
-            (cd pack/web-scumm-bridge && npm install --omit=dev --ignore-scripts --no-audit --no-fund >/dev/null && npm sbom --sbom-format cyclonedx --omit dev) > "web-scumm-bridge-$TAG-sbom.cdx.json"
-          fi
-          # The Bridge's image as the candidate built and qualified it (4.1.19): its archive, its three identities, its SBOM.
-          if [ -d .candidate/image ]; then
-            cp .candidate/image/web-scumm-bridge-image.tar "web-scumm-bridge-image-$TAG.tar"
-            cp .candidate/image/web-scumm-bridge-image.json "web-scumm-bridge-image-$TAG.json"
-            cp .candidate/image/web-scumm-bridge-image.cdx.json "web-scumm-bridge-image-$TAG-sbom.cdx.json"
-            extra="$extra web-scumm-bridge-image-$TAG.tar web-scumm-bridge-image-$TAG.json web-scumm-bridge-image-$TAG-sbom.cdx.json"
-          fi
+          # Since 4.1.20 (plan §8.4) this job makes nothing the candidate made: the four archives (packed once, installed
+          # outside the repository on three systems), their SBOMs, the Bridge's image (its archive, identities and SBOM)
+          # are the candidate's, checked against its manifest above, copied under the names tools/release/artifacts.mjs
+          # gives them. A candidate without one of them stops the release here (every tag that still publishes has them).
+          for d in pack sbom image; do test -d ".candidate/$d" || { echo "::error::run $CANDIDATE has no candidate-$d: nothing is made again here"; exit 1; }; done
+          cp .candidate/sbom/web-scumm.cdx.json "web-scumm-$TAG-sbom.cdx.json"
+          cp .candidate/pack/web-scumm-[0-9]*.tgz .candidate/pack/create-web-scumm-*.tgz .candidate/pack/web-scumm-bridge-*.tgz .
+          cp .candidate/pack/web-scumm-connectors-*.tgz .
+          extra="$(ls web-scumm-connectors-*.tgz)"
+          cp .candidate/sbom/web-scumm-bridge.cdx.json "web-scumm-bridge-$TAG-sbom.cdx.json"
+          cp .candidate/sbom/web-scumm-connectors.cdx.json "web-scumm-connectors-$TAG-sbom.cdx.json"
+          cp .candidate/sbom/create-web-scumm.cdx.json "create-web-scumm-$TAG-sbom.cdx.json"
+          extra="$extra web-scumm-connectors-$TAG-sbom.cdx.json create-web-scumm-$TAG-sbom.cdx.json"
+          cp .candidate/image/web-scumm-bridge-image.tar "web-scumm-bridge-image-$TAG.tar"
+          cp .candidate/image/web-scumm-bridge-image.json "web-scumm-bridge-image-$TAG.json"
+          cp .candidate/image/web-scumm-bridge-image.cdx.json "web-scumm-bridge-image-$TAG-sbom.cdx.json"
+          extra="$extra web-scumm-bridge-image-$TAG.tar web-scumm-bridge-image-$TAG.json web-scumm-bridge-image-$TAG-sbom.cdx.json"
           # The candidate's baseline (4.1.19): its measures of this very SHA, checked against the manifest above.
           for f in .candidate/baseline/baseline-*.json .candidate/baseline/baseline-*.md; do
             [ -f "$f" ] || continue
@@ -318,6 +297,13 @@ jobs:
           fi
           sha256sum "web-scumm-$TAG-dist.tar.gz" "web-scumm-$TAG-assets-manifest.json" "web-scumm-$TAG-sbom.cdx.json" "web-scumm-bridge-$TAG-sbom.cdx.json" $extra ${REMIX_ASSETS:-} web-scumm-[0-9]*.tgz create-web-scumm-*.tgz web-scumm-bridge-*.tgz > "web-scumm-$TAG-SHA256SUMS"
           echo "EXTRA_ASSETS=$extra" >> "$GITHUB_ENV"
+          # Every file of the release, and none other, as the one manifest lists them (4.1.20, plan §8.4).
+          # Guarded on the file, as every step a tag's commit may predate (this workflow runs from main).
+          if [ -f tools/release/artifacts.mjs ]; then
+            node tools/release/artifacts.mjs check-release --tag="$TAG" --candidate=.candidate-manifest/candidate-manifest.json --dir=.
+          else
+            echo "::notice::$TAG predates tools/release/artifacts.mjs: its files are not checked against the manifest"
+          fi
       - uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
         with:
           # Every file the release carries (4.1.2): the archives and packages, the manifests, both SBOMs, the sums.

@@ -1,0 +1,15 @@
+{
+ "format": "web-scumm-load-baseline",
+ "schema": 1,
+ "note": "The p95 a candidate's three loads are compared with (tools/load-median.ts, 4.1.20 plan §8.3): the same runner and the same protocol only. Seeded from the 4.1.19 candidate (one load each); the 4.1.20 release replaces each with the median of its three loads.",
+ "stores": {
+  "sqlite": {
+   "proposals": { "p95Ms": 387.2, "runner": { "os": "Linux", "image": "ubuntu24" }, "protocol": { "instances": 3, "players": 1000, "proposals": 50000, "concurrency": 64 }, "source": "candidate 38172871690 (4.1.19, 15300a3), one load" },
+   "leaderboard": { "p95Ms": 464.4, "runner": { "os": "Linux", "image": "ubuntu24" }, "protocol": { "runs": 100000, "players": 5000, "reads": 200 }, "source": "candidate 38172871690 (4.1.19, 15300a3), one load" }
+  },
+  "postgres": {
+   "proposals": { "p95Ms": 507.4, "runner": { "os": "Linux", "image": "ubuntu24" }, "protocol": { "instances": 3, "players": 1000, "proposals": 50000, "concurrency": 64 }, "source": "candidate 38172871690 (4.1.19, 15300a3), one load" },
+   "leaderboard": { "p95Ms": 205.6, "runner": { "os": "Linux", "image": "ubuntu24" }, "protocol": { "runs": 100000, "players": 5000, "reads": 200 }, "source": "candidate 38172871690 (4.1.19, 15300a3), one load" }
+  }
+ }
+}

@@ -22,6 +22,7 @@
 import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
 import { checkAncestry } from './ancestry.mjs';
+import { publishedProblems } from './artifacts.mjs';
 import { candidateOf, requiresCandidate, tagMessage } from './candidate.mjs';
 import { candidateRunProblem, queryRun, readCandidateManifest, verifyAttestation } from './provenance.mjs';
 import {
@@ -346,7 +347,11 @@ async function verify(versionArg) {
     verifyAttestation(join(dir, f), { repo: REPO });
     attested++;
   }
-  say(`${name}: ${files.length} files, sums ok, ${attested} attestations verified`);
+  // The release's files, exactly the one manifest's (4.1.20, plan §8.4): none forgotten, none extra.
+  const listed = publishedProblems(name, files, dir);
+  if (listed.length)
+    throw new Error(`${name}: not the files tools/release/artifacts.mjs lists:\n  ${listed.join('\n  ')}`);
+  say(`${name}: ${files.length} files, sums ok, ${attested} attestations verified, as the manifest lists them`);
   // The tarballs carry package.json's version, never a tag's pre-release suffix (v4.1.8-rc.1 ships web-scumm-4.1.8.tgz).
   const packed = version.replace(/-.*$/, '');
   if (!existsSync(join(dir, `web-scumm-${packed}.tgz`))) throw new Error(`${name}: web-scumm-${packed}.tgz missing`);
