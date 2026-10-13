@@ -5,44 +5,53 @@
 import { readdirSync, readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { classify } from '../tools/ci-plan';
+// @ts-expect-error: a plain .mjs module without declarations
+import { CATALOGUE } from '../scripts/ops-qualify/steps.mjs';
 
 const DIR = 'scripts/ops-qualify';
 const read = (f: string) => readFileSync(f, 'utf8');
 const names = (s: string) => [...s.matchAll(/\bstep\(\s*(['"`])((?:(?!\1).)*)\1/gs)].map((m) => m[2]!);
 
-/** The 4.1.19 script's steps, in the order a full run judges them. */
-const CATALOGUE = [
-  'every image pinned by digest',
-  'the Bridge image',
-  'three Bridges and Postgres up behind HTTPS',
-  'six players paired over HTTPS, three per tenant',
-  'bridge-2 serves again after its restart',
-  'proposals in flight on a killed instance, sent again: each applied once',
-  'every proposal applied once across a killed instance',
-  'every player sequence contiguous, 1 to N, nothing doubled',
-  'a stream held on bridge-1 received what the other instances accepted, in order, once',
-  "a tenant's capability and connector token refused by the other tenant",
-  'the daily token is the same on the three instances, written once in the store',
-  'a Mystery committed on one instance is revealed alike on the others',
-  'a run submitted on one instance is verified by a worker and read on another',
-  'the same run on another instance is a duplicate',
-  "a moderator's bearer ranks the run; another bearer is refused",
-  'a run whose instance was killed while it verified it is verified once, by another instance, after its lease',
-  'the submission quota is one for the three instances',
-  // biome-ignore lint/suspicious/noTemplateCurlyInString: the step's name as its source writes it
-  'the leaderboard after ${VOLUME} runs answers through the proxy',
-  "backup, the topology and its database destroyed, restore: every player's signed signals as before",
-  'backup schema 3 and restore: the leaderboard, the daily record and the runs as before',
-  'after the restore a proposal sent before is still a duplicate',
-  'after the restore a new proposal continues the sequence',
-  'a store written by the 4.1.17 Bridge read by this one (its tenant, signals and run; schema 4, nothing to migrate)',
-  'the qualification ran to its end',
+/** The 4.1.19 script's steps, in the order a full run judges them (the neutral split's characterization). */
+const STEPS_4119 = [
+  'images-pinned',
+  'bridge-image',
+  'topology-up',
+  'players-paired',
+  'instance-restarted',
+  'in-flight-once',
+  'applied-once',
+  'sequences-contiguous',
+  'stream-in-order',
+  'tenants-apart',
+  'daily-once',
+  'mystery-revealed',
+  'run-verified',
+  'run-duplicate',
+  'moderation',
+  'worker-takeover',
+  'quota-shared',
+  'board-volume',
+  'restore-signals',
+  'restore-board',
+  'restore-duplicate',
+  'restore-continues',
+  'store-4117',
+  'ran-to-end',
 ];
+/** What 4.1.20 adds (plan §8.1): both restore modes, under the maintenance lease. */
+const ADDED_4120 = ['restore-refused-serving', 'replace-store'];
+const idOf = (name: string) => {
+  const e = (CATALOGUE as { id: string; name: RegExp }[]).find((c) => c.name.test(name.replace('${VOLUME}', '20000')));
+  if (!e) throw new Error(`no id for ${name}`);
+  return e.id;
+};
 
 describe('the qualification, split', () => {
-  it('judges the 4.1.19 steps, by name, in the order they run', () => {
+  it('judges the 4.1.19 steps, then those of 4.1.20, in the catalogue’s order', () => {
+    // The entry: the topology up, then the end said on success, and on a failure (its catch).
     const entry = names(read('scripts/ops-qualify.mjs'));
-    expect(entry).toHaveLength(2);
+    expect(entry.map(idOf)).toEqual(['topology-up', 'ran-to-end', 'ran-to-end']);
     const ran = [
       ...names(read(`${DIR}/setup.mjs`)),
       entry[0]!,
@@ -51,7 +60,9 @@ describe('the qualification, split', () => {
       ...names(read(`${DIR}/backup.mjs`)),
       entry[1]!,
     ];
-    expect(ran).toEqual(CATALOGUE);
+    const ids = ran.map(idOf);
+    expect(ids).toEqual((CATALOGUE as { id: string }[]).map((c) => c.id));
+    expect(ids.filter((id) => !ADDED_4120.includes(id))).toEqual(STEPS_4119);
     // No step hidden in another module.
     for (const f of ['steps.mjs', 'topology.mjs', 'report.mjs']) expect(names(read(`${DIR}/${f}`))).toEqual([]);
   });

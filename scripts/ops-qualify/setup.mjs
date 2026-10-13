@@ -137,6 +137,7 @@ export function setup(c) {
   chmodSync(join(secrets, 'pg_password'), 0o644);
   writeFileSync(join(secrets, 'store_url'), `postgres://bridge:${pw}@postgres:5432/bridge`, { mode: 0o600 });
   return {
+    tarballs: resolve(tarballs),
     images,
     from,
     imageFrom,

@@ -49,6 +49,15 @@ describe('the candidate baseline', () => {
       gaps: 0,
       commit: 'abc',
     });
+    const lm = {
+      medianMs: 410,
+      minMs: 390,
+      maxMs: 700,
+      baseline: { p95Ms: 400, source: 's', ratio: 1.02 },
+      alert: false,
+      runner: { os: 'Linux', image: 'ubuntu24' },
+    };
+    put('bridge-load-sqlite/load-median-sqlite.json', { proposals: lm, leaderboard: lm });
     put('bridge-load-sqlite/runs-load-sqlite.json', {
       runs: 100000,
       latencyMs: { p95: 380 },
@@ -75,9 +84,13 @@ describe('the candidate baseline', () => {
       results: [{ file: 'z.ts' }],
     });
     put('deployment-smoke/ops-qualify.json', {
+      schema: 2,
+      profile: 'full',
+      commit: 'f'.repeat(40),
+      candidateRun: '42',
       steps: [
-        { name: 'a', ok: true },
-        { name: 'b', ok: false },
+        { id: 'a', name: 'a', ok: true, ms: 1000 },
+        { id: 'b', name: 'b', ok: false, ms: 2000, firstDefect: 'refused' },
       ],
     });
     put('candidate-pack/web-scumm-4.1.19.tgz', 'tgz');
@@ -125,6 +138,15 @@ describe('the candidate baseline', () => {
     expect(b.heavy[1]).toEqual({ attempt: 2, measured: false });
     expect(b.load.sqlite.proposals.perSecond).toBe(370);
     expect(b.load.postgres.proposals).toBe(NOT_MEASURED);
+    expect(b.load.postgres.medians).toBe(NOT_MEASURED);
+    expect(b.load.sqlite.medians.proposals).toEqual({
+      medianP95Ms: 410,
+      minP95Ms: 390,
+      maxP95Ms: 700,
+      baseline: { p95Ms: 400, source: 's', ratio: 1.02 },
+      alert: false,
+      runner: { os: 'Linux', image: 'ubuntu24' },
+    });
     expect(b.mutation.core).toMatchObject({
       killed: 10,
       total: 10,
@@ -132,7 +154,14 @@ describe('the candidate baseline', () => {
       measuredOn: 'old',
       sources: ['a.ts'],
     });
-    expect(b.qualification).toMatchObject({ steps: 2, passed: 1 });
+    expect(b.qualification).toMatchObject({
+      profile: 'full',
+      candidateRun: '42',
+      steps: 2,
+      passed: 1,
+      seconds: { a: 1, b: 2 },
+      failed: [{ id: 'b', firstDefect: 'refused' }],
+    });
     expect(b.archives[0]).toMatchObject({
       name: 'web-scumm-4.1.19.tgz',
       bytes: 3,
@@ -161,6 +190,18 @@ describe('the candidate baseline', () => {
     expect(md).toContain('# Baseline 4.1.19 — candidate 42');
     expect(md).toContain(`*${NOT_MEASURED}*`);
     expect(md).toContain('| core | passed | 10/10 |');
+  });
+
+  it('refuses a qualification of another commit: never a figure of an earlier candidate (4.1.20, plan §8.5)', () => {
+    const d = mkdtempSync(join(tmpdir(), 'baseline-other-'));
+    mkdirSync(join(d, 'deployment-smoke'));
+    writeFileSync(
+      join(d, 'deployment-smoke', 'ops-qualify.json'),
+      JSON.stringify({ schema: 2, profile: 'full', commit: 'e'.repeat(40), steps: [{ id: 'a', ok: true, ms: 1 }] }),
+    );
+    const b = collect({ dir: d, sha: 'f'.repeat(40), run: 1, version: '4.1.20', env: {}, now: new Date(0) });
+    expect(b.qualification).toEqual({ refused: `qualified ${'e'.repeat(40)}, not this candidate's ${'f'.repeat(40)}` });
+    expect(toMarkdown(b)).toContain(`Qualification profile: refused (qualified ${'e'.repeat(40)}`);
   });
 
   it('says every measure missing when the candidate left nothing', () => {

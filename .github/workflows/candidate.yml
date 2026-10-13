@@ -109,7 +109,8 @@ jobs:
   bridge-load-sqlite:
     needs: target
     runs-on: ubuntu-24.04
-    timeout-minutes: 30
+    # Three loads since 4.1.20 (about 4 minutes each on a runner).
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -120,24 +121,36 @@ jobs:
           cache: npm
       - run: for i in 1 2 3; do (npm ci) && break; [ "$i" = 3 ] && exit 1; echo "retry $i"; sleep 15; done
         timeout-minutes: 8
-      - run: npm run bridge:load -- --store=sqlite --out=bridge-load-sqlite.json
-      # The speedrun leaderboard at 100 000 runs (4.1.17, plan §6.3): latency, memory and SQL plan, bounded.
-      - run: npm run runs:load -- --store=sqlite --runs=100000 --max-p95-ms=2000 --max-rss-mb=512 --out=runs-load-sqlite.json
-      - if: always()
-        run: npx tsx tools/load-report.ts bridge-load-sqlite.json --store=sqlite --commit=${{ needs.target.outputs.sha }}
+      # Three loads (4.1.20, plan §8.3), each its p95 over its many requests; the proposals and, with them, the speedrun
+      # leaderboard at 100 000 runs (4.1.17, plan §6.3: latency, memory and SQL plan, bounded). Every report checked.
+      - shell: bash
+        run: |
+          for i in 1 2 3; do
+            npm run bridge:load -- --store=sqlite --out=bridge-load-sqlite-$i.json
+            npx tsx tools/load-report.ts bridge-load-sqlite-$i.json --store=sqlite --commit=${{ needs.target.outputs.sha }}
+            npm run runs:load -- --store=sqlite --runs=100000 --max-p95-ms=2000 --max-rss-mb=512 --out=runs-load-sqlite-$i.json
+          done
+          # The first load under the 4.1.19 names, read by the baseline for the counts beside the medians.
+          cp bridge-load-sqlite-1.json bridge-load-sqlite.json
+          cp runs-load-sqlite-1.json runs-load-sqlite.json
+      # The median of the three p95, against the baseline of the same runner and protocol: an alert past 25 %, a failure
+      # past the budget or when all three loads are that much slower.
+      - run: npx tsx tools/load-median.ts --store=sqlite --out=load-median-sqlite.json
       - if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: bridge-load-sqlite
           path: |
-            bridge-load-sqlite.json
-            runs-load-sqlite.json
+            bridge-load-sqlite*.json
+            runs-load-sqlite*.json
+            load-median-sqlite.json
           if-no-files-found: error
           overwrite: true
   bridge-load-postgres:
     needs: target
     runs-on: ubuntu-24.04
-    timeout-minutes: 30
+    # Three loads since 4.1.20 (about 5 minutes each on a runner).
+    timeout-minutes: 45
     services:
       postgres:
         image: mirror.gcr.io/library/postgres:16@sha256:65b16a8b326e0cfbdf33fa7e783f2a0cb352a61448616ccccfd616ef42aa0f65
@@ -159,18 +172,29 @@ jobs:
           cache: npm
       - run: for i in 1 2 3; do (npm ci) && break; [ "$i" = 3 ] && exit 1; echo "retry $i"; sleep 15; done
         timeout-minutes: 8
-      - run: npm run bridge:load -- --store=postgres://bridge:bridge@127.0.0.1:5432/bridge --out=bridge-load-postgres.json
-      # The speedrun leaderboard at 100 000 runs (4.1.17, plan §6.3): latency, memory and SQL plan, bounded.
-      - run: npm run runs:load -- --store=postgres://bridge:bridge@127.0.0.1:5432/bridge --runs=100000 --max-p95-ms=2000 --max-rss-mb=512 --out=runs-load-postgres.json
-      - if: always()
-        run: npx tsx tools/load-report.ts bridge-load-postgres.json --store=postgres --commit=${{ needs.target.outputs.sha }}
+      # Three loads (4.1.20, plan §8.3), each its p95 over its many requests; the proposals and, with them, the speedrun
+      # leaderboard at 100 000 runs (4.1.17, plan §6.3: latency, memory and SQL plan, bounded). Every report checked.
+      - shell: bash
+        run: |
+          for i in 1 2 3; do
+            npm run bridge:load -- --store=postgres://bridge:bridge@127.0.0.1:5432/bridge --out=bridge-load-postgres-$i.json
+            npx tsx tools/load-report.ts bridge-load-postgres-$i.json --store=postgres --commit=${{ needs.target.outputs.sha }}
+            npm run runs:load -- --store=postgres://bridge:bridge@127.0.0.1:5432/bridge --runs=100000 --max-p95-ms=2000 --max-rss-mb=512 --out=runs-load-postgres-$i.json
+          done
+          # The first load under the 4.1.19 names, read by the baseline for the counts beside the medians.
+          cp bridge-load-postgres-1.json bridge-load-postgres.json
+          cp runs-load-postgres-1.json runs-load-postgres.json
+      # The median of the three p95, against the baseline of the same runner and protocol: an alert past 25 %, a failure
+      # past the budget or when all three loads are that much slower.
+      - run: npx tsx tools/load-median.ts --store=postgres --out=load-median-postgres.json
       - if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: bridge-load-postgres
           path: |
-            bridge-load-postgres.json
-            runs-load-postgres.json
+            bridge-load-postgres*.json
+            runs-load-postgres*.json
+            load-median-postgres.json
           if-no-files-found: error
           overwrite: true
   # The four runtimes (4.1.16) at the nightly's 500 seeds; the Remix × Time Attack check writes the release's runs
@@ -460,7 +484,8 @@ jobs:
   deployment-smoke:
     needs: [target, pack, image]
     runs-on: ubuntu-24.04
-    timeout-minutes: 30
+    # The full profile (4.1.20): about 25 minutes with the 4.1.17 store, the lease takeover and the quota's minute.
+    timeout-minutes: 60
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -480,15 +505,74 @@ jobs:
         with:
           name: candidate-image
           path: candidate-image
-      # `--short` (4.1.19, plan §9): the profile without its long steps (the lease takeover, the quota's minute, the
-      # volume, the 4.1.17 store), which the `qualify` workflow runs whole.
-      - run: npm run ops:qualify -- --tarballs=candidate-pack --image-from=candidate-image --short --out=deployment-smoke
+      # The full profile on a run started by hand, the one a tag may name (4.1.20, plan §8.1): every step, on this
+      # candidate's archives and image, for this run; candidate-gate refuses less. A pull request's run (`full-ci`,
+      # information only) keeps `--short` (4.1.19: the profile without the lease takeover, the quota's minute and the
+      # 4.1.17 store).
+      - shell: bash
+        env:
+          PROFILE: ${{ github.event_name == 'workflow_dispatch' && 'full' || 'short' }}
+        run: npm run ops:qualify -- --tarballs=candidate-pack --image-from=candidate-image --candidate-run=${{ github.run_id }} $([ "$PROFILE" = short ] && echo --short) --out=deployment-smoke
       - if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: deployment-smoke
           path: deployment-smoke
           if-no-files-found: ignore
+          overwrite: true
+  # What a large backup costs in memory (4.1.20, plan §6.5, tools/backup-memory.ts): backups of 64, 128 and 256 MiB,
+  # the peak resident memory of the export, the read and the restore of the candidate's own Bridge (its archive,
+  # installed from its lock), their durations on SQLite and on Postgres, one byte and one row above the bounds refused.
+  # A peak above the qualification container's 512 MiB is said (a warning), the bounds' refusals gate.
+  backup-memory:
+    needs: [target, pack]
+    strategy:
+      fail-fast: false
+      matrix:
+        store: [sqlite, postgres]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    services:
+      postgres:
+        image: mirror.gcr.io/library/postgres:16@sha256:65b16a8b326e0cfbdf33fa7e783f2a0cb352a61448616ccccfd616ef42aa0f65
+        env:
+          POSTGRES_USER: bridge
+          POSTGRES_PASSWORD: bridge
+          POSTGRES_DB: bridge
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U bridge" --health-interval 2s --health-timeout 5s --health-retries 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ needs.target.outputs.sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 22
+          cache: npm
+      - run: for i in 1 2 3; do (npm ci) && break; [ "$i" = 3 ] && exit 1; echo "retry $i"; sleep 15; done
+        timeout-minutes: 15
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: candidate-pack
+          path: candidate-pack
+      - name: The candidate's Bridge, from its archive and its lock
+        shell: bash
+        run: |
+          mkdir -p .cache/bridge && tar -xzf candidate-pack/web-scumm-bridge-*.tgz -C .cache/bridge --strip-components=1
+          (cd .cache/bridge && npm ci --omit=dev --ignore-scripts --no-audit --no-fund)
+      - shell: bash
+        env:
+          STORE: ${{ matrix.store == 'postgres' && 'postgres://bridge:bridge@127.0.0.1:5432/bridge' || 'sqlite' }}
+        run: npx tsx tools/backup-memory.ts --store="$STORE" --bridge=.cache/bridge --sizes=64,128,256 --out=backup-memory-${{ matrix.store }}.json
+      - if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: backup-memory-${{ matrix.store }}
+          path: backup-memory-${{ matrix.store }}.json
+          if-no-files-found: error
           overwrite: true
   # The README's quick start as a reader copies it (4.1.19, plan §11.1): its lines run as written outside the repository,
   # the archive URL (which exists only after the tag) pointed at this candidate's own archive.
@@ -516,7 +600,7 @@ jobs:
       - run: node scripts/readme-quickstart.mjs --tarballs=candidate-pack
   # The terminal gate: every job above `success` (a skipped or cancelled job is red), then the manifest of this run.
   candidate-gate:
-    needs: [target, release-core, heavy, bridge-load-sqlite, bridge-load-postgres, cross-runtime, worker-container, mutation-plan, mutation, mutation-merge, pack, image, external-consumer, connector-archive-e2e, deployment-smoke, readme-quickstart]
+    needs: [target, release-core, heavy, bridge-load-sqlite, bridge-load-postgres, cross-runtime, worker-container, mutation-plan, mutation, mutation-merge, pack, image, external-consumer, connector-archive-e2e, deployment-smoke, backup-memory, readme-quickstart]
     # A pull request without `full-ci` skips `target`: then there is no candidate to judge, and no red check either.
     if: always() && needs.target.result != 'skipped'
     # The manifest's provenance attestation (4.1.19, plan §6.5): only this job may sign, and only the manifest.
@@ -545,6 +629,11 @@ jobs:
         env:
           NEEDS: ${{ toJSON(needs) }}
         run: node tools/release/candidate.mjs gate | tee gate.txt
+      # The qualification a tag may stand on (4.1.20, plan §8.1): the full profile, of this SHA, for this run, every step
+      # passed, on this candidate's archives and image. A pull request's run is information only and is not judged here.
+      - name: The full qualification of this candidate
+        if: github.event_name == 'workflow_dispatch'
+        run: node tools/release/candidate.mjs qualification artifacts/deployment-smoke/ops-qualify.json --sha=${{ needs.target.outputs.sha }} --run=${{ github.run_id }} --pack=artifacts/candidate-pack --image=artifacts/candidate-image
       # The release's exact baseline (4.1.19, plan §12.2): read from this run's artifacts and jobs, nothing measured
       # again; under candidate-release/baseline it enters the manifest, is attested with it and published by release.yml.
       - name: The baseline of this candidate

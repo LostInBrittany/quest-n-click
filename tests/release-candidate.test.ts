@@ -148,13 +148,18 @@ describe('the workflows that judge a candidate', () => {
   });
 
   it('measure each store in its own job, and refuse a report of another backend', () => {
-    for (const name of ['candidate', 'nightly']) {
-      const text = wf(name);
-      expect(text, name).toContain('--store=sqlite --out=bridge-load-sqlite.json');
-      expect(text, name).toContain('tools/load-report.ts bridge-load-sqlite.json --store=sqlite');
-      expect(text, name).toContain('tools/load-report.ts bridge-load-postgres.json --store=postgres');
-      expect(text, name).not.toMatch(/BRIDGE_STORE:/);
+    // The nightly loads once; the candidate three times (4.1.20, plan §8.3), every report checked, then their medians.
+    const nightly = wf('nightly');
+    expect(nightly).toContain('--store=sqlite --out=bridge-load-sqlite.json');
+    expect(nightly).toContain('tools/load-report.ts bridge-load-sqlite.json --store=sqlite');
+    expect(nightly).toContain('tools/load-report.ts bridge-load-postgres.json --store=postgres');
+    const candidate = wf('candidate');
+    for (const store of ['sqlite', 'postgres']) {
+      expect(candidate).toContain(`--out=bridge-load-${store}-$i.json`);
+      expect(candidate).toContain(`tools/load-report.ts bridge-load-${store}-$i.json --store=${store}`);
+      expect(candidate).toContain(`tools/load-median.ts --store=${store} --out=load-median-${store}.json`);
     }
+    for (const text of [nightly, candidate]) expect(text).not.toMatch(/BRIDGE_STORE:/);
   });
 
   it('publish the candidate run the tag names, after checking its sums', () => {

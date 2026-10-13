@@ -6,6 +6,8 @@
 //   - the config digest (the image id `docker image inspect` gives: what runs);
 //   - the OCI manifest digest (index.json of the saved layout, Docker 25+: what a registry would name);
 //   - the SHA-256 of the archive carried between jobs and published (what was transported).
+// Schema 2 (4.1.20 PR 3, plan §8.2) adds what the image is for and how it was made: its OS and architecture, the Docker
+// engine and BuildKit that built it, the archive's compression (`docker save` writes a plain tar) and its size.
 // Its SBOM (CycloneDX, the npm packages installed in /opt, read inside the image itself) is written beside it, with the
 // base image named by its digest.
 //
@@ -14,7 +16,7 @@
 //   node scripts/bridge-image.mjs load --from=<dir>                      load, then check the config digest
 import { execFileSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
-import { copyFileSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { copyFileSync, mkdirSync, mkdtempSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
@@ -51,6 +53,35 @@ export const baseImage = () => /^FROM\s+(\S+)/m.exec(readFileSync(join(PROFILE, 
 
 const sha256 = (file) => createHash('sha256').update(readFileSync(file)).digest('hex');
 const docker = (args, o = {}) => execFileSync('docker', args, { encoding: 'utf8', maxBuffer: 1 << 28, ...o });
+
+/**
+ * An image's identity (schema 2), from what `docker` says of it and its saved archive. `run(args)` is `docker`, so the
+ * fields can be checked without a Docker engine.
+ */
+export function identityFor({ run, archive, tgz, version, base, digest = manifestDigest }) {
+  const inspect = (f) => run(['image', 'inspect', '--format', f, TAG]).trim();
+  const buildx = run(['buildx', 'version']).trim();
+  return {
+    format: 'web-scumm-bridge-image',
+    schema: 2,
+    version,
+    tag: TAG,
+    base,
+    configDigest: inspect('{{.Id}}'),
+    manifestDigest: digest(archive),
+    os: inspect('{{.Os}}'),
+    architecture: inspect('{{.Architecture}}'),
+    archive: ARCHIVE,
+    archiveSha256: sha256(archive),
+    // `docker save` writes an uncompressed tar: the release publishes it as it was carried.
+    compression: 'none',
+    archiveBytes: statSync(archive).size,
+    bridgeSha256: sha256(tgz),
+    docker: run(['version', '--format', '{{.Server.Version}}']).trim(),
+    // `github.com/docker/buildx v0.29.1 a1b2c3d` → `v0.29.1`.
+    buildkit: buildx.split(/\s+/).find((w) => /^v\d/.test(w)) ?? buildx,
+  };
+}
 
 /** The OCI manifest digest of a saved image: index.json of the layout `docker save` writes (Docker 25+). */
 function manifestDigest(archive) {
@@ -144,19 +175,7 @@ if (import.meta.url === pathToFileURL(process.argv[1] ?? '').href) {
       mkdirSync(out, { recursive: true });
       const archive = join(out, ARCHIVE);
       docker(['save', '--output', archive, TAG]);
-      const identity = {
-        format: 'web-scumm-bridge-image',
-        schema: 1,
-        version: root.version,
-        tag: TAG,
-        base: baseImage(),
-        configDigest: docker(['image', 'inspect', '--format', '{{.Id}}', TAG]).trim(),
-        manifestDigest: manifestDigest(archive),
-        archive: ARCHIVE,
-        archiveSha256: sha256(archive),
-        bridgeSha256: sha256(tgz),
-        docker: docker(['version', '--format', '{{.Server.Version}}']).trim(),
-      };
+      const identity = identityFor({ run: docker, archive, tgz, version: root.version, base: baseImage() });
       writeFileSync(join(out, IDENTITY), `${JSON.stringify(identity, null, 2)}\n`);
       writeFileSync(join(out, SBOM), `${JSON.stringify(imageSbom(identity), null, 2)}\n`);
       console.log(

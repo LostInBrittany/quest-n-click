@@ -62,7 +62,7 @@ export async function backupRestore(c) {
   const runId = again?.id ?? first.json?.id;
   const modAfter = await insist(PORT + 3, 'GET', `/v1/runs/${runId}`, A);
   step(
-    'backup schema 3 and restore: the leaderboard, the daily record and the runs as before',
+    'backup and restore: the leaderboard, the daily record and the runs as before',
     JSON.stringify(boardAfter.json) === boardBefore &&
       !!dailyBefore &&
       restoredDaily === storedDaily &&
@@ -93,6 +93,79 @@ export async function backupRestore(c) {
     {
       status: next.status,
       sequence: next.json?.sequence,
+    },
+  );
+
+  // The two modes and the maintenance lease (4.1.20, plan §6.3–6.4, §8.1). While the three Bridges serve, a restore is
+  // refused at once and names them (their `serving` leases), whatever its mode; nothing is restored.
+  const restore = (mode, extra = []) =>
+    dc(
+      [
+        'run',
+        '--rm',
+        '--no-deps',
+        '-T',
+        '-v',
+        `${backups}:/backup`,
+        'bridge-1',
+        'restore',
+        '--dir=/srv/bridge/a',
+        '--from=/backup/backup-whole.json',
+        `--mode=${mode}`,
+        ...extra,
+      ],
+      { allowFail: true },
+    );
+  const whole = dc([
+    'exec',
+    '-T',
+    'bridge-1',
+    'sh',
+    '-c',
+    'node /opt/bridge/bin.mjs backup --dir=/srv/bridge/a --out=/tmp/backup-whole.json >&2 && cat /tmp/backup-whole.json',
+  ]).stdout;
+  writeFileSync(join(backups, 'backup-whole.json'), whole, { mode: 0o600 });
+  const refused = restore('merge', ['--lock-timeout=2000']);
+  const said = `${refused.stdout}\n${refused.stderr}`;
+  step(
+    'restore refused at once while the Bridges serve (their leases named), nothing restored',
+    refused.status === 1 && /in use/.test(said) && /nothing restored/.test(said),
+    {
+      status: refused.status,
+      said: said.trim().split('\n').at(-1)?.slice(0, 200),
+    },
+  );
+  // Then replace-store, the instances stopped (their leases released): the store becomes the file, after a safety
+  // backup of what it held, written and read back before anything is deleted. Every player's signals and the board are
+  // as the file holds them, and the safety backup is a backup.
+  const signalsBefore = {};
+  for (const t of ['a', 'b']) for (const p of players[t]) signalsBefore[`${t}/${p.id}`] = await signalsOf(t, p.cap);
+  const boardWhole = JSON.stringify((await insist(PORT, 'GET', '/v1/runs?game=reference&category=any%25', A)).json);
+  dc(['stop', 'bridge-1', 'bridge-2', 'bridge-3']);
+  const replaced = restore('replace-store', ['--yes-replace-store', '--safety-out=/backup/safety.json']);
+  up();
+  await readyCa();
+  const signalsAfter = {};
+  for (const t of ['a', 'b']) for (const p of players[t]) signalsAfter[`${t}/${p.id}`] = await signalsOf(t, p.cap);
+  const boardReplaced = JSON.stringify((await insist(PORT, 'GET', '/v1/runs?game=reference&category=any%25', A)).json);
+  let safety = null;
+  try {
+    safety = JSON.parse(readFileSync(join(backups, 'safety.json'), 'utf8'));
+  } catch {
+    /* said below */
+  }
+  step(
+    'replace-store, the Bridges stopped: the store is the file, after a safety backup of what it held',
+    replaced.status === 0 &&
+      JSON.stringify(signalsAfter) === JSON.stringify(signalsBefore) &&
+      boardReplaced === boardWhole &&
+      safety?.format === 'web-scumm-bridge-backup',
+    {
+      status: replaced.status,
+      said: `${replaced.stdout}\n${replaced.stderr}`.trim().split('\n').at(-1)?.slice(0, 200),
+      signals: JSON.stringify(signalsAfter) === JSON.stringify(signalsBefore),
+      board: boardReplaced === boardWhole,
+      safety: safety?.format ?? null,
     },
   );
   return { backup, backups };
