@@ -9,8 +9,8 @@ listening or 48 hours of deployment. Carrying a pass blindly would be wrong too:
 
 1. **A surface per pass.** `docs/dev/surfaces.json` declares what each of the thirteen passes reads.
    - The candidate's files, by their path in its manifest. The built site counts file by file (`site:<path>`, from
-     `site/site-files.json`): the candidate now builds the site once and publishes it, and release.yml builds no site
-     of its own.
+     the candidate's `site-files.json`): the candidate now builds the site once and publishes it, and release.yml
+     builds no site of its own.
    - The checkout's configuration it reads. `readme:install` is the README's install section, between generated
      markers in both languages.
    - Its exclusions. Each one has a reason and a test that proves the surface does not read it (for example `og.png`,
@@ -27,8 +27,8 @@ listening or 48 hours of deployment. Carrying a pass blindly would be wrong too:
    difference. There is no force.
 4. **Approval is a signature, not a review.** The maintainer sets `approved` and `approvedBy` in a commit signed with
    their hardware key (`id_ed25519_sk`). tools/field/trust.ts checks it:
-   - The trust root is `.github/allowed_signers` as the **source candidate's commit** holds it, never as the commit
-     that brings the attestation. A pull request cannot add a key and sign with it.
+   - The trust root is the repository's `allowed_signers` (under `.github/`, added by the maintainer) as the **source
+     candidate's commit** holds it, never as the commit that brings the attestation. A pull request cannot add a key and sign with it.
    - Every commit that wrote the attestation, through merges that were not squashed, must be signed by a key of that
      root. A signed merge does not cover an unsigned commit. A merge itself (GitHub signs it with its own key) is
      left out, but the file at HEAD must be the bytes the last signed commit wrote.
