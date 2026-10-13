@@ -307,11 +307,13 @@ describe('a lease kept, against its races', () => {
     vi.useFakeTimers();
     const { s, store } = harness();
     let releases = 0;
+    let attempts = 0;
     let gate!: () => void;
     let slow = false;
     const slowStore = {
       ...store,
       maintenanceLock: async () => {
+        attempts++;
         if (slow) await new Promise<void>((ok) => (gate = ok));
         return {
           lost: new Promise<Error>(() => {}),
@@ -325,6 +327,8 @@ describe('a lease kept, against its races', () => {
     // The first tick finds the lease not renewed and waits for the lock; the ticks after it must not start meanwhile.
     await vi.advanceTimersByTimeAsync(1_000);
     await flush();
+    // One retake waiting for the lock: one attempt beside the first lease's, never one per tick.
+    expect(attempts).toBe(2);
     expect(releases).toBe(1);
     expect(s.takes).toBe(1);
     gate();
@@ -347,7 +351,12 @@ describe('a lease kept, against its races', () => {
         return { lost: new Promise<Error>(() => {}), release: async () => void releases++ };
       },
     };
-    const k = await keepLease(slowStore, 'serving', { ttlMs: 300, instanceId: 'i' });
+    const events: string[] = [];
+    const k = await keepLease(slowStore, 'serving', {
+      ttlMs: 300,
+      instanceId: 'i',
+      onEvent: (e) => void events.push(String(e.event)),
+    });
     s.renew = false;
     slow = true;
     await vi.advanceTimersByTimeAsync(100);
@@ -357,6 +366,9 @@ describe('a lease kept, against its races', () => {
     await stopping;
     // The first lease, released by the tick; the one taken after stop, released too: none left holding a lock.
     expect(releases).toBe(2);
+    // Taken after stop, it is not kept: no lease said taken, and the writes stay held as the loss left them.
+    expect(events).toEqual(['maintenance.lease.lost']);
+    expect(s.held.at(-1)).toMatch(/lost/);
   });
 
   it('a holder that stalls refuses its writes on its own clock, before its lease could expire in the database', async () => {
