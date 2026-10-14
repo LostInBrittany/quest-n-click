@@ -144,6 +144,15 @@ export const ARTIFACTS = [
     job: 'candidate-gate',
     published: 'web-scumm-{tag}-surfaces.json',
   },
+  // The signing of 4.2's tags rehearsed by the candidate (4.1.20 PR 3b): its report.
+  {
+    id: 'signing:rehearsal',
+    kind: 'report',
+    candidate: 'signing/signing-rehearsal.json',
+    artifact: 'candidate-signing',
+    job: 'signing-rehearsal',
+    published: 'web-scumm-{tag}-signing-rehearsal.json',
+  },
   // What the release job makes from the tag's commit: the Remix catalogues proved, the reference speedrun, the sums.
   ...['demo', 'reference'].map((g) => ({
     id: `remix:${g}`,

@@ -71,14 +71,20 @@ const sorted = (a: string[]) => [...a].sort();
 
 describe('the manifest of a release', () => {
   it('gives back the 4.1.19 release and its candidate, file for file, with what 4.1.20 adds', () => {
-    // 4.1.20 PR 4: the site the candidate built (published, never built again) and the surfaces of the passes.
+    // 4.1.20 PR 4: the site the candidate built (published, never built again), the surfaces of the passes; PR 3b: the
+    // signing rehearsal's report.
     const candidateAdds = [
       'site/assets-manifest.json',
       'site/dist.tar.gz',
       'site/site-files.json',
+      'signing/signing-rehearsal.json',
       'surfaces/qualification-surfaces.json',
     ];
-    const releaseAdds = ['web-scumm-v4.1.19-site-files.json', 'web-scumm-v4.1.19-surfaces.json'];
+    const releaseAdds = [
+      'web-scumm-v4.1.19-site-files.json',
+      'web-scumm-v4.1.19-surfaces.json',
+      'web-scumm-v4.1.19-signing-rehearsal.json',
+    ];
     expect(releaseFiles('v4.1.19', CANDIDATE_4119)).toEqual(sorted([...PUBLISHED_4119, ...releaseAdds]));
     expect(candidateFiles('4.1.19', RUNS)).toEqual(sorted([...CANDIDATE_4119, ...candidateAdds]));
   });

@@ -5,7 +5,7 @@
 import { createServer, type Server } from 'node:http';
 import type { AddressInfo } from 'node:net';
 import { afterEach, describe, expect, it } from 'vitest';
-import { backoff, fetchRetry } from '../scripts/lib/fetch-retry.mjs';
+import { backoff, fetchRetry } from '../tools/release/fetch-retry.mjs';
 
 const servers: Server[] = [];
 afterEach(async () => {

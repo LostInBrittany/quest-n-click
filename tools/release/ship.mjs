@@ -12,17 +12,27 @@
 //                                this SHA, green, its manifest naming this SHA and this run; the tag's annotation names it
 //                                and release.yml publishes that run's files (tools/release/candidate.mjs)
 //   ship watch <version>         wait for the tag's `ci` run, then for the `release` run; exit by its conclusion
-//   ship verify <version>        download the release, check the SHA-256 sums and every provenance attestation
+//   ship verify <version>        download the release, check the SHA-256 sums and every provenance attestation; from 4.1.20
+//                                also `gh release verify` and `gh release verify-asset` of each file (immutable releases)
+//   ship preflight-stable --candidate=<run id> [--version=<x.y.z>]
+//                                (4.1.20) what 4.2 stable still needs, check by check (tools/release/preflight.mjs):
+//                                signing key, allowed_signers, immutability, the tag ruleset, the candidate, npm per
+//                                package, the publishing pins, GO / NO-GO; signs, publishes and changes nothing
+//   ship tag … --sign [--key=<file>] (4.1.20) the tag signed with an SSH key (`git tag -s`); inactive for 4.1.x (D30)
 //   ship chain <pr> <version>    merge → tag → watch → verify (`--now` passes to tag); refused from 4.1.17, whose tags
 //                                need a candidate run of the merge commit (merge, candidate, then tag)
 //
 // A pre-release version (`4.1.8-rc.1`) is tagged the same way; release.yml marks it a pre-release on GitHub.
 // Every command writes its PID to `.cache/pids/ship-<command>.pid` (`SHIP_PIDS` to choose the folder): stop that
 // PID, not a pattern.
+import { spawnSync } from 'node:child_process';
 import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
 import { checkAncestry } from './ancestry.mjs';
-import { publishedProblems } from './artifacts.mjs';
+import { FIRST as FIRST_LISTED, publishedProblems } from './artifacts.mjs';
+import { atLeast } from './candidate.mjs';
+import { preflight } from './preflight.mjs';
+import { isSignedTag, tagArgs } from './signing.mjs';
 import { candidateOf, requiresCandidate, tagMessage } from './candidate.mjs';
 import { candidateRunProblem, queryRun, readCandidateManifest, verifyAttestation } from './provenance.mjs';
 import {
@@ -253,6 +263,25 @@ async function tag(versionArg, sha) {
       throw new Error(`${name} on ${full.slice(0, 7)}: ${line.reason} (merge that tag into the branch first, 4.1.16)`);
     say(`${name}: ${line.reason}`);
     if (requiresCandidate(version) || candidate) verifyCandidate(candidate, full);
+    // From 4.1.20 a release is published only immutable (second reading of 4.1.20 PR 3b): `ship verify` asks GitHub
+    // for its release attestation, which only an immutable release has. Checked here, with the maintainer's access
+    // (release.yml's token cannot read the setting), before the tag exists: never a release published unverifiable.
+    if (atLeast(version, FIRST_LISTED)) {
+      // The setting off answers a 404 (gh exits 1): read as off, so the reason below is the one said (second reading
+      // of #122); an answer that is not JSON (auth, network) is said as unreadable.
+      const out = run('gh', ['api', `repos/${REPO}/immutable-releases`], { ok: [0, 1] });
+      let imm;
+      try {
+        imm = JSON.parse(out || '{}');
+      } catch {
+        throw new Error(`immutable releases on ${REPO}: unreadable (${out.split('\n')[0]}): ${name} is not tagged`);
+      }
+      if (imm.enabled !== true)
+        throw new Error(
+          `immutable releases are off on ${REPO} (Settings → General → Releases): ${name} is not tagged (docs/en/RELEASING.md)`,
+        );
+      say(`${REPO}: immutable releases on`);
+    }
     if (process.argv.includes('--now'))
       say(`tagging without waiting for main's run (--now): the tag's run is the gate`);
     else await main(full);
@@ -268,10 +297,17 @@ async function tag(versionArg, sha) {
         throw new Error(
           `${name} here names candidate ${named ?? 'none'}, not ${candidate ?? 'none'}: delete it by hand`,
         );
+      // `--sign` asked for a signed tag: a tag left here unsigned is never pushed in its place (second reading of #122).
+      if (process.argv.includes('--sign') && !isSignedTag(git(['cat-file', 'tag', name])))
+        throw new Error(`${name} here is not signed, and --sign asks for a signed tag: delete it by hand`);
       say(`${name} already here at ${full.slice(0, 7)} (a push that failed before): pushing it`);
     } else {
       say(`tagging ${name} on ${full.slice(0, 7)}${isPrerelease(version) ? ' (pre-release)' : ''}`);
-      git(['tag', '-a', name, full, '-m', candidate ? tagMessage(version, candidate) : version]);
+      // Annotated, or signed with the maintainer's SSH key (`--sign`, 4.1.20 PR 3b): 4.1.x tags stay annotated (D30).
+      const sign = process.argv.includes('--sign');
+      if (sign && !atLeast(version, '4.2.0')) throw new Error(`--sign is 4.2's: ${name} stays an annotated tag (D30)`);
+      const key = process.argv.find((a) => a.startsWith('--key='))?.slice('--key='.length);
+      git(tagArgs({ name, sha: full, message: candidate ? tagMessage(version, candidate) : version, sign, key }));
     }
     git(['push', 'origin', `refs/tags/${name}`]);
   }
@@ -347,6 +383,12 @@ async function verify(versionArg) {
     verifyAttestation(join(dir, f), { repo: REPO });
     attested++;
   }
+  // GitHub's own release attestation (4.1.20 PR 3b, immutable releases): the release, then each of its files.
+  if (atLeast(version, FIRST_LISTED)) {
+    gh(['release', 'verify', name]);
+    for (const f of files) gh(['release', 'verify-asset', name, join(dir, f)]);
+    say(`${name}: gh release verify and verify-asset passed for ${files.length} files`);
+  }
   // The release's files, exactly the one manifest's (4.1.20, plan §8.4): none forgotten, none extra.
   const listed = publishedProblems(name, files, dir);
   if (listed.length)
@@ -369,7 +411,46 @@ async function chain(pr, version) {
   return tag(version, sha);
 }
 
-const COMMANDS = { checks, merge, main, tag, watch, verify, chain };
+/** What 4.2 stable still needs (4.1.20 PR 3b): every check said; exit 1 only on one `blocked`. */
+async function preflightStable() {
+  const runId = candidateFlag();
+  if (!/^\d+$/.test(runId ?? '')) throw new Error('--candidate=<run id> is required');
+  const version = process.argv.find((a) => a.startsWith('--version='))?.slice('--version='.length) ?? '4.2.0';
+  const problems = [];
+  // A run gh cannot read (a wrong id, the network) is a blocked row, not a crash (second reading of #122).
+  try {
+    const why = candidateRunProblem(queryRun(runId), runId);
+    if (why) problems.push(why);
+  } catch (e) {
+    problems.push(`run ${runId}: ${String(e.message ?? e).split('\n')[0]}`);
+  }
+  const dir = join('.cache', 'preflight', runId);
+  rmSync(dir, { recursive: true, force: true });
+  mkdirSync(dir, { recursive: true });
+  let pack;
+  try {
+    gh(['run', 'download', runId, '-n', 'candidate-manifest', '-D', dir]);
+    readCandidateManifest(readFileSync(join(dir, 'candidate-manifest.json'), 'utf8'));
+    verifyAttestation(join(dir, 'candidate-manifest.json'), { repo: REPO });
+    gh(['run', 'download', runId, '-n', 'candidate-pack', '-D', join(dir, 'pack')]);
+    pack = join(dir, 'pack');
+  } catch (e) {
+    problems.push(String(e.message ?? e).split('\n')[0]);
+  }
+  // `gh api` takes no `-R` (lib's `gh` adds it): asked directly (second reading of PR 3b).
+  const login = JSON.parse(run('gh', ['api', 'user'])).login;
+  const exec = (cmd, args) => spawnSync(cmd, args, { encoding: 'utf8' });
+  const who = exec('npm', ['whoami']);
+  const npmUser = who.status === 0 ? who.stdout.trim() : undefined;
+  const rows = preflight({ exec, repo: REPO, login, npmUser, version, candidate: { run: runId, problems, pack } });
+  for (const r of rows) console.log(`${r.state === 'ok' ? '✔' : r.state === 'missing' ? '·' : '✖'} ${r.id}: ${r.say}`);
+  const blocked = rows.filter((r) => r.state === 'blocked').length;
+  const missing = rows.filter((r) => r.state === 'missing').length;
+  say(`preflight for ${version}: ${rows.length - blocked - missing} ok, ${missing} still to do, ${blocked} blocked`);
+  if (blocked) throw new Error(`${blocked} check(s) blocked`);
+}
+
+const COMMANDS = { checks, merge, main, tag, watch, verify, chain, 'preflight-stable': preflightStable };
 if (!command || !(command in COMMANDS)) {
   console.error(
     `usage: npm run ship -- <${Object.keys(COMMANDS).join('|')}> …  (see the header of tools/release/ship.mjs)`,
