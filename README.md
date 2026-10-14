@@ -23,7 +23,7 @@ Linux. The engine installs from a release's archive (npm publishing comes
 with 4.2):
 
 ```bash
-T=https://github.com/wanoo/web-scumm/releases/download/v4.1.19/web-scumm-4.1.19.tgz
+T=https://github.com/wanoo/web-scumm/releases/download/v4.1.20/web-scumm-4.1.20.tgz
 npx --package=$T web-scumm create my-game "My Game" --engine=$T
 cd my-game && npm install
 npm run assets && npm run dev        # play it; then npm run verify, npm run build
@@ -150,7 +150,7 @@ Every page exists in English (`docs/en/`) and French (`docs/fr/`), and a test ke
 command in [TOOLS](docs/en/TOOLS.md), what changed in the [CHANGELOG](CHANGELOG.md), moving to a new version in
 [UPGRADING](docs/en/UPGRADING.md), and where it comes from in the [ROADMAP](docs/en/ROADMAP.md).
 
-Current release: [v4.1.19 "Field Closure"](https://github.com/wanoo/web-scumm/releases/tag/v4.1.19). The 4.1.x line is
+Current release: [v4.1.20 "Last Mile"](https://github.com/wanoo/web-scumm/releases/tag/v4.1.20). The 4.1.x line is
 an incubation line, where a release may break a public name or a format, documented and with a migration, until
 4.2.0 restores strict SemVer.
 
