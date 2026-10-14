@@ -40,3 +40,7 @@
   100, which would drop a candidate's jobs past 100 in silence. `run-jobs.mjs` (tested against a fake API: a 502 then
   a 200, three pages, a 404 at once, every try spent, a total that does not add up) and a guard against any bare
   `gh api …/jobs` call in the workflows.
+- **`fetch-retry.mjs` moves to `tools/release/` (14 Oct, merging #120 and #121).** #119's second reading added a test
+  that no release tool imports `scripts/` (tools/ ships, scripts/ does not); `run-jobs.mjs` did. The module moves to
+  the side that ships, and `external-consumer`, `readme-quickstart` and its test import it from there (scripts/
+  already imports tools/). Same code, same tests.

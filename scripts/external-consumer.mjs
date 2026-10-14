@@ -34,7 +34,7 @@ import {
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { harness, WIN, waitFor } from './lib/archive-harness.mjs';
-import { fetchRetry } from './lib/fetch-retry.mjs';
+import { fetchRetry } from '../tools/release/fetch-retry.mjs';
 import { KNOWN_ENGINES, sumFor, sumsAsset, upgradeSource } from './upgrade-source.mjs';
 
 const ROOT = resolve(import.meta.dirname, '..');

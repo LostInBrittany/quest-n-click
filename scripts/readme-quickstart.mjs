@@ -12,7 +12,7 @@ import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'no
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
-import { fetchRetry } from './lib/fetch-retry.mjs';
+import { fetchRetry } from '../tools/release/fetch-retry.mjs';
 
 const ROOT = resolve(import.meta.dirname, '..');
 

@@ -5,7 +5,7 @@
 // `total_count` is an error, never a baseline with jobs missing. Any other answer (a 404, a 403) is an error at once.
 import { writeFileSync } from 'node:fs';
 import { pathToFileURL } from 'node:url';
-import { backoff, fetchRetry } from '../../scripts/lib/fetch-retry.mjs';
+import { backoff, fetchRetry } from './fetch-retry.mjs';
 
 const PER = 100;
 
