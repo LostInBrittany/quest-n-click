@@ -617,7 +617,7 @@ No new mechanic (`docs/dev/PLAN-4.1.20-LAST-MILE.md`, D34–D37, ten pull reques
 schema 4: it says whether it holds the whole store, the quota included, and its envelope sits under its digest
 (ADR 0023). A restore names its mode, `merge` or `replace-store`, and runs only with the store to itself, under a
 maintenance lease (migration 0005); `replace-store` writes a verified safety backup first. The last two measured
-mutation sets, `connectors-edge` and `reality-store-postgres`, are gated (469 of 488 survivors killed, the rest named),
+mutation sets, `connectors-edge` and `reality-store-postgres`, are gated (473 of 488 survivors killed, 15 named),
 in shards from one matrix. Every candidate a tag may name runs the full qualification profile on its own archives and
 image, and three loads per store. A people's pass is bound to the files of its surface, and `field:carry` moves it to
 a later candidate only when none changed, the version included (ADR 0024). Releases are drafts first, then immutable;

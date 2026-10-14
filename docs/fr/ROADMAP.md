@@ -606,7 +606,7 @@ du Bridge passe au schéma 4 : il dit s'il contient tout le store, quota compris
 empreinte (ADR 0023). Une restauration nomme son mode, `merge` ou `replace-store`, et ne tourne qu'avec le store pour
 elle seule, sous un lease de maintenance (migration 0005) ; `replace-store` écrit d'abord un backup de sécurité
 vérifié. Les deux derniers ensembles de mutation mesurés, `connectors-edge` et `reality-store-postgres`, deviennent
-bloquants (469 des 488 survivants tués, les autres nommés), en shards depuis une seule matrice. Chaque candidat qu'un
+bloquants (473 des 488 survivants tués, 15 nommés), en shards depuis une seule matrice. Chaque candidat qu'un
 tag peut nommer joue le profil de qualification complet sur ses propres archives et son image, et trois charges par
 store. Une passe humaine est liée aux fichiers de sa surface, et `field:carry` ne la reporte sur un candidat ultérieur
 que si aucun n'a changé, version comprise (ADR 0024). Les releases sont d'abord des brouillons, puis immuables ; la

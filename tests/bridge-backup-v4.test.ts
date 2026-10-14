@@ -9,6 +9,7 @@ import { join } from 'node:path';
 import { afterAll, describe, expect, it } from 'vitest';
 import { realityManifest } from '@engine/reality/manifest';
 import { type BackupPayload, makeBackup, readBackup, restoreBackup, stableJson, TABLES } from '../bridge/src/backup';
+import { envelopeDigest } from '../bridge/src/backup/canonical';
 import { main } from '../bridge/src/cli';
 import type { TenantExport } from '../bridge/src/store-async';
 import { type PgModule, PostgresRealityStore } from '../bridge/src/store-postgres';
@@ -303,6 +304,35 @@ describe('restore from the command line names its mode', () => {
     ]);
     expect(refused.code).toBe(1);
     expect(refused.out).toMatch(/schema 4/);
+    // A file that speaks for its tenants only (a journal's or memory's), and a file of another SQL schema, both sealed
+    // as a Bridge would have: refused for replace-store, the store unchanged (plan §14; release sheet 4.1.20, row 14).
+    const reseal = (x: any) => ({ ...x, digest: { ...x.digest, value: envelopeDigest(x) } });
+    const memory = new MemoryRealityStore();
+    await memory.importTenant(tenant('t-a'));
+    const tenantsOnly = join(dir, 'tenants-only.json');
+    writeFileSync(tenantsOnly, JSON.stringify(await makeBackup(memory)));
+    expect(readBackup(readFileSync(tenantsOnly, 'utf8')).completeness?.scope).toBe('tenants-only');
+    const older = join(dir, 'older-schema.json');
+    writeFileSync(older, JSON.stringify(reseal({ ...v3, store: { ...v3.store, schema: v3.store.schema - 1 } })));
+    expect(readBackup(readFileSync(older, 'utf8')).storeSchema).toBe(v3.store.schema - 1);
+    for (const [file, why] of [
+      [tenantsOnly, /whole SQL store/],
+      [older, /this store's SQL schema/],
+    ] as const) {
+      const r = await cli([
+        'restore',
+        `--dir=${dir}`,
+        `--store=${url}`,
+        `--from=${file}`,
+        '--mode=replace-store',
+        '--yes-replace-store',
+        `--safety-out=${join(dir, `safety-${file.length}.json`)}`,
+      ]);
+      expect(r.code, file).toBe(1);
+      expect(r.out, file).toMatch(why);
+      expect(r.out, file).toMatch(/nothing restored/);
+      expect(await state(s), file).toBe(before);
+    }
     // Done: the safety file is written first, and said in the output.
     const ok = await cli([...base, '--yes-replace-store', `--safety-out=${safety}`]);
     expect(ok.code, ok.out).toBe(0);
