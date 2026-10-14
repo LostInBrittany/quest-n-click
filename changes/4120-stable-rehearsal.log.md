@@ -44,3 +44,12 @@
   that no release tool imports `scripts/` (tools/ ships, scripts/ does not); `run-jobs.mjs` did. The module moves to
   the side that ships, and `external-consumer`, `readme-quickstart` and its test import it from there (scripts/
   already imports tools/). Same code, same tests.
+- **Second reading on #122 (14 Oct): no P0, no P1, eight P2, all fixed.** release.yml runs one release per tag at a
+  time (a rerun of the tag's `ci` fires it again; two runs could each make a draft); its "Not published yet" step
+  keeps stderr apart (a warning beside a success read as "none"), refuses an answer it does not know, and deletes
+  every draft of the tag, bounded. The step is now tested by running it under bash against a fake gh (none, one and
+  two drafts, published, a warning, an unknown answer, an auth error); the old step fails those tests. `ship tag`:
+  immutable releases off says so instead of a raw `gh api` failure; with `--sign`, an unsigned tag left here by a
+  failed push is refused, never pushed. `preflight-stable`: a name is free only on npm's 404 (a registry that did not
+  answer blocks the row), `user.signingkey` read as git does (`~/`, `key::`), a run gh cannot read is a blocked row.
+  RELEASING says the npm install is 4.2's step, and that a 4.1.20 release needs a candidate made after this PR.

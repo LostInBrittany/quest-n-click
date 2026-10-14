@@ -12,7 +12,9 @@ How a version is made, for the maintainer (4.1.20 "Last Mile"; plan §11). The c
 2. **A tag that names it.** `npm run ship -- tag <version> <sha> --candidate=<run> --now`. The annotation names the run.
 3. **The release, from that run.** release.yml downloads the run's files and checks every SHA-256 against the
    manifest. It then makes the release a **draft**, uploads every file, publishes it and reads it back
-   (`ship verify`). It builds nothing the candidate made: archives, image, SBOMs, the site, the surfaces.
+   (`ship verify`). It builds nothing the candidate made: archives, image, SBOMs, the site, the surfaces. From 4.1.20
+   it also needs the run's signing rehearsal, so a candidate made before that release's PR 3b cannot be released:
+   start a new one. One release run per tag at a time: a second one waits, then finds the first's release.
 4. **Read back.** `npm run ship -- verify <version>` downloads the release, checks the sums, every provenance
    attestation and the list of files against the manifest. From 4.1.20 it also runs `gh release verify` and
    `gh release verify-asset` for each file.
@@ -68,7 +70,7 @@ ours (D34: squatting is an accepted risk until 4.2).
 
 1. **Versions.** Staged publishing needs npm 11.15.0 and Node 22.14.0 at least ([npm docs][staged]). release.yml pins
    the publishing step to **exact** versions, `NPM_PUBLISH_NODE: 22.23.3` and `NPM_PUBLISH_NPM: 11.21.0`. A test
-   refuses a range. Node 22.23.3 ships npm 10.9.9: the step installs npm 11.21.0 itself (`npm install -g npm@11.21.0`).
+   refuses a range. Node 22.23.3 ships npm 10.9.9: the publishing step, written in 4.2, will install npm 11.21.0 itself (`npm install -g npm@11.21.0`); in 4.1.20 only the pins exist, in release.yml's env.
 2. **The account.** The maintainer's npm account has 2FA on.
 3. **Bootstrap, once per package.** The packages do not exist yet. Stage a **reservation version**, never a product
    version:

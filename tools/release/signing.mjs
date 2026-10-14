@@ -12,6 +12,9 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
 
+/** Whether a tag object (`git cat-file tag <name>`) carries an SSH signature. */
+export const isSignedTag = (object) => /^-----BEGIN SSH SIGNATURE-----$/m.test(object);
+
 /** `git` arguments that tag `sha` as `name`: annotated, or signed with an SSH key (`sign`, `key` its file). */
 export function tagArgs({ name, sha, message, sign = false, key }) {
   if (!sign) return ['tag', '-a', name, sha, '-m', message];

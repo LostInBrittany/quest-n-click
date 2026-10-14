@@ -12,7 +12,10 @@ Comment une version se fait, pour le mainteneur (4.1.20 « Last Mile » ; plan �
 2. **Un tag qui le nomme.** `npm run ship -- tag <version> <sha> --candidate=<run> --now`. L'annotation nomme le run.
 3. **La release, depuis ce run.** release.yml télécharge les fichiers du run et vérifie chaque SHA-256 contre le
    manifeste. Il crée la release en **brouillon**, téléverse chaque fichier, la publie, puis la relit (`ship verify`).
-   Il ne reconstruit rien de ce que le candidat a fait : archives, image, SBOM, le site, les surfaces.
+   Il ne reconstruit rien de ce que le candidat a fait : archives, image, SBOM, le site, les surfaces. Depuis la
+   4.1.20, il lui faut aussi la répétition de signature du run : un candidat antérieur à la PR 3b de cette version ne
+   peut pas être publié, il faut en lancer un nouveau. Un seul run de release par tag à la fois : le second attend,
+   puis trouve la release du premier.
 4. **Relecture.** `npm run ship -- verify <version>` télécharge la release, vérifie les sommes, chaque attestation de
    provenance et la liste des fichiers contre le manifeste. Depuis 4.1.20, il lance aussi `gh release verify` et
    `gh release verify-asset` pour chaque fichier.
@@ -70,7 +73,7 @@ Rien n'est publié sur npm en 4.1.x. Les quatre noms (`web-scumm`, `create-web-s
 
 1. **Versions.** La publication en étapes demande au moins npm 11.15.0 et Node 22.14.0 ([doc npm][staged]).
    release.yml épingle l'étape de publication à des versions **exactes**, `NPM_PUBLISH_NODE: 22.23.3` et
-   `NPM_PUBLISH_NPM: 11.21.0`. Un test refuse une plage. Node 22.23.3 livre npm 10.9.9 : l'étape installe elle-même npm 11.21.0 (`npm install -g npm@11.21.0`).
+   `NPM_PUBLISH_NPM: 11.21.0`. Un test refuse une plage. Node 22.23.3 livre npm 10.9.9 : l'étape de publication, écrite en 4.2, installera elle-même npm 11.21.0 (`npm install -g npm@11.21.0`) ; en 4.1.20, seuls les épinglages existent, dans l'env de release.yml.
 2. **Le compte.** Le compte npm du mainteneur a la 2FA activée.
 3. **Bootstrap, une fois par package.** Les packages n'existent pas encore. On met en scène une **version de
    réservation**, jamais une version du produit :

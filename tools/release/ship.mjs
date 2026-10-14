@@ -32,7 +32,7 @@ import { checkAncestry } from './ancestry.mjs';
 import { FIRST as FIRST_LISTED, publishedProblems } from './artifacts.mjs';
 import { atLeast } from './candidate.mjs';
 import { preflight } from './preflight.mjs';
-import { tagArgs } from './signing.mjs';
+import { isSignedTag, tagArgs } from './signing.mjs';
 import { candidateOf, requiresCandidate, tagMessage } from './candidate.mjs';
 import { candidateRunProblem, queryRun, readCandidateManifest, verifyAttestation } from './provenance.mjs';
 import {
@@ -267,7 +267,15 @@ async function tag(versionArg, sha) {
     // for its release attestation, which only an immutable release has. Checked here, with the maintainer's access
     // (release.yml's token cannot read the setting), before the tag exists: never a release published unverifiable.
     if (atLeast(version, FIRST_LISTED)) {
-      const imm = JSON.parse(run('gh', ['api', `repos/${REPO}/immutable-releases`]) || '{}');
+      // The setting off answers a 404 (gh exits 1): read as off, so the reason below is the one said (second reading
+      // of #122); an answer that is not JSON (auth, network) is said as unreadable.
+      const out = run('gh', ['api', `repos/${REPO}/immutable-releases`], { ok: [0, 1] });
+      let imm;
+      try {
+        imm = JSON.parse(out || '{}');
+      } catch {
+        throw new Error(`immutable releases on ${REPO}: unreadable (${out.split('\n')[0]}): ${name} is not tagged`);
+      }
       if (imm.enabled !== true)
         throw new Error(
           `immutable releases are off on ${REPO} (Settings → General → Releases): ${name} is not tagged (docs/en/RELEASING.md)`,
@@ -289,6 +297,9 @@ async function tag(versionArg, sha) {
         throw new Error(
           `${name} here names candidate ${named ?? 'none'}, not ${candidate ?? 'none'}: delete it by hand`,
         );
+      // `--sign` asked for a signed tag: a tag left here unsigned is never pushed in its place (second reading of #122).
+      if (process.argv.includes('--sign') && !isSignedTag(git(['cat-file', 'tag', name])))
+        throw new Error(`${name} here is not signed, and --sign asks for a signed tag: delete it by hand`);
       say(`${name} already here at ${full.slice(0, 7)} (a push that failed before): pushing it`);
     } else {
       say(`tagging ${name} on ${full.slice(0, 7)}${isPrerelease(version) ? ' (pre-release)' : ''}`);
@@ -406,8 +417,13 @@ async function preflightStable() {
   if (!/^\d+$/.test(runId ?? '')) throw new Error('--candidate=<run id> is required');
   const version = process.argv.find((a) => a.startsWith('--version='))?.slice('--version='.length) ?? '4.2.0';
   const problems = [];
-  const why = candidateRunProblem(queryRun(runId), runId);
-  if (why) problems.push(why);
+  // A run gh cannot read (a wrong id, the network) is a blocked row, not a crash (second reading of #122).
+  try {
+    const why = candidateRunProblem(queryRun(runId), runId);
+    if (why) problems.push(why);
+  } catch (e) {
+    problems.push(`run ${runId}: ${String(e.message ?? e).split('\n')[0]}`);
+  }
   const dir = join('.cache', 'preflight', runId);
   rmSync(dir, { recursive: true, force: true });
   mkdirSync(dir, { recursive: true });

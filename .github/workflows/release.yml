@@ -16,6 +16,12 @@ on:
   workflow_run:
     workflows: [ci]
     types: [completed]
+# One release run per tag at a time (second reading of #122): a rerun of the tag's `ci` fires this workflow again, and
+# two runs that both saw no release would both make a draft (GitHub lets two drafts share a tag). Queued, never
+# cancelled: the second run then finds the first's release and stops.
+concurrency:
+  group: release-${{ github.event.workflow_run.head_branch }}
+  cancel-in-progress: false
 permissions:
   contents: write
   id-token: write
@@ -215,12 +221,25 @@ jobs:
       - name: Not published yet
         run: |
           # "release not found" is none; any other error of gh (auth, network) stops here rather than read as none.
-          if out=$(gh release view "$TAG" --json isDraft --jq 'if .isDraft then "draft" else "published" end' 2>&1); then state="$out"
-          elif echo "$out" | grep -qi 'release not found'; then state=none
-          else echo "::error::gh release view $TAG: $out"; exit 1; fi
+          # stderr kept apart (second reading of #122): a warning printed beside a success is not a state.
+          err=$(mktemp)
+          if state=$(gh release view "$TAG" --json isDraft --jq 'if .isDraft then "draft" else "published" end' 2>"$err"); then :
+          elif grep -qi 'release not found' "$err"; then state=none
+          else echo "::error::gh release view $TAG: $(cat "$err")"; exit 1; fi
           case "$state" in
+            none) ;;
             published) echo "::error::$TAG is published: a published release is never changed (a new version is a new tag)"; exit 1 ;;
-            draft) echo "::notice::$TAG: a draft left by an earlier run, deleted (never published)"; gh release delete "$TAG" --yes ;;
+            draft)
+              # Every draft of the tag, not only the first (two runs may each have left one); bounded, never the tag.
+              for i in 1 2 3 4 5; do
+                d=$(gh release view "$TAG" --json isDraft --jq .isDraft 2>/dev/null || echo none)
+                [ "$d" = true ] || break
+                echo "::notice::$TAG: a draft left by an earlier run, deleted (never published)"
+                gh release delete "$TAG" --yes
+              done
+              [ "$d" != true ] || { echo "::error::$TAG: drafts still there after five deletions"; exit 1; }
+              [ "$d" = none ] || { echo "::error::$TAG: published while its drafts were deleted"; exit 1; } ;;
+            *) echo "::error::gh release view $TAG: unexpected answer '$state'"; exit 1 ;;
           esac
           # Immutable releases are required from 4.1.20 (`ship verify` asks for GitHub's release attestation, which only
           # an immutable release has): `ship tag` checks it before it pushes the tag, with the maintainer's own access;

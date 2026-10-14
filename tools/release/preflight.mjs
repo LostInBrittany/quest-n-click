@@ -4,6 +4,7 @@
 // error) or `blocked` (something wrong: a candidate that does not verify, a version already published, a pin that is
 // a range, a GO / NO-GO the reports contradict). `exec(cmd, args)` runs gh, npm and git, so tests give it fakes.
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
+import { homedir } from 'node:os';
 import { join } from 'node:path';
 
 /** The exact Node and npm of the future publishing step (release.yml's env): npm 11.15.0 at least for `npm stage`. */
@@ -85,7 +86,7 @@ export function guardsTags(rs) {
  * `pack`, the folder of its four archives); `o.version` the stable version; `o.root` the checkout; `o.login` the
  * maintainer's GitHub login.
  */
-export function preflight({ exec, repo, login, npmUser, version, root = '.', candidate }) {
+export function preflight({ exec, repo, login, npmUser, version, root = '.', candidate, home = homedir() }) {
   const rows = [];
   const add = (id, state, say) => rows.push({ id, state, say });
   const ok = (r) => r.status === 0;
@@ -98,14 +99,19 @@ export function preflight({ exec, repo, login, npmUser, version, root = '.', can
   };
 
   // The signing key: local, an SSH key, registered on GitHub as a signing key, and in the trust root.
-  const keyFile = exec('git', ['config', '--get', 'user.signingkey']).stdout.trim();
+  // `user.signingkey` is a file, `~/` allowed, or the key itself after `key::` (git's two forms; second reading of #122).
+  const setting = exec('git', ['config', '--get', 'user.signingkey']).stdout.trim();
   const format = exec('git', ['config', '--get', 'gpg.format']).stdout.trim();
+  const literal = setting.startsWith('key::') ? setting.slice('key::'.length).trim() : '';
+  const keyFile = literal ? '' : setting.replace(/^~(?=\/)/, home);
   const pubFile = keyFile && (keyFile.endsWith('.pub') ? keyFile : `${keyFile}.pub`);
-  const pub =
-    pubFile && existsSync(pubFile) ? readFileSync(pubFile, 'utf8').trim().split(' ').slice(0, 2).join(' ') : '';
+  const pub = (literal || (pubFile && existsSync(pubFile) ? readFileSync(pubFile, 'utf8').trim() : ''))
+    .split(' ')
+    .slice(0, 2)
+    .join(' ');
   if (!pub || format !== 'ssh')
     add('signing-key', 'missing', 'no SSH signing key here (git config gpg.format ssh, user.signingkey <key>)');
-  else add('signing-key', 'ok', `${pubFile}`);
+  else add('signing-key', 'ok', literal ? 'key:: in user.signingkey' : `${pubFile}`);
   // An error body (a 403, a 404) is JSON too: only a list is a list.
   const list = (v) => (Array.isArray(v) ? v : []);
   const registered = list(json(exec('gh', ['api', `users/${login}/ssh_signing_keys`])));
@@ -170,6 +176,13 @@ export function preflight({ exec, repo, login, npmUser, version, root = '.', can
     }
     const view = exec('npm', ['view', p, 'name', 'maintainers', '--json']);
     const exists = ok(view);
+    // Only npm's 404 says the package does not exist; any other failure (network, registry, auth) says nothing about
+    // the name (second reading of #122), and nothing else of this package is judged on it.
+    if (!exists && !/E404|404 Not Found/.test(`${view.stdout}\n${view.stderr}`)) {
+      const why = `${view.stderr || view.stdout || ''}`.trim().split('\n').at(-1) || `exit ${view.status}`;
+      add(`${p}:name`, 'blocked', `npm view ${p} failed, the registry said nothing of the name: ${why}`);
+      continue;
+    }
     if (!exists) {
       add(`${p}:name`, 'ok', 'available (still watched each night: squatting accepted until 4.2, D34)');
       add(

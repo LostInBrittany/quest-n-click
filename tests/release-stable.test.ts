@@ -17,7 +17,7 @@ import {
   // @ts-expect-error: a plain .mjs module without declarations
 } from '../tools/release/preflight.mjs';
 // @ts-expect-error: a plain .mjs module without declarations
-import { rehearse, tagArgs } from '../tools/release/signing.mjs';
+import { isSignedTag, rehearse, tagArgs } from '../tools/release/signing.mjs';
 
 const temps: string[] = [];
 afterAll(() => {
@@ -48,8 +48,82 @@ describe('release.yml', () => {
       release.indexOf('- uses: actions/setup-node', release.indexOf('- name: Not published yet')),
     );
     expect(step).toMatch(/published\) echo "::error::.*exit 1 ;;/);
-    expect(step).toMatch(/draft\) .*gh release delete "\$TAG" --yes ;;/);
+    expect(step).toMatch(/gh release delete "\$TAG" --yes/);
     expect(step).not.toMatch(/--cleanup-tag/);
+  });
+
+  // The step itself, run by bash against a fake gh (second reading of #122): `drafts` drafts, then `after`.
+  function notPublishedYet(answers: {
+    drafts?: number;
+    after: 'none' | 'published' | 'weird' | 'auth';
+    warn?: boolean;
+  }) {
+    const start = release.indexOf('- name: Not published yet');
+    const body = release.slice(
+      release.indexOf('run: |', start) + 'run: |'.length,
+      release.indexOf('\n        env:', start),
+    );
+    const script = body
+      .split('\n')
+      .map((l) => l.replace(/^ {10}/, ''))
+      .join('\n');
+    const dir = tmp();
+    writeFileSync(join(dir, 'drafts'), String(answers.drafts ?? 0));
+    writeFileSync(
+      join(dir, 'gh'),
+      `#!/bin/bash
+echo "$*" >> "${dir}/calls"
+n=$(cat "${dir}/drafts")
+if [ "$1 $2" = "release delete" ]; then echo $((n - 1)) > "${dir}/drafts"; exit 0; fi
+${answers.warn ? 'echo "A new release of gh is available" >&2' : ''}
+if [ "$n" -gt 0 ]; then case "$*" in *"isDraft --jq .isDraft"*) echo true ;; *) echo draft ;; esac; exit 0; fi
+case "${answers.after}" in
+  none) echo "release not found" >&2; exit 1 ;;
+  published) case "$*" in *"isDraft --jq .isDraft"*) echo false ;; *) echo published ;; esac ;;
+  weird) echo "maybe" ;;
+  auth) echo "HTTP 401: Bad credentials" >&2; exit 1 ;;
+esac
+`,
+      { mode: 0o755 },
+    );
+    const r = spawnSync('bash', ['-e', '-c', script], {
+      encoding: 'utf8',
+      env: { PATH: `${dir}:${process.env.PATH}`, TAG: 'v9.9.9' },
+    });
+    const calls = (() => {
+      try {
+        return readFileSync(join(dir, 'calls'), 'utf8').trim().split('\n');
+      } catch {
+        return [];
+      }
+    })();
+    return {
+      status: r.status,
+      out: `${r.stdout}${r.stderr}`,
+      deletes: calls.filter((c) => c.startsWith('release delete')).length,
+    };
+  }
+
+  it('goes on when there is no release, deletes every draft (two runs may each leave one), never the tag', () => {
+    expect(notPublishedYet({ after: 'none' })).toMatchObject({ status: 0, deletes: 0 });
+    expect(notPublishedYet({ drafts: 1, after: 'none' })).toMatchObject({ status: 0, deletes: 1 });
+    expect(notPublishedYet({ drafts: 2, after: 'none' })).toMatchObject({ status: 0, deletes: 2 });
+    expect(notPublishedYet({ drafts: 9, after: 'none' }).status).not.toBe(0);
+  });
+
+  it('stops on a published release, an answer it does not know, an error of gh, and a warning does not change that', () => {
+    expect(notPublishedYet({ after: 'published' })).toMatchObject({ status: 1, deletes: 0 });
+    expect(notPublishedYet({ after: 'published', warn: true })).toMatchObject({ status: 1, deletes: 0 });
+    expect(notPublishedYet({ after: 'weird' }).out).toMatch(/unexpected answer 'maybe'/);
+    expect(notPublishedYet({ after: 'weird' }).status).toBe(1);
+    expect(notPublishedYet({ after: 'auth' })).toMatchObject({ status: 1, deletes: 0 });
+    expect(notPublishedYet({ drafts: 1, after: 'published' })).toMatchObject({ status: 1, deletes: 1 });
+  });
+
+  it('runs one release per tag at a time, never cancelling the first', () => {
+    expect(release).toMatch(
+      /concurrency:\n {2}group: release-\$\{\{ github\.event\.workflow_run\.head_branch \}\}\n {2}cancel-in-progress: false/,
+    );
   });
 
   it('pins the future publishing step to exact versions, never a range', () => {
@@ -81,6 +155,18 @@ describe('a tag signed with an SSH key', () => {
       '-m',
       'm',
     ]);
+  });
+
+  it('tells a signed tag object from an annotated one', () => {
+    expect(
+      isSignedTag(
+        'object abc\ntype commit\ntag v4.2.0\n\nm\n-----BEGIN SSH SIGNATURE-----\nU1NI\n-----END SSH SIGNATURE-----',
+      ),
+    ).toBe(true);
+    expect(isSignedTag('object abc\ntype commit\ntag v4.2.0\n\nm mentions -----BEGIN SSH SIGNATURE----- inline')).toBe(
+      false,
+    );
+    expect(isSignedTag('object abc\ntype commit\ntag v4.1.20\n\nm')).toBe(false);
   });
 
   it('is rehearsed with an ephemeral key: signed, verified, the key and the tag destroyed, nothing pushed', () => {
@@ -169,6 +255,63 @@ describe('ship preflight-stable', () => {
       expect(c).not.toMatch(/^gh (release (create|edit|upload|delete)|api .* -X|api .* --method)/);
       expect(c).not.toMatch(/^git (tag|push|commit|config (?!--get))/);
     }
+  });
+
+  it("calls a name free only on npm's 404, never when the registry did not answer (second reading of #122)", () => {
+    const { d, pack } = root();
+    const down = fakes({ 'npm view': { status: 1, stderr: 'npm error code ECONNRESET\nnpm error network aborted' } });
+    const rows = preflight({
+      exec: down.exec,
+      repo: 'o/r',
+      login: 'me',
+      version: '4.2.0',
+      root: d,
+      candidate: { run: '1', problems: [], pack },
+    });
+    for (const p of PACKAGES) {
+      expect(state(rows, `${p}:name`)).toBe('blocked');
+      expect(rows.find((r: { id: string }) => r.id === `${p}:name`).say).toMatch(/ECONNRESET|network aborted/);
+      expect(state(rows, `${p}:bootstrap`)).toBeUndefined();
+      expect(state(rows, `${p}:version`)).toBeUndefined();
+    }
+    const json404 = fakes({ 'npm view': { status: 1, stdout: '{"error":{"code":"E404","summary":"Not Found"}}' } });
+    const free = preflight({
+      exec: json404.exec,
+      repo: 'o/r',
+      login: 'me',
+      version: '4.2.0',
+      root: d,
+      candidate: { run: '1', problems: [], pack },
+    });
+    for (const p of PACKAGES) expect(state(free, `${p}:name`)).toBe('ok');
+  });
+
+  it('reads user.signingkey as git does: a file, a ~/ path, or key:: and the key itself', () => {
+    const { d, pack } = root();
+    const home = tmp();
+    mkdirSync(join(home, '.ssh'));
+    writeFileSync(join(home, '.ssh', 'k.pub'), 'ssh-ed25519 AAAAhome me@x\n');
+    const run = (setting: string) =>
+      state(
+        preflight({
+          exec: fakes({
+            'git config --get user.signingkey': { stdout: setting },
+            'git config --get gpg.format': { stdout: 'ssh' },
+          }).exec,
+          repo: 'o/r',
+          login: 'me',
+          version: '4.2.0',
+          root: d,
+          home,
+          candidate: { run: '1', problems: [], pack },
+        }),
+        'signing-key',
+      );
+    expect(run('~/.ssh/k.pub')).toBe('ok');
+    expect(run('~/.ssh/k')).toBe('ok');
+    expect(run('key::ssh-ed25519 AAAAliteral me@x')).toBe('ok');
+    expect(run('~/.ssh/absent.pub')).toBe('missing');
+    expect(run('')).toBe('missing');
   });
 
   it('blocks on a candidate that does not verify, a name taken, a version published, a publisher that may publish', () => {
