@@ -17,6 +17,7 @@ vérifier qu'on peut le finir, et le livrer comme un jeu web qui s'installe sur 
 
 ## Commencer
 
+<!-- install:begin -->
 Node 22.12 ou plus récent et Python 3 avec Pillow (`npm run assets` prépare les images avec eux), sous Windows, macOS
 ou Linux. Le moteur s'installe depuis l'archive d'une release (la
 publication npm arrive avec la 4.2) :
@@ -27,6 +28,7 @@ npx --package=$T web-scumm create mon-jeu "Mon jeu" --engine=$T
 cd mon-jeu && npm install
 npm run assets && npm run dev        # y jouer ; puis npm run verify, npm run build
 ```
+<!-- install:end -->
 
 `npm run build` écrit `dist/`, un site statique que n'importe quel hébergement sert. ffmpeg sert au pipeline sonore
 et reste optionnel ; `npx web-scumm doctor` dit ce qui manque. [PACKAGE](docs/fr/PACKAGE.md)
@@ -109,7 +111,7 @@ Chaque surface n'est promise qu'aussi loin que ses preuves ([SUPPORT](docs/fr/SU
 
 | Stable | Limité | Expérimental |
 |---|---|---|
-| le format du contenu et ses outils ; la PWA Chromium sur ordinateur ; le Bridge Reality sur SQLite | le lecteur DOM sur téléphone et au lecteur d'écran (pas encore essayé par une personne) ; la PWA Safari ; Firefox (la PWA seulement) ; speedrun et Remix ; les voix ; les archives (jusqu'à ce qu'une personne les installe) | le peintre Canvas ; le Bridge sur Postgres (`distributed`) ; les quatre connecteurs |
+| le format du contenu et ses outils ; la PWA Chromium sur ordinateur ; le Bridge Reality sur SQLite | le lecteur DOM sur téléphone et au lecteur d'écran (pas encore essayé par une personne) ; la PWA Safari ; Firefox (la PWA seulement) ; speedrun et Remix ; les voix ; les quatre archives de packages (jusqu'à ce qu'une personne les installe) | le peintre Canvas ; le Bridge sur Postgres (`distributed`) ; les quatre connecteurs |
 
 Ce que seuls des humains et de vrais appareils peuvent vérifier est listé, pas affirmé : [FIELD](docs/fr/FIELD.md), et
 les notes de chaque release disent quelles passes ont été faites.
@@ -138,12 +140,14 @@ erreurs avant qu'une personne les voie. Chaque résultat reste relisible, dans l
 ## En chiffres
 
 Mesuré sur ce commit de `main` par les vérifications automatiques (`npm run quality:baseline` écrit ces chiffres) :
-<!-- metric:tests -->2178<!-- /metric --> déclarations de tests unitaires, sous Node 22 et 24, avec des planchers de
+<!-- metric:tests -->2198<!-- /metric --> déclarations de tests unitaires, sous Node 22 et 24, avec des planchers de
 couverture et des tests de mutation bloquants ; le jeu de référence prouvé en <!-- metric:referenceStates -->288<!-- /metric -->
 états ; la première visite du joueur, <!-- metric:initialJsKB -->133<!-- /metric --> Ko de JavaScript compressé. Chaque
-release est construite depuis le commit que son candidat a testé ; ses archives, l'image du Bridge, les SBOM et la
-baseline sont les fichiers mêmes que le candidat a produits, publiés avec leurs sommes SHA-256 et leurs attestations
-de provenance.
+release est construite depuis le commit que son candidat a testé. Le candidat produit les quatre archives de packages,
+l'image du Bridge, les SBOM, les parties enregistrées et la baseline, et la release publie ces fichiers mêmes ; la
+release ne produit que le jeu construit, son manifeste d'assets, les catalogues Remix prouvés, le speedrun de référence
+et les sommes, depuis le même commit. Chaque fichier est publié avec sa somme SHA-256 et une attestation de provenance
+([la liste](tools/release/artifacts.mjs)).
 
 ## Documentation
 

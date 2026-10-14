@@ -1,0 +1,228 @@
+{
+ "format": "web-scumm-surfaces",
+ "schema": 1,
+ "note": "What each people's pass is bound to (4.1.20 PR 4, plan §9.2, ADR 0024): the candidate's files (`site:` the built site's, one by one; the others by their path in the candidate's manifest), the checkout's configuration (`readme:install` the README's install section), its exclusions (each with its reason and the test that proves the surface does not read it) and the passes it depends on. tools/field/surfaces.mjs writes qualification-surfaces.json from it; a candidate file in no surface and not under `status` fails it.",
+ "surfaces": {
+  "bridge-postgres-https": {
+   "artifacts": [
+    "pack/web-scumm-bridge-{pkg}.tgz",
+    "image/web-scumm-bridge-image.tar",
+    "image/web-scumm-bridge-image.json"
+   ],
+   "config": [
+    "ops/qualify/**",
+    "scripts/locks/web-scumm-bridge-image.json"
+   ],
+   "exclusions": [],
+   "dependencies": []
+  },
+  "runs-real-players": {
+   "artifacts": [
+    "site:**",
+    "pack/web-scumm-bridge-{pkg}.tgz",
+    "image/web-scumm-bridge-image.tar",
+    "image/web-scumm-bridge-image.json"
+   ],
+   "config": [
+    "ops/qualify/**"
+   ],
+   "exclusions": [
+    {
+     "path": "site:og.png",
+     "reason": "the OpenGraph image: link previews read it through index.html's og:image, the player never (the service worker does not precache it)",
+     "test": "tests/field-carry.test.ts"
+    }
+   ],
+   "dependencies": []
+  },
+  "run-resume-power-cycle": {
+   "artifacts": [
+    "site:**"
+   ],
+   "config": [],
+   "exclusions": [
+    {
+     "path": "site:og.png",
+     "reason": "the OpenGraph image: link previews read it through index.html's og:image, the player never (the service worker does not precache it)",
+     "test": "tests/field-carry.test.ts"
+    }
+   ],
+   "dependencies": []
+  },
+  "code-wheel-human": {
+   "artifacts": [
+    "site:**"
+   ],
+   "config": [],
+   "exclusions": [
+    {
+     "path": "site:og.png",
+     "reason": "the OpenGraph image: link previews read it through index.html's og:image, the player never (the service worker does not precache it)",
+     "test": "tests/field-carry.test.ts"
+    }
+   ],
+   "dependencies": []
+  },
+  "mystery-deployed": {
+   "artifacts": [
+    "site:**",
+    "pack/web-scumm-bridge-{pkg}.tgz",
+    "image/web-scumm-bridge-image.tar",
+    "image/web-scumm-bridge-image.json"
+   ],
+   "config": [
+    "ops/qualify/**"
+   ],
+   "exclusions": [
+    {
+     "path": "site:og.png",
+     "reason": "the OpenGraph image: link previews read it through index.html's og:image, the player never (the service worker does not precache it)",
+     "test": "tests/field-carry.test.ts"
+    }
+   ],
+   "dependencies": []
+  },
+  "safari-ios-offline-update": {
+   "artifacts": [
+    "site:**"
+   ],
+   "config": [],
+   "exclusions": [
+    {
+     "path": "site:og.png",
+     "reason": "the OpenGraph image: link previews read it through index.html's og:image, the player never (the service worker does not precache it)",
+     "test": "tests/field-carry.test.ts"
+    }
+   ],
+   "dependencies": []
+  },
+  "firefox-real-offline": {
+   "artifacts": [
+    "site:**"
+   ],
+   "config": [],
+   "exclusions": [
+    {
+     "path": "site:og.png",
+     "reason": "the OpenGraph image: link previews read it through index.html's og:image, the player never (the service worker does not precache it)",
+     "test": "tests/field-carry.test.ts"
+    }
+   ],
+   "dependencies": []
+  },
+  "phone-both-renderers": {
+   "artifacts": [
+    "site:**"
+   ],
+   "config": [],
+   "exclusions": [
+    {
+     "path": "site:og.png",
+     "reason": "the OpenGraph image: link previews read it through index.html's og:image, the player never (the service worker does not precache it)",
+     "test": "tests/field-carry.test.ts"
+    }
+   ],
+   "dependencies": []
+  },
+  "livesplit-obs": {
+   "artifacts": [
+    "site:**"
+   ],
+   "config": [],
+   "exclusions": [
+    {
+     "path": "site:og.png",
+     "reason": "the OpenGraph image: link previews read it through index.html's og:image, the player never (the service worker does not precache it)",
+     "test": "tests/field-carry.test.ts"
+    }
+   ],
+   "dependencies": []
+  },
+  "connectors-real-security": {
+   "artifacts": [
+    "pack/web-scumm-bridge-{pkg}.tgz",
+    "image/web-scumm-bridge-image.tar",
+    "image/web-scumm-bridge-image.json",
+    "pack/web-scumm-connectors-{pkg}.tgz"
+   ],
+   "config": [
+    "ops/qualify/**",
+    "scripts/locks/**"
+   ],
+   "exclusions": [],
+   "dependencies": []
+  },
+  "blind-playtesters": {
+   "artifacts": [
+    "site:**"
+   ],
+   "config": [],
+   "exclusions": [
+    {
+     "path": "site:og.png",
+     "reason": "the OpenGraph image: link previews read it through index.html's og:image, the player never (the service worker does not precache it)",
+     "test": "tests/field-carry.test.ts"
+    }
+   ],
+   "dependencies": []
+  },
+  "voices-listening": {
+   "artifacts": [
+    "site:assets/audio/**",
+    "site:assets/*.js",
+    "site:assets/*.css",
+    "site:*.js",
+    "site:data/**",
+    "site:index.html",
+    "site:site.json"
+   ],
+   "config": [],
+   "exclusions": [],
+   "dependencies": []
+  },
+  "archive-human-install": {
+   "artifacts": [
+    "pack/*.tgz"
+   ],
+   "config": [
+    "readme:install"
+   ],
+   "exclusions": [],
+   "dependencies": []
+  }
+ },
+ "status": [
+  {
+   "path": "site/dist.tar.gz",
+   "reason": "the site's archive: its files are judged one by one (site:…), the archive's own bytes carry its times"
+  },
+  {
+   "path": "site/site-files.json",
+   "reason": "the list the site: entries are read from"
+  },
+  {
+   "path": "site/assets-manifest.json",
+   "reason": "the assets' licences and sources, read by no surface (the files themselves are in site:)"
+  },
+  {
+   "path": "sbom/*",
+   "reason": "what the archives hold, described: the archives themselves are in their surfaces"
+  },
+  {
+   "path": "image/web-scumm-bridge-image.cdx.json",
+   "reason": "the image's SBOM: the image itself is in its surfaces"
+  },
+  {
+   "path": "baseline/*",
+   "reason": "what the candidate measured of itself: evidence, not a surface"
+  },
+  {
+   "path": "wsrun/*",
+   "reason": "the runs the candidate's check wrote: evidence of the check, not a surface a person tries"
+  },
+  {
+   "path": "e2e-remix-speedrun.txt",
+   "reason": "the report of that check"
+  }
+ ]
+}

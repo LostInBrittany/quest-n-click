@@ -27,3 +27,4 @@ what it costs, what would change it. The maintainer's decisions themselves are d
 | [0020](0020-minigame-transcripts.md) | A minigame's result is computed again from its transcript (4.1.17) |
 | [0021](0021-backup-snapshot-and-atomic-restore.md) | A backup is one snapshot; a restore is all or nothing (4.1.19) |
 | [0023](0023-backup-completeness-and-restore-modes.md) | A backup says what it holds; a restore says its mode (4.1.20) |
+| [0024](0024-pass-surfaces-and-carry-attestations.md) | A pass is bound to its surface, and carried only by a signed attestation (4.1.20) |

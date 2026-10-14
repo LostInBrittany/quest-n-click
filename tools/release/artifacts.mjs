@@ -106,23 +106,45 @@ export const ARTIFACTS = [
     job: 'candidate-gate',
     published: 'web-scumm-{tag}-candidate.json',
   },
-  // What the release job makes from the tag's commit: the built game, its assets manifest, the root SBOM's name kept
-  // for the engine (the candidate's, copied), the Remix catalogues proved, the reference speedrun, the sums.
+  // The built game (4.1.20 PR 4): the very site release-core built and checked, its assets manifest, and the SHA-256 of
+  // every file it serves, which the people's passes are bound to (docs/dev/surfaces.json). Before 4.1.20 the release
+  // job built its own.
   {
     id: 'game:dist',
     kind: 'game',
-    candidate: null,
-    job: 'release',
+    candidate: 'site/dist.tar.gz',
+    artifact: 'candidate-site',
+    job: 'release-core',
     published: 'web-scumm-{tag}-dist.tar.gz',
     sbom: 'web-scumm-{tag}-sbom.cdx.json',
   },
   {
     id: 'game:assets',
     kind: 'game',
-    candidate: null,
-    job: 'release',
+    candidate: 'site/assets-manifest.json',
+    artifact: 'candidate-site',
+    job: 'release-core',
     published: 'web-scumm-{tag}-assets-manifest.json',
   },
+  {
+    id: 'game:files',
+    kind: 'game',
+    candidate: 'site/site-files.json',
+    artifact: 'candidate-site',
+    job: 'release-core',
+    published: 'web-scumm-{tag}-site-files.json',
+  },
+  // The surfaces of the people's passes (4.1.20 PR 4, ADR 0024): what each pass is bound to, under the manifest's
+  // attestation (written by the gate before the manifest, from the files above).
+  {
+    id: 'surfaces',
+    kind: 'report',
+    candidate: 'surfaces/qualification-surfaces.json',
+    artifact: 'candidate-surfaces',
+    job: 'candidate-gate',
+    published: 'web-scumm-{tag}-surfaces.json',
+  },
+  // What the release job makes from the tag's commit: the Remix catalogues proved, the reference speedrun, the sums.
   ...['demo', 'reference'].map((g) => ({
     id: `remix:${g}`,
     kind: 'report',

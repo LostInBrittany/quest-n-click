@@ -68,6 +68,21 @@ jobs:
       - run: for i in 1 2 3; do (npx playwright install --with-deps chromium) && break; [ "$i" = 3 ] && exit 1; echo "retry $i"; sleep 15; done
         timeout-minutes: 20
       - run: npm run release-check:ci
+      # The site as the release publishes it (4.1.20 PR 4, plan §9.2): the very build release-check made, its archive,
+      # its assets manifest and the SHA-256 of each file it serves (the surfaces of the people's passes read them).
+      # release.yml publishes these files and builds no site of its own to publish.
+      - name: The site of this candidate
+        run: |
+          mkdir -p candidate-site
+          tar -czf candidate-site/dist.tar.gz -C dist .
+          cp dist/licenses/assets-manifest.json candidate-site/assets-manifest.json
+          node tools/release/site-files.mjs --dir=dist --out=candidate-site/site-files.json
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: candidate-site
+          path: candidate-site
+          if-no-files-found: error
+          overwrite: true
       # The people's passes committed for this version (4.1.18, the Field Kit): every report checked against its
       # candidate, its evidence and the leak scan; none committed is said, not failed (D12).
       - name: The Field Kit reports of this version
@@ -651,6 +666,14 @@ jobs:
           # The image (its archive, identities and SBOM) and the four archives' SBOMs (4.1.19): in the same manifest.
           if [ -d artifacts/candidate-image ]; then mkdir -p artifacts/candidate-release/image && cp artifacts/candidate-image/* artifacts/candidate-release/image/; fi
           if [ -d artifacts/candidate-sbom ]; then mkdir -p artifacts/candidate-release/sbom && cp artifacts/candidate-sbom/* artifacts/candidate-release/sbom/; fi
+          # The site (4.1.20): its archive, assets manifest and file digests, made once by release-core.
+          if [ -d artifacts/candidate-site ]; then mkdir -p artifacts/candidate-release/site && cp artifacts/candidate-site/* artifacts/candidate-release/site/; fi
+          # The surfaces of the people's passes (4.1.20 PR 4, ADR 0024), from the files above and the checkout's
+          # docs/dev/surfaces.json, before the manifest: attested with it. A file in no surface fails here.
+          # No site, no surfaces: refused here, before anything is attested (second reading of PR 4).
+          test -f artifacts/candidate-release/site/site-files.json || { echo "::error::no site-files.json from release-core: the surfaces cannot be written"; exit 1; }
+          mkdir -p artifacts/candidate-release/surfaces
+          node tools/field/surfaces.mjs --dir=artifacts/candidate-release --out=artifacts/candidate-release/surfaces/qualification-surfaces.json
           node tools/release/candidate.mjs manifest --sha=${{ needs.target.outputs.sha }} --run=${{ github.run_id }} --dir=artifacts/candidate-release --out=candidate-manifest.json
           node tools/release/candidate.mjs check candidate-manifest.json --sha=${{ needs.target.outputs.sha }} --run=${{ github.run_id }} --dir=artifacts/candidate-release
       - if: always()
@@ -702,6 +725,12 @@ jobs:
         uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
         with:
           subject-path: candidate-manifest.json
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: candidate-surfaces
+          path: artifacts/candidate-release/surfaces
+          if-no-files-found: error
+          overwrite: true
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: candidate-baseline

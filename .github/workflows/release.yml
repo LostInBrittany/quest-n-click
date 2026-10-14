@@ -195,6 +195,10 @@ jobs:
           gh run download "$run" -n candidate-sbom -D .candidate/sbom 2>/dev/null || echo "::notice::run $run made no SBOM"
           # 4.1.19 (plan §12.2): the baseline the candidate wrote of itself; an older candidate wrote none.
           gh run download "$run" -n candidate-baseline -D .candidate/baseline 2>/dev/null || echo "::notice::run $run wrote no baseline"
+          # 4.1.20 (plan §9.2): the site the candidate built and the surfaces of the people's passes; an older candidate
+          # has neither (its manifest names neither, the check below says so either way).
+          gh run download "$run" -n candidate-site -D .candidate/site 2>/dev/null || echo "::notice::run $run kept no site"
+          gh run download "$run" -n candidate-surfaces -D .candidate/surfaces 2>/dev/null || echo "::notice::run $run wrote no surfaces"
           node tools/release/candidate.mjs check .candidate-manifest/candidate-manifest.json --sha="$SHA" --run="$run" --dir=.candidate
           echo "CANDIDATE=$run" >> "$GITHUB_ENV"
         env:
@@ -252,8 +256,13 @@ jobs:
           fi
       - name: Build archive, checksum and SBOM
         run: |
-          tar -czf "web-scumm-$TAG-dist.tar.gz" -C dist .
-          cp dist/licenses/assets-manifest.json "web-scumm-$TAG-assets-manifest.json"
+          # The site the candidate built and qualified (4.1.20): published as it is, never built again for the release
+          # (release-check above builds one to check, not to publish). Its file digests and the surfaces beside it.
+          for d in site surfaces; do test -d ".candidate/$d" || { echo "::error::run $CANDIDATE has no candidate-$d: nothing is made again here"; exit 1; }; done
+          cp .candidate/site/dist.tar.gz "web-scumm-$TAG-dist.tar.gz"
+          cp .candidate/site/assets-manifest.json "web-scumm-$TAG-assets-manifest.json"
+          cp .candidate/site/site-files.json "web-scumm-$TAG-site-files.json"
+          cp .candidate/surfaces/qualification-surfaces.json "web-scumm-$TAG-surfaces.json"
           # Since 4.1.20 (plan §8.4) this job makes nothing the candidate made: the four archives (packed once, installed
           # outside the repository on three systems), their SBOMs, the Bridge's image (its archive, identities and SBOM)
           # are the candidate's, checked against its manifest above, copied under the names tools/release/artifacts.mjs
@@ -262,7 +271,7 @@ jobs:
           cp .candidate/sbom/web-scumm.cdx.json "web-scumm-$TAG-sbom.cdx.json"
           cp .candidate/pack/web-scumm-[0-9]*.tgz .candidate/pack/create-web-scumm-*.tgz .candidate/pack/web-scumm-bridge-*.tgz .
           cp .candidate/pack/web-scumm-connectors-*.tgz .
-          extra="$(ls web-scumm-connectors-*.tgz)"
+          extra="$(ls web-scumm-connectors-*.tgz) web-scumm-$TAG-site-files.json web-scumm-$TAG-surfaces.json"
           cp .candidate/sbom/web-scumm-bridge.cdx.json "web-scumm-bridge-$TAG-sbom.cdx.json"
           cp .candidate/sbom/web-scumm-connectors.cdx.json "web-scumm-connectors-$TAG-sbom.cdx.json"
           cp .candidate/sbom/create-web-scumm.cdx.json "create-web-scumm-$TAG-sbom.cdx.json"
@@ -319,6 +328,8 @@ jobs:
             web-scumm-*-e2e-remix-speedrun.txt
             web-scumm-*-candidate.json
             web-scumm-*-baseline.*
+            web-scumm-*-site-files.json
+            web-scumm-*-surfaces.json
             web-scumm-${{ env.TAG }}-SHA256SUMS
             web-scumm-[0-9]*.tgz
             create-web-scumm-*.tgz

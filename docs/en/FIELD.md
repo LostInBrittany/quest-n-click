@@ -89,3 +89,28 @@ npm run field:verify-bundle -- <bundle.tar.gz> --offline --trusted-root=trusted-
   archive (what is inside cannot be read for a leak), never a report or the manifest.
 - **Another commit, another pass**: a report of another candidate run, or whose file digests are not the candidate's,
   does not check. A fix that changes the package makes the reports it touches void until they are made again.
+
+## Carrying a pass to a new candidate (4.1.20)
+
+A pass is bound to its **surface**: the files of the candidate it reads (`docs/dev/surfaces.json`, the attested
+`qualification-surfaces.json`; the built site counts file by file), the configuration it reads in the checkout, and
+the passes it depends on (ADR 0024). When none of them changed between the candidate the person tried and a new one,
+the version included, the pass may stand for the new candidate too:
+
+```sh
+npm run field:init -- --release=4.1.21 --candidate=<new run>   # keeps the new candidate's surfaces and site files too
+npm run field:carry -- --from=.cache/field/4.1.20 --to=.cache/field/4.1.21 --pass=safari-ios-offline-update
+```
+
+- `field:carry` refuses any relevant difference and says which file. There is no force: run the pass again.
+- Otherwise it writes a `pending` attestation and the source report's exact copy under
+  `docs/dev/passes/carry/4.1.21/`.
+- The maintainer commits it and approves it (`decision`, `approvedBy`), each commit signed with their key: one unsigned
+  commit on that path leaves the carry refused for good. The trust root is `.github/allowed_signers` as the **source**
+  candidate's commit (on main's first-parent line) holds it.
+- A carry fills only a pass not tried on the new candidate: a failure made there is never covered.
+- `field:check` and `field:report` then count the pass as `passed` for the new candidate. The person's report is never
+  rewritten: its four statuses stay four.
+- A README-only change carries the PWA pass. A change to the service worker, the Bridge's archive or the mixing
+  refuses the pass that reads it, and so does the version alone for the PWA, Mystery, resumed-run, speedrun and
+  archive passes.

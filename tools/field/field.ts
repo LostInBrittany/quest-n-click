@@ -18,6 +18,12 @@
 //   field:verify-bundle <bundle.tar.gz> [--offline --trusted-root=<file>]
 //                the bundle read under its budgets, its files, its report against its candidate, then who made the
 //                manifest: its attestation (offline with a trusted root), or the run read on GitHub
+//   field:carry  --from=<folder> --to=<folder> --pass=<passId> [--out=<attestations folder>] | --check-range=<a..b>
+//                (4.1.20, ADR 0024) a pass of the source candidate's folder carried to the target's: refused when a file
+//                of its surface changed (the version included); else a `pending` CarryAttestation and the source
+//                report's copy, written under docs/dev/passes/carry/<target release>/, for the maintainer to approve
+//                in a commit signed with their key. `--check-range` refuses a range that changes both the trust root
+//                and an attestation
 import { spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import {
@@ -32,10 +38,12 @@ import {
   writeFileSync,
 } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { join, resolve, sep } from 'node:path';
+import { dirname, join, relative, resolve, sep } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { FIELD_STATUSES, type FieldReport, FieldReportSchema, PASS_IDS, PASS_LABELS, type PassId } from './schema';
 import { makeBundle, verifyBundle, ATTESTATION } from './bundle';
+import { CarryAttestationSchema, carriedPass, carryCheck, type Surfaces } from './carry';
+import { CARRY_DIR, rangeProblems, trustedApproval } from './trust';
 import { hardSecrets, reportLeaks } from './secrets';
 import { BUDGET } from './tar';
 // @ts-expect-error: a plain .mjs module
@@ -92,6 +100,134 @@ export function readManifest(file: string): CandidateManifest {
   return m;
 }
 
+/** The surfaces and the site's files a folder keeps beside its manifest (4.1.20, `field:init`). */
+export const SURFACES = 'qualification-surfaces.json';
+export const SITE_FILES = 'site-files.json';
+
+/**
+ * A candidate as a carry reads it, from a folder `field:init` made: its manifest, its surfaces and its site's files,
+ * each of the last two the very bytes the attested manifest names (`surfaces/…`, `site/…`). Every file of the
+ * candidate (path → SHA-256, the site's as `site:<path>`).
+ */
+export function candidateOf(dir: string): { m: CandidateManifest; surfaces: Surfaces; files: Record<string, string> } {
+  const m = readManifest(join(dir, MANIFEST));
+  const want = digestsOf(m);
+  const bound = (file: string, name: string) => {
+    const p = join(dir, file);
+    if (!existsSync(p)) throw new Error(`${dir}: no ${file} (a candidate before 4.1.20 has no surfaces: field:init)`);
+    const b = readFileSync(p);
+    if (want[name] !== sha256(b)) throw new Error(`${dir}/${file}: not the ${name} the candidate's manifest names`);
+    return JSON.parse(b.toString('utf8'));
+  };
+  const surfaces = bound(SURFACES, 'surfaces/qualification-surfaces.json') as Surfaces;
+  const site = bound(SITE_FILES, 'site/site-files.json') as { files: { path: string; sha256: string }[] };
+  return {
+    m,
+    surfaces,
+    files: { ...want, ...Object.fromEntries(site.files.map((f) => [`site:${f.path}`, f.sha256])) },
+  };
+}
+
+/** The carries of a folder's release (`--carried=`, else docs/dev/passes/carry/<release>/), judged. */
+function carriedOf(dir: string, carried: string | undefined) {
+  const first = reportFiles(dir)[0];
+  const release = first
+    ? (JSON.parse(readFileSync(join(dir, first), 'utf8')) as { release?: string }).release
+    : undefined;
+  if (!release) return new Map<string, { counts: boolean; why?: string; from?: string }>();
+  return carriedPasses(dir, resolve(carried ?? join(CARRY_DIR, release)), release);
+}
+
+/** The candidate a manifest names, as a carry refers to it. */
+const refOf = (m: CandidateManifest, release: string) => ({ release, commit: m.sha, candidateRun: m.candidateRunId });
+
+/**
+ * The passes carried to a folder's candidate (4.1.20): every attestation under `carried` (docs/dev/passes/carry/
+ * <release>/), counted only when approved, signed as tools/field/trust.ts requires (`repo`, the checkout), its source
+ * report beside it the very bytes it names, its target this candidate's surface. Each pass, counted or why not.
+ */
+export function carriedPasses(
+  dir: string,
+  carried: string,
+  release: string,
+  repo = '.',
+): Map<string, { counts: boolean; why?: string; from?: string }> {
+  const out = new Map<string, { counts: boolean; why?: string; from?: string }>();
+  if (!existsSync(carried)) return out;
+  let target: ReturnType<typeof candidateOf> | null = null;
+  let targetWhy = `${dir} keeps no surfaces of its candidate`;
+  try {
+    if (existsSync(join(dir, SURFACES))) target = candidateOf(dir);
+  } catch (e) {
+    targetWhy = (e as Error).message;
+  }
+  const seen = new Map<string, string>();
+  for (const f of readdirSync(carried).filter((x) => x.endsWith('.json') && !x.endsWith('.report.json'))) {
+    const p = join(carried, f);
+    const rel = (q: string) => relative(resolve(repo), resolve(q)).split(sep).join('/');
+    // The committed bytes, signed as the trust root requires; never what the working tree holds (an edit not
+    // committed counts for nothing, second reading of PR 4).
+    let json: unknown;
+    try {
+      json = JSON.parse(readFileSync(p, 'utf8'));
+    } catch {
+      out.set(f, { counts: false, why: 'not JSON' });
+      continue;
+    }
+    const from = (json as { from?: { commit?: string } })?.from?.commit ?? '';
+    const att = trustedApproval({ repo, path: rel(p), sourceCommit: from });
+    if (!att.ok) {
+      const id = (json as { passId?: string })?.passId ?? f;
+      out.set(id, { counts: false, why: att.why });
+      continue;
+    }
+    const parsed = CarryAttestationSchema.safeParse(JSON.parse(att.bytes));
+    if (!parsed.success) {
+      out.set(f, { counts: false, why: `not a carry attestation: ${parsed.error.issues[0]?.message}` });
+      continue;
+    }
+    const a = parsed.data;
+    if (f !== `${a.passId}.json`) {
+      out.set(a.passId, { counts: false, why: `${f} holds the carry of ${a.passId}: one file per pass, by its id` });
+      continue;
+    }
+    if (seen.has(a.passId)) {
+      out.set(a.passId, { counts: false, why: `two carries of ${a.passId}` });
+      continue;
+    }
+    seen.set(a.passId, f);
+    if (!target) {
+      out.set(a.passId, { counts: false, why: targetWhy });
+      continue;
+    }
+    const reportPath = p.replace(/\.json$/, '.report.json');
+    const rep = trustedApproval({ repo, path: rel(reportPath), sourceCommit: a.from.commit });
+    if (!rep.ok) {
+      out.set(a.passId, { counts: false, why: `the source report beside the carry: ${rep.why}` });
+      continue;
+    }
+    if (rep.principal !== att.principal) {
+      out.set(a.passId, { counts: false, why: 'the carry and its source report are signed by two principals' });
+      continue;
+    }
+    const report = FieldReportSchema.safeParse(JSON.parse(rep.bytes));
+    if (!report.success) {
+      out.set(a.passId, { counts: false, why: 'the source report beside the carry is not a report' });
+      continue;
+    }
+    const r = carriedPass({
+      attestation: a,
+      sourceReport: report.data,
+      sourceReportBytes: rep.bytes,
+      target: target.surfaces,
+      targetRef: refOf(target.m, release),
+      trusted: att,
+    });
+    out.set(a.passId, r.counts ? { counts: true, from: a.from.candidateRun } : { counts: false, why: r.why });
+  }
+  return out;
+}
+
 /** The digests a report is bound to: every file the candidate judged (its tarballs since 4.1.18, its runs, its reports). */
 export const digestsOf = (m: CandidateManifest): Record<string, string> =>
   Object.fromEntries(m.artifacts.map((a) => [a.name, a.sha256]));
@@ -130,7 +266,11 @@ function reportFiles(dir: string): string[] {
  * run, every digest), say nothing a leak scan refuses, and show evidence whose SHA-256 is the one it names; each pass
  * appears exactly once; `require` names passes that must be `passed`.
  */
-export function checkDir(dir: string, require: readonly string[] = []): { problems: string[]; reports: FieldReport[] } {
+export function checkDir(
+  dir: string,
+  require: readonly string[] = [],
+  carried: ReadonlyMap<string, { counts: boolean }> = new Map(),
+): { problems: string[]; reports: FieldReport[] } {
   const problems: string[] = [];
   if (!existsSync(join(dir, MANIFEST)))
     return { problems: [`${dir}: no ${MANIFEST} (npm run field:init)`], reports: [] };
@@ -202,10 +342,20 @@ export function checkDir(dir: string, require: readonly string[] = []): { proble
   for (const id of PASS_IDS) if (!seen.has(id)) problems.push(`${id}: no report`);
   for (const id of require) {
     if (!(PASS_IDS as readonly string[]).includes(id)) problems.push(`--require=${id}: not a pass`);
-    else if (reports.find((r) => r.passId === id)?.status !== 'passed') problems.push(`${id}: required, not passed`);
+    else if (
+      !filledBy(
+        reports.find((r) => r.passId === id),
+        carried.get(id),
+      )
+    )
+      problems.push(`${id}: required, not passed (nor carried by an approved, signed attestation)`);
   }
   return { problems, reports };
 }
+
+/** Whether a pass counts as passed here: its own report passed, or not run and filled by a counted carry. */
+const filledBy = (r: FieldReport | undefined, c: { counts: boolean } | undefined) =>
+  r?.status === 'passed' || ((!r || r.status === 'not-run') && !!c?.counts);
 
 /** A table cell from a person's text: one line, its backslashes, pipes and markup escaped (no row, comment or tag). */
 const cell = (s: string | undefined) =>
@@ -217,12 +367,19 @@ const cell = (s: string | undefined) =>
     .replace(/\s*(\r\n|\r|\n)\s*/g, ' ');
 
 /** The people's passes table of a sheet, from the reports, in the order of PASS_IDS. */
-export function renderPasses(reports: readonly FieldReport[], m: CandidateManifest): string {
+export function renderPasses(
+  reports: readonly FieldReport[],
+  m: CandidateManifest,
+  carried: ReadonlyMap<string, { counts: boolean; from?: string }> = new Map(),
+): string {
   const by = new Map(reports.map((r) => [r.passId, r]));
   const count = Object.fromEntries(FIELD_STATUSES.map((s) => [s, 0])) as Record<string, number>;
   const rows = PASS_IDS.map((id) => {
     const r = by.get(id);
-    const status = r?.status ?? 'not-run';
+    // A pass carried here by an approved, signed attestation counts as passed; its report stays the person's (ADR 0024).
+    // Only where the person tried nothing on this candidate: a carry never covers a failure made here.
+    const carry = !r || r.status === 'not-run' ? carried.get(id) : undefined;
+    const status = carry?.counts ? 'passed' : (r?.status ?? 'not-run');
     count[status]++;
     const env = r
       ? [r.environment.deviceFamily, r.environment.deviceModel, r.environment.os, r.environment.browser]
@@ -232,7 +389,7 @@ export function renderPasses(reports: readonly FieldReport[], m: CandidateManife
       : '';
     const who = r?.operator ? `${r.operator}, ${r.startedAt?.slice(0, 10) ?? ''}` : '';
     const failed = r?.failures.map((x) => `${x.step}: ${x.observed}${x.issue ? ` (${x.issue})` : ''}`).join('; ');
-    return `| ${PASS_LABELS[id]} (\`${id}\`) | ${status} | ${cell(who)} | ${cell(env)} | ${cell(failed || (status === 'blocked' ? r?.notes : ''))} |`;
+    return `| ${PASS_LABELS[id]} (\`${id}\`) | ${carry?.counts ? `passed, carried from run ${carry.from}` : status} | ${cell(who)} | ${cell(env)} | ${cell(failed || (status === 'blocked' ? r?.notes : ''))} |`;
   });
   return [
     "## People's passes",
@@ -300,6 +457,21 @@ export function main(args: string[]): number {
         `ℹ  no attestation of the manifest downloaded (${g.status === 0 ? 'none: a candidate before 4.1.19' : (g.stderr || '').trim().split('\n').at(-1)}): its bundles are checked online`,
       );
     rmSync(att, { recursive: true, force: true });
+    // The surfaces and the site's files (4.1.20, ADR 0024): what a carry of a pass from or to this candidate reads.
+    for (const [artifact, file] of [
+      ['candidate-surfaces', SURFACES],
+      ['candidate-site', SITE_FILES],
+    ] as const) {
+      if (flag(args, 'manifest') && existsSync(join(dirname(resolve(flag(args, 'manifest')!)), file))) {
+        writeFileSync(join(dir, file), readFileSync(join(dirname(resolve(flag(args, 'manifest')!)), file)));
+        continue;
+      }
+      const t = mkdtempSync(join(tmpdir(), 'field-surfaces-'));
+      const d = spawnSync('gh', ['run', 'download', run, '-n', artifact, '-D', t], { encoding: 'utf8' });
+      if (d.status === 0 && existsSync(join(t, file))) writeFileSync(join(dir, file), readFileSync(join(t, file)));
+      else console.log(`ℹ  no ${file} in run ${run} (a candidate before 4.1.20): its passes cannot be carried`);
+      rmSync(t, { recursive: true, force: true });
+    }
     let made = 0;
     for (const id of PASS_IDS) {
       const f = join(dir, `${id}.json`);
@@ -313,14 +485,19 @@ export function main(args: string[]): number {
   if (cmd === 'check') {
     const dir = resolve(flag(args, 'dir') ?? '.');
     const require = (flag(args, 'require') ?? '').split(',').filter(Boolean);
-    const { problems, reports } = checkDir(dir, require);
+    const carried = carriedOf(dir, flag(args, 'carried'));
+    const { problems, reports } = checkDir(dir, require, carried);
     for (const p of problems) console.error(`  ✖ ${p}`);
     const passed = reports.filter((r) => r.status === 'passed').length;
     if (problems.length) {
       console.error(`✖  field:check: ${problems.length} problem(s) in ${dir}`);
       return 1;
     }
-    console.log(`✔  field:check: ${reports.length} reports agree with their candidate; ${passed} passed`);
+    const carriedOk = [...carried.values()].filter((c) => c.counts).length;
+    for (const [id, c] of carried) if (!c.counts) console.log(`  ℹ ${id}: a carry that does not count (${c.why})`);
+    console.log(
+      `✔  field:check: ${reports.length} reports agree with their candidate; ${passed} passed${carriedOk ? `, ${carriedOk} carried` : ''}`,
+    );
     return 0;
   }
   if (cmd === 'report') {
@@ -335,9 +512,10 @@ export function main(args: string[]): number {
     }
     const m = readManifest(join(dir, MANIFEST));
     const release = reports[0]?.release ?? 'unknown';
+    const carried = carriedOf(dir, flag(args, 'carried'));
     writeFileSync(
       out,
-      writePasses(existsSync(out) ? readFileSync(out, 'utf8') : null, renderPasses(reports, m), release),
+      writePasses(existsSync(out) ? readFileSync(out, 'utf8') : null, renderPasses(reports, m, carried), release),
     );
     console.log(`✔  ${out}: the people's passes written from ${reports.length} reports`);
     return 0;
@@ -373,7 +551,51 @@ export function main(args: string[]): number {
     );
     return v.problems.length || a.level === 'unverified' ? 1 : 0;
   }
-  console.error('npm run field:<init|check|report|bundle|verify-bundle> -- … (tools/field/field.ts)');
+  if (cmd === 'carry') {
+    const range = flag(args, 'check-range');
+    if (range) {
+      const bad = rangeProblems('.', range);
+      for (const b of bad) console.error(`✖  ${b}`);
+      if (!bad.length) console.log(`✔  ${range}: the trust root and the attestations are not changed together`);
+      return bad.length ? 1 : 0;
+    }
+    const from = flag(args, 'from');
+    const to = flag(args, 'to');
+    const pass = flag(args, 'pass');
+    if (!from || !to || !pass)
+      throw new Error('field:carry --from=<folder> --to=<folder> --pass=<passId> [--out=<folder>]');
+    const reportFile = join(resolve(from), `${pass}.json`);
+    const reportBytes = readFileSync(reportFile, 'utf8');
+    const report = FieldReportSchema.parse(JSON.parse(reportBytes));
+    const source = candidateOf(resolve(from));
+    const target = candidateOf(resolve(to));
+    const targetRelease = JSON.parse(readFileSync(join(resolve(to), `${pass}.json`), 'utf8')).release as string;
+    const r = carryCheck({
+      report,
+      reportBytes,
+      from: refOf(source.m, report.release),
+      to: refOf(target.m, targetRelease),
+      source: source.surfaces,
+      target: target.surfaces,
+      sourceFiles: source.files,
+      targetFiles: target.files,
+    });
+    if (!r.ok) {
+      for (const w of r.why) console.error(`  ✖ ${w}`);
+      console.error(`✖  field:carry: ${pass} is not carried to run ${target.m.candidateRunId}; it is run again`);
+      return 1;
+    }
+    const out = resolve(flag(args, 'out') ?? join(CARRY_DIR, targetRelease));
+    mkdirSync(out, { recursive: true });
+    writeFileSync(join(out, `${pass}.json`), `${JSON.stringify(r.attestation, null, 1)}\n`);
+    // The person's report as they wrote it, byte for byte: what the attestation's digest names.
+    writeFileSync(join(out, `${pass}.report.json`), reportBytes);
+    console.log(
+      `✔  ${pass}: its surface is unchanged (${r.attestation.changedFiles.length} other file(s) changed); a pending carry in ${out}. The maintainer commits it and approves it (decision "approved", approvedBy their principal), every commit signed with their key: one unsigned commit on that path refuses it for good. Claude commits nothing there.`,
+    );
+    return 0;
+  }
+  console.error('npm run field:<init|check|report|bundle|verify-bundle|carry> -- … (tools/field/field.ts)');
   return 2;
 }
 

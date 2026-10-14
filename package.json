@@ -125,6 +125,7 @@
     "build:game": "npm run verify:game && vite build && npm run verify:dist && npm run check:spoilers && npm run audit:assets",
     "connector-archive-e2e": "node scripts/connector-archive-e2e.mjs",
     "field:verify-bundle": "tsx tools/field/field.ts verify-bundle",
+    "field:carry": "tsx tools/field/field.ts carry",
     "locks": "node scripts/locks.mjs"
   },
   "config": {

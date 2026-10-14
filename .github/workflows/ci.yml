@@ -68,6 +68,9 @@ jobs:
       # step waits for the tool to be on the branch.
       - if: github.event_name == 'pull_request'
         run: npm run changes -- --check --base=origin/main
+      # The trust root of the people's passes is never changed with an attestation (4.1.20, ADR 0024).
+      - if: github.event_name == 'pull_request'
+        run: npm run -s field:carry -- --check-range=origin/main...HEAD
       # Formatting, code lint, knip, both TypeScript configurations, content lint (4.1.0 "Clarity").
       - run: npm run quality
       - run: npm run docs:truth

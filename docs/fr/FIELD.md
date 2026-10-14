@@ -92,3 +92,27 @@ npm run field:verify-bundle -- <bundle.tar.gz> --offline --trusted-root=trusted-
 - **Autre commit, autre passe** : un rapport d'un autre candidate run, ou dont les empreintes ne sont pas celles du
   candidat, ne passe pas la vérification. Un correctif qui change le package rend caducs les rapports qu'il touche
   jusqu'à ce qu'ils soient refaits.
+
+## Reporter une passe sur un nouveau candidat (4.1.20)
+
+Une passe est liée à sa **surface** : les fichiers du candidat qu'elle lit (`docs/dev/surfaces.json`, le
+`qualification-surfaces.json` attesté ; le site construit compte fichier par fichier), la configuration qu'elle lit dans
+le dépôt, et les passes dont elle dépend (ADR 0024). Quand aucun d'eux n'a changé entre le candidat essayé et un
+nouveau, version comprise, la passe peut valoir aussi pour le nouveau :
+
+```sh
+npm run field:init -- --release=4.1.21 --candidate=<nouveau run>   # garde aussi ses surfaces et les fichiers de son site
+npm run field:carry -- --from=.cache/field/4.1.20 --to=.cache/field/4.1.21 --pass=safari-ios-offline-update
+```
+
+- `field:carry` refuse toute différence pertinente et nomme le fichier. Il n'y a pas de `--force` : on rejoue la passe.
+- Sinon, il écrit une attestation `pending` et la copie exacte du rapport source sous `docs/dev/passes/carry/4.1.21/`.
+- Le mainteneur la commite et l'approuve (`decision`, `approvedBy`), chaque commit signé avec sa clé : un seul commit
+  non signé sur ce chemin laisse le report refusé pour de bon. La racine de confiance est `.github/allowed_signers` tel
+  que le commit du candidat **source** (sur la ligne first-parent de main) le porte.
+- Un report ne remplit qu'une passe non essayée sur le nouveau candidat : il ne couvre jamais un échec fait là.
+- `field:check` et `field:report` comptent alors la passe comme `passed` pour le nouveau candidat. Le rapport de la
+  personne n'est jamais réécrit : ses quatre statuts restent quatre.
+- Un changement du seul README reporte la passe PWA. Un changement du service worker, de l'archive du Bridge ou du
+  mixage refuse la passe qui les lit. La version seule refuse de même les passes PWA, Mystery, reprise de partie,
+  speedrun et archive.
