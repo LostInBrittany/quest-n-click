@@ -173,7 +173,9 @@ Précisions du 12 octobre :
 - le rapport humain (`FieldReport`, quatre statuts) n'est jamais réécrit : le report est une `CarryAttestation`
   séparée ;
 - l'approbation est un **commit signé par le mainteneur**, avec sa clé matérielle `id_ed25519_sk`, vérifiée contre
-  `.github/allowed_signers` tel qu'il était au candidat source. Claude n'en écrit jamais ;
+  `.github/allowed_signers` tel qu'il était au candidat source. Claude n'en écrit jamais. *(14 octobre, D37 : la
+  racine est finalement la clé logicielle `id_ed25519`, sans phrase de passe ; la signature prouve l'usage de la clé,
+  pas l'accord personnel du mainteneur, qui est consigné explicitement.)* ;
 - il n'y a pas de revue CODEOWNERS obligatoire : le mainteneur est seul collaborateur et ne peut pas approuver ses
   propres PR. CODEOWNERS reste informatif ;
 - grâce à la campagne sur le candidat `4.2.0-rc` (D34), `field:carry` ne sert qu'entre deux `rc` de la 4.2 : après un
@@ -283,6 +285,29 @@ Sans sharding, le candidat passerait de 79 minutes à plus de trois heures : le 
 
 La colonne « Dépend de » nomme des PR (« PR 6 ») ou des ordres (« ordre 7 »).
 
+### 5.1 Ordre restant (15 octobre) — ce tableau remplace l'ordonnancement ci-dessus à partir de l'ordre 6
+
+Les ordres 1 à 5 sont faits : PR C #110, 1a #111, 2a #112, 1b #113, 1c #114 (maintenance, détachée de la 1b),
+2b–2e réunies en #118, PR 3 #119, durcissement des connecteurs #120 (hors plan), PR 4 #121, PR 3b #122 (empilée sur la
+PR 4, qui crée `surfaces.json`). Le ruleset `v*` (création, suppression, non-fast-forward) est actif depuis le 14
+octobre ; l'immuabilité des releases depuis le 15. Les étapes qui suivent n'attendent plus le mainteneur, sauf mention :
+
+| # | Étape | Après |
+|---:|---|---|
+| a | seuils du candidat technique écrits avant son lancement (`changes/4120-release.log.md`) | #122 |
+| b | candidat technique, lancé avec le SHA complet de `main` ; profil `ops:qualify` complet, répétition de signature | a |
+| c | `ship preflight-stable` à la main ; manques acceptables : les lignes npm, la clé de signature sur GitHub | b |
+| d | PR 6 `release/4.1.20`, liste fermée (§11.3 réduit à ce qui manque), `load.json` selon les seuils de a | b |
+| e | candidat final sur le SHA de fusion de la PR 6 ; une relance au plus par job, consignée | d |
+| f | `preflight-stable`, puis `v4.1.20-rc.1` ; `ship verify`, `gh release verify`, statut immuable | e |
+| g | si les trois contrôles de f passent, `v4.1.20` sur le même SHA et le même run, sans attendre (accord du mainteneur, 15 octobre) ; nightly lancé sur ce SHA | f |
+| h | PR 7 `release/4.2.0-rc` : la version et les notes, sans code ; son candidat | g |
+| i | nightly classé, `preflight-stable`, `v4.2.0-rc.1` signé avec `id_ed25519` (D37 ; Claude signe, accord du 15 octobre) ; `field:init` sur #75–#87 | h |
+
+Si un contrôle de f échoue, la stable est bloquée et rc.1 reste en place. Un défaut du code ou des artefacts donne un
+correctif, un nouveau candidat et `rc.2`. Une publication interrompue : `release.yml` supprime le brouillon restant et
+refait la release en entier ; deux échecs donnent `rc.2` sur le même SHA et le même run.
+
 **Pourquoi cet ordre.**
 - La PR 1a ne touche aucun ensemble de mutation, et `mutants.json` n'a aucune entrée pour `backup.ts`. Elle avance donc
   en parallèle de la 2a.
@@ -300,6 +325,8 @@ défauts sans le vouloir. `backup.ts` est découpé dans la PR 1a, `ops-qualify.
 manifeste d'artefacts entre dans la PR 3. Le reste, dont `connector-archive-e2e.mjs`, attend la fin de la campagne.
 
 ## 6. PR 1a et 1b — Backup vérifiable et restauration sans ambiguïté
+
+> **Livré par #111 (1a), #113 (1b) et #114 (1c, maintenance)**, fusionnées sur `main` avant la release.
 
 ### 6.0 PR 1a : découpage neutre
 
@@ -576,6 +603,8 @@ avant la fusion.
 
 ## 7. PR 2a à 2e — Fermer les deux dernières zones de mutation
 
+> **Livré par #112 (2a) et #118 (2b–2e réunies)**, fusionnées sur `main` avant la release.
+
 ### 7.0 Découpage
 
 - **2a** pose le sharding (§7.3) et le schéma d'exemption (§7.4), puis rend `reality-store-postgres` bloquant.
@@ -672,11 +701,15 @@ migrent vers ce format dans la PR 2a.
 - aucun survivant n'est inexpliqué ;
 - la baseline publie, pour les neuf ensembles : les tués, les exemptés par catégorie, le total, l'input hash et les
   fichiers ;
-- le candidat technique reste sous 90 minutes à cache froid. Sinon, un budget supérieur est décidé avant la mesure
+- le candidat technique reste sous 90 minutes à cache froid. *(Précisé le 15 octobre, avant son lancement : le budget
+  porte sur le chemin critique à travers `needs` (`duration.criticalPath.seconds`) ; la durée murale a un seuil
+  d'alerte de 150 minutes, qui ne bloque rien ; `changes/4120-release.log.md`.)* Sinon, un budget supérieur est décidé avant la mesure
   suivante et écrit dans le LOG ;
 - l'alias `connectors` reste jusqu'à la 4.2.
 
 ## 8. PR 3 — Le candidat qualifie exactement ce qu'il publie
+
+> **Livré par #119**, fusionnée sur `main` avant la release.
 
 ### 8.0 Découpage neutre d'abord
 
@@ -769,6 +802,8 @@ une divergence YAML. La PR 4 lit ce manifeste pour construire les surfaces.
 
 ## 9. PR 4 — Transport sûr des passes humaines
 
+> **Livré par #121**, fusionnée sur `main` avant la release.
+
 ### 9.1 Problème
 
 Le rapport actuel lie une passe à un SHA et à un candidat. C'est sûr, mais trop grossier : corriger une phrase du
@@ -839,7 +874,8 @@ L'attestation est committée dans `docs/dev/passes/carry/`, dans un commit sign�
   mainteneur, puis un candidat qui l'atteste. Elle ne vaut qu'à partir de ce candidat ;
 - une PR qui modifie à la fois `allowed_signers` et `passes/carry/` est refusée ;
 - la racine est la clé matérielle du mainteneur (`id_ed25519_sk`). Le premier `.github/allowed_signers` est ajouté
-  dans la PR 4, dans un commit signé par cette clé, et il entre dans le candidat final de la 4.1.20 ;
+  dans la PR 4, dans un commit signé par cette clé, et il entre dans le candidat final de la 4.1.20. *(D37 : c'est
+  `id_ed25519`, commit 8cebea2 de #121.)* ;
 - il n'y a pas de revue CODEOWNERS obligatoire, puisque le mainteneur est seul collaborateur. La garantie vient de la
   signature, que Claude ne peut pas produire ;
 - `approvedBy` doit être le principal que `allowed_signers` associe à la clé signataire. Ce n'est pas un texte libre ;

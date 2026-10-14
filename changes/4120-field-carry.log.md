@@ -20,7 +20,8 @@
   - a range that changes the root and an attestation is refused, but the root with the folder's README only is not
     (PR 4 itself brings both).
 - **Left for the maintainer:** the first `.github/allowed_signers` (`id_ed25519_sk`), in a commit signed by that key,
-  in this pull request, merged with a merge commit. Claude cannot sign it.
+  in this pull request, merged with a merge commit. Claude cannot sign it. *(Corrected at the release: the maintainer
+  chose the software key `id_ed25519`, and Claude made that commit, 8cebea2, at their request; D37.)*
 - Second reading (subagent, 13 Oct, with a git/ssh probe). Fixed:
   - **P0: an attestation named its own trust root.** A branch added a key to allowed_signers, removed it, and signed
     an approval with it whose `from.commit` was the first commit. The net diff held no key change, and the principal
