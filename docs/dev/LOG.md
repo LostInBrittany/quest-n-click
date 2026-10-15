@@ -4924,8 +4924,8 @@ candidate is judged against criteria older than it (plan §8.3; the critique of 
   4.2.0 is on GitHub Releases, signed and immutable.
 - `tools/release/preflight.mjs` changes, and it ships in `web-scumm-4.2.0.tgz`: the stable's archive is not
   rc.2's. Nothing depends on that equality any more (no pass, no carry); the README installs from `v4.2.0`.
-- The stable tag is signed with `id_ed25519` only on the maintainer's explicit yes (D37); the thirteen issues get the
-  stable's `field:init` command once the release exists.
+- The stable tag is signed with `id_ed25519` on the maintainer's explicit yes (D37), given on 16 October: « oui signe
+  4.2 » (yes, sign 4.2). The thirteen issues get the stable's `field:init` command once the release exists.
 
-→ next: this PR's candidate, `preflight-stable`, the maintainer's yes, `v4.2.0` signed, `ship verify`,
+→ next: this PR's candidate, `preflight-stable`, `v4.2.0` signed, `ship verify`,
 `readme-quickstart --published`, the thirteen issues commented.
