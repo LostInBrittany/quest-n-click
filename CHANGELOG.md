@@ -1,5 +1,194 @@
 # Changelog
 
+## 4.1.20 — 2026-10-15
+
+"Last Mile" (LOG #184): no new mechanic; the last 4.1.x release with code before 4.2. A Bridge backup is schema 4 and
+says whether it holds the whole store, the quota included, under a digest of its whole envelope (ADR 0023). A restore
+names its mode, `merge` or `replace-store`, and runs only with the store to itself under a maintenance lease
+(migration 0005); `replace-store` writes a verified safety backup first. The last two measured mutation sets,
+`connectors-edge` and `reality-store-postgres`, gate, in shards from one matrix. Every candidate a tag may name runs
+the full qualification profile on its own archives and image, and three loads per store. A people's pass is bound
+to the files of its surface and carried to a later candidate only when none changed, the version included (ADR
+0024). A release is a draft first, then immutable; 4.2's tag signing, preflight and npm runbook are rehearsed without
+publishing. [GO / NO-GO 4.2](docs/dev/GO-NO-GO-4.2.md): NO-GO, the people's passes run on the `4.2.0-rc` candidate.
+Dated the day its final candidate froze; the tag's own date is in the release notes.
+
+### Breaking
+
+- **`restore` says its mode** (4.1.20): `bridge restore` without `--mode` restores nothing. `--mode=merge` is 4.1.19's
+  restore unchanged. `--mode=replace-store --yes-replace-store --safety-out=<new file>` makes the store the backup,
+  after a safety backup of the store, written and checked first (`docs/en/UPGRADING.md` §32).
+
+### Fixed
+
+- **A connector no longer crashes on an unexpected rejection** (4.1.20): the badge and email connectors' bookkeeping
+  of requests in flight, the IMAP poll's timer, the SSH password login and the `/health` handler each catch a
+  rejection now. A pairing that throws refuses the SSH login, and a `health()` that throws answers 503. None of them can be reached under today's contracts.
+- **A secret that is not a string is refused at start** (4.1.20): an inline `secret`, `password` or `bridge.token`
+  written as a JSON number or object used to be accepted, and then every request failed with a 500.
+- **The IMAP client closes its socket after a greeting that is not OK** (4.1.20): it used to stay open until the
+  server hung up.
+- **A stopping Telnet connector reads nothing more** (4.1.20): in the second before its sockets are destroyed, bytes a
+  client still sends are no longer read, even if the connector starts again. `docs/en/CONNECTORS.md` says that
+  `/health` answers 503 when unhealthy and that an inline secret must be a string.
+
+### Changes
+
+- **Dependencies of 11 October** (after 4.1.19): Playwright 1.64, the MCP SDK 1.32.1, knip 6.40, `cross-env` 10 (a
+  CLI here; Node 20+, which the project's 22.12 meets); the workflows' actions pinned to `checkout` 7.0.1,
+  `setup-node` 7.1.0, `upload-artifact` 7.0.2, `download-artifact` 8.0.2 (a hash mismatch now fails, as the release
+  wants) and `attest-build-provenance` 4.2.2 (a wrapper on `actions/attest`), each SHA checked against its tag.
+- **`@types/node` stays on the oldest supported Node** (22): Dependabot no longer proposes its majors; Node 26's types
+  reject code that is right on 22.
+
+- **4.1.20 "Last Mile" planned** (4.1.20): `docs/dev/PLAN-4.1.20-LAST-MILE.md` (French) and D34–D36 set out the last
+  4.1.x release with code. Its PRs plan to make the two measured mutation sets gating, have the candidate qualify the
+  exact archives and image it publishes, give a Bridge backup its completeness and restore two explicit modes, carry a
+  human pass only across identical artefacts, and rehearse 4.2's signature and npm publication. The field campaign
+  moves to the 4.2.0 release candidate.
+
+- **The Bridge's backup code is split by responsibility** (4.1.20): `bridge/src/backup/` holds the file's schema, its
+  canonical form, its bounded and atomic files, the snapshot and the restore, with `index.ts` as the public face. No
+  behaviour changes: a test pins the messages a refused file gets, the command line's codes and lines and a backup's
+  canonical form, and it passes before and after. The layers test now walks the Bridge's sub-folders.
+
+- **The Postgres adapter's mutation set gates, judged on a real Postgres** (4.1.20): `reality-store-postgres` joins the
+  gated sets, with 40 of its 41 mutants killed and the last named as equivalent. Its tests each get a database of their
+  own and run one file after the other. CI's `bridge-postgres` job runs the set's eight files, not five.
+- **Mutation in shards, from one matrix** (4.1.20): a long set runs in shards (`--shard=i/n`), which are then merged
+  into the set's report (`--merge`). The merge refuses a shard that is missing, doubled, cancelled or of other inputs.
+  ci, the nightly, the candidate and the release run the matrix that `tools/mutation-shards.ts` generates, and no
+  workflow writes its own list of sets. `release.yml` refuses a tag whose commit generates none.
+- **Every named survivor is an exemption with its terms** (4.1.20): each entry of `docs/dev/mutants.json` says its
+  category, why, proof, owner and the version it is read again at. An incomplete entry or a version that has come
+  fails the run.
+- **A mutation run that cannot start says why** (4.1.20): it names each failed test and its first error.
+
+- **A Bridge backup is schema 4** (4.1.20, ADR 0023): its digest covers the whole envelope, not only its rows. It says
+  what it holds (`completeness`), and it carries the speedrun quota, which no backup carried before. Every SQL table is
+  classified, so a future table cannot slip out of a "whole store" backup. Files of schemas 1 to 3 are still restored,
+  with `--mode=merge`. The digest is an integrity check, not a signature.
+
+- **A restore has the store alone, or nothing** (4.1.20, ADR 0023): from store schema 5 (migration 0005), `serve` and
+  every writing command hold a maintenance lease in the store itself. `restore` and a migration down take the store
+  alone. They are refused at once, naming who holds it, while anything else serves or writes. Leases run on the
+  database's clock, and an expired lease is never in the way. On Postgres an advisory lock rides beside the lease, on a
+  connection of its own (`--lock-timeout`). A `serve` that loses its lease holds its writes (503) and fails `/readyz`
+  until it takes one again. **Stop every Bridge older than 4.1.20 before the first restore** (`docs/en/UPGRADING.md`
+  §32).
+
+- **Every surviving mutant of badge verification read** (4.1.20): the 197 survivors of `connectors-edge` in
+  `connectors/src/badges/verify.ts` (168) and `connector.ts` (29) were read one by one. 193 are killed by
+  `tests/connectors-badges-edge-mutants.test.ts`, which checks each refusal's exact reason, the exact bounds of dates,
+  counts, indexes and the cache, each shape a document may take, and what the badge form answers and rejects. The
+  other 4 are named as equivalent in `docs/dev/mutants.json`: two key lookups whose forced branch gives the same null,
+  and two fetcher options passed as `undefined`, which the fetcher reads the same as absent.
+
+- **Every surviving mutant of the email connector read** (4.1.20): the 116 survivors of `connectors-edge` in
+  `connectors/src/email/connector.ts` (70), `imap.ts` (40) and `parse.ts` (6) were read one by one. 109 are killed by
+  `tests/connectors-email-edge-mutants.test.ts`, which checks the configuration, each refusal's exact reason, the sender
+  links and their bound of 10,000, the webhook's answers, the IMAP pass (sizes, flags, retention, its timer) and every
+  bound of the IMAP client byte for byte, against an in-memory IMAP peer. The other 7 are named in
+  `docs/dev/mutants.json`: 4 equivalent and 3 unreachable.
+
+- **Every surviving mutant of the terminal connectors read** (4.1.20): the 113 survivors of `connectors-edge` in
+  `connectors/src/ssh/connector.ts` (44), `terminal/shell.ts` (32), `telnet/connector.ts` (25) and `terminal/guard.ts`
+  (12) were read one by one. 111 are killed by `tests/connectors-terminal-edge-mutants.test.ts`, which checks the
+  address gate and the session guard at each bound, the resume words and their bound of 10,000, every branch of the
+  virtual shell, Telnet negotiation byte for byte, and both servers' authentication, sessions, closes and refusals,
+  against fake sockets and fake ssh2 connections. The other 2 are named in `docs/dev/mutants.json`: 1 equivalent and 1
+  unreachable.
+
+- **Every surviving mutant of what the connectors share read** (4.1.20): the 62 survivors of `connectors-edge` in
+  `connectors/src/run.ts` (28), `http.ts` (18), `registry.ts` (12) and `config.ts` (4) were read one by one. 60 are
+  killed by `tests/connectors-rest-edge-mutants.test.ts`, which runs `web-scumm-connector` in-process (its arguments,
+  `--config=`, the token from a file or inline, the manifest from a file or the Bridge, the tenant and limits, the
+  health and metrics port and its 404s and 503), reads a body at its limit, the per-address budget at the minute and
+  its sweep above 10,000 addresses, and builds each connector from the registry. The other 2 are named in
+  `docs/dev/mutants.json`: 1 equivalent and 1 unreachable.
+
+- **Every mutation set gates** (4.1.20): `connectors-edge` joins the gated sets, in 4 shards, and the measured list is
+  empty. Its 488 survivors (12 October) were read family by family: 473 killed by tests, 15 named, each with its
+  argument or its test.
+
+- **The candidate qualifies exactly what it publishes** (4.1.20): a candidate started by hand, the only one a tag may
+  name, runs the Bridge's full qualification profile on its own four package archives and image, for its own run.
+  Its gate refuses anything less: the short profile, another commit or run, a step missing or failed, other archives
+  or another image (`tools/release/candidate.mjs qualification`). A pull request's run keeps `--short`.
+- **The qualification plays both restore modes under the maintenance lease** (4.1.20): a restore is refused at once
+  while the three Bridges serve, then `--mode=replace-store` runs with them stopped, after its safety backup, and every
+  player's signals and the board are compared. Its report (`ops-qualify.json`, schema 2) says the profile, the
+  commit, the candidate run, the four archives' SHA-256 and the command that reproduces it. Each step has a stable id,
+  its duration and its first defect.
+- **One manifest of a release's files** (4.1.20, `tools/release/artifacts.mjs`): for each file, the job that makes it,
+  its place in the candidate's manifest, its published name and its SBOM. `release.yml` checks its folder against the
+  manifest before uploading and makes nothing the candidate made. `ship verify` refuses a release whose files are not
+  exactly the manifest's. It gives back the 4.1.19 release file for file.
+- **The Bridge image says how it was made** (4.1.20): its identity (schema 2) adds the OS, the architecture, the
+  Docker engine and the buildx that built it, the archive's compression and size.
+- **Load figures are medians of three** (4.1.20): the candidate loads each store three times. The median of the three
+  p95 is compared with a baseline of the same runner and protocol (`docs/dev/baselines/load.json`). It raises an
+  alert past 25 %, and fails only past the absolute budget (proposals under 1 s, the leaderboard under 2 s) or when
+  all three loads are that much slower.
+- **What a large backup costs in memory is measured** (4.1.20, `tools/backup-memory.ts`, the candidate's
+  `backup-memory` job): backups of 64, 128 and 256 MiB on SQLite and Postgres, measured against the qualification
+  container's 512 MiB. It records the peak memory of the candidate Bridge's export, read and restore, and their
+  durations, and checks that one byte and one row above the bounds are refused.
+- **A release download that meets a 5xx is tried again** (4.1.20): `external-consumer` and `readme-quickstart`, as
+  `ops:qualify` already did. The connectors' end-to-end check draws its SSH host key until ssh2 reads it back.
+- The baseline refuses a qualification of another commit (4.1.19's pointed at one of `43dac1b`) and records the
+  medians and the memory measures. The README says "the four package archives" and which files the candidate makes
+  and which the release makes.
+
+- **A people's pass is bound to its surface** (4.1.20, ADR 0024). `docs/dev/surfaces.json` says what each of the
+  thirteen passes reads: the candidate's files (the built site file by file), the checkout's configuration (the
+  README's install section, now between generated markers in both languages) and the passes it depends on. Each
+  exclusion has its reason and a test. The candidate writes and attests `qualification-surfaces.json`, and a file in
+  no surface fails it.
+- **The candidate builds the site once, and the release publishes it** (4.1.20): its archive, its assets manifest and
+  the SHA-256 of every file it serves (`site-files.json`). `release.yml` publishes them, with the surfaces, and builds
+  no site to publish.
+- **`npm run field:carry`** (4.1.20) carries a pass to a new candidate when no file of its surface changed, the version
+  included. It writes a `pending` CarryAttestation beside the person's report, which is never rewritten. The
+  maintainer approves it in a commit signed with their key, judged by `.github/allowed_signers` as the source
+  candidate holds it. `field:check` and `field:report` then count it as passed. `ci` refuses a pull request that
+  changes the trust root together with an attestation.
+
+- **A release is made as a draft, then published** (4.1.20). release.yml creates it as a draft, uploads every file,
+  publishes it and reads it back. A run on a release already published stops and changes nothing, and a draft an
+  earlier run left is made again. This is what immutable releases need, which the maintainer turns on from 4.1.20,
+  with a ruleset on the release tags.
+- **`ship verify` also asks GitHub** (4.1.20): `gh release verify` and `gh release verify-asset` for each file, from
+  4.1.20 on, beside its own sums, attestations and list of files.
+- **`ship preflight-stable --candidate=<run>`** (4.1.20) says what 4.2 stable still needs, check by check, and signs,
+  publishes and changes nothing:
+  - the signing key and `allowed_signers`;
+  - immutability and the tag ruleset;
+  - the candidate's provenance;
+  - each npm package: its archive, name, bootstrap, stage-only trusted publisher, OIDC proof and version;
+  - the publishing step's exact Node and npm;
+  - GO / NO-GO against the reports.
+- **4.2's tag signing, rehearsed** (4.1.20): `ship tag --sign` signs a 4.2 tag with an SSH key, and a 4.1.x tag stays
+  annotated. Each candidate rehearses it with an ephemeral key: a signed tag never pushed, verified, then the key
+  destroyed. The report goes into the manifest and the release.
+- **The npm runbook** (`docs/en/RELEASING.md`, French in `docs/fr/`): exact pins (Node 22.23.3, npm 11.21.0), a
+  bootstrap by staged publishing of a reservation version, stage-only trusted publishing, the two-day window, the 2FA
+  promotion, and the dual-use classification of the connectors (not declared; staged with a 2FA promotion anyway). A
+  nightly job that does not gate watches that the four npm names stay free.
+- **The candidate's baseline reads every job, and retries** (4.1.20): `tools/release/run-jobs.mjs` reads every page of
+  the run's jobs (a candidate runs more than 100), retries a 5xx or a 429, and refuses a listing that does not add up
+  to its `total_count`. It replaces the one bare `gh api …/jobs?per_page=100` call.
+
+- **The trust root is the maintainer's software key** (4.1.20, D37): `.github/allowed_signers` names `id_ed25519`,
+  not the hardware key the plan named. A signature proves the key was used, not that the maintainer personally
+  approved; an approval still needs the maintainer's explicit yes, and Claude never writes one. A rotation is its own
+  pull request touching only `allowed_signers`.
+- **`load.json` reseeded where the measure holds** (4.1.20): Postgres from the technical candidate's three-load
+  medians; SQLite kept at 4.1.19's values, because one code measures 262–481 ms on these runners and the faster
+  median would turn the next slow runner into a regression. Every replaced value stays under `previous`.
+- **`replace-store`'s refusals all tested** (4.1.20): a `tenants-only` file and a file of an older SQL schema, each
+  sealed as a Bridge would, are refused from the command line with the store unchanged, beside the schema 3 case.
+
 ## 4.1.19 — 2026-10-11
 
 "Field Closure" (LOG #168): no new mechanic; it closes what 4.1.18's second reading found. A Bridge backup is one
