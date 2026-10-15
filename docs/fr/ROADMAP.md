@@ -599,6 +599,15 @@ par la baseline ; un script de liens. Laissé pour plus tard, dit comme tel : le
 (`docs/dev/passes/4.1.8.md`), l'accélération du workflow de release (son propre lot), les 845 lignes de l'onglet
 assistant.
 
+## v4.2.0 « Stable World » (livrée en octobre 2026) : le SemVer strict, un périmètre stable réduit
+
+Le code de la 4.1.20 avec la version changée, et un correctif du Field Kit (`v4.2.0-rc.2`). Le SemVer strict à partir
+d'ici : une mineure ajoute, une majeure retire. Elle sort avant les passes humaines, par décision du mainteneur
+(D38) : sont stables le format du contenu et ses outils, la PWA Chromium sur ordinateur et le Bridge sur SQLite ;
+toute autre surface est limitée ou expérimentale, comme le dit le GO / NO-GO. Les treize passes se font sur
+`v4.2.0`, et chacune réussie promeut sa surface dans une 4.2.x. Le tag est signé (D37), la release immuable ; la
+publication npm arrive dans une 4.2.x ultérieure.
+
 ## v4.1.20 « Last Mile » (livrée en octobre 2026) : le dernier code avant la 4.2
 
 Aucune mécanique nouvelle (`docs/dev/PLAN-4.1.20-LAST-MILE.md`, D34–D37, dix pull requests et la release). Un backup

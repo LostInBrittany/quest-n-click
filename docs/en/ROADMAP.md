@@ -611,6 +611,14 @@ views with 105 tests; every public export carries `@public` or `@extension` and 
 written by the baseline; a links script. Left for later, said as such: the human passes of the sheet
 (`docs/dev/passes/4.1.8.md`), the release workflow's acceleration (its own lot), the assistant tab's 845 lines.
 
+## v4.2.0 "Stable World" (shipped October 2026): strict SemVer, a reduced stable scope
+
+4.1.20's code with the version changed, and one Field Kit fix (`v4.2.0-rc.2`). Strict SemVer from here on: a minor
+adds, a major removes. It ships before the people's passes, by the maintainer's decision (D38): stable are the
+content format and its tools, the desktop Chromium PWA and the Bridge on SQLite; every other surface is limited or
+experimental, as the GO / NO-GO says. The thirteen passes are made on `v4.2.0`, and each one passed promotes its
+surface in a 4.2.x. The tag is signed (D37), the release immutable; npm publishing comes in a later 4.2.x.
+
 ## v4.1.20 "Last Mile" (shipped October 2026): the last code before 4.2
 
 No new mechanic (`docs/dev/PLAN-4.1.20-LAST-MILE.md`, D34–D37, ten pull requests and the release). A Bridge backup is

@@ -67,7 +67,10 @@ ne va pas) :
 
 Il ne sort en 1 que sur un `blocked`.
 
-## npm (écrit en 4.1.20, joué en 4.2)
+## npm (écrit en 4.1.20, joué dans une 4.2.x ultérieure)
+
+La 4.2.0 n'est publiée que sur GitHub Releases (D38) : chaque étape ci-dessous demande la 2FA du mainteneur, et la
+4.2.0 ne l'a pas attendue. Les étapes ne changent pas ; la première version qu'elles publient est une 4.2.x.
 
 Rien n'est publié sur npm en 4.1.x. Les quatre noms (`web-scumm`, `create-web-scumm`, `web-scumm-bridge`,
 `web-scumm-connectors`) sont libres. Chaque nuit, un job non bloquant vérifie qu'ils le restent, ou qu'ils sont à nous

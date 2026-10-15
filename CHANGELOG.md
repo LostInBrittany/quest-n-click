@@ -1,12 +1,15 @@
 # Changelog
 
-## 4.2.0 — 2026-10-15
+## 4.2.0 — 2026-10-16
 
-"Stable World" (LOG #185, #186): 4.1.20's code, the version changed (plan 4.1.20 §12, D34), and one Field Kit fix.
-The thirteen people's passes (#75–#87) are made on the release candidate `v4.2.0-rc.2`; `v4.2.0-rc.1`, the first tag
-signed with the maintainer's SSH key (`id_ed25519`, D37), carried the defect below and no pass used it. The stable is
-tagged from a candidate that changes only the status files, each pass carried to it by `field:carry` when no file of
-its surface changed. What 4.2 calls stable is the [GO / NO-GO 4.2](docs/dev/GO-NO-GO-4.2.md)'s verdict.
+"Stable World" (LOG #185–#187): 4.1.20's code, the version changed (plan 4.1.20 §12, D34), and one Field Kit fix. It
+restores strict SemVer: from 4.2.0 a minor adds, a major removes. **It ships before the people's passes** (D38, the
+maintainer's decision): none of the thirteen (#75–#87) was made, so 4.2.0 promises as stable only what needs none,
+the content format and its tools, the desktop Chromium PWA and the Bridge on SQLite, and says every other surface
+limited or experimental ([GO / NO-GO 4.2](docs/dev/GO-NO-GO-4.2.md): GO on a reduced scope). The passes are made on
+`v4.2.0` itself; each one passed promotes its surface in a 4.2.x. The tag is signed with the maintainer's SSH key
+(D37) and the release is immutable. npm publishing moves to a later 4.2.x: it needs the maintainer's 2FA at each
+step. `v4.2.0-rc.1` carried the defect below; `v4.2.0-rc.2` was the campaign's candidate, no pass used either.
 
 ### Fixed
 
@@ -17,12 +20,12 @@ its surface changed. What 4.2 calls stable is the [GO / NO-GO 4.2](docs/dev/GO-N
 
 ### Changes
 
-- **The README installs from the release candidate's archive** (4.2.0): `releases/download/v4.2.0-rc.2/
-  web-scumm-4.2.0.tgz`, the archive the people's passes install, the same bytes as the stable's. The install section
-  is the `archive-human-install` pass's surface and stays as written from the candidate to the stable. `docs:truth`,
-  `quality:baseline` and `readme-quickstart` accept a `v<version>-rc.N` release for this version's archive and
-  nothing else, and "current release" may name the last published release only while the install names such a
-  candidate.
+- **The README installs from 4.2.0's release archive** (4.2.0): `releases/download/v4.2.0/web-scumm-4.2.0.tgz`.
+  `docs:truth`, `quality:baseline` and `readme-quickstart` still accept a `v<version>-rc.N` release for this
+  version's archive and nothing else, for the next campaign that needs one.
+- **`ship preflight-stable` reads "GO for 4.2 on a reduced scope"** (4.2.0, D38): the maintainer's decision to ship
+  before the passes is not a GO, so no report contradicts it; a plain GO the reports contradict still blocks, and
+  `tests/support-truth.test.ts` accepts the reduced verdict only with D38 written.
 
 ## 4.1.20 — 2026-10-15
 

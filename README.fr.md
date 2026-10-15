@@ -20,10 +20,10 @@ vérifier qu'on peut le finir, et le livrer comme un jeu web qui s'installe sur 
 <!-- install:begin -->
 Node 22.12 ou plus récent et Python 3 avec Pillow (`npm run assets` prépare les images avec eux), sous Windows, macOS
 ou Linux. Le moteur s'installe depuis l'archive d'une release (la
-publication npm arrive avec la 4.2) :
+publication npm arrive dans une 4.2.x ultérieure) :
 
 ```bash
-T=https://github.com/wanoo/web-scumm/releases/download/v4.2.0-rc.2/web-scumm-4.2.0.tgz
+T=https://github.com/wanoo/web-scumm/releases/download/v4.2.0/web-scumm-4.2.0.tgz
 npx --package=$T web-scumm create mon-jeu "Mon jeu" --engine=$T
 cd mon-jeu && npm install
 npm run assets && npm run dev        # y jouer ; puis npm run verify, npm run build
@@ -156,9 +156,10 @@ Chaque page existe en anglais (`docs/en/`) et en français (`docs/fr/`), et un t
 dans [TOOLS](docs/fr/TOOLS.md), ce qui change dans le [CHANGELOG](CHANGELOG.md), passer à une nouvelle version dans
 [UPGRADING](docs/fr/UPGRADING.md), et d'où vient le projet dans la [ROADMAP](docs/fr/ROADMAP.md).
 
-Release actuelle : [v4.1.20 « Last Mile »](https://github.com/wanoo/web-scumm/releases/tag/v4.1.20). La ligne 4.1.x
-est une ligne d'incubation, où une release peut casser un nom public ou un format, documenté et avec une migration,
-jusqu'à ce que la 4.2.0 rétablisse le SemVer strict.
+Release actuelle : [v4.2.0 « Stable World »](https://github.com/wanoo/web-scumm/releases/tag/v4.2.0). Elle rétablit
+le SemVer strict après la ligne d'incubation 4.1.x : une mineure ajoute, une majeure retire. Elle sort avant les
+passes humaines, donc seul ce que le tableau ci-dessus dit stable est promis ; les passes se font sur elle et
+promeuvent une surface dans une 4.2.x suivante ([GO / NO-GO 4.2](docs/dev/GO-NO-GO-4.2.md), D38).
 
 ## Licences
 

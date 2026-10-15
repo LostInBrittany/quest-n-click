@@ -51,7 +51,7 @@ describe('the support matrix promotes nothing a person has not passed', () => {
     }
   });
 
-  it('says NO-GO for 4.2 while any of the thirteen passes is not made', () => {
+  it('says NO-GO for 4.2, or GO on a reduced scope (D38), while any of the thirteen passes is not made', () => {
     const ids = [
       'bridge-postgres-https',
       'runs-real-players',
@@ -68,6 +68,11 @@ describe('the support matrix promotes nothing a person has not passed', () => {
       'archive-human-install',
     ];
     if (ids.every(passed)) return;
-    expect(readFileSync('docs/dev/GO-NO-GO-4.2.md', 'utf8')).toContain('**NO-GO for 4.2 today**');
+    // Or, D38, the maintainer's decision to ship before them on a reduced scope: never a plain GO, and only with the
+    // decision written down.
+    const verdicts = [...go.matchAll(/\*\*(NO-GO|GO) for 4\.2( on a reduced scope| today)?/g)];
+    const last = verdicts.at(-1);
+    expect(last?.[1] === 'NO-GO' || last?.[2] === ' on a reduced scope', last?.[0]).toBe(true);
+    if (last?.[1] === 'GO') expect(readFileSync('docs/dev/DECISIONS.md', 'utf8')).toMatch(/\*\*D38 · /);
   });
 });

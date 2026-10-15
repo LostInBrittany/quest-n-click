@@ -386,6 +386,20 @@ describe('ship preflight-stable', () => {
     expect(state(rows, 'tag-ruleset')).toBe('ok');
     expect(state(rows, 'immutable-releases')).toBe('ok');
     expect(state(rows, 'go-no-go')).toBe('blocked');
+    // D38: shipping before the passes, on a reduced scope, is not a GO; a plain GO written after it still blocks.
+    const goRows = (sheet: string) => {
+      writeFileSync(join(d, 'docs', 'dev', 'GO-NO-GO-4.2.md'), sheet);
+      return preflight({
+        exec,
+        repo: 'o/r',
+        login: 'me',
+        version: '4.2.0',
+        root: d,
+        candidate: { run: '1', problems: [], pack },
+      });
+    };
+    expect(state(goRows('**NO-GO for 4.2 today**\n\n**GO for 4.2 on a reduced scope.**'), 'go-no-go')).toBe('ok');
+    expect(state(goRows('**GO for 4.2 on a reduced scope.**\n\n**GO for 4.2**'), 'go-no-go')).toBe('blocked');
   });
 
   it("reads npm's objects one after the other, and a gh error body is no list", () => {
