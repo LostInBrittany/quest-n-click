@@ -2,12 +2,13 @@
 
 ## 4.2.0 — 2026-10-16
 
-"Stable World" (LOG #185–#187): 4.1.20's code, the version changed (plan 4.1.20 §12, D34), and one Field Kit fix. It
+"Stable World" (LOG #185–#187): 4.1.20's code, the version changed (plan 4.1.20 §12, D34), one Field Kit fix, and
+`ship preflight-stable` reading the reduced verdict below. It
 restores strict SemVer: from 4.2.0 a minor adds, a major removes. **It ships before the people's passes** (D38, the
 maintainer's decision): none of the thirteen (#75–#87) was made, so 4.2.0 promises as stable only what needs none,
 the content format and its tools, the desktop Chromium PWA and the Bridge on SQLite, and says every other surface
 limited or experimental ([GO / NO-GO 4.2](docs/dev/GO-NO-GO-4.2.md): GO on a reduced scope). The passes are made on
-`v4.2.0` itself; each one passed promotes its surface in a 4.2.x. The tag is signed with the maintainer's SSH key
+`v4.2.0` itself; promoting a surface in a 4.2.x needs its pass on that 4.2.x (D38). The tag is signed with the maintainer's SSH key
 (D37) and the release is immutable. npm publishing moves to a later 4.2.x: it needs the maintainer's 2FA at each
 step. `v4.2.0-rc.1` carried the defect below; `v4.2.0-rc.2` was the campaign's candidate, no pass used either.
 

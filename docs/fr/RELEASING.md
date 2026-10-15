@@ -74,7 +74,7 @@ La 4.2.0 n'est publiée que sur GitHub Releases (D38) : chaque étape ci-dessous
 
 Rien n'est publié sur npm en 4.1.x. Les quatre noms (`web-scumm`, `create-web-scumm`, `web-scumm-bridge`,
 `web-scumm-connectors`) sont libres. Chaque nuit, un job non bloquant vérifie qu'ils le restent, ou qu'ils sont à nous
-(D34 : le squatting est un risque accepté jusqu'à la 4.2).
+(D34 : le squatting est un risque accepté jusqu'à la publication npm, une 4.2.x, D38).
 
 1. **Versions.** La publication en étapes demande au moins npm 11.15.0 et Node 22.14.0 ([doc npm][staged]).
    release.yml épingle l'étape de publication à des versions **exactes**, `NPM_PUBLISH_NODE: 22.23.3` et

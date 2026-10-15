@@ -58,6 +58,16 @@ opens no browser, no Windows runner and no Node 24 (`CONTRIBUTING.md`, "What CI 
 | Bridge, `local` profile (4.1.10) | SQLite through `node:sqlite` (Node 22.13+): the store contract, tenants crossed in property tests, three processes on one file with one killed during 1 000 proposals, backup as one snapshot and restore all or nothing (4.1.19); backup schema 4, whole-store and quota included, and two restore modes, `merge` and `replace-store`, under a maintenance lease (4.1.20); a load run of 50 000 proposals every night | a long-running install on a real machine |
 | Bridge, `distributed` profile (4.1.10, `experimental`) | Postgres 16 in CI (`bridge-postgres`): the same contract, tenants and fan-out between instances; the nightly load run; the qualification profile (`ops/qualify/`: HTTPS, three instances, the leaderboard, a worker killed mid-verification, a restore after the topology is destroyed) in the `qualify` workflow; since 4.1.20 the full profile in every candidate a tag may name (both restore modes under the maintenance lease), `--short` in a pull request's | a real deployment: until one, `experimental` |
 | Connectors (4.1.9), **experimental** (D19) | email (signed webhook, IMAP), Telnet, SSH, Open Badges 2 and 3: the same contract on all four, abuse and fuzz tests, a run under `--disallow-code-generation-from-strings`, the sample chapter's replays; the four played from their archive in the candidate (4.1.19); Telnet and SSH tests not on Windows yet | a real email provider, a real badge from a real issuer, SSH and Telnet exposed in a controlled environment |
+## 4.2.0: what is promised (D38)
+
+4.2.0 ships before the people's passes. Of the surfaces above, it promises as **stable** only those that need no
+pass: the content format and its tools, the player on desktop Chromium and its PWA, and the Bridge's `local`
+profile on SQLite. **Limited**: the DOM player on phones and screen readers, the Safari PWA, Firefox (the PWA only),
+speedrun and Remix, voices and music, the four package archives installed by a person. **Experimental**: the Canvas
+painter, the `distributed` profile, the four connectors. **Partial**: the Studio on Windows. Each changes only with
+its pass made on a 4.2.x candidate ([GO / NO-GO 4.2](../dev/GO-NO-GO-4.2.md)). The public API's SemVer promise
+above is not affected.
+
 ## Deprecation
 
 A name or an option to be removed is first **deprecated** in a minor: marked `@deprecated` in its type (editors show

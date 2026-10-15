@@ -616,8 +616,8 @@ written by the baseline; a links script. Left for later, said as such: the human
 4.1.20's code with the version changed, and one Field Kit fix (`v4.2.0-rc.2`). Strict SemVer from here on: a minor
 adds, a major removes. It ships before the people's passes, by the maintainer's decision (D38): stable are the
 content format and its tools, the desktop Chromium PWA and the Bridge on SQLite; every other surface is limited or
-experimental, as the GO / NO-GO says. The thirteen passes are made on `v4.2.0`, and each one passed promotes its
-surface in a 4.2.x. The tag is signed (D37), the release immutable; npm publishing comes in a later 4.2.x.
+experimental, as the GO / NO-GO says. The thirteen passes are made on `v4.2.0`, and a surface is promoted in a 4.2.x
+whose own candidate has its pass (D38). The tag is signed (D37), the release immutable; npm publishing comes in a later 4.2.x.
 
 ## v4.1.20 "Last Mile" (shipped October 2026): the last code before 4.2
 
@@ -859,7 +859,7 @@ not blocking, through 4.1.x (D12), and become blocking for 4.2.0 on every surfac
 ## After 4.0: where each item went, and what is still unplanned
 
 - The field passes, then what they find (D12); blocking for 4.2.0 (D18).
-- Publishing `web-scumm` and `create-web-scumm` on npm: 4.2.0 "Stable World"; The Lighthouse in a public repository.
+- Publishing `web-scumm` and `create-web-scumm` on npm: a 4.2.x after 4.2.0 "Stable World" (D38); The Lighthouse in a public repository.
 - Vite 8 and TypeScript 7 (declined in 4.0: Vite 8's bundler breaks a CommonJS default import, TypeScript 7 drops
   `baseUrl` and non-relative `paths`): 4.1.8 "Foundation Reset", with the project template's `tsconfig.json`.
 - Translations loaded on demand (the second language is ~10% of the first visit's JavaScript): a change to the game

@@ -157,9 +157,10 @@ dans [TOOLS](docs/fr/TOOLS.md), ce qui change dans le [CHANGELOG](CHANGELOG.md),
 [UPGRADING](docs/fr/UPGRADING.md), et d'où vient le projet dans la [ROADMAP](docs/fr/ROADMAP.md).
 
 Release actuelle : [v4.2.0 « Stable World »](https://github.com/wanoo/web-scumm/releases/tag/v4.2.0). Elle rétablit
-le SemVer strict après la ligne d'incubation 4.1.x : une mineure ajoute, une majeure retire. Elle sort avant les
-passes humaines, donc seul ce que le tableau ci-dessus dit stable est promis ; les passes se font sur elle et
-promeuvent une surface dans une 4.2.x suivante ([GO / NO-GO 4.2](docs/dev/GO-NO-GO-4.2.md), D38).
+le SemVer strict après la ligne d'incubation 4.1.x : une mineure ajoute, une majeure retire. Son API publique suit le
+SemVer strict ([SUPPORT](docs/fr/SUPPORT.md)). Elle sort avant les passes humaines : des surfaces ci-dessus, seule la
+colonne Stable est promise ; les passes se font sur elle, et une 4.2.x suivante promeut ce qu'elles prouvent
+([GO / NO-GO 4.2](docs/dev/GO-NO-GO-4.2.md), D38).
 
 ## Licences
 

@@ -28,6 +28,7 @@ experimental, or out of 4.2's stable scope, and 4.2 says so. A pass made on one 
 | Speedrun and Remix | replays in four runtimes, five world policies, resume in each, the candidate's `.wsrun` verified and published, three gated mutation sets | `runs-real-players` (#85), `run-resume-power-cycle` (#84), `mystery-deployed` (#82), `livesplit-obs` (#81), `code-wheel-human` (#78): not run | **limited**: machine-proved; no person's run yet |
 | Voices and music | the music director in Chromium and WebKit, the stems, offline | `voices-listening` (#87): not run | **limited** |
 | Archives and install | the four archives from the candidate installed outside the repository on Ubuntu (Node 22 and 24), macOS and Windows; a 4.1.17 game moved to them; 4.1.19: games from 4.1.16 and 4.1.18-rc.1 too, the older engines checked against their sums; the Bridge and connectors locked; five CycloneDX SBOMs | `archive-human-install` (#75): not run | **limited** until #75: the automated path is green, a person's install from the READMEs alone is untried |
+| Content format and its tools | `validate`, the solver and its proof, lint, i18n, the IR, the golden saves and the migrations, in every CI run on every system; the DSL frozen after 4.1.15 | none in the list | **stable** on the machine proof |
 | Studio | e2e in CI; Windows runs the unit suite but six POSIX files | none in the list | **partial support**: Windows untried by a person |
 
 ## What 4.2 needs before it starts (plan §19)
@@ -58,7 +59,7 @@ candidate: each `field-pass` issue names it.
 **GO for 4.2 on a reduced scope.** The maintainer decided on 15 October to ship 4.2.0 without waiting for the people's
 passes. 4.2.0 promises as stable the surfaces that need no pass: the content format and its tools, the desktop
 Chromium PWA and the Bridge on SQLite. Every other row keeps its verdict above, limited or experimental, and
-`docs/en/SUPPORT.md` says the same. The thirteen passes stay open issues (#75–#87), made on `v4.2.0`'s candidate:
-each `passed` turns its row stable in a 4.2.x status release, each `failed` opens its fix. This is not the GO the
+`docs/en/SUPPORT.md` says the same (its "4.2.0: what is promised" section). The thirteen passes stay open issues (#75–#87), made on `v4.2.0`'s candidate:
+each `failed` opens its fix; turning a row stable in a 4.2.x needs its pass `passed` on that 4.2.x (made again on its candidate, or carried once a version exclusion is declared for its surface, D35, D38). This is not the GO the
 plan's §19 describes, which needs the thirteen passes: `ship preflight-stable` still blocks a plain **GO** that the
 reports contradict, and reads this verdict as what it is.

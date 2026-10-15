@@ -70,7 +70,7 @@ wait for it. The steps are unchanged; the first version they publish is a 4.2.x.
 
 Nothing is published to npm in 4.1.x. The four names (`web-scumm`, `create-web-scumm`, `web-scumm-bridge`,
 `web-scumm-connectors`) are free. Each night a job that does not gate checks that they still are, or that they are
-ours (D34: squatting is an accepted risk until 4.2).
+ours (D34: squatting is an accepted risk until npm publishing, a 4.2.x, D38).
 
 1. **Versions.** Staged publishing needs npm 11.15.0 and Node 22.14.0 at least ([npm docs][staged]). release.yml pins
    the publishing step to **exact** versions, `NPM_PUBLISH_NODE: 22.23.3` and `NPM_PUBLISH_NPM: 11.21.0`. A test

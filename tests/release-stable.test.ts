@@ -400,6 +400,12 @@ describe('ship preflight-stable', () => {
     };
     expect(state(goRows('**NO-GO for 4.2 today**\n\n**GO for 4.2 on a reduced scope.**'), 'go-no-go')).toBe('ok');
     expect(state(goRows('**GO for 4.2 on a reduced scope.**\n\n**GO for 4.2**'), 'go-no-go')).toBe('blocked');
+    expect(state(goRows('**NO-GO for 4.2 on a reduced scope**'), 'go-no-go')).toBe('ok');
+    // Every pass passed after a reduced GO: the sheet can be written GO.
+    const field = join(d, 'docs', 'dev', 'field', '4.2.0');
+    mkdirSync(field, { recursive: true });
+    for (let i = 0; i < 13; i++) writeFileSync(join(field, `p${i}.json`), '{"status":"passed"}');
+    expect(state(goRows('**GO for 4.2 on a reduced scope.**'), 'go-no-go')).toBe('missing');
   });
 
   it("reads npm's objects one after the other, and a gh error body is no list", () => {

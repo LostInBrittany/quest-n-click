@@ -184,7 +184,11 @@ export function preflight({ exec, repo, login, npmUser, version, root = '.', can
       continue;
     }
     if (!exists) {
-      add(`${p}:name`, 'ok', 'available (still watched each night: squatting accepted until 4.2, D34)');
+      add(
+        `${p}:name`,
+        'ok',
+        'available (still watched each night: squatting accepted until npm publishing, a 4.2.x, D34, D38)',
+      );
       add(
         `${p}:bootstrap`,
         'missing',
@@ -247,7 +251,7 @@ export function preflight({ exec, repo, login, npmUser, version, root = '.', can
   // maintainer's decision to ship before the passes, every surface without its pass said limited or experimental
   // (tests/support-truth.test.ts holds the rows to it): not a GO, so no report contradicts it.
   const last = [...go.matchAll(/\*\*(NO-GO|GO) for 4\.2( on a reduced scope)?/g)].at(-1);
-  const verdict = last?.[2] ? 'GO on a reduced scope' : (last?.[1] ?? 'NO-GO');
+  const verdict = last?.[1] === 'GO' && last?.[2] ? 'GO on a reduced scope' : (last?.[1] ?? 'NO-GO');
   const field = join(root, 'docs', 'dev', 'field', version);
   const statuses = existsSync(field)
     ? readdirSync(field)

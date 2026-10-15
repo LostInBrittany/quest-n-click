@@ -4914,7 +4914,8 @@ candidate is judged against criteria older than it (plan §8.3; the critique of 
   fait qu'il y ait des actions humaines qui sont à faire et elles seront testées et réalisées sur la version 4.2 ».
   Asked before it which passes could be made that evening (six of thirteen alone in about an hour; the seven others
   need other people, a domain for 24–48 h or provider accounts), they chose to ship now and make the thirteen on
-  4.2.0 with a tester of their choice.
+  4.2.0 with a tester of their choice. (In English: "you will make version 4.2 and accept that human actions remain
+  to be done; they will be tested and done on version 4.2".)
 - **What that changes, and what it does not.** D18 holds as written: no surface whose named pass is not `passed` is
   called stable. The GO / NO-GO's rows did not move; its verdict is **GO for 4.2 on a reduced scope**, which
   `preflight-stable` reads apart from a GO (a GO the reports contradict still blocks, tested), and

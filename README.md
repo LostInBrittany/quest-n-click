@@ -151,9 +151,10 @@ command in [TOOLS](docs/en/TOOLS.md), what changed in the [CHANGELOG](CHANGELOG.
 [UPGRADING](docs/en/UPGRADING.md), and where it comes from in the [ROADMAP](docs/en/ROADMAP.md).
 
 Current release: [v4.2.0 "Stable World"](https://github.com/wanoo/web-scumm/releases/tag/v4.2.0). It restores
-strict SemVer after the 4.1.x incubation line: a minor adds, a major removes. It ships before the people's passes,
-so only what the table above calls stable is promised; the passes are made on it and promote a surface in a later
-4.2.x ([GO / NO-GO 4.2](docs/dev/GO-NO-GO-4.2.md), D38).
+strict SemVer after the 4.1.x incubation line: a minor adds, a major removes. Its public API follows strict SemVer
+([SUPPORT](docs/en/SUPPORT.md)). It ships before the people's passes: of the surfaces above, only the Stable column
+is promised; the passes are made on it, and a later 4.2.x promotes what they prove
+([GO / NO-GO 4.2](docs/dev/GO-NO-GO-4.2.md), D38).
 
 ## Licences
 

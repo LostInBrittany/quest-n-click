@@ -572,3 +572,10 @@ la racine.
   aucun bail et ne serait pas vu. `migrate --schema=4` (ou moins) défait d'abord 0005 ; arrêter alors tous les
   écrivains, comme avant la 4.1.20.
 
+
+## 33. De la 4.1.20 à la 4.2.0 « Stable World »
+
+Rien à changer : la 4.2.0 est le code de la 4.1.20 avec la version changée et un correctif du Field Kit. À partir de
+la 4.2.0, le SemVer strict : une 4.2.x ne fait que corriger, une mineure 4.x ne fait qu'ajouter. Le moteur s'installe
+toujours depuis l'archive de la release (`releases/download/v4.2.0/…`) ; la publication npm arrive dans une 4.2.x
+ultérieure. Ce que la 4.2.0 dit stable, limité ou expérimental est dans `docs/fr/SUPPORT.md` (D38).

@@ -39,7 +39,10 @@ describe('the support matrix promotes nothing a person has not passed', () => {
 
   it('calls no surface stable in the GO / NO-GO whose named pass is not passed', () => {
     for (const [surface, pass] of [
+      ['Player, DOM', 'phone-both-renderers'],
       ['Player, Canvas', 'phone-both-renderers'],
+      ['Voices and music', 'voices-listening'],
+      ['Speedrun and Remix', 'livesplit-obs'],
       ['PWA, Safari', 'safari-ios-offline-update'],
       ['Firefox', 'firefox-real-offline'],
       ['Speedrun and Remix', 'runs-real-players'],
@@ -70,7 +73,7 @@ describe('the support matrix promotes nothing a person has not passed', () => {
     if (ids.every(passed)) return;
     // Or, D38, the maintainer's decision to ship before them on a reduced scope: never a plain GO, and only with the
     // decision written down.
-    const verdicts = [...go.matchAll(/\*\*(NO-GO|GO) for 4\.2( on a reduced scope| today)?/g)];
+    const verdicts = [...go.matchAll(/\*\*(NO-GO|GO) for 4\.2( on a reduced scope)?/g)];
     const last = verdicts.at(-1);
     expect(last?.[1] === 'NO-GO' || last?.[2] === ' on a reduced scope', last?.[0]).toBe(true);
     if (last?.[1] === 'GO') expect(readFileSync('docs/dev/DECISIONS.md', 'utf8')).toMatch(/\*\*D38 · /);
