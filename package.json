@@ -1,7 +1,7 @@
 {
   "name": "web-scumm",
   "private": true,
-  "version": "4.1.20",
+  "version": "4.2.0",
   "type": "module",
   "scripts": {
     "dev": "tsx tools/select-game.ts && vite",
