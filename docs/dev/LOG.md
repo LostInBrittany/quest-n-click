@@ -4201,3 +4201,655 @@ sources; the recorder's live RTA counts from a resume before the run's start (it
 
 → next: the final candidate on this SHA, `field:init` on #75–#87, the RC and the stable tag on that run, the nightly
 classified.
+
+## #169 · 2026-10-12 · Claude · proposal · The Dependabot pull requests of 11 October (#95–#102), in one branch
+
+- The user asked to handle the bots' pull requests; they had waited through the 4.1.19 release, since `release.yml`
+  runs `main`'s copy and three of them change actions it uses. One branch instead of seven CI cycles; each bot PR is
+  closed with a pointer here, #101 with its reason.
+- **#100 (Playwright 1.64) was red on WebKit's PWA test, reproduced locally:** the "interrupted update" scenario makes
+  the test's server answer `sw.js` with a deliberate 500; WebKit now also prints that answer as a console error. The
+  test excuses exactly those responses (500, `/sw.js`, not from the worker, while the failure is armed), one console
+  line each, and says how many. Green on WebKit, Chromium and Firefox locally.
+- **#101 (`@types/node` 26) closed:** five type errors (`CryptoKey`/`CryptoKeyPair`, `JsonWebKey`, a catch variable)
+  that are Node 26's types, not bugs on Node 22. `.github/dependabot.yml` ignores its majors.
+- **#96 (`checkout` 7):** red only on the Firefox PWA flake (`pwa-firefox`, documented). v7 refuses a fork PR's
+  checkout under `pull_request_target`/`workflow_run`; `release.yml` (workflow_run) checks out this repository's own
+  tag, never a fork: unaffected, and the next release run is where it is proved.
+- Every new pin's SHA checked against the official tag (`git/ref/tags`): five matches. 137 pins updated, the 4.1.19
+  jobs included. Locally: `quality`, `test:node` (233 files), `build:studio-demo` (`cross-env` 10).
+
+→ next: CI and a candidate (`full-ci`: download-artifact 8 and attest 4 exercised), merge, close the bot PRs.
+
+
+## #170 · 2026-10-12 · Claude · proposal · 4.1.20 "Last Mile": the plan in Git, D34–D36, the nightly after 4.1.19 classified
+
+- The maintainer's request of 12 October: « prépare la release web-scumm 4.1.20 « Last Mile » » (prepare the
+  web-scumm 4.1.20 "Last Mile" release). The plan `docs/dev/PLAN-4.1.20-LAST-MILE.md` (French, the source, revision 4)
+  was checked against `aa2462e` and read twice by the maintainer. A second automated reading context then checked it
+  against the code.
+- The checks found:
+  - the schema 3 digest covers the payload only;
+  - `restore --force` is a merge;
+  - the candidate runs `ops:qualify --short`, and the full profile (23 steps, about 4 minutes) is built from sources;
+  - `run_quota` is outside the backup;
+  - SQLite is multi-process, and the Bridge has no maintenance mode;
+  - the package version enters the IR, `site.json`, the bundle and the speedrun packages;
+  - `backup.ts` is in no mutation set;
+  - the mutation matrix is hand-written in four workflows, and `release.yml`'s copy has no Postgres;
+  - `release.yml` creates a release and then uploads to it, which immutable releases forbid;
+  - the repository pins npm 10.9.2, while `npm stage` needs 11.15.0.
+- The maintainer's readings changed the plan:
+  - `--mode` is always required, and both modes require maintenance;
+  - `replace-store` takes only a whole-store schema 4 backup, of the destination's SQL schema, after a checked safety
+    backup;
+  - maintenance is a lease protocol with migration 0005;
+  - the version is relevant to a pass, so the **field campaign runs on a 4.2.0-rc candidate**; a status-only `rc`
+    receives the passes by signed carry, and `v4.2.0` comes from that run;
+  - a carry is approved only by a commit signed with the maintainer's hardware key (`.github/allowed_signers`, added
+    in PR 4);
+  - mutation exemptions are structured;
+  - npm publishing is staged under OIDC, with exact Node and npm versions, and the squatting risk is accepted until 4.2;
+  - immutable releases and a `v*` ruleset arrive during 4.1.20;
+  - PR order: neutral splits come first, and no refactoring PR at the end.
+- **The nightly after the 4.1.19 tag** (`38239994636`, `aa2462e`) is green on every gating job.
+  - `connectors-edge`, measured: 638/1126, 488 survivors, the same as before #106.
+  - `reality-store-postgres`, measured: it stops before its first mutant, in the nightly and in a relaunch on `main`
+    (`38245235794`). Reproduced on a local Postgres 15, this is a **test and tooling defect, not a product defect**:
+    - the leaderboard tests reuse one database (with it emptied per store, 19/19 pass);
+    - the admission tests race with other files on that database (sequentially they pass);
+    - CI's `bridge-postgres` job runs 5 of the set's 8 files;
+    - `tools/mutate.ts` drops vitest's output.
+  - It was introduced when 4.1.19 PR 3's second reading added five files to the set after its last measurement. The
+    release is not altered. The fix belongs to PR 2a.
+- This PR commits the plan byte-identical to the read copy (SHA-256 `0bcf1154…`), then the amendments, which its diff
+  shows. From now on only the copy in Git counts.
+
+→ next: Claude · PR 1a (backup split) and PR 2a (Postgres-isolated tests, shards, one matrix) in parallel
+
+
+## #171 · 2026-10-12 · Claude · proposal · 4.1.20 PR 1a: the backup split before its contract changes
+
+- Plan §6.0, before PR 1b changes the backup. The first commit adds `tests/bridge-backup-characterization.test.ts` on
+  the code as it was and pins:
+  - the messages of ten refused files;
+  - the backup and restore command lines, with their codes and lines;
+  - the envelope's keys, counts and digest, and its canonical hash with the dates and version aside;
+  - the version a backup names.
+- The second commit moves `bridge/src/backup.ts` to `bridge/src/backup/`, as six modules: `schema`, `canonical`,
+  `files`, `snapshot`, `restore`, and `index` as the public face.
+  - Every former line is kept, except one: `bridgeVersion()` looks for the repository's `package.json` one folder
+    further up. The packed Bridge is one bundle (`src/cli.mjs`) and still reads its own package's version first.
+  - The characterization passes before and after.
+  - Three types and one helper are no longer exported, since nothing outside the code used them (knip).
+- Found on the way: `tests/boundaries.test.ts` read only the top level of `bridge/src` and refused every `../` import.
+  - A sub-folder would have escaped the Bridge's layers check.
+  - It now walks every sub-folder, and a relative import must resolve inside `bridge/src` or the shared protocol.
+  - A forbidden import placed in `backup/files.ts` makes it fail.
+- No mutation set changes in this PR: `bridge/src/backup/*` enters `reality-store` in PR 1b, after PR 2a.
+
+→ next: Claude · PR 2a (Postgres-isolated tests, shards, one generated matrix, structured exemptions)
+
+
+## #172 · 2026-10-12 · Claude · proposal · 4.1.20 PR 2a: the Postgres set gated, mutation in shards from one matrix, exemptions with their terms
+
+- Plan §7.2–7.4 and §1.1 point 11. The nightly of 12 October could not measure `reality-store-postgres`. Reproduced on
+  a local Postgres 15, the cause was in the tests:
+  - every file shared one database: the leaderboard read the rows of earlier tests, and a worker of
+    bridge-runs-durable claimed bridge-admission's queued runs, since a claim without a tenant takes any tenant's run;
+  - the files ran side by side, beyond the server's hundred connections;
+  - CI ran five of the eight files from its own list.
+
+  Now each file has a database of its own (`tests/fixtures/pg-database.ts`), the files run one after another (`SERIAL`),
+  CI reads the list from `tools/mutation-sets.ts`, and tests/bridge-postgres-isolation.test.ts keeps all three. A run
+  that cannot start names its failed tests (`failureSummary`).
+- The set's 41 mutants were read:
+  - isolation alone took the kills from 15 to 23;
+  - tests/reality-store-postgres-mutants.test.ts uses a fake `pg` and fake timers to kill 17 more: the retry on a
+    transient conflict only, six attempts at most, a back-off of at least 5 ms, the advisory lock only when named, a
+    failed ROLLBACK released with an Error, a notification without a player waking nobody, a replaced listener's error,
+    listening again once, and a closed store staying closed when its connection lands late;
+  - one mutant is named as equivalent: `clearTimeout(undefined)` does nothing.
+
+  Measured locally: 40/41, 0 unexplained. The set is gated.
+- Shards:
+  - `--shard=i/n` cuts a set by whole files, largest first, each to the least loaded shard;
+  - `--merge` refuses a shard that is missing, doubled, cancelled, of other inputs, of another cut, set or commit;
+  - seen live: a shard measured while its inputs changed was refused;
+  - `SHARDS`: connectors-edge 4, reality 2.
+- One matrix:
+  - ci, candidate, nightly and release each run `mutation-plan` (`tools/mutation-shards.ts --matrix`), `mutation`
+    (one job per shard, Postgres for the set that needs it) and `mutation-merge`;
+  - the nightly's measured set gates nothing;
+  - `release.yml` judges a tag on its own commit's matrix and refuses a commit that generates none (no tag older than
+    4.1.20 is released again);
+  - the gate and the release wait for the merge;
+  - the baseline and the summary read the merged reports only.
+- Exemptions: `category`, `why`, `proof` (`argument` for an equivalent, else a test that exists), `owner` and `revisit`,
+  checked at every run (`checkKnown`). The 93 entries were migrated (revisit 4.3.0, after 4.2). A revisit compares
+  version cores, so a 4.2.0-rc already counts as 4.2.0.
+- Learned: a mutation run edits the sources in place. Nothing is committed in a worktree while one runs there.
+
+→ next: Claude · PR 2b–2d (connectors-edge by family), then 2e; PR 1b (backup 4) after 1a and 2a
+
+
+## #173 · 2026-10-13 · Claude · proposal · 4.1.20 PR 1b: a backup says what it holds, a restore says its mode (ADR 0023)
+
+- Plan §6.1–6.3, D36. Split from the plan's PR 1b: the maintenance protocol (migration 0005, the leases of every store
+  writer, its requirement in `restore`) is PR 1c. Until it lands, REALITY-OPS's rule stands: stop the instances during
+  a restore. The memory envelope of a large backup (§6.5) is measured on a runner by the candidate, in PR 3.
+- Schema 4:
+  - the SHA-256 of the canonical envelope (`format`, `schema`, `digest` aside);
+  - strict ISO dates, `endedAt ≥ startedAt`, a SemVer version (or `unknown`);
+  - a `completeness` that fits the backend: `whole-store` for SQL, `tenants-only` for the journal or memory;
+  - the speedrun quota (`run_quota`) as a family, exported, counted, restored and compared;
+  - the table registry `bridge/src/backup/tables.ts`, with a test that lists the real tables on SQLite and Postgres.
+- `restore --mode=merge | replace-store`, with no default:
+  - `--force` alone is refused;
+  - `replace-store` needs `--yes-replace-store`, `--safety-out` (a new path, not a link, written through a link that
+    never replaces a name, read back) and a schema 4 `whole-store` file of the destination's SQL schema;
+  - in one transaction it empties every table but the control ones, writes the file, and checks the store holds it
+    and nothing more;
+  - a schema 3 file is refused for it and still accepted for `merge`.
+- Tests:
+  - tests/bridge-backup-v4.test.ts on SQLite and Postgres;
+  - the characterization of PR 1a pinned again on purpose (schema 4 messages, envelope, lines);
+  - the existing tests gain `--mode=merge`;
+  - two backups of one store are compared by payload, since the digest covers their dates.
+- `bridge/src/backup/*` joins the gated set `reality-store`, which goes to 2 shards, with the backup tests; a test
+  keeps every backup file in a gated set.
+
+→ next: Claude · PR 1c (maintenance: migration 0005, leases); PR 2b (connectors-edge, the badges)
+
+
+## #174 · 2026-10-13 · Claude · proposal · 4.1.20 PR 1c: maintenance leases, a restore alone or refused (ADR 0023, point 6)
+
+- Plan §6.4, D36, the second half of the plan's PR 1b.
+- Migration 0005 adds `maintenance`: one row per lease, `serving` or `exclusive`, at most one exclusive.
+- `bridge/src/maintenance.ts` provides `takeLease` and `keepLease`:
+  - one transaction under the `maintenance` lock key: expired leases deleted, a live lease in the way refused at once
+    and named, the database clock read once (`clock_timestamp()`, `unixepoch('subsec')`, epoch ms);
+  - renewed every third of the lease's life;
+  - a lease lost holds the store's writes (`WritesHeldError`, a `StoreBusyError`, so 503) and fails `ping`
+    (`/readyz`) until a new lease is taken.
+- On Postgres, an advisory lock rides beside the lease, on a dedicated connection: shared or exclusive, tried for
+  `--lock-timeout` with `pg_try_*`, taken before the lease. A connection that drops is reported (`lost`) and given
+  back to the pool with its error, so the pool drops it instead of handing it out again (found here: the pool handed
+  the dead client back and no lease could be taken again).
+- `openStore`:
+  - `serving` by default for any store that may be written;
+  - `exclusive` for `restore`;
+  - none for `doctor` and below schema 5;
+  - `serve` (30 s lease) refuses to start while a restore holds the store;
+  - `migrate --schema=N` takes `exclusive` going down and `serving` going up.
+- The restore checks its lease just before the commit (`stillHeld`).
+- The raw database (`leaseDb`) serves the leases only; `db` is the write guard.
+- ops-qualify: the 4.1.17 store is now migrated to schema 5 in one step.
+- Tests: tests/bridge-maintenance.test.ts, on SQLite and Postgres.
+  - A real crash on Postgres is simulated with `pg_terminate_backend`.
+  - Writes are held while a restore holds the store or the lock drops, and come back once a lease is retaken.
+  - `restore` and `migrate` down are refused while a Bridge serves; `serve` is refused while a restore runs.
+  - A restore whose lease is lost before its commit is rolled back.
+  - The test runs three times in a row without a failure.
+
+→ next: Claude · PR 2b (connectors-edge, the badges)
+
+
+## #175 · 2026-10-13 · Claude · proposal · 4.1.20 PR 2b: the badges' mutants read
+
+- Plan §7.1, the Open Badge family of `connectors-edge`. The input was the 197 survivors that `tools/mutate.ts
+  --set=connectors-edge` measured on aa2462e: 168 in `badges/verify.ts`, 29 in `badges/connector.ts`. The badge
+  sources are unchanged on this branch.
+- One new file, `tests/connectors-badges-edge-mutants.test.ts` (51 tests). Documents come from a map, the keys come
+  from fixed test seeds, the clock is fixed, and the one fetch through the real SafeFetcher goes to a local server
+  on port 0. It pins:
+  - the reason of each refusal, not only its status, since many mutants turn an `invalid` into another `invalid`,
+    or into a TypeError caught as `indeterminate`;
+  - the exact bounds: `maxFetches`, depth 8, `validFrom` + skew, `validUntil`, JWT `exp` and proof `expires` at the
+    very instant, status index 0, -1 and 128, and the cache's TTL and 256 entries;
+  - each shape: `vc`-wrapped or bare JWTs, `iss`/`jti`, `verify` and `HostedBadge`, embedded badge classes, a proof
+    among several, keys as a JWK, a wrapped JWK or a multikey, and status lists as a Data Integrity document or a JWT;
+  - the form: 404 not counted, 400 and 429, a refused pairing, the email and recipient bounds (320, 512), no signal,
+    the badge id in the proposal, refused and duplicate proposals, 503 and health without the context, the testing
+    policy and resolver handed to the fetcher, and a body cut by the client counted as `internal`.
+- Each kill was checked by a scratch script that built every mutant with `mutants()`/`apply()`, ran only the new
+  file, and restored the source. 193 of the 197 failed it. `verify.ts:134`, with the same line as `:147`, also
+  fails it since the tampered VC-JWT test. Both sources are byte-identical to their backups.
+- Named as equivalent (4): `verify.ts` `typeof d.kty === 'string'` → true and `isObj(d.publicKeyJwk)` → true, where
+  `jwkKey` answers null either way; and `connector.ts` `this.c.testing` → true and `this.c.resolve` → true, which
+  `SafeFetcher` reads through `?.` and `??`.
+- Seen, not changed: `connector.ts` drops the `work.finally(...)` promise with `void`. If `submit` ever rejected, the
+  rejection would be unhandled. It cannot today: `ctx.pair`, `ctx.propose` and `verify` never throw by contract. A
+  test whose `pair` threw showed it, and was replaced by the cut-body test.
+- No mutation set changes. `connectors-edge` enters `GATED` in PR 2e.
+
+→ next: Claude · PR 2c (connectors-edge, email)
+
+
+## #176 · 2026-10-13 · Claude · proposal · 4.1.20 PR 2c: the email connector's mutants read
+
+- Plan §7.1, the email family of `connectors-edge`. The input was the 116 survivors that `tools/mutate.ts
+  --set=connectors-edge` measured on aa2462e: 70 in `email/connector.ts`, 40 in `email/imap.ts`, 6 in
+  `email/parse.ts`. The email sources are unchanged on this branch.
+- One new file, `tests/connectors-email-edge-mutants.test.ts` (49 tests). There is no network and no mail server:
+  - the IMAP client talks to an in-memory `Duplex` peer, since `node:net` and `node:tls` `connect` are replaced in this
+    file only. Each chunk arrives as its own `data` event, so the bounds are tested to the byte: a line of 8 KB, one
+    split across two reads, a joined line of 64 KB, a response of 1 MB plus twice `maxLiteral`, 64 literals, 1000
+    untagged responses, a literal of `maxLiteral` twice, and an empty literal;
+  - the connector's mailbox is a fake `ImapClient` (`vi.spyOn(ImapClient, 'open')`), and its MIME reader a fake that
+    reads JSON;
+  - the webhook listens on 127.0.0.1, port 0;
+  - the clock is faked where a bound is an instant: link expiry, `toleranceS`, three poll intervals, `keepDays`;
+  - the worker tests start real workers from `data:` URLs (no new fixture file).
+- Each kill was checked by a scratch script that built every mutant with `mutants()`/`apply()` (each mutant sharing a
+  survivor's operator, edit and line), ran only the new file, and restored the source: 108 of the 116 failed it. The
+  run was interrupted once (a dropped network) and resumed from the first unconfirmed mutant. The three sources are
+  byte-identical to their backups, and `git diff --stat connectors/` is empty.
+- Named (8):
+  - equivalent (5): `connector.ts` `sender` → true on the link lookup (the empty key is never written) and
+    `c.mailbox` → true (`mailbox: undefined` is read as absent); `imap.ts` `this.buf.length` → true (concat of an
+    empty buffer), `<` → `<=` on the literal wait (a literal is always followed by more bytes), and `!this.dead` → true
+    in `logout` (`command` rejects at once when dead);
+  - unreachable (3): `connector.ts` `if (this.stopping) return;` in `tick` (no tick fires once `stop()` cleared the
+    timer); `imap.ts` `if (this.dead) return;` in `onData` (`die` destroys the socket, which then emits no data; the
+    same edit on `die`'s identical line is killed); `parse.ts` `.endsWith('.ts')` → true (always true from the
+    sources, the other branch only runs in the bundled package).
+- Seen, not changed:
+  - `track` drops `p.finally(...)` with `void`. If `handle` rejected (a `ctx.propose` or `ctx.pair` that throws), the
+    rejection would be unhandled. It cannot today, since by contract they never throw. A first test whose `propose`
+    threw showed it, and was replaced by one with a numeric secret;
+  - a `"secret": 42` in the JSON passes `readSecret` and `start()`, then every request answers 500 `internal`, because
+    node:crypto refuses the key. The configuration could refuse it at start;
+  - `ImapClient.open` leaves the socket open when the greeting is not OK or a credential has a line break: it rejects
+    without `die`. A server that says BYE closes the connection itself, so nothing is held for long.
+- No mutation set changes. `connectors-edge` enters `GATED` in PR 2e.
+
+→ next: Claude · PR 2d (connectors-edge, terminal)
+
+
+## #177 · 2026-10-13 · Claude · proposal · 4.1.20 PR 2d: the terminal connectors' mutants read
+
+- Plan §7.1, the terminal family of `connectors-edge`. The input was the 113 survivors that `tools/mutate.ts
+  --set=connectors-edge` measured on aa2462e: 44 in `ssh/connector.ts`, 32 in `terminal/shell.ts`, 25 in
+  `telnet/connector.ts`, 12 in `terminal/guard.ts`. These sources are unchanged on this branch. Matched by context,
+  the 113 entries are 114 distinct mutants (`a.method === 'password' && … && …` has two `&&`; `if (!open) return;`,
+  `open = false;` and `shell.closed = true;` each appear on two or three lines).
+- One new file, `tests/connectors-terminal-edge-mutants.test.ts` (52 tests, under a second). There is no network for a
+  session:
+  - a Telnet session is a fake socket handed to the connector's own `connection` handler, an SSH one a fake ssh2
+    connection handed to `client`: its authentication contexts (password, `none`, `keyboard-interactive`,
+    `publickey` and `hostbased`, signed with real ed25519 keys from `sshKeyPair`), its session, pty and channel;
+  - the servers that start (start, stop, health) listen on 127.0.0.1, port 0, and nobody connects to them;
+  - the gate, the guard and the resume words take an injected clock; the pairing timer runs under fake timers;
+  - the bounds are tested at the bound: a wrong code exactly `triesWindowMs` old, a second exactly 1000 ms later,
+    exactly `bytesPerSecond`, a line exactly a minute old, a word exactly at its time to live, 10,000 words and
+    10,000 addresses (the sweep counted by clock reads), a 64-byte subnegotiation, a 64-character password, a line
+    exactly the terminal's width.
+- Each kill was checked by a scratch script that built every mutant with `mutants()`/`apply()` (each mutant sharing a
+  survivor's context, operator and edit), ran only the new file, and restored the source from a backup: 112 of the
+  114 failed it (two first lived, a missing flush in one test; fixed and checked again). The four sources are
+  byte-identical to their backups, and `git diff --stat connectors/` is empty.
+- Killed per file (survivor entries): `guard.ts` 12 of 12, `shell.ts` 32 of 32, `telnet/connector.ts` 25 of 25,
+  `ssh/connector.ts` 42 of 44.
+- Named (2), both in `ssh/connector.ts`:
+  - equivalent: `playerId ? { playerId } : {}` forced true gives `{ playerId: null }`, which `VirtualShell` reads as
+    `?? null`, the same as absent;
+  - unreachable: `Array.isArray(k)` → false in `parseOne`: ssh2 1.17's `parseKey` never returns an array (pinned by a
+    test of the new file for public, private, garbage and non-string keys).
+- Seen, not changed:
+  - `TelnetConnector.stop()` sets `shell.closed` but not the session's `open`: until the socket is destroyed (1 s
+    later), bytes a client still sends are read (counted, filtered, assembled into lines), and what that writes back
+    goes to an ended socket, where it fails quietly. The shell itself handles nothing more. Harmless today;
+  - several guards are defence against ssh2 changing shape (a non-numeric `cols`, a `password` on another method,
+    `server.address()` null, a second `close` event): they are pinned with fakes of that shape, not by ssh2 itself.
+- No mutation set changes. `connectors-edge` enters `GATED` in PR 2e.
+
+→ next: Claude · PR 2e (connectors-edge, the rest; then the set gated)
+
+
+## #178 · 2026-10-13 · Claude · proposal · 4.1.20 PR 2e: the connectors' remaining mutants read
+
+- Plan §7.1, the last family of `connectors-edge`. The input was the 62 survivors that `tools/mutate.ts
+  --set=connectors-edge` measured on aa2462e: 28 in `run.ts`, 18 in `http.ts`, 12 in `registry.ts`, 4 in
+  `config.ts`. These sources are unchanged on this branch. Matched by context, the 62 entries are 62 distinct mutants.
+- None of the four files was imported by a connector test: `run.ts` ran only as a child process (`connectors/bin.mjs`
+  in `tests/connectors-sdk.test.ts`), out of the mutation's reach for most branches; `http.ts` and `config.ts` only
+  through the email and badge connectors, never at a bound.
+- One new file, `tests/connectors-rest-edge-mutants.test.ts` (18 tests, under a second):
+  - `main` runs in-process with `o.stop`, `o.ready` and `o.write`; the Telnet connector's `start`, `stop` and `health`
+    are stubbed, so the context it is given is read (token, manifest, tenant, limits) and nothing listens but the
+    health port and a manifest server, both on 127.0.0.1, port 0;
+  - `readBody` reads a fake request (declared length over, at the limit; a chunk passing the limit, exactly the
+    limit); `PerAddress` takes an injected clock and its map is read (10,000 addresses, then 10,001, then the sweep at
+    exactly 60 s, a live address kept with its budget); `sendJson` gets a response whose headers are sent;
+  - the registry builds each id from its section (the private config read back), a null, string or number section as
+    `{}`, and refuses an unknown id; `readSecret` from a file (trimmed), inline, and neither.
+- Each kill was checked by a scratch script that built every mutant with `mutants()`/`apply()` (each mutant sharing a
+  survivor's context, operator and edit), ran only the new file, and restored the source from a backup: 57 of the 62
+  failed it, again after `biome --write`. The four sources are byte-identical to their backups, and `git diff --stat
+  connectors/` is empty.
+- Killed per file: `config.ts` 4 of 4, `registry.ts` 12 of 12, `http.ts` 18 of 18, `run.ts` 23 of 28.
+- Named (5), all in `run.ts`:
+  - unreachable: `i >= 0` → `i > 0` in `arg`: the flag is never at index 0, since `args[0]` must be a connector id
+    first (pinned: `main(['--config', …])` returns 2, unknown connector);
+  - equivalent: `cfg.tenantId ?` and `cfg.limits ?` forced true pass `undefined`, which `createContext` reads as
+    absent (`?? 'default'`, a spread of undefined);
+  - equivalent: `a && typeof a === 'object'` forced true, and `&&` → `||`: the health server listens on TCP and reads
+    `address()` in its listen callback, always an AddressInfo object.
+- Seen, not changed:
+  - the health handler is an `async` request listener without a `catch`: a connector whose `health()` throws leaves
+    the request unanswered and an unhandled rejection. The four connectors' `health()` never throw today;
+  - a Bridge that refuses its manifest makes `main` reject rather than return 1: `bin.mjs` then exits non-zero with
+    the stack, the message first. Under the contract (a non-zero exit, the reason said), harmless;
+  - `readBody` reads a non-numeric `Content-Length` as NaN, which no comparison refuses; the streamed count still
+    stops the body at the limit.
+- No mutation set changes. `connectors-edge` enters `GATED` once 2b to 2e are merged.
+
+→ next: Claude · connectors-edge gated once 2b–2e are merged; PR 3
+
+
+## #179 · 2026-10-13 · Claude · proposal · 4.1.20 PR 2b–2e: connectors-edge read and gated
+
+- Plan §7.5. The four families (2b badges #115, 2c email #116, 2d terminal #117, 2e the rest) were joined into one
+  branch, so that the generated files (`docs/dev/mutants.json`, `MUTANTS.md`, the ratchet, the READMEs' figures) are
+  resolved once and checked by one CI run.
+- The four families' 488 survivors: 473 killed (193, 109, 111, 60) and 15 named (4, 7, 2, 2), each mutant applied and
+  run against its family's new test file, no source changed.
+- `connectors-edge` joins `GATED` (4 shards), `MEASURED` is empty, and the nightly's matrix measures nothing that
+  gates nothing.
+- Weaknesses noted by the families and left for a behavioural PR, none reachable under today's contracts:
+  - a `void …finally` that would leave an unhandled rejection, in the badge connector, the email connector's `track`
+    and the `/health` handler;
+  - a numeric email secret accepted at start;
+  - `ImapClient.open` leaves its socket open after a greeting that is not OK;
+  - `TelnetConnector.stop()` reads one more second;
+  - a non-numeric `Content-Length`, bounded by the streamed count anyway.
+
+→ next: Claude · PR 3 (the candidate qualifies what it publishes)
+- Second reading (subagent, 13 Oct): three "equivalent" arguments were false for a configuration file that nothing
+  validates. They are now killed: an empty `tenantId` (the default, never `''`), an empty IMAP `mailbox` (INBOX), and a
+  health "port" that is a socket path (`address()` is then a string: no health URL, the run goes on, rather than a
+  throw on a URL with no port). Also from that reading:
+  - the email tests stop every connector in `afterEach`, so a failed assertion leaks no server or poll loop;
+  - ssh2's `parseKey` is pinned directly, since the SSH unreachable entry rests on it and ssh2 is a range;
+  - the matrix test checks that the nightly equals the gated matrix while nothing is measured only;
+  - the set comments and two whys were corrected.
+  - Left for 4.2: an entry carries no line number, and five contexts match several lines (one in imap.ts, plus
+    runs.ts, runs-store.ts, badges/fetch.ts and backup/restore.ts), so an entry also covers the same edit on its twin
+    lines.
+
+
+## #180 · 2026-10-13 · Claude · proposal · 4.1.20 PR 3: the candidate qualifies exactly what it publishes
+
+- Plan §8, §10.2. Neutral split first (commit 2 of the branch): `scripts/ops-qualify.mjs` is now an entry over
+  `scripts/ops-qualify/` (setup, topology, signals, runs, backup, report, steps). Every line of the 4.1.19 script is in
+  the split, apart from renames and re-indentation, checked by a line count of both. Its 24 steps are pinned by name
+  and order in `tests/ops-qualify-split.test.ts`. The `qualify` path filter and `ci-plan` follow the folder. The first
+  commit (the download retry, the SSH host key) touches neither file, so the split comes before every change of the
+  qualification.
+- Behaviour, after the split:
+  - the step catalogue (`steps.mjs`) gives each step its id, its time budget (said when passed, never a failure) and
+    whether `--short` runs it;
+  - report schema 2;
+  - the full profile in a candidate started by hand, judged by its gate;
+  - two new steps: refused while serving, and replace-store;
+  - "ran to its end" is said on success too, so that the gate reads every id.
+- The manifest of artifacts replaces the YAML lists release.yml and ship verify kept apart. release.yml's fallbacks for
+  tags without a candidate (pack, npm sbom) are removed. Every tag that still publishes has a candidate (from 4.1.17;
+  published releases are never replaced).
+- Perf (§8.3): `docs/dev/baselines/load.json` is seeded from candidate 38172871690 (4.1.19, one load each). The 4.1.20
+  release replaces each figure with its median of three.
+- Memory (§6.5): measured by the PR's own candidate run (full-ci), then by the technical candidate. A restore's
+  `--max-rows` bounds only the safety backup: the row bound is the export's. A restore is bounded by its bytes before
+  the parse, which is what the tool checks. The envelope rule that refuses a file before the parse is decided from
+  the measures (LOG).
+- Also from the #110 and #111 failures: `external-consumer.mjs` retries its download (504 on two runners at once), and
+  `connector-archive-e2e.mjs` checks its SSH host key and draws it again ("Malformed OpenSSH private key").
+- Second reading (subagent, 13 Oct, read-only). No P0. Fixed:
+  - The two restore steps proved nothing about deletion or refusal: the store already equalled the file. One proposal
+    the file does not hold is now written after the backup. The refused replace-store must leave it (and write no
+    safety file); the real one must remove it, and its safety backup must count one signal more than the file.
+  - backup-memory's read peak was tsx's wrapper (tsx re-spawns a child the exit hook never sees). It is now measured
+    in one process (`node --import tsx`), through the checkout's `bridge/src/backup` at the candidate's commit.
+- First CI of #119 (13 Oct): `backup-memory` red on both stores. The read imported
+  `<archive>/src/backup/index.ts`, but the Bridge archive ships one bundle (`src/cli.mjs`) and no sources; locally,
+  without `--bridge`, the checkout's sources were found. Export and restore still run the archive. The read now runs
+  the checkout's module, which the bundle is built from at the same commit, and the report says so (`bridge`,
+  `readModule`). A dying command now reports its error line, not Node's trailing `Node.js v22…`. Reproduced on the
+  extracted archive with `--bridge` before and after.
+- Measured there (warnings, not failures): SQLite's merge restore peaks at 1.4 GB for a 64 MiB backup and 3 GB for
+  256 MiB, export at 0.7 to 2.4 GB, far above the 512 MiB container. PR 6 writes the envelope from these figures in
+  REALITY-OPS; reducing it is a 4.2 follow-up, not a 4.1.20 change.
+  - `tools/release/candidate.mjs` imported `scripts/`, which the web-scumm package does not ship: the catalogue is now
+    passed in, loaded by the CLI from the checkout, with a test that no release tool imports scripts/.
+  - release.yml's manifest check is guarded on the file, as every step a tag may predate.
+  - The image's `buildx` (not "BuildKit") field is null on a host without it, never a reason not to build.
+  - fetchRetry's timeout bounds the wait for the headers, not the read of a large body, and a caller's own signal
+    still aborts.
+  - The gate's summary prints each load once, adds the medians, and lists the new artifacts among those that can be
+    missing.
+  - SUPPORT (EN and FR), ops/qualify/README and GO-NO-GO no longer say the candidate runs `--short`.
+  - Not a finding: the three Postgres loads share one protocol, since bridge-load deletes its tenant on an external
+    store (`tools/bridge-load.ts:119`) and runs-load deletes its runs.
+  - Carried by hand when 1c was merged in: its 4.1.17 hunk (migrate to schema 5) into
+    `scripts/ops-qualify/backup.mjs`.
+- `e2e:pwa` on WebKit: "Context is stopped", once every check of the scenario passed, seen a second time (#118, 13 Oct,
+  after #111). As the 4.1.20 plan said to do if it came back, it is now reported (a warning) and not counted, only
+  after every check passed and only that exact WebKit message. Any other browser error still fails.
+
+
+## #181 · 2026-10-13 · Claude · proposal · 4.1.20 PR 4: surfaces and carry attestations (ADR 0024)
+
+- Plan §9, D35. Stacked on PR 3 (its manifest of artifacts).
+- The site moves to the candidate: `release-core` keeps the build `release-check` made (`candidate-site`: dist.tar.gz,
+  assets-manifest.json, site-files.json). The gate puts it in the manifest, and release.yml publishes it instead of
+  `tar -czf dist` (release-check still builds one, to check). Without it, a site pass could not be bound to the files
+  it served.
+- Surfaces:
+  - every site pass reads the whole site, `og.png` excepted;
+  - its exclusion is proved by vite.config.ts's precache patterns, none of which matches it;
+  - the voices read the audio, the bundle, index.html and site.json;
+  - the Bridge and connector passes read the Bridge's archive, the image (and the connectors') and ops/qualify;
+  - the archive pass reads the four archives and `readme:install`;
+  - baselines, SBOMs, runs and the check's report are `status`, each with its reason.
+- The trust root, checked with real ssh-keygen keys and git signatures in temporary repositories:
+  - a key added after the source candidate is refused;
+  - an unsigned commit, or an edit after the signature, is refused;
+  - a merge that rewrites the file is refused;
+  - a signed commit brought by GitHub's unsigned merge is accepted;
+  - a range that changes the root and an attestation is refused, but the root with the folder's README only is not
+    (PR 4 itself brings both).
+- **Left for the maintainer:** the first `.github/allowed_signers` (`id_ed25519_sk`), in a commit signed by that key,
+  in this pull request, merged with a merge commit. Claude cannot sign it. *(Corrected at the release: the maintainer
+  chose the software key `id_ed25519`, and Claude made that commit, 8cebea2, at their request; D37.)*
+- Second reading (subagent, 13 Oct, with a git/ssh probe). Fixed:
+  - **P0: an attestation named its own trust root.** A branch added a key to allowed_signers, removed it, and signed
+    an approval with it whose `from.commit` was the first commit. The net diff held no key change, and the principal
+    is free text. Now:
+    - the source commit must be on the first-parent line of the history judged (main's);
+    - the range check reads every commit, not the net diff;
+    - the source report must be the attestation's pass on its `from` candidate, and be signed by the same principal.
+  - Committed bytes only: a working-tree edit counts for nothing.
+  - A carry fills only a pass not tried on the target: a failure there is never covered.
+  - Every commit on a carry's path is the maintainer's: documented in the ADR, FIELD (EN and FR), the folder's README
+    and field:carry's message.
+  - Smaller fixes:
+    - `**/` matches the root as workbox does, so the og.png proof is no longer vacuous;
+    - the voices surface also reads the root scripts (the service worker), `data/` and CSS;
+    - the merge check reads git's exit status;
+    - a malformed attestation, or a folder without its site files, is said and does not crash;
+    - one file per pass, named by its id;
+    - the gate refuses a candidate with no site before it attests anything.
+  - Each new test was run against the code before the fix and failed there.
+  - Left as is: release-core's field:check runs on a shallow checkout, so a carry it lists there says "no trust root".
+    That is information only: counting a carry needs main's history, as in `field:check --require` on main.
+- Merging main (13 Oct, after #119): two generated-file conflicts had been resolved by taking main's whole file, and that dropped hand-written lines.
+  - **README EN/FR:** #119's wording about the four package archives and which files the candidate and the release each make was missing on main. It is restored here by reapplying #119's README diff, with the figures kept current.
+  - **MUTANTS.md:** the `connectors-edge` row still said "measured (nightly)" after #118 gated it. It is fixed, and a new mutants-doc test checks that every set's row agrees with `tools/mutation-sets.ts`. It is red on main's MUTANTS.md.
+  - Lesson: resolve a generated file's conflict hunk by hunk, or regenerate it. Taking `--theirs` for the whole file loses the branch's own lines.
+
+
+## #182 · 2026-10-13 · Claude · proposal · 4.1.20 PR 3b: the rehearsal of 4.2's operations
+
+- Plan §11.1–11.2. Stacked on PR 4.
+- The draft flow uses `gh release create --draft --verify-tag`, then `upload`, then `edit --draft=false`, then
+  `ship verify`.
+  - A published release stops the run with an error before anything is built.
+  - A leftover draft is deleted. Its tag stays: `--cleanup-tag` is never used.
+- Pins: Node 22.23.3 (the newest 22 LTS, 23 Sept 2026) and npm 11.21.0 (the newest 11; `npm stage` checked present in
+  it). They sit in release.yml's env for the future publishing step, read by the preflight. A test refuses a range or
+  a version below 22.14.0 or 11.15.0.
+- Checked in npm's documentation (13 Oct 2026):
+  - staging a package that does not exist publishes a `0.0.0-stage` placeholder until approval;
+  - `npm trust github … --allow-stage-publish` makes a trusted publisher stage-only;
+  - the dual-use policy targets pentest, security research and obfuscation tools.
+  - A secondary article said a new package cannot be staged. npm's own page says otherwise, and the runbook follows
+    npm and says what to check.
+- The preflight reads a signing key on GitHub through the public `users/<login>/ssh_signing_keys`, which needs no
+  extra token scope. The tests use fake gh/npm/git and check that no call writes.
+- `ship tag --sign` is refused below 4.2.0 (D30).
+- Second reading (subagent, 13 Oct, read-only probes of gh, npm 11.21.0's source and docs.npmjs.com). Fixed:
+  - **P0: `ship preflight-stable` always crashed.** lib's `gh()` adds `-R`, which `gh api` refuses. It now asks
+    `gh api user` directly.
+  - **P1: a release could go public before `gh release verify` could pass.** That command needs immutable releases.
+    `ship tag` now refuses to tag from 4.1.20 while they are off. It runs with the maintainer's admin access;
+    release.yml's token cannot read that setting, which needs admin read.
+  - "Not published yet" stops on any error of gh but "release not found".
+  - **P1: the stage-only check read a field npm does not print.** npm prints one indented object per configuration,
+    with `permissions` (createPackage: may publish; createStagedPackage: may stage). The check now reads each object
+    and blocks on createPackage. The tests use that real shape.
+  - Smaller fixes:
+    - gh error bodies are no list: no crash, said missing;
+    - a name is ours by its exact npm user (`npm whoami`), never a prefix; unknown when not logged in;
+    - the nightly tells a 404 from a network error, and its job no longer sits under heavy's comment;
+    - a tag ruleset with no bypass would block the maintainer too, so it is not `ok`;
+    - the GO / NO-GO read is the sheet's last verdict;
+    - the runbook says Node 22.23.3 ships npm 10.9.9, so the step installs npm 11.21.0 itself.
+- **The jobs listing (13 Oct, while #120 was merging).** For an hour, GitHub's `actions/runs/<id>/jobs` answered HTTP
+  502 to about two calls in three, for every run, while the rest of the API answered and githubstatus said all
+  operational. #120's `candidate-gate` failed four times with every job green. The step also read a single page of
+  100, which would drop a candidate's jobs past 100 in silence. `run-jobs.mjs` (tested against a fake API: a 502 then
+  a 200, three pages, a 404 at once, every try spent, a total that does not add up) and a guard against any bare
+  `gh api …/jobs` call in the workflows.
+- **`fetch-retry.mjs` moves to `tools/release/` (14 Oct, merging #120 and #121).** #119's second reading added a test
+  that no release tool imports `scripts/` (tools/ ships, scripts/ does not); `run-jobs.mjs` did. The module moves to
+  the side that ships, and `external-consumer`, `readme-quickstart` and its test import it from there (scripts/
+  already imports tools/). Same code, same tests.
+- **Second reading on #122 (14 Oct): no P0, no P1, eight P2, all fixed.** release.yml runs one release per tag at a
+  time (a rerun of the tag's `ci` fires it again; two runs could each make a draft); its "Not published yet" step
+  keeps stderr apart (a warning beside a success read as "none"), refuses an answer it does not know, and deletes
+  every draft of the tag, bounded. The step is now tested by running it under bash against a fake gh (none, one and
+  two drafts, published, a warning, an unknown answer, an auth error); the old step fails those tests. `ship tag`:
+  immutable releases off says so instead of a raw `gh api` failure; with `--sign`, an unsigned tag left here by a
+  failed push is refused, never pushed. `preflight-stable`: a name is free only on npm's 404 (a registry that did not
+  answer blocks the row), `user.signingkey` read as git does (`~/`, `key::`), a run gh cannot read is a blocked row.
+  RELEASING says the npm install is 4.2's step, and that a 4.1.20 release needs a candidate made after this PR.
+
+
+## #183 · 2026-10-13 · Claude · proposal · Connector hardening: the weaknesses the edge mutation families saw (#118)
+
+- The families listed them as "seen, not changed" (none reachable under today's contracts), for a behavioural PR:
+  - `void p.finally(...)` in the badge connector, the email connector's `track` and its IMAP tick: when `p` rejects,
+    `finally` returns a promise that rejects too, and nothing catches it. Each one now ends in `.catch`; the request
+    still answers with the rejection;
+  - the `/health` handler awaited `connector.health()` in an async request handler: a throw now answers 503;
+  - `readSecret` returned any truthy inline value, so a numeric `secret` reached `createHmac` and every request got a
+    500. It is refused at start;
+  - `ImapClient.greeting` refused a greeting that is not OK without destroying the socket. It now goes through `fail`;
+  - `TelnetConnector.stop()` ended the sockets, but their data handler kept reading until they were destroyed.
+- `tests/connectors-hardening.test.ts`: 5 tests, each red on the previous code (all 5 failed with the fixes stashed),
+  green with them.
+- Second reading (sub-agent, 13 Oct): no P0 or P1; it repeated the red check itself (each test red for its own reason,
+  never only vitest's handler). Folded in:
+  - the same class in `ssh/connector.ts`: `void bindPlayer(...).then(...)` had no catch; a pairing that throws now
+    refuses the login;
+  - Telnet pauses each socket in `stop()` rather than reading a connector-wide flag, which `start()` reset;
+  - the 503 answer carries `since`, as every health answer does;
+  - an inline `bridge.token` that is not a string is refused too (it bypassed `readSecret`);
+  - `config.ts` claimed CONNECTORS.md named the inline shortcut: both docs (FR in French) now say it, and the 503.
+- Tests: 9, the 3 added ones red on the first commit, all 9 red on main.
+
+→ next: CI, merge; then the technical candidate.
+
+
+## #184 · 2026-10-15 · Claude · release · 4.1.20 "Last Mile": the technical candidate, the release files, the trust root (D37)
+
+- Plan §11.3–§11.5, the order of §5.1. Version 4.1.20; the golden save `demo-4.1.20.json`; the reference run
+  re-recorded (engine 4.1.20); the README's install URL and current release; the fragments assembled (CHANGELOG
+  4.1.20, LOG #169 → #183); the pass sheet (`passes/4.1.20.md`, the 23 criteria of §14, each with its pull request and
+  test) and the baseline sheet (`baselines/4.1.20.md`, its thresholds written before the measure); ROADMAP, PROGRAM,
+  GO / NO-GO 4.2; REALITY-OPS EN/FR give the backup and restore memory envelope.
+- **D37: the trust root is `id_ed25519`**, the maintainer's software key, not the hardware key the plan named (it
+  was not at hand, and the maintainer would not delay). The signature proves the key, not the maintainer's own
+  approval; D35, ADR 0024 and RELEASING say so. The maintainer authorised Claude to sign `v4.2.0-rc.1`, and to tag the
+  4.1.20 stable as soon as the RC's three checks pass.
+- **The plan critiqued, then read twice by Codex** before this release (14 Oct): the `v*` ruleset made early, the
+  thresholds written before the dispatch, the RC given one concrete job and its failure paths, the load reseed bound
+  by corroboration. Its remaining order is the plan's §5.1.
+- **The pass sheet's reading found two refusals without a test**: `replace-store` with a `tenants-only` file and
+  with a file of an older SQL schema. Both now tested, each failing when its guard is removed. `connectors-edge` is
+  473 killed and 15 named (`mutants.json`), not the 469 and 19 of #118's title.
+- **A fragment heading `### Fixes`** (#120's) stopped the assembly; `changes --check` does not read headings, so the
+  pull request passed. Corrected here; the check reading them is 4.2's.
+- **Second reading (sub-agent, 15 Oct): no P0, one P1, eight P2, all fixed.** P1: the plan still said the signature
+  is a guarantee Claude cannot produce (§9.3), without D37's caveat. P2: references to the assembled fragment now
+  point at this entry; the SQLite range wording (4.1.19's 387.2 ms is above, not inside, 262–363); the pass sheet
+  named a `qualify` job the candidate does not have (`deployment-smoke` and `candidate-gate`); the 4.1.19 column's
+  source (the published baseline, not `4.1.19.md`); the restore memory range (1.3–3.7 GB); SUPPORT's restore row
+  (schema 4, both modes); RELEASING's signer sentence (8cebea2, D37); one safety path per case in the new test.
+
+### The thresholds, written before the technical candidate's dispatch
+
+Written on 2026-10-14T22:48Z, before `gh workflow run candidate -f sha=d955785b2b4652e1473fc98ffd9357b2f284e2ec` (main after #122), so the
+candidate is judged against criteria older than it (plan §8.3; the critique of 14 Oct, C6 and C9b).
+
+- **Time.** The budget of plan §7.5 is the **critical path** through `needs` (`baseline.mjs`,
+  `duration.criticalPath.seconds`): 90 min at most. Over it, a larger budget is decided and written here before the
+  final candidate runs (§7.5). The **wall time** (`duration.wallSeconds`, first job's start to last job's end) has an
+  **alert threshold** of 150 min: over it, the cause (queueing, a slow runner) is said here and in
+  `baselines/4.1.20.md`; it blocks nothing.
+- **Load.** The gate is the absolute budgets, unchanged: 0 gaps; proposals p95 under 1 s on SQLite and Postgres;
+  leaderboard p95 under 2 s and RSS under 512 MB on both. `load.json` is reseeded from this candidate's three-load
+  medians only if each is within 25 % of 4.1.19's (SQLite proposals 387.2 ms, leaderboard 464.4 ms; Postgres
+  proposals 507.4 ms, leaderboard 205.6 ms). Beyond 25 %, a reseed needs a justification written here first: the
+  cause named (a code change, or a runner shown slow by its other jobs' durations), a corroborating measure (another
+  run, or a local load on the same protocol), or the maintainer's explicit acceptance. The 4.1.19 values stay in
+  `load.json` beside the new ones.
+- **Reruns.** One rerun of a red job is allowed; it does not by itself prove a flake. Each is written here with its
+  cause, both attempts' results, `run_id` and `run_attempt` from the Actions API, and the sums of the artefacts
+  finally verified. A second red of the same job is a NO-GO.
+- **What only this candidate proves** (C5): the full `ops:qualify` profile (dispatch only; pull requests run
+  `--short`) on the archives and image of a `main` SHA, and the signing rehearsal on `main`. `preflight-stable` is
+  run by hand afterwards; acceptable gaps then: every npm row, and the signing key on GitHub until the maintainer adds
+  it.
+
+**The technical candidate: run 38650102070 on d955785, attempt 1, every job green, no rerun.**
+
+- **Time.** Critical path 4 037 s (67 min: target → mutation-plan → mutation → mutation-merge), under the 90 min
+  budget; wall time 4 061 s (68 min), under the 150 min alert. The longest job: `mutation (remix-1of1)`, 3 979 s.
+- **Qualification.** The full profile, 26 of 26 steps, on the candidate's own archives and image, among them both
+  restore modes and `restore-refused-serving` (three Bridges serving, their leases named, nothing restored).
+- **Mutation.** The nine sets gate and pass; `connectors-edge` 1 120 of 1 135 killed, the 15 others named.
+- **Signing rehearsal.** Signed, verified, the key destroyed, the tag deleted, nothing pushed.
+- **`preflight-stable`.** Signing key here and on GitHub, `allowed_signers`, immutability, the `v*` ruleset, the
+  candidate's provenance: all green. Its four archives accepted by `npm publish --dry-run` (checked as 4.1.19, the
+  version this candidate packs; as 4.2.0 they are absent, by construction). Twelve npm rows still to do (bootstrap,
+  trusted publisher, OIDC for each package): 4.2's, as planned.
+- **Load, and the reseed decided by the rule above.** Every load 0 gaps, under its absolute budget, no alert:
+
+  | Store, load | 4.1.19 (one load) | Median of three (min–max) | Ratio |
+  |---|---|---|---|
+  | SQLite, proposals | 387.2 ms | 276.1 ms (266.8–295.2) | 0.71 |
+  | SQLite, leaderboard | 464.4 ms | 286.3 ms (282.1–302.0) | 0.62 |
+  | Postgres, proposals | 507.4 ms | 478.6 ms (475.6–483.0) | 0.94 |
+  | Postgres, leaderboard | 205.6 ms | 202.6 ms (199.5–203.5) | 0.99 |
+
+  Postgres is within 25 % on both loads: reseeded. SQLite is beyond it on both, the faster way, so the rule asks for
+  corroboration before a reseed, and the corroboration says the opposite: candidates 38470919464 (81e1647) and
+  38588898080 (8cebea2) ran **the same code** (8cebea2 adds only `.github/allowed_signers`) and measured SQLite at
+  362.9 / 480.7 ms and 276.2 / 281.0 ms. The gap is the runner, not the code. Reseeding SQLite at 276 / 286 ms would
+  read the next slow runner as a 31 % / 68 % regression, and three slow loads as a reproduced one. **SQLite stays at
+  4.1.19's values** (387.2 ms, a slow runner's, above the 262–363 ms one code gives here; 464.4 ms, inside 262–481); `load.json` says why, and keeps
+  every replaced value under `previous`. The runner-speed probe stays 4.2's.
+
+→ next: this branch's release files, its pull request, then the final candidate on its merge.

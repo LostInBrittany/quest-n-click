@@ -26,7 +26,8 @@ listening or 48 hours of deployment. Carrying a pass blindly would be wrong too:
    `field:carry` writes it `pending`, beside a byte-for-byte copy of the source report, and refuses any relevant
    difference. There is no force.
 4. **Approval is a signature, not a review.** The maintainer sets `approved` and `approvedBy` in a commit signed with
-   their hardware key (`id_ed25519_sk`). tools/field/trust.ts checks it:
+   the key `.github/allowed_signers` names (`id_ed25519` since D37; the hardware key `id_ed25519_sk` was the
+   decision). tools/field/trust.ts checks it:
    - The trust root is the repository's `allowed_signers` (under `.github/`, added by the maintainer) as the **source
      candidate's commit** holds it, never as the commit that brings the attestation. A pull request cannot add a key and sign with it.
    - Every commit that wrote the attestation, through merges that were not squashed, must be signed by a key of that
@@ -48,7 +49,9 @@ listening or 48 hours of deployment. Carrying a pass blindly would be wrong too:
    and its target surface is the candidate's own. The target's own report stays as the person left it. Between an RC
    and its stable on one SHA and one run there is nothing to carry.
 6. **Claude never writes an `approved` attestation.** There is no required CODEOWNERS review: the maintainer is the
-   only collaborator. The guarantee is the signature, which Claude cannot produce.
+   only collaborator. The signature was meant as a guarantee Claude cannot produce; since D37 the key has no
+   passphrase and sits on the machine Claude works on, so it proves the key was used, not who decided. The rule
+   holds by procedure: an approval needs the maintainer's explicit yes, recorded where it was given.
 
 **Consequences.**
 - A README-only change carries the PWA pass, because the README is no file of its surface. A change to the service

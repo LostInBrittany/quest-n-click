@@ -599,6 +599,20 @@ par la baseline ; un script de liens. Laissé pour plus tard, dit comme tel : le
 (`docs/dev/passes/4.1.8.md`), l'accélération du workflow de release (son propre lot), les 845 lignes de l'onglet
 assistant.
 
+## v4.1.20 « Last Mile » (livrée en octobre 2026) : le dernier code avant la 4.2
+
+Aucune mécanique nouvelle (`docs/dev/PLAN-4.1.20-LAST-MILE.md`, D34–D37, dix pull requests et la release). Un backup
+du Bridge passe au schéma 4 : il dit s'il contient tout le store, quota compris, et son enveloppe est sous son
+empreinte (ADR 0023). Une restauration nomme son mode, `merge` ou `replace-store`, et ne tourne qu'avec le store pour
+elle seule, sous un lease de maintenance (migration 0005) ; `replace-store` écrit d'abord un backup de sécurité
+vérifié. Les deux derniers ensembles de mutation mesurés, `connectors-edge` et `reality-store-postgres`, deviennent
+bloquants (473 des 488 survivants tués, 15 nommés), en shards depuis une seule matrice. Chaque candidat qu'un
+tag peut nommer joue le profil de qualification complet sur ses propres archives et son image, et trois charges par
+store. Une passe humaine est liée aux fichiers de sa surface, et `field:carry` ne la reporte sur un candidat ultérieur
+que si aucun n'a changé, version comprise (ADR 0024). Les releases sont d'abord des brouillons, puis immuables ; la
+signature, le préflight et le runbook npm de la 4.2 sont répétés sans rien publier. Les passes humaines se font sur le
+candidat `4.2.0-rc` qui suit : le GO / NO-GO 4.2 reste NO-GO tant qu'elles ne sont pas faites.
+
 ## v4.1.19 « Field Closure » (livrée en octobre 2026) : ce que la seconde lecture de la 4.1.18 laissait ouvert
 
 Aucune mécanique nouvelle (`docs/dev/PLAN-4.1.19-FIELD-CLOSURE.md`, D33, six pull requests et la release ; la fenêtre

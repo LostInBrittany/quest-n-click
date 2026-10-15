@@ -1,14 +1,12 @@
-# GO / NO-GO for 4.2 "Stable World" (written at 4.1.18 "Dress Rehearsal", updated at 4.1.19 "Field Closure")
+# GO / NO-GO for 4.2 "Stable World" (written at 4.1.18 "Dress Rehearsal", updated at 4.1.19 "Field Closure" and 4.1.20 "Last Mile")
 
-What 4.2 may promise, surface by surface, from what 4.1.18 and 4.1.19 proved. The rule (D18, the plan's §14.2 and §19): a surface
+What 4.2 may promise, surface by surface, from what 4.1.18, 4.1.19 and 4.1.20 proved. The rule (D18, the plan's §14.2 and §19): a surface
 is **stable** in 4.2 only with its machine proof **and** the people's pass the plan's §14.2 names for it, `passed`;
 where §14.2 names none or makes it optional ("si faite": the SQLite Bridge's long install, the Chromium PWA's real
 install), the machine proof is the proof, and this sheet says so in its row. Otherwise the surface is limited,
 experimental, or out of 4.2's stable scope, and 4.2 says so. A pass made on one sub-surface promotes no other.
 
-**At the 4.1.19 tag no people's pass has been made** (by construction, D33: they start on 4.1.19's final candidate, the run its tags name; a pass made on 4.1.18's candidate tried other files). Each of the thirteen is an open `field-pass` issue (#75 to #87),
-closed by the maintainer once its report checks (`npm run field:check`, `docs/en/FIELD.md`). This sheet is written again
-when they are made; until then every verdict below that needs a pass is **NO-GO for "stable"**.
+**At the 4.1.20 tag no people's pass has been made**, by construction (D34): they run on the `4.2.0-rc` candidate that follows 4.1.20, a change of the version only, because the version is part of every surface's files (D35) and a pass made on 4.1.20 could not be carried to 4.2. Each of the thirteen is an open `field-pass` issue (#75 to #87), closed by the maintainer once its report checks (`npm run field:check`, `docs/en/FIELD.md`). This sheet is written again when they are made; until then every verdict below that needs a pass is **NO-GO for "stable"**.
 
 ## By surface
 

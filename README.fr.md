@@ -23,7 +23,7 @@ ou Linux. Le moteur s'installe depuis l'archive d'une release (la
 publication npm arrive avec la 4.2) :
 
 ```bash
-T=https://github.com/wanoo/web-scumm/releases/download/v4.1.19/web-scumm-4.1.19.tgz
+T=https://github.com/wanoo/web-scumm/releases/download/v4.1.20/web-scumm-4.1.20.tgz
 npx --package=$T web-scumm create mon-jeu "Mon jeu" --engine=$T
 cd mon-jeu && npm install
 npm run assets && npm run dev        # y jouer ; puis npm run verify, npm run build
@@ -156,7 +156,7 @@ Chaque page existe en anglais (`docs/en/`) et en français (`docs/fr/`), et un t
 dans [TOOLS](docs/fr/TOOLS.md), ce qui change dans le [CHANGELOG](CHANGELOG.md), passer à une nouvelle version dans
 [UPGRADING](docs/fr/UPGRADING.md), et d'où vient le projet dans la [ROADMAP](docs/fr/ROADMAP.md).
 
-Release actuelle : [v4.1.19 « Field Closure »](https://github.com/wanoo/web-scumm/releases/tag/v4.1.19). La ligne 4.1.x
+Release actuelle : [v4.1.20 « Last Mile »](https://github.com/wanoo/web-scumm/releases/tag/v4.1.20). La ligne 4.1.x
 est une ligne d'incubation, où une release peut casser un nom public ou un format, documenté et avec une migration,
 jusqu'à ce que la 4.2.0 rétablisse le SemVer strict.
 

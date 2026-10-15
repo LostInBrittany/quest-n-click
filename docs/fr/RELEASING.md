@@ -38,13 +38,15 @@ Les tags 4.1.x restent annotés (D30). Ceux de 4.2 sont signés avec la clé SSH
 
 ```sh
 git config gpg.format ssh
-git config user.signingkey ~/.ssh/id_ed25519_sk.pub
+git config user.signingkey ~/.ssh/id_ed25519.pub
 npm run ship -- tag 4.2.0-rc.1 <sha> --candidate=<run> --sign --now
 ```
 
 - La clé doit aussi être enregistrée sur GitHub comme clé de **signature** (Settings → SSH and GPG keys).
-- Elle doit figurer dans `.github/allowed_signers`, que le mainteneur ajoute dans un commit signé par cette clé. C'est
-  aussi la racine de confiance des passes reportées (ADR 0024).
+- Elle doit figurer dans `.github/allowed_signers`, ajouté dans un commit signé par cette clé (8cebea2, fait par Claude
+  à la demande du mainteneur : D37). C'est aussi la racine de confiance des passes reportées (ADR 0024). Avec
+  `id_ed25519`, la signature prouve l'usage de la clé, pas l'accord du mainteneur : un accord est consigné
+  explicitement (D37).
 - Chaque candidat répète ce chemin avec une clé éphémère (`signing-rehearsal`) : il signe un tag du commit, jamais
   poussé, le vérifie avec `git verify-tag`, puis détruit la clé.
 

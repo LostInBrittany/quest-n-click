@@ -36,13 +36,14 @@ RC is not fixed: it becomes an `rc.N+1`.
 
 ```sh
 git config gpg.format ssh
-git config user.signingkey ~/.ssh/id_ed25519_sk.pub
+git config user.signingkey ~/.ssh/id_ed25519.pub
 npm run ship -- tag 4.2.0-rc.1 <sha> --candidate=<run> --sign --now
 ```
 
 - The key must also be registered on GitHub as a **signing** key (Settings → SSH and GPG keys).
-- It must be in `.github/allowed_signers`, which the maintainer adds in a commit signed by that key. That is also the
-  trust root of carried passes (ADR 0024).
+- It must be in `.github/allowed_signers`, added in a commit signed by that key (8cebea2, made by Claude at the
+  maintainer's request: D37). That is also the trust root of carried passes (ADR 0024). With `id_ed25519` the
+  signature proves the key was used, not that the maintainer approved: an approval is recorded explicitly (D37).
 - Each candidate rehearses the path with an ephemeral key (`signing-rehearsal`): it signs a tag of the commit that is
   never pushed, checks it with `git verify-tag`, then destroys the key.
 
