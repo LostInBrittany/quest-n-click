@@ -1,5 +1,22 @@
 # Changelog
 
+## 4.2.0 — 2026-10-15
+
+"Stable World" (LOG #185): 4.1.20's code, the version changed (plan 4.1.20 §12, D34). The thirteen people's passes
+(#75–#87) are made on the release candidate `v4.2.0-rc.1`, the first tag signed with the maintainer's SSH key
+(`id_ed25519`, D37); the stable is tagged from a candidate that changes only the status files, each pass carried to
+it by `field:carry` when no file of its surface changed. What 4.2 calls stable is the
+[GO / NO-GO 4.2](docs/dev/GO-NO-GO-4.2.md)'s verdict.
+
+### Changes
+
+- **The README installs from the release candidate's archive** (4.2.0): `releases/download/v4.2.0-rc.1/
+  web-scumm-4.2.0.tgz`, the archive the people's passes install, the same bytes as the stable's. The install section
+  is the `archive-human-install` pass's surface and stays as written from the candidate to the stable. `docs:truth`,
+  `quality:baseline` and `readme-quickstart` accept a `v<version>-rc.N` release for this version's archive and
+  nothing else, and "current release" may name the last published release only while the install names such a
+  candidate.
+
 ## 4.1.20 — 2026-10-15
 
 "Last Mile" (LOG #184): no new mechanic; the last 4.1.x release with code before 4.2. A Bridge backup is schema 4 and

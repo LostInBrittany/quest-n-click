@@ -28,9 +28,19 @@ export function quickStart(readme) {
   return { lines, url: t.slice(2).trim() };
 }
 
-/** The URL the README must name for `version`. */
-export const archiveUrl = (version) =>
-  `https://github.com/wanoo/web-scumm/releases/download/v${version}/web-scumm-${version}.tgz`;
+/** The URL the README names for `version`: under its own release, or under a release candidate of it (`tag`,
+ * `v<version>-rc.N`: the 4.2.0-rc campaign installs from the rc's release until the stable one exists). */
+export const archiveUrl = (version, tag = `v${version}`) =>
+  `https://github.com/wanoo/web-scumm/releases/download/${tag}/web-scumm-${version}.tgz`;
+
+/** The release tag a README's archive URL names, when it is `v<version>` or `v<version>-rc.N`; null otherwise. */
+export function installTag(url, version) {
+  const m = /^https:\/\/github\.com\/wanoo\/web-scumm\/releases\/download\/(v[^/]+)\/web-scumm-([^/]+)\.tgz$/.exec(url);
+  if (!m || m[2] !== version) return null;
+  return m[1] === `v${version}` || new RegExp(`^v${version.replaceAll('.', '\\.')}-rc\\.[1-9]\\d*$`).test(m[1])
+    ? m[1]
+    : null;
+}
 
 /** The bash script that plays the quick start against `archive`: T replaced, `npm run dev` until it answers, then the
  * commands named in its comment. */
@@ -57,9 +67,9 @@ export function script(lines, archive, port) {
   return [...out, ...after].join('\n');
 }
 
-async function published(version) {
-  const url = archiveUrl(version);
-  const sumsUrl = `https://github.com/wanoo/web-scumm/releases/download/v${version}/web-scumm-v${version}-SHA256SUMS`;
+async function published(version, tag = `v${version}`) {
+  const url = archiveUrl(version, tag);
+  const sumsUrl = `https://github.com/wanoo/web-scumm/releases/download/${tag}/web-scumm-${tag}-SHA256SUMS`;
   const [tgz, sums] = await Promise.all([fetchRetry(url), fetchRetry(sumsUrl)]);
   if (!tgz.ok || !sums.ok) throw new Error(`${url}: ${tgz.status}; ${sumsUrl}: ${sums.status}`);
   const got = createHash('sha256')
@@ -77,12 +87,13 @@ if (import.meta.url === pathToFileURL(process.argv[1] ?? '').href) {
   const args = process.argv.slice(2);
   const version = JSON.parse(readFileSync(join(ROOT, 'package.json'), 'utf8')).version;
   const { lines, url } = quickStart(readFileSync(join(ROOT, 'README.md'), 'utf8'));
-  if (url !== archiveUrl(version)) {
-    console.error(`✖  README.md's quick start names ${url}, not ${archiveUrl(version)}`);
+  const tag = installTag(url, version);
+  if (!tag) {
+    console.error(`✖  README.md's quick start names ${url}, not ${archiveUrl(version)} (or a v${version}-rc.N of it)`);
     process.exit(1);
   }
   if (args.includes('--published')) {
-    await published(version);
+    await published(version, tag);
     process.exit(0);
   }
   const dir = args.find((a) => a.startsWith('--tarballs='))?.slice(11);

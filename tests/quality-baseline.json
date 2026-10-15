@@ -366,6 +366,11 @@
    "ended": true,
    "inputs": 7,
    "last": "23325ca7"
+  },
+  "demo-4.2.0.json": {
+   "ended": true,
+   "inputs": 7,
+   "last": "23325ca7"
   }
  },
  "surface": {
@@ -373,7 +378,7 @@
  },
  "tests": {
   "files": 268,
-  "declarations": 2220
+  "declarations": 2221
  },
  "bundle": {
   "initialJsKB": 133
