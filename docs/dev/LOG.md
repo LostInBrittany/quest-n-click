@@ -4899,6 +4899,10 @@ candidate is judged against criteria older than it (plan §8.3; the critique of 
 - **The rc.1 candidate's SQLite proposals alert** (505.3 ms, ×1.31 of the kept 4.1.19 value; min 475.6, ×1.23, so not
   reproduced; 0 gaps; under 1 s): `bridge/`, `src/` and `connectors/` are byte-identical to dfa614a (364 ms) and
   d955785 (276 ms), and its throughput was 327/s against 528/s. A slow runner; the runner-speed probe stays 4.2's.
+- Second reading (sub-agent): one P1, the 4.2.0 pass sheet still gave `field:init --release=4.2.0-rc.1` (every
+  report would have been labelled rc.1 on rc.2's candidate, and `field:carry` looked in rc.1's folder); now rc.2.
+  RELEASING's signing example and D34 amended the same way. The maintainer's authorisation to sign (D37) named
+  `v4.2.0-rc.1`; signing `v4.2.0-rc.2` waits for their explicit yes.
 
 → next: the rc.2 candidate, `preflight-stable`, `v4.2.0-rc.2` signed, `readme-quickstart --published`, `field:init` on
 #75–#87.

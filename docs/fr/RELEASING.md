@@ -39,7 +39,7 @@ Les tags 4.1.x restent annotés (D30). Ceux de 4.2 sont signés avec la clé SSH
 ```sh
 git config gpg.format ssh
 git config user.signingkey ~/.ssh/id_ed25519.pub
-npm run ship -- tag 4.2.0-rc.1 <sha> --candidate=<run> --sign --now
+npm run ship -- tag 4.2.0-rc.2 <sha> --candidate=<run> --sign --now
 ```
 
 - La clé doit aussi être enregistrée sur GitHub comme clé de **signature** (Settings → SSH and GPG keys).
