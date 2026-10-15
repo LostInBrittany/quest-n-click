@@ -294,7 +294,7 @@ octobre ; l'immuabilité des releases depuis le 15. Les étapes qui suivent n'at
 
 | # | Étape | Après |
 |---:|---|---|
-| a | seuils du candidat technique écrits avant son lancement (`changes/4120-release.log.md`) | #122 |
+| a | seuils du candidat technique écrits avant son lancement (LOG #184) | #122 |
 | b | candidat technique, lancé avec le SHA complet de `main` ; profil `ops:qualify` complet, répétition de signature | a |
 | c | `ship preflight-stable` à la main ; manques acceptables : les lignes npm, la clé de signature sur GitHub | b |
 | d | PR 6 `release/4.1.20`, liste fermée (§11.3 réduit à ce qui manque), `load.json` selon les seuils de a | b |
@@ -703,7 +703,7 @@ migrent vers ce format dans la PR 2a.
   fichiers ;
 - le candidat technique reste sous 90 minutes à cache froid. *(Précisé le 15 octobre, avant son lancement : le budget
   porte sur le chemin critique à travers `needs` (`duration.criticalPath.seconds`) ; la durée murale a un seuil
-  d'alerte de 150 minutes, qui ne bloque rien ; `changes/4120-release.log.md`.)* Sinon, un budget supérieur est décidé avant la mesure
+  d'alerte de 150 minutes, qui ne bloque rien ; LOG #184.)* Sinon, un budget supérieur est décidé avant la mesure
   suivante et écrit dans le LOG ;
 - l'alias `connectors` reste jusqu'à la 4.2.
 
@@ -877,7 +877,8 @@ L'attestation est committée dans `docs/dev/passes/carry/`, dans un commit sign�
   dans la PR 4, dans un commit signé par cette clé, et il entre dans le candidat final de la 4.1.20. *(D37 : c'est
   `id_ed25519`, commit 8cebea2 de #121.)* ;
 - il n'y a pas de revue CODEOWNERS obligatoire, puisque le mainteneur est seul collaborateur. La garantie vient de la
-  signature, que Claude ne peut pas produire ;
+  signature, que Claude ne peut pas produire. *(D37 : avec `id_ed25519`, sans phrase de passe, la signature prouve
+  l'usage de la clé, pas l'accord du mainteneur ; la règle tient par la procédure, l'accord étant consigné.)* ;
 - `approvedBy` doit être le principal que `allowed_signers` associe à la clé signataire. Ce n'est pas un texte libre ;
 - la signature vérifiée est celle du commit qui a réellement introduit ou modifié l'attestation, y compris à travers
   des merges non squashés. Un merge signé ne couvre pas un commit non signé ;

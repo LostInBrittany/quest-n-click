@@ -5,7 +5,7 @@
 import { createHash } from 'node:crypto';
 import { existsSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { basename, join } from 'node:path';
 import { afterAll, describe, expect, it } from 'vitest';
 import { realityManifest } from '@engine/reality/manifest';
 import { type BackupPayload, makeBackup, readBackup, restoreBackup, stableJson, TABLES } from '../bridge/src/backup';
@@ -326,7 +326,7 @@ describe('restore from the command line names its mode', () => {
         `--from=${file}`,
         '--mode=replace-store',
         '--yes-replace-store',
-        `--safety-out=${join(dir, `safety-${file.length}.json`)}`,
+        `--safety-out=${join(dir, `safety-${basename(file)}`)}`,
       ]);
       expect(r.code, file).toBe(1);
       expect(r.out, file).toMatch(why);

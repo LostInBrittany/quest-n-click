@@ -4791,6 +4791,12 @@ classified.
   473 killed and 15 named (`mutants.json`), not the 469 and 19 of #118's title.
 - **A fragment heading `### Fixes`** (#120's) stopped the assembly; `changes --check` does not read headings, so the
   pull request passed. Corrected here; the check reading them is 4.2's.
+- **Second reading (sub-agent, 15 Oct): no P0, one P1, eight P2, all fixed.** P1: the plan still said the signature
+  is a guarantee Claude cannot produce (§9.3), without D37's caveat. P2: references to the assembled fragment now
+  point at this entry; the SQLite range wording (4.1.19's 387.2 ms is above, not inside, 262–363); the pass sheet
+  named a `qualify` job the candidate does not have (`deployment-smoke` and `candidate-gate`); the 4.1.19 column's
+  source (the published baseline, not `4.1.19.md`); the restore memory range (1.3–3.7 GB); SUPPORT's restore row
+  (schema 4, both modes); RELEASING's signer sentence (8cebea2, D37); one safety path per case in the new test.
 
 ### The thresholds, written before the technical candidate's dispatch
 
@@ -4843,7 +4849,7 @@ candidate is judged against criteria older than it (plan §8.3; the critique of 
   38588898080 (8cebea2) ran **the same code** (8cebea2 adds only `.github/allowed_signers`) and measured SQLite at
   362.9 / 480.7 ms and 276.2 / 281.0 ms. The gap is the runner, not the code. Reseeding SQLite at 276 / 286 ms would
   read the next slow runner as a 31 % / 68 % regression, and three slow loads as a reproduced one. **SQLite stays at
-  4.1.19's values**, which sit inside the range one code gives on these runners; `load.json` says why, and keeps
+  4.1.19's values** (387.2 ms, a slow runner's, above the 262–363 ms one code gives here; 464.4 ms, inside 262–481); `load.json` says why, and keeps
   every replaced value under `previous`. The runner-speed probe stays 4.2's.
 
 → next: this branch's release files, its pull request, then the final candidate on its merge.

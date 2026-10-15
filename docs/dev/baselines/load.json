@@ -1,7 +1,7 @@
 {
  "format": "web-scumm-load-baseline",
  "schema": 1,
- "note": "The p95 a candidate's three loads are compared with (tools/load-median.ts, 4.1.20 plan §8.3): the same runner and the same protocol only. 4.1.20: Postgres reseeded from the technical candidate's medians (within 25 % of 4.1.19); SQLite kept at 4.1.19's single loads, which sit inside the range its runners give for one code (262–363 ms proposals, 262–481 ms leaderboard). `previous` keeps the value each entry replaced or kept.",
+ "note": "The p95 a candidate's three loads are compared with (tools/load-median.ts, 4.1.20 plan §8.3): the same runner and the same protocol only. 4.1.20: Postgres reseeded from the technical candidate's medians (within 25 % of 4.1.19); SQLite kept at 4.1.19's single loads (387.2 ms proposals, 464.4 ms leaderboard): one code measures 262–363 ms and 262–481 ms on these runners, so 4.1.19's proposals value is a slow runner's, above that range, and its leaderboard value inside it; reseeding at the fast end would read the next slow runner as a regression. `previous` keeps the value each entry replaced or kept.",
  "stores": {
   "sqlite": {
    "proposals": {
@@ -21,7 +21,7 @@
      "p95Ms": 387.2,
      "source": "candidate 38172871690 (4.1.19, 15300a3), one load"
     },
-    "kept": "not reseeded: the technical candidate measured 276.1 ms (266.8–295.2), 29 % faster than this value, beyond the 25 % its reseed allows without corroboration; the same code measured 362.9 ms on candidate 38470919464 (81e1647) and 276.2 ms on 38588898080 (8cebea2, which adds only allowed_signers): the gap is the runner, not the code (changes/4120-release.log.md)"
+    "kept": "not reseeded: the technical candidate measured 276.1 ms (266.8–295.2), 29 % faster than this value, beyond the 25 % its reseed allows without corroboration; the same code measured 362.9 ms on candidate 38470919464 (81e1647) and 276.2 ms on 38588898080 (8cebea2, which adds only allowed_signers): the gap is the runner, not the code (LOG #184)"
    },
    "leaderboard": {
     "p95Ms": 464.4,
@@ -39,7 +39,7 @@
      "p95Ms": 464.4,
      "source": "candidate 38172871690 (4.1.19, 15300a3), one load"
     },
-    "kept": "not reseeded: the technical candidate measured 286.3 ms (282.1–302), 38 % faster than this value, beyond the 25 % its reseed allows without corroboration; the same code measured 480.7 ms on candidate 38470919464 (81e1647) and 281 ms on 38588898080 (8cebea2, which adds only allowed_signers): the gap is the runner, not the code (changes/4120-release.log.md)"
+    "kept": "not reseeded: the technical candidate measured 286.3 ms (282.1–302), 38 % faster than this value, beyond the 25 % its reseed allows without corroboration; the same code measured 480.7 ms on candidate 38470919464 (81e1647) and 281 ms on 38588898080 (8cebea2, which adds only allowed_signers): the gap is the runner, not the code (LOG #184)"
    }
   },
   "postgres": {
