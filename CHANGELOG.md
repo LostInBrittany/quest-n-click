@@ -2,15 +2,22 @@
 
 ## 4.2.0 — 2026-10-15
 
-"Stable World" (LOG #185): 4.1.20's code, the version changed (plan 4.1.20 §12, D34). The thirteen people's passes
-(#75–#87) are made on the release candidate `v4.2.0-rc.1`, the first tag signed with the maintainer's SSH key
-(`id_ed25519`, D37); the stable is tagged from a candidate that changes only the status files, each pass carried to
-it by `field:carry` when no file of its surface changed. What 4.2 calls stable is the
-[GO / NO-GO 4.2](docs/dev/GO-NO-GO-4.2.md)'s verdict.
+"Stable World" (LOG #185, #186): 4.1.20's code, the version changed (plan 4.1.20 §12, D34), and one Field Kit fix.
+The thirteen people's passes (#75–#87) are made on the release candidate `v4.2.0-rc.2`; `v4.2.0-rc.1`, the first tag
+signed with the maintainer's SSH key (`id_ed25519`, D37), carried the defect below and no pass used it. The stable is
+tagged from a candidate that changes only the status files, each pass carried to it by `field:carry` when no file of
+its surface changed. What 4.2 calls stable is the [GO / NO-GO 4.2](docs/dev/GO-NO-GO-4.2.md)'s verdict.
+
+### Fixed
+
+- **`field:check` and `field:report` work on a folder fresh from `field:init`** (4.2.0): `field:init` writes the
+  candidate's surfaces and site files beside the thirteen reports (4.1.20), and the two read them as reports, so the
+  first check of every pass failed and `field:report` wrote nothing. Found trying the commands on `v4.2.0-rc.1`'s
+  candidate before any pass began; the test folder now holds what `field:init` writes.
 
 ### Changes
 
-- **The README installs from the release candidate's archive** (4.2.0): `releases/download/v4.2.0-rc.1/
+- **The README installs from the release candidate's archive** (4.2.0): `releases/download/v4.2.0-rc.2/
   web-scumm-4.2.0.tgz`, the archive the people's passes install, the same bytes as the stable's. The install section
   is the `archive-human-install` pass's surface and stays as written from the candidate to the stable. `docs:truth`,
   `quality:baseline` and `readme-quickstart` accept a `v<version>-rc.N` release for this version's archive and
