@@ -161,7 +161,7 @@ export function withInstall(page: string, version: string): string {
         // A release candidate of this version keeps its tag (4.2.0-rc, the passes' campaign): the archive is the
         // version's, published under the rc's release until the stable one exists. Any other tag becomes this version's.
         (_url, tag: string) =>
-          `https://github.com/wanoo/web-scumm/releases/download/${tag.startsWith(`v${version}-rc.`) && /^v[\d.]+-rc\.\d+$/.test(tag) ? tag : `v${version}`}/web-scumm-${version}.tgz`,
+          `https://github.com/wanoo/web-scumm/releases/download/${tag.startsWith(`v${version}-rc.`) && /^v[\d.]+-rc\.[1-9]\d*$/.test(tag) ? tag : `v${version}`}/web-scumm-${version}.tgz`,
       )}${close}`,
   );
 }

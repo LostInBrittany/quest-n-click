@@ -49,5 +49,17 @@ describe('docs:truth', () => {
     expect(said([url('v4.1.20', '4.1.20'), current('4.1.20')].join('\n'))).toHaveLength(2);
     expect(said([url('v4.1.20-rc.1', '4.1.20'), current('4.1.20')].join('\n'))).toHaveLength(2);
     expect(said([url('v4.2.0-rc.1', '4.2.0'), current('4.3.0')].join('\n'))).toHaveLength(2);
+    // Another version's archive under a good tag, a tag that is no release candidate, a zero-led one (second reading).
+    expect(said([url('v4.2.0-rc.1', '4.1.20'), current('4.1.20')].join('\n'))).toEqual([
+      'downloads 4.1.20 from v4.2.0-rc.1, not web-scumm-4.2.0.tgz',
+    ]);
+    for (const tag of ['v4.2.0-rc.1x', 'v4.2.0-beta', 'v4.2.0-rc.01'])
+      expect(said([url(tag, '4.2.0'), current('4.2.0')].join('\n')), tag).toEqual([
+        `names ${tag}, neither v4.2.0 nor a v4.2.0-rc.N release`,
+      ]);
+    // A stray bad tag beside a good rc does not keep "current release" older.
+    expect(said([url('v4.2.0-rc.1', '4.2.0'), url('v4.2.0-beta', '4.2.0'), current('4.1.20')].join('\n'))).toHaveLength(
+      2,
+    );
   });
 });

@@ -4858,7 +4858,7 @@ candidate is judged against criteria older than it (plan §8.3; the critique of 
 
 - Plan 4.1.20 §12, §5.1 step h. After v4.1.20 (dfa614a, candidate 38667796190) and its nightly classified (38678701767
   on the tag: 40 of 40 green). Version 4.2.0; the golden save `demo-4.2.0.json`; the reference run re-recorded
-  (engine 4.2.0); the CHANGELOG's `4.2.0` section, said a release candidate; `docs/dev/passes/4.2.0.md`, its people's
+  (engine 4.2.0); the CHANGELOG's `4.2.0` section, written to stay true at the stable (`release-notes.mjs` adds the candidate's banner to an rc tag); `docs/dev/passes/4.2.0.md`, its people's
   passes not run. No product code changes; three release tools learn the candidate's URL (below).
 - **The README's install, decided by the maintainer (15 Oct, option 1 of 3):** the release candidate's archive,
   `releases/download/v4.2.0-rc.1/web-scumm-4.2.0.tgz`. It answers for the whole campaign, it is the archive the passes
@@ -4871,6 +4871,12 @@ candidate is judged against criteria older than it (plan §8.3; the critique of 
 - **The SQLite reseed, seen again:** the final candidate of 4.1.20 ran on a slow runner (SQLite 364 / 487 ms, 0.94 and
   1.05 of the kept 4.1.19 values, no alert). At the 276 / 286 ms the technical candidate measured, the same code
   would have alerted at +32 % and +70 %. LOG #184's refusal held.
+- **Second reading (sub-agent): no P0, no P1, four P2, all fixed.** `docs:truth` read only tags shaped
+  `v<x.y.z>[-rc.N]/` and never the file name: it now reads every download URL and refuses another version's archive
+  under a good tag, a tag that is neither `v<version>` nor `v<version>-rc.N`, and a zero-led N (`rc.01`, refused by
+  the three tools). The CHANGELOG section said "release candidate" and "current release still names 4.1.20", which
+  the stable's notes (the same section) would have repeated; reworded. Nothing fetches the rc URL but
+  `readme-quickstart --published`: run by hand after `v4.2.0-rc.1` and again at the stable.
 
 → next: the 4.2.0-rc candidate, `preflight-stable`, `v4.2.0-rc.1` signed, `field:init` on #75–#87.
 

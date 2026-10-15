@@ -116,15 +116,25 @@ export function releaseContradictions(doc: string, t: string, version: string): 
   for (const m of t.matchAll(/releases\/tag\/v(\d+\.\d+\.\d+)/g))
     if (newer(m[1]!, version))
       out.push({ doc, line: lineOf(t, m.index ?? 0), what: `links release v${m[1]}, newer than ${version}` });
-  const downloads = [...t.matchAll(/releases\/download\/v(\d+\.\d+\.\d+)(-rc\.\d+)?\//g)];
-  const candidate = downloads.length > 0 && downloads.every((m) => m[1] === version && m[2]);
-  for (const m of downloads)
-    if (m[1] !== version)
+  // Every download URL, whatever its tag and file (second reading of #124): its tag must be `v<version>` or
+  // `v<version>-rc.N` (N from 1, no leading zero), its archive this version's.
+  const downloads = [...t.matchAll(/releases\/download\/(v[^/\s)]+)\/([^\s)]*)/g)].map((m) => {
+    const tag = /^v(\d+\.\d+\.\d+)(-rc\.[1-9]\d*)?$/.exec(m[1]!);
+    const file = /^web-scumm-(\d+\.\d+\.\d+)\.tgz$/.exec(m[2]!);
+    return { at: m.index ?? 0, raw: m[1]!, version: tag?.[1], rc: tag?.[2], file: file?.[1] ?? m[2]! };
+  });
+  const candidate = downloads.length > 0 && downloads.every((d) => d.version === version && d.rc);
+  for (const d of downloads)
+    if (d.version !== version)
       out.push({
         doc,
-        line: lineOf(t, m.index ?? 0),
-        what: `names v${m[1]}${m[2] ?? ''} as the current release, the package is ${version}`,
+        line: lineOf(t, d.at),
+        what: d.version
+          ? `names ${d.raw} as the current release, the package is ${version}`
+          : `names ${d.raw}, neither v${version} nor a v${version}-rc.N release`,
       });
+    else if (d.file !== version)
+      out.push({ doc, line: lineOf(t, d.at), what: `downloads ${d.file} from ${d.raw}, not web-scumm-${version}.tgz` });
   for (const m of t.matchAll(/(?:Current release|Release actuelle) ?: \[v(\d+\.\d+\.\d+)/g))
     if (m[1] !== version && !(candidate && newer(version, m[1]!)))
       out.push({

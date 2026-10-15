@@ -37,7 +37,7 @@ export const archiveUrl = (version, tag = `v${version}`) =>
 export function installTag(url, version) {
   const m = /^https:\/\/github\.com\/wanoo\/web-scumm\/releases\/download\/(v[^/]+)\/web-scumm-([^/]+)\.tgz$/.exec(url);
   if (!m || m[2] !== version) return null;
-  return m[1] === `v${version}` || new RegExp(`^v${version.replaceAll('.', '\\.')}-rc\\.\\d+$`).test(m[1])
+  return m[1] === `v${version}` || new RegExp(`^v${version.replaceAll('.', '\\.')}-rc\\.[1-9]\\d*$`).test(m[1])
     ? m[1]
     : null;
 }

@@ -58,6 +58,10 @@ describe('the README', () => {
     // A release candidate of this version keeps its tag; another version's candidate does not.
     const rc = page.replace('download/v1.0.0/web-scumm-1.0.0.tgz', 'download/v4.2.0-rc.1/web-scumm-4.2.0.tgz');
     expect(withInstall(rc, '4.2.0')).toBe(rc);
+    const zero = page.replace('download/v1.0.0/web-scumm-1.0.0.tgz', 'download/v4.2.0-rc.01/web-scumm-4.2.0.tgz');
+    expect(withInstall(zero, '4.2.0')).toBe(
+      page.replace('download/v1.0.0/web-scumm-1.0.0.tgz', 'download/v4.2.0/web-scumm-4.2.0.tgz'),
+    );
     expect(withInstall(rc, '4.2.1')).toBe(
       page.replace('download/v1.0.0/web-scumm-1.0.0.tgz', 'download/v4.2.1/web-scumm-4.2.1.tgz'),
     );
