@@ -4853,3 +4853,24 @@ candidate is judged against criteria older than it (plan §8.3; the critique of 
   every replaced value under `previous`. The runner-speed probe stays 4.2's.
 
 → next: this branch's release files, its pull request, then the final candidate on its merge.
+
+## #185 · 2026-10-15 · Claude · release · 4.2.0-rc: the version, the notes, the README on the candidate's archive
+
+- Plan 4.1.20 §12, §5.1 step h. After v4.1.20 (dfa614a, candidate 38667796190) and its nightly classified (38678701767
+  on the tag: 40 of 40 green). Version 4.2.0; the golden save `demo-4.2.0.json`; the reference run re-recorded
+  (engine 4.2.0); the CHANGELOG's `4.2.0` section, said a release candidate; `docs/dev/passes/4.2.0.md`, its people's
+  passes not run. No product code changes; three release tools learn the candidate's URL (below).
+- **The README's install, decided by the maintainer (15 Oct, option 1 of 3):** the release candidate's archive,
+  `releases/download/v4.2.0-rc.1/web-scumm-4.2.0.tgz`. It answers for the whole campaign, it is the archive the passes
+  install, and the stable's status pull request may not touch it (it is the `archive-human-install` surface). The
+  npm form was refused (nothing on npm before the stable), and `download/v4.2.0/` (a dead link until the stable).
+- So `docs:truth` (`releaseContradictions`, now a function of its own), `withInstall` and `readme-quickstart`
+  (`installTag`) accept, for this version's archive, its own release or a `v<version>-rc.N` one, and "current
+  release" may stay older only while the install names such a candidate. Tested both ways
+  (`tests/docs-truth-tool.test.ts`, `tests/readme-truth.test.ts`, `tests/readme-release.test.ts`).
+- **The SQLite reseed, seen again:** the final candidate of 4.1.20 ran on a slow runner (SQLite 364 / 487 ms, 0.94 and
+  1.05 of the kept 4.1.19 values, no alert). At the 276 / 286 ms the technical candidate measured, the same code
+  would have alerted at +32 % and +70 %. LOG #184's refusal held.
+
+→ next: the 4.2.0-rc candidate, `preflight-stable`, `v4.2.0-rc.1` signed, `field:init` on #75–#87.
+

@@ -5,7 +5,7 @@ import { existsSync, readFileSync, statSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { withInstall } from '../tools/quality-baseline';
 // @ts-expect-error: a plain .mjs module without declarations
-import { archiveUrl, quickStart } from '../scripts/readme-quickstart.mjs';
+import { archiveUrl, installTag, quickStart } from '../scripts/readme-quickstart.mjs';
 
 const version = JSON.parse(readFileSync('package.json', 'utf8')).version as string;
 const en = readFileSync('README.md', 'utf8');
@@ -25,7 +25,8 @@ describe('the README', () => {
   it('starts from this version archive, with the commands a created game has', () => {
     for (const r of [en, fr]) {
       const { lines, url } = quickStart(r.replace('\n## Commencer', '\n## Start'));
-      expect(url).toBe(archiveUrl(version));
+      // This version's archive, under its release or a release candidate's (the 4.2.0-rc campaign).
+      expect(installTag(url, version), url).not.toBeNull();
       // `create` writes these scripts (cli/create.mjs); `npm run <x>` of anything else would fail in a new game.
       const created = readFileSync('cli/create.mjs', 'utf8');
       for (const [, cmd] of lines.join('\n').matchAll(/npm run ([\w:-]+)/g))
@@ -44,7 +45,8 @@ describe('the README', () => {
       expect(r.split('<!-- install:end -->')).toHaveLength(2);
       const section = r.slice(r.indexOf('<!-- install:begin -->'), r.indexOf('<!-- install:end -->'));
       // The whole quick start is inside: the archive-human-install pass reads exactly this (docs/dev/surfaces.json).
-      expect(section).toContain(archiveUrl(version));
+      const tag = installTag(quickStart(r.replace('\n## Commencer', '\n## Start')).url, version);
+      expect(section).toContain(archiveUrl(version, tag));
       expect(section).toContain('npm run assets && npm run dev');
       expect(withInstall(r, version)).toBe(r);
     }
@@ -52,6 +54,12 @@ describe('the README', () => {
     const page = `T=x/v1.0.0/web-scumm-1.0.0.tgz\n<!-- install:begin -->\nT=https://github.com/wanoo/web-scumm/releases/download/v1.0.0/web-scumm-1.0.0.tgz\n<!-- install:end -->`;
     expect(withInstall(page, '4.2.0')).toBe(
       page.replace('download/v1.0.0/web-scumm-1.0.0.tgz', 'download/v4.2.0/web-scumm-4.2.0.tgz'),
+    );
+    // A release candidate of this version keeps its tag; another version's candidate does not.
+    const rc = page.replace('download/v1.0.0/web-scumm-1.0.0.tgz', 'download/v4.2.0-rc.1/web-scumm-4.2.0.tgz');
+    expect(withInstall(rc, '4.2.0')).toBe(rc);
+    expect(withInstall(rc, '4.2.1')).toBe(
+      page.replace('download/v1.0.0/web-scumm-1.0.0.tgz', 'download/v4.2.1/web-scumm-4.2.1.tgz'),
     );
   });
 
@@ -120,7 +128,12 @@ describe('the README', () => {
       const outside = r.replace(/<!-- metric:\w+ -->[^<]*<!-- \/metric -->/g, '');
       expect(outside).not.toMatch(/\b\d[\d  ,]*\s+(unit )?(tests?|test declarations|déclarations de tests?)\b/);
       expect(outside).not.toMatch(/\d+ (states|états)\b/);
-      for (const [, v] of r.matchAll(/v(\d+\.\d+\.\d+)\b/g)) expect(v).toBe(version);
+      // This version only; while its install names a release candidate of it, the current release may still be the
+      // last published one, older (the 4.2.0-rc campaign; docs:truth's same rule).
+      const tag = installTag(quickStart(r.replace('\n## Commencer', '\n## Start')).url, version);
+      const current = /(?:Current release|Release actuelle) ?: \[v(\d+\.\d+\.\d+)/.exec(r)?.[1];
+      const allowed = new Set([version, ...(tag?.includes('-rc.') && current ? [current] : [])]);
+      for (const [, v] of r.matchAll(/v(\d+\.\d+\.\d+)\b/g)) expect(allowed.has(v!), v).toBe(true);
     }
   });
 });

@@ -157,8 +157,11 @@ export function withInstall(page: string, version: string): string {
     INSTALL,
     (_all, open: string, body: string, close: string) =>
       `${open}${body.replace(
-        /https:\/\/github\.com\/wanoo\/web-scumm\/releases\/download\/v[^/\s]+\/web-scumm-[^\s/]+?\.tgz/g,
-        `https://github.com/wanoo/web-scumm/releases/download/v${version}/web-scumm-${version}.tgz`,
+        /https:\/\/github\.com\/wanoo\/web-scumm\/releases\/download\/(v[^/\s]+)\/web-scumm-[^\s/]+?\.tgz/g,
+        // A release candidate of this version keeps its tag (4.2.0-rc, the passes' campaign): the archive is the
+        // version's, published under the rc's release until the stable one exists. Any other tag becomes this version's.
+        (_url, tag: string) =>
+          `https://github.com/wanoo/web-scumm/releases/download/${tag.startsWith(`v${version}-rc.`) && /^v[\d.]+-rc\.\d+$/.test(tag) ? tag : `v${version}`}/web-scumm-${version}.tgz`,
       )}${close}`,
   );
 }

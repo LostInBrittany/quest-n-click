@@ -1,5 +1,21 @@
 # Changelog
 
+## 4.2.0 — 2026-10-15
+
+"Stable World", **release candidate** (LOG #185): 4.1.20's code, the version only (plan 4.1.20 §12, D34). Its
+candidate is the one the thirteen people's passes run on (#75–#87); `v4.2.0-rc.1` is the first tag signed with the
+maintainer's SSH key (`id_ed25519`, D37). Nothing is published to npm before the stable. The stable 4.2.0 is tagged
+from a later candidate that changes only the status files (README's statuses, SUPPORT, GO / NO-GO, the pass sheet),
+the passes carried to it by `field:carry`.
+
+### Changes
+
+- **The README installs from the release candidate's archive** (4.2.0-rc): `releases/download/v4.2.0-rc.1/
+  web-scumm-4.2.0.tgz`, the archive the passes install, while "current release" still names 4.1.20. `docs:truth`,
+  `quality:baseline` and `readme-quickstart` accept a `v<version>-rc.N` release for this version's archive, and
+  nothing else; the install section is the `archive-human-install` pass's surface, so it stays as written until the
+  stable.
+
 ## 4.1.20 — 2026-10-15
 
 "Last Mile" (LOG #184): no new mechanic; the last 4.1.x release with code before 4.2. A Bridge backup is schema 4 and

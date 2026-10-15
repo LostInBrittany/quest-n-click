@@ -103,24 +103,35 @@ export function check(docs = documents()): Contradiction[] {
     });
   }
   // The current release: no release link newer than this version, and the "current release" link and the download
-  // URL the READMEs give name exactly this version.
-  for (const doc of ['README.md', 'README.fr.md']) {
-    const t = read(doc);
-    for (const m of t.matchAll(/releases\/tag\/v(\d+\.\d+\.\d+)/g))
-      if (newer(m[1]!, f.version))
-        out.push({ doc, line: lineOf(t, m.index ?? 0), what: `links release v${m[1]}, newer than ${f.version}` });
-    for (const m of t.matchAll(
-      /(?:Current release|Release actuelle) ?: \[v(\d+\.\d+\.\d+)|releases\/download\/v(\d+\.\d+\.\d+)\//g,
-    )) {
-      const v = m[1] ?? m[2]!;
-      if (v !== f.version)
-        out.push({
-          doc,
-          line: lineOf(t, m.index ?? 0),
-          what: `names v${v} as the current release, the package is ${f.version}`,
-        });
-    }
-  }
+  // URL the READMEs give name exactly this version. One exception (4.2.0-rc, the passes' campaign): while the version
+  // is only a release candidate, the download URL names its `v<version>-rc.N` release and "current release" may still
+  // name the last published one, older; never a newer one, never another version's archive.
+  for (const doc of ['README.md', 'README.fr.md']) out.push(...releaseContradictions(doc, read(doc), f.version));
+  return out;
+}
+
+/** What a README says of the current release that the package contradicts (`version`): see `check`. */
+export function releaseContradictions(doc: string, t: string, version: string): Contradiction[] {
+  const out: Contradiction[] = [];
+  for (const m of t.matchAll(/releases\/tag\/v(\d+\.\d+\.\d+)/g))
+    if (newer(m[1]!, version))
+      out.push({ doc, line: lineOf(t, m.index ?? 0), what: `links release v${m[1]}, newer than ${version}` });
+  const downloads = [...t.matchAll(/releases\/download\/v(\d+\.\d+\.\d+)(-rc\.\d+)?\//g)];
+  const candidate = downloads.length > 0 && downloads.every((m) => m[1] === version && m[2]);
+  for (const m of downloads)
+    if (m[1] !== version)
+      out.push({
+        doc,
+        line: lineOf(t, m.index ?? 0),
+        what: `names v${m[1]}${m[2] ?? ''} as the current release, the package is ${version}`,
+      });
+  for (const m of t.matchAll(/(?:Current release|Release actuelle) ?: \[v(\d+\.\d+\.\d+)/g))
+    if (m[1] !== version && !(candidate && newer(version, m[1]!)))
+      out.push({
+        doc,
+        line: lineOf(t, m.index ?? 0),
+        what: `names v${m[1]} as the current release, the package is ${version}${candidate ? '' : ' (an older one only while the install names a release candidate of it)'}`,
+      });
   return out;
 }
 
