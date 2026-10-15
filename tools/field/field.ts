@@ -254,10 +254,13 @@ const sameDigests = (a: Record<string, string>, b: Record<string, string>) => {
   return ka.length === kb.length && ka.every((k, i) => k === kb[i] && a[k] === b[k]);
 };
 
-/** The reports of a folder, by file, as parsed JSON (the manifest and anything not `.json` left out). */
+/** The reports of a folder, by file, as parsed JSON: the candidate's own files `field:init` writes beside them (its
+ * manifest, its surfaces, its site's files) and anything not `.json` left out. 4.2.0-rc.1 counted the last two as
+ * reports, so a folder fresh from `field:init` failed `field:check` and `field:report` wrote nothing. */
 function reportFiles(dir: string): string[] {
+  const candidate = new Set([MANIFEST, SURFACES, SITE_FILES]);
   return readdirSync(dir)
-    .filter((f) => f.endsWith('.json') && f !== MANIFEST)
+    .filter((f) => f.endsWith('.json') && !candidate.has(f))
     .sort();
 }
 

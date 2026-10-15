@@ -37,7 +37,7 @@ RC is not fixed: it becomes an `rc.N+1`.
 ```sh
 git config gpg.format ssh
 git config user.signingkey ~/.ssh/id_ed25519.pub
-npm run ship -- tag 4.2.0-rc.1 <sha> --candidate=<run> --sign --now
+npm run ship -- tag 4.2.0-rc.2 <sha> --candidate=<run> --sign --now
 ```
 
 - The key must also be registered on GitHub as a **signing** key (Settings → SSH and GPG keys).

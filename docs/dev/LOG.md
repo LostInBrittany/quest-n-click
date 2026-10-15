@@ -4880,3 +4880,30 @@ candidate is judged against criteria older than it (plan §8.3; the critique of 
 
 → next: the 4.2.0-rc candidate, `preflight-stable`, `v4.2.0-rc.1` signed, `field:init` on #75–#87.
 
+## #186 · 2026-10-15 · Claude · release · 4.2.0-rc.2: field:check and field:report on a folder fresh from field:init
+
+- `v4.2.0-rc.1` (7057f14, candidate 38715180400) was tagged and signed with `id_ed25519` (verified against
+  `.github/allowed_signers`: "Good git signature for wanoo"). Before commenting the thirteen issues, the pass commands
+  were tried on its candidate in a scratch folder: `field:init` wrote 13 reports at not-run, then **`field:check`
+  failed with 20 problems and `field:report` wrote nothing**. `field:init` copies the candidate's
+  `qualification-surfaces.json` and `site-files.json` beside the reports (4.1.20 PR 4, #121), and `reportFiles` read
+  every `.json` but the manifest as a report. The test folder of `tests/field-kit.test.ts` held only the manifest and
+  the reports, so nothing saw it.
+- Fixed: `reportFiles` leaves out the candidate's three files; the test folder holds what `field:init` writes; a test
+  runs `field:report` on it. Without the fix, 13 of 33 tests fail. Tried again on the real candidate: 13 reports agree,
+  the sheet written.
+- `tools/field/` ships in `web-scumm-4.2.0.tgz` (8 files), so the fix changes the archive every pass's surface reads:
+  by plan §12 a fix gives a new candidate and `rc.N+1`. No pass had begun, so nothing is carried and nothing lost.
+  The README installs from `v4.2.0-rc.2`; `v4.2.0-rc.1` stays published (immutable) as the record, with no issue
+  pointing at it.
+- **The rc.1 candidate's SQLite proposals alert** (505.3 ms, ×1.31 of the kept 4.1.19 value; min 475.6, ×1.23, so not
+  reproduced; 0 gaps; under 1 s): `bridge/`, `src/` and `connectors/` are byte-identical to dfa614a (364 ms) and
+  d955785 (276 ms), and its throughput was 327/s against 528/s. A slow runner; the runner-speed probe stays 4.2's.
+- Second reading (sub-agent): one P1, the 4.2.0 pass sheet still gave `field:init --release=4.2.0-rc.1` (every
+  report would have been labelled rc.1 on rc.2's candidate, and `field:carry` looked in rc.1's folder); now rc.2.
+  RELEASING's signing example and D34 amended the same way. The maintainer's authorisation to sign (D37) named
+  `v4.2.0-rc.1`; signing `v4.2.0-rc.2` waits for their explicit yes.
+
+→ next: the rc.2 candidate, `preflight-stable`, `v4.2.0-rc.2` signed, `readme-quickstart --published`, `field:init` on
+#75–#87.
+

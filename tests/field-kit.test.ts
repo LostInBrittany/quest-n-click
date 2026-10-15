@@ -16,6 +16,8 @@ import {
   MANIFEST,
   main,
   renderPasses,
+  SITE_FILES,
+  SURFACES,
   sha256,
   TAR,
   writePasses,
@@ -48,10 +50,16 @@ const manifest: CandidateManifest = {
   ],
 };
 
-/** A folder from field:init, then `edit` on the pass it names. */
+/** A folder from field:init, then `edit` on the pass it names. As field:init writes it: the reports beside the
+ * candidate's manifest, its surfaces and its site's files (4.2.0-rc.1 read those two as reports). */
 function folder(edit: Partial<Record<(typeof PASS_IDS)[number], (r: FieldReport, dir: string) => void>> = {}) {
   const dir = tmp();
   writeFileSync(join(dir, MANIFEST), JSON.stringify(manifest));
+  writeFileSync(
+    join(dir, SURFACES),
+    JSON.stringify({ format: 'web-scumm-qualification-surfaces', schema: 1, surfaces: {} }),
+  );
+  writeFileSync(join(dir, SITE_FILES), JSON.stringify({ format: 'web-scumm-site-files', files: [] }));
   for (const id of PASS_IDS) {
     const r = blankReport(id, '4.1.18', manifest);
     edit[id]?.(r, dir);
@@ -80,6 +88,13 @@ describe('field:check', () => {
     const { problems, reports } = checkDir(folder());
     expect(problems).toEqual([]);
     expect(reports.map((r) => r.status)).toEqual(PASS_IDS.map(() => 'not-run'));
+  });
+
+  it('reads the candidate files field:init writes beside the reports as no report (4.2.0-rc.1)', () => {
+    const dir = folder();
+    const out = join(tmp(), 'sheet.md');
+    expect(main(['report', `--dir=${dir}`, `--out=${out}`])).toBe(0);
+    expect(readFileSync(out, 'utf8')).toContain('13 not run, of 13');
   });
 
   it("refuses a report of another commit, another run or another candidate's files", () => {
