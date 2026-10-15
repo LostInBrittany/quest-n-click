@@ -1,4 +1,4 @@
-# GO / NO-GO for 4.2 "Stable World" (written at 4.1.18 "Dress Rehearsal", updated at 4.1.19 "Field Closure" and 4.1.20 "Last Mile")
+# GO / NO-GO for 4.2 "Stable World" (written at 4.1.18 "Dress Rehearsal", updated at 4.1.19 "Field Closure", 4.1.20 "Last Mile" and 4.2.0)
 
 What 4.2 may promise, surface by surface, from what 4.1.18, 4.1.19 and 4.1.20 proved. The rule (D18, the plan's §14.2 and §19): a surface
 is **stable** in 4.2 only with its machine proof **and** the people's pass the plan's §14.2 names for it, `passed`;
@@ -7,6 +7,8 @@ install), the machine proof is the proof, and this sheet says so in its row. Oth
 experimental, or out of 4.2's stable scope, and 4.2 says so. A pass made on one sub-surface promotes no other.
 
 **At the 4.1.20 tag no people's pass has been made**, by construction (D34): they run on the `4.2.0-rc` candidate that follows 4.1.20, a change of the version only, because the version is part of every surface's files (D35) and a pass made on 4.1.20 could not be carried to 4.2. Each of the thirteen is an open `field-pass` issue (#75 to #87), closed by the maintainer once its report checks (`npm run field:check`, `docs/en/FIELD.md`). This sheet is written again when they are made; until then every verdict below that needs a pass is **NO-GO for "stable"**.
+
+**At the 4.2.0 tag still no pass has been made** (D38, the maintainer's decision of 15 October): 4.2.0 ships on the reduced scope below, and the thirteen passes are made on `v4.2.0` itself. The rows did not move.
 
 ## By surface
 
@@ -26,16 +28,20 @@ experimental, or out of 4.2's stable scope, and 4.2 says so. A pass made on one 
 | Speedrun and Remix | replays in four runtimes, five world policies, resume in each, the candidate's `.wsrun` verified and published, three gated mutation sets | `runs-real-players` (#85), `run-resume-power-cycle` (#84), `mystery-deployed` (#82), `livesplit-obs` (#81), `code-wheel-human` (#78): not run | **limited**: machine-proved; no person's run yet |
 | Voices and music | the music director in Chromium and WebKit, the stems, offline | `voices-listening` (#87): not run | **limited** |
 | Archives and install | the four archives from the candidate installed outside the repository on Ubuntu (Node 22 and 24), macOS and Windows; a 4.1.17 game moved to them; 4.1.19: games from 4.1.16 and 4.1.18-rc.1 too, the older engines checked against their sums; the Bridge and connectors locked; five CycloneDX SBOMs | `archive-human-install` (#75): not run | **limited** until #75: the automated path is green, a person's install from the READMEs alone is untried |
+| Content format and its tools | `validate`, the solver and its proof, lint, i18n, the IR, the golden saves and the migrations, in every CI run on every system; the DSL frozen after 4.1.15 | none in the list | **stable** on the machine proof |
 | Studio | e2e in CI; Windows runs the unit suite but six POSIX files | none in the list | **partial support**: Windows untried by a person |
 
 ## What 4.2 needs before it starts (plan §19)
 
-- [ ] every surface 4.2 announces as stable has its machine proof **and** its pass `passed` (the rows above);
-- [ ] every other surface is said limited, experimental or out of scope in `docs/en/SUPPORT.md` and the 4.2 notes;
-- [ ] no field P0 or P1 open;
-- [ ] a consumer outside the repository uses the archives without the checkout (automated: done; a person: #75);
-- [ ] this sheet approved by the maintainer;
-- [ ] the npm publication and the signed tag rehearsed without changing the candidate's code (D30, D18).
+- [x] every surface 4.2 announces as stable has its machine proof **and** its pass `passed`, or needs none (the rows
+  above): at 4.2.0, only the surfaces that need none are stable (D38);
+- [x] every other surface is said limited, experimental or out of scope in `docs/en/SUPPORT.md` and the 4.2 notes;
+- [x] no field P0 or P1 open;
+- [ ] a consumer outside the repository uses the archives without the checkout (automated: done; a person: #75, on
+  `v4.2.0`);
+- [x] this sheet approved by the maintainer (D38, 15 October);
+- [ ] the npm publication (moved to a later 4.2.x by D38: every step needs the maintainer's 2FA); the signed tag is
+  rehearsed (`v4.2.0-rc.1`, `v4.2.0-rc.2`).
 
 ## Recommendation at 4.1.18, unchanged at 4.1.19
 
@@ -47,3 +53,13 @@ install by a person); each turns a row green or says, with its report, why it le
 At 4.1.19 the machine side closed what 4.1.18's second reading found (the restore, the image, the SBOMs, a bundle
 checked on its own); no verdict above moves, since none moves without its pass. The passes now stand on 4.1.19's
 candidate: each `field-pass` issue names it.
+
+## Decision at 4.2.0 (D38)
+
+**GO for 4.2 on a reduced scope.** The maintainer decided on 15 October to ship 4.2.0 without waiting for the people's
+passes. 4.2.0 promises as stable the surfaces that need no pass: the content format and its tools, the desktop
+Chromium PWA and the Bridge on SQLite. Every other row keeps its verdict above, limited or experimental, and
+`docs/en/SUPPORT.md` says the same (its "4.2.0: what is promised" section). The thirteen passes stay open issues (#75–#87), made on `v4.2.0`'s candidate:
+each `failed` opens its fix; turning a row stable in a 4.2.x needs its pass `passed` on that 4.2.x (made again on its candidate, or carried once a version exclusion is declared for its surface, D35, D38). This is not the GO the
+plan's §19 describes, which needs the thirteen passes: `ship preflight-stable` still blocks a plain **GO** that the
+reports contradict, and reads this verdict as what it is.

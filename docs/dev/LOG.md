@@ -4907,3 +4907,25 @@ candidate is judged against criteria older than it (plan §8.3; the critique of 
 → next: the rc.2 candidate, `preflight-stable`, `v4.2.0-rc.2` signed, `readme-quickstart --published`, `field:init` on
 #75–#87.
 
+
+## #187 · 2026-10-16 · Claude · release · 4.2.0 "Stable World": shipped before the people's passes, on a reduced scope (D38)
+
+- **The maintainer's decision (15 Oct, 22 h), D38:** « tu vas réaliser la version 4.2 et tu vas laisser accepter le
+  fait qu'il y ait des actions humaines qui sont à faire et elles seront testées et réalisées sur la version 4.2 ».
+  Asked before it which passes could be made that evening (six of thirteen alone in about an hour; the seven others
+  need other people, a domain for 24–48 h or provider accounts), they chose to ship now and make the thirteen on
+  4.2.0 with a tester of their choice. (In English: "you will make version 4.2 and accept that human actions remain
+  to be done; they will be tested and done on version 4.2".)
+- **What that changes, and what it does not.** D18 holds as written: no surface whose named pass is not `passed` is
+  called stable. The GO / NO-GO's rows did not move; its verdict is **GO for 4.2 on a reduced scope**, which
+  `preflight-stable` reads apart from a GO (a GO the reports contradict still blocks, tested), and
+  `tests/support-truth.test.ts` accepts only with D38 written. No pass was made on rc.2, so nothing is carried.
+- **npm moves to a later 4.2.x**: its bootstrap, trusted publishers and promotions each need the maintainer's 2FA.
+  4.2.0 is on GitHub Releases, signed and immutable.
+- `tools/release/preflight.mjs` changes, and it ships in `web-scumm-4.2.0.tgz`: the stable's archive is not
+  rc.2's. Nothing depends on that equality any more (no pass, no carry); the README installs from `v4.2.0`.
+- The stable tag is signed with `id_ed25519` on the maintainer's explicit yes (D37), given on 16 October: « oui signe
+  4.2 » (yes, sign 4.2). The thirteen issues get the stable's `field:init` command once the release exists.
+
+→ next: this PR's candidate, `preflight-stable`, `v4.2.0` signed, `ship verify`,
+`readme-quickstart --published`, the thirteen issues commented.

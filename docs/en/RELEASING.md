@@ -63,11 +63,14 @@ no setting. It says, one check at a time, `ok`, `missing` (a step still to take)
 
 It exits 1 only on a `blocked`.
 
-## npm (written in 4.1.20, played in 4.2)
+## npm (written in 4.1.20, played in a later 4.2.x)
+
+4.2.0 is published on GitHub Releases only (D38): every step below needs the maintainer's 2FA, and 4.2.0 did not
+wait for it. The steps are unchanged; the first version they publish is a 4.2.x.
 
 Nothing is published to npm in 4.1.x. The four names (`web-scumm`, `create-web-scumm`, `web-scumm-bridge`,
 `web-scumm-connectors`) are free. Each night a job that does not gate checks that they still are, or that they are
-ours (D34: squatting is an accepted risk until 4.2).
+ours (D34: squatting is an accepted risk until npm publishing, a 4.2.x, D38).
 
 1. **Versions.** Staged publishing needs npm 11.15.0 and Node 22.14.0 at least ([npm docs][staged]). release.yml pins
    the publishing step to **exact** versions, `NPM_PUBLISH_NODE: 22.23.3` and `NPM_PUBLISH_NPM: 11.21.0`. A test

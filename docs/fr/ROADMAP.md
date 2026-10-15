@@ -599,6 +599,16 @@ par la baseline ; un script de liens. Laissé pour plus tard, dit comme tel : le
 (`docs/dev/passes/4.1.8.md`), l'accélération du workflow de release (son propre lot), les 845 lignes de l'onglet
 assistant.
 
+## v4.2.0 « Stable World » (livrée en octobre 2026) : le SemVer strict, un périmètre stable réduit
+
+Le code de la 4.1.20 avec la version changée, et un correctif du Field Kit (`v4.2.0-rc.2`). Le SemVer strict à partir
+d'ici : une mineure ajoute, une majeure retire. Elle sort avant les passes humaines, par décision du mainteneur
+(D38) : sont stables le format du contenu et ses outils, la PWA Chromium sur ordinateur et le Bridge sur SQLite ;
+toute autre surface est limitée ou expérimentale, comme le dit le GO / NO-GO. Les treize passes se font sur
+`v4.2.0`, et une surface est promue dans une 4.2.x
+dont le candidat a sa passe (D38). Le tag est signé (D37), la release immuable ; la
+publication npm arrive dans une 4.2.x ultérieure.
+
 ## v4.1.20 « Last Mile » (livrée en octobre 2026) : le dernier code avant la 4.2
 
 Aucune mécanique nouvelle (`docs/dev/PLAN-4.1.20-LAST-MILE.md`, D34–D37, dix pull requests et la release). Un backup
@@ -858,7 +868,7 @@ la 4.2.0 sur chaque surface annoncée comme supportée.
 ## Après la 4.0 : où chaque point est allé, et ce qui reste sans plan
 
 - Les passes terrain, puis ce qu'elles trouvent (D12) ; bloquantes pour la 4.2.0 (D18).
-- Publier `web-scumm` et `create-web-scumm` sur npm : la 4.2.0 « Stable World » ; Le Phare dans un dépôt public.
+- Publier `web-scumm` et `create-web-scumm` sur npm : une 4.2.x après la 4.2.0 « Stable World » (D38) ; Le Phare dans un dépôt public.
 - Vite 8 et TypeScript 7 (écartés en 4.0 : le bundler de Vite 8 casse un import par défaut CommonJS, TypeScript 7
   retire `baseUrl` et les `paths` non relatifs) : la 4.1.8 « Foundation Reset », avec le `tsconfig.json` du modèle de projet.
 - Les traductions chargées à la demande (la seconde langue pèse ~10 % du JavaScript de la première visite) : un

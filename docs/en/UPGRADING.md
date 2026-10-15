@@ -539,3 +539,10 @@ instead.
   **Stop every Bridge older than 4.1.20 before the first restore**: an older Bridge takes no lease and would not be
   seen. `migrate --schema=4` (or lower) undoes 0005 first; stop every writer for it, as before 4.1.20.
 
+
+## 33. From 4.1.20 to 4.2.0 "Stable World"
+
+Nothing to change: 4.2.0 is 4.1.20's code with the version changed and one Field Kit fix. From 4.2.0 on, strict
+SemVer: a 4.2.x only fixes, a 4.x minor only adds. The engine still installs from the release's archive
+(`releases/download/v4.2.0/…`); npm publishing comes in a later 4.2.x. What 4.2.0 calls stable, limited or
+experimental is in `docs/en/SUPPORT.md` (D38).
