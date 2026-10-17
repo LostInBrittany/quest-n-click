@@ -174,7 +174,7 @@ All paths are relative to the current game (`GAME`). Errors return `{ error }` w
 | GET `voices[/:lang]`, PUT `voices/:lang/:id`, GET `voices/:lang/csv` | the voice table `{ lang, langs, statuses, rows }`; `{ status?, note?, actor? }` → `{ ok }` (into `voices.json`); `{ lang, csv }` |
 | GET `events` | server-sent events: `{ type: 'hello', game }` on connection, then `{ type: 'changed', file }` when a file of the game folder changes on disk (`file` relative to it, e.g. `rooms/house.ts`; dotfiles and `private/` are ignored; 150 ms debounce per file) |
 
-The same operations exist as plain functions in `tools/studio/core.ts`, used by the Vite plugin, by the tests and by
+The same operations exist as plain functions in `studio-server/src/ops/core.ts`, used by the Vite plugin, by the tests and by
 the MCP server: `gameInfo()`, `getRoom(id)`, `setLayout(id, layout)`, `setText(id, path, value)`, `addEntity(id, e)`,
 `getStoryboard()`, `setStoryboard(sb)`, `exportStoryboardMarkdown()`, `getNotes()`, `addNote(n)`, `editNote(id, { text, about? })`,
 `deleteNote(id)`, `validate()`, `solve(from?)`,

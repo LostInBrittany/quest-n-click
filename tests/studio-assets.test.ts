@@ -8,7 +8,7 @@ import { join, resolve } from 'node:path';
 import { afterAll, describe, expect, it } from 'vitest';
 import { BrowserApi } from '../src/studio/api-browser';
 import { createAssets, imageSize } from '../tools/studio/assets';
-import { createStudio, importInChild, StudioError } from '../tools/studio/core';
+import { createStudio, importInChild, StudioError } from '../studio-server/src/ops/core';
 import { buildSnapshot } from '../tools/studio/snapshot';
 
 const ROOT = resolve(__dirname, '..');

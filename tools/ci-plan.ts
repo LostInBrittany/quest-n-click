@@ -139,6 +139,7 @@ export const RULES: readonly Rule[] = [
     why: 'a repository tool',
   },
   { re: /^tools\/audio(\/|\.py$)/, gates: ['e2e', 'reference', 'node24'], why: 'the audio pipeline' },
+  { re: /^studio-server\//, gates: [...AUTHORING], why: 'the Studio Server and its operation core (4.2.1)' },
   { re: /^(tools|scripts)\//, gates: [...AUTHORING], why: 'the authoring pipeline' },
   { re: /^tests\//, gates: [...UNIT], why: 'the unit tests' },
 ];

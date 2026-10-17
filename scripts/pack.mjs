@@ -30,6 +30,8 @@ function writeLocked(dir, manifest, lockFile) {
 const SHIP = [
   /^src\//,
   /^tools\//,
+  // The Studio's operation core (4.2.1): the dev server, `ids` and the MCP server import it.
+  /^studio-server\//,
   /^cli\//,
   /^games\/_template\//,
   /^public\/(icons|fonts)\//,

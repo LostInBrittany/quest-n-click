@@ -6,7 +6,7 @@ import { join, resolve } from 'node:path';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { normalizeStoryboard, storyboardProblems } from '../tools/pages/storyboard-data';
 import { readStoryboard } from '../tools/pages/storyboard';
-import { createStudio, importInChild } from '../tools/studio/core';
+import { createStudio, importInChild } from '../studio-server/src/ops/core';
 import { buildSnapshot } from '../tools/studio/snapshot';
 import { TOOLS, type ToolBackend } from '../tools/studio/tools';
 import { BrowserApi } from '../src/studio/api-browser';

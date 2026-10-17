@@ -6,12 +6,12 @@ import { existsSync, mkdirSync, readFileSync, readdirSync, renameSync, rmSync, w
 import { basename, isAbsolute, join, relative, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import ts from '@typescript/typescript6';
-import type { Layout, Point } from '../../src/engine/core/types';
-import { validate as validateGame } from '../../src/engine/tools/validate';
-import { normalizeExits } from '../../src/engine/core/define';
-import { solve as solveGame, type RealityPolicy } from '../../src/engine/tools/solve';
-import { report as reportGame, reportMarkdown } from '../../src/engine/tools/report';
-import { toDot, toSvg, worldGraph } from '../../src/engine/tools/graph';
+import type { Layout, Point } from '../../../src/engine/core/types';
+import { validate as validateGame } from '../../../src/engine/tools/validate';
+import { normalizeExits } from '../../../src/engine/core/define';
+import { solve as solveGame, type RealityPolicy } from '../../../src/engine/tools/solve';
+import { report as reportGame, reportMarkdown } from '../../../src/engine/tools/report';
+import { toDot, toSvg, worldGraph } from '../../../src/engine/tools/graph';
 import {
   extraReads,
   liveClasses,
@@ -19,16 +19,16 @@ import {
   puzzleMarkdown,
   toPuzzleDot,
   toPuzzleSvg,
-} from '../../src/engine/tools/puzzle';
-import { coverageMarkdown, storyboardCoverage } from '../../src/engine/tools/coverage';
-import { analyzePlaytests, playtestsMarkdown, type PlaytestFile } from '../../src/engine/tools/playtests';
-import { parseSessionFile } from '../../src/engine/tools/replay';
-import { lintContent, lintMarkdown } from '../../src/engine/tools/lint';
-import { loadAssets, loadLayouts, loadLocales } from '../../src/engine/tools/load';
-import { GAME_DIR, ROOT, type GameModule } from '../game';
-import { gameIR } from '../game-ir';
-import type { GameIR } from '../../src/engine/core/ir';
-import { normalizeStoryboard, storyboardMarkdown, storyboardProblems } from '../pages/storyboard-data';
+} from '../../../src/engine/tools/puzzle';
+import { coverageMarkdown, storyboardCoverage } from '../../../src/engine/tools/coverage';
+import { analyzePlaytests, playtestsMarkdown, type PlaytestFile } from '../../../src/engine/tools/playtests';
+import { parseSessionFile } from '../../../src/engine/tools/replay';
+import { lintContent, lintMarkdown } from '../../../src/engine/tools/lint';
+import { loadAssets, loadLayouts, loadLocales } from '../../../src/engine/tools/load';
+import { GAME_DIR, ROOT, type GameModule } from '../../../tools/game';
+import { gameIR } from '../../../tools/game-ir';
+import type { GameIR } from '../../../src/engine/core/ir';
+import { normalizeStoryboard, storyboardMarkdown, storyboardProblems } from '../../../tools/pages/storyboard-data';
 import {
   addToSection,
   extractTexts,
@@ -39,7 +39,7 @@ import {
   setTextInSource,
   setValueInSource,
 } from './source';
-import { applyLocale } from '../../src/engine/tools/i18n';
+import { applyLocale } from '../../../src/engine/tools/i18n';
 import {
   mergeSheet,
   toCsv,
@@ -47,8 +47,8 @@ import {
   VOICE_STATUSES,
   type VoiceSheet,
   type VoiceStatus,
-} from '../../src/engine/tools/voices';
-import { lineIds } from '../../src/engine/core/content-ids';
+} from '../../../src/engine/tools/voices';
+import { lineIds } from '../../../src/engine/core/content-ids';
 import type {
   CoverageData,
   LintData,
@@ -69,7 +69,7 @@ import type {
   ReportData,
   GraphData,
   PuzzleData,
-} from './types';
+} from '../../../tools/studio/types';
 
 import { StudioError } from './errors';
 

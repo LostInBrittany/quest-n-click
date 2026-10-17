@@ -11,7 +11,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { endpoint, runAssistant, type AssistantEvent } from '../tools/studio/assistant-loop';
 import { assistantHandler, parseProvider } from '../tools/studio/assistant';
 import { coreBackend } from '../tools/studio/backend';
-import { createStudio, importInChild } from '../tools/studio/core';
+import { createStudio, importInChild } from '../studio-server/src/ops/core';
 import { callTool, jsonSchema, TOOLS, toolsFor, WRITING_TOOLS } from '../tools/studio/tools';
 
 const ROOT = resolve(__dirname, '..');

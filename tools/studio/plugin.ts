@@ -4,8 +4,8 @@ import { createReadStream, watch, type FSWatcher } from 'node:fs';
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import { fileURLToPath } from 'node:url';
 import type { Plugin } from 'vite';
-import type { Studio } from './core.ts';
-import { isStudioError, StudioError } from './errors.ts';
+import type { Studio } from '../../studio-server/src/ops/core.ts';
+import { isStudioError, StudioError } from '../../studio-server/src/ops/errors.ts';
 import type { AddEntity, EntityKind, NoteEdit, StudioEvent } from './types.ts';
 import type { Point } from '../../src/engine/core/types.ts';
 import { authorizeStudioRequest } from './security.ts';
@@ -182,7 +182,9 @@ export function studioPlugin(): Plugin {
       // graph holds this file, never the Studio, the solver and the engine behind it.
       const load = <T>(file: string) =>
         server.ssrLoadModule(fileURLToPath(new URL(file, import.meta.url))) as Promise<T>;
-      const { createStudio } = await load<typeof import('./core.ts')>('./core.ts');
+      const { createStudio } = await load<typeof import('../../studio-server/src/ops/core.ts')>(
+        '../../studio-server/src/ops/core.ts',
+      );
       const { registerAssistant } = await load<typeof import('./assistant')>('./assistant.ts');
       const { assetsMiddleware } = await load<typeof import('./assets')>('./assets.ts');
       const studio = createStudio();

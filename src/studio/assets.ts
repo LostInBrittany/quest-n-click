@@ -14,6 +14,7 @@ import { cellPanel, renderSheet, type SheetsHost, uploadDialog } from './assets-
 import { renderSounds } from './assets-sounds';
 import { h, toast } from './ui';
 import { must } from '../engine/core/must';
+import { apiUrl } from './api-base';
 
 export interface AssetsCtx {
   info: GameInfo;
@@ -260,7 +261,7 @@ export class AssetsTab {
     this.drawerOut.textContent = '$ npm run assets\n';
     let code = 1;
     try {
-      const r = await fetch('/__studio/api/assets/prepare?stream=1', { method: 'POST' });
+      const r = await fetch(apiUrl('assets/prepare?stream=1'), { method: 'POST' });
       if (!r.ok || !r.body) throw new Error(`${r.status} ${r.statusText}`);
       const reader = r.body.getReader();
       const dec = new TextDecoder();

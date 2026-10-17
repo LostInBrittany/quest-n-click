@@ -184,7 +184,7 @@ capture d'écran indisponible).
 | GET `ir` | l'IR du jeu (4.1.12, `docs/fr/DSL.md`) : sa logique en données avec le `fichier:ligne` de chaque id (`provenance`) et l'empreinte des extensions de confiance ; le même JSON que `npm run ir -- --json` |
 | GET `events` | évènements envoyés par le serveur (SSE) : `{ type: 'hello', game }` à la connexion, puis `{ type: 'changed', file }` quand un fichier du dossier du jeu change sur le disque (`file` relatif à ce dossier, ex. `rooms/house.ts` ; les dotfiles et `private/` sont ignorés ; anti-rebond de 150 ms par fichier) |
 
-Les mêmes opérations existent comme de simples fonctions dans `tools/studio/core.ts`, utilisées par le plugin Vite,
+Les mêmes opérations existent comme de simples fonctions dans `studio-server/src/ops/core.ts`, utilisées par le plugin Vite,
 par les tests et par le serveur MCP : `gameInfo()`, `getRoom(id)`, `setLayout(id, layout)`, `setText(id, path, value)`,
 `addEntity(id, e)`, `getStoryboard()`, `setStoryboard(sb)`, `exportStoryboardMarkdown()`, `getNotes()`, `addNote(n)`,
 `editNote(id, { text, about? })`, `deleteNote(id)`, `validate()`, `solve(from?)`,

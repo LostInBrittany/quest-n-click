@@ -2,6 +2,7 @@
 // page. The uploads' POSTs to /__studio/api/assets/* on the dev server (tools/studio/assets.ts; the listing itself
 // goes through `api.assets()`), a picked file read as a data URL, the system file picker, the clipboard.
 import { h, toast } from './ui';
+import { apiUrl } from './api-base';
 
 export class AssetsApiError extends Error {
   constructor(
@@ -15,7 +16,7 @@ export class AssetsApiError extends Error {
 
 /** POST /__studio/api/assets/<path> (dev server only). */
 export async function post<T>(path: string, body: unknown): Promise<T> {
-  const r = await fetch(`/__studio/api/assets/${path}`, {
+  const r = await fetch(apiUrl(`assets/${path}`), {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
     body: JSON.stringify(body),

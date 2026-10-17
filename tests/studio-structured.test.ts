@@ -4,8 +4,8 @@
 import { cpSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { afterAll, describe, expect, it } from 'vitest';
-import { createStudio, importInChild, StudioError } from '../tools/studio/core';
-import { lineDiff, setValueInSource, valueText } from '../tools/studio/source';
+import { createStudio, importInChild, StudioError } from '../studio-server/src/ops/core';
+import { lineDiff, setValueInSource, valueText } from '../studio-server/src/ops/source';
 
 const ROOT = resolve(__dirname, '..');
 mkdirSync(join(ROOT, '.cache'), { recursive: true });

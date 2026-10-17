@@ -1,7 +1,7 @@
 # 0025 · One shared game, edited live: transactions, one owner per file, revisions (4.2.1)
 
 **Context.** The Studio is a single-user tool served by Vite. At `a0ce19d`, about ten paths write a game's files:
-- the core's `serial` queue (`tools/studio/core.ts:176`);
+- the core's `serial` queue (`studio-server/src/ops/core.ts`, moved from `tools/studio/` in 4.2.1);
 - a second queue in `tools/studio/assets.ts:297`;
 - a separate `createStudio` in the MCP process (`tools/mcp/server.ts:18`);
 - authoring tools in TypeScript and Python that write directly;

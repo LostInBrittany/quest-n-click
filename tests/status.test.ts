@@ -6,7 +6,7 @@ import { describe, expect, it } from 'vitest';
 import { solve } from '@engine/tools/solve';
 import { proveChapters } from '@engine/tools/chapters';
 import { exitOf, solveHeadline, worstStatus } from '@engine/tools/status';
-import { createStudio, importInChild } from '../tools/studio/core';
+import { createStudio, importInChild } from '../studio-server/src/ops/core';
 
 const ROOT = resolve(__dirname, '..');
 

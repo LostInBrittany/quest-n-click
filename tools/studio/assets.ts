@@ -20,7 +20,7 @@ import type { GameDef } from '../../src/engine/core/types';
 import { imageSource } from '../pages/lib';
 import { buildPrompts } from '../prompts';
 import { collectRefs } from '../refs';
-import { StudioError, type Studio } from './core';
+import { StudioError, type Studio } from '../../studio-server/src/ops/core';
 import type {
   AssetCell,
   AssetDecor,

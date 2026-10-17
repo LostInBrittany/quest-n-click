@@ -18,6 +18,7 @@ import { RoomsTab } from './rooms';
 import { StoryboardTab } from './storyboard';
 import { download, h, toast } from './ui';
 import { must } from '../engine/core/must';
+import { apiUrl } from './api-base';
 
 type TabId = 'rooms' | 'storyboard' | 'assets' | 'voices' | 'music' | 'check' | 'play' | 'language' | 'remix' | 'notes';
 const TABS: [TabId, string][] = [
@@ -78,7 +79,7 @@ async function demoApi(): Promise<BrowserApi> {
  */
 async function pickBackend(): Promise<{ info: GameInfo; demo: BrowserApi | null }> {
   if (import.meta.env.VITE_STUDIO_DEMO !== '1') {
-    const r = await fetch('/__studio/api/game', { cache: 'no-store' }).catch(() => null);
+    const r = await fetch(apiUrl('game'), { cache: 'no-store' }).catch(() => null);
     const json = r?.headers.get('content-type')?.includes('json');
     if (r && json) {
       const data = await r.json();
@@ -355,7 +356,7 @@ async function start() {
 
   // Changes on disk (an AI, an editor, git): reload what they touch. The demo has no disk to watch.
   if (demo || !live) return;
-  const es = new EventSource('/__studio/api/events');
+  const es = new EventSource(apiUrl('events'));
   es.onopen = () => live.classList.add('on');
   es.onerror = () => live.classList.remove('on');
   es.onmessage = (m) => {
