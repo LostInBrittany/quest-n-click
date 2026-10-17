@@ -8,10 +8,10 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { openSqliteDb } from '../bridge/src/store-sqlite';
 import { fsBlobStore } from '../studio-server/src/ops/blobs';
 import { ABSENT, sha256 } from '../studio-server/src/ops/durable';
-import { Journal, MaintenanceError } from '../studio-server/src/ops/journal';
+import { Journal, LeaseLostError, MaintenanceError } from '../studio-server/src/ops/journal';
 
 let root: string, game: string;
-const open = async (o: { holder?: string; leaseWaitMs?: number } = {}) =>
+const open = async (o: { holder?: string; leaseWaitMs?: number; leaseMs?: number } = {}) =>
   Journal.open({
     db: await openSqliteDb(join(root, 'journal.sqlite')),
     blobs: fsBlobStore(join(root, 'blobs')),
@@ -126,9 +126,9 @@ describe('the operation journal', () => {
   });
 
   it('a write that fails midway puts back what it wrote and logs the operation aborted', async () => {
-    const j = await open();
     // The second file's folder is a file: its write fails after the first file was written.
     writeFileSync(join(game, 'blocked'), 'a file, not a folder');
+    const j = await open();
     const r0 = await j.revision();
     const e = await j
       .apply({
@@ -215,7 +215,10 @@ describe('the operation journal', () => {
   it('another process holding the lease makes an operation wait, then refuse', async () => {
     const j = await open({ leaseWaitMs: 200 });
     const db = await openSqliteDb(join(root, 'journal.sqlite'));
-    await db.run('INSERT INTO studio_lease (id, holder, until_ms) VALUES (1, $1, $2)', ['other', Date.now() + 60_000]);
+    await db.run('INSERT INTO studio_lease (id, holder, fence, until_ms) VALUES (1, $1, 99, $2)', [
+      'other',
+      Date.now() + 60_000,
+    ]);
     const e = await j
       .apply({ author: 'lea', what: 'w', effects: [{ path: 'rooms/a.ts', after: 'a1' }], respond: () => 0 })
       .catch((x: { status?: number }) => x);
@@ -236,5 +239,81 @@ describe('the operation journal', () => {
     expect(await k.epoch()).toBe(epoch);
     expect(existsSync(join(game, 'rooms', '.a.ts.1.studio-tmp'))).toBe(false);
     await k.close();
+  });
+  it("a second live process rolls a dead writer's intent forward before its own operation, revisions in order", async () => {
+    const a = await open();
+    const b = await open();
+    const blobs = fsBlobStore(join(root, 'blobs'));
+    await blobs.put(Buffer.from('a9'));
+    const db = await openSqliteDb(join(root, 'journal.sqlite'));
+    const r = (await a.revision()) + 1;
+    // A dies after logging and writing nothing: its intent stays.
+    await db.run(
+      "INSERT INTO studio_ops (op_id, rev, author, what, state, effects, at) VALUES ('dead', $1, 'a', 'w', 'intent', $2, 0)",
+      [r, JSON.stringify([{ path: 'rooms/a.ts', before: sha256('a0'), after: sha256('a9') }])],
+    );
+    const next = await b.apply({
+      author: 'b',
+      what: 'mine',
+      effects: [{ path: 'notes.json', after: '{"n":1}' }],
+      respond: () => 0,
+    });
+    expect(read('rooms/a.ts')).toBe('a9');
+    expect(next.rev).toBe(r + 1);
+    expect((await b.opsAfter(r - 1)).map((o) => [o.rev, o.what])).toEqual([
+      [r, 'w'],
+      [r + 1, 'mine'],
+    ]);
+    // The dead writer's id, retried, is answered as recovered, never applied again.
+    const again = await b.apply({
+      id: 'dead',
+      author: 'a',
+      what: 'w',
+      effects: [{ path: 'rooms/a.ts', after: 'zz' }],
+      respond: () => 'x',
+    });
+    expect(again.replayed).toBe(true);
+    expect(again.response).toEqual({ recovered: true });
+    await a.close();
+    await b.close();
+  });
+
+  it('a writer whose lease was taken over cannot log its operation', async () => {
+    const j = await open({ leaseMs: 60_000 });
+    const db = await openSqliteDb(join(root, 'journal.sqlite'));
+    const e = await j
+      .apply({
+        author: 'lea',
+        what: 'slow',
+        effects: [{ path: 'rooms/a.ts', after: 'a1' }],
+        // While the guard runs, another process takes the lease over (a new fence).
+        guard: async () => {
+          await db.run("UPDATE studio_lease SET holder = 'other', fence = fence + 1 WHERE id = 1");
+        },
+        respond: () => 0,
+      })
+      .catch((x: unknown) => x);
+    expect(e).toBeInstanceOf(LeaseLostError);
+    expect(read('rooms/a.ts')).toBe('a0');
+    await db.run('DELETE FROM studio_lease');
+    await j.close();
+  });
+
+  it('a file written outside while the guard runs is a 409, never overwritten', async () => {
+    const j = await open();
+    const e = await j
+      .apply({
+        author: 'lea',
+        what: 'w',
+        effects: [{ path: 'rooms/a.ts', after: 'a1' }],
+        guard: async () => {
+          writeFileSync(join(game, 'rooms', 'a.ts'), 'saved by an editor meanwhile');
+        },
+        respond: () => 0,
+      })
+      .catch((x: { status?: number }) => x);
+    expect((e as { status?: number }).status).toBe(409);
+    expect(read('rooms/a.ts')).toBe('saved by an editor meanwhile');
+    await j.close();
   });
 });

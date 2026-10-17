@@ -1,18 +1,21 @@
 // The operation journal (4.2.1, plan P1, P5, P6): every write to a game's files is one operation, applied whole or
 // not at all, recorded before it touches a file and confirmed after. In local mode the files stay the truth (Git
 // reads them): the journal records their hashes, keeps the "after" content of each operation as a blob, and rolls an
-// interrupted operation forward when it opens. A change made outside (an editor, an agent, `git checkout`) is adopted
-// as an `external` operation before the next one touches the file.
+// interrupted operation forward. A change made outside (an editor, an agent, `git checkout`) is adopted as an
+// `external` operation before the next operation is judged.
 //
-// One operation at a time per project: a promise chain inside this process, and a lease row in the database across
-// the processes that share it (the dev server, the MCP server, a CLI). The lease is taken on the database's clock.
+// One writer at a time per project: a promise chain inside this process, and a lease row across the processes that
+// share the journal (the dev server, the MCP server, a CLI). The lease is taken on the database's clock, renewed while
+// an operation runs, and fenced: the transactions that log and confirm an operation check that the lease is still
+// this writer's (same fence) and not expired. A writer that lost its lease cannot log or confirm anything; the next
+// holder rolls its logged operation forward before doing anything else.
 import { randomBytes, randomUUID } from 'node:crypto';
-import { existsSync, readdirSync, readFileSync } from 'node:fs';
+import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
 import { join, relative, sep } from 'node:path';
 import { migrate } from '../../../bridge/src/migrations';
 import type { SqlDb, SqlQuery } from '../../../bridge/src/store-sql';
 import type { BlobStore } from './blobs';
-import { ABSENT, hashOnDisk, sha256, sweepTemporaries, writeDurable } from './durable';
+import { ABSENT, sha256, sweepTemporaries, writeDurable } from './durable';
 import { StudioError } from './errors';
 
 const MIGRATIONS = new URL('../../migrations/', import.meta.url);
@@ -64,22 +67,12 @@ export class MaintenanceError extends StudioError {
   }
 }
 
-/** The files of a game the journal follows: every file under the folder but dot-files and leftovers of a write. */
-function listFiles(dir: string): string[] {
-  const out: string[] = [];
-  const walk = (d: string) => {
-    for (const e of readdirSync(d, { withFileTypes: true })) {
-      if (e.name.startsWith('.')) continue;
-      const p = join(d, e.name);
-      if (e.isDirectory()) walk(p);
-      else if (e.isFile()) out.push(relative(dir, p).split(sep).join('/'));
-    }
-  };
-  if (existsSync(dir)) walk(dir);
-  return out.sort();
+/** This writer's lease ran out or was taken over: nothing more is logged or confirmed under it. */
+export class LeaseLostError extends StudioError {
+  constructor() {
+    super('the write lease was lost (another process took over); try again', 503);
+  }
 }
-
-const LEASE_MS = 30_000;
 
 export interface JournalOptions {
   db: SqlDb;
@@ -90,18 +83,25 @@ export interface JournalOptions {
   holder?: string;
   /** How long an operation waits for another process's lease before a 409 (default 10 s). */
   leaseWaitMs?: number;
+  /** How long a lease lasts without renewal (default 30 s); it is renewed every third of that while an op runs. */
+  leaseMs?: number;
 }
 
 export class Journal {
   private chain: Promise<unknown> = Promise.resolve();
   private readonly holder: string;
+  /** The fence of the lease this writer holds now (0: none). */
+  private fence = 0;
+  /** Hashes of files by their size and mtime: a full look at the game rehashes only what changed. */
+  private seen = new Map<string, { size: number; mtime: number; hash: string }>();
 
   private constructor(
     private db: SqlDb,
     private blobs: BlobStore,
     readonly gameDir: string,
-    holder?: string,
-    private leaseWaitMs = 10_000,
+    holder: string | undefined,
+    private leaseWaitMs: number,
+    private leaseMs: number,
   ) {
     this.holder = holder ?? `${process.pid}-${randomBytes(6).toString('hex')}`;
   }
@@ -112,12 +112,9 @@ export class Journal {
    */
   static async open(o: JournalOptions): Promise<Journal> {
     await migrate(o.db, { dir: MIGRATIONS });
-    await o.db.exec(
-      'CREATE TABLE IF NOT EXISTS studio_lease (id INTEGER PRIMARY KEY, holder TEXT NOT NULL, until_ms BIGINT NOT NULL)',
-    );
-    const j = new Journal(o.db, o.blobs, o.gameDir, o.holder, o.leaseWaitMs);
-    await j.serial(async () => {
-      await j.withLease(async () => {
+    const j = new Journal(o.db, o.blobs, o.gameDir, o.holder, o.leaseWaitMs ?? 10_000, o.leaseMs ?? 30_000);
+    await j.serial(() =>
+      j.withLease(async () => {
         await o.db.tx('studio', async (q) => {
           const [e] = await q.all("SELECT value FROM studio_meta WHERE key = 'epoch'");
           if (!e) {
@@ -125,11 +122,10 @@ export class Journal {
             await q.run("INSERT INTO studio_meta (key, value) VALUES ('revision', '0')");
           }
         });
-        await j.recover();
+        await j.settle();
         sweepTemporaries(o.gameDir);
-        await j.adopt(null);
-      });
-    });
+      }),
+    );
     return j;
   }
 
@@ -152,7 +148,10 @@ export class Journal {
   }
 
   /** The operations after `rev`, oldest first (P6: a client that reconnects asks for what it missed). */
-  async opsAfter(rev: number, limit = 500): Promise<{ id: string; rev: number; author: string; what: string; paths: string[] }[]> {
+  async opsAfter(
+    rev: number,
+    limit = 500,
+  ): Promise<{ id: string; rev: number; author: string; what: string; paths: string[] }[]> {
     const rows = await this.db.all(
       "SELECT op_id, rev, author, what, effects FROM studio_ops WHERE state = 'confirmed' AND rev > $1 ORDER BY rev LIMIT $2",
       [rev, limit],
@@ -173,9 +172,20 @@ export class Journal {
     return this.serial(() => this.withLease(() => this.applyNow(op)));
   }
 
+  /**
+   * Under the lease, before any operation is judged: every logged operation is dead (its writer lost the lease or
+   * died), so it is rolled forward; then what changed on the disk outside the journal is adopted. The head then says
+   * exactly what the files hold.
+   */
+  private async settle(): Promise<void> {
+    await this.recover();
+    await this.adopt();
+  }
+
   private async applyNow<R>(op: Operation<R>): Promise<Applied<R>> {
+    await this.settle();
     const id = op.id ?? randomUUID();
-    // A retry: the recorded response, never a second application.
+    // A retry: the recorded response, never a second application (a recovered operation answers that it was).
     const [seen] = await this.db.all('SELECT state, rev, response, effects FROM studio_ops WHERE op_id = $1', [id]);
     if (seen && String(seen.state) === 'confirmed')
       return {
@@ -185,9 +195,6 @@ export class Journal {
         replayed: true,
       };
     if (seen) await this.db.run('DELETE FROM studio_ops WHERE op_id = $1', [id]);
-
-    // What changed outside since the last operation, on the files this one writes, is adopted first.
-    await this.adopt(op.effects.map((e) => e.path));
 
     // The base (P5): a file written since the client read it is a conflict, whoever wrote it.
     for (const [path, rev] of Object.entries(op.base ?? {})) {
@@ -201,7 +208,7 @@ export class Journal {
     const changes: Change[] = [];
     const changed: FileEffect[] = [];
     for (const e of op.effects) {
-      const before = hashOnDisk(this.abs(e.path));
+      const before = this.hashOf(e.path);
       const read = op.expect?.[e.path];
       if (read !== undefined && read !== before)
         throw new StudioError(`${e.path} changed while this edit was being prepared; try again`, 409);
@@ -217,15 +224,19 @@ export class Journal {
 
     // The "after" contents first: a recovery rolls forward from them.
     for (const e of changed) if (e.after !== null) await this.blobs.put(Buffer.from(e.after));
+    // The guard took time: a file written outside meanwhile is a 409 here, not overwritten.
+    for (const c of changes)
+      if (this.hashOf(c.path) !== c.before)
+        throw new StudioError(`${c.path} changed while this edit was being checked; try again`, 409);
     const rev = head + 1;
-    const now = Date.now();
-    // The intent: logged and on the disk (synchronous = FULL) before any file is touched.
-    await this.db.tx('studio', (q) =>
-      q.run(
+    // The intent: logged and on the disk (synchronous = FULL) before any file is touched, under a live lease.
+    await this.db.tx('studio', async (q) => {
+      await this.checkLease(q);
+      await q.run(
         "INSERT INTO studio_ops (op_id, rev, author, what, state, effects, at) VALUES ($1, $2, $3, $4, 'intent', $5, $6)",
-        [id, rev, op.author, op.what, JSON.stringify(changes), now],
-      ),
-    );
+        [id, rev, op.author, op.what, JSON.stringify(changes), Date.now()],
+      );
+    });
     // The befores, kept in memory: an error of this process undoes what it already wrote.
     const befores = new Map<string, Buffer | null>();
     for (const c of changes) {
@@ -250,12 +261,22 @@ export class Journal {
       throw err;
     }
     const response = op.respond(rev);
-    await this.db.tx('studio', (q) => this.confirm(q, id, rev, changes, response));
+    // Confirmed under the same lease; a writer that lost it stops here, and the next holder rolls this forward.
+    await this.db.tx('studio', async (q) => {
+      await this.checkLease(q);
+      await this.confirm(q, id, rev, changes, response);
+    });
     return { response, rev, changed: changes.map((c) => c.path) };
   }
 
-  /** Records a confirmed operation: the head of its files, the project's revision, its response. */
+  /**
+   * Records a confirmed operation: the head of its files, the project's revision, its response. The revision only
+   * ever moves forward by one: anything else is a damaged journal.
+   */
   private async confirm(q: SqlQuery, id: string, rev: number, changes: Change[], response: unknown) {
+    const [r] = await q.all("SELECT value FROM studio_meta WHERE key = 'revision'");
+    const head = Number(r?.value ?? 0);
+    if (head !== rev - 1) throw new MaintenanceError(`operation ${id} is revision ${rev} but the head is ${head}`);
     for (const c of changes) {
       await q.run('DELETE FROM studio_files WHERE path = $1', [c.path]);
       await q.run('INSERT INTO studio_files (path, blob, rev) VALUES ($1, $2, $3)', [c.path, c.after, rev]);
@@ -268,52 +289,95 @@ export class Journal {
   }
 
   /**
-   * Adopts as one `external` operation what changed on the disk since the journal last saw it: on `paths`, or on the
-   * whole game (`null`). In local mode an editor, an agent or Git may write the files; the journal follows them.
+   * Adopts as one `external` operation what changed on the disk since the journal last saw it, across the whole
+   * game (a file's hash is recomputed only when its size or mtime moved). In local mode an editor, an agent or Git may
+   * write the files; the journal follows them, so the head (and the guard's baseline, kept per revision) is the disk.
    */
-  private async adopt(paths: string[] | null): Promise<void> {
-    const files = paths ?? [
-      ...new Set([
-        ...listFiles(this.gameDir),
-        ...(await this.db.all('SELECT path FROM studio_files')).map((r) => String(r.path)),
-      ]),
-    ];
+  private async adopt(): Promise<void> {
+    const known = new Map(
+      (await this.db.all('SELECT path, blob FROM studio_files')).map((r) => [String(r.path), String(r.blob)]),
+    );
+    const files = new Set([...this.listFiles(), ...[...known].filter(([, b]) => b !== ABSENT).map(([p]) => p)]);
     const changes: Change[] = [];
     for (const path of files) {
-      const disk = hashOnDisk(this.abs(path));
-      const head = await this.file(path);
-      if (disk !== head.blob) changes.push({ path, before: head.blob, after: disk });
+      const disk = this.hashOf(path);
+      const head = known.get(path) ?? ABSENT;
+      if (disk !== head) changes.push({ path, before: head, after: disk });
     }
     if (!changes.length) return;
     const rev = (await this.revision()) + 1;
     const id = randomUUID();
     await this.db.tx('studio', async (q) => {
+      await this.checkLease(q);
       await q.run(
-        "INSERT INTO studio_ops (op_id, rev, author, what, state, effects, at) VALUES ($1, $2, 'external', $3, 'intent', $4, $5)",
-        [id, rev, paths ? 'changed outside the Studio' : 'the game as found', JSON.stringify(changes), Date.now()],
+        "INSERT INTO studio_ops (op_id, rev, author, what, state, effects, at) VALUES ($1, $2, 'external', 'changed outside the Studio', 'intent', $3, $4)",
+        [id, rev, JSON.stringify(changes), Date.now()],
       );
       await this.confirm(q, id, rev, changes, null);
     });
   }
 
-  /** Rolls forward every operation an interruption left logged but not confirmed (P1). */
+  /** Rolls forward every operation logged but not confirmed, oldest first (P1). */
   private async recover(): Promise<void> {
     const rows = await this.db.all("SELECT op_id, rev, effects FROM studio_ops WHERE state = 'intent' ORDER BY rev");
     for (const r of rows) {
       const id = String(r.op_id);
       const changes = JSON.parse(String(r.effects)) as Change[];
       for (const c of changes) {
-        const file = this.abs(c.path);
-        const now = hashOnDisk(file);
+        const now = this.hashOf(c.path);
         if (now === c.after) continue;
         if (now !== c.before)
           throw new MaintenanceError(
             `operation ${id} (revision ${r.rev}) was interrupted and ${c.path} is neither what it was nor what it became`,
           );
-        writeDurable(file, c.after === ABSENT ? null : await this.blobs.get(c.after));
+        writeDurable(this.abs(c.path), c.after === ABSENT ? null : await this.blobs.get(c.after));
       }
-      await this.db.tx('studio', (q) => this.confirm(q, id, Number(r.rev), changes, { recovered: true }));
+      await this.db.tx('studio', async (q) => {
+        await this.checkLease(q);
+        await this.confirm(q, id, Number(r.rev), changes, { recovered: true });
+      });
     }
+  }
+
+  // ------------------------------------------------------------------ files
+
+  /** The files of the game the journal follows: every file but dot-files (and so the leftovers of a write). */
+  private listFiles(): string[] {
+    const out: string[] = [];
+    const walk = (d: string) => {
+      for (const e of readdirSync(d, { withFileTypes: true })) {
+        if (e.name.startsWith('.')) continue;
+        const p = join(d, e.name);
+        if (e.isDirectory()) walk(p);
+        else if (e.isFile()) out.push(relative(this.gameDir, p).split(sep).join('/'));
+      }
+    };
+    if (existsSync(this.gameDir)) walk(this.gameDir);
+    return out;
+  }
+
+  /** The hash of a game file as it is on the disk now, or `ABSENT`; rehashed only when its size or mtime moved. */
+  private hashOf(path: string): string {
+    const f = this.abs(path);
+    let st: { size: number; mtimeMs: number; isFile(): boolean };
+    try {
+      st = statSync(f);
+    } catch {
+      this.seen.delete(path);
+      return ABSENT;
+    }
+    if (!st.isFile()) throw new StudioError(`${path} is not a file`, 409);
+    const k = this.seen.get(path);
+    if (k && k.size === st.size && k.mtime === st.mtimeMs) return k.hash;
+    const hash = sha256(readFileSync(f));
+    this.seen.set(path, { size: st.size, mtime: st.mtimeMs, hash });
+    return hash;
+  }
+
+  private abs(path: string): string {
+    if (path.startsWith('/') || path.split('/').includes('..'))
+      throw new StudioError(`not a path in the game: "${path}"`);
+    return join(this.gameDir, ...path.split('/'));
   }
 
   // ------------------------------------------------------------------ the lease and the chain
@@ -324,34 +388,67 @@ export class Journal {
     return p;
   }
 
-  /** The project's write lease across processes, on the database's clock; refused (409) when another holds it. */
+  /** The database's clock, in ms. */
+  private get clock(): string {
+    return this.db.dialect === 'postgres'
+      ? '(EXTRACT(EPOCH FROM clock_timestamp()) * 1000)::BIGINT'
+      : "CAST(unixepoch('subsec') * 1000 AS INTEGER)";
+  }
+
+  /** Throws `LeaseLostError` unless this writer still holds an unexpired lease with its fence (inside `q`'s tx). */
+  private async checkLease(q: SqlQuery): Promise<void> {
+    const [r] = await q.all(`SELECT holder, fence, until_ms, ${this.clock} AS now FROM studio_lease WHERE id = 1`);
+    if (!r || String(r.holder) !== this.holder || Number(r.fence) !== this.fence || Number(r.until_ms) <= Number(r.now))
+      throw new LeaseLostError();
+  }
+
+  /**
+   * Runs `fn` holding the project's write lease (P8 in small): taken on the database's clock with a new fence,
+   * renewed every third of its life while `fn` runs, refused (409) after `leaseWaitMs` when another writer holds it.
+   */
   private async withLease<T>(fn: () => Promise<T>): Promise<T> {
-    const clock = this.db.dialect === 'postgres' ? '(EXTRACT(EPOCH FROM clock_timestamp()) * 1000)::BIGINT' : "CAST(unixepoch('subsec') * 1000 AS INTEGER)";
     const deadline = Date.now() + this.leaseWaitMs;
     for (;;) {
-      const got = await this.db.tx('studio', async (q) => {
-        const [now] = await q.all(`SELECT ${clock} AS now`);
+      const fence = await this.db.tx('studio', async (q) => {
+        const [now] = await q.all(`SELECT ${this.clock} AS now`);
         const t = Number(now?.now);
-        const [cur] = await q.all('SELECT holder, until_ms FROM studio_lease WHERE id = 1');
-        if (cur && String(cur.holder) !== this.holder && Number(cur.until_ms) > t) return false;
+        const [cur] = await q.all('SELECT holder, fence, until_ms FROM studio_lease WHERE id = 1');
+        if (cur && String(cur.holder) !== this.holder && Number(cur.until_ms) > t) return 0;
+        const next = Number(cur?.fence ?? 0) + 1;
         await q.run('DELETE FROM studio_lease WHERE id = 1');
-        await q.run('INSERT INTO studio_lease (id, holder, until_ms) VALUES (1, $1, $2)', [this.holder, t + LEASE_MS]);
-        return true;
+        await q.run('INSERT INTO studio_lease (id, holder, fence, until_ms) VALUES (1, $1, $2, $3)', [
+          this.holder,
+          next,
+          t + this.leaseMs,
+        ]);
+        return next;
       });
-      if (got) break;
+      if (fence) {
+        this.fence = fence;
+        break;
+      }
       if (Date.now() > deadline) throw new StudioError('another process is writing this game; try again', 409);
       await new Promise((ok) => setTimeout(ok, 50));
     }
+    const renew = setInterval(() => {
+      void this.db
+        .run(`UPDATE studio_lease SET until_ms = ${this.clock} + $1 WHERE id = 1 AND holder = $2 AND fence = $3`, [
+          this.leaseMs,
+          this.holder,
+          this.fence,
+        ])
+        .catch(() => undefined);
+    }, Math.max(50, Math.floor(this.leaseMs / 3)));
+    renew.unref?.();
     try {
       return await fn();
     } finally {
-      await this.db.run('DELETE FROM studio_lease WHERE id = 1 AND holder = $1', [this.holder]);
+      clearInterval(renew);
+      await this.db
+        .run('DELETE FROM studio_lease WHERE id = 1 AND holder = $1 AND fence = $2', [this.holder, this.fence])
+        .catch(() => undefined);
+      this.fence = 0;
     }
-  }
-
-  private abs(path: string): string {
-    if (path.startsWith('/') || path.split('/').includes('..')) throw new StudioError(`not a path in the game: "${path}"`);
-    return join(this.gameDir, ...path.split('/'));
   }
 
   async close(): Promise<void> {

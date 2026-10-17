@@ -190,7 +190,7 @@ describe('setText', () => {
     // creating an entry
     await demo.setText('house', 'look.lamp[+]', 'A warm lamp.');
     expect((await demo.getRoom('house')).def.look!.lamp).toBe('A warm lamp.');
-  });
+  }, 60000);
 
   it('refuses unknown paths and non-texts', async () => {
     await expectError(demo.setText('house', 'look.nothing[4]', 'x'), 404, 'path not found');

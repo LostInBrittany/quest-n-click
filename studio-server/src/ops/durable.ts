@@ -9,7 +9,6 @@ import {
   mkdirSync,
   openSync,
   readdirSync,
-  readFileSync,
   renameSync,
   rmSync,
   unlinkSync,
@@ -23,19 +22,16 @@ export const sha256 = (bytes: Buffer | string) => createHash('sha256').update(by
 /** What the journal writes for a file that does not exist. */
 export const ABSENT = 'absent';
 
-/** The hash of a file as it is on the disk now, or `ABSENT`. */
-export function hashOnDisk(file: string): string {
-  return existsSync(file) ? sha256(readFileSync(file)) : ABSENT;
-}
-
 function fsyncDir(dir: string) {
-  // A directory is opened read-only to be fsynced; some systems refuse that (it is then not needed): never fatal.
+  // A directory is opened read-only to be fsynced; some systems refuse that (it is then not needed). A real I/O error
+  // is not swallowed. (On macOS, fsync is not F_FULLFSYNC: the drive's own cache may still hold the write.)
   let fd: number | undefined;
   try {
     fd = openSync(dir, 'r');
     fsyncSync(fd);
-  } catch {
-    /* not supported here */
+  } catch (e) {
+    if (!['EINVAL', 'EISDIR', 'EPERM', 'EBADF', 'ENOTSUP', 'EACCES'].includes((e as NodeJS.ErrnoException).code ?? ''))
+      throw e;
   } finally {
     if (fd !== undefined) closeSync(fd);
   }

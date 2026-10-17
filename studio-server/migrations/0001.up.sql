@@ -17,10 +17,19 @@ CREATE TABLE studio_ops (
   response TEXT,
   at BIGINT NOT NULL
 );
-CREATE INDEX studio_ops_rev ON studio_ops (rev);
+-- A revision is made once: two live operations can never hold the same number (an aborted one gives it back).
+CREATE UNIQUE INDEX studio_ops_rev ON studio_ops (rev) WHERE state <> 'aborted';
 -- The head: each file's content (a sha256, or absent) and the revision that last wrote it (the base of a 409).
 CREATE TABLE studio_files (
   path TEXT PRIMARY KEY,
   blob TEXT NOT NULL,
   rev BIGINT NOT NULL
+);
+-- The project's write lease (one writer at a time, across processes), on the database's clock. `fence` grows at every
+-- taking: a writer checks it, and the lease's expiry, in the transactions that log and confirm its operation.
+CREATE TABLE studio_lease (
+  id INTEGER PRIMARY KEY,
+  holder TEXT NOT NULL,
+  fence BIGINT NOT NULL,
+  until_ms BIGINT NOT NULL
 );

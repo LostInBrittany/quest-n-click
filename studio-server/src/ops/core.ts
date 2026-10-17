@@ -3,7 +3,7 @@
 // are thrown as StudioError (with an HTTP-like status), results are plain JSON.
 import { execFile } from 'node:child_process';
 import { createHash } from 'node:crypto';
-import { existsSync, linkSync, mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
+import { copyFileSync, existsSync, linkSync, mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
 import { basename, isAbsolute, join, relative, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import ts from '@typescript/typescript6';
@@ -180,7 +180,15 @@ function linkTree(from: string, to: string) {
     const a = join(from, e.name),
       b = join(to, e.name);
     if (e.isDirectory()) linkTree(a, b);
-    else if (e.isFile()) linkSync(a, b);
+    else if (e.isFile()) {
+      try {
+        linkSync(a, b);
+      } catch (err) {
+        // Another file system (EXDEV), or links refused: a copy is slower but the same staging.
+        if (!['EXDEV', 'EPERM', 'ENOTSUP'].includes((err as NodeJS.ErrnoException).code ?? '')) throw err;
+        copyFileSync(a, b);
+      }
+    }
   }
 }
 
@@ -261,7 +269,8 @@ export function createStudio(opts: StudioOptions = {}) {
   const inGame = (file: string) => relative(dir, file).split(/[\\/]/).join('/');
 
   /** One write of an operation: the file (absolute) and its whole new text, `null` to remove it. */
-  type Effect = { file: string; after: string | null };
+  /** `from`: the content the edit was computed from, when the caller read it itself (the 409 then covers that read). */
+  type Effect = { file: string; after: string | null; from?: string | null };
   /** What an undo puts back: every file of one operation, `before` and `after` as they were. */
   type Change = { files: { file: string; before: string | null; after: string | null }[]; what: string };
   const undoStack: Change[] = [],
@@ -332,7 +341,9 @@ export function createStudio(opts: StudioOptions = {}) {
       what,
       effects: effects.map((e) => ({ path: inGame(e.file), after: e.after })),
       // The files as this operation read them: another process that wrote one meanwhile makes it a 409, not a loss.
-      expect: Object.fromEntries(effects.map((e) => [inGame(e.file), hashText(befores.get(e.file) ?? null)])),
+      expect: Object.fromEntries(
+        effects.map((e) => [inGame(e.file), hashText(e.from !== undefined ? e.from : (befores.get(e.file) ?? null))]),
+      ),
       guard: (changed) => guard(j, changed, o.diff ?? ''),
       respond: (rev) => ({ rev }),
     });
@@ -422,7 +433,7 @@ export function createStudio(opts: StudioOptions = {}) {
     const diff = r.changed ? lineDiff(before, r.code) : '';
     if (!r.changed || o.dry)
       return { ok: true as const, line: r.line, changed: r.changed, diff, ...(o.dry ? { dry: true as const } : {}) };
-    await write(`${id}: ${path}`, [{ file, after: parses(file, r.code) }], { diff });
+    await write(`${id}: ${path}`, [{ file, after: parses(file, r.code), from: before }], { diff });
     return { ok: true as const, line: r.line, changed: true, diff };
     });
   }
@@ -510,7 +521,7 @@ export function createStudio(opts: StudioOptions = {}) {
       const file = roomFile(id);
       const code = readFileSync(file, 'utf8');
       const r = wrap(() => setTextInSource(code, path, value, file));
-      if (r.changed) await write(`${id}: ${path}`, [{ file, after: parses(file, r.code) }]);
+      if (r.changed) await write(`${id}: ${path}`, [{ file, after: parses(file, r.code), from: code }]);
       return { ok: true as const, line: r.line, changed: r.changed };
     });
   }
@@ -537,7 +548,8 @@ export function createStudio(opts: StudioOptions = {}) {
       if (e.kind === 'prop' && e.img && images && Object.keys(images).length && !images[e.img])
         throw new StudioError(`image not in the manifest: "${e.img}"`);
 
-      let code = readFileSync(file, 'utf8');
+      const read = readFileSync(file, 'utf8');
+      let code = read;
       const fields: Record<string, string | undefined> =
         e.kind === 'prop'
           ? { name, img: e.img || undefined }
@@ -558,7 +570,7 @@ export function createStudio(opts: StudioOptions = {}) {
       else (L.actors ??= {})[e.id] = { x: at[0], y: at[1] };
       // The room and its layout: one operation (4.2.1), undone together.
       await write(`${id}: add ${e.id}`, [
-        { file, after: code },
+        { file, after: code, from: read },
         { file: layoutFile(id), after: JSON.stringify(L, null, 2) + '\n' },
       ]);
       return { ok: true as const, line: r.line, changed: true };
