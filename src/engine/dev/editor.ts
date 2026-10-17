@@ -3,6 +3,7 @@ import type { App } from '../dom/app';
 import type { Id, Layout, Point } from '../core/types';
 import { FLOOR } from '../core/define';
 import { Overlay, type Handle } from './overlay';
+import { putLayout } from './save-layout';
 import { must } from '../core/must';
 
 type Drag = { h: Handle; start: Point; orig: unknown };
@@ -447,8 +448,7 @@ export class Editor {
   // -------------------------------------------------------------- saving
 
   /**
-   * Writes layout/<room>.json through the Studio's API on the dev server (PUT /__studio/api/room/<id>/layout: one
-   * guarded operation of the game's journal since 4.2.1). Without it (a Studio demo build, or no dev server),
+   * Writes layout/<room>.json through the Studio's API (`putLayout`). Without one (a Studio demo build, no dev server),
    * the layout goes to the Studio around this view (postMessage; it keeps it with the demo's edits) or, standalone,
    * straight into the demo's edits in localStorage: the engine applies them on the next load.
    */
@@ -458,31 +458,9 @@ export class Editor {
     let error = '';
     let offline = import.meta.env.VITE_STUDIO_DEMO === '1';
     if (!offline) {
-      try {
-        const token = new URLSearchParams(location.search).get('token');
-        const url = `/__studio/api/room/${encodeURIComponent(this.room.id)}/layout`;
-        const r = await fetch(`${url}${token ? `?token=${encodeURIComponent(token)}` : ''}`, {
-          method: 'PUT',
-          headers: { 'content-type': 'application/json' },
-          body: JSON.stringify(L),
-        });
-        if (!r.ok) {
-          // The Studio answers its refusals in JSON (an unknown room is a 404 too); anything else on 404/405 means
-          // there is no Studio API here (a static host): the layout then goes to the patch.
-          const t = await r.text();
-          let studio: string | undefined;
-          try {
-            studio = (JSON.parse(t) as { error?: string }).error;
-          } catch {
-            studio = undefined;
-          }
-          if (studio !== undefined) error = studio;
-          else if (r.status === 404 || r.status === 405) offline = true;
-          else error = t;
-        }
-      } catch {
-        offline = true;
-      }
+      const r = await putLayout(this.room.id, L);
+      if ('offline' in r) offline = true;
+      else error = r.error ?? '';
     }
     const done = () => {
       this.dirty = false;
