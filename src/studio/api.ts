@@ -25,6 +25,7 @@ import type {
   ValidateResult,
 } from '../../tools/studio/types';
 import { apiUrl } from './api-base';
+export { apiUrl };
 
 export type * from '../../tools/studio/types';
 
