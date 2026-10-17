@@ -5,7 +5,7 @@
 // npm run remix -- --record=20: the playtest seeds (4.1.15): the first N seeds of the published sample, each world
 // solved and its witness replayed into a session that carries the world; written to games/<id>/playtests/
 // remix-<seed>.session.json, where `npm run playtests` replays them (each in its own world).
-import { mkdirSync, writeFileSync } from 'node:fs';
+import { mkdirSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { flushExit } from './flush';
 import { cachedSolve } from './proof-cache';
@@ -17,6 +17,7 @@ import { describeVariant, sampleSeed } from '../src/engine/tools/remix';
 import { replay } from '../src/engine/tools/replay';
 import { validate } from '../src/engine/tools/validate';
 import { loadLayouts } from '../src/engine/tools/load';
+import { writeOutput } from './game-write';
 
 const argv = process.argv.slice(2);
 const after = (k: string) => {
@@ -85,7 +86,7 @@ async function recordPlaytests(n: number): Promise<never> {
     const r = await replay(world, layouts, { start: { kind: 'new' }, log: s.steps }, { commands: cmds });
     const file = join(dir, `remix-${v.seed}.session.json`);
     const out = { kind: 'web-scumm-session', game: g.id, v: g.saveVersion, at: 0, session: r.session, trace: [] };
-    writeFileSync(file, `${JSON.stringify(out)}\n`);
+    await writeOutput(`remix ${v.seed}`, file, `${JSON.stringify(out)}\n`);
     console.log(
       `${r.ended && r.divergedAt === undefined ? '✔' : '✗'}  ${v.seed} (world ${v.hash.slice(0, 12)}): ${s.path.length} steps → ${file}`,
     );

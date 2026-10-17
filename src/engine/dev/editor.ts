@@ -447,7 +447,8 @@ export class Editor {
   // -------------------------------------------------------------- saving
 
   /**
-   * Writes layout/<room>.json through the dev server. Without one (a Studio demo build, or no /__layout endpoint),
+   * Writes layout/<room>.json through the Studio's API on the dev server (PUT /__studio/api/room/<id>/layout: one
+   * guarded operation of the game's journal since 4.2.1). Without it (a Studio demo build, or no dev server),
    * the layout goes to the Studio around this view (postMessage; it keeps it with the demo's edits) or, standalone,
    * straight into the demo's edits in localStorage: the engine applies them on the next load.
    */
@@ -459,13 +460,21 @@ export class Editor {
     if (!offline) {
       try {
         const token = new URLSearchParams(location.search).get('token');
-        const r = await fetch(`/__layout/${this.room.id}${token ? `?token=${encodeURIComponent(token)}` : ''}`, {
-          method: 'POST',
+        const url = `/__studio/api/room/${encodeURIComponent(this.room.id)}/layout`;
+        const r = await fetch(`${url}${token ? `?token=${encodeURIComponent(token)}` : ''}`, {
+          method: 'PUT',
           headers: { 'content-type': 'application/json' },
           body: JSON.stringify(L),
         });
         if (r.status === 404 || r.status === 405) offline = true;
-        else if (!r.ok) error = await r.text();
+        else if (!r.ok) {
+          const t = await r.text();
+          try {
+            error = (JSON.parse(t) as { error?: string }).error ?? t;
+          } catch {
+            error = t;
+          }
+        }
       } catch {
         offline = true;
       }

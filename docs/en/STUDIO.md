@@ -264,8 +264,9 @@ game's Studio, built by the CI. Same UI, same engine view and placement editor; 
 - **Engine view**: in a demo build the dev tools also load with `?edit` / `?dev` (and only then: the player's game is
   the same). They apply the same patches to the game and the layouts at start. Save layout in the editor posts the
   layout to the Studio around it (`postMessage`, message `saved` with `layout`), which keeps it as a `layout` patch;
-  the editor opened alone writes the patch to `localStorage` itself. On the dev server, the editor still writes
-  `layout/<room>.json`; it falls back to the same path only when `/__layout` does not exist.
+  the editor opened alone writes the patch to `localStorage` itself. On the dev server, the editor writes
+  `layout/<room>.json` through the Studio's API (`PUT /__studio/api/room/<id>/layout`, one guarded operation of the
+  journal since 4.2.1); it falls back to the patch only when that API does not exist.
 - **Banner**: "Demo: your edits stay in this browser", **Download patch** (`studio-patch-<game>.json`: `{ format:
   'web-scumm-studio-patch', version, game, created, patches }`) and **Reset demo** (drops every edit).
 - **Apply**: `npm run studio-apply patch.json` replays a downloaded patch on your copy through the core (`setText`,

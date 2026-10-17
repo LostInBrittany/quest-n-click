@@ -6,7 +6,7 @@ import { join, resolve, sep } from 'node:path';
 import { VitePWA } from 'vite-plugin-pwa';
 import { GAME, GAME_DIR, PROJECT } from './tools/game.ts';
 import { studioPlugin } from './tools/studio/plugin.ts';
-import { assetsVersion, BASE, layoutWriter, sealBuild, sitePlugin, studioDemo } from './tools/vite/plugins.ts';
+import { assetsVersion, BASE, sealBuild, sitePlugin, studioDemo } from './tools/vite/plugins.ts';
 import { engineVersion, trustedExtensionsHash } from './tools/extensions.ts';
 
 // The engine's own files by their real path (4.1.18): Windows' 8.3 short names would leave the page and its root apart.
@@ -70,7 +70,6 @@ export default defineConfig({
   },
   plugins: [
     sitePlugin(),
-    layoutWriter(),
     studioPlugin(),
     studioDemo(),
     sealBuild(),

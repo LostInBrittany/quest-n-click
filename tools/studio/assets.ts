@@ -1,17 +1,19 @@
 // The Studio's Assets tab, server side (docs/en/STUDIO.md, "Assets tab"): every image and sound of the game with where
 // it is used, the art prompts per sheet, and the uploads (a generated sheet cut by tools/cut-sheet.py, one cell, a
-// decor, a sound), never deleting anything: a replaced file is first kept as `<name>_v<N>.<ext>` next to it.
+// decor, a sound), never deleting anything: a replaced file is first kept as `<name>_v<N>.<ext>` next to it. Since
+// 4.2.1 every upload is one operation of the game's journal (studio.writeFiles): the backups, the new files and the
+// cells a tool cut are written together or not at all, and a tool never writes into the game folder itself.
 // `assetsMiddleware` is mounted by the dev server at /__studio/api/assets (tools/studio/plugin.ts).
 import { spawn } from 'node:child_process';
 import {
-  copyFileSync,
+  cpSync,
   createReadStream,
   existsSync,
   mkdirSync,
   readFileSync,
   readdirSync,
+  rmSync,
   statSync,
-  unlinkSync,
   writeFileSync,
 } from 'node:fs';
 import type { IncomingMessage, ServerResponse } from 'node:http';
@@ -137,11 +139,19 @@ function backupsOf(file: string): string[] {
     .map((f) => join(dir, f));
 }
 
-/** Copies `file` to the next free `<stem>_v<N><ext>` and returns that path. */
-function backup(file: string): string {
-  const n = Math.max(0, ...backupsOf(file).map((f) => Number(/_v(\d+)\.\w+$/.exec(f)![1]))) + 1;
-  const to = join(dirname(file), `${stem(file.slice(dirname(file).length + 1))}_v${n}${extname(file)}`);
-  copyFileSync(file, to);
+/**
+ * The next free `<stem>_v<N><ext>` of `file`, counting the backups already on disk and those this operation plans
+ * (`planned`, which it extends): a backup is a file of the operation, written with the rest.
+ */
+function nextBackup(file: string, planned: Set<string>): string {
+  const num = (f: string) => Number(/_v(\d+)\.\w+$/.exec(f)![1]);
+  const base = stem(file.slice(dirname(file).length + 1));
+  const mine = [...planned].filter(
+    (f) => dirname(f) === dirname(file) && stem(f.slice(dirname(f).length + 1)).startsWith(`${base}_v`),
+  );
+  const n = Math.max(0, ...backupsOf(file).map(num), ...mine.map(num)) + 1;
+  const to = join(dirname(file), `${base}_v${n}${extname(file)}`);
+  planned.add(to);
   return to;
 }
 
@@ -293,6 +303,50 @@ export function createAssets(studio: Studio) {
   const audioDir = join(dir, 'audio');
   const pub = join(root, 'public', 'assets');
   const rel = (f: string) => relative(dir, f).split(sep).join('/');
+  /** A file of the operation being built: its path in the game and its whole new content (`null` removes it). */
+  type Out = { path: string; after: Buffer | null };
+  /** Keeps `file` as its next backup, as a file of the operation. */
+  const keep = (file: string, planned: Set<string>): Out => ({
+    path: rel(nextBackup(file, planned)),
+    after: readFileSync(file),
+  });
+  /** A scratch folder outside the game, removed after `fn`. */
+  async function scratch<T>(fn: (tmp: string) => Promise<T>): Promise<T> {
+    const tmp = join(root, '.cache', 'studio', `work-${process.pid}-${Date.now().toString(36)}`);
+    mkdirSync(tmp, { recursive: true });
+    try {
+      return await fn(tmp);
+    } finally {
+      rmSync(tmp, { recursive: true, force: true });
+    }
+  }
+  /**
+   * Runs a tool on a copy of `art/<sheet>/` (real copies: a tool that rewrites a cell in place never touches the
+   * game's file) and returns what it wrote there, as files of the operation under `art/<sheet>/`.
+   */
+  async function onSheetCopy(tmp: string, sheet: string, tool: (copyArt: string) => Promise<void>): Promise<Out[]> {
+    const copyArt = join(tmp, 'art');
+    const from = join(artDir, sheet),
+      to = join(copyArt, sheet);
+    mkdirSync(to, { recursive: true });
+    if (existsSync(from)) cpSync(from, to, { recursive: true });
+    await tool(copyArt);
+    const out: Out[] = [];
+    const walkAll = (d: string) => {
+      for (const e of readdirSync(d, { withFileTypes: true })) {
+        const p = join(d, e.name);
+        if (e.isDirectory()) walkAll(p);
+        else {
+          const original = join(from, relative(to, p));
+          const bytes = readFileSync(p);
+          if (!existsSync(original) || !readFileSync(original).equals(bytes))
+            out.push({ path: rel(original), after: bytes });
+        }
+      }
+    };
+    walkAll(to);
+    return out;
+  }
 
   let queue: Promise<unknown> = Promise.resolve();
   const serial = <T>(fn: () => Promise<T> | T): Promise<T> => {
@@ -565,34 +619,52 @@ export function createAssets(studio: Studio) {
           { body: { conflicts: existing } },
         );
       }
-      const sheetsDir = join(dir, 'private', 'sheets');
-      mkdirSync(sheetsDir, { recursive: true });
-      const file = join(sheetsDir, `${b.sheetId}-${new Date().toISOString().replace(/[:.]/g, '-')}${type}`);
-      writeFileSync(file, data);
-      const backups = existing.map((c) => rel(backup(join(out, `${c}.png`))));
-      const args = [
-        join(root, 'tools', 'cut-sheet.py'),
-        file,
-        b.sheetId,
-        '--grid',
-        `${cols}x${rows}`,
-        '--out',
-        artDir,
-        ...(only ? ['--cells', only.join(',')] : []),
-      ];
-      const r = await run('python3', args, root, { ...process.env, GAME: studio.gameId });
-      if (r.code !== 0)
-        throw new StudioError(
-          `cut-sheet.py failed (${r.code}): ${r.output.trim().split('\n').slice(-3).join(' ')}`,
-          500,
-        );
+      const file = join(
+        dir,
+        'private',
+        'sheets',
+        `${b.sheetId}-${new Date().toISOString().replace(/[:.]/g, '-')}${type}`,
+      );
+      const planned = new Set<string>();
+      const backups = existing.map((c) => keep(join(out, `${c}.png`), planned));
+      const r = await scratch(async (tmp) => {
+        const sheetFile = join(tmp, `sheet${type}`);
+        writeFileSync(sheetFile, data);
+        let res = { code: 0, output: '' };
+        const cut = await onSheetCopy(tmp, b.sheetId, async (copyArt) => {
+          res = await run(
+            'python3',
+            [
+              join(root, 'tools', 'cut-sheet.py'),
+              sheetFile,
+              b.sheetId,
+              '--grid',
+              `${cols}x${rows}`,
+              '--out',
+              copyArt,
+              ...(only ? ['--cells', only.join(',')] : []),
+            ],
+            root,
+            { ...process.env, GAME: studio.gameId },
+          );
+        });
+        if (res.code !== 0)
+          throw new StudioError(
+            `cut-sheet.py failed (${res.code}): ${res.output.trim().split('\n').slice(-3).join(' ')}`,
+            500,
+          );
+        await studio.writeFiles(`sheet ${b.sheetId}`, [{ path: rel(file), after: data }, ...backups, ...cut], {
+          undo: false,
+        });
+        return res;
+      });
       const l = await list();
       return {
         ok: true as const,
         file: relative(root, file),
         output: r.output.trim(),
         written: targets,
-        backups,
+        backups: backups.map((x) => x.path),
         cells: l.sheets.find((s) => s.id === b.sheetId)?.cells ?? [],
       };
     });
@@ -610,41 +682,43 @@ export function createAssets(studio: Studio) {
       const type = imageType(data);
       if (!type) throw new StudioError('the cell must be a PNG, JPEG or WebP image');
       const target = join(artDir, b.sheetId, `${b.cell}.png`);
-      const tmpDir = join(root, '.cache', 'studio');
-      mkdirSync(tmpDir, { recursive: true });
-      const tmp = join(tmpDir, `upload-${process.pid}-${Date.now()}${type}`);
-      writeFileSync(tmp, data);
-      try {
-        mkdirSync(dirname(target), { recursive: true });
-        const kept = existsSync(target) ? rel(backup(target)) : undefined;
-        const r = await run(
-          'python3',
-          ['-c', KEY_PY, join(root, 'tools', 'cut-sheet.py'), tmp, target, key, artDir],
-          root,
-          { ...process.env, GAME: studio.gameId },
-        );
-        const keyed = r.output.trim().split('\n').pop() as CellReplaceResult['keyed'];
-        if (r.code !== 0 || !['keyed', 'kept', 'opaque'].includes(keyed))
+      const planned = new Set<string>();
+      const kept = existsSync(target) ? keep(target, planned) : undefined;
+      const keyed = await scratch(async (tmp) => {
+        const upload = join(tmp, `upload${type}`);
+        writeFileSync(upload, data);
+        let r = { code: 0, output: '' };
+        const cell = await onSheetCopy(tmp, b.sheetId, async (copyArt) => {
+          const dst = join(copyArt, b.sheetId, `${b.cell}.png`);
+          mkdirSync(dirname(dst), { recursive: true });
+          r = await run(
+            'python3',
+            ['-c', KEY_PY, join(root, 'tools', 'cut-sheet.py'), upload, dst, key, artDir],
+            root,
+            {
+              ...process.env,
+              GAME: studio.gameId,
+            },
+          );
+        });
+        const k = r.output.trim().split('\n').pop() as CellReplaceResult['keyed'];
+        if (r.code !== 0 || !['keyed', 'kept', 'opaque'].includes(k))
           throw new StudioError(`keying failed (${r.code}): ${r.output.trim().split('\n').slice(-3).join(' ')}`, 500);
-        return {
-          ok: true as const,
-          file: rel(target),
-          ...(kept ? { backup: kept } : {}),
-          keyed,
-          cell: await cellEntry(b.sheetId, b.cell),
-        };
-      } finally {
-        try {
-          unlinkSync(tmp);
-        } catch {
-          /* already gone */
-        }
-      }
+        await studio.writeFiles(`cell ${b.sheetId}/${b.cell}`, [...(kept ? [kept] : []), ...cell], { undo: false });
+        return k;
+      });
+      return {
+        ok: true as const,
+        file: rel(target),
+        ...(kept ? { backup: kept.path } : {}),
+        keyed,
+        cell: await cellEntry(b.sheetId, b.cell),
+      };
     });
   }
 
   function uploadSound(b: SoundUpload): Promise<UploadResult> {
-    return serial(() => {
+    return serial(async () => {
       if (!b || (b.kind !== 'music' && b.kind !== 'sfx')) throw new StudioError('`kind` must be music or sfx');
       if (
         typeof b.file !== 'string' ||
@@ -655,32 +729,41 @@ export function createAssets(studio: Studio) {
       }
       const data = decode(b.data);
       const target = join(audioDir, b.kind, b.file);
-      mkdirSync(dirname(target), { recursive: true });
-      const kept = existsSync(target) ? rel(backup(target)) : undefined;
-      writeFileSync(target, data);
-      return { ok: true as const, file: rel(target), ...(kept ? { backup: kept } : {}) };
+      const kept = existsSync(target) ? keep(target, new Set()) : undefined;
+      await studio.writeFiles(
+        `sound ${b.kind}/${b.file}`,
+        [...(kept ? [kept] : []), { path: rel(target), after: data }],
+        {
+          undo: false,
+        },
+      );
+      return { ok: true as const, file: rel(target), ...(kept ? { backup: kept.path } : {}) };
     });
   }
 
   function uploadDecor(b: DecorUpload): Promise<UploadResult> {
-    return serial(() => {
+    return serial(async () => {
       if (!b || typeof b.name !== 'string' || !/^[\w-]+$/.test(b.name) || BACKUP.test(b.name))
         throw new StudioError('`name` must be letters, digits, _ and -');
       const data = decode(b.data);
       const type = imageType(data);
       if (type !== '.png' && type !== '.jpg') throw new StudioError('a decor must be a PNG or a JPEG image');
       const decorDir = join(artDir, 'decor');
-      mkdirSync(decorDir, { recursive: true });
       const target = join(decorDir, `${b.name}${type}`);
       // The previous picture is kept as a backup; one with another extension is moved away (tools/assets.py would take it first).
+      const planned = new Set<string>();
+      const files: Out[] = [];
       let kept: string | undefined;
       for (const ext of ['.png', '.jpg', '.jpeg']) {
         const old = join(decorDir, `${b.name}${ext}`);
         if (!existsSync(old)) continue;
-        kept = rel(backup(old));
-        if (old !== target) unlinkSync(old);
+        const k = keep(old, planned);
+        files.push(k);
+        kept = k.path;
+        if (old !== target) files.push({ path: rel(old), after: null });
       }
-      writeFileSync(target, data);
+      files.push({ path: rel(target), after: data });
+      await studio.writeFiles(`decor ${b.name}`, files, { undo: false });
       return { ok: true as const, file: rel(target), ...(kept ? { backup: kept } : {}) };
     });
   }

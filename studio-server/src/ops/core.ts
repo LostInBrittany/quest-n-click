@@ -279,13 +279,13 @@ export function createStudio(opts: StudioOptions = {}) {
 
   /** One write of an operation: the file (absolute) and its whole new text, `null` to remove it. */
   /** `from`: the content the edit was computed from, when the caller read it itself (the 409 then covers that read). */
-  type Effect = { file: string; after: string | null; from?: string | null };
+  type Effect = { file: string; after: Buffer | string | null; from?: string | null };
   /** What an undo puts back: every file of one operation, `before` and `after` as they were. */
-  type Change = { files: { file: string; before: string | null; after: string | null }[]; what: string };
+  type Change = { files: { file: string; before: Buffer | null; after: Buffer | string | null }[]; what: string };
   const undoStack: Change[] = [],
     redoStack: Change[] = [];
-  const readText = (file: string) => (existsSync(file) ? readFileSync(file, 'utf8') : null);
-  const hashText = (t: string | null) => (t === null ? ABSENT : sha256(t));
+  const readBytes = (file: string) => (existsSync(file) ? readFileSync(file) : null);
+  const hashOf = (t: Buffer | string | null) => (t === null ? ABSENT : sha256(t));
 
   /** The files the validator never reads: an operation that writes only those needs no guard. */
   const UNGUARDED = /^(notes\.json|storyboard\.(json|md)|voices\.json|playtests\/)/;
@@ -341,19 +341,19 @@ export function createStudio(opts: StudioOptions = {}) {
   async function write(
     what: string,
     effects: Effect[],
-    o: { undo?: boolean; diff?: string; who?: string } = {},
+    o: { undo?: boolean; diff?: string; who?: string; guard?: boolean } = {},
   ): Promise<string[]> {
     const j = await journal();
-    const befores = new Map(effects.map((e) => [e.file, readText(e.file)]));
+    const befores = new Map(effects.map((e) => [e.file, readBytes(e.file)]));
     const r = await j.apply({
       author: o.who ?? author,
       what,
       effects: effects.map((e) => ({ path: inGame(e.file), after: e.after })),
       // The files as this operation read them: another process that wrote one meanwhile makes it a 409, not a loss.
       expect: Object.fromEntries(
-        effects.map((e) => [inGame(e.file), hashText(e.from !== undefined ? e.from : (befores.get(e.file) ?? null))]),
+        effects.map((e) => [inGame(e.file), hashOf(e.from !== undefined ? e.from : (befores.get(e.file) ?? null))]),
       ),
-      guard: (changed) => guard(j, changed, o.diff ?? ''),
+      guard: o.guard === false ? undefined : (changed) => guard(j, changed, o.diff ?? ''),
       respond: (rev) => ({ rev }),
     });
     if (r.changed.length && o.undo !== false) {
@@ -394,7 +394,7 @@ export function createStudio(opts: StudioOptions = {}) {
     const c = from.at(-1);
     if (!c) return Promise.resolve({ ok: false as const, reason: `nothing to ${dirn}` });
     for (const f of c.files)
-      if (readText(f.file) !== (dirn === 'undo' ? f.after : f.before))
+      if (hashOf(readBytes(f.file)) !== hashOf(dirn === 'undo' ? f.after : f.before))
         return Promise.reject(new StudioError(`cannot ${dirn} "${c.what}": ${rel(f.file)} changed since`, 409));
     from.pop();
     return write(
@@ -930,10 +930,29 @@ export function createStudio(opts: StudioOptions = {}) {
     return existsSync(f) ? f : null;
   }
 
+  /**
+   * Writes files of the game as one operation (4.2.1): `path` relative to the game folder, `after` the whole content
+   * (`null` removes the file). The asset uploads and the authoring tools write through it, never beside it.
+   */
+  function writeFiles(
+    what: string,
+    files: { path: string; after: Buffer | string | null }[],
+    o: { undo?: boolean; who?: string; guard?: boolean } = {},
+  ): Promise<string[]> {
+    return serial(() =>
+      write(
+        what,
+        files.map((f) => ({ file: join(dir, ...f.path.split('/')), after: f.after })),
+        o,
+      ),
+    );
+  }
+
   return {
     gameDir: dir,
     gameId,
     root,
+    writeFiles,
     /** The game module, imported fresh (for tools that read the whole game, e.g. asset prompts). */
     loadGame: loadModule,
     gameInfo,

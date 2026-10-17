@@ -1,0 +1,110 @@
+// A single entry for the game's files (4.2.1, plan P6): every program of the repository that writes to the disk is
+// listed here with where it writes. Writing a game's files goes through the Studio's journal (studio-server/src/ops/,
+// or tools/game-write.ts for the authoring tools); the few tools that still write a game folder themselves are named,
+// with how the journal follows them. A new writer, or a writer that moved, fails this test until it is classified.
+import { readdirSync, readFileSync, statSync } from 'node:fs';
+import { join, relative } from 'node:path';
+import { describe, expect, it } from 'vitest';
+
+const ROOT = join(import.meta.dirname, '..');
+const JS_WRITE = /\b(writeFileSync|writeFile|appendFileSync|copyFileSync|cpSync|renameSync|rmSync|unlinkSync)\(/;
+const PY_WRITE = /open\([^)]*['"]w['"]|\.save\(|json\.dump\(/;
+
+/** Programs that write, by path, and where. `journal`: through the Studio's journal. `adopted`: a game folder written
+ * directly, recorded by the journal as an `external` operation before the next edit (local mode only). */
+const WRITERS: Record<string, string> = {
+  // The journal and its clients.
+  'studio-server/src/ops/durable.ts': 'journal: the journal itself (temporary file, fsync, rename)',
+  'studio-server/src/ops/core.ts': "journal: game files through it; the guard's staging and screenshots in .cache/",
+  'tools/game-write.ts': 'journal: game files through it; outputs elsewhere written plainly',
+  'tools/studio/assets.ts': 'journal: uploads through it; the tools run on scratch copies in .cache/',
+  // Game folders written directly (local mode: adopted by the journal; hosted: unavailable or in the executor).
+  'tools/migrate.ts': 'adopted: web-scumm migrate rewrites a project (an exclusive operation in 4.2.3)',
+  'tools/assets.py': 'adopted: npm run assets writes assets.gen.json (and public/assets, outside the game)',
+  'tools/cut-sheet.py': 'adopted: run by hand; the Studio runs it on a scratch copy',
+  'tools/talk-apply.py': 'adopted: npm run talk writes art/',
+  'tools/talk-kit.py': 'adopted: talk kits under art/',
+  'tools/talk-normalize.py': 'adopted: talk kits under art/',
+  'tools/placeholder-art.py': 'adopted: placeholder art for a new game',
+  'tools/audio/mdpipe/__main__.py': 'adopted: npm run audio writes audio/',
+  'tools/audio/mdpipe/analyze.py': 'adopted: npm run audio (analysis next to the stems)',
+  'tools/audio/mdpipe/stems.py': 'adopted: npm run audio writes audio/',
+  // Never a game folder.
+  'cli/create.mjs': 'elsewhere: web-scumm create makes a new project folder',
+  'tools/api-doc.ts': 'elsewhere: docs/',
+  'tools/audit-corpus.ts': 'elsewhere: .cache/',
+  'tools/backup-memory.ts': 'elsewhere: .cache/ (measures)',
+  'tools/bridge-cluster.ts': 'elsewhere: .cache/ (load reports)',
+  'tools/bridge-load.ts': 'elsewhere: .cache/ (load reports)',
+  'tools/changes.ts': 'elsewhere: CHANGELOG.md and docs/dev/LOG.md',
+  'tools/checkpoint.ts': "elsewhere: the solver's checkpoints in .cache/",
+  'tools/ci-plan.ts': "elsewhere: the CI job's summary",
+  'tools/code-wheel.ts': 'elsewhere: printable pages in the folder named by --out',
+  'tools/code-wheel-pdf.py': 'elsewhere: the PDF named on the command line',
+  'tools/dist.ts': 'elsewhere: dist/',
+  'tools/dsl-doc.ts': 'elsewhere: docs/',
+  'tools/field/bundle.ts': 'elsewhere: field bundles',
+  'tools/field/field.ts': 'elsewhere: field reports',
+  'tools/field/surfaces.mjs': 'elsewhere: qualification surfaces',
+  'tools/field/trust.ts': 'elsewhere: temporary signer files',
+  'tools/golden-save.ts': 'elsewhere: tests/fixtures/saves/',
+  'tools/load-median.ts': 'elsewhere: .cache/ (load reports)',
+  'tools/mutate.ts': 'elsewhere: mutation reports',
+  'tools/oracle-case.ts': 'elsewhere: tests/fixtures/',
+  'tools/pages/lib.ts': 'elsewhere: generated pages',
+  'tools/playtests.ts': 'elsewhere: the report folder named by --out',
+  'tools/proof-cache.ts': 'elsewhere: .cache/',
+  'tools/prove-matrix.ts': 'elsewhere: reports',
+  'tools/quality-baseline.ts': 'elsewhere: tests/quality-baseline.json',
+  'tools/reality-fixtures.ts': 'elsewhere: tests/fixtures/',
+  'tools/release/baseline.mjs': 'elsewhere: release outputs',
+  'tools/release/candidate.mjs': 'elsewhere: release outputs',
+  'tools/release/lib.mjs': 'elsewhere: release outputs',
+  'tools/release/run-jobs.mjs': 'elsewhere: release outputs',
+  'tools/release/ship.mjs': 'elsewhere: release outputs',
+  'tools/release/signing.mjs': 'elsewhere: release outputs',
+  'tools/release/site-files.mjs': 'elsewhere: release outputs',
+  'tools/runs-load.ts': 'elsewhere: .cache/ (load reports)',
+  'tools/select-game.ts': 'elsewhere: the link to the selected game',
+  'tools/speedrun/livesplit.mjs': 'elsewhere: LiveSplit files',
+  'tools/speedrun/reference-run.ts': 'elsewhere: reference runs',
+  'tools/studio/snapshot.ts': "elsewhere: the demo Studio's public/studio-demo/",
+  'tools/verify-variants.ts': 'elsewhere: .cache/',
+  'tools/vite/plugins.ts': 'elsewhere: build outputs and .cache/',
+};
+
+function files(dir: string): string[] {
+  const out: string[] = [];
+  const walk = (d: string) => {
+    for (const e of readdirSync(d, { withFileTypes: true })) {
+      if (e.name.startsWith('.') || e.name === 'node_modules' || e.name === '__pycache__') continue;
+      const p = join(d, e.name);
+      if (e.isDirectory()) walk(p);
+      else out.push(relative(ROOT, p).split('\\').join('/'));
+    }
+  };
+  if (statSync(join(ROOT, dir), { throwIfNoEntry: false })) walk(join(ROOT, dir));
+  return out;
+}
+
+const writers = ['tools', 'src/studio', 'studio-server/src', 'cli']
+  .flatMap(files)
+  .filter((f) => {
+    const text = () => readFileSync(join(ROOT, f), 'utf8');
+    if (/\.(ts|mjs)$/.test(f)) return JS_WRITE.test(text());
+    if (f.endsWith('.py')) return PY_WRITE.test(text());
+    return false;
+  })
+  .sort();
+
+describe('a single entry for the game files', () => {
+  it('every program that writes is listed, with where it writes', () => {
+    expect(writers.filter((f) => !(f in WRITERS))).toEqual([]);
+  });
+  it('no listed writer is stale', () => {
+    expect(Object.keys(WRITERS).filter((f) => !writers.includes(f))).toEqual([]);
+  });
+  it('the browser Studio writes nothing itself', () => {
+    expect(writers.filter((f) => f.startsWith('src/studio/'))).toEqual([]);
+  });
+});
