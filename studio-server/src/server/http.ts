@@ -4,7 +4,9 @@
 // share it, so a read never sees half of an operation. A write without the service lease is a 503 with Retry-After,
 // and the client retries with the same operation id (P6, P8).
 //
-// Authentication comes with PR 5: until then `serve` refuses any address but the loopback.
+// With `auth` (4.2.1 PR 5, plan §3): every API route goes through the gate (policy A or B) and the role it needs;
+// /auth/* and the owner's routes are auth/routes.ts. Without `auth`, the server is the local one: `serve` then
+// refuses any address but the loopback.
 import { randomUUID } from 'node:crypto';
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from 'node:http';
 import { inAllowlist } from '../../../bridge/src/server';
@@ -13,9 +15,14 @@ import { operationContext, type Studio } from '../ops/core';
 import { isStudioError, StudioError } from '../ops/errors';
 import type { Journal } from '../ops/journal';
 import { isBody, routes } from '../ops/routes';
+import type { Gate } from './auth/gate';
+import type { Role } from './auth/store';
 import type { ServiceLease } from './service-lease';
 
 const MAX_JSON = 1024 * 1024;
+
+/** The routes that only read, although they are POSTs (a check takes its options in a body). */
+const READ_POSTS = /^\/(validate|report|puzzle|coverage|playtests|lint|solve|screenshot)$/;
 
 /** One writer or many readers at a time (plan §4: no read sees two revisions mixed). */
 class RwLock {
@@ -79,9 +86,44 @@ export interface StudioServerOptions {
   trustProxy?: string[];
   /** One line per request; the default writes JSON to stdout. */
   log?: (line: Record<string, unknown>) => void;
+  /** Requests one address may make per minute on /auth/*, and failed authentications (default 30 each). */
+  perMinute?: number;
+  /** Authentication (PR 5): the gate, and the routes of /auth/* and of the owner. */
+  auth?: {
+    gate: Gate;
+    handle: (req: IncomingMessage, res: ServerResponse, url: URL) => Promise<boolean>;
+  };
 }
 
-function readJson(req: IncomingMessage): Promise<unknown> {
+/** Requests one address may make per minute on /auth/*, and authentications it may fail per minute. */
+class Buckets {
+  private b = new Map<string, { tokens: number; at: number }>();
+  constructor(private perMinute: number) {}
+  take(ip: string, now = Date.now()): boolean {
+    let x = this.b.get(ip);
+    if (!x) {
+      x = { tokens: this.perMinute, at: now };
+      this.b.set(ip, x);
+      if (this.b.size > 10_000) for (const [k, v] of this.b) if (now - v.at > 120_000) this.b.delete(k);
+    }
+    x.tokens = Math.min(this.perMinute, x.tokens + ((now - x.at) / 60_000) * this.perMinute);
+    x.at = now;
+    if (x.tokens < 1) return false;
+    x.tokens -= 1;
+    return true;
+  }
+  empty(ip: string): boolean {
+    const x = this.b.get(ip);
+    return !!x && Math.min(this.perMinute, x.tokens + ((Date.now() - x.at) / 60_000) * this.perMinute) < 1;
+  }
+}
+
+/** The role an API route needs (plan §3.3): reading is a reviewer's, writing a dev's. The owner's routes are elsewhere. */
+export function roleFor(method: string, sub: string): Role {
+  return method === 'GET' || (method === 'POST' && READ_POSTS.test(sub)) ? 'reviewer' : 'dev';
+}
+
+export function readJson(req: IncomingMessage): Promise<unknown> {
   return new Promise((ok, fail) => {
     let size = 0;
     const chunks: Buffer[] = [];
@@ -109,18 +151,17 @@ function readJson(req: IncomingMessage): Promise<unknown> {
   });
 }
 
-function send(res: ServerResponse, status: number, data: unknown, headers: Record<string, string> = {}) {
+export function send(res: ServerResponse, status: number, data: unknown, headers: Record<string, string | string[]> = {}) {
   res.writeHead(status, {
     'content-type': 'application/json; charset=utf-8',
     'cache-control': 'no-store',
     'x-content-type-options': 'nosniff',
+    'referrer-policy': 'same-origin',
     ...headers,
   });
   res.end(JSON.stringify(data));
 }
 
-/** The routes that only read, although they are POSTs (a check takes its options in a body). */
-const READ_POSTS = /^\/(validate|report|puzzle|coverage|playtests|lint|solve|screenshot)$/;
 
 export interface StudioHttpServer extends Server {
   /** Runs `fn` holding the instance's lock alone (no request reads or writes meanwhile): the cache's repair. */
@@ -143,6 +184,8 @@ export function studioServer(o: StudioServerOptions): StudioHttpServer {
     return peer;
   };
   let started = false;
+  const authCalls = new Buckets(o.perMinute ?? 30);
+  const failures = new Buckets(o.perMinute ?? 30);
 
   const server = createServer(async (req, res) => {
     const id = randomUUID();
@@ -167,8 +210,19 @@ export function studioServer(o: StudioServerOptions): StudioHttpServer {
       if (path === '/startz') return send(res, started ? 200 : 503, { ok: started });
       if (path === '/readyz')
         return send(res, o.lease.held ? 200 : 503, { ok: o.lease.held, writes: o.lease.held ? 'served' : 'waiting' });
+      const ip = clientOf(req);
+      if (o.auth && failures.empty(ip)) return send(res, 429, { error: 'too many refused attempts' }, { 'retry-after': '60' });
+      if (o.auth && path.startsWith('/auth/') && !authCalls.take(ip))
+        return send(res, 429, { error: 'too many requests' }, { 'retry-after': '60' });
+      if (o.auth && (path.startsWith('/auth/') || /^\/api\/(members|invitations|audit)(\/|$)/.test(path))) {
+        if (await o.auth.handle(req, res, url)) return;
+        return send(res, 404, { error: 'not found' });
+      }
       if (!path.startsWith('/api/')) return send(res, 404, { error: 'not found' });
       const sub = path.slice('/api'.length);
+      // Who asks, and whether they may (plan §3.4 policies A and B, §3.3 roles).
+      const principal = o.auth ? await o.auth.gate.authenticate(req) : undefined;
+      if (principal) o.auth!.gate.require(principal, roleFor(req.method ?? 'GET', sub));
       // The journal's cursor (P6): what a client that reconnects missed.
       if (req.method === 'GET' && sub === '/revision')
         return send(res, 200, { epoch: await o.journal.epoch(), revision: await o.journal.revision() });
@@ -200,8 +254,11 @@ export function studioServer(o: StudioServerOptions): StudioHttpServer {
         const [seen] = await o.db.all('SELECT status, body FROM studio_requests WHERE op_id = $1', [op]);
         if (seen) return send(res, Number(seen.status), JSON.parse(String(seen.body)), { 'x-studio-replayed': '1' });
       }
+      const author = principal ? (principal.user.email ?? principal.user.name ?? principal.user.id) : undefined;
       const run = () =>
-        operationContext.run({ id: op }, () => Promise.resolve(route[2](sub.match(route[1])!, body, { baseUrl: '' })));
+        operationContext.run({ id: op, author }, () =>
+          Promise.resolve(route[2](sub.match(route[1])!, body, { baseUrl: '' })),
+        );
       const result = await (write ? lock.write(run) : lock.read(run));
       if (op) {
         // Kept 7 days: long enough for any retry of a client that was cut off.
@@ -215,6 +272,7 @@ export function studioServer(o: StudioServerOptions): StudioHttpServer {
       return send(res, 200, result);
     } catch (e) {
       if (isStudioError(e)) {
+        if (e.status === 401 || e.status === 403) failures.take(clientOf(req));
         const body = { error: e.message, ...((e as { body?: object }).body ?? {}) };
         return send(res, e.status, body, e.status === 503 ? { 'retry-after': '2' } : {});
       }

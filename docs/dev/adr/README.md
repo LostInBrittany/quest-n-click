@@ -29,3 +29,4 @@ what it costs, what would change it. The maintainer's decisions themselves are d
 | [0023](0023-backup-completeness-and-restore-modes.md) | A backup says what it holds; a restore says its mode (4.1.20) |
 | [0024](0024-pass-surfaces-and-carry-attestations.md) | A pass is bound to its surface, and carried only by a signed attestation (4.1.20) |
 | [0025](0025-studio-server.md) | One shared game, edited live: transactions, one owner per file, revisions (4.2.1) |
+| [0027](0027-studio-oidc-sessions-tokens.md) | The Studio Server's identity: OIDC for who, the Studio for what (4.2.1) |

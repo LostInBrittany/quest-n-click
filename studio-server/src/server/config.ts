@@ -34,6 +34,18 @@ export interface StudioServerConfig {
   trustProxy: string[];
   store: StoreConfig;
   blobs: BlobsConfig;
+  /** OpenID Connect (plan §3.1): without it the server is the local one, on the loopback only. */
+  oidc?: {
+    issuer: string;
+    clientId: string;
+    audience: string;
+    cliClientId?: string;
+    scopes?: string;
+    maxTokenSeconds?: number;
+    /** A local provider over http (tests); never in production. */
+    allowInsecure?: boolean;
+  };
+  sessions?: { idleHours?: number; absoluteHours?: number };
 }
 
 /** The secrets, by name; each from `<NAME>_FILE` or `<NAME>` in the environment. */
@@ -105,7 +117,19 @@ const isUrl = (u: unknown) => {
 /** The configuration file, checked: anything unknown or missing is refused with its name. */
 export function loadConfig(file: string): StudioServerConfig {
   const raw = JSON.parse(readFileSync(file, 'utf8')) as Record<string, unknown>;
-  const known = new Set(['publicUrl', 'playUrl', 'game', 'workDir', 'port', 'host', 'trustProxy', 'store', 'blobs']);
+  const known = new Set([
+    'publicUrl',
+    'playUrl',
+    'game',
+    'workDir',
+    'port',
+    'host',
+    'trustProxy',
+    'store',
+    'blobs',
+    'oidc',
+    'sessions',
+  ]);
   for (const k of Object.keys(raw)) if (!known.has(k)) throw new ConfigError(`${file}: unknown key "${k}"`);
   if (!isUrl(raw.publicUrl)) throw new ConfigError(`${file}: publicUrl must be an http(s) URL`);
   if (!isUrl(raw.playUrl)) throw new ConfigError(`${file}: playUrl must be an http(s) URL`);
@@ -128,7 +152,17 @@ export function loadConfig(file: string): StudioServerConfig {
   const trust = raw.trustProxy ?? [];
   if (!Array.isArray(trust) || !trust.every((t) => typeof t === 'string'))
     throw new ConfigError(`${file}: trustProxy is a list of addresses or networks`);
+  const oidc = raw.oidc as StudioServerConfig['oidc'];
+  if (oidc !== undefined) {
+    if (!isUrl(oidc.issuer)) throw new ConfigError(`${file}: oidc.issuer must be an http(s) URL`);
+    if (typeof oidc.clientId !== 'string' || !oidc.clientId) throw new ConfigError(`${file}: oidc.clientId is required`);
+    if (typeof oidc.audience !== 'string' || !oidc.audience) throw new ConfigError(`${file}: oidc.audience is required`);
+    if (oidc.audience === oidc.clientId)
+      throw new ConfigError(`${file}: oidc.audience must differ from oidc.clientId (an id_token is no access token)`);
+  }
   return {
+    oidc,
+    sessions: raw.sessions as StudioServerConfig['sessions'],
     publicUrl: origin(raw.publicUrl),
     playUrl: origin(raw.playUrl),
     game: raw.game,
