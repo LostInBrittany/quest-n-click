@@ -1,64 +1,82 @@
-# 0025 · One shared game, edited live: transactions, single-owner locks and revisions (4.3)
+# 0025 · One shared game, edited live: transactions, one owner per file, revisions (4.3)
 
-**Context.** The Studio is a single-user tool served by Vite. At `a0ce19d` there are at least five ways to write a
-game's files:
-- the Studio core's own `serial` queue (`tools/studio/core.ts:176`);
+**Context.** The Studio is a single-user tool served by Vite. At `a0ce19d`, about ten paths write a game's files:
+- the core's `serial` queue (`tools/studio/core.ts:176`);
 - a second queue in `tools/studio/assets.ts:297`;
 - a separate `createStudio` in the MCP process (`tools/mcp/server.ts:18`);
-- authoring CLIs that call `writeFileSync` directly (`tools/ids.ts`, `i18n.ts`, `voices.ts`, `pages/*`);
-- a Vite route that writes a layout with no check (`tools/vite/plugins.ts:57`).
+- authoring tools in TypeScript and Python that write directly;
+- a Vite route that writes a layout unchecked (`tools/vite/plugins.ts:57`).
 
 Only `setValue` and `setLayout` roll back a write that adds validation errors. `addEntity` writes two files one after
-the other. Nothing is fsynced. The change feed (`plugin.ts:245`) says which file changed, but not by whom or at which
-revision. The game is imported statically (`src/main.ts:4`). A save carries no content fingerprint.
+the other. Nothing is fsynced. The change feed says which file changed, not by whom nor at which revision. The game is
+imported statically (`src/main.ts:4`). A save carries no content fingerprint, and its envelope is a strict object.
+Validation imports the content's TypeScript, so it runs it.
 
 The maintainer wants several developers on one server, at the same time, on one live copy of the game, with explicit
-locks and frozen builds (D39). French plan: `docs/dev/PLAN-4.3-STUDIO-SERVER.md`, the source.
+locks and frozen builds (D39). The French plan, `docs/dev/PLAN-4.3-STUDIO-SERVER.md`, is the source; the decisions
+below follow its P1–P8.
 
 **Decision.**
-1. **The transaction is the unit of change.** One operation queue per project, held by the server. An operation:
-   - may touch several files;
-   - is prepared, validated on its final state, and logged as an intent (fsync);
-   - is applied by temp file, fsync and rename, then confirmed (fsync), then broadcast.
 
-   On restart, an unconfirmed intent is finished, replayed or rolled back from its before/after hashes. Anything else
-   puts the project in maintenance.
-2. **Every element has exactly one write owner.** The owner is:
-   - its room, by IR provenance;
-   - the global part, for `game`, `items`, `cast` and `rules`;
-   - the storyboard;
-   - or one language.
+1. **P1 · The transaction is the unit of change.** Each project has one operation queue. An operation may touch
+   several files and is applied in this order:
+   1. Its new contents go into a content-addressed blob store; binaries never enter the log.
+   2. It is validated on its final state.
+   3. Fencing tokens and the revision of each touched file are checked, then the intent (before and after hashes, or
+      `absent`) is logged with fsync. This is the linearisation point.
+   4. Each file is written as a temporary file, fsynced, renamed, and its directory fsynced.
+   5. The operation is confirmed with fsync.
 
-   Every file of a game belongs to exactly one owner, or the generation fails. Map groupings (character, puzzle,
-   chapter) only reference elements and lock nothing.
-
-   A cross-cutting operation claims all its owners at once, in a fixed order. It is refused (423) without waiting if
-   any one is held.
-3. **Leases are fenced.** Every acquisition bumps a per-owner fencing token, and the queue checks the operation's
-   tokens at apply time. A request from an expired or taken-over lease is refused even if already in flight. The
-   Bridge's maintenance leases have no fencing; this is new.
-4. **One validation guard for every write, on the final state.** A transaction that adds errors is refused (422).
-   "Create the object + reference it elsewhere" passes as one transaction.
-5. **Everything carries a revision.** The project revision is monotonic, one per confirmed operation. A diagnostic or
-   a build names its revision, and an older diagnostic is shown as stale. A build is snapshotted at an operation
-   boundary and compiled in an isolated directory. Its manifest names the revision, the content hashes, the engine
-   and the lockfile. A failure is attributed to the revision that introduced it, never to a person.
-6. **Durable and single-entry from the first step.** Each operation carries a client-supplied id; a retry returns the
-   recorded result. A client reconnects with its last seen revision and gets the missing operations, or a full
-   resync. Studio, assistant, MCP and authoring CLIs all go through the same operation API and the same checks.
-   The Git autosave is history, not the guarantee.
-7. **Transport: SSE plus an HTTP read by cursor**, as D17 chose for the player. There is no WebSocket unless a
-   measurement shows SSE and HTTP cannot hold.
+   Recovery always rolls forward, file by file. A file that matches neither hash puts the project in maintenance.
+   An in-process failure restores the before blobs.
+2. **P2 · Every file has exactly one write owner.** The owner is a room, `game`, `items`, `cast`, `rules`, `story`,
+   one language, `voices`, `assets`, `notes`, `meta` or `playtests`. The ownership map is generated and fails on an
+   unowned file.
+   - Map groupings only reference elements.
+   - A multi-owner operation claims all its owners at once, in a fixed order, and is refused (423) without waiting.
+   - Whole-game tools (`ids`, migrations, asset preparation) take an exclusive project lease.
+   - Leases are taken, renewed and taken over through the queue, on the store's clock, and fenced. A stale holder's
+     request is refused even when it is already in flight. An intent that is already logged completes.
+3. **P3 · One validation guard for every write, on the final state, out of process.** A transaction that adds errors
+   is refused (422).
+   - The staged state is a real directory (hard links plus the changed files) that resolves `@engine`.
+   - validate runs in a child process with no secrets.
+   - One validation per operation.
+4. **P4 · The shared preview is explicit work.** Step 1 labels Play with its revision and marks it stale. Step 2 builds
+   one immutable preview per revision. An open game is never reloaded silently: the player resumes if compatible,
+   restarts, or stays.
+   - By default the save envelope is unchanged, with the fingerprint and revision kept beside each slot.
+   - "Compatible" means the same logic fingerprint.
+   - ADR 0026 (reserved) decides this at step 2.
+5. **P5 · Everything carries a revision.**
+   - A monotonic revision per project, with a project epoch.
+   - A last revision per file, which is the base of a 409.
+   - Diagnostics and builds name their revision, and stale results are shown as stale.
+   - Snapshots are taken at operation boundaries without blocking the queue.
+   - A manifest names the epoch, revision, file hashes, engine, commit, lockfile and diagnostics.
+   - A failure is attributed to the revision that introduced it, never to a person.
+6. **P6 · Durable, idempotent, single entry from step one.**
+   - Operation ids live as long as the log.
+   - A client reconnects with its epoch and last revision.
+   - Studio, assistant, MCP and every authoring tool go through the API.
+   - External changes are detected by hash. Local mode adopts them as an `external` operation; server mode goes into
+     maintenance.
+   - The Git autosave is new. It is history, not the guarantee, and runs under the queue with its own index.
+7. **P7 · SSE plus an HTTP read by cursor.** D17 does not govern the Studio (D23 narrowed it to the Bridge and the PWA),
+   but its pattern is reused. No WebSocket unless a measurement asks for one.
+8. **P8 · One writing process per project**, held by a fenced service lease. A second instance is refused.
 
 **Costs.**
-- Every existing writer must be moved behind the operation API before anything is shared. The first PR is a neutral
-  split.
-- Undo becomes per person and is disabled in server mode until step 2.
-- A member can run code on the server: content TypeScript is trusted code (ADR 0002). The threat model says so, and
-  members are trusted.
-- The shared preview needs a per-revision build. Its 5-second target is measured in step 2, not assumed.
+- Every existing writer, the Python tools included, moves behind the operation API before anything is shared. The
+  first PR is a neutral split.
+- Undo becomes personal, and is disabled in server mode until step 2.
+- Content is TypeScript that runs when validated or built, as ADR 0002 makes it a convention, not a sandbox. Children
+  run without secrets and under another system user, yet a member can still run code on the build machine. Members
+  are trusted, and the threat model says so.
+- Throughput per operation and the 5-second preview target are measured. Their thresholds are written before each
+  step's release, not assumed.
 
 **What would change it.**
-- A need for two people editing the same long dialogue at once: CRDT on that element only.
-- A measurement where SSE plus HTTP misses the latency target.
-- A decision to give each person a private workspace, which the maintainer rejected on 17 October 2026.
+- Two people needing to edit the same long dialogue at once: CRDT on that element only.
+- A measurement where SSE plus HTTP misses its target.
+- A decision to give each person a private workspace. The maintainer rejected that on 17 October 2026.

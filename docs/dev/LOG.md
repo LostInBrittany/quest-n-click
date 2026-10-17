@@ -4929,32 +4929,3 @@ candidate is judged against criteria older than it (plan §8.3; the critique of 
 
 → next: this PR's candidate, `preflight-stable`, `v4.2.0` signed, `ship verify`,
 `readme-quickstart --published`, the thirteen issues commented.
-
-## #188 · 2026-10-17 · Claude · proposal · 4.3 "Studio Server": the plan, ADR 0025, D39
-
-Branch: docs/43-plan · Base: a0ce19d (v4.2.0)
-
-- **The maintainer's request (17 Oct):** a platform where several developers connect to one server, at the same time,
-  each on a part of the scenario, and build the shared work together (D39). A first, Git-native proposal (one local
-  Studio each, pull requests) was off-target. Of the two shared shapes, they chose one live copy with explicit locks
-  over private workspaces.
-- **Their reading of the second proposal** brought the plan's seven principles (§3) and its three steps (§5): the
-  transaction as the unit of change, one write owner per element with fenced leases, one validation guard on the final
-  state, an explicit per-revision preview, a revision on every diagnostic and build, durability and a single entry
-  from the first step.
-- **Checked against the tree, not assumed (§1.1):**
-  - There are at least five writers of `games/`: core, assets, the MCP process, the authoring CLIs and
-    `POST /__layout`.
-  - Only `setValue` and `setLayout` are guarded.
-  - `addEntity` writes two files non-atomically.
-  - There is no fsync in the Studio.
-  - The Bridge's leases have no fencing token.
-  - A save has no content fingerprint.
-  - Lines have stable ids only with `ids --lines`.
-
-  The plan's first gate is therefore convergence: one operation API that every writer goes through.
-- **Transport follows D17:** SSE plus an HTTP read by cursor. There is no WebSocket unless a measurement asks for one.
-- **Open for the maintainer** (DECISIONS, Pending): the version numbers of the three steps, and step 1's name.
-- **Not done here:** no code. The mock-ups (step 0) come next, with the sample game's real art, before any code.
-
-→ next: human (read the plan; decide the two pending points; then the mock-ups)
