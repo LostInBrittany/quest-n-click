@@ -9,8 +9,8 @@ import { BrowserApi, type GameModuleLike } from '../src/studio/api-browser';
 import type { ListLine } from '@engine/core/types';
 import { listText } from '@engine/core/list-lines';
 import { patchGame, readPatches, storageKey, type KeyValue } from '../src/studio/demo-patch';
-import { applyPatches, parsePatchFile } from '../tools/studio/apply';
-import { createStudio, importInChild } from '../tools/studio/core';
+import { applyPatches, parsePatchFile } from '../studio-server/src/ops/apply';
+import { createStudio, importInChild } from '../studio-server/src/ops/core';
 import { buildSnapshot } from '../tools/studio/snapshot';
 import type { StudioSnapshot } from '../tools/studio/types';
 

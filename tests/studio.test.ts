@@ -1,12 +1,12 @@
-// Studio core (tools/studio/core.ts) on temporary copies of games/demo and games/_template (under .cache/, so the
+// Studio core (studio-server/src/ops/core.ts) on temporary copies of games/demo and games/_template (under .cache/, so the
 // copies resolve @engine like the real games).
 import { cpSync, mkdirSync, mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { afterAll, describe, expect, it } from 'vitest';
 import type { ListLine, RoomDef } from '@engine/core/types';
 import { listText } from '@engine/core/list-lines';
-import { createStudio, importInChild, StudioError } from '../tools/studio/core';
-import { classify, formatPath, parsePath, type Seg } from '../tools/studio/source';
+import { createStudio, importInChild, StudioError } from '../studio-server/src/ops/core';
+import { classify, formatPath, parsePath, type Seg } from '../studio-server/src/ops/source';
 
 const ROOT = resolve(__dirname, '..');
 const temps: string[] = [];

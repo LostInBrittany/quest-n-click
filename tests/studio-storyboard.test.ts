@@ -3,7 +3,7 @@
 import { cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { afterAll, describe, expect, it } from 'vitest';
-import { createStudio, importInChild, StudioError } from '../tools/studio/core';
+import { createStudio, importInChild, StudioError } from '../studio-server/src/ops/core';
 import { readStoryboard, storyboardMarkdown } from '../tools/pages/storyboard';
 
 const ROOT = resolve(__dirname, '..');

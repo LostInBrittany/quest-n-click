@@ -1,7 +1,7 @@
 # MCP: the Studio for any AI assistant
 
 `npm run mcp` starts a [Model Context Protocol](https://modelcontextprotocol.io) server over **stdio** that exposes the
-Studio operations (`tools/studio/core.ts`, see STUDIO.md) as tools. Any MCP client (Claude Code, Claude Desktop,
+Studio operations (`studio-server/src/ops/core.ts`, see STUDIO.md) as tools. Any MCP client (Claude Code, Claude Desktop,
 Cursor, Codex CLI, Gemini CLI, a hand-written agent) can then read and edit a game exactly like the Studio does, and
 the human sees the result live in `npm run studio` (it watches the files).
 

@@ -1,4 +1,4 @@
-// Shared types of the Studio: the core functions (tools/studio/core.ts), the dev-server API (tools/studio/plugin.ts),
+// Shared types of the Studio: the core functions (studio-server/src/ops/core.ts), the dev-server API (tools/studio/plugin.ts),
 // the Studio UI (src/studio/) and the MCP server all speak these shapes. Type-only: safe to import from the browser.
 import type {
   CharacterDef,

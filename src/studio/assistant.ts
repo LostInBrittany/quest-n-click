@@ -17,6 +17,7 @@ import { api, type GameInfo } from './api';
 import type { BrowserApi } from './api-browser';
 import { h, select, toast } from './ui';
 import { must } from '../engine/core/must';
+import { apiUrl } from './api-base';
 
 type PresetId = 'openai' | 'anthropic' | 'ollama' | 'mistral' | 'custom';
 interface Preset {
@@ -723,7 +724,7 @@ export class AssistantPanel {
     emit: (ev: AssistantEvent) => void,
     signal: AbortSignal,
   ) {
-    const r = await fetch('/__studio/api/assistant/chat', {
+    const r = await fetch(apiUrl('assistant/chat'), {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
       signal,
@@ -807,7 +808,7 @@ export class AssistantPanel {
       const about = this.aboutKey(c);
       if (this.ctx.demo) await api.addNote({ about, author: 'you', text, task: true });
       else {
-        const r = await fetch('/__studio/api/assistant/task', {
+        const r = await fetch(apiUrl('assistant/task'), {
           method: 'POST',
           headers: { 'content-type': 'application/json' },
           body: JSON.stringify({ about, text }),

@@ -17,7 +17,7 @@ import type {
   ScriptDef,
   TalkTopic,
 } from '../../src/engine/core/types';
-import { encodeString, fileQuote, propKey, unwrap } from '../studio/source';
+import { encodeString, fileQuote, propKey, unwrap } from '../../studio-server/src/ops/source';
 
 interface Inserted {
   path: string;

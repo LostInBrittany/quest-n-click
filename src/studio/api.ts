@@ -24,6 +24,7 @@ import type {
   SolveData,
   ValidateResult,
 } from '../../tools/studio/types';
+import { apiUrl } from './api-base';
 
 export type * from '../../tools/studio/types';
 
@@ -37,7 +38,7 @@ export class ApiError extends Error {
 }
 
 async function call<T>(method: string, path: string, body?: unknown): Promise<T> {
-  const r = await fetch(`/__studio/api/${path}`, {
+  const r = await fetch(apiUrl(path), {
     method,
     headers: body === undefined ? {} : { 'content-type': 'application/json' },
     body: body === undefined ? undefined : JSON.stringify(body),

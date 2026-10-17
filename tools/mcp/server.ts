@@ -1,4 +1,4 @@
-// MCP server (stdio): the Studio operations (tools/studio/core.ts) as Model Context Protocol tools and resources, so
+// MCP server (stdio): the Studio operations (studio-server/src/ops/core.ts) as Model Context Protocol tools and resources, so
 // any AI assistant (Claude Code, Claude Desktop, Cursor, Codex, Gemini CLI…) can read and edit a game the way the
 // Studio does. Started by `npm run mcp` in the repository; the game is GAME / GAME_DIR as for every tool (tools/game.ts).
 // stdout carries the protocol: everything else goes to stderr. A failing operation is a tool error, never a crash.
@@ -7,7 +7,7 @@ import { McpServer, ResourceTemplate } from '@modelcontextprotocol/sdk/server/mc
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { GAME, GAME_DIR, ROOT } from '../game';
 import { coreBackend } from '../studio/backend';
-import { createStudio } from '../studio/core';
+import { createStudio } from '../../studio-server/src/ops/core';
 import { TOOLS } from '../studio/tools';
 
 // Nothing but JSON-RPC may reach stdout.
