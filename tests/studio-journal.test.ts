@@ -11,9 +11,16 @@ import { ABSENT, sha256 } from '../studio-server/src/ops/durable';
 import { Journal, LeaseLostError, MaintenanceError } from '../studio-server/src/ops/journal';
 
 let root: string, game: string;
+// Every database a test opens is closed before its folder goes: Windows deletes no open file.
+let dbs: { close(): Promise<void> }[] = [];
+const openDb = async () => {
+  const db = await openSqliteDb(join(root, 'journal.sqlite'));
+  dbs.push(db);
+  return db;
+};
 const open = async (o: { holder?: string; leaseWaitMs?: number; leaseMs?: number } = {}) =>
   Journal.open({
-    db: await openSqliteDb(join(root, 'journal.sqlite')),
+    db: await openDb(),
     blobs: fsBlobStore(join(root, 'blobs')),
     gameDir: game,
     ...o,
@@ -28,7 +35,11 @@ beforeEach(() => {
   writeFileSync(join(game, 'rooms', 'a.ts'), 'a0');
   writeFileSync(join(game, 'notes.json'), '{}');
 });
-afterEach(() => rmSync(root, { recursive: true, force: true }));
+afterEach(async () => {
+  for (const db of dbs) await db.close();
+  dbs = [];
+  rmSync(root, { recursive: true, force: true });
+});
 
 describe('the operation journal', () => {
   it('applies several files at once, one revision, each file stamped with it', async () => {
@@ -92,7 +103,7 @@ describe('the operation journal', () => {
     const blobs = fsBlobStore(join(root, 'blobs'));
     await blobs.put(Buffer.from('a9'));
     await blobs.put(Buffer.from('L9'));
-    const db = await openSqliteDb(join(root, 'journal.sqlite'));
+    const db = await openDb();
     const rev = (await j.revision()) + 1;
     await db.run(
       "INSERT INTO studio_ops (op_id, rev, author, what, state, effects, at) VALUES ('crash', $1, 'lea', 'w', 'intent', $2, 0)",
@@ -116,7 +127,7 @@ describe('the operation journal', () => {
 
   it('a file that is neither side of an interrupted operation puts the project in maintenance', async () => {
     const j = await open();
-    const db = await openSqliteDb(join(root, 'journal.sqlite'));
+    const db = await openDb();
     await db.run(
       "INSERT INTO studio_ops (op_id, rev, author, what, state, effects, at) VALUES ('crash', 99, 'lea', 'w', 'intent', $1, 0)",
       [JSON.stringify([{ path: 'rooms/a.ts', before: sha256('a0'), after: sha256('a9') }])],
@@ -215,7 +226,7 @@ describe('the operation journal', () => {
 
   it('another process holding the lease makes an operation wait, then refuse', async () => {
     const j = await open({ leaseWaitMs: 200 });
-    const db = await openSqliteDb(join(root, 'journal.sqlite'));
+    const db = await openDb();
     await db.run('INSERT INTO studio_lease (id, holder, fence, until_ms) VALUES (1, $1, 99, $2)', [
       'other',
       Date.now() + 60_000,
@@ -246,7 +257,7 @@ describe('the operation journal', () => {
     const b = await open();
     const blobs = fsBlobStore(join(root, 'blobs'));
     await blobs.put(Buffer.from('a9'));
-    const db = await openSqliteDb(join(root, 'journal.sqlite'));
+    const db = await openDb();
     const r = (await a.revision()) + 1;
     // A dies after logging and writing nothing: its intent stays.
     await db.run(
@@ -281,7 +292,7 @@ describe('the operation journal', () => {
 
   it('a writer whose lease was taken over cannot log its operation', async () => {
     const j = await open({ leaseMs: 60_000 });
-    const db = await openSqliteDb(join(root, 'journal.sqlite'));
+    const db = await openDb();
     const e = await j
       .apply({
         author: 'lea',
