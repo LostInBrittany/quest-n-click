@@ -16,6 +16,7 @@
     "tools/*.ts",
     "tools/studio/*.ts",
     "studio-server/src/ops/*.ts",
+    "studio-server/src/server/main.ts",
     "tools/speedrun/*.ts",
     "tests/**/*.test.ts",
     "tests/fixtures/connectors/no-eval-run.ts",

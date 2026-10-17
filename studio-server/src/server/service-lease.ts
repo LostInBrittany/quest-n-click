@@ -1,0 +1,89 @@
+// The service lease (4.2.1, plan §4 and P8): one instance of the Studio Server serves a project's writes. A new
+// instance (a Clever Cloud redeploy starts it while the old one still serves) waits for the lease; the old one gives
+// it back on SIGTERM, or it expires (TTL 30 s, renewed every 10 s on the database's clock). An instance that cannot
+// renew stops accepting writes by its own clock before the TTL can pass. The journal's per-operation lease, fenced,
+// still guarantees that two instances never log an operation each over the same head.
+import { randomUUID } from 'node:crypto';
+import type { SqlDb } from '../../../bridge/src/store-sql';
+
+export class ServiceLease {
+  readonly instance = randomUUID();
+  private fence = 0;
+  /** Local deadline (monotonic): beyond it this instance writes nothing, whatever the database says. */
+  private writableUntil = 0;
+  private timer: ReturnType<typeof setInterval> | undefined;
+  private stopped = false;
+
+  constructor(
+    private db: SqlDb,
+    private ttlMs = 30_000,
+    private everyMs = 10_000,
+  ) {}
+
+  private get clock(): string {
+    return this.db.dialect === 'postgres'
+      ? '(EXTRACT(EPOCH FROM clock_timestamp()) * 1000)::BIGINT'
+      : "CAST(unixepoch('subsec') * 1000 AS INTEGER)";
+  }
+
+  /** Whether this instance may serve writes now. */
+  get held(): boolean {
+    return this.fence > 0 && performance.now() < this.writableUntil;
+  }
+
+  /** One try: takes the lease if it is free or expired, renews it if it is ours. */
+  async tick(): Promise<boolean> {
+    if (this.stopped) return false;
+    const started = performance.now();
+    try {
+      const fence = await this.db.tx('studio-service', async (q) => {
+        const [now] = await q.all(`SELECT ${this.clock} AS now`);
+        const t = Number(now?.now);
+        const [cur] = await q.all('SELECT instance, fence, until_ms FROM studio_service WHERE id = 1');
+        if (cur && String(cur.instance) === this.instance && Number(cur.fence) === this.fence) {
+          await q.run('UPDATE studio_service SET until_ms = $1 WHERE id = 1', [t + this.ttlMs]);
+          return this.fence;
+        }
+        if (cur && Number(cur.until_ms) > t) return 0;
+        const next = Number(cur?.fence ?? 0) + 1;
+        await q.run('DELETE FROM studio_service WHERE id = 1');
+        await q.run('INSERT INTO studio_service (id, instance, fence, until_ms) VALUES (1, $1, $2, $3)', [
+          this.instance,
+          next,
+          t + this.ttlMs,
+        ]);
+        return next;
+      });
+      this.fence = fence;
+      // Counted from before the request: a slow answer shortens the window, never lengthens it.
+      this.writableUntil = fence ? started + this.ttlMs - this.everyMs : 0;
+      return fence > 0;
+    } catch {
+      return this.held;
+    }
+  }
+
+  /** Tries now and every `everyMs` (faster while it does not hold the lease). */
+  start(onChange?: (held: boolean) => void): void {
+    let was = false;
+    const loop = async () => {
+      const now = await this.tick();
+      if (now !== was) onChange?.(now);
+      was = now;
+    };
+    void loop();
+    this.timer = setInterval(() => void loop(), Math.max(200, Math.floor(this.everyMs / (this.held ? 1 : 5))));
+    this.timer.unref?.();
+  }
+
+  /** Gives the lease back (SIGTERM's shortcut: the next instance takes it at once instead of at its expiry). */
+  async release(): Promise<void> {
+    this.stopped = true;
+    if (this.timer) clearInterval(this.timer);
+    if (this.fence)
+      await this.db
+        .run('DELETE FROM studio_service WHERE id = 1 AND instance = $1 AND fence = $2', [this.instance, this.fence])
+        .catch(() => undefined);
+    this.fence = 0;
+  }
+}

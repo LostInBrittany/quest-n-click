@@ -85,6 +85,12 @@ export interface JournalOptions {
   leaseWaitMs?: number;
   /** How long a lease lasts without renewal (default 30 s); it is renewed every third of that while an op runs. */
   leaseMs?: number;
+  /**
+   * Hosted mode (plan §4): the database and the blobs are the truth, the game folder a cache of the instance. The
+   * content of every file the journal adopts is stored as a blob too, and the folder is rebuilt from the head when
+   * the journal opens (`materialize`).
+   */
+  hosted?: boolean;
 }
 
 export class Journal {
@@ -102,6 +108,7 @@ export class Journal {
     holder: string | undefined,
     private leaseWaitMs: number,
     private leaseMs: number,
+    private hosted: boolean,
   ) {
     this.holder = holder ?? `${process.pid}-${randomBytes(6).toString('hex')}`;
   }
@@ -112,7 +119,15 @@ export class Journal {
    */
   static async open(o: JournalOptions): Promise<Journal> {
     await migrate(o.db, { dir: MIGRATIONS });
-    const j = new Journal(o.db, o.blobs, o.gameDir, o.holder, o.leaseWaitMs ?? 10_000, o.leaseMs ?? 30_000);
+    const j = new Journal(
+      o.db,
+      o.blobs,
+      o.gameDir,
+      o.holder,
+      o.leaseWaitMs ?? 10_000,
+      o.leaseMs ?? 30_000,
+      o.hosted ?? false,
+    );
     await j.serial(() =>
       j.withLease(async () => {
         await o.db.tx('studio', async (q) => {
@@ -122,6 +137,8 @@ export class Journal {
             await q.run("INSERT INTO studio_meta (key, value) VALUES ('revision', '0')");
           }
         });
+        // Hosted: the instance's folder is rebuilt from the head first (its disk may be new), then settled.
+        if (j.hosted) await j.materialize();
         await j.settle();
         sweepTemporaries(o.gameDir);
       }),
@@ -305,6 +322,9 @@ export class Journal {
       if (disk !== head) changes.push({ path, before: head, after: disk });
     }
     if (!changes.length) return;
+    // Hosted: what is adopted (the first import) must survive the instance, so its content goes to the blobs.
+    if (this.hosted)
+      for (const c of changes) if (c.after !== ABSENT) await this.blobs.put(readFileSync(this.abs(c.path)));
     const rev = (await this.revision()) + 1;
     const id = randomUUID();
     await this.db.tx('studio', async (q) => {
@@ -315,6 +335,43 @@ export class Journal {
       );
       await this.confirm(q, id, rev, changes, null);
     });
+  }
+
+  /**
+   * Rebuilds the game folder from the head (hosted mode): every file the head holds is written from its blob when the
+   * folder's copy differs; a file the head does not hold is removed. Logged intents are left to `recover`.
+   */
+  async materialize(): Promise<{ written: number; removed: number }> {
+    const head = (await this.db.all('SELECT path, blob FROM studio_files')).map((r) => ({
+      path: String(r.path),
+      blob: String(r.blob),
+    }));
+    // A project the journal has never recorded (a first import) has no head yet: its folder is what is adopted, never
+    // emptied.
+    if (!head.length) return { written: 0, removed: 0 };
+    const want = new Map(head.filter((h) => h.blob !== ABSENT).map((h) => [h.path, h.blob]));
+    let written = 0,
+      removed = 0;
+    for (const [path, blob] of want)
+      if (this.hashOf(path) !== blob) {
+        writeDurable(this.abs(path), await this.blobs.get(blob));
+        written++;
+      }
+    for (const path of this.listFiles())
+      if (!want.has(path)) {
+        writeDurable(this.abs(path), null);
+        removed++;
+      }
+    return { written, removed };
+  }
+
+  /**
+   * Hosted mode: brings the folder back to the head (a file changed or lost on the instance's disk), under the lease
+   * and after the operations of this process. Returns what it rewrote; local mode leaves the folder to its author.
+   */
+  reconcile(): Promise<{ written: number; removed: number }> {
+    if (!this.hosted) return Promise.resolve({ written: 0, removed: 0 });
+    return this.serial(() => this.withLease(() => this.materialize()));
   }
 
   /** Rolls forward every operation logged but not confirmed, oldest first (P1). */
