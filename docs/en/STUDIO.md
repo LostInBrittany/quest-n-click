@@ -167,7 +167,7 @@ All paths are relative to the current game (`GAME`). Errors return `{ error }` w
 | POST `assets/decor` | `{ name, data }` (PNG or JPEG) → `art/decor/<name>.<ext>`, the old picture kept as `<name>_v<N>.<ext>`; `{ ok, file, backup? }` |
 | POST `assets/sound` | `{ kind: 'music' \| 'sfx', file, data }` → `audio/<kind>/<file>` (any format ffmpeg reads), the old file kept as a backup; `{ ok, file, backup? }` |
 | POST `assets/prepare` | runs `npm run assets` → `{ ok, code, output }`; with `?stream=1`, the output as plain text while it runs, ending with `[exit <code>]` |
-| PUT `room/:id/value` | `{ path, value, dry? }` → `{ ok, line, changed, diff, dry? }`: a structured value written as code at `path` (3.4; `value` absent removes it); 422 `{ error, errors, diff }` when the write adds validation errors (it is taken back) |
+| PUT `room/:id/value` | `{ path, value, dry? }` → `{ ok, line, changed, diff, dry? }`: a structured value written as code at `path` (3.4; `value` absent removes it); 422 `{ error, errors, diff }` when the write would add validation errors (since 4.2.1 nothing is written: the guard judges the game as it would be) |
 | PUT `room/@game/value` | the same for the game file's `defineGame({...})` (4.1.12), objectives only: `objectives`, `objectives.<id>` or one of its fields; any other path is 400 |
 | GET `ir` | the game's IR (4.1.12, `docs/en/DSL.md`): its logic as data with the `file:line` of each id (`provenance`) and the trusted extensions' hash; the same JSON as `npm run ir -- --json` |
 | POST `undo`, POST `redo`, GET `history` | → `{ ok, file, what }` or `{ ok: false, reason }`; 409 when the file changed since; `history` → `{ undo: [what], redo: [what] }` |
@@ -182,7 +182,14 @@ the MCP server: `gameInfo()`, `getRoom(id)`, `setLayout(id, layout)`, `setText(i
 for any other game folder. They never exit the process: errors are thrown as `StudioError` (with `status`). The game is
 re-imported on every call so that edits on disk are seen: by default with tsx's scoped loader (fast, in process);
 `importInChild` (a child node + tsx process) is the fallback where in-process imports are cached, e.g. inside Vitest.
-Writes are serialized. Shared types are in `tools/studio/types.ts`; the storyboard schema, its normalisation and the
+Writes are serialized. Since 4.2.1 each write is one operation of the game's journal
+(`studio-server/src/ops/journal.ts`, kept in `.cache/studio-journal/`): every file it touches is written at once or
+not at all, durably (fsync), and an operation a crash interrupted is finished when the Studio opens again. Every write
+whose files the validator reads is guarded on the game as it would be after it (422 when it adds validation errors;
+text edits included since 4.2.1). Adding a prop, hotspot or actor writes the room and its layout as one operation,
+undone in one step. A change made outside the Studio (an editor, an agent, git) is recorded before the next write
+touches that file, and a file another process rewrote while an edit was being prepared is a 409. Shared types are in
+`tools/studio/types.ts`; the storyboard schema, its normalisation and the
 Markdown export are in `tools/pages/storyboard-data.ts` (pure, shared by the page generator, the core and the UI).
 
 ### Texts
