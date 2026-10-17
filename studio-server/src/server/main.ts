@@ -3,7 +3,7 @@
 //   import <dir>   a game folder becomes the instance's project (the journal adopts it; hosted: its files go to the blobs)
 //   export <dir>   the game at the head, written to a folder, with a manifest of the hashes and the revision
 // Secrets come from `<NAME>_FILE` or the environment (config.ts) and leave `process.env` before anything else runs.
-import { cpSync, existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { cpSync, existsSync, mkdirSync, readdirSync, readFileSync, renameSync, rmSync, writeFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { openSqliteDb } from '../../../bridge/src/store-sqlite';
 import type { SqlDb } from '../../../bridge/src/store-sql';
@@ -59,11 +59,20 @@ async function main(argv: string[]): Promise<number> {
       console.error('import: a game folder (with its index.ts) is required');
       return 2;
     }
-    if (readdirSync(gameDir).length) {
-      console.error(`import: ${gameDir} is not empty: this instance already has a project`);
+    // The database decides whether the instance already has a project, not its (possibly new) disk.
+    const [had] = await db
+      .all('SELECT path FROM studio_files LIMIT 1')
+      .catch(() => [] as Record<string, unknown>[]);
+    if (had || readdirSync(gameDir).length) {
+      console.error('import: this instance already has a project');
       return 1;
     }
-    cpSync(from, gameDir, { recursive: true });
+    // Copied beside, then renamed into place: a crash during the copy leaves no half game to adopt.
+    const staging = `${gameDir}.import-${process.pid}`;
+    rmSync(staging, { recursive: true, force: true });
+    cpSync(from, staging, { recursive: true });
+    rmSync(gameDir, { recursive: true, force: true });
+    renameSync(staging, gameDir);
     // Opening adopts the folder as one operation (and, hosted, stores every file in the blobs).
     const j = await Journal.open({ db, blobs, gameDir, hosted });
     console.log(JSON.stringify({ event: 'imported', game: config.game, revision: await j.revision() }));
@@ -79,10 +88,19 @@ async function main(argv: string[]): Promise<number> {
       console.error('export: an empty or new folder is required');
       return 2;
     }
-    const files = (await db.all("SELECT path, blob FROM studio_files WHERE blob <> 'absent' ORDER BY path")).map((r) => ({
-      path: String(r.path),
-      blob: String(r.blob),
-    }));
+    // One snapshot of the head: the files and the revision the manifest names belong together.
+    const head = await db.tx(
+      undefined,
+      async (q) => ({
+        files: (await q.all("SELECT path, blob FROM studio_files WHERE blob <> 'absent' ORDER BY path")).map((r) => ({
+          path: String(r.path),
+          blob: String(r.blob),
+        })),
+        revision: Number((await q.all("SELECT value FROM studio_meta WHERE key = 'revision'"))[0]?.value ?? 0),
+      }),
+      { readOnly: true },
+    );
+    const files = head.files;
     for (const f of files) {
       const bytes = await blobs.has(f.blob) ? await blobs.get(f.blob) : undefined;
       const target = join(out, ...f.path.split('/'));
@@ -92,7 +110,7 @@ async function main(argv: string[]): Promise<number> {
       if (sha256(data) !== f.blob) throw new Error(`${f.path}: the content does not match the head`);
       writeFileSync(target, data);
     }
-    const manifest = { game: config.game, epoch: await journal.epoch(), revision: await journal.revision(), files };
+    const manifest = { game: config.game, epoch: await journal.epoch(), revision: head.revision, files };
     writeFileSync(join(out, 'export-manifest.json'), `${JSON.stringify(manifest, null, 1)}\n`);
     console.log(JSON.stringify({ event: 'exported', revision: manifest.revision, files: files.length }));
     await journal.close();
@@ -112,24 +130,32 @@ async function main(argv: string[]): Promise<number> {
   lease.start((held) => console.log(JSON.stringify({ event: held ? 'lease-taken' : 'lease-lost', instance: lease.instance })));
   const studio = createStudio({ gameDir, root: resolve(config.workDir), journal, author: 'studio-server' });
   const server = studioServer({ studio, journal, db, lease, trustProxy: config.trustProxy });
-  // Hosted: the instance's folder is checked against the head every 30 s and repaired without a restart (plan §4).
+  // Hosted: the instance's folder is checked against the head every 30 s and repaired without a restart (plan §4),
+  // holding the instance's lock alone: no request reads a folder being repaired.
   if (hosted)
     setInterval(() => {
-      void journal.reconcile().then(
+      void server.exclusive(() => journal.reconcile()).then(
         (r) => r.written + r.removed && console.log(JSON.stringify({ event: 'reconciled', ...r })),
         (e) => console.log(JSON.stringify({ event: 'reconcile-failed', message: String((e as Error).message) })),
       );
     }, 30_000).unref();
+  server.on('error', (e) => {
+    console.error(JSON.stringify({ event: 'listen-failed', message: (e as Error).message }));
+    void lease.release().then(() => process.exit(1));
+  });
   server.listen(config.port, config.host, () =>
     console.log(JSON.stringify({ event: 'listening', host: config.host, port: config.port, instance: lease.instance })),
   );
   const stop = async (signal: string) => {
     console.log(JSON.stringify({ event: 'stopping', signal }));
+    // New requests refused, the ones running finish (5 s at most), then the lease is given back.
     server.close();
+    const drained = new Promise((ok) => server.once('close', ok));
+    await Promise.race([drained, new Promise((ok) => setTimeout(ok, 5_000))]);
     server.closeAllConnections?.();
-    await lease.release();
     await journal.close().catch(() => undefined);
-    setTimeout(() => process.exit(0), 200).unref();
+    await lease.release();
+    setTimeout(() => process.exit(0), 100).unref();
   };
   process.once('SIGTERM', () => void stop('SIGTERM'));
   process.once('SIGINT', () => void stop('SIGINT'));

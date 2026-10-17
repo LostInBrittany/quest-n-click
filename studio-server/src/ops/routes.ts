@@ -1,9 +1,9 @@
 // The Studio API's routes (docs/en/STUDIO.md) and the checks of their bodies, shared by the dev server's plugin
 // (tools/studio/plugin.ts) and the Studio Server (4.2.1): one table, so both serve the same API.
-import type { Point } from '../../../src/engine/core/types';
-import type { AddEntity, EntityKind, NoteEdit } from '../../../tools/studio/types';
-import type { Studio } from './core';
-import { StudioError } from './errors';
+import type { Point } from '../../../src/engine/core/types.ts';
+import type { AddEntity, EntityKind, NoteEdit } from '../../../tools/studio/types.ts';
+import type { Studio } from './core.ts';
+import { StudioError } from './errors.ts';
 
 /** A request body once known to be a JSON object (an array passes too, as before: its fields are just absent). */
 type Body = Readonly<Record<string, unknown>>;

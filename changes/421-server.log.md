@@ -36,4 +36,29 @@ Branch: feature/421-server (stacked on PR 3) · Plan §4, §7 row 4
   - the client (PR 7);
   - packaging (PR 9).
 
+- **Second automated reading context**, taken in:
+  - **P0:**
+    - the read/write lock no longer stays held when a handler throws before its first `await` (a `POST …/add {}`
+      used to hang every later request);
+    - hosted, `settle` makes the folder follow the head (`materialize`) and adopts only a project with no head. An
+      instance that waited for the lease no longer reverts what the other one confirmed meanwhile.
+  - **P1:**
+    - the cache repair runs under the instance's lock alone;
+    - S3 requests have a 30 s timeout;
+    - `import` checks the database's head, copies beside and renames;
+    - Postgres's session limits are given at connection time (`options`), so a connection without them does not
+      exist.
+  - **P2:**
+    - the lease's tries are chained, never overlapping, and a try that lands after `release` gives back what it took;
+    - read-only POSTs (validate, solve…) need no lease and share the lock;
+    - `studio_requests` is kept 7 days;
+    - `/api/ops` reads under the lock and returns `next`; a non-number cursor is a 400;
+    - a body over 1 MiB gets its 413 instead of a reset;
+    - `export` reads the head in one snapshot;
+    - SIGTERM drains (5 s) before the journal and the lease close;
+    - a listen error gives the lease back;
+    - secret files on Windows, trimmed variables, a missing secret file as a configuration error.
+  - **Health check:** the platform's health check must be `/startz`, not `/readyz`. `/readyz` answers 503 while the
+    old instance holds the lease, which would deadlock a redeploy. The guide (PR 8) says so.
+
 → next: Claude (PR 5, OIDC)

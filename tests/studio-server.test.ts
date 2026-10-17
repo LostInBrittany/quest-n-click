@@ -146,6 +146,23 @@ describe('the server over HTTP (SQLite, files)', () => {
     expect((await fetch(`${base}/elsewhere`)).status).toBe(404);
   });
 
+  it('a request refused before its first await leaves the server answering', async () => {
+    const bad = await fetch(`${base}/api/room/start/add`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: '{}',
+    });
+    expect(bad.status).toBe(400);
+    const next = await fetch(`${base}/api/game`, { signal: AbortSignal.timeout(5000) });
+    expect(next.status).toBe(200);
+  });
+
+  it('the cursor gives the next revision to ask from, and refuses a cursor that is no number', async () => {
+    const r = (await (await fetch(`${base}/api/ops?after=0`)).json()) as { next: number; ops: { rev: number }[] };
+    expect(r.next).toBe(r.ops.at(-1)?.rev);
+    expect((await fetch(`${base}/api/ops?after=abc`)).status).toBe(400);
+  });
+
   it('without the service lease, a write is a 503 with Retry-After and a read still works', async () => {
     await lease.release();
     const r = await fetch(`${base}/api/room/start/layout`, {
@@ -259,7 +276,7 @@ describe.runIf(PG && S3URL)('hosted: Postgres and S3', () => {
   it('a hosted journal rebuilds a lost folder from the database and the blobs', async () => {
     const db = await openPostgresDb(PG!);
     await db.exec(
-      'DROP TABLE IF EXISTS studio_service, studio_lease, studio_files, studio_ops, studio_meta, schema_migrations CASCADE',
+      'DROP TABLE IF EXISTS studio_requests, studio_service, studio_lease, studio_files, studio_ops, studio_meta, schema_migrations CASCADE',
     );
     const game = join(tmp, 'hosted-game');
     cpSync(join(ROOT, 'games', '_template'), game, { recursive: true });
@@ -282,5 +299,35 @@ describe.runIf(PG && S3URL)('hosted: Postgres and S3', () => {
     expect(readFileSync(join(game, 'notes.json'), 'utf8')).toBe('{"entries":[]}');
     expect(existsSync(join(game, 'index.ts'))).toBe(true);
     await k.close();
+  }, 120_000);
+
+  it('an instance whose folder is behind the head follows the head, never adopts its stale folder', async () => {
+    const blobs = s3BlobStore(s3());
+    const g1 = join(tmp, 'hosted-a'),
+      g2 = join(tmp, 'hosted-b');
+    mkdirSync(g1);
+    mkdirSync(g2);
+    // Both instances of the same project (the database above): B opens (materialised), then A confirms more.
+    const a = await Journal.open({ db: await openPostgresDb(PG!), blobs, gameDir: g1, hosted: true });
+    const b = await Journal.open({ db: await openPostgresDb(PG!), blobs, gameDir: g2, hosted: true });
+    await a.apply({
+      author: 'a',
+      what: 'a1',
+      effects: [{ path: 'notes.json', after: '{"by":"a"}' }],
+      respond: () => 0,
+    });
+    const afterA = await a.revision();
+    // B's next operation settles first: it brings its folder to the head, then writes.
+    await b.apply({
+      author: 'b',
+      what: 'b1',
+      effects: [{ path: 'storyboard.json', after: '{"boards":[]}' }],
+      respond: () => 0,
+    });
+    expect(readFileSync(join(g2, 'notes.json'), 'utf8')).toBe('{"by":"a"}');
+    const ops = await b.opsAfter(afterA - 1);
+    expect(ops.map((o) => o.author)).toEqual(['a', 'b']);
+    await a.close();
+    await b.close();
   }, 120_000);
 });

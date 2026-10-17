@@ -11,7 +11,7 @@ export class ServiceLease {
   private fence = 0;
   /** Local deadline (monotonic): beyond it this instance writes nothing, whatever the database says. */
   private writableUntil = 0;
-  private timer: ReturnType<typeof setInterval> | undefined;
+  private timer: ReturnType<typeof setTimeout> | undefined;
   private stopped = false;
 
   constructor(
@@ -54,6 +54,11 @@ export class ServiceLease {
         ]);
         return next;
       });
+      if (this.stopped) {
+        // Released while this try was on its way: what it took is given back at once.
+        if (fence) await this.db.run('DELETE FROM studio_service WHERE id = 1 AND instance = $1 AND fence = $2', [this.instance, fence]);
+        return false;
+      }
       this.fence = fence;
       // Counted from before the request: a slow answer shortens the window, never lengthens it.
       this.writableUntil = fence ? started + this.ttlMs - this.everyMs : 0;
@@ -63,23 +68,24 @@ export class ServiceLease {
     }
   }
 
-  /** Tries now and every `everyMs` (faster while it does not hold the lease). */
+  /** Tries now, then again after each try (never two at once): every `everyMs` while held, five times as often while not. */
   start(onChange?: (held: boolean) => void): void {
     let was = false;
     const loop = async () => {
       const now = await this.tick();
+      if (this.stopped) return;
       if (now !== was) onChange?.(now);
       was = now;
+      this.timer = setTimeout(() => void loop(), Math.max(200, Math.floor(this.everyMs / (now ? 1 : 5))));
+      this.timer.unref?.();
     };
     void loop();
-    this.timer = setInterval(() => void loop(), Math.max(200, Math.floor(this.everyMs / (this.held ? 1 : 5))));
-    this.timer.unref?.();
   }
 
   /** Gives the lease back (SIGTERM's shortcut: the next instance takes it at once instead of at its expiry). */
   async release(): Promise<void> {
     this.stopped = true;
-    if (this.timer) clearInterval(this.timer);
+    if (this.timer) clearTimeout(this.timer);
     if (this.fence)
       await this.db
         .run('DELETE FROM studio_service WHERE id = 1 AND instance = $1 AND fence = $2', [this.instance, this.fence])

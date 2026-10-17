@@ -35,7 +35,9 @@ class RwLock {
         if (this.writer) return;
         this.queue.shift();
         this.readers++;
-        fn()
+        // A handler that throws before its first await still releases the lock.
+        Promise.resolve()
+          .then(fn)
           .then(ok, fail)
           .finally(() => {
             this.readers--;
@@ -53,7 +55,8 @@ class RwLock {
         if (this.writer || this.readers) return;
         this.queue.shift();
         this.writer = true;
-        fn()
+        Promise.resolve()
+          .then(fn)
           .then(ok, fail)
           .finally(() => {
             this.writer = false;
@@ -85,8 +88,10 @@ function readJson(req: IncomingMessage): Promise<unknown> {
     req.on('data', (c: Buffer) => {
       size += c.length;
       if (size > MAX_JSON) {
+        // Answered with its 413; the rest of the body is drained, not read (no reset before the answer).
         fail(new StudioError('body too large', 413));
-        req.destroy();
+        req.removeAllListeners('data');
+        req.resume();
         return;
       }
       chunks.push(c);
@@ -114,7 +119,15 @@ function send(res: ServerResponse, status: number, data: unknown, headers: Recor
   res.end(JSON.stringify(data));
 }
 
-export function studioServer(o: StudioServerOptions): Server {
+/** The routes that only read, although they are POSTs (a check takes its options in a body). */
+const READ_POSTS = /^\/(validate|report|puzzle|coverage|playtests|lint|solve|screenshot)$/;
+
+export interface StudioHttpServer extends Server {
+  /** Runs `fn` holding the instance's lock alone (no request reads or writes meanwhile): the cache's repair. */
+  exclusive<T>(fn: () => Promise<T>): Promise<T>;
+}
+
+export function studioServer(o: StudioServerOptions): StudioHttpServer {
   const table = routes(o.studio);
   const lock = new RwLock();
   const log = o.log ?? ((l) => process.stdout.write(`${JSON.stringify(l)}\n`));
@@ -161,17 +174,23 @@ export function studioServer(o: StudioServerOptions): Server {
         return send(res, 200, { epoch: await o.journal.epoch(), revision: await o.journal.revision() });
       if (req.method === 'GET' && sub === '/ops') {
         const after = Number(url.searchParams.get('after') ?? '0');
-        const epoch = await o.journal.epoch();
-        if (url.searchParams.get('epoch') && url.searchParams.get('epoch') !== epoch)
-          return send(res, 409, { error: 'another epoch: resynchronise', epoch });
-        return send(res, 200, { epoch, revision: await o.journal.revision(), ops: await o.journal.opsAfter(after) });
+        if (!Number.isInteger(after) || after < 0) throw new StudioError('`after` is a revision number');
+        const r = await lock.read(async () => {
+          const epoch = await o.journal.epoch();
+          const ops = await o.journal.opsAfter(after);
+          // `next`: the cursor to ask from next time (the last op given; the list may be cut by its limit).
+          return { epoch, revision: await o.journal.revision(), ops, next: ops.at(-1)?.rev ?? after };
+        });
+        if (url.searchParams.get('epoch') && url.searchParams.get('epoch') !== r.epoch)
+          return send(res, 409, { error: 'another epoch: resynchronise', epoch: r.epoch });
+        return send(res, 200, r);
       }
       const route = table.find(([m, re]) => m === req.method && re.test(sub));
       if (!route) return send(res, 404, { error: 'not found' });
-      const write = req.method !== 'GET';
+      const write = req.method !== 'GET' && !(req.method === 'POST' && READ_POSTS.test(sub));
       if (write && !o.lease.held)
         return send(res, 503, { error: 'this instance does not serve writes yet; try again' }, { 'retry-after': '2' });
-      const body = write ? await readJson(req) : {};
+      const body = req.method !== 'GET' ? await readJson(req) : {};
       if (!isBody(body)) throw new StudioError('the body must be a JSON object');
       // P6: a write may carry its operation id; a retry with the same id gets the same answer, applied once.
       const op = write ? req.headers['x-studio-op'] : undefined;
@@ -184,14 +203,15 @@ export function studioServer(o: StudioServerOptions): Server {
       const run = () =>
         operationContext.run({ id: op }, () => Promise.resolve(route[2](sub.match(route[1])!, body, { baseUrl: '' })));
       const result = await (write ? lock.write(run) : lock.read(run));
-      if (op)
-        await o.db
-          .run('INSERT INTO studio_requests (op_id, status, body, at) VALUES ($1, 200, $2, $3)', [
-            op,
-            JSON.stringify(result ?? null),
-            Date.now(),
-          ])
-          .catch(() => undefined);
+      if (op) {
+        // Kept 7 days: long enough for any retry of a client that was cut off.
+        await o.db.run('DELETE FROM studio_requests WHERE at < $1', [Date.now() - 7 * 86_400_000]);
+        await o.db.run('INSERT INTO studio_requests (op_id, status, body, at) VALUES ($1, 200, $2, $3)', [
+          op,
+          JSON.stringify(result ?? null),
+          Date.now(),
+        ]);
+      }
       return send(res, 200, result);
     } catch (e) {
       if (isStudioError(e)) {
@@ -205,5 +225,5 @@ export function studioServer(o: StudioServerOptions): Server {
   server.on('listening', () => {
     started = true;
   });
-  return server;
+  return Object.assign(server, { exclusive: <T>(fn: () => Promise<T>) => lock.write(fn) });
 }

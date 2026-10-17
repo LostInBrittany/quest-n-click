@@ -66,14 +66,21 @@ export function takeSecrets(env: NodeJS.ProcessEnv = process.env): Partial<Recor
     let value: string | undefined;
     let from = '';
     if (fileVar) {
-      const st = statSync(fileVar);
-      if ((st.mode & 0o077) !== 0) throw new ConfigError(`${name}_FILE (${fileVar}) is readable by others: chmod 600`);
+      let st: ReturnType<typeof statSync>;
+      try {
+        st = statSync(fileVar);
+      } catch {
+        throw new ConfigError(`${name}_FILE (${fileVar}) does not exist`);
+      }
+      // Windows has no such mode bits (every file reads 0o666): the check is POSIX only.
+      if (process.platform !== 'win32' && (st.mode & 0o077) !== 0)
+        throw new ConfigError(`${name}_FILE (${fileVar}) is readable by others: chmod 600`);
       value = readFileSync(fileVar, 'utf8').trim();
       from = `${name}_FILE`;
     } else {
       for (const v of [name, ...(ALIASES[name] ?? [])])
         if (env[v] !== undefined) {
-          value = env[v];
+          value = env[v]?.trim();
           from = v;
           break;
         }

@@ -137,8 +137,6 @@ export class Journal {
             await q.run("INSERT INTO studio_meta (key, value) VALUES ('revision', '0')");
           }
         });
-        // Hosted: the instance's folder is rebuilt from the head first (its disk may be new), then settled.
-        if (j.hosted) await j.materialize();
         await j.settle();
         sweepTemporaries(o.gameDir);
       }),
@@ -196,7 +194,11 @@ export class Journal {
    */
   private async settle(): Promise<void> {
     await this.recover();
-    await this.adopt();
+    // Hosted: the head is the truth and the folder a cache that may be behind (a new instance waited for the lease
+    // while the old one confirmed more): the folder follows the head, never the other way. Only a project with no
+    // head yet (its first import) is adopted.
+    if (this.hosted && (await this.db.all('SELECT path FROM studio_files LIMIT 1')).length) await this.materialize();
+    else await this.adopt();
   }
 
   private async applyNow<R>(op: Operation<R>): Promise<Applied<R>> {

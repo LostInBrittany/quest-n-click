@@ -73,7 +73,13 @@ export class S3 {
     const sig = hmac(this.signingKey(day), toSign).toString('hex');
     headers.authorization = `AWS4-HMAC-SHA256 Credential=${this.o.keyId}/${scope}, SignedHeaders=${names.join(';')}, Signature=${sig}`;
     const { host: _h, ...send } = headers;
-    return fetch(new URL(path, this.url), { method, headers: send, body: body ? new Uint8Array(body) : undefined });
+    // Bounded: a request that hangs must not hold the journal's lease (renewed while an operation runs) forever.
+    return fetch(new URL(path, this.url), {
+      method,
+      headers: send,
+      body: body ? new Uint8Array(body) : undefined,
+      signal: AbortSignal.timeout(30_000),
+    });
   }
 
   async put(key: string, body: Buffer): Promise<void> {
@@ -84,7 +90,10 @@ export class S3 {
   async get(key: string): Promise<Buffer | undefined> {
     const r = await this.request('GET', key);
     if (r.status === 404) return undefined;
-    if (!r.ok) throw new Error(`S3 GET ${key}: ${r.status}`);
+    if (!r.ok) {
+      await r.body?.cancel();
+      throw new Error(`S3 GET ${key}: ${r.status}`);
+    }
     return Buffer.from(await r.arrayBuffer());
   }
 

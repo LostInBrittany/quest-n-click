@@ -17,12 +17,14 @@ interface PgPool {
   on(ev: 'connect', fn: (c: PgClient) => void): void;
 }
 interface PgModule {
-  Pool: new (o: { connectionString: string; max?: number }) => PgPool;
+  Pool: new (o: { connectionString: string; max?: number; options?: string }) => PgPool;
 }
 
-/** The session limits of every connection (plan §4). */
-const SESSION_LIMITS =
-  "SET lock_timeout = '2s'; SET statement_timeout = '5s'; SET idle_in_transaction_session_timeout = '5s'";
+/**
+ * The session limits of every connection (plan §4), given at connection time: a connection that cannot have them is
+ * no connection at all (never one that runs without them).
+ */
+const SESSION_LIMITS = '-c lock_timeout=2000 -c statement_timeout=5000 -c idle_in_transaction_session_timeout=5000';
 
 /** Transient conflicts a transaction is tried again for: serialization, deadlock, a lock not obtained in time. */
 const RETRY = new Set(['40001', '40P01', '55P03']);
@@ -81,12 +83,9 @@ export async function openPostgresDb(url: string, o: { pg?: PgModule; max?: numb
         throw new Error('the hosted Studio needs the `pg` package: npm install pg');
       })) as { default?: PgModule } & PgModule
     ).default as PgModule);
-  const pool = new mod.Pool({ connectionString: url, max: o.max ?? 4 });
+  const pool = new mod.Pool({ connectionString: url, max: o.max ?? 4, options: SESSION_LIMITS });
   pool.on('error', () => {
     /* an idle client lost: the pool opens another on the next query */
-  });
-  pool.on('connect', (c) => {
-    void c.query(SESSION_LIMITS).catch(() => undefined);
   });
   return new StudioPg(pool);
 }
