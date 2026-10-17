@@ -430,15 +430,18 @@ export class Journal {
       if (Date.now() > deadline) throw new StudioError('another process is writing this game; try again', 409);
       await new Promise((ok) => setTimeout(ok, 50));
     }
-    const renew = setInterval(() => {
-      void this.db
-        .run(`UPDATE studio_lease SET until_ms = ${this.clock} + $1 WHERE id = 1 AND holder = $2 AND fence = $3`, [
-          this.leaseMs,
-          this.holder,
-          this.fence,
-        ])
-        .catch(() => undefined);
-    }, Math.max(50, Math.floor(this.leaseMs / 3)));
+    const renew = setInterval(
+      () => {
+        void this.db
+          .run(`UPDATE studio_lease SET until_ms = ${this.clock} + $1 WHERE id = 1 AND holder = $2 AND fence = $3`, [
+            this.leaseMs,
+            this.holder,
+            this.fence,
+          ])
+          .catch(() => undefined);
+      },
+      Math.max(50, Math.floor(this.leaseMs / 3)),
+    );
     renew.unref?.();
     try {
       return await fn();

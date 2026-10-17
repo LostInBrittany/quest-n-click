@@ -3,7 +3,16 @@
 // are thrown as StudioError (with an HTTP-like status), results are plain JSON.
 import { execFile } from 'node:child_process';
 import { createHash } from 'node:crypto';
-import { copyFileSync, existsSync, linkSync, mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
+import {
+  copyFileSync,
+  existsSync,
+  linkSync,
+  mkdirSync,
+  readFileSync,
+  readdirSync,
+  rmSync,
+  writeFileSync,
+} from 'node:fs';
 import { basename, isAbsolute, join, relative, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import ts from '@typescript/typescript6';
@@ -422,19 +431,21 @@ export function createStudio(opts: StudioOptions = {}) {
     o: { dry?: boolean } = {},
   ): Promise<EditResult & { diff: string; dry?: true }> {
     return serial(async () => {
-    if (typeof path !== 'string' || !path) throw new StudioError('`path` is required');
-    // `@game` (4.1.12): the game file's `defineGame({...})`, for its objectives only (ADR 0014).
-    const isGame = id === GAME_FILE_ID;
-    if (isGame && !/^objectives(\.[\w.-]+)?(\.(title|done|optional|parent))?$/.test(path))
-      throw new StudioError(`@game: only "objectives", "objectives.<id>" or "objectives.<id>.<field>" can be written`);
-    const file = isGame ? gameFile() : roomFile(id);
-    const before = readFileSync(file, 'utf8');
-    const r = wrap(() => setValueInSource(before, path, value, file, isGame ? 'defineGame' : 'defineRoom'));
-    const diff = r.changed ? lineDiff(before, r.code) : '';
-    if (!r.changed || o.dry)
-      return { ok: true as const, line: r.line, changed: r.changed, diff, ...(o.dry ? { dry: true as const } : {}) };
-    await write(`${id}: ${path}`, [{ file, after: parses(file, r.code), from: before }], { diff });
-    return { ok: true as const, line: r.line, changed: true, diff };
+      if (typeof path !== 'string' || !path) throw new StudioError('`path` is required');
+      // `@game` (4.1.12): the game file's `defineGame({...})`, for its objectives only (ADR 0014).
+      const isGame = id === GAME_FILE_ID;
+      if (isGame && !/^objectives(\.[\w.-]+)?(\.(title|done|optional|parent))?$/.test(path))
+        throw new StudioError(
+          `@game: only "objectives", "objectives.<id>" or "objectives.<id>.<field>" can be written`,
+        );
+      const file = isGame ? gameFile() : roomFile(id);
+      const before = readFileSync(file, 'utf8');
+      const r = wrap(() => setValueInSource(before, path, value, file, isGame ? 'defineGame' : 'defineRoom'));
+      const diff = r.changed ? lineDiff(before, r.code) : '';
+      if (!r.changed || o.dry)
+        return { ok: true as const, line: r.line, changed: r.changed, diff, ...(o.dry ? { dry: true as const } : {}) };
+      await write(`${id}: ${path}`, [{ file, after: parses(file, r.code), from: before }], { diff });
+      return { ok: true as const, line: r.line, changed: true, diff };
     });
   }
 
@@ -681,7 +692,6 @@ export function createStudio(opts: StudioOptions = {}) {
   }
 
   // ------------------------------------------------------------------ checks
-
 
   // ---- voices (3.4): the production table, per language
   const voicesFile = () => join(dir, 'voices.json');
