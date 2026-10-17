@@ -288,7 +288,7 @@ export function createStudio(opts: StudioOptions = {}) {
   const hashOf = (t: Buffer | string | null) => (t === null ? ABSENT : sha256(t));
 
   /** The files the validator never reads: an operation that writes only those needs no guard. */
-  const UNGUARDED = /^(notes\.json|storyboard\.(json|md)|voices\.json|playtests\/)/;
+  const UNGUARDED = /^(notes\.json|storyboard\.(json|md)|voices\.json|playtests\/|art\/|audio\/|private\/)/;
 
   /** The game's validation errors at the journal's head, kept per revision (the guard compares against them). */
   let baseline: { rev: number; errors: Set<string> } | undefined;
@@ -936,13 +936,13 @@ export function createStudio(opts: StudioOptions = {}) {
    */
   function writeFiles(
     what: string,
-    files: { path: string; after: Buffer | string | null }[],
+    files: { path: string; after: Buffer | string | null; from?: string | null }[],
     o: { undo?: boolean; who?: string; guard?: boolean } = {},
   ): Promise<string[]> {
     return serial(() =>
       write(
         what,
-        files.map((f) => ({ file: join(dir, ...f.path.split('/')), after: f.after })),
+        files.map((f) => ({ file: join(dir, ...f.path.split('/')), after: f.after, from: f.from })),
         o,
       ),
     );

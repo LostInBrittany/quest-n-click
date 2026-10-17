@@ -466,14 +466,19 @@ export class Editor {
           headers: { 'content-type': 'application/json' },
           body: JSON.stringify(L),
         });
-        if (r.status === 404 || r.status === 405) offline = true;
-        else if (!r.ok) {
+        if (!r.ok) {
+          // The Studio answers its refusals in JSON (an unknown room is a 404 too); anything else on 404/405 means
+          // there is no Studio API here (a static host): the layout then goes to the patch.
           const t = await r.text();
+          let studio: string | undefined;
           try {
-            error = (JSON.parse(t) as { error?: string }).error ?? t;
+            studio = (JSON.parse(t) as { error?: string }).error;
           } catch {
-            error = t;
+            studio = undefined;
           }
+          if (studio !== undefined) error = studio;
+          else if (r.status === 404 || r.status === 405) offline = true;
+          else error = t;
         }
       } catch {
         offline = true;

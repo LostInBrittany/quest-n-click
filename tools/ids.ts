@@ -125,7 +125,7 @@ if (wantMap) {
     text: JSON.stringify({ ...prevPaths, ...map.paths }, null, 2) + '\n',
   });
   console.log(
-    `\nWritten: ${rel(join(GAME_DIR, 'ids.migration.json'))} (${Object.keys(map.seen).length} seen, ${Object.keys(map.counters).length} counter keys), ${rel(join(GAME_DIR, 'ids.paths.json'))} (${Object.keys(map.paths).length} paths)`,
+    `\nTo write: ${rel(join(GAME_DIR, 'ids.migration.json'))} (${Object.keys(map.seen).length} seen, ${Object.keys(map.counters).length} counter keys), ${rel(join(GAME_DIR, 'ids.paths.json'))} (${Object.keys(map.paths).length} paths)`,
   );
 }
 
@@ -140,4 +140,5 @@ if (!write || (wantMap && keysMoved) || game.schemaVersion !== 3) {
   console.log(`Then: npm run validate && npm run i18n -- extract && npm run solve`);
 }
 
-await writeGame('ids', out, { guard: false });
+const written = await writeGame('ids', out, { guard: false });
+if (out.length) console.log(`Written as one operation of the journal: ${written.length} file(s) changed`);

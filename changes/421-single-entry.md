@@ -9,4 +9,5 @@
   - The batch tools (`ids`, `i18n`, `provenance`) are journaled, not guarded: they rename paths, which changes the
     text of existing validation errors.
 - **The placement editor saves through the Studio's API** (4.2.1): `PUT /__studio/api/room/<id>/layout`, one guarded
-  operation. The dev server's `/__layout` route is gone.
+  operation. The dev server's `/__layout` route is gone; `layoutWriter()` stays exported as a deprecated plugin that
+  does nothing.

@@ -26,6 +26,15 @@ export const BASE = process.env.BASE_PATH ?? '/';
 // one guarded operation of the game's journal): the dev server has no route of its own that writes a game file.
 
 /**
+ * @deprecated 4.2.1: the placement editor saves through the Studio's API; this plugin does nothing any more. Kept so a
+ * configuration that names it still loads (D40: no public name removed in 4.2.x).
+ * @public
+ */
+export function layoutWriter(): Plugin {
+  return { name: 'layout-writer', apply: 'serve' };
+}
+
+/**
  * Builds with STUDIO=1: the Studio page enters the build (see `build.rolldownOptions.input`) with its demo snapshot,
  * public/studio-demo/snapshot.json, regenerated from the game first (copied to dist/ with the public files).
  * Without STUDIO=1: neither the page nor a snapshot left in public/ by an earlier build reach dist/.

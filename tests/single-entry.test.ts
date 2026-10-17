@@ -1,5 +1,8 @@
-// A single entry for the game's files (4.2.1, plan P6): every program of the repository that writes to the disk is
-// listed here with where it writes. Writing a game's files goes through the Studio's journal (studio-server/src/ops/,
+// A single entry for the game's files (4.2.1, plan P6): every authoring program (tools/, studio-server/, src/studio/,
+// cli/) that writes to the disk is listed here with where it writes. scripts/ (CI, release, e2e) and bridge/ author
+// no game and are outside this inventory. The patterns are names of writing calls, not a proof: a writer hidden behind
+// an alias or a child process is caught by review (the Studio's own spawns are listed: assets' prepare runs
+// `npm run assets`, an adopted writer). Writing a game's files goes through the Studio's journal (studio-server/src/ops/,
 // or tools/game-write.ts for the authoring tools); the few tools that still write a game folder themselves are named,
 // with how the journal follows them. A new writer, or a writer that moved, fails this test until it is classified.
 import { readdirSync, readFileSync, statSync } from 'node:fs';
@@ -7,8 +10,10 @@ import { join, relative } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
 const ROOT = join(import.meta.dirname, '..');
-const JS_WRITE = /\b(writeFileSync|writeFile|appendFileSync|copyFileSync|cpSync|renameSync|rmSync|unlinkSync)\(/;
-const PY_WRITE = /open\([^)]*['"]w['"]|\.save\(|json\.dump\(/;
+const JS_WRITE =
+  /\b(writeFileSync|writeFile|appendFileSync|copyFileSync|cpSync|renameSync|rmSync|unlinkSync|createWriteStream|symlinkSync|linkSync|mkdtempSync)\b/;
+const PY_WRITE =
+  /open\([^)]*['"](w|wb|a|ab|x)['"]|\.save\(|json\.dump\(|\.write_bytes\(|\.write_text\(|os\.remove\(|shutil\.|\.export\(/;
 
 /** Programs that write, by path, and where. `journal`: through the Studio's journal. `adopted`: a game folder written
  * directly, recorded by the journal as an `external` operation before the next edit (local mode only). */
@@ -29,6 +34,11 @@ const WRITERS: Record<string, string> = {
   'tools/audio/mdpipe/__main__.py': 'adopted: npm run audio writes audio/',
   'tools/audio/mdpipe/analyze.py': 'adopted: npm run audio (analysis next to the stems)',
   'tools/audio/mdpipe/stems.py': 'adopted: npm run audio writes audio/',
+  'tools/audio/mdpipe/arrange.py': 'adopted: npm run audio writes audio/',
+  'tools/audio/mdpipe/midi.py': 'adopted: npm run audio writes audio/',
+  'tools/audio/mdpipe/render.py': 'adopted: npm run audio writes audio/',
+  'tools/audio/mdpipe/sfx.py': 'adopted: npm run audio writes audio/',
+  'tools/audio/mdpipe/transcribe.py': 'adopted: npm run audio writes audio/',
   // Never a game folder.
   'cli/create.mjs': 'elsewhere: web-scumm create makes a new project folder',
   'tools/api-doc.ts': 'elsewhere: docs/',
@@ -91,7 +101,7 @@ const writers = ['tools', 'src/studio', 'studio-server/src', 'cli']
   .flatMap(files)
   .filter((f) => {
     const text = () => readFileSync(join(ROOT, f), 'utf8');
-    if (/\.(ts|mjs)$/.test(f)) return JS_WRITE.test(text());
+    if (/\.(ts|mjs|js|cjs)$/.test(f)) return JS_WRITE.test(text());
     if (f.endsWith('.py')) return PY_WRITE.test(text());
     return false;
   })

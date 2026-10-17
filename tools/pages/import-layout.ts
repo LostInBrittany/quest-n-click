@@ -125,14 +125,15 @@ export async function importLayouts(
     return 0;
   }
   let changed = 0;
-  const out: { file: string; text: string }[] = [];
+  const out: { file: string; text: string; from: string | null }[] = [];
   for (const { room, layout, from } of exports) {
     if (!/^[A-Za-z0-9_-]+$/.test(room)) {
       log(`skipped "${room}" (${from}): not a room id`);
       continue;
     }
     const file = join(dir, `${room}.json`);
-    const stored: unknown = existsSync(file) ? JSON.parse(readFileSync(file, 'utf8')) : {};
+    const read = existsSync(file) ? readFileSync(file, 'utf8') : null;
+    const stored: unknown = read === null ? {} : JSON.parse(read);
     const base: Layout = isObj(stored) ? stored : {};
     const { layout: merged, changes } = mergeLayout(base, layout);
     if (!changes.length) {
@@ -142,7 +143,7 @@ export async function importLayouts(
     changed++;
     log(`${room}: ${changes.length} change(s)${existsSync(file) ? '' : ' (new file)'}${opts.dry ? ' [dry run]' : ''}`);
     for (const c of changes) log(`   ${c}`);
-    if (!opts.dry) out.push({ file, text: JSON.stringify(merged, null, 2) + '\n' });
+    if (!opts.dry) out.push({ file, text: JSON.stringify(merged, null, 2) + '\n', from: read });
   }
   await writeGame('import-layout', out, { gameDir, guard: opts.guard });
   return changed;

@@ -23,4 +23,23 @@ Branch: refactor/421-single-entry (stacked on PR 2) · Plan §7, row 3, and P6
 - **Deliberately not here:** an end-to-end test running each tool against a server, since there is no server yet.
   It comes with PR 4.
 
+- **Second automated reading context**, taken in:
+  - **P1:**
+    - the cut and keying tools get `GAME_DIR`. Their `site.json` lookup (pixel art) no longer depends on the scratch
+      folder;
+    - the editor tells a Studio refusal (JSON, e.g. an unknown room's 404) from "no Studio here", so a save is no
+      longer silently routed to the browser;
+    - the 409 from a tool's read to its write is real only where the tool passes what it read (`from`:
+      import-layout). The header says so.
+  - **P2:**
+    - uploads are not guarded (`art/`, `audio/`, `private/` are files the validator never reads);
+    - one Studio per game per run in `game-write`;
+    - `remix --record` writes all its sessions as one operation;
+    - an uploaded sheet is kept first, on its own, so a failed cut leaves it to retry;
+    - the inventory catches more writing calls (`createWriteStream`, links, `.js`, and Python's `wb`, `os.remove`,
+      `shutil`, `.export`), and its scope is stated (authoring programs; `scripts/` and `bridge/` author no game);
+    - `layoutWriter` stays as a deprecated no-op (D40: no public name removed);
+    - `ids` reports what it wrote after it wrote it.
+  - **Noted:** `onSheetCopy` copies the sheet's `_vN` backups too (cost, not correctness).
+
 → next: Claude (PR 4, the server)

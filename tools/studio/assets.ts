@@ -625,6 +625,8 @@ export function createAssets(studio: Studio) {
         'sheets',
         `${b.sheetId}-${new Date().toISOString().replace(/[:.]/g, '-')}${type}`,
       );
+      // The uploaded sheet is kept first, on its own: a cut that fails leaves it there to try again by hand.
+      await studio.writeFiles(`sheet ${b.sheetId}: upload`, [{ path: rel(file), after: data }], { undo: false });
       const planned = new Set<string>();
       const backups = existing.map((c) => keep(join(out, `${c}.png`), planned));
       const r = await scratch(async (tmp) => {
@@ -645,7 +647,7 @@ export function createAssets(studio: Studio) {
               ...(only ? ['--cells', only.join(',')] : []),
             ],
             root,
-            { ...process.env, GAME: studio.gameId },
+            { ...process.env, GAME: studio.gameId, GAME_DIR: dir },
           );
         });
         if (res.code !== 0)
@@ -653,7 +655,7 @@ export function createAssets(studio: Studio) {
             `cut-sheet.py failed (${res.code}): ${res.output.trim().split('\n').slice(-3).join(' ')}`,
             500,
           );
-        await studio.writeFiles(`sheet ${b.sheetId}`, [{ path: rel(file), after: data }, ...backups, ...cut], {
+        await studio.writeFiles(`sheet ${b.sheetId}`, [...backups, ...cut], {
           undo: false,
         });
         return res;
@@ -698,6 +700,7 @@ export function createAssets(studio: Studio) {
             {
               ...process.env,
               GAME: studio.gameId,
+              GAME_DIR: dir,
             },
           );
         });
@@ -777,7 +780,7 @@ export function createAssets(studio: Studio) {
         process.platform === 'win32' ? 'npm.cmd' : 'npm',
         ['run', 'assets'],
         root,
-        { ...process.env, GAME: studio.gameId },
+        { ...process.env, GAME: studio.gameId, GAME_DIR: dir },
         onData,
       );
       return { ok: r.code === 0, code: r.code, output: r.output };
