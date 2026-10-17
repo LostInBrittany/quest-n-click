@@ -23,6 +23,8 @@ const WRITERS: Record<string, string> = {
   'studio-server/src/ops/core.ts': "journal: game files through it; the guard's staging and screenshots in .cache/",
   'tools/game-write.ts': 'journal: game files through it; outputs elsewhere written plainly',
   'tools/studio/assets.ts': 'journal: uploads through it; the tools run on scratch copies in .cache/',
+  'studio-server/src/server/main.ts':
+    'journal: import copies a game beside the instance folder and renames it in before the journal adopts it; export writes a folder named on the command line',
   // Game folders written directly (local mode: adopted by the journal; hosted: unavailable or in the executor).
   'tools/migrate.ts': 'adopted: web-scumm migrate rewrites a project (an exclusive operation in 4.2.3)',
   'tools/assets.py': 'adopted: npm run assets writes assets.gen.json (and public/assets, outside the game)',
