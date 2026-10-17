@@ -26,10 +26,14 @@ maintainer with Codex.
    - **D:** the back-channel logout, form-encoded, checked per the specification, with replays refused by `jti`.
 4. **Bounded revocation, R = 15 min.**
    - **Removed or revoked in the Studio:** the user is refused at the next request (`revoked_before`, sessions
-     deleted), and long connections close on a revocation bus.
-   - **Back-channel logout:** the sessions it names end at once.
+     deleted). A removal, a demotion or an ended session is emitted on a revocation bus, which long connections
+     listen to (SSE, PR 6).
+   - **Back-channel logout:** the sessions it names end at once: with a `sid`, that provider session only; with a
+     `sub` alone, every session and token of the user.
    - **Disabled at the provider:** the session is re-checked every 5 min by its refresh token. A definitive refusal
-     ends it; an unreachable provider suspends it after R (fail closed).
+     ends it; an unreachable provider suspends it after R (fail closed). One refresh runs per session at a time and
+     always stores the rotated token, even after the request stopped waiting for it: a provider that revokes a used
+     refresh token never ends a session by mistake. A refresh token that no longer opens ends the session.
    - **Bearer tokens** must live 5 min or less.
    - **A provider without refresh tokens** gets sessions of R at most.
 5. **Secrets.**
@@ -37,9 +41,11 @@ maintainer with Codex.
      "secrets in files", because Clever injects variables.
    - Removed from `process.env` at start, never logged.
    - Refresh tokens and id_tokens are sealed with AES-256-GCM under a key ring (`STUDIO_SESSION_KEY`,
-     comma-separated: the first seals, any opens).
+     comma-separated: the first seals, any opens; each secret 32 characters or more). The key and its id are
+     derived apart with HKDF, so a sealed value reveals nothing of the key.
 6. **The CLI** logs in with the device flow through a public client the server names (`/auth/cli`). Its tokens are
-   stored in a 0600 file, one entry per server.
+   stored in a 0600 file, one entry per server, written whole and renamed under a lock, and sent to https servers
+   only.
 
 **Costs.**
 - Two more dependencies: `openid-client` and `jose`.

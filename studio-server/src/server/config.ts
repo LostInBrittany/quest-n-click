@@ -153,7 +153,11 @@ export function loadConfig(file: string): StudioServerConfig {
   if (!Array.isArray(trust) || !trust.every((t) => typeof t === 'string'))
     throw new ConfigError(`${file}: trustProxy is a list of addresses or networks`);
   const oidc = raw.oidc as StudioServerConfig['oidc'];
+  const host = String(raw.host ?? '0.0.0.0');
   if (oidc !== undefined) {
+    // Behind a proxy every client shares its address: without trustProxy, the limits would treat a team as one.
+    if (!/^(127\.|::1$|localhost$)/.test(host) && trust.length === 0)
+      throw new ConfigError(`${file}: trustProxy is required when the server is reachable beyond the loopback`);
     if (!isUrl(oidc.issuer)) throw new ConfigError(`${file}: oidc.issuer must be an http(s) URL`);
     if (typeof oidc.clientId !== 'string' || !oidc.clientId) throw new ConfigError(`${file}: oidc.clientId is required`);
     if (typeof oidc.audience !== 'string' || !oidc.audience) throw new ConfigError(`${file}: oidc.audience is required`);
@@ -168,7 +172,7 @@ export function loadConfig(file: string): StudioServerConfig {
     game: raw.game,
     workDir: raw.workDir,
     port: Number(raw.port ?? process.env.PORT ?? 8080),
-    host: String(raw.host ?? '0.0.0.0'),
+    host,
     trustProxy: trust as string[],
     store,
     blobs,

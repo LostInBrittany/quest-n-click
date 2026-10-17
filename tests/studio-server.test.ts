@@ -69,6 +69,12 @@ describe('configuration and secrets', () => {
     expect(loadConfig(f).playUrl).toBe('https://play.example.fr');
     writeFileSync(f, JSON.stringify({ ...base, playUrl: 'https://studio.example.fr/play' }));
     expect(() => loadConfig(f)).toThrow(/another origin/);
+    // With OIDC, an address beyond the loopback needs trustProxy: behind a proxy, every client shares one address.
+    const oidc = { issuer: 'https://id.example.fr/realms/s', clientId: 'studio', audience: 'studio-api' };
+    writeFileSync(f, JSON.stringify({ ...base, oidc }));
+    expect(() => loadConfig(f)).toThrow(/trustProxy is required/);
+    writeFileSync(f, JSON.stringify({ ...base, oidc, trustProxy: ['10.0.0.0/8'] }));
+    expect(loadConfig(f).trustProxy).toEqual(['10.0.0.0/8']);
     writeFileSync(f, JSON.stringify({ ...base, typo: 1 }));
     expect(() => loadConfig(f)).toThrow(/unknown key "typo"/);
   });
@@ -248,7 +254,7 @@ describe('import, serve, export through the command', () => {
           stdio: 'pipe',
         },
       ),
-    ).toThrow(/refused until authentication/);
+    ).toThrow(/refused without authentication/);
   }, 120_000);
 });
 
@@ -280,7 +286,7 @@ describe.runIf(PG && S3URL)('hosted: Postgres and S3', () => {
   it('a hosted journal rebuilds a lost folder from the database and the blobs', async () => {
     const db = await openPostgresDb(PG!);
     await db.exec(
-      'DROP TABLE IF EXISTS studio_requests, studio_service, studio_lease, studio_files, studio_ops, studio_meta, schema_migrations CASCADE',
+      'DROP TABLE IF EXISTS studio_audit, studio_seen_jti, studio_preauth, studio_sessions, studio_invitations, studio_members, studio_users, studio_requests, studio_service, studio_lease, studio_files, studio_ops, studio_meta, schema_migrations CASCADE',
     );
     const game = join(tmp, 'hosted-game');
     cpSync(join(ROOT, 'games', '_template'), game, { recursive: true });

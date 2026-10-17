@@ -69,3 +69,14 @@ CREATE TABLE studio_audit (
   detail TEXT NOT NULL
 );
 CREATE INDEX studio_audit_at ON studio_audit (at);
+-- A stored answer belongs to its author (the user id; '' without authentication): another member who knows an
+-- operation id never gets its answer. The table is a 7-day replay cache, so it starts empty again.
+DROP TABLE studio_requests;
+CREATE TABLE studio_requests (
+  author TEXT NOT NULL,
+  op_id TEXT NOT NULL,
+  status INTEGER NOT NULL,
+  body TEXT NOT NULL,
+  at BIGINT NOT NULL,
+  PRIMARY KEY (author, op_id)
+);

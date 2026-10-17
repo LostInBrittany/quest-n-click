@@ -29,9 +29,12 @@ const cookie = (name: string, value: string, maxAgeS: number) =>
   `${name}=${value}; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=${maxAgeS}`;
 const clear = (name: string) => `${name}=; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=0`;
 
-/** A path to come back to after a login: relative only, never another site (an open redirect). */
+/**
+ * A path to come back to after a login: relative only, never another site (an open redirect). Only the characters of
+ * a plain path and query pass: a tab or a backslash, which browsers drop or turn into `/`, never does.
+ */
 export function safeReturn(v: string | null): string {
-  if (!v || !v.startsWith('/') || v.startsWith('//') || v.includes('\\') || /[\r\n]/.test(v)) return '/';
+  if (!v || !/^\/(?!\/)[A-Za-z0-9/._~%?&=#+,:@-]*$/.test(v)) return '/';
   return v;
 }
 
@@ -92,8 +95,8 @@ export function authRoutes(o: AuthRoutesOptions) {
         return true;
       }
       const user = await o.store.userFor(done.identity);
-      if (pre.invite) {
-        const r = await o.store.accept(pre.invite, user);
+      if (pre.inviteHash) {
+        const r = await o.store.accept(pre.inviteHash, user);
         if ('refused' in r) await o.store.audit(user.id, 'invitation-refused', { reason: r.refused });
       }
       // Without a refresh token the provider cannot be asked again: the session then lives R at most (plan §3.6).
@@ -118,8 +121,11 @@ export function authRoutes(o: AuthRoutesOptions) {
     if (m === 'POST' && path === '/auth/logout') {
       const p = await o.gate.authenticate(req);
       const idToken = p.session?.idTokenEnc ? o.sealer.open(p.session.idTokenEnc) : undefined;
-      if (p.session) await o.store.endSession(p.session.idHash);
-      o.gate.revocations.emit('revoked', [p.user.id]);
+      if (p.session) {
+        await o.store.endSession(p.session.idHash);
+        // This session's long connections only: the user's other devices stay logged in.
+        o.gate.revocations.emit('session-ended', [p.session.idHash]);
+      }
       await o.store.audit(p.user.id, 'logout', {});
       o.send(
         res,
@@ -184,6 +190,8 @@ export function authRoutes(o: AuthRoutesOptions) {
           const b = (await o.readJson(req)) as { role?: unknown };
           if (!ROLES.includes(b.role as Role)) throw new StudioError('`role` is owner, dev or reviewer');
           await o.store.setRole(id, b.role as Role, p.user.id);
+          // A demotion is a revocation too (plan §3.6): long connections reopen with the new role.
+          o.gate.revocations.emit('revoked', [id]);
         } else if (m === 'DELETE' && !member[2]) {
           await o.store.setRole(id, null, p.user.id);
           o.gate.revocations.emit('revoked', [id]);

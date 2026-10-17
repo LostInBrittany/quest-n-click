@@ -20,6 +20,10 @@ export class TestOp {
   disabled = new Set<string>();
   down = false;
   sid = 'sid-1';
+  /** Like Keycloak with "Revoke Refresh Token": a refresh token works once. */
+  strictRotation = false;
+  refreshCalls = 0;
+  refreshDelayMs = 0;
   private server!: Server;
   private key!: CryptoKey;
   private jwk!: JWK;
@@ -146,8 +150,11 @@ export class TestOp {
         });
       }
       if (p.get('grant_type') === 'refresh_token') {
+        this.refreshCalls++;
+        if (this.refreshDelayMs) await new Promise((ok) => setTimeout(ok, this.refreshDelayMs));
         const sub = this.refresh.get(p.get('refresh_token') ?? '');
         if (!sub || this.disabled.has(sub)) return this.json(res, 400, { error: 'invalid_grant' });
+        if (this.strictRotation) this.refresh.delete(p.get('refresh_token') ?? '');
         const rt = randomUUID();
         this.refresh.set(rt, sub);
         return this.json(res, 200, {

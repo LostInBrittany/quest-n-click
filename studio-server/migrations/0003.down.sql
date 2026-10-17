@@ -1,3 +1,10 @@
+DROP TABLE studio_requests;
+CREATE TABLE studio_requests (
+  op_id TEXT PRIMARY KEY,
+  status INTEGER NOT NULL,
+  body TEXT NOT NULL,
+  at BIGINT NOT NULL
+);
 DROP INDEX studio_audit_at;
 DROP TABLE studio_audit;
 DROP TABLE studio_seen_jti;

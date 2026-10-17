@@ -29,4 +29,12 @@ Branch: feature/421-oidc (stacked on PR 4) · Plan §3, ADR 0027, threat model `
   - closing SSE streams on revocation, with SSE itself (PR 6), on the bus that is ready;
   - a real Keycloak in CI (PR 9). The spike's managed Keycloak announces every endpoint used here.
 
+- Second reading (automated second context): the return path admits plain path characters only (a tab no longer
+  becomes `//evil`); refused credentials no longer lock a whole address out, and OIDC beyond the loopback requires
+  `trustProxy`; one refresh per session at a time, a slow refresh still stores the rotated token, an unreadable one
+  ends the session; a back-channel logout with a `sid` ends that provider session only; invitation tokens are hashed
+  while a login carries them, and an invitation never demotes the last owner; the session key is derived by HKDF and
+  32 characters or more; stored answers are per author; Bearer refusals carry `WWW-Authenticate`; policy A's
+  refusals say nothing of which check failed; the CLI writes its tokens atomically under a lock and to https only.
+
 → next: Claude (PR I, the separate worker; then PR 6)

@@ -4,7 +4,7 @@
 //   - refresh: the session's refresh token, to learn within R whether the provider still knows the user;
 //   - Bearer: an access token for the CLI and MCP, a JWT checked by JWKS (issuer, audience, algorithms, lifetime);
 //   - back-channel logout: a logout token checked per OpenID Connect Back-Channel Logout 1.0, §2.4–2.6.
-import { createRemoteJWKSet, type JWTPayload, jwtVerify } from 'jose';
+import { createRemoteJWKSet, decodeProtectedHeader, type JWTPayload, jwtVerify } from 'jose';
 import * as client from 'openid-client';
 
 /** Signatures accepted, never `none` nor a shared-secret HMAC (plan §3.1). */
@@ -119,6 +119,8 @@ export class Oidc {
       return { refreshToken: t.refresh_token };
     } catch (e) {
       const err = e as { error?: string; status?: number; code?: string };
+      // `invalid_client` is our own configuration (a secret rotated badly), not the user's session: transient.
+      if (err.error === 'invalid_client') throw e;
       if (err.error === 'invalid_grant' || err.status === 400 || err.status === 401)
         throw new DefinitiveRefusal(err.error ?? 'refused');
       throw e;
@@ -155,6 +157,10 @@ export class Oidc {
 
   /** A back-channel logout token (policy D): returns what to end. */
   async verifyLogoutToken(token: string): Promise<{ sid?: string; sub?: string; jti: string; exp: number }> {
+    // §2.4: `typ` is `logout+jwt` when the provider sets one (Keycloak does); any other `typ` is another token.
+    const typ = decodeProtectedHeader(token).typ;
+    if (typ !== undefined && typ.toLowerCase() !== 'logout+jwt' && typ.toLowerCase() !== 'jwt')
+      throw new Error('not a logout token');
     const { payload } = await jwtVerify(token, this.jwks, {
       issuer: this.issuer,
       audience: this.settings.clientId,
@@ -163,7 +169,8 @@ export class Oidc {
       maxTokenAge: '5m',
     });
     const events = (payload as JWTPayload & { events?: Record<string, unknown> }).events;
-    if (!events || typeof events !== 'object' || !(BACKCHANNEL_EVENT in events))
+    const ev = events && typeof events === 'object' ? (events as Record<string, unknown>)[BACKCHANNEL_EVENT] : undefined;
+    if (!ev || typeof ev !== 'object' || Array.isArray(ev))
       throw new Error('not a back-channel logout token');
     if (payload.nonce !== undefined) throw new Error('a logout token carries no nonce');
     const sid = typeof payload.sid === 'string' ? payload.sid : undefined;

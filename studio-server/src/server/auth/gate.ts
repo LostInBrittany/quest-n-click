@@ -59,9 +59,16 @@ export function cookies(req: IncomingMessage): Record<string, string> {
 
 const MUTATION = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
 
+const TOUCH_EVERY_MS = 60_000;
+
 export class Gate {
-  /** `revoked` (userIds: string[]): every long connection of those users closes. */
+  /**
+   * `revoked` (userIds: string[]): every long connection of those users closes; `session-ended` (idHashes: string[]):
+   * the long connections of those sessions close.
+   */
   readonly revocations = new EventEmitter();
+  /** One refresh per session at a time: a provider that rotates refresh tokens must never see one used twice. */
+  private refreshing = new Map<string, Promise<void>>();
   readonly idleMs: number;
   readonly absoluteMs: number;
   private checkEveryMs: number;
@@ -87,28 +94,25 @@ export class Gate {
     if (auth !== undefined) {
       // Policy B: the token is the identity; a cookie on the same request has no effect.
       const m = /^Bearer ([\w-]+\.[\w-]+\.[\w-]+)$/.exec(auth);
-      if (!m) throw this.unauthorized('a Bearer access token is expected');
+      if (!m) throw this.bearerRefused('invalid_request', 'a Bearer access token is expected');
       if (origin !== undefined && origin !== this.o.publicUrl) throw new StudioError('origin refused', 403);
       if (mutation && !typeOk) throw new StudioError('a write is sent as JSON', 415);
       let t: { iss: string; sub: string; iat: number };
       try {
         t = await this.o.oidc.verifyAccessToken(m[1]!);
       } catch {
-        throw this.unauthorized('the access token is not valid');
+        throw this.bearerRefused('invalid_token', 'the access token is not valid');
       }
       const user = await this.o.store.userByIdentity(t.iss, t.sub);
       if (!user) throw new StudioError('not a member of this project', 403);
-      if (t.iat < user.revokedBefore) throw this.unauthorized('the access token was revoked');
+      if (t.iat < user.revokedBefore) throw this.bearerRefused('invalid_token', 'the access token was revoked');
       const role = await this.o.store.role(user.id);
       if (!role) throw new StudioError('not a member of this project', 403);
       return { user, role, via: 'bearer' };
     }
-    // Policy A: the session cookie.
-    if (mutation) {
-      if (origin !== this.o.publicUrl) throw new StudioError('origin refused', 403);
-      if (req.headers['x-studio-request'] !== '1') throw new StudioError('a Studio request header is expected', 403);
-      if (!typeOk) throw new StudioError('a write is sent as JSON', 415);
-    }
+    // Policy A: the session cookie. A refused request is told nothing of which check failed (plan §3.4).
+    if (mutation && (origin !== this.o.publicUrl || req.headers['x-studio-request'] !== '1' || !typeOk))
+      throw new StudioError('forbidden', 403);
     const token = cookies(req)[SESSION_COOKIE];
     if (!token) throw this.unauthorized('no session');
     const s = await this.o.store.session(token);
@@ -119,34 +123,53 @@ export class Gate {
       throw this.unauthorized('the session ended');
     }
     await this.check(s, now);
-    await this.o.store.touch(s.idHash, { lastSeen: now });
+    // The idle clock moves once a minute, not one database write per request.
+    if (now - s.lastSeen >= TOUCH_EVERY_MS) await this.o.store.touch(s.idHash, { lastSeen: now });
     return { user: s.user, role: s.role, via: 'cookie', session: s };
   }
 
   /** The provider's confirmation of a session, every `checkEveryMs` (plan §3.6). */
   private async check(s: Session, now: number): Promise<void> {
     if (now - s.checkedAt < this.checkEveryMs && !s.suspended) return;
-    const refresh = s.refreshEnc ? this.o.sealer.open(s.refreshEnc) : undefined;
+    // No refresh token (a provider that gives none): the session was created for R at most, its only bound.
+    if (!s.refreshEnc) return;
+    const refresh = this.o.sealer.open(s.refreshEnc);
     if (!refresh) {
-      // No refresh token (a provider that gives none): the absolute lifetime is the only bound, and it is short.
-      return;
+      // Sealed but unreadable (its key left the ring, or the row is damaged): it can never be checked again, so it
+      // ends now rather than living unchecked to its absolute lifetime (fail closed).
+      await this.o.store.endSession(s.idHash);
+      throw this.unauthorized('the session can no longer be checked: log in again');
     }
+    // A refresh already in flight for this session is joined, never doubled; one that outlives the 5 s wait goes on
+    // and stores the rotated token when it ends, so a slow provider never strands the new token.
+    let flight = this.refreshing.get(s.idHash);
+    if (!flight) {
+      flight = (async () => {
+        const r = await this.o.oidc.refresh(refresh);
+        const at = this.now();
+        await this.o.store.touch(s.idHash, {
+          checkedAt: at,
+          suspended: false,
+          ...(r.refreshToken ? { refreshEnc: this.o.sealer.seal(r.refreshToken) } : {}),
+        });
+      })().finally(() => this.refreshing.delete(s.idHash));
+      this.refreshing.set(s.idHash, flight);
+      flight.catch(() => {});
+    }
+    let timer: NodeJS.Timeout | undefined;
     try {
-      const r = await Promise.race([
-        this.o.oidc.refresh(refresh),
-        new Promise<never>((_, fail) => setTimeout(() => fail(new Error('timeout')), 5_000)),
+      await Promise.race([
+        flight,
+        new Promise<never>((_, fail) => {
+          timer = setTimeout(() => fail(new Error('timeout')), 5_000);
+        }),
       ]);
-      await this.o.store.touch(s.idHash, {
-        checkedAt: now,
-        suspended: false,
-        ...(r.refreshToken ? { refreshEnc: this.o.sealer.seal(r.refreshToken) } : {}),
-      });
       s.checkedAt = now;
       s.suspended = false;
     } catch (e) {
       if (e instanceof DefinitiveRefusal) {
         await this.o.store.endSession(s.idHash);
-        this.revocations.emit('revoked', [s.user.id]);
+        this.revocations.emit('session-ended', [s.idHash]);
         throw this.unauthorized('the identity provider ended the session');
       }
       // Unreachable: the session lives on until R since the last confirmation, then is suspended (fail closed).
@@ -156,12 +179,21 @@ export class Gate {
           body: { suspended: true },
         });
       }
+    } finally {
+      clearTimeout(timer);
     }
   }
 
   /** The role a principal needs: refused (403) below it. */
   require(p: Principal, need: Role): void {
     if (!atLeast(p.role, need)) throw new StudioError(p.role ? `this needs the role ${need}` : 'not a member of this project', 403);
+  }
+
+  /** Policy B's refusal, with its RFC 6750 challenge. */
+  private bearerRefused(error: 'invalid_request' | 'invalid_token', message: string): StudioError {
+    return Object.assign(new StudioError(message, 401), {
+      headers: { 'www-authenticate': `Bearer error="${error}"` },
+    });
   }
 
   private unauthorized(message: string): StudioError {
