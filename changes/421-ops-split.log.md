@@ -18,4 +18,9 @@ Branch: refactor/421-ops-split · Plan: `docs/dev/PLAN-4.2.1-4.2.3-STUDIO-SERVER
   - `studio-server` in `tsconfig.json` and `knip.json`, the same entry rule `tools/studio/*.ts` had;
   - a CI rule (`tools/ci-plan.ts`) with the authoring gates.
 
+- **Second automated reading context** found:
+  - P0: the published `web-scumm` package would have left `studio-server/` out (`scripts/pack.mjs`'s `SHIP`), although
+    `vite.config.ts` (through the plugin) and `ids` import it. It ships now, which the packed archive confirms;
+  - P1: Biome did not cover the moved files. `studio-server/**/*.ts` is now in `biome.json`.
+
 → next: Claude (PR 2, the transactional core)
