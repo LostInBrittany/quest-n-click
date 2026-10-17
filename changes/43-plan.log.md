@@ -1,4 +1,4 @@
-## 4.3 "Studio Server": the plan, ADR 0025, D39
+## "Studio Server" (4.2.1 → 4.2.3): the plan, ADR 0025, D39, D40
 
 Branch: docs/43-plan (#127) · Base: a0ce19d (v4.2.0)
 
@@ -31,7 +31,8 @@ Branch: docs/43-plan (#127) · Base: a0ce19d (v4.2.0)
     - the save envelope is unchanged by default (ADR 0026, reserved);
     - Play is labelled at step 1;
     - passes are non-blocking (D12).
-- **Open for the maintainer** (DECISIONS, Pending): the version numbers of the three steps, and step 1's name.
+- **Numbering decided (D40):** 4.2.1 "Shared Floor", 4.2.2, 4.2.3, not a 4.3. The 4.2.x line may add but never change a
+  public name or a format, as D14 allowed for 4.1.x. The plan file is renamed `PLAN-4.2.1-4.2.3-STUDIO-SERVER.md`.
 
 ### Checks run
 
@@ -41,4 +42,4 @@ Branch: docs/43-plan (#127) · Base: a0ce19d (v4.2.0)
 | `npm run quality` | exit 0 |
 | `npx vitest run tests/support-truth.test.ts tests/changes.test.ts tests/partition.test.ts tests/ci-plan.test.ts` | 4 files, 59/59 |
 
-→ next: human (read the plan; decide the two pending points; then the step-0 mock-ups, before any code)
+→ next: Claude (the step-0 mock-ups, for the maintainer to validate before any code)

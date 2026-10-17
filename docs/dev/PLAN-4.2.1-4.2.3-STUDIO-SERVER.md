@@ -1,6 +1,7 @@
-# web-scumm 4.3 « Studio Server » : un jeu commun, édité en direct par plusieurs développeurs
+# web-scumm 4.2.1 → 4.2.3 « Studio Server » : un jeu commun, édité en direct par plusieurs développeurs
 
-> **Révision 2.** Le plan a été vérifié contre `origin/main` (`a0ce19d`, merge de la release 4.2.0) le 17 octobre 2026.
+> **Révision 3.** Numérotation et nom décidés par le mainteneur (D40) : les trois étapes sont **4.2.1 « Shared
+> Floor »**, **4.2.2** et **4.2.3**. Révision 2 : le plan a été vérifié contre `origin/main` (`a0ce19d`, merge de la release 4.2.0) le 17 octobre 2026.
 > Il intègre la relecture du mainteneur du même jour, puis une relecture automatisée en second contexte : un P0 sur la
 > reprise après panne et douze P1, tous repris au §9.
 > **Source normative.** C'est ce fichier, dans Git, depuis la PR de cadrage `docs/43-plan` (#127). Toute copie hors du
@@ -240,7 +241,7 @@ détail.
   entre **Reprendre** (si compatible), **Redémarrer** ou **Rester** sur sa révision, affichée en clair.
 - **Sauvegardes et révisions**, tranché dans l'**ADR 0026** (étape 2) :
   - **Par défaut, l'enveloppe ne change pas** : elle est en `strictObject`, donc un champ nouveau ferait refuser les
-    sauvegardes 4.3 par un lecteur 4.2 hors ligne. La prévisualisation garde, **à côté** de chaque emplacement,
+    sauvegardes écrites par une prévisualisation 4.2.x par un lecteur 4.2.0 hors ligne. La prévisualisation garde, **à côté** de chaque emplacement,
     l'empreinte `GameFingerprint.logic` et la révision où il a été écrit.
   - Toutes les révisions partagent une origine, donc IndexedDB. Charger un emplacement écrit à une autre révision
     **passe toujours** par l'invite.
@@ -341,7 +342,7 @@ Chaque étape est publiée seule, avec ses gates automatiques. Ses passes humain
 
 ### Étape 0 : cadrage (cette PR) et maquettes
 
-- Ce plan, l'ADR 0025 et D39.
+- Ce plan, l'ADR 0025, D39 et D40.
 - Des **maquettes avec les vrais assets** du jeu d'exemple, validées par le mainteneur **avant tout code** :
   - le bandeau de révision ;
   - la présence ;
@@ -352,7 +353,7 @@ Chaque étape est publiée seule, avec ses gates automatiques. Ses passes humain
   - l'écran Builds ;
   - Play étiqueté, et l'invite « révision N disponible ».
 
-### Étape 1 : Socle partagé
+### Étape 1 : 4.2.1 « Shared Floor », socle partagé
 
 - **Découpage neutre** (première PR) : le noyau d'opérations est extrait de `core.ts`, `source.ts`, `assets.ts` et
   `apply.ts`, avec des effets typés. Le comportement ne change pas.
@@ -386,7 +387,7 @@ clair), les builds et la carte.
 - Le seuil de débit est écrit (P3).
 - La passe humaine est ouverte en issue `field-pass` (deux ou trois navigateurs, une coupure réseau volontaire).
 
-### Étape 2 : Atelier jouable
+### Étape 2 : 4.2.2, atelier jouable
 
 - Prévisualisation par révision et invite de partie ouverte (P4), avec l'ADR 0026.
 - Santé par révision, état périmé, bissection (P5).
@@ -401,7 +402,7 @@ clair), les builds et la carte.
 - le manifeste correspond octet pour octet au snapshot ;
 - la passe humaine est ouverte.
 
-### Étape 3 : Coordination avancée
+### Étape 3 : 4.2.3, coordination avancée
 
 - **Pans transverses** (personnage, énigme, chapitre) comme regroupements, et **carte du scénario**
   (`scenario.map.json`).
@@ -445,26 +446,45 @@ couverture. Le set est mesuré dès l'étape 1 et devient bloquant à la release
 
 ## 7. Décisions
 
-### D39 — 4.3 « Studio Server »
+### D39 — « Studio Server »
 
 Le mainteneur a décidé, le 17 octobre 2026 :
-- une **plateforme partagée**, avec une seule copie du jeu éditée en direct ;
+- une **plateforme partagée** : une seule copie du jeu, éditée en direct ;
 - des verrous explicites et des builds figés ;
-- les CRDT reportés ;
-- le chantier après 4.2.0 stable ;
+- des CRDT reportés ;
+- un chantier mené après 4.2.0 stable ;
 - les principes de ce plan (§3) et un découpage en trois étapes (§5).
 
-« go to 4.3 », le 17 octobre.
+Citation : « go to 4.3 », le 17 octobre. D40 fixe ensuite la numérotation.
 
-### Numéros réservés et questions ouvertes
+### D40 — Trois patchs 4.2.x, et non une 4.3
 
-- **ADR 0025** : le Studio Server (P1 à P8). ADR 0022 reste réservé au DSL.
-- **ADR 0026** : réservé aux sauvegardes face aux révisions (P4). Il n'est écrit qu'à l'étape 2 : un ADR n'est jamais
-  vide.
-- **À trancher par le mainteneur** :
-  1. **Numéros de version des étapes.** Proposition : **4.3.0, 4.4.0 et 4.5.0**, puisque chaque étape ajoute une
-     surface. L'alternative est 4.3.0, 4.3.1 et 4.3.2, à la manière de la ligne 4.1.x.
-  2. **Nom de l'étape 1.** Proposition : « Shared Floor ».
+Le 17 octobre, le mainteneur a fixé la numérotation et le nom de la première étape :
+- **4.2.1 « Shared Floor »** (socle partagé) ;
+- **4.2.2** (atelier jouable) ;
+- **4.2.3** (coordination avancée).
+
+Citations : « enfaite 4.2.1 4.2.2 4.2.3 » ; « Shared Floor » : « ok ».
+
+Ce que cela implique :
+
+- **Exception de version, sur le modèle de D14.** `docs/en|fr/SUPPORT.md` dit qu'un patch « fixes; it never changes a
+  public name or a format ». Comme la ligne 4.1.x avant elle, la ligne **4.2.1 → 4.2.3 peut ajouter** : un outil, une
+  commande, une route du Studio Server. Elle **ne peut pas changer ni retirer** un nom public ou un format de l'API
+  publique (`src/engine` public, format de contenu, enveloppe de sauvegarde).
+  - Si l'ADR 0026 conclut qu'il faut changer l'enveloppe, ce changement attend une 4.3.
+  - La PR de release de 4.2.1 ajoute cette exception à SUPPORT, dans les deux langues.
+- **Le mode local du Studio** reste compatible (§2). Ce qui change pour un auteur est décrit dans UPGRADING à chaque
+  étape.
+- **Passes humaines de 4.2** (D38). Elles se font sur un candidat 4.2.x et restent valables si leur surface ne change
+  pas (D35, `field:carry`). Les surfaces Studio et site touchées par une étape exigent une nouvelle passe ; les autres
+  sont reportées avec leur attestation.
+
+### Numéros réservés
+
+- **ADR 0025** : le Studio Server (P1 à P8). L'ADR 0022 reste réservé au DSL.
+- **ADR 0026** : réservé aux sauvegardes face aux révisions (P4). Il n'est écrit qu'à l'étape 2, car un ADR n'est
+  jamais vide.
 
 ## 8. Ce que ce plan ne fait pas
 
@@ -474,9 +494,13 @@ Le mainteneur a décidé, le 17 octobre 2026 :
 - Pas de service hébergé par le projet : le serveur est auto-hébergé par une équipe.
 - Pas de fournisseur d'identité externe à l'étape 1.
 - Pas de changement du Bridge, à part la réutilisation de ses motifs.
-- Pas de publication npm du serveur avant l'étape 3.
+- Pas de publication npm du serveur avant l'étape 3 (4.2.3).
+- Pas de changement d'un nom public ni d'un format dans la ligne 4.2.x (D40).
 
 ## 9. Relectures
+
+- **Mainteneur, 17 octobre, après la révision 2** : numérotation en 4.2.1, 4.2.2 et 4.2.3, nom « Shared Floor » (D40).
+  Le fichier est renommé de `PLAN-4.3-STUDIO-SERVER.md` en `PLAN-4.2.1-4.2.3-STUDIO-SERVER.md`.
 
 - **Mainteneur, 17 octobre**, sur la proposition précédente : les sept principes, le découpage en trois étapes et les
   tests de pannes.

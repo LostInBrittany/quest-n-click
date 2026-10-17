@@ -1,4 +1,4 @@
-# 0025 · One shared game, edited live: transactions, one owner per file, revisions (4.3)
+# 0025 · One shared game, edited live: transactions, one owner per file, revisions (4.2.1)
 
 **Context.** The Studio is a single-user tool served by Vite. At `a0ce19d`, about ten paths write a game's files:
 - the core's `serial` queue (`tools/studio/core.ts:176`);
@@ -13,7 +13,7 @@ imported statically (`src/main.ts:4`). A save carries no content fingerprint, an
 Validation imports the content's TypeScript, so it runs it.
 
 The maintainer wants several developers on one server, at the same time, on one live copy of the game, with explicit
-locks and frozen builds (D39). The French plan, `docs/dev/PLAN-4.3-STUDIO-SERVER.md`, is the source; the decisions
+locks and frozen builds (D39), shipped as 4.2.1 "Shared Floor", 4.2.2 and 4.2.3 (D40). The French plan, `docs/dev/PLAN-4.2.1-4.2.3-STUDIO-SERVER.md`, is the source; the decisions
 below follow its P1–P8.
 
 **Decision.**
