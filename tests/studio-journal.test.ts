@@ -21,6 +21,7 @@ const open = async (o: { holder?: string; leaseWaitMs?: number; leaseMs?: number
 const read = (p: string) => readFileSync(join(game, p), 'utf8');
 
 beforeEach(() => {
+  mkdirSync(join(process.cwd(), '.cache'), { recursive: true });
   root = mkdtempSync(join(process.cwd(), '.cache', 'journal-'));
   game = join(root, 'game');
   mkdirSync(join(game, 'rooms'), { recursive: true });
