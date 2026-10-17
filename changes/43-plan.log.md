@@ -1,4 +1,4 @@
-## "Studio Server" (4.2.1 → 4.2.3): the plan, ADR 0025, D39, D40
+## "Studio Server" (4.2.1 → 4.2.3): the plan, ADR 0025, D39, D40, D41 — hosted behind OIDC
 
 Branch: docs/43-plan (#127) · Base: a0ce19d (v4.2.0)
 
@@ -34,6 +34,20 @@ Branch: docs/43-plan (#127) · Base: a0ce19d (v4.2.0)
 - **Numbering decided (D40):** 4.2.1 "Shared Floor", 4.2.2, 4.2.3, not a 4.3. The 4.2.x line may add but never change a
   public name or a format, as D14 allowed for 4.1.x. The plan file is renamed `PLAN-4.2.1-4.2.3-STUDIO-SERVER.md`.
 
+- **Revision 4, hosted (D41):**
+  - native Clever Cloud Node.js runtime, PostgreSQL, Cellar, Keycloak or any OIDC provider, no Docker;
+  - rights in the Studio, one game per instance, assistant on the user's own key (BYOK).
+  - What the maintainer's two Codex readings required:
+    - four HTTP policies;
+    - bounded revocation;
+    - a separate game origin, with Safari decided by spike S;
+    - the post-commit protocol and reads by revision;
+    - a live preview stated as not frozen, with P4 in 4.2.2;
+    - a fenced lease with Postgres timeouts;
+    - a worker whose temporary capabilities are assumed visible to hostile code.
+  - Their verdict: « je validerais le cap et le lancement du spike S » (I would validate the course and the launch of
+    spike S).
+
 ### Checks run
 
 | Command | Result |
@@ -42,4 +56,4 @@ Branch: docs/43-plan (#127) · Base: a0ce19d (v4.2.0)
 | `npm run quality` | exit 0 |
 | `npx vitest run tests/support-truth.test.ts tests/changes.test.ts tests/partition.test.ts tests/ci-plan.test.ts` | 4 files, 59/59 |
 
-→ next: Claude (the step-0 mock-ups, for the maintainer to validate before any code)
+→ next: human (merge this PR); Claude (spike S on Clever's native runtime, the step-0 mock-ups)

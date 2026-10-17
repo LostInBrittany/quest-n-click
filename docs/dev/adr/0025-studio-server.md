@@ -66,6 +66,30 @@ below follow its P1–P8.
    but its pattern is reused. No WebSocket unless a measurement asks for one.
 8. **P8 · One writing process per project**, held by a fenced service lease. A second instance is refused.
 
+**Amended by revision 4 (D41, 17 October 2026): hosted on Clever Cloud's native Node.js runtime.** Plan §0–§6.
+- **Durability in hosted mode.** The truth is in PostgreSQL (operation log, per-file revisions, recorded responses) and
+  Cellar (content-addressed blobs). The instance's game tree is a materialised cache. An operation is confirmed by its
+  Postgres commit, after its blobs are stored. A retry returns the recorded response. Reads resolve a revision through
+  the log and never read the cache. A reconciler repairs the cache without a restart. Local mode keeps P1 as written.
+- **Service lease (P8).**
+  - Each write transaction checks that the lease is unexpired, on the database's clock, and that its fencing token is
+    current.
+  - Final transactions are short and do no network I/O.
+  - `lock_timeout`, `statement_timeout` and `idle_in_transaction_session_timeout` bound a frozen holder, so takeover
+    is bounded (target ≤ 38 s, to be measured) without relying on SIGTERM.
+- **Identity.** OIDC (Keycloak or any compliant provider) gives the identity only. Roles and membership live in the
+  Studio. CLI and MCP use OIDC access tokens (device flow), not Biscuit. Four explicit HTTP policies replace a single
+  rule: cookie, Bearer, OIDC callback and back-channel logout. Revocation is bounded at R = 15 min (ADR 0027,
+  reserved).
+- **Game code runs on a separate origin.** Preview, Play and builds run on a separate origin with its own session,
+  tied to the Studio session. Whether that origin is same-site or cross-site is decided by spike S under Safari's
+  default third-party cookie blocking. In 4.2.1 the preview is live and not frozen; P4 ships in 4.2.2.
+- **Content execution.** It is moved to a worker application that holds no platform secret, if spike S and ADR 0028
+  (reserved) retain it.
+  - The worker sees the project's data and the job's temporary capabilities, which are assumed visible to hostile
+    code.
+  - Verdicts are quality signals, not security decisions.
+
 **Costs.**
 - Every existing writer, the Python tools included, moves behind the operation API before anything is shared. The
   first PR is a neutral split.
