@@ -94,6 +94,8 @@ export interface SlotMeta {
   room: Id;
   roomName: string;
   v: number;
+  /** Where it was made, in a build that declares its revision (4.2.2, ADR 0026). */
+  revision?: { rev: number; fingerprint: string };
 }
 
 /** A save as written until 4.1.14: the state with the format, the schema, the game's id and save version and the date. @public */
@@ -303,5 +305,9 @@ export function parseSlot(
     roomName: String(raw.meta?.roomName ?? state.room),
     v: state.v,
   };
+  // Kept only when well formed: a slot that says nothing of its revision resumes without a question.
+  const r = raw.meta?.revision as { rev?: unknown; fingerprint?: unknown } | undefined;
+  if (r && Number.isSafeInteger(r.rev) && typeof r.fingerprint === 'string' && r.fingerprint)
+    meta.revision = { rev: r.rev as number, fingerprint: r.fingerprint };
   return { meta, state };
 }

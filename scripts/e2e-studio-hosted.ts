@@ -313,6 +313,49 @@ try {
   const playFrame = page.frames().find((f) => f.url().startsWith(playUrl) && f !== frame);
   check('the Play tab runs the game on its origin', !!playFrame);
 
+  // 6b. Saves across revisions (ADR 0026): the preview says its revision and fingerprint; a save made in other content
+  // opens the question, and Stay goes to the save's own revision.
+  // The Play tab keeps the preview it loaded (revision 1, when the Studio opened) until asked for the latest.
+  type Guarded = { __game?: { revision?: { here(): { rev: number }; resume(s: object): Promise<string> } } };
+  await page.getByRole('button', { name: 'Load the latest preview' }).click();
+  let latest: Frame | undefined;
+  for (let i = 0; i < 80 && !latest; i++) {
+    await page.waitForTimeout(250);
+    latest = page.frames().find((f) => f.url().startsWith(playUrl) && f !== frame && !f.url().includes('/preview/1/'));
+  }
+  await latest
+    ?.waitForFunction(() => !!(window as unknown as Guarded).__game?.revision, null, { timeout: 30_000 })
+    .catch(() => undefined);
+  const inPlay = latest ?? playFrame!;
+  const shownRev = Number(/\/preview\/(\d+)\//.exec(inPlay.url())?.[1]);
+  check('"Load the latest preview" loads the last ready revision', shownRev === previews.state().ready, inPlay.url());
+  const here = await inPlay.evaluate(() => (window as unknown as Guarded).__game?.revision?.here().rev ?? null);
+  check("a preview's saves record its revision", here === shownRev, `here ${here}, frame ${shownRev}`);
+  await inPlay.evaluate(() => {
+    void (window as unknown as Guarded).__game?.revision?.resume({ rev: 1, fingerprint: 'other-content' });
+  });
+  const prompt = inPlay.locator('[data-revision-prompt] button');
+  await prompt.first().waitFor({ timeout: 10_000 });
+  const choices = await prompt.evaluateAll((bs) => bs.map((b) => (b as HTMLElement).dataset.choice));
+  check(
+    'a save made in other content asks: resume, restart, stay',
+    JSON.stringify(choices) === JSON.stringify(shownRev === 1 ? ['resume', 'restart'] : ['resume', 'restart', 'stay']),
+    JSON.stringify(choices),
+  );
+  if (shownRev !== 1) {
+    await inPlay.locator('[data-revision-prompt] button[data-choice="stay"]').click();
+    let at = '';
+    for (let i = 0; i < 40 && !at.includes('/preview/1/'); i++) {
+      await page.waitForTimeout(250);
+      at =
+        page
+          .frames()
+          .find((f) => f.url().startsWith(playUrl) && f !== frame)
+          ?.url() ?? '';
+    }
+    check("Stay opens the save's own revision", new URL(at).pathname === '/preview/1/', at);
+  }
+
   // 7. The logout ends the game's session too.
   await page.evaluate(async () => {
     await fetch('/auth/logout', {
@@ -321,7 +364,8 @@ try {
       body: '{}',
     });
   });
-  const afterLogout = await playFrame!.evaluate(async () => (await fetch(location.href)).status);
+  const last = page.frames().find((f) => f.url().startsWith(playUrl) && f !== frame) ?? playFrame!;
+  const afterLogout = await last.evaluate(async () => (await fetch(location.href)).status);
   check(
     "after the logout, the game's origin refuses the next request",
     afterLogout === 403 || afterLogout === 401,

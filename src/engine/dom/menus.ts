@@ -204,6 +204,7 @@ export async function slotMenu(app: App, d: HTMLElement, m: HTMLElement, mode: '
     room: app.engine.state.room,
     roomName: app.engine.room().name,
     v: app.engine.state.v,
+    ...(app.revision ? { revision: app.revision.here() } : {}),
   });
   const slotName = (n: number) => app.t('slot').replace('{n}', String(n));
   const label = (s: SlotMeta | null) =>
@@ -247,6 +248,10 @@ export async function slotMenu(app: App, d: HTMLElement, m: HTMLElement, mode: '
           return;
         }
         d.remove();
+        // Made in other content (ADR 0026): asked first; Stay has left for the save's revision.
+        const choice = app.revision ? await app.revision.resume(s.revision) : 'resume';
+        if (choice === 'restart') return void app.engine.newGame();
+        if (choice === 'stay') return;
         void app.engine.load(state).catch((e) => app.presenter.toast(String((e as Error).message)));
       };
   });
@@ -466,8 +471,12 @@ export async function showTitle(app: App) {
     startMusic();
     confirmErase(() => void launch(true));
   };
-  cb.onclick = () => {
+  cb.onclick = async () => {
     startMusic();
+    // Made in other content (ADR 0026): asked first. Restart replaces the save, so it is confirmed as New game is.
+    const choice = app.revision ? await app.revision.resume(app.revision.autosave()) : 'resume';
+    if (choice === 'restart') return confirmErase(() => void launch(true));
+    if (choice === 'stay') return;
     void launch(false);
   };
   if (rb)
