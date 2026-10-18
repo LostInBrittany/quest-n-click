@@ -142,36 +142,24 @@ const check = (name: string, ok: boolean, detail?: string) => {
   console.log(`${ok ? '✓' : '✖'} ${name}${detail ? ` — ${detail}` : ''}`);
 };
 const browser = await engine.launch();
+const trace: string[] = [];
 let failed = false;
 try {
   const context = await browser.newContext({ viewport: { width: 1440, height: 900 }, ignoreHTTPSErrors: tls });
-  if (process.env.E2E_DEBUG)
-    await context.addInitScript(() => {
-      addEventListener('error', (e) => console.log('frame-error', location.host, e.message));
-      addEventListener('unhandledrejection', (e) =>
-        console.log('frame-rejection', location.host, String(e.reason?.stack ?? e.reason)),
-      );
-    });
+  // What happened, kept and printed if a step fails: the console of every frame (with the errors a frame throws),
+  // the answers of 400 and more, the requests that failed.
+  await context.addInitScript(() => {
+    addEventListener('error', (e) => console.log('frame-error', location.host, e.message));
+    addEventListener('unhandledrejection', (e) =>
+      console.log('frame-rejection', location.host, String(e.reason?.stack ?? e.reason)),
+    );
+  });
   const page: Page = await context.newPage();
   const errors: string[] = [];
   page.on('pageerror', (e) => errors.push(e.message));
-  if (process.env.E2E_DEBUG) {
-    page.on('console', (m) => console.log('console', m.type(), m.text().slice(0, 300)));
-    page.on('response', (r) => r.url().includes('localhost') && console.log('http', r.status(), r.url().slice(0, 160)));
-    page.on('requestfailed', (r) => console.log('failed', r.url().slice(0, 160), r.failure()?.errorText));
-    const open = new Set<string>();
-    page.on('request', (r) => open.add(r.url()));
-    page.on('requestfinished', (r) => open.delete(r.url()));
-    page.on('requestfailed', (r) => open.delete(r.url()));
-    setTimeout(
-      () =>
-        console.log(
-          'pending',
-          [...open].map((u) => u.slice(0, 160)),
-        ),
-      45_000,
-    ).unref();
-  }
+  page.on('console', (m) => trace.push(`console ${m.type()} ${m.text().slice(0, 300)}`));
+  page.on('response', (r) => r.status() >= 400 && trace.push(`http ${r.status()} ${r.url().slice(0, 160)}`));
+  page.on('requestfailed', (r) => trace.push(`failed ${r.url().slice(0, 160)} ${r.failure()?.errorText}`));
 
   // 1. The login: the invitation, the provider, back to the Studio.
   const invite = await store.invite(op.user.email, 'owner', 'e2e');
@@ -322,17 +310,17 @@ try {
   check('no page error in the Studio', unexpected.length === 0, unexpected.join(' | '));
 } catch (e) {
   check('the run', false, (e as Error).message.split('\n')[0]);
-  if (process.env.E2E_DEBUG) {
-    for (const p of browser.contexts().flatMap((c) => c.pages())) {
-      for (const f of p.frames())
-        console.log(
-          'frame',
-          f.url(),
-          await f.evaluate(() => document.body?.innerHTML.slice(0, 1500)).catch((e) => String(e)),
-        );
+  console.log(trace.slice(-80).join('\n'));
+  for (const p of browser.contexts().flatMap((c) => c.pages()))
+    for (const f of p.frames())
+      console.log(
+        'frame',
+        f.url().slice(0, 120),
+        await f.evaluate(() => document.body?.innerHTML.slice(0, 600)).catch((e) => String(e)),
+      );
+  if (process.env.E2E_DEBUG)
+    for (const p of browser.contexts().flatMap((c) => c.pages()))
       await p.screenshot({ path: join(ROOT, '.cache', 'e2e-studio-hosted.png') });
-    }
-  }
 } finally {
   failed = steps.some(([, ok]) => !ok);
   await browser.close();
