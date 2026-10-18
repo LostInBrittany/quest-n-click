@@ -23,7 +23,8 @@ async function openAll(config: StudioServerConfig) {
   const secrets = takeSecrets();
   let db: SqlDb;
   if (config.store.kind === 'postgres') {
-    if (!secrets.STUDIO_DATABASE_URL) throw new ConfigError('STUDIO_DATABASE_URL (or POSTGRESQL_ADDON_URI) is required');
+    if (!secrets.STUDIO_DATABASE_URL)
+      throw new ConfigError('STUDIO_DATABASE_URL (or POSTGRESQL_ADDON_URI) is required');
     db = await openPostgresDb(secrets.STUDIO_DATABASE_URL);
   } else db = await openSqliteDb(resolve(config.store.file!));
   let blobs: BlobStore;
@@ -32,7 +33,12 @@ async function openAll(config: StudioServerConfig) {
       throw new ConfigError('STUDIO_S3_KEY_ID and STUDIO_S3_KEY_SECRET (or the Cellar add-on variables) are required');
     const endpoint = /^https?:\/\//.test(config.blobs.host!) ? config.blobs.host! : `https://${config.blobs.host}`;
     blobs = s3BlobStore(
-      new S3({ endpoint, bucket: config.blobs.bucket!, keyId: secrets.STUDIO_S3_KEY_ID, secret: secrets.STUDIO_S3_KEY_SECRET }),
+      new S3({
+        endpoint,
+        bucket: config.blobs.bucket!,
+        keyId: secrets.STUDIO_S3_KEY_ID,
+        secret: secrets.STUDIO_S3_KEY_SECRET,
+      }),
     );
   } else blobs = fsBlobStore(resolve(config.blobs.dir!));
   const gameDir = resolve(config.workDir, 'game');
@@ -60,9 +66,7 @@ async function main(argv: string[]): Promise<number> {
       return 2;
     }
     // The database decides whether the instance already has a project, not its (possibly new) disk.
-    const [had] = await db
-      .all('SELECT path FROM studio_files LIMIT 1')
-      .catch(() => [] as Record<string, unknown>[]);
+    const [had] = await db.all('SELECT path FROM studio_files LIMIT 1').catch(() => [] as Record<string, unknown>[]);
     if (had || readdirSync(gameDir).length) {
       console.error('import: this instance already has a project');
       return 1;
@@ -102,7 +106,7 @@ async function main(argv: string[]): Promise<number> {
     );
     const files = head.files;
     for (const f of files) {
-      const bytes = await blobs.has(f.blob) ? await blobs.get(f.blob) : undefined;
+      const bytes = (await blobs.has(f.blob)) ? await blobs.get(f.blob) : undefined;
       const target = join(out, ...f.path.split('/'));
       mkdirSync(join(target, '..'), { recursive: true });
       // A local journal keeps blobs only for what it wrote: the rest is read from the game folder, checked.
@@ -127,17 +131,21 @@ async function main(argv: string[]): Promise<number> {
     return 2;
   }
   const lease = new ServiceLease(db);
-  lease.start((held) => console.log(JSON.stringify({ event: held ? 'lease-taken' : 'lease-lost', instance: lease.instance })));
+  lease.start((held) =>
+    console.log(JSON.stringify({ event: held ? 'lease-taken' : 'lease-lost', instance: lease.instance })),
+  );
   const studio = createStudio({ gameDir, root: resolve(config.workDir), journal, author: 'studio-server' });
   const server = studioServer({ studio, journal, db, lease, trustProxy: config.trustProxy });
   // Hosted: the instance's folder is checked against the head every 30 s and repaired without a restart (plan §4),
   // holding the instance's lock alone: no request reads a folder being repaired.
   if (hosted)
     setInterval(() => {
-      void server.exclusive(() => journal.reconcile()).then(
-        (r) => r.written + r.removed && console.log(JSON.stringify({ event: 'reconciled', ...r })),
-        (e) => console.log(JSON.stringify({ event: 'reconcile-failed', message: String((e as Error).message) })),
-      );
+      void server
+        .exclusive(() => journal.reconcile())
+        .then(
+          (r) => r.written + r.removed && console.log(JSON.stringify({ event: 'reconciled', ...r })),
+          (e) => console.log(JSON.stringify({ event: 'reconcile-failed', message: String((e as Error).message) })),
+        );
     }, 30_000).unref();
   server.on('error', (e) => {
     console.error(JSON.stringify({ event: 'listen-failed', message: (e as Error).message }));
@@ -167,7 +175,7 @@ main(process.argv.slice(2)).then(
     if (code >= 0) process.exit(code);
   },
   (e) => {
-    console.error(e instanceof ConfigError ? `configuration: ${e.message}` : (e as Error).stack ?? String(e));
+    console.error(e instanceof ConfigError ? `configuration: ${e.message}` : ((e as Error).stack ?? String(e)));
     process.exit(1);
   },
 );

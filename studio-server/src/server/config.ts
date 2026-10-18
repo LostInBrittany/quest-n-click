@@ -116,8 +116,10 @@ export function loadConfig(file: string): StudioServerConfig {
     throw new ConfigError(`${file}: game must be a game id`);
   if (typeof raw.workDir !== 'string' || !raw.workDir) throw new ConfigError(`${file}: workDir is required`);
   const store = raw.store as StoreConfig | undefined;
-  if (!store || !['sqlite', 'postgres'].includes(store.kind)) throw new ConfigError(`${file}: store.kind is sqlite or postgres`);
-  if (store.kind === 'sqlite' && typeof store.file !== 'string') throw new ConfigError(`${file}: store.file is required`);
+  if (!store || !['sqlite', 'postgres'].includes(store.kind))
+    throw new ConfigError(`${file}: store.kind is sqlite or postgres`);
+  if (store.kind === 'sqlite' && typeof store.file !== 'string')
+    throw new ConfigError(`${file}: store.file is required`);
   const blobs = raw.blobs as BlobsConfig | undefined;
   if (!blobs || !['fs', 's3'].includes(blobs.kind)) throw new ConfigError(`${file}: blobs.kind is fs or s3`);
   if (blobs.kind === 'fs' && typeof blobs.dir !== 'string') throw new ConfigError(`${file}: blobs.dir is required`);

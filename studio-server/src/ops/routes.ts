@@ -129,4 +129,3 @@ export function routes(s: Studio): [string, RegExp, Handler][] {
     ],
   ];
 }
-

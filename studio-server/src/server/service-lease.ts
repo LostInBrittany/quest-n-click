@@ -56,7 +56,11 @@ export class ServiceLease {
       });
       if (this.stopped) {
         // Released while this try was on its way: what it took is given back at once.
-        if (fence) await this.db.run('DELETE FROM studio_service WHERE id = 1 AND instance = $1 AND fence = $2', [this.instance, fence]);
+        if (fence)
+          await this.db.run('DELETE FROM studio_service WHERE id = 1 AND instance = $1 AND fence = $2', [
+            this.instance,
+            fence,
+          ]);
         return false;
       }
       this.fence = fence;

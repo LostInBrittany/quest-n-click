@@ -20,7 +20,8 @@ export interface S3Options {
 
 const hmac = (key: Buffer | string, s: string) => createHmac('sha256', key).update(s).digest();
 const hex = (b: Buffer | string) => createHash('sha256').update(b).digest('hex');
-const enc = (s: string) => encodeURIComponent(s).replace(/[!'()*]/g, (c) => `%${c.charCodeAt(0).toString(16).toUpperCase()}`);
+const enc = (s: string) =>
+  encodeURIComponent(s).replace(/[!'()*]/g, (c) => `%${c.charCodeAt(0).toString(16).toUpperCase()}`);
 const encPath = (p: string) => p.split('/').map(enc).join('/');
 
 function stamp(d = new Date()) {
@@ -48,7 +49,12 @@ export class S3 {
   }
 
   /** Signs a request (header form) and sends it. */
-  private async request(method: string, key: string, body?: Buffer, extra: Record<string, string> = {}): Promise<Response> {
+  private async request(
+    method: string,
+    key: string,
+    body?: Buffer,
+    extra: Record<string, string> = {},
+  ): Promise<Response> {
     const path = `/${this.o.bucket}/${encPath(this.key(key))}`;
     const { amz, day } = stamp();
     const payload = body ? hex(body) : hex('');
@@ -58,7 +64,9 @@ export class S3 {
       'x-amz-date': amz,
       ...extra,
     };
-    const names = Object.keys(headers).map((h) => h.toLowerCase()).sort();
+    const names = Object.keys(headers)
+      .map((h) => h.toLowerCase())
+      .sort();
     const canonical = [
       method,
       path,

@@ -41,7 +41,11 @@ class StudioPg implements SqlDb {
   async exec(sql: string) {
     await this.pool.query(sql);
   }
-  async tx<T>(lockKey: string | undefined, fn: (q: SqlQuery) => Promise<T>, o: { readOnly?: boolean } = {}): Promise<T> {
+  async tx<T>(
+    lockKey: string | undefined,
+    fn: (q: SqlQuery) => Promise<T>,
+    o: { readOnly?: boolean } = {},
+  ): Promise<T> {
     for (let attempt = 0; ; attempt++) {
       const c = await this.pool.connect();
       const q: SqlQuery = {
