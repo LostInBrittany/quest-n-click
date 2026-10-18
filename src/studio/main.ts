@@ -18,7 +18,8 @@ import { RoomsTab } from './rooms';
 import { StoryboardTab } from './storyboard';
 import { download, h, toast } from './ui';
 import { must } from '../engine/core/must';
-import { apiUrl } from './api-base';
+import { apiUrl, goLogin, hosting, loginHeld, studioFetch } from './api-base';
+import { gameLink } from './game-origin';
 
 type TabId = 'rooms' | 'storyboard' | 'assets' | 'voices' | 'music' | 'check' | 'play' | 'language' | 'remix' | 'notes';
 const TABS: [TabId, string][] = [
@@ -60,6 +61,8 @@ async function demoApi(): Promise<BrowserApi> {
     storage,
     download,
     loadGame: async () => {
+      // The hosted Studio's page holds no game (`npm run studio-client`): this branch is left out of its build.
+      if (import.meta.env.VITE_STUDIO_HOSTED === '1') throw new Error('no demo on a hosted Studio');
       const [g, eng] = await Promise.all([import('@game'), import('@engine/minigames')]);
       const m = g.manifest as unknown as { images?: Record<string, [number, number]>; audio?: Record<string, unknown> };
       return {
@@ -78,6 +81,19 @@ async function demoApi(): Promise<BrowserApi> {
  * API to talk to (a static host answers 404, or a page instead of JSON).
  */
 async function pickBackend(): Promise<{ info: GameInfo; demo: BrowserApi | null }> {
+  // The Studio Server (4.2.1): its API only, never the demo; a visitor without a session logs in first.
+  if (hosting.hosted || import.meta.env.VITE_STUDIO_HOSTED === '1') {
+    const r = await studioFetch('game', { cache: 'no-store' });
+    if (r.status === 401) {
+      goLogin();
+      return new Promise(() => undefined);
+    }
+    const data = await r.json().catch(() => ({ error: `${r.status} ${r.statusText}` }));
+    if (!r.ok) throw new Error(data.error ?? `${r.status}`);
+    useApi(serverApi);
+    loginHeld();
+    return { info: data as GameInfo, demo: null };
+  }
   if (import.meta.env.VITE_STUDIO_DEMO !== '1') {
     const r = await fetch(apiUrl('game'), { cache: 'no-store' }).catch(() => null);
     const json = r?.headers.get('content-type')?.includes('json');
@@ -237,7 +253,9 @@ async function start() {
   };
 
   const nav = h('nav', { class: 'tabs', role: 'tablist' });
-  let current: TabId = (TABS.some(([t]) => t === hashTab) ? hashTab : 'rooms') as TabId;
+  // The Assets tab has no routes on the Studio Server yet: the prepared assets come with the deployment (4.2.1).
+  const tabs = hosting.hosted ? TABS.filter(([t]) => t !== 'assets') : TABS;
+  let current: TabId = (tabs.some(([t]) => t === hashTab) ? hashTab : 'rooms') as TabId;
   show = (t: TabId) => {
     current = t;
     for (const [id, el] of Object.entries(panes)) el.hidden = id !== t;
@@ -255,7 +273,7 @@ async function start() {
     if (t === 'language') void language.load();
     if (t === 'remix') void remix.load();
   };
-  for (const [id, label] of TABS) {
+  for (const [id, label] of tabs) {
     nav.append(
       h('button', { role: 'tab', dataset: { tab: id }, onclick: () => show(id) }, label, id === 'check' ? badge : null),
     );
@@ -306,23 +324,17 @@ async function start() {
       h('h1', null, 'Studio'),
       h('span', { class: 'game' }, info.title, h('span', { class: 'muted' }, ` · games/${info.id}`)),
       nav,
-      undoButtons(() => {
-        void rooms.load();
-        rooms.reloadFrame();
-        check.schedule(300);
-      }),
-      h(
-        'a',
-        {
-          class: 'play',
-          href: `${BASE}?dev`,
-          target: '_blank',
-          rel: 'noopener',
-          title: demo ? 'Play with your edits (dev tools on)' : undefined,
-        },
-        'Play ↗',
-      ),
-      assistantBtn,
+      // Undo on a shared Studio waits for 4.2.2 (personal undo): the last change may be someone else's.
+      hosting.hosted
+        ? null
+        : undoButtons(() => {
+            void rooms.load();
+            rooms.reloadFrame();
+            check.schedule(300);
+          }),
+      gameLink('?dev', 'Play ↗', { class: 'play', title: demo ? 'Play with your edits (dev tools on)' : undefined }),
+      // The Assistant on a hosted Studio comes with its own route on the server (not in this version).
+      hosting.hosted ? null : assistantBtn,
       live,
     ),
     h('main', null, ...Object.values(panes)),
@@ -343,6 +355,7 @@ async function start() {
     // `a` toggles the Assistant when nothing is being typed.
     const t = e.target as HTMLElement | null;
     if (
+      !hosting.hosted &&
       e.key === 'a' &&
       !e.metaKey &&
       !e.ctrlKey &&
@@ -359,18 +372,26 @@ async function start() {
   const es = new EventSource(apiUrl('events'));
   es.onopen = () => live.classList.add('on');
   es.onerror = () => live.classList.remove('on');
-  es.onmessage = (m) => {
-    const ev = JSON.parse(m.data) as StudioEvent;
-    if (ev.type !== 'changed') return;
+  const changed = (file: string, by?: string) => {
     const outside = Date.now() > ownUntil;
-    if (outside && /\.(ts|json)$/.test(ev.file)) toast(`${ev.file} changed on disk`, 'info');
-    rooms.onFileChanged(ev.file);
-    assets.onFileChanged(ev.file);
-    if (ev.file === 'storyboard.json' && outside) storyboard.onDiskChange();
-    if (ev.file === 'notes.json' && outside) void store.load();
-    if (outside && /\.(ts|json)$/.test(ev.file) && ev.file !== 'notes.json' && ev.file !== 'storyboard.json')
+    if (outside && /\.(ts|json)$/.test(file))
+      toast(by ? `${file} changed by ${by}` : `${file} changed on disk`, 'info');
+    rooms.onFileChanged(file);
+    assets.onFileChanged(file);
+    if (file === 'storyboard.json' && outside) storyboard.onDiskChange();
+    if (file === 'notes.json' && outside) void store.load();
+    if (outside && /\.(ts|json)$/.test(file) && file !== 'notes.json' && file !== 'storyboard.json')
       check.schedule(1000);
   };
+  // The dev server says which file changed on disk; the Studio Server, which operation committed (live.ts).
+  es.onmessage = (m) => {
+    const ev = JSON.parse(m.data) as StudioEvent;
+    if (ev.type === 'changed') changed(ev.file);
+  };
+  es.addEventListener('revision', (m) => {
+    const c = JSON.parse((m as MessageEvent).data) as { paths?: string[]; author?: string };
+    for (const f of c.paths ?? []) changed(f, c.author);
+  });
 }
 
 void start();

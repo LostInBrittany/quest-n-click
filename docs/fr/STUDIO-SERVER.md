@@ -6,9 +6,9 @@ C'est le chantier de la ligne 4.2.x (plan `docs/dev/PLAN-4.2.1-4.2.3-STUDIO-SERV
 `npm run studio` reste tel quel : rien de tout ceci n'est nécessaire.
 
 > **État (4.2.1, en cours).** Fait : le journal (aucune modification confirmée n'est perdue), les connexions et les
-> rôles, l'application de traitement, les pans et les baux, le flux en direct, l'origine propre du jeu. À venir en
-> 4.2.1 : les écrans du Studio pour tout cela, l'aperçu vivant sur l'origine du jeu, et le paquet de release. D'ici là,
-> ce guide déploie le serveur depuis le dépôt.
+> rôles, l'application de traitement, les pans et les baux, le flux en direct, l'origine propre du jeu avec son aperçu
+> vivant, et la page du Studio. À venir en 4.2.1 : les écrans du Studio pour les membres, les baux et les conflits, et
+> le paquet de release. D'ici là, ce guide déploie le serveur depuis le dépôt.
 
 ## Ce qui tourne où
 
@@ -59,6 +59,7 @@ mkdir -p ~/secrets/my-game && npm run studio-server -- worker-keys --out ~/secre
 | Variable | Valeur |
 |---|---|
 | `CC_NODE_DEV_DEPENDENCIES` | `install` (la 4.2.1 tourne depuis le dépôt, avec `tsx`) |
+| `CC_POST_BUILD_HOOK` | `npm run studio-client` (construit la page du Studio que le serveur sert) |
 | `CC_RUN_COMMAND` | `npm run studio-server -- serve` |
 | `CC_HEALTH_CHECK_PATH` | `/startz` |
 | `STUDIO_CONFIG_JSON` | la configuration ci-dessous, sur une ligne |
@@ -87,14 +88,23 @@ Clever, chacun peut être un fichier : `STUDIO_SESSION_KEY_FILE`, etc. (mode 060
 }
 ```
 
-- `publicUrl` et `playUrl` sont deux domaines de l'application studio (`clever domain add`). Deux sous-domaines de
-  votre propre domaine, c'est le mieux. Deux noms en `*.cleverapps.io` marchent aussi : le cookie de session du jeu est
-  partitionné (CHIPS), ce qui lui permet de vivre dans un cadre d'un autre site.
+- `publicUrl` et `playUrl` sont deux domaines de l'application studio (`clever domain add`). **Prenez deux
+  sous-domaines de votre propre domaine** (`studio.exemple.fr`, `play.exemple.fr`) : un seul site, et le cadre du jeu
+  garde son cookie de session dans tous les navigateurs. Deux noms en `*.cleverapps.io` sont deux sites : le cookie du
+  jeu ne vit alors dans un cadre d'un autre site que parce qu'il est partitionné (CHIPS). Chromium, Firefox et WebKit
+  sous macOS le gardent (l'e2e hébergé). WebKit sous Linux (GNOME Web) n'enregistre aucun cookie posé par un cadre d'un
+  autre hôte, même sur un seul site : les cadres du jeu y restent vides. Un vrai Safari, sous macOS et iOS, est la passe
+  `studio-hosted`.
 - `trustProxy` : les adresses des proxys de Clever, pour distinguer chaque personne (avec OIDC, le serveur refuse de
   démarrer sans). Les plages privées ci-dessus sont une hypothèse, à réduire aux vrais proxys de Clever par la passe
   `studio-hosted` : sinon, une adresse de ces plages pourrait se prétendre n'importe quel `X-Forwarded-For`.
 - Pas de `port` : le serveur écoute sur le `PORT` que Clever lui donne (un `port` dans la configuration l'emporterait).
 - `worker.instance` : un nom au choix ; le worker n'exécute les jobs d'aucun autre Studio.
+- `publicDir` (facultatif) : les images et les sons préparés du jeu, par défaut `public/` du dépôt déployé
+  (`npm run assets` les y écrit et ils sont versionnés). Le Studio les montre aux membres et l'aperçu vivant les joue ;
+  ils sont en lecture seule sur un Studio hébergé en 4.2.1.
+- `clientDir` (facultatif) : le Studio construit, par défaut `.cache/studio-client` (`npm run studio-client`). Avec
+  OIDC, le serveur refuse de démarrer sans lui.
 
 **Les variables de l'application worker :** `CC_NODE_DEV_DEPENDENCIES=install`,
 `CC_RUN_COMMAND=npm run studio-worker`, `WORKER_PUBLIC_KEY` (le contenu de `studio-worker.pub`), `WORKER_INSTANCE` (le
@@ -171,7 +181,14 @@ OIDC, avec SQLite et un dossier pour les contenus, sur le loopback seulement.
 - Un jeu par instance, une seule instance (le serveur prend un bail ; une seconde attend).
 - Le jeu dans le Studio est un aperçu vivant, pas figé à une révision : les prévisualisations par révision arrivent en
   4.2.2.
-- La découpe de planches et `prepare` (Python, ffmpeg) ne sont pas encore disponibles sur un Studio hébergé ; l'upload
-  de sons et de décors fonctionne.
+- L'onglet Assets (uploads, planches, `prepare`) n'est pas encore sur un Studio hébergé : les images et les sons
+  préparés viennent avec le déploiement (`publicDir`), et se changent sur un Studio local.
+- Un cadre de jeu resté inactif au-delà de sa session de 15 min ne montre plus rien de neuf : « Reload view » (ou
+  l'onglet Jouer) le rouvre.
 - Les captures ne sont pas disponibles sur un Studio hébergé.
+- L'onglet Jouer montre le jeu avec son panneau DEV ; l'inspecteur d'état, l'explication des règles et les rejeux à
+  côté ont besoin du jeu sur l'origine du Studio, donc du Studio local seulement.
+- L'Assistant n'est pas encore sur un Studio hébergé.
+- Le bouton Save de l'éditeur de salle ne fait rien sur un Studio hébergé : « Save layout » dans le Studio enregistre
+  (la page de l'éditeur est celle du jeu, et seul le membre lance une écriture).
 - Un jeu qui importe des fichiers hors de son propre dossier ne peut pas tourner sur le worker.

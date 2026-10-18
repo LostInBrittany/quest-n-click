@@ -25,7 +25,8 @@ describe('the plan of a change', () => {
     ['a painter', ['src/engine/dom/render-canvas.ts'], gates('e2e', 'reference', 'node24', 'windows')],
     ['the music', ['src/engine/dom/director.ts'], gates('e2e', 'reference', 'node24', 'windows')],
     ['the worker update', ['src/engine/dom/update.ts'], gates('e2e', 'pwaFirefox', 'upgrade', 'node24', 'windows')],
-    ['the Studio', ['src/studio/main.ts'], gates('e2e', 'node24', 'windows')],
+    ['the Studio', ['src/studio/main.ts'], gates('e2e', 'node24', 'studioHosted', 'windows')],
+    ['the hosted Studio in a browser', ['scripts/e2e-studio-hosted.ts'], gates('studioHosted')],
     [
       'the Studio Server',
       ['studio-server/migrations/0005.up.sql'],

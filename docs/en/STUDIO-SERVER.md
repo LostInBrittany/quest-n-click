@@ -6,9 +6,9 @@ line's work (plan `docs/dev/PLAN-4.2.1-4.2.3-STUDIO-SERVER.md`). Alone on your m
 it was: none of this is needed.
 
 > **Status (4.2.1, in progress).** Done: the journal (no confirmed change is lost), logins and roles, the processing
-> worker, spans and leases, the live stream, the game's own origin. Still coming in 4.2.1: the Studio's screens for
-> all of this, the live preview on the game's origin, and the release package. Until then, this guide deploys the
-> server from the repository.
+> worker, spans and leases, the live stream, the game's own origin with its live preview, and the Studio's page.
+> Still coming in 4.2.1: the Studio's screens for members, leases and conflicts, and the release package. Until then,
+> this guide deploys the server from the repository.
 
 ## What runs where
 
@@ -58,6 +58,7 @@ mkdir -p ~/secrets/my-game && npm run studio-server -- worker-keys --out ~/secre
 | Variable | Value |
 |---|---|
 | `CC_NODE_DEV_DEPENDENCIES` | `install` (4.2.1 runs from the repository with `tsx`) |
+| `CC_POST_BUILD_HOOK` | `npm run studio-client` (builds the Studio's page the server serves) |
 | `CC_RUN_COMMAND` | `npm run studio-server -- serve` |
 | `CC_HEALTH_CHECK_PATH` | `/startz` |
 | `STUDIO_CONFIG_JSON` | the configuration below, on one line |
@@ -86,14 +87,22 @@ Clever, each can be a file instead: `STUDIO_SESSION_KEY_FILE`, and so on (mode 0
 }
 ```
 
-- `publicUrl` and `playUrl` are two domains of the studio app (`clever domain add`). Two subdomains of your own
-  domain are best. Two `*.cleverapps.io` names also work: the game's session cookie is partitioned (CHIPS), which is
-  what lets it live in a frame of another site.
+- `publicUrl` and `playUrl` are two domains of the studio app (`clever domain add`). **Use two subdomains of your own
+  domain** (`studio.example.fr`, `play.example.fr`): one site, so the game's frame keeps its session cookie in every
+  browser. Two `*.cleverapps.io` names are two sites: the game's cookie then lives in a frame of another site only
+  because it is partitioned (CHIPS). Chromium, Firefox and WebKit on macOS keep it (the hosted e2e). WebKit on Linux
+  (GNOME Web) stores no cookie a frame of another host sets, even on one site: the game's frames stay empty there. A
+  real Safari, on macOS and iOS, is the `studio-hosted` pass.
 - `trustProxy`: the addresses of Clever's proxies, so that each person is told apart (the server refuses to start
   with OIDC and none). The private ranges above are an assumption, to be narrowed to Clever's actual proxies by the
   `studio-hosted` pass: an address in them could otherwise claim any `X-Forwarded-For`.
 - No `port`: the server listens on the `PORT` Clever gives it (a `port` in the configuration would override it).
 - `worker.instance`: any name; the worker runs no other Studio's jobs.
+- `publicDir` (optional): the game's prepared images and sounds, `public/` of the deployed repository by default
+  (`npm run assets` writes them there and they are committed). The Studio shows them to members and the live preview
+  plays them; they are read only on a hosted Studio in 4.2.1.
+- `clientDir` (optional): the built Studio, `.cache/studio-client` by default (`npm run studio-client`). With OIDC the
+  server refuses to start without it.
 
 **The worker app's variables:** `CC_NODE_DEV_DEPENDENCIES=install`, `CC_RUN_COMMAND=npm run studio-worker`,
 `WORKER_PUBLIC_KEY` (the content of `studio-worker.pub`), `WORKER_INSTANCE` (the same name as `worker.instance`).
@@ -168,7 +177,13 @@ SQLite and a folder for the contents, on the loopback only.
 
 - One game per instance, one instance (the server takes a lease; a second one waits).
 - The game in the Studio is a live preview, not frozen at a revision: per-revision previews come in 4.2.2.
-- Cutting sprite sheets and `prepare` (Python, ffmpeg) are not available on a hosted Studio yet; uploading sounds
-  and backgrounds works.
+- The Assets tab (uploads, sprite sheets, `prepare`) is not on a hosted Studio yet: the prepared images and sounds
+  come with the deployment (`publicDir`), and are changed on a local Studio.
+- A game frame left idle past its 15 min session shows nothing new: "Reload view" (or the Play tab) opens it again.
 - Captures are not available on a hosted Studio.
+- The Play tab shows the game with its DEV panel; the state inspector, the rule explainer and the replays beside it
+  need the game on the Studio's origin, so the local Studio only.
+- The Assistant is not on a hosted Studio yet.
+- The room editor's own Save does nothing on a hosted Studio: "Save layout" in the Studio saves (the editor's page is
+  the game's, and only the member starts a write).
 - A game that imports files outside its own folder cannot run on the worker.

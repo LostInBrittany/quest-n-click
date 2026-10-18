@@ -53,7 +53,8 @@
   ],
   "ignoreBinaries": [
     "ffmpeg",
-    "ffprobe"
+    "ffprobe",
+    "openssl"
   ],
   "rules": {
     "files": "error",

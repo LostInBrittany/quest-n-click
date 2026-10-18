@@ -7,8 +7,8 @@
 - the game's files are written through a journal that is durable and fenced;
 - hosted, the truth is PostgreSQL and an S3 store (Cellar), and the instance's folder is a cache.
 
-4.2.1 serves the API, the authentication and the members. The game's origin and its tickets (§6.1 of the plan) come
-with the client; the processing worker (§3.8) with PR I.
+4.2.1 serves the API, the authentication and the members, the processing worker (§3.8), the game's origin with its
+tickets and its live preview (§6.1, §6.2), and the Studio's page.
 
 **Assets:**
 - the game's sources and assets, which are private to the project;
@@ -39,6 +39,9 @@ with the client; the processing worker (§3.8) with PR I.
 | A live stream wearing the server down | One read of the leases per change for all the streams (coalesced, in order); a stream more than 1 MiB behind is closed (its client reconnects and reads `/api/ops`); a stream's check of its credential never keeps the session alive | review |
 | A member overwriting another's work | Every file belongs to one span; a write claims the spans of its files, all or none, in the transaction of its intent; a span another member holds is a 423 naming them; leases last 120 s, renewed by the heartbeat; a client sending its fences is refused once its lease was taken over; the exclusive lease waits for no span held by another and blocks every claim; a removed or demoted member's leases are released at once | `tests/studio-collab.test.ts` (and the race on Postgres) |
 | A hostile game in a member's browser | Everything that runs the game is served on `playUrl`, another origin, chosen by `Host`; it serves no Studio API and the Studio's `__Host-` cookie never goes there. Access is a game session made from a ticket (once, 60 s, a member's browser session, a relative path) and kept in a partitioned cookie (`SameSite=None; Partitioned`), 15 min sliding, never past its Studio session nor R = 15 min after the provider last confirmed that session; every request checks the game session, its Studio session and the membership again. Answers carry `frame-ancestors` the Studio and `no-referrer` | `tests/studio-play.test.ts` |
+| The Studio's page running foreign code | The page and its scripts come from the Studio's origin only (`script-src 'self'`); it frames the game's origin only (`frame-src`), is framed by nobody else (`frame-ancestors 'self'`) and calls its own origin only (`connect-src 'self'`). It holds no data: the game's images and sounds on that origin are served to members only | `tests/studio-client.test.ts` |
+| The live preview serving the engine's folder | Vite runs in middleware mode behind the game session, GET only, with no websocket (its client module is a stub), answering the game's host only, without CORS. Before Vite, an allow-list of the paths a game page loads: the page, the engine's sources, Vite's environment, its virtual modules (`/@id/__x00__` only), the pre-bundled dependencies, the prepared assets, and the game's folder, never its `private/`, `tests/` or `playtests/`. Behind it, Vite's own `fs.strict` with the same folders, and those three in its `fs.deny` | `tests/studio-client.test.ts` (no `package.json`, no tool, no server file, no private note, no `/@fs/` outside, no Studio API, no write), `scripts/e2e-studio-hosted.ts` |
+| A hostile game writing in a member's name | On the game's origin the room editor never writes. A save starts only from the member: the Studio's "Save layout", or their yes before a change that would reload the view (the view's own messages never start one). The Studio takes a layout from the view only as the answer to that request (a nonce), for the room it shows, from the exact game origin, then writes it itself as the member, under their lease. The game's page cannot read the Studio's page, nor call its API with the member's session (no cookie crosses, CORS refuses) | `scripts/e2e-studio-hosted.ts` (Chromium and WebKit: a layout sent unasked is ignored; the parent, the API and a write are out of reach) |
 | An owner's takeover abused | Owners only; audited with the previous holder | `tests/studio-collab.test.ts` |
 | A user disabled at the provider | The session is re-checked every 5 min with its refresh token. A definitive refusal ends it; a provider unreachable past R = 15 min suspends it (503, fail closed). One refresh per session at a time, and a slow one still stores the rotated token, so a provider that revokes used refresh tokens never logs anyone out by mistake. A refresh token that no longer opens ends the session. `invalid_client` (our own configuration) is not a refusal of the user | test (simulated clock: disabled, down 16 min, back; 5 concurrent requests, one refresh; a 6 s refresh; an unreadable token); `tests/studio-keycloak.test.ts` (a user disabled in a real Keycloak: the next refresh is refused for good) |
 | A forged back-channel logout | Form-encoded `logout_token` checked per OIDC Back-Channel Logout 1.0 (signature, `typ`, issuer, audience = client, `events` with an object for the event, no `nonce`, `iat` ≤ 5 min, `jti` never seen). With a `sid`, only that provider session ends; a `sub` alone ends every session and token of the user | test (replay, nonce, no event, JSON body, `sid` + `sub` leaves the other devices); `tests/studio-keycloak.test.ts` (a logout token a real Keycloak sends, verified) |
@@ -69,11 +72,18 @@ with the client; the processing worker (§3.8) with PR I.
 - **A lease names a span, not a member's intent:** a member holding a room may write anything in it. Spans are the
   unit of coordination between trusted members, not of authorisation.
 - **The game session's cookie is partitioned (CHIPS)** because `*.cleverapps.io` makes the two origins different
-  sites. Spike S found it accepted by Chromium, Firefox and WebKit with default settings; a real Safari, on macOS and
-  iOS, is checked by the `studio-hosted` pass. Two origins on one site (a custom domain) need nothing more.
+  sites. Spike S found it accepted by Chromium, Firefox and WebKit with default settings, and the hosted e2e by
+  Chromium, Firefox (CI) and WebKit on macOS. WebKit on Linux stores no cookie a frame of another host sets, even on
+  one site, so it is not in CI and cannot stand for Safari; a real Safari, on macOS and iOS, is checked by the
+  `studio-hosted` pass. A browser that refuses the cookie fails closed: the game's frame stays empty.
 - **A ticket travels in a URL** (`/_ticket?t=`): a proxy in front of the server may log it. It is used once within 60 s,
   so a logged ticket is spent; the server's own log records the path without the query.
 - **Login CSRF on the game's origin:** someone who gets a member to open their own ticket puts that member's game frame
   in their game session. It stays within the same project and reads only its previews.
+- **Vite on the game's origin (4.2.1):** the live preview is Vite in middleware mode, behind the game session and an
+  allow-list. Its code is exposed to members' requests until 4.2.2 replaces it with per-revision builds.
+- **A hostile game can alter the layout being saved**, in the room its member is editing: the editor runs in its
+  page. The write is still the member's own, in that room only, through the guard.
+- **The live preview is not frozen:** a module loaded later may come from a later revision (plan §6.2).
 - **Presence lives in memory** and is lost on a restart (members reappear at their next heartbeat).
 - **`fsync` on macOS is not `F_FULLFSYNC`.** This only matters in local mode.
