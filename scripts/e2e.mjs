@@ -132,9 +132,22 @@ try {
 } finally {
   await harness.close();
 }
-if (harness.errors.length) {
-  console.error(`e2e: ${harness.errors.length} browser error(s):`);
-  harness.errors.forEach((e) => console.error('  ' + e));
+// WebKit's "Context is stopped" (as in scripts/e2e-pwa.mjs since 4.1.20; here first on #139, 18 Oct 2026): the
+// browser's context stopping as the run ends, a Cache API call cut short. Reported, not counted, only once every check
+// passed (`ok` still true); before that, or in another browser, it is a failure like any error.
+const contextStopped = (e) =>
+  ok && (process.env.E2E_BROWSER ?? 'chromium') === 'webkit' && /\bContext is stopped\b/.test(e);
+const stopped = harness.errors.filter(contextStopped);
+if (stopped.length) {
+  console.log(
+    `e2e: webkit: "Context is stopped" after every check passed (WebKit tearing down; reported, not counted)`,
+  );
+  if (process.env.GITHUB_ACTIONS) console.log('::warning::e2e webkit: "Context is stopped" after every check passed');
+}
+const browserErrors = harness.errors.filter((e) => !contextStopped(e));
+if (browserErrors.length) {
+  console.error(`e2e: ${browserErrors.length} browser error(s):`);
+  browserErrors.forEach((e) => console.error('  ' + e));
   ok = false;
 }
 process.exit(ok ? 0 : 1);
