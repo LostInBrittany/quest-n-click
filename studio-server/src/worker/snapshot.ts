@@ -9,12 +9,14 @@ const TEXT = /\.(ts|mts|cts|tsx|js|mjs|cjs|jsx|json|md)$/;
 const MAX_FILES = 5_000;
 const MAX_BYTES = 32 * 1024 * 1024;
 
-export function packSnapshot(dir: string): Buffer {
+/** `playtests`: their sessions too (the `playtests` job replays them; nothing else needs them). */
+export function packSnapshot(dir: string, o: { playtests?: boolean } = {}): Buffer {
   const files: { path: string; text: string }[] = [];
   let bytes = 0;
   const walk = (d: string, top: boolean) => {
     for (const e of readdirSync(d, { withFileTypes: true })) {
-      if (e.name.startsWith('.') || e.name === 'node_modules' || (top && SKIP_DIR.test(e.name))) continue;
+      if (e.name.startsWith('.') || e.name === 'node_modules') continue;
+      if (top && SKIP_DIR.test(e.name) && !(o.playtests && e.name === 'playtests')) continue;
       const p = join(d, e.name);
       if (e.isDirectory()) walk(p, false);
       else if (e.isFile() && TEXT.test(e.name)) {

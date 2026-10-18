@@ -10,6 +10,7 @@ import {
   type PlaytestsData,
   type PuzzleData,
   type ReportData,
+  revisionOf,
   type SolveData,
   type ValidateResult,
 } from './api';
@@ -48,6 +49,9 @@ export class CheckTab {
   private shot = h('div', { class: 'shot' });
   private runBtn = h('button', { class: 'primary', onclick: () => void this.run() }, 'Run again');
   private stamp = h('span', { class: 'muted small' });
+  /** The revisions the shown results were made at (a hosted Studio), and the head now: stale once it has moved on. */
+  private revs: number[] = [];
+  private head?: () => number;
 
   constructor(
     info: GameInfo,
@@ -117,6 +121,22 @@ export class CheckTab {
     this.render();
   }
 
+  /** A hosted Studio: results are marked stale as soon as the head moves past the revision they were made at. */
+  follow(head: () => number, onChange: (fn: () => void) => void) {
+    this.head = head;
+    onChange(() => this.drawStamp());
+  }
+
+  private at = '';
+  private drawStamp() {
+    const [lo, hi] = [Math.min(...this.revs), Math.max(...this.revs)];
+    const rev = this.revs.length ? (lo === hi ? ` · revision ${hi}` : ` · revisions ${lo}–${hi}`) : '';
+    const now = this.head?.();
+    const stale = this.revs.length > 0 && now !== undefined && now > hi;
+    this.stamp.textContent = `${this.at}${rev}${stale ? ` · stale: the head is at revision ${now}` : ''}`;
+    this.stamp.classList.toggle('stale', stale);
+  }
+
   /** Run soon (debounced): after every save. */
   schedule(ms = 700) {
     clearTimeout(this.timer);
@@ -146,7 +166,11 @@ export class CheckTab {
     } finally {
       this.running = false;
       this.runBtn.disabled = false;
-      this.stamp.textContent = `checked at ${new Date().toLocaleTimeString()}`;
+      this.at = `checked at ${new Date().toLocaleTimeString()}`;
+      this.revs = [this.v, this.s, this.g, this.r, this.p, this.c, this.l, this.pt]
+        .map(revisionOf)
+        .filter((n): n is number => n !== undefined);
+      this.drawStamp();
       this.render();
     }
   }

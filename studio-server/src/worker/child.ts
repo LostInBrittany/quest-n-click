@@ -1,13 +1,14 @@
 // The worker's child process (4.2.1, ADR 0028): runs the game's code in the folder it is given and prints one JSON
 // document to the file it is given: `validate`, the validator's verdict; `load`, the game module as data (functions
 // dropped, as the Studio reads it); `preview` (4.2.2), the revision's built preview, its files in base64 by path
-// (preview-build.ts). It is started with an emptied environment, in a fresh folder, and killed with its process group
+// (preview-build.ts); `lint`, `solve`, `playtests` (4.2.2), those diagnostics (ops/diagnose.ts). It is started with an emptied environment, in a fresh folder, and killed with its process group
 // at its deadline; the game's code runs here, never in the supervisor... as far as one machine and one user allow
 // (ADR 0028).
 import { writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { tsImport } from 'tsx/esm/api';
+import type { GameModule } from '../../../tools/game';
 import { validateDir } from '../ops/validate-dir';
 
 const ROOT = fileURLToPath(new URL('../../../', import.meta.url));
@@ -22,6 +23,22 @@ if (kind === 'preview') {
     outFile,
     JSON.stringify({ files: Object.fromEntries([...files].map(([k, v]) => [k, v.toString('base64')])) }),
   );
+} else if (kind === 'lint' || kind === 'solve' || kind === 'playtests') {
+  const d = await import('../ops/diagnose');
+  const mod = (await importFresh(join(dir, 'index.ts'))) as GameModule;
+  const p = JSON.parse(params ?? '{}') as Record<string, unknown>;
+  try {
+    const out =
+      kind === 'lint'
+        ? await d.lintIn(dir, mod, p.prove === true)
+        : kind === 'solve'
+          ? await d.solveIn(dir, mod, d.solveParams(p))
+          : await d.playtestsIn(dir, mod);
+    writeFileSync(outFile, JSON.stringify({ data: out }));
+  } catch (e) {
+    // A refusal of the diagnostic itself (an unknown checkpoint): said, as the local route says it.
+    writeFileSync(outFile, JSON.stringify({ error: String((e as Error).message).slice(0, 2_000) }));
+  }
 } else if (kind === 'load') {
   const m = await importFresh(join(dir, 'index.ts'));
   writeFileSync(

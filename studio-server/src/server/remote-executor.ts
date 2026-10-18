@@ -13,6 +13,7 @@ import { type Job, type JobKind, MAX_JOB_MS, privateKeyOf, signJob } from '../wo
 import type { JobResult } from '../worker/main';
 import { PreviewBuildFailed, type PreviewParams, previewFiles } from '../worker/preview-build';
 import { packSnapshot } from '../worker/snapshot';
+import type { DiagnoseKind } from '../ops/diagnose';
 import type { S3 } from './s3';
 
 export interface RemoteExecutorOptions {
@@ -41,7 +42,9 @@ export function remoteExecutor(o: RemoteExecutorOptions) {
     at?: { epoch: string; rev: number },
   ): Promise<JobResult> {
     const sha = createHash('sha256').update(snapshot).digest('hex');
-    const hit = kind === 'preview' ? undefined : last.get(kind);
+    // Only an answer that depends on the snapshot alone is kept (a diagnostic depends on its parameters too).
+    const cached = kind === 'validate' || kind === 'load';
+    const hit = cached ? last.get(kind) : undefined;
     if (hit?.sha === sha && Date.now() - hit.at < CACHE_MS) return hit.result;
     const id = randomUUID();
     const dest = `staging/${id}/`;
@@ -79,7 +82,7 @@ export function remoteExecutor(o: RemoteExecutorOptions) {
         throw new Error('the processing worker result does not answer this job');
       if (!v.failed && kind === 'preview' && !previewFiles(v.files))
         throw new Error('the processing worker result does not answer this job');
-      if (!v.failed && kind !== 'preview') last.set(kind, { sha, at: Date.now(), result: v });
+      if (!v.failed && cached) last.set(kind, { sha, at: Date.now(), result: v });
       return v;
     } finally {
       await Promise.all([o.s3.delete(`${dest}snapshot.json`), o.s3.delete(`${dest}result.json`)]).catch(() => {});
@@ -100,6 +103,15 @@ export function remoteExecutor(o: RemoteExecutorOptions) {
       if (v.failed) throw new Error(v.failed);
       // A copy: a reader that normalises what it got never changes what the next reader gets.
       return structuredClone(v.module);
+    },
+    /**
+     * A diagnostic that runs the game's code (4.2.2 PR 3): lint, solve, playtests, as the Studio's route answers it.
+     * A failure of the game's code throws, as a local run would.
+     */
+    async diagnose(kind: DiagnoseKind, dir: string, params: Record<string, unknown>): Promise<unknown> {
+      const v = await run(kind, packSnapshot(dir, { playtests: kind === 'playtests' }), params);
+      if (v.failed) throw new Error(v.failed);
+      return structuredClone(v.data);
     },
     /**
      * A revision's preview (4.2.2 PR 2), from the snapshot the caller packed with the revision it names: its files by

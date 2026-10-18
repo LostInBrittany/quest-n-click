@@ -206,6 +206,9 @@ SQLite and a folder for the contents, on the loopback only.
   latest preview".
 - A preview is built from the game's text files only (sources, data): a game whose code imports a stylesheet or an
   image cannot be previewed.
+- The diagnostics that run the game's code (lint, solve, playtests) run on the worker, with the game's own commands
+  (4.2.2); the solver stops after 45 s there and says it was cut short. Every read says the revision it was made at:
+  the Check tab shows it, and marks its results stale once the head has moved on.
 - The worker runs one job at a time: a preview's build can delay the next change's validation by its own time
   (about half a second for the sample game on a laptop; not yet measured on a Clever worker, the `studio-preview`
   pass does).

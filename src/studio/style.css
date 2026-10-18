@@ -23,6 +23,7 @@ input[type=text], input[type=search], select, textarea { background: #0a0f1a; bo
 textarea { resize: none; width: 100%; overflow: hidden; }
 code { font: 12px ui-monospace, Menlo, monospace; color: var(--blue); }
 .muted { color: var(--muted); }
+.muted.stale { color: var(--yellow); }
 .small { font-size: 12px; }
 .error, .bad { color: var(--red); }
 .ok { color: var(--green); }

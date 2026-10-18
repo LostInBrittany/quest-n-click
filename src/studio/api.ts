@@ -130,8 +130,17 @@ async function call<T>(method: string, path: string, body?: unknown, quiet = fal
     }
     throw err;
   }
+  // The revision the answer was made at (a hosted Studio's reads, 4.2.2): kept beside it, for `revisionOf`.
+  const rev = Number(r.headers.get('x-studio-revision') ?? Number.NaN);
+  if (Number.isSafeInteger(rev) && data && typeof data === 'object') revisions.set(data, rev);
   return data as T;
 }
+
+const revisions = new WeakMap<object, number>();
+
+/** The revision an answer of the hosted Studio was made at; undefined elsewhere (the dev server, the demo). */
+export const revisionOf = (answer: unknown): number | undefined =>
+  answer && typeof answer === 'object' ? revisions.get(answer) : undefined;
 
 type Storyboard = Record<string, unknown> & { boards: unknown[] };
 

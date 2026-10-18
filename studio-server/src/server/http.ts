@@ -399,6 +399,9 @@ export function studioServer(o: StudioServerOptions): StudioHttpServer {
       // A retry that arrived while the first try was running (a cut, a proxy's 504) waits for the lock behind it, then
       // finds its answer there: the write is applied once, and the retry gets the first answer.
       let replayed: Record<string, unknown> | undefined;
+      // A read says the revision it was made at (4.2.2, G3: a diagnostic shown at a later head is stale), read under the
+      // same lock as the answer: no write lands between them.
+      let revision: number | undefined;
       const result = await (write
         ? lock.write(async () => {
             replayed = await answered();
@@ -415,10 +418,13 @@ export function studioServer(o: StudioServerOptions): StudioHttpServer {
             }
             return r;
           })
-        : lock.read(run));
+        : lock.read(async () => {
+            revision = await o.journal.revision();
+            return run();
+          }));
       if (replayed)
         return send(res, Number(replayed.status), JSON.parse(String(replayed.body)), { 'x-studio-replayed': '1' });
-      return send(res, 200, result);
+      return send(res, 200, result, revision === undefined ? {} : { 'x-studio-revision': String(revision) });
     } catch (e) {
       if (isStudioError(e)) {
         // Refused credentials are counted per address; past the limit that address gets 429 for its refusals only.
