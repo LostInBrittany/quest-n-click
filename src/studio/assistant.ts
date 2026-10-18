@@ -13,8 +13,7 @@ import type {
   ProviderKind,
 } from '../../tools/studio/assistant-loop';
 import type { DocName, ToolBackend } from '../../tools/studio/tools';
-import { api, type GameInfo } from './api';
-import { studioFetch } from './api-base';
+import { api, studioFetch, type GameInfo } from './api';
 import type { BrowserApi } from './api-browser';
 import { h, select, toast } from './ui';
 import { must } from '../engine/core/must';

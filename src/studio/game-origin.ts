@@ -12,6 +12,9 @@ export const gameOrigin = (): string => hosting.play ?? location.origin;
 /** Whether the game is on another origin: the Studio then cannot reach into its frame (`window.__game`). */
 export const gameElsewhere = (): boolean => hosting.hosted;
 
+/** The URL of a page of the game here, or null on a hosted Studio (it then needs a ticket: `gameUrl`). */
+export const localGameUrl = (query: string): string | null => (hosting.hosted ? null : `${BASE}${query}`);
+
 /** The URL of a page of the game (`?dev`, `?edit=garden`): here, or on the game's origin with a fresh ticket. */
 export async function gameUrl(query: string): Promise<string> {
   if (!hosting.hosted) return `${BASE}${query}`;

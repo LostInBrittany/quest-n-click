@@ -25,6 +25,7 @@ import type {
   ValidateResult,
 } from '../../tools/studio/types';
 import { hosting, loginUrl, studioFetch } from './api-base';
+export { studioFetch };
 
 export type * from '../../tools/studio/types';
 

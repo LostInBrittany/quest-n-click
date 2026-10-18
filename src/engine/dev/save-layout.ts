@@ -28,3 +28,7 @@ export async function putLayout(room: string, layout: unknown): Promise<{ offlin
     return { offline: true };
   }
 }
+
+/** The Studio's origin: another one when this page is on a hosted Studio's game origin, named by its meta tag (4.2.1). */
+export const studioOrigin = (): string =>
+  document.querySelector('meta[name="web-scumm-studio-origin"]')?.getAttribute('content') ?? location.origin;

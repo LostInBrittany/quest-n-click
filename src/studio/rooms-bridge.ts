@@ -8,7 +8,7 @@
 // save request (its nonce), for the room shown. The write is the Studio's, as the member, under their lease.
 import type { Id, Layout } from '@engine/core/types';
 import { api, type EditorToStudio, type StudioToEditor } from './api';
-import { gameElsewhere, gameOrigin, gameUrl } from './game-origin';
+import { gameElsewhere, gameOrigin, gameUrl, localGameUrl } from './game-origin';
 import type { Sel } from './rooms-text';
 import { h, toast } from './ui';
 
@@ -70,6 +70,11 @@ export class EditorBridge {
 
   /** Points the frame at the view (hosted: with a fresh ticket). */
   private async navigate() {
+    const here = localGameUrl(this.query());
+    if (here !== null) {
+      this.frame.src = here;
+      return;
+    }
     try {
       this.frame.src = await gameUrl(this.query());
     } catch (e) {

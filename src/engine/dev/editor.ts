@@ -3,7 +3,7 @@ import type { App } from '../dom/app';
 import type { Id, Layout, Point } from '../core/types';
 import { FLOOR } from '../core/define';
 import { Overlay, type Handle } from './overlay';
-import { putLayout } from './save-layout';
+import { putLayout, studioOrigin } from './save-layout';
 import { must } from '../core/must';
 
 type Drag = { h: Handle; start: Point; orig: unknown };
@@ -74,14 +74,9 @@ export class Editor {
   // -------------------------------------------------------------- Studio bridge
   // Inside the Studio (an iframe of /__studio/), the editor tells the parent page what is selected, whether the
   // layout has unsaved changes and when it was saved; the Studio can ask it to select, place or save something.
-  // On a hosted Studio (4.2.1) this page is on the game's origin, which names the Studio's in a meta tag
-  // (studio-server/src/server/preview.ts): messages go there and are taken from there only, and the editor never
-  // writes: it hands the layout to the Studio as the answer to the Studio's save request.
-
-  /** The Studio's origin when it is another one (hosted), else this page's. */
-  private studioOrigin =
-    document.querySelector('meta[name="web-scumm-studio-origin"]')?.getAttribute('content') ?? location.origin;
-  private hosted = this.studioOrigin !== location.origin;
+  // Hosted (4.2.1), the Studio is another origin (save-layout.ts): messages go there only, and the Studio writes.
+  private studioOrigin = studioOrigin();
+  private hosted = this.studioOrigin !== location.origin && window.parent !== window;
 
   private post(msg: Record<string, unknown>) {
     if (window.parent === window) return;
@@ -462,21 +457,12 @@ export class Editor {
    * straight into the demo's edits in localStorage: the engine applies them on the next load.
    */
   async save(nonce?: string) {
-    // Hosted: the Studio writes. The editor's own Save asks it to; its request (with a nonce) gets the layout.
-    if (this.hosted && window.parent !== window) {
-      if (nonce === undefined) return this.post({ type: 'want-save' });
-      const L = roundLayout(this.L);
-      this.app.engine.layouts[this.room.id] = L;
-      this.dirty = false;
-      this.status.state = `sent to the Studio (${new Date().toLocaleTimeString()})`;
-      this.post({ type: 'saved', ok: true, layout: L, nonce });
-      this.pane.refresh();
-      return;
-    }
+    // Hosted: the editor's own Save asks the Studio, whose request (with a nonce) gets the layout.
+    if (this.hosted && nonce === undefined) return this.post({ type: 'want-save' });
     const L = roundLayout(this.L);
     this.app.engine.layouts[this.room.id] = L;
     let error = '';
-    let offline = import.meta.env.VITE_STUDIO_DEMO === '1';
+    let offline = import.meta.env.VITE_STUDIO_DEMO === '1' || this.hosted;
     if (!offline) {
       const r = await putLayout(this.room.id, L);
       if ('offline' in r) offline = true;
@@ -494,7 +480,7 @@ export class Editor {
       this.post({ type: 'saved', ok: true });
     } else if (window.parent !== window) {
       done();
-      this.post({ type: 'saved', ok: true, layout: L });
+      this.post({ type: 'saved', ok: true, layout: L, nonce });
     } else if (this.opts.saveOffline) {
       await this.opts.saveOffline(this.room.id, L);
       done();
