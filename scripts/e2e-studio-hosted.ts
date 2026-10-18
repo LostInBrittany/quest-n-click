@@ -91,8 +91,11 @@ const preview = await livePreview({
   game: 'demo',
   publicDir: join(ROOT, 'public'),
   studioOrigin: studioUrl,
+  playUrl,
   engineRoot: ROOT,
 });
+// As the server does (main.ts): the preview reads the folder again after each revision.
+journal.events.on('confirmed', () => preview.invalidate());
 const server = studioServer({
   studio: createStudio({ gameDir, root: tmp, journal, importFresh: importInChild }),
   journal,
@@ -175,7 +178,7 @@ try {
   await page.goto(`${studioUrl}/auth/login?invite=${invite}&returnTo=${encodeURIComponent('/#rooms/garden')}`);
   await page.locator('header.top .game').waitFor({ timeout: 30_000 });
   check('the member logs in and the Studio loads', (await page.locator('header.top .game').innerText()).length > 0);
-  check('no undo on a shared Studio', (await page.getByRole('button', { name: /^Undo/ }).count()) === 0);
+  check('no undo on a shared Studio', (await page.getByRole('button', { name: /Undo/ }).count()) === 0);
 
   // 2. Rooms: the editor comes from the game's origin.
   const editor = page.frameLocator('iframe.engine');
@@ -193,18 +196,63 @@ try {
   for (let i = 0; i < 40 && !puts.length; i++) await page.waitForTimeout(250);
   check('"Save layout" has the Studio write the editor\'s layout', puts[0] === 200, `PUT ${puts.join(', ')}`);
 
-  // 4. A layout sent unasked (no nonce) is ignored.
+  // 4. A layout sent unasked is ignored: without a nonce, with a stale one, for another room.
   const n = puts.length;
+  // (No function declared inside: tsx would name it with a helper the page does not have.)
   await frame.evaluate((studio) => {
-    window.parent.postMessage(
-      { source: 'web-scumm-editor', type: 'saved', room: 'garden', ok: true, layout: { entries: { default: [1, 1] } } },
-      studio,
-    );
+    for (const extra of [{}, { nonce: 'a-nonce-the-studio-never-sent' }, { room: 'house', nonce: 'x' }])
+      window.parent.postMessage(
+        {
+          source: 'web-scumm-editor',
+          type: 'saved',
+          room: 'garden',
+          ok: true,
+          layout: { entries: { default: [1, 1] } },
+          ...extra,
+        },
+        studio,
+      );
   }, studioUrl);
   await page.waitForTimeout(1500);
-  check('a layout the editor sends unasked is ignored', puts.length === n);
+  check('a layout the editor sends unasked is ignored (no nonce, a stale one, another room)', puts.length === n);
+
+  // 4b. A layout written meanwhile is what the view shows after "Reload view" (the preview reads the folder again).
+  const moved = await page.evaluate(async () => {
+    const r = await fetch('/api/room/garden', { headers: { 'x-studio-request': '1' } });
+    const layout = ((await r.json()) as { layout: { entries?: Record<string, number[]> } }).layout;
+    layout.entries = { ...layout.entries, default: [123, 321] };
+    const w = await fetch('/api/room/garden/layout', {
+      method: 'PUT',
+      headers: { 'content-type': 'application/json', 'x-studio-request': '1' },
+      body: JSON.stringify(layout),
+    });
+    return w.status;
+  });
+  await page.getByRole('button', { name: 'Reload view' }).click();
+  let shown: unknown;
+  for (let i = 0; i < 60; i++) {
+    await page.waitForTimeout(250);
+    const f = page.frames().find((x) => x.url().startsWith(playUrl) && x.url().includes('edit='));
+    shown = await f
+      ?.evaluate(
+        () =>
+          (
+            window as unknown as {
+              __game?: { engine: { layouts: Record<string, { entries?: Record<string, number[]> }> } };
+            }
+          ).__game?.engine.layouts.garden?.entries?.default,
+      )
+      .catch(() => undefined);
+    if (JSON.stringify(shown) === '[123,321]') break;
+  }
+  check(
+    'a layout written meanwhile is what the reloaded view shows',
+    moved === 200 && JSON.stringify(shown) === '[123,321]',
+    `PUT ${moved}, shown ${JSON.stringify(shown)}`,
+  );
 
   // 5. The game's page cannot reach the Studio.
+  await page.evaluate(() => localStorage.setItem('e2e.studio-secret', 'the Studio keeps this'));
   const reach = await frame.evaluate(async (studio) => {
     let parent = 'readable';
     try {
@@ -231,7 +279,13 @@ try {
     } catch {
       write = 'blocked';
     }
-    return { parent, api, write };
+    let storage = 'unread';
+    try {
+      storage = localStorage.getItem('e2e.studio-secret') ?? 'absent';
+    } catch {
+      storage = 'blocked';
+    }
+    return { parent, api, write, storage };
   }, studioUrl);
   check("the game's page cannot read the Studio's page", reach.parent === 'blocked');
   check(
@@ -240,6 +294,7 @@ try {
     reach.api,
   );
   check("the game's page cannot write through the Studio's API", reach.write === 'blocked', reach.write);
+  check("the game's page cannot read the Studio's storage", reach.storage !== 'the Studio keeps this', reach.storage);
 
   // 6. Play: the game runs on its origin.
   await page.getByRole('tab', { name: 'Play' }).click();

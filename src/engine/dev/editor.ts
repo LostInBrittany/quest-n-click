@@ -457,8 +457,8 @@ export class Editor {
    * straight into the demo's edits in localStorage: the engine applies them on the next load.
    */
   async save(nonce?: string) {
-    // Hosted: the editor's own Save asks the Studio, whose request (with a nonce) gets the layout.
-    if (this.hosted && nonce === undefined) return this.post({ type: 'want-save' });
+    // Hosted: only the Studio's own Save (a request with a nonce) gets the layout; this pane's Save says so.
+    if (this.hosted && nonce === undefined) return void (this.status.state = 'save with "Save layout" in the Studio');
     const L = roundLayout(this.L);
     this.app.engine.layouts[this.room.id] = L;
     let error = '';

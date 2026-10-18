@@ -1,7 +1,7 @@
 // Where the game runs (4.2.1, plan §6.1). On the dev server, beside the Studio. On the Studio Server, on the game's
 // own origin: its code never runs with a member's Studio session. A page of it is opened with a ticket (used once,
 // within 60 s) that the Studio asks for; the ticket becomes a game session on that origin.
-import { hosting, loginUrl, studioFetch } from './api-base';
+import { goLogin, hosting, studioFetch } from './api-base';
 import { h } from './ui';
 
 const BASE: string = import.meta.env.BASE_URL ?? '/';
@@ -23,7 +23,7 @@ export async function gameUrl(query: string): Promise<string> {
     headers: { 'content-type': 'application/json' },
     body: JSON.stringify({ path: `/${query}` }),
   });
-  if (r.status === 401) location.assign(loginUrl());
+  if (r.status === 401) goLogin();
   const data = (await r.json().catch(() => ({}))) as { url?: string; error?: string };
   if (!r.ok || !data.url) throw new Error(data.error ?? `${r.status} ${r.statusText}`);
   return data.url;

@@ -287,9 +287,7 @@ export type EditorToStudio =
       error?: string;
       layout?: Layout;
       nonce?: string;
-    }
-  /** The view's own Save on a hosted Studio: the Studio then asks for the layout (`save` with a nonce). */
-  | { source: 'web-scumm-editor'; type: 'want-save'; room: Id };
+    };
 
 export type StudioToEditor =
   | { source: 'web-scumm-studio'; type: 'select'; kind: EntityKind; id: Id }

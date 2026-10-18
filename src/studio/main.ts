@@ -18,7 +18,7 @@ import { RoomsTab } from './rooms';
 import { StoryboardTab } from './storyboard';
 import { download, h, toast } from './ui';
 import { must } from '../engine/core/must';
-import { apiUrl, hosting, loginUrl, studioFetch } from './api-base';
+import { apiUrl, goLogin, hosting, loginHeld, studioFetch } from './api-base';
 import { gameLink } from './game-origin';
 
 type TabId = 'rooms' | 'storyboard' | 'assets' | 'voices' | 'music' | 'check' | 'play' | 'language' | 'remix' | 'notes';
@@ -85,12 +85,13 @@ async function pickBackend(): Promise<{ info: GameInfo; demo: BrowserApi | null 
   if (hosting.hosted || import.meta.env.VITE_STUDIO_HOSTED === '1') {
     const r = await studioFetch('game', { cache: 'no-store' });
     if (r.status === 401) {
-      location.assign(loginUrl());
+      goLogin();
       return new Promise(() => undefined);
     }
     const data = await r.json().catch(() => ({ error: `${r.status} ${r.statusText}` }));
     if (!r.ok) throw new Error(data.error ?? `${r.status}`);
     useApi(serverApi);
+    loginHeld();
     return { info: data as GameInfo, demo: null };
   }
   if (import.meta.env.VITE_STUDIO_DEMO !== '1') {
@@ -252,7 +253,9 @@ async function start() {
   };
 
   const nav = h('nav', { class: 'tabs', role: 'tablist' });
-  let current: TabId = (TABS.some(([t]) => t === hashTab) ? hashTab : 'rooms') as TabId;
+  // The Assets tab has no routes on the Studio Server yet: the prepared assets come with the deployment (4.2.1).
+  const tabs = hosting.hosted ? TABS.filter(([t]) => t !== 'assets') : TABS;
+  let current: TabId = (tabs.some(([t]) => t === hashTab) ? hashTab : 'rooms') as TabId;
   show = (t: TabId) => {
     current = t;
     for (const [id, el] of Object.entries(panes)) el.hidden = id !== t;
@@ -270,7 +273,7 @@ async function start() {
     if (t === 'language') void language.load();
     if (t === 'remix') void remix.load();
   };
-  for (const [id, label] of TABS) {
+  for (const [id, label] of tabs) {
     nav.append(
       h('button', { role: 'tab', dataset: { tab: id }, onclick: () => show(id) }, label, id === 'check' ? badge : null),
     );

@@ -24,7 +24,7 @@ import type {
   SolveData,
   ValidateResult,
 } from '../../tools/studio/types';
-import { hosting, loginUrl, studioFetch } from './api-base';
+import { goLogin, hosting, studioFetch } from './api-base';
 export { studioFetch };
 
 export type * from '../../tools/studio/types';
@@ -45,7 +45,7 @@ async function call<T>(method: string, path: string, body?: unknown): Promise<T>
     body: method === 'GET' ? undefined : JSON.stringify(body ?? {}),
   });
   // A hosted Studio whose session ended: log in again, then come back here.
-  if (r.status === 401 && hosting.hosted) location.assign(loginUrl());
+  if (r.status === 401 && hosting.hosted) goLogin();
   const data = await r.json().catch(() => ({ error: `${r.status} ${r.statusText}` }));
   if (!r.ok) throw new ApiError(data.error ?? `${r.status}`, r.status);
   return data as T;

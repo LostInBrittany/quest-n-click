@@ -278,8 +278,17 @@ async function main(argv: string[]): Promise<number> {
   // The game's origin (plan §6.1): the live preview of the instance's folder, behind a game session (plan §6.2).
   const preview =
     auth && authStore
-      ? await livePreview({ gameDir, game: config.game, publicDir, studioOrigin: config.publicUrl, engineRoot })
+      ? await livePreview({
+          gameDir,
+          game: config.game,
+          publicDir,
+          studioOrigin: config.publicUrl,
+          playUrl: config.playUrl,
+          engineRoot,
+        })
       : undefined;
+  // The preview reads the folder again after each revision: the next load of a frame is the game as it is then.
+  journal.events.on('confirmed', () => preview?.invalidate());
   const play =
     auth && authStore && preview
       ? {
@@ -313,7 +322,11 @@ async function main(argv: string[]): Promise<number> {
       void server
         .exclusive(() => journal.reconcile())
         .then(
-          (r) => r.written + r.removed && console.log(JSON.stringify({ event: 'reconciled', ...r })),
+          (r) => {
+            if (!(r.written + r.removed)) return;
+            preview?.invalidate();
+            console.log(JSON.stringify({ event: 'reconciled', ...r }));
+          },
           (e) => console.log(JSON.stringify({ event: 'reconcile-failed', message: String((e as Error).message) })),
         );
     }, 30_000).unref();

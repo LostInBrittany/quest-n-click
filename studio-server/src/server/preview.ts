@@ -8,6 +8,9 @@
 //     `fs.strict` with an allow-list of those folders stays on behind it.
 //   - No Studio API on this origin, ever: the editor's save goes to the Studio by postMessage (rooms-bridge.ts).
 //   - No service worker: the preview registers none (`virtual:pwa-register` is a stub here).
+//   - No file watcher: the server calls `invalidate()` after each committed revision (and each repair of the folder),
+//     so the next load of a frame is the game as it is then.
+//   - Vite's host check names the game's origin (by default it lets only localhost through); no CORS.
 //   - The page names the Studio's origin in a meta tag: the editor posts its messages there and nowhere else.
 import { realpathSync } from 'node:fs';
 import type { IncomingMessage, ServerResponse } from 'node:http';
@@ -23,13 +26,15 @@ export interface PreviewOptions {
   publicDir: string;
   /** The Studio's origin: the only one the editor talks to. */
   studioOrigin: string;
+  /** The game's origin: the only `Host` Vite answers. */
+  playUrl: string;
   /** The engine (this repository, or the installed package). */
   engineRoot?: string;
 }
 
 /** The paths a game page loads (the game's own files are checked by folder, below). */
 const SERVED =
-  /^\/(?:$|index\.html$|manifest\.webmanifest$|og\.png$|@vite\/(?:client|env)$|@id\/|src\/|node_modules\/(?:\.vite\/studio-preview\/deps\/|vite\/dist\/client\/env\.mjs$)|assets\/|data\/|fonts\/|icons\/)/;
+  /^\/(?:$|index\.html$|manifest\.webmanifest$|og\.png$|@vite\/(?:client|env)$|@id\/__x00__|src\/|node_modules\/(?:\.vite\/studio-preview\/deps\/|vite\/dist\/client\/env\.mjs$)|assets\/|data\/|fonts\/|icons\/)/;
 
 /** Whether `p` is `dir` or inside it. */
 /**
@@ -59,7 +64,10 @@ export function createHotContext() {
 export const injectQuery = (url) => url;
 `;
 
-const inside = (p: string, dir: string) => p === dir || p.startsWith(dir.endsWith(sep) ? dir : dir + sep);
+/** Whether `p` is `dir` or inside it (without regard to case where the disk usually ignores it). */
+const fold = (p: string) => (process.platform === 'linux' ? p : p.toLowerCase());
+const inside = (p: string, dir: string) =>
+  fold(p) === fold(dir) || fold(p).startsWith(fold(dir.endsWith(sep) ? dir : dir + sep));
 
 const real = (p: string) => {
   try {
@@ -103,6 +111,8 @@ export function servedPath(path: string, o: Served): boolean {
 
 export interface LivePreview {
   handle(req: IncomingMessage, res: ServerResponse): Promise<void>;
+  /** Forgets every transformed module: the next load reads the folder again (after a revision, a repair). */
+  invalidate(): void;
   close(): Promise<void>;
 }
 
@@ -171,7 +181,13 @@ export async function livePreview(o: PreviewOptions): Promise<LivePreview> {
       hmr: false,
       ws: false,
       watch: null,
-      fs: { strict: true, allow: allowed, deny: ['.env', '.env.*', '*.{crt,pem,key}', '**/.git/**'] },
+      allowedHosts: [new URL(o.playUrl).hostname],
+      cors: false,
+      fs: {
+        strict: true,
+        allow: allowed,
+        deny: ['.env', '.env.*', '*.{crt,pem,key}', '**/.git/**', ...hidden.map((d) => `${d.split(sep).join('/')}/**`)],
+      },
     },
   });
   return {
@@ -194,6 +210,7 @@ export async function livePreview(o: PreviewOptions): Promise<LivePreview> {
         });
       });
     },
+    invalidate: () => vite.moduleGraph.invalidateAll(),
     close: () => vite.close(),
   };
 }

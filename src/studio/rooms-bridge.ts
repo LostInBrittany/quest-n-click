@@ -5,7 +5,8 @@
 // path; the tab (rooms.ts) answers through a small host interface: the room shown, the selection, the writes.
 // On a hosted Studio (4.2.1, plan §6.1) the view is on the game's origin: messages go to that exact origin and are
 // taken from it only; the view never writes, and a layout it sends is stored only as the answer to the Studio's own
-// save request (its nonce), for the room shown. The write is the Studio's, as the member, under their lease.
+// save request (its nonce), for the room shown. A save starts only from the member: the Studio's "Save layout", or
+// their yes before a change that would reload the view. The write is the Studio's, as the member, under their lease.
 import type { Id, Layout } from '@engine/core/types';
 import { api, type EditorToStudio, type StudioToEditor } from './api';
 import { gameElsewhere, gameOrigin, gameUrl, localGameUrl } from './game-origin';
@@ -43,6 +44,8 @@ export class EditorBridge {
   private pendingSelect: Sel = null;
   /** The save the Studio asked for last: a hosted view's layout is taken as its answer only. */
   private saveNonce = '';
+  /** The last navigation asked for: a ticket that arrives after a later one is dropped. */
+  private navSeq = 0;
 
   constructor(private host: BridgeHost) {
     window.addEventListener('message', (e) => this.onMessage(e));
@@ -70,15 +73,17 @@ export class EditorBridge {
 
   /** Points the frame at the view (hosted: with a fresh ticket). */
   private async navigate() {
+    const n = ++this.navSeq;
     const here = localGameUrl(this.query());
     if (here !== null) {
       this.frame.src = here;
       return;
     }
     try {
-      this.frame.src = await gameUrl(this.query());
+      const url = await gameUrl(this.query());
+      if (n === this.navSeq) this.frame.src = url;
     } catch (e) {
-      this.status.textContent = `the room view does not open: ${(e as Error).message}`;
+      if (n === this.navSeq) this.status.textContent = `the room view does not open: ${(e as Error).message}`;
     }
   }
 
@@ -101,8 +106,6 @@ export class EditorBridge {
   private onMessage(e: MessageEvent) {
     const m = e.data as EditorToStudio;
     if (e.origin !== gameOrigin() || m?.source !== 'web-scumm-editor' || e.source !== this.frame.contentWindow) return;
-    // The view's own Save (a hosted view does not write): the Studio asks for the layout, as for any save.
-    if (m.type === 'want-save') return this.save();
     if (m.type === 'ready') {
       this.lastReadyAt = Date.now();
       this.editorDirty = false;
@@ -159,6 +162,8 @@ export class EditorBridge {
   /** Before touching the room file (the view reloads when it changes): save the placement in progress. */
   async flush() {
     if (!this.editorDirty) return;
+    // Hosted, a save is the member's to start (the view's own word is the game's): asked, never assumed.
+    if (gameElsewhere() && !confirm('The placement in the view is not saved. Save it before this change?')) return;
     const done = new Promise<boolean>((res) => {
       this.savedWaiters.push(res);
       setTimeout(() => res(false), FLUSH_TIMEOUT);

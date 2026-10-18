@@ -146,11 +146,15 @@ export class PlayTab {
     }
   }
 
+  private loads = 0;
   /** (Re)loads the game in the frame, with a painter (`dom`, `canvas`) or the game's own. */
   private async load(painter: string) {
     const q = `?dev${painter ? `&renderer=${painter}` : ''}`;
+    const n = ++this.loads;
     try {
-      this.frame.src = await gameUrl(q);
+      const url = await gameUrl(q);
+      // A later choice of painter wins over a ticket that arrives late.
+      if (n === this.loads) this.frame.src = url;
     } catch (e) {
       toast(`The game does not open: ${(e as Error).message}`, 'error');
     }

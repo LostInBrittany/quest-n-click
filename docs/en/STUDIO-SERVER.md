@@ -174,10 +174,13 @@ SQLite and a folder for the contents, on the loopback only.
 
 - One game per instance, one instance (the server takes a lease; a second one waits).
 - The game in the Studio is a live preview, not frozen at a revision: per-revision previews come in 4.2.2.
-- Cutting sprite sheets and `prepare` (Python, ffmpeg) are not available on a hosted Studio yet; uploading sounds
-  and backgrounds works.
+- The Assets tab (uploads, sprite sheets, `prepare`) is not on a hosted Studio yet: the prepared images and sounds
+  come with the deployment (`publicDir`), and are changed on a local Studio.
+- A game frame left idle past its 15 min session shows nothing new: "Reload view" (or the Play tab) opens it again.
 - Captures are not available on a hosted Studio.
 - The Play tab shows the game with its DEV panel; the state inspector, the rule explainer and the replays beside it
   need the game on the Studio's origin, so the local Studio only.
 - The Assistant is not on a hosted Studio yet.
+- The room editor's own Save does nothing on a hosted Studio: "Save layout" in the Studio saves (the editor's page is
+  the game's, and only the member starts a write).
 - A game that imports files outside its own folder cannot run on the worker.

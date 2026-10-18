@@ -3,7 +3,8 @@
 // frames the game's origin only), its files, and the game's images for members only; on the game's origin, the
 // game's page and code through Vite, behind a game session, with nothing else of the engine's folder, nor the game's
 // private notes, nor any Studio API. Two origins on one server: the Studio at 127.0.0.1, the game at localhost.
-import { cpSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { cpSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { createServer as createHttpServer, request } from 'node:http';
 import { createServer } from 'node:net';
 import { join, resolve } from 'node:path';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
@@ -25,6 +26,7 @@ import { TestOp } from './fixtures/oidc-op';
 const ROOT = join(import.meta.dirname, '..');
 let tmp: string, studioUrl: string, playUrl: string, op: TestOp, stop: () => Promise<void>, gameDir: string;
 let lea = '';
+let preview: LivePreview;
 let sam = '';
 
 const freePort = () =>
@@ -69,6 +71,17 @@ async function gameSession(cookie: string, path = '/') {
 }
 const asGame = (session: string | undefined, path: string, method = 'GET') =>
   fetch(`${playUrl}${path}`, { method, headers: session ? { cookie: `${PLAY_COOKIE}=${session}` } : {} });
+/** A request whose path is sent as written (`fetch` resolves `..` and `%2e%2e` before sending). */
+const raw = (url: string, path: string, headers: Record<string, string> = {}) =>
+  new Promise<number>((ok, fail) => {
+    const u = new URL(url);
+    const r = request({ host: u.hostname, port: u.port, path, headers: { host: u.host, ...headers } }, (res) => {
+      res.resume();
+      ok(res.statusCode ?? 0);
+    });
+    r.on('error', fail);
+    r.end();
+  });
 
 beforeAll(async () => {
   mkdirSync(join(ROOT, '.cache'), { recursive: true });
@@ -109,11 +122,12 @@ beforeAll(async () => {
   const sealer = new Sealer(['a-session-key-of-at-least-32-characters']);
   const store = new AuthStore(db);
   const gate = new Gate({ store, oidc, sealer, publicUrl: studioUrl });
-  const preview: LivePreview = await livePreview({
+  preview = await livePreview({
     gameDir,
     game: 'template',
     publicDir,
     studioOrigin: studioUrl,
+    playUrl,
     engineRoot: ROOT,
   });
   const server = studioServer({
@@ -178,14 +192,10 @@ describe("the Studio's page", () => {
     expect(js.headers.get('content-type')).toMatch(/^text\/javascript/);
     expect(js.headers.get('cache-control')).toContain('immutable');
     expect((await asStudio(undefined, '/icons/icon-192.png')).status).toBe(200);
-    for (const p of [
-      '/assets/notes.txt',
-      '/assets/tools/../../j.sqlite',
-      '/studio.html',
-      '/index.html',
-      '/src/main.ts',
-    ])
+    for (const p of ['/assets/notes.txt', '/studio.html', '/index.html', '/src/main.ts'])
       expect((await asStudio(undefined, p)).status, p).toBe(404);
+    for (const p of ['/assets/tools/../../j.sqlite', '/assets/%2e%2e/%2e%2e/j.sqlite', '/icons/..%2f..%2fj.sqlite'])
+      expect(await raw(studioUrl, p), p).toBe(404);
   });
 
   it("serves the game's images to members only", async () => {
@@ -232,11 +242,52 @@ describe("the game's live preview", () => {
       '/@fs/etc/passwd',
       `/@fs${resolve(gameDir, 'private', 'secret.ts')}`,
       `/@fs${resolve(ROOT, 'package.json')}`,
-      '/src/../package.json',
-      '/%2e%2e/package.json',
+      // Vite's ids: its virtual modules only, never a file of the game's hidden folders under another name.
+      '/@id/@game/private/secret.ts',
+      `/@id/${resolve(gameDir, 'private', 'secret.ts')}?raw&import`,
+      '/@id/@game/index.ts',
     ])
       expect((await asGame(s, p)).status, p).toBe(404);
+    for (const p of ['/src/../package.json', '/%2e%2e/package.json', '/src/%2e%2e/%2e%2e/package.json'])
+      expect(await raw(playUrl, p, { cookie: `${PLAY_COOKIE}=${s}` }), p).toBe(404);
     expect((await asGame(s, '/', 'POST')).status).toBe(405);
+  }, 60_000);
+});
+
+describe('the live preview as the game changes, and on a real domain', () => {
+  it('serves the new content of a game file once told the folder changed', async () => {
+    const s = await gameSession(lea);
+    const file = `/@fs${resolve(gameDir, 'game.ts')}`;
+    const before = await (await asGame(s, file)).text();
+    writeFileSync(
+      join(gameDir, 'game.ts'),
+      `${readFileSync(join(gameDir, 'game.ts'), 'utf8')}\n// changed-by-the-test\n`,
+    );
+    preview.invalidate();
+    const after = await (await asGame(s, file)).text();
+    expect(before).not.toContain('changed-by-the-test');
+    expect(after).toContain('changed-by-the-test');
+  }, 60_000);
+
+  it("answers the game's own host, which is not localhost, and refuses another", async () => {
+    const p = await livePreview({
+      gameDir,
+      game: 'template',
+      publicDir: join(tmp, 'public'),
+      studioOrigin: studioUrl,
+      playUrl: 'https://play.example.test',
+      engineRoot: ROOT,
+    });
+    const server = createHttpServer((req, res) => void p.handle(req, res));
+    await new Promise<void>((ok) => server.listen(0, '127.0.0.1', ok));
+    const url = `http://127.0.0.1:${(server.address() as { port: number }).port}`;
+    try {
+      expect(await raw(url, '/src/main.ts', { host: 'play.example.test' })).toBe(200);
+      expect(await raw(url, '/src/main.ts', { host: 'elsewhere.example.test' })).toBe(403);
+    } finally {
+      server.close();
+      await p.close();
+    }
   }, 60_000);
 });
 
@@ -274,6 +325,8 @@ describe('the paths the preview lets through', () => {
       '/%E0%A4%A',
       '/src/a\0b',
       '/src\\..\\x',
+      '/@id/@game/index.ts',
+      '/@id/srv/work/game/private/x.ts',
     ])
       expect(servedPath(p, o), p).toBe(false);
   });

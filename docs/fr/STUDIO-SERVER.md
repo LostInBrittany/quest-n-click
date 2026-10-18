@@ -177,10 +177,14 @@ OIDC, avec SQLite et un dossier pour les contenus, sur le loopback seulement.
 - Un jeu par instance, une seule instance (le serveur prend un bail ; une seconde attend).
 - Le jeu dans le Studio est un aperçu vivant, pas figé à une révision : les prévisualisations par révision arrivent en
   4.2.2.
-- La découpe de planches et `prepare` (Python, ffmpeg) ne sont pas encore disponibles sur un Studio hébergé ; l'upload
-  de sons et de décors fonctionne.
+- L'onglet Assets (uploads, planches, `prepare`) n'est pas encore sur un Studio hébergé : les images et les sons
+  préparés viennent avec le déploiement (`publicDir`), et se changent sur un Studio local.
+- Un cadre de jeu resté inactif au-delà de sa session de 15 min ne montre plus rien de neuf : « Reload view » (ou
+  l'onglet Jouer) le rouvre.
 - Les captures ne sont pas disponibles sur un Studio hébergé.
 - L'onglet Jouer montre le jeu avec son panneau DEV ; l'inspecteur d'état, l'explication des règles et les rejeux à
   côté ont besoin du jeu sur l'origine du Studio, donc du Studio local seulement.
 - L'Assistant n'est pas encore sur un Studio hébergé.
+- Le bouton Save de l'éditeur de salle ne fait rien sur un Studio hébergé : « Save layout » dans le Studio enregistre
+  (la page de l'éditeur est celle du jeu, et seul le membre lance une écriture).
 - Un jeu qui importe des fichiers hors de son propre dossier ne peut pas tourner sur le worker.
