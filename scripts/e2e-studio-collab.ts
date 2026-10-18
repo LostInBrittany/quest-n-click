@@ -108,7 +108,11 @@ try {
     await until(async () => (await revisionOf(lea)) === target, 30_000),
     `léa at ${await revisionOf(lea)}, tom at ${await revisionOf(tom)}`,
   );
-  check('everyone ends on the same revision', (await revisionOf(ali)) === target);
+  check(
+    "and what it changed reaches Léa's screen (Tom's note in her Notes tab)",
+    await until(async () => (await lea.locator('section.tab.notestab', { hasText: 'Tom was here.' }).count()) > 0),
+  );
+  check('everyone ends on the same revision', await until(async () => (await revisionOf(ali)) === target));
 
   // Léa, owner, sees the members and makes Ali a dev; Ali then writes.
   await lea.locator('.who summary').click();
@@ -116,11 +120,13 @@ try {
   const members = lea.getByRole('dialog');
   await members.locator('.members-table tbody tr').nth(2).waitFor({ timeout: 10_000 });
   check('the owner sees the three members', (await members.locator('.members-table tbody tr').count()) === 3);
+  // Ali's page starts again by itself: the role change closes Ali's stream, and the page finds its new role.
+  const aliReloaded = ali.waitForEvent('load', { timeout: 30_000 });
+  lea.once('dialog', (d) => void d.accept());
   await members.getByLabel('Role of Ali').selectOption('dev');
   await until(async () => (await members.getByLabel('Role of Ali').inputValue()) === 'dev');
   await lea.keyboard.press('Escape');
-  // A role change closes Ali's stream (a revocation): the page is opened again with the new role.
-  await ali.reload();
+  await aliReloaded;
   await ali.locator('.hosted-bar .rev').waitFor({ timeout: 30_000 });
   // Tom's note took the notes (a write takes its spans): he lets them go first.
   await tom.locator('.who summary').click();
@@ -136,7 +142,16 @@ try {
   // A visitor, a stranger.
   const visitor = await (await browser.newContext({ ignoreHTTPSErrors: stack.tls })).newPage();
   await visitor.goto(stack.studioUrl);
-  check('a visitor sees the login page', (await visitor.getByRole('link', { name: 'Log in' }).count()) === 1);
+  check(
+    'a visitor sees the login page',
+    await visitor
+      .getByRole('link', { name: 'Log in' })
+      .waitFor({ timeout: 15_000 })
+      .then(
+        () => true,
+        () => false,
+      ),
+  );
   const stranger = await (await browser.newContext({ ignoreHTTPSErrors: stack.tls })).newPage();
   stack.as('sam');
   await stranger.goto(`${stack.studioUrl}/auth/login`);

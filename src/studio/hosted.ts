@@ -8,7 +8,7 @@
 //     is read from the journal (`/api/ops?after=`), so no change goes unseen; a new epoch reloads the page;
 //   - the heartbeat (every 30 s) that says where you are and keeps your leases.
 import { onRefused, waiting } from './api';
-import { apiUrl, loginUrl, studioFetch } from './api-base';
+import { apiUrl, goLogin, loginUrl, studioFetch } from './api-base';
 import { membersPanel } from './members';
 import { conflictDialog, leaseText, lockedDialog, spansPanel, takeSpan, releaseSpan } from './spans';
 
@@ -49,13 +49,18 @@ export interface Revision {
 
 /** Who the session is: a member (`me`), someone logged in but not a member (403), nobody (401), or suspended (503). */
 export async function whoAmI(): Promise<
-  { state: 'member'; me: Me } | { state: 'stranger'; me: Me } | { state: 'out' } | { state: 'suspended' }
+  | { state: 'member'; me: Me }
+  | { state: 'stranger'; me: Me }
+  | { state: 'out' }
+  | { state: 'suspended' }
+  | { state: 'unreachable' }
 > {
   const r = await auth('/auth/me', { cache: 'no-store' }).catch(() => null);
-  if (!r || r.status === 401) return { state: 'out' };
-  const data = (await r.json().catch(() => ({}))) as Partial<Me> & { suspended?: boolean };
-  if (r.status === 503 && data.suspended) return { state: 'suspended' };
-  if (!r.ok || !data.user) return { state: 'out' };
+  if (r?.status === 401) return { state: 'out' };
+  const data = (await r?.json().catch(() => ({}))) as (Partial<Me> & { suspended?: boolean }) | undefined;
+  if (r?.status === 503 && data?.suspended) return { state: 'suspended' };
+  // No answer, too many requests from this address (a team behind one gateway), a server error: not a logout.
+  if (!r || !r.ok || !data?.user) return { state: 'unreachable' };
   const me = { user: data.user, role: data.role ?? null } as Me;
   return me.role ? { state: 'member', me } : { state: 'stranger', me };
 }
@@ -95,7 +100,12 @@ async function loginScreen(): Promise<HTMLElement> {
   const cli = (await auth('/auth/cli')
     .then((r) => r.json())
     .catch(() => ({}))) as { issuer?: string };
-  const provider = cli.issuer ? new URL(cli.issuer).host : '';
+  let provider = '';
+  try {
+    provider = cli.issuer ? new URL(cli.issuer).host : '';
+  } catch {
+    /* not a URL: said without it */
+  }
   return gatePage(
     h('h1', null, 'Log in to work on the game'),
     h(
@@ -166,14 +176,24 @@ export class Live {
   leases: Lease[] = [];
   here: Here[] = [];
   up = false;
+  /** Revisions committed during a cut that the journal could not give back: only a reload is sure to show them. */
+  gap = false;
+  private started = false;
   private es?: EventSource;
   private seq = -1;
+  private retries = 0;
   private listeners = new Set<() => void>();
+  /** While the journal is read after a cut, the stream's revisions wait here, then go through in order. */
+  private held: Revision[] | null = null;
+  /** One `hello` at a time: a second one waits for the first's catch-up. */
+  private chain: Promise<void> = Promise.resolve();
 
   constructor(
     private o: {
       /** Each committed revision, once, in order (also those read back from the journal after a cut). */
       revision: (r: Revision) => void;
+      /** After a reconnection, or when the server refused the stream: is the session still a member's, same role? */
+      check?: () => Promise<void>;
     },
   ) {}
 
@@ -186,8 +206,6 @@ export class Live {
     for (const fn of this.listeners) fn();
   }
 
-  private retries = 0;
-
   start(url: string) {
     const es = new EventSource(url);
     this.es = es;
@@ -197,15 +215,24 @@ export class Live {
     es.onerror = () => {
       this.up = false;
       this.changed();
-      // A browser retries a stream that dropped, but gives up on one it could not open (Firefox, a refused request,
-      // a server restarting): then the page opens it again itself, waiting longer each time (30 s at most).
+      // A browser retries a stream that dropped, but not one the server refused (401 for a removed member, 503 for a
+      // suspended session or a proxy during a deploy) nor, in Firefox, one it could not open: the page asks who the
+      // session is (a login, a gate page, a reload), then opens the stream again, waiting longer each time (30 s).
       if (es.readyState === EventSource.CLOSED && this.es === es) {
         const wait = Math.min(30_000, 1000 * 2 ** this.retries++);
+        void this.o.check?.().catch(() => undefined);
         setTimeout(() => this.es === es && this.start(url), wait);
       }
     };
-    es.addEventListener('hello', (m) => void this.hello(JSON.parse((m as MessageEvent).data)));
-    es.addEventListener('revision', (m) => this.revisionEvent(JSON.parse((m as MessageEvent).data) as Revision));
+    es.addEventListener('hello', (m) => {
+      const d = JSON.parse((m as MessageEvent).data) as Hello;
+      this.chain = this.chain.then(() => this.hello(d)).catch(() => undefined);
+    });
+    es.addEventListener('revision', (m) => {
+      const r = JSON.parse((m as MessageEvent).data) as Revision;
+      if (this.held) this.held.push(r);
+      else this.tell(r);
+    });
     es.addEventListener('leases', (m) => {
       const d = JSON.parse((m as MessageEvent).data) as { seq: number; leases: Lease[] };
       if (d.seq <= this.seq) return;
@@ -219,25 +246,38 @@ export class Live {
     });
   }
 
-  private async hello(d: { epoch: string; revision: number; leases: Lease[]; seq: number; here: Here[] }) {
-    const missed = this.epoch === d.epoch && d.revision > this.revision;
-    if (this.epoch && this.epoch !== d.epoch) {
+  private async hello(d: Hello) {
+    if (this.started && this.epoch !== d.epoch) {
       // The game was imported or restored again: what this page holds belongs to another history.
       location.reload();
       return;
     }
-    const from = this.revision;
+    const first = !this.started;
+    this.started = true;
     this.epoch = d.epoch;
     this.leases = d.leases;
     this.seq = d.seq;
     this.here = d.here;
     this.up = true;
-    if (!from) this.revision = d.revision;
-    else if (missed) await this.catchUp(from);
+    if (first) this.revision = d.revision;
+    else {
+      void this.o.check?.().catch(() => undefined);
+      if (d.revision > this.revision) {
+        this.held = [];
+        this.changed();
+        try {
+          await this.catchUp(this.revision);
+        } finally {
+          const held = this.held;
+          this.held = null;
+          for (const r of held) this.tell(r);
+        }
+      }
+    }
     this.changed();
   }
 
-  private revisionEvent(r: Revision) {
+  private tell(r: Revision) {
     // At least once, in order: a revision already seen is not told again.
     if (r.rev <= this.revision) return;
     this.revision = r.rev;
@@ -245,21 +285,33 @@ export class Live {
     this.changed();
   }
 
-  /** What was committed during a cut, from the journal: the stream is not the source, the journal is. */
+  /**
+   * What was committed during a cut, from the journal: the stream is not the source, the journal is. A failed read
+   * is tried again (five times, waiting longer each time); then the page says it must be reloaded, never a silent gap.
+   */
   private async catchUp(after: number) {
     let cursor = after;
-    for (;;) {
-      const r = await studioFetch(`ops?after=${cursor}&epoch=${encodeURIComponent(this.epoch)}`, { cache: 'no-store' });
-      if (r.status === 409) return location.reload();
-      if (!r.ok) return;
-      const d = (await r.json()) as {
-        ops: { id: string; rev: number; author: string; paths: string[] }[];
-        next: number;
-        revision: number;
-      };
-      for (const op of d.ops) this.revisionEvent(op);
+    for (let attempt = 0; ; ) {
+      let d: { ops: Revision[]; next: number; revision: number };
+      try {
+        const r = await studioFetch(`ops?after=${cursor}&epoch=${encodeURIComponent(this.epoch)}`, {
+          cache: 'no-store',
+        });
+        if (r.status === 409) return location.reload();
+        if (!r.ok) throw new Error(`${r.status}`);
+        d = (await r.json()) as typeof d;
+      } catch {
+        if (++attempt >= 5) {
+          this.gap = true;
+          return;
+        }
+        await new Promise((ok) => setTimeout(ok, 500 * 2 ** attempt));
+        continue;
+      }
+      for (const op of d.ops) this.tell(op);
       if (!d.ops.length || d.next >= d.revision) {
-        this.revision = Math.max(this.revision, d.revision);
+        // The journal ends where the stream began: anything still missing is a gap, said, never skipped.
+        if (this.revision < d.revision) this.gap = true;
         return;
       }
       cursor = d.next;
@@ -277,13 +329,21 @@ export class Live {
   }
 }
 
+interface Hello {
+  epoch: string;
+  revision: number;
+  leases: Lease[];
+  seq: number;
+  here: Here[];
+}
+
 /**
  * The header's part on a hosted Studio: the exact revision (green while the stream is up), who is here and where, who
  * you are with the spans, the members (owner) and the logout.
  */
 function hostedBar(o: { live: Live; me: Me; spans: () => void; members: () => void }): HTMLElement {
-  const rev = h('span', { class: 'rev', title: 'The exact revision the editors and the reads are at' });
-  const here = h('span', { class: 'here', 'aria-label': 'Who is here' });
+  const rev = h('span', { class: 'rev', title: 'The last revision this page has seen; the editors follow it' });
+  const here = h('span', { class: 'here', role: 'group', 'aria-label': 'Who is here' });
   const draw = () => {
     rev.classList.toggle('up', o.live.up);
     rev.replaceChildren(
@@ -294,17 +354,14 @@ function hostedBar(o: { live: Live; me: Me; spans: () => void; members: () => vo
       h('span', { class: 'sr-only' }, o.live.up ? '' : ' (reconnecting)'),
     );
     here.replaceChildren(
-      ...o.live.here.map((x) =>
-        h(
+      ...o.live.here.map((x) => {
+        const said = `${x.userId === o.me.user.id ? `${x.name} (you)` : x.name}${x.where ? ` · ${x.where}` : ''}`;
+        return h(
           'span',
-          {
-            class: 'avatar',
-            style: { background: colourOf(x.userId) },
-            title: `${x.userId === o.me.user.id ? `${x.name} (you)` : x.name}${x.where ? ` · ${x.where}` : ''}`,
-          },
+          { class: 'avatar', role: 'img', 'aria-label': said, title: said, style: { background: colourOf(x.userId) } },
           (x.name.trim()[0] ?? '?').toUpperCase(),
-        ),
-      ),
+        );
+      }),
     );
   };
   o.live.onChange(draw);
@@ -312,7 +369,7 @@ function hostedBar(o: { live: Live; me: Me; spans: () => void; members: () => vo
   const menu = h(
     'details',
     { class: 'who' },
-    h('summary', null, `${nameOf(o.me.user)} · ${o.me.role} ▾`),
+    h('summary', null, `${nameOf(o.me.user)} · ${o.me.role} `, h('span', { 'aria-hidden': 'true' }, '▾')),
     h(
       'div',
       { class: 'menu' },
@@ -328,7 +385,7 @@ function hostedBar(o: { live: Live; me: Me; spans: () => void; members: () => vo
 }
 
 /** Every 30 s while the page is open: where you are (a tab, a room), which also renews your leases. */
-function heartbeat(where: () => string, live: Live): void {
+function heartbeat(where: () => string, live: Live): () => void {
   const beat = () =>
     void studioFetch('presence', {
       method: 'POST',
@@ -342,6 +399,7 @@ function heartbeat(where: () => string, live: Live): void {
       .catch(() => undefined);
   beat();
   setInterval(beat, 30_000);
+  return beat;
 }
 
 /** The page shown instead of the Studio when the session is not a member's. */
@@ -350,6 +408,12 @@ export async function gateScreen(
 ): Promise<HTMLElement> {
   if (who.state === 'stranger') return strangerScreen(who.me);
   if (who.state === 'suspended') return suspendedScreen();
+  if (who.state === 'unreachable')
+    return gatePage(
+      h('h1', null, 'The Studio does not answer'),
+      h('p', null, 'It may be starting, or too busy for a moment. Nothing of yours is lost.'),
+      h('button', { type: 'button', class: 'primary', onclick: () => location.reload() }, 'Try again'),
+    );
   return loginScreen();
 }
 
@@ -369,13 +433,24 @@ export function hostedStudio(o: {
   bar: HTMLElement;
   banner: HTMLElement;
   roomChip: HTMLElement;
-  /** Draws the room chip again (another room shown). */
+  /** Another room shown: its chip, and where you are for the others. */
   roomShown: () => void;
+  /** Another tab shown: where you are for the others. */
+  moved: () => void;
   previewLabel: (frame: HTMLIFrameElement) => HTMLElement;
 } {
-  const live = new Live({ revision: (r) => r.paths.forEach((f) => o.changed(f, r.author)) });
+  const live = new Live({
+    revision: (r) => r.paths.forEach((f) => o.changed(f, r.author)),
+    // A removed member, a role changed, a session ended or suspended: the page starts again from who the session is.
+    check: async () => {
+      const who = await whoAmI();
+      if (who.state === 'out') goLogin();
+      else if (who.state === 'unreachable') return;
+      else if (who.state !== 'member' || who.me.role !== o.me.role) location.reload();
+    },
+  });
   live.start(apiUrl('events'));
-  heartbeat(o.where, live);
+  const beat = heartbeat(o.where, live);
   onRefused((r) => {
     if (r.status === 423) lockedDialog(r.data, r.draft, { live, me: o.me, retry: r.retry });
     else conflictDialog(String(r.data.error ?? 'The file changed since you read it.'), r.draft, r.retry);
@@ -383,11 +458,16 @@ export function hostedStudio(o: {
   const banner = h('div', { class: 'pending', role: 'status', hidden: true });
   const drawBanner = () => {
     const cut = !live.up && live.revision > 0;
-    banner.hidden = !cut && waiting.count === 0;
-    banner.classList.toggle('cut', cut);
+    banner.hidden = !live.gap && !cut && waiting.count === 0;
+    banner.classList.toggle('cut', cut || live.gap);
+    if (live.gap)
+      return banner.replaceChildren(
+        'Some changes made while the connection was cut could not be read back. ',
+        h('button', { type: 'button', onclick: () => location.reload() }, 'Reload the Studio'),
+      );
     banner.textContent = cut
       ? `Reconnecting… last revision seen: ${live.revision}. Nothing is lost: what changed meanwhile is read from the journal.`
-      : `${waiting.count} change${waiting.count > 1 ? 's' : ''} waiting, sent again with the same id: each applies once.`;
+      : `${waiting.count} change${waiting.count > 1 ? 's' : ''} not answered yet, sent again with the same id: each applies once.`;
   };
   live.onChange(drawBanner);
   waiting.changed = drawBanner;
@@ -407,7 +487,7 @@ export function hostedStudio(o: {
             {
               type: 'button',
               class: 'link',
-              onclick: () => void (mine ? releaseSpan(span) : takeSpan(span)).catch(() => undefined),
+              onclick: () => void (mine ? releaseSpan(l?.span ?? span) : takeSpan(span)).catch(() => undefined),
             },
             mine ? ' Release' : ' Take',
           ),
@@ -441,5 +521,15 @@ export function hostedStudio(o: {
     draw();
     return label;
   };
-  return { bar, banner, roomChip, roomShown: drawChip, previewLabel };
+  return {
+    bar,
+    banner,
+    roomChip,
+    roomShown: () => {
+      drawChip();
+      beat();
+    },
+    moved: beat,
+    previewLabel,
+  };
 }

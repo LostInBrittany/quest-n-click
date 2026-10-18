@@ -370,14 +370,13 @@ export function studioServer(o: StudioServerOptions): StudioHttpServer {
       if (op !== undefined && (typeof op !== 'string' || !/^[\w-]{8,64}$/.test(op)))
         throw new StudioError('x-studio-op must be 8 to 64 letters, digits, - or _');
       const who = principal?.user.id ?? '';
-      if (op) {
-        // An answer is given back to its own author only: another member who knows the id gets nothing of it.
-        const [seen] = await o.db.all('SELECT status, body FROM studio_requests WHERE op_id = $1 AND author = $2', [
-          op,
-          who,
-        ]);
-        if (seen) return send(res, Number(seen.status), JSON.parse(String(seen.body)), { 'x-studio-replayed': '1' });
-      }
+      // An answer is given back to its own author only: another member who knows the id gets nothing of it.
+      const answered = async () =>
+        op
+          ? (await o.db.all('SELECT status, body FROM studio_requests WHERE op_id = $1 AND author = $2', [op, who]))[0]
+          : undefined;
+      const seen = await answered();
+      if (seen) return send(res, Number(seen.status), JSON.parse(String(seen.body)), { 'x-studio-replayed': '1' });
       const author = principal ? (principal.user.email ?? principal.user.name ?? principal.user.id) : undefined;
       const run = () =>
         operationContext.run(
@@ -394,17 +393,28 @@ export function studioServer(o: StudioServerOptions): StudioHttpServer {
           },
           () => Promise.resolve(route[2](sub.match(route[1])!, body, { baseUrl: '' })),
         );
-      const result = await (write ? lock.write(run) : lock.read(run));
-      if (op) {
-        // Kept 7 days: long enough for any retry of a client that was cut off.
-        await o.db.run('DELETE FROM studio_requests WHERE at < $1', [Date.now() - 7 * 86_400_000]);
-        await o.db.run('INSERT INTO studio_requests (op_id, status, body, at, author) VALUES ($1, 200, $2, $3, $4)', [
-          op,
-          JSON.stringify(result ?? null),
-          Date.now(),
-          who,
-        ]);
-      }
+      // A retry that arrived while the first try was running (a cut, a proxy's 504) waits for the lock behind it, then
+      // finds its answer there: the write is applied once, and the retry gets the first answer.
+      let replayed: Record<string, unknown> | undefined;
+      const result = await (write
+        ? lock.write(async () => {
+            replayed = await answered();
+            if (replayed) return undefined;
+            const r = await run();
+            if (op) {
+              // Kept 7 days: long enough for any retry of a client that was cut off. Written under the lock, before
+              // the next write of the same id can look for it.
+              await o.db.run('DELETE FROM studio_requests WHERE at < $1', [Date.now() - 7 * 86_400_000]);
+              await o.db.run(
+                'INSERT INTO studio_requests (op_id, status, body, at, author) VALUES ($1, 200, $2, $3, $4) ON CONFLICT DO NOTHING',
+                [op, JSON.stringify(r ?? null), Date.now(), who],
+              );
+            }
+            return r;
+          })
+        : lock.read(run));
+      if (replayed)
+        return send(res, Number(replayed.status), JSON.parse(String(replayed.body)), { 'x-studio-replayed': '1' });
       return send(res, 200, result);
     } catch (e) {
       if (isStudioError(e)) {

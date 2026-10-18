@@ -274,6 +274,7 @@ async function start() {
       b.setAttribute('aria-selected', String(on));
     });
     history.replaceState(null, '', t === 'rooms' ? `#rooms/${rooms.room}` : `#${t}`);
+    shared?.moved();
     if (t === 'storyboard') void storyboard.load();
     if (t === 'notes') void notes.load();
     if (t === 'assets') void assets.load();

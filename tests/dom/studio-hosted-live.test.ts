@@ -6,11 +6,16 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { Live, type Revision } from '../../src/studio/hosted';
 
 class FakeSource {
+  static CLOSED = 2;
   static last: FakeSource;
+  static made = 0;
+  readyState = 1;
   onerror: (() => void) | null = null;
+  onopen: (() => void) | null = null;
   private on = new Map<string, (m: MessageEvent) => void>();
   constructor(readonly url: string) {
     FakeSource.last = this;
+    FakeSource.made++;
   }
   addEventListener(name: string, fn: (m: MessageEvent) => void) {
     this.on.set(name, fn);
@@ -29,12 +34,14 @@ describe('the live state of a hosted Studio', () => {
   let told: Revision[];
   let live: Live;
   let reload: ReturnType<typeof vi.fn>;
+  let check: ReturnType<typeof vi.fn<() => Promise<void>>>;
   beforeEach(() => {
     told = [];
     vi.stubGlobal('EventSource', FakeSource);
     reload = vi.fn();
+    check = vi.fn<() => Promise<void>>(async () => undefined);
     vi.stubGlobal('location', { ...location, reload });
-    live = new Live({ revision: (r) => told.push(r) });
+    live = new Live({ revision: (r) => told.push(r), check });
     live.start('/api/events');
   });
   afterEach(() => vi.unstubAllGlobals());
@@ -91,5 +98,63 @@ describe('the live state of a hosted Studio', () => {
     FakeSource.last.emit('leases', { seq: 2, leases: [lease('room:garden')] });
     FakeSource.last.emit('leases', { seq: 1, leases: [lease('notes')] });
     expect(live.leases.map((l) => l.span)).toEqual(['room:garden']);
+  });
+
+  it('a revision that arrives while the journal is read waits, then follows in order: none is lost', async () => {
+    let answer: (r: Response) => void = () => {};
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(() => new Promise<Response>((ok) => (answer = ok))),
+    );
+    FakeSource.last.emit('hello', hello(10));
+    await flush();
+    FakeSource.last.emit('hello', hello(12));
+    await flush();
+    // Rev 13 is committed and streamed before the journal answers for 11 and 12.
+    FakeSource.last.emit('revision', op(13));
+    expect(told).toEqual([]);
+    answer(new Response(JSON.stringify({ ops: [op(11), op(12)], next: 12, revision: 12 }), { status: 200 }));
+    await vi.waitFor(() => expect(told.map((r) => r.rev)).toEqual([11, 12, 13]));
+    expect(check).toHaveBeenCalled();
+  });
+
+  it('a journal that does not answer is said as a gap, never skipped in silence', async () => {
+    vi.useFakeTimers();
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => new Response('{}', { status: 503 })),
+    );
+    FakeSource.last.emit('hello', hello(1));
+    await vi.advanceTimersByTimeAsync(0);
+    FakeSource.last.emit('hello', hello(3));
+    await vi.advanceTimersByTimeAsync(60_000);
+    expect(live.gap).toBe(true);
+    expect(told).toEqual([]);
+    vi.useRealTimers();
+  });
+
+  it('a stream the server refused (a removed member, a suspended session) checks the session and opens again', async () => {
+    vi.useFakeTimers();
+    FakeSource.last.emit('hello', hello(1));
+    await vi.advanceTimersByTimeAsync(0);
+    const before = FakeSource.made;
+    FakeSource.last.readyState = FakeSource.CLOSED;
+    FakeSource.last.onerror?.();
+    expect(check).toHaveBeenCalledTimes(1);
+    expect(live.up).toBe(false);
+    await vi.advanceTimersByTimeAsync(1000);
+    expect(FakeSource.made).toBe(before + 1);
+    vi.useRealTimers();
+  });
+
+  it('a project at revision 0 still catches up after a cut', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => new Response(JSON.stringify({ ops: [op(1)], next: 1, revision: 1 }), { status: 200 })),
+    );
+    FakeSource.last.emit('hello', hello(0));
+    await flush();
+    FakeSource.last.emit('hello', hello(1));
+    await vi.waitFor(() => expect(told.map((r) => r.rev)).toEqual([1]));
   });
 });

@@ -25,4 +25,21 @@ approved on 18 Oct.
   the revision missed is read back; everyone ends on the same revision; a visitor gets the login page, a stranger
   "access not granted". Its server is `scripts/lib/studio-stack.ts`. In CI: Chromium and Firefox; WebKit on macOS.
 
+- **Second reading** (automated second context), fixed:
+  - a revision streamed while the journal was read after a cut could be skipped: it now waits and follows in order,
+    and `hello`s are taken one at a time;
+  - a journal that does not answer is retried, then said as a gap with a reload;
+  - a stream the server refused (removed, suspended, a proxy) checks the session and opens again, and a role changed
+    reloads the page (the e2e no longer reloads by hand);
+  - only file conflicts open the 409 dialog, Undo is gone everywhere hosted, a handled refusal is not toasted twice;
+  - the server looks for a write's stored answer again under the write lock and stores it once (a retry while the
+    first try runs gets its answer);
+  - the checks that POST are reads (not "waiting"), a write counts as waiting only after a failed try, and 502 and 504
+    are retried;
+  - the whole-game lease is released through its own route and never taken over span by span;
+  - `hello` reads the leases' sequence number first;
+  - also: an unreachable `/auth/me` is no logout, accessible avatars, presence sent on each move, the last owner may
+    end their own sessions, a role change is confirmed, the notes' author field is hidden hosted, every span listed;
+  - left as a stated limit: the editors do not yet send the revision they read (P5 base).
+
 → next: Claude (PR 9, second part: the release packages and the passes)

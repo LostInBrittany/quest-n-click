@@ -18,6 +18,8 @@ const GLOBAL_SPANS: [string, string][] = [
   ['voices', 'voices'],
   ['assets', 'assets'],
   ['notes', 'notes'],
+  ['playtests', 'playtests'],
+  ['reality', 'signals from the world'],
   ['meta', 'the rest'],
 ];
 
@@ -33,7 +35,9 @@ async function post(path: string, body: unknown): Promise<Record<string, unknown
 }
 
 export const takeSpan = (span: string) => post('leases', { spans: [span] });
-export const releaseSpan = (span: string) => post('leases/release', { spans: [span] });
+/** Lets a span go; the whole game (`*`, an owner's exclusive lease) is let go through its own route. */
+export const releaseSpan = (span: string) =>
+  span === '*' ? post('exclusive/release', {}) : post('leases/release', { spans: [span] });
 const takeOver = (span: string) => post('leases/takeover', { span });
 
 /** "held by you", "Tom", "free". */
@@ -46,6 +50,8 @@ export function leaseText(l: Lease | undefined, me: Me): string {
 function spanRow(span: string, label: string, live: Live, me: Me): HTMLElement {
   const l = live.leases.find((x) => x.span === span || x.span === '*');
   const mine = l?.holder === me.user.id;
+  // The whole game held by an owner (exclusive): only they let it go; no span of it can be taken over alone.
+  const whole = l?.span === '*';
   const act = async (fn: () => Promise<unknown>, done: string) => {
     try {
       await fn();
@@ -62,10 +68,14 @@ function spanRow(span: string, label: string, live: Live, me: Me): HTMLElement {
         : mine
           ? h(
               'button',
-              { type: 'button', onclick: () => void act(() => releaseSpan(span), `${label}: free`) },
-              'Release',
+              {
+                type: 'button',
+                onclick: () =>
+                  void act(() => releaseSpan(whole ? '*' : span), whole ? 'the whole game: free' : `${label}: free`),
+              },
+              whole ? 'Release the whole game' : 'Release',
             )
-          : me.role === 'owner'
+          : me.role === 'owner' && !whole
             ? h(
                 'button',
                 {
@@ -139,7 +149,14 @@ export function lockedDialog(
   o: { live: Live; me: Me; retry: () => Promise<void> },
 ): void {
   const span = refusal.span ?? '';
-  const what = span.startsWith('room:') ? `The room ${span.slice(5)}` : span ? `The span ${span}` : 'This part';
+  const what =
+    span === '*'
+      ? 'The whole game'
+      : span.startsWith('room:')
+        ? `The room ${span.slice(5)}`
+        : span
+          ? `The span ${span}`
+          : 'This part';
   let off = () => {};
   const wait = h(
     'button',
@@ -171,7 +188,7 @@ export function lockedDialog(
       h(
         'div',
         { class: 'actions' },
-        wait,
+        span ? wait : null,
         h(
           'button',
           {
@@ -184,7 +201,7 @@ export function lockedDialog(
           },
           'Try again',
         ),
-        o.me.role === 'owner' && span
+        o.me.role === 'owner' && span && span !== '*'
           ? h(
               'button',
               {

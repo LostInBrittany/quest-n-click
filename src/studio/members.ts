@@ -112,7 +112,11 @@ export async function membersPanel(me: Me, live: Live): Promise<void> {
             : select(
                 ROLES,
                 m.role,
-                (v) => void act(() => call('PUT', `members/${m.id}`, { role: v }), `${label}: ${v}`),
+                (v) => {
+                  // A role is a right: changed on purpose only (put back as it was otherwise).
+                  if (!confirm(`Make ${label} ${v}?${m.id === me.user.id ? ' This is you.' : ''}`)) return void draw();
+                  void act(() => call('PUT', `members/${m.id}`, { role: v }), `${label}: ${v}`);
+                },
                 {
                   'aria-label': `Role of ${label}`,
                 },
@@ -123,20 +127,20 @@ export async function membersPanel(me: Me, live: Live): Promise<void> {
         h(
           'td',
           { class: 'actions' },
+          h(
+            'button',
+            {
+              type: 'button',
+              onclick: () => {
+                if (confirm(`End every session of ${label}? They log in again.`))
+                  void act(() => call('DELETE', `members/${m.id}/sessions`), `${label}: logged out`);
+              },
+            },
+            'End sessions',
+          ),
           last
             ? h('span', { class: 'muted small' }, 'the last owner stays')
             : [
-                h(
-                  'button',
-                  {
-                    type: 'button',
-                    onclick: () => {
-                      if (confirm(`End every session of ${label}? They log in again.`))
-                        void act(() => call('DELETE', `members/${m.id}/sessions`), `${label}: logged out`);
-                    },
-                  },
-                  'End sessions',
-                ),
                 h(
                   'button',
                   {
