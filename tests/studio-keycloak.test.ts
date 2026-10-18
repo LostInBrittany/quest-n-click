@@ -79,6 +79,7 @@ describe.runIf(BASE)('against a real Keycloak', () => {
   let oidc: Oidc;
   let server: Server;
   const received: string[] = [];
+  let restore: (() => Promise<unknown>) | undefined;
   beforeAll(async () => {
     oidc = await Oidc.discover({
       issuer: `${BASE}/realms/web-scumm`,
@@ -99,6 +100,8 @@ describe.runIf(BASE)('against a real Keycloak', () => {
     await new Promise<void>((ok) => server.listen(0, '0.0.0.0', ok));
     const port = (server.address() as AddressInfo).port;
     const [client] = (await admin('/clients?clientId=studio')) as { id: string; attributes: Record<string, string> }[];
+    // Put back as it was afterwards: a long-lived Keycloak keeps no dead back-channel URL.
+    restore = () => admin(`/clients/${client!.id}`, { method: 'PUT', body: JSON.stringify(client) });
     await admin(`/clients/${client!.id}`, {
       method: 'PUT',
       body: JSON.stringify({
@@ -110,7 +113,10 @@ describe.runIf(BASE)('against a real Keycloak', () => {
       }),
     });
   }, 60_000);
-  afterAll(() => server?.close());
+  afterAll(async () => {
+    server?.close();
+    await restore?.();
+  });
 
   it('logs in through its form; the identity is the verified user, with a sid, a refresh token and an id_token', async () => {
     const c = await login(oidc, 'lea', 'lea-local-only');
@@ -120,8 +126,8 @@ describe.runIf(BASE)('against a real Keycloak', () => {
     expect(done.identity.sid).toBeTruthy();
     expect(done.refreshToken).toBeTruthy();
     expect(done.idToken).toBeTruthy();
-    // An id_token is no access token for the Studio (another audience, and it carries a nonce).
-    await expect(oidc.verifyAccessToken(done.idToken!)).rejects.toThrow();
+    // An id_token is no access token for the Studio: its audience is the client, not the Studio's API.
+    await expect(oidc.verifyAccessToken(done.idToken!)).rejects.toThrow(/aud/);
     // The provider still knows the session: a refresh succeeds.
     await expect(oidc.refresh(done.refreshToken!)).resolves.toBeDefined();
   }, 60_000);
@@ -129,15 +135,17 @@ describe.runIf(BASE)('against a real Keycloak', () => {
   it('sends a back-channel logout the server verifies: the session it names', async () => {
     const c = await login(oidc, 'lea', 'lea-local-only');
     const done = await oidc.finish(c.url, c.checks);
-    const [user] = (await admin('/users?username=lea')) as { id: string }[];
     received.length = 0;
-    await admin(`/users/${user!.id}/logout`, { method: 'POST' });
+    // This session only, ended by an admin: Keycloak tells the client of exactly this one.
+    await admin(`/sessions/${done.identity.sid}`, { method: 'DELETE' });
     for (let i = 0; i < 100 && !received.length; i++) await new Promise((ok) => setTimeout(ok, 100));
+    await new Promise((ok) => setTimeout(ok, 500));
     expect(received.length).toBeGreaterThan(0);
-    const t = await oidc.verifyLogoutToken(received[0]!);
-    expect(t.sub ?? t.sid).toBeTruthy();
-    if (t.sid) expect(t.sid).toBe(done.identity.sid);
-    if (t.sub) expect(t.sub).toBe(done.identity.sub);
+    // Every token verifies; one names this very session (the realm requires the sid) and its user.
+    const tokens = await Promise.all(received.map((x) => oidc.verifyLogoutToken(x)));
+    const mine = tokens.filter((t) => t.sid === done.identity.sid);
+    expect(mine).toHaveLength(1);
+    expect(mine[0]!.sub).toBe(done.identity.sub);
   }, 60_000);
 
   it('a user disabled by an admin: the next refresh is refused for good', async () => {

@@ -382,7 +382,7 @@ jobs:
             quay.io/keycloak/keycloak@sha256:09a381c715ab0b111835b70f2905955274843a219c6f27efb348e4d9f4086858 \
             start-dev --import-realm
           for i in $(seq 1 120); do
-            curl -s -m 2 -o /dev/null http://127.0.0.1:8080/realms/web-scumm/.well-known/openid-configuration && exit 0
+            curl -fsS -m 2 -o /dev/null http://127.0.0.1:8080/realms/web-scumm/.well-known/openid-configuration && exit 0
             sleep 2
           done
           docker logs keycloak; exit 1
