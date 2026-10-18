@@ -2,7 +2,17 @@
 // Used by the Vite plugin (tools/studio/plugin.ts), the tests and the MCP server. Never exits the process: errors
 // are thrown as StudioError (with an HTTP-like status), results are plain JSON.
 import { execFile } from 'node:child_process';
-import { existsSync, mkdirSync, readFileSync, readdirSync, renameSync, rmSync, writeFileSync } from 'node:fs';
+import { createHash } from 'node:crypto';
+import {
+  copyFileSync,
+  existsSync,
+  linkSync,
+  mkdirSync,
+  readFileSync,
+  readdirSync,
+  rmSync,
+  writeFileSync,
+} from 'node:fs';
 import { basename, isAbsolute, join, relative, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import ts from '@typescript/typescript6';
@@ -71,7 +81,11 @@ import type {
   PuzzleData,
 } from '../../../tools/studio/types';
 
+import { openSqliteDb } from '../../../bridge/src/store-sqlite';
+import { fsBlobStore } from './blobs';
 import { StudioError } from './errors';
+import { ABSENT, sha256 } from './durable';
+import { type FileEffect, Journal } from './journal';
 
 export { StudioError };
 
@@ -82,6 +96,13 @@ export interface StudioOptions {
   root?: string;
   /** Imports a TypeScript module fresh (not from a cache): the game changes on disk between calls. */
   importFresh?: (file: string) => Promise<unknown>;
+  /** Who writes, as the journal records it (4.2.1; default `local`). */
+  author?: string;
+  /**
+   * The operation journal (4.2.1, plan P1). Default: one opened on first write, under `<root>/.cache/studio-journal/`.
+   * A caller that shares one journal between Studios of the same game passes it.
+   */
+  journal?: Journal | Promise<Journal>;
 }
 
 /** Default fresh import: tsx's scoped loader (a new namespace per call, so edited files are read again). */
@@ -161,6 +182,25 @@ export const GAME_FILE_ID = '@game';
 
 const sameJson = (a: unknown, b: unknown) => JSON.stringify(a) === JSON.stringify(b);
 
+/** A copy of `from` at `to` made of hard links (the guard's staging folder): instant, and the same file system. */
+function linkTree(from: string, to: string) {
+  mkdirSync(to, { recursive: true });
+  for (const e of readdirSync(from, { withFileTypes: true })) {
+    const a = join(from, e.name),
+      b = join(to, e.name);
+    if (e.isDirectory()) linkTree(a, b);
+    else if (e.isFile()) {
+      try {
+        linkSync(a, b);
+      } catch (err) {
+        // Another file system (EXDEV), or links refused: a copy is slower but the same staging.
+        if (!['EXDEV', 'EPERM', 'ENOTSUP'].includes((err as NodeJS.ErrnoException).code ?? '')) throw err;
+        copyFileSync(a, b);
+      }
+    }
+  }
+}
+
 export function createStudio(opts: StudioOptions = {}) {
   const dir = resolve(opts.gameDir ?? GAME_DIR);
   const root = resolve(opts.root ?? ROOT);
@@ -181,9 +221,9 @@ export function createStudio(opts: StudioOptions = {}) {
     return p;
   };
 
-  async function loadModule(): Promise<GameModule> {
+  async function loadModule(d = dir): Promise<GameModule> {
     try {
-      return (await importFresh(join(dir, 'index.ts'))) as GameModule;
+      return (await importFresh(join(d, 'index.ts'))) as GameModule;
     } catch (e) {
       throw new StudioError(`the game does not load: ${(e as Error).message}`, 500);
     }
@@ -222,33 +262,116 @@ export function createStudio(opts: StudioOptions = {}) {
     throw new StudioError(`unknown room: "${id}"`, 404);
   }
 
-  // ---- writes: atomic, recorded for undo / redo (3.4)
-  /** What each write changed: undo puts `before` back, redo `after`, only while the file still holds the other. */
-  type Change = { file: string; before: string | null; after: string | null; what: string };
+  // ---- writes (4.2.1, plan P1 and P3): one operation of the journal each, applied whole or not at all, guarded on
+  // the game's final state, recorded for undo / redo (3.4) when the edit is an author's.
+  const author = opts.author ?? 'local';
+  let journalP: Promise<Journal> | undefined = opts.journal ? Promise.resolve(opts.journal) : undefined;
+  /** The game's journal, opened on first write: `<root>/.cache/studio-journal/<game>-<hash of its folder>/`. */
+  const journal = (): Promise<Journal> =>
+    (journalP ??= (async () => {
+      const key = `${gameId}-${createHash('sha256').update(dir).digest('hex').slice(0, 12)}`;
+      const home = join(root, '.cache', 'studio-journal', key);
+      const db = await openSqliteDb(join(home, 'journal.sqlite'));
+      return Journal.open({ db, blobs: fsBlobStore(join(home, 'blobs')), gameDir: dir });
+    })());
+  /** A game file's path as the journal names it (relative to the game folder, with `/`). */
+  const inGame = (file: string) => relative(dir, file).split(/[\\/]/).join('/');
+
+  /** One write of an operation: the file (absolute) and its whole new text, `null` to remove it. */
+  /** `from`: the content the edit was computed from, when the caller read it itself (the 409 then covers that read). */
+  type Effect = { file: string; after: string | null; from?: string | null };
+  /** What an undo puts back: every file of one operation, `before` and `after` as they were. */
+  type Change = { files: { file: string; before: string | null; after: string | null }[]; what: string };
   const undoStack: Change[] = [],
     redoStack: Change[] = [];
-  /** Writes through a temporary file and a rename: a reader never sees half a file. `null` removes the file. */
-  function writeAtomic(file: string, text: string | null) {
-    if (text === null) {
-      rmSync(file, { force: true });
-      return;
+  const readText = (file: string) => (existsSync(file) ? readFileSync(file, 'utf8') : null);
+  const hashText = (t: string | null) => (t === null ? ABSENT : sha256(t));
+
+  /** The files the validator never reads: an operation that writes only those needs no guard. */
+  const UNGUARDED = /^(notes\.json|storyboard\.(json|md)|voices\.json|playtests\/)/;
+
+  /** The game's validation errors at the journal's head, kept per revision (the guard compares against them). */
+  let baseline: { rev: number; errors: Set<string> } | undefined;
+
+  /**
+   * The guard (P3): the game as it would be after the operation, built in a staging folder (links to every file, the
+   * changed ones written), validated; an operation that adds a validation error is refused (422) before anything is
+   * logged. Judged on the final state, so "create the object + refer to it" in one operation passes.
+   */
+  async function guard(j: Journal, changed: FileEffect[], diff: string): Promise<void> {
+    if (changed.every((e) => UNGUARDED.test(e.path))) return;
+    const rev = await j.revision();
+    if (baseline?.rev !== rev) baseline = { rev, errors: new Set((await validateIn(dir)).errors) };
+    const stage = join(root, '.cache', 'studio-stage', `${gameId}-${process.pid}-${Date.now().toString(36)}`);
+    try {
+      linkTree(dir, stage);
+      for (const e of changed) {
+        const f = join(stage, ...e.path.split('/'));
+        rmSync(f, { force: true });
+        if (e.after !== null) {
+          mkdirSync(join(f, '..'), { recursive: true });
+          writeFileSync(f, e.after);
+        }
+      }
+      const was = baseline.errors;
+      // A game whose images are not prepared yet (`assets.gen.json` lists none, like the template) reports every image
+      // as not found: that says the assets wait for `npm run assets`, not that the edit is wrong. With prepared images,
+      // `addEntity` refuses an unknown one itself.
+      const unprepared = !Object.keys(loadAssets(join(stage, 'assets.gen.json'))?.images ?? {}).length;
+      const added = (await validateIn(stage)).errors.filter(
+        (e) => !was.has(e) && !(unprepared && e.includes('image not found')),
+      );
+      if (added.length)
+        throw Object.assign(
+          new StudioError(
+            `refused: the edit adds ${added.length} validation error(s): ${added.slice(0, 3).join('; ')}`,
+            422,
+          ),
+          { body: { errors: added, diff } },
+        );
+    } finally {
+      rmSync(stage, { recursive: true, force: true });
     }
-    mkdirSync(join(file, '..'), { recursive: true });
-    const tmp = `${file}.${process.pid}.tmp`;
-    writeFileSync(tmp, text);
-    renameSync(tmp, file);
-  }
-  /** Writes and records the change (the redo history is dropped by a new edit). */
-  function commit(file: string, after: string | null, what: string) {
-    const before = existsSync(file) ? readFileSync(file, 'utf8') : null;
-    if (before === after) return;
-    writeAtomic(file, after);
-    undoStack.push({ file, before, after, what });
-    if (undoStack.length > 200) undoStack.shift();
-    redoStack.length = 0;
   }
 
-  function writeRoomCode(file: string, code: string, what = 'edit') {
+  /**
+   * Applies one operation: every effect at once through the journal, guarded unless every file is one the validator
+   * never reads. `undo: false` for the writes 3.4 never recorded (notes, storyboard). Returns the files it changed.
+   */
+  async function write(
+    what: string,
+    effects: Effect[],
+    o: { undo?: boolean; diff?: string; who?: string } = {},
+  ): Promise<string[]> {
+    const j = await journal();
+    const befores = new Map(effects.map((e) => [e.file, readText(e.file)]));
+    const r = await j.apply({
+      author: o.who ?? author,
+      what,
+      effects: effects.map((e) => ({ path: inGame(e.file), after: e.after })),
+      // The files as this operation read them: another process that wrote one meanwhile makes it a 409, not a loss.
+      expect: Object.fromEntries(
+        effects.map((e) => [inGame(e.file), hashText(e.from !== undefined ? e.from : (befores.get(e.file) ?? null))]),
+      ),
+      guard: (changed) => guard(j, changed, o.diff ?? ''),
+      respond: (rev) => ({ rev }),
+    });
+    if (r.changed.length && o.undo !== false) {
+      const changed = new Set(r.changed);
+      undoStack.push({
+        what,
+        files: effects
+          .filter((e) => changed.has(inGame(e.file)))
+          .map((e) => ({ file: e.file, before: befores.get(e.file) ?? null, after: e.after })),
+      });
+      if (undoStack.length > 200) undoStack.shift();
+      redoStack.length = 0;
+    }
+    return r.changed;
+  }
+
+  /** Refuses (500) a room file the edit would leave unparsable: nothing is written. */
+  function parses(file: string, code: string) {
     const sf = ts.createSourceFile(file, code, ts.ScriptTarget.Latest, true, ts.ScriptKind.TS);
     const diags = (sf as unknown as { parseDiagnostics?: ts.Diagnostic[] }).parseDiagnostics ?? [];
     if (diags.length)
@@ -256,27 +379,38 @@ export function createStudio(opts: StudioOptions = {}) {
         `refused: the edit would break ${basename(file)} (${ts.flattenDiagnosticMessageText(diags[0].messageText, ' ')})`,
         500,
       );
-    commit(file, code, what);
+    return code;
   }
 
-  /** Undoes (or redoes) the last recorded write; 409 when the file changed since (an AI, an editor, git). */
+  /**
+   * Undoes (or redoes) the last recorded operation, itself one operation of the journal; 409 when one of its files
+   * changed since (an AI, an editor, git, another author).
+   */
   function step(
     from: Change[],
     to: Change[],
     dirn: 'undo' | 'redo',
   ): Promise<{ ok: true; file: string; what: string } | { ok: false; reason: string }> {
-    return serial(() => {
-      const c = from.pop();
-      if (!c) return { ok: false as const, reason: `nothing to ${dirn}` };
-      const now = existsSync(c.file) ? readFileSync(c.file, 'utf8') : null;
-      const expect = dirn === 'undo' ? c.after : c.before;
-      if (now !== expect) {
-        throw new StudioError(`cannot ${dirn} "${c.what}": ${rel(c.file)} changed since`, 409);
-      }
-      writeAtomic(c.file, dirn === 'undo' ? c.before : c.after);
-      to.push(c);
-      return { ok: true as const, file: rel(c.file), what: c.what };
-    });
+    const c = from.at(-1);
+    if (!c) return Promise.resolve({ ok: false as const, reason: `nothing to ${dirn}` });
+    for (const f of c.files)
+      if (readText(f.file) !== (dirn === 'undo' ? f.after : f.before))
+        return Promise.reject(new StudioError(`cannot ${dirn} "${c.what}": ${rel(f.file)} changed since`, 409));
+    from.pop();
+    return write(
+      `${dirn}: ${c.what}`,
+      c.files.map((f) => ({ file: f.file, after: dirn === 'undo' ? f.before : f.after })),
+      { undo: false },
+    ).then(
+      () => {
+        to.push(c);
+        return { ok: true as const, file: rel(c.files[0].file), what: c.what };
+      },
+      (e) => {
+        from.push(c);
+        throw e;
+      },
+    );
   }
   const undo = () => step(undoStack, redoStack, 'undo');
   const redo = () => step(redoStack, undoStack, 'redo');
@@ -287,8 +421,8 @@ export function createStudio(opts: StudioOptions = {}) {
 
   /**
    * Writes a structured value (a stage, a condition, a command list, a renderer) at `path` in rooms/<id>.ts. `dry`:
-   * only the diff. Otherwise the edit is written, the game reloaded and validated: an edit that adds a validation
-   * error is taken back (422, with the errors). Recorded for undo.
+   * only the diff. Otherwise one guarded operation: an edit that adds a validation error is refused (422, with the
+   * errors and the diff). Recorded for undo.
    */
   function setValue(
     id: string,
@@ -310,32 +444,9 @@ export function createStudio(opts: StudioOptions = {}) {
       const diff = r.changed ? lineDiff(before, r.code) : '';
       if (!r.changed || o.dry)
         return { ok: true as const, line: r.line, changed: r.changed, diff, ...(o.dry ? { dry: true as const } : {}) };
-      await guarded(() => writeRoomCode(file, r.code, `${id}: ${path}`), diff);
+      await write(`${id}: ${path}`, [{ file, after: parses(file, r.code), from: before }], { diff });
       return { ok: true as const, line: r.line, changed: true, diff };
     });
-  }
-
-  /**
-   * Writes through `write`, validates the game as it is then on disk, and takes the write back (422, with the
-   * errors) when it adds a validation error. `setValue` since 3.4; `setLayout` since 4.1.6, which wrote unchecked.
-   */
-  async function guarded(write: () => void, diff = ''): Promise<void> {
-    const was = new Set((await validateNow()).errors);
-    const depth = undoStack.length;
-    write();
-    const added = (await validateNow()).errors.filter((e) => !was.has(e));
-    if (!added.length) return;
-    if (undoStack.length > depth) {
-      const c = undoStack.pop()!;
-      writeAtomic(c.file, c.before);
-    }
-    throw Object.assign(
-      new StudioError(
-        `refused: the edit adds ${added.length} validation error(s): ${added.slice(0, 3).join('; ')}`,
-        422,
-      ),
-      { body: { errors: added, diff } },
-    );
   }
 
   const wrap = <T>(fn: () => T): T => {
@@ -405,7 +516,7 @@ export function createStudio(opts: StudioOptions = {}) {
       roomFile(id);
       if (!layout || typeof layout !== 'object' || Array.isArray(layout))
         throw new StudioError('the layout must be an object');
-      await guarded(() => commit(layoutFile(id), JSON.stringify(layout, null, 2) + '\n', `${id}: layout`));
+      await write(`${id}: layout`, [{ file: layoutFile(id), after: JSON.stringify(layout, null, 2) + '\n' }]);
       return { ok: true as const };
     });
   }
@@ -415,13 +526,13 @@ export function createStudio(opts: StudioOptions = {}) {
    * a path ending in `[+]` appends a line. Writes nothing when the value is already there.
    */
   function setText(id: string, path: string, value: string | null): Promise<EditResult> {
-    return serial(() => {
+    return serial(async () => {
       if (typeof path !== 'string' || !path) throw new StudioError('`path` is required');
       if (value !== null && typeof value !== 'string') throw new StudioError('`value` must be a string or null');
       const file = roomFile(id);
       const code = readFileSync(file, 'utf8');
       const r = wrap(() => setTextInSource(code, path, value, file));
-      if (r.changed) writeRoomCode(file, r.code, `${id}: ${path}`);
+      if (r.changed) await write(`${id}: ${path}`, [{ file, after: parses(file, r.code), from: code }]);
       return { ok: true as const, line: r.line, changed: r.changed };
     });
   }
@@ -448,7 +559,8 @@ export function createStudio(opts: StudioOptions = {}) {
       if (e.kind === 'prop' && e.img && images && Object.keys(images).length && !images[e.img])
         throw new StudioError(`image not in the manifest: "${e.img}"`);
 
-      let code = readFileSync(file, 'utf8');
+      const read = readFileSync(file, 'utf8');
+      let code = read;
       const fields: Record<string, string | undefined> =
         e.kind === 'prop'
           ? { name, img: e.img || undefined }
@@ -460,14 +572,18 @@ export function createStudio(opts: StudioOptions = {}) {
       code = r.code;
       if (typeof e.look === 'string' && e.look.trim())
         code = wrap(() => setTextInSource(code, `look.${e.id}[+]`, e.look!.trim(), file)).code;
-      writeRoomCode(file, code);
+      parses(file, code);
 
       const L = readJson<Layout>(layoutFile(id), {});
       if (e.kind === 'prop') (L.props ??= {})[e.id] = { x: at[0], y: at[1], h: 60 };
       else if (e.kind === 'hotspot')
         (L.hotspots ??= {})[e.id] = { rect: [Math.max(0, at[0] - 30), Math.max(0, at[1] - 30), 60, 60] };
       else (L.actors ??= {})[e.id] = { x: at[0], y: at[1] };
-      commit(layoutFile(id), JSON.stringify(L, null, 2) + '\n', `${id}: place ${e.id}`);
+      // The room and its layout: one operation (4.2.1), undone together.
+      await write(`${id}: add ${e.id}`, [
+        { file, after: code, from: read },
+        { file: layoutFile(id), after: JSON.stringify(L, null, 2) + '\n' },
+      ]);
       return { ok: true as const, line: r.line, changed: true };
     });
   }
@@ -479,12 +595,12 @@ export function createStudio(opts: StudioOptions = {}) {
   }
 
   function setStoryboard(sb: unknown): Promise<{ ok: true; changed: boolean }> {
-    return serial(() => {
+    return serial(async () => {
       const problems = storyboardProblems(sb);
       if (problems.length) throw new StudioError(problems.join('; '));
       const file = join(dir, 'storyboard.json');
       if (existsSync(file) && sameJson(readJson(file, null), sb)) return { ok: true as const, changed: false };
-      writeFileSync(file, formatJson(sb));
+      await write('storyboard', [{ file, after: formatJson(sb) }], { undo: false });
       return { ok: true as const, changed: true };
     });
   }
@@ -497,7 +613,7 @@ export function createStudio(opts: StudioOptions = {}) {
   }
 
   function addNote(n: NewNote): Promise<Note> {
-    return serial(() => {
+    return serial(async () => {
       if (!n || typeof n.text !== 'string' || !n.text.trim()) throw new StudioError('`text` is required');
       const all = getNotes();
       const note: Note = {
@@ -509,14 +625,17 @@ export function createStudio(opts: StudioOptions = {}) {
         ...(n.task === true ? { task: true as const } : {}),
       };
       all.entries.push(note);
-      writeFileSync(notesFile(), JSON.stringify(all, null, 2) + '\n');
+      await write(`note ${note.id}`, [{ file: notesFile(), after: JSON.stringify(all, null, 2) + '\n' }], {
+        undo: false,
+        who: note.author,
+      });
       return note;
     });
   }
 
   /** Replaces the text (and optionally the `about`) of a note. */
   function editNote(id: string, e: NoteEdit): Promise<Note> {
-    return serial(() => {
+    return serial(async () => {
       if (!e || typeof e.text !== 'string' || !e.text.trim()) throw new StudioError('`text` is required');
       if (e.about !== undefined && typeof e.about !== 'string') throw new StudioError('`about` must be a string');
       const all = getNotes();
@@ -525,18 +644,20 @@ export function createStudio(opts: StudioOptions = {}) {
       note.text = e.text.trim();
       if (e.about !== undefined) note.about = e.about.trim();
       note.edited = new Date().toISOString();
-      writeFileSync(notesFile(), JSON.stringify(all, null, 2) + '\n');
+      await write(`note ${id}`, [{ file: notesFile(), after: JSON.stringify(all, null, 2) + '\n' }], { undo: false });
       return note;
     });
   }
 
   function deleteNote(id: string): Promise<{ ok: true }> {
-    return serial(() => {
+    return serial(async () => {
       const all = getNotes();
       const i = all.entries.findIndex((n) => n.id === id);
       if (i < 0) throw new StudioError(`no such note: "${id}"`, 404);
       all.entries.splice(i, 1);
-      writeFileSync(notesFile(), JSON.stringify(all, null, 2) + '\n');
+      await write(`note ${id}: removed`, [{ file: notesFile(), after: JSON.stringify(all, null, 2) + '\n' }], {
+        undo: false,
+      });
       return { ok: true as const };
     });
   }
@@ -544,13 +665,13 @@ export function createStudio(opts: StudioOptions = {}) {
   /** Writes games/<id>/storyboard.md from storyboard.json (same text as `npm run page:storyboard -- --md`). */
   async function exportStoryboardMarkdown(): Promise<MarkdownResult> {
     const mod = await loadModule();
-    return serial(() => {
+    return serial(async () => {
       const file = join(dir, 'storyboard.json');
       if (!existsSync(file)) throw new StudioError('no storyboard.json in this game', 404);
       const sb = normalizeStoryboard(readJson<unknown>(file, { boards: [] }));
       const md = storyboardMarkdown({ game: mod.game }, sb);
       const out = join(dir, 'storyboard.md');
-      writeFileSync(out, md);
+      await write('storyboard.md', [{ file: out, after: md }], { undo: false });
       return {
         ok: true as const,
         file: rel(out),
@@ -571,9 +692,6 @@ export function createStudio(opts: StudioOptions = {}) {
   }
 
   // ------------------------------------------------------------------ checks
-
-  /** The validator's verdict on the game as it is on disk (setValue compares before and after). */
-  const validateNow = () => validate();
 
   // ---- voices (3.4): the production table, per language
   const voicesFile = () => join(dir, 'voices.json');
@@ -608,7 +726,7 @@ export function createStudio(opts: StudioOptions = {}) {
       const m = mergeSheet(sheet, lang, [row], new Set(lineIds(mod.game).map((x) => x.id)));
       if (m.unknown.length) throw new StudioError(`no line "${id}" in the game`, 404);
       if (m.bad.length) throw new StudioError(m.bad[0]);
-      commit(voicesFile(), JSON.stringify(m.sheet, null, 2) + '\n', `voices ${lang}: ${id}`);
+      await write(`voices ${lang}: ${id}`, [{ file: voicesFile(), after: JSON.stringify(m.sheet, null, 2) + '\n' }]);
       return { ok: true as const };
     });
   }
@@ -617,11 +735,12 @@ export function createStudio(opts: StudioOptions = {}) {
     return { lang: v.lang, csv: toCsv(v.rows) };
   }
 
-  async function validate(): Promise<ValidateResult> {
+  /** The validator's verdict on the game in `d` (the game folder, or the guard's staging folder). */
+  async function validateIn(d: string): Promise<ValidateResult> {
     const t0 = Date.now();
-    const mod = await loadModule();
-    const layouts = loadLayouts(join(dir, 'layout'));
-    const assets = loadAssets(join(dir, 'assets.gen.json'));
+    const mod = await loadModule(d);
+    const layouts = loadLayouts(join(d, 'layout'));
+    const assets = loadAssets(join(d, 'assets.gen.json'));
     let minigames: Record<string, { required?: string[] }> | undefined;
     try {
       const eng = (await importFresh(join(root, 'src/engine/minigames/index.ts'))) as {
@@ -649,6 +768,7 @@ export function createStudio(opts: StudioOptions = {}) {
     });
     return { ok: errors.length === 0, errors, warnings, ms: Date.now() - t0 };
   }
+  const validate = () => validateIn(dir);
 
   /** The playtests of games/<id>/playtests/*.session.json replayed and summed up. */
   async function playtests(): Promise<PlaytestsData> {

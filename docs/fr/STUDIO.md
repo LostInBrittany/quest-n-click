@@ -193,7 +193,15 @@ pour n'importe quel autre dossier de jeu. Elles ne quittent jamais le processus 
 `StudioError` (avec `status`). Le jeu est réimporté à chaque appel pour que les modifications sur le disque soient
 prises en compte : par défaut avec le chargeur ciblé de tsx (rapide, dans le même processus) ; `importInChild` (un
 processus enfant node + tsx) est le repli là où les imports dans le même processus sont mis en cache, par exemple
-dans Vitest. Les écritures sont sérialisées. Les types partagés sont dans `tools/studio/types.ts` ; le schéma du
+dans Vitest. Les écritures sont sérialisées. Depuis 4.2.1, chaque écriture est une opération du journal du jeu
+(`studio-server/src/ops/journal.ts`, rangé dans `.cache/studio-journal/`) : tous les fichiers qu'elle touche sont écrits
+ensemble ou pas du tout, durablement (fsync), et une opération interrompue par un crash est terminée à la réouverture du
+Studio. Toute écriture sur des fichiers que lit le validateur est gardée sur le jeu tel qu'il serait après elle (422
+si elle ajoute des erreurs de validation ; les textes aussi depuis 4.2.1). Ajouter un prop, un hotspot ou un acteur
+écrit la salle et son layout en une seule opération, annulée en une seule fois. Un changement fait hors du Studio (un
+éditeur, un agent, git) est enregistré avant que la prochaine écriture touche ce fichier, et un fichier réécrit par un
+autre processus pendant la préparation d'une modification donne un 409. Les types partagés sont dans
+`tools/studio/types.ts` ; le schéma du
 storyboard, sa normalisation et l'export Markdown sont dans `tools/pages/storyboard-data.ts` (pur, partagé par le
 générateur de pages, le core et l'UI).
 
