@@ -150,11 +150,11 @@ Every page exists in English (`docs/en/`) and French (`docs/fr/`), and a test ke
 command in [TOOLS](docs/en/TOOLS.md), what changed in the [CHANGELOG](CHANGELOG.md), moving to a new version in
 [UPGRADING](docs/en/UPGRADING.md), and where it comes from in the [ROADMAP](docs/en/ROADMAP.md).
 
-Current release: [v4.2.1 "Shared Floor"](https://github.com/wanoo/web-scumm/releases/tag/v4.2.1): the Studio
+Current release: [v4.2.1 "Shared Floor"](https://github.com/wanoo/web-scumm/releases/tag/v4.2.1), the Studio
 online for a team, experimental ([STUDIO-SERVER](docs/en/STUDIO-SERVER.md)), over 4.2.0 "Stable World". 4.2.0
-restored strict SemVer after the 4.1.x incubation line: a minor adds, a major removes. Its public API follows strict SemVer
-([SUPPORT](docs/en/SUPPORT.md)). It ships before the people's passes: of the surfaces above, only the Stable column
-is promised; the passes are made on it, and a later 4.2.x promotes what they prove
+restored strict SemVer after the 4.1.x incubation line: a minor adds, a major removes; the public API follows it
+([SUPPORT](docs/en/SUPPORT.md)). 4.2.0 shipped before the people's passes: of the surfaces above, only the Stable
+column is promised; the passes are made on a 4.2.x, which promotes what they prove
 ([GO / NO-GO 4.2](docs/dev/GO-NO-GO-4.2.md), D38).
 
 ## Licences

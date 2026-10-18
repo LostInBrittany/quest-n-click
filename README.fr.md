@@ -156,11 +156,11 @@ Chaque page existe en anglais (`docs/en/`) et en français (`docs/fr/`), et un t
 dans [TOOLS](docs/fr/TOOLS.md), ce qui change dans le [CHANGELOG](CHANGELOG.md), passer à une nouvelle version dans
 [UPGRADING](docs/fr/UPGRADING.md), et d'où vient le projet dans la [ROADMAP](docs/fr/ROADMAP.md).
 
-Release actuelle : [v4.2.1 « Shared Floor »](https://github.com/wanoo/web-scumm/releases/tag/v4.2.1) : le Studio en
+Release actuelle : [v4.2.1 « Shared Floor »](https://github.com/wanoo/web-scumm/releases/tag/v4.2.1), le Studio en
 ligne pour une équipe, expérimental ([STUDIO-SERVER](docs/fr/STUDIO-SERVER.md)), sur la 4.2.0 « Stable World ». La
-4.2.0 a rétabli le SemVer strict après la ligne d'incubation 4.1.x : une mineure ajoute, une majeure retire. Son API publique suit le
-SemVer strict ([SUPPORT](docs/fr/SUPPORT.md)). Elle sort avant les passes humaines : des surfaces ci-dessus, seule la
-colonne Stable est promise ; les passes se font sur elle, et une 4.2.x suivante promeut ce qu'elles prouvent
+4.2.0 a rétabli le SemVer strict après la ligne d'incubation 4.1.x : une mineure ajoute, une majeure retire ; l'API
+publique le suit ([SUPPORT](docs/fr/SUPPORT.md)). La 4.2.0 est sortie avant les passes humaines : des surfaces
+ci-dessus, seule la colonne Stable est promise ; les passes se font sur une 4.2.x, qui promeut ce qu'elles prouvent
 ([GO / NO-GO 4.2](docs/dev/GO-NO-GO-4.2.md), D38).
 
 ## Licences

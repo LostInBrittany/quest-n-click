@@ -582,7 +582,18 @@ ultérieure. Ce que la 4.2.0 dit stable, limité ou expérimental est dans `docs
 
 ## 34. De la 4.2.0 à la 4.2.1 « Shared Floor »
 
-Rien à changer pour un jeu : l'API publique, le format du contenu et l'enveloppe de sauvegarde sont ceux de la 4.2.0
-(D40). Le Studio sur votre machine marche comme avant ; ses écritures passent désormais par le même journal que celles
-du Studio hébergé (le local le garde sous `.cache/`). Le moteur s'installe depuis `releases/download/v4.2.1/…`. Pour
-mettre un Studio en ligne pour une équipe, voir `docs/fr/STUDIO-SERVER.md` (expérimental en 4.2.1).
+Rien à changer dans un jeu : l'API publique, le format du contenu et l'enveloppe de sauvegarde sont ceux de la 4.2.0
+(D40). Ce qu'un auteur peut remarquer :
+
+- **Node 22.13 ou plus récent pour le Studio et les outils qui écrivent un jeu** (`ids`, `i18n`, `voices`,
+  `import-layout`, `provenance`, les modifications du Studio) : leurs écritures passent désormais par le même journal
+  que celles du Studio hébergé, gardé en local sous `.cache/studio-journal/` dans SQLite (`node:sqlite`, Node 22.13+).
+  Jouer et construire un jeu tournent toujours sur 22.12.
+- **Une modification qui ajouterait une erreur de validation est refusée** (422, avec les erreurs), dans le Studio et
+  ses outils : le jeu sur disque reste valide.
+- **L'éditeur de placement enregistre par l'API du Studio** (`PUT /__studio/api/room/<id>/layout`) ; la route
+  `/__layout` a disparu et `layoutWriter()` (dans `tools/vite/plugins.ts`) ne fait plus rien, gardé pour qu'une
+  configuration qui le nomme se charge encore.
+
+Le moteur s'installe depuis `releases/download/v4.2.1/…`. Pour mettre un Studio en ligne pour une équipe, voir
+`docs/fr/STUDIO-SERVER.md` (expérimental en 4.2.1).

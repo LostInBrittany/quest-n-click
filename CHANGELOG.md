@@ -11,7 +11,9 @@ Clever Cloud with PostgreSQL and Cellar, from the repository or from the new `we
 is **experimental** until its two people's passes are made (`studio-hosted`, `studio-collab`): the game in the Studio
 is a live preview, not frozen at a revision (per-revision previews come in 4.2.2), and a real Safari has not tried
 the game's frame yet. Nothing a game or a player uses changed: the public API, the content format and the save
-envelope are 4.2.0's (D40). The tag is signed with the maintainer's SSH key on their yes of 18 October (D37).
+envelope are 4.2.0's (D40). An author may notice that the Studio and the tools that write a game need Node 22.13+
+(their writes go through the journal, in SQLite) and refuse an edit that would add a validation error
+(UPGRADING §34). The tag is signed with the maintainer's SSH key on their yes of 18 October (D37).
 
 ### Fixed
 
@@ -132,8 +134,8 @@ envelope are 4.2.0's (D40). The tag is signed with the maintainer's SSH key on t
 
 - **The Studio Server as a release archive** (4.2.1): `web-scumm-studio-server-<version>.tgz` carries the commands
   `web-scumm-studio-server` and `web-scumm-studio-worker`, the Studio's page already built, and its own dependencies
-  (their versions locked in its `npm-shrinkwrap.json` and SBOM; `web-scumm-studio-server deps` says what an install
-  resolved). Install it beside the engine of the same version
+  (their versions locked in its `npm-shrinkwrap.json` and SBOM for an install from the registry; from the archive file
+  npm resolves them from their ranges, and `web-scumm-studio-server deps` says what an install resolved). Install it beside the engine of the same version
   (`docs/en/STUDIO-SERVER.md`, "From the release archives"). Two people's passes join the sheet from 4.2.1:
   `studio-hosted` (a real Clever Cloud deployment, a real Safari) and `studio-collab` (three people, a cut, a redeploy).
 

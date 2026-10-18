@@ -5564,20 +5564,30 @@ approved on 18 Oct.
 
 ## #205 · 2026-10-18 · Claude · release · 4.2.1 "Shared Floor": the Studio online for a team, experimental
 
-- **What ships**: PRs #127–#147 (LOG #188–#204), the plan's §7 for 4.2.1 (PR A, S, 1–9, I): the journal and its
-  guard, the single entry, the server and its probes, OpenID Connect with the Studio's roles, the processing worker,
-  spans and leases with the live stream, the game's origin and its live preview, the shared Studio's screens from the
-  approved mock-ups, the hosting guide, the CI gates (a real Postgres, S3 and Keycloak; the browsers), the release
-  archive `web-scumm-studio-server` and its install smoke, the passes `studio-hosted` and `studio-collab`.
+- **What ships**: the plan's §7 for 4.2.1 (rows A, S, 1–9, I), merged as #127–#132, #135–#143 and #145–#147 (18 PRs;
+  LOG #188–#204): the journal and its guard, the single entry, the server and its probes, OpenID Connect with the
+  Studio's roles, the processing worker, spans and leases with the live stream, the game's origin and its live preview,
+  the shared Studio's screens from the approved mock-ups, the hosting guide, the CI gates (a real Postgres, S3 and
+  Keycloak; the browsers), the release archive `web-scumm-studio-server` and its install smoke, the passes
+  `studio-hosted` and `studio-collab`. Spike S's report is `docs/dev/SPIKE-4.2.1-CLEVER.md` (its throwaway code stays
+  on a local branch and goes with the Clever resources).
 - **The maintainer's answers (18 Oct)** to what blocked the goal "release 4.2.3": the mock-ups « i approuved »; the
-  real Safari test « all test later » (the `studio-hosted` pass, open); signing « yes sign plz » (D37: the yes to sign
-  the 4.2.x tags of this goal, asked as "your yes to signing the release tags"); the 4.2.2 plan « i didn't read the
-  #144 » (4.2.2 waits for it).
-- **Experimental (D18):** both passes are open; SUPPORT says what 4.2.1 does not do yet (a frozen preview, the Assets
-  tab and the Assistant hosted, WebKit on Linux in the game's frame) and writes D40's exception.
+  real Safari test « all test later » (the `studio-hosted` pass, open); signing « yes sign plz » (D37: recorded as the
+  yes for `v4.2.1`; 4.2.2 and 4.2.3 get their own); the 4.2.2 plan « i didn't read the #144 » (4.2.2 waits for it).
+- **Experimental (D18):** both passes are open; SUPPORT says what 4.2.1 does not do yet and writes D40's exception.
+- **Where 4.2.1 departs from its plan's §7, said:**
+  - the Studio's browser tests and the real Keycloak run in `ci.yml`'s `studio-hosted` job (on main and every tag),
+    not in the candidate, whose gate has `studio-install-smoke`; the tag waits for `studio-hosted` green on its SHA;
+  - a 409 keeps the draft to copy and try again, without a diff to merge, and the editors do not send the revision they
+    read (P5's base);
+  - the redeploy with two instances is covered in parts (the service lease taken over, a fenced writer refused, the
+    folder following the head), not by two servers writing at once; every API route is checked for its role, and the
+    gate stands in front of all of them, without a walk of every route unauthenticated;
+  - no `ops/studio/clever/` model folder: the guide's table of variables stands for it;
+  - the Studio and the tools that write a game need Node 22.13+ (UPGRADING §34);
+  - WebKit runs the Studio's browser tests on macOS by hand, not in CI (WebKit on Linux cannot run the game's frame).
 - **The version**: 4.2.1; the golden save `demo-4.2.1.json`; the reference run recorded again (it names the engine's
-  version); the CHANGELOG assembled from 18 fragments.
+  version); the CHANGELOG assembled from 17 fragments, with the plan's entry written beside them.
 
 → next: Claude (this PR's candidate, `v4.2.1` signed on it, `ship verify`, the two pass issues; then 4.2.2 once #144
-is merged)
-
+is merged, and its own yes to sign)

@@ -3,7 +3,7 @@
 **Context.** A game is TypeScript: reading it or validating it means running it. Until 4.2.1, the Studio imported the
 game in its own process. Hosted, that process holds the database, the session key, the OIDC client secret and the
 Cellar keys, and a `dev` could have read all of them. Clever Cloud's native Node.js runtime gives one system user per
-application and no container per job (spike S report, §6, on the spike branch of 4.2.1). Node's permission model limits
+application and no container per job (spike S report, `docs/dev/SPIKE-4.2.1-CLEVER.md` §6). Node's permission model limits
 accidents; it is not a boundary against hostile code. A child process of the Studio is not one either: it runs as the
 same user and can read the parent's `/proc/<pid>/environ`, which still holds the variables removed from
 `process.env`. Plan `docs/dev/PLAN-4.2.1-4.2.3-STUDIO-SERVER.md` §3.8.

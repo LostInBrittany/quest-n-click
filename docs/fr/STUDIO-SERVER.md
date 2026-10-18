@@ -5,10 +5,11 @@ Connect (Keycloak ou un autre), travaille sur le même jeu en même temps, et vo
 C'est le chantier de la ligne 4.2.x (plan `docs/dev/PLAN-4.2.1-4.2.3-STUDIO-SERVER.md`). Seul sur sa machine,
 `npm run studio` reste tel quel : rien de tout ceci n'est nécessaire.
 
-> **État (4.2.1, en cours).** Fait : le journal (aucune modification confirmée n'est perdue), les connexions et les
-> rôles, l'application de traitement, les pans et les baux, le flux en direct, l'origine propre du jeu avec son aperçu
-> vivant, et la page du Studio. À venir en 4.2.1 : les écrans du Studio pour les membres, les baux et les conflits. Le
-> paquet de release `web-scumm-studio-server` est prêt (ci-dessous) ; ce guide déploie depuis le dépôt, le même serveur.
+> **État (4.2.1, expérimental).** Le journal (aucune modification confirmée n'est perdue), les connexions et les rôles,
+> l'application de traitement, les pans et les baux, le flux en direct, l'origine propre du jeu avec son aperçu vivant,
+> et les écrans du Studio pour tout cela. Il reste expérimental jusqu'à ce que ses passes humaines (`studio-hosted`,
+> `studio-collab`) soient faites. Ce guide déploie depuis le dépôt ; l'archive `web-scumm-studio-server` est le même
+> serveur (ci-dessous).
 
 ## Ce qui tourne où
 

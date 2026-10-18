@@ -62,6 +62,7 @@ aucun runner Windows ni Node 24 (`CONTRIBUTING.md`, « What CI runs ») :
 | Bridge, profil `local` (4.1.10) | SQLite via `node:sqlite` (Node 22.13+) : le contrat du store, les tenants croisés en tests de propriété, trois processus sur un fichier dont un tué pendant 1 000 propositions, la sauvegarde en un seul instantané et la restauration tout ou rien (4.1.19) ; le backup schéma 4, store entier et quota compris, et deux modes de restauration, `merge` et `replace-store`, sous un lease de maintenance (4.1.20) ; une charge de 50 000 propositions chaque nuit | une installation de longue durée sur une vraie machine |
 | Bridge, profil `distributed` (4.1.10, `experimental`) | Postgres 16 en CI (`bridge-postgres`) : le même contrat, les tenants et la diffusion entre instances ; la charge de nuit ; le profil de qualification (`ops/qualify/` : HTTPS, trois instances, le classement, un worker tué en pleine vérification, une restauration après destruction de la topologie) dans le workflow `qualify` ; depuis 4.1.20 le profil complet dans chaque candidat qu'un tag peut nommer (les deux modes de restauration sous le bail de maintenance), `--short` dans celui d'une pull request | un vrai déploiement : jusque-là, `experimental` |
 | Connecteurs (4.1.9), **expérimental** (D19) | email (webhook signé, IMAP), Telnet, SSH, Open Badges 2 et 3 : le même contrat pour les quatre, tests d'abus et de fuzz, une exécution sous `--disallow-code-generation-from-strings`, les replays du chapitre d'exemple ; les quatre joués depuis leur archive dans le candidat (4.1.19) ; les tests Telnet et SSH pas encore sous Windows | un vrai fournisseur d'email, un vrai badge d'un vrai émetteur, SSH et Telnet exposés dans un environnement contrôlé |
+
 ## 4.2.1 : le Studio Server, et l'exception 4.2.x (D40)
 
 Les 4.2.1 à 4.2.3 peuvent **ajouter** (un outil, une commande, une route du Studio Server, un paquet) mais jamais
@@ -69,9 +70,15 @@ changer ou retirer un nom public ou un format : l'API publique (`src/engine/api`
 de sauvegarde restent ceux de la 4.2.0 (D40). Le **Studio Server** (`docs/fr/STUDIO-SERVER.md`, l'archive
 `web-scumm-studio-server`) est **expérimental** : ses preuves machine sont le job CI `studio-hosted` et le
 `studio-install-smoke` du candidat ; il devient limité, puis stable, avec ses passes `studio-hosted` (un vrai
-déploiement Clever Cloud, un vrai Safari) et `studio-collab` (trois personnes, une coupure, un redéploiement). En 4.2.1
-le jeu dans le Studio hébergé est un **aperçu vivant**, pas figé à une révision (P4 arrive en 4.2.2) ; l'onglet Assets
-et l'Assistant n'y sont pas encore ; WebKit sous Linux ne peut pas jouer le cadre du jeu.
+déploiement Clever Cloud, un vrai Safari) et `studio-collab` (trois personnes, une coupure, un redéploiement). Ses
+tests navigateur tournent sous Chromium et Firefox en CI (job `studio-hosted`, sur main et chaque tag), et sous WebKit
+sous macOS à la main : aucun WebKit ne les fait tourner en CI, et WebKit sous Linux ne peut pas afficher le jeu dans
+son cadre. En 4.2.1 le jeu dans le Studio hébergé est un **aperçu vivant**, pas figé à une révision (P4 arrive en
+4.2.2) ; l'onglet Assets et l'Assistant n'y sont pas encore ; une écriture refusée garde son brouillon à copier et à
+réessayer (pas de diff à fusionner), et les éditeurs n'envoient pas la révision qu'ils ont lue (la base de P5). Le
+Studio et les outils qui écrivent un jeu demandent Node 22.13+. Les dépendances de l'archive sont verrouillées pour une
+installation depuis le registre ; installées depuis le fichier d'archive, npm les résout d'après leurs plages
+(`web-scumm-studio-server deps` dit lesquelles).
 
 ## 4.2.0 : ce qui est promis (D38)
 
