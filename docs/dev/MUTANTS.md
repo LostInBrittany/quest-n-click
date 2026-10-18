@@ -15,6 +15,8 @@ against each mutant. Each set is named for exactly the files it mutates (4.1.19,
 | `reality-store` | the Bridge's stores in memory, SQL and SQLite, migrations, streams, signing (not the Postgres adapter) | gated |
 | `connectors-edge` | configuration and start, the email connector (webhook, IMAP, parse), badge verification, terminal guard and shell, SSH, Telnet | gated (4.1.20) |
 | `reality-store-postgres` | `bridge/src/store-postgres.ts`, judged on a Postgres (its own database per test file, the files one after the other) | gated (4.1.20) |
+| `studio-ops` | the Studio Server's journal, its durable writes and the spans of a game's files | measured (4.2.1) |
+| `studio-auth` | the Studio Server's gate, OpenID provider, auth routes and store, spans' leases, the game's origin | measured (4.2.1) |
 
 A gated set fails its job on any survivor not named below; a measured set reports, toward being read and gated. The
 survivors named here are equivalent mutants: no input the engine or the Bridge can receive tells them from the

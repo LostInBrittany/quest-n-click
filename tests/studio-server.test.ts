@@ -300,9 +300,8 @@ describe.runIf(PG && S3URL)('hosted: Postgres and S3', () => {
 
   it('a hosted journal rebuilds a lost folder from the database and the blobs', async () => {
     const db = await openPostgresDb(PG!);
-    await db.exec(
-      'DROP TABLE IF EXISTS studio_spans, studio_audit, studio_seen_jti, studio_preauth, studio_sessions, studio_invitations, studio_members, studio_users, studio_requests, studio_service, studio_lease, studio_files, studio_ops, studio_meta, schema_migrations CASCADE',
-    );
+    // A clean schema, whatever ran here before: no list of tables to keep in step with the migrations.
+    await db.exec('DROP SCHEMA public CASCADE; CREATE SCHEMA public');
     const game = join(tmp, 'hosted-game');
     cpSync(join(ROOT, 'games', '_template'), game, { recursive: true });
     const blobs = s3BlobStore(s3());

@@ -23,6 +23,7 @@ export const GATES = [
   'secondGame',
   'freshInstall',
   'upgrade',
+  'studioHosted',
 ] as const;
 export type Gate = (typeof GATES)[number];
 /** Every gate, plus `all` when one file (or `--all`) asked for everything. */
@@ -40,6 +41,7 @@ export const JOB_OF: Record<Gate, string> = {
   secondGame: 'second-game',
   freshInstall: 'fresh-install',
   upgrade: 'upgrade',
+  studioHosted: 'studio-hosted',
 };
 
 interface Rule {
@@ -96,6 +98,12 @@ export const RULES: readonly Rule[] = [
   { re: /^src\/studio\//, gates: ['e2e', ...UNIT], why: 'the Studio (the canvas row edits a stage)' },
 
   // The Reality Bridge and its sample game.
+  // The Studio Server's journal runs on these (4.2.1): its SQL store and its migrations runner.
+  {
+    re: /^bridge\/src\/(store-sql|store-sqlite|migrations)\.ts$/,
+    gates: ['reality', 'freshInstall', ...UNIT, 'studioHosted'],
+    why: "the Bridge's SQL layer, also the Studio Server journal's",
+  },
   { re: /^bridge\//, gates: ['reality', 'freshInstall', ...UNIT], why: 'the Reality Bridge (also a package)' },
   {
     re: /^(connectors\/|games\/signals\/|scripts\/(e2e-reality|reality-spike)\.mjs$|tools\/(reality-xcheck|solve-reality|reality-fixtures)\.ts$)/,
@@ -109,7 +117,7 @@ export const RULES: readonly Rule[] = [
   // The Bridge's qualification profile (4.1.18): brought up by its own workflow (qualify.yml) and the candidate's
   // `deployment-smoke`; here its static test only.
   {
-    re: /^(ops\/|scripts\/ops-qualify\.mjs$|scripts\/ops-qualify\/)/,
+    re: /^(ops\/(?!studio\/ci\/)|scripts\/ops-qualify\.mjs$|scripts\/ops-qualify\/)/,
     gates: [...UNIT],
     why: 'the qualification profile',
   },
@@ -139,8 +147,17 @@ export const RULES: readonly Rule[] = [
     why: 'a repository tool',
   },
   { re: /^tools\/audio(\/|\.py$)/, gates: ['e2e', 'reference', 'node24'], why: 'the audio pipeline' },
-  { re: /^studio-server\//, gates: [...AUTHORING], why: 'the Studio Server and its operation core (4.2.1)' },
+  {
+    re: /^studio-server\//,
+    gates: [...AUTHORING, 'studioHosted'],
+    why: 'the Studio Server and its operation core (4.2.1)',
+  },
   { re: /^(tools|scripts)\//, gates: [...AUTHORING], why: 'the authoring pipeline' },
+  {
+    re: /^(tests\/studio-(server|worker|collab)\.test\.ts|ops\/studio\/ci\/)/,
+    gates: [...UNIT, 'studioHosted'],
+    why: 'the hosted Studio against Postgres and S3 (4.2.1)',
+  },
   { re: /^tests\//, gates: [...UNIT], why: 'the unit tests' },
 ];
 
