@@ -38,16 +38,85 @@ export class ApiError extends Error {
   }
 }
 
-async function call<T>(method: string, path: string, body?: unknown): Promise<T> {
-  const r = await studioFetch(path, {
-    method,
-    headers: method === 'GET' ? {} : { 'content-type': 'application/json' },
-    body: method === 'GET' ? undefined : JSON.stringify(body ?? {}),
-  });
+/** A write refused by a span another member holds (423) or by a file changed since it was read (409). */
+export interface Refusal {
+  status: 409 | 423;
+  data: Record<string, unknown>;
+  /** What was sent: the draft the member keeps. */
+  draft: unknown;
+  /** Sends it again (a new operation). */
+  retry: () => Promise<void>;
+}
+let refused: ((r: Refusal) => void) | undefined;
+/** Who shows a refused write on a hosted Studio (hosted.ts / spans.ts). */
+export const onRefused = (fn: (r: Refusal) => void) => {
+  refused = fn;
+};
+
+/** The writes sent but not yet answered on a hosted Studio (a cut, a server switching): `changed` tells the count. */
+export const waiting = { count: 0, changed: () => {} };
+
+const pause = (ms: number) => new Promise((ok) => setTimeout(ok, ms));
+
+/** `quiet`: a retry from a refusal's dialog, which says itself why it failed again. */
+async function call<T>(method: string, path: string, body?: unknown, quiet = false): Promise<T> {
+  // P6: on a hosted Studio a write carries its operation id, and a cut or a 503 (another instance taking over) sends
+  // it again with the same id: applied once, its answer the same.
+  const write = hosting.hosted && method !== 'GET';
+  const op = write ? crypto.randomUUID() : undefined;
+  let r: Response | undefined;
+  if (write) {
+    waiting.count++;
+    waiting.changed();
+  }
+  try {
+    for (let attempt = 0; ; attempt++) {
+      try {
+        r = await studioFetch(path, {
+          method,
+          headers: {
+            ...(method === 'GET' ? {} : { 'content-type': 'application/json' }),
+            ...(op ? { 'x-studio-op': op } : {}),
+          },
+          body: method === 'GET' ? undefined : JSON.stringify(body ?? {}),
+        });
+      } catch (e) {
+        if (!write || attempt >= 8) throw e;
+        await pause(Math.min(8000, 500 * 2 ** attempt));
+        continue;
+      }
+      if (write && r.status === 503 && attempt < 8) {
+        const d = (await r
+          .clone()
+          .json()
+          .catch(() => ({}))) as { suspended?: boolean };
+        if (d.suspended) location.reload();
+        else {
+          await pause(Math.min(8000, 500 * 2 ** attempt));
+          continue;
+        }
+      }
+      break;
+    }
+  } finally {
+    if (write) {
+      waiting.count--;
+      waiting.changed();
+    }
+  }
   // A hosted Studio whose session ended: log in again, then come back here.
   if (r.status === 401 && hosting.hosted) goLogin();
   const data = await r.json().catch(() => ({ error: `${r.status} ${r.statusText}` }));
-  if (!r.ok) throw new ApiError(data.error ?? `${r.status}`, r.status);
+  if (!r.ok) {
+    if (write && !quiet && (r.status === 423 || r.status === 409))
+      refused?.({
+        status: r.status,
+        data,
+        draft: body,
+        retry: async () => void (await call(method, path, body, true)),
+      });
+    throw new ApiError(data.error ?? `${r.status}`, r.status);
+  }
   return data as T;
 }
 

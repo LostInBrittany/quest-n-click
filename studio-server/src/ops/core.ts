@@ -641,7 +641,10 @@ export function createStudio(opts: StudioOptions = {}) {
       const note: Note = {
         id: `n${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`,
         about: typeof n.about === 'string' ? n.about.trim() : '',
-        author: typeof n.author === 'string' && n.author.trim() ? n.author.trim() : 'you',
+        // On a shared Studio the author is the session's, never what the page says (plan §7 row 7).
+        author:
+          operationContext.getStore()?.claimant?.name ??
+          (typeof n.author === 'string' && n.author.trim() ? n.author.trim() : 'you'),
         text: n.text.trim(),
         at: new Date().toISOString(),
         ...(n.task === true ? { task: true as const } : {}),

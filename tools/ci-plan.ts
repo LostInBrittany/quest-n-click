@@ -140,7 +140,7 @@ export const RULES: readonly Rule[] = [
 
   // The browser scripts.
   { re: /^scripts\/e2e-pwa\.mjs$/, gates: ['e2e', 'pwaFirefox'], why: 'the PWA e2e' },
-  { re: /^scripts\/e2e-studio-hosted\.ts$/, gates: ['studioHosted'], why: 'the hosted Studio in a browser' },
+  { re: /^scripts\/(e2e-studio-(hosted|collab)\.ts|lib\/studio-stack\.ts)$/, gates: ['studioHosted'], why: 'the hosted Studio in a browser' },
   { re: /^scripts\/e2e(\/|[^/]*\.mjs$)/, gates: ['e2e', 'reference', 'secondGame'], why: 'the browser e2e' },
   { re: /^tests\/visual\//, gates: ['e2e', 'reference'], why: 'the visual references' },
   { re: /^(scripts\/start\.mjs|tests\/run-tool\.ts)$/, gates: [...UNIT], why: 'what Windows runs differently' },
