@@ -17,6 +17,23 @@ export const PACKAGES = [
   'web-scumm-studio-server',
 ];
 
+/** The first release each package is part of (an older candidate is judged without it). */
+const PACKAGE_SINCE = { 'web-scumm-studio-server': '4.2.1' };
+/** The packages of a release (`4.2.1`, `4.2.1-rc.1`). */
+export const packagesFor = (version) =>
+  PACKAGES.filter((p) => !PACKAGE_SINCE[p] || atLeast(version.replace(/-.*$/, ''), PACKAGE_SINCE[p]));
+
+/**
+ * The passes asked of a release, from docs/dev/surfaces.json (one surface per pass, with the release it came in): a
+ * pass added later is not asked of an older one (4.2.1's studio-hosted and studio-collab).
+ */
+export function passesAsked(version) {
+  const surfaces = JSON.parse(readFileSync(new URL('../../docs/dev/surfaces.json', import.meta.url), 'utf8')).surfaces;
+  return Object.entries(surfaces)
+    .filter(([, s]) => !s.since || atLeast(version.replace(/-.*$/, ''), s.since))
+    .map(([id]) => id);
+}
+
 const EXACT = /^\d+\.\d+\.\d+$/;
 const parts = (v) => v.split('.').map(Number);
 const atLeast = (a, b) => {
@@ -167,7 +184,7 @@ export function preflight({ exec, repo, login, npmUser, version, root = '.', can
 
   // npm, per package: the archive, the name, the bootstrap, the trusted publisher, the OIDC proof, the version.
   const pkgVersion = version.replace(/-.*$/, '');
-  for (const p of PACKAGES) {
+  for (const p of packagesFor(pkgVersion)) {
     const tgz = candidate.pack ? join(candidate.pack, `${p}-${pkgVersion}.tgz`) : '';
     if (!tgz || !existsSync(tgz)) add(`${p}:archive`, 'blocked', `the candidate has no ${p}-${pkgVersion}.tgz`);
     else {
@@ -264,15 +281,13 @@ export function preflight({ exec, repo, login, npmUser, version, root = '.', can
         .filter((x) => x.endsWith('.json') && x !== 'candidate-manifest.json')
         .map((x) => JSON.parse(readFileSync(join(field, x), 'utf8')).status)
     : [];
-  const allPassed = statuses.length === 13 && statuses.every((s) => s === 'passed');
+  const asked = passesAsked(version).length;
+  const passed = statuses.filter((s) => s === 'passed').length;
+  const allPassed = statuses.length === asked && passed === asked;
   if (verdict === 'GO' && !allPassed)
-    add(
-      'go-no-go',
-      'blocked',
-      `GO, but ${statuses.filter((s) => s === 'passed').length}/13 passes passed in docs/dev/field/${version}`,
-    );
+    add('go-no-go', 'blocked', `GO, but ${passed}/${asked} passes passed in docs/dev/field/${version}`);
   else if (verdict !== 'GO' && allPassed)
     add('go-no-go', 'missing', 'every pass passed: the GO / NO-GO can be written GO');
-  else add('go-no-go', 'ok', `${verdict}, ${statuses.filter((s) => s === 'passed').length}/13 passes passed`);
+  else add('go-no-go', 'ok', `${verdict}, ${passed}/${asked} passes passed`);
   return rows;
 }

@@ -3,7 +3,10 @@
 // it, from this release's archives, outside the repository. In an empty folder: `npm install` of the engine and the
 // Studio Server archives (nothing else of the repository); `web-scumm-studio-server import` of the engine's own game
 // template; `serve` on the loopback (SQLite, a folder of blobs): its probes, the Studio's page built into the package,
-// the API reading the game; `worker-keys`, then `web-scumm-studio-worker` answering its probe. Exit 0 / 1.
+// the API reading the game; `worker-keys`, then `web-scumm-studio-worker` answering its probe. And its own dependencies
+// (OpenID Connect, JWT, Postgres: `deps` imports each) found from the engine's sources whether npm hoists them (an
+// install from the archive file) or nests them under the package (`--install-strategy=nested`, as an install from the
+// registry with its shrinkwrap does). Exit 0 / 1.
 import { execFileSync, spawn } from 'node:child_process';
 import { cpSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { createServer } from 'node:net';
@@ -40,25 +43,56 @@ const check = (name, ok, detail = '') => {
   console.log(`${ok ? '✓' : '✖'} ${name}${detail ? ` — ${detail}` : ''}`);
   if (!ok) failed = true;
 };
-try {
-  writeFileSync(join(home, 'package.json'), '{"name":"studio-install-smoke","private":true,"type":"module"}\n');
+/** The two archives installed into `dir` (`extra`: npm's options). */
+const install = (dir, extra = []) => {
+  writeFileSync(join(dir, 'package.json'), '{"name":"studio-install-smoke","private":true,"type":"module"}\n');
   execFileSync(
     WIN ? 'npm.cmd' : 'npm',
-    ['install', '--no-audit', '--no-fund', tgz('web-scumm'), tgz('web-scumm-studio-server')],
-    {
-      cwd: home,
-      stdio: ['ignore', 'ignore', 'inherit'],
-      shell: WIN,
-    },
+    ['install', '--no-audit', '--no-fund', ...extra, tgz('web-scumm'), tgz('web-scumm-studio-server')],
+    { cwd: dir, stdio: ['ignore', 'ignore', 'inherit'], shell: WIN },
   );
+};
+const binIn = (dir, name) => join(dir, 'node_modules', 'web-scumm-studio-server', 'bin', `${name}.mjs`);
+/** `deps` in an install: each of the server's own dependencies found and imported, with its version and folder. */
+const deps = (dir) =>
+  JSON.parse(
+    execFileSync(process.execPath, [binIn(dir, 'server'), 'deps'], { cwd: dir, encoding: 'utf8' })
+      .trim()
+      .split('\n')
+      .at(-1),
+  );
+const OWN = ['openid-client', 'jose', 'pg'];
+const said = (d) => OWN.map((n) => `${n} ${d[n]?.version}`).join(', ');
+
+try {
+  install(home);
   check('the engine and the Studio Server install from their archives', true);
-  const bin = (name) => join(home, 'node_modules', 'web-scumm-studio-server', 'bin', `${name}.mjs`);
+  const bin = (name) => binIn(home, name);
   const run = (name, args, env = {}) =>
     execFileSync(process.execPath, [bin(name), ...args], {
       cwd: home,
       encoding: 'utf8',
       env: { ...process.env, ...env },
     });
+  const hoisted = deps(home);
+  check(
+    "its own dependencies import from the engine's sources (npm hoisted them)",
+    OWN.every((n) => hoisted[n]?.version),
+    said(hoisted),
+  );
+  const nestedHome = mkdtempSync(join(tmpdir(), 'studio-install-nested-'));
+  try {
+    install(nestedHome, ['--install-strategy=nested']);
+    const nested = deps(nestedHome);
+    const under = join('node_modules', 'web-scumm-studio-server', 'node_modules');
+    check(
+      'and when npm nests them under the package',
+      OWN.every((n) => nested[n]?.from.includes(under)),
+      said(nested),
+    );
+  } finally {
+    rmSync(nestedHome, { recursive: true, force: true });
+  }
 
   // The game: the engine's own template, imported as the instance's project.
   cpSync(join(home, 'node_modules', 'web-scumm', 'games', '_template'), join(home, 'game-src'), { recursive: true });

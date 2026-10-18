@@ -127,8 +127,10 @@ l'instance sert les écritures.
 
 À partir de 4.2.1, une release porte `web-scumm-studio-server-<version>.tgz` : les deux commandes
 `web-scumm-studio-server` et `web-scumm-studio-worker`, la page du Studio déjà construite, et ses propres dépendances
-(OpenID Connect, JWT, Postgres) verrouillées. Il fait tourner le serveur du moteur installé à côté, qui doit être de la
-même version :
+(OpenID Connect, JWT, Postgres). Leurs versions sont verrouillées dans son `npm-shrinkwrap.json` et son SBOM ; npm lit ce
+verrou quand il installe depuis le registre, pas depuis un fichier d'archive, où `pg` prend le dernier 8.x que permet sa
+plage (`web-scumm-studio-server deps` dit lequel). Il fait tourner le serveur du moteur installé à côté, qui doit être
+de la même version :
 
 ```sh
 npm install web-scumm-4.2.1.tgz web-scumm-studio-server-4.2.1.tgz
@@ -139,8 +141,8 @@ npx web-scumm-studio-worker          # sur la machine du worker, avec WORKER_PUB
 
 L'archive du moteur apporte Vite et tsx, dont l'aperçu vivant et le code du jeu ont besoin. Mettez dans `publicDir` les
 assets préparés de votre jeu (`public/` de son dépôt) : celui du moteur ne contient que ses icônes et sa police. Le
-candidat de chaque release installe ces deux archives dans un dossier vide et y sert un jeu
-(`scripts/studio-install-smoke.mjs`).
+candidat de chaque release installe ces deux archives dans un dossier vide et y sert un jeu, ses dépendances trouvées
+que npm les remonte ou les imbrique (`scripts/studio-install-smoke.mjs`).
 
 ## Le fournisseur OpenID
 

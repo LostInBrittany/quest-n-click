@@ -235,12 +235,14 @@ cpSync(join(ROOT, '.cache', 'studio-client'), join(studio, 'client'), { recursiv
 writeFileSync(
   join(studio, 'bin', 'launch.mjs'),
   `// Runs one of the engine's Studio Server commands with the engine installed beside this package, of the same version:
-// its tsx, its sources; the Studio's page built in this package unless WEB_SCUMM_STUDIO_CLIENT names another.
+// node itself, with tsx's loader (no second process between the command and the server: a signal reaches it once) and
+// a resolve hook (resolve.mjs) that finds this package's own dependencies from here, wherever npm put them; the Studio's
+// page built in this package unless WEB_SCUMM_STUDIO_CLIENT names another.
 import { spawn } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { dirname, join } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 
 export function launch(entry) {
   const here = dirname(fileURLToPath(import.meta.url));
@@ -257,13 +259,49 @@ export function launch(entry) {
     console.error(\`\${own.name} \${own.version} runs with web-scumm \${own.version}, not \${version}\`);
     process.exit(2);
   }
-  const tsx = createRequire(join(engine, 'package.json')).resolve('tsx/cli');
-  const child = spawn(process.execPath, [tsx, join(engine, entry), ...process.argv.slice(2)], {
-    stdio: 'inherit',
-    env: { ...process.env, WEB_SCUMM_STUDIO_CLIENT: process.env.WEB_SCUMM_STUDIO_CLIENT ?? join(here, '..', 'client') },
+  const tsx = pathToFileURL(createRequire(join(engine, 'package.json')).resolve('tsx/esm')).href;
+  const hooks = pathToFileURL(join(here, 'register.mjs')).href;
+  const child = spawn(
+    process.execPath,
+    ['--import', hooks, '--import', tsx, join(engine, entry), ...process.argv.slice(2)],
+    {
+      stdio: 'inherit',
+      env: { ...process.env, WEB_SCUMM_STUDIO_CLIENT: process.env.WEB_SCUMM_STUDIO_CLIENT ?? join(here, '..', 'client') },
+    },
+  );
+  child.on('error', (e) => {
+    console.error(\`\${own.name}: \${e.message}\`);
+    process.exit(1);
   });
-  for (const signal of ['SIGTERM', 'SIGINT']) process.on(signal, () => child.kill(signal));
-  child.on('exit', (code, signal) => process.exit(code ?? (signal ? 1 : 0)));
+  // A terminal's Ctrl-C reaches the whole group, the server included: forwarded only when this process alone got it.
+  for (const signal of ['SIGTERM', 'SIGINT'])
+    process.on(signal, () => {
+      if (signal === 'SIGINT' && process.stdin.isTTY) return;
+      child.kill(signal);
+    });
+  child.on('exit', (code, signal) => process.exit(code ?? (signal === 'SIGINT' ? 130 : signal === 'SIGTERM' ? 143 : 1)));
+}
+`,
+);
+writeFileSync(
+  join(studio, 'bin', 'register.mjs'),
+  `// The resolve hook of resolve.mjs, registered before the server's first import (node --import).
+import { register } from 'node:module';
+register('./resolve.mjs', import.meta.url);
+`,
+);
+writeFileSync(
+  join(studio, 'bin', 'resolve.mjs'),
+  `// The server's own dependencies (this package's \\\`dependencies\\\`) are resolved from this package, never from where the
+// engine's sources happen to sit: npm may nest them under it (an install from the registry, with its shrinkwrap), hoist
+// them (an install from the archive file), or a strict layout keep them apart.
+import { readFileSync } from 'node:fs';
+const pkg = new URL('../package.json', import.meta.url);
+const OWN = new Set(Object.keys(JSON.parse(readFileSync(pkg, 'utf8')).dependencies ?? {}));
+export function resolve(specifier, context, next) {
+  const name = specifier.startsWith('@') ? specifier.split('/').slice(0, 2).join('/') : specifier.split('/')[0];
+  if (OWN.has(name)) return next(specifier, { ...context, parentURL: pkg.href });
+  return next(specifier, context);
 }
 `,
 );

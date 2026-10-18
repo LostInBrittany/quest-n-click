@@ -19,4 +19,18 @@ Branch: ci/421-packages · Plan §7 rows 8 and 9, §11
 - **The passes**: `studio-hosted` and `studio-collab` in `PASS_IDS` and `docs/dev/surfaces.json`, asked of a release
   from 4.2.1 on (`passesFor`, a surface's `since`): an older sheet keeps its thirteen rows.
 
+- **Second reading** (automated second context), fixed:
+  - npm reads no shrinkwrap from an archive file, and nests the lock's dependencies under the package when it does
+    (a registry install): the engine's sources found `openid-client` and `pg` only by hoisting. The launcher now runs
+    node with tsx's loader and a resolve hook (`bin/resolve.mjs`) that finds the package's own dependencies from it;
+    `deps` imports each, and the smoke runs it on a hoisted and a nested install (without the hook the nested one
+    fails: `Cannot find package 'jose'`). No tsx command between the launcher and the server: a Ctrl-C reaches it
+    once (the launcher forwards SIGINT only without a terminal);
+  - the preflight counted 13 passes and asked every package of any release: the passes come from
+    `docs/dev/surfaces.json` and the packages from their `since`;
+  - `field:check` says a report of a pass the release is not asked, and a `--require` of one;
+  - tests: the 4.2.1 sheet (15 rows), what a 4.2.0 and a 4.2.1 are asked;
+  - "locked" said for what it is: the lock and the SBOM, and a registry install;
+  - left: a minor bump (4.3.0) makes `npm run locks` needed again, the peer range following the version.
+
 → next: Claude (the 4.2.1 release candidate, once PR 7's second part is merged)

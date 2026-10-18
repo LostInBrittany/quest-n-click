@@ -352,8 +352,12 @@ export function checkDir(
       problems.push(`release ${rel}: the candidate packed ${packed}`);
   const asked = releases.size === 1 ? passesFor([...releases][0]!) : packed ? passesFor(packed) : [...PASS_IDS];
   for (const id of asked) if (!seen.has(id)) problems.push(`${id}: no report`);
+  // A pass this release is not asked (added later): its report is not judged here, and is said so.
+  const release = [...releases][0] ?? packed ?? '';
+  for (const id of seen.keys()) if (!(asked as string[]).includes(id)) problems.push(`${id}: not a pass of ${release}`);
   for (const id of require) {
     if (!(PASS_IDS as readonly string[]).includes(id)) problems.push(`--require=${id}: not a pass`);
+    else if (!(asked as string[]).includes(id)) problems.push(`--require=${id}: not a pass of ${release}`);
     else if (
       !filledBy(
         reports.find((r) => r.passId === id),

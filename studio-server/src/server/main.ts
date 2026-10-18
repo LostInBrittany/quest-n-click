@@ -4,6 +4,7 @@
 //   export <dir>   the game at the head, written to a folder, with a manifest of the hashes and the revision
 //   invite --email <e> --role <owner|dev|reviewer>   a one-time invitation link (the first owner comes this way)
 //   login --server <url>, token --server <url>       the CLI's device flow, and its current access token
+//   deps           its own dependencies (OpenID Connect, JWT, Postgres): the version and folder each resolves to
 // Secrets come from `<NAME>_FILE` or the environment (config.ts) and leave `process.env` before anything else runs.
 import { cpSync, existsSync, mkdirSync, readdirSync, readFileSync, renameSync, rmSync, writeFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
@@ -78,6 +79,24 @@ async function main(argv: string[]): Promise<number> {
       });
       console.log('logged in');
     } else console.log(await accessToken(server));
+    return 0;
+  }
+  // What the server runs with (4.2.1): its own dependencies as they resolve from here, by version and file (the
+  // package's install smoke reads it; a missing one fails here, not at the first login).
+  if (cmd === 'deps') {
+    const out: Record<string, { version: string; from: string }> = {};
+    for (const name of ['openid-client', 'jose', 'pg']) {
+      const url = import.meta.resolve(name);
+      await import(name);
+      let dir = fileURLToPath(url);
+      while (
+        !existsSync(join(dir, 'package.json')) ||
+        JSON.parse(readFileSync(join(dir, 'package.json'), 'utf8')).name !== name
+      )
+        dir = resolve(dir, '..');
+      out[name] = { version: JSON.parse(readFileSync(join(dir, 'package.json'), 'utf8')).version, from: dir };
+    }
+    console.log(JSON.stringify(out));
     return 0;
   }
   // The job keys (ADR 0028): the private one is the Studio's secret STUDIO_WORKER_KEY, the public one the worker's

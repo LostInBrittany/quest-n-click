@@ -124,8 +124,10 @@ serves writes.
 ## From the release archives
 
 From 4.2.1 a release carries `web-scumm-studio-server-<version>.tgz`: the two commands `web-scumm-studio-server` and
-`web-scumm-studio-worker`, the Studio's page already built, and its own dependencies (OpenID Connect, JWT, Postgres)
-locked. It runs the server of the engine installed beside it, which must be the same version:
+`web-scumm-studio-worker`, the Studio's page already built, and its own dependencies (OpenID Connect, JWT, Postgres).
+Their versions are locked in its `npm-shrinkwrap.json` and its SBOM; npm reads that lock when it installs from the
+registry, not from an archive file, where `pg` takes the latest 8.x its range allows (`web-scumm-studio-server deps`
+says which). It runs the server of the engine installed beside it, which must be the same version:
 
 ```sh
 npm install web-scumm-4.2.1.tgz web-scumm-studio-server-4.2.1.tgz
@@ -136,8 +138,8 @@ npx web-scumm-studio-worker          # on the worker's machine, with WORKER_PUBL
 
 The engine's archive brings Vite and tsx, which the live preview and the game's code need. Set `publicDir` to your
 game's prepared assets (`public/` of your game's repository): the engine's own holds only its icons and font. Each
-release's candidate installs these two archives in an empty folder and serves a game from them
-(`scripts/studio-install-smoke.mjs`).
+release's candidate installs these two archives in an empty folder and serves a game from them, its dependencies
+found whether npm hoists or nests them (`scripts/studio-install-smoke.mjs`).
 
 ## The OpenID provider
 

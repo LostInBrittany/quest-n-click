@@ -635,10 +635,10 @@ jobs:
           name: candidate-pack
           path: candidate-pack
       - run: node scripts/readme-quickstart.mjs --tarballs=candidate-pack
-  # The terminal gate: every job above `success` (a skipped or cancelled job is red), then the manifest of this run.
   # The Studio Server as an operator installs it (4.2.1, plan §7 row 9): this candidate's engine and Studio Server
   # archives in an empty folder, a game imported, served on the loopback (its probes, the Studio's page, the API), the
-  # worker answering its probe (scripts/studio-install-smoke.mjs).
+  # worker answering its probe; its own dependencies found whether npm hoists or nests them
+  # (scripts/studio-install-smoke.mjs).
   studio-install-smoke:
     needs: [target, pack]
     runs-on: ubuntu-24.04
@@ -656,6 +656,7 @@ jobs:
           path: candidate-pack
       - run: for i in 1 2 3; do (node scripts/studio-install-smoke.mjs --tarballs=candidate-pack) && break; [ "$i" = 3 ] && exit 1; echo "retry $i"; sleep 15; done
         timeout-minutes: 15
+  # The terminal gate: every job above `success` (a skipped or cancelled job is red), then the manifest of this run.
   candidate-gate:
     needs: [target, release-core, heavy, bridge-load-sqlite, bridge-load-postgres, cross-runtime, worker-container, mutation-plan, mutation, mutation-merge, pack, image, external-consumer, connector-archive-e2e, deployment-smoke, backup-memory, signing-rehearsal, readme-quickstart, studio-install-smoke]
     # A pull request without `full-ci` skips `target`: then there is no candidate to judge, and no red check either.
