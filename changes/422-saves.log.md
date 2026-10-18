@@ -1,7 +1,7 @@
 ## 4.2.2 PR 2b: ADR 0026, saves across revisions
 
 - **The decision** (`docs/dev/adr/0026-saves-across-revisions.md`): the envelope unchanged (D40); a slot's
-  `SlotMeta.revision` and the autosave's record in the page's storage say where a save was made (revision and full
+  `SlotMeta.revision` (kept as stored, read only when well formed, in a module a player never loads) and the autosave's record in the page's storage say where a save was made (revision and full
   fingerprint); only a build that declares its revision (`BootOptions.revision`, a preview from its base) writes them
   and asks; the test is the content, not the number; Resume here, Restart, Stay in revision N; the texts are the
   Studio's, outside the game's `ui`.

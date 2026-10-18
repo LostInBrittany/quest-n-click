@@ -104,14 +104,6 @@ export interface SavedRevision {
   fingerprint: string;
 }
 
-/** A save's revision as stored (a slot's meta, the autosave's record), or undefined when it is not well formed. */
-export function savedRevision(v: unknown): SavedRevision | undefined {
-  const o = v && typeof v === 'object' ? (v as Record<string, unknown>) : undefined;
-  if (!o || !Number.isSafeInteger(o.rev) || (o.rev as number) < 0) return undefined;
-  if (typeof o.fingerprint !== 'string' || !o.fingerprint || o.fingerprint.length > 400) return undefined;
-  return { rev: o.rev as number, fingerprint: o.fingerprint };
-}
-
 /** A save as written until 4.1.14: the state with the format, the schema, the game's id and save version and the date. @public */
 export interface SaveEnvelopeV3 {
   format: 'web-scumm-save';
@@ -319,8 +311,7 @@ export function parseSlot(
     roomName: String(raw.meta?.roomName ?? state.room),
     v: state.v,
   };
-  // Kept only when well formed: a slot that says nothing of its revision resumes without a question.
-  const revision = savedRevision(raw.meta?.revision);
-  if (revision) meta.revision = revision;
+  // Kept as stored: dom/revision.ts reads it only when well formed (the player's first visit carries no check).
+  if (raw.meta?.revision) meta.revision = raw.meta.revision;
   return { meta, state };
 }

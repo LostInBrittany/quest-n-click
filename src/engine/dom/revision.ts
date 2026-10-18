@@ -7,8 +7,9 @@
 // a revision, the player's, never ask and write nothing more. The texts are the Studio's, in English, not the game's
 // `ui`: only the game's authors see a preview.
 import type { SaveStore } from '../core/ports';
-import { type SavedRevision, savedRevision } from '../core/save';
+import type { SavedRevision } from '../core/save';
 import { trapFocus } from './a11y';
+import type { App } from './app';
 import { el, esc } from './app-shared';
 
 export type { SavedRevision };
@@ -23,6 +24,34 @@ export interface BuildRevision {
 export type ResumeChoice = 'resume' | 'restart' | 'stay' | 'cancel';
 
 type Ask = (saved: SavedRevision, here: SavedRevision, host?: HTMLElement) => Promise<ResumeChoice>;
+
+/** A save's revision as stored (a slot's meta, the autosave's record), or undefined when it is not well formed. */
+export function savedRevision(v: unknown): SavedRevision | undefined {
+  const o = v && typeof v === 'object' ? (v as Record<string, unknown>) : undefined;
+  if (!o || !Number.isSafeInteger(o.rev) || (o.rev as number) < 0) return undefined;
+  if (typeof o.fingerprint !== 'string' || !o.fingerprint || o.fingerprint.length > 400) return undefined;
+  return { rev: o.rev as number, fingerprint: o.fingerprint };
+}
+
+/**
+ * Installs the guard on a booted game (bootGame, when the build declares its revision). No fingerprint (WebCrypto
+ * needs a secure origin): the game runs as before 4.2.2, without the question.
+ */
+export async function installRevision(app: App, build: BuildRevision): Promise<void> {
+  try {
+    const f = await app.fingerprint();
+    app.revision = new RevisionGuard({
+      game: app.game.id,
+      build,
+      fingerprint: [f.logic, f.trustedExtensions, f.presentation, f.engine].join('-'),
+      ask: askInPage(() => app.scene),
+    });
+    // The engine's own store (the IndexedDB one, or the fallback the App chose).
+    app.revision.watch(app.engine.store);
+  } catch (e) {
+    console.warn('saves across revisions: off', e);
+  }
+}
 
 const key = (game: string) => `${game}.save-revision`;
 
@@ -102,11 +131,32 @@ export class RevisionGuard {
    * Before a save is resumed: `resume` at once when it was made in the same content (or says nothing of where);
    * otherwise the player's choice, asked in `host`. `stay` has already gone to the save's revision.
    */
-  async resume(saved: SavedRevision | undefined, host?: HTMLElement): Promise<ResumeChoice> {
+  async resume(stored: SavedRevision | undefined, host?: HTMLElement): Promise<ResumeChoice> {
+    const saved = savedRevision(stored);
     if (!saved || saved.fingerprint === this.o.fingerprint) return 'resume';
     const choice = await this.o.ask(saved, this.here(), host);
     if (choice === 'stay') (this.o.go ?? ((u) => globalThis.location.assign(u)))(this.o.build.url(saved.rev));
     return choice;
+  }
+
+  /**
+   * Before a slot is loaded from its menu (`d`, `m`): true to load it. Asked above the menu; Escape leaves the menu
+   * as it is; Restart replaces the game in progress, so it is confirmed in the menu, as an overwrite is.
+   */
+  async beforeSlot(app: App, saved: SavedRevision | undefined, d: HTMLElement, m: HTMLElement): Promise<boolean> {
+    const choice = await this.resume(saved, app.scene);
+    if (choice !== 'restart') return choice === 'resume';
+    const ui = app.game.ui;
+    m.innerHTML = `<h3>!</h3><p>${esc(ui.confirmErase)}</p>`;
+    const y = el('button', 'warn', `<span>${esc(ui.yes)}</span><span>!</span>`),
+      no = el('button', '', `<span>${esc(ui.no)}</span><span>▶</span>`);
+    y.onclick = () => {
+      d.remove();
+      void app.engine.newGame().catch((e) => app.presenter.toast(String((e as Error).message)));
+    };
+    no.onclick = () => d.remove();
+    m.append(y, no);
+    return false;
   }
 }
 

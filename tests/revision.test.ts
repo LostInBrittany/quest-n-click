@@ -5,9 +5,9 @@
 import { describe, expect, it } from 'vitest';
 import { Engine } from '@engine/core/engine';
 import { FakePresenter, MemoryStore } from '@engine/core/ports';
-import { parseSlot, saveEnvelope, savedRevision } from '@engine/core/save';
+import { parseSlot, saveEnvelope } from '@engine/core/save';
 import type { GameState } from '@engine/core/types';
-import { RevisionGuard, type ResumeChoice, type SavedRevision } from '@engine/dom/revision';
+import { RevisionGuard, type ResumeChoice, type SavedRevision, savedRevision } from '@engine/dom/revision';
 import { mini, miniLayouts } from './fixtures/mini';
 
 const memory = () => {
@@ -148,7 +148,11 @@ describe('saves across revisions', () => {
       rev: 4,
       fingerprint: 'fp-4',
     });
-    expect(parseSlot(game, raw({ rev: 'x', fingerprint: 'fp' })).meta.revision).toBeUndefined();
+    // A malformed one is kept as stored, and the guard reads it as no record: no question.
+    const bad = parseSlot(game, raw({ rev: 'x', fingerprint: 'fp' })).meta.revision;
+    const { g, asked } = guard({});
+    expect(await g.resume(bad)).toBe('resume');
+    expect(asked).toEqual([]);
     expect(parseSlot(game, raw(undefined)).meta.revision).toBeUndefined();
   });
 });

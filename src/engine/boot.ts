@@ -231,22 +231,8 @@ export async function bootGame(o: BootOptions): Promise<App> {
     languages: others.length ? { current: lang ?? base, available: [base, ...others] } : undefined,
   });
   opened?.attach(app);
-  if (o.revision)
-    try {
-      const { RevisionGuard, askInPage } = await import('./dom/revision');
-      const f = await app.fingerprint();
-      app.revision = new RevisionGuard({
-        game: game.id,
-        build: o.revision,
-        fingerprint: [f.logic, f.trustedExtensions, f.presentation, f.engine].join('-'),
-        ask: askInPage(() => app.scene),
-      });
-      // The engine's own store (the IndexedDB one, or the fallback the App chose).
-      app.revision.watch(app.engine.store);
-    } catch (e) {
-      // No fingerprint here (WebCrypto needs a secure origin): the game runs as before 4.2.2, without the question.
-      console.warn('saves across revisions: off', e);
-    }
+  // Saves across revisions (ADR 0026): its module only for a build that declares one.
+  if (o.revision) await (await import('./dom/revision')).installRevision(app, o.revision);
   if (o.expose !== false) (globalThis as unknown as { __game?: App }).__game = app;
   // The world link (4.1.1): its module only for a game that declares `reality`; simulated in the dev tools.
   if (game.reality)
