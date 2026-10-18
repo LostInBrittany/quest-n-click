@@ -4,15 +4,17 @@
 // the Rooms tab shows the room's editor from the game's origin; "Save layout" asks the editor for its layout and the
 // Studio writes it (a new revision); a layout the editor sends unasked is ignored; the game's page cannot read the
 // Studio's page nor call its API with the member's session; the Play tab runs the game there; after the logout the
-// game's origin refuses the next request. WebKit keeps no `Secure` cookie over http, even on the loopback: with it
-// the two origins are served over https with a certificate made for the run (openssl), which the browser is told to
-// accept. Usage: tsx scripts/e2e-studio-hosted.ts [--browser=webkit] [--https]. Exit 0 / 1.
+// game's origin refuses the next request. Firefox and WebKit run over https, with a certificate made for the run
+// (openssl) the browser is told to accept: WebKit keeps no `Secure` cookie over http, even on the loopback.
+// WebKit on Linux (WebKitGTK, Playwright's on CI) stores no cookie a frame of another host sets, even one site: it
+// cannot play the game's frames, nor stand for Safari, whose WebKit keeps the partitioned cookie (macOS: run here).
+// Usage: tsx scripts/e2e-studio-hosted.ts [--browser=chromium|firefox|webkit] [--https]. Exit 0 / 1.
 import { execFileSync } from 'node:child_process';
 import { cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import { createServer as createHttpsServer } from 'node:https';
 import { createServer } from 'node:net';
 import { join } from 'node:path';
-import { chromium, type Frame, type Page, webkit } from 'playwright';
+import { chromium, type Frame, firefox, type Page, webkit } from 'playwright';
 import { openSqliteDb } from '../bridge/src/store-sqlite';
 import { fsBlobStore } from '../studio-server/src/ops/blobs';
 import { createStudio, importInChild, operationContext } from '../studio-server/src/ops/core';
@@ -34,8 +36,9 @@ import { TestOp } from '../tests/fixtures/oidc-op';
 
 const ROOT = join(import.meta.dirname, '..');
 const CLIENT = join(ROOT, '.cache', 'studio-client');
-const engine = process.argv.includes('--browser=webkit') ? webkit : chromium;
-const tls = engine === webkit || process.argv.includes('--https');
+const browserName = process.argv.find((a) => a.startsWith('--browser='))?.slice(10) ?? 'chromium';
+const engine = { chromium, firefox, webkit }[browserName] ?? chromium;
+const tls = engine !== chromium || process.argv.includes('--https');
 if (!existsSync(join(CLIENT, 'studio.html'))) {
   console.error('✖ no built Studio: run `npm run studio-client` first');
   process.exit(1);
@@ -56,12 +59,8 @@ cpSync(join(ROOT, 'games', 'demo'), gameDir, { recursive: true });
 const op = await new TestOp().start();
 const port = await freePort();
 const scheme = tls ? 'https' : 'http';
-// Two sites on the loopback (127.0.0.1, localhost), or with STUDIO_E2E_SITE=<domain> two names of one site
-// (studio.<domain>, play.<domain>, which the hosts file must name): CI's WebKit on Linux keeps no partitioned cookie in
-// a frame of another site, so it plays the same-site layout the guide recommends.
-const site = process.env.STUDIO_E2E_SITE;
-const studioUrl = site ? `${scheme}://studio.${site}:${port}` : `${scheme}://127.0.0.1:${port}`;
-const playUrl = site ? `${scheme}://play.${site}:${port}` : `${scheme}://localhost:${port}`;
+const studioUrl = `${scheme}://127.0.0.1:${port}`;
+const playUrl = `${scheme}://localhost:${port}`;
 const db = await openSqliteDb(join(tmp, 'j.sqlite'));
 const leases = new Leases(db);
 const journal = await Journal.open({
@@ -128,7 +127,7 @@ if (tls) {
   execFileSync(
     'openssl',
     ['req', '-x509', '-newkey', 'rsa:2048', '-nodes', '-days', '1', '-subj', '/CN=localhost']
-      .concat(['-addext', `subjectAltName=DNS:localhost,IP:127.0.0.1${site ? `,DNS:studio.${site},DNS:play.${site}` : ''}`])
+      .concat(['-addext', 'subjectAltName=DNS:localhost,IP:127.0.0.1'])
       .concat(['-keyout', join(tmp, 'key.pem'), '-out', join(tmp, 'cert.pem')]),
     { stdio: 'ignore' },
   );

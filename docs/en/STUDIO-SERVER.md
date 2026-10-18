@@ -90,8 +90,9 @@ Clever, each can be a file instead: `STUDIO_SESSION_KEY_FILE`, and so on (mode 0
 - `publicUrl` and `playUrl` are two domains of the studio app (`clever domain add`). **Use two subdomains of your own
   domain** (`studio.example.fr`, `play.example.fr`): one site, so the game's frame keeps its session cookie in every
   browser. Two `*.cleverapps.io` names are two sites: the game's cookie then lives in a frame of another site only
-  because it is partitioned (CHIPS). Chromium and WebKit on macOS keep it. In CI, WebKit on Linux did not, and the
-  game's frames stayed empty. A real Safari, on macOS and iOS, is the `studio-hosted` pass.
+  because it is partitioned (CHIPS). Chromium, Firefox and WebKit on macOS keep it (the hosted e2e). WebKit on Linux
+  (GNOME Web) stores no cookie a frame of another host sets, even on one site: the game's frames stay empty there. A
+  real Safari, on macOS and iOS, is the `studio-hosted` pass.
 - `trustProxy`: the addresses of Clever's proxies, so that each person is told apart (the server refuses to start
   with OIDC and none). The private ranges above are an assumption, to be narrowed to Clever's actual proxies by the
   `studio-hosted` pass: an address in them could otherwise claim any `X-Forwarded-For`.

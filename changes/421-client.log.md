@@ -22,8 +22,10 @@ Branch: feature/421-client · Plan §6.1, §6.2, §7 row 7 · mock-ups approved 
 - **Tests:** `tests/studio-client.test.ts` (the page, its policy, its files, members-only media, the preview's
   allow-list, no Studio API on the game's origin); `scripts/e2e-studio-hosted.ts` (`npm run e2e:studio-hosted`, in the
   `studio-hosted` job): login, Rooms on the game's origin, the solicited save, an unasked layout ignored, the game's
-  page kept from the Studio's page and API, Play, logout ending the game session; Chromium over http, WebKit over
-  https (WebKit keeps no `Secure` cookie over http, even on the loopback).
+  page kept from the Studio's page and API, Play, logout ending the game session; Chromium over http and Firefox over
+  https in CI, WebKit on macOS here. WebKit on Linux stores no cookie a frame of another host sets, even on one site
+  (a probe in a Linux container: every variant lost, where Chromium and Firefox keep the partitioned one): it cannot
+  stand for Safari, whose real test stays the `studio-hosted` pass.
 
 → next: Claude (PR 7, second part: the screens of the mock-ups: login, access refused, revision, presence, leases,
 conflicts, members)

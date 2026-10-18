@@ -73,9 +73,9 @@ tickets and its live preview (§6.1, §6.2), and the Studio's page.
   unit of coordination between trusted members, not of authorisation.
 - **The game session's cookie is partitioned (CHIPS)** because `*.cleverapps.io` makes the two origins different
   sites. Spike S found it accepted by Chromium, Firefox and WebKit with default settings, and the hosted e2e by
-  WebKit on macOS; WebKit on Linux (CI) refused it, so CI plays WebKit on one site. A real Safari, on macOS and iOS,
-  is checked by the `studio-hosted` pass. Two origins on one site (a custom domain, which the guide recommends) need
-  nothing more. This refusal is a failure, not a leak: the game's frame stays empty.
+  Chromium, Firefox (CI) and WebKit on macOS. WebKit on Linux stores no cookie a frame of another host sets, even on
+  one site, so it is not in CI and cannot stand for Safari; a real Safari, on macOS and iOS, is checked by the
+  `studio-hosted` pass. A browser that refuses the cookie fails closed: the game's frame stays empty.
 - **A ticket travels in a URL** (`/_ticket?t=`): a proxy in front of the server may log it. It is used once within 60 s,
   so a logged ticket is spent; the server's own log records the path without the query.
 - **Login CSRF on the game's origin:** someone who gets a member to open their own ticket puts that member's game frame

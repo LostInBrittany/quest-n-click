@@ -391,19 +391,14 @@ jobs:
           STUDIO_TEST_KEYCLOAK: http://127.0.0.1:8080
           STUDIO_TEST_KEYCLOAK_ADMIN: admin:admin-ci-only
         run: npx vitest run tests/studio-server.test.ts tests/studio-worker.test.ts tests/studio-collab.test.ts tests/studio-keycloak.test.ts --maxWorkers=1 --no-file-parallelism
-      # The hosted Studio in a browser (4.2.1 PR 7): its page, the game on its own origin, the editor's solicited save,
-      # the wall between the two; Chromium over http on two sites, WebKit over https (it keeps no Secure cookie over
-      # http) on two names of one site.
+      # The hosted Studio in a browser (4.2.1 PR 7): its page, the game on its own origin (another site), the editor's
+      # solicited save, the wall between the two; Chromium over http, Firefox over https. Not WebKit here: on Linux it
+      # stores no cookie a frame of another host sets (even one site), unlike Safari; it is run on macOS.
       - if: env.RUN == 'true'
-        run: for i in 1 2 3; do (npx playwright install --with-deps chromium webkit) && break; [ "$i" = 3 ] && exit 1; echo "retry $i"; sleep 15; done
+        run: for i in 1 2 3; do (npx playwright install --with-deps chromium firefox) && break; [ "$i" = 3 ] && exit 1; echo "retry $i"; sleep 15; done
         timeout-minutes: 10
       - if: env.RUN == 'true'
-        # WebKit on Linux keeps no partitioned cookie in a frame of another site: it plays the same-site layout (two
-        # names of one domain, as the guide recommends); WebKit on macOS plays the cross-site one (a local run).
-        run: |
-          echo "127.0.0.1 studio.e2e.test play.e2e.test" | sudo tee -a /etc/hosts
-          npm run studio-client && npm run e2e:studio-hosted
-          STUDIO_E2E_SITE=e2e.test npm run e2e:studio-hosted -- --browser=webkit
+        run: npm run studio-client && npm run e2e:studio-hosted && npm run e2e:studio-hosted -- --browser=firefox
   # The Bridge's distributed profile (4.1.10, D20): the store contract, the tenants crossed and the fan-out across
   # instances, on a real Postgres 16 (a service container, pinned by digest). The truth for Postgres: the maintainer's
   # machine runs it only with a local server (docs/en/REALITY-OPS.md). Gate: `reality`.
