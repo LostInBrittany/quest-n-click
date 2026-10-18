@@ -30,3 +30,4 @@ what it costs, what would change it. The maintainer's decisions themselves are d
 | [0024](0024-pass-surfaces-and-carry-attestations.md) | A pass is bound to its surface, and carried only by a signed attestation (4.1.20) |
 | [0025](0025-studio-server.md) | One shared game, edited live: transactions, one owner per file, revisions (4.2.1) |
 | [0027](0027-studio-oidc-sessions-tokens.md) | The Studio Server's identity: OIDC for who, the Studio for what (4.2.1) |
+| [0028](0028-studio-content-execution.md) | Where a hosted Studio runs the game's code: a worker without secrets (4.2.1) |

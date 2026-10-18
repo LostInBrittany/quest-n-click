@@ -26,7 +26,13 @@ const WRITERS: Record<string, string> = {
   'studio-server/src/server/auth/device.ts':
     "elsewhere: the CLI's token file (0600) in the user's configuration folder",
   'studio-server/src/server/main.ts':
-    'journal: import copies a game beside the instance folder and renames it in before the journal adopts it; export writes a folder named on the command line',
+    'journal: import copies a game beside the instance folder and renames it in before the journal adopts it; export writes a folder named on the command line; worker-keys writes a key pair to a folder named on the command line',
+  'studio-server/src/worker/snapshot.ts':
+    "elsewhere: a job's snapshot, unpacked into the worker's fresh job folder in .cache/jobs/",
+  'studio-server/src/worker/main.ts':
+    "elsewhere: the worker's fresh job folders in .cache/jobs/, removed after each job",
+  'studio-server/src/worker/child.ts':
+    "elsewhere: the job's output file beside its folder in .cache/jobs/, read and removed by the supervisor",
   // Game folders written directly (local mode: adopted by the journal; hosted: unavailable or in the executor).
   'tools/migrate.ts': 'adopted: web-scumm migrate rewrites a project (an exclusive operation in 4.2.3)',
   'tools/assets.py': 'adopted: npm run assets writes assets.gen.json (and public/assets, outside the game)',

@@ -46,6 +46,11 @@ export interface StudioServerConfig {
     allowInsecure?: boolean;
   };
   sessions?: { idleHours?: number; absoluteHours?: number };
+  /**
+   * The processing worker (ADR 0028), required with OIDC: the game's code then never runs in this process. `instance`
+   * names this Studio to the worker, which runs no other's jobs. The signing key is the secret STUDIO_WORKER_KEY.
+   */
+  worker?: { url: string; instance: string };
 }
 
 /** The secrets, by name; each from `<NAME>_FILE` or `<NAME>` in the environment. */
@@ -55,6 +60,7 @@ const SECRET_NAMES = [
   'STUDIO_S3_KEY_SECRET',
   'STUDIO_OIDC_CLIENT_SECRET',
   'STUDIO_SESSION_KEY',
+  'STUDIO_WORKER_KEY',
 ] as const;
 export type SecretName = (typeof SECRET_NAMES)[number];
 
@@ -129,6 +135,7 @@ export function loadConfig(file: string): StudioServerConfig {
     'blobs',
     'oidc',
     'sessions',
+    'worker',
   ]);
   for (const k of Object.keys(raw)) if (!known.has(k)) throw new ConfigError(`${file}: unknown key "${k}"`);
   if (!isUrl(raw.publicUrl)) throw new ConfigError(`${file}: publicUrl must be an http(s) URL`);
@@ -152,6 +159,15 @@ export function loadConfig(file: string): StudioServerConfig {
   const trust = raw.trustProxy ?? [];
   if (!Array.isArray(trust) || !trust.every((t) => typeof t === 'string'))
     throw new ConfigError(`${file}: trustProxy is a list of addresses or networks`);
+  const worker = raw.worker as StudioServerConfig['worker'];
+  if (worker !== undefined) {
+    if (!worker || !isUrl(worker.url) || typeof worker.instance !== 'string' || !/^[\w-]{3,64}$/.test(worker.instance))
+      throw new ConfigError(
+        `${file}: worker.url and worker.instance are required with oidc (ADR 0028), and well formed`,
+      );
+    if (blobs.kind !== 's3')
+      throw new ConfigError(`${file}: the worker reads its snapshots from S3: blobs.kind is s3 with a worker`);
+  }
   const oidc = raw.oidc as StudioServerConfig['oidc'];
   const host = String(raw.host ?? '0.0.0.0');
   if (oidc !== undefined) {
@@ -163,12 +179,14 @@ export function loadConfig(file: string): StudioServerConfig {
       throw new ConfigError(`${file}: oidc.clientId is required`);
     if (typeof oidc.audience !== 'string' || !oidc.audience)
       throw new ConfigError(`${file}: oidc.audience is required`);
+    if (!worker) throw new ConfigError(`${file}: worker.url and worker.instance are required with oidc (ADR 0028)`);
     if (oidc.audience === oidc.clientId)
       throw new ConfigError(`${file}: oidc.audience must differ from oidc.clientId (an id_token is no access token)`);
   }
   return {
     oidc,
     sessions: raw.sessions as StudioServerConfig['sessions'],
+    worker,
     publicUrl: origin(raw.publicUrl),
     playUrl: origin(raw.playUrl),
     game: raw.game,

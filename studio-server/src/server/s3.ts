@@ -1,5 +1,5 @@
 // A minimal S3 client for the hosted blobs (4.2.1, plan §4): Cellar on Clever Cloud, MinIO in CI. Path-style
-// requests signed with AWS Signature Version 4 (node:crypto only, no SDK): PUT, GET and HEAD of one object, and
+// requests signed with AWS Signature Version 4 (node:crypto only, no SDK): PUT, GET, HEAD and DELETE of one object, and
 // presigned GET/PUT URLs for the processing worker (plan §3.8). Spike S measured Cellar: a presigned URL is reusable
 // until it expires and gives nothing else; a PUT overwrites. The blob store never relies on If-None-Match: a key is
 // the sha256 of its content, so writing it twice writes the same bytes.
@@ -95,14 +95,26 @@ export class S3 {
     if (!r.ok) throw new Error(`S3 PUT ${key}: ${r.status} ${(await r.text()).slice(0, 200)}`);
   }
 
-  async get(key: string): Promise<Buffer | undefined> {
+  /** An object, or undefined; past `max` bytes the read stops and throws (an object someone else could write). */
+  async get(key: string, o: { max?: number } = {}): Promise<Buffer | undefined> {
     const r = await this.request('GET', key);
     if (r.status === 404) return undefined;
     if (!r.ok) {
       await r.body?.cancel();
       throw new Error(`S3 GET ${key}: ${r.status}`);
     }
-    return Buffer.from(await r.arrayBuffer());
+    if (o.max === undefined) return Buffer.from(await r.arrayBuffer());
+    const chunks: Uint8Array[] = [];
+    let size = 0;
+    for await (const c of r.body as unknown as AsyncIterable<Uint8Array>) {
+      size += c.length;
+      if (size > o.max) {
+        await r.body?.cancel().catch(() => {});
+        throw new Error(`S3 GET ${key}: larger than ${o.max} bytes`);
+      }
+      chunks.push(c);
+    }
+    return Buffer.concat(chunks);
   }
 
   async has(key: string): Promise<boolean> {
@@ -110,6 +122,13 @@ export class S3 {
     if (r.status === 404) return false;
     if (!r.ok) throw new Error(`S3 HEAD ${key}: ${r.status}`);
     return true;
+  }
+
+  /** Deletes one object; deleting a missing object is not an error (S3 answers 204 either way). */
+  async delete(key: string): Promise<void> {
+    const r = await this.request('DELETE', key);
+    await r.body?.cancel();
+    if (!r.ok && r.status !== 404) throw new Error(`S3 DELETE ${key}: ${r.status}`);
   }
 
   /** A presigned URL (query form) for one method on one key, valid `seconds` (plan §3.8: ≤ 300 for a job). */

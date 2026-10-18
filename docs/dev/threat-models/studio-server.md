@@ -43,11 +43,16 @@ with the client; the processing worker (§3.8) with PR I.
 | Brute force on `/auth/*` | 30 requests per minute per address on `/auth/*`; past 30 refused credentials per minute, that address's refusals become 429. A request with a valid credential is never slowed, so a stranger cannot lock the team out; with OIDC beyond the loopback, `trustProxy` is required, so clients are told apart behind Clever's proxy | `tests/studio-server.test.ts` (trustProxy required), review |
 | Another member's stored answer | A write's stored answer (`x-studio-op`) is kept per author: knowing another member's operation id gives nothing | test |
 | A stale instance writing (redeploy) | A fenced service lease plus the journal's fenced per-operation lease; the instance stops writing by its own clock before the lease can expire; Postgres cuts a frozen transaction within 5 s | `tests/studio-journal.test.ts`, `tests/studio-server.test.ts` |
-| Content code reading secrets | Validation imports the game's TypeScript in the server's process in 4.2.1: **a member with the dev role can run code on the server**. Mitigated by the trust given to devs; a separate worker without secrets is PR I (ADR 0028) | — (residual, below) |
+| Content code reading secrets | With OIDC, the game's code (validation and the loads behind the Studio's reads) runs only in `studio-worker`, a separate application with no secret of the platform, in a fresh child with an emptied environment and no pipe, killed with its process group at its deadline; a survivor in the group recycles the instance (a process that leaves the group is not detected: periodic redeploys, ADR 0028). A failure fails the guard closed and is never cached. `loadConfig` refuses OIDC without a worker; captures are unavailable hosted | `tests/studio-worker.test.ts` (emptied environment, deadline, an escaped process does not hang the worker, logs do not corrupt output, no false survivor, failures not cached, the Studio reads through the executor), `tests/studio-server.test.ts` (worker required) |
+| A forged or replayed job | Jobs signed with Ed25519 by the Studio, the worker holding the public key only; the signature binds id, instance, epoch, revision, snapshot hash, kind, parameters, staging prefix, expiry (≤ 5 min) and the two presigned URLs; a job is run once per worker process, never after its expiry (checked again when it leaves the queue); another instance's job is refused | `tests/studio-worker.test.ts` |
+| A worker naming what the Studio publishes | The Studio reads the result itself (stopping past 32 MiB), checks it answers its job, and deletes the staging prefix; a presigned write reaches its one key only | `tests/studio-worker.test.ts` (another job's answer refused; Cellar scope) |
+| A snapshot leaving its folder | Unpacked paths are relative, without `..`, empty segments or dotfiles, text files only, bounded in count and size | `tests/studio-worker.test.ts` |
 
 **Residual risks.**
-- **Devs run code on the server.** Until the processing worker (PR I), validation runs the game's TypeScript inside
-  the server, which holds the secrets. A dev is trusted with the server, and the plan says so (§3.8).
+- **The worker runs hostile code with the job's capabilities in reach** (ADR 0028): the presigned URLs and the job
+  token are assumed visible to the job's code and, by persistence, to later jobs of the same worker instance until it
+  is recycled. They reach that job's snapshot and result for 5 min at most, nothing else. Verdicts and loads from a
+  worker are signals in the project's trust domain, never security decisions.
 - **A provider without refresh tokens** gives no way to learn of a revocation before expiry, so such a session lives
   15 min at most.
 - **Rate limits are kept in memory**, per instance, and do not survive a restart.

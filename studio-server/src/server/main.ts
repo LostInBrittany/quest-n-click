@@ -21,6 +21,8 @@ import { authRoutes } from './auth/routes';
 import { AuthStore, Sealer } from './auth/store';
 import { readJson, send, studioServer } from './http';
 import { openPostgresDb } from './postgres';
+import { newJobKeys } from '../worker/job';
+import { remoteExecutor } from './remote-executor';
 import { S3, s3BlobStore } from './s3';
 import { ServiceLease } from './service-lease';
 
@@ -35,22 +37,22 @@ async function openAll(config: StudioServerConfig) {
     db = await openPostgresDb(secrets.STUDIO_DATABASE_URL);
   } else db = await openSqliteDb(resolve(config.store.file!));
   let blobs: BlobStore;
+  let s3: S3 | undefined;
   if (config.blobs.kind === 's3') {
     if (!secrets.STUDIO_S3_KEY_ID || !secrets.STUDIO_S3_KEY_SECRET)
       throw new ConfigError('STUDIO_S3_KEY_ID and STUDIO_S3_KEY_SECRET (or the Cellar add-on variables) are required');
     const endpoint = /^https?:\/\//.test(config.blobs.host!) ? config.blobs.host! : `https://${config.blobs.host}`;
-    blobs = s3BlobStore(
-      new S3({
-        endpoint,
-        bucket: config.blobs.bucket!,
-        keyId: secrets.STUDIO_S3_KEY_ID,
-        secret: secrets.STUDIO_S3_KEY_SECRET,
-      }),
-    );
+    s3 = new S3({
+      endpoint,
+      bucket: config.blobs.bucket!,
+      keyId: secrets.STUDIO_S3_KEY_ID,
+      secret: secrets.STUDIO_S3_KEY_SECRET,
+    });
+    blobs = s3BlobStore(s3);
   } else blobs = fsBlobStore(resolve(config.blobs.dir!));
   const gameDir = resolve(config.workDir, 'game');
   mkdirSync(gameDir, { recursive: true });
-  return { db, blobs, gameDir, secrets };
+  return { db, blobs, gameDir, secrets, s3 };
 }
 
 async function main(argv: string[]): Promise<number> {
@@ -70,6 +72,22 @@ async function main(argv: string[]): Promise<number> {
     } else console.log(await accessToken(server));
     return 0;
   }
+  // The job keys (ADR 0028): the private one is the Studio's secret STUDIO_WORKER_KEY, the public one the worker's
+  // WORKER_PUBLIC_KEY. Written to files, the private one 0600; never printed.
+  if (cmd === 'worker-keys') {
+    const out = resolve(rest[rest.indexOf('--out') + 1] ?? '');
+    if (rest.indexOf('--out') < 0 || !existsSync(out)) {
+      console.error('usage: studio-server worker-keys --out <existing folder>');
+      return 2;
+    }
+    const k = newJobKeys();
+    writeFileSync(join(out, 'studio-worker.key'), k.privatePem, { mode: 0o600, flag: 'wx' });
+    writeFileSync(join(out, 'studio-worker.pub'), k.publicPem, { flag: 'wx' });
+    console.log(
+      `written: ${join(out, 'studio-worker.key')} (0600, the Studio's), ${join(out, 'studio-worker.pub')} (the worker's)`,
+    );
+    return 0;
+  }
   const at = rest.indexOf('--config');
   const file = at >= 0 ? rest[at + 1] : process.env.STUDIO_CONFIG;
   if (!cmd || !file) {
@@ -78,7 +96,7 @@ async function main(argv: string[]): Promise<number> {
   }
   const args = rest.filter((_, i) => i !== at && i !== at + 1);
   const config = loadConfig(file);
-  const { db, blobs, gameDir, secrets } = await openAll(config);
+  const { db, blobs, gameDir, secrets, s3 } = await openAll(config);
   const hosted = config.store.kind === 'postgres';
 
   if (cmd === 'import') {
@@ -198,7 +216,21 @@ async function main(argv: string[]): Promise<number> {
   lease.start((held) =>
     console.log(JSON.stringify({ event: held ? 'lease-taken' : 'lease-lost', instance: lease.instance })),
   );
-  const studio = createStudio({ gameDir, root: resolve(config.workDir), journal, author: 'studio-server' });
+  // With OIDC, the game's code runs in the processing worker only (ADR 0028); without, this is the local server.
+  let executor: ReturnType<typeof remoteExecutor> | undefined;
+  if (config.worker) {
+    if (!secrets.STUDIO_WORKER_KEY)
+      throw new ConfigError('STUDIO_WORKER_KEY (the Ed25519 key that signs jobs) is required');
+    executor = remoteExecutor({
+      s3: s3!,
+      workerUrl: config.worker.url,
+      // A variable cannot always hold line breaks: `\n` written out is read as one.
+      privateKeyPem: secrets.STUDIO_WORKER_KEY.replace(/\\n/g, '\n'),
+      instance: config.worker.instance,
+      at: async () => ({ epoch: await journal.epoch(), rev: await journal.revision() }),
+    });
+  }
+  const studio = createStudio({ gameDir, root: resolve(config.workDir), journal, author: 'studio-server', executor });
   const server = studioServer({ studio, journal, db, lease, trustProxy: config.trustProxy, auth });
   // Hosted: the instance's folder is checked against the head every 30 s and repaired without a restart (plan §4),
   // holding the instance's lock alone: no request reads a folder being repaired.
