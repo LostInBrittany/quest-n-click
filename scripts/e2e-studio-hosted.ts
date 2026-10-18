@@ -56,8 +56,12 @@ cpSync(join(ROOT, 'games', 'demo'), gameDir, { recursive: true });
 const op = await new TestOp().start();
 const port = await freePort();
 const scheme = tls ? 'https' : 'http';
-const studioUrl = `${scheme}://127.0.0.1:${port}`;
-const playUrl = `${scheme}://localhost:${port}`;
+// Two sites on the loopback (127.0.0.1, localhost), or with STUDIO_E2E_SITE=<domain> two names of one site
+// (studio.<domain>, play.<domain>, which the hosts file must name): CI's WebKit on Linux keeps no partitioned cookie in
+// a frame of another site, so it plays the same-site layout the guide recommends.
+const site = process.env.STUDIO_E2E_SITE;
+const studioUrl = site ? `${scheme}://studio.${site}:${port}` : `${scheme}://127.0.0.1:${port}`;
+const playUrl = site ? `${scheme}://play.${site}:${port}` : `${scheme}://localhost:${port}`;
 const db = await openSqliteDb(join(tmp, 'j.sqlite'));
 const leases = new Leases(db);
 const journal = await Journal.open({
@@ -124,7 +128,7 @@ if (tls) {
   execFileSync(
     'openssl',
     ['req', '-x509', '-newkey', 'rsa:2048', '-nodes', '-days', '1', '-subj', '/CN=localhost']
-      .concat(['-addext', 'subjectAltName=DNS:localhost,IP:127.0.0.1'])
+      .concat(['-addext', `subjectAltName=DNS:localhost,IP:127.0.0.1${site ? `,DNS:studio.${site},DNS:play.${site}` : ''}`])
       .concat(['-keyout', join(tmp, 'key.pem'), '-out', join(tmp, 'cert.pem')]),
     { stdio: 'ignore' },
   );
