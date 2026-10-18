@@ -117,7 +117,7 @@ export const RULES: readonly Rule[] = [
   // The Bridge's qualification profile (4.1.18): brought up by its own workflow (qualify.yml) and the candidate's
   // `deployment-smoke`; here its static test only.
   {
-    re: /^(ops\/(?!studio\/ci\/)|scripts\/ops-qualify\.mjs$|scripts\/ops-qualify\/)/,
+    re: /^(ops\/(?!studio\/(ci|keycloak)\/)|scripts\/ops-qualify\.mjs$|scripts\/ops-qualify\/)/,
     gates: [...UNIT],
     why: 'the qualification profile',
   },
@@ -154,7 +154,7 @@ export const RULES: readonly Rule[] = [
   },
   { re: /^(tools|scripts)\//, gates: [...AUTHORING], why: 'the authoring pipeline' },
   {
-    re: /^(tests\/studio-(server|worker|collab)\.test\.ts|ops\/studio\/ci\/)/,
+    re: /^(tests\/studio-(server|worker|collab|keycloak)\.test\.ts|ops\/studio\/(ci|keycloak)\/)/,
     gates: [...UNIT, 'studioHosted'],
     why: 'the hosted Studio against Postgres and S3 (4.2.1)',
   },

@@ -317,9 +317,11 @@ jobs:
           npx web-scumm-connector --help | grep -q 'usage: web-scumm-connector'
           ! find node_modules -name '*.node' | grep -q .
   # The hosted Studio (4.2.1): the journal on Postgres with its blobs in S3, the service lease, the processing worker
-  # through presigned URLs, the spans' leases racing on Postgres. S3 is SeaweedFS (its S3 gateway checks SigV4 and
-  # presigned URLs, as Cellar does; MinIO no longer publishes free images), its test identity in ops/studio/ci/. A
-  # service container takes no command: SeaweedFS starts in a step. Gate: `studioHosted`.
+  # through presigned URLs, the spans' leases racing on Postgres, and the login, back-channel logout and a disabled
+  # user against a real Keycloak (tests/studio-keycloak.test.ts, the realm of ops/studio/keycloak/). S3 is SeaweedFS
+  # (its S3 gateway checks SigV4 and presigned URLs, as Cellar does; MinIO no longer publishes free images), its test
+  # identity in ops/studio/ci/. A service container takes no command: SeaweedFS and Keycloak start in steps.
+  # Gate: `studioHosted`.
   studio-hosted:
     needs: plan
     runs-on: ubuntu-24.04
@@ -371,7 +373,24 @@ jobs:
           for i in $(seq 1 60); do npx tsx ops/studio/ci/s3-ready.ts && exit 0; sleep 1; done
           echo "the bucket is not writable"; docker logs seaweedfs; exit 1
       - if: env.RUN == 'true'
-        run: npx vitest run tests/studio-server.test.ts tests/studio-worker.test.ts tests/studio-collab.test.ts --maxWorkers=1 --no-file-parallelism
+        name: Keycloak (the test realm)
+        # Pinned by digest; it reaches this runner as host.docker.internal for its back-channel logouts.
+        run: |
+          docker run -d --name keycloak -p 127.0.0.1:8080:8080 --add-host=host.docker.internal:host-gateway \
+            -e KC_BOOTSTRAP_ADMIN_USERNAME=admin -e KC_BOOTSTRAP_ADMIN_PASSWORD=admin-ci-only \
+            -v "$PWD/ops/studio/keycloak:/opt/keycloak/data/import:ro" \
+            quay.io/keycloak/keycloak@sha256:09a381c715ab0b111835b70f2905955274843a219c6f27efb348e4d9f4086858 \
+            start-dev --import-realm
+          for i in $(seq 1 120); do
+            curl -fsS -m 2 -o /dev/null http://127.0.0.1:8080/realms/web-scumm/.well-known/openid-configuration && exit 0
+            sleep 2
+          done
+          docker logs keycloak; exit 1
+      - if: env.RUN == 'true'
+        env:
+          STUDIO_TEST_KEYCLOAK: http://127.0.0.1:8080
+          STUDIO_TEST_KEYCLOAK_ADMIN: admin:admin-ci-only
+        run: npx vitest run tests/studio-server.test.ts tests/studio-worker.test.ts tests/studio-collab.test.ts tests/studio-keycloak.test.ts --maxWorkers=1 --no-file-parallelism
   # The Bridge's distributed profile (4.1.10, D20): the store contract, the tenants crossed and the fan-out across
   # instances, on a real Postgres 16 (a service container, pinned by digest). The truth for Postgres: the maintainer's
   # machine runs it only with a local server (docs/en/REALITY-OPS.md). Gate: `reality`.
