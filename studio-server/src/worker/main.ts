@@ -128,7 +128,8 @@ export function createWorker(o: WorkerOptions) {
     const snap = await fetch(job.urls.snapshot, { signal: AbortSignal.timeout(30_000) });
     if (!snap.ok) throw new Error(`snapshot: ${snap.status}`);
     const bytes = Buffer.from(await snap.arrayBuffer());
-    if (createHash('sha256').update(bytes).digest('hex') !== job.snapshot) throw new Error('the snapshot is not the signed one');
+    if (createHash('sha256').update(bytes).digest('hex') !== job.snapshot)
+      throw new Error('the snapshot is not the signed one');
     mkdirSync(JOBS, { recursive: true });
     const dir = mkdtempSync(join(JOBS, 'job-'));
     try {
@@ -215,13 +216,20 @@ export function createWorker(o: WorkerOptions) {
     }
   }
 
-  return { handler: (req: IncomingMessage, res: ServerResponse) => void handle(req, res), get recycle() { return recycle; } };
+  return {
+    handler: (req: IncomingMessage, res: ServerResponse) => void handle(req, res),
+    get recycle() {
+      return recycle;
+    },
+  };
 }
 
 // `studio-worker` itself: WORKER_PUBLIC_KEY (PEM, or WORKER_PUBLIC_KEY_FILE), WORKER_INSTANCE, PORT (Clever: 8080).
 if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
   const { readFileSync } = await import('node:fs');
-  const pem = process.env.WORKER_PUBLIC_KEY_FILE ? readFileSync(process.env.WORKER_PUBLIC_KEY_FILE, 'utf8') : process.env.WORKER_PUBLIC_KEY;
+  const pem = process.env.WORKER_PUBLIC_KEY_FILE
+    ? readFileSync(process.env.WORKER_PUBLIC_KEY_FILE, 'utf8')
+    : process.env.WORKER_PUBLIC_KEY;
   const instance = process.env.WORKER_INSTANCE;
   const publicKeyPem = pem?.replace(/\\n/g, '\n');
   if (!pem || !instance) {

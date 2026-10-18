@@ -15,7 +15,10 @@ if (!dir || !outFile) process.exit(2);
 const importFresh = (file: string) => tsImport(pathToFileURL(file).href, import.meta.url);
 if (kind === 'load') {
   const m = await importFresh(join(dir, 'index.ts'));
-  writeFileSync(outFile, JSON.stringify(m, (_k, v) => (typeof v === 'function' ? undefined : v)));
+  writeFileSync(
+    outFile,
+    JSON.stringify(m, (_k, v) => (typeof v === 'function' ? undefined : v)),
+  );
 } else {
   const r = await validateDir(dir, { root: ROOT, importFresh });
   writeFileSync(outFile, JSON.stringify({ errors: r.errors, warnings: r.warnings }));

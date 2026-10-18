@@ -484,11 +484,12 @@ jobs:
       # `/` in paths, the shell's tools): named here, said in SUPPORT, ported by `fix/418-windows-tests`. Since 4.1.9
       # also the connectors' Telnet and SSH tests, and the two that drive them (the SDK's contract, the abuse run):
       # they time sockets, idle limits and a thousand connections the POSIX way, not yet ported (SUPPORT says so).
+      # Since 4.2.1 also the Studio Server's processing worker, which runs on Linux only (process groups, `kill(-pid)`).
       # Then the game's gates and the build (`build` would run `check` a second time).
       - if: env.RUN == 'true'
         run: npx tsx tools/select-game.ts && npm run -s tsc -- --noEmit
       - if: env.RUN == 'true'
-        run: npm run test:node -- --exclude tests/bridge.test.ts --exclude tests/file-size.test.ts --exclude tests/prompts.test.ts --exclude tests/status.test.ts --exclude tests/studio-demo.test.ts --exclude tests/tooling.test.ts --exclude tests/connectors-terminal.test.ts --exclude tests/connectors-ssh.test.ts --exclude tests/connectors-sdk.test.ts --exclude tests/connectors-abuse.test.ts
+        run: npm run test:node -- --exclude tests/bridge.test.ts --exclude tests/file-size.test.ts --exclude tests/prompts.test.ts --exclude tests/status.test.ts --exclude tests/studio-demo.test.ts --exclude tests/tooling.test.ts --exclude tests/connectors-terminal.test.ts --exclude tests/connectors-ssh.test.ts --exclude tests/connectors-sdk.test.ts --exclude tests/connectors-abuse.test.ts --exclude tests/studio-worker.test.ts
       - if: env.RUN == 'true'
         run: npm run build:game
       - name: The production server answers

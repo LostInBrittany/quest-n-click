@@ -23,7 +23,9 @@ export function packSnapshot(dir: string): Buffer {
         files.push({ path: relative(dir, p).split(sep).join('/'), text });
         // The same bounds as unpacking, said here, where the author can act on them.
         if (files.length > MAX_FILES || bytes > MAX_BYTES)
-          throw new Error(`the game is too large to run on the processing worker (${MAX_FILES} files, ${MAX_BYTES >> 20} MiB at most)`);
+          throw new Error(
+            `the game is too large to run on the processing worker (${MAX_FILES} files, ${MAX_BYTES >> 20} MiB at most)`,
+          );
       }
     }
   };
@@ -38,7 +40,8 @@ export function unpackSnapshot(bytes: Buffer, dir: string): number {
   const s = JSON.parse(bytes.toString('utf8')) as { v: number; files: { path: string; text: string }[] };
   if (s.v !== 1 || !Array.isArray(s.files) || s.files.length > MAX_FILES) throw new Error('not a snapshot');
   for (const f of s.files) {
-    if (typeof f.path !== 'string' || typeof f.text !== 'string' || !TEXT.test(f.path)) throw new Error('not a snapshot');
+    if (typeof f.path !== 'string' || typeof f.text !== 'string' || !TEXT.test(f.path))
+      throw new Error('not a snapshot');
     if (f.path.startsWith('/') || f.path.split('/').some((x) => x === '..' || x === '' || x.startsWith('.')))
       throw new Error(`a snapshot path leaves its folder: ${f.path}`);
     const target = join(dir, ...f.path.split('/'));
