@@ -3,7 +3,9 @@
 > **Date** : 18 octobre 2026.
 > **Plan** : `docs/dev/PLAN-4.2.2-ATELIER-JOUABLE.md`, §2.1 (PR 1).
 > **Question** : (a) un bundle moteur par version plus un paquet de contenu par révision, ou (b) un build complet par
-> révision, coalescé. Chaque ligne ci-dessous est une mesure, ou dit qu'elle n'en est pas une.
+> révision, coalescé. Chaque chiffre ci-dessous est une mesure, ou dit qu'il n'en est pas une ; les §1 et §3 sont
+> une analyse et une décision.
+> **Code** : aucun ; la commande est donnée au §2.
 
 ## 1. Ce que le contenu d'un jeu contient
 
@@ -20,20 +22,28 @@ contenu sans code, ce qui changerait le format (D40 l'interdit en 4.2.x). **Éca
 
 ## 2. La voie (b), mesurée
 
-`vite build` du jeu depuis une copie de son dossier (`GAME_DIR`), avec la base `/preview/<rev>/`, sur la machine du
-mainteneur (Apple Silicon, 10 cœurs) :
+Commande : `GAME=demo BASE_PATH=/preview/1/ npx vite build --outDir <dossier>`, cinq exécutions de suite, la
+première après avoir vidé `node_modules/.vite`. Machine du mainteneur (Apple Silicon, 10 cœurs), Node 22.14.0,
+Vite 8.3.4, commit `42cf574a`.
 
-| Jeu | Premier build | Builds suivants | JavaScript produit | Total servi |
+| Jeu | Premier build (cache vide) | Builds suivants (4 exécutions) | JavaScript produit | Total écrit |
 |---|---|---|---|---|
-| `games/demo` (avec commandes) | 2,5 s | 1,3 s | 852 Ko | 11 Mo, dont 3,9 Mo d'images et 3,3 Mo de sons |
+| `games/demo` (avec commandes) | 2,1 s (2,5 s lors d'une première mesure) | 1,22 à 1,26 s | 852 Ko | 11 Mo |
 
-- Les images et les sons sont les fichiers préparés du jeu, identiques d'une révision à l'autre. Rangés par contenu
-  (`sha256/<hex>`, comme les blobs du journal), ils ne sont stockés **qu'une fois** pour toutes les révisions. Ce qui
-  est propre à une révision est son JavaScript et sa page : **moins de 1 Mo**.
-- `games/reference` ne se construit pas depuis une copie seule (il n'a pas de dossier `art/`) : non mesuré, sans effet
-  sur la décision.
-- **Non mesuré ici** : le temps sur l'application de traitement Clever (1 vCPU, ≈ 1 Go, spike S §1). On s'attend à un
-  facteur de 3 à 6 ; la passe `studio-preview` le mesure.
+- Le total se décompose en 3,9 Mo d'images, 3,3 Mo de sons, 2,1 Mo de polices, 852 Ko de JavaScript (dont 200 Ko
+  d'outils), 128 Ko de licences, et moins de 100 Ko d'icônes, données, page et service worker.
+- Les images, les sons et les polices sont des fichiers publics du jeu, identiques d'une révision à l'autre. **Une fois
+  rangés par contenu** (à faire en PR 2), ce qui resterait propre à une révision serait son JavaScript et sa page :
+  moins de 1 Mo. C'est une conception, pas une mesure.
+- Le disque de l'application Clever est éphémère (spike S §1) : le premier build, cache vide, est sans doute le cas
+  courant là-bas.
+- `games/reference` : son dossier `art/` est un lien vers `../demo/art`, qu'une copie du seul dossier casse. Non
+  mesuré, sans effet sur la décision.
+- **Non mesuré** :
+  - le temps de bout en bout (snapshot, worker, envoi, service), et donc son p50 et son p95 ;
+  - un second jeu avec du code local ;
+  - le temps sur l'application de traitement Clever. Spike S §1 a mesuré 1 vCPU et ≈ 1 Go pour la plus petite taille
+    d'app Node ; la taille de l'app de traitement n'est pas fixée. La passe `studio-preview` mesure ces trois points.
 
 ## 3. Décision et seuil
 
@@ -41,7 +51,8 @@ mainteneur (Apple Silicon, 10 cœurs) :
   de la révision, **coalescé** (une rafale d'écritures ne construit que la dernière révision), publié par le Studio
   sous des clés qu'il choisit, servi immuable sur `play_url` à `/preview/<rev>/`.
 - **Les outils d'édition** (le placement de Rooms) entrent dans ce build avec un drapeau de build propre
-  (`VITE_STUDIO_PREVIEW`), sans les correctifs de la démo ni son stockage local.
-- **Seuil** : la cible du plan est 5 s de l'écriture à la prévisualisation jouable. Mesuré ici : 1,3 à 2,5 s de build.
-  Le seuil publié en 4.2.2 est **p95 ≤ 10 s** sur l'application de traitement, en attendant la mesure de la passe
-  `studio-preview` ; pendant un build, la page sert la dernière prévisualisation prête, étiquetée avec sa révision.
+  (`VITE_STUDIO_PREVIEW`, à créer en PR 2), sans les correctifs de la démo ni son stockage local.
+- **Seuil** : la cible du plan reste **5 s** de l'écriture à la prévisualisation jouable. Mesuré ici : 1,2 à 2,1 s de
+  build seul, sans le reste du chemin. Rien ne montre encore que 5 s ne tient pas ; une **limite provisoire, p95 ≤
+  10 s**, est choisie sous le go du mainteneur jusqu'à la mesure de la passe `studio-preview`, qui dira si la cible
+  tient. Pendant un build, la page sert la dernière prévisualisation prête, étiquetée avec sa révision.
