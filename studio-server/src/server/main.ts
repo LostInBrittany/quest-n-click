@@ -182,7 +182,16 @@ async function main(argv: string[]): Promise<number> {
     });
     auth = {
       gate,
-      handle: authRoutes({ gate, store, oidc, sealer, publicUrl: config.publicUrl, cliClientId: config.oidc.cliClientId, send, readJson }),
+      handle: authRoutes({
+        gate,
+        store,
+        oidc,
+        sealer,
+        publicUrl: config.publicUrl,
+        cliClientId: config.oidc.cliClientId,
+        send,
+        readJson,
+      }),
     };
   }
   const lease = new ServiceLease(db);

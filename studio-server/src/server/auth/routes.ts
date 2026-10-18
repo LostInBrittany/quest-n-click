@@ -74,7 +74,11 @@ export function authRoutes(o: AuthRoutesOptions) {
         returnTo: safeReturn(url.searchParams.get('returnTo')),
         ...(invite && /^[\w-]{20,100}$/.test(invite) ? { invite } : {}),
       });
-      res.writeHead(302, { location: b.url, 'set-cookie': cookie(PREAUTH_COOKIE, pre, 600), 'cache-control': 'no-store' });
+      res.writeHead(302, {
+        location: b.url,
+        'set-cookie': cookie(PREAUTH_COOKIE, pre, 600),
+        'cache-control': 'no-store',
+      });
       res.end();
       return true;
     }
@@ -83,7 +87,12 @@ export function authRoutes(o: AuthRoutesOptions) {
       const preToken = cookies(req)[PREAUTH_COOKIE];
       const pre = preToken ? await o.store.takePreauth(preToken) : undefined;
       if (!pre) {
-        o.send(res, 400, { error: 'this login has expired or was already used: start again' }, { 'set-cookie': clear(PREAUTH_COOKIE) });
+        o.send(
+          res,
+          400,
+          { error: 'this login has expired or was already used: start again' },
+          { 'set-cookie': clear(PREAUTH_COOKIE) },
+        );
         return true;
       }
       let done: Awaited<ReturnType<Oidc['finish']>>;
@@ -91,7 +100,12 @@ export function authRoutes(o: AuthRoutesOptions) {
         done = await o.oidc.finish(new URL(`${redirectUri}${url.search}`), pre);
       } catch {
         await o.store.audit(null, 'login-failed', { reason: 'callback refused' });
-        o.send(res, 400, { error: 'the identity provider answer was refused' }, { 'set-cookie': clear(PREAUTH_COOKIE) });
+        o.send(
+          res,
+          400,
+          { error: 'the identity provider answer was refused' },
+          { 'set-cookie': clear(PREAUTH_COOKIE) },
+        );
         return true;
       }
       const user = await o.store.userFor(done.identity);
@@ -130,14 +144,19 @@ export function authRoutes(o: AuthRoutesOptions) {
       o.send(
         res,
         200,
-        { ok: true, redirect: o.oidc.endSessionUrl({ idTokenHint: idToken, postLogoutRedirectUri: o.publicUrl }) ?? '/' },
+        {
+          ok: true,
+          redirect: o.oidc.endSessionUrl({ idTokenHint: idToken, postLogoutRedirectUri: o.publicUrl }) ?? '/',
+        },
         { 'set-cookie': clear(SESSION_COOKIE) },
       );
       return true;
     }
 
     if (m === 'POST' && path === '/auth/backchannel') {
-      const type = String(req.headers['content-type'] ?? '').split(';')[0]!.trim();
+      const type = String(req.headers['content-type'] ?? '')
+        .split(';')[0]!
+        .trim();
       if (type !== 'application/x-www-form-urlencoded') throw new StudioError('a logout token is form-encoded', 400);
       const token = (await readForm(req)).get('logout_token');
       if (!token) throw new StudioError('logout_token is required', 400);
@@ -175,7 +194,8 @@ export function authRoutes(o: AuthRoutesOptions) {
     if (m === 'POST' && path === '/api/invitations') {
       const p = await owner(req);
       const b = (await o.readJson(req)) as { email?: unknown; role?: unknown };
-      if (typeof b.email !== 'string' || !/^[^\s@]+@[^\s@]+$/.test(b.email)) throw new StudioError('`email` is required');
+      if (typeof b.email !== 'string' || !/^[^\s@]+@[^\s@]+$/.test(b.email))
+        throw new StudioError('`email` is required');
       if (!ROLES.includes(b.role as Role)) throw new StudioError('`role` is owner, dev or reviewer');
       const token = await o.store.invite(b.email, b.role as Role, p.user.id);
       o.send(res, 200, { link: `${o.publicUrl}/auth/login?invite=${token}`, expiresInDays: 7 });

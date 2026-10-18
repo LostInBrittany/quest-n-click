@@ -50,7 +50,10 @@ export class Sealer {
   constructor(secrets: string[]) {
     if (!secrets.length) throw new Error('a session key is required (STUDIO_SESSION_KEY)');
     if (secrets.some((s) => s.length < 32)) throw new Error('a session key is 32 characters or more');
-    this.keys = secrets.map((s) => ({ kid: derive(s, 'kid', 6).toString('base64url'), key: derive(s, 'aes-256-gcm', 32) }));
+    this.keys = secrets.map((s) => ({
+      kid: derive(s, 'kid', 6).toString('base64url'),
+      key: derive(s, 'aes-256-gcm', 32),
+    }));
   }
   seal(text: string): string {
     const { kid, key } = this.keys[0]!;
@@ -96,7 +99,13 @@ export class AuthStore {
   // ---------------------------------------------------------------- users and members
 
   /** The user of an identity, created at first sight; its email and name follow the provider. */
-  async userFor(o: { iss: string; sub: string; email?: string; emailVerified?: boolean; name?: string }): Promise<User> {
+  async userFor(o: {
+    iss: string;
+    sub: string;
+    email?: string;
+    emailVerified?: boolean;
+    name?: string;
+  }): Promise<User> {
     return this.db.tx('studio-auth', async (q) => {
       const [r] = await q.all('SELECT * FROM studio_users WHERE iss = $1 AND sub = $2', [o.iss, o.sub]);
       if (r) {
@@ -113,7 +122,15 @@ export class AuthStore {
         'INSERT INTO studio_users (id, iss, sub, email, email_verified, name, created_at, revoked_before) VALUES ($1, $2, $3, $4, $5, $6, $7, 0)',
         [id, o.iss, o.sub, o.email ?? null, o.emailVerified ? 1 : 0, o.name ?? null, this.now()],
       );
-      return { id, iss: o.iss, sub: o.sub, email: o.email ?? null, emailVerified: !!o.emailVerified, name: o.name ?? null, revokedBefore: 0 };
+      return {
+        id,
+        iss: o.iss,
+        sub: o.sub,
+        email: o.email ?? null,
+        emailVerified: !!o.emailVerified,
+        name: o.name ?? null,
+        revokedBefore: 0,
+      };
     });
   }
 
@@ -182,7 +199,8 @@ export class AuthStore {
   async accept(tokenHash: string, user: User): Promise<{ role: Role } | { refused: string }> {
     return this.db.tx('studio-auth', async (q) => {
       const [r] = await q.all('SELECT * FROM studio_invitations WHERE token_hash = $1', [tokenHash]);
-      if (!r || r.used_by !== null || Number(r.expires_at) < this.now()) return { refused: 'the invitation is not valid' };
+      if (!r || r.used_by !== null || Number(r.expires_at) < this.now())
+        return { refused: 'the invitation is not valid' };
       if (!user.emailVerified || (user.email ?? '').toLowerCase() !== String(r.email))
         return { refused: 'the invitation is for another verified email' };
       const role = String(r.role) as Role;
@@ -193,7 +211,11 @@ export class AuthStore {
       }
       await q.run('UPDATE studio_invitations SET used_by = $1 WHERE token_hash = $2', [user.id, tokenHash]);
       await q.run('DELETE FROM studio_members WHERE user_id = $1', [user.id]);
-      await q.run('INSERT INTO studio_members (user_id, role, added_at) VALUES ($1, $2, $3)', [user.id, role, this.now()]);
+      await q.run('INSERT INTO studio_members (user_id, role, added_at) VALUES ($1, $2, $3)', [
+        user.id,
+        role,
+        this.now(),
+      ]);
       await this.auditIn(q, user.id, 'invitation-accepted', { role });
       return { role };
     });
@@ -201,7 +223,10 @@ export class AuthStore {
 
   async pendingInvitations(): Promise<{ email: string; role: Role; expiresAt: number }[]> {
     return (
-      await this.db.all('SELECT email, role, expires_at FROM studio_invitations WHERE used_by IS NULL AND expires_at > $1', [this.now()])
+      await this.db.all(
+        'SELECT email, role, expires_at FROM studio_invitations WHERE used_by IS NULL AND expires_at > $1',
+        [this.now()],
+      )
     ).map((r) => ({ email: String(r.email), role: String(r.role) as Role, expiresAt: Number(r.expires_at) }));
   }
 
@@ -270,12 +295,16 @@ export class AuthStore {
    */
   async endProviderSessions(o: { iss: string; sid?: string; sub?: string }): Promise<string[]> {
     return this.db.tx('studio-auth', async (q) => {
-      const users = o.sub && !o.sid
-        ? (await q.all('SELECT id FROM studio_users WHERE iss = $1 AND sub = $2', [o.iss, o.sub])).map((r) => String(r.id))
-        : [];
+      const users =
+        o.sub && !o.sid
+          ? (await q.all('SELECT id FROM studio_users WHERE iss = $1 AND sub = $2', [o.iss, o.sub])).map((r) =>
+              String(r.id),
+            )
+          : [];
       const ended: string[] = [];
       if (o.sid) {
-        for (const r of await q.all('SELECT id_hash, user_id FROM studio_sessions WHERE sid = $1', [o.sid])) ended.push(String(r.user_id));
+        for (const r of await q.all('SELECT id_hash, user_id FROM studio_sessions WHERE sid = $1', [o.sid]))
+          ended.push(String(r.user_id));
         await q.run('DELETE FROM studio_sessions WHERE sid = $1', [o.sid]);
       }
       for (const u of users) {
@@ -283,7 +312,11 @@ export class AuthStore {
         await q.run('UPDATE studio_users SET revoked_before = $1 WHERE id = $2', [Date.now(), u]);
         ended.push(u);
       }
-      await this.auditIn(q, null, 'backchannel-logout', { sid: o.sid ?? null, sub: o.sub ?? null, users: ended.length });
+      await this.auditIn(q, null, 'backchannel-logout', {
+        sid: o.sid ?? null,
+        sub: o.sub ?? null,
+        users: ended.length,
+      });
       return ended;
     });
   }
@@ -310,7 +343,15 @@ export class AuthStore {
     const token = newToken();
     await this.db.run(
       'INSERT INTO studio_preauth (id_hash, state, nonce, verifier, return_to, invite, expires_at) VALUES ($1, $2, $3, $4, $5, $6, $7)',
-      [hashToken(token), o.state, o.nonce, o.verifier, o.returnTo, o.invite ? hashToken(o.invite) : null, this.now() + 10 * 60_000],
+      [
+        hashToken(token),
+        o.state,
+        o.nonce,
+        o.verifier,
+        o.returnTo,
+        o.invite ? hashToken(o.invite) : null,
+        this.now() + 10 * 60_000,
+      ],
     );
     await this.db.run('DELETE FROM studio_preauth WHERE expires_at < $1', [this.now()]);
     return token;
@@ -347,7 +388,12 @@ export class AuthStore {
 
   // ---------------------------------------------------------------- audit
 
-  private async auditIn(q: { run(sql: string, p?: unknown[]): Promise<number> }, actor: string | null, event: string, detail: unknown) {
+  private async auditIn(
+    q: { run(sql: string, p?: unknown[]): Promise<number> },
+    actor: string | null,
+    event: string,
+    detail: unknown,
+  ) {
     await q.run('INSERT INTO studio_audit (id, at, actor, event, detail) VALUES ($1, $2, $3, $4, $5)', [
       randomUUID(),
       this.now(),
@@ -360,7 +406,9 @@ export class AuthStore {
     return this.auditIn(this.db, actor, event, detail);
   }
   async auditLog(limit = 200): Promise<{ at: number; actor: string | null; event: string; detail: unknown }[]> {
-    return (await this.db.all('SELECT at, actor, event, detail FROM studio_audit ORDER BY at DESC LIMIT $1', [limit])).map((r) => ({
+    return (
+      await this.db.all('SELECT at, actor, event, detail FROM studio_audit ORDER BY at DESC LIMIT $1', [limit])
+    ).map((r) => ({
       at: Number(r.at),
       actor: r.actor === null ? null : String(r.actor),
       event: String(r.event),

@@ -403,7 +403,8 @@ describe('logout and the CLI', () => {
     await deviceLogin(base, { file, allowInsecure: true, tell: (url, code) => (told = `${url} ${code}`) });
     expect(told).toContain('WXYZ-1234');
     const { statSync } = await import('node:fs');
-    expect(statSync(file).mode & 0o077).toBe(0);
+    // POSIX only: Windows has no mode bits.
+    if (process.platform !== 'win32') expect(statSync(file).mode & 0o077).toBe(0);
     const t = await accessToken(base, { file, allowInsecure: true });
     expect((await fetch(`${base}/api/game`, { headers: { authorization: `Bearer ${t}` } })).status).toBe(200);
   }, 30_000);

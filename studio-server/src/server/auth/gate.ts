@@ -89,7 +89,10 @@ export class Gate {
     const auth = req.headers.authorization;
     const origin = req.headers.origin;
     const mutation = MUTATION.has(req.method ?? 'GET');
-    const type = String(req.headers['content-type'] ?? '').split(';')[0]!.trim().toLowerCase();
+    const type = String(req.headers['content-type'] ?? '')
+      .split(';')[0]!
+      .trim()
+      .toLowerCase();
     const typeOk = type === 'application/json' || (o.multipart === true && type === 'multipart/form-data');
     if (auth !== undefined) {
       // Policy B: the token is the identity; a cookie on the same request has no effect.
@@ -186,7 +189,8 @@ export class Gate {
 
   /** The role a principal needs: refused (403) below it. */
   require(p: Principal, need: Role): void {
-    if (!atLeast(p.role, need)) throw new StudioError(p.role ? `this needs the role ${need}` : 'not a member of this project', 403);
+    if (!atLeast(p.role, need))
+      throw new StudioError(p.role ? `this needs the role ${need}` : 'not a member of this project', 403);
   }
 
   /** Policy B's refusal, with its RFC 6750 challenge. */

@@ -169,9 +169,9 @@ export class Oidc {
       maxTokenAge: '5m',
     });
     const events = (payload as JWTPayload & { events?: Record<string, unknown> }).events;
-    const ev = events && typeof events === 'object' ? (events as Record<string, unknown>)[BACKCHANNEL_EVENT] : undefined;
-    if (!ev || typeof ev !== 'object' || Array.isArray(ev))
-      throw new Error('not a back-channel logout token');
+    const ev =
+      events && typeof events === 'object' ? (events as Record<string, unknown>)[BACKCHANNEL_EVENT] : undefined;
+    if (!ev || typeof ev !== 'object' || Array.isArray(ev)) throw new Error('not a back-channel logout token');
     if (payload.nonce !== undefined) throw new Error('a logout token carries no nonce');
     const sid = typeof payload.sid === 'string' ? payload.sid : undefined;
     const sub = typeof payload.sub === 'string' ? payload.sub : undefined;

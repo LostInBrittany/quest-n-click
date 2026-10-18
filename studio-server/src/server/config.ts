@@ -159,8 +159,10 @@ export function loadConfig(file: string): StudioServerConfig {
     if (!/^(127\.|::1$|localhost$)/.test(host) && trust.length === 0)
       throw new ConfigError(`${file}: trustProxy is required when the server is reachable beyond the loopback`);
     if (!isUrl(oidc.issuer)) throw new ConfigError(`${file}: oidc.issuer must be an http(s) URL`);
-    if (typeof oidc.clientId !== 'string' || !oidc.clientId) throw new ConfigError(`${file}: oidc.clientId is required`);
-    if (typeof oidc.audience !== 'string' || !oidc.audience) throw new ConfigError(`${file}: oidc.audience is required`);
+    if (typeof oidc.clientId !== 'string' || !oidc.clientId)
+      throw new ConfigError(`${file}: oidc.clientId is required`);
+    if (typeof oidc.audience !== 'string' || !oidc.audience)
+      throw new ConfigError(`${file}: oidc.audience is required`);
     if (oidc.audience === oidc.clientId)
       throw new ConfigError(`${file}: oidc.audience must differ from oidc.clientId (an id_token is no access token)`);
   }

@@ -147,7 +147,12 @@ export function readJson(req: IncomingMessage): Promise<unknown> {
   });
 }
 
-export function send(res: ServerResponse, status: number, data: unknown, headers: Record<string, string | string[]> = {}) {
+export function send(
+  res: ServerResponse,
+  status: number,
+  data: unknown,
+  headers: Record<string, string | string[]> = {},
+) {
   res.writeHead(status, {
     'content-type': 'application/json; charset=utf-8',
     'cache-control': 'no-store',
@@ -157,7 +162,6 @@ export function send(res: ServerResponse, status: number, data: unknown, headers
   });
   res.end(JSON.stringify(data));
 }
-
 
 export interface StudioHttpServer extends Server {
   /** Runs `fn` holding the instance's lock alone (no request reads or writes meanwhile): the cache's repair. */
@@ -248,7 +252,10 @@ export function studioServer(o: StudioServerOptions): StudioHttpServer {
       const who = principal?.user.id ?? '';
       if (op) {
         // An answer is given back to its own author only: another member who knows the id gets nothing of it.
-        const [seen] = await o.db.all('SELECT status, body FROM studio_requests WHERE op_id = $1 AND author = $2', [op, who]);
+        const [seen] = await o.db.all('SELECT status, body FROM studio_requests WHERE op_id = $1 AND author = $2', [
+          op,
+          who,
+        ]);
         if (seen) return send(res, Number(seen.status), JSON.parse(String(seen.body)), { 'x-studio-replayed': '1' });
       }
       const author = principal ? (principal.user.email ?? principal.user.name ?? principal.user.id) : undefined;
@@ -275,7 +282,10 @@ export function studioServer(o: StudioServerOptions): StudioHttpServer {
         if (o.auth && e.status === 401 && !failures.take(clientOf(req)))
           return send(res, 429, { error: 'too many refused attempts' }, { 'retry-after': '60' });
         const body = { error: e.message, ...((e as { body?: object }).body ?? {}) };
-        const headers = { ...((e as { headers?: Record<string, string> }).headers ?? {}), ...(e.status === 503 ? { 'retry-after': '2' } : {}) };
+        const headers = {
+          ...((e as { headers?: Record<string, string> }).headers ?? {}),
+          ...(e.status === 503 ? { 'retry-after': '2' } : {}),
+        };
         return send(res, e.status, body, headers);
       }
       log({ event: 'error', id, message: String((e as Error)?.message ?? e).slice(0, 300) });
