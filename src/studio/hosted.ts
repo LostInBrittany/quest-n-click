@@ -477,6 +477,9 @@ export function hostedStudio(o: {
   /** Another tab shown: where you are for the others. */
   moved: () => void;
   previewLabel: (frame: HTMLIFrameElement) => HTMLElement;
+  /** The head as the live stream last said it, and a call after each change: the Check tab's staleness. */
+  head: () => number;
+  onHead: (fn: () => void) => void;
 } {
   const live = new Live({
     revision: (r) => r.paths.forEach((f) => o.changed(f, r.author)),
@@ -581,5 +584,7 @@ export function hostedStudio(o: {
     },
     moved: beat,
     previewLabel,
+    head: () => live.revision,
+    onHead: (fn: () => void) => void live.onChange(fn),
   };
 }

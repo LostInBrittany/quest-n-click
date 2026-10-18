@@ -306,6 +306,13 @@ try {
   check("the game's page cannot write through the Studio's API", reach.write === 'blocked', reach.write);
   check("the game's page cannot read the Studio's storage", reach.storage !== 'the Studio keeps this', reach.storage);
 
+  // 5b. Check: the diagnostics say the revision they were made at (G3).
+  await page.getByRole('tab', { name: 'Check' }).click();
+  const stamp = page.locator('span.muted.small', { hasText: 'checked at' });
+  await stamp.first().waitFor({ timeout: 120_000 });
+  const stampText = (await stamp.first().innerText()).trim();
+  check('the Check tab says the revision its results were made at', /revision \d+/.test(stampText), stampText);
+
   // 6. Play: the game runs on its origin.
   await page.getByRole('tab', { name: 'Play' }).click();
   const play = page.frameLocator('iframe.playframe');

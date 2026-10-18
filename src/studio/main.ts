@@ -376,6 +376,7 @@ async function start() {
     assistant.el,
   );
   if (shared) {
+    check.follow(shared.head, shared.onHead);
     const frame = rooms.el.querySelector<HTMLIFrameElement>('iframe.engine');
     rooms.el.querySelector('.stage .bar')?.append(shared.roomChip, ...(frame ? [shared.previewLabel(frame)] : []));
     rooms.el.querySelector('select[aria-label="Room"]')?.addEventListener('change', () => shared.roomShown());

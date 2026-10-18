@@ -13,6 +13,8 @@ import { type Job, type JobKind, MAX_JOB_MS, privateKeyOf, signJob } from '../wo
 import type { JobResult } from '../worker/main';
 import { PreviewBuildFailed, type PreviewParams, previewFiles } from '../worker/preview-build';
 import { packSnapshot } from '../worker/snapshot';
+import type { DiagnoseKind } from '../ops/diagnose';
+import { StudioError } from '../ops/errors';
 import type { S3 } from './s3';
 
 export interface RemoteExecutorOptions {
@@ -41,7 +43,9 @@ export function remoteExecutor(o: RemoteExecutorOptions) {
     at?: { epoch: string; rev: number },
   ): Promise<JobResult> {
     const sha = createHash('sha256').update(snapshot).digest('hex');
-    const hit = kind === 'preview' ? undefined : last.get(kind);
+    // Only an answer that depends on the snapshot alone is kept (a diagnostic depends on its parameters too).
+    const cached = kind === 'validate' || kind === 'load';
+    const hit = cached ? last.get(kind) : undefined;
     if (hit?.sha === sha && Date.now() - hit.at < CACHE_MS) return hit.result;
     const id = randomUUID();
     const dest = `staging/${id}/`;
@@ -79,7 +83,7 @@ export function remoteExecutor(o: RemoteExecutorOptions) {
         throw new Error('the processing worker result does not answer this job');
       if (!v.failed && kind === 'preview' && !previewFiles(v.files))
         throw new Error('the processing worker result does not answer this job');
-      if (!v.failed && kind !== 'preview') last.set(kind, { sha, at: Date.now(), result: v });
+      if (!v.failed && cached) last.set(kind, { sha, at: Date.now(), result: v });
       return v;
     } finally {
       await Promise.all([o.s3.delete(`${dest}snapshot.json`), o.s3.delete(`${dest}result.json`)]).catch(() => {});
@@ -102,6 +106,19 @@ export function remoteExecutor(o: RemoteExecutorOptions) {
       return structuredClone(v.module);
     },
     /**
+     * A diagnostic that runs the game's code (4.2.2 PR 3): lint, solve, playtests, as the Studio's route answers it.
+     * A failure of the game's code throws, as a local run would.
+     */
+    async diagnose(kind: DiagnoseKind, dir: string, params: Record<string, unknown>): Promise<unknown> {
+      const v = await run(kind, packSnapshot(dir, { playtests: kind === 'playtests' }), params);
+      // Answered as a local route would: a refusal is the asker's (400), a deadline is the worker's (504).
+      if (v.refused) throw new StudioError(v.failed ?? 'refused', 400);
+      if (v.timedOut) throw new StudioError(`${v.failed}: the diagnostic is unknown for now`, 504);
+      if (v.failed) throw new Error(v.failed);
+      if (!diagnosisShaped(kind, v.data)) throw new Error('the processing worker result does not answer this job');
+      return structuredClone(v.data);
+    },
+    /**
      * A revision's preview (4.2.2 PR 2), from the snapshot the caller packed with the revision it names: its files by
      * path. A failure of the build (the game's code, a timeout) throws with its reason.
      */
@@ -112,4 +129,12 @@ export function remoteExecutor(o: RemoteExecutorOptions) {
       return new Map(Object.entries(v.files!).map(([k, b]) => [k, Buffer.from(b, 'base64')]));
     },
   };
+}
+
+/** The least a diagnostic's answer has, by kind: what the Check tab reads first. */
+export function diagnosisShaped(kind: DiagnoseKind, v: unknown): boolean {
+  const o = (v ?? {}) as Record<string, unknown>;
+  if (kind === 'solve') return typeof o.status === 'string' && Array.isArray(o.errors);
+  if (kind === 'lint') return !!o.lint && typeof o.lint === 'object' && typeof o.markdown === 'string';
+  return !!o.report && typeof o.report === 'object' && typeof o.files === 'number';
 }

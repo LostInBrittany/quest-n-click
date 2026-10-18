@@ -7,12 +7,15 @@ import { createServer, type Server } from 'node:http';
 import type { AddressInfo } from 'node:net';
 import { join } from 'node:path';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { remoteExecutor } from '../studio-server/src/server/remote-executor';
+import { diagnosisShaped, remoteExecutor } from '../studio-server/src/server/remote-executor';
 import { S3 } from '../studio-server/src/server/s3';
 import { type Job, newJobKeys, privateKeyOf, publicKeyOf, signJob, verifyJob } from '../studio-server/src/worker/job';
 import { createWorker, runChild } from '../studio-server/src/worker/main';
 import { createStudio, importInChild } from '../studio-server/src/ops/core';
 import { validateDir } from '../studio-server/src/ops/validate-dir';
+import type { GameModule } from '../tools/game';
+import type { LintData, PlaytestsData, SolveData } from '../tools/studio/types';
+import { lintIn, solveIn } from '../studio-server/src/ops/diagnose';
 import { localPreview } from '../studio-server/src/worker/local';
 import { PreviewBuildFailed } from '../studio-server/src/worker/preview-build';
 import { packSnapshot, unpackSnapshot } from '../studio-server/src/worker/snapshot';
@@ -169,6 +172,17 @@ describe('a hostile game', () => {
       }
     }
   }, 60_000);
+});
+
+describe("the Studio checks a diagnostic's answer", () => {
+  it('by its kind, before the Check tab reads it', () => {
+    expect(diagnosisShaped('solve', { status: 'solved', errors: [] })).toBe(true);
+    expect(diagnosisShaped('solve', { status: 'solved' })).toBe(false);
+    expect(diagnosisShaped('lint', { lint: {}, markdown: '' })).toBe(true);
+    expect(diagnosisShaped('lint', { lint: 'x', markdown: '' })).toBe(false);
+    expect(diagnosisShaped('playtests', { report: {}, files: 0 })).toBe(true);
+    expect(diagnosisShaped('playtests', undefined)).toBe(false);
+  });
 });
 
 describe('the worker refuses', () => {
@@ -391,6 +405,72 @@ describe('a hosted Studio runs the game only in the worker', () => {
       await expect(localPreview(packSnapshot(game), params)).rejects.toThrow(PreviewBuildFailed);
       // Through the worker too: recorded as the game's failure, not tried again as a worker's.
       await expect(ex.preview(packSnapshot(game), params, { epoch: 'e1' })).rejects.toThrow(PreviewBuildFailed);
+      expect([...mem.objects.keys()]).toEqual([]);
+    } finally {
+      server.close();
+      mem.server.close();
+    }
+  }, 240_000);
+
+  it("runs the diagnostics that run the game's code through it, with their parameters, and answers as here", async () => {
+    const { url, server } = await startWorker();
+    const mem = await memoryS3();
+    const ex = remoteExecutor({
+      s3: mem.s3,
+      workerUrl: url,
+      privateKeyPem: keys.privatePem,
+      instance: 'studio-a',
+      at: () => ({ epoch: 'e1', rev: 5 }),
+      timeoutMs: 120_000,
+    });
+    const game = join(tmp, 'g10');
+    cpSync(join(ROOT, 'games', '_template'), game, { recursive: true });
+    const mod = (await importInChild(join(game, 'index.ts'))) as GameModule;
+    const noMs = (v: unknown) =>
+      JSON.parse(JSON.stringify(v, (k, x) => (k === 'ms' || k === 'profile' ? undefined : x)));
+    try {
+      const lint = (await ex.diagnose('lint', game, { prove: false })) as LintData;
+      expect(noMs(lint)).toEqual(noMs(await lintIn(game, mod)));
+      const solve = (await ex.diagnose('solve', game, {
+        from: null,
+        maxStates: 5_000,
+        mode: 'witness',
+        timeLimitMs: 30_000,
+      })) as SolveData;
+      expect(noMs(solve)).toEqual(noMs(await solveIn(game, mod, { from: null, maxStates: 5_000, mode: 'witness' })));
+      // Parameters out of their bounds are not run as given: the mode is a witness, the states at least one.
+      const odd = (await ex.diagnose('solve', game, { from: null, maxStates: -3, mode: 'x' })) as SolveData;
+      expect(odd.from).toBeNull();
+      expect(odd.mode).toBe('witness');
+      // A checkpoint the game does not have (any name: it is only looked up) is refused as a local route refuses it.
+      for (const from of ['nowhere', '../../etc', 'début du chapitre 2'])
+        await expect(ex.diagnose('solve', game, { from, maxStates: 10 })).rejects.toMatchObject({
+          status: 400,
+          message: expect.stringMatching(/unknown checkpoint/),
+        });
+      // The playtests' sessions travel with that job only.
+      mkdirSync(join(game, 'playtests'), { recursive: true });
+      cpSync(
+        join(ROOT, 'games', 'demo', 'playtests', 'walkthrough-hesitant.session.json'),
+        join(game, 'playtests', 'one.session.json'),
+      );
+      const paths = (o: { playtests?: boolean }) =>
+        (JSON.parse(packSnapshot(game, o).toString()) as { files: { path: string }[] }).files.map((f) => f.path);
+      expect(paths({ playtests: true })).toContain('playtests/one.session.json');
+      expect(paths({})).not.toContain('playtests/one.session.json');
+      const pt = (await ex.diagnose('playtests', game, {})) as PlaytestsData;
+      expect(pt.files).toBe(1);
+      // A diagnostic past its deadline: unknown for now (504), never an error of the game's.
+      writeFileSync(join(game, 'index.ts'), 'while (true) {}\nexport {};\n');
+      const quick = remoteExecutor({
+        s3: mem.s3,
+        workerUrl: url,
+        privateKeyPem: keys.privatePem,
+        instance: 'studio-a',
+        at: () => ({ epoch: 'e1', rev: 6 }),
+        timeoutMs: 2_000,
+      });
+      await expect(quick.diagnose('lint', game, {})).rejects.toMatchObject({ status: 504 });
       expect([...mem.objects.keys()]).toEqual([]);
     } finally {
       server.close();

@@ -207,6 +207,12 @@ describe("the Studio's page", () => {
       expect(await raw(studioUrl, p), p).toBe(404);
   });
 
+  it('says the revision each read was made at', async () => {
+    const r = await asStudio(lea, '/api/game');
+    expect(r.status).toBe(200);
+    expect(r.headers.get('x-studio-revision')).toMatch(/^\d+$/);
+  });
+
   it("serves the game's images to members only", async () => {
     expect((await asStudio(undefined, '/assets/img/decor/hall.webp')).status).toBe(401);
     // Logged in, but not a member: nothing.

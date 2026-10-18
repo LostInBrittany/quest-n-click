@@ -19,7 +19,7 @@ import { pathToFileURL } from 'node:url';
 import ts from '@typescript/typescript6';
 import type { Layout, Point } from '../../../src/engine/core/types';
 import { normalizeExits } from '../../../src/engine/core/define';
-import { solve as solveGame, type RealityPolicy } from '../../../src/engine/tools/solve';
+import type { RealityPolicy } from '../../../src/engine/tools/solve';
 import { report as reportGame, reportMarkdown } from '../../../src/engine/tools/report';
 import { toDot, toSvg, worldGraph } from '../../../src/engine/tools/graph';
 import {
@@ -31,9 +31,6 @@ import {
   toPuzzleSvg,
 } from '../../../src/engine/tools/puzzle';
 import { coverageMarkdown, storyboardCoverage } from '../../../src/engine/tools/coverage';
-import { analyzePlaytests, playtestsMarkdown, type PlaytestFile } from '../../../src/engine/tools/playtests';
-import { parseSessionFile } from '../../../src/engine/tools/replay';
-import { lintContent, lintMarkdown } from '../../../src/engine/tools/lint';
 import { loadAssets, loadLayouts, loadLocales } from '../../../src/engine/tools/load';
 import { GAME_DIR, ROOT, type GameModule } from '../../../tools/game';
 import { gameIR } from '../../../tools/game-ir';
@@ -59,6 +56,7 @@ import {
   type VoiceStatus,
 } from '../../../src/engine/tools/voices';
 import { lineIds } from '../../../src/engine/core/content-ids';
+import { type DiagnoseKind, HOSTED_SOLVE_MS, lintIn, playtestsIn, type SolveParams, solveIn } from './diagnose';
 import type {
   CoverageData,
   LintData,
@@ -108,7 +106,12 @@ export interface StudioOptions {
    * Where the game's code runs (4.2.1, ADR 0028): its validation and the loads of its module the Studio reads. By
    * default in this process (`importFresh`); a hosted Studio gives the processing worker's.
    */
-  executor?: { validate(dir: string): Promise<ValidateResult>; load(dir: string): Promise<unknown> };
+  executor?: {
+    validate(dir: string): Promise<ValidateResult>;
+    load(dir: string): Promise<unknown>;
+    /** The diagnostics that run the game's code (4.2.2): lint, solve, playtests, on the worker. */
+    diagnose?(kind: DiagnoseKind, dir: string, params: Record<string, unknown>): Promise<unknown>;
+  };
 }
 
 /** Default fresh import: tsx's scoped loader (a new namespace per call, so edited files are read again). */
@@ -770,30 +773,17 @@ export function createStudio(opts: StudioOptions = {}) {
   }
   const validate = () => validateIn(dir);
 
-  /** The playtests of games/<id>/playtests/*.session.json replayed and summed up. */
+  /** The playtests of games/<id>/playtests/*.session.json replayed and summed up (on the worker when hosted). */
   async function playtests(): Promise<PlaytestsData> {
-    const t0 = Date.now();
-    const mod = await loadModule();
-    const layouts = loadLayouts(join(dir, 'layout'));
-    const folder = join(dir, 'playtests');
-    const files: PlaytestFile[] = existsSync(folder)
-      ? readdirSync(folder)
-          .filter((f) => f.endsWith('.session.json'))
-          .sort()
-          .map((name) => ({ name, file: parseSessionFile(readFileSync(join(folder, name), 'utf8')) }))
-      : [];
-    const report = await analyzePlaytests(mod.game, layouts, files, { commands: mod.commands });
-    return { report, markdown: playtestsMarkdown(report, mod.game), files: files.length, ms: Date.now() - t0 };
+    if (opts.executor?.diagnose) return (await opts.executor.diagnose('playtests', dir, {})) as PlaytestsData;
+    return playtestsIn(dir, await loadModule());
   }
 
-  /** The content lint after a witness (or, `prove`, exhaustive) solver run. */
+  /** The content lint after a witness (or, `prove`, exhaustive) solver run (on the worker when hosted). */
   async function lint(prove = false): Promise<LintData> {
-    const t0 = Date.now();
-    const mod = await loadModule();
-    const layouts = loadLayouts(join(dir, 'layout'));
-    const s = await solveGame(mod.game, layouts, { commands: mod.commands, mode: prove ? 'prove' : 'witness' });
-    const r = lintContent(mod.game, layouts, { solve: s, commands: mod.commands });
-    return { lint: r, markdown: lintMarkdown(r, s.mode), mode: s.mode, ms: Date.now() - t0 };
+    if (opts.executor?.diagnose)
+      return (await opts.executor.diagnose('lint', dir, { prove, timeLimitMs: HOSTED_SOLVE_MS })) as LintData;
+    return lintIn(dir, await loadModule(), prove);
   }
 
   async function solve(
@@ -802,40 +792,13 @@ export function createStudio(opts: StudioOptions = {}) {
     mode: 'witness' | 'prove' = 'witness',
     reality?: RealityPolicy,
   ): Promise<SolveData> {
-    const t0 = Date.now();
-    const mod = await loadModule();
-    if (from && !mod.game.checkpoints?.[from]) throw new StudioError(`unknown checkpoint: "${from}"`);
-    const layouts = loadLayouts(join(dir, 'layout'));
-    const r = await solveGame(mod.game, layouts, {
-      maxStates,
-      start: from ? { checkpoint: from } : 'new',
-      commands: mod.commands,
-      mode,
-      ...(reality ? { reality } : {}),
-    });
-    return {
-      status: r.status,
-      exit: r.exit,
-      headline: r.headline,
-      mode: r.mode,
-      softlocks: r.softlocks,
-      finished: r.finished,
-      states: r.states,
-      truncated: r.truncated,
-      path: r.path,
-      roomsReached: r.roomsReached,
-      unlockedReached: r.unlockedReached,
-      flagsReached: r.flagsReached,
-      itemsNeverUsed: r.itemsNeverUsed,
-      unusedItems: r.unusedItems,
-      deadEnds: r.deadEnds.map((d) => ({ room: d.room, inventory: d.inventory, path: d.path })),
-      errors: r.errors,
-      broken: r.broken,
-      from: from ?? null,
-      ms: Date.now() - t0,
-      profile: r.profile,
-      ...(r.reality ? { reality: r.reality } : {}),
-    };
+    const o: SolveParams = { from: from ?? null, maxStates, mode, ...(reality ? { reality } : {}) };
+    // Hosted: on the worker, with a time limit below the job's (the Studio's call had none before 4.2.2). A policy of
+    // the world outside is not sent there: refused rather than solved as another question.
+    if (opts.executor?.diagnose && reality) throw new StudioError('a reality policy is solved on a local Studio', 501);
+    if (opts.executor?.diagnose)
+      return (await opts.executor.diagnose('solve', dir, { ...o, timeLimitMs: HOSTED_SOLVE_MS })) as SolveData;
+    return solveIn(dir, await loadModule(), o);
   }
 
   /** The content profiler: what each room, item and character amounts to. */

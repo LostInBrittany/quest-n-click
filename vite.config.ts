@@ -255,7 +255,7 @@ export default defineConfig({
         'studio-server/src/server/auth/routes.ts': { lines: 98, branches: 94 },
         'studio-server/src/server/auth/store.ts': { lines: 93, branches: 97 },
         'studio-server/src/server/config.ts': { lines: 83, branches: 83 },
-        'studio-server/src/server/http.ts': { lines: 90, branches: 80 },
+        'studio-server/src/server/http.ts': { lines: 90, branches: 81 },
         'studio-server/src/server/leases.ts': { lines: 98, branches: 95 },
         'studio-server/src/server/live.ts': { lines: 86, branches: 59 },
         'studio-server/src/server/play.ts': { lines: 100, branches: 94 },
