@@ -174,7 +174,12 @@ export const TESTS: Record<MutationSet, string[]> = {
   ],
   speedrun: ['tests/speedrun-*.test.ts', 'tests/critical-minigame-outcome.test.ts'],
   // studio-server.test.ts's local part opens journals and migrates too: durable.ts's writes are judged there as well.
-  'studio-ops': ['tests/studio-journal.test.ts', 'tests/studio-server.test.ts', 'tests/studio-collab.test.ts'],
+  'studio-ops': [
+    'tests/studio-journal*.test.ts',
+    'tests/studio-durable-mutants.test.ts',
+    'tests/studio-server.test.ts',
+    'tests/studio-collab.test.ts',
+  ],
   'studio-auth': ['tests/studio-auth.test.ts', 'tests/studio-collab.test.ts', 'tests/studio-play.test.ts'],
 };
 
@@ -195,11 +200,14 @@ export const GATED: MutationSet[] = [
   // 4.1.20 PR 2b–2e: its 488 survivors read family by family (badges, email, terminal, the rest): 473 killed by
   // tests/connectors-*-edge-mutants.test.ts, 15 named (docs/dev/mutants.json). Run in 4 shards.
   'connectors-edge',
+  // 4.2.1: its survivors read (164 of 181 killed, 17 named in docs/dev/mutants.json), its tests
+  // tests/studio-journal-mutants and tests/studio-durable-mutants.
+  'studio-ops',
 ];
 /** Measured on demand (`gh workflow run mutation -f set=…`) and every night, gating nothing until their survivors are read. */
 // Empty in 4.1.20 (plan §7.5): every set was gated; a set added later is measured here until its survivors are read.
-// The Studio Server's two sets (4.2.1) gate in PR 9's second part, once their survivors are read.
-export const MEASURED: MutationSet[] = ['studio-ops', 'studio-auth'];
+// The Studio Server's `studio-auth` (4.2.1) gates once its survivors are read.
+export const MEASURED: MutationSet[] = ['studio-auth'];
 
 /**
  * The shards a set's mutation runs in (4.1.20 PR 2a, plan §7.3), one job each, merged into the set's report. A set not
