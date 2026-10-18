@@ -24,6 +24,12 @@ export class TestOp {
   strictRotation = false;
   refreshCalls = 0;
   refreshDelayMs = 0;
+  /** Switches for the tests of the edges: no JWKS announced, no end-session endpoint, no id_token at the callback. */
+  noJwks = false;
+  noEndSession = false;
+  omitIdToken = false;
+  /** The token endpoint's answer to a refresh of the confidential client, when set (status, JSON body). */
+  refreshAnswer: { status: number; body: Record<string, unknown> } | undefined;
   private server!: Server;
   private key!: CryptoKey;
   private jwk!: JWK;
@@ -61,8 +67,8 @@ export class TestOp {
         issuer: this.issuer,
         authorization_endpoint: `${this.issuer}/authorize`,
         token_endpoint: `${this.issuer}/token`,
-        jwks_uri: `${this.issuer}/jwks`,
-        end_session_endpoint: `${this.issuer}/logout`,
+        ...(this.noJwks ? {} : { jwks_uri: `${this.issuer}/jwks` }),
+        ...(this.noEndSession ? {} : { end_session_endpoint: `${this.issuer}/logout` }),
         device_authorization_endpoint: `${this.issuer}/device`,
         response_types_supported: ['code'],
         subject_types_supported: ['public'],
@@ -144,11 +150,13 @@ export class TestOp {
         return this.json(res, 200, {
           token_type: 'Bearer',
           access_token: await this.accessToken({ sub: c.sub }),
-          id_token: await this.idToken(c.sub, c.nonce),
+          ...(this.omitIdToken ? {} : { id_token: await this.idToken(c.sub, c.nonce) }),
           refresh_token: rt,
           expires_in: 300,
         });
       }
+      if (p.get('grant_type') === 'refresh_token' && this.refreshAnswer)
+        return this.json(res, this.refreshAnswer.status, this.refreshAnswer.body);
       if (p.get('grant_type') === 'refresh_token') {
         this.refreshCalls++;
         if (this.refreshDelayMs) await new Promise((ok) => setTimeout(ok, this.refreshDelayMs));
@@ -177,6 +185,13 @@ export class TestOp {
       .setIssuer(this.issuer)
       .setIssuedAt(iat)
       .setExpirationTime(iat + (o.life ?? 300))
+      .sign(this.key);
+  }
+
+  /** A token signed by this provider with exactly these claims and header type (no lifetime added). */
+  signRaw(claims: Record<string, unknown>, typ?: string) {
+    return new SignJWT({ iss: this.issuer, ...claims })
+      .setProtectedHeader({ alg: 'ES256', kid: 'k1', ...(typ ? { typ } : {}) })
       .sign(this.key);
   }
 

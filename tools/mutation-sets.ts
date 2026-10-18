@@ -180,7 +180,17 @@ export const TESTS: Record<MutationSet, string[]> = {
     'tests/studio-server.test.ts',
     'tests/studio-collab.test.ts',
   ],
-  'studio-auth': ['tests/studio-auth.test.ts', 'tests/studio-collab.test.ts', 'tests/studio-play.test.ts'],
+  'studio-auth': [
+    'tests/studio-gate-mutants.test.ts',
+    'tests/studio-store-mutants.test.ts',
+    'tests/studio-routes-mutants.test.ts',
+    'tests/studio-oidc-mutants.test.ts',
+    'tests/studio-leases-mutants.test.ts',
+    'tests/studio-play-mutants.test.ts',
+    'tests/studio-auth.test.ts',
+    'tests/studio-collab.test.ts',
+    'tests/studio-play.test.ts',
+  ],
 };
 
 /** The sets `all` runs and the gate judges: every set, each a job of its own in ci, the nightly, the candidate and the release. */
@@ -203,11 +213,14 @@ export const GATED: MutationSet[] = [
   // 4.2.1: its survivors read (168 of 181 killed, 13 named in docs/dev/mutants.json), its tests
   // tests/studio-journal-mutants and tests/studio-durable-mutants.
   'studio-ops',
+  // 4.2.1: its survivors read (563 of 577 killed, 14 named in docs/dev/mutants.json), its unit tests
+  // tests/studio-{gate,store,routes,oidc,leases,play}-mutants.
+  'studio-auth',
 ];
 /** Measured on demand (`gh workflow run mutation -f set=…`) and every night, gating nothing until their survivors are read. */
 // Empty in 4.1.20 (plan §7.5): every set was gated; a set added later is measured here until its survivors are read.
-// The Studio Server's `studio-auth` (4.2.1) gates once its survivors are read.
-export const MEASURED: MutationSet[] = ['studio-auth'];
+// Empty again since 4.2.1: the Studio Server's two sets are gated.
+export const MEASURED: MutationSet[] = [];
 
 /**
  * The shards a set's mutation runs in (4.1.20 PR 2a, plan §7.3), one job each, merged into the set's report. A set not
