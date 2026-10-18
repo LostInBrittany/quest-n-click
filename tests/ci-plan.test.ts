@@ -26,6 +26,18 @@ describe('the plan of a change', () => {
     ['the music', ['src/engine/dom/director.ts'], gates('e2e', 'reference', 'node24', 'windows')],
     ['the worker update', ['src/engine/dom/update.ts'], gates('e2e', 'pwaFirefox', 'upgrade', 'node24', 'windows')],
     ['the Studio', ['src/studio/main.ts'], gates('e2e', 'node24', 'windows')],
+    [
+      'the Studio Server',
+      ['studio-server/migrations/0005.up.sql'],
+      gates('secondGame', 'freshInstall', 'upgrade', 'reference', 'node24', 'windows', 'studioHosted'),
+    ],
+    ['its hosted tests', ['tests/studio-server.test.ts'], gates('node24', 'windows', 'studioHosted')],
+    ['its CI S3 identity', ['ops/studio/ci/seaweedfs-s3.json'], gates('node24', 'windows', 'studioHosted')],
+    [
+      "the journal's SQL layer",
+      ['bridge/src/migrations.ts'],
+      gates('reality', 'freshInstall', 'node24', 'windows', 'studioHosted'),
+    ],
     ['the sample game', ['games/demo/rooms/x.ts'], gates('e2e', 'node24', 'windows')],
     ['the reference chapter', ['games/reference/index.ts'], gates('reference', 'node24')],
     ['the template', ['games/_template/index.ts'], gates('secondGame', 'freshInstall', 'upgrade', 'node24', 'windows')],

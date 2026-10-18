@@ -98,6 +98,12 @@ export const RULES: readonly Rule[] = [
   { re: /^src\/studio\//, gates: ['e2e', ...UNIT], why: 'the Studio (the canvas row edits a stage)' },
 
   // The Reality Bridge and its sample game.
+  // The Studio Server's journal runs on these (4.2.1): its SQL store and its migrations runner.
+  {
+    re: /^bridge\/src\/(store-sql|store-sqlite|migrations)\.ts$/,
+    gates: ['reality', 'freshInstall', ...UNIT, 'studioHosted'],
+    why: "the Bridge's SQL layer, also the Studio Server journal's",
+  },
   { re: /^bridge\//, gates: ['reality', 'freshInstall', ...UNIT], why: 'the Reality Bridge (also a package)' },
   {
     re: /^(connectors\/|games\/signals\/|scripts\/(e2e-reality|reality-spike)\.mjs$|tools\/(reality-xcheck|solve-reality|reality-fixtures)\.ts$)/,
@@ -111,7 +117,7 @@ export const RULES: readonly Rule[] = [
   // The Bridge's qualification profile (4.1.18): brought up by its own workflow (qualify.yml) and the candidate's
   // `deployment-smoke`; here its static test only.
   {
-    re: /^(ops\/|scripts\/ops-qualify\.mjs$|scripts\/ops-qualify\/)/,
+    re: /^(ops\/(?!studio\/ci\/)|scripts\/ops-qualify\.mjs$|scripts\/ops-qualify\/)/,
     gates: [...UNIT],
     why: 'the qualification profile',
   },

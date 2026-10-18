@@ -173,7 +173,8 @@ export const TESTS: Record<MutationSet, string[]> = {
     'tests/code-wheel.test.ts',
   ],
   speedrun: ['tests/speedrun-*.test.ts', 'tests/critical-minigame-outcome.test.ts'],
-  'studio-ops': ['tests/studio-journal.test.ts', 'tests/studio-collab.test.ts'],
+  // studio-server.test.ts's local part opens journals and migrates too: durable.ts's writes are judged there as well.
+  'studio-ops': ['tests/studio-journal.test.ts', 'tests/studio-server.test.ts', 'tests/studio-collab.test.ts'],
   'studio-auth': ['tests/studio-auth.test.ts', 'tests/studio-collab.test.ts', 'tests/studio-play.test.ts'],
 };
 
