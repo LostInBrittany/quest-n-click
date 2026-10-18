@@ -9,7 +9,9 @@ import { cpSync, existsSync, mkdirSync, readdirSync, readFileSync, renameSync, r
 import { join, resolve } from 'node:path';
 import { openSqliteDb } from '../../../bridge/src/store-sqlite';
 import type { SqlDb } from '../../../bridge/src/store-sql';
-import { createStudio } from '../ops/core';
+import { createStudio, operationContext } from '../ops/core';
+import { StudioError } from '../ops/errors';
+import { spansOf } from '../ops/spans';
 import { type BlobStore, fsBlobStore } from '../ops/blobs';
 import { sha256 } from '../ops/durable';
 import { Journal } from '../ops/journal';
@@ -22,6 +24,8 @@ import { AuthStore, Sealer } from './auth/store';
 import { readJson, send, studioServer } from './http';
 import { openPostgresDb } from './postgres';
 import { newJobKeys } from '../worker/job';
+import { Leases } from './leases';
+import { Presence } from './live';
 import { remoteExecutor } from './remote-executor';
 import { S3, s3BlobStore } from './s3';
 import { ServiceLease } from './service-lease';
@@ -124,7 +128,28 @@ async function main(argv: string[]): Promise<number> {
     return 0;
   }
 
-  const journal = await Journal.open({ db, blobs, gameDir, hosted });
+  // A shared Studio (OIDC): every write claims the spans of its files, in the transaction of its intent (P2).
+  const leases = config.oidc ? new Leases(db) : undefined;
+  const journal = await Journal.open({
+    db,
+    blobs,
+    gameDir,
+    hosted,
+    // A write that names nobody is refused: a route or a job that wrote outside a request would bypass the leases.
+    claim: leases
+      ? async (q, paths) => {
+          const who = operationContext.getStore()?.claimant;
+          if (!who) throw new StudioError('a write on a shared Studio says who writes', 500);
+          await leases.claimPaths(q, who, paths);
+        }
+      : undefined,
+    precheck: leases
+      ? async (paths) => {
+          const who = operationContext.getStore()?.claimant;
+          if (who) await leases.check(who, spansOf(paths));
+        }
+      : undefined,
+  });
 
   if (cmd === 'export') {
     const out = args[0] && resolve(args[0]);
@@ -200,6 +225,7 @@ async function main(argv: string[]): Promise<number> {
     });
     auth = {
       gate,
+      audit: (actor, event, detail) => store.audit(actor, event, detail),
       handle: authRoutes({
         gate,
         store,
@@ -231,7 +257,8 @@ async function main(argv: string[]): Promise<number> {
     });
   }
   const studio = createStudio({ gameDir, root: resolve(config.workDir), journal, author: 'studio-server', executor });
-  const server = studioServer({ studio, journal, db, lease, trustProxy: config.trustProxy, auth });
+  const presence = leases ? new Presence() : undefined;
+  const server = studioServer({ studio, journal, db, lease, trustProxy: config.trustProxy, auth, leases, presence });
   // Hosted: the instance's folder is checked against the head every 30 s and repaired without a restart (plan §4),
   // holding the instance's lock alone: no request reads a folder being repaired.
   if (hosted)

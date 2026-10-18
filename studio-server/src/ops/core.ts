@@ -187,7 +187,13 @@ export function formatJson(value: unknown, width = 120): string {
  * Who asks, and with which operation id (4.2.1, P6): the Studio Server runs each request inside it. The operations a
  * request makes get the ids `<id>:1`, `<id>:2`… in order, the same on a retry, so the journal never applies one twice.
  */
-export const operationContext = new AsyncLocalStorage<{ id?: string; author?: string; seq?: number }>();
+export const operationContext = new AsyncLocalStorage<{
+  id?: string;
+  author?: string;
+  seq?: number;
+  /** Who claims the spans an operation touches (a shared Studio, 4.2.1 P2), and the fences their client holds. */
+  claimant?: { userId: string; name: string; fences?: Record<string, number> };
+}>();
 
 /** The `id` set_value takes for the game file instead of a room (4.1.12): its objectives. */
 export const GAME_FILE_ID = '@game';

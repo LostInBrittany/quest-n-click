@@ -24,6 +24,8 @@ export interface Principal {
   role: Role | undefined;
   via: 'cookie' | 'bearer';
   session?: Session;
+  /** When the credential ends (a Bearer's `exp`): a long connection closes then, and reopens with a fresh one. */
+  expiresAt?: number;
 }
 
 export interface GateOptions {
@@ -85,7 +87,7 @@ export class Gate {
   }
 
   /** The principal of an API request, or a refusal (401, 403, 503 when the provider has been unreachable past R). */
-  async authenticate(req: IncomingMessage, o: { multipart?: boolean } = {}): Promise<Principal> {
+  async authenticate(req: IncomingMessage, o: { multipart?: boolean; checkOnly?: boolean } = {}): Promise<Principal> {
     const auth = req.headers.authorization;
     const origin = req.headers.origin;
     const mutation = MUTATION.has(req.method ?? 'GET');
@@ -100,7 +102,7 @@ export class Gate {
       if (!m) throw this.bearerRefused('invalid_request', 'a Bearer access token is expected');
       if (origin !== undefined && origin !== this.o.publicUrl) throw new StudioError('origin refused', 403);
       if (mutation && !typeOk) throw new StudioError('a write is sent as JSON', 415);
-      let t: { iss: string; sub: string; iat: number };
+      let t: { iss: string; sub: string; iat: number; exp: number };
       try {
         t = await this.o.oidc.verifyAccessToken(m[1]!);
       } catch {
@@ -111,7 +113,7 @@ export class Gate {
       if (t.iat < user.revokedBefore) throw this.bearerRefused('invalid_token', 'the access token was revoked');
       const role = await this.o.store.role(user.id);
       if (!role) throw new StudioError('not a member of this project', 403);
-      return { user, role, via: 'bearer' };
+      return { user, role, via: 'bearer', expiresAt: t.exp };
     }
     // Policy A: the session cookie. A refused request is told nothing of which check failed (plan §3.4).
     if (mutation && (origin !== this.o.publicUrl || req.headers['x-studio-request'] !== '1' || !typeOk))
@@ -126,9 +128,10 @@ export class Gate {
       throw this.unauthorized('the session ended');
     }
     await this.check(s, now);
-    // The idle clock moves once a minute, not one database write per request.
-    if (now - s.lastSeen >= TOUCH_EVERY_MS) await this.o.store.touch(s.idHash, { lastSeen: now });
-    return { user: s.user, role: s.role, via: 'cookie', session: s };
+    // The idle clock moves once a minute, not one database write per request; never for a check of an open stream
+    // (`checkOnly`), or an unattended tab would keep its session alive forever.
+    if (!o.checkOnly && now - s.lastSeen >= TOUCH_EVERY_MS) await this.o.store.touch(s.idHash, { lastSeen: now });
+    return { user: s.user, role: s.role, via: 'cookie', session: s, expiresAt: s.expiresAt };
   }
 
   /** The provider's confirmation of a session, every `checkEveryMs` (plan §3.6). */

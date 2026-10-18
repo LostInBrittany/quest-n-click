@@ -13,6 +13,7 @@ import { randomBytes, randomUUID } from 'node:crypto';
 import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
 import { join, relative, sep } from 'node:path';
 import { migrate } from '../../../bridge/src/migrations';
+import { EventEmitter } from 'node:events';
 import type { SqlDb, SqlQuery } from '../../../bridge/src/store-sql';
 import type { BlobStore } from './blobs';
 import { ABSENT, sha256, sweepTemporaries, writeDurable } from './durable';
@@ -91,9 +92,28 @@ export interface JournalOptions {
    * the journal opens (`materialize`).
    */
   hosted?: boolean;
+  /**
+   * Claims what an operation touches (4.2.1, plan P2: the spans' leases), inside the transaction that logs its intent
+   * (its point of linearisation): throws to refuse it, before any file is touched.
+   */
+  claim?: (q: SqlQuery, paths: string[]) => Promise<void>;
+  /** A cheap look before the guard: throws when the claim would surely be refused (the claim still decides). */
+  precheck?: (paths: string[]) => Promise<void>;
+}
+
+/** What a confirmed operation changed, emitted once it is committed (P7: the live events). */
+export interface Confirmed {
+  id: string;
+  rev: number;
+  author: string;
+  paths: string[];
 }
 
 export class Journal {
+  /** `confirmed` (Confirmed): after the commit, at least once per operation of this process. */
+  readonly events = new EventEmitter();
+  private claim: JournalOptions['claim'];
+  private precheck: JournalOptions['precheck'];
   private chain: Promise<unknown> = Promise.resolve();
   private readonly holder: string;
   /** The fence of the lease this writer holds now (0: none). */
@@ -128,6 +148,9 @@ export class Journal {
       o.leaseMs ?? 30_000,
       o.hosted ?? false,
     );
+    j.claim = o.claim;
+    j.precheck = o.precheck;
+    j.events.setMaxListeners(0);
     await j.serial(() =>
       j.withLease(async () => {
         await o.db.tx('studio', async (q) => {
@@ -239,6 +262,7 @@ export class Journal {
     const head = await this.revision();
     if (!changes.length) return { response: op.respond(head), rev: head, changed: [] };
 
+    await this.precheck?.(changes.map((c) => c.path));
     await op.guard?.(changed);
 
     // The "after" contents first: a recovery rolls forward from them.
@@ -251,6 +275,10 @@ export class Journal {
     // The intent: logged and on the disk (synchronous = FULL) before any file is touched, under a live lease.
     await this.db.tx('studio', async (q) => {
       await this.checkLease(q);
+      await this.claim?.(
+        q,
+        changes.map((c) => c.path),
+      );
       await q.run(
         "INSERT INTO studio_ops (op_id, rev, author, what, state, effects, at) VALUES ($1, $2, $3, $4, 'intent', $5, $6)",
         [id, rev, op.author, op.what, JSON.stringify(changes), Date.now()],
@@ -285,7 +313,9 @@ export class Journal {
       await this.checkLease(q);
       await this.confirm(q, id, rev, changes, response);
     });
-    return { response, rev, changed: changes.map((c) => c.path) };
+    const paths = changes.map((c) => c.path);
+    this.events.emit('confirmed', { id, rev, author: op.author, paths } satisfies Confirmed);
+    return { response, rev, changed: paths };
   }
 
   /**
@@ -337,6 +367,12 @@ export class Journal {
       );
       await this.confirm(q, id, rev, changes, null);
     });
+    this.events.emit('confirmed', {
+      id,
+      rev,
+      author: 'external',
+      paths: changes.map((c) => c.path),
+    } satisfies Confirmed);
   }
 
   /**
