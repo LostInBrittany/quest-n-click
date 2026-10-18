@@ -9,7 +9,7 @@ import type { Lease, Live, Me } from './hosted';
 import { h, modal, toast } from './ui';
 
 /** The spans everyone sees: a room each, then the game's other parts (studio-server/src/ops/spans.ts). */
-export const GLOBAL_SPANS: [string, string][] = [
+const GLOBAL_SPANS: [string, string][] = [
   ['items', 'items'],
   ['cast', 'cast'],
   ['rules', 'rules'],
@@ -34,7 +34,7 @@ async function post(path: string, body: unknown): Promise<Record<string, unknown
 
 export const takeSpan = (span: string) => post('leases', { spans: [span] });
 export const releaseSpan = (span: string) => post('leases/release', { spans: [span] });
-export const takeOver = (span: string) => post('leases/takeover', { span });
+const takeOver = (span: string) => post('leases/takeover', { span });
 
 /** "held by you", "Tom", "free". */
 export function leaseText(l: Lease | undefined, me: Me): string {

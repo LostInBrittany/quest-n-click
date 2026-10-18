@@ -61,11 +61,11 @@ export async function whoAmI(): Promise<
 }
 
 /** The display name of someone: their name, else their email, else "someone". */
-export const nameOf = (u: { name?: string | null; email?: string | null }) => u.name || u.email || 'someone';
+const nameOf = (u: { name?: string | null; email?: string | null }) => u.name || u.email || 'someone';
 
 /** A colour per person (stable across sessions), from the night palette. */
 const COLOURS = ['#ffd84d', '#7fb2ff', '#c79bff', '#6fdc8c', '#ff9f6b', '#5fd4d4', '#ff7fb2'];
-export function colourOf(id: string): string {
+function colourOf(id: string): string {
   let n = 0;
   for (const c of id) n = (n * 31 + c.charCodeAt(0)) >>> 0;
   return COLOURS[n % COLOURS.length]!;
@@ -91,7 +91,7 @@ function gatePage(...kids: (Node | null)[]): HTMLElement {
 }
 
 /** Nobody is logged in: the provider's login, then back here. */
-export async function loginScreen(): Promise<HTMLElement> {
+async function loginScreen(): Promise<HTMLElement> {
   const cli = (await auth('/auth/cli')
     .then((r) => r.json())
     .catch(() => ({}))) as { issuer?: string };
@@ -114,7 +114,7 @@ export async function loginScreen(): Promise<HTMLElement> {
 }
 
 /** Logged in, but not a member: nothing of the game is shown. */
-export function strangerScreen(me: Me): HTMLElement {
+function strangerScreen(me: Me): HTMLElement {
   return gatePage(
     h('h1', null, 'Access not granted'),
     h(
@@ -130,7 +130,7 @@ export function strangerScreen(me: Me): HTMLElement {
 }
 
 /** The provider has not confirmed the session for 15 min: the Studio waits (fail closed). */
-export function suspendedScreen(): HTMLElement {
+function suspendedScreen(): HTMLElement {
   return gatePage(
     h('h1', null, 'Identity provider unreachable'),
     h(
@@ -149,7 +149,7 @@ export function suspendedScreen(): HTMLElement {
 }
 
 /** Logs out of the Studio, then of the provider. */
-export async function logout(): Promise<void> {
+async function logout(): Promise<void> {
   const r = await auth('/auth/logout', {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
@@ -270,7 +270,7 @@ export class Live {
  * The header's part on a hosted Studio: the exact revision (green while the stream is up), who is here and where, who
  * you are with the spans, the members (owner) and the logout.
  */
-export function hostedBar(o: { live: Live; me: Me; spans: () => void; members: () => void }): HTMLElement {
+function hostedBar(o: { live: Live; me: Me; spans: () => void; members: () => void }): HTMLElement {
   const rev = h('span', { class: 'rev', title: 'The exact revision the editors and the reads are at' });
   const here = h('span', { class: 'here', 'aria-label': 'Who is here' });
   const draw = () => {
@@ -317,7 +317,7 @@ export function hostedBar(o: { live: Live; me: Me; spans: () => void; members: (
 }
 
 /** Every 30 s while the page is open: where you are (a tab, a room), which also renews your leases. */
-export function heartbeat(where: () => string, live: Live): void {
+function heartbeat(where: () => string, live: Live): void {
   const beat = () =>
     void studioFetch('presence', {
       method: 'POST',
