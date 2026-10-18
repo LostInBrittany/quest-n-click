@@ -33,6 +33,7 @@ describe('the plan of a change', () => {
     ],
     ['its hosted tests', ['tests/studio-server.test.ts'], gates('node24', 'windows', 'studioHosted')],
     ['its CI S3 identity', ['ops/studio/ci/seaweedfs-s3.json'], gates('node24', 'windows', 'studioHosted')],
+    ['its Keycloak realm', ['ops/studio/keycloak/realm.json'], gates('node24', 'windows', 'studioHosted')],
     [
       "the journal's SQL layer",
       ['bridge/src/migrations.ts'],
