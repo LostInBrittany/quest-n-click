@@ -19,6 +19,7 @@ import type { Gate } from './auth/gate';
 import type { Role } from './auth/store';
 import type { Leases } from './leases';
 import { LiveHub, type Presence, serveEvents } from './live';
+import { forPlay, type Play, playTicketBody } from './play';
 import type { ServiceLease } from './service-lease';
 
 const MAX_JSON = 1024 * 1024;
@@ -100,6 +101,8 @@ export interface StudioServerOptions {
   /** A shared Studio (PR 6, plan P2 and §5): the spans' leases, who is here, the live events. */
   leases?: Leases;
   presence?: Presence;
+  /** The game's origin (plan §6.1): every request whose `Host` is `playUrl`'s goes there, and nothing else does. */
+  play?: { handler: Play; playUrl: string };
 }
 
 /** The spans a client may name: the leases' own names (`*` only through /exclusive). */
@@ -154,7 +157,7 @@ class Buckets {
 /** The role an API route needs (plan §3.3): reading is a reviewer's, writing a dev's. The owner's routes are elsewhere. */
 export function roleFor(method: string, sub: string): Role {
   // The heartbeat says who is here: a reviewer is here too.
-  if (method === 'POST' && sub === '/presence') return 'reviewer';
+  if (method === 'POST' && (sub === '/presence' || sub === '/play-ticket')) return 'reviewer';
   return method === 'GET' || (method === 'POST' && READ_POSTS.test(sub)) ? 'reviewer' : 'dev';
 }
 
@@ -259,6 +262,8 @@ export function studioServer(o: StudioServerOptions): StudioHttpServer {
       if (path === '/readyz')
         return send(res, o.lease.held ? 200 : 503, { ok: o.lease.held, writes: o.lease.held ? 'served' : 'waiting' });
       const ip = clientOf(req);
+      // The game's origin answers its own paths only: no Studio API, no /auth, ever.
+      if (o.play && forPlay(req, o.play.playUrl)) return void (await o.play.handler.handle(req, res, url));
       if (o.auth && path.startsWith('/auth/') && !authCalls.take(ip))
         return send(res, 429, { error: 'too many requests' }, { 'retry-after': '60' });
       if (o.auth && (path.startsWith('/auth/') || /^\/api\/(members|invitations|audit)(\/|$)/.test(path))) {
@@ -273,6 +278,12 @@ export function studioServer(o: StudioServerOptions): StudioHttpServer {
       // The journal's cursor (P6): what a client that reconnects missed.
       if (req.method === 'GET' && sub === '/revision')
         return send(res, 200, { epoch: await o.journal.epoch(), revision: await o.journal.revision() });
+      // A ticket for the game's origin (policy F): a member's browser session only (a Bearer has no session to tie to).
+      if (req.method === 'POST' && sub === '/play-ticket') {
+        if (!o.play || !principal?.session) throw new StudioError('the game is opened from a browser session', 403);
+        const path = playTicketBody(await readJson(req));
+        return send(res, 200, { url: await o.play.handler.ticket(principal.user.id, principal.session.idHash, path) });
+      }
       // The live Studio (PR 6): the stream, who is here, the leases.
       if (req.method === 'GET' && sub === '/events')
         return void (await serveEvents(req, res, { principal, gate: o.auth?.gate, hub }));

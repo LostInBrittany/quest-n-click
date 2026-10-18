@@ -249,9 +249,14 @@ export class AuthStore {
   }
 
   async session(token: string): Promise<Session | undefined> {
+    return this.sessionByHash(hashToken(token));
+  }
+
+  /** A session by the hash of its id (what a game session keeps of the Studio session it depends on). */
+  async sessionByHash(idHash: string): Promise<Session | undefined> {
     const [r] = await this.db.all(
       'SELECT s.*, u.id AS uid, u.iss, u.sub, u.email, u.email_verified, u.name, u.revoked_before, m.role FROM studio_sessions s JOIN studio_users u ON u.id = s.user_id LEFT JOIN studio_members m ON m.user_id = u.id WHERE s.id_hash = $1',
-      [hashToken(token)],
+      [idHash],
     );
     if (!r) return undefined;
     return {
