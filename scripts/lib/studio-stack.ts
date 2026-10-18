@@ -76,6 +76,8 @@ export async function startStack(o: { tls: boolean; game?: string }) {
   });
   const lease = new ServiceLease(db);
   await lease.tick();
+  // Renewed as the server renews it (main.ts): its TTL is 30 s, and a run takes longer.
+  lease.start();
   const oidc = await Oidc.discover({
     issuer: op.issuer,
     clientId: op.clientId,
