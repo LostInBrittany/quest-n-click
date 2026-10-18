@@ -12,6 +12,7 @@ import type { Confirmed, Journal } from '../ops/journal';
 import { spansOf } from '../ops/spans';
 import type { Gate, Principal } from './auth/gate';
 import type { Leases } from './leases';
+import type { PreviewState, Previews } from './previews';
 
 export interface Here {
   userId: string;
@@ -72,7 +73,7 @@ const spansOrNone = (paths: string[]) => {
 };
 
 export interface LiveEvent {
-  name: 'revision' | 'leases' | 'presence';
+  name: 'revision' | 'leases' | 'presence' | 'preview';
   data: unknown;
 }
 
@@ -93,6 +94,8 @@ export class LiveHub {
       journal: Journal;
       leases?: Leases;
       presence?: Presence;
+      /** The revisions' previews (4.2.2): where the game's frames are, and whether a newer one is coming. */
+      previews?: Previews;
       log?: (line: Record<string, unknown>) => void;
     },
   ) {
@@ -104,6 +107,7 @@ export class LiveHub {
     });
     o.leases?.events.on('changed', () => this.refreshLeases());
     o.presence?.events.on('changed', () => this.emit({ name: 'presence', data: { here: o.presence!.list() } }));
+    o.previews?.events.on('changed', (s: PreviewState) => this.emit({ name: 'preview', data: s }));
   }
 
   private emit(e: LiveEvent) {
@@ -143,6 +147,7 @@ export class LiveHub {
       leases: this.o.leases ? await this.o.leases.list() : [],
       seq,
       here: this.o.presence ? this.o.presence.list() : [],
+      preview: this.o.previews ? this.o.previews.state() : null,
     };
   }
 }

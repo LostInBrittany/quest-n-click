@@ -124,7 +124,7 @@ export function sealBuild(): Plugin {
 
 /**
  * Version of images and sounds: a fingerprint of public/assets' content (stable across deploys, changes if a file
- * changes). `dir`: another assets folder (the Studio Server's live preview, 4.2.1).
+ * changes). `dir`: another assets folder (the Studio Server's previews, 4.2.2).
  */
 export function assetsVersion(dir = resolve(WORK, 'public', 'assets')): string {
   const h = createHash('sha1');
@@ -148,7 +148,7 @@ export function assetsVersion(dir = resolve(WORK, 'public', 'assets')): string {
 
 /**
  * games/<id>/site.json: game title, description and color, injected into index.html and the PWA manifest. `o`: another
- * game folder and name (the Studio Server's live preview, 4.2.1).
+ * game folder and name (the Studio Server's previews, built by its worker, 4.2.2).
  */
 export function sitePlugin(o: { gameDir?: string; game?: string } = {}): Plugin {
   const gameDir = o.gameDir ?? GAME_DIR;

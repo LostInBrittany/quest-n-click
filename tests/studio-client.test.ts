@@ -1,12 +1,13 @@
-// The hosted Studio's page and the game's live preview (4.2.1 PR 7, plan §3.4, §6.1, §6.2): on the Studio's origin,
-// the built page (with the meta tag that says where its API and the game are, and a Content-Security-Policy that
-// frames the game's origin only), its files, and the game's images for members only; on the game's origin, the
-// game's page and code through Vite, behind a game session, with nothing else of the engine's folder, nor the game's
-// private notes, nor any Studio API. Two origins on one server: the Studio at 127.0.0.1, the game at localhost.
-import { cpSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
-import { createServer as createHttpServer, request } from 'node:http';
+// The hosted Studio's page and the game's previews (4.2.1 PR 7, plan §3.4, §6.1; 4.2.2 PR 2, plan §2.2): on the
+// Studio's origin, the built page (with the meta tag that says where its API and the game are, and a
+// Content-Security-Policy that frames the game's origin only), its files, and the game's images for members only; on
+// the game's origin, the revision's built preview (a real build of the template game, in a child, as the worker makes
+// it) and the prepared assets, behind a game session, and nothing else: no engine source, no private note, no Studio
+// API. Two origins on one server: the Studio at 127.0.0.1, the game at localhost.
+import { cpSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { request } from 'node:http';
 import { createServer } from 'node:net';
-import { join, resolve } from 'node:path';
+import { join } from 'node:path';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { openSqliteDb } from '../bridge/src/store-sqlite';
 import { fsBlobStore } from '../studio-server/src/ops/blobs';
@@ -19,14 +20,16 @@ import { AuthStore, Sealer } from '../studio-server/src/server/auth/store';
 import { StudioClient } from '../studio-server/src/server/client';
 import { readJson, send, studioServer } from '../studio-server/src/server/http';
 import { Play, PLAY_COOKIE } from '../studio-server/src/server/play';
-import { type LivePreview, livePreview, servedPath } from '../studio-server/src/server/preview';
+import { Previews } from '../studio-server/src/server/previews';
 import { ServiceLease } from '../studio-server/src/server/service-lease';
+import { localPreview } from '../studio-server/src/worker/local';
+import { packSnapshot } from '../studio-server/src/worker/snapshot';
 import { TestOp } from './fixtures/oidc-op';
 
 const ROOT = join(import.meta.dirname, '..');
 let tmp: string, studioUrl: string, playUrl: string, op: TestOp, stop: () => Promise<void>, gameDir: string;
 let lea = '';
-let preview: LivePreview;
+let previews: Previews;
 let sam = '';
 
 const freePort = () =>
@@ -122,13 +125,19 @@ beforeAll(async () => {
   const sealer = new Sealer(['a-session-key-of-at-least-32-characters']);
   const store = new AuthStore(db);
   const gate = new Gate({ store, oidc, sealer, publicUrl: studioUrl });
-  preview = await livePreview({
-    gameDir,
-    game: 'template',
+  previews = new Previews({
+    db,
+    blobs: fsBlobStore(join(tmp, 'blobs')),
     publicDir,
+    game: 'template',
     studioOrigin: studioUrl,
-    playUrl,
-    engineRoot: ROOT,
+    snapshot: async () => ({
+      epoch: await journal.epoch(),
+      rev: await journal.revision(),
+      bytes: packSnapshot(gameDir),
+    }),
+    build: (bytes, params) => localPreview(bytes, params),
+    assetsVersion: () => 'abc123',
   });
   const server = studioServer({
     studio: createStudio({ gameDir, root: tmp, journal, importFresh: importInChild }),
@@ -146,7 +155,7 @@ beforeAll(async () => {
         publicUrl: studioUrl,
         playUrl,
         idleMs: gate.idleMs,
-        content: (req, res) => preview.handle(req, res),
+        content: (req, res, url) => previews.handle(req, res, url),
       }),
     },
     client: new StudioClient({ clientDir, publicDir, publicUrl: studioUrl, playUrl }),
@@ -157,7 +166,6 @@ beforeAll(async () => {
   stop = async () => {
     server.close();
     op.stop();
-    await preview.close();
     await journal.close();
     await db.close();
   };
@@ -191,6 +199,7 @@ describe("the Studio's page", () => {
     expect(js.status).toBe(200);
     expect(js.headers.get('content-type')).toMatch(/^text\/javascript/);
     expect(js.headers.get('cache-control')).toContain('immutable');
+    expect(js.headers.get('cache-control')).toContain('immutable');
     expect((await asStudio(undefined, '/icons/icon-192.png')).status).toBe(200);
     for (const p of ['/assets/notes.txt', '/studio.html', '/index.html', '/src/main.ts'])
       expect((await asStudio(undefined, p)).status, p).toBe(404);
@@ -210,130 +219,88 @@ describe("the Studio's page", () => {
   });
 });
 
-describe("the game's live preview", () => {
-  it("serves the game's page and code to a game session, naming the Studio's origin", async () => {
+describe("the game's previews", () => {
+  let rev = 0;
+  it('says the preview is being prepared until the first is built', async () => {
+    const s = await gameSession(lea);
+    const r = await asGame(s, '/?edit=hall');
+    expect(r.status).toBe(503);
+    expect(r.headers.get('refresh')).toBe('2');
+    expect(await r.text()).toContain('being prepared');
+    await previews.schedule();
+    const st = previews.state();
+    expect(st.failed).toBeNull();
+    expect(st.building).toBeNull();
+    expect(st.ready).toBe(st.head);
+    rev = st.ready!;
+  }, 120_000);
+
+  it("sends a game session to the last ready revision, whose page names the Studio's origin", async () => {
     const s = await gameSession(lea, '/?edit=hall');
     expect((await asGame(undefined, '/')).status).toBe(401);
-    const page = await asGame(s, '/');
+    const go = await fetch(`${playUrl}/?edit=hall`, { redirect: 'manual', headers: { cookie: `${PLAY_COOKIE}=${s}` } });
+    expect(go.status).toBe(302);
+    expect(go.headers.get('location')).toBe(`/preview/${rev}/?edit=hall`);
+    const page = await asGame(s, `/preview/${rev}/?edit=hall`);
     expect(page.status).toBe(200);
+    expect(page.headers.get('content-security-policy')).toBe(`frame-ancestors ${studioUrl}`);
+    // The page is asked again at each load (an ended session is refused then); its code, named by hash, is kept.
+    expect(page.headers.get('cache-control')).toBe('private, no-cache');
     const html = await page.text();
     expect(html).toContain(`<meta name="web-scumm-studio-origin" content="${studioUrl}"`);
-    expect(page.headers.get('content-security-policy')).toBe(`frame-ancestors ${studioUrl}`);
-    expect((await asGame(s, '/src/main.ts')).status).toBe(200);
-    // Vite's client is a stub that connects nowhere, and still sets the build's constants.
-    const client = await (await asGame(s, '/@vite/client')).text();
-    expect(client).toContain("import '/@vite/env'");
-    expect(client).not.toContain('WebSocket');
-    // The game's own code, by its absolute path.
-    const game = await asGame(s, `/@fs${resolve(gameDir, 'index.ts')}`);
-    expect(game.status).toBe(200);
-    expect(game.headers.get('content-type')).toMatch(/javascript/);
-  }, 60_000);
+    const script = /<script type="module" crossorigin src="([^"]+)"/.exec(html)?.[1];
+    expect(script).toMatch(new RegExp(`^/preview/${rev}/assets/index-[\\w-]+\\.js$`));
+    const js = await asGame(s, script!);
+    expect(js.status).toBe(200);
+    expect(js.headers.get('content-type')).toMatch(/^text\/javascript/);
+    // The build's fingerprint parts (ADR 0013), as a sealed build has them.
+    const site = (await (await asGame(s, `/preview/${rev}/site.json`)).json()) as { engine?: string };
+    expect(site.engine).toMatch(/^\d+\.\d+\.\d+/);
+  });
 
-  it('serves nothing else: no Studio API, no engine file outside its sources, no private note, no write', async () => {
+  it('serves the prepared assets beside every revision, a byte range when asked', async () => {
+    const s = await gameSession(lea);
+    const img = await asGame(s, `/preview/${rev}/assets/img/decor/hall.webp`);
+    expect(img.status).toBe(200);
+    expect(img.headers.get('content-type')).toBe('image/webp');
+    expect(img.headers.get('cache-control')).toBe('private, no-cache');
+    const part = await fetch(`${playUrl}/preview/${rev}/assets/img/decor/hall.webp`, {
+      headers: { cookie: `${PLAY_COOKIE}=${s}`, range: 'bytes=0-3' },
+    });
+    expect(part.status).toBe(206);
+    expect(part.headers.get('content-range')).toBe('bytes 0-3/12');
+    expect(await part.text()).toBe('RIFF');
+    const after = await fetch(`${playUrl}/icons/icon-192.png`, {
+      headers: { cookie: `${PLAY_COOKIE}=${s}`, range: 'bytes=50-' },
+    });
+    expect(after.status).toBe(416);
+    expect((await asGame(s, '/icons/icon-192.png')).status).toBe(200);
+  });
+
+  it('serves nothing else: no Studio API, no engine source, no private note, no unknown revision, no write', async () => {
     const s = await gameSession(lea);
     for (const p of [
       '/api/game',
       '/__studio/api/game',
       '/auth/me',
-      '/package.json',
-      '/tools/game.ts',
-      '/studio-server/src/server/main.ts',
+      `/preview/${rev}/package.json`,
+      `/preview/${rev}/src/main.ts`,
+      `/preview/${rev}/constructor`,
+      `/preview/${rev}/assets/img/decor/none.webp`,
+      `/preview/${rev + 1000}/`,
+      '/preview/x/',
       '/@fs/etc/passwd',
-      `/@fs${resolve(gameDir, 'private', 'secret.ts')}`,
-      `/@fs${resolve(ROOT, 'package.json')}`,
-      // Vite's ids: its virtual modules only, never a file of the game's hidden folders under another name.
-      '/@id/@game/private/secret.ts',
-      `/@id/${resolve(gameDir, 'private', 'secret.ts')}?raw&import`,
-      '/@id/@game/index.ts',
+      '/icons/.hidden',
+      `/preview/${rev}/assets/img/.DS_Store`,
+      `/preview/${rev}/private/secret.ts`,
     ])
       expect((await asGame(s, p)).status, p).toBe(404);
-    for (const p of ['/src/../package.json', '/%2e%2e/package.json', '/src/%2e%2e/%2e%2e/package.json'])
+    for (const p of [
+      `/preview/${rev}/../package.json`,
+      `/preview/${rev}/%2e%2e/%2e%2e/j.sqlite`,
+      '/icons/..%2f..%2fj.sqlite',
+    ])
       expect(await raw(playUrl, p, { cookie: `${PLAY_COOKIE}=${s}` }), p).toBe(404);
     expect((await asGame(s, '/', 'POST')).status).toBe(405);
-  }, 60_000);
-});
-
-describe('the live preview as the game changes, and on a real domain', () => {
-  it('serves the new content of a game file once told the folder changed', async () => {
-    const s = await gameSession(lea);
-    const file = `/@fs${resolve(gameDir, 'game.ts')}`;
-    const before = await (await asGame(s, file)).text();
-    writeFileSync(
-      join(gameDir, 'game.ts'),
-      `${readFileSync(join(gameDir, 'game.ts'), 'utf8')}\n// changed-by-the-test\n`,
-    );
-    preview.invalidate();
-    const after = await (await asGame(s, file)).text();
-    expect(before).not.toContain('changed-by-the-test');
-    expect(after).toContain('changed-by-the-test');
-  }, 60_000);
-
-  it("answers the game's own host, which is not localhost, and refuses another", async () => {
-    const p = await livePreview({
-      gameDir,
-      game: 'template',
-      publicDir: join(tmp, 'public'),
-      studioOrigin: studioUrl,
-      playUrl: 'https://play.example.test',
-      engineRoot: ROOT,
-    });
-    const server = createHttpServer((req, res) => void p.handle(req, res));
-    await new Promise<void>((ok) => server.listen(0, '127.0.0.1', ok));
-    const url = `http://127.0.0.1:${(server.address() as { port: number }).port}`;
-    try {
-      expect(await raw(url, '/src/main.ts', { host: 'play.example.test' })).toBe(200);
-      expect(await raw(url, '/src/main.ts', { host: 'elsewhere.example.test' })).toBe(403);
-    } finally {
-      server.close();
-      await p.close();
-    }
-  }, 60_000);
-});
-
-describe('the paths the preview lets through', () => {
-  const o = {
-    root: '/srv/engine',
-    allowed: ['/srv/engine/src', '/srv/work/game', '/srv/engine/node_modules'],
-    gameDir: '/srv/work/game',
-    hidden: ['/srv/work/game/private'],
-  };
-  it('lets the page, the engine, the dependencies and the game through', () => {
-    for (const p of [
-      '/',
-      '/index.html',
-      '/src/main.ts',
-      '/@vite/client',
-      '/@vite/env',
-      '/@id/__x00__studio-no-sw',
-      '/node_modules/.vite/studio-preview/deps/howler.js',
-      '/node_modules/vite/dist/client/env.mjs',
-      '/assets/img/decor/hall.webp',
-      '/@fs/srv/work/game/index.ts',
-    ])
-      expect(servedPath(p, o), p).toBe(true);
-  });
-  it('keeps out what a game page never loads', () => {
-    for (const p of [
-      '/package.json',
-      '/node_modules/vite/package.json',
-      '/node_modules/vite/dist/client/client.mjs',
-      '/@fs/srv/work/game/private/notes.ts',
-      '/@fs/srv/work/other/x.ts',
-      '/@fs/etc/passwd',
-      '/src/../package.json',
-      '/%E0%A4%A',
-      '/src/a\0b',
-      '/src\\..\\x',
-      '/@id/@game/index.ts',
-      '/@id/srv/work/game/private/x.ts',
-    ])
-      expect(servedPath(p, o), p).toBe(false);
-  });
-  it("lets a game folder under the engine's through by its path from the root, its private notes excepted", () => {
-    const inRoot = { ...o, gameDir: '/srv/engine/.cache/work/game', hidden: ['/srv/engine/.cache/work/game/private'] };
-    expect(servedPath('/.cache/work/game/index.ts', inRoot)).toBe(true);
-    expect(servedPath('/.cache/work/game/private/x.ts', inRoot)).toBe(false);
-    expect(servedPath('/.cache/work/other.ts', inRoot)).toBe(false);
   });
 });

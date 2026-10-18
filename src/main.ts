@@ -10,6 +10,8 @@ import { registerSW } from 'virtual:pwa-register';
 
 const { game, layouts, manifest, minigames, commands, locales } = mod as unknown as GameModule;
 const demo = import.meta.env.VITE_STUDIO_DEMO === '1';
+// A revision's preview on a hosted Studio's game origin (4.2.2, studio-server/src/worker/preview-build.ts).
+const preview = import.meta.env.VITE_STUDIO_PREVIEW === '1';
 
 void bootGame({
   game,
@@ -21,9 +23,10 @@ void bootGame({
   version: __ASSETS_VERSION__,
   build: { trustedExtensions: __TRUSTED_EXTENSIONS__, engine: __ENGINE_VERSION__ },
   dev: {
-    // The dev tools (?dev, ?edit=<room>): on the dev server, and in a Studio demo build (docs/en/STUDIO.md, "Demo
-    // mode"). Without these query params, the player's game is the same in every build.
-    enabled: (q) => (import.meta.env.DEV || demo) && (q.has('dev') || q.has('edit')),
+    // The dev tools (?dev, ?edit=<room>): on the dev server, in a Studio demo build (docs/en/STUDIO.md, "Demo
+    // mode") and in a hosted Studio's previews. Without these query params, the player's game is the same in every
+    // build.
+    enabled: (q) => (import.meta.env.DEV || demo || preview) && (q.has('dev') || q.has('edit')),
     // The Studio demo's edits (kept in this browser) on top of the compiled game, and a memory store so the edited
     // game never touches the player's saved game (same origin as the game on a static host).
     patch: demo

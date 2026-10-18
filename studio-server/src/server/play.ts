@@ -39,8 +39,8 @@ export interface PlayOptions {
   idleMs: number;
   /** R: how long a Studio session stands without the provider confirming it (the gate's, 15 min). */
   graceMs?: number;
-  /** What the game's origin serves to a live game session (4.2.1: the live preview). */
-  content: (req: IncomingMessage, res: ServerResponse) => void | Promise<void>;
+  /** What the game's origin serves to a live game session (4.2.2: the revisions' previews, previews.ts). */
+  content: (req: IncomingMessage, res: ServerResponse, url: URL) => void | Promise<void>;
   now?: () => number;
 }
 
@@ -129,7 +129,7 @@ export class Play {
       ]);
       res.setHeader('set-cookie', this.cookie(c!, expires - now));
     }
-    await this.o.content(req, res);
+    await this.o.content(req, res, url);
   }
 
   private cookie(value: string, ms: number): string {

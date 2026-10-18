@@ -1,5 +1,5 @@
 // A whole hosted Studio for the browser e2e (4.2.1 PR 7): a test OpenID provider, the Studio Server with its journal,
-// leases and presence, the built Studio's page on one origin and the game's live preview on another (two names of the
+// leases and presence, the built Studio's page on one origin and the game's previews on another (two names of the
 // loopback: 127.0.0.1 and localhost, two sites). `tls`: both over https with a certificate made for the run (WebKit
 // keeps no `Secure` cookie over http, even on the loopback). People are named: `invite` makes an invitation for one
 // and has the provider log them in next; `as` makes the provider log in someone else next.
@@ -23,8 +23,10 @@ import { readJson, send, studioServer } from '../../studio-server/src/server/htt
 import { Leases } from '../../studio-server/src/server/leases';
 import { Presence } from '../../studio-server/src/server/live';
 import { Play } from '../../studio-server/src/server/play';
-import { livePreview } from '../../studio-server/src/server/preview';
+import { Previews } from '../../studio-server/src/server/previews';
 import { ServiceLease } from '../../studio-server/src/server/service-lease';
+import { localPreview } from '../../studio-server/src/worker/local';
+import { packSnapshot } from '../../studio-server/src/worker/snapshot';
 import { TestOp, type TestUser } from '../../tests/fixtures/oidc-op';
 
 const ROOT = join(import.meta.dirname, '..', '..');
@@ -88,16 +90,23 @@ export async function startStack(o: { tls: boolean; game?: string }) {
   const sealer = new Sealer(['a-session-key-of-at-least-32-characters']);
   const store = new AuthStore(db);
   const gate = new Gate({ store, oidc, sealer, publicUrl: studioUrl });
-  const preview = await livePreview({
-    gameDir,
-    game,
+  // As the server does (main.ts), with the worker's child on this machine: the head's preview after each revision.
+  const previews = new Previews({
+    db,
+    blobs: fsBlobStore(join(tmp, 'blobs')),
     publicDir: join(ROOT, 'public'),
+    game: game,
     studioOrigin: studioUrl,
-    playUrl,
-    engineRoot: ROOT,
+    snapshot: () =>
+      server.exclusive(async () => ({
+        epoch: await journal.epoch(),
+        rev: await journal.revision(),
+        bytes: packSnapshot(gameDir),
+      })),
+    build: (bytes, params) => localPreview(bytes, params),
+    assetsVersion: () => 'e2e',
   });
-  // As the server does (main.ts): the preview reads the folder again after each revision.
-  journal.events.on('confirmed', () => preview.invalidate());
+  journal.events.on('confirmed', () => void previews.schedule());
   const server = studioServer({
     studio: createStudio({ gameDir, root: tmp, journal, importFresh: importInChild }),
     journal,
@@ -108,6 +117,7 @@ export async function startStack(o: { tls: boolean; game?: string }) {
     auth: { gate, handle: authRoutes({ gate, store, oidc, sealer, publicUrl: studioUrl, send, readJson }) },
     leases,
     presence: new Presence(),
+    previews,
     play: {
       playUrl,
       handler: new Play({
@@ -116,7 +126,7 @@ export async function startStack(o: { tls: boolean; game?: string }) {
         publicUrl: studioUrl,
         playUrl,
         idleMs: gate.idleMs,
-        content: (req, res) => preview.handle(req, res),
+        content: (req, res, url) => previews.handle(req, res, url),
       }),
     },
     client: new StudioClient({ clientDir: CLIENT, publicDir: join(ROOT, 'public'), publicUrl: studioUrl, playUrl }),
@@ -137,6 +147,8 @@ export async function startStack(o: { tls: boolean; game?: string }) {
     await new Promise<void>((ok) => https.listen(port, '127.0.0.1', ok));
     front = https;
   } else await new Promise<void>((ok) => server.listen(port, '127.0.0.1', ok));
+  // The first preview, before any browser asks for the game.
+  await previews.schedule();
 
   return {
     tls,
@@ -160,7 +172,6 @@ export async function startStack(o: { tls: boolean; game?: string }) {
     async stop() {
       front.close();
       op.stop();
-      await preview.close();
       await lease.release();
       await journal.close();
       rmSync(tmp, { recursive: true, force: true });

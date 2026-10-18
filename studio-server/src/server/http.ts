@@ -21,6 +21,7 @@ import type { Role } from './auth/store';
 import type { Leases } from './leases';
 import { LiveHub, type Presence, serveEvents } from './live';
 import { forPlay, type Play, playTicketBody } from './play';
+import type { Previews } from './previews';
 import type { ServiceLease } from './service-lease';
 
 const MAX_JSON = 1024 * 1024;
@@ -102,6 +103,8 @@ export interface StudioServerOptions {
   /** A shared Studio (PR 6, plan P2 and §5): the spans' leases, who is here, the live events. */
   leases?: Leases;
   presence?: Presence;
+  /** The revisions' previews (4.2.2 PR 2): their state goes to the live events. */
+  previews?: Previews;
   /** The game's origin (plan §6.1): every request whose `Host` is `playUrl`'s goes there, and nothing else does. */
   play?: { handler: Play; playUrl: string };
   /** The Studio's page, its files and the game's images and sounds (PR 7, client.ts). */
@@ -231,7 +234,7 @@ export function studioServer(o: StudioServerOptions): StudioHttpServer {
   let started = false;
   const authCalls = new Buckets(o.perMinute ?? 30);
   const failures = new Buckets(o.perMinute ?? 30);
-  const hub = new LiveHub({ journal: o.journal, leases: o.leases, presence: o.presence, log });
+  const hub = new LiveHub({ journal: o.journal, leases: o.leases, presence: o.presence, previews: o.previews, log });
   // A member removed, demoted or logged out everywhere: their leases and their presence go at once, so nobody waits
   // on a lease they can no longer release.
   o.auth?.gate.revocations.on('revoked', (ids: string[]) => {

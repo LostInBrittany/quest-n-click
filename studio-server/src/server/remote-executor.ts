@@ -11,6 +11,7 @@ import { createHash, randomUUID } from 'node:crypto';
 import type { ValidateResult } from '../../../tools/studio/types';
 import { type Job, type JobKind, MAX_JOB_MS, privateKeyOf, signJob } from '../worker/job';
 import type { JobResult } from '../worker/main';
+import { PreviewBuildFailed, type PreviewParams, previewFiles } from '../worker/preview-build';
 import { packSnapshot } from '../worker/snapshot';
 import type { S3 } from './s3';
 
@@ -32,10 +33,15 @@ export function remoteExecutor(o: RemoteExecutorOptions) {
   const timeoutMs = Math.min(o.timeoutMs ?? 60_000, 120_000);
   const last = new Map<JobKind, { sha: string; at: number; result: JobResult }>();
 
-  async function run(kind: JobKind, dir: string): Promise<JobResult> {
-    const snapshot = packSnapshot(dir);
+  async function run(
+    kind: JobKind,
+    snapshot: Buffer,
+    params: Record<string, unknown> = {},
+    // The revision the snapshot was packed at, when the caller knows it (a preview): bound into the job as it is.
+    at?: { epoch: string; rev: number },
+  ): Promise<JobResult> {
     const sha = createHash('sha256').update(snapshot).digest('hex');
-    const hit = last.get(kind);
+    const hit = kind === 'preview' ? undefined : last.get(kind);
     if (hit?.sha === sha && Date.now() - hit.at < CACHE_MS) return hit.result;
     const id = randomUUID();
     const dest = `staging/${id}/`;
@@ -45,9 +51,9 @@ export function remoteExecutor(o: RemoteExecutorOptions) {
       const job: Job = {
         id,
         instance: o.instance,
-        ...(await o.at()),
+        ...(at ?? (await o.at())),
         kind,
-        params: { timeoutMs },
+        params: { ...params, timeoutMs },
         snapshot: sha,
         dest,
         exp: Date.now() + MAX_JOB_MS,
@@ -71,7 +77,9 @@ export function remoteExecutor(o: RemoteExecutorOptions) {
       if (v.job !== id || v.kind !== kind) throw new Error('the processing worker result does not answer this job');
       if (!v.failed && kind === 'validate' && (!Array.isArray(v.errors) || !Array.isArray(v.warnings)))
         throw new Error('the processing worker result does not answer this job');
-      if (!v.failed) last.set(kind, { sha, at: Date.now(), result: v });
+      if (!v.failed && kind === 'preview' && !previewFiles(v.files))
+        throw new Error('the processing worker result does not answer this job');
+      if (!v.failed && kind !== 'preview') last.set(kind, { sha, at: Date.now(), result: v });
       return v;
     } finally {
       await Promise.all([o.s3.delete(`${dest}snapshot.json`), o.s3.delete(`${dest}result.json`)]).catch(() => {});
@@ -81,17 +89,27 @@ export function remoteExecutor(o: RemoteExecutorOptions) {
   return {
     async validate(dir: string): Promise<ValidateResult> {
       const t0 = Date.now();
-      const v = await run('validate', dir);
+      const v = await run('validate', packSnapshot(dir));
       if (v.failed) throw new Error(v.failed);
       const errors = v.errors!.map(String);
       return { ok: errors.length === 0, errors, warnings: (v.warnings ?? []).map(String), ms: Date.now() - t0 };
     },
     /** The game module as data, for the Studio's reads (functions dropped, as `importInChild` gives it). */
     async load(dir: string): Promise<unknown> {
-      const v = await run('load', dir);
+      const v = await run('load', packSnapshot(dir));
       if (v.failed) throw new Error(v.failed);
       // A copy: a reader that normalises what it got never changes what the next reader gets.
       return structuredClone(v.module);
+    },
+    /**
+     * A revision's preview (4.2.2 PR 2), from the snapshot the caller packed with the revision it names: its files by
+     * path. A failure of the build (the game's code, a timeout) throws with its reason.
+     */
+    async preview(snapshot: Buffer, params: PreviewParams, at: { epoch: string }): Promise<Map<string, Buffer>> {
+      const v = await run('preview', snapshot, { ...params }, { epoch: at.epoch, rev: params.rev });
+      // The game's build failed: recorded. A deadline missed may pass on a less busy worker: tried again.
+      if (v.failed) throw v.timedOut ? new Error(v.failed) : new PreviewBuildFailed(v.failed);
+      return new Map(Object.entries(v.files!).map(([k, b]) => [k, Buffer.from(b, 'base64')]));
     },
   };
 }

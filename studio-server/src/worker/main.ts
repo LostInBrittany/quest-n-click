@@ -16,11 +16,12 @@ import { createServer, type IncomingMessage, type ServerResponse } from 'node:ht
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { type Job, publicKeyOf, verifyJob } from './job';
+import { previewFiles } from './preview-build';
 import { unpackSnapshot } from './snapshot';
 
 const CHILD = fileURLToPath(new URL('./child.ts', import.meta.url));
 // A game imports `web-scumm/content` by the package's self-reference: its folder must sit inside the package.
-const JOBS = fileURLToPath(new URL('../../../.cache/jobs/', import.meta.url));
+export const JOBS = fileURLToPath(new URL('../../../.cache/jobs/', import.meta.url));
 const MAX_OUT = 16 * 1024 * 1024;
 const DEFAULT_TIMEOUT_MS = 60_000;
 const MAX_TIMEOUT_MS = 120_000;
@@ -44,8 +45,12 @@ export interface JobResult {
   warnings?: string[];
   /** load: the module as data. */
   module?: unknown;
+  /** preview (4.2.2): the built files, base64 by path under the preview's base. */
+  files?: Record<string, string>;
   /** The game's code did not run to its end (a timeout, a crash, output that is not JSON). */
   failed?: string;
+  /** The failure was the deadline (4.2.2): it may pass on a less busy worker, unlike a crash. */
+  timedOut?: boolean;
 }
 
 /**
@@ -57,15 +62,20 @@ export function runChild(
   timeoutMs: number,
   kind: Job['kind'] = 'validate',
   outFile = `${dir}.out.json`,
-): Promise<{ out: string; code: number | null; timedOut: boolean; pid: number }> {
+  params: Record<string, unknown> = {},
+): Promise<{ out: string; code: number | null; timedOut: boolean; tooLarge: boolean; pid: number }> {
   return new Promise((ok, fail) => {
     rmSync(outFile, { force: true });
-    const child = spawn(process.execPath, ['--import', import.meta.resolve('tsx'), CHILD, dir, kind, outFile], {
-      cwd: dir,
-      env: {},
-      detached: true,
-      stdio: 'ignore',
-    });
+    const child = spawn(
+      process.execPath,
+      ['--import', import.meta.resolve('tsx'), CHILD, dir, kind, outFile, JSON.stringify(params)],
+      {
+        cwd: dir,
+        env: {},
+        detached: true,
+        stdio: 'ignore',
+      },
+    );
     let timedOut = false;
     const killGroup = () => {
       try {
@@ -86,13 +96,15 @@ export function runChild(
       clearTimeout(timer);
       killGroup();
       let out = '';
+      let tooLarge = false;
       try {
         if (statSync(outFile).size <= MAX_OUT) out = readFileSync(outFile, 'utf8');
+        else tooLarge = true;
       } catch {
         out = '';
       }
       rmSync(outFile, { force: true });
-      ok({ out, code, timedOut, pid: child.pid ?? 0 });
+      ok({ out, code, timedOut, tooLarge, pid: child.pid ?? 0 });
     });
   });
 }
@@ -136,14 +148,17 @@ export function createWorker(o: WorkerOptions) {
       unpackSnapshot(bytes, dir);
       const timeoutMs = Math.min(Number(job.params.timeoutMs) || DEFAULT_TIMEOUT_MS, MAX_TIMEOUT_MS);
       const t0 = Date.now();
-      const r = await runChild(dir, timeoutMs, job.kind);
+      const r = await runChild(dir, timeoutMs, job.kind, undefined, job.params);
       if (r.pid && (await survivors(r.pid))) {
         recycle = true;
         log('worker-survivor', { job: job.id });
       }
       const result: JobResult = { job: job.id, kind: job.kind, ms: 0 };
       let parsed: unknown;
-      if (r.timedOut) result.failed = `the game's code did not finish within ${timeoutMs} ms`;
+      if (r.timedOut) {
+        result.failed = `the game's code did not finish within ${timeoutMs} ms`;
+        result.timedOut = true;
+      } else if (r.tooLarge) result.failed = `the output exceeds ${MAX_OUT >> 20} MiB`;
       else
         try {
           parsed = JSON.parse(r.out);
@@ -154,6 +169,10 @@ export function createWorker(o: WorkerOptions) {
         const v = (parsed ?? {}) as { errors?: unknown; warnings?: unknown };
         result.errors = strings(v.errors);
         result.warnings = strings(v.warnings);
+      } else if (!result.failed && job.kind === 'preview') {
+        const files = previewFiles((parsed as { files?: unknown } | undefined)?.files);
+        if (files) result.files = files;
+        else result.failed = 'the preview build gave no usable files';
       } else if (!result.failed) result.module = parsed;
       result.ms = Date.now() - t0;
       const put = await fetch(job.urls.result, {

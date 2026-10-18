@@ -310,6 +310,7 @@ async function start() {
         where: () =>
           current === 'rooms' ? `Rooms · ${rooms.room}` : (TABS.find(([t]) => t === current)?.[1] ?? current),
         changed,
+        previewReady: () => rooms.previewReady(),
       })
     : null;
   const assistant = new AssistantPanel({

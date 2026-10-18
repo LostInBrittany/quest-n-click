@@ -13,6 +13,8 @@ import { type Job, newJobKeys, privateKeyOf, publicKeyOf, signJob, verifyJob } f
 import { createWorker, runChild } from '../studio-server/src/worker/main';
 import { createStudio, importInChild } from '../studio-server/src/ops/core';
 import { validateDir } from '../studio-server/src/ops/validate-dir';
+import { localPreview } from '../studio-server/src/worker/local';
+import { PreviewBuildFailed } from '../studio-server/src/worker/preview-build';
 import { packSnapshot, unpackSnapshot } from '../studio-server/src/worker/snapshot';
 
 const ROOT = join(import.meta.dirname, '..');
@@ -355,6 +357,46 @@ describe('a hosted Studio runs the game only in the worker', () => {
       mem.server.close();
     }
   }, 120_000);
+
+  it("builds a revision's preview through it, each time, its parameters checked by the worker", async () => {
+    const { url, server } = await startWorker();
+    const mem = await memoryS3();
+    const ex = remoteExecutor({
+      s3: mem.s3,
+      workerUrl: url,
+      privateKeyPem: keys.privatePem,
+      instance: 'studio-a',
+      at: () => ({ epoch: 'e1', rev: 4 }),
+      timeoutMs: 120_000,
+    });
+    const game = join(tmp, 'g9');
+    cpSync(join(ROOT, 'games', '_template'), game, { recursive: true });
+    const params = { rev: 4, game: 'template', studioOrigin: 'https://studio.example', assetsVersion: 'ab12' };
+    try {
+      const files = await ex.preview(packSnapshot(game), params, { epoch: 'e1' });
+      const html = files.get('index.html')!.toString();
+      expect(html).toContain('<meta name="web-scumm-studio-origin" content="https://studio.example"');
+      expect(html).toMatch(/src="\/preview\/4\/assets\/index-[\w-]+\.js"/);
+      expect([...files.keys()].every((k) => !k.startsWith('/') && !k.includes('..'))).toBe(true);
+      // Not kept like a validation: the same snapshot is built again when asked.
+      const before = mem.snapshots();
+      await ex.preview(packSnapshot(game), params, { epoch: 'e1' });
+      expect(mem.snapshots()).toBe(before + 1);
+      // Parameters the worker does not take: the build is refused before it starts.
+      await expect(
+        ex.preview(packSnapshot(game), { ...params, studioOrigin: 'https://studio.example/x' }, { epoch: 'e1' }),
+      ).rejects.toThrow(PreviewBuildFailed);
+      // A game that does not build: the reason, never a preview.
+      writeFileSync(join(game, 'index.ts'), 'export const game = ;\n');
+      await expect(localPreview(packSnapshot(game), params)).rejects.toThrow(PreviewBuildFailed);
+      // Through the worker too: recorded as the game's failure, not tried again as a worker's.
+      await expect(ex.preview(packSnapshot(game), params, { epoch: 'e1' })).rejects.toThrow(PreviewBuildFailed);
+      expect([...mem.objects.keys()]).toEqual([]);
+    } finally {
+      server.close();
+      mem.server.close();
+    }
+  }, 240_000);
 
   it('the Studio reads the game through the executor, and captures are unavailable', async () => {
     const calls: string[] = [];

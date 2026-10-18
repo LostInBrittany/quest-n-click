@@ -76,7 +76,10 @@ export class PlayTab {
                 ['canvas', 'canvas'],
               ],
               '',
-              (v) => void this.load(v),
+              (v) => {
+                this.painter = v;
+                void this.load(v);
+              },
             ),
             ' ',
             this.perf,
@@ -95,10 +98,12 @@ export class PlayTab {
               h(
                 'p',
                 { class: 'panel muted' },
-                'Live preview, not frozen: the game as it is now, loaded once. ',
+                'The preview of one revision: the last ready when it was loaded. It does not follow later changes on ',
+                'its own, so a game in progress is never interrupted. ',
                 'It runs on its own origin, so the state, the rules and the replays are read in the DEV panel inside ',
                 'the game; the panels beside it need the local Studio.',
               ),
+              h('button', { type: 'button', onclick: () => void this.load(this.painter) }, 'Load the latest preview'),
             )
           : h('div', { class: 'playside' }, this.state, this.reality.el, this.speedrun.el, this.why, this.journal),
       ),
@@ -147,6 +152,8 @@ export class PlayTab {
   }
 
   private loads = 0;
+  /** The painter chosen (`''`: the game's own), kept when a newer preview is loaded. */
+  private painter = '';
   /** (Re)loads the game in the frame, with a painter (`dom`, `canvas`) or the game's own. */
   private async load(painter: string) {
     const q = `?dev${painter ? `&renderer=${painter}` : ''}`;

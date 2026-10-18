@@ -186,6 +186,8 @@ export class Live {
   revision = 0;
   leases: Lease[] = [];
   here: Here[] = [];
+  /** The revisions' previews (4.2.2): the last ready, the one building, the last failure. */
+  preview: PreviewState | null = null;
   up = false;
   /** Revisions committed during a cut that the journal could not give back: only a reload is sure to show them. */
   gap = false;
@@ -205,8 +207,20 @@ export class Live {
       revision: (r: Revision) => void;
       /** After a reconnection, or when the server refused the stream: is the session still a member's, same role? */
       check?: () => Promise<void>;
+      /** A newer preview is ready (4.2.2): the game's frames may load it. */
+      previewReady?: (rev: number) => void;
     },
   ) {}
+
+  private setPreview(p: PreviewState | null) {
+    const before = this.preview;
+    this.preview = p;
+    // Another ready preview, or another history (an import, a restore: the old revisions are gone). Not at the first
+    // news: the frames are loading the last ready one already.
+    if (before && p?.ready != null && (p.ready !== before.ready || p.epoch !== before.epoch))
+      this.o.previewReady?.(p.ready);
+    this.changed();
+  }
 
   /** Called after every change of what is kept. */
   onChange(fn: () => void): () => void {
@@ -251,6 +265,7 @@ export class Live {
       this.leases = d.leases;
       this.changed();
     });
+    es.addEventListener('preview', (m) => this.setPreview(JSON.parse((m as MessageEvent).data) as PreviewState));
     es.addEventListener('presence', (m) => {
       this.here = (JSON.parse((m as MessageEvent).data) as { here: Here[] }).here;
       this.changed();
@@ -270,6 +285,7 @@ export class Live {
     this.seq = d.seq;
     this.here = d.here;
     this.up = true;
+    if (d.preview !== undefined) this.setPreview(d.preview);
     if (first) this.revision = d.revision;
     else {
       void this.o.check?.().catch(() => undefined);
@@ -346,6 +362,16 @@ interface Hello {
   leases: Lease[];
   seq: number;
   here: Here[];
+  preview?: PreviewState | null;
+}
+
+/** What the server says of the revisions' previews (studio-server/src/server/previews.ts). */
+export interface PreviewState {
+  epoch: string;
+  head: number;
+  ready: number | null;
+  building: number | null;
+  failed: { rev: number; reason: string } | null;
 }
 
 /**
@@ -430,7 +456,7 @@ export async function gateScreen(
 
 /**
  * Everything a hosted Studio adds to the page: the bar (revision, who is here, you), the line that says when the stream
- * is cut or writes are waiting, the lease of the room shown, the live preview's label, the heartbeat, and the dialogs
+ * is cut or writes are waiting, the lease of the room shown, the preview's label, the heartbeat, and the dialogs
  * of a refused write. `changed`: a file a committed revision touched, with its author.
  */
 export function hostedStudio(o: {
@@ -440,6 +466,8 @@ export function hostedStudio(o: {
   room: () => string;
   where: () => string;
   changed: (file: string, author: string) => void;
+  /** A newer preview is ready: the room view reloads unless a placement is not saved. */
+  previewReady?: (rev: number) => void;
 }): {
   bar: HTMLElement;
   banner: HTMLElement;
@@ -459,6 +487,7 @@ export function hostedStudio(o: {
       else if (who.state === 'unreachable') return;
       else if (who.state !== 'member' || who.me.role !== o.me.role) reloadOnce();
     },
+    previewReady: (rev) => o.previewReady?.(rev),
   });
   live.start(apiUrl('events'));
   const beat = heartbeat(o.where, live);
@@ -512,20 +541,30 @@ export function hostedStudio(o: {
     spans: () => spansPanel(o.rooms, live, o.me),
     members: () => void membersPanel(o.me, live),
   });
-  /** "live preview · revision N", and the head when it has moved on since the frame was loaded. */
+  /** "preview of revision N", and what comes next: a build running, a revision that does not build. */
   const previewLabel = (frame: HTMLIFrameElement) => {
-    const label = h('span', {
-      class: 'preview-label',
-      title: 'The game as it was when the view was loaded; per-revision previews come in 4.2.2',
-    });
-    let at = 0;
+    const TITLE = 'The game as built at that revision; a newer one replaces it once built';
+    const label = h('span', { class: 'preview-label', title: TITLE });
+    let at: number | null = null;
     const draw = () => {
-      label.textContent = at
-        ? `live preview, not frozen · loaded at revision ${at}${live.revision > at ? ` · head ${live.revision}: reload to see it` : ''}`
-        : 'live preview, not frozen';
+      const p = live.preview;
+      if (at === null) {
+        label.textContent = p?.building != null ? `preview of revision ${p.building} being prepared…` : 'preview';
+        return;
+      }
+      const parts = [`preview of revision ${at}`];
+      if (p?.building != null && p.building > at) parts.push(`revision ${p.building} building…`);
+      else if (p?.ready != null && p.ready > at) parts.push(`revision ${p.ready} ready: reload to see it`);
+      // The reason can be a whole build log: its first line here, all of it on hover.
+      const failed = p?.failed && p.failed.rev > at ? p.failed : null;
+      if (failed) parts.push(`revision ${failed.rev} does not build: ${failed.reason.split('\n')[0]!.slice(0, 120)}`);
+      label.textContent = parts.join(' · ');
+      label.title = failed ? failed.reason : TITLE;
     };
+    // The frame is on another origin: the revision it loaded is the last ready when it loaded (the server sends `/`
+    // to that one).
     frame.addEventListener('load', () => {
-      at = live.revision;
+      at = live.preview?.ready ?? null;
       draw();
     });
     live.onChange(draw);
