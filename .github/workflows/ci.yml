@@ -359,13 +359,17 @@ jobs:
             -v "$PWD/ops/studio/ci/seaweedfs-s3.json:/etc/s3.json:ro" \
             mirror.gcr.io/chrislusf/seaweedfs@sha256:4e61d15fd35994cb1e43e1e553dff106794841fd9a99ade2fc8c8bfce4d7872d \
             server -s3 -s3.port=8333 -s3.config=/etc/s3.json -dir=/data
-          # Ready means writable: the bucket made explicitly, then one object written and read back (ops/studio/ci/s3-ready.ts).
-          for i in $(seq 1 60); do
-            docker exec seaweedfs sh -c 'echo "s3.bucket.create -name studio-ci" | weed shell' >/dev/null 2>&1 \
-              && npx tsx ops/studio/ci/s3-ready.ts && exit 0
+          # Ready means writable: the bucket made (asked again until it is listed: a second create of an existing bucket
+          # fails), then one object written and read back (ops/studio/ci/s3-ready.ts).
+          bucket() { docker exec seaweedfs sh -c 'echo "s3.bucket.list" | weed shell' 2>/dev/null | grep -q studio-ci; }
+          for i in $(seq 1 90); do
+            bucket && break
+            docker exec seaweedfs sh -c 'echo "s3.bucket.create -name studio-ci" | weed shell' >/dev/null 2>&1 || true
             sleep 1
           done
-          docker logs seaweedfs; exit 1
+          bucket || { echo "no bucket"; docker logs seaweedfs; exit 1; }
+          for i in $(seq 1 60); do npx tsx ops/studio/ci/s3-ready.ts && exit 0; sleep 1; done
+          echo "the bucket is not writable"; docker logs seaweedfs; exit 1
       - if: env.RUN == 'true'
         run: npx vitest run tests/studio-server.test.ts tests/studio-worker.test.ts tests/studio-collab.test.ts --maxWorkers=1 --no-file-parallelism
   # The Bridge's distributed profile (4.1.10, D20): the store contract, the tenants crossed and the fan-out across
