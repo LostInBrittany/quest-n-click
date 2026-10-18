@@ -22,7 +22,7 @@ import { ServiceLease } from '../studio-server/src/server/service-lease';
 import { TestOp } from './fixtures/oidc-op';
 
 const ROOT = join(import.meta.dirname, '..');
-let tmp: string, base: string, op: TestOp, store: AuthStore, gate: Gate, stop: () => void, sql: SqlDb;
+let tmp: string, base: string, op: TestOp, store: AuthStore, gate: Gate, stop: () => Promise<void>, sql: SqlDb;
 let clock = Date.now();
 
 const freePort = () =>
@@ -105,13 +105,16 @@ beforeAll(async () => {
   });
   const server = studioServer({ studio, journal, db, lease, log: () => {}, perMinute: 10_000, auth: { gate, handle } });
   await new Promise<void>((ok) => server.listen(port, '127.0.0.1', ok));
-  stop = () => {
+  // Everything opened is closed before the folder goes: Windows deletes no open file.
+  stop = async () => {
     server.close();
     op.stop();
+    await journal.close();
+    await db.close();
   };
 }, 60_000);
-afterAll(() => {
-  stop();
+afterAll(async () => {
+  await stop();
   rmSync(tmp, { recursive: true, force: true });
 });
 
