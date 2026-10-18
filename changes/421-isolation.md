@@ -7,3 +7,4 @@
     `WORKER_INSTANCE`.
   - **Captures** are unavailable on a hosted Studio for now.
   - **Without OIDC** (the local server, on the loopback), nothing changes.
+  - A game that imports files outside its own folder cannot run on a hosted Studio.

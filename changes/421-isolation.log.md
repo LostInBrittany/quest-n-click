@@ -17,7 +17,7 @@ Branch: feature/421-isolation (stacked on PR 5) · Plan §3.8, ADR 0028
   worker-keys`. `S3.delete`.
 - **Measured:** child 237–283 ms; Mac → Cellar round trip 760–958 ms; spike S Studio → worker inside Clever p95 37 ms.
   The p95 on Clever is measured with the hosted pass.
-- **Tests:** `tests/studio-worker.test.ts`, 13 cases:
+- **Tests:** `tests/studio-worker.test.ts`, 14 cases:
   - signatures, expiry, prefix, kinds;
   - snapshot contents and paths;
   - emptied environment and the deadline with grandchildren;
@@ -25,6 +25,12 @@ Branch: feature/421-isolation (stacked on PR 5) · Plan §3.8, ADR 0028
   - another job's answer refused;
   - the full round trip through a memory S3 (validate, load, cache, deadline, no staging left);
   - the Studio reading through the executor;
+  - a hostile game: an escaped process does not hang the worker, its logs do not corrupt the output; a job expired in
+    the queue is not run; a killed background process is no false survivor; failures are not cached;
   - with STUDIO_TEST_S3: a presigned write scoped to its key, and the round trip through Cellar.
+
+- **Second reading** (automated second context): output through a file, no pipes, resolve on exit, survivors polled
+  for a second, recycle by exiting once idle, expiry checked at dequeue, failures thrown and never cached, a bounded
+  result read, snapshot bounds and more source kinds, a copy per reader, `worker` checked whenever set.
 
 → next: Claude (PR 6, leases and live events)

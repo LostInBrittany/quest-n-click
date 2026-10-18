@@ -32,26 +32,36 @@ same user and can read the parent's `/proc/<pid>/environ`, which still holds the
    - checks the job;
    - fetches the snapshot and checks its hash;
    - writes it to a fresh folder;
-   - runs `child.ts` in a fresh process with an **emptied environment**, in its own process group, killed with the
-     group at its deadline (60 s by default, 120 s at most);
-   - bounds the output (16 MiB) and PUTs the result itself;
-   - removes the folder.
+   - refuses a job that expired while it waited in the queue;
+   - runs `child.ts` in a fresh process with an **emptied environment**, in its own process group, with no pipe a
+     grandchild could hold, killed with the group at its deadline (60 s by default, 120 s at most);
+   - reads the output from a file once the child has exited (16 MiB at most; the game's own logs never mix with it);
+   - PUTs the result itself and removes the folder.
 
-   A process of the group still alive after a job marks the instance to recycle (`/readyz` 503).
+   A process of the group still alive a second after a job marks the instance to recycle: `/readyz` answers 503, new
+   jobs are refused, and the worker exits once idle so that the platform starts a fresh one. **Only the process group
+   is watched:** a process that leaves it (`setsid`) is not detected. The answer to that is periodic redeploys of the
+   worker (PR 8).
 5. **The Studio accepts a result:**
-   - it reads it itself;
-   - it checks that it answers this job (id and kind) and is bounded;
+   - it reads it itself, stopping past 32 MiB;
+   - it checks that it answers this job (id and kind);
    - it deletes the staging prefix.
 
-   The worker never names a key the Studio publishes. The snapshot carries the sources and the data, never the art,
-   the sound, the private folder or the tests.
+   A failure of the game's code (a timeout, a crash, no output) throws, as a local import does: the guard then
+   refuses the edit (fail closed). A failure is never cached.
+
+   The worker never names a key the Studio publishes. The snapshot carries the sources and the data (TypeScript,
+   JavaScript, JSON, Markdown), never the art, the sound, the private folder, the tests or `node_modules`, and is
+   bounded (5,000 files, 32 MiB). **A game that imports files outside its own folder cannot run on a hosted Studio**
+   (in this repository, `games/reference`).
 6. **The guard stays synchronous and remote.**
    - Measured on the maintainer's Mac (Apple silicon, 18 October 2026), with the template game:
      - the child alone: 237–283 ms (5 runs);
      - the whole round trip to Cellar in Paris over the Internet (snapshot up, job, child, result up and back, staging
        deleted): 760, 875 and 958 ms (3 runs, snapshot 11.6 KB).
    - Spike S measured a Studio → worker round trip inside Clever Cloud at p95 37 ms.
-   - An unchanged game is not sent again: the last answer of each kind is kept by the snapshot's hash.
+   - An unchanged game is not sent again within a minute: the last answer of each kind is kept by the snapshot's hash
+     for 60 s (a redeployed worker is asked again soon), and each reader gets its own copy of a loaded module.
    - The full p95 of an operation on Clever Cloud is measured with the hosted pass, and its threshold written before
      the release (plan §11). If it is too slow, the choice is between batching the pending operations and a local
      guard with its risk declared. A local guard would run the game in the Studio's process.
@@ -72,7 +82,10 @@ same user and can read the parent's `/proc/<pid>/environ`, which still holds the
 
   No published object, no other prefix, no other instance.
 - **Hostile code may persist** on a worker instance and skew later verdicts and loads of the same project. It gets no
-  secret of the platform.
+  secret of the platform. It shares the supervisor's user, so it can read the supervisor's environment
+  (`/proc/<pid>/environ`): this is harmless only because the worker holds no secret, and it must stay so.
+- **Single use is per worker process.** The record of jobs seen lives in memory: a restart forgets it, and a job
+  replayed within its 5 min reruns the same snapshot into the same result key.
 - **What answers:**
   - one worker per Studio instance;
   - recycling on a detected survivor;

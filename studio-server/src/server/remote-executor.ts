@@ -4,7 +4,9 @@
 // write (the result) for at most 5 min, signs the job with its Ed25519 key, and asks the worker. It then reads the
 // result itself, checks that it answers this job and is bounded, and deletes the staging prefix. The worker never
 // names a key the Studio publishes. A result is a signal in the project's trust domain, never a security decision.
-// The last answer of each kind is kept by the snapshot's sha256: an unchanged game is not sent again.
+// The last answer of each kind is kept by the snapshot's sha256 for a minute (a redeployed worker is asked again
+// soon): an unchanged game is not sent again. A failure is never kept. A failure of the game's code (a timeout, a
+// crash) throws, as a local import would: the guard then refuses the edit rather than letting it through.
 import { createHash, randomUUID } from 'node:crypto';
 import type { ValidateResult } from '../../../tools/studio/types';
 import { type Job, type JobKind, MAX_JOB_MS, privateKeyOf, signJob } from '../worker/job';
@@ -23,17 +25,18 @@ export interface RemoteExecutorOptions {
 }
 
 const MAX_RESULT = 32 * 1024 * 1024;
+const CACHE_MS = 60_000;
 
 export function remoteExecutor(o: RemoteExecutorOptions) {
   const key = privateKeyOf(o.privateKeyPem);
   const timeoutMs = Math.min(o.timeoutMs ?? 60_000, 120_000);
-  const last = new Map<JobKind, { sha: string; result: JobResult }>();
+  const last = new Map<JobKind, { sha: string; at: number; result: JobResult }>();
 
   async function run(kind: JobKind, dir: string): Promise<JobResult> {
     const snapshot = packSnapshot(dir);
     const sha = createHash('sha256').update(snapshot).digest('hex');
     const hit = last.get(kind);
-    if (hit?.sha === sha) return hit.result;
+    if (hit?.sha === sha && Date.now() - hit.at < CACHE_MS) return hit.result;
     const id = randomUUID();
     const dest = `staging/${id}/`;
     try {
@@ -57,17 +60,18 @@ export function remoteExecutor(o: RemoteExecutorOptions) {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({ token: signJob(job, key) }),
-        signal: AbortSignal.timeout(timeoutMs + 60_000),
+        // The job's own expiry: the worker runs no job past it, so waiting longer would gain nothing.
+        signal: AbortSignal.timeout(MAX_JOB_MS),
       });
       await r.body?.cancel();
       if (!r.ok) throw new Error(`the processing worker refused the job (${r.status})`);
-      const bytes = await o.s3.get(`${dest}result.json`);
-      if (!bytes || bytes.length > MAX_RESULT) throw new Error('the processing worker left no usable result');
+      const bytes = await o.s3.get(`${dest}result.json`, { max: MAX_RESULT });
+      if (!bytes) throw new Error('the processing worker left no usable result');
       const v = JSON.parse(bytes.toString('utf8')) as JobResult;
       if (v.job !== id || v.kind !== kind) throw new Error('the processing worker result does not answer this job');
       if (!v.failed && kind === 'validate' && (!Array.isArray(v.errors) || !Array.isArray(v.warnings)))
         throw new Error('the processing worker result does not answer this job');
-      last.set(kind, { sha, result: v });
+      if (!v.failed) last.set(kind, { sha, at: Date.now(), result: v });
       return v;
     } finally {
       await Promise.all([o.s3.delete(`${dest}snapshot.json`), o.s3.delete(`${dest}result.json`)]).catch(() => {});
@@ -78,14 +82,16 @@ export function remoteExecutor(o: RemoteExecutorOptions) {
     async validate(dir: string): Promise<ValidateResult> {
       const t0 = Date.now();
       const v = await run('validate', dir);
-      const errors = v.failed ? [v.failed] : v.errors!.map(String);
+      if (v.failed) throw new Error(v.failed);
+      const errors = v.errors!.map(String);
       return { ok: errors.length === 0, errors, warnings: (v.warnings ?? []).map(String), ms: Date.now() - t0 };
     },
     /** The game module as data, for the Studio's reads (functions dropped, as `importInChild` gives it). */
     async load(dir: string): Promise<unknown> {
       const v = await run('load', dir);
       if (v.failed) throw new Error(v.failed);
-      return v.module;
+      // A copy: a reader that normalises what it got never changes what the next reader gets.
+      return structuredClone(v.module);
     },
   };
 }

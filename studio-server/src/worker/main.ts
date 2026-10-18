@@ -11,7 +11,7 @@
 // The job's code shares this machine and this system user: it is assumed to see the job's capabilities (ADR 0028).
 import { spawn } from 'node:child_process';
 import { createHash } from 'node:crypto';
-import { mkdirSync, mkdtempSync, rmSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, statSync } from 'node:fs';
 import { createServer, type IncomingMessage, type ServerResponse } from 'node:http';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -30,6 +30,8 @@ export interface WorkerOptions {
   /** The only Studio instance whose jobs this worker runs (one project, one trust domain). */
   instance: string;
   log?: (event: string, data?: Record<string, unknown>) => void;
+  /** Called once a survivor marked the instance to recycle and no job is left: the entry point exits (Clever restarts it). */
+  onRecycle?: () => void;
 }
 
 /** What the worker writes at the result URL: the job it answers, and its output or why there is none. */
@@ -46,16 +48,24 @@ export interface JobResult {
   failed?: string;
 }
 
-/** Runs `child.ts` on `dir`: an emptied environment, its own process group, killed at `timeoutMs`. */
-export function runChild(dir: string, timeoutMs: number, kind: Job['kind'] = 'validate'): Promise<{ out: string; code: number | null; timedOut: boolean; pid: number }> {
+/**
+ * Runs `child.ts` on `dir`: an emptied environment, its own process group, no pipe (a grandchild can hold none), killed
+ * with its group at `timeoutMs`. The child writes its output to `outFile`; it is read once the child has exited.
+ */
+export function runChild(
+  dir: string,
+  timeoutMs: number,
+  kind: Job['kind'] = 'validate',
+  outFile = `${dir}.out.json`,
+): Promise<{ out: string; code: number | null; timedOut: boolean; pid: number }> {
   return new Promise((ok, fail) => {
-    const child = spawn(process.execPath, ['--import', import.meta.resolve('tsx'), CHILD, dir, kind], {
+    rmSync(outFile, { force: true });
+    const child = spawn(process.execPath, ['--import', import.meta.resolve('tsx'), CHILD, dir, kind, outFile], {
       cwd: dir,
       env: {},
       detached: true,
-      stdio: ['ignore', 'pipe', 'ignore'],
+      stdio: 'ignore',
     });
-    let out = '';
     let timedOut = false;
     const killGroup = () => {
       try {
@@ -68,31 +78,39 @@ export function runChild(dir: string, timeoutMs: number, kind: Job['kind'] = 'va
       timedOut = true;
       killGroup();
     }, timeoutMs);
-    const chunks: Buffer[] = [];
-    let size = 0;
-    child.stdout.on('data', (c: Buffer) => {
-      size += c.length;
-      if (size <= MAX_OUT) chunks.push(c);
-      else killGroup();
+    child.on('error', (e) => {
+      clearTimeout(timer);
+      fail(e);
     });
-    child.on('error', fail);
-    child.on('close', (code) => {
+    child.on('exit', (code) => {
       clearTimeout(timer);
       killGroup();
-      out = size <= MAX_OUT ? Buffer.concat(chunks).toString('utf8') : '';
+      let out = '';
+      try {
+        if (statSync(outFile).size <= MAX_OUT) out = readFileSync(outFile, 'utf8');
+      } catch {
+        out = '';
+      }
+      rmSync(outFile, { force: true });
       ok({ out, code, timedOut, pid: child.pid ?? 0 });
     });
   });
 }
 
-/** True when a process of the group `pid` is still alive after the job. */
-function survivors(pid: number): boolean {
-  try {
-    process.kill(-pid, 0);
-    return true;
-  } catch {
-    return false;
+/**
+ * True when a process of the group `pid` is still alive a second after the job: a process just killed may answer a
+ * signal until it is reaped. A process that left the group (`setsid`) is not seen: see ADR 0028.
+ */
+async function survivors(pid: number): Promise<boolean> {
+  for (let i = 0; i < 10; i++) {
+    try {
+      process.kill(-pid, 0);
+    } catch {
+      return false;
+    }
+    await new Promise((ok) => setTimeout(ok, 100));
   }
+  return true;
 }
 
 const strings = (v: unknown, max = 500): string[] =>
@@ -118,7 +136,7 @@ export function createWorker(o: WorkerOptions) {
       const timeoutMs = Math.min(Number(job.params.timeoutMs) || DEFAULT_TIMEOUT_MS, MAX_TIMEOUT_MS);
       const t0 = Date.now();
       const r = await runChild(dir, timeoutMs, job.kind);
-      if (r.pid && survivors(r.pid)) {
+      if (r.pid && (await survivors(r.pid))) {
         recycle = true;
         log('worker-survivor', { job: job.id });
       }
@@ -178,7 +196,11 @@ export function createWorker(o: WorkerOptions) {
     if (recycle) return send(503, { error: 'this instance is to be recycled' });
     if (queued >= 8) return send(429, { error: 'busy' });
     queued++;
-    const p = chain.then(() => run(job));
+    const p = chain.then(() => {
+      // A job that waited past its expiry is not run: its URLs are dead, and the Studio has given up on it.
+      if (Date.now() >= job.exp) throw new Error('the job expired while it waited');
+      return run(job);
+    });
     chain = p.catch(() => {});
     try {
       const v = await p;
@@ -189,6 +211,7 @@ export function createWorker(o: WorkerOptions) {
       send(502, { error: (e as Error).message });
     } finally {
       queued--;
+      if (recycle && queued === 0) o.onRecycle?.();
     }
   }
 
@@ -205,12 +228,16 @@ if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
     process.stderr.write('studio-worker: WORKER_PUBLIC_KEY and WORKER_INSTANCE are required\n');
     process.exit(2);
   }
+  let onRecycle = () => {};
   const w = createWorker({
+    onRecycle: () => onRecycle(),
     publicKeyPem: publicKeyPem!,
     instance,
     log: (event, data) => process.stdout.write(`${JSON.stringify({ t: new Date().toISOString(), event, ...data })}\n`),
   });
   const server = createServer(w.handler);
   server.listen(Number(process.env.PORT ?? 8080), '0.0.0.0');
+  // A survivor: the instance exits once idle, and the platform starts a fresh one.
+  onRecycle = () => server.close(() => process.exit(75));
   process.on('SIGTERM', () => server.close(() => process.exit(0)));
 }

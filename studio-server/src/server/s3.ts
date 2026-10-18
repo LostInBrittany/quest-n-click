@@ -95,14 +95,26 @@ export class S3 {
     if (!r.ok) throw new Error(`S3 PUT ${key}: ${r.status} ${(await r.text()).slice(0, 200)}`);
   }
 
-  async get(key: string): Promise<Buffer | undefined> {
+  /** An object, or undefined; past `max` bytes the read stops and throws (an object someone else could write). */
+  async get(key: string, o: { max?: number } = {}): Promise<Buffer | undefined> {
     const r = await this.request('GET', key);
     if (r.status === 404) return undefined;
     if (!r.ok) {
       await r.body?.cancel();
       throw new Error(`S3 GET ${key}: ${r.status}`);
     }
-    return Buffer.from(await r.arrayBuffer());
+    if (o.max === undefined) return Buffer.from(await r.arrayBuffer());
+    const chunks: Uint8Array[] = [];
+    let size = 0;
+    for await (const c of r.body as unknown as AsyncIterable<Uint8Array>) {
+      size += c.length;
+      if (size > o.max) {
+        await r.body?.cancel().catch(() => {});
+        throw new Error(`S3 GET ${key}: larger than ${o.max} bytes`);
+      }
+      chunks.push(c);
+    }
+    return Buffer.concat(chunks);
   }
 
   async has(key: string): Promise<boolean> {

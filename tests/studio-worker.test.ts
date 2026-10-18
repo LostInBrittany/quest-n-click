@@ -143,6 +143,32 @@ async function startWorker(instance = 'studio-a'): Promise<{ url: string; server
   return { url: `http://127.0.0.1:${(server.address() as AddressInfo).port}`, server };
 }
 
+describe('a hostile game', () => {
+  it('cannot hang the supervisor by leaving its process group, nor corrupt the output by logging', async () => {
+    const game = join(tmp, 'g8');
+    cpSync(join(ROOT, 'games', '_template'), game, { recursive: true });
+    const pidFile = join(tmp, 'escaped.pid');
+    writeFileSync(
+      join(game, 'index.ts'),
+      `import { spawn } from 'node:child_process';\nimport { writeFileSync } from 'node:fs';\nconsole.log('noise from the game');\nconst c = spawn(process.execPath, ['-e', 'setInterval(() => {}, 1000)'], { detached: true, stdio: 'inherit' });\nwriteFileSync(${JSON.stringify(pidFile)}, String(c.pid));\n${readFileSync(join(game, 'index.ts'), 'utf8')}`,
+    );
+    const t0 = Date.now();
+    try {
+      const r = await runChild(game, 30_000, 'load');
+      expect(r.timedOut).toBe(false);
+      expect(Date.now() - t0).toBeLessThan(15_000);
+      expect((JSON.parse(r.out) as { game: { id: string } }).game.id).toBeTruthy();
+    } finally {
+      // The escaped process is outside the group (ADR 0028: not detected); the test ends it itself.
+      try {
+        process.kill(Number(readFileSync(pidFile, 'utf8')), 'SIGKILL');
+      } catch {
+        /* gone */
+      }
+    }
+  }, 60_000);
+});
+
 describe('the worker refuses', () => {
   it('a job without a valid signature, for another instance, or seen before', async () => {
     const { url, server } = await startWorker();
@@ -168,6 +194,57 @@ describe('the worker refuses', () => {
 });
 
 describe('the Studio accepts a result', () => {
+  it('a job that expired while it waited is not run', async () => {
+    const { url, server } = await startWorker();
+    const mem = await memoryS3();
+    const priv = privateKeyOf(keys.privatePem);
+    const game = join(tmp, 'g9');
+    mkdirSync(game);
+    writeFileSync(
+      join(game, 'index.ts'),
+      "import { spawn } from 'node:child_process';\nspawn(process.execPath, ['-e', 'setInterval(() => {}, 1000)'], { stdio: 'ignore' });\nwhile (true) {}\nexport {};\n",
+    );
+    const snap = packSnapshot(game);
+    const sha = (await import('node:crypto')).createHash('sha256').update(snap).digest('hex');
+    const jobFor = (exp: number, timeoutMs: number) => {
+      const id = randomUUID();
+      void mem.s3.put(`staging/${id}/snapshot.json`, snap);
+      return signJob(
+        job({
+          id,
+          kind: 'load',
+          snapshot: sha,
+          exp,
+          params: { timeoutMs },
+          urls: {
+            snapshot: mem.s3.presign('GET', `staging/${id}/snapshot.json`),
+            result: mem.s3.presign('PUT', `staging/${id}/result.json`),
+          },
+        }),
+        priv,
+      );
+    };
+    const post = (token: string) =>
+      fetch(`${url}/jobs`, {
+        method: 'POST',
+        body: JSON.stringify({ token }),
+        headers: { 'content-type': 'application/json' },
+      });
+    try {
+      const slow = post(jobFor(Date.now() + 60_000, 2_000));
+      await new Promise((ok) => setTimeout(ok, 100));
+      const late = await post(jobFor(Date.now() + 500, 2_000));
+      expect(late.status).toBe(502);
+      expect(((await late.json()) as { error: string }).error).toMatch(/expired while it waited/);
+      expect((await slow).status).toBe(200);
+      // The game's background processes died with its group: the instance is not marked to recycle.
+      expect((await fetch(`${url}/readyz`)).status).toBe(200);
+    } finally {
+      server.close();
+      mem.server.close();
+    }
+  }, 30_000);
+
   it('only when it answers its own job', async () => {
     // A worker that answers with another job's verdict, written where it was told.
     const store = new Map<string, Buffer>();
@@ -268,6 +345,11 @@ describe('a hosted Studio runs the game only in the worker', () => {
         timeoutMs: 2_000,
       });
       await expect(quick.load(game)).rejects.toThrow(/did not finish within 2000 ms/);
+      // A failure is never kept: the same game is asked again, and the guard's validation throws (it fails closed).
+      const before = mem.snapshots();
+      await expect(quick.validate(game)).rejects.toThrow(/did not finish/);
+      await expect(quick.validate(game)).rejects.toThrow(/did not finish/);
+      expect(mem.snapshots()).toBe(before + 2);
     } finally {
       server.close();
       mem.server.close();
@@ -344,7 +426,6 @@ describe.runIf(S3URL)('round trip through S3', () => {
       expect(v.errors).toEqual(here.errors);
       // The round trip, for ADR 0028: snapshot up, job, child, result up and back.
       console.info(`[studio-worker] remote validation: ${v.ms} ms (snapshot ${packSnapshot(game).length} bytes)`);
-      expect(await c.has(`staging/`)).toBe(false);
     } finally {
       server.close();
     }

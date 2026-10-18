@@ -1,21 +1,30 @@
-// What the worker needs of a game to validate it (4.2.1, ADR 0028): its sources and data, never its art or sound
-// (the validator reads `assets.gen.json`, not the pictures). One JSON document, its sha256 bound into the job.
+// What the worker needs of a game to run it (4.2.1, ADR 0028): its sources and data, never its art or sound (the
+// validator reads `assets.gen.json`, not the pictures). One JSON document, its sha256 bound into the job. A game that
+// imports files outside its own folder cannot run on a hosted Studio (they are not in the snapshot).
 import { mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join, relative, sep } from 'node:path';
 
 const SKIP_DIR = /^(art|audio|private|playtests|tests)$/;
-const TEXT = /\.(ts|mts|json|md|mjs)$/;
+const TEXT = /\.(ts|mts|cts|tsx|js|mjs|cjs|jsx|json|md)$/;
 const MAX_FILES = 5_000;
 const MAX_BYTES = 32 * 1024 * 1024;
 
 export function packSnapshot(dir: string): Buffer {
   const files: { path: string; text: string }[] = [];
+  let bytes = 0;
   const walk = (d: string, top: boolean) => {
     for (const e of readdirSync(d, { withFileTypes: true })) {
-      if (e.name.startsWith('.') || (top && SKIP_DIR.test(e.name))) continue;
+      if (e.name.startsWith('.') || e.name === 'node_modules' || (top && SKIP_DIR.test(e.name))) continue;
       const p = join(d, e.name);
       if (e.isDirectory()) walk(p, false);
-      else if (e.isFile() && TEXT.test(e.name)) files.push({ path: relative(dir, p).split(sep).join('/'), text: readFileSync(p, 'utf8') });
+      else if (e.isFile() && TEXT.test(e.name)) {
+        const text = readFileSync(p, 'utf8');
+        bytes += text.length;
+        files.push({ path: relative(dir, p).split(sep).join('/'), text });
+        // The same bounds as unpacking, said here, where the author can act on them.
+        if (files.length > MAX_FILES || bytes > MAX_BYTES)
+          throw new Error(`the game is too large to run on the processing worker (${MAX_FILES} files, ${MAX_BYTES >> 20} MiB at most)`);
+      }
     }
   };
   walk(dir, true);

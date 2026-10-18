@@ -159,6 +159,15 @@ export function loadConfig(file: string): StudioServerConfig {
   const trust = raw.trustProxy ?? [];
   if (!Array.isArray(trust) || !trust.every((t) => typeof t === 'string'))
     throw new ConfigError(`${file}: trustProxy is a list of addresses or networks`);
+  const worker = raw.worker as StudioServerConfig['worker'];
+  if (worker !== undefined) {
+    if (!worker || !isUrl(worker.url) || typeof worker.instance !== 'string' || !/^[\w-]{3,64}$/.test(worker.instance))
+      throw new ConfigError(
+        `${file}: worker.url and worker.instance are required with oidc (ADR 0028), and well formed`,
+      );
+    if (blobs.kind !== 's3')
+      throw new ConfigError(`${file}: the worker reads its snapshots from S3: blobs.kind is s3 with a worker`);
+  }
   const oidc = raw.oidc as StudioServerConfig['oidc'];
   const host = String(raw.host ?? '0.0.0.0');
   if (oidc !== undefined) {
@@ -170,18 +179,14 @@ export function loadConfig(file: string): StudioServerConfig {
       throw new ConfigError(`${file}: oidc.clientId is required`);
     if (typeof oidc.audience !== 'string' || !oidc.audience)
       throw new ConfigError(`${file}: oidc.audience is required`);
-    const worker = raw.worker as StudioServerConfig['worker'];
-    if (!worker || !isUrl(worker.url) || typeof worker.instance !== 'string' || !/^[\w-]{3,64}$/.test(worker.instance))
-      throw new ConfigError(`${file}: worker.url and worker.instance are required with oidc (ADR 0028)`);
-    if (blobs.kind !== 's3')
-      throw new ConfigError(`${file}: the worker reads its snapshots from S3: blobs.kind is s3 with oidc`);
+    if (!worker) throw new ConfigError(`${file}: worker.url and worker.instance are required with oidc (ADR 0028)`);
     if (oidc.audience === oidc.clientId)
       throw new ConfigError(`${file}: oidc.audience must differ from oidc.clientId (an id_token is no access token)`);
   }
   return {
     oidc,
     sessions: raw.sessions as StudioServerConfig['sessions'],
-    worker: raw.worker as StudioServerConfig['worker'],
+    worker,
     publicUrl: origin(raw.publicUrl),
     playUrl: origin(raw.playUrl),
     game: raw.game,
