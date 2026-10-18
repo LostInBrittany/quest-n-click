@@ -69,6 +69,7 @@ function auditLine(e: AuditEntry, names: Map<string, string>): string {
 export async function membersPanel(me: Me, live: Live): Promise<void> {
   const body = h('div', { class: 'members' }, h('p', { class: 'muted' }, 'Loading…'));
   let close = () => {};
+  let lastLink = '';
   const draw = async () => {
     let data: { members: Member[]; invitations: Invitation[] };
     let audit: AuditEntry[] = [];
@@ -159,7 +160,25 @@ export async function membersPanel(me: Me, live: Live): Promise<void> {
     };
     const email = h('input', { type: 'email', id: 'inv-mail', placeholder: 'first@team.example', required: true });
     let role = 'dev';
+    // The link just made, shown again after the screen is redrawn (until the screen is closed).
     const link = h('div', { class: 'invite-link' });
+    if (lastLink)
+      link.replaceChildren(
+        h('input', { type: 'text', readonly: true, value: lastLink, 'aria-label': 'Invitation link' }),
+        h(
+          'button',
+          {
+            type: 'button',
+            onclick: () => void navigator.clipboard.writeText(lastLink).then(() => toast('Link copied')),
+          },
+          'Copy',
+        ),
+        h(
+          'p',
+          { class: 'muted small' },
+          'Send it to them yourself: it is used once, within 7 days, by that verified email.',
+        ),
+      );
     const invite = h(
       'form',
       {
@@ -168,22 +187,7 @@ export async function membersPanel(me: Me, live: Live): Promise<void> {
           e.preventDefault();
           void call<{ link: string }>('POST', 'invitations', { email: email.value.trim(), role }).then(
             (r) => {
-              link.replaceChildren(
-                h('input', { type: 'text', readonly: true, value: r.link, 'aria-label': 'Invitation link' }),
-                h(
-                  'button',
-                  {
-                    type: 'button',
-                    onclick: () => void navigator.clipboard.writeText(r.link).then(() => toast('Link copied')),
-                  },
-                  'Copy',
-                ),
-                h(
-                  'p',
-                  { class: 'muted small' },
-                  'Send it to them yourself: it is used once, within 7 days, by that verified email.',
-                ),
-              );
+              lastLink = r.link;
               void draw();
             },
             (err) => toast((err as Error).message, 'error'),

@@ -25,6 +25,21 @@ const until = async (what: () => Promise<boolean>, ms = 15_000) => {
   return false;
 };
 const revisionOf = async (p: Page) => Number(await p.locator('.rev strong').innerText());
+/**
+ * Takes or releases a span from the spans panel, and waits until the panel shows it done (the click returns before the
+ * server has answered: a write sent at once could still meet the old lease).
+ */
+async function spanAct(p: Page, span: string, act: 'Take' | 'Release') {
+  await p.locator('.who summary').click();
+  await p.getByRole('button', { name: 'Spans…' }).click();
+  const row = p.locator('.span-row', { hasText: new RegExp(`^${span}`) });
+  await row.getByRole('button', { name: act }).click();
+  const want = act === 'Take' ? 'held by you' : 'free';
+  if (!(await until(async () => (await row.locator('.span-state').innerText()) === want)))
+    throw new Error(`${span}: not ${want} after ${act}`);
+  await p.keyboard.press('Escape');
+}
+
 /** Adds a note in the Notes tab (the one composer that is shown there). */
 async function addNote(p: Page, text: string) {
   await p.getByRole('tab', { name: 'Notes' }).click();
@@ -55,13 +70,7 @@ try {
   );
 
   // Tom takes the notes; Léa's note is refused, her draft kept.
-  await tom.locator('.who summary').click();
-  await tom.getByRole('button', { name: 'Spans…' }).click();
-  await tom
-    .locator('.span-row', { hasText: /^notes/ })
-    .getByRole('button', { name: 'Take' })
-    .click();
-  await tom.keyboard.press('Escape');
+  await spanAct(tom, 'notes', 'Take');
   const before = await revisionOf(lea);
   await addNote(lea, 'The gnome should wink at the end.');
   const dialog = lea.getByRole('dialog');
@@ -71,13 +80,7 @@ try {
   check('the draft is kept to copy', (await dialog.locator('.draft pre').innerText()).includes('gnome should wink'));
 
   // Tom lets go; Léa's draft is saved.
-  await tom.locator('.who summary').click();
-  await tom.getByRole('button', { name: 'Spans…' }).click();
-  await tom
-    .locator('.span-row', { hasText: /^notes/ })
-    .getByRole('button', { name: 'Release' })
-    .click();
-  await tom.keyboard.press('Escape');
+  await spanAct(tom, 'notes', 'Release');
   await dialog.getByRole('button', { name: 'Try again' }).click();
   check('once free, the draft is saved', await until(async () => (await revisionOf(lea)) === before + 1));
 
@@ -89,13 +92,7 @@ try {
   );
 
   // Léa lets the notes go (her saved note took them), then is cut off; Tom writes; Léa catches up from the journal.
-  await lea.locator('.who summary').click();
-  await lea.getByRole('button', { name: 'Spans…' }).click();
-  await lea
-    .locator('.span-row', { hasText: /^notes/ })
-    .getByRole('button', { name: 'Release' })
-    .click();
-  await lea.keyboard.press('Escape');
+  await spanAct(lea, 'notes', 'Release');
   await lea.route('**/api/events', (r) => r.abort());
   stack.cut();
   check('a cut is shown', await until(async () => (await lea.locator('.pending.cut').count()) > 0));
@@ -129,13 +126,7 @@ try {
   await aliReloaded;
   await ali.locator('.hosted-bar .rev').waitFor({ timeout: 30_000 });
   // Tom's note took the notes (a write takes its spans): he lets them go first.
-  await tom.locator('.who summary').click();
-  await tom.getByRole('button', { name: 'Spans…' }).click();
-  await tom
-    .locator('.span-row', { hasText: /^notes/ })
-    .getByRole('button', { name: 'Release' })
-    .click();
-  await tom.keyboard.press('Escape');
+  await spanAct(tom, 'notes', 'Release');
   await addNote(ali, 'Now I can write.');
   check('a reviewer made dev writes', await until(async () => (await revisionOf(ali)) === target + 1));
 
