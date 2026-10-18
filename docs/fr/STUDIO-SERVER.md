@@ -7,8 +7,8 @@ C'est le chantier de la ligne 4.2.x (plan `docs/dev/PLAN-4.2.1-4.2.3-STUDIO-SERV
 
 > **État (4.2.1, expérimental).** Le journal (aucune modification confirmée n'est perdue), les connexions et les rôles,
 > l'application de traitement, les pans et les baux, le flux en direct, l'origine propre du jeu avec ses
-> prévisualisations (un build par révision, depuis 4.2.2), et les écrans du Studio pour tout cela. Il reste expérimental jusqu'à ce que ses passes humaines (`studio-hosted`,
-> `studio-collab`) soient faites. Ce guide déploie depuis le dépôt ; l'archive `web-scumm-studio-server` est le même
+> prévisualisations (un build par révision, depuis 4.2.2), et les écrans du Studio pour tout cela. Il reste
+> expérimental jusqu'à ce que ses passes humaines (`studio-hosted`, `studio-collab`) soient faites. Ce guide déploie depuis le dépôt ; l'archive `web-scumm-studio-server` est le même
 > serveur (ci-dessous).
 
 ## Ce qui tourne où
@@ -199,7 +199,7 @@ main : avec OIDC, il faut encore une configuration avec `oidc.allowInsecure: tru
 MinIO, un worker (`npm run studio-worker`) et `trustProxy`. Docker n'est jamais requis. Le serveur tourne aussi sans
 OIDC, avec SQLite et un dossier pour les contenus, sur le loopback seulement.
 
-## Limites connues (4.2.1)
+## Limites connues
 
 - Un jeu par instance, une seule instance (le serveur prend un bail ; une seconde attend).
 - Le jeu dans le Studio est la prévisualisation d'une révision (4.2.2) : après chaque modification, l'application de
@@ -207,7 +207,16 @@ OIDC, avec SQLite et un dossier pour les contenus, sur le loopback seulement.
   salle la charge une fois prête, sauf si un placement n'est pas enregistré. En attendant, les cadres montrent la
   dernière prévisualisation prête, et l'étiquette sous la vue dit de quelle révision il s'agit, celle en construction,
   et une révision qui ne se construit pas, avec sa raison. Les sauvegardes faites dans une prévisualisation ne sont pas
-  encore distinguées par révision (l'ADR 0026 vient ensuite).
+  encore distinguées par révision (l'ADR 0026 vient ensuite). L'onglet Jouer garde la prévisualisation qu'il a chargée
+  jusqu'à « Load the latest preview ».
+- Une prévisualisation se construit à partir des seuls fichiers texte du jeu (sources, données) : un jeu dont le code
+  importe une feuille de style ou une image ne peut pas être prévisualisé.
+- L'application de traitement exécute un job à la fois : la construction d'une prévisualisation peut retarder la
+  validation de la modification suivante de sa propre durée (environ une demi-seconde pour le jeu d'exemple sur un
+  portable ; pas encore mesurée sur une application Clever, la passe `studio-preview` le fait).
+- La prévisualisation de chaque révision est gardée (environ 1 Mo pour le jeu d'exemple : la base `/preview/<rev>/`
+  est écrite dans la page et son code, si bien que peu de fichiers sont partagés d'une révision à l'autre) jusqu'au
+  ramassage d'une PR ultérieure de 4.2.2.
 - L'onglet Assets (uploads, planches, `prepare`) n'est pas encore sur un Studio hébergé : les images et les sons
   préparés viennent avec le déploiement (`publicDir`), et se changent sur un Studio local.
 - Un cadre de jeu resté inactif au-delà de sa session de 15 min ne montre plus rien de neuf : « Reload view » (ou

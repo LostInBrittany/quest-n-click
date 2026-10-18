@@ -3,13 +3,13 @@
 // preview stays; another epoch starts from its own previews; the files go to the blob store by content.
 import { mkdirSync, mkdtempSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { migrate } from '../bridge/src/migrations';
 import type { SqlDb } from '../bridge/src/store-sql';
 import { openSqliteDb } from '../bridge/src/store-sqlite';
 import { type BlobStore, fsBlobStore } from '../studio-server/src/ops/blobs';
 import { type PreviewState, Previews } from '../studio-server/src/server/previews';
-import { previewFiles } from '../studio-server/src/worker/preview-build';
+import { PreviewBuildFailed, previewFiles } from '../studio-server/src/worker/preview-build';
 
 const ROOT = join(import.meta.dirname, '..');
 let tmp: string, db: SqlDb, blobs: BlobStore;
@@ -17,6 +17,7 @@ let head: { epoch: string; rev: number };
 let built: number[];
 let fail: Set<number>;
 let gate: Promise<void> | null;
+let down: boolean;
 
 beforeEach(async () => {
   mkdirSync(join(ROOT, '.cache'), { recursive: true });
@@ -28,6 +29,7 @@ beforeEach(async () => {
   built = [];
   fail = new Set();
   gate = null;
+  down = false;
 });
 afterEach(async () => {
   await db.close();
@@ -47,7 +49,8 @@ const previews = (log: Record<string, unknown>[] = []) =>
       built.push(p.rev);
       expect(bytes.toString()).toBe(`snapshot ${p.rev}`);
       expect(p).toMatchObject({ game: 'demo', studioOrigin: 'https://studio.example', assetsVersion: 'ab12' });
-      if (fail.has(p.rev)) throw new Error(`rev ${p.rev} does not build`);
+      if (fail.has(p.rev)) throw new PreviewBuildFailed(`rev ${p.rev} does not build`);
+      if (down) throw new Error('the processing worker refused the job (503)');
       return new Map([
         ['index.html', Buffer.from(`<p>rev ${p.rev}</p>`)],
         ['assets/font.ttf', Buffer.from('the same font')],
@@ -116,6 +119,46 @@ describe('the revisions previews', () => {
     expect(p.state()).toMatchObject({ ready: 3, failed: null });
   });
 
+  it('records nothing when the worker is away, tries again later, and never leaves a build shown as running', async () => {
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+    try {
+      const log: Record<string, unknown>[] = [];
+      const p = previews(log);
+      down = true;
+      await p.schedule();
+      expect(p.state()).toMatchObject({ ready: null, building: null, failed: null });
+      expect(log.at(-1)).toMatchObject({ event: 'preview-failed', retryMs: 5_000 });
+      expect(await db.all('SELECT * FROM studio_previews')).toEqual([]);
+      // Still away at the first retry: the wait doubles.
+      await vi.advanceTimersByTimeAsync(5_000);
+      expect(log.at(-1)).toMatchObject({ event: 'preview-failed', retryMs: 10_000 });
+      down = false;
+      await vi.advanceTimersByTimeAsync(10_000);
+      await p.schedule();
+      expect(p.state()).toMatchObject({ ready: 1, building: null });
+      p.close();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('a failure read back after a restart is still said', async () => {
+    fail.add(1);
+    await previews().schedule();
+    const again = previews();
+    await again.schedule();
+    expect(built).toEqual([1]);
+    expect(again.state()).toMatchObject({ ready: null, failed: { rev: 1, reason: 'rev 1 does not build' } });
+  });
+
+  it('a store that fails after the build leaves no build shown as running', async () => {
+    const p = previews();
+    await db.exec('DROP TABLE studio_previews');
+    await p.schedule();
+    expect(p.state().building).toBeNull();
+    p.close();
+  });
+
   it('starts another epoch from its own previews, and logs a snapshot that cannot be packed', async () => {
     const log: Record<string, unknown>[] = [];
     const p = previews(log);
@@ -138,7 +181,8 @@ describe('the revisions previews', () => {
       log: (l) => log.push(l),
     });
     await broken.schedule();
-    expect(log.at(-1)).toEqual({ event: 'preview-failed', message: 'the game is too large' });
+    expect(log.at(-1)).toEqual({ event: 'preview-failed', message: 'the game is too large', retryMs: 5_000 });
+    broken.close();
   });
 });
 

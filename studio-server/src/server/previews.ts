@@ -16,9 +16,10 @@ import { EventEmitter } from 'node:events';
 import { createReadStream, realpathSync, statSync } from 'node:fs';
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import { extname, resolve, sep } from 'node:path';
+import { pipeline } from 'node:stream';
 import type { SqlDb } from '../../../bridge/src/store-sql';
 import type { BlobStore } from '../ops/blobs';
-import type { PreviewParams } from '../worker/preview-build';
+import { PreviewBuildFailed, type PreviewParams } from '../worker/preview-build';
 
 export interface PreviewState {
   epoch: string;
@@ -42,7 +43,7 @@ export interface PreviewsOptions {
   /** The folder packed at its revision, holding the instance's lock. */
   snapshot: () => Promise<{ epoch: string; rev: number; bytes: Buffer }>;
   /** The build of a snapshot: the worker's `preview` job, or a child on the loopback. */
-  build: (snapshot: Buffer, params: PreviewParams) => Promise<Map<string, Buffer>>;
+  build: (snapshot: Buffer, params: PreviewParams, at: { epoch: string }) => Promise<Map<string, Buffer>>;
   /** The prepared assets' version (`__ASSETS_VERSION__`). */
   assetsVersion: () => string;
   log?: (line: Record<string, unknown>) => void;
@@ -78,6 +79,13 @@ const TYPES: Record<string, string> = {
 };
 const typeOf = (p: string) => TYPES[extname(p).toLowerCase()] ?? 'application/octet-stream';
 const IMMUTABLE = 'private, max-age=31536000, immutable';
+const PREPARING = [
+  '<!doctype html><meta charset="utf-8"><title>Preparing</title>',
+  '<body style="background:#0a0a12;color:#ccc;font:16px system-ui;display:grid;place-items:center;height:100vh;margin:0">',
+  '<p>The preview is being prepared…</p>',
+].join('');
+const RETRY_MS = 5_000;
+const MAX_RETRY_MS = 5 * 60_000;
 
 export class Previews {
   /** `changed` (PreviewState): a build started, ended, or the head moved. */
@@ -85,6 +93,8 @@ export class Previews {
   private s: PreviewState = { epoch: '', head: 0, ready: null, building: null, failed: null };
   private manifests = new Map<number, Record<string, string>>();
   private wanted = false;
+  private retry?: ReturnType<typeof setTimeout>;
+  private retryMs = RETRY_MS;
   private running: Promise<void> | null = null;
   private now: () => number;
 
@@ -97,7 +107,10 @@ export class Previews {
     return { ...this.s, failed: this.s.failed && { ...this.s.failed } };
   }
 
-  /** Asks for the head's preview; resolves when no build is left to run (tests, the server's start). */
+  /**
+   * Asks for the head's preview; resolves when the run it joined ends (an ask made at that very end starts the next
+   * run at once). For the tests and the server's start.
+   */
   schedule(): Promise<void> {
     this.wanted = true;
     this.running ??= this.loop().finally(() => {
@@ -117,10 +130,23 @@ export class Previews {
       this.wanted = false;
       try {
         await this.once();
+        this.retryMs = RETRY_MS;
       } catch (e) {
-        this.o.log?.({ event: 'preview-failed', message: String((e as Error).message).slice(0, 300) });
+        // Not the game's fault (the worker down or busy, a timeout, the store): said, nothing recorded, tried again
+        // later, waiting longer each time.
+        const message = String((e as Error).message).slice(0, 300);
+        this.o.log?.({ event: 'preview-failed', message, retryMs: this.retryMs });
+        clearTimeout(this.retry);
+        this.retry = setTimeout(() => void this.schedule(), this.retryMs);
+        this.retry.unref?.();
+        this.retryMs = Math.min(this.retryMs * 2, MAX_RETRY_MS);
       }
     }
+  }
+
+  /** Stops the retries (the server's stop, the tests). */
+  close() {
+    clearTimeout(this.retry);
   }
 
   private async once() {
@@ -141,39 +167,52 @@ export class Previews {
       [snap.epoch, snap.rev],
     );
     if (row) {
-      if (row.manifest) this.s.ready = Math.max(this.s.ready ?? 0, snap.rev);
+      if (row.manifest) {
+        this.s.ready = Math.max(this.s.ready ?? 0, snap.rev);
+        this.s.failed = null;
+      } else this.s.failed = { rev: snap.rev, reason: String(row.failed) };
       return this.changed();
     }
     this.s.building = snap.rev;
     this.changed();
     const t0 = this.now();
-    let manifest: Record<string, string> | null = null;
-    let failed: string | null = null;
     try {
-      const files = await this.o.build(snap.bytes, {
-        rev: snap.rev,
-        game: this.o.game,
-        studioOrigin: this.o.studioOrigin,
-        assetsVersion: this.o.assetsVersion(),
-      });
-      manifest = {};
-      for (const [path, bytes] of files) manifest[path] = await this.o.blobs.put(bytes);
-    } catch (e) {
-      failed = String((e as Error).message).slice(0, 2_000);
+      let manifest: Record<string, string> | null = null;
+      let failed: string | null = null;
+      try {
+        const files = await this.o.build(
+          snap.bytes,
+          {
+            rev: snap.rev,
+            game: this.o.game,
+            studioOrigin: this.o.studioOrigin,
+            assetsVersion: this.o.assetsVersion(),
+          },
+          { epoch: snap.epoch },
+        );
+        const entries: [string, string][] = [];
+        for (const [path, bytes] of files) entries.push([path, await this.o.blobs.put(bytes)]);
+        manifest = Object.fromEntries(entries);
+      } catch (e) {
+        // Only the game's own build failing is recorded: anything else is tried again (loop).
+        if (!(e instanceof PreviewBuildFailed)) throw e;
+        failed = e.message.slice(0, 2_000);
+      }
+      const ms = this.now() - t0;
+      await this.o.db.run(
+        'INSERT INTO studio_previews (epoch, rev, manifest, failed, ms, made_at) VALUES ($1, $2, $3, $4, $5, $6) ON CONFLICT DO NOTHING',
+        [snap.epoch, snap.rev, manifest && JSON.stringify(manifest), failed, ms, this.now()],
+      );
+      if (manifest) {
+        this.manifests.set(snap.rev, manifest);
+        this.s.ready = snap.rev;
+        this.s.failed = null;
+      } else this.s.failed = { rev: snap.rev, reason: failed! };
+      this.o.log?.({ event: 'preview', rev: snap.rev, ms, failed: !!failed });
+    } finally {
+      this.s.building = null;
+      this.changed();
     }
-    const ms = this.now() - t0;
-    await this.o.db.run(
-      'INSERT INTO studio_previews (epoch, rev, manifest, failed, ms, made_at) VALUES ($1, $2, $3, $4, $5, $6) ON CONFLICT DO NOTHING',
-      [snap.epoch, snap.rev, manifest && JSON.stringify(manifest), failed, ms, this.now()],
-    );
-    this.s.building = null;
-    if (manifest) {
-      this.manifests.set(snap.rev, manifest);
-      this.s.ready = snap.rev;
-      this.s.failed = null;
-    } else this.s.failed = { rev: snap.rev, reason: failed! };
-    this.o.log?.({ event: 'preview', rev: snap.rev, ms, failed: !!failed });
-    this.changed();
   }
 
   private async manifest(rev: number): Promise<Record<string, string> | undefined> {
@@ -198,8 +237,8 @@ export class Previews {
     } catch {
       return text(res, 400, 'bad path');
     }
-    if (path.includes('\0') || path.includes('\\') || /(^|\/)\.\.?(\/|$)/.test(path))
-      return text(res, 404, 'not found');
+    // No `.` nor `..`, and no hidden file (`.env`, `.DS_Store`) in the folders served.
+    if (path.includes('\0') || path.includes('\\') || /(^|\/)\./.test(path)) return text(res, 404, 'not found');
     const m = /^\/preview\/(\d{1,15})\/(.*)$/.exec(path);
     if (m) {
       const rest = m[2] || 'index.html';
@@ -225,9 +264,7 @@ export class Previews {
     if (path !== '/' && path !== '/index.html') return text(res, 404, 'not found');
     if (this.s.ready === null) {
       res.writeHead(503, { 'content-type': 'text/html; charset=utf-8', refresh: '2', 'retry-after': '2' });
-      return void res.end(
-        '<!doctype html><meta charset="utf-8"><title>Preparing</title><body style="background:#0a0a12;color:#ccc;font:16px system-ui;display:grid;place-items:center;height:100vh;margin:0"><p>The preview is being prepared…</p>',
-      );
+      return void res.end(PREPARING);
     }
     res.writeHead(302, { location: `/preview/${this.s.ready}/${url.search}` });
     res.end();
@@ -272,7 +309,8 @@ export class Previews {
       });
     } else res.writeHead(200, { ...headers, 'content-length': size });
     if (req.method === 'HEAD' || size === 0) return void res.end();
-    createReadStream(file, { start, end }).pipe(res);
+    // A file replaced meanwhile, a client gone (a media seek): the stream ends and its file is closed.
+    pipeline(createReadStream(file, { start, end }), res, () => {});
   }
 }
 

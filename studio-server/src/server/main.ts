@@ -300,7 +300,10 @@ async function main(argv: string[]): Promise<number> {
   else if (config.oidc)
     throw new ConfigError(`${clientDir} has no studio.html: build the Studio's page first (npm run studio-client)`);
   // The game's origin (plan §6.1): the revisions' previews, built by the worker, behind a game session (4.2.2 PR 2).
-  // The snapshot is packed holding the instance's lock: no write lands between reading the head and packing it.
+  // The snapshot is packed holding the instance's lock, from the folder repaired to the head first: no write lands
+  // between reading the head and packing it, and the folder (a cache) has not drifted from it. The prepared assets are
+  // read only on a hosted Studio: their version is computed once, at the first build.
+  let version: string | undefined;
   const previews =
     auth && authStore && executor
       ? new Previews({
@@ -310,13 +313,12 @@ async function main(argv: string[]): Promise<number> {
           game: config.game,
           studioOrigin: config.publicUrl,
           snapshot: () =>
-            server.exclusive(async () => ({
-              epoch: await journal.epoch(),
-              rev: await journal.revision(),
-              bytes: packSnapshot(gameDir),
-            })),
-          build: (bytes, params) => executor!.preview(bytes, params),
-          assetsVersion: () => assetsVersion(join(publicDir, 'assets')),
+            server.exclusive(async () => {
+              await journal.reconcile();
+              return { epoch: await journal.epoch(), rev: await journal.revision(), bytes: packSnapshot(gameDir) };
+            }),
+          build: (bytes, params, at) => executor!.preview(bytes, params, at),
+          assetsVersion: () => (version ??= assetsVersion(join(publicDir, 'assets'))),
           log: (line) => console.log(JSON.stringify(line)),
         })
       : undefined;
@@ -379,6 +381,7 @@ async function main(argv: string[]): Promise<number> {
     const drained = new Promise((ok) => server.once('close', ok));
     await Promise.race([drained, new Promise((ok) => setTimeout(ok, 5_000))]);
     server.closeAllConnections?.();
+    previews?.close();
     await journal.close().catch(() => undefined);
     await lease.release();
     setTimeout(() => process.exit(0), 100).unref();

@@ -1,7 +1,9 @@
 // The worker's child process (4.2.1, ADR 0028): runs the game's code in the folder it is given and prints one JSON
-// document to the file it is given: `validate`, the validator's verdict; `load`, the game module as data (functions dropped, as the Studio
-// reads it); `preview` (4.2.2), the revision's built preview, its files in base64 by path (preview-build.ts). It is started with an emptied environment, in a fresh folder, and killed with its process group at its
-// deadline; the game's code runs here, never in the supervisor... as far as one machine and one user allow (ADR 0028).
+// document to the file it is given: `validate`, the validator's verdict; `load`, the game module as data (functions
+// dropped, as the Studio reads it); `preview` (4.2.2), the revision's built preview, its files in base64 by path
+// (preview-build.ts). It is started with an emptied environment, in a fresh folder, and killed with its process group
+// at its deadline; the game's code runs here, never in the supervisor... as far as one machine and one user allow
+// (ADR 0028).
 import { writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';

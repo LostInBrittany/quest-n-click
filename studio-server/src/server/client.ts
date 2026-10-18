@@ -7,6 +7,7 @@
 // The page's Content-Security-Policy: scripts from this origin only, frames from the game's origin only, framed by
 // nobody else, requests to this origin only (the assistant calls its provider through the server).
 import { createReadStream, existsSync, readFileSync, realpathSync, statSync } from 'node:fs';
+import { pipeline } from 'node:stream';
 import type { ServerResponse } from 'node:http';
 import { extname, join, resolve, sep } from 'node:path';
 
@@ -156,7 +157,8 @@ export class StudioClient {
       'content-security-policy': "default-src 'none'",
       ...headers,
     });
-    createReadStream(real).pipe(res);
+    // A file replaced meanwhile, a client gone: the stream ends and its file is closed.
+    pipeline(createReadStream(real), res, () => {});
   }
 
   private notFound(res: ServerResponse) {

@@ -103,7 +103,7 @@ export async function startStack(o: { tls: boolean; game?: string }) {
         rev: await journal.revision(),
         bytes: packSnapshot(gameDir),
       })),
-    build: localPreview,
+    build: (bytes, params) => localPreview(bytes, params),
     assetsVersion: () => 'e2e',
   });
   journal.events.on('confirmed', () => void previews.schedule());

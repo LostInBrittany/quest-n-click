@@ -106,7 +106,7 @@ const previews = new Previews({
       rev: await journal.revision(),
       bytes: packSnapshot(gameDir),
     })),
-  build: localPreview,
+  build: (bytes, params) => localPreview(bytes, params),
   assetsVersion: () => 'e2e',
 });
 journal.events.on('confirmed', () => void previews.schedule());

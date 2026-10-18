@@ -19,6 +19,14 @@ export interface PreviewParams {
   assetsVersion: string;
 }
 
+/**
+ * The game's own build failed (its code does not compile, it does not load): recorded with its revision, never built
+ * again. Anything else (the worker unreachable or busy, a timeout, the store) is another error, and is tried again.
+ */
+export class PreviewBuildFailed extends Error {
+  override name = 'PreviewBuildFailed';
+}
+
 /** The checks a job's parameters pass before a build: the worker builds nothing a job did not name exactly. */
 export function previewParams(p: Record<string, unknown>): PreviewParams {
   const { rev, game, studioOrigin, assetsVersion } = p;

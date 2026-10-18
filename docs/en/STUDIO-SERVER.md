@@ -7,8 +7,7 @@ it was: none of this is needed.
 
 > **Status (4.2.1, experimental).** The journal (no confirmed change is lost), logins and roles, the processing
 > worker, spans and leases, the live stream, the game's own origin with its previews (one build per revision, since
-> 4.2.2), and the Studio's screens for
-> all of this. It stays experimental until its people's passes (`studio-hosted`, `studio-collab`) are made. This guide
+> 4.2.2), and the Studio's screens for all of this. It stays experimental until its people's passes (`studio-hosted`, `studio-collab`) are made. This guide
 > deploys from the repository; the release archive `web-scumm-studio-server` is the same server (below).
 
 ## What runs where
@@ -195,14 +194,21 @@ OIDC you still need a configuration with `oidc.allowInsecure: true` (a provider 
 (`npm run studio-worker`) and `trustProxy`. Docker is never required. The server also runs without OIDC, with
 SQLite and a folder for the contents, on the loopback only.
 
-## Known limits (4.2.1)
+## Known limits
 
 - One game per instance, one instance (the server takes a lease; a second one waits).
 - The game in the Studio is the preview of a revision (4.2.2): after each change the worker builds the head (a burst
   of changes builds its last revision only), and the room view loads it once built, unless a placement is not saved.
   Meanwhile the frames show the last ready preview, and the label under the room view says which revision it is, the
   one building, and a revision that does not build, with its reason. Saves made in a preview are not yet told apart
-  by revision (ADR 0026 comes next).
+  by revision (ADR 0026 comes next). The Play tab keeps the preview it loaded until "Load the latest preview".
+- A preview is built from the game's text files only (sources, data): a game whose code imports a stylesheet or an
+  image cannot be previewed.
+- The worker runs one job at a time: a preview's build can delay the next change's validation by its own time
+  (about half a second for the sample game on a laptop; not yet measured on a Clever worker, the `studio-preview`
+  pass does).
+- Each revision's preview is kept (about 1 MB for the sample game: the base `/preview/<rev>/` is written into the
+  page and its code, so few files are shared between revisions) until the collection of a later 4.2.2 PR.
 - The Assets tab (uploads, sprite sheets, `prepare`) is not on a hosted Studio yet: the prepared images and sounds
   come with the deployment (`publicDir`), and are changed on a local Studio.
 - A game frame left idle past its 15 min session shows nothing new: "Reload view" (or the Play tab) opens it again.

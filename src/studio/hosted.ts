@@ -213,9 +213,12 @@ export class Live {
   ) {}
 
   private setPreview(p: PreviewState | null) {
-    const before = this.preview?.ready ?? null;
+    const before = this.preview;
     this.preview = p;
-    if (p?.ready != null && (before === null || p.ready > before)) this.o.previewReady?.(p.ready);
+    // Another ready preview, or another history (an import, a restore: the old revisions are gone). Not at the first
+    // news: the frames are loading the last ready one already.
+    if (before && p?.ready != null && (p.ready !== before.ready || p.epoch !== before.epoch))
+      this.o.previewReady?.(p.ready);
     this.changed();
   }
 
@@ -453,7 +456,7 @@ export async function gateScreen(
 
 /**
  * Everything a hosted Studio adds to the page: the bar (revision, who is here, you), the line that says when the stream
- * is cut or writes are waiting, the lease of the room shown, the live preview's label, the heartbeat, and the dialogs
+ * is cut or writes are waiting, the lease of the room shown, the preview's label, the heartbeat, and the dialogs
  * of a refused write. `changed`: a file a committed revision touched, with its author.
  */
 export function hostedStudio(o: {
@@ -540,10 +543,8 @@ export function hostedStudio(o: {
   });
   /** "preview of revision N", and what comes next: a build running, a revision that does not build. */
   const previewLabel = (frame: HTMLIFrameElement) => {
-    const label = h('span', {
-      class: 'preview-label',
-      title: 'The game as built at that revision; a newer one replaces it once built',
-    });
+    const TITLE = 'The game as built at that revision; a newer one replaces it once built';
+    const label = h('span', { class: 'preview-label', title: TITLE });
     let at: number | null = null;
     const draw = () => {
       const p = live.preview;
@@ -554,8 +555,11 @@ export function hostedStudio(o: {
       const parts = [`preview of revision ${at}`];
       if (p?.building != null && p.building > at) parts.push(`revision ${p.building} building…`);
       else if (p?.ready != null && p.ready > at) parts.push(`revision ${p.ready} ready: reload to see it`);
-      if (p?.failed && p.failed.rev > at) parts.push(`revision ${p.failed.rev} does not build: ${p.failed.reason}`);
+      // The reason can be a whole build log: its first line here, all of it on hover.
+      const failed = p?.failed && p.failed.rev > at ? p.failed : null;
+      if (failed) parts.push(`revision ${failed.rev} does not build: ${failed.reason.split('\n')[0]!.slice(0, 120)}`);
       label.textContent = parts.join(' · ');
+      label.title = failed ? failed.reason : TITLE;
     };
     // The frame is on another origin: the revision it loaded is the last ready when it loaded (the server sends `/`
     // to that one).

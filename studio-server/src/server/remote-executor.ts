@@ -11,7 +11,7 @@ import { createHash, randomUUID } from 'node:crypto';
 import type { ValidateResult } from '../../../tools/studio/types';
 import { type Job, type JobKind, MAX_JOB_MS, privateKeyOf, signJob } from '../worker/job';
 import type { JobResult } from '../worker/main';
-import { type PreviewParams, previewFiles } from '../worker/preview-build';
+import { PreviewBuildFailed, type PreviewParams, previewFiles } from '../worker/preview-build';
 import { packSnapshot } from '../worker/snapshot';
 import type { S3 } from './s3';
 
@@ -33,7 +33,13 @@ export function remoteExecutor(o: RemoteExecutorOptions) {
   const timeoutMs = Math.min(o.timeoutMs ?? 60_000, 120_000);
   const last = new Map<JobKind, { sha: string; at: number; result: JobResult }>();
 
-  async function run(kind: JobKind, snapshot: Buffer, params: Record<string, unknown> = {}): Promise<JobResult> {
+  async function run(
+    kind: JobKind,
+    snapshot: Buffer,
+    params: Record<string, unknown> = {},
+    // The revision the snapshot was packed at, when the caller knows it (a preview): bound into the job as it is.
+    at?: { epoch: string; rev: number },
+  ): Promise<JobResult> {
     const sha = createHash('sha256').update(snapshot).digest('hex');
     const hit = kind === 'preview' ? undefined : last.get(kind);
     if (hit?.sha === sha && Date.now() - hit.at < CACHE_MS) return hit.result;
@@ -45,7 +51,7 @@ export function remoteExecutor(o: RemoteExecutorOptions) {
       const job: Job = {
         id,
         instance: o.instance,
-        ...(await o.at()),
+        ...(at ?? (await o.at())),
         kind,
         params: { ...params, timeoutMs },
         snapshot: sha,
@@ -99,9 +105,10 @@ export function remoteExecutor(o: RemoteExecutorOptions) {
      * A revision's preview (4.2.2 PR 2), from the snapshot the caller packed with the revision it names: its files by
      * path. A failure of the build (the game's code, a timeout) throws with its reason.
      */
-    async preview(snapshot: Buffer, params: PreviewParams): Promise<Map<string, Buffer>> {
-      const v = await run('preview', snapshot, { ...params });
-      if (v.failed) throw new Error(v.failed);
+    async preview(snapshot: Buffer, params: PreviewParams, at: { epoch: string }): Promise<Map<string, Buffer>> {
+      const v = await run('preview', snapshot, { ...params }, { epoch: at.epoch, rev: params.rev });
+      // The game's build failed: recorded. A deadline missed may pass on a less busy worker: tried again.
+      if (v.failed) throw v.timedOut ? new Error(v.failed) : new PreviewBuildFailed(v.failed);
       return new Map(Object.entries(v.files!).map(([k, b]) => [k, Buffer.from(b, 'base64')]));
     },
   };

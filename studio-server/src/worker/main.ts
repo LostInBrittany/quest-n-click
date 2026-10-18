@@ -49,6 +49,8 @@ export interface JobResult {
   files?: Record<string, string>;
   /** The game's code did not run to its end (a timeout, a crash, output that is not JSON). */
   failed?: string;
+  /** The failure was the deadline (4.2.2): it may pass on a less busy worker, unlike a crash. */
+  timedOut?: boolean;
 }
 
 /**
@@ -61,7 +63,7 @@ export function runChild(
   kind: Job['kind'] = 'validate',
   outFile = `${dir}.out.json`,
   params: Record<string, unknown> = {},
-): Promise<{ out: string; code: number | null; timedOut: boolean; pid: number }> {
+): Promise<{ out: string; code: number | null; timedOut: boolean; tooLarge: boolean; pid: number }> {
   return new Promise((ok, fail) => {
     rmSync(outFile, { force: true });
     const child = spawn(
@@ -94,13 +96,15 @@ export function runChild(
       clearTimeout(timer);
       killGroup();
       let out = '';
+      let tooLarge = false;
       try {
         if (statSync(outFile).size <= MAX_OUT) out = readFileSync(outFile, 'utf8');
+        else tooLarge = true;
       } catch {
         out = '';
       }
       rmSync(outFile, { force: true });
-      ok({ out, code, timedOut, pid: child.pid ?? 0 });
+      ok({ out, code, timedOut, tooLarge, pid: child.pid ?? 0 });
     });
   });
 }
@@ -151,7 +155,10 @@ export function createWorker(o: WorkerOptions) {
       }
       const result: JobResult = { job: job.id, kind: job.kind, ms: 0 };
       let parsed: unknown;
-      if (r.timedOut) result.failed = `the game's code did not finish within ${timeoutMs} ms`;
+      if (r.timedOut) {
+        result.failed = `the game's code did not finish within ${timeoutMs} ms`;
+        result.timedOut = true;
+      } else if (r.tooLarge) result.failed = `the output exceeds ${MAX_OUT >> 20} MiB`;
       else
         try {
           parsed = JSON.parse(r.out);

@@ -136,7 +136,7 @@ beforeAll(async () => {
       rev: await journal.revision(),
       bytes: packSnapshot(gameDir),
     }),
-    build: localPreview,
+    build: (bytes, params) => localPreview(bytes, params),
     assetsVersion: () => 'abc123',
   });
   const server = studioServer({
@@ -290,6 +290,8 @@ describe("the game's previews", () => {
       `/preview/${rev + 1000}/`,
       '/preview/x/',
       '/@fs/etc/passwd',
+      '/icons/.hidden',
+      `/preview/${rev}/assets/img/.DS_Store`,
       `/preview/${rev}/private/secret.ts`,
     ])
       expect((await asGame(s, p)).status, p).toBe(404);
