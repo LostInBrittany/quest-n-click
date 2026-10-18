@@ -186,12 +186,23 @@ export class Live {
     for (const fn of this.listeners) fn();
   }
 
+  private retries = 0;
+
   start(url: string) {
     const es = new EventSource(url);
     this.es = es;
+    es.onopen = () => {
+      this.retries = 0;
+    };
     es.onerror = () => {
       this.up = false;
       this.changed();
+      // A browser retries a stream that dropped, but gives up on one it could not open (Firefox, a refused request,
+      // a server restarting): then the page opens it again itself, waiting longer each time (30 s at most).
+      if (es.readyState === EventSource.CLOSED && this.es === es) {
+        const wait = Math.min(30_000, 1000 * 2 ** this.retries++);
+        setTimeout(() => this.es === es && this.start(url), wait);
+      }
     };
     es.addEventListener('hello', (m) => void this.hello(JSON.parse((m as MessageEvent).data)));
     es.addEventListener('revision', (m) => this.revisionEvent(JSON.parse((m as MessageEvent).data) as Revision));
