@@ -181,6 +181,19 @@ describe('the files it follows', () => {
     await j.close();
   });
 
+  it('trusts its cache for a file whose size and time did not move (its stated limit: a rewrite of the same size within the same time is not seen)', async () => {
+    const f = join(game, 'rooms', 'a.ts');
+    const t = new Date(Math.floor(Date.now() / 1000) * 1000 - 60_000);
+    utimesSync(f, t, t);
+    const j = await open();
+    expect((await j.file('rooms/a.ts')).blob).toBe(sha256('a0'));
+    writeFileSync(f, 'b0');
+    utimesSync(f, t, t);
+    await write(j, 'notes.json', '{"n":1}');
+    expect((await j.file('rooms/a.ts')).blob).toBe(sha256('a0'));
+    await j.close();
+  });
+
   it('sees a file rewritten with another size even when its time did not move, and one whose time moved', async () => {
     const f = join(game, 'rooms', 'a.ts');
     // Whole seconds: a time set twice is then exactly the same (a sub-millisecond time would not survive utimes).
@@ -282,6 +295,52 @@ describe('the lease', () => {
     const j = await Journal.open({ db: pg as never, blobs: fsBlobStore(join(root, 'blobs')), gameDir: game });
     await write(j, 'rooms/a.ts', 'a1');
     expect(asked).toBeGreaterThan(0);
+    await j.close();
+  });
+
+  it('a lease that ends in the very millisecond of the check is over (the database clock pinned)', async () => {
+    // The database's clock answered by the test: the lease is taken at 1 000, lasts 60 s; the check reads its end.
+    const real = await openDb();
+    let now = 1_000;
+    const CLOCK = "CAST(unixepoch('subsec') * 1000 AS INTEGER)";
+    const pin = (sql: string) => sql.replaceAll(CLOCK, () => String(now));
+    type Q = {
+      all(s: string, p?: unknown[]): Promise<unknown>;
+      run(s: string, p?: unknown[]): Promise<unknown>;
+      exec(s: string): Promise<void>;
+    };
+    const wrap = (q: Q) => ({
+      all: (sql: string, p?: unknown[]) => q.all(pin(sql), p),
+      run: (sql: string, p?: unknown[]) => q.run(pin(sql), p),
+      exec: (sql: string) => q.exec(pin(sql)),
+    });
+    const db = {
+      ...wrap(real),
+      dialect: 'sqlite' as const,
+      tx: (k: string | undefined, fn: (q: unknown) => Promise<unknown>, o?: unknown) =>
+        real.tx(k, (q) => fn(wrap(q)), o as never),
+      close: () => real.close(),
+    };
+    const j = await Journal.open({
+      db: db as never,
+      blobs: fsBlobStore(join(root, 'blobs')),
+      gameDir: game,
+      leaseMs: 60_000,
+    });
+    const e = await j
+      .apply({
+        author: 'lea',
+        what: 'w',
+        effects: [{ path: 'rooms/a.ts', after: 'a1' }],
+        guard: async () => {
+          const [l] = (await real.all('SELECT until_ms FROM studio_lease WHERE id = 1')) as { until_ms: number }[];
+          now = Number(l!.until_ms);
+        },
+        respond: () => 0,
+      })
+      .catch((x: unknown) => x);
+    expect(e).toBeInstanceOf(LeaseLostError);
+    expect(read('rooms/a.ts')).toBe('a0');
     await j.close();
   });
 

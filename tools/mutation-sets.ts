@@ -200,7 +200,7 @@ export const GATED: MutationSet[] = [
   // 4.1.20 PR 2b–2e: its 488 survivors read family by family (badges, email, terminal, the rest): 473 killed by
   // tests/connectors-*-edge-mutants.test.ts, 15 named (docs/dev/mutants.json). Run in 4 shards.
   'connectors-edge',
-  // 4.2.1: its survivors read (164 of 181 killed, 17 named in docs/dev/mutants.json), its tests
+  // 4.2.1: its survivors read (168 of 181 killed, 13 named in docs/dev/mutants.json), its tests
   // tests/studio-journal-mutants and tests/studio-durable-mutants.
   'studio-ops',
 ];
