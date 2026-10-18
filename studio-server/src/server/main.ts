@@ -94,13 +94,14 @@ async function main(argv: string[]): Promise<number> {
     return 0;
   }
   const at = rest.indexOf('--config');
-  const file = at >= 0 ? rest[at + 1] : process.env.STUDIO_CONFIG;
+  const inline = at < 0 ? process.env.STUDIO_CONFIG_JSON : undefined;
+  const file = at >= 0 ? rest[at + 1] : (process.env.STUDIO_CONFIG ?? (inline ? 'STUDIO_CONFIG_JSON' : undefined));
   if (!cmd || !file) {
-    console.error('usage: studio-server <serve|import <dir>|export <dir>> --config <file>');
+    console.error('usage: studio-server <serve|import <dir>|export <dir>> --config <file> (or STUDIO_CONFIG_JSON)');
     return 2;
   }
   const args = rest.filter((_, i) => i !== at && i !== at + 1);
-  const config = loadConfig(file);
+  const config = loadConfig(file, process.env.STUDIO_CONFIG ? undefined : inline);
   const { db, blobs, gameDir, secrets, s3 } = await openAll(config);
   const hosted = config.store.kind === 'postgres';
 

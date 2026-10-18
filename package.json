@@ -80,6 +80,8 @@
     "build:studio-demo": "tsx tools/select-game.ts && cross-env STUDIO=1 VITE_STUDIO_DEMO=1 vite build",
     "studio-snapshot": "tsx tools/studio/snapshot.ts",
     "studio-apply": "tsx studio-server/src/ops/apply.ts",
+    "studio-server": "tsx studio-server/src/server/main.ts",
+    "studio-worker": "tsx studio-server/src/worker/main.ts",
     "new-game": "node scripts/new-game.mjs",
     "pack": "node scripts/pack.mjs",
     "fresh-install": "node scripts/fresh-install.mjs",

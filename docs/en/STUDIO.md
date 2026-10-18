@@ -4,6 +4,9 @@
 written to files under `games/<id>/`, the same files an AI assistant or a teammate edits with git. The Studio shows the
 real engine (the room rendered by `src/engine/dom`), so what you see is what players get.
 
+To put a game's Studio online for a team (logins, roles, several people at once), see
+[STUDIO-SERVER](STUDIO-SERVER.md).
+
 ## Local and LAN security
 
 `npm run studio` and `npm run dev` listen on `127.0.0.1`: another machine cannot reach their file-writing routes.
