@@ -136,7 +136,9 @@ try {
       ? undefined
       : `ali at ${await revisionOf(ali)}, léa at ${await revisionOf(lea)}, want ${target + 1}; ali's menu: ${await ali
           .locator('.who summary')
-          .innerText({ timeout: 1000 })}; toasts: ${(await ali.locator('.toast').allInnerTexts()).join(' | ')}; dialog: ${await ali
+          .innerText({
+            timeout: 1000,
+          })}; toasts: ${(await ali.locator('.toast').allInnerTexts()).join(' | ')}; dialog: ${await ali
           .getByRole('dialog')
           .getAttribute('aria-label', { timeout: 1000 })
           .catch(() => 'none')}`,
