@@ -1,6 +1,8 @@
 // Play tab: the game itself (with the dev tools) in a frame, next to a state inspector and a rule explainer: pick a
 // verb and a target (and an item), see every rule that could answer, with each condition evaluated against the live
-// state (✓ / ✗), and which answer wins. The frame is the same origin: the Studio reads `window.__game` in it.
+// state (✓ / ✗), and which answer wins. The frame is the same origin: the Studio reads `window.__game` in it. On a
+// hosted Studio (4.2.1) the game is on its own origin: the frame shows it with its dev tools, and the panels that read
+// into it are left out (game-origin.ts).
 import { explainCond, type Explained } from '@engine/core/cond';
 import type { Engine } from '@engine/core/engine';
 import type { GameDef, Id, Rule } from '@engine/core/types';
@@ -15,6 +17,7 @@ import {
 import { api, BASE, type GameInfo } from './api';
 import { SpeedrunPanel, type SpeedrunFrame } from './speedrun-panel';
 import { download, h, select, toast } from './ui';
+import { gameElsewhere, gameLink, gameUrl } from './game-origin';
 import { RealityPanel } from './reality-panel';
 
 type GameWindow = Window & { __game?: { engine: Engine; game: GameDef } };
@@ -23,7 +26,11 @@ const asList = <T>(x: T | T[] | undefined): T[] => (x === undefined ? [] : Array
 
 export class PlayTab {
   readonly el = h('section', { class: 'tab play' });
-  private frame = h('iframe', { class: 'playframe', title: 'The game', src: `${BASE}?dev` }) as HTMLIFrameElement;
+  private frame = h('iframe', {
+    class: 'playframe',
+    title: 'The game',
+    src: gameElsewhere() ? 'about:blank' : `${BASE}?dev`,
+  }) as HTMLIFrameElement;
   private state = h('div', { class: 'panel state' });
   private why = h('div', { class: 'panel why' });
   private journal = h('div', { class: 'panel journal' });
@@ -69,9 +76,7 @@ export class PlayTab {
                 ['canvas', 'canvas'],
               ],
               '',
-              (v) => {
-                this.frame.src = `${BASE}?dev${v ? `&renderer=${v}` : ''}`;
-              },
+              (v) => void this.load(v),
             ),
             ' ',
             this.perf,
@@ -80,12 +85,28 @@ export class PlayTab {
             'p',
             { class: 'muted small' },
             'The game with the dev tools (?dev): press D for the zone overlay, the DEV panel teleports and sets flags. ',
-            h('a', { href: `${BASE}?dev`, target: '_blank', rel: 'noopener' }, 'Open in a new tab ↗'),
+            gameLink('?dev', 'Open in a new tab ↗'),
           ),
         ),
-        h('div', { class: 'playside' }, this.state, this.reality.el, this.speedrun.el, this.why, this.journal),
+        gameElsewhere()
+          ? h(
+              'div',
+              { class: 'playside' },
+              h(
+                'p',
+                { class: 'panel muted' },
+                'Live preview, not frozen: the game as it is now, loaded once. ',
+                'It runs on its own origin, so the state, the rules and the replays are read in the DEV panel inside ',
+                'the game; the panels beside it need the local Studio.',
+              ),
+            )
+          : h('div', { class: 'playside' }, this.state, this.reality.el, this.speedrun.el, this.why, this.journal),
       ),
     );
+    if (gameElsewhere()) {
+      void this.load('');
+      return;
+    }
     this.timer = setInterval(() => {
       this.refresh();
       this.reality.refresh();
@@ -122,6 +143,16 @@ export class PlayTab {
       p.frames = 0;
       p.since = now;
       p.paints = paints;
+    }
+  }
+
+  /** (Re)loads the game in the frame, with a painter (`dom`, `canvas`) or the game's own. */
+  private async load(painter: string) {
+    const q = `?dev${painter ? `&renderer=${painter}` : ''}`;
+    try {
+      this.frame.src = await gameUrl(q);
+    } catch (e) {
+      toast(`The game does not open: ${(e as Error).message}`, 'error');
     }
   }
 

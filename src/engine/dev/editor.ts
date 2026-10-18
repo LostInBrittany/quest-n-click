@@ -74,10 +74,18 @@ export class Editor {
   // -------------------------------------------------------------- Studio bridge
   // Inside the Studio (an iframe of /__studio/), the editor tells the parent page what is selected, whether the
   // layout has unsaved changes and when it was saved; the Studio can ask it to select, place or save something.
+  // On a hosted Studio (4.2.1) this page is on the game's origin, which names the Studio's in a meta tag
+  // (studio-server/src/server/preview.ts): messages go there and are taken from there only, and the editor never
+  // writes: it hands the layout to the Studio as the answer to the Studio's save request.
+
+  /** The Studio's origin when it is another one (hosted), else this page's. */
+  private studioOrigin =
+    document.querySelector('meta[name="web-scumm-studio-origin"]')?.getAttribute('content') ?? location.origin;
+  private hosted = this.studioOrigin !== location.origin;
 
   private post(msg: Record<string, unknown>) {
     if (window.parent === window) return;
-    window.parent.postMessage({ source: 'web-scumm-editor', room: this.room.id, ...msg }, location.origin);
+    window.parent.postMessage({ source: 'web-scumm-editor', room: this.room.id, ...msg }, this.studioOrigin);
   }
 
   private bridge() {
@@ -89,9 +97,10 @@ export class Editor {
         kind?: 'prop' | 'hotspot' | 'actor';
         id?: string;
         at?: Point;
+        nonce?: string;
       };
-      if (e.origin !== location.origin || m?.source !== 'web-scumm-studio') return;
-      if (m.type === 'save') void this.save();
+      if (e.origin !== this.studioOrigin || m?.source !== 'web-scumm-studio') return;
+      if (m.type === 'save') void this.save(typeof m.nonce === 'string' ? m.nonce : undefined);
       else if ((m.type === 'select' || m.type === 'create') && m.kind && m.id) {
         if (m.type === 'create' && this.missing().some((x) => x.kind === m.kind && x.id === m.id))
           this.addMissing({ kind: m.kind, id: m.id }, m.at);
@@ -452,7 +461,18 @@ export class Editor {
    * the layout goes to the Studio around this view (postMessage; it keeps it with the demo's edits) or, standalone,
    * straight into the demo's edits in localStorage: the engine applies them on the next load.
    */
-  async save() {
+  async save(nonce?: string) {
+    // Hosted: the Studio writes. The editor's own Save asks it to; its request (with a nonce) gets the layout.
+    if (this.hosted && window.parent !== window) {
+      if (nonce === undefined) return this.post({ type: 'want-save' });
+      const L = roundLayout(this.L);
+      this.app.engine.layouts[this.room.id] = L;
+      this.dirty = false;
+      this.status.state = `sent to the Studio (${new Date().toLocaleTimeString()})`;
+      this.post({ type: 'saved', ok: true, layout: L, nonce });
+      this.pane.refresh();
+      return;
+    }
     const L = roundLayout(this.L);
     this.app.engine.layouts[this.room.id] = L;
     let error = '';

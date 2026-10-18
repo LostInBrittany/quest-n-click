@@ -6,9 +6,9 @@ line's work (plan `docs/dev/PLAN-4.2.1-4.2.3-STUDIO-SERVER.md`). Alone on your m
 it was: none of this is needed.
 
 > **Status (4.2.1, in progress).** Done: the journal (no confirmed change is lost), logins and roles, the processing
-> worker, spans and leases, the live stream, the game's own origin. Still coming in 4.2.1: the Studio's screens for
-> all of this, the live preview on the game's origin, and the release package. Until then, this guide deploys the
-> server from the repository.
+> worker, spans and leases, the live stream, the game's own origin with its live preview, and the Studio's page.
+> Still coming in 4.2.1: the Studio's screens for members, leases and conflicts, and the release package. Until then,
+> this guide deploys the server from the repository.
 
 ## What runs where
 
@@ -58,6 +58,7 @@ mkdir -p ~/secrets/my-game && npm run studio-server -- worker-keys --out ~/secre
 | Variable | Value |
 |---|---|
 | `CC_NODE_DEV_DEPENDENCIES` | `install` (4.2.1 runs from the repository with `tsx`) |
+| `CC_POST_BUILD_HOOK` | `npm run studio-client` (builds the Studio's page the server serves) |
 | `CC_RUN_COMMAND` | `npm run studio-server -- serve` |
 | `CC_HEALTH_CHECK_PATH` | `/startz` |
 | `STUDIO_CONFIG_JSON` | the configuration below, on one line |
@@ -94,6 +95,11 @@ Clever, each can be a file instead: `STUDIO_SESSION_KEY_FILE`, and so on (mode 0
   `studio-hosted` pass: an address in them could otherwise claim any `X-Forwarded-For`.
 - No `port`: the server listens on the `PORT` Clever gives it (a `port` in the configuration would override it).
 - `worker.instance`: any name; the worker runs no other Studio's jobs.
+- `publicDir` (optional): the game's prepared images and sounds, `public/` of the deployed repository by default
+  (`npm run assets` writes them there and they are committed). The Studio shows them to members and the live preview
+  plays them; they are read only on a hosted Studio in 4.2.1.
+- `clientDir` (optional): the built Studio, `.cache/studio-client` by default (`npm run studio-client`). With OIDC the
+  server refuses to start without it.
 
 **The worker app's variables:** `CC_NODE_DEV_DEPENDENCIES=install`, `CC_RUN_COMMAND=npm run studio-worker`,
 `WORKER_PUBLIC_KEY` (the content of `studio-worker.pub`), `WORKER_INSTANCE` (the same name as `worker.instance`).
@@ -171,4 +177,7 @@ SQLite and a folder for the contents, on the loopback only.
 - Cutting sprite sheets and `prepare` (Python, ffmpeg) are not available on a hosted Studio yet; uploading sounds
   and backgrounds works.
 - Captures are not available on a hosted Studio.
+- The Play tab shows the game with its DEV panel; the state inspector, the rule explainer and the replays beside it
+  need the game on the Studio's origin, so the local Studio only.
+- The Assistant is not on a hosted Studio yet.
 - A game that imports files outside its own folder cannot run on the worker.

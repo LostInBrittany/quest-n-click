@@ -154,7 +154,7 @@ export class RoomsTab {
       h(
         'button',
         {
-          onclick: () => this.bridge.post({ source: 'web-scumm-studio', type: 'save' }),
+          onclick: () => this.bridge.save(),
           title: 'Save the layout edited in the view',
         },
         'Save layout',

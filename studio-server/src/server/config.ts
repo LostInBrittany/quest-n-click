@@ -51,6 +51,10 @@ export interface StudioServerConfig {
    * names this Studio to the worker, which runs no other's jobs. The signing key is the secret STUDIO_WORKER_KEY.
    */
   worker?: { url: string; instance: string };
+  /** The built Studio (`npm run studio-client`); default `.cache/studio-client` beside the engine. */
+  clientDir?: string;
+  /** The game's prepared assets (`public/`, with `assets/img`…), read only in 4.2.1; default the engine's `public/`. */
+  publicDir?: string;
 }
 
 /** The secrets, by name; each from `<NAME>_FILE` or `<NAME>` in the environment. */
@@ -144,6 +148,8 @@ export function loadConfig(file: string, text?: string): StudioServerConfig {
     'oidc',
     'sessions',
     'worker',
+    'clientDir',
+    'publicDir',
   ]);
   for (const k of Object.keys(raw)) if (!known.has(k)) throw new ConfigError(`${file}: unknown key "${k}"`);
   if (!isUrl(raw.publicUrl)) throw new ConfigError(`${file}: publicUrl must be an http(s) URL`);
@@ -176,6 +182,9 @@ export function loadConfig(file: string, text?: string): StudioServerConfig {
     if (blobs.kind !== 's3')
       throw new ConfigError(`${file}: the worker reads its snapshots from S3: blobs.kind is s3 with a worker`);
   }
+  for (const k of ['clientDir', 'publicDir'] as const)
+    if (raw[k] !== undefined && (typeof raw[k] !== 'string' || !raw[k]))
+      throw new ConfigError(`${file}: ${k} is a folder`);
   const oidc = raw.oidc as StudioServerConfig['oidc'];
   const host = String(raw.host ?? '0.0.0.0');
   if (oidc !== undefined) {
@@ -204,5 +213,7 @@ export function loadConfig(file: string, text?: string): StudioServerConfig {
     trustProxy: trust as string[],
     store,
     blobs,
+    clientDir: raw.clientDir as string | undefined,
+    publicDir: raw.publicDir as string | undefined,
   };
 }

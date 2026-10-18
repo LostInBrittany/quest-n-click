@@ -24,7 +24,7 @@ import type {
   SolveData,
   ValidateResult,
 } from '../../tools/studio/types';
-import { apiUrl } from './api-base';
+import { apiUrl, hosting, loginUrl, studioFetch } from './api-base';
 export { apiUrl };
 
 export type * from '../../tools/studio/types';
@@ -39,11 +39,13 @@ export class ApiError extends Error {
 }
 
 async function call<T>(method: string, path: string, body?: unknown): Promise<T> {
-  const r = await fetch(apiUrl(path), {
+  const r = await studioFetch(path, {
     method,
-    headers: body === undefined ? {} : { 'content-type': 'application/json' },
-    body: body === undefined ? undefined : JSON.stringify(body),
+    headers: method === 'GET' ? {} : { 'content-type': 'application/json' },
+    body: method === 'GET' ? undefined : JSON.stringify(body ?? {}),
   });
+  // A hosted Studio whose session ended: log in again, then come back here.
+  if (r.status === 401 && hosting.hosted) location.assign(loginUrl());
   const data = await r.json().catch(() => ({ error: `${r.status} ${r.statusText}` }));
   if (!r.ok) throw new ApiError(data.error ?? `${r.status}`, r.status);
   return data as T;

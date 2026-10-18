@@ -95,7 +95,11 @@ export const RULES: readonly Rule[] = [
     why: 'the PWA and the storage',
   },
   { re: /^src\/engine\//, gates: 'all', why: 'the engine core' },
-  { re: /^src\/studio\//, gates: ['e2e', ...UNIT], why: 'the Studio (the canvas row edits a stage)' },
+  {
+    re: /^src\/studio\//,
+    gates: ['e2e', 'studioHosted', ...UNIT],
+    why: 'the Studio (the canvas row edits a stage; studio-hosted runs it on the Studio Server)',
+  },
 
   // The Reality Bridge and its sample game.
   // The Studio Server's journal runs on these (4.2.1): its SQL store and its migrations runner.
@@ -136,6 +140,7 @@ export const RULES: readonly Rule[] = [
 
   // The browser scripts.
   { re: /^scripts\/e2e-pwa\.mjs$/, gates: ['e2e', 'pwaFirefox'], why: 'the PWA e2e' },
+  { re: /^scripts\/e2e-studio-hosted\.ts$/, gates: ['studioHosted'], why: 'the hosted Studio in a browser' },
   { re: /^scripts\/e2e(\/|[^/]*\.mjs$)/, gates: ['e2e', 'reference', 'secondGame'], why: 'the browser e2e' },
   { re: /^tests\/visual\//, gates: ['e2e', 'reference'], why: 'the visual references' },
   { re: /^(scripts\/start\.mjs|tests\/run-tool\.ts)$/, gates: [...UNIT], why: 'what Windows runs differently' },
@@ -154,7 +159,7 @@ export const RULES: readonly Rule[] = [
   },
   { re: /^(tools|scripts)\//, gates: [...AUTHORING], why: 'the authoring pipeline' },
   {
-    re: /^(tests\/studio-(server|worker|collab|keycloak)\.test\.ts|ops\/studio\/(ci|keycloak)\/)/,
+    re: /^(tests\/studio-(server|worker|collab|keycloak|client)\.test\.ts|ops\/studio\/(ci|keycloak)\/)/,
     gates: [...UNIT, 'studioHosted'],
     why: 'the hosted Studio against Postgres and S3 (4.2.1)',
   },

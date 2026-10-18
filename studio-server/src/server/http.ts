@@ -16,6 +16,7 @@ import { isStudioError, StudioError } from '../ops/errors';
 import type { Journal } from '../ops/journal';
 import { isBody, routes } from '../ops/routes';
 import type { Gate } from './auth/gate';
+import type { StudioClient } from './client';
 import type { Role } from './auth/store';
 import type { Leases } from './leases';
 import { LiveHub, type Presence, serveEvents } from './live';
@@ -103,6 +104,8 @@ export interface StudioServerOptions {
   presence?: Presence;
   /** The game's origin (plan §6.1): every request whose `Host` is `playUrl`'s goes there, and nothing else does. */
   play?: { handler: Play; playUrl: string };
+  /** The Studio's page, its files and the game's images and sounds (PR 7, client.ts). */
+  client?: StudioClient;
 }
 
 /** The spans a client may name: the leases' own names (`*` only through /exclusive). */
@@ -264,6 +267,18 @@ export function studioServer(o: StudioServerOptions): StudioHttpServer {
       const ip = clientOf(req);
       // The game's origin answers its own paths only: no Studio API, no /auth, ever.
       if (o.play && forPlay(req, o.play.playUrl)) return void (await o.play.handler.handle(req, res, url));
+      // The Studio's page and its files hold no data; the game's images and sounds are a member's.
+      if (o.client && (req.method === 'GET' || req.method === 'HEAD')) {
+        const kind = o.client.kind(path);
+        if (kind === 'page') return o.client.servePage(res);
+        if (kind === 'static') return o.client.serveStatic(path, res);
+        if (kind === 'public') return o.client.servePublic(path, res);
+        if (kind === 'media') {
+          const p = o.auth ? await o.auth.gate.authenticate(req) : undefined;
+          if (p) o.auth!.gate.require(p, 'reviewer');
+          return o.client.serveMedia(path, res);
+        }
+      }
       if (o.auth && path.startsWith('/auth/') && !authCalls.take(ip))
         return send(res, 429, { error: 'too many requests' }, { 'retry-after': '60' });
       if (o.auth && (path.startsWith('/auth/') || /^\/api\/(members|invitations|audit)(\/|$)/.test(path))) {

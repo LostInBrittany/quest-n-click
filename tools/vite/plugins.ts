@@ -122,8 +122,11 @@ export function sealBuild(): Plugin {
   };
 }
 
-/** Version of images and sounds: a fingerprint of public/assets' content (stable across deploys, changes if a file changes). */
-export function assetsVersion(): string {
+/**
+ * Version of images and sounds: a fingerprint of public/assets' content (stable across deploys, changes if a file
+ * changes). `dir`: another assets folder (the Studio Server's live preview, 4.2.1).
+ */
+export function assetsVersion(dir = resolve(WORK, 'public', 'assets')): string {
   const h = createHash('sha1');
   const walk = (d: string) => {
     for (const e of readdirSync(d, { withFileTypes: true }).sort((a, b) => a.name.localeCompare(b.name))) {
@@ -136,18 +139,23 @@ export function assetsVersion(): string {
     }
   };
   try {
-    walk(resolve(WORK, 'public', 'assets'));
+    walk(dir);
   } catch {
     /* no assets yet */
   }
   return h.digest('hex').slice(0, 10);
 }
 
-/** games/<id>/site.json: game title, description and color, injected into index.html and the PWA manifest. */
-export function sitePlugin(): Plugin {
+/**
+ * games/<id>/site.json: game title, description and color, injected into index.html and the PWA manifest. `o`: another
+ * game folder and name (the Studio Server's live preview, 4.2.1).
+ */
+export function sitePlugin(o: { gameDir?: string; game?: string } = {}): Plugin {
+  const gameDir = o.gameDir ?? GAME_DIR;
+  const name = o.game ?? GAME;
   const site = () => {
     try {
-      return JSON.parse(readFileSync(resolve(GAME_DIR, 'site.json'), 'utf8'));
+      return JSON.parse(readFileSync(resolve(gameDir, 'site.json'), 'utf8'));
     } catch {
       return {};
     }
@@ -156,8 +164,8 @@ export function sitePlugin(): Plugin {
     const s = site();
     return JSON.stringify(
       {
-        name: s.title ?? GAME,
-        short_name: s.shortName ?? s.title ?? GAME,
+        name: s.title ?? name,
+        short_name: s.shortName ?? s.title ?? name,
         description: s.description ?? '',
         start_url: BASE,
         display: 'standalone',
@@ -186,7 +194,7 @@ export function sitePlugin(): Plugin {
             .replace(/</g, '&lt;');
         return html
           .replace(/%LANG%/g, esc(s.lang ?? 'en'))
-          .replace(/%TITLE%/g, esc(s.title ?? GAME))
+          .replace(/%TITLE%/g, esc(s.title ?? name))
           .replace(/%DESCRIPTION%/g, esc(s.description))
           .replace(/%THEME%/g, esc(s.themeColor ?? '#0a0a12'))
           .replace(/%BASE%/g, BASE);

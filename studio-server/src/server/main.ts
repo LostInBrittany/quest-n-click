@@ -7,6 +7,7 @@
 // Secrets come from `<NAME>_FILE` or the environment (config.ts) and leave `process.env` before anything else runs.
 import { cpSync, existsSync, mkdirSync, readdirSync, readFileSync, renameSync, rmSync, writeFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { openSqliteDb } from '../../../bridge/src/store-sqlite';
 import type { SqlDb } from '../../../bridge/src/store-sql';
 import { createStudio, operationContext } from '../ops/core';
@@ -26,7 +27,9 @@ import { openPostgresDb } from './postgres';
 import { newJobKeys } from '../worker/job';
 import { Leases } from './leases';
 import { Presence } from './live';
+import { StudioClient } from './client';
 import { Play } from './play';
+import { livePreview } from './preview';
 import { remoteExecutor } from './remote-executor';
 import { S3, s3BlobStore } from './s3';
 import { ServiceLease } from './service-lease';
@@ -262,9 +265,23 @@ async function main(argv: string[]): Promise<number> {
   }
   const studio = createStudio({ gameDir, root: resolve(config.workDir), journal, author: 'studio-server', executor });
   const presence = leases ? new Presence() : undefined;
-  // The game's origin (plan §6.1). Until the live preview is mounted (PR 7), it answers its game sessions only.
-  const play =
+  // The engine's folder: the built Studio and the prepared assets are found beside it unless configured.
+  const engineRoot = fileURLToPath(new URL('../../..', import.meta.url));
+  const publicDir = resolve(config.publicDir ?? join(engineRoot, 'public'));
+  const clientDir = resolve(config.clientDir ?? join(engineRoot, '.cache', 'studio-client'));
+  // The Studio's page (PR 7): required with OIDC, where it is the only way in; optional on the loopback.
+  let client: StudioClient | undefined;
+  if (existsSync(join(clientDir, 'studio.html')))
+    client = new StudioClient({ clientDir, publicDir, publicUrl: config.publicUrl, playUrl: config.playUrl });
+  else if (config.oidc)
+    throw new ConfigError(`${clientDir} has no studio.html: build the Studio's page first (npm run studio-client)`);
+  // The game's origin (plan §6.1): the live preview of the instance's folder, behind a game session (plan §6.2).
+  const preview =
     auth && authStore
+      ? await livePreview({ gameDir, game: config.game, publicDir, studioOrigin: config.publicUrl, engineRoot })
+      : undefined;
+  const play =
+    auth && authStore && preview
       ? {
           playUrl: config.playUrl,
           handler: new Play({
@@ -273,10 +290,7 @@ async function main(argv: string[]): Promise<number> {
             publicUrl: config.publicUrl,
             playUrl: config.playUrl,
             idleMs: auth.gate.idleMs,
-            content: (_req, res) => {
-              res.writeHead(503, { 'content-type': 'text/plain; charset=utf-8' });
-              res.end('the live preview is not served by this version yet');
-            },
+            content: (req, res) => preview.handle(req, res),
           }),
         }
       : undefined;
@@ -290,6 +304,7 @@ async function main(argv: string[]): Promise<number> {
     leases,
     presence,
     play,
+    client,
   });
   // Hosted: the instance's folder is checked against the head every 30 s and repaired without a restart (plan §4),
   // holding the instance's lock alone: no request reads a folder being repaired.
@@ -317,6 +332,7 @@ async function main(argv: string[]): Promise<number> {
     await Promise.race([drained, new Promise((ok) => setTimeout(ok, 5_000))]);
     server.closeAllConnections?.();
     await journal.close().catch(() => undefined);
+    await preview?.close().catch(() => undefined);
     await lease.release();
     setTimeout(() => process.exit(0), 100).unref();
   };

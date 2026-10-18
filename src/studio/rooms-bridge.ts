@@ -3,8 +3,12 @@
 // it through postMessage (StudioToEditor / EditorToStudio, tools/studio/types.ts). This file owns the frame, its
 // status line, the "dirty" state of the placement, the waiters of a save and the retries of a scroll to a content
 // path; the tab (rooms.ts) answers through a small host interface: the room shown, the selection, the writes.
+// On a hosted Studio (4.2.1, plan §6.1) the view is on the game's origin: messages go to that exact origin and are
+// taken from it only; the view never writes, and a layout it sends is stored only as the answer to the Studio's own
+// save request (its nonce), for the room shown. The write is the Studio's, as the member, under their lease.
 import type { Id, Layout } from '@engine/core/types';
-import { api, BASE, type EditorToStudio, type StudioToEditor } from './api';
+import { api, type EditorToStudio, type StudioToEditor } from './api';
+import { gameElsewhere, gameOrigin, gameUrl } from './game-origin';
 import type { Sel } from './rooms-text';
 import { h, toast } from './ui';
 
@@ -37,10 +41,13 @@ export class EditorBridge {
   private savedWaiters: ((ok: boolean) => void)[] = [];
   private lastReadyAt = 0;
   private pendingSelect: Sel = null;
+  /** The save the Studio asked for last: a hosted view's layout is taken as its answer only. */
+  private saveNonce = '';
 
   constructor(private host: BridgeHost) {
     window.addEventListener('message', (e) => this.onMessage(e));
-    this.frame = h('iframe', { class: 'engine', title: 'Room editor', src: this.frameUrl() });
+    this.frame = h('iframe', { class: 'engine', title: 'Room editor', src: 'about:blank' });
+    void this.navigate();
   }
 
   /** When the view last said it was ready (Date.now()); 0 before the first time. */
@@ -53,27 +60,44 @@ export class EditorBridge {
     this.pendingSelect = s;
   }
 
-  frameUrl() {
+  /** The view's page: `?edit=<room>` (and `&at=<checkpoint>`). */
+  private query() {
     const q = new URLSearchParams({ edit: this.host.room() });
     const at = this.host.checkpoint();
     if (at) q.set('at', at);
-    return `${BASE}?${q}`;
+    return `?${q}`;
+  }
+
+  /** Points the frame at the view (hosted: with a fresh ticket). */
+  private async navigate() {
+    try {
+      this.frame.src = await gameUrl(this.query());
+    } catch (e) {
+      this.status.textContent = `the room view does not open: ${(e as Error).message}`;
+    }
   }
 
   reload() {
     this.editorDirty = false;
     this.status.textContent = 'loading…';
-    this.frame.src = this.frameUrl();
+    void this.navigate();
   }
 
   post(m: StudioToEditor) {
-    this.frame.contentWindow?.postMessage(m, location.origin);
+    this.frame.contentWindow?.postMessage(m, gameOrigin());
+  }
+
+  /** Asks the view to save its placement. */
+  save() {
+    this.saveNonce = crypto.randomUUID();
+    this.post({ source: 'web-scumm-studio', type: 'save', nonce: this.saveNonce });
   }
 
   private onMessage(e: MessageEvent) {
     const m = e.data as EditorToStudio;
-    if (e.origin !== location.origin || m?.source !== 'web-scumm-editor' || e.source !== this.frame.contentWindow)
-      return;
+    if (e.origin !== gameOrigin() || m?.source !== 'web-scumm-editor' || e.source !== this.frame.contentWindow) return;
+    // The view's own Save (a hosted view does not write): the Studio asks for the layout, as for any save.
+    if (m.type === 'want-save') return this.save();
     if (m.type === 'ready') {
       this.lastReadyAt = Date.now();
       this.editorDirty = false;
@@ -101,6 +125,11 @@ export class EditorBridge {
   }
 
   private async onSaved(m: Extract<EditorToStudio, { type: 'saved' }>) {
+    // Hosted: the answer to this Studio's last request, for the room shown, with a layout, and nothing else.
+    if (gameElsewhere()) {
+      if (!m.nonce || m.nonce !== this.saveNonce || m.room !== this.host.room() || !layoutShaped(m.layout)) return;
+      this.saveNonce = '';
+    }
     let { ok, error } = m;
     // The editor could not write the file (demo mode): the layout is stored through the Studio's backend.
     if (ok && m.layout) {
@@ -129,8 +158,18 @@ export class EditorBridge {
       this.savedWaiters.push(res);
       setTimeout(() => res(false), FLUSH_TIMEOUT);
     });
-    this.post({ source: 'web-scumm-studio', type: 'save' });
+    this.save();
     await done;
+  }
+}
+
+/** A layout as a view may send one: a plain object of a reasonable size (the Studio's guard checks the rest). */
+function layoutShaped(v: unknown): v is Layout {
+  if (!v || typeof v !== 'object' || Array.isArray(v)) return false;
+  try {
+    return JSON.stringify(v).length < 512 * 1024;
+  } catch {
+    return false;
   }
 }
 
