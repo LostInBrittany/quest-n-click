@@ -26,6 +26,7 @@ import { openPostgresDb } from './postgres';
 import { newJobKeys } from '../worker/job';
 import { Leases } from './leases';
 import { Presence } from './live';
+import { Play } from './play';
 import { remoteExecutor } from './remote-executor';
 import { S3, s3BlobStore } from './s3';
 import { ServiceLease } from './service-lease';
@@ -209,12 +210,14 @@ async function main(argv: string[]): Promise<number> {
     return 2;
   }
   let auth: Parameters<typeof studioServer>[0]['auth'];
+  let authStore: AuthStore | undefined;
   if (config.oidc) {
     if (!secrets.STUDIO_OIDC_CLIENT_SECRET) throw new ConfigError('STUDIO_OIDC_CLIENT_SECRET is required');
     if (!secrets.STUDIO_SESSION_KEY) throw new ConfigError('STUDIO_SESSION_KEY is required (32 characters or more)');
     const oidc = await Oidc.discover({ ...config.oidc, clientSecret: secrets.STUDIO_OIDC_CLIENT_SECRET });
     const sealer = new Sealer(secrets.STUDIO_SESSION_KEY.split(',').map((k) => k.trim()));
     const store = new AuthStore(db);
+    authStore = store;
     const gate = new Gate({
       store,
       oidc,
@@ -258,7 +261,35 @@ async function main(argv: string[]): Promise<number> {
   }
   const studio = createStudio({ gameDir, root: resolve(config.workDir), journal, author: 'studio-server', executor });
   const presence = leases ? new Presence() : undefined;
-  const server = studioServer({ studio, journal, db, lease, trustProxy: config.trustProxy, auth, leases, presence });
+  // The game's origin (plan §6.1). Until the live preview is mounted (PR 7), it answers its game sessions only.
+  const play =
+    auth && authStore
+      ? {
+          playUrl: config.playUrl,
+          handler: new Play({
+            db,
+            store: authStore,
+            publicUrl: config.publicUrl,
+            playUrl: config.playUrl,
+            idleMs: auth.gate.idleMs,
+            content: (_req, res) => {
+              res.writeHead(503, { 'content-type': 'text/plain; charset=utf-8' });
+              res.end('the live preview is not served by this version yet');
+            },
+          }),
+        }
+      : undefined;
+  const server = studioServer({
+    studio,
+    journal,
+    db,
+    lease,
+    trustProxy: config.trustProxy,
+    auth,
+    leases,
+    presence,
+    play,
+  });
   // Hosted: the instance's folder is checked against the head every 30 s and repaired without a restart (plan §4),
   // holding the instance's lock alone: no request reads a folder being repaired.
   if (hosted)
