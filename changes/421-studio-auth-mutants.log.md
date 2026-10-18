@@ -12,8 +12,10 @@
   fences, releases, takeovers, Postgres's clock), `studio-play-mutants` (tickets, a game session's ends and
   sliding, each reason a Studio session no longer carries a game, the ticket's body). The test provider
   (`tests/fixtures/oidc-op.ts`) gained switches for those edges.
-- **Named** in `docs/dev/mutants.json` (14): a cookie by the empty name, openid-client's own nonce check, jose's own
-  expiry check, `||` on a missing event, a string's `toString`, a sealed value's guard doubled by its catch, `sid =
+- **Named** in `docs/dev/mutants.json` (13): a cookie by the empty name, openid-client's own nonce check, `||` on a missing event, a string's `toString`, a sealed value's guard doubled by its catch, `sid =
   NULL`, read-only transactions, and the idle end of a game session that its absolute end always reaches first.
-- **Result** (local run, then six kills checked by hand): 563 of 577 killed, 14 explained, none left.
+- **Second reading** (automated second context): a token living 0 s from a future `iat` (which jose lets through)
+  is now refused by a test instead of named; the read-only transactions' reason says what differs (locking and
+  isolation, not the answers).
+- **Result** (local run, then seven kills checked by hand): 564 of 577 killed, 13 explained, none left.
   `studio-auth` is gated; no set is measured any more.

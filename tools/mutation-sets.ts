@@ -213,7 +213,7 @@ export const GATED: MutationSet[] = [
   // 4.2.1: its survivors read (168 of 181 killed, 13 named in docs/dev/mutants.json), its tests
   // tests/studio-journal-mutants and tests/studio-durable-mutants.
   'studio-ops',
-  // 4.2.1: its survivors read (563 of 577 killed, 14 named in docs/dev/mutants.json), its unit tests
+  // 4.2.1: its survivors read (564 of 577 killed, 13 named in docs/dev/mutants.json), its unit tests
   // tests/studio-{gate,store,routes,oidc,leases,play}-mutants.
   'studio-auth',
 ];

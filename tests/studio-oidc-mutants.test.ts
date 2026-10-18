@@ -85,12 +85,15 @@ describe('refresh', () => {
       [401, { error: 'invalid_client' }, false],
       [500, { error: 'server_error' }, false],
     ];
-    for (const [status, body, definitive] of cases) {
-      op.refreshAnswer = { status, body };
-      const e = await oidc.refresh('rt').catch((x) => x);
-      expect(e instanceof DefinitiveRefusal, `${status} ${JSON.stringify(body)}`).toBe(definitive);
+    try {
+      for (const [status, body, definitive] of cases) {
+        op.refreshAnswer = { status, body };
+        const e = await oidc.refresh('rt').catch((x) => x);
+        expect(e instanceof DefinitiveRefusal, `${status} ${JSON.stringify(body)}`).toBe(definitive);
+      }
+    } finally {
+      op.refreshAnswer = undefined;
     }
-    op.refreshAnswer = undefined;
   });
 });
 
@@ -124,6 +127,10 @@ describe('access tokens', () => {
       sub: op.user.sub,
     });
     await expect(oidc.verifyAccessToken(await op.accessToken({ life: 301 }))).rejects.toThrow(/longer than allowed/);
+    // jose checks exp against now, and iat only when asked: a token living 0 s from a future iat is ours to refuse.
+    const later = Math.floor(Date.now() / 1000) + 60;
+    const zero = await op.signRaw({ aud: op.audience, sub: op.user.sub, iat: later, exp: later });
+    await expect(oidc.verifyAccessToken(zero)).rejects.toThrow(/lives 0 s/);
   });
 });
 
