@@ -17,6 +17,8 @@ import type { Journal } from '../ops/journal';
 import { isBody, routes } from '../ops/routes';
 import type { Gate } from './auth/gate';
 import type { Role } from './auth/store';
+import type { Leases } from './leases';
+import { type Presence, serveEvents } from './live';
 import type { ServiceLease } from './service-lease';
 
 const MAX_JSON = 1024 * 1024;
@@ -92,7 +94,36 @@ export interface StudioServerOptions {
   auth?: {
     gate: Gate;
     handle: (req: IncomingMessage, res: ServerResponse, url: URL) => Promise<boolean>;
+    /** The audit (an owner's takeover names the previous holder). */
+    audit?: (actor: string, event: string, detail: unknown) => Promise<void>;
   };
+  /** A shared Studio (PR 6, plan P2 and §5): the spans' leases, who is here, the live events. */
+  leases?: Leases;
+  presence?: Presence;
+}
+
+/** The spans a client may name: the leases' own names (`*` only through /exclusive). */
+const SPAN = /^(room:[\w-]{1,64}|lang:[\w-]{1,16}|game|items|cast|rules|story|voices|assets|notes|meta|playtests|reality)$/;
+
+function spanList(v: unknown): string[] {
+  if (!Array.isArray(v) || !v.length || v.length > 64 || !v.every((x) => typeof x === 'string' && SPAN.test(x)))
+    throw new StudioError('`spans` is a list of span names (room:<id>, lang:<code>, game, items, …)');
+  return v as string[];
+}
+
+/** The fences a client sends with a write (`x-studio-fences: {"room:garden": 3}`), or none. */
+function fencesOf(req: IncomingMessage): Record<string, number> | undefined {
+  const h = req.headers['x-studio-fences'];
+  if (typeof h !== 'string' || !h) return undefined;
+  let v: unknown;
+  try {
+    v = JSON.parse(h);
+  } catch {
+    throw new StudioError('x-studio-fences is a JSON object of span → fence');
+  }
+  if (!v || typeof v !== 'object' || Array.isArray(v) || !Object.entries(v).every(([k, n]) => SPAN.test(k) && Number.isInteger(n)))
+    throw new StudioError('x-studio-fences is a JSON object of span → fence');
+  return v as Record<string, number>;
 }
 
 /** Requests one address may make per minute on /auth/*, and authentications it may fail per minute. */
@@ -116,6 +147,8 @@ class Buckets {
 
 /** The role an API route needs (plan §3.3): reading is a reviewer's, writing a dev's. The owner's routes are elsewhere. */
 export function roleFor(method: string, sub: string): Role {
+  // The heartbeat says who is here: a reviewer is here too.
+  if (method === 'POST' && sub === '/presence') return 'reviewer';
   return method === 'GET' || (method === 'POST' && READ_POSTS.test(sub)) ? 'reviewer' : 'dev';
 }
 
@@ -225,6 +258,46 @@ export function studioServer(o: StudioServerOptions): StudioHttpServer {
       // The journal's cursor (P6): what a client that reconnects missed.
       if (req.method === 'GET' && sub === '/revision')
         return send(res, 200, { epoch: await o.journal.epoch(), revision: await o.journal.revision() });
+      // The live Studio (PR 6): the stream, who is here, the leases.
+      if (req.method === 'GET' && sub === '/events')
+        return void (await serveEvents(req, res, { principal, gate: o.auth?.gate, journal: o.journal, leases: o.leases, presence: o.presence }));
+      if (o.leases && principal) {
+        const who = { userId: principal.user.id, name: principal.user.name ?? principal.user.email ?? principal.user.id };
+        if (req.method === 'POST' && sub === '/presence') {
+          const b = (await readJson(req)) as { where?: unknown };
+          const where = typeof b.where === 'string' ? b.where.slice(0, 100) : undefined;
+          o.presence?.beat(who.userId, who.name, where);
+          // The heartbeat renews the member's leases too (TTL 120 s, beat every 30 s); a reviewer holds none.
+          if (principal.role !== 'reviewer') await o.leases.renew(who.userId);
+          return send(res, 200, { here: o.presence?.list() ?? [], leases: await o.leases.list() });
+        }
+        if (req.method === 'GET' && sub === '/leases') return send(res, 200, { leases: await o.leases.list() });
+        if (req.method === 'POST' && sub === '/leases') {
+          const b = (await readJson(req)) as { spans?: unknown };
+          return send(res, 200, { fences: await o.leases.take(who, spanList(b.spans)) });
+        }
+        if (req.method === 'POST' && sub === '/leases/release') {
+          const b = (await readJson(req)) as { spans?: unknown };
+          await o.leases.release(who.userId, b.spans === undefined ? undefined : spanList(b.spans));
+          return send(res, 200, { ok: true });
+        }
+        if (req.method === 'POST' && (sub === '/leases/takeover' || sub === '/exclusive' || sub === '/exclusive/release')) {
+          o.auth!.gate.require(principal, 'owner');
+          const b = (await readJson(req)) as { span?: unknown };
+          if (sub === '/exclusive') return send(res, 200, { fences: await o.leases.take(who, ['*']) });
+          if (sub === '/exclusive/release') {
+            await o.leases.release(who.userId, ['*']);
+            return send(res, 200, { ok: true });
+          }
+          if (typeof b.span !== 'string' || !SPAN.test(b.span)) throw new StudioError('`span` names one span');
+          const r = await o.leases.takeover(who, b.span);
+          await o.auth!.audit?.(who.userId, 'lease-takeover', { span: b.span, previous: r.previous?.holder ?? null });
+          return send(res, 200, { fence: r.fence, previous: r.previous ?? null });
+        }
+        // Undo is personal from 4.2.2 (plan §5): on a shared Studio, the last operation may be someone else's.
+        if (req.method === 'POST' && (sub === '/undo' || sub === '/redo'))
+          throw new StudioError('undo is not available on a shared Studio yet (4.2.2)', 409);
+      }
       if (req.method === 'GET' && sub === '/ops') {
         const after = Number(url.searchParams.get('after') ?? '0');
         if (!Number.isInteger(after) || after < 0) throw new StudioError('`after` is a revision number');
@@ -260,7 +333,15 @@ export function studioServer(o: StudioServerOptions): StudioHttpServer {
       }
       const author = principal ? (principal.user.email ?? principal.user.name ?? principal.user.id) : undefined;
       const run = () =>
-        operationContext.run({ id: op, author }, () =>
+        operationContext.run(
+          {
+            id: op,
+            author,
+            claimant: principal
+              ? { userId: principal.user.id, name: principal.user.name ?? author ?? principal.user.id, fences: fencesOf(req) }
+              : undefined,
+          },
+          () =>
           Promise.resolve(route[2](sub.match(route[1])!, body, { baseUrl: '' })),
         );
       const result = await (write ? lock.write(run) : lock.read(run));
