@@ -50,7 +50,8 @@ describe('configuration and secrets', () => {
     const f = join(tmp, 'open-secret');
     writeFileSync(f, 'a-long-enough-secret');
     chmodSync(f, 0o644);
-    expect(() => takeSecrets({ STUDIO_SESSION_KEY_FILE: f })).toThrow(ConfigError);
+    // Windows has no such mode bits: the check is POSIX only (config.ts).
+    if (process.platform !== 'win32') expect(() => takeSecrets({ STUDIO_SESSION_KEY_FILE: f })).toThrow(ConfigError);
     expect(() => takeSecrets({ STUDIO_SESSION_KEY: 'short' })).toThrow(/too short/);
   });
 
