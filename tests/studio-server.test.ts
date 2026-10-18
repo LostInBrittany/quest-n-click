@@ -87,9 +87,12 @@ describe('the server over HTTP (SQLite, files)', () => {
     const server = studioServer({ studio, journal, db, lease, log: () => {} });
     await new Promise<void>((ok) => server.listen(0, '127.0.0.1', ok));
     base = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
+    // Everything opened is closed before the folder goes: Windows deletes no open file.
     close = async () => {
       server.close();
       await lease.release();
+      await journal.close();
+      await db.close();
     };
   }, 60_000);
   afterAll(() => close());
