@@ -12,7 +12,10 @@
 // The cookie is `Secure; HttpOnly; SameSite=None; Partitioned` (CHIPS): the game's origin is framed by the Studio, and
 // on `*.cleverapps.io` the two are different sites (the domain is in the Public Suffix List). Spike S found CHIPS
 // accepted by Chromium, Firefox and WebKit with their default settings, where a plain third-party cookie is refused by
-// WebKit; a real Safari is the `studio-hosted` pass. A game session lasts 15 min, sliding, never past its Studio session.
+// WebKit; a real Safari is the `studio-hosted` pass. A game session lasts 15 min, sliding (its expiry and its cookie are
+// renewed at most once a minute while it is used), never past its Studio session, and never longer than R = 15 min
+// after the provider last confirmed that Studio session (plan §3.6): a member who only plays, with the Studio closed,
+// opens the Studio again to go on.
 import { createHash, randomBytes } from 'node:crypto';
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import type { SqlDb } from '../../../bridge/src/store-sql';
@@ -34,6 +37,8 @@ export interface PlayOptions {
   playUrl: string;
   /** The Studio session's idle limit (the gate's): a game session never outlives an idle Studio session either. */
   idleMs: number;
+  /** R: how long a Studio session stands without the provider confirming it (the gate's, 15 min). */
+  graceMs?: number;
   /** What the game's origin serves to a live game session (4.2.1: the live preview). */
   content: (req: IncomingMessage, res: ServerResponse) => void | Promise<void>;
   now?: () => number;
@@ -99,7 +104,7 @@ export class Play {
         302,
         this.headers({
           location: String(r.return_to),
-          'set-cookie': `${PLAY_COOKIE}=${s}; Path=/; Secure; HttpOnly; SameSite=None; Partitioned; Max-Age=${Math.floor(SESSION_MS / 1000)}`,
+          'set-cookie': this.cookie(s, expires - now),
         }),
       );
       return void res.end();
@@ -113,17 +118,32 @@ export class Play {
       await this.o.db.run('DELETE FROM studio_play_sessions WHERE id_hash = $1', [hash(c!)]);
       return this.refuse(res, 403, 'your Studio session has ended');
     }
-    // Sliding, at most once a minute (one write per request would be wasted).
-    if (now - Number(p.last_seen) > 60_000)
-      await this.o.db.run('UPDATE studio_play_sessions SET last_seen = $1 WHERE id_hash = $2', [now, hash(c!)]);
     for (const [k, v] of Object.entries(this.headers())) res.setHeader(k, v);
+    // Sliding, at most once a minute (one write per request would be wasted): a later expiry, and the cookie again.
+    if (now - Number(p.last_seen) > 60_000) {
+      const expires = Math.min(now + SESSION_MS, studio.expiresAt);
+      await this.o.db.run('UPDATE studio_play_sessions SET last_seen = $1, expires_at = $2 WHERE id_hash = $3', [
+        now,
+        expires,
+        hash(c!),
+      ]);
+      res.setHeader('set-cookie', this.cookie(c!, expires - now));
+    }
     await this.o.content(req, res);
   }
 
-  /** The Studio session a game session depends on, when it is still live and its user still a member. */
+  private cookie(value: string, ms: number): string {
+    return `${PLAY_COOKIE}=${value}; Path=/; Secure; HttpOnly; SameSite=None; Partitioned; Max-Age=${Math.max(0, Math.floor(ms / 1000))}`;
+  }
+
+  /**
+   * The Studio session a game session depends on, when it is still live, confirmed by the provider within R, and its
+   * user still a member.
+   */
   private async liveStudioSession(idHash: string, now: number) {
     const s = await this.o.store.sessionByHash(idHash);
     if (!s || s.expiresAt <= now || s.lastSeen + this.o.idleMs <= now || s.suspended || !s.role) return undefined;
+    if (s.checkedAt + (this.o.graceMs ?? 15 * 60_000) <= now) return undefined;
     return s;
   }
 }

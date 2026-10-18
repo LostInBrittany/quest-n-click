@@ -201,6 +201,31 @@ describe('the game origin', () => {
     expect((await game(l.cookie)).status).toBe(403);
   });
 
+  it('slides while it is used with the Studio open, and stops within R once the Studio is closed', async () => {
+    people.lea!.cookie = await login('lea');
+    let cookie = (await open(await ticket('lea'))).cookie;
+    // 20 min of play, the Studio open beside it (its requests have the provider confirm the session every 5 min).
+    for (let i = 0; i < 4; i++) {
+      clock += 5 * 60_000;
+      expect((await studio('lea', 'GET', '/api/revision')).status).toBe(200);
+      const r = await game(cookie);
+      expect(r.status).toBe(200);
+      const again = setCookie(r, PLAY_COOKIE);
+      expect(again).toMatch(/Max-Age=\d+/);
+      cookie = again ?? cookie;
+    }
+    // The Studio closed: nobody asks the provider any more, and the game stops within R (15 min).
+    let stopped = 0;
+    for (let i = 1; i <= 4 && !stopped; i++) {
+      clock += 5 * 60_000;
+      const r = await game(cookie);
+      if (r.status !== 200) stopped = i * 5;
+      else cookie = setCookie(r, PLAY_COOKIE) ?? cookie;
+    }
+    expect(stopped).toBeGreaterThan(0);
+    expect(stopped).toBeLessThanOrEqual(15);
+  });
+
   it('a game session lasts 15 min without use', async () => {
     people.lea!.cookie = await login('lea');
     const g = await open(await ticket('lea'));

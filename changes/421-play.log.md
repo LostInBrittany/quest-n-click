@@ -16,4 +16,9 @@ Branch: feature/421-play (stacked on PR 6) · Plan §6.1, policy F
   relative paths only, no ticket to a Bearer, the game session ending with its Studio session or the membership, and
   after 15 min unused.
 
+- **Second reading** (automated second context): the game session really slides (its expiry and its cookie are
+  renewed while it is used), and it stops within R = 15 min of the provider's last confirmation of its Studio session,
+  so a member who only plays, the Studio closed, cannot outlast a disabled account; the ticket in a proxy's log and
+  login CSRF on the game's origin written as residual risks.
+
 → next: Claude (PR 7, the client, after the maintainer validates the mockups)
