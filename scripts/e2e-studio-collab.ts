@@ -128,7 +128,19 @@ try {
   // Tom's note took the notes (a write takes its spans): he lets them go first.
   await spanAct(tom, 'notes', 'Release');
   await addNote(ali, 'Now I can write.');
-  check('a reviewer made dev writes', await until(async () => (await revisionOf(ali)) === target + 1));
+  const wrote = await until(async () => (await revisionOf(ali)) === target + 1);
+  check(
+    'a reviewer made dev writes',
+    wrote,
+    wrote
+      ? undefined
+      : `ali at ${await revisionOf(ali)}, léa at ${await revisionOf(lea)}, want ${target + 1}; ali's menu: ${await ali
+          .locator('.who summary')
+          .innerText({ timeout: 1000 })}; toasts: ${(await ali.locator('.toast').allInnerTexts()).join(' | ')}; dialog: ${await ali
+          .getByRole('dialog')
+          .getAttribute('aria-label', { timeout: 1000 })
+          .catch(() => 'none')}`,
+  );
 
   // A visitor, a stranger.
   const visitor = await (await browser.newContext({ ignoreHTTPSErrors: stack.tls })).newPage();
