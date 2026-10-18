@@ -2,6 +2,8 @@
 //   serve          the Studio Server: the API, the probes, the service lease
 //   import <dir>   a game folder becomes the instance's project (the journal adopts it; hosted: its files go to the blobs)
 //   export <dir>   the game at the head, written to a folder, with a manifest of the hashes and the revision
+//   invite --email <e> --role <owner|dev|reviewer>   a one-time invitation link (the first owner comes this way)
+//   login --server <url>, token --server <url>       the CLI's device flow, and its current access token
 // Secrets come from `<NAME>_FILE` or the environment (config.ts) and leave `process.env` before anything else runs.
 import { cpSync, existsSync, mkdirSync, readdirSync, readFileSync, renameSync, rmSync, writeFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
@@ -12,7 +14,12 @@ import { type BlobStore, fsBlobStore } from '../ops/blobs';
 import { sha256 } from '../ops/durable';
 import { Journal } from '../ops/journal';
 import { ConfigError, loadConfig, type StudioServerConfig, takeSecrets } from './config';
-import { studioServer } from './http';
+import { accessToken, deviceLogin } from './auth/device';
+import { Gate } from './auth/gate';
+import { Oidc } from './auth/oidc';
+import { authRoutes } from './auth/routes';
+import { AuthStore, Sealer } from './auth/store';
+import { readJson, send, studioServer } from './http';
 import { openPostgresDb } from './postgres';
 import { S3, s3BlobStore } from './s3';
 import { ServiceLease } from './service-lease';
@@ -43,11 +50,26 @@ async function openAll(config: StudioServerConfig) {
   } else blobs = fsBlobStore(resolve(config.blobs.dir!));
   const gameDir = resolve(config.workDir, 'game');
   mkdirSync(gameDir, { recursive: true });
-  return { db, blobs, gameDir };
+  return { db, blobs, gameDir, secrets };
 }
 
 async function main(argv: string[]): Promise<number> {
   const [cmd, ...rest] = argv;
+  // The CLI's own commands (plan §3.5): no configuration, a server's URL.
+  if (cmd === 'login' || cmd === 'token') {
+    const server = rest[rest.indexOf('--server') + 1];
+    if (rest.indexOf('--server') < 0 || !server) {
+      console.error(`usage: studio-server ${cmd} --server <https://studio.example>`);
+      return 2;
+    }
+    if (cmd === 'login') {
+      await deviceLogin(server, {
+        tell: (url, code) => console.log(`Open ${url} and enter the code ${code}`),
+      });
+      console.log('logged in');
+    } else console.log(await accessToken(server));
+    return 0;
+  }
   const at = rest.indexOf('--config');
   const file = at >= 0 ? rest[at + 1] : process.env.STUDIO_CONFIG;
   if (!cmd || !file) {
@@ -56,7 +78,7 @@ async function main(argv: string[]): Promise<number> {
   }
   const args = rest.filter((_, i) => i !== at && i !== at + 1);
   const config = loadConfig(file);
-  const { db, blobs, gameDir } = await openAll(config);
+  const { db, blobs, gameDir, secrets } = await openAll(config);
   const hosted = config.store.kind === 'postgres';
 
   if (cmd === 'import') {
@@ -121,21 +143,63 @@ async function main(argv: string[]): Promise<number> {
     return 0;
   }
 
+  if (cmd === 'invite') {
+    const email = args[args.indexOf('--email') + 1];
+    const role = args[args.indexOf('--role') + 1];
+    if (args.indexOf('--email') < 0 || !email || !['owner', 'dev', 'reviewer'].includes(role ?? '')) {
+      console.error('usage: studio-server invite --email <email> --role <owner|dev|reviewer> --config <file>');
+      return 2;
+    }
+    const token = await new AuthStore(db).invite(email, role as 'owner', 'studio-server invite');
+    console.log(`${config.publicUrl}/auth/login?invite=${token}`);
+    await journal.close();
+    return 0;
+  }
+
   if (cmd !== 'serve') {
     console.error(`unknown command: ${cmd}`);
     return 2;
   }
-  // No authentication before PR 5: the loopback only.
-  if (!LOOPBACK.has(config.host)) {
-    console.error(`serve: ${config.host} is refused until authentication is configured (4.2.1 PR 5); use 127.0.0.1`);
+  // Without OIDC the server is the local one: the loopback only.
+  if (!config.oidc && !LOOPBACK.has(config.host)) {
+    console.error(`serve: ${config.host} is refused without authentication (configure oidc); use 127.0.0.1`);
     return 2;
+  }
+  let auth: Parameters<typeof studioServer>[0]['auth'];
+  if (config.oidc) {
+    if (!secrets.STUDIO_OIDC_CLIENT_SECRET) throw new ConfigError('STUDIO_OIDC_CLIENT_SECRET is required');
+    if (!secrets.STUDIO_SESSION_KEY) throw new ConfigError('STUDIO_SESSION_KEY is required (32 characters or more)');
+    const oidc = await Oidc.discover({ ...config.oidc, clientSecret: secrets.STUDIO_OIDC_CLIENT_SECRET });
+    const sealer = new Sealer(secrets.STUDIO_SESSION_KEY.split(',').map((k) => k.trim()));
+    const store = new AuthStore(db);
+    const gate = new Gate({
+      store,
+      oidc,
+      sealer,
+      publicUrl: config.publicUrl,
+      ...(config.sessions?.idleHours ? { idleMs: config.sessions.idleHours * 3_600_000 } : {}),
+      ...(config.sessions?.absoluteHours ? { absoluteMs: config.sessions.absoluteHours * 3_600_000 } : {}),
+    });
+    auth = {
+      gate,
+      handle: authRoutes({
+        gate,
+        store,
+        oidc,
+        sealer,
+        publicUrl: config.publicUrl,
+        cliClientId: config.oidc.cliClientId,
+        send,
+        readJson,
+      }),
+    };
   }
   const lease = new ServiceLease(db);
   lease.start((held) =>
     console.log(JSON.stringify({ event: held ? 'lease-taken' : 'lease-lost', instance: lease.instance })),
   );
   const studio = createStudio({ gameDir, root: resolve(config.workDir), journal, author: 'studio-server' });
-  const server = studioServer({ studio, journal, db, lease, trustProxy: config.trustProxy });
+  const server = studioServer({ studio, journal, db, lease, trustProxy: config.trustProxy, auth });
   // Hosted: the instance's folder is checked against the head every 30 s and repaired without a restart (plan §4),
   // holding the instance's lock alone: no request reads a folder being repaired.
   if (hosted)
