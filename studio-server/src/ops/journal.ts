@@ -222,6 +222,11 @@ export class Journal {
     return r ? (JSON.parse(String(r.effects)) as Change[]) : [];
   }
 
+  /** Whether every content this journal's files ever held is in its blobs (hosted: the import's and the adopted too). */
+  get keepsEverything(): boolean {
+    return this.hosted;
+  }
+
   /** Keeps bytes as a blob (4.2.2: what a personal undo puts back, which a local journal did not keep). */
   keep(bytes: Buffer): Promise<string> {
     return this.blobs.put(bytes);

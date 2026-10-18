@@ -304,7 +304,7 @@ export function createStudio(opts: StudioOptions = {}) {
 
   /** One write of an operation: the file (absolute) and its whole new text, `null` to remove it. */
   /** `from`: the content the edit was computed from, when the caller read it itself (the 409 then covers that read). */
-  type Effect = { file: string; after: Buffer | string | null; from?: string | null };
+  type Effect = { file: string; after: Buffer | string | null; from?: Buffer | string | null };
   /** What an undo puts back: every file of one operation, `before` and `after` as they were. */
   type Change = { files: { file: string; before: Buffer | null; after: Buffer | string | null }[]; what: string };
   const undoStack: Change[] = [],
@@ -384,11 +384,19 @@ export function createStudio(opts: StudioOptions = {}) {
       guard: o.guard === false ? undefined : (changed) => guard(j, changed, o.diff ?? ''),
       respond: (rev) => ({ rev }),
     });
-    // A shared Studio (4.2.2, G5): the member's own stack, kept in the database. Here: this process's stack.
-    if (r.changed.length && o.undo !== false && opts.personalUndo && ctx?.claimant) {
-      // What its undo puts back is kept (a hosted journal has it already; a local one adopted it without keeping it).
-      for (const b of befores.values()) if (b) await j.keep(b);
-      await opts.personalUndo.recorded(ctx.claimant.userId, r.rev, what);
+    // A shared Studio (4.2.2, G5): the member's own stack, kept in the database (once: a retry of the same operation
+    // is answered, not recorded again). Here: this process's stack.
+    if (r.replayed) {
+      /* recorded by the first try */
+    } else if (r.changed.length && o.undo !== false && opts.personalUndo && ctx?.claimant) {
+      try {
+        // What its undo puts back is kept (a hosted journal has it already; a local one adopted it without it).
+        if (!j.keepsEverything) for (const b of befores.values()) if (b) await j.keep(b);
+        await opts.personalUndo.recorded(ctx.claimant.userId, r.rev, what);
+      } catch (e) {
+        // The edit landed: it only has no undo. Said in the log, never turned into a refusal of what was written.
+        console.error(JSON.stringify({ event: 'undo-not-recorded', rev: r.rev, message: (e as Error).message }));
+      }
     } else if (r.changed.length && o.undo !== false) {
       const changed = new Set(r.changed);
       undoStack.push({
@@ -453,26 +461,36 @@ export function createStudio(opts: StudioOptions = {}) {
   async function personalStep(
     dirn: UndoDir,
   ): Promise<{ ok: true; file: string; what: string } | { ok: false; reason: string }> {
-    const who = operationContext.getStore()?.claimant;
-    if (!who) throw new StudioError("an undo on a shared Studio is a member's own", 403);
+    const who = operationContext.getStore()!.claimant!;
     const pu = opts.personalUndo!;
     const j = await journal();
     const c = await pu.next(who.userId, dirn);
     if (!c) return { ok: false, reason: `nothing to ${dirn}` };
     const effects = await j.effectsAt(c.rev);
-    for (const e of effects) {
-      const head = await j.file(e.path);
-      if (head.blob !== (dirn === 'undo' ? e.after : e.before))
-        throw new StudioError(`cannot ${dirn} "${c.what}": ${e.path} was written again at revision ${head.rev}`, 409);
+    if (!effects.length) throw new StudioError(`cannot ${dirn} "${c.what}": the journal has no such operation`, 409);
+    const found = dirn === 'undo' ? 'after' : 'before';
+    const target = dirn === 'undo' ? 'before' : 'after';
+    const heads = await Promise.all(effects.map((e) => j.file(e.path)));
+    // Already there (an undo applied whose move was lost to a cut or a stop): moved now, nothing written again.
+    if (effects.every((e, i) => heads[i]!.blob === e[target])) {
+      await pu.moved(c.rev, dirn);
+      return { ok: true, file: effects[0]!.path, what: c.what };
     }
+    effects.forEach((e, i) => {
+      if (heads[i]!.blob !== e[found])
+        throw new StudioError(
+          `cannot ${dirn} "${c.what}": ${e.path} was written again at revision ${heads[i]!.rev}`,
+          409,
+        );
+    });
+    const blob = async (h: string) => (h === ABSENT ? null : await j.blob(h));
+    // `from`: what the check above found, compared again by the journal under its lease (no write between them).
     const back: Effect[] = [];
-    for (const e of effects) {
-      const h = dirn === 'undo' ? e.before : e.after;
-      back.push({ file: join(dir, ...e.path.split('/')), after: h === ABSENT ? null : await j.blob(h) });
-    }
+    for (const e of effects)
+      back.push({ file: join(dir, ...e.path.split('/')), after: await blob(e[target]), from: await blob(e[found]) });
     await write(`${dirn}: ${c.what}`, back, { undo: false });
     await pu.moved(c.rev, dirn);
-    return { ok: true, file: effects[0]?.path ?? '', what: c.what };
+    return { ok: true, file: effects[0]!.path, what: c.what };
   }
   const shared = () => !!opts.personalUndo && !!operationContext.getStore()?.claimant;
   const undo = () => (shared() ? personalStep('undo') : step(undoStack, redoStack, 'undo'));
