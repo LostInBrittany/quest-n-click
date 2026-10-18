@@ -42,4 +42,7 @@ Branch: refactor/421-single-entry (stacked on PR 2) · Plan §7, row 3, and P6
     - `ids` reports what it wrote after it wrote it.
   - **Noted:** `onSheetCopy` copies the sheet's `_vN` backups too (cost, not correctness).
 
+- **The package ships the journal's SQL layer** (`bridge/src/store*.ts`, `migrations.ts`): since PR 2 the ops core
+  imports it, and a fresh install's `web-scumm verify` could not find it (found by `fresh-install` on this PR).
+
 → next: Claude (PR 4, the server)

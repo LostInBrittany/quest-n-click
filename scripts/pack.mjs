@@ -32,6 +32,8 @@ const SHIP = [
   /^tools\//,
   // The Studio's operation core (4.2.1): the dev server, `ids` and the MCP server import it.
   /^studio-server\//,
+  // Its journal's SQL layer (4.2.1), from the Bridge: the store, SQLite and the migrations runner, nothing else.
+  /^bridge\/src\/(store|store-async|store-sql|store-sqlite|migrations)\.ts$/,
   /^cli\//,
   /^games\/_template\//,
   /^public\/(icons|fonts)\//,
