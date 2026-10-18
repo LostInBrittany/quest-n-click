@@ -334,9 +334,16 @@ try {
     await page.waitForTimeout(250);
   }
   if (!inPlay) throw new Error('no Play frame');
-  await inPlay.waitForFunction(() => !!(window as unknown as { __game?: G }).__game?.revision, null, {
-    timeout: 30_000,
-  });
+  await inPlay.waitForFunction(
+    () => {
+      const g = (window as unknown as { __game?: G }).__game;
+      return !!g?.revision && !!g.engine?.state;
+    },
+    null,
+    {
+      timeout: 30_000,
+    },
+  );
   const shownRev = Number(/\/preview\/(\d+)\//.exec(inPlay.url())?.[1]);
   check('"Load the latest preview" loads the last ready revision', shownRev === ready, inPlay.url());
   const here = await inPlay.evaluate(() => (window as unknown as { __game: G }).__game.revision?.here().rev ?? null);
@@ -427,9 +434,16 @@ try {
     await page.waitForTimeout(250);
   }
   if (!inPlay) throw new Error('no Play frame');
-  await inPlay.waitForFunction(() => !!(window as unknown as { __game?: G }).__game?.revision, null, {
-    timeout: 30_000,
-  });
+  await inPlay.waitForFunction(
+    () => {
+      const g = (window as unknown as { __game?: G }).__game;
+      return !!g?.revision && !!g.engine?.state;
+    },
+    null,
+    {
+      timeout: 30_000,
+    },
+  );
   await askFromSlot(inPlay);
   await inPlay.locator('[data-revision-prompt] button[data-choice="restart"]').click();
   await inPlay.locator('.dim .menu button.warn').click();
