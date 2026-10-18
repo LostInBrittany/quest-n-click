@@ -6,7 +6,8 @@ line's work (plan `docs/dev/PLAN-4.2.1-4.2.3-STUDIO-SERVER.md`). Alone on your m
 it was: none of this is needed.
 
 > **Status (4.2.1, experimental).** The journal (no confirmed change is lost), logins and roles, the processing
-> worker, spans and leases, the live stream, the game's own origin with its live preview, and the Studio's screens for
+> worker, spans and leases, the live stream, the game's own origin with its previews (one build per revision, since
+> 4.2.2), and the Studio's screens for
 > all of this. It stays experimental until its people's passes (`studio-hosted`, `studio-collab`) are made. This guide
 > deploys from the repository; the release archive `web-scumm-studio-server` is the same server (below).
 
@@ -99,8 +100,8 @@ Clever, each can be a file instead: `STUDIO_SESSION_KEY_FILE`, and so on (mode 0
 - No `port`: the server listens on the `PORT` Clever gives it (a `port` in the configuration would override it).
 - `worker.instance`: any name; the worker runs no other Studio's jobs.
 - `publicDir` (optional): the game's prepared images and sounds, `public/` of the deployed repository by default
-  (`npm run assets` writes them there and they are committed). The Studio shows them to members and the live preview
-  plays them; they are read only on a hosted Studio in 4.2.1.
+  (`npm run assets` writes them there and they are committed). The Studio shows them to members and every preview
+  plays them; they are read only on a hosted Studio.
 - `clientDir` (optional): the built Studio, `.cache/studio-client` by default (`npm run studio-client`). With OIDC the
   server refuses to start without it.
 
@@ -136,7 +137,8 @@ npx web-scumm-studio-server serve --config studio.config.json
 npx web-scumm-studio-worker          # on the worker's machine, with WORKER_PUBLIC_KEY and WORKER_INSTANCE
 ```
 
-The engine's archive brings Vite and tsx, which the live preview and the game's code need. Set `publicDir` to your
+The engine's archive brings Vite and tsx, which the worker needs to run the game's code and build its previews (the
+Studio itself no longer runs Vite, since 4.2.2). Set `publicDir` to your
 game's prepared assets (`public/` of your game's repository): the engine's own holds only its icons and font. Each
 release's candidate installs these two archives in an empty folder and serves a game from them, its dependencies
 found whether npm hoists or nests them (`scripts/studio-install-smoke.mjs`).
@@ -196,7 +198,11 @@ SQLite and a folder for the contents, on the loopback only.
 ## Known limits (4.2.1)
 
 - One game per instance, one instance (the server takes a lease; a second one waits).
-- The game in the Studio is a live preview, not frozen at a revision: per-revision previews come in 4.2.2.
+- The game in the Studio is the preview of a revision (4.2.2): after each change the worker builds the head (a burst
+  of changes builds its last revision only), and the room view loads it once built, unless a placement is not saved.
+  Meanwhile the frames show the last ready preview, and the label under the room view says which revision it is, the
+  one building, and a revision that does not build, with its reason. Saves made in a preview are not yet told apart
+  by revision (ADR 0026 comes next).
 - The Assets tab (uploads, sprite sheets, `prepare`) is not on a hosted Studio yet: the prepared images and sounds
   come with the deployment (`publicDir`), and are changed on a local Studio.
 - A game frame left idle past its 15 min session shows nothing new: "Reload view" (or the Play tab) opens it again.

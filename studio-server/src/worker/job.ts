@@ -9,7 +9,10 @@ export interface Job {
   instance: string;
   epoch: string;
   rev: number;
-  /** `validate`: the validator's verdict; `load`: the game module as data (functions dropped), for the Studio's reads. */
+  /**
+   * `validate`: the validator's verdict; `load`: the game module as data (functions dropped), for the Studio's reads;
+   * `preview` (4.2.2): the revision's built preview, its files by path.
+   */
   kind: JobKind;
   params: Record<string, unknown>;
   /** sha256 of the snapshot the worker must find at the URL it is given. */
@@ -22,8 +25,8 @@ export interface Job {
   urls: { snapshot: string; result: string };
 }
 
-export type JobKind = 'validate' | 'load';
-const KINDS: readonly string[] = ['validate', 'load'];
+export type JobKind = 'validate' | 'load' | 'preview';
+const KINDS: readonly string[] = ['validate', 'load', 'preview'];
 
 export const MAX_JOB_MS = 5 * 60_000;
 

@@ -1,6 +1,6 @@
 // The worker's child process (4.2.1, ADR 0028): runs the game's code in the folder it is given and prints one JSON
 // document to the file it is given: `validate`, the validator's verdict; `load`, the game module as data (functions dropped, as the Studio
-// reads it). It is started with an emptied environment, in a fresh folder, and killed with its process group at its
+// reads it); `preview` (4.2.2), the revision's built preview, its files in base64 by path (preview-build.ts). It is started with an emptied environment, in a fresh folder, and killed with its process group at its
 // deadline; the game's code runs here, never in the supervisor... as far as one machine and one user allow (ADR 0028).
 import { writeFileSync } from 'node:fs';
 import { join } from 'node:path';
@@ -10,10 +10,17 @@ import { validateDir } from '../ops/validate-dir';
 
 const ROOT = fileURLToPath(new URL('../../../', import.meta.url));
 // The result goes to a file, never to stdout: the game's own logs cannot corrupt it.
-const [dir, kind, outFile] = process.argv.slice(2);
+const [dir, kind, outFile, params] = process.argv.slice(2);
 if (!dir || !outFile) process.exit(2);
 const importFresh = (file: string) => tsImport(pathToFileURL(file).href, import.meta.url);
-if (kind === 'load') {
+if (kind === 'preview') {
+  const { buildPreview, previewParams } = await import('./preview-build');
+  const files = await buildPreview(dir, previewParams(JSON.parse(params ?? '{}')), join(dir, '.vite-cache'));
+  writeFileSync(
+    outFile,
+    JSON.stringify({ files: Object.fromEntries([...files].map(([k, v]) => [k, v.toString('base64')])) }),
+  );
+} else if (kind === 'load') {
   const m = await importFresh(join(dir, 'index.ts'));
   writeFileSync(
     outFile,

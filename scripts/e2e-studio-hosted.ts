@@ -1,5 +1,5 @@
 // The hosted Studio in a browser (4.2.1 PR 7, plan §6.1 and §11): a Studio Server with a test OpenID provider, the
-// built Studio's page (`npm run studio-client` first) on one origin and the game's live preview on another (two names
+// built Studio's page (`npm run studio-client` first) on one origin and the game's previews on another (two names
 // of the loopback: 127.0.0.1 and localhost, two sites). A member logs in through the provider and the Studio loads;
 // the Rooms tab shows the room's editor from the game's origin; "Save layout" asks the editor for its layout and the
 // Studio writes it (a new revision); a layout the editor sends unasked is ignored; the game's page cannot read the
@@ -30,8 +30,10 @@ import { readJson, send, studioServer } from '../studio-server/src/server/http';
 import { Leases } from '../studio-server/src/server/leases';
 import { Presence } from '../studio-server/src/server/live';
 import { Play } from '../studio-server/src/server/play';
-import { livePreview } from '../studio-server/src/server/preview';
+import { Previews } from '../studio-server/src/server/previews';
 import { ServiceLease } from '../studio-server/src/server/service-lease';
+import { localPreview } from '../studio-server/src/worker/local';
+import { packSnapshot } from '../studio-server/src/worker/snapshot';
 import { TestOp } from '../tests/fixtures/oidc-op';
 
 const ROOT = join(import.meta.dirname, '..');
@@ -91,16 +93,23 @@ const oidc = await Oidc.discover({
 const sealer = new Sealer(['a-session-key-of-at-least-32-characters']);
 const store = new AuthStore(db);
 const gate = new Gate({ store, oidc, sealer, publicUrl: studioUrl });
-const preview = await livePreview({
-  gameDir,
-  game: 'demo',
+// As the server does (main.ts), with the worker's child on this machine: the head's preview after each revision.
+const previews = new Previews({
+  db,
+  blobs: fsBlobStore(join(tmp, 'blobs')),
   publicDir: join(ROOT, 'public'),
+  game: 'demo',
   studioOrigin: studioUrl,
-  playUrl,
-  engineRoot: ROOT,
+  snapshot: () =>
+    server.exclusive(async () => ({
+      epoch: await journal.epoch(),
+      rev: await journal.revision(),
+      bytes: packSnapshot(gameDir),
+    })),
+  build: localPreview,
+  assetsVersion: () => 'e2e',
 });
-// As the server does (main.ts): the preview reads the folder again after each revision.
-journal.events.on('confirmed', () => preview.invalidate());
+journal.events.on('confirmed', () => void previews.schedule());
 const server = studioServer({
   studio: createStudio({ gameDir, root: tmp, journal, importFresh: importInChild }),
   journal,
@@ -111,6 +120,7 @@ const server = studioServer({
   auth: { gate, handle: authRoutes({ gate, store, oidc, sealer, publicUrl: studioUrl, send, readJson }) },
   leases,
   presence: new Presence(),
+  previews,
   play: {
     playUrl,
     handler: new Play({
@@ -119,7 +129,7 @@ const server = studioServer({
       publicUrl: studioUrl,
       playUrl,
       idleMs: gate.idleMs,
-      content: (req, res) => preview.handle(req, res),
+      content: (req, res, url) => previews.handle(req, res, url),
     }),
   },
   client: new StudioClient({ clientDir: CLIENT, publicDir: join(ROOT, 'public'), publicUrl: studioUrl, playUrl }),
@@ -140,6 +150,8 @@ if (tls) {
   await new Promise<void>((ok) => https.listen(port, '127.0.0.1', ok));
   front = https;
 } else await new Promise<void>((ok) => server.listen(port, '127.0.0.1', ok));
+// The first preview, before any browser asks for the game.
+await previews.schedule();
 
 const steps: [string, boolean, string?][] = [];
 const check = (name: string, ok: boolean, detail?: string) => {
@@ -177,7 +189,11 @@ try {
   const editor = page.frameLocator('iframe.engine');
   await editor.locator('svg').first().waitFor({ timeout: 60_000 });
   const frame = page.frames().find((f) => f.url().startsWith(playUrl)) as Frame | undefined;
-  check('the room editor is on the game origin', !!frame, frame?.url().split('?')[0]);
+  check(
+    "the room editor is a revision's preview on the game origin",
+    !!frame && /^\/preview\/\d+\/$/.test(new URL(frame.url()).pathname),
+    frame?.url().split('?')[0],
+  );
   if (!frame) throw new Error('no editor frame');
 
   // 3. A save asked by the Studio is written by the Studio, through its API, as the member.
@@ -209,7 +225,8 @@ try {
   await page.waitForTimeout(1500);
   check('a layout the editor sends unasked is ignored (no nonce, a stale one, another room)', puts.length === n);
 
-  // 4b. A layout written meanwhile is what the view shows after "Reload view" (the preview reads the folder again).
+  // 4b. A layout written meanwhile is what the view shows once its revision's preview is built (the view reloads by
+  // itself then; "Reload view" before that shows the last ready one).
   const moved = await page.evaluate(async () => {
     const r = await fetch('/api/room/garden', { headers: { 'x-studio-request': '1' } });
     const layout = ((await r.json()) as { layout: { entries?: Record<string, number[]> } }).layout;
@@ -223,7 +240,7 @@ try {
   });
   await page.getByRole('button', { name: 'Reload view' }).click();
   let shown: unknown;
-  for (let i = 0; i < 60; i++) {
+  for (let i = 0; i < 120; i++) {
     await page.waitForTimeout(250);
     const f = page.frames().find((x) => x.url().startsWith(playUrl) && x.url().includes('edit='));
     shown = await f
@@ -239,7 +256,7 @@ try {
     if (JSON.stringify(shown) === '[123,321]') break;
   }
   check(
-    'a layout written meanwhile is what the reloaded view shows',
+    "a layout written meanwhile is what the view shows once its revision's preview is ready",
     moved === 200 && JSON.stringify(shown) === '[123,321]',
     `PUT ${moved}, shown ${JSON.stringify(shown)}`,
   );
@@ -304,7 +321,7 @@ try {
       body: '{}',
     });
   });
-  const afterLogout = await playFrame!.evaluate(async () => (await fetch('/src/main.ts')).status);
+  const afterLogout = await playFrame!.evaluate(async () => (await fetch(location.href)).status);
   check(
     "after the logout, the game's origin refuses the next request",
     afterLogout === 403 || afterLogout === 401,
@@ -331,7 +348,6 @@ try {
   await browser.close();
   front.close();
   op.stop();
-  await preview.close();
   await lease.release();
   await journal.close();
   rmSync(tmp, { recursive: true, force: true });

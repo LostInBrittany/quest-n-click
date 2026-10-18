@@ -87,6 +87,11 @@ export class EditorBridge {
     }
   }
 
+  /** A newer preview is ready (hosted): the view loads it, unless its placement is not saved. */
+  reloadIfClean() {
+    if (!this.editorDirty) this.reload();
+  }
+
   reload() {
     this.editorDirty = false;
     this.status.textContent = 'loading…';

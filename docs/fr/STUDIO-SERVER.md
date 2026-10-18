@@ -6,8 +6,8 @@ C'est le chantier de la ligne 4.2.x (plan `docs/dev/PLAN-4.2.1-4.2.3-STUDIO-SERV
 `npm run studio` reste tel quel : rien de tout ceci n'est nécessaire.
 
 > **État (4.2.1, expérimental).** Le journal (aucune modification confirmée n'est perdue), les connexions et les rôles,
-> l'application de traitement, les pans et les baux, le flux en direct, l'origine propre du jeu avec son aperçu vivant,
-> et les écrans du Studio pour tout cela. Il reste expérimental jusqu'à ce que ses passes humaines (`studio-hosted`,
+> l'application de traitement, les pans et les baux, le flux en direct, l'origine propre du jeu avec ses
+> prévisualisations (un build par révision, depuis 4.2.2), et les écrans du Studio pour tout cela. Il reste expérimental jusqu'à ce que ses passes humaines (`studio-hosted`,
 > `studio-collab`) soient faites. Ce guide déploie depuis le dépôt ; l'archive `web-scumm-studio-server` est le même
 > serveur (ci-dessous).
 
@@ -102,8 +102,8 @@ Clever, chacun peut être un fichier : `STUDIO_SESSION_KEY_FILE`, etc. (mode 060
 - Pas de `port` : le serveur écoute sur le `PORT` que Clever lui donne (un `port` dans la configuration l'emporterait).
 - `worker.instance` : un nom au choix ; le worker n'exécute les jobs d'aucun autre Studio.
 - `publicDir` (facultatif) : les images et les sons préparés du jeu, par défaut `public/` du dépôt déployé
-  (`npm run assets` les y écrit et ils sont versionnés). Le Studio les montre aux membres et l'aperçu vivant les joue ;
-  ils sont en lecture seule sur un Studio hébergé en 4.2.1.
+  (`npm run assets` les y écrit et ils sont versionnés). Le Studio les montre aux membres et chaque prévisualisation
+  les joue ; ils sont en lecture seule sur un Studio hébergé.
 - `clientDir` (facultatif) : le Studio construit, par défaut `.cache/studio-client` (`npm run studio-client`). Avec
   OIDC, le serveur refuse de démarrer sans lui.
 
@@ -140,7 +140,8 @@ npx web-scumm-studio-server serve --config studio.config.json
 npx web-scumm-studio-worker          # sur la machine du worker, avec WORKER_PUBLIC_KEY et WORKER_INSTANCE
 ```
 
-L'archive du moteur apporte Vite et tsx, dont l'aperçu vivant et le code du jeu ont besoin. Mettez dans `publicDir` les
+L'archive du moteur apporte Vite et tsx, dont l'application de traitement a besoin pour exécuter le code du jeu et
+construire ses prévisualisations (le Studio lui-même ne fait plus tourner Vite, depuis 4.2.2). Mettez dans `publicDir` les
 assets préparés de votre jeu (`public/` de son dépôt) : celui du moteur ne contient que ses icônes et sa police. Le
 candidat de chaque release installe ces deux archives dans un dossier vide et y sert un jeu, ses dépendances trouvées
 que npm les remonte ou les imbrique (`scripts/studio-install-smoke.mjs`).
@@ -201,8 +202,12 @@ OIDC, avec SQLite et un dossier pour les contenus, sur le loopback seulement.
 ## Limites connues (4.2.1)
 
 - Un jeu par instance, une seule instance (le serveur prend un bail ; une seconde attend).
-- Le jeu dans le Studio est un aperçu vivant, pas figé à une révision : les prévisualisations par révision arrivent en
-  4.2.2.
+- Le jeu dans le Studio est la prévisualisation d'une révision (4.2.2) : après chaque modification, l'application de
+  traitement construit la tête (une rafale de modifications ne construit que sa dernière révision), et la vue de la
+  salle la charge une fois prête, sauf si un placement n'est pas enregistré. En attendant, les cadres montrent la
+  dernière prévisualisation prête, et l'étiquette sous la vue dit de quelle révision il s'agit, celle en construction,
+  et une révision qui ne se construit pas, avec sa raison. Les sauvegardes faites dans une prévisualisation ne sont pas
+  encore distinguées par révision (l'ADR 0026 vient ensuite).
 - L'onglet Assets (uploads, planches, `prepare`) n'est pas encore sur un Studio hébergé : les images et les sons
   préparés viennent avec le déploiement (`publicDir`), et se changent sur un Studio local.
 - Un cadre de jeu resté inactif au-delà de sa session de 15 min ne montre plus rien de neuf : « Reload view » (ou

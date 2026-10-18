@@ -16,11 +16,12 @@ import { createServer, type IncomingMessage, type ServerResponse } from 'node:ht
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { type Job, publicKeyOf, verifyJob } from './job';
+import { previewFiles } from './preview-build';
 import { unpackSnapshot } from './snapshot';
 
 const CHILD = fileURLToPath(new URL('./child.ts', import.meta.url));
 // A game imports `web-scumm/content` by the package's self-reference: its folder must sit inside the package.
-const JOBS = fileURLToPath(new URL('../../../.cache/jobs/', import.meta.url));
+export const JOBS = fileURLToPath(new URL('../../../.cache/jobs/', import.meta.url));
 const MAX_OUT = 16 * 1024 * 1024;
 const DEFAULT_TIMEOUT_MS = 60_000;
 const MAX_TIMEOUT_MS = 120_000;
@@ -44,6 +45,8 @@ export interface JobResult {
   warnings?: string[];
   /** load: the module as data. */
   module?: unknown;
+  /** preview (4.2.2): the built files, base64 by path under the preview's base. */
+  files?: Record<string, string>;
   /** The game's code did not run to its end (a timeout, a crash, output that is not JSON). */
   failed?: string;
 }
@@ -57,15 +60,20 @@ export function runChild(
   timeoutMs: number,
   kind: Job['kind'] = 'validate',
   outFile = `${dir}.out.json`,
+  params: Record<string, unknown> = {},
 ): Promise<{ out: string; code: number | null; timedOut: boolean; pid: number }> {
   return new Promise((ok, fail) => {
     rmSync(outFile, { force: true });
-    const child = spawn(process.execPath, ['--import', import.meta.resolve('tsx'), CHILD, dir, kind, outFile], {
-      cwd: dir,
-      env: {},
-      detached: true,
-      stdio: 'ignore',
-    });
+    const child = spawn(
+      process.execPath,
+      ['--import', import.meta.resolve('tsx'), CHILD, dir, kind, outFile, JSON.stringify(params)],
+      {
+        cwd: dir,
+        env: {},
+        detached: true,
+        stdio: 'ignore',
+      },
+    );
     let timedOut = false;
     const killGroup = () => {
       try {
@@ -136,7 +144,7 @@ export function createWorker(o: WorkerOptions) {
       unpackSnapshot(bytes, dir);
       const timeoutMs = Math.min(Number(job.params.timeoutMs) || DEFAULT_TIMEOUT_MS, MAX_TIMEOUT_MS);
       const t0 = Date.now();
-      const r = await runChild(dir, timeoutMs, job.kind);
+      const r = await runChild(dir, timeoutMs, job.kind, undefined, job.params);
       if (r.pid && (await survivors(r.pid))) {
         recycle = true;
         log('worker-survivor', { job: job.id });
@@ -154,6 +162,10 @@ export function createWorker(o: WorkerOptions) {
         const v = (parsed ?? {}) as { errors?: unknown; warnings?: unknown };
         result.errors = strings(v.errors);
         result.warnings = strings(v.warnings);
+      } else if (!result.failed && job.kind === 'preview') {
+        const files = previewFiles((parsed as { files?: unknown } | undefined)?.files);
+        if (files) result.files = files;
+        else result.failed = 'the preview build gave no usable files';
       } else if (!result.failed) result.module = parsed;
       result.ms = Date.now() - t0;
       const put = await fetch(job.urls.result, {

@@ -26,11 +26,13 @@ import { AuthStore, Sealer } from './auth/store';
 import { readJson, send, studioServer } from './http';
 import { openPostgresDb } from './postgres';
 import { newJobKeys } from '../worker/job';
+import { packSnapshot } from '../worker/snapshot';
+import { assetsVersion } from '../../../tools/vite/plugins';
 import { Leases } from './leases';
 import { Presence } from './live';
 import { StudioClient } from './client';
 import { Play } from './play';
-import { livePreview } from './preview';
+import { Previews } from './previews';
 import { remoteExecutor } from './remote-executor';
 import { S3, s3BlobStore } from './s3';
 import { ServiceLease } from './service-lease';
@@ -297,22 +299,31 @@ async function main(argv: string[]): Promise<number> {
     client = new StudioClient({ clientDir, publicDir, publicUrl: config.publicUrl, playUrl: config.playUrl });
   else if (config.oidc)
     throw new ConfigError(`${clientDir} has no studio.html: build the Studio's page first (npm run studio-client)`);
-  // The game's origin (plan §6.1): the live preview of the instance's folder, behind a game session (plan §6.2).
-  const preview =
-    auth && authStore
-      ? await livePreview({
-          gameDir,
-          game: config.game,
+  // The game's origin (plan §6.1): the revisions' previews, built by the worker, behind a game session (4.2.2 PR 2).
+  // The snapshot is packed holding the instance's lock: no write lands between reading the head and packing it.
+  const previews =
+    auth && authStore && executor
+      ? new Previews({
+          db,
+          blobs,
           publicDir,
+          game: config.game,
           studioOrigin: config.publicUrl,
-          playUrl: config.playUrl,
-          engineRoot,
+          snapshot: () =>
+            server.exclusive(async () => ({
+              epoch: await journal.epoch(),
+              rev: await journal.revision(),
+              bytes: packSnapshot(gameDir),
+            })),
+          build: (bytes, params) => executor!.preview(bytes, params),
+          assetsVersion: () => assetsVersion(join(publicDir, 'assets')),
+          log: (line) => console.log(JSON.stringify(line)),
         })
       : undefined;
-  // The preview reads the folder again after each revision: the next load of a frame is the game as it is then.
-  journal.events.on('confirmed', () => preview?.invalidate());
+  // After each revision, the head's preview (coalesced: a burst builds its last revision only).
+  journal.events.on('confirmed', () => void previews?.schedule());
   const play =
-    auth && authStore && preview
+    auth && authStore && previews
       ? {
           playUrl: config.playUrl,
           handler: new Play({
@@ -321,7 +332,7 @@ async function main(argv: string[]): Promise<number> {
             publicUrl: config.publicUrl,
             playUrl: config.playUrl,
             idleMs: auth.gate.idleMs,
-            content: (req, res) => preview.handle(req, res),
+            content: (req, res, url) => previews.handle(req, res, url),
           }),
         }
       : undefined;
@@ -334,6 +345,7 @@ async function main(argv: string[]): Promise<number> {
     auth,
     leases,
     presence,
+    previews,
     play,
     client,
   });
@@ -346,7 +358,6 @@ async function main(argv: string[]): Promise<number> {
         .then(
           (r) => {
             if (!(r.written + r.removed)) return;
-            preview?.invalidate();
             console.log(JSON.stringify({ event: 'reconciled', ...r }));
           },
           (e) => console.log(JSON.stringify({ event: 'reconcile-failed', message: String((e as Error).message) })),
@@ -356,9 +367,11 @@ async function main(argv: string[]): Promise<number> {
     console.error(JSON.stringify({ event: 'listen-failed', message: (e as Error).message }));
     void lease.release().then(() => process.exit(1));
   });
-  server.listen(config.port, config.host, () =>
-    console.log(JSON.stringify({ event: 'listening', host: config.host, port: config.port, instance: lease.instance })),
-  );
+  server.listen(config.port, config.host, () => {
+    console.log(JSON.stringify({ event: 'listening', host: config.host, port: config.port, instance: lease.instance }));
+    // The head's preview, unless it was built before this start.
+    void previews?.schedule();
+  });
   const stop = async (signal: string) => {
     console.log(JSON.stringify({ event: 'stopping', signal }));
     // New requests refused, the ones running finish (5 s at most), then the lease is given back.
@@ -367,7 +380,6 @@ async function main(argv: string[]): Promise<number> {
     await Promise.race([drained, new Promise((ok) => setTimeout(ok, 5_000))]);
     server.closeAllConnections?.();
     await journal.close().catch(() => undefined);
-    await preview?.close().catch(() => undefined);
     await lease.release();
     setTimeout(() => process.exit(0), 100).unref();
   };

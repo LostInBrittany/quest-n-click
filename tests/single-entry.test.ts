@@ -31,6 +31,8 @@ const WRITERS: Record<string, string> = {
     "elsewhere: a job's snapshot, unpacked into the worker's fresh job folder in .cache/jobs/",
   'studio-server/src/worker/main.ts':
     "elsewhere: the worker's fresh job folders in .cache/jobs/, removed after each job",
+  'studio-server/src/worker/local.ts':
+    "elsewhere: a preview's fresh job folder in .cache/jobs/ on this machine (loopback, tests), removed after the build",
   'studio-server/src/worker/child.ts':
     "elsewhere: the job's output file beside its folder in .cache/jobs/, read and removed by the supervisor",
   // Game folders written directly (local mode: adopted by the journal; hosted: unavailable or in the executor).

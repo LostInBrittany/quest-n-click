@@ -24,7 +24,7 @@ same user and can read the parent's `/proc/<pid>/environ`, which still holds the
    - the instance;
    - the epoch and revision;
    - the snapshot's sha256;
-   - the kind (`validate` or `load`) and its parameters;
+   - the kind (`validate` or `load`; `preview` since 4.2.2, a revision's build) and its parameters;
    - its staging prefix `staging/<id>/`;
    - the expiry, 5 min at most;
    - the two presigned URLs: read the snapshot, write the result.
@@ -90,6 +90,9 @@ same user and can read the parent's `/proc/<pid>/environ`, which still holds the
   - one worker per Studio instance;
   - recycling on a detected survivor;
   - redeploying the worker (to be scheduled with the hosting guide, PR 8).
+- **A preview (4.2.2) is files the game's origin serves**, as the game's own page would: the Studio bounds them
+  (2,000 files, plain relative paths), stores them under their hashes, and serves them behind the game session only,
+  never on the Studio's origin.
 - **A loaded module is data the Studio trusts as much as the game's own files.** A hostile load can show wrong data
   in the editors of the same project, as editing the files could.
 
