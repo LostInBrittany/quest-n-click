@@ -1,0 +1,125 @@
+#!/usr/bin/env node
+// node scripts/studio-install-smoke.mjs --tarballs=<dir> (4.2.1, plan §7 row 9): the Studio Server as an operator gets
+// it, from this release's archives, outside the repository. In an empty folder: `npm install` of the engine and the
+// Studio Server archives (nothing else of the repository); `web-scumm-studio-server import` of the engine's own game
+// template; `serve` on the loopback (SQLite, a folder of blobs): its probes, the Studio's page built into the package,
+// the API reading the game; `worker-keys`, then `web-scumm-studio-worker` answering its probe. Exit 0 / 1.
+import { execFileSync, spawn } from 'node:child_process';
+import { cpSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { createServer } from 'node:net';
+import { tmpdir } from 'node:os';
+import { join, resolve } from 'node:path';
+
+const dir = resolve(process.argv.find((a) => a.startsWith('--tarballs='))?.slice(11) ?? '');
+const version = JSON.parse(readFileSync(resolve(import.meta.dirname, '..', 'package.json'), 'utf8')).version;
+const tgz = (name) => {
+  const f = readdirSync(dir).find((x) => x === `${name}-${version}.tgz`);
+  if (!f) throw new Error(`${name}-${version}.tgz is not in ${dir}`);
+  return join(dir, f);
+};
+const WIN = process.platform === 'win32';
+const freePort = () =>
+  new Promise((ok) => {
+    const s = createServer().listen(0, '127.0.0.1', () => {
+      const p = s.address().port;
+      s.close(() => ok(p));
+    });
+  });
+const until = async (url, ms = 60_000) => {
+  for (const end = Date.now() + ms; Date.now() < end; await new Promise((r) => setTimeout(r, 500))) {
+    const r = await fetch(url).catch(() => null);
+    if (r?.ok) return r;
+  }
+  throw new Error(`${url} did not answer 200 within ${ms / 1000} s`);
+};
+
+const home = mkdtempSync(join(tmpdir(), 'studio-install-'));
+const children = [];
+let failed = false;
+const check = (name, ok, detail = '') => {
+  console.log(`${ok ? '✓' : '✖'} ${name}${detail ? ` — ${detail}` : ''}`);
+  if (!ok) failed = true;
+};
+try {
+  writeFileSync(join(home, 'package.json'), '{"name":"studio-install-smoke","private":true,"type":"module"}\n');
+  execFileSync(
+    WIN ? 'npm.cmd' : 'npm',
+    ['install', '--no-audit', '--no-fund', tgz('web-scumm'), tgz('web-scumm-studio-server')],
+    {
+      cwd: home,
+      stdio: ['ignore', 'ignore', 'inherit'],
+      shell: WIN,
+    },
+  );
+  check('the engine and the Studio Server install from their archives', true);
+  const bin = (name) => join(home, 'node_modules', 'web-scumm-studio-server', 'bin', `${name}.mjs`);
+  const run = (name, args, env = {}) =>
+    execFileSync(process.execPath, [bin(name), ...args], {
+      cwd: home,
+      encoding: 'utf8',
+      env: { ...process.env, ...env },
+    });
+
+  // The game: the engine's own template, imported as the instance's project.
+  cpSync(join(home, 'node_modules', 'web-scumm', 'games', '_template'), join(home, 'game-src'), { recursive: true });
+  const port = await freePort();
+  const config = {
+    publicUrl: `http://127.0.0.1:${port}`,
+    playUrl: `http://localhost:${port}`,
+    game: 'smoke',
+    workDir: join(home, 'work'),
+    port,
+    host: '127.0.0.1',
+    store: { kind: 'sqlite', file: join(home, 'studio.sqlite') },
+    blobs: { kind: 'fs', dir: join(home, 'blobs') },
+  };
+  writeFileSync(join(home, 'studio.config.json'), JSON.stringify(config, null, 2));
+  const imported = run('server', ['import', join(home, 'game-src'), '--config', join(home, 'studio.config.json')]);
+  check('import takes the game', /"event":"imported"/.test(imported), imported.trim().split('\n').at(-1));
+
+  const server = spawn(process.execPath, [bin('server'), 'serve', '--config', join(home, 'studio.config.json')], {
+    cwd: home,
+    stdio: ['ignore', 'inherit', 'inherit'],
+  });
+  children.push(server);
+  const base = `http://127.0.0.1:${port}`;
+  await until(`${base}/readyz`);
+  check('serve answers its probes, the writes served', true);
+  const page = await fetch(`${base}/`);
+  const html = await page.text();
+  check(
+    "the Studio's page built into the package",
+    page.ok && html.includes('name="web-scumm-studio"'),
+    `${page.status}`,
+  );
+  const game = await fetch(`${base}/api/game`);
+  const info = game.ok ? await game.json() : {};
+  check('the API reads the game', game.ok && typeof info.title === 'string', info.title ?? `${game.status}`);
+
+  // The worker, with keys the server's command made.
+  const keys = join(home, 'keys');
+  mkdirSync(keys);
+  run('server', ['worker-keys', '--out', keys]);
+  const wport = await freePort();
+  const worker = spawn(process.execPath, [bin('worker')], {
+    cwd: home,
+    stdio: ['ignore', 'inherit', 'inherit'],
+    env: {
+      ...process.env,
+      PORT: String(wport),
+      WORKER_PUBLIC_KEY: readFileSync(join(keys, 'studio-worker.pub'), 'utf8'),
+      WORKER_INSTANCE: 'smoke',
+    },
+  });
+  children.push(worker);
+  await until(`http://127.0.0.1:${wport}/livez`);
+  check('the worker answers its probe', true);
+} catch (e) {
+  check('the run', false, String(e.message ?? e).split('\n')[0]);
+} finally {
+  for (const c of children) c.kill('SIGTERM');
+  await new Promise((r) => setTimeout(r, 1000));
+  rmSync(home, { recursive: true, force: true });
+}
+console.log(failed ? '✖ studio-install-smoke failed' : '✓ studio-install-smoke');
+process.exit(failed ? 1 : 0);

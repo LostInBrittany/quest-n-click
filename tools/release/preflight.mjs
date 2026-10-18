@@ -9,7 +9,13 @@ import { join } from 'node:path';
 
 /** The exact Node and npm of the future publishing step (release.yml's env): npm 11.15.0 at least for `npm stage`. */
 export const MINIMUM = { node: '22.14.0', npm: '11.15.0' };
-export const PACKAGES = ['web-scumm', 'create-web-scumm', 'web-scumm-bridge', 'web-scumm-connectors'];
+export const PACKAGES = [
+  'web-scumm',
+  'create-web-scumm',
+  'web-scumm-bridge',
+  'web-scumm-connectors',
+  'web-scumm-studio-server',
+];
 
 const EXACT = /^\d+\.\d+\.\d+$/;
 const parts = (v) => v.split('.').map(Number);

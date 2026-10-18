@@ -268,7 +268,10 @@ async function main(argv: string[]): Promise<number> {
   // The engine's folder: the built Studio and the prepared assets are found beside it unless configured.
   const engineRoot = fileURLToPath(new URL('../../..', import.meta.url));
   const publicDir = resolve(config.publicDir ?? join(engineRoot, 'public'));
-  const clientDir = resolve(config.clientDir ?? join(engineRoot, '.cache', 'studio-client'));
+  // The page: configured, else the one the package was built with (web-scumm-studio-server), else this checkout's.
+  const clientDir = resolve(
+    config.clientDir ?? process.env.WEB_SCUMM_STUDIO_CLIENT ?? join(engineRoot, '.cache', 'studio-client'),
+  );
   // The Studio's page (PR 7): required with OIDC, where it is the only way in; optional on the loopback.
   let client: StudioClient | undefined;
   if (existsSync(join(clientDir, 'studio.html')))

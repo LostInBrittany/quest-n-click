@@ -9,7 +9,7 @@
 // refuses any address but the loopback.
 import { randomUUID } from 'node:crypto';
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from 'node:http';
-import { inAllowlist } from '../../../bridge/src/server';
+import { inAllowlist } from '../../../bridge/src/allowlist';
 import type { SqlDb } from '../../../bridge/src/store-sql';
 import { operationContext, type Studio } from '../ops/core';
 import { isStudioError, StudioError } from '../ops/errors';
