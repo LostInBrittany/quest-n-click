@@ -7,8 +7,8 @@ it was: none of this is needed.
 
 > **Status (4.2.1, in progress).** Done: the journal (no confirmed change is lost), logins and roles, the processing
 > worker, spans and leases, the live stream, the game's own origin with its live preview, and the Studio's page.
-> Still coming in 4.2.1: the Studio's screens for members, leases and conflicts, and the release package. Until then,
-> this guide deploys the server from the repository.
+> Still coming in 4.2.1: the Studio's screens for members, leases and conflicts. The release package
+> `web-scumm-studio-server` is ready (below); this guide deploys from the repository, which is the same server.
 
 ## What runs where
 
@@ -120,6 +120,26 @@ Whether the shell of `clever ssh` has the app's variables (here `STUDIO_CONFIG_J
 `studio-hosted` pass; otherwise run both commands once from a machine with the same variables. The invitation
 prints a link: open it and log in with that verified email. `/readyz` answers 200 once the instance
 serves writes.
+
+## From the release archives
+
+From 4.2.1 a release carries `web-scumm-studio-server-<version>.tgz`: the two commands `web-scumm-studio-server` and
+`web-scumm-studio-worker`, the Studio's page already built, and its own dependencies (OpenID Connect, JWT, Postgres).
+Their versions are locked in its `npm-shrinkwrap.json` and its SBOM; npm reads that lock when it installs from the
+registry, not from an archive file, where `pg` takes the latest 8.x its range allows (`web-scumm-studio-server deps`
+says which). It runs the server of the engine installed beside it, which must be the same version:
+
+```sh
+npm install web-scumm-4.2.1.tgz web-scumm-studio-server-4.2.1.tgz
+npx web-scumm-studio-server import ./my-game --config studio.config.json
+npx web-scumm-studio-server serve --config studio.config.json
+npx web-scumm-studio-worker          # on the worker's machine, with WORKER_PUBLIC_KEY and WORKER_INSTANCE
+```
+
+The engine's archive brings Vite and tsx, which the live preview and the game's code need. Set `publicDir` to your
+game's prepared assets (`public/` of your game's repository): the engine's own holds only its icons and font. Each
+release's candidate installs these two archives in an empty folder and serves a game from them, its dependencies
+found whether npm hoists or nests them (`scripts/studio-install-smoke.mjs`).
 
 ## The OpenID provider
 

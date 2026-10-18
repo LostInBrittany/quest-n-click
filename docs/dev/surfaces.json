@@ -189,6 +189,35 @@
    ],
    "exclusions": [],
    "dependencies": []
+  },
+  "studio-hosted": {
+   "since": "4.2.1",
+   "artifacts": [
+    "pack/web-scumm-{pkg}.tgz",
+    "pack/web-scumm-studio-server-{pkg}.tgz"
+   ],
+   "config": [
+    "docs/en/STUDIO-SERVER.md",
+    "ops/studio/**",
+    "scripts/locks/web-scumm-studio-server.json"
+   ],
+   "exclusions": [],
+   "dependencies": []
+  },
+  "studio-collab": {
+   "since": "4.2.1",
+   "artifacts": [
+    "pack/web-scumm-{pkg}.tgz",
+    "pack/web-scumm-studio-server-{pkg}.tgz"
+   ],
+   "config": [
+    "docs/en/STUDIO-SERVER.md",
+    "ops/studio/**"
+   ],
+   "exclusions": [],
+   "dependencies": [
+    "studio-hosted"
+   ]
   }
  },
  "status": [

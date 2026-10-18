@@ -7,8 +7,8 @@ C'est le chantier de la ligne 4.2.x (plan `docs/dev/PLAN-4.2.1-4.2.3-STUDIO-SERV
 
 > **État (4.2.1, en cours).** Fait : le journal (aucune modification confirmée n'est perdue), les connexions et les
 > rôles, l'application de traitement, les pans et les baux, le flux en direct, l'origine propre du jeu avec son aperçu
-> vivant, et la page du Studio. À venir en 4.2.1 : les écrans du Studio pour les membres, les baux et les conflits, et
-> le paquet de release. D'ici là, ce guide déploie le serveur depuis le dépôt.
+> vivant, et la page du Studio. À venir en 4.2.1 : les écrans du Studio pour les membres, les baux et les conflits. Le
+> paquet de release `web-scumm-studio-server` est prêt (ci-dessous) ; ce guide déploie depuis le dépôt, le même serveur.
 
 ## Ce qui tourne où
 
@@ -122,6 +122,27 @@ Que le shell de `clever ssh` ait les variables de l'application (ici `STUDIO_CON
 `studio-hosted` ; sinon, lancez les deux commandes une fois depuis une machine qui a les mêmes variables. L'invitation
 affiche un lien : ouvrez-le et connectez-vous avec cet email vérifié. `/readyz` répond 200 dès que
 l'instance sert les écritures.
+
+## Depuis les archives de la release
+
+À partir de 4.2.1, une release porte `web-scumm-studio-server-<version>.tgz` : les deux commandes
+`web-scumm-studio-server` et `web-scumm-studio-worker`, la page du Studio déjà construite, et ses propres dépendances
+(OpenID Connect, JWT, Postgres). Leurs versions sont verrouillées dans son `npm-shrinkwrap.json` et son SBOM ; npm lit ce
+verrou quand il installe depuis le registre, pas depuis un fichier d'archive, où `pg` prend le dernier 8.x que permet sa
+plage (`web-scumm-studio-server deps` dit lequel). Il fait tourner le serveur du moteur installé à côté, qui doit être
+de la même version :
+
+```sh
+npm install web-scumm-4.2.1.tgz web-scumm-studio-server-4.2.1.tgz
+npx web-scumm-studio-server import ./mon-jeu --config studio.config.json
+npx web-scumm-studio-server serve --config studio.config.json
+npx web-scumm-studio-worker          # sur la machine du worker, avec WORKER_PUBLIC_KEY et WORKER_INSTANCE
+```
+
+L'archive du moteur apporte Vite et tsx, dont l'aperçu vivant et le code du jeu ont besoin. Mettez dans `publicDir` les
+assets préparés de votre jeu (`public/` de son dépôt) : celui du moteur ne contient que ses icônes et sa police. Le
+candidat de chaque release installe ces deux archives dans un dossier vide et y sert un jeu, ses dépendances trouvées
+que npm les remonte ou les imbrique (`scripts/studio-install-smoke.mjs`).
 
 ## Le fournisseur OpenID
 
