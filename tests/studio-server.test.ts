@@ -86,6 +86,10 @@ describe('configuration and secrets', () => {
     expect(() => loadConfig(f)).toThrow(/worker.url and worker.instance are required/);
     writeFileSync(f, JSON.stringify({ ...hosted, trustProxy: ['10.0.0.0/8'], blobs: base.blobs }));
     expect(() => loadConfig(f)).toThrow(/blobs.kind is s3/);
+    // The example the hosting guide starts from is a valid configuration; the same JSON may come from a variable.
+    const example = readFileSync(join(ROOT, 'ops', 'studio', 'studio.config.example.json'), 'utf8');
+    expect(loadConfig('STUDIO_CONFIG_JSON', example).worker?.instance).toBe('my-game-studio');
+    expect(() => loadConfig('STUDIO_CONFIG_JSON', '{ nope')).toThrow(ConfigError);
     writeFileSync(f, JSON.stringify({ ...base, typo: 1 }));
     expect(() => loadConfig(f)).toThrow(/unknown key "typo"/);
   });

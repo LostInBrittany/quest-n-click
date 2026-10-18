@@ -120,9 +120,17 @@ const isUrl = (u: unknown) => {
   }
 };
 
-/** The configuration file, checked: anything unknown or missing is refused with its name. */
-export function loadConfig(file: string): StudioServerConfig {
-  const raw = JSON.parse(readFileSync(file, 'utf8')) as Record<string, unknown>;
+/**
+ * The configuration, checked: anything unknown or missing is refused with its name. From a file, or (`text`) from the
+ * variable `STUDIO_CONFIG_JSON`, where a platform such as Clever Cloud gives no file; it holds no secret.
+ */
+export function loadConfig(file: string, text?: string): StudioServerConfig {
+  let raw: Record<string, unknown>;
+  try {
+    raw = JSON.parse(text ?? readFileSync(file, 'utf8')) as Record<string, unknown>;
+  } catch (e) {
+    throw new ConfigError(`${file}: ${(e as Error).message}`);
+  }
   const known = new Set([
     'publicUrl',
     'playUrl',

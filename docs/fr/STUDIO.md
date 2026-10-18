@@ -5,6 +5,9 @@ changement est écrit dans des fichiers sous `games/<id>/`, les mêmes fichiers 
 modifie avec git. Le Studio affiche le vrai moteur (le lieu rendu par `src/engine/dom`), donc ce qu'on voit est ce
 que les joueurs auront.
 
+Pour mettre le Studio d'un jeu en ligne pour une équipe (connexions, rôles, plusieurs personnes à la fois), voir
+[STUDIO-SERVER](STUDIO-SERVER.md).
+
 ## Sécurité locale et réseau
 
 `npm run studio` et `npm run dev` écoutent sur `127.0.0.1` : une autre machine ne peut pas atteindre leurs routes
