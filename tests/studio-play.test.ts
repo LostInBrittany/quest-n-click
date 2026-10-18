@@ -20,7 +20,7 @@ import { ServiceLease } from '../studio-server/src/server/service-lease';
 import { TestOp, type TestUser } from './fixtures/oidc-op';
 
 const ROOT = join(import.meta.dirname, '..');
-let tmp: string, studioUrl: string, playUrl: string, op: TestOp, store: AuthStore, stop: () => void;
+let tmp: string, studioUrl: string, playUrl: string, op: TestOp, store: AuthStore, stop: () => Promise<void>;
 let clock = Date.now();
 const people: Record<string, { cookie: string; id: string }> = {};
 const USERS: Record<string, TestUser> = {
@@ -135,13 +135,16 @@ beforeAll(async () => {
     };
     people[who]!.id = r.user.id;
   }
-  stop = () => {
+  // Everything opened is closed before the folder goes: Windows deletes no open file.
+  stop = async () => {
     server.close();
     op.stop();
+    await journal.close();
+    await db.close();
   };
 }, 90_000);
-afterAll(() => {
-  stop();
+afterAll(async () => {
+  await stop();
   rmSync(tmp, { recursive: true, force: true });
 });
 
