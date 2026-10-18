@@ -71,11 +71,87 @@ const spansOrNone = (paths: string[]) => {
   }
 };
 
+export interface LiveEvent {
+  name: 'revision' | 'leases' | 'presence';
+  data: unknown;
+}
+
+/**
+ * What every stream is told, computed once for all of them: a revision as it commits; the leases after a lease
+ * changed or a write claimed some (one read at a time, coalesced, in order, numbered by `seq`); who is here. A
+ * failed read of the leases is logged and tried again at the next change, never thrown.
+ */
+export class LiveHub {
+  /** `event` (LiveEvent). */
+  readonly events = new EventEmitter();
+  private seq = 0;
+  private reading = false;
+  private again = false;
+
+  constructor(
+    private o: {
+      journal: Journal;
+      leases?: Leases;
+      presence?: Presence;
+      log?: (line: Record<string, unknown>) => void;
+    },
+  ) {
+    this.events.setMaxListeners(0);
+    o.journal.events.on('confirmed', (c: Confirmed) => {
+      this.emit({ name: 'revision', data: { ...c, spans: spansOrNone(c.paths) } });
+      // A write claims spans in its own transaction: the leases are read again after each revision.
+      this.refreshLeases();
+    });
+    o.leases?.events.on('changed', () => this.refreshLeases());
+    o.presence?.events.on('changed', () => this.emit({ name: 'presence', data: { here: o.presence!.list() } }));
+  }
+
+  private emit(e: LiveEvent) {
+    this.events.emit('event', e);
+  }
+
+  private refreshLeases() {
+    if (!this.o.leases) return;
+    if (this.reading) {
+      this.again = true;
+      return;
+    }
+    this.reading = true;
+    this.o.leases
+      .list()
+      .then(
+        (leases) => this.emit({ name: 'leases', data: { seq: ++this.seq, leases } }),
+        (e) => this.o.log?.({ event: 'leases-read-failed', message: String((e as Error).message).slice(0, 200) }),
+      )
+      .finally(() => {
+        this.reading = false;
+        if (this.again) {
+          this.again = false;
+          this.refreshLeases();
+        }
+      });
+  }
+
+  /** What a new stream starts from. */
+  async hello() {
+    return {
+      epoch: await this.o.journal.epoch(),
+      revision: await this.o.journal.revision(),
+      leases: this.o.leases ? await this.o.leases.list() : [],
+      seq: this.seq,
+      here: this.o.presence ? this.o.presence.list() : [],
+    };
+  }
+}
+
+/** A stream that cannot keep up (1 MiB waiting) is closed: its client reconnects and reads what it missed. */
+const MAX_PENDING = 1024 * 1024;
+
 /** Serves one SSE stream until its client leaves or its credential ends. */
 export async function serveEvents(
   req: IncomingMessage,
   res: ServerResponse,
-  o: { principal?: Principal; gate?: Gate; journal: Journal; leases?: Leases; presence?: Presence; recheckMs?: number },
+  o: { principal?: Principal; gate?: Gate; hub: LiveHub; recheckMs?: number },
 ): Promise<void> {
   res.writeHead(200, {
     'content-type': 'text/event-stream; charset=utf-8',
@@ -83,9 +159,6 @@ export async function serveEvents(
     'x-accel-buffering': 'no',
     'x-content-type-options': 'nosniff',
   });
-  const event = (name: string, data: unknown) => {
-    if (!res.writableEnded) res.write(`event: ${name}\ndata: ${JSON.stringify(data)}\n\n`);
-  };
   const p = o.principal;
   const cleanups: (() => void)[] = [];
   let closed = false;
@@ -95,43 +168,54 @@ export async function serveEvents(
     for (const c of cleanups) c();
     res.end();
   };
+  const write = (chunk: string) => {
+    if (closed || res.writableEnded) return;
+    if (res.writableLength > MAX_PENDING) return close();
+    res.write(chunk);
+  };
+  const event = (name: string, data: unknown) => write(`event: ${name}\ndata: ${JSON.stringify(data)}\n\n`);
   req.on('close', close);
 
-  const on = <T>(em: EventEmitter, name: string, fn: (x: T) => void) => {
-    em.on(name, fn);
-    cleanups.push(() => em.off(name, fn));
-  };
-  on<Confirmed>(o.journal.events, 'confirmed', (c) => event('revision', { ...c, spans: spansOrNone(c.paths) }));
-  if (o.leases) on(o.leases.events, 'changed', () => void o.leases!.list().then((l) => event('leases', { leases: l })));
-  // A write claims spans in its own transaction: the leases are sent again after each revision too.
-  if (o.leases) on(o.journal.events, 'confirmed', () => void o.leases!.list().then((l) => event('leases', { leases: l })));
-  if (o.presence) on(o.presence.events, 'changed', () => event('presence', { here: o.presence!.list() }));
+  // `hello` goes first: what happens meanwhile waits behind it, in order.
+  let started = false;
+  const waiting: LiveEvent[] = [];
+  const onEvent = (e: LiveEvent) => (started ? event(e.name, e.data) : waiting.push(e));
+  o.hub.events.on('event', onEvent);
+  cleanups.push(() => o.hub.events.off('event', onEvent));
+
   if (p && o.gate) {
-    on<string[]>(o.gate.revocations, 'revoked', (ids) => ids.includes(p.user.id) && close());
-    on<string[]>(o.gate.revocations, 'session-ended', (ids) => !!p.session && ids.includes(p.session.idHash) && close());
+    const gate = o.gate;
+    const onRevoked = (ids: string[]) => ids.includes(p.user.id) && close();
+    const onEnded = (ids: string[]) => !!p.session && ids.includes(p.session.idHash) && close();
+    gate.revocations.on('revoked', onRevoked);
+    gate.revocations.on('session-ended', onEnded);
+    cleanups.push(() => gate.revocations.off('revoked', onRevoked));
+    cleanups.push(() => gate.revocations.off('session-ended', onEnded));
+    // The credential's end: a Bearer's `exp`, a session's absolute expiry.
     if (p.expiresAt) {
       const t = setTimeout(close, Math.max(0, p.expiresAt - Date.now()));
       cleanups.push(() => clearTimeout(t));
     }
-    const gate = o.gate;
+    // A check of the credential, which never moves the session's idle clock.
     const recheck = setInterval(() => {
-      gate.authenticate(req).then(
-        (q) => {
+      gate
+        .authenticate(req, { checkOnly: true })
+        .then((q) => {
           if (q.user.id !== p.user.id) close();
           else gate.require(q, 'reviewer');
-        },
-        () => close(),
-      ).catch(() => close());
+        })
+        .catch(() => close());
     }, o.recheckMs ?? 30_000);
     cleanups.push(() => clearInterval(recheck));
   }
-  const ping = setInterval(() => !res.writableEnded && res.write(': ping\n\n'), 15_000);
+  const ping = setInterval(() => write(': ping\n\n'), 15_000);
   cleanups.push(() => clearInterval(ping));
 
-  event('hello', {
-    epoch: await o.journal.epoch(),
-    revision: await o.journal.revision(),
-    leases: o.leases ? await o.leases.list() : [],
-    here: o.presence ? o.presence.list() : [],
-  });
+  try {
+    event('hello', await o.hub.hello());
+  } catch {
+    return close();
+  }
+  started = true;
+  for (const e of waiting.splice(0)) event(e.name, e.data);
 }

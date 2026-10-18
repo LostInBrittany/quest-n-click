@@ -92,7 +92,12 @@ beforeAll(async () => {
     gameDir: game,
     claim: async (q, paths) => {
       const who = operationContext.getStore()?.claimant;
-      if (who) await leases.claimPaths(q, who, paths);
+      if (!who) throw new Error('a write on a shared Studio says who writes');
+      await leases.claimPaths(q, who, paths);
+    },
+    precheck: async (paths) => {
+      const who = operationContext.getStore()?.claimant;
+      if (who) await leases.check(who, spansOf(paths));
     },
   });
   const lease = new ServiceLease(db);
@@ -287,6 +292,7 @@ describe('the live stream', () => {
   it('tells every revision with its spans, and who is here', async () => {
     const s = stream(await as('ana', 'GET', '/events'));
     await until(() => s.events.some((e) => e.name === 'hello'));
+    expect(s.events[0]!.name).toBe('hello');
     expect((await as('tom', 'POST', '/notes', { text: 'live' })).status).toBe(200);
     await until(() => s.events.some((e) => e.name === 'revision'));
     expect(s.events.find((e) => e.name === 'revision')!.data).toMatchObject({
@@ -294,19 +300,28 @@ describe('the live stream', () => {
       paths: ['notes.json'],
     });
     await until(() => s.events.some((e) => e.name === 'leases'));
+    expect((s.events.find((e) => e.name === 'leases')!.data as { seq: number }).seq).toBeGreaterThan(0);
     // Someone moving is news; the same place again is not.
     await as('sam', 'POST', '/presence', { where: 'storyboard' });
     await until(() => s.events.some((e) => e.name === 'presence'));
     await as('tom', 'POST', '/leases/release', {});
   }, 30_000);
 
-  it('closes within 5 s when its member is removed', async () => {
+  it('closes within 5 s when its member is removed, and their leases go at once', async () => {
+    expect((await as('sam', 'POST', '/leases', { spans: ['story'] })).status).toBe(200);
     const s = stream(await as('sam', 'GET', '/events'));
     await until(() => s.events.some((e) => e.name === 'hello'));
     const t0 = Date.now();
     expect((await as('lea', 'DELETE', `/members/${people.sam!.id}`)).status).toBe(200);
     await s.ended;
     expect(Date.now() - t0).toBeLessThan(5_000);
+    let released = false;
+    for (let i = 0; i < 50 && !released; i++) {
+      const left = (await (await as('lea', 'GET', '/leases')).json()) as { leases: { holder: string }[] };
+      released = !left.leases.some((l) => l.holder === people.sam!.id);
+      if (!released) await new Promise((ok) => setTimeout(ok, 50));
+    }
+    expect(released).toBe(true);
   }, 30_000);
 
   it('closes when the Bearer token that opened it ends', async () => {

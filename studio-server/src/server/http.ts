@@ -18,7 +18,7 @@ import { isBody, routes } from '../ops/routes';
 import type { Gate } from './auth/gate';
 import type { Role } from './auth/store';
 import type { Leases } from './leases';
-import { type Presence, serveEvents } from './live';
+import { LiveHub, type Presence, serveEvents } from './live';
 import type { ServiceLease } from './service-lease';
 
 const MAX_JSON = 1024 * 1024;
@@ -103,7 +103,8 @@ export interface StudioServerOptions {
 }
 
 /** The spans a client may name: the leases' own names (`*` only through /exclusive). */
-const SPAN = /^(room:[\w-]{1,64}|lang:[\w-]{1,16}|game|items|cast|rules|story|voices|assets|notes|meta|playtests|reality)$/;
+const SPAN =
+  /^(room:[\w-]{1,64}|lang:[\w-]{1,16}|game|items|cast|rules|story|voices|assets|notes|meta|playtests|reality)$/;
 
 function spanList(v: unknown): string[] {
   if (!Array.isArray(v) || !v.length || v.length > 64 || !v.every((x) => typeof x === 'string' && SPAN.test(x)))
@@ -121,7 +122,12 @@ function fencesOf(req: IncomingMessage): Record<string, number> | undefined {
   } catch {
     throw new StudioError('x-studio-fences is a JSON object of span → fence');
   }
-  if (!v || typeof v !== 'object' || Array.isArray(v) || !Object.entries(v).every(([k, n]) => SPAN.test(k) && Number.isInteger(n)))
+  if (
+    !v ||
+    typeof v !== 'object' ||
+    Array.isArray(v) ||
+    !Object.entries(v).every(([k, n]) => SPAN.test(k) && Number.isInteger(n))
+  )
     throw new StudioError('x-studio-fences is a JSON object of span → fence');
   return v as Record<string, number>;
 }
@@ -219,6 +225,15 @@ export function studioServer(o: StudioServerOptions): StudioHttpServer {
   let started = false;
   const authCalls = new Buckets(o.perMinute ?? 30);
   const failures = new Buckets(o.perMinute ?? 30);
+  const hub = new LiveHub({ journal: o.journal, leases: o.leases, presence: o.presence, log });
+  // A member removed, demoted or logged out everywhere: their leases and their presence go at once, so nobody waits
+  // on a lease they can no longer release.
+  o.auth?.gate.revocations.on('revoked', (ids: string[]) => {
+    for (const id of ids) {
+      o.presence?.leave(id);
+      o.leases?.release(id).catch((e) => log({ event: 'lease-release-failed', message: String((e as Error).message) }));
+    }
+  });
 
   const server = createServer(async (req, res) => {
     const id = randomUUID();
@@ -260,9 +275,12 @@ export function studioServer(o: StudioServerOptions): StudioHttpServer {
         return send(res, 200, { epoch: await o.journal.epoch(), revision: await o.journal.revision() });
       // The live Studio (PR 6): the stream, who is here, the leases.
       if (req.method === 'GET' && sub === '/events')
-        return void (await serveEvents(req, res, { principal, gate: o.auth?.gate, journal: o.journal, leases: o.leases, presence: o.presence }));
+        return void (await serveEvents(req, res, { principal, gate: o.auth?.gate, hub }));
       if (o.leases && principal) {
-        const who = { userId: principal.user.id, name: principal.user.name ?? principal.user.email ?? principal.user.id };
+        const who = {
+          userId: principal.user.id,
+          name: principal.user.name ?? principal.user.email ?? principal.user.id,
+        };
         if (req.method === 'POST' && sub === '/presence') {
           const b = (await readJson(req)) as { where?: unknown };
           const where = typeof b.where === 'string' ? b.where.slice(0, 100) : undefined;
@@ -281,7 +299,10 @@ export function studioServer(o: StudioServerOptions): StudioHttpServer {
           await o.leases.release(who.userId, b.spans === undefined ? undefined : spanList(b.spans));
           return send(res, 200, { ok: true });
         }
-        if (req.method === 'POST' && (sub === '/leases/takeover' || sub === '/exclusive' || sub === '/exclusive/release')) {
+        if (
+          req.method === 'POST' &&
+          (sub === '/leases/takeover' || sub === '/exclusive' || sub === '/exclusive/release')
+        ) {
           o.auth!.gate.require(principal, 'owner');
           const b = (await readJson(req)) as { span?: unknown };
           if (sub === '/exclusive') return send(res, 200, { fences: await o.leases.take(who, ['*']) });
@@ -338,11 +359,14 @@ export function studioServer(o: StudioServerOptions): StudioHttpServer {
             id: op,
             author,
             claimant: principal
-              ? { userId: principal.user.id, name: principal.user.name ?? author ?? principal.user.id, fences: fencesOf(req) }
+              ? {
+                  userId: principal.user.id,
+                  name: principal.user.name ?? author ?? principal.user.id,
+                  fences: fencesOf(req),
+                }
               : undefined,
           },
-          () =>
-          Promise.resolve(route[2](sub.match(route[1])!, body, { baseUrl: '' })),
+          () => Promise.resolve(route[2](sub.match(route[1])!, body, { baseUrl: '' })),
         );
       const result = await (write ? lock.write(run) : lock.read(run));
       if (op) {

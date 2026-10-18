@@ -20,4 +20,10 @@ Branch: feature/421-leases-live (stacked on PR I) · Plan P2, P7, §5, §3.6
   - the stream: revisions with spans, presence, closing on removal within 5 s and at a Bearer's end;
   - races of ten claims on SQLite and on Postgres (`STUDIO_TEST_PG_URL`).
 
+- **Second reading** (automated second context): one shared hub reads the leases once per change for every stream
+  (coalesced, numbered, errors caught); `hello` first; a stream too far behind is closed; the 30 s check does not move
+  the session's idle clock, and a cookie stream closes at the session's expiry; a removed member's leases and presence
+  go at once; leases are checked before the guard; a shared Studio refuses a write that names nobody; what the
+  exclusive lease covers today is said as it is.
+
 → next: Claude (PR 7, the client)

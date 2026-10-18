@@ -152,7 +152,12 @@ export class Oidc {
     const life = Number(payload.exp) - Number(payload.iat);
     if (!(life > 0) || life > (this.settings.maxTokenSeconds ?? 300))
       throw new Error(`the token lives ${life} s, longer than allowed`);
-    return { iss: String(payload.iss), sub: String(payload.sub), iat: Number(payload.iat) * 1000, exp: Number(payload.exp) * 1000 };
+    return {
+      iss: String(payload.iss),
+      sub: String(payload.sub),
+      iat: Number(payload.iat) * 1000,
+      exp: Number(payload.exp) * 1000,
+    };
   }
 
   /** A back-channel logout token (policy D): returns what to end. */

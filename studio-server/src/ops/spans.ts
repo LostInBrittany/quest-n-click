@@ -11,7 +11,7 @@
 //   meta       index.ts, site.json, e2e.mjs, ending.config.example.ts, ids.paths.json, ids.migration.json, tests/
 //   playtests  playtests/, replays/
 //   reality    reality/ (the Reality Bridge's scenarios)
-// One span has no file: `*`, the project's exclusive lease (ids, migrations, preparing assets).
+// One span has no file: `*`, the project's exclusive lease (taken by an owner for a whole-game change).
 
 const ONE: Record<string, string> = {
   'game.ts': 'game',

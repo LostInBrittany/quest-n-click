@@ -10,6 +10,8 @@ import { join, resolve } from 'node:path';
 import { openSqliteDb } from '../../../bridge/src/store-sqlite';
 import type { SqlDb } from '../../../bridge/src/store-sql';
 import { createStudio, operationContext } from '../ops/core';
+import { StudioError } from '../ops/errors';
+import { spansOf } from '../ops/spans';
 import { type BlobStore, fsBlobStore } from '../ops/blobs';
 import { sha256 } from '../ops/durable';
 import { Journal } from '../ops/journal';
@@ -133,10 +135,18 @@ async function main(argv: string[]): Promise<number> {
     blobs,
     gameDir,
     hosted,
+    // A write that names nobody is refused: a route or a job that wrote outside a request would bypass the leases.
     claim: leases
       ? async (q, paths) => {
           const who = operationContext.getStore()?.claimant;
-          if (who) await leases.claimPaths(q, who, paths);
+          if (!who) throw new StudioError('a write on a shared Studio says who writes', 500);
+          await leases.claimPaths(q, who, paths);
+        }
+      : undefined,
+    precheck: leases
+      ? async (paths) => {
+          const who = operationContext.getStore()?.claimant;
+          if (who) await leases.check(who, spansOf(paths));
         }
       : undefined,
   });

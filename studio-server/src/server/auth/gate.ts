@@ -87,7 +87,7 @@ export class Gate {
   }
 
   /** The principal of an API request, or a refusal (401, 403, 503 when the provider has been unreachable past R). */
-  async authenticate(req: IncomingMessage, o: { multipart?: boolean } = {}): Promise<Principal> {
+  async authenticate(req: IncomingMessage, o: { multipart?: boolean; checkOnly?: boolean } = {}): Promise<Principal> {
     const auth = req.headers.authorization;
     const origin = req.headers.origin;
     const mutation = MUTATION.has(req.method ?? 'GET');
@@ -128,9 +128,10 @@ export class Gate {
       throw this.unauthorized('the session ended');
     }
     await this.check(s, now);
-    // The idle clock moves once a minute, not one database write per request.
-    if (now - s.lastSeen >= TOUCH_EVERY_MS) await this.o.store.touch(s.idHash, { lastSeen: now });
-    return { user: s.user, role: s.role, via: 'cookie', session: s };
+    // The idle clock moves once a minute, not one database write per request; never for a check of an open stream
+    // (`checkOnly`), or an unattended tab would keep its session alive forever.
+    if (!o.checkOnly && now - s.lastSeen >= TOUCH_EVERY_MS) await this.o.store.touch(s.idHash, { lastSeen: now });
+    return { user: s.user, role: s.role, via: 'cookie', session: s, expiresAt: s.expiresAt };
   }
 
   /** The provider's confirmation of a session, every `checkEveryMs` (plan §3.6). */

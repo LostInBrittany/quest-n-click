@@ -97,6 +97,8 @@ export interface JournalOptions {
    * (its point of linearisation): throws to refuse it, before any file is touched.
    */
   claim?: (q: SqlQuery, paths: string[]) => Promise<void>;
+  /** A cheap look before the guard: throws when the claim would surely be refused (the claim still decides). */
+  precheck?: (paths: string[]) => Promise<void>;
 }
 
 /** What a confirmed operation changed, emitted once it is committed (P7: the live events). */
@@ -111,6 +113,7 @@ export class Journal {
   /** `confirmed` (Confirmed): after the commit, at least once per operation of this process. */
   readonly events = new EventEmitter();
   private claim: JournalOptions['claim'];
+  private precheck: JournalOptions['precheck'];
   private chain: Promise<unknown> = Promise.resolve();
   private readonly holder: string;
   /** The fence of the lease this writer holds now (0: none). */
@@ -146,6 +149,7 @@ export class Journal {
       o.hosted ?? false,
     );
     j.claim = o.claim;
+    j.precheck = o.precheck;
     j.events.setMaxListeners(0);
     await j.serial(() =>
       j.withLease(async () => {
@@ -258,6 +262,7 @@ export class Journal {
     const head = await this.revision();
     if (!changes.length) return { response: op.respond(head), rev: head, changed: [] };
 
+    await this.precheck?.(changes.map((c) => c.path));
     await op.guard?.(changed);
 
     // The "after" contents first: a recovery rolls forward from them.
@@ -362,7 +367,12 @@ export class Journal {
       );
       await this.confirm(q, id, rev, changes, null);
     });
-    this.events.emit('confirmed', { id, rev, author: 'external', paths: changes.map((c) => c.path) } satisfies Confirmed);
+    this.events.emit('confirmed', {
+      id,
+      rev,
+      author: 'external',
+      paths: changes.map((c) => c.path),
+    } satisfies Confirmed);
   }
 
   /**

@@ -4,8 +4,12 @@
 //     whose lease ran out, becomes the writer's, with a greater fence.
 //   - A member may also take spans ahead (to reserve a room), renew them by the presence heartbeat (TTL 120 s), and
 //     release them. An owner may take a span over: logged in the audit, naming the previous holder.
-//   - The exclusive lease `*` (ids, migrations, preparing assets) is granted only when no other member holds a span,
-//     and blocks every other claim while it lasts.
+//   - The exclusive lease `*` is granted only when no other member holds a span, and blocks every other claim while it
+//     lasts. In 4.2.1 an owner takes it by hand for a whole-game change; the operations that will require it (ids,
+//     migrations, preparing assets on a hosted Studio) come with them (4.2.2, 4.2.3).
+//   - A claim is made in the intent's transaction: an operation that fails after it keeps its leases until their TTL.
+//     A request made of several operations claims for each in turn, so an earlier one may commit before a later one
+//     is refused.
 //   - A client may send the fences it got (`x-studio-fences`): a write then refuses if its lease was taken over or
 //     ran out and was taken again since, even by the same member in another tab.
 // Each change is emitted (`changed`) after its commit, for the live events.
@@ -75,23 +79,7 @@ export class Leases {
    * The journal calls it with the spans of an operation's files (`claimPaths`).
    */
   async claim(q: SqlQuery, who: Claimant, spans: string[]): Promise<Record<string, number>> {
-    const now = await this.now(q);
-    const want = [...new Set(spans)].sort();
-    const rows = new Map<string, Lease>();
-    for (const r of await q.all('SELECT * FROM studio_spans')) rows.set(String(r.span), toLease(r));
-    const live = (l: Lease | undefined) => !!l && l.until > now;
-    const excl = rows.get(EXCLUSIVE);
-    if (live(excl) && excl!.holder !== who.userId) throw new SpanLocked(excl!, `${excl!.holderName} has the whole game for now`);
-    if (want.includes(EXCLUSIVE))
-      for (const l of rows.values())
-        if (l.span !== EXCLUSIVE && live(l) && l.holder !== who.userId) throw new SpanLocked(l);
-    for (const span of want) {
-      const l = rows.get(span);
-      if (live(l) && l!.holder !== who.userId) throw new SpanLocked(l!);
-      const known = who.fences?.[span];
-      if (known !== undefined && (!l || l.fence !== known || !live(l)))
-        throw new StudioError(`your lease on ${span} ended or was taken again: take it again`, 423);
-    }
+    const { now, rows, want, live } = await this.refuseIfHeld(q, who, spans);
     const fences: Record<string, number> = {};
     for (const span of want) {
       const l = rows.get(span);
@@ -110,6 +98,36 @@ export class Leases {
     return fences;
   }
 
+  /**
+   * Whether `who` could claim `spans` now, without claiming them: the check before the guard, so that a member who
+   * will be refused is told at once, not after the game was validated. The claim itself decides.
+   */
+  async check(who: Claimant, spans: string[]): Promise<void> {
+    await this.db.tx('studio', (q) => this.refuseIfHeld(q, who, spans), { readOnly: true });
+  }
+
+  private async refuseIfHeld(q: SqlQuery, who: Claimant, spans: string[]) {
+    const now = await this.now(q);
+    const want = [...new Set(spans)].sort();
+    const rows = new Map<string, Lease>();
+    for (const r of await q.all('SELECT * FROM studio_spans')) rows.set(String(r.span), toLease(r));
+    const live = (l: Lease | undefined) => !!l && l.until > now;
+    const excl = rows.get(EXCLUSIVE);
+    if (live(excl) && excl!.holder !== who.userId)
+      throw new SpanLocked(excl!, `${excl!.holderName} has the whole game for now`);
+    if (want.includes(EXCLUSIVE))
+      for (const l of rows.values())
+        if (l.span !== EXCLUSIVE && live(l) && l.holder !== who.userId) throw new SpanLocked(l);
+    for (const span of want) {
+      const l = rows.get(span);
+      if (live(l) && l!.holder !== who.userId) throw new SpanLocked(l!);
+      const known = who.fences?.[span];
+      if (known !== undefined && (!l || l.fence !== known || !live(l)))
+        throw new StudioError(`your lease on ${span} ended or was taken again: take it again`, 423);
+    }
+    return { now, rows, want, live };
+  }
+
   /** The claim of an operation on these game files (the journal's hook). */
   claimPaths(q: SqlQuery, who: Claimant, paths: string[]): Promise<Record<string, number>> {
     return this.claim(q, who, spansOf(paths));
@@ -126,7 +144,11 @@ export class Leases {
   async renew(userId: string): Promise<number> {
     const n = await this.db.tx('studio', async (q) => {
       const now = await this.now(q);
-      return q.run('UPDATE studio_spans SET until_ms = $1 WHERE holder = $2 AND until_ms > $3', [now + this.ttlMs, userId, now]);
+      return q.run('UPDATE studio_spans SET until_ms = $1 WHERE holder = $2 AND until_ms > $3', [
+        now + this.ttlMs,
+        userId,
+        now,
+      ]);
     });
     return n;
   }
@@ -135,7 +157,9 @@ export class Leases {
   async release(userId: string, spans?: string[]): Promise<void> {
     await this.db.tx('studio', async (q) => {
       if (!spans) await q.run('UPDATE studio_spans SET until_ms = 0 WHERE holder = $1', [userId]);
-      else for (const s of spans) await q.run('UPDATE studio_spans SET until_ms = 0 WHERE holder = $1 AND span = $2', [userId, s]);
+      else
+        for (const s of spans)
+          await q.run('UPDATE studio_spans SET until_ms = 0 WHERE holder = $1 AND span = $2', [userId, s]);
     });
     this.events.emit('changed');
   }
