@@ -18,7 +18,6 @@ import { basename, isAbsolute, join, relative, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import ts from '@typescript/typescript6';
 import type { Layout, Point } from '../../../src/engine/core/types';
-import { validate as validateGame } from '../../../src/engine/tools/validate';
 import { normalizeExits } from '../../../src/engine/core/define';
 import { solve as solveGame, type RealityPolicy } from '../../../src/engine/tools/solve';
 import { report as reportGame, reportMarkdown } from '../../../src/engine/tools/report';
@@ -87,6 +86,7 @@ import { fsBlobStore } from './blobs';
 import { StudioError } from './errors';
 import { ABSENT, sha256 } from './durable';
 import { type FileEffect, Journal } from './journal';
+import { validateDir } from './validate-dir';
 
 export { StudioError };
 
@@ -104,6 +104,11 @@ export interface StudioOptions {
    * A caller that shares one journal between Studios of the same game passes it.
    */
   journal?: Journal | Promise<Journal>;
+  /**
+   * Where the game's code runs (4.2.1, ADR 0028): its validation and the loads of its module the Studio reads. By
+   * default in this process (`importFresh`); a hosted Studio gives the processing worker's.
+   */
+  executor?: { validate(dir: string): Promise<ValidateResult>; load(dir: string): Promise<unknown> };
 }
 
 /** Default fresh import: tsx's scoped loader (a new namespace per call, so edited files are read again). */
@@ -230,6 +235,7 @@ export function createStudio(opts: StudioOptions = {}) {
 
   async function loadModule(d = dir): Promise<GameModule> {
     try {
+      if (opts.executor) return (await opts.executor.load(d)) as GameModule;
       return (await importFresh(join(d, 'index.ts'))) as GameModule;
     } catch (e) {
       throw new StudioError(`the game does not load: ${(e as Error).message}`, 500);
@@ -745,38 +751,13 @@ export function createStudio(opts: StudioOptions = {}) {
     return { lang: v.lang, csv: toCsv(v.rows) };
   }
 
-  /** The validator's verdict on the game in `d` (the game folder, or the guard's staging folder). */
+  /**
+   * The validator's verdict on the game in `d` (the game folder, or the guard's staging folder): through the executor
+   * when one is given (ADR 0028: a worker without secrets), in this process otherwise.
+   */
   async function validateIn(d: string): Promise<ValidateResult> {
-    const t0 = Date.now();
-    const mod = await loadModule(d);
-    const layouts = loadLayouts(join(d, 'layout'));
-    const assets = loadAssets(join(d, 'assets.gen.json'));
-    let minigames: Record<string, { required?: string[] }> | undefined;
-    try {
-      const eng = (await importFresh(join(root, 'src/engine/minigames/index.ts'))) as {
-        minigames: Record<string, { required?: string[] }>;
-      };
-      minigames = { ...eng.minigames, ...(mod.minigames ?? {}) };
-    } catch {
-      minigames = undefined;
-    }
-    const { errors, warnings } = validateGame(mod.game, layouts, {
-      assets,
-      commands: mod.commands,
-      minigameIds: minigames ? Object.keys(minigames) : undefined,
-      minigameParams: minigames
-        ? Object.fromEntries(Object.entries(minigames).map(([k, m]) => [k, m.required ?? []]))
-        : undefined,
-      minigameBindings: minigames
-        ? Object.fromEntries(
-            Object.entries(minigames).map(([k, m]) => [
-              k,
-              (m as { bindings?: { images?: string[]; sfx?: string[] } }).bindings ?? {},
-            ]),
-          )
-        : undefined,
-    });
-    return { ok: errors.length === 0, errors, warnings, ms: Date.now() - t0 };
+    if (opts.executor) return opts.executor.validate(d);
+    return validateDir(d, { root, importFresh, mod: await loadModule(d) });
   }
   const validate = () => validateIn(dir);
 
@@ -890,6 +871,9 @@ export function createStudio(opts: StudioOptions = {}) {
   ): Promise<ScreenshotResult> {
     roomFile(room);
     if (checkpoint && !ID.test(checkpoint)) throw new StudioError(`invalid checkpoint: "${checkpoint}"`);
+    // The game would run in a browser on this machine: a hosted Studio (its code goes to the worker) has no captures
+    // in 4.2.1 (plan §8, PR 7).
+    if (opts.executor) return { unavailable: true, reason: 'screenshots are not available on a hosted Studio yet' };
     let pw: typeof import('playwright');
     try {
       pw = await import('playwright');

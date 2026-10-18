@@ -71,10 +71,21 @@ describe('configuration and secrets', () => {
     expect(() => loadConfig(f)).toThrow(/another origin/);
     // With OIDC, an address beyond the loopback needs trustProxy: behind a proxy, every client shares one address.
     const oidc = { issuer: 'https://id.example.fr/realms/s', clientId: 'studio', audience: 'studio-api' };
-    writeFileSync(f, JSON.stringify({ ...base, oidc }));
+    const hosted = {
+      ...base,
+      oidc,
+      blobs: { kind: 's3', host: 'cellar-c2.services.clever-cloud.com', bucket: 'b' },
+      worker: { url: 'https://worker.example.fr', instance: 'studio-a' },
+    };
+    writeFileSync(f, JSON.stringify(hosted));
     expect(() => loadConfig(f)).toThrow(/trustProxy is required/);
-    writeFileSync(f, JSON.stringify({ ...base, oidc, trustProxy: ['10.0.0.0/8'] }));
+    writeFileSync(f, JSON.stringify({ ...hosted, trustProxy: ['10.0.0.0/8'] }));
     expect(loadConfig(f).trustProxy).toEqual(['10.0.0.0/8']);
+    // With OIDC the game's code runs in the worker only (ADR 0028): no worker, or blobs it cannot read, is refused.
+    writeFileSync(f, JSON.stringify({ ...hosted, trustProxy: ['10.0.0.0/8'], worker: undefined }));
+    expect(() => loadConfig(f)).toThrow(/worker.url and worker.instance are required/);
+    writeFileSync(f, JSON.stringify({ ...hosted, trustProxy: ['10.0.0.0/8'], blobs: base.blobs }));
+    expect(() => loadConfig(f)).toThrow(/blobs.kind is s3/);
     writeFileSync(f, JSON.stringify({ ...base, typo: 1 }));
     expect(() => loadConfig(f)).toThrow(/unknown key "typo"/);
   });

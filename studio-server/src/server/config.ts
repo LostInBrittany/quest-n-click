@@ -46,6 +46,11 @@ export interface StudioServerConfig {
     allowInsecure?: boolean;
   };
   sessions?: { idleHours?: number; absoluteHours?: number };
+  /**
+   * The processing worker (ADR 0028), required with OIDC: the game's code then never runs in this process. `instance`
+   * names this Studio to the worker, which runs no other's jobs. The signing key is the secret STUDIO_WORKER_KEY.
+   */
+  worker?: { url: string; instance: string };
 }
 
 /** The secrets, by name; each from `<NAME>_FILE` or `<NAME>` in the environment. */
@@ -55,6 +60,7 @@ const SECRET_NAMES = [
   'STUDIO_S3_KEY_SECRET',
   'STUDIO_OIDC_CLIENT_SECRET',
   'STUDIO_SESSION_KEY',
+  'STUDIO_WORKER_KEY',
 ] as const;
 export type SecretName = (typeof SECRET_NAMES)[number];
 
@@ -129,6 +135,7 @@ export function loadConfig(file: string): StudioServerConfig {
     'blobs',
     'oidc',
     'sessions',
+    'worker',
   ]);
   for (const k of Object.keys(raw)) if (!known.has(k)) throw new ConfigError(`${file}: unknown key "${k}"`);
   if (!isUrl(raw.publicUrl)) throw new ConfigError(`${file}: publicUrl must be an http(s) URL`);
@@ -163,12 +170,18 @@ export function loadConfig(file: string): StudioServerConfig {
       throw new ConfigError(`${file}: oidc.clientId is required`);
     if (typeof oidc.audience !== 'string' || !oidc.audience)
       throw new ConfigError(`${file}: oidc.audience is required`);
+    const worker = raw.worker as StudioServerConfig['worker'];
+    if (!worker || !isUrl(worker.url) || typeof worker.instance !== 'string' || !/^[\w-]{3,64}$/.test(worker.instance))
+      throw new ConfigError(`${file}: worker.url and worker.instance are required with oidc (ADR 0028)`);
+    if (blobs.kind !== 's3')
+      throw new ConfigError(`${file}: the worker reads its snapshots from S3: blobs.kind is s3 with oidc`);
     if (oidc.audience === oidc.clientId)
       throw new ConfigError(`${file}: oidc.audience must differ from oidc.clientId (an id_token is no access token)`);
   }
   return {
     oidc,
     sessions: raw.sessions as StudioServerConfig['sessions'],
+    worker: raw.worker as StudioServerConfig['worker'],
     publicUrl: origin(raw.publicUrl),
     playUrl: origin(raw.playUrl),
     game: raw.game,

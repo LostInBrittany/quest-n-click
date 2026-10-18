@@ -1,5 +1,5 @@
 // A minimal S3 client for the hosted blobs (4.2.1, plan §4): Cellar on Clever Cloud, MinIO in CI. Path-style
-// requests signed with AWS Signature Version 4 (node:crypto only, no SDK): PUT, GET and HEAD of one object, and
+// requests signed with AWS Signature Version 4 (node:crypto only, no SDK): PUT, GET, HEAD and DELETE of one object, and
 // presigned GET/PUT URLs for the processing worker (plan §3.8). Spike S measured Cellar: a presigned URL is reusable
 // until it expires and gives nothing else; a PUT overwrites. The blob store never relies on If-None-Match: a key is
 // the sha256 of its content, so writing it twice writes the same bytes.
@@ -110,6 +110,13 @@ export class S3 {
     if (r.status === 404) return false;
     if (!r.ok) throw new Error(`S3 HEAD ${key}: ${r.status}`);
     return true;
+  }
+
+  /** Deletes one object; deleting a missing object is not an error (S3 answers 204 either way). */
+  async delete(key: string): Promise<void> {
+    const r = await this.request('DELETE', key);
+    await r.body?.cancel();
+    if (!r.ok && r.status !== 404) throw new Error(`S3 DELETE ${key}: ${r.status}`);
   }
 
   /** A presigned URL (query form) for one method on one key, valid `seconds` (plan §3.8: ≤ 300 for a job). */
