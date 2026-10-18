@@ -13,4 +13,9 @@ Branch: ops/421-hosting (stacked on PR 7's server side) · Plan §7 row 8, D41
 - Left for the rest of PR 8 and PR 9: the release packages (`web-scumm-studio-server`, `-worker`) that replace the
   deployment from the repository, UPGRADING and SUPPORT (exception D40).
 
+- **Second reading** (automated second context): access-token lifetime as the server checks it, the example
+  without `port` (Clever's `PORT` applies), the partitioned cookie said as it is, `trustProxy` ranges marked as an
+  assumption, `mkdir` before `worker-keys`, the dev plan's 5 connections, a test user in the realm and what a local
+  OIDC trial still needs, MinIO and Keycloak from their publishers' registries.
+
 → next: Claude (PR 9; the client PR 7 after the mockups)

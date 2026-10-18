@@ -36,7 +36,7 @@ Il faut : deux applications Node.js, un add-on PostgreSQL, un add-on Cellar avec
 ```sh
 clever create --type node my-game-studio
 clever create --type node my-game-worker
-clever addon create postgresql-addon my-game-pg --plan dev      # 5 connexions : assez pour essayer ; plus pour une équipe
+clever addon create postgresql-addon my-game-pg --plan dev      # 5 connexions : juste (le serveur en garde 4) ; plus pour une équipe
 clever addon create cellar-addon my-game-cellar
 clever service link-addon my-game-pg --app my-game-studio
 clever service link-addon my-game-cellar --app my-game-studio
@@ -49,7 +49,7 @@ Créez le bucket dans Cellar (sa console, ou n'importe quel outil S3). Seule l'a
 **Les clés des jobs.** Sur votre machine, dans un dossier vide tenu hors de Git :
 
 ```sh
-npm run studio-server -- worker-keys --out ~/secrets/my-game
+mkdir -p ~/secrets/my-game && npm run studio-server -- worker-keys --out ~/secrets/my-game
 ```
 
 `studio-worker.key` (0600) est celle du Studio ; `studio-worker.pub` celle du worker.
@@ -88,10 +88,12 @@ Clever, chacun peut être un fichier : `STUDIO_SESSION_KEY_FILE`, etc. (mode 060
 ```
 
 - `publicUrl` et `playUrl` sont deux domaines de l'application studio (`clever domain add`). Deux sous-domaines de
-  votre propre domaine, c'est le mieux. Deux noms en `*.cleverapps.io` marchent aussi : le jeu garde alors sa session
-  dans un cookie partitionné.
+  votre propre domaine, c'est le mieux. Deux noms en `*.cleverapps.io` marchent aussi : le cookie de session du jeu est
+  partitionné (CHIPS), ce qui lui permet de vivre dans un cadre d'un autre site.
 - `trustProxy` : les adresses des proxys de Clever, pour distinguer chaque personne (avec OIDC, le serveur refuse de
-  démarrer sans).
+  démarrer sans). Les plages privées ci-dessus sont une hypothèse, à réduire aux vrais proxys de Clever par la passe
+  `studio-hosted` : sinon, une adresse de ces plages pourrait se prétendre n'importe quel `X-Forwarded-For`.
+- Pas de `port` : le serveur écoute sur le `PORT` que Clever lui donne (un `port` dans la configuration l'emporterait).
 - `worker.instance` : un nom au choix ; le worker n'exécute les jobs d'aucun autre Studio.
 
 **Les variables de l'application worker :** `CC_NODE_DEV_DEPENDENCIES=install`,
@@ -121,7 +123,8 @@ Le realm de test `ops/studio/keycloak/realm.json` montre chaque réglage. Chez n
 - **Le client `web-scumm-cli`** : public, avec le device authorization grant.
 - **Un mapper d'audience** qui ajoute `studio-api` (l'`audience` ci-dessus) aux jetons d'accès de `web-scumm-cli`. Elle
   doit différer de l'identifiant du client `studio` : un id_token n'est jamais accepté comme jeton d'accès.
-- **Des jetons d'accès de 5 min** (15 au plus).
+- **Des jetons d'accès de 5 min.** Jusqu'à 15 si la configuration le dit (`oidc.maxTokenSeconds`, 900 au plus) : un
+  jeton plus long est refusé.
 
 Le fournisseur dit qui est quelqu'un. Ce qu'il peut faire se décide dans le Studio.
 
@@ -157,8 +160,11 @@ Les jetons sont gardés dans `~/.config/web-scumm/studio-tokens.json` (0600), et
 
 ## Essayer en local
 
-`ops/studio/compose.yml` démarre Postgres, MinIO et Keycloak avec le realm de test (facultatif ; Docker n'est jamais
-requis). Le serveur tourne aussi sans OIDC, avec SQLite et un dossier pour les contenus, sur le loopback seulement.
+`ops/studio/compose.yml` démarre Postgres, MinIO et Keycloak avec le realm de test et un utilisateur de test
+(`lea@example.org`, mot de passe `lea-local-only`, email vérifié). C'est un point de départ, pas une installation clé en
+main : avec OIDC, il faut encore une configuration avec `oidc.allowInsecure: true` (un fournisseur en http), un bucket
+MinIO, un worker (`npm run studio-worker`) et `trustProxy`. Docker n'est jamais requis. Le serveur tourne aussi sans
+OIDC, avec SQLite et un dossier pour les contenus, sur le loopback seulement.
 
 ## Limites connues (4.2.1)
 

@@ -14,7 +14,9 @@
       "implicitFlowEnabled": false,
       "directAccessGrantsEnabled": false,
       "serviceAccountsEnabled": false,
-      "redirectUris": ["http://localhost:8080/auth/callback"],
+      "redirectUris": [
+        "http://localhost:8080/auth/callback"
+      ],
       "webOrigins": [],
       "frontchannelLogout": false,
       "attributes": {
@@ -32,7 +34,9 @@
       "publicClient": true,
       "standardFlowEnabled": false,
       "directAccessGrantsEnabled": false,
-      "attributes": { "oauth2.device.authorization.grant.enabled": "true" },
+      "attributes": {
+        "oauth2.device.authorization.grant.enabled": "true"
+      },
       "protocolMappers": [
         {
           "name": "studio-api audience",
@@ -43,6 +47,23 @@
             "access.token.claim": "true",
             "id.token.claim": "false"
           }
+        }
+      ]
+    }
+  ],
+  "users": [
+    {
+      "username": "lea",
+      "email": "lea@example.org",
+      "emailVerified": true,
+      "enabled": true,
+      "firstName": "Léa",
+      "lastName": "Test",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "lea-local-only",
+          "temporary": false
         }
       ]
     }

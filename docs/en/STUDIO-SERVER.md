@@ -35,7 +35,7 @@ managed Keycloak add-on works). With `clever-tools`:
 ```sh
 clever create --type node my-game-studio
 clever create --type node my-game-worker
-clever addon create postgresql-addon my-game-pg --plan dev      # 5 connections: enough to try; larger for a team
+clever addon create postgresql-addon my-game-pg --plan dev      # 5 connections: tight (the server keeps 4); larger for a team
 clever addon create cellar-addon my-game-cellar
 clever service link-addon my-game-pg --app my-game-studio
 clever service link-addon my-game-cellar --app my-game-studio
@@ -48,7 +48,7 @@ them to the worker.**
 **The job keys.** On your machine, in an empty folder kept out of Git:
 
 ```sh
-npm run studio-server -- worker-keys --out ~/secrets/my-game
+mkdir -p ~/secrets/my-game && npm run studio-server -- worker-keys --out ~/secrets/my-game
 ```
 
 `studio-worker.key` (0600) is the Studio's; `studio-worker.pub` is the worker's.
@@ -87,9 +87,12 @@ Clever, each can be a file instead: `STUDIO_SESSION_KEY_FILE`, and so on (mode 0
 ```
 
 - `publicUrl` and `playUrl` are two domains of the studio app (`clever domain add`). Two subdomains of your own
-  domain are best. Two `*.cleverapps.io` names also work: the game then keeps its session in a partitioned cookie.
+  domain are best. Two `*.cleverapps.io` names also work: the game's session cookie is partitioned (CHIPS), which is
+  what lets it live in a frame of another site.
 - `trustProxy`: the addresses of Clever's proxies, so that each person is told apart (the server refuses to start
-  with OIDC and none).
+  with OIDC and none). The private ranges above are an assumption, to be narrowed to Clever's actual proxies by the
+  `studio-hosted` pass: an address in them could otherwise claim any `X-Forwarded-For`.
+- No `port`: the server listens on the `PORT` Clever gives it (a `port` in the configuration would override it).
 - `worker.instance`: any name; the worker runs no other Studio's jobs.
 
 **The worker app's variables:** `CC_NODE_DEV_DEPENDENCIES=install`, `CC_RUN_COMMAND=npm run studio-worker`,
@@ -118,7 +121,8 @@ The test realm `ops/studio/keycloak/realm.json` shows every setting. On any prov
 - **The `web-scumm-cli` client**: public, the device authorization grant.
 - **An audience mapper** adding `studio-api` (the `audience` above) to the access tokens of `web-scumm-cli`. It must
   differ from the `studio` client's id: an id_token is never accepted as an access token.
-- **Access tokens of 5 min** (15 at most).
+- **Access tokens of 5 min.** Up to 15 if the configuration says so (`oidc.maxTokenSeconds`, 900 at most): a longer
+  token is refused.
 
 The provider says who someone is. What they may do is decided in the Studio.
 
@@ -154,8 +158,11 @@ The tokens are kept in `~/.config/web-scumm/studio-tokens.json` (0600), and only
 
 ## Trying it locally
 
-`ops/studio/compose.yml` starts Postgres, MinIO and Keycloak with the test realm (optional; Docker is never
-required). The server also runs without OIDC, with SQLite and a folder for the contents, on the loopback only.
+`ops/studio/compose.yml` starts Postgres, MinIO and Keycloak with the test realm and one test user
+(`lea@example.org`, password `lea-local-only`, email verified). It is a starting point, not a turnkey setup: with
+OIDC you still need a configuration with `oidc.allowInsecure: true` (a provider over http), a MinIO bucket, a worker
+(`npm run studio-worker`) and `trustProxy`. Docker is never required. The server also runs without OIDC, with
+SQLite and a folder for the contents, on the loopback only.
 
 ## Known limits (4.2.1)
 
