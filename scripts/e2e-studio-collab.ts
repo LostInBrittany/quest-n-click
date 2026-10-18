@@ -124,7 +124,8 @@ try {
   await until(async () => (await members.getByLabel('Role of Ali').inputValue()) === 'dev');
   await lea.keyboard.press('Escape');
   await aliReloaded;
-  await ali.locator('.hosted-bar .rev').waitFor({ timeout: 30_000 });
+  // The new page's stream up: the page has started, and no reload is still to come.
+  await ali.locator('.hosted-bar .rev.up').waitFor({ timeout: 30_000 });
   // Tom's note took the notes (a write takes its spans): he lets them go first.
   await spanAct(tom, 'notes', 'Release');
   await addNote(ali, 'Now I can write.');

@@ -47,6 +47,17 @@ export interface Revision {
   spans?: string[];
 }
 
+/**
+ * Starts the page again, once: a revocation can be seen twice (the stream refused, then a reconnection's check), and a
+ * second reload in Firefox interrupts the first page's start, dropping what the member did meanwhile.
+ */
+let reloading = false;
+function reloadOnce(): void {
+  if (reloading) return;
+  reloading = true;
+  location.reload();
+}
+
 /** Who the session is: a member (`me`), someone logged in but not a member (403), nobody (401), or suspended (503). */
 export async function whoAmI(): Promise<
   | { state: 'member'; me: Me }
@@ -249,7 +260,7 @@ export class Live {
   private async hello(d: Hello) {
     if (this.started && this.epoch !== d.epoch) {
       // The game was imported or restored again: what this page holds belongs to another history.
-      location.reload();
+      reloadOnce();
       return;
     }
     const first = !this.started;
@@ -297,7 +308,7 @@ export class Live {
         const r = await studioFetch(`ops?after=${cursor}&epoch=${encodeURIComponent(this.epoch)}`, {
           cache: 'no-store',
         });
-        if (r.status === 409) return location.reload();
+        if (r.status === 409) return reloadOnce();
         if (!r.ok) throw new Error(`${r.status}`);
         d = (await r.json()) as typeof d;
       } catch {
@@ -446,7 +457,7 @@ export function hostedStudio(o: {
       const who = await whoAmI();
       if (who.state === 'out') goLogin();
       else if (who.state === 'unreachable') return;
-      else if (who.state !== 'member' || who.me.role !== o.me.role) location.reload();
+      else if (who.state !== 'member' || who.me.role !== o.me.role) reloadOnce();
     },
   });
   live.start(apiUrl('events'));
