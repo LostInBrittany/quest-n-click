@@ -89,6 +89,21 @@ export const SETS = {
   // store-sql.ts). Gated since 4.1.20 (PR 2a). Its tests need a database: BRIDGE_PG_URL (the mutation workflow gives
   // one).
   'reality-store-postgres': ['bridge/src/store-postgres.ts'],
+  // The Studio Server (4.2.1, plan §11): the journal that loses no confirmed change, and the trust boundaries (who is
+  // who, who may write which span, who reaches the game's origin). Measured until their survivors are read.
+  'studio-ops': [
+    'studio-server/src/ops/journal.ts',
+    'studio-server/src/ops/durable.ts',
+    'studio-server/src/ops/spans.ts',
+  ],
+  'studio-auth': [
+    'studio-server/src/server/auth/gate.ts',
+    'studio-server/src/server/auth/oidc.ts',
+    'studio-server/src/server/auth/routes.ts',
+    'studio-server/src/server/auth/store.ts',
+    'studio-server/src/server/leases.ts',
+    'studio-server/src/server/play.ts',
+  ],
 };
 export type MutationSet = keyof typeof SETS;
 /** The tests a set's mutants are judged by (vitest `include` globs). */
@@ -158,6 +173,8 @@ export const TESTS: Record<MutationSet, string[]> = {
     'tests/code-wheel.test.ts',
   ],
   speedrun: ['tests/speedrun-*.test.ts', 'tests/critical-minigame-outcome.test.ts'],
+  'studio-ops': ['tests/studio-journal.test.ts', 'tests/studio-collab.test.ts'],
+  'studio-auth': ['tests/studio-auth.test.ts', 'tests/studio-collab.test.ts', 'tests/studio-play.test.ts'],
 };
 
 /** The sets `all` runs and the gate judges: every set, each a job of its own in ci, the nightly, the candidate and the release. */
@@ -179,8 +196,9 @@ export const GATED: MutationSet[] = [
   'connectors-edge',
 ];
 /** Measured on demand (`gh workflow run mutation -f set=…`) and every night, gating nothing until their survivors are read. */
-// Empty since 4.1.20 (plan §7.5): every set is gated; a set added later is measured here until its survivors are read.
-export const MEASURED: MutationSet[] = [];
+// Empty in 4.1.20 (plan §7.5): every set was gated; a set added later is measured here until its survivors are read.
+// The Studio Server's two sets (4.2.1) gate in PR 9's second part, once their survivors are read.
+export const MEASURED: MutationSet[] = ['studio-ops', 'studio-auth'];
 
 /**
  * The shards a set's mutation runs in (4.1.20 PR 2a, plan §7.3), one job each, merged into the set's report. A set not

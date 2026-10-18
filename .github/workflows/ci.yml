@@ -316,6 +316,53 @@ jobs:
           npm install --omit=optional --ignore-scripts --no-audit --no-fund ../pack/web-scumm-connectors-*.tgz
           npx web-scumm-connector --help | grep -q 'usage: web-scumm-connector'
           ! find node_modules -name '*.node' | grep -q .
+  # The hosted Studio (4.2.1): the journal on Postgres with its blobs in S3, the service lease, the processing worker
+  # through presigned URLs, the spans' leases racing on Postgres. S3 is SeaweedFS (its S3 gateway checks SigV4 and
+  # presigned URLs, as Cellar does; MinIO no longer publishes free images), its test identity in ops/studio/ci/. A
+  # service container takes no command: SeaweedFS starts in a step. Gate: `studioHosted`.
+  studio-hosted:
+    needs: plan
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    env:
+      RUN: ${{ fromJSON(needs.plan.outputs.plan).studioHosted }}
+      STUDIO_TEST_PG_URL: postgres://studio:studio@127.0.0.1:5432/studio
+      STUDIO_TEST_S3: http://studio-ci:studio-ci-secret-not-for-production@127.0.0.1:8333/studio-ci
+    services:
+      postgres:
+        image: mirror.gcr.io/library/postgres:16@sha256:65b16a8b326e0cfbdf33fa7e783f2a0cb352a61448616ccccfd616ef42aa0f65
+        env:
+          POSTGRES_USER: studio
+          POSTGRES_PASSWORD: studio
+          POSTGRES_DB: studio
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U studio" --health-interval 2s --health-timeout 5s --health-retries 30
+    steps:
+      - if: env.RUN != 'true'
+        run: echo "::notice::studio-hosted not needed by the plan (no Studio Server path changed)"
+      - if: env.RUN == 'true'
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - if: env.RUN == 'true'
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 22
+          cache: npm
+      - if: env.RUN == 'true'
+        run: for i in 1 2 3; do (npm ci) && break; [ "$i" = 3 ] && exit 1; echo "retry $i"; sleep 15; done
+        timeout-minutes: 20
+      - if: env.RUN == 'true'
+        name: S3 (SeaweedFS)
+        run: |
+          docker run -d --name seaweedfs -p 127.0.0.1:8333:8333 \
+            -v "$PWD/ops/studio/ci/seaweedfs-s3.json:/etc/s3.json:ro" \
+            mirror.gcr.io/chrislusf/seaweedfs@sha256:4e61d15fd35994cb1e43e1e553dff106794841fd9a99ade2fc8c8bfce4d7872d \
+            server -s3 -s3.port=8333 -s3.config=/etc/s3.json -dir=/data
+          for i in $(seq 1 60); do [ "$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:8333/)" != "000" ] && exit 0; sleep 1; done
+          docker logs seaweedfs; exit 1
+      - if: env.RUN == 'true'
+        run: npx vitest run tests/studio-server.test.ts tests/studio-worker.test.ts tests/studio-collab.test.ts --maxWorkers=1 --no-file-parallelism
   # The Bridge's distributed profile (4.1.10, D20): the store contract, the tenants crossed and the fan-out across
   # instances, on a real Postgres 16 (a service container, pinned by digest). The truth for Postgres: the maintainer's
   # machine runs it only with a local server (docs/en/REALITY-OPS.md). Gate: `reality`.
@@ -921,7 +968,7 @@ jobs:
   # may be `skipped` where it does not run (an ordinary pull request). The candidate single required check: the
   # ruleset still requires the seventeen names until a few runs of this job have been green (the maintainer's move).
   pr-gate:
-    needs: [plan, check, coverage, mutation-plan, mutation, mutation-merge, reality-xcheck, connectors, bridge-postgres, reality, node-24, windows, second-game, e2e, pwa-firefox, fresh-install, external-consumer, upgrade, reference, cross-runtime]
+    needs: [plan, check, coverage, mutation-plan, mutation, mutation-merge, reality-xcheck, connectors, bridge-postgres, studio-hosted, reality, node-24, windows, second-game, e2e, pwa-firefox, fresh-install, external-consumer, upgrade, reference, cross-runtime]
     if: always()
     runs-on: ubuntu-24.04
     timeout-minutes: 5

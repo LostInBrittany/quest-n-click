@@ -23,6 +23,7 @@ export const GATES = [
   'secondGame',
   'freshInstall',
   'upgrade',
+  'studioHosted',
 ] as const;
 export type Gate = (typeof GATES)[number];
 /** Every gate, plus `all` when one file (or `--all`) asked for everything. */
@@ -40,6 +41,7 @@ export const JOB_OF: Record<Gate, string> = {
   secondGame: 'second-game',
   freshInstall: 'fresh-install',
   upgrade: 'upgrade',
+  studioHosted: 'studio-hosted',
 };
 
 interface Rule {
@@ -139,8 +141,17 @@ export const RULES: readonly Rule[] = [
     why: 'a repository tool',
   },
   { re: /^tools\/audio(\/|\.py$)/, gates: ['e2e', 'reference', 'node24'], why: 'the audio pipeline' },
-  { re: /^studio-server\//, gates: [...AUTHORING], why: 'the Studio Server and its operation core (4.2.1)' },
+  {
+    re: /^studio-server\//,
+    gates: [...AUTHORING, 'studioHosted'],
+    why: 'the Studio Server and its operation core (4.2.1)',
+  },
   { re: /^(tools|scripts)\//, gates: [...AUTHORING], why: 'the authoring pipeline' },
+  {
+    re: /^(tests\/studio-(server|worker|collab)\.test\.ts|ops\/studio\/ci\/)/,
+    gates: [...UNIT, 'studioHosted'],
+    why: 'the hosted Studio against Postgres and S3 (4.2.1)',
+  },
   { re: /^tests\//, gates: [...UNIT], why: 'the unit tests' },
 ];
 

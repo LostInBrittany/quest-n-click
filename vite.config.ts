@@ -204,7 +204,7 @@ export default defineConfig({
     // whether the tests tell a right result from a wrong one.
     coverage: {
       provider: 'v8',
-      include: ['src/**/*.ts', 'bridge/src/**/*.ts'],
+      include: ['src/**/*.ts', 'bridge/src/**/*.ts', 'studio-server/src/**/*.ts'],
       exclude: ['src/**/*.d.ts'],
       reporter: ['text-summary', 'json-summary', 'html'],
       reportsDirectory: '.cache/coverage',
@@ -233,6 +233,23 @@ export default defineConfig({
         'src/engine/reality/protocol.ts': { lines: 95, branches: 96 },
         'src/engine/reality/client.ts': { lines: 98, branches: 90 },
         'src/engine/reality/http-port.ts': { lines: 98, branches: 95 },
+        // The Studio Server's trust boundaries (4.2.1): the journal, the gate and its provider, the leases, the game's
+        // origin, the worker's jobs. Two points under what was measured when they arrived; they may only rise.
+        'studio-server/src/ops/journal.ts': { lines: 87, branches: 76 },
+        'studio-server/src/ops/spans.ts': { lines: 100, branches: 100 },
+        'studio-server/src/ops/validate-dir.ts': { lines: 100, branches: 90 },
+        'studio-server/src/server/auth/gate.ts': { lines: 94, branches: 87 },
+        'studio-server/src/server/auth/oidc.ts': { lines: 92, branches: 70 },
+        'studio-server/src/server/auth/routes.ts': { lines: 88, branches: 76 },
+        'studio-server/src/server/auth/store.ts': { lines: 89, branches: 80 },
+        'studio-server/src/server/config.ts': { lines: 83, branches: 83 },
+        'studio-server/src/server/http.ts': { lines: 90, branches: 80 },
+        'studio-server/src/server/leases.ts': { lines: 96, branches: 78 },
+        'studio-server/src/server/live.ts': { lines: 86, branches: 59 },
+        'studio-server/src/server/play.ts': { lines: 100, branches: 82 },
+        'studio-server/src/server/remote-executor.ts': { lines: 95, branches: 83 },
+        'studio-server/src/worker/job.ts': { lines: 100, branches: 100 },
+        'studio-server/src/worker/snapshot.ts': { lines: 94, branches: 84 },
         'bridge/src/bridge.ts': { lines: 97, branches: 96 },
         'bridge/src/store.ts': { lines: 96, branches: 92 },
         'bridge/src/server.ts': { lines: 94, branches: 86 },
