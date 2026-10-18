@@ -30,14 +30,14 @@ if (kind === 'preview') {
   try {
     const out =
       kind === 'lint'
-        ? await d.lintIn(dir, mod, p.prove === true)
+        ? await d.lintIn(dir, mod, p.prove === true, d.solveParams(p).timeLimitMs)
         : kind === 'solve'
           ? await d.solveIn(dir, mod, d.solveParams(p))
           : await d.playtestsIn(dir, mod);
     writeFileSync(outFile, JSON.stringify({ data: out }));
   } catch (e) {
-    // A refusal of the diagnostic itself (an unknown checkpoint): said, as the local route says it.
-    writeFileSync(outFile, JSON.stringify({ error: String((e as Error).message).slice(0, 2_000) }));
+    // A refusal of the diagnostic itself (an unknown checkpoint): said, and answered as the local route answers it.
+    writeFileSync(outFile, JSON.stringify({ error: String((e as Error).message).slice(0, 2_000), refused: true }));
   }
 } else if (kind === 'load') {
   const m = await importFresh(join(dir, 'index.ts'));

@@ -14,6 +14,7 @@ import type { JobResult } from '../worker/main';
 import { PreviewBuildFailed, type PreviewParams, previewFiles } from '../worker/preview-build';
 import { packSnapshot } from '../worker/snapshot';
 import type { DiagnoseKind } from '../ops/diagnose';
+import { StudioError } from '../ops/errors';
 import type { S3 } from './s3';
 
 export interface RemoteExecutorOptions {
@@ -110,7 +111,11 @@ export function remoteExecutor(o: RemoteExecutorOptions) {
      */
     async diagnose(kind: DiagnoseKind, dir: string, params: Record<string, unknown>): Promise<unknown> {
       const v = await run(kind, packSnapshot(dir, { playtests: kind === 'playtests' }), params);
+      // Answered as a local route would: a refusal is the asker's (400), a deadline is the worker's (504).
+      if (v.refused) throw new StudioError(v.failed ?? 'refused', 400);
+      if (v.timedOut) throw new StudioError(`${v.failed}: the diagnostic is unknown for now`, 504);
       if (v.failed) throw new Error(v.failed);
+      if (!diagnosisShaped(kind, v.data)) throw new Error('the processing worker result does not answer this job');
       return structuredClone(v.data);
     },
     /**
@@ -124,4 +129,12 @@ export function remoteExecutor(o: RemoteExecutorOptions) {
       return new Map(Object.entries(v.files!).map(([k, b]) => [k, Buffer.from(b, 'base64')]));
     },
   };
+}
+
+/** The least a diagnostic's answer has, by kind: what the Check tab reads first. */
+export function diagnosisShaped(kind: DiagnoseKind, v: unknown): boolean {
+  const o = (v ?? {}) as Record<string, unknown>;
+  if (kind === 'solve') return typeof o.status === 'string' && Array.isArray(o.errors);
+  if (kind === 'lint') return !!o.lint && typeof o.lint === 'object' && typeof o.markdown === 'string';
+  return !!o.report && typeof o.report === 'object' && typeof o.files === 'number';
 }

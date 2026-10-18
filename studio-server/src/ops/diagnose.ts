@@ -43,10 +43,14 @@ export async function playtestsIn(dir: string, mod: GameModule): Promise<Playtes
 }
 
 /** The content lint after a witness (or, `prove`, exhaustive) solver run. */
-export async function lintIn(dir: string, mod: GameModule, prove = false): Promise<LintData> {
+export async function lintIn(dir: string, mod: GameModule, prove = false, timeLimitMs?: number): Promise<LintData> {
   const t0 = Date.now();
   const layouts = loadLayouts(join(dir, 'layout'));
-  const s = await solveGame(mod.game, layouts, { commands: mod.commands, mode: prove ? 'prove' : 'witness' });
+  const s = await solveGame(mod.game, layouts, {
+    commands: mod.commands,
+    mode: prove ? 'prove' : 'witness',
+    ...(timeLimitMs ? { timeLimitMs } : {}),
+  });
   const r = lintContent(mod.game, layouts, { solve: s, commands: mod.commands });
   return { lint: r, markdown: lintMarkdown(r, s.mode), mode: s.mode, ms: Date.now() - t0 };
 }
@@ -94,7 +98,11 @@ export function solveParams(p: Record<string, unknown>): SolveParams {
   const maxStates = Number.isSafeInteger(p.maxStates)
     ? Math.min(Math.max(p.maxStates as number, 1), 2_000_000)
     : 20_000;
-  const from = typeof p.from === 'string' && /^[\w.-]{1,64}$/.test(p.from) ? p.from : null;
-  const timeLimitMs = Number.isSafeInteger(p.timeLimitMs) ? Math.min(p.timeLimitMs as number, 110_000) : undefined;
+  // A checkpoint is any key of the game's (only looked up): one it does not have is refused by `solveIn`.
+  const from = typeof p.from === 'string' && p.from && p.from.length <= 200 ? p.from : null;
+  // Under the job's own deadline, with room for the import of the game and the answer.
+  const job = Number.isSafeInteger(p.timeoutMs) ? (p.timeoutMs as number) : 60_000;
+  const asked = Number.isSafeInteger(p.timeLimitMs) ? (p.timeLimitMs as number) : undefined;
+  const timeLimitMs = asked ? Math.max(1, Math.min(asked, job - 10_000)) : undefined;
   return { from, maxStates, mode, ...(timeLimitMs ? { timeLimitMs } : {}) };
 }

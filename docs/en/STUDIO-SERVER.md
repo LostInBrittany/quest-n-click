@@ -209,6 +209,8 @@ SQLite and a folder for the contents, on the loopback only.
 - The diagnostics that run the game's code (lint, solve, playtests) run on the worker, with the game's own commands
   (4.2.2); the solver stops after 45 s there and says it was cut short. Every read says the revision it was made at:
   the Check tab shows it, and marks its results stale once the head has moved on.
+- A read's revision is the journal's head: an instance that does not hold the lease yet (a deploy) may answer from a
+  folder behind it, and a new history (an import, a restore) is not told apart from an older revision.
 - The worker runs one job at a time: a preview's build can delay the next change's validation by its own time
   (about half a second for the sample game on a laptop; not yet measured on a Clever worker, the `studio-preview`
   pass does).

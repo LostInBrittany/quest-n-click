@@ -53,6 +53,8 @@ export interface JobResult {
   failed?: string;
   /** The failure was the deadline (4.2.2): it may pass on a less busy worker, unlike a crash. */
   timedOut?: boolean;
+  /** The diagnostic refused what it was asked (4.2.2: an unknown checkpoint), as a local route refuses it. */
+  refused?: boolean;
 }
 
 /**
@@ -176,9 +178,10 @@ export function createWorker(o: WorkerOptions) {
         if (files) result.files = files;
         else result.failed = 'the preview build gave no usable files';
       } else if (!result.failed && (job.kind === 'lint' || job.kind === 'solve' || job.kind === 'playtests')) {
-        const { data, error } = (parsed ?? {}) as { data?: unknown; error?: unknown };
+        const { data, error, refused } = (parsed ?? {}) as { data?: unknown; error?: unknown; refused?: unknown };
         if (data && typeof data === 'object') result.data = data;
         else result.failed = typeof error === 'string' ? error.slice(0, 2_000) : 'the diagnostic gave no answer';
+        if (!result.data && refused === true) result.refused = true;
       } else if (!result.failed) result.module = parsed;
       result.ms = Date.now() - t0;
       const put = await fetch(job.urls.result, {

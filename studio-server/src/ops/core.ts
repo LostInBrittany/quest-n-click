@@ -781,7 +781,8 @@ export function createStudio(opts: StudioOptions = {}) {
 
   /** The content lint after a witness (or, `prove`, exhaustive) solver run (on the worker when hosted). */
   async function lint(prove = false): Promise<LintData> {
-    if (opts.executor?.diagnose) return (await opts.executor.diagnose('lint', dir, { prove })) as LintData;
+    if (opts.executor?.diagnose)
+      return (await opts.executor.diagnose('lint', dir, { prove, timeLimitMs: HOSTED_SOLVE_MS })) as LintData;
     return lintIn(dir, await loadModule(), prove);
   }
 
@@ -792,7 +793,9 @@ export function createStudio(opts: StudioOptions = {}) {
     reality?: RealityPolicy,
   ): Promise<SolveData> {
     const o: SolveParams = { from: from ?? null, maxStates, mode, ...(reality ? { reality } : {}) };
-    // Hosted: on the worker, with a time limit below the job's (the Studio's call had none before 4.2.2).
+    // Hosted: on the worker, with a time limit below the job's (the Studio's call had none before 4.2.2). A policy of
+    // the world outside is not sent there: refused rather than solved as another question.
+    if (opts.executor?.diagnose && reality) throw new StudioError('a reality policy is solved on a local Studio', 501);
     if (opts.executor?.diagnose)
       return (await opts.executor.diagnose('solve', dir, { ...o, timeLimitMs: HOSTED_SOLVE_MS })) as SolveData;
     return solveIn(dir, await loadModule(), o);

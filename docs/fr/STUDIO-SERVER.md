@@ -215,6 +215,9 @@ OIDC, avec SQLite et un dossier pour les contenus, sur le loopback seulement.
   avec les commandes propres du jeu (4.2.2) ; le solveur s'y arrête après 45 s et dit qu'il a été interrompu. Chaque
   lecture dit la révision à laquelle elle a été faite : l'onglet Check l'affiche, et marque ses résultats comme
   périmés dès que la tête a avancé.
+- La révision d'une lecture est la tête du journal : une instance qui ne tient pas encore le bail (un déploiement)
+  peut répondre depuis un dossier en retard, et une nouvelle histoire (un import, une restauration) n'est pas
+  distinguée d'une révision plus ancienne.
 - L'application de traitement exécute un job à la fois : la construction d'une prévisualisation peut retarder la
   validation de la modification suivante de sa propre durée (environ une demi-seconde pour le jeu d'exemple sur un
   portable ; pas encore mesurée sur une application Clever, la passe `studio-preview` le fait).
