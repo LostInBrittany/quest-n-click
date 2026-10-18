@@ -579,3 +579,10 @@ Rien à changer : la 4.2.0 est le code de la 4.1.20 avec la version changée et 
 la 4.2.0, le SemVer strict : une 4.2.x ne fait que corriger, une mineure 4.x ne fait qu'ajouter. Le moteur s'installe
 toujours depuis l'archive de la release (`releases/download/v4.2.0/…`) ; la publication npm arrive dans une 4.2.x
 ultérieure. Ce que la 4.2.0 dit stable, limité ou expérimental est dans `docs/fr/SUPPORT.md` (D38).
+
+## 34. De la 4.2.0 à la 4.2.1 « Shared Floor »
+
+Rien à changer pour un jeu : l'API publique, le format du contenu et l'enveloppe de sauvegarde sont ceux de la 4.2.0
+(D40). Le Studio sur votre machine marche comme avant ; ses écritures passent désormais par le même journal que celles
+du Studio hébergé (le local le garde sous `.cache/`). Le moteur s'installe depuis `releases/download/v4.2.1/…`. Pour
+mettre un Studio en ligne pour une équipe, voir `docs/fr/STUDIO-SERVER.md` (expérimental en 4.2.1).

@@ -546,3 +546,10 @@ Nothing to change: 4.2.0 is 4.1.20's code with the version changed and one Field
 SemVer: a 4.2.x only fixes, a 4.x minor only adds. The engine still installs from the release's archive
 (`releases/download/v4.2.0/…`); npm publishing comes in a later 4.2.x. What 4.2.0 calls stable, limited or
 experimental is in `docs/en/SUPPORT.md` (D38).
+
+## 34. From 4.2.0 to 4.2.1 "Shared Floor"
+
+Nothing to change for a game: the public API, the content format and the save envelope are 4.2.0's (D40). The Studio
+on your machine works as before; its writes now go through the same journal as the hosted Studio's (the local one
+keeps it under `.cache/`). The engine installs from `releases/download/v4.2.1/…`. To put a Studio online for a team,
+see `docs/en/STUDIO-SERVER.md` (experimental in 4.2.1).

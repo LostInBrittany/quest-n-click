@@ -1,5 +1,151 @@
 # Changelog
 
+## 4.2.1 — 2026-10-18
+
+"Shared Floor" (LOG #188–#205): the Studio online for a team, the first of three 4.2.x steps (D40). One game per
+server, several people at once: they log in through an OpenID Connect provider (Keycloak or another), get a role in
+the Studio, and edit the same game live, each change one operation of a durable journal, each part of the game held
+by one member at a time. The game's code runs in a separate processing worker that holds no secret, and the game is
+played on its own origin, apart from anyone's Studio session. It is deployed as two native Node.js applications on
+Clever Cloud with PostgreSQL and Cellar, from the repository or from the new `web-scumm-studio-server` archive. It
+is **experimental** until its two people's passes are made (`studio-hosted`, `studio-collab`): the game in the Studio
+is a live preview, not frozen at a revision (per-revision previews come in 4.2.2), and a real Safari has not tried
+the game's frame yet. Nothing a game or a player uses changed: the public API, the content format and the save
+envelope are 4.2.0's (D40). The tag is signed with the maintainer's SSH key on their yes of 18 October (D37).
+
+### Fixed
+
+- **The e2e run tolerates WebKit's "Context is stopped"** during its teardown (WebKit stopping its context as the run
+  ends, a Cache API call cut short): reported as a warning, as `e2e:pwa` does since 4.1.20, only for an error that
+  came after every check passed, on WebKit, in that exact form.
+
+### Changes
+
+- **A plan to put the Studio online for a team** (4.2.1 → 4.2.3): `docs/dev/PLAN-4.2.1-4.2.3-STUDIO-SERVER.md`, behind
+  OpenID Connect on Clever Cloud's native Node.js runtime, with ADR 0025 and decisions D39 to D41.
+
+- **The Studio's operation core moves to `studio-server/src/ops/`** (4.2.1, neutral). `core.ts`, `source.ts`,
+  `apply.ts` and `errors.ts` leave `tools/studio/` for the Studio Server's package, where the transactional operations of
+  the next pull requests grow. Nothing an author sees changes: the dev server, the MCP server, `npm run studio-apply`
+  and the demo Studio run the same code from its new place. The browser Studio now names its API through one constant
+  (`src/studio/api-base.ts`) instead of spelling `/__studio/api` in six modules.
+
+- **Every Studio write is one journaled operation** (4.2.1). The files an edit touches are written together or not at
+  all, durably, and an edit a crash interrupted is finished when the Studio opens again (`.cache/studio-journal/`).
+  A change made outside the Studio (an editor, an agent, git) is recorded before the next edit touches that file;
+  a file another process rewrote while an edit was prepared is a 409, never a lost write.
+- **One guard for every edit, on the game as it would be** (4.2.1): text edits, layouts, new entities and voices are
+  refused (422) when they would add a validation error, like structured values since 3.4. Nothing is written first and
+  taken back any more.
+- **Adding a prop, hotspot or actor is one step of undo** (4.2.1): the room and its layout come back together.
+
+- **The authoring tools write a game through the Studio's journal** (4.2.1):
+  - `npm run ids`, `i18n`, `voices` (import), `import-layout`, `provenance -- --lock`, `page:storyboard -- --md`,
+    `prompts` and `remix` write their game files as one operation of the journal;
+  - asset uploads (sheets, cells, decors, sounds) too. Backups and the cells a cut produced land together, or none
+    of them;
+  - a Studio open on the same game sees each operation, and a file it rewrote meanwhile is a 409.
+  - The batch tools (`ids`, `i18n`, `provenance`) are journaled, not guarded: they rename paths, which changes the
+    text of existing validation errors.
+- **The placement editor saves through the Studio's API** (4.2.1): `PUT /__studio/api/room/<id>/layout`, one guarded
+  operation. The dev server's `/__layout` route is gone; `layoutWriter()` stays exported as a deprecated plugin that
+  does nothing.
+
+- **`studio-server`, the Studio as a server** (4.2.1, first part; authentication comes next and it serves the loopback
+  only until then). `studio-server serve --config <file>` serves the Studio's API under `/api/`, with:
+  - the journal's cursor (`/api/revision`, `/api/ops?epoch&after`);
+  - the probes `/livez`, `/startz` (started) and `/readyz` (serving writes);
+  - a service lease so that one instance serves the writes;
+  - operation ids from the client (`x-studio-op`): a retry gets the same answer and is applied once.
+
+  Other commands:
+  - `studio-server import <dir>` makes a game the instance's project;
+  - `studio-server export <dir>` writes the game at its head with a manifest of hashes.
+
+  On Postgres and an S3 store (Cellar), the database and the blobs are the truth and the instance's folder is rebuilt
+  at start and checked every 30 s.
+
+- **The Studio Server behind OpenID Connect** (4.2.1).
+  - **Login:** with Keycloak or any OIDC provider (Authorization Code + PKCE). The rights live in the Studio: owner,
+    dev or reviewer, given by one-time invitations to a verified email (`studio-server invite`, `POST
+    /api/invitations`). The owner's routes: members, roles, sessions, audit.
+  - **Mutations:** a mutation from the browser needs the exact `Origin` and the `X-Studio-Request` header. The CLI and
+    MCP use Bearer access tokens for the Studio's audience, obtained with `studio-server login --server <url>` (device
+    flow).
+  - **Access ends:**
+    - at the next request when a member is removed;
+    - at once on the provider's back-channel logout;
+    - within 15 min when the provider disables the user, or when it stays unreachable (the session is then
+      suspended until it answers).
+  - **Without OIDC:** the server stays on the loopback.
+
+- **A hosted Studio never runs the game's code itself** (4.2.1, ADR 0028).
+  - **With OIDC**, validation and the loads behind the Studio's reads run in `studio-worker`, a separate application
+    with no secret of the platform. Configure `worker: { url, instance }` and the secret `STUDIO_WORKER_KEY`; create
+    the keys with `studio-server worker-keys --out <folder>`. The worker needs `WORKER_PUBLIC_KEY` and
+    `WORKER_INSTANCE`.
+  - **Captures** are unavailable on a hosted Studio for now.
+  - **Without OIDC** (the local server, on the loopback), nothing changes.
+  - A game that imports files outside its own folder cannot run on a hosted Studio.
+
+- **Working together on a shared Studio** (4.2.1).
+  - **Each file has a span:** a room (its code and layout), a language, the story, the items, and so on. A write
+    takes the spans it touches. If another member is editing one of them, the write is refused (423) with their
+    name, and the client keeps its draft. A lease lasts 2 min and is renewed by the heartbeat
+    (`POST /api/presence`). Members can take spans ahead (`POST /api/leases`) and release them.
+  - **Owners** can take a span over (audited) and take the whole game for an exclusive change.
+  - **`GET /api/events`** streams every revision (with its files and spans), the leases and who is here. A stream
+    closes as soon as its member is removed or logged out, or when its token ends.
+  - **Undo** is not available on a shared Studio until 4.2.2.
+
+- **The game runs on its own origin** (4.2.1): a hosted Studio serves everything that runs the game on `playUrl`, never
+  on the Studio's origin. The Studio opens it with a one-time ticket (`POST /api/play-ticket`). The game's access ends
+  at the next request when the member is removed or their Studio session ends.
+
+- **A guide to put a Studio online** (4.2.1): `docs/en/STUDIO-SERVER.md` (French: `docs/fr/STUDIO-SERVER.md`) deploys
+  the Studio Server and its worker as two native Node.js applications on Clever Cloud, with PostgreSQL, Cellar and
+  Keycloak or another OpenID provider. An example configuration (`ops/studio/studio.config.example.json`), a test
+  Keycloak realm (`ops/studio/keycloak/realm.json`) and an optional local stack (`ops/studio/compose.yml`) come with
+  it. `npm run studio-server` and `npm run studio-worker` start them; `serve` also takes its configuration from
+  `STUDIO_CONFIG_JSON`.
+
+- **The hosted Studio is tested against a real Postgres and S3 in CI** (4.2.1): a `studio-hosted` job runs its hosted
+  tests on every change to the Studio Server; its code counts in the coverage, with floors on its trust boundaries.
+
+- **The Studio Server's journal is held by mutation testing** (4.2.1): the set `studio-ops` (the journal, its durable
+  writes, the spans) is gated, every surviving mutant killed by a test or named.
+
+- **The Studio Server's trust boundaries are held by mutation testing** (4.2.1): the set `studio-auth` (the gate,
+  the OpenID client, the routes and store of authentication, the spans' leases, the game's origin) is gated, every
+  surviving mutant killed by a test or named.
+
+- **The Studio Server is tested against a real Keycloak in CI** (4.2.1): a login through Keycloak's own form, the
+  identity it gives, a back-channel logout Keycloak sends, and a user an admin disables.
+
+- **The hosted Studio opens in a browser** (4.2.1): the Studio Server serves the Studio's page
+  (`npm run studio-client` builds it; `CC_POST_BUILD_HOOK` on Clever Cloud), which talks to `/api` and logs in
+  through the provider. The game runs on its own origin as a live preview (Vite behind the game's session, not frozen
+  at a revision): the Rooms editor and the Play tab open there with a ticket, and the editor hands its layout to the
+  Studio, which writes it as the member. Undo, the Assistant and the Assets tab are not on a hosted Studio yet; the Play tab's
+  inspector panels need the local Studio. New optional settings `publicDir` and `clientDir`
+  (`docs/en/STUDIO-SERVER.md`).
+
+- **The Studio Server as a release archive** (4.2.1): `web-scumm-studio-server-<version>.tgz` carries the commands
+  `web-scumm-studio-server` and `web-scumm-studio-worker`, the Studio's page already built, and its own dependencies
+  (their versions locked in its `npm-shrinkwrap.json` and SBOM; `web-scumm-studio-server deps` says what an install
+  resolved). Install it beside the engine of the same version
+  (`docs/en/STUDIO-SERVER.md`, "From the release archives"). Two people's passes join the sheet from 4.2.1:
+  `studio-hosted` (a real Clever Cloud deployment, a real Safari) and `studio-collab` (three people, a cut, a redeploy).
+
+- **The shared Studio's screens** (4.2.1): on a hosted Studio, a visitor sees a login page and someone who is not a
+  member sees "access not granted", with nothing of the game; a session the identity provider has not confirmed for
+  15 min shows "identity provider unreachable". In the header: the exact revision the editors and reads are at, who is
+  here and where, and your name with the spans, the members (owner) and the logout. A write refused because another
+  member holds its span (423) or because its file changed (409) keeps the draft to copy and try again; an owner may
+  take a span over. The owner's Members screen changes roles, removes members, ends sessions, makes invitation links
+  and shows the audit log. A cut of the connection is shown, and what was committed meanwhile is read back from the
+  journal; a write cut off is sent again with the same id and applies once. A note's author is the session's.
+
 ## 4.2.0 — 2026-10-16
 
 "Stable World" (LOG #185–#187): 4.1.20's code, the version changed (plan 4.1.20 §12, D34), one Field Kit fix, and
