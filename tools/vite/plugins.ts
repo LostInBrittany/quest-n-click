@@ -2,7 +2,6 @@
 // layout writer, the Studio's demo snapshot, the sealed build, the assets' version, the game's site.json.
 import type { Plugin } from 'vite';
 import { fileURLToPath } from 'node:url';
-import { writeFile } from 'node:fs/promises';
 import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
@@ -10,7 +9,6 @@ import { createRequire } from 'node:module';
 import { join, resolve } from 'node:path';
 import { GAME, GAME_DIR, PROJECT, WORK } from '../game.ts';
 import { engineVersion, trustedExtensionsHash } from '../extensions.ts';
-import { authorizeStudioRequest } from '../studio/security.ts';
 
 /** A path next to the engine's pages (index.html, studio.html), wherever it is installed. */
 const r = (p: string) => fileURLToPath(new URL('../../' + p.replace(/^\.\//, ''), import.meta.url));
@@ -24,46 +22,16 @@ const tsconfig = () =>
 /** Deploy under a sub-path (GitHub Pages: /<repo>/) with BASE_PATH=/<repo>/ ; default '/'. */
 export const BASE = process.env.BASE_PATH ?? '/';
 
-/** Dev server only: the placement editor (?edit=<room>) saves games/<GAME>/layout/<room>.json. */
+// The placement editor (?edit=<room>) saves through the Studio's API since 4.2.1 (PUT /__studio/api/room/<id>/layout,
+// one guarded operation of the game's journal): the dev server has no route of its own that writes a game file.
+
+/**
+ * @deprecated 4.2.1: the placement editor saves through the Studio's API; this plugin does nothing any more. Kept so a
+ * configuration that names it still loads (D40: no public name removed in 4.2.x).
+ * @public
+ */
 export function layoutWriter(): Plugin {
-  return {
-    name: 'layout-writer',
-    apply: 'serve',
-    configureServer(server) {
-      server.middlewares.use('/__layout', (req, res) => {
-        if (!authorizeStudioRequest(req, res)) return;
-        const room = (req.url ?? '').replace(/^\//, '').split('?')[0];
-        if (req.method !== 'POST' || !/^[a-z0-9_-]+$/i.test(room)) {
-          res.statusCode = 400;
-          res.end('invalid request');
-          return;
-        }
-        let body = '',
-          tooLarge = false;
-        req.on('data', (c) => {
-          if (tooLarge) return;
-          body += c;
-          if (body.length > 1024 * 1024) {
-            tooLarge = true;
-            res.statusCode = 413;
-            res.end('layout body too large');
-            req.destroy();
-          }
-        });
-        req.on('end', async () => {
-          if (tooLarge) return;
-          try {
-            const json = JSON.parse(body);
-            await writeFile(resolve(GAME_DIR, 'layout', `${room}.json`), JSON.stringify(json, null, 2) + '\n');
-            res.end('ok');
-          } catch (e) {
-            res.statusCode = 500;
-            res.end(String(e));
-          }
-        });
-      });
-    },
-  };
+  return { name: 'layout-writer', apply: 'serve' };
 }
 
 /**

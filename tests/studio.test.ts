@@ -2,7 +2,11 @@
 // copies resolve @engine like the real games).
 import { cpSync, mkdirSync, mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import { join, resolve } from 'node:path';
-import { afterAll, describe, expect, it } from 'vitest';
+import { afterAll, describe, expect, it, vi } from 'vitest';
+
+// Every write is a journaled, guarded operation since 4.2.1 (the game validated in a child process): slower than a
+// write to a file, the more under coverage. Each test may take a minute.
+vi.setConfig({ testTimeout: 60_000 });
 import type { ListLine, RoomDef } from '@engine/core/types';
 import { listText } from '@engine/core/list-lines';
 import { createStudio, importInChild, StudioError } from '../studio-server/src/ops/core';

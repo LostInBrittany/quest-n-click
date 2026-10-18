@@ -287,8 +287,8 @@ les modifications restent dans le navigateur.
   alors : le jeu du joueur est le même). Ils appliquent les mêmes patchs au jeu et aux layouts au démarrage. Save
   layout dans l'éditeur envoie le layout au Studio qui l'entoure (`postMessage`, message `saved` avec `layout`), qui
   le garde comme patch `layout` ; l'éditeur ouvert seul écrit le patch dans `localStorage` lui-même. Sur le serveur de
-  dev, l'éditeur écrit toujours `layout/<room>.json` ; il se rabat sur le même chemin seulement quand `/__layout`
-  n'existe pas.
+  dev, l'éditeur écrit `layout/<room>.json` par l'API du Studio (`PUT /__studio/api/room/<id>/layout`, une opération
+  gardée du journal depuis 4.2.1) ; il se rabat sur le patch seulement quand cette API n'existe pas.
 - **Bandeau** : « Demo: your edits stay in this browser », **Download patch** (`studio-patch-<game>.json` : `{ format:
   'web-scumm-studio-patch', version, game, created, patches }`) et **Reset demo** (abandonne chaque modification).
 - **Appliquer** : `npm run studio-apply patch.json` rejoue un patch téléchargé sur votre copie à travers le cœur

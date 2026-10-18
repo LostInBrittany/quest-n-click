@@ -11,7 +11,7 @@
 //          string of a list into `{ id, text }` (verbose, for a game that voices or translates every line). Without
 //          it, lines stay keyed by their position inside their owner.
 // The game: GAME, else package.json → config.game (tools/game.ts). Safe to run again: nothing is renamed twice.
-import { existsSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { join, relative } from 'node:path';
 import { assignIds, renamePaths } from '../src/engine/core/content-ids';
 import { GAME, GAME_DIR, WORK, loadGameModule } from './game';
@@ -23,6 +23,7 @@ import {
   roomIdOf,
   type CodemodResult,
 } from './ids/codemod';
+import { writeGame } from './game-write';
 
 const write = process.argv.includes('--write');
 const wantMap = process.argv.includes('--map');
@@ -81,8 +82,10 @@ console.log(
   `\n[${GAME}] ${added} id(s) assigned in memory, ${inserted} written to the sources${write ? '' : ' (dry run: add --write)'}, ${skipped} skipped${game.schemaVersion === 3 ? '' : '; the game is still schema 2'}`,
 );
 
+// Every file of the run, written as one operation of the game's journal at the end (tools/game-write.ts).
+const out: { file: string; text: string }[] = [];
 if (write) {
-  for (const { file, r } of results) if (r.inserted.length) writeFileSync(file, r.code);
+  for (const { file, r } of results) if (r.inserted.length) out.push({ file, text: r.code });
   const dir = join(GAME_DIR, 'locales');
   if (existsSync(dir))
     for (const f of readdirSync(dir).filter((x) => x.endsWith('.json'))) {
@@ -91,7 +94,7 @@ if (write) {
       const { _: header, ...rest } = table;
       const renamed = renamePaths(rest, map.paths);
       const moved = Object.keys(rest).filter((k) => !(k in renamed)).length;
-      writeFileSync(file, JSON.stringify({ _: header, ...renamed }, null, 1) + '\n');
+      out.push({ file, text: JSON.stringify({ _: header, ...renamed }, null, 1) + '\n' });
       console.log(`${rel(file)}: ${moved} path(s) renamed to ids`);
     }
 }
@@ -115,11 +118,14 @@ if (wantMap) {
           renameCounter: { ...((prev?.renameCounter as Record<string, string>) ?? {}), ...map.counters },
         }
       : prev;
-  writeFileSync(join(GAME_DIR, 'ids.migration.json'), JSON.stringify(migration, null, 2) + '\n');
+  out.push({ file: join(GAME_DIR, 'ids.migration.json'), text: JSON.stringify(migration, null, 2) + '\n' });
   const prevPaths = (readJson(join(GAME_DIR, 'ids.paths.json')) as Record<string, string> | undefined) ?? {};
-  writeFileSync(join(GAME_DIR, 'ids.paths.json'), JSON.stringify({ ...prevPaths, ...map.paths }, null, 2) + '\n');
+  out.push({
+    file: join(GAME_DIR, 'ids.paths.json'),
+    text: JSON.stringify({ ...prevPaths, ...map.paths }, null, 2) + '\n',
+  });
   console.log(
-    `\nWritten: ${rel(join(GAME_DIR, 'ids.migration.json'))} (${Object.keys(map.seen).length} seen, ${Object.keys(map.counters).length} counter keys), ${rel(join(GAME_DIR, 'ids.paths.json'))} (${Object.keys(map.paths).length} paths)`,
+    `\nTo write: ${rel(join(GAME_DIR, 'ids.migration.json'))} (${Object.keys(map.seen).length} seen, ${Object.keys(map.counters).length} counter keys), ${rel(join(GAME_DIR, 'ids.paths.json'))} (${Object.keys(map.paths).length} paths)`,
   );
 }
 
@@ -133,3 +139,6 @@ if (!write || (wantMap && keysMoved) || game.schemaVersion !== 3) {
   );
   console.log(`Then: npm run validate && npm run i18n -- extract && npm run solve`);
 }
+
+const written = await writeGame('ids', out, { guard: false });
+if (out.length) console.log(`Written as one operation of the journal: ${written.length} file(s) changed`);
