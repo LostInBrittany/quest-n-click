@@ -40,7 +40,7 @@ export function studioFetch(path: string, init: RequestInit = {}): Promise<Respo
 }
 
 /** Where a hosted Studio sends someone whose session has ended: the login, then back here. */
-const loginUrl = () =>
+export const loginUrl = () =>
   `/auth/login?returnTo=${encodeURIComponent(`/${typeof location === 'undefined' ? '' : location.hash}`)}`;
 
 /**

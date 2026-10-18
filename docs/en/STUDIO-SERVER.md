@@ -204,6 +204,9 @@ SQLite and a folder for the contents, on the loopback only.
 - The Play tab shows the game with its DEV panel; the state inspector, the rule explainer and the replays beside it
   need the game on the Studio's origin, so the local Studio only.
 - The Assistant is not on a hosted Studio yet.
+- The Studio's editors do not yet send the revision of what they read (the journal checks it when sent): within a span
+  you hold, your save replaces the file. Editors reload what others commit, so this matters only for an edit begun
+  just before a span changed hands.
 - The room editor's own Save does nothing on a hosted Studio: "Save layout" in the Studio saves (the editor's page is
   the game's, and only the member starts a write).
 - A game that imports files outside its own folder cannot run on the worker.

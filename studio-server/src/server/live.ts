@@ -134,11 +134,14 @@ export class LiveHub {
 
   /** What a new stream starts from. */
   async hello() {
+    // The sequence number before the read: a refresh that ends meanwhile comes after, with a greater number, and is
+    // kept by the client; read after, it would be the same number as a newer list and dropped.
+    const seq = this.seq;
     return {
       epoch: await this.o.journal.epoch(),
       revision: await this.o.journal.revision(),
       leases: this.o.leases ? await this.o.leases.list() : [],
-      seq: this.seq,
+      seq,
       here: this.o.presence ? this.o.presence.list() : [],
     };
   }

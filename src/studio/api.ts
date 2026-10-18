@@ -30,6 +30,8 @@ export { studioFetch };
 export type * from '../../tools/studio/types';
 
 export class ApiError extends Error {
+  /** A refusal a dialog already shows (hosted 423, 409): the caller need not say it again. */
+  handled = false;
   constructor(
     message: string,
     readonly status: number,
@@ -38,16 +40,96 @@ export class ApiError extends Error {
   }
 }
 
-async function call<T>(method: string, path: string, body?: unknown): Promise<T> {
-  const r = await studioFetch(path, {
-    method,
-    headers: method === 'GET' ? {} : { 'content-type': 'application/json' },
-    body: method === 'GET' ? undefined : JSON.stringify(body ?? {}),
-  });
+/** A write refused by a span another member holds (423) or by a file changed since it was read (409). */
+export interface Refusal {
+  status: 409 | 423;
+  data: Record<string, unknown>;
+  /** What was sent: the draft the member keeps. */
+  draft: unknown;
+  /** Sends it again (a new operation). */
+  retry: () => Promise<void>;
+}
+let refused: ((r: Refusal) => void) | undefined;
+/** Who shows a refused write on a hosted Studio (hosted.ts / spans.ts). */
+export const onRefused = (fn: (r: Refusal) => void) => {
+  refused = fn;
+};
+
+/** The writes sent but not yet answered on a hosted Studio (a cut, a server switching): `changed` tells the count. */
+export const waiting = { count: 0, changed: () => {} };
+
+const pause = (ms: number) => new Promise((ok) => setTimeout(ok, ms));
+
+/** The POSTs that only read (a check takes its options in a body): the server's READ_POSTS (studio-server http.ts). */
+const READ_POSTS = /^(validate|report|puzzle|coverage|playtests|lint|solve|screenshot)$/;
+
+/** A 409 about a file that changed (the journal's base, or a write meanwhile), not another refusal that is a 409. */
+const fileConflict = (data: Record<string, unknown>) =>
+  typeof data.path === 'string' || /changed (since|while)/.test(String(data.error ?? ''));
+
+/** `quiet`: a retry from a refusal's dialog, which says itself why it failed again. */
+async function call<T>(method: string, path: string, body?: unknown, quiet = false): Promise<T> {
+  // P6: on a hosted Studio a write carries its operation id, and a cut or a 502/503/504 (another instance taking
+  // over, a proxy during a deploy, a proxy that may have passed it on) sends it again with the same id: applied once.
+  const write = hosting.hosted && method !== 'GET' && !(method === 'POST' && READ_POSTS.test(path));
+  const op = write ? crypto.randomUUID() : undefined;
+  let r: Response | undefined;
+  // Counted as waiting from its first failed attempt only: a write answered at once is never shown as waiting.
+  let counted = false;
+  const wait = async (attempt: number) => {
+    if (!counted) {
+      counted = true;
+      waiting.count++;
+      waiting.changed();
+    }
+    await pause(Math.min(8000, 500 * 2 ** attempt));
+  };
+  try {
+    for (let attempt = 0; ; attempt++) {
+      try {
+        r = await studioFetch(path, {
+          method,
+          headers: {
+            ...(method === 'GET' ? {} : { 'content-type': 'application/json' }),
+            ...(op ? { 'x-studio-op': op } : {}),
+          },
+          body: method === 'GET' ? undefined : JSON.stringify(body ?? {}),
+        });
+      } catch (e) {
+        if (!write || attempt >= 8) throw e;
+        await wait(attempt);
+        continue;
+      }
+      if (write && [502, 503, 504].includes(r.status) && attempt < 8) {
+        const d = (await r
+          .clone()
+          .json()
+          .catch(() => ({}))) as { suspended?: boolean };
+        if (d.suspended) location.reload();
+        else {
+          await wait(attempt);
+          continue;
+        }
+      }
+      break;
+    }
+  } finally {
+    if (counted) {
+      waiting.count--;
+      waiting.changed();
+    }
+  }
   // A hosted Studio whose session ended: log in again, then come back here.
   if (r.status === 401 && hosting.hosted) goLogin();
   const data = await r.json().catch(() => ({ error: `${r.status} ${r.statusText}` }));
-  if (!r.ok) throw new ApiError(data.error ?? `${r.status}`, r.status);
+  if (!r.ok) {
+    const err = new ApiError(data.error ?? `${r.status}`, r.status);
+    if (write && !quiet && refused && (r.status === 423 || (r.status === 409 && fileConflict(data)))) {
+      err.handled = true;
+      refused({ status: r.status, data, draft: body, retry: async () => void (await call(method, path, body, true)) });
+    }
+    throw err;
+  }
   return data as T;
 }
 

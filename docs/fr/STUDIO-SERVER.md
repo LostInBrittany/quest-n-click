@@ -210,6 +210,9 @@ OIDC, avec SQLite et un dossier pour les contenus, sur le loopback seulement.
 - L'onglet Jouer montre le jeu avec son panneau DEV ; l'inspecteur d'état, l'explication des règles et les rejeux à
   côté ont besoin du jeu sur l'origine du Studio, donc du Studio local seulement.
 - L'Assistant n'est pas encore sur un Studio hébergé.
+- Les éditeurs du Studio n'envoient pas encore la révision de ce qu'ils ont lu (le journal la vérifie quand elle est
+  envoyée) : dans un pan que vous tenez, votre enregistrement remplace le fichier. Les éditeurs rechargent ce que les
+  autres confirment ; cela ne compte que pour une modification commencée juste avant qu'un pan change de main.
 - Le bouton Save de l'éditeur de salle ne fait rien sur un Studio hébergé : « Save layout » dans le Studio enregistre
   (la page de l'éditeur est celle du jeu, et seul le membre lance une écriture).
 - Un jeu qui importe des fichiers hors de son propre dossier ne peut pas tourner sur le worker.

@@ -20,6 +20,7 @@ import { download, h, toast } from './ui';
 import { must } from '../engine/core/must';
 import { apiUrl, goLogin, hosting, loginHeld, studioFetch } from './api-base';
 import { gameLink } from './game-origin';
+import { gateScreen, hostedStudio, type Me, whoAmI } from './hosted';
 
 type TabId = 'rooms' | 'storyboard' | 'assets' | 'voices' | 'music' | 'check' | 'play' | 'language' | 'remix' | 'notes';
 const TABS: [TabId, string][] = [
@@ -166,6 +167,13 @@ function demoBanner(demo: BrowserApi): HTMLElement {
 
 async function start() {
   const root = document.getElementById('studio')!;
+  // A hosted Studio shows nothing of the game before the session is a member's (hosted.ts).
+  let me: Me | undefined;
+  if (hosting.hosted) {
+    const who = await whoAmI();
+    if (who.state !== 'member') return void root.replaceChildren(await gateScreen(who));
+    me = who.me;
+  }
   let info: GameInfo, demo: BrowserApi | null;
   try {
     ({ info, demo } = await pickBackend());
@@ -200,6 +208,7 @@ async function start() {
   const openRoom = (id: string) => {
     rooms.openRoom(id);
     show('rooms');
+    shared?.roomShown();
   };
   const rooms = new RoomsTab(
     {
@@ -265,6 +274,7 @@ async function start() {
       b.setAttribute('aria-selected', String(on));
     });
     history.replaceState(null, '', t === 'rooms' ? `#rooms/${rooms.room}` : `#${t}`);
+    shared?.moved();
     if (t === 'storyboard') void storyboard.load();
     if (t === 'notes') void notes.load();
     if (t === 'assets') void assets.load();
@@ -279,6 +289,29 @@ async function start() {
     );
   }
   const live = demo ? null : h('span', { class: 'live', title: 'Watching the game folder' }, '●');
+  // A file changed on disk (dev server) or in a committed revision (Studio Server): reload what it touches.
+  function changed(file: string, by?: string) {
+    const outside = Date.now() > ownUntil;
+    if (outside && /\.(ts|json)$/.test(file))
+      toast(by ? `${file} changed by ${by}` : `${file} changed on disk`, 'info');
+    rooms.onFileChanged(file);
+    assets.onFileChanged(file);
+    if (file === 'storyboard.json' && outside) storyboard.onDiskChange();
+    if (file === 'notes.json' && outside) void store.load();
+    if (outside && /\.(ts|json)$/.test(file) && file !== 'notes.json' && file !== 'storyboard.json')
+      check.schedule(1000);
+  }
+  // A shared Studio: the revision, who is here, the leases, the refusals (hosted.ts).
+  const shared = me
+    ? hostedStudio({
+        me,
+        rooms: info.rooms,
+        room: () => rooms.room,
+        where: () =>
+          current === 'rooms' ? `Rooms · ${rooms.room}` : (TABS.find(([t]) => t === current)?.[1] ?? current),
+        changed,
+      })
+    : null;
   const assistant = new AssistantPanel({
     info,
     demo,
@@ -335,11 +368,17 @@ async function start() {
       gameLink('?dev', 'Play ↗', { class: 'play', title: demo ? 'Play with your edits (dev tools on)' : undefined }),
       // The Assistant on a hosted Studio comes with its own route on the server (not in this version).
       hosting.hosted ? null : assistantBtn,
-      live,
+      shared ? shared.bar : live,
     ),
+    ...(shared ? [shared.banner] : []),
     h('main', null, ...Object.values(panes)),
     assistant.el,
   );
+  if (shared) {
+    const frame = rooms.el.querySelector<HTMLIFrameElement>('iframe.engine');
+    rooms.el.querySelector('.stage .bar')?.append(shared.roomChip, ...(frame ? [shared.previewLabel(frame)] : []));
+    rooms.el.querySelector('select[aria-label="Room"]')?.addEventListener('change', () => shared.roomShown());
+  }
   show(current);
   void check.run();
   // The storyboard (panel ids for the notes) and the notes (shown in every tab) are read at start.
@@ -367,31 +406,17 @@ async function start() {
     }
   });
 
-  // Changes on disk (an AI, an editor, git): reload what they touch. The demo has no disk to watch.
-  if (demo || !live) return;
+  // Changes on disk (an AI, an editor, git): reload what they touch. The demo has no disk to watch; a hosted Studio
+  // follows its revisions (hostedStudio).
+  if (demo || !live || shared) return;
   const es = new EventSource(apiUrl('events'));
   es.onopen = () => live.classList.add('on');
   es.onerror = () => live.classList.remove('on');
-  const changed = (file: string, by?: string) => {
-    const outside = Date.now() > ownUntil;
-    if (outside && /\.(ts|json)$/.test(file))
-      toast(by ? `${file} changed by ${by}` : `${file} changed on disk`, 'info');
-    rooms.onFileChanged(file);
-    assets.onFileChanged(file);
-    if (file === 'storyboard.json' && outside) storyboard.onDiskChange();
-    if (file === 'notes.json' && outside) void store.load();
-    if (outside && /\.(ts|json)$/.test(file) && file !== 'notes.json' && file !== 'storyboard.json')
-      check.schedule(1000);
-  };
   // The dev server says which file changed on disk; the Studio Server, which operation committed (live.ts).
   es.onmessage = (m) => {
     const ev = JSON.parse(m.data) as StudioEvent;
     if (ev.type === 'changed') changed(ev.file);
   };
-  es.addEventListener('revision', (m) => {
-    const c = JSON.parse((m as MessageEvent).data) as { paths?: string[]; author?: string };
-    for (const f of c.paths ?? []) changed(f, c.author);
-  });
 }
 
 void start();

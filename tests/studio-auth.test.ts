@@ -183,6 +183,23 @@ describe('policy A: the session cookie', () => {
     expect(other.headers.get('x-studio-replayed')).toBeNull();
   });
 
+  it('ten tries of one write at once: applied once, one answer for all', async () => {
+    const op = 'op-concurrent-1';
+    // A regression check: on SQLite (a synchronous driver) the interleaving where a retry looks for its answer
+    // before the first try stored it is not forced here; the server holds it by looking again under the write lock.
+    const tries = await Promise.all(
+      Array.from({ length: 10 }, () =>
+        fetch(`${base}/api/notes`, write(dev, { text: 'only once' }, { 'x-studio-op': op })),
+      ),
+    );
+    expect(tries.map((r) => r.status)).toEqual(Array(10).fill(200));
+    const ids = new Set(((await Promise.all(tries.map((r) => r.json()))) as { id: string }[]).map((n) => n.id));
+    expect(ids.size).toBe(1);
+    expect(tries.filter((r) => r.headers.get('x-studio-replayed') === '1')).toHaveLength(9);
+    const notes = (await (await fetch(`${base}/api/notes`, withCookie(dev))).json()) as { entries: { text: string }[] };
+    expect(notes.entries.filter((n) => n.text === 'only once')).toHaveLength(1);
+  });
+
   it('a mutation needs the exact Origin, the Studio header and JSON', async () => {
     const ok = await fetch(`${base}/api/notes`, write(dev, { text: 'from a dev' }));
     expect(ok.status).toBe(200);
