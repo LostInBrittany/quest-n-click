@@ -23,7 +23,7 @@ import { ServiceLease } from '../studio-server/src/server/service-lease';
 import { TestOp, type TestUser } from './fixtures/oidc-op';
 
 const ROOT = join(import.meta.dirname, '..');
-let tmp: string, base: string, op: TestOp, store: AuthStore, stop: () => void, db: SqlDb, leases: Leases;
+let tmp: string, base: string, op: TestOp, store: AuthStore, stop: () => Promise<void>, db: SqlDb, leases: Leases;
 const people: Record<string, { cookie: string; id: string }> = {};
 const USERS: Record<string, TestUser> = {
   lea: { sub: 'u-lea', email: 'lea@example.org', emailVerified: true, name: 'Léa' },
@@ -143,14 +143,17 @@ beforeAll(async () => {
     };
     people[who] = { cookie, id: me.user.id };
   }
-  stop = () => {
+  // Everything opened is closed before the folder goes: Windows deletes no open file.
+  stop = async () => {
     presence.stop();
     server.close();
     op.stop();
+    await journal.close();
+    await db.close();
   };
 }, 90_000);
-afterAll(() => {
-  stop();
+afterAll(async () => {
+  await stop();
   rmSync(tmp, { recursive: true, force: true });
 });
 
