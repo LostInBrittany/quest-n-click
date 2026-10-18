@@ -32,6 +32,9 @@ import { Leases } from './leases';
 import { Presence } from './live';
 import { StudioClient } from './client';
 import { Play } from './play';
+import { HOSTED_SOLVE_MS } from '../ops/diagnose';
+import type { SolveData } from '../../../tools/studio/types';
+import { Health, judgeBy } from './health';
 import { Previews } from './previews';
 import { remoteExecutor } from './remote-executor';
 import { S3, s3BlobStore } from './s3';
@@ -324,6 +327,30 @@ async function main(argv: string[]): Promise<number> {
       : undefined;
   // After each revision, the head's preview (coalesced: a burst builds its last revision only).
   journal.events.on('confirmed', () => void previews?.schedule());
+  // And its health (G3, G4): the validator's verdict by revision, a bisection when the head breaks.
+  const health = executor
+    ? new Health({
+        db,
+        journal,
+        snapshot: () =>
+          server.exclusive(async () => {
+            await journal.reconcile();
+            return { epoch: await journal.epoch(), rev: await journal.revision(), bytes: packSnapshot(gameDir) };
+          }),
+        judge: judgeBy({
+          validate: (bytes, at) => executor!.validateSnapshot(bytes, at),
+          solve: (bytes, at) =>
+            executor!.diagnoseSnapshot(
+              'solve',
+              bytes,
+              { from: null, maxStates: 20_000, mode: 'witness', timeLimitMs: HOSTED_SOLVE_MS },
+              at,
+            ) as Promise<SolveData>,
+        }),
+        log: (line) => console.log(JSON.stringify(line)),
+      })
+    : undefined;
+  journal.events.on('confirmed', () => void health?.schedule());
   const play =
     auth && authStore && previews
       ? {
@@ -348,6 +375,7 @@ async function main(argv: string[]): Promise<number> {
     leases,
     presence,
     previews,
+    health,
     play,
     client,
   });
@@ -373,6 +401,7 @@ async function main(argv: string[]): Promise<number> {
     console.log(JSON.stringify({ event: 'listening', host: config.host, port: config.port, instance: lease.instance }));
     // The head's preview, unless it was built before this start.
     void previews?.schedule();
+    void health?.schedule();
   });
   const stop = async (signal: string) => {
     console.log(JSON.stringify({ event: 'stopping', signal }));
@@ -382,6 +411,7 @@ async function main(argv: string[]): Promise<number> {
     await Promise.race([drained, new Promise((ok) => setTimeout(ok, 5_000))]);
     server.closeAllConnections?.();
     previews?.close();
+    health?.close();
     await journal.close().catch(() => undefined);
     await lease.release();
     setTimeout(() => process.exit(0), 100).unref();

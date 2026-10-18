@@ -10,6 +10,35 @@ const MAX_FILES = 5_000;
 const MAX_BYTES = 32 * 1024 * 1024;
 
 /** `playtests`: their sessions too (the `playtests` job replays them; nothing else needs them). */
+/** Whether a file of the game (its path with `/`) goes into a snapshot: the rules a folder is packed by. */
+export function packable(path: string, o: { playtests?: boolean } = {}): boolean {
+  const parts = path.split('/');
+  if (parts.some((p) => p.startsWith('.') || p === 'node_modules' || p === '..' || p === '')) return false;
+  if (parts.length > 1 && SKIP_DIR.test(parts[0]!) && !(o.playtests && parts[0] === 'playtests')) return false;
+  return TEXT.test(path);
+}
+
+/**
+ * A snapshot from files rather than a folder (4.2.2: a past revision, from the journal's blobs), under the same rules
+ * as a folder's: sources and data only, no art, sound, private notes or tests, nothing hidden.
+ */
+export function packFiles(files: { path: string; bytes: Buffer }[], o: { playtests?: boolean } = {}): Buffer {
+  const out: { path: string; text: string }[] = [];
+  let bytes = 0;
+  for (const f of files) {
+    if (!packable(f.path, o)) continue;
+    const text = f.bytes.toString('utf8');
+    bytes += text.length;
+    out.push({ path: f.path, text });
+    if (out.length > MAX_FILES || bytes > MAX_BYTES)
+      throw new Error(
+        `the game is too large to run on the processing worker (${MAX_FILES} files, ${MAX_BYTES >> 20} MiB at most)`,
+      );
+  }
+  out.sort((a, b) => (a.path < b.path ? -1 : 1));
+  return Buffer.from(JSON.stringify({ v: 1, files: out }));
+}
+
 export function packSnapshot(dir: string, o: { playtests?: boolean } = {}): Buffer {
   const files: { path: string; text: string }[] = [];
   let bytes = 0;

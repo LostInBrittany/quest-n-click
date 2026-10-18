@@ -185,6 +185,36 @@ export class Journal {
     return r ? { blob: String(r.blob), rev: Number(r.rev) } : { blob: ABSENT, rev: 0 };
   }
 
+  /**
+   * The game's files as they were at revision `rev` (4.2.2, plan §2.3: the bisection's snapshots): the head, with every
+   * operation after `rev` undone, newest first, from the "before" of its effects. Their contents are read from the
+   * blobs, which are kept for every operation; `keep` says which (a snapshot needs no picture).
+   */
+  async filesAt(rev: number, keep: (path: string) => boolean = () => true): Promise<{ path: string; bytes: Buffer }[]> {
+    const files = new Map<string, string>();
+    for (const r of await this.db.all('SELECT path, blob FROM studio_files')) files.set(String(r.path), String(r.blob));
+    const ops = await this.db.all(
+      "SELECT effects FROM studio_ops WHERE state = 'confirmed' AND rev > $1 ORDER BY rev DESC",
+      [rev],
+    );
+    for (const op of ops) for (const c of JSON.parse(String(op.effects)) as Change[]) files.set(c.path, c.before);
+    const out: { path: string; bytes: Buffer }[] = [];
+    for (const [path, blob] of [...files].sort(([a], [b]) => (a < b ? -1 : 1)))
+      if (blob !== ABSENT && keep(path)) out.push({ path, bytes: await this.blobs.get(blob) });
+    return out;
+  }
+
+  /** The operation that made revision `rev` (what it did, the files it wrote), or undefined. */
+  async opAt(rev: number): Promise<{ id: string; rev: number; what: string; paths: string[] } | undefined> {
+    const [r] = await this.db.all(
+      "SELECT op_id, rev, what, effects FROM studio_ops WHERE state = 'confirmed' AND rev = $1",
+      [rev],
+    );
+    if (!r) return undefined;
+    const paths = (JSON.parse(String(r.effects)) as Change[]).map((c) => c.path);
+    return { id: String(r.op_id), rev: Number(r.rev), what: String(r.what), paths };
+  }
+
   /** The operations after `rev`, oldest first (P6: a client that reconnects asks for what it missed). */
   async opsAfter(
     rev: number,

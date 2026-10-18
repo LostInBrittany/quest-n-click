@@ -211,6 +211,12 @@ SQLite and a folder for the contents, on the loopback only.
   the Check tab shows it, and marks its results stale once the head has moved on.
 - A read's revision is the journal's head: an instance that does not hold the lease yet (a deploy) may answer from a
   folder behind it, and a new history (an import, a restore) is not told apart from an older revision.
+- The header says the game's health at a revision (4.2.2): the validator, then the solver from a new game (45 s at
+  most), on the worker, after each burst of changes. When a revision fails where the last judged one passed, a
+  bisection over the revisions between them names the first that fails, with what its operation did and its files
+  (never who made it); a dev can ask for one between two revisions (`POST /api/health/bisect {good, bad}`). A solver
+  cut short says "unknown", never "valid", and stops a bisection. A Check run holds the instance's reads while the
+  worker runs its diagnostics: a write waits for it.
 - The worker runs one job at a time: a preview's build can delay the next change's validation by its own time
   (about half a second for the sample game on a laptop; not yet measured on a Clever worker, the `studio-preview`
   pass does).

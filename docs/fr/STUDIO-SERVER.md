@@ -218,6 +218,13 @@ OIDC, avec SQLite et un dossier pour les contenus, sur le loopback seulement.
 - La révision d'une lecture est la tête du journal : une instance qui ne tient pas encore le bail (un déploiement)
   peut répondre depuis un dossier en retard, et une nouvelle histoire (un import, une restauration) n'est pas
   distinguée d'une révision plus ancienne.
+- L'en-tête dit la santé du jeu à une révision (4.2.2) : le validateur, puis le solveur depuis une nouvelle partie
+  (45 s au plus), sur l'application de traitement, après chaque rafale de modifications. Quand une révision échoue là
+  où la dernière jugée passait, une bissection sur les révisions entre les deux nomme la première qui échoue, avec ce
+  que son opération a fait et ses fichiers (jamais qui l'a faite) ; un dev peut en demander une entre deux révisions
+  (`POST /api/health/bisect {good, bad}`). Un solveur interrompu dit « inconnu », jamais « valide », et arrête une
+  bissection. Une passe de l'onglet Check retient les lectures de l'instance pendant que l'application de traitement
+  exécute ses diagnostics : une écriture l'attend.
 - L'application de traitement exécute un job à la fois : la construction d'une prévisualisation peut retarder la
   validation de la modification suivante de sa propre durée (environ une demi-seconde pour le jeu d'exemple sur un
   portable ; pas encore mesurée sur une application Clever, la passe `studio-preview` le fait).
