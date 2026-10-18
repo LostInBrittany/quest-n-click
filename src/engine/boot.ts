@@ -25,8 +25,8 @@ export interface SwModule {
 }
 
 /**
- * What `bootGame` starts the game with: the game, its layouts and manifest, minigames, commands, locales, root, store
- * and service worker.
+ * What `bootGame` starts the game with: the game, its layouts and manifest, minigames, commands, locales, root, store,
+ * service worker, and the revision a preview is of.
  * @public
  */
 export interface BootOptions {
@@ -231,18 +231,22 @@ export async function bootGame(o: BootOptions): Promise<App> {
     languages: others.length ? { current: lang ?? base, available: [base, ...others] } : undefined,
   });
   opened?.attach(app);
-  if (o.revision) {
-    const { RevisionGuard, askInPage } = await import('./dom/revision');
-    const f = await app.fingerprint();
-    app.revision = new RevisionGuard({
-      game: game.id,
-      build: o.revision,
-      fingerprint: [f.logic, f.trustedExtensions, f.presentation, f.engine].join('-'),
-      ask: askInPage(() => app.scene),
-    });
-    // The engine's own store (the IndexedDB one, or the fallback the App chose).
-    app.revision.watch(app.engine.store);
-  }
+  if (o.revision)
+    try {
+      const { RevisionGuard, askInPage } = await import('./dom/revision');
+      const f = await app.fingerprint();
+      app.revision = new RevisionGuard({
+        game: game.id,
+        build: o.revision,
+        fingerprint: [f.logic, f.trustedExtensions, f.presentation, f.engine].join('-'),
+        ask: askInPage(() => app.scene),
+      });
+      // The engine's own store (the IndexedDB one, or the fallback the App chose).
+      app.revision.watch(app.engine.store);
+    } catch (e) {
+      // No fingerprint here (WebCrypto needs a secure origin): the game runs as before 4.2.2, without the question.
+      console.warn('saves across revisions: off', e);
+    }
   if (o.expose !== false) (globalThis as unknown as { __game?: App }).__game = app;
   // The world link (4.1.1): its module only for a game that declares `reality`; simulated in the dev tools.
   if (game.reality)

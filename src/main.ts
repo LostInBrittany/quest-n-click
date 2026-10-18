@@ -14,7 +14,13 @@ const demo = import.meta.env.VITE_STUDIO_DEMO === '1';
 const preview = import.meta.env.VITE_STUDIO_PREVIEW === '1';
 const previewRevision = (base: string) => {
   const rev = Number(/^\/preview\/(\d+)\/$/.exec(base)?.[1] ?? Number.NaN);
-  return Number.isSafeInteger(rev) ? { rev, url: (r: number) => `/preview/${r}/${location.search}` } : undefined;
+  // Stay opens the save's revision on its title screen: without the dev tools, which would start a new game there.
+  const url = (r: number) => {
+    const q = new URLSearchParams(location.search);
+    for (const k of ['dev', 'edit', 'at']) q.delete(k);
+    return `/preview/${r}/${q.size ? `?${q}` : ''}`;
+  };
+  return Number.isSafeInteger(rev) ? { rev, url } : undefined;
 };
 
 void bootGame({

@@ -95,7 +95,21 @@ export interface SlotMeta {
   roomName: string;
   v: number;
   /** Where it was made, in a build that declares its revision (4.2.2, ADR 0026). */
-  revision?: { rev: number; fingerprint: string };
+  revision?: SavedRevision;
+}
+
+/** Where a save was made (4.2.2, ADR 0026): its revision and the full fingerprint of the content then. */
+export interface SavedRevision {
+  rev: number;
+  fingerprint: string;
+}
+
+/** A save's revision as stored (a slot's meta, the autosave's record), or undefined when it is not well formed. */
+export function savedRevision(v: unknown): SavedRevision | undefined {
+  const o = v && typeof v === 'object' ? (v as Record<string, unknown>) : undefined;
+  if (!o || !Number.isSafeInteger(o.rev) || (o.rev as number) < 0) return undefined;
+  if (typeof o.fingerprint !== 'string' || !o.fingerprint || o.fingerprint.length > 400) return undefined;
+  return { rev: o.rev as number, fingerprint: o.fingerprint };
 }
 
 /** A save as written until 4.1.14: the state with the format, the schema, the game's id and save version and the date. @public */
@@ -306,8 +320,7 @@ export function parseSlot(
     v: state.v,
   };
   // Kept only when well formed: a slot that says nothing of its revision resumes without a question.
-  const r = raw.meta?.revision as { rev?: unknown; fingerprint?: unknown } | undefined;
-  if (r && Number.isSafeInteger(r.rev) && typeof r.fingerprint === 'string' && r.fingerprint)
-    meta.revision = { rev: r.rev as number, fingerprint: r.fingerprint };
+  const revision = savedRevision(raw.meta?.revision);
+  if (revision) meta.revision = revision;
   return { meta, state };
 }

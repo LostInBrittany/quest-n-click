@@ -247,11 +247,23 @@ export async function slotMenu(app: App, d: HTMLElement, m: HTMLElement, mode: '
           app.presenter.toast(app.t('saveFailed'));
           return;
         }
+        // Made in other content (ADR 0026): asked first, above this menu. Stay has left for the save's revision;
+        // Escape leaves the menu as it is; Restart replaces the game in progress, so it is confirmed.
+        const choice = app.revision ? await app.revision.resume(s.revision, app.scene) : 'resume';
+        if (choice === 'stay' || choice === 'cancel') return;
+        if (choice === 'restart') {
+          m.innerHTML = `<h3>!</h3><p>${esc(ui.confirmErase)}</p>`;
+          const y = el('button', 'warn', `<span>${esc(ui.yes)}</span><span>!</span>`),
+            no = el('button', '', `<span>${esc(ui.no)}</span><span>▶</span>`);
+          y.onclick = () => {
+            d.remove();
+            void app.engine.newGame().catch((e) => app.presenter.toast(String((e as Error).message)));
+          };
+          no.onclick = () => d.remove();
+          m.append(y, no);
+          return;
+        }
         d.remove();
-        // Made in other content (ADR 0026): asked first; Stay has left for the save's revision.
-        const choice = app.revision ? await app.revision.resume(s.revision) : 'resume';
-        if (choice === 'restart') return void app.engine.newGame();
-        if (choice === 'stay') return;
         void app.engine.load(state).catch((e) => app.presenter.toast(String((e as Error).message)));
       };
   });
@@ -474,9 +486,10 @@ export async function showTitle(app: App) {
   cb.onclick = async () => {
     startMusic();
     // Made in other content (ADR 0026): asked first. Restart replaces the save, so it is confirmed as New game is.
-    const choice = app.revision ? await app.revision.resume(app.revision.autosave()) : 'resume';
+    // Above the title screen (its overlay covers the scene).
+    const choice = app.revision ? await app.revision.resume(app.revision.autosave(), ov) : 'resume';
     if (choice === 'restart') return confirmErase(() => void launch(true));
-    if (choice === 'stay') return;
+    if (choice === 'stay' || choice === 'cancel') return;
     void launch(false);
   };
   if (rb)

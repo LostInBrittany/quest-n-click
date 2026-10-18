@@ -5,9 +5,9 @@
 import { describe, expect, it } from 'vitest';
 import { Engine } from '@engine/core/engine';
 import { FakePresenter, MemoryStore } from '@engine/core/ports';
-import { parseSlot, saveEnvelope } from '@engine/core/save';
+import { parseSlot, saveEnvelope, savedRevision } from '@engine/core/save';
 import type { GameState } from '@engine/core/types';
-import { RevisionGuard, type ResumeChoice, type SavedRevision, savedRevision } from '@engine/dom/revision';
+import { RevisionGuard, type ResumeChoice, type SavedRevision } from '@engine/dom/revision';
 import { mini, miniLayouts } from './fixtures/mini';
 
 const memory = () => {
@@ -53,7 +53,7 @@ describe('saves across revisions', () => {
   });
 
   it('asks before a save made in other content, and follows each choice', async () => {
-    for (const answer of ['resume', 'restart', 'stay'] as const) {
+    for (const answer of ['resume', 'restart', 'stay', 'cancel'] as const) {
       const { g, asked, went } = guard({ answer });
       expect(await g.resume({ rev: 3, fingerprint: 'fp-3' })).toBe(answer);
       expect(asked).toEqual([
@@ -104,6 +104,24 @@ describe('saves across revisions', () => {
     expect(s2.data).toEqual({ room: 'x' });
     expect(refusing.autosave()).toBeUndefined();
     expect(await s2.clear()).toBe(true);
+  });
+
+  it('records the autosave only once a store that verifies its writes has written it', async () => {
+    const storage = memory();
+    const { g } = guard({ storage });
+    let idle: Promise<void> = Promise.resolve();
+    const store = Object.assign(new MemoryStore(), { whenIdle: () => idle });
+    g.watch(store);
+    idle = Promise.reject(new Error('quota'));
+    idle.catch(() => undefined);
+    store.save({ room: 'a' } as unknown as GameState);
+    await new Promise((ok) => setTimeout(ok, 0));
+    expect(g.autosave()).toBeUndefined();
+    idle = Promise.resolve();
+    store.save({ room: 'b' } as unknown as GameState);
+    expect(g.autosave()).toBeUndefined();
+    await new Promise((ok) => setTimeout(ok, 0));
+    expect(g.autosave()).toEqual({ rev: 7, fingerprint: 'fp-7' });
   });
 
   it('reads a record only when it is well formed', () => {
