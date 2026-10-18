@@ -1,6 +1,7 @@
 // Studio core: every operation of the Studio API (docs/en/STUDIO.md) as a plain function over a game folder.
 // Used by the Vite plugin (tools/studio/plugin.ts), the tests and the MCP server. Never exits the process: errors
 // are thrown as StudioError (with an HTTP-like status), results are plain JSON.
+import { AsyncLocalStorage } from 'node:async_hooks';
 import { execFile } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import {
@@ -177,6 +178,12 @@ export function formatJson(value: unknown, width = 120): string {
   return block(value, '', 0) + '\n';
 }
 
+/**
+ * Who asks, and with which operation id (4.2.1, P6): the Studio Server runs each request inside it. The operations a
+ * request makes get the ids `<id>:1`, `<id>:2`… in order, the same on a retry, so the journal never applies one twice.
+ */
+export const operationContext = new AsyncLocalStorage<{ id?: string; author?: string; seq?: number }>();
+
 /** The `id` set_value takes for the game file instead of a room (4.1.12): its objectives. */
 export const GAME_FILE_ID = '@game';
 
@@ -345,8 +352,11 @@ export function createStudio(opts: StudioOptions = {}) {
   ): Promise<string[]> {
     const j = await journal();
     const befores = new Map(effects.map((e) => [e.file, readBytes(e.file)]));
+    const ctx = operationContext.getStore();
+    const opId = ctx?.id ? `${ctx.id}:${(ctx.seq = (ctx.seq ?? 0) + 1)}` : undefined;
     const r = await j.apply({
-      author: o.who ?? author,
+      id: opId,
+      author: ctx?.author ?? o.who ?? author,
       what,
       effects: effects.map((e) => ({ path: inGame(e.file), after: e.after })),
       // The files as this operation read them: another process that wrote one meanwhile makes it a 409, not a loss.
