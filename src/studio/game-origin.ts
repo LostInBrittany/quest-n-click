@@ -30,7 +30,7 @@ export async function gameUrl(query: string): Promise<string> {
  * Opens a page of the game in a new tab. Hosted, the tab is opened at once (a browser blocks a window opened after
  * an await) and sent to the game when its ticket arrives; it never holds a reference back to the Studio.
  */
-export function openGame(query: string): void {
+function openGame(query: string): void {
   if (!hosting.hosted) {
     window.open(`${BASE}${query}`, '_blank', 'noopener');
     return;

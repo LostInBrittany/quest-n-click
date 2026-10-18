@@ -24,8 +24,7 @@ import type {
   SolveData,
   ValidateResult,
 } from '../../tools/studio/types';
-import { apiUrl, hosting, loginUrl, studioFetch } from './api-base';
-export { apiUrl };
+import { hosting, loginUrl, studioFetch } from './api-base';
 
 export type * from '../../tools/studio/types';
 
