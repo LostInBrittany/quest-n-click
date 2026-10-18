@@ -13,6 +13,7 @@ import { fsBlobStore } from '../../studio-server/src/ops/blobs';
 import { createStudio, importInChild, operationContext } from '../../studio-server/src/ops/core';
 import { StudioError } from '../../studio-server/src/ops/errors';
 import { Journal } from '../../studio-server/src/ops/journal';
+import { PersonalUndo } from '../../studio-server/src/ops/undo';
 import { spansOf } from '../../studio-server/src/ops/spans';
 import { Gate } from '../../studio-server/src/server/auth/gate';
 import { Oidc } from '../../studio-server/src/server/auth/oidc';
@@ -133,7 +134,14 @@ export async function startStack(o: { tls: boolean; game?: string }) {
   });
   journal.events.on('confirmed', () => void health.schedule());
   const server = studioServer({
-    studio: createStudio({ gameDir, root: tmp, journal, importFresh: importInChild }),
+    studio: createStudio({
+      gameDir,
+      root: tmp,
+      journal,
+      importFresh: importInChild,
+      personalUndo: new PersonalUndo(db, () => journal.epoch()),
+    }),
+    personalUndo: true,
     journal,
     db,
     lease,

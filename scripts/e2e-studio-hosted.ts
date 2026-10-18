@@ -20,6 +20,7 @@ import { fsBlobStore } from '../studio-server/src/ops/blobs';
 import { createStudio, importInChild, operationContext } from '../studio-server/src/ops/core';
 import { StudioError } from '../studio-server/src/ops/errors';
 import { Journal } from '../studio-server/src/ops/journal';
+import { PersonalUndo } from '../studio-server/src/ops/undo';
 import { spansOf } from '../studio-server/src/ops/spans';
 import { Gate } from '../studio-server/src/server/auth/gate';
 import { Oidc } from '../studio-server/src/server/auth/oidc';
@@ -136,7 +137,14 @@ const health = new Health({
 });
 journal.events.on('confirmed', () => void health.schedule());
 const server = studioServer({
-  studio: createStudio({ gameDir, root: tmp, journal, importFresh: importInChild }),
+  studio: createStudio({
+    gameDir,
+    root: tmp,
+    journal,
+    importFresh: importInChild,
+    personalUndo: new PersonalUndo(db, () => journal.epoch()),
+  }),
+  personalUndo: true,
   journal,
   db,
   lease,
@@ -222,7 +230,10 @@ try {
   await page.goto(`${studioUrl}/auth/login?invite=${invite}&returnTo=${encodeURIComponent('/#rooms/garden')}`);
   await page.locator('header.top .game').waitFor({ timeout: 30_000 });
   check('the member logs in and the Studio loads', (await page.locator('header.top .game').innerText()).length > 0);
-  check('no undo on a shared Studio', (await page.getByRole('button', { name: /Undo/ }).count()) === 0);
+  check(
+    'the header offers the member their own undo',
+    (await page.getByRole('button', { name: /Undo/ }).count()) === 1,
+  );
 
   // 1b. The header says the game's health at a revision (G3): the validator and the solver, judged in the worker's child.
   await page.waitForFunction(
@@ -311,6 +322,23 @@ try {
     "a layout written meanwhile is what the view shows once its revision's preview is ready",
     moved === 200 && JSON.stringify(shown) === '[123,321]',
     `PUT ${moved}, shown ${JSON.stringify(shown)}`,
+  );
+  // 4c. The member's own undo (G5): their last write (the layout just written) is undone by a new revision.
+  const before = await page.evaluate(async () => (await (await fetch('/api/revision')).json()) as { revision: number });
+  await page.getByRole('button', { name: /Undo/ }).click();
+  let undone: unknown = [123, 321];
+  for (let i = 0; i < 40 && JSON.stringify(undone) === '[123,321]'; i++) {
+    await page.waitForTimeout(250);
+    undone = await page.evaluate(async () => {
+      const r = await fetch('/api/room/garden', { headers: { 'x-studio-request': '1' } });
+      return ((await r.json()) as { layout: { entries?: Record<string, number[]> } }).layout.entries?.default;
+    });
+  }
+  const after = await page.evaluate(async () => (await (await fetch('/api/revision')).json()) as { revision: number });
+  check(
+    "Undo puts the member's last write back, as a new revision",
+    JSON.stringify(undone) !== '[123,321]' && after.revision === before.revision + 1,
+    `${JSON.stringify(undone)}, revision ${before.revision} → ${after.revision}`,
   );
 
   // 5. The game's page cannot reach the Studio.

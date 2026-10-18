@@ -34,6 +34,7 @@ import { StudioClient } from './client';
 import { Play } from './play';
 import { HOSTED_SOLVE_MS } from '../ops/diagnose';
 import type { SolveData } from '../../../tools/studio/types';
+import { PersonalUndo } from '../ops/undo';
 import { Health, judgeBy } from './health';
 import { Previews } from './previews';
 import { remoteExecutor } from './remote-executor';
@@ -287,7 +288,16 @@ async function main(argv: string[]): Promise<number> {
       at: async () => ({ epoch: await journal.epoch(), rev: await journal.revision() }),
     });
   }
-  const studio = createStudio({ gameDir, root: resolve(config.workDir), journal, author: 'studio-server', executor });
+  // A shared Studio's undo is each member's own (4.2.2, G5), kept in the database beside the journal.
+  const personalUndo = leases ? new PersonalUndo(db, () => journal.epoch()) : undefined;
+  const studio = createStudio({
+    gameDir,
+    root: resolve(config.workDir),
+    journal,
+    author: 'studio-server',
+    executor,
+    personalUndo,
+  });
   const presence = leases ? new Presence() : undefined;
   // The engine's folder: the built Studio and the prepared assets are found beside it unless configured.
   const engineRoot = fileURLToPath(new URL('../../..', import.meta.url));
@@ -378,6 +388,7 @@ async function main(argv: string[]): Promise<number> {
     presence,
     previews,
     health,
+    personalUndo: !!personalUndo,
     play,
     client,
   });

@@ -108,6 +108,8 @@ export interface StudioServerOptions {
   previews?: Previews;
   /** The game's health by revision (4.2.2 PR 3): its state goes to the live events; bisections on demand. */
   health?: Health;
+  /** The studio keeps each member's own undo (4.2.2 PR 4, ops/undo.ts): undo and redo are served on a shared Studio. */
+  personalUndo?: boolean;
   /** The game's origin (plan §6.1): every request whose `Host` is `playUrl`'s goes there, and nothing else does. */
   play?: { handler: Play; playUrl: string };
   /** The Studio's page, its files and the game's images and sounds (PR 7, client.ts). */
@@ -371,9 +373,10 @@ export function studioServer(o: StudioServerOptions): StudioHttpServer {
           await o.auth!.audit?.(who.userId, 'lease-takeover', { span: b.span, previous: r.previous?.holder ?? null });
           return send(res, 200, { fence: r.fence, previous: r.previous ?? null });
         }
-        // Undo is personal from 4.2.2 (plan §5): on a shared Studio, the last operation may be someone else's.
-        if (req.method === 'POST' && (sub === '/undo' || sub === '/redo'))
-          throw new StudioError('undo is not available on a shared Studio yet (4.2.2)', 409);
+        // Undo is personal (4.2.2, plan §2.4): a shared Studio without the members' own stacks has none, since its
+        // last operation may be someone else's.
+        if (req.method === 'POST' && (sub === '/undo' || sub === '/redo') && !o.personalUndo)
+          throw new StudioError('undo is not available on this shared Studio', 409);
       }
       if (req.method === 'GET' && sub === '/ops') {
         const after = Number(url.searchParams.get('after') ?? '0');

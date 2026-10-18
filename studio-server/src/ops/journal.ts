@@ -216,6 +216,22 @@ export class Journal {
     return out;
   }
 
+  /** The files the operation that made revision `rev` changed, each before and after it (sha256 or `ABSENT`). */
+  async effectsAt(rev: number): Promise<{ path: string; before: string; after: string }[]> {
+    const [r] = await this.db.all("SELECT effects FROM studio_ops WHERE state = 'confirmed' AND rev = $1", [rev]);
+    return r ? (JSON.parse(String(r.effects)) as Change[]) : [];
+  }
+
+  /** Keeps bytes as a blob (4.2.2: what a personal undo puts back, which a local journal did not keep). */
+  keep(bytes: Buffer): Promise<string> {
+    return this.blobs.put(bytes);
+  }
+
+  /** A blob's bytes (an operation's content before or after it), checked against its hash. */
+  blob(hash: string): Promise<Buffer> {
+    return this.blobs.get(hash);
+  }
+
   /** The operation that made revision `rev` (what it did, the files it wrote), or undefined. */
   async opAt(rev: number): Promise<{ id: string; rev: number; what: string; paths: string[] } | undefined> {
     const [r] = await this.db.all(

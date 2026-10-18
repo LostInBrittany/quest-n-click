@@ -249,6 +249,7 @@ export default defineConfig({
         // origin, the worker's jobs. Two points under what was measured when they arrived; they may only rise.
         'studio-server/src/ops/journal.ts': { lines: 96, branches: 94 },
         'studio-server/src/ops/spans.ts': { lines: 100, branches: 100 },
+        'studio-server/src/ops/undo.ts': { lines: 98, branches: 98 },
         'studio-server/src/ops/validate-dir.ts': { lines: 100, branches: 90 },
         'studio-server/src/server/auth/gate.ts': { lines: 96, branches: 96 },
         'studio-server/src/server/auth/oidc.ts': { lines: 98, branches: 95 },
@@ -256,7 +257,7 @@ export default defineConfig({
         'studio-server/src/server/auth/store.ts': { lines: 93, branches: 97 },
         'studio-server/src/server/config.ts': { lines: 83, branches: 83 },
         'studio-server/src/server/http.ts': { lines: 90, branches: 81 },
-        'studio-server/src/server/leases.ts': { lines: 98, branches: 95 },
+        'studio-server/src/server/leases.ts': { lines: 98, branches: 98 },
         'studio-server/src/server/live.ts': { lines: 86, branches: 59 },
         'studio-server/src/server/play.ts': { lines: 100, branches: 94 },
         'studio-server/src/server/health.ts': { lines: 97, branches: 89 },

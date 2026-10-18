@@ -176,7 +176,10 @@ within 5 s. When the provider disables an account, its sessions end within 15 mi
   2 min, renewed while you are active. Someone else's span refuses your write (423, with their name); your draft
   stays with you.
 - **Live.** The Studio follows `GET /api/events`: every revision, who holds what, who is here.
-- **Undo** is not available on a shared Studio yet (4.2.2).
+- **Undo is yours** (4.2.2): Undo and Redo (and Ctrl/Cmd+Z, Shift for redo) undo your own last operation, whatever
+  the others wrote meanwhile, as a new revision (history is never rewritten). Refused when someone else wrote one of
+  its files since (409), or holds its span (423, with their name). A new edit of yours drops your redo. Your stack is
+  kept by the server: another tab, a restart, another instance see the same.
 
 ## The command line
 

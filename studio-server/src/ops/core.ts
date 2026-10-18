@@ -56,6 +56,7 @@ import {
   type VoiceStatus,
 } from '../../../src/engine/tools/voices';
 import { lineIds } from '../../../src/engine/core/content-ids';
+import { PersonalUndo, type UndoDir } from './undo';
 import { type DiagnoseKind, HOSTED_SOLVE_MS, lintIn, playtestsIn, type SolveParams, solveIn } from './diagnose';
 import type {
   CoverageData,
@@ -112,6 +113,8 @@ export interface StudioOptions {
     /** The diagnostics that run the game's code (4.2.2): lint, solve, playtests, on the worker. */
     diagnose?(kind: DiagnoseKind, dir: string, params: Record<string, unknown>): Promise<unknown>;
   };
+  /** A shared Studio's undo (4.2.2): each member's own operations, kept in the database. */
+  personalUndo?: PersonalUndo;
 }
 
 /** Default fresh import: tsx's scoped loader (a new namespace per call, so edited files are read again). */
@@ -381,7 +384,12 @@ export function createStudio(opts: StudioOptions = {}) {
       guard: o.guard === false ? undefined : (changed) => guard(j, changed, o.diff ?? ''),
       respond: (rev) => ({ rev }),
     });
-    if (r.changed.length && o.undo !== false) {
+    // A shared Studio (4.2.2, G5): the member's own stack, kept in the database. Here: this process's stack.
+    if (r.changed.length && o.undo !== false && opts.personalUndo && ctx?.claimant) {
+      // What its undo puts back is kept (a hosted journal has it already; a local one adopted it without keeping it).
+      for (const b of befores.values()) if (b) await j.keep(b);
+      await opts.personalUndo.recorded(ctx.claimant.userId, r.rev, what);
+    } else if (r.changed.length && o.undo !== false) {
       const changed = new Set(r.changed);
       undoStack.push({
         what,
@@ -437,12 +445,42 @@ export function createStudio(opts: StudioOptions = {}) {
       },
     );
   }
-  const undo = () => step(undoStack, redoStack, 'undo');
-  const redo = () => step(redoStack, undoStack, 'redo');
-  const history = () => ({
-    undo: undoStack.map((c) => c.what).reverse(),
-    redo: redoStack.map((c) => c.what).reverse(),
-  });
+  /**
+   * A member's undo (or redo) on a shared Studio (4.2.2, G5): their latest operation, inverted from the journal's
+   * contents before (or after) it, as a new guarded operation that claims its spans (423 when another holds one);
+   * 409 when another write changed one of its files since.
+   */
+  async function personalStep(
+    dirn: UndoDir,
+  ): Promise<{ ok: true; file: string; what: string } | { ok: false; reason: string }> {
+    const who = operationContext.getStore()?.claimant;
+    if (!who) throw new StudioError("an undo on a shared Studio is a member's own", 403);
+    const pu = opts.personalUndo!;
+    const j = await journal();
+    const c = await pu.next(who.userId, dirn);
+    if (!c) return { ok: false, reason: `nothing to ${dirn}` };
+    const effects = await j.effectsAt(c.rev);
+    for (const e of effects) {
+      const head = await j.file(e.path);
+      if (head.blob !== (dirn === 'undo' ? e.after : e.before))
+        throw new StudioError(`cannot ${dirn} "${c.what}": ${e.path} was written again at revision ${head.rev}`, 409);
+    }
+    const back: Effect[] = [];
+    for (const e of effects) {
+      const h = dirn === 'undo' ? e.before : e.after;
+      back.push({ file: join(dir, ...e.path.split('/')), after: h === ABSENT ? null : await j.blob(h) });
+    }
+    await write(`${dirn}: ${c.what}`, back, { undo: false });
+    await pu.moved(c.rev, dirn);
+    return { ok: true, file: effects[0]?.path ?? '', what: c.what };
+  }
+  const shared = () => !!opts.personalUndo && !!operationContext.getStore()?.claimant;
+  const undo = () => (shared() ? personalStep('undo') : step(undoStack, redoStack, 'undo'));
+  const redo = () => (shared() ? personalStep('redo') : step(redoStack, undoStack, 'redo'));
+  const history = async () =>
+    shared()
+      ? opts.personalUndo!.history(operationContext.getStore()!.claimant!.userId)
+      : { undo: undoStack.map((c) => c.what).reverse(), redo: redoStack.map((c) => c.what).reverse() };
 
   /**
    * Writes a structured value (a stage, a condition, a command list, a renderer) at `path` in rooms/<id>.ts. `dry`:
