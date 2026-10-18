@@ -405,8 +405,9 @@ function hostedBar(o: { live: Live; me: Me; spans: () => void; members: () => vo
   const here = h('span', { class: 'here', role: 'group', 'aria-label': 'Who is here' });
   const health = h('span', { class: 'health', role: 'status' });
   const draw = () => {
+    // Written only when it changed: a status region may be read again at each write.
     const ht = healthText(o.live.health);
-    health.textContent = ht.text;
+    if (health.textContent !== ht.text) health.textContent = ht.text;
     health.title = ht.title;
     health.dataset.state = ht.state;
     rev.classList.toggle('up', o.live.up);

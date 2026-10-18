@@ -31,7 +31,7 @@ afterEach(async () => {
 });
 
 /** A history of `n` revisions where revision `k` and every later one fail; each snapshot names its revision. */
-function history(o: { k: number; down?: () => boolean; unknownAt?: number }) {
+function history(o: { k: number; down?: () => boolean; unknownAt?: number; failAt?: Set<number> }) {
   let head = { epoch: 'e1', rev: 1 };
   const validated: number[] = [];
   const revOf = (bytes: Buffer) =>
@@ -41,12 +41,14 @@ function history(o: { k: number; down?: () => boolean; unknownAt?: number }) {
     db,
     journal: {
       filesAt: async (rev, keep) => files(rev).filter((f) => !keep || keep(f.path)),
+      revision: async () => head.rev,
       opAt: async (rev) => ({ rev, what: `edit ${rev}`, paths: [`rooms/r${rev}.ts`] }),
     },
     snapshot: async () => ({ ...head, bytes: packFiles(files(head.rev)) }),
     judge: async (bytes, at) => {
       if (o.down?.()) throw new Error('the processing worker refused the job (503)');
       const rev = revOf(bytes);
+      if (o.failAt?.has(rev)) throw new Error(`the processing worker refused revision ${rev} (503)`);
       expect(at.rev).toBe(rev);
       validated.push(rev);
       if (rev === o.unknownAt)
@@ -113,7 +115,11 @@ describe("the game's health by revision", () => {
     // A restart reads the verdicts back: nothing is judged twice.
     const again = new Health({
       db,
-      journal: { filesAt: async () => [], opAt: async (rev) => ({ rev, what: `edit ${rev}`, paths: [] }) },
+      journal: {
+        filesAt: async () => [],
+        revision: async () => 9,
+        opAt: async (rev) => ({ rev, what: `edit ${rev}`, paths: [] }),
+      },
       snapshot: async () => ({ epoch: 'e1', rev: 9, bytes: Buffer.from('{}') }),
       judge: async () => {
         throw new Error('not asked');
@@ -169,10 +175,54 @@ describe("the game's health by revision", () => {
     });
   });
 
+  it('keeps the revision that broke it when a bisection stopped part-way, and never loses it on a row kept', async () => {
+    const failAt = new Set([5]);
+    const h = history({ k: 3, failAt });
+    await h.health.schedule(); // 1 passes
+    h.go(9);
+    // The bisection of 1..9 judges 5 first: the worker refuses, the run fails, no row is kept for 9.
+    await h.health.schedule();
+    h.health.close();
+    failAt.clear();
+    const again = history({ k: 3 });
+    again.go(9);
+    await again.health.schedule();
+    expect(again.health.state()).toMatchObject({ rev: 9, ok: false, brokenSince: { rev: 3 } });
+    // Rows kept along the way (failing, with no revision of their own) do not hide it on a newer failing head.
+    again.go(12);
+    await again.health.schedule();
+    expect(again.health.state()).toMatchObject({ rev: 12, brokenSince: { rev: 3 } });
+    expect(again.validated.at(-1)).toBe(12);
+  });
+
+  it('says a revision that cannot be judged again and again is unknown, with its reason', async () => {
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+    try {
+      const h = history({ k: 99, failAt: new Set([1]) });
+      await h.health.schedule();
+      for (let i = 0; i < 6; i++) await vi.advanceTimersByTimeAsync(5 * 60_000);
+      expect(h.health.state()).toMatchObject({
+        rev: 1,
+        ok: null,
+        unknown: 'cannot be judged: the processing worker refused revision 1 (503)',
+      });
+      h.health.close();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it('runs a bisection asked for between a passing and a failing revision, and checks its ends', async () => {
     const h = history({ k: 6 });
     await h.health.schedule();
+    expect(await h.health.bisectOn(2, 11)).toEqual({ error: 'revision 11 is past the head (1)' });
+    h.go(11);
     expect(await h.health.bisectOn(2, 11)).toEqual({ rev: 6, what: 'edit 6', paths: ['rooms/r6.ts'] });
+    // The revision found is kept on the failing end too: the loop's next look at revision 11 names it.
+    const [row] = await db.all('SELECT culprit FROM studio_health WHERE rev = 11');
+    expect(Number(row!.culprit)).toBe(6);
+    await h.health.schedule();
+    expect(h.health.state()).toMatchObject({ rev: 11, brokenSince: { rev: 6 } });
     expect(h.health.state().running).toBeNull();
     expect(await h.health.bisectOn(7, 11)).toEqual({ error: 'revision 7 does not pass' });
     expect(await h.health.bisectOn(2, 5)).toEqual({ error: 'revision 5 passes' });
@@ -284,7 +334,11 @@ describe("the health in a hosted Studio's header", () => {
   });
   it('says the verdict, its revision, the head past it, and what broke it', () => {
     expect(healthText(base).text).toBe('✔ valid at revision 4');
-    expect(healthText({ ...base, head: 6, running: 6 }).text).toBe('✔ valid at revision 4 · head 6, checking…');
+    expect(healthText({ ...base, head: 6, running: 6 })).toMatchObject({
+      text: '✔ valid at revision 4 · head 6 · checking revision 6…',
+      state: 'stale',
+    });
+    expect(healthText({ ...base, running: 3 }).text).toBe('✔ valid at revision 4 · checking revision 3…');
     const bad = healthText({
       ...base,
       ok: false,
@@ -293,7 +347,7 @@ describe("the health in a hosted Studio's header", () => {
     });
     expect(bad).toEqual({
       text: '✖ 2 error(s) at revision 4 · broken since revision 3: Move the door (layout/garden.json)',
-      title: 'e1\ne2',
+      title: 'broken since revision 3: Move the door (layout/garden.json)\ne1\ne2',
       state: 'bad',
     });
   });

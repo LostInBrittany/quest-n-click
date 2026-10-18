@@ -9,12 +9,20 @@
 - **The bisection** (G4): when the head fails and the last judged revision passed, the revisions between them are
   judged on snapshots rebuilt from the journal (`Journal.filesAt`: the head with the later operations undone, from
   their "before" blobs, sources and data only, `packable`) until the first failing one, in ⌈log₂ n⌉ checks at most,
-  each kept. It names the revision, its operation's `what` and its files (`Journal.opAt`), never its author. A failing
+  each a judgement (the validator, then the solver: up to two jobs), each kept. It names the revision, its operation's `what` and its files (`Journal.opAt`), never its author. A failing
   head after a failing revision keeps the revision found; an unknown verdict on the way stops the search, naming none.
   `POST /api/health/bisect {good, bad}` (a dev) checks its ends first.
 - **Shown**: the live events carry the state (`health`, and in `hello`); the header's chip says "✔ valid at revision
   N", "✖ k error(s) at revision N · broken since revision M: what (files)", "checking…", or "unknown", stale once the
   head has moved past it. The game's title in the header no longer shrinks to nothing beside it (the e2e caught it).
+- **Second reading** (a subagent): a bisection asked for past the head is refused (it would have kept the head's verdict
+  under a number not yet made); the search always starts from the last passing revision, bounded by the first failing
+  one already known, so a bisection stopped part-way (the worker away) or rows kept on the way never lose the revision
+  that broke it; a kept row only gains that revision (`COALESCE`), the one found on demand is written on the failing
+  end; one judgement or bisection at a time; the blobs read once per bisection; health on a hosted Studio only (a
+  past revision's files need every operation's blobs); five failures of the same revision say "cannot be judged"; an
+  older verdict is greyed, never green; the route checks its numbers and the lease. The worker's cost (three jobs per
+  revision, up to two per bisection step) is written in STUDIO-SERVER's limits.
 - **Tests**: `tests/studio-health.test.ts` (once per revision; ⌈log₂ n⌉ for several n and k; kept while broken, read
   back after a restart; unknown; another epoch; a worker away; a bisection asked for and its ends; the verdict's
   composition; a past revision's files and their snapshot, equal to the folder's; the chip's texts),

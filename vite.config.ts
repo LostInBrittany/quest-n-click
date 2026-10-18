@@ -259,7 +259,7 @@ export default defineConfig({
         'studio-server/src/server/leases.ts': { lines: 98, branches: 95 },
         'studio-server/src/server/live.ts': { lines: 86, branches: 59 },
         'studio-server/src/server/play.ts': { lines: 100, branches: 94 },
-        'studio-server/src/server/health.ts': { lines: 96, branches: 89 },
+        'studio-server/src/server/health.ts': { lines: 97, branches: 89 },
         'studio-server/src/server/previews.ts': { lines: 94, branches: 85 },
         'studio-server/src/server/remote-executor.ts': { lines: 95, branches: 85 },
         'studio-server/src/worker/job.ts': { lines: 100, branches: 100 },

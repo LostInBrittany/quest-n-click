@@ -6,7 +6,8 @@ import type { HealthState } from './hosted';
 export interface HealthText {
   text: string;
   title: string;
-  state: 'ok' | 'bad' | 'unknown';
+  /** `stale`: a verdict on an older revision than the head (shown, never green: G3). */
+  state: 'ok' | 'bad' | 'unknown' | 'stale';
 }
 
 export function healthText(s: HealthState | null): HealthText {
@@ -22,19 +23,22 @@ export function healthText(s: HealthState | null): HealthText {
       title: 'No verdict yet on any revision: unknown, never valid',
       state: 'unknown',
     };
-  const stale = s.head > s.rev ? ` · head ${s.head}${s.running != null ? ', checking…' : ''}` : '';
+  const behind = s.head > s.rev;
+  const stale = behind ? ` · head ${s.head}` : '';
+  const checking = s.running != null ? ` · checking revision ${s.running}…` : '';
   if (s.ok)
     return {
-      text: `✔ valid at revision ${s.rev}${stale}`,
+      text: `✔ valid at revision ${s.rev}${stale}${checking}`,
       title: s.warnings ? `${s.warnings} warning(s)` : 'No error, no warning',
-      state: 'ok',
+      state: behind ? 'stale' : 'ok',
     };
   const since = s.brokenSince
     ? ` · broken since revision ${s.brokenSince.rev}: ${s.brokenSince.what} (${s.brokenSince.paths.join(', ')})`
     : '';
   return {
-    text: `✖ ${s.errors.length} error(s) at revision ${s.rev}${since}${stale}`,
-    title: s.errors.join('\n'),
-    state: 'bad',
+    text: `✖ ${s.errors.length} error(s) at revision ${s.rev}${since}${stale}${checking}`,
+    // The chip is cut short beside the rest: all of it on hover.
+    title: [since.replace(/^ · /, ''), ...s.errors].filter(Boolean).join('\n'),
+    state: behind ? 'stale' : 'bad',
   };
 }

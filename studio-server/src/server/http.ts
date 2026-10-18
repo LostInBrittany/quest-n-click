@@ -315,8 +315,17 @@ export function studioServer(o: StudioServerOptions): StudioHttpServer {
       // A bisection asked for (4.2.2, G4): a dev's, between a passing revision and a failing one.
       if (req.method === 'POST' && sub === '/health/bisect') {
         if (!o.health) throw new StudioError("the health of revisions is a hosted Studio's", 404);
+        if (!o.lease.held)
+          return send(
+            res,
+            503,
+            { error: 'this instance does not serve writes yet; try again' },
+            { 'retry-after': '2' },
+          );
         const b = (await readJson(req)) as { good?: unknown; bad?: unknown };
-        const r = await o.health.bisectOn(Number(b?.good), Number(b?.bad));
+        if (typeof b?.good !== 'number' || typeof b?.bad !== 'number')
+          throw new StudioError('`good` and `bad` are revision numbers');
+        const r = await o.health.bisectOn(b.good, b.bad);
         if ('error' in r) throw new StudioError(r.error);
         return send(res, 200, r);
       }

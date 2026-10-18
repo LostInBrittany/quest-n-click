@@ -327,29 +327,31 @@ async function main(argv: string[]): Promise<number> {
       : undefined;
   // After each revision, the head's preview (coalesced: a burst builds its last revision only).
   journal.events.on('confirmed', () => void previews?.schedule());
-  // And its health (G3, G4): the validator's verdict by revision, a bisection when the head breaks.
-  const health = executor
-    ? new Health({
-        db,
-        journal,
-        snapshot: () =>
-          server.exclusive(async () => {
-            await journal.reconcile();
-            return { epoch: await journal.epoch(), rev: await journal.revision(), bytes: packSnapshot(gameDir) };
+  // And its health (G3, G4): the verdict by revision, a bisection when the head breaks. Hosted only: there the journal
+  // keeps the blobs of every operation, the import's included, which a past revision's files are rebuilt from.
+  const health =
+    executor && hosted
+      ? new Health({
+          db,
+          journal,
+          snapshot: () =>
+            server.exclusive(async () => {
+              await journal.reconcile();
+              return { epoch: await journal.epoch(), rev: await journal.revision(), bytes: packSnapshot(gameDir) };
+            }),
+          judge: judgeBy({
+            validate: (bytes, at) => executor!.validateSnapshot(bytes, at),
+            solve: (bytes, at) =>
+              executor!.diagnoseSnapshot(
+                'solve',
+                bytes,
+                { from: null, maxStates: 20_000, mode: 'witness', timeLimitMs: HOSTED_SOLVE_MS },
+                at,
+              ) as Promise<SolveData>,
           }),
-        judge: judgeBy({
-          validate: (bytes, at) => executor!.validateSnapshot(bytes, at),
-          solve: (bytes, at) =>
-            executor!.diagnoseSnapshot(
-              'solve',
-              bytes,
-              { from: null, maxStates: 20_000, mode: 'witness', timeLimitMs: HOSTED_SOLVE_MS },
-              at,
-            ) as Promise<SolveData>,
-        }),
-        log: (line) => console.log(JSON.stringify(line)),
-      })
-    : undefined;
+          log: (line) => console.log(JSON.stringify(line)),
+        })
+      : undefined;
   journal.events.on('confirmed', () => void health?.schedule());
   const play =
     auth && authStore && previews

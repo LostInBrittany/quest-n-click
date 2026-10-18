@@ -521,7 +521,7 @@ pre.diff .add { color: #8fe36a; } pre.diff .del { color: #ff7a7a; } pre.diff .hu
 .gate-actions button { min-height: 44px; }
 .gate-facts { margin: 0; padding: 18px 0 0; list-style: none; border-top: 1px solid var(--line); color: var(--muted); font-size: 13px; display: flex; flex-direction: column; gap: 6px; }
 .hosted-bar { display: flex; align-items: center; gap: 10px; flex: 0 1 auto; min-width: 0; }
-.hosted-bar .health { flex: 0 1 auto; min-width: 0; font-size: 12px; max-width: 34ch; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--muted); }
+.hosted-bar .health { flex: 0 1 auto; min-width: 12ch; font-size: 12px; max-width: 34ch; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--muted); }
 .hosted-bar .health[data-state="ok"] { color: #7ed98a; }
 .hosted-bar .health[data-state="bad"] { color: #ff9f7a; }
 .rev { display: inline-flex; align-items: center; gap: 7px; padding: 4px 10px; border: 1px solid var(--line2); background: var(--panel2); border-radius: 4px; font-size: 12px; white-space: nowrap; }

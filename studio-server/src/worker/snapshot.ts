@@ -9,7 +9,6 @@ const TEXT = /\.(ts|mts|cts|tsx|js|mjs|cjs|jsx|json|md)$/;
 const MAX_FILES = 5_000;
 const MAX_BYTES = 32 * 1024 * 1024;
 
-/** `playtests`: their sessions too (the `playtests` job replays them; nothing else needs them). */
 /** Whether a file of the game (its path with `/`) goes into a snapshot: the rules a folder is packed by. */
 export function packable(path: string, o: { playtests?: boolean } = {}): boolean {
   const parts = path.split('/');
@@ -39,6 +38,7 @@ export function packFiles(files: { path: string; bytes: Buffer }[], o: { playtes
   return Buffer.from(JSON.stringify({ v: 1, files: out }));
 }
 
+/** `playtests`: their sessions too (the `playtests` job replays them; nothing else needs them). */
 export function packSnapshot(dir: string, o: { playtests?: boolean } = {}): Buffer {
   const files: { path: string; text: string }[] = [];
   let bytes = 0;

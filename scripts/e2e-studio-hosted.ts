@@ -30,6 +30,7 @@ import { readJson, send, studioServer } from '../studio-server/src/server/http';
 import { Leases } from '../studio-server/src/server/leases';
 import { Presence } from '../studio-server/src/server/live';
 import { Play } from '../studio-server/src/server/play';
+import { HOSTED_SOLVE_MS } from '../studio-server/src/ops/diagnose';
 import { Health, judgeBy } from '../studio-server/src/server/health';
 import { Previews } from '../studio-server/src/server/previews';
 import { ServiceLease } from '../studio-server/src/server/service-lease';
@@ -125,7 +126,12 @@ const health = new Health({
   judge: judgeBy({
     validate: (bytes) => localValidate(bytes),
     solve: (bytes) =>
-      localDiagnose('solve', bytes, { from: null, maxStates: 20_000, mode: 'witness' }) as Promise<SolveData>,
+      localDiagnose('solve', bytes, {
+        from: null,
+        maxStates: 20_000,
+        mode: 'witness',
+        timeLimitMs: HOSTED_SOLVE_MS,
+      }) as Promise<SolveData>,
   }),
 });
 journal.events.on('confirmed', () => void health.schedule());

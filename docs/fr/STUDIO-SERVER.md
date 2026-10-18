@@ -221,13 +221,15 @@ OIDC, avec SQLite et un dossier pour les contenus, sur le loopback seulement.
 - L'en-tête dit la santé du jeu à une révision (4.2.2) : le validateur, puis le solveur depuis une nouvelle partie
   (45 s au plus), sur l'application de traitement, après chaque rafale de modifications. Quand une révision échoue là
   où la dernière jugée passait, une bissection sur les révisions entre les deux nomme la première qui échoue, avec ce
-  que son opération a fait et ses fichiers (jamais qui l'a faite) ; un dev peut en demander une entre deux révisions
-  (`POST /api/health/bisect {good, bad}`). Un solveur interrompu dit « inconnu », jamais « valide », et arrête une
-  bissection. Une passe de l'onglet Check retient les lectures de l'instance pendant que l'application de traitement
+  que son opération a fait et ses fichiers (jamais qui l'a faite), en ⌈log₂ n⌉ jugements au plus ; un dev peut en
+  demander une entre deux révisions jusqu'à la tête (`POST /api/health/bisect {good, bad}`). Un solveur interrompu dit
+  « inconnu », jamais « valide », et arrête une bissection ; une révision qui n'a pas pu être jugée cinq fois dit « ne
+  peut être jugée », avec sa raison. Un verdict plus ancien est affiché en gris, jamais en vert. Une passe de l'onglet Check retient les lectures de l'instance pendant que l'application de traitement
   exécute ses diagnostics : une écriture l'attend.
-- L'application de traitement exécute un job à la fois : la construction d'une prévisualisation peut retarder la
-  validation de la modification suivante de sa propre durée (environ une demi-seconde pour le jeu d'exemple sur un
-  portable ; pas encore mesurée sur une application Clever, la passe `studio-preview` le fait).
+- L'application de traitement exécute un job à la fois, et chaque révision lui en demande désormais trois : la
+  construction d'une prévisualisation, le validateur et une passe du solveur (jusqu'à 45 s) : la validation de la
+  modification suivante peut les attendre (pas encore mesuré sur une application Clever, la passe `studio-preview` le
+  fait). Une bissection demande jusqu'à deux jobs par révision qu'elle juge.
 - La prévisualisation de chaque révision est gardée (environ 1 Mo pour le jeu d'exemple : la base `/preview/<rev>/`
   est écrite dans la page et son code, si bien que peu de fichiers sont partagés d'une révision à l'autre) jusqu'au
   ramassage d'une PR ultérieure de 4.2.2.

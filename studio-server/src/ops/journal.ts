@@ -190,7 +190,12 @@ export class Journal {
    * operation after `rev` undone, newest first, from the "before" of its effects. Their contents are read from the
    * blobs, which are kept for every operation; `keep` says which (a snapshot needs no picture).
    */
-  async filesAt(rev: number, keep: (path: string) => boolean = () => true): Promise<{ path: string; bytes: Buffer }[]> {
+  async filesAt(
+    rev: number,
+    keep: (path: string) => boolean = () => true,
+    /** The blobs already read (a bisection reads the same ones at each step): filled as they are read. */
+    cache?: Map<string, Buffer>,
+  ): Promise<{ path: string; bytes: Buffer }[]> {
     const files = new Map<string, string>();
     for (const r of await this.db.all('SELECT path, blob FROM studio_files')) files.set(String(r.path), String(r.blob));
     const ops = await this.db.all(
@@ -200,7 +205,14 @@ export class Journal {
     for (const op of ops) for (const c of JSON.parse(String(op.effects)) as Change[]) files.set(c.path, c.before);
     const out: { path: string; bytes: Buffer }[] = [];
     for (const [path, blob] of [...files].sort(([a], [b]) => (a < b ? -1 : 1)))
-      if (blob !== ABSENT && keep(path)) out.push({ path, bytes: await this.blobs.get(blob) });
+      if (blob !== ABSENT && keep(path)) {
+        let bytes = cache?.get(blob);
+        if (!bytes) {
+          bytes = await this.blobs.get(blob);
+          cache?.set(blob, bytes);
+        }
+        out.push({ path, bytes });
+      }
     return out;
   }
 
