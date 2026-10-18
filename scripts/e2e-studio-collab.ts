@@ -19,6 +19,8 @@ const check = (name: string, ok: boolean, detail?: string) => {
   console.log(`${ok ? '✓' : '✖'} ${name}${detail ? ` — ${detail}` : ''}`);
 };
 const browser = await engine.launch();
+/** What each page did, printed if a step fails: its writes and their answers, its refusals, its console's errors. */
+const trace: string[] = [];
 const until = async (what: () => Promise<boolean>, ms = 15_000) => {
   for (const end = Date.now() + ms; Date.now() < end; await new Promise((r) => setTimeout(r, 200)))
     if (await what()) return true;
@@ -57,6 +59,14 @@ try {
   ] as const) {
     const ctx = await browser.newContext({ viewport: { width: 1440, height: 900 }, ignoreHTTPSErrors: stack.tls });
     const page = await ctx.newPage();
+    page.on('response', (r) => {
+      const u = new URL(r.url());
+      if (r.status() >= 400 || (r.request().method() !== 'GET' && u.pathname.startsWith('/api/')))
+        trace.push(`${who} ${r.request().method()} ${u.pathname} ${r.status()}`);
+    });
+    page.on('requestfailed', (r) => trace.push(`${who} failed ${new URL(r.url()).pathname} ${r.failure()?.errorText}`));
+    page.on('console', (m) => m.type() === 'error' && trace.push(`${who} console ${m.text().slice(0, 200)}`));
+    page.on('load', () => trace.push(`${who} load ${page.url().slice(-40)}`));
     const invite = await stack.invite(who, role);
     await page.goto(`${stack.studioUrl}/auth/login?invite=${invite}&returnTo=${encodeURIComponent('/#notes')}`);
     await page.locator('.hosted-bar .rev').waitFor({ timeout: 30_000 });
@@ -166,6 +176,7 @@ try {
 } catch (e) {
   check('the run', false, (e as Error).message.split('\n')[0]);
 } finally {
+  if (steps.some(([, ok]) => !ok)) console.log(trace.slice(-60).join('\n'));
   await browser.close();
   await stack.stop();
 }
