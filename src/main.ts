@@ -12,6 +12,16 @@ const { game, layouts, manifest, minigames, commands, locales } = mod as unknown
 const demo = import.meta.env.VITE_STUDIO_DEMO === '1';
 // A revision's preview on a hosted Studio's game origin (4.2.2, studio-server/src/worker/preview-build.ts).
 const preview = import.meta.env.VITE_STUDIO_PREVIEW === '1';
+const previewRevision = (base: string) => {
+  const rev = Number(/^\/preview\/(\d+)\/$/.exec(base)?.[1] ?? Number.NaN);
+  // Stay opens the save's revision on its title screen: without the dev tools, which would start a new game there.
+  const url = (r: number) => {
+    const q = new URLSearchParams(location.search);
+    for (const k of ['dev', 'edit', 'at']) q.delete(k);
+    return `/preview/${r}/${q.size ? `?${q}` : ''}`;
+  };
+  return Number.isSafeInteger(rev) ? { rev, url } : undefined;
+};
 
 void bootGame({
   game,
@@ -22,6 +32,8 @@ void bootGame({
   locales,
   version: __ASSETS_VERSION__,
   build: { trustedExtensions: __TRUSTED_EXTENSIONS__, engine: __ENGINE_VERSION__ },
+  // A preview's revision, from its base (`/preview/<rev>/`): saves say where they were made (ADR 0026).
+  revision: preview ? previewRevision(import.meta.env.BASE_URL) : undefined,
   dev: {
     // The dev tools (?dev, ?edit=<room>): on the dev server, in a Studio demo build (docs/en/STUDIO.md, "Demo
     // mode") and in a hosted Studio's previews. Without these query params, the player's game is the same in every

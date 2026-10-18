@@ -313,6 +313,146 @@ try {
   const playFrame = page.frames().find((f) => f.url().startsWith(playUrl) && f !== frame);
   check('the Play tab runs the game on its origin', !!playFrame);
 
+  // 6b. Saves across revisions (ADR 0026, G2). The Play tab keeps the preview it loaded (revision 1, when the Studio
+  // opened) until asked for the latest. There, a slot saved in other content (another fingerprint, revision 1) asks
+  // before it is loaded, and each answer is followed: Resume loads it, Restart (confirmed) starts a new game, Stay opens
+  // revision 1's preview.
+  type G = {
+    t(k: string): string;
+    pauseMenu(): void;
+    engine: { state: { room: string; v: number; counters: Record<string, number> } };
+    slots: { putSlot(n: number, s: unknown, m: unknown): Promise<boolean> };
+    revision?: { here(): { rev: number } };
+  };
+  const ready = previews.state().ready;
+  await page.getByRole('button', { name: 'Load the latest preview' }).click();
+  const playEl = page.locator('iframe.playframe');
+  let inPlay: Frame | null = null;
+  for (let i = 0; i < 80; i++) {
+    inPlay = (await (await playEl.elementHandle())?.contentFrame()) ?? null;
+    if (inPlay?.url().includes(`/preview/${ready}/`)) break;
+    await page.waitForTimeout(250);
+  }
+  if (!inPlay) throw new Error('no Play frame');
+  await inPlay.waitForFunction(
+    () => {
+      const g = (window as unknown as { __game?: G }).__game;
+      return !!g?.revision && !!g.engine?.state;
+    },
+    null,
+    {
+      timeout: 30_000,
+    },
+  );
+  const shownRev = Number(/\/preview\/(\d+)\//.exec(inPlay.url())?.[1]);
+  check('"Load the latest preview" loads the last ready revision', shownRev === ready, inPlay.url());
+  const here = await inPlay.evaluate(() => (window as unknown as { __game: G }).__game.revision?.here().rev ?? null);
+  check("a preview's saves record its revision", here === shownRev, `here ${here}, frame ${shownRev}`);
+  // A slot made in other content: the current state, marked, said to come from revision 1 under another fingerprint.
+  await inPlay.evaluate(async () => {
+    const g = (window as unknown as { __game: G }).__game;
+    const state = structuredClone(g.engine.state);
+    state.counters['e2e.saved'] = 1;
+    await g.slots.putSlot(1, state, {
+      at: Date.now(),
+      room: state.room,
+      roomName: 'e2e',
+      v: state.v,
+      revision: { rev: 1, fingerprint: 'other-content' },
+    });
+  });
+  const askFromSlot = async (f: Frame) => {
+    const labels = await f.evaluate(() => {
+      const g = (window as unknown as { __game: G }).__game;
+      g.pauseMenu();
+      return { load: g.t('load'), slot: g.t('slot').replace('{n}', '1') };
+    });
+    await f.locator('.dim .menu button', { hasText: labels.load }).first().click();
+    await f.locator('.dim .menu button:not([disabled])', { hasText: labels.slot }).first().click();
+    const buttons = f.locator('[data-revision-prompt] button');
+    await buttons.first().waitFor({ timeout: 10_000 });
+    return buttons.evaluateAll((bs) => bs.map((b) => (b as HTMLElement).dataset.choice));
+  };
+  const marked = (f: Frame) =>
+    f.evaluate(() => (window as unknown as { __game: G }).__game.engine.state.counters['e2e.saved'] ?? 0);
+  const asked = await askFromSlot(inPlay);
+  check(
+    'a slot made in other content asks: resume, restart, stay',
+    shownRev !== 1 && JSON.stringify(asked) === JSON.stringify(['resume', 'restart', 'stay']),
+    `${JSON.stringify(asked)} in revision ${shownRev}`,
+  );
+  await inPlay.locator('[data-revision-prompt] button[data-choice="resume"]').click();
+  let loaded = 0;
+  for (let i = 0; i < 20 && loaded !== 1; i++) {
+    await page.waitForTimeout(250);
+    loaded = await marked(inPlay);
+  }
+  check('Resume loads the slot here', loaded === 1);
+  await askFromSlot(inPlay);
+  await inPlay.locator('[data-revision-prompt] button[data-choice="stay"]').click();
+  let at = '';
+  for (let i = 0; i < 40 && !at.includes('/preview/1/'); i++) {
+    await page.waitForTimeout(250);
+    at = (await (await playEl.elementHandle())?.contentFrame())?.url() ?? '';
+  }
+  check(
+    "Stay opens the save's own revision, on its title screen",
+    at !== '' && new URL(at).pathname === '/preview/1/' && !new URL(at).searchParams.has('dev'),
+    at,
+  );
+
+  // There, on revision 1's title screen, Continue asks above the title when the autosave was made in other content (its
+  // record set here: revisions 1 and 2 differ by a layout, which the fingerprint does not cover), and Escape cancels.
+  const title = (await (await playEl.elementHandle())?.contentFrame())!;
+  await title.waitForFunction(() => !!document.querySelector('button.bigbtn'), null, { timeout: 30_000 });
+  const cont = await title.evaluate(() => {
+    const g = (window as unknown as { __game: { game: { id: string; ui: { continue: string } } } }).__game.game;
+    localStorage.setItem(`${g.id}.save-revision`, JSON.stringify({ rev: 2, fingerprint: 'other-content' }));
+    return g.ui.continue;
+  });
+  await title.locator('button.bigbtn', { hasText: cont.toUpperCase() }).click();
+  const top = title.locator('[data-revision-prompt] button[data-choice="resume"]');
+  await top.waitFor({ timeout: 10_000 });
+  const onTop = await top.evaluate((b) => {
+    const r = b.getBoundingClientRect();
+    return b.contains(document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2));
+  });
+  check('on the title screen, the question is shown above the title', onTop);
+  await page.keyboard.press('Escape');
+  await page.waitForTimeout(300);
+  check(
+    'Escape cancels the question, the title stays',
+    (await title.locator('[data-revision-prompt]').count()) === 0 &&
+      (await title.locator('button.bigbtn', { hasText: cont.toUpperCase() }).count()) === 1,
+  );
+
+  // Back to the latest preview, the slot still there: Restart last (the new game's opening holds the menus).
+  await page.getByRole('button', { name: 'Load the latest preview' }).click();
+  for (let i = 0; i < 80; i++) {
+    inPlay = (await (await playEl.elementHandle())?.contentFrame()) ?? null;
+    if (inPlay?.url().includes(`/preview/${ready}/`)) break;
+    await page.waitForTimeout(250);
+  }
+  if (!inPlay) throw new Error('no Play frame');
+  await inPlay.waitForFunction(
+    () => {
+      const g = (window as unknown as { __game?: G }).__game;
+      return !!g?.revision && !!g.engine?.state;
+    },
+    null,
+    {
+      timeout: 30_000,
+    },
+  );
+  await askFromSlot(inPlay);
+  await inPlay.locator('[data-revision-prompt] button[data-choice="restart"]').click();
+  await inPlay.locator('.dim .menu button.warn').click();
+  let fresh = 1;
+  for (let i = 0; i < 20 && fresh !== 0; i++) {
+    await page.waitForTimeout(250);
+    fresh = await marked(inPlay);
+  }
+  check('Restart, confirmed, starts a new game', fresh === 0);
   // 7. The logout ends the game's session too.
   await page.evaluate(async () => {
     await fetch('/auth/logout', {
@@ -321,7 +461,8 @@ try {
       body: '{}',
     });
   });
-  const afterLogout = await playFrame!.evaluate(async () => (await fetch(location.href)).status);
+  const last = (await (await playEl.elementHandle())?.contentFrame()) ?? playFrame!;
+  const afterLogout = await last.evaluate(async () => (await fetch(location.href)).status);
   check(
     "after the logout, the game's origin refuses the next request",
     afterLogout === 403 || afterLogout === 401,

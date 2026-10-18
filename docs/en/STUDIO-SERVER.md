@@ -5,10 +5,11 @@ The Studio Server puts a game's Studio online for a small team. Everyone logs in
 line's work (plan `docs/dev/PLAN-4.2.1-4.2.3-STUDIO-SERVER.md`). Alone on your machine, `npm run studio` stays as
 it was: none of this is needed.
 
-> **Status (4.2.1, experimental).** The journal (no confirmed change is lost), logins and roles, the processing
-> worker, spans and leases, the live stream, the game's own origin with its previews (one build per revision, since
-> 4.2.2), and the Studio's screens for all of this. It stays experimental until its people's passes (`studio-hosted`, `studio-collab`) are made. This guide
-> deploys from the repository; the release archive `web-scumm-studio-server` is the same server (below).
+> **Status (4.2.1, experimental).** The journal (no confirmed change is lost), logins and roles, the processing worker,
+> spans and leases, the live stream, the game's own origin with its previews (one build per revision, since 4.2.2), and
+> the Studio's screens for all of this. It stays experimental until its people's passes (`studio-hosted`,
+> `studio-collab`) are made. This guide deploys from the repository; the release archive `web-scumm-studio-server` is
+> the same server (below).
 
 ## What runs where
 
@@ -197,11 +198,12 @@ SQLite and a folder for the contents, on the loopback only.
 ## Known limits
 
 - One game per instance, one instance (the server takes a lease; a second one waits).
-- The game in the Studio is the preview of a revision (4.2.2): after each change the worker builds the head (a burst
-  of changes builds its last revision only), and the room view loads it once built, unless a placement is not saved.
-  Meanwhile the frames show the last ready preview, and the label under the room view says which revision it is, the
-  one building, and a revision that does not build, with its reason. Saves made in a preview are not yet told apart
-  by revision (ADR 0026 comes next). The Play tab keeps the preview it loaded until "Load the latest preview".
+- The game in the Studio is the preview of a revision (4.2.2): after each change the worker builds the head (a burst of
+  changes builds its last revision only), and the room view loads it once built, unless a placement is not saved.
+  Meanwhile the frames show the last ready preview, and the label under the room view says which revision it is, the one
+  building, and a revision that does not build, with its reason. A save made in other content asks before it is resumed:
+  Resume here, Restart, or Stay in its own revision (ADR 0026). The Play tab keeps the preview it loaded until "Load the
+  latest preview".
 - A preview is built from the game's text files only (sources, data): a game whose code imports a stylesheet or an
   image cannot be previewed.
 - The worker runs one job at a time: a preview's build can delay the next change's validation by its own time

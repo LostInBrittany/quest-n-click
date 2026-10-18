@@ -7,9 +7,9 @@ C'est le chantier de la ligne 4.2.x (plan `docs/dev/PLAN-4.2.1-4.2.3-STUDIO-SERV
 
 > **État (4.2.1, expérimental).** Le journal (aucune modification confirmée n'est perdue), les connexions et les rôles,
 > l'application de traitement, les pans et les baux, le flux en direct, l'origine propre du jeu avec ses
-> prévisualisations (un build par révision, depuis 4.2.2), et les écrans du Studio pour tout cela. Il reste
-> expérimental jusqu'à ce que ses passes humaines (`studio-hosted`, `studio-collab`) soient faites. Ce guide déploie depuis le dépôt ; l'archive `web-scumm-studio-server` est le même
-> serveur (ci-dessous).
+> prévisualisations (un build par révision, depuis 4.2.2), et les écrans du Studio pour tout cela. Il reste expérimental
+> jusqu'à ce que ses passes humaines (`studio-hosted`, `studio-collab`) soient faites. Ce guide déploie depuis le dépôt
+> ; l'archive `web-scumm-studio-server` est le même serveur (ci-dessous).
 
 ## Ce qui tourne où
 
@@ -206,9 +206,9 @@ OIDC, avec SQLite et un dossier pour les contenus, sur le loopback seulement.
   traitement construit la tête (une rafale de modifications ne construit que sa dernière révision), et la vue de la
   salle la charge une fois prête, sauf si un placement n'est pas enregistré. En attendant, les cadres montrent la
   dernière prévisualisation prête, et l'étiquette sous la vue dit de quelle révision il s'agit, celle en construction,
-  et une révision qui ne se construit pas, avec sa raison. Les sauvegardes faites dans une prévisualisation ne sont pas
-  encore distinguées par révision (l'ADR 0026 vient ensuite). L'onglet Jouer garde la prévisualisation qu'il a chargée
-  jusqu'à « Load the latest preview ».
+  et une révision qui ne se construit pas, avec sa raison. Une sauvegarde faite dans un autre contenu demande avant
+  d'être reprise : la reprendre ici, recommencer, ou rester dans sa propre révision (ADR 0026). L'onglet Jouer garde la
+  prévisualisation qu'il a chargée jusqu'à « Load the latest preview ».
 - Une prévisualisation se construit à partir des seuls fichiers texte du jeu (sources, données) : un jeu dont le code
   importe une feuille de style ou une image ne peut pas être prévisualisé.
 - L'application de traitement exécute un job à la fois : la construction d'une prévisualisation peut retarder la
