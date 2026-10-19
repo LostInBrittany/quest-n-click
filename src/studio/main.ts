@@ -21,6 +21,7 @@ import { download, h, toast } from './ui';
 import { must } from '../engine/core/must';
 import { apiUrl, goLogin, hosting, loginHeld, studioFetch } from './api-base';
 import { assetsPanel, buildsPanel } from './builds-panel';
+import { commentsPanel } from './comments-panel';
 import { gitPanel } from './git-panel';
 import { diffPanel } from './diff-panel';
 import { gameLink } from './game-origin';
@@ -413,6 +414,8 @@ async function start() {
         gitPanel({ owner: me.role === 'owner' }),
         ...(me.role !== 'reviewer' ? [assetsPanel()] : []),
       );
+    // Comments (4.2.3): in the Notes tab, a reviewer's too.
+    notes.el.prepend(commentsPanel({ owner: me.role === 'owner' }));
     const frame = rooms.el.querySelector<HTMLIFrameElement>('iframe.engine');
     rooms.el.querySelector('.stage .bar')?.append(shared.roomChip, ...(frame ? [shared.previewLabel(frame)] : []));
     rooms.el.querySelector('select[aria-label="Room"]')?.addEventListener('change', () => shared.roomShown());
