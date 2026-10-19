@@ -24,6 +24,7 @@ import { LiveHub, type Presence, serveEvents } from './live';
 import { forPlay, type Play, playTicketBody } from './play';
 import type { Builds } from './builds';
 import type { PreparedAssets } from './prepared';
+import type { EngineUpgrade } from './engine-upgrade';
 import type { Health } from './health';
 import type { Previews } from './previews';
 import type { ServiceLease } from './service-lease';
@@ -121,6 +122,8 @@ export interface StudioServerOptions {
   builds?: Builds;
   /** The prepared assets (4.2.2 PR 6b): `/api/assets/prepare`. */
   prepared?: PreparedAssets;
+  /** The engine's upgrade of the hosted game (4.2.3 PR 8, H6): `/api/engine/migrate`, the owner's. */
+  engineUpgrade?: EngineUpgrade;
   /** The game's origin (plan §6.1): every request whose `Host` is `playUrl`'s goes there, and nothing else does. */
   play?: { handler: Play; playUrl: string };
   /** The Studio's page, its files and the game's images and sounds (PR 7, client.ts). */
@@ -353,6 +356,26 @@ export function studioServer(o: StudioServerOptions): StudioHttpServer {
         const name = principal ? (principal.user.name ?? author) : 'local';
         const claimant = principal ? { userId: principal.user.id, name } : undefined;
         const r = await operationContext.run({ author, claimant }, () => o.prepared!.prepare(name));
+        return send(res, 200, r);
+      }
+      // The engine's upgrade (4.2.3, H6): an owner's, on the worker, under their exclusive lease; refused (422) before
+      // anything is written when the migrated game fails the validator or the solver.
+      if (sub === '/engine/migrate') {
+        if (!o.engineUpgrade)
+          throw new StudioError("the engine's upgrade needs a hosted Studio with its processing worker", 404);
+        if (req.method !== 'POST') throw new StudioError('not found', 404);
+        if (principal && o.auth) o.auth.gate.require(principal, 'owner');
+        if (!o.lease.held)
+          return send(
+            res,
+            503,
+            { error: 'this instance does not serve writes yet; try again' },
+            { 'retry-after': '2' },
+          );
+        const author = principal ? (principal.user.email ?? principal.user.name ?? principal.user.id) : 'local';
+        const name = principal ? (principal.user.name ?? author) : 'local';
+        const claimant = principal ? { userId: principal.user.id, name } : undefined;
+        const r = await operationContext.run({ author, claimant }, () => o.engineUpgrade!.migrate(name));
         return send(res, 200, r);
       }
       // The published builds (4.2.2, G6): listed and read by a reviewer, published by a dev, rebuilt by an owner.
