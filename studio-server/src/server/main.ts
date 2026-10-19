@@ -17,6 +17,7 @@ import { fileURLToPath } from 'node:url';
 import { openSqliteDb } from '../../../bridge/src/store-sqlite';
 import type { SqlDb } from '../../../bridge/src/store-sql';
 import { createStudio, operationContext } from '../ops/core';
+import { anchorsOf, Comments } from './comments';
 import { GitSync } from './git';
 import { mcpEndpoint, type McpEndpoint } from './mcp';
 import { StudioError } from '../ops/errors';
@@ -558,6 +559,28 @@ async function main(argv: string[]): Promise<number> {
   const jobKey = secrets.STUDIO_WORKER_KEY
     ? createPrivateKey(secrets.STUDIO_WORKER_KEY.replace(/\\n/g, '\n'))
     : undefined;
+  // Comments (4.2.3, H2), on a shared Studio: what the game names, read once per revision (the IR runs the game).
+  // One reading per revision, shared by the requests that wait for it; a game that does not load is remembered as
+  // such for that revision (null: no comment said orphan), never as an older revision's set.
+  let knownAt: { rev: number; set: Promise<Set<string> | null> } | undefined;
+  const comments = config.oidc
+    ? new Comments({
+        db,
+        revision: () => journal.revision(),
+        known: async () => {
+          const rev = await journal.revision();
+          if (knownAt?.rev !== rev)
+            knownAt = {
+              rev,
+              set: studio.ir().then(
+                (ir) => anchorsOf(ir, studio.getStoryboard()),
+                () => null,
+              ),
+            };
+          return knownAt.set;
+        },
+      })
+    : undefined;
   const builds =
     executor && hosted && jobKey
       ? new Builds({
@@ -617,6 +640,7 @@ async function main(argv: string[]): Promise<number> {
     personalUndo: !!personalUndo,
     builds,
     prepared,
+    comments,
     git: gitSync,
     engineUpgrade,
     rpo: shipper ? () => shipper.rpoMs() : undefined,

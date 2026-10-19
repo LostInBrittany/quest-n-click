@@ -203,6 +203,19 @@ son contenu est sans danger. Le code d'un build ne change jamais ; ses images et
 l'instance, servis à côté tels qu'ils sont. Un build publié n'a pas de service worker (il ne s'installe pas pour jouer
 hors ligne) et ses sauvegardes ne sont pas encore distinguées par build.
 
+## Commentaires (4.2.3)
+
+Dans l'onglet Notes d'un Studio partagé, un membre commente ce que le jeu nomme (une salle, `hall.door`, `item:key`,
+l'id d'une règle, une case du storyboard), ou le jeu lui-même. Un commentaire garde la révision où il a été écrit ;
+les réponses font un fil, résolu ou rouvert d'un bloc. Les reviewers commentent aussi : les commentaires sont gardés
+par le Studio (dans sa base, dans la sauvegarde), jamais dans un fichier du jeu, donc aucun fichier du jeu n'est écrit
+pour eux. Un commentaire dont l'ancre n'est plus nommée par le jeu (ses salles, règles, scripts, entités, objectifs et points de
+passage, les planches et cases du storyboard) est dit « orphan », jamais rattaché ailleurs ; l'id d'une ligne n'est pas
+une ancre. Seul
+son auteur change son texte ; un reviewer résout ses propres fils, un dev n'importe lequel. Un owner fait entrer les
+notes de `notes.json` (chacune une fois, son `about` pour ancre). Routes : GET/POST `/api/comments`, PUT
+`/api/comments/<id>`, POST `/api/comments/import-notes`.
+
 ## Le jeu dans Git (4.2.3)
 
 `git` dans la configuration (facultatif) nomme le dépôt du jeu : `{ "remote": "git@github.com:org/game.git",
