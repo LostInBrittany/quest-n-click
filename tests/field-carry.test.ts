@@ -122,9 +122,12 @@ describe('the surfaces of a candidate', () => {
     const v421 = surfaces('4.2.1', { 'pack/web-scumm-studio-server-4.2.1.tgz': h('7') });
     expect(v421.surfaces.map((x) => x.id).sort()).toEqual([...passesFor('4.2.1')].sort());
     expect(v421.surfaces.map((x) => x.id)).not.toContain('studio-preview');
-    // 4.2.2's two, from 4.2.2 on: every pass.
+    // 4.2.2's two, from 4.2.2 on.
     const v422 = surfaces('4.2.2', { 'pack/web-scumm-studio-server-4.2.2.tgz': h('7') });
-    expect(v422.surfaces.map((x) => x.id).sort()).toEqual([...PASS_IDS].sort());
+    expect(v422.surfaces.map((x) => x.id).sort()).toEqual([...passesFor('4.2.2')].sort());
+    // 4.2.3's two, from 4.2.3 on: every pass.
+    const v423 = surfaces('4.2.3', { 'pack/web-scumm-studio-server-4.2.3.tgz': h('7') });
+    expect(v423.surfaces.map((x) => x.id).sort()).toEqual([...PASS_IDS].sort());
     expect(Object.keys(v421.surfaces.find((x) => x.id === 'studio-hosted')!.artifactDigests)).toContain(
       'pack/web-scumm-studio-server-4.2.1.tgz',
     );
