@@ -104,6 +104,9 @@ Clever, chacun peut être un fichier : `STUDIO_SESSION_KEY_FILE`, etc. (mode 060
 - `publicDir` (facultatif) : les images et les sons préparés du jeu, par défaut `public/` du dépôt déployé
   (`npm run assets` les y écrit et ils sont versionnés). Le Studio les montre aux membres et chaque prévisualisation
   les joue ; ils sont en lecture seule sur un Studio hébergé.
+- `publicBuilds` (facultatif, `false` par défaut) : les builds publiés (`/play/` sur l'origine du jeu) sont ouverts à
+  tous, sans session (D42 : le choix de l'owner, par instance), avec les icônes que leur page nomme. Tout le reste de
+  cette origine reste derrière la session.
 - `clientDir` (facultatif) : le Studio construit, par défaut `.cache/studio-client` (`npm run studio-client`). Avec
   OIDC, le serveur refuse de démarrer sans lui.
 
@@ -172,6 +175,22 @@ Le fournisseur dit qui est quelqu'un. Ce qu'il peut faire se décide dans le Stu
 Personne n'est membre par défaut : une invitation (7 jours, à usage unique, pour un email vérifié) en fait un. Le
 dernier owner ne peut être ni retiré ni rétrogradé. Retirer quelqu'un coupe son accès à sa requête suivante ; ses flux
 en direct se ferment en 5 s. Quand le fournisseur désactive un compte, ses sessions se terminent en 15 min au plus.
+
+## Publier des builds
+
+Le bouton **Publish this revision** de l'onglet Jouer fait construire par l'application de traitement le jeu du
+joueur à partir de la tête (sans les outils d'édition), numéroté : le build `#n` est servi à `/play/<n>/` sur
+l'origine du jeu et ne change jamais. `/play/` est toujours le dernier build vert, le plus récent dont la révision a
+été jugée valide par la santé (une révision publiée est jugée à la publication). Le manifeste de chaque build
+(l'époque et la révision, le hash du snapshot, le moteur, le commit et le lockfile de l'application de traitement, la
+version des assets, le verdict de la révision, le hash de chaque fichier) est signé avec la clé de jobs du Studio :
+`GET /api/builds/<n>` donne le manifeste, les octets exacts signés (`signed`) et la signature, faite sur
+`web-scumm build manifest v1\n` suivi de ces octets, que `studio-worker.pub` vérifie. **Rebuild fresh** (un owner)
+reconstruit le même snapshot, avec la même version des assets, et dit si les fichiers sont les mêmes, octet pour
+octet : une vérification que le build est reproductible sur l'application de traitement telle qu'elle est, pas que
+son contenu est sans danger. Le code d'un build ne change jamais ; ses images et ses sons sont les assets préparés de
+l'instance, servis à côté tels qu'ils sont. Un build publié n'a pas de service worker (il ne s'installe pas pour jouer
+hors ligne) et ses sauvegardes ne sont pas encore distinguées par build.
 
 ## Travailler à plusieurs
 

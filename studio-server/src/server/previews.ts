@@ -231,36 +231,18 @@ export class Previews {
   /** Answers a request of the game's origin (play.ts has checked the game session). */
   async handle(req: IncomingMessage, res: ServerResponse, url: URL): Promise<void> {
     if (req.method !== 'GET' && req.method !== 'HEAD') return text(res, 405, 'GET only');
-    let path: string;
-    try {
-      path = decodeURIComponent(url.pathname);
-    } catch {
-      return text(res, 400, 'bad path');
-    }
     // No `.` nor `..`, and no hidden file (`.env`, `.DS_Store`) in the folders served.
-    if (path.includes('\0') || path.includes('\\') || /(^|\/)\./.test(path)) return text(res, 404, 'not found');
+    const path = servedPath(url);
+    if (path === null) return text(res, 404, 'not found');
     const m = /^\/preview\/(\d{1,15})\/(.*)$/.exec(path);
     if (m) {
       const rest = m[2] || 'index.html';
       const manifest = this.s.epoch ? await this.manifest(Number(m[1])) : undefined;
       if (!manifest) return text(res, 404, 'no such preview');
-      const hash = Object.hasOwn(manifest, rest) ? manifest[rest] : undefined;
-      if (hash) {
-        const bytes = await this.o.blobs.get(hash);
-        res.writeHead(200, {
-          'content-type': typeOf(rest),
-          'content-length': bytes.length,
-          // The code is named by its hash: kept for good. The page is asked again each time, so that a session that
-          // ended (a logout, a member removed) is refused at the next load, not served from the browser's cache.
-          'cache-control': rest.startsWith('assets/') ? IMMUTABLE : 'private, no-cache',
-        });
-        return void res.end(req.method === 'HEAD' ? undefined : bytes);
-      }
-      if (PUBLIC.test(rest)) return this.asset(req, res, rest);
-      return text(res, 404, 'not found');
+      return serveBuilt(req, res, { blobs: this.o.blobs, publicDir: this.o.publicDir }, manifest, rest);
     }
     const rel = path.slice(1);
-    if (PUBLIC.test(rel)) return this.asset(req, res, rel);
+    if (PUBLIC.test(rel)) return serveAsset(req, res, this.o.publicDir, rel);
     if (path !== '/' && path !== '/index.html') return text(res, 404, 'not found');
     if (this.s.ready === null) {
       res.writeHead(503, { 'content-type': 'text/html; charset=utf-8', refresh: '2', 'retry-after': '2' });
@@ -269,52 +251,89 @@ export class Previews {
     res.writeHead(302, { location: `/preview/${this.s.ready}/${url.search}` });
     res.end();
   }
-
-  /** A prepared asset, from the Studio's folder; one byte range when asked (Safari plays no media without it). */
-  private asset(req: IncomingMessage, res: ServerResponse, rel: string) {
-    const root = realpathSync.native(this.o.publicDir);
-    let file: string;
-    let size: number;
-    try {
-      file = realpathSync.native(resolve(root, rel));
-      if (!file.startsWith(root + sep)) return text(res, 404, 'not found');
-      const st = statSync(file);
-      if (!st.isFile()) return text(res, 404, 'not found');
-      size = st.size;
-    } catch {
-      return text(res, 404, 'not found');
-    }
-    const headers: Record<string, string | number> = {
-      'content-type': typeOf(file),
-      'accept-ranges': 'bytes',
-      // Prepared again by "Prepare assets": checked each time, never kept stale.
-      'cache-control': 'private, no-cache',
-    };
-    const range = /^bytes=(\d*)-(\d*)$/.exec(String(req.headers.range ?? ''));
-    let start = 0;
-    let end = size - 1;
-    if (range && (range[1] || range[2])) {
-      if (range[1]) {
-        start = Number(range[1]);
-        if (range[2]) end = Math.min(Number(range[2]), size - 1);
-      } else start = Math.max(0, size - Number(range[2]));
-      if (start > end || start >= size) {
-        res.writeHead(416, { 'content-range': `bytes */${size}` });
-        return void res.end();
-      }
-      res.writeHead(206, {
-        ...headers,
-        'content-range': `bytes ${start}-${end}/${size}`,
-        'content-length': end - start + 1,
-      });
-    } else res.writeHead(200, { ...headers, 'content-length': size });
-    if (req.method === 'HEAD' || size === 0) return void res.end();
-    // A file replaced meanwhile, a client gone (a media seek): the stream ends and its file is closed.
-    pipeline(createReadStream(file, { start, end }), res, () => {});
-  }
 }
 
-function text(res: ServerResponse, status: number, body: string) {
+export function text(res: ServerResponse, status: number, body: string) {
   res.writeHead(status, { 'content-type': 'text/plain; charset=utf-8' });
   res.end(body);
+}
+
+/** A prepared asset, from the Studio's folder; one byte range when asked (Safari plays no media without it). */
+function serveAsset(req: IncomingMessage, res: ServerResponse, publicDir: string, rel: string) {
+  const root = realpathSync.native(publicDir);
+  let file: string;
+  let size: number;
+  try {
+    file = realpathSync.native(resolve(root, rel));
+    if (!file.startsWith(root + sep)) return text(res, 404, 'not found');
+    const st = statSync(file);
+    if (!st.isFile()) return text(res, 404, 'not found');
+    size = st.size;
+  } catch {
+    return text(res, 404, 'not found');
+  }
+  const headers: Record<string, string | number> = {
+    'content-type': typeOf(file),
+    'accept-ranges': 'bytes',
+    // Prepared again by "Prepare assets": checked each time, never kept stale.
+    'cache-control': 'private, no-cache',
+  };
+  const range = /^bytes=(\d*)-(\d*)$/.exec(String(req.headers.range ?? ''));
+  let start = 0;
+  let end = size - 1;
+  if (range && (range[1] || range[2])) {
+    if (range[1]) {
+      start = Number(range[1]);
+      if (range[2]) end = Math.min(Number(range[2]), size - 1);
+    } else start = Math.max(0, size - Number(range[2]));
+    if (start > end || start >= size) {
+      res.writeHead(416, { 'content-range': `bytes */${size}` });
+      return void res.end();
+    }
+    res.writeHead(206, {
+      ...headers,
+      'content-range': `bytes ${start}-${end}/${size}`,
+      'content-length': end - start + 1,
+    });
+  } else res.writeHead(200, { ...headers, 'content-length': size });
+  if (req.method === 'HEAD' || size === 0) return void res.end();
+  // A file replaced meanwhile, a client gone (a media seek): the stream ends and its file is closed.
+  pipeline(createReadStream(file, { start, end }), res, () => {});
+}
+
+/**
+ * A file of a build (a preview, a published build): from its manifest by content, else a prepared asset, else 404.
+ * The code is named by its hash: kept for good. The page is asked again each time, so that a session that ended (a
+ * logout, a member removed) is refused at the next load, not served from the browser's cache.
+ */
+export async function serveBuilt(
+  req: IncomingMessage,
+  res: ServerResponse,
+  o: { blobs: BlobStore; publicDir: string },
+  manifest: Record<string, string>,
+  rest: string,
+): Promise<void> {
+  const hash = Object.hasOwn(manifest, rest) ? manifest[rest] : undefined;
+  if (hash) {
+    const bytes = await o.blobs.get(hash);
+    res.writeHead(200, {
+      'content-type': typeOf(rest),
+      'content-length': bytes.length,
+      'cache-control': rest.startsWith('assets/') ? IMMUTABLE : 'private, no-cache',
+    });
+    return void res.end(req.method === 'HEAD' ? undefined : bytes);
+  }
+  if (PUBLIC.test(rest)) return serveAsset(req, res, o.publicDir, rest);
+  return text(res, 404, 'not found');
+}
+
+/** A game origin's path, decoded and refused when it holds `.` or `..`, a hidden file, a backslash or a NUL. */
+export function servedPath(url: URL): string | null {
+  let path: string;
+  try {
+    path = decodeURIComponent(url.pathname);
+  } catch {
+    return null;
+  }
+  return path.includes('\0') || path.includes('\\') || /(^|\/)\./.test(path) ? null : path;
 }

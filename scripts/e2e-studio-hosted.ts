@@ -10,6 +10,7 @@
 // cannot play the game's frames, nor stand for Safari, whose WebKit keeps the partitioned cookie (macOS: run here).
 // Usage: tsx scripts/e2e-studio-hosted.ts [--browser=chromium|firefox|webkit] [--https]. Exit 0 / 1.
 import { execFileSync } from 'node:child_process';
+import { sign, verify } from 'node:crypto';
 import { cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import { createServer as createHttpsServer } from 'node:https';
 import { createServer } from 'node:net';
@@ -32,12 +33,14 @@ import { Leases } from '../studio-server/src/server/leases';
 import { Presence } from '../studio-server/src/server/live';
 import { Play } from '../studio-server/src/server/play';
 import { HOSTED_SOLVE_MS } from '../studio-server/src/ops/diagnose';
+import { Builds, signedBytes } from '../studio-server/src/server/builds';
 import { Health, judgeBy } from '../studio-server/src/server/health';
 import { Previews } from '../studio-server/src/server/previews';
 import { ServiceLease } from '../studio-server/src/server/service-lease';
 import { localDiagnose, localPreview, localValidate } from '../studio-server/src/worker/local';
 import type { SolveData } from '../tools/studio/types';
-import { packSnapshot } from '../studio-server/src/worker/snapshot';
+import { newJobKeys, privateKeyOf, publicKeyOf } from '../studio-server/src/worker/job';
+import { packable, packFiles, packSnapshot } from '../studio-server/src/worker/snapshot';
 import { TestOp } from '../tests/fixtures/oidc-op';
 
 const ROOT = join(import.meta.dirname, '..');
@@ -136,6 +139,28 @@ const health = new Health({
   }),
 });
 journal.events.on('confirmed', () => void health.schedule());
+// The published builds (main.ts), built in the worker's child here and signed with a key made for the run.
+const buildKeys = newJobKeys();
+const builds = new Builds({
+  db,
+  blobs: fsBlobStore(join(tmp, 'blobs')),
+  publicDir: join(ROOT, 'public'),
+  game: 'demo',
+  studioOrigin: studioUrl,
+  assetsVersion: () => 'e2e',
+  snapshot: () =>
+    server.exclusive(async () => ({
+      epoch: await journal.epoch(),
+      rev: await journal.revision(),
+      bytes: packSnapshot(gameDir),
+    })),
+  snapshotAt: async (rev) => packFiles(await journal.filesAt(rev, (p) => packable(p))),
+  epoch: () => journal.epoch(),
+  build: (bytes, params) => localPreview(bytes, params),
+  judge: (epoch, rev, bytes) => health.judgeSnapshot(epoch, rev, bytes),
+  keyId: 'e2e',
+  sign: (bytes) => sign(null, bytes, privateKeyOf(buildKeys.privatePem)).toString('base64url'),
+});
 const server = studioServer({
   studio: createStudio({
     gameDir,
@@ -155,6 +180,7 @@ const server = studioServer({
   presence: new Presence(),
   previews,
   health,
+  builds,
   play: {
     playUrl,
     handler: new Play({
@@ -163,7 +189,8 @@ const server = studioServer({
       publicUrl: studioUrl,
       playUrl,
       idleMs: gate.idleMs,
-      content: (req, res, url) => previews.handle(req, res, url),
+      content: (req, res, url) =>
+        /^\/play(\/|$)/.test(url.pathname) ? builds.handle(req, res, url) : previews.handle(req, res, url),
     }),
   },
   client: new StudioClient({ clientDir: CLIENT, publicDir: join(ROOT, 'public'), publicUrl: studioUrl, playUrl }),
@@ -540,6 +567,26 @@ try {
     fresh = await marked(inPlay);
   }
   check('Restart, confirmed, starts a new game', fresh === 0);
+  // 6c. A published build (G6): from the Play tab, numbered, its manifest signed; served at /play/<n>/.
+  await page.getByRole('tab', { name: 'Play' }).click();
+  await page.getByRole('button', { name: 'Publish this revision' }).click();
+  await page.locator('.builds li[data-build="1"]').waitFor({ timeout: 120_000 });
+  const listed = await page.locator('.builds li[data-build="1"]').innerText();
+  const got = (await page.evaluate(async () => (await (await fetch('/api/builds/1')).json()) as unknown)) as {
+    signed: string;
+    signature: string;
+  };
+  check(
+    'a build is published from the Play tab, its manifest signed by the Studio',
+    /#1 · revision \d+/.test(listed) &&
+      verify(null, signedBytes(got.signed), publicKeyOf(buildKeys.publicPem), Buffer.from(got.signature, 'base64url')),
+    listed.replace(/\s+/g, ' '),
+  );
+  const builtPage = await (await page.locator('iframe.playframe').elementHandle())
+    ?.contentFrame()
+    .then((f) => f?.evaluate(async () => (await fetch('/play/1/')).status));
+  check('the game origin serves the build at /play/1/ to a game session', builtPage === 200, `status ${builtPage}`);
+
   // 7. The logout ends the game's session too.
   await page.evaluate(async () => {
     await fetch('/auth/logout', {

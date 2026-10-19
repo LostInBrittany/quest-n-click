@@ -392,6 +392,11 @@ describe('a hosted Studio runs the game only in the worker', () => {
       expect(html).toContain('<meta name="web-scumm-studio-origin" content="https://studio.example"');
       expect(html).toMatch(/src="\/preview\/4\/assets\/index-[\w-]+\.js"/);
       expect([...files.keys()].every((k) => !k.startsWith('/') && !k.includes('..'))).toBe(true);
+      // A published build (4.2.2 PR 5): the player's game under /play/<n>/, without the Studio's origin.
+      const played = (await ex.preview(packSnapshot(game), { ...params, play: 2 }, { epoch: 'e1' })).get('index.html')!;
+      expect(played.toString()).toMatch(/src="\/play\/2\/assets\/index-[\w-]+\.js"/);
+      expect(played.toString()).not.toContain('web-scumm-studio-origin');
+      await expect(ex.preview(packSnapshot(game), { ...params, play: 0 }, { epoch: 'e1' })).rejects.toThrow();
       // Not kept like a validation: the same snapshot is built again when asked.
       const before = mem.snapshots();
       await ex.preview(packSnapshot(game), params, { epoch: 'e1' });

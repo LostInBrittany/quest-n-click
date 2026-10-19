@@ -21,6 +21,7 @@ import type { Role } from './auth/store';
 import type { Leases } from './leases';
 import { LiveHub, type Presence, serveEvents } from './live';
 import { forPlay, type Play, playTicketBody } from './play';
+import type { Builds } from './builds';
 import type { Health } from './health';
 import type { Previews } from './previews';
 import type { ServiceLease } from './service-lease';
@@ -110,6 +111,8 @@ export interface StudioServerOptions {
   health?: Health;
   /** The studio keeps each member's own undo (4.2.2 PR 4, ops/undo.ts): undo and redo are served on a shared Studio. */
   personalUndo?: boolean;
+  /** The published builds (4.2.2 PR 5): `/api/builds`. */
+  builds?: Builds;
   /** The game's origin (plan §6.1): every request whose `Host` is `playUrl`'s goes there, and nothing else does. */
   play?: { handler: Play; playUrl: string };
   /** The Studio's page, its files and the game's images and sounds (PR 7, client.ts). */
@@ -313,6 +316,32 @@ export function studioServer(o: StudioServerOptions): StudioHttpServer {
         if (!o.play || !principal?.session) throw new StudioError('the game is opened from a browser session', 403);
         const path = playTicketBody(await readJson(req));
         return send(res, 200, { url: await o.play.handler.ticket(principal.user.id, principal.session.idHash, path) });
+      }
+      // The published builds (4.2.2, G6): listed and read by a reviewer, published by a dev, rebuilt by an owner.
+      if (sub === '/builds' || sub.startsWith('/builds/')) {
+        if (!o.builds) throw new StudioError("published builds are a hosted Studio's", 404);
+        if (req.method === 'GET' && sub === '/builds') return send(res, 200, { builds: await o.builds.list() });
+        const one = /^\/builds\/(\d{1,9})$/.exec(sub);
+        if (req.method === 'GET' && one) {
+          const b = await o.builds.get(Number(one[1]));
+          if (!b) throw new StudioError(`no build ${one[1]}`, 404);
+          return send(res, 200, b);
+        }
+        if (!o.lease.held)
+          return send(
+            res,
+            503,
+            { error: 'this instance does not serve writes yet; try again' },
+            { 'retry-after': '2' },
+          );
+        const by = principal ? (principal.user.name ?? principal.user.email ?? principal.user.id) : 'local';
+        if (req.method === 'POST' && sub === '/builds') return send(res, 200, await o.builds.publish(by));
+        const again = /^\/builds\/(\d{1,9})\/rebuild$/.exec(sub);
+        if (req.method === 'POST' && again) {
+          if (principal && o.auth) o.auth.gate.require(principal, 'owner');
+          return send(res, 200, await o.builds.rebuild(Number(again[1])));
+        }
+        throw new StudioError('not found', 404);
       }
       // A bisection asked for (4.2.2, G4): a dev's, between a passing revision and a failing one.
       if (req.method === 'POST' && sub === '/health/bisect') {

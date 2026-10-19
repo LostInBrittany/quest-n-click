@@ -39,6 +39,11 @@ export interface PlayOptions {
   idleMs: number;
   /** R: how long a Studio session stands without the provider confirming it (the gate's, 15 min). */
   graceMs?: number;
+  /**
+   * The paths served to anyone, without a game session (4.2.2: the published builds, when the owner chose so).
+   * Default none.
+   */
+  open?: (path: string) => boolean;
   /** What the game's origin serves to a live game session (4.2.2: the revisions' previews, previews.ts). */
   content: (req: IncomingMessage, res: ServerResponse, url: URL) => void | Promise<void>;
   now?: () => number;
@@ -108,6 +113,11 @@ export class Play {
         }),
       );
       return void res.end();
+    }
+    if (this.o.open?.(url.pathname)) {
+      // The same headers as behind the session (framed by the Studio only): a public build is opened, not embedded.
+      for (const [k, v] of Object.entries(this.headers())) res.setHeader(k, v);
+      return void (await this.o.content(req, res, url));
     }
     const c = cookies(req)[PLAY_COOKIE];
     const [p] = c ? await this.o.db.all('SELECT * FROM studio_play_sessions WHERE id_hash = $1', [hash(c)]) : [];

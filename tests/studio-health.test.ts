@@ -212,6 +212,17 @@ describe("the game's health by revision", () => {
     }
   });
 
+  it("judges a revision from its snapshot when asked (a published build's), once, and keeps no unknown", async () => {
+    const h = history({ k: 4, unknownAt: 6 });
+    await h.health.judgeSnapshot('e1', 2, packFiles([{ path: 'game.ts', bytes: Buffer.from('rev 2') }]));
+    await h.health.judgeSnapshot('e1', 2, packFiles([{ path: 'game.ts', bytes: Buffer.from('rev 2') }]));
+    expect(h.validated).toEqual([2]);
+    await h.health.judgeSnapshot('e1', 6, packFiles([{ path: 'game.ts', bytes: Buffer.from('rev 6') }]));
+    expect(
+      (await db.all('SELECT rev, ok FROM studio_health ORDER BY rev')).map((r) => [Number(r.rev), Number(r.ok)]),
+    ).toEqual([[2, 1]]);
+  });
+
   it('runs a bisection asked for between a passing and a failing revision, and checks its ends', async () => {
     const h = history({ k: 6 });
     await h.health.schedule();

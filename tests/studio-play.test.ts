@@ -106,6 +106,8 @@ beforeAll(async () => {
     playUrl,
     idleMs: gate.idleMs,
     now: () => clock,
+    // The owner chose public builds (4.2.2, D42): those paths only are served without a session.
+    open: (path) => path.startsWith('/play/'),
     content: (req, res) => {
       res.writeHead(200, { 'content-type': 'text/plain' });
       res.end(`game ${req.url}`);
@@ -157,6 +159,15 @@ describe('the game origin', () => {
     const g = await open(await ticket('lea'));
     const api = await game(g.cookie, '/api/game');
     expect(await api.text()).toBe('game /api/game');
+  });
+
+  it('serves a public build to anyone, framed by the Studio only, and nothing else of the origin', async () => {
+    const r = await game(undefined, '/play/1/');
+    expect(r.status).toBe(200);
+    expect(await r.text()).toBe('game /play/1/');
+    expect(r.headers.get('content-security-policy')).toBe(`frame-ancestors ${studioUrl}`);
+    expect(r.headers.get('set-cookie')).toBeNull();
+    for (const p of ['/preview/1/', '/', '/plays/1/']) expect((await game(undefined, p)).status, p).toBe(401);
   });
 
   it('a ticket becomes a partitioned game session, framed by the Studio only; used twice it is gone', async () => {
