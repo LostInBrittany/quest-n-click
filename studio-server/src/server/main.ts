@@ -27,7 +27,7 @@ import { AuthStore, Sealer } from './auth/store';
 import { readJson, send, studioServer } from './http';
 import { openPostgresDb } from './postgres';
 import { newJobKeys } from '../worker/job';
-import { packable, packFiles, packSnapshot } from '../worker/snapshot';
+import { filesOf, packable, packAssets, packFiles, packSnapshot } from '../worker/snapshot';
 import { assetsVersion } from '../../../tools/vite/plugins';
 import { Leases } from './leases';
 import { Presence } from './live';
@@ -37,6 +37,7 @@ import { HOSTED_SOLVE_MS } from '../ops/diagnose';
 import type { SolveData } from '../../../tools/studio/types';
 import { PersonalUndo } from '../ops/undo';
 import { Builds, PUBLIC_BUILD_PATH } from './builds';
+import { PreparedAssets } from './prepared';
 import { Health, judgeBy } from './health';
 import { Previews } from './previews';
 import { remoteExecutor } from './remote-executor';
@@ -304,6 +305,40 @@ async function main(argv: string[]): Promise<number> {
   // The engine's folder: the built Studio and the prepared assets are found beside it unless configured.
   const engineRoot = fileURLToPath(new URL('../../..', import.meta.url));
   const publicDir = resolve(config.publicDir ?? join(engineRoot, 'public'));
+  // The prepared assets (4.2.2 PR 6b, D43): `prepare` on the worker, under the member's exclusive lease; the latest set
+  // served before publicDir, written again to the instance's folder at start (its disk is ephemeral).
+  const prepared =
+    executor && hosted
+      ? new PreparedAssets({
+          db,
+          blobs,
+          dir: resolve(config.workDir, '.prepared'),
+          snapshot: () =>
+            server.exclusive(async () => {
+              await journal.reconcile();
+              return {
+                epoch: await journal.epoch(),
+                rev: await journal.revision(),
+                bytes: packAssets(filesOf(gameDir)),
+              };
+            }),
+          prepare: (bytes, at) => executor!.prepare(bytes, at, config.game),
+          writeManifest: async (manifest) => {
+            await studio.writeFiles('prepare assets', [{ path: 'assets.gen.json', after: manifest }], { undo: false });
+          },
+          exclusive: async (fn) => {
+            const who = operationContext.getStore()?.claimant;
+            if (!who || !leases) return fn();
+            await leases.take(who, ['*']);
+            try {
+              return await fn();
+            } finally {
+              await leases.release(who.userId, ['*']);
+            }
+          },
+        })
+      : undefined;
+  await prepared?.start();
   // The page: configured, else the one the package was built with (web-scumm-studio-server), else this checkout's.
   const clientDir = resolve(
     config.clientDir ?? process.env.WEB_SCUMM_STUDIO_CLIENT ?? join(engineRoot, '.cache', 'studio-client'),
@@ -311,7 +346,13 @@ async function main(argv: string[]): Promise<number> {
   // The Studio's page (PR 7): required with OIDC, where it is the only way in; optional on the loopback.
   let client: StudioClient | undefined;
   if (existsSync(join(clientDir, 'studio.html')))
-    client = new StudioClient({ clientDir, publicDir, publicUrl: config.publicUrl, playUrl: config.playUrl });
+    client = new StudioClient({
+      clientDir,
+      publicDir,
+      publicUrl: config.publicUrl,
+      playUrl: config.playUrl,
+      prepared: () => prepared?.folder() ?? null,
+    });
   else if (config.oidc)
     throw new ConfigError(`${clientDir} has no studio.html: build the Studio's page first (npm run studio-client)`);
   // The game's origin (plan §6.1): the revisions' previews, built by the worker, behind a game session (4.2.2 PR 2).
@@ -333,7 +374,8 @@ async function main(argv: string[]): Promise<number> {
               return { epoch: await journal.epoch(), rev: await journal.revision(), bytes: packSnapshot(gameDir) };
             }),
           build: (bytes, params, at) => executor!.preview(bytes, params, at),
-          assetsVersion: () => (version ??= assetsVersion(join(publicDir, 'assets'))),
+          assetsVersion: () => prepared?.version() ?? (version ??= assetsVersion(join(publicDir, 'assets'))),
+          prepared: () => prepared?.folder() ?? null,
           log: (line) => console.log(JSON.stringify(line)),
         })
       : undefined;
@@ -378,7 +420,8 @@ async function main(argv: string[]): Promise<number> {
           publicDir,
           game: config.game,
           studioOrigin: config.publicUrl,
-          assetsVersion: () => (version ??= assetsVersion(join(publicDir, 'assets'))),
+          assetsVersion: () => prepared?.version() ?? (version ??= assetsVersion(join(publicDir, 'assets'))),
+          prepared: () => prepared?.folder() ?? null,
           snapshot: () =>
             server.exclusive(async () => {
               await journal.reconcile();
@@ -426,6 +469,7 @@ async function main(argv: string[]): Promise<number> {
     health,
     personalUndo: !!personalUndo,
     builds,
+    prepared,
     play,
     client,
   });

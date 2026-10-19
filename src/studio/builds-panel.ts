@@ -108,3 +108,40 @@ export function buildsPanel(o: { owner: boolean; dev: boolean }): HTMLElement {
     list,
   );
 }
+
+/**
+ * Preparing the game's images and sounds on the processing worker (4.2.2, D43): a dev's, under the project's
+ * exclusive lease (no one else writes meanwhile). The sheets' cutting and the uploads stay on a local Studio (4.2.3).
+ */
+export function assetsPanel(): HTMLElement {
+  const status = h('span', { class: 'muted small' });
+  const go = h('button', { type: 'button' }, 'Prepare assets');
+  go.onclick = async () => {
+    go.disabled = true;
+    status.textContent = 'preparing…';
+    try {
+      const r = await json<{ id: number; rev: number; files: number }>('assets/prepare', POST);
+      status.textContent = `prepared from revision ${r.rev}: ${r.files} files`;
+      toast(`Assets prepared (${r.files} files)`, 'ok');
+    } catch (e) {
+      status.textContent = '';
+      toast((e as Error).message, 'error');
+    } finally {
+      go.disabled = false;
+    }
+  };
+  return h(
+    'div',
+    { class: 'panel assets-panel' },
+    h('h3', null, 'Assets'),
+    h(
+      'p',
+      { class: 'muted small' },
+      "Prepares the game's images and sounds on the server (a few seconds; nobody else writes meanwhile). ",
+      'Cutting sprite sheets and uploading files stay on a local Studio for now.',
+    ),
+    go,
+    ' ',
+    status,
+  );
+}

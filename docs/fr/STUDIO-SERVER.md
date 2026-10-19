@@ -258,8 +258,12 @@ OIDC, avec SQLite et un dossier pour les contenus, sur le loopback seulement.
 - La prévisualisation de chaque révision est gardée (environ 1 Mo pour le jeu d'exemple : la base `/preview/<rev>/`
   est écrite dans la page et son code, si bien que peu de fichiers sont partagés d'une révision à l'autre) jusqu'au
   ramassage d'une PR ultérieure de 4.2.2.
-- L'onglet Assets (uploads, planches, `prepare`) n'est pas encore sur un Studio hébergé : les images et les sons
-  préparés viennent avec le déploiement (`publicDir`), et se changent sur un Studio local.
+- L'onglet Assets n'est pas encore sur un Studio hébergé (ses uploads et ses planches : 4.2.3). Le bouton **Prepare
+  assets** de l'onglet Jouer (un dev, 4.2.2) lance `prepare` sur l'application de traitement à partir de l'art et
+  des sons de la tête, sous le bail exclusif du projet (personne n'écrit entre-temps ; le pan d'un autre le refuse,
+  avec son nom) : le jeu préparé est gardé par le Studio et servi avant `publicDir`, et le `assets.gen.json` du jeu
+  est écrit en une opération. Un jeu dont l'art et les sons dépassent environ 31 Mio (en base64) se prépare sur un
+  Studio local.
 - Un cadre de jeu resté inactif au-delà de sa session de 15 min ne montre plus rien de neuf : « Reload view » (ou
   l'onglet Jouer) le rouvre.
 - Les captures ne sont pas disponibles sur un Studio hébergé.

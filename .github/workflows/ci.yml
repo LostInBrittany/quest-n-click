@@ -354,6 +354,16 @@ jobs:
       - if: env.RUN == 'true'
         run: for i in 1 2 3; do (npm ci) && break; [ "$i" = 3 ] && exit 1; echo "retry $i"; sleep 15; done
         timeout-minutes: 20
+      # The asset tools (4.2.2 PR 6b): "Prepare assets" runs them in the worker's child of the e2e stack.
+      - if: env.RUN == 'true'
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7
+        with:
+          python-version: '3.12'
+      - if: env.RUN == 'true'
+        run: for i in 1 2 3; do (pip install -r requirements.txt) && break; [ "$i" = 3 ] && exit 1; echo "retry $i"; sleep 15; done
+        timeout-minutes: 20
+      - if: env.RUN == 'true'
+        run: bash scripts/ci-ffmpeg.sh
       - if: env.RUN == 'true'
         name: S3 (SeaweedFS)
         run: |

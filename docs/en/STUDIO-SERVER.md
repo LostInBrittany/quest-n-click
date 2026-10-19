@@ -247,8 +247,11 @@ SQLite and a folder for the contents, on the loopback only.
   `studio-preview` pass does). A bisection asks for up to two jobs per revision it judges.
 - Each revision's preview is kept (about 1 MB for the sample game: the base `/preview/<rev>/` is written into the
   page and its code, so few files are shared between revisions) until the collection of a later 4.2.2 PR.
-- The Assets tab (uploads, sprite sheets, `prepare`) is not on a hosted Studio yet: the prepared images and sounds
-  come with the deployment (`publicDir`), and are changed on a local Studio.
+- The Assets tab is not on a hosted Studio yet (its uploads and sprite sheets: 4.2.3). The Play tab's **Prepare
+  assets** (a dev, 4.2.2) runs `prepare` on the worker from the head's art and sounds, under the project's exclusive
+  lease (nobody writes meanwhile; someone else's span refuses it, with their name): the prepared set is kept by the
+  Studio and served before `publicDir`, and the game's `assets.gen.json` is written as one operation. A game whose art
+  and sounds pass about 31 MiB (in base64) is prepared on a local Studio.
 - A game frame left idle past its 15 min session shows nothing new: "Reload view" (or the Play tab) opens it again.
 - Captures are not available on a hosted Studio.
 - The Play tab shows the game with its DEV panel; the state inspector, the rule explainer and the replays beside it

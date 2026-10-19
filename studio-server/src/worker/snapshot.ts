@@ -1,6 +1,7 @@
 // What the worker needs of a game to run it (4.2.1, ADR 0028): its sources and data, never its art or sound (the
 // validator reads `assets.gen.json`, not the pictures). One JSON document, its sha256 bound into the job. A game that
-// imports files outside its own folder cannot run on a hosted Studio (they are not in the snapshot).
+// imports files outside its own folder cannot run on a hosted Studio (they are not in the snapshot). A snapshot for
+// `prepare` (4.2.2 PR 6b, version 2) carries the game's art and sounds too, base64, as the asset tools read them.
 import { mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join, relative, sep } from 'node:path';
 
@@ -8,6 +9,8 @@ const SKIP_DIR = /^(art|audio|private|playtests|tests)$/;
 const TEXT = /\.(ts|mts|cts|tsx|js|mjs|cjs|jsx|json|md)$/;
 const MAX_FILES = 5_000;
 const MAX_BYTES = 32 * 1024 * 1024;
+/** The art and sounds a `prepare` reads, under `art/` and `audio/`. */
+const MEDIA = /^(art|audio)\/.+\.(png|jpe?g|webp|gif|mp3|ogg|wav|flac|m4a|mp4|webm|mov)$/i;
 
 /** Whether a file of the game (its path with `/`) goes into a snapshot: the rules a folder is packed by. */
 export function packable(path: string, o: { playtests?: boolean } = {}): boolean {
@@ -68,16 +71,58 @@ export function packSnapshot(dir: string, o: { playtests?: boolean } = {}): Buff
 /** Writes a snapshot into an empty folder; refuses paths that leave it, too many files, too many bytes. */
 export function unpackSnapshot(bytes: Buffer, dir: string): number {
   if (bytes.length > MAX_BYTES) throw new Error('the snapshot is too large');
-  const s = JSON.parse(bytes.toString('utf8')) as { v: number; files: { path: string; text: string }[] };
-  if (s.v !== 1 || !Array.isArray(s.files) || s.files.length > MAX_FILES) throw new Error('not a snapshot');
+  const s = JSON.parse(bytes.toString('utf8')) as {
+    v: number;
+    files: { path: string; text?: string; b64?: string }[];
+  };
+  if ((s.v !== 1 && s.v !== 2) || !Array.isArray(s.files) || s.files.length > MAX_FILES)
+    throw new Error('not a snapshot');
   for (const f of s.files) {
-    if (typeof f.path !== 'string' || typeof f.text !== 'string' || !TEXT.test(f.path))
-      throw new Error('not a snapshot');
+    const text = typeof f.text === 'string' && TEXT.test(f.path);
+    const media = s.v === 2 && typeof f.b64 === 'string' && MEDIA.test(f.path);
+    if (typeof f.path !== 'string' || !(text || media)) throw new Error('not a snapshot');
     if (f.path.startsWith('/') || f.path.split('/').some((x) => x === '..' || x === '' || x.startsWith('.')))
       throw new Error(`a snapshot path leaves its folder: ${f.path}`);
     const target = join(dir, ...f.path.split('/'));
     mkdirSync(dirname(target), { recursive: true });
-    writeFileSync(target, f.text);
+    writeFileSync(target, text ? f.text! : Buffer.from(f.b64!, 'base64'));
   }
   return s.files.length;
+}
+
+/**
+ * A snapshot for `prepare` (version 2): the sources and data, and the art and sounds under `art/` and `audio/`, from
+ * files (the journal's head). Bounded as any snapshot: a game too large is prepared on a local Studio.
+ */
+export function packAssets(files: { path: string; bytes: Buffer }[]): Buffer {
+  const out: { path: string; text?: string; b64?: string }[] = [];
+  let bytes = 0;
+  for (const f of files) {
+    if (f.path.split('/').some((p) => p.startsWith('.') || p === 'node_modules' || p === '..' || p === '')) continue;
+    if (MEDIA.test(f.path)) out.push({ path: f.path, b64: f.bytes.toString('base64') });
+    else if (packable(f.path)) out.push({ path: f.path, text: f.bytes.toString('utf8') });
+    else continue;
+    bytes += (out.at(-1)!.b64 ?? out.at(-1)!.text!).length;
+    if (out.length > MAX_FILES || bytes > MAX_BYTES - 1024 * 1024)
+      throw new Error(
+        `the game's art and sounds are too large to prepare on the processing worker (${MAX_BYTES >> 20} MiB at most): prepare them on a local Studio`,
+      );
+  }
+  out.sort((a, b) => (a.path < b.path ? -1 : 1));
+  return Buffer.from(JSON.stringify({ v: 2, files: out }));
+}
+
+/** A folder's files for `packAssets` (the instance's folder, the head: its sources, data, art and sounds). */
+export function filesOf(dir: string): { path: string; bytes: Buffer }[] {
+  const out: { path: string; bytes: Buffer }[] = [];
+  const walk = (d: string) => {
+    for (const e of readdirSync(d, { withFileTypes: true })) {
+      if (e.name.startsWith('.') || e.name === 'node_modules') continue;
+      const p = join(d, e.name);
+      if (e.isDirectory()) walk(p);
+      else if (e.isFile()) out.push({ path: relative(dir, p).split(sep).join('/'), bytes: readFileSync(p) });
+    }
+  };
+  walk(dir);
+  return out;
 }

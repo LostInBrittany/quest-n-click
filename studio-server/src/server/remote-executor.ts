@@ -15,6 +15,7 @@ import { PreviewBuildFailed, type PreviewParams, previewFiles } from '../worker/
 import { packSnapshot } from '../worker/snapshot';
 import type { DiagnoseKind } from '../ops/diagnose';
 import { StudioError } from '../ops/errors';
+import { type Prepared, preparedShape } from '../worker/prepare';
 import type { S3 } from './s3';
 
 export interface RemoteExecutorOptions {
@@ -117,6 +118,15 @@ export function remoteExecutor(o: RemoteExecutorOptions) {
   return {
     validate: (dir: string): Promise<ValidateResult> => validateSnapshot(packSnapshot(dir)),
     validateSnapshot,
+    /** The asset tools' `prepare` (4.2.2 PR 6b) on a version 2 snapshot: the prepared files and the new manifest. */
+    async prepare(snapshot: Buffer, at: { epoch: string; rev: number }, game: string): Promise<Prepared> {
+      const v = await run('prepare', snapshot, { game }, at);
+      if (v.timedOut) throw new StudioError(`${v.failed}: try again, or prepare on a local Studio`, 504);
+      if (v.failed) throw new StudioError(v.failed, 422);
+      const p = preparedShape(v.data);
+      if (!p) throw new Error('the processing worker result does not answer this job');
+      return p;
+    },
     /** The game module as data, for the Studio's reads (functions dropped, as `importInChild` gives it). */
     async load(dir: string): Promise<unknown> {
       const v = await run('load', packSnapshot(dir));

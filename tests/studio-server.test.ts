@@ -132,6 +132,32 @@ describe('the server over HTTP (SQLite, files)', () => {
     expect(await (await fetch(`${base}/readyz`)).json()).toEqual({ ok: true, writes: 'served' });
   });
 
+  it('lists and prepares the assets when the worker prepares them (4.2.2)', async () => {
+    expect((await fetch(`${base}/api/assets/prepared`)).status).toBe(404);
+    const calls: string[] = [];
+    const prepared = {
+      list: async () => (calls.push('list'), [{ id: 1 }]),
+      prepare: async (by: string) => (calls.push(`prepare ${by}`), { id: 2, rev: 3, files: 9 }),
+    };
+    const studio = createStudio({ gameDir: game, root: tmp, journal, importFresh: importInChild, author: 'test' });
+    const s2 = studioServer({ studio, journal, db, lease, log: () => {}, prepared: prepared as never });
+    await new Promise<void>((ok) => s2.listen(0, '127.0.0.1', ok));
+    const api = `http://127.0.0.1:${(s2.address() as AddressInfo).port}/api`;
+    try {
+      expect(await (await fetch(`${api}/assets/prepared`)).json()).toEqual({ runs: [{ id: 1 }] });
+      const r = await fetch(`${api}/assets/prepare`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: '{}',
+      });
+      expect(await r.json()).toEqual({ id: 2, rev: 3, files: 9 });
+      expect((await fetch(`${api}/assets/prepare`)).status).toBe(404);
+      expect(calls).toEqual(['list', 'prepare local']);
+    } finally {
+      s2.close();
+    }
+  });
+
   it('lists, reads, publishes and rebuilds builds when they are served (4.2.2)', async () => {
     expect((await fetch(`${base}/api/builds`)).status).toBe(404);
     const calls: string[] = [];

@@ -31,6 +31,10 @@ const WRITERS: Record<string, string> = {
     "elsewhere: a job's snapshot, unpacked into the worker's fresh job folder in .cache/jobs/",
   'studio-server/src/worker/main.ts':
     "elsewhere: the worker's fresh job folders in .cache/jobs/, removed after each job",
+  'studio-server/src/worker/prepare.ts':
+    "elsewhere: the asset tools' work folder (their refs, their output) inside the job's folder in .cache/jobs/",
+  'studio-server/src/server/prepared.ts':
+    "elsewhere: the latest prepared assets written again under the instance's work folder (.prepared/<id>/)",
   'studio-server/src/worker/local.ts':
     "elsewhere: a preview's fresh job folder in .cache/jobs/ on this machine (loopback, tests), removed after the build",
   'studio-server/src/worker/child.ts':

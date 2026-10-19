@@ -152,7 +152,9 @@ export function createWorker(o: WorkerOptions) {
       unpackSnapshot(bytes, dir);
       const timeoutMs = Math.min(Number(job.params.timeoutMs) || DEFAULT_TIMEOUT_MS, MAX_TIMEOUT_MS);
       const t0 = Date.now();
-      const r = await runChild(dir, timeoutMs, job.kind, undefined, job.params);
+      // A `prepare` finds python3 and ffmpeg on the worker's own PATH (not a secret; the rest stays empty).
+      const params = job.kind === 'prepare' ? { ...job.params, systemPath: process.env.PATH ?? '' } : job.params;
+      const r = await runChild(dir, timeoutMs, job.kind, undefined, params);
       if (r.pid && (await survivors(r.pid))) {
         recycle = true;
         log('worker-survivor', { job: job.id });
@@ -177,7 +179,10 @@ export function createWorker(o: WorkerOptions) {
         const files = previewFiles((parsed as { files?: unknown } | undefined)?.files);
         if (files) result.files = files;
         else result.failed = 'the preview build gave no usable files';
-      } else if (!result.failed && (job.kind === 'lint' || job.kind === 'solve' || job.kind === 'playtests')) {
+      } else if (
+        !result.failed &&
+        (job.kind === 'lint' || job.kind === 'solve' || job.kind === 'playtests' || job.kind === 'prepare')
+      ) {
         const { data, error, refused } = (parsed ?? {}) as { data?: unknown; error?: unknown; refused?: unknown };
         if (data && typeof data === 'object') result.data = data;
         else result.failed = typeof error === 'string' ? error.slice(0, 2_000) : 'the diagnostic gave no answer';
