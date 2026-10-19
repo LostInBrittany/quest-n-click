@@ -180,6 +180,18 @@ if (tls) {
 await previews.schedule();
 await health.schedule();
 
+/** A frame being replaced may never answer an evaluation (Firefox): bounded, then retried by the caller's loop. */
+const within = <T>(p: Promise<T> | undefined, ms: number): Promise<T | undefined> =>
+  p
+    ? Promise.race([p, new Promise<undefined>((ok) => setTimeout(() => ok(undefined), ms))])
+    : Promise.resolve(undefined);
+// The whole run: a step that hangs fails the run with what was seen, rather than the CI job's own deadline.
+setTimeout(() => {
+  console.log('✖ the run did not end within 8 min');
+  console.log(trace.slice(-80).join('\n'));
+  process.exit(1);
+}, 8 * 60_000).unref();
+
 const steps: [string, boolean, string?][] = [];
 const check = (name: string, ok: boolean, detail?: string) => {
   steps.push([name, ok, detail]);
@@ -273,24 +285,26 @@ try {
       method: 'PUT',
       headers: { 'content-type': 'application/json', 'x-studio-request': '1' },
       body: JSON.stringify(layout),
+      signal: AbortSignal.timeout(60_000),
     });
     return w.status;
   });
-  await page.getByRole('button', { name: 'Reload view' }).click();
+  await page.getByRole('button', { name: 'Reload view' }).click({ timeout: 30_000 });
   let shown: unknown;
   for (let i = 0; i < 120; i++) {
     await page.waitForTimeout(250);
     const f = page.frames().find((x) => x.url().startsWith(playUrl) && x.url().includes('edit='));
-    shown = await f
-      ?.evaluate(
+    shown = await within(
+      f?.evaluate(
         () =>
           (
             window as unknown as {
               __game?: { engine: { layouts: Record<string, { entries?: Record<string, number[]> }> } };
             }
           ).__game?.engine.layouts.garden?.entries?.default,
-      )
-      .catch(() => undefined);
+      ),
+      2_000,
+    ).catch(() => undefined);
     if (JSON.stringify(shown) === '[123,321]') break;
   }
   check(
