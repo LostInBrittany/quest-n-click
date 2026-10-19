@@ -323,22 +323,29 @@ async function main(argv: string[]): Promise<number> {
               };
             }),
           prepare: (bytes, at) => executor!.prepare(bytes, at, config.game),
+          log: (line) => console.log(JSON.stringify(line)),
+          currentManifest: () =>
+            existsSync(join(gameDir, 'assets.gen.json'))
+              ? readFileSync(join(gameDir, 'assets.gen.json'), 'utf8')
+              : null,
           writeManifest: async (manifest) => {
             await studio.writeFiles('prepare assets', [{ path: 'assets.gen.json', after: manifest }], { undo: false });
           },
           exclusive: async (fn) => {
             const who = operationContext.getStore()?.claimant;
             if (!who || !leases) return fn();
-            await leases.take(who, ['*']);
+            // Given back only if this run took it (an owner may already hold the project).
+            const had = (await leases.list()).some((l) => l.span === '*' && l.holder === who.userId);
+            if (!had) await leases.take(who, ['*']);
             try {
               return await fn();
             } finally {
-              await leases.release(who.userId, ['*']);
+              if (!had) await leases.release(who.userId, ['*']);
             }
           },
         })
       : undefined;
-  await prepared?.start();
+  void prepared?.start();
   // The page: configured, else the one the package was built with (web-scumm-studio-server), else this checkout's.
   const clientDir = resolve(
     config.clientDir ?? process.env.WEB_SCUMM_STUDIO_CLIENT ?? join(engineRoot, '.cache', 'studio-client'),

@@ -152,17 +152,21 @@ const preparedAssets = new PreparedAssets({
       bytes: packAssets(filesOf(gameDir)),
     })),
   prepare: (bytes) => localPrepare(bytes, 'demo'),
+  currentManifest: () =>
+    existsSync(join(gameDir, 'assets.gen.json')) ? readFileSync(join(gameDir, 'assets.gen.json'), 'utf8') : null,
   writeManifest: async (manifest) => {
     await studio.writeFiles('prepare assets', [{ path: 'assets.gen.json', after: manifest }], { undo: false });
   },
   exclusive: async (fn) => {
     const who = operationContext.getStore()?.claimant;
     if (!who) return fn();
-    await leases.take(who, ['*']);
+    // Given back only if this run took it (an owner may already hold the project).
+    const had = (await leases.list()).some((l) => l.span === '*' && l.holder === who.userId);
+    if (!had) await leases.take(who, ['*']);
     try {
       return await fn();
     } finally {
-      await leases.release(who.userId, ['*']);
+      if (!had) await leases.release(who.userId, ['*']);
     }
   },
 });

@@ -139,7 +139,9 @@ export class StudioClient {
   serveMedia(path: string, res: ServerResponse): void {
     const type = MEDIA[extname(path).toLowerCase()];
     if (!type) return this.notFound(res);
-    const prepared = this.o.prepared?.();
+    const p = this.o.prepared?.();
+    // Compared real path to real path (the work folder may sit behind a link: macOS's /var).
+    const prepared = p && existsSync(p) ? realpathSync.native(p) : null;
     const root = prepared && existsSync(join(prepared, ...path.slice(1).split('/'))) ? prepared : this.publicDir;
     this.file(join(root, ...path.slice(1).split('/')), root, res, type, {
       'cache-control': 'private, max-age=300',

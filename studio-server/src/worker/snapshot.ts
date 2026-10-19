@@ -102,7 +102,7 @@ export function packAssets(files: { path: string; bytes: Buffer }[]): Buffer {
     if (MEDIA.test(f.path)) out.push({ path: f.path, b64: f.bytes.toString('base64') });
     else if (packable(f.path)) out.push({ path: f.path, text: f.bytes.toString('utf8') });
     else continue;
-    bytes += (out.at(-1)!.b64 ?? out.at(-1)!.text!).length;
+    bytes += Buffer.byteLength(out.at(-1)!.b64 ?? out.at(-1)!.text!);
     if (out.length > MAX_FILES || bytes > MAX_BYTES - 1024 * 1024)
       throw new Error(
         `the game's art and sounds are too large to prepare on the processing worker (${MAX_BYTES >> 20} MiB at most): prepare them on a local Studio`,
@@ -112,15 +112,26 @@ export function packAssets(files: { path: string; bytes: Buffer }[]): Buffer {
   return Buffer.from(JSON.stringify({ v: 2, files: out }));
 }
 
-/** A folder's files for `packAssets` (the instance's folder, the head: its sources, data, art and sounds). */
+/**
+ * A folder's files for `packAssets` (the instance's folder, the head): only those it keeps (its sources, data, art and
+ * sounds), read as they are found, the walk stopped past the bound.
+ */
 export function filesOf(dir: string): { path: string; bytes: Buffer }[] {
   const out: { path: string; bytes: Buffer }[] = [];
+  let bytes = 0;
   const walk = (d: string) => {
     for (const e of readdirSync(d, { withFileTypes: true })) {
       if (e.name.startsWith('.') || e.name === 'node_modules') continue;
       const p = join(d, e.name);
+      const path = relative(dir, p).split(sep).join('/');
       if (e.isDirectory()) walk(p);
-      else if (e.isFile()) out.push({ path: relative(dir, p).split(sep).join('/'), bytes: readFileSync(p) });
+      else if (e.isFile() && (MEDIA.test(path) || packable(path))) {
+        const b = readFileSync(p);
+        bytes += b.length;
+        // Past the bound already (base64 makes it larger still): packAssets says so.
+        if (bytes > MAX_BYTES) return out.push({ path, bytes: b });
+        out.push({ path, bytes: b });
+      }
     }
   };
   walk(dir);

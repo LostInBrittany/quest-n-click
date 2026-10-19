@@ -137,7 +137,7 @@ export function assetsPanel(): HTMLElement {
     h(
       'p',
       { class: 'muted small' },
-      "Prepares the game's images and sounds on the server (a few seconds; nobody else writes meanwhile). ",
+      "Prepares the game's images and sounds on the server (seconds for a small game, 2 minutes at most; nobody else writes meanwhile). ",
       'Cutting sprite sheets and uploading files stay on a local Studio for now.',
     ),
     go,

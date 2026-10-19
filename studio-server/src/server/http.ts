@@ -323,7 +323,8 @@ export function studioServer(o: StudioServerOptions): StudioHttpServer {
       // The prepared assets (4.2.2, D43): listed by a reviewer, prepared by a dev on the worker, under their exclusive
       // lease (it waits for nobody's span: another's is a 423, with their name).
       if (sub === '/assets/prepared' || sub === '/assets/prepare') {
-        if (!o.prepared) throw new StudioError("preparing the assets on the worker is a hosted Studio's", 404);
+        if (!o.prepared)
+          throw new StudioError('preparing the assets needs a hosted Studio with its processing worker', 404);
         if (req.method === 'GET' && sub === '/assets/prepared')
           return send(res, 200, { runs: await o.prepared.list() });
         if (req.method !== 'POST' || sub !== '/assets/prepare') throw new StudioError('not found', 404);
@@ -334,9 +335,11 @@ export function studioServer(o: StudioServerOptions): StudioHttpServer {
             { error: 'this instance does not serve writes yet; try again' },
             { 'retry-after': '2' },
           );
-        const by = principal ? (principal.user.name ?? principal.user.email ?? principal.user.id) : 'local';
-        const claimant = principal ? { userId: principal.user.id, name: by } : undefined;
-        const r = await operationContext.run({ author: by, claimant }, () => o.prepared!.prepare(by));
+        // Named as any write is (its author: the email first), the claimant by their name.
+        const author = principal ? (principal.user.email ?? principal.user.name ?? principal.user.id) : 'local';
+        const name = principal ? (principal.user.name ?? author) : 'local';
+        const claimant = principal ? { userId: principal.user.id, name } : undefined;
+        const r = await operationContext.run({ author, claimant }, () => o.prepared!.prepare(name));
         return send(res, 200, r);
       }
       // The published builds (4.2.2, G6): listed and read by a reviewer, published by a dev, rebuilt by an owner.

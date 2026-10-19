@@ -250,8 +250,13 @@ SQLite and a folder for the contents, on the loopback only.
 - The Assets tab is not on a hosted Studio yet (its uploads and sprite sheets: 4.2.3). The Play tab's **Prepare
   assets** (a dev, 4.2.2) runs `prepare` on the worker from the head's art and sounds, under the project's exclusive
   lease (nobody writes meanwhile; someone else's span refuses it, with their name): the prepared set is kept by the
-  Studio and served before `publicDir`, and the game's `assets.gen.json` is written as one operation. A game whose art
-  and sounds pass about 31 MiB (in base64) is prepared on a local Studio.
+  Studio and served before `publicDir`, and the game's `assets.gen.json` is written as one operation. Each run prepares
+  everything again, within 2 minutes; it cannot be cancelled nor followed step by step yet. It is refused, and the game
+  is prepared on a local Studio, when: its art and sounds pass about 31 MiB (in base64) or the prepared files about
+  22 MiB; it names its sources in `sources.json` (they live outside the art and sounds a hosted Studio holds); the new
+  manifest would lose an image or a sound the game had. Published builds serve the prepared set as it is now, not the
+  one they were built against. The game's code runs on the worker as the asset tools' user (ADR 0028: one machine, one
+  user).
 - A game frame left idle past its 15 min session shows nothing new: "Reload view" (or the Play tab) opens it again.
 - Captures are not available on a hosted Studio.
 - The Play tab shows the game with its DEV panel; the state inspector, the rule explainer and the replays beside it

@@ -58,7 +58,8 @@ export function remoteExecutor(o: RemoteExecutorOptions) {
         instance: o.instance,
         ...(at ?? (await o.at())),
         kind,
-        params: { ...params, timeoutMs },
+        // A `prepare` has the worker's longest deadline (a whole game's images and sounds, encoded again).
+        params: { ...params, timeoutMs: kind === 'prepare' ? 120_000 : timeoutMs },
         snapshot: sha,
         dest,
         exp: Date.now() + MAX_JOB_MS,
@@ -124,7 +125,7 @@ export function remoteExecutor(o: RemoteExecutorOptions) {
       if (v.timedOut) throw new StudioError(`${v.failed}: try again, or prepare on a local Studio`, 504);
       if (v.failed) throw new StudioError(v.failed, 422);
       const p = preparedShape(v.data);
-      if (!p) throw new Error('the processing worker result does not answer this job');
+      if ('refused' in p) throw new StudioError(`the prepared assets are refused: ${p.refused}`, 422);
       return p;
     },
     /** The game module as data, for the Studio's reads (functions dropped, as `importInChild` gives it). */

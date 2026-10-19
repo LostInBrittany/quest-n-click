@@ -31,7 +31,14 @@ afterEach(async () => {
   rmSync(tmp, { recursive: true, force: true });
 });
 
-const store = (o: { fail?: boolean; log: string[] }) =>
+const store = (o: {
+  fail?: boolean;
+  log: string[];
+  current?: string | null;
+  manifest?: string;
+  refuseManifest?: boolean;
+  seen?: Record<string, unknown>[];
+}) =>
   new PreparedAssets({
     db,
     blobs: fsBlobStore(join(tmp, 'blobs')),
@@ -40,9 +47,18 @@ const store = (o: { fail?: boolean; log: string[] }) =>
     prepare: async (bytes, at) => {
       o.log.push(`prepare ${bytes.toString()} ${at.rev}`);
       if (o.fail) throw new Error('python3 failed');
-      return { files: { 'assets/img/a.webp': Buffer.from('A').toString('base64') }, manifest: '{"images":{}}' };
+      return {
+        files: { 'assets/img/a.webp': Buffer.from('A').toString('base64') },
+        manifest: o.manifest ?? '{"images":{}}',
+        log: 'images: 1 ready',
+      };
     },
-    writeManifest: async (m) => void o.log.push(`manifest ${m}`),
+    currentManifest: () => o.current ?? null,
+    writeManifest: async (m) => {
+      if (o.refuseManifest) throw new Error('refused by the guard');
+      o.log.push(`manifest ${m}`);
+    },
+    log: (l) => void o.seen?.push(l),
     exclusive: async (fn) => {
       o.log.push('take *');
       try {
@@ -58,7 +74,7 @@ describe('the prepared assets', () => {
     const log: string[] = [];
     const p = store({ log });
     expect(p.folder()).toBeNull();
-    expect(await p.prepare('Léa')).toEqual({ id: 1, rev: 7, files: 1 });
+    expect(await p.prepare('Léa')).toEqual({ id: 1, rev: 7, files: 1, log: 'images: 1 ready' });
     expect(log).toEqual(['take *', 'prepare snap 7', 'manifest {"images":{}}', 'release *']);
     expect(readFileSync(join(p.folder()!, 'assets', 'img', 'a.webp'), 'utf8')).toBe('A');
     expect(p.version()).toMatch(/^[0-9a-f]{10}$/);
@@ -77,6 +93,37 @@ describe('the prepared assets', () => {
     expect(readFileSync(findAsset(dirs, 'assets/img/a.webp')!.file, 'utf8')).toBe('A');
     expect(readFileSync(findAsset(dirs, 'assets/img/b.webp')!.file, 'utf8')).toBe('B');
     expect(findAsset(dirs, '../j.sqlite')).toBeUndefined();
+  });
+
+  it('refuses a manifest that loses what the game had, and sets the previous set back when the write is refused', async () => {
+    const was = JSON.stringify({ images: { 'cat/r1c1': [1, 1] }, audio: { music: { theme: 'music/theme.mp3' } } });
+    const lose = store({ log: [], current: was, manifest: '{"images":{"cat/r1c1":[1,1]},"audio":{"music":{}}}' });
+    await expect(lose.prepare('Léa')).rejects.toMatchObject({
+      status: 422,
+      message: expect.stringMatching(/lose 1 image\(s\) or sound\(s\) .*music theme/),
+    });
+    expect(await lose.list()).toEqual([]);
+    const ok = store({ log: [] });
+    await ok.prepare('Léa');
+    const first = ok.folder();
+    // The manifest's write refused (the guard, a lease): the previous set is served again, the new one forgotten.
+    (ok as unknown as { o: { writeManifest: () => Promise<void> } }).o.writeManifest = async () => {
+      throw new Error('refused by the guard');
+    };
+    await expect(ok.prepare('Léa')).rejects.toThrow(/refused by the guard/);
+    expect(ok.folder()).toBe(first);
+    expect(existsSync(first!)).toBe(true);
+    expect((await ok.list()).map((r) => r.id)).toEqual([1]);
+  });
+
+  it('logs a set it cannot write again at start, and serves publicDir meanwhile', async () => {
+    await store({ log: [] }).prepare('Léa');
+    rmSync(join(tmp, 'blobs'), { recursive: true, force: true });
+    const seen: Record<string, unknown>[] = [];
+    const again = store({ log: [], seen });
+    await again.start();
+    expect(again.folder()).toBeNull();
+    expect(seen[0]).toMatchObject({ event: 'prepared-start-failed' });
   });
 
   it('keeps nothing when it fails, and prepares one at a time', async () => {
@@ -110,7 +157,10 @@ describe('a snapshot for prepare', () => {
   });
 
   it("checks a prepare's answer: plain paths under assets/, a manifest", () => {
-    expect(preparedShape({ files: { 'assets/img/a.webp': 'QQ==' }, manifest: '{}' })).toBeDefined();
+    expect(preparedShape({ files: { 'assets/img/a.webp': 'QQ==' }, manifest: '{}' })).toMatchObject({ log: '' });
+    expect(preparedShape({ files: { 'assets/img/chat été.webp': 'QQ==' }, manifest: '{}' })).toEqual({
+      refused: expect.stringMatching(/chat été/),
+    });
     for (const bad of [
       null,
       { files: {}, manifest: 3 },
@@ -119,7 +169,7 @@ describe('a snapshot for prepare', () => {
       { files: { 'public/x.webp': 'QQ==' }, manifest: '{}' },
       { files: [], manifest: '{}' },
     ])
-      expect(preparedShape(bad), JSON.stringify(bad)).toBeUndefined();
+      expect(preparedShape(bad), JSON.stringify(bad)).toHaveProperty('refused');
   });
 });
 
@@ -134,6 +184,13 @@ const hasTools = (() => {
 })();
 
 describe.skipIf(!hasTools)('a real prepare, in the worker child', () => {
+  it('refuses a game that names its sources elsewhere (sources.json)', async () => {
+    const files = [...filesOf(join(ROOT, 'games', 'demo')), { path: 'sources.json', bytes: Buffer.from('{}') }];
+    await expect(localPrepare(packAssets(files), 'demo')).rejects.toThrow(
+      /sources.json: prepare its assets on a local Studio/,
+    );
+  }, 120_000);
+
   it("prepares the sample game's images and sounds, and its manifest", async () => {
     const game = join(ROOT, 'games', 'demo');
     const files = filesOf(game);

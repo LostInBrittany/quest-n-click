@@ -4,7 +4,7 @@
 // worker's build hook installed (`.python/`, PYTHONPATH) and the worker's PATH (python3, ffmpeg), nothing else. What comes back: the
 // prepared files (`assets/img|audio|video/…`, base64 by path) and the game's new `assets.gen.json`.
 import { spawnSync } from 'node:child_process';
-import { mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
+import { existsSync, lstatSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join, relative, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import type { GameModule } from '../../../tools/game';
@@ -16,24 +16,37 @@ export interface Prepared {
   files: Record<string, string>;
   /** The game's `assets.gen.json` after the run. */
   manifest: string;
+  /** What the asset tools said (their last lines: what is missing, what was processed). */
+  log: string;
 }
 
 /** The paths a `prepare` gives back: under `assets/img`, `assets/audio`, `assets/video`, plain names. */
 const PREPARED_PATH = /^assets\/(img|audio|video)\/[\w.-]+(?:\/[\w.-]+){0,4}$/;
 
-/** A `prepare`'s answer as the child wrote it, or undefined: its files bounded (5,000), plain paths, base64. */
-export function preparedShape(v: unknown): Prepared | undefined {
-  const o = (v ?? {}) as { files?: unknown; manifest?: unknown };
-  if (typeof o.manifest !== 'string' || o.manifest.length > 2 * 1024 * 1024) return undefined;
-  if (!o.files || typeof o.files !== 'object' || Array.isArray(o.files)) return undefined;
+/**
+ * A `prepare`'s answer as the child wrote it, or why it is refused: its files bounded (5,000), plain paths, base64.
+ */
+export function preparedShape(v: unknown): Prepared | { refused: string } {
+  const o = (v ?? {}) as { files?: unknown; manifest?: unknown; log?: unknown };
+  if (typeof o.manifest !== 'string' || o.manifest.length > 2 * 1024 * 1024) return { refused: 'no manifest' };
+  if (!o.files || typeof o.files !== 'object' || Array.isArray(o.files)) return { refused: 'no files' };
   const entries = Object.entries(o.files as Record<string, unknown>);
-  if (entries.length > 5_000) return undefined;
+  if (entries.length > 5_000) return { refused: 'more than 5,000 files' };
   for (const [k, b] of entries)
-    if (!PREPARED_PATH.test(k) || k.split('/').some((s) => /^\.+$/.test(s)) || typeof b !== 'string') return undefined;
-  return { files: o.files as Record<string, string>, manifest: o.manifest };
+    if (!PREPARED_PATH.test(k) || k.split('/').some((s) => /^\.+$/.test(s)) || typeof b !== 'string')
+      return { refused: `a file name the Studio does not serve (letters, digits, - _ . only): ${k.slice(0, 120)}` };
+  return {
+    files: o.files as Record<string, string>,
+    manifest: o.manifest,
+    log: typeof o.log === 'string' ? o.log.slice(0, 4_000) : '',
+  };
 }
 
 export async function prepareIn(dir: string, game: string, mod: GameModule, path?: string): Promise<Prepared> {
+  // Sources named by `sources.json` live where a local project keeps them (outside the art and sounds the snapshot
+  // carries): a hosted run would not find them, and would prepare the game without them.
+  if (existsSync(join(dir, 'sources.json')))
+    throw new Error('this game names its sources in sources.json: prepare its assets on a local Studio');
   const { collectRefs } = await import('../../../tools/refs');
   const { loadLayouts } = await import('../../../src/engine/tools/load');
   // Inside the job's folder, removed with it; the asset tools read the game through GAME_DIR.
@@ -76,10 +89,17 @@ export async function prepareIn(dir: string, game: string, mod: GameModule, path
     }
     for (const n of names) {
       const p = join(d, n);
-      if (statSync(p).isDirectory()) walk(p);
-      else files[relative(out, p).split(sep).join('/')] = readFileSync(p).toString('base64');
+      // A link (the game's code ran here) is never followed.
+      const st = lstatSync(p);
+      if (st.isDirectory()) walk(p);
+      else if (st.isFile()) files[relative(out, p).split(sep).join('/')] = readFileSync(p).toString('base64');
     }
   };
   walk(join(out, 'assets'));
-  return { files, manifest: readFileSync(join(dir, 'assets.gen.json'), 'utf8') };
+  const log = String(r.stdout ?? '')
+    .trim()
+    .split('\n')
+    .slice(-12)
+    .join('\n');
+  return { files, manifest: readFileSync(join(dir, 'assets.gen.json'), 'utf8'), log };
 }

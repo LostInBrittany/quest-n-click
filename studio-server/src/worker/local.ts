@@ -80,8 +80,9 @@ export async function localPrepare(snapshot: Buffer, game: string, timeoutMs = 1
     const r = await runChild(dir, timeoutMs, 'prepare', undefined, { game, systemPath: process.env.PATH ?? '' });
     if (r.timedOut) throw new Error(`the asset tools did not finish within ${timeoutMs} ms`);
     const v = JSON.parse(r.out) as { data?: unknown; error?: string };
+    if (!v.data) throw new Error(v.error ?? 'prepare gave no answer');
     const p = preparedShape(v.data);
-    if (!p) throw new Error(v.error ?? 'prepare gave no answer');
+    if ('refused' in p) throw new Error(`the prepared assets are refused: ${p.refused}`);
     return p;
   } finally {
     rmSync(dir, { recursive: true, force: true });
