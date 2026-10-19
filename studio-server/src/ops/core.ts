@@ -36,6 +36,13 @@ import { GAME_DIR, ROOT, type GameModule } from '../../../tools/game';
 import { gameIR } from '../../../tools/game-ir';
 import type { GameIR } from '../../../src/engine/core/ir';
 import { diffFile, type FileDiff, type Side } from '../../../tools/studio/semantic-diff';
+import {
+  type GroupingsFile,
+  groupingsProblems,
+  readableGroupings,
+  type ScenarioMap,
+  scenarioMap,
+} from '../../../tools/studio/scenario-map';
 import { normalizeStoryboard, storyboardMarkdown, storyboardProblems } from '../../../tools/pages/storyboard-data';
 import {
   addToSection,
@@ -727,6 +734,32 @@ export function createStudio(opts: StudioOptions = {}) {
     });
   }
 
+  // The scenario map (4.2.3, H1): the groupings a team declares, and the map derived from them and the IR.
+  const groupingsFile = () => join(dir, 'groupings.json');
+
+  /** The readable groupings, and what a hand-edited file holds that is not (`skipped`, said by the Map tab). */
+  function getGroupings(): GroupingsFile & { skipped: string[] } {
+    return readableGroupings(readJson<unknown>(groupingsFile(), null));
+  }
+
+  /** Writes `groupings.json` only: a grouping references what the game names, never writes it. */
+  function setGroupings(v: unknown): Promise<{ ok: true; changed: boolean }> {
+    return serial(async () => {
+      const problems = groupingsProblems(v);
+      if (problems.length) throw new StudioError(problems.join('; '));
+      const file = groupingsFile();
+      const next = { groupings: (v as GroupingsFile).groupings };
+      if (existsSync(file) && sameJson(readJson(file, null), next)) return { ok: true as const, changed: false };
+      await write('groupings', [{ file, after: formatJson(next) }], { undo: false });
+      return { ok: true as const, changed: true };
+    });
+  }
+
+  async function map(): Promise<ScenarioMap> {
+    const { groupings } = getGroupings();
+    return scenarioMap(await ir(), { groupings });
+  }
+
   const notesFile = () => join(dir, 'notes.json');
 
   function getNotes(): NotesFile {
@@ -1035,6 +1068,9 @@ export function createStudio(opts: StudioOptions = {}) {
     playtests,
     getStoryboard,
     setStoryboard,
+    getGroupings,
+    setGroupings,
+    map,
     getNotes,
     addNote,
     editNote,
