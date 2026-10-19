@@ -5,7 +5,7 @@
 import { execFileSync } from 'node:child_process';
 import { cpSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import type { SqlDb } from '../bridge/src/store-sql';
 import { openSqliteDb } from '../bridge/src/store-sqlite';
 import { fsBlobStore } from '../studio-server/src/ops/blobs';
@@ -72,6 +72,9 @@ afterAll(async () => {
   await db.close();
   rmSync(tmp, { recursive: true, force: true });
 });
+
+// Each test runs real git commands (a bare repository, commits, pushes): seconds on a loaded runner, not 5.
+vi.setConfig({ testTimeout: 30_000 });
 
 describe('the game to and from Git', () => {
   it('pushes one commit of the revisions since the last push, each author co-authoring it', async () => {
