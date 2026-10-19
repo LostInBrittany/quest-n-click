@@ -4,7 +4,7 @@
 // the art and sounds, and a real `prepare` runs in the worker's child where Python has the asset tools' packages.
 import { execFileSync } from 'node:child_process';
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
-import { join } from 'node:path';
+import { join, resolve } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { migrate } from '../bridge/src/migrations';
 import type { SqlDb } from '../bridge/src/store-sql';
@@ -139,10 +139,12 @@ describe('the prepared assets', () => {
 
 describe("the asset tools' Python packages (4.2.3 PR 0, H7)", () => {
   it("are looked for in the worker's own folder, or where WORKER_PYTHON_PATH says", () => {
-    expect(pythonPathOf({}, '/srv/app')).toBe(join('/srv/app', '.python'));
-    expect(pythonPathOf({ WORKER_PYTHON_PATH: '' }, '/srv/app')).toBe(join('/srv/app', '.python'));
-    expect(pythonPathOf({ WORKER_PYTHON_PATH: 'py' }, '/srv/app')).toBe(join('/srv/app', 'py'));
-    expect(pythonPathOf({ WORKER_PYTHON_PATH: '/opt/py' }, '/srv/app')).toBe('/opt/py');
+    // resolve: an absolute path of this platform (a drive letter on Windows).
+    const app = resolve('/srv/app');
+    expect(pythonPathOf({}, app)).toBe(join(app, '.python'));
+    expect(pythonPathOf({ WORKER_PYTHON_PATH: '' }, app)).toBe(join(app, '.python'));
+    expect(pythonPathOf({ WORKER_PYTHON_PATH: 'py' }, app)).toBe(join(app, 'py'));
+    expect(pythonPathOf({ WORKER_PYTHON_PATH: resolve('/opt/py') }, app)).toBe(resolve('/opt/py'));
   });
 });
 
