@@ -238,6 +238,11 @@ hors ligne) et ses sauvegardes ne sont pas encore distinguées par build.
   son pan pour 2 min, renouvelées tant que vous êtes actif. Le pan de quelqu'un d'autre refuse votre écriture (423,
   avec son nom) ; votre brouillon reste chez vous.
 - **En direct.** Le Studio suit `GET /api/events` : chaque révision, qui tient quoi, qui est là.
+- **Ce que vous avez lu** (4.2.3). Une écriture porte la révision que son éditeur a lue (`x-studio-base` ; chaque
+  réponse dit sa révision dans `x-studio-revision`). Si l'un de ses fichiers a été écrit depuis, l'écriture est
+  refusée (409) avec ce fichier tel que vous l'avez lu et tel qu'il est ; le Studio montre ce qui a changé, garde votre
+  brouillon, et propose d'appliquer votre modification sur la dernière version. Elle ne passe jamais par-dessus l'autre
+  changement sans que vous le demandiez. Un script qui n'envoie pas `x-studio-base` n'est pas vérifié ainsi.
 - **L'annulation est la vôtre** (4.2.2) : Undo et Redo (et Ctrl/Cmd+Z, Maj pour rétablir) annulent votre propre
   dernière opération, quoi que les autres aient écrit entre-temps, par une nouvelle révision (l'historique n'est
   jamais réécrit). Refusée quand quelqu'un d'autre a écrit l'un de ses fichiers depuis (409), ou tient son pan (423,

@@ -236,7 +236,7 @@ describe('a refused write', () => {
 
   it('409: says what changed, keeps the draft, and tries again on request', async () => {
     const retry = vi.fn(async () => undefined);
-    conflictDialog('items.ts changed since revision 3 (now 4)', { name: 'mine' }, retry);
+    conflictDialog({ error: 'items.ts changed since revision 3 (now 4)' }, { name: 'mine' }, retry);
     const d = document.querySelector('[role="dialog"]')!;
     expect(d.textContent).toContain('items.ts changed since revision 3');
     expect(d.querySelector('.draft pre')?.textContent).toContain('mine');
@@ -244,6 +244,36 @@ describe('a refused write', () => {
     await flush();
     expect(retry).toHaveBeenCalledTimes(1);
     expect(document.querySelector('[role="dialog"]')).toBeNull();
+  });
+
+  it('409 with what changed (4.2.3, H10): the lines changed since the revision read, then the edit on the latest', async () => {
+    const retry = vi.fn(async () => undefined);
+    const before = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'].join('\n');
+    const now = ['a', 'b', 'c', 'D', 'e', 'f', 'g', 'h'].join('\n');
+    conflictDialog(
+      {
+        error: 'rooms/hall.ts changed since revision 3 (now 5)',
+        path: 'rooms/hall.ts',
+        readAt: 3,
+        head: 5,
+        before,
+        now,
+      },
+      { name: 'mine' },
+      retry,
+    );
+    const d = document.querySelector('[role="dialog"]')!;
+    expect(d.textContent).toContain('revision 5');
+    expect([...d.querySelectorAll('.line-diff .del')].map((e) => e.textContent)).toEqual(['- d\n']);
+    expect([...d.querySelectorAll('.line-diff .add')].map((e) => e.textContent)).toEqual(['+ D\n']);
+    // Two lines of context on each side, the rest said as a gap.
+    expect(d.querySelector('.line-diff')!.textContent).toBe('…\n  b\n  c\n- d\n+ D\n  e\n  f\n…\n');
+    [...d.querySelectorAll('button')].find((b) => b.textContent === 'Apply my edit on the latest version')!.click();
+    await flush();
+    expect(retry).toHaveBeenCalledTimes(1);
+    document.body.replaceChildren();
+    conflictDialog({ error: 'x', path: 'p', readAt: 1, head: 2, before: null, now: 'new' }, {}, retry);
+    expect(document.querySelector('[role="dialog"]')!.textContent).toContain('cannot be shown here');
   });
 });
 

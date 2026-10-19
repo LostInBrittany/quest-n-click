@@ -1451,6 +1451,18 @@
   "revisit": "4.3.0"
  },
  {
+  "file": "studio-server/src/ops/journal.ts",
+  "operator": "condition true",
+  "from": "op.readAt !== undefined",
+  "to": "true",
+  "context": "if (op.readAt !== undefined)",
+  "why": "applyNow (4.2.3, H10): with no revision read, `head.rev > undefined` is false for every file, so the loop refuses nothing; the condition only spares a read of each file's head (a revision read is pinned by tests/studio-journal-mutants.test.ts)",
+  "category": "equivalent",
+  "proof": "argument",
+  "owner": "@wanoo",
+  "revisit": "4.3.0"
+ },
+ {
   "file": "studio-server/src/ops/durable.ts",
   "operator": "condition true",
   "from": "!['EINVAL', 'EISDIR', 'EPERM', 'EBADF', 'ENOTSUP', 'EACCES'].includes((e as NodeJS.ErrnoException).code ?? '')",

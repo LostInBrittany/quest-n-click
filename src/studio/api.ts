@@ -67,12 +67,28 @@ const READ_POSTS = /^(validate|report|puzzle|coverage|playtests|lint|solve|scree
 const fileConflict = (data: Record<string, unknown>) =>
   typeof data.path === 'string' || /changed (since|while)/.test(String(data.error ?? ''));
 
+/**
+ * The revision each resource was last read at on a hosted Studio (4.2.3, H10), by its read path (`room/<id>`,
+ * `storyboard`, `notes`…): a write under that path sends it (`x-studio-base`), so a file another member wrote since is a
+ * 409 that says what changed, never a write over it unseen. A write's own answer moves it on (its own change is read).
+ */
+const readAt = new Map<string, number>();
+/** The read a write belongs to: the longest read path that is the write's path or a folder of it. */
+const readOf = (path: string): string | undefined => {
+  let best: string | undefined;
+  for (const k of readAt.keys())
+    if ((path === k || path.startsWith(`${k}/`)) && (best === undefined || k.length > best.length)) best = k;
+  return best;
+};
+
 /** `quiet`: a retry from a refusal's dialog, which says itself why it failed again. */
 async function call<T>(method: string, path: string, body?: unknown, quiet = false): Promise<T> {
   // P6: on a hosted Studio a write carries its operation id, and a cut or a 502/503/504 (another instance taking
   // over, a proxy during a deploy, a proxy that may have passed it on) sends it again with the same id: applied once.
   const write = hosting.hosted && method !== 'GET' && !(method === 'POST' && READ_POSTS.test(path));
   const op = write ? crypto.randomUUID() : undefined;
+  const read = write ? readOf(path) : undefined;
+  const base = read === undefined ? undefined : readAt.get(read);
   let r: Response | undefined;
   // Counted as waiting from its first failed attempt only: a write answered at once is never shown as waiting.
   let counted = false;
@@ -92,6 +108,7 @@ async function call<T>(method: string, path: string, body?: unknown, quiet = fal
           headers: {
             ...(method === 'GET' ? {} : { 'content-type': 'application/json' }),
             ...(op ? { 'x-studio-op': op } : {}),
+            ...(base !== undefined ? { 'x-studio-base': String(base) } : {}),
           },
           body: method === 'GET' ? undefined : JSON.stringify(body ?? {}),
         });
@@ -126,13 +143,27 @@ async function call<T>(method: string, path: string, body?: unknown, quiet = fal
     const err = new ApiError(data.error ?? `${r.status}`, r.status);
     if (write && !quiet && refused && (r.status === 423 || (r.status === 409 && fileConflict(data)))) {
       err.handled = true;
-      refused({ status: r.status, data, draft: body, retry: async () => void (await call(method, path, body, true)) });
+      // Applied on the head when the member asks (H10): their edit is computed again on the file as it is now.
+      const head = Number(data.head);
+      refused({
+        status: r.status,
+        data,
+        draft: body,
+        retry: async () => {
+          if (read !== undefined && Number.isSafeInteger(head)) readAt.set(read, Math.max(readAt.get(read) ?? 0, head));
+          await call(method, path, body, true);
+        },
+      });
     }
     throw err;
   }
   // The revision the answer was made at (a hosted Studio's reads, 4.2.2): kept beside it, for `revisionOf`.
   const rev = Number(r.headers.get('x-studio-revision') ?? Number.NaN);
   if (Number.isSafeInteger(rev) && data && typeof data === 'object') revisions.set(data, rev);
+  if (Number.isSafeInteger(rev)) {
+    if (method === 'GET') readAt.set(path, rev);
+    else if (read !== undefined) readAt.set(read, rev);
+  }
   return data as T;
 }
 

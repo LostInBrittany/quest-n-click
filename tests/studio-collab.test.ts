@@ -259,6 +259,35 @@ describe('a shared Studio', () => {
   it('undo waits for 4.2.2 on a shared Studio', async () => {
     expect((await as('tom', 'POST', '/undo', {})).status).toBe(409);
   });
+
+  it('a write behind the revision it read is a 409 with what changed, then applied on the head on request (H10)', async () => {
+    await as('lea', 'POST', '/leases/release', {});
+    await as('tom', 'POST', '/leases/release', {});
+    // Tom reads the room; Léa moves it meanwhile.
+    const read = await as('tom', 'GET', '/room/start');
+    const readAt = Number(read.headers.get('x-studio-revision'));
+    expect(Number.isSafeInteger(readAt)).toBe(true);
+    expect((await moveLayout('lea', 101)).status).toBe(200);
+    await as('lea', 'POST', '/leases/release', {});
+    // Tom's write, from what he read: refused, with the file at his revision and now.
+    const r = await moveLayout('tom', 102, { 'x-studio-base': String(readAt) });
+    expect(r.status).toBe(409);
+    const body = (await r.json()) as Record<string, unknown>;
+    expect(body).toMatchObject({ path: 'layout/start.json', readAt });
+    expect(Number(body.head)).toBeGreaterThan(readAt);
+    expect(String(body.before)).not.toContain('"__test": 101');
+    expect(JSON.parse(String(body.now)).__test).toBe(101);
+    // A base that is not a revision is refused as such.
+    expect((await moveLayout('tom', 102, { 'x-studio-base': 'soon' })).status).toBe(400);
+    // Applied on the head when Tom asks: from the revision Léa's change made, it is his edit on hers.
+    const ok = await moveLayout('tom', 102, { 'x-studio-base': String(body.head) });
+    expect(ok.status).toBe(200);
+    // A write says the revision after it: Tom's next write from there is no conflict with his own.
+    const after = Number(ok.headers.get('x-studio-revision'));
+    expect(after).toBeGreaterThan(Number(body.head));
+    expect((await moveLayout('tom', 103, { 'x-studio-base': String(after) })).status).toBe(200);
+    await as('tom', 'POST', '/leases/release', {});
+  });
 });
 
 /** Reads an SSE stream into `events` until it ends; `ended` resolves then. */

@@ -413,3 +413,66 @@ describe('a past revision read back (4.2.2: the bisection, the undo)', () => {
     await j.close();
   });
 });
+
+describe('the revision read (4.2.3, H10)', () => {
+  const at = (j: Journal, path: string, after: string | Buffer | null, readAt: number) =>
+    j.apply({ author: 'lea', what: 'w', effects: [{ path, after }], readAt, respond: (rev) => rev });
+  const refusal = async (p: Promise<unknown>) => {
+    try {
+      await p;
+    } catch (e) {
+      return { status: (e as { status: number }).status, body: (e as { body: Record<string, unknown> }).body };
+    }
+    throw new Error('not refused');
+  };
+
+  it('takes a write read at the head or after the file was last written, refuses one read before, saying both texts', async () => {
+    const j = await open({ hosted: true });
+    const r0 = await j.revision();
+    await write(j, 'rooms/a.ts', 'a1');
+    const r1 = await j.revision();
+    await write(j, 'notes.json', '{"n":1}');
+    // Read at r1: rooms/a.ts was last written at r1, so a write from there is no conflict.
+    expect(await at(j, 'rooms/a.ts', 'a2', r1)).toMatchObject({ rev: r1 + 2 });
+    // Read at r0, before a1 and a2: refused, with the file at r0 and now.
+    const r = await refusal(at(j, 'rooms/a.ts', 'mine', r0));
+    expect(r.status).toBe(409);
+    expect(r.body).toEqual({ path: 'rooms/a.ts', readAt: r0, head: r1 + 2, before: 'a0', now: 'a2' });
+    expect(read('rooms/a.ts')).toBe('a2');
+    await j.close();
+  });
+
+  it('says a new file, a removed one, a binary one, a long one and a non-UTF-8 one without their text', async () => {
+    const j = await open({ hosted: true });
+    const r0 = await j.revision();
+    await write(j, 'new.md', 'n');
+    expect((await refusal(at(j, 'new.md', 'x', r0))).body).toMatchObject({ before: null, now: 'n' });
+    const r1 = await j.revision();
+    await write(j, 'new.md', null);
+    expect((await refusal(at(j, 'new.md', 'x', r1))).body).toMatchObject({ before: 'n', now: null });
+    for (const bytes of [Buffer.from([0x61, 0, 0x62]), Buffer.alloc(256 * 1024 + 1, 0x61), Buffer.from([0xff, 0xfe])]) {
+      const r = await j.revision();
+      await j.apply({ author: 'lea', what: 'w', effects: [{ path: 'b.bin', after: bytes }], respond: (v) => v });
+      expect((await refusal(at(j, 'b.bin', 'x', r))).body.now).toBeNull();
+    }
+    // Exactly 256 KiB of text is still said.
+    const r = await j.revision();
+    await write(j, 'big.md', 'a'.repeat(256 * 1024));
+    expect(String((await refusal(at(j, 'big.md', 'x', r))).body.now).length).toBe(256 * 1024);
+    await j.close();
+  });
+
+  it("finds a file's content at a revision: the first later operation's before, else the head", async () => {
+    const j = await open({ hosted: true });
+    const r0 = await j.revision();
+    await write(j, 'rooms/a.ts', 'a1');
+    const r1 = await j.revision();
+    await write(j, 'notes.json', '{"n":1}');
+    await write(j, 'rooms/a.ts', 'a2');
+    expect(await j.blobAt('rooms/a.ts', r0)).toBe(sha256(Buffer.from('a0')));
+    expect(await j.blobAt('rooms/a.ts', r1)).toBe(sha256(Buffer.from('a1')));
+    expect(await j.blobAt('rooms/a.ts', await j.revision())).toBe(sha256(Buffer.from('a2')));
+    expect(await j.blobAt('never.md', r0)).toBe(ABSENT);
+    await j.close();
+  });
+});
