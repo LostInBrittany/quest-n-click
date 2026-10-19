@@ -234,7 +234,7 @@ hors ligne) et ses sauvegardes ne sont pas encore distinguées par build.
 ## Travailler à plusieurs
 
 - **Les pans.** Chaque fichier du jeu appartient à un pan : une salle (son code et son layout), une langue, l'histoire,
-  les objets, les personnages, les règles, les voix, les assets, les notes, le reste (`meta`). Écrire un fichier prend
+  les objets, les personnages, les règles, les voix, les assets, les notes, les regroupements de la carte du scénario, le reste (`meta`). Écrire un fichier prend
   son pan pour 2 min, renouvelées tant que vous êtes actif. Le pan de quelqu'un d'autre refuse votre écriture (423,
   avec son nom) ; votre brouillon reste chez vous.
 - **En direct.** Le Studio suit `GET /api/events` : chaque révision, qui tient quoi, qui est là.

@@ -35,6 +35,12 @@ import { loadAssets, loadLayouts, loadLocales } from '../../../src/engine/tools/
 import { GAME_DIR, ROOT, type GameModule } from '../../../tools/game';
 import { gameIR } from '../../../tools/game-ir';
 import type { GameIR } from '../../../src/engine/core/ir';
+import {
+  type GroupingsFile,
+  groupingsProblems,
+  type ScenarioMap,
+  scenarioMap,
+} from '../../../tools/studio/scenario-map';
 import { normalizeStoryboard, storyboardMarkdown, storyboardProblems } from '../../../tools/pages/storyboard-data';
 import {
   addToSection,
@@ -686,6 +692,31 @@ export function createStudio(opts: StudioOptions = {}) {
     });
   }
 
+  // The scenario map (4.2.3, H1): the groupings a team declares, and the map derived from them and the IR.
+  const groupingsFile = () => join(dir, 'groupings.json');
+
+  function getGroupings(): GroupingsFile {
+    const g = readJson<GroupingsFile>(groupingsFile(), { groupings: [] });
+    return { groupings: Array.isArray(g.groupings) ? g.groupings : [] };
+  }
+
+  /** Writes `groupings.json` only: a grouping references what the game names, never writes it. */
+  function setGroupings(v: unknown): Promise<{ ok: true; changed: boolean }> {
+    return serial(async () => {
+      const problems = groupingsProblems(v);
+      if (problems.length) throw new StudioError(problems.join('; '));
+      const file = groupingsFile();
+      const next = { groupings: (v as GroupingsFile).groupings };
+      if (existsSync(file) && sameJson(readJson(file, null), next)) return { ok: true as const, changed: false };
+      await write('groupings', [{ file, after: formatJson(next) }], { undo: false });
+      return { ok: true as const, changed: true };
+    });
+  }
+
+  async function map(): Promise<ScenarioMap> {
+    return scenarioMap(await ir(), getGroupings());
+  }
+
   const notesFile = () => join(dir, 'notes.json');
 
   function getNotes(): NotesFile {
@@ -993,6 +1024,9 @@ export function createStudio(opts: StudioOptions = {}) {
     playtests,
     getStoryboard,
     setStoryboard,
+    getGroupings,
+    setGroupings,
+    map,
     getNotes,
     addNote,
     editNote,

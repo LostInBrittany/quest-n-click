@@ -108,6 +108,12 @@ commandes personnalisées sont du code de confiance, pas des données isolées. 
   **Anchors** des salles, et une ajoutée depuis la sélection de l'onglet Salles. Un manifeste qui ne peut faire de monde
   montre les raisons du validateur. Calculé avec le compilateur du moteur (`src/studio/remix-model.ts`) : le Studio ne
   montre jamais un monde que le joueur ne jouerait pas.
+- **Map** (4.2.3) : les regroupements du scénario, chapitres, énigmes et personnages (`games/<id>/groupings.json`),
+  chacun une liste de ce que le jeu nomme déjà (une salle, un id de règle ou de sujet, `item:<id>`, `char:<id>`,
+  `objective:<id>`, `checkpoint:<id>`) avec le `fichier:ligne` qui l'écrit, ou « not declared » quand le jeu ne le
+  connaît pas ; puis ce qu'aucun regroupement ne nomme encore. Un regroupement ne fait que référencer : l'enregistrer
+  écrit `groupings.json` seul, jamais le contenu. La carte est dérivée à chaque lecture (de la provenance de l'IR et des
+  regroupements), jamais stockée.
 - **Notes** : le journal partagé (`games/<id>/notes.json`), une entrée par auteur (« you », ou le nom de l'IA), à
   propos d'un id de case, d'un id de lieu, de `lieu.entité`, ou de n'importe quoi (vide : général). Le journal
   entier, le plus récent d'abord, groupé par `about` (lieu / case / entité étiquetés, avec « Open in Rooms » /
@@ -174,6 +180,7 @@ capture d'écran indisponible).
 | POST `room/:id/add` | `{ kind: 'prop' \| 'hotspot' \| 'actor', id, name?, img?, char?, at: [x, y], look? }` → insère l'entrée dans le fichier du lieu (la section est créée si absente), la première ligne de Regarder facultative, et une place dans le layout (accessoire : pied à `at`, hauteur 60 ; zone cliquable : boîte 60 × 60 centrée sur `at` ; acteur : pieds à `at`) ; `{ ok, line, changed }`. `name` est obligatoire pour les accessoires et les zones cliquables |
 | GET/PUT `storyboard` | `storyboard.json` (`{ boards: [] }` si absent). PUT attend `{ boards: [...] }`, renvoie `{ ok, changed }` : un storyboard inchangé n'est pas réécrit, un storyboard modifié est écrit de façon compacte (ce qui tient sur 120 colonnes reste sur une ligne) |
 | POST `storyboard/markdown` | → écrit `games/<id>/storyboard.md` à partir du `storyboard.json` enregistré (même texte que `npm run page:storyboard -- --md`) ; `{ ok, file, bytes, boards, panels }` ; 404 sans `storyboard.json` |
+| GET `groupings`, PUT `groupings`, GET `map` | 4.2.3 : le fichier des regroupements `{ groupings: [{ id, kind: chapter\|puzzle\|character, title, refs }] }` (vérifié : ids uniques et en minuscules, sortes connues, références sans espace ; 500 au plus de chaque), et la carte dérivée de lui et de l'IR : `{ groupings: [{ …, refs: [{ ref, kind, at? }] }], ungrouped: { <sorte>: [refs] } }` |
 | GET `notes`, POST `notes` | GET → `{ entries: Note[] }` ; POST `{ about?, author?, text }` → la nouvelle `Note = { id, about, author, text, at, edited? }` (auteur par défaut `you`, `at` est une date ISO), ajoutée à `notes.json` (créé à la première écriture) |
 | PUT `notes/:id` | `{ text, about? }` → la `Note` mise à jour (texte débarrassé des espaces superflus, `edited` réglé à maintenant ; `at`, `author` et l'ordre inchangés) ; 400 texte vide, 404 id inconnu |
 | DELETE `notes/:id` | → `{ ok }`, la note retirée de `notes.json` ; 404 id inconnu |

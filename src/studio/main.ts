@@ -13,6 +13,7 @@ import { CheckTab } from './check';
 import { NotesStore, NotesTab, roomNotesBlock } from './notes';
 import { PlayTab } from './play';
 import { IrTab } from './ir-tab';
+import { MapTab } from './map-tab';
 import { RemixTab } from './remix-tab';
 import { RoomsTab } from './rooms';
 import { StoryboardTab } from './storyboard';
@@ -23,10 +24,22 @@ import { assetsPanel, buildsPanel } from './builds-panel';
 import { gameLink } from './game-origin';
 import { gateScreen, hostedStudio, type Me, whoAmI } from './hosted';
 
-type TabId = 'rooms' | 'storyboard' | 'assets' | 'voices' | 'music' | 'check' | 'play' | 'language' | 'remix' | 'notes';
+type TabId =
+  | 'rooms'
+  | 'storyboard'
+  | 'map'
+  | 'assets'
+  | 'voices'
+  | 'music'
+  | 'check'
+  | 'play'
+  | 'language'
+  | 'remix'
+  | 'notes';
 const TABS: [TabId, string][] = [
   ['rooms', 'Rooms'],
   ['storyboard', 'Storyboard'],
+  ['map', 'Map'],
   ['assets', 'Assets'],
   ['voices', 'Voices'],
   ['music', 'Music'],
@@ -243,6 +256,7 @@ async function start() {
   const voices = new VoicesTab();
   const music = new MusicTab(info);
   const language = new IrTab(info);
+  const scenario = new MapTab();
   const remix = new RemixTab({
     selection: () => ({
       room: rooms.room,
@@ -252,6 +266,7 @@ async function start() {
   const panes: Record<TabId, HTMLElement> = {
     rooms: rooms.el,
     storyboard: storyboard.el,
+    map: scenario.el,
     assets: assets.el,
     voices: voices.el,
     music: music.el,
@@ -282,6 +297,7 @@ async function start() {
     if (t === 'voices') void voices.load();
     if (t === 'music') music.load();
     if (t === 'language') void language.load();
+    if (t === 'map') void scenario.load();
     if (t === 'remix') void remix.load();
   };
   for (const [id, label] of tabs) {
