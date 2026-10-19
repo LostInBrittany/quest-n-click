@@ -92,6 +92,15 @@ const ALIASES: Partial<Record<SecretName, string[]>> = {
 export class ConfigError extends Error {}
 
 /**
+ * A command's arguments without `--config <file>` (4.2.3: without the flag, the first argument was dropped, so `import
+ * <dir>`, `invite` and the daily `backup --to-bucket` failed when the configuration came from STUDIO_CONFIG_JSON).
+ */
+export function withoutConfig(rest: string[]): string[] {
+  const at = rest.indexOf('--config');
+  return at < 0 ? rest : rest.filter((_, i) => i !== at && i !== at + 1);
+}
+
+/**
  * Reads the secrets once, then removes every variable that held one from `env` (by default `process.env`). Returns
  * the values found; a missing one is absent (the server says which it needs when it needs it).
  */
