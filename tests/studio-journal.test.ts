@@ -234,7 +234,7 @@ describe('the operation journal', () => {
     const e = await j
       .apply({ author: 'lea', what: 'w', effects: [{ path: 'rooms/a.ts', after: 'a1' }], respond: () => 0 })
       .catch((x: { status?: number }) => x);
-    expect((e as { status?: number }).status).toBe(409);
+    expect((e as { status?: number }).status).toBe(503);
     // An expired lease is taken over.
     await db.run('UPDATE studio_lease SET until_ms = 0 WHERE id = 1');
     await j.apply({ author: 'lea', what: 'w', effects: [{ path: 'rooms/a.ts', after: 'a1' }], respond: () => 0 });

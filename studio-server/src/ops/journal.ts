@@ -621,7 +621,7 @@ export class Journal {
 
   /**
    * Runs `fn` holding the project's write lease (P8 in small): taken on the database's clock with a new fence,
-   * renewed every third of its life while `fn` runs, refused (409) after `leaseWaitMs` when another writer holds it.
+   * renewed every third of its life while `fn` runs, refused (503, to retry) after `leaseWaitMs` when another writer holds it.
    */
   private async withLease<T>(fn: () => Promise<T>): Promise<T> {
     const deadline = Date.now() + this.leaseWaitMs;
@@ -644,7 +644,8 @@ export class Journal {
         this.fence = fence;
         break;
       }
-      if (Date.now() > deadline) throw new StudioError('another process is writing this game; try again', 409);
+      // A wait, not a conflict (4.2.3: an instance starting beside this one during a deploy): retried as a 503 is.
+      if (Date.now() > deadline) throw new StudioError('another process is writing this game; try again', 503);
       await new Promise((ok) => setTimeout(ok, 50));
     }
     const renew = setInterval(

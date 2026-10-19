@@ -50,7 +50,17 @@ clever scale --min-instances 1 --max-instances 1 --app my-game-studio
 ```
 
 Créez le bucket dans Cellar (sa console, ou n'importe quel outil S3). Seule l'application studio est liée aux add-ons :
-**ne les liez jamais au worker.**
+**ne les liez jamais au worker.** Les deux applications se construisent depuis la racine du dépôt : laissez
+`APP_FOLDER` vide (une application qui a porté un autre projet peut en avoir un : `clever env rm APP_FOLDER`).
+
+`clever deploy` et `clever ssh` agissent sur une application liée dans le dossier d'où on les lance (clever-tools 4
+n'a pas de `--app` pour `deploy`) : liez les deux une fois, sous un alias, et tenez hors de Git le `.clever.json` que
+cela écrit :
+
+```sh
+clever link <id-app-studio> --alias my-game-studio
+clever link <id-app-worker> --alias my-game-worker
+```
 
 **Les clés des jobs.** Sur votre machine, dans un dossier vide tenu hors de Git :
 
@@ -78,6 +88,14 @@ mkdir -p ~/secrets/my-game && npm run studio-server -- worker-keys --out ~/secre
 Les identifiants de la base et de Cellar viennent des add-ons (`POSTGRESQL_ADDON_URI`, `CELLAR_ADDON_KEY_ID`,
 `CELLAR_ADDON_KEY_SECRET`). Au démarrage, le serveur lit chaque secret puis le retire de son environnement. Hors de
 Clever, chacun peut être un fichier : `STUDIO_SESSION_KEY_FILE`, etc. (mode 0600).
+
+Posez les secrets depuis leurs fichiers, pour qu'aucune valeur ne soit tapée ni affichée. Le texte d'une clé commence
+par `-----BEGIN`, que `clever env set` lit comme une option si `--` ne le précède pas :
+
+```sh
+clever env set --alias my-game-studio -- STUDIO_WORKER_KEY "$(cat ~/secrets/my-game/studio-worker.key)"
+clever env set --alias my-game-worker -- WORKER_PUBLIC_KEY "$(cat ~/secrets/my-game/studio-worker.pub)"
+```
 
 **La configuration** (`ops/studio/studio.config.example.json`) :
 
@@ -123,18 +141,25 @@ Clever, chacun peut être un fichier : `STUDIO_SESSION_KEY_FILE`, etc. (mode 060
 vérifié ; mesuré dans `docs/dev/QUALIF-4.2.2-ASSETS.md`), `WORKER_PUBLIC_KEY` (le contenu de `studio-worker.pub`),
 `WORKER_INSTANCE` (le même nom que `worker.instance`). Donnez-lui un domaine (`worker.url`).
 
-**Déployez** les deux (`clever deploy`), puis importez le jeu une fois, et invitez le premier owner :
+**Déployez** les deux, le worker d'abord (`clever deploy --alias my-game-worker`, puis `--alias my-game-studio`),
+puis importez le jeu une fois, et invitez le premier owner :
 
 ```sh
-clever ssh --app my-game-studio
+clever ssh --alias my-game-studio
+cd "$APP_HOME"
 npm run studio-server -- import games/my-game
 npm run studio-server -- invite --email vous@example.fr --role owner
 ```
 
-Que le shell de `clever ssh` ait les variables de l'application (ici `STUDIO_CONFIG_JSON`) est vérifié par la passe
-`studio-hosted` ; sinon, lancez les deux commandes une fois depuis une machine qui a les mêmes variables. L'invitation
-affiche un lien : ouvrez-le et connectez-vous avec cet email vérifié. `/readyz` répond 200 dès que
-l'instance sert les écritures.
+Le shell de `clever ssh` a les variables de l'application (`STUDIO_CONFIG_JSON`, celles des add-ons ; mesuré par le
+déploiement de référence) : aucune des deux commandes n'a besoin de `--config`. `clever ssh --command '…'` lance une
+commande sans session, mais refuse tant qu'une seconde instance est listée (l'ancienne d'un déploiement reste
+`STOPPING` environ deux minutes) : attendez qu'elle parte. L'import envoie chaque fichier au bucket (242 s pour le jeu
+de démo, 500 fichiers). L'invitation affiche un lien : ouvrez-le et connectez-vous avec cet email vérifié. `/readyz`
+répond 200 dès que l'instance sert les écritures.
+
+`clever logs` suit les journaux jusqu'à ce qu'on l'arrête, même avec `--until` : pour en garder une partie, lancez-le
+en arrière-plan et arrêtez-le par son numéro de processus une fois ce qu'il faut obtenu.
 
 ## Depuis les archives de la release
 
@@ -179,6 +204,32 @@ Le realm de test `ops/studio/keycloak/realm.json` montre chaque réglage. Chez n
   jeton plus long est refusé.
 
 Le fournisseur dit qui est quelqu'un. Ce qu'il peut faire se décide dans le Studio.
+
+**`realm.json` sert à un test local.** Avant de le donner à un autre Keycloak, changez :
+- `clients[studio].redirectUris` en `["<publicUrl>/auth/callback"]` ;
+- `clients[studio].attributes` : `backchannel.logout.url` en `<publicUrl>/auth/backchannel`, et
+  `post.logout.redirect.uris` en `<publicUrl>` ;
+- `clients[studio].secret` en une nouvelle valeur aléatoire (`openssl rand -base64 32`), celle que vous posez dans
+  `STUDIO_OIDC_CLIENT_SECRET` ;
+- `users` : les vôtres, ou aucun (la console de Keycloak les ajoute), chacun avec un email vérifié et un mot de passe
+  qui n'est pas celui du fichier.
+
+Gardez le fichier, avec son secret et ses mots de passe, hors de Git (mode 0600).
+
+**Le Keycloak managé de Clever Cloud.** `clever keycloak get <id-addon>` donne sa console d'administration et ses
+premiers identifiants. Ce mot de passe est temporaire : la première connexion en demande un nouveau, et la console de
+Clever comme la variable de l'add-on (`CC_KEYCLOAK_ADMIN_DEFAULT_PASSWORD`) continuent d'afficher l'ancien ensuite ;
+gardez le nouveau là où vous gardez les secrets. L'API d'administration ne prend pas ce mot de passe par le client
+`admin-cli` du realm master (`401 invalid_client`) : `kcadm.sh` et les scripts bâtis dessus échouent tels quels. Deux
+chemins marchent :
+- dans la console d'administration (`clever keycloak open webui <id-addon>`), **Create realm** avec le `realm.json`
+  modifié ;
+- ou, avec un jeton d'administration obtenu par une connexion via le client de la console (`security-admin-console`,
+  Authorization Code avec PKCE), `POST /admin/realms` avec le fichier modifié : ce qu'a fait le déploiement de
+  référence.
+
+Son émetteur est `https://<son hôte>/realms/web-scumm`. Le Studio lit la découverte de l'émetteur au démarrage : il ne
+démarre pas tant que le realm manque.
 
 **Un autre fournisseur** (4.2.3, D44 : GitLab pour la passe `studio-oidc-generic`). Tout fournisseur OpenID Connect
 avec découverte sert les connexions du navigateur : donnez-lui le client `studio` comme ci-dessus (une application avec
@@ -350,8 +401,18 @@ le **bail de service** dans PostgreSQL (plan maître §4, P8). La nouvelle déma
 `/readyz` vaut 503 et ses écritures 503 avec `Retry-After` jusqu'à ce que l'ancienne rende le bail (sur SIGTERM) ou
 que le bail expire (30 s, renouvelé toutes les 10 s à l'horloge de la base) ; l'ancienne cesse d'écrire à sa propre
 horloge avant. Un client retente une écriture avec le même identifiant d'opération, et elle est appliquée une fois. Le
-bail propre du journal, avec sa clôture, empêche toujours deux instances d'écrire sur la même tête. Monter le moteur de
-version, c'est ce même redéploiement, d'une nouvelle version :
+bail propre du journal, avec sa clôture, empêche toujours deux instances d'écrire sur la même tête.
+
+Ce que le déploiement de référence a mesuré (`docs/dev/QUALIF-4.2.3-REFERENCE.md` §5) : Clever garde l'ancienne
+instance `STOPPING` environ deux minutes après que la nouvelle est prête, et elle n'a consigné aucune ligne `stopping` :
+elle a continué de renouveler le bail pendant ce temps, et la nouvelle l'a pris environ 30 s après le départ de
+l'ancienne. **Les écritures sont refusées (503, `Retry-After: 2`) pendant environ deux minutes et demie par
+déploiement**, les lectures continuent ; une écriture retentée avec son identifiant d'opération passe ensuite, une
+fois. Pendant que les deux instances démarrent et tournent, elles tiennent deux fois plus de connexions : sur le plan
+`dev` (5), une écriture peut échouer sur « too many connections » (un 500) ou attendre la vérification du journal par
+l'instance qui démarre (un 409 au bout de 20 s) ; prenez un plan plus grand pour un déploiement dont on se sert.
+
+Monter le moteur de version, c'est ce même redéploiement, d'une nouvelle version :
 1. lisez le CHANGELOG de la version et `docs/fr/UPGRADING.md` pour le contenu du jeu. Ses migrations de base tournent au
    démarrage de la nouvelle instance, pendant que l'ancienne peut encore servir : si l'une change ce que l'ancienne
    version lit, arrêtez d'abord l'ancienne (`clever stop`) et acceptez la minute sans Studio ;
@@ -366,8 +427,9 @@ nouvelle a migrée ; sinon, c'est la sauvegarde de l'étape 2, restaurée dans u
 
 **Les métriques.** Avec `STUDIO_METRICS_TOKEN`, `GET /metrics` sur l'origine du Studio répond au format texte de
 Prometheus à `Authorization: Bearer <jeton>` (comparé en temps constant) ; un mauvais jeton est un 401, et sans la
-variable la route n'existe pas (404). Elle n'est jamais derrière la session, jamais sur l'origine du jeu. Ce qu'elle
-donne :
+variable la route n'existe pas (404). Elle n'est jamais derrière la session, jamais sur l'origine du jeu, où toute
+requête sans la session du jeu est refusée avant que son chemin soit lu (un 401, « open the game from the Studio »).
+Ce qu'elle donne :
 
 | Métrique | Quoi |
 |---|---|
@@ -390,7 +452,8 @@ OpenTelemetry n'est pas pris en charge en 4.2.3 ; il reste une option pour plus 
 --event DEPLOYMENT_FAIL studio-deploys` ; aussi `clever webhooks add`), et sa console montre le CPU, la mémoire et les
 journaux de chaque application. Elle ne lit pas `/metrics` : un collecteur que vous faites tourner le fait
 (Prometheus et son Alertmanager, ou tout service qui lit le format), ou une simple sonde de `/readyz`. Alertez quand :
-- `/readyz` n'est pas 200 pendant 2 min (aucune instance ne sert les écritures ; un déploiement prend 30 s au plus) ;
+- `/readyz` n'est pas 200 pendant 5 min (aucune instance ne sert les écritures ; un déploiement tient les écritures à
+  l'écart environ 2 min 30, plus haut) ;
 - `studio_journal_rpo_seconds` dépasse 60 pendant 5 min (la cible est 1 min, D42), ou `ship-failed` ne cesse de monter ;
 - `studio_worker_jobs_in_flight` reste au-dessus de 3 pendant 10 min (l'application de traitement fait un job à la
   fois : le travail s'accumule) ;
@@ -424,7 +487,10 @@ sans conséquence.
    les lignes, la révision de la sauvegarde, la révision atteinte, et `stopped` si le rejeu s'est arrêté avant.
 5. Vérifiez, en lecture seule, sur les deux bases (`psql <URI>`) : `SELECT value FROM studio_meta WHERE key =
    'revision'` donne la tête notée à l'étape 1 (ou plus loin, si quelqu'un a écrit entre-temps), et `SELECT path, blob
-   FROM studio_files ORDER BY path` donne les mêmes lignes à la même révision.
+   FROM studio_files ORDER BY path` donne les mêmes lignes à la même révision. Sans accès à la base de production,
+   comparez en membre : `GET /api/ops?after=0` (paginé par `next`) donne la révision et l'identifiant de chaque
+   opération, à mettre en face de `SELECT rev, op_id FROM studio_ops WHERE state = 'confirmed' ORDER BY rev` sur la
+   base de l'exercice, et le contenu d'un fichier lu par l'API en face de son blob dans le bucket.
 6. Écrivez le temps, les révisions et toute bizarrerie dans le rapport de qualification, puis supprimez l'add-on
    (`clever addon delete my-game-pg-drill`). Ne lancez jamais `gc --delete` depuis la base de l'exercice : il
    ramasserait des blobs que la production nomme encore.
