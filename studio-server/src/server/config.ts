@@ -196,7 +196,12 @@ export function loadConfig(file: string, text?: string): StudioServerConfig {
       throw new ConfigError(`${file}: git.branch is a branch name`);
     if (
       git.path !== undefined &&
-      (typeof git.path !== 'string' || git.path.split('/').some((s) => s === '..' || s === '.'))
+      (typeof git.path !== 'string' ||
+        /[:*?[\]\\]/.test(git.path) ||
+        git.path
+          .replace(/^\/+|\/+$/g, '')
+          .split('/')
+          .some((s) => s === '..' || s === '.' || (s === '' && git.path !== '')))
     )
       throw new ConfigError(`${file}: git.path is a folder of the repository`);
     if (git.remote.startsWith('-')) throw new ConfigError(`${file}: git.remote is the repository's URL`);

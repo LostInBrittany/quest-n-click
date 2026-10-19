@@ -240,6 +240,74 @@ describe('the game to and from Git, the hard cases', () => {
   });
 });
 
+describe('the game to and from Git, round two', () => {
+  it("never pushes the game's private files, and an import keeps them", async () => {
+    await studio.writeFiles('secret', [{ path: 'private/ending.md', after: 'sealed' }], { undo: false, guard: false });
+    await as('lea@example.org', 'notes.md', 'with a secret beside');
+    expect((await sync.push()).pushed).toBe(true);
+    const d = look();
+    expect(git(d, 'ls-files')).not.toContain('private/');
+    await sync.import();
+    expect(readFileSync(join(studio.gameDir, 'private', 'ending.md'), 'utf8')).toBe('sealed');
+  });
+
+  it.skipIf(process.platform === 'win32')(
+    'takes a path as it is (a quote, no unquoting), and keeps a file the repository has as executable',
+    async () => {
+      const d = look();
+      git(d, 'update-index', '--chmod=+x', 'games/tpl/index.ts');
+      git(d, '-c', 'user.name=x', '-c', 'user.email=x@x', 'commit', '-q', '-m', 'executable');
+      git(d, 'push', '-q', 'origin', 'main');
+      await sync.import();
+      await studio.writeFiles('q', [{ path: 'q"uote.md', after: 'q' }], { undo: false, guard: false });
+      await as('lea@example.org', 'notes.md', 'after the mode');
+      expect((await sync.push()).pushed).toBe(true);
+      const e = look();
+      expect(git(e, 'ls-files', '-s', 'games/tpl/index.ts')).toMatch(/^100755 /);
+      expect(git(e, 'ls-files', '-z').split('\0')).toContain('games/tpl/q"uote.md');
+    },
+  );
+
+  it.skipIf(process.platform === 'win32')(
+    "says a remote's refusal as the remote said it (502), and a branch moved during the push as moved (409)",
+    async () => {
+      const hook = join(bare, 'hooks', 'pre-receive');
+      const { chmodSync } = await import('node:fs');
+      writeFileSync(hook, '#!/bin/sh\necho "protected branch" >&2\nexit 1\n');
+      chmodSync(hook, 0o755);
+      await as('lea@example.org', 'notes.md', 'refused');
+      await expect(sync.push()).rejects.toMatchObject({
+        status: 502,
+        message: expect.stringMatching(/pre-receive hook declined/),
+      });
+      rmSync(hook);
+      // A git that lets someone else push between the Studio's fetch and its push.
+      const d = look();
+      const wrapper = join(tmp, 'git-racing');
+      writeFileSync(
+        wrapper,
+        `#!/bin/sh\nif [ "$1" = push ]; then (unset GIT_DIR GIT_INDEX_FILE GIT_WORK_TREE; cd "${d}" && echo x >> README.md && git -c user.name=x -c user.email=x@x commit -qam race && git push -q origin main); fi\nexec git "$@"\n`,
+      );
+      chmodSync(wrapper, 0o755);
+      const racing = new GitSync({
+        db,
+        blobs: fsBlobStore(join(tmp, 'blobs')),
+        gameDir: studio.gameDir,
+        config: { remote: bare, branch: 'main', path: 'games/tpl' },
+        workDir: join(tmp, 'work'),
+        writeFiles: async () => undefined,
+        exclusive: (fn) => fn(),
+        git: wrapper,
+      });
+      await expect(racing.push()).rejects.toMatchObject({
+        status: 409,
+        message: expect.stringMatching(/moved while pushing/),
+      });
+      await sync.import();
+    },
+  );
+});
+
 describe('the Git routes', () => {
   it('say the state, push, import; a Studio without a repository says so', async () => {
     const { ServiceLease } = await import('../studio-server/src/server/service-lease');

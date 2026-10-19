@@ -54,8 +54,12 @@ const MAX_BYTES = 64 * 1024 * 1024;
 export const BRANCH = /^(?![-./])(?!.*\.\.)(?!.*[./]$)(?!.*@\{)[\w./-]{1,100}$/;
 const SHA = /^[0-9a-f]{7,40}$/;
 
-/** A path of the repository with a segment that starts with a dot: the repository's own (`.github/`, `.gitignore`). */
-const dotted = (p: string) => p.split('/').some((s) => s.startsWith('.'));
+/**
+ * What never goes to or comes from the repository: a path with a segment that starts with a dot (the repository's own,
+ * `.github/`, `.gitignore`), and the game's `private/` (sealed endings, raw sheets: never in a repository, as
+ * `.gitignore` says) and `node_modules/`.
+ */
+const excluded = (p: string) => p.split('/').some((s) => s.startsWith('.')) || /^(private|node_modules)(\/|$)/.test(p);
 
 export class GitSync {
   private queue: Promise<unknown> = Promise.resolve();
@@ -129,9 +133,11 @@ export class GitSync {
           { cwd: this.o.workDir, env, maxBuffer: 256 * 1024 * 1024, encoding: 'buffer' },
           (e, stdout, stderr) => {
             const code = e ? Number((e as { code?: number }).code ?? 1) : 0;
-            const err = String(stderr).trim().split('\n').slice(-2).join(' ');
+            const all = String(stderr).trim();
+            const err = all.split('\n').slice(-2).join(' ');
             if (code && !o.allowFail) return ko(new StudioError(`git ${args[0]}: ${err}`, 502));
-            ok({ out: stdout as Buffer, err, code });
+            ok({ out: stdout as Buffer, err: all.slice(-4_000), code });
+            return;
           },
         );
         child.stdin?.end(o.input);
@@ -148,6 +154,8 @@ export class GitSync {
       await this.git(['init', '-q', '--bare', this.repo], { env: { GIT_DIR: '' } });
       await this.git(['remote', 'add', 'origin', '--', this.o.config.remote]);
     }
+    // The configuration's remote, even when it changed since the clone was made.
+    await this.git(['remote', 'set-url', 'origin', '--', this.o.config.remote]);
     await this.git(['fetch', '-q', '--prune', 'origin', `+refs/heads/*:refs/remotes/origin/*`]);
     const tip = await this.git(['rev-parse', '-q', '--verify', `refs/remotes/origin/${this.branch}^{commit}`], {
       allowFail: true,
@@ -168,6 +176,7 @@ export class GitSync {
     const files = new Map<string, Buffer>();
     for (const r of rows.files) {
       const path = String(r.path);
+      if (excluded(path)) continue;
       const blob = String(r.blob);
       const bytes = (await this.o.blobs.has(blob))
         ? await this.o.blobs.get(blob)
@@ -196,10 +205,13 @@ export class GitSync {
       const full = line.slice(tab + 1);
       const path = this.prefix ? full.slice(this.prefix.length + 1) : full;
       if (this.prefix && !full.startsWith(`${this.prefix}/`)) {
-        // The folder itself is a link or a submodule: never followed.
-        throw new StudioError(`${full} is not a folder of the repository (a link or a submodule): not read`, 422);
+        // The folder itself is a file, a link or a submodule: never followed.
+        throw new StudioError(
+          `${full} is not a folder of the repository (a file, a link or a submodule): not read`,
+          422,
+        );
       }
-      if (dotted(path)) continue;
+      if (excluded(path)) continue;
       out.push({ path, mode: mode!, oid: oid! });
     }
     return out;
@@ -223,11 +235,17 @@ export class GitSync {
       const [u] = await this.o.db
         .all('SELECT name FROM studio_users WHERE email = $1 AND email_verified <> 0', [plain])
         .catch(() => [] as Record<string, unknown>[]);
-      if (u) return `${String(u.name ?? plain.split('@')[0])} <${plain}>`;
+      if (u)
+        return `${
+          String(u.name ?? '')
+            .replace(/[<>\s]+/g, ' ')
+            .trim() || plain.split('@')[0]
+        } <${plain}>`;
     }
     const name = plain.includes('@') ? plain.split('@')[0]! : plain;
     const local = name
       .normalize('NFKD')
+      .replace(/\p{M}+/gu, '')
       .replace(/[^\w.-]+/g, '.')
       .replace(/^\.+|\.+$/g, '');
     return `${name} <${local || 'someone'}@${this.o.noreplyDomain ?? 'users.noreply.web-scumm.invalid'}>`;
@@ -263,11 +281,13 @@ export class GitSync {
         // The head's files stored as objects in one command, from a scratch copy of this server's own (never the
         // repository's) bytes; then the index told everything in one: removals (mode 0), then the game's files.
         const scratch = join(this.o.workDir, `objects-${process.pid}-${Date.now()}`);
-        mkdirSync(scratch, { recursive: true });
         const paths = [...head.files.keys()];
-        paths.forEach((p, n) => writeFileSync(join(scratch, String(n)), head.files.get(p)!));
-        const oids = paths.length
-          ? String(
+        let oids: string[] = [];
+        try {
+          mkdirSync(scratch, { recursive: true });
+          paths.forEach((p, n) => writeFileSync(join(scratch, String(n)), head.files.get(p)!));
+          if (paths.length)
+            oids = String(
               (
                 await this.git(['hash-object', '-w', '--no-filters', '--stdin-paths'], {
                   input: Buffer.from(paths.map((_, n) => join(scratch, String(n))).join('\n')),
@@ -275,17 +295,28 @@ export class GitSync {
               ).out,
             )
               .trim()
-              .split('\n')
-          : [];
-        rmSync(scratch, { recursive: true, force: true });
+              .split('\n');
+        } finally {
+          rmSync(scratch, { recursive: true, force: true });
+        }
         const zero = '0'.repeat(40);
-        const lines: string[] = [];
+        // NUL-terminated records: a path is taken as it is, never unquoted nor split.
+        const records: string[] = [];
+        const modes = new Map<string, string>();
         if (tip)
-          for (const e of await this.tree(tip))
-            if (!head.files.has(e.path)) lines.push(`0 ${zero}\t${this.inRepo(e.path)}`);
-        paths.forEach((p, n) => lines.push(`100644 ${oids[n]}\t${this.inRepo(p)}`));
-        if (lines.length)
-          await this.git(['update-index', '--index-info'], { env, input: Buffer.from(`${lines.join('\n')}\n`) });
+          for (const e of await this.tree(tip)) {
+            modes.set(e.path, e.mode);
+            if (!head.files.has(e.path)) records.push(`0 ${zero}\t${this.inRepo(e.path)}`);
+          }
+        // A file the repository has as executable stays so.
+        paths.forEach((p, n) =>
+          records.push(`${modes.get(p) === '100755' ? '100755' : '100644'} ${oids[n]}\t${this.inRepo(p)}`),
+        );
+        if (records.length)
+          await this.git(['update-index', '-z', '--index-info'], {
+            env,
+            input: Buffer.from(`${records.join('\0')}\0`),
+          });
         const tree = String((await this.git(['write-tree'], { env })).out).trim();
         const before = tip ? String((await this.git(['rev-parse', `${tip}^{tree}`])).out).trim() : undefined;
         if (tree === before) {
@@ -322,13 +353,18 @@ export class GitSync {
           ).out,
         ).trim();
         // Never forced: a branch that moved meanwhile refuses it; anything else is said as git said it.
-        const pushed = await this.git(['push', '-q', 'origin', `${commit}:refs/heads/${this.branch}`], {
+        const pushed = await this.git(['push', '--porcelain', 'origin', `${commit}:refs/heads/${this.branch}`], {
           allowFail: true,
         });
         if (pushed.code) {
-          if (/rejected|non-fast-forward|fetch first/.test(pushed.err))
+          // The ref's status line: `!` then `(fetch first)` or `(non-fast-forward)` when the branch moved; anything else
+          // (a protected branch, a refused key, the network) is said as git said it.
+          const status = String(pushed.out)
+            .split('\n')
+            .find((l) => l.startsWith('!'));
+          if (status && /\((fetch first|non-fast-forward)\)/.test(status))
             throw new StudioError(`${this.branch} moved while pushing: import it first, never forced`, 409);
-          throw new StudioError(`the push failed: ${pushed.err}`, 502);
+          throw new StudioError(`the push failed: ${(status ?? pushed.err).replace(/\s+/g, ' ').slice(0, 300)}`, 502);
         }
         await this.setMeta({ git_pushed: String(head.revision), git_commit: commit });
         this.o.log?.({ event: 'git-pushed', commit, revisions: [from + 1, head.revision] });
@@ -351,7 +387,11 @@ export class GitSync {
       this.o.exclusive(async () => {
         const tip = await this.fetch();
         // Only what the remote has: one of its branches, or a commit by its hash; never this clone's own refs.
-        const want = ref === undefined ? (tip ? tip : undefined) : SHA.test(ref) ? ref : `refs/remotes/origin/${ref}`;
+        const remote = ref === undefined ? undefined : `refs/remotes/origin/${ref}`;
+        const isBranch =
+          remote !== undefined &&
+          (await this.git(['rev-parse', '-q', '--verify', remote], { allowFail: true })).code === 0;
+        const want = ref === undefined ? tip : isBranch ? remote : SHA.test(ref) ? ref : remote;
         if (!want) throw new StudioError(`${this.branch} does not exist in the repository`, 404);
         const at = await this.git(['rev-parse', '-q', '--verify', `${want}^{commit}`], { allowFail: true });
         if (at.code) throw new StudioError(`no commit ${ref} in the repository`, 404);

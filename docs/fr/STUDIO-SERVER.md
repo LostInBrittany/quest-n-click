@@ -226,7 +226,8 @@ dernière révision poussée :
 Le Studio ne fait jamais de checkout : un push construit son commit à partir d'objets, un import lit les objets du
 commit ; les liens, les attributs et les règles d'ignore du dépôt ne peuvent donc pas atteindre les fichiers du
 serveur. Les fichiers dont un segment du chemin commence par un point (`.github/`, `.gitignore`) sont ceux du dépôt :
-gardés par un push, ignorés par un import. L'email d'un auteur va dans un `Co-authored-by` seulement si le
+gardés par un push, ignorés par un import. Le
+`private/` du jeu ne va jamais dans le dépôt, et un import le laisse tel qu'il est. L'email d'un auteur va dans un `Co-authored-by` seulement si le
 fournisseur l'a vérifié ; sinon son nom à `users.noreply.<l'hôte du Studio>`. Git tourne avec un environnement à lui,
 la clé dans un fichier pour une commande, le clone dans `workDir/git` (refait quand le disque est neuf). Donnez les
 clés de l'hôte du dépôt dans `git.knownHosts` (des lignes `known_hosts`) pour les vérifier strictement ; sans elles,

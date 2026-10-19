@@ -217,7 +217,8 @@ none; a remote URL never carries credentials. The Play tab shows where the game 
 
 The Studio never checks a working tree out: a push builds its commit from objects, an import reads the commit's
 objects, so the repository's links, attributes and ignore rules cannot reach the server's files. Files whose path has
-a segment starting with a dot (`.github/`, `.gitignore`) are the repository's: kept by a push, skipped by an import. An
+a segment starting with a dot (`.github/`, `.gitignore`) are the repository's: kept by a push, skipped by an import. The
+game's `private/` never goes to the repository, and an import leaves it as it is. An
 author's email goes in a `Co-authored-by` only when the provider verified it; otherwise their name at
 `users.noreply.<the Studio's host>`. Git runs with an environment of its own, the key in a file for one command, the
 clone in `workDir/git` (made again when the disk is new). Give the remote host's keys as `git.knownHosts`
