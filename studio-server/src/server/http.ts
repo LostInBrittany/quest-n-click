@@ -28,6 +28,7 @@ import type { Builds } from './builds';
 import type { PreparedAssets } from './prepared';
 import type { EngineUpgrade } from './engine-upgrade';
 import type { Health } from './health';
+import type { Metrics } from './metrics';
 import type { Previews } from './previews';
 import type { ServiceLease } from './service-lease';
 
@@ -134,6 +135,8 @@ export interface StudioServerOptions {
   play?: { handler: Play; playUrl: string };
   /** The Studio's page, its files and the game's images and sounds (PR 7, client.ts). */
   client?: StudioClient;
+  /** The metrics (4.2.3, H9): `GET /metrics` behind the secret STUDIO_METRICS_TOKEN; without it, a 404. */
+  metrics?: Metrics;
 }
 
 /** The spans a client may name: the leases' own names (`*` only through /exclusive). */
@@ -285,7 +288,8 @@ export function studioServer(o: StudioServerOptions): StudioHttpServer {
     const url = new URL(req.url ?? '/', 'http://studio.invalid');
     const path = url.pathname;
     res.setHeader('x-request-id', id);
-    res.on('finish', () =>
+    res.on('finish', () => {
+      o.metrics?.response(res.statusCode);
       log({
         event: 'request',
         id,
@@ -294,8 +298,8 @@ export function studioServer(o: StudioServerOptions): StudioHttpServer {
         status: res.statusCode,
         ms: Math.round(performance.now() - t0),
         client: clientOf(req),
-      }),
-    );
+      });
+    });
     try {
       // The probes: no session, no data.
       if (path === '/livez') return send(res, 200, { ok: true });
@@ -310,6 +314,15 @@ export function studioServer(o: StudioServerOptions): StudioHttpServer {
       const ip = clientOf(req);
       // The game's origin answers its own paths only: no Studio API, no /auth, ever.
       if (o.play && forPlay(req, o.play.playUrl)) return void (await o.play.handler.handle(req, res, url));
+      // The metrics (4.2.3, H9): a secret of their own, never the session; none configured, no route.
+      if (path === '/metrics') {
+        if (!o.metrics || req.method !== 'GET') return send(res, 404, { error: 'not found' });
+        if (!o.metrics.authorized(req))
+          throw Object.assign(new StudioError('the metrics need their token', 401), {
+            headers: { 'www-authenticate': 'Bearer realm="metrics"' },
+          });
+        return void (await o.metrics.serve(res));
+      }
       // The remote MCP (ADR 0029): where its authorization is (RFC 9728), then the endpoint itself.
       if (o.mcp && req.method === 'GET' && MCP_METADATA_PATHS.includes(path)) return send(res, 200, o.mcp.metadata());
       if (o.mcp && path === '/mcp') return void (await o.mcp.handle(req, res, () => readJson(req)));
