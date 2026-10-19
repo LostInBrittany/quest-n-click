@@ -77,7 +77,9 @@ describe('a job', () => {
 
   it('expires within 5 min, writes under its own staging prefix only, and is of a known kind', () => {
     expect(() => verifyJob(signJob(job({ exp: Date.now() - 1 }), priv), pub)).toThrow(/expired/);
-    expect(() => verifyJob(signJob(job({ exp: Date.now() + 10 * 60_000 }), priv), pub)).toThrow(/expired/);
+    expect(() => verifyJob(signJob(job({ exp: Date.now() + 10 * 60_000 }), priv), pub)).toThrow(
+      /lives longer than a job may/,
+    );
     expect(() => verifyJob(signJob(job({ dest: 'sha256/' }), priv), pub)).toThrow(/staging prefix/);
     expect(() => verifyJob(signJob(job({ kind: 'build' as never }), priv), pub)).toThrow(/unknown job kind/);
   });
