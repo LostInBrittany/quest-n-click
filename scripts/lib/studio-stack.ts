@@ -23,9 +23,12 @@ import { readJson, send, studioServer } from '../../studio-server/src/server/htt
 import { Leases } from '../../studio-server/src/server/leases';
 import { Presence } from '../../studio-server/src/server/live';
 import { Play } from '../../studio-server/src/server/play';
+import { HOSTED_SOLVE_MS } from '../../studio-server/src/ops/diagnose';
+import { Health, judgeBy } from '../../studio-server/src/server/health';
 import { Previews } from '../../studio-server/src/server/previews';
 import { ServiceLease } from '../../studio-server/src/server/service-lease';
-import { localPreview } from '../../studio-server/src/worker/local';
+import { localDiagnose, localPreview, localValidate } from '../../studio-server/src/worker/local';
+import type { SolveData } from '../../tools/studio/types';
 import { packSnapshot } from '../../studio-server/src/worker/snapshot';
 import { TestOp, type TestUser } from '../../tests/fixtures/oidc-op';
 
@@ -107,6 +110,28 @@ export async function startStack(o: { tls: boolean; game?: string }) {
     assetsVersion: () => 'e2e',
   });
   journal.events.on('confirmed', () => void previews.schedule());
+  // And its health, judged as the server judges it (main.ts), the verdict made in the worker's child here.
+  const health = new Health({
+    db,
+    journal,
+    snapshot: () =>
+      server.exclusive(async () => ({
+        epoch: await journal.epoch(),
+        rev: await journal.revision(),
+        bytes: packSnapshot(gameDir),
+      })),
+    judge: judgeBy({
+      validate: (bytes) => localValidate(bytes),
+      solve: (bytes) =>
+        localDiagnose('solve', bytes, {
+          from: null,
+          maxStates: 20_000,
+          mode: 'witness',
+          timeLimitMs: HOSTED_SOLVE_MS,
+        }) as Promise<SolveData>,
+    }),
+  });
+  journal.events.on('confirmed', () => void health.schedule());
   const server = studioServer({
     studio: createStudio({ gameDir, root: tmp, journal, importFresh: importInChild }),
     journal,
@@ -118,6 +143,7 @@ export async function startStack(o: { tls: boolean; game?: string }) {
     leases,
     presence: new Presence(),
     previews,
+    health,
     play: {
       playUrl,
       handler: new Play({
@@ -149,6 +175,7 @@ export async function startStack(o: { tls: boolean; game?: string }) {
   } else await new Promise<void>((ok) => server.listen(port, '127.0.0.1', ok));
   // The first preview, before any browser asks for the game.
   await previews.schedule();
+  await health.schedule();
 
   return {
     tls,

@@ -90,14 +90,33 @@ export function remoteExecutor(o: RemoteExecutorOptions) {
     }
   }
 
+  async function diagnoseSnapshot(
+    kind: DiagnoseKind,
+    snapshot: Buffer,
+    params: Record<string, unknown>,
+    at?: { epoch: string; rev: number },
+  ): Promise<unknown> {
+    const v = await run(kind, snapshot, params, at);
+    // Answered as a local route would: a refusal is the asker's (400), a deadline is the worker's (504).
+    if (v.refused) throw new StudioError(v.failed ?? 'refused', 400);
+    if (v.timedOut) throw new StudioError(`${v.failed}: the diagnostic is unknown for now`, 504);
+    if (v.failed) throw new Error(v.failed);
+    if (!diagnosisShaped(kind, v.data)) throw new Error('the processing worker result does not answer this job');
+    return structuredClone(v.data);
+  }
+
+  /** The validator's verdict on a packed snapshot (4.2.2: a past revision's, for the health and the bisection). */
+  async function validateSnapshot(snapshot: Buffer, at?: { epoch: string; rev: number }): Promise<ValidateResult> {
+    const t0 = Date.now();
+    const v = await run('validate', snapshot, {}, at);
+    if (v.failed) throw new Error(v.failed);
+    const errors = v.errors!.map(String);
+    return { ok: errors.length === 0, errors, warnings: (v.warnings ?? []).map(String), ms: Date.now() - t0 };
+  }
+
   return {
-    async validate(dir: string): Promise<ValidateResult> {
-      const t0 = Date.now();
-      const v = await run('validate', packSnapshot(dir));
-      if (v.failed) throw new Error(v.failed);
-      const errors = v.errors!.map(String);
-      return { ok: errors.length === 0, errors, warnings: (v.warnings ?? []).map(String), ms: Date.now() - t0 };
-    },
+    validate: (dir: string): Promise<ValidateResult> => validateSnapshot(packSnapshot(dir)),
+    validateSnapshot,
     /** The game module as data, for the Studio's reads (functions dropped, as `importInChild` gives it). */
     async load(dir: string): Promise<unknown> {
       const v = await run('load', packSnapshot(dir));
@@ -109,15 +128,10 @@ export function remoteExecutor(o: RemoteExecutorOptions) {
      * A diagnostic that runs the game's code (4.2.2 PR 3): lint, solve, playtests, as the Studio's route answers it.
      * A failure of the game's code throws, as a local run would.
      */
-    async diagnose(kind: DiagnoseKind, dir: string, params: Record<string, unknown>): Promise<unknown> {
-      const v = await run(kind, packSnapshot(dir, { playtests: kind === 'playtests' }), params);
-      // Answered as a local route would: a refusal is the asker's (400), a deadline is the worker's (504).
-      if (v.refused) throw new StudioError(v.failed ?? 'refused', 400);
-      if (v.timedOut) throw new StudioError(`${v.failed}: the diagnostic is unknown for now`, 504);
-      if (v.failed) throw new Error(v.failed);
-      if (!diagnosisShaped(kind, v.data)) throw new Error('the processing worker result does not answer this job');
-      return structuredClone(v.data);
-    },
+    diagnose: (kind: DiagnoseKind, dir: string, params: Record<string, unknown>): Promise<unknown> =>
+      diagnoseSnapshot(kind, packSnapshot(dir, { playtests: kind === 'playtests' }), params),
+    /** The same on a packed snapshot (4.2.2: a past revision's, for the health and the bisection). */
+    diagnoseSnapshot,
     /**
      * A revision's preview (4.2.2 PR 2), from the snapshot the caller packed with the revision it names: its files by
      * path. A failure of the build (the game's code, a timeout) throws with its reason.

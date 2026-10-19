@@ -19,6 +19,7 @@ const auth = (path: string, init: RequestInit = {}) =>
     headers: { ...(init.headers as object), 'x-studio-request': '1' },
     credentials: 'same-origin',
   });
+import { healthText } from './health-chip';
 import { h } from './ui';
 
 export type Role = 'owner' | 'dev' | 'reviewer';
@@ -188,6 +189,8 @@ export class Live {
   here: Here[] = [];
   /** The revisions' previews (4.2.2): the last ready, the one building, the last failure. */
   preview: PreviewState | null = null;
+  /** The game's health by revision (4.2.2): the last verdict, the revision that broke it, a check going on. */
+  health: HealthState | null = null;
   up = false;
   /** Revisions committed during a cut that the journal could not give back: only a reload is sure to show them. */
   gap = false;
@@ -266,6 +269,10 @@ export class Live {
       this.changed();
     });
     es.addEventListener('preview', (m) => this.setPreview(JSON.parse((m as MessageEvent).data) as PreviewState));
+    es.addEventListener('health', (m) => {
+      this.health = JSON.parse((m as MessageEvent).data) as HealthState;
+      this.changed();
+    });
     es.addEventListener('presence', (m) => {
       this.here = (JSON.parse((m as MessageEvent).data) as { here: Here[] }).here;
       this.changed();
@@ -286,6 +293,7 @@ export class Live {
     this.here = d.here;
     this.up = true;
     if (d.preview !== undefined) this.setPreview(d.preview);
+    if (d.health !== undefined) this.health = d.health;
     if (first) this.revision = d.revision;
     else {
       void this.o.check?.().catch(() => undefined);
@@ -363,6 +371,20 @@ interface Hello {
   seq: number;
   here: Here[];
   preview?: PreviewState | null;
+  health?: HealthState | null;
+}
+
+/** What the server says of the game's health by revision (studio-server/src/server/health.ts). */
+export interface HealthState {
+  epoch: string;
+  head: number;
+  rev: number | null;
+  ok: boolean | null;
+  errors: string[];
+  warnings: number;
+  brokenSince: { rev: number; what: string; paths: string[] } | null;
+  running: number | null;
+  unknown: string | null;
 }
 
 /** What the server says of the revisions' previews (studio-server/src/server/previews.ts). */
@@ -381,7 +403,13 @@ export interface PreviewState {
 function hostedBar(o: { live: Live; me: Me; spans: () => void; members: () => void }): HTMLElement {
   const rev = h('span', { class: 'rev', title: 'The last revision this page has seen; the editors follow it' });
   const here = h('span', { class: 'here', role: 'group', 'aria-label': 'Who is here' });
+  const health = h('span', { class: 'health', role: 'status' });
   const draw = () => {
+    // Written only when it changed: a status region may be read again at each write.
+    const ht = healthText(o.live.health);
+    if (health.textContent !== ht.text) health.textContent = ht.text;
+    health.title = ht.title;
+    health.dataset.state = ht.state;
     rev.classList.toggle('up', o.live.up);
     rev.replaceChildren(
       h('span', { class: 'dot', 'aria-hidden': 'true' }),
@@ -418,7 +446,7 @@ function hostedBar(o: { live: Live; me: Me; spans: () => void; members: () => vo
       h('button', { type: 'button', onclick: () => void logout() }, 'Log out'),
     ),
   );
-  return h('div', { class: 'hosted-bar' }, rev, here, menu);
+  return h('div', { class: 'hosted-bar' }, rev, health, here, menu);
 }
 
 /** Every 30 s while the page is open: where you are (a tab, a room), which also renews your leases. */

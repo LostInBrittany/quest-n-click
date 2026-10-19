@@ -30,9 +30,12 @@ import { readJson, send, studioServer } from '../studio-server/src/server/http';
 import { Leases } from '../studio-server/src/server/leases';
 import { Presence } from '../studio-server/src/server/live';
 import { Play } from '../studio-server/src/server/play';
+import { HOSTED_SOLVE_MS } from '../studio-server/src/ops/diagnose';
+import { Health, judgeBy } from '../studio-server/src/server/health';
 import { Previews } from '../studio-server/src/server/previews';
 import { ServiceLease } from '../studio-server/src/server/service-lease';
-import { localPreview } from '../studio-server/src/worker/local';
+import { localDiagnose, localPreview, localValidate } from '../studio-server/src/worker/local';
+import type { SolveData } from '../tools/studio/types';
 import { packSnapshot } from '../studio-server/src/worker/snapshot';
 import { TestOp } from '../tests/fixtures/oidc-op';
 
@@ -110,6 +113,28 @@ const previews = new Previews({
   assetsVersion: () => 'e2e',
 });
 journal.events.on('confirmed', () => void previews.schedule());
+// And its health, judged as the server judges it (main.ts), the verdict made in the worker's child here.
+const health = new Health({
+  db,
+  journal,
+  snapshot: () =>
+    server.exclusive(async () => ({
+      epoch: await journal.epoch(),
+      rev: await journal.revision(),
+      bytes: packSnapshot(gameDir),
+    })),
+  judge: judgeBy({
+    validate: (bytes) => localValidate(bytes),
+    solve: (bytes) =>
+      localDiagnose('solve', bytes, {
+        from: null,
+        maxStates: 20_000,
+        mode: 'witness',
+        timeLimitMs: HOSTED_SOLVE_MS,
+      }) as Promise<SolveData>,
+  }),
+});
+journal.events.on('confirmed', () => void health.schedule());
 const server = studioServer({
   studio: createStudio({ gameDir, root: tmp, journal, importFresh: importInChild }),
   journal,
@@ -121,6 +146,7 @@ const server = studioServer({
   leases,
   presence: new Presence(),
   previews,
+  health,
   play: {
     playUrl,
     handler: new Play({
@@ -152,6 +178,19 @@ if (tls) {
 } else await new Promise<void>((ok) => server.listen(port, '127.0.0.1', ok));
 // The first preview, before any browser asks for the game.
 await previews.schedule();
+await health.schedule();
+
+/** A frame being replaced may never answer an evaluation (Firefox): bounded, then retried by the caller's loop. */
+const within = <T>(p: Promise<T> | undefined, ms: number): Promise<T | undefined> =>
+  p
+    ? Promise.race([p, new Promise<undefined>((ok) => setTimeout(() => ok(undefined), ms))])
+    : Promise.resolve(undefined);
+// The whole run: a step that hangs fails the run with what was seen, rather than the CI job's own deadline.
+setTimeout(() => {
+  console.log('✖ the run did not end within 8 min');
+  console.log(trace.slice(-80).join('\n'));
+  process.exit(1);
+}, 8 * 60_000).unref();
 
 const steps: [string, boolean, string?][] = [];
 const check = (name: string, ok: boolean, detail?: string) => {
@@ -184,6 +223,17 @@ try {
   await page.locator('header.top .game').waitFor({ timeout: 30_000 });
   check('the member logs in and the Studio loads', (await page.locator('header.top .game').innerText()).length > 0);
   check('no undo on a shared Studio', (await page.getByRole('button', { name: /Undo/ }).count()) === 0);
+
+  // 1b. The header says the game's health at a revision (G3): the validator and the solver, judged in the worker's child.
+  await page.waitForFunction(
+    () => document.querySelector('.hosted-bar .health')?.getAttribute('data-state') === 'ok',
+    null,
+    {
+      timeout: 120_000,
+    },
+  );
+  const chipText = await page.locator('.hosted-bar .health').innerText();
+  check("the header says the game's health at a revision", /^✔ valid at revision \d+/.test(chipText), chipText);
 
   // 2. Rooms: the editor comes from the game's origin.
   const editor = page.frameLocator('iframe.engine');
@@ -235,24 +285,26 @@ try {
       method: 'PUT',
       headers: { 'content-type': 'application/json', 'x-studio-request': '1' },
       body: JSON.stringify(layout),
+      signal: AbortSignal.timeout(60_000),
     });
     return w.status;
   });
-  await page.getByRole('button', { name: 'Reload view' }).click();
+  await page.getByRole('button', { name: 'Reload view' }).click({ timeout: 30_000 });
   let shown: unknown;
   for (let i = 0; i < 120; i++) {
     await page.waitForTimeout(250);
     const f = page.frames().find((x) => x.url().startsWith(playUrl) && x.url().includes('edit='));
-    shown = await f
-      ?.evaluate(
+    shown = await within(
+      f?.evaluate(
         () =>
           (
             window as unknown as {
               __game?: { engine: { layouts: Record<string, { entries?: Record<string, number[]> }> } };
             }
           ).__game?.engine.layouts.garden?.entries?.default,
-      )
-      .catch(() => undefined);
+      ),
+      2_000,
+    ).catch(() => undefined);
     if (JSON.stringify(shown) === '[123,321]') break;
   }
   check(

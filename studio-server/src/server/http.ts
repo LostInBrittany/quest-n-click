@@ -21,6 +21,7 @@ import type { Role } from './auth/store';
 import type { Leases } from './leases';
 import { LiveHub, type Presence, serveEvents } from './live';
 import { forPlay, type Play, playTicketBody } from './play';
+import type { Health } from './health';
 import type { Previews } from './previews';
 import type { ServiceLease } from './service-lease';
 
@@ -105,6 +106,8 @@ export interface StudioServerOptions {
   presence?: Presence;
   /** The revisions' previews (4.2.2 PR 2): their state goes to the live events. */
   previews?: Previews;
+  /** The game's health by revision (4.2.2 PR 3): its state goes to the live events; bisections on demand. */
+  health?: Health;
   /** The game's origin (plan §6.1): every request whose `Host` is `playUrl`'s goes there, and nothing else does. */
   play?: { handler: Play; playUrl: string };
   /** The Studio's page, its files and the game's images and sounds (PR 7, client.ts). */
@@ -234,7 +237,14 @@ export function studioServer(o: StudioServerOptions): StudioHttpServer {
   let started = false;
   const authCalls = new Buckets(o.perMinute ?? 30);
   const failures = new Buckets(o.perMinute ?? 30);
-  const hub = new LiveHub({ journal: o.journal, leases: o.leases, presence: o.presence, previews: o.previews, log });
+  const hub = new LiveHub({
+    journal: o.journal,
+    leases: o.leases,
+    presence: o.presence,
+    previews: o.previews,
+    health: o.health,
+    log,
+  });
   // A member removed, demoted or logged out everywhere: their leases and their presence go at once, so nobody waits
   // on a lease they can no longer release.
   o.auth?.gate.revocations.on('revoked', (ids: string[]) => {
@@ -301,6 +311,23 @@ export function studioServer(o: StudioServerOptions): StudioHttpServer {
         if (!o.play || !principal?.session) throw new StudioError('the game is opened from a browser session', 403);
         const path = playTicketBody(await readJson(req));
         return send(res, 200, { url: await o.play.handler.ticket(principal.user.id, principal.session.idHash, path) });
+      }
+      // A bisection asked for (4.2.2, G4): a dev's, between a passing revision and a failing one.
+      if (req.method === 'POST' && sub === '/health/bisect') {
+        if (!o.health) throw new StudioError("the health of revisions is a hosted Studio's", 404);
+        if (!o.lease.held)
+          return send(
+            res,
+            503,
+            { error: 'this instance does not serve writes yet; try again' },
+            { 'retry-after': '2' },
+          );
+        const b = (await readJson(req)) as { good?: unknown; bad?: unknown };
+        if (typeof b?.good !== 'number' || typeof b?.bad !== 'number')
+          throw new StudioError('`good` and `bad` are revision numbers');
+        const r = await o.health.bisectOn(b.good, b.bad);
+        if ('error' in r) throw new StudioError(r.error);
+        return send(res, 200, r);
       }
       // The live Studio (PR 6): the stream, who is here, the leases.
       if (req.method === 'GET' && sub === '/events')

@@ -97,11 +97,12 @@ describe('configuration and secrets', () => {
 
 describe('the server over HTTP (SQLite, files)', () => {
   let base: string, close: () => Promise<void>, game: string, lease: ServiceLease;
+  let db: Awaited<ReturnType<typeof openSqliteDb>>, journal: Journal;
   beforeAll(async () => {
     game = join(tmp, 'http-game');
     cpSync(join(ROOT, 'games', '_template'), game, { recursive: true });
-    const db = await openSqliteDb(join(tmp, 'http.sqlite'));
-    const journal = await Journal.open({ db, blobs: fsBlobStore(join(tmp, 'http-blobs')), gameDir: game });
+    db = await openSqliteDb(join(tmp, 'http.sqlite'));
+    journal = await Journal.open({ db, blobs: fsBlobStore(join(tmp, 'http-blobs')), gameDir: game });
     lease = new ServiceLease(db, 30_000, 10_000);
     await lease.tick();
     const studio = createStudio({ gameDir: game, root: tmp, journal, importFresh: importInChild, author: 'test' });
@@ -122,6 +123,42 @@ describe('the server over HTTP (SQLite, files)', () => {
     expect((await fetch(`${base}/livez`)).status).toBe(200);
     expect((await fetch(`${base}/startz`)).status).toBe(200);
     expect(await (await fetch(`${base}/readyz`)).json()).toEqual({ ok: true, writes: 'served' });
+  });
+
+  it('runs a bisection asked for when the health is followed, with revision numbers only (4.2.2)', async () => {
+    expect((await fetch(`${base}/api/health/bisect`, { method: 'POST', body: '{}' })).status).toBe(404);
+    const asked: [number, number][] = [];
+    const { EventEmitter } = await import('node:events');
+    const health = {
+      events: new EventEmitter(),
+      state: () => null,
+      bisectOn: async (good: number, bad: number) => {
+        asked.push([good, bad]);
+        return bad > 5 ? { error: `revision ${bad} is past the head (5)` } : { rev: 4, what: 'w', paths: ['a.ts'] };
+      },
+    };
+    const studio = createStudio({ gameDir: game, root: tmp, journal, importFresh: importInChild, author: 'test' });
+    const s2 = studioServer({ studio, journal, db, lease, log: () => {}, health: health as never });
+    await new Promise<void>((ok) => s2.listen(0, '127.0.0.1', ok));
+    const url = `http://127.0.0.1:${(s2.address() as AddressInfo).port}/api/health/bisect`;
+    const post = (body: unknown) =>
+      fetch(url, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) });
+    try {
+      const ok = await post({ good: 1, bad: 5 });
+      expect(ok.status).toBe(200);
+      expect(await ok.json()).toEqual({ rev: 4, what: 'w', paths: ['a.ts'] });
+      const past = await post({ good: 1, bad: 9 });
+      expect(past.status).toBe(400);
+      expect(await past.json()).toMatchObject({ error: 'revision 9 is past the head (5)' });
+      for (const body of [{ good: '1', bad: 5 }, { good: 1 }, { good: null, bad: true }])
+        expect((await post(body)).status, JSON.stringify(body)).toBe(400);
+      expect(asked).toEqual([
+        [1, 5],
+        [1, 9],
+      ]);
+    } finally {
+      s2.close();
+    }
   });
 
   it('serves the dev server API under /api/, and each write moves the revision', async () => {
