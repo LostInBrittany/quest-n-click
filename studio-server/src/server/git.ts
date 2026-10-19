@@ -5,7 +5,7 @@
 // one operation, under the project's exclusive lease; the next push builds on it. Git runs with an environment of its
 // own (no secret of the platform), the deploy key in a 0600 file for the run only.
 import { execFile } from 'node:child_process';
-import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs';
+import { existsSync, lstatSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { join, relative, sep } from 'node:path';
 import type { SqlDb } from '../../../bridge/src/store-sql';
 import type { BlobStore } from '../ops/blobs';
@@ -270,7 +270,12 @@ export class GitSync {
           for (const n of readdirSync(d)) {
             if (n === '.git' || n.startsWith('.')) continue;
             const f = join(d, n);
-            if (statSync(f).isDirectory()) walk(f);
+            // Never followed: a link in the repository could name a file of this server (its key, its environment).
+            const st = lstatSync(f);
+            if (st.isSymbolicLink())
+              throw new StudioError(`${relative(root, f).split(sep).join('/')} is a symbolic link: not imported`, 422);
+            if (st.isDirectory()) walk(f);
+            else if (!st.isFile()) continue;
             else {
               if (theirs.size >= MAX_FILES) throw new StudioError(`more than ${MAX_FILES} files to import`, 413);
               const b = readFileSync(f);

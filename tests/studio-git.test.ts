@@ -122,6 +122,23 @@ describe('the game to and from Git', () => {
     expect(await sync.import()).toEqual({ commit: p.commit, changed: 0 });
   });
 
+  it.skipIf(process.platform === 'win32')('never follows a symbolic link of the repository into the game', async () => {
+    const d = look();
+    const { symlinkSync } = await import('node:fs');
+    symlinkSync('/etc/hosts', join(d, 'games', 'tpl', 'leak.md'));
+    git(d, 'add', '-A');
+    git(d, '-c', 'user.name=x', '-c', 'user.email=x@x', 'commit', '-q', '-m', 'a link');
+    git(d, 'push', '-q', 'origin', 'main');
+    const before = await journal.revision();
+    await expect(sync.import()).rejects.toMatchObject({ status: 422, message: expect.stringMatching(/symbolic link/) });
+    expect(await journal.revision()).toBe(before);
+    // The link taken out of the repository: the branch imports again, and the Studio follows it.
+    git(d, 'rm', '-q', join('games', 'tpl', 'leak.md'));
+    git(d, '-c', 'user.name=x', '-c', 'user.email=x@x', 'commit', '-q', '-m', 'no link');
+    git(d, 'push', '-q', 'origin', 'main');
+    expect((await sync.import()).commit).toBe(git(d, 'rev-parse', 'HEAD'));
+  });
+
   it('refuses a ref that is not one, a branch the Studio never saw, and a commit without the game', async () => {
     expect(() => sync.import('../etc')).toThrow(/branch name or a commit/);
     await expect(sync.import('no-such-branch')).rejects.toMatchObject({ status: 404 });
