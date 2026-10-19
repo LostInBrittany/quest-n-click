@@ -379,13 +379,22 @@ until the old one gives the lease back (on SIGTERM) or the lease expires (30 s, 
 clock); the old one stops writing by its own clock before that. A client retries a write with the same operation id
 and gets it applied once. The journal's own fenced lease still keeps two instances from writing over the same head.
 
-What the reference deployment measured (`docs/dev/QUALIF-4.2.3-REFERENCE.md` §5): Clever keeps the old instance
-`STOPPING` for about two minutes after the new one is up, and it logged no `stopping` line: it kept renewing the lease
-meanwhile, and the new one took it about 30 s after the old one was gone. **Writes are refused (503, `Retry-After: 2`)
-for about two and a half minutes per deploy**, reads go on; a write retried with its operation id goes through once
-after. While both instances start and run, they hold twice the connections: on the `dev` plan (5) a write may fail
-with "too many connections" (a 500) or wait on the starting instance's journal check (a 409 after 20 s); take a larger
-plan for a deployment people use.
+Since 4.2.3 the new instance does not wait for that: once it listens it asks for the lease, and the holder gives it
+back at its next renewal (10 s at most), logging `lease-lost`. What the reference deployment measured
+(`docs/dev/QUALIF-4.2.3-REFERENCE.md` §5 and §5 bis), on Clever Cloud, where the old instance stays `STOPPING` about two minutes
+and logs no `stopping` line:
+- **between two versions that both hand the lease over** (two redeploys of the same commit): `lease-taken` 6 and 10 s
+  after the new instance listened; then writes are 503 (`Retry-After: 2`) for 10 to 16 s, because Clever still sends
+  the requests to the old instance, which no longer holds the lease, until the deploy ends; before that, while the new
+  instance starts, a write may wait 10 to 20 s on its journal check and get a 503 too. About a minute of slow or
+  refused writes per deploy, none lost: a write retried with its operation id goes through once;
+- **the first deploy onto 4.2.3, from a version without the handover** (4.2.2, or a 4.2.3 commit before #183): the old version
+  keeps the lease until Clever stops it, and **writes are refused for about two and a half minutes** (2 min 23 s to
+  2 min 27 s measured), reads going on. Plan that one: tell the members, or accept the minutes.
+
+While both instances start and run, they hold twice the connections: on the `dev` plan (5) background work fails with
+"too many connections" during each deploy, and an older version's write could fail with it (a 500); take a larger plan
+for a deployment people use.
 
 Upgrading the engine is the same redeploy, of a new version:
 1. read the CHANGELOG for the version and `docs/en/UPGRADING.md` for the game's content. Its database migrations run
@@ -425,7 +434,8 @@ option for later.
 DEPLOYMENT_FAIL studio-deploys`; also `clever webhooks add`), and its console shows each app's CPU, memory and logs.
 It does not read `/metrics`: a scraper you run does (Prometheus with its Alertmanager, or any service that reads the
 format), or a simple prober for `/readyz`. Alert when:
-- `/readyz` is not 200 for 5 min (no instance serves writes; a deploy keeps writes away for about 2.5 min, above);
+- `/readyz` is not 200 for 2 min (no instance serves writes; a deploy keeps it at 503 for about 20 s, above; the
+  first deploy onto 4.2.3 for about 2.5 min: expect that alert then);
 - `studio_journal_rpo_seconds` is above 60 for 5 min (the target is 1 min, D42), or `ship-failed` keeps rising;
 - `studio_worker_jobs_in_flight` stays above 3 for 10 min (the worker runs one job at a time: work is piling up);
 - jobs fail: `studio_worker_job_seconds_count{outcome!="ok"}` rises, or `health-failed`;
