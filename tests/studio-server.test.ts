@@ -159,7 +159,7 @@ describe('the server over HTTP (SQLite, files)', () => {
     expect(await (await fetch(`${base}/readyz`)).json()).toEqual({ ok: true, writes: 'served' });
   });
 
-  it('lists and prepares the assets when the worker prepares them (4.2.2)', async () => {
+  it('lists and prepares the assets when the worker prepares them (4.2.2), as a job (4.2.3)', async () => {
     expect((await fetch(`${base}/api/assets/prepared`)).status).toBe(404);
     const calls: string[] = [];
     const prepared = {
@@ -177,7 +177,15 @@ describe('the server over HTTP (SQLite, files)', () => {
         headers: { 'content-type': 'application/json' },
         body: '{}',
       });
-      expect(await r.json()).toEqual({ id: 2, rev: 3, files: 9 });
+      // A job since 4.2.3 (H8): answered at once, its result read when it is done.
+      expect(r.status).toBe(202);
+      const { id } = (await r.json()) as { id: string };
+      let job: { state: string; result?: unknown } = { state: 'queued' };
+      for (let i = 0; i < 100 && job.state !== 'done'; i++) {
+        await new Promise((ok) => setTimeout(ok, 20));
+        job = await (await fetch(`${api}/jobs/${id}`)).json();
+      }
+      expect(job).toMatchObject({ state: 'done', result: { id: 2, rev: 3, files: 9 } });
       expect((await fetch(`${api}/assets/prepare`)).status).toBe(404);
       expect(calls).toEqual(['list', 'prepare local']);
     } finally {

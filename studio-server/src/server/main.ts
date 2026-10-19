@@ -6,6 +6,7 @@
 //   login --server <url>, token --server <url>       the CLI's device flow, and its current access token
 //   deps           its own dependencies (OpenID Connect, JWT, Postgres): the version and folder each resolves to
 //   backup <file>  the project's tables, one snapshot, with the blobs they name (4.2.2, ops/backup.ts)
+//   backup --to-bucket [--keep n]   the same, to the bucket's `backups/`, the n most recent kept (4.2.3, a cron's)
 //   restore <file> [--replay]   a backup into an empty hosted project, then (--replay) the journal shipped since
 //   replay         a restore's replay resumed (after it stopped), then the restore ended
 //   gc [--delete]  the blobs no row names (older than a day) and the worker's old staging: listed, or deleted
@@ -17,6 +18,7 @@ import { fileURLToPath } from 'node:url';
 import { openSqliteDb } from '../../../bridge/src/store-sqlite';
 import type { SqlDb } from '../../../bridge/src/store-sql';
 import { createStudio, operationContext } from '../ops/core';
+import { anchorsOf, Comments } from './comments';
 import { GitSync } from './git';
 import { mcpEndpoint, type McpEndpoint } from './mcp';
 import { StudioError } from '../ops/errors';
@@ -25,6 +27,7 @@ import { type BlobStore, fsBlobStore } from '../ops/blobs';
 import { sha256 } from '../ops/durable';
 import { Journal } from '../ops/journal';
 import { backupOf, checkBackup, restoreInto } from '../ops/backup';
+import { backupToBucket, keepOf } from '../ops/backup-bucket';
 import { collect } from '../ops/gc';
 import { finishRestore, replaySegments, Shipper } from '../ops/ship';
 import { migrate } from '../../../bridge/src/migrations';
@@ -37,7 +40,9 @@ import { AuthStore, Sealer } from './auth/store';
 import { readJson, send, studioServer } from './http';
 import { openPostgresDb } from './postgres';
 import { newJobKeys } from '../worker/job';
-import { filesOf, packable, packAssets, packFiles, packSnapshot } from '../worker/snapshot';
+import { filesOf, packable, packAssets, packCut, packFiles, packSnapshot } from '../worker/snapshot';
+import { createAssets } from '../../../tools/studio/assets';
+import { HostedAssets } from './hosted-assets';
 import { assetsVersion } from '../../../tools/vite/plugins';
 import { exclusiveRunner, Leases } from './leases';
 import { Presence } from './live';
@@ -47,9 +52,10 @@ import { HOSTED_SOLVE_MS } from '../ops/diagnose';
 import type { SolveData } from '../../../tools/studio/types';
 import { PersonalUndo } from '../ops/undo';
 import { Builds, PUBLIC_BUILD_PATH } from './builds';
-import { PreparedAssets } from './prepared';
+import { PreparedAssets, prepareOn } from './prepared';
 import { EngineUpgrade } from './engine-upgrade';
 import { Health, judgeBy } from './health';
+import { Metrics } from './metrics';
 import { Previews } from './previews';
 import { remoteExecutor } from './remote-executor';
 import { S3, s3BlobStore } from './s3';
@@ -154,10 +160,27 @@ async function main(argv: string[]): Promise<number> {
 
   if (cmd === 'backup' || cmd === 'restore' || cmd === 'replay' || cmd === 'gc') {
     await migrate(db, { dir: new URL('../../migrations/', import.meta.url) });
+    if (cmd === 'backup' && args.includes('--to-bucket')) {
+      if (!s3) throw new ConfigError("backup --to-bucket writes to the instance's bucket: blobs.kind is s3");
+      const at = args.indexOf('--keep');
+      let keep: number | undefined;
+      try {
+        keep = at < 0 ? undefined : keepOf(args[at + 1]);
+      } catch (e) {
+        console.error(`backup: ${(e as Error).message}`);
+        return 2;
+      }
+      const b = await backupOf(db);
+      const r = await backupToBucket(s3, b, keep);
+      console.log(
+        JSON.stringify({ event: 'backup', key: r.key, revision: b.revision, digest: b.digest, removed: r.removed }),
+      );
+      return 0;
+    }
     if (cmd === 'backup') {
-      const out = args[0] && resolve(args[0]);
+      const out = args[0] && !args[0].startsWith('--') && resolve(args[0]);
       if (!out || existsSync(out)) {
-        console.error('backup: a new file is required');
+        console.error('backup: a new file is required (or --to-bucket [--keep n])');
         return 2;
       }
       const b = await backupOf(db);
@@ -335,6 +358,15 @@ async function main(argv: string[]): Promise<number> {
     console.error(`serve: ${config.host} is refused without authentication (configure oidc); use 127.0.0.1`);
     return 2;
   }
+  // The metrics (4.2.3, H9): with their token only (32 characters at least), else no route.
+  if (secrets.STUDIO_METRICS_TOKEN !== undefined && secrets.STUDIO_METRICS_TOKEN.length < 32)
+    throw new ConfigError('STUDIO_METRICS_TOKEN: 32 characters at least (openssl rand -base64 32)');
+  const metrics = secrets.STUDIO_METRICS_TOKEN ? new Metrics(secrets.STUDIO_METRICS_TOKEN) : undefined;
+  metrics?.measureOperations(journal);
+  const logLine = (line: Record<string, unknown>) => {
+    metrics?.fromLog(line);
+    console.log(JSON.stringify(line));
+  };
   let auth: Parameters<typeof studioServer>[0]['auth'];
   let mcp: McpEndpoint | undefined;
   let authStore: AuthStore | undefined;
@@ -374,7 +406,7 @@ async function main(argv: string[]): Promise<number> {
       issuer: oidc.issuer,
       game: config.game,
       version: String(JSON.parse(readFileSync(new URL('../../../package.json', import.meta.url), 'utf8')).version),
-      log: (line) => console.log(JSON.stringify(line)),
+      log: logLine,
     });
   }
   const lease = new ServiceLease(db);
@@ -392,6 +424,7 @@ async function main(argv: string[]): Promise<number> {
       // A variable cannot always hold line breaks: `\n` written out is read as one.
       privateKeyPem: secrets.STUDIO_WORKER_KEY.replace(/\\n/g, '\n'),
       instance: config.worker.instance,
+      metrics,
       at: async () => ({ epoch: await journal.epoch(), rev: await journal.revision() }),
     });
   }
@@ -410,7 +443,7 @@ async function main(argv: string[]): Promise<number> {
   // engine's upgrade, a Git import): leases.ts `exclusiveRunner`.
   const exclusiveLease = leases
     ? exclusiveRunner(leases, () => operationContext.getStore()?.claimant, {
-        log: (line) => console.log(JSON.stringify(line)),
+        log: logLine,
       })
     : <T>(fn: () => Promise<T>) => fn();
   // The engine's folder: the built Studio and the prepared assets are found beside it unless configured.
@@ -430,7 +463,7 @@ async function main(argv: string[]): Promise<number> {
         writeFiles: (what, files) => studio.writeFiles(what, files, { undo: false }),
         exclusive: exclusiveLease,
         noreplyDomain: `users.noreply.${new URL(config.publicUrl).hostname}`,
-        log: (line) => console.log(JSON.stringify(line)),
+        log: logLine,
       })
     : undefined;
   const prepared =
@@ -448,8 +481,8 @@ async function main(argv: string[]): Promise<number> {
                 bytes: packAssets(filesOf(gameDir)),
               };
             }),
-          prepare: (bytes, at) => executor!.prepare(bytes, at, config.game),
-          log: (line) => console.log(JSON.stringify(line)),
+          prepare: prepareOn((bytes, at, game, signal) => executor!.prepare(bytes, at, game, signal), config.game),
+          log: logLine,
           currentManifest: () =>
             existsSync(join(gameDir, 'assets.gen.json'))
               ? readFileSync(join(gameDir, 'assets.gen.json'), 'utf8')
@@ -461,6 +494,26 @@ async function main(argv: string[]): Promise<number> {
         })
       : undefined;
   void prepared?.start();
+  // The Assets tab (4.2.3 PR 7, H8): the listing and the uploads here, the cutting on the worker, under the member's
+  // exclusive lease; the prepared set's folder is where the listing looks for what is prepared.
+  const hostedAssets = new HostedAssets({
+    studio,
+    assets: createAssets(studio, {
+      publicAssets: () => join(prepared?.folder() ?? publicDir, 'assets'),
+      // Hosted: nothing outside the game folder is read for the listing (a sources.json naming other paths).
+      confine: hosted,
+    }),
+    locked: (fn) =>
+      server.exclusive(async () => {
+        await journal.reconcile();
+        return fn();
+      }),
+    exclusive: exclusiveLease,
+    cut: executor
+      ? (req, source, ext, signal) =>
+          executor!.cut(packCut(gameDir, req.sheetId, source, ext), config.game, req, signal)
+      : undefined,
+  });
   // The page: configured, else the one the package was built with (web-scumm-studio-server), else this checkout's.
   const clientDir = resolve(
     config.clientDir ?? process.env.WEB_SCUMM_STUDIO_CLIENT ?? join(engineRoot, '.cache', 'studio-client'),
@@ -498,15 +551,13 @@ async function main(argv: string[]): Promise<number> {
           build: (bytes, params, at) => executor!.preview(bytes, params, at),
           assetsVersion: () => prepared?.version() ?? (version ??= assetsVersion(join(publicDir, 'assets'))),
           prepared: () => prepared?.folder() ?? null,
-          log: (line) => console.log(JSON.stringify(line)),
+          log: logLine,
         })
       : undefined;
   // After each revision, the head's preview (coalesced: a burst builds its last revision only).
   journal.events.on('confirmed', () => void previews?.schedule());
   // The journal shipped to the bucket (G7): after each operation, and at start for what was not shipped yet.
-  const shipper = segments
-    ? new Shipper({ db, segments, log: (line) => console.log(JSON.stringify(line)) })
-    : undefined;
+  const shipper = segments ? new Shipper({ db, segments, log: logLine }) : undefined;
   journal.events.on('confirmed', () => void shipper?.ship());
   void shipper?.ship();
   // An operation another process confirmed (the CLI's import, against the same database) emits nothing here: looked
@@ -539,7 +590,7 @@ async function main(argv: string[]): Promise<number> {
               return { epoch: await journal.epoch(), rev: await journal.revision(), bytes: packSnapshot(gameDir) };
             }),
           judge: judge!,
-          log: (line) => console.log(JSON.stringify(line)),
+          log: logLine,
         })
       : undefined;
   journal.events.on('confirmed', () => void health?.schedule());
@@ -560,13 +611,35 @@ async function main(argv: string[]): Promise<number> {
             return journal.revision();
           },
           exclusive: exclusiveLease,
-          log: (line) => console.log(JSON.stringify(line)),
+          log: logLine,
         })
       : undefined;
   // The published builds (G6): built by the worker, signed with the Studio's job key (the worker's public key checks
   // a manifest), served at /play/<n>/ on the game's origin, without a session if the owner chose so (D42).
   const jobKey = secrets.STUDIO_WORKER_KEY
     ? createPrivateKey(secrets.STUDIO_WORKER_KEY.replace(/\\n/g, '\n'))
+    : undefined;
+  // Comments (4.2.3, H2), on a shared Studio: what the game names, read once per revision (the IR runs the game).
+  // One reading per revision, shared by the requests that wait for it; a game that does not load is remembered as
+  // such for that revision (null: no comment said orphan), never as an older revision's set.
+  let knownAt: { rev: number; set: Promise<Set<string> | null> } | undefined;
+  const comments = config.oidc
+    ? new Comments({
+        db,
+        revision: () => journal.revision(),
+        known: async () => {
+          const rev = await journal.revision();
+          if (knownAt?.rev !== rev)
+            knownAt = {
+              rev,
+              set: studio.ir().then(
+                (ir) => anchorsOf(ir, studio.getStoryboard()),
+                () => null,
+              ),
+            };
+          return knownAt.set;
+        },
+      })
     : undefined;
   const builds =
     executor && hosted && jobKey
@@ -627,12 +700,28 @@ async function main(argv: string[]): Promise<number> {
     personalUndo: !!personalUndo,
     builds,
     prepared,
+    assets: hostedAssets,
+    comments,
     git: gitSync,
     engineUpgrade,
     rpo: shipper ? () => shipper.rpoMs() : undefined,
     play,
     client,
+    metrics,
+    log: logLine,
   });
+  metrics?.gauge('studio_journal_revision', "The journal's head revision.", () => journal.revision());
+  metrics?.gauge(
+    'studio_service_lease_held',
+    'Whether this instance holds the service lease (serves writes): 1 or 0.',
+    () => (lease.held ? 1 : 0),
+  );
+  if (shipper)
+    metrics?.gauge(
+      'studio_journal_rpo_seconds',
+      'The age of the oldest confirmed operation not shipped to the bucket yet (0: all shipped).',
+      async () => (await shipper.rpoMs()) / 1000,
+    );
   // Hosted: the instance's folder is checked against the head every 30 s and repaired without a restart (plan §4),
   // holding the instance's lock alone: no request reads a folder being repaired.
   if (hosted)
@@ -644,7 +733,7 @@ async function main(argv: string[]): Promise<number> {
             if (!(r.written + r.removed)) return;
             console.log(JSON.stringify({ event: 'reconciled', ...r }));
           },
-          (e) => console.log(JSON.stringify({ event: 'reconcile-failed', message: String((e as Error).message) })),
+          (e) => logLine({ event: 'reconcile-failed', message: String((e as Error).message) }),
         );
     }, 30_000).unref();
   server.on('error', (e) => {

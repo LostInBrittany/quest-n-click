@@ -4,6 +4,8 @@
 import { studioFetch } from './api-base';
 import { gameLink } from './game-origin';
 import { h, toast } from './ui';
+import { post } from './assets-io';
+import { jobText } from './jobs';
 
 interface BuildInfo {
   n: number;
@@ -111,7 +113,8 @@ export function buildsPanel(o: { owner: boolean; dev: boolean }): HTMLElement {
 
 /**
  * Preparing the game's images and sounds on the processing worker (4.2.2, D43): a dev's, under the project's
- * exclusive lease (no one else writes meanwhile). The sheets' cutting and the uploads stay on a local Studio (4.2.3).
+ * exclusive lease (no one else writes meanwhile). Since 4.2.3 it is a job (its states live, a Cancel button), and the
+ * Assets tab uploads and cuts on a hosted Studio too.
  */
 export function assetsPanel(): HTMLElement {
   const status = h('span', { class: 'muted small' });
@@ -120,7 +123,9 @@ export function assetsPanel(): HTMLElement {
     go.disabled = true;
     status.textContent = 'preparing…';
     try {
-      const r = await json<{ id: number; rev: number; files: number }>('assets/prepare', POST);
+      const r = await post<{ id: number; rev: number; files: number }>('prepare', {}, (j) => {
+        status.textContent = jobText(j);
+      });
       status.textContent = `prepared from revision ${r.rev}: ${r.files} files`;
       toast(`Assets prepared (${r.files} files)`, 'ok');
     } catch (e) {
@@ -137,8 +142,8 @@ export function assetsPanel(): HTMLElement {
     h(
       'p',
       { class: 'muted small' },
-      "Prepares the game's images and sounds on the server (seconds for a small game, 2 minutes at most; nobody else writes meanwhile). ",
-      'Cutting sprite sheets and uploading files stay on a local Studio for now.',
+      "Prepares the game's images and sounds on the server (seconds for a small game, 2 minutes at most; nobody else writes meanwhile; Cancel stops it with nothing written). ",
+      'The Assets tab uploads images and sounds and cuts sprite sheets on the server too.',
     ),
     go,
     ' ',

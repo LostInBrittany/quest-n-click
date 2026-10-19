@@ -9,7 +9,8 @@ C'est le chantier de la ligne 4.2.x (plan `docs/dev/PLAN-4.2.1-4.2.3-STUDIO-SERV
 > l'application de traitement, les pans et les baux, le flux en direct, l'origine propre du jeu avec ses
 > prévisualisations (un build par révision), la santé par révision, l'annulation personnelle, les builds publiés, les
 > assets préparés sur l'application de traitement, la sauvegarde et la restauration, et les écrans du Studio pour tout
-> cela. Il reste expérimental jusqu'à ce que ses passes humaines (`studio-hosted`, `studio-collab`, `studio-preview`,
+> cela ; depuis 4.2.3, les uploads et la découpe de planches de l'onglet Assets, Prepare et les découpes en jobs qui
+> se suivent et s'annulent. Il reste expérimental jusqu'à ce que ses passes humaines (`studio-hosted`, `studio-collab`, `studio-preview`,
 > `studio-assets-hosted`) soient faites. Ce guide déploie depuis le dépôt
 > ; l'archive `web-scumm-studio-server` est le même serveur (ci-dessous).
 
@@ -69,6 +70,8 @@ mkdir -p ~/secrets/my-game && npm run studio-server -- worker-keys --out ~/secre
 | `STUDIO_OIDC_CLIENT_SECRET` | le secret du client `studio` chez le fournisseur |
 | `STUDIO_SESSION_KEY` | 32 caractères aléatoires ou plus (`openssl rand -base64 48`) ; plusieurs, séparées par des virgules, pour la rotation |
 | `STUDIO_WORKER_KEY` | le contenu de `studio-worker.key` (les retours à la ligne peuvent s'écrire `\n`) |
+| `STUDIO_METRICS_TOKEN` | facultatif (4.2.3) : 32 caractères aléatoires ou plus (`openssl rand -base64 32`) ; sans lui, pas de `/metrics` |
+| `STUDIO_BACKUP_CRON` | facultatif (4.2.3) : `1` lance la sauvegarde quotidienne dans le bucket (`clevercloud/cron.json`) ; `STUDIO_BACKUP_KEEP` sauvegardes gardées, 14 par défaut |
 
 Les identifiants de la base et de Cellar viennent des add-ons (`POSTGRESQL_ADDON_URI`, `CELLAR_ADDON_KEY_ID`,
 `CELLAR_ADDON_KEY_SECRET`). Au démarrage, le serveur lit chaque secret puis le retire de son environnement. Hors de
@@ -175,6 +178,16 @@ Le realm de test `ops/studio/keycloak/realm.json` montre chaque réglage. Chez n
 
 Le fournisseur dit qui est quelqu'un. Ce qu'il peut faire se décide dans le Studio.
 
+**Un autre fournisseur** (4.2.3, D44 : GitLab pour la passe `studio-oidc-generic`). Tout fournisseur OpenID Connect
+avec découverte sert les connexions du navigateur : donnez-lui le client `studio` comme ci-dessus (une application avec
+les scopes `openid profile email`, les mêmes URI de redirection) et son émetteur (`https://gitlab.com` pour GitLab).
+Deux parties en demandent plus : le CLI et le MCP prennent les **jetons d'accès du fournisseur en JWT** signés pour
+l'audience de ce Studio, ce que ne donne pas un fournisseur aux jetons d'accès opaques (les applications OAuth de
+GitLab, au moment où ces lignes sont écrites) : là, le CLI et le MCP distant restent sur un fournisseur qui le fait
+(Keycloak, Authentik et d'autres), ou ne sont pas proposés. Sans **déconnexion back-channel**, une session finie chez
+le fournisseur finit ici à son prochain rafraîchissement (5 min), et un utilisateur désactivé là-bas dans R = 15 min
+(plan §3.6). La passe `studio-oidc-generic` le vérifie sur un vrai GitLab.
+
 ## Personnes et rôles
 
 | Rôle | Peut |
@@ -202,6 +215,19 @@ octet : une vérification que le build est reproductible sur l'application de tr
 son contenu est sans danger. Le code d'un build ne change jamais ; ses images et ses sons sont les assets préparés de
 l'instance, servis à côté tels qu'ils sont. Un build publié n'a pas de service worker (il ne s'installe pas pour jouer
 hors ligne) et ses sauvegardes ne sont pas encore distinguées par build.
+
+## Commentaires (4.2.3)
+
+Dans l'onglet Notes d'un Studio partagé, un membre commente ce que le jeu nomme (une salle, `hall.door`, `item:key`,
+l'id d'une règle, une case du storyboard), ou le jeu lui-même. Un commentaire garde la révision où il a été écrit ;
+les réponses font un fil, résolu ou rouvert d'un bloc. Les reviewers commentent aussi : les commentaires sont gardés
+par le Studio (dans sa base, dans la sauvegarde), jamais dans un fichier du jeu, donc aucun fichier du jeu n'est écrit
+pour eux. Un commentaire dont l'ancre n'est plus nommée par le jeu (ses salles, règles, scripts, entités, objectifs et points de
+passage, les planches et cases du storyboard) est dit « orphan », jamais rattaché ailleurs ; l'id d'une ligne n'est pas
+une ancre. Seul
+son auteur change son texte ; un reviewer résout ses propres fils, un dev n'importe lequel. Un owner fait entrer les
+notes de `notes.json` (chacune une fois, son `about` pour ancre). Routes : GET/POST `/api/comments`, PUT
+`/api/comments/<id>`, POST `/api/comments/import-notes`.
 
 ## Le jeu dans Git (4.2.3)
 
@@ -288,6 +314,10 @@ bouton : la route est le moyen d'y accéder.
   blobs qu'elles nomment et un condensé. Quotidienne (D42), gardée hors de l'instance. Une sauvegarde est une entrée
   de confiance, comme les identifiants de la base : elle peut ajouter des propriétaires. Son condensé dit qu'elle est
   entière, pas qui l'a faite ; gardez-la là où seuls les opérateurs écrivent.
+- **Dans le bucket** (4.2.3) : `npm run studio-server -- backup --to-bucket --keep 14 --config <fichier>` l'écrit dans
+  le bucket de l'instance sous `backups/<date>-r<révision>.json` (UTC, `2026-10-19T03-17-00Z`), puis supprime les
+  sauvegardes qu'il a écrites au-delà des 14 plus récentes (jamais un autre objet). La tâche planifiée quotidienne le
+  lance (« Le faire tourner », plus bas). Elle survit à la base, pas au bucket : une copie ailleurs est à vous.
 - **Une restauration** : une instance hébergée seulement, dans une base vide (un nouvel add-on Postgres, le même
   bucket) : `npm run studio-server -- restore <fichier> --replay --config <fichier>` vérifie le condensé, les tables et
   les colonnes, et que chaque blob de la tête et du journal est dans le bucket (une prévisualisation, un build ou un
@@ -305,6 +335,97 @@ bouton : la route est le moyen d'y accéder.
   stocké à nouveau reçoit une nouvelle date : une écriture qui nomme un vieux blob est couverte par le jour de grâce.
   Les blobs de la tête et du journal ne sont jamais ramassés (le journal garde chaque opération) ; une sauvegarde plus
   ancienne restaurée après un ramassage ne perd que les prévisualisations, builds et ensembles préparés ramassés.
+
+## Le faire tourner : le déploiement de référence
+
+4.2.3 exécute ce déploiement sur Clever Cloud (les deux applications, PostgreSQL, Cellar, Keycloak, un domaine) et
+écrit ce qu'il a mesuré dans `docs/dev/QUALIF-4.2.3-REFERENCE.md`. Voici le runbook qu'il suit.
+
+**Déployer, et monter de version : un redéploiement à chevauchement.** `clever deploy` (ou un push) démarre la nouvelle
+instance pendant que l'ancienne sert encore : mesuré par le spike S (`docs/dev/SPIKE-4.2.1-CLEVER.md` §2), où
+l'ancienne instance n'a d'ailleurs jamais consigné son SIGTERM. Rien ne dépend de ce signal : les instances partagent
+le **bail de service** dans PostgreSQL (plan maître §4, P8). La nouvelle démarre, répond à `/startz`, et attend :
+`/readyz` vaut 503 et ses écritures 503 avec `Retry-After` jusqu'à ce que l'ancienne rende le bail (sur SIGTERM) ou
+que le bail expire (30 s, renouvelé toutes les 10 s à l'horloge de la base) ; l'ancienne cesse d'écrire à sa propre
+horloge avant. Un client retente une écriture avec le même identifiant d'opération, et elle est appliquée une fois. Le
+bail propre du journal, avec sa clôture, empêche toujours deux instances d'écrire sur la même tête. Monter le moteur de
+version, c'est ce même redéploiement, d'une nouvelle version :
+1. lisez le CHANGELOG de la version et `docs/fr/UPGRADING.md` pour le contenu du jeu. Ses migrations de base tournent au
+   démarrage de la nouvelle instance, pendant que l'ancienne peut encore servir : si l'une change ce que l'ancienne
+   version lit, arrêtez d'abord l'ancienne (`clever stop`) et acceptez la minute sans Studio ;
+2. faites une sauvegarde dans le bucket (plus bas) et notez la révision ;
+3. déployez l'application de traitement d'abord, puis le studio, à la même version : tant que les deux ne le sont pas,
+   un job peut être refusé, et le Studio refuse alors l'écriture qu'il vérifiait (il échoue fermé) plutôt que de la
+   laisser passer ;
+4. regardez `/readyz` revenir à 200 sur la nouvelle instance (`instance` dans la ligne `lease-taken`), la révision
+   inchangée, et une écriture passer.
+Revenir en arrière, c'est le même redéploiement de la version précédente, tant qu'elle lit encore la base que la
+nouvelle a migrée ; sinon, c'est la sauvegarde de l'étape 2, restaurée dans un nouvel add-on (l'exercice ci-dessous).
+
+**Les métriques.** Avec `STUDIO_METRICS_TOKEN`, `GET /metrics` sur l'origine du Studio répond au format texte de
+Prometheus à `Authorization: Bearer <jeton>` (comparé en temps constant) ; un mauvais jeton est un 401, et sans la
+variable la route n'existe pas (404). Elle n'est jamais derrière la session, jamais sur l'origine du jeu. Ce qu'elle
+donne :
+
+| Métrique | Quoi |
+|---|---|
+| `studio_journal_operation_seconds{outcome}` | les opérations du journal, de la demande à la réponse (`confirmed`, `replayed`, `refused`, `failed`) |
+| `studio_worker_jobs_in_flight` | les jobs demandés à l'application de traitement et pas encore répondus : la file vue du Studio |
+| `studio_worker_job_seconds{kind,outcome}` | ses jobs par sorte (`validate`, `load`, `preview`, `prepare`, `lint`, `solve`, `playtests`) et issue (`ok`, `failed`, `timeout`, `error`) |
+| `studio_lease_conflicts_total` | les 423 répondus : le pan de quelqu'un d'autre, ou un bail terminé |
+| `studio_preview_build_seconds{outcome}` | la prévisualisation d'une révision, de l'instantané aux fichiers stockés (`built`, `failed`) |
+| `studio_health_judgement_seconds{verdict}` | le verdict de santé sur une révision |
+| `studio_journal_rpo_seconds` | l'âge de la plus ancienne opération pas encore expédiée au bucket (le `rpoMs` de `/readyz`) |
+| `studio_journal_revision`, `studio_service_lease_held` | la tête, et si cette instance sert les écritures (1) |
+| `studio_http_responses_total{class}`, `studio_log_events_total{event}` | les réponses par classe de statut ; les échecs consignés (`ship-failed`, `health-failed`, `reconcile-failed`, `error`…) |
+
+Ce sont des comptes et des durées : aucun chemin, aucun nom, aucun auteur, aucun contenu. Elles vivent dans la mémoire
+de l'instance : un redémarrage les remet à zéro (une remise à zéro de compteur, que `rate` de Prometheus lit comme
+telle). La file propre de l'application de traitement n'est pas mesurée de son côté : celle du Studio l'est.
+OpenTelemetry n'est pas pris en charge en 4.2.3 ; il reste une option pour plus tard.
+
+**Les alertes** (vers une personne). Clever Cloud notifie les déploiements (`clever notify-email add --notify <vous>
+--event DEPLOYMENT_FAIL studio-deploys` ; aussi `clever webhooks add`), et sa console montre le CPU, la mémoire et les
+journaux de chaque application. Elle ne lit pas `/metrics` : un collecteur que vous faites tourner le fait
+(Prometheus et son Alertmanager, ou tout service qui lit le format), ou une simple sonde de `/readyz`. Alertez quand :
+- `/readyz` n'est pas 200 pendant 2 min (aucune instance ne sert les écritures ; un déploiement prend 30 s au plus) ;
+- `studio_journal_rpo_seconds` dépasse 60 pendant 5 min (la cible est 1 min, D42), ou `ship-failed` ne cesse de monter ;
+- `studio_worker_jobs_in_flight` reste au-dessus de 3 pendant 10 min (l'application de traitement fait un job à la
+  fois : le travail s'accumule) ;
+- des jobs échouent : `studio_worker_job_seconds_count{outcome!="ok"}` monte, ou `health-failed` ;
+- `studio_lease_conflicts_total` fait un bond (des personnes s'attendent sur leurs pans : pas une panne, un signe à
+  regarder) ;
+- la ligne de la sauvegarde quotidienne (`"event":"backup"`) manque un matin dans les journaux.
+
+**La sauvegarde quotidienne.** Le dépôt porte `clevercloud/cron.json` : chaque jour à 03:17 UTC il lance
+`ops/studio/backup-cron.sh`, qui ne fait rien si l'application ne définit pas `STUDIO_BACKUP_CRON=1`, et rien sur une
+autre instance que la numéro 0 (Clever lance les tâches d'un dépôt sur chaque application et chaque instance déployée
+depuis lui : définissez la variable sur l'application studio seulement, jamais sur celle de traitement). Il lance
+`backup --to-bucket --keep ${STUDIO_BACKUP_KEEP:-14}` ; sa ligne va dans les journaux de l'application. Depuis les
+archives de la release (qui ne portent pas le script), copiez `ops/studio/backup-cron.sh` dans votre application avec
+pour dernière ligne `exec npx web-scumm-studio-server backup --to-bucket --keep "${STUDIO_BACKUP_KEEP:-14}"`, rendez-le
+exécutable, et pointez votre `clevercloud/cron.json` dessus : `["17 3 * * * $ROOT/backup-cron.sh"]`. Clever lance une
+tâche sans environnement à moins que son script commence par `#!/bin/bash -l`, et avec des chemins absolus seulement
+(`$ROOT` est le dossier de l'application). Un redéploiement à chevauchement à cette minute peut faire deux sauvegardes :
+sans conséquence.
+
+**L'exercice de restauration**, sur un add-on PostgreSQL neuf, l'instance de production laissée tranquille :
+1. Notez la tête (`studio_journal_revision`, ou `GET /api/revision` en membre) et vérifiez que
+   `studio_journal_rpo_seconds` vaut 0.
+2. Créez un add-on lié à rien : `clever addon create postgresql-addon my-game-pg-drill --plan dev` ; lisez son URI
+   avec `clever addon env <id-de-l-add-on>`.
+3. Prenez le dernier objet de `backups/` dans le bucket (n'importe quel outil S3, avec les identifiants Cellar), sur
+   une machine qui a la configuration de l'application studio (`STUDIO_CONFIG_JSON`, les variables Cellar) et
+   `STUDIO_DATABASE_URL` pointé sur l'URI de l'add-on **de l'exercice**. Jamais celui de production : une restauration
+   refuse une base qui contient quoi que ce soit, mais vérifiez quand même.
+4. Chronométrez : `time npm run studio-server -- restore backups-latest.json --replay`. La ligne qu'elle écrit donne
+   les lignes, la révision de la sauvegarde, la révision atteinte, et `stopped` si le rejeu s'est arrêté avant.
+5. Vérifiez, en lecture seule, sur les deux bases (`psql <URI>`) : `SELECT value FROM studio_meta WHERE key =
+   'revision'` donne la tête notée à l'étape 1 (ou plus loin, si quelqu'un a écrit entre-temps), et `SELECT path, blob
+   FROM studio_files ORDER BY path` donne les mêmes lignes à la même révision.
+6. Écrivez le temps, les révisions et toute bizarrerie dans le rapport de qualification, puis supprimez l'add-on
+   (`clever addon delete my-game-pg-drill`). Ne lancez jamais `gc --delete` depuis la base de l'exercice : il
+   ramasserait des blobs que la production nomme encore.
 
 ## Travailler à plusieurs
 
@@ -382,17 +503,33 @@ OIDC, avec SQLite et un dossier pour les contenus, sur le loopback seulement.
 - La prévisualisation de chaque révision est gardée (environ 1 Mo pour le jeu d'exemple : la base `/preview/<rev>/`
   est écrite dans la page et son code, si bien que peu de fichiers sont partagés d'une révision à l'autre) jusqu'au
   ramassage d'une PR ultérieure de 4.2.2.
-- L'onglet Assets n'est pas encore sur un Studio hébergé (ses uploads et ses planches : 4.2.3). Le bouton **Prepare
-  assets** de l'onglet Jouer (un dev, 4.2.2) lance `prepare` sur l'application de traitement à partir de l'art et
-  des sons de la tête, sous le bail exclusif du projet (personne n'écrit entre-temps ; le pan d'un autre le refuse,
-  avec son nom) : l'ensemble préparé est gardé par le Studio et servi avant `publicDir`, et le `assets.gen.json` du jeu
-  est écrit en une opération. Chaque passe prépare tout à nouveau, en 2 minutes au plus ; elle ne s'annule pas et ne
-  se suit pas encore étape par étape. Elle est refusée, et le jeu se prépare sur un Studio local, quand : son art et
-  ses sons dépassent environ 31 Mio (en base64) ou les fichiers préparés environ 22 Mio ; il nomme ses sources dans
+- L'onglet Assets est sur un Studio hébergé depuis 4.2.3 : un reviewer lit sa liste, ses prompts et ses fichiers ; un
+  dev téléverse et découpe. Un upload (un son, un décor) fait 10 Mio au plus une fois décodé (413 au-delà) et son type
+  se lit dans ses octets : une image PNG, JPEG ou WebP (un décor : PNG ou JPEG), un son Ogg, MP3 ou WAV dont
+  l'extension dit la même chose (415 sinon ; un Studio local prend aussi M4A, FLAC, AAC, Opus et WebM) ; il est écrit
+  en une opération, jamais exécuté. La découpe d'une planche et le détourage d'une cellule tournent sur l'application
+  de traitement (jobs `cut`, Python avec les paquets du hook, aucun code du jeu), sous le bail exclusif du projet :
+  elle reçoit l'image, les cellules de cette planche et `site.json`, ne rend que des cellules de cette planche, et les
+  cellules avec les sauvegardes de celles redécoupées sont écrites en une opération. Un Studio hébergé ne garde pas la
+  planche téléversée elle-même (un Studio local la garde sous `private/sheets/`, qu'aucun pan ne nomme).
+- Le bouton **Prepare assets** de l'onglet Jouer (et de l'onglet Assets ; un dev, 4.2.2) lance `prepare` sur
+  l'application de traitement à partir de l'art et des sons de la tête, sous le bail exclusif du projet (personne
+  n'écrit entre-temps ; le pan d'un autre le refuse, avec son nom) : l'ensemble préparé est gardé par le Studio et
+  servi avant `publicDir`, et le `assets.gen.json` du jeu est écrit en une opération. Chaque passe prépare tout à
+  nouveau, en 2 minutes au plus. Elle est refusée, et le jeu se prépare sur un Studio local, quand : son art et ses
+  sons dépassent environ 31 Mio (en base64) ou les fichiers préparés environ 22 Mio ; il nomme ses sources dans
   `sources.json` (elles vivent hors de l'art et des sons que garde un Studio hébergé) ; le nouveau manifeste perdrait
   une image ou un son que le jeu avait. Les builds publiés servent l'ensemble préparé tel qu'il est, pas celui contre
   lequel ils ont été construits. Le code du jeu tourne sur l'application de traitement sous l'utilisateur des outils
   d'assets (ADR 0028 : une machine, un utilisateur).
+- Prepare et les découpes sont des **jobs** (4.2.3) : la requête répond 202 avec le job tout de suite ; ses états vont
+  au flux en direct (événements `job`, dans l'ordre : `queued`, `running` avec ses étapes `packing`, `on the worker`,
+  `writing`, puis `done`, `failed` ou `cancelled`) et `GET /api/jobs/<id>` le relit. Un seul tourne à la fois, quatre
+  autres peuvent attendre (429 au-delà). `POST /api/jobs/<id>/cancel` (qui l'a lancé, ou un owner) l'annule : un job
+  en attente ne tourne jamais ; un job en cours voit sa requête à l'application de traitement fermée, et celle-ci tue
+  son processus enfant avec son groupe ; rien n'est écrit (aucune opération, aucun ensemble préparé gardé) et le bail
+  exclusif est rendu. Un job qui écrit ne s'annule plus (409). Un job vit dans la mémoire de l'instance : après un
+  redémarrage son état est perdu (son écriture, si elle a eu lieu, est dans le journal).
 - Un cadre de jeu resté inactif au-delà de sa session de 15 min ne montre plus rien de neuf : « Reload view » (ou
   l'onglet Jouer) le rouvre.
 - Les captures ne sont pas disponibles sur un Studio hébergé.

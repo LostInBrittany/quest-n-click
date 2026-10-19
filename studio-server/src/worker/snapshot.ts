@@ -2,15 +2,16 @@
 // validator reads `assets.gen.json`, not the pictures). One JSON document, its sha256 bound into the job. A game that
 // imports files outside its own folder cannot run on a hosted Studio (they are not in the snapshot). A snapshot for
 // `prepare` (4.2.2 PR 6b, version 2) carries the game's art and sounds too, base64, as the asset tools read them.
-import { mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join, relative, sep } from 'node:path';
 
 const SKIP_DIR = /^(art|audio|private|playtests|tests)$/;
 const TEXT = /\.(ts|mts|cts|tsx|js|mjs|cjs|jsx|json|md)$/;
 const MAX_FILES = 5_000;
 const MAX_BYTES = 32 * 1024 * 1024;
-/** The art and sounds a `prepare` reads, under `art/` and `audio/`. */
-const MEDIA = /^(art|audio)\/.+\.(png|jpe?g|webp|gif|mp3|ogg|wav|flac|m4a|mp4|webm|mov)$/i;
+/** The art and sounds a `prepare` reads, under `art/` and `audio/`; the image a cut is given (4.2.3), `upload/`. */
+const MEDIA =
+  /^(?:(art|audio)\/.+\.(png|jpe?g|webp|gif|mp3|ogg|wav|flac|m4a|mp4|webm|mov)|upload\/source\.(png|jpe?g|webp))$/i;
 
 /** Whether a file of the game (its path with `/`) goes into a snapshot: the rules a folder is packed by. */
 export function packable(path: string, o: { playtests?: boolean } = {}): boolean {
@@ -136,6 +137,29 @@ export function filesOf(dir: string): { path: string; bytes: Buffer }[] {
   };
   walk(dir);
   return out;
+}
+
+/**
+ * A snapshot for a cut (4.2.3 PR 7, version 2): the uploaded image as `upload/source<ext>`, the cells of the sheet as
+ * they are (`art/<sheet>/`: what a recut compares with, a pixel-art sheet's colours) and `site.json` (the art style);
+ * no source, no other art. Bounded as any snapshot.
+ */
+export function packCut(gameDir: string, sheetId: string, source: Buffer, ext: string): Buffer {
+  const files: { path: string; bytes: Buffer }[] = [{ path: `upload/source${ext}`, bytes: source }];
+  const site = join(gameDir, 'site.json');
+  if (existsSync(site)) files.push({ path: 'site.json', bytes: readFileSync(site) });
+  const sheet = join(gameDir, 'art', sheetId);
+  const walk = (d: string) => {
+    for (const e of readdirSync(d, { withFileTypes: true })) {
+      if (e.name.startsWith('.')) continue;
+      const p = join(d, e.name);
+      if (e.isDirectory()) walk(p);
+      else if (e.isFile() && /\.(png|jpe?g|webp)$/i.test(e.name))
+        files.push({ path: `art/${sheetId}/${relative(sheet, p).split(sep).join('/')}`, bytes: readFileSync(p) });
+    }
+  };
+  if (existsSync(sheet)) walk(sheet);
+  return packAssets(files);
 }
 
 /** The texts of a version 1 snapshot, by path. */

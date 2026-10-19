@@ -76,6 +76,8 @@ const SECRET_NAMES = [
   'STUDIO_OIDC_CLIENT_SECRET',
   'STUDIO_SESSION_KEY',
   'STUDIO_WORKER_KEY',
+  // The metrics' token (4.2.3, H9): `GET /metrics` is served only with it.
+  'STUDIO_METRICS_TOKEN',
   'STUDIO_GIT_KEY',
 ] as const;
 export type SecretName = (typeof SECRET_NAMES)[number];

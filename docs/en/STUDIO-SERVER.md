@@ -8,7 +8,8 @@ it was: none of this is needed.
 > **Status (4.2.2, experimental).** The journal (no confirmed change is lost), logins and roles, the processing
 > worker, spans and leases, the live stream, the game's own origin with its previews (one build per revision), the
 > health by revision, personal undo, published builds, the assets prepared on the worker, backup and restore, and the
-> Studio's screens for all of this. It stays experimental until its people's passes (`studio-hosted`, `studio-collab`,
+> Studio's screens for all of this; since 4.2.3, the Assets tab's uploads and sheets' cutting, Prepare and the cuts as
+> jobs that can be followed and cancelled. It stays experimental until its people's passes (`studio-hosted`, `studio-collab`,
 > `studio-preview`, `studio-assets-hosted`) are made. This guide deploys from the repository; the release archive `web-scumm-studio-server` is
 > the same server (below).
 
@@ -67,6 +68,8 @@ mkdir -p ~/secrets/my-game && npm run studio-server -- worker-keys --out ~/secre
 | `STUDIO_OIDC_CLIENT_SECRET` | the provider's secret for the `studio` client |
 | `STUDIO_SESSION_KEY` | 32 random characters or more (`openssl rand -base64 48`); several, comma-separated, to rotate |
 | `STUDIO_WORKER_KEY` | the content of `studio-worker.key` (line breaks may be written `\n`) |
+| `STUDIO_METRICS_TOKEN` | optional (4.2.3): 32 random characters or more (`openssl rand -base64 32`); without it, no `/metrics` |
+| `STUDIO_BACKUP_CRON` | optional (4.2.3): `1` runs the daily backup to the bucket (`clevercloud/cron.json`); `STUDIO_BACKUP_KEEP` backups kept, 14 by default |
 
 The database and Cellar credentials arrive from the add-ons (`POSTGRESQL_ADDON_URI`, `CELLAR_ADDON_KEY_ID`,
 `CELLAR_ADDON_KEY_SECRET`). At start the server reads every secret and removes it from its environment. Outside
@@ -171,6 +174,15 @@ The test realm `ops/studio/keycloak/realm.json` shows every setting. On any prov
 
 The provider says who someone is. What they may do is decided in the Studio.
 
+**Another provider** (4.2.3, D44: GitLab for the `studio-oidc-generic` pass). Any OpenID Connect provider with
+discovery serves the browser's logins: give it the `studio` client as above (an application with the scopes `openid
+profile email`, the same redirect URIs) and its issuer (`https://gitlab.com` for GitLab). Two parts need more of it:
+the CLI and the MCP take the provider's **access tokens as JWTs** signed for this Studio's audience, which a provider
+issuing opaque access tokens (GitLab's OAuth applications, at the time of writing) does not give: there, the CLI and
+the remote MCP stay with a provider that does (Keycloak, Authentik and others), or are not offered. Without
+**back-channel logout**, a session ended at the provider ends here at its next refresh (5 min), and a user disabled
+there within R = 15 min (plan §3.6). The `studio-oidc-generic` pass checks this on a real GitLab.
+
 ## People and roles
 
 | Role | May |
@@ -196,6 +208,17 @@ same assets' version, and says whether the files are the same, byte for byte: a 
 on the worker as it is now, not that its content is harmless. A build's code never changes; its images and sounds are
 the instance's prepared assets, served beside it as they are now. A published build has no service worker (it is not
 installed for offline play) and its saves are not yet told apart by build.
+
+## Comments (4.2.3)
+
+In the Notes tab of a shared Studio, a member comments on what the game names (a room, `hall.door`, `item:key`, a
+rule's id, a storyboard panel), or on the game itself. A comment keeps the revision it was written at; replies make a
+thread, resolved or opened again as one. Reviewers comment too: comments are kept by the Studio (in its database, in
+the backup), never in a game file, so no game file is written for them. A comment whose anchor the game no longer
+names (its rooms, rules, scripts, entities, objectives and checkpoints, the storyboard's boards and panels) is
+said "orphan", never attached elsewhere; a line's id is not an anchor. Its author alone changes its text; a reviewer resolves their own
+threads, a dev any. An owner brings the notes of `notes.json` in (each once, its `about` the anchor). Routes: GET/POST
+`/api/comments`, PUT `/api/comments/<id>`, POST `/api/comments/import-notes`.
 
 ## The game in Git (4.2.3)
 
@@ -273,6 +296,10 @@ replay them after the upgrade (a session recorded at schema 2 may name the old p
   logs everyone out; only confirmed operations), with the blobs they name and a digest. Daily (D42), kept off the
   instance. A backup is trusted input, like the database's credentials: it can add owners. Its digest says it is
   whole, not who made it; keep it where only operators write.
+- **To the bucket** (4.2.3): `npm run studio-server -- backup --to-bucket --keep 14 --config <file>` writes it to the
+  instance's bucket as `backups/<date>-r<revision>.json` (UTC, `2026-10-19T03-17-00Z`), then deletes the backups it
+  wrote past the 14 most recent (never another object). The daily cron runs it ("Running it", below). It survives the
+  database, not the bucket: a copy elsewhere is yours to make.
 - **A restore**: a hosted instance only, into an empty database (a new Postgres add-on, the same bucket):
   `npm run studio-server -- restore <file> --replay --config <file>` checks the digest, the tables and columns, and
   that every blob of the head and of the journal is in the bucket (a preview, build or prepared set whose blobs were
@@ -289,6 +316,90 @@ replay them after the upgrade (a session recorded at schema 2 may name the old p
   write naming an old blob is covered by the day of grace. The head's and the journal's blobs are never collected (the
   journal keeps every operation); an older backup restored after a collection only loses the previews, builds and
   prepared sets the collection took.
+
+## Running it: the reference deployment
+
+4.2.3 runs this deployment on Clever Cloud (the two apps, PostgreSQL, Cellar, Keycloak, a domain) and writes what it
+measured in `docs/dev/QUALIF-4.2.3-REFERENCE.md`. What follows is the runbook it follows.
+
+**Deploy, and upgrade the engine: an overlapping redeploy.** `clever deploy` (or a push) starts the new instance while
+the old one still serves: measured by spike S (`docs/dev/SPIKE-4.2.1-CLEVER.md` §2), where the old instance also never
+logged its SIGTERM. Nothing depends on that signal: the instances share the **service lease** in PostgreSQL (master plan
+§4, P8). The new one starts, answers `/startz`, and waits: `/readyz` is 503 and its writes are 503 with `Retry-After`
+until the old one gives the lease back (on SIGTERM) or the lease expires (30 s, renewed every 10 s on the database's
+clock); the old one stops writing by its own clock before that. A client retries a write with the same operation id
+and gets it applied once. The journal's own fenced lease still keeps two instances from writing over the same head.
+Upgrading the engine is the same redeploy, of a new version:
+1. read the CHANGELOG for the version and `docs/en/UPGRADING.md` for the game's content. Its database migrations run
+   when the new instance starts, while the old one may still serve: if one changes what the old version reads, stop
+   the old one first (`clever stop`) and accept the minute without the Studio;
+2. take a backup to the bucket (below) and note the revision;
+3. deploy the worker first, then the studio, the same version: until both are, a job may be refused, and the Studio
+   then refuses the write it was checking (it fails closed) rather than letting it through;
+4. watch `/readyz` come back to 200 on the new instance (`instance` in the `lease-taken` log line), the revision
+   unchanged, and one write go through.
+A rollback is the same redeploy of the previous version, as long as it still reads the database the new one migrated;
+otherwise it is the backup of step 2, restored into a new add-on (the drill below).
+
+**Metrics.** With `STUDIO_METRICS_TOKEN` set, `GET /metrics` on the Studio's origin answers in Prometheus' text format
+to `Authorization: Bearer <token>` (compared in constant time); a wrong token is a 401, and without the variable there
+is no route (404). It is never behind the session and never on the game's origin. What it gives:
+
+| Metric | What |
+|---|---|
+| `studio_journal_operation_seconds{outcome}` | the journal's operations, from asked to answered (`confirmed`, `replayed`, `refused`, `failed`) |
+| `studio_worker_jobs_in_flight` | the jobs asked of the worker and not answered yet: the queue as the Studio sees it |
+| `studio_worker_job_seconds{kind,outcome}` | the worker's jobs by kind (`validate`, `load`, `preview`, `prepare`, `lint`, `solve`, `playtests`) and outcome (`ok`, `failed`, `timeout`, `error`) |
+| `studio_lease_conflicts_total` | the 423s answered: someone else's span, or a lease that ended |
+| `studio_preview_build_seconds{outcome}` | a revision's preview, snapshot to stored files (`built`, `failed`) |
+| `studio_health_judgement_seconds{verdict}` | the health's verdict on a revision |
+| `studio_journal_rpo_seconds` | the age of the oldest operation not shipped to the bucket (the `rpoMs` of `/readyz`) |
+| `studio_journal_revision`, `studio_service_lease_held` | the head, and whether this instance serves writes (1) |
+| `studio_http_responses_total{class}`, `studio_log_events_total{event}` | answers by status class; the failures logged (`ship-failed`, `health-failed`, `reconcile-failed`, `error`…) |
+
+They are counts and durations: no path, no name, no author, no content. They live in the instance's memory, so a
+restart starts them again from zero (a counter reset, which Prometheus' `rate` reads as such). The worker's own queue
+is not measured from the worker: the Studio's side of it is. OpenTelemetry is not supported in 4.2.3; it stays an
+option for later.
+
+**Alerts** (to a person). Clever Cloud notifies deployments (`clever notify-email add --notify <you> --event
+DEPLOYMENT_FAIL studio-deploys`; also `clever webhooks add`), and its console shows each app's CPU, memory and logs.
+It does not read `/metrics`: a scraper you run does (Prometheus with its Alertmanager, or any service that reads the
+format), or a simple prober for `/readyz`. Alert when:
+- `/readyz` is not 200 for 2 min (no instance serves writes; a deploy takes about 30 s at most);
+- `studio_journal_rpo_seconds` is above 60 for 5 min (the target is 1 min, D42), or `ship-failed` keeps rising;
+- `studio_worker_jobs_in_flight` stays above 3 for 10 min (the worker runs one job at a time: work is piling up);
+- jobs fail: `studio_worker_job_seconds_count{outcome!="ok"}` rises, or `health-failed`;
+- `studio_lease_conflicts_total` jumps (people waiting on each other's spans: not a fault, a sign to look at);
+- the daily backup's line (`"event":"backup"`) is missing from the logs one morning.
+
+**The daily backup.** The repository carries `clevercloud/cron.json`: at 03:17 UTC every day it runs
+`ops/studio/backup-cron.sh`, which does nothing unless the app sets `STUDIO_BACKUP_CRON=1`, and nothing on another
+instance than number 0 (Clever runs a repository's crons on every app and every instance deployed from it: set the
+variable on the studio app only, never the worker). It runs `backup --to-bucket --keep ${STUDIO_BACKUP_KEEP:-14}`; its
+line goes to the app's logs. From the release archives (which do not carry the script), copy `ops/studio/backup-cron.sh`
+into your app with its last line as `exec npx web-scumm-studio-server backup --to-bucket --keep
+"${STUDIO_BACKUP_KEEP:-14}"`, make it executable, and point your `clevercloud/cron.json` at it: `["17 3 * * *
+$ROOT/backup-cron.sh"]`. Clever runs a cron with no environment unless its script starts with `#!/bin/bash -l`, and with
+absolute paths only (`$ROOT` is the app's folder). An overlapping redeploy at that minute may make two backups:
+harmless.
+
+**The restore drill**, onto a fresh PostgreSQL add-on, the production instance left alone:
+1. Note the head (`studio_journal_revision`, or `GET /api/revision` as a member) and check
+   `studio_journal_rpo_seconds` is 0.
+2. Create an add-on and link it to nothing: `clever addon create postgresql-addon my-game-pg-drill --plan dev`; read
+   its URI with `clever addon env <addon-id>`.
+3. Take the latest `backups/` object from the bucket (any S3 tool, with the Cellar credentials), on a machine with the
+   studio app's configuration (`STUDIO_CONFIG_JSON`, the Cellar variables) and `STUDIO_DATABASE_URL` set to the
+   **drill** add-on's URI. Never the production one: a restore refuses a database that holds anything, but check anyway.
+4. Time it: `time npm run studio-server -- restore backups-latest.json --replay`. The line it prints gives the rows,
+   the backup's revision, the revision reached, and `stopped` if the replay stopped early.
+5. Check, read-only, on both databases (`psql <URI>`): `SELECT value FROM studio_meta WHERE key = 'revision'` gives
+   the head noted in step 1 (or later, if people wrote meanwhile), and `SELECT path, blob FROM studio_files ORDER BY
+   path` gives the same rows at the same revision.
+6. Write the time, the revisions and anything odd in the qualification report, then delete the add-on
+   (`clever addon delete my-game-pg-drill`). Never run `gc --delete` from the drill's database: it would collect the
+   blobs production still names.
 
 ## Working together
 
@@ -358,16 +469,31 @@ SQLite and a folder for the contents, on the loopback only.
   `studio-preview` pass does). A bisection asks for up to two jobs per revision it judges.
 - Each revision's preview is kept (about 1 MB for the sample game: the base `/preview/<rev>/` is written into the
   page and its code, so few files are shared between revisions) until the collection of a later 4.2.2 PR.
-- The Assets tab is not on a hosted Studio yet (its uploads and sprite sheets: 4.2.3). The Play tab's **Prepare
-  assets** (a dev, 4.2.2) runs `prepare` on the worker from the head's art and sounds, under the project's exclusive
-  lease (nobody writes meanwhile; someone else's span refuses it, with their name): the prepared set is kept by the
-  Studio and served before `publicDir`, and the game's `assets.gen.json` is written as one operation. Each run prepares
-  everything again, within 2 minutes; it cannot be cancelled nor followed step by step yet. It is refused, and the game
-  is prepared on a local Studio, when: its art and sounds pass about 31 MiB (in base64) or the prepared files about
-  22 MiB; it names its sources in `sources.json` (they live outside the art and sounds a hosted Studio holds); the new
-  manifest would lose an image or a sound the game had. Published builds serve the prepared set as it is now, not the
-  one they were built against. The game's code runs on the worker as the asset tools' user (ADR 0028: one machine, one
-  user).
+- The Assets tab is on a hosted Studio since 4.2.3: a reviewer reads its listing, prompts and files; a dev uploads and
+  cuts. An upload (a sound, a decor) is 10 MiB at most once decoded (413 past it) and its type is read from its bytes:
+  a PNG, JPEG or WebP image (a decor: PNG or JPEG), an Ogg, MP3 or WAV sound whose extension says the same (415
+  otherwise; a local Studio also takes M4A, FLAC, AAC, Opus and WebM); it is written as one operation, never run. A
+  sheet's cutting and a cell's keying run on the worker (`cut` jobs, Python with the hook's packages, no game code),
+  under the project's exclusive lease: the worker gets the image, that sheet's cells and `site.json`, gives back only
+  cells of that sheet, and the cells with the backups of those recut are written as one operation. A hosted Studio
+  does not keep the uploaded sheet itself (a local one keeps it under `private/sheets/`, which no span names).
+- The Play tab's (and the Assets tab's) **Prepare assets** (a dev, 4.2.2) runs `prepare` on the worker from the
+  head's art and sounds, under the project's exclusive lease (nobody writes meanwhile; someone else's span refuses
+  it, with their name): the prepared set is kept by the Studio and served before `publicDir`, and the game's
+  `assets.gen.json` is written as one operation. Each run prepares everything again, within 2 minutes. It is refused,
+  and the game is prepared on a local Studio, when: its art and sounds pass about 31 MiB (in base64) or the prepared
+  files about 22 MiB; it names its sources in `sources.json` (they live outside the art and sounds a hosted Studio
+  holds); the new manifest would lose an image or a sound the game had. Published builds serve the prepared set as it
+  is now, not the one they were built against. The game's code runs on the worker as the asset tools' user (ADR 0028:
+  one machine, one user).
+- Prepare and the cuts are **jobs** (4.2.3): the request answers 202 with the job at once; its states go to the live
+  stream (`job` events, in order: `queued`, `running` with its steps `packing`, `on the worker`, `writing`, then
+  `done`, `failed` or `cancelled`) and `GET /api/jobs/<id>` reads it again. One runs at a time, four more may wait
+  (429 past them). `POST /api/jobs/<id>/cancel` (who started it, or an owner) cancels it: a waiting job never runs; a
+  running one has its request to the worker closed, and the worker kills its child with its process group; nothing
+  is written (no operation, no prepared set kept) and the exclusive lease is given back. Once a job is writing, it is
+  past cancelling (409). A job is kept in the instance's memory: after a restart its state is gone (its write, if it
+  was made, is in the journal).
 - A game frame left idle past its 15 min session shows nothing new: "Reload view" (or the Play tab) opens it again.
 - Captures are not available on a hosted Studio.
 - The Play tab shows the game with its DEV panel; the state inspector, the rule explainer and the replays beside it

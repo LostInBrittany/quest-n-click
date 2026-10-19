@@ -13,6 +13,7 @@ import { inAllowlist } from '../../../bridge/src/allowlist';
 import type { SqlDb } from '../../../bridge/src/store-sql';
 import { operationContext, type Studio } from '../ops/core';
 import { isStudioError, StudioError } from '../ops/errors';
+import type { Comments } from './comments';
 import type { GitSync } from './git';
 import { MCP_METADATA_PATHS, type McpEndpoint } from './mcp';
 import type { Journal } from '../ops/journal';
@@ -25,8 +26,14 @@ import { LiveHub, type Presence, serveEvents } from './live';
 import { forPlay, type Play, playTicketBody } from './play';
 import type { Builds } from './builds';
 import type { PreparedAssets } from './prepared';
+import { type HostedAssets, MAX_UPLOAD_BODY } from './hosted-assets';
+import { Jobs } from './jobs';
+import { open } from 'node:fs/promises';
+import { pipeline } from 'node:stream/promises';
+import { mimeOf } from '../../../tools/studio/assets';
 import type { EngineUpgrade } from './engine-upgrade';
 import type { Health } from './health';
+import type { Metrics } from './metrics';
 import type { Previews } from './previews';
 import type { ServiceLease } from './service-lease';
 
@@ -121,8 +128,14 @@ export interface StudioServerOptions {
   rpo?: () => Promise<number>;
   /** The published builds (4.2.2 PR 5): `/api/builds`. */
   builds?: Builds;
-  /** The prepared assets (4.2.2 PR 6b): `/api/assets/prepare`. */
+  /** The prepared assets (4.2.2 PR 6b): `/api/assets/prepare`, a job since 4.2.3. */
   prepared?: PreparedAssets;
+  /** The Assets tab (4.2.3 PR 7, H8): its listing, files, uploads and cutting under `/api/assets`. */
+  assets?: HostedAssets;
+  /** The long jobs (4.2.3, H8): prepare and cut, their progress on the live stream; one is made if none is given. */
+  jobs?: Jobs;
+  /** Comments anchored on the game's stable ids (4.2.3, H2). */
+  comments?: Comments;
   /** The game's Git repository (4.2.3, H5): its state for a reviewer, a push and an import for an owner. */
   git?: GitSync;
   /** The engine's upgrade of the hosted game (4.2.3 PR 8, H6): `/api/engine/migrate`, the owner's. */
@@ -131,6 +144,8 @@ export interface StudioServerOptions {
   play?: { handler: Play; playUrl: string };
   /** The Studio's page, its files and the game's images and sounds (PR 7, client.ts). */
   client?: StudioClient;
+  /** The metrics (4.2.3, H9): `GET /metrics` behind the secret STUDIO_METRICS_TOKEN; without it, a 404. */
+  metrics?: Metrics;
 }
 
 /** The spans a client may name: the leases' own names (`*` only through /exclusive). */
@@ -186,16 +201,24 @@ class Buckets {
 export function roleFor(method: string, sub: string): Role {
   // The heartbeat says who is here: a reviewer is here too.
   if (method === 'POST' && (sub === '/presence' || sub === '/play-ticket')) return 'reviewer';
+  // Comments (4.2.3, H2) are a reviewer's too: they write no game file.
+  if ((method === 'POST' && sub === '/comments') || (method === 'PUT' && /^\/comments\/[\w-]+$/.test(sub)))
+    return 'reviewer';
   return method === 'GET' || (method === 'POST' && READ_POSTS.test(sub)) ? 'reviewer' : 'dev';
 }
 
-export function readJson(req: IncomingMessage): Promise<unknown> {
+export function readJson(req: IncomingMessage, max = MAX_JSON): Promise<unknown> {
   return new Promise((ok, fail) => {
+    // Said too large before a byte is read, when its length says so.
+    if (Number(req.headers['content-length'] ?? 0) > max) {
+      req.resume();
+      return fail(new StudioError('body too large', 413));
+    }
     let size = 0;
     const chunks: Buffer[] = [];
     req.on('data', (c: Buffer) => {
       size += c.length;
-      if (size > MAX_JSON) {
+      if (size > max) {
         // Answered with its 413; the rest of the body is drained, not read (no reset before the answer).
         fail(new StudioError('body too large', 413));
         req.removeAllListeners('data');
@@ -233,6 +256,27 @@ export function send(
   res.end(JSON.stringify(data));
 }
 
+/**
+ * A member's file of art/ or audio/ (4.2.3), as it was uploaded: served with its own type, never sniffed nor run by the
+ * page that shows it. Opened first: a file gone meanwhile is a 404; one that fails while sent ends its response, never
+ * the process.
+ */
+export async function serveFile(res: ServerResponse, file: string): Promise<void> {
+  let fh: Awaited<ReturnType<typeof open>>;
+  try {
+    fh = await open(file, 'r');
+  } catch {
+    return send(res, 404, { error: 'no such file' });
+  }
+  res.writeHead(200, {
+    'content-type': mimeOf(file),
+    'cache-control': 'no-cache',
+    'x-content-type-options': 'nosniff',
+    'content-security-policy': "default-src 'none'; sandbox",
+  });
+  await pipeline(fh.createReadStream(), res).catch(() => res.destroy());
+}
+
 export interface StudioHttpServer extends Server {
   /** Runs `fn` holding the instance's lock alone (no request reads or writes meanwhile): the cache's repair. */
   exclusive<T>(fn: () => Promise<T>): Promise<T>;
@@ -256,7 +300,13 @@ export function studioServer(o: StudioServerOptions): StudioHttpServer {
   let started = false;
   const authCalls = new Buckets(o.perMinute ?? 30);
   const failures = new Buckets(o.perMinute ?? 30);
+  const jobs = o.jobs ?? new Jobs();
+  // A job's span conflict is a lease conflict too, though its route answered 202.
+  jobs.events.on('changed', (j: { state: string; status?: number }) => {
+    if (j.state === 'failed') o.metrics?.jobFailed(j.status);
+  });
   const hub = new LiveHub({
+    jobs,
     journal: o.journal,
     leases: o.leases,
     presence: o.presence,
@@ -279,7 +329,8 @@ export function studioServer(o: StudioServerOptions): StudioHttpServer {
     const url = new URL(req.url ?? '/', 'http://studio.invalid');
     const path = url.pathname;
     res.setHeader('x-request-id', id);
-    res.on('finish', () =>
+    res.on('finish', () => {
+      o.metrics?.response(res.statusCode);
       log({
         event: 'request',
         id,
@@ -288,8 +339,8 @@ export function studioServer(o: StudioServerOptions): StudioHttpServer {
         status: res.statusCode,
         ms: Math.round(performance.now() - t0),
         client: clientOf(req),
-      }),
-    );
+      });
+    });
     try {
       // The probes: no session, no data.
       if (path === '/livez') return send(res, 200, { ok: true });
@@ -304,6 +355,15 @@ export function studioServer(o: StudioServerOptions): StudioHttpServer {
       const ip = clientOf(req);
       // The game's origin answers its own paths only: no Studio API, no /auth, ever.
       if (o.play && forPlay(req, o.play.playUrl)) return void (await o.play.handler.handle(req, res, url));
+      // The metrics (4.2.3, H9): a secret of their own, never the session; none configured, no route.
+      if (path === '/metrics') {
+        if (!o.metrics || req.method !== 'GET') return send(res, 404, { error: 'not found' });
+        if (!o.metrics.authorized(req))
+          throw Object.assign(new StudioError('the metrics need their token', 401), {
+            headers: { 'www-authenticate': 'Bearer realm="metrics"' },
+          });
+        return void (await o.metrics.serve(res));
+      }
       // The remote MCP (ADR 0029): where its authorization is (RFC 9728), then the endpoint itself.
       if (o.mcp && req.method === 'GET' && MCP_METADATA_PATHS.includes(path)) return send(res, 200, o.mcp.metadata());
       if (o.mcp && path === '/mcp') return void (await o.mcp.handle(req, res, () => readJson(req)));
@@ -339,14 +399,49 @@ export function studioServer(o: StudioServerOptions): StudioHttpServer {
         const path = playTicketBody(await readJson(req));
         return send(res, 200, { url: await o.play.handler.ticket(principal.user.id, principal.session.idHash, path) });
       }
-      // The prepared assets (4.2.2, D43): listed by a reviewer, prepared by a dev on the worker, under their exclusive
-      // lease (it waits for nobody's span: another's is a 423, with their name).
-      if (sub === '/assets/prepared' || sub === '/assets/prepare') {
-        if (!o.prepared)
+      // A job (4.2.3, H8): read by a reviewer; cancelled by who started it, or an owner.
+      const job = /^\/jobs\/([\w-]{1,64})(\/cancel)?$/.exec(sub);
+      if (job) {
+        if (req.method === 'GET' && !job[2]) {
+          const j = jobs.get(job[1]!);
+          if (!j) throw new StudioError(`no job ${job[1]}`, 404);
+          return send(res, 200, j);
+        }
+        if (req.method !== 'POST' || !job[2]) throw new StudioError('not found', 404);
+        return send(
+          res,
+          200,
+          jobs.cancel(job[1]!, {
+            userId: principal?.user.id ?? 'local',
+            owner: !principal || principal.role === 'owner',
+          }),
+        );
+      }
+      // The Assets tab (4.2.2 D43, 4.2.3 H8): the prepared runs, the listing, the prompts and the files are a reviewer's;
+      // the uploads, the cutting and Prepare a dev's. Prepare and the cutting are jobs, under the member's exclusive lease
+      // (it waits for nobody's span: another's is a 423, with their name): answered 202 with the job at once.
+      if (sub === '/assets' || sub.startsWith('/assets/')) {
+        const prep = sub === '/assets/prepared' || sub === '/assets/prepare';
+        if (prep && !o.prepared)
           throw new StudioError('preparing the assets needs a hosted Studio with its processing worker', 404);
-        if (req.method === 'GET' && sub === '/assets/prepared')
-          return send(res, 200, { runs: await o.prepared.list() });
-        if (req.method !== 'POST' || sub !== '/assets/prepare') throw new StudioError('not found', 404);
+        if (!prep && !o.assets) throw new StudioError('not found', 404);
+        if (req.method === 'GET') {
+          if (sub === '/assets/prepared') return send(res, 200, { runs: await o.prepared!.list() });
+          if (sub === '/assets') return send(res, 200, await lock.read(() => o.assets!.assets.list()));
+          if (sub === '/assets/prompts')
+            return send(
+              res,
+              200,
+              await lock.read(() => o.assets!.assets.prompts(url.searchParams.get('missing') === '1')),
+            );
+          if (sub.startsWith('/assets/file/')) {
+            const f = o.assets?.assets.filePath(sub.slice('/assets/file/'.length));
+            if (!f) throw new StudioError('no such file', 404);
+            return await serveFile(res, f);
+          }
+          throw new StudioError('not found', 404);
+        }
+        if (req.method !== 'POST') throw new StudioError('not found', 404);
         if (!o.lease.held)
           return send(
             res,
@@ -357,9 +452,58 @@ export function studioServer(o: StudioServerOptions): StudioHttpServer {
         // Named as any write is (its author: the email first), the claimant by their name.
         const author = principal ? (principal.user.email ?? principal.user.name ?? principal.user.id) : 'local';
         const name = principal ? (principal.user.name ?? author) : 'local';
-        const claimant = principal ? { userId: principal.user.id, name } : undefined;
-        const r = await operationContext.run({ author, claimant }, () => o.prepared!.prepare(name));
-        return send(res, 200, r);
+        const claimant = principal ? { userId: principal.user.id, name, fences: fencesOf(req) } : undefined;
+        const within = <T>(fn: () => Promise<T>) => operationContext.run({ author, claimant }, fn);
+        const who = { name, userId: principal?.user.id ?? 'local' };
+        if (sub === '/assets/prepare') {
+          const prepared = o.prepared!;
+          return send(
+            res,
+            202,
+            jobs.start('prepare', who, (c) => prepared.prepare(name, c), within),
+          );
+        }
+        const kind = /^\/assets\/(sound|decor|sheet|cell)$/.exec(sub)?.[1];
+        if (!kind) throw new StudioError('not found', 404);
+        const body = (await readJson(req, MAX_UPLOAD_BODY)) as never;
+        const a = o.assets!;
+        if (kind === 'sheet' || kind === 'cell') {
+          const work = await lock.read(async () => a.planCut(kind, body));
+          return send(res, 202, jobs.start(kind === 'sheet' ? 'cut' : 'cell', who, work, within));
+        }
+        const r = await lock.write(() => within(() => (kind === 'sound' ? a.uploadSound(body) : a.uploadDecor(body))));
+        return send(res, 200, r, { 'x-studio-revision': String(await o.journal.revision()) });
+      }
+      // Comments (4.2.3, H2): read and written by a reviewer (no game file); the notes imported by an owner.
+      if (sub === '/comments' || sub.startsWith('/comments/')) {
+        if (!o.comments) throw new StudioError("comments are a shared Studio's", 404);
+        const who = {
+          id: principal?.user.id ?? 'local',
+          name: principal?.user.name ?? principal?.user.email ?? 'local',
+        };
+        if (req.method === 'GET' && sub === '/comments') {
+          const anchor = url.searchParams.get('anchor');
+          return send(res, 200, { comments: await o.comments.list(anchor ?? undefined) });
+        }
+        if (req.method === 'POST' && sub === '/comments')
+          return send(res, 201, await o.comments.add((await readJson(req)) as Record<string, unknown>, who));
+        if (req.method === 'POST' && sub === '/comments/import-notes') {
+          if (principal) o.auth!.gate.require(principal, 'owner');
+          return send(res, 200, await o.comments.importNotes(o.studio.getNotes().entries, who));
+        }
+        const m = /^\/comments\/([\w-]+)$/.exec(sub);
+        if (req.method === 'PUT' && m) {
+          const canResolve = !principal || principal.role === 'dev' || principal.role === 'owner';
+          return send(
+            res,
+            200,
+            await o.comments.update(m[1]!, (await readJson(req)) as Record<string, unknown>, {
+              id: who.id,
+              canResolve,
+            }),
+          );
+        }
+        throw new StudioError('not found', 404);
       }
       // The game's Git repository (4.2.3, H5): what the Studio knows of it (a reviewer); a push, an import (an owner,
       // the import under the exclusive lease).
