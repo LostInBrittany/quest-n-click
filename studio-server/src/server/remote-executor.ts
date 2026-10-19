@@ -93,7 +93,8 @@ export function remoteExecutor(o: RemoteExecutorOptions) {
       ended?.(v.timedOut ? 'timeout' : v.failed ? 'failed' : 'ok');
       return v;
     } catch (e) {
-      ended?.('error');
+      // A wait given up on its deadline is a timeout, as the worker's own is.
+      ended?.((e as Error)?.name === 'TimeoutError' ? 'timeout' : 'error');
       throw e;
     } finally {
       await Promise.all([o.s3.delete(`${dest}snapshot.json`), o.s3.delete(`${dest}result.json`)]).catch(() => {});

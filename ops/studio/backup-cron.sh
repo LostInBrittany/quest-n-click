@@ -6,6 +6,8 @@
 # same one written again). The login shell (-l) gives the app's variables: STUDIO_CONFIG_JSON and the add-ons'.
 set -euo pipefail
 [[ "${STUDIO_BACKUP_CRON:-}" == "1" ]] || exit 0
-[[ "${INSTANCE_NUMBER:-0}" == "0" ]] || exit 0
+# Instance 0 only, and only when Clever says which one this is: a missing number backs nothing up rather than every
+# instance (two backups a day would halve what --keep keeps).
+[[ "${INSTANCE_NUMBER:-}" == "0" ]] || exit 0
 cd "${APP_HOME:-$ROOT}"
 exec npm run -s studio-server -- backup --to-bucket --keep "${STUDIO_BACKUP_KEEP:-14}"

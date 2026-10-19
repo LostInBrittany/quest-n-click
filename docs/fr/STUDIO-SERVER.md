@@ -177,6 +177,16 @@ Le realm de test `ops/studio/keycloak/realm.json` montre chaque réglage. Chez n
 
 Le fournisseur dit qui est quelqu'un. Ce qu'il peut faire se décide dans le Studio.
 
+**Un autre fournisseur** (4.2.3, D44 : GitLab pour la passe `studio-oidc-generic`). Tout fournisseur OpenID Connect
+avec découverte sert les connexions du navigateur : donnez-lui le client `studio` comme ci-dessus (une application avec
+les scopes `openid profile email`, les mêmes URI de redirection) et son émetteur (`https://gitlab.com` pour GitLab).
+Deux parties en demandent plus : le CLI et le MCP prennent les **jetons d'accès du fournisseur en JWT** signés pour
+l'audience de ce Studio, ce que ne donne pas un fournisseur aux jetons d'accès opaques (les applications OAuth de
+GitLab, au moment où ces lignes sont écrites) : là, le CLI et le MCP distant restent sur un fournisseur qui le fait
+(Keycloak, Authentik et d'autres), ou ne sont pas proposés. Sans **déconnexion back-channel**, une session finie chez
+le fournisseur finit ici à son prochain rafraîchissement (5 min), et un utilisateur désactivé là-bas dans R = 15 min
+(plan §3.6). La passe `studio-oidc-generic` le vérifie sur un vrai GitLab.
+
 ## Personnes et rôles
 
 | Rôle | Peut |

@@ -14,8 +14,8 @@ import type { IncomingMessage, ServerResponse } from 'node:http';
 import { isStudioError } from '../ops/errors';
 import type { Applied, Operation } from '../ops/journal';
 
-/** Seconds: from a quick operation (5 ms) to the worker's longest job (2 min). */
-const BUCKETS = [0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1, 2.5, 5, 10, 30, 60, 120];
+/** Seconds: from a quick operation (5 ms) to the longest wait for the worker (5 min, `MAX_JOB_MS`). */
+const BUCKETS = [0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1, 2.5, 5, 10, 30, 60, 120, 300];
 
 /** The log events counted (`studio_log_events_total`): the failures an operator alerts on. */
 const COUNTED_EVENTS = new Set(['ship-failed', 'health-failed', 'reconcile-failed', 'prepared-start-failed', 'error']);

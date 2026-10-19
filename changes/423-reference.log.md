@@ -28,4 +28,9 @@
 - Left for the run (Claude with the maintainer): the deployment itself, the alerts wired to a person, the real drill and
   the numbers of the report.
 
+- **After the second reading**: a 300 s bucket (the longest wait for the worker); a wait given up on its deadline counted
+  as a timeout; the backup cron runs only where Clever says it is instance 0; the threat model says the token's entropy
+  protects it, not the throttle; STUDIO-SERVER (en, fr) says what another OpenID provider (GitLab) serves and does not
+  (the CLI and the MCP need JWT access tokens; no back-channel logout: a session ends at its next refresh).
+
 → next: Claude (the reference deployment run, the release)

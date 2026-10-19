@@ -173,6 +173,15 @@ The test realm `ops/studio/keycloak/realm.json` shows every setting. On any prov
 
 The provider says who someone is. What they may do is decided in the Studio.
 
+**Another provider** (4.2.3, D44: GitLab for the `studio-oidc-generic` pass). Any OpenID Connect provider with
+discovery serves the browser's logins: give it the `studio` client as above (an application with the scopes `openid
+profile email`, the same redirect URIs) and its issuer (`https://gitlab.com` for GitLab). Two parts need more of it:
+the CLI and the MCP take the provider's **access tokens as JWTs** signed for this Studio's audience, which a provider
+issuing opaque access tokens (GitLab's OAuth applications, at the time of writing) does not give: there, the CLI and
+the remote MCP stay with a provider that does (Keycloak, Authentik and others), or are not offered. Without
+**back-channel logout**, a session ended at the provider ends here at its next refresh (5 min), and a user disabled
+there within R = 15 min (plan §3.6). The `studio-oidc-generic` pass checks this on a real GitLab.
+
 ## People and roles
 
 | Role | May |
