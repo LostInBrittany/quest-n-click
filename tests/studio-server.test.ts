@@ -90,6 +90,13 @@ describe('configuration and secrets', () => {
     const example = readFileSync(join(ROOT, 'ops', 'studio', 'studio.config.example.json'), 'utf8');
     expect(loadConfig('STUDIO_CONFIG_JSON', example).worker?.instance).toBe('my-game-studio');
     expect(() => loadConfig('STUDIO_CONFIG_JSON', '{ nope')).toThrow(ConfigError);
+    // Public builds (4.2.2, D42): off unless said, and said with a boolean.
+    writeFileSync(f, JSON.stringify(base));
+    expect(loadConfig(f).publicBuilds).toBe(false);
+    writeFileSync(f, JSON.stringify({ ...base, publicBuilds: true }));
+    expect(loadConfig(f).publicBuilds).toBe(true);
+    writeFileSync(f, JSON.stringify({ ...base, publicBuilds: 'yes' }));
+    expect(() => loadConfig(f)).toThrow(/publicBuilds is true or false/);
     writeFileSync(f, JSON.stringify({ ...base, typo: 1 }));
     expect(() => loadConfig(f)).toThrow(/unknown key "typo"/);
   });
@@ -123,6 +130,34 @@ describe('the server over HTTP (SQLite, files)', () => {
     expect((await fetch(`${base}/livez`)).status).toBe(200);
     expect((await fetch(`${base}/startz`)).status).toBe(200);
     expect(await (await fetch(`${base}/readyz`)).json()).toEqual({ ok: true, writes: 'served' });
+  });
+
+  it('lists, reads, publishes and rebuilds builds when they are served (4.2.2)', async () => {
+    expect((await fetch(`${base}/api/builds`)).status).toBe(404);
+    const calls: string[] = [];
+    const builds = {
+      list: async () => (calls.push('list'), [{ n: 1 }]),
+      get: async (n: number) => (calls.push(`get ${n}`), n === 1 ? { manifest: { n: 1 }, signature: 's' } : undefined),
+      publish: async (by: string) => (calls.push(`publish ${by}`), { n: 2 }),
+      rebuild: async (n: number) => (calls.push(`rebuild ${n}`), { n, same: true, differ: [] }),
+    };
+    const studio = createStudio({ gameDir: game, root: tmp, journal, importFresh: importInChild, author: 'test' });
+    const s2 = studioServer({ studio, journal, db, lease, log: () => {}, builds: builds as never });
+    await new Promise<void>((ok) => s2.listen(0, '127.0.0.1', ok));
+    const api = `http://127.0.0.1:${(s2.address() as AddressInfo).port}/api`;
+    const post = (p: string) =>
+      fetch(`${api}${p}`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: '{}' });
+    try {
+      expect(await (await fetch(`${api}/builds`)).json()).toEqual({ builds: [{ n: 1 }] });
+      expect(await (await fetch(`${api}/builds/1`)).json()).toEqual({ manifest: { n: 1 }, signature: 's' });
+      expect((await fetch(`${api}/builds/9`)).status).toBe(404);
+      expect(await (await post('/builds')).json()).toEqual({ n: 2 });
+      expect(await (await post('/builds/1/rebuild')).json()).toEqual({ n: 1, same: true, differ: [] });
+      expect((await post('/builds/1/nope')).status).toBe(404);
+      expect(calls).toEqual(['list', 'get 1', 'get 9', 'publish local', 'rebuild 1']);
+    } finally {
+      s2.close();
+    }
   });
 
   it('runs a bisection asked for when the health is followed, with revision numbers only (4.2.2)', async () => {

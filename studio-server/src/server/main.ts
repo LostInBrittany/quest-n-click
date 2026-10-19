@@ -6,6 +6,7 @@
 //   login --server <url>, token --server <url>       the CLI's device flow, and its current access token
 //   deps           its own dependencies (OpenID Connect, JWT, Postgres): the version and folder each resolves to
 // Secrets come from `<NAME>_FILE` or the environment (config.ts) and leave `process.env` before anything else runs.
+import { createPrivateKey, sign } from 'node:crypto';
 import { cpSync, existsSync, mkdirSync, readdirSync, readFileSync, renameSync, rmSync, writeFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -26,7 +27,8 @@ import { AuthStore, Sealer } from './auth/store';
 import { readJson, send, studioServer } from './http';
 import { openPostgresDb } from './postgres';
 import { newJobKeys } from '../worker/job';
-import { packSnapshot } from '../worker/snapshot';
+import { packable, packFiles, packSnapshot } from '../worker/snapshot';
+import { engineVersion } from '../../../tools/extensions';
 import { assetsVersion } from '../../../tools/vite/plugins';
 import { Leases } from './leases';
 import { Presence } from './live';
@@ -35,6 +37,7 @@ import { Play } from './play';
 import { HOSTED_SOLVE_MS } from '../ops/diagnose';
 import type { SolveData } from '../../../tools/studio/types';
 import { PersonalUndo } from '../ops/undo';
+import { Builds } from './builds';
 import { Health, judgeBy } from './health';
 import { Previews } from './previews';
 import { remoteExecutor } from './remote-executor';
@@ -363,6 +366,31 @@ async function main(argv: string[]): Promise<number> {
         })
       : undefined;
   journal.events.on('confirmed', () => void health?.schedule());
+  // The published builds (G6): built by the worker, signed with the Studio's job key (the worker's public key checks
+  // a manifest), served at /play/<n>/ on the game's origin, without a session if the owner chose so (D42).
+  const jobKey = secrets.STUDIO_WORKER_KEY
+    ? createPrivateKey(secrets.STUDIO_WORKER_KEY.replace(/\\n/g, '\n'))
+    : undefined;
+  const builds =
+    executor && hosted && jobKey
+      ? new Builds({
+          db,
+          blobs,
+          publicDir,
+          game: config.game,
+          studioOrigin: config.publicUrl,
+          engine: engineVersion(),
+          assetsVersion: () => (version ??= assetsVersion(join(publicDir, 'assets'))),
+          snapshot: () =>
+            server.exclusive(async () => {
+              await journal.reconcile();
+              return { epoch: await journal.epoch(), rev: await journal.revision(), bytes: packSnapshot(gameDir) };
+            }),
+          snapshotAt: async (rev) => packFiles(await journal.filesAt(rev, (p) => packable(p))),
+          build: (bytes, params, at) => executor!.preview(bytes, params, at),
+          sign: (bytes) => sign(null, bytes, jobKey).toString('base64url'),
+        })
+      : undefined;
   const play =
     auth && authStore && previews
       ? {
@@ -373,7 +401,11 @@ async function main(argv: string[]): Promise<number> {
             publicUrl: config.publicUrl,
             playUrl: config.playUrl,
             idleMs: auth.gate.idleMs,
-            content: (req, res, url) => previews.handle(req, res, url),
+            open: config.publicBuilds ? (path) => /^\/(play(\/|$)|icons\/)/.test(path) : undefined,
+            content: (req, res, url) =>
+              builds && /^\/play(\/|$)/.test(url.pathname)
+                ? builds.handle(req, res, url)
+                : previews.handle(req, res, url),
           }),
         }
       : undefined;
@@ -389,6 +421,7 @@ async function main(argv: string[]): Promise<number> {
     previews,
     health,
     personalUndo: !!personalUndo,
+    builds,
     play,
     client,
   });

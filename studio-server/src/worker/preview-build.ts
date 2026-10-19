@@ -3,7 +3,8 @@
 // prepared images, sounds and fonts are the same for every revision, and the game's origin serves them from the
 // Studio's own folder. What comes out is the page, its code and the game's site.json, as bytes by path; the Studio
 // stores them by content (studio-server/src/server/previews.ts). Run in the worker's child (child.ts), where the
-// game's code runs, or in a child of the loopback server: never in the Studio's own process.
+// game's code runs, or in a child of the loopback server: never in the Studio's own process. With `play` (4.2.2 PR 5),
+// the same build is a published one: base `/play/<n>/`, the player's game (no editing tools, no Studio origin).
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -17,6 +18,8 @@ export interface PreviewParams {
   studioOrigin: string;
   /** The prepared assets' version (`__ASSETS_VERSION__`), computed by the Studio, which holds them. */
   assetsVersion: string;
+  /** A published build's number (4.2.2 PR 5): base `/play/<n>/`, the player's game. */
+  play?: number;
 }
 
 /**
@@ -29,14 +32,22 @@ export class PreviewBuildFailed extends Error {
 
 /** The checks a job's parameters pass before a build: the worker builds nothing a job did not name exactly. */
 export function previewParams(p: Record<string, unknown>): PreviewParams {
-  const { rev, game, studioOrigin, assetsVersion } = p;
+  const { rev, game, studioOrigin, assetsVersion, play } = p;
+  if (play !== undefined && (!Number.isSafeInteger(play) || (play as number) < 1))
+    throw new Error('preview: play is a build number');
   if (!Number.isSafeInteger(rev) || (rev as number) < 0) throw new Error('preview: rev is a revision');
   if (typeof game !== 'string' || !/^[\w-]{1,64}$/.test(game)) throw new Error('preview: game is a game id');
   if (typeof studioOrigin !== 'string' || new URL(studioOrigin).origin !== studioOrigin)
     throw new Error('preview: studioOrigin is an origin');
   if (typeof assetsVersion !== 'string' || !/^[0-9a-f]{1,64}$/.test(assetsVersion))
     throw new Error('preview: assetsVersion is a hex digest');
-  return { rev: rev as number, game, studioOrigin, assetsVersion };
+  return {
+    rev: rev as number,
+    game,
+    studioOrigin,
+    assetsVersion,
+    ...(play !== undefined ? { play: play as number } : {}),
+  };
 }
 
 /** A preview's files as the child wrote them, or undefined: at most 2,000, each a plain relative path and base64. */
@@ -60,7 +71,8 @@ const ENGINE = fileURLToPath(new URL('../../../', import.meta.url));
 
 /** The built files, by their path under the base (`index.html`, `assets/index-<hash>.js`, `site.json`). */
 export async function buildPreview(dir: string, p: PreviewParams, cacheDir: string): Promise<Map<string, Buffer>> {
-  const base = `/preview/${p.rev}/`;
+  const published = p.play !== undefined;
+  const base = published ? `/play/${p.play}/` : `/preview/${p.rev}/`;
   // sitePlugin's manifest reads the base from the environment, once, when its module loads.
   process.env.BASE_PATH = base;
   const { build } = await import('vite');
@@ -87,7 +99,8 @@ export async function buildPreview(dir: string, p: PreviewParams, cacheDir: stri
       __GAME__: JSON.stringify(p.game),
       __TRUSTED_EXTENSIONS__: JSON.stringify(trustedExtensionsHash(gameDir)),
       __ENGINE_VERSION__: JSON.stringify(engineVersion()),
-      'import.meta.env.VITE_STUDIO_PREVIEW': JSON.stringify('1'),
+      // The editing tools in a preview only: a published build is the player's game.
+      'import.meta.env.VITE_STUDIO_PREVIEW': JSON.stringify(published ? '0' : '1'),
     },
     plugins: [
       sitePlugin({ gameDir, game: p.game }),
@@ -97,9 +110,10 @@ export async function buildPreview(dir: string, p: PreviewParams, cacheDir: stri
         resolveId: (id) => (id === 'virtual:pwa-register' ? '\0studio-no-sw' : undefined),
         load: (id) =>
           id === '\0studio-no-sw' ? 'export function registerSW() { return () => Promise.resolve(); }' : undefined,
-        transformIndexHtml: () => [
-          { tag: 'meta', attrs: { name: 'web-scumm-studio-origin', content: p.studioOrigin }, injectTo: 'head' },
-        ],
+        transformIndexHtml: () =>
+          published
+            ? []
+            : [{ tag: 'meta', attrs: { name: 'web-scumm-studio-origin', content: p.studioOrigin }, injectTo: 'head' }],
         // The fingerprint's parts the player cannot compute from the content (ADR 0013), as sealBuild writes them.
         generateBundle() {
           this.emitFile({

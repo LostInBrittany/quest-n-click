@@ -102,6 +102,8 @@ Clever, each can be a file instead: `STUDIO_SESSION_KEY_FILE`, and so on (mode 0
 - `publicDir` (optional): the game's prepared images and sounds, `public/` of the deployed repository by default
   (`npm run assets` writes them there and they are committed). The Studio shows them to members and every preview
   plays them; they are read only on a hosted Studio.
+- `publicBuilds` (optional, `false` by default): the published builds (`/play/` on the game's origin) are open to
+  anyone, without a session (D42: the owner's choice per instance). Everything else there stays behind the session.
 - `clientDir` (optional): the built Studio, `.cache/studio-client` by default (`npm run studio-client`). With OIDC the
   server refuses to start without it.
 
@@ -168,6 +170,17 @@ The provider says who someone is. What they may do is decided in the Studio.
 Nobody is a member by default: an invitation (7 days, used once, for a verified email) makes one. The last owner can
 be neither removed nor demoted. Removing someone ends their access at their next request; their live streams close
 within 5 s. When the provider disables an account, its sessions end within 15 min.
+
+## Publishing builds
+
+The Play tab's **Publish this revision** has the worker build the player's game from the head (no editing tools),
+numbered: build `#n` is served at `/play/<n>/` on the game's origin and never changes. `/play/` is always the last
+green build, the latest whose revision the health judged valid. Each build's manifest (the epoch and revision, the
+engine, the snapshot's hash, each file's hash) is signed with the Studio's job key: `GET /api/builds/<n>` gives it and
+its signature, which `studio-worker.pub` checks. An owner's **Rebuild fresh** builds the same snapshot again and says
+whether the files are the same, byte for byte: a check that the build is reproducible on the worker as it is now, not
+that its content is harmless. A published build has no service worker (it is not installed for offline play) and its
+saves are not yet told apart by build.
 
 ## Working together
 

@@ -55,6 +55,11 @@ export interface StudioServerConfig {
   clientDir?: string;
   /** The game's prepared assets (`public/`, with `assets/img`…), read only in 4.2.1; default the engine's `public/`. */
   publicDir?: string;
+  /**
+   * The published builds (`/play/`) served without a game session (4.2.2, D42: the owner's choice per instance, off by
+   * default). Everything else of the game's origin stays behind the session.
+   */
+  publicBuilds?: boolean;
 }
 
 /** The secrets, by name; each from `<NAME>_FILE` or `<NAME>` in the environment. */
@@ -150,6 +155,7 @@ export function loadConfig(file: string, text?: string): StudioServerConfig {
     'worker',
     'clientDir',
     'publicDir',
+    'publicBuilds',
   ]);
   for (const k of Object.keys(raw)) if (!known.has(k)) throw new ConfigError(`${file}: unknown key "${k}"`);
   if (!isUrl(raw.publicUrl)) throw new ConfigError(`${file}: publicUrl must be an http(s) URL`);
@@ -170,6 +176,8 @@ export function loadConfig(file: string, text?: string): StudioServerConfig {
   if (blobs.kind === 'fs' && typeof blobs.dir !== 'string') throw new ConfigError(`${file}: blobs.dir is required`);
   if (blobs.kind === 's3' && (typeof blobs.host !== 'string' || typeof blobs.bucket !== 'string'))
     throw new ConfigError(`${file}: blobs.host and blobs.bucket are required`);
+  if (raw.publicBuilds !== undefined && typeof raw.publicBuilds !== 'boolean')
+    throw new ConfigError(`${file}: publicBuilds is true or false`);
   const trust = raw.trustProxy ?? [];
   if (!Array.isArray(trust) || !trust.every((t) => typeof t === 'string'))
     throw new ConfigError(`${file}: trustProxy is a list of addresses or networks`);
@@ -215,5 +223,6 @@ export function loadConfig(file: string, text?: string): StudioServerConfig {
     blobs,
     clientDir: raw.clientDir as string | undefined,
     publicDir: raw.publicDir as string | undefined,
+    publicBuilds: raw.publicBuilds === true,
   };
 }

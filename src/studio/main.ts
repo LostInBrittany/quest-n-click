@@ -19,6 +19,7 @@ import { StoryboardTab } from './storyboard';
 import { download, h, toast } from './ui';
 import { must } from '../engine/core/must';
 import { apiUrl, goLogin, hosting, loginHeld, studioFetch } from './api-base';
+import { buildsPanel } from './builds-panel';
 import { gameLink } from './game-origin';
 import { gateScreen, hostedStudio, type Me, whoAmI } from './hosted';
 
@@ -373,8 +374,10 @@ async function start() {
     h('main', null, ...Object.values(panes)),
     assistant.el,
   );
-  if (shared) {
+  if (shared && me) {
     check.follow(shared.head, shared.onHead);
+    // The published builds (4.2.2): beside the game in the Play tab.
+    play.el.querySelector('.playside')?.append(buildsPanel({ owner: me.role === 'owner' }));
     const frame = rooms.el.querySelector<HTMLIFrameElement>('iframe.engine');
     rooms.el.querySelector('.stage .bar')?.append(shared.roomChip, ...(frame ? [shared.previewLabel(frame)] : []));
     rooms.el.querySelector('select[aria-label="Room"]')?.addEventListener('change', () => shared.roomShown());
