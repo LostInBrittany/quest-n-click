@@ -260,7 +260,7 @@ describe('a shared Studio', () => {
 
   it('lets a reviewer comment, never write the game; the notes come in by an owner (H2)', async () => {
     const r = await as('ana', 'POST', '/comments', { anchor: 'start', text: 'The light is lovely' });
-    expect(r.status).toBe(200);
+    expect(r.status).toBe(201);
     const c = (await r.json()) as { id: string; author: string; orphan: boolean };
     expect(c).toMatchObject({ author: 'Ana', orphan: false });
     expect((await as('ana', 'PUT', `/comments/${c.id}`, { text: 'The light is lovely here' })).status).toBe(200);

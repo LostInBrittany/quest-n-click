@@ -203,7 +203,8 @@ In the Notes tab of a shared Studio, a member comments on what the game names (a
 rule's id, a storyboard panel), or on the game itself. A comment keeps the revision it was written at; replies make a
 thread, resolved or opened again as one. Reviewers comment too: comments are kept by the Studio (in its database, in
 the backup), never in a game file, so no game file is written for them. A comment whose anchor the game no longer
-names is said "orphan", never attached elsewhere. Its author alone changes its text; a reviewer resolves their own
+names (its rooms, rules, scripts, entities, objectives and checkpoints, the storyboard's boards and panels) is
+said "orphan", never attached elsewhere; a line's id is not an anchor. Its author alone changes its text; a reviewer resolves their own
 threads, a dev any. An owner brings the notes of `notes.json` in (each once, its `about` the anchor). Routes: GET/POST
 `/api/comments`, PUT `/api/comments/<id>`, POST `/api/comments/import-notes`.
 

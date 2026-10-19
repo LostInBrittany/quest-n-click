@@ -4,6 +4,7 @@
 // The notes of `notes.json` come in as comments (an owner's import, each note once).
 import { randomUUID } from 'node:crypto';
 import type { SqlDb } from '../../../bridge/src/store-sql';
+import type { GameIR } from '../../../src/engine/core/ir';
 import type { Note } from '../../../tools/studio/types';
 import { StudioError } from '../ops/errors';
 
@@ -38,6 +39,30 @@ export interface CommentsOptions {
 
 const ANCHOR = /^[\w.:@-]{0,200}$/;
 const MAX_TEXT = 4_000;
+/** How many comments one member keeps open at most, and how many a list gives (the newest). */
+const MAX_PER_AUTHOR = 2_000;
+const MAX_LIST = 2_000;
+
+/**
+ * What the game names now, as anchors: its rooms, rules (topics, listeners…), scripts, entities (`<room>.<id>`,
+ * `item:<id>`, `char:<id>`), objectives and checkpoints, from the IR itself (an id made by code included), and the
+ * storyboard's boards and panels. A line's id is not an anchor (said in the docs).
+ */
+export function anchorsOf(ir: GameIR, storyboard: unknown): Set<string> {
+  const set = new Set<string>(Object.keys(ir.provenance));
+  for (const r of ir.rooms) set.add(r.id);
+  for (const r of ir.rules) set.add(r.id);
+  for (const s of ir.scripts) set.add(s.id);
+  for (const e of ir.entities) set.add(e.key);
+  for (const o of ir.objectives) set.add(`objective:${o.id}`);
+  for (const id of Object.keys(ir.world.checkpoints)) set.add(`checkpoint:${id}`);
+  const sb = storyboard as { boards?: { id?: unknown; panels?: { id?: unknown }[] }[] } | null;
+  for (const b of sb?.boards ?? []) {
+    if (typeof b.id === 'string') set.add(b.id);
+    for (const p of b.panels ?? []) if (typeof p.id === 'string') set.add(p.id);
+  }
+  return set;
+}
 
 export class Comments {
   private now: () => number;
@@ -64,10 +89,15 @@ export class Comments {
 
   /** Every comment (or those of one anchor), oldest first, each said orphan or not. */
   async list(anchor?: string): Promise<Comment[]> {
-    const rows =
+    // The newest MAX_LIST, given oldest first.
+    const rows = (
       anchor === undefined
-        ? await this.o.db.all('SELECT * FROM studio_comments ORDER BY created_at, id')
-        : await this.o.db.all('SELECT * FROM studio_comments WHERE anchor = $1 ORDER BY created_at, id', [anchor]);
+        ? await this.o.db.all('SELECT * FROM studio_comments ORDER BY created_at DESC, id DESC LIMIT $1', [MAX_LIST])
+        : await this.o.db.all(
+            'SELECT * FROM studio_comments WHERE anchor = $1 ORDER BY created_at DESC, id DESC LIMIT $2',
+            [anchor, MAX_LIST],
+          )
+    ).reverse();
     const known = await this.o.known();
     return rows.map((r) => this.shape(r, known));
   }
@@ -92,6 +122,12 @@ export class Comments {
     }
     if (!ANCHOR.test(anchor))
       throw new StudioError('an anchor is a stable id of the game (letters, digits, . : @ - _)');
+    const [n] = await this.o.db.all(
+      'SELECT COUNT(*) AS n FROM studio_comments WHERE author_id = $1 AND resolved = 0',
+      [who.id],
+    );
+    if (Number(n?.n ?? 0) >= MAX_PER_AUTHOR)
+      throw new StudioError(`${MAX_PER_AUTHOR} open comments at most each: resolve some first`, 429);
     const id = `c${randomUUID().replace(/-/g, '').slice(0, 16)}`;
     await this.o.db.run(
       'INSERT INTO studio_comments (id, anchor, rev, parent, author_id, author, text, resolved, source, created_at) VALUES ($1, $2, $3, $4, $5, $6, $7, 0, NULL, $8)',
@@ -119,9 +155,10 @@ export class Comments {
     }
     if (e.resolved !== undefined) {
       if (typeof e.resolved !== 'boolean') throw new StudioError('`resolved` is true or false');
-      if (!mine && !who.canResolve) throw new StudioError('a reviewer resolves their own threads', 403);
-      // Resolved as a thread: its first comment carries it.
+      // Resolved as a thread: its first comment carries it, and the thread's author is who it belongs to.
       const head = r.parent === null || r.parent === undefined ? id : String(r.parent);
+      const owner = head === id ? String(r.author_id) : String((await this.get(head)).author_id);
+      if (owner !== who.id && !who.canResolve) throw new StudioError('a reviewer resolves their own threads', 403);
       await this.o.db.run('UPDATE studio_comments SET resolved = $1 WHERE id = $2', [e.resolved ? 1 : 0, head]);
     }
     return (await this.list(String(r.anchor))).find((x) => x.id === id)!;

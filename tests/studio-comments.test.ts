@@ -7,7 +7,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { migrate } from '../bridge/src/migrations';
 import type { SqlDb } from '../bridge/src/store-sql';
 import { openSqliteDb } from '../bridge/src/store-sqlite';
-import { Comments } from '../studio-server/src/server/comments';
+import { anchorsOf, Comments } from '../studio-server/src/server/comments';
 
 const ROOT = join(import.meta.dirname, '..');
 let tmp: string, db: SqlDb;
@@ -28,6 +28,36 @@ afterAll(async () => {
   rmSync(tmp, { recursive: true, force: true });
 });
 const make = () => new Comments({ db, known: async () => known, revision: async () => rev, now: () => ++now });
+
+describe('what a comment can be anchored on', () => {
+  it("is every id of the game's IR, whether written or made by code, and the storyboard's boards and panels", () => {
+    const ir = {
+      provenance: { 'hall.r1': { file: 'rooms/hall.ts', line: 3 } },
+      rooms: [{ id: 'hall' }],
+      rules: [{ id: 'hall.r1' }, { id: 'hall.made-by-code' }],
+      scripts: [{ id: 'intro' }],
+      entities: [{ key: 'hall.door' }, { key: 'item:key' }, { key: 'char:lou' }],
+      objectives: [{ id: 'out' }],
+      world: { checkpoints: { c1: {} } },
+    } as never;
+    expect([...anchorsOf(ir, { boards: [{ id: 'b1', panels: [{ id: 'p1' }, { id: 3 }] }] })].sort()).toEqual(
+      [
+        'b1',
+        'char:lou',
+        'checkpoint:c1',
+        'hall',
+        'hall.door',
+        'hall.made-by-code',
+        'hall.r1',
+        'intro',
+        'item:key',
+        'objective:out',
+        'p1',
+      ].sort(),
+    );
+    expect(anchorsOf(ir, null).has('hall')).toBe(true);
+  });
+});
 
 describe('comments', () => {
   it('are anchored on a stable id and their revision; a reply joins its thread, on its anchor', async () => {
@@ -92,6 +122,12 @@ describe('comments', () => {
     });
     await expect(c.update('c-none', { resolved: true }, { id: ana.id, canResolve: true })).rejects.toMatchObject({
       status: 404,
+    });
+    // A reviewer who replied to another's thread does not resolve it through their reply.
+    const theirs = await c.add({ anchor: 'hall', text: 'by Léa again' }, lea);
+    const reply = await c.add({ text: 'a reviewer answers', parent: theirs.id }, ana);
+    await expect(c.update(reply.id, { resolved: true }, { id: ana.id, canResolve: false })).rejects.toMatchObject({
+      status: 403,
     });
   });
 

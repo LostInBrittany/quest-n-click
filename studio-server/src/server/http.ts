@@ -367,7 +367,7 @@ export function studioServer(o: StudioServerOptions): StudioHttpServer {
           return send(res, 200, { comments: await o.comments.list(anchor ?? undefined) });
         }
         if (req.method === 'POST' && sub === '/comments')
-          return send(res, 200, await o.comments.add((await readJson(req)) as Record<string, unknown>, who));
+          return send(res, 201, await o.comments.add((await readJson(req)) as Record<string, unknown>, who));
         if (req.method === 'POST' && sub === '/comments/import-notes') {
           if (principal) o.auth!.gate.require(principal, 'owner');
           return send(res, 200, await o.comments.importNotes(o.studio.getNotes().entries, who));

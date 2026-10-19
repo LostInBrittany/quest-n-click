@@ -209,7 +209,9 @@ Dans l'onglet Notes d'un Studio partagé, un membre commente ce que le jeu nomme
 l'id d'une règle, une case du storyboard), ou le jeu lui-même. Un commentaire garde la révision où il a été écrit ;
 les réponses font un fil, résolu ou rouvert d'un bloc. Les reviewers commentent aussi : les commentaires sont gardés
 par le Studio (dans sa base, dans la sauvegarde), jamais dans un fichier du jeu, donc aucun fichier du jeu n'est écrit
-pour eux. Un commentaire dont l'ancre n'est plus nommée par le jeu est dit « orphan », jamais rattaché ailleurs. Seul
+pour eux. Un commentaire dont l'ancre n'est plus nommée par le jeu (ses salles, règles, scripts, entités, objectifs et points de
+passage, les planches et cases du storyboard) est dit « orphan », jamais rattaché ailleurs ; l'id d'une ligne n'est pas
+une ancre. Seul
 son auteur change son texte ; un reviewer résout ses propres fils, un dev n'importe lequel. Un owner fait entrer les
 notes de `notes.json` (chacune une fois, son `about` pour ancre). Routes : GET/POST `/api/comments`, PUT
 `/api/comments/<id>`, POST `/api/comments/import-notes`.
