@@ -38,6 +38,19 @@ describe('the diff of one file', () => {
     );
   });
 
+  it('tells an id written twice in a file by occurrence, and says a change outside every id as a file that changed', () => {
+    const a = `export default { variants: [{ id: 'daily', w: 1 }], categories: [{ id: 'daily', rank: 1 }] };`;
+    const b = `export default { variants: [{ id: 'daily', w: 1 }], categories: [{ id: 'daily', rank: 2 }] };`;
+    expect(diffFile('game.ts', text(a), text(b)).ids!.changed).toEqual([{ id: 'daily#2', fields: ['rank'] }]);
+    expect(diffFile('game.ts', text(`export default { title: 'A' };`), text(`export default { title: 'B' };`))).toEqual(
+      {
+        path: 'game.ts',
+        change: 'changed',
+        opaque: true,
+      },
+    );
+  });
+
   it('names the value paths a JSON added, removed and changed', () => {
     const a = JSON.stringify({ walk: [1, 2], props: { lamp: { x: 1 } }, empty: {} });
     const b = JSON.stringify({ walk: [1, 3, 4], props: { lamp: { x: 2 }, desk: { x: 0 } }, list: [] });
@@ -97,7 +110,8 @@ describe('the diff between two revisions', () => {
         undo: false,
       },
     );
-    const layout = JSON.parse(readFileSync(join(studio.gameDir, 'layout', 'start.json'), 'utf8'));
+    // The game's private files are a reviewer's to read nowhere: left out.
+    await studio.writeFiles('w', [{ path: 'private/ending.md', after: 'sealed' }], { undo: false, guard: false });
     await studio.writeFiles('w', [{ path: 'notes.md', after: 'temporary' }], { undo: false, guard: false });
     await studio.writeFiles('w', [{ path: 'notes.md', after: null }], { undo: false, guard: false });
     const to = await journal.revision();
@@ -109,7 +123,6 @@ describe('the diff between two revisions', () => {
         ids: { added: [], removed: [], changed: [{ id: 'start.take-bucket', fields: ['do'] }] },
       },
     ]);
-    expect(layout).toBeTruthy();
     await expect(studio.diff(to, from)).rejects.toMatchObject({ status: 400 });
     await expect(studio.diff(0, to + 5)).rejects.toMatchObject({ status: 404 });
     await expect(studio.diff(0, 3_000)).rejects.toMatchObject({ status: 400 });

@@ -63,13 +63,25 @@ describe('the changes between revisions', () => {
     expect(text).toContain('file changed');
   });
 
-  it('says when nothing changed, and a refusal', async () => {
+  it('says when nothing changed, a list cut, and a refusal', async () => {
     const el = diffPanel();
-    answer = { status: 200, body: { files: [] } };
+    const [f, t] = el.querySelectorAll('input');
+    f!.value = '1';
+    t!.value = '2';
+    answer = { status: 200, body: { files: [], cut: true } };
     el.querySelector('button')!.click();
     await flush();
     await flush();
     expect(el.textContent).toContain('Nothing changed between them.');
+    expect(el.textContent).toContain('… and more files (cut at 500)');
+    // What is not a revision is said before anything is asked.
+    const [a] = el.querySelectorAll('input');
+    a!.value = 'soon';
+    el.querySelector('button')!.click();
+    await flush();
+    expect(el.querySelector('.error')!.textContent).toBe('two revisions, as numbers');
+    a!.value = '1';
+    el.querySelectorAll('input')[1]!.value = '9';
     answer = { status: 404, body: { error: 'no revision 9 yet' } };
     el.querySelector('button')!.click();
     await flush();

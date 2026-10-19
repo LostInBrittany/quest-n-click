@@ -36,11 +36,14 @@ export function diffPanel(): HTMLElement {
   go.onclick = async () => {
     out.replaceChildren(h('p', { class: 'muted' }, 'Reading…'));
     try {
-      const r = await studioFetch(`diff/${Number(from.value)}..${Number(to.value)}`);
-      const d = (await r.json()) as { files?: FileDiff[]; error?: string };
+      const [a, b] = [from.value.trim(), to.value.trim()];
+      if (!/^\d+$/.test(a) || !/^\d+$/.test(b)) throw new Error('two revisions, as numbers');
+      const r = await studioFetch(`diff/${a}..${b}`);
+      const d = (await r.json()) as { files?: FileDiff[]; cut?: true; error?: string };
       if (!r.ok) throw new Error(d.error ?? `${r.status}`);
       out.replaceChildren(
         ...(d.files!.length ? d.files!.map(fileChange) : [h('p', { class: 'muted' }, 'Nothing changed between them.')]),
+        ...(d.cut ? [h('p', { class: 'muted' }, '… and more files (cut at 500)')] : []),
       );
     } catch (e) {
       out.replaceChildren(h('p', { class: 'error' }, (e as Error).message));
@@ -51,7 +54,11 @@ export function diffPanel(): HTMLElement {
     { class: 'panel diff-panel' },
     h('h3', null, 'Changes between revisions'),
     h('p', null, 'From ', from, ' to ', to, ' ', go),
-    h('p', { class: 'muted small' }, 'By what the game names. A build is a revision: compare two builds by theirs.'),
+    h(
+      'p',
+      { class: 'muted small' },
+      'By what the game names. A build is a revision: compare two builds by theirs. No before/after captures in 4.2.3.',
+    ),
     out,
   );
 }

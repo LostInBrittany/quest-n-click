@@ -57,7 +57,11 @@ export function idsOf(path: string, text: string): Map<string, Map<string, strin
   const visit = (n: ts.Node) => {
     if (ts.isObjectLiteralExpression(n)) {
       const id = idOf(n);
-      if (id && !out.has((id.initializer as ts.StringLiteralLike).text)) {
+      if (id) {
+        // An id written twice in one file (a variant and a category of the same name): the next ones by occurrence.
+        const text = (id.initializer as ts.StringLiteralLike).text;
+        let key = text;
+        for (let n = 2; out.has(key); n++) key = `${text}#${n}`;
         const fields = new Map<string, string>();
         for (const p of n.properties) {
           if (p === id) continue;
@@ -65,7 +69,7 @@ export function idsOf(path: string, text: string): Map<string, Map<string, strin
           // A field holding objects with ids of their own is compared through them, not as a block of text.
           fields.set(name, flat(p));
         }
-        out.set((id.initializer as ts.StringLiteralLike).text, fields);
+        out.set(key, fields);
       }
     }
     ts.forEachChild(n, visit);
@@ -124,6 +128,11 @@ export function diffFile(path: string, a: Side, b: Side): FileDiff {
       const sameFields = (x: Map<string, string>, y: Map<string, string>) =>
         x.size === y.size && [...x].every(([k, v]) => y.get(k) === v);
       const c = compare(a, b, sameFields);
+      // Nothing an id names changed, yet the text did: said as a file that changed.
+      if (!c.added.length && !c.removed.length && !c.changed.length && before !== now) {
+        d.opaque = true;
+        return d;
+      }
       d.ids = {
         added: cut(c.added, d),
         removed: cut(c.removed, d),
