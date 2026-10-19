@@ -27,11 +27,12 @@ if (kind === 'preview') {
 } else if (kind === 'prepare') {
   const { prepareIn } = await import('./prepare');
   const mod = (await importFresh(join(dir, 'index.ts'))) as GameModule;
-  const p = JSON.parse(params ?? '{}') as { game?: unknown; systemPath?: unknown };
+  const p = JSON.parse(params ?? '{}') as { game?: unknown; systemPath?: unknown; pythonPath?: unknown };
   if (typeof p.game !== 'string' || !/^[\w-]{1,64}$/.test(p.game)) process.exit(2);
   const path = typeof p.systemPath === 'string' && p.systemPath ? p.systemPath : undefined;
+  const python = typeof p.pythonPath === 'string' && p.pythonPath ? p.pythonPath : undefined;
   try {
-    writeFileSync(outFile, JSON.stringify({ data: await prepareIn(dir, p.game, mod, path) }));
+    writeFileSync(outFile, JSON.stringify({ data: await prepareIn(dir, p.game, mod, path, python) }));
   } catch (e) {
     writeFileSync(outFile, JSON.stringify({ error: String((e as Error).message).slice(0, 2_000) }));
   }

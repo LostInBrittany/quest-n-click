@@ -16,6 +16,7 @@ import { createServer, type IncomingMessage, type ServerResponse } from 'node:ht
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { type Job, publicKeyOf, verifyJob } from './job';
+import { pythonPathOf } from './prepare';
 import { previewFiles } from './preview-build';
 import { unpackSnapshot } from './snapshot';
 
@@ -155,8 +156,12 @@ export function createWorker(o: WorkerOptions) {
       unpackSnapshot(bytes, dir);
       const timeoutMs = Math.min(Number(job.params.timeoutMs) || DEFAULT_TIMEOUT_MS, MAX_TIMEOUT_MS);
       const t0 = Date.now();
-      // A `prepare` finds python3 and ffmpeg on the worker's own PATH (not a secret; the rest stays empty).
-      const params = job.kind === 'prepare' ? { ...job.params, systemPath: process.env.PATH ?? '' } : job.params;
+      // A `prepare` finds python3 and ffmpeg on the worker's own PATH, and the packages its build hook installed (neither
+      // is a secret; the rest stays empty).
+      const params =
+        job.kind === 'prepare'
+          ? { ...job.params, systemPath: process.env.PATH ?? '', pythonPath: pythonPathOf(process.env) }
+          : job.params;
       const r = await runChild(dir, timeoutMs, job.kind, undefined, params);
       if (r.pid && (await survivors(r.pid))) {
         recycle = true;
