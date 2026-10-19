@@ -194,6 +194,37 @@ son contenu est sans danger. Le code d'un build ne change jamais ; ses images et
 l'instance, servis à côté tels qu'ils sont. Un build publié n'a pas de service worker (il ne s'installe pas pour jouer
 hors ligne) et ses sauvegardes ne sont pas encore distinguées par build.
 
+## Sauvegarde et restauration
+
+- **Le journal expédié** : chaque opération confirmée est copiée dans le bucket, dans l'ordre, en segment immuable
+  (`journal/<époque>/<ligne>/<rev>.json` ; les contenus sont déjà des blobs ; un échec est retenté sous 30 s).
+  `/readyz` donne `rpoMs`, l'âge de la plus ancienne opération pas encore expédiée (0 quand tout l'est) : la cible est
+  1 min (D42), mesurée, jamais affirmée. La ligne vaut `0`, puis une nouvelle après chaque restauration : les
+  révisions qu'une instance restaurée réécrit n'écrasent jamais les segments de la chronologie qu'elle a quittée.
+- **Une sauvegarde** : `npm run studio-server -- backup <fichier> --config <fichier>` écrit les tables du projet en un
+  instantané (les membres, le journal, la tête, les prévisualisations, les builds et les ensembles préparés ; ni les
+  sessions ni les baux : une restauration déconnecte tout le monde ; seulement les opérations confirmées), avec les
+  blobs qu'elles nomment et un condensé. Quotidienne (D42), gardée hors de l'instance. Une sauvegarde est une entrée
+  de confiance, comme les identifiants de la base : elle peut ajouter des propriétaires. Son condensé dit qu'elle est
+  entière, pas qui l'a faite ; gardez-la là où seuls les opérateurs écrivent.
+- **Une restauration** : une instance hébergée seulement, dans une base vide (un nouvel add-on Postgres, le même
+  bucket) : `npm run studio-server -- restore <fichier> --replay --config <fichier>` vérifie le condensé, les tables et
+  les colonnes, et que chaque blob de la tête et du journal est dans le bucket (une prévisualisation, un build ou un
+  ensemble préparé dont les blobs ont été ramassés depuis est laissé de côté, et compté dans `dropped`), écrit les
+  lignes, puis rejoue le journal expédié depuis la sauvegarde. Chaque opération rejouée doit continuer la tête (sa
+  révision, le contenu précédent de chaque fichier, ses blobs) ; le rejeu s'arrête à la première qui ne le fait pas
+  (`stopped` : `gap`, `not-the-head`, `blob-missing`…). S'il échoue en cours de route, le serveur refuse de démarrer
+  jusqu'à ce que `npm run studio-server -- replay --config <fichier>` le reprenne. Démarrez le serveur : le dossier est
+  refait depuis la tête. Les opérations rejouées ne gardent pas leur réponse : un client qui en retente une reçoit
+  `null`. Faites une nouvelle sauvegarde après une restauration : les suivantes rejouent sur la nouvelle ligne.
+- **L'exercice** : sur une instance de test, sauvegardez, écrivez deux modifications, attendez `rpoMs` à 0, supprimez
+  la base, restaurez avec `--replay`, démarrez, et vérifiez que la tête est la dernière modification.
+- **Le ramassage** : `npm run studio-server -- gc --config <fichier>` liste les blobs qu'aucune ligne ne nomme (plus
+  vieux d'un jour) et le staging de l'application de traitement de plus d'une heure ; `--delete` les supprime. Un blob
+  stocké à nouveau reçoit une nouvelle date : une écriture qui nomme un vieux blob est couverte par le jour de grâce.
+  Les blobs de la tête et du journal ne sont jamais ramassés (le journal garde chaque opération) ; une sauvegarde plus
+  ancienne restaurée après un ramassage ne perd que les prévisualisations, builds et ensembles préparés ramassés.
+
 ## Travailler à plusieurs
 
 - **Les pans.** Chaque fichier du jeu appartient à un pan : une salle (son code et son layout), une langue, l'histoire,

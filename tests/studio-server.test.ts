@@ -12,6 +12,9 @@ import { createStudio, importInChild } from '../studio-server/src/ops/core';
 import { fsBlobStore } from '../studio-server/src/ops/blobs';
 import { sha256 } from '../studio-server/src/ops/durable';
 import { Journal } from '../studio-server/src/ops/journal';
+import { migrate } from '../bridge/src/migrations';
+import { backupOf, checkBackup, restoreInto } from '../studio-server/src/ops/backup';
+import { finishRestore, replaySegments, Shipper } from '../studio-server/src/ops/ship';
 import { ConfigError, loadConfig, takeSecrets } from '../studio-server/src/server/config';
 import { studioServer } from '../studio-server/src/server/http';
 import { openPostgresDb } from '../studio-server/src/server/postgres';
@@ -395,6 +398,50 @@ describe.runIf(PG && S3URL)('hosted: Postgres and S3', () => {
     await new Promise((ok) => setTimeout(ok, 2100));
     expect((await fetch(short)).status).toBe(403);
   }, 30_000);
+
+  it('backs up, ships the journal to the bucket, restores and replays, on Postgres (4.2.2)', async () => {
+    const db = await openPostgresDb(PG!);
+    await db.exec('DROP SCHEMA public CASCADE; CREATE SCHEMA public');
+    const game = join(tmp, 'backup-game');
+    cpSync(join(ROOT, 'games', '_template'), game, { recursive: true });
+    const c = s3();
+    const blobs = s3BlobStore(c);
+    const j = await Journal.open({ db, blobs, gameDir: game, hosted: true });
+    const write = (after: string) =>
+      j.apply({ author: 'lea', what: 'w', effects: [{ path: 'notes.json', after }], respond: () => 0 });
+    await write('{"entries":[1]}');
+    const prefix = `test-ship-${Date.now()}/`;
+    const segments = {
+      put: (k: string, b: Buffer) => c.put(prefix + k, b),
+      get: (k: string) => c.get(prefix + k),
+      list: async function* (p: string) {
+        for await (const o of c.list(prefix + p)) yield { key: o.key.slice(prefix.length) };
+      },
+    };
+    const ship = new Shipper({ db, segments });
+    await ship.ship();
+    const b = checkBackup(JSON.parse(JSON.stringify(await backupOf(db))));
+    await write('{"entries":[2]}');
+    await ship.ship();
+    expect(await ship.rpoMs()).toBe(0);
+    const last = await j.revision();
+    await j.close();
+    // The database is lost: a new one, restored, then the journal shipped since (closing the journal ended its pool).
+    const db2 = await openPostgresDb(PG!);
+    await db2.exec('DROP SCHEMA public CASCADE; CREATE SCHEMA public');
+    await migrate(db2, { dir: new URL('../studio-server/migrations/', import.meta.url) });
+    await restoreInto(db2, blobs, b);
+    expect(await replaySegments(db2, segments, blobs)).toEqual({ revision: last, stopped: undefined });
+    await finishRestore(db2);
+    const [f] = await db2.all("SELECT blob FROM studio_files WHERE path = 'notes.json'");
+    expect((await blobs.get(String(f!.blob))).toString()).toBe('{"entries":[2]}');
+    // The bucket lists its blobs, as the collection reads them.
+    let seen = 0;
+    for await (const x of blobs.list!()) if (x.hash === String(f!.blob)) seen++;
+    expect(seen).toBe(1);
+    for await (const o of c.list(prefix)) await c.delete(o.key);
+    await db2.close();
+  }, 60_000);
 
   it('a hosted journal rebuilds a lost folder from the database and the blobs', async () => {
     const db = await openPostgresDb(PG!);
