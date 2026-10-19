@@ -1,8 +1,8 @@
 // The asset tools on the processing worker (4.2.2 PR 6b, D43, docs/dev/QUALIF-4.2.2-ASSETS.md): `prepare` of the game
 // in `dir` (a version 2 snapshot: its sources, data, art and sounds), run in the worker's child as `npm run assets`
 // runs it: the references the content cites (`tools/refs.ts`), then `tools/assets.py`, with the Python packages the
-// worker's build hook installed (`.python/`, PYTHONPATH) and the worker's PATH (python3, ffmpeg), nothing else. What comes back: the
-// prepared files (`assets/img|audio|video/…`, base64 by path) and the game's new `assets.gen.json`.
+// worker's build hook installed (PYTHONPATH: `pythonPathOf`) and the worker's PATH (python3, ffmpeg), nothing else.
+// What comes back: the prepared files (`assets/img|audio|video/…`, base64 by path) and the game's new `assets.gen.json`.
 import { spawnSync } from 'node:child_process';
 import { existsSync, lstatSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join, relative, resolve, sep } from 'node:path';
@@ -42,7 +42,20 @@ export function preparedShape(v: unknown): Prepared | { refused: string } {
   };
 }
 
-export async function prepareIn(dir: string, game: string, mod: GameModule, path?: string): Promise<Prepared> {
+/**
+ * Where the worker's build hook installed the asset tools' Python packages (4.2.3 PR 0, H7): `WORKER_PYTHON_PATH`, else
+ * `.python` in the worker's own folder, whether it runs from the repository or from the release's archives.
+ */
+export const pythonPathOf = (env: NodeJS.ProcessEnv, cwd = process.cwd()) =>
+  resolve(cwd, env.WORKER_PYTHON_PATH || '.python');
+
+export async function prepareIn(
+  dir: string,
+  game: string,
+  mod: GameModule,
+  path?: string,
+  pythonPath = join(ENGINE, '.python'),
+): Promise<Prepared> {
   // Sources named by `sources.json` live where a local project keeps them (outside the art and sounds the snapshot
   // carries): a hosted run would not find them, and would prepare the game without them.
   if (existsSync(join(dir, 'sources.json')))
@@ -65,7 +78,7 @@ export async function prepareIn(dir: string, game: string, mod: GameModule, path
       WEB_SCUMM_PROJECT: work,
       GAME: game,
       GAME_DIR: dir,
-      PYTHONPATH: join(ENGINE, '.python'),
+      PYTHONPATH: pythonPath,
     },
     encoding: 'utf8',
     maxBuffer: 4 * 1024 * 1024,

@@ -6,7 +6,7 @@ import { mkdirSync, mkdtempSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
 import { JOBS, runChild } from './main';
 import { PreviewBuildFailed, type PreviewParams, previewFiles } from './preview-build';
-import { type Prepared, preparedShape } from './prepare';
+import { type Prepared, preparedShape, pythonPathOf } from './prepare';
 import { unpackSnapshot } from './snapshot';
 import type { ValidateResult } from '../../../tools/studio/types';
 
@@ -77,7 +77,11 @@ export async function localPrepare(snapshot: Buffer, game: string, timeoutMs = 1
   const dir = mkdtempSync(join(JOBS, 'prepare-'));
   try {
     unpackSnapshot(snapshot, dir);
-    const r = await runChild(dir, timeoutMs, 'prepare', undefined, { game, systemPath: process.env.PATH ?? '' });
+    const r = await runChild(dir, timeoutMs, 'prepare', undefined, {
+      game,
+      systemPath: process.env.PATH ?? '',
+      pythonPath: pythonPathOf(process.env),
+    });
     if (r.timedOut) throw new Error(`the asset tools did not finish within ${timeoutMs} ms`);
     const v = JSON.parse(r.out) as { data?: unknown; error?: string };
     if (!v.data) throw new Error(v.error ?? 'prepare gave no answer');
