@@ -654,7 +654,11 @@ jobs:
         with:
           name: candidate-pack
           path: candidate-pack
-      - run: for i in 1 2 3; do (node scripts/studio-install-smoke.mjs --tarballs=candidate-pack) && break; [ "$i" = 3 ] && exit 1; echo "retry $i"; sleep 15; done
+      # CPython 3.13, the worker's Python lock's (4.2.3 PR 0): the smoke installs it as the worker's hook does.
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7
+        with:
+          python-version: '3.13'
+      - run: for i in 1 2 3; do (node scripts/studio-install-smoke.mjs --tarballs=candidate-pack --python) && break; [ "$i" = 3 ] && exit 1; echo "retry $i"; sleep 15; done
         timeout-minutes: 15
   # The terminal gate: every job above `success` (a skipped or cancelled job is red), then the manifest of this run.
   candidate-gate:

@@ -147,9 +147,12 @@ npx web-scumm-studio-server serve --config studio.config.json
 npx web-scumm-studio-worker          # sur la machine du worker, avec WORKER_PUBLIC_KEY et WORKER_INSTANCE
 ```
 
-En 4.2.2, un worker installé depuis les archives ne peut pas lancer `prepare` : le verrou des outils d'assets
-(`ops/studio/worker-requirements.lock`) n'est pas dans les archives, et le worker cherche leurs paquets à côté du
-moteur. Déployez le worker depuis le dépôt (ci-dessus) pour « Prepare assets » ; la 4.2.3 livre le verrou.
+Un worker installé depuis les archives prépare aussi les assets (depuis la 4.2.3) : son hook de build installe le
+verrou que porte le paquet du moteur, depuis le dossier du worker, où le worker cherche les paquets
+(`WORKER_PYTHON_PATH` pour les mettre ailleurs) : `CC_POST_BUILD_HOOK=python3 -m pip install --target .python
+--require-hashes --only-binary=:all: -r node_modules/web-scumm/ops/studio/worker-requirements.lock`. Le verrou vaut pour
+CPython 3.13 sous Linux x86_64 (le runtime natif de Clever Cloud) ; une autre plateforme le refait (son en-tête dit
+comment). En 4.2.2, il fallait un worker déployé depuis le dépôt.
 
 L'archive du moteur apporte Vite et tsx, dont l'application de traitement a besoin pour exécuter le code du jeu et
 construire ses prévisualisations (le Studio lui-même ne fait plus tourner Vite, depuis 4.2.2). Mettez dans `publicDir` les

@@ -13,7 +13,7 @@ import { fsBlobStore } from '../studio-server/src/ops/blobs';
 import { PreparedAssets } from '../studio-server/src/server/prepared';
 import { assetDirs, findAsset } from '../studio-server/src/server/previews';
 import { localPrepare } from '../studio-server/src/worker/local';
-import { preparedShape } from '../studio-server/src/worker/prepare';
+import { preparedShape, pythonPathOf } from '../studio-server/src/worker/prepare';
 import { filesOf, packAssets, packSnapshot, unpackSnapshot } from '../studio-server/src/worker/snapshot';
 
 const ROOT = join(import.meta.dirname, '..');
@@ -134,6 +134,15 @@ describe('the prepared assets', () => {
     const first = q.prepare('Léa');
     await expect(q.prepare('Tom')).rejects.toMatchObject({ status: 429 });
     await first;
+  });
+});
+
+describe("the asset tools' Python packages (4.2.3 PR 0, H7)", () => {
+  it("are looked for in the worker's own folder, or where WORKER_PYTHON_PATH says", () => {
+    expect(pythonPathOf({}, '/srv/app')).toBe(join('/srv/app', '.python'));
+    expect(pythonPathOf({ WORKER_PYTHON_PATH: '' }, '/srv/app')).toBe(join('/srv/app', '.python'));
+    expect(pythonPathOf({ WORKER_PYTHON_PATH: 'py' }, '/srv/app')).toBe(join('/srv/app', 'py'));
+    expect(pythonPathOf({ WORKER_PYTHON_PATH: '/opt/py' }, '/srv/app')).toBe('/opt/py');
   });
 });
 
