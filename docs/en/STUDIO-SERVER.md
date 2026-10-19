@@ -109,6 +109,9 @@ Clever, each can be a file instead: `STUDIO_SESSION_KEY_FILE`, and so on (mode 0
   server refuses to start without it.
 
 **The worker app's variables:** `CC_NODE_DEV_DEPENDENCIES=install`, `CC_RUN_COMMAND=npm run studio-worker`,
+`CC_POST_BUILD_HOOK=python3 -m pip install --target .python --require-hashes --only-binary=:all: -r
+ops/studio/worker-requirements.lock` (the asset tools' Python packages, every hash checked; measured in
+`docs/dev/QUALIF-4.2.2-ASSETS.md`),
 `WORKER_PUBLIC_KEY` (the content of `studio-worker.pub`), `WORKER_INSTANCE` (the same name as `worker.instance`).
 Give it a domain (`worker.url`).
 
