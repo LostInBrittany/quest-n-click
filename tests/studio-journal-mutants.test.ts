@@ -489,8 +489,11 @@ describe('the revision read (4.2.3, H10)', () => {
     expect((await at(j, 'a_b%.md', 'z', r1)).rev).toBeGreaterThan(r1);
     await write(j, 'b!x.md', 'b');
     expect((await refusal(at(j, 'b!x.md', 'z', r0))).body).toMatchObject({ before: null, now: 'b' });
-    await write(j, 'q"uote.md', 'q');
-    expect((await refusal(at(j, 'q"uote.md', 'z', r0))).body).toMatchObject({ before: null, now: 'q' });
+    // A name JSON escapes (a quote): not a file name Windows takes.
+    if (process.platform !== 'win32') {
+      await write(j, 'q"uote.md', 'q');
+      expect((await refusal(at(j, 'q"uote.md', 'z', r0))).body).toMatchObject({ before: null, now: 'q' });
+    }
     await j.close();
   });
 
