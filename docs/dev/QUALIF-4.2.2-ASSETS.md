@@ -42,16 +42,26 @@ Commande : `GAME=demo PYTHONPATH=<dossier> python3 tools/assets.py`.
 - **4,1 s** : 194 images traitées, 24 sons encodés (ffmpeg), 7,0 Mo d'assets préparés. Une exécution.
 - Relancé aussitôt : 0 image, 0 son retraités (l'incrémental tient).
 - Mémoire après : ≈ 400 Mo encore disponibles.
-- **Non mesuré** : la découpe de planches (`tools/cut-sheet.py`) ; un jeu plus gros ; la mémoire au plus haut
-  pendant le `prepare` (seulement après).
+- **Non mesuré** :
+  - la découpe de planches (`tools/cut-sheet.py`) ; un jeu plus gros ; la mémoire au plus haut pendant le `prepare`
+    (seulement après) ;
+  - la vidéo (libx264) et l'encodage `.ogg` (libvorbis) : le jeu d'exemple n'a ni vidéo ni son à réencoder en `.ogg` ;
+  - le hook lui-même pendant un build Clever (rien n'a été déployé) et l'installation sur le disque de l'app (mesurée
+    dans un tmpfs) : qu'il rejoue à chaque déploiement est attendu, pas mesuré, jusqu'au premier déploiement de la PR 6b
+    ou la passe `studio-assets-hosted`.
 
 ## 4. Conclusion
 
-**La qualification réussit** : sur le runtime natif, les dépendances s'installent par un hook de build, vérifiées, en
-quelques secondes, et un `prepare` complet tient en quelques secondes sur la plus petite taille.
+**La qualification réussit** : sur le runtime natif, les dépendances s'installent, vérifiées, en quelques secondes, et
+un `prepare` complet tient en quelques secondes sur 1 vCPU et ≈ 1 Go (la plus petite taille, d'après le spike S §1).
 
 - Le hook de l'application de traitement : `CC_POST_BUILD_HOOK=python3 -m pip install --target .python
-  --require-hashes --only-binary=:all: -r ops/studio/worker-requirements.lock` (un dossier de l'application : le disque
-  est éphémère, mais le hook rejoue à chaque déploiement).
-- La suite (D43) : `prepare` devient un job du worker en 4.2.2 (PR 6b), sous le bail exclusif `*`, ses sorties gardées
-  par le Studio ; la découpe de planches et les uploads de l'onglet Assets hébergé vont en 4.2.3.
+  --require-hashes --only-binary=:all: -r ops/studio/worker-requirements.lock`. `--target .python` plutôt que le
+  `--user` du plan : un dossier de l'application, à côté du code qui s'en sert, plutôt que `$HOME`. Le job qui lance
+  `tools/assets.py` met lui-même `PYTHONPATH=<dossier de l'application>/.python` (l'enfant du worker part d'un
+  environnement vide).
+- Le lock vaut pour CPython 3.13, Linux x86_64 : si le runtime passe à un autre Python ou une autre architecture, le
+  hook refuse d'installer (aucun hash ne correspond) ; on refait alors le lock.
+- La suite (D43, choix de l'assistant, écart au §2.6 qui mettait les deux en PR 6) : `prepare` devient un job du worker
+  en 4.2.2 (PR 6b), sous le bail exclusif `*`, ses sorties gardées par le Studio ; la découpe de planches et les
+  uploads de l'onglet Assets hébergé vont en 4.2.3.

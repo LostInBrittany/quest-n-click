@@ -113,8 +113,8 @@ Clever, chacun peut être un fichier : `STUDIO_SESSION_KEY_FILE`, etc. (mode 060
 **Les variables de l'application worker :** `CC_NODE_DEV_DEPENDENCIES=install`,
 `CC_RUN_COMMAND=npm run studio-worker`, `CC_POST_BUILD_HOOK=python3 -m pip install --target .python --require-hashes
 --only-binary=:all: -r ops/studio/worker-requirements.lock` (les paquets Python des outils d'assets, chaque hash
-vérifié ; mesuré dans `docs/dev/QUALIF-4.2.2-ASSETS.md`), `WORKER_PUBLIC_KEY` (le contenu de `studio-worker.pub`), `WORKER_INSTANCE` (le
-même nom que `worker.instance`). Donnez-lui un domaine (`worker.url`).
+vérifié ; mesuré dans `docs/dev/QUALIF-4.2.2-ASSETS.md`), `WORKER_PUBLIC_KEY` (le contenu de `studio-worker.pub`),
+`WORKER_INSTANCE` (le même nom que `worker.instance`). Donnez-lui un domaine (`worker.url`).
 
 **Déployez** les deux (`clever deploy`), puis importez le jeu une fois, et invitez le premier owner :
 
