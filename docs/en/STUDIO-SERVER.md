@@ -46,7 +46,16 @@ clever scale --min-instances 1 --max-instances 1 --app my-game-studio
 ```
 
 Create the bucket in Cellar (its console, or any S3 tool). Only the studio app is linked to the add-ons: **never link
-them to the worker.**
+them to the worker.** Both apps build from the repository's root: leave `APP_FOLDER` unset (an app that held another
+project may still have one: `clever env rm APP_FOLDER`).
+
+`clever deploy` and `clever ssh` act on an app linked in the folder you run them from (clever-tools 4 has no `--app`
+for `deploy`): link both once, under an alias, and keep the `.clever.json` this writes out of Git:
+
+```sh
+clever link <studio-app-id> --alias my-game-studio
+clever link <worker-app-id> --alias my-game-worker
+```
 
 **The job keys.** On your machine, in an empty folder kept out of Git:
 
@@ -74,6 +83,14 @@ mkdir -p ~/secrets/my-game && npm run studio-server -- worker-keys --out ~/secre
 The database and Cellar credentials arrive from the add-ons (`POSTGRESQL_ADDON_URI`, `CELLAR_ADDON_KEY_ID`,
 `CELLAR_ADDON_KEY_SECRET`). At start the server reads every secret and removes it from its environment. Outside
 Clever, each can be a file instead: `STUDIO_SESSION_KEY_FILE`, and so on (mode 0600).
+
+Set the secrets from their files, so that no value is typed or shown. A key's text begins with `-----BEGIN`, which
+`clever env set` reads as an option unless `--` comes first:
+
+```sh
+clever env set --alias my-game-studio -- STUDIO_WORKER_KEY "$(cat ~/secrets/my-game/studio-worker.key)"
+clever env set --alias my-game-worker -- WORKER_PUBLIC_KEY "$(cat ~/secrets/my-game/studio-worker.pub)"
+```
 
 **The configuration** (`ops/studio/studio.config.example.json`):
 
@@ -119,18 +136,24 @@ ops/studio/worker-requirements.lock` (the asset tools' Python packages, every ha
 `WORKER_PUBLIC_KEY` (the content of `studio-worker.pub`), `WORKER_INSTANCE` (the same name as `worker.instance`).
 Give it a domain (`worker.url`).
 
-**Deploy** both (`clever deploy`), then import the game once, and invite the first owner:
+**Deploy** both, the worker first (`clever deploy --alias my-game-worker`, then `--alias my-game-studio`), then
+import the game once, and invite the first owner:
 
 ```sh
-clever ssh --app my-game-studio
+clever ssh --alias my-game-studio
+cd "$APP_HOME"
 npm run studio-server -- import games/my-game
 npm run studio-server -- invite --email you@example.fr --role owner
 ```
 
-Whether the shell of `clever ssh` has the app's variables (here `STUDIO_CONFIG_JSON`) is checked by the
-`studio-hosted` pass; otherwise run both commands once from a machine with the same variables. The invitation
-prints a link: open it and log in with that verified email. `/readyz` answers 200 once the instance
-serves writes.
+The shell of `clever ssh` has the app's variables (`STUDIO_CONFIG_JSON`, the add-ons'; measured by the reference
+deployment), so neither command needs `--config`. `clever ssh --command '…'` runs one command without a session, but
+refuses while a second instance is listed (the old one of a deploy stays `STOPPING` for about two minutes): wait for
+it to go. The import sends every file to the bucket (242 s for the demo game, 500 files). The invitation prints a
+link: open it and log in with that verified email. `/readyz` answers 200 once the instance serves writes.
+
+`clever logs` follows the logs until it is stopped, even with `--until`: to keep a part of them, run it in the
+background and stop it by its process id once you have what you need.
 
 ## From the release archives
 
@@ -173,6 +196,30 @@ The test realm `ops/studio/keycloak/realm.json` shows every setting. On any prov
   token is refused.
 
 The provider says who someone is. What they may do is decided in the Studio.
+
+**`realm.json` is for a local test.** Before giving it to another Keycloak, change:
+- `clients[studio].redirectUris` to `["<publicUrl>/auth/callback"]`;
+- `clients[studio].attributes`: `backchannel.logout.url` to `<publicUrl>/auth/backchannel`, and
+  `post.logout.redirect.uris` to `<publicUrl>`;
+- `clients[studio].secret` to a new random value (`openssl rand -base64 32`), the one you set as
+  `STUDIO_OIDC_CLIENT_SECRET`;
+- `users`: your own, or none (Keycloak's console adds them), each with a verified email and a password that is not
+  the file's.
+
+Keep the file with its secret and passwords out of Git (mode 0600).
+
+**Clever Cloud's managed Keycloak.** `clever keycloak get <addon-id>` gives its
+admin console and first credentials. That password is temporary: the first login asks for a new one, and Clever's
+console and the add-on's variable (`CC_KEYCLOAK_ADMIN_DEFAULT_PASSWORD`) keep showing the old one afterwards, so keep
+the new one where you keep secrets. The admin API does not take that password through the master realm's `admin-cli`
+(`401 invalid_client`): `kcadm.sh` and scripts built on it fail as they are. Two ways work:
+- in the admin console (`clever keycloak open webui <addon-id>`), **Create realm** and give it the edited
+  `realm.json`;
+- or with an admin token from a login through the console's own client (`security-admin-console`, Authorization Code
+  with PKCE), `POST /admin/realms` with the edited file: what the reference deployment did.
+
+Its issuer is `https://<its host>/realms/web-scumm`. The Studio reads the issuer's discovery at start: it does not
+start while the realm is missing.
 
 **Another provider** (4.2.3, D44: GitLab for the `studio-oidc-generic` pass). Any OpenID Connect provider with
 discovery serves the browser's logins: give it the `studio` client as above (an application with the scopes `openid
@@ -329,6 +376,15 @@ logged its SIGTERM. Nothing depends on that signal: the instances share the **se
 until the old one gives the lease back (on SIGTERM) or the lease expires (30 s, renewed every 10 s on the database's
 clock); the old one stops writing by its own clock before that. A client retries a write with the same operation id
 and gets it applied once. The journal's own fenced lease still keeps two instances from writing over the same head.
+
+What the reference deployment measured (`docs/dev/QUALIF-4.2.3-REFERENCE.md` §5): Clever keeps the old instance
+`STOPPING` for about two minutes after the new one is up, and it logged no `stopping` line: it kept renewing the lease
+meanwhile, and the new one took it about 30 s after the old one was gone. **Writes are refused (503, `Retry-After: 2`)
+for about two and a half minutes per deploy**, reads go on; a write retried with its operation id goes through once
+after. While both instances start and run, they hold twice the connections: on the `dev` plan (5) a write may fail
+with "too many connections" (a 500) or wait on the starting instance's journal check (a 409 after 20 s); take a larger
+plan for a deployment people use.
+
 Upgrading the engine is the same redeploy, of a new version:
 1. read the CHANGELOG for the version and `docs/en/UPGRADING.md` for the game's content. Its database migrations run
    when the new instance starts, while the old one may still serve: if one changes what the old version reads, stop
@@ -343,7 +399,8 @@ otherwise it is the backup of step 2, restored into a new add-on (the drill belo
 
 **Metrics.** With `STUDIO_METRICS_TOKEN` set, `GET /metrics` on the Studio's origin answers in Prometheus' text format
 to `Authorization: Bearer <token>` (compared in constant time); a wrong token is a 401, and without the variable there
-is no route (404). It is never behind the session and never on the game's origin. What it gives:
+is no route (404). It is never behind the session and never on the game's origin, where any request without the
+game's session is refused before its path is read (a 401, "open the game from the Studio"). What it gives:
 
 | Metric | What |
 |---|---|
@@ -366,7 +423,7 @@ option for later.
 DEPLOYMENT_FAIL studio-deploys`; also `clever webhooks add`), and its console shows each app's CPU, memory and logs.
 It does not read `/metrics`: a scraper you run does (Prometheus with its Alertmanager, or any service that reads the
 format), or a simple prober for `/readyz`. Alert when:
-- `/readyz` is not 200 for 2 min (no instance serves writes; a deploy takes about 30 s at most);
+- `/readyz` is not 200 for 5 min (no instance serves writes; a deploy keeps writes away for about 2.5 min, above);
 - `studio_journal_rpo_seconds` is above 60 for 5 min (the target is 1 min, D42), or `ship-failed` keeps rising;
 - `studio_worker_jobs_in_flight` stays above 3 for 10 min (the worker runs one job at a time: work is piling up);
 - jobs fail: `studio_worker_job_seconds_count{outcome!="ok"}` rises, or `health-failed`;
@@ -396,7 +453,10 @@ harmless.
    the backup's revision, the revision reached, and `stopped` if the replay stopped early.
 5. Check, read-only, on both databases (`psql <URI>`): `SELECT value FROM studio_meta WHERE key = 'revision'` gives
    the head noted in step 1 (or later, if people wrote meanwhile), and `SELECT path, blob FROM studio_files ORDER BY
-   path` gives the same rows at the same revision.
+   path` gives the same rows at the same revision. Without access to the production database, compare as a member:
+   `GET /api/ops?after=0` (paged by `next`) gives each operation's revision and id, to set beside the drill's
+   `SELECT rev, op_id FROM studio_ops WHERE state = 'confirmed' ORDER BY rev`, and a file's content read through the
+   API beside its blob in the bucket.
 6. Write the time, the revisions and anything odd in the qualification report, then delete the add-on
    (`clever addon delete my-game-pg-drill`). Never run `gc --delete` from the drill's database: it would collect the
    blobs production still names.
