@@ -368,6 +368,8 @@ describe('the service lease', () => {
     // The old one's next renewal gives it back, its writes stopped at once; the new one takes it, with a new fence.
     expect(await old.tick()).toBe(false);
     expect(old.held).toBe(false);
+    // The old one, trying again first, leaves it to the one asking.
+    expect(await old.tick()).toBe(false);
     expect(await young.tick()).toBe(true);
     const [row] = await db.all('SELECT fence FROM studio_service WHERE id = 1');
     expect(Number(row?.fence)).toBe(2);
@@ -376,8 +378,24 @@ describe('the service lease', () => {
     expect(await young.tick()).toBe(true);
     expect(await old.tick()).toBe(false);
     expect(await young.tick()).toBe(true);
-    // An ask that expired (its instance gone) is no longer heeded, however new it was.
+    // An ask that expired, or that nobody rewrote for 5 s (its instance gone), is no longer heeded, however new.
     await db.run("INSERT OR REPLACE INTO studio_service (id, instance, fence, until_ms) VALUES (2, 'gone', 9e15, 0)");
+    expect(await young.tick()).toBe(true);
+    const [{ now }] = (await db.all("SELECT CAST(unixepoch('subsec') * 1000 AS INTEGER) AS now")) as { now: number }[];
+    await db.run("INSERT OR REPLACE INTO studio_service (id, instance, fence, until_ms) VALUES (2, 'gone', 9e15, $1)", [
+      Number(now) + 60_000 - 6_000,
+    ]);
+    expect(await young.tick()).toBe(true);
+    // A deploy cancelled while it waited: its ask goes with it.
+    const cancelled = new ServiceLease(db, 60_000, 20_000);
+    await new Promise((ok) => setTimeout(ok, 5));
+    await db.run('DELETE FROM studio_service WHERE id = 2');
+    expect(await cancelled.tick()).toBe(false);
+    expect(await db.all('SELECT instance FROM studio_service WHERE id = 2')).toEqual([
+      { instance: cancelled.instance },
+    ]);
+    await cancelled.release();
+    expect(await db.all('SELECT instance FROM studio_service WHERE id = 2')).toEqual([]);
     expect(await young.tick()).toBe(true);
     await young.release();
     await old.release();

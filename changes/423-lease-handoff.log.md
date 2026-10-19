@@ -8,7 +8,11 @@
   asker takes it at its next try (2 s). An older ask is ignored; an expired one too. Residual: an asker that dies
   before taking makes the holder give the lease back again until its ask expires (30 s).
 - `journal.ts`: the per-operation lease's wait gives up as 503 (Retry-After 2 at the HTTP layer; the Studio retries
-  with the same operation id). `main.ts`: the 30 s repair only on the instance holding the service lease.
+  with the same operation id). `main.ts`: the repair only on the instance holding the service lease, at once when it takes it, then every 30 s.
+  Residual: the instance that gave the lease up is no longer repaired; a read still reaching it may show a folder
+  behind the head (Clever sends it no new requests once it is `STOPPING`).
+- Second reading: the old test expecting 409 updated; the instance that gave the lease back taking it again first
+  (found, fixed, tested); the asker's death bound; the lost answer; the cancelled deploy's ask.
 - Tests: `tests/studio-server.test.ts` (the handoff, the fence growing, an older instance never taking it back, an
   expired ask), `tests/studio-journal-mutants.test.ts` (the 503).
 
