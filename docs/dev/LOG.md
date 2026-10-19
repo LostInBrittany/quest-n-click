@@ -6440,10 +6440,28 @@ following morning.
 
 → next: deployed on the reference deployment, then the release.
 
-## #239 · 2026-10-20 · Claude · release · 4.2.3 "Coordination": the team organised, agents and Git on the hosted Studio
+## #239 · 2026-10-19 · Claude · proposal · 4.2.3: the lease handoff measured on the reference deployment
+
+- Three studio deploys at origin/main `dd66b38d` (#183) on the test org, with the PR 9b probe (`/readyz` every 1 s, a
+  note every 3 s retried with the same `X-Studio-Op`, the instances every 5 s): from `c66fbf56` (no handover) the lease
+  came 2 min 33 s after listening, writes 503 for 2 min 27 s, two 409s and a 500 from the old code; then two
+  `clever restart`s of the same commit: `lease-lost` on the old instance and `lease-taken` 6.0 s and 10.1 s after
+  listening, writes 503 for 16 s and 10 s (Clever routing to the old instance until the deploy ends), one write per
+  restart waiting 10 to 20 s on the starting instance's journal check (now a 503), no 409 or 500, nothing applied twice.
+- Found: the worker refuses jobs on a clock skew of a few milliseconds. `remote-executor.ts` sets `exp` to exactly
+  `Date.now() + MAX_JOB_MS` and `worker/job.ts` refuses `exp - now > MAX_JOB_MS`; on the third deploy's VM, 10 of 20
+  probe jobs (signed on the studio VM, an invalid `dest` so none could run) got 403 "the job has expired", and the
+  health and previews failed intermittently. Not fixed here: a clock margin is needed, and the 403's reason is logged
+  nowhere.
+- Docs: QUALIF §2, §5 bis, §7, §8; STUDIO-SERVER (en, fr) deploy cost and `/readyz` alert. No code changed.
+
+→ next: a clock margin for the job's expiry (and the 403's reason logged), then the reference deployment's worker on
+the same commit.
+
+## #240 · 2026-10-20 · Claude · release · 4.2.3 "Coordination": the team organised, agents and Git on the hosted Studio
 
 - **What ships**: the plan's §2 for 4.2.3 (`docs/dev/PLAN-4.2.3-COORDINATION.md`), merged as #164, #168–#183, #185, #189,
-  #190 and #192 (LOG #219–#238 and the handoff's measure), with #165 (LOG #218, the gated sets read again before `v4.2.2`'s tag, its note filed here):
+  #190 and #192 (LOG #219–#239), with #165 (LOG #218, the gated sets read again before `v4.2.2`'s tag, its note filed here):
   - the plan, D44 and D45;
   - a worker from the archives preparing assets (H7, PR 0);
   - the revision read and the 409 that says what changed (H10, PR 1);
@@ -6519,7 +6537,7 @@ following morning.
   - **H9's options**: OpenTelemetry is not in 4.2.3; the alerts are written in the runbook, and wiring them to a
     person is part of the run; processing without outbound network is not offered.
 - **The version**: 4.2.3; the golden save `demo-4.2.3.json`; the reference run recorded again; the CHANGELOG
-  assembled from 21 fragments, the plan's and #165's entries each with a CHANGELOG line written beside them; UPGRADING
+  assembled from 22 fragments, the plan's and #165's entries each with a CHANGELOG line written beside them; UPGRADING
   §36, SUPPORT "4.2.3", ROADMAP, README, TOOLS, STUDIO-SERVER's status (en, fr; its runbook sections untouched here);
   the threat model's title; `docs/dev/passes/4.2.3.md` (nineteen passes).
 

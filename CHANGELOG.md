@@ -2,7 +2,7 @@
 
 ## 4.2.3 — 2026-10-20
 
-"Coordination" (LOG #218–#239): the last of the three 4.2.x steps (D40, D44). A team organises its game in the
+"Coordination" (LOG #218–#240): the last of the three 4.2.x steps (D40, D44). A team organises its game in the
 hosted Studio: a scenario map of chapters, puzzles and characters built on the game's stable ids, comments anchored
 on those ids, and a diff between two revisions that names what changed. A write says the revision its editor read, and
 a late one is refused with what changed, never merged on its own. AI agents work on the hosted Studio through its
@@ -142,6 +142,12 @@ maintainer's SSH key on their yes of 19 October, « Yes, sign v4.2.3 » (D37, D4
 
 - **The 4.2.3 fixes are under mutation testing (4.2.3)**: a closed shipper and a start dropping an older prepared set
   are pinned by `studio-workshop`'s tests.
+
+- **The cost of a Studio Server redeploy, measured with the lease handover (4.2.3)**: STUDIO-SERVER (en, fr) now says
+  what a redeploy costs on Clever Cloud once both versions hand the service lease over: the lease taken 6 to 10 s after
+  the new instance listens, writes refused (503 with `Retry-After`) for 10 to 16 s while Clever still routes to the
+  old instance, none lost; and that the first deploy from a version without the handover still refuses writes for
+  about two and a half minutes. The `/readyz` alert goes back to 2 min, expected once on that first deploy.
 
 ## 4.2.2 — 2026-10-19
 
