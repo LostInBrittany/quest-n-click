@@ -358,14 +358,12 @@ async function start() {
       h('h1', null, 'Studio'),
       h('span', { class: 'game' }, info.title, h('span', { class: 'muted' }, ` · games/${info.id}`)),
       nav,
-      // Undo on a shared Studio waits for 4.2.2 (personal undo): the last change may be someone else's.
-      hosting.hosted
-        ? null
-        : undoButtons(() => {
-            void rooms.load();
-            rooms.reloadFrame();
-            check.schedule(300);
-          }),
+      // On a shared Studio, the member's own last change (4.2.2): the room view follows its preview.
+      undoButtons(() => {
+        void rooms.load();
+        if (!hosting.hosted) rooms.reloadFrame();
+        check.schedule(300);
+      }),
       gameLink('?dev', 'Play ↗', { class: 'play', title: demo ? 'Play with your edits (dev tools on)' : undefined }),
       // The Assistant on a hosted Studio comes with its own route on the server (not in this version).
       hosting.hosted ? null : assistantBtn,

@@ -180,7 +180,11 @@ en direct se ferment en 5 s. Quand le fournisseur désactive un compte, ses sess
   son pan pour 2 min, renouvelées tant que vous êtes actif. Le pan de quelqu'un d'autre refuse votre écriture (423,
   avec son nom) ; votre brouillon reste chez vous.
 - **En direct.** Le Studio suit `GET /api/events` : chaque révision, qui tient quoi, qui est là.
-- **L'annulation** n'est pas encore disponible sur un Studio partagé (4.2.2).
+- **L'annulation est la vôtre** (4.2.2) : Undo et Redo (et Ctrl/Cmd+Z, Maj pour rétablir) annulent votre propre
+  dernière opération, quoi que les autres aient écrit entre-temps, par une nouvelle révision (l'historique n'est
+  jamais réécrit). Refusée quand quelqu'un d'autre a écrit l'un de ses fichiers depuis (409), ou tient son pan (423,
+  avec son nom). Une nouvelle modification de votre part efface ce que vous pouviez rétablir. Votre pile est gardée
+  par le serveur : un autre onglet, un redémarrage, une autre instance voient la même.
 
 ## La ligne de commande
 

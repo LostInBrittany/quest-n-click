@@ -65,7 +65,7 @@ describe('the Studio core', () => {
     const r = await studio.setValue('garden', 'stage', stage);
     expect(r.changed).toBe(true);
     expect((await studio.getRoom('garden')).def.stage).toEqual(stage);
-    expect(studio.history().undo[0]).toBe('garden: stage');
+    expect((await studio.history()).undo[0]).toBe('garden: stage');
     expect(await studio.undo()).toMatchObject({ ok: true, what: 'garden: stage' });
     expect(garden()).toBe(before);
     await studio.redo();

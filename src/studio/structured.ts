@@ -2,7 +2,6 @@
 // "Apply" writes it; the server validates the game after the write and takes back an edit that adds a validation
 // error (shown here). Every write can be undone (the header's Undo / Redo, Ctrl/Cmd+Z, Shift for redo).
 import { api, ApiError } from './api';
-import { hosting } from './api-base';
 import type { Ed } from './forms';
 import { h, modal, toast } from './ui';
 
@@ -118,10 +117,10 @@ export function structuredEdit(o: {
   const close = modal(o.title, body);
 }
 
-/** The header's Undo / Redo (dev server only), with Ctrl/Cmd+Z and Ctrl/Cmd+Shift+Z outside text fields. */
+/** The header's Undo / Redo (on a shared Studio, the member's own: 4.2.2), with Ctrl/Cmd+Z and Ctrl/Cmd+Shift+Z outside text fields. */
 export function undoButtons(after: () => void): HTMLElement | null {
-  // A shared Studio has no undo before 4.2.2 (the last change may be someone else's).
-  if (!api.undo || !api.redo || hosting.hosted) return null;
+  // A shared Studio's undo is the member's own (4.2.2): their last change, not someone else's.
+  if (!api.undo || !api.redo) return null;
   const go = async (dir: 'undo' | 'redo') => {
     try {
       const r = await (dir === 'undo' ? api.undo!() : api.redo!());
