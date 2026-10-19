@@ -3,7 +3,9 @@
 // outputs are kept by content (a set per run, `studio_prepared`) and written back to a folder of the instance (its
 // disk is ephemeral: the latest set is written again at start); the game's new `assets.gen.json` is one operation of
 // the journal, the member's. The Studio's media, the previews and the builds serve a prepared file from that folder
-// first, then from `publicDir` (the deployment's). The sheets' cutting and the uploads stay on a local Studio (4.2.3).
+// first, then from `publicDir` (the deployment's). Since 4.2.3 (H8) a run is a job (jobs.ts): its progress goes to the
+// live stream, and a cancel before its write leaves nothing (no set kept, no operation); the sheets' cutting and the
+// uploads are hosted too (hosted-assets.ts).
 import { createHash } from 'node:crypto';
 import { mkdirSync, rmSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
@@ -11,6 +13,7 @@ import type { SqlDb } from '../../../bridge/src/store-sql';
 import type { BlobStore } from '../ops/blobs';
 import { StudioError } from '../ops/errors';
 import type { Prepared } from '../worker/prepare';
+import type { JobControl } from './jobs';
 
 export interface PreparedOptions {
   db: SqlDb;
@@ -19,8 +22,8 @@ export interface PreparedOptions {
   dir: string;
   /** The head packed with its art and sounds, holding the instance's lock (a version 2 snapshot). */
   snapshot: () => Promise<{ epoch: string; rev: number; bytes: Buffer }>;
-  /** The worker's `prepare`. */
-  prepare: (snapshot: Buffer, at: { epoch: string; rev: number }) => Promise<Prepared>;
+  /** The worker's `prepare`; `signal`: a cancel (the worker's child killed, its answer dropped). */
+  prepare: (snapshot: Buffer, at: { epoch: string; rev: number }, signal?: AbortSignal) => Promise<Prepared>;
   /** Writes the game's new `assets.gen.json`, one operation of the journal, as the member (under their `*` lease). */
   writeManifest: (manifest: string) => Promise<void>;
   /** The game's `assets.gen.json` now (what a run must not lose), or null. */
@@ -101,13 +104,15 @@ export class PreparedAssets {
    * lands (the previews of that revision are built against it), and set back if the manifest is refused. A manifest
    * that would lose an image or a sound the game had is refused: what the asset tools could not find is said.
    */
-  async prepare(by: string): Promise<{ id: number; rev: number; files: number; log: string }> {
+  async prepare(by: string, job?: JobControl): Promise<{ id: number; rev: number; files: number; log: string }> {
     if (this.busy) throw new StudioError('the assets are being prepared: try again when it is done', 429);
     this.busy = true;
     try {
       return await this.o.exclusive(async () => {
+        job?.step('packing');
         const snap = await this.o.snapshot();
-        const out = await this.o.prepare(snap.bytes, snap);
+        job?.step('on the worker');
+        const out = await this.o.prepare(snap.bytes, snap, job?.signal);
         const lost = lostEntries(this.o.currentManifest(), out.manifest);
         if (lost.length)
           throw Object.assign(
@@ -117,6 +122,8 @@ export class PreparedAssets {
             ),
             { body: { lost, log: out.log } },
           );
+        // Past this point the run writes (its set, then its manifest): a cancel before it leaves nothing at all.
+        job?.commit();
         const manifest: Record<string, string> = {};
         for (const [path, b64] of Object.entries(out.files))
           manifest[path] = await this.o.blobs.put(Buffer.from(b64, 'base64'));

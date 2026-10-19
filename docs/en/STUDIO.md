@@ -240,6 +240,11 @@ the Storyboard and Rooms tabs are laid out the same way since 4.1.8, every file 
   old file is kept as `<name>_v<N>`. Backups are not cells (the listing and the prompts ignore them).
 - **Demo mode**: the listing comes from the snapshot (`assets` in `snapshot.json`), the thumbnails and sounds from the
   prepared files of `public/assets` (unused cells have no preview); uploads and Prepare are hidden.
+- **Hosted Studio** (Studio Server, 4.2.3): the same tab, served by `studio-server/src/server/hosted-assets.ts` under
+  `/api/assets`. Uploads are bounded (10 MiB; PNG, JPEG or WebP images, Ogg, MP3 or WAV sounds, read from their
+  bytes); the cutting, the keying and **Prepare assets (on the server)** are jobs of the processing worker, under the
+  project's exclusive lease, shown in a small panel with a **Cancel** button (a job cancelled before its write leaves
+  nothing). The uploaded sheet itself is not kept there. See docs/en/STUDIO-SERVER.md.
 
 ## Demo mode
 The Studio also runs without any server, on a static host: https://wanoo.github.io/web-scumm/studio.html is the demo

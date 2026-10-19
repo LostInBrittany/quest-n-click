@@ -8,6 +8,8 @@ import { JOBS, runChild } from './main';
 import { PreviewBuildFailed, type PreviewParams, previewFiles } from './preview-build';
 import { type Prepared, preparedShape, pythonPathOf } from './prepare';
 import { unpackSnapshot } from './snapshot';
+import { type Cut, cutShape } from './cut';
+import type { CutRequest } from '../../../tools/studio/cut';
 import type { ValidateResult } from '../../../tools/studio/types';
 
 export async function localPreview(
@@ -72,22 +74,63 @@ export async function localDiagnose(
 }
 
 /** The asset tools' `prepare` on a version 2 snapshot, in the same child (the e2e stack's "Prepare assets"). */
-export async function localPrepare(snapshot: Buffer, game: string, timeoutMs = 120_000): Promise<Prepared> {
+export async function localPrepare(
+  snapshot: Buffer,
+  game: string,
+  timeoutMs = 120_000,
+  signal?: AbortSignal,
+): Promise<Prepared> {
   mkdirSync(JOBS, { recursive: true });
   const dir = mkdtempSync(join(JOBS, 'prepare-'));
   try {
     unpackSnapshot(snapshot, dir);
-    const r = await runChild(dir, timeoutMs, 'prepare', undefined, {
-      game,
-      systemPath: process.env.PATH ?? '',
-      pythonPath: pythonPathOf(process.env),
-    });
+    const r = await runChild(
+      dir,
+      timeoutMs,
+      'prepare',
+      undefined,
+      { game, systemPath: process.env.PATH ?? '', pythonPath: pythonPathOf(process.env) },
+      signal,
+    );
+    if (r.cancelled) throw new Error('cancelled');
     if (r.timedOut) throw new Error(`the asset tools did not finish within ${timeoutMs} ms`);
     const v = JSON.parse(r.out) as { data?: unknown; error?: string };
     if (!v.data) throw new Error(v.error ?? 'prepare gave no answer');
     const p = preparedShape(v.data);
     if ('refused' in p) throw new Error(`the prepared assets are refused: ${p.refused}`);
     return p;
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+}
+
+/** A sheet's cutting or a cell's keying on a cut's snapshot, in the same child (the tests' and the e2e stack's). */
+export async function localCut(
+  snapshot: Buffer,
+  game: string,
+  req: CutRequest,
+  signal?: AbortSignal,
+  timeoutMs = 120_000,
+): Promise<Cut> {
+  mkdirSync(JOBS, { recursive: true });
+  const dir = mkdtempSync(join(JOBS, 'cut-'));
+  try {
+    unpackSnapshot(snapshot, dir);
+    const r = await runChild(
+      dir,
+      timeoutMs,
+      'cut',
+      undefined,
+      { game, req, systemPath: process.env.PATH ?? '', pythonPath: pythonPathOf(process.env) },
+      signal,
+    );
+    if (r.cancelled) throw new Error('cancelled');
+    if (r.timedOut) throw new Error(`the cut did not finish within ${timeoutMs} ms`);
+    const v = JSON.parse(r.out) as { data?: unknown; error?: string };
+    if (!v.data) throw new Error(v.error ?? 'the cut gave no answer');
+    const c = cutShape(v.data, req);
+    if ('refused' in c) throw new Error(`the cut is refused: ${c.refused}`);
+    return c;
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }

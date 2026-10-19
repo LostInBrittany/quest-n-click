@@ -1,7 +1,8 @@
 // What a shared Studio sees live (4.2.1, plan §5, P7): who is here, and an SSE stream of what changes.
 //   - Presence: kept in memory, renewed by the HTTP heartbeat (`POST /api/presence`, every 30 s), gone after 60 s.
 //   - `GET /api/events`: a `hello` with the epoch, the revision, the leases and who is here; then `revision` after each
-//     committed operation (id, revision, author, files, spans), `leases` and `presence` when they change, and a ping
+//     committed operation (id, revision, author, files, spans), `leases` and `presence` when they change, `job` at each
+//     state of a prepare or a cut (4.2.3: `queued`, `running` with its steps, `done`, `failed`, `cancelled`), and a ping
 //     every 15 s. Events are sent at least once, after the commit; a client that missed some reads `GET /api/ops`.
 //   - A stream closes (plan §3.6) on a revocation of its user or the end of its session, within 5 s: at once on the
 //     revocation bus, at the end of its Bearer token, and by a check of its credential every 30 s, which also catches
@@ -14,6 +15,7 @@ import type { Gate, Principal } from './auth/gate';
 import type { Leases } from './leases';
 import type { Health, HealthState } from './health';
 import type { PreviewState, Previews } from './previews';
+import type { JobInfo, Jobs } from './jobs';
 
 export interface Here {
   userId: string;
@@ -74,7 +76,7 @@ const spansOrNone = (paths: string[]) => {
 };
 
 export interface LiveEvent {
-  name: 'revision' | 'leases' | 'presence' | 'preview' | 'health';
+  name: 'revision' | 'leases' | 'presence' | 'preview' | 'health' | 'job';
   data: unknown;
 }
 
@@ -99,6 +101,8 @@ export class LiveHub {
       previews?: Previews;
       /** The game's health by revision (4.2.2): the last verdict, the revision that broke it, a run going on. */
       health?: Health;
+      /** The long jobs (4.2.3, H8): each state and step of a prepare or a cut, in order. */
+      jobs?: Jobs;
       log?: (line: Record<string, unknown>) => void;
     },
   ) {
@@ -112,6 +116,7 @@ export class LiveHub {
     o.presence?.events.on('changed', () => this.emit({ name: 'presence', data: { here: o.presence!.list() } }));
     o.previews?.events.on('changed', (s: PreviewState) => this.emit({ name: 'preview', data: s }));
     o.health?.events.on('changed', (s: HealthState) => this.emit({ name: 'health', data: s }));
+    o.jobs?.events.on('changed', (j: JobInfo) => this.emit({ name: 'job', data: j }));
   }
 
   private emit(e: LiveEvent) {
@@ -153,6 +158,7 @@ export class LiveHub {
       here: this.o.presence ? this.o.presence.list() : [],
       preview: this.o.previews ? this.o.previews.state() : null,
       health: this.o.health ? this.o.health.state() : null,
+      jobs: this.o.jobs ? this.o.jobs.active() : [],
     };
   }
 }

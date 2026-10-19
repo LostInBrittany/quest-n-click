@@ -8,7 +8,8 @@ it was: none of this is needed.
 > **Status (4.2.2, experimental).** The journal (no confirmed change is lost), logins and roles, the processing
 > worker, spans and leases, the live stream, the game's own origin with its previews (one build per revision), the
 > health by revision, personal undo, published builds, the assets prepared on the worker, backup and restore, and the
-> Studio's screens for all of this. It stays experimental until its people's passes (`studio-hosted`, `studio-collab`,
+> Studio's screens for all of this; since 4.2.3, the Assets tab's uploads and sheets' cutting, Prepare and the cuts as
+> jobs that can be followed and cancelled. It stays experimental until its people's passes (`studio-hosted`, `studio-collab`,
 > `studio-preview`, `studio-assets-hosted`) are made. This guide deploys from the repository; the release archive `web-scumm-studio-server` is
 > the same server (below).
 
@@ -292,16 +293,31 @@ SQLite and a folder for the contents, on the loopback only.
   `studio-preview` pass does). A bisection asks for up to two jobs per revision it judges.
 - Each revision's preview is kept (about 1 MB for the sample game: the base `/preview/<rev>/` is written into the
   page and its code, so few files are shared between revisions) until the collection of a later 4.2.2 PR.
-- The Assets tab is not on a hosted Studio yet (its uploads and sprite sheets: 4.2.3). The Play tab's **Prepare
-  assets** (a dev, 4.2.2) runs `prepare` on the worker from the head's art and sounds, under the project's exclusive
-  lease (nobody writes meanwhile; someone else's span refuses it, with their name): the prepared set is kept by the
-  Studio and served before `publicDir`, and the game's `assets.gen.json` is written as one operation. Each run prepares
-  everything again, within 2 minutes; it cannot be cancelled nor followed step by step yet. It is refused, and the game
-  is prepared on a local Studio, when: its art and sounds pass about 31 MiB (in base64) or the prepared files about
-  22 MiB; it names its sources in `sources.json` (they live outside the art and sounds a hosted Studio holds); the new
-  manifest would lose an image or a sound the game had. Published builds serve the prepared set as it is now, not the
-  one they were built against. The game's code runs on the worker as the asset tools' user (ADR 0028: one machine, one
-  user).
+- The Assets tab is on a hosted Studio since 4.2.3: a reviewer reads its listing, prompts and files; a dev uploads and
+  cuts. An upload (a sound, a decor) is 10 MiB at most once decoded (413 past it) and its type is read from its bytes:
+  a PNG, JPEG or WebP image (a decor: PNG or JPEG), an Ogg, MP3 or WAV sound whose extension says the same (415
+  otherwise; a local Studio also takes M4A, FLAC, AAC, Opus and WebM); it is written as one operation, never run. A
+  sheet's cutting and a cell's keying run on the worker (`cut` jobs, Python with the hook's packages, no game code),
+  under the project's exclusive lease: the worker gets the image, that sheet's cells and `site.json`, gives back only
+  cells of that sheet, and the cells with the backups of those recut are written as one operation. A hosted Studio
+  does not keep the uploaded sheet itself (a local one keeps it under `private/sheets/`, which no span names).
+- The Play tab's (and the Assets tab's) **Prepare assets** (a dev, 4.2.2) runs `prepare` on the worker from the
+  head's art and sounds, under the project's exclusive lease (nobody writes meanwhile; someone else's span refuses
+  it, with their name): the prepared set is kept by the Studio and served before `publicDir`, and the game's
+  `assets.gen.json` is written as one operation. Each run prepares everything again, within 2 minutes. It is refused,
+  and the game is prepared on a local Studio, when: its art and sounds pass about 31 MiB (in base64) or the prepared
+  files about 22 MiB; it names its sources in `sources.json` (they live outside the art and sounds a hosted Studio
+  holds); the new manifest would lose an image or a sound the game had. Published builds serve the prepared set as it
+  is now, not the one they were built against. The game's code runs on the worker as the asset tools' user (ADR 0028:
+  one machine, one user).
+- Prepare and the cuts are **jobs** (4.2.3): the request answers 202 with the job at once; its states go to the live
+  stream (`job` events, in order: `queued`, `running` with its steps `packing`, `on the worker`, `writing`, then
+  `done`, `failed` or `cancelled`) and `GET /api/jobs/<id>` reads it again. One runs at a time, four more may wait
+  (429 past them). `POST /api/jobs/<id>/cancel` (who started it, or an owner) cancels it: a waiting job never runs; a
+  running one has its request to the worker closed, and the worker kills its child with its process group; nothing
+  is written (no operation, no prepared set kept) and the exclusive lease is given back. Once a job is writing, it is
+  past cancelling (409). A job is kept in the instance's memory: after a restart its state is gone (its write, if it
+  was made, is in the journal).
 - A game frame left idle past its 15 min session shows nothing new: "Reload view" (or the Play tab) opens it again.
 - Captures are not available on a hosted Studio.
 - The Play tab shows the game with its DEV panel; the state inspector, the rule explainer and the replays beside it

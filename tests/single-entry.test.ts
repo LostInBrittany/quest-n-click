@@ -23,6 +23,8 @@ const WRITERS: Record<string, string> = {
   'studio-server/src/ops/core.ts': "journal: game files through it; the guard's staging and screenshots in .cache/",
   'tools/game-write.ts': 'journal: game files through it; outputs elsewhere written plainly',
   'tools/studio/assets.ts': 'journal: uploads through it; the tools run on scratch copies in .cache/',
+  'tools/studio/cut.ts':
+    "elsewhere: a scratch copy of art/<sheet>/ (the dev server's .cache/studio/, the worker's job folder in .cache/jobs/)",
   'studio-server/src/server/auth/device.ts':
     "elsewhere: the CLI's token file (0600) in the user's configuration folder",
   'studio-server/src/server/main.ts':

@@ -6,7 +6,8 @@
 //                        runs the game's code in a fresh child process, in a fresh folder, with an emptied
 //                        environment, killed at its deadline with its whole process group; bounds the output (a
 //                        verdict, or the module as data) and PUTs it to the presigned result URL itself; removes the
-//                        folder.
+//                        folder. A job whose request the Studio closes (a cancel, 4.2.3 H8) is not run if it waits,
+//                        and its child is killed with its group if it runs; nothing is written at the result URL.
 //   GET /livez, /readyz  /readyz answers 503 once a job left a process behind: the instance is to be recycled.
 // The job's code shares this machine and this system user: it is assumed to see the job's capabilities (ADR 0028).
 import { spawn } from 'node:child_process';
@@ -63,7 +64,8 @@ export interface JobResult {
 
 /**
  * Runs `child.ts` on `dir`: an emptied environment, its own process group, no pipe (a grandchild can hold none), killed
- * with its group at `timeoutMs`. The child writes its output to `outFile`; it is read once the child has exited.
+ * with its group at `timeoutMs`, or when `signal` aborts (a cancel: `cancelled`, no output read). The child writes its
+ * output to `outFile`; it is read once the child has exited.
  */
 export function runChild(
   dir: string,
@@ -71,9 +73,18 @@ export function runChild(
   kind: Job['kind'] = 'validate',
   outFile = `${dir}.out.json`,
   params: Record<string, unknown> = {},
-): Promise<{ out: string; code: number | null; timedOut: boolean; tooLarge: boolean; pid: number }> {
+  signal?: AbortSignal,
+): Promise<{
+  out: string;
+  code: number | null;
+  timedOut: boolean;
+  tooLarge: boolean;
+  pid: number;
+  cancelled?: boolean;
+}> {
   return new Promise((ok, fail) => {
     rmSync(outFile, { force: true });
+    if (signal?.aborted) return ok({ out: '', code: null, timedOut: false, tooLarge: false, pid: 0, cancelled: true });
     const child = spawn(
       process.execPath,
       ['--import', import.meta.resolve('tsx'), CHILD, dir, kind, outFile, JSON.stringify(params)],
@@ -96,23 +107,31 @@ export function runChild(
       timedOut = true;
       killGroup();
     }, timeoutMs);
+    let cancelled = false;
+    const onAbort = () => {
+      cancelled = true;
+      killGroup();
+    };
+    signal?.addEventListener('abort', onAbort, { once: true });
     child.on('error', (e) => {
       clearTimeout(timer);
+      signal?.removeEventListener('abort', onAbort);
       fail(e);
     });
     child.on('exit', (code) => {
       clearTimeout(timer);
+      signal?.removeEventListener('abort', onAbort);
       killGroup();
       let out = '';
       let tooLarge = false;
       try {
-        if (statSync(outFile).size <= maxOut(kind)) out = readFileSync(outFile, 'utf8');
-        else tooLarge = true;
+        if (!cancelled && statSync(outFile).size <= maxOut(kind)) out = readFileSync(outFile, 'utf8');
+        else tooLarge = !cancelled;
       } catch {
         out = '';
       }
       rmSync(outFile, { force: true });
-      ok({ out, code, timedOut, tooLarge, pid: child.pid ?? 0 });
+      ok({ out, code, timedOut, tooLarge, pid: child.pid ?? 0, ...(cancelled ? { cancelled } : {}) });
     });
   });
 }
@@ -144,7 +163,7 @@ export function createWorker(o: WorkerOptions) {
   let queued = 0;
   const log = o.log ?? (() => {});
 
-  async function run(job: Job): Promise<JobResult> {
+  async function run(job: Job, signal: AbortSignal): Promise<JobResult> {
     const snap = await fetch(job.urls.snapshot, { signal: AbortSignal.timeout(30_000) });
     if (!snap.ok) throw new Error(`snapshot: ${snap.status}`);
     const bytes = Buffer.from(await snap.arrayBuffer());
@@ -156,17 +175,19 @@ export function createWorker(o: WorkerOptions) {
       unpackSnapshot(bytes, dir);
       const timeoutMs = Math.min(Number(job.params.timeoutMs) || DEFAULT_TIMEOUT_MS, MAX_TIMEOUT_MS);
       const t0 = Date.now();
-      // A `prepare` finds python3 and ffmpeg on the worker's own PATH, and the packages its build hook installed (neither
-      // is a secret; the rest stays empty).
+      // A `prepare` or a `cut` finds python3 and ffmpeg on the worker's own PATH, and the packages its build hook
+      // installed (neither is a secret; the rest stays empty).
       const params =
-        job.kind === 'prepare'
+        job.kind === 'prepare' || job.kind === 'cut'
           ? { ...job.params, systemPath: process.env.PATH ?? '', pythonPath: pythonPathOf(process.env) }
           : job.params;
-      const r = await runChild(dir, timeoutMs, job.kind, undefined, params);
+      const r = await runChild(dir, timeoutMs, job.kind, undefined, params, signal);
       if (r.pid && (await survivors(r.pid))) {
         recycle = true;
         log('worker-survivor', { job: job.id });
       }
+      // Cancelled by the Studio: its child is gone, and nothing is written at the result URL.
+      if (r.cancelled) throw new Error('cancelled by the Studio');
       const result: JobResult = { job: job.id, kind: job.kind, ms: 0 };
       let parsed: unknown;
       if (r.timedOut) {
@@ -190,7 +211,11 @@ export function createWorker(o: WorkerOptions) {
         else result.failed = 'the preview build gave no usable files';
       } else if (
         !result.failed &&
-        (job.kind === 'lint' || job.kind === 'solve' || job.kind === 'playtests' || job.kind === 'prepare')
+        (job.kind === 'lint' ||
+          job.kind === 'solve' ||
+          job.kind === 'playtests' ||
+          job.kind === 'prepare' ||
+          job.kind === 'cut')
       ) {
         const { data, error, refused } = (parsed ?? {}) as { data?: unknown; error?: unknown; refused?: unknown };
         if (data && typeof data === 'object') result.data = data;
@@ -239,10 +264,16 @@ export function createWorker(o: WorkerOptions) {
     if (recycle) return send(503, { error: 'this instance is to be recycled' });
     if (queued >= 8) return send(429, { error: 'busy' });
     queued++;
+    // The Studio closed its request before the answer (a cancel): the job is not run, or its child is killed.
+    const gone = new AbortController();
+    res.on('close', () => {
+      if (!res.writableEnded) gone.abort();
+    });
     const p = chain.then(() => {
       // A job that waited past its expiry is not run: its URLs are dead, and the Studio has given up on it.
       if (Date.now() >= job.exp) throw new Error('the job expired while it waited');
-      return run(job);
+      if (gone.signal.aborted) throw new Error('cancelled by the Studio');
+      return run(job, gone.signal);
     });
     chain = p.catch(() => {});
     try {

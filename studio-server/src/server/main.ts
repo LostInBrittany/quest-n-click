@@ -35,7 +35,9 @@ import { AuthStore, Sealer } from './auth/store';
 import { readJson, send, studioServer } from './http';
 import { openPostgresDb } from './postgres';
 import { newJobKeys } from '../worker/job';
-import { filesOf, packable, packAssets, packFiles, packSnapshot } from '../worker/snapshot';
+import { filesOf, packable, packAssets, packCut, packFiles, packSnapshot } from '../worker/snapshot';
+import { createAssets } from '../../../tools/studio/assets';
+import { HostedAssets } from './hosted-assets';
 import { assetsVersion } from '../../../tools/vite/plugins';
 import { Leases } from './leases';
 import { Presence } from './live';
@@ -386,6 +388,21 @@ async function main(argv: string[]): Promise<number> {
     personalUndo,
   });
   const presence = leases ? new Presence() : undefined;
+  /**
+   * Runs `fn` under the project's exclusive lease for the member the operation names (a prepare, a cut): taken, then
+   * given back only if this run took it (an owner may already hold the project). Without leases, `fn` alone.
+   */
+  const exclusive = async <T>(fn: () => Promise<T>): Promise<T> => {
+    const who = operationContext.getStore()?.claimant;
+    if (!who || !leases) return fn();
+    const had = (await leases.list()).some((l) => l.span === '*' && l.holder === who.userId);
+    if (!had) await leases.take(who, ['*']);
+    try {
+      return await fn();
+    } finally {
+      if (!had) await leases.release(who.userId, ['*']);
+    }
+  };
   // The engine's folder: the built Studio and the prepared assets are found beside it unless configured.
   const engineRoot = fileURLToPath(new URL('../../..', import.meta.url));
   const publicDir = resolve(config.publicDir ?? join(engineRoot, 'public'));
@@ -415,21 +432,28 @@ async function main(argv: string[]): Promise<number> {
           writeManifest: async (manifest) => {
             await studio.writeFiles('prepare assets', [{ path: 'assets.gen.json', after: manifest }], { undo: false });
           },
-          exclusive: async (fn) => {
-            const who = operationContext.getStore()?.claimant;
-            if (!who || !leases) return fn();
-            // Given back only if this run took it (an owner may already hold the project).
-            const had = (await leases.list()).some((l) => l.span === '*' && l.holder === who.userId);
-            if (!had) await leases.take(who, ['*']);
-            try {
-              return await fn();
-            } finally {
-              if (!had) await leases.release(who.userId, ['*']);
-            }
-          },
+          exclusive,
         })
       : undefined;
   void prepared?.start();
+  // The Assets tab (4.2.3 PR 7, H8): the listing and the uploads here, the cutting on the worker, under the member's
+  // exclusive lease; the prepared set's folder is where the listing looks for what is prepared.
+  const hostedAssets = new HostedAssets({
+    studio,
+    assets: createAssets(studio, {
+      publicAssets: () => join(prepared?.folder() ?? publicDir, 'assets'),
+    }),
+    locked: (fn) =>
+      server.exclusive(async () => {
+        await journal.reconcile();
+        return fn();
+      }),
+    exclusive,
+    cut: executor
+      ? (req, source, ext, signal) =>
+          executor!.cut(packCut(gameDir, req.sheetId, source, ext), config.game, req, signal)
+      : undefined,
+  });
   // The page: configured, else the one the package was built with (web-scumm-studio-server), else this checkout's.
   const clientDir = resolve(
     config.clientDir ?? process.env.WEB_SCUMM_STUDIO_CLIENT ?? join(engineRoot, '.cache', 'studio-client'),
@@ -567,6 +591,7 @@ async function main(argv: string[]): Promise<number> {
     personalUndo: !!personalUndo,
     builds,
     prepared,
+    assets: hostedAssets,
     rpo: shipper ? () => shipper.rpoMs() : undefined,
     play,
     client,

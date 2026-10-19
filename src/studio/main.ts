@@ -263,9 +263,8 @@ async function start() {
   };
 
   const nav = h('nav', { class: 'tabs', role: 'tablist' });
-  // The Assets tab has no routes on the Studio Server yet: the prepared assets come with the deployment (4.2.1).
-  const tabs = hosting.hosted ? TABS.filter(([t]) => t !== 'assets') : TABS;
-  let current: TabId = (tabs.some(([t]) => t === hashTab) ? hashTab : 'rooms') as TabId;
+  // The Assets tab is served by the Studio Server too since 4.2.3 (its uploads, its cutting and Prepare on the worker).
+  let current: TabId = (TABS.some(([t]) => t === hashTab) ? hashTab : 'rooms') as TabId;
   show = (t: TabId) => {
     current = t;
     for (const [id, el] of Object.entries(panes)) el.hidden = id !== t;
@@ -284,7 +283,7 @@ async function start() {
     if (t === 'language') void language.load();
     if (t === 'remix') void remix.load();
   };
-  for (const [id, label] of tabs) {
+  for (const [id, label] of TABS) {
     nav.append(
       h('button', { role: 'tab', dataset: { tab: id }, onclick: () => show(id) }, label, id === 'check' ? badge : null),
     );

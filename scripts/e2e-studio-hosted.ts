@@ -38,10 +38,12 @@ import { PreparedAssets } from '../studio-server/src/server/prepared';
 import { Health, judgeBy } from '../studio-server/src/server/health';
 import { Previews } from '../studio-server/src/server/previews';
 import { ServiceLease } from '../studio-server/src/server/service-lease';
-import { localDiagnose, localPrepare, localPreview, localValidate } from '../studio-server/src/worker/local';
+import { localCut, localDiagnose, localPrepare, localPreview, localValidate } from '../studio-server/src/worker/local';
+import { HostedAssets } from '../studio-server/src/server/hosted-assets';
+import { createAssets } from '../tools/studio/assets';
 import type { SolveData } from '../tools/studio/types';
 import { newJobKeys, privateKeyOf, publicKeyOf } from '../studio-server/src/worker/job';
-import { filesOf, packable, packAssets, packFiles, packSnapshot } from '../studio-server/src/worker/snapshot';
+import { filesOf, packable, packAssets, packCut, packFiles, packSnapshot } from '../studio-server/src/worker/snapshot';
 import { TestOp } from '../tests/fixtures/oidc-op';
 
 const ROOT = join(import.meta.dirname, '..');
@@ -140,6 +142,18 @@ const health = new Health({
   }),
 });
 journal.events.on('confirmed', () => void health.schedule());
+// The member's exclusive lease for a prepare or a cut (main.ts): given back only if this run took it.
+async function exclusive<T>(fn: () => Promise<T>): Promise<T> {
+  const who = operationContext.getStore()?.claimant;
+  if (!who) return fn();
+  const had = (await leases.list()).some((l) => l.span === '*' && l.holder === who.userId);
+  if (!had) await leases.take(who, ['*']);
+  try {
+    return await fn();
+  } finally {
+    if (!had) await leases.release(who.userId, ['*']);
+  }
+}
 // The prepared assets (main.ts), prepared in the worker's child here, under the member's exclusive lease.
 const preparedAssets = new PreparedAssets({
   db,
@@ -151,24 +165,13 @@ const preparedAssets = new PreparedAssets({
       rev: await journal.revision(),
       bytes: packAssets(filesOf(gameDir)),
     })),
-  prepare: (bytes) => localPrepare(bytes, 'demo'),
+  prepare: (bytes, _at, signal) => localPrepare(bytes, 'demo', 120_000, signal),
   currentManifest: () =>
     existsSync(join(gameDir, 'assets.gen.json')) ? readFileSync(join(gameDir, 'assets.gen.json'), 'utf8') : null,
   writeManifest: async (manifest) => {
     await studio.writeFiles('prepare assets', [{ path: 'assets.gen.json', after: manifest }], { undo: false });
   },
-  exclusive: async (fn) => {
-    const who = operationContext.getStore()?.claimant;
-    if (!who) return fn();
-    // Given back only if this run took it (an owner may already hold the project).
-    const had = (await leases.list()).some((l) => l.span === '*' && l.holder === who.userId);
-    if (!had) await leases.take(who, ['*']);
-    try {
-      return await fn();
-    } finally {
-      if (!had) await leases.release(who.userId, ['*']);
-    }
-  },
+  exclusive,
 });
 // The published builds (main.ts), built in the worker's child here and signed with a key made for the run.
 const buildKeys = newJobKeys();
@@ -199,10 +202,19 @@ const studio = createStudio({
   importFresh: importInChild,
   personalUndo: new PersonalUndo(db, () => journal.epoch()),
 });
+// The Assets tab (main.ts, 4.2.3): its uploads here, its cutting in the worker's child, under the exclusive lease.
+const hostedAssets = new HostedAssets({
+  studio,
+  assets: createAssets(studio, { publicAssets: () => join(preparedAssets.folder() ?? join(ROOT, 'public'), 'assets') }),
+  locked: (fn) => server.exclusive(async () => fn()),
+  exclusive,
+  cut: (req, source, ext, signal) => localCut(packCut(gameDir, req.sheetId, source, ext), 'demo', req, signal),
+});
 const server = studioServer({
   studio,
   personalUndo: true,
   prepared: preparedAssets,
+  assets: hostedAssets,
   journal,
   db,
   lease,
@@ -623,7 +635,7 @@ try {
   // 6d. Prepare assets (D43): on the worker's child here, under the member's exclusive lease; the game's manifest is a
   // new revision.
   const revBefore = await journal.revision();
-  await page.getByRole('button', { name: 'Prepare assets' }).click();
+  await page.getByRole('button', { name: 'Prepare assets', exact: true }).click();
   const prepStatus = page.locator('.assets-panel .muted.small', { hasText: 'prepared from revision' });
   await prepStatus.waitFor({ timeout: 180_000 });
   check(

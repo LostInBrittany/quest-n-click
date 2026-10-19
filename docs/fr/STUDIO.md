@@ -260,6 +260,11 @@ fichier sous 800 lignes).
   les ignorent).
 - **Mode démo** : la liste vient de l'instantané (`assets` dans `snapshot.json`), les vignettes et les sons des
   fichiers préparés de `public/assets` (les cases inutilisées n'ont pas d'aperçu) ; les envois et Prepare sont cachés.
+- **Studio hébergé** (Studio Server, 4.2.3) : le même onglet, servi par `studio-server/src/server/hosted-assets.ts`
+  sous `/api/assets`. Les envois sont bornés (10 Mio ; images PNG, JPEG ou WebP, sons Ogg, MP3 ou WAV, lus dans leurs
+  octets) ; la découpe, le détourage et **Prepare assets (on the server)** sont des jobs de l'application de
+  traitement, sous le bail exclusif du projet, montrés dans un petit panneau avec un bouton **Cancel** (un job annulé
+  avant son écriture ne laisse rien). La planche téléversée elle-même n'y est pas gardée. Voir docs/fr/STUDIO-SERVER.md.
 ## Mode démo
 Le Studio tourne aussi sans aucun serveur, sur un hébergement statique : https://wanoo.github.io/web-scumm/studio.html
 est le Studio du jeu d'exemple, construit par la CI. Même interface, même vue du moteur et même éditeur de placement ;
