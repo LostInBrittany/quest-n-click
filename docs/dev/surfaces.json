@@ -242,8 +242,7 @@
    ],
    "config": [
     "docs/en/STUDIO-SERVER.md",
-    "ops/studio/**",
-    "ops/studio/worker-requirements.lock"
+    "ops/studio/**"
    ],
    "exclusions": [],
    "dependencies": [

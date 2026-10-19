@@ -211,6 +211,8 @@ export const TESTS: Record<MutationSet, string[]> = {
     'tests/studio-builds.test.ts',
     'tests/studio-prepared.test.ts',
     'tests/studio-backup.test.ts',
+    // The previews' serving (a range, a 416, what is never served) is tested there, against a real template build.
+    'tests/studio-client.test.ts',
   ],
 };
 
