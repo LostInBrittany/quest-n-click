@@ -152,11 +152,11 @@ export class S3 {
       const own = (this.o.prefix ?? '').length;
       for (const m of xml.matchAll(/<Contents>([\s\S]*?)<\/Contents>/g)) {
         const field = (n: string) => new RegExp(`<${n}>([^<]*)</${n}>`).exec(m[1]!)?.[1] ?? '';
-        const key = field('Key').replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>');
+        const key = unxml(field('Key'));
         yield { key: key.slice(own), size: Number(field('Size')), at: Date.parse(field('LastModified')) };
       }
       token = /<IsTruncated>true<\/IsTruncated>/.test(xml)
-        ? /<NextContinuationToken>([^<]*)<\/NextContinuationToken>/.exec(xml)?.[1]
+        ? unxml(/<NextContinuationToken>([^<]*)<\/NextContinuationToken>/.exec(xml)?.[1] ?? '') || undefined
         : undefined;
     } while (token);
   }
@@ -191,6 +191,14 @@ export class S3 {
   }
 }
 
+/** XML text decoded: the five entities and numeric references, each once (`&amp;lt;` is `&lt;`). */
+const unxml = (s: string) =>
+  s.replace(/&(amp|lt|gt|quot|apos|#\d+|#x[0-9a-fA-F]+);/g, (_, e: string) =>
+    e[0] === '#'
+      ? String.fromCodePoint(e[1] === 'x' ? Number.parseInt(e.slice(2), 16) : Number(e.slice(1)))
+      : ({ amp: '&', lt: '<', gt: '>', quot: '"', apos: "'" } as Record<string, string>)[e]!,
+  );
+
 /** Blobs in S3 under `sha256/<hex>`, read back and checked against their hash. */
 export function s3BlobStore(s3: S3): BlobStore {
   const key = (h: string) => {
@@ -200,7 +208,8 @@ export function s3BlobStore(s3: S3): BlobStore {
   return {
     async put(bytes) {
       const h = sha256(bytes);
-      if (!(await s3.has(key(h)))) await s3.put(key(h), bytes);
+      // Written even when it is there: its date is the last time it was stored (the collection's grace period).
+      await s3.put(key(h), bytes);
       return h;
     },
     async get(h) {

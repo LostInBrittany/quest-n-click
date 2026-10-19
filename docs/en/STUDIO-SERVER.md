@@ -192,20 +192,31 @@ installed for offline play) and its saves are not yet told apart by build.
 ## Backup and restore
 
 - **The journal shipped**: each confirmed operation is copied to the bucket, in order, as an immutable segment
-  (`journal/<epoch>/<rev>.json`; the contents are blobs already). `/readyz` gives `rpoMs`, the age of the oldest
-  operation not shipped yet (0 when everything is): the target is 1 min (D42), measured, never claimed.
+  (`journal/<epoch>/<line>/<rev>.json`; the contents are blobs already; a failure is retried within 30 s). `/readyz`
+  gives `rpoMs`, the age of the oldest operation not shipped yet (0 when everything is): the target is 1 min (D42),
+  measured, never claimed. The line is `0`, then new after each restore: the revisions a restored instance writes
+  again never overwrite the segments of the timeline it left.
 - **A backup**: `npm run studio-server -- backup <file> --config <file>` writes the project's tables in one snapshot
   (members, the journal, the head, the previews, builds and prepared sets; not the sessions nor the leases: a restore
-  logs everyone out), with the blobs they name and a digest. Daily (D42), kept off the instance.
-- **A restore**: into an empty database only (a new Postgres add-on, the same bucket):
-  `npm run studio-server -- restore <file> --replay --config <file>` checks the digest and that every blob is in the
-  bucket, writes the rows, then replays the journal shipped since the backup, up to the last operation shipped (it
-  stops at a gap). Start the server: the folder is made from the head.
+  logs everyone out; only confirmed operations), with the blobs they name and a digest. Daily (D42), kept off the
+  instance. A backup is trusted input, like the database's credentials: it can add owners. Its digest says it is
+  whole, not who made it; keep it where only operators write.
+- **A restore**: a hosted instance only, into an empty database (a new Postgres add-on, the same bucket):
+  `npm run studio-server -- restore <file> --replay --config <file>` checks the digest, the tables and columns, and
+  that every blob of the head and of the journal is in the bucket (a preview, build or prepared set whose blobs were
+  collected since is left out, and counted as `dropped`), writes the rows, then replays the journal shipped since the
+  backup. Each replayed operation must continue the head (its revision, each file's previous content, its blobs);
+  the replay stops at the first that does not (`stopped`: `gap`, `not-the-head`, `blob-missing`…). If it fails
+  midway, the server refuses to start until `npm run studio-server -- replay --config <file>` resumes it. Start the
+  server: the folder is made from the head. Replayed operations keep no answer: a client retrying one gets `null`.
+  Take a new backup after a restore: the next ones replay on the new line.
 - **The drill**: on a test instance, back up, write two changes, wait for `rpoMs` 0, drop the database, restore with
   `--replay`, start, and check the head is the last change.
 - **The collection**: `npm run studio-server -- gc --config <file>` lists the blobs no row names (older than a day)
-  and the worker's staging older than an hour; `--delete` deletes them. Run it after a backup, never with a backup
-  you may still restore that names them.
+  and the worker's staging older than an hour; `--delete` deletes them. A blob stored again gets a new date, so a
+  write naming an old blob is covered by the day of grace. The head's and the journal's blobs are never collected (the
+  journal keeps every operation); an older backup restored after a collection only loses the previews, builds and
+  prepared sets the collection took.
 
 ## Working together
 

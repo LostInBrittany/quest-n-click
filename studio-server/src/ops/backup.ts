@@ -3,7 +3,10 @@
 // for every table of the migrations, whether it is kept or why not (a table neither kept nor skipped refuses the
 // backup: a new table is never forgotten); the blobs the kept rows name are listed, not copied (they are the bucket's,
 // content-addressed, never rewritten). A restore goes into an empty project only, after checking that every blob is
-// there; the journal's shipped segments then bring it from the backup's revision to the last one shipped.
+// there; the journal's shipped segments then bring it from the backup's revision to the last one shipped. Only
+// confirmed operations are kept: one under way or aborted at the snapshot is not the project's (its revision is not).
+// A backup is trusted input (it can add owners): its digest says it is whole, not who made it; its tables and columns
+// are still checked against the schema's before a row goes in.
 import { createHash } from 'node:crypto';
 import type { SqlDb, SqlQuery } from '../../../bridge/src/store-sql';
 import type { BlobStore } from './blobs';
@@ -78,26 +81,39 @@ async function tablesIn(q: SqlQuery, dialect: SqlDb['dialect']): Promise<string[
   return rows.map((r) => String(r.name)).sort();
 }
 
+/** The blobs one kept row names. */
+function blobsOfRow(table: string, r: Record<string, unknown>): string[] {
+  const out: unknown[] = [];
+  if (table === 'studio_files') out.push(r.blob);
+  else if (table === 'studio_ops')
+    for (const e of JSON.parse(String(r.effects)) as { before: string; after: string }[]) out.push(e.before, e.after);
+  else if ((table === 'studio_previews' || table === 'studio_prepared') && r.manifest)
+    out.push(...Object.values(JSON.parse(String(r.manifest)) as Record<string, string>));
+  else if (table === 'studio_builds' && r.manifest)
+    out.push(...(JSON.parse(String(r.manifest)) as { files: [string, string][] }).files.map(([, h]) => h));
+  return out.filter((h): h is string => typeof h === 'string' && h !== ABSENT && /^[0-9a-f]{64}$/.test(h));
+}
+
+/** The project's own tables: their blobs must all be there for a restore. The others' rows are derived. */
+const ESSENTIAL = new Set(['studio_files', 'studio_ops']);
+
 /** The blobs the kept rows name. */
 export function referencedBlobs(tables: StudioBackup['tables']): Set<string> {
   const out = new Set<string>();
-  const add = (h: unknown) => {
-    if (typeof h === 'string' && /^[0-9a-f]{64}$/.test(h)) out.add(h);
-  };
-  for (const r of tables.studio_files ?? []) add(r.blob);
-  for (const r of tables.studio_ops ?? [])
-    for (const e of JSON.parse(String(r.effects)) as { before: string; after: string }[]) {
-      add(e.before);
-      add(e.after);
-    }
-  for (const r of tables.studio_previews ?? [])
-    if (r.manifest) for (const h of Object.values(JSON.parse(String(r.manifest)) as Record<string, string>)) add(h);
-  for (const r of tables.studio_prepared ?? [])
-    for (const h of Object.values(JSON.parse(String(r.manifest)) as Record<string, string>)) add(h);
-  for (const r of tables.studio_builds ?? [])
-    if (r.manifest) for (const [, h] of (JSON.parse(String(r.manifest)) as { files: [string, string][] }).files) add(h);
-  out.delete(ABSENT);
+  for (const [t, rows] of Object.entries(tables)) for (const r of rows) for (const h of blobsOfRow(t, r)) out.add(h);
   return out;
+}
+
+/** The columns a table has, as the schema says. */
+async function columnsOf(q: SqlQuery, dialect: SqlDb['dialect'], table: string): Promise<Set<string>> {
+  const rows =
+    dialect === 'postgres'
+      ? await q.all(
+          'SELECT column_name AS name FROM information_schema.columns WHERE table_schema = current_schema() AND table_name = $1',
+          [table],
+        )
+      : await q.all('SELECT name FROM pragma_table_info($1)', [table]);
+  return new Set(rows.map((r) => String(r.name)));
 }
 
 /** One snapshot of the project, in one read-only transaction. */
@@ -111,7 +127,8 @@ export async function backupOf(db: SqlDb, now = Date.now()): Promise<StudioBacku
         throw new Error(`backup: the tables ${unknown.join(', ')} are neither kept nor skipped (ops/backup.ts)`);
       const tables: StudioBackup['tables'] = {};
       for (const t of present.filter((t) => TABLES[t] === 'kept')) {
-        const rows = (await q.all(`SELECT * FROM ${t}`)).map((r) => ({ ...r }));
+        const only = t === 'studio_ops' ? " WHERE state = 'confirmed'" : '';
+        const rows = (await q.all(`SELECT * FROM ${t}${only}`)).map((r) => ({ ...r }));
         tables[t] = rows.sort((a, b) => (JSON.stringify(canonical(a)) < JSON.stringify(canonical(b)) ? -1 : 1));
       }
       const meta = Object.fromEntries((tables.studio_meta ?? []).map((r) => [String(r.key), String(r.value)]));
@@ -145,12 +162,34 @@ export function checkBackup(input: unknown): StudioBackup {
 }
 
 /**
- * Restores a checked backup into an empty project (its tables migrated, none of the kept ones holding a row): every
- * blob it names checked first, then every row in one transaction. Never over a project that holds anything.
+ * Restores a checked backup into an empty project (its tables migrated, none of the kept ones holding a row): the head's
+ * and the operations' blobs checked first (one missing refuses the restore); a preview, build or prepared set whose
+ * blobs were collected since is left out, and counted. Then every row in one transaction, the project marked as being
+ * restored until `finishRestore` (ops/ship.ts). Never over a project that holds anything.
  */
-export async function restoreInto(db: SqlDb, blobs: BlobStore, b: StudioBackup): Promise<{ rows: number }> {
+export async function restoreInto(
+  db: SqlDb,
+  blobs: BlobStore,
+  b: StudioBackup,
+): Promise<{ rows: number; dropped: number }> {
+  const has = new Map<string, boolean>();
+  const there = async (h: string) => {
+    if (!has.has(h)) has.set(h, await blobs.has(h));
+    return has.get(h)!;
+  };
   const missing: string[] = [];
-  for (const h of referencedBlobs(b.tables)) if (!(await blobs.has(h))) missing.push(h);
+  const tables: StudioBackup['tables'] = {};
+  let dropped = 0;
+  for (const [t, rows] of Object.entries(b.tables)) {
+    tables[t] = [];
+    for (const r of rows) {
+      const gone: string[] = [];
+      for (const h of blobsOfRow(t, r)) if (!(await there(h))) gone.push(h);
+      if (!gone.length) tables[t].push(r);
+      else if (ESSENTIAL.has(t)) missing.push(...gone);
+      else dropped++;
+    }
+  }
   if (missing.length)
     throw new Error(`restore: ${missing.length} blob(s) the backup names are missing (first: ${missing[0]})`);
   return db.tx('studio', async (q) => {
@@ -163,15 +202,22 @@ export async function restoreInto(db: SqlDb, blobs: BlobStore, b: StudioBackup):
         throw new Error(`restore: the project is not empty (${t} holds rows): restore into a new one`);
     }
     let rows = 0;
-    for (const [t, list] of Object.entries(b.tables))
+    for (const [t, list] of Object.entries(tables)) {
+      const known = await columnsOf(q, db.dialect, t);
       for (const row of list) {
         const cols = Object.keys(row);
+        const odd = cols.find((c) => !known.has(c));
+        if (odd !== undefined) throw new Error(`restore: ${t} has no column ${JSON.stringify(odd).slice(0, 80)}`);
         await q.run(
           `INSERT INTO ${t} (${cols.join(', ')}) VALUES (${cols.map((_, i) => `$${i + 1}`).join(', ')})`,
           cols.map((c) => row[c]),
         );
         rows++;
       }
-    return { rows };
+    }
+    await q.run(
+      "INSERT INTO studio_meta (key, value) VALUES ('restoring', '1') ON CONFLICT (key) DO UPDATE SET value = '1'",
+    );
+    return { rows, dropped };
   });
 }

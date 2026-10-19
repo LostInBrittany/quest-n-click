@@ -3,7 +3,17 @@
 // journal shipped since brings it to the last operation shipped; a backup altered, a project not empty, a blob
 // missing, another schema are refused; the RPO is the age of what is not shipped yet; the collection keeps what a row
 // names and what is young, and deletes only when asked.
-import { cpSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import {
+  cpSync,
+  mkdirSync,
+  mkdtempSync,
+  readdirSync,
+  readFileSync,
+  rmSync,
+  statSync,
+  utimesSync,
+  writeFileSync,
+} from 'node:fs';
 import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { migrate } from '../bridge/src/migrations';
@@ -13,7 +23,7 @@ import { backupOf, checkBackup, restoreInto, TABLES } from '../studio-server/src
 import { type BlobStore, fsBlobStore } from '../studio-server/src/ops/blobs';
 import { collect } from '../studio-server/src/ops/gc';
 import { Journal } from '../studio-server/src/ops/journal';
-import { replaySegments, type Segments, Shipper } from '../studio-server/src/ops/ship';
+import { finishRestore, replaySegments, type Segments, Shipper } from '../studio-server/src/ops/ship';
 
 const ROOT = join(import.meta.dirname, '..');
 const MIGRATIONS = new URL('../studio-server/migrations/', import.meta.url);
@@ -89,14 +99,24 @@ describe("the Studio Server's backup", () => {
     await restoreInto(fresh, blobs, backup);
     const [rev] = await fresh.all("SELECT value FROM studio_meta WHERE key = 'revision'");
     expect(Number(rev!.value)).toBe(b.revision);
-    expect(await replaySegments(fresh, segments, backup)).toBe(await a.j.revision());
+    expect(await replaySegments(fresh, segments, blobs)).toEqual({
+      revision: await a.j.revision(),
+      stopped: undefined,
+    });
     expect(await head(fresh)).toEqual(await head(a.db));
+    // The restore ended: the instance ships on a new line, never over the segments of the one it left.
+    const before = new Map(segments.m);
+    await finishRestore(fresh);
     // The restored project opens: its folder made from the head.
     const game = join(tmp, 'game-restored');
     mkdirSync(game);
     const j = await Journal.open({ db: fresh, blobs, gameDir: game, hosted: true });
     expect(await j.revision()).toBe(await a.j.revision());
     expect(readFileSync(join(game, 'extra.md'), 'utf8')).toBe('three');
+    await j.apply({ author: 'lea', what: 'w', effects: [{ path: 'notes.md', after: 'four' }], respond: () => 0 });
+    await new Shipper({ db: fresh, segments }).ship();
+    expect(segments.m.size).toBe(before.size + 1);
+    for (const [k, v] of before) expect(segments.m.get(k)).toEqual(v);
     await j.close();
     await a.j.close();
   });
@@ -143,7 +163,76 @@ describe("the Studio Server's backup", () => {
     const fresh = await openDb('fresh');
     await migrate(fresh, { dir: MIGRATIONS });
     await restoreInto(fresh, blobs, b);
-    expect(await replaySegments(fresh, segments, b)).toBe(b.revision);
+    expect(await replaySegments(fresh, segments, blobs)).toEqual({ revision: b.revision, stopped: 'gap' });
+    await a.j.close();
+  });
+
+  it('stops a replay that does not continue the head, or whose blob is missing', async () => {
+    const a = await project('a');
+    await a.write('notes.md', 'one');
+    const b = await backupOf(a.db);
+    await a.write('notes.md', 'two');
+    const segments = memorySegments();
+    await new Shipper({ db: a.db, segments }).ship();
+    const fresh = await openDb('fresh');
+    await migrate(fresh, { dir: MIGRATIONS });
+    await restoreInto(fresh, blobs, b);
+    expect(await replaySegments(fresh, segments, fsBlobStore(join(tmp, 'no-blobs')))).toEqual({
+      revision: b.revision,
+      stopped: 'blob-missing',
+    });
+    // Another timeline's segment at the next revision: its `before` is not the head's.
+    const key = [...segments.m.keys()].sort().at(-1)!;
+    const s = JSON.parse(segments.m.get(key)!.toString());
+    s.op.effects = JSON.stringify(
+      (JSON.parse(s.op.effects) as { before: string }[]).map((e) => ({ ...e, before: 'f'.repeat(64) })),
+    );
+    segments.m.set(key, Buffer.from(JSON.stringify(s)));
+    expect(await replaySegments(fresh, segments, blobs)).toEqual({ revision: b.revision, stopped: 'not-the-head' });
+    expect(await head(fresh)).toEqual(b.tables.studio_files!.map((r) => `${r.path}=${r.blob}`).sort());
+    await a.j.close();
+  });
+
+  it('keeps only confirmed operations, refuses a column the schema has not, leaves out what was collected', async () => {
+    const a = await project('a');
+    await a.write('notes.md', 'one');
+    const rev = await a.j.revision();
+    await a.db.run(
+      "INSERT INTO studio_ops (op_id, rev, author, what, state, effects, response, at) VALUES ('stuck', $1, 'lea', 'w', 'intent', '[]', NULL, 0)",
+      [rev + 1],
+    );
+    const gone = 'e'.repeat(64);
+    await a.db.run(
+      'INSERT INTO studio_previews (epoch, rev, manifest, failed, ms, made_at) VALUES ($1, $2, $3, NULL, 1, 1)',
+      [await a.j.epoch(), rev, JSON.stringify({ 'index.html': gone })],
+    );
+    const b = await backupOf(a.db);
+    expect(b.tables.studio_ops!.every((r) => r.state === 'confirmed')).toBe(true);
+    const fresh = await openDb('fresh');
+    await migrate(fresh, { dir: MIGRATIONS });
+    const odd = { ...b, tables: { ...b.tables, studio_audit: [{ 'at) VALUES (1); DROP TABLE studio_files; --': 1 }] } };
+    await expect(restoreInto(fresh, blobs, odd)).rejects.toThrow(/has no column/);
+    expect(await restoreInto(fresh, blobs, b)).toMatchObject({ dropped: 1 });
+    expect(await fresh.all('SELECT rev FROM studio_previews')).toEqual([]);
+    await a.db.run("DELETE FROM studio_ops WHERE op_id = 'stuck'");
+    await a.j.close();
+  });
+
+  it('ships again after a failure, without waiting for the next operation', async () => {
+    const a = await project('a');
+    await a.write('notes.md', 'one');
+    const segments = memorySegments();
+    let fail = true;
+    const flaky = {
+      ...segments,
+      put: (k: string, v: Buffer) => (fail ? Promise.reject(new Error('away')) : segments.put(k, v)),
+    };
+    const ship = new Shipper({ db: a.db, segments: flaky, retryMs: 20 });
+    await ship.ship();
+    expect(segments.m.size).toBe(0);
+    fail = false;
+    await expect.poll(() => segments.m.size, { timeout: 2_000 }).toBe(await a.j.revision());
+    ship.close();
     await a.j.close();
   });
 });
@@ -155,6 +244,11 @@ describe('the collection of the blobs', () => {
     const orphan = await blobs.put(Buffer.from('nobody names me'));
     const young = await blobs.put(Buffer.from('written a moment ago'));
     const now = Date.now() + 2 * 86_400_000;
+    // Stored again: its date is now, the grace period covers it (a write naming an old blob again).
+    const file = join(tmp, 'blobs', orphan.slice(0, 2), orphan.slice(2));
+    utimesSync(file, 0, 0);
+    await blobs.put(Buffer.from('nobody names me'));
+    expect(statSync(file).mtimeMs).toBeGreaterThan(0);
     // The young one: written "now" as far as the collection is concerned.
     const listed = blobs.list!.bind(blobs);
     const store: BlobStore = {

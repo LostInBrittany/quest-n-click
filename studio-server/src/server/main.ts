@@ -6,7 +6,8 @@
 //   login --server <url>, token --server <url>       the CLI's device flow, and its current access token
 //   deps           its own dependencies (OpenID Connect, JWT, Postgres): the version and folder each resolves to
 //   backup <file>  the project's tables, one snapshot, with the blobs they name (4.2.2, ops/backup.ts)
-//   restore <file> [--replay]   a backup into an empty project, then (--replay) the journal shipped since
+//   restore <file> [--replay]   a backup into an empty hosted project, then (--replay) the journal shipped since
+//   replay         a restore's replay resumed (after it stopped), then the restore ended
 //   gc [--delete]  the blobs no row names (older than a day) and the worker's old staging: listed, or deleted
 // Secrets come from `<NAME>_FILE` or the environment (config.ts) and leave `process.env` before anything else runs.
 import { createHash, createPrivateKey, createPublicKey, sign } from 'node:crypto';
@@ -23,7 +24,7 @@ import { sha256 } from '../ops/durable';
 import { Journal } from '../ops/journal';
 import { backupOf, checkBackup, restoreInto } from '../ops/backup';
 import { collect } from '../ops/gc';
-import { replaySegments, Shipper } from '../ops/ship';
+import { finishRestore, replaySegments, Shipper } from '../ops/ship';
 import { migrate } from '../../../bridge/src/migrations';
 import { ConfigError, loadConfig, type StudioServerConfig, takeSecrets } from './config';
 import { accessToken, deviceLogin } from './auth/device';
@@ -148,7 +149,7 @@ async function main(argv: string[]): Promise<number> {
     ? { put: (k: string, b: Buffer) => s3.put(k, b), get: (k: string) => s3.get(k), list: (p: string) => s3.list(p) }
     : undefined;
 
-  if (cmd === 'backup' || cmd === 'restore' || cmd === 'gc') {
+  if (cmd === 'backup' || cmd === 'restore' || cmd === 'replay' || cmd === 'gc') {
     await migrate(db, { dir: new URL('../../migrations/', import.meta.url) });
     if (cmd === 'backup') {
       const out = args[0] && resolve(args[0]);
@@ -161,21 +162,43 @@ async function main(argv: string[]): Promise<number> {
       console.log(JSON.stringify({ event: 'backup', revision: b.revision, blobs: b.blobs.length, digest: b.digest }));
       return 0;
     }
-    if (cmd === 'restore') {
-      const from = args.find((a) => !a.startsWith('--'));
-      if (!from || !existsSync(from)) {
-        console.error('restore: a backup file is required');
-        return 2;
+    if (cmd === 'restore' || cmd === 'replay') {
+      // Hosted only: a local journal adopts its folder as it finds it, which would undo the head restored.
+      if (!hosted) throw new ConfigError(`${cmd} restores a hosted project: store.kind is postgres`);
+      if ((cmd === 'replay' || args.includes('--replay')) && !segments)
+        throw new ConfigError(`${cmd} reads the journal shipped to the bucket: blobs.kind is s3`);
+      let restored: Record<string, unknown> = {};
+      if (cmd === 'restore') {
+        const from = args.find((a) => !a.startsWith('--'));
+        if (!from || !existsSync(from)) {
+          console.error('restore: a backup file is required');
+          return 2;
+        }
+        const b = checkBackup(JSON.parse(readFileSync(from, 'utf8')));
+        const r = await restoreInto(db, blobs, b);
+        restored = { rows: r.rows, dropped: r.dropped, backup: b.revision };
+      } else {
+        const [r] = await db.all("SELECT value FROM studio_meta WHERE key = 'restoring'");
+        if (!r) {
+          console.error('replay: no restore is under way');
+          return 1;
+        }
       }
-      const b = checkBackup(JSON.parse(readFileSync(from, 'utf8')));
-      const r = await restoreInto(db, blobs, b);
-      let revision = b.revision;
-      if (args.includes('--replay')) {
-        if (!segments)
-          throw new ConfigError('restore --replay reads the journal shipped to the bucket: blobs.kind is s3');
-        revision = await replaySegments(db, segments, b);
-      }
-      console.log(JSON.stringify({ event: 'restored', rows: r.rows, backup: b.revision, revision }));
+      // A replay that throws leaves the restore under way: `replay` resumes it, and the server will not serve meanwhile.
+      const replayed =
+        segments && (cmd === 'replay' || args.includes('--replay'))
+          ? await replaySegments(db, segments, blobs)
+          : undefined;
+      await finishRestore(db);
+      const [rev] = await db.all("SELECT value FROM studio_meta WHERE key = 'revision'");
+      console.log(
+        JSON.stringify({
+          event: 'restored',
+          ...restored,
+          revision: Number(rev?.value ?? 0),
+          stopped: replayed?.stopped,
+        }),
+      );
       return 0;
     }
     const r = await collect(db, blobs, {
@@ -218,6 +241,9 @@ async function main(argv: string[]): Promise<number> {
     await j.close();
     return 0;
   }
+
+  const [restoring] = await db.all("SELECT value FROM studio_meta WHERE key = 'restoring'").catch(() => []);
+  if (restoring) throw new ConfigError('a restore is under way: end it with `replay` (see STUDIO-SERVER.md)');
 
   // A shared Studio (OIDC): every write claims the spans of its files, in the transaction of its intent (P2).
   const leases = config.oidc ? new Leases(db) : undefined;
@@ -578,6 +604,7 @@ async function main(argv: string[]): Promise<number> {
     server.closeAllConnections?.();
     previews?.close();
     health?.close();
+    shipper?.close();
     await journal.close().catch(() => undefined);
     await lease.release();
     setTimeout(() => process.exit(0), 100).unref();

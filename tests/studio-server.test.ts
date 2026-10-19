@@ -14,7 +14,7 @@ import { sha256 } from '../studio-server/src/ops/durable';
 import { Journal } from '../studio-server/src/ops/journal';
 import { migrate } from '../bridge/src/migrations';
 import { backupOf, checkBackup, restoreInto } from '../studio-server/src/ops/backup';
-import { replaySegments, Shipper } from '../studio-server/src/ops/ship';
+import { finishRestore, replaySegments, Shipper } from '../studio-server/src/ops/ship';
 import { ConfigError, loadConfig, takeSecrets } from '../studio-server/src/server/config';
 import { studioServer } from '../studio-server/src/server/http';
 import { openPostgresDb } from '../studio-server/src/server/postgres';
@@ -426,19 +426,21 @@ describe.runIf(PG && S3URL)('hosted: Postgres and S3', () => {
     expect(await ship.rpoMs()).toBe(0);
     const last = await j.revision();
     await j.close();
-    // The database is lost: a new one, restored, then the journal shipped since.
-    await db.exec('DROP SCHEMA public CASCADE; CREATE SCHEMA public');
-    await migrate(db, { dir: new URL('../studio-server/migrations/', import.meta.url) });
-    await restoreInto(db, blobs, b);
-    expect(await replaySegments(db, segments, b)).toBe(last);
-    const [f] = await db.all("SELECT blob FROM studio_files WHERE path = 'notes.json'");
+    // The database is lost: a new one, restored, then the journal shipped since (closing the journal ended its pool).
+    const db2 = await openPostgresDb(PG!);
+    await db2.exec('DROP SCHEMA public CASCADE; CREATE SCHEMA public');
+    await migrate(db2, { dir: new URL('../studio-server/migrations/', import.meta.url) });
+    await restoreInto(db2, blobs, b);
+    expect(await replaySegments(db2, segments, blobs)).toEqual({ revision: last, stopped: undefined });
+    await finishRestore(db2);
+    const [f] = await db2.all("SELECT blob FROM studio_files WHERE path = 'notes.json'");
     expect((await blobs.get(String(f!.blob))).toString()).toBe('{"entries":[2]}');
     // The bucket lists its blobs, as the collection reads them.
     let seen = 0;
     for await (const x of blobs.list!()) if (x.hash === String(f!.blob)) seen++;
     expect(seen).toBe(1);
     for await (const o of c.list(prefix)) await c.delete(o.key);
-    await db.close();
+    await db2.close();
   }, 60_000);
 
   it('a hosted journal rebuilds a lost folder from the database and the blobs', async () => {

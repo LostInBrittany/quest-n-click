@@ -223,10 +223,10 @@ export default defineConfig({
       thresholds: {
         // The floor measured at 4.1.0 (the browser-only parts of src/, the player's UI and the Studio's, are covered
         // by the e2e, not here).
-        lines: 73,
-        statements: 72,
+        lines: 74,
+        statements: 73,
         functions: 71,
-        branches: 68,
+        branches: 69,
         // What a save, a session, a condition and a migration rest on: every branch.
         'src/engine/core/cond.ts': { branches: 100 },
         'src/engine/core/diff.ts': { branches: 100 },
@@ -247,7 +247,7 @@ export default defineConfig({
         'src/engine/reality/http-port.ts': { lines: 98, branches: 95 },
         // The Studio Server's trust boundaries (4.2.1): the journal, the gate and its provider, the leases, the game's
         // origin, the worker's jobs. Two points under what was measured when they arrived; they may only rise.
-        'studio-server/src/ops/backup.ts': { lines: 91, branches: 68 },
+        'studio-server/src/ops/backup.ts': { lines: 95, branches: 80 },
         'studio-server/src/ops/gc.ts': { lines: 98, branches: 83 },
         'studio-server/src/ops/ship.ts': { lines: 98, branches: 78 },
         'studio-server/src/ops/journal.ts': { lines: 96, branches: 94 },
