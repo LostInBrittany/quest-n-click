@@ -197,6 +197,16 @@ on the worker as it is now, not that its content is harmless. A build's code nev
 the instance's prepared assets, served beside it as they are now. A published build has no service worker (it is not
 installed for offline play) and its saves are not yet told apart by build.
 
+## Comments (4.2.3)
+
+In the Notes tab of a shared Studio, a member comments on what the game names (a room, `hall.door`, `item:key`, a
+rule's id, a storyboard panel), or on the game itself. A comment keeps the revision it was written at; replies make a
+thread, resolved or opened again as one. Reviewers comment too: comments are kept by the Studio (in its database, in
+the backup), never in a game file, so no game file is written for them. A comment whose anchor the game no longer
+names is said "orphan", never attached elsewhere. Its author alone changes its text; a reviewer resolves their own
+threads, a dev any. An owner brings the notes of `notes.json` in (each once, its `about` the anchor). Routes: GET/POST
+`/api/comments`, PUT `/api/comments/<id>`, POST `/api/comments/import-notes`.
+
 ## Backup and restore
 
 - **The journal shipped**: each confirmed operation is copied to the bucket, in order, as an immutable segment

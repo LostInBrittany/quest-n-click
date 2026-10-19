@@ -13,6 +13,7 @@ import { inAllowlist } from '../../../bridge/src/allowlist';
 import type { SqlDb } from '../../../bridge/src/store-sql';
 import { operationContext, type Studio } from '../ops/core';
 import { isStudioError, StudioError } from '../ops/errors';
+import type { Comments } from './comments';
 import type { Journal } from '../ops/journal';
 import { isBody, routes } from '../ops/routes';
 import type { Gate } from './auth/gate';
@@ -118,6 +119,8 @@ export interface StudioServerOptions {
   builds?: Builds;
   /** The prepared assets (4.2.2 PR 6b): `/api/assets/prepare`. */
   prepared?: PreparedAssets;
+  /** Comments anchored on the game's stable ids (4.2.3, H2). */
+  comments?: Comments;
   /** The game's origin (plan §6.1): every request whose `Host` is `playUrl`'s goes there, and nothing else does. */
   play?: { handler: Play; playUrl: string };
   /** The Studio's page, its files and the game's images and sounds (PR 7, client.ts). */
@@ -177,6 +180,9 @@ class Buckets {
 export function roleFor(method: string, sub: string): Role {
   // The heartbeat says who is here: a reviewer is here too.
   if (method === 'POST' && (sub === '/presence' || sub === '/play-ticket')) return 'reviewer';
+  // Comments (4.2.3, H2) are a reviewer's too: they write no game file.
+  if ((method === 'POST' && sub === '/comments') || (method === 'PUT' && /^\/comments\/[\w-]+$/.test(sub)))
+    return 'reviewer';
   return method === 'GET' || (method === 'POST' && READ_POSTS.test(sub)) ? 'reviewer' : 'dev';
 }
 
@@ -348,6 +354,37 @@ export function studioServer(o: StudioServerOptions): StudioHttpServer {
         const claimant = principal ? { userId: principal.user.id, name } : undefined;
         const r = await operationContext.run({ author, claimant }, () => o.prepared!.prepare(name));
         return send(res, 200, r);
+      }
+      // Comments (4.2.3, H2): read and written by a reviewer (no game file); the notes imported by an owner.
+      if (sub === '/comments' || sub.startsWith('/comments/')) {
+        if (!o.comments) throw new StudioError("comments are a shared Studio's", 404);
+        const who = {
+          id: principal?.user.id ?? 'local',
+          name: principal?.user.name ?? principal?.user.email ?? 'local',
+        };
+        if (req.method === 'GET' && sub === '/comments') {
+          const anchor = url.searchParams.get('anchor');
+          return send(res, 200, { comments: await o.comments.list(anchor ?? undefined) });
+        }
+        if (req.method === 'POST' && sub === '/comments')
+          return send(res, 200, await o.comments.add((await readJson(req)) as Record<string, unknown>, who));
+        if (req.method === 'POST' && sub === '/comments/import-notes') {
+          if (principal) o.auth!.gate.require(principal, 'owner');
+          return send(res, 200, await o.comments.importNotes(o.studio.getNotes().entries, who));
+        }
+        const m = /^\/comments\/([\w-]+)$/.exec(sub);
+        if (req.method === 'PUT' && m) {
+          const canResolve = !principal || principal.role === 'dev' || principal.role === 'owner';
+          return send(
+            res,
+            200,
+            await o.comments.update(m[1]!, (await readJson(req)) as Record<string, unknown>, {
+              id: who.id,
+              canResolve,
+            }),
+          );
+        }
+        throw new StudioError('not found', 404);
       }
       // The published builds (4.2.2, G6): listed and read by a reviewer, published by a dev, rebuilt by an owner.
       if (sub === '/builds' || sub.startsWith('/builds/')) {

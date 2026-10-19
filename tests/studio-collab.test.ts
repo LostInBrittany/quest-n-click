@@ -16,6 +16,7 @@ import { Gate } from '../studio-server/src/server/auth/gate';
 import { Oidc } from '../studio-server/src/server/auth/oidc';
 import { authRoutes } from '../studio-server/src/server/auth/routes';
 import { AuthStore, Sealer } from '../studio-server/src/server/auth/store';
+import { Comments } from '../studio-server/src/server/comments';
 import { readJson, send, studioServer } from '../studio-server/src/server/http';
 import { Leases, SpanLocked } from '../studio-server/src/server/leases';
 import { Presence } from '../studio-server/src/server/live';
@@ -127,6 +128,7 @@ beforeAll(async () => {
     auth: { gate, handle, audit: (a, e, d) => store.audit(a, e, d) },
     leases,
     presence,
+    comments: new Comments({ db, known: async () => new Set(['start']), revision: () => journal.revision() }),
   });
   await new Promise<void>((ok) => server.listen(port, '127.0.0.1', ok));
   for (const [who, role] of [
@@ -255,6 +257,19 @@ describe('a shared Studio', () => {
     expect((await as('tom', 'POST', '/exclusive', {})).status).toBe(403);
     await as('lea', 'POST', '/exclusive/release', {});
   }, 60_000);
+
+  it('lets a reviewer comment, never write the game; the notes come in by an owner (H2)', async () => {
+    const r = await as('ana', 'POST', '/comments', { anchor: 'start', text: 'The light is lovely' });
+    expect(r.status).toBe(200);
+    const c = (await r.json()) as { id: string; author: string; orphan: boolean };
+    expect(c).toMatchObject({ author: 'Ana', orphan: false });
+    expect((await as('ana', 'PUT', `/comments/${c.id}`, { text: 'The light is lovely here' })).status).toBe(200);
+    expect((await as('ana', 'POST', '/notes', { text: 'a note' })).status).toBe(403);
+    const list = (await (await as('ana', 'GET', '/comments?anchor=start')).json()) as { comments: { id: string }[] };
+    expect(list.comments.map((x) => x.id)).toContain(c.id);
+    expect((await as('tom', 'POST', '/comments/import-notes', {})).status).toBe(403);
+    expect((await as('lea', 'POST', '/comments/import-notes', {})).status).toBe(200);
+  });
 
   it('undo waits for 4.2.2 on a shared Studio', async () => {
     expect((await as('tom', 'POST', '/undo', {})).status).toBe(409);

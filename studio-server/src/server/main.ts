@@ -17,6 +17,7 @@ import { fileURLToPath } from 'node:url';
 import { openSqliteDb } from '../../../bridge/src/store-sqlite';
 import type { SqlDb } from '../../../bridge/src/store-sql';
 import { createStudio, operationContext } from '../ops/core';
+import { Comments } from './comments';
 import { StudioError } from '../ops/errors';
 import { spansOf } from '../ops/spans';
 import { type BlobStore, fsBlobStore } from '../ops/blobs';
@@ -509,6 +510,31 @@ async function main(argv: string[]): Promise<number> {
   const jobKey = secrets.STUDIO_WORKER_KEY
     ? createPrivateKey(secrets.STUDIO_WORKER_KEY.replace(/\\n/g, '\n'))
     : undefined;
+  // Comments (4.2.3, H2), on a shared Studio: what the game names, read once per revision (the IR runs the game).
+  let knownAt: { rev: number; set: Set<string> } | undefined;
+  const comments = config.oidc
+    ? new Comments({
+        db,
+        revision: () => journal.revision(),
+        known: async () => {
+          const rev = await journal.revision();
+          if (knownAt?.rev === rev) return knownAt.set;
+          try {
+            const ir = await studio.ir();
+            const sb = studio.getStoryboard() as { boards?: { id?: unknown; panels?: { id?: unknown }[] }[] };
+            const set = new Set(Object.keys(ir.provenance));
+            for (const b of sb.boards ?? []) {
+              if (typeof b.id === 'string') set.add(b.id);
+              for (const p of b.panels ?? []) if (typeof p.id === 'string') set.add(p.id);
+            }
+            knownAt = { rev, set };
+            return set;
+          } catch {
+            return knownAt?.set ?? null;
+          }
+        },
+      })
+    : undefined;
   const builds =
     executor && hosted && jobKey
       ? new Builds({
@@ -567,6 +593,7 @@ async function main(argv: string[]): Promise<number> {
     personalUndo: !!personalUndo,
     builds,
     prepared,
+    comments,
     rpo: shipper ? () => shipper.rpoMs() : undefined,
     play,
     client,
