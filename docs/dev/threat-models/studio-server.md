@@ -62,6 +62,7 @@ tickets and its previews (§6.1; 4.2.2: one build per revision, plan 4.2.2 §2.2
 | A forged or replayed job | Jobs signed with Ed25519 by the Studio, the worker holding the public key only; the signature binds id, instance, epoch, revision, snapshot hash, kind, parameters, staging prefix, expiry (≤ 5 min) and the two presigned URLs; a job is run once per worker process, never after its expiry (checked again when it leaves the queue); another instance's job is refused | `tests/studio-worker.test.ts` |
 | A worker naming what the Studio publishes | The Studio reads the result itself (stopping past 32 MiB), checks it answers its job, and deletes the staging prefix; a presigned write reaches its one key only | `tests/studio-worker.test.ts` (another job's answer refused; Cellar scope) |
 | A snapshot leaving its folder | Unpacked paths are relative, without `..`, empty segments or dotfiles, text files only, bounded in count and size | `tests/studio-worker.test.ts` |
+| An AI agent through the remote MCP (4.2.3, ADR 0029) | `/mcp` takes an access token for this Studio's audience only (policy B), never the session cookie; it is stateless, so no stream outlives a revocation; each tool is a request to this server's own `/api` on the loopback with the caller's token: the gate, the role, the spans, the journal and the replay are the API's own code; what needs the repository (screenshots, tests, documents) is not offered | `tests/studio-mcp-remote.test.ts` |
 
 **Residual risks.**
 - **The worker runs hostile code with the job's capabilities in reach** (ADR 0028): the presigned URLs and the job
@@ -94,5 +95,9 @@ tickets and its previews (§6.1; 4.2.2: one build per revision, plan 4.2.2 §2.2
   good): they cannot load its page again, but what they already downloaded is theirs, as any page they saw.
 - **The previews take room** (about 1 MB per revision for the sample game, plus files shared by content): their rows
   are kept, so the collection (`gc`, 4.2.2) removes only what no row names any more; pruning old previews is for later.
+- **The remote MCP (4.2.3)**: its tokens must carry the Studio's `oidc.audience`, whatever MCP's `resource` asked; the
+  loopback's refused tokens are counted for the loopback's address (many at once make the next refusals 429 for a
+  minute, never a valid request); the MCP SDK (`^1.32`, with express and hono) now runs in the server process, unlocked
+  like the engine's other dependencies.
 - **Presence lives in memory** and is lost on a restart (members reappear at their next heartbeat).
 - **`fsync` on macOS is not `F_FULLFSYNC`.** This only matters in local mode.
