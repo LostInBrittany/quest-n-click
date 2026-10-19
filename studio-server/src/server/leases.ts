@@ -197,3 +197,45 @@ export class Leases {
     );
   }
 }
+
+/**
+ * The project's exclusive lease (`*`) around a long operation of the member who asks (4.2.2 prepare, 4.2.3 the engine's
+ * upgrade; without a claimant, `fn` alone): renewed every `everyMs` while it runs (the lease's TTL is 120 s), given back
+ * by the last of the member's operations that took it (two of theirs at once never release each other's), and never
+ * when the member held it before the first began.
+ */
+export function exclusiveRunner(
+  leases: Pick<Leases, 'list' | 'take' | 'renew' | 'release'>,
+  /** Who asks (the request's claimant), or undefined. */
+  claimant: () => Claimant | undefined,
+  o: { everyMs?: number; log?: (line: Record<string, unknown>) => void } = {},
+) {
+  const runs = new Map<string, { n: number; took: boolean }>();
+  return async <T>(fn: () => Promise<T>): Promise<T> => {
+    const who = claimant();
+    if (!who) return fn();
+    let run = runs.get(who.userId);
+    if (!run) {
+      const had = (await leases.list()).some((l) => l.span === EXCLUSIVE && l.holder === who.userId);
+      run = runs.get(who.userId) ?? { n: 0, took: !had };
+      runs.set(who.userId, run);
+    }
+    run.n++;
+    const renew = setInterval(() => {
+      leases
+        .renew(who.userId)
+        .catch((e) => o.log?.({ event: 'lease-renew-failed', message: String((e as Error)?.message ?? e) }));
+    }, o.everyMs ?? 30_000);
+    renew.unref?.();
+    try {
+      if (run.took) await leases.take(who, [EXCLUSIVE]);
+      return await fn();
+    } finally {
+      clearInterval(renew);
+      if (--run.n === 0) {
+        runs.delete(who.userId);
+        if (run.took) await leases.release(who.userId, [EXCLUSIVE]);
+      }
+    }
+  };
+}

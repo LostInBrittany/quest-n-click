@@ -21,7 +21,8 @@ export interface EngineUpgradeOptions {
   judge: (snapshot: Buffer, at: { epoch: string; rev: number }) => Promise<Verdict>;
   /**
    * Writes the files as one operation of the journal, guarded and undoable, as the member; `from`: the content each
-   * was computed from (a write since is a 409). Returns the revision it made.
+   * was computed from (a write since is a 409). Returns the revision it made: `writeFiles` gives the paths it changed,
+   * not its revision, so the journal's head is read after it, under the exclusive lease (no other write between).
    */
   write: (what: string, files: { path: string; after: string; from: string | null }[]) => Promise<number>;
   /** Takes and gives back the project's exclusive lease for the member. */
@@ -31,7 +32,7 @@ export interface EngineUpgradeOptions {
 
 export type UpgradeResult =
   | { changed: 0; schema: { from: number; to: number } }
-  | { changed: number; revision: number; schema: { from: number; to: number } };
+  | { changed: number; revision: number; paths: string[]; schema: { from: number; to: number } };
 
 export class EngineUpgrade {
   private busy = false;
@@ -68,7 +69,7 @@ export class EngineUpgrade {
           paths.map((path) => ({ path, after: m.files[path]!, from: before.get(path) ?? null })),
         );
         this.o.log?.({ event: 'engine-upgraded', rev: revision, by, files: paths.length, schema: m.schema });
-        return { changed: paths.length, revision, schema: m.schema };
+        return { changed: paths.length, revision, paths, schema: m.schema };
       });
     } finally {
       this.busy = false;

@@ -66,6 +66,11 @@ class Codemod {
 
   /** Inserts `text` as the first property of `obj`, following the file's layout. */
   private insertFirst(obj: Obj, text: string) {
+    this.edits.push(this.firstProp(obj, text));
+  }
+
+  /** The edit that inserts `text` as the first property of `obj`, following the file's layout. */
+  private firstProp(obj: Obj, text: string): Edit {
     const code = this.sf.text;
     const open = obj.getStart(this.sf);
     const rest = code.slice(open + 1);
@@ -74,10 +79,9 @@ class Codemod {
         ? code.slice(code.lastIndexOf('\n', obj.properties[0].getStart(this.sf) - 1) + 1)
         : '';
       const indent = /^[ \t]*/.exec(firstLine)?.[0] ?? '  ';
-      this.edits.push({ pos: open + 1, text: `\n${indent}${text},` });
-    } else {
-      this.edits.push({ pos: open + 1, text: rest.startsWith(' ') ? ` ${text},` : ` ${text}, ` });
+      return { pos: open + 1, text: `\n${indent}${text},` };
     }
+    return { pos: open + 1, text: rest.startsWith(' ') ? ` ${text},` : ` ${text}, ` };
   }
 
   /** `{ id }` on an object literal that lacks it. */
@@ -336,39 +340,70 @@ class Codemod {
 
   /**
    * The three lines UPGRADING.md leaves to the author, on `defineGame({...})`: `schemaVersion: 3`, `saveVersion` + 1,
-   * the ids' migration step appended to `migrations` and imported from `./ids.migration.json`. What is not a plain
-   * literal (a computed `saveVersion`, a shorthand property) is skipped and said.
+   * the ids' migration step appended to `migrations` and imported from `./ids.migration.json`. All three or none: when
+   * one cannot be written (a computed `saveVersion`, a shorthand property), none is, and each is said skipped, so that a
+   * second run never appends the step twice.
    */
   schema3(root: Obj, saveVersion: number) {
+    const edits: Edit[] = [];
+    const done: Inserted[] = [];
+    const problems: Skipped[] = [];
     const set = (name: string, value: string) => {
-      const p = root.properties.find((x) => propKey(x) === name);
-      if (p && !ts.isPropertyAssignment(p)) return this.skip(p, name, `${name} is not written \`${name}: …\``, value);
-      if (p) this.edits.push({ pos: p.initializer.getStart(this.sf), end: p.initializer.getEnd(), text: value });
-      else this.insertFirst(root, `${name}: ${value}`);
-      this.inserted.push({ path: name, id: value, line: this.line(p ?? root) });
+      const p = root.properties.find(
+        (x) => propKey(x) === name || (ts.isShorthandPropertyAssignment(x) && x.name.text === name),
+      );
+      if (p && !ts.isPropertyAssignment(p))
+        return problems.push({
+          path: name,
+          line: this.line(p),
+          reason: `${name} is not written \`${name}: …\``,
+          expected: value,
+        });
+      if (p) edits.push({ pos: p.initializer.getStart(this.sf), end: p.initializer.getEnd(), text: value });
+      else edits.push(this.firstProp(root, `${name}: ${value}`));
+      done.push({ path: name, id: value, line: this.line(p ?? root) });
     };
     const sv = this.prop(root, 'saveVersion');
     if (sv && ts.isNumericLiteral(sv) && Number(sv.text) === saveVersion) set('saveVersion', String(saveVersion + 1));
-    else this.skip(sv ?? root, 'saveVersion', 'saveVersion is not a number literal', String(saveVersion + 1));
+    else
+      problems.push({
+        path: 'saveVersion',
+        line: this.line(sv ?? root),
+        reason: 'saveVersion is not a number literal',
+        expected: String(saveVersion + 1),
+      });
     const m = this.prop(root, 'migrations');
     if (!m) set('migrations', '[idsMigration]');
     else if (ts.isArrayLiteralExpression(m)) {
       const last = m.elements.at(-1);
-      this.edits.push({
+      edits.push({
         pos: last ? last.getEnd() : m.getStart(this.sf) + 1,
         text: last ? ', idsMigration' : 'idsMigration',
       });
-      this.inserted.push({ path: 'migrations', id: 'idsMigration', line: this.line(m) });
+      done.push({ path: 'migrations', id: 'idsMigration', line: this.line(m) });
     } else set('migrations', `[...${m.getText(this.sf)}, idsMigration]`);
     // Inserted last, so that it comes first when inserted beside `migrations`.
     set('schemaVersion', '3');
     if (!/\bimport\s+idsMigration\b/.test(this.sf.text)) {
       const imports = this.sf.statements.filter(ts.isImportDeclaration);
       const line = `import idsMigration from ${encodeString('./ids.migration.json', this.q)};`;
-      this.edits.push(
-        imports.length ? { pos: imports.at(-1)!.getEnd(), text: `\n${line}` } : { pos: 0, text: `${line}\n` },
-      );
+      edits.push(imports.length ? { pos: imports.at(-1)!.getEnd(), text: `\n${line}` } : { pos: 0, text: `${line}\n` });
     }
+    if (problems.length) {
+      // None written: every one of the three is said, the ones that could have been written too.
+      for (const d of done)
+        if (!problems.some((x) => x.path === d.path))
+          problems.push({
+            path: d.path,
+            line: d.line,
+            reason: 'not written: another of the three lines cannot be',
+            expected: d.id,
+          });
+      this.skipped.push(...problems);
+      return;
+    }
+    this.edits.push(...edits);
+    this.inserted.push(...done);
   }
 
   result(): CodemodResult {

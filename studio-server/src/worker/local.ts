@@ -8,7 +8,7 @@ import { JOBS, runChild } from './main';
 import { PreviewBuildFailed, type PreviewParams, previewFiles } from './preview-build';
 import { type Migrated, migratedShape } from './migrate';
 import { type Prepared, preparedShape, pythonPathOf } from './prepare';
-import { unpackSnapshot } from './snapshot';
+import { snapshotTexts, unpackSnapshot } from './snapshot';
 import type { ValidateResult } from '../../../tools/studio/types';
 
 export async function localPreview(
@@ -104,7 +104,7 @@ export async function localMigrate(snapshot: Buffer, timeoutMs = 60_000): Promis
     if (r.timedOut) throw new Error(`the game's code did not finish within ${timeoutMs} ms`);
     const v = JSON.parse(r.out || '{}') as { data?: unknown; error?: string };
     if (!v.data) throw new Error(v.error ?? `migrate gave no answer (exit ${r.code})`);
-    const m = migratedShape(v.data);
+    const m = migratedShape(v.data, new Set(snapshotTexts(snapshot).keys()));
     if ('refused' in m) throw new Error(`the migration is refused: ${m.refused}`);
     return m;
   } finally {

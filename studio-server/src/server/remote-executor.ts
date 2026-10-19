@@ -12,7 +12,7 @@ import type { ValidateResult } from '../../../tools/studio/types';
 import { type Job, type JobKind, MAX_JOB_MS, privateKeyOf, signJob } from '../worker/job';
 import type { JobResult } from '../worker/main';
 import { PreviewBuildFailed, type PreviewParams, previewFiles } from '../worker/preview-build';
-import { packSnapshot } from '../worker/snapshot';
+import { packSnapshot, snapshotTexts } from '../worker/snapshot';
 import type { DiagnoseKind } from '../ops/diagnose';
 import { StudioError } from '../ops/errors';
 import { type Migrated, migratedShape } from '../worker/migrate';
@@ -137,7 +137,7 @@ export function remoteExecutor(o: RemoteExecutorOptions) {
       const v = await run('migrate', snapshot, {}, at);
       if (v.timedOut) throw new StudioError(`${v.failed}: try again`, 504);
       if (v.failed) throw new StudioError(`the migration cannot run: ${v.failed}`, 422);
-      const m = migratedShape(v.data);
+      const m = migratedShape(v.data, new Set(snapshotTexts(snapshot).keys()));
       if ('refused' in m) throw new StudioError(`the migration is refused: ${m.refused}`, 422);
       return m;
     },

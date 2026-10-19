@@ -37,7 +37,7 @@ import { openPostgresDb } from './postgres';
 import { newJobKeys } from '../worker/job';
 import { filesOf, packable, packAssets, packFiles, packSnapshot } from '../worker/snapshot';
 import { assetsVersion } from '../../../tools/vite/plugins';
-import { Leases } from './leases';
+import { exclusiveRunner, Leases } from './leases';
 import { Presence } from './live';
 import { StudioClient } from './client';
 import { Play } from './play';
@@ -388,18 +388,12 @@ async function main(argv: string[]): Promise<number> {
   });
   const presence = leases ? new Presence() : undefined;
   // The project's exclusive lease (`*`) for the member who asks, around a long operation of theirs (prepare, the
-  // engine's upgrade): given back only if this run took it (an owner may already hold the project).
-  const exclusiveLease = async <T>(fn: () => Promise<T>): Promise<T> => {
-    const who = operationContext.getStore()?.claimant;
-    if (!who || !leases) return fn();
-    const had = (await leases.list()).some((l) => l.span === '*' && l.holder === who.userId);
-    if (!had) await leases.take(who, ['*']);
-    try {
-      return await fn();
-    } finally {
-      if (!had) await leases.release(who.userId, ['*']);
-    }
-  };
+  // engine's upgrade): leases.ts `exclusiveRunner`.
+  const exclusiveLease = leases
+    ? exclusiveRunner(leases, () => operationContext.getStore()?.claimant, {
+        log: (line) => console.log(JSON.stringify(line)),
+      })
+    : <T>(fn: () => Promise<T>) => fn();
   // The engine's folder: the built Studio and the prepared assets are found beside it unless configured.
   const engineRoot = fileURLToPath(new URL('../../..', import.meta.url));
   const publicDir = resolve(config.publicDir ?? join(engineRoot, 'public'));

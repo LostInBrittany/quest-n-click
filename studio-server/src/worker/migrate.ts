@@ -21,13 +21,22 @@ export interface Migrated {
   skipped: string[];
 }
 
-/** The paths a migration gives back: a game's sources and data, plain names, nothing hidden. */
-const MIGRATED_PATH = /^(?:[\w-][\w.-]*\/){0,4}[\w-][\w.-]*\.(?:ts|json)$/;
+/**
+ * The files a migration writes, and nothing else (the game's code ran in the child before the migration, and can shape
+ * the answer: the Studio bounds it to these): rooms/*.ts, rules.ts, items.ts, game.ts, locales/*.json, and the two id
+ * maps. Every one but the maps must already be in the game.
+ */
+const MIGRATED_PATH =
+  /^(?:rooms\/[\w-][\w.-]*\.ts|rules\.ts|items\.ts|game\.ts|locales\/[\w-][\w.-]*\.json|ids\.(?:migration|paths)\.json)$/;
+const NEW_FILES = new Set(['ids.migration.json', 'ids.paths.json']);
 const MAX_FILES = 1_000;
 const MAX_BYTES = 8 * 1024 * 1024;
 
-/** A `migrate`'s answer as the child wrote it, or why it is refused: bounded, plain paths, texts. */
-export function migratedShape(v: unknown): Migrated | { refused: string } {
+/**
+ * A `migrate`'s answer as the child wrote it, or why it is refused: bounded, the migration's files only, texts; `existing`:
+ * the paths of the snapshot it ran on (a file the migration changes is one the game has).
+ */
+export function migratedShape(v: unknown, existing: ReadonlySet<string>): Migrated | { refused: string } {
   const o = (v ?? {}) as { schema?: { from?: unknown; to?: unknown }; files?: unknown; skipped?: unknown };
   const from = o.schema?.from,
     to = o.schema?.to;
@@ -39,6 +48,7 @@ export function migratedShape(v: unknown): Migrated | { refused: string } {
   for (const [k, t] of entries) {
     if (!MIGRATED_PATH.test(k) || !packable(k) || typeof t !== 'string')
       return { refused: `a file the migration may not write: ${k.slice(0, 120)}` };
+    if (!NEW_FILES.has(k) && !existing.has(k)) return { refused: `a file the game does not have: ${k.slice(0, 120)}` };
     bytes += t.length;
     if (bytes > MAX_BYTES) return { refused: `more than ${MAX_BYTES >> 20} MiB` };
   }
@@ -55,6 +65,9 @@ export function migrateIn(dir: string, game: GameDef): Migrated {
   if (from === CURRENT_SCHEMA) return { schema: { from, to: from }, files: {}, skipped: [] };
   if (from > CURRENT_SCHEMA)
     throw new Error(`authoring schema ${from} is newer than this engine's (${CURRENT_SCHEMA}): upgrade the Studio`);
+  // The Studio's rule finds `defineGame` in another file too; the migration writes game.ts only, and says so.
+  if (!/\bdefineGame\s*\(/.test(readFileSync(join(dir, 'game.ts'), 'utf8')))
+    throw new Error('defineGame({...}) is not in game.ts: migrate this game on a local Studio (web-scumm migrate)');
   const plan = planIds(dir, game, { write: true, map: true });
   const next = new Map<string, string>();
   const skipped: string[] = [];

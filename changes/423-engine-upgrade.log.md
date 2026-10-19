@@ -19,4 +19,18 @@
   restore to the head and the health of before; the answer's shape; the route (404, 403 for a dev, POST only).
 - STUDIO-SERVER (en, fr) "Upgrading the engine of a hosted game"; a threat-model row.
 
+**After the second reading**
+
+- The answer bounded to the migration's files: `migratedShape(v, existing)` accepts only `rooms/*.ts`, `rules.ts`,
+  `items.ts`, `game.ts`, `locales/*.json` (each one the snapshot has) and the two id maps; the 200 answer lists the
+  `paths` written; a threat-model line (the game's code shapes the answer; the Studio bounds it).
+- The exclusive lease renewed every 30 s while the operation runs (`exclusiveRunner` in `leases.ts`, used by prepare
+  and the upgrade).
+- Two exclusive operations of the same owner: a per-member count, only the last one out releases `*`.
+- The revision: `writeFiles` gives the paths it changed, not its revision; the head read after it stays, said to be
+  under the exclusive lease.
+- `game.ts`'s three lines all or none (a shorthand or a computed `saveVersion` skips the three, said), so a second run
+  cannot append `idsMigration` twice; a game whose `defineGame` is not in `game.ts` is refused (documented).
+- STUDIO-SERVER (en, fr): the playtests are neither migrated nor judged.
+
 → next: Claude (4.2.3 PR 9: the reference deployment, H9)

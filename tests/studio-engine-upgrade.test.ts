@@ -24,7 +24,7 @@ import { Gate } from '../studio-server/src/server/auth/gate';
 import { EngineUpgrade } from '../studio-server/src/server/engine-upgrade';
 import { judgeBy, type Verdict } from '../studio-server/src/server/health';
 import { studioServer } from '../studio-server/src/server/http';
-import { Leases } from '../studio-server/src/server/leases';
+import { exclusiveRunner, Leases } from '../studio-server/src/server/leases';
 import { ServiceLease } from '../studio-server/src/server/service-lease';
 import { localDiagnose, localMigrate, localValidate } from '../studio-server/src/worker/local';
 import { migratedShape } from '../studio-server/src/worker/migrate';
@@ -126,7 +126,11 @@ describe("the engine's upgrade of a game in the format of a 4.1.x", () => {
     expect(health).toMatchObject({ ok: true, errors: [] });
     const rev = await p.journal.revision();
     const r = await p.as('owner', () => p.up.migrate('owner'));
-    expect(r).toMatchObject({ revision: rev + 1, schema: { from: 2, to: 3 } });
+    expect(r).toMatchObject({
+      revision: rev + 1,
+      paths: ['game.ts', 'ids.migration.json', 'ids.paths.json', 'rooms/start.ts'],
+      schema: { from: 2, to: 3 },
+    });
     expect(r.changed).toBe(4);
     expect(await p.journal.revision()).toBe(rev + 1);
     expect(p.log).toEqual(['take *', 'release *']);
@@ -252,27 +256,54 @@ describe("the engine's upgrade of a game in the format of a 4.1.x", () => {
 });
 
 describe("the worker's migrate", () => {
+  it('refuses a game whose defineGame is not in game.ts', async () => {
+    const dir = join(tmp, 'elsewhere');
+    cpSync(FIXTURE, dir, { recursive: true });
+    cpSync(join(dir, 'game.ts'), join(dir, 'definition.ts'));
+    writeFileSync(join(dir, 'game.ts'), "export { game } from './definition';\n");
+    await expect(localMigrate(packSnapshot(dir))).rejects.toThrow(/defineGame\(\{\.\.\.\}\) is not in game\.ts/);
+  }, 60_000);
+
   it('finds nothing to do on a game at schema 3', async () => {
     const m = await localMigrate(packSnapshot(join(ROOT, 'games', '_template')));
     expect(m).toEqual({ schema: { from: 3, to: 3 }, files: {}, skipped: [] });
   }, 60_000);
 
-  it("checks an answer's shape: plain paths of sources and data, bounded", () => {
-    const ok = { schema: { from: 2, to: 3 }, files: { 'rooms/a.ts': 'x', 'ids.paths.json': '{}' } };
-    expect(migratedShape(ok)).toEqual({ ...ok, skipped: [] });
+  it("bounds an answer to the migration's files, those the game has (the game's code shapes it)", () => {
+    const has = new Set(['rooms/a.ts', 'game.ts', 'rules.ts', 'items.ts', 'locales/fr.json', 'cast.ts', 'index.ts']);
+    const files = {
+      'rooms/a.ts': 'x',
+      'game.ts': 'g',
+      'rules.ts': 'r',
+      'items.ts': 'i',
+      'locales/fr.json': '{}',
+      'ids.paths.json': '{}',
+      'ids.migration.json': '{}',
+    };
+    const ok = { schema: { from: 2, to: 3 }, files };
+    expect(migratedShape(ok, has)).toEqual({ ...ok, skipped: [] });
+    const at = (f: Record<string, unknown>) => ({ schema: { from: 2, to: 3 }, files: f });
     for (const bad of [
       null,
       { files: {} },
-      { schema: { from: 2, to: 3 }, files: [] },
-      { schema: { from: 2, to: 3 }, files: { '../x.ts': '' } },
-      { schema: { from: 2, to: 3 }, files: { 'rooms/../x.ts': '' } },
-      { schema: { from: 2, to: 3 }, files: { '.env.json': '' } },
-      { schema: { from: 2, to: 3 }, files: { 'tests/a.ts': '' } },
-      { schema: { from: 2, to: 3 }, files: { 'art/a.png': '' } },
-      { schema: { from: 2, to: 3 }, files: { 'a.ts': 3 } },
-      { schema: { from: 2, to: 3 }, files: { 'a.ts': 'x'.repeat(9 * 1024 * 1024) } },
+      at([] as never),
+      at({ '../x.ts': '' }),
+      at({ 'rooms/../x.ts': '' }),
+      at({ '.env.json': '' }),
+      at({ 'tests/a.ts': '' }),
+      at({ 'art/a.png': '' }),
+      // Files of the game the migration never writes, even though the game has them.
+      at({ 'cast.ts': '' }),
+      at({ 'index.ts': '' }),
+      at({ 'rooms/sub/a.ts': '' }),
+      at({ 'package.json': '' }),
+      // A file the migration would write, but that the game does not have.
+      at({ 'rooms/b.ts': '' }),
+      at({ 'locales/de.json': '{}' }),
+      at({ 'game.ts': 3 }),
+      at({ 'game.ts': 'x'.repeat(9 * 1024 * 1024) }),
     ])
-      expect(migratedShape(bad), JSON.stringify(bad).slice(0, 80)).toHaveProperty('refused');
+      expect(migratedShape(bad, has), JSON.stringify(bad).slice(0, 80)).toHaveProperty('refused');
   });
 
   it("writes game.ts's three lines UPGRADING leaves to the author, or says what it cannot", () => {
@@ -291,8 +322,13 @@ describe("the worker's migrate", () => {
     expect(addSchema3ToGameSource(src('  saveVersion: 1,\n  migrations: steps,'), 1).code).toContain(
       'migrations: [...steps, idsMigration]',
     );
+    // One of the three cannot be written: none is, each is said, and a second run cannot append the step twice.
     const c = addSchema3ToGameSource(src('  saveVersion: V + 1,'), 3);
-    expect(c.skipped).toEqual([expect.objectContaining({ path: 'saveVersion', expected: '4' })]);
+    expect(c.code).toBe(src('  saveVersion: V + 1,'));
+    expect(c.skipped.map((x) => x.path).sort()).toEqual(['migrations', 'saveVersion', 'schemaVersion']);
+    expect(c.skipped).toContainEqual(expect.objectContaining({ path: 'saveVersion', expected: '4' }));
+    const d = src('  saveVersion: 1,\n  migrations: [m1],\n  schemaVersion,');
+    expect(addSchema3ToGameSource(d, 1)).toMatchObject({ code: d, inserted: [] });
     expect(addSchema3ToGameSource('export const x = 1;\n', 1).skipped).toHaveLength(1);
   });
 
@@ -302,6 +338,53 @@ describe("the worker's migrate", () => {
     expect(o.get('game.ts')).toBe('new');
     expect(o.get('ids.paths.json')).toBe('{}');
     expect(o.get('rooms/start.ts')).toBe(snapshotTexts(s).get('rooms/start.ts'));
+  });
+});
+
+describe("the owner's exclusive lease around a long operation", () => {
+  it("is renewed while it runs, and given back by the last of the same member's operations only", async () => {
+    const calls: string[] = [];
+    let held = false;
+    const leases = {
+      list: async () => (held ? [{ span: '*', holder: 'owner' }] : []) as never,
+      take: async () => {
+        calls.push('take');
+        held = true;
+        return {};
+      },
+      renew: async () => (calls.push('renew'), 1),
+      release: async () => {
+        calls.push('release');
+        held = false;
+      },
+    };
+    let who: { userId: string; name: string } | undefined = { userId: 'owner', name: 'owner' };
+    const run = exclusiveRunner(leases, () => who, { everyMs: 10 });
+    let end1!: () => void, end2!: () => void;
+    const one = run(() => new Promise<void>((ok) => (end1 = ok)));
+    await new Promise((ok) => setTimeout(ok, 5));
+    const two = run(() => new Promise<void>((ok) => (end2 = ok)));
+    await new Promise((ok) => setTimeout(ok, 40));
+    expect(calls.filter((c) => c === 'renew').length).toBeGreaterThanOrEqual(2);
+    end1();
+    await one;
+    // The first out does not release the lease the second still runs under.
+    expect(calls).not.toContain('release');
+    end2();
+    await two;
+    expect(calls.filter((c) => c === 'release')).toEqual(['release']);
+    const renewed = calls.length;
+    await new Promise((ok) => setTimeout(ok, 30));
+    expect(calls.length).toBe(renewed);
+    // Held before it began: kept after it ends.
+    held = true;
+    calls.length = 0;
+    await run(async () => undefined);
+    expect(calls).toEqual([]);
+    expect(held).toBe(true);
+    // Nobody asks: the operation alone.
+    who = undefined;
+    expect(await run(async () => 7)).toBe(7);
   });
 });
 

@@ -212,21 +212,26 @@ curl -X POST -H "Authorization: Bearer $(npx web-scumm-studio-server token --ser
 - **On the worker.** The worker runs the same migration as `web-scumm migrate` on the head's snapshot: the stable ids
   written into `rooms/*.ts`, `rules.ts`, `items.ts` and `game.ts`, the translation tables' keys renamed,
   `ids.migration.json` and `ids.paths.json`, then the three lines UPGRADING leaves to the author in `game.ts`
-  (`schemaVersion: 3`, `saveVersion` + 1, `migrations: [..., idsMigration]` and its import). Nothing is written yet.
+  (`schemaVersion: 3`, `saveVersion` + 1, `migrations: [..., idsMigration]` and its import: all three or none, said in
+  `skipped`). `defineGame({...})` must be in `game.ts` (a game that defines it elsewhere is refused: migrate it
+  locally). Nothing is written yet, and nothing but those files: the Studio refuses an answer that names another file,
+  or a file the game does not have (the game's code runs before the migration and could shape it).
 - **Judged before it is written.** The migrated game is judged on the worker as the health judges a revision: the
   validator, then the solver from a new game, bounded in time. A game the migration would break (an id the tool could
   not write, a list built by code, a game that can no longer be finished), or that the solver cannot judge in time, is
   refused with a 422 (`errors`, `skipped`: what the tool could not write) and the head stays as it was: migrate it on a
   local Studio (`web-scumm migrate`, then `npm run ids` to see what is left) and import it again, or fix it first.
 - **One revision.** Otherwise the changed files are written as one operation (`engine upgrade: authoring schema 2 →
-  3`), through the guard, and the answer is `{ revision, changed, schema: { from, to } }`. A game already at schema 3
+  3`), through the guard, and the answer is `{ revision, changed, paths, schema: { from, to } }` (`paths`: the files
+  written). A game already at schema 3
   answers `{ changed: 0 }` and nothing is written.
 - **Taken back.** The owner's Undo takes it back, as a new revision (409 if someone wrote one of its files since); or
   the project goes back to a backup taken before (see below): take one first.
 
 In the 4.2.x line the content format is frozen (D40): this is for a game made on 4.1.x. A local Studio has no route:
 run `web-scumm migrate` in the project. The project's `tsconfig.json` (`baseUrl`, which `web-scumm migrate` also
-fixes) is not part of a hosted game and is left alone. There is no button yet: the route is the way in.
+fixes) is not part of a hosted game and is left alone. The playtests (`playtests/`) are neither migrated nor judged:
+replay them after the upgrade (a session recorded at schema 2 may name the old positional keys). There is no button yet: the route is the way in.
 
 ## Backup and restore
 
