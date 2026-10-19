@@ -574,7 +574,9 @@ installs from `releases/download/v4.2.2/…`. For a hosted Studio:
   The worker needs the engine's Vite to build (its install has it).
 - **The database migrates at start** (migrations 0006 to 0010: previews, health, undo, builds, prepared sets).
 - **The asset tools on the worker**: set the worker's `CC_POST_BUILD_HOOK` as `docs/en/STUDIO-SERVER.md` says (their
-  Python packages, locked with hashes); without it, "Prepare assets" fails and shows the worker's error.
+  Python packages, locked with hashes); without it, "Prepare assets" (the Play tab's
+  button) fails and shows the worker's error. Deploy this worker from the repository: installed from the archives, it
+  cannot run `prepare` in 4.2.2 (4.2.3 ships the lock).
 - **Builds**: `/play/<n>/` needs a session unless `publicBuilds` is set (off by default).
 - **Backup**: the journal ships to the bucket by itself; take a daily `studio-server backup` and keep it off the
   instance (STUDIO-SERVER, "Backup and restore").

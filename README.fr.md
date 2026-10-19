@@ -158,7 +158,7 @@ dans [TOOLS](docs/fr/TOOLS.md), ce qui change dans le [CHANGELOG](CHANGELOG.md),
 
 Release actuelle : [v4.2.2 « Playable Workshop »](https://github.com/wanoo/web-scumm/releases/tag/v4.2.2), le Studio en
 ligne pour une équipe, expérimental ([STUDIO-SERVER](docs/fr/STUDIO-SERVER.md)) : prévisualisations par révision,
-santé, annulation personnelle, builds publiés, sauvegarde ; sur la 4.2.0 « Stable World ». La
+santé, annulation personnelle, builds publiés, sauvegarde et restauration du serveur ; sur la 4.2.0 « Stable World ». La
 4.2.0 a rétabli le SemVer strict après la ligne d'incubation 4.1.x : une mineure ajoute, une majeure retire ; l'API
 publique le suit ([SUPPORT](docs/fr/SUPPORT.md)). La 4.2.0 est sortie avant les passes humaines : des surfaces
 ci-dessus, seule la colonne Stable est promise ; les passes se font sur une 4.2.x, qui promeut ce qu'elles prouvent

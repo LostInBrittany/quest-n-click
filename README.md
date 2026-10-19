@@ -152,7 +152,7 @@ command in [TOOLS](docs/en/TOOLS.md), what changed in the [CHANGELOG](CHANGELOG.
 
 Current release: [v4.2.2 "Playable Workshop"](https://github.com/wanoo/web-scumm/releases/tag/v4.2.2), the Studio
 online for a team, experimental ([STUDIO-SERVER](docs/en/STUDIO-SERVER.md)): previews per revision, health, personal
-undo, published builds, backup; over 4.2.0 "Stable World". 4.2.0
+undo, published builds, server backup and restore; over 4.2.0 "Stable World". 4.2.0
 restored strict SemVer after the 4.1.x incubation line: a minor adds, a major removes; the public API follows it
 ([SUPPORT](docs/en/SUPPORT.md)). 4.2.0 shipped before the people's passes: of the surfaces above, only the Stable
 column is promised; the passes are made on a 4.2.x, which promotes what they prove

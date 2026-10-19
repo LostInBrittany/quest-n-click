@@ -52,7 +52,7 @@ opens no browser, no Windows runner and no Node 24 (`CONTRIBUTING.md`, "What CI 
 | Player, screen reader | axe-core on every screen (not a WCAG claim) | a VoiceOver or NVDA pass |
 | Firefox | the PWA only: install, update, reinstall, offline (`npm run e2e:pwa`, the `pwa-firefox` job); its worker's occasional refusal of one cached image offline is reported by the job, not counted | Firefox offline on a real machine; nothing else claimed |
 | Node | 22.12 or newer: 22 and 24 on Ubuntu; macOS for the maintainer's daily use | — |
-| Windows | a `windows-latest` job (4.1.8; on a pull request, when code changed): `doctor`, the type checks, the unit suite but six files that assume POSIX (file modes, `/` in paths; named in `ci.yml`) and, since 4.1.9, the Telnet and SSH tests, and, since 4.2.1, the Studio Server's processing worker and its live preview (Linux only), `build`, the production server answering | `npm run dev` and the Studio on Windows; the six test files, ported |
+| Windows | a `windows-latest` job (4.1.8; on a pull request, when code changed): `doctor`, the type checks, the unit suite but six files that assume POSIX (file modes, `/` in paths; named in `ci.yml`) and, since 4.1.9, the Telnet and SSH tests, and, since 4.2.1, the Studio Server's processing worker and its previews (Linux only), `build`, the production server answering | `npm run dev` and the Studio on Windows; the six test files, ported |
 | Python | optional: the art tools and the audio pipeline, Pillow, NumPy, SciPy pinned in `requirements.txt` | — |
 | Reality Bridge | Node 22.12+, Chromium and WebKit e2e, a Rust cross-check of the protocol (`SignalV2` included) | a Bridge behind HTTPS with a real connector |
 | Bridge, `local` profile (4.1.10) | SQLite through `node:sqlite` (Node 22.13+): the store contract, tenants crossed in property tests, three processes on one file with one killed during 1 000 proposals, backup as one snapshot and restore all or nothing (4.1.19); backup schema 4, whole-store and quota included, and two restore modes, `merge` and `replace-store`, under a maintenance lease (4.1.20); a load run of 50 000 proposals every night | a long-running install on a real machine |
@@ -67,7 +67,11 @@ the shared revision, carry a save across revisions, read the health, undo their 
 the `studio-hosted` job (Postgres and S3: a build, the worker's `prepare`, a backup restored and its journal replayed).
 The mutation set `studio-workshop` is measured, not gated, until its survivors are read. Limits said: sprite sheets
 and uploads stay on a local Studio (4.2.3); the game's health judges the validator and the solver from a new game,
-not the playtests; a backup is trusted input (it can add owners); a restore is for a hosted store only.
+not the playtests; a backup is trusted input (it can add owners); a restore is for a hosted store only; a worker
+installed from the release archives cannot run `prepare` (deploy it from the repository; 4.2.3 ships the lock). Of
+4.2.1's limits, the live preview is gone (one build per revision); the Assets tab's sheets and uploads and the
+Assistant are still not on a hosted Studio, a refused write still keeps its draft without a diff to merge, and the
+editors still do not send the revision they read.
 
 ## 4.2.1: the Studio Server, and the 4.2.x exception (D40)
 

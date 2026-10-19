@@ -27,7 +27,7 @@ envelope are 4.2.0's (D40). The tag is signed with the maintainer's SSH key on t
   build (`VITE_STUDIO_PREVIEW`); the player's build is unchanged.
 - **Vite has left the Studio Server (4.2.2)**: 4.2.1's live preview (Vite in middleware mode on the game's origin) is
   gone, with its allow-list of engine paths; the game's origin serves a revision's built files and the prepared assets
-  of `publicDir` only. The worker still needs the engine's Vite to build.
+  of the prepared set and `publicDir`, and the published builds. The worker still needs the engine's Vite to build.
 
 - **A save made in another revision asks before it is resumed (4.2.2, ADR 0026)**: in a hosted Studio's preview, a
   save records the revision and the fingerprint of the content it was made in (beside it: the save format does not

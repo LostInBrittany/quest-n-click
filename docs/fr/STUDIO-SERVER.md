@@ -61,7 +61,7 @@ mkdir -p ~/secrets/my-game && npm run studio-server -- worker-keys --out ~/secre
 
 | Variable | Valeur |
 |---|---|
-| `CC_NODE_DEV_DEPENDENCIES` | `install` (la 4.2.1 tourne depuis le dépôt, avec `tsx`) |
+| `CC_NODE_DEV_DEPENDENCIES` | `install` (le serveur tourne depuis le dépôt, avec `tsx`) |
 | `CC_POST_BUILD_HOOK` | `npm run studio-client` (construit la page du Studio que le serveur sert) |
 | `CC_RUN_COMMAND` | `npm run studio-server -- serve` |
 | `CC_HEALTH_CHECK_PATH` | `/startz` |
@@ -141,11 +141,15 @@ plage (`web-scumm-studio-server deps` dit lequel). Il fait tourner le serveur du
 de la même version :
 
 ```sh
-npm install web-scumm-4.2.1.tgz web-scumm-studio-server-4.2.1.tgz
+npm install web-scumm-<version>.tgz web-scumm-studio-server-<version>.tgz
 npx web-scumm-studio-server import ./mon-jeu --config studio.config.json
 npx web-scumm-studio-server serve --config studio.config.json
 npx web-scumm-studio-worker          # sur la machine du worker, avec WORKER_PUBLIC_KEY et WORKER_INSTANCE
 ```
+
+En 4.2.2, un worker installé depuis les archives ne peut pas lancer `prepare` : le verrou des outils d'assets
+(`ops/studio/worker-requirements.lock`) n'est pas dans les archives, et le worker cherche leurs paquets à côté du
+moteur. Déployez le worker depuis le dépôt (ci-dessus) pour « Prepare assets » ; la 4.2.3 livre le verrou.
 
 L'archive du moteur apporte Vite et tsx, dont l'application de traitement a besoin pour exécuter le code du jeu et
 construire ses prévisualisations (le Studio lui-même ne fait plus tourner Vite, depuis 4.2.2). Mettez dans `publicDir` les

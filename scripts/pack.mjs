@@ -307,7 +307,7 @@ export function resolve(specifier, context, next) {
 );
 writeFileSync(
   join(studio, 'bin', 'server.mjs'),
-  `#!/usr/bin/env node\n// web-scumm-studio-server <serve|import|export|invite|worker-keys|login|token> …: the Studio Server (docs/en/STUDIO-SERVER.md).\nimport { launch } from './launch.mjs';\nlaunch('studio-server/src/server/main.ts');\n`,
+  `#!/usr/bin/env node\n// web-scumm-studio-server <serve|import|export|invite|worker-keys|login|token|backup|restore|replay|gc> …: the Studio Server (docs/en/STUDIO-SERVER.md).\nimport { launch } from './launch.mjs';\nlaunch('studio-server/src/server/main.ts');\n`,
 );
 writeFileSync(
   join(studio, 'bin', 'worker.mjs'),

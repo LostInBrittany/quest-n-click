@@ -605,7 +605,7 @@ La deuxième étape 4.2.x (D42) : une prévisualisation construite par l'applica
 et des sauvegardes qui demandent avant de changer de révision (ADR 0026) ; des diagnostics avec leur révision, la santé
 du jeu par révision et la bissection qui nomme la révision qui l'a cassé ; l'annulation personnelle ; des builds
 immuables aux manifestes signés ; les assets préparés sur l'application de traitement ; la sauvegarde, la restauration
-et le journal expédié, avec son RPO. Vite a quitté le serveur. Expérimental jusqu'à ses passes (`studio-hosted`,
+et le journal envoyé au bucket, avec son RPO. Vite a quitté le serveur. Expérimental jusqu'à ses passes (`studio-hosted`,
 `studio-collab`, `studio-preview`, `studio-assets-hosted`). Ensuite : la 4.2.3, la coordination avancée.
 
 ## v4.2.1 « Shared Floor » (livrée en octobre 2026) : le Studio en ligne pour une équipe

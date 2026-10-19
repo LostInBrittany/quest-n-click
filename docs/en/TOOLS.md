@@ -447,7 +447,7 @@ line (4.1.7; a script missing from this page fails `tests/scripts-documented.tes
 | `npm run audit:assets` | every file of `dist/` accounted for with its licence (`npm run build:game` runs it) |
 | `npm run audio -- …` | the Mega Drive music and sound-effect pipeline (`docs/en/AUDIO.md`) |
 | `npm run build:studio-demo`, `studio-snapshot`, `studio-apply <patch>` | the Studio's static build, its snapshot alone, a demo patch applied to your copy (`docs/en/STUDIO.md`, "Demo mode") |
-| `npm run studio-server -- <serve\|import\|export\|invite\|worker-keys\|login\|token>`, `studio-worker` | the Studio Server and its processing worker, a Studio online for a team (`docs/en/STUDIO-SERVER.md`) |
+| `npm run studio-server -- <serve\|import\|export\|invite\|worker-keys\|login\|token\|backup\|restore\|replay\|gc>`, `studio-worker` | the Studio Server and its processing worker, a Studio online for a team (`docs/en/STUDIO-SERVER.md`) |
 | `npm run studio-client` | the Studio's page the Studio Server serves (4.2.1): `studio.html` and its code alone, in `.cache/studio-client` |
 | `npm run e2e:studio-hosted [-- --browser=firefox\|webkit]` | the hosted Studio in a browser (4.2.1, CI's `studio-hosted` job; `studio-client` first): login, the room editor on the game's origin, its save through the Studio, the wall between the two origins, Play, logout (Firefox and WebKit over https; WebKit on macOS only) |
 | `npm run e2e:studio-collab [-- --browser=firefox\|webkit]` | three people on one hosted Studio (4.2.1, CI's `studio-hosted` job; `studio-client` first): presence, a span held by another refused with the draft kept, a reviewer kept from writing, a cut caught up from the journal, the members screen, the login and "access not granted" pages |

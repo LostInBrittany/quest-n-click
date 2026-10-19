@@ -5898,7 +5898,7 @@ is merged, and its own yes to sign)
   - backup, restore, the journal shipped and the collection;
   - the gates.
 - **The maintainer's answers**:
-  - « merged #144, go 4.2.2 / you have my all go » (D42: the choices of the plan's §4, taken under that go);
+  - having merged #144: « go 4.2.2 », « you have my all go » (D42: the choices of the plan's §4, taken under that go);
   - « yes sign 4.2.2 » (18 Oct), the yes for `v4.2.2` only (D37); `v4.2.3` gets its own;
   - « keep spike resources » (they serve pass #149).
 - **Experimental (D18)**: four Studio passes open after this release (`studio-hosted` #149, `studio-collab` #150, and
@@ -5909,9 +5909,17 @@ is merged, and its own yes to sign)
   - sprite sheets and uploads stay on a local Studio; only `prepare` runs hosted (D43, 4.2.3);
   - the health judges the validator and the solver from a new game, not lint or the playtests;
   - the mutation set `studio-workshop` is measured, not gated: its survivors are read in a later 4.2.x (the plan's
-    §2.8 allows it; §3's exit criteria do not ask it).
+    §2.8 allows it; §3's exit criteria do not ask it);
+  - the preview's time is measured locally, not yet held on Clever (D42's threshold is provisional until
+    `studio-preview`);
+  - the fresh rebuild's cost is left to the `studio-preview` pass to measure (LOG #212);
+  - `prepare` shows no progress over the live stream and cannot be cancelled (LOG #214);
+  - a worker installed from the release archives cannot run `prepare` (the lock is not shipped): deploy it from the
+    repository; 4.2.3 ships it (SUPPORT, STUDIO-SERVER, UPGRADING §35);
+  - the threat model gains the rows of 4.2.2's new surfaces (published builds, signed manifests, undo, the health's
+    load, the Python packages, a crafted backup).
 - **The version**: 4.2.2; the golden save `demo-4.2.2.json`; the reference run recorded again; the CHANGELOG assembled
-  from 12 fragments (the plan's with a CHANGELOG line of its own); UPGRADING §35, SUPPORT "4.2.2", ROADMAP, README,
+  from 11 fragments, with the plan's entry written beside them as a CHANGELOG line; UPGRADING §35, SUPPORT "4.2.2", ROADMAP, README,
   STUDIO-SERVER's status (en, fr); `docs/dev/passes/4.2.2.md` (seventeen passes).
 
 → next: Claude (this PR's candidate, `v4.2.2` signed on it, `ship verify`, the two pass issues; then the 4.2.3 plan for
