@@ -370,3 +370,46 @@ describe('the lease', () => {
     await j.close();
   });
 });
+
+describe('a past revision read back (4.2.2: the bisection, the undo)', () => {
+  it('rebuilds the files at a revision, sorted by path, every file unless told, a file made later absent', async () => {
+    const j = await open({ hosted: true });
+    const base = await j.revision();
+    await write(j, 'zeta.md', 'z1');
+    await write(j, 'rooms/a.ts', 'a1');
+    const mid = await j.revision();
+    await write(j, 'alpha.md', 'later');
+    await write(j, 'rooms/a.ts', 'a2');
+    const at = await j.filesAt(mid);
+    // Sorted by path, whatever the order the head's rows come in; alpha.md did not exist yet.
+    expect(at.map((f) => f.path)).toEqual(['notes.json', 'rooms/a.ts', 'zeta.md']);
+    expect(at.map((f) => f.bytes.toString())).toEqual(['{}', 'a1', 'z1']);
+    expect((await j.filesAt(base)).map((f) => f.path)).toEqual(['notes.json', 'rooms/a.ts']);
+    expect((await j.filesAt(mid, (p) => p !== 'zeta.md')).map((f) => f.path)).toEqual(['notes.json', 'rooms/a.ts']);
+    await j.close();
+  });
+
+  it('reads a blob through the cache when it is there, and fills it when it is not', async () => {
+    const j = await open({ hosted: true });
+    await write(j, 'rooms/a.ts', 'a1');
+    const rev = await j.revision();
+    const cache = new Map<string, Buffer>([[sha256(Buffer.from('a1')), Buffer.from('from the cache')]]);
+    const at = await j.filesAt(rev, () => true, cache);
+    expect(at.find((f) => f.path === 'rooms/a.ts')!.bytes.toString()).toBe('from the cache');
+    expect(cache.get(sha256(Buffer.from('{}')))?.toString()).toBe('{}');
+    await j.close();
+  });
+
+  it("says an operation's effects and what it was, and nothing for a revision no operation made", async () => {
+    const j = await open({ hosted: true });
+    await write(j, 'rooms/a.ts', 'a1');
+    const rev = await j.revision();
+    expect(await j.effectsAt(rev)).toEqual([
+      { path: 'rooms/a.ts', before: sha256(Buffer.from('a0')), after: sha256(Buffer.from('a1')) },
+    ]);
+    expect(await j.effectsAt(rev + 5)).toEqual([]);
+    expect(await j.opAt(rev)).toMatchObject({ rev, what: 'w', paths: ['rooms/a.ts'] });
+    expect(await j.opAt(rev + 5)).toBeUndefined();
+    await j.close();
+  });
+});

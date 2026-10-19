@@ -1404,6 +1404,18 @@
  },
  {
   "file": "studio-server/src/ops/journal.ts",
+  "operator": "operator",
+  "from": "<",
+  "to": "<=",
+  "context": "for (const [path, blob] of [...files].sort(([a], [b]) => (a < b ? -1 : 1)))",
+  "why": "filesAt: the paths are a Map's keys, never two equal, so `a <= b` and `a < b` order them the same (the order itself is pinned by tests/studio-journal-mutants.test.ts)",
+  "category": "equivalent",
+  "proof": "argument",
+  "owner": "@wanoo",
+  "revisit": "4.3.0"
+ },
+ {
+  "file": "studio-server/src/ops/journal.ts",
   "operator": "condition true",
   "from": "c.after !== ABSENT",
   "to": "true",
