@@ -78,6 +78,11 @@ export class PreparedAssets {
       mkdirSync(dirname(file), { recursive: true });
       writeFileSync(file, await this.o.blobs.get(hash));
     }
+    // A newer set served meanwhile (a Prepare that ended while the start was writing this one): this one is not.
+    if (this.current && this.current.id > id) {
+      rmSync(dir, { recursive: true, force: true });
+      return;
+    }
     const version = createHash('sha1')
       .update(JSON.stringify(Object.entries(manifest).sort()))
       .digest('hex')
