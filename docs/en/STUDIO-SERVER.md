@@ -197,6 +197,70 @@ on the worker as it is now, not that its content is harmless. A build's code nev
 the instance's prepared assets, served beside it as they are now. A published build has no service worker (it is not
 installed for offline play) and its saves are not yet told apart by build.
 
+## The game in Git (4.2.3)
+
+`git` in the configuration (optional) names the game's repository: `{ "remote": "git@github.com:org/game.git",
+"branch": "main", "path": "games/my-game", "committer": { "name": "…", "email": "…" } }` (`branch` defaults to `main`,
+`path` to the repository's root). Its deploy key (a key with write access to that one repository, D44) is the secret
+`STUDIO_GIT_KEY` (`STUDIO_GIT_KEY_FILE` locally; on Clever Cloud a variable). A public https or a local remote needs
+none; a remote URL never carries credentials. The Play tab shows where the game goes and the last revision pushed:
+
+- **Push** (an owner): one commit of the revisions confirmed since the last push, the game's files at the head in
+  `path`, each author of those revisions a `Co-authored-by` (their email, or their name at a mailbox that does not
+  exist); the rest of the repository is left as it is. Nothing new pushes nothing.
+- **Never forced.** A branch that moved since the Studio's last push (someone pushed there) is refused (409), and so is
+  a branch that exists but the Studio never imported: import it first.
+- **Import** (an owner, asked twice): the branch, another branch of the remote, or a commit by its hash, as it is in
+  `path`, written as one revision under the exclusive lease. It replaces what the Studio had not pushed (still in its
+  history). The branch's tip imported, the next push builds on it; another commit, the next push goes on the tip the
+  Studio knows. A link, a submodule, or a file the game cannot hold refuses the whole import.
+
+The Studio never checks a working tree out: a push builds its commit from objects, an import reads the commit's
+objects, so the repository's links, attributes and ignore rules cannot reach the server's files. Files whose path has
+a segment starting with a dot (`.github/`, `.gitignore`) are the repository's: kept by a push, skipped by an import. The
+game's `private/` never goes to the repository, and an import leaves it as it is. An
+author's email goes in a `Co-authored-by` only when the provider verified it; otherwise their name at
+`users.noreply.<the Studio's host>`. Git runs with an environment of its own, the key in a file for one command, the
+clone in `workDir/git` (made again when the disk is new). Give the remote host's keys as `git.knownHosts`
+(`known_hosts` lines) to check them strictly; without them the host is trusted on first use, again after each new
+disk.
+
+## Upgrading the engine of a hosted game
+
+A game imported from a 4.1.x project that never ran `web-scumm migrate` is still at authoring schema 2 (no
+`schemaVersion: 3`, no stable ids). On a hosted Studio an owner upgrades it with `POST /api/engine/migrate` (4.2.3):
+
+```bash
+curl -X POST -H "Authorization: Bearer $(npx web-scumm-studio-server token --server https://studio.example)" \
+  https://studio.example/api/engine/migrate
+```
+
+- **Exclusive.** It runs under the owner's exclusive lease (`*`): nobody else writes meanwhile (their writes get a 423
+  with the owner's name, their drafts stay with them, and they write again once it is done). One at a time (429).
+- **On the worker.** The worker runs the same migration as `web-scumm migrate` on the head's snapshot: the stable ids
+  written into `rooms/*.ts`, `rules.ts`, `items.ts` and `game.ts`, the translation tables' keys renamed,
+  `ids.migration.json` and `ids.paths.json`, then the three lines UPGRADING leaves to the author in `game.ts`
+  (`schemaVersion: 3`, `saveVersion` + 1, `migrations: [..., idsMigration]` and its import: all three or none, said in
+  `skipped`). `defineGame({...})` must be in `game.ts` (a game that defines it elsewhere is refused: migrate it
+  locally). Nothing is written yet, and nothing but those files: the Studio refuses an answer that names another file,
+  or a file the game does not have (the game's code runs before the migration and could shape it).
+- **Judged before it is written.** The migrated game is judged on the worker as the health judges a revision: the
+  validator, then the solver from a new game, bounded in time. A game the migration would break (an id the tool could
+  not write, a list built by code, a game that can no longer be finished), or that the solver cannot judge in time, is
+  refused with a 422 (`errors`, `skipped`: what the tool could not write) and the head stays as it was: migrate it on a
+  local Studio (`web-scumm migrate`, then `npm run ids` to see what is left) and import it again, or fix it first.
+- **One revision.** Otherwise the changed files are written as one operation (`engine upgrade: authoring schema 2 →
+  3`), through the guard, and the answer is `{ revision, changed, paths, schema: { from, to } }` (`paths`: the files
+  written). A game already at schema 3
+  answers `{ changed: 0 }` and nothing is written.
+- **Taken back.** The owner's Undo takes it back, as a new revision (409 if someone wrote one of its files since); or
+  the project goes back to a backup taken before (see below): take one first.
+
+In the 4.2.x line the content format is frozen (D40): this is for a game made on 4.1.x. A local Studio has no route:
+run `web-scumm migrate` in the project. The project's `tsconfig.json` (`baseUrl`, which `web-scumm migrate` also
+fixes) is not part of a hosted game and is left alone. The playtests (`playtests/`) are neither migrated nor judged:
+replay them after the upgrade (a session recorded at schema 2 may name the old positional keys). There is no button yet: the route is the way in.
+
 ## Backup and restore
 
 - **The journal shipped**: each confirmed operation is copied to the bucket, in order, as an immutable segment
@@ -229,9 +293,9 @@ installed for offline play) and its saves are not yet told apart by build.
 ## Working together
 
 - **Spans.** Every file of the game belongs to one span: a room (its code and its layout), a language, the story, the
-  items, the cast, the rules, the voices, the assets, the notes, the rest (`meta`). Writing a file takes its span for
-  2 min, renewed while you are active. Someone else's span refuses your write (423, with their name); your draft
-  stays with you.
+  items, the cast, the rules, the voices, the assets, the notes, the scenario map's groupings, the rest (`meta`).
+  Writing a file takes its span for 2 min, renewed while you are active. Someone else's span refuses your write (423,
+  with their name); your draft stays with you.
 - **Live.** The Studio follows `GET /api/events`: every revision, who holds what, who is here.
 - **What you read** (4.2.3). A write carries the revision its editor read (`x-studio-base`; a read's answer says its
   revision in `x-studio-revision`). If someone else wrote one of its files since, the write is refused (409) with that
@@ -253,7 +317,9 @@ npm run studio-server -- login --server https://studio.example.fr   # the device
 npm run studio-server -- token --server https://studio.example.fr   # an access token for scripts and the MCP
 ```
 
-The tokens are kept in `~/.config/web-scumm/studio-tokens.json` (0600), and only sent over https.
+The tokens are kept in `~/.config/web-scumm/studio-tokens.json` (0600), and only sent over https. An AI agent works on
+the Studio through its `/mcp` (4.2.3), or the local MCP server pointed at it (`npm run -s mcp -- --server <url>`):
+`docs/en/MCP.md`, "A hosted Studio". The tokens must carry the Studio's `oidc.audience`.
 
 ## Trying it locally
 

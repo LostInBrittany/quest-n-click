@@ -2,7 +2,8 @@
 // document to the file it is given: `validate`, the validator's verdict; `load`, the game module as data (functions
 // dropped, as the Studio reads it); `preview` (4.2.2), the revision's built preview, its files in base64 by path
 // (preview-build.ts); `lint`, `solve`, `playtests` (4.2.2), those diagnostics (ops/diagnose.ts); `prepare` (4.2.2),
-// the game's assets prepared (prepare.ts). It is started with an emptied environment, in a fresh folder, and killed with its process group
+// the game's assets prepared (prepare.ts); `migrate` (4.2.3), the files the engine's upgrade would change
+// (migrate.ts). It is started with an emptied environment, in a fresh folder, and killed with its process group
 // at its deadline; the game's code runs here, never in the supervisor... as far as one machine and one user allow
 // (ADR 0028).
 import { writeFileSync } from 'node:fs';
@@ -33,6 +34,14 @@ if (kind === 'preview') {
   const python = typeof p.pythonPath === 'string' && p.pythonPath ? p.pythonPath : undefined;
   try {
     writeFileSync(outFile, JSON.stringify({ data: await prepareIn(dir, p.game, mod, path, python) }));
+  } catch (e) {
+    writeFileSync(outFile, JSON.stringify({ error: String((e as Error).message).slice(0, 2_000) }));
+  }
+} else if (kind === 'migrate') {
+  const { migrateIn } = await import('./migrate');
+  try {
+    const mod = (await importFresh(join(dir, 'index.ts'))) as GameModule;
+    writeFileSync(outFile, JSON.stringify({ data: migrateIn(dir, mod.game) }));
   } catch (e) {
     writeFileSync(outFile, JSON.stringify({ error: String((e as Error).message).slice(0, 2_000) }));
   }
