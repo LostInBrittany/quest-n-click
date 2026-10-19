@@ -1,6 +1,7 @@
 // The processing worker (4.2.1, plan §3.8, ADR 0028): signed single-use jobs, snapshots that stay in their folder, a
 // child with an emptied environment killed with its process group at its deadline, and the Studio's acceptance of a
 // result. The round trip through Cellar (presigned URLs scoped to one key) runs when STUDIO_TEST_S3 is set, as in CI.
+import { execFileSync } from 'node:child_process';
 import { randomUUID } from 'node:crypto';
 import { cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { createServer, type Server } from 'node:http';
@@ -18,10 +19,20 @@ import type { LintData, PlaytestsData, SolveData } from '../tools/studio/types';
 import { lintIn, solveIn } from '../studio-server/src/ops/diagnose';
 import { localPreview } from '../studio-server/src/worker/local';
 import { PreviewBuildFailed } from '../studio-server/src/worker/preview-build';
-import { packSnapshot, unpackSnapshot } from '../studio-server/src/worker/snapshot';
+import { filesOf, packAssets, packSnapshot, unpackSnapshot } from '../studio-server/src/worker/snapshot';
 
 const ROOT = join(import.meta.dirname, '..');
 const keys = newJobKeys();
+/** Python with the asset tools' packages, and ffmpeg (CI's jobs with Python; a maintainer's machine). */
+const hasAssetTools = (() => {
+  try {
+    execFileSync('python3', ['-c', 'import PIL, numpy'], { stdio: 'ignore' });
+    execFileSync('ffmpeg', ['-version'], { stdio: 'ignore' });
+    return true;
+  } catch {
+    return false;
+  }
+})();
 let tmp: string;
 
 beforeAll(() => {
@@ -476,6 +487,33 @@ describe('a hosted Studio runs the game only in the worker', () => {
         timeoutMs: 2_000,
       });
       await expect(quick.diagnose('lint', game, {})).rejects.toMatchObject({ status: 504 });
+      expect([...mem.objects.keys()]).toEqual([]);
+    } finally {
+      server.close();
+      mem.server.close();
+    }
+  }, 240_000);
+
+  it("prepares the game's assets through it, or says why not", async () => {
+    const { url, server } = await startWorker();
+    const mem = await memoryS3();
+    const ex = remoteExecutor({
+      s3: mem.s3,
+      workerUrl: url,
+      privateKeyPem: keys.privatePem,
+      instance: 'studio-a',
+      at: () => ({ epoch: 'e1', rev: 7 }),
+      timeoutMs: 120_000,
+    });
+    try {
+      // A game whose code does not load: the asset tools never run, the reason comes back.
+      const broken = packAssets([{ path: 'index.ts', bytes: Buffer.from('export const game = ;') }]);
+      await expect(ex.prepare(broken, { epoch: 'e1', rev: 7 }, 'demo')).rejects.toThrow();
+      if (hasAssetTools) {
+        const out = await ex.prepare(packAssets(filesOf(join(ROOT, 'games', 'demo'))), { epoch: 'e1', rev: 7 }, 'demo');
+        expect(Object.keys(out.files).some((p) => p.startsWith('assets/img/'))).toBe(true);
+        expect(JSON.parse(out.manifest)).toHaveProperty('images');
+      }
       expect([...mem.objects.keys()]).toEqual([]);
     } finally {
       server.close();

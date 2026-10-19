@@ -1,7 +1,8 @@
 // The worker's child process (4.2.1, ADR 0028): runs the game's code in the folder it is given and prints one JSON
 // document to the file it is given: `validate`, the validator's verdict; `load`, the game module as data (functions
 // dropped, as the Studio reads it); `preview` (4.2.2), the revision's built preview, its files in base64 by path
-// (preview-build.ts); `lint`, `solve`, `playtests` (4.2.2), those diagnostics (ops/diagnose.ts). It is started with an emptied environment, in a fresh folder, and killed with its process group
+// (preview-build.ts); `lint`, `solve`, `playtests` (4.2.2), those diagnostics (ops/diagnose.ts); `prepare` (4.2.2),
+// the game's assets prepared (prepare.ts). It is started with an emptied environment, in a fresh folder, and killed with its process group
 // at its deadline; the game's code runs here, never in the supervisor... as far as one machine and one user allow
 // (ADR 0028).
 import { writeFileSync } from 'node:fs';
@@ -23,6 +24,17 @@ if (kind === 'preview') {
     outFile,
     JSON.stringify({ files: Object.fromEntries([...files].map(([k, v]) => [k, v.toString('base64')])) }),
   );
+} else if (kind === 'prepare') {
+  const { prepareIn } = await import('./prepare');
+  const mod = (await importFresh(join(dir, 'index.ts'))) as GameModule;
+  const p = JSON.parse(params ?? '{}') as { game?: unknown; systemPath?: unknown };
+  if (typeof p.game !== 'string' || !/^[\w-]{1,64}$/.test(p.game)) process.exit(2);
+  const path = typeof p.systemPath === 'string' && p.systemPath ? p.systemPath : undefined;
+  try {
+    writeFileSync(outFile, JSON.stringify({ data: await prepareIn(dir, p.game, mod, path) }));
+  } catch (e) {
+    writeFileSync(outFile, JSON.stringify({ error: String((e as Error).message).slice(0, 2_000) }));
+  }
 } else if (kind === 'lint' || kind === 'solve' || kind === 'playtests') {
   const d = await import('../ops/diagnose');
   const mod = (await importFresh(join(dir, 'index.ts'))) as GameModule;

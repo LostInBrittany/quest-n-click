@@ -34,13 +34,14 @@ import { Presence } from '../studio-server/src/server/live';
 import { Play } from '../studio-server/src/server/play';
 import { HOSTED_SOLVE_MS } from '../studio-server/src/ops/diagnose';
 import { Builds, signedBytes } from '../studio-server/src/server/builds';
+import { PreparedAssets } from '../studio-server/src/server/prepared';
 import { Health, judgeBy } from '../studio-server/src/server/health';
 import { Previews } from '../studio-server/src/server/previews';
 import { ServiceLease } from '../studio-server/src/server/service-lease';
-import { localDiagnose, localPreview, localValidate } from '../studio-server/src/worker/local';
+import { localDiagnose, localPrepare, localPreview, localValidate } from '../studio-server/src/worker/local';
 import type { SolveData } from '../tools/studio/types';
 import { newJobKeys, privateKeyOf, publicKeyOf } from '../studio-server/src/worker/job';
-import { packable, packFiles, packSnapshot } from '../studio-server/src/worker/snapshot';
+import { filesOf, packable, packAssets, packFiles, packSnapshot } from '../studio-server/src/worker/snapshot';
 import { TestOp } from '../tests/fixtures/oidc-op';
 
 const ROOT = join(import.meta.dirname, '..');
@@ -139,6 +140,36 @@ const health = new Health({
   }),
 });
 journal.events.on('confirmed', () => void health.schedule());
+// The prepared assets (main.ts), prepared in the worker's child here, under the member's exclusive lease.
+const preparedAssets = new PreparedAssets({
+  db,
+  blobs: fsBlobStore(join(tmp, 'blobs')),
+  dir: join(tmp, 'prepared'),
+  snapshot: () =>
+    server.exclusive(async () => ({
+      epoch: await journal.epoch(),
+      rev: await journal.revision(),
+      bytes: packAssets(filesOf(gameDir)),
+    })),
+  prepare: (bytes) => localPrepare(bytes, 'demo'),
+  currentManifest: () =>
+    existsSync(join(gameDir, 'assets.gen.json')) ? readFileSync(join(gameDir, 'assets.gen.json'), 'utf8') : null,
+  writeManifest: async (manifest) => {
+    await studio.writeFiles('prepare assets', [{ path: 'assets.gen.json', after: manifest }], { undo: false });
+  },
+  exclusive: async (fn) => {
+    const who = operationContext.getStore()?.claimant;
+    if (!who) return fn();
+    // Given back only if this run took it (an owner may already hold the project).
+    const had = (await leases.list()).some((l) => l.span === '*' && l.holder === who.userId);
+    if (!had) await leases.take(who, ['*']);
+    try {
+      return await fn();
+    } finally {
+      if (!had) await leases.release(who.userId, ['*']);
+    }
+  },
+});
 // The published builds (main.ts), built in the worker's child here and signed with a key made for the run.
 const buildKeys = newJobKeys();
 const builds = new Builds({
@@ -161,15 +192,17 @@ const builds = new Builds({
   keyId: 'e2e',
   sign: (bytes) => sign(null, bytes, privateKeyOf(buildKeys.privatePem)).toString('base64url'),
 });
+const studio = createStudio({
+  gameDir,
+  root: tmp,
+  journal,
+  importFresh: importInChild,
+  personalUndo: new PersonalUndo(db, () => journal.epoch()),
+});
 const server = studioServer({
-  studio: createStudio({
-    gameDir,
-    root: tmp,
-    journal,
-    importFresh: importInChild,
-    personalUndo: new PersonalUndo(db, () => journal.epoch()),
-  }),
+  studio,
   personalUndo: true,
+  prepared: preparedAssets,
   journal,
   db,
   lease,
@@ -586,6 +619,18 @@ try {
     ?.contentFrame()
     .then((f) => f?.evaluate(async () => (await fetch('/play/1/')).status));
   check('the game origin serves the build at /play/1/ to a game session', builtPage === 200, `status ${builtPage}`);
+
+  // 6d. Prepare assets (D43): on the worker's child here, under the member's exclusive lease; the game's manifest is a
+  // new revision.
+  const revBefore = await journal.revision();
+  await page.getByRole('button', { name: 'Prepare assets' }).click();
+  const prepStatus = page.locator('.assets-panel .muted.small', { hasText: 'prepared from revision' });
+  await prepStatus.waitFor({ timeout: 180_000 });
+  check(
+    "a dev prepares the game's assets on the server, under the exclusive lease",
+    (await preparedAssets.list()).length === 1 && (await leases.list()).every((l) => l.span !== '*'),
+    `${(await prepStatus.innerText()).trim()}, revision ${revBefore} → ${await journal.revision()}`,
+  );
 
   // 7. The logout ends the game's session too.
   await page.evaluate(async () => {

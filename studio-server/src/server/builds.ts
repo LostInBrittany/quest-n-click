@@ -55,6 +55,8 @@ export interface BuildsOptions {
   db: SqlDb;
   blobs: BlobStore;
   publicDir: string;
+  /** The Studio's prepared set (4.2.2 PR 6b), looked in first. */
+  prepared?: () => string | null;
   game: string;
   studioOrigin: string;
   assetsVersion: () => string;

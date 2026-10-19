@@ -22,6 +22,7 @@ import type { Leases } from './leases';
 import { LiveHub, type Presence, serveEvents } from './live';
 import { forPlay, type Play, playTicketBody } from './play';
 import type { Builds } from './builds';
+import type { PreparedAssets } from './prepared';
 import type { Health } from './health';
 import type { Previews } from './previews';
 import type { ServiceLease } from './service-lease';
@@ -113,6 +114,8 @@ export interface StudioServerOptions {
   personalUndo?: boolean;
   /** The published builds (4.2.2 PR 5): `/api/builds`. */
   builds?: Builds;
+  /** The prepared assets (4.2.2 PR 6b): `/api/assets/prepare`. */
+  prepared?: PreparedAssets;
   /** The game's origin (plan §6.1): every request whose `Host` is `playUrl`'s goes there, and nothing else does. */
   play?: { handler: Play; playUrl: string };
   /** The Studio's page, its files and the game's images and sounds (PR 7, client.ts). */
@@ -316,6 +319,28 @@ export function studioServer(o: StudioServerOptions): StudioHttpServer {
         if (!o.play || !principal?.session) throw new StudioError('the game is opened from a browser session', 403);
         const path = playTicketBody(await readJson(req));
         return send(res, 200, { url: await o.play.handler.ticket(principal.user.id, principal.session.idHash, path) });
+      }
+      // The prepared assets (4.2.2, D43): listed by a reviewer, prepared by a dev on the worker, under their exclusive
+      // lease (it waits for nobody's span: another's is a 423, with their name).
+      if (sub === '/assets/prepared' || sub === '/assets/prepare') {
+        if (!o.prepared)
+          throw new StudioError('preparing the assets needs a hosted Studio with its processing worker', 404);
+        if (req.method === 'GET' && sub === '/assets/prepared')
+          return send(res, 200, { runs: await o.prepared.list() });
+        if (req.method !== 'POST' || sub !== '/assets/prepare') throw new StudioError('not found', 404);
+        if (!o.lease.held)
+          return send(
+            res,
+            503,
+            { error: 'this instance does not serve writes yet; try again' },
+            { 'retry-after': '2' },
+          );
+        // Named as any write is (its author: the email first), the claimant by their name.
+        const author = principal ? (principal.user.email ?? principal.user.name ?? principal.user.id) : 'local';
+        const name = principal ? (principal.user.name ?? author) : 'local';
+        const claimant = principal ? { userId: principal.user.id, name } : undefined;
+        const r = await operationContext.run({ author, claimant }, () => o.prepared!.prepare(name));
+        return send(res, 200, r);
       }
       // The published builds (4.2.2, G6): listed and read by a reviewer, published by a dev, rebuilt by an owner.
       if (sub === '/builds' || sub.startsWith('/builds/')) {

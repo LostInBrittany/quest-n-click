@@ -38,6 +38,8 @@ export interface PreviewsOptions {
   blobs: BlobStore;
   /** The prepared assets (`public/`): served beside every build. */
   publicDir: string;
+  /** The Studio's prepared set (4.2.2 PR 6b), looked in first. */
+  prepared?: () => string | null;
   game: string;
   studioOrigin: string;
   /** The folder packed at its revision, holding the instance's lock. */
@@ -239,10 +241,10 @@ export class Previews {
       const rest = m[2] || 'index.html';
       const manifest = this.s.epoch ? await this.manifest(Number(m[1])) : undefined;
       if (!manifest) return text(res, 404, 'no such preview');
-      return serveBuilt(req, res, { blobs: this.o.blobs, publicDir: this.o.publicDir }, manifest, rest);
+      return serveBuilt(req, res, this.o, manifest, rest);
     }
     const rel = path.slice(1);
-    if (PUBLIC.test(rel)) return serveAsset(req, res, this.o.publicDir, rel);
+    if (PUBLIC.test(rel)) return serveAsset(req, res, assetDirs(this.o), rel);
     if (path !== '/' && path !== '/index.html') return text(res, 404, 'not found');
     if (this.s.ready === null) {
       res.writeHead(503, { 'content-type': 'text/html; charset=utf-8', refresh: '2', 'retry-after': '2' });
@@ -258,20 +260,32 @@ export function text(res: ServerResponse, status: number, body: string) {
   res.end(body);
 }
 
-/** A prepared asset, from the Studio's folder; one byte range when asked (Safari plays no media without it). */
-function serveAsset(req: IncomingMessage, res: ServerResponse, publicDir: string, rel: string) {
-  const root = realpathSync.native(publicDir);
-  let file: string;
-  let size: number;
-  try {
-    file = realpathSync.native(resolve(root, rel));
-    if (!file.startsWith(root + sep)) return text(res, 404, 'not found');
-    const st = statSync(file);
-    if (!st.isFile()) return text(res, 404, 'not found');
-    size = st.size;
-  } catch {
-    return text(res, 404, 'not found');
-  }
+/** The folders a prepared asset is looked for in, in order: the Studio's prepared set (4.2.2), then `publicDir`. */
+export const assetDirs = (o: { publicDir: string; prepared?: () => string | null }): string[] => {
+  const p = o.prepared?.();
+  return p ? [p, o.publicDir] : [o.publicDir];
+};
+
+/** A file of one of `dirs` (the first that has it), inside it; or undefined. */
+export function findAsset(dirs: string[], rel: string): { file: string; size: number } | undefined {
+  for (const dir of dirs)
+    try {
+      const root = realpathSync.native(dir);
+      const file = realpathSync.native(resolve(root, rel));
+      if (!file.startsWith(root + sep)) continue;
+      const st = statSync(file);
+      if (st.isFile()) return { file, size: st.size };
+    } catch {
+      /* not in this one */
+    }
+  return undefined;
+}
+
+/** A prepared asset, from the Studio's folders; one byte range when asked (Safari plays no media without it). */
+function serveAsset(req: IncomingMessage, res: ServerResponse, dirs: string[], rel: string) {
+  const found = findAsset(dirs, rel);
+  if (!found) return text(res, 404, 'not found');
+  const { file, size } = found;
   const headers: Record<string, string | number> = {
     'content-type': typeOf(file),
     'accept-ranges': 'bytes',
@@ -309,7 +323,7 @@ function serveAsset(req: IncomingMessage, res: ServerResponse, publicDir: string
 export async function serveBuilt(
   req: IncomingMessage,
   res: ServerResponse,
-  o: { blobs: BlobStore; publicDir: string },
+  o: { blobs: BlobStore; publicDir: string; prepared?: () => string | null },
   manifest: Record<string, string>,
   rest: string,
 ): Promise<void> {
@@ -323,7 +337,7 @@ export async function serveBuilt(
     });
     return void res.end(req.method === 'HEAD' ? undefined : bytes);
   }
-  if (PUBLIC.test(rest)) return serveAsset(req, res, o.publicDir, rest);
+  if (PUBLIC.test(rest)) return serveAsset(req, res, assetDirs(o), rest);
   return text(res, 404, 'not found');
 }
 

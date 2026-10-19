@@ -16,6 +16,8 @@ export interface ClientOptions {
   clientDir: string;
   /** The prepared assets' folder (`public/`, with `assets/img`, `assets/audio`…). */
   publicDir: string;
+  /** The Studio's prepared set (4.2.2 PR 6b): a game's image or sound is looked for there first. */
+  prepared?: () => string | null;
   publicUrl: string;
   playUrl: string;
 }
@@ -133,11 +135,15 @@ export class StudioClient {
     });
   }
 
-  /** One of the game's images or sounds: the caller has checked the member's session. */
+  /** One of the game's images or sounds (the prepared set first, 4.2.2): the caller has checked the member's session. */
   serveMedia(path: string, res: ServerResponse): void {
     const type = MEDIA[extname(path).toLowerCase()];
     if (!type) return this.notFound(res);
-    this.file(join(this.publicDir, ...path.slice(1).split('/')), this.publicDir, res, type, {
+    const p = this.o.prepared?.();
+    // Compared real path to real path (the work folder may sit behind a link: macOS's /var).
+    const prepared = p && existsSync(p) ? realpathSync.native(p) : null;
+    const root = prepared && existsSync(join(prepared, ...path.slice(1).split('/'))) ? prepared : this.publicDir;
+    this.file(join(root, ...path.slice(1).split('/')), root, res, type, {
       'cache-control': 'private, max-age=300',
     });
   }

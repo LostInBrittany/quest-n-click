@@ -23,6 +23,9 @@ const CHILD = fileURLToPath(new URL('./child.ts', import.meta.url));
 // A game imports `web-scumm/content` by the package's self-reference: its folder must sit inside the package.
 export const JOBS = fileURLToPath(new URL('../../../.cache/jobs/', import.meta.url));
 const MAX_OUT = 16 * 1024 * 1024;
+/** A `prepare`'s answer carries the prepared files (4.2.2): up to the Studio's own bound on a result (32 MiB). */
+const MAX_PREPARED = 30 * 1024 * 1024;
+const maxOut = (kind: string) => (kind === 'prepare' ? MAX_PREPARED : MAX_OUT);
 const DEFAULT_TIMEOUT_MS = 60_000;
 const MAX_TIMEOUT_MS = 120_000;
 
@@ -102,7 +105,7 @@ export function runChild(
       let out = '';
       let tooLarge = false;
       try {
-        if (statSync(outFile).size <= MAX_OUT) out = readFileSync(outFile, 'utf8');
+        if (statSync(outFile).size <= maxOut(kind)) out = readFileSync(outFile, 'utf8');
         else tooLarge = true;
       } catch {
         out = '';
@@ -152,7 +155,9 @@ export function createWorker(o: WorkerOptions) {
       unpackSnapshot(bytes, dir);
       const timeoutMs = Math.min(Number(job.params.timeoutMs) || DEFAULT_TIMEOUT_MS, MAX_TIMEOUT_MS);
       const t0 = Date.now();
-      const r = await runChild(dir, timeoutMs, job.kind, undefined, job.params);
+      // A `prepare` finds python3 and ffmpeg on the worker's own PATH (not a secret; the rest stays empty).
+      const params = job.kind === 'prepare' ? { ...job.params, systemPath: process.env.PATH ?? '' } : job.params;
+      const r = await runChild(dir, timeoutMs, job.kind, undefined, params);
       if (r.pid && (await survivors(r.pid))) {
         recycle = true;
         log('worker-survivor', { job: job.id });
@@ -162,7 +167,8 @@ export function createWorker(o: WorkerOptions) {
       if (r.timedOut) {
         result.failed = `the game's code did not finish within ${timeoutMs} ms`;
         result.timedOut = true;
-      } else if (r.tooLarge) result.failed = `the output exceeds ${MAX_OUT >> 20} MiB`;
+      } else if (r.tooLarge)
+        result.failed = `the output exceeds ${maxOut(job.kind) >> 20} MiB${job.kind === 'prepare' ? ': prepare these assets on a local Studio' : ''}`;
       else
         try {
           parsed = JSON.parse(r.out);
@@ -177,7 +183,10 @@ export function createWorker(o: WorkerOptions) {
         const files = previewFiles((parsed as { files?: unknown } | undefined)?.files);
         if (files) result.files = files;
         else result.failed = 'the preview build gave no usable files';
-      } else if (!result.failed && (job.kind === 'lint' || job.kind === 'solve' || job.kind === 'playtests')) {
+      } else if (
+        !result.failed &&
+        (job.kind === 'lint' || job.kind === 'solve' || job.kind === 'playtests' || job.kind === 'prepare')
+      ) {
         const { data, error, refused } = (parsed ?? {}) as { data?: unknown; error?: unknown; refused?: unknown };
         if (data && typeof data === 'object') result.data = data;
         else result.failed = typeof error === 'string' ? error.slice(0, 2_000) : 'the diagnostic gave no answer';
