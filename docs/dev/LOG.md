@@ -5591,3 +5591,328 @@ approved on 18 Oct.
 
 → next: Claude (this PR's candidate, `v4.2.1` signed on it, `ship verify`, the two pass issues; then 4.2.2 once #144
 is merged, and its own yes to sign)
+
+## #206 · 2026-10-18 · Claude · proposal · 4.2.2 PR 2a: per-revision previews, built by the worker; Vite out of the Studio Server
+
+- **The build** (`studio-server/src/worker/preview-build.ts`): `vite build` of the revision's snapshot in the worker's
+  child (an emptied environment, its process group, a deadline), base `/preview/<rev>/`, no public files, no service
+  worker, the Studio's origin in a meta tag, the fingerprint's `site.json`, the editing tools on
+  (`VITE_STUDIO_PREVIEW`). The result is bounded (2,000 files, plain relative paths, base64) by the worker and checked
+  again by the Studio. In the tests and the e2e stack the same child runs on this machine (`worker/local.ts`).
+- **The store** (`server/previews.ts`, migration 0006): coalesced builds, one at a time, from a snapshot packed holding
+  the instance's lock (the label is the revision it was made from); files in the blob store by content; one row per
+  revision and epoch, ready or failed with its reason, never built twice (a restart included). Its state goes to the
+  live events (`preview`, and in `hello`).
+- **The game's origin**: `/` redirects to the last ready preview (its query kept), or says it is being prepared;
+  `/preview/<rev>/…` serves the build (its hashed code immutable, its page revalidated, so an ended session is refused
+  at the next load: the e2e caught a page served from the cache after the logout) and the prepared assets by an
+  allow-list, one byte range when asked; anything else is a 404.
+- **The Studio's page**: the room view reloads on a newer preview unless a placement is unsaved; the label says the
+  revision shown, the one building, a failure; Vite-era reload timers are off when hosted.
+- **Second reading** (a subagent): a worker away or a timeout is no longer recorded as the revision's failure (only
+  the game's own build failing is; the rest is tried again, 5 s doubling to 5 min); the folder is repaired to the head
+  before it is packed; the assets' streams end on an error or a client gone; a build never stays shown as running;
+  the assets' version is computed once; a new history reloads the frames; hidden files are refused; the Play tab says
+  it keeps its preview and offers the latest; the job binds the snapshot's revision; an output over 16 MiB says so.
+  Left as limits, written in STUDIO-SERVER: text files only in a preview, one worker queue shared with validations,
+  few files shared between revisions (the base is in the page and its code).
+- **Measured here**: the sample game's preview builds from its snapshot in a child in about half a second on the
+  maintainer's machine (cache empty): about 50 files, 1 MB.
+- **Departure from the plan's PR order**: ADR 0026 (saves across revisions) is its own PR, 2b, next; the plan put it in
+  PR 2. Until then, a save made in a preview is not told apart by revision (STUDIO-SERVER "Known limits").
+- **Tests**: `tests/studio-previews.test.ts` (coalescing, once per epoch, failures, another epoch, the files' bounds),
+  `tests/studio-client.test.ts` (a real build served and what is refused), `tests/studio-worker.test.ts` (the job
+  through the worker, never cached, its parameters checked), both browser e2e (the editor on `/preview/<n>/`, a layout
+  written meanwhile shown once built, the logout refusing the next load).
+
+→ next: Claude (PR 2b: ADR 0026, then PR 3, health per revision)
+
+
+## #207 · 2026-10-18 · Claude · proposal · 4.2.2 PR 2b: ADR 0026, saves across revisions
+
+- **The decision** (`docs/dev/adr/0026-saves-across-revisions.md`): the envelope unchanged (D40); a slot's
+  `SlotMeta.revision` (kept as stored, read only when well formed, in a module a player never loads) and the autosave's record in the page's storage say where a save was made (revision and full
+  fingerprint); only a build that declares its revision (`BootOptions.revision`, a preview from its base) writes them
+  and asks; the test is the content, not the number; Resume here, Restart, Stay in revision N; the texts are the
+  Studio's, outside the game's `ui`.
+- **The code**: `src/engine/dom/revision.ts` (the guard, its record of the autosave around the engine's own store, the
+  dialog), `boot.ts` (the guard when the build declares a revision), `menus.ts` (Continue and a slot's load ask
+  first), `save.ts` (a slot's record read back when well formed), `src/main.ts` (a preview's revision from its base).
+- **Tests**: `tests/revision.test.ts`; `scripts/e2e-studio-hosted.ts` loads the latest preview in the Play tab, checks
+  the revision recorded, the question and its answers, and that Stay opens the save's revision (G2).
+- **Not done here**: the Play tab (`?dev`) starts a new game, so in the Studio the question comes from a slot; a
+  revision no longer kept cannot be stayed in (said in the ADR).
+
+→ next: Claude (PR 3: health per revision and bisection)
+
+
+## #208 · 2026-10-19 · Claude · proposal · 4.2.2: the detailed plan (draft for the maintainer)
+
+- `docs/dev/PLAN-4.2.2-ATELIER-JOUABLE.md`: what 4.2.1 leaves open, eight guarantees with their limits and tests, the
+  PRs in order (spike of the preview, per-revision previews and ADR 0026, health per revision, personal undo,
+  immutable builds, assets on a qualified native runtime, backup and journal shipping, gates), exit criteria, the
+  decisions asked of the maintainer, risks. No 4.2.2 code before the maintainer merges it.
+
+
+## #209 · 2026-10-19 · Claude · proposal · 4.2.2 PR 3a: diagnostics with their revision, and on the worker
+
+- **The revision of a read** (G3): `http.ts` reads the journal's revision under the same read lock as the answer and
+  sends it as `x-studio-revision`; the client keeps it beside the answer (`revisionOf`, `api.ts`); the Check tab says
+  "revision N" (or a range when its requests straddled a write) and "stale" once the live head is past it.
+- **The diagnostics on the worker**: new job kinds `lint`, `solve`, `playtests`; one implementation
+  (`studio-server/src/ops/diagnose.ts`) for the local Studio and the worker's child; the child checks the solver's
+  parameters (`solveParams`) and says a refusal (an unknown checkpoint) as the local route does; the snapshot takes the
+  playtests' sessions for that job only; only validate and load answers are cached by snapshot (a diagnostic depends
+  on its parameters). Hosted, the solver has a 45 s limit (`HOSTED_SOLVE_MS`), under the job's deadline.
+- **Stale, decided by the oldest result** (`src/studio/check-stamp.ts`): a write between the tab's eight requests
+  leaves some at the older revision; a run that stops part-way shows none of the previous run's results. Rooms saves
+  re-run the checks; a member's other own writes (storyboard, notes, forms) do not, and the label says so (re-running on
+  each would queue the worker, one job at a time).
+- **Second reading** (a subagent): any checkpoint name reaches the worker (only looked up) and an unknown one is a 400
+  as on a local Studio; a diagnostic past its deadline is a 504 "unknown for now"; lint's solver has the 45 s limit
+  too, and both stay 10 s under the job's deadline; the Studio checks each diagnostic's shape; a reality policy is
+  refused on a hosted Studio (501) rather than solved as another question; the playtests test sends a real session.
+  Left for PR 3b: a diagnostic holds the instance's read lock while the worker runs it (writes wait), as it did in
+  the process before.
+- **Tests**: `tests/studio-worker.test.ts` (lint and solve through the worker equal a local run; parameters bounded;
+  an unknown checkpoint a 400; a session sent with the playtests job only), `tests/check-stamp.test.ts` (stale by the
+  oldest result), `tests/studio-client.test.ts` (a read's revision), `scripts/e2e-studio-hosted.ts` (the Check tab's
+  revision).
+
+→ next: Claude (PR 3b: health per revision and bisection)
+
+
+## #210 · 2026-10-19 · Claude · proposal · 4.2.2 PR 3b: health per revision, and the bisection
+
+- **The verdict** (`studio-server/src/server/health.ts`, migration 0007): after each confirmed revision, coalesced, the
+  head is judged on the worker from a snapshot packed holding the instance's lock: the validator, then the solver from
+  a new game, a witness bounded to 45 s (`judgeBy`). The guard already refuses an edit the validator fails, so what a
+  revision breaks is mostly a game that can no longer be finished. One row per revision and epoch; a restart judges
+  nothing twice; a worker away records nothing and is tried again (5 s doubling to 5 min); a solver cut short records
+  nothing and says "unknown".
+- **The bisection** (G4): when the head fails and the last judged revision passed, the revisions between them are
+  judged on snapshots rebuilt from the journal (`Journal.filesAt`: the head with the later operations undone, from
+  their "before" blobs, sources and data only, `packable`) until the first failing one, in ⌈log₂ n⌉ checks at most,
+  each a judgement (the validator, then the solver: up to two jobs), each kept. It names the revision, its operation's `what` and its files (`Journal.opAt`), never its author. A failing
+  head after a failing revision keeps the revision found; an unknown verdict on the way stops the search, naming none.
+  `POST /api/health/bisect {good, bad}` (a dev) checks its ends first.
+- **Shown**: the live events carry the state (`health`, and in `hello`); the header's chip says "✔ valid at revision
+  N", "✖ k error(s) at revision N · broken since revision M: what (files)", "checking…", or "unknown", stale once the
+  head has moved past it. The game's title in the header no longer shrinks to nothing beside it (the e2e caught it).
+- **Second reading** (a subagent): a bisection asked for past the head is refused (it would have kept the head's verdict
+  under a number not yet made); the search always starts from the last passing revision, bounded by the first failing
+  one already known, so a bisection stopped part-way (the worker away) or rows kept on the way never lose the revision
+  that broke it; a kept row only gains that revision (`COALESCE`), the one found on demand is written on the failing
+  end; one judgement or bisection at a time; the blobs read once per bisection; health on a hosted Studio only (a
+  past revision's files need every operation's blobs); five failures of the same revision say "cannot be judged"; an
+  older verdict is greyed, never green; the route checks its numbers and the lease. The worker's cost (three jobs per
+  revision, up to two per bisection step) is written in STUDIO-SERVER's limits.
+- **Tests**: `tests/studio-health.test.ts` (once per revision; ⌈log₂ n⌉ for several n and k; kept while broken, read
+  back after a restart; unknown; another epoch; a worker away; a bisection asked for and its ends; the verdict's
+  composition; a past revision's files and their snapshot, equal to the folder's; the chip's texts),
+  `scripts/e2e-studio-hosted.ts` (the chip in a real hosted Studio).
+
+→ next: Claude (PR 4: personal undo and redo)
+
+
+## #211 · 2026-10-19 · Claude · proposal · 4.2.2 PR 4: personal undo and redo
+
+- **The stacks** (`studio-server/src/ops/undo.ts`, migration 0008): each undoable operation a member makes is kept by
+  member and epoch (done, undone, gone); a new undoable edit of the member makes their undone ones gone (no redo past
+  a new edit). Undo takes their latest done one, redo their latest undone one.
+- **The operation** (`core.ts`, `personalStep`): its effects read from the journal (`Journal.effectsAt`), each file's
+  head compared with what the operation left (undo) or found (redo): another write since is a 409; the inverse is one
+  new operation through the same path as any edit (the guard, and the spans' claim: 423 when another holds one);
+  history is never rewritten. The contents put back are the journal's blobs; a local journal, which adopted a file
+  without keeping it, keeps the "before" of each undoable write (`Journal.keep`).
+- **Where**: a shared Studio with members (the server's `leases`): `createStudio({ personalUndo })`, and the HTTP
+  layer serves `/undo` and `/redo` there (`personalUndo: true`); a local Studio keeps its process's stack. The header's
+  Undo / Redo are back on a hosted Studio.
+- **Second reading** (a subagent): a retried edit (the same operation id, answered again) records nothing more; an
+  undo whose inverse landed but whose move was lost (a cut, a stop) is moved when its files are already back, never
+  refused for good; a move moves from its expected state only; the journal compares, under its lease, the content the
+  409 check found (`from`); the next redo is the earliest undone (the stacks' order: every undone revision is past
+  every done one), first in the history; a recording that fails after the edit landed is logged, not a refusal of the
+  edit; a hosted journal keeps no blob again; an operation with no effects is a 409; another history's rows and what
+  can no longer be redone are deleted.
+- **G5, as built**: 423 when another member holds a span of the undo (a free one is taken, as by any write); the 409
+  compares content, so an undo can cross another member's write that was itself undone.
+- **Tests**: `tests/studio-undo.test.ts` (two members: each undoes their own, in their order, as new revisions; redo;
+  a new edit drops the redo; another studio on the same journal sees the same stacks; 409 over the other's write; 423
+  under the other's span; several files, created ones included; a retried edit; an undo already applied), `scripts/e2e-studio-hosted.ts` (Undo in a real hosted Studio puts the last layout back as a
+  new revision).
+
+→ next: Claude (PR 5: immutable builds `/play/<n>`)
+
+
+## #212 · 2026-10-19 · Claude · proposal · 4.2.2 PR 5: published builds `/play/<n>`
+
+- **The build** (`studio-server/src/server/builds.ts`, migration 0009): the head's snapshot, packed holding the
+  instance's lock, built by the worker as a preview is (`preview-build.ts` with `play`: base `/play/<n>/`, the
+  player's game: no editing tools, no Studio origin); its files kept by content; its manifest (epoch, revision,
+  engine, the snapshot's sha256, each file's sha256, the revision's health then) signed with Ed25519 by the Studio's
+  job key (`STUDIO_WORKER_KEY`; the worker's public key checks it; `manifestBytes` is the canonical form). One
+  publication or rebuild at a time.
+- **Served** on the game's origin: `/play/<n>/` from the manifest (the page asked again at each load, the code kept),
+  the prepared assets beside it; `/play/` sends to the last green build, computed when asked from `studio_health`
+  (a build published before its revision was judged becomes green once it is). `publicBuilds` (config, false by
+  default, D42) opens `/play/` and `/icons/` without a game session, still framed by the Studio only.
+- **Fresh rebuild** (an owner, D42: an option, not required to publish): the same revision's snapshot rebuilt from
+  the journal (refused, 409, if it is not the published snapshot), built again, compared file by file; the comparison
+  is kept with the build, which never changes. It runs on the worker as it is now: a redeployed worker is not asked
+  for (its cost is measured by the `studio-preview` pass).
+- **API**: `GET /api/builds`, `GET /api/builds/<n>` (manifest and signature), `POST /api/builds` (a dev),
+  `POST /api/builds/<n>/rebuild` (an owner). The Play tab's panel publishes, lists (green, failing, not judged),
+  opens and rebuilds.
+- **Limits, written in STUDIO-SERVER**: no service worker in a published build; its saves not yet told apart by build.
+- **Second reading** (a subagent): the manifest says what built it as the worker knows it (`build.json`: its engine,
+  its commit when it is a Git checkout, its lockfile's sha256), the assets' version it was built against (a rebuild
+  uses the same), and the revision's verdict, the revision being judged at publication (`Health.judgeSnapshot`: the
+  coalesced loop may pass it over); the bytes signed are an explicit canonical form (keys sorted, files as pairs sorted
+  by UTF-8 bytes), prefixed `web-scumm build manifest v1\n` (no overlap with a job token's bytes, by design now), kept
+  and given back as `signed`, with the key's id in the manifest; a build's number is reserved first (two instances
+  during a deploy never share one) and a failed build leaves no row; one build at a time, a second asked meanwhile is
+  a 429; the last green build in one query; a rebuild in another history is said as such; the public paths' predicate
+  is the one tested; a reviewer sees no Publish button. G6, as built: no diagnostics beyond the verdict (validator and
+  solver), and the images and sounds are served from the instance as they are now, outside the build.
+- **Tests**: `tests/studio-builds.test.ts` (numbered, signed, the signature broken by a changed file or revision; the
+  last green build as judged now; served by number, the page revalidated, the code immutable; refused paths; a fresh
+  rebuild the same, then different; a snapshot the journal does not give back the same), `tests/studio-play.test.ts`
+  (a public build without a session, nothing else; the predicate itself in `studio-builds.test.ts`), `tests/studio-worker.test.ts` (a real published build through the
+  worker), `scripts/e2e-studio-hosted.ts` (publish from the Play tab, the signature checked, `/play/1/` served).
+
+→ next: Claude (PR 6: the assets' qualification on the native runtime)
+
+
+## #213 · 2026-10-19 · Claude · proposal · 4.2.2 PR 6a: the hosted assets' qualification
+
+- **Measured** on the spike's processing app (kept for #149; an SSH session, a folder in `/tmp`, nothing deployed or
+  changed): glibc 2.44, Python 3.13, ffmpeg 9; the locked wheels installed with every hash checked in 7.0 s (226 MB);
+  a full `prepare` of the sample game in 4.1 s (194 images, 24 sounds, 7 MB), then 0 reprocessed on a second run.
+  Not measured: the sheets' cutting, a bigger game, the peak memory.
+- **Kept**: the lock (`ops/studio/worker-requirements.lock`, its test pinning the versions of `requirements.txt` each
+  with a hash), the worker's build hook in STUDIO-SERVER (en, fr), `.python/` ignored.
+- **Decided (D43)**: `prepare` becomes a worker job in 4.2.2 (PR 6b); the sheets' cutting and the hosted uploads move
+  to 4.2.3 (a departure from the plan's §2.6, which put both in PR 6).
+
+→ next: Claude (PR 6b: `prepare` as a worker job)
+
+
+## #214 · 2026-10-19 · Claude · proposal · 4.2.2 PR 6b: `prepare` on the processing worker
+
+- **The job** (`studio-server/src/worker/prepare.ts`, kind `prepare`): a version 2 snapshot (`packAssets`: the
+  sources and data as text, the art and sounds under `art/` and `audio/` in base64, bounded as any snapshot); in the
+  child, the references (`tools/refs.ts`'s `collectRefs`), then `tools/assets.py` with `WEB_SCUMM_PROJECT` (its work
+  folder, inside the job's), `GAME_DIR`, `PYTHONPATH=<engine>/.python` (the build hook's packages) and the worker's
+  own `PATH` (python3, ffmpeg; passed for this job only, the rest of the environment stays empty). The answer: the
+  prepared files and the new manifest, checked by the Studio (`preparedShape`).
+- **The store** (`server/prepared.ts`, migration 0010): one run at a time (else 429), under the member's `*` lease
+  (taken and given back; another's span refuses it, 423); the files kept by content, a set per run; the manifest
+  written as one operation of the journal; the latest set written to `<workDir>/.prepared/<id>/` (again at start: the
+  disk is ephemeral) and served first by the Studio's media, the previews and the builds (`assetDirs`, `findAsset`),
+  then `publicDir`; its version becomes the previews' and builds' `__ASSETS_VERSION__`.
+- **API and screen**: `GET /api/assets/prepared`, `POST /api/assets/prepare` (a dev); the Play tab's Assets panel
+  (devs), which says the sheets and uploads stay local. CI's `studio-hosted` job gets Python and ffmpeg.
+- **Second reading** (a subagent): a game naming its sources in `sources.json` is refused (they would not be found);
+  a manifest that would lose an image or a sound the game had is refused, naming them, with the asset tools' last
+  lines; the new set is served before the manifest's revision lands (its previews are built against it) and set back
+  if the write is refused; the answer may be 30 MiB (the Studio's result bound), past which "prepare on a local
+  Studio"; `prepare` has the worker's 2-minute deadline; the output walk follows no link; the snapshot reads only
+  what it keeps and counts bytes; a refused file name is named; the exclusive lease is given back only if this run
+  took it; the author is named as any write's; the latest set is written again at start in the background, a failure
+  logged; the Studio's media route compares real paths. Not done, said in STUDIO-SERVER: cancellation and step by step
+  progress (the plan's §2.6), an incremental run, builds pinned to the set they were built against.
+- **Measured here**: the sample game's `prepare` in the worker's child in about 3.5 s (218 files, 9.4 MB answered).
+- **Tests**: `tests/studio-prepared.test.ts` (under the lease, kept, served first, written again at start; nothing kept
+  on a failure; one at a time; version 2 snapshots and their bound; the answer's shape; a real `prepare` where Python
+  has the packages), `scripts/e2e-studio-hosted.ts` (a dev prepares from the Play tab).
+
+→ next: Claude (PR 7: backup, restore, journal shipping, GC)
+
+
+## #215 · 2026-10-19 · Claude · proposal · 4.2.2 PR 7: backup, restore, the journal shipped, the collection
+
+- **The backup** (`studio-server/src/ops/backup.ts`): every table of the migrations kept or skipped with why (a test
+  reads the migrations; an unknown table refuses the backup); the kept tables read in one read-only transaction,
+  sorted, digested; the blobs they name listed (the head, every operation's before and after, the previews, builds and
+  prepared sets); the migrations' version recorded. The restore: into an empty project of the same schema only, every
+  blob checked first, every row in one transaction.
+- **The journal shipped** (`ops/ship.ts`): after each confirmed operation and at start, the operations past the
+  watermark (`studio_meta.shipped`) copied in order to `journal/<epoch>/<rev>.json`; a failure logged and tried again
+  at the next operation; the RPO (the age of the oldest operation not shipped) in `/readyz`. The replay after a
+  restore applies the segments past the backup's revision, in order, and stops at a gap.
+- **The collection** (`ops/gc.ts`): what the rows name is kept (the same reading as a backup's), and what is younger
+  than a day; the worker's staging older than an hour too; listed by default, deleted with `--delete`. The blob
+  stores can list and remove (fs; S3 through ListObjectsV2, `S3.list`).
+- **Commands**: `backup <file>`, `restore <file> [--replay]`, `replay`, `gc [--delete]`; the drill in STUDIO-SERVER
+  (en, fr).
+- **After the second reading**:
+  - only confirmed operations are backed up (an intent or aborted row broke the replay or the recovery);
+  - the replay checks each operation against the head it continues (revision, every `before`, the `after` blobs) and
+    says why it stopped;
+  - a restored instance ships on a new line (`journal/<epoch>/<line>/<rev>.json`), so its revisions never overwrite
+    the timeline it left; a restore is marked under way until it ends, `serve` refuses meanwhile, `replay` resumes it;
+  - restore is refused on a local store (its journal adopts the folder);
+  - a blob stored again gets a new date (fs `utimes`, S3 written again), closing the collection's race with a write
+    naming an old blob;
+  - a restore needs only the head's and the journal's blobs: derived rows whose blobs were collected are left out
+    and counted;
+  - columns are checked against the schema before an insert (a backup is trusted input, said in the docs);
+  - a failed shipment is retried within 30 s;
+  - S3 listing decodes its XML entities once, and its continuation token too.
+- **Tests**: `tests/studio-backup.test.ts` (the registry against the migrations; restore then replay gives the same
+  head and the project opens; a backup altered, a project not empty, a blob missing, another schema refused; the RPO
+  while the bucket is away; a replay stopped at a gap, at another timeline, at a missing blob; a restored instance
+  shipping on a new line; confirmed operations only; a column refused; collected previews left out; a shipment
+  retried; the collection's grace, a blob stored again, its deletion, the staging), and on
+  Postgres and S3 in CI (`tests/studio-server.test.ts`: the same round trip, the bucket listed).
+
+→ next: Claude (PR 8: the gates, then the release)
+
+
+## #216 · 2026-10-19 · Claude · proposal · 4.2.2 PR 8: the gates
+
+- **Passes** (`tools/field/schema.ts`, `docs/dev/surfaces.json`): `studio-preview` and `studio-assets-hosted`, asked
+  from 4.2.2 (`PASS_SINCE`), bound to the engine's and the Studio Server's archives, both after `studio-hosted`; a
+  4.2.1 release is not asked them (`tests/field-kit.test.ts`, `tests/field-carry.test.ts`).
+- **Mutation** (`tools/mutation-sets.ts`): the set `studio-workshop`, its tests the workshop's own
+  (`tests/studio-{undo,health,previews,builds,prepared,backup}.test.ts`, and `studio-client` for the previews' serving), in `MEASURED`: run every night and on demand,
+  gating nothing until its survivors are read (as `studio-ops` and `studio-auth` in 4.2.1).
+- **CI**: the previews, builds and restore run in `check` (SQLite) and in `studio-hosted` (Postgres and S3: the build,
+  the prepare on the worker, the backup's round trip with the journal shipped and replayed).
+
+→ next: Claude (the set measured on a runner, then the release)
+
+## #217 · 2026-10-19 · Claude · release · 4.2.2 "Playable Workshop": the shared game played, judged, published
+
+- **What ships**: the plan's §2 for 4.2.2 (`docs/dev/PLAN-4.2.2-ATELIER-JOUABLE.md`), merged as #152–#162 (with #151,
+  Dependabot; LOG #206–#216):
+  - the preview spike and D42;
+  - per-revision previews built by the worker, with Vite out of the server;
+  - ADR 0026 (saves across revisions);
+  - diagnostics with their revision, on the worker;
+  - health by revision and the bisection;
+  - personal undo;
+  - published builds with signed manifests;
+  - the hosted assets' qualification (D43) and `prepare` on the worker;
+  - backup, restore, the journal shipped and the collection;
+  - the gates.
+- **The maintainer's answers**:
+  - « merged #144, go 4.2.2 / you have my all go » (D42: the choices of the plan's §4, taken under that go);
+  - « yes sign 4.2.2 » (18 Oct), the yes for `v4.2.2` only (D37); `v4.2.3` gets its own;
+  - « keep spike resources » (they serve pass #149).
+- **Experimental (D18)**: four Studio passes open after this release (`studio-hosted` #149, `studio-collab` #150, and
+  4.2.2's `studio-preview` and `studio-assets-hosted`, opened with the release).
+- **Where 4.2.2 departs from its plan, said**:
+  - G7's restore drill ran in CI (Postgres and an S3, the journal shipped then replayed), not yet on a qualified
+    Clever instance: the drill is written in STUDIO-SERVER, to be run with `studio-hosted`;
+  - sprite sheets and uploads stay on a local Studio; only `prepare` runs hosted (D43, 4.2.3);
+  - the health judges the validator and the solver from a new game, not lint or the playtests;
+  - the mutation set `studio-workshop` is measured, not gated: its survivors are read in a later 4.2.x (the plan's
+    §2.8 allows it; §3's exit criteria do not ask it).
+- **The version**: 4.2.2; the golden save `demo-4.2.2.json`; the reference run recorded again; the CHANGELOG assembled
+  from 12 fragments (the plan's with a CHANGELOG line of its own); UPGRADING §35, SUPPORT "4.2.2", ROADMAP, README,
+  STUDIO-SERVER's status (en, fr); `docs/dev/passes/4.2.2.md` (seventeen passes).
+
+→ next: Claude (this PR's candidate, `v4.2.2` signed on it, `ship verify`, the two pass issues; then the 4.2.3 plan for
+the maintainer to merge, and its own yes to sign)

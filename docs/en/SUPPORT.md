@@ -59,6 +59,16 @@ opens no browser, no Windows runner and no Node 24 (`CONTRIBUTING.md`, "What CI 
 | Bridge, `distributed` profile (4.1.10, `experimental`) | Postgres 16 in CI (`bridge-postgres`): the same contract, tenants and fan-out between instances; the nightly load run; the qualification profile (`ops/qualify/`: HTTPS, three instances, the leaderboard, a worker killed mid-verification, a restore after the topology is destroyed) in the `qualify` workflow; since 4.1.20 the full profile in every candidate a tag may name (both restore modes under the maintenance lease), `--short` in a pull request's | a real deployment: until one, `experimental` |
 | Connectors (4.1.9), **experimental** (D19) | email (signed webhook, IMAP), Telnet, SSH, Open Badges 2 and 3: the same contract on all four, abuse and fuzz tests, a run under `--disallow-code-generation-from-strings`, the sample chapter's replays; the four played from their archive in the candidate (4.1.19); Telnet and SSH tests not on Windows yet | a real email provider, a real badge from a real issuer, SSH and Telnet exposed in a controlled environment |
 
+## 4.2.2: the playable workshop
+
+The Studio Server stays **experimental**: 4.2.2 adds two passes to the two of 4.2.1, `studio-preview` (people play
+the shared revision, carry a save across revisions, read the health, undo their own work, publish a build) and
+`studio-assets-hosted` (`prepare` on the processing worker). Their machine proofs are the unit suites (SQLite) and
+the `studio-hosted` job (Postgres and S3: a build, the worker's `prepare`, a backup restored and its journal replayed).
+The mutation set `studio-workshop` is measured, not gated, until its survivors are read. Limits said: sprite sheets
+and uploads stay on a local Studio (4.2.3); the game's health judges the validator and the solver from a new game,
+not the playtests; a backup is trusted input (it can add owners); a restore is for a hosted store only.
+
 ## 4.2.1: the Studio Server, and the 4.2.x exception (D40)
 
 4.2.1 to 4.2.3 may **add** (a tool, a command, a Studio Server route, a package) but never change or remove a public

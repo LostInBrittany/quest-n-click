@@ -63,6 +63,18 @@ aucun runner Windows ni Node 24 (`CONTRIBUTING.md`, « What CI runs ») :
 | Bridge, profil `distributed` (4.1.10, `experimental`) | Postgres 16 en CI (`bridge-postgres`) : le même contrat, les tenants et la diffusion entre instances ; la charge de nuit ; le profil de qualification (`ops/qualify/` : HTTPS, trois instances, le classement, un worker tué en pleine vérification, une restauration après destruction de la topologie) dans le workflow `qualify` ; depuis 4.1.20 le profil complet dans chaque candidat qu'un tag peut nommer (les deux modes de restauration sous le bail de maintenance), `--short` dans celui d'une pull request | un vrai déploiement : jusque-là, `experimental` |
 | Connecteurs (4.1.9), **expérimental** (D19) | email (webhook signé, IMAP), Telnet, SSH, Open Badges 2 et 3 : le même contrat pour les quatre, tests d'abus et de fuzz, une exécution sous `--disallow-code-generation-from-strings`, les replays du chapitre d'exemple ; les quatre joués depuis leur archive dans le candidat (4.1.19) ; les tests Telnet et SSH pas encore sous Windows | un vrai fournisseur d'email, un vrai badge d'un vrai émetteur, SSH et Telnet exposés dans un environnement contrôlé |
 
+## 4.2.2 : l'atelier jouable
+
+Le Studio Server reste **expérimental** : la 4.2.2 ajoute deux passes aux deux de la 4.2.1, `studio-preview` (des
+personnes jouent la révision commune, portent une sauvegarde d'une révision à l'autre, lisent la santé, défont leur
+propre travail, publient un build) et `studio-assets-hosted` (`prepare` sur l'application de traitement). Ses preuves
+machine sont les suites unitaires (SQLite) et le job `studio-hosted` (Postgres et S3 : un build, le `prepare` de
+l'application de traitement, une sauvegarde restaurée et son journal rejoué). Le set de mutation `studio-workshop` est
+mesuré, pas bloquant, jusqu'à la lecture de ses survivants. Limites dites : la découpe de planches et les uploads
+restent sur un Studio local (4.2.3) ; la santé du jeu juge le validateur et le solveur depuis une nouvelle partie, pas
+les playtests ; une sauvegarde est une entrée de confiance (elle peut ajouter des propriétaires) ; une restauration ne
+vaut que pour un stockage hébergé.
+
 ## 4.2.1 : le Studio Server, et l'exception 4.2.x (D40)
 
 Les 4.2.1 à 4.2.3 peuvent **ajouter** (un outil, une commande, une route du Studio Server, un paquet) mais jamais

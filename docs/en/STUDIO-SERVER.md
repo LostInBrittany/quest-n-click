@@ -5,10 +5,11 @@ The Studio Server puts a game's Studio online for a small team. Everyone logs in
 line's work (plan `docs/dev/PLAN-4.2.1-4.2.3-STUDIO-SERVER.md`). Alone on your machine, `npm run studio` stays as
 it was: none of this is needed.
 
-> **Status (4.2.1, experimental).** The journal (no confirmed change is lost), logins and roles, the processing worker,
-> spans and leases, the live stream, the game's own origin with its previews (one build per revision, since 4.2.2), and
-> the Studio's screens for all of this. It stays experimental until its people's passes (`studio-hosted`,
-> `studio-collab`) are made. This guide deploys from the repository; the release archive `web-scumm-studio-server` is
+> **Status (4.2.2, experimental).** The journal (no confirmed change is lost), logins and roles, the processing worker,
+> spans and leases, the live stream, the game's own origin with its previews (one build per revision), the health by
+> revision, personal undo, published builds, the assets prepared on the worker, backup and restore, and the Studio's
+> screens for all of this. It stays experimental until its people's passes (`studio-hosted`, `studio-collab`,
+> `studio-preview`, `studio-assets-hosted`) are made. This guide deploys from the repository; the release archive `web-scumm-studio-server` is
 > the same server (below).
 
 ## What runs where
