@@ -6,7 +6,8 @@
 //     members for an owner, the spans, the logout);
 //   - the live stream (`/api/events`): each committed revision, the leases, who is here; after a cut, what was missed
 //     is read from the journal (`/api/ops?after=`), so no change goes unseen; a new epoch reloads the page;
-//   - the heartbeat (every 30 s) that says where you are and keeps your leases.
+//   - the heartbeat (every 30 s) that says where you are and keeps your leases;
+//   - the long jobs' states (4.2.3), passed on to the page as `studio-job` events (jobs.ts).
 import { onRefused, waiting } from './api';
 import { apiUrl, goLogin, loginUrl, studioFetch } from './api-base';
 import { membersPanel } from './members';
@@ -276,6 +277,10 @@ export class Live {
     es.addEventListener('presence', (m) => {
       this.here = (JSON.parse((m as MessageEvent).data) as { here: Here[] }).here;
       this.changed();
+    });
+    // A job's states (4.2.3: prepare, a cut), for whoever follows it (jobs.ts).
+    es.addEventListener('job', (m) => {
+      window.dispatchEvent(new CustomEvent('studio-job', { detail: JSON.parse((m as MessageEvent).data) }));
     });
   }
 

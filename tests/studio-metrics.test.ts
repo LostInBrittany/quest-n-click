@@ -165,7 +165,11 @@ describe('the metrics over HTTP', () => {
       headers: { 'content-type': 'application/json' },
       body: '{}',
     });
-    expect(conflict.status).toBe(423);
+    // A job since 4.2.3 (answered 202): its span conflict comes when it fails, counted then.
+    expect(conflict.status).toBe(202);
+    await expect
+      .poll(async () => sample(await (await scrape()).text(), 'studio_lease_conflicts_total'), { timeout: 5_000 })
+      .toBe(1);
     metrics.fromLog({ event: 'preview', rev: 2, ms: 1234, failed: false });
     metrics.fromLog({ event: 'ship-failed', message: 'down' });
     const t1 = await (await scrape()).text();

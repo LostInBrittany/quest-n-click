@@ -40,7 +40,9 @@ import { AuthStore, Sealer } from './auth/store';
 import { readJson, send, studioServer } from './http';
 import { openPostgresDb } from './postgres';
 import { newJobKeys } from '../worker/job';
-import { filesOf, packable, packAssets, packFiles, packSnapshot } from '../worker/snapshot';
+import { filesOf, packable, packAssets, packCut, packFiles, packSnapshot } from '../worker/snapshot';
+import { createAssets } from '../../../tools/studio/assets';
+import { HostedAssets } from './hosted-assets';
 import { assetsVersion } from '../../../tools/vite/plugins';
 import { exclusiveRunner, Leases } from './leases';
 import { Presence } from './live';
@@ -50,7 +52,7 @@ import { HOSTED_SOLVE_MS } from '../ops/diagnose';
 import type { SolveData } from '../../../tools/studio/types';
 import { PersonalUndo } from '../ops/undo';
 import { Builds, PUBLIC_BUILD_PATH } from './builds';
-import { PreparedAssets } from './prepared';
+import { PreparedAssets, prepareOn } from './prepared';
 import { EngineUpgrade } from './engine-upgrade';
 import { Health, judgeBy } from './health';
 import { Metrics } from './metrics';
@@ -472,7 +474,7 @@ async function main(argv: string[]): Promise<number> {
                 bytes: packAssets(filesOf(gameDir)),
               };
             }),
-          prepare: (bytes, at) => executor!.prepare(bytes, at, config.game),
+          prepare: prepareOn((bytes, at, game, signal) => executor!.prepare(bytes, at, game, signal), config.game),
           log: logLine,
           currentManifest: () =>
             existsSync(join(gameDir, 'assets.gen.json'))
@@ -485,6 +487,26 @@ async function main(argv: string[]): Promise<number> {
         })
       : undefined;
   void prepared?.start();
+  // The Assets tab (4.2.3 PR 7, H8): the listing and the uploads here, the cutting on the worker, under the member's
+  // exclusive lease; the prepared set's folder is where the listing looks for what is prepared.
+  const hostedAssets = new HostedAssets({
+    studio,
+    assets: createAssets(studio, {
+      publicAssets: () => join(prepared?.folder() ?? publicDir, 'assets'),
+      // Hosted: nothing outside the game folder is read for the listing (a sources.json naming other paths).
+      confine: hosted,
+    }),
+    locked: (fn) =>
+      server.exclusive(async () => {
+        await journal.reconcile();
+        return fn();
+      }),
+    exclusive: exclusiveLease,
+    cut: executor
+      ? (req, source, ext, signal) =>
+          executor!.cut(packCut(gameDir, req.sheetId, source, ext), config.game, req, signal)
+      : undefined,
+  });
   // The page: configured, else the one the package was built with (web-scumm-studio-server), else this checkout's.
   const clientDir = resolve(
     config.clientDir ?? process.env.WEB_SCUMM_STUDIO_CLIENT ?? join(engineRoot, '.cache', 'studio-client'),
@@ -668,6 +690,7 @@ async function main(argv: string[]): Promise<number> {
     personalUndo: !!personalUndo,
     builds,
     prepared,
+    assets: hostedAssets,
     comments,
     git: gitSync,
     engineUpgrade,

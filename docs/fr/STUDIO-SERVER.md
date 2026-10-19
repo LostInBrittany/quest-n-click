@@ -9,7 +9,8 @@ C'est le chantier de la ligne 4.2.x (plan `docs/dev/PLAN-4.2.1-4.2.3-STUDIO-SERV
 > l'application de traitement, les pans et les baux, le flux en direct, l'origine propre du jeu avec ses
 > prévisualisations (un build par révision), la santé par révision, l'annulation personnelle, les builds publiés, les
 > assets préparés sur l'application de traitement, la sauvegarde et la restauration, et les écrans du Studio pour tout
-> cela. Il reste expérimental jusqu'à ce que ses passes humaines (`studio-hosted`, `studio-collab`, `studio-preview`,
+> cela ; depuis 4.2.3, les uploads et la découpe de planches de l'onglet Assets, Prepare et les découpes en jobs qui
+> se suivent et s'annulent. Il reste expérimental jusqu'à ce que ses passes humaines (`studio-hosted`, `studio-collab`, `studio-preview`,
 > `studio-assets-hosted`) soient faites. Ce guide déploie depuis le dépôt
 > ; l'archive `web-scumm-studio-server` est le même serveur (ci-dessous).
 
@@ -502,17 +503,33 @@ OIDC, avec SQLite et un dossier pour les contenus, sur le loopback seulement.
 - La prévisualisation de chaque révision est gardée (environ 1 Mo pour le jeu d'exemple : la base `/preview/<rev>/`
   est écrite dans la page et son code, si bien que peu de fichiers sont partagés d'une révision à l'autre) jusqu'au
   ramassage d'une PR ultérieure de 4.2.2.
-- L'onglet Assets n'est pas encore sur un Studio hébergé (ses uploads et ses planches : 4.2.3). Le bouton **Prepare
-  assets** de l'onglet Jouer (un dev, 4.2.2) lance `prepare` sur l'application de traitement à partir de l'art et
-  des sons de la tête, sous le bail exclusif du projet (personne n'écrit entre-temps ; le pan d'un autre le refuse,
-  avec son nom) : l'ensemble préparé est gardé par le Studio et servi avant `publicDir`, et le `assets.gen.json` du jeu
-  est écrit en une opération. Chaque passe prépare tout à nouveau, en 2 minutes au plus ; elle ne s'annule pas et ne
-  se suit pas encore étape par étape. Elle est refusée, et le jeu se prépare sur un Studio local, quand : son art et
-  ses sons dépassent environ 31 Mio (en base64) ou les fichiers préparés environ 22 Mio ; il nomme ses sources dans
+- L'onglet Assets est sur un Studio hébergé depuis 4.2.3 : un reviewer lit sa liste, ses prompts et ses fichiers ; un
+  dev téléverse et découpe. Un upload (un son, un décor) fait 10 Mio au plus une fois décodé (413 au-delà) et son type
+  se lit dans ses octets : une image PNG, JPEG ou WebP (un décor : PNG ou JPEG), un son Ogg, MP3 ou WAV dont
+  l'extension dit la même chose (415 sinon ; un Studio local prend aussi M4A, FLAC, AAC, Opus et WebM) ; il est écrit
+  en une opération, jamais exécuté. La découpe d'une planche et le détourage d'une cellule tournent sur l'application
+  de traitement (jobs `cut`, Python avec les paquets du hook, aucun code du jeu), sous le bail exclusif du projet :
+  elle reçoit l'image, les cellules de cette planche et `site.json`, ne rend que des cellules de cette planche, et les
+  cellules avec les sauvegardes de celles redécoupées sont écrites en une opération. Un Studio hébergé ne garde pas la
+  planche téléversée elle-même (un Studio local la garde sous `private/sheets/`, qu'aucun pan ne nomme).
+- Le bouton **Prepare assets** de l'onglet Jouer (et de l'onglet Assets ; un dev, 4.2.2) lance `prepare` sur
+  l'application de traitement à partir de l'art et des sons de la tête, sous le bail exclusif du projet (personne
+  n'écrit entre-temps ; le pan d'un autre le refuse, avec son nom) : l'ensemble préparé est gardé par le Studio et
+  servi avant `publicDir`, et le `assets.gen.json` du jeu est écrit en une opération. Chaque passe prépare tout à
+  nouveau, en 2 minutes au plus. Elle est refusée, et le jeu se prépare sur un Studio local, quand : son art et ses
+  sons dépassent environ 31 Mio (en base64) ou les fichiers préparés environ 22 Mio ; il nomme ses sources dans
   `sources.json` (elles vivent hors de l'art et des sons que garde un Studio hébergé) ; le nouveau manifeste perdrait
   une image ou un son que le jeu avait. Les builds publiés servent l'ensemble préparé tel qu'il est, pas celui contre
   lequel ils ont été construits. Le code du jeu tourne sur l'application de traitement sous l'utilisateur des outils
   d'assets (ADR 0028 : une machine, un utilisateur).
+- Prepare et les découpes sont des **jobs** (4.2.3) : la requête répond 202 avec le job tout de suite ; ses états vont
+  au flux en direct (événements `job`, dans l'ordre : `queued`, `running` avec ses étapes `packing`, `on the worker`,
+  `writing`, puis `done`, `failed` ou `cancelled`) et `GET /api/jobs/<id>` le relit. Un seul tourne à la fois, quatre
+  autres peuvent attendre (429 au-delà). `POST /api/jobs/<id>/cancel` (qui l'a lancé, ou un owner) l'annule : un job
+  en attente ne tourne jamais ; un job en cours voit sa requête à l'application de traitement fermée, et celle-ci tue
+  son processus enfant avec son groupe ; rien n'est écrit (aucune opération, aucun ensemble préparé gardé) et le bail
+  exclusif est rendu. Un job qui écrit ne s'annule plus (409). Un job vit dans la mémoire de l'instance : après un
+  redémarrage son état est perdu (son écriture, si elle a eu lieu, est dans le journal).
 - Un cadre de jeu resté inactif au-delà de sa session de 15 min ne montre plus rien de neuf : « Reload view » (ou
   l'onglet Jouer) le rouvre.
 - Les captures ne sont pas disponibles sur un Studio hébergé.
