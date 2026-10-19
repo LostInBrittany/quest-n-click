@@ -50,6 +50,24 @@ describe('a job followed in the page', () => {
   });
 });
 
+describe('a job the server no longer knows', () => {
+  it('ends as failed, saying the server restarted', async () => {
+    vi.useFakeTimers();
+    try {
+      vi.spyOn(globalThis, 'fetch').mockResolvedValue(json(404, { error: 'no job j9' }));
+      const done = followJob(job({ id: 'j9', state: 'running' }));
+      await vi.advanceTimersByTimeAsync(3_100);
+      expect(await done).toMatchObject({
+        state: 'failed',
+        status: 404,
+        error: 'the job is no longer known (the server restarted); see the journal',
+      });
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+});
+
 describe('an upload answered with a job', () => {
   it("gives the job's result, or throws as the route would have", async () => {
     vi.spyOn(globalThis, 'fetch').mockResolvedValue(json(202, job({ id: 'j2' })));

@@ -34,7 +34,7 @@ import { Presence } from '../studio-server/src/server/live';
 import { Play } from '../studio-server/src/server/play';
 import { HOSTED_SOLVE_MS } from '../studio-server/src/ops/diagnose';
 import { Builds, signedBytes } from '../studio-server/src/server/builds';
-import { PreparedAssets } from '../studio-server/src/server/prepared';
+import { PreparedAssets, prepareOn } from '../studio-server/src/server/prepared';
 import { Health, judgeBy } from '../studio-server/src/server/health';
 import { Previews } from '../studio-server/src/server/previews';
 import { ServiceLease } from '../studio-server/src/server/service-lease';
@@ -165,7 +165,7 @@ const preparedAssets = new PreparedAssets({
       rev: await journal.revision(),
       bytes: packAssets(filesOf(gameDir)),
     })),
-  prepare: (bytes, _at, signal) => localPrepare(bytes, 'demo', 120_000, signal),
+  prepare: prepareOn((bytes, _at, game, signal) => localPrepare(bytes, game, 120_000, signal), 'demo'),
   currentManifest: () =>
     existsSync(join(gameDir, 'assets.gen.json')) ? readFileSync(join(gameDir, 'assets.gen.json'), 'utf8') : null,
   writeManifest: async (manifest) => {
@@ -205,7 +205,10 @@ const studio = createStudio({
 // The Assets tab (main.ts, 4.2.3): its uploads here, its cutting in the worker's child, under the exclusive lease.
 const hostedAssets = new HostedAssets({
   studio,
-  assets: createAssets(studio, { publicAssets: () => join(preparedAssets.folder() ?? join(ROOT, 'public'), 'assets') }),
+  assets: createAssets(studio, {
+    publicAssets: () => join(preparedAssets.folder() ?? join(ROOT, 'public'), 'assets'),
+    confine: true,
+  }),
   locked: (fn) => server.exclusive(async () => fn()),
   exclusive,
   cut: (req, source, ext, signal) => localCut(packCut(gameDir, req.sheetId, source, ext), 'demo', req, signal),

@@ -91,7 +91,7 @@ export class Jobs {
     work: (c: JobControl) => Promise<unknown>,
     wrap: <T>(fn: () => Promise<T>) => Promise<T> = (fn) => fn(),
   ): JobInfo {
-    if (this.waiting > WAITING) throw new StudioError('too many jobs are waiting: try again when one is done', 429);
+    if (this.waiting >= WAITING) throw new StudioError('too many jobs are waiting: try again when one is done', 429);
     const j: JobInfo = { id: randomUUID(), kind, by: who.name, byId: who.userId, state: 'queued', at: this.now() };
     const abort = new AbortController();
     const c = { abort, committing: false };

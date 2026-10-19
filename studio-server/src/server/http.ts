@@ -25,7 +25,8 @@ import type { Builds } from './builds';
 import type { PreparedAssets } from './prepared';
 import { type HostedAssets, MAX_UPLOAD_BODY } from './hosted-assets';
 import { Jobs } from './jobs';
-import { createReadStream } from 'node:fs';
+import { open } from 'node:fs/promises';
+import { pipeline } from 'node:stream/promises';
 import { mimeOf } from '../../../tools/studio/assets';
 import type { Health } from './health';
 import type { Previews } from './previews';
@@ -237,6 +238,27 @@ export function send(
   res.end(JSON.stringify(data));
 }
 
+/**
+ * A member's file of art/ or audio/ (4.2.3), as it was uploaded: served with its own type, never sniffed nor run by the
+ * page that shows it. Opened first: a file gone meanwhile is a 404; one that fails while sent ends its response, never
+ * the process.
+ */
+export async function serveFile(res: ServerResponse, file: string): Promise<void> {
+  let fh: Awaited<ReturnType<typeof open>>;
+  try {
+    fh = await open(file, 'r');
+  } catch {
+    return send(res, 404, { error: 'no such file' });
+  }
+  res.writeHead(200, {
+    'content-type': mimeOf(file),
+    'cache-control': 'no-cache',
+    'x-content-type-options': 'nosniff',
+    'content-security-policy': "default-src 'none'; sandbox",
+  });
+  await pipeline(fh.createReadStream(), res).catch(() => res.destroy());
+}
+
 export interface StudioHttpServer extends Server {
   /** Runs `fn` holding the instance's lock alone (no request reads or writes meanwhile): the cache's repair. */
   exclusive<T>(fn: () => Promise<T>): Promise<T>;
@@ -380,14 +402,7 @@ export function studioServer(o: StudioServerOptions): StudioHttpServer {
           if (sub.startsWith('/assets/file/')) {
             const f = o.assets?.assets.filePath(sub.slice('/assets/file/'.length));
             if (!f) throw new StudioError('no such file', 404);
-            // A member's file, as it was uploaded: never run by the page that shows it.
-            res.writeHead(200, {
-              'content-type': mimeOf(f),
-              'cache-control': 'no-cache',
-              'x-content-type-options': 'nosniff',
-              'content-security-policy': "default-src 'none'; sandbox",
-            });
-            return void createReadStream(f).pipe(res);
+            return await serveFile(res, f);
           }
           throw new StudioError('not found', 404);
         }

@@ -47,7 +47,7 @@ import { HOSTED_SOLVE_MS } from '../ops/diagnose';
 import type { SolveData } from '../../../tools/studio/types';
 import { PersonalUndo } from '../ops/undo';
 import { Builds, PUBLIC_BUILD_PATH } from './builds';
-import { PreparedAssets } from './prepared';
+import { PreparedAssets, prepareOn } from './prepared';
 import { Health, judgeBy } from './health';
 import { Previews } from './previews';
 import { remoteExecutor } from './remote-executor';
@@ -423,7 +423,7 @@ async function main(argv: string[]): Promise<number> {
                 bytes: packAssets(filesOf(gameDir)),
               };
             }),
-          prepare: (bytes, at) => executor!.prepare(bytes, at, config.game),
+          prepare: prepareOn((bytes, at, game, signal) => executor!.prepare(bytes, at, game, signal), config.game),
           log: (line) => console.log(JSON.stringify(line)),
           currentManifest: () =>
             existsSync(join(gameDir, 'assets.gen.json'))
@@ -442,6 +442,8 @@ async function main(argv: string[]): Promise<number> {
     studio,
     assets: createAssets(studio, {
       publicAssets: () => join(prepared?.folder() ?? publicDir, 'assets'),
+      // Hosted: nothing outside the game folder is read for the listing (a sources.json naming other paths).
+      confine: hosted,
     }),
     locked: (fn) =>
       server.exclusive(async () => {

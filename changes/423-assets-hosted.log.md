@@ -33,4 +33,22 @@
   `tests/dom/studio-jobs.test.ts` (the panel, Cancel, a 202 followed to its result or its refusal).
   `scripts/e2e-studio-hosted.ts` wires the hosted Assets tab (not run locally).
 
+**After the second reading**
+
+- S1: `prepareOn` (`prepared.ts`), used by `main.ts` and the e2e stack: the job's signal always reaches the worker's
+  prepare (`main.ts` dropped it); tested.
+- S2: `serveFile` (`http.ts`): the file opened before its headers, sent by `pipeline`, a file gone meanwhile a 404 and
+  never a crash; `filePath` follows links and refuses one out of `art/` or `audio/`; tested.
+- L1: `createAssets(…, { confine })`, set on a hosted Studio: the listing reads no source outside the game folder;
+  `imageSize` reads the first 64 KiB only.
+- L2: `cutShape` accepts only the cells asked (`cutTargets`: those named, else the grid's), each a PNG once decoded;
+  tested.
+- L3: `followJob` (`src/studio/jobs.ts`): a job the server no longer knows (404, a restart) ends as failed, saying so;
+  tested.
+- `Jobs.start`: 429 from the fifth waiting job (`>=`), so four wait as documented.
+- The threat model's upload row: magic bytes do not stop a polyglot; serving as image or audio with `nosniff` and a
+  sandbox CSP does.
+- The CHANGELOG fragment says, for scripts, that `/api/assets/prepare` is now 202 and a job to poll.
+- `origin/main` merged in (4.2.3 PR 2, the scenario map), no conflict.
+
 → next: Claude (the next 4.2.3 PR)

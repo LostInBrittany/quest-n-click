@@ -5,7 +5,11 @@
 // cells a tool cut are written together or not at all, and a tool never writes into the game folder itself.
 // `assetsMiddleware` is mounted by the dev server at /__studio/api/assets (tools/studio/plugin.ts).
 import {
+  closeSync,
   createReadStream,
+  openSync,
+  readSync,
+  realpathSync,
   existsSync,
   mkdirSync,
   readFileSync,
@@ -68,13 +72,28 @@ const stem = (f: string) => f.slice(0, f.length - extname(f).length);
 
 // ------------------------------------------------------------------ small file helpers
 
+/** Whether `file`, its links followed, is inside `dir` (also its links followed). */
+function inside(dir: string, file: string): boolean {
+  try {
+    return realpathSync(file).startsWith(realpathSync(dir) + sep);
+  } catch {
+    return false;
+  }
+}
+
 /** Pixel size from the file header (PNG, JPEG, WebP, GIF); [0, 0] when unknown. */
 export function imageSize(file: string): [number, number] {
+  // The header is near the start: the first 64 KiB are read, never a whole (possibly huge) file.
   let b: Buffer;
+  let fd: number | undefined;
   try {
-    b = readFileSync(file);
+    fd = openSync(file, 'r');
+    const head = Buffer.alloc(64 * 1024);
+    b = head.subarray(0, readSync(fd, head, 0, head.length, 0));
   } catch {
     return [0, 0];
+  } finally {
+    if (fd !== undefined) closeSync(fd);
   }
   if (b.length > 24 && b.readUInt32BE(0) === 0x89504e47) return [b.readUInt32BE(16), b.readUInt32BE(20)];
   if (b.length > 10 && b.toString('ascii', 0, 3) === 'GIF') return [b.readUInt16LE(6), b.readUInt16LE(8)];
@@ -267,7 +286,7 @@ const gridOf = (markdown: string | undefined) => {
  * `publicAssets`: where the prepared images and sounds are (default `<root>/public/assets`); a hosted Studio serves its
  * latest prepared set from its own folder (4.2.3).
  */
-export function createAssets(studio: Studio, o: { publicAssets?: () => string } = {}) {
+export function createAssets(studio: Studio, o: { publicAssets?: () => string; confine?: boolean } = {}) {
   const dir = studio.gameDir;
   const root = studio.root;
   const artDir = join(dir, 'art');
@@ -319,7 +338,10 @@ export function createAssets(studio: Studio, o: { publicAssets?: () => string } 
   /** The source file of an image id (tools/pages/lib.ts rules, as tools/assets.py), never the prepared copy. */
   const sourceOf = (id: string) => {
     const f = imageSource(dir, id);
-    return f && !resolve(f).startsWith(pub + sep) ? resolve(f) : undefined;
+    if (!f || resolve(f).startsWith(pub + sep)) return undefined;
+    // `confine` (a hosted Studio): a source `sources.json` names outside the game folder is not read, nor said.
+    if (o.confine && !inside(dir, f)) return undefined;
+    return resolve(f);
   };
 
   async function list(): Promise<AssetsListing> {
@@ -524,8 +546,11 @@ export function createAssets(studio: Studio, o: { publicAssets?: () => string } 
       return null;
     const f = resolve(dir, p);
     if (!f.startsWith(artDir + sep) && !f.startsWith(audioDir + sep)) return null;
+    // Its links followed, it is still under art/ or audio/ (a link out of them is no file of theirs).
+    if (!inside(artDir, f) && !inside(audioDir, f)) return null;
     try {
-      return statSync(f).isFile() ? f : null;
+      const real = realpathSync(f);
+      return statSync(real).isFile() ? real : null;
     } catch {
       return null;
     }

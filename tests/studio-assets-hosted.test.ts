@@ -4,7 +4,7 @@
 // revision with its cells. Underneath: the worker kills a child its Studio gave up on, a cut's answer is bounded to
 // the sheet asked, and a real cut runs in the worker's child where Python has Pillow and numpy.
 import { execFileSync } from 'node:child_process';
-import { cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
 import type { AddressInfo } from 'node:net';
 import { join } from 'node:path';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
@@ -15,10 +15,11 @@ import { createStudio, importInChild, operationContext } from '../studio-server/
 import { fsBlobStore } from '../studio-server/src/ops/blobs';
 import { Journal } from '../studio-server/src/ops/journal';
 import { HostedAssets, MAX_UPLOAD } from '../studio-server/src/server/hosted-assets';
-import { studioServer } from '../studio-server/src/server/http';
+import { serveFile, studioServer } from '../studio-server/src/server/http';
+import { createServer } from 'node:http';
 import { type JobInfo, Jobs } from '../studio-server/src/server/jobs';
 import { Leases } from '../studio-server/src/server/leases';
-import { PreparedAssets } from '../studio-server/src/server/prepared';
+import { PreparedAssets, prepareOn } from '../studio-server/src/server/prepared';
 import { ServiceLease } from '../studio-server/src/server/service-lease';
 import { cutRequest, cutShape, type Cut } from '../studio-server/src/worker/cut';
 import { localCut } from '../studio-server/src/worker/local';
@@ -85,7 +86,7 @@ beforeAll(async () => {
     blobs: fsBlobStore(join(tmp, 'blobs')),
     dir: join(tmp, 'prepared'),
     snapshot: async () => ({ epoch: 'e', rev: await journal.revision(), bytes: Buffer.from('{}') }),
-    prepare: (_bytes, _at, signal) => prepareWorker(signal),
+    prepare: prepareOn((_bytes, _at, _game, signal) => prepareWorker(signal), 'template'),
     currentManifest: () => null,
     writeManifest: async (m) => {
       await studio.writeFiles('prepare assets', [{ path: 'assets.gen.json', after: m }], { undo: false });
@@ -392,20 +393,61 @@ describe('the jobs', () => {
     });
     expect(cutRequest({ mode: 'cell', sheetId: 'hero', cell: '../r1c1', key: 'auto' })).toBeNull();
     const sheet = cutRequest({ mode: 'sheet', sheetId: 'hero', cols: 2, rows: 1 })!;
-    expect(cutShape({ files: { 'art/hero/r1c2.png': 'QQ==' }, output: 'x' }, sheet)).toMatchObject({ output: 'x' });
+    const P = b64(png());
+    expect(cutShape({ files: { 'art/hero/r1c2.png': P }, output: 'x' }, sheet)).toMatchObject({ output: 'x' });
     for (const bad of [
-      { files: { 'art/villain/r1c1.png': 'QQ==' } },
-      { files: { 'art/hero/index.json': 'QQ==' } },
-      { files: { 'game.ts': 'QQ==' } },
+      { files: { 'art/villain/r1c1.png': P } },
+      { files: { 'art/hero/index.json': P } },
+      { files: { 'game.ts': P } },
+      // A cell outside the grid asked (2 × 1), and one not a PNG once decoded.
+      { files: { 'art/hero/r2c1.png': P } },
+      { files: { 'art/hero/r1c1.png': b64(Buffer.from('<svg onload=alert(1)>')) } },
       { files: [] },
       null,
     ])
-      expect(cutShape(bad, sheet), JSON.stringify(bad)).toHaveProperty('refused');
+      expect(cutShape(bad, sheet), JSON.stringify(bad).slice(0, 80)).toHaveProperty('refused');
+    // Only the cells named, when some are.
+    const some = cutRequest({ mode: 'sheet', sheetId: 'hero', cols: 2, rows: 1, only: ['r1c2'] })!;
+    expect(cutShape({ files: { 'art/hero/r1c2.png': P } }, some)).not.toHaveProperty('refused');
+    expect(cutShape({ files: { 'art/hero/r1c1.png': P } }, some)).toMatchObject({ refused: /not asked for/ });
     const cell = cutRequest({ mode: 'cell', sheetId: 'hero', cell: 'r1c1', key: 'auto' })!;
-    expect(cutShape({ files: { 'art/hero/r1c1.png': 'QQ==' }, keyed: 'keyed' }, cell)).toMatchObject({
+    expect(cutShape({ files: { 'art/hero/r1c1.png': P }, keyed: 'keyed' }, cell)).toMatchObject({
       keyed: 'keyed',
     });
-    expect(cutShape({ files: { 'art/hero/r1c1.png': 'QQ==' } }, cell)).toHaveProperty('refused');
+    expect(cutShape({ files: { 'art/hero/r1c1.png': P } }, cell)).toHaveProperty('refused');
+    expect(cutShape({ files: { 'art/hero/r1c2.png': P }, keyed: 'keyed' }, cell)).toHaveProperty('refused');
+  });
+});
+
+describe("a member's file served back", () => {
+  it('refuses a link out of art/ or audio/, and a file gone meanwhile is a 404, never a crash', async () => {
+    writeFileSync(join(tmp, 'secret.ogg'), ogg());
+    mkdirSync(join(game, 'audio', 'sfx'), { recursive: true });
+    symlinkSync(join(tmp, 'secret.ogg'), join(game, 'audio', 'sfx', 'link.ogg'));
+    expect((await fetch(`${api}/assets/file/audio/sfx/link.ogg`)).status).toBe(404);
+    // A file the listing named, removed before it is read.
+    const s = createServer((_req, res) => void serveFile(res, join(tmp, 'gone.ogg')));
+    await new Promise<void>((ok) => s.listen(0, '127.0.0.1', ok));
+    try {
+      const url = `http://127.0.0.1:${(s.address() as AddressInfo).port}/`;
+      expect((await fetch(url)).status).toBe(404);
+      expect((await fetch(url)).status).toBe(404);
+    } finally {
+      s.close();
+    }
+  });
+});
+
+describe("prepare's job signal", () => {
+  it('reaches the worker whatever wraps it (prepareOn, used by main.ts and the e2e stack)', async () => {
+    const got: unknown[] = [];
+    const ac = new AbortController();
+    const run = prepareOn(async (_s, at, game, signal) => {
+      got.push(at.rev, game, signal);
+      return { files: {}, manifest: '{}', log: '' };
+    }, 'demo');
+    await run(Buffer.from(''), { epoch: 'e', rev: 4 }, ac.signal);
+    expect(got).toEqual([4, 'demo', ac.signal]);
   });
 });
 

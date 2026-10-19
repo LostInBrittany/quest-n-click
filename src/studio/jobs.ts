@@ -17,6 +17,7 @@ export interface JobInfo {
   body?: Record<string, unknown>;
 }
 
+const GONE = 'the job is no longer known (the server restarted); see the journal';
 const ENDED = new Set(['done', 'failed', 'cancelled']);
 const LABEL: Record<JobInfo['kind'], string> = {
   prepare: 'Preparing the assets',
@@ -75,7 +76,15 @@ export function followJob(first: JobInfo, onChange?: (j: JobInfo) => void): Prom
     // The stream may be down (a reconnection): the job is read again now and then.
     const poll = setInterval(() => {
       void studioFetch(`jobs/${encodeURIComponent(first.id)}`)
-        .then((r) => (r.ok ? (r.json() as Promise<JobInfo>) : null))
+        .then((r): Promise<JobInfo> | JobInfo | null =>
+          r.ok
+            ? (r.json() as Promise<JobInfo>)
+            : // The server no longer knows it (jobs live in its memory): it restarted. What it wrote, if anything, is
+              // in the journal.
+              r.status === 404
+              ? { ...last, state: 'failed', status: 404, error: GONE }
+              : null,
+        )
         .then((j) => j && seen(j))
         .catch(() => undefined);
     }, 3000);

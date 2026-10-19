@@ -34,6 +34,22 @@ export interface PreparedOptions {
   now?: () => number;
 }
 
+/**
+ * The worker's `prepare` for `game`, as PreparedOptions takes it: the job's signal always passed on (main.ts, the
+ * e2e stack), so a cancel reaches the worker.
+ */
+export function prepareOn(
+  worker: (
+    snapshot: Buffer,
+    at: { epoch: string; rev: number },
+    game: string,
+    signal?: AbortSignal,
+  ) => Promise<Prepared>,
+  game: string,
+): PreparedOptions['prepare'] {
+  return (snapshot, at, signal) => worker(snapshot, at, game, signal);
+}
+
 export class PreparedAssets {
   private busy = false;
   private current: { id: number; version: string } | null = null;

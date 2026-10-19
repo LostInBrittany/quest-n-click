@@ -49,20 +49,29 @@ export function cutRequest(v: unknown): CutRequest | null {
   return null;
 }
 
+/** The cells a cut may write: the ones named (`only`), else every cell of the grid; a keying, its one cell. */
+function cutTargets(req: CutRequest): string[] {
+  if (req.mode === 'cell') return [req.cell];
+  return (
+    req.only ??
+    Array.from({ length: req.rows * req.cols }, (_, i) => `r${Math.floor(i / req.cols) + 1}c${(i % req.cols) + 1}`)
+  );
+}
+
 /**
- * A cut's answer as the child wrote it, or why it is refused: only cells of the sheet asked (a grid's `r<row>c<col>.png`,
- * or the one cell keyed), at most a grid's 99 × 99, base64.
+ * A cut's answer as the child wrote it, or why it is refused: only the cells the request asked for (`cutTargets`), each
+ * a PNG once decoded.
  */
 export function cutShape(v: unknown, req: CutRequest): Cut | { refused: string } {
   const o = (v ?? {}) as { files?: unknown; output?: unknown; keyed?: unknown };
   if (!o.files || typeof o.files !== 'object' || Array.isArray(o.files)) return { refused: 'no files' };
-  const entries = Object.entries(o.files as Record<string, unknown>);
-  if (entries.length > 99 * 99) return { refused: 'more cells than a grid has' };
-  const prefix = `art/${req.sheetId}/`;
-  for (const [k, b] of entries) {
-    const name = k.startsWith(prefix) ? k.slice(prefix.length) : '';
-    const ok = req.mode === 'sheet' ? /^r\d{1,2}c\d{1,2}\.png$/.test(name) : name === `${req.cell}.png`;
-    if (!ok || typeof b !== 'string') return { refused: `a file the cut was not asked for: ${k.slice(0, 120)}` };
+  const asked = new Set(cutTargets(req).map((c) => `art/${req.sheetId}/${c}.png`));
+  for (const [k, b] of Object.entries(o.files as Record<string, unknown>)) {
+    if (!asked.has(k) || typeof b !== 'string')
+      return { refused: `a file the cut was not asked for: ${k.slice(0, 120)}` };
+    const head = Buffer.from(b.slice(0, 16), 'base64');
+    if (head.length < 8 || head.readUInt32BE(0) !== 0x89504e47 || head.readUInt32BE(4) !== 0x0d0a1a0a)
+      return { refused: `not a PNG image: ${k.slice(0, 120)}` };
   }
   if (req.mode === 'cell' && o.keyed !== 'keyed' && o.keyed !== 'kept' && o.keyed !== 'opaque')
     return { refused: 'no keying said' };
