@@ -8,6 +8,7 @@
 //   voices     voices.json
 //   assets     art/, audio/, assets.gen.json, talk-kits.json, provenance.json, provenance.lock.json
 //   notes      notes.json
+//   groupings  groupings.json (4.2.3: the scenario map's characters, puzzles and chapters)
 //   meta       index.ts, site.json, e2e.mjs, ending.config.example.ts, ids.paths.json, ids.migration.json, tests/
 //   playtests  playtests/, replays/
 //   reality    reality/ (the Reality Bridge's scenarios)
@@ -28,6 +29,7 @@ const ONE: Record<string, string> = {
   'provenance.json': 'assets',
   'provenance.lock.json': 'assets',
   'notes.json': 'notes',
+  'groupings.json': 'groupings',
   'index.ts': 'meta',
   'site.json': 'meta',
   'e2e.mjs': 'meta',
