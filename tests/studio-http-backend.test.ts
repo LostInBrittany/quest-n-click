@@ -80,6 +80,11 @@ describe("the tools over a Studio Server's API", () => {
     expect(b.author!()).toBe('agent');
   });
 
+  it('refuses a reality policy, which the API does not take, rather than answer without it', async () => {
+    await expect(b.solve(undefined, false, 'adversarial' as never)).rejects.toMatchObject({ status: 501 });
+    expect(calls).toEqual([]);
+  });
+
   it("says a refusal with the API's status and message", async () => {
     answer = { status: 423, body: { error: 'the notes are held by Léa' } };
     await expect(b.addNote({ text: 'x' })).rejects.toEqual(new ApiRefusal('423: the notes are held by Léa', 423));

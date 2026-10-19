@@ -26,11 +26,8 @@ if (remote) {
   const { accessToken } = await import('../../studio-server/src/server/auth/device');
   const { httpBackend } = await import('../studio/http-backend');
   const url = remote.replace(/\/+$/, '');
-  const token = async () => {
-    const t = await accessToken(url);
-    if (!t) throw new Error(`not logged in to ${url}: run "npm run studio-server -- login --server ${url}" first`);
-    return t;
-  };
+  // Refreshed when it nears its end; "not logged in" said by accessToken itself.
+  const token = () => accessToken(url);
   let client = 'ai';
   const backend = httpBackend({ api: `${url}/api`, token, author: () => client });
   const game = await backend.game();
@@ -38,7 +35,7 @@ if (remote) {
   server = toolsServer(backend, {
     name: 'web-scumm',
     version: VERSION,
-    instructions: instructionsFor(game.title, url),
+    instructions: instructionsFor(game.title, url, true),
     log,
   });
   server.server.oninitialized = () => {

@@ -14,6 +14,12 @@
 - Limits: an agent sends no revision it read (H10's check does not apply to it; the guard does); screenshots, tests,
   documents and asset prompts are not offered remotely; a client without MCP's authorization discovery uses a token from
   `studio-server token` or the stdio server.
+- **After the second reading**: the loopback goes to the address and port the request came in on (IPv6, a specific
+  interface), with the Studio's `Host` (`node:http`, which fetch cannot set); a batch is refused (400); the tools are
+  given up when the client goes away, and after 5 min; `solve` with a reality policy is refused (501), not answered
+  without it; a malformed header is `invalid_request`; the remote instructions name no local tool; the audience a
+  discovering client's token must carry, the short life of a pasted token, the loopback's refusal counting and the SDK
+  in the server process are said (ADR, MCP, threat model).
 - Docs: ADR 0029; MCP ("A hosted Studio"), STUDIO-SERVER (en, fr); the threat model's row.
 - Tests: `tests/studio-mcp-remote.test.ts` (the metadata; a 401 with where to authorize, a token of another audience,
   the cookie, a non-member, a GET; an MCP SDK client listing and calling the tools, a write in the journal as the

@@ -93,5 +93,9 @@ tickets and its previews (§6.1; 4.2.2: one build per revision, plan 4.2.2 §2.2
   good): they cannot load its page again, but what they already downloaded is theirs, as any page they saw.
 - **The previews take room** (about 1 MB per revision for the sample game, plus files shared by content): their rows
   are kept, so the collection (`gc`, 4.2.2) removes only what no row names any more; pruning old previews is for later.
+- **The remote MCP (4.2.3)**: its tokens must carry the Studio's `oidc.audience`, whatever MCP's `resource` asked; the
+  loopback's refused tokens are counted for the loopback's address (many at once make the next refusals 429 for a
+  minute, never a valid request); the MCP SDK (`^1.32`, with express and hono) now runs in the server process, unlocked
+  like the engine's other dependencies.
 - **Presence lives in memory** and is lost on a restart (members reappear at their next heartbeat).
 - **`fsync` on macOS is not `F_FULLFSYNC`.** This only matters in local mode.

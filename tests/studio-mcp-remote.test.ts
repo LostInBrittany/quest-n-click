@@ -20,7 +20,7 @@ import { authRoutes } from '../studio-server/src/server/auth/routes';
 import { AuthStore, Sealer } from '../studio-server/src/server/auth/store';
 import { readJson, send, studioServer } from '../studio-server/src/server/http';
 import { Leases } from '../studio-server/src/server/leases';
-import { mcpEndpoint } from '../studio-server/src/server/mcp';
+import { hostOf, mcpEndpoint } from '../studio-server/src/server/mcp';
 import { ServiceLease } from '../studio-server/src/server/service-lease';
 import { TestOp, type TestUser } from './fixtures/oidc-op';
 
@@ -148,6 +148,18 @@ afterAll(async () => {
   rmSync(tmp, { recursive: true, force: true });
 });
 
+describe("the remote MCP's loopback", () => {
+  it('calls the server on the address its request came in on', () => {
+    expect(hostOf('127.0.0.1')).toBe('127.0.0.1');
+    expect(hostOf('::ffff:10.0.0.7')).toBe('10.0.0.7');
+    expect(hostOf('::1')).toBe('[::1]');
+    expect(hostOf('fe80::1')).toBe('[fe80::1]');
+    expect(hostOf('0.0.0.0')).toBe('127.0.0.1');
+    expect(hostOf('::')).toBe('[::1]');
+    expect(hostOf(undefined)).toBe('127.0.0.1');
+  });
+});
+
 describe('the remote MCP', () => {
   it('says where its authorization is (RFC 9728)', async () => {
     for (const p of ['/.well-known/oauth-protected-resource/mcp', '/.well-known/oauth-protected-resource']) {
@@ -183,6 +195,23 @@ describe('the remote MCP', () => {
     expect((await post({ cookie: `__Host-ws_session=${cookies.tom}` })).status).toBe(401);
     const stranger = await post({ authorization: `Bearer ${await op.accessToken({ sub: 'u-nobody' })}` });
     expect(stranger.status).toBe(403);
+    // A page of another site (DNS rebinding) is refused by its Origin; a header that is no token, a bad request.
+    const tom = await op.accessToken({ sub: 'u-tom' });
+    expect((await post({ authorization: `Bearer ${tom}`, origin: 'https://evil.example' })).status).toBe(403);
+    const bad = await post({ authorization: 'Bearer not-a-token' });
+    expect(bad.status).toBe(401);
+    expect(bad.headers.get('www-authenticate')).toContain('error="invalid_request"');
+    // One message per POST: a batch is refused before any tool runs.
+    const batch = await fetch(`${base}/mcp`, {
+      method: 'POST',
+      headers: {
+        authorization: `Bearer ${tom}`,
+        'content-type': 'application/json',
+        accept: 'application/json, text/event-stream',
+      },
+      body: JSON.stringify([init, init]),
+    });
+    expect(batch.status).toBe(400);
     const get = await fetch(`${base}/mcp`, {
       headers: { authorization: `Bearer ${await op.accessToken({ sub: 'u-tom' })}` },
     });

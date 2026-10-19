@@ -28,8 +28,13 @@ export interface HttpBackendOptions {
   token: () => string | Promise<string>;
   /** Default author of add_note (the server records the token's member anyway). */
   author?: () => string;
-  /** Extra headers on every request (the loopback's `x-forwarded-*`). */
+  /** Extra headers on every request. */
   headers?: Record<string, string>;
+  /** Ends the requests under way (the MCP client gone); each also gives up after `timeoutMs` (default 5 min). */
+  signal?: AbortSignal;
+  timeoutMs?: number;
+  /** How a request is made (default `fetch`; `/mcp`'s loopback names the Studio's host). */
+  fetch?: (url: string, init: RequestInit) => Promise<Response>;
 }
 
 /** What the API answered when it refused: its status and message, as the tool's error says them. */
@@ -45,7 +50,9 @@ export class ApiRefusal extends Error {
 export function httpBackend(o: HttpBackendOptions): ToolBackend {
   const call = async <T>(method: string, path: string, body?: unknown): Promise<T> => {
     const write = method !== 'GET';
-    const r = await fetch(`${o.api}/${path}`, {
+    const timeout = AbortSignal.timeout(o.timeoutMs ?? 300_000);
+    const r = await (o.fetch ?? fetch)(`${o.api}/${path}`, {
+      signal: o.signal ? AbortSignal.any([o.signal, timeout]) : timeout,
       method,
       headers: {
         authorization: `Bearer ${await o.token()}`,
@@ -71,7 +78,11 @@ export function httpBackend(o: HttpBackendOptions): ToolBackend {
     notes: () => call<NotesFile>('GET', 'notes'),
     addNote: (n: NewNote) => call('POST', 'notes', { ...n, author: n.author ?? o.author?.() }),
     validate: () => call<ValidateResult>('POST', 'validate'),
-    solve: (from, prove) => call<SolveData>('POST', 'solve', { from, prove }),
+    solve: (from, prove, reality) => {
+      // The API's solver takes no policy for the world's signals: said, never answered as if it had.
+      if (reality) return Promise.reject(new ApiRefusal('501: a reality policy needs a local Studio', 501));
+      return call<SolveData>('POST', 'solve', { from, prove });
+    },
     report: () => call<ReportData>('POST', 'report'),
     graph: () => call<GraphData>('GET', 'graph'),
     puzzle: (id) => call<PuzzleData>('POST', 'puzzle', { id }),
