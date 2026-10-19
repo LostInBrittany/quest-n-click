@@ -218,6 +218,37 @@
    "dependencies": [
     "studio-hosted"
    ]
+  },
+  "studio-preview": {
+   "since": "4.2.2",
+   "artifacts": [
+    "pack/web-scumm-{pkg}.tgz",
+    "pack/web-scumm-studio-server-{pkg}.tgz"
+   ],
+   "config": [
+    "docs/en/STUDIO-SERVER.md",
+    "ops/studio/**"
+   ],
+   "exclusions": [],
+   "dependencies": [
+    "studio-hosted"
+   ]
+  },
+  "studio-assets-hosted": {
+   "since": "4.2.2",
+   "artifacts": [
+    "pack/web-scumm-{pkg}.tgz",
+    "pack/web-scumm-studio-server-{pkg}.tgz"
+   ],
+   "config": [
+    "docs/en/STUDIO-SERVER.md",
+    "ops/studio/**",
+    "ops/studio/worker-requirements.lock"
+   ],
+   "exclusions": [],
+   "dependencies": [
+    "studio-hosted"
+   ]
   }
  },
  "status": [

@@ -213,6 +213,17 @@ describe('the passes of a release', () => {
     expect(older).toContain('of 13.');
     expect(older).not.toContain('studio-hosted');
   });
+
+  it('4.2.2 asks seventeen: the workshop played and its assets prepared, hosted', () => {
+    const section = renderPasses(
+      passesFor('4.2.2').map((id) => blankReport(id, '4.2.2', manifest)),
+      manifest,
+    );
+    expect(section).toContain('of 17.');
+    expect(section).toContain('(`studio-preview`)');
+    expect(section).toContain('(`studio-assets-hosted`)');
+    expect(passesFor('4.2.1')).not.toContain('studio-preview');
+  });
 });
 
 describe('field:report', () => {

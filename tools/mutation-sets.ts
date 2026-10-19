@@ -104,6 +104,19 @@ export const SETS = {
     'studio-server/src/server/leases.ts',
     'studio-server/src/server/play.ts',
   ],
+  // The playable workshop (4.2.2, plan §2.8): the personal undo, the health by revision and its bisection, the previews
+  // by revision, the published builds and their signed manifests, the prepared assets, the backup, the journal shipped
+  // and the collection. Measured until its survivors are read.
+  'studio-workshop': [
+    'studio-server/src/ops/undo.ts',
+    'studio-server/src/ops/backup.ts',
+    'studio-server/src/ops/ship.ts',
+    'studio-server/src/ops/gc.ts',
+    'studio-server/src/server/health.ts',
+    'studio-server/src/server/previews.ts',
+    'studio-server/src/server/builds.ts',
+    'studio-server/src/server/prepared.ts',
+  ],
 };
 export type MutationSet = keyof typeof SETS;
 /** The tests a set's mutants are judged by (vitest `include` globs). */
@@ -191,6 +204,14 @@ export const TESTS: Record<MutationSet, string[]> = {
     'tests/studio-collab.test.ts',
     'tests/studio-play.test.ts',
   ],
+  'studio-workshop': [
+    'tests/studio-undo.test.ts',
+    'tests/studio-health.test.ts',
+    'tests/studio-previews.test.ts',
+    'tests/studio-builds.test.ts',
+    'tests/studio-prepared.test.ts',
+    'tests/studio-backup.test.ts',
+  ],
 };
 
 /** The sets `all` runs and the gate judges: every set, each a job of its own in ci, the nightly, the candidate and the release. */
@@ -219,8 +240,8 @@ export const GATED: MutationSet[] = [
 ];
 /** Measured on demand (`gh workflow run mutation -f set=…`) and every night, gating nothing until their survivors are read. */
 // Empty in 4.1.20 (plan §7.5): every set was gated; a set added later is measured here until its survivors are read.
-// Empty again since 4.2.1: the Studio Server's two sets are gated.
-export const MEASURED: MutationSet[] = [];
+// Empty again since 4.2.1: the Studio Server's two sets are gated. 4.2.2's workshop is measured here until read.
+export const MEASURED: MutationSet[] = ['studio-workshop'];
 
 /**
  * The shards a set's mutation runs in (4.1.20 PR 2a, plan §7.3), one job each, merged into the set's report. A set not
