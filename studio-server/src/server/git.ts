@@ -2,11 +2,14 @@
 // one commit for the revisions confirmed since the last push, the game's files at the head, every author of those
 // revisions a `Co-authored-by`; it never rewrites the remote's history: a branch that moved since the last push, or one
 // the Studio never saw, is refused (409), never forced. An import reads a commit and writes the game as it is there in
-// one operation, under the project's exclusive lease; the next push builds on it. Git runs with an environment of its
-// own (no secret of the platform), the deploy key in a 0600 file for the run only.
+// one operation, under the project's exclusive lease; the next push builds on the branch's tip.
+// No working tree is ever checked out: a push builds its commit from objects in an index of its own, an import reads
+// the blobs from the object database. A link, an attribute, an ignore rule or a stale file of the repository can
+// therefore neither reach this server's files nor change the bytes; a link or a submodule in the game is refused. Git
+// runs with an environment of its own (no secret of the platform), the deploy key in a 0600 file for one command.
 import { execFile } from 'node:child_process';
-import { existsSync, lstatSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
-import { join, relative, sep } from 'node:path';
+import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { join } from 'node:path';
 import type { SqlDb } from '../../../bridge/src/store-sql';
 import type { BlobStore } from '../ops/blobs';
 import { sha256 } from '../ops/durable';
@@ -21,6 +24,8 @@ export interface GitConfig {
   path?: string;
   /** Who commits (the authors are `Co-authored-by`). */
   committer?: { name: string; email: string };
+  /** The remote host's keys (`known_hosts` lines): checked strictly; without them, trusted on first use. */
+  knownHosts?: string;
 }
 
 export interface GitSyncOptions {
@@ -36,6 +41,8 @@ export interface GitSyncOptions {
   writeFiles: (what: string, files: { path: string; after: Buffer | null }[]) => Promise<unknown>;
   /** Runs under the project's exclusive lease. */
   exclusive: <T>(fn: () => Promise<T>) => Promise<T>;
+  /** The mailbox domain of an author without a verified email (`users.noreply.<the Studio's host>`). */
+  noreplyDomain?: string;
   /** The `git` binary (default `git` on the PATH). */
   git?: string;
   log?: (line: Record<string, unknown>) => void;
@@ -43,19 +50,28 @@ export interface GitSyncOptions {
 
 const MAX_FILES = 5_000;
 const MAX_BYTES = 64 * 1024 * 1024;
-const REF = /^(?![-./])(?!.*\.\.)[\w./-]{1,100}$/;
+/** A branch name as `git check-ref-format` takes it, a little narrower. */
+export const BRANCH = /^(?![-./])(?!.*\.\.)(?!.*[./]$)(?!.*@\{)[\w./-]{1,100}$/;
+const SHA = /^[0-9a-f]{7,40}$/;
+
+/** A path of the repository with a segment that starts with a dot: the repository's own (`.github/`, `.gitignore`). */
+const dotted = (p: string) => p.split('/').some((s) => s.startsWith('.'));
 
 export class GitSync {
   private queue: Promise<unknown> = Promise.resolve();
   private readonly branch: string;
   private readonly prefix: string;
+  private readonly repo: string;
 
   constructor(private o: GitSyncOptions) {
     this.branch = o.config.branch ?? 'main';
-    if (!REF.test(this.branch)) throw new Error(`git.branch "${this.branch}" is not a branch name`);
+    if (!BRANCH.test(this.branch)) throw new Error(`git.branch "${this.branch}" is not a branch name`);
     this.prefix = (o.config.path ?? '').replace(/^\/+|\/+$/g, '');
     if (this.prefix.split('/').some((s) => s === '..' || s === '.'))
       throw new Error('git.path stays in the repository');
+    this.repo = join(o.workDir, 'repo.git');
+    // A key a crash left behind is not left there.
+    rmSync(join(o.workDir, 'deploy-key'), { force: true });
   }
 
   /** One at a time: a push and an import never overlap. */
@@ -80,52 +96,63 @@ export class GitSync {
     });
   }
 
-  /** Git in the clone, with its own environment: the deploy key for this run only, no prompt, no user config. */
-  private async git(args: string[], o: { allowFail?: boolean } = {}): Promise<{ out: string; code: number }> {
+  /** Git on the bare clone, with its own environment: the deploy key for this command only, no prompt, no user config. */
+  private async git(
+    args: string[],
+    o: { allowFail?: boolean; input?: Buffer; env?: Record<string, string> } = {},
+  ): Promise<{ out: Buffer; err: string; code: number }> {
     const keyFile = join(this.o.workDir, 'deploy-key');
+    const quote = (p: string) => `'${p.replace(/'/g, `'\\''`)}'`;
     const env: Record<string, string> = {
       PATH: process.env.PATH ?? '/usr/bin:/bin',
       HOME: this.o.workDir,
       GIT_TERMINAL_PROMPT: '0',
       GIT_CONFIG_NOSYSTEM: '1',
       GIT_CONFIG_GLOBAL: join(this.o.workDir, 'gitconfig'),
+      GIT_DIR: this.repo,
+      ...o.env,
     };
+    // `init` makes the repository: no GIT_DIR yet.
+    if (!env.GIT_DIR) delete env.GIT_DIR;
     if (this.o.key) {
       writeFileSync(keyFile, this.o.key.endsWith('\n') ? this.o.key : `${this.o.key}\n`, { mode: 0o600 });
-      env.GIT_SSH_COMMAND = `ssh -i ${keyFile} -o IdentitiesOnly=yes -o StrictHostKeyChecking=accept-new -o UserKnownHostsFile=${join(this.o.workDir, 'known_hosts')}`;
+      const hosts = join(this.o.workDir, 'known_hosts');
+      if (this.o.config.knownHosts) writeFileSync(hosts, `${this.o.config.knownHosts.trim()}\n`);
+      const strict = this.o.config.knownHosts ? 'yes' : 'accept-new';
+      env.GIT_SSH_COMMAND = `ssh -i ${quote(keyFile)} -o IdentitiesOnly=yes -o StrictHostKeyChecking=${strict} -o UserKnownHostsFile=${quote(hosts)}`;
     }
     try {
-      return await new Promise((ok, ko) =>
-        execFile(
+      return await new Promise((ok, ko) => {
+        const child = execFile(
           this.o.git ?? 'git',
           args,
-          { cwd: join(this.o.workDir, 'repo'), env, maxBuffer: 256 * 1024 * 1024, encoding: 'buffer' },
+          { cwd: this.o.workDir, env, maxBuffer: 256 * 1024 * 1024, encoding: 'buffer' },
           (e, stdout, stderr) => {
             const code = e ? Number((e as { code?: number }).code ?? 1) : 0;
-            if (code && !o.allowFail)
-              return ko(new Error(`git ${args[0]}: ${String(stderr).trim().split('\n').slice(-2).join(' ')}`));
-            ok({ out: String(stdout), code });
+            const err = String(stderr).trim().split('\n').slice(-2).join(' ');
+            if (code && !o.allowFail) return ko(new StudioError(`git ${args[0]}: ${err}`, 502));
+            ok({ out: stdout as Buffer, err, code });
           },
-        ),
-      );
+        );
+        child.stdin?.end(o.input);
+      });
     } finally {
       if (this.o.key) rmSync(keyFile, { force: true });
     }
   }
 
-  /** The clone, made when missing, fetched; the remote branch's tip, or undefined when it does not exist yet. */
+  /** The bare clone, made when missing, fetched; the remote branch's tip, or undefined when it does not exist yet. */
   private async fetch(): Promise<string | undefined> {
-    const repo = join(this.o.workDir, 'repo');
-    if (!existsSync(join(repo, '.git'))) {
-      mkdirSync(repo, { recursive: true });
-      await this.git(['init', '-q']);
-      await this.git(['remote', 'add', 'origin', this.o.config.remote]);
+    mkdirSync(this.o.workDir, { recursive: true });
+    if (!existsSync(join(this.repo, 'HEAD'))) {
+      await this.git(['init', '-q', '--bare', this.repo], { env: { GIT_DIR: '' } });
+      await this.git(['remote', 'add', 'origin', '--', this.o.config.remote]);
     }
-    await this.git(['fetch', '-q', '--prune', 'origin'], { allowFail: false });
+    await this.git(['fetch', '-q', '--prune', 'origin', `+refs/heads/*:refs/remotes/origin/*`]);
     const tip = await this.git(['rev-parse', '-q', '--verify', `refs/remotes/origin/${this.branch}^{commit}`], {
       allowFail: true,
     });
-    return tip.code ? undefined : tip.out.trim();
+    return tip.code ? undefined : String(tip.out).trim();
   }
 
   /** The game at the head: its files by path, each checked against its hash. */
@@ -151,14 +178,31 @@ export class GitSync {
     return { revision: Number(rows.rev ?? 0), files };
   }
 
-  /** Where the game is in the clone. */
-  private here(path = '') {
-    return join(
-      this.o.workDir,
-      'repo',
-      ...(this.prefix ? this.prefix.split('/') : []),
-      ...path.split('/').filter(Boolean),
-    );
+  /** A game path's path in the repository. */
+  private inRepo(path: string) {
+    return this.prefix ? `${this.prefix}/${path}` : path;
+  }
+
+  /**
+   * The entries of a commit's tree under the game's folder, the repository's own (dotted) left out: path relative to
+   * the folder, mode, object id.
+   */
+  private async tree(commit: string): Promise<{ path: string; mode: string; oid: string }[]> {
+    const listed = await this.git(['ls-tree', '-r', '-z', '--full-tree', commit, '--', this.prefix || '.']);
+    const out: { path: string; mode: string; oid: string }[] = [];
+    for (const line of String(listed.out).split('\0').filter(Boolean)) {
+      const tab = line.indexOf('\t');
+      const [mode, , oid] = line.slice(0, tab).split(' ');
+      const full = line.slice(tab + 1);
+      const path = this.prefix ? full.slice(this.prefix.length + 1) : full;
+      if (this.prefix && !full.startsWith(`${this.prefix}/`)) {
+        // The folder itself is a link or a submodule: never followed.
+        throw new StudioError(`${full} is not a folder of the repository (a link or a submodule): not read`, 422);
+      }
+      if (dotted(path)) continue;
+      out.push({ path, mode: mode!, oid: oid! });
+    }
+    return out;
   }
 
   /** What the Studio knows of the repository. */
@@ -170,6 +214,23 @@ export class GitSync {
       pushed: Number((await this.meta('git_pushed')) ?? 0) || null,
       commit: (await this.meta('git_commit')) ?? null,
     };
+  }
+
+  /** An author as a trailer: their email when the provider verified it, else their name at the instance's noreply. */
+  private async coAuthor(a: string): Promise<string> {
+    const plain = a.replace(/[<>\s]+/g, ' ').trim() || 'someone';
+    if (plain.includes('@')) {
+      const [u] = await this.o.db
+        .all('SELECT name FROM studio_users WHERE email = $1 AND email_verified <> 0', [plain])
+        .catch(() => [] as Record<string, unknown>[]);
+      if (u) return `${String(u.name ?? plain.split('@')[0])} <${plain}>`;
+    }
+    const name = plain.includes('@') ? plain.split('@')[0]! : plain;
+    const local = name
+      .normalize('NFKD')
+      .replace(/[^\w.-]+/g, '.')
+      .replace(/^\.+|\.+$/g, '');
+    return `${name} <${local || 'someone'}@${this.o.noreplyDomain ?? 'users.noreply.web-scumm.invalid'}>`;
   }
 
   /**
@@ -189,126 +250,138 @@ export class GitSync {
         );
       const head = await this.head();
       const from = Number((await this.meta('git_pushed')) ?? 0);
-      if (tip) await this.git(['checkout', '-q', '-f', '-B', this.branch, tip]);
-      else {
-        await this.git(['checkout', '-q', '-f', '--orphan', this.branch]);
-        await this.git(['rm', '-q', '-r', '-f', '--cached', '--ignore-unmatch', '.']);
+      // The commit's tree: the tip's, the game's folder made exactly the head (the repository's own files kept).
+      // Nothing to push and no branch yet: nothing made.
+      if (!tip && !head.files.size) return { pushed: false, commit: null, revisions: null };
+      // An index of its own, and a work tree that stays empty (the index commands want one; nothing is checked out).
+      const index = join(this.o.workDir, `index-${process.pid}-${Date.now()}`);
+      const empty = join(this.o.workDir, 'no-work-tree');
+      mkdirSync(empty, { recursive: true });
+      const env = { GIT_INDEX_FILE: index, GIT_WORK_TREE: empty };
+      try {
+        await this.git(tip ? ['read-tree', tip] : ['read-tree', '--empty'], { env });
+        // The head's files stored as objects in one command, from a scratch copy of this server's own (never the
+        // repository's) bytes; then the index told everything in one: removals (mode 0), then the game's files.
+        const scratch = join(this.o.workDir, `objects-${process.pid}-${Date.now()}`);
+        mkdirSync(scratch, { recursive: true });
+        const paths = [...head.files.keys()];
+        paths.forEach((p, n) => writeFileSync(join(scratch, String(n)), head.files.get(p)!));
+        const oids = paths.length
+          ? String(
+              (
+                await this.git(['hash-object', '-w', '--no-filters', '--stdin-paths'], {
+                  input: Buffer.from(paths.map((_, n) => join(scratch, String(n))).join('\n')),
+                })
+              ).out,
+            )
+              .trim()
+              .split('\n')
+          : [];
+        rmSync(scratch, { recursive: true, force: true });
+        const zero = '0'.repeat(40);
+        const lines: string[] = [];
+        if (tip)
+          for (const e of await this.tree(tip))
+            if (!head.files.has(e.path)) lines.push(`0 ${zero}\t${this.inRepo(e.path)}`);
+        paths.forEach((p, n) => lines.push(`100644 ${oids[n]}\t${this.inRepo(p)}`));
+        if (lines.length)
+          await this.git(['update-index', '--index-info'], { env, input: Buffer.from(`${lines.join('\n')}\n`) });
+        const tree = String((await this.git(['write-tree'], { env })).out).trim();
+        const before = tip ? String((await this.git(['rev-parse', `${tip}^{tree}`])).out).trim() : undefined;
+        if (tree === before) {
+          await this.setMeta({ git_pushed: String(head.revision), ...(tip ? { git_commit: tip } : {}) });
+          return { pushed: false, commit: tip ?? null, revisions: null };
+        }
+        const ops = await this.o.db.all(
+          "SELECT rev, author, what FROM studio_ops WHERE state = 'confirmed' AND rev > $1 AND rev <= $2 ORDER BY rev",
+          [from, head.revision],
+        );
+        const line = (s: unknown, n: number) => String(s).replace(/\s+/g, ' ').slice(0, n);
+        const authors = [...new Set(ops.map((r) => String(r.author)))].filter((a) => a !== 'external');
+        const who = this.o.config.committer ?? { name: 'web-scumm Studio', email: 'studio@web-scumm.invalid' };
+        const message = [
+          `Studio revisions ${from + 1}–${head.revision}`,
+          '',
+          ...ops.slice(0, 200).map((r) => `- r${r.rev} ${line(r.what, 120)} (${line(r.author, 80)})`),
+          ...(ops.length > 200 ? [`- … ${ops.length - 200} more`] : []),
+          '',
+          ...(await Promise.all(authors.map(async (a) => `Co-authored-by: ${await this.coAuthor(a)}`))),
+        ].join('\n');
+        const ident = {
+          GIT_AUTHOR_NAME: who.name,
+          GIT_AUTHOR_EMAIL: who.email,
+          GIT_COMMITTER_NAME: who.name,
+          GIT_COMMITTER_EMAIL: who.email,
+        };
+        const commit = String(
+          (
+            await this.git(['commit-tree', tree, ...(tip ? ['-p', tip] : []), '-F', '-'], {
+              input: Buffer.from(message),
+              env: ident,
+            })
+          ).out,
+        ).trim();
+        // Never forced: a branch that moved meanwhile refuses it; anything else is said as git said it.
+        const pushed = await this.git(['push', '-q', 'origin', `${commit}:refs/heads/${this.branch}`], {
+          allowFail: true,
+        });
+        if (pushed.code) {
+          if (/rejected|non-fast-forward|fetch first/.test(pushed.err))
+            throw new StudioError(`${this.branch} moved while pushing: import it first, never forced`, 409);
+          throw new StudioError(`the push failed: ${pushed.err}`, 502);
+        }
+        await this.setMeta({ git_pushed: String(head.revision), git_commit: commit });
+        this.o.log?.({ event: 'git-pushed', commit, revisions: [from + 1, head.revision] });
+        return { pushed: true, commit, revisions: [from + 1, head.revision] };
+      } finally {
+        rmSync(index, { force: true });
       }
-      // The game's folder in the clone: exactly the head.
-      const tracked = (await this.git(['ls-files', '-z', '--', this.prefix || '.'])).out.split('\0').filter(Boolean);
-      for (const t of tracked) {
-        const rel = this.prefix ? t.slice(this.prefix.length + 1) : t;
-        if (!head.files.has(rel)) rmSync(join(this.o.workDir, 'repo', ...t.split('/')), { force: true });
-      }
-      for (const [path, bytes] of head.files) {
-        const file = this.here(path);
-        mkdirSync(join(file, '..'), { recursive: true });
-        writeFileSync(file, bytes);
-      }
-      await this.git(['add', '-A', '--', this.prefix || '.']);
-      const changed = (await this.git(['diff', '--cached', '--quiet'], { allowFail: true })).code !== 0;
-      if (!changed) {
-        await this.setMeta({ git_pushed: String(head.revision), ...(tip ? { git_commit: tip } : {}) });
-        return { pushed: false, commit: tip ?? null, revisions: null };
-      }
-      const ops = await this.o.db.all(
-        "SELECT rev, author, what FROM studio_ops WHERE state = 'confirmed' AND rev > $1 AND rev <= $2 ORDER BY rev",
-        [from, head.revision],
-      );
-      const authors = [...new Set(ops.map((r) => String(r.author)))].filter((a) => a !== 'external');
-      const who = this.o.config.committer ?? { name: 'web-scumm Studio', email: 'studio@web-scumm.invalid' };
-      const message = [
-        `Studio revisions ${from + 1}–${head.revision}`,
-        '',
-        ...ops.slice(0, 200).map((r) => `- r${r.rev} ${String(r.what).slice(0, 120)} (${String(r.author)})`),
-        ...(ops.length > 200 ? [`- … ${ops.length - 200} more`] : []),
-        '',
-        ...authors.map((a) => `Co-authored-by: ${coAuthor(a)}`),
-      ].join('\n');
-      await this.git([
-        '-c',
-        `user.name=${who.name}`,
-        '-c',
-        `user.email=${who.email}`,
-        'commit',
-        '-q',
-        '--no-verify',
-        '-m',
-        message,
-      ]);
-      const commit = (await this.git(['rev-parse', 'HEAD'])).out.trim();
-      // Never forced: a branch that moved meanwhile refuses it, and the clone is fetched again next time.
-      const pushed = await this.git(['push', '-q', 'origin', `HEAD:refs/heads/${this.branch}`], { allowFail: true });
-      if (pushed.code) throw new StudioError(`${this.branch} moved while pushing: import it first, never forced`, 409);
-      await this.setMeta({ git_pushed: String(head.revision), git_commit: commit });
-      this.o.log?.({ event: 'git-pushed', commit, revisions: [from + 1, head.revision] });
-      return { pushed: true, commit, revisions: [from + 1, head.revision] };
     });
   }
 
   /**
-   * The game as it is at `ref` (the branch by default, or a commit), written as one operation under the exclusive lease;
-   * the branch's next push builds on that commit. A file the game cannot hold refuses the whole import.
+   * The game as it is at `ref` (the branch by default, another branch of the remote, or a commit by its hash), written
+   * as one operation under the exclusive lease; it replaces what the Studio had not pushed (kept in its history). A
+   * link, a submodule or a file the game cannot hold refuses the whole import.
    */
   import(ref?: string): Promise<{ commit: string; changed: number }> {
-    if (ref !== undefined && !REF.test(ref)) throw new StudioError('ref must be a branch name or a commit');
+    if (ref !== undefined && !BRANCH.test(ref) && !SHA.test(ref))
+      throw new StudioError('ref must be a branch of the repository or a commit');
     return this.serial(() =>
       this.o.exclusive(async () => {
         const tip = await this.fetch();
-        const want = ref ?? (tip ? `refs/remotes/origin/${this.branch}` : undefined);
+        // Only what the remote has: one of its branches, or a commit by its hash; never this clone's own refs.
+        const want = ref === undefined ? (tip ? tip : undefined) : SHA.test(ref) ? ref : `refs/remotes/origin/${ref}`;
         if (!want) throw new StudioError(`${this.branch} does not exist in the repository`, 404);
         const at = await this.git(['rev-parse', '-q', '--verify', `${want}^{commit}`], { allowFail: true });
         if (at.code) throw new StudioError(`no commit ${ref} in the repository`, 404);
-        const commit = at.out.trim();
-        await this.git(['checkout', '-q', '-f', '--detach', commit]);
-        await this.git(['clean', '-q', '-f', '-d', '-x']);
+        const commit = String(at.out).trim();
         const theirs = new Map<string, Buffer>();
         let bytes = 0;
-        const root = this.here();
-        const walk = (d: string) => {
-          if (!existsSync(d)) return;
-          for (const n of readdirSync(d)) {
-            if (n === '.git' || n.startsWith('.')) continue;
-            const f = join(d, n);
-            // Never followed: a link in the repository could name a file of this server (its key, its environment).
-            const st = lstatSync(f);
-            if (st.isSymbolicLink())
-              throw new StudioError(`${relative(root, f).split(sep).join('/')} is a symbolic link: not imported`, 422);
-            if (st.isDirectory()) walk(f);
-            else if (!st.isFile()) continue;
-            else {
-              if (theirs.size >= MAX_FILES) throw new StudioError(`more than ${MAX_FILES} files to import`, 413);
-              const b = readFileSync(f);
-              bytes += b.length;
-              if (bytes > MAX_BYTES) throw new StudioError('more than 64 MiB to import', 413);
-              theirs.set(relative(root, f).split(sep).join('/'), b);
-            }
-          }
-        };
-        walk(root);
+        for (const e of await this.tree(commit)) {
+          if (e.mode === '120000' || e.mode === '160000')
+            throw new StudioError(`${e.path} is a link or a submodule: not imported`, 422);
+          if (theirs.size >= MAX_FILES) throw new StudioError(`more than ${MAX_FILES} files to import`, 413);
+          const b = (await this.git(['cat-file', 'blob', e.oid])).out;
+          bytes += b.length;
+          if (bytes > MAX_BYTES) throw new StudioError('more than 64 MiB to import', 413);
+          theirs.set(e.path, b);
+        }
         if (!theirs.size) throw new StudioError(`the commit holds no game at "${this.prefix || '/'}"`, 422);
         const head = await this.head();
         const files: { path: string; after: Buffer | null }[] = [];
         for (const [path, b] of theirs) if (!head.files.get(path)?.equals(b)) files.push({ path, after: b });
         for (const path of head.files.keys()) if (!theirs.has(path)) files.push({ path, after: null });
         if (files.length) await this.o.writeFiles(`import from git ${commit.slice(0, 12)}`, files);
-        const [r] = await this.o.db.all("SELECT value FROM studio_meta WHERE key = 'revision'");
-        const onBranch = tip === commit;
-        await this.setMeta({
-          git_pushed: String(r?.value ?? 0),
-          ...(onBranch ? { git_commit: commit } : {}),
-        });
+        // The branch's tip imported: the next push builds on it. Another commit: the head is that commit's game, and
+        // the next push goes on the tip the Studio knows.
+        if (tip === commit) {
+          const [r] = await this.o.db.all("SELECT value FROM studio_meta WHERE key = 'revision'");
+          await this.setMeta({ git_pushed: String(r?.value ?? 0), git_commit: commit });
+        }
         this.o.log?.({ event: 'git-imported', commit, files: files.length });
         return { commit, changed: files.length };
       }),
     );
   }
-}
-
-/** An author as a trailer: their email when they are named by it, else their name at a mailbox that never exists. */
-function coAuthor(a: string): string {
-  const clean = a.replace(/[<>\n\r]/g, '').trim() || 'someone';
-  return clean.includes('@')
-    ? `${clean.split('@')[0]} <${clean}>`
-    : `${clean} <${clean.replace(/\W+/g, '.')}@users.web-scumm.invalid>`;
 }

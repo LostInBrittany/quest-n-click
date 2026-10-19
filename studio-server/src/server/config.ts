@@ -2,7 +2,7 @@
 // secrets each from a file (`<NAME>_FILE`, mode 0600, preferred) or from the environment (Clever Cloud injects add-on
 // credentials as variables). A secret read from the environment is then removed from `process.env`, so no child
 // process ever inherits it; no secret is ever logged; a value that is not text, or too short, is refused at start.
-import type { GitConfig } from './git';
+import { BRANCH, type GitConfig } from './git';
 import { readFileSync, statSync } from 'node:fs';
 
 interface StoreConfig {
@@ -192,10 +192,16 @@ export function loadConfig(file: string, text?: string): StudioServerConfig {
       throw new ConfigError(`${file}: git.remote is the repository's URL`);
     if (/^https?:\/\/[^/]*@/.test(git.remote))
       throw new ConfigError(`${file}: git.remote carries no credentials (the deploy key is STUDIO_GIT_KEY)`);
-    if (git.branch !== undefined && (typeof git.branch !== 'string' || !/^[\w./-]{1,100}$/.test(git.branch)))
+    if (git.branch !== undefined && (typeof git.branch !== 'string' || !BRANCH.test(git.branch)))
       throw new ConfigError(`${file}: git.branch is a branch name`);
-    if (git.path !== undefined && (typeof git.path !== 'string' || git.path.split('/').includes('..')))
+    if (
+      git.path !== undefined &&
+      (typeof git.path !== 'string' || git.path.split('/').some((s) => s === '..' || s === '.'))
+    )
       throw new ConfigError(`${file}: git.path is a folder of the repository`);
+    if (git.remote.startsWith('-')) throw new ConfigError(`${file}: git.remote is the repository's URL`);
+    if (git.knownHosts !== undefined && (typeof git.knownHosts !== 'string' || !git.knownHosts.trim()))
+      throw new ConfigError(`${file}: git.knownHosts is the remote host's known_hosts lines`);
     const by = git.committer;
     if (
       by !== undefined &&

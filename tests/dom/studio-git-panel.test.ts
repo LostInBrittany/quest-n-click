@@ -48,7 +48,12 @@ describe('the Git panel', () => {
     await flush();
     expect(document.body.textContent).toContain('main moved since');
     answers.set('POST git/import', { status: 200, body: { commit: 'feedfacecafebeef', changed: 3 } });
-    [...el.querySelectorAll('button')].find((b) => b.textContent === 'Import from Git')!.click();
+    const imp = [...el.querySelectorAll('button')].find((b) => b.textContent === 'Import from Git')!;
+    // The first click asks: an import replaces what was not pushed.
+    imp.click();
+    expect(imp.textContent).toMatch(/Click again/);
+    expect(sent).not.toContain('POST git/import');
+    imp.click();
     await flush();
     await flush();
     expect(document.body.textContent).toContain('Imported feedfacecafe: 3 files');

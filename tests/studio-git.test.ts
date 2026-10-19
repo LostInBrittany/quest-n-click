@@ -51,10 +51,22 @@ beforeAll(async () => {
     gameDir: game,
     config: { remote: bare, branch: 'main', path: 'games/tpl', committer: { name: 'Studio', email: 'studio@test' } },
     workDir: join(tmp, 'work'),
-    writeFiles: (what, files) => studio.writeFiles(what, files, { undo: false }),
-    exclusive: (fn) => fn(),
+    writeFiles: async (what, files) => {
+      if (!inExclusive) throw new Error('an import writes under the exclusive lease');
+      return studio.writeFiles(what, files, { undo: false });
+    },
+    exclusive: async (fn) => {
+      inExclusive = true;
+      try {
+        return await fn();
+      } finally {
+        inExclusive = false;
+      }
+    },
+    noreplyDomain: 'users.noreply.test',
   });
 }, 60_000);
+let inExclusive = false;
 afterAll(async () => {
   await journal.close();
   await db.close();
@@ -72,8 +84,9 @@ describe('the game to and from Git', () => {
     expect(readFileSync(join(d, 'games', 'tpl', 'notes.md'), 'utf8')).toBe('two');
     expect(readFileSync(join(d, 'games', 'tpl', 'index.ts'), 'utf8')).toContain('');
     const msg = git(d, 'log', '-1', '--format=%B');
-    expect(msg).toContain('Co-authored-by: lea <lea@example.org>');
-    expect(msg).toContain('Co-authored-by: Tom <Tom@users.web-scumm.invalid>');
+    // No email verified by a provider here (no member): each at the instance's noreply.
+    expect(msg).toContain('Co-authored-by: lea <lea@users.noreply.test>');
+    expect(msg).toContain('Co-authored-by: Tom <Tom@users.noreply.test>');
     expect(git(d, 'log', '-1', '--format=%an <%ae>')).toBe('Studio <studio@test>');
     expect(await sync.status()).toMatchObject({ branch: 'main', path: 'games/tpl', commit: r.commit });
     // Nothing new: nothing pushed, the same commit.
@@ -130,7 +143,10 @@ describe('the game to and from Git', () => {
     git(d, '-c', 'user.name=x', '-c', 'user.email=x@x', 'commit', '-q', '-m', 'a link');
     git(d, 'push', '-q', 'origin', 'main');
     const before = await journal.revision();
-    await expect(sync.import()).rejects.toMatchObject({ status: 422, message: expect.stringMatching(/symbolic link/) });
+    await expect(sync.import()).rejects.toMatchObject({
+      status: 422,
+      message: expect.stringMatching(/link or a submodule/),
+    });
     expect(await journal.revision()).toBe(before);
     // The link taken out of the repository: the branch imports again, and the Studio follows it.
     git(d, 'rm', '-q', join('games', 'tpl', 'leak.md'));
@@ -140,7 +156,9 @@ describe('the game to and from Git', () => {
   });
 
   it('refuses a ref that is not one, a branch the Studio never saw, and a commit without the game', async () => {
-    expect(() => sync.import('../etc')).toThrow(/branch name or a commit/);
+    expect(() => sync.import('../etc')).toThrow(/branch of the repository or a commit/);
+    // Never the clone's own refs: only the remote's branches, or a commit by its hash.
+    await expect(sync.import('HEAD')).rejects.toMatchObject({ status: 404 });
     await expect(sync.import('no-such-branch')).rejects.toMatchObject({ status: 404 });
     const other = new GitSync({
       db,
@@ -153,6 +171,72 @@ describe('the game to and from Git', () => {
     });
     await expect(other.import()).rejects.toMatchObject({ status: 422 });
     expect(() => new GitSync({ config: { remote: bare, branch: '-x' } } as never)).toThrow(/branch/);
+  });
+});
+
+describe('the game to and from Git, the hard cases', () => {
+  it.skipIf(process.platform === 'win32')(
+    'never reads through a game folder that is a link in the repository',
+    async () => {
+      const d = look();
+      const { renameSync, symlinkSync } = await import('node:fs');
+      renameSync(join(d, 'games', 'tpl'), join(d, 'games', 'tpl-real'));
+      symlinkSync('/etc', join(d, 'games', 'tpl'));
+      git(d, 'add', '-A');
+      git(d, '-c', 'user.name=x', '-c', 'user.email=x@x', 'commit', '-q', '-m', 'the folder a link');
+      git(d, 'push', '-q', 'origin', 'main');
+      const before = await journal.revision();
+      await expect(sync.import()).rejects.toMatchObject({ status: 422 });
+      await expect(sync.push()).rejects.toMatchObject({ status: 409 });
+      expect(await journal.revision()).toBe(before);
+      // Put back as it was, and taken in.
+      rmSync(join(d, 'games', 'tpl'));
+      renameSync(join(d, 'games', 'tpl-real'), join(d, 'games', 'tpl'));
+      git(d, 'add', '-A');
+      git(d, '-c', 'user.name=x', '-c', 'user.email=x@x', 'commit', '-q', '-m', 'the folder back');
+      git(d, 'push', '-q', 'origin', 'main');
+      await sync.import();
+    },
+  );
+
+  it("keeps the repository's own files, whatever its ignore rules say, and pushes the game's", async () => {
+    const d = look();
+    mkdirSync(join(d, '.github'), { recursive: true });
+    writeFileSync(join(d, '.github', 'ci.yml'), 'on: push');
+    writeFileSync(join(d, 'games', 'tpl', '.gitignore'), '*.md\n');
+    git(d, 'add', '-A', '-f');
+    git(d, '-c', 'user.name=x', '-c', 'user.email=x@x', 'commit', '-q', '-m', 'their own files');
+    git(d, 'push', '-q', 'origin', 'main');
+    await sync.import();
+    await as('lea@example.org', 'notes.md', 'still pushed');
+    expect((await sync.push()).pushed).toBe(true);
+    const e = look();
+    expect(readFileSync(join(e, '.github', 'ci.yml'), 'utf8')).toBe('on: push');
+    expect(readFileSync(join(e, 'games', 'tpl', '.gitignore'), 'utf8')).toBe('*.md\n');
+    expect(readFileSync(join(e, 'games', 'tpl', 'notes.md'), 'utf8')).toBe('still pushed');
+  });
+
+  it('says a push the remote refuses as the remote said it, and pushes once the remote is there', async () => {
+    const later = join(tmp, 'later.git');
+    const first = new GitSync({
+      db: await openSqliteDb(join(tmp, 'other.sqlite')).then(async (o) => {
+        const { migrate } = await import('../bridge/src/migrations');
+        await migrate(o, { dir: new URL('../studio-server/migrations/', import.meta.url) });
+        return o;
+      }),
+      blobs: fsBlobStore(join(tmp, 'blobs')),
+      gameDir: studio.gameDir,
+      config: { remote: later, branch: 'main' },
+      workDir: join(tmp, 'work-later'),
+      writeFiles: async () => undefined,
+      exclusive: (fn) => fn(),
+    });
+    // No remote yet: said as git said it (502), never as "moved".
+    await expect(first.push()).rejects.toMatchObject({ status: 502 });
+    mkdirSync(later);
+    git(later, 'init', '-q', '--bare', '-b', 'main');
+    // Twice, so a first push that failed leaves nothing in the way of the next.
+    expect(await first.push()).toMatchObject({ pushed: false, commit: null });
   });
 });
 

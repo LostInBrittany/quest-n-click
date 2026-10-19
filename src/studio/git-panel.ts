@@ -47,8 +47,18 @@ export function gitPanel(o: { owner: boolean }): HTMLElement {
       else state.textContent = `Git unavailable: ${(e as Error).message}`;
     }
   };
-  const act = (b: HTMLButtonElement, path: string, done: (r: Record<string, unknown>) => string) => {
+  const act = (b: HTMLButtonElement, path: string, done: (r: Record<string, unknown>) => string, ask?: string) => {
+    const label = b.textContent;
     b.onclick = async () => {
+      // A second click confirms what the first said (no browser dialog).
+      if (ask && b.textContent !== ask) {
+        b.textContent = ask;
+        setTimeout(() => {
+          b.textContent = label;
+        }, 6000);
+        return;
+      }
+      b.textContent = label;
       b.disabled = true;
       try {
         toast(done(await json<Record<string, unknown>>(path, POST)), 'ok');
@@ -65,8 +75,12 @@ export function gitPanel(o: { owner: boolean }): HTMLElement {
       ? `Pushed revisions ${(r.revisions as number[]).join('–')} (${String(r.commit).slice(0, 12)})`
       : 'Nothing new to push',
   );
-  act(pull, 'git/import', (r) =>
-    r.changed ? `Imported ${String(r.commit).slice(0, 12)}: ${r.changed} files` : 'The game is already as in Git',
+  act(
+    pull,
+    'git/import',
+    (r) =>
+      r.changed ? `Imported ${String(r.commit).slice(0, 12)}: ${r.changed} files` : 'The game is already as in Git',
+    'Replace the game with Git’s? Click again',
   );
   void draw();
   return el;

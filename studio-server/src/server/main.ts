@@ -415,6 +415,7 @@ async function main(argv: string[]): Promise<number> {
         key: secrets.STUDIO_GIT_KEY,
         writeFiles: (what, files) => studio.writeFiles(what, files, { undo: false }),
         exclusive,
+        noreplyDomain: `users.noreply.${new URL(config.publicUrl).hostname}`,
         log: (line) => console.log(JSON.stringify(line)),
       })
     : undefined;
