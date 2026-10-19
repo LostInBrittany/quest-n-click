@@ -106,7 +106,7 @@ export const SETS = {
   ],
   // The playable workshop (4.2.2, plan §2.8): the personal undo, the health by revision and its bisection, the previews
   // by revision, the published builds and their signed manifests, the prepared assets, the backup, the journal shipped
-  // and the collection. Measured until its survivors are read.
+  // and the collection. Gated since 4.2.3 (PR 10): its survivors read one by one.
   'studio-workshop': [
     'studio-server/src/ops/undo.ts',
     'studio-server/src/ops/backup.ts',
@@ -213,6 +213,11 @@ export const TESTS: Record<MutationSet, string[]> = {
     'tests/studio-backup.test.ts',
     // The previews' serving (a range, a 416, what is never served) is tested there, against a real template build.
     'tests/studio-client.test.ts',
+    // 4.2.3 PR 10: the survivors' short tests.
+    'tests/studio-workshop-backup-mutants.test.ts',
+    'tests/studio-workshop-health-mutants.test.ts',
+    'tests/studio-workshop-previews-mutants.test.ts',
+    'tests/studio-workshop-prepared-mutants.test.ts',
   ],
 };
 
@@ -239,11 +244,15 @@ export const GATED: MutationSet[] = [
   // 4.2.1: its survivors read (564 of 577 killed, 13 named in docs/dev/mutants.json), its unit tests
   // tests/studio-{gate,store,routes,oidc,leases,play}-mutants.
   'studio-auth',
+  // 4.2.3 PR 10: its 104 survivors read (94 killed by tests/studio-workshop-{backup,health,previews,prepared}-mutants,
+  // 10 named in docs/dev/mutants.json).
+  'studio-workshop',
 ];
 /** Measured on demand (`gh workflow run mutation -f set=…`) and every night, gating nothing until their survivors are read. */
 // Empty in 4.1.20 (plan §7.5): every set was gated; a set added later is measured here until its survivors are read.
-// Empty again since 4.2.1: the Studio Server's two sets are gated. 4.2.2's workshop is measured here until read.
-export const MEASURED: MutationSet[] = ['studio-workshop'];
+// Empty again since 4.2.1: the Studio Server's two sets are gated. 4.2.2's workshop was measured here until 4.2.3
+// (PR 10) read its survivors.
+export const MEASURED: MutationSet[] = [];
 
 /**
  * The shards a set's mutation runs in (4.1.20 PR 2a, plan §7.3), one job each, merged into the set's report. A set not
