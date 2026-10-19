@@ -555,6 +555,10 @@ pre.diff .add { color: #8fe36a; } pre.diff .del { color: #ff7a7a; } pre.diff .hu
 .draft { display: flex; flex-direction: column; gap: 8px; padding: 10px; border: 1px dashed var(--line2); background: var(--panel2); border-radius: 4px; }
 .draft pre { margin: 0; max-height: 220px; overflow: auto; font: 12px ui-monospace, Menlo, monospace; white-space: pre-wrap; }
 .draft button { align-self: flex-start; }
+.line-diff { margin: 0; max-height: 260px; overflow: auto; padding: 8px; border: 1px solid var(--line2); border-radius: 4px; font: 12px ui-monospace, Menlo, monospace; white-space: pre-wrap; }
+.line-diff .del { color: var(--bad, #c0392b); }
+.line-diff .add { color: var(--good, #2e7d32); }
+.line-diff .same, .line-diff .gap { color: var(--muted, #888); }
 .modal:has(.members) { width: min(980px, 100%); }
 .members-table { width: 100%; border-collapse: collapse; }
 .members-table th { text-align: left; font-size: 11px; color: var(--muted); text-transform: uppercase; padding: 6px 8px; border-bottom: 1px solid var(--line); }

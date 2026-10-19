@@ -299,6 +299,8 @@ async function start() {
     assets.onFileChanged(file);
     if (file === 'storyboard.json' && outside) storyboard.onDiskChange();
     if (file === 'notes.json' && outside) void store.load();
+    // Another member's voice row (H10): read again, so the next edit is made from it.
+    if (file === 'voices.json' && outside) void voices.load();
     if (outside && /\.(ts|json)$/.test(file) && file !== 'notes.json' && file !== 'storyboard.json')
       check.schedule(1000);
   }

@@ -36,6 +36,14 @@ export interface Operation<R> {
   /** The revision of each file the client read (P5): a file written since by someone else is a 409. */
   base?: Record<string, number>;
   /**
+   * The revision the client read its files at (4.2.3, H10): a file of the effects another author wrote after it is a 409
+   * that says what changed meanwhile (`readAt`, `head`, `before` and `now`: its text at each, when it is text), never a
+   * lost write. The writes since of the same `client` (a tab, a CLI or MCP session) are its own: they never refuse it.
+   */
+  readAt?: number;
+  /** The client the operation comes from (`x-studio-client`): its own writes since its read are not a conflict. */
+  client?: string;
+  /**
    * The hash (or `ABSENT`) of each file as the operation read it to compute its effects: a file another process
    * wrote meanwhile is a 409, never a lost write.
    */
@@ -179,6 +187,41 @@ export class Journal {
     return Number(r?.value ?? 0);
   }
 
+  /** One file's content hash at revision `rev`: the "before" of the first operation after it that wrote it, else the head's. */
+  async blobAt(path: string, rev: number): Promise<string> {
+    for (const effects of await this.opsSince(path, rev)) for (const c of effects) if (c.path === path) return c.before;
+    return (await this.file(path)).blob;
+  }
+
+  /**
+   * The effects of the confirmed operations after `rev` that may have written `path` (by another client than `client`),
+   * oldest first: those whose JSON names it (a `LIKE`, the caller checks each path), all of them for a path JSON escapes.
+   * `!` escapes the pattern (not `\`, whose meaning in a literal depends on Postgres's settings).
+   */
+  private async opsSince(path: string, rev: number, client = ''): Promise<Change[][]> {
+    const like = JSON.stringify(path) === `"${path}"` ? `%"path":"${path.replace(/[!%_]/g, (c) => `!${c}`)}"%` : '%';
+    // Without a client (''), every operation: an operation with no client is nobody's own.
+    const rows = await this.db.all(
+      `SELECT effects FROM studio_ops WHERE state = 'confirmed' AND rev > $1 AND effects LIKE $2 ESCAPE '!' AND ($3 = '' OR client <> $3) ORDER BY rev`,
+      [rev, like, client],
+    );
+    return rows.map((r) => JSON.parse(String(r.effects)) as Change[]);
+  }
+
+  /** Whether a client other than `client` wrote `path` after revision `rev` ('': any client). */
+  private async writtenSince(path: string, rev: number, client: string): Promise<boolean> {
+    return (await this.opsSince(path, rev, client)).some((effects) => effects.some((c) => c.path === path));
+  }
+
+  /** A blob as text, when it is (UTF-8, no NUL, 256 KiB at most) and kept; null otherwise (absent, binary, not kept). */
+  private async textOf(hash: string): Promise<string | null> {
+    // `ABSENT` is no blob: the store refuses it as it refuses any name that is not a hash.
+    const bytes = await this.blobs.get(hash).catch(() => null);
+    if (!bytes || bytes.length > 256 * 1024 || bytes.includes(0)) return null;
+    const text = bytes.toString('utf8');
+    return Buffer.from(text, 'utf8').equals(bytes) ? text : null;
+  }
+
   /** The head of one file: its content hash and the revision that last wrote it (`rev` 0: never written). */
   async file(path: string): Promise<{ blob: string; rev: number }> {
     const [r] = await this.db.all('SELECT blob, rev FROM studio_files WHERE path = $1', [path]);
@@ -310,6 +353,22 @@ export class Journal {
         });
     }
 
+    // The revision read (H10): every file of the effects as the client saw it, or a 409 saying what changed since.
+    if (op.readAt !== undefined)
+      for (const e of op.effects) {
+        const head = await this.file(e.path);
+        if (head.rev > op.readAt && (await this.writtenSince(e.path, op.readAt, op.client ?? '')))
+          throw Object.assign(new StudioError(`${e.path} changed since revision ${op.readAt} (now ${head.rev})`, 409), {
+            body: {
+              path: e.path,
+              readAt: op.readAt,
+              head: head.rev,
+              before: await this.textOf(await this.blobAt(e.path, op.readAt)),
+              now: await this.textOf(head.blob),
+            },
+          });
+      }
+
     const changes: Change[] = [];
     const changed: FileEffect[] = [];
     for (const e of op.effects) {
@@ -343,8 +402,8 @@ export class Journal {
         changes.map((c) => c.path),
       );
       await q.run(
-        "INSERT INTO studio_ops (op_id, rev, author, what, state, effects, at) VALUES ($1, $2, $3, $4, 'intent', $5, $6)",
-        [id, rev, op.author, op.what, JSON.stringify(changes), Date.now()],
+        "INSERT INTO studio_ops (op_id, rev, author, what, state, effects, at, client) VALUES ($1, $2, $3, $4, 'intent', $5, $6, $7)",
+        [id, rev, op.author, op.what, JSON.stringify(changes), Date.now(), op.client ?? ''],
       );
     });
     // The befores, kept in memory: an error of this process undoes what it already wrote.

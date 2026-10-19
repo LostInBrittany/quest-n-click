@@ -2,10 +2,12 @@
 // leases in a panel, the lease of the room shown in the Rooms tab, and the two refusals a write can meet:
 //   - 423, a span another member holds: nothing was applied, the draft is kept here to copy, the member is told when
 //     the span is free, an owner may take it over;
-//   - 409, a file that changed since it was read: the change made meanwhile is loaded, the draft is kept, try again.
+//   - 409, a file that changed since it was read: what changed meanwhile is shown (4.2.3, H10: the file at the revision
+//     read, and now), the draft is kept, and the member may apply their edit on the latest version (never done for them).
 // A write takes its spans by itself (the server claims them with the write); taking a span ahead reserves it.
 import { studioFetch } from './api-base';
 import type { Lease, Live, Me } from './hosted';
+import { changedOnly, lineDiff } from './line-diff';
 import { h, modal, toast } from './ui';
 
 /** The spans everyone sees: a room each, then the game's other parts (studio-server/src/ops/spans.ts). */
@@ -224,8 +226,34 @@ export function lockedDialog(
   );
 }
 
+/** What changed in the file since it was read (H10), from the 409's `before` and `now`, or why it cannot be shown. */
+function changedBox(data: Record<string, unknown>): HTMLElement | null {
+  if (!('now' in data)) return null;
+  const { before, now } = data;
+  if (typeof before !== 'string' || typeof now !== 'string')
+    return h('p', { class: 'muted' }, 'What changed cannot be shown here (a new, removed or binary file).');
+  const d = lineDiff(before, now);
+  if (d === 'too long') return h('p', { class: 'muted' }, 'The file is too long to show what changed here.');
+  return h(
+    'pre',
+    { class: 'line-diff' },
+    ...changedOnly(d).map((l) =>
+      l === '…'
+        ? h('span', { class: 'gap' }, '…\n')
+        : h('span', { class: { '-': 'del', '+': 'add', ' ': 'same' }[l[0]] }, `${l[0]} ${l[1]}\n`),
+    ),
+  );
+}
+
 /** 409: a file changed since it was read. */
-export function conflictDialog(message: string, draft: unknown, retry: () => Promise<void>): void {
+export function conflictDialog(
+  data: Record<string, unknown>,
+  draft: unknown,
+  retry: () => Promise<void>,
+  whole = false,
+): void {
+  const message = String(data.error ?? 'The file changed since you read it.');
+  const changed = changedBox(data);
   const close = modal(
     'The file changed since you read it',
     h(
@@ -235,8 +263,11 @@ export function conflictDialog(message: string, draft: unknown, retry: () => Pro
       h(
         'p',
         { class: 'muted' },
-        'Someone saved it meanwhile; their change is being loaded. Your draft is kept here: compare, then try again.',
+        changed
+          ? `Someone saved ${String(data.path ?? 'it')} meanwhile (revision ${String(data.head ?? '?')}): this is what changed since you read it at revision ${String(data.readAt ?? '?')}. Your draft is kept: apply it on the latest version, or copy it.`
+          : 'Someone saved it meanwhile; their change is being loaded. Your draft is kept here: compare, then try again.',
       ),
+      changed,
       draftBox(draft),
       h(
         'div',
@@ -251,7 +282,11 @@ export function conflictDialog(message: string, draft: unknown, retry: () => Pro
                 (e) => toast((e as Error).message, 'error'),
               ),
           },
-          'Try again',
+          changed
+            ? whole
+              ? 'Replace with my version (drops their change)'
+              : 'Apply my edit on the latest version'
+            : 'Try again',
         ),
       ),
     ),
