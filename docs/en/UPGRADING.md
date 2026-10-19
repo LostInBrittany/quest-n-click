@@ -564,3 +564,19 @@ author may notice:
 
 The engine installs from `releases/download/v4.2.1/…`. To put a Studio online for a team, see
 `docs/en/STUDIO-SERVER.md` (experimental in 4.2.1).
+
+## 35. From 4.2.1 to 4.2.2 "Playable Workshop"
+
+Nothing to change in a game: the public API, the content format and the save envelope are 4.2.0's (D40). The engine
+installs from `releases/download/v4.2.2/…`. For a hosted Studio:
+
+- **Vite has left the server**: the game's origin serves the previews the processing worker builds, one per revision.
+  The worker needs the engine's Vite to build (its install has it).
+- **The database migrates at start** (migrations 0006 to 0010: previews, health, undo, builds, prepared sets).
+- **The asset tools on the worker**: set the worker's `CC_POST_BUILD_HOOK` as `docs/en/STUDIO-SERVER.md` says (their
+  Python packages, locked with hashes); without it, "Prepare assets" (the Play tab's
+  button) fails and shows the worker's error. Deploy this worker from the repository: installed from the archives, it
+  cannot run `prepare` in 4.2.2 (4.2.3 ships the lock).
+- **Builds**: `/play/<n>/` needs a session unless `publicBuilds` is set (off by default).
+- **Backup**: the journal ships to the bucket by itself; take a daily `studio-server backup` and keep it off the
+  instance (STUDIO-SERVER, "Backup and restore").

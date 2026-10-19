@@ -611,6 +611,14 @@ views with 105 tests; every public export carries `@public` or `@extension` and 
 written by the baseline; a links script. Left for later, said as such: the human passes of the sheet
 (`docs/dev/passes/4.1.8.md`), the release workflow's acceleration (its own lot), the assistant tab's 845 lines.
 
+## v4.2.2 "Playable Workshop" (shipped October 2026): the shared game played, judged, published
+
+The second 4.2.x step (D42): a preview built by the processing worker for each revision, and saves that ask before
+crossing revisions (ADR 0026); diagnostics with their revision, the game's health by revision and the bisection that
+names the revision that broke it; personal undo; immutable builds with signed manifests; the assets prepared on the
+worker; backup, restore and the journal shipped, with its RPO. Vite has left the server. Experimental until its passes
+(`studio-hosted`, `studio-collab`, `studio-preview`, `studio-assets-hosted`). Next: 4.2.3, advanced coordination.
+
 ## v4.2.1 "Shared Floor" (shipped October 2026): the Studio online for a team
 
 The first of three 4.2.x steps (D39 to D41): a Studio Server for one game and several people, behind OpenID Connect,

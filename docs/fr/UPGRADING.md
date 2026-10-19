@@ -597,3 +597,20 @@ Rien à changer dans un jeu : l'API publique, le format du contenu et l'envelopp
 
 Le moteur s'installe depuis `releases/download/v4.2.1/…`. Pour mettre un Studio en ligne pour une équipe, voir
 `docs/fr/STUDIO-SERVER.md` (expérimental en 4.2.1).
+
+## 35. De la 4.2.1 à la 4.2.2 « Playable Workshop »
+
+Rien à changer dans un jeu : l'API publique, le format du contenu et l'enveloppe de sauvegarde sont ceux de la 4.2.0
+(D40). Le moteur s'installe depuis `releases/download/v4.2.2/…`. Pour un Studio hébergé :
+
+- **Vite a quitté le serveur** : l'origine du jeu sert les prévisualisations que construit l'application de
+  traitement, une par révision. Celle-ci a besoin du Vite du moteur pour construire (son installation l'inclut).
+- **La base migre au démarrage** (migrations 0006 à 0010 : prévisualisations, santé, annulation, builds, ensembles
+  préparés).
+- **Les outils d'assets sur l'application de traitement** : réglez son `CC_POST_BUILD_HOOK` comme le dit
+  `docs/fr/STUDIO-SERVER.md` (leurs paquets Python, verrouillés par empreintes) ; sans lui, « Prepare assets » (le
+  bouton de l'onglet Play) échoue et montre l'erreur de l'application de traitement. Ce worker se déploie depuis le
+  dépôt : installé depuis les archives, il ne peut pas lancer `prepare` en 4.2.2 (la 4.2.3 livre le verrou).
+- **Les builds** : `/play/<n>/` demande une session, sauf si `publicBuilds` est activé (désactivé par défaut).
+- **La sauvegarde** : le journal part de lui-même dans le bucket ; faites un `studio-server backup` quotidien, gardé
+  hors de l'instance (STUDIO-SERVER, « Sauvegarde et restauration »).

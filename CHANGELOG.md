@@ -1,5 +1,88 @@
 # Changelog
 
+## 4.2.2 — 2026-10-19
+
+"Playable Workshop" (LOG #206–#217): the second of the three 4.2.x steps (D40, D42). On a hosted Studio, everyone
+plays the shared revision without a dev server: the processing worker builds a preview of each revision, and a save
+carried into another revision asks before it is resumed (ADR 0026). Every diagnostic names its revision; the header
+gives the game's health at the head and, when it breaks, the revision that broke it. Undo and redo come back, each
+member's own. The team publishes immutable, numbered builds with signed manifests, prepares the game's assets on the
+worker (sprite sheets and uploads stay local until 4.2.3), and an operator backs the Studio up, ships its journal to
+the bucket (the RPO is in `/readyz`) and restores it. Vite has left the Studio Server. It stays **experimental**
+until its people's passes are made (`studio-hosted`, `studio-collab`, and 4.2.2's `studio-preview` and
+`studio-assets-hosted`). Nothing a game or a player uses changed: the public API, the content format and the save
+envelope are 4.2.0's (D40). The tag is signed with the maintainer's SSH key on their yes of 18 October, « yes sign
+4.2.2 » (D37, D42).
+
+### Changes
+
+- **Dependencies (4.2.2)**: zod 4.6.7, Playwright 1.64.1, @axe-core/playwright 4.14, @vitest/coverage-v8 5.0.5; the
+  bridge's locks follow zod. Nothing changes for a player, an author or a host.
+
+- **The hosted Studio shows the preview of a revision (4.2.2)**: after each change the processing worker builds the
+  game at the head (a new job kind, `preview`; a burst of changes builds its last revision only), the Studio stores its
+  files by content and serves them on the game's origin at `/preview/<rev>/`, behind the game session. The room view
+  loads a newer preview once it is built, unless a placement is not saved; the label under it names the revision
+  shown, the one building, and a revision that does not build, with its reason. The editing tools enter the preview's
+  build (`VITE_STUDIO_PREVIEW`); the player's build is unchanged.
+- **Vite has left the Studio Server (4.2.2)**: 4.2.1's live preview (Vite in middleware mode on the game's origin) is
+  gone, with its allow-list of engine paths; the game's origin serves a revision's built files and the prepared assets
+  of the prepared set and `publicDir`, and the published builds. The worker still needs the engine's Vite to build.
+
+- **A save made in another revision asks before it is resumed (4.2.2, ADR 0026)**: in a hosted Studio's preview, a
+  save records the revision and the fingerprint of the content it was made in (beside it: the save format does not
+  change). Resumed where the content differs, on Continue or from a slot, the game asks: Resume here (it may fail if
+  this revision removed what the save refers to), Restart, or Stay in the save's own revision. The same content under
+  another revision number asks nothing. Escape cancels the question. The player's builds are unchanged.
+
+- **A plan for the playable workshop** (4.2.2): `docs/dev/PLAN-4.2.2-ATELIER-JOUABLE.md`, eight guarantees each with
+  its limit and its test, the pull requests in order, the exit criteria, and decision D42 (the preview's path, the
+  fresh rebuild, the RPO target, public builds).
+
+- **Every diagnostic says its revision (4.2.2)**: on a hosted Studio each read answer carries the revision it was made
+  at (`x-studio-revision`); the Check tab shows it, and marks its results stale as soon as the head moves on.
+- **Lint, the solver and the playtests run on the processing worker (4.2.2)**, with the game's own commands (before,
+  a hosted Studio ran them on the data it read back, without them); the solver is bounded to 45 s there.
+
+- **The game's health by revision, and the revision that broke it (4.2.2)**: a hosted Studio's header says the
+  verdict at a revision (the validator, then the solver from a new game, on the processing worker, after each burst
+  of changes). When a revision fails where the last judged one passed, a bisection names the first failing revision,
+  with what its operation did and its files, in ⌈log₂ n⌉ checks; a dev can ask for one (`POST /api/health/bisect`). A
+  solver cut short says "unknown", never "valid".
+
+- **Personal undo on a shared Studio (4.2.2)**: Undo and Redo come back on a hosted Studio, each member's own: their
+  last operation is undone by a new revision (its files back to their content before), whatever the others wrote
+  meanwhile; refused when another wrote one of its files since (409) or holds its span (423). A new edit drops the
+  member's redo; the stacks are kept in the database.
+
+- **Published builds (4.2.2)**: a hosted Studio's Play tab publishes the head as an immutable, numbered build of the
+  player's game, served at `/play/<n>/` on the game's origin; `/play/` is the last green build (its revision judged
+  valid). Each build's manifest (revision, engine, snapshot and file hashes) is signed with the Studio's job key; an
+  owner can rebuild one fresh and compare it byte for byte. `publicBuilds` (off by default) opens `/play/` without a
+  session.
+
+- **The asset tools on the processing worker, qualified (4.2.2)**: their Python packages are locked with hashes for
+  Clever Cloud's native runtime (`ops/studio/worker-requirements.lock`) and installed by the worker's build hook
+  (STUDIO-SERVER gives the variable); measured on the spike's worker: 7 s to install, 4 s for a full `prepare` of the
+  sample game (`docs/dev/QUALIF-4.2.2-ASSETS.md`).
+
+- **Prepare assets on a hosted Studio (4.2.2)**: the Play tab's "Prepare assets" (a dev) runs `prepare` on the
+  processing worker from the head's art and sounds, under the project's exclusive lease; the prepared set is kept by
+  the Studio and served before `publicDir`, and the game's `assets.gen.json` is written as one operation. Sprite sheets
+  and uploads stay on a local Studio (4.2.3).
+
+- **Backup, restore and the journal shipped (4.2.2)**: a hosted Studio ships each confirmed operation to the bucket
+  (`/readyz` gives the RPO); `studio-server backup` writes the project's tables in one snapshot, `restore --replay`
+  brings them back into an empty database then replays the journal shipped since, each operation checked against the
+  head it continues (`replay` resumes a replay that stopped); `gc` lists (and with `--delete`
+  deletes) the blobs no row names and the worker's old staging.
+
+- **The gates of 4.2.2**: two human passes asked from 4.2.2 on, `studio-preview` (people play the shared revision of a
+  hosted Studio without a dev server, carry a save across revisions, read the health chip, undo their own work,
+  publish a build) and `studio-assets-hosted` (prepare on the worker, its set played); a mutation set
+  `studio-workshop` (undo, health, previews, builds, prepared assets, backup, the journal shipped, the collection),
+  measured until its survivors are read.
+
 ## 4.2.1 — 2026-10-18
 
 "Shared Floor" (LOG #188–#205): the Studio online for a team, the first of three 4.2.x steps (D40). One game per

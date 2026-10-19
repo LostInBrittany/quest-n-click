@@ -5,10 +5,11 @@ The Studio Server puts a game's Studio online for a small team. Everyone logs in
 line's work (plan `docs/dev/PLAN-4.2.1-4.2.3-STUDIO-SERVER.md`). Alone on your machine, `npm run studio` stays as
 it was: none of this is needed.
 
-> **Status (4.2.1, experimental).** The journal (no confirmed change is lost), logins and roles, the processing worker,
-> spans and leases, the live stream, the game's own origin with its previews (one build per revision, since 4.2.2), and
-> the Studio's screens for all of this. It stays experimental until its people's passes (`studio-hosted`,
-> `studio-collab`) are made. This guide deploys from the repository; the release archive `web-scumm-studio-server` is
+> **Status (4.2.2, experimental).** The journal (no confirmed change is lost), logins and roles, the processing
+> worker, spans and leases, the live stream, the game's own origin with its previews (one build per revision), the
+> health by revision, personal undo, published builds, the assets prepared on the worker, backup and restore, and the
+> Studio's screens for all of this. It stays experimental until its people's passes (`studio-hosted`, `studio-collab`,
+> `studio-preview`, `studio-assets-hosted`) are made. This guide deploys from the repository; the release archive `web-scumm-studio-server` is
 > the same server (below).
 
 ## What runs where
@@ -58,7 +59,7 @@ mkdir -p ~/secrets/my-game && npm run studio-server -- worker-keys --out ~/secre
 
 | Variable | Value |
 |---|---|
-| `CC_NODE_DEV_DEPENDENCIES` | `install` (4.2.1 runs from the repository with `tsx`) |
+| `CC_NODE_DEV_DEPENDENCIES` | `install` (the server runs from the repository with `tsx`) |
 | `CC_POST_BUILD_HOOK` | `npm run studio-client` (builds the Studio's page the server serves) |
 | `CC_RUN_COMMAND` | `npm run studio-server -- serve` |
 | `CC_HEALTH_CHECK_PATH` | `/startz` |
@@ -137,11 +138,15 @@ registry, not from an archive file, where `pg` takes the latest 8.x its range al
 says which). It runs the server of the engine installed beside it, which must be the same version:
 
 ```sh
-npm install web-scumm-4.2.1.tgz web-scumm-studio-server-4.2.1.tgz
+npm install web-scumm-<version>.tgz web-scumm-studio-server-<version>.tgz
 npx web-scumm-studio-server import ./my-game --config studio.config.json
 npx web-scumm-studio-server serve --config studio.config.json
 npx web-scumm-studio-worker          # on the worker's machine, with WORKER_PUBLIC_KEY and WORKER_INSTANCE
 ```
+
+In 4.2.2 a worker installed from the archives cannot run `prepare`: the asset tools' lock
+(`ops/studio/worker-requirements.lock`) is not in the archives, and the worker looks for their packages beside the
+engine. Deploy the worker from the repository (above) for Prepare assets; 4.2.3 ships the lock.
 
 The engine's archive brings Vite and tsx, which the worker needs to run the game's code and build its previews (the
 Studio itself no longer runs Vite, since 4.2.2). Set `publicDir` to your
