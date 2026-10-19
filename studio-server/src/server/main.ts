@@ -241,6 +241,8 @@ async function main(argv: string[]): Promise<number> {
     // Opening adopts the folder as one operation (and, hosted, stores every file in the blobs).
     const j = await Journal.open({ db, blobs, gameDir, hosted });
     console.log(JSON.stringify({ event: 'imported', game: config.game, revision: await j.revision() }));
+    // Shipped here, hosted: the adoption is in the bucket before the command ends, no instance needed for it.
+    if (segments) await new Shipper({ db, segments, log: (line) => console.log(JSON.stringify(line)) }).ship();
     await j.close();
     return 0;
   }
@@ -307,9 +309,14 @@ async function main(argv: string[]): Promise<number> {
   }
 
   if (cmd === 'invite') {
-    const email = args[args.indexOf('--email') + 1];
-    const role = args[args.indexOf('--role') + 1];
-    if (args.indexOf('--email') < 0 || !email || !['owner', 'dev', 'reviewer'].includes(role ?? '')) {
+    // A flag's value only when the flag is there (indexOf -1 would read the first argument), and never another flag.
+    const value = (flag: string) => {
+      const v = args.indexOf(flag) < 0 ? undefined : args[args.indexOf(flag) + 1];
+      return v && !v.startsWith('--') ? v : undefined;
+    };
+    const email = value('--email');
+    const role = value('--role');
+    if (!email || !['owner', 'dev', 'reviewer'].includes(role ?? '')) {
       console.error('usage: studio-server invite --email <email> --role <owner|dev|reviewer> --config <file>');
       return 2;
     }
@@ -502,7 +509,8 @@ async function main(argv: string[]): Promise<number> {
     : undefined;
   journal.events.on('confirmed', () => void shipper?.ship());
   void shipper?.ship();
-  // An operation another process confirmed (the CLI's import, invite, migrate) emits nothing here: looked for too.
+  // An operation another process confirmed (the CLI's import, against the same database) emits nothing here: looked
+  // for too.
   shipper?.watch();
   // A revision's verdict on the worker: the validator, then the solver from a new game, bounded in time (the health's,
   // and the engine's upgrade's before it writes).

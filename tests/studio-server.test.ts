@@ -375,6 +375,21 @@ describe('import, serve, export through the command', () => {
     expect(run('import', join(ROOT, 'games', '_template'))).toContain('"imported"');
     const out = join(tmp, 'exported');
     expect(run('export', out)).toContain('"exported"');
+    // The configuration from STUDIO_CONFIG_JSON, no --config: the command keeps its first argument (4.2.3, the daily
+    // backup's cron), and invite reads only the flags it is given.
+    const bare = (...a: string[]) =>
+      execFileSync(process.execPath, ['--import', 'tsx', join(ROOT, 'studio-server/src/server/main.ts'), ...a], {
+        cwd: ROOT,
+        encoding: 'utf8',
+        env: {
+          ...Object.fromEntries(Object.entries(process.env).filter(([k]) => k !== 'STUDIO_CONFIG')),
+          STUDIO_CONFIG_JSON: readFileSync(cfg, 'utf8'),
+        },
+        stdio: ['ignore', 'pipe', 'pipe'],
+      });
+    expect(bare('export', join(tmp, 'exported-bare'))).toContain('"exported"');
+    expect(() => bare('invite', 'owner', '--email', 'a@b.fr')).toThrow();
+    expect(() => bare('invite', '--email', '--role', 'dev')).toThrow();
     const m = JSON.parse(readFileSync(join(out, 'export-manifest.json'), 'utf8')) as {
       revision: number;
       files: { path: string; blob: string }[];
