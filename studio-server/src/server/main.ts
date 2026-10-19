@@ -28,7 +28,7 @@ import { backupOf, checkBackup, restoreInto } from '../ops/backup';
 import { collect } from '../ops/gc';
 import { finishRestore, replaySegments, Shipper } from '../ops/ship';
 import { migrate } from '../../../bridge/src/migrations';
-import { ConfigError, loadConfig, type StudioServerConfig, takeSecrets } from './config';
+import { ConfigError, loadConfig, type StudioServerConfig, takeSecrets, withoutConfig } from './config';
 import { accessToken, deviceLogin } from './auth/device';
 import { Gate } from './auth/gate';
 import { Oidc } from './auth/oidc';
@@ -142,7 +142,7 @@ async function main(argv: string[]): Promise<number> {
     console.error('usage: studio-server <serve|import <dir>|export <dir>> --config <file> (or STUDIO_CONFIG_JSON)');
     return 2;
   }
-  const args = rest.filter((_, i) => i !== at && i !== at + 1);
+  const args = withoutConfig(rest);
   const config = loadConfig(file, process.env.STUDIO_CONFIG ? undefined : inline);
   const { db, blobs, gameDir, secrets, s3 } = await openAll(config);
   const hosted = config.store.kind === 'postgres';
@@ -502,6 +502,8 @@ async function main(argv: string[]): Promise<number> {
     : undefined;
   journal.events.on('confirmed', () => void shipper?.ship());
   void shipper?.ship();
+  // An operation another process confirmed (the CLI's import, invite, migrate) emits nothing here: looked for too.
+  shipper?.watch();
   // A revision's verdict on the worker: the validator, then the solver from a new game, bounded in time (the health's,
   // and the engine's upgrade's before it writes).
   const judge = executor
