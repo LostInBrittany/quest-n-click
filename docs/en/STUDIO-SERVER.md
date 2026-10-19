@@ -147,8 +147,8 @@ npx web-scumm-studio-worker          # on the worker's machine, with WORKER_PUBL
 A worker installed from the archives prepares assets too (since 4.2.3): its build hook installs the lock the engine's
 package carries, from the worker's folder, where the worker looks for the packages (`WORKER_PYTHON_PATH` to put them
 elsewhere): `CC_POST_BUILD_HOOK=python3 -m pip install --target .python --require-hashes --only-binary=:all: -r
-node_modules/web-scumm/ops/studio/worker-requirements.lock`. The lock is for CPython 3.13 on Linux x86_64 (Clever
-Cloud's native runtime); another platform makes it again (its header says how). In 4.2.2 this needed a worker
+node_modules/web-scumm/ops/studio/worker-requirements.lock`. The lock is for CPython 3.13 on Linux x86_64 with glibc 2.28 or newer
+(Clever Cloud's native runtime); another platform makes it again (its header says how). In 4.2.2 this needed a worker
 deployed from the repository.
 
 The engine's archive brings Vite and tsx, which the worker needs to run the game's code and build its previews (the

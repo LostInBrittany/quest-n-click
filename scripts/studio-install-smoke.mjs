@@ -95,7 +95,10 @@ try {
       ],
       { cwd: home, stdio: ['ignore', 'ignore', 'inherit'] },
     );
-    execFileSync('python3', ['-c', 'import PIL, numpy, scipy'], {
+    // Imported from that folder, not from a site-packages that happens to have them.
+    const from =
+      "import os, sys, PIL, numpy, scipy; sys.exit(0 if all(m.__file__.startswith(os.environ['PYTHONPATH']) for m in (PIL, numpy, scipy)) else 1)";
+    execFileSync('python3', ['-s', '-c', from], {
       cwd: home,
       env: { PATH: process.env.PATH, PYTHONPATH: join(home, '.python') },
       stdio: ['ignore', 'ignore', 'inherit'],

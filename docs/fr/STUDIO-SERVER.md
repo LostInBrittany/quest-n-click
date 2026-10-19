@@ -151,7 +151,7 @@ Un worker installé depuis les archives prépare aussi les assets (depuis la 4.2
 verrou que porte le paquet du moteur, depuis le dossier du worker, où le worker cherche les paquets
 (`WORKER_PYTHON_PATH` pour les mettre ailleurs) : `CC_POST_BUILD_HOOK=python3 -m pip install --target .python
 --require-hashes --only-binary=:all: -r node_modules/web-scumm/ops/studio/worker-requirements.lock`. Le verrou vaut pour
-CPython 3.13 sous Linux x86_64 (le runtime natif de Clever Cloud) ; une autre plateforme le refait (son en-tête dit
+CPython 3.13 sous Linux x86_64, glibc 2.28 ou plus récente (le runtime natif de Clever Cloud) ; une autre plateforme le refait (son en-tête dit
 comment). En 4.2.2, il fallait un worker déployé depuis le dépôt.
 
 L'archive du moteur apporte Vite et tsx, dont l'application de traitement a besoin pour exécuter le code du jeu et
