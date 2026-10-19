@@ -13,6 +13,7 @@ import { inAllowlist } from '../../../bridge/src/allowlist';
 import type { SqlDb } from '../../../bridge/src/store-sql';
 import { operationContext, type Studio } from '../ops/core';
 import { isStudioError, StudioError } from '../ops/errors';
+import { MCP_METADATA_PATHS, type McpEndpoint } from './mcp';
 import type { Journal } from '../ops/journal';
 import { isBody, routes } from '../ops/routes';
 import type { Gate } from './auth/gate';
@@ -103,6 +104,8 @@ export interface StudioServerOptions {
     /** The audit (an owner's takeover names the previous holder). */
     audit?: (actor: string, event: string, detail: unknown) => Promise<void>;
   };
+  /** The remote MCP (4.2.3 PR 5, ADR 0029): `/mcp` and its protected resource's metadata. */
+  mcp?: McpEndpoint;
   /** A shared Studio (PR 6, plan P2 and §5): the spans' leases, who is here, the live events. */
   leases?: Leases;
   presence?: Presence;
@@ -295,6 +298,9 @@ export function studioServer(o: StudioServerOptions): StudioHttpServer {
       const ip = clientOf(req);
       // The game's origin answers its own paths only: no Studio API, no /auth, ever.
       if (o.play && forPlay(req, o.play.playUrl)) return void (await o.play.handler.handle(req, res, url));
+      // The remote MCP (ADR 0029): where its authorization is (RFC 9728), then the endpoint itself.
+      if (o.mcp && req.method === 'GET' && MCP_METADATA_PATHS.includes(path)) return send(res, 200, o.mcp.metadata());
+      if (o.mcp && path === '/mcp') return void (await o.mcp.handle(req, res, () => readJson(req)));
       // The Studio's page and its files hold no data; the game's images and sounds are a member's.
       if (o.client && (req.method === 'GET' || req.method === 'HEAD')) {
         const kind = o.client.kind(path);
