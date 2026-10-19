@@ -452,21 +452,26 @@ describe("prepare's job signal", () => {
 });
 
 describe("the worker's child, cancelled", () => {
-  it('is killed with its group when the Studio gives up on it', async () => {
-    mkdirSync(JOBS, { recursive: true });
-    const dir = mkdtempSync(join(JOBS, 'cancel-'));
-    try {
-      writeFileSync(join(dir, 'index.ts'), 'while (true) {}\nexport {};\n');
-      const ac = new AbortController();
-      const t0 = Date.now();
-      setTimeout(() => ac.abort(), 1_000);
-      const r = await runChild(dir, 60_000, 'validate', undefined, {}, ac.signal);
-      expect(r).toMatchObject({ cancelled: true, timedOut: false, out: '' });
-      expect(Date.now() - t0).toBeLessThan(15_000);
-    } finally {
-      rmSync(dir, { recursive: true, force: true });
-    }
-  }, 30_000);
+  // Process groups and their signals are POSIX: a Windows worker is not a supported host for them.
+  it.skipIf(process.platform === 'win32')(
+    'is killed with its group when the Studio gives up on it',
+    async () => {
+      mkdirSync(JOBS, { recursive: true });
+      const dir = mkdtempSync(join(JOBS, 'cancel-'));
+      try {
+        writeFileSync(join(dir, 'index.ts'), 'while (true) {}\nexport {};\n');
+        const ac = new AbortController();
+        const t0 = Date.now();
+        setTimeout(() => ac.abort(), 1_000);
+        const r = await runChild(dir, 60_000, 'validate', undefined, {}, ac.signal);
+        expect(r).toMatchObject({ cancelled: true, timedOut: false, out: '' });
+        expect(Date.now() - t0).toBeLessThan(15_000);
+      } finally {
+        rmSync(dir, { recursive: true, force: true });
+      }
+    },
+    30_000,
+  );
 });
 
 const hasTools = (() => {

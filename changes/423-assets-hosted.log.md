@@ -51,4 +51,12 @@
 - The CHANGELOG fragment says, for scripts, that `/api/assets/prepare` is now 202 and a job to poll.
 - `origin/main` merged in (4.2.3 PR 2, the scenario map), no conflict.
 
+**After CI**
+
+- The worker child's cancel test is skipped on Windows (process groups and their signals are POSIX).
+- `tests/studio-remote-executor.test.ts`: `cut` and `prepare` against a fake worker over HTTP and a bucket in memory
+  (the cells, a deadline 504, a failure 422, an answer out of shape 422, a refused job, no result, a cancel while the
+  worker runs, once it answered, and before it is sent; the staging left empty), for the coverage floor of
+  `remote-executor.ts`.
+
 → next: Claude (the next 4.2.3 PR)
