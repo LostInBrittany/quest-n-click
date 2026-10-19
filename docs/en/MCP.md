@@ -92,6 +92,28 @@ args = ["--prefix", "/path/to/web-scumm", "run", "-s", "mcp"]
 Command `npm run -s mcp` (or `npx tsx tools/mcp/server.ts`) with the repository as working directory, transport stdio.
 Node 22.12+.
 
+## A hosted Studio (4.2.3)
+
+On a Studio Server (`docs/en/STUDIO-SERVER.md`) an agent works as a member, through the server's own checks: its
+role, the spans others hold (a 423 it reads), the journal (its writes are revisions in the member's name). Two ways:
+
+- **Remote, over HTTP**: the server's `/mcp` (MCP's Streamable HTTP, stateless). A client that follows MCP's
+  authorization finds the OIDC provider at `/.well-known/oauth-protected-resource/mcp` (RFC 9728); the token it gets
+  must carry the Studio's `oidc.audience` (a provider that takes it from MCP's `resource` gives `<public>/mcp`: set
+  `oidc.audience` to that; Keycloak needs an audience mapper, and a client registered for the agent). Otherwise give
+  it one: `npm run studio-server -- token --server <url>` prints an access token, sent as `Authorization: Bearer
+  <token>`; it lasts minutes (`oidc.maxTokenSeconds`), so a long session is better on the stdio server below. The
+  session cookie of the browser is never accepted there. One JSON-RPC message per request (no batch).
+  ```json
+  { "mcpServers": { "web-scumm": { "type": "http", "url": "https://studio.example.fr/mcp", "headers": { "Authorization": "Bearer <token>" } } } }
+  ```
+- **Local, over stdio, pointed at the server**: `npm run studio-server -- login --server <url>` once, then
+  `npm run -s mcp -- --server <url>` (the token refreshed by itself; https only).
+
+What only a machine with the repository can do is not offered there: screenshots, the test suite, the documents,
+the asset prompts. An agent sends no revision it read: its writes are made by the server on the file as it is (the
+guard checks them), not refused because someone wrote the file since (ADR 0029).
+
 ## A typical session
 1. `read_doc CONTENT_GUIDE`, `list_rooms`, `get_storyboard`, `get_notes`.
 2. Edit: `set_storyboard` first, then `set_text` / `add_entity` in the rooms.
