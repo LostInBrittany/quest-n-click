@@ -79,6 +79,8 @@ const fileConflict = (data: Record<string, unknown>) =>
  * not (the server never counts the member's own writes against them), nor a read made for something else (`track`).
  */
 const readAt = new Map<string, number>();
+/** This tab, for the server: its own writes since its read are not a conflict (another tab's are). */
+const client = typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : `t${Date.now()}`;
 /** Writes that derive a file rather than edit one: no base (a regenerated `storyboard.md` is nobody's edit). */
 const NO_BASE = /\/markdown$/;
 /** The read a write belongs to: the longest read path that is the write's path or a folder of it. */
@@ -119,7 +121,7 @@ async function call<T>(method: string, path: string, body?: unknown, quiet = fal
           headers: {
             ...(method === 'GET' ? {} : { 'content-type': 'application/json' }),
             ...(op ? { 'x-studio-op': op } : {}),
-            ...(base !== undefined ? { 'x-studio-base': String(base) } : {}),
+            ...(base !== undefined ? { 'x-studio-base': String(base), 'x-studio-client': client } : {}),
           },
           body: method === 'GET' ? undefined : JSON.stringify(body ?? {}),
         });

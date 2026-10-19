@@ -468,6 +468,10 @@ export function studioServer(o: StudioServerOptions): StudioHttpServer {
       if (baseHeader !== undefined && (typeof baseHeader !== 'string' || !/^\d{1,15}$/.test(baseHeader)))
         throw new StudioError('x-studio-base must be a revision');
       const readAt = baseHeader === undefined ? undefined : Number(baseHeader);
+      // Which client: its own writes since its read are not a conflict; another tab's or agent's are, the same member's too.
+      const clientHeader = write ? req.headers['x-studio-client'] : undefined;
+      if (clientHeader !== undefined && (typeof clientHeader !== 'string' || !/^[\w-]{8,64}$/.test(clientHeader)))
+        throw new StudioError('x-studio-client must be 8 to 64 letters, digits, - or _');
       const who = principal?.user.id ?? '';
       // An answer is given back to its own author only: another member who knows the id gets nothing of it.
       const answered = async () =>
@@ -483,6 +487,7 @@ export function studioServer(o: StudioServerOptions): StudioHttpServer {
             id: op,
             author,
             readAt,
+            client: clientHeader,
             claimant: principal
               ? {
                   userId: principal.user.id,

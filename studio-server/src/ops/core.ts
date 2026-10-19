@@ -201,6 +201,8 @@ export const operationContext = new AsyncLocalStorage<{
   claimant?: { userId: string; name: string; fences?: Record<string, number> };
   /** The revision the client read what it edits at (4.2.3, H10: `x-studio-base`). */
   readAt?: number;
+  /** The client the request comes from (`x-studio-client`: a tab, a CLI or MCP session). */
+  client?: string;
 }>();
 
 /** The `id` set_value takes for the game file instead of a room (4.1.12): its objectives. */
@@ -380,6 +382,7 @@ export function createStudio(opts: StudioOptions = {}) {
       what,
       effects: effects.map((e) => ({ path: inGame(e.file), after: e.after })),
       readAt: ctx?.readAt,
+      client: ctx?.client,
       // The files as this operation read them: another process that wrote one meanwhile makes it a 409, not a loss.
       expect: Object.fromEntries(
         effects.map((e) => [inGame(e.file), hashOf(e.from !== undefined ? e.from : (befores.get(e.file) ?? null))]),

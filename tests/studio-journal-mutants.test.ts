@@ -415,9 +415,16 @@ describe('a past revision read back (4.2.2: the bisection, the undo)', () => {
 });
 
 describe('the revision read (4.2.3, H10)', () => {
-  // Tom writes from what he read; Léa (`write`) wrote meanwhile.
-  const at = (j: Journal, path: string, after: string | Buffer | null, readAt: number, author = 'tom') =>
-    j.apply({ author, what: 'w', effects: [{ path, after }], readAt, respond: (rev) => rev });
+  // Tom's tab writes from what it read; Léa (`write`, no client) wrote meanwhile.
+  const at = (j: Journal, path: string, after: string | Buffer | null, readAt: number, client = 'tab-tom-1') =>
+    j.apply({
+      author: client.split('-')[1]!,
+      client,
+      what: 'w',
+      effects: [{ path, after }],
+      readAt,
+      respond: (rev) => rev,
+    });
   const refusal = async (p: Promise<unknown>) => {
     try {
       await p;
@@ -434,18 +441,39 @@ describe('the revision read (4.2.3, H10)', () => {
     const r1 = await j.revision();
     await write(j, 'notes.json', '{"n":1}');
     // Read at r1: rooms/a.ts was last written at r1, so a write from there is no conflict (Léa's, here).
-    expect(await at(j, 'rooms/a.ts', 'a2', r1, 'lea')).toMatchObject({ rev: r1 + 2 });
+    expect(await at(j, 'rooms/a.ts', 'a2', r1, 'tab-lea-1')).toMatchObject({ rev: r1 + 2 });
     // Read at r0, before a1 and a2: refused, with the file at r0 and now.
     const r = await refusal(at(j, 'rooms/a.ts', 'mine', r0));
     expect(r.status).toBe(409);
     expect(r.body).toEqual({ path: 'rooms/a.ts', readAt: r0, head: r1 + 2, before: 'a0', now: 'a2' });
     expect(read('rooms/a.ts')).toBe('a2');
-    // Léa's own writes since her read are hers: they never refuse her next one.
-    expect(await at(j, 'rooms/a.ts', 'a3', r0, 'lea')).toMatchObject({ rev: r1 + 3 });
-    // Nor does someone else's write of another file.
+    await j.close();
+  });
+
+  it("never counts a client's own writes since its read; another client's are counted, the same member's too", async () => {
+    const j = await open({ hosted: true });
+    const r0 = await j.revision();
+    expect(await at(j, 'rooms/a.ts', 'a1', r0, 'tab-lea-1')).toMatchObject({ rev: r0 + 1 });
+    // The same tab, still from r0: its own write since is no conflict.
+    expect(await at(j, 'rooms/a.ts', 'a2', r0, 'tab-lea-1')).toMatchObject({ rev: r0 + 2 });
+    // Léa's other tab (or an agent of hers through the MCP), from r0: refused, it never saw a1 and a2.
+    expect((await refusal(at(j, 'rooms/a.ts', 'a3', r0, 'tab-lea-2'))).status).toBe(409);
+    // Another client's write of another file refuses nothing.
+    const r2 = await j.revision();
+    await at(j, 'notes.json', '{"n":2}', r2, 'tab-tom-1');
+    expect(await at(j, 'rooms/a.ts', 'a4', r2, 'tab-lea-1')).toMatchObject({ rev: r2 + 2 });
+    // A write that names no client has no own writes: every write since counts.
     const r4 = await j.revision();
-    await at(j, 'notes.json', '{"n":2}', r4);
-    expect(await at(j, 'rooms/a.ts', 'a4', r4, 'lea')).toMatchObject({ rev: r4 + 2 });
+    await at(j, 'rooms/a.ts', 'a5', r4, 'tab-lea-1');
+    await expect(
+      j.apply({
+        author: 'lea',
+        what: 'w',
+        effects: [{ path: 'rooms/a.ts', after: 'x' }],
+        readAt: r4,
+        respond: (v) => v,
+      }),
+    ).rejects.toMatchObject({ status: 409 });
     await j.close();
   });
 
@@ -454,11 +482,13 @@ describe('the revision read (4.2.3, H10)', () => {
     const r0 = await j.revision();
     await write(j, 'a_b%.md', 'x');
     await write(j, 'axb.md', 'y');
-    // `_` and `%` are taken as they are: axb.md's write is not a_b%.md's.
+    // `_`, `%` and the escape `!` are taken as they are: axb.md's write is not a_b%.md's.
     expect((await refusal(at(j, 'a_b%.md', 'z', r0))).body).toMatchObject({ before: null, now: 'x' });
     const r1 = await j.revision();
     await write(j, 'axb.md', 'y2');
     expect((await at(j, 'a_b%.md', 'z', r1)).rev).toBeGreaterThan(r1);
+    await write(j, 'b!x.md', 'b');
+    expect((await refusal(at(j, 'b!x.md', 'z', r0))).body).toMatchObject({ before: null, now: 'b' });
     await write(j, 'q"uote.md', 'q');
     expect((await refusal(at(j, 'q"uote.md', 'z', r0))).body).toMatchObject({ before: null, now: 'q' });
     await j.close();

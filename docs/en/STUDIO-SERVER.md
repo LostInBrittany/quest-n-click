@@ -235,7 +235,7 @@ installed for offline play) and its saves are not yet told apart by build.
 - **Live.** The Studio follows `GET /api/events`: every revision, who holds what, who is here.
 - **What you read** (4.2.3). A write carries the revision its editor read (`x-studio-base`; a read's answer says its
   revision in `x-studio-revision`). If someone else wrote one of its files since, the write is refused (409) with that
-  file as you read it and as it is now (your own writes since never refuse you). The Studio shows what changed and
+  file as you read it and as it is now (the writes since of the same tab, CLI or MCP session never refuse it; your other tab's, or an agent's of yours, do). The Studio shows what changed and
   keeps your draft. For an edit the server makes on the file (a text, a value, a note, a voice) it offers to apply it
   on the latest version; for a whole document (a room's layout, the storyboard) it offers to replace theirs with
   yours, and says so. Nothing is sent again unless you ask. Limits: the check is per file (two notes edited at once

@@ -22,7 +22,9 @@
   texts: two edits of the same field keep the later one, after the member saw the earlier.
 - **Mutation** (`studio-ops`, gated): `journal.ts` 159 of 165 killed locally, 6 named (one new, equivalent: the
   condition that spares a head read when no revision was read).
-- **After the second reading**: own writes exempt (a replayed answer, a dry run or a write's answer no longer move the
+- **After the second reading**: a client's own writes exempt (`x-studio-client`, one per tab or CLI/MCP session, kept in
+  `studio_ops.client`, migration 0011; the same member's other tab or agent still counts; no NUL sentinel, which Postgres
+  refuses; `!` as the LIKE escape, whatever Postgres's string settings), (a replayed answer, a dry run or a write's answer no longer move the
   base past changes the editor never loaded), side reads untracked, whole documents said, derived files without base,
   the voices read again, the journal's scan bounded by a `LIKE`, the diff in typed rows.
 - Tests: `tests/studio-journal-mutants.test.ts` (the revision read, own writes, LIKE patterns, JSON-escaped paths),

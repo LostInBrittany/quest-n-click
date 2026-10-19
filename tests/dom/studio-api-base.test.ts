@@ -4,7 +4,7 @@
 // head when the member asks to apply their edit there; a whole document is said to replace the other change.
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-const sent: { method: string; path: string; base: string | null }[] = [];
+const sent: { method: string; path: string; base: string | null; client: string | null }[] = [];
 const answers = new Map<string, { status?: number; body: unknown; rev?: number }>();
 
 vi.mock('../../src/studio/api-base', () => ({
@@ -13,7 +13,8 @@ vi.mock('../../src/studio/api-base', () => ({
   goLogin: () => undefined,
   studioFetch: async (path: string, init: RequestInit = {}) => {
     const method = init.method ?? 'GET';
-    sent.push({ method, path, base: new Headers(init.headers).get('x-studio-base') });
+    const hd = new Headers(init.headers);
+    sent.push({ method, path, base: hd.get('x-studio-base'), client: hd.get('x-studio-client') });
     const a = answers.get(`${method} ${path}`) ?? { body: { ok: true } };
     return new Response(JSON.stringify(a.body), {
       status: a.status ?? 200,
@@ -39,9 +40,12 @@ describe('the revision an editor read, with its writes (hosted)', () => {
     answers.set('PUT room/hall/layout', { body: { ok: true }, rev: 9 });
     await api.setLayout('hall', {});
     expect(last()).toMatchObject({ path: 'room/hall/layout', base: '4' });
+    // With this tab's own id, the same on every write: its own writes since its read are not a conflict.
+    const client = last().client!;
+    expect(client).toMatch(/^[\w-]{8,64}$/);
     // The write's answer (revision 9) does not move it: the next write still says what the editor read.
     await api.setLayout('hall', {});
-    expect(last().base).toBe('4');
+    expect(last()).toMatchObject({ base: '4', client });
     // A read for something else (an overlay) does not move it either; the editor's own read does.
     answers.set('GET room/hall', { body: { layout: {} }, rev: 12 });
     await api.room('hall', { track: false });

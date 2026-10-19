@@ -243,8 +243,8 @@ hors ligne) et ses sauvegardes ne sont pas encore distinguées par build.
 - **En direct.** Le Studio suit `GET /api/events` : chaque révision, qui tient quoi, qui est là.
 - **Ce que vous avez lu** (4.2.3). Une écriture porte la révision que son éditeur a lue (`x-studio-base` ; la réponse
   à une lecture dit sa révision dans `x-studio-revision`). Si quelqu'un d'autre a écrit l'un de ses fichiers depuis,
-  l'écriture est refusée (409) avec ce fichier tel que vous l'avez lu et tel qu'il est (vos propres écritures depuis ne
-  vous refusent jamais). Le Studio montre ce qui a changé et garde votre brouillon. Pour une modification que le serveur
+  l'écriture est refusée (409) avec ce fichier tel que vous l'avez lu et tel qu'il est (les écritures depuis du même onglet, de
+  la même session CLI ou MCP ne le refusent jamais ; celles de votre autre onglet, ou d'un agent à vous, si). Le Studio montre ce qui a changé et garde votre brouillon. Pour une modification que le serveur
   fait sur le fichier (un texte, une valeur, une note, une voix), il propose de l'appliquer sur la dernière version ;
   pour un document entier (le layout d'une salle, le storyboard), il propose de remplacer le leur par le vôtre, et le
   dit. Rien n'est renvoyé sans que vous le demandiez. Limites : la vérification se fait par fichier (deux notes

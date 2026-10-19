@@ -279,6 +279,9 @@ describe('a shared Studio', () => {
     expect(JSON.parse(String(body.now)).__test).toBe(101);
     // A base that is not a revision is refused as such.
     expect((await moveLayout('tom', 102, { 'x-studio-base': 'soon' })).status).toBe(400);
+    expect(
+      (await moveLayout('tom', 102, { 'x-studio-base': String(body.head), 'x-studio-client': 'short' })).status,
+    ).toBe(400);
     // Applied on the head when Tom asks: from the revision Léa's change made, it is his edit on hers.
     const ok = await moveLayout('tom', 102, { 'x-studio-base': String(body.head) });
     expect(ok.status).toBe(200);
