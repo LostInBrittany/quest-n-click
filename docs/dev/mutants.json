@@ -1463,6 +1463,30 @@
   "revisit": "4.3.0"
  },
  {
+  "file": "studio-server/src/ops/journal.ts",
+  "operator": "condition false",
+  "from": "JSON.stringify(path) === `\"${path}\"`",
+  "to": "false",
+  "context": "const like = JSON.stringify(path) === `\"${path}\"` ? `%\"path\":\"${path.replace(/[\\\\%_]/g, (c) => `\\\\${c}`)}\"%` : '%';",
+  "why": "opsSince (4.2.3, H10): the LIKE only narrows the operations read; with `%` every operation after the revision is read and each effect's path is checked by the caller, so the answer is the same, only slower (the narrowing itself, `_` and `%` taken literally, is pinned by tests/studio-journal-mutants.test.ts)",
+  "category": "equivalent",
+  "proof": "argument",
+  "owner": "@wanoo",
+  "revisit": "4.3.0"
+ },
+ {
+  "file": "studio-server/src/ops/journal.ts",
+  "operator": "operator",
+  "from": ">",
+  "to": ">=",
+  "context": "if (head.rev > op.readAt && (await this.writtenSince(e.path, op.readAt, op.author)))",
+  "why": "applyNow (4.2.3, H10): when the file was last written at the revision read, no operation after it wrote the file, so `writtenSince` is false either way; the first test only spares that query",
+  "category": "equivalent",
+  "proof": "argument",
+  "owner": "@wanoo",
+  "revisit": "4.3.0"
+ },
+ {
   "file": "studio-server/src/ops/durable.ts",
   "operator": "condition true",
   "from": "!['EINVAL', 'EISDIR', 'EPERM', 'EBADF', 'ENOTSUP', 'EACCES'].includes((e as NodeJS.ErrnoException).code ?? '')",

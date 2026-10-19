@@ -246,7 +246,12 @@ function changedBox(data: Record<string, unknown>): HTMLElement | null {
 }
 
 /** 409: a file changed since it was read. */
-export function conflictDialog(data: Record<string, unknown>, draft: unknown, retry: () => Promise<void>): void {
+export function conflictDialog(
+  data: Record<string, unknown>,
+  draft: unknown,
+  retry: () => Promise<void>,
+  whole = false,
+): void {
   const message = String(data.error ?? 'The file changed since you read it.');
   const changed = changedBox(data);
   const close = modal(
@@ -277,7 +282,11 @@ export function conflictDialog(data: Record<string, unknown>, draft: unknown, re
                 (e) => toast((e as Error).message, 'error'),
               ),
           },
-          changed ? 'Apply my edit on the latest version' : 'Try again',
+          changed
+            ? whole
+              ? 'Replace with my version (drops their change)'
+              : 'Apply my edit on the latest version'
+            : 'Try again',
         ),
       ),
     ),

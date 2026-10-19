@@ -415,8 +415,9 @@ describe('a past revision read back (4.2.2: the bisection, the undo)', () => {
 });
 
 describe('the revision read (4.2.3, H10)', () => {
-  const at = (j: Journal, path: string, after: string | Buffer | null, readAt: number) =>
-    j.apply({ author: 'lea', what: 'w', effects: [{ path, after }], readAt, respond: (rev) => rev });
+  // Tom writes from what he read; Léa (`write`) wrote meanwhile.
+  const at = (j: Journal, path: string, after: string | Buffer | null, readAt: number, author = 'tom') =>
+    j.apply({ author, what: 'w', effects: [{ path, after }], readAt, respond: (rev) => rev });
   const refusal = async (p: Promise<unknown>) => {
     try {
       await p;
@@ -432,13 +433,34 @@ describe('the revision read (4.2.3, H10)', () => {
     await write(j, 'rooms/a.ts', 'a1');
     const r1 = await j.revision();
     await write(j, 'notes.json', '{"n":1}');
-    // Read at r1: rooms/a.ts was last written at r1, so a write from there is no conflict.
-    expect(await at(j, 'rooms/a.ts', 'a2', r1)).toMatchObject({ rev: r1 + 2 });
+    // Read at r1: rooms/a.ts was last written at r1, so a write from there is no conflict (Léa's, here).
+    expect(await at(j, 'rooms/a.ts', 'a2', r1, 'lea')).toMatchObject({ rev: r1 + 2 });
     // Read at r0, before a1 and a2: refused, with the file at r0 and now.
     const r = await refusal(at(j, 'rooms/a.ts', 'mine', r0));
     expect(r.status).toBe(409);
     expect(r.body).toEqual({ path: 'rooms/a.ts', readAt: r0, head: r1 + 2, before: 'a0', now: 'a2' });
     expect(read('rooms/a.ts')).toBe('a2');
+    // Léa's own writes since her read are hers: they never refuse her next one.
+    expect(await at(j, 'rooms/a.ts', 'a3', r0, 'lea')).toMatchObject({ rev: r1 + 3 });
+    // Nor does someone else's write of another file.
+    const r4 = await j.revision();
+    await at(j, 'notes.json', '{"n":2}', r4);
+    expect(await at(j, 'rooms/a.ts', 'a4', r4, 'lea')).toMatchObject({ rev: r4 + 2 });
+    await j.close();
+  });
+
+  it('finds the writes of a path whose name LIKE would read as a pattern, and of one JSON escapes', async () => {
+    const j = await open({ hosted: true });
+    const r0 = await j.revision();
+    await write(j, 'a_b%.md', 'x');
+    await write(j, 'axb.md', 'y');
+    // `_` and `%` are taken as they are: axb.md's write is not a_b%.md's.
+    expect((await refusal(at(j, 'a_b%.md', 'z', r0))).body).toMatchObject({ before: null, now: 'x' });
+    const r1 = await j.revision();
+    await write(j, 'axb.md', 'y2');
+    expect((await at(j, 'a_b%.md', 'z', r1)).rev).toBeGreaterThan(r1);
+    await write(j, 'q"uote.md', 'q');
+    expect((await refusal(at(j, 'q"uote.md', 'z', r0))).body).toMatchObject({ before: null, now: 'q' });
     await j.close();
   });
 
@@ -473,6 +495,18 @@ describe('the revision read (4.2.3, H10)', () => {
     expect(await j.blobAt('rooms/a.ts', r1)).toBe(sha256(Buffer.from('a1')));
     expect(await j.blobAt('rooms/a.ts', await j.revision())).toBe(sha256(Buffer.from('a2')));
     expect(await j.blobAt('never.md', r0)).toBe(ABSENT);
+    // An operation that wrote two files: the "before" of the one asked.
+    const r3 = await j.revision();
+    await j.apply({
+      author: 'lea',
+      what: 'two',
+      effects: [
+        { path: 'notes.json', after: '{"n":2}' },
+        { path: 'rooms/a.ts', after: 'a3' },
+      ],
+      respond: (v) => v,
+    });
+    expect(await j.blobAt('rooms/a.ts', r3)).toBe(sha256(Buffer.from('a2')));
     await j.close();
   });
 });

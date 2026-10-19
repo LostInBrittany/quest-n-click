@@ -524,7 +524,7 @@ export function hostedStudio(o: {
   const beat = heartbeat(o.where, live);
   onRefused((r) => {
     if (r.status === 423) lockedDialog(r.data, r.draft, { live, me: o.me, retry: r.retry });
-    else conflictDialog(r.data, r.draft, r.retry);
+    else conflictDialog(r.data, r.draft, r.retry, r.whole);
   });
   const banner = h('div', { class: 'pending', role: 'status', hidden: true });
   const drawBanner = () => {

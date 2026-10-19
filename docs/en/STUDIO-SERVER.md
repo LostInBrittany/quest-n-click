@@ -230,11 +230,14 @@ installed for offline play) and its saves are not yet told apart by build.
   2 min, renewed while you are active. Someone else's span refuses your write (423, with their name); your draft
   stays with you.
 - **Live.** The Studio follows `GET /api/events`: every revision, who holds what, who is here.
-- **What you read** (4.2.3). A write carries the revision its editor read (`x-studio-base`; every answer says its
-  revision in `x-studio-revision`). If one of its files was written since, the write is refused (409) with that file
-  as you read it and as it is now; the Studio shows what changed, keeps your draft, and offers to apply your edit on
-  the latest version. It is never applied over the other change unless you ask. A script that sends no
-  `x-studio-base` is not checked this way.
+- **What you read** (4.2.3). A write carries the revision its editor read (`x-studio-base`; a read's answer says its
+  revision in `x-studio-revision`). If someone else wrote one of its files since, the write is refused (409) with that
+  file as you read it and as it is now (your own writes since never refuse you). The Studio shows what changed and
+  keeps your draft. For an edit the server makes on the file (a text, a value, a note, a voice) it offers to apply it
+  on the latest version; for a whole document (a room's layout, the storyboard) it offers to replace theirs with
+  yours, and says so. Nothing is sent again unless you ask. Limits: the check is per file (two notes edited at once
+  are one file); the room view's placement is checked against what the Rooms tab read, while the view may still show
+  an older preview for a moment; a script that sends no `x-studio-base` is not checked this way.
 - **Undo is yours** (4.2.2): Undo and Redo (and Ctrl/Cmd+Z, Shift for redo) undo your own last operation, whatever
   the others wrote meanwhile, as a new revision (history is never rewritten). Refused when someone else wrote one of
   its files since (409), or holds its span (423, with their name). A new edit of yours drops your redo. Your stack is

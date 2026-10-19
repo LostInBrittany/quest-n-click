@@ -272,6 +272,12 @@ describe('a refused write', () => {
     await flush();
     expect(retry).toHaveBeenCalledTimes(1);
     document.body.replaceChildren();
+    // A whole document sent again replaces the other change: the button says so.
+    conflictDialog({ error: 'x', path: 'storyboard.json', readAt: 1, head: 2, before: 'a', now: 'b' }, {}, retry, true);
+    expect([...document.querySelectorAll('button')].map((b) => b.textContent)).toContain(
+      'Replace with my version (drops their change)',
+    );
+    document.body.replaceChildren();
     conflictDialog({ error: 'x', path: 'p', readAt: 1, head: 2, before: null, now: 'new' }, {}, retry);
     expect(document.querySelector('[role="dialog"]')!.textContent).toContain('cannot be shown here');
   });

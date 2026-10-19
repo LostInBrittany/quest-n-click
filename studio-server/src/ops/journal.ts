@@ -36,8 +36,9 @@ export interface Operation<R> {
   /** The revision of each file the client read (P5): a file written since by someone else is a 409. */
   base?: Record<string, number>;
   /**
-   * The revision the client read its files at (4.2.3, H10): a file of the effects written after it is a 409 that says
-   * what changed meanwhile (`readAt`, `head`, `before` and `now`: its text at each, when it is text), never a lost write.
+   * The revision the client read its files at (4.2.3, H10): a file of the effects another author wrote after it is a 409
+   * that says what changed meanwhile (`readAt`, `head`, `before` and `now`: its text at each, when it is text), never a
+   * lost write. The author's own writes since are theirs: they never refuse their next one.
    */
   readAt?: number;
   /**
@@ -186,13 +187,27 @@ export class Journal {
 
   /** One file's content hash at revision `rev`: the "before" of the first operation after it that wrote it, else the head's. */
   async blobAt(path: string, rev: number): Promise<string> {
-    const ops = await this.db.all(
-      "SELECT effects FROM studio_ops WHERE state = 'confirmed' AND rev > $1 ORDER BY rev",
-      [rev],
-    );
-    for (const op of ops)
-      for (const c of JSON.parse(String(op.effects)) as Change[]) if (c.path === path) return c.before;
+    for (const effects of await this.opsSince(path, rev)) for (const c of effects) if (c.path === path) return c.before;
     return (await this.file(path)).blob;
+  }
+
+  /**
+   * The effects of the confirmed operations after `rev` that may have written `path` (by someone other than `notBy`),
+   * oldest first: those whose JSON names it (a `LIKE`, the caller checks each path), all of them for a path JSON escapes.
+   */
+  private async opsSince(path: string, rev: number, notBy?: string): Promise<Change[][]> {
+    const like = JSON.stringify(path) === `"${path}"` ? `%"path":"${path.replace(/[\\%_]/g, (c) => `\\${c}`)}"%` : '%';
+    // No author is NUL: without `notBy`, every author's operations.
+    const rows = await this.db.all(
+      `SELECT effects FROM studio_ops WHERE state = 'confirmed' AND rev > $1 AND effects LIKE $2 ESCAPE '\\' AND author <> $3 ORDER BY rev`,
+      [rev, like, notBy ?? '\u0000'],
+    );
+    return rows.map((r) => JSON.parse(String(r.effects)) as Change[]);
+  }
+
+  /** Whether someone other than `author` wrote `path` after revision `rev`. */
+  private async writtenSince(path: string, rev: number, author: string): Promise<boolean> {
+    return (await this.opsSince(path, rev, author)).some((effects) => effects.some((c) => c.path === path));
   }
 
   /** A blob as text, when it is (UTF-8, no NUL, 256 KiB at most) and kept; null otherwise (absent, binary, not kept). */
@@ -339,7 +354,7 @@ export class Journal {
     if (op.readAt !== undefined)
       for (const e of op.effects) {
         const head = await this.file(e.path);
-        if (head.rev > op.readAt)
+        if (head.rev > op.readAt && (await this.writtenSince(e.path, op.readAt, op.author)))
           throw Object.assign(new StudioError(`${e.path} changed since revision ${op.readAt} (now ${head.rev})`, 409), {
             body: {
               path: e.path,

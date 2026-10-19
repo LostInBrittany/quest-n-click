@@ -46,6 +46,8 @@ export interface Refusal {
   data: Record<string, unknown>;
   /** What was sent: the draft the member keeps. */
   draft: unknown;
+  /** The draft is a whole document (a layout, the storyboard): sent again, it replaces the other change. */
+  whole?: boolean;
   /** Sends it again (a new operation). */
   retry: () => Promise<void>;
 }
@@ -64,15 +66,21 @@ const pause = (ms: number) => new Promise((ok) => setTimeout(ok, ms));
 const READ_POSTS = /^(validate|report|puzzle|coverage|playtests|lint|solve|screenshot)$/;
 
 /** A 409 about a file that changed (the journal's base, or a write meanwhile), not another refusal that is a 409. */
+/** The writes that send a whole document rather than an edit the server computes again on the file as it is. */
+const WHOLE = /^PUT (room\/[\w-]+\/layout|storyboard)$/;
+
 const fileConflict = (data: Record<string, unknown>) =>
   typeof data.path === 'string' || /changed (since|while)/.test(String(data.error ?? ''));
 
 /**
  * The revision each resource was last read at on a hosted Studio (4.2.3, H10), by its read path (`room/<id>`,
  * `storyboard`, `notes`…): a write under that path sends it (`x-studio-base`), so a file another member wrote since is a
- * 409 that says what changed, never a write over it unseen. A write's own answer moves it on (its own change is read).
+ * 409 that says what changed, never a write over it unseen. Only an editor's own read moves it on: a write's answer does
+ * not (the server never counts the member's own writes against them), nor a read made for something else (`track`).
  */
 const readAt = new Map<string, number>();
+/** Writes that derive a file rather than edit one: no base (a regenerated `storyboard.md` is nobody's edit). */
+const NO_BASE = /\/markdown$/;
 /** The read a write belongs to: the longest read path that is the write's path or a folder of it. */
 const readOf = (path: string): string | undefined => {
   let best: string | undefined;
@@ -81,13 +89,16 @@ const readOf = (path: string): string | undefined => {
   return best;
 };
 
-/** `quiet`: a retry from a refusal's dialog, which says itself why it failed again. */
-async function call<T>(method: string, path: string, body?: unknown, quiet = false): Promise<T> {
+/**
+ * `quiet`: a retry from a refusal's dialog, which says itself why it failed again. `track: false`: a read that is not
+ * an editor's (an overlay, a side look), which leaves the revision its editor read where it was.
+ */
+async function call<T>(method: string, path: string, body?: unknown, quiet = false, track = true): Promise<T> {
   // P6: on a hosted Studio a write carries its operation id, and a cut or a 502/503/504 (another instance taking
   // over, a proxy during a deploy, a proxy that may have passed it on) sends it again with the same id: applied once.
   const write = hosting.hosted && method !== 'GET' && !(method === 'POST' && READ_POSTS.test(path));
   const op = write ? crypto.randomUUID() : undefined;
-  const read = write ? readOf(path) : undefined;
+  const read = write && !NO_BASE.test(path) ? readOf(path) : undefined;
   const base = read === undefined ? undefined : readAt.get(read);
   let r: Response | undefined;
   // Counted as waiting from its first failed attempt only: a write answered at once is never shown as waiting.
@@ -149,6 +160,7 @@ async function call<T>(method: string, path: string, body?: unknown, quiet = fal
         status: r.status,
         data,
         draft: body,
+        whole: WHOLE.test(`${method} ${path}`),
         retry: async () => {
           if (read !== undefined && Number.isSafeInteger(head)) readAt.set(read, Math.max(readAt.get(read) ?? 0, head));
           await call(method, path, body, true);
@@ -160,10 +172,7 @@ async function call<T>(method: string, path: string, body?: unknown, quiet = fal
   // The revision the answer was made at (a hosted Studio's reads, 4.2.2): kept beside it, for `revisionOf`.
   const rev = Number(r.headers.get('x-studio-revision') ?? Number.NaN);
   if (Number.isSafeInteger(rev) && data && typeof data === 'object') revisions.set(data, rev);
-  if (Number.isSafeInteger(rev)) {
-    if (method === 'GET') readAt.set(path, rev);
-    else if (read !== undefined) readAt.set(read, rev);
-  }
+  if (Number.isSafeInteger(rev) && method === 'GET' && track) readAt.set(path, rev);
   return data as T;
 }
 
@@ -179,7 +188,8 @@ export interface Api {
   /** 'server': files on disk through the dev server; 'demo': in this browser only. */
   readonly mode: 'server' | 'demo';
   game(): Promise<GameInfo>;
-  room(id: string): Promise<RoomData>;
+  /** `track: false`: a read for something else than the Rooms editor (an overlay), H10's base left as it was. */
+  room(id: string, o?: { track?: boolean }): Promise<RoomData>;
   setLayout(id: string, layout: Layout): Promise<{ ok: true }>;
   setText(id: string, path: string, value: string | null): Promise<EditResult>;
   add(id: string, e: AddEntity): Promise<EditResult>;
@@ -235,7 +245,8 @@ export interface VoicesData {
 export const serverApi: Api = {
   mode: 'server',
   game: () => call<GameInfo>('GET', 'game'),
-  room: (id: string) => call<RoomData>('GET', `room/${id}`),
+  room: (id: string, o?: { track?: boolean }) =>
+    call<RoomData>('GET', `room/${id}`, undefined, false, o?.track !== false),
   setLayout: (id: string, layout: Layout) => call<{ ok: true }>('PUT', `room/${id}/layout`, layout),
   setText: (id: string, path: string, value: string | null) =>
     call<EditResult>('PUT', `room/${id}/text`, { path, value }),
