@@ -84,8 +84,14 @@ export function remoteExecutor(o: RemoteExecutorOptions) {
         // The job's own expiry: the worker runs no job past it, so waiting longer would gain nothing.
         signal: signal ? AbortSignal.any([AbortSignal.timeout(MAX_JOB_MS), signal]) : AbortSignal.timeout(MAX_JOB_MS),
       });
+      if (!r.ok) {
+        // The worker's reason (an expired job, another instance's), bounded: what the logs then say.
+        const why = ((await r.json().catch(() => ({}))) as { error?: unknown }).error;
+        throw new Error(
+          `the processing worker refused the job (${r.status}${typeof why === 'string' ? `: ${why.slice(0, 200)}` : ''})`,
+        );
+      }
       await r.body?.cancel();
-      if (!r.ok) throw new Error(`the processing worker refused the job (${r.status})`);
       signal?.throwIfAborted();
       const bytes = await o.s3.get(`${dest}result.json`, { max: MAX_RESULT });
       if (!bytes) throw new Error('the processing worker left no usable result');
