@@ -26,7 +26,7 @@ async function json<T>(path: string, init?: RequestInit): Promise<T> {
   return d;
 }
 
-export function buildsPanel(o: { owner: boolean }): HTMLElement {
+export function buildsPanel(o: { owner: boolean; dev: boolean }): HTMLElement {
   const list = h('ul', { class: 'builds' });
   const publish = h('button', { type: 'button', class: 'primary' }, 'Publish this revision');
   const draw = async () => {
@@ -103,7 +103,8 @@ export function buildsPanel(o: { owner: boolean }): HTMLElement {
       gameLink('play/', 'The last green build ↗'),
       ' is the latest whose revision was judged valid.',
     ),
-    publish,
+    // A reviewer reads and opens the builds: publishing is a dev's.
+    o.dev ? publish : null,
     list,
   );
 }

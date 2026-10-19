@@ -231,14 +231,9 @@ export class Previews {
   /** Answers a request of the game's origin (play.ts has checked the game session). */
   async handle(req: IncomingMessage, res: ServerResponse, url: URL): Promise<void> {
     if (req.method !== 'GET' && req.method !== 'HEAD') return text(res, 405, 'GET only');
-    let path: string;
-    try {
-      path = decodeURIComponent(url.pathname);
-    } catch {
-      return text(res, 400, 'bad path');
-    }
     // No `.` nor `..`, and no hidden file (`.env`, `.DS_Store`) in the folders served.
-    if (path.includes('\0') || path.includes('\\') || /(^|\/)\./.test(path)) return text(res, 404, 'not found');
+    const path = servedPath(url);
+    if (path === null) return text(res, 404, 'not found');
     const m = /^\/preview\/(\d{1,15})\/(.*)$/.exec(path);
     if (m) {
       const rest = m[2] || 'index.html';

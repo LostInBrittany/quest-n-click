@@ -33,7 +33,7 @@ import { Leases } from '../studio-server/src/server/leases';
 import { Presence } from '../studio-server/src/server/live';
 import { Play } from '../studio-server/src/server/play';
 import { HOSTED_SOLVE_MS } from '../studio-server/src/ops/diagnose';
-import { Builds, type BuildManifest, manifestBytes } from '../studio-server/src/server/builds';
+import { Builds, signedBytes } from '../studio-server/src/server/builds';
 import { Health, judgeBy } from '../studio-server/src/server/health';
 import { Previews } from '../studio-server/src/server/previews';
 import { ServiceLease } from '../studio-server/src/server/service-lease';
@@ -147,7 +147,6 @@ const builds = new Builds({
   publicDir: join(ROOT, 'public'),
   game: 'demo',
   studioOrigin: studioUrl,
-  engine: 'e2e',
   assetsVersion: () => 'e2e',
   snapshot: () =>
     server.exclusive(async () => ({
@@ -156,7 +155,10 @@ const builds = new Builds({
       bytes: packSnapshot(gameDir),
     })),
   snapshotAt: async (rev) => packFiles(await journal.filesAt(rev, (p) => packable(p))),
+  epoch: () => journal.epoch(),
   build: (bytes, params) => localPreview(bytes, params),
+  judge: (epoch, rev, bytes) => health.judgeSnapshot(epoch, rev, bytes),
+  keyId: 'e2e',
   sign: (bytes) => sign(null, bytes, privateKeyOf(buildKeys.privatePem)).toString('base64url'),
 });
 const server = studioServer({
@@ -571,18 +573,13 @@ try {
   await page.locator('.builds li[data-build="1"]').waitFor({ timeout: 120_000 });
   const listed = await page.locator('.builds li[data-build="1"]').innerText();
   const got = (await page.evaluate(async () => (await (await fetch('/api/builds/1')).json()) as unknown)) as {
-    manifest: BuildManifest;
+    signed: string;
     signature: string;
   };
   check(
     'a build is published from the Play tab, its manifest signed by the Studio',
     /#1 · revision \d+/.test(listed) &&
-      verify(
-        null,
-        manifestBytes(got.manifest),
-        publicKeyOf(buildKeys.publicPem),
-        Buffer.from(got.signature, 'base64url'),
-      ),
+      verify(null, signedBytes(got.signed), publicKeyOf(buildKeys.publicPem), Buffer.from(got.signature, 'base64url')),
     listed.replace(/\s+/g, ' '),
   );
   const builtPage = await (await page.locator('iframe.playframe').elementHandle())

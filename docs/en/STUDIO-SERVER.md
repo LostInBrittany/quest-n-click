@@ -103,7 +103,8 @@ Clever, each can be a file instead: `STUDIO_SESSION_KEY_FILE`, and so on (mode 0
   (`npm run assets` writes them there and they are committed). The Studio shows them to members and every preview
   plays them; they are read only on a hosted Studio.
 - `publicBuilds` (optional, `false` by default): the published builds (`/play/` on the game's origin) are open to
-  anyone, without a session (D42: the owner's choice per instance). Everything else there stays behind the session.
+  anyone, without a session (D42: the owner's choice per instance), with the icons their page names. Everything else
+  there stays behind the session.
 - `clientDir` (optional): the built Studio, `.cache/studio-client` by default (`npm run studio-client`). With OIDC the
   server refuses to start without it.
 
@@ -175,12 +176,15 @@ within 5 s. When the provider disables an account, its sessions end within 15 mi
 
 The Play tab's **Publish this revision** has the worker build the player's game from the head (no editing tools),
 numbered: build `#n` is served at `/play/<n>/` on the game's origin and never changes. `/play/` is always the last
-green build, the latest whose revision the health judged valid. Each build's manifest (the epoch and revision, the
-engine, the snapshot's hash, each file's hash) is signed with the Studio's job key: `GET /api/builds/<n>` gives it and
-its signature, which `studio-worker.pub` checks. An owner's **Rebuild fresh** builds the same snapshot again and says
-whether the files are the same, byte for byte: a check that the build is reproducible on the worker as it is now, not
-that its content is harmless. A published build has no service worker (it is not installed for offline play) and its
-saves are not yet told apart by build.
+green build, the latest whose revision the health judged valid (a published revision is judged at publication). Each
+build's manifest (the epoch and revision, the snapshot's hash, the worker's engine, commit and lockfile, the assets'
+version, the revision's verdict, each file's hash) is signed with the Studio's job key: `GET /api/builds/<n>` gives the
+manifest, the exact bytes signed (`signed`) and the signature, made over `web-scumm build manifest v1\n` followed by
+those bytes, which `studio-worker.pub` checks. An owner's **Rebuild fresh** builds the same snapshot again, against the
+same assets' version, and says whether the files are the same, byte for byte: a check that the build is reproducible
+on the worker as it is now, not that its content is harmless. A build's code never changes; its images and sounds are
+the instance's prepared assets, served beside it as they are now. A published build has no service worker (it is not
+installed for offline play) and its saves are not yet told apart by build.
 
 ## Working together
 

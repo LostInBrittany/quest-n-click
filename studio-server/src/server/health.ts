@@ -319,6 +319,18 @@ export class Health {
   }
 
   /**
+   * The verdict of one revision from its snapshot, when none is kept yet (a published build's revision, which the
+   * coalesced loop may have passed over): judged and kept, after the loop's run. An unknown verdict keeps nothing.
+   */
+  judgeSnapshot(epoch: string, rev: number, bytes: Buffer): Promise<void> {
+    return this.serial(async () => {
+      if (await this.row(epoch, rev)) return;
+      const v = await this.o.judge(bytes, { epoch, rev });
+      if (!v.unknown) await this.record(epoch, rev, v, null);
+    });
+  }
+
+  /**
    * A bisection asked for (POST /api/health/bisect): `good` must pass and `bad` fail, both judged first, both at or
    * before the head. One at a time, after the loop's run. The revision found is kept on `bad`'s verdict too.
    */

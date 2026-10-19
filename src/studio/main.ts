@@ -377,7 +377,9 @@ async function start() {
   if (shared && me) {
     check.follow(shared.head, shared.onHead);
     // The published builds (4.2.2): beside the game in the Play tab.
-    play.el.querySelector('.playside')?.append(buildsPanel({ owner: me.role === 'owner' }));
+    play.el
+      .querySelector('.playside')
+      ?.append(buildsPanel({ owner: me.role === 'owner', dev: me.role !== 'reviewer' }));
     const frame = rooms.el.querySelector<HTMLIFrameElement>('iframe.engine');
     rooms.el.querySelector('.stage .bar')?.append(shared.roomChip, ...(frame ? [shared.previewLabel(frame)] : []));
     rooms.el.querySelector('select[aria-label="Room"]')?.addEventListener('change', () => shared.roomShown());

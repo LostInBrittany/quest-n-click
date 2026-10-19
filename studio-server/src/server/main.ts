@@ -6,7 +6,7 @@
 //   login --server <url>, token --server <url>       the CLI's device flow, and its current access token
 //   deps           its own dependencies (OpenID Connect, JWT, Postgres): the version and folder each resolves to
 // Secrets come from `<NAME>_FILE` or the environment (config.ts) and leave `process.env` before anything else runs.
-import { createPrivateKey, sign } from 'node:crypto';
+import { createHash, createPrivateKey, createPublicKey, sign } from 'node:crypto';
 import { cpSync, existsSync, mkdirSync, readdirSync, readFileSync, renameSync, rmSync, writeFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -28,7 +28,6 @@ import { readJson, send, studioServer } from './http';
 import { openPostgresDb } from './postgres';
 import { newJobKeys } from '../worker/job';
 import { packable, packFiles, packSnapshot } from '../worker/snapshot';
-import { engineVersion } from '../../../tools/extensions';
 import { assetsVersion } from '../../../tools/vite/plugins';
 import { Leases } from './leases';
 import { Presence } from './live';
@@ -37,7 +36,7 @@ import { Play } from './play';
 import { HOSTED_SOLVE_MS } from '../ops/diagnose';
 import type { SolveData } from '../../../tools/studio/types';
 import { PersonalUndo } from '../ops/undo';
-import { Builds } from './builds';
+import { Builds, PUBLIC_BUILD_PATH } from './builds';
 import { Health, judgeBy } from './health';
 import { Previews } from './previews';
 import { remoteExecutor } from './remote-executor';
@@ -379,7 +378,6 @@ async function main(argv: string[]): Promise<number> {
           publicDir,
           game: config.game,
           studioOrigin: config.publicUrl,
-          engine: engineVersion(),
           assetsVersion: () => (version ??= assetsVersion(join(publicDir, 'assets'))),
           snapshot: () =>
             server.exclusive(async () => {
@@ -387,8 +385,14 @@ async function main(argv: string[]): Promise<number> {
               return { epoch: await journal.epoch(), rev: await journal.revision(), bytes: packSnapshot(gameDir) };
             }),
           snapshotAt: async (rev) => packFiles(await journal.filesAt(rev, (p) => packable(p))),
+          epoch: () => journal.epoch(),
           build: (bytes, params, at) => executor!.preview(bytes, params, at),
+          judge: health ? (epoch, rev, bytes) => health.judgeSnapshot(epoch, rev, bytes) : undefined,
           sign: (bytes) => sign(null, bytes, jobKey).toString('base64url'),
+          keyId: createHash('sha256')
+            .update(createPublicKey(jobKey).export({ type: 'spki', format: 'der' }))
+            .digest('hex')
+            .slice(0, 16),
         })
       : undefined;
   const play =
@@ -401,7 +405,7 @@ async function main(argv: string[]): Promise<number> {
             publicUrl: config.publicUrl,
             playUrl: config.playUrl,
             idleMs: auth.gate.idleMs,
-            open: config.publicBuilds ? (path) => /^\/(play(\/|$)|icons\/)/.test(path) : undefined,
+            open: config.publicBuilds ? (path) => PUBLIC_BUILD_PATH.test(path) : undefined,
             content: (req, res, url) =>
               builds && /^\/play(\/|$)/.test(url.pathname)
                 ? builds.handle(req, res, url)

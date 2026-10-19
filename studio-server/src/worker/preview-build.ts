@@ -5,6 +5,7 @@
 // stores them by content (studio-server/src/server/previews.ts). Run in the worker's child (child.ts), where the
 // game's code runs, or in a child of the loopback server: never in the Studio's own process. With `play` (4.2.2 PR 5),
 // the same build is a published one: base `/play/<n>/`, the player's game (no editing tools, no Studio origin).
+import { createHash } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -69,6 +70,29 @@ const PREVIEW_PATH = /^[\w.-]+(?:\/[\w.-]+){0,4}$/;
 
 const ENGINE = fileURLToPath(new URL('../../../', import.meta.url));
 
+/**
+ * What built a published build, as the worker knows it: its engine's version, its commit (the checkout's HEAD, when the
+ * engine is a Git checkout; else "unknown"), and the sha256 of its lockfile.
+ */
+function builtBy(engine: string): { engine: string; commit: string; lockfile: string } {
+  const read = (f: string) => {
+    try {
+      return readFileSync(resolve(ENGINE, f), 'utf8');
+    } catch {
+      return '';
+    }
+  };
+  let commit = read('.git/HEAD').trim();
+  const ref = /^ref: (.+)$/.exec(commit)?.[1];
+  if (ref) commit = read(`.git/${ref}`).trim();
+  const lock = read('package-lock.json');
+  return {
+    engine,
+    commit: /^[0-9a-f]{40}$/.test(commit) ? commit : 'unknown',
+    lockfile: lock ? createHash('sha256').update(lock).digest('hex') : 'unknown',
+  };
+}
+
 /** The built files, by their path under the base (`index.html`, `assets/index-<hash>.js`, `site.json`). */
 export async function buildPreview(dir: string, p: PreviewParams, cacheDir: string): Promise<Map<string, Buffer>> {
   const published = p.play !== undefined;
@@ -114,8 +138,15 @@ export async function buildPreview(dir: string, p: PreviewParams, cacheDir: stri
           published
             ? []
             : [{ tag: 'meta', attrs: { name: 'web-scumm-studio-origin', content: p.studioOrigin }, injectTo: 'head' }],
-        // The fingerprint's parts the player cannot compute from the content (ADR 0013), as sealBuild writes them.
+        // The fingerprint's parts the player cannot compute from the content (ADR 0013), as sealBuild writes them;
+        // and, for a published build, what built it: the worker's own engine, commit and lockfile (`build.json`).
         generateBundle() {
+          if (published)
+            this.emitFile({
+              type: 'asset',
+              fileName: 'build.json',
+              source: `${JSON.stringify(builtBy(engineVersion()))}\n`,
+            });
           this.emitFile({
             type: 'asset',
             fileName: 'site.json',
