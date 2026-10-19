@@ -726,6 +726,9 @@ async function main(argv: string[]): Promise<number> {
   // holding the instance's lock alone: no request reads a folder being repaired.
   if (hosted)
     setInterval(() => {
+      // Only the instance that serves the writes: another one (starting beside it during a deploy) would hold the
+      // journal's lease and make its writes wait (4.2.3, the reference deployment).
+      if (!lease.held) return;
       void server
         .exclusive(() => journal.reconcile())
         .then(

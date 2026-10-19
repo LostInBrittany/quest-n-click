@@ -644,7 +644,8 @@ export class Journal {
         this.fence = fence;
         break;
       }
-      if (Date.now() > deadline) throw new StudioError('another process is writing this game; try again', 409);
+      // A wait, not a conflict (4.2.3: an instance starting beside this one during a deploy): retried as a 503 is.
+      if (Date.now() > deadline) throw new StudioError('another process is writing this game; try again', 503);
       await new Promise((ok) => setTimeout(ok, 50));
     }
     const renew = setInterval(

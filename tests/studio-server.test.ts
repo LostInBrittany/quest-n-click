@@ -353,6 +353,36 @@ describe('the service lease', () => {
     await b.release();
     await db.close();
   });
+
+  it('a newer instance asks, and the holder gives the lease back at its next renewal; never the other way (4.2.3)', async () => {
+    const db = await openSqliteDb(join(tmp, 'handoff.sqlite'));
+    const { migrate } = await import('../bridge/src/migrations');
+    await migrate(db, { dir: new URL('../studio-server/migrations/', import.meta.url) });
+    const old = new ServiceLease(db, 60_000, 20_000);
+    expect(await old.tick()).toBe(true);
+    await new Promise((ok) => setTimeout(ok, 5));
+    // A deploy: the new instance starts beside the old one, which renews and was never told to stop.
+    const young = new ServiceLease(db, 60_000, 20_000);
+    expect(await young.tick()).toBe(false);
+    expect(old.held).toBe(true);
+    // The old one's next renewal gives it back, its writes stopped at once; the new one takes it, with a new fence.
+    expect(await old.tick()).toBe(false);
+    expect(old.held).toBe(false);
+    expect(await young.tick()).toBe(true);
+    const [row] = await db.all('SELECT fence FROM studio_service WHERE id = 1');
+    expect(Number(row?.fence)).toBe(2);
+    // The old one, still alive, asks in turn: the newer one keeps it, renewal after renewal.
+    expect(await old.tick()).toBe(false);
+    expect(await young.tick()).toBe(true);
+    expect(await old.tick()).toBe(false);
+    expect(await young.tick()).toBe(true);
+    // An ask that expired (its instance gone) is no longer heeded, however new it was.
+    await db.run("INSERT OR REPLACE INTO studio_service (id, instance, fence, until_ms) VALUES (2, 'gone', 9e15, 0)");
+    expect(await young.tick()).toBe(true);
+    await young.release();
+    await old.release();
+    await db.close();
+  });
 });
 
 describe('import, serve, export through the command', () => {

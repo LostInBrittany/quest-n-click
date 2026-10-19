@@ -369,6 +369,19 @@ describe('the lease', () => {
     expect(fence).toBe(6);
     await j.close();
   });
+
+  it('gives up waiting as a 503 to retry, never a conflict (4.2.3: an instance starting beside it)', async () => {
+    const j = await open({ leaseWaitMs: 200 });
+    const db = await openDb();
+    await db.run('DELETE FROM studio_lease');
+    await db.run("INSERT INTO studio_lease (id, holder, fence, until_ms) VALUES (1, 'other', 5, $1)", [
+      Date.now() + 60_000,
+    ]);
+    await expect(write(j, 'rooms/a.ts', 'a1')).rejects.toMatchObject({ status: 503 });
+    expect(read('rooms/a.ts')).toBe('a0');
+    await db.run('DELETE FROM studio_lease');
+    await j.close();
+  });
 });
 
 describe('a past revision read back (4.2.2: the bisection, the undo)', () => {
