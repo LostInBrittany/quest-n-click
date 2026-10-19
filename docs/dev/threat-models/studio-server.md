@@ -1,4 +1,4 @@
-# Studio Server: threat model (4.2.1, 4.2.2)
+# Studio Server: threat model (4.2.1 to 4.2.3)
 
 **What it does.** A Studio shared by a team on one server (plan `docs/dev/PLAN-4.2.1-4.2.3-STUDIO-SERVER.md`, ADR
 0025 and 0027):

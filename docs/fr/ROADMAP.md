@@ -599,6 +599,19 @@ par la baseline ; un script de liens. Laissé pour plus tard, dit comme tel : le
 (`docs/dev/passes/4.1.8.md`), l'accélération du workflow de release (son propre lot), les 845 lignes de l'onglet
 assistant.
 
+## v4.2.3 « Coordination » (livrée en octobre 2026) : l'équipe organisée, les agents et Git sur le Studio hébergé
+
+La dernière étape 4.2.x (D44) : une écriture porte la révision que son éditeur a lue, et une écriture en retard est
+refusée avec ce qui a changé (une fusion proposée, jamais faite seule) ; une carte du scénario bâtie sur les ids
+stables du jeu ; des commentaires ancrés sur ces ids ; un diff entre deux révisions par nom, sans captures (D45,
+reportées à la 4.3) ; le MCP distant (ADR 0029), un agent qui écrit comme son membre ; l'envoi et l'import Git avec une
+clé de déploiement ; un jeu 4.1.x monté de version sur le serveur ; l'onglet Assets hébergé, ses jobs suivis et
+annulables ; un worker installé depuis les archives qui prépare les assets ; les métriques, une sauvegarde quotidienne
+dans le bucket et le runbook, exécuté sur l'organisation Clever Cloud de test ; `studio-workshop` bloquant. Expérimental
+jusqu'à ses passes (`studio-hosted`, `studio-collab`, `studio-preview`, `studio-assets-hosted`, `studio-mcp-remote`,
+`studio-oidc-generic`). Laissé à la 4.3 : les captures du diff, `ids --lines` en opération exclusive, la santé avec le
+lint et les playtests, l'Assistant sur un Studio hébergé, une sauvegarde signée.
+
 ## v4.2.2 « Playable Workshop » (livrée en octobre 2026) : le jeu partagé joué, jugé, publié
 
 La deuxième étape 4.2.x (D42) : une prévisualisation construite par l'application de traitement pour chaque révision,
