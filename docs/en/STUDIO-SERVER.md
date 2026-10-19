@@ -144,9 +144,12 @@ npx web-scumm-studio-server serve --config studio.config.json
 npx web-scumm-studio-worker          # on the worker's machine, with WORKER_PUBLIC_KEY and WORKER_INSTANCE
 ```
 
-In 4.2.2 a worker installed from the archives cannot run `prepare`: the asset tools' lock
-(`ops/studio/worker-requirements.lock`) is not in the archives, and the worker looks for their packages beside the
-engine. Deploy the worker from the repository (above) for Prepare assets; 4.2.3 ships the lock.
+A worker installed from the archives prepares assets too (since 4.2.3): its build hook installs the lock the engine's
+package carries, from the worker's folder, where the worker looks for the packages (`WORKER_PYTHON_PATH` to put them
+elsewhere): `CC_POST_BUILD_HOOK=python3 -m pip install --target .python --require-hashes --only-binary=:all: -r
+node_modules/web-scumm/ops/studio/worker-requirements.lock`. The lock is for CPython 3.13 on Linux x86_64 with glibc 2.28 or newer
+(Clever Cloud's native runtime); another platform makes it again (its header says how). In 4.2.2 this needed a worker
+deployed from the repository.
 
 The engine's archive brings Vite and tsx, which the worker needs to run the game's code and build its previews (the
 Studio itself no longer runs Vite, since 4.2.2). Set `publicDir` to your
@@ -230,6 +233,14 @@ installed for offline play) and its saves are not yet told apart by build.
   Writing a file takes its span for 2 min, renewed while you are active. Someone else's span refuses your write (423,
   with their name); your draft stays with you.
 - **Live.** The Studio follows `GET /api/events`: every revision, who holds what, who is here.
+- **What you read** (4.2.3). A write carries the revision its editor read (`x-studio-base`; a read's answer says its
+  revision in `x-studio-revision`). If someone else wrote one of its files since, the write is refused (409) with that
+  file as you read it and as it is now (the writes since of the same tab, CLI or MCP session never refuse it; your other tab's, or an agent's of yours, do). The Studio shows what changed and
+  keeps your draft. For an edit the server makes on the file (a text, a value, a note, a voice) it offers to apply it
+  on the latest version; for a whole document (a room's layout, the storyboard) it offers to replace theirs with
+  yours, and says so. Nothing is sent again unless you ask. Limits: the check is per file (two notes edited at once
+  are one file); the room view's placement is checked against what the Rooms tab read, while the view may still show
+  an older preview for a moment; a script that sends no `x-studio-base` is not checked this way.
 - **Undo is yours** (4.2.2): Undo and Redo (and Ctrl/Cmd+Z, Shift for redo) undo your own last operation, whatever
   the others wrote meanwhile, as a new revision (history is never rewritten). Refused when someone else wrote one of
   its files since (409), or holds its span (423, with their name). A new edit of yours drops your redo. Your stack is

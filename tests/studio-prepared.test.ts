@@ -4,7 +4,7 @@
 // the art and sounds, and a real `prepare` runs in the worker's child where Python has the asset tools' packages.
 import { execFileSync } from 'node:child_process';
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
-import { join } from 'node:path';
+import { join, resolve } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { migrate } from '../bridge/src/migrations';
 import type { SqlDb } from '../bridge/src/store-sql';
@@ -13,7 +13,7 @@ import { fsBlobStore } from '../studio-server/src/ops/blobs';
 import { PreparedAssets } from '../studio-server/src/server/prepared';
 import { assetDirs, findAsset } from '../studio-server/src/server/previews';
 import { localPrepare } from '../studio-server/src/worker/local';
-import { preparedShape } from '../studio-server/src/worker/prepare';
+import { preparedShape, pythonPathOf } from '../studio-server/src/worker/prepare';
 import { filesOf, packAssets, packSnapshot, unpackSnapshot } from '../studio-server/src/worker/snapshot';
 
 const ROOT = join(import.meta.dirname, '..');
@@ -134,6 +134,17 @@ describe('the prepared assets', () => {
     const first = q.prepare('Léa');
     await expect(q.prepare('Tom')).rejects.toMatchObject({ status: 429 });
     await first;
+  });
+});
+
+describe("the asset tools' Python packages (4.2.3 PR 0, H7)", () => {
+  it("are looked for in the worker's own folder, or where WORKER_PYTHON_PATH says", () => {
+    // resolve: an absolute path of this platform (a drive letter on Windows).
+    const app = resolve('/srv/app');
+    expect(pythonPathOf({}, app)).toBe(join(app, '.python'));
+    expect(pythonPathOf({ WORKER_PYTHON_PATH: '' }, app)).toBe(join(app, '.python'));
+    expect(pythonPathOf({ WORKER_PYTHON_PATH: 'py' }, app)).toBe(join(app, 'py'));
+    expect(pythonPathOf({ WORKER_PYTHON_PATH: resolve('/opt/py') }, app)).toBe(resolve('/opt/py'));
   });
 });
 

@@ -147,9 +147,12 @@ npx web-scumm-studio-server serve --config studio.config.json
 npx web-scumm-studio-worker          # sur la machine du worker, avec WORKER_PUBLIC_KEY et WORKER_INSTANCE
 ```
 
-En 4.2.2, un worker installé depuis les archives ne peut pas lancer `prepare` : le verrou des outils d'assets
-(`ops/studio/worker-requirements.lock`) n'est pas dans les archives, et le worker cherche leurs paquets à côté du
-moteur. Déployez le worker depuis le dépôt (ci-dessus) pour « Prepare assets » ; la 4.2.3 livre le verrou.
+Un worker installé depuis les archives prépare aussi les assets (depuis la 4.2.3) : son hook de build installe le
+verrou que porte le paquet du moteur, depuis le dossier du worker, où le worker cherche les paquets
+(`WORKER_PYTHON_PATH` pour les mettre ailleurs) : `CC_POST_BUILD_HOOK=python3 -m pip install --target .python
+--require-hashes --only-binary=:all: -r node_modules/web-scumm/ops/studio/worker-requirements.lock`. Le verrou vaut pour
+CPython 3.13 sous Linux x86_64, glibc 2.28 ou plus récente (le runtime natif de Clever Cloud) ; une autre plateforme le refait (son en-tête dit
+comment). En 4.2.2, il fallait un worker déployé depuis le dépôt.
 
 L'archive du moteur apporte Vite et tsx, dont l'application de traitement a besoin pour exécuter le code du jeu et
 construire ses prévisualisations (le Studio lui-même ne fait plus tourner Vite, depuis 4.2.2). Mettez dans `publicDir` les
@@ -238,6 +241,16 @@ hors ligne) et ses sauvegardes ne sont pas encore distinguées par build.
   le reste (`meta`). Écrire un fichier prend son pan pour 2 min, renouvelées tant que vous êtes actif. Le pan de
   quelqu'un d'autre refuse votre écriture (423, avec son nom) ; votre brouillon reste chez vous.
 - **En direct.** Le Studio suit `GET /api/events` : chaque révision, qui tient quoi, qui est là.
+- **Ce que vous avez lu** (4.2.3). Une écriture porte la révision que son éditeur a lue (`x-studio-base` ; la réponse
+  à une lecture dit sa révision dans `x-studio-revision`). Si quelqu'un d'autre a écrit l'un de ses fichiers depuis,
+  l'écriture est refusée (409) avec ce fichier tel que vous l'avez lu et tel qu'il est (les écritures depuis du même onglet, de
+  la même session CLI ou MCP ne le refusent jamais ; celles de votre autre onglet, ou d'un agent à vous, si). Le Studio montre ce qui a changé et garde votre brouillon. Pour une modification que le serveur
+  fait sur le fichier (un texte, une valeur, une note, une voix), il propose de l'appliquer sur la dernière version ;
+  pour un document entier (le layout d'une salle, le storyboard), il propose de remplacer le leur par le vôtre, et le
+  dit. Rien n'est renvoyé sans que vous le demandiez. Limites : la vérification se fait par fichier (deux notes
+  modifiées en même temps sont un seul fichier) ; le placement de la vue de salle est vérifié par rapport à ce que
+  l'onglet Rooms a lu, alors que la vue peut encore montrer une prévisualisation plus ancienne un instant ; un script qui
+  n'envoie pas `x-studio-base` n'est pas vérifié ainsi.
 - **L'annulation est la vôtre** (4.2.2) : Undo et Redo (et Ctrl/Cmd+Z, Maj pour rétablir) annulent votre propre
   dernière opération, quoi que les autres aient écrit entre-temps, par une nouvelle révision (l'historique n'est
   jamais réécrit). Refusée quand quelqu'un d'autre a écrit l'un de ses fichiers depuis (409), ou tient son pan (423,
