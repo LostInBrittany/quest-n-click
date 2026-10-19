@@ -26,6 +26,7 @@ export const TABLES: Record<string, 'kept' | { skipped: string }> = {
   studio_previews: 'kept',
   studio_builds: 'kept',
   studio_prepared: 'kept',
+  studio_comments: 'kept',
   studio_lease: { skipped: "the journal's writer lease: the restored instance takes its own" },
   studio_service: { skipped: 'the service lease: the restored instance takes its own' },
   studio_spans: { skipped: "the spans' leases: nobody holds a span after a restore" },

@@ -248,6 +248,37 @@
    "dependencies": [
     "studio-hosted"
    ]
+  },
+  "studio-mcp-remote": {
+   "since": "4.2.3",
+   "artifacts": [
+    "pack/web-scumm-{pkg}.tgz",
+    "pack/web-scumm-studio-server-{pkg}.tgz"
+   ],
+   "config": [
+    "docs/en/STUDIO-SERVER.md",
+    "docs/en/MCP.md",
+    "ops/studio/**"
+   ],
+   "exclusions": [],
+   "dependencies": [
+    "studio-hosted"
+   ]
+  },
+  "studio-oidc-generic": {
+   "since": "4.2.3",
+   "artifacts": [
+    "pack/web-scumm-{pkg}.tgz",
+    "pack/web-scumm-studio-server-{pkg}.tgz"
+   ],
+   "config": [
+    "docs/en/STUDIO-SERVER.md",
+    "ops/studio/**"
+   ],
+   "exclusions": [],
+   "dependencies": [
+    "studio-hosted"
+   ]
   }
  },
  "status": [
