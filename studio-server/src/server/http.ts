@@ -489,6 +489,15 @@ export function studioServer(o: StudioServerOptions): StudioHttpServer {
       const op = write ? req.headers['x-studio-op'] : undefined;
       if (op !== undefined && (typeof op !== 'string' || !/^[\w-]{8,64}$/.test(op)))
         throw new StudioError('x-studio-op must be 8 to 64 letters, digits, - or _');
+      // The revision the client read what it edits at (4.2.3, H10): a file written since is a 409 with what changed.
+      const baseHeader = write ? req.headers['x-studio-base'] : undefined;
+      if (baseHeader !== undefined && (typeof baseHeader !== 'string' || !/^\d{1,15}$/.test(baseHeader)))
+        throw new StudioError('x-studio-base must be a revision');
+      const readAt = baseHeader === undefined ? undefined : Number(baseHeader);
+      // Which client: its own writes since its read are not a conflict; another tab's or agent's are, the same member's too.
+      const clientHeader = write ? req.headers['x-studio-client'] : undefined;
+      if (clientHeader !== undefined && (typeof clientHeader !== 'string' || !/^[\w-]{8,64}$/.test(clientHeader)))
+        throw new StudioError('x-studio-client must be 8 to 64 letters, digits, - or _');
       const who = principal?.user.id ?? '';
       // An answer is given back to its own author only: another member who knows the id gets nothing of it.
       const answered = async () =>
@@ -503,6 +512,8 @@ export function studioServer(o: StudioServerOptions): StudioHttpServer {
           {
             id: op,
             author,
+            readAt,
+            client: clientHeader,
             claimant: principal
               ? {
                   userId: principal.user.id,
@@ -524,6 +535,8 @@ export function studioServer(o: StudioServerOptions): StudioHttpServer {
             replayed = await answered();
             if (replayed) return undefined;
             const r = await run();
+            // The revision after it (H10): what its client has read from now on, its own write included.
+            revision = await o.journal.revision();
             if (op) {
               // Kept 7 days: long enough for any retry of a client that was cut off. Written under the lock, before
               // the next write of the same id can look for it.

@@ -267,10 +267,20 @@ l'hôte est cru à la première connexion, et de nouveau après chaque disque ne
 ## Travailler à plusieurs
 
 - **Les pans.** Chaque fichier du jeu appartient à un pan : une salle (son code et son layout), une langue, l'histoire,
-  les objets, les personnages, les règles, les voix, les assets, les notes, le reste (`meta`). Écrire un fichier prend
-  son pan pour 2 min, renouvelées tant que vous êtes actif. Le pan de quelqu'un d'autre refuse votre écriture (423,
-  avec son nom) ; votre brouillon reste chez vous.
+  les objets, les personnages, les règles, les voix, les assets, les notes, les regroupements de la carte du scénario,
+  le reste (`meta`). Écrire un fichier prend son pan pour 2 min, renouvelées tant que vous êtes actif. Le pan de
+  quelqu'un d'autre refuse votre écriture (423, avec son nom) ; votre brouillon reste chez vous.
 - **En direct.** Le Studio suit `GET /api/events` : chaque révision, qui tient quoi, qui est là.
+- **Ce que vous avez lu** (4.2.3). Une écriture porte la révision que son éditeur a lue (`x-studio-base` ; la réponse
+  à une lecture dit sa révision dans `x-studio-revision`). Si quelqu'un d'autre a écrit l'un de ses fichiers depuis,
+  l'écriture est refusée (409) avec ce fichier tel que vous l'avez lu et tel qu'il est (les écritures depuis du même onglet, de
+  la même session CLI ou MCP ne le refusent jamais ; celles de votre autre onglet, ou d'un agent à vous, si). Le Studio montre ce qui a changé et garde votre brouillon. Pour une modification que le serveur
+  fait sur le fichier (un texte, une valeur, une note, une voix), il propose de l'appliquer sur la dernière version ;
+  pour un document entier (le layout d'une salle, le storyboard), il propose de remplacer le leur par le vôtre, et le
+  dit. Rien n'est renvoyé sans que vous le demandiez. Limites : la vérification se fait par fichier (deux notes
+  modifiées en même temps sont un seul fichier) ; le placement de la vue de salle est vérifié par rapport à ce que
+  l'onglet Rooms a lu, alors que la vue peut encore montrer une prévisualisation plus ancienne un instant ; un script qui
+  n'envoie pas `x-studio-base` n'est pas vérifié ainsi.
 - **L'annulation est la vôtre** (4.2.2) : Undo et Redo (et Ctrl/Cmd+Z, Maj pour rétablir) annulent votre propre
   dernière opération, quoi que les autres aient écrit entre-temps, par une nouvelle révision (l'historique n'est
   jamais réécrit). Refusée quand quelqu'un d'autre a écrit l'un de ses fichiers depuis (409), ou tient son pan (423,
