@@ -48,14 +48,19 @@ export class S3 {
     return hmac(k3, 'aws4_request');
   }
 
-  /** Signs a request (header form) and sends it. */
+  /** Signs a request (header form) and sends it; `key` null is the bucket itself (a listing, with its `query`). */
   private async request(
     method: string,
-    key: string,
+    key: string | null,
     body?: Buffer,
     extra: Record<string, string> = {},
+    query: Record<string, string> = {},
   ): Promise<Response> {
-    const path = `/${this.o.bucket}/${encPath(this.key(key))}`;
+    const path = key === null ? `/${this.o.bucket}` : `/${this.o.bucket}/${encPath(this.key(key))}`;
+    const qs = Object.keys(query)
+      .sort()
+      .map((k) => `${enc(k)}=${enc(query[k]!)}`)
+      .join('&');
     const { amz, day } = stamp();
     const payload = body ? hex(body) : hex('');
     const headers: Record<string, string> = {
@@ -70,7 +75,7 @@ export class S3 {
     const canonical = [
       method,
       path,
-      '',
+      qs,
       ...names.map((n) => `${n}:${String(headers[n]).trim()}`),
       '',
       names.join(';'),
@@ -82,7 +87,7 @@ export class S3 {
     headers.authorization = `AWS4-HMAC-SHA256 Credential=${this.o.keyId}/${scope}, SignedHeaders=${names.join(';')}, Signature=${sig}`;
     const { host: _h, ...send } = headers;
     // Bounded: a request that hangs must not hold the journal's lease (renewed while an operation runs) forever.
-    return fetch(new URL(path, this.url), {
+    return fetch(new URL(qs ? `${path}?${qs}` : path, this.url), {
       method,
       headers: send,
       body: body ? new Uint8Array(body) : undefined,
@@ -122,6 +127,38 @@ export class S3 {
     if (r.status === 404) return false;
     if (!r.ok) throw new Error(`S3 HEAD ${key}: ${r.status}`);
     return true;
+  }
+
+  /**
+   * The objects under `prefix` (4.2.2: the journal's shipped segments, the blobs to collect), with their size and when
+   * they were last written, page by page (ListObjectsV2).
+   */
+  async *list(prefix: string): AsyncGenerator<{ key: string; size: number; at: number }> {
+    let token: string | undefined;
+    do {
+      const r = await this.request(
+        'GET',
+        null,
+        undefined,
+        {},
+        {
+          'list-type': '2',
+          prefix: this.key(prefix),
+          ...(token ? { 'continuation-token': token } : {}),
+        },
+      );
+      const xml = await r.text();
+      if (!r.ok) throw new Error(`S3 LIST ${prefix}: ${r.status} ${xml.slice(0, 200)}`);
+      const own = (this.o.prefix ?? '').length;
+      for (const m of xml.matchAll(/<Contents>([\s\S]*?)<\/Contents>/g)) {
+        const field = (n: string) => new RegExp(`<${n}>([^<]*)</${n}>`).exec(m[1]!)?.[1] ?? '';
+        const key = field('Key').replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>');
+        yield { key: key.slice(own), size: Number(field('Size')), at: Date.parse(field('LastModified')) };
+      }
+      token = /<IsTruncated>true<\/IsTruncated>/.test(xml)
+        ? /<NextContinuationToken>([^<]*)<\/NextContinuationToken>/.exec(xml)?.[1]
+        : undefined;
+    } while (token);
   }
 
   /** Deletes one object; deleting a missing object is not an error (S3 answers 204 either way). */
@@ -173,5 +210,12 @@ export function s3BlobStore(s3: S3): BlobStore {
       return b;
     },
     has: (h) => s3.has(key(h)),
+    async *list() {
+      for await (const o of s3.list('sha256/')) {
+        const h = o.key.slice('sha256/'.length);
+        if (/^[0-9a-f]{64}$/.test(h)) yield { hash: h, at: o.at };
+      }
+    },
+    remove: (h) => s3.delete(key(h)),
   };
 }

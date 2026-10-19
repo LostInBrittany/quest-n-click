@@ -112,6 +112,8 @@ export interface StudioServerOptions {
   health?: Health;
   /** The studio keeps each member's own undo (4.2.2 PR 4, ops/undo.ts): undo and redo are served on a shared Studio. */
   personalUndo?: boolean;
+  /** How far the journal's shipping is behind (4.2.2 PR 7, ms), given by `/readyz`. */
+  rpo?: () => Promise<number>;
   /** The published builds (4.2.2 PR 5): `/api/builds`. */
   builds?: Builds;
   /** The prepared assets (4.2.2 PR 6b): `/api/assets/prepare`. */
@@ -284,7 +286,12 @@ export function studioServer(o: StudioServerOptions): StudioHttpServer {
       if (path === '/livez') return send(res, 200, { ok: true });
       if (path === '/startz') return send(res, started ? 200 : 503, { ok: started });
       if (path === '/readyz')
-        return send(res, o.lease.held ? 200 : 503, { ok: o.lease.held, writes: o.lease.held ? 'served' : 'waiting' });
+        return send(res, o.lease.held ? 200 : 503, {
+          ok: o.lease.held,
+          writes: o.lease.held ? 'served' : 'waiting',
+          // The journal's shipping behind the head (4.2.2, G7): measured, never said to be nil when it is not.
+          ...(o.rpo ? { rpoMs: await o.rpo().catch(() => null) } : {}),
+        });
       const ip = clientOf(req);
       // The game's origin answers its own paths only: no Studio API, no /auth, ever.
       if (o.play && forPlay(req, o.play.playUrl)) return void (await o.play.handler.handle(req, res, url));

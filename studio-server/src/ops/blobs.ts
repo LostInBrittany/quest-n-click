@@ -1,7 +1,7 @@
 // Content-addressed blobs (4.2.1, plan P1 and §4): the "after" content of every file an operation writes is stored
 // here, under its sha256, before the operation is logged. A recovery rolls an operation forward from them. The local
 // store keeps them on the disk; the hosted one (Cellar) comes with the server.
-import { existsSync, readFileSync } from 'node:fs';
+import { existsSync, readdirSync, readFileSync, rmSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 import { sha256, writeDurable } from './durable';
 
@@ -11,6 +11,10 @@ export interface BlobStore {
   /** The bytes of a blob, checked against their hash; throws when it is missing or damaged. */
   get(hash: string): Promise<Buffer>;
   has(hash: string): Promise<boolean>;
+  /** Every blob, with when it was written (4.2.2: the collection of the unreferenced). */
+  list?(): AsyncIterable<{ hash: string; at: number }>;
+  /** Deletes one blob (the collection only). */
+  remove?(hash: string): Promise<void>;
 }
 
 const HEX = /^[0-9a-f]{64}$/;
@@ -37,6 +41,16 @@ export function fsBlobStore(dir: string): BlobStore {
     },
     async has(hash) {
       return existsSync(path(hash));
+    },
+    async *list() {
+      if (!existsSync(dir)) return;
+      for (const a of readdirSync(dir))
+        if (/^[0-9a-f]{2}$/.test(a))
+          for (const b of readdirSync(join(dir, a)))
+            if (/^[0-9a-f]{62}$/.test(b)) yield { hash: a + b, at: statSync(join(dir, a, b)).mtimeMs };
+    },
+    async remove(hash) {
+      rmSync(path(hash), { force: true });
     },
   };
 }

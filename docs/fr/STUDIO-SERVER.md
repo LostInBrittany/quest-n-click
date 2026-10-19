@@ -194,6 +194,25 @@ son contenu est sans danger. Le code d'un build ne change jamais ; ses images et
 l'instance, servis à côté tels qu'ils sont. Un build publié n'a pas de service worker (il ne s'installe pas pour jouer
 hors ligne) et ses sauvegardes ne sont pas encore distinguées par build.
 
+## Sauvegarde et restauration
+
+- **Le journal expédié** : chaque opération confirmée est copiée dans le bucket, dans l'ordre, en segment immuable
+  (`journal/<époque>/<rev>.json` ; les contenus sont déjà des blobs). `/readyz` donne `rpoMs`, l'âge de la plus
+  ancienne opération pas encore expédiée (0 quand tout l'est) : la cible est 1 min (D42), mesurée, jamais affirmée.
+- **Une sauvegarde** : `npm run studio-server -- backup <fichier> --config <fichier>` écrit les tables du projet en un
+  instantané (les membres, le journal, la tête, les prévisualisations, les builds et les ensembles préparés ; ni les
+  sessions ni les baux : une restauration déconnecte tout le monde), avec les blobs qu'elles nomment et un condensé.
+  Quotidienne (D42), gardée hors de l'instance.
+- **Une restauration** : dans une base vide seulement (un nouvel add-on Postgres, le même bucket) :
+  `npm run studio-server -- restore <fichier> --replay --config <fichier>` vérifie le condensé et que chaque blob est
+  dans le bucket, écrit les lignes, puis rejoue le journal expédié depuis la sauvegarde, jusqu'à la dernière opération
+  expédiée (elle s'arrête à un trou). Démarrez le serveur : le dossier est refait depuis la tête.
+- **L'exercice** : sur une instance de test, sauvegardez, écrivez deux modifications, attendez `rpoMs` à 0, supprimez
+  la base, restaurez avec `--replay`, démarrez, et vérifiez que la tête est la dernière modification.
+- **Le ramassage** : `npm run studio-server -- gc --config <fichier>` liste les blobs qu'aucune ligne ne nomme (plus
+  vieux d'un jour) et le staging de l'application de traitement de plus d'une heure ; `--delete` les supprime. À
+  lancer après une sauvegarde, jamais avec une sauvegarde qu'on pourrait encore restaurer et qui les nomme.
+
 ## Travailler à plusieurs
 
 - **Les pans.** Chaque fichier du jeu appartient à un pan : une salle (son code et son layout), une langue, l'histoire,

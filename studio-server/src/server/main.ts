@@ -5,6 +5,9 @@
 //   invite --email <e> --role <owner|dev|reviewer>   a one-time invitation link (the first owner comes this way)
 //   login --server <url>, token --server <url>       the CLI's device flow, and its current access token
 //   deps           its own dependencies (OpenID Connect, JWT, Postgres): the version and folder each resolves to
+//   backup <file>  the project's tables, one snapshot, with the blobs they name (4.2.2, ops/backup.ts)
+//   restore <file> [--replay]   a backup into an empty project, then (--replay) the journal shipped since
+//   gc [--delete]  the blobs no row names (older than a day) and the worker's old staging: listed, or deleted
 // Secrets come from `<NAME>_FILE` or the environment (config.ts) and leave `process.env` before anything else runs.
 import { createHash, createPrivateKey, createPublicKey, sign } from 'node:crypto';
 import { cpSync, existsSync, mkdirSync, readdirSync, readFileSync, renameSync, rmSync, writeFileSync } from 'node:fs';
@@ -18,6 +21,10 @@ import { spansOf } from '../ops/spans';
 import { type BlobStore, fsBlobStore } from '../ops/blobs';
 import { sha256 } from '../ops/durable';
 import { Journal } from '../ops/journal';
+import { backupOf, checkBackup, restoreInto } from '../ops/backup';
+import { collect } from '../ops/gc';
+import { replaySegments, Shipper } from '../ops/ship';
+import { migrate } from '../../../bridge/src/migrations';
 import { ConfigError, loadConfig, type StudioServerConfig, takeSecrets } from './config';
 import { accessToken, deviceLogin } from './auth/device';
 import { Gate } from './auth/gate';
@@ -135,6 +142,57 @@ async function main(argv: string[]): Promise<number> {
   const config = loadConfig(file, process.env.STUDIO_CONFIG ? undefined : inline);
   const { db, blobs, gameDir, secrets, s3 } = await openAll(config);
   const hosted = config.store.kind === 'postgres';
+
+  // The bucket as the journal's segments (4.2.2, ops/ship.ts): a hosted instance only.
+  const segments = s3
+    ? { put: (k: string, b: Buffer) => s3.put(k, b), get: (k: string) => s3.get(k), list: (p: string) => s3.list(p) }
+    : undefined;
+
+  if (cmd === 'backup' || cmd === 'restore' || cmd === 'gc') {
+    await migrate(db, { dir: new URL('../../migrations/', import.meta.url) });
+    if (cmd === 'backup') {
+      const out = args[0] && resolve(args[0]);
+      if (!out || existsSync(out)) {
+        console.error('backup: a new file is required');
+        return 2;
+      }
+      const b = await backupOf(db);
+      writeFileSync(out, `${JSON.stringify(b)}\n`, { mode: 0o600, flag: 'wx' });
+      console.log(JSON.stringify({ event: 'backup', revision: b.revision, blobs: b.blobs.length, digest: b.digest }));
+      return 0;
+    }
+    if (cmd === 'restore') {
+      const from = args.find((a) => !a.startsWith('--'));
+      if (!from || !existsSync(from)) {
+        console.error('restore: a backup file is required');
+        return 2;
+      }
+      const b = checkBackup(JSON.parse(readFileSync(from, 'utf8')));
+      const r = await restoreInto(db, blobs, b);
+      let revision = b.revision;
+      if (args.includes('--replay')) {
+        if (!segments)
+          throw new ConfigError('restore --replay reads the journal shipped to the bucket: blobs.kind is s3');
+        revision = await replaySegments(db, segments, b);
+      }
+      console.log(JSON.stringify({ event: 'restored', rows: r.rows, backup: b.revision, revision }));
+      return 0;
+    }
+    const r = await collect(db, blobs, {
+      delete: args.includes('--delete'),
+      staging: s3 ? { list: (p) => s3.list(p), delete: (k) => s3.delete(k) } : undefined,
+    });
+    console.log(
+      JSON.stringify({
+        event: args.includes('--delete') ? 'collected' : 'collectable',
+        referenced: r.referenced,
+        unreferenced: r.unreferenced.length,
+        removed: r.removed,
+        staging: r.staging,
+      }),
+    );
+    return 0;
+  }
 
   if (cmd === 'import') {
     const from = args[0] && resolve(args[0]);
@@ -388,6 +446,12 @@ async function main(argv: string[]): Promise<number> {
       : undefined;
   // After each revision, the head's preview (coalesced: a burst builds its last revision only).
   journal.events.on('confirmed', () => void previews?.schedule());
+  // The journal shipped to the bucket (G7): after each operation, and at start for what was not shipped yet.
+  const shipper = segments
+    ? new Shipper({ db, segments, log: (line) => console.log(JSON.stringify(line)) })
+    : undefined;
+  journal.events.on('confirmed', () => void shipper?.ship());
+  void shipper?.ship();
   // And its health (G3, G4): the verdict by revision, a bisection when the head breaks. Hosted only: there the journal
   // keeps the blobs of every operation, the import's included, which a past revision's files are rebuilt from.
   const health =
@@ -477,6 +541,7 @@ async function main(argv: string[]): Promise<number> {
     personalUndo: !!personalUndo,
     builds,
     prepared,
+    rpo: shipper ? () => shipper.rpoMs() : undefined,
     play,
     client,
   });

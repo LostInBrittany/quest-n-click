@@ -189,6 +189,24 @@ on the worker as it is now, not that its content is harmless. A build's code nev
 the instance's prepared assets, served beside it as they are now. A published build has no service worker (it is not
 installed for offline play) and its saves are not yet told apart by build.
 
+## Backup and restore
+
+- **The journal shipped**: each confirmed operation is copied to the bucket, in order, as an immutable segment
+  (`journal/<epoch>/<rev>.json`; the contents are blobs already). `/readyz` gives `rpoMs`, the age of the oldest
+  operation not shipped yet (0 when everything is): the target is 1 min (D42), measured, never claimed.
+- **A backup**: `npm run studio-server -- backup <file> --config <file>` writes the project's tables in one snapshot
+  (members, the journal, the head, the previews, builds and prepared sets; not the sessions nor the leases: a restore
+  logs everyone out), with the blobs they name and a digest. Daily (D42), kept off the instance.
+- **A restore**: into an empty database only (a new Postgres add-on, the same bucket):
+  `npm run studio-server -- restore <file> --replay --config <file>` checks the digest and that every blob is in the
+  bucket, writes the rows, then replays the journal shipped since the backup, up to the last operation shipped (it
+  stops at a gap). Start the server: the folder is made from the head.
+- **The drill**: on a test instance, back up, write two changes, wait for `rpoMs` 0, drop the database, restore with
+  `--replay`, start, and check the head is the last change.
+- **The collection**: `npm run studio-server -- gc --config <file>` lists the blobs no row names (older than a day)
+  and the worker's staging older than an hour; `--delete` deletes them. Run it after a backup, never with a backup
+  you may still restore that names them.
+
 ## Working together
 
 - **Spans.** Every file of the game belongs to one span: a room (its code and its layout), a language, the story, the
