@@ -12,7 +12,8 @@ export interface Job {
   /**
    * `validate`: the validator's verdict; `load`: the game module as data (functions dropped), for the Studio's reads;
    * `preview` (4.2.2): the revision's built preview, its files by path; `lint`, `solve`, `playtests` (4.2.2): those
-   * diagnostics, as the Studio's routes answer them; `prepare` (4.2.2): the game's prepared assets and manifest.
+   * diagnostics, as the Studio's routes answer them; `prepare` (4.2.2): the game's prepared assets and manifest;
+   * `migrate` (4.2.3): the files the engine's upgrade of the game would change, written nowhere.
    */
   kind: JobKind;
   params: Record<string, unknown>;
@@ -26,8 +27,8 @@ export interface Job {
   urls: { snapshot: string; result: string };
 }
 
-export type JobKind = 'validate' | 'load' | 'preview' | 'lint' | 'solve' | 'playtests' | 'prepare';
-const KINDS: readonly string[] = ['validate', 'load', 'preview', 'lint', 'solve', 'playtests', 'prepare'];
+export type JobKind = 'validate' | 'load' | 'preview' | 'lint' | 'solve' | 'playtests' | 'prepare' | 'migrate';
+const KINDS: readonly string[] = ['validate', 'load', 'preview', 'lint', 'solve', 'playtests', 'prepare', 'migrate'];
 
 export const MAX_JOB_MS = 5 * 60_000;
 
