@@ -1443,7 +1443,7 @@
   "operator": "operator",
   "from": ">",
   "to": ">=",
-  "context": "if (Date.now() > deadline) throw new StudioError('another process is writing this game; try again', 409);",
+  "context": "if (Date.now() > deadline) throw new StudioError('another process is writing this game; try again', 503);",
   "why": "withLease's deadline: `Date.now() > deadline` and `>=` differ only in the millisecond the wait ends; either way the operation is refused at its deadline (waiting then succeeding is pinned by tests/studio-journal-mutants.test.ts)",
   "category": "equivalent",
   "proof": "argument",

@@ -410,9 +410,12 @@ async function main(argv: string[]): Promise<number> {
     });
   }
   const lease = new ServiceLease(db);
-  lease.start((held) =>
-    console.log(JSON.stringify({ event: held ? 'lease-taken' : 'lease-lost', instance: lease.instance })),
-  );
+  /** The folder brought to the head now (set once the server exists): on taking the lease, then every 30 s. */
+  let repair: (() => void) | undefined;
+  lease.start((held) => {
+    console.log(JSON.stringify({ event: held ? 'lease-taken' : 'lease-lost', instance: lease.instance }));
+    if (held) repair?.();
+  });
   // With OIDC, the game's code runs in the processing worker only (ADR 0028); without, this is the local server.
   let executor: ReturnType<typeof remoteExecutor> | undefined;
   if (config.worker) {
@@ -724,18 +727,22 @@ async function main(argv: string[]): Promise<number> {
     );
   // Hosted: the instance's folder is checked against the head every 30 s and repaired without a restart (plan §4),
   // holding the instance's lock alone: no request reads a folder being repaired.
-  if (hosted)
-    setInterval(() => {
-      void server
-        .exclusive(() => journal.reconcile())
-        .then(
-          (r) => {
-            if (!(r.written + r.removed)) return;
-            console.log(JSON.stringify({ event: 'reconciled', ...r }));
-          },
-          (e) => logLine({ event: 'reconcile-failed', message: String((e as Error).message) }),
-        );
-    }, 30_000).unref();
+  // Only the instance that serves the writes: another one (starting beside it during a deploy) would hold the
+  // journal's lease and make its writes wait (4.2.3, the reference deployment). Residual: an instance that gave the
+  // lease up is no longer repaired, and a read that still reaches it may show a folder behind the head.
+  repair = () => {
+    if (!hosted || !lease.held) return;
+    void server
+      .exclusive(() => journal.reconcile())
+      .then(
+        (r) => {
+          if (!(r.written + r.removed)) return;
+          console.log(JSON.stringify({ event: 'reconciled', ...r }));
+        },
+        (e) => logLine({ event: 'reconcile-failed', message: String((e as Error).message) }),
+      );
+  };
+  if (hosted) setInterval(() => repair?.(), 30_000).unref();
   server.on('error', (e) => {
     console.error(JSON.stringify({ event: 'listen-failed', message: (e as Error).message }));
     void lease.release().then(() => process.exit(1));
