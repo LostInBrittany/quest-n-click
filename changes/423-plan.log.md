@@ -8,6 +8,8 @@
   its diff), what stays open after 4.2.3 and why, its departures from the master plan's §9 (merging it amends them), the PRs in order, exit criteria, six decisions
   asked of the maintainer (the name, the second OIDC provider, deploy key or GitHub App, the diff's captures hosted,
   the yes to sign `v4.2.3`, the spike's Clever resources) and the risks.
-- No code of 4.2.3 before the maintainer merges this plan; `v4.2.3` is signed only on its own yes (D37).
+- Merged at the maintainer's request (« Merge #164 for me, as is »); its §4 answered in D44 (the name "Coordination",
+  GitLab, a deploy key, the diff's captures local, the spike's resources kept); the yes to sign `v4.2.3` given
+  (« Yes, sign v4.2.3 », D37, D44).
 
-→ next: the maintainer (read and merge, or amend; answer §4)
+→ next: Claude (4.2.3 PR 0, then the plan's order)

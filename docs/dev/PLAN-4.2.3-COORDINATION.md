@@ -1,8 +1,9 @@
 # web-scumm 4.2.3 : la coordination (plan détaillé, brouillon)
 
-> **Statut : brouillon, à relire par le mainteneur.** Aucune ligne de code de 4.2.3 avant la fusion de ce plan par le
-> mainteneur (méthode du plan maître, §13). Le nom de la release reste à choisir (D40). Signer `v4.2.3` demande son
-> propre oui (D37) : ni « you have my all go » ni le oui de `v4.2.2` ne le couvrent.
+> **Statut : fusionné à la demande du mainteneur** (« Merge #164 for me, as is », 19 octobre). Les réponses du §4 sont
+> consignées dans D44 : le nom « Coordination », GitLab pour `studio-oidc-generic`, une clé de déploiement, les captures
+> du diff en local seulement, les ressources du spike gardées. Le oui pour signer `v4.2.3` est donné (« Yes, sign
+> v4.2.3 », D37, D44), pour son propre candidat.
 >
 > **Source normative en amont :** `docs/dev/PLAN-4.2.1-4.2.3-STUDIO-SERVER.md`, §9 et §10. Ce document détaille ces
 > sections et y ajoute ce que 4.2.2 a laissé ouvert (LOG #217). Ses écarts au plan maître sont listés au §6 ; **fusionner
