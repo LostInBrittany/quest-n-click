@@ -95,6 +95,12 @@ A provider call never follows a redirect, gives up after 60 s, and reads at most
   puzzle-order dimension drawn; **Coverage and bias** over many seeds; the rooms' **Anchors**, and one added from the
   Rooms tab's selection. A manifest that cannot make a world shows the validator's reasons. Computed with the engine's
   compiler (`src/studio/remix-model.ts`): the Studio never shows a world the player would not play.
+- **Map** (4.2.3): the scenario's groupings, chapters, puzzles and characters (`games/<id>/groupings.json`), each a
+  list of what the game already names (a room, a rule or topic id, `item:<id>`, `char:<id>`, `objective:<id>`,
+  `checkpoint:<id>`) with the `file:line` that writes it, or "not declared" when the game does not know it; then the rooms,
+  characters, items, objectives and checkpoints no grouping names yet (ids written by code, and line or step ids, are
+  not in the IR's provenance: they show as "not declared"). A grouping only refers: saving it writes `groupings.json` alone, never the content. The map is
+  derived at each read (from the IR's provenance and the groupings), never stored.
 - **Notes**: the shared log (`games/<id>/notes.json`), one entry per author ("you", or the AI's name), about a panel
   id, a room id, `room.entity`, or anything (empty: general). The whole log, newest first, grouped by `about` (tagged
   room / panel / entity, with "Open in Rooms" / "Open in Storyboard"); filters: free text, about (rooms with their
@@ -153,6 +159,7 @@ All paths are relative to the current game (`GAME`). Errors return `{ error }` w
 | POST `room/:id/add` | `{ kind: 'prop' \| 'hotspot' \| 'actor', id, name?, img?, char?, at: [x, y], look? }` → inserts the entry in the room file (the section is created if absent), the optional first look line, and a place in the layout (prop: foot at `at`, height 60; hotspot: 60 × 60 box centred on `at`; actor: feet at `at`); `{ ok, line, changed }`. `name` is required for props and hotspots |
 | GET/PUT `storyboard` | `storyboard.json` (`{ boards: [] }` if absent). PUT needs `{ boards: [...] }`, returns `{ ok, changed }`: an unchanged storyboard is not rewritten, a changed one is written compactly (what fits on 120 columns stays on one line) |
 | POST `storyboard/markdown` | → writes `games/<id>/storyboard.md` from the saved `storyboard.json` (same text as `npm run page:storyboard -- --md`); `{ ok, file, bytes, boards, panels }`; 404 without a `storyboard.json` |
+| GET `groupings`, PUT `groupings`, GET `map` | 4.2.3: the groupings file `{ groupings: [{ id, kind: chapter\|puzzle\|character, title, refs }] }` (checked: ids unique and lowercase, kinds known, references without spaces; 500 at most of each), and the map derived from it and the IR: `{ groupings: [{ …, refs: [{ ref, kind, at? }] }], ungrouped: { <kind>: [refs] } }` |
 | GET `notes`, POST `notes` | GET → `{ entries: Note[] }`; POST `{ about?, author?, text }` → the new `Note = { id, about, author, text, at, edited? }` (author defaults to `you`, `at` is an ISO date), appended to `notes.json` (created on first write) |
 | PUT `notes/:id` | `{ text, about? }` → the updated `Note` (text trimmed, `edited` set to now; `at`, `author` and the order unchanged); 400 empty text, 404 unknown id |
 | DELETE `notes/:id` | → `{ ok }`, the note removed from `notes.json`; 404 unknown id |
