@@ -122,10 +122,9 @@ export class Comments {
     }
     if (!ANCHOR.test(anchor))
       throw new StudioError('an anchor is a stable id of the game (letters, digits, . : @ - _)');
-    const [n] = await this.o.db.all(
-      'SELECT COUNT(*) AS n FROM studio_comments WHERE author_id = $1 AND resolved = 0',
-      [who.id],
-    );
+    const [n] = await this.o.db.all('SELECT COUNT(*) AS n FROM studio_comments WHERE author_id = $1 AND resolved = 0', [
+      who.id,
+    ]);
     if (Number(n?.n ?? 0) >= MAX_PER_AUTHOR)
       throw new StudioError(`${MAX_PER_AUTHOR} open comments at most each: resolve some first`, 429);
     const id = `c${randomUUID().replace(/-/g, '').slice(0, 16)}`;
