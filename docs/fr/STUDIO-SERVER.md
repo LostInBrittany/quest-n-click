@@ -306,7 +306,9 @@ npm run studio-server -- login --server https://studio.example.fr   # device flo
 npm run studio-server -- token --server https://studio.example.fr   # un jeton d'accès pour les scripts et le MCP
 ```
 
-Les jetons sont gardés dans `~/.config/web-scumm/studio-tokens.json` (0600), et envoyés en https seulement.
+Les jetons sont gardés dans `~/.config/web-scumm/studio-tokens.json` (0600), et envoyés en https seulement. Un agent
+IA travaille sur le Studio par son `/mcp` (4.2.3), ou par le serveur MCP local tourné vers lui (`npm run -s mcp --
+--server <url>`) : `docs/fr/MCP.md`, « Un Studio hébergé ». Les jetons doivent porter l'`oidc.audience` du Studio.
 
 ## Essayer en local
 
