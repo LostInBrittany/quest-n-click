@@ -218,12 +218,11 @@ describe('the game to and from Git, the hard cases', () => {
 
   it('says a push the remote refuses as the remote said it, and pushes once the remote is there', async () => {
     const later = join(tmp, 'later.git');
+    const otherDb = await openSqliteDb(join(tmp, 'other.sqlite'));
+    const { migrate } = await import('../bridge/src/migrations');
+    await migrate(otherDb, { dir: new URL('../studio-server/migrations/', import.meta.url) });
     const first = new GitSync({
-      db: await openSqliteDb(join(tmp, 'other.sqlite')).then(async (o) => {
-        const { migrate } = await import('../bridge/src/migrations');
-        await migrate(o, { dir: new URL('../studio-server/migrations/', import.meta.url) });
-        return o;
-      }),
+      db: otherDb,
       blobs: fsBlobStore(join(tmp, 'blobs')),
       gameDir: studio.gameDir,
       config: { remote: later, branch: 'main' },
@@ -237,6 +236,8 @@ describe('the game to and from Git, the hard cases', () => {
     git(later, 'init', '-q', '--bare', '-b', 'main');
     // Twice, so a first push that failed leaves nothing in the way of the next.
     expect(await first.push()).toMatchObject({ pushed: false, commit: null });
+    // Closed before the folder goes: Windows deletes no open file.
+    await otherDb.close();
   });
 });
 
