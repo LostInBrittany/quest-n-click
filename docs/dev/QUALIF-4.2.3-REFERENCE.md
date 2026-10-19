@@ -49,7 +49,7 @@ Déploiements (`clever deploy -a <alias> --force`, phase B avec `-b` sur une bra
   l'origine du Studio quand le jeton n'est pas configuré.
 - Alertes posées, et vers qui (une personne) : **non posées** (pas de collecteur ; `clever notify-email` non configuré).
   Le runbook met l'alerte `/readyz` à 2 min : avec la passation du bail (#183), `/readyz` reste en 503 12 à 20 s par
-  déploiement ; le premier déploiement vers une version qui la porte, ≈ 2 min 30 (§5).
+  déploiement ; le premier déploiement vers une version qui la porte, ≈ 2 min 30 (§5 et §5 bis).
 - Une alerte déclenchée exprès (laquelle, délai jusqu'à la personne) : **non mesuré** (aucune alerte posée).
 
 Valeurs lues sur l'instance de phase B (`c66fbf56`), de son démarrage à 19:55 UTC ; les quantiles des histogrammes sont
@@ -146,7 +146,7 @@ expired »**, 10 passés au-delà de ce contrôle. Le Studio fixe `exp` à exact
 (`remote-executor.ts`), et le traitement refuse `exp - now > MAX_JOB_MS` sans marge (`worker/job.ts`) : dès que
 l'horloge de la machine du studio avance sur celle du traitement de plus que la latence de la requête (quelques dizaines
 de millisecondes), le job est refusé. Les machines précédentes ne le montraient pas ; celle-ci, si. Le contrôle est le même
-à `c66fbf56` et à `dd66b38d` ; à corriger par une marge d'horloge (§7).
+à `c66fbf56` et à `dd66b38d` ; corrigé en 4.2.3 par #192 : 30 s de marge (`CLOCK_SKEW_MS`), refus consigné (`worker-job-refused`), raison dans l'erreur du Studio (§7).
 
 ## 6. Prévisualisation et recompilation
 
@@ -175,13 +175,15 @@ Constats de la phase B, pas des défauts du code mais des coûts à connaître (
    vérification du journal au démarrage fait attendre une écriture de l'ancienne 20 s puis la refuse en 409, sans
    `Retry-After`. Un client qui ne retente pas un 409 perd cette écriture.
 
-Trouvé à la mesure de la passation (§5 bis), à corriger :
+Trouvé à la mesure de la passation (§5 bis), corrigé par #192 :
 
 5. **Le traitement refuse des jobs pour un décalage d'horloge de quelques millisecondes** : `exp` vaut exactement
-   `Date.now() + MAX_JOB_MS` côté Studio et le traitement refuse `exp - now > MAX_JOB_MS` sans marge ; sur une machine
-   dont l'horloge avance un peu, la moitié des jobs sont refusés (403 « the job has expired »), la santé et les
-   prévisualisations échouent par intermittence. Le traitement ne consigne pas la raison d'un 403, ni le Studio le corps
-   de la réponse : seule une sonde l'a montrée.
+   `Date.now() + MAX_JOB_MS` côté Studio et le traitement refusait `exp - now > MAX_JOB_MS` sans marge ; quand l'horloge
+   du Studio avance un peu sur celle du traitement, la moitié des jobs étaient refusés (403 « the job has expired »), la
+   santé et les prévisualisations échouaient par intermittence. Le traitement ne consignait pas la raison d'un 403, ni le
+   Studio le corps de la réponse : seule une sonde l'a montrée. Corrigé (#192) : 30 s de marge (`CLOCK_SKEW_MS`), le
+   traitement consigne `worker-job-refused` avec sa raison, et le Studio la reprend dans son erreur (200 caractères au
+   plus).
 6. Avec la passation, le constat 3 vaut pour le premier déploiement depuis une version qui ne la porte pas ; ensuite,
    ≈ 1 min d'écritures lentes ou refusées, dont 10 à 16 s de 503 (Clever route encore vers l'ancienne). Le 409 du
    constat 4 est devenu un 503 avec `Retry-After`.
@@ -212,6 +214,6 @@ sur une base neuve en 30 à 60 s, avec le rejeu du journal jusqu'à la tête de 
 prend un plan PostgreSQL plus grand et prévient ses membres. Avec la passation du bail (#183, `dd66b38d`), un
 redéploiement passe le bail en 6 à 10 s et ne refuse plus les écritures que 10 à 16 s, sans 409 ni 500, sauf le
 premier déploiement depuis une version qui ne la porte pas ; la même mesure a montré des jobs refusés par le traitement
-pour un décalage d'horloge sans marge (§5 bis). Une prévisualisation prend ≈ 35 s (p95 ≈ 44 à 50 s) et
+pour un décalage d'horloge sans marge (§5 bis), corrigé par #192 avant la release. Une prévisualisation prend ≈ 35 s (p95 ≈ 44 à 50 s) et
 saute les révisions au-delà d'une modification toutes les 35 s ; une recompilation fraîche rend les mêmes octets en
 44 s. Limite : organisation de test, un seul membre qui écrit, peu d'échantillons, pas de charge de production.

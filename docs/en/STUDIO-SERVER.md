@@ -379,14 +379,14 @@ and gets it applied once. The journal's own fenced lease still keeps two instanc
 
 Since 4.2.3 the new instance does not wait for that: once it listens it asks for the lease, and the holder gives it
 back at its next renewal (10 s at most), logging `lease-lost`. What the reference deployment measured
-(`docs/dev/QUALIF-4.2.3-REFERENCE.md` §5), on Clever Cloud, where the old instance stays `STOPPING` about two minutes
+(`docs/dev/QUALIF-4.2.3-REFERENCE.md` §5 and §5 bis), on Clever Cloud, where the old instance stays `STOPPING` about two minutes
 and logs no `stopping` line:
 - **between two versions that both hand the lease over** (two redeploys of the same commit): `lease-taken` 6 and 10 s
   after the new instance listened; then writes are 503 (`Retry-After: 2`) for 10 to 16 s, because Clever still sends
   the requests to the old instance, which no longer holds the lease, until the deploy ends; before that, while the new
   instance starts, a write may wait 10 to 20 s on its journal check and get a 503 too. About a minute of slow or
   refused writes per deploy, none lost: a write retried with its operation id goes through once;
-- **the first deploy onto 4.2.3, from a version without the handover** (4.2.2, or 4.2.3 before it): the old version
+- **the first deploy onto 4.2.3, from a version without the handover** (4.2.2, or a 4.2.3 commit before #183): the old version
   keeps the lease until Clever stops it, and **writes are refused for about two and a half minutes** (2 min 23 s to
   2 min 27 s measured), reads going on. Plan that one: tell the members, or accept the minutes.
 

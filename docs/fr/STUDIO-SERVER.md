@@ -403,7 +403,7 @@ bail propre du journal, avec sa clôture, empêche toujours deux instances d'éc
 
 Depuis 4.2.3, la nouvelle instance n'attend plus cela : dès qu'elle écoute, elle demande le bail, et le détenteur le
 rend à son renouvellement suivant (10 s au plus), en consignant `lease-lost`. Ce que le déploiement de référence a
-mesuré (`docs/dev/QUALIF-4.2.3-REFERENCE.md` §5), sur Clever Cloud, où l'ancienne instance reste `STOPPING` environ
+mesuré (`docs/dev/QUALIF-4.2.3-REFERENCE.md` §5 et §5 bis), sur Clever Cloud, où l'ancienne instance reste `STOPPING` environ
 deux minutes et ne consigne aucune ligne `stopping` :
 - **entre deux versions qui rendent toutes deux le bail** (deux redéploiements du même commit) : `lease-taken` 6 et
   10 s après que la nouvelle instance écoute ; ensuite les écritures sont en 503 (`Retry-After: 2`) pendant 10 à 16 s,
@@ -411,7 +411,7 @@ deux minutes et ne consigne aucune ligne `stopping` :
   déploiement ; avant cela, pendant que la nouvelle démarre, une écriture peut attendre 10 à 20 s sa vérification du
   journal et recevoir un 503 elle aussi. Environ une minute d'écritures lentes ou refusées par déploiement, aucune
   perdue : une écriture retentée avec son identifiant d'opération passe une fois ;
-- **le premier déploiement vers 4.2.3, depuis une version sans la passation** (4.2.2, ou 4.2.3 avant elle) :
+- **le premier déploiement vers 4.2.3, depuis une version sans la passation** (4.2.2, ou un commit de 4.2.3 avant #183) :
   l'ancienne version garde le bail jusqu'à ce que Clever l'arrête, et **les écritures sont refusées pendant environ
   deux minutes et demie** (2 min 23 s à 2 min 27 s mesurées), les lectures continuant. Prévoyez celui-là : prévenez
   les membres, ou acceptez ces minutes.
