@@ -32,5 +32,8 @@
 - `game.ts`'s three lines all or none (a shorthand or a computed `saveVersion` skips the three, said), so a second run
   cannot append `idsMigration` twice; a game whose `defineGame` is not in `game.ts` is refused (documented).
 - STUDIO-SERVER (en, fr): the playtests are neither migrated nor judged.
+- Coverage: `exclusiveRunner`'s renewal failure (with and without a log) and its count's edges (two runs starting
+  together, a take refused), and `remoteExecutor.migrate` against a fake worker (an answer, the game failing, the
+  deadline, an answer naming a file the migration never writes or the game does not have, no result, a job refused).
 
 → next: Claude (4.2.3 PR 9: the reference deployment, H9)

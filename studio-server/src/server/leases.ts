@@ -224,9 +224,9 @@ export function exclusiveRunner(
     const renew = setInterval(() => {
       leases
         .renew(who.userId)
-        .catch((e) => o.log?.({ event: 'lease-renew-failed', message: String((e as Error)?.message ?? e) }));
+        .catch((e) => o.log?.({ event: 'lease-renew-failed', message: e instanceof Error ? e.message : String(e) }));
     }, o.everyMs ?? 30_000);
-    renew.unref?.();
+    renew.unref();
     try {
       if (run.took) await leases.take(who, [EXCLUSIVE]);
       return await fn();

@@ -5,6 +5,7 @@
 // health of before. The migration and the judge run in the worker's child (localMigrate, localValidate, localDiagnose)
 // as on the processing worker; the refusals the solver alone would give are tested with an injected judge.
 import { EventEmitter } from 'node:events';
+import { createServer } from 'node:http';
 import { cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import type { AddressInfo } from 'node:net';
 import { join } from 'node:path';
@@ -25,6 +26,8 @@ import { EngineUpgrade } from '../studio-server/src/server/engine-upgrade';
 import { judgeBy, type Verdict } from '../studio-server/src/server/health';
 import { studioServer } from '../studio-server/src/server/http';
 import { exclusiveRunner, Leases } from '../studio-server/src/server/leases';
+import { remoteExecutor } from '../studio-server/src/server/remote-executor';
+import { newJobKeys } from '../studio-server/src/worker/job';
 import { ServiceLease } from '../studio-server/src/server/service-lease';
 import { localDiagnose, localMigrate, localValidate } from '../studio-server/src/worker/local';
 import { migratedShape } from '../studio-server/src/worker/migrate';
@@ -385,6 +388,135 @@ describe("the owner's exclusive lease around a long operation", () => {
     // Nobody asks: the operation alone.
     who = undefined;
     expect(await run(async () => 7)).toBe(7);
+  });
+});
+
+describe("the Studio's side of the worker's migrate", () => {
+  it('answers the migration, or says why not: the game failing, the deadline, an answer refused, no answer', async () => {
+    const objects = new Map<string, Buffer>();
+    const s3 = {
+      put: async (k: string, b: Buffer) => void objects.set(k, b),
+      get: async (k: string) => objects.get(k),
+      delete: async (k: string) => void objects.delete(k),
+      presign: (method: string, k: string) => `mem://${method}/${k}`,
+    };
+    // A worker that answers each job as the test says, writing its result where the job names it.
+    let answer: ((job: { id: string; kind: string }) => Record<string, unknown> | undefined) | 'refuse' = () =>
+      undefined;
+    const worker = createServer(async (req, res) => {
+      let raw = '';
+      for await (const c of req) raw += c;
+      const token = (JSON.parse(raw) as { token: string }).token;
+      const job = JSON.parse(Buffer.from(token.split('.')[0]!, 'base64url').toString()) as {
+        id: string;
+        kind: string;
+        dest: string;
+      };
+      if (answer === 'refuse') {
+        res.writeHead(500).end();
+        return;
+      }
+      const r = answer(job);
+      if (r)
+        objects.set(
+          `${job.dest}result.json`,
+          Buffer.from(JSON.stringify({ job: job.id, kind: job.kind, ms: 1, ...r })),
+        );
+      res.writeHead(200, { 'content-type': 'application/json' }).end('{"ok":true}');
+    });
+    await new Promise<void>((ok) => worker.listen(0, '127.0.0.1', ok));
+    opened.push({ close: async () => void worker.close() });
+    const ex = remoteExecutor({
+      s3,
+      workerUrl: `http://127.0.0.1:${(worker.address() as AddressInfo).port}/`,
+      privateKeyPem: newJobKeys().privatePem,
+      instance: 'studio-a',
+      at: () => ({ epoch: 'e1', rev: 3 }),
+    });
+    const snap = packSnapshot(FIXTURE);
+    const at = { epoch: 'e1', rev: 3 };
+    const data = { schema: { from: 2, to: 3 }, files: { 'game.ts': 'migrated', 'ids.paths.json': '{}' }, skipped: [] };
+    answer = () => ({ data });
+    expect(await ex.migrate(snap, at)).toEqual(data);
+    answer = () => ({ failed: 'the game does not load (exit 1)' });
+    await expect(ex.migrate(snap, at)).rejects.toMatchObject({
+      status: 422,
+      message: 'the migration cannot run: the game does not load (exit 1)',
+    });
+    answer = () => ({ failed: "the game's code did not finish within 60000 ms", timedOut: true });
+    await expect(ex.migrate(snap, at)).rejects.toMatchObject({
+      status: 504,
+      message: expect.stringMatching(/try again/),
+    });
+    // The game's code shaped the answer: a file the migration never writes is refused, and nothing comes back.
+    answer = () => ({ data: { ...data, files: { 'cast.ts': 'export const evil = 1;' } } });
+    await expect(ex.migrate(snap, at)).rejects.toMatchObject({
+      status: 422,
+      message: expect.stringMatching(/the migration is refused: a file the migration may not write: cast\.ts/),
+    });
+    answer = () => ({ data: { ...data, files: { 'rooms/nowhere.ts': '' } } });
+    await expect(ex.migrate(snap, at)).rejects.toMatchObject({ message: expect.stringMatching(/does not have/) });
+    answer = () => undefined;
+    await expect(ex.migrate(snap, at)).rejects.toThrow(/left no usable result/);
+    answer = 'refuse';
+    await expect(ex.migrate(snap, at)).rejects.toThrow(/refused the job \(500\)/);
+    // Every job's staging is gone, whatever its end.
+    expect([...objects.keys()]).toEqual([]);
+  });
+});
+
+describe('the exclusive lease, its edges', () => {
+  const fake = (o: { renew?: () => Promise<number>; take?: () => Promise<never> } = {}) => {
+    const calls: string[] = [];
+    return {
+      calls,
+      leases: {
+        list: async () => [] as never,
+        take: o.take ?? (async () => (calls.push('take'), {})),
+        renew: o.renew ?? (async () => (calls.push('renew'), 1)),
+        release: async () => void calls.push('release'),
+      },
+    };
+  };
+  const owner = () => ({ userId: 'owner', name: 'owner' });
+  const tick = (ms: number) => new Promise((ok) => setTimeout(ok, ms));
+
+  it('says a renewal that fails, and goes on; without a log, says nothing', async () => {
+    const lines: Record<string, unknown>[] = [];
+    let n = 0;
+    const f = fake({
+      renew: async () => {
+        n++;
+        throw n === 1 ? new Error('the database is away') : 'a string';
+      },
+    });
+    await exclusiveRunner(f.leases, owner, { everyMs: 5, log: (l) => void lines.push(l) })(() => tick(30));
+    expect(lines[0]).toEqual({ event: 'lease-renew-failed', message: 'the database is away' });
+    expect(lines[1]).toEqual({ event: 'lease-renew-failed', message: 'a string' });
+    expect(f.calls).toEqual(['take', 'release']);
+    n = 0;
+    await exclusiveRunner(f.leases, owner, { everyMs: 5 })(() => tick(20));
+    expect(n).toBeGreaterThan(0);
+  });
+
+  it('counts operations that start together, releases once, and once when the take is refused', async () => {
+    const f = fake();
+    const run = exclusiveRunner(f.leases, owner);
+    // Both look for the lease before either is counted: they share one run.
+    const [a, b] = await Promise.all([run(async () => 'a'), run(async () => 'b')]);
+    expect([a, b]).toEqual(['a', 'b']);
+    expect(f.calls.filter((c) => c === 'release')).toEqual(['release']);
+    const refused = fake({
+      take: async () => {
+        throw new StudioError('someone holds a span', 423);
+      },
+    });
+    const r = exclusiveRunner(refused.leases, owner);
+    await expect(r(async () => 1)).rejects.toMatchObject({ status: 423 });
+    expect(refused.calls).toEqual(['release']);
+    // The count was given back: the next run takes it again.
+    await expect(r(async () => 1)).rejects.toMatchObject({ status: 423 });
+    expect(refused.calls).toEqual(['release', 'release']);
   });
 });
 
