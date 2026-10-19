@@ -27,7 +27,7 @@ afterEach(async () => {
   rmSync(tmp, { recursive: true, force: true });
 });
 
-function assets(o: { refuse?: boolean } = {}) {
+function assets(o: { refuse?: boolean; none?: boolean } = {}) {
   const log: Record<string, unknown>[] = [];
   const p = new PreparedAssets({
     db,
@@ -35,7 +35,7 @@ function assets(o: { refuse?: boolean } = {}) {
     dir,
     snapshot: async () => ({ epoch: 'e1', rev: 7, bytes: Buffer.from('snap') }),
     prepare: async () => ({
-      files: { 'assets/img/a.webp': Buffer.from('A').toString('base64') },
+      files: (o.none ? {} : { 'assets/img/a.webp': Buffer.from('A').toString('base64') }) as Record<string, string>,
       manifest: '{"images":{}}',
       log: 'images: 1 ready',
     }),
@@ -91,6 +91,8 @@ describe('a run of "Prepare assets"', () => {
     expect(folders()).toEqual([]);
     expect(await db.all('SELECT id FROM studio_prepared')).toEqual([]);
     expect(p.folder()).toBeNull();
+    // A set of no file has no folder to take away: the refusal is still the one said.
+    await expect(assets({ refuse: true, none: true }).p.prepare('lea')).rejects.toThrow('refused by the guard');
   });
 
   for (const gone of [false, true])

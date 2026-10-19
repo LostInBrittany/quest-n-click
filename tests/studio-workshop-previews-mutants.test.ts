@@ -37,10 +37,15 @@ afterEach(async () => {
   rmSync(tmp, { recursive: true, force: true });
 });
 
-/** A loopback server answering with `handle`; a handler that throws ends the response with `threw`. */
+/**
+ * A loopback server answering with `handle`; a handler that throws ends the response with `threw` and is kept in
+ * `errors` (its headers may be sent already: a response can look whole and still have failed).
+ */
 async function served(handle: (req: IncomingMessage, res: ServerResponse, url: URL) => Promise<void>) {
+  const errors: string[] = [];
   const server = createServer((req, res) => {
-    handle(req, res, new URL(req.url ?? '/', 'http://game.local')).catch(() => {
+    handle(req, res, new URL(req.url ?? '/', 'http://game.local')).catch((e) => {
+      errors.push(`${req.url}: ${(e as Error).message}`);
       if (!res.headersSent) res.writeHead(500);
       res.end('threw');
     });
@@ -56,7 +61,7 @@ async function served(handle: (req: IncomingMessage, res: ServerResponse, url: U
       body: await r.text(),
     };
   };
-  return { get, close: () => new Promise<void>((ok) => server.close(() => ok())) };
+  return { get, errors, close: () => new Promise<void>((ok) => server.close(() => ok())) };
 }
 
 describe('the prepared assets served', () => {
@@ -87,6 +92,7 @@ describe('the prepared assets served', () => {
       expect(await s.get('/assets/img/empty.bin')).toEqual({ status: 200, range: null, length: '0', body: '' });
       // A file of the folder that is no prepared asset is never served.
       expect(await s.get('/notes.txt')).toMatchObject({ status: 404, body: 'not found' });
+      expect(s.errors).toEqual([]);
     } finally {
       await s.close();
     }
