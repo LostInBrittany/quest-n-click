@@ -17,6 +17,7 @@ import { fileURLToPath } from 'node:url';
 import { openSqliteDb } from '../../../bridge/src/store-sqlite';
 import type { SqlDb } from '../../../bridge/src/store-sql';
 import { createStudio, operationContext } from '../ops/core';
+import { mcpEndpoint, type McpEndpoint } from './mcp';
 import { StudioError } from '../ops/errors';
 import { spansOf } from '../ops/spans';
 import { type BlobStore, fsBlobStore } from '../ops/blobs';
@@ -37,7 +38,7 @@ import { openPostgresDb } from './postgres';
 import { newJobKeys } from '../worker/job';
 import { filesOf, packable, packAssets, packFiles, packSnapshot } from '../worker/snapshot';
 import { assetsVersion } from '../../../tools/vite/plugins';
-import { Leases } from './leases';
+import { exclusiveRunner, Leases } from './leases';
 import { Presence } from './live';
 import { StudioClient } from './client';
 import { Play } from './play';
@@ -46,6 +47,7 @@ import type { SolveData } from '../../../tools/studio/types';
 import { PersonalUndo } from '../ops/undo';
 import { Builds, PUBLIC_BUILD_PATH } from './builds';
 import { PreparedAssets } from './prepared';
+import { EngineUpgrade } from './engine-upgrade';
 import { Health, judgeBy } from './health';
 import { Previews } from './previews';
 import { remoteExecutor } from './remote-executor';
@@ -326,6 +328,7 @@ async function main(argv: string[]): Promise<number> {
     return 2;
   }
   let auth: Parameters<typeof studioServer>[0]['auth'];
+  let mcp: McpEndpoint | undefined;
   let authStore: AuthStore | undefined;
   if (config.oidc) {
     if (!secrets.STUDIO_OIDC_CLIENT_SECRET) throw new ConfigError('STUDIO_OIDC_CLIENT_SECRET is required');
@@ -356,6 +359,15 @@ async function main(argv: string[]): Promise<number> {
         readJson,
       }),
     };
+    // The remote MCP (4.2.3, ADR 0029): behind OIDC only, a Bearer token for this Studio's audience.
+    mcp = mcpEndpoint({
+      gate,
+      publicUrl: config.publicUrl,
+      issuer: oidc.issuer,
+      game: config.game,
+      version: String(JSON.parse(readFileSync(new URL('../../../package.json', import.meta.url), 'utf8')).version),
+      log: (line) => console.log(JSON.stringify(line)),
+    });
   }
   const lease = new ServiceLease(db);
   lease.start((held) =>
@@ -386,6 +398,13 @@ async function main(argv: string[]): Promise<number> {
     personalUndo,
   });
   const presence = leases ? new Presence() : undefined;
+  // The project's exclusive lease (`*`) for the member who asks, around a long operation of theirs (prepare, the
+  // engine's upgrade): leases.ts `exclusiveRunner`.
+  const exclusiveLease = leases
+    ? exclusiveRunner(leases, () => operationContext.getStore()?.claimant, {
+        log: (line) => console.log(JSON.stringify(line)),
+      })
+    : <T>(fn: () => Promise<T>) => fn();
   // The engine's folder: the built Studio and the prepared assets are found beside it unless configured.
   const engineRoot = fileURLToPath(new URL('../../..', import.meta.url));
   const publicDir = resolve(config.publicDir ?? join(engineRoot, 'public'));
@@ -415,18 +434,7 @@ async function main(argv: string[]): Promise<number> {
           writeManifest: async (manifest) => {
             await studio.writeFiles('prepare assets', [{ path: 'assets.gen.json', after: manifest }], { undo: false });
           },
-          exclusive: async (fn) => {
-            const who = operationContext.getStore()?.claimant;
-            if (!who || !leases) return fn();
-            // Given back only if this run took it (an owner may already hold the project).
-            const had = (await leases.list()).some((l) => l.span === '*' && l.holder === who.userId);
-            if (!had) await leases.take(who, ['*']);
-            try {
-              return await fn();
-            } finally {
-              if (!had) await leases.release(who.userId, ['*']);
-            }
-          },
+          exclusive: exclusiveLease,
         })
       : undefined;
   void prepared?.start();
@@ -478,6 +486,20 @@ async function main(argv: string[]): Promise<number> {
     : undefined;
   journal.events.on('confirmed', () => void shipper?.ship());
   void shipper?.ship();
+  // A revision's verdict on the worker: the validator, then the solver from a new game, bounded in time (the health's,
+  // and the engine's upgrade's before it writes).
+  const judge = executor
+    ? judgeBy({
+        validate: (bytes, at) => executor!.validateSnapshot(bytes, at),
+        solve: (bytes, at) =>
+          executor!.diagnoseSnapshot(
+            'solve',
+            bytes,
+            { from: null, maxStates: 20_000, mode: 'witness', timeLimitMs: HOSTED_SOLVE_MS },
+            at,
+          ) as Promise<SolveData>,
+      })
+    : undefined;
   // And its health (G3, G4): the verdict by revision, a bisection when the head breaks. Hosted only: there the journal
   // keeps the blobs of every operation, the import's included, which a past revision's files are rebuilt from.
   const health =
@@ -490,20 +512,31 @@ async function main(argv: string[]): Promise<number> {
               await journal.reconcile();
               return { epoch: await journal.epoch(), rev: await journal.revision(), bytes: packSnapshot(gameDir) };
             }),
-          judge: judgeBy({
-            validate: (bytes, at) => executor!.validateSnapshot(bytes, at),
-            solve: (bytes, at) =>
-              executor!.diagnoseSnapshot(
-                'solve',
-                bytes,
-                { from: null, maxStates: 20_000, mode: 'witness', timeLimitMs: HOSTED_SOLVE_MS },
-                at,
-              ) as Promise<SolveData>,
-          }),
+          judge: judge!,
           log: (line) => console.log(JSON.stringify(line)),
         })
       : undefined;
   journal.events.on('confirmed', () => void health?.schedule());
+  // The engine's upgrade (4.2.3 PR 8, H6): the owner's, on the worker, under their exclusive lease, judged before it
+  // is written as one undoable operation. Hosted only: a local Studio runs `web-scumm migrate` itself.
+  const engineUpgrade =
+    executor && hosted && judge
+      ? new EngineUpgrade({
+          snapshot: () =>
+            server.exclusive(async () => {
+              await journal.reconcile();
+              return { epoch: await journal.epoch(), rev: await journal.revision(), bytes: packSnapshot(gameDir) };
+            }),
+          migrate: (bytes, at) => executor!.migrate(bytes, at),
+          judge,
+          write: async (what, files) => {
+            await studio.writeFiles(what, files);
+            return journal.revision();
+          },
+          exclusive: exclusiveLease,
+          log: (line) => console.log(JSON.stringify(line)),
+        })
+      : undefined;
   // The published builds (G6): built by the worker, signed with the Studio's job key (the worker's public key checks
   // a manifest), served at /play/<n>/ on the game's origin, without a session if the owner chose so (D42).
   const jobKey = secrets.STUDIO_WORKER_KEY
@@ -560,6 +593,7 @@ async function main(argv: string[]): Promise<number> {
     lease,
     trustProxy: config.trustProxy,
     auth,
+    mcp,
     leases,
     presence,
     previews,
@@ -567,6 +601,7 @@ async function main(argv: string[]): Promise<number> {
     personalUndo: !!personalUndo,
     builds,
     prepared,
+    engineUpgrade,
     rpo: shipper ? () => shipper.rpoMs() : undefined,
     play,
     client,

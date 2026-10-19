@@ -13,6 +13,7 @@ import { CheckTab } from './check';
 import { NotesStore, NotesTab, roomNotesBlock } from './notes';
 import { PlayTab } from './play';
 import { IrTab } from './ir-tab';
+import { MapTab } from './map-tab';
 import { RemixTab } from './remix-tab';
 import { RoomsTab } from './rooms';
 import { StoryboardTab } from './storyboard';
@@ -20,13 +21,26 @@ import { download, h, toast } from './ui';
 import { must } from '../engine/core/must';
 import { apiUrl, goLogin, hosting, loginHeld, studioFetch } from './api-base';
 import { assetsPanel, buildsPanel } from './builds-panel';
+import { diffPanel } from './diff-panel';
 import { gameLink } from './game-origin';
 import { gateScreen, hostedStudio, type Me, whoAmI } from './hosted';
 
-type TabId = 'rooms' | 'storyboard' | 'assets' | 'voices' | 'music' | 'check' | 'play' | 'language' | 'remix' | 'notes';
+type TabId =
+  | 'rooms'
+  | 'storyboard'
+  | 'map'
+  | 'assets'
+  | 'voices'
+  | 'music'
+  | 'check'
+  | 'play'
+  | 'language'
+  | 'remix'
+  | 'notes';
 const TABS: [TabId, string][] = [
   ['rooms', 'Rooms'],
   ['storyboard', 'Storyboard'],
+  ['map', 'Map'],
   ['assets', 'Assets'],
   ['voices', 'Voices'],
   ['music', 'Music'],
@@ -243,15 +257,19 @@ async function start() {
   const voices = new VoicesTab();
   const music = new MusicTab(info);
   const language = new IrTab(info);
+  const scenario = new MapTab(me?.role === 'reviewer');
   const remix = new RemixTab({
     selection: () => ({
       room: rooms.room,
       entity: rooms.selection ? { kind: rooms.selection.kind, id: rooms.selection.id } : undefined,
     }),
   });
+  // What changed between two revisions (4.2.3): the dev server and a hosted Studio have the route, not the demo.
+  if (!demo) check.el.append(diffPanel());
   const panes: Record<TabId, HTMLElement> = {
     rooms: rooms.el,
     storyboard: storyboard.el,
+    map: scenario.el,
     assets: assets.el,
     voices: voices.el,
     music: music.el,
@@ -282,6 +300,7 @@ async function start() {
     if (t === 'voices') void voices.load();
     if (t === 'music') music.load();
     if (t === 'language') void language.load();
+    if (t === 'map') void scenario.load();
     if (t === 'remix') void remix.load();
   };
   for (const [id, label] of tabs) {
@@ -297,9 +316,18 @@ async function start() {
       toast(by ? `${file} changed by ${by}` : `${file} changed on disk`, 'info');
     rooms.onFileChanged(file);
     assets.onFileChanged(file);
+    scenario.onFileChanged(file);
     if (file === 'storyboard.json' && outside) storyboard.onDiskChange();
     if (file === 'notes.json' && outside) void store.load();
-    if (outside && /\.(ts|json)$/.test(file) && file !== 'notes.json' && file !== 'storyboard.json')
+    // Another member's voice row (H10): read again, so the next edit is made from it.
+    if (file === 'voices.json' && outside) void voices.load();
+    if (
+      outside &&
+      /\.(ts|json)$/.test(file) &&
+      file !== 'notes.json' &&
+      file !== 'storyboard.json' &&
+      file !== 'groupings.json'
+    )
       check.schedule(1000);
   }
   // A shared Studio: the revision, who is here, the leases, the refusals (hosted.ts).

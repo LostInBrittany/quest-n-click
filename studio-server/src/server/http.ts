@@ -13,6 +13,7 @@ import { inAllowlist } from '../../../bridge/src/allowlist';
 import type { SqlDb } from '../../../bridge/src/store-sql';
 import { operationContext, type Studio } from '../ops/core';
 import { isStudioError, StudioError } from '../ops/errors';
+import { MCP_METADATA_PATHS, type McpEndpoint } from './mcp';
 import type { Journal } from '../ops/journal';
 import { isBody, routes } from '../ops/routes';
 import type { Gate } from './auth/gate';
@@ -23,6 +24,7 @@ import { LiveHub, type Presence, serveEvents } from './live';
 import { forPlay, type Play, playTicketBody } from './play';
 import type { Builds } from './builds';
 import type { PreparedAssets } from './prepared';
+import type { EngineUpgrade } from './engine-upgrade';
 import type { Health } from './health';
 import type { Previews } from './previews';
 import type { ServiceLease } from './service-lease';
@@ -103,6 +105,8 @@ export interface StudioServerOptions {
     /** The audit (an owner's takeover names the previous holder). */
     audit?: (actor: string, event: string, detail: unknown) => Promise<void>;
   };
+  /** The remote MCP (4.2.3 PR 5, ADR 0029): `/mcp` and its protected resource's metadata. */
+  mcp?: McpEndpoint;
   /** A shared Studio (PR 6, plan P2 and §5): the spans' leases, who is here, the live events. */
   leases?: Leases;
   presence?: Presence;
@@ -118,6 +122,8 @@ export interface StudioServerOptions {
   builds?: Builds;
   /** The prepared assets (4.2.2 PR 6b): `/api/assets/prepare`. */
   prepared?: PreparedAssets;
+  /** The engine's upgrade of the hosted game (4.2.3 PR 8, H6): `/api/engine/migrate`, the owner's. */
+  engineUpgrade?: EngineUpgrade;
   /** The game's origin (plan §6.1): every request whose `Host` is `playUrl`'s goes there, and nothing else does. */
   play?: { handler: Play; playUrl: string };
   /** The Studio's page, its files and the game's images and sounds (PR 7, client.ts). */
@@ -295,6 +301,9 @@ export function studioServer(o: StudioServerOptions): StudioHttpServer {
       const ip = clientOf(req);
       // The game's origin answers its own paths only: no Studio API, no /auth, ever.
       if (o.play && forPlay(req, o.play.playUrl)) return void (await o.play.handler.handle(req, res, url));
+      // The remote MCP (ADR 0029): where its authorization is (RFC 9728), then the endpoint itself.
+      if (o.mcp && req.method === 'GET' && MCP_METADATA_PATHS.includes(path)) return send(res, 200, o.mcp.metadata());
+      if (o.mcp && path === '/mcp') return void (await o.mcp.handle(req, res, () => readJson(req)));
       // The Studio's page and its files hold no data; the game's images and sounds are a member's.
       if (o.client && (req.method === 'GET' || req.method === 'HEAD')) {
         const kind = o.client.kind(path);
@@ -347,6 +356,26 @@ export function studioServer(o: StudioServerOptions): StudioHttpServer {
         const name = principal ? (principal.user.name ?? author) : 'local';
         const claimant = principal ? { userId: principal.user.id, name } : undefined;
         const r = await operationContext.run({ author, claimant }, () => o.prepared!.prepare(name));
+        return send(res, 200, r);
+      }
+      // The engine's upgrade (4.2.3, H6): an owner's, on the worker, under their exclusive lease; refused (422) before
+      // anything is written when the migrated game fails the validator or the solver.
+      if (sub === '/engine/migrate') {
+        if (!o.engineUpgrade)
+          throw new StudioError("the engine's upgrade needs a hosted Studio with its processing worker", 404);
+        if (req.method !== 'POST') throw new StudioError('not found', 404);
+        if (principal && o.auth) o.auth.gate.require(principal, 'owner');
+        if (!o.lease.held)
+          return send(
+            res,
+            503,
+            { error: 'this instance does not serve writes yet; try again' },
+            { 'retry-after': '2' },
+          );
+        const author = principal ? (principal.user.email ?? principal.user.name ?? principal.user.id) : 'local';
+        const name = principal ? (principal.user.name ?? author) : 'local';
+        const claimant = principal ? { userId: principal.user.id, name } : undefined;
+        const r = await operationContext.run({ author, claimant }, () => o.engineUpgrade!.migrate(name));
         return send(res, 200, r);
       }
       // The published builds (4.2.2, G6): listed and read by a reviewer, published by a dev, rebuilt by an owner.
@@ -463,6 +492,15 @@ export function studioServer(o: StudioServerOptions): StudioHttpServer {
       const op = write ? req.headers['x-studio-op'] : undefined;
       if (op !== undefined && (typeof op !== 'string' || !/^[\w-]{8,64}$/.test(op)))
         throw new StudioError('x-studio-op must be 8 to 64 letters, digits, - or _');
+      // The revision the client read what it edits at (4.2.3, H10): a file written since is a 409 with what changed.
+      const baseHeader = write ? req.headers['x-studio-base'] : undefined;
+      if (baseHeader !== undefined && (typeof baseHeader !== 'string' || !/^\d{1,15}$/.test(baseHeader)))
+        throw new StudioError('x-studio-base must be a revision');
+      const readAt = baseHeader === undefined ? undefined : Number(baseHeader);
+      // Which client: its own writes since its read are not a conflict; another tab's or agent's are, the same member's too.
+      const clientHeader = write ? req.headers['x-studio-client'] : undefined;
+      if (clientHeader !== undefined && (typeof clientHeader !== 'string' || !/^[\w-]{8,64}$/.test(clientHeader)))
+        throw new StudioError('x-studio-client must be 8 to 64 letters, digits, - or _');
       const who = principal?.user.id ?? '';
       // An answer is given back to its own author only: another member who knows the id gets nothing of it.
       const answered = async () =>
@@ -477,6 +515,8 @@ export function studioServer(o: StudioServerOptions): StudioHttpServer {
           {
             id: op,
             author,
+            readAt,
+            client: clientHeader,
             claimant: principal
               ? {
                   userId: principal.user.id,
@@ -498,6 +538,8 @@ export function studioServer(o: StudioServerOptions): StudioHttpServer {
             replayed = await answered();
             if (replayed) return undefined;
             const r = await run();
+            // The revision after it (H10): what its client has read from now on, its own write included.
+            revision = await o.journal.revision();
             if (op) {
               // Kept 7 days: long enough for any retry of a client that was cut off. Written under the lock, before
               // the next write of the same id can look for it.

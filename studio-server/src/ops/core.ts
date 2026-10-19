@@ -35,6 +35,14 @@ import { loadAssets, loadLayouts, loadLocales } from '../../../src/engine/tools/
 import { GAME_DIR, ROOT, type GameModule } from '../../../tools/game';
 import { gameIR } from '../../../tools/game-ir';
 import type { GameIR } from '../../../src/engine/core/ir';
+import { diffFile, type FileDiff, type Side } from '../../../tools/studio/semantic-diff';
+import {
+  type GroupingsFile,
+  groupingsProblems,
+  readableGroupings,
+  type ScenarioMap,
+  scenarioMap,
+} from '../../../tools/studio/scenario-map';
 import { normalizeStoryboard, storyboardMarkdown, storyboardProblems } from '../../../tools/pages/storyboard-data';
 import {
   addToSection,
@@ -199,6 +207,10 @@ export const operationContext = new AsyncLocalStorage<{
   seq?: number;
   /** Who claims the spans an operation touches (a shared Studio, 4.2.1 P2), and the fences their client holds. */
   claimant?: { userId: string; name: string; fences?: Record<string, number> };
+  /** The revision the client read what it edits at (4.2.3, H10: `x-studio-base`). */
+  readAt?: number;
+  /** The client the request comes from (`x-studio-client`: a tab, a CLI or MCP session). */
+  client?: string;
 }>();
 
 /** The `id` set_value takes for the game file instead of a room (4.1.12): its objectives. */
@@ -377,6 +389,8 @@ export function createStudio(opts: StudioOptions = {}) {
       author: ctx?.author ?? o.who ?? author,
       what,
       effects: effects.map((e) => ({ path: inGame(e.file), after: e.after })),
+      readAt: ctx?.readAt,
+      client: ctx?.client,
       // The files as this operation read them: another process that wrote one meanwhile makes it a 409, not a loss.
       expect: Object.fromEntries(
         effects.map((e) => [inGame(e.file), hashOf(e.from !== undefined ? e.from : (befores.get(e.file) ?? null))]),
@@ -571,6 +585,40 @@ export function createStudio(opts: StudioOptions = {}) {
     }));
   }
 
+  /**
+   * What changed between revisions `from` and `to` (4.2.3, H3), file by file, by what the game names: the files the
+   * operations between them wrote, each compared at both sides (its content before the first of those operations, after
+   * the last), ids in a source, value paths in a JSON. 2,000 revisions and 500 files at most; the game's `private/`
+   * left out (a reviewer reads this); a content the journal did not keep (a local journal's adopted files) is opaque.
+   */
+  async function diff(from: number, to: number): Promise<{ from: number; to: number; files: FileDiff[]; cut?: true }> {
+    if (!Number.isSafeInteger(from) || !Number.isSafeInteger(to) || from < 0 || to < from)
+      throw new StudioError('from and to are revisions, from ≤ to');
+    if (to - from > 2_000) throw new StudioError('2,000 revisions at most between from and to');
+    const j = await journal();
+    if (to > (await j.revision())) throw new StudioError(`no revision ${to} yet`, 404);
+    // Each file's side at `from` is the first operation's before, at `to` the last one's after.
+    const sides = new Map<string, { a: string; b: string }>();
+    for (let r = from + 1; r <= to; r++)
+      for (const e of await j.effectsAt(r)) {
+        if (/^private(\/|$)/.test(e.path)) continue;
+        const s = sides.get(e.path);
+        if (s) s.b = e.after;
+        else sides.set(e.path, { a: e.before, b: e.after });
+      }
+    const side = async (h: string): Promise<Side> => {
+      if (h === ABSENT) return { present: false, text: null };
+      const bytes = await j.blob(h).catch(() => null);
+      if (!bytes || bytes.length > 1024 * 1024 || bytes.includes(0)) return { present: true, text: null };
+      const text = bytes.toString('utf8');
+      return { present: true, text: Buffer.from(text, 'utf8').equals(bytes) ? text : null };
+    };
+    const changed = [...sides].filter(([, s]) => s.a !== s.b).sort(([x], [y]) => (x < y ? -1 : 1));
+    const files: FileDiff[] = [];
+    for (const [path, s] of changed.slice(0, 500)) files.push(diffFile(path, await side(s.a), await side(s.b)));
+    return { from, to, files, ...(changed.length > 500 ? { cut: true } : {}) };
+  }
+
   /** The game's IR (4.1.12, ADR 0013), with the file and line of each id and the trusted extensions' hash. */
   async function ir(): Promise<GameIR> {
     return gameIR(await loadModule(), dir);
@@ -684,6 +732,32 @@ export function createStudio(opts: StudioOptions = {}) {
       await write('storyboard', [{ file, after: formatJson(sb) }], { undo: false });
       return { ok: true as const, changed: true };
     });
+  }
+
+  // The scenario map (4.2.3, H1): the groupings a team declares, and the map derived from them and the IR.
+  const groupingsFile = () => join(dir, 'groupings.json');
+
+  /** The readable groupings, and what a hand-edited file holds that is not (`skipped`, said by the Map tab). */
+  function getGroupings(): GroupingsFile & { skipped: string[] } {
+    return readableGroupings(readJson<unknown>(groupingsFile(), null));
+  }
+
+  /** Writes `groupings.json` only: a grouping references what the game names, never writes it. */
+  function setGroupings(v: unknown): Promise<{ ok: true; changed: boolean }> {
+    return serial(async () => {
+      const problems = groupingsProblems(v);
+      if (problems.length) throw new StudioError(problems.join('; '));
+      const file = groupingsFile();
+      const next = { groupings: (v as GroupingsFile).groupings };
+      if (existsSync(file) && sameJson(readJson(file, null), next)) return { ok: true as const, changed: false };
+      await write('groupings', [{ file, after: formatJson(next) }], { undo: false });
+      return { ok: true as const, changed: true };
+    });
+  }
+
+  async function map(): Promise<ScenarioMap> {
+    const { groupings } = getGroupings();
+    return scenarioMap(await ir(), { groupings });
   }
 
   const notesFile = () => join(dir, 'notes.json');
@@ -978,6 +1052,7 @@ export function createStudio(opts: StudioOptions = {}) {
     /** The game module, imported fresh (for tools that read the whole game, e.g. asset prompts). */
     loadGame: loadModule,
     gameInfo,
+    diff,
     ir,
     getRoom,
     texts,
@@ -993,6 +1068,9 @@ export function createStudio(opts: StudioOptions = {}) {
     playtests,
     getStoryboard,
     setStoryboard,
+    getGroupings,
+    setGroupings,
+    map,
     getNotes,
     addNote,
     editNote,
