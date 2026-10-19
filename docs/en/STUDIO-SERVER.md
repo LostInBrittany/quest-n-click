@@ -8,7 +8,8 @@ it was: none of this is needed.
 > **Status (4.2.2, experimental).** The journal (no confirmed change is lost), logins and roles, the processing
 > worker, spans and leases, the live stream, the game's own origin with its previews (one build per revision), the
 > health by revision, personal undo, published builds, the assets prepared on the worker, backup and restore, and the
-> Studio's screens for all of this. It stays experimental until its people's passes (`studio-hosted`, `studio-collab`,
+> Studio's screens for all of this; since 4.2.3, the Assets tab's uploads and sheets' cutting, Prepare and the cuts as
+> jobs that can be followed and cancelled. It stays experimental until its people's passes (`studio-hosted`, `studio-collab`,
 > `studio-preview`, `studio-assets-hosted`) are made. This guide deploys from the repository; the release archive `web-scumm-studio-server` is
 > the same server (below).
 
@@ -208,6 +209,81 @@ on the worker as it is now, not that its content is harmless. A build's code nev
 the instance's prepared assets, served beside it as they are now. A published build has no service worker (it is not
 installed for offline play) and its saves are not yet told apart by build.
 
+## Comments (4.2.3)
+
+In the Notes tab of a shared Studio, a member comments on what the game names (a room, `hall.door`, `item:key`, a
+rule's id, a storyboard panel), or on the game itself. A comment keeps the revision it was written at; replies make a
+thread, resolved or opened again as one. Reviewers comment too: comments are kept by the Studio (in its database, in
+the backup), never in a game file, so no game file is written for them. A comment whose anchor the game no longer
+names (its rooms, rules, scripts, entities, objectives and checkpoints, the storyboard's boards and panels) is
+said "orphan", never attached elsewhere; a line's id is not an anchor. Its author alone changes its text; a reviewer resolves their own
+threads, a dev any. An owner brings the notes of `notes.json` in (each once, its `about` the anchor). Routes: GET/POST
+`/api/comments`, PUT `/api/comments/<id>`, POST `/api/comments/import-notes`.
+
+## The game in Git (4.2.3)
+
+`git` in the configuration (optional) names the game's repository: `{ "remote": "git@github.com:org/game.git",
+"branch": "main", "path": "games/my-game", "committer": { "name": "…", "email": "…" } }` (`branch` defaults to `main`,
+`path` to the repository's root). Its deploy key (a key with write access to that one repository, D44) is the secret
+`STUDIO_GIT_KEY` (`STUDIO_GIT_KEY_FILE` locally; on Clever Cloud a variable). A public https or a local remote needs
+none; a remote URL never carries credentials. The Play tab shows where the game goes and the last revision pushed:
+
+- **Push** (an owner): one commit of the revisions confirmed since the last push, the game's files at the head in
+  `path`, each author of those revisions a `Co-authored-by` (their email, or their name at a mailbox that does not
+  exist); the rest of the repository is left as it is. Nothing new pushes nothing.
+- **Never forced.** A branch that moved since the Studio's last push (someone pushed there) is refused (409), and so is
+  a branch that exists but the Studio never imported: import it first.
+- **Import** (an owner, asked twice): the branch, another branch of the remote, or a commit by its hash, as it is in
+  `path`, written as one revision under the exclusive lease. It replaces what the Studio had not pushed (still in its
+  history). The branch's tip imported, the next push builds on it; another commit, the next push goes on the tip the
+  Studio knows. A link, a submodule, or a file the game cannot hold refuses the whole import.
+
+The Studio never checks a working tree out: a push builds its commit from objects, an import reads the commit's
+objects, so the repository's links, attributes and ignore rules cannot reach the server's files. Files whose path has
+a segment starting with a dot (`.github/`, `.gitignore`) are the repository's: kept by a push, skipped by an import. The
+game's `private/` never goes to the repository, and an import leaves it as it is. An
+author's email goes in a `Co-authored-by` only when the provider verified it; otherwise their name at
+`users.noreply.<the Studio's host>`. Git runs with an environment of its own, the key in a file for one command, the
+clone in `workDir/git` (made again when the disk is new). Give the remote host's keys as `git.knownHosts`
+(`known_hosts` lines) to check them strictly; without them the host is trusted on first use, again after each new
+disk.
+
+## Upgrading the engine of a hosted game
+
+A game imported from a 4.1.x project that never ran `web-scumm migrate` is still at authoring schema 2 (no
+`schemaVersion: 3`, no stable ids). On a hosted Studio an owner upgrades it with `POST /api/engine/migrate` (4.2.3):
+
+```bash
+curl -X POST -H "Authorization: Bearer $(npx web-scumm-studio-server token --server https://studio.example)" \
+  https://studio.example/api/engine/migrate
+```
+
+- **Exclusive.** It runs under the owner's exclusive lease (`*`): nobody else writes meanwhile (their writes get a 423
+  with the owner's name, their drafts stay with them, and they write again once it is done). One at a time (429).
+- **On the worker.** The worker runs the same migration as `web-scumm migrate` on the head's snapshot: the stable ids
+  written into `rooms/*.ts`, `rules.ts`, `items.ts` and `game.ts`, the translation tables' keys renamed,
+  `ids.migration.json` and `ids.paths.json`, then the three lines UPGRADING leaves to the author in `game.ts`
+  (`schemaVersion: 3`, `saveVersion` + 1, `migrations: [..., idsMigration]` and its import: all three or none, said in
+  `skipped`). `defineGame({...})` must be in `game.ts` (a game that defines it elsewhere is refused: migrate it
+  locally). Nothing is written yet, and nothing but those files: the Studio refuses an answer that names another file,
+  or a file the game does not have (the game's code runs before the migration and could shape it).
+- **Judged before it is written.** The migrated game is judged on the worker as the health judges a revision: the
+  validator, then the solver from a new game, bounded in time. A game the migration would break (an id the tool could
+  not write, a list built by code, a game that can no longer be finished), or that the solver cannot judge in time, is
+  refused with a 422 (`errors`, `skipped`: what the tool could not write) and the head stays as it was: migrate it on a
+  local Studio (`web-scumm migrate`, then `npm run ids` to see what is left) and import it again, or fix it first.
+- **One revision.** Otherwise the changed files are written as one operation (`engine upgrade: authoring schema 2 →
+  3`), through the guard, and the answer is `{ revision, changed, paths, schema: { from, to } }` (`paths`: the files
+  written). A game already at schema 3
+  answers `{ changed: 0 }` and nothing is written.
+- **Taken back.** The owner's Undo takes it back, as a new revision (409 if someone wrote one of its files since); or
+  the project goes back to a backup taken before (see below): take one first.
+
+In the 4.2.x line the content format is frozen (D40): this is for a game made on 4.1.x. A local Studio has no route:
+run `web-scumm migrate` in the project. The project's `tsconfig.json` (`baseUrl`, which `web-scumm migrate` also
+fixes) is not part of a hosted game and is left alone. The playtests (`playtests/`) are neither migrated nor judged:
+replay them after the upgrade (a session recorded at schema 2 may name the old positional keys). There is no button yet: the route is the way in.
+
 ## Backup and restore
 
 - **The journal shipped**: each confirmed operation is copied to the bucket, in order, as an immutable segment
@@ -393,16 +469,31 @@ SQLite and a folder for the contents, on the loopback only.
   `studio-preview` pass does). A bisection asks for up to two jobs per revision it judges.
 - Each revision's preview is kept (about 1 MB for the sample game: the base `/preview/<rev>/` is written into the
   page and its code, so few files are shared between revisions) until the collection of a later 4.2.2 PR.
-- The Assets tab is not on a hosted Studio yet (its uploads and sprite sheets: 4.2.3). The Play tab's **Prepare
-  assets** (a dev, 4.2.2) runs `prepare` on the worker from the head's art and sounds, under the project's exclusive
-  lease (nobody writes meanwhile; someone else's span refuses it, with their name): the prepared set is kept by the
-  Studio and served before `publicDir`, and the game's `assets.gen.json` is written as one operation. Each run prepares
-  everything again, within 2 minutes; it cannot be cancelled nor followed step by step yet. It is refused, and the game
-  is prepared on a local Studio, when: its art and sounds pass about 31 MiB (in base64) or the prepared files about
-  22 MiB; it names its sources in `sources.json` (they live outside the art and sounds a hosted Studio holds); the new
-  manifest would lose an image or a sound the game had. Published builds serve the prepared set as it is now, not the
-  one they were built against. The game's code runs on the worker as the asset tools' user (ADR 0028: one machine, one
-  user).
+- The Assets tab is on a hosted Studio since 4.2.3: a reviewer reads its listing, prompts and files; a dev uploads and
+  cuts. An upload (a sound, a decor) is 10 MiB at most once decoded (413 past it) and its type is read from its bytes:
+  a PNG, JPEG or WebP image (a decor: PNG or JPEG), an Ogg, MP3 or WAV sound whose extension says the same (415
+  otherwise; a local Studio also takes M4A, FLAC, AAC, Opus and WebM); it is written as one operation, never run. A
+  sheet's cutting and a cell's keying run on the worker (`cut` jobs, Python with the hook's packages, no game code),
+  under the project's exclusive lease: the worker gets the image, that sheet's cells and `site.json`, gives back only
+  cells of that sheet, and the cells with the backups of those recut are written as one operation. A hosted Studio
+  does not keep the uploaded sheet itself (a local one keeps it under `private/sheets/`, which no span names).
+- The Play tab's (and the Assets tab's) **Prepare assets** (a dev, 4.2.2) runs `prepare` on the worker from the
+  head's art and sounds, under the project's exclusive lease (nobody writes meanwhile; someone else's span refuses
+  it, with their name): the prepared set is kept by the Studio and served before `publicDir`, and the game's
+  `assets.gen.json` is written as one operation. Each run prepares everything again, within 2 minutes. It is refused,
+  and the game is prepared on a local Studio, when: its art and sounds pass about 31 MiB (in base64) or the prepared
+  files about 22 MiB; it names its sources in `sources.json` (they live outside the art and sounds a hosted Studio
+  holds); the new manifest would lose an image or a sound the game had. Published builds serve the prepared set as it
+  is now, not the one they were built against. The game's code runs on the worker as the asset tools' user (ADR 0028:
+  one machine, one user).
+- Prepare and the cuts are **jobs** (4.2.3): the request answers 202 with the job at once; its states go to the live
+  stream (`job` events, in order: `queued`, `running` with its steps `packing`, `on the worker`, `writing`, then
+  `done`, `failed` or `cancelled`) and `GET /api/jobs/<id>` reads it again. One runs at a time, four more may wait
+  (429 past them). `POST /api/jobs/<id>/cancel` (who started it, or an owner) cancels it: a waiting job never runs; a
+  running one has its request to the worker closed, and the worker kills its child with its process group; nothing
+  is written (no operation, no prepared set kept) and the exclusive lease is given back. Once a job is writing, it is
+  past cancelling (409). A job is kept in the instance's memory: after a restart its state is gone (its write, if it
+  was made, is in the journal).
 - A game frame left idle past its 15 min session shows nothing new: "Reload view" (or the Play tab) opens it again.
 - Captures are not available on a hosted Studio.
 - The Play tab shows the game with its DEV panel; the state inspector, the rule explainer and the replays beside it

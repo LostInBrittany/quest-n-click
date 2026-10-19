@@ -15,7 +15,7 @@ import { Journal } from '../studio-server/src/ops/journal';
 import { migrate } from '../bridge/src/migrations';
 import { backupOf, checkBackup, restoreInto } from '../studio-server/src/ops/backup';
 import { finishRestore, replaySegments, Shipper } from '../studio-server/src/ops/ship';
-import { ConfigError, loadConfig, takeSecrets } from '../studio-server/src/server/config';
+import { ConfigError, loadConfig, takeSecrets, withoutConfig } from '../studio-server/src/server/config';
 import { studioServer } from '../studio-server/src/server/http';
 import { openPostgresDb } from '../studio-server/src/server/postgres';
 import { S3, s3BlobStore } from '../studio-server/src/server/s3';
@@ -93,6 +93,11 @@ describe('configuration and secrets', () => {
     const example = readFileSync(join(ROOT, 'ops', 'studio', 'studio.config.example.json'), 'utf8');
     expect(loadConfig('STUDIO_CONFIG_JSON', example).worker?.instance).toBe('my-game-studio');
     expect(() => loadConfig('STUDIO_CONFIG_JSON', '{ nope')).toThrow(ConfigError);
+    // A command's arguments, with or without `--config` (4.2.3: without it, the first one was dropped and the daily
+    // `backup --to-bucket` of ops/studio/backup-cron.sh failed).
+    expect(withoutConfig(['--to-bucket', '--keep', '14'])).toEqual(['--to-bucket', '--keep', '14']);
+    expect(withoutConfig(['games/demo', '--config', 'c.json'])).toEqual(['games/demo']);
+    expect(withoutConfig(['--config', 'c.json', '--email', 'a@b.fr'])).toEqual(['--email', 'a@b.fr']);
     // Public builds (4.2.2, D42): off unless said, and said with a boolean.
     writeFileSync(f, JSON.stringify(base));
     expect(loadConfig(f).publicBuilds).toBe(false);
@@ -102,6 +107,25 @@ describe('configuration and secrets', () => {
     expect(() => loadConfig(f)).toThrow(/publicBuilds is true or false/);
     writeFileSync(f, JSON.stringify({ ...base, typo: 1 }));
     expect(() => loadConfig(f)).toThrow(/unknown key "typo"/);
+    // The game's repository (4.2.3, H5): its URL without credentials, a branch name, a folder inside, a committer.
+    const git = {
+      remote: 'git@example.org:org/game.git',
+      branch: 'main',
+      path: 'games/g',
+      committer: { name: 'S', email: 's@x' },
+    };
+    writeFileSync(f, JSON.stringify({ ...base, git }));
+    expect(loadConfig(f).git).toEqual(git);
+    for (const [bad, why] of [
+      [{ remote: '' }, /git.remote/],
+      [{ remote: 'https://user:pw@example.org/g.git' }, /no credentials/],
+      [{ ...git, branch: 'a b' }, /git.branch/],
+      [{ ...git, path: '../out' }, /git.path/],
+      [{ ...git, committer: { name: 'S', email: 'nope' } }, /git.committer/],
+    ] as const) {
+      writeFileSync(f, JSON.stringify({ ...base, git: bad }));
+      expect(() => loadConfig(f)).toThrow(why);
+    }
   });
 });
 
@@ -135,7 +159,7 @@ describe('the server over HTTP (SQLite, files)', () => {
     expect(await (await fetch(`${base}/readyz`)).json()).toEqual({ ok: true, writes: 'served' });
   });
 
-  it('lists and prepares the assets when the worker prepares them (4.2.2)', async () => {
+  it('lists and prepares the assets when the worker prepares them (4.2.2), as a job (4.2.3)', async () => {
     expect((await fetch(`${base}/api/assets/prepared`)).status).toBe(404);
     const calls: string[] = [];
     const prepared = {
@@ -153,7 +177,15 @@ describe('the server over HTTP (SQLite, files)', () => {
         headers: { 'content-type': 'application/json' },
         body: '{}',
       });
-      expect(await r.json()).toEqual({ id: 2, rev: 3, files: 9 });
+      // A job since 4.2.3 (H8): answered at once, its result read when it is done.
+      expect(r.status).toBe(202);
+      const { id } = (await r.json()) as { id: string };
+      let job: { state: string; result?: unknown } = { state: 'queued' };
+      for (let i = 0; i < 100 && job.state !== 'done'; i++) {
+        await new Promise((ok) => setTimeout(ok, 20));
+        job = await (await fetch(`${api}/jobs/${id}`)).json();
+      }
+      expect(job).toMatchObject({ state: 'done', result: { id: 2, rev: 3, files: 9 } });
       expect((await fetch(`${api}/assets/prepare`)).status).toBe(404);
       expect(calls).toEqual(['list', 'prepare local']);
     } finally {
@@ -351,6 +383,21 @@ describe('import, serve, export through the command', () => {
     expect(run('import', join(ROOT, 'games', '_template'))).toContain('"imported"');
     const out = join(tmp, 'exported');
     expect(run('export', out)).toContain('"exported"');
+    // The configuration from STUDIO_CONFIG_JSON, no --config: the command keeps its first argument (4.2.3, the daily
+    // backup's cron), and invite reads only the flags it is given.
+    const bare = (...a: string[]) =>
+      execFileSync(process.execPath, ['--import', 'tsx', join(ROOT, 'studio-server/src/server/main.ts'), ...a], {
+        cwd: ROOT,
+        encoding: 'utf8',
+        env: {
+          ...Object.fromEntries(Object.entries(process.env).filter(([k]) => k !== 'STUDIO_CONFIG')),
+          STUDIO_CONFIG_JSON: readFileSync(cfg, 'utf8'),
+        },
+        stdio: ['ignore', 'pipe', 'pipe'],
+      });
+    expect(bare('export', join(tmp, 'exported-bare'))).toContain('"exported"');
+    expect(() => bare('invite', 'owner', '--email', 'a@b.fr')).toThrow();
+    expect(() => bare('invite', '--email', '--role', 'dev')).toThrow();
     const m = JSON.parse(readFileSync(join(out, 'export-manifest.json'), 'utf8')) as {
       revision: number;
       files: { path: string; blob: string }[];

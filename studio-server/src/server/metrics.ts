@@ -179,6 +179,11 @@ export class Metrics implements JobObserver {
     if (status === 423) this.conflicts.inc();
   }
 
+  /** A job that failed as a 423 would have (4.2.3: prepare and the cutting answer 202, their conflict comes later). */
+  jobFailed(status: number | undefined): void {
+    if (status === 423) this.conflicts.inc();
+  }
+
   /** A line the server logs: the previews' and the health's durations, and the failures, are read from it. */
   fromLog(line: Record<string, unknown>): void {
     const ms = typeof line.ms === 'number' && Number.isFinite(line.ms) ? line.ms : undefined;

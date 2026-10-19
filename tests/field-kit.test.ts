@@ -214,6 +214,17 @@ describe('the passes of a release', () => {
     expect(older).not.toContain('studio-hosted');
   });
 
+  it('4.2.3 asks nineteen: an agent through the remote MCP, and a second OIDC provider', () => {
+    const section = renderPasses(
+      passesFor('4.2.3').map((id) => blankReport(id, '4.2.3', manifest)),
+      manifest,
+    );
+    expect(section).toContain('of 19.');
+    expect(section).toContain('(`studio-mcp-remote`)');
+    expect(section).toContain('(`studio-oidc-generic`)');
+    expect(passesFor('4.2.2')).not.toContain('studio-mcp-remote');
+  });
+
   it('4.2.2 asks seventeen: the workshop played and its assets prepared, hosted', () => {
     const section = renderPasses(
       passesFor('4.2.2').map((id) => blankReport(id, '4.2.2', manifest)),

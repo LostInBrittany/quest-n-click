@@ -75,6 +75,11 @@ export const RULES: readonly Rule[] = [
   { re: /\.md$/, gates: [], why: 'documentation' },
   { re: /^(LICENSE[^/]*|\.gitignore|\.git-blame-ignore-revs|\.mcp\.json)$/, gates: [], why: 'repository metadata' },
   { re: /^\.(claude|cursor)\//, gates: [], why: 'agent configuration' },
+  {
+    re: /^clevercloud\//,
+    gates: [],
+    why: "Clever Cloud's own files (the daily backup's cron, 4.2.3): read when deployed",
+  },
   { re: /^\.github\//, gates: [], why: 'another workflow or a template (not run by ci)' },
 
   // The engine, by the part a change can break; the rest of src/engine is the core: everything.

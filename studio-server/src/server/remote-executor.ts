@@ -12,10 +12,13 @@ import type { ValidateResult } from '../../../tools/studio/types';
 import { type Job, type JobKind, MAX_JOB_MS, privateKeyOf, signJob } from '../worker/job';
 import type { JobResult } from '../worker/main';
 import { PreviewBuildFailed, type PreviewParams, previewFiles } from '../worker/preview-build';
-import { packSnapshot } from '../worker/snapshot';
+import { packSnapshot, snapshotTexts } from '../worker/snapshot';
 import type { DiagnoseKind } from '../ops/diagnose';
 import { StudioError } from '../ops/errors';
+import { type Migrated, migratedShape } from '../worker/migrate';
 import { type Prepared, preparedShape } from '../worker/prepare';
+import { type Cut, cutShape } from '../worker/cut';
+import type { CutRequest } from '../../../tools/studio/cut';
 import type { JobObserver } from './metrics';
 import type { S3 } from './s3';
 
@@ -45,6 +48,8 @@ export function remoteExecutor(o: RemoteExecutorOptions) {
     params: Record<string, unknown> = {},
     // The revision the snapshot was packed at, when the caller knows it (a preview): bound into the job as it is.
     at?: { epoch: string; rev: number },
+    // A cancel (4.2.3, H8): the request to the worker is closed (the worker then kills the child), the result dropped.
+    signal?: AbortSignal,
   ): Promise<JobResult> {
     const sha = createHash('sha256').update(snapshot).digest('hex');
     // Only an answer that depends on the snapshot alone is kept (a diagnostic depends on its parameters too).
@@ -62,8 +67,8 @@ export function remoteExecutor(o: RemoteExecutorOptions) {
         instance: o.instance,
         ...(at ?? (await o.at())),
         kind,
-        // A `prepare` has the worker's longest deadline (a whole game's images and sounds, encoded again).
-        params: { ...params, timeoutMs: kind === 'prepare' ? 120_000 : timeoutMs },
+        // A `prepare` or a `cut` has the worker's longest deadline (a whole game's images and sounds, encoded again).
+        params: { ...params, timeoutMs: kind === 'prepare' || kind === 'cut' ? 120_000 : timeoutMs },
         snapshot: sha,
         dest,
         exp: Date.now() + MAX_JOB_MS,
@@ -77,10 +82,11 @@ export function remoteExecutor(o: RemoteExecutorOptions) {
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({ token: signJob(job, key) }),
         // The job's own expiry: the worker runs no job past it, so waiting longer would gain nothing.
-        signal: AbortSignal.timeout(MAX_JOB_MS),
+        signal: signal ? AbortSignal.any([AbortSignal.timeout(MAX_JOB_MS), signal]) : AbortSignal.timeout(MAX_JOB_MS),
       });
       await r.body?.cancel();
       if (!r.ok) throw new Error(`the processing worker refused the job (${r.status})`);
+      signal?.throwIfAborted();
       const bytes = await o.s3.get(`${dest}result.json`, { max: MAX_RESULT });
       if (!bytes) throw new Error('the processing worker left no usable result');
       const v = JSON.parse(bytes.toString('utf8')) as JobResult;
@@ -129,13 +135,41 @@ export function remoteExecutor(o: RemoteExecutorOptions) {
     validate: (dir: string): Promise<ValidateResult> => validateSnapshot(packSnapshot(dir)),
     validateSnapshot,
     /** The asset tools' `prepare` (4.2.2 PR 6b) on a version 2 snapshot: the prepared files and the new manifest. */
-    async prepare(snapshot: Buffer, at: { epoch: string; rev: number }, game: string): Promise<Prepared> {
-      const v = await run('prepare', snapshot, { game }, at);
+    async prepare(
+      snapshot: Buffer,
+      at: { epoch: string; rev: number },
+      game: string,
+      signal?: AbortSignal,
+    ): Promise<Prepared> {
+      const v = await run('prepare', snapshot, { game }, at, signal);
       if (v.timedOut) throw new StudioError(`${v.failed}: try again, or prepare on a local Studio`, 504);
       if (v.failed) throw new StudioError(v.failed, 422);
       const p = preparedShape(v.data);
       if ('refused' in p) throw new StudioError(`the prepared assets are refused: ${p.refused}`, 422);
       return p;
+    },
+    /**
+     * A sheet's cutting or a cell's keying (4.2.3 PR 7) on a cut's snapshot (snapshot.ts `packCut`): the cells written.
+     */
+    async cut(snapshot: Buffer, game: string, req: CutRequest, signal?: AbortSignal): Promise<Cut> {
+      const v = await run('cut', snapshot, { game, req }, undefined, signal);
+      if (v.timedOut) throw new StudioError(`${v.failed}: try again, or cut it on a local Studio`, 504);
+      if (v.failed) throw new StudioError(v.failed, 422);
+      const c = cutShape(v.data, req);
+      if ('refused' in c) throw new StudioError(`the cut is refused: ${c.refused}`, 422);
+      return c;
+    },
+    /**
+     * The engine's upgrade (4.2.3 PR 8) of a snapshot's game: the files it would change, written nowhere. A game that
+     * does not load, or that the tool refuses (a schema newer than this engine's), is a 422; a deadline missed, a 504.
+     */
+    async migrate(snapshot: Buffer, at: { epoch: string; rev: number }): Promise<Migrated> {
+      const v = await run('migrate', snapshot, {}, at);
+      if (v.timedOut) throw new StudioError(`${v.failed}: try again`, 504);
+      if (v.failed) throw new StudioError(`the migration cannot run: ${v.failed}`, 422);
+      const m = migratedShape(v.data, new Set(snapshotTexts(snapshot).keys()));
+      if ('refused' in m) throw new StudioError(`the migration is refused: ${m.refused}`, 422);
+      return m;
     },
     /** The game module as data, for the Studio's reads (functions dropped, as `importInChild` gives it). */
     async load(dir: string): Promise<unknown> {

@@ -2,6 +2,7 @@
 // secrets each from a file (`<NAME>_FILE`, mode 0600, preferred) or from the environment (Clever Cloud injects add-on
 // credentials as variables). A secret read from the environment is then removed from `process.env`, so no child
 // process ever inherits it; no secret is ever logged; a value that is not text, or too short, is refused at start.
+import { BRANCH, type GitConfig } from './git';
 import { readFileSync, statSync } from 'node:fs';
 
 interface StoreConfig {
@@ -60,6 +61,11 @@ export interface StudioServerConfig {
    * default). Everything else of the game's origin stays behind the session.
    */
   publicBuilds?: boolean;
+  /**
+   * The game's Git repository (4.2.3, H5, D44: one per instance): owners push the revisions there and import from it.
+   * Its deploy key is the secret STUDIO_GIT_KEY (none for a public https or a local remote).
+   */
+  git?: GitConfig;
 }
 
 /** The secrets, by name; each from `<NAME>_FILE` or `<NAME>` in the environment. */
@@ -72,6 +78,7 @@ const SECRET_NAMES = [
   'STUDIO_WORKER_KEY',
   // The metrics' token (4.2.3, H9): `GET /metrics` is served only with it.
   'STUDIO_METRICS_TOKEN',
+  'STUDIO_GIT_KEY',
 ] as const;
 export type SecretName = (typeof SECRET_NAMES)[number];
 
@@ -83,6 +90,15 @@ const ALIASES: Partial<Record<SecretName, string[]>> = {
 };
 
 export class ConfigError extends Error {}
+
+/**
+ * A command's arguments without `--config <file>` (4.2.3: without the flag, the first argument was dropped, so `import
+ * <dir>`, `invite` and the daily `backup --to-bucket` failed when the configuration came from STUDIO_CONFIG_JSON).
+ */
+export function withoutConfig(rest: string[]): string[] {
+  const at = rest.indexOf('--config');
+  return at < 0 ? rest : rest.filter((_, i) => i !== at && i !== at + 1);
+}
 
 /**
  * Reads the secrets once, then removes every variable that held one from `env` (by default `process.env`). Returns
@@ -158,6 +174,7 @@ export function loadConfig(file: string, text?: string): StudioServerConfig {
     'clientDir',
     'publicDir',
     'publicBuilds',
+    'git',
   ]);
   for (const k of Object.keys(raw)) if (!known.has(k)) throw new ConfigError(`${file}: unknown key "${k}"`);
   if (!isUrl(raw.publicUrl)) throw new ConfigError(`${file}: publicUrl must be an http(s) URL`);
@@ -180,6 +197,34 @@ export function loadConfig(file: string, text?: string): StudioServerConfig {
     throw new ConfigError(`${file}: blobs.host and blobs.bucket are required`);
   if (raw.publicBuilds !== undefined && typeof raw.publicBuilds !== 'boolean')
     throw new ConfigError(`${file}: publicBuilds is true or false`);
+  const git = raw.git as GitConfig | undefined;
+  if (git !== undefined) {
+    if (!git || typeof git.remote !== 'string' || !git.remote || /\s/.test(git.remote))
+      throw new ConfigError(`${file}: git.remote is the repository's URL`);
+    if (/^https?:\/\/[^/]*@/.test(git.remote))
+      throw new ConfigError(`${file}: git.remote carries no credentials (the deploy key is STUDIO_GIT_KEY)`);
+    if (git.branch !== undefined && (typeof git.branch !== 'string' || !BRANCH.test(git.branch)))
+      throw new ConfigError(`${file}: git.branch is a branch name`);
+    if (
+      git.path !== undefined &&
+      (typeof git.path !== 'string' ||
+        /[:*?[\]\\]/.test(git.path) ||
+        git.path
+          .replace(/^\/+|\/+$/g, '')
+          .split('/')
+          .some((s) => s === '..' || s === '.' || (s === '' && git.path !== '')))
+    )
+      throw new ConfigError(`${file}: git.path is a folder of the repository`);
+    if (git.remote.startsWith('-')) throw new ConfigError(`${file}: git.remote is the repository's URL`);
+    if (git.knownHosts !== undefined && (typeof git.knownHosts !== 'string' || !git.knownHosts.trim()))
+      throw new ConfigError(`${file}: git.knownHosts is the remote host's known_hosts lines`);
+    const by = git.committer;
+    if (
+      by !== undefined &&
+      (!by || typeof by.name !== 'string' || typeof by.email !== 'string' || !by.email.includes('@'))
+    )
+      throw new ConfigError(`${file}: git.committer is { name, email }`);
+  }
   const trust = raw.trustProxy ?? [];
   if (!Array.isArray(trust) || !trust.every((t) => typeof t === 'string'))
     throw new ConfigError(`${file}: trustProxy is a list of addresses or networks`);
@@ -226,5 +271,6 @@ export function loadConfig(file: string, text?: string): StudioServerConfig {
     clientDir: raw.clientDir as string | undefined,
     publicDir: raw.publicDir as string | undefined,
     publicBuilds: raw.publicBuilds === true,
+    ...(git ? { git } : {}),
   };
 }

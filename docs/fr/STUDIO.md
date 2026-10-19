@@ -182,6 +182,7 @@ capture d'écran indisponible).
 | POST `room/:id/add` | `{ kind: 'prop' \| 'hotspot' \| 'actor', id, name?, img?, char?, at: [x, y], look? }` → insère l'entrée dans le fichier du lieu (la section est créée si absente), la première ligne de Regarder facultative, et une place dans le layout (accessoire : pied à `at`, hauteur 60 ; zone cliquable : boîte 60 × 60 centrée sur `at` ; acteur : pieds à `at`) ; `{ ok, line, changed }`. `name` est obligatoire pour les accessoires et les zones cliquables |
 | GET/PUT `storyboard` | `storyboard.json` (`{ boards: [] }` si absent). PUT attend `{ boards: [...] }`, renvoie `{ ok, changed }` : un storyboard inchangé n'est pas réécrit, un storyboard modifié est écrit de façon compacte (ce qui tient sur 120 colonnes reste sur une ligne) |
 | POST `storyboard/markdown` | → écrit `games/<id>/storyboard.md` à partir du `storyboard.json` enregistré (même texte que `npm run page:storyboard -- --md`) ; `{ ok, file, bytes, boards, panels }` ; 404 sans `storyboard.json` |
+| GET `diff/<de>..<à>` | 4.2.3 : ce qui a changé entre deux révisions, par ce que le jeu nomme : `{ files: [{ path, change: added\|removed\|changed, ids?: { added, removed, changed: [{ id, fields }] }, values?: { added, removed, changed }, opaque?, cut? }] }` (2 000 révisions au plus ; « Changes between revisions » dans l'onglet Check) |
 | GET `groupings`, PUT `groupings`, GET `map` | 4.2.3 : le fichier des regroupements `{ groupings: [{ id, kind: chapter\|puzzle\|character, title, refs }] }` (vérifié : ids uniques et en minuscules, sortes connues, références sans espace ; 500 au plus de chaque), et la carte dérivée de lui et de l'IR : `{ groupings: [{ …, refs: [{ ref, kind, at? }] }], ungrouped: { <sorte>: [refs] } }` |
 | GET `notes`, POST `notes` | GET → `{ entries: Note[] }` ; POST `{ about?, author?, text }` → la nouvelle `Note = { id, about, author, text, at, edited? }` (auteur par défaut `you`, `at` est une date ISO), ajoutée à `notes.json` (créé à la première écriture) |
 | PUT `notes/:id` | `{ text, about? }` → la `Note` mise à jour (texte débarrassé des espaces superflus, `edited` réglé à maintenant ; `at`, `author` et l'ordre inchangés) ; 400 texte vide, 404 id inconnu |
@@ -269,6 +270,11 @@ fichier sous 800 lignes).
   les ignorent).
 - **Mode démo** : la liste vient de l'instantané (`assets` dans `snapshot.json`), les vignettes et les sons des
   fichiers préparés de `public/assets` (les cases inutilisées n'ont pas d'aperçu) ; les envois et Prepare sont cachés.
+- **Studio hébergé** (Studio Server, 4.2.3) : le même onglet, servi par `studio-server/src/server/hosted-assets.ts`
+  sous `/api/assets`. Les envois sont bornés (10 Mio ; images PNG, JPEG ou WebP, sons Ogg, MP3 ou WAV, lus dans leurs
+  octets) ; la découpe, le détourage et **Prepare assets (on the server)** sont des jobs de l'application de
+  traitement, sous le bail exclusif du projet, montrés dans un petit panneau avec un bouton **Cancel** (un job annulé
+  avant son écriture ne laisse rien). La planche téléversée elle-même n'y est pas gardée. Voir docs/fr/STUDIO-SERVER.md.
 ## Mode démo
 Le Studio tourne aussi sans aucun serveur, sur un hébergement statique : https://wanoo.github.io/web-scumm/studio.html
 est le Studio du jeu d'exemple, construit par la CI. Même interface, même vue du moteur et même éditeur de placement ;

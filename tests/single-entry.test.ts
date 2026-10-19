@@ -23,6 +23,8 @@ const WRITERS: Record<string, string> = {
   'studio-server/src/ops/core.ts': "journal: game files through it; the guard's staging and screenshots in .cache/",
   'tools/game-write.ts': 'journal: game files through it; outputs elsewhere written plainly',
   'tools/studio/assets.ts': 'journal: uploads through it; the tools run on scratch copies in .cache/',
+  'tools/studio/cut.ts':
+    "elsewhere: a scratch copy of art/<sheet>/ (the dev server's .cache/studio/, the worker's job folder in .cache/jobs/)",
   'studio-server/src/server/auth/device.ts':
     "elsewhere: the CLI's token file (0600) in the user's configuration folder",
   'studio-server/src/server/main.ts':
@@ -31,6 +33,8 @@ const WRITERS: Record<string, string> = {
     "elsewhere: a job's snapshot, unpacked into the worker's fresh job folder in .cache/jobs/",
   'studio-server/src/worker/main.ts':
     "elsewhere: the worker's fresh job folders in .cache/jobs/, removed after each job",
+  'studio-server/src/server/git.ts':
+    "its own clone of the game's repository, under workDir/git; game files through the journal (an import)",
   'studio-server/src/ops/blobs.ts':
     "elsewhere: the blob store's own folder (local mode), where the collection removes the blobs no row names",
   'studio-server/src/worker/prepare.ts':

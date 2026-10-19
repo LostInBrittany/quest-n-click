@@ -21,6 +21,9 @@ import { download, h, toast } from './ui';
 import { must } from '../engine/core/must';
 import { apiUrl, goLogin, hosting, loginHeld, studioFetch } from './api-base';
 import { assetsPanel, buildsPanel } from './builds-panel';
+import { commentsPanel } from './comments-panel';
+import { gitPanel } from './git-panel';
+import { diffPanel } from './diff-panel';
 import { gameLink } from './game-origin';
 import { gateScreen, hostedStudio, type Me, whoAmI } from './hosted';
 
@@ -263,6 +266,8 @@ async function start() {
       entity: rooms.selection ? { kind: rooms.selection.kind, id: rooms.selection.id } : undefined,
     }),
   });
+  // What changed between two revisions (4.2.3): the dev server and a hosted Studio have the route, not the demo.
+  if (!demo) check.el.append(diffPanel());
   const panes: Record<TabId, HTMLElement> = {
     rooms: rooms.el,
     storyboard: storyboard.el,
@@ -278,9 +283,8 @@ async function start() {
   };
 
   const nav = h('nav', { class: 'tabs', role: 'tablist' });
-  // The Assets tab has no routes on the Studio Server yet: the prepared assets come with the deployment (4.2.1).
-  const tabs = hosting.hosted ? TABS.filter(([t]) => t !== 'assets') : TABS;
-  let current: TabId = (tabs.some(([t]) => t === hashTab) ? hashTab : 'rooms') as TabId;
+  // The Assets tab is served by the Studio Server too since 4.2.3 (its uploads, its cutting and Prepare on the worker).
+  let current: TabId = (TABS.some(([t]) => t === hashTab) ? hashTab : 'rooms') as TabId;
   show = (t: TabId) => {
     current = t;
     for (const [id, el] of Object.entries(panes)) el.hidden = id !== t;
@@ -300,7 +304,7 @@ async function start() {
     if (t === 'map') void scenario.load();
     if (t === 'remix') void remix.load();
   };
-  for (const [id, label] of tabs) {
+  for (const [id, label] of TABS) {
     nav.append(
       h('button', { role: 'tab', dataset: { tab: id }, onclick: () => show(id) }, label, id === 'check' ? badge : null),
     );
@@ -406,8 +410,11 @@ async function start() {
       .querySelector('.playside')
       ?.append(
         buildsPanel({ owner: me.role === 'owner', dev: me.role !== 'reviewer' }),
+        gitPanel({ owner: me.role === 'owner' }),
         ...(me.role !== 'reviewer' ? [assetsPanel()] : []),
       );
+    // Comments (4.2.3): in the Notes tab, a reviewer's too.
+    notes.el.prepend(commentsPanel({ owner: me.role === 'owner' }));
     const frame = rooms.el.querySelector<HTMLIFrameElement>('iframe.engine');
     rooms.el.querySelector('.stage .bar')?.append(shared.roomChip, ...(frame ? [shared.previewLabel(frame)] : []));
     rooms.el.querySelector('select[aria-label="Room"]')?.addEventListener('change', () => shared.roomShown());

@@ -82,6 +82,8 @@ export function routes(s: Studio): [string, RegExp, Handler][] {
     ['PUT', /^\/room\/(@game|[\w-]+)\/value$/, (m, b) => s.setValue(m[1], text(b.path), b.value, { dry: !!b.dry })],
     // 4.1.12: the game's intermediate representation, with the provenance of its ids.
     ['GET', /^\/ir$/, () => s.ir()],
+    // 4.2.3 (H3): what changed between two revisions, by what the game names.
+    ['GET', /^\/diff\/(\d{1,12})\.\.(\d{1,12})$/, (m) => s.diff(Number(m[1]), Number(m[2]))],
     ['POST', /^\/undo$/, () => s.undo()],
     ['POST', /^\/redo$/, () => s.redo()],
     ['GET', /^\/history$/, () => s.history()],

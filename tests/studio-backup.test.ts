@@ -150,6 +150,23 @@ describe("the Studio Server's backup", () => {
     await a.j.close();
   });
 
+  it('ships what another process confirmed, without an event here (4.2.3, the CLI import)', async () => {
+    const a = await project('a');
+    const segments = memorySegments();
+    const ship = new Shipper({ db: a.db, segments });
+    // Written through the journal but never announced to this shipper: as a CLI against the same database.
+    await a.write('notes.md', 'one');
+    await ship.ship();
+    const before = segments.m.size;
+    await a.write('notes.md', 'two');
+    expect(segments.m.size).toBe(before);
+    ship.watch(20);
+    await expect.poll(() => segments.m.size, { timeout: 2_000 }).toBe(await a.j.revision());
+    expect(await ship.rpoMs()).toBe(0);
+    ship.close();
+    await a.j.close();
+  });
+
   it('stops a replay at a gap: nothing applied out of order', async () => {
     const a = await project('a');
     await a.write('notes.md', 'one');

@@ -9,7 +9,8 @@ C'est le chantier de la ligne 4.2.x (plan `docs/dev/PLAN-4.2.1-4.2.3-STUDIO-SERV
 > l'application de traitement, les pans et les baux, le flux en direct, l'origine propre du jeu avec ses
 > prévisualisations (un build par révision), la santé par révision, l'annulation personnelle, les builds publiés, les
 > assets préparés sur l'application de traitement, la sauvegarde et la restauration, et les écrans du Studio pour tout
-> cela. Il reste expérimental jusqu'à ce que ses passes humaines (`studio-hosted`, `studio-collab`, `studio-preview`,
+> cela ; depuis 4.2.3, les uploads et la découpe de planches de l'onglet Assets, Prepare et les découpes en jobs qui
+> se suivent et s'annulent. Il reste expérimental jusqu'à ce que ses passes humaines (`studio-hosted`, `studio-collab`, `studio-preview`,
 > `studio-assets-hosted`) soient faites. Ce guide déploie depuis le dépôt
 > ; l'archive `web-scumm-studio-server` est le même serveur (ci-dessous).
 
@@ -215,6 +216,91 @@ son contenu est sans danger. Le code d'un build ne change jamais ; ses images et
 l'instance, servis à côté tels qu'ils sont. Un build publié n'a pas de service worker (il ne s'installe pas pour jouer
 hors ligne) et ses sauvegardes ne sont pas encore distinguées par build.
 
+## Commentaires (4.2.3)
+
+Dans l'onglet Notes d'un Studio partagé, un membre commente ce que le jeu nomme (une salle, `hall.door`, `item:key`,
+l'id d'une règle, une case du storyboard), ou le jeu lui-même. Un commentaire garde la révision où il a été écrit ;
+les réponses font un fil, résolu ou rouvert d'un bloc. Les reviewers commentent aussi : les commentaires sont gardés
+par le Studio (dans sa base, dans la sauvegarde), jamais dans un fichier du jeu, donc aucun fichier du jeu n'est écrit
+pour eux. Un commentaire dont l'ancre n'est plus nommée par le jeu (ses salles, règles, scripts, entités, objectifs et points de
+passage, les planches et cases du storyboard) est dit « orphan », jamais rattaché ailleurs ; l'id d'une ligne n'est pas
+une ancre. Seul
+son auteur change son texte ; un reviewer résout ses propres fils, un dev n'importe lequel. Un owner fait entrer les
+notes de `notes.json` (chacune une fois, son `about` pour ancre). Routes : GET/POST `/api/comments`, PUT
+`/api/comments/<id>`, POST `/api/comments/import-notes`.
+
+## Le jeu dans Git (4.2.3)
+
+`git` dans la configuration (facultatif) nomme le dépôt du jeu : `{ "remote": "git@github.com:org/game.git",
+"branch": "main", "path": "games/mon-jeu", "committer": { "name": "…", "email": "…" } }` (`branch` vaut `main` par
+défaut, `path` la racine du dépôt). Sa clé de déploiement (une clé qui peut écrire dans ce seul dépôt, D44) est le
+secret `STUDIO_GIT_KEY` (`STUDIO_GIT_KEY_FILE` en local ; une variable sur Clever Cloud). Un dépôt https public ou
+local n'en demande pas ; une URL de dépôt ne porte jamais d'identifiants. L'onglet Play montre où va le jeu et la
+dernière révision poussée :
+
+- **Pousser** (un owner) : un commit des révisions confirmées depuis le dernier push, les fichiers du jeu à la tête
+  dans `path`, chaque auteur de ces révisions en `Co-authored-by` (son email, ou son nom à une adresse qui n'existe
+  pas) ; le reste du dépôt reste tel qu'il est. Rien de neuf, rien de poussé.
+- **Jamais forcé.** Une branche qui a bougé depuis le dernier push du Studio (quelqu'un y a poussé) est refusée (409),
+  et de même une branche qui existe mais que le Studio n'a jamais importée : importez-la d'abord.
+- **Importer** (un owner, demandé deux fois) : la branche, une autre branche du dépôt, ou un commit par son hash, tel
+  qu'il est dans `path`, écrit en une révision sous le bail exclusif. Il remplace ce que le Studio n'avait pas poussé
+  (qui reste dans son historique). La pointe de la branche importée, le push suivant part d'elle ; un autre commit, le
+  push suivant va sur la pointe que le Studio connaît. Un lien, un sous-module, ou un fichier que le jeu ne peut pas
+  avoir refuse tout l'import.
+
+Le Studio ne fait jamais de checkout : un push construit son commit à partir d'objets, un import lit les objets du
+commit ; les liens, les attributs et les règles d'ignore du dépôt ne peuvent donc pas atteindre les fichiers du
+serveur. Les fichiers dont un segment du chemin commence par un point (`.github/`, `.gitignore`) sont ceux du dépôt :
+gardés par un push, ignorés par un import. Le
+`private/` du jeu ne va jamais dans le dépôt, et un import le laisse tel qu'il est. L'email d'un auteur va dans un `Co-authored-by` seulement si le
+fournisseur l'a vérifié ; sinon son nom à `users.noreply.<l'hôte du Studio>`. Git tourne avec un environnement à lui,
+la clé dans un fichier pour une commande, le clone dans `workDir/git` (refait quand le disque est neuf). Donnez les
+clés de l'hôte du dépôt dans `git.knownHosts` (des lignes `known_hosts`) pour les vérifier strictement ; sans elles,
+l'hôte est cru à la première connexion, et de nouveau après chaque disque neuf.
+
+## Monter la version du moteur d'un jeu hébergé
+
+Un jeu importé d'un projet 4.1.x qui n'a jamais lancé `web-scumm migrate` est encore au schéma d'écriture 2 (pas de
+`schemaVersion: 3`, pas d'ids stables). Sur un Studio hébergé, un owner le monte de version avec
+`POST /api/engine/migrate` (4.2.3) :
+
+```bash
+curl -X POST -H "Authorization: Bearer $(npx web-scumm-studio-server token --server https://studio.example)" \
+  https://studio.example/api/engine/migrate
+```
+
+- **Exclusive.** Elle tourne sous le bail exclusif de l'owner (`*`) : personne d'autre n'écrit pendant ce temps (ses
+  écritures reçoivent un 423 avec le nom de l'owner, ses brouillons restent chez lui, et il écrit de nouveau une fois
+  qu'elle est finie). Une à la fois (429).
+- **Sur l'application de traitement.** Elle exécute la même migration que `web-scumm migrate` sur le snapshot de la
+  tête : les ids stables écrits dans `rooms/*.ts`, `rules.ts`, `items.ts` et `game.ts`, les clés des tables de
+  traduction renommées, `ids.migration.json` et `ids.paths.json`, puis les trois lignes qu'UPGRADING laisse à l'auteur
+  dans `game.ts` (`schemaVersion: 3`, `saveVersion` + 1, `migrations: [..., idsMigration]` et son import : les trois
+  ou aucune, dites dans `skipped`). `defineGame({...})` doit être dans `game.ts` (un jeu qui le définit ailleurs est
+  refusé : migrez-le en local). Rien n'est encore écrit, et rien d'autre que ces fichiers : le Studio refuse une
+  réponse qui nomme un autre fichier, ou un fichier que le jeu n'a pas (le code du jeu tourne avant la migration et
+  pourrait la façonner).
+- **Jugée avant d'être écrite.** Le jeu migré est jugé sur l'application de traitement comme la santé juge une
+  révision : le validateur, puis le solveur depuis une nouvelle partie, borné dans le temps. Un jeu que la migration
+  casserait (un id que l'outil n'a pas pu écrire, une liste construite par du code, un jeu qu'on ne peut plus finir),
+  ou que le solveur ne peut pas juger à temps, est refusé par un 422 (`errors`, `skipped` : ce que l'outil n'a pas pu
+  écrire) et la tête reste telle qu'elle était : migrez-le sur un Studio local (`web-scumm migrate`, puis `npm run ids`
+  pour voir ce qui reste) et importez-le de nouveau, ou corrigez-le d'abord.
+- **Une révision.** Sinon les fichiers modifiés sont écrits en une seule opération (`engine upgrade: authoring schema
+  2 → 3`), à travers la garde, et la réponse est `{ revision, changed, paths, schema: { from, to } }` (`paths` : les
+  fichiers écrits). Un jeu déjà au schéma
+  3 répond `{ changed: 0 }` et rien n'est écrit.
+- **Annulable.** L'Undo de l'owner l'annule, par une nouvelle révision (409 si quelqu'un a écrit l'un de ses fichiers
+  depuis) ; ou le projet revient à une sauvegarde faite avant (voir plus bas) : faites-en une d'abord.
+
+Dans la ligne 4.2.x le format du contenu est gelé (D40) : c'est pour un jeu fait sur une 4.1.x. Un Studio local n'a
+pas de route : lancez `web-scumm migrate` dans le projet. Le `tsconfig.json` du projet (`baseUrl`, que
+`web-scumm migrate` corrige aussi) ne fait pas partie d'un jeu hébergé et n'est pas touché. Les playtests
+(`playtests/`) ne sont ni migrés ni jugés : rejouez-les après la montée de version (une session enregistrée au schéma 2
+peut nommer les anciennes clés positionnelles). Il n'y a pas encore de
+bouton : la route est le moyen d'y accéder.
+
 ## Sauvegarde et restauration
 
 - **Le journal expédié** : chaque opération confirmée est copiée dans le bucket, dans l'ordre, en segment immuable
@@ -417,17 +503,33 @@ OIDC, avec SQLite et un dossier pour les contenus, sur le loopback seulement.
 - La prévisualisation de chaque révision est gardée (environ 1 Mo pour le jeu d'exemple : la base `/preview/<rev>/`
   est écrite dans la page et son code, si bien que peu de fichiers sont partagés d'une révision à l'autre) jusqu'au
   ramassage d'une PR ultérieure de 4.2.2.
-- L'onglet Assets n'est pas encore sur un Studio hébergé (ses uploads et ses planches : 4.2.3). Le bouton **Prepare
-  assets** de l'onglet Jouer (un dev, 4.2.2) lance `prepare` sur l'application de traitement à partir de l'art et
-  des sons de la tête, sous le bail exclusif du projet (personne n'écrit entre-temps ; le pan d'un autre le refuse,
-  avec son nom) : l'ensemble préparé est gardé par le Studio et servi avant `publicDir`, et le `assets.gen.json` du jeu
-  est écrit en une opération. Chaque passe prépare tout à nouveau, en 2 minutes au plus ; elle ne s'annule pas et ne
-  se suit pas encore étape par étape. Elle est refusée, et le jeu se prépare sur un Studio local, quand : son art et
-  ses sons dépassent environ 31 Mio (en base64) ou les fichiers préparés environ 22 Mio ; il nomme ses sources dans
+- L'onglet Assets est sur un Studio hébergé depuis 4.2.3 : un reviewer lit sa liste, ses prompts et ses fichiers ; un
+  dev téléverse et découpe. Un upload (un son, un décor) fait 10 Mio au plus une fois décodé (413 au-delà) et son type
+  se lit dans ses octets : une image PNG, JPEG ou WebP (un décor : PNG ou JPEG), un son Ogg, MP3 ou WAV dont
+  l'extension dit la même chose (415 sinon ; un Studio local prend aussi M4A, FLAC, AAC, Opus et WebM) ; il est écrit
+  en une opération, jamais exécuté. La découpe d'une planche et le détourage d'une cellule tournent sur l'application
+  de traitement (jobs `cut`, Python avec les paquets du hook, aucun code du jeu), sous le bail exclusif du projet :
+  elle reçoit l'image, les cellules de cette planche et `site.json`, ne rend que des cellules de cette planche, et les
+  cellules avec les sauvegardes de celles redécoupées sont écrites en une opération. Un Studio hébergé ne garde pas la
+  planche téléversée elle-même (un Studio local la garde sous `private/sheets/`, qu'aucun pan ne nomme).
+- Le bouton **Prepare assets** de l'onglet Jouer (et de l'onglet Assets ; un dev, 4.2.2) lance `prepare` sur
+  l'application de traitement à partir de l'art et des sons de la tête, sous le bail exclusif du projet (personne
+  n'écrit entre-temps ; le pan d'un autre le refuse, avec son nom) : l'ensemble préparé est gardé par le Studio et
+  servi avant `publicDir`, et le `assets.gen.json` du jeu est écrit en une opération. Chaque passe prépare tout à
+  nouveau, en 2 minutes au plus. Elle est refusée, et le jeu se prépare sur un Studio local, quand : son art et ses
+  sons dépassent environ 31 Mio (en base64) ou les fichiers préparés environ 22 Mio ; il nomme ses sources dans
   `sources.json` (elles vivent hors de l'art et des sons que garde un Studio hébergé) ; le nouveau manifeste perdrait
   une image ou un son que le jeu avait. Les builds publiés servent l'ensemble préparé tel qu'il est, pas celui contre
   lequel ils ont été construits. Le code du jeu tourne sur l'application de traitement sous l'utilisateur des outils
   d'assets (ADR 0028 : une machine, un utilisateur).
+- Prepare et les découpes sont des **jobs** (4.2.3) : la requête répond 202 avec le job tout de suite ; ses états vont
+  au flux en direct (événements `job`, dans l'ordre : `queued`, `running` avec ses étapes `packing`, `on the worker`,
+  `writing`, puis `done`, `failed` ou `cancelled`) et `GET /api/jobs/<id>` le relit. Un seul tourne à la fois, quatre
+  autres peuvent attendre (429 au-delà). `POST /api/jobs/<id>/cancel` (qui l'a lancé, ou un owner) l'annule : un job
+  en attente ne tourne jamais ; un job en cours voit sa requête à l'application de traitement fermée, et celle-ci tue
+  son processus enfant avec son groupe ; rien n'est écrit (aucune opération, aucun ensemble préparé gardé) et le bail
+  exclusif est rendu. Un job qui écrit ne s'annule plus (409). Un job vit dans la mémoire de l'instance : après un
+  redémarrage son état est perdu (son écriture, si elle a eu lieu, est dans le journal).
 - Un cadre de jeu resté inactif au-delà de sa session de 15 min ne montre plus rien de neuf : « Reload view » (ou
   l'onglet Jouer) le rouvre.
 - Les captures ne sont pas disponibles sur un Studio hébergé.

@@ -82,10 +82,24 @@ export class Shipper {
     return this.running;
   }
 
-  /** Stops the retry timer (the server closing). */
+  private every: NodeJS.Timeout | null = null;
+
+  /**
+   * Ships every `ms` too, whatever confirmed it: an operation another process wrote (the CLI's import, against the same
+   * database) emits no event in this one, and would otherwise wait for the next write here or a restart (4.2.3, found
+   * by the reference deployment). A pass with nothing to ship is three small reads.
+   */
+  watch(ms = RETRY_MS) {
+    this.every ??= setInterval(() => void this.ship(), ms);
+    this.every.unref?.();
+  }
+
+  /** Stops the timers (the server closing). */
   close() {
     if (this.retry) clearTimeout(this.retry);
     this.retry = null;
+    if (this.every) clearInterval(this.every);
+    this.every = null;
   }
 
   private async once() {
