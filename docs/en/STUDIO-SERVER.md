@@ -197,6 +197,25 @@ on the worker as it is now, not that its content is harmless. A build's code nev
 the instance's prepared assets, served beside it as they are now. A published build has no service worker (it is not
 installed for offline play) and its saves are not yet told apart by build.
 
+## The game in Git (4.2.3)
+
+`git` in the configuration (optional) names the game's repository: `{ "remote": "git@github.com:org/game.git",
+"branch": "main", "path": "games/my-game", "committer": { "name": "…", "email": "…" } }` (`branch` defaults to `main`,
+`path` to the repository's root). Its deploy key (a key with write access to that one repository, D44) is the secret
+`STUDIO_GIT_KEY` (`STUDIO_GIT_KEY_FILE` locally; on Clever Cloud a variable). A public https or a local remote needs
+none; a remote URL never carries credentials. The Play tab shows where the game goes and the last revision pushed:
+
+- **Push** (an owner): one commit of the revisions confirmed since the last push, the game's files at the head in
+  `path`, each author of those revisions a `Co-authored-by` (their email, or their name at a mailbox that does not
+  exist); the rest of the repository is left as it is. Nothing new pushes nothing.
+- **Never forced.** A branch that moved since the Studio's last push (someone pushed there) is refused (409), and so is
+  a branch that exists but the Studio never imported: import it first.
+- **Import** (an owner): the branch (or a commit) as it is in `path`, written as one revision under the exclusive
+  lease; the next push builds on it. A file the game cannot hold refuses the whole import.
+
+Git runs with an environment of its own, the key in a file for the run only, the clone in `workDir/git` (cloned
+again when the disk is new).
+
 ## Backup and restore
 
 - **The journal shipped**: each confirmed operation is copied to the bucket, in order, as an immutable segment

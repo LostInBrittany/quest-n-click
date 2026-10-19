@@ -203,6 +203,26 @@ son contenu est sans danger. Le code d'un build ne change jamais ; ses images et
 l'instance, servis à côté tels qu'ils sont. Un build publié n'a pas de service worker (il ne s'installe pas pour jouer
 hors ligne) et ses sauvegardes ne sont pas encore distinguées par build.
 
+## Le jeu dans Git (4.2.3)
+
+`git` dans la configuration (facultatif) nomme le dépôt du jeu : `{ "remote": "git@github.com:org/game.git",
+"branch": "main", "path": "games/mon-jeu", "committer": { "name": "…", "email": "…" } }` (`branch` vaut `main` par
+défaut, `path` la racine du dépôt). Sa clé de déploiement (une clé qui peut écrire dans ce seul dépôt, D44) est le
+secret `STUDIO_GIT_KEY` (`STUDIO_GIT_KEY_FILE` en local ; une variable sur Clever Cloud). Un dépôt https public ou
+local n'en demande pas ; une URL de dépôt ne porte jamais d'identifiants. L'onglet Play montre où va le jeu et la
+dernière révision poussée :
+
+- **Pousser** (un owner) : un commit des révisions confirmées depuis le dernier push, les fichiers du jeu à la tête
+  dans `path`, chaque auteur de ces révisions en `Co-authored-by` (son email, ou son nom à une adresse qui n'existe
+  pas) ; le reste du dépôt reste tel qu'il est. Rien de neuf, rien de poussé.
+- **Jamais forcé.** Une branche qui a bougé depuis le dernier push du Studio (quelqu'un y a poussé) est refusée (409),
+  et de même une branche qui existe mais que le Studio n'a jamais importée : importez-la d'abord.
+- **Importer** (un owner) : la branche (ou un commit) telle qu'elle est dans `path`, écrite en une révision sous le
+  bail exclusif ; le push suivant part de là. Un fichier que le jeu ne peut pas avoir refuse tout l'import.
+
+Git tourne avec un environnement à lui, la clé dans un fichier pour la durée de l'opération seulement, le clone dans
+`workDir/git` (refait quand le disque est neuf).
+
 ## Sauvegarde et restauration
 
 - **Le journal expédié** : chaque opération confirmée est copiée dans le bucket, dans l'ordre, en segment immuable

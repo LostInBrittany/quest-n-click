@@ -17,6 +17,7 @@ import { fileURLToPath } from 'node:url';
 import { openSqliteDb } from '../../../bridge/src/store-sqlite';
 import type { SqlDb } from '../../../bridge/src/store-sql';
 import { createStudio, operationContext } from '../ops/core';
+import { GitSync } from './git';
 import { StudioError } from '../ops/errors';
 import { spansOf } from '../ops/spans';
 import { type BlobStore, fsBlobStore } from '../ops/blobs';
@@ -391,6 +392,32 @@ async function main(argv: string[]): Promise<number> {
   const publicDir = resolve(config.publicDir ?? join(engineRoot, 'public'));
   // The prepared assets (4.2.2 PR 6b, D43): `prepare` on the worker, under the member's exclusive lease; the latest set
   // served before publicDir, written again to the instance's folder at start (its disk is ephemeral).
+  /** Runs under the member's exclusive lease of the project (`*`), given back only if this run took it. */
+  const exclusive = async <T>(fn: () => Promise<T>): Promise<T> => {
+    const who = operationContext.getStore()?.claimant;
+    if (!who || !leases) return fn();
+    const had = (await leases.list()).some((l) => l.span === '*' && l.holder === who.userId);
+    if (!had) await leases.take(who, ['*']);
+    try {
+      return await fn();
+    } finally {
+      if (!had) await leases.release(who.userId, ['*']);
+    }
+  };
+  // The game's Git repository (4.2.3, H5): owners push and import; its deploy key a secret.
+  const gitSync = config.git
+    ? new GitSync({
+        db,
+        blobs,
+        gameDir,
+        config: config.git,
+        workDir: join(config.workDir, 'git'),
+        key: secrets.STUDIO_GIT_KEY,
+        writeFiles: (what, files) => studio.writeFiles(what, files, { undo: false }),
+        exclusive,
+        log: (line) => console.log(JSON.stringify(line)),
+      })
+    : undefined;
   const prepared =
     executor && hosted
       ? new PreparedAssets({
@@ -415,18 +442,7 @@ async function main(argv: string[]): Promise<number> {
           writeManifest: async (manifest) => {
             await studio.writeFiles('prepare assets', [{ path: 'assets.gen.json', after: manifest }], { undo: false });
           },
-          exclusive: async (fn) => {
-            const who = operationContext.getStore()?.claimant;
-            if (!who || !leases) return fn();
-            // Given back only if this run took it (an owner may already hold the project).
-            const had = (await leases.list()).some((l) => l.span === '*' && l.holder === who.userId);
-            if (!had) await leases.take(who, ['*']);
-            try {
-              return await fn();
-            } finally {
-              if (!had) await leases.release(who.userId, ['*']);
-            }
-          },
+          exclusive,
         })
       : undefined;
   void prepared?.start();
@@ -567,6 +583,7 @@ async function main(argv: string[]): Promise<number> {
     personalUndo: !!personalUndo,
     builds,
     prepared,
+    git: gitSync,
     rpo: shipper ? () => shipper.rpoMs() : undefined,
     play,
     client,
