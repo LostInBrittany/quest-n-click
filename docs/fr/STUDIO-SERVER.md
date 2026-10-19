@@ -234,9 +234,9 @@ hors ligne) et ses sauvegardes ne sont pas encore distinguées par build.
 ## Travailler à plusieurs
 
 - **Les pans.** Chaque fichier du jeu appartient à un pan : une salle (son code et son layout), une langue, l'histoire,
-  les objets, les personnages, les règles, les voix, les assets, les notes, les regroupements de la carte du scénario, le reste (`meta`). Écrire un fichier prend
-  son pan pour 2 min, renouvelées tant que vous êtes actif. Le pan de quelqu'un d'autre refuse votre écriture (423,
-  avec son nom) ; votre brouillon reste chez vous.
+  les objets, les personnages, les règles, les voix, les assets, les notes, les regroupements de la carte du scénario,
+  le reste (`meta`). Écrire un fichier prend son pan pour 2 min, renouvelées tant que vous êtes actif. Le pan de
+  quelqu'un d'autre refuse votre écriture (423, avec son nom) ; votre brouillon reste chez vous.
 - **En direct.** Le Studio suit `GET /api/events` : chaque révision, qui tient quoi, qui est là.
 - **L'annulation est la vôtre** (4.2.2) : Undo et Redo (et Ctrl/Cmd+Z, Maj pour rétablir) annulent votre propre
   dernière opération, quoi que les autres aient écrit entre-temps, par une nouvelle révision (l'historique n'est

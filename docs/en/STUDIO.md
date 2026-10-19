@@ -97,8 +97,9 @@ A provider call never follows a redirect, gives up after 60 s, and reads at most
   compiler (`src/studio/remix-model.ts`): the Studio never shows a world the player would not play.
 - **Map** (4.2.3): the scenario's groupings, chapters, puzzles and characters (`games/<id>/groupings.json`), each a
   list of what the game already names (a room, a rule or topic id, `item:<id>`, `char:<id>`, `objective:<id>`,
-  `checkpoint:<id>`) with the `file:line` that writes it, or "not declared" when the game does not know it; then what no
-  grouping names yet. A grouping only refers: saving it writes `groupings.json` alone, never the content. The map is
+  `checkpoint:<id>`) with the `file:line` that writes it, or "not declared" when the game does not know it; then the rooms,
+  characters, items, objectives and checkpoints no grouping names yet (ids written by code, and line or step ids, are
+  not in the IR's provenance: they show as "not declared"). A grouping only refers: saving it writes `groupings.json` alone, never the content. The map is
   derived at each read (from the IR's provenance and the groupings), never stored.
 - **Notes**: the shared log (`games/<id>/notes.json`), one entry per author ("you", or the AI's name), about a panel
   id, a room id, `room.entity`, or anything (empty: general). The whole log, newest first, grouped by `about` (tagged

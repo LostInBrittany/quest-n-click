@@ -256,7 +256,7 @@ async function start() {
   const voices = new VoicesTab();
   const music = new MusicTab(info);
   const language = new IrTab(info);
-  const scenario = new MapTab();
+  const scenario = new MapTab(me?.role === 'reviewer');
   const remix = new RemixTab({
     selection: () => ({
       room: rooms.room,
@@ -313,9 +313,16 @@ async function start() {
       toast(by ? `${file} changed by ${by}` : `${file} changed on disk`, 'info');
     rooms.onFileChanged(file);
     assets.onFileChanged(file);
+    scenario.onFileChanged(file);
     if (file === 'storyboard.json' && outside) storyboard.onDiskChange();
     if (file === 'notes.json' && outside) void store.load();
-    if (outside && /\.(ts|json)$/.test(file) && file !== 'notes.json' && file !== 'storyboard.json')
+    if (
+      outside &&
+      /\.(ts|json)$/.test(file) &&
+      file !== 'notes.json' &&
+      file !== 'storyboard.json' &&
+      file !== 'groupings.json'
+    )
       check.schedule(1000);
   }
   // A shared Studio: the revision, who is here, the leases, the refusals (hosted.ts).

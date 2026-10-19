@@ -226,9 +226,9 @@ installed for offline play) and its saves are not yet told apart by build.
 ## Working together
 
 - **Spans.** Every file of the game belongs to one span: a room (its code and its layout), a language, the story, the
-  items, the cast, the rules, the voices, the assets, the notes, the scenario map's groupings, the rest (`meta`). Writing a file takes its span for
-  2 min, renewed while you are active. Someone else's span refuses your write (423, with their name); your draft
-  stays with you.
+  items, the cast, the rules, the voices, the assets, the notes, the scenario map's groupings, the rest (`meta`).
+  Writing a file takes its span for 2 min, renewed while you are active. Someone else's span refuses your write (423,
+  with their name); your draft stays with you.
 - **Live.** The Studio follows `GET /api/events`: every revision, who holds what, who is here.
 - **Undo is yours** (4.2.2): Undo and Redo (and Ctrl/Cmd+Z, Shift for redo) undo your own last operation, whatever
   the others wrote meanwhile, as a new revision (history is never rewritten). Refused when someone else wrote one of

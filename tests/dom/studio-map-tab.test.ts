@@ -128,3 +128,54 @@ describe('the Map tab', () => {
     expect(tab.el.textContent).toContain('needs the dev server');
   });
 });
+
+describe('the Map tab, round two', () => {
+  it('never replaces a grouping by a new one of the same id, and keeps an edited one in its place', async () => {
+    const two: GroupingsFile = {
+      groupings: [FILE.groupings[0]!, { id: 'lou', kind: 'character', title: 'Lou', refs: [] }],
+    };
+    const saved = stub(two, MAP);
+    const tab = new MapTab();
+    document.body.append(tab.el);
+    await tab.load();
+    [...tab.el.querySelectorAll('button')].find((b) => b.textContent === 'New grouping')!.click();
+    let d = document.querySelector('[role="dialog"]')!;
+    d.querySelectorAll('input')[0]!.value = 'the-key';
+    d.querySelectorAll('input')[1]!.value = 'Another key';
+    [...d.querySelectorAll('button')].find((b) => b.textContent === 'Save')!.click();
+    await flush();
+    // Both sent: the server refuses the id used twice, nothing is dropped here.
+    expect(saved.at(-1)!.groupings.map((g) => g.id)).toEqual(['the-key', 'lou', 'the-key']);
+    document.body.replaceChildren(tab.el);
+    const edit = [...tab.el.querySelectorAll('button')].find((b) => b.textContent === 'Edit')!;
+    const details = edit.closest('details')!;
+    edit.click();
+    // The button edits, and does not fold the grouping as well.
+    expect(details.open).toBe(true);
+    d = document.querySelector('[role="dialog"]')!;
+    d.querySelectorAll('input')[1]!.value = 'The brass key';
+    [...d.querySelectorAll('button')].find((b) => b.textContent === 'Save')!.click();
+    await flush();
+    expect(saved.at(-1)!.groupings.map((g) => `${g.id}:${g.title}`)).toEqual(['the-key:The brass key', 'lou:Lou']);
+  });
+
+  it('is read only for a reviewer, says what a hand-edited file holds that it cannot read, and follows changes', async () => {
+    const reads = vi.fn(async () => ({ ...structuredClone(FILE), skipped: ['groupings[1] must be an object'] }));
+    useApi({ ...serverApi, groupings: reads, map: async () => MAP } as unknown as Api);
+    const tab = new MapTab(true);
+    // Not opened yet: a change reads nothing.
+    tab.onFileChanged('groupings.json');
+    expect(reads).not.toHaveBeenCalled();
+    await tab.load();
+    const labels = [...tab.el.querySelectorAll('button')].map((b) => b.textContent);
+    expect(labels).not.toContain('New grouping');
+    expect(labels).not.toContain('Edit');
+    expect(tab.el.querySelector('.warn li')?.textContent).toBe('groupings[1] must be an object');
+    tab.onFileChanged('notes.json');
+    expect(reads).toHaveBeenCalledTimes(1);
+    tab.onFileChanged('groupings.json');
+    tab.onFileChanged('rooms/hall.ts');
+    await flush();
+    expect(reads).toHaveBeenCalledTimes(3);
+  });
+});

@@ -160,7 +160,7 @@ export interface Api {
   storyboardMarkdown(): Promise<MarkdownResult>;
   notes(): Promise<NotesFile>;
   /** 4.2.3 (H1): the scenario map's groupings, and the map derived from them (the dev server and a hosted Studio). */
-  groupings?(): Promise<GroupingsFile>;
+  groupings?(): Promise<GroupingsFile & { skipped?: string[] }>;
   setGroupings?(g: GroupingsFile): Promise<{ ok: true; changed: boolean }>;
   map?(): Promise<ScenarioMap>;
   addNote(n: NewNote): Promise<Note>;
@@ -218,7 +218,7 @@ export const serverApi: Api = {
   setStoryboard: (sb: unknown) => call<{ ok: true; changed: boolean }>('PUT', 'storyboard', sb),
   storyboardMarkdown: () => call<MarkdownResult>('POST', 'storyboard/markdown'),
   notes: () => call<NotesFile>('GET', 'notes'),
-  groupings: () => call<GroupingsFile>('GET', 'groupings'),
+  groupings: () => call<GroupingsFile & { skipped?: string[] }>('GET', 'groupings'),
   setGroupings: (g) => call('PUT', 'groupings', g),
   map: () => call<ScenarioMap>('GET', 'map'),
   addNote: (n: NewNote) => call<Note>('POST', 'notes', n),

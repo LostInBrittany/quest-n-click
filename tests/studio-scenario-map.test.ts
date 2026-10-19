@@ -7,7 +7,7 @@ import { join, relative, resolve } from 'node:path';
 import { afterAll, describe, expect, it } from 'vitest';
 import { createStudio, importInChild } from '../studio-server/src/ops/core';
 import { spanOf } from '../studio-server/src/ops/spans';
-import { groupingsProblems, scenarioMap } from '../tools/studio/scenario-map';
+import { groupingsProblems, readableGroupings, scenarioMap } from '../tools/studio/scenario-map';
 
 const ROOT = resolve(__dirname, '..');
 mkdirSync(join(ROOT, '.cache'), { recursive: true });
@@ -56,7 +56,7 @@ describe('the scenario map', () => {
     // Two derivations of the same revision: the same bytes.
     expect(JSON.stringify(await studio.map())).toBe(JSON.stringify(map));
     // The same file again changes nothing; deleting the grouping leaves the content as it was.
-    expect(await studio.setGroupings({ groupings: g ? [{ ...studio.getGroupings().groupings[0]! }] : [] })).toEqual({
+    expect(await studio.setGroupings({ groupings: studio.getGroupings().groupings })).toEqual({
       ok: true,
       changed: false,
     });
@@ -71,6 +71,19 @@ describe('the scenario map', () => {
       studio.setGroupings({ groupings: [{ id: 'Bad Id', kind: 'saga', title: '', refs: ['a b'] }] }),
     ).rejects.toThrow(/id must be lowercase.*kind must be one of.*title must be.*refs\[0\]/);
     expect(readFileSync(join(dir, 'groupings.json'), 'utf8')).toBe(was);
+  });
+
+  it('reads a groupings file edited by hand: the readable groupings mapped, the others said', async () => {
+    const { writeFileSync } = await import('node:fs');
+    writeFileSync(
+      join(dir, 'groupings.json'),
+      JSON.stringify({
+        groupings: [{ id: 'ok', kind: 'chapter', title: 'Ok', refs: [] }, { id: 'bad', refs: 3 }, null],
+      }),
+    );
+    expect(studio.getGroupings().skipped).toHaveLength(4);
+    expect((await studio.map()).groupings.map((x) => x.id)).toEqual(['ok']);
+    await studio.setGroupings({ groupings: [] });
   });
 
   it('is its own span', () => {
@@ -97,7 +110,7 @@ describe('the groupings, checked', () => {
     ]);
     expect(groupingsProblems({ groupings: [g({ id: 'a'.repeat(65) })] })).toHaveLength(1);
     expect(groupingsProblems({ groupings: [g({ title: ' ' })] })).toEqual([
-      'groupings[0].title must be a text of 1 to 200 characters',
+      'groupings[0].title must be a text of 1 to 200 characters, without control characters',
     ]);
     expect(groupingsProblems({ groupings: [g({ title: 'x'.repeat(201) })] })).toHaveLength(1);
     expect(groupingsProblems({ groupings: [g({ refs: 'x' })] })).toEqual([
@@ -106,6 +119,27 @@ describe('the groupings, checked', () => {
     expect(groupingsProblems({ groupings: [g({ refs: Array(501).fill('x') })] })).toHaveLength(1);
     expect(groupingsProblems({ groupings: [g({ refs: ['', 3, 'x'.repeat(201)] })] })).toHaveLength(3);
     expect(groupingsProblems({ groupings: [g({ extra: 1 })] })).toEqual(['groupings[0].extra is unknown']);
+    expect(groupingsProblems({ groupings: [], other: 1 })).toEqual(['other is unknown']);
+    expect(groupingsProblems({ groupings: [g({ title: 'a\u202eb' })] })).toHaveLength(1);
+    expect(groupingsProblems({ groupings: [g({ title: 'two\nlines' })] })).toHaveLength(1);
+    expect(groupingsProblems({ groupings: [g({ refs: ['hall', 'hall'] })] })).toEqual([
+      'groupings[0].refs[1] "hall" is named twice',
+    ]);
+    expect(groupingsProblems({ groupings: [g({ refs: ['a\u0007b'] })] })).toHaveLength(1);
+  });
+
+  it('reads what it can of a file edited by hand, and says what it left out', () => {
+    expect(readableGroupings(null)).toEqual({ groupings: [], skipped: [] });
+    expect(readableGroupings({ groupings: 'x' })).toEqual({ groupings: [], skipped: ['`groupings` must be a list'] });
+    const r = readableGroupings({ groupings: [null, g(), g({ refs: 'x' }), g({ title: 'again' }), g({ id: 'b' })] });
+    expect(r.groupings.map((x) => x.id)).toEqual(['a', 'b']);
+    expect(r.groupings[0]!.title).toBe('A');
+    expect(r.skipped).toEqual([
+      'groupings[0] must be an object',
+      'groupings[2].refs must be a list of at most 500',
+      'groupings[3].id "a" is used twice',
+    ]);
+    expect(readableGroupings({ groupings: Array(501).fill(null) }).skipped.at(-1)).toBe('past 500 groupings');
   });
 });
 
@@ -130,6 +164,33 @@ describe('the map, derived', () => {
       intro: { file: 'game.ts', line: 12 },
     },
   } as never;
+  it("names only the IR's own keys: `constructor` is not declared", () => {
+    const m = scenarioMap(ir, {
+      groupings: [{ id: 'x', kind: 'puzzle', title: 'X', refs: ['constructor', '__proto__'] }],
+    });
+    expect(m.groupings[0]!.refs).toEqual([
+      { ref: 'constructor', kind: 'unknown' },
+      { ref: '__proto__', kind: 'unknown' },
+    ]);
+  });
+
+  it('gives a key both a rule and an entity carry the kind whose line the provenance says (the rule, first)', () => {
+    const both = {
+      rooms: [],
+      entities: [{ key: 'garden.look-tank' }, { key: 'garden.intro' }],
+      rules: [{ id: 'garden.look-tank', kind: 'rule' }],
+      scripts: [{ id: 'garden.intro' }],
+      provenance: {
+        'garden.look-tank': { file: 'rooms/garden.ts', line: 9 },
+        'garden.intro': { file: 'rooms/garden.ts', line: 2 },
+      },
+    } as never;
+    const m = scenarioMap(both, {
+      groupings: [{ id: 'x', kind: 'puzzle', title: 'X', refs: ['garden.look-tank', 'garden.intro'] }],
+    });
+    expect(m.groupings[0]!.refs.map((r) => r.kind)).toEqual(['rule', 'script']);
+  });
+
   it('says each reference by its kind, sorted by grouping, and what no grouping names', () => {
     const m = scenarioMap(ir, {
       groupings: [

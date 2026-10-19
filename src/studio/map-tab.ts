@@ -15,6 +15,15 @@ export class MapTab {
   readonly el = h('section', { class: 'tab map' });
   private map: ScenarioMap | undefined;
   private groupings: Grouping[] = [];
+  private skipped: string[] = [];
+
+  /** `readOnly`: a reviewer's Studio, which reads the map and edits nothing. */
+  constructor(private readonly readOnly = false) {}
+
+  /** Read again when the groupings or the content changed, if the tab was opened. */
+  onFileChanged(file: string) {
+    if (this.map && (file === 'groupings.json' || /\.ts$/.test(file))) void this.load();
+  }
 
   async load(): Promise<void> {
     if (!api.map || !api.groupings) {
@@ -22,7 +31,10 @@ export class MapTab {
       return;
     }
     try {
-      [this.map, this.groupings] = await Promise.all([api.map(), api.groupings().then((g) => g.groupings)]);
+      const [map, file] = await Promise.all([api.map(), api.groupings()]);
+      this.map = map;
+      this.groupings = file.groupings;
+      this.skipped = file.skipped ?? [];
     } catch (e) {
       this.el.replaceChildren(h('p', { class: 'error' }, (e as Error).message));
       return;
@@ -82,8 +94,9 @@ export class MapTab {
                     .map((r) => r.trim())
                     .filter(Boolean),
                 };
-                const others = this.groupings.filter((x) => x.id !== (g?.id ?? next.id));
-                if (await this.save([...others, next])) close();
+                // An edit keeps its place in the file; a new one goes last, and an id already used is the server's to refuse.
+                const all = g ? this.groupings.map((x) => (x.id === g.id ? next : x)) : [...this.groupings, next];
+                if (await this.save(all)) close();
               },
             },
             'Save',
@@ -108,13 +121,25 @@ export class MapTab {
   private render() {
     const m = this.map!;
     const byId = new Map(this.groupings.map((g) => [g.id, g]));
-    this.el.replaceChildren(
+    const parts: (HTMLElement | null)[] = [
       h(
         'p',
         { class: 'muted' },
         'Characters, puzzles and chapters, each a list of what the game names. A grouping only refers: editing it never changes the game.',
       ),
-      h('button', { type: 'button', onclick: () => this.edit(undefined) }, 'New grouping'),
+      this.skipped.length
+        ? h(
+            'div',
+            { class: 'warn' },
+            h('p', null, 'groupings.json holds entries the Studio cannot read; saving keeps only the readable ones:'),
+            h(
+              'ul',
+              null,
+              this.skipped.map((p) => h('li', null, p)),
+            ),
+          )
+        : null,
+      this.readOnly ? null : h('button', { type: 'button', onclick: () => this.edit(undefined) }, 'New grouping'),
       ...KINDS.map((k) => {
         const gs = m.groupings.filter((g) => g.kind === k);
         return h(
@@ -131,7 +156,20 @@ export class MapTab {
                     null,
                     h('strong', null, g.title),
                     ` ${g.id} · ${g.refs.length} `,
-                    h('button', { type: 'button', onclick: () => this.edit(byId.get(g.id)) }, 'Edit'),
+                    this.readOnly
+                      ? null
+                      : h(
+                          'button',
+                          {
+                            type: 'button',
+                            // Inside the summary: edits, never folds the grouping as well.
+                            onclick: (e: Event) => {
+                              e.preventDefault();
+                              this.edit(byId.get(g.id));
+                            },
+                          },
+                          'Edit',
+                        ),
                   ),
                   h(
                     'table',
@@ -152,6 +190,7 @@ export class MapTab {
         );
       }),
       h('h3', null, 'Not in any grouping'),
+      h('p', { class: 'muted' }, 'Rooms, characters, items, objectives and checkpoints no grouping names yet.'),
       Object.keys(m.ungrouped).length
         ? h(
             'dl',
@@ -166,6 +205,7 @@ export class MapTab {
             ]),
           )
         : h('p', { class: 'muted' }, 'Everything is in a grouping.'),
-    );
+    ];
+    this.el.replaceChildren(...parts.filter((x): x is HTMLElement => x !== null));
   }
 }

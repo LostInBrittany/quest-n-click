@@ -38,6 +38,7 @@ import type { GameIR } from '../../../src/engine/core/ir';
 import {
   type GroupingsFile,
   groupingsProblems,
+  readableGroupings,
   type ScenarioMap,
   scenarioMap,
 } from '../../../tools/studio/scenario-map';
@@ -695,9 +696,9 @@ export function createStudio(opts: StudioOptions = {}) {
   // The scenario map (4.2.3, H1): the groupings a team declares, and the map derived from them and the IR.
   const groupingsFile = () => join(dir, 'groupings.json');
 
-  function getGroupings(): GroupingsFile {
-    const g = readJson<GroupingsFile>(groupingsFile(), { groupings: [] });
-    return { groupings: Array.isArray(g.groupings) ? g.groupings : [] };
+  /** The readable groupings, and what a hand-edited file holds that is not (`skipped`, said by the Map tab). */
+  function getGroupings(): GroupingsFile & { skipped: string[] } {
+    return readableGroupings(readJson<unknown>(groupingsFile(), null));
   }
 
   /** Writes `groupings.json` only: a grouping references what the game names, never writes it. */
@@ -714,7 +715,8 @@ export function createStudio(opts: StudioOptions = {}) {
   }
 
   async function map(): Promise<ScenarioMap> {
-    return scenarioMap(await ir(), getGroupings());
+    const { groupings } = getGroupings();
+    return scenarioMap(await ir(), { groupings });
   }
 
   const notesFile = () => join(dir, 'notes.json');

@@ -111,7 +111,9 @@ commandes personnalisées sont du code de confiance, pas des données isolées. 
 - **Map** (4.2.3) : les regroupements du scénario, chapitres, énigmes et personnages (`games/<id>/groupings.json`),
   chacun une liste de ce que le jeu nomme déjà (une salle, un id de règle ou de sujet, `item:<id>`, `char:<id>`,
   `objective:<id>`, `checkpoint:<id>`) avec le `fichier:ligne` qui l'écrit, ou « not declared » quand le jeu ne le
-  connaît pas ; puis ce qu'aucun regroupement ne nomme encore. Un regroupement ne fait que référencer : l'enregistrer
+  connaît pas ; puis les salles, personnages, objets,
+  objectifs et points de passage qu'aucun regroupement ne nomme encore (les ids écrits par du code, et ceux des lignes
+  ou des étapes, ne sont pas dans la provenance de l'IR : ils apparaissent « not declared »). Un regroupement ne fait que référencer : l'enregistrer
   écrit `groupings.json` seul, jamais le contenu. La carte est dérivée à chaque lecture (de la provenance de l'IR et des
   regroupements), jamais stockée.
 - **Notes** : le journal partagé (`games/<id>/notes.json`), une entrée par auteur (« you », ou le nom de l'IA), à
