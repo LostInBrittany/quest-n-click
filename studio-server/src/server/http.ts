@@ -301,6 +301,10 @@ export function studioServer(o: StudioServerOptions): StudioHttpServer {
   const authCalls = new Buckets(o.perMinute ?? 30);
   const failures = new Buckets(o.perMinute ?? 30);
   const jobs = o.jobs ?? new Jobs();
+  // A job's span conflict is a lease conflict too, though its route answered 202.
+  jobs.events.on('changed', (j: { state: string; status?: number }) => {
+    if (j.state === 'failed') o.metrics?.jobFailed(j.status);
+  });
   const hub = new LiveHub({
     jobs,
     journal: o.journal,
