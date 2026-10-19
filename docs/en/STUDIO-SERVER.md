@@ -245,7 +245,9 @@ npm run studio-server -- login --server https://studio.example.fr   # the device
 npm run studio-server -- token --server https://studio.example.fr   # an access token for scripts and the MCP
 ```
 
-The tokens are kept in `~/.config/web-scumm/studio-tokens.json` (0600), and only sent over https.
+The tokens are kept in `~/.config/web-scumm/studio-tokens.json` (0600), and only sent over https. An AI agent works on
+the Studio through its `/mcp` (4.2.3), or the local MCP server pointed at it (`npm run -s mcp -- --server <url>`):
+`docs/en/MCP.md`, "A hosted Studio". The tokens must carry the Studio's `oidc.audience`.
 
 ## Trying it locally
 

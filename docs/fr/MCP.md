@@ -94,6 +94,28 @@ args = ["--prefix", "/chemin/web-scumm", "run", "-s", "mcp"]
 Commande `npm run -s mcp` (ou `npx tsx tools/mcp/server.ts`) avec le dépôt comme répertoire de travail, transport
 stdio. Node 22.12+.
 
+## Un Studio hébergé (4.2.3)
+
+Sur un Studio Server (`docs/fr/STUDIO-SERVER.md`), un agent travaille comme un membre, à travers les vérifications du
+serveur : son rôle, les pans que d'autres tiennent (un 423 qu'il lit), le journal (ses écritures sont des révisions au
+nom du membre). Deux façons :
+
+- **À distance, en HTTP** : le `/mcp` du serveur (Streamable HTTP de MCP, sans état). Un client qui suit
+  l'autorisation de MCP trouve le fournisseur OIDC à `/.well-known/oauth-protected-resource/mcp` (RFC 9728) et obtient
+  un jeton pour l'audience du Studio. Sinon, donnez-lui en un : `npm run studio-server -- token --server <url>`
+  affiche un jeton d'accès, envoyé en `Authorization: Bearer <jeton>`. Le cookie de session du navigateur n'y est
+  jamais accepté.
+  ```json
+  { "mcpServers": { "web-scumm": { "type": "http", "url": "https://studio.example.fr/mcp", "headers": { "Authorization": "Bearer <jeton>" } } } }
+  ```
+- **En local, en stdio, tourné vers le serveur** : `npm run studio-server -- login --server <url>` une fois, puis
+  `npm run -s mcp -- --server <url>` (le jeton se renouvelle seul).
+
+Ce que seule une machine avec le dépôt sait faire n'y est pas proposé : les captures, la suite de tests, les
+documents, les prompts d'assets. Un agent n'envoie pas la révision qu'il a lue : ses écritures sont faites par le
+serveur sur le fichier tel qu'il est (le garde les vérifie), pas refusées parce que quelqu'un l'a écrit depuis (ADR
+0029).
+
 ## Une session type
 1. `read_doc CONTENT_GUIDE`, `list_rooms`, `get_storyboard`, `get_notes`.
 2. Modifier : `set_storyboard` d'abord, puis `set_text` / `add_entity` dans les lieux.

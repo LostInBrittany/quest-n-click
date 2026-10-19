@@ -17,6 +17,7 @@ import { fileURLToPath } from 'node:url';
 import { openSqliteDb } from '../../../bridge/src/store-sqlite';
 import type { SqlDb } from '../../../bridge/src/store-sql';
 import { createStudio, operationContext } from '../ops/core';
+import { mcpEndpoint, type McpEndpoint } from './mcp';
 import { StudioError } from '../ops/errors';
 import { spansOf } from '../ops/spans';
 import { type BlobStore, fsBlobStore } from '../ops/blobs';
@@ -326,6 +327,7 @@ async function main(argv: string[]): Promise<number> {
     return 2;
   }
   let auth: Parameters<typeof studioServer>[0]['auth'];
+  let mcp: McpEndpoint | undefined;
   let authStore: AuthStore | undefined;
   if (config.oidc) {
     if (!secrets.STUDIO_OIDC_CLIENT_SECRET) throw new ConfigError('STUDIO_OIDC_CLIENT_SECRET is required');
@@ -356,6 +358,15 @@ async function main(argv: string[]): Promise<number> {
         readJson,
       }),
     };
+    // The remote MCP (4.2.3, ADR 0029): behind OIDC only, a Bearer token for this Studio's audience.
+    mcp = mcpEndpoint({
+      gate,
+      publicUrl: config.publicUrl,
+      issuer: oidc.issuer,
+      game: config.game,
+      version: String(JSON.parse(readFileSync(new URL('../../../package.json', import.meta.url), 'utf8')).version),
+      log: (line) => console.log(JSON.stringify(line)),
+    });
   }
   const lease = new ServiceLease(db);
   lease.start((held) =>
@@ -560,6 +571,7 @@ async function main(argv: string[]): Promise<number> {
     lease,
     trustProxy: config.trustProxy,
     auth,
+    mcp,
     leases,
     presence,
     previews,
