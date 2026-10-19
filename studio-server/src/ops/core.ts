@@ -35,6 +35,7 @@ import { loadAssets, loadLayouts, loadLocales } from '../../../src/engine/tools/
 import { GAME_DIR, ROOT, type GameModule } from '../../../tools/game';
 import { gameIR } from '../../../tools/game-ir';
 import type { GameIR } from '../../../src/engine/core/ir';
+import { diffFile, type FileDiff, type Side } from '../../../tools/studio/semantic-diff';
 import {
   type GroupingsFile,
   groupingsProblems,
@@ -584,6 +585,40 @@ export function createStudio(opts: StudioOptions = {}) {
     }));
   }
 
+  /**
+   * What changed between revisions `from` and `to` (4.2.3, H3), file by file, by what the game names: the files the
+   * operations between them wrote, each compared at both sides (its content before the first of those operations, after
+   * the last), ids in a source, value paths in a JSON. 2,000 revisions and 500 files at most; the game's `private/`
+   * left out (a reviewer reads this); a content the journal did not keep (a local journal's adopted files) is opaque.
+   */
+  async function diff(from: number, to: number): Promise<{ from: number; to: number; files: FileDiff[]; cut?: true }> {
+    if (!Number.isSafeInteger(from) || !Number.isSafeInteger(to) || from < 0 || to < from)
+      throw new StudioError('from and to are revisions, from ≤ to');
+    if (to - from > 2_000) throw new StudioError('2,000 revisions at most between from and to');
+    const j = await journal();
+    if (to > (await j.revision())) throw new StudioError(`no revision ${to} yet`, 404);
+    // Each file's side at `from` is the first operation's before, at `to` the last one's after.
+    const sides = new Map<string, { a: string; b: string }>();
+    for (let r = from + 1; r <= to; r++)
+      for (const e of await j.effectsAt(r)) {
+        if (/^private(\/|$)/.test(e.path)) continue;
+        const s = sides.get(e.path);
+        if (s) s.b = e.after;
+        else sides.set(e.path, { a: e.before, b: e.after });
+      }
+    const side = async (h: string): Promise<Side> => {
+      if (h === ABSENT) return { present: false, text: null };
+      const bytes = await j.blob(h).catch(() => null);
+      if (!bytes || bytes.length > 1024 * 1024 || bytes.includes(0)) return { present: true, text: null };
+      const text = bytes.toString('utf8');
+      return { present: true, text: Buffer.from(text, 'utf8').equals(bytes) ? text : null };
+    };
+    const changed = [...sides].filter(([, s]) => s.a !== s.b).sort(([x], [y]) => (x < y ? -1 : 1));
+    const files: FileDiff[] = [];
+    for (const [path, s] of changed.slice(0, 500)) files.push(diffFile(path, await side(s.a), await side(s.b)));
+    return { from, to, files, ...(changed.length > 500 ? { cut: true } : {}) };
+  }
+
   /** The game's IR (4.1.12, ADR 0013), with the file and line of each id and the trusted extensions' hash. */
   async function ir(): Promise<GameIR> {
     return gameIR(await loadModule(), dir);
@@ -1017,6 +1052,7 @@ export function createStudio(opts: StudioOptions = {}) {
     /** The game module, imported fresh (for tools that read the whole game, e.g. asset prompts). */
     loadGame: loadModule,
     gameInfo,
+    diff,
     ir,
     getRoom,
     texts,

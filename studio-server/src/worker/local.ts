@@ -6,8 +6,9 @@ import { mkdirSync, mkdtempSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
 import { JOBS, runChild } from './main';
 import { PreviewBuildFailed, type PreviewParams, previewFiles } from './preview-build';
+import { type Migrated, migratedShape } from './migrate';
 import { type Prepared, preparedShape, pythonPathOf } from './prepare';
-import { unpackSnapshot } from './snapshot';
+import { snapshotTexts, unpackSnapshot } from './snapshot';
 import { type Cut, cutShape } from './cut';
 import type { CutRequest } from '../../../tools/studio/cut';
 import type { ValidateResult } from '../../../tools/studio/types';
@@ -131,6 +132,24 @@ export async function localCut(
     const c = cutShape(v.data, req);
     if ('refused' in c) throw new Error(`the cut is refused: ${c.refused}`);
     return c;
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+}
+
+/** The engine's upgrade of a snapshot's game (4.2.3 PR 8), in the same child: what it would write (the tests' worker). */
+export async function localMigrate(snapshot: Buffer, timeoutMs = 60_000): Promise<Migrated> {
+  mkdirSync(JOBS, { recursive: true });
+  const dir = mkdtempSync(join(JOBS, 'migrate-'));
+  try {
+    unpackSnapshot(snapshot, dir);
+    const r = await runChild(dir, timeoutMs, 'migrate');
+    if (r.timedOut) throw new Error(`the game's code did not finish within ${timeoutMs} ms`);
+    const v = JSON.parse(r.out || '{}') as { data?: unknown; error?: string };
+    if (!v.data) throw new Error(v.error ?? `migrate gave no answer (exit ${r.code})`);
+    const m = migratedShape(v.data, new Set(snapshotTexts(snapshot).keys()));
+    if ('refused' in m) throw new Error(`the migration is refused: ${m.refused}`);
+    return m;
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }
