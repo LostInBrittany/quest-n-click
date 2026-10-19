@@ -250,7 +250,7 @@ export default defineConfig({
         'studio-server/src/ops/backup.ts': { lines: 95, branches: 80 },
         'studio-server/src/ops/gc.ts': { lines: 98, branches: 83 },
         'studio-server/src/ops/ship.ts': { lines: 98, branches: 78 },
-        'studio-server/src/ops/journal.ts': { lines: 96, branches: 94 },
+        'studio-server/src/ops/journal.ts': { lines: 96, branches: 95 },
         'studio-server/src/ops/spans.ts': { lines: 100, branches: 100 },
         'studio-server/src/ops/undo.ts': { lines: 98, branches: 98 },
         'studio-server/src/ops/validate-dir.ts': { lines: 100, branches: 90 },
