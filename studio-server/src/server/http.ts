@@ -13,6 +13,7 @@ import { inAllowlist } from '../../../bridge/src/allowlist';
 import type { SqlDb } from '../../../bridge/src/store-sql';
 import { operationContext, type Studio } from '../ops/core';
 import { isStudioError, StudioError } from '../ops/errors';
+import type { GitSync } from './git';
 import { MCP_METADATA_PATHS, type McpEndpoint } from './mcp';
 import type { Journal } from '../ops/journal';
 import { isBody, routes } from '../ops/routes';
@@ -122,6 +123,8 @@ export interface StudioServerOptions {
   builds?: Builds;
   /** The prepared assets (4.2.2 PR 6b): `/api/assets/prepare`. */
   prepared?: PreparedAssets;
+  /** The game's Git repository (4.2.3, H5): its state for a reviewer, a push and an import for an owner. */
+  git?: GitSync;
   /** The engine's upgrade of the hosted game (4.2.3 PR 8, H6): `/api/engine/migrate`, the owner's. */
   engineUpgrade?: EngineUpgrade;
   /** The game's origin (plan §6.1): every request whose `Host` is `playUrl`'s goes there, and nothing else does. */
@@ -356,6 +359,29 @@ export function studioServer(o: StudioServerOptions): StudioHttpServer {
         const name = principal ? (principal.user.name ?? author) : 'local';
         const claimant = principal ? { userId: principal.user.id, name } : undefined;
         const r = await operationContext.run({ author, claimant }, () => o.prepared!.prepare(name));
+        return send(res, 200, r);
+      }
+      // The game's Git repository (4.2.3, H5): what the Studio knows of it (a reviewer); a push, an import (an owner,
+      // the import under the exclusive lease).
+      if (sub === '/git' || sub === '/git/push' || sub === '/git/import') {
+        if (!o.git) throw new StudioError('this Studio has no Git repository (config git)', 404);
+        if (req.method === 'GET' && sub === '/git') return send(res, 200, await o.git.status());
+        if (req.method !== 'POST' || sub === '/git') throw new StudioError('not found', 404);
+        if (principal) o.auth!.gate.require(principal, 'owner');
+        if (!o.lease.held)
+          return send(
+            res,
+            503,
+            { error: 'this instance does not serve writes yet; try again' },
+            { 'retry-after': '2' },
+          );
+        const author = principal ? (principal.user.email ?? principal.user.name ?? principal.user.id) : 'local';
+        const claimant = principal ? { userId: principal.user.id, name: principal.user.name ?? author } : undefined;
+        const body = (await readJson(req)) as { ref?: unknown };
+        const ref = typeof body?.ref === 'string' && body.ref ? body.ref : undefined;
+        const r = await operationContext.run({ author, claimant }, () =>
+          sub === '/git/push' ? o.git!.push() : o.git!.import(ref),
+        );
         return send(res, 200, r);
       }
       // The engine's upgrade (4.2.3, H6): an owner's, on the worker, under their exclusive lease; refused (422) before

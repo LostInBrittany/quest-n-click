@@ -21,6 +21,7 @@ import { download, h, toast } from './ui';
 import { must } from '../engine/core/must';
 import { apiUrl, goLogin, hosting, loginHeld, studioFetch } from './api-base';
 import { assetsPanel, buildsPanel } from './builds-panel';
+import { gitPanel } from './git-panel';
 import { diffPanel } from './diff-panel';
 import { gameLink } from './game-origin';
 import { gateScreen, hostedStudio, type Me, whoAmI } from './hosted';
@@ -409,6 +410,7 @@ async function start() {
       .querySelector('.playside')
       ?.append(
         buildsPanel({ owner: me.role === 'owner', dev: me.role !== 'reviewer' }),
+        gitPanel({ owner: me.role === 'owner' }),
         ...(me.role !== 'reviewer' ? [assetsPanel()] : []),
       );
     const frame = rooms.el.querySelector<HTMLIFrameElement>('iframe.engine');
