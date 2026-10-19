@@ -12,9 +12,10 @@ import type { ValidateResult } from '../../../tools/studio/types';
 import { type Job, type JobKind, MAX_JOB_MS, privateKeyOf, signJob } from '../worker/job';
 import type { JobResult } from '../worker/main';
 import { PreviewBuildFailed, type PreviewParams, previewFiles } from '../worker/preview-build';
-import { packSnapshot } from '../worker/snapshot';
+import { packSnapshot, snapshotTexts } from '../worker/snapshot';
 import type { DiagnoseKind } from '../ops/diagnose';
 import { StudioError } from '../ops/errors';
+import { type Migrated, migratedShape } from '../worker/migrate';
 import { type Prepared, preparedShape } from '../worker/prepare';
 import type { S3 } from './s3';
 
@@ -127,6 +128,18 @@ export function remoteExecutor(o: RemoteExecutorOptions) {
       const p = preparedShape(v.data);
       if ('refused' in p) throw new StudioError(`the prepared assets are refused: ${p.refused}`, 422);
       return p;
+    },
+    /**
+     * The engine's upgrade (4.2.3 PR 8) of a snapshot's game: the files it would change, written nowhere. A game that
+     * does not load, or that the tool refuses (a schema newer than this engine's), is a 422; a deadline missed, a 504.
+     */
+    async migrate(snapshot: Buffer, at: { epoch: string; rev: number }): Promise<Migrated> {
+      const v = await run('migrate', snapshot, {}, at);
+      if (v.timedOut) throw new StudioError(`${v.failed}: try again`, 504);
+      if (v.failed) throw new StudioError(`the migration cannot run: ${v.failed}`, 422);
+      const m = migratedShape(v.data, new Set(snapshotTexts(snapshot).keys()));
+      if ('refused' in m) throw new StudioError(`the migration is refused: ${m.refused}`, 422);
+      return m;
     },
     /** The game module as data, for the Studio's reads (functions dropped, as `importInChild` gives it). */
     async load(dir: string): Promise<unknown> {

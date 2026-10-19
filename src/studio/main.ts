@@ -22,6 +22,7 @@ import { must } from '../engine/core/must';
 import { apiUrl, goLogin, hosting, loginHeld, studioFetch } from './api-base';
 import { assetsPanel, buildsPanel } from './builds-panel';
 import { commentsPanel } from './comments-panel';
+import { diffPanel } from './diff-panel';
 import { gameLink } from './game-origin';
 import { gateScreen, hostedStudio, type Me, whoAmI } from './hosted';
 
@@ -264,6 +265,8 @@ async function start() {
       entity: rooms.selection ? { kind: rooms.selection.kind, id: rooms.selection.id } : undefined,
     }),
   });
+  // What changed between two revisions (4.2.3): the dev server and a hosted Studio have the route, not the demo.
+  if (!demo) check.el.append(diffPanel());
   const panes: Record<TabId, HTMLElement> = {
     rooms: rooms.el,
     storyboard: storyboard.el,

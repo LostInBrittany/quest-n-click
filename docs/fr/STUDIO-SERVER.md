@@ -216,6 +216,48 @@ son auteur change son texte ; un reviewer résout ses propres fils, un dev n'imp
 notes de `notes.json` (chacune une fois, son `about` pour ancre). Routes : GET/POST `/api/comments`, PUT
 `/api/comments/<id>`, POST `/api/comments/import-notes`.
 
+## Monter la version du moteur d'un jeu hébergé
+
+Un jeu importé d'un projet 4.1.x qui n'a jamais lancé `web-scumm migrate` est encore au schéma d'écriture 2 (pas de
+`schemaVersion: 3`, pas d'ids stables). Sur un Studio hébergé, un owner le monte de version avec
+`POST /api/engine/migrate` (4.2.3) :
+
+```bash
+curl -X POST -H "Authorization: Bearer $(npx web-scumm-studio-server token --server https://studio.example)" \
+  https://studio.example/api/engine/migrate
+```
+
+- **Exclusive.** Elle tourne sous le bail exclusif de l'owner (`*`) : personne d'autre n'écrit pendant ce temps (ses
+  écritures reçoivent un 423 avec le nom de l'owner, ses brouillons restent chez lui, et il écrit de nouveau une fois
+  qu'elle est finie). Une à la fois (429).
+- **Sur l'application de traitement.** Elle exécute la même migration que `web-scumm migrate` sur le snapshot de la
+  tête : les ids stables écrits dans `rooms/*.ts`, `rules.ts`, `items.ts` et `game.ts`, les clés des tables de
+  traduction renommées, `ids.migration.json` et `ids.paths.json`, puis les trois lignes qu'UPGRADING laisse à l'auteur
+  dans `game.ts` (`schemaVersion: 3`, `saveVersion` + 1, `migrations: [..., idsMigration]` et son import : les trois
+  ou aucune, dites dans `skipped`). `defineGame({...})` doit être dans `game.ts` (un jeu qui le définit ailleurs est
+  refusé : migrez-le en local). Rien n'est encore écrit, et rien d'autre que ces fichiers : le Studio refuse une
+  réponse qui nomme un autre fichier, ou un fichier que le jeu n'a pas (le code du jeu tourne avant la migration et
+  pourrait la façonner).
+- **Jugée avant d'être écrite.** Le jeu migré est jugé sur l'application de traitement comme la santé juge une
+  révision : le validateur, puis le solveur depuis une nouvelle partie, borné dans le temps. Un jeu que la migration
+  casserait (un id que l'outil n'a pas pu écrire, une liste construite par du code, un jeu qu'on ne peut plus finir),
+  ou que le solveur ne peut pas juger à temps, est refusé par un 422 (`errors`, `skipped` : ce que l'outil n'a pas pu
+  écrire) et la tête reste telle qu'elle était : migrez-le sur un Studio local (`web-scumm migrate`, puis `npm run ids`
+  pour voir ce qui reste) et importez-le de nouveau, ou corrigez-le d'abord.
+- **Une révision.** Sinon les fichiers modifiés sont écrits en une seule opération (`engine upgrade: authoring schema
+  2 → 3`), à travers la garde, et la réponse est `{ revision, changed, paths, schema: { from, to } }` (`paths` : les
+  fichiers écrits). Un jeu déjà au schéma
+  3 répond `{ changed: 0 }` et rien n'est écrit.
+- **Annulable.** L'Undo de l'owner l'annule, par une nouvelle révision (409 si quelqu'un a écrit l'un de ses fichiers
+  depuis) ; ou le projet revient à une sauvegarde faite avant (voir plus bas) : faites-en une d'abord.
+
+Dans la ligne 4.2.x le format du contenu est gelé (D40) : c'est pour un jeu fait sur une 4.1.x. Un Studio local n'a
+pas de route : lancez `web-scumm migrate` dans le projet. Le `tsconfig.json` du projet (`baseUrl`, que
+`web-scumm migrate` corrige aussi) ne fait pas partie d'un jeu hébergé et n'est pas touché. Les playtests
+(`playtests/`) ne sont ni migrés ni jugés : rejouez-les après la montée de version (une session enregistrée au schéma 2
+peut nommer les anciennes clés positionnelles). Il n'y a pas encore de
+bouton : la route est le moyen d'y accéder.
+
 ## Sauvegarde et restauration
 
 - **Le journal expédié** : chaque opération confirmée est copiée dans le bucket, dans l'ordre, en segment immuable
