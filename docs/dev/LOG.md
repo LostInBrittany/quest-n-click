@@ -5924,3 +5924,506 @@ is merged, and its own yes to sign)
 
 → next: Claude (this PR's candidate, `v4.2.2` signed on it, `ship verify`, the two pass issues; then the 4.2.3 plan for
 the maintainer to merge, and its own yes to sign)
+
+## #218 · 2026-10-19 · Claude · proposal · 4.2.2: the gated mutation sets read again before the tag
+
+- The 4.2.2 candidate's `mutation (core)` found one survivor not named: `src/engine/core/save.ts:315`, the slot's
+  revision (ADR 0026, PR 2b) never copied. Pull requests do not run the gated sets, so it waited for the candidate.
+  Killed by `tests/critical-save.test.ts` ("keeps the revision a slot was made in").
+- `studio-ops` and `studio-auth`, whose files 4.2.2 changed too (`journal.ts`, `play.ts`), measured on main before the
+  next candidate: `studio-auth` clean (566 of 579 killed, 13 named as before); `studio-ops` had 16 survivors not named,
+  all in `Journal.filesAt`, `effectsAt` and `opAt` (4.2.2 PR 3b). 15 killed by `tests/studio-journal-mutants.test.ts`
+  ("a past revision read back": the order by path, the default `keep`, a file made later absent, the cache read and
+  filled, an unknown revision); one named equivalent (the sort's `<` as `<=`: a Map's keys are never equal).
+
+→ next: Claude (a new candidate, then `v4.2.2`)
+
+
+## #219 · 2026-10-19 · Claude · proposal · 4.2.3: the detailed plan (draft for the maintainer)
+
+- `docs/dev/PLAN-4.2.3-COORDINATION.md` (French, the source): what 4.2.2 leaves open (the archive's worker cannot
+  `prepare`, sprite sheets and uploads local, the restore drill only in CI, the preview threshold measured locally,
+  `studio-workshop` measured), ten guarantees with their limits and tests (H1–H10: the scenario map, anchored comments,
+  the semantic diff, the remote MCP, the Git push and import, the engine upgrade, the archive's worker preparing, the
+  asset tools hosted with progress and cancellation, the reference deployment run, the revision read and the 409 with
+  its diff), what stays open after 4.2.3 and why, its departures from the master plan's §9 (merging it amends them), the PRs in order, exit criteria, six decisions
+  asked of the maintainer (the name, the second OIDC provider, deploy key or GitHub App, the diff's captures hosted,
+  the yes to sign `v4.2.3`, the spike's Clever resources) and the risks.
+- Merged at the maintainer's request (« Merge #164 for me, as is »); its §4 answered in D44 (the name "Coordination",
+  GitLab, a deploy key, the diff's captures local, the spike's resources kept); the yes to sign `v4.2.3` given
+  (« Yes, sign v4.2.3 », D37, D44).
+
+→ next: Claude (4.2.3 PR 0, then the plan's order)
+
+
+## #220 · 2026-10-19 · Claude · proposal · 4.2.3 PR 0: a worker from the archives prepares (H7)
+
+- `scripts/pack.mjs` ships `ops/studio/worker-requirements.lock` in the engine's package (where `prepare.ts` lives).
+- `prepare.ts`: `pythonPathOf(env, cwd)`, `WORKER_PYTHON_PATH` else `.python` in the worker's folder; the worker
+  (`main.ts`) and the local Studio (`local.ts`) pass it to the child with the PATH; before, `PYTHONPATH` was the engine's
+  folder, which an install from the archives is not (`node_modules/web-scumm`).
+- `scripts/studio-install-smoke.mjs`: the lock in the installed package, byte for byte the repository's; with
+  `--python` (the candidate's job, now with CPython 3.13), installed as the hook does (`--require-hashes`, wheels only)
+  and its packages imported from that folder. A real `prepare` from the archives stays the `studio-assets-hosted` pass;
+  CI's real `prepare` runs from the repository (`studio-hosted`).
+- STUDIO-SERVER (en, fr): the hook for a worker from the archives, the lock's platform said.
+- Tests: `tests/studio-prepared.test.ts` (`pythonPathOf`).
+
+→ next: Claude (4.2.3 PR 1: the revision read, H10)
+
+
+## #221 · 2026-10-19 · Claude · proposal · 4.2.3 PR 1: the revision read, and the 409 that says what changed (H10)
+
+- **The journal** (`ops/journal.ts`): an operation's `readAt`; a file of its effects another author wrote after it (the
+  operations since that name it, found by a `LIKE` on their effects, then checked) is a 409 whose body
+  says `path`, `readAt`, `head`, and the file's text at each (`before`, `now`: null when absent, binary, longer than
+  256 KiB, not UTF-8, or not kept). `blobAt(path, rev)`: a file's content hash at a revision (the first later
+  operation's `before`, else the head's).
+- **The server** (`http.ts`, `core.ts`): `x-studio-base` (a revision, else 400) into the operation's context; a write's
+  answer carries `x-studio-revision`, the revision after it.
+- **The Studio** (`src/studio/api.ts`): the revision each resource was last read at by its editor, by its read path; a
+  write sends the longest read path's revision. Only an editor's read moves it: not a write's answer (the server never
+  counts the member's own writes, so a replayed answer cannot make them conflict with themselves), not a read made for
+  something else (`room(id, { track: false })`, the Assets tab's overlay); no base for a derived file
+  (`storyboard/markdown`). The Voices tab reads again when `voices.json` changes. The 409 dialog (`spans.ts`) shows the
+  changed lines with two lines of context (`line-diff.ts`, an LCS bounded at 2,000 lines, in typed rows) and offers
+  "Apply my edit on the latest version" (sent again from the head's revision, computed again by the server on the
+  file as it is), or for a whole document (a layout, the storyboard) "Replace with my version (drops their change)".
+- **Limits**: a write is checked against the revision of the resource its editor read, for every file it writes (a
+  file outside what the editor showed can refuse it too, never the reverse), per file (two notes are one file); the room
+  view's placement (the in-game editor) is checked against what the Rooms tab read, while the view may show an older
+  preview for a moment; a client that sends no `x-studio-base` (a script, the MCP until PR 5) is not checked this way. The merge is the edit applied again, not a three-way merge of
+  texts: two edits of the same field keep the later one, after the member saw the earlier.
+- **Mutation** (`studio-ops`, gated): `journal.ts` 159 of 165 killed locally, 6 named (one new, equivalent: the
+  condition that spares a head read when no revision was read).
+- **After the second reading**: a client's own writes exempt (`x-studio-client`, one per tab or CLI/MCP session, kept in
+  `studio_ops.client`, migration 0011; the same member's other tab or agent still counts; no NUL sentinel, which Postgres
+  refuses; `!` as the LIKE escape, whatever Postgres's string settings), (a replayed answer, a dry run or a write's answer no longer move the
+  base past changes the editor never loaded), side reads untracked, whole documents said, derived files without base,
+  the voices read again, the journal's scan bounded by a `LIKE`, the diff in typed rows.
+- Tests: `tests/studio-journal-mutants.test.ts` (the revision read, own writes, LIKE patterns, JSON-escaped paths),
+  `tests/dom/studio-api-base.test.ts` (the client: the base sent, moved by an editor's read only, none for a derived
+  file, the head on retry, a whole document said), `tests/studio-collab.test.ts` (two members over
+  HTTP, the 409, the edit applied on the head, a write's own revision), `tests/studio-line-diff.test.ts`,
+  `tests/dom/studio-hosted-screens.test.ts` (the dialog).
+
+→ next: Claude (4.2.3 PR 2: the scenario map, H1)
+
+
+## #222 · 2026-10-19 · Claude · proposal · 4.2.3 PR 2: the scenario map (H1)
+
+- `tools/studio/scenario-map.ts`: the groupings' shape and check (`groupingsProblems`: ids unique, lowercase; kinds
+  chapter, puzzle, character; titles of 1–200 characters; references without spaces; 500 at most of each; no unknown
+  field) and the map (`scenarioMap(ir, groupings)`: each reference with its kind and `file:line` from the IR's
+  provenance, or `unknown`; what no grouping names, by kind; sorted by grouping id, the same bytes for the same IR).
+- `studio-server/src/ops/core.ts`: `getGroupings`, `setGroupings` (writes `groupings.json` alone, refuses a bad file,
+  no write when unchanged), `map`; routes GET/PUT `groupings`, GET `map`; `ops/spans.ts`: `groupings.json` is the span
+  `groupings`.
+- The Studio: the Map tab (`src/studio/map-tab.ts`), the groupings by kind, their references, what is left; a
+  grouping added, edited (its id fixed), deleted through the whole file (the base of H10 applies; a 409 on it says the file is replaced whole).
+- Limits: the map says what the content declares; a link written by code (an id the IR does not know) is "not
+  declared". No map in demo mode (the browser has no groupings file).
+- **After the second reading**: only the IR's own keys resolve (`constructor` is "not declared"); a key both a rule
+  and an entity carry takes the kind whose line the provenance gives (rooms, rules, scripts, entities, in
+  `provenanceOf`'s order); a hand-edited `groupings.json` is read for what it can (`readableGroupings`: the readable
+  groupings mapped, the others said in the tab, `skipped`); a new grouping never replaces another of its id, an edited
+  one keeps its place; titles without control characters or bidirectional overrides, a reference named once, no
+  unknown key in the file; a reviewer's tab is read only; the tab reads again when `groupings.json` or a `.ts` changes,
+  and `groupings.json` no longer schedules the Check tab.
+- Docs: STUDIO (the tab, the routes), STUDIO-SERVER (the span), en and fr.
+- Tests: `tests/studio-scenario-map.test.ts` (H1: adding then deleting a grouping leaves every content file's hash the
+  same; two derivations, the same bytes; "not declared"; a bad file refused, nothing written; the span; the check and
+  the kinds), `tests/dom/studio-map-tab.test.ts`.
+
+→ next: Claude (4.2.3 PR 3: anchored comments, H2)
+
+
+## #223 · 2026-10-19 · Claude · proposal · 4.2.3 PR 10: the survivors of `studio-workshop` read, the set gated
+
+- 104 survivors measured on run 39192014232 (backup, ship, gc, health, previews, builds, prepared), each killed or
+  named.
+- `tests/studio-workshop-backup-mutants.test.ts`: the digest's canonical form (keys sorted, arrays kept), what
+  `checkBackup` refuses, the blobs each table's rows name (a build's files, never its snapshot), the rows' order, the
+  Postgres catalogue queries on a fake (one read-only transaction), one `has` per blob, shipping past 500, the RPO to
+  the millisecond, `close` stopping the retry, the replay's stops (unreadable, another line, a revision moved in
+  between), the collection's boundaries.
+- `tests/studio-workshop-health-mutants.test.ts`: a kept failure without a culprit names none, a run asked for as the
+  last one ends is not lost, `close`, failures counted per revision and given up at the fifth, the verdict kept while
+  the next revision cannot be judged and dropped in another epoch, each change emitted once, a bisection asked for
+  judging nothing twice, from revision 0, under the journal's epoch, throwing what is no unknown verdict.
+- `tests/studio-workshop-previews-mutants.test.ts`: `assetDirs`, `findAsset` passing a folder over, each byte range,
+  an empty file, a HEAD without body, a path outside the prepared assets, `servedPath`; the previews' rerun, failure
+  kept, restart, build time, manifest read once, nothing before the first look; a build's verdict and a build served
+  after a restart.
+- `tests/studio-workshop-prepared-mutants.test.ts`: the prepared sets' folders at start and between runs.
+- 10 named (equivalent, one unreachable): the three `wanted = false` initial values, `close`'s `clearTimeout` guard,
+  `schedule` after `close`, `judge`'s past-the-head guard, the rows' `<=`, the range's `start >= size`, `rebuilt`'s
+  `'null'`, `builds.handle`'s null path.
+- `studio-workshop` moves from `MEASURED` to `GATED`; MUTANTS.md row and table, the workflow's description.
+- No source changed; no bug found.
+
+→ next: Claude (4.2.3 PR 11: the gates, `ci/423-gates`)
+
+
+## #224 · 2026-10-19 · Claude · proposal · 4.2.3 PR 5: the remote MCP (H4, ADR 0029)
+
+- `studio-server/src/server/mcp.ts`: `/mcp`, MCP's Streamable HTTP transport, stateless (POST only, JSON answers; GET and
+  DELETE 405); policy B only (a 401 carries `WWW-Authenticate: Bearer resource_metadata=…`, an invalid token
+  `error="invalid_token"` too; the cookie is refused; a reviewer at least); `/.well-known/oauth-protected-resource`
+  (and `/mcp` appended) names the resource, the OIDC provider, the header method. Wired in `http.ts` (after the game's
+  origin, before `/api`) and `main.ts` (with OIDC only).
+- `tools/studio/http-backend.ts`: the tools' backend over `/api` with a Bearer token asked per request, an operation id
+  per write, a refusal said with its status (`ApiRefusal`). `/mcp` uses it on the loopback with the caller's token: the
+  API's own checks, not a copy.
+- `tools/mcp/tools-server.ts`: one MCP server definition (`toolsFor(backend)`, the two resources over the backend) for
+  the stdio server over the core, the stdio server over a hosted Studio (`npm run mcp -- --server <url>`, the CLI's
+  token from `login`), and `/mcp`.
+- Limits: an agent sends no revision it read (H10's check does not apply to it; the guard does); screenshots, tests,
+  documents and asset prompts are not offered remotely; a client without MCP's authorization discovery uses a token from
+  `studio-server token` or the stdio server.
+- **After the second reading**: the loopback goes to the address and port the request came in on (IPv6, a specific
+  interface), with the Studio's `Host` (`node:http`, which fetch cannot set); a batch is refused (400); the tools are
+  given up when the client goes away, and after 5 min; `solve` with a reality policy is refused (501), not answered
+  without it; a malformed header is `invalid_request`; the remote instructions name no local tool; the audience a
+  discovering client's token must carry, the short life of a pasted token, the loopback's refusal counting and the SDK
+  in the server process are said (ADR, MCP, threat model).
+- Docs: ADR 0029; MCP ("A hosted Studio"), STUDIO-SERVER (en, fr); the threat model's row.
+- Tests: `tests/studio-mcp-remote.test.ts` (the metadata; a 401 with where to authorize, a token of another audience,
+  the cookie, a non-member, a GET; an MCP SDK client listing and calling the tools, a write in the journal as the
+  member; a reviewer's write 403, another member's span 423, a member removed refused at the next request),
+  `tests/studio-http-backend.test.ts` (each tool's route, the token per request, the operation id, a refusal).
+
+→ next: Claude (4.2.3 PR 6: Git, H5)
+
+
+## #225 · 2026-10-19 · Claude · proposal · 4.2.3 PR 6: the game in Git (H5, D44)
+
+- `studio-server/src/server/git.ts` (`GitSync`): a bare clone in `workDir/git`, fetched each time; a push builds one
+  commit of the revisions since `git_pushed` (the head's files in `path`, a line per operation, a `Co-authored-by`
+  per author) and pushes it, never forced; refused (409) when the branch moved since `git_commit` or exists unseen;
+  nothing new, nothing pushed. An import reads the branch or a commit and writes the game as it is there in one
+  operation under the exclusive lease (5,000 files, 64 MiB at most), and records the commit when it is the branch's
+  tip. Git's environment: PATH, HOME in the work folder,
+  no prompt, no system or user configuration, the deploy key in a 0600 file for one command.
+- Config `git` (remote without credentials, branch, path, committer) and the secret `STUDIO_GIT_KEY`; routes GET
+  `/api/git` (a reviewer), POST `/api/git/push` and `/api/git/import` (an owner); the Play tab's Git panel
+  (`src/studio/git-panel.ts`); the exclusive lease helper shared with prepare (`main.ts`).
+- **After the second reading**: no working tree ever checked out (a bare clone): a push builds its tree in an index of
+  its own from the tip's tree and the head's objects (written in one `hash-object --stdin-paths` from this server's
+  bytes), commits with `commit-tree`; an import lists the commit's tree and reads its blobs; a link or a submodule, the
+  game's folder itself included, refuses an import (422) and a push; the repository's dotted paths are kept by a push
+  and skipped by an import, ignore rules play no part; a failed push is a 409 only when the remote says the branch
+  moved, else a 502 with git's words (a first push that failed leaves nothing in the way); a `Co-authored-by` email
+  only when the provider verified it, else `users.noreply.<the Studio's host>`; the commit message's lines made plain;
+  an import's ref is a branch of the remote or a commit's hash, never the clone's own refs; `git.knownHosts` for a
+  strict host check (else trusted on first use, said); the deploy key's path quoted and a leftover removed at start;
+  the config checks the branch as GitSync does, a remote starting with `-` refused; the panel asks twice before an
+  import.
+- **Round two**: the game's `private/` (and `node_modules/`) never pushed, never deleted by an import; a push's refusal
+  read from its porcelain status line (moved: 409; a protected branch, a key, the network: 502 with git's words); the
+  index told in NUL-terminated records (a path taken as it is); a file the repository has as executable kept so; the
+  configured remote applied each time; the scratch copy removed whatever happens; a co-author's name made plain, accents
+  dropped rather than broken; an all-hex branch name taken as the branch; `git.path` without pathspec magic or empty
+  segments.
+- Limits: one repository per instance; an import replaces what the Studio had not pushed; an import of a commit that
+  is not the branch's tip makes the head that commit's game, and the next push goes on the tip; a file outside `path` is never touched; LFS and submodules are not read.
+- Docs: STUDIO-SERVER "The game in Git" (en, fr); the threat model's row.
+- Tests: `tests/studio-git.test.ts` (a bare repository; the hard cases; round two: `private/` both ways, a quoted path, an executable kept, a refusal 502, a race 409; a push with two authors, nothing new, a second push on the
+  first, a file removed; a moved branch refused and left as it was; an import as one revision then a push on it, the
+  rest of the repository kept; a bad ref, an unknown branch, a commit without the game; the routes),
+  `tests/dom/studio-git-panel.test.ts`.
+
+→ next: Claude (4.2.3 PR 7: sprite sheets and uploads hosted, H8)
+
+
+## #226 · 2026-10-19 · Claude · proposal · 4.2.3 PR 8: the engine's upgrade of a hosted game (H6)
+
+- `studio-server/src/worker/migrate.ts`: `migrateIn(dir, game)`, the migration of a snapshot's game as
+  `web-scumm migrate` does it (`tools/ids/plan.ts`, the planning of `npm run ids -- --write --map` taken out of
+  `tools/ids.ts`, which now prints it), plus the three lines UPGRADING left to the author (`addSchema3ToGameSource` in
+  `tools/ids/codemod.ts`); `migratedShape` bounds the answer (1,000 files, 8 MiB, packable plain paths). A worker job
+  kind `migrate` (`child.ts`, `job.ts`, `main.ts`), `remoteExecutor.migrate`, `localMigrate`; `overlaySnapshot`.
+- `studio-server/src/server/engine-upgrade.ts`: `EngineUpgrade`, under the owner's exclusive lease (`*`, the helper
+  `prepare` used, now shared in `main.ts`), one at a time: the head packed, the worker's migration, the migrated
+  snapshot judged by the health's `judgeBy` (validator, then solver; `judge` now built once in `main.ts`), a 422 with
+  `errors` and `skipped` when it fails or is unknown, else one guarded, undoable `writeFiles` with each file's `from`.
+  Route `POST /api/engine/migrate`, owner only, hosted only (404 otherwise). A local Studio has no route: it runs
+  `web-scumm migrate`. No button in the Studio's page yet.
+- Fixture `tests/fixtures/game-4.1/`: the template at schema 2 (no `schemaVersion`, no ids), its manifest listing the
+  starter images so that it validates.
+- Tests `tests/studio-engine-upgrade.test.ts` (real worker child): one revision, schema 3 and ids written, health green,
+  nothing to do the second time; a game built by code refused, head intact, lease given back; the solver's failure and
+  its unknown verdict refused (injected judge), 429 for a second run; taken back by personal undo and by a backup's
+  restore to the head and the health of before; the answer's shape; the route (404, 403 for a dev, POST only).
+- STUDIO-SERVER (en, fr) "Upgrading the engine of a hosted game"; a threat-model row.
+
+**After the second reading**
+
+- The answer bounded to the migration's files: `migratedShape(v, existing)` accepts only `rooms/*.ts`, `rules.ts`,
+  `items.ts`, `game.ts`, `locales/*.json` (each one the snapshot has) and the two id maps; the 200 answer lists the
+  `paths` written; a threat-model line (the game's code shapes the answer; the Studio bounds it).
+- The exclusive lease renewed every 30 s while the operation runs (`exclusiveRunner` in `leases.ts`, used by prepare
+  and the upgrade).
+- Two exclusive operations of the same owner: a per-member count, only the last one out releases `*`.
+- The revision: `writeFiles` gives the paths it changed, not its revision; the head read after it stays, said to be
+  under the exclusive lease.
+- `game.ts`'s three lines all or none (a shorthand or a computed `saveVersion` skips the three, said), so a second run
+  cannot append `idsMigration` twice; a game whose `defineGame` is not in `game.ts` is refused (documented).
+- STUDIO-SERVER (en, fr): the playtests are neither migrated nor judged.
+- Coverage: `exclusiveRunner`'s renewal failure (with and without a log) and its count's edges (two runs starting
+  together, a take refused), and `remoteExecutor.migrate` against a fake worker (an answer, the game failing, the
+  deadline, an answer naming a file the migration never writes or the game does not have, no result, a job refused).
+
+→ next: Claude (4.2.3 PR 9: the reference deployment, H9)
+
+
+## #227 · 2026-10-19 · Claude · proposal · 4.2.3 PR 3: comments anchored on stable ids (H2)
+
+- `studio-server/src/server/comments.ts` (`Comments`) and migration 0012 (`studio_comments`, kept by the backup):
+  a comment's anchor (a stable id: letters, digits, `. : @ - _`; '' for the game), its revision, a thread one level
+  deep (a reply takes its thread's anchor), resolved as a thread; `orphan` when the anchor is not among what the game
+  names (the IR's provenance, the storyboard's boards and panels, read once per revision; when the game does not load,
+  no comment is said orphan); its author alone changes its text, a reviewer resolves their own threads, a dev any; the
+  notes of `notes.json` imported once each (`source` unique), free text kept at the head of the text.
+- Routes GET/POST `/api/comments`, PUT `/api/comments/<id>` (a reviewer's: `roleFor`), POST
+  `/api/comments/import-notes` (an owner's); the Notes tab's Comments panel (`src/studio/comments-panel.ts`).
+- Departures from the plan: comments are kept in the Studio's database rather than a game file, so a reviewer writes
+  no game file; `ids --lines` as an exclusive operation is carried to 4.3 (neither this PR nor PR 8 makes it; a line's
+  id is not an anchor). A local Studio keeps its notes.
+- **After the second reading**: what a comment can be anchored on is read from the IR itself (`anchorsOf`: an id made by
+  code included), once per revision, shared by the requests that wait for it, a game that does not load remembered as
+  such (no comment said orphan, never an older revision's set); a reviewer resolves only threads they began, not
+  through their reply to another's; 2,000 open comments at most each (429), a list of the newest 2,000; a new comment
+  is a 201; an empty name falls back to the email.
+- Docs: STUDIO-SERVER "Comments" (en, fr).
+- Tests: `tests/studio-comments.test.ts` (anchors, threads, orphans, a game that cannot be read, refusals, who changes
+  and resolves, every note imported once), `tests/studio-collab.test.ts` (a reviewer comments, 200, and writes the
+  game, 403; the import an owner's), `tests/dom/studio-comments-panel.test.ts`.
+
+→ next: Claude (4.2.3 PR 4: the semantic diff, H3)
+
+
+## #228 · 2026-10-19 · Claude · proposal · 4.2.3 PR 4: the semantic diff (H3)
+
+- `tools/studio/semantic-diff.ts`: a source parsed (the compiler API, never run): every object literal with
+  `id: '<text>'` compared by its id, its other fields by their text, an object inside a field that has an id of its own
+  shown as that id (a change is said once, by the object that owns it); a JSON compared by the paths of its leaves;
+  anything else, or a side that is not text, "file changed" (`opaque`); a list cut at 500 (`cut`).
+- `core.diff(from, to)` and GET `/api/diff/<from>..<to>` (a reviewer's): the files the operations between the revisions
+  wrote, each compared at both sides through the journal (`blobAt`); a file written back is no change; 2,000 revisions
+  at most; a content the journal did not keep (a local journal's adopted files) is opaque. The Check tab's panel
+  (`src/studio/diff-panel.ts`).
+- Limits: the ids are the ones written in the sources (an id made by code is not seen); a file without ids (code that
+  is not content, an image), or a change outside every id, is "file changed"; JSON arrays are compared by index.
+  Between builds is between their revisions. No before/after captures in 4.2.3, local or hosted (D45, carried to 4.3).
+- **After the second reading**: an id written twice in one file is told by occurrence (`daily#2`); a `.ts` change that
+  touches no id is "file changed"; each file's sides read from the operations of the range (the first one's before,
+  the last one's after: no history scan), 500 files at most (`cut`); the game's `private/` left out; the panel checks
+  the two revisions and says the captures are not made; D45 recorded.
+- Tests: `tests/studio-semantic-diff.test.ts` (a source's ids and fields, a JSON's paths, added, removed, opaque, cut;
+  over a journal, a written-back file no change, bad ranges refused), `tests/dom/studio-diff-panel.test.ts`.
+
+→ next: Claude (4.2.3 PR 7: sprite sheets and uploads hosted, H8)
+
+
+## #229 · 2026-10-19 · Claude · proposal · 4.2.3 PR 11: the gates
+
+- **Passes** (`tools/field/schema.ts`, `docs/dev/surfaces.json`): `studio-mcp-remote` and `studio-oidc-generic`, asked
+  from 4.2.3 (`PASS_SINCE`), bound to the engine's and the Studio Server's archives, after `studio-hosted`; a 4.2.2
+  release is not asked them (`tests/field-kit.test.ts`, `tests/field-carry.test.ts`).
+
+→ next: Claude (the reference deployment, then the release)
+
+
+## #230 · 2026-10-19 · Claude · proposal · 4.2.3 PR 7: the sheets' cutting and the uploads hosted, prepare followed and cancelled (H8)
+
+- **Jobs** (`studio-server/src/server/jobs.ts`): one at a time, four waiting (429 past them); states `queued`,
+  `running` (steps `packing`, `on the worker`, `writing`), `done`, `failed`, `cancelled`, emitted in order to the live
+  stream (`job` events, `hello.jobs`) and read by `GET /api/jobs/<id>`. `POST /api/jobs/<id>/cancel` (its author or an
+  owner): a waiting job never runs, a running one is aborted; its write starts only through `commit()`, past which a
+  cancel is a 409, so a job is cancelled with no operation or done with its one operation.
+- **The worker** (`worker/main.ts`): a job whose Studio closed its request is not run, or its child is killed with its
+  group (`runChild`'s `signal`); nothing is written at the result URL. `remote-executor.ts` passes the job's signal to
+  its fetch. New kind `cut` (`worker/cut.ts`, the child): a sheet cut or a cell keyed from a version 2 snapshot of the
+  image (`upload/source.<ext>`), the sheet's cells and `site.json` (`snapshot.ts` `packCut`); its answer is refused
+  unless every file is a cell of that sheet (`cutShape`).
+- **The cut shared** (`tools/studio/cut.ts`): the dev server's copy-and-compare and its keying script moved out of
+  `tools/studio/assets.ts`, which now checks an upload in `planSheet` / `planCell` before any cut, and takes where the
+  prepared set is (`publicAssets`).
+- **Hosted routes** (`http.ts`, `hosted-assets.ts`): `GET /api/assets`, `/assets/prompts`, `/assets/file/*` (a
+  reviewer's; files served `nosniff` and `sandbox`); `POST /api/assets/sound|decor` (bounded: 10 MiB once decoded,
+  the body by its length first: 413; typed by magic, a sound's extension agreeing: 415; one operation under the
+  instance's write lock); `POST /api/assets/sheet|cell` and `/assets/prepare`: checked at once (400, 409 with the
+  conflicts, 413, 415), then 202 with the job, run under the member's exclusive lease (`exclusive` in `main.ts`,
+  shared with prepare). `PreparedAssets.prepare` takes the job's control: its signal to the worker, `commit()` before
+  any blob, row or manifest. Deviation: the uploaded sheet is not kept on a hosted Studio (`private/` has no span).
+- **The page**: the Assets tab is shown on a hosted Studio; `assets-io.ts` follows a 202 to its end (`jobs.ts`: the
+  `studio-job` events `hosted.ts` passes on, a poll every 3 s, a panel with Cancel); Prepare in the Assets tab and in
+  the Play tab is a job.
+- Docs: STUDIO-SERVER (en, fr: what is hosted, the bounds, the jobs and the cancel), STUDIO (en, fr: the tab hosted),
+  the Studio Server's threat model (an upload as an attack, a long job holding the project).
+- Tests: `tests/studio-assets-hosted.test.ts` (413 and 415 with nothing written; an upload one revision; a cut done:
+  one revision, the states on the live stream in order, the lease back; a cut cancelled on the worker: no revision,
+  the lease back; a recut's backups in the same operation; a waiting job cancelled; a refused answer; prepare
+  cancelled and done; no cancel once writing nor by another member; the worker's child killed on a cancel; a real
+  cut in the worker's child, skipped without Pillow and numpy); `tests/studio-server.test.ts` (prepare as a job);
+  `tests/dom/studio-jobs.test.ts` (the panel, Cancel, a 202 followed to its result or its refusal).
+  `scripts/e2e-studio-hosted.ts` wires the hosted Assets tab (not run locally).
+
+**After the second reading**
+
+- S1: `prepareOn` (`prepared.ts`), used by `main.ts` and the e2e stack: the job's signal always reaches the worker's
+  prepare (`main.ts` dropped it); tested.
+- S2: `serveFile` (`http.ts`): the file opened before its headers, sent by `pipeline`, a file gone meanwhile a 404 and
+  never a crash; `filePath` follows links and refuses one out of `art/` or `audio/`; tested.
+- L1: `createAssets(…, { confine })`, set on a hosted Studio: the listing reads no source outside the game folder;
+  `imageSize` reads the first 64 KiB only.
+- L2: `cutShape` accepts only the cells asked (`cutTargets`: those named, else the grid's), each a PNG once decoded;
+  tested.
+- L3: `followJob` (`src/studio/jobs.ts`): a job the server no longer knows (404, a restart) ends as failed, saying so;
+  tested.
+- `Jobs.start`: 429 from the fifth waiting job (`>=`), so four wait as documented.
+- The threat model's upload row: magic bytes do not stop a polyglot; serving as image or audio with `nosniff` and a
+  sandbox CSP does.
+- The CHANGELOG fragment says, for scripts, that `/api/assets/prepare` is now 202 and a job to poll.
+- `origin/main` merged in (4.2.3 PR 2, the scenario map), no conflict.
+
+**After CI**
+
+- The worker child's cancel test is skipped on Windows (process groups and their signals are POSIX).
+- `tests/studio-remote-executor.test.ts`: `cut` and `prepare` against a fake worker over HTTP and a bucket in memory
+  (the cells, a deadline 504, a failure 422, an answer out of shape 422, a refused job, no result, a cancel while the
+  worker runs, once it answered, and before it is sent; the staging left empty), for the coverage floor of
+  `remote-executor.ts`.
+
+→ next: Claude (the next 4.2.3 PR)
+
+
+## #231 · 2026-10-19 · Claude · proposal · 4.2.3 PR 9a: the reference deployment's code (H9: metrics, backups to the bucket, runbook)
+
+- `studio-server/src/server/metrics.ts`: `GET /metrics` (Prometheus text 0.0.4) behind `STUDIO_METRICS_TOKEN` (added to
+  `SECRET_NAMES`; 32 characters at least, refused at start otherwise): 404 without it, 401 with a missing or wrong
+  Bearer (`WWW-Authenticate: Bearer`), compared in constant time (sha256 of both, `timingSafeEqual`); routed after the
+  game's origin, before the Studio's page and `/api`. Measured without changing behaviour: the journal's `apply`
+  wrapped on the instance (the same promise returned; `journal.ts`, a mutation set, untouched), by outcome
+  (`confirmed`, `replayed`, `refused`, `failed`); the remote executor's jobs (an optional `metrics` observer: in flight,
+  then duration by kind and outcome; a cached answer is no job); the 423s and answers by status class from the
+  request's `finish`; the previews' and the health's durations and the logged failures read from the log lines the
+  server already writes; at each scrape the revision, the RPO (the shipper's `rpoMs`) and the service lease. A gauge
+  whose read fails is left out of that scrape, never a false 0. OpenTelemetry: not in 4.2.3.
+- `studio-server/src/ops/backup-bucket.ts` (a new file, so `backup.ts` and its mutation set stay as PR 10 reads them):
+  `backup --to-bucket [--keep n]` writes `backups/<UTC date, - for :>-r<revision>.json` through the S3 client, then
+  deletes the older backups it wrote past the n most recent (never another key, never the one just written). `backup
+  <file>` refuses a flag as its file.
+- `clevercloud/cron.json` (03:17 UTC daily) and `ops/studio/backup-cron.sh` (`#!/bin/bash -l`; nothing unless
+  `STUDIO_BACKUP_CRON=1`, nothing off instance 0, `STUDIO_BACKUP_KEEP` default 14): Clever runs a repository's crons
+  on every app deployed from it, the worker included, hence the opt-in.
+- Docs: STUDIO-SERVER (en, fr) "Running it: the reference deployment": the overlapping redeploy and the engine upgrade
+  (service lease, worker first, rollback), the metrics and what to alert on, the daily backup, the restore drill onto a
+  fresh add-on; the two variables; `docs/dev/QUALIF-4.2.3-REFERENCE.md`, the report's template (every value "à
+  mesurer"); the threat model's row (metrics behind a secret, what they reveal).
+- Tests: `tests/studio-metrics.test.ts` (401 without or with a wrong token, the comparison through `timingSafeEqual`,
+  404 without a token configured, 404 on the game's origin; values after an operation, a refused one, a 423, a preview,
+  a logged failure; nothing of the project in the text; a job in flight, then its duration by outcome, a cached answer
+  not counted; the backup's key, `--keep` deleting only its own older backups).
+- Left for the run (Claude with the maintainer): the deployment itself, the alerts wired to a person, the real drill and
+  the numbers of the report.
+
+- **After the second reading**: a 300 s bucket (the longest wait for the worker); a wait given up on its deadline counted
+  as a timeout; the backup cron runs only where Clever says it is instance 0; the threat model says the token's entropy
+  protects it, not the throttle; STUDIO-SERVER (en, fr) says what another OpenID provider (GitLab) serves and does not
+  (the CLI and the MCP need JWT access tokens; no back-channel logout: a session ends at its next refresh).
+
+→ next: Claude (the reference deployment run, the release)
+
+
+## #232 · 2026-10-19 · Claude · proposal · 4.2.3: the reference deployment's two server findings fixed
+
+- The reference deployment on Clever Cloud (PR 9, phase A) found two bugs, both on main:
+  - `studio-server/src/server/main.ts`: `rest.filter((_, i) => i !== at && i !== at + 1)` with `at = -1` (no
+    `--config`) dropped argument 0. Now `withoutConfig(rest)` (config.ts), tested with and without the flag. It broke
+    the daily backup's cron as shipped (reproduced on the instance).
+  - `ops/ship.ts` `Shipper`: shipped at start and on the instance's own `confirmed` events only; a CLI import against
+    the same database stayed unshipped (RPO 190 s, until a restart). `Shipper.watch(ms)` ships every 30 s too, cleared
+    by `close()`; tested with writes the shipper is never told about.
+
+→ next: the reference deployment's phase B (the restore drill with writes after the backup, the overlapping redeploy)
+on the release's main.
+
+
+## #233 · 2026-10-19 · Claude · proposal · 4.2.3: the prepared assets' start no longer races a Prepare
+
+- `studio-server/src/server/prepared.ts` `write()`: after its blobs are read, a set older than the one served (a Prepare
+  that ended while the start was writing) is dropped instead of served. Found by the second reading of PR 7, low
+  severity (an instance's first minutes, and a Prepare in them). `tests/studio-workshop-prepared-mutants.test.ts`: a
+  two-file set whose second read is held while a Prepare ends; it fails without the fix (the old set served, the new
+  folder deleted).
+
+→ next: the 4.2.3 release.
+
+## #234 · 2026-10-19 · Claude · release · 4.2.3 "Coordination": the team organised, agents and Git on the hosted Studio
+
+- **What ships**: the plan's §2 for 4.2.3 (`docs/dev/PLAN-4.2.3-COORDINATION.md`), merged as #164 and #168–#181 (LOG
+  #219–#233), with #165 (LOG #218, the gated sets read again before `v4.2.2`'s tag, its note filed here):
+  - the plan, D44 and D45;
+  - a worker from the archives preparing assets (H7, PR 0);
+  - the revision read and the 409 that says what changed (H10, PR 1);
+  - the scenario map (H1, PR 2) and anchored comments (H2, PR 3);
+  - the semantic diff (H3, PR 4);
+  - the remote MCP (H4, PR 5, ADR 0029);
+  - the game in Git (H5, PR 6);
+  - the Assets tab hosted, with jobs followed and cancelled (H8, PR 7);
+  - the engine's upgrade of a hosted game (H6, PR 8);
+  - the reference deployment's code: metrics, backups to the bucket, the runbook (H9, PR 9a);
+  - `studio-workshop`'s survivors read, the set gated (PR 10);
+  - the passes `studio-mcp-remote` and `studio-oidc-generic` (PR 11);
+  - the two fixes the reference deployment found (#180) and the prepared start's race (#181).
+- **The maintainer's answers**:
+  - « Merge #164 for me, as is » (D44: the name "Coordination", GitLab for `studio-oidc-generic`, a deploy key, the
+    diff's captures local, the spike's Clever resources kept);
+  - « Yes, sign v4.2.3 » (19 Oct, D44), the yes for `v4.2.3` only (D37), signed on its own green candidate run; a later
+    tag gets its own.
+- **Experimental (D18)**: six Studio passes open after this release (`studio-hosted` #149, `studio-collab` #150,
+  `studio-preview` #166, `studio-assets-hosted` #167, and 4.2.3's `studio-mcp-remote` and `studio-oidc-generic`,
+  opened with the release); 4.2.0's thirteen (#75–#87) stay open. SUPPORT "4.2.3" says, surface by surface, what stays
+  experimental at the end of the 4.2.x line and what stays open (plan §3, §5).
+- **Where 4.2.3 departs from its plan, said**:
+  - **No captures in the diff, local or hosted** (D45): the semantic diff reads the sources; no capture of a past
+    revision exists on a local Studio either. Carried to 4.3, with Chromium's qualification on the worker. The Check
+    tab says so. H3's "between two builds" is between their revisions.
+  - **The reference deployment (H9)** ran on Clever Cloud's test organisation, not under a production load. Phase A
+    found two server bugs, fixed in #180: without `--config`, the Studio Server's commands dropped their first
+    argument (the daily backup's cron as shipped ran nothing), `invite` read its flags loosely, and an
+    operation confirmed by another process (a CLI import) was not shipped until the next write or a restart (RPO
+    190 s). PR 9b, phase B (the restore drill with writes after the backup, the overlapping redeploy, the preview's
+    threshold and the fresh rebuild's cost measured), is still running: `docs/dev/QUALIF-4.2.3-REFERENCE.md` is still
+    the template. [MAINTAINER: phase B's outcome, the report's PR, the restore time, the RPO and the preview's p95
+    measured, or what could not be done.] Plan §3's criterion "the qualification report merged, with the real restore
+    drill" is met only when it is.
+  - **The prepared start's race** (#181): an instance's start could serve an older prepared set over the one a Prepare
+    had just served, and delete the newer one's folder. Found by PR 7's second reading, fixed before the release.
+  - **Comments (H2)** are kept in the Studio's database (migration 0012, kept by the backup), not in a game file, so a
+    reviewer writes no game file; a local Studio keeps its notes. `ids --lines` as an exclusive operation is carried to
+    4.3 (a line's id is not an anchor).
+  - **The engine's upgrade (H6)** is a route (`POST /api/engine/migrate`, an owner's), without a button in the Studio's
+    page yet; the playtests are neither migrated nor judged.
+  - **The Assets tab hosted (H8)**: the uploaded sheet itself is not kept on a hosted Studio (`private/` has no span).
+    `POST /api/assets/prepare` answers 202 with a job (said for scripts in the CHANGELOG and UPGRADING §36).
+  - **The revision read (H10)**: a client that sends no `x-studio-base` (a script, the MCP's agents) is not checked
+    this way; the merge offered is the edit applied again on the head, not a three-way merge.
+  - **The remote MCP (H4)**: screenshots, tests, documents and asset prompts are not offered remotely; a client without
+    MCP's authorization discovery uses a pasted token or the stdio server.
+  - **Git (H5)**: a deploy key, one repository per instance (D44); its tests use a local bare repository, and no pass
+    names a hosted forge; LFS and submodules are not read.
+  - **The gates (PR 11)** added the two passes but no CI job of its own: the map, comments, diff, remote MCP, Git and
+    the engine upgrade are proven by the unit suites (SQLite, the `check` job), not by `studio-hosted` (Postgres, S3,
+    Keycloak); the second OIDC provider is a person's pass only.
+  - **H9's options**: OpenTelemetry is not in 4.2.3; the alerts are written in the runbook, and wiring them to a
+    person is part of the run; processing without outbound network is not offered.
+- **The version**: 4.2.3; the golden save `demo-4.2.3.json`; the reference run recorded again; the CHANGELOG
+  assembled from 16 fragments, the plan's and #165's entries each with a CHANGELOG line written beside them; UPGRADING
+  §36, SUPPORT "4.2.3", ROADMAP, README, TOOLS, STUDIO-SERVER's status (en, fr; its runbook sections untouched here);
+  the threat model's title; `docs/dev/passes/4.2.3.md` (nineteen passes).
+
+→ next: the maintainer (phase B's outcome in this entry, the merge); then Claude (the candidate on main, `v4.2.3`
+signed on it, `ship verify`, the two pass issues)

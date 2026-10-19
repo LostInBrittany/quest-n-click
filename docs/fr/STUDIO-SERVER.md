@@ -5,14 +5,16 @@ Connect (Keycloak ou un autre), travaille sur le même jeu en même temps, et vo
 C'est le chantier de la ligne 4.2.x (plan `docs/dev/PLAN-4.2.1-4.2.3-STUDIO-SERVER.md`). Seul sur sa machine,
 `npm run studio` reste tel quel : rien de tout ceci n'est nécessaire.
 
-> **État (4.2.2, expérimental).** Le journal (aucune modification confirmée n'est perdue), les connexions et les rôles,
+> **État (4.2.3, expérimental).** Le journal (aucune modification confirmée n'est perdue), les connexions et les rôles,
 > l'application de traitement, les pans et les baux, le flux en direct, l'origine propre du jeu avec ses
 > prévisualisations (un build par révision), la santé par révision, l'annulation personnelle, les builds publiés, les
 > assets préparés sur l'application de traitement, la sauvegarde et la restauration, et les écrans du Studio pour tout
 > cela ; depuis 4.2.3, les uploads et la découpe de planches de l'onglet Assets, Prepare et les découpes en jobs qui
-> se suivent et s'annulent. Il reste expérimental jusqu'à ce que ses passes humaines (`studio-hosted`, `studio-collab`, `studio-preview`,
-> `studio-assets-hosted`) soient faites. Ce guide déploie depuis le dépôt
-> ; l'archive `web-scumm-studio-server` est le même serveur (ci-dessous).
+> se suivent et s'annulent, la révision lue, la carte du scénario, les commentaires, le diff, le MCP distant, Git, la
+> montée de version du moteur, les métriques et la sauvegarde quotidienne. Il reste expérimental jusqu'à ce que ses
+> passes humaines (`studio-hosted`, `studio-collab`, `studio-preview`, `studio-assets-hosted`, `studio-mcp-remote`,
+> `studio-oidc-generic`) soient faites. Ce guide déploie depuis le dépôt ; l'archive `web-scumm-studio-server` est le
+> même serveur (ci-dessous).
 
 ## Ce qui tourne où
 

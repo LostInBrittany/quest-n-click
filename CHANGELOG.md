@@ -1,5 +1,120 @@
 # Changelog
 
+## 4.2.3 — 2026-10-19
+
+"Coordination" (LOG #218–#234): the last of the three 4.2.x steps (D40, D44). A team organises its game in the
+hosted Studio: a scenario map of chapters, puzzles and characters built on the game's stable ids, comments anchored
+on those ids, and a diff between two revisions that names what changed. A write says the revision its editor read, and
+a late one is refused with what changed, never merged on its own. AI agents work on the hosted Studio through its
+remote MCP, as their member; an owner pushes the game to a Git repository and imports it back; a game made on 4.1.x is
+upgraded on the server. The Assets tab works hosted (uploads, sheets cut on the worker), Prepare and the cuts can be
+followed and cancelled, and a worker installed from the release archives prepares assets. An operator gets metrics, a
+daily backup to the bucket and a runbook, run on Clever Cloud's test organisation. The Studio Server stays
+**experimental** until its people's passes are made (`studio-hosted`, `studio-collab`, `studio-preview`,
+`studio-assets-hosted`, and 4.2.3's `studio-mcp-remote` and `studio-oidc-generic`). Nothing a game or a player uses
+changed: the public API, the content format and the save envelope are 4.2.0's (D40). The tag is signed with the
+maintainer's SSH key on their yes of 19 October, « Yes, sign v4.2.3 » (D37, D44).
+
+### Fixed
+
+- **A Studio Server worker installed from the release archives prepares assets (4.2.3)**: the engine's package carries
+  the worker's Python lock (`ops/studio/worker-requirements.lock`), and the worker looks for the packages its build
+  hook installed in its own folder (`.python`, or `WORKER_PYTHON_PATH`) rather than beside the engine. STUDIO-SERVER
+  gives the hook for a worker from the archives. In 4.2.2 Prepare assets needed a worker deployed from the repository.
+
+- **The daily backup ran nothing (4.2.3, found by the reference deployment)**: with the configuration in
+  `STUDIO_CONFIG_JSON` (no `--config`), the Studio Server's commands dropped their first argument, so `import <dir>`,
+  `invite --email …` and the daily `backup --to-bucket` of `ops/studio/backup-cron.sh` failed (`a new file is
+  required`). Each now reads its arguments whole.
+- **An operation another process confirmed is shipped (4.2.3)**: a game imported by the CLI against the same database
+  emitted no event in the running instance, so it reached the bucket only at the next write there or a restart, and
+  the RPO grew meanwhile. The import now ships its operation before it ends, and the instance also ships every 30 s.
+- **`invite` reads its flags strictly (4.2.3)**: without `--role`, or with a flag where a value belongs, it took the
+  first argument instead (`invite owner --email a@b.fr` invited an owner); it now refuses, as its usage says.
+
+- **A slow start never serves older prepared assets (4.2.3)**: when an instance started, it wrote the latest prepared
+  set again in the background; a Prepare that ended meanwhile could see the start finish after it, serve the older set
+  again and delete the newer one's folder. The older set now steps aside.
+
+### Changes
+
+- **The gated mutation sets read again before 4.2.2's tag (4.2.2)**: a survivor of `mutation (core)` found by the
+  4.2.2 candidate (a slot's revision never copied) is killed by a test, and the 16 new survivors of `studio-ops` in the
+  journal's reads of a past revision are killed (15) or named (1). No behaviour changed; the tag `v4.2.2` was made on
+  this commit, and its note is filed here.
+
+- **A plan for the coordination** (4.2.3): `docs/dev/PLAN-4.2.3-COORDINATION.md` (in French), ten guarantees each with
+  its limit and its test (H1–H10), the pull requests in order, the exit criteria, what stays open after 4.2.3, and
+  decisions D44 (the name, GitLab as the second OpenID provider, a deploy key, the diff's captures local) and D45 (no
+  captures in 4.2.3's diff).
+
+- **A write says what its editor read (4.2.3)**: on a hosted Studio each write carries the revision its editor read
+  (`x-studio-base`). When one of its files was written since, it is refused (409) with that file as it was read and as
+  it is now (the same tab's own writes since never refuse it): the Studio shows the lines that changed, keeps the
+  draft, and offers to apply the edit on the latest version, or for a whole document (a layout, the storyboard) to
+  replace the other change, said as such; never on its own.
+
+- **The scenario map (4.2.3)**: a Studio tab, Map, where a team declares its chapters, puzzles and characters, each a
+  list of what the game already names (a room, a rule id, an item, a character, an objective, a checkpoint), shown with
+  the `file:line` that writes it, or "not declared". Kept in `games/<id>/groupings.json`, a span of its own on a shared
+  Studio; a grouping never writes what it names. The map is derived from the game's IR at each read, never stored.
+  Routes: GET/PUT `groupings`, GET `map`.
+
+- **The Studio Server's workshop mutation set is gated (4.2.3)**: the 104 survivors of `studio-workshop` (the
+  backup, the journal shipped, the collection, the health, the previews, the builds and the prepared assets) are read
+  one by one: 94 killed by short tests (`tests/studio-workshop-{backup,health,previews,prepared}-mutants.test.ts`),
+  10 named in `docs/dev/mutants.json`. A survivor not named now fails the set's job, as for the other sets.
+
+- **The MCP on a hosted Studio (4.2.3, ADR 0029)**: a Studio Server serves its game's MCP tools at `/mcp` (MCP's
+  Streamable HTTP, stateless), for an access token of the Studio's audience, never the session cookie; it says where its
+  authorization is (`/.well-known/oauth-protected-resource`, RFC 9728). Each tool is a request to the server's own API
+  with the caller's token: an agent writes as its member, with their role, their spans, in the journal.
+  `npm run mcp -- --server <url>` points the local MCP server at a hosted Studio the same way (the CLI's token).
+
+- **The game in Git (4.2.3)**: a hosted Studio configured with `git` (a repository, a branch, a folder; its deploy key
+  the secret `STUDIO_GIT_KEY`) lets an owner push the revisions since the last push as one commit, each author a
+  `Co-authored-by`, never forced (a branch that moved is refused), and import the branch as one revision. The Play tab
+  shows where the game goes and the last revision pushed.
+
+- **A hosted game made on 4.1.x is upgraded to this engine's authoring schema from the Studio Server (4.2.3)**: an
+  owner's `POST /api/engine/migrate` runs `web-scumm migrate` on the processing worker under their exclusive lease (the
+  stable ids, then `schemaVersion: 3`, `saveVersion` + 1 and the ids' migration step in `game.ts`), judges the migrated
+  game there (the validator, then the solver), and writes it as one undoable revision; a game it would break, or that
+  the solver cannot judge in time, is refused (422) and nothing is written. A game already at schema 3 has nothing to
+  do. STUDIO-SERVER (en, fr): "Upgrading the engine of a hosted game".
+
+- **Comments on a shared Studio (4.2.3)**: in the Notes tab, threads anchored on a stable id of the game (or the game)
+  and the revision they were written at, open to reviewers (kept by the Studio, never in a game file); an anchor the
+  game no longer names is said orphan; an owner brings the notes of `notes.json` in.
+
+- **What changed between two revisions, by name (4.2.3)**: the Check tab's "Changes between revisions" (and GET
+  `diff/<from>..<to>`) says, file by file, the ids a source added, removed or changed with the fields that changed,
+  the value paths of a JSON file, or "file changed" when nothing more can be said. The sources are read, never run.
+
+- **The gates of 4.2.3**: two human passes asked from 4.2.3 on, `studio-mcp-remote` (an AI agent on a hosted Studio
+  through its remote MCP) and `studio-oidc-generic` (the Studio Server behind a second OpenID Connect provider, GitLab).
+
+- **The Assets tab on a hosted Studio (4.2.3)**: a team on the Studio Server now uploads sounds and decors, cuts
+  generated sprite sheets and keys single cells from the Assets tab, as on a local Studio. An upload is 10 MiB at most
+  (413) and its type is read from its bytes (PNG, JPEG or WebP images; Ogg, MP3 or WAV sounds; 415 otherwise); it is
+  written as one revision, never run. The cutting runs on the processing worker under the project's exclusive lease,
+  and its cells, with the backups of those recut, are one revision. The uploaded sheet itself is not kept on a hosted
+  Studio.
+- **For scripts calling the Studio Server (4.2.3)**: `POST /api/assets/prepare` now answers 202 with a job instead of
+  the prepared run; poll `GET /api/jobs/<id>` until its `state` is `done` (or `failed`, `cancelled`), and read the run
+  in its `result`.
+- **Prepare assets and the cuts can be followed and cancelled (4.2.3)**: on a hosted Studio they are jobs; their
+  states (waiting, running and its step, done, failed, cancelled) come live, in a small panel with a Cancel button. A
+  job cancelled before it writes leaves nothing, and gives the project's exclusive lease back.
+
+- **The Studio Server's metrics and daily backup (4.2.3, H9)**: with the secret `STUDIO_METRICS_TOKEN`, `GET
+  /metrics` answers in Prometheus' text format to that token only (never the session, never the game's origin): the
+  journal's operation latency, the worker's jobs in flight and their duration by kind, the lease conflicts (423), the
+  previews' build time, the RPO, the revision. `studio-server backup --to-bucket [--keep n]` writes the backup to the
+  instance's bucket (`backups/<date>-r<revision>.json`) and keeps the n most recent; `clevercloud/cron.json` runs it
+  every day on an app that sets `STUDIO_BACKUP_CRON=1`. STUDIO-SERVER gains its runbook ("Running it: the reference
+  deployment": the overlapping redeploy and the engine upgrade, the alerts, the restore drill).
+
 ## 4.2.2 — 2026-10-19
 
 "Playable Workshop" (LOG #206–#217): the second of the three 4.2.x steps (D40, D42). On a hosted Studio, everyone

@@ -580,3 +580,36 @@ installs from `releases/download/v4.2.2/…`. For a hosted Studio:
 - **Builds**: `/play/<n>/` needs a session unless `publicBuilds` is set (off by default).
 - **Backup**: the journal ships to the bucket by itself; take a daily `studio-server backup` and keep it off the
   instance (STUDIO-SERVER, "Backup and restore").
+
+## 36. From 4.2.2 to 4.2.3 "Coordination"
+
+Nothing to change in a game: the public API, the content format and the save envelope are 4.2.0's (D40). The engine
+installs from `releases/download/v4.2.3/…`. For a hosted Studio:
+
+- **The database migrates at start** (migrations 0011 and 0012: the client a write came from, for the revision read;
+  the comments, kept by the backup).
+- **A write carries the revision its editor read** (`x-studio-base`): the Studio's page sends it by itself. A script
+  that writes may send it to be refused (409) rather than write over a change it never saw; without it, it is not
+  checked this way.
+- **`POST /api/assets/prepare` answers 202 with a job**, no longer the prepared run: a script polls
+  `GET /api/jobs/<id>` until `done`, `failed` or `cancelled`, and reads the run in `result`. Cutting sheets and
+  uploads now work on a hosted Studio, under the same exclusive lease.
+- **A worker installed from the release archives can prepare assets**: its `CC_POST_BUILD_HOOK` installs
+  `node_modules/web-scumm/ops/studio/worker-requirements.lock` into `.python` (STUDIO-SERVER, "From the release
+  archives"); `WORKER_PYTHON_PATH` puts the packages elsewhere. A worker deployed from the repository keeps its hook.
+- **Git (optional)**: set `git` in the configuration (`remote`, `branch`, `path`, `committer`, and `knownHosts` for a
+  strict host check) and the deploy key as the secret `STUDIO_GIT_KEY` (`STUDIO_GIT_KEY_FILE` locally); STUDIO-SERVER,
+  "The game in Git". Without `git`, the Play tab has no Git panel.
+- **The remote MCP**: with OIDC, the Studio serves `/mcp` and `/.well-known/oauth-protected-resource` by itself. An
+  agent's token must be a JWT access token carrying the Studio's `oidc.audience` (MCP, "A hosted Studio");
+  `npm run mcp -- --server <url>` uses the CLI's token from `studio-server login`.
+- **Metrics (optional)**: set `STUDIO_METRICS_TOKEN` (32 characters or more, or the server refuses to start) for
+  `GET /metrics`; without it, `/metrics` is a 404.
+- **The daily backup (optional)**: `clevercloud/cron.json` runs `ops/studio/backup-cron.sh` on every app deployed from
+  the repository; it backs up only where `STUDIO_BACKUP_CRON=1` is set (the studio app, never the worker), keeping
+  `STUDIO_BACKUP_KEEP` backups (14 by default). From the archives, copy the script as STUDIO-SERVER says ("Running it:
+  the reference deployment").
+- **A game imported from 4.1.x** can be upgraded on the server: `POST /api/engine/migrate`, an owner's (STUDIO-SERVER,
+  "Upgrading the engine of a hosted game").
+- **If you passed `invite` its role first** (`invite owner --email …`): it is now refused; write `invite --email …
+  --role owner`.

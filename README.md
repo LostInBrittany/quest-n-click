@@ -23,7 +23,7 @@ Linux. The engine installs from a release's archive (npm publishing comes
 in a later 4.2.x):
 
 ```bash
-T=https://github.com/wanoo/web-scumm/releases/download/v4.2.2/web-scumm-4.2.2.tgz
+T=https://github.com/wanoo/web-scumm/releases/download/v4.2.3/web-scumm-4.2.3.tgz
 npx --package=$T web-scumm create my-game "My Game" --engine=$T
 cd my-game && npm install
 npm run assets && npm run dev        # play it; then npm run verify, npm run build
@@ -150,9 +150,10 @@ Every page exists in English (`docs/en/`) and French (`docs/fr/`), and a test ke
 command in [TOOLS](docs/en/TOOLS.md), what changed in the [CHANGELOG](CHANGELOG.md), moving to a new version in
 [UPGRADING](docs/en/UPGRADING.md), and where it comes from in the [ROADMAP](docs/en/ROADMAP.md).
 
-Current release: [v4.2.2 "Playable Workshop"](https://github.com/wanoo/web-scumm/releases/tag/v4.2.2), the Studio
+Current release: [v4.2.3 "Coordination"](https://github.com/wanoo/web-scumm/releases/tag/v4.2.3), the Studio
 online for a team, experimental ([STUDIO-SERVER](docs/en/STUDIO-SERVER.md)): previews per revision, health, personal
-undo, published builds, server backup and restore; over 4.2.0 "Stable World". 4.2.0
+undo, published builds, backup and restore, and since 4.2.3 a scenario map, anchored comments, a diff by name, AI
+agents through a remote MCP, Git push and import, the hosted Assets tab; over 4.2.0 "Stable World". 4.2.0
 restored strict SemVer after the 4.1.x incubation line: a minor adds, a major removes; the public API follows it
 ([SUPPORT](docs/en/SUPPORT.md)). 4.2.0 shipped before the people's passes: of the surfaces above, only the Stable
 column is promised; the passes are made on a 4.2.x, which promotes what they prove
