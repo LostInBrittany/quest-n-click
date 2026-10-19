@@ -22,6 +22,31 @@ import type { CutRequest } from '../../../tools/studio/cut';
 import type { JobObserver } from './metrics';
 import type { S3 } from './s3';
 
+/** At most `max` bytes of a response's body, as text (the rest never read); `null` as JSON when it does not parse. */
+async function headOf(r: Response, max: number): Promise<string> {
+  const reader = r.body?.getReader();
+  if (!reader) return 'null';
+  const parts: Uint8Array[] = [];
+  let n = 0;
+  try {
+    while (n < max) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      parts.push(value);
+      n += value.length;
+    }
+  } finally {
+    await reader.cancel().catch(() => undefined);
+  }
+  const text = Buffer.concat(parts).subarray(0, max).toString('utf8');
+  try {
+    JSON.parse(text);
+    return text;
+  } catch {
+    return 'null';
+  }
+}
+
 export interface RemoteExecutorOptions {
   s3: Pick<S3, 'put' | 'get' | 'delete' | 'presign'>;
   workerUrl: string;
@@ -85,8 +110,8 @@ export function remoteExecutor(o: RemoteExecutorOptions) {
         signal: signal ? AbortSignal.any([AbortSignal.timeout(MAX_JOB_MS), signal]) : AbortSignal.timeout(MAX_JOB_MS),
       });
       if (!r.ok) {
-        // The worker's reason (an expired job, another instance's), bounded: what the logs then say.
-        const why = ((await r.json().catch(() => ({}))) as { error?: unknown }).error;
+        // The worker's reason (an expired job, another instance's), read up to 4 KiB only: the worker is not trusted.
+        const why = (JSON.parse(await headOf(r, 4_096)) as { error?: unknown } | null)?.error;
         throw new Error(
           `the processing worker refused the job (${r.status}${typeof why === 'string' ? `: ${why.slice(0, 200)}` : ''})`,
         );

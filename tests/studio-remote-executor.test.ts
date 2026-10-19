@@ -95,6 +95,13 @@ describe('a cut on the worker', () => {
       .catch((x: Error) => x)) as Error;
     expect(e.message).toMatch(/refused the job \(403: the job has expired!+\)/);
     expect(e.message.length).toBeLessThan(300);
+    // A body far too long (the worker is not trusted) is not read past 4 KiB: the refusal without its reason.
+    answer = (_job, _req, res) => {
+      res.statusCode = 403;
+      res.write(`{"error":"${'x'.repeat(8_000)}`);
+      res.end('"}');
+    };
+    await expect(ex().cut(snap, 'demo', sheet)).rejects.toThrow(/refused the job \(403\)$/);
     answer = () => undefined;
     await expect(ex().cut(snap, 'demo', sheet)).rejects.toThrow(/no usable result/);
     expect([...store.keys()]).toEqual([]);

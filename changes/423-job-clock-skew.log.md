@@ -8,4 +8,7 @@
   worker's reason in the error, 200 characters at most. Tests: `tests/studio-job-clock.test.ts` (to the millisecond on
   both bounds), `tests/studio-remote-executor.test.ts` (the reason, bounded).
 
+- Second reading: the worker's error body read up to 4 KiB only (the worker is not trusted: ADR 0028), tested with an
+  8 KB body; ADR 0028 and the threat model say the 30 s of skew. The reason reaches members' verdict text as plain text.
+
 → next: deployed on the reference deployment, then the release.
