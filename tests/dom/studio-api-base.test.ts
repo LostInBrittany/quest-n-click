@@ -32,7 +32,7 @@ afterEach(() => onRefused(() => undefined));
 
 const last = () => sent.at(-1)!;
 
-describe("the revision an editor read, with its writes (hosted)", () => {
+describe('the revision an editor read, with its writes (hosted)', () => {
   it('sends the revision of the read the write belongs to, and only an editor read moves it', async () => {
     answers.set('GET room/hall', { body: { layout: {} }, rev: 4 });
     await api.room('hall');
@@ -70,7 +70,12 @@ describe("the revision an editor read, with its writes (hosted)", () => {
     onRefused((r) => void seen.push(r));
     answers.set('PUT room/hall/layout', {
       status: 409,
-      body: { error: 'layout/hall.json changed since revision 4 (now 7)', path: 'layout/hall.json', readAt: 4, head: 7 },
+      body: {
+        error: 'layout/hall.json changed since revision 4 (now 7)',
+        path: 'layout/hall.json',
+        readAt: 4,
+        head: 7,
+      },
     });
     await expect(api.setLayout('hall', {})).rejects.toMatchObject({ status: 409, handled: true });
     expect(seen[0]!.whole).toBe(true);
