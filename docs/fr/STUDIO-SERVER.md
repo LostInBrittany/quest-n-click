@@ -216,6 +216,36 @@ son auteur change son texte ; un reviewer résout ses propres fils, un dev n'imp
 notes de `notes.json` (chacune une fois, son `about` pour ancre). Routes : GET/POST `/api/comments`, PUT
 `/api/comments/<id>`, POST `/api/comments/import-notes`.
 
+## Le jeu dans Git (4.2.3)
+
+`git` dans la configuration (facultatif) nomme le dépôt du jeu : `{ "remote": "git@github.com:org/game.git",
+"branch": "main", "path": "games/mon-jeu", "committer": { "name": "…", "email": "…" } }` (`branch` vaut `main` par
+défaut, `path` la racine du dépôt). Sa clé de déploiement (une clé qui peut écrire dans ce seul dépôt, D44) est le
+secret `STUDIO_GIT_KEY` (`STUDIO_GIT_KEY_FILE` en local ; une variable sur Clever Cloud). Un dépôt https public ou
+local n'en demande pas ; une URL de dépôt ne porte jamais d'identifiants. L'onglet Play montre où va le jeu et la
+dernière révision poussée :
+
+- **Pousser** (un owner) : un commit des révisions confirmées depuis le dernier push, les fichiers du jeu à la tête
+  dans `path`, chaque auteur de ces révisions en `Co-authored-by` (son email, ou son nom à une adresse qui n'existe
+  pas) ; le reste du dépôt reste tel qu'il est. Rien de neuf, rien de poussé.
+- **Jamais forcé.** Une branche qui a bougé depuis le dernier push du Studio (quelqu'un y a poussé) est refusée (409),
+  et de même une branche qui existe mais que le Studio n'a jamais importée : importez-la d'abord.
+- **Importer** (un owner, demandé deux fois) : la branche, une autre branche du dépôt, ou un commit par son hash, tel
+  qu'il est dans `path`, écrit en une révision sous le bail exclusif. Il remplace ce que le Studio n'avait pas poussé
+  (qui reste dans son historique). La pointe de la branche importée, le push suivant part d'elle ; un autre commit, le
+  push suivant va sur la pointe que le Studio connaît. Un lien, un sous-module, ou un fichier que le jeu ne peut pas
+  avoir refuse tout l'import.
+
+Le Studio ne fait jamais de checkout : un push construit son commit à partir d'objets, un import lit les objets du
+commit ; les liens, les attributs et les règles d'ignore du dépôt ne peuvent donc pas atteindre les fichiers du
+serveur. Les fichiers dont un segment du chemin commence par un point (`.github/`, `.gitignore`) sont ceux du dépôt :
+gardés par un push, ignorés par un import. Le
+`private/` du jeu ne va jamais dans le dépôt, et un import le laisse tel qu'il est. L'email d'un auteur va dans un `Co-authored-by` seulement si le
+fournisseur l'a vérifié ; sinon son nom à `users.noreply.<l'hôte du Studio>`. Git tourne avec un environnement à lui,
+la clé dans un fichier pour une commande, le clone dans `workDir/git` (refait quand le disque est neuf). Donnez les
+clés de l'hôte du dépôt dans `git.knownHosts` (des lignes `known_hosts`) pour les vérifier strictement ; sans elles,
+l'hôte est cru à la première connexion, et de nouveau après chaque disque neuf.
+
 ## Monter la version du moteur d'un jeu hébergé
 
 Un jeu importé d'un projet 4.1.x qui n'a jamais lancé `web-scumm migrate` est encore au schéma d'écriture 2 (pas de

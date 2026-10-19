@@ -18,6 +18,7 @@ import { openSqliteDb } from '../../../bridge/src/store-sqlite';
 import type { SqlDb } from '../../../bridge/src/store-sql';
 import { createStudio, operationContext } from '../ops/core';
 import { anchorsOf, Comments } from './comments';
+import { GitSync } from './git';
 import { mcpEndpoint, type McpEndpoint } from './mcp';
 import { StudioError } from '../ops/errors';
 import { spansOf } from '../ops/spans';
@@ -400,7 +401,7 @@ async function main(argv: string[]): Promise<number> {
   });
   const presence = leases ? new Presence() : undefined;
   // The project's exclusive lease (`*`) for the member who asks, around a long operation of theirs (prepare, the
-  // engine's upgrade): leases.ts `exclusiveRunner`.
+  // engine's upgrade, a Git import): leases.ts `exclusiveRunner`.
   const exclusiveLease = leases
     ? exclusiveRunner(leases, () => operationContext.getStore()?.claimant, {
         log: (line) => console.log(JSON.stringify(line)),
@@ -411,6 +412,21 @@ async function main(argv: string[]): Promise<number> {
   const publicDir = resolve(config.publicDir ?? join(engineRoot, 'public'));
   // The prepared assets (4.2.2 PR 6b, D43): `prepare` on the worker, under the member's exclusive lease; the latest set
   // served before publicDir, written again to the instance's folder at start (its disk is ephemeral).
+  // The game's Git repository (4.2.3, H5): owners push and import; its deploy key a secret.
+  const gitSync = config.git
+    ? new GitSync({
+        db,
+        blobs,
+        gameDir,
+        config: config.git,
+        workDir: join(config.workDir, 'git'),
+        key: secrets.STUDIO_GIT_KEY,
+        writeFiles: (what, files) => studio.writeFiles(what, files, { undo: false }),
+        exclusive: exclusiveLease,
+        noreplyDomain: `users.noreply.${new URL(config.publicUrl).hostname}`,
+        log: (line) => console.log(JSON.stringify(line)),
+      })
+    : undefined;
   const prepared =
     executor && hosted
       ? new PreparedAssets({
@@ -625,6 +641,7 @@ async function main(argv: string[]): Promise<number> {
     builds,
     prepared,
     comments,
+    git: gitSync,
     engineUpgrade,
     rpo: shipper ? () => shipper.rpoMs() : undefined,
     play,

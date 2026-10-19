@@ -22,6 +22,7 @@ import { must } from '../engine/core/must';
 import { apiUrl, goLogin, hosting, loginHeld, studioFetch } from './api-base';
 import { assetsPanel, buildsPanel } from './builds-panel';
 import { commentsPanel } from './comments-panel';
+import { gitPanel } from './git-panel';
 import { diffPanel } from './diff-panel';
 import { gameLink } from './game-origin';
 import { gateScreen, hostedStudio, type Me, whoAmI } from './hosted';
@@ -410,6 +411,7 @@ async function start() {
       .querySelector('.playside')
       ?.append(
         buildsPanel({ owner: me.role === 'owner', dev: me.role !== 'reviewer' }),
+        gitPanel({ owner: me.role === 'owner' }),
         ...(me.role !== 'reviewer' ? [assetsPanel()] : []),
       );
     // Comments (4.2.3): in the Notes tab, a reviewer's too.
