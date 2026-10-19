@@ -622,6 +622,13 @@ Rien à changer dans un jeu : l'API publique, le format du contenu et l'envelopp
 
 - **La base migre au démarrage** (migrations 0011 et 0012 : le client d'où vient une écriture, pour la révision lue ;
   les commentaires, gardés par la sauvegarde).
+- **Ce redéploiement-là refuse les écritures environ 2 min 30** : une instance 4.2.2 garde le bail de service jusqu'à ce
+  que Clever Cloud l'arrête. À partir de la 4.2.3, une instance passe le bail à la nouvelle en 10 s environ
+  (STUDIO-SERVER, « Le faire tourner : le déploiement de référence »). La page du Studio réessaie ses écritures entre
+  temps ; déployez à un moment calme, et attendez-vous à ce que l'alerte sur `/readyz` se déclenche une fois.
+- **Les horloges** : l'application de traitement tolère désormais 30 s d'écart entre son horloge et celle du Studio ;
+  au-delà, un job est refusé avec « lives longer than a job may » (gardez les horloges des deux applications
+  synchronisées).
 - **Une écriture porte la révision que son éditeur a lue** (`x-studio-base`) : la page du Studio l'envoie d'elle-même.
   Un script qui écrit peut l'envoyer pour être refusé (409) plutôt que d'écrire par-dessus une modification qu'il n'a
   pas vue ; sans elle, il n'est pas vérifié ainsi.

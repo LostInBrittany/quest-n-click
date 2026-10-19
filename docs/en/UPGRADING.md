@@ -588,6 +588,12 @@ installs from `releases/download/v4.2.3/…`. For a hosted Studio:
 
 - **The database migrates at start** (migrations 0011 and 0012: the client a write came from, for the revision read;
   the comments, kept by the backup).
+- **This one redeploy refuses writes for about 2.5 min**: a 4.2.2 instance keeps the service lease until Clever Cloud
+  stops it. From 4.2.3 on, an instance hands the lease over to the new one within about 10 s (STUDIO-SERVER, "Running
+  it: the reference deployment"). The Studio's page retries its writes meanwhile; deploy at a quiet time, and expect
+  the `/readyz` alert to fire once.
+- **Clocks**: the worker now allows 30 s of skew between its clock and the Studio's; past that, a job is refused with
+  "lives longer than a job may" (keep both apps' clocks synchronised).
 - **A write carries the revision its editor read** (`x-studio-base`): the Studio's page sends it by itself. A script
   that writes may send it to be refused (409) rather than write over a change it never saw; without it, it is not
   checked this way.

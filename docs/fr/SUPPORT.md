@@ -90,7 +90,10 @@ surface, à la fin de la 4.2.x :
   de bouton). Le job `studio-hosted` (Postgres, S3, Keycloak) ne les fait pas tourner.
 - **L'exploitation** : les métriques, la sauvegarde quotidienne dans le bucket et le runbook ont tourné une fois sur
   l'organisation Clever Cloud de test, pas sous une charge de production ; leurs chiffres sont dans
-  `docs/dev/QUALIF-4.2.3-REFERENCE.md`. Le set de mutation `studio-workshop` est bloquant depuis la 4.2.3.
+  `docs/dev/QUALIF-4.2.3-REFERENCE.md` (sur les plus petits plans : une restauration avec son rejeu en une minute
+  environ, rien de perdu ; un p95 de la prévisualisation de 44 s, pas les 5 s visées ; des écritures refusées 10 à
+  16 s à un redéploiement, environ 2 min 30 au premier vers la 4.2.3). Le set de mutation `studio-workshop` est
+  bloquant depuis la 4.2.3.
 
 **Ce qui reste ouvert après la 4.2.x**, et pourquoi (plan 4.2.3 §5) :
 - la santé du jeu avec le lint et les playtests : ils chargent la file unique de l'application de traitement à chaque

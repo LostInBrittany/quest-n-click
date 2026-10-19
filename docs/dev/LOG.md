@@ -6361,10 +6361,89 @@ on the release's main.
 
 → next: the 4.2.3 release.
 
-## #234 · 2026-10-19 · Claude · release · 4.2.3 "Coordination": the team organised, agents and Git on the hosted Studio
+## #234 · 2026-10-19 · Claude · proposal · 4.2.3 PR 9b: the reference deployment, run and measured
 
-- **What ships**: the plan's §2 for 4.2.3 (`docs/dev/PLAN-4.2.3-COORDINATION.md`), merged as #164 and #168–#181 (LOG
-  #219–#233), with #165 (LOG #218, the gated sets read again before `v4.2.2`'s tag, its note filed here):
+- `docs/dev/QUALIF-4.2.3-REFERENCE.md` filled in (§1 to §8) from the run on the maintainer's test org (two XS Node
+  apps, PostgreSQL DEV, Cellar S, managed Keycloak 26.7.4): phase A at 52e68932, then the upgrade by overlapping
+  redeploy to c66fbf56 (main with #180), the cron script run by hand on instance 0 with `--keep`'s second pass, two
+  restore drills on fresh add-ons linked to nothing (the second with writes after the backup, replayed to the
+  production head), and the previews' times over paced writes. Every number with its command; what was not done says
+  why.
+- Measured on the redeploy: the old instance `STOPPING` about 2 min, no `stopping` line, the service lease taken 2 min
+  56 s after the new instance listened (writes 503 with `Retry-After: 2` for 2 min 25 s, each retried write applied
+  once, the revision continuous); during the overlap, one write waited 20 s on the starting instance's reconcile (409)
+  then hit PostgreSQL's connection limit on the DEV plan (500 "too many connections"), and was applied once on its
+  next try.
+- Docs: STUDIO-SERVER (en, fr) for the gaps the run found (managed Keycloak's first login and realm import,
+  `realm.json`'s local values, `APP_FOLDER`, `--` before a PEM value, `clever link` then `deploy --alias`, the shell
+  of `clever ssh`, `clever logs` bounded by hand, `/metrics` a 401 on the game's origin, the redeploy's cost, the
+  `/readyz` alert at 5 min, the drill compared through the API). No code changed.
+
+→ next: the alerts wired to a person and a collector for `/metrics` (§2), and the 03:17 UTC cron line observed on a
+following morning.
+
+
+## #235 · 2026-10-19 · Claude · proposal · 4.2.3: the service lease handed over at a deploy
+
+- The reference deployment's §5 (PR 9b): the new instance listening at 19:34:52, `lease-taken` at 19:37:49, writes 503
+  for 2 min 23 s; the old instance `STOPPING` for 3.5 min, renewing, no `stopping` line. And a write on the old one
+  waited 20 s for the journal's lease (the new instance's 30 s repair held it), then got a 409 without Retry-After.
+- `service-lease.ts`: a waiting instance writes an ask (row 2: instance, the database's clock at its first try, until);
+  the holder, when the ask is live and newer than itself, expires its row (the fence still grows) and stops writing; the
+  asker takes it at its next try (2 s). An older ask is ignored; an expired one too. Residual: an asker that dies
+  before taking makes the holder give the lease back again until its ask expires (30 s).
+- `journal.ts`: the per-operation lease's wait gives up as 503 (Retry-After 2 at the HTTP layer; the Studio retries
+  with the same operation id). `main.ts`: the repair only on the instance holding the service lease, at once when it takes it, then every 30 s.
+  Residual: the instance that gave the lease up is no longer repaired; a read still reaching it may show a folder
+  behind the head (Clever sends it no new requests once it is `STOPPING`).
+- Second reading: the old test expecting 409 updated; the instance that gave the lease back taking it again first
+  (found, fixed, tested); the asker's death bound; the lost answer; the cancelled deploy's ask.
+- Tests: `tests/studio-server.test.ts` (the handoff, the fence growing, an older instance never taking it back, an
+  expired ask), `tests/studio-journal-mutants.test.ts` (the 503).
+
+→ next: redeploy on the reference deployment to measure the handoff; then the release.
+
+
+## #236 · 2026-10-19 · Claude · proposal · 4.2.3: the exclusive lease's runner pinned for `studio-auth`
+
+- Measured before the 4.2.3 candidate (run 39311491188), `studio-auth` had 19 unexplained survivors, all in
+  `exclusiveRunner` (`studio-server/src/server/leases.ts`, PR 8): its behaviour was tested only through the engine's
+  upgrade and prepare, outside the set's tests. `tests/studio-exclusive-mutants.test.ts`, in the set: without a
+  claimant; taken and given back, or not when held before (another's `*`, another span of theirs); on a failure; two of
+  the member's at once (one look, given back by the last); renewed while it runs, a failed renewal logged.
+
+→ next: the set measured again on the branch, then the release.
+
+
+## #237 · 2026-10-19 · Claude · proposal · 4.2.3: `studio-workshop`'s three new survivors read
+
+- Measured on main before the candidate (run 39314614393): three survivors in the lines #180 and #181 added. Two are
+  killed: a shipper closed ships nothing more (`tests/studio-backup.test.ts`); an older set with no file, dropped after a
+  Prepare ended while the start looked, fails nothing (`tests/studio-workshop-prepared-mutants.test.ts`, the start's
+  look held). One is equivalent and named in `docs/dev/mutants.json`: `Shipper.close` clearing a null timer.
+
+→ next: the set measured again on the branch, then the release.
+
+
+## #238 · 2026-10-19 · Claude · proposal · 4.2.3: the job's lifetime allows the clocks' skew
+
+- Found by the reference deployment (phase C, PR #190): from one restart on, `health-failed` and `preview-failed` with
+  "the processing worker refused the job (403)"; 20 jobs signed on the studio's VM, 10 refused as expired.
+  `remote-executor.ts` signs `exp = Date.now() + MAX_JOB_MS`; `worker/job.ts` refused `exp - now > MAX_JOB_MS`.
+- `job.ts`: `CLOCK_SKEW_MS` (30 s) allowed beyond `MAX_JOB_MS`; the two refusals said apart ("has expired", "lives
+  longer than a job may"). `worker/main.ts`: `worker-job-refused` logged with its reason. `remote-executor.ts`: the
+  worker's reason in the error, 200 characters at most. Tests: `tests/studio-job-clock.test.ts` (to the millisecond on
+  both bounds), `tests/studio-remote-executor.test.ts` (the reason, bounded).
+
+- Second reading: the worker's error body read up to 4 KiB only (the worker is not trusted: ADR 0028), tested with an
+  8 KB body; ADR 0028 and the threat model say the 30 s of skew. The reason reaches members' verdict text as plain text.
+
+→ next: deployed on the reference deployment, then the release.
+
+## #239 · 2026-10-20 · Claude · release · 4.2.3 "Coordination": the team organised, agents and Git on the hosted Studio
+
+- **What ships**: the plan's §2 for 4.2.3 (`docs/dev/PLAN-4.2.3-COORDINATION.md`), merged as #164, #168–#183, #185, #189,
+  #190 and #192 (LOG #219–#238 and the handoff's measure), with #165 (LOG #218, the gated sets read again before `v4.2.2`'s tag, its note filed here):
   - the plan, D44 and D45;
   - a worker from the archives preparing assets (H7, PR 0);
   - the revision read and the 409 that says what changed (H10, PR 1);
@@ -6377,7 +6456,11 @@ on the release's main.
   - the reference deployment's code: metrics, backups to the bucket, the runbook (H9, PR 9a);
   - `studio-workshop`'s survivors read, the set gated (PR 10);
   - the passes `studio-mcp-remote` and `studio-oidc-generic` (PR 11);
-  - the two fixes the reference deployment found (#180) and the prepared start's race (#181).
+  - the two fixes the reference deployment found (#180) and the prepared start's race (#181);
+  - the reference deployment run and measured (H9, PR 9b: #182, #190);
+  - what that run found, fixed: the service lease handed over at a deploy (#183), a job's lifetime allowing the
+    clocks' skew (#192);
+  - the gated sets measured on main before the candidate, their new survivors killed or named (#185, #189).
 - **The maintainer's answers**:
   - « Merge #164 for me, as is » (D44: the name "Coordination", GitLab for `studio-oidc-generic`, a deploy key, the
     diff's captures local, the spike's Clever resources kept);
@@ -6391,15 +6474,30 @@ on the release's main.
   - **No captures in the diff, local or hosted** (D45): the semantic diff reads the sources; no capture of a past
     revision exists on a local Studio either. Carried to 4.3, with Chromium's qualification on the worker. The Check
     tab says so. H3's "between two builds" is between their revisions.
-  - **The reference deployment (H9)** ran on Clever Cloud's test organisation, not under a production load. Phase A
-    found two server bugs, fixed in #180: without `--config`, the Studio Server's commands dropped their first
-    argument (the daily backup's cron as shipped ran nothing), `invite` read its flags loosely, and an
-    operation confirmed by another process (a CLI import) was not shipped until the next write or a restart (RPO
-    190 s). PR 9b, phase B (the restore drill with writes after the backup, the overlapping redeploy, the preview's
-    threshold and the fresh rebuild's cost measured), is still running: `docs/dev/QUALIF-4.2.3-REFERENCE.md` is still
-    the template. [MAINTAINER: phase B's outcome, the report's PR, the restore time, the RPO and the preview's p95
-    measured, or what could not be done.] Plan §3's criterion "the qualification report merged, with the real restore
-    drill" is met only when it is.
+  - **The reference deployment (H9)** ran on Clever Cloud's test organisation (`docs/dev/QUALIF-4.2.3-REFERENCE.md`,
+    #182 and #190), not under a production load; every figure there is a measure with its command, or says it is not.
+    - Phase A found two server bugs, fixed in #180: without `--config`, the Studio Server's commands dropped their
+      first argument (the daily backup's cron as shipped ran nothing; `invite` read its flags loosely), and an
+      operation confirmed by another process (a CLI import) was not shipped until the next write or a restart (RPO
+      190 s).
+    - **The real restore drill** (plan §3's criterion, met): onto a new PostgreSQL add-on, from a backup at revision 63
+      followed by two writes, `restore --replay` took **59.7 s** (593 rows, none dropped), reached revision 65, the
+      production head: **0 operations lost** of 2. A first drill without writes after the backup took 28.7 s.
+    - The daily backup run by hand as the cron runs it (no `--config`): 1.87 s, 254 kB; `--keep`'s second pass removed
+      only the oldest. The 03:17 UTC run itself is not observed in the report.
+    - **The preview**: p50 34.1 s, **p95 43.8 s** from a write to a playable preview on the smallest plan (the worker's
+      job about 6 s of it; the D42 target of 5 s is not met there); revisions are skipped, not queued, past about one
+      edit every 35 s. A fresh rebuild of a published build: 44.3 s, byte-identical.
+    - **The overlapping redeploy**: Clever keeps the old instance renewing for minutes with no SIGTERM, so writes were
+      refused about 2.5 min at each deploy and a write could get a 409. Fixed before the release (#183): the new
+      instance asks for the lease, the old gives it back at its next renewal; measured (#190) at 6.0 and 10.1 s to take
+      it, writes 503 for 10 to 16 s, none lost, no 409 nor 500. The first deploy onto 4.2.3, from a version without the
+      handover, still waits about 2.5 min.
+    - **A job's clock**: the same measure found the worker refusing about half the jobs on a few milliseconds of skew
+      between the two machines (health and previews failing). Fixed before the release (#192): 30 s of skew allowed,
+      the refusal logged and said. [VERIFY: phase D's result on the reference deployment.]
+    - Not done: a metrics collector and an alert to a person (the runbook writes the alerts), reading the production
+      database during the drill (compared through the API instead), processing without outbound network, OpenTelemetry.
   - **The prepared start's race** (#181): an instance's start could serve an older prepared set over the one a Prepare
     had just served, and delete the newer one's folder. Found by PR 7's second reading, fixed before the release.
   - **Comments (H2)** are kept in the Studio's database (migration 0012, kept by the backup), not in a game file, so a
@@ -6421,9 +6519,9 @@ on the release's main.
   - **H9's options**: OpenTelemetry is not in 4.2.3; the alerts are written in the runbook, and wiring them to a
     person is part of the run; processing without outbound network is not offered.
 - **The version**: 4.2.3; the golden save `demo-4.2.3.json`; the reference run recorded again; the CHANGELOG
-  assembled from 16 fragments, the plan's and #165's entries each with a CHANGELOG line written beside them; UPGRADING
+  assembled from 21 fragments, the plan's and #165's entries each with a CHANGELOG line written beside them; UPGRADING
   §36, SUPPORT "4.2.3", ROADMAP, README, TOOLS, STUDIO-SERVER's status (en, fr; its runbook sections untouched here);
   the threat model's title; `docs/dev/passes/4.2.3.md` (nineteen passes).
 
-→ next: the maintainer (phase B's outcome in this entry, the merge); then Claude (the candidate on main, `v4.2.3`
-signed on it, `ship verify`, the two pass issues)
+→ next: Claude (the merge, the candidate on main, `v4.2.3` signed on it, `ship verify`, the two pass issues); then 4.2.4,
+the contributors' pull requests (#187, #191, #194) at the maintainer's request

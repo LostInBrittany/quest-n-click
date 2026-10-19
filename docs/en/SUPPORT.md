@@ -82,7 +82,9 @@ what 4.2.0 promised stays as it was, and what came after is experimental. Surfac
   LFS and submodules not read), the engine upgrade (a route, no button yet). The `studio-hosted` job (Postgres, S3,
   Keycloak) does not run them.
 - **Operations**: the metrics, the daily backup to the bucket and the runbook were run once on Clever Cloud's test
-  organisation, not under a production load; their figures are in `docs/dev/QUALIF-4.2.3-REFERENCE.md`. The mutation
+  organisation, not under a production load; their figures are in `docs/dev/QUALIF-4.2.3-REFERENCE.md` (on the
+  smallest plans: a restore with its replay in about a minute, nothing lost; a preview's p95 of 44 s, not the 5 s
+  aimed at; writes refused 10 to 16 s at a redeploy, about 2.5 min at the first one onto 4.2.3). The mutation
   set `studio-workshop` is gated since 4.2.3.
 
 **What stays open after 4.2.x**, and why (plan 4.2.3 §5):

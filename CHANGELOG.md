@@ -1,8 +1,8 @@
 # Changelog
 
-## 4.2.3 — 2026-10-19
+## 4.2.3 — 2026-10-20
 
-"Coordination" (LOG #218–#234): the last of the three 4.2.x steps (D40, D44). A team organises its game in the
+"Coordination" (LOG #218–#239): the last of the three 4.2.x steps (D40, D44). A team organises its game in the
 hosted Studio: a scenario map of chapters, puzzles and characters built on the game's stable ids, comments anchored
 on those ids, and a diff between two revisions that names what changed. A write says the revision its editor read, and
 a late one is refused with what changed, never merged on its own. AI agents work on the hosted Studio through its
@@ -35,6 +35,19 @@ maintainer's SSH key on their yes of 19 October, « Yes, sign v4.2.3 » (D37, D4
 - **A slow start never serves older prepared assets (4.2.3)**: when an instance started, it wrote the latest prepared
   set again in the background; a Prepare that ended meanwhile could see the start finish after it, serve the older set
   again and delete the newer one's folder. The older set now steps aside.
+- **A deploy no longer refuses writes for minutes (4.2.3, found by the reference deployment)**: on Clever Cloud the old
+  instance lives on, renewing the service lease, for minutes after the new one is up, and was never seen to get
+  SIGTERM, so writes got 503s for about 2.5 min at each deploy. The new instance now asks for the lease and the old one
+  gives it back at its next renewal (10 s); an older instance never takes it from a newer one. A write that waited
+  for another instance's journal lock is a 503 to retry, no longer a 409 a client could take as a conflict, and only
+  the instance serving the writes repairs its folder (at once when it takes the lease, then every 30 s). The first
+  deploy of 4.2.3 replaces an instance that does not ask or give back: it still waits as before; the next ones do not.
+
+- **A worker on a machine whose clock is a little behind no longer refuses jobs (4.2.3, found by the reference
+  deployment)**: the Studio signs a job to live 5 min to the millisecond, and the worker refused one that lived longer
+  by its own clock, so a few milliseconds of skew between the two machines refused about half the jobs (health and
+  previews failed with "refused the job (403)"). The worker now allows 30 s of skew, logs why it refuses a job, and the
+  Studio says the worker's reason.
 
 ### Changes
 
@@ -114,6 +127,21 @@ maintainer's SSH key on their yes of 19 October, « Yes, sign v4.2.3 » (D37, D4
   instance's bucket (`backups/<date>-r<revision>.json`) and keeps the n most recent; `clevercloud/cron.json` runs it
   every day on an app that sets `STUDIO_BACKUP_CRON=1`. STUDIO-SERVER gains its runbook ("Running it: the reference
   deployment": the overlapping redeploy and the engine upgrade, the alerts, the restore drill).
+- **The Studio Server's runbook, after its reference run on Clever Cloud (4.2.3, H9)**: STUDIO-SERVER (en, fr) now
+  says how to create the realm on Clever's managed Keycloak (its first admin password is temporary, `admin-cli` refuses
+  it, the console's realm import works), which fields of `ops/studio/keycloak/realm.json` to change for a hosted
+  Studio, to leave `APP_FOLDER` unset, to put `--` before a key's value in `clever env set`, to link both apps
+  (`clever link --alias`) before `clever deploy --alias`, that the shell of `clever ssh` has the app's variables and
+  that `clever ssh --command` waits for the old instance to go, how to keep a part of `clever logs`, that `/metrics` on
+  the game's origin is a 401 (its session gate), what an overlapping redeploy costs (measured: writes refused
+  10 to 16 s once the lease is handed over, about 2.5 min from a version without the handover; twice the database
+  connections), and how to compare a restore drill through the API.
+
+- **The exclusive lease's runner is under mutation testing (4.2.3)**: `studio-auth`'s tests now pin how a member's long
+  operation takes the project's lease, gives it back and renews it (19 mutants that survived before are killed).
+
+- **The 4.2.3 fixes are under mutation testing (4.2.3)**: a closed shipper and a start dropping an older prepared set
+  are pinned by `studio-workshop`'s tests.
 
 ## 4.2.2 — 2026-10-19
 
