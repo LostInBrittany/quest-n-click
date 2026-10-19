@@ -6513,7 +6513,10 @@ the same commit.
       handover, still waits about 2.5 min.
     - **A job's clock**: the same measure found the worker refusing about half the jobs on a few milliseconds of skew
       between the two machines (health and previews failing). Fixed before the release (#192): 30 s of skew allowed,
-      the refusal logged and said. [VERIFY: phase D's result on the reference deployment.]
+      the refusal logged and said. Verified on the reference deployment at `20db1fe2` (worker then studio): in
+      the 10 min after the handover, 191 writes, 106 judgements and 23 previews, **0 jobs refused** (265 run on the
+      worker); the handover took 4.0 s, `/readyz` 503 for about 2 s, one write retried once (503), none lost; the
+      preview p50 29.5 s, p95 40.6 s.
     - Not done: a metrics collector and an alert to a person (the runbook writes the alerts), reading the production
       database during the drill (compared through the API instead), processing without outbound network, OpenTelemetry.
   - **The prepared start's race** (#181): an instance's start could serve an older prepared set over the one a Prepare
