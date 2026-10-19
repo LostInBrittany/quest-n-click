@@ -102,6 +102,25 @@ describe('configuration and secrets', () => {
     expect(() => loadConfig(f)).toThrow(/publicBuilds is true or false/);
     writeFileSync(f, JSON.stringify({ ...base, typo: 1 }));
     expect(() => loadConfig(f)).toThrow(/unknown key "typo"/);
+    // The game's repository (4.2.3, H5): its URL without credentials, a branch name, a folder inside, a committer.
+    const git = {
+      remote: 'git@example.org:org/game.git',
+      branch: 'main',
+      path: 'games/g',
+      committer: { name: 'S', email: 's@x' },
+    };
+    writeFileSync(f, JSON.stringify({ ...base, git }));
+    expect(loadConfig(f).git).toEqual(git);
+    for (const [bad, why] of [
+      [{ remote: '' }, /git.remote/],
+      [{ remote: 'https://user:pw@example.org/g.git' }, /no credentials/],
+      [{ ...git, branch: 'a b' }, /git.branch/],
+      [{ ...git, path: '../out' }, /git.path/],
+      [{ ...git, committer: { name: 'S', email: 'nope' } }, /git.committer/],
+    ] as const) {
+      writeFileSync(f, JSON.stringify({ ...base, git: bad }));
+      expect(() => loadConfig(f)).toThrow(why);
+    }
   });
 });
 

@@ -18,6 +18,7 @@ import { fileURLToPath } from 'node:url';
 import { openSqliteDb } from '../../../bridge/src/store-sqlite';
 import type { SqlDb } from '../../../bridge/src/store-sql';
 import { createStudio, operationContext } from '../ops/core';
+import { GitSync } from './git';
 import { mcpEndpoint, type McpEndpoint } from './mcp';
 import { StudioError } from '../ops/errors';
 import { spansOf } from '../ops/spans';
@@ -40,7 +41,7 @@ import { openPostgresDb } from './postgres';
 import { newJobKeys } from '../worker/job';
 import { filesOf, packable, packAssets, packFiles, packSnapshot } from '../worker/snapshot';
 import { assetsVersion } from '../../../tools/vite/plugins';
-import { Leases } from './leases';
+import { exclusiveRunner, Leases } from './leases';
 import { Presence } from './live';
 import { StudioClient } from './client';
 import { Play } from './play';
@@ -49,6 +50,7 @@ import type { SolveData } from '../../../tools/studio/types';
 import { PersonalUndo } from '../ops/undo';
 import { Builds, PUBLIC_BUILD_PATH } from './builds';
 import { PreparedAssets } from './prepared';
+import { EngineUpgrade } from './engine-upgrade';
 import { Health, judgeBy } from './health';
 import { Metrics } from './metrics';
 import { Previews } from './previews';
@@ -427,11 +429,33 @@ async function main(argv: string[]): Promise<number> {
     personalUndo,
   });
   const presence = leases ? new Presence() : undefined;
+  // The project's exclusive lease (`*`) for the member who asks, around a long operation of theirs (prepare, the
+  // engine's upgrade, a Git import): leases.ts `exclusiveRunner`.
+  const exclusiveLease = leases
+    ? exclusiveRunner(leases, () => operationContext.getStore()?.claimant, {
+        log: logLine,
+      })
+    : <T>(fn: () => Promise<T>) => fn();
   // The engine's folder: the built Studio and the prepared assets are found beside it unless configured.
   const engineRoot = fileURLToPath(new URL('../../..', import.meta.url));
   const publicDir = resolve(config.publicDir ?? join(engineRoot, 'public'));
   // The prepared assets (4.2.2 PR 6b, D43): `prepare` on the worker, under the member's exclusive lease; the latest set
   // served before publicDir, written again to the instance's folder at start (its disk is ephemeral).
+  // The game's Git repository (4.2.3, H5): owners push and import; its deploy key a secret.
+  const gitSync = config.git
+    ? new GitSync({
+        db,
+        blobs,
+        gameDir,
+        config: config.git,
+        workDir: join(config.workDir, 'git'),
+        key: secrets.STUDIO_GIT_KEY,
+        writeFiles: (what, files) => studio.writeFiles(what, files, { undo: false }),
+        exclusive: exclusiveLease,
+        noreplyDomain: `users.noreply.${new URL(config.publicUrl).hostname}`,
+        log: logLine,
+      })
+    : undefined;
   const prepared =
     executor && hosted
       ? new PreparedAssets({
@@ -456,18 +480,7 @@ async function main(argv: string[]): Promise<number> {
           writeManifest: async (manifest) => {
             await studio.writeFiles('prepare assets', [{ path: 'assets.gen.json', after: manifest }], { undo: false });
           },
-          exclusive: async (fn) => {
-            const who = operationContext.getStore()?.claimant;
-            if (!who || !leases) return fn();
-            // Given back only if this run took it (an owner may already hold the project).
-            const had = (await leases.list()).some((l) => l.span === '*' && l.holder === who.userId);
-            if (!had) await leases.take(who, ['*']);
-            try {
-              return await fn();
-            } finally {
-              if (!had) await leases.release(who.userId, ['*']);
-            }
-          },
+          exclusive: exclusiveLease,
         })
       : undefined;
   void prepared?.start();
@@ -517,6 +530,20 @@ async function main(argv: string[]): Promise<number> {
   const shipper = segments ? new Shipper({ db, segments, log: logLine }) : undefined;
   journal.events.on('confirmed', () => void shipper?.ship());
   void shipper?.ship();
+  // A revision's verdict on the worker: the validator, then the solver from a new game, bounded in time (the health's,
+  // and the engine's upgrade's before it writes).
+  const judge = executor
+    ? judgeBy({
+        validate: (bytes, at) => executor!.validateSnapshot(bytes, at),
+        solve: (bytes, at) =>
+          executor!.diagnoseSnapshot(
+            'solve',
+            bytes,
+            { from: null, maxStates: 20_000, mode: 'witness', timeLimitMs: HOSTED_SOLVE_MS },
+            at,
+          ) as Promise<SolveData>,
+      })
+    : undefined;
   // And its health (G3, G4): the verdict by revision, a bisection when the head breaks. Hosted only: there the journal
   // keeps the blobs of every operation, the import's included, which a past revision's files are rebuilt from.
   const health =
@@ -529,20 +556,31 @@ async function main(argv: string[]): Promise<number> {
               await journal.reconcile();
               return { epoch: await journal.epoch(), rev: await journal.revision(), bytes: packSnapshot(gameDir) };
             }),
-          judge: judgeBy({
-            validate: (bytes, at) => executor!.validateSnapshot(bytes, at),
-            solve: (bytes, at) =>
-              executor!.diagnoseSnapshot(
-                'solve',
-                bytes,
-                { from: null, maxStates: 20_000, mode: 'witness', timeLimitMs: HOSTED_SOLVE_MS },
-                at,
-              ) as Promise<SolveData>,
-          }),
+          judge: judge!,
           log: logLine,
         })
       : undefined;
   journal.events.on('confirmed', () => void health?.schedule());
+  // The engine's upgrade (4.2.3 PR 8, H6): the owner's, on the worker, under their exclusive lease, judged before it
+  // is written as one undoable operation. Hosted only: a local Studio runs `web-scumm migrate` itself.
+  const engineUpgrade =
+    executor && hosted && judge
+      ? new EngineUpgrade({
+          snapshot: () =>
+            server.exclusive(async () => {
+              await journal.reconcile();
+              return { epoch: await journal.epoch(), rev: await journal.revision(), bytes: packSnapshot(gameDir) };
+            }),
+          migrate: (bytes, at) => executor!.migrate(bytes, at),
+          judge,
+          write: async (what, files) => {
+            await studio.writeFiles(what, files);
+            return journal.revision();
+          },
+          exclusive: exclusiveLease,
+          log: logLine,
+        })
+      : undefined;
   // The published builds (G6): built by the worker, signed with the Studio's job key (the worker's public key checks
   // a manifest), served at /play/<n>/ on the game's origin, without a session if the owner chose so (D42).
   const jobKey = secrets.STUDIO_WORKER_KEY
@@ -607,6 +645,8 @@ async function main(argv: string[]): Promise<number> {
     personalUndo: !!personalUndo,
     builds,
     prepared,
+    git: gitSync,
+    engineUpgrade,
     rpo: shipper ? () => shipper.rpoMs() : undefined,
     play,
     client,

@@ -215,6 +215,78 @@ son contenu est sans danger. Le code d'un build ne change jamais ; ses images et
 l'instance, servis à côté tels qu'ils sont. Un build publié n'a pas de service worker (il ne s'installe pas pour jouer
 hors ligne) et ses sauvegardes ne sont pas encore distinguées par build.
 
+## Le jeu dans Git (4.2.3)
+
+`git` dans la configuration (facultatif) nomme le dépôt du jeu : `{ "remote": "git@github.com:org/game.git",
+"branch": "main", "path": "games/mon-jeu", "committer": { "name": "…", "email": "…" } }` (`branch` vaut `main` par
+défaut, `path` la racine du dépôt). Sa clé de déploiement (une clé qui peut écrire dans ce seul dépôt, D44) est le
+secret `STUDIO_GIT_KEY` (`STUDIO_GIT_KEY_FILE` en local ; une variable sur Clever Cloud). Un dépôt https public ou
+local n'en demande pas ; une URL de dépôt ne porte jamais d'identifiants. L'onglet Play montre où va le jeu et la
+dernière révision poussée :
+
+- **Pousser** (un owner) : un commit des révisions confirmées depuis le dernier push, les fichiers du jeu à la tête
+  dans `path`, chaque auteur de ces révisions en `Co-authored-by` (son email, ou son nom à une adresse qui n'existe
+  pas) ; le reste du dépôt reste tel qu'il est. Rien de neuf, rien de poussé.
+- **Jamais forcé.** Une branche qui a bougé depuis le dernier push du Studio (quelqu'un y a poussé) est refusée (409),
+  et de même une branche qui existe mais que le Studio n'a jamais importée : importez-la d'abord.
+- **Importer** (un owner, demandé deux fois) : la branche, une autre branche du dépôt, ou un commit par son hash, tel
+  qu'il est dans `path`, écrit en une révision sous le bail exclusif. Il remplace ce que le Studio n'avait pas poussé
+  (qui reste dans son historique). La pointe de la branche importée, le push suivant part d'elle ; un autre commit, le
+  push suivant va sur la pointe que le Studio connaît. Un lien, un sous-module, ou un fichier que le jeu ne peut pas
+  avoir refuse tout l'import.
+
+Le Studio ne fait jamais de checkout : un push construit son commit à partir d'objets, un import lit les objets du
+commit ; les liens, les attributs et les règles d'ignore du dépôt ne peuvent donc pas atteindre les fichiers du
+serveur. Les fichiers dont un segment du chemin commence par un point (`.github/`, `.gitignore`) sont ceux du dépôt :
+gardés par un push, ignorés par un import. Le
+`private/` du jeu ne va jamais dans le dépôt, et un import le laisse tel qu'il est. L'email d'un auteur va dans un `Co-authored-by` seulement si le
+fournisseur l'a vérifié ; sinon son nom à `users.noreply.<l'hôte du Studio>`. Git tourne avec un environnement à lui,
+la clé dans un fichier pour une commande, le clone dans `workDir/git` (refait quand le disque est neuf). Donnez les
+clés de l'hôte du dépôt dans `git.knownHosts` (des lignes `known_hosts`) pour les vérifier strictement ; sans elles,
+l'hôte est cru à la première connexion, et de nouveau après chaque disque neuf.
+
+## Monter la version du moteur d'un jeu hébergé
+
+Un jeu importé d'un projet 4.1.x qui n'a jamais lancé `web-scumm migrate` est encore au schéma d'écriture 2 (pas de
+`schemaVersion: 3`, pas d'ids stables). Sur un Studio hébergé, un owner le monte de version avec
+`POST /api/engine/migrate` (4.2.3) :
+
+```bash
+curl -X POST -H "Authorization: Bearer $(npx web-scumm-studio-server token --server https://studio.example)" \
+  https://studio.example/api/engine/migrate
+```
+
+- **Exclusive.** Elle tourne sous le bail exclusif de l'owner (`*`) : personne d'autre n'écrit pendant ce temps (ses
+  écritures reçoivent un 423 avec le nom de l'owner, ses brouillons restent chez lui, et il écrit de nouveau une fois
+  qu'elle est finie). Une à la fois (429).
+- **Sur l'application de traitement.** Elle exécute la même migration que `web-scumm migrate` sur le snapshot de la
+  tête : les ids stables écrits dans `rooms/*.ts`, `rules.ts`, `items.ts` et `game.ts`, les clés des tables de
+  traduction renommées, `ids.migration.json` et `ids.paths.json`, puis les trois lignes qu'UPGRADING laisse à l'auteur
+  dans `game.ts` (`schemaVersion: 3`, `saveVersion` + 1, `migrations: [..., idsMigration]` et son import : les trois
+  ou aucune, dites dans `skipped`). `defineGame({...})` doit être dans `game.ts` (un jeu qui le définit ailleurs est
+  refusé : migrez-le en local). Rien n'est encore écrit, et rien d'autre que ces fichiers : le Studio refuse une
+  réponse qui nomme un autre fichier, ou un fichier que le jeu n'a pas (le code du jeu tourne avant la migration et
+  pourrait la façonner).
+- **Jugée avant d'être écrite.** Le jeu migré est jugé sur l'application de traitement comme la santé juge une
+  révision : le validateur, puis le solveur depuis une nouvelle partie, borné dans le temps. Un jeu que la migration
+  casserait (un id que l'outil n'a pas pu écrire, une liste construite par du code, un jeu qu'on ne peut plus finir),
+  ou que le solveur ne peut pas juger à temps, est refusé par un 422 (`errors`, `skipped` : ce que l'outil n'a pas pu
+  écrire) et la tête reste telle qu'elle était : migrez-le sur un Studio local (`web-scumm migrate`, puis `npm run ids`
+  pour voir ce qui reste) et importez-le de nouveau, ou corrigez-le d'abord.
+- **Une révision.** Sinon les fichiers modifiés sont écrits en une seule opération (`engine upgrade: authoring schema
+  2 → 3`), à travers la garde, et la réponse est `{ revision, changed, paths, schema: { from, to } }` (`paths` : les
+  fichiers écrits). Un jeu déjà au schéma
+  3 répond `{ changed: 0 }` et rien n'est écrit.
+- **Annulable.** L'Undo de l'owner l'annule, par une nouvelle révision (409 si quelqu'un a écrit l'un de ses fichiers
+  depuis) ; ou le projet revient à une sauvegarde faite avant (voir plus bas) : faites-en une d'abord.
+
+Dans la ligne 4.2.x le format du contenu est gelé (D40) : c'est pour un jeu fait sur une 4.1.x. Un Studio local n'a
+pas de route : lancez `web-scumm migrate` dans le projet. Le `tsconfig.json` du projet (`baseUrl`, que
+`web-scumm migrate` corrige aussi) ne fait pas partie d'un jeu hébergé et n'est pas touché. Les playtests
+(`playtests/`) ne sont ni migrés ni jugés : rejouez-les après la montée de version (une session enregistrée au schéma 2
+peut nommer les anciennes clés positionnelles). Il n'y a pas encore de
+bouton : la route est le moyen d'y accéder.
+
 ## Sauvegarde et restauration
 
 - **Le journal expédié** : chaque opération confirmée est copiée dans le bucket, dans l'ordre, en segment immuable
