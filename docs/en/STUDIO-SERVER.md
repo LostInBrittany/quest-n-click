@@ -67,6 +67,8 @@ mkdir -p ~/secrets/my-game && npm run studio-server -- worker-keys --out ~/secre
 | `STUDIO_OIDC_CLIENT_SECRET` | the provider's secret for the `studio` client |
 | `STUDIO_SESSION_KEY` | 32 random characters or more (`openssl rand -base64 48`); several, comma-separated, to rotate |
 | `STUDIO_WORKER_KEY` | the content of `studio-worker.key` (line breaks may be written `\n`) |
+| `STUDIO_METRICS_TOKEN` | optional (4.2.3): 32 random characters or more (`openssl rand -base64 32`); without it, no `/metrics` |
+| `STUDIO_BACKUP_CRON` | optional (4.2.3): `1` runs the daily backup to the bucket (`clevercloud/cron.json`); `STUDIO_BACKUP_KEEP` backups kept, 14 by default |
 
 The database and Cellar credentials arrive from the add-ons (`POSTGRESQL_ADDON_URI`, `CELLAR_ADDON_KEY_ID`,
 `CELLAR_ADDON_KEY_SECRET`). At start the server reads every secret and removes it from its environment. Outside
@@ -209,6 +211,10 @@ installed for offline play) and its saves are not yet told apart by build.
   logs everyone out; only confirmed operations), with the blobs they name and a digest. Daily (D42), kept off the
   instance. A backup is trusted input, like the database's credentials: it can add owners. Its digest says it is
   whole, not who made it; keep it where only operators write.
+- **To the bucket** (4.2.3): `npm run studio-server -- backup --to-bucket --keep 14 --config <file>` writes it to the
+  instance's bucket as `backups/<date>-r<revision>.json` (UTC, `2026-10-19T03-17-00Z`), then deletes the backups it
+  wrote past the 14 most recent (never another object). The daily cron runs it ("Running it", below). It survives the
+  database, not the bucket: a copy elsewhere is yours to make.
 - **A restore**: a hosted instance only, into an empty database (a new Postgres add-on, the same bucket):
   `npm run studio-server -- restore <file> --replay --config <file>` checks the digest, the tables and columns, and
   that every blob of the head and of the journal is in the bucket (a preview, build or prepared set whose blobs were
@@ -225,6 +231,90 @@ installed for offline play) and its saves are not yet told apart by build.
   write naming an old blob is covered by the day of grace. The head's and the journal's blobs are never collected (the
   journal keeps every operation); an older backup restored after a collection only loses the previews, builds and
   prepared sets the collection took.
+
+## Running it: the reference deployment
+
+4.2.3 runs this deployment on Clever Cloud (the two apps, PostgreSQL, Cellar, Keycloak, a domain) and writes what it
+measured in `docs/dev/QUALIF-4.2.3-REFERENCE.md`. What follows is the runbook it follows.
+
+**Deploy, and upgrade the engine: an overlapping redeploy.** `clever deploy` (or a push) starts the new instance while
+the old one still serves: measured by spike S (`docs/dev/SPIKE-4.2.1-CLEVER.md` §2), where the old instance also never
+logged its SIGTERM. Nothing depends on that signal: the instances share the **service lease** in PostgreSQL (master plan
+§4, P8). The new one starts, answers `/startz`, and waits: `/readyz` is 503 and its writes are 503 with `Retry-After`
+until the old one gives the lease back (on SIGTERM) or the lease expires (30 s, renewed every 10 s on the database's
+clock); the old one stops writing by its own clock before that. A client retries a write with the same operation id
+and gets it applied once. The journal's own fenced lease still keeps two instances from writing over the same head.
+Upgrading the engine is the same redeploy, of a new version:
+1. read the CHANGELOG for the version and `docs/en/UPGRADING.md` for the game's content. Its database migrations run
+   when the new instance starts, while the old one may still serve: if one changes what the old version reads, stop
+   the old one first (`clever stop`) and accept the minute without the Studio;
+2. take a backup to the bucket (below) and note the revision;
+3. deploy the worker first, then the studio, the same version: until both are, a job may be refused, and the Studio
+   then refuses the write it was checking (it fails closed) rather than letting it through;
+4. watch `/readyz` come back to 200 on the new instance (`instance` in the `lease-taken` log line), the revision
+   unchanged, and one write go through.
+A rollback is the same redeploy of the previous version, as long as it still reads the database the new one migrated;
+otherwise it is the backup of step 2, restored into a new add-on (the drill below).
+
+**Metrics.** With `STUDIO_METRICS_TOKEN` set, `GET /metrics` on the Studio's origin answers in Prometheus' text format
+to `Authorization: Bearer <token>` (compared in constant time); a wrong token is a 401, and without the variable there
+is no route (404). It is never behind the session and never on the game's origin. What it gives:
+
+| Metric | What |
+|---|---|
+| `studio_journal_operation_seconds{outcome}` | the journal's operations, from asked to answered (`confirmed`, `replayed`, `refused`, `failed`) |
+| `studio_worker_jobs_in_flight` | the jobs asked of the worker and not answered yet: the queue as the Studio sees it |
+| `studio_worker_job_seconds{kind,outcome}` | the worker's jobs by kind (`validate`, `load`, `preview`, `prepare`, `lint`, `solve`, `playtests`) and outcome (`ok`, `failed`, `timeout`, `error`) |
+| `studio_lease_conflicts_total` | the 423s answered: someone else's span, or a lease that ended |
+| `studio_preview_build_seconds{outcome}` | a revision's preview, snapshot to stored files (`built`, `failed`) |
+| `studio_health_judgement_seconds{verdict}` | the health's verdict on a revision |
+| `studio_journal_rpo_seconds` | the age of the oldest operation not shipped to the bucket (the `rpoMs` of `/readyz`) |
+| `studio_journal_revision`, `studio_service_lease_held` | the head, and whether this instance serves writes (1) |
+| `studio_http_responses_total{class}`, `studio_log_events_total{event}` | answers by status class; the failures logged (`ship-failed`, `health-failed`, `reconcile-failed`, `error`…) |
+
+They are counts and durations: no path, no name, no author, no content. They live in the instance's memory, so a
+restart starts them again from zero (a counter reset, which Prometheus' `rate` reads as such). The worker's own queue
+is not measured from the worker: the Studio's side of it is. OpenTelemetry is not supported in 4.2.3; it stays an
+option for later.
+
+**Alerts** (to a person). Clever Cloud notifies deployments (`clever notify-email add --notify <you> --event
+DEPLOYMENT_FAIL studio-deploys`; also `clever webhooks add`), and its console shows each app's CPU, memory and logs.
+It does not read `/metrics`: a scraper you run does (Prometheus with its Alertmanager, or any service that reads the
+format), or a simple prober for `/readyz`. Alert when:
+- `/readyz` is not 200 for 2 min (no instance serves writes; a deploy takes about 30 s at most);
+- `studio_journal_rpo_seconds` is above 60 for 5 min (the target is 1 min, D42), or `ship-failed` keeps rising;
+- `studio_worker_jobs_in_flight` stays above 3 for 10 min (the worker runs one job at a time: work is piling up);
+- jobs fail: `studio_worker_job_seconds_count{outcome!="ok"}` rises, or `health-failed`;
+- `studio_lease_conflicts_total` jumps (people waiting on each other's spans: not a fault, a sign to look at);
+- the daily backup's line (`"event":"backup"`) is missing from the logs one morning.
+
+**The daily backup.** The repository carries `clevercloud/cron.json`: at 03:17 UTC every day it runs
+`ops/studio/backup-cron.sh`, which does nothing unless the app sets `STUDIO_BACKUP_CRON=1`, and nothing on another
+instance than number 0 (Clever runs a repository's crons on every app and every instance deployed from it: set the
+variable on the studio app only, never the worker). It runs `backup --to-bucket --keep ${STUDIO_BACKUP_KEEP:-14}`; its
+line goes to the app's logs. From the release archives (which do not carry the script), copy `ops/studio/backup-cron.sh`
+into your app with its last line as `exec npx web-scumm-studio-server backup --to-bucket --keep
+"${STUDIO_BACKUP_KEEP:-14}"`, make it executable, and point your `clevercloud/cron.json` at it: `["17 3 * * *
+$ROOT/backup-cron.sh"]`. Clever runs a cron with no environment unless its script starts with `#!/bin/bash -l`, and with
+absolute paths only (`$ROOT` is the app's folder). An overlapping redeploy at that minute may make two backups:
+harmless.
+
+**The restore drill**, onto a fresh PostgreSQL add-on, the production instance left alone:
+1. Note the head (`studio_journal_revision`, or `GET /api/revision` as a member) and check
+   `studio_journal_rpo_seconds` is 0.
+2. Create an add-on and link it to nothing: `clever addon create postgresql-addon my-game-pg-drill --plan dev`; read
+   its URI with `clever addon env <addon-id>`.
+3. Take the latest `backups/` object from the bucket (any S3 tool, with the Cellar credentials), on a machine with the
+   studio app's configuration (`STUDIO_CONFIG_JSON`, the Cellar variables) and `STUDIO_DATABASE_URL` set to the
+   **drill** add-on's URI. Never the production one: a restore refuses a database that holds anything, but check anyway.
+4. Time it: `time npm run studio-server -- restore backups-latest.json --replay`. The line it prints gives the rows,
+   the backup's revision, the revision reached, and `stopped` if the replay stopped early.
+5. Check, read-only, on both databases (`psql <URI>`): `SELECT value FROM studio_meta WHERE key = 'revision'` gives
+   the head noted in step 1 (or later, if people wrote meanwhile), and `SELECT path, blob FROM studio_files ORDER BY
+   path` gives the same rows at the same revision.
+6. Write the time, the revisions and anything odd in the qualification report, then delete the add-on
+   (`clever addon delete my-game-pg-drill`). Never run `gc --delete` from the drill's database: it would collect the
+   blobs production still names.
 
 ## Working together
 

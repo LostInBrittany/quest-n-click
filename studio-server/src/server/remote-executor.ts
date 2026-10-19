@@ -16,6 +16,7 @@ import { packSnapshot } from '../worker/snapshot';
 import type { DiagnoseKind } from '../ops/diagnose';
 import { StudioError } from '../ops/errors';
 import { type Prepared, preparedShape } from '../worker/prepare';
+import type { JobObserver } from './metrics';
 import type { S3 } from './s3';
 
 export interface RemoteExecutorOptions {
@@ -26,6 +27,8 @@ export interface RemoteExecutorOptions {
   /** The journal's epoch and head, bound into each job. */
   at: () => { epoch: string; rev: number } | Promise<{ epoch: string; rev: number }>;
   timeoutMs?: number;
+  /** The metrics (4.2.3, H9): each job asked of the worker, while it runs and how it ended. */
+  metrics?: JobObserver;
 }
 
 const MAX_RESULT = 32 * 1024 * 1024;
@@ -50,6 +53,7 @@ export function remoteExecutor(o: RemoteExecutorOptions) {
     if (hit?.sha === sha && Date.now() - hit.at < CACHE_MS) return hit.result;
     const id = randomUUID();
     const dest = `staging/${id}/`;
+    const ended = o.metrics?.job(kind);
     try {
       await o.s3.put(`${dest}snapshot.json`, snapshot);
       const seconds = Math.floor(MAX_JOB_MS / 1000);
@@ -86,7 +90,11 @@ export function remoteExecutor(o: RemoteExecutorOptions) {
       if (!v.failed && kind === 'preview' && !previewFiles(v.files))
         throw new Error('the processing worker result does not answer this job');
       if (!v.failed && cached) last.set(kind, { sha, at: Date.now(), result: v });
+      ended?.(v.timedOut ? 'timeout' : v.failed ? 'failed' : 'ok');
       return v;
+    } catch (e) {
+      ended?.('error');
+      throw e;
     } finally {
       await Promise.all([o.s3.delete(`${dest}snapshot.json`), o.s3.delete(`${dest}result.json`)]).catch(() => {});
     }

@@ -6,6 +6,7 @@
 //   login --server <url>, token --server <url>       the CLI's device flow, and its current access token
 //   deps           its own dependencies (OpenID Connect, JWT, Postgres): the version and folder each resolves to
 //   backup <file>  the project's tables, one snapshot, with the blobs they name (4.2.2, ops/backup.ts)
+//   backup --to-bucket [--keep n]   the same, to the bucket's `backups/`, the n most recent kept (4.2.3, a cron's)
 //   restore <file> [--replay]   a backup into an empty hosted project, then (--replay) the journal shipped since
 //   replay         a restore's replay resumed (after it stopped), then the restore ended
 //   gc [--delete]  the blobs no row names (older than a day) and the worker's old staging: listed, or deleted
@@ -24,6 +25,7 @@ import { type BlobStore, fsBlobStore } from '../ops/blobs';
 import { sha256 } from '../ops/durable';
 import { Journal } from '../ops/journal';
 import { backupOf, checkBackup, restoreInto } from '../ops/backup';
+import { backupToBucket, keepOf } from '../ops/backup-bucket';
 import { collect } from '../ops/gc';
 import { finishRestore, replaySegments, Shipper } from '../ops/ship';
 import { migrate } from '../../../bridge/src/migrations';
@@ -48,6 +50,7 @@ import { PersonalUndo } from '../ops/undo';
 import { Builds, PUBLIC_BUILD_PATH } from './builds';
 import { PreparedAssets } from './prepared';
 import { Health, judgeBy } from './health';
+import { Metrics } from './metrics';
 import { Previews } from './previews';
 import { remoteExecutor } from './remote-executor';
 import { S3, s3BlobStore } from './s3';
@@ -152,10 +155,27 @@ async function main(argv: string[]): Promise<number> {
 
   if (cmd === 'backup' || cmd === 'restore' || cmd === 'replay' || cmd === 'gc') {
     await migrate(db, { dir: new URL('../../migrations/', import.meta.url) });
+    if (cmd === 'backup' && args.includes('--to-bucket')) {
+      if (!s3) throw new ConfigError("backup --to-bucket writes to the instance's bucket: blobs.kind is s3");
+      const at = args.indexOf('--keep');
+      let keep: number | undefined;
+      try {
+        keep = at < 0 ? undefined : keepOf(args[at + 1]);
+      } catch (e) {
+        console.error(`backup: ${(e as Error).message}`);
+        return 2;
+      }
+      const b = await backupOf(db);
+      const r = await backupToBucket(s3, b, keep);
+      console.log(
+        JSON.stringify({ event: 'backup', key: r.key, revision: b.revision, digest: b.digest, removed: r.removed }),
+      );
+      return 0;
+    }
     if (cmd === 'backup') {
-      const out = args[0] && resolve(args[0]);
+      const out = args[0] && !args[0].startsWith('--') && resolve(args[0]);
       if (!out || existsSync(out)) {
-        console.error('backup: a new file is required');
+        console.error('backup: a new file is required (or --to-bucket [--keep n])');
         return 2;
       }
       const b = await backupOf(db);
@@ -326,6 +346,15 @@ async function main(argv: string[]): Promise<number> {
     console.error(`serve: ${config.host} is refused without authentication (configure oidc); use 127.0.0.1`);
     return 2;
   }
+  // The metrics (4.2.3, H9): with their token only (32 characters at least), else no route.
+  if (secrets.STUDIO_METRICS_TOKEN !== undefined && secrets.STUDIO_METRICS_TOKEN.length < 32)
+    throw new ConfigError('STUDIO_METRICS_TOKEN: 32 characters at least (openssl rand -base64 32)');
+  const metrics = secrets.STUDIO_METRICS_TOKEN ? new Metrics(secrets.STUDIO_METRICS_TOKEN) : undefined;
+  metrics?.measureOperations(journal);
+  const logLine = (line: Record<string, unknown>) => {
+    metrics?.fromLog(line);
+    console.log(JSON.stringify(line));
+  };
   let auth: Parameters<typeof studioServer>[0]['auth'];
   let mcp: McpEndpoint | undefined;
   let authStore: AuthStore | undefined;
@@ -365,7 +394,7 @@ async function main(argv: string[]): Promise<number> {
       issuer: oidc.issuer,
       game: config.game,
       version: String(JSON.parse(readFileSync(new URL('../../../package.json', import.meta.url), 'utf8')).version),
-      log: (line) => console.log(JSON.stringify(line)),
+      log: logLine,
     });
   }
   const lease = new ServiceLease(db);
@@ -383,6 +412,7 @@ async function main(argv: string[]): Promise<number> {
       // A variable cannot always hold line breaks: `\n` written out is read as one.
       privateKeyPem: secrets.STUDIO_WORKER_KEY.replace(/\\n/g, '\n'),
       instance: config.worker.instance,
+      metrics,
       at: async () => ({ epoch: await journal.epoch(), rev: await journal.revision() }),
     });
   }
@@ -418,7 +448,7 @@ async function main(argv: string[]): Promise<number> {
               };
             }),
           prepare: (bytes, at) => executor!.prepare(bytes, at, config.game),
-          log: (line) => console.log(JSON.stringify(line)),
+          log: logLine,
           currentManifest: () =>
             existsSync(join(gameDir, 'assets.gen.json'))
               ? readFileSync(join(gameDir, 'assets.gen.json'), 'utf8')
@@ -478,15 +508,13 @@ async function main(argv: string[]): Promise<number> {
           build: (bytes, params, at) => executor!.preview(bytes, params, at),
           assetsVersion: () => prepared?.version() ?? (version ??= assetsVersion(join(publicDir, 'assets'))),
           prepared: () => prepared?.folder() ?? null,
-          log: (line) => console.log(JSON.stringify(line)),
+          log: logLine,
         })
       : undefined;
   // After each revision, the head's preview (coalesced: a burst builds its last revision only).
   journal.events.on('confirmed', () => void previews?.schedule());
   // The journal shipped to the bucket (G7): after each operation, and at start for what was not shipped yet.
-  const shipper = segments
-    ? new Shipper({ db, segments, log: (line) => console.log(JSON.stringify(line)) })
-    : undefined;
+  const shipper = segments ? new Shipper({ db, segments, log: logLine }) : undefined;
   journal.events.on('confirmed', () => void shipper?.ship());
   void shipper?.ship();
   // And its health (G3, G4): the verdict by revision, a bisection when the head breaks. Hosted only: there the journal
@@ -511,7 +539,7 @@ async function main(argv: string[]): Promise<number> {
                 at,
               ) as Promise<SolveData>,
           }),
-          log: (line) => console.log(JSON.stringify(line)),
+          log: logLine,
         })
       : undefined;
   journal.events.on('confirmed', () => void health?.schedule());
@@ -582,7 +610,21 @@ async function main(argv: string[]): Promise<number> {
     rpo: shipper ? () => shipper.rpoMs() : undefined,
     play,
     client,
+    metrics,
+    log: logLine,
   });
+  metrics?.gauge('studio_journal_revision', "The journal's head revision.", () => journal.revision());
+  metrics?.gauge(
+    'studio_service_lease_held',
+    'Whether this instance holds the service lease (serves writes): 1 or 0.',
+    () => (lease.held ? 1 : 0),
+  );
+  if (shipper)
+    metrics?.gauge(
+      'studio_journal_rpo_seconds',
+      'The age of the oldest confirmed operation not shipped to the bucket yet (0: all shipped).',
+      async () => (await shipper.rpoMs()) / 1000,
+    );
   // Hosted: the instance's folder is checked against the head every 30 s and repaired without a restart (plan §4),
   // holding the instance's lock alone: no request reads a folder being repaired.
   if (hosted)
@@ -594,7 +636,7 @@ async function main(argv: string[]): Promise<number> {
             if (!(r.written + r.removed)) return;
             console.log(JSON.stringify({ event: 'reconciled', ...r }));
           },
-          (e) => console.log(JSON.stringify({ event: 'reconcile-failed', message: String((e as Error).message) })),
+          (e) => logLine({ event: 'reconcile-failed', message: String((e as Error).message) }),
         );
     }, 30_000).unref();
   server.on('error', (e) => {
