@@ -49,7 +49,7 @@ export interface JobResult {
   warnings?: string[];
   /** load: the module as data. */
   module?: unknown;
-  /** lint, solve, playtests (4.2.2): the diagnostic, as the Studio's route answers it. */
+  /** lint, solve, playtests (4.2.2): the diagnostic, as the Studio's route answers it; prepare, migrate: their answer. */
   data?: unknown;
   /** preview (4.2.2): the built files, base64 by path under the preview's base. */
   files?: Record<string, string>;
@@ -190,7 +190,11 @@ export function createWorker(o: WorkerOptions) {
         else result.failed = 'the preview build gave no usable files';
       } else if (
         !result.failed &&
-        (job.kind === 'lint' || job.kind === 'solve' || job.kind === 'playtests' || job.kind === 'prepare')
+        (job.kind === 'lint' ||
+          job.kind === 'solve' ||
+          job.kind === 'playtests' ||
+          job.kind === 'prepare' ||
+          job.kind === 'migrate')
       ) {
         const { data, error, refused } = (parsed ?? {}) as { data?: unknown; error?: unknown; refused?: unknown };
         if (data && typeof data === 'object') result.data = data;

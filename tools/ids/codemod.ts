@@ -334,6 +334,43 @@ class Codemod {
     }
   }
 
+  /**
+   * The three lines UPGRADING.md leaves to the author, on `defineGame({...})`: `schemaVersion: 3`, `saveVersion` + 1,
+   * the ids' migration step appended to `migrations` and imported from `./ids.migration.json`. What is not a plain
+   * literal (a computed `saveVersion`, a shorthand property) is skipped and said.
+   */
+  schema3(root: Obj, saveVersion: number) {
+    const set = (name: string, value: string) => {
+      const p = root.properties.find((x) => propKey(x) === name);
+      if (p && !ts.isPropertyAssignment(p)) return this.skip(p, name, `${name} is not written \`${name}: …\``, value);
+      if (p) this.edits.push({ pos: p.initializer.getStart(this.sf), end: p.initializer.getEnd(), text: value });
+      else this.insertFirst(root, `${name}: ${value}`);
+      this.inserted.push({ path: name, id: value, line: this.line(p ?? root) });
+    };
+    const sv = this.prop(root, 'saveVersion');
+    if (sv && ts.isNumericLiteral(sv) && Number(sv.text) === saveVersion) set('saveVersion', String(saveVersion + 1));
+    else this.skip(sv ?? root, 'saveVersion', 'saveVersion is not a number literal', String(saveVersion + 1));
+    const m = this.prop(root, 'migrations');
+    if (!m) set('migrations', '[idsMigration]');
+    else if (ts.isArrayLiteralExpression(m)) {
+      const last = m.elements.at(-1);
+      this.edits.push({
+        pos: last ? last.getEnd() : m.getStart(this.sf) + 1,
+        text: last ? ', idsMigration' : 'idsMigration',
+      });
+      this.inserted.push({ path: 'migrations', id: 'idsMigration', line: this.line(m) });
+    } else set('migrations', `[...${m.getText(this.sf)}, idsMigration]`);
+    // Inserted last, so that it comes first when inserted beside `migrations`.
+    set('schemaVersion', '3');
+    if (!/\bimport\s+idsMigration\b/.test(this.sf.text)) {
+      const imports = this.sf.statements.filter(ts.isImportDeclaration);
+      const line = `import idsMigration from ${encodeString('./ids.migration.json', this.q)};`;
+      this.edits.push(
+        imports.length ? { pos: imports.at(-1)!.getEnd(), text: `\n${line}` } : { pos: 0, text: `${line}\n` },
+      );
+    }
+  }
+
   result(): CodemodResult {
     let code = this.sf.text;
     for (const e of [...this.edits].sort((a, b) => b.pos - a.pos))
@@ -462,5 +499,18 @@ export function addIdsToGameSource(code: string, game: GameDef, fileName = 'game
   }
   const items = cm.prop(root, 'items');
   if (items && ts.isObjectLiteralExpression(items)) cm.items(items, game.items, 'items');
+  return cm.result();
+}
+
+/**
+ * `game.ts` brought to schema 3 (4.2.3, a hosted `migrate`): the lines UPGRADING.md says to write by hand once the ids
+ * are written (`schemaVersion: 3`, `saveVersion` + 1, `migrations: [..., idsMigration]` and its import).
+ */
+export function addSchema3ToGameSource(code: string, saveVersion: number, fileName = 'game.ts'): CodemodResult {
+  const sf = parse(code, fileName);
+  const root = findRoot(sf, 'defineGame', 'game');
+  const cm = new Codemod(sf);
+  if (!root) cm.skipped.push({ path: '', line: 1, reason: 'no defineGame({...}) object found' });
+  else cm.schema3(root, saveVersion);
   return cm.result();
 }

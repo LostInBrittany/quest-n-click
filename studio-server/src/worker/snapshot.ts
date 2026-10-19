@@ -137,3 +137,20 @@ export function filesOf(dir: string): { path: string; bytes: Buffer }[] {
   walk(dir);
   return out;
 }
+
+/** The texts of a version 1 snapshot, by path. */
+export function snapshotTexts(bytes: Buffer): Map<string, string> {
+  const s = JSON.parse(bytes.toString('utf8')) as { v: number; files: { path: string; text: string }[] };
+  if (s.v !== 1 || !Array.isArray(s.files)) throw new Error('not a snapshot');
+  return new Map(s.files.map((f) => [f.path, f.text]));
+}
+
+/**
+ * A version 1 snapshot with `files` written over it (4.2.3 PR 8: the migrated game, judged before anything is
+ * written), under the same rules as a folder's.
+ */
+export function overlaySnapshot(bytes: Buffer, files: Record<string, string>): Buffer {
+  const texts = snapshotTexts(bytes);
+  for (const [path, text] of Object.entries(files)) texts.set(path, text);
+  return packFiles([...texts].map(([path, text]) => ({ path, bytes: Buffer.from(text, 'utf8') })));
+}
