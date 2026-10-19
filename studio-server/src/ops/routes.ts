@@ -91,6 +91,10 @@ export function routes(s: Studio): [string, RegExp, Handler][] {
     ['GET', /^\/storyboard$/, () => s.getStoryboard()],
     ['PUT', /^\/storyboard$/, (_m, b) => s.setStoryboard(b)],
     ['POST', /^\/storyboard\/markdown$/, () => s.exportStoryboardMarkdown()],
+    // 4.2.3 (H1): the groupings of the scenario map, and the map derived from them and the IR.
+    ['GET', /^\/groupings$/, () => s.getGroupings()],
+    ['PUT', /^\/groupings$/, (_m, b) => s.setGroupings(b)],
+    ['GET', /^\/map$/, () => s.map()],
     ['GET', /^\/notes$/, () => s.getNotes()],
     [
       'POST',

@@ -20,6 +20,7 @@ const GLOBAL_SPANS: [string, string][] = [
   ['voices', 'voices'],
   ['assets', 'assets'],
   ['notes', 'notes'],
+  ['groupings', 'the scenario map'],
   ['playtests', 'playtests'],
   ['reality', 'signals from the world'],
   ['meta', 'the rest'],

@@ -24,6 +24,7 @@ import type {
   SolveData,
   ValidateResult,
 } from '../../tools/studio/types';
+import type { GroupingsFile, ScenarioMap } from '../../tools/studio/scenario-map';
 import { goLogin, hosting, studioFetch } from './api-base';
 export { studioFetch };
 
@@ -67,7 +68,7 @@ const READ_POSTS = /^(validate|report|puzzle|coverage|playtests|lint|solve|scree
 
 /** A 409 about a file that changed (the journal's base, or a write meanwhile), not another refusal that is a 409. */
 /** The writes that send a whole document rather than an edit the server computes again on the file as it is. */
-const WHOLE = /^PUT (room\/[\w-]+\/layout|storyboard)$/;
+const WHOLE = /^PUT (room\/[\w-]+\/layout|storyboard|groupings)$/;
 
 const fileConflict = (data: Record<string, unknown>) =>
   typeof data.path === 'string' || /changed (since|while)/.test(String(data.error ?? ''));
@@ -201,6 +202,10 @@ export interface Api {
   /** Server: writes storyboard.md. Demo: generates it and hands it to the browser as a download. */
   storyboardMarkdown(): Promise<MarkdownResult>;
   notes(): Promise<NotesFile>;
+  /** 4.2.3 (H1): the scenario map's groupings, and the map derived from them (the dev server and a hosted Studio). */
+  groupings?(): Promise<GroupingsFile & { skipped?: string[] }>;
+  setGroupings?(g: GroupingsFile): Promise<{ ok: true; changed: boolean }>;
+  map?(): Promise<ScenarioMap>;
   addNote(n: NewNote): Promise<Note>;
   editNote(id: string, e: NoteEdit): Promise<Note>;
   deleteNote(id: string): Promise<{ ok: true }>;
@@ -257,6 +262,9 @@ export const serverApi: Api = {
   setStoryboard: (sb: unknown) => call<{ ok: true; changed: boolean }>('PUT', 'storyboard', sb),
   storyboardMarkdown: () => call<MarkdownResult>('POST', 'storyboard/markdown'),
   notes: () => call<NotesFile>('GET', 'notes'),
+  groupings: () => call<GroupingsFile & { skipped?: string[] }>('GET', 'groupings'),
+  setGroupings: (g) => call('PUT', 'groupings', g),
+  map: () => call<ScenarioMap>('GET', 'map'),
   addNote: (n: NewNote) => call<Note>('POST', 'notes', n),
   editNote: (id: string, e: NoteEdit) => call<Note>('PUT', `notes/${encodeURIComponent(id)}`, e),
   deleteNote: (id: string) => call<{ ok: true }>('DELETE', `notes/${encodeURIComponent(id)}`),
