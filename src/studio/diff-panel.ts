@@ -9,7 +9,7 @@ const list = (label: string, xs: string[]) =>
   xs.length ? h('li', null, `${label}: `, ...xs.flatMap((x, i) => [i ? ', ' : '', h('code', null, x)])) : null;
 
 /** One file's change, said. */
-export function fileChange(f: FileDiff): HTMLElement {
+function fileChange(f: FileDiff): HTMLElement {
   const items: (HTMLElement | null)[] = [];
   if (f.ids) {
     items.push(list('added', f.ids.added), list('removed', f.ids.removed));
