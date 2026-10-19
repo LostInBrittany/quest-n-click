@@ -1,7 +1,8 @@
 // The prepared assets' folders (4.2.2, studio-server/src/server/prepared.ts), pinned for the mutation set
 // `studio-workshop` (4.2.3 PR 10): a start with no set logs nothing; a set written again over its own folder leaves
 // nothing stale; a start that finds a newer set serves it and drops the old folder (gone already or not); a refused
-// manifest takes its folder away with it; a second run drops the first one's folder (gone already or not).
+// manifest takes its folder away with it; a second run drops the first one's folder (gone already or not); a slow
+// start never brings an older set back over one a Prepare served meanwhile (4.2.3).
 import { existsSync, mkdirSync, mkdtempSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
@@ -51,6 +52,43 @@ function assets(o: { refuse?: boolean; none?: boolean } = {}) {
 const folders = () => (existsSync(dir) ? readdirSync(dir).sort() : []);
 
 describe('the prepared sets at start', () => {
+  it('never serve the older set a slow start ends with, after a Prepare ended meanwhile (4.2.3)', async () => {
+    const { p, log } = assets();
+    // Set 1, of two files, prepared by an earlier instance.
+    const one = {
+      'assets/img/x.webp': await blobs.put(Buffer.from('X')),
+      'assets/img/y.webp': await blobs.put(Buffer.from('Y')),
+    };
+    await db.run(
+      "INSERT INTO studio_prepared (id, epoch, rev, manifest, made_by, made_at) VALUES (1, 'e1', 6, $1, 'lea', 1)",
+      [JSON.stringify(one)],
+    );
+    // The start reads set 1's second blob slowly; a Prepare (set 2) ends in the meantime.
+    let release!: () => void;
+    const held = new Promise<void>((r) => (release = r));
+    let reading!: () => void;
+    const read = new Promise<void>((r) => (reading = r));
+    const get = blobs.get.bind(blobs);
+    let calls = 0;
+    blobs.get = async (h) => {
+      if (++calls === 2) {
+        blobs.get = get;
+        reading();
+        await held;
+      }
+      return get(h);
+    };
+    const starting = p.start();
+    await read;
+    await p.prepare('max');
+    expect(p.folder()).toBe(join(dir, '2'));
+    release();
+    await starting;
+    expect(log).toEqual([]);
+    expect(p.folder()).toBe(join(dir, '2'));
+    expect(folders()).toEqual(['2']);
+  });
+
   it('log nothing when no set was ever prepared', async () => {
     const { p, log } = assets();
     await p.start();
