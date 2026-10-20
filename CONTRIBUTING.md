@@ -6,6 +6,14 @@ Everyone here follows `CODE_OF_CONDUCT.md`. A pull request starts from `.github/
 something new starts from the feature issue template, after `docs/en/CLASSICS.md` (most mechanics are combinations of
 what exists).
 
+Titles read the same way whoever opens them:
+
+- **Issue:** the template's prefix, `[bug]` or `[feature]` (`[field]` for a release's field pass), then the problem or
+  the need as a sentence. An issue opened from the command line skips the template: type the prefix yourself.
+- **Pull request:** `<Area>: <what changes> (#issue)`, e.g. `Interface font: a proportional pixel font by default
+  (#204)`. A pull request of a release's pass starts with its version instead (`4.2.3: …`, `4.3 "Name": …`).
+- **Body:** every section of the template, "Not done, said as such" included ("Nothing" when nothing is left).
+
 Before opening a pull request:
 
 1. Keep gameplay declarative in `games/<id>/`; geometry belongs in `layout/*.json`.
