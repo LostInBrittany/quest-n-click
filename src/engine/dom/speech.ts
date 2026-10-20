@@ -118,7 +118,7 @@ export function endSpeech(app: App) {
 
 export function choose(
   app: App,
-  options: { text: string; seen?: boolean; global?: boolean }[],
+  options: { text: string; seen?: boolean; global?: boolean; img?: Id }[],
   who?: Id,
 ): Promise<number> {
   app.closeTranscript();
@@ -155,10 +155,17 @@ export function choose(
       }
       res(i);
     };
+    // Options with an image are cards (4.3): a grid before the text lines, in their own order; the index picked is
+    // still the option's. The card's name is its label (the image is decoration: `alt=""`).
+    const cards = options.some((o) => o.img) ? el('div', 'cards') : null;
+    if (cards) box.append(cards);
     options.forEach((o, i) => {
-      const b = el('button', 'choice' + (o.seen ? ' read' : '') + (o.global ? ' gl' : ''), '• ' + esc(o.text));
+      const cls = 'choice' + (o.seen ? ' read' : '') + (o.global ? ' gl' : '');
+      const b = o.img
+        ? el('button', `${cls} card`, `<img src="${app.bank.img(o.img)}" alt=""><span>${esc(o.text)}</span>`)
+        : el('button', cls, '• ' + esc(o.text));
       b.onclick = () => void app.presenter.intent({ kind: 'pick', choice: i });
-      box.append(b);
+      (o.img && cards ? cards : box).append(b);
     });
   });
 }

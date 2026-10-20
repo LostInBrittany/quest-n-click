@@ -406,7 +406,7 @@ const choice: Handler<'choice'> = async (eng, c, ctx) => {
       return eng.cond(o.if, room.id) && !(o.once && s.seen[k]);
     });
   if (!opts.length) return;
-  const pick = await eng.choose(opts.map(({ o }) => ({ text: o.text })));
+  const pick = await eng.choose(opts.map(({ o }) => ({ text: o.text, ...(o.img ? { img: o.img } : {}) })));
   const { o } = must(opts[Math.max(0, Math.min(pick, opts.length - 1))], 'choice option');
   if (o.once) {
     s.seen[choiceKey(o)] = 1;

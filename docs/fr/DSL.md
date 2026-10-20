@@ -98,7 +98,7 @@ Une commande est une clé de `CMD_KEYS` ; ses champs sont ceux du formulaire du 
 | `cycle` | `{ cycle: [[cmd, …], …], id?: id }` | Joue ses listes tour à tour, en boucle. |
 | `random` | `{ random: [[cmd, …], …], id?: id }` | Joue une de ses listes au hasard (enregistré pour les rejeux). |
 | `cutscene` | `{ cutscene: [cmd, …] }` | Joue une liste que le joueur peut passer. |
-| `choice` | `{ choice: [{ id?: id, text: text, if?: cond, once?: true, do: [cmd, …] }, …] }` | Propose des options au joueur, chacune avec ses commandes. |
+| `choice` | `{ choice: [{ id?: id, text: text, img?: image, if?: cond, once?: true, do: [cmd, …] }, …] }` | Propose des options au joueur, chacune avec ses commandes ; une option avec `img` s'affiche en carte (l'image, son texte dessous), les cartes d'abord. |
 | `minigame` | `{ minigame: minigame, params?: …, then?: [cmd, …] }` | Lance un mini-jeu, puis joue `then`. |
 | `phone` | `{ phone: char, do: [cmd, …] }` | Un appel entrant d'un ou plusieurs personnages. |
 | `guide` | `{ guide: { verb: verb, target: target, say: text }, id?: id }` | Une étape du tutoriel : attend ce verbe sur cette cible. |

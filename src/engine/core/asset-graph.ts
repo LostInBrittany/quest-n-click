@@ -8,8 +8,8 @@
 // - `room:<id>`: what showing and playing that room can ask for: its backdrop, props in every state and animation,
 //   every character who can stand there (its actors, the playable characters who can reach it, characters moved
 //   there) with variants, mouths and portrait, its music, and what its commands can play or show (sound effects,
-//   music changes, voice clips, the icons of items gained there, the people called on the phone, the images and
-//   sounds a minigame is given);
+//   music changes, voice clips, the icons of items gained there, the people called on the phone, the choices' card
+//   images, the images and sounds a minigame is given);
 // - `map`: the map's regions, portraits, vehicles and pins;
 // - `game`: what the game-wide rules, events and scripts can play or show, in any room;
 // - `offline`: every file the game ships (the manifest's images and videos, every audio file): the full warm-up.
@@ -120,7 +120,11 @@ function cmdAssets(
         }
       } else if ('say' in c) voice(c.id, (c as { voice?: Id }).voice);
       else if ('toast' in c || 'guide' in c) voice(c.id);
-      else if ('choice' in c) c.choice.forEach((o) => voice(o.id));
+      else if ('choice' in c)
+        c.choice.forEach((o) => {
+          voice(o.id);
+          add(out, 'img', o.img);
+        });
       else if ('gain' in c) add(out, 'img', game.items[c.gain]?.icon);
       else if ('transfer' in c) add(out, 'img', game.items[c.transfer[0]]?.icon);
       else if ('phone' in c) {
