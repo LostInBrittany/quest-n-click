@@ -210,7 +210,7 @@ export class DomPresenter implements Presenter {
 
   // ---------------------------------------------------------------- choices, calls, the map
 
-  choose(options: { text: string; seen?: boolean; global?: boolean }[], who?: Id): Promise<number> {
+  choose(options: { text: string; seen?: boolean; global?: boolean; img?: Id }[], who?: Id): Promise<number> {
     return chooseImpl(this.app, options, who);
   }
   phone(whoIn: Id | Id[], ringing: boolean) {

@@ -39,7 +39,11 @@ export function collectRefs({
       if (o.at && typeof o.at === 'object') Object.values(o.at as Record<string, unknown>).forEach(scanCmds);
       for (const k of ['nth', 'cycle', 'random', 'parallel'])
         if (Array.isArray(o[k])) (o[k] as unknown[]).forEach(scanCmds);
-      if (Array.isArray(o.choice)) (o.choice as { do: unknown }[]).forEach((x) => scanCmds(x.do));
+      if (Array.isArray(o.choice))
+        (o.choice as { img?: string; do: unknown }[]).forEach((x) => {
+          add(x.img); // a card's image (4.3)
+          scanCmds(x.do);
+        });
     }
   }
 

@@ -98,7 +98,7 @@ A command is one key of `CMD_KEYS`; its fields are the Studio form’s. A plain 
 | `cycle` | `{ cycle: [[cmd, …], …], id?: id }` | Runs its lists in turn, looping. |
 | `random` | `{ random: [[cmd, …], …], id?: id }` | Runs one of its lists at random (recorded for replays). |
 | `cutscene` | `{ cutscene: [cmd, …] }` | Runs a list the player can skip. |
-| `choice` | `{ choice: [{ id?: id, text: text, if?: cond, once?: true, do: [cmd, …] }, …] }` | Offers the player options, each with its commands. |
+| `choice` | `{ choice: [{ id?: id, text: text, img?: image, if?: cond, once?: true, do: [cmd, …] }, …] }` | Offers the player options, each with its commands; an option with an `img` shows as a card (the image, its text under it), the cards first. |
 | `minigame` | `{ minigame: minigame, params?: …, then?: [cmd, …] }` | Starts a minigame, then runs `then`. |
 | `phone` | `{ phone: char, do: [cmd, …] }` | An incoming call from one or several characters. |
 | `guide` | `{ guide: { verb: verb, target: target, say: text }, id?: id }` | A tutorial step: waits for that verb on that target. |

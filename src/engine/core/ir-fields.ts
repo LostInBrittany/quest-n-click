@@ -6,6 +6,7 @@
 import type {
   ActorDef,
   CharacterDef,
+  Choice,
   ExitDef,
   GameDef,
   HotspotDef,
@@ -170,5 +171,16 @@ const stage: Classes<StageDef> = {
   links: 'logic',
 };
 
+// A choice's option (inside a `{ choice }` command): what it offers and runs is logic, its card image presentation (the
+// IR drops it, core/ir.ts `withoutChoiceImages`).
+const choice: Classes<Choice> = {
+  id: 'logic',
+  text: 'logic',
+  if: 'logic',
+  once: 'logic',
+  do: 'logic',
+  img: 'presentation',
+};
+
 /** The classification of every field, by type. */
-export const FIELD_CLASSES = { game, room, prop, actor, hotspot, exit, item, character, stage } as const;
+export const FIELD_CLASSES = { game, room, prop, actor, hotspot, exit, item, character, stage, choice } as const;

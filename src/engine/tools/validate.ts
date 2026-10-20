@@ -137,8 +137,7 @@ export function validate(gameIn: GameDef, layouts: Record<string, Layout>, opts:
   // ------------------------------------------------------------ images
   const images = opts.assets?.images;
   const img = (id: Id | undefined, where: string) => {
-    if (!id || !images) return;
-    if (!images[id]) err(where, `image not found: "${id}"`);
+    if (id && images && !images[id]) err(where, `image not found: "${id}"`);
   };
 
   // ------------------------------------------------------------ text
@@ -509,6 +508,7 @@ export function validate(gameIn: GameDef, layouts: Record<string, Layout>, opts:
         const w = `${where}.choice[${j}]`;
         stable(o.id, w, 'choice');
         text(o.text, w);
+        img(o.img, `${w}.img`);
         cond(o.if, w, room);
       });
       return;

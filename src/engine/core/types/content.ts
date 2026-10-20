@@ -196,6 +196,12 @@ export interface Choice {
   if?: Cond;
   /** Disappears once chosen. */
   once?: boolean;
+  /**
+   * An image (manifest id, a portrait for instance): the option shows as a card, the image with its `text` under it
+   * as the label (the screen reader's name too). Cards come first, then the options without an image. Presentation
+   * only: picking a card is picking the option.
+   */
+  img?: Id;
   do: Cmd[];
 }
 

@@ -206,7 +206,7 @@ export class Engine {
     this.sessions.feedSession(s);
   }
   /** A choice, recorded (and fed back when replaying). */
-  choose(options: { text: string; seen?: boolean; global?: boolean }[], who?: Id): Promise<number> {
+  choose(options: { text: string; seen?: boolean; global?: boolean; img?: Id }[], who?: Id): Promise<number> {
     return this.sessions.choose(options, who);
   }
   /** The map's answer, recorded. */
