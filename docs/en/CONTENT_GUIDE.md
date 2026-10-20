@@ -227,7 +227,7 @@ A line stays on screen for as long as it takes to read, or until a tap.
 |---|---|
 | `{ walk: 'shelf' }` | The hero walks to the shelf's approach point (set in the layout). |
 | `{ walk: [300, 350], who: 'grandpa' }` | Grandpa walks to that point (any actor in the room; with no `walk` pose, they slide in their current pose). |
-| `{ face: 'left' }`, `{ face: 'grandma' }` | Turn left, or turn to face someone or something. |
+| `{ face: 'left' }`, `{ face: 'grandma' }`, `{ face: 'hero', who: 'grandma' }` | Turn left, or turn to face someone or something (the hero included). In a cutscene nobody is acted on, so nobody turns by themselves: this is how two characters look at each other. |
 | `{ pose: ['cat', 'sleep'] }` | A lasting pose (until the next one). Character poses: see their `sprites` sheet. |
 | `{ anim: ['hero', 'use'], ms: 600 }` | Hold the pose for the given time, then return to normal. Works for any actor in the room, even one in `pose: 'front'`: `{ anim: ['grandpa', 'surprise'], ms: 900 }` plays the `surprise` pose from their sheet (`sprites: { …, surprise: ['grandpa_seated/r2c3'] }`), then they go back to `front`. |
 | `{ place: ['grandpa', [420, 360]], face: 'left' }` | Teleport a character. |

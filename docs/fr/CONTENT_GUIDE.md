@@ -227,7 +227,7 @@ Une réplique reste à l'écran le temps de la lire, ou jusqu'à un tap.
 |---|---|
 | `{ walk: 'etagere' }` | Le héros marche jusqu'au point d'approche de l'étagère (défini dans le layout). |
 | `{ walk: [300, 350], who: 'grandpere' }` | Grand-père marche jusqu'à ce point (n'importe quel acteur du lieu ; sans pose `walk`, il glisse dans sa pose actuelle). |
-| `{ face: 'left' }`, `{ face: 'grandmere' }` | Se tourner vers la gauche, ou vers quelqu'un ou quelque chose. |
+| `{ face: 'left' }`, `{ face: 'grandmere' }`, `{ face: 'hero', who: 'grandmere' }` | Se tourner vers la gauche, ou vers quelqu'un ou quelque chose (le héros compris). Dans une cinématique, personne n'agit sur personne, donc personne ne se tourne tout seul : c'est ainsi que deux personnages se regardent. |
 | `{ pose: ['chat', 'sleep'] }` | Pose durable (jusqu'à la prochaine). Poses du personnage : voir sa fiche `sprites`. |
 | `{ anim: ['hero', 'use'], ms: 600 }` | Pose le temps indiqué, puis retour à la normale. Marche pour tout acteur du lieu, y compris un acteur en `pose: 'front'` : `{ anim: ['grandpere', 'surprise'], ms: 900 }` joue la pose `surprise` de sa fiche (`sprites: { …, surprise: ['grandpere_assis/r2c3'] }`), puis il revient en `front`. |
 | `{ place: ['grandpere', [420, 360]], face: 'left' }` | Téléporte un personnage. |

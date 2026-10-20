@@ -276,6 +276,15 @@ describe('actor cutscene', () => {
     expect(errors).toEqual([]);
     expect(warnings.filter((w) => w.includes('attack'))).toEqual([]);
   });
+
+  it('a character turns toward the hero, on either side (#193)', async () => {
+    const { e } = bootMini();
+    await e.newGame();
+    await e.script([{ place: ['hero', [100, 360]] }, { face: 'hero', who: 'uncle' }]);
+    expect(e.state.actors['a.uncle']).toMatchObject({ facing: 'left' });
+    await e.script([{ place: ['hero', [500, 360]] }, { face: 'hero', who: 'uncle' }]);
+    expect(e.state.actors['a.uncle']).toMatchObject({ facing: 'right' });
+  });
 });
 
 // ---------------------------------------------------------------------------
