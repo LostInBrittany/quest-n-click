@@ -31,16 +31,18 @@ ou Linux. Le moteur s'installe depuis l'archive d'une release (la
 publication npm arrive dans une 4.2.x ultérieure) :
 
 ```bash
-T=https://github.com/wanoo/quest-n-click/releases/download/v4.2.4/web-scumm-4.2.4.tgz
-npx --package=$T web-scumm create mon-jeu "Mon jeu" --engine=$T
+T=https://github.com/wanoo/quest-n-click/releases/download/v4.2.5/quest-n-click-4.2.5.tgz
+npx --package=$T quest-n-click create mon-jeu "Mon jeu" --engine=$T
 cd mon-jeu && npm install
 npm run assets && npm run dev        # y jouer ; puis npm run verify, npm run build
 ```
 <!-- install:end -->
 
 `npm run build` écrit `dist/`, un site statique que n'importe quel hébergement sert. ffmpeg sert au pipeline sonore
-et reste optionnel ; `npx web-scumm doctor` dit ce qui manque. [PACKAGE](docs/fr/PACKAGE.md)
+et reste optionnel ; `npx quest-n-click doctor` dit ce qui manque. [PACKAGE](docs/fr/PACKAGE.md)
 est le guide complet ; le [TUTORIAL](docs/fr/TUTORIAL.md) accompagne la première pièce.
+Avant la 4.2.5, l'archive et la commande s'appelaient `web-scumm` : jusqu'à la fin des 4.2.x, la release livre aussi
+`web-scumm-4.2.5.tgz`, et `npx web-scumm …` fonctionne toujours, après une ligne d'avis ([UPGRADING](docs/fr/UPGRADING.md#38-de-la-424-à-la-425)).
 
 ## Fabriquer un jeu
 
@@ -84,7 +86,7 @@ avant la release.
 - **Validé** : les références cassées, les pièces inatteignables et les répliques non traduites sont trouvées avant
   que quiconque joue.
 - **Résolu** : le solveur fait tourner le vrai moteur (pas de second modèle du contenu). `npm run verify` demande un
-  **témoin**, un chemin vers une fin ; `npx web-scumm solve --prove` explore **chaque état atteignable** et échoue sur un blocage ou une
+  **témoin**, un chemin vers une fin ; `npx quest-n-click solve --prove` explore **chaque état atteignable** et échoue sur un blocage ou une
   recherche tronquée. Ce sont deux promesses différentes, et la release demande la seconde ([BENCH](docs/fr/BENCH.md)
   dit ce que la preuve peut et ne peut pas faire).
 - **Rejoué** : une session est l'unité de reproduction ; les sauvegardes se chargent d'une version à l'autre, une
@@ -164,9 +166,10 @@ Chaque page existe en anglais (`docs/en/`) et en français (`docs/fr/`), et un t
 dans [TOOLS](docs/fr/TOOLS.md), ce qui change dans le [CHANGELOG](CHANGELOG.md), passer à une nouvelle version dans
 [UPGRADING](docs/fr/UPGRADING.md), et d'où vient le projet dans la [ROADMAP](docs/fr/ROADMAP.md).
 
-Release actuelle : [v4.2.4 (les quatre du contributeur)](https://github.com/wanoo/quest-n-click/releases/tag/v4.2.4),
-des changements pour les auteurs (une sortie franchie d'un simple tap, `actorGap`, le fond des planches de sprites,
-`face: 'hero'` corrigé) sur la 4.2.3 « Coordination », le Studio en ligne pour une équipe, expérimental
+Release actuelle : [v4.2.5 (quest'n'click)](https://github.com/wanoo/quest-n-click/releases/tag/v4.2.5), le
+nouveau nom du projet, les anciens noms `web-scumm` gardés comme alias pendant toute la 4.2.x ; sur les changements de
+la 4.2.4 pour les auteurs (une sortie franchie d'un simple tap, `actorGap`, le fond des planches de sprites,
+`face: 'hero'` corrigé) et la 4.2.3 « Coordination », le Studio en ligne pour une équipe, expérimental
 ([STUDIO-SERVER](docs/fr/STUDIO-SERVER.md)) : prévisualisations par révision, santé, annulation personnelle, builds
 publiés, sauvegarde et restauration du serveur, et depuis la 4.2.3 une carte du scénario, des commentaires ancrés, un
 diff par nom, des agents IA par un MCP distant, l'envoi et l'import Git, l'onglet Assets hébergé ; sur la 4.2.0

@@ -599,6 +599,15 @@ par la baseline ; un script de liens. Laissé pour plus tard, dit comme tel : le
 (`docs/dev/passes/4.1.8.md`), l'accélération du workflow de release (son propre lot), les 845 lignes de l'onglet
 assistant.
 
+## v4.2.5 « quest'n'click » (livrée en octobre 2026) : le nouveau nom
+
+web-scumm, nommé en hommage à SCUMM, devient quest'n'click, pour que son nom n'ouvre aucun débat inutile (D47). Le dépôt
+est `wanoo/quest-n-click`, le site `wanoo.github.io/quest-n-click` (l'ancienne adresse y redirige), les paquets et les
+commandes `quest-n-click…`, les fichiers d'une release `quest-n-click-…`, ses attestations signées comme
+`wanoo/quest-n-click`. Rien ne change pour un jeu : les formats gardent leurs identifiants, et pendant toute la 4.2.x
+chaque release livre aussi les anciennes archives `web-scumm…`, des copies complètes sous les anciens noms, dont les
+commandes et les imports marchent toujours ; elles disparaissent en 4.3.
+
 ## v4.2.4 (livrée en octobre 2026) : quatre changements d'un contributeur pour les auteurs
 
 Quatre pull requests d'un contributeur extérieur, Horacio (LostInBrittany), trouvées en faisant son jeu « Jack cherche

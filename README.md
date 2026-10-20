@@ -30,16 +30,18 @@ Linux. The engine installs from a release's archive (npm publishing comes
 in a later 4.2.x):
 
 ```bash
-T=https://github.com/wanoo/quest-n-click/releases/download/v4.2.4/web-scumm-4.2.4.tgz
-npx --package=$T web-scumm create my-game "My Game" --engine=$T
+T=https://github.com/wanoo/quest-n-click/releases/download/v4.2.5/quest-n-click-4.2.5.tgz
+npx --package=$T quest-n-click create my-game "My Game" --engine=$T
 cd my-game && npm install
 npm run assets && npm run dev        # play it; then npm run verify, npm run build
 ```
 <!-- install:end -->
 
 `npm run build` writes `dist/`, a static site any host serves. ffmpeg serves the sound pipeline and is optional;
-`npx web-scumm doctor` says what is missing. [PACKAGE](docs/en/PACKAGE.md) is the whole guide;
+`npx quest-n-click doctor` says what is missing. [PACKAGE](docs/en/PACKAGE.md) is the whole guide;
 [TUTORIAL](docs/en/TUTORIAL.md) walks the first room.
+Before 4.2.5 the archive and the command were named `web-scumm`: through 4.2.x the release also ships
+`web-scumm-4.2.5.tgz`, and `npx web-scumm …` still runs, after a one-line notice ([UPGRADING](docs/en/UPGRADING.md#38-from-424-to-425)).
 
 ## Build a game
 
@@ -79,7 +81,7 @@ sprites ([PROMPTS](docs/en/PROMPTS.md)); chip-tune music arranged from a MIDI an
 
 - **Validated**: broken references, unreachable rooms and untranslated lines are found before anyone plays.
 - **Solved**: the solver runs the real engine (no second model of the content). `npm run verify` asks for a
-  **witness**, a path to an ending; `npx web-scumm solve --prove` explores **every reachable state** and fails on a softlock or a truncated search. These
+  **witness**, a path to an ending; `npx quest-n-click solve --prove` explores **every reachable state** and fails on a softlock or a truncated search. These
   are two different promises, and the release asks for the second ([BENCH](docs/en/BENCH.md) says what the proof can
   and cannot do).
 - **Replayed**: a session is the unit of reproduction; saves load across versions, one frozen save per release from
@@ -157,10 +159,10 @@ Every page exists in English (`docs/en/`) and French (`docs/fr/`), and a test ke
 command in [TOOLS](docs/en/TOOLS.md), what changed in the [CHANGELOG](CHANGELOG.md), moving to a new version in
 [UPGRADING](docs/en/UPGRADING.md), and where it comes from in the [ROADMAP](docs/en/ROADMAP.md).
 
-Current release: [v4.2.4 (the contributor's four)](https://github.com/wanoo/quest-n-click/releases/tag/v4.2.4), changes for
-authors (an exit gone through on a single tap, `actorGap`, the sprite sheets' background, `face: 'hero'` fixed) over
-4.2.3 "Coordination", the Studio online for a team, experimental ([STUDIO-SERVER](docs/en/STUDIO-SERVER.md)): previews
-per revision, health, personal undo, published builds, backup and restore, and since 4.2.3 a scenario map, anchored
+Current release: [v4.2.5 (quest'n'click)](https://github.com/wanoo/quest-n-click/releases/tag/v4.2.5), the project's
+new name, with the old `web-scumm` names kept as aliases through 4.2.x; over 4.2.4's changes for authors (an exit gone
+through on a single tap, `actorGap`, the sprite sheets' background, `face: 'hero'` fixed) and 4.2.3 "Coordination",
+the Studio online for a team, experimental ([STUDIO-SERVER](docs/en/STUDIO-SERVER.md)): previews per revision, health, personal undo, published builds, backup and restore, and since 4.2.3 a scenario map, anchored
 comments, a diff by name, AI agents through a remote MCP, Git push and import, the hosted Assets tab; over 4.2.0 "Stable
 World". 4.2.0 restored strict SemVer after the 4.1.x incubation line: a minor adds, a major removes; the public API
 follows it ([SUPPORT](docs/en/SUPPORT.md)). 4.2.0 shipped before the people's passes: of the surfaces above, only the

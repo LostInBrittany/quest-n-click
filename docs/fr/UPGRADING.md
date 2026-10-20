@@ -725,4 +725,7 @@ Remix `web-scumm-remix-1` ; un signal reste `web-scumm-world-signal`, un manifes
 clés de stockage `web-scumm.…`, si bien que les sauvegardes et les runs d'un joueur se retrouvent là où ils étaient ;
 les en-têtes `X-Web-Scumm-*` du Bridge, les contextes des signatures, les variables d'environnement `WEB_SCUMM_*` et les
 tables du Studio Server ne changent pas. Les releases jusqu'à la v4.2.4 gardent le nom de leurs fichiers et leurs
-attestations, qui nomment le dépôt `wanoo/web-scumm`.
+attestations, qui nomment le dépôt `wanoo/web-scumm` ; à partir de la v4.2.5, les attestations nomment
+`wanoo/quest-n-click` (`ship verify` demande celui sous lequel chaque release a été signée). Les crédits du jeu
+d'exemple et du chapitre de référence disent maintenant quest'n'click : leur empreinte de présentation a bougé, leur
+run de référence est donc enregistré à nouveau ; l'empreinte d'un jeu ne bouge que si son propre texte change.
