@@ -151,6 +151,49 @@ sélections, réussite et erreur, portes et loquets, pièces, tissu, papier, son
 frottements, un gong. Copie-le dans un nouveau jeu et garde les ids : les défauts du moteur (`select`, `success`,
 `error`…) les attendent.
 
+## Voix
+Une réplique qui a un `id` stable (`npm run ids -- --lines`) joue son clip depuis `audio.voices[id]` ; un jeu
+traduit joue `audio.voicesByLang[lang]` à la place, sous les mêmes ids. `npm run voices` tient la table
+d'enregistrement (statut, comédien, note par clip, `games/<id>/voices.json`) ; `npm run voices -- check` mesure les
+fichiers avec ffmpeg.
+
+### Répliques avec des aiguillages de texte (4.3)
+Une réplique dont les mots suivent un flag (`{form?m=lui|f=elle}`, CONTENT_GUIDE) s'enregistre une fois par valeur :
+Mamie qui dit « lui » et « elle », ce sont deux clips. Le clip a pour clé l'id de la réplique et les valeurs des flags
+que lisent ses aiguillages :
+
+```ts
+audio: { voices: {
+  grandma_saw: 'grandma_saw.mp3',              // l'id seul : le repli
+  'grandma_saw~form=m': 'grandma_saw_m.mp3',   // {form?m=…} quand form vaut "m"
+  'grandma_saw~form=f': 'grandma_saw_f.mp3',
+  'greet~form=f~mood=calm': 'greet_f_calm.mp3', // deux flags dans une réplique : triés par nom, joints par "~"
+} }
+```
+
+- **La recherche** : quand la réplique est dite, `<id>~<flag>=<valeur>` pour les flags tels qu'ils sont (valeurs en
+  texte : `true`, `2`, `f`), puis l'id seul. C'est le texte tel qu'écrit qui dit quels flags comptent, donc une
+  traduction garde les clés (ses aiguillages lisent les mêmes flags : `npm run i18n -- status` le vérifie). Même
+  règle dans `voicesByLang`.
+- **Un flag pas encore posé** (la réplique est dite avant le choix) : pas de recherche par clé, l'id seul. Le texte
+  montre alors l'alternative `*=` (sinon la première) : c'est ce que le clip de l'id seul doit dire.
+- **Une valeur qu'aucun aiguillage ne liste** (couverte par `*=`) : le clip de cette valeur s'il existe, sinon l'id
+  seul.
+- **La table d'enregistrement** (`npm run voices -- export`, l'onglet Voices du Studio) liste une ligne par combinaison
+  des valeurs listées par les aiguillages, avec le texte tel qu'il se lit pour ces valeurs, puis l'id seul quand un
+  aiguillage a `*=` (ou quand un clip est déjà rangé sous lui). `{hero}` y reste tel qu'écrit.
+- **Le validateur** avertit quand une réplique doublée (un clip sous son id ou sous une de ses clés) avec des
+  aiguillages n'a pas le clip d'une valeur listée ; l'id seul joue en attendant, donc un jeu peut sortir avant que
+  tout soit enregistré.
+- **Une réplique sans aiguillage** garde un seul clip. `{hero}` seul n'est pas un aiguillage : une réplique qui dit le
+  nom du héros dans un jeu à plusieurs héros a un seul clip ; écris `{form?m=Max|f=Fay}` quand il faut l'enregistrer
+  par héros.
+- **Un `voice` explicite** sur un `say` nomme un clip exactement, sans clé.
+- **Les fichiers** : les clés ne sont que des clés de table. Le fichier que chacune nomme s'écrit à la main
+  (`'grandma_saw_f.mp3'`), et `npm run assets` comme le lecteur construisent les chemins depuis le fichier, jamais
+  depuis la clé : `~` et `=` n'arrivent jamais dans un nom de fichier ni dans une URL d'asset. Nomme les fichiers
+  comme tu veux ; lettres, chiffres, `_` et `-` passent partout.
+
 ## Dans le Studio et les outils
 L'onglet Assets liste les ids de musique et de son qu'un jeu déclare et si un fichier existe pour chacun ;
 `npm run assets` publie ce qui est là et signale ce qui manque. L'outil MCP `read_doc` sert cette page sous le nom

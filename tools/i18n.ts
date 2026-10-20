@@ -9,7 +9,7 @@ import { join } from 'node:path';
 import { localeStatus, mergeLocale, textPaths } from '../src/engine/tools/i18n';
 import { GAME, GAME_DIR, loadGameModule } from './game';
 import { uiFallbacks } from '../src/engine/dom/ui-defaults';
-import { lineIds } from '../src/engine/core/content-ids';
+import { orphanClips, voiceTable } from '../src/engine/tools/voices';
 import { writeGame } from './game-write';
 
 const { game } = await loadGameModule();
@@ -59,18 +59,18 @@ if (cmd === 'extract') {
 }
 
 if (cmd === 'voices') {
-  // The voice production table: every line with a stable id, whether `audio.voices` has a clip under it, and the
-  // clips no line claims. Lines without an id are not listed: `npm run ids -- --lines` first.
-  const lines = lineIds(game);
-  const clips = game.audio?.voices ?? {};
-  const missing = lines.filter((l) => !clips[l.id]);
-  const orphans = Object.keys(clips).filter((k) => !lines.some((l) => l.id === k));
+  // The voice production table: every clip a line with a stable id needs (one per value for a line with switches,
+  // `<id>~<flag>=<value>`), whether `audio.voices` has it, and the clips no line claims. Lines without an id are not
+  // listed: `npm run ids -- --lines` first. `npm run voices` has the full table, per language.
+  const rows = voiceTable(game, {}, base);
+  const missing = rows.filter((r) => !r.file);
+  const orphans = orphanClips(game, base);
   console.log(
-    `[${GAME}] ${lines.length} line(s) with an id, ${lines.length - missing.length} voiced, ${missing.length} without a clip, ${orphans.length} clip(s) no line claims`,
+    `[${GAME}] ${rows.length} clip(s) for the lines with an id, ${rows.length - missing.length} voiced, ${missing.length} without a clip, ${orphans.length} clip(s) no line claims`,
   );
   for (const l of missing.slice(0, 200))
     console.log(`  ${l.id.padEnd(48)} ${l.who}: ${l.text.length > 60 ? l.text.slice(0, 60) + '…' : l.text}`);
-  for (const k of orphans) console.log(`  orphan clip ${k} → ${clips[k]}`);
+  for (const o of orphans) console.log(`  orphan clip ${o.id} → ${o.file}`);
   process.exit(0);
 }
 

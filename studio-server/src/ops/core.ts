@@ -58,12 +58,12 @@ import { applyLocale } from '../../../src/engine/tools/i18n';
 import {
   mergeSheet,
   toCsv,
+  voiceIds,
   voiceTable,
   VOICE_STATUSES,
   type VoiceSheet,
   type VoiceStatus,
 } from '../../../src/engine/tools/voices';
-import { lineIds } from '../../../src/engine/core/content-ids';
 import { PersonalUndo, type UndoDir } from './undo';
 import { type DiagnoseKind, HOSTED_SOLVE_MS, lintIn, playtestsIn, type SolveParams, solveIn } from './diagnose';
 import type {
@@ -881,7 +881,7 @@ export function createStudio(opts: StudioOptions = {}) {
         note: patch.note ?? cur?.note ?? '',
         actor: patch.actor ?? cur?.actor ?? '',
       };
-      const m = mergeSheet(sheet, lang, [row], new Set(lineIds(mod.game).map((x) => x.id)));
+      const m = mergeSheet(sheet, lang, [row], voiceIds(mod.game));
       if (m.unknown.length) throw new StudioError(`no line "${id}" in the game`, 404);
       if (m.bad.length) throw new StudioError(m.bad[0]);
       await write(`voices ${lang}: ${id}`, [{ file: voicesFile(), after: JSON.stringify(m.sheet, null, 2) + '\n' }]);
