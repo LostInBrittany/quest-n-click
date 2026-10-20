@@ -1,12 +1,16 @@
-// Studio core (tools/studio/core.ts) on temporary copies of games/demo and games/_template (under .cache/, so the
+// Studio core (studio-server/src/ops/core.ts) on temporary copies of games/demo and games/_template (under .cache/, so the
 // copies resolve @engine like the real games).
 import { cpSync, mkdirSync, mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import { join, resolve } from 'node:path';
-import { afterAll, describe, expect, it } from 'vitest';
+import { afterAll, describe, expect, it, vi } from 'vitest';
+
+// Every write is a journaled, guarded operation since 4.2.1 (the game validated in a child process): slower than a
+// write to a file, the more under coverage. Each test may take a minute.
+vi.setConfig({ testTimeout: 60_000 });
 import type { ListLine, RoomDef } from '@engine/core/types';
 import { listText } from '@engine/core/list-lines';
-import { createStudio, importInChild, StudioError } from '../tools/studio/core';
-import { classify, formatPath, parsePath, type Seg } from '../tools/studio/source';
+import { createStudio, importInChild, StudioError } from '../studio-server/src/ops/core';
+import { classify, formatPath, parsePath, type Seg } from '../studio-server/src/ops/source';
 
 const ROOT = resolve(__dirname, '..');
 const temps: string[] = [];
@@ -190,7 +194,7 @@ describe('setText', () => {
     // creating an entry
     await demo.setText('house', 'look.lamp[+]', 'A warm lamp.');
     expect((await demo.getRoom('house')).def.look!.lamp).toBe('A warm lamp.');
-  });
+  }, 60000);
 
   it('refuses unknown paths and non-texts', async () => {
     await expectError(demo.setText('house', 'look.nothing[4]', 'x'), 404, 'path not found');

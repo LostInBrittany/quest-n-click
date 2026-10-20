@@ -2,8 +2,8 @@
 // Every edit replaces or inserts the smallest span of text (one literal, one list item, one property), so the file
 // stays the code a human or an AI wrote: same quotes, same indentation, same comments. Pure: string in, string out.
 import ts from '@typescript/typescript6';
-import type { TextKind } from './types';
-import { classify, formatPath, IDENT, parsePath, SourceError, type Seg } from './paths';
+import type { TextKind } from '../../../tools/studio/types';
+import { classify, formatPath, IDENT, parsePath, SourceError, type Seg } from '../../../tools/studio/paths';
 
 export { classify, formatPath, parsePath, SourceError, type Seg };
 

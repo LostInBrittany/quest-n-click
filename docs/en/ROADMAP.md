@@ -611,6 +611,34 @@ views with 105 tests; every public export carries `@public` or `@extension` and 
 written by the baseline; a links script. Left for later, said as such: the human passes of the sheet
 (`docs/dev/passes/4.1.8.md`), the release workflow's acceleration (its own lot), the assistant tab's 845 lines.
 
+## v4.2.3 "Coordination" (shipped October 2026): the team organised, agents and Git on the hosted Studio
+
+The last 4.2.x step (D44): a write carries the revision its editor read, and a late one is refused with what changed
+(a merge offered, never made alone); a scenario map built on the game's stable ids; comments anchored on those ids; a
+diff between two revisions by name, without captures (D45, carried to 4.3); the remote MCP (ADR 0029), an agent writing
+as its member; Git push and import with a deploy key; a 4.1.x game upgraded on the server; the Assets tab hosted, its
+jobs followed and cancelled; a worker from the archives preparing assets; metrics, a daily backup to the bucket and the
+runbook, run on Clever Cloud's test organisation; `studio-workshop` gated. Experimental until its passes
+(`studio-hosted`, `studio-collab`, `studio-preview`, `studio-assets-hosted`, `studio-mcp-remote`,
+`studio-oidc-generic`). Left for 4.3: the diff's captures, `ids --lines` as an exclusive operation, the health with lint
+and the playtests, the Assistant on a hosted Studio, a signed backup.
+
+## v4.2.2 "Playable Workshop" (shipped October 2026): the shared game played, judged, published
+
+The second 4.2.x step (D42): a preview built by the processing worker for each revision, and saves that ask before
+crossing revisions (ADR 0026); diagnostics with their revision, the game's health by revision and the bisection that
+names the revision that broke it; personal undo; immutable builds with signed manifests; the assets prepared on the
+worker; backup, restore and the journal shipped, with its RPO. Vite has left the server. Experimental until its passes
+(`studio-hosted`, `studio-collab`, `studio-preview`, `studio-assets-hosted`). Next: 4.2.3, advanced coordination.
+
+## v4.2.1 "Shared Floor" (shipped October 2026): the Studio online for a team
+
+The first of three 4.2.x steps (D39 to D41): a Studio Server for one game and several people, behind OpenID Connect,
+on Clever Cloud's native Node.js runtime with PostgreSQL and Cellar. A durable journal, spans held by one member at a
+time, a live stream of what changes, a processing worker without secrets, the game on its own origin, the shared
+Studio's screens, and a release archive. Experimental until its passes `studio-hosted` and `studio-collab`. Next:
+4.2.2, the playable workshop (per-revision previews, builds, personal undo; its plan is #144), then 4.2.3.
+
 ## v4.2.0 "Stable World" (shipped October 2026): strict SemVer, a reduced stable scope
 
 4.1.20's code with the version changed, and one Field Kit fix (`v4.2.0-rc.2`). Strict SemVer from here on: a minor

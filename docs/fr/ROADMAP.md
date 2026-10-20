@@ -599,6 +599,37 @@ par la baseline ; un script de liens. Laissé pour plus tard, dit comme tel : le
 (`docs/dev/passes/4.1.8.md`), l'accélération du workflow de release (son propre lot), les 845 lignes de l'onglet
 assistant.
 
+## v4.2.3 « Coordination » (livrée en octobre 2026) : l'équipe organisée, les agents et Git sur le Studio hébergé
+
+La dernière étape 4.2.x (D44) : une écriture porte la révision que son éditeur a lue, et une écriture en retard est
+refusée avec ce qui a changé (une fusion proposée, jamais faite seule) ; une carte du scénario bâtie sur les ids
+stables du jeu ; des commentaires ancrés sur ces ids ; un diff entre deux révisions par nom, sans captures (D45,
+reportées à la 4.3) ; le MCP distant (ADR 0029), un agent qui écrit comme son membre ; l'envoi et l'import Git avec une
+clé de déploiement ; un jeu 4.1.x monté de version sur le serveur ; l'onglet Assets hébergé, ses jobs suivis et
+annulables ; un worker installé depuis les archives qui prépare les assets ; les métriques, une sauvegarde quotidienne
+dans le bucket et le runbook, exécuté sur l'organisation Clever Cloud de test ; `studio-workshop` bloquant. Expérimental
+jusqu'à ses passes (`studio-hosted`, `studio-collab`, `studio-preview`, `studio-assets-hosted`, `studio-mcp-remote`,
+`studio-oidc-generic`). Laissé à la 4.3 : les captures du diff, `ids --lines` en opération exclusive, la santé avec le
+lint et les playtests, l'Assistant sur un Studio hébergé, une sauvegarde signée.
+
+## v4.2.2 « Playable Workshop » (livrée en octobre 2026) : le jeu partagé joué, jugé, publié
+
+La deuxième étape 4.2.x (D42) : une prévisualisation construite par l'application de traitement pour chaque révision,
+et des sauvegardes qui demandent avant de changer de révision (ADR 0026) ; des diagnostics avec leur révision, la santé
+du jeu par révision et la bissection qui nomme la révision qui l'a cassé ; l'annulation personnelle ; des builds
+immuables aux manifestes signés ; les assets préparés sur l'application de traitement ; la sauvegarde, la restauration
+et le journal envoyé au bucket, avec son RPO. Vite a quitté le serveur. Expérimental jusqu'à ses passes (`studio-hosted`,
+`studio-collab`, `studio-preview`, `studio-assets-hosted`). Ensuite : la 4.2.3, la coordination avancée.
+
+## v4.2.1 « Shared Floor » (livrée en octobre 2026) : le Studio en ligne pour une équipe
+
+La première des trois étapes 4.2.x (D39 à D41) : un Studio Server pour un jeu et plusieurs personnes, derrière
+OpenID Connect, sur le runtime Node.js natif de Clever Cloud avec PostgreSQL et Cellar. Un journal durable, des pans
+tenus par un membre à la fois, un flux en direct de ce qui change, une application de traitement sans secret, le jeu
+sur sa propre origine, les écrans du Studio partagé, et une archive de release. Expérimental jusqu'à ce que ses passes
+`studio-hosted` et `studio-collab` soient faites. Ensuite : la 4.2.2, l'atelier jouable (prévisualisations par révision, builds,
+annulation personnelle ; son plan est #144), puis la 4.2.3.
+
 ## v4.2.0 « Stable World » (livrée en octobre 2026) : le SemVer strict, un périmètre stable réduit
 
 Le code de la 4.1.20 avec la version changée, et un correctif du Field Kit (`v4.2.0-rc.2`). Le SemVer strict à partir

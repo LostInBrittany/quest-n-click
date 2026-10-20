@@ -4,8 +4,8 @@
 import { cpSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { afterAll, describe, expect, it } from 'vitest';
-import { createStudio, importInChild, StudioError } from '../tools/studio/core';
-import { lineDiff, setValueInSource, valueText } from '../tools/studio/source';
+import { createStudio, importInChild, StudioError } from '../studio-server/src/ops/core';
+import { lineDiff, setValueInSource, valueText } from '../studio-server/src/ops/source';
 
 const ROOT = resolve(__dirname, '..');
 mkdirSync(join(ROOT, '.cache'), { recursive: true });
@@ -65,7 +65,7 @@ describe('the Studio core', () => {
     const r = await studio.setValue('garden', 'stage', stage);
     expect(r.changed).toBe(true);
     expect((await studio.getRoom('garden')).def.stage).toEqual(stage);
-    expect(studio.history().undo[0]).toBe('garden: stage');
+    expect((await studio.history()).undo[0]).toBe('garden: stage');
     expect(await studio.undo()).toMatchObject({ ok: true, what: 'garden: stage' });
     expect(garden()).toBe(before);
     await studio.redo();

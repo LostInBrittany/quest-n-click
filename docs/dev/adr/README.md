@@ -29,3 +29,8 @@ what it costs, what would change it. The maintainer's decisions themselves are d
 | [0022](0022-hero-choice.md) | The player chooses the hero: variant names, text switches, portraits in a choice (4.3) |
 | [0023](0023-backup-completeness-and-restore-modes.md) | A backup says what it holds; a restore says its mode (4.1.20) |
 | [0024](0024-pass-surfaces-and-carry-attestations.md) | A pass is bound to its surface, and carried only by a signed attestation (4.1.20) |
+| [0025](0025-studio-server.md) | One shared game, edited live: transactions, one owner per file, revisions (4.2.1) |
+| [0026](0026-saves-across-revisions.md) | Saves across revisions: the envelope unchanged, a question before resuming (4.2.2) |
+| [0027](0027-studio-oidc-sessions-tokens.md) | The Studio Server's identity: OIDC for who, the Studio for what (4.2.1) |
+| [0028](0028-studio-content-execution.md) | Where a hosted Studio runs the game's code: a worker without secrets (4.2.1) |
+| [0029](0029-remote-mcp.md) | The remote MCP: the same checks as the API, by going through it (4.2.3) |
