@@ -294,7 +294,7 @@ export interface GameDef {
    */
   settings?: boolean;
   /**
-   * How the player's taps read (4.2.3). `exitOnTap`: a single tap on an exit with no verb picked walks there and goes
+   * How the player's taps read (4.2.4). `exitOnTap`: a single tap on an exit with no verb picked walks there and goes
    * through on arrival, as in the LucasArts classics, instead of only walking there (a double tap always went through);
    * a picked verb still wins, a tap elsewhere during the walk still redirects, and an exit's `onTap` overrides it.
    * Default off. Input only: the rules, the solver and saves do not see it.

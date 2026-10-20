@@ -198,7 +198,7 @@ verb), a character is talked to, anything else is looked at. When that is not ri
 picked from the bag without a verb is given to a character and used on anything else; the sentence line says which
 before the tap. A verb the game does not have is never chosen (`src/engine/core/default-verb.ts`).
 
-**A single tap that goes through (4.2.3).** In the LucasArts classics a click on a door with the default "Walk to"
+**A single tap that goes through (4.2.4).** In the LucasArts classics a click on a door with the default "Walk to"
 took the hero through it. `input: { exitOnTap: true }` in `game.ts` does the same: a single tap on an exit with no verb
 picked walks there and goes through on arrival, with the double tap's verb (a locked exit says its `locked` line). A
 picked verb still wins, a tap elsewhere during the walk still redirects the hero – and nothing is gone through – and a

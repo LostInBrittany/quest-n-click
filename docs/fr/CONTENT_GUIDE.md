@@ -198,7 +198,7 @@ verbe), un personnage reçoit la parole, tout le reste est regardé. Quand ce n'
 objet pris dans le sac sans verbe est donné à un personnage et utilisé sur tout le reste ; la ligne de phrase dit lequel
 avant le tap. Un verbe que le jeu n'a pas n'est jamais choisi (`src/engine/core/default-verb.ts`).
 
-**Un tap qui franchit la sortie (4.2.3).** Dans les classiques de LucasArts, un clic sur une porte avec le « Marcher
+**Un tap qui franchit la sortie (4.2.4).** Dans les classiques de LucasArts, un clic sur une porte avec le « Marcher
 vers » par défaut y faisait passer le héros. `input: { exitOnTap: true }` dans `game.ts` fait de même : un tap sur une
 sortie sans verbe choisi y marche et la franchit à l'arrivée, avec le verbe du double tap (une sortie fermée dit sa ligne
 `locked`). Un verbe choisi l'emporte toujours, un tap ailleurs pendant la marche redirige toujours le héros (et rien

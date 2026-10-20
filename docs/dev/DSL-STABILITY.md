@@ -12,7 +12,8 @@ The reference of every condition and command, generated from the schema, is `doc
 | 4.1.12 "Language" | **Stabilised**: the names and meanings below. A change is a break: its migration of the bundled games and saves ships with it (`web-scumm migrate`), and UPGRADING says it. |
 | 4.1.13 → 4.1.15 | **Additive** only on what is listed "additive": new optional fields, new commands or conditions each admitted by a short ADR (0014 onward) with its proof. The IR's `variant` slot is filled by 4.1.15. |
 | 4.1.15 "Remix" | **Frozen** as the 4.2 release candidate (D28): the stable list absorbs what Remix added; `tests/api-surface.json` records the candidate surface; 4.2.0 restores strict SemVer (D18). |
-| 4.1.16 "Convergence" (now) | **Frozen**, with one additive correction before 4.2 (D29, ADR 0019): `SpeedrunCategory.world` (`SpeedrunWorldPolicy`) names a run's world apart from its generator `seed`; every 4.1.15 field keeps its meaning (`seed: 'daily' \| 'mystery'` without `world` is read as that world, with a warning). |
+| 4.1.16 "Convergence" | **Frozen**, with one additive correction before 4.2 (D29, ADR 0019): `SpeedrunCategory.world` (`SpeedrunWorldPolicy`) names a run's world apart from its generator `seed`; every 4.1.15 field keeps its meaning (`seed: 'daily' \| 'mystery'` without `world` is read as that world, with a warning). |
+| 4.2.x (now) | **Frozen** (D40), with optional, presentation-only fields allowed (D46): no schema, save or IR change, and a game without them behaves identically. 4.2.4 adds the first two, `GameDef.input.exitOnTap` and `ExitDef.onTap` (#188). |
 
 ## Frozen (stable from 4.1.12, frozen at 4.1.15)
 
@@ -51,6 +52,10 @@ The reference of every condition and command, generated from the schema, is `doc
 - `fingerprint`'s `engine` component: `prngVersion` is core/prng.ts's `PRNG_VERSION` (1 since 4.1.14).
 - Interface texts (`ui`) and the skin: new optional keys with English defaults stay possible after the freeze (they
   change no logic; a release in another language lists them, `npm run i18n -- status`).
+- Optional presentation-only content fields (4.2.x, D46): possible after the freeze when they need no schema, save or
+  IR change and a game without them behaves identically. 4.2.4: `GameDef.input.exitOnTap` and `ExitDef.onTap` (`go` or
+  `walk`), a single tap on an exit going through it (#188); input only, outside the IR's logic, checked by the
+  validator.
 
 ## The candidate primitives (programme §8.3)
 

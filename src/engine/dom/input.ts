@@ -152,11 +152,15 @@ export async function actOnTarget(app: App, id: Id) {
     }
     const ap = app.engine.approach(id);
     const go = tapVerb(app, id);
+    // The game the tap was made in: a load (or a new game, a checkpoint) replaces the state, a room change moves it.
+    const state = app.engine.state;
+    const at = state.room;
     app.sentence(id);
     if (ap) await app.presenter.intent({ kind: 'walk', to: ap });
     // An exit that goes on a single tap (#188): through it on arrival, as a double tap would. The walk stays a walk, so
-    // a tap elsewhere meanwhile redirects the hero and cancels this; so do a verb or an item picked, or another room.
-    if (go && tap === app.taps && !app.verb && !app.a && app.view.room === room) {
+    // a tap elsewhere meanwhile redirects the hero and cancels this; so do a verb or an item picked, a save loaded or
+    // another room.
+    if (go && tap === app.taps && !app.verb && !app.a && app.engine.state === state && state.room === at) {
       app.resetVerb();
       await app.presenter.intent({ kind: 'act', verb: go, target: id });
     }
