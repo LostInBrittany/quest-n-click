@@ -159,7 +159,7 @@ fichiers avec ffmpeg.
 
 ### Répliques avec des aiguillages de texte (4.3)
 Une réplique dont les mots suivent un flag (`{form?m=lui|f=elle}`, CONTENT_GUIDE) s'enregistre une fois par valeur :
-Mamie qui dit « lui » et « elle », ce sont deux clips. Le clip a pour clé l'id de la réplique et les valeurs des flags
+Grand-mère qui dit « lui » et « elle », ce sont deux clips. Le clip a pour clé l'id de la réplique et les valeurs des flags
 que lisent ses aiguillages :
 
 ```ts

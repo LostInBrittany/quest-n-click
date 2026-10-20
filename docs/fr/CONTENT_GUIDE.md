@@ -412,10 +412,10 @@ checkpoints: {
 Et dans un lieu :
 
 ```ts
-talk: { grandma: [{ topic: 'Bonjour, Mamie !', do: [
+talk: { grandma: [{ topic: 'Bonjour, Grand-mère !', do: [
   { say: ['grandma', 'Bonjour, {hero} ! Prêt{form?witch=e|*=}, {form?knight=mon brave chevalier|witch=ma sorcière futée|*=mon robot qui brille} ?'] },
 ] }] },
-look: { grandma: 'Mamie. La poussière {form?knight=le|witch=la|robot=le} fait éternuer.' },
+look: { grandma: 'Grand-mère. La poussière {form?knight=le|witch=la|robot=le} fait éternuer.' },
 ```
 
 - **Le `name` de la variante** remplace le nom du personnage tant que la variante s'applique, comme ses `sprites`,

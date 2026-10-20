@@ -434,7 +434,7 @@ look: { grandma: 'Grandma. Dust makes {form?knight=him|witch=her|robot=it} sneez
 - **Why not `players`**: playable characters each have a button in the tools row and stand in their own rooms, so the
   player could switch heroes mid-game. Choosing the hero is one character with variants.
 - **Translations** write their own words inside the braces, with the same flag and values (the switch is filled after
-  the translation): `room:hall/look.grandma` → `Mamie. La poussière {form?knight=le|witch=la|robot=le} fait éternuer.`.
+  the translation): `room:hall/look.grandma` → `Grand-mère. La poussière {form?knight=le|witch=la|robot=le} fait éternuer.`.
   A language may add a switch its source does not need, for its grammar: `Ready?` becomes
   `Prêt{form?witch=e|*=} ?`. The variants' names are translated too (`char:kid/variants[0].name`).
   `npm run i18n -- status` lists the translations that drop a choice the source makes (a flag it no longer switches

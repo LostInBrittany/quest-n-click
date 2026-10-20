@@ -19,8 +19,8 @@ const fr: Record<string, string> = {
   'start/intro[1].choice[1].text': 'Morwen',
   'start/intro[1].choice[2].text': 'Robo',
   'char:kid/variants[0].name': 'Sire Lancelot',
-  'char:grandma/name': 'Mamie',
-  'room:hall/talk.grandma[0].topic': 'Bonjour, Mamie !',
+  'char:grandma/name': 'Grand-mère',
+  'room:hall/talk.grandma[0].topic': 'Bonjour, Grand-mère !',
   // French agrees the adjective with the witch: a switch the English line does not need.
   'room:hall/talk.grandma[0].do[0].say':
     'Bonjour, {hero} ! Prêt{form?witch=e|*=}, {form?knight=mon brave chevalier|witch=ma sorcière futée|*=mon robot qui brille} ?',

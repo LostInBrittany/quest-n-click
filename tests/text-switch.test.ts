@@ -260,13 +260,13 @@ describe('npm run i18n', () => {
   it('status reports a translation that drops a choice its source’s switches make', () => {
     const table = Object.fromEntries(textPaths(g()).map((p) => [p.path, p.text]));
     const status = (t: string) => localeStatus(g(), { ...table, [path()]: t }).switches;
-    expect(status('Mamie {form?f=la|m=le} serre.')).toEqual([]);
+    expect(status('Grand-mère {form?f=la|m=le} serre.')).toEqual([]);
     // `*=` covers a value; a switch or a value added for the grammar is the translation's own.
-    expect(status('Mamie {form?m=le|*=la} serre.')).toEqual([]);
-    expect(status('Mamie {form?m=le|f=la|n=iel} serre, ravi{form?f=e|*=}.')).toEqual([]);
-    expect(status('Mamie le serre.')).toEqual([{ path: path(), source: '{form?f|m}', translation: '' }]);
-    expect(status('Mamie {form?m=le} serre.')).toHaveLength(1);
-    expect(status('Mamie {mood?m=le|f=la} serre.')).toHaveLength(1);
-    expect(status('Mamie {form?m=le|f} serre.')).toHaveLength(1);
+    expect(status('Grand-mère {form?m=le|*=la} serre.')).toEqual([]);
+    expect(status('Grand-mère {form?m=le|f=la|n=iel} serre, ravi{form?f=e|*=}.')).toEqual([]);
+    expect(status('Grand-mère le serre.')).toEqual([{ path: path(), source: '{form?f|m}', translation: '' }]);
+    expect(status('Grand-mère {form?m=le} serre.')).toHaveLength(1);
+    expect(status('Grand-mère {mood?m=le|f=la} serre.')).toHaveLength(1);
+    expect(status('Grand-mère {form?m=le|f} serre.')).toHaveLength(1);
   });
 });
