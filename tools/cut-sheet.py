@@ -1,4 +1,4 @@
-"""Cut an AI-generated sprite sheet (figures on a flat background) into keyed PNG cells.
+"""Cut an AI-generated sprite sheet (figures on a flat background, or on a transparent one) into keyed PNG cells.
 
 Default mode (grid): detects one figure per cell of an invisible grid, like the sheets produced by the prompts in
 docs/en/PROMPTS.md. Detection is per figure, not per fixed box, so a figure that overflows its cell a little is
@@ -179,12 +179,23 @@ def flood_from_border(close):
 def cut_grid(src, out_dir, cols, rows, only=None, pixel=None):
     """Detect one figure per cell of a cols x rows grid of CELL x CELL px cells.
     `pixel`: None, or (scale, colors) for pixel art (see pixelize)."""
-    im = Image.open(src).convert('RGB')
+    im = Image.open(src).convert('RGBA')
     if im.size != (cols * CELL, rows * CELL):
         im = im.resize((cols * CELL, rows * CELL), Image.NEAREST if pixel else Image.LANCZOS)
-    a = np.asarray(im).astype(int)
-    close = bg_mask(a)
-    fg_all = ndimage.binary_opening(~flood_from_border(close), iterations=1)
+    rgba = np.asarray(im)
+    a = rgba[..., :3].astype(int)
+    src_alpha = rgba[..., 3]
+    # A sheet generated with a transparent background has real (near) alpha-0 pixels. A sheet on a semi-transparent
+    # haze (a flat colour at alpha 200, say) has none: it is a flat sheet, keyed by colour as before.
+    transparent = (src_alpha < 8).mean() > 0.2
+    if transparent:
+        # Transparent pixels are the background, wherever they are (between an arm and the body too), and nothing is
+        # keyed by colour.
+        close = src_alpha < 128
+        fg_all = ndimage.binary_opening(~close, iterations=1)
+    else:
+        close = bg_mask(a)
+        fg_all = ndimage.binary_opening(~flood_from_border(close), iterations=1)
     comp, _n = ndimage.label(ndimage.binary_dilation(fg_all, iterations=4))
 
     # Every piece goes to the cell holding its centre: a sprite made of several separate
@@ -222,7 +233,10 @@ def cut_grid(src, out_dir, cols, rows, only=None, pixel=None):
                 sl = (slice(ys.min(), ys.max() + 1), slice(xs.min(), xs.max() + 1))
                 if px:
                     sl = (snap(sl[0], px[0], a.shape[0]), snap(sl[1], px[0], a.shape[1]))
-                rgba = np.dstack([a[sl].astype(np.uint8), (m[sl] * 255).astype(np.uint8)])
+                cut = (m[sl] * 255).astype(np.uint8)
+                if transparent:  # keep the source's soft edge
+                    cut = np.minimum(cut, src_alpha[sl])
+                rgba = np.dstack([a[sl].astype(np.uint8), cut])
             else:
                 # Fixed-grid fallback: no figure detected in this cell, key its own rectangle
                 # instead of skipping it, so every requested cell is always produced.
@@ -283,7 +297,7 @@ def cut_auto(src, out_dir, tol=40, minarea=2500, pixel=None):
 
 
 def main():
-    p = argparse.ArgumentParser(description='Cut a sprite sheet on a flat background into keyed PNG cells.')
+    p = argparse.ArgumentParser(description='Cut a sprite sheet on a flat or transparent background into keyed PNG cells.')
     p.add_argument('sheet', help='source sheet image (.png)')
     p.add_argument('sheet_id', help='sheet id: output subfolder, and how images are referenced (<sheet-id>/r<row>c<col>)')
     p.add_argument('--grid', default='6x4', help='grid mode: COLSxROWS, e.g. 6x4 (default) or 3x3')
