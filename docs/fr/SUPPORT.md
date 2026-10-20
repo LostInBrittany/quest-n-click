@@ -63,6 +63,51 @@ aucun runner Windows ni Node 24 (`CONTRIBUTING.md`, « What CI runs ») :
 | Bridge, profil `distributed` (4.1.10, `experimental`) | Postgres 16 en CI (`bridge-postgres`) : le même contrat, les tenants et la diffusion entre instances ; la charge de nuit ; le profil de qualification (`ops/qualify/` : HTTPS, trois instances, le classement, un worker tué en pleine vérification, une restauration après destruction de la topologie) dans le workflow `qualify` ; depuis 4.1.20 le profil complet dans chaque candidat qu'un tag peut nommer (les deux modes de restauration sous le bail de maintenance), `--short` dans celui d'une pull request | un vrai déploiement : jusque-là, `experimental` |
 | Connecteurs (4.1.9), **expérimental** (D19) | email (webhook signé, IMAP), Telnet, SSH, Open Badges 2 et 3 : le même contrat pour les quatre, tests d'abus et de fuzz, une exécution sous `--disallow-code-generation-from-strings`, les replays du chapitre d'exemple ; les quatre joués depuis leur archive dans le candidat (4.1.19) ; les tests Telnet et SSH pas encore sous Windows | un vrai fournisseur d'email, un vrai badge d'un vrai émetteur, SSH et Telnet exposés dans un environnement contrôlé |
 
+## 4.2.3 : la fin de la ligne 4.2.x
+
+La 4.2.3 clôt la ligne 4.2.x du Studio Server (D40, D44). Aucune passe n'est encore faite, donc aucune surface n'est
+promue par elle : ce que la 4.2.0 promettait reste tel quel, et ce qui est venu après est expérimental. Surface par
+surface, à la fin de la 4.2.x :
+
+- **Stable** : le format du contenu et ses outils, le joueur sous Chromium de bureau et sa PWA, le profil `local` du
+  Bridge (la liste de la 4.2.0, inchangée), et l'API publique sous SemVer.
+- **Limité, jusqu'à leurs passes de la 4.2.0 (#75–#87)** : le joueur DOM sur téléphone et au lecteur d'écran, la PWA
+  Safari, Firefox (la PWA seulement), speedrun et Remix, voix et musique, les quatre archives de paquets installées par
+  une personne.
+- **Expérimental** : le peintre Canvas, le profil `distributed`, les quatre connecteurs (la liste de la 4.2.0,
+  inchangée) ; le Studio sous Windows reste partiel.
+- **Le Studio Server, expérimental en entier**, avec six passes : `studio-hosted` (#149) et `studio-collab` (#150) pour
+  le serveur lui-même (le journal, les connexions et les rôles, les pans et les baux, le flux en direct, l'origine du
+  jeu) ; `studio-preview` (#166) pour les prévisualisations, les sauvegardes d'une révision à l'autre, la santé,
+  l'annulation personnelle et les builds publiés ; `studio-assets-hosted` (#167) pour Prepare sur l'application de
+  traitement, et depuis la 4.2.3 depuis les archives, avec les uploads et les découpes de l'onglet Assets en jobs ; et
+  celles de la 4.2.3, `studio-mcp-remote` (un agent par `/mcp`) et `studio-oidc-generic` (un second fournisseur OpenID,
+  GitLab : la CI ne fait tourner que Keycloak).
+- **Les autres ajouts de la 4.2.3**, expérimentaux avec le serveur et prouvés par les seules suites unitaires
+  (SQLite) : la révision lue et son 409 (un script ou le MCP qui n'envoie pas `x-studio-base` n'est pas vérifié
+  ainsi), la carte du scénario, les commentaires, le diff sémantique (sans captures : D45), Git (testé sur un dépôt nu
+  local ; un dépôt par instance ; LFS et sous-modules non lus), la montée de version du moteur (une route, pas encore
+  de bouton). Le job `studio-hosted` (Postgres, S3, Keycloak) ne les fait pas tourner.
+- **L'exploitation** : les métriques, la sauvegarde quotidienne dans le bucket et le runbook ont tourné une fois sur
+  l'organisation Clever Cloud de test, pas sous une charge de production ; leurs chiffres sont dans
+  `docs/dev/QUALIF-4.2.3-REFERENCE.md` (sur les plus petits plans : une restauration avec son rejeu en une minute
+  environ, rien de perdu ; un p95 de la prévisualisation de 44 s, pas les 5 s visées ; des écritures refusées 10 à
+  16 s à un redéploiement, environ 2 min 30 au premier vers la 4.2.3). Le set de mutation `studio-workshop` est
+  bloquant depuis la 4.2.3.
+
+**Ce qui reste ouvert après la 4.2.x**, et pourquoi (plan 4.2.3 §5) :
+- la santé du jeu avec le lint et les playtests : ils chargent la file unique de l'application de traitement à chaque
+  rafale ; ajoutés quand les mesures du déploiement de référence diront que la file les tient ;
+- l'Assistant sur un Studio hébergé : une clé apportée par chaque utilisateur (BYOK, D41) demande son propre modèle de
+  menaces ;
+- une sauvegarde signée : son condensé dit qu'elle est entière, pas qui l'a faite (une sauvegarde est une entrée de
+  confiance, elle peut ajouter des propriétaires) ; la signer demande une clé hors de l'instance, à décider avec la
+  rotation des clés (D37) ;
+- les captures avant/après du diff, en local comme en hébergé (D45), avec Chromium qualifié sur l'application de
+  traitement : 4.3 ;
+- `ids --lines` en opération exclusive (l'id d'une ligne n'est pas l'ancre d'un commentaire) : 4.3 ;
+- la publication npm : pas dans la 4.2.3 ; le moteur s'installe toujours depuis l'archive d'une release.
+
 ## 4.2.2 : l'atelier jouable
 
 Le Studio Server reste **expérimental** : la 4.2.2 ajoute deux passes aux deux de la 4.2.1, `studio-preview` (des

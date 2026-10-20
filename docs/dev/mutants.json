@@ -1869,5 +1869,17 @@
   "proof": "argument",
   "owner": "@wanoo",
   "revisit": "4.3.0"
+ },
+ {
+  "file": "studio-server/src/ops/ship.ts",
+  "operator": "condition true",
+  "from": "this.every",
+  "to": "true",
+  "context": "if (this.every) clearInterval(this.every);",
+  "why": "Shipper.close: with `this.every` null (watch never called), `clearInterval(null)` does nothing, so clearing always is the same; the timer cleared when there is one is pinned by tests/studio-backup.test.ts (nothing shipped after close)",
+  "category": "equivalent",
+  "proof": "argument",
+  "owner": "@wanoo",
+  "revisit": "4.3.0"
  }
 ]

@@ -12,6 +12,8 @@
 - Tests: `tests/dom/exit-on-tap.test.ts` (without the switch it only walks; with it the room changes; `walk` keeps an
   exit walk-only, `go` works without the switch; Look still looks; a tap elsewhere during the walk cancels; a double
   tap acts once), `tests/dom/studio-rooms-sheet.test.ts` (the select).
+- The first visit's JavaScript: 133 KB → 134 KB gzipped in `tests/quality-baseline.json` and the READMEs (+110
+  bytes for `tapVerb` and the tap count in `dom/input.ts`: main measured 133.45 KB, this crosses the rounding to 134).
 - Left as is: the sentence line still says "Walk to <exit>" before a tap that goes through, as the classics did. No
   validator check of `onTap`'s values (the other enumerated presentation fields have none either; TypeScript holds it).
 

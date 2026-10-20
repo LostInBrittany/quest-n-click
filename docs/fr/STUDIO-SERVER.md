@@ -5,14 +5,16 @@ Connect (Keycloak ou un autre), travaille sur le même jeu en même temps, et vo
 C'est le chantier de la ligne 4.2.x (plan `docs/dev/PLAN-4.2.1-4.2.3-STUDIO-SERVER.md`). Seul sur sa machine,
 `npm run studio` reste tel quel : rien de tout ceci n'est nécessaire.
 
-> **État (4.2.2, expérimental).** Le journal (aucune modification confirmée n'est perdue), les connexions et les rôles,
+> **État (4.2.3, expérimental).** Le journal (aucune modification confirmée n'est perdue), les connexions et les rôles,
 > l'application de traitement, les pans et les baux, le flux en direct, l'origine propre du jeu avec ses
 > prévisualisations (un build par révision), la santé par révision, l'annulation personnelle, les builds publiés, les
 > assets préparés sur l'application de traitement, la sauvegarde et la restauration, et les écrans du Studio pour tout
 > cela ; depuis 4.2.3, les uploads et la découpe de planches de l'onglet Assets, Prepare et les découpes en jobs qui
-> se suivent et s'annulent. Il reste expérimental jusqu'à ce que ses passes humaines (`studio-hosted`, `studio-collab`, `studio-preview`,
-> `studio-assets-hosted`) soient faites. Ce guide déploie depuis le dépôt
-> ; l'archive `web-scumm-studio-server` est le même serveur (ci-dessous).
+> se suivent et s'annulent, la révision lue, la carte du scénario, les commentaires, le diff, le MCP distant, Git, la
+> montée de version du moteur, les métriques et la sauvegarde quotidienne. Il reste expérimental jusqu'à ce que ses
+> passes humaines (`studio-hosted`, `studio-collab`, `studio-preview`, `studio-assets-hosted`, `studio-mcp-remote`,
+> `studio-oidc-generic`) soient faites. Ce guide déploie depuis le dépôt ; l'archive `web-scumm-studio-server` est le
+> même serveur (ci-dessous).
 
 ## Ce qui tourne où
 
@@ -401,14 +403,24 @@ que le bail expire (30 s, renouvelé toutes les 10 s à l'horloge de la base) ; 
 horloge avant. Un client retente une écriture avec le même identifiant d'opération, et elle est appliquée une fois. Le
 bail propre du journal, avec sa clôture, empêche toujours deux instances d'écrire sur la même tête.
 
-Ce que le déploiement de référence a mesuré (`docs/dev/QUALIF-4.2.3-REFERENCE.md` §5) : Clever garde l'ancienne
-instance `STOPPING` environ deux minutes après que la nouvelle est prête, et elle n'a consigné aucune ligne `stopping` :
-elle a continué de renouveler le bail pendant ce temps, et la nouvelle l'a pris environ 30 s après le départ de
-l'ancienne. **Les écritures sont refusées (503, `Retry-After: 2`) pendant environ deux minutes et demie par
-déploiement**, les lectures continuent ; une écriture retentée avec son identifiant d'opération passe ensuite, une
-fois. Pendant que les deux instances démarrent et tournent, elles tiennent deux fois plus de connexions : sur le plan
-`dev` (5), une écriture peut échouer sur « too many connections » (un 500) ou attendre la vérification du journal par
-l'instance qui démarre (un 409 au bout de 20 s) ; prenez un plan plus grand pour un déploiement dont on se sert.
+Depuis 4.2.3, la nouvelle instance n'attend plus cela : dès qu'elle écoute, elle demande le bail, et le détenteur le
+rend à son renouvellement suivant (10 s au plus), en consignant `lease-lost`. Ce que le déploiement de référence a
+mesuré (`docs/dev/QUALIF-4.2.3-REFERENCE.md` §5 et §5 bis), sur Clever Cloud, où l'ancienne instance reste `STOPPING` environ
+deux minutes et ne consigne aucune ligne `stopping` :
+- **entre deux versions qui rendent toutes deux le bail** (deux redéploiements du même commit) : `lease-taken` 6 et
+  10 s après que la nouvelle instance écoute ; ensuite les écritures sont en 503 (`Retry-After: 2`) pendant 10 à 16 s,
+  parce que Clever envoie encore les requêtes à l'ancienne instance, qui n'a plus le bail, jusqu'à la fin du
+  déploiement ; avant cela, pendant que la nouvelle démarre, une écriture peut attendre 10 à 20 s sa vérification du
+  journal et recevoir un 503 elle aussi. Environ une minute d'écritures lentes ou refusées par déploiement, aucune
+  perdue : une écriture retentée avec son identifiant d'opération passe une fois ;
+- **le premier déploiement vers 4.2.3, depuis une version sans la passation** (4.2.2, ou un commit de 4.2.3 avant #183) :
+  l'ancienne version garde le bail jusqu'à ce que Clever l'arrête, et **les écritures sont refusées pendant environ
+  deux minutes et demie** (2 min 23 s à 2 min 27 s mesurées), les lectures continuant. Prévoyez celui-là : prévenez
+  les membres, ou acceptez ces minutes.
+
+Pendant que les deux instances démarrent et tournent, elles tiennent deux fois plus de connexions : sur le plan `dev`
+(5), le travail de fond échoue sur « too many connections » à chaque déploiement, et une écriture d'une version plus
+ancienne pouvait en échouer (un 500) ; prenez un plan plus grand pour un déploiement dont on se sert.
 
 Monter le moteur de version, c'est ce même redéploiement, d'une nouvelle version :
 1. lisez le CHANGELOG de la version et `docs/fr/UPGRADING.md` pour le contenu du jeu. Ses migrations de base tournent au
@@ -450,8 +462,8 @@ OpenTelemetry n'est pas pris en charge en 4.2.3 ; il reste une option pour plus 
 --event DEPLOYMENT_FAIL studio-deploys` ; aussi `clever webhooks add`), et sa console montre le CPU, la mémoire et les
 journaux de chaque application. Elle ne lit pas `/metrics` : un collecteur que vous faites tourner le fait
 (Prometheus et son Alertmanager, ou tout service qui lit le format), ou une simple sonde de `/readyz`. Alertez quand :
-- `/readyz` n'est pas 200 pendant 5 min (aucune instance ne sert les écritures ; un déploiement tient les écritures à
-  l'écart environ 2 min 30, plus haut) ;
+- `/readyz` n'est pas 200 pendant 2 min (aucune instance ne sert les écritures ; un déploiement le tient en 503
+  environ 20 s, plus haut ; le premier déploiement vers 4.2.3 environ 2 min 30 : attendez-vous alors à cette alerte) ;
 - `studio_journal_rpo_seconds` dépasse 60 pendant 5 min (la cible est 1 min, D42), ou `ship-failed` ne cesse de monter ;
 - `studio_worker_jobs_in_flight` reste au-dessus de 3 pendant 10 min (l'application de traitement fait un job à la
   fois : le travail s'accumule) ;
