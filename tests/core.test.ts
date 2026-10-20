@@ -149,6 +149,18 @@ describe('fixture game', () => {
       },
     };
     expect(await at({ ...game, actorGap: 0.8 }, deep)).toEqual([396, 340]);
+    // Anything but a positive finite number keeps the 44.
+    for (const bad of [0, -1, Number.NaN, Number.POSITIVE_INFINITY, '0.8' as never])
+      expect(await at({ ...game, actorGap: bad })).toEqual([406, 340]);
+  });
+
+  it("actorGap reaches a guest (another playable character) at the size it is drawn: the hero's default height", async () => {
+    // Ann in the cellar, where Bob stands at the default entry; neither has a height: both are drawn 84 tall.
+    const e = new Engine({ ...cast(), actorGap: 1 }, castLayouts, new FakePresenter(), new MemoryStore());
+    await e.newGame();
+    await e.teleport('cellar');
+    const bob = e.guests().bob!.at;
+    expect(e.approach('bob')).toEqual([bob[0] + 84, bob[1]]);
   });
 
   it('{ ending } and the old { reveal } play the ending, then the lines, then the card', async () => {

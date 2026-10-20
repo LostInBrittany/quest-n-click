@@ -67,6 +67,7 @@ export function presentationOf(game: CompiledGame | GameDef, manifest: unknown =
         'ending',
         'saves',
         'settings',
+        'actorGap',
         'ui',
         'titleScreen',
         'creditsScreen',
