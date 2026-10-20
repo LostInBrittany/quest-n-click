@@ -124,7 +124,9 @@ export class DomPresenter implements Presenter {
     const added = items.length > app.items.length;
     app.items = [...items];
     if (added) {
-      const names = items.filter((id) => !previous.has(id)).map((id) => app.game.items[id]?.name ?? id);
+      const names = items
+        .filter((id) => !previous.has(id))
+        .map((id) => app.engine.text(app.game.items[id]?.name ?? id));
       if (names.length) app.live.textContent = names.join(', ');
     }
     if (added) app.invPage = Math.max(0, Math.ceil((items.length - app.invCols * 2) / app.invCols));

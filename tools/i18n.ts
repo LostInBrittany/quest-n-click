@@ -79,13 +79,19 @@ if (cmd === 'status') {
   for (const l of langs) {
     const st = localeStatus(game, read(l));
     // Identical to the source without being listed in `i18n.same`: an untranslated line, not a choice.
-    const ok = st.missing.length === 0 && st.stale.length === 0 && (l === base || st.untranslated.length === 0);
+    const ok =
+      st.missing.length === 0 &&
+      st.stale.length === 0 &&
+      st.switches.length === 0 &&
+      (l === base || st.untranslated.length === 0);
     if (!ok) bad++;
     console.log(
-      `${ok ? '✔' : '…'}  ${l}: ${st.translated}/${st.total} translated${st.missing.length ? `, ${st.missing.length} missing` : ''}${st.stale.length ? `, ${st.stale.length} stale` : ''}${st.long.length ? `, ${st.long.length} long` : ''}${st.same.length && l !== base ? `, ${st.same.length} same as ${base}${st.untranslated.length ? ` (${st.untranslated.length} not in i18n.same)` : ', all listed in i18n.same'}` : ''}`,
+      `${ok ? '✔' : '…'}  ${l}: ${st.translated}/${st.total} translated${st.missing.length ? `, ${st.missing.length} missing` : ''}${st.stale.length ? `, ${st.stale.length} stale` : ''}${st.long.length ? `, ${st.long.length} long` : ''}${st.switches.length ? `, ${st.switches.length} with other text switches` : ''}${st.same.length && l !== base ? `, ${st.same.length} same as ${base}${st.untranslated.length ? ` (${st.untranslated.length} not in i18n.same)` : ', all listed in i18n.same'}` : ''}`,
     );
     for (const m of st.missing.slice(0, 10)) console.log(`     missing ${m}`);
     for (const m of st.stale.slice(0, 10)) console.log(`     stale   ${m}`);
+    for (const m of st.switches.slice(0, 20))
+      console.log(`     switch  ${m.path}   (source: ${m.source || 'none'}; translation: ${m.translation || 'none'})`);
     if (l !== base)
       for (const m of st.untranslated.slice(0, 20))
         console.log(`     same    ${m}   (translate it, or list it in i18n.same)`);
