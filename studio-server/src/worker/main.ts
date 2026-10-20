@@ -256,6 +256,8 @@ export function createWorker(o: WorkerOptions) {
       job = verifyJob(String(token), key);
       if (job.instance !== o.instance) throw new Error('the job is for another instance');
     } catch (e) {
+      // Said in the worker's log too: the Studio sees a 403 and its reason, the host sees both sides.
+      log('worker-job-refused', { error: (e as Error).message });
       return send(403, { error: (e as Error).message });
     }
     const now = Date.now();

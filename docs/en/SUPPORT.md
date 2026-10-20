@@ -59,6 +59,44 @@ opens no browser, no Windows runner and no Node 24 (`CONTRIBUTING.md`, "What CI 
 | Bridge, `distributed` profile (4.1.10, `experimental`) | Postgres 16 in CI (`bridge-postgres`): the same contract, tenants and fan-out between instances; the nightly load run; the qualification profile (`ops/qualify/`: HTTPS, three instances, the leaderboard, a worker killed mid-verification, a restore after the topology is destroyed) in the `qualify` workflow; since 4.1.20 the full profile in every candidate a tag may name (both restore modes under the maintenance lease), `--short` in a pull request's | a real deployment: until one, `experimental` |
 | Connectors (4.1.9), **experimental** (D19) | email (signed webhook, IMAP), Telnet, SSH, Open Badges 2 and 3: the same contract on all four, abuse and fuzz tests, a run under `--disallow-code-generation-from-strings`, the sample chapter's replays; the four played from their archive in the candidate (4.1.19); Telnet and SSH tests not on Windows yet | a real email provider, a real badge from a real issuer, SSH and Telnet exposed in a controlled environment |
 
+## 4.2.3: the end of the 4.2.x line
+
+4.2.3 ends the Studio Server's 4.2.x line (D40, D44). No pass has been made yet, so no surface is promoted by it:
+what 4.2.0 promised stays as it was, and what came after is experimental. Surface by surface, at the end of 4.2.x:
+
+- **Stable**: the content format and its tools, the player on desktop Chromium and its PWA, the Bridge's `local`
+  profile (4.2.0's list, unchanged), and the public API under SemVer.
+- **Limited, until their 4.2.0 passes (#75–#87)**: the DOM player on phones and screen readers, the Safari PWA, Firefox
+  (the PWA only), speedrun and Remix, voices and music, the four package archives installed by a person.
+- **Experimental**: the Canvas painter, the `distributed` profile, the four connectors (4.2.0's list, unchanged); the
+  Studio on Windows stays partial.
+- **The Studio Server, experimental as a whole**, with six passes: `studio-hosted` (#149) and `studio-collab` (#150)
+  for the server itself (the journal, logins and roles, spans and leases, the live stream, the game's origin);
+  `studio-preview` (#166) for the previews, saves across revisions, the health, personal undo and the published builds;
+  `studio-assets-hosted` (#167) for Prepare on the worker, and since 4.2.3 from the archives, with the Assets tab's
+  uploads and cuts as jobs; and 4.2.3's `studio-mcp-remote` (an agent through `/mcp`) and `studio-oidc-generic` (a second
+  OpenID provider, GitLab: CI runs Keycloak only).
+- **4.2.3's other additions**, experimental with the server and proven by the unit suites (SQLite) only: the revision
+  read and its 409 (a script or the MCP that sends no `x-studio-base` is not checked this way), the scenario map, the
+  comments, the semantic diff (no captures: D45), Git (tested on a local bare repository; one repository per instance;
+  LFS and submodules not read), the engine upgrade (a route, no button yet). The `studio-hosted` job (Postgres, S3,
+  Keycloak) does not run them.
+- **Operations**: the metrics, the daily backup to the bucket and the runbook were run once on Clever Cloud's test
+  organisation, not under a production load; their figures are in `docs/dev/QUALIF-4.2.3-REFERENCE.md` (on the
+  smallest plans: a restore with its replay in about a minute, nothing lost; a preview's p95 of 44 s, not the 5 s
+  aimed at; writes refused 10 to 16 s at a redeploy, about 2.5 min at the first one onto 4.2.3). The mutation
+  set `studio-workshop` is gated since 4.2.3.
+
+**What stays open after 4.2.x**, and why (plan 4.2.3 §5):
+- the game's health with lint and the playtests: they load the worker's single queue at each burst of changes; added
+  when the reference deployment's measures say the queue holds them;
+- the Assistant on a hosted Studio: a key brought by each user (BYOK, D41) needs a threat model of its own;
+- a signed backup: its digest says it is whole, not who made it (a backup is trusted input, it can add owners);
+  signing it needs a key off the instance, decided with the key rotation (D37);
+- the diff's before/after captures, local or hosted (D45), with Chromium qualified on the worker: 4.3;
+- `ids --lines` as an exclusive operation (a line's id is not a comment's anchor): 4.3;
+- npm publishing: not in 4.2.3; the engine still installs from a release's archive.
+
 ## 4.2.2: the playable workshop
 
 The Studio Server stays **experimental**: 4.2.2 adds two passes to the two of 4.2.1, `studio-preview` (people play

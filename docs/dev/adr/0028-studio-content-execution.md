@@ -26,7 +26,7 @@ same user and can read the parent's `/proc/<pid>/environ`, which still holds the
    - the snapshot's sha256;
    - the kind (`validate` or `load`; `preview` since 4.2.2, a revision's build) and its parameters;
    - its staging prefix `staging/<id>/`;
-   - the expiry, 5 min at most;
+   - the expiry, 5 min at most (the worker allows 30 s of clock skew, `CLOCK_SKEW_MS`, since 4.2.3);
    - the two presigned URLs: read the snapshot, write the result.
 4. **The worker's supervisor** (`studio-server/src/worker/main.ts`):
    - checks the job;
@@ -85,7 +85,7 @@ same user and can read the parent's `/proc/<pid>/environ`, which still holds the
   secret of the platform. It shares the supervisor's user, so it can read the supervisor's environment
   (`/proc/<pid>/environ`): this is harmless only because the worker holds no secret, and it must stay so.
 - **Single use is per worker process.** The record of jobs seen lives in memory: a restart forgets it, and a job
-  replayed within its 5 min reruns the same snapshot into the same result key.
+  replayed before its expiry reruns the same snapshot into the same result key.
 - **What answers:**
   - one worker per Studio instance;
   - recycling on a detected survivor;
