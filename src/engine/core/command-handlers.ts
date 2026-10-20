@@ -18,8 +18,9 @@ type CmdOf<K extends CmdKey> = K extends unknown ? Extract<CmdObj, Record<K, unk
 export type Handler<K extends CmdKey> = (eng: Engine, c: CmdOf<K>, ctx: Ctx) => Promise<void> | void;
 type Handlers = { [K in CmdKey]: Handler<K> };
 
+// The clip: `voice` as written, else the line's id, keyed by its switches' values when it has some (voice-key.ts).
 const sayLine: Handler<'say'> = (eng, c, ctx) =>
-  eng.say(c.say[0], c.say[1], ctx, !!c.shout, c.voice ?? (c.id && eng.game.audio?.voices?.[c.id] ? c.id : undefined));
+  eng.say(c.say[0], c.say[1], ctx, !!c.shout, c.voice ?? eng.voiceOf(c, c.say[1]));
 
 const walk: Handler<'walk'> = async (eng, c, ctx) => {
   const s = eng.state;

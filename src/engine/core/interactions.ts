@@ -9,6 +9,7 @@ import { HERO, type Ctx, type Source } from './engine-shared';
 import type { Engine } from './engine';
 import { seenKey } from './keys';
 import { renderText } from './text-switch';
+import { lineClip } from './voice-key';
 
 // ------------------------------------------------------------------ resolution
 /** Finds the reaction to an action and executes it. */
@@ -42,7 +43,7 @@ export async function resolve(eng: Engine, act: Action, ctx: Ctx): Promise<Sourc
   }
   const kind = eng.findKind(verb, a, b, room);
   if (kind) {
-    await eng.say(HERO, eng.fill(kind.say, a, b), ctx, false, eng.voiceOf(kind));
+    await eng.say(HERO, eng.fill(kind.say, a, b), ctx, false, eng.voiceOf(kind, kind.say));
     return 'kind';
   }
   if (verb === 'give' && b) {
@@ -147,10 +148,14 @@ export function text(eng: Engine, s: string): string {
   });
 }
 
-/** A line's voice clip: its id, when `audio.voices` has a clip under it (the rule of `say` lines). */
-export function voiceOf(eng: Engine, l: ListLine | { id?: Id }): Id | undefined {
+/**
+ * A line's voice clip (the rule of `say` lines): `<id>~<flag>=<value>…` when its text (as written) has switches and
+ * `audio.voices` has that clip (4.3, core/voice-key.ts), else its id when `audio.voices` has a clip under it.
+ */
+export function voiceOf(eng: Engine, l: ListLine | { id?: Id }, text?: string): Id | undefined {
   const id = typeof l === 'string' ? undefined : 'text' in l ? listId(l) : l.id;
-  return id && eng.game.audio?.voices?.[id] ? id : undefined;
+  const written = text ?? (typeof l !== 'string' && 'text' in l ? l.text : undefined);
+  return lineClip(eng.game.audio?.voices, id, written, eng.state?.flags);
 }
 
 export async function sayFallback(eng: Engine, who: Id, key: string, ctx: Ctx, a: Id, b?: Id) {

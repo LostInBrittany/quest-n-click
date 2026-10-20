@@ -670,9 +670,9 @@ export class Engine {
     return fillImpl(this, text, a, b);
   }
 
-  /** A line's voice clip: its id, when `audio.voices` has a clip under it (the rule of `say` lines). */
-  voiceOf(l: ListLine | { id?: Id }): Id | undefined {
-    return voiceOfImpl(this, l);
+  /** A line's voice clip: its keyed id for its switches' values, else its id, when `audio.voices` has the clip. */
+  voiceOf(l: ListLine | { id?: Id }, text?: string): Id | undefined {
+    return voiceOfImpl(this, l, text);
   }
 
   async sayFallback(who: Id, key: string, ctx: Ctx, a: Id, b?: Id) {
