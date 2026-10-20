@@ -5,6 +5,7 @@ import { rendererOf, stageOf } from '../core/stage';
 import { stageLayoutChecks } from './validate-stage';
 import { migrationChecks } from './validate/migrations';
 import { objectiveChecks } from './validate/objectives';
+import { playerChecks } from './validate/player';
 import { remixChecks } from './validate/remix';
 import { speedrunChecks } from './validate/speedrun';
 import { listId, listText } from '../core/list-lines';
@@ -1052,27 +1053,9 @@ export function validate(gameIn: GameDef, layouts: Record<string, Layout>, opts:
   for (const e of g.oneWay)
     warn(`${e.from}.exits.${e.via}`, `no way back from ${e.to} to ${e.from} (add oneWay: true if intended)`);
 
-  // Chapters, invariants, saves, migrations
+  // Chapters, invariants, the player's side (menus, taps), migrations
   (game.invariants ?? []).forEach((c, i) => cond(c, `invariants[${i}]`));
-  if (game.saves && (!Number.isInteger(game.saves.slots) || game.saves.slots < 0))
-    err('saves', 'slots must be a whole number');
-  if (game.saves?.slots)
-    for (const k of ['save', 'load', 'slot', 'emptySlot', 'exportSave', 'importSave', 'confirmOverwrite'] as const)
-      if (!game.ui[k]) warn(`ui.${k}`, 'missing text for the save menu (English default used)');
-  if (game.settings)
-    for (const k of [
-      'settings',
-      'textSpeed',
-      'textSize',
-      'reduceMotion',
-      'volumeMusic',
-      'volumeSfx',
-      'slow',
-      'normal',
-      'fast',
-      'large',
-    ] as const)
-      if (!game.ui[k]) warn(`ui.${k}`, 'missing text for the settings menu (English default used)');
+  playerChecks(game, { err, warn });
   migrationChecks(game, { items, rooms, places, scriptIds, playerIds, chars, err, warn });
   // Checkpoints
   for (const [cid, c] of Object.entries(game.checkpoints ?? {})) {

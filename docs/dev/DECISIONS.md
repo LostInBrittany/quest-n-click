@@ -60,6 +60,8 @@ may write in French; the assistant adds the English next to it.
 
 - **D45 · 2026-10-19** · **No before/after captures in 4.2.3's diff, local or hosted.** D44 (4) kept the diff's captures local; the semantic diff (plan H3, PR 4) is made by reading the sources, and no capture of a past revision exists on a local Studio either (the screenshot tool shows the head). The captures are carried to 4.3, with Chromium's qualification on the worker. The Check tab says so.
 
+- **D46 · 2026-10-20** · **4.2.x may add optional, presentation-only content fields.** Asked "#191 adds two optional content fields (`input.exitOnTap`, `onTap` on an exit); D40 freezes the content format for 4.2.x; allow it in 4.2.4?", the maintainer answered « Yes, in 4.2.4 (Recommended) ». So D40's freeze of the content format is read with one exception: a 4.2.x patch may **add** an optional content field when it is presentation only (classed `presentation` in `ir-fields.ts`, outside the IR's logic, read by neither the rules, the solver nor saves), needs no schema, save envelope or IR change, and a game without it behaves identically (same logic fingerprint, same presentation fingerprint, same sessions, golden saves and reference runs). Each such field is checked by the validator and documented in CONTENT_GUIDE (en and fr) and `docs/dev/DSL-STABILITY.md`. Renaming, removing or changing the meaning of a field still waits for a 4.3. #191's two fields (#188) are the first: `GameDef.input.exitOnTap` and `ExitDef.onTap`, in 4.2.4.
+
 ## Pending (asked, not decided)
 
 - (none)

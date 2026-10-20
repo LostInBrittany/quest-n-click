@@ -53,6 +53,8 @@ const game: Classes<GameDef> = {
   invariants: 'logic',
   saves: 'presentation',
   settings: 'presentation',
+  // How a tap reads (`exitOnTap`, #188): the player's input, never what an action does.
+  input: 'presentation',
   // Where the hero stands to reach a character: geometry, like the layout's approach points.
   actorGap: 'presentation',
   offline: 'meta',
@@ -140,6 +142,8 @@ const exit: Classes<ExitDef> = {
   visible: 'logic',
   kind: 'logic',
   oneWay: 'logic',
+  // A single tap's meaning (#188): the player's input; the rules generated from the exit are the same.
+  onTap: 'presentation',
 };
 
 const item: Classes<ItemDef> = { name: 'logic', icon: 'presentation', look: 'logic', kind: 'logic' };

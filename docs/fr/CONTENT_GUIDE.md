@@ -57,6 +57,9 @@ games/<jeu>/
 vaut `"cel"` (défaut : dessin animé peint) ou `"pixel"` (pixel art rétro) : il change les prompts d'images
 (`npm run prompts`), le découpage (`tools/cut-sheet.py`) et `npm run assets` (WebP sans perte, redimensionnement au
 plus proche voisin) ; voir [PROMPTS.md](PROMPTS.md). Pour `pixel`, mettre aussi `skin: { pixelArt: true }` dans `game.ts`.
+`sheetBackground` (facultatif) est le fond sur lequel les planches de sprites sont générées : `"transparent"` ou une
+couleur `"#RRGGBB"`, `#2B2E45` en son absence ; il change les prompts d'images, et le découpage suit la planche qu'on
+lui donne (PROMPTS.md, « Choisir le fond des planches »).
 
 ## Un lieu, pas à pas
 
@@ -198,6 +201,15 @@ verbe), un personnage reçoit la parole, tout le reste est regardé. Quand ce n'
 objet pris dans le sac sans verbe est donné à un personnage et utilisé sur tout le reste ; la ligne de phrase dit lequel
 avant le tap. Un verbe que le jeu n'a pas n'est jamais choisi (`src/engine/core/default-verb.ts`).
 
+**Un tap qui franchit la sortie (4.2.4).** Dans les classiques de LucasArts, un clic sur une porte avec le « Marcher
+vers » par défaut y faisait passer le héros. `input: { exitOnTap: true }` dans `game.ts` fait de même : un tap sur une
+sortie sans verbe choisi y marche et la franchit à l'arrivée, avec le verbe du double tap (une sortie fermée dit sa ligne
+`locked`). Un verbe choisi l'emporte toujours, un tap ailleurs pendant la marche redirige toujours le héros (et rien
+n'est franchi), et le double tap ne change pas. Une sortie peut dire autre chose : `onTap: 'walk'` la garde en simple
+marche dans un jeu qui a le réglage, `onTap: 'go'` la fait franchir dans un jeu qui ne l'a pas
+(`exits: { path: { name: 'chemin', to: 'village', onTap: 'go' } }`). Désactivé par défaut. C'est de l'entrée
+seulement : les règles, le solveur et les sauvegardes ne le voient pas.
+
 ## Les commandes
 
 Une commande seule, sous forme de texte, fait parler le héros : `'Et voilà. Un marchepied.'`.
@@ -218,7 +230,7 @@ Une réplique reste à l'écran le temps de la lire, ou jusqu'à un tap.
 |---|---|
 | `{ walk: 'etagere' }` | Le héros marche jusqu'au point d'approche de l'étagère (défini dans le layout). |
 | `{ walk: [300, 350], who: 'grandpere' }` | Grand-père marche jusqu'à ce point (n'importe quel acteur du lieu ; sans pose `walk`, il glisse dans sa pose actuelle). |
-| `{ face: 'left' }`, `{ face: 'grandmere' }` | Se tourner vers la gauche, ou vers quelqu'un ou quelque chose. |
+| `{ face: 'left' }`, `{ face: 'grandmere' }`, `{ face: 'hero', who: 'grandmere' }` | Se tourner vers la gauche, ou vers quelqu'un ou quelque chose (le héros compris). Dans une cinématique, personne n'agit sur personne, donc personne ne se tourne tout seul : c'est ainsi que deux personnages se regardent. |
 | `{ pose: ['chat', 'sleep'] }` | Pose durable (jusqu'à la prochaine). Poses du personnage : voir sa fiche `sprites`. |
 | `{ anim: ['hero', 'use'], ms: 600 }` | Pose le temps indiqué, puis retour à la normale. Marche pour tout acteur du lieu, y compris un acteur en `pose: 'front'` : `{ anim: ['grandpere', 'surprise'], ms: 900 }` joue la pose `surprise` de sa fiche (`sprites: { …, surprise: ['grandpere_assis/r2c3'] }`), puis il revient en `front`. |
 | `{ place: ['grandpere', [420, 360]], face: 'left' }` | Téléporte un personnage. |
@@ -483,7 +495,8 @@ sa ligne dans `look`) et en règles ajoutées à la fin de `on` : « VERBE sorti
 gagne toujours. `verbs` vaut par défaut use, open, walk, go, enter, push, pull (ceux que ton jeu a). À partir des sorties,
 des commandes `goto` et de la carte, le validateur sait **quels lieux ne sont atteints par rien** et **quelles sorties
 n'ont pas de retour** (indique `oneWay: true` quand c'est voulu) ; l'onglet Check du Studio et `npm run page:world`
-dessinent cette carte.
+dessinent cette carte. Ce que fait un simple tap sur une sortie, c'est `onTap` (voir « Un tap qui franchit la sortie »
+plus haut).
 
 ### Chapitres et invariants
 
