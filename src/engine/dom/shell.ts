@@ -71,7 +71,7 @@ export function buildShell(app: App) {
   const icons = app.game.skin.icons;
   // Several playable characters: one button per other character (their portrait, or their initial), before the map.
   for (const pid of app.game.players?.ids ?? []) {
-    const c = app.game.characters[pid];
+    const c = app.engine.character(pid);
     const b = el(
       'button',
       'tool player',

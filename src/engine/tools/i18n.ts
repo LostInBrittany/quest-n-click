@@ -214,6 +214,12 @@ function walkTexts(game: GameDef, fn: Fn, minigames: MinigameTexts = {}): void {
     one(`char:${id}/hug`, c.hug, (x) => {
       c.hug = x;
     });
+    // A variant's name (4.3): shown instead of the character's while the variant applies.
+    (c.variants ?? []).forEach((v, i) =>
+      one(`char:${id}/variants[${i}].name`, v.name, (x) => {
+        v.name = x;
+      }),
+    );
   }
   for (const [v, list] of Object.entries(game.rules.fallbacks)) if (list) lines(list, `rules/fallbacks.${v}`, fn);
   (game.rules.kinds ?? []).forEach((k, i) =>

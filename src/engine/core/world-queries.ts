@@ -27,16 +27,16 @@ export function guests(eng: Engine, room: RoomDef = eng.room()): Record<Id, { ch
 export function nameOf(eng: Engine, id: Id, room: RoomDef = eng.room()): string {
   if (eng.game.items[id] && eng.state.inventory.includes(id)) return eng.game.items[id].name;
   const act = room.actors?.[id];
-  if (act) return act.name ?? eng.game.characters[act.char]?.name ?? id;
-  if (eng.guests(room)[id]) return eng.game.characters[id]?.name ?? id;
+  if (act) return act.name ?? eng.character(act.char)?.name ?? id;
+  if (eng.guests(room)[id]) return eng.character(id)?.name ?? id;
   if (room.props?.[id]?.name) return room.props[id].name!;
   if (room.hotspots?.[id]) return room.hotspots[id].name;
   if (eng.game.items[id]) return eng.game.items[id].name;
-  if (eng.game.characters[id]) return eng.game.characters[id].name;
+  if (eng.game.characters[id]) return eng.character(id)!.name;
   return id;
 }
 
-/** A character's sheet with the variant that applies to the current state (sprites, mouths, portrait). */
+/** A character's sheet with the variant that applies to the current state (name, sprites, mouths, portrait, palette). */
 export function character(eng: Engine, id: Id): CharacterDef | undefined {
   const c = eng.game.characters[id];
   if (!c?.variants || !eng.state) return c;
@@ -44,6 +44,7 @@ export function character(eng: Engine, id: Id): CharacterDef | undefined {
   return v
     ? {
         ...c,
+        name: v.name ?? c.name,
         sprites: v.sprites ?? c.sprites,
         mouths: v.mouths ?? c.mouths,
         portrait: v.portrait ?? c.portrait,

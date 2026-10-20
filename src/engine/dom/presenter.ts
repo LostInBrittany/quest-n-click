@@ -231,7 +231,7 @@ export class DomPresenter implements Presenter {
     host.style.background = '#000';
     app.scene.append(host);
     app.side.classList.add('off');
-    const voice = app.game.characters[app.game.hintVoice ?? app.game.hero];
+    const voice = app.engine.character(app.game.hintVoice ?? app.game.hero);
     let frame: HTMLElement | null = null;
     const ac = new AbortController();
     const entry: (typeof app.minigameLog)[number] = { id, skipped: false, ms: 0 };
