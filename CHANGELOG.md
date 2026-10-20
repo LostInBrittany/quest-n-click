@@ -1,5 +1,49 @@
 # Changelog
 
+## 4.2.4 — 2026-10-20
+
+LOG #241–#243: four pull requests from an outside contributor, Horacio (LostInBrittany), found while making his game
+"Jack cherche un taf", each reviewed, completed on its branch and merged: `face: 'hero'` turns a character toward the
+hero (#194); the sprite sheets' background, transparent or a chosen colour (#187); an exit gone through on a single
+tap (#191); `actorGap`, the hero's distance to a character following their size (#199). A game that uses none of them
+plays, saves and proves as on 4.2.3: the same fingerprints, golden saves and reference runs. The content format gains
+three optional, presentation-only fields, `input.exitOnTap`, an exit's `onTap` and `actorGap`, under D46 (a 4.2.x may
+add such a field when it needs no schema, save envelope or IR change); the public API and the save envelope are
+4.2.0's. The tag is signed with the maintainer's SSH key on their yes of 20 October, « Yes, sign v4.2.4 », the yes for
+`v4.2.4` only (D37).
+
+### Fixed
+
+- **`face: 'hero'` turns a character toward the hero (4.2.4)**: `{ face: 'hero', who: 'grandma' }` turned grandma to
+  the right wherever the hero stood, since the hero is not a hotspot, a prop nor an actor; the `face` command now reads
+  the hero's position from the state, as it already did for the hero turning toward someone. Found while making
+  "Jack cherche un taf", in an opening cutscene.
+
+### Changes
+
+- **The sprite sheets' background (4.2.4)**: `"sheetBackground"` in `site.json`, next to `artStyle`, is
+  `"transparent"` or a `#RRGGBB` colour (default `#2B2E45`, so a game without it gets the same prompts as before).
+  `npm run prompts` writes every sheet's background from it; in transparent mode the prompts ask for real alpha, forbid
+  a painted checkerboard and keep carved or open shapes (mouths, eyes) opaque. `tools/cut-sheet.py` cuts a sheet on a
+  transparent background on its alpha, keying nothing by colour (a flat-background sheet cuts exactly as before). Two
+  small scripts help choose: `tools/check-alpha.py` tells real alpha from a painted checkerboard, and
+  `tools/pick-bg.py` ranks the flat colours by their distance to a character's drawing (PROMPTS.md, "Choosing the
+  sheet background").
+
+- **An exit can be gone through on a single tap (4.2.4, #188)**: `input: { exitOnTap: true }` in `game.ts` makes a
+  single tap on an exit with no verb picked walk there and go through on arrival, with the double tap's verb, as in
+  the LucasArts classics; a locked exit says its `locked` line. A picked verb still wins, a tap elsewhere during the
+  walk still redirects the hero (and nothing is gone through), a double tap is unchanged. An exit's `onTap: 'go' |
+  'walk'` overrides the game's setting either way; the Studio offers it on the exit's sheet. Off by default: a game
+  without either plays exactly as before. Input only (presentation in the fingerprint): the rules, the solver and
+  saves do not see it.
+
+- **`actorGap`: the hero's distance to a character follows their size (4.2.4, #198)**: without an `approach` point in
+  the layout, the hero stopped 44 units from any character, so tall characters who gesture as they talk put a hand in
+  each other's head. `actorGap` on the game (e.g. `0.8`) sets the distance to that share of the two characters' mean
+  height, times the depth scale where the character stands; omitted, nothing changes, and an `approach` point still
+  wins. `depthScale` and `scaleAt` move to `core/stage.ts`. Found while making "Jack cherche un taf".
+
 ## 4.2.3 — 2026-10-20
 
 "Coordination" (LOG #218–#240): the last of the three 4.2.x steps (D40, D44). A team organises its game in the

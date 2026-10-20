@@ -6546,3 +6546,116 @@ the same commit.
 
 → next: Claude (the merge, the candidate on main, `v4.2.3` signed on it, `ship verify`, the two pass issues); then 4.2.4,
 the contributors' pull requests (#187, #191, #194) at the maintainer's request
+
+## #241 · 2026-10-19 · Claude · proposal · 4.2.4: the sprite sheets' background, transparent or chosen (#186)
+
+- Found while making "Jack cherche un taf" (12 characters, pixel art): the fixed `#2B2E45` keyed out a vampire's black
+  cape and a blob's dark eyes; magenta instead ate the purple-shifted shadows of an orange pumpkin; and the generator
+  painted the pumpkin's carved mouth and eyes in the background colour, which the flood fill took for background where
+  they touched the edge. Whatever colour is fixed, some character has it in its palette or its shadows.
+- `tools/prompts.ts`: `readSheetBackground(gameDir)` (`transparent`, or `#RRGGBB` upper-cased; `BG` when absent, and
+  with a warning when invalid, where `artStyle` falls back silently) and the `sheetBackground` option. The BACKGROUND
+  line, the style block's note, the furniture LAYOUT line and the EMPTY cells follow it; `BG` stays exported as the
+  default. Without the setting the output is byte-identical (checked on demo, signals and reference, cel and pixel,
+  with and without `--missing`).
+- `tools/cut-sheet.py`, grid mode: an RGBA sheet whose pixels are more than 20% (near) transparent, alpha below 8, is
+  cut on its alpha (`alpha < 128` is background, wherever it is), and each cell keeps the source's soft edge
+  (`min(mask, alpha)`). A sheet on a semi-transparent haze (a flat colour at alpha 200) has no such pixels: it is cut
+  by colour like a flat sheet (a first threshold, 20% below alpha 250, merged its 24 figures into one). A flat sheet,
+  native size or resized, cel or pixel, cuts to the same bytes as before.
+- `tools/pick-bg.py`: the border median that finds a sheet's own flat background counts only the border pixels with
+  alpha above 0, and nothing is left out when the border is fully transparent (a cut sprite: black under alpha 0,
+  which used to drop every dark colour of the drawing).
+- `tools/check-alpha.py` and `tools/pick-bg.py`, ported from the game's own `art-tools/`. `tools/talk-kit.py` keeps
+  its `#2B2E45` backdrop: `talk-apply.py` pastes the mouths back through the validated sprite's alpha and keys nothing.
+- Tests: `tests/prompts.test.ts` (the default still `#2B2E45` in every line, a colour replacing it everywhere, the
+  transparent wording in every kind of sheet, `site.json` read and validated), `tests/pixel.test.ts` (a transparent
+  copy of the synthetic sheet cuts to the same cells, a figure painted `#2B2E45` on it stays whole, the verdicts of
+  check-alpha, cyan for an orange figure from pick-bg with a sheet's own background left out, a haze sheet cut into its
+  24 figures, a dark navy cut sprite whose navy pick-bg counts).
+
+→ next: removing the fringe of a flat colour in the cutter itself, if it is wanted (the game's script is written for
+magenta, and it is the delicate part).
+
+
+## #242 · 2026-10-19 · Claude · proposal · 4.2.4: an exit gone through on a single tap (#188)
+
+- `GameDef.input.exitOnTap` (a new `input` block, presentation) and `ExitDef.onTap: 'go' | 'walk'` (presentation):
+  `core/ir-fields.ts` classes both, `core/fingerprint.ts` hashes both with the presentation, the IR leaves them out.
+- `dom/input.ts` `actOnTarget`: a single tap with no verb on an exit that goes on tap (`tapVerb`: the exit's `onTap`,
+  else the game's switch; the generated hotspot of an exit is read through its exit) walks to the approach point as
+  before, then acts with `defaultVerb` on arrival. The walk stays a plain walk (the engine is not busy), so a tap
+  elsewhere redirects the hero: `App.taps` counts the taps on the scene, and the act runs only if none came, no verb
+  or item was picked, the engine's state is the same object (a save loaded, a new game or a checkpoint replaces it)
+  and its room is the one the tap was made in. A double tap during the walk acts once, as before.
+- The Studio: the sheet of an exit's hotspot has a "single tap" select (the game's setting, go through, walk there),
+  written to `exits.<id>.onTap` through the guarded write.
+- Tests: `tests/dom/exit-on-tap.test.ts` (without the switch it only walks; with it the room changes; `walk` keeps an
+  exit walk-only, `go` works without the switch; Look still looks; a tap elsewhere, a room change or a save loaded
+  during the walk cancels, each failing without its guard; a double tap acts once; the validator's checks),
+  `tests/dom/studio-rooms-sheet.test.ts` (the select).
+- The validator (`tools/validate/player.ts`, split out of `tools/validate.ts` with the save and settings menus' texts,
+  1,113 → 1,096 lines, its cap in `tests/file-size.test.ts` lowered to match): `input` an object, `input.exitOnTap` a
+  boolean, an exit's `onTap` `go` or `walk`.
+- D46 (`docs/dev/DECISIONS.md`): the maintainer allowed the two fields in 4.2.4; D40's freeze of the content format
+  admits optional presentation-only fields that need no schema, save or IR change. `docs/dev/DSL-STABILITY.md` says it.
+- The first visit's JavaScript: 133 KB → 134 KB gzipped in `tests/quality-baseline.json` and the READMEs (+110
+  bytes for `tapVerb` and the tap count in `dom/input.ts`: main measured 133.45 KB, this crosses the rounding to 134).
+- Left as is: the sentence line still says "Walk to <exit>" before a tap that goes through, as the classics did.
+
+→ next: the maintainer's review; Jack cherche un taf turns the switch on.
+
+
+## #243 · 2026-10-20 · Claude · release · 4.2.4: the contributor's four (Horacio, LostInBrittany)
+
+- **What ships**: four pull requests from an outside contributor, Horacio (LostInBrittany), each found while making
+  his game "Jack cherche un taf", reviewed, completed on its branch and merged, with their fragments (LOG #241, #242):
+  - #194 (#193): `face: 'hero'` turns a character toward the hero; the hero was not found among hotspots, props and
+    actors, so the character turned right wherever the hero stood;
+  - #187 (#186): `sheetBackground` in `site.json`, the sprite sheets generated on a transparent background or a
+    chosen `#RRGGBB` colour (default `#2B2E45`, the same prompts as before), cut on their alpha;
+    `tools/check-alpha.py` and `tools/pick-bg.py` to choose;
+  - #191 (#188): `input.exitOnTap` and an exit's `onTap`, an exit gone through on a single tap, off by default;
+  - #199 (#198): `actorGap`, the hero's distance to a character it walks up to following their heights and the depth
+    scale, 44 units when unset.
+- **The maintainer's answers**:
+  - « Yes, in 4.2.4 (Recommended) » to #191's two optional content fields against D40's freeze: D46, a 4.2.x may add
+    an optional, presentation-only content field that needs no schema, save envelope or IR change and leaves a game
+    without it identical; `actorGap` is the third such field, under the same decision;
+  - « Yes, sign v4.2.4 » (20 Oct), the yes for `v4.2.4` only (D37), signed on its own green candidate run; a later tag
+    gets its own;
+  - « ok il y a 4 PR, continue et release la 4.2.4 »: this release.
+- **What was added on the contributor's branches, and why** (each change with a test that fails without it):
+  - every branch: main merged after `v4.2.3`, its fragment labelled 4.2.4, the READMEs' figures and the baseline
+    regenerated;
+  - #187: a sheet on a semi-transparent haze is cut by colour, not on its alpha (the first threshold, 20% of pixels
+    below alpha 250, merged a 6×4 haze sheet's 24 figures into one; now 20% below alpha 8), and a cell keeps the
+    source's soft edge; `pick-bg.py` counts a cut sprite's dark colours (its transparent border, black under alpha 0,
+    dropped every dark colour of the drawing);
+  - #191: the act on arrival also needs the same engine state and room (a save loaded, a new game, a checkpoint or a
+    room change during the walk used to let it act); the validator checks `input`, `input.exitOnTap` and `onTap`
+    (`tools/validate/player.ts`, split out of `tools/validate.ts` to stay under its size cap); D46 written in
+    DECISIONS and DSL-STABILITY; the first visit's JavaScript recorded at 134 KB (+110 bytes, a deliberate growth);
+  - #199: a guest measured at the hero's drawn height (the view draws it so), an actor's height in the view's order;
+    anything but a positive finite `actorGap` keeps the 44 (a negative put the hero on the far side, Infinity off the
+    stage); `actorGap` carried in the presentation fingerprint, which `ir-fields.ts` classed it in but
+    `presentationOf` left out; the validator checks it (a positive number); DSL-STABILITY under D46; the API pages
+    regenerated;
+  - this release: #199's fragment said `### Added`, a heading the CHANGELOG does not use; filed under `### Changes`.
+- **What stays open**:
+  - #186: removing a flat colour's fringe in the cutter itself (the game's own script, written for magenta);
+    `talk-kit.py` keeps its `#2B2E45` backdrop (it keys nothing);
+  - #188: the sentence line still says "Walk to <exit>" before a tap that goes through; no Studio form for
+    `input.exitOnTap` (the Studio writes only `objectives` in the game file); the demo and the reference game do not
+    turn it on;
+  - the passes: none added; the nineteen of 4.2.3 stay open (`studio-hosted` #149, `studio-collab` #150,
+    `studio-preview` #166, `studio-assets-hosted` #167, `studio-mcp-remote` #196, `studio-oidc-generic` #197, and
+    4.2.0's thirteen, #75–#87), made on the 4.2.4 candidate or carried to it (D38);
+  - 4.2.3's open list (SUPPORT "4.2.3": the diff's captures, `ids --lines`, the health with lint and the playtests,
+    the Assistant hosted, a signed backup, npm publishing) is unchanged.
+- **The version**: 4.2.4; the golden save `demo-4.2.4.json`; the reference run recorded again (only its engine version
+  and the hashes that follow from it moved); the CHANGELOG assembled from 4 fragments, two of them with a LOG part
+  (#193's and #198's have none, so this entry says what they did); UPGRADING §37, SUPPORT "4.2.4", ROADMAP, README
+  (en, fr); `docs/dev/passes/4.2.4.md` (nineteen passes, none new).
+
+→ next: Claude (the merge, the candidate on main, `v4.2.4` signed on it, `ship verify`)

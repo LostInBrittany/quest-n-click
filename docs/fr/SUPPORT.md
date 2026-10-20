@@ -63,6 +63,15 @@ aucun runner Windows ni Node 24 (`CONTRIBUTING.md`, « What CI runs ») :
 | Bridge, profil `distributed` (4.1.10, `experimental`) | Postgres 16 en CI (`bridge-postgres`) : le même contrat, les tenants et la diffusion entre instances ; la charge de nuit ; le profil de qualification (`ops/qualify/` : HTTPS, trois instances, le classement, un worker tué en pleine vérification, une restauration après destruction de la topologie) dans le workflow `qualify` ; depuis 4.1.20 le profil complet dans chaque candidat qu'un tag peut nommer (les deux modes de restauration sous le bail de maintenance), `--short` dans celui d'une pull request | un vrai déploiement : jusque-là, `experimental` |
 | Connecteurs (4.1.9), **expérimental** (D19) | email (webhook signé, IMAP), Telnet, SSH, Open Badges 2 et 3 : le même contrat pour les quatre, tests d'abus et de fuzz, une exécution sous `--disallow-code-generation-from-strings`, les replays du chapitre d'exemple ; les quatre joués depuis leur archive dans le candidat (4.1.19) ; les tests Telnet et SSH pas encore sous Windows | un vrai fournisseur d'email, un vrai badge d'un vrai émetteur, SSH et Telnet exposés dans un environnement contrôlé |
 
+## 4.2.4 : des champs de présentation optionnels (D46)
+
+La 4.2.4 ne change le statut d'aucune surface. Le format du contenu reste celui de la 4.2.0, lu avec une exception
+depuis la 4.2.4 (D46) : une 4.2.x peut ajouter un champ de contenu optionnel qui n'est que de présentation, ne demande
+aucun changement de schéma, d'enveloppe de sauvegarde ni d'IR, et laisse identique un jeu qui ne l'a pas. La 4.2.4 en
+ajoute trois : `input.exitOnTap`, le `onTap` d'une sortie et `actorGap` (`docs/dev/DSL-STABILITY.md`).
+`sheetBackground` dans `site.json` est un réglage des outils d'image, pas du contenu. Renommer, retirer ou changer le
+sens d'un champ attend toujours une 4.3.
+
 ## 4.2.3 : la fin de la ligne 4.2.x
 
 La 4.2.3 clôt la ligne 4.2.x du Studio Server (D40, D44). Aucune passe n'est encore faite, donc aucune surface n'est
