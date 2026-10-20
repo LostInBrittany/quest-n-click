@@ -23,6 +23,8 @@ Rendered for the project with the Mega Drive audio pipeline in `tools/audio` (do
   attribution "Wano".
 
 ## Fonts (public/fonts, src/engine/dom/fonts)
+- Galmuri11, by Lee Minseo (quiple). SIL Open Font License 1.1 (no Reserved Font Name). The default interface font
+  since 4.2.5, shipped as a Latin subset made by `tools/subset-font.py` (`src/engine/dom/fonts/`).
 - DotGothic16, by Fontworks. SIL Open Font License 1.1 (no Reserved Font Name). The engine ships it whole
   (`public/fonts/`) and as a Latin subset made by `tools/subset-font.py` (`src/engine/dom/fonts/`).
 - Press Start 2P, by CodeMan38. SIL Open Font License 1.1.
