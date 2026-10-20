@@ -12,7 +12,7 @@
   looks, hints, toasts, captions, item and object names, objective titles), after the translation, so each language
   writes its own words inside the braces (`content{form?witch=e|*=}`). The validator reports a malformed switch, a
   flag no command sets, a value listed that nothing writes and a value written that a switch does not cover;
-  `npm run i18n -- status` lists the translations whose switches differ from the source's. A 4.2 text holding a
+  `npm run i18n -- status` lists the translations that drop a choice their source's switches make. A 4.2 text holding a
   literal `{hero}` or `{word?…=…}` is now filled (UPGRADING §37).
 - **Portraits in a choice (4.3.0)**: `img` on a choice option shows it as a card, the image with the option's text as
   its label and its accessible name; the cards wrap and scroll, so a phone fits any number of heroes.

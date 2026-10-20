@@ -425,8 +425,8 @@ look: { grandma: 'Grandma. Dust makes {form?knight=him|witch=her|robot=it} sneez
   the translation): `room:hall/look.grandma` → `Mamie. La poussière {form?knight=le|witch=la|robot=le} fait éternuer.`.
   A language may add a switch its source does not need, for its grammar: `Ready?` becomes
   `Prêt{form?witch=e|*=} ?`. The variants' names are translated too (`char:kid/variants[0].name`).
-  `npm run i18n -- status` lists the translations whose switches differ from the source's: a dropped switch is a
-  mistake, a switch added for the grammar is fine.
+  `npm run i18n -- status` lists the translations that drop a choice the source makes (a flag it no longer switches
+  on, a value neither listed nor covered by `*=`); a switch or a value added for the grammar is fine.
 - **Voices for lines with switches.** A line whose words follow a flag (`{form?m=him|f=her}`) is recorded once per
   value: put its clips in `audio.voices` under `<id>~<flag>=<value>` (`grandma_saw~form=f`). With several flags in
   one line, sort them by name and join them with `~` (`greet~form=f~mood=calm`); values are written as text (`true`,

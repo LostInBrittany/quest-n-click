@@ -16,7 +16,7 @@
   `Engine.text` at every display site (lines, choices, looks, hints, toasts, captions, item and object names,
   objective titles), after `fill()` and the translation. The validator (`validate/text-switches.ts`) reports a
   malformed switch, one in a text shown as written, a flag no command sets, a value listed that nothing writes, a value
-  written that no switch covers; `npm run i18n -- status` lists translations whose switches differ.
+  written that no switch covers; `npm run i18n -- status` lists translations that drop a choice their source makes.
 - **Step 4, portraits in a choice**: `Choice.img`, shown as cards with the option's text as the label; presentation
   only (the logic fingerprint does not move), preloaded by the asset graph, checked by the validator.
 - **Step 5, the fixture and the docs**: `tests/fixtures/heroes.ts`, three heroes (the written look is the robot, two
@@ -40,9 +40,9 @@
   and the plain id plays.
 - **The Studio**: the Play tab's "Text switches" picker (the flag's value, `{hero}`'s name) and a preview line under a
   switched text in the Rooms tab (`src/studio/hero-picker.ts`, STUDIO.md).
-- **Found by the fixture**: `npm run i18n -- status` lists a translation that adds a switch its source does not need
-  (French agreement on an English line with none): the docs say so (a dropped switch is a mistake, an added one is
-  fine), the comparison is unchanged.
+- **Found by the fixture**: `npm run i18n -- status` listed a translation that adds a switch its source does not need
+  (French agreement on an English line with none). The comparison now reports only a choice the translation drops (a
+  flag, or a value neither listed nor covered by `*=`); an added switch or value is the translation's own.
 - **Checks**: `npm run -s tsc -- --noEmit`; `npx vitest run tests/hero-choice.test.ts tests/lint.test.ts`;
   `npm run validate && npm run solve`; `npm run lint`; `npm run changes -- --check`; `npm run docs:truth`;
   `npm run format:check`; `npm run lint:code`; knip; `npm run -s test:node`.

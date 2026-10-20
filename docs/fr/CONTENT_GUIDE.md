@@ -433,8 +433,9 @@ look: { grandma: 'Mamie. La poussière {form?knight=le|witch=la|robot=le} fait �
 - **Les traductions** écrivent leurs propres mots entre les accolades, avec le même drapeau et les mêmes valeurs
   (l'aiguillage est rempli après la traduction). Une langue peut ajouter un aiguillage dont sa source n'a pas besoin,
   pour sa grammaire : l'anglais `Ready?` devient `Prêt{form?witch=e|*=} ?`. Les noms des variantes se traduisent aussi
-  (`char:kid/variants[0].name`). `npm run i18n -- status` liste les traductions dont les aiguillages diffèrent de ceux
-  de la source : un aiguillage perdu est une erreur, un aiguillage ajouté pour la grammaire est voulu.
+  (`char:kid/variants[0].name`). `npm run i18n -- status` liste les traductions qui perdent un choix de la source (un
+  drapeau qu'elles n'aiguillent plus, une valeur ni listée ni couverte par `*=`) ; un aiguillage ou une valeur ajoutés
+  pour la grammaire sont voulus.
 - **Les voix des répliques à aiguillage.** Une réplique dont les mots suivent un drapeau (`{form?m=le|f=la}`)
   s'enregistre une fois par valeur : ses clips vont dans `audio.voices` sous `<id>~<drapeau>=<valeur>`
   (`grandma_saw~form=f`). Avec plusieurs drapeaux dans une réplique, les trier par nom et les joindre par `~`

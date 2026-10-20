@@ -409,8 +409,28 @@ function switchSignature(text: string): string {
 }
 
 /**
+ * Whether a translation keeps every choice its source's switches make (4.3): each flag the source switches on is
+ * switched on in the translation too, and each value the source lists is listed there or covered by its `*=`; a
+ * source's `*=` needs one in the translation. A translation may add switches or values (French agreement on a line
+ * English writes alike: `Prêt{form?f=e|*=}`). A malformed span in the translation is never kept.
+ */
+function switchesKept(source: string, translation: string): boolean {
+  const t = parseText(translation);
+  if (t.malformed.length) return false;
+  const values = (sw: typeof t.switches, flag: string) =>
+    new Set(sw.filter((x) => x.flag === flag).flatMap((x) => x.alts.map((a) => a.value)));
+  for (const s of parseText(source).switches) {
+    const have = values(t.switches, s.flag);
+    if (!have.size) return false;
+    for (const a of s.alts) if (!have.has(a.value) && !have.has('*')) return false;
+  }
+  return true;
+}
+
+/**
  * Coverage of a translation table against the game: what is missing, what no longer exists, what is long, and
- * (4.3) the translations whose text switches differ from the source's (`switches`: path, source's, translation's).
+ * (4.3) the translations that drop a choice their source's text switches make (`switches`: path, source's,
+ * translation's; see `switchesKept`).
  */
 export function localeStatus(game: GameDef, table: Record<string, string>, maxText = 140) {
   const paths = textPaths(game);
@@ -426,14 +446,13 @@ export function localeStatus(game: GameDef, table: Record<string, string>, maxTe
     .map((p) => p.path);
   const allowed = new Set(game.i18n?.same ?? []);
   const untranslated = same.filter((p) => !allowed.has(p));
-  // A switch is the same choice in every language: the flag and its values, whatever the words inside.
+  // A switch is the same choice in every language: its flag and values are kept, whatever the words inside.
   const switches: { path: string; source: string; translation: string }[] = [];
   for (const p of paths) {
     const t = table[p.path];
     if (typeof t !== 'string' || t === p.text || (!t.includes('{') && !p.text.includes('{'))) continue;
-    const source = switchSignature(p.text);
-    const translation = switchSignature(t);
-    if (source !== translation) switches.push({ path: p.path, source, translation });
+    if (!switchesKept(p.text, t))
+      switches.push({ path: p.path, source: switchSignature(p.text), translation: switchSignature(t) });
   }
   return {
     total: paths.length,
