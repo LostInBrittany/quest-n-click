@@ -53,6 +53,8 @@ const game: Classes<GameDef> = {
   invariants: 'logic',
   saves: 'presentation',
   settings: 'presentation',
+  // Where the hero stands to reach a character: geometry, like the layout's approach points.
+  actorGap: 'presentation',
   offline: 'meta',
   lint: 'meta',
   i18n: 'meta',
