@@ -2,7 +2,7 @@
 // One hero character, `kid`: its written look and name are the robot's, and two variants, read from the flag `form`,
 // make it the knight or the witch, each with its own name. The intro asks with portraits; Grandma's lines switch on
 // `form` and name the hero with `{hero}`; a French table translates some lines, its own words inside the braces.
-// The puzzle: take the key under the rug, open the door with it.
+// Grandma's line about the dust is voiced once per hero. The puzzle: take the key under the rug, open the door with it.
 import type { GameDef, Layout } from '@engine/core/types';
 
 export function heroes(): GameDef {
@@ -77,6 +77,7 @@ export function heroes(): GameDef {
                     'grandma',
                     'Under the rug. Mind the dust: it makes {form?robot=it|witch=her|knight=him} sneeze.',
                   ],
+                  id: 'sneeze',
                 },
               ],
             },
@@ -115,6 +116,14 @@ export function heroes(): GameDef {
           ],
         },
       ],
+    },
+    // One clip per hero for Grandma's switched line (`<id>~form=<value>`); the files are the author's to name.
+    audio: {
+      voices: {
+        'sneeze~form=knight': 'grandma/sneeze-him.mp3',
+        'sneeze~form=witch': 'grandma/sneeze-her.mp3',
+        'sneeze~form=robot': 'grandma/sneeze-it.mp3',
+      },
     },
     checkpoints: {
       knight_key: { room: 'hall', inventory: ['key'], flags: { form: 'knight', key_found: true } },

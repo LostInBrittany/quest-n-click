@@ -16,6 +16,16 @@
   literal `{hero}` or `{word?…=…}` is now filled (UPGRADING §37).
 - **Portraits in a choice (4.3.0)**: `img` on a choice option shows it as a card, the image with the option's text as
   its label and its accessible name; the cards wrap and scroll, so a phone fits any number of heroes.
+- **Voices for lines with switches (4.3.0)**: a line whose words follow a flag (`{form?m=him|f=her}`) is recorded once
+  per value: its clips go in `audio.voices` under `<id>~<flag>=<value>` (`grandma_saw~form=f`); with several flags in
+  one line, sorted by name and joined with `~` (`greet~form=f~mood=calm`), values written as text (`true`, `2`). The
+  engine plays the clip for the flags as they stand and falls back to the plain id when that clip is missing or a flag
+  is not set yet, so a game can ship before every recording exists. `voicesByLang` uses the same keys. `npm run voices`
+  (and the Studio's Voices tab) lists one row per value, each with its text, and `npm run validate` warns when a voiced
+  line lacks a value's clip. The keys are only map keys: the file names stay the author's (AUDIO.md, "Voices").
+- **The Studio previews each hero (4.3.0)**: the Play tab's **Text switches** picker sets the flag a game's switches
+  read (and shows `{hero}`'s name), and the Rooms tab shows under a switched text how it reads (local Studio;
+  STUDIO.md).
 - **`npm run lint` and the chosen hero (4.3.0)**: `hero-looks-default` (info) says when two or more values of the
   hero's flag match no variant, so those heroes would look like the written one; a rule that only sets a flag read by
   a character's variant or a text switch (the intro's choice) is no longer reported as `action-dead`.

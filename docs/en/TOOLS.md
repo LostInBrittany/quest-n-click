@@ -200,6 +200,7 @@ npm run ids [-- --write --map]     # stable ids (schema 3) written into the sour
 npm run ids -- --lines [--write --map]   # an id on every say / toast / guide object, list line, hint and kind reaction (--lines=all: plain strings too, required for a translated or voiced release): translations and voices keyed by it (UPGRADING §9, §10)
 npm run i18n -- voices             # the lines with an id and no voice clip, the clips no line claims
 npm run voices -- status [--lang xx]                 # per language: lines with an id by status (draft, record, recorded, approved), clips, orphans
+                                                     # a line with text switches (4.3) has one row per value, `<id>~form=f`, each with its text (AUDIO.md, "Voices")
 npm run voices -- export --lang xx [--json] > t.csv  # the table for the actors: id, who, the text in that language, status, file, actor, note
 npm run voices -- import t.csv --lang xx             # their statuses, actors and notes back into games/<id>/voices.json (unknown lines refused)
 npm run voices -- check [--lang xx] [--release]      # every clip measured with ffmpeg: codec, rate, length for its text, loudness (≈ −16 LUFS), peak; --release: an approved line needs its clip

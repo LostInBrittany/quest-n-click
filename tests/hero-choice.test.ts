@@ -24,7 +24,7 @@ const fr: Record<string, string> = {
   // French agrees the adjective with the witch: a switch the English line does not need.
   'room:hall/talk.grandma[0].do[0].say':
     'Bonjour, {hero} ! Prêt{form?witch=e|*=}, {form?knight=mon brave chevalier|witch=ma sorcière futée|*=mon robot qui brille} ?',
-  'room:hall/talk.grandma[1].do[0].say':
+  'room:hall/talk.grandma[1].do.sneeze.say':
     'Sous le tapis. Attention à la poussière : elle {form?robot=le|witch=la|knight=le} fait éternuer.',
   'room:hall/on[0].do[2]': '{form?robot=Clé acquise.|*=Je l’ai !}',
 };
@@ -136,6 +136,8 @@ describe('choosing the hero (the heroes fixture)', () => {
       ui.picks = [1];
       await e.act({ verb: 'talk', a: 'grandma' });
       expect(ui.log.find((l) => l.startsWith('grandma: Under the rug'))).toContain(c.sneeze);
+      // Grandma's switched line plays the clip recorded for this hero.
+      expect(ui.voices).toEqual([`sneeze~form=${c.form}`]);
       await e.act({ verb: 'take', a: 'rug' });
       expect(ui.log.at(-1)).toBe(`kid: ${c.take}`);
       await e.act({ verb: 'look', a: 'key' });
@@ -159,6 +161,24 @@ describe('choosing the hero (the heroes fixture)', () => {
       await e.act({ verb: 'take', a: 'rug' });
       expect(ui.log.at(-1)).toBe(c.form === 'robot' ? 'kid: Clé acquise.' : 'kid: Je l’ai !');
     });
+
+  it('a missing clip by value: the validator warns, the engine plays the plain id', async () => {
+    const g = heroes();
+    delete g.audio!.voices!['sneeze~form=robot'];
+    g.audio!.voices!.sneeze = 'grandma/sneeze.mp3';
+    expect(validate(g, heroesLayouts, { assets: { images: heroesImages } }).warnings).toEqual([
+      expect.stringMatching(/voice:sneeze.*lacks 1 of 3 clip\(s\) by value: sneeze~form=robot/),
+    ]);
+    for (const [pick, clip] of [
+      [2, 'sneeze'],
+      [1, 'sneeze~form=witch'],
+    ] as const) {
+      const { e, ui } = await play(g, pick);
+      ui.picks = [1];
+      await e.act({ verb: 'talk', a: 'grandma' });
+      expect(ui.voices).toEqual([clip]);
+    }
+  });
 
   it('a save keeps the hero: loaded in a new engine, Morwen is still Morwen', async () => {
     const { e, store } = await play(heroes(), 1);

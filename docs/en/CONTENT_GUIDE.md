@@ -427,9 +427,16 @@ look: { grandma: 'Grandma. Dust makes {form?knight=him|witch=her|robot=it} sneez
   `Prêt{form?witch=e|*=} ?`. The variants' names are translated too (`char:kid/variants[0].name`).
   `npm run i18n -- status` lists the translations whose switches differ from the source's: a dropped switch is a
   mistake, a switch added for the grammar is fine.
-- **Voices**: a line with a switch needs a clip per value (Grandma saying "him" or "her" is two recordings). Its clips
-  are keyed by the line's id followed by the flags' values, `<id>~form=witch` (several switches:
-  `<id>~form=witch~mood=calm`, flags sorted), the plain id being the fallback; see [AUDIO.md](AUDIO.md).
+- **Voices for lines with switches.** A line whose words follow a flag (`{form?m=him|f=her}`) is recorded once per
+  value: put its clips in `audio.voices` under `<id>~<flag>=<value>` (`grandma_saw~form=f`). With several flags in
+  one line, sort them by name and join them with `~` (`greet~form=f~mood=calm`); values are written as text (`true`,
+  `2`). The engine plays the clip for the flags as they stand and falls back to the plain id when that clip is
+  missing or a flag is not set yet, so a game can ship before every recording exists. `voicesByLang` uses the same
+  keys. `npm run voices` (and the Studio's Voices tab) lists one row per value, each with its text, and
+  `npm run validate` warns when a voiced line lacks a value's clip. The keys are only map keys: the file names stay
+  yours ([AUDIO.md](AUDIO.md), "Voices"). `{hero}` alone is not a switch: such a line keeps one clip.
+- **Previewing each hero**: the Studio's Play tab has a "Text switches" picker that sets the flag, and the Rooms tab
+  shows under a switched text how it reads ([STUDIO.md](STUDIO.md)).
 
 What the tools say:
 
@@ -438,6 +445,7 @@ What the tools say:
   `… has no text for "form" = "robot" (written at …): list it or add "*="`; `{hero} in a text shown as written`;
   `start.intro[1].choice[0].img › image not found: "…"`. A flag counted with `inc` cannot be listed: its switch needs
   `*=` (a warning).
+- `npm run validate` also warns: `voiced line with text switches lacks 1 of 3 clip(s) by value: sneeze~form=robot`.
 - `npm run lint`: `hero-looks-default` (info) when two or more values of the hero's flag match no variant, so those
   heroes look like the written one (a typo in a variant's `if`, or a variant not written yet).
 

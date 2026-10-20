@@ -29,9 +29,17 @@
   The lint: `hero-looks-default` (info, `src/engine/tools/lint-hero.ts`) when two or more values a `set` writes for a flag the
   hero's variants read match none of them (one such value is the usual design: the written look is a hero too); and
   the intro's `set` is no longer `action-dead` when what it sets is read by a variant or a switch. Docs (en, fr):
-  CONTENT_GUIDE "Choosing the hero", CLASSICS (Maniac Mansion, "Choose your hero at the start"), TOOLS (the lint row),
+  CONTENT_GUIDE "Choosing the hero" (its voices and Studio paragraphs included), CLASSICS (Maniac Mansion, "Choose your hero at the start"), TOOLS (the lint row),
   UPGRADING §37 (a literal `{hero}` or `{word?…=…}` in a 4.2 text is now filled), DSL-STABILITY (the four admitted
   elements).
+- **Step 6, voices by value**: `core/voice-key.ts` (`<id>~<flag>=<value>`, flags sorted, the plain id as the fallback,
+  no keyed lookup while a flag is unset), the engine's lookup in `audio.voices` and `voicesByLang`, the recording table
+  one row per value (`npm run voices`, the Studio's Voices tab), the validator's warning for a missing value's clip
+  (`validate/voices.ts`), AUDIO.md "Lines with text switches". The fixture voices Grandma's dust line once per hero
+  (`sneeze~form=knight|witch|robot`): each walkthrough hears its hero's clip; without the robot's, the validator warns
+  and the plain id plays.
+- **The Studio**: the Play tab's "Text switches" picker (the flag's value, `{hero}`'s name) and a preview line under a
+  switched text in the Rooms tab (`src/studio/hero-picker.ts`, STUDIO.md).
 - **Found by the fixture**: `npm run i18n -- status` lists a translation that adds a switch its source does not need
   (French agreement on an English line with none): the docs say so (a dropped switch is a mistake, an added one is
   fine), the comparison is unchanged.
@@ -39,5 +47,4 @@
   `npm run validate && npm run solve`; `npm run lint`; `npm run changes -- --check`; `npm run docs:truth`;
   `npm run format:check`; `npm run lint:code`; knip; `npm run -s test:node`.
 
-→ next: step 6, voices by value (`<id>~form=witch`, the voices tool's sheets, the validator's warning; AUDIO.md), then
-4.3.0's release checklist
+→ next: 4.3.0's release checklist (the version, the golden save, UPGRADING §37's install line, SUPPORT, ROADMAP)

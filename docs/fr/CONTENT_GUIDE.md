@@ -435,10 +435,17 @@ look: { grandma: 'Mamie. La poussière {form?knight=le|witch=la|robot=le} fait �
   pour sa grammaire : l'anglais `Ready?` devient `Prêt{form?witch=e|*=} ?`. Les noms des variantes se traduisent aussi
   (`char:kid/variants[0].name`). `npm run i18n -- status` liste les traductions dont les aiguillages diffèrent de ceux
   de la source : un aiguillage perdu est une erreur, un aiguillage ajouté pour la grammaire est voulu.
-- **Les voix** : une réplique à aiguillage demande un enregistrement par valeur (Mamie qui dit « le » ou « la », ce
-  sont deux prises). Ses clips sont rangés sous l'id de la réplique suivi des valeurs des drapeaux, `<id>~form=witch`
-  (plusieurs aiguillages : `<id>~form=witch~mood=calm`, drapeaux triés), l'id seul servant de repli ; voir
-  [AUDIO.md](AUDIO.md).
+- **Les voix des répliques à aiguillage.** Une réplique dont les mots suivent un drapeau (`{form?m=le|f=la}`)
+  s'enregistre une fois par valeur : ses clips vont dans `audio.voices` sous `<id>~<drapeau>=<valeur>`
+  (`grandma_saw~form=f`). Avec plusieurs drapeaux dans une réplique, les trier par nom et les joindre par `~`
+  (`greet~form=f~mood=calm`) ; les valeurs s'écrivent en texte (`true`, `2`). Le moteur joue le clip des drapeaux tels
+  qu'ils sont et se rabat sur l'id seul quand ce clip manque ou qu'un drapeau n'est pas encore posé : un jeu peut
+  sortir avant que tout soit enregistré. `voicesByLang` prend les mêmes clés. `npm run voices` (et l'onglet Voices du
+  Studio) liste une ligne par valeur, chacune avec son texte, et `npm run validate` avertit quand une réplique doublée
+  n'a pas le clip d'une valeur. Les clés ne sont que des clés : les noms de fichiers restent les tiens
+  ([AUDIO.md](AUDIO.md), « Voix »). `{hero}` seul n'est pas un aiguillage : une telle réplique garde un seul clip.
+- **Voir chaque héros** : l'onglet Play du Studio a un sélecteur « Text switches » qui pose le drapeau, et l'onglet
+  Rooms montre sous un texte à aiguillage comment il se lit ([STUDIO.md](STUDIO.md)).
 
 Ce que disent les outils :
 
@@ -448,6 +455,7 @@ Ce que disent les outils :
   `… has no text for "form" = "robot" (written at …): list it or add "*="` ; `{hero} in a text shown as written` ;
   `start.intro[1].choice[0].img › image not found: "…"`. Un drapeau compté avec `inc` ne se liste pas : son aiguillage
   demande `*=` (un avertissement).
+- `npm run validate` avertit aussi : `voiced line with text switches lacks 1 of 3 clip(s) by value: sneeze~form=robot`.
 - `npm run lint` : `hero-looks-default` (info) quand deux valeurs ou plus du drapeau du héros ne correspondent à aucune
   variante, si bien que ces héros ont l'air de celui écrit (une faute de frappe dans le `if` d'une variante, ou une
   variante pas encore écrite).
