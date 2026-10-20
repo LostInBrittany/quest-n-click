@@ -683,4 +683,7 @@ signal is still `web-scumm-world-signal`, a reality manifest `web-scumm-reality-
 IndexedDB databases (`web-scumm-saves`, `web-scumm-runs`) and its `web-scumm.…` storage keys, so a player's saves and
 runs are found where they were; the Bridge's `X-Web-Scumm-*` headers, the signatures' contexts, the environment
 variables `WEB_SCUMM_*` and the Studio Server's tables are unchanged. Releases up to v4.2.4 keep their files' names and
-their attestations, which name the repository `wanoo/web-scumm`.
+their attestations, which name the repository `wanoo/web-scumm`; from v4.2.5 the attestations name
+`wanoo/quest-n-click` (`ship verify` asks for the one each release was signed under). The sample game's and the
+reference chapter's credits now say quest'n'click: their presentation fingerprint moved, so their reference run is
+recorded again; a game's own fingerprint moves only if its own text changes.
