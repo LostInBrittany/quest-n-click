@@ -22,8 +22,9 @@ cpSync('games/_template', dir, { recursive: true });
 // by mistake (npm run validate -- --release fails on every placeholder, on an asset no entry covers, on a licence
 // outside `licences.allow`, and without a provenance.lock.json: npm run provenance -- --lock once the art is reviewed).
 const placeholder = {
-  source: 'Placeholder drawn from shapes by tools/placeholder-art.py (web-scumm template): replace before a release',
-  author: 'web-scumm',
+  source:
+    "Placeholder drawn from shapes by tools/placeholder-art.py (quest'n'click template): replace before a release",
+  author: "quest'n'click",
   licence: 'CC0 1.0',
   status: 'placeholder',
 };

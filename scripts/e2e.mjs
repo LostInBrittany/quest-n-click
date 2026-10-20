@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // npm run e2e [url] [--game demo] [--at=<checkpoint>] [--prod] [--generic] [--keyboard]
-// Plays a web-scumm game by touch in a phone-sized browser (E2E_BROWSER=chromium|webkit|firefox).
+// Plays a quest'n'click game by touch in a phone-sized browser (E2E_BROWSER=chromium|webkit|firefox).
 //   - If games/<GAME>/e2e.mjs exists, it is loaded and must export `run(harness)`: a game-specific walkthrough,
 //     free to call the generic harness and to play its own minigames for real instead of skipping them.
 //   - Otherwise, this script asks `npm run solve -- --json` for an action path and replays it with

@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // npm run external-consumer -- [--tarballs=<dir>] [--from=<version|tgz>] [--dir=<folder>] [--keep] (4.1.18 "Dress
-// Rehearsal", plan §7): the four archives used the way a third party uses them, on Linux, macOS and Windows. The
+// Rehearsal", plan §7): the archives used the way a third party uses them, on Linux, macOS and Windows. The
 // tarballs are the candidate run's (`--tarballs=`: never packed again in the line that judges them; without it, this
 // checkout is packed, for a local try). Nothing the consumer runs comes from the checkout: no module of it is imported
 // by the projects (this harness reads only scripts/upgrade-source.mjs, to name the older release),
@@ -8,9 +8,11 @@
 //
 //   1. the archives read: name, version, licence, binaries, exports, no `file:`/`link:` dependency, no checkout path;
 //   2. a game created on the older release (`--from`, 4.1.17 by default), its assets, verify, and a save made by that
-//      engine; then the candidate installed over it: migrate, migrate --check, assets, verify, build, the old save
-//      loaded and played to the ending through `web-scumm/testing`, a new game played to the ending the same way;
-//   3. `npx create-web-scumm` from its archive;
+//      engine; then the candidate installed over it under the name that game depends on, `web-scumm` (since 4.2.5 the
+//      engine's alias under its former name, D47), its old commands and imports unchanged: migrate, migrate --check,
+//      assets, verify, build, the old save loaded and played to the ending through `web-scumm/testing`, a new game
+//      played to the ending the same way;
+//   3. `npx create-quest-n-click` from its archive, and its former name's alias, `npx create-web-scumm`;
 //   4. the Bridge from its archive: init, doctor, serve on SQLite (and on Postgres when CONSUMER_PG_URL is set), its
 //      keys answered;
 //   5. the connectors from their archive (`--omit=optional --ignore-scripts`): every connector's `--help`, then a
@@ -40,7 +42,7 @@ import { KNOWN_ENGINES, sumFor, sumsAsset, upgradeSource } from './upgrade-sourc
 const ROOT = resolve(import.meta.dirname, '..');
 const args = process.argv.slice(2);
 const flag = (k) => args.find((a) => a.startsWith(`--${k}=`))?.slice(k.length + 3);
-const base = resolve(flag('dir') ?? mkdtempSync(join(tmpdir(), 'web-scumm-consumer-')));
+const base = resolve(flag('dir') ?? mkdtempSync(join(tmpdir(), 'quest-n-click-consumer-')));
 mkdirSync(base, { recursive: true });
 const version = JSON.parse(readFileSync(join(ROOT, 'package.json'), 'utf8')).version;
 // The consumer's environment: nothing that points a tool at this repository's game.
@@ -81,7 +83,17 @@ function leaksIn(dir) {
 }
 
 // ---------------------------------------------------------------- the archives
-const NAMES = ['web-scumm', 'create-web-scumm', 'web-scumm-bridge', 'web-scumm-connectors'];
+// The packages under their names since 4.2.5 (D47), and their former names' aliases, through 4.2.x.
+const NAMES = [
+  'quest-n-click',
+  'create-quest-n-click',
+  'quest-n-click-bridge',
+  'quest-n-click-connectors',
+  'web-scumm',
+  'create-web-scumm',
+  'web-scumm-bridge',
+  'web-scumm-connectors',
+];
 let tarballs = flag('tarballs');
 if (!tarballs) {
   tarballs = join(base, 'pack');
@@ -129,14 +141,14 @@ if (src.kind === 'tgz') oldTgz = resolve(src.path);
 else {
   if (src.kind === 'previous') throw new Error("--from=previous is upgrade-check's; name a version here");
   oldTgz = join(base, src.asset);
-  const url = `https://github.com/wanoo/web-scumm/releases/download/${src.tag}/${src.asset}`;
+  const url = `https://github.com/wanoo/quest-n-click/releases/download/${src.tag}/${src.asset}`;
   console.log(`\n▶ the older engine: ${url}`);
   // Tried again on a 5xx (4.1.20 PR 3): a 504 from GitHub's releases failed candidate 38236552662 on two runners.
   const r = await fetchRetry(url);
   if (!r.ok) throw new Error(`${url}: ${r.status}`);
   const bytes = Buffer.from(await r.arrayBuffer());
   // Checked against the release's own sums (4.1.19): a stable tag and a pre-release alike.
-  const sumsUrl = `https://github.com/wanoo/web-scumm/releases/download/${src.tag}/${sumsAsset(src.tag)}`;
+  const sumsUrl = `https://github.com/wanoo/quest-n-click/releases/download/${src.tag}/${sumsAsset(src.tag)}`;
   const s = await fetchRetry(sumsUrl);
   if (!s.ok) throw new Error(`${sumsUrl}: ${s.status}`);
   const want = sumFor(await s.text(), src.asset);
@@ -177,6 +189,7 @@ console.log('saved after', half.length, 'of', r.steps.length, 'steps in', e.stat
 );
 run(`a save made by ${oldVersion}`, 'npx', ['tsx', '--tsconfig', 'tsconfig.json', 'make-save.ts'], game);
 
+// The game names its engine `web-scumm`, as every game made before 4.2.5 does: the candidate's alias of that name.
 run(`the candidate over it (${version})`, 'npm', ['install', tgz['web-scumm']], game);
 const dep = json(join(game, 'package.json')).dependencies?.['web-scumm'] ?? '';
 if (!dep.includes(`web-scumm-${version}.tgz`))
@@ -216,22 +229,25 @@ run(
 );
 for (const leak of leaksIn(game)) fail(leak);
 
-// ---------------------------------------------------------------- create-web-scumm
-const creator = join(base, 'creator');
-mkdirSync(creator, { recursive: true });
-writeFileSync(join(creator, 'package.json'), '{ "name": "creator", "private": true }\n');
-run('create-web-scumm: install', 'npm', ['install', tgz['create-web-scumm'], tgz['web-scumm']], creator);
-run(
-  'create-web-scumm: run',
-  'npx',
-  ['create-web-scumm', 'beacon', 'The Beacon', `--engine=file:${tgz['web-scumm']}`],
-  creator,
-);
-if (!existsSync(join(creator, 'beacon', 'game', 'game.ts'))) fail('create-web-scumm made no game');
-for (const leak of leaksIn(join(creator, 'beacon'))) fail(leak);
+// ---------------------------------------------------------------- create-quest-n-click, and create-web-scumm
+// Each creator makes a project that names its own engine: the new name, or (the alias, D47) the former one throughout.
+for (const [creatorName, engineName] of [
+  ['create-quest-n-click', 'quest-n-click'],
+  ['create-web-scumm', 'web-scumm'],
+]) {
+  const creator = join(base, creatorName);
+  mkdirSync(creator, { recursive: true });
+  writeFileSync(join(creator, 'package.json'), '{ "name": "creator", "private": true }\n');
+  run(`${creatorName}: install`, 'npm', ['install', tgz[creatorName], tgz[engineName]], creator);
+  run(`${creatorName}: run`, 'npx', [creatorName, 'beacon', 'The Beacon', `--engine=file:${tgz[engineName]}`], creator);
+  if (!existsSync(join(creator, 'beacon', 'game', 'game.ts'))) fail(`${creatorName} made no game`);
+  else if (!json(join(creator, 'beacon', 'package.json')).dependencies?.[engineName])
+    fail(`${creatorName}: the project does not depend on ${engineName}`);
+  for (const leak of leaksIn(join(creator, 'beacon'))) fail(leak);
+}
 
 // ---------------------------------------------------------------- the Bridge
-const bridgeDir = unpack(tgz['web-scumm-bridge'], join(base, 'bridge'));
+const bridgeDir = unpack(tgz['quest-n-click-bridge'], join(base, 'bridge'));
 run('bridge: install', 'npm', ['install', '--omit=dev'], bridgeDir);
 const BIN = join(bridgeDir, 'bin.mjs');
 // The manifest of the game the Bridge serves: the keeper's, with a letter it may answer (an author's data, written here).
@@ -282,20 +298,31 @@ try {
   run(
     'connectors: install',
     'npm',
-    ['install', '--omit=optional', '--ignore-scripts', tgz['web-scumm-connectors']],
+    ['install', '--omit=optional', '--ignore-scripts', tgz['quest-n-click-connectors']],
     operator,
   );
-  const help = run('web-scumm-connector --help', 'npx', ['web-scumm-connector', '--help'], operator, { capture: true });
-  if (!help.includes('usage: web-scumm-connector')) fail('web-scumm-connector --help says no usage');
+  const help = run('quest-n-click-connector --help', 'npx', ['quest-n-click-connector', '--help'], operator, {
+    capture: true,
+  });
+  if (!help.includes('usage: quest-n-click-connector')) fail('quest-n-click-connector --help says no usage');
+  // The former command (D47), through 4.2.x: the same usage, after its notice on stderr.
+  const old = spawnSync(WIN ? 'npx.cmd' : 'npx', ['web-scumm-connector', '--help'], {
+    cwd: operator,
+    env: ENV,
+    shell: WIN,
+    encoding: 'utf8',
+  });
+  if (!old.stderr.includes('web-scumm-connector is now quest-n-click-connector') || !old.stdout.includes('usage:'))
+    fail('web-scumm-connector --help: no notice, or no usage');
   for (const id of ['email', 'telnet', 'ssh', 'open-badge']) {
-    const r = spawnSync(WIN ? 'npx.cmd' : 'npx', ['web-scumm-connector', id], {
+    const r = spawnSync(WIN ? 'npx.cmd' : 'npx', ['quest-n-click-connector', id], {
       cwd: operator,
       env: ENV,
       shell: WIN,
       encoding: 'utf8',
     });
     if (r.status !== 2 || !`${r.stdout}${r.stderr}`.includes('--config'))
-      fail(`web-scumm-connector ${id} without --config: exit ${r.status}`);
+      fail(`quest-n-click-connector ${id} without --config: exit ${r.status}`);
   }
   const token = node(
     'bridge: grant the email connector',
@@ -327,7 +354,7 @@ try {
   // Its bin by node, not through npx: a signal then reaches the connector itself, not npm.
   const connector = serve(
     process.execPath,
-    [join(operator, 'node_modules', 'web-scumm-connectors', 'bin.mjs'), 'email', '--config', 'email.json'],
+    [join(operator, 'node_modules', 'quest-n-click-connectors', 'bin.mjs'), 'email', '--config', 'email.json'],
     operator,
   );
   try {
