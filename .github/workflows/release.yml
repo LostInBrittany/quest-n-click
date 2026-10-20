@@ -6,10 +6,10 @@ name: release
 # packages' publish dry run, dependency audits, the dist inventory) and creates the
 # release with the matching CHANGELOG section and the manual passes of docs/dev/passes/; the two mutation sets run as jobs
 # beside it (4.1.10). Attached: the built game
-# (dist, its licences inside), its assets manifest, the engine's npm packages (web-scumm, create-web-scumm, 3.9;
-# web-scumm-bridge, 4.1.1), a complete speedrun of the reference chapter verified by `speedrun:verify` (4.1.14),
+# (dist, its licences inside), its assets manifest, the engine's npm packages (quest-n-click, create-quest-n-click, 3.9;
+# quest-n-click-bridge, 4.1.1; through 4.2.x their web-scumm names too, D47), a complete speedrun of the reference chapter verified by `speedrun:verify` (4.1.14),
 # SHA-256 sums, an SBOM of the shipped dependencies (CycloneDX) and
-# a build provenance attestation (`gh attestation verify <file> -R wanoo/web-scumm`), and reads it all back once published
+# a build provenance attestation (`gh attestation verify <file> -R wanoo/quest-n-click`), and reads it all back once published
 # (`ship verify`, 4.1.8). A release that already has
 # files is never overwritten (3.7.1): a new version is a new tag.
 on:
@@ -282,12 +282,19 @@ jobs:
       # The Remix worlds of the bundled games (4.1.15, D25): each catalogue's every logical world proved (no softlock),
       # the report published with the release (a generator mode would publish its sample, never "all seeds"). A tag
       # older than 4.1.15 has no catalogue: the step says so and the release goes on.
+      # The name this tag's files start with (4.2.5, D47): quest-n-click from v4.2.5, web-scumm before; a tag that
+      # predates the command is a web-scumm one.
+      - name: The release's name
+        run: echo "P=$(node tools/release/artifacts.mjs project --tag="$TAG" 2>/dev/null || echo web-scumm)" >> "$GITHUB_ENV"
+      # The Remix worlds of the bundled games (4.1.15, D25): each catalogue's every logical world proved (no softlock),
+      # the report published with the release (a generator mode would publish its sample, never "all seeds"). A tag
+      # older than 4.1.15 has no catalogue: the step says so and the release goes on.
       - name: Remix catalogues, proved
         run: |
           if [ -f tools/verify-variants.ts ]; then
-            GAME=demo npx tsx tools/verify-variants.ts --prove --max=200000 --out="web-scumm-$TAG-remix-demo.json"
-            GAME=reference npx tsx tools/verify-variants.ts --prove --max=200000 --out="web-scumm-$TAG-remix-reference.json"
-            echo "REMIX_ASSETS=web-scumm-$TAG-remix-demo.json web-scumm-$TAG-remix-reference.json" >> "$GITHUB_ENV"
+            GAME=demo npx tsx tools/verify-variants.ts --prove --max=200000 --out="$P-$TAG-remix-demo.json"
+            GAME=reference npx tsx tools/verify-variants.ts --prove --max=200000 --out="$P-$TAG-remix-reference.json"
+            echo "REMIX_ASSETS=$P-$TAG-remix-demo.json $P-$TAG-remix-reference.json" >> "$GITHUB_ENV"
           else
             echo "::notice::$TAG predates Remix: no catalogue to prove"
           fi
@@ -296,40 +303,31 @@ jobs:
           # The site the candidate built and qualified (4.1.20): published as it is, never built again for the release
           # (release-check above builds one to check, not to publish). Its file digests and the surfaces beside it.
           for d in site surfaces signing; do test -d ".candidate/$d" || { echo "::error::run $CANDIDATE has no candidate-$d: nothing is made again here"; exit 1; }; done
-          cp .candidate/site/dist.tar.gz "web-scumm-$TAG-dist.tar.gz"
-          cp .candidate/site/assets-manifest.json "web-scumm-$TAG-assets-manifest.json"
-          cp .candidate/site/site-files.json "web-scumm-$TAG-site-files.json"
-          cp .candidate/surfaces/qualification-surfaces.json "web-scumm-$TAG-surfaces.json"
+          cp .candidate/site/dist.tar.gz "$P-$TAG-dist.tar.gz"
+          cp .candidate/site/assets-manifest.json "$P-$TAG-assets-manifest.json"
+          cp .candidate/site/site-files.json "$P-$TAG-site-files.json"
+          cp .candidate/surfaces/qualification-surfaces.json "$P-$TAG-surfaces.json"
           # The signing rehearsal's report (4.1.20 PR 3b), as the candidate's manifest lists it.
-          cp .candidate/signing/signing-rehearsal.json "web-scumm-$TAG-signing-rehearsal.json"
-          # Since 4.1.20 (plan §8.4) this job makes nothing the candidate made: the four archives (packed once, installed
+          cp .candidate/signing/signing-rehearsal.json "$P-$TAG-signing-rehearsal.json"
+          extra="$P-$TAG-site-files.json $P-$TAG-surfaces.json $P-$TAG-signing-rehearsal.json"
+          # Since 4.1.20 (plan §8.4) this job makes nothing the candidate made: the archives (packed once, installed
           # outside the repository on three systems), their SBOMs, the Bridge's image (its archive, identities and SBOM)
           # are the candidate's, checked against its manifest above, copied under the names tools/release/artifacts.mjs
           # gives them. A candidate without one of them stops the release here (every tag that still publishes has them).
+          # Every archive as it was packed: the packages, and through 4.2.x their old names' aliases (4.2.5, D47); each
+          # SBOM under its package's name and the tag (sbom/<name>.cdx.json → <name>-<tag>-sbom.cdx.json).
           for d in pack sbom image; do test -d ".candidate/$d" || { echo "::error::run $CANDIDATE has no candidate-$d: nothing is made again here"; exit 1; }; done
-          cp .candidate/sbom/web-scumm.cdx.json "web-scumm-$TAG-sbom.cdx.json"
-          cp .candidate/pack/web-scumm-[0-9]*.tgz .candidate/pack/create-web-scumm-*.tgz .candidate/pack/web-scumm-bridge-*.tgz .
-          cp .candidate/pack/web-scumm-connectors-*.tgz .
-          extra="$(ls web-scumm-connectors-*.tgz) web-scumm-$TAG-site-files.json web-scumm-$TAG-surfaces.json web-scumm-$TAG-signing-rehearsal.json"
-          cp .candidate/sbom/web-scumm-bridge.cdx.json "web-scumm-bridge-$TAG-sbom.cdx.json"
-          cp .candidate/sbom/web-scumm-connectors.cdx.json "web-scumm-connectors-$TAG-sbom.cdx.json"
-          cp .candidate/sbom/create-web-scumm.cdx.json "create-web-scumm-$TAG-sbom.cdx.json"
-          extra="$extra web-scumm-connectors-$TAG-sbom.cdx.json create-web-scumm-$TAG-sbom.cdx.json"
-          # The Studio Server (4.2.1) and its SBOM; a tag older than 4.2.1 has none.
-          if ls .candidate/pack/web-scumm-studio-server-*.tgz >/dev/null 2>&1; then
-            cp .candidate/pack/web-scumm-studio-server-*.tgz .
-            cp .candidate/sbom/web-scumm-studio-server.cdx.json "web-scumm-studio-server-$TAG-sbom.cdx.json"
-            extra="$extra $(ls web-scumm-studio-server-*.tgz) web-scumm-studio-server-$TAG-sbom.cdx.json"
-          fi
-          cp .candidate/image/web-scumm-bridge-image.tar "web-scumm-bridge-image-$TAG.tar"
-          cp .candidate/image/web-scumm-bridge-image.json "web-scumm-bridge-image-$TAG.json"
-          cp .candidate/image/web-scumm-bridge-image.cdx.json "web-scumm-bridge-image-$TAG-sbom.cdx.json"
-          extra="$extra web-scumm-bridge-image-$TAG.tar web-scumm-bridge-image-$TAG.json web-scumm-bridge-image-$TAG-sbom.cdx.json"
+          for f in .candidate/pack/*.tgz; do cp "$f" .; extra="$extra $(basename "$f")"; done
+          for f in .candidate/sbom/*.cdx.json; do n="$(basename "$f" .cdx.json)-$TAG-sbom.cdx.json"; cp "$f" "$n"; extra="$extra $n"; done
+          cp .candidate/image/$P-bridge-image.tar "$P-bridge-image-$TAG.tar"
+          cp .candidate/image/$P-bridge-image.json "$P-bridge-image-$TAG.json"
+          cp .candidate/image/$P-bridge-image.cdx.json "$P-bridge-image-$TAG-sbom.cdx.json"
+          extra="$extra $P-bridge-image-$TAG.tar $P-bridge-image-$TAG.json $P-bridge-image-$TAG-sbom.cdx.json"
           # The candidate's baseline (4.1.19): its measures of this very SHA, checked against the manifest above.
           for f in .candidate/baseline/baseline-*.json .candidate/baseline/baseline-*.md; do
             [ -f "$f" ] || continue
-            cp "$f" "web-scumm-$TAG-baseline.${f##*.}"
-            extra="$extra web-scumm-$TAG-baseline.${f##*.}"
+            cp "$f" "$P-$TAG-baseline.${f##*.}"
+            extra="$extra $P-$TAG-baseline.${f##*.}"
           done
           # A complete speedrun of the reference chapter (4.1.14, its ninth asset): verified by the very tool a
           # leaderboard runs before it is attached; a run the engine of this tag refuses stops the release.
@@ -337,19 +335,19 @@ jobs:
           # speedrun to verify or attach, and its list of files says so (4.1.15).
           if [ -f tests/fixtures/speedrun/reference-any.wsrun ]; then
             GAME=reference npm run -s speedrun:verify -- tests/fixtures/speedrun/reference-any.wsrun
-            cp tests/fixtures/speedrun/reference-any.wsrun "web-scumm-$TAG-reference-any.wsrun"
-            extra="$extra web-scumm-$TAG-reference-any.wsrun"
+            cp tests/fixtures/speedrun/reference-any.wsrun "$P-$TAG-reference-any.wsrun"
+            extra="$extra $P-$TAG-reference-any.wsrun"
           fi
           # The candidate's runs (4.1.17): the five worlds and 4.1.15's schema 1 file, their manifest, the report of the
           # check that made them, and the candidate's manifest itself; checked against their sums above, copied as they are.
           if [ -n "${CANDIDATE:-}" ]; then
-            for f in .candidate/wsrun/*.wsrun; do cp "$f" "web-scumm-$TAG-$(basename "$f")"; extra="$extra web-scumm-$TAG-$(basename "$f")"; done
-            cp .candidate/wsrun/wsrun-manifest.json "web-scumm-$TAG-wsrun-manifest.json"
-            cp .candidate/e2e-remix-speedrun.txt "web-scumm-$TAG-e2e-remix-speedrun.txt"
-            cp .candidate-manifest/candidate-manifest.json "web-scumm-$TAG-candidate.json"
-            extra="$extra web-scumm-$TAG-wsrun-manifest.json web-scumm-$TAG-e2e-remix-speedrun.txt web-scumm-$TAG-candidate.json"
+            for f in .candidate/wsrun/*.wsrun; do cp "$f" "$P-$TAG-$(basename "$f")"; extra="$extra $P-$TAG-$(basename "$f")"; done
+            cp .candidate/wsrun/wsrun-manifest.json "$P-$TAG-wsrun-manifest.json"
+            cp .candidate/e2e-remix-speedrun.txt "$P-$TAG-e2e-remix-speedrun.txt"
+            cp .candidate-manifest/candidate-manifest.json "$P-$TAG-candidate.json"
+            extra="$extra $P-$TAG-wsrun-manifest.json $P-$TAG-e2e-remix-speedrun.txt $P-$TAG-candidate.json"
           fi
-          sha256sum "web-scumm-$TAG-dist.tar.gz" "web-scumm-$TAG-assets-manifest.json" "web-scumm-$TAG-sbom.cdx.json" "web-scumm-bridge-$TAG-sbom.cdx.json" $extra ${REMIX_ASSETS:-} web-scumm-[0-9]*.tgz create-web-scumm-*.tgz web-scumm-bridge-*.tgz > "web-scumm-$TAG-SHA256SUMS"
+          sha256sum "$P-$TAG-dist.tar.gz" "$P-$TAG-assets-manifest.json" $extra ${REMIX_ASSETS:-} > "$P-$TAG-SHA256SUMS"
           echo "EXTRA_ASSETS=$extra" >> "$GITHUB_ENV"
           # Every file of the release, and none other, as the one manifest lists them (4.1.20, plan §8.4).
           # Guarded on the file, as every step a tag's commit may predate (this workflow runs from main).
@@ -360,37 +358,19 @@ jobs:
           fi
       - uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
         with:
-          # Every file the release carries (4.1.2): the archives and packages, the manifests, both SBOMs, the sums.
+          # Every file the release carries (4.1.2): the archives and packages (and, through 4.2.x, their old names'
+          # aliases), the manifests, the SBOMs, the sums.
           subject-path: |
-            web-scumm-${{ env.TAG }}-dist.tar.gz
-            web-scumm-${{ env.TAG }}-assets-manifest.json
-            web-scumm-${{ env.TAG }}-sbom.cdx.json
-            web-scumm-bridge-${{ env.TAG }}-sbom.cdx.json
-            web-scumm-*-reference-any.wsrun
-            web-scumm-*-remix-*.json
-            web-scumm-*-run-*.wsrun
-            web-scumm-*-wsrun-manifest.json
-            web-scumm-*-e2e-remix-speedrun.txt
-            web-scumm-*-candidate.json
-            web-scumm-*-baseline.*
-            web-scumm-*-site-files.json
-            web-scumm-*-surfaces.json
-            web-scumm-*-signing-rehearsal.json
-            web-scumm-${{ env.TAG }}-SHA256SUMS
-            web-scumm-[0-9]*.tgz
-            create-web-scumm-*.tgz
-            web-scumm-bridge-*.tgz
-            web-scumm-connectors-*.tgz
-            web-scumm-connectors-*-sbom.cdx.json
-            create-web-scumm-*-sbom.cdx.json
-            web-scumm-studio-server-*
-            web-scumm-bridge-image-*
+            ${{ env.P }}-${{ env.TAG }}-*
+            ${{ env.P }}-bridge-image-*
+            *.tgz
+            *-${{ env.TAG }}-sbom.cdx.json
       - run: |
           # A pre-release tag (`v4.1.8-rc.1`, 4.1.8) is published as a GitHub pre-release: same files, same checks.
           pre=""; case "$TAG" in *-*) pre="--prerelease";; esac
           # Draft, every file, then published (4.1.20 PR 3b): an immutable release takes its files while it is a draft.
           gh release create "$TAG" --draft --verify-tag --title "$TAG" --notes-file notes.md $pre
-          gh release upload "$TAG" "web-scumm-$TAG-dist.tar.gz" "web-scumm-$TAG-assets-manifest.json" "web-scumm-$TAG-sbom.cdx.json" "web-scumm-bridge-$TAG-sbom.cdx.json" $EXTRA_ASSETS ${REMIX_ASSETS:-} web-scumm-[0-9]*.tgz create-web-scumm-*.tgz web-scumm-bridge-*.tgz "web-scumm-$TAG-SHA256SUMS"
+          gh release upload "$TAG" "$P-$TAG-dist.tar.gz" "$P-$TAG-assets-manifest.json" $EXTRA_ASSETS ${REMIX_ASSETS:-} "$P-$TAG-SHA256SUMS"
           gh release edit "$TAG" --draft=false
         env:
           GH_TOKEN: ${{ github.token }}

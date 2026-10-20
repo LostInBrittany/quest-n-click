@@ -18,7 +18,7 @@ export function quotedPaths(md: string): string[] {
   const out = new Set<string>();
   for (const m of md.matchAll(/`([\w@.-]+(?:\/[\w@.*<>-]*)+(?:\.\w+)?)(?::\d+)?`/g)) {
     const p = m[1]!;
-    if (/[*<>]/.test(p) || p.startsWith('web-scumm/') || p.startsWith('@')) continue;
+    if (/[*<>]/.test(p) || /^(quest-n-click|web-scumm)\//.test(p) || p.startsWith('@')) continue;
     out.add(p);
   }
   return [...out];

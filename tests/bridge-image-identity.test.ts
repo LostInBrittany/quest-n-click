@@ -41,7 +41,7 @@ describe('the image identity', () => {
       manifestDigest: 'sha256:oci',
       os: 'linux',
       architecture: 'amd64',
-      archive: 'web-scumm-bridge-image.tar',
+      archive: 'quest-n-click-bridge-image.tar',
       archiveSha256: sum('an image archive'),
       compression: 'none',
       archiveBytes: 16,
