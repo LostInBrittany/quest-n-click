@@ -337,6 +337,8 @@ export interface CharacterDef {
    */
   variants?: {
     if: Cond;
+    /** Display name while this variant applies (e.g. the hero the player chose, a character renamed after a reveal). */
+    name?: string;
     sprites?: SpriteSet;
     mouths?: Record<string, MouthSet>;
     portrait?: Id;
