@@ -420,5 +420,5 @@ if (failed) {
 }
 if (!args.includes('--keep') && !flag('dir')) rmSync(base, { recursive: true, force: true });
 console.log(
-  `\n✔  external consumer (${process.platform}, Node ${process.versions.node}): the four ${version} archives installed outside the repository; a ${oldVersion} game moved to ${version}, its save and a new game played to the end; the Bridge and a connector scenario from their archives`,
+  `\n✔  external consumer (${process.platform}, Node ${process.versions.node}): the ${NAMES.length} ${version} archives (the former names' aliases among them) installed outside the repository; a ${oldVersion} game moved to ${version} through the web-scumm alias, its save and a new game played to the end; the Bridge and a connector scenario from their archives`,
 );
