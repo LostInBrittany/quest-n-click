@@ -59,12 +59,16 @@ export function followJob(first: JobInfo, onChange?: (j: JobInfo) => void): Prom
   toastStack().append(panel);
   return new Promise((ok) => {
     let last = first;
+    let over = false;
     const seen = (j: JobInfo) => {
-      if (j.id !== first.id || (ENDED.has(last.state) && !ENDED.has(j.state))) return;
+      // Once ended, nothing more is heard: a poll still in flight may answer after the stream said the job ended, and
+      // telling `onChange` again would overwrite what its caller wrote with the result.
+      if (over || j.id !== first.id) return;
       last = j;
       text.textContent = jobText(j);
       onChange?.(j);
       if (!ENDED.has(j.state)) return;
+      over = true;
       cancel.remove();
       window.removeEventListener('studio-job', onEvent);
       clearInterval(poll);
