@@ -279,13 +279,12 @@ jobs:
       # The mutation sets ran in the `mutation` jobs this one waits for (4.1.10): release-check without them.
       - run: npm run release-check:ci
       - run: node scripts/release-notes.mjs "$TAG" > notes.md
-      # The Remix worlds of the bundled games (4.1.15, D25): each catalogue's every logical world proved (no softlock),
-      # the report published with the release (a generator mode would publish its sample, never "all seeds"). A tag
-      # older than 4.1.15 has no catalogue: the step says so and the release goes on.
       # The name this tag's files start with (4.2.5, D47): quest-n-click from v4.2.5, web-scumm before; a tag that
       # predates the command is a web-scumm one.
       - name: The release's name
-        run: echo "P=$(node tools/release/artifacts.mjs project --tag="$TAG" 2>/dev/null || echo web-scumm)" >> "$GITHUB_ENV"
+        run: |
+          P=$(node tools/release/artifacts.mjs project --tag="$TAG" 2>/dev/null) || { P=web-scumm; echo "::notice::no release name for $TAG: web-scumm"; }
+          echo "P=$P" >> "$GITHUB_ENV"
       # The Remix worlds of the bundled games (4.1.15, D25): each catalogue's every logical world proved (no softlock),
       # the report published with the release (a generator mode would publish its sample, never "all seeds"). A tag
       # older than 4.1.15 has no catalogue: the step says so and the release goes on.

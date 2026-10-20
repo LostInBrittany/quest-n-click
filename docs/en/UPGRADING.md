@@ -642,8 +642,8 @@ toward the hero. If a scene relied on the old facing, write `{ face: 'right', wh
 **web-scumm becomes quest'n'click** (D47). Nothing to change: a game made for 4.2.4 installs, builds, plays and saves
 as before, under its old names. The engine installs from `releases/download/v4.2.5/…`, where the repository is now
 `github.com/wanoo/quest-n-click` (the old `github.com/wanoo/web-scumm` links redirect, release downloads included).
-The sample game and the Studio's demo moved to `https://wanoo.github.io/quest-n-click/`: GitHub does not redirect the
-old Pages address, so update a bookmark or a link to `wanoo.github.io/quest-n-click`.
+The sample game and the Studio's demo moved to `https://wanoo.github.io/quest-n-click/`: the old address redirects
+there, but update a bookmark or a link to `wanoo.github.io/quest-n-click`.
 
 **The new names**, from 4.2.5:
 
@@ -672,7 +672,7 @@ and `web-scumm/content` and the other old imports still resolve. The aliases are
    `./node_modules/quest-n-click/src/engine/api/*`; `@engine/*` points at `./node_modules/quest-n-click/src/engine/*`;
    `include` names `node_modules/quest-n-click/src/env.d.ts`.
 3. The game's sources: `from 'web-scumm/content'` becomes `from 'quest-n-click/content'`, and so on, for example
-   `sed -i.bak "s#'web-scumm/#'quest-n-click/#" game/*.ts game/rooms/*.ts`.
+   `grep -rlE "['\"]web-scumm/" game | xargs sed -i.bak -E "s#(['\"])web-scumm/#\\1quest-n-click/#g"`.
 4. A host of the Bridge, the connectors or the Studio Server installs the `quest-n-click-…` archives and calls the new
    commands in its unit files and scripts.
 

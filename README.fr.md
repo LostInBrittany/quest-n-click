@@ -9,8 +9,8 @@ vérifier qu'on peut le finir, et le livrer comme un jeu web qui s'installe sur 
 
 > **Anciennement web-scumm.** Ce projet s'appelait WebSCUMM, puis web-scumm, en hommage à SCUMM, le moteur de
 > LucasArts dont il suit l'esprit. Il a été renommé quest'n'click pour que son nom ne suscite aucun débat inutile. Les
-> liens vers l'ancien dépôt sont redirigés ici ; l'ancienne adresse de la démo, `wanoo.github.io/web-scumm`, ne l'est
-> pas : le jeu et le Studio sont maintenant sur [wanoo.github.io/quest-n-click](https://wanoo.github.io/quest-n-click/).
+> liens vers l'ancien dépôt sont redirigés ici, et l'ancienne adresse de la démo, `wanoo.github.io/web-scumm`, redirige
+> vers la nouvelle : le jeu et le Studio sont maintenant sur [wanoo.github.io/quest-n-click](https://wanoo.github.io/quest-n-click/).
 > À partir de la 4.2.5, les packages et les commandes s'appellent `quest-n-click`, et les anciens noms `web-scumm`
 > marchent toujours pendant toute la 4.2.x ([UPGRADING](docs/fr/UPGRADING.md#38-de-la-424-à-la-425)). Les
 > sauvegardes, les runs et les sessions gardent leurs formats et se chargent comme avant.

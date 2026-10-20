@@ -682,8 +682,8 @@ que soit le héros ; X se tourne maintenant vers le héros. Si une scène compta
 et se sauvegarde comme avant, sous ses anciens noms. Le moteur s'installe depuis `releases/download/v4.2.5/…`, où le
 dépôt est maintenant `github.com/wanoo/quest-n-click` (les anciens liens `github.com/wanoo/web-scumm` sont redirigés,
 téléchargements des releases compris). Le jeu d'exemple et la démo du Studio sont passés à
-`https://wanoo.github.io/quest-n-click/` : GitHub ne redirige pas l'ancienne adresse Pages, mettez donc à jour un
-favori ou un lien vers `wanoo.github.io/quest-n-click`.
+`https://wanoo.github.io/quest-n-click/` : l'ancienne adresse y redirige, mais mettez à jour un favori ou un lien
+vers `wanoo.github.io/quest-n-click`.
 
 **Les nouveaux noms**, à partir de la 4.2.5 :
 
@@ -713,7 +713,7 @@ imports se résolvent encore. Les alias disparaissent en 4.3.
    `./node_modules/quest-n-click/src/engine/api/*` ; `@engine/*` pointe vers `./node_modules/quest-n-click/src/engine/*` ;
    `include` nomme `node_modules/quest-n-click/src/env.d.ts`.
 3. Les sources du jeu : `from 'web-scumm/content'` devient `from 'quest-n-click/content'`, et ainsi de suite, par exemple
-   `sed -i.bak "s#'web-scumm/#'quest-n-click/#" game/*.ts game/rooms/*.ts`.
+   `grep -rlE "['\"]web-scumm/" game | xargs sed -i.bak -E "s#(['\"])web-scumm/#\\1quest-n-click/#g"`.
 4. Qui héberge le Bridge, les connecteurs ou le Studio Server installe les archives `quest-n-click-…` et appelle les
    nouvelles commandes dans ses unités et ses scripts.
 

@@ -21,15 +21,18 @@ import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { imageManifest, lockFor, lockProblems } from './pack-manifests.mjs';
+import { projectOf } from '../tools/release/artifacts.mjs';
 
 const ROOT = resolve(import.meta.dirname, '..');
 const PROFILE = join(ROOT, 'ops', 'qualify');
-export const TAG = 'quest-n-click-bridge:qualify';
-export const ARCHIVE = 'quest-n-click-bridge-image.tar';
-export const IDENTITY = 'quest-n-click-bridge-image.json';
-export const SBOM = 'quest-n-click-bridge-image.cdx.json';
-
 const root = JSON.parse(readFileSync(join(ROOT, 'package.json'), 'utf8'));
+// The image's name follows the release's (web-scumm up to 4.2.4, quest-n-click from 4.2.5): the candidate's surfaces
+// name the files by the version, so a candidate before the version's bump still finds them.
+const PROJECT = projectOf(root.version);
+export const TAG = `${PROJECT}-bridge:qualify`;
+export const ARCHIVE = `${PROJECT}-bridge-image.tar`;
+export const IDENTITY = `${PROJECT}-bridge-image.json`;
+export const SBOM = `${PROJECT}-bridge-image.cdx.json`;
 
 /**
  * A build context: the Dockerfile, the candidate's Bridge archive, and the image's manifest and lock, checked against

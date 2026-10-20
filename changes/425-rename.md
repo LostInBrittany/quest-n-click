@@ -1,8 +1,8 @@
 ### Changes
 
 - **web-scumm becomes quest'n'click (4.2.5, D47)**: the project, its repository (`github.com/wanoo/quest-n-click`, the
-  old links redirect) and its Pages site (`wanoo.github.io/quest-n-click`; GitHub does not redirect the old Pages
-  address) take the name quest'n'click. The packages and commands are now `quest-n-click`, `create-quest-n-click`,
+  old links redirect) and its Pages site (`wanoo.github.io/quest-n-click`; the old address redirects there through
+  `wanoo.github.io`) take the name quest'n'click. The packages and commands are now `quest-n-click`, `create-quest-n-click`,
   `quest-n-click-bridge`, `quest-n-click-connectors` (command `quest-n-click-connector`) and
   `quest-n-click-studio-server` (commands `quest-n-click-studio-server`, `quest-n-click-studio-worker`); a game imports
   `quest-n-click/content`, `/player`, `/minigames`, `/testing`, `/reality`; a release's files are named
