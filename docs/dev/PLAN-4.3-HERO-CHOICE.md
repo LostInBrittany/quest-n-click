@@ -1,6 +1,6 @@
 # Plan — 4.3 "Hero Choice": pick the hero's look and voice at New Game
 
-Status: **accepted**, answers recorded in §8 (20 Oct). Nothing is implemented yet.
+Status: **accepted** (D39, ADR 0022), answers recorded in §8 (20 Oct). In progress.
 
 ## 1. The need
 
