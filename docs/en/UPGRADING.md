@@ -619,3 +619,26 @@ installs from `releases/download/v4.2.3/…`. For a hosted Studio:
   "Upgrading the engine of a hosted game").
 - **If you passed `invite` its role first** (`invite owner --email …`): it is now refused; write `invite --email …
   --role owner`.
+
+## 37. From 4.2.3 to 4.3.0 "Hero Choice"
+
+Nothing to change in a game: the content format only grows (ADR 0022, D46), `schemaVersion` stays 3, saves and the
+save envelope are 4.2.0's, the logic fingerprint of a game that uses none of what follows does not move. The engine
+installs from `releases/download/v4.3.0/…`. What is new, all optional (CONTENT_GUIDE, "Choosing the hero"):
+
+- **A character variant may carry a `name`**: while it applies, the speech box, the transcript, the talk header and
+  `{name}` in a fallback read it. A translation lists it (`char:<id>/variants[<i>].name`).
+- **Text switches and `{hero}`**, filled when a text is shown, after the translation: `{hero}` is the active hero's
+  name, `{form?knight=him|witch=her|*=it}` the text listed for the flag's current value. In lines, choices, looks,
+  hints, toasts, captions, item and object names and objective titles; the validator refuses them in room names,
+  verbs, character names, `ui`, the title, the map, the ending and minigame params.
+- **`img` on a choice option**: the option is a card, the image with its `text` as the label.
+- **Voices by value**: a line with a switch looks up `<id>~<flag>=<value>` before its plain id (AUDIO.md).
+- **`npm run lint`** has `hero-looks-default` (info), and no longer calls `action-dead` a rule that only sets a flag a
+  character's variant or a text switch reads.
+
+**Check one thing**: a 4.2 text that holds, literally, `{hero}` or a brace group shaped like a switch
+(`{word?…=…}`) is now filled when shown. `npm run validate` reports a switch-shaped group (a flag no command sets,
+a malformed switch, or one in a text shown as written); a `{hero}` in a line is valid, so search for it
+(`grep -rn '{hero}' games/<id>`). To keep the braces on screen, write them otherwise (`[hero]`, or `{word ? …}` with a
+space before the `?`). A text with no such group shows exactly as before.

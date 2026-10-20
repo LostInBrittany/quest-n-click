@@ -250,7 +250,7 @@ error), a rule another rule matches first (`rule-shadowed`), an item no rule nee
 gives (`item-never-gained`), a hint that waits for something nothing sets (`hint-stuck`, an error) or shares its
 `until` with an earlier hint (`hint-never-fires`), a dead topic, choice option or listener, a choice with one option,
 an exit with a condition and no `locked` line, an action that only changes what nothing live reads (`action-dead`,
-info), a target standing behind a walk link a condition closes whose rule does not check that condition
+info; a flag a character's variant or a text switch reads is not counted as nothing, so the intro's choice of the hero is not reported), two or more values of the hero's flag that no hero variant matches, so those heroes look like the written one (`hero-looks-default`, info; CONTENT_GUIDE, "Choosing the hero"), a target standing behind a walk link a condition closes whose rule does not check that condition
 (`walk-link-gate`: the link stops the walk, never the action); after a solver run, a required signal's fallback the closed witness never plays (`fallback-unplayed`, a warning), a live action the witness never ran and a room it never entered (`rule-never-run`,
 `room-never-reached`: info with the witness, warnings with a completed `--prove`; a truncated proof keeps them as
 information and says so, it never calls anything unreachable), and a live action that ran without ever changing the
