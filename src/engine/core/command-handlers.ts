@@ -88,9 +88,11 @@ const face: Handler<'face'> = (eng, c, ctx) => {
   const who = eng.who(c.who ?? HERO);
   let dir = c.face as 'left' | 'right';
   if (c.face !== 'left' && c.face !== 'right') {
-    const x = eng.centerX(c.face, room);
-    const me = who === eng.heroId() ? s.hero[room.id]?.[0] : eng.centerX(who, room);
-    dir = x !== null && me !== undefined && me !== null && x < me ? 'left' : 'right';
+    // The hero is not a hotspot, a prop nor an actor: its x is in the state (#193).
+    const xOf = (id: Id) => (eng.who(id) === eng.heroId() ? (s.hero[room.id]?.[0] ?? null) : eng.centerX(id, room));
+    const x = xOf(c.face);
+    const me = xOf(who);
+    dir = x !== null && me !== null && x < me ? 'left' : 'right';
   }
   eng.ui.face(who, dir);
   if (who !== eng.heroId()) s.actors[eng.actorKey(who, room)] = { ...s.actors[eng.actorKey(who, room)], facing: dir };
