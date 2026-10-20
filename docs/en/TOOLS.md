@@ -200,6 +200,7 @@ npm run ids [-- --write --map]     # stable ids (schema 3) written into the sour
 npm run ids -- --lines [--write --map]   # an id on every say / toast / guide object, list line, hint and kind reaction (--lines=all: plain strings too, required for a translated or voiced release): translations and voices keyed by it (UPGRADING §9, §10)
 npm run i18n -- voices             # the lines with an id and no voice clip, the clips no line claims
 npm run voices -- status [--lang xx]                 # per language: lines with an id by status (draft, record, recorded, approved), clips, orphans
+                                                     # a line with text switches (4.3) has one row per value, `<id>~form=f`, each with its text (AUDIO.md, "Voices")
 npm run voices -- export --lang xx [--json] > t.csv  # the table for the actors: id, who, the text in that language, status, file, actor, note
 npm run voices -- import t.csv --lang xx             # their statuses, actors and notes back into games/<id>/voices.json (unknown lines refused)
 npm run voices -- check [--lang xx] [--release]      # every clip measured with ffmpeg: codec, rate, length for its text, loudness (≈ −16 LUFS), peak; --release: an approved line needs its clip
@@ -250,7 +251,7 @@ error), a rule another rule matches first (`rule-shadowed`), an item no rule nee
 gives (`item-never-gained`), a hint that waits for something nothing sets (`hint-stuck`, an error) or shares its
 `until` with an earlier hint (`hint-never-fires`), a dead topic, choice option or listener, a choice with one option,
 an exit with a condition and no `locked` line, an action that only changes what nothing live reads (`action-dead`,
-info), a target standing behind a walk link a condition closes whose rule does not check that condition
+info; a flag a character's variant or a text switch reads is not counted as nothing, so the intro's choice of the hero is not reported), two or more values of the hero's flag that no hero variant matches, so those heroes look like the written one (`hero-looks-default`, info; CONTENT_GUIDE, "Choosing the hero"), a target standing behind a walk link a condition closes whose rule does not check that condition
 (`walk-link-gate`: the link stops the walk, never the action); after a solver run, a required signal's fallback the closed witness never plays (`fallback-unplayed`, a warning), a live action the witness never ran and a room it never entered (`rule-never-run`,
 `room-never-reached`: info with the witness, warnings with a completed `--prove`; a truncated proof keeps them as
 information and says so, it never calls anything unreachable), and a live action that ran without ever changing the
