@@ -22,6 +22,10 @@ def colours(path):
     rgb, alpha = a[..., :3], a[..., 3]
     keep = alpha > 0
     border = np.concatenate([rgb[0], rgb[-1], rgb[:, 0], rgb[:, -1]])
+    seen = np.concatenate([alpha[0], alpha[-1], alpha[:, 0], alpha[:, -1]]) > 0
+    border = border[seen]  # what is under a transparent pixel (black, usually) is no background colour
+    if not len(border):  # a cut sprite or a transparent sheet: there is no flat background to leave out
+        return rgb[keep]
     bg = np.median(border, axis=0)
     if (np.sqrt(((border - bg) ** 2).sum(-1)) < 30).mean() > 0.9:  # a flat-background sheet: leave its background out
         keep &= np.sqrt(((rgb - bg) ** 2).sum(-1)) > 60
