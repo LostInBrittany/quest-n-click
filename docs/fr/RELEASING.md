@@ -72,8 +72,8 @@ Il ne sort en 1 que sur un `blocked`.
 La 4.2.0 n'est publiée que sur GitHub Releases (D38) : chaque étape ci-dessous demande la 2FA du mainteneur, et la
 4.2.0 ne l'a pas attendue. Les étapes ne changent pas ; la première version qu'elles publient est une 4.2.x.
 
-Rien n'est publié sur npm en 4.1.x. Les quatre noms (`web-scumm`, `create-web-scumm`, `web-scumm-bridge`,
-`web-scumm-connectors`) sont libres. Chaque nuit, un job non bloquant vérifie qu'ils le restent, ou qu'ils sont à nous
+Rien n'est publié sur npm en 4.1.x. Les quatre noms (`quest-n-click`, `create-quest-n-click`, `quest-n-click-bridge`,
+`quest-n-click-connectors`) sont libres. Chaque nuit, un job non bloquant vérifie qu'ils le restent, ou qu'ils sont à nous
 (D34 : le squatting est un risque accepté jusqu'à la publication npm, une 4.2.x, D38).
 
 1. **Versions.** La publication en étapes demande au moins npm 11.15.0 et Node 22.14.0 ([doc npm][staged]).
@@ -96,7 +96,7 @@ Rien n'est publié sur npm en 4.1.x. Les quatre noms (`web-scumm`, `create-web-s
 4. **Trusted publishing, en stage-only.** Sur chaque package, lancer :
 
    ```sh
-   npm trust github <nom> --repo wanoo/web-scumm --file release.yml --allow-stage-publish
+   npm trust github <nom> --repo wanoo/quest-n-click --file release.yml --allow-stage-publish
    ```
 
    - La CI peut alors mettre en scène, jamais publier.
@@ -105,7 +105,7 @@ Rien n'est publié sur npm en 4.1.x. Les quatre noms (`web-scumm`, `create-web-s
 5. **Promotion.** Le run de release met chaque package en scène par OIDC. Le mainteneur promeut chacun avec sa 2FA
    (`npm stage approve <id>`, ou sur npmjs.com). La 4.2.0, publiée depuis le run du candidat de statut, est la première
    version du produit.
-6. **Classement dual-use de `web-scumm-connectors`** (décidé en 4.1.20, PR 3b) :
+6. **Classement dual-use de `quest-n-click-connectors`** (décidé en 4.1.20, PR 3b) :
    - la [politique dual-use][dual] de npm vise les « capacités sensibles pour la sécurité, qui peuvent ressembler à un
      logiciel malveillant » : outils de test d'intrusion, utilitaires de recherche en sécurité, obfuscation ;
    - les connecteurs sont des serveurs qu'un jeu fait tourner (une façade SSH et Telnet pour son terminal, un webhook

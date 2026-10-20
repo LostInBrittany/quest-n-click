@@ -1,4 +1,4 @@
-// The engine's upgrade of a hosted game on the processing worker (4.2.3 PR 8, H6): `web-scumm migrate` on the game in
+// The engine's upgrade of a hosted game on the processing worker (4.2.3 PR 8, H6): `quest-n-click migrate` on the game in
 // `dir` (a snapshot), run in the worker's child, its result given back rather than written. The authoring schema is
 // `schemaVersion` (docs/en/UPGRADING.md): 3 is this engine's; a game on 2 (a 4.1.x import that never migrated) gets its
 // stable ids written as `npm run ids -- --write --map` writes them (tools/ids/plan.ts), then the three lines UPGRADING
@@ -67,7 +67,7 @@ export function migrateIn(dir: string, game: GameDef): Migrated {
     throw new Error(`authoring schema ${from} is newer than this engine's (${CURRENT_SCHEMA}): upgrade the Studio`);
   // The Studio's rule finds `defineGame` in another file too; the migration writes game.ts only, and says so.
   if (!/\bdefineGame\s*\(/.test(readFileSync(join(dir, 'game.ts'), 'utf8')))
-    throw new Error('defineGame({...}) is not in game.ts: migrate this game on a local Studio (web-scumm migrate)');
+    throw new Error('defineGame({...}) is not in game.ts: migrate this game on a local Studio (quest-n-click migrate)');
   const plan = planIds(dir, game, { write: true, map: true });
   const next = new Map<string, string>();
   const skipped: string[] = [];

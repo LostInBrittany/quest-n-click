@@ -221,7 +221,7 @@ describe('ship preflight-stable', () => {
     writeFileSync(join(d, 'docs', 'dev', 'GO-NO-GO-4.2.md'), '**NO-GO for 4.2 today**');
     const pack = join(d, 'pack');
     mkdirSync(pack);
-    for (const p of PACKAGES) writeFileSync(join(pack, `${p}-4.2.0.tgz`), 'x');
+    for (const p of packagesFor('4.2.0')) writeFileSync(join(pack, `${p}-4.2.0.tgz`), 'x');
     return { d, pack };
   };
   const state = (rows: { id: string; state: string }[], id: string) => rows.find((r) => r.id === id)?.state;

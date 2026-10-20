@@ -636,3 +636,51 @@ are optional and presentation only (D46: no schema, save envelope or IR change):
 
 **A fix to know**: a game that wrote `{ face: 'hero', who: X }` saw X turn right wherever the hero stood; X now turns
 toward the hero. If a scene relied on the old facing, write `{ face: 'right', who: X }`.
+
+## 38. From 4.2.4 to 4.2.5
+
+**web-scumm becomes quest'n'click** (D47). Nothing to change: a game made for 4.2.4 installs, builds, plays and saves
+as before, under its old names. The engine installs from `releases/download/v4.2.5/…`, where the repository is now
+`github.com/wanoo/quest-n-click` (the old `github.com/wanoo/web-scumm` links redirect, release downloads included).
+The sample game and the Studio's demo moved to `https://wanoo.github.io/quest-n-click/`: the old address redirects
+there, but update a bookmark or a link to `wanoo.github.io/quest-n-click`.
+
+**The new names**, from 4.2.5:
+
+| Before | From 4.2.5 |
+|---|---|
+| package `web-scumm`, command `web-scumm` | `quest-n-click`, command `quest-n-click` |
+| imports `web-scumm/content`, `/player`, `/minigames`, `/testing`, `/reality` | `quest-n-click/content`, … |
+| `create-web-scumm` | `create-quest-n-click` |
+| `web-scumm-bridge` (package and command) | `quest-n-click-bridge` |
+| `web-scumm-connectors`, command `web-scumm-connector` | `quest-n-click-connectors`, command `quest-n-click-connector` |
+| `web-scumm-studio-server`, `web-scumm-studio-worker` | `quest-n-click-studio-server`, `quest-n-click-studio-worker` |
+| release files `web-scumm-<version>.tgz`, `web-scumm-<tag>-…` | `quest-n-click-<version>.tgz`, `quest-n-click-<tag>-…` |
+
+**The old names keep working through 4.2.x.** Each release of the line also publishes `web-scumm-<version>.tgz`,
+`create-web-scumm-<version>.tgz`, `web-scumm-bridge-<version>.tgz`, `web-scumm-connectors-<version>.tgz` and
+`web-scumm-studio-server-<version>.tgz`: the same files at the same version, only the package's name is the old one.
+The old commands still run, after a one-line notice ("web-scumm is now quest-n-click; the old name works until 4.3"),
+and `web-scumm/content` and the other old imports still resolve. The aliases are removed in 4.3.
+
+**Switching, when you like** (one commit, then `npm install`, `npm run verify`):
+
+1. `package.json`: the dependency `"web-scumm": "<spec>"` becomes `"quest-n-click": "<spec>"`, its archive
+   `quest-n-click-4.2.5.tgz`; the scripts `web-scumm dev`, `web-scumm build`… become `quest-n-click dev`,
+   `quest-n-click build`….
+2. `tsconfig.json`: the path `web-scumm/*` becomes `quest-n-click/*`, pointing at
+   `./node_modules/quest-n-click/src/engine/api/*`; `@engine/*` points at `./node_modules/quest-n-click/src/engine/*`;
+   `include` names `node_modules/quest-n-click/src/env.d.ts`.
+3. The game's sources: `from 'web-scumm/content'` becomes `from 'quest-n-click/content'`, and so on, for example
+   `grep -rlE "['\"]web-scumm/" game | xargs sed -i.bak -E "s#(['\"])web-scumm/#\\1quest-n-click/#g"`.
+4. A host of the Bridge, the connectors or the Studio Server installs the `quest-n-click-…` archives and calls the new
+   commands in its unit files and scripts.
+
+**The formats keep their names.** They are identifiers inside files and stores, not the project's name: renaming them
+would break existing saves, files and deployments. A save is still a `web-scumm-save` envelope, a session
+`web-scumm-session`, a run a `.wsrun` file in the `web-scumm-speedrun` format, a Remix world `web-scumm-remix-1`; a
+signal is still `web-scumm-world-signal`, a reality manifest `web-scumm-reality-manifest`; the browser keeps its
+IndexedDB databases (`web-scumm-saves`, `web-scumm-runs`) and its `web-scumm.…` storage keys, so a player's saves and
+runs are found where they were; the Bridge's `X-Web-Scumm-*` headers, the signatures' contexts, the environment
+variables `WEB_SCUMM_*` and the Studio Server's tables are unchanged. Releases up to v4.2.4 keep their files' names and
+their attestations, which name the repository `wanoo/web-scumm`.

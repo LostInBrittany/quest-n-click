@@ -73,7 +73,7 @@ export function toolsServer(backend: ToolBackend | ((server: McpServer) => ToolB
 
 /** What the assistant is told first: the game, and how to work on it (`hosted`: no documents, no test suite there). */
 export const instructionsFor = (game: string, where: string, hosted = false) =>
-  `web-scumm game "${game}" (${where}). A game is data: rooms in rooms/<id>.ts, geometry in layout/<id>.json, ` +
+  `quest'n'click game "${game}" (${where}). A game is data: rooms in rooms/<id>.ts, geometry in layout/<id>.json, ` +
   'the script in storyboard.json, a shared log with the human in notes.json. Start with list_rooms and get_room; ' +
   (hosted
     ? 'this is a shared Studio: you write as your member, a part another member holds refuses your write (423), ' +

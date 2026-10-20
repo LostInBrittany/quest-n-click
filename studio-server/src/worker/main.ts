@@ -22,7 +22,8 @@ import { previewFiles } from './preview-build';
 import { unpackSnapshot } from './snapshot';
 
 const CHILD = fileURLToPath(new URL('./child.ts', import.meta.url));
-// A game imports `web-scumm/content` by the package's self-reference: its folder must sit inside the package.
+// A game imports `quest-n-click/content` (through 4.2.x also `web-scumm/content`, D47) by the package's
+// self-reference: its folder must sit inside the package.
 export const JOBS = fileURLToPath(new URL('../../../.cache/jobs/', import.meta.url));
 const MAX_OUT = 16 * 1024 * 1024;
 /** A `prepare`'s answer carries the prepared files (4.2.2): up to the Studio's own bound on a result (32 MiB). */

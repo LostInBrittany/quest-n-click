@@ -169,7 +169,7 @@ describe('the remote MCP', () => {
         resource: `${base}/mcp`,
         authorization_servers: [op.issuer],
         bearer_methods_supported: ['header'],
-        resource_name: 'web-scumm Studio (tpl)',
+        resource_name: "quest'n'click Studio (tpl)",
       });
     }
   });

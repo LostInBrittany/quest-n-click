@@ -1,18 +1,19 @@
 {
-  "name": "web-scumm-connectors",
+  "name": "quest-n-click-connectors",
   "version": "0.0.0",
   "lockfileVersion": 3,
   "requires": true,
   "packages": {
     "": {
-      "name": "web-scumm-connectors",
+      "name": "quest-n-click-connectors",
       "version": "0.0.0",
       "license": "MIT",
       "dependencies": {
         "ssh2": "^1.17.0"
       },
       "bin": {
-        "web-scumm-connector": "bin.mjs"
+        "quest-n-click-connector": "bin.mjs",
+        "web-scumm-connector": "bin-web-scumm.mjs"
       },
       "engines": {
         "node": ">=22.12"

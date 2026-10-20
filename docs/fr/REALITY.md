@@ -40,7 +40,7 @@ Le jeu d'exemple est `games/signals/` : un portail ouvert par une réponse par e
 ## Le prouver dans chaque monde
 
 Une preuve ne suppose jamais que l'extérieur coopère. `npm run solve:reality` (dans `prove:game` et
-`web-scumm release`) prouve le jeu dans trois sortes de mondes :
+`quest-n-click release`) prouve le jeu dans trois sortes de mondes :
 
 1. **fermé** : aucun signal. Le jeu doit se finir par ses fallbacks.
 2. **chaque scénario** de `games/<id>/reality/scenarios/*.json` (`{ "signals": ["mail.answer.wrong", "mail.answer.correct"] }`) :
@@ -114,5 +114,5 @@ aucun joueur : ils ne lient rien.
 
 ## L'API
 
-`web-scumm/reality` (`docs/fr/API.md`) : le signal signé et sa vérification, le client et son transport HTTP, le
+`quest-n-click/reality` (`docs/fr/API.md`) : le signal signé et sa vérification, le client et son transport HTTP, le
 simulateur, le manifeste. Un jeu avec son propre transport implémente `WorldSignalPort`.

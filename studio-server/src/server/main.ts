@@ -517,7 +517,7 @@ async function main(argv: string[]): Promise<number> {
           executor!.cut(packCut(gameDir, req.sheetId, source, ext), config.game, req, signal)
       : undefined,
   });
-  // The page: configured, else the one the package was built with (web-scumm-studio-server), else this checkout's.
+  // The page: configured, else the one the package was built with (quest-n-click-studio-server), else this checkout's.
   const clientDir = resolve(
     config.clientDir ?? process.env.WEB_SCUMM_STUDIO_CLIENT ?? join(engineRoot, '.cache', 'studio-client'),
   );
@@ -598,7 +598,7 @@ async function main(argv: string[]): Promise<number> {
       : undefined;
   journal.events.on('confirmed', () => void health?.schedule());
   // The engine's upgrade (4.2.3 PR 8, H6): the owner's, on the worker, under their exclusive lease, judged before it
-  // is written as one undoable operation. Hosted only: a local Studio runs `web-scumm migrate` itself.
+  // is written as one undoable operation. Hosted only: a local Studio runs `quest-n-click migrate` itself.
   const engineUpgrade =
     executor && hosted && judge
       ? new EngineUpgrade({

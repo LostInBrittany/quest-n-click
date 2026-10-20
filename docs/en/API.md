@@ -1,15 +1,18 @@
 # Public API
 
-Since 4.0 a game, a host page and a game's tests use four entry modules and the `web-scumm` command. Their names are
+Since 4.0 a game, a host page and a game's tests use four entry modules and the `quest-n-click` command. Their names are
 the contract: `tests/api-surface.json` lists them, `tests/api-surface.test.ts` fails when one changes without this
 page, and `docs/en/SUPPORT.md` says how a change is made (announced, then removed at the next major). Everything else
 under `src/engine` is internal and may change in any release; the `@engine/*` alias still reaches it, without that
 promise.
 
-In a game project the entries are `web-scumm/content`, `web-scumm/player`, `web-scumm/minigames` and
-`web-scumm/testing` and, since 4.1.1, `web-scumm/reality` (the package's `exports`); in this repository the same names resolve to `src/engine/api/`.
+In a game project the entries are `quest-n-click/content`, `quest-n-click/player`, `quest-n-click/minigames` and
+`quest-n-click/testing` and, since 4.1.1, `quest-n-click/reality` (the package's `exports`); in this repository the same names resolve to `src/engine/api/`.
+The old names `web-scumm/content` and the others (before 4.2.5, D47) still resolve through 4.2.x and are removed in
+4.3. The save envelope's `web-scumm-save` and the other `format` strings below are format identifiers from web-scumm,
+kept so existing saves and files still load.
 
-## web-scumm/content: writing a game
+## quest-n-click/content: writing a game
 
 | Name | What |
 |---|---|
@@ -52,7 +55,7 @@ In a game project the entries are `web-scumm/content`, `web-scumm/player`, `web-
 | `normalizeSeed` · `encodeSeedCode` · `isSeed` · `newSeedCode` · `STORY_SEED` · `RemixSeedError` | (4.1.15) seed codes `WS-XXXX-XXXX` (Crockford base32 and a check symbol), the story's seed, an explicit error for a malformed one |
 | `generateWheel` · `checkWheel` · `wheelProblems` · `wheelTable` · `CodeWheel` · `CodeWheelParams` · `CodeWheelMode` · `WheelItem` · `WheelRecord` · `CODE_WHEEL_VERSION` | (4.1.15, §11.13) the code wheel a seed draws (the `copy-protection` stream), its single solution, its table, what a played wheel records |
 
-## web-scumm/player: starting the game in a page
+## quest-n-click/player: starting the game in a page
 
 | Name | What |
 |---|---|
@@ -67,7 +70,7 @@ In a game project the entries are `web-scumm/content`, `web-scumm/player`, `web-
 | `SpriteSpec` · `LayerSpec` · `OccluderSpec` · `LightSpec` · `EmitterSpec` · `StageSpec` | what a painter is given to draw |
 | `SceneFrame` · `Renderer` · `Intent` | (4.1.11) an immutable picture of a room with its precomputed hit polygons, the contract of whatever draws one, and the intentions it answers with: the only thing a renderer sends back (D21) |
 
-## web-scumm/minigames: minigames as plugins
+## quest-n-click/minigames: minigames as plugins
 
 | Name | What |
 |---|---|
@@ -78,7 +81,7 @@ In a game project the entries are `web-scumm/content`, `web-scumm/player`, `web-
 
 A game adds its own in its module's `minigames` (same contract): that is the plugin format.
 
-## web-scumm/testing: a game's own tests
+## quest-n-click/testing: a game's own tests
 
 | Name | What |
 |---|---|
@@ -93,7 +96,7 @@ A game adds its own in its module's `minigames` (same contract): that is the plu
 | `verifyRun` · `VerifyContext` · `SpeedrunVerifyResult` · `SpeedrunVerdict` · `isRankable` | (4.1.14, ADR 0017) a `.wsrun` replayed against the approved game: one verdict, a code, a reason, the trust it grants; only `valid` ranks, `inconclusive` never does |
 | `SpeedrunEnvelope` · `TrustLevel` | (4.1.14) a run's proof (chunks chained from H0, final state hash, final proof, bigints as decimal strings) and how far it is believed (`local` → `replay-valid` → `server-witnessed` → `moderator-verified`) |
 
-## web-scumm/reality: signals from the world outside (4.1.1)
+## quest-n-click/reality: signals from the world outside (4.1.1)
 
 | Name | What |
 |---|---|
@@ -109,16 +112,16 @@ A game adds its own in its module's `minigames` (same contract): that is the plu
 
 ## Beside the modules
 
-- **Authoring schema**: `schemaVersion: 3` in `defineGame`; `web-scumm migrate` brings an older game to it.
+- **Authoring schema**: `schemaVersion: 3` in `defineGame`; `quest-n-click migrate` brings an older game to it.
 - **Saves**: the envelope `web-scumm-save` schema 3; every save of the 3.x line loads in 4.x (`tests/save-v3.test.ts`
   keeps one per release).
 - **Studio and MCP**: the tools of `npm run mcp` are described by their schemas (`docs/en/MCP.md`); their names and
   their required and optional arguments are in `tests/api-surface.json` (`mcp`): a tool removed or a required argument
   added is an API change like any other.
-- **Command line**: `web-scumm <command>` and its options (`docs/en/PACKAGE.md`).
+- **Command line**: `quest-n-click <command>` and its options (`docs/en/PACKAGE.md`).
 
 <!-- api-doc:begin -->
-### web-scumm/content
+### quest-n-click/content
 
 | Name | Signature | Stability | Doc |
 |---|---|---|---|
@@ -259,7 +262,7 @@ A game adds its own in its module's `minigames` (same contract): that is the plu
 | `Who` | `type Who = Id` | public | Who speaks or acts. `'hero'` always designates the hero, whatever their id. |
 | `WorldVariant` | `interface { seed, algorithm, algorithmVersion, manifestHash, mode, assignments, … 1 more }` | public | One world instance: the seed it came from, the algorithm and its version, the manifest's hash, the mode, one value per dimension, and the ha |
 
-### web-scumm/player
+### quest-n-click/player
 
 | Name | Signature | Stability | Doc |
 |---|---|---|---|
@@ -285,7 +288,7 @@ A game adds its own in its module's `minigames` (same contract): that is the plu
 | `StoreOpener` | `type StoreOpener = (game: GameDef, fail: (e: Error) => void, warn: (m: string) => void) => Promise<SaveStore>` | extension | How a host supplies the save store `openStore` opens, in place of the verified IndexedDB one. |
 | `SwModule` | `interface { registerSW }` | extension | `registerSW` of `virtual:pwa-register` (vite-plugin-pwa), injected so the engine never imports a virtual module. |
 
-### web-scumm/minigames
+### quest-n-click/minigames
 
 | Name | Signature | Stability | Doc |
 |---|---|---|---|
@@ -294,7 +297,7 @@ A game adds its own in its module's `minigames` (same contract): that is the plu
 | `MinigameCtx` | `interface { root, u, img, size, sfx, instruct, … 5 more }` | extension | What the host hands a minigame: its zone, the unit scale, images and sounds, parameters, labels and an abort signal. |
 | `minigames` | `Record<string, Minigame>` | public | Minigames provided by the engine. A game can add others with the same interface. What tools read (`required`, `textParams`, `bindings`) is h |
 
-### web-scumm/testing
+### quest-n-click/testing
 
 | Name | Signature | Stability | Doc |
 |---|---|---|---|
@@ -343,7 +346,7 @@ A game adds its own in its module's `minigames` (same contract): that is the plu
 | `WorldEvidence` | `interface { dailySeed, commitment, reveal, revealedAt, runStartedAt }` | public | What a run's world must match, given the category and what the Bridge published (the day's seed, a commitment). |
 | `worldVerdict` | `(rules: RemixCategoryRules \| SpeedrunWorldPolicy, v: WorldVariant, e?: WorldEvidence): string[]` | public | Whether a run's world is the one its category allows: empty when it is, else the reasons (a verifier refuses the run with them). The world i |
 
-### web-scumm/reality
+### quest-n-click/reality
 
 | Name | Signature | Stability | Doc |
 |---|---|---|---|

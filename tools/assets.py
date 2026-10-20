@@ -15,7 +15,7 @@ import glob, json, os, re, subprocess, sys
 from PIL import Image
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-# A game project outside the repository (3.9, the `web-scumm` command): its folder holds game/, public/ and .cache/.
+# A game project outside the repository (3.9, the `quest-n-click` command): its folder holds game/, public/ and .cache/.
 PROJECT = os.environ.get('WEB_SCUMM_PROJECT', '').strip()
 os.chdir(PROJECT or ROOT)
 

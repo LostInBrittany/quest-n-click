@@ -5,11 +5,11 @@ Studio operations (`studio-server/src/ops/core.ts`, see STUDIO.md) as tools. Any
 Cursor, Codex CLI, Gemini CLI, a hand-written agent) can then read and edit a game exactly like the Studio does, and
 the human sees the result live in `npm run studio` (it watches the files).
 
-- Server: `tools/mcp/server.ts`, SDK `@modelcontextprotocol/sdk` 1.x. Name `web-scumm`. The tools are defined once in `tools/studio/tools.ts`,
+- Server: `tools/mcp/server.ts`, SDK `@modelcontextprotocol/sdk` 1.x. Name `quest-n-click`. The tools are defined once in `tools/studio/tools.ts`,
   shared with the Studio's Assistant (STUDIO.md, "Assistant").
 - Game: `GAME=<id>` (or `GAME_DIR=<folder>`) as for every tool; default `package.json` `config.game`.
 - stdout carries the protocol only; logs go to stderr. Use `npm run -s mcp` (silent) in client configs: without `-s`,
-  npm prints its `> web-scumm mcp` banner on stdout, which strict clients reject.
+  npm prints its `> quest-n-click mcp` banner on stdout, which strict clients reject.
 - A failing operation (unknown room, bad path, broken edit…) returns a tool error with the message; the server keeps
   running.
 
@@ -46,46 +46,46 @@ Resources: `webscumm://game` (= `list_rooms`) and `webscumm://room/<id>` (= `get
 
 ## Connect your client
 
-Replace `/path/to/web-scumm` with the absolute path of your clone. `npm --prefix <dir> run -s mcp` runs the script
+Replace `/path/to/quest-n-click` with the absolute path of your clone. `npm --prefix <dir> run -s mcp` runs the script
 inside `<dir>` whatever the client's working directory. Add `"env": { "GAME": "<id>" }` to work on another game.
 
 ### Claude Code
-The repository ships `.mcp.json` (project scope): open Claude Code in the repo and approve the `web-scumm` server.
+The repository ships `.mcp.json` (project scope): open Claude Code in the repo and approve the `quest-n-click` server.
 ```json
-{ "mcpServers": { "web-scumm": { "type": "stdio", "command": "npm", "args": ["run", "-s", "mcp"], "env": {} } } }
+{ "mcpServers": { "quest-n-click": { "type": "stdio", "command": "npm", "args": ["run", "-s", "mcp"], "env": {} } } }
 ```
 Or from the command line, in the repo (`-s local` by default; `-s project` writes `.mcp.json`):
 ```
-claude mcp add web-scumm -- npm run -s mcp
-claude mcp add web-scumm -e GAME=demo -- npm --prefix /path/to/web-scumm run -s mcp
+claude mcp add quest-n-click -- npm run -s mcp
+claude mcp add quest-n-click -e GAME=demo -- npm --prefix /path/to/quest-n-click run -s mcp
 ```
 
 ### Claude Desktop
 `~/Library/Application Support/Claude/claude_desktop_config.json` (macOS) or `%APPDATA%\Claude\claude_desktop_config.json`:
 ```json
-{ "mcpServers": { "web-scumm": { "command": "npm", "args": ["--prefix", "/path/to/web-scumm", "run", "-s", "mcp"] } } }
+{ "mcpServers": { "quest-n-click": { "command": "npm", "args": ["--prefix", "/path/to/quest-n-click", "run", "-s", "mcp"] } } }
 ```
 If Claude Desktop does not find `npm` (no shell PATH), put its absolute path (`which npm`) in `command`.
 
 ### Cursor
 The repository ships `.cursor/mcp.json` (project); the same block in `~/.cursor/mcp.json` works globally with an absolute path:
 ```json
-{ "mcpServers": { "web-scumm": { "command": "npm", "args": ["--prefix", "${workspaceFolder}", "run", "-s", "mcp"] } } }
+{ "mcpServers": { "quest-n-click": { "command": "npm", "args": ["--prefix", "${workspaceFolder}", "run", "-s", "mcp"] } } }
 ```
 
 ### Codex CLI
 `~/.codex/config.toml`:
 ```toml
-[mcp_servers.web-scumm]
+[mcp_servers.quest-n-click]
 command = "npm"
-args = ["--prefix", "/path/to/web-scumm", "run", "-s", "mcp"]
+args = ["--prefix", "/path/to/quest-n-click", "run", "-s", "mcp"]
 # env = { GAME = "demo" }
 ```
 
 ### Gemini CLI
 `~/.gemini/settings.json` (or `.gemini/settings.json` in the repo):
 ```json
-{ "mcpServers": { "web-scumm": { "command": "npm", "args": ["run", "-s", "mcp"], "cwd": "/path/to/web-scumm" } } }
+{ "mcpServers": { "quest-n-click": { "command": "npm", "args": ["run", "-s", "mcp"], "cwd": "/path/to/quest-n-click" } } }
 ```
 
 ### Any other client
@@ -105,7 +105,7 @@ role, the spans others hold (a 423 it reads), the journal (its writes are revisi
   <token>`; it lasts minutes (`oidc.maxTokenSeconds`), so a long session is better on the stdio server below. The
   session cookie of the browser is never accepted there. One JSON-RPC message per request (no batch).
   ```json
-  { "mcpServers": { "web-scumm": { "type": "http", "url": "https://studio.example.fr/mcp", "headers": { "Authorization": "Bearer <token>" } } } }
+  { "mcpServers": { "quest-n-click": { "type": "http", "url": "https://studio.example.fr/mcp", "headers": { "Authorization": "Bearer <token>" } } } }
   ```
 - **Local, over stdio, pointed at the server**: `npm run studio-server -- login --server <url>` once, then
   `npm run -s mcp -- --server <url>` (the token refreshed by itself; https only).

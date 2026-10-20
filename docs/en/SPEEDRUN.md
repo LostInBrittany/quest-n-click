@@ -1,6 +1,6 @@
 # Speedrun (4.1.14 "Time Attack")
 
-A game made with web-scumm can declare speedrun categories as content. A player starts an attempt from the pause
+A game made with quest'n'click can declare speedrun categories as content. A player starts an attempt from the pause
 menu, the engine times it, splits it on what happens in the game (never on pixels), and seals the run into a `.wsrun`
 file that anyone can replay and verify. The design is in `docs/dev/adr/0016-run-clock-and-envelope.md` (the clock, the
 seeded generator, the chained proof) and `docs/dev/adr/0017-speedrun-verdicts-and-trust.md` (verdicts and trust).
@@ -98,7 +98,7 @@ requalified from its seed.
 
 ```
 npm run speedrun:verify -- run.wsrun [--keys=bridge-keys.json] [--json]
-web-scumm speedrun verify run.wsrun
+quest-n-click speedrun verify run.wsrun
 ```
 
 The MCP tool `speedrun_verify` does the same for an assistant. The verifier reloads the category from the game,
