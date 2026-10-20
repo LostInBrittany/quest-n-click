@@ -117,6 +117,17 @@ Une commande est une clé de `CMD_KEYS` ; ses champs sont ceux du formulaire du 
 | `optional` | boolean (facultatif) | Un objectif secondaire : hors du 100 % (`npm run solve -- --goal=100%`). |
 | `parent` | string (facultatif) | L'objectif dont celui-ci est une étape : affiché sous lui. |
 
+### Marqueurs dans les textes
+
+Écrits dans n’importe quel texte ; le reste entre accolades reste tel quel. Un aiguillage compare exactement `String(valeur)` du drapeau ; sans valeur qui corresponde (ou drapeau absent), il prend `*=`, sinon le premier texte. Pas d’imbrication, pas d’échappement : une alternative ne contient ni `{`, ni `}`, ni `|`. Le validateur signale un aiguillage mal formé, un drapeau qu’aucune commande ne pose, une valeur listée qu’aucun `set` n’écrit, et une valeur écrite que l’aiguillage ne liste pas sans `*=`.
+
+| Marqueur | Rempli |
+|---|---|
+| `{hero}` | à l’affichage : le nom du héros actif (celui de sa variante) ; répliques, choix, regards, indices, toasts, sous-titres, noms d’objets, titres d’objectifs |
+| `{<flag>?<value>=<text>\|…\|*=<text>}` | à l’affichage, après la traduction : le texte listé pour la valeur courante du drapeau (`{form?m=him\|f=her}`, `content{form?f=e\|*=}`) |
+| `{item} {target} {name}` | dans une réplique par défaut, de genre ou de don : la chose visée, ce sur quoi on l’utilise, la cible |
+| `{code:<id>} {hint:<id>}` | au démarrage, par Remix : le code d’une dimension couplée et son indice |
+
 ### Ce que compte chaque champ (IR et empreinte)
 
 Selon `core/ir-fields.ts` : `logic` est dans l’IR et dans le `logic` de l’empreinte ; `presentation` dans son `presentation` ; `both` se partage ; `meta` ne sert qu’aux outils.

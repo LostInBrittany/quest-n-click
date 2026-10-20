@@ -8,6 +8,7 @@ import type { Cmd, GameDef, ListLine, RoomDef } from '../core/types';
 import { listPathSeg } from '../core/list-lines';
 import type { Minigame } from '../minigames/types';
 import { subLists } from '../core/cmds';
+import { parseText } from '../core/text-switch';
 import { choicePathSeg, eventPathSeg, rulePathSeg, topicPathSeg, linePathSeg } from '../core/content-ids';
 
 type Fn = (path: string, text: string) => string | undefined;
@@ -381,7 +382,30 @@ export function mergeLocale(
   };
 }
 
-/** Coverage of a translation table against the game: what is missing, what no longer exists, what is long. */
+/**
+ * The switches of a text as a comparable signature (4.3): each `flag?values` (values sorted, `*` included), sorted;
+ * a malformed span counts as itself. Two texts with the same signature switch on the same flags and values.
+ */
+function switchSignature(text: string): string {
+  const p = parseText(text);
+  return [
+    ...p.switches.map(
+      (s) =>
+        `{${s.flag}?${s.alts
+          .map((a) => a.value)
+          .sort()
+          .join('|')}}`,
+    ),
+    ...p.malformed.map((m) => `malformed ${m.source}`),
+  ]
+    .sort()
+    .join(' ');
+}
+
+/**
+ * Coverage of a translation table against the game: what is missing, what no longer exists, what is long, and
+ * (4.3) the translations whose text switches differ from the source's (`switches`: path, source's, translation's).
+ */
 export function localeStatus(game: GameDef, table: Record<string, string>, maxText = 140) {
   const paths = textPaths(game);
   const keys = new Set(paths.map((p) => p.path));
@@ -396,5 +420,23 @@ export function localeStatus(game: GameDef, table: Record<string, string>, maxTe
     .map((p) => p.path);
   const allowed = new Set(game.i18n?.same ?? []);
   const untranslated = same.filter((p) => !allowed.has(p));
-  return { total: paths.length, translated: paths.length - missing.length, missing, stale, long, same, untranslated };
+  // A switch is the same choice in every language: the flag and its values, whatever the words inside.
+  const switches: { path: string; source: string; translation: string }[] = [];
+  for (const p of paths) {
+    const t = table[p.path];
+    if (typeof t !== 'string' || t === p.text || (!t.includes('{') && !p.text.includes('{'))) continue;
+    const source = switchSignature(p.text);
+    const translation = switchSignature(t);
+    if (source !== translation) switches.push({ path: p.path, source, translation });
+  }
+  return {
+    total: paths.length,
+    translated: paths.length - missing.length,
+    missing,
+    stale,
+    long,
+    same,
+    untranslated,
+    switches,
+  };
 }

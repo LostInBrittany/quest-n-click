@@ -271,7 +271,7 @@ export function renderInv(app: App) {
     if (b.dataset.id !== id) {
       b.dataset.id = id;
       b.innerHTML = `<img src="${app.bank.img(it?.icon ?? id)}" alt="">`;
-      b.setAttribute('aria-label', it?.name ?? id);
+      b.setAttribute('aria-label', app.engine.text(it?.name ?? id));
       b.onclick = () => void app.onItem(id);
       b.onpointerenter = (e) => {
         if (e.pointerType === 'mouse' && !app.engine.busy) app.sentence(id);

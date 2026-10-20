@@ -8,6 +8,7 @@ import type { Action, ListLine, Id, RoomDef, Rule, VerbId } from './types';
 import { HERO, type Ctx, type Source } from './engine-shared';
 import type { Engine } from './engine';
 import { seenKey } from './keys';
+import { renderText } from './text-switch';
 
 // ------------------------------------------------------------------ resolution
 /** Finds the reaction to an action and executes it. */
@@ -131,6 +132,19 @@ export function fill(eng: Engine, text: string, a: Id, b?: Id): string {
   const room = eng.room();
   const value = { item: eng.nameOf(a, room), target: b ? eng.nameOf(b, room) : '', name: eng.nameOf(b ?? a, room) };
   return text.replace(/\{(\w+)\}/g, (m, k: string) => (PLACEHOLDERS[k] ? value[PLACEHOLDERS[k]] : m));
+}
+
+/**
+ * A text as the player reads it now (4.3, core/text-switch.ts): `{<flag>?<value>=<text>|…|*=<text>}` takes the text
+ * listed for the flag's current value, `{hero}` the active hero's name (its variant's). Called where a text is shown,
+ * after `fill()` and after the translation; it reads the state and never changes it.
+ */
+export function text(eng: Engine, s: string): string {
+  if (!eng.state) return s;
+  return renderText(s, eng.state.flags, () => {
+    const id = eng.heroId();
+    return eng.character(id)?.name ?? eng.game.characters[id]?.name ?? id;
+  });
 }
 
 /** A line's voice clip: its id, when `audio.voices` has a clip under it (the rule of `say` lines). */

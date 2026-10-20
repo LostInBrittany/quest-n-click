@@ -7,6 +7,7 @@ import { migrationChecks } from './validate/migrations';
 import { objectiveChecks } from './validate/objectives';
 import { remixChecks } from './validate/remix';
 import { speedrunChecks } from './validate/speedrun';
+import { textSwitchChecks } from './validate/text-switches';
 import { listId, listText } from '../core/list-lines';
 import { condFlags } from '../core/cond';
 import { subLists } from '../core/cmds';
@@ -395,12 +396,8 @@ export function validate(gameIn: GameDef, layouts: Record<string, Layout>, opts:
       setF(Array.isArray(c.set) ? c.set[0] : c.set, where);
       return;
     }
-    if ('unset' in c) {
-      setF(c.unset, where);
-      return;
-    }
-    if ('inc' in c) {
-      setF(c.inc, where);
+    if ('unset' in c || 'inc' in c) {
+      setF('unset' in c ? c.unset : c.inc, where);
       return;
     }
     if ('unlock' in c) {
@@ -1090,12 +1087,13 @@ export function validate(gameIn: GameDef, layouts: Record<string, Layout>, opts:
       for (const i of p.inventory ?? []) if (!items[i]) err(`${w}.players.${pid}`, `unknown item: "${i}"`);
     }
   }
-  // Events and scripts, objectives, the speedrun manifest (4.1.14), Remix (4.1.15); then the flags
+  // Events and scripts, objectives, Remix (4.1.15), the speedrun manifest (4.1.14), text switches (4.3); then the flags
   for (const [id, where] of scriptRefs) if (!scriptIds.has(id)) err(where, `unknown script: "${id}"`);
   eventChecks(game, { emitted, listened, waited }, err, warn);
   objectiveChecks(game, { cond, err, warn, commands: opts.commands });
   remixChecks(game, { err, warn, flagsSet, flagsRead });
   speedrunChecks(game, { err, warn, flags: new Set(flagsSet.keys()) });
+  textSwitchChecks(gameIn, { err, warn, flagsSet, flagsRead, commands: opts.commands });
   for (const [f, where] of flagsRead) if (!flagsSet.has(f)) warn(where, `flag "${f}" is read but never set`);
   // A decorative flag kept on purpose: `lint.ignore` names it (`flag-never-read` or `flag-never-read:<flag>`), like the lint's codes.
   const ignored = new Set(game.lint?.ignore ?? []);

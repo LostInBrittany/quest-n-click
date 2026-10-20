@@ -498,10 +498,10 @@ export const HANDLERS: Handlers = {
   transfer: (eng, c) => eng.transfer(c.transfer[0], c.transfer[1]),
   custom,
   sfx: (eng, c, ctx) => {
-    if (!ctx.fast) eng.ui.sfx(c.sfx, c.caption);
+    if (!ctx.fast) eng.ui.sfx(c.sfx, c.caption === undefined ? undefined : eng.text(c.caption));
   },
   music: (eng, c) => eng.ui.music(typeof c.music === 'string' ? { play: c.music } : c.music),
-  toast: (eng, c) => eng.ui.toast(c.toast),
+  toast: (eng, c) => eng.ui.toast(eng.text(c.toast)),
   shake: (eng, c, ctx) => {
     if (!ctx.fast) eng.ui.shake(c.shake);
   },

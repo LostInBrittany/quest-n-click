@@ -117,6 +117,17 @@ A command is one key of `CMD_KEYS`; its fields are the Studio form’s. A plain 
 | `optional` | boolean (optional) | A side objective: not part of 100% (`npm run solve -- --goal=100%`). |
 | `parent` | string (optional) | The objective this one is a step of: shown under it. |
 
+### Placeholders in texts
+
+Written inside any text; anything else between braces stays as written. A switch compares `String(value)` of the flag exactly; no value matching (or the flag unset) takes `*=`, else the first text. No nesting, no escaping: an alternative holds no `{`, `}` or `|`. The validator reports a malformed switch, a flag no command sets, a value listed that no `set` writes, and a value written that the switch neither lists nor covers with `*=`.
+
+| Placeholder | Filled |
+|---|---|
+| `{hero}` | when shown: the active hero’s name (its variant’s); lines, choices, looks, hints, toasts, captions, item and object names, objective titles |
+| `{<flag>?<value>=<text>\|…\|*=<text>}` | when shown, after the translation: the text listed for the flag’s current value (`{form?m=him\|f=her}`, `content{form?f=e\|*=}`) |
+| `{item} {target} {name}` | in a fallback, kind or give line: the thing acted on, what it is used on, the target |
+| `{code:<id>} {hint:<id>}` | at boot, by Remix: a coupled dimension’s code and its clue |
+
 ### How each field counts (IR and fingerprint)
 
 From `core/ir-fields.ts`: `logic` is in the IR and the fingerprint’s `logic`; `presentation` in its `presentation`; `both` splits; `meta` is for the tools only.
