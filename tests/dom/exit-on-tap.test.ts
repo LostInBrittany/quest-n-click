@@ -186,6 +186,17 @@ describe("the validator on the player's side (validate/player.ts): the two field
     expect(errs(g)).toContain('input › input is an object: { exitOnTap?: boolean }');
   });
 
+  it('refuses an actorGap that is not a positive number (#198)', () => {
+    const g = structuredClone(demo) as GameDef;
+    const gaps = () => validate(g, {}).errors.filter((e) => e.startsWith('actorGap'));
+    g.actorGap = 60;
+    expect(gaps()).toEqual([]);
+    for (const bad of [0, -5, Number.NaN, Number.POSITIVE_INFINITY, '60']) {
+      g.actorGap = bad as never;
+      expect(gaps()).toEqual(['actorGap › actorGap is a positive number of pixels (44 is used instead)']);
+    }
+  });
+
   it("still checks the save slots and the menus' texts", () => {
     const g = structuredClone(demo) as GameDef;
     g.saves = { slots: -1 };

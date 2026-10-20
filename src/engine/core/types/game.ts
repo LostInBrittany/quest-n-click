@@ -307,6 +307,14 @@ export interface GameDef {
    * room and its neighbours, a room never visited may need the network.
    */
   offline?: 'full' | 'nearby';
+  /**
+   * How far the hero stands from a character it walks up to (talk, give, look…) when the layout gives no `approach`
+   * point (4.2.4): a share of the two characters' mean height, times the depth scale where the character stands. `0.8`
+   * suits characters who gesture as they talk (their arms stay clear of each other). Omitted (or not a positive
+   * number): a fixed 44 units, whatever their size. Presentation only, like the layout's approach points: no rule nor
+   * the solver reads it.
+   */
+  actorGap?: number;
   /** Content lint (`npm run lint`): codes to silence, as `code`, `code:<stable id>` or `code:<room>/<path>`. */
   lint?: { ignore?: string[] };
   /** Translation paths whose text stays the same in every language on purpose (a name, "OK", ▲): every other text
