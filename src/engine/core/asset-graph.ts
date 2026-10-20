@@ -18,6 +18,7 @@
 import { eachCmd } from './cmds';
 import type { Cmd, GameDef, Id, Layout, RoomDef } from './types';
 import { stageImages } from './stage';
+import { voiceBase } from './voice-key';
 
 export type AssetKind = 'img' | 'sfx' | 'music' | 'voice' | 'video';
 export interface AssetManifestLike {
@@ -93,6 +94,16 @@ function addMusic(game: GameDef, out: Set<string>, id: Id | undefined, stems: bo
   else add(out, 'music', a.music?.[id]);
 }
 
+/** The keyed clips (`<id>~<flag>=<value>…`, voice-key.ts) of `audio.voices`, by the line id they belong to. */
+function keyedClips(voices: Record<Id, string> | undefined): Map<Id, string[]> {
+  const out = new Map<Id, string[]>();
+  for (const [k, f] of Object.entries(voices ?? {})) {
+    const base = voiceBase(k);
+    if (base !== k) out.set(base, [...(out.get(base) ?? []), f]);
+  }
+  return out;
+}
+
 /** What commands can play or show: sounds, music, voice clips, gained items' icons, phone callers, minigame assets. */
 function cmdAssets(
   game: GameDef,
@@ -102,9 +113,12 @@ function cmdAssets(
   stems = true,
 ) {
   const a = game.audio ?? {};
+  const keyed = keyedClips(a.voices);
   const voice = (id?: Id, explicit?: Id) => {
     const v = explicit ?? id;
     if (v && a.voices?.[v]) add(out, 'voice', a.voices[v]);
+    // A line with switches has a clip per value (`<id>~<flag>=<value>`, voice-key.ts): any of them may play.
+    if (!explicit && id) for (const f of keyed.get(id) ?? []) add(out, 'voice', f);
   };
   for (const list of lists)
     eachCmd(list, (c) => {
@@ -265,9 +279,11 @@ export function assetGraph(
     stems,
   );
   // Answers by kind (`rules.kinds`) speak with their id's voice clip, in any room.
+  const keyed = keyedClips(a.voices);
   for (const k of game.rules?.kinds ?? []) {
     const id = (k as { id?: Id }).id;
     if (id && a.voices?.[id]) add(g, 'voice', a.voices[id]);
+    if (id) for (const f of keyed.get(id) ?? []) add(g, 'voice', f);
   }
   for (const x of Object.values(icons ?? {}))
     for (const f of asList(x as string | string[] | undefined)) add(g, 'img', f);
