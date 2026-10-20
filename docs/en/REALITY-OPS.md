@@ -1,6 +1,6 @@
 # Running a Reality Bridge
 
-The reference Bridge (`bridge/src/`, the package `web-scumm-bridge`) serves a game. It is a small Node service:
+The reference Bridge (`bridge/src/`, the package `quest-n-click-bridge`) serves a game. It is a small Node service:
 pairing, connectors under Biscuit capabilities, a demonstration webhook, a journal, signed events, Server-Sent
 Events. Since 4.1.10 it keeps its state in a store (the 4.1.9 journal, SQLite, or Postgres), and one deployment may
 run several instances and serve several tenants. For authors: `docs/en/REALITY.md`. For why:
@@ -22,10 +22,10 @@ npm run bridge -- serve [--dir=.cache/bridge] [--port=8787] [--host=127.0.0.1]
   is not, if you can);
 - `admin-token`: the operator's token, the only copy in clear.
 
-Nothing secret is printed or committed (`.cache/` is ignored). In a game project the command is `web-scumm bridge`.
-The package `web-scumm-bridge` (the release's tarball) is one JavaScript module plus its Datalog policies and its SQL
+Nothing secret is printed or committed (`.cache/` is ignored). In a game project the command is `quest-n-click bridge`.
+The package `quest-n-click-bridge` (the release's tarball) is one JavaScript module plus its Datalog policies and its SQL
 schema: it needs Node 22.12 or newer (22.13 for SQLite), Biscuit's WebAssembly and zod; `pg` only for Postgres,
-`@opentelemetry/api` only for the measures; `web-scumm-bridge` is its command.
+`@opentelemetry/api` only for the measures; `quest-n-click-bridge` is its command.
 
 Behind HTTPS: run `serve` on `127.0.0.1` behind a reverse proxy that terminates TLS and does not buffer
 `text/event-stream` responses, with `--trust-proxy` so the per-address limits see the client's address
@@ -118,7 +118,7 @@ long as players may be offline with signals to receive; then a player re-pairs.
   capability, its signals, its acknowledgement).
 - `DELETE /v1/admin/players/<p-…>`: deletes it, the journal file rewritten without a line about that player (each
   line read as an event, never matched as text).
-- `web-scumm-bridge doctor`: reads the journal and says what it holds. A last line cut short by a crash is dropped
+- `quest-n-click-bridge doctor`: reads the journal and says what it holds. A last line cut short by a crash is dropped
   at the next start, and said in the log (`journal.repaired`); any other line that does not parse, or parses but is
   not an event of the journal's shape (every field checked, 4.1.8), is corruption, and the Bridge refuses to start
   rather than guess.
@@ -128,7 +128,7 @@ long as players may be offline with signals to receive; then a player re-pairs.
   whose process id was reused by an unrelated process since the crash is refused as "in use": look, then delete it.
   The lock is a hard link, so the journal's folder must be on a file system that holds them (APFS, ext4, NTFS do;
   FAT and some network mounts do not).
-- `web-scumm-bridge compact [--retention-days=90]`, the Bridge stopped: rewrites the journal without the pairings
+- `quest-n-click-bridge compact [--retention-days=90]`, the Bridge stopped: rewrites the journal without the pairings
   past their time, the earlier versions of a player's line, and the signals acknowledged and older than the
   retention; a player's last signal always stays (its next sequence is counted from it), and so does everything not
   yet acknowledged. The journal grows only with what is still waiting, or recent enough for a connector to repeat.
@@ -184,7 +184,7 @@ propose N times its quota). A stored row that no longer verifies is quarantined,
 ## The reference deployment (4.1.18)
 
 `ops/qualify/` is the distributed profile as a reproducible deployment: an HTTPS proxy (Caddy), three Bridges built
-from the `web-scumm-bridge` tarball, one Postgres, two tenants, every image pinned by digest, the Bridges read-only and
+from the `quest-n-click-bridge` tarball, one Postgres, two tenants, every image pinned by digest, the Bridges read-only and
 unprivileged, the database password and URL as secret files (`BRIDGE_STORE_FILE`), Postgres never published.
 `npm run ops:qualify` brings it up and kills an instance during proposals, holds a stream on another, checks the
 tenants apart, then backs up, destroys the topology with its database and restores it (`ops/qualify/README.md`). The
@@ -306,7 +306,7 @@ of it all.
 ```json
 "runs": {
   "games": { "reference": { "dir": "/srv/games/reference", "fingerprint": { "logic": "…", "trustedExtensions": "…", "presentation": "…", "engine": "…" } } },
-  "worker": ["/usr/bin/node", "/srv/web-scumm/node_modules/tsx/dist/cli.mjs", "/srv/web-scumm/tools/speedrun/worker.ts"],
+  "worker": ["/usr/bin/node", "/srv/quest-n-click/node_modules/tsx/dist/cli.mjs", "/srv/quest-n-click/tools/speedrun/worker.ts"],
   "workers": 2
 },
 "daily": { "games": { "reference": { "daily": "daily", "mystery": "mystery" } }, "kid": "daily-2026", "keyFile": "daily.jwk", "secretFile": "daily.secret" }

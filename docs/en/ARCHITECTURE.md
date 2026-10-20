@@ -1,6 +1,6 @@
 # Architecture
 
-How web-scumm is put together, for someone reading its code for the first time (4.1.0). `docs/en/CODE_TOUR.md` is
+How quest'n'click is put together, for someone reading its code for the first time (4.1.0). `docs/en/CODE_TOUR.md` is
 the same map walked in order, half an hour with the code open; `docs/dev/adr/` explains the decisions that look
 surprising without their context.
 
@@ -84,7 +84,7 @@ without `reality` loads none of this code.
 
 ## Public and internal
 
-Public: `web-scumm/content` (the types and `defineGame`), `web-scumm/player` (boot), `web-scumm/minigames`,
-`web-scumm/testing` (`Engine`, the fakes, the save envelope, `solve`), the content format, the save envelope and the
+Public: `quest-n-click/content` (the types and `defineGame`), `quest-n-click/player` (boot), `quest-n-click/minigames`,
+`quest-n-click/testing` (`Engine`, the fakes, the save envelope, `solve`), the content format, the save envelope and the
 MCP tools, held by `tests/api-surface.json` and `docs/en/SUPPORT.md`. Internal: the modules behind the
 `Engine` and `App` facades (their members marked `@internal`), the solver's modules, the tools' code.

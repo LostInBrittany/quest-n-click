@@ -1,6 +1,6 @@
 # Faire tourner un Reality Bridge
 
-Le Bridge de référence (`bridge/src/`, le paquet `web-scumm-bridge`) sert un jeu. C'est un petit service Node :
+Le Bridge de référence (`bridge/src/`, le paquet `quest-n-click-bridge`) sert un jeu. C'est un petit service Node :
 appairage, connecteurs sous capacités Biscuit, un webhook de démonstration, un journal, des événements signés, des
 Server-Sent Events. Depuis la 4.1.10 il garde son état dans un store (le journal de la 4.1.9, SQLite ou Postgres), et
 un déploiement peut faire tourner plusieurs instances et servir plusieurs tenants. Pour les auteurs :
@@ -23,10 +23,10 @@ npm run bridge -- serve [--dir=.cache/bridge] [--port=8787] [--host=127.0.0.1]
   garder là où le Bridge n'est pas, si possible) ;
 - `admin-token` : le jeton de l'opérateur, seule copie en clair.
 
-Rien de secret n'est affiché ni commité (`.cache/` est ignoré). Dans un projet de jeu, la commande est `web-scumm bridge`.
-Le paquet `web-scumm-bridge` (l'archive de la release) est un seul module JavaScript plus ses politiques Datalog et
+Rien de secret n'est affiché ni commité (`.cache/` est ignoré). Dans un projet de jeu, la commande est `quest-n-click bridge`.
+Le paquet `quest-n-click-bridge` (l'archive de la release) est un seul module JavaScript plus ses politiques Datalog et
 son schéma SQL : il lui faut Node 22.12 ou plus (22.13 pour SQLite), le WebAssembly de Biscuit et zod ; `pg` seulement
-pour Postgres, `@opentelemetry/api` seulement pour les mesures ; `web-scumm-bridge` est sa commande.
+pour Postgres, `@opentelemetry/api` seulement pour les mesures ; `quest-n-click-bridge` est sa commande.
 
 Derrière HTTPS : lancer `serve` sur `127.0.0.1` derrière un proxy inverse qui termine TLS et ne met pas en tampon les
 réponses `text/event-stream`, avec `--trust-proxy` pour que les limites par adresse voient celle du client
@@ -123,7 +123,7 @@ tant que des joueurs peuvent être hors ligne avec des signaux à recevoir ; ens
   capacité, ses signaux, son accusé).
 - `DELETE /v1/admin/players/<p-…>` : le supprime, le fichier du journal réécrit sans aucune ligne sur ce joueur
   (chaque ligne lue comme un événement, jamais comparée comme du texte).
-- `web-scumm-bridge doctor` : lit le journal et dit ce qu'il contient. Une dernière ligne coupée par un plantage est
+- `quest-n-click-bridge doctor` : lit le journal et dit ce qu'il contient. Une dernière ligne coupée par un plantage est
   retirée au démarrage suivant, et dite dans le log (`journal.repaired`) ; toute autre ligne qui ne se lit pas, ou
   qui se lit mais n'est pas un événement de la forme du journal (chaque champ vérifié, 4.1.8), est une corruption,
   et le Bridge refuse de démarrer plutôt que de deviner.
@@ -134,7 +134,7 @@ tant que des joueurs peuvent être hors ligne avec des signaux à recevoir ; ens
   processus depuis le plantage est refusé comme « en cours d'usage » : regardez, puis supprimez-le. Le verrou est un
   lien dur : le dossier du journal doit être sur un système de fichiers qui les tient (APFS, ext4, NTFS oui ; FAT et
   certains montages réseau non).
-- `web-scumm-bridge compact [--retention-days=90]`, Bridge arrêté : réécrit le journal sans les appairages
+- `quest-n-click-bridge compact [--retention-days=90]`, Bridge arrêté : réécrit le journal sans les appairages
   périmés, les versions antérieures de la ligne d'un joueur, et les signaux acquittés plus vieux que la rétention ;
   le dernier signal d'un joueur reste toujours (sa prochaine séquence se compte depuis lui), ainsi que tout ce qui
   n'est pas encore acquitté. Le journal ne grossit qu'avec ce qui attend encore, ou assez récent pour qu'un
@@ -195,7 +195,7 @@ en quarantaine, jamais livrée, et `doctor` la liste.
 ## Le déploiement de référence (4.1.18)
 
 `ops/qualify/` est le profil distribué sous forme de déploiement reproductible : un proxy HTTPS (Caddy), trois Bridge
-construits depuis le tarball `web-scumm-bridge`, un Postgres, deux tenants, chaque image épinglée par digest, les
+construits depuis le tarball `quest-n-click-bridge`, un Postgres, deux tenants, chaque image épinglée par digest, les
 Bridge en lecture seule et sans privilège, le mot de passe et l'URL de la base en fichiers secrets
 (`BRIDGE_STORE_FILE`), Postgres jamais publié. `npm run ops:qualify` le démarre, tue une instance pendant des
 propositions, tient un flux sur une autre, vérifie que les tenants restent séparés, puis sauvegarde, détruit la
@@ -329,7 +329,7 @@ inactifs. Une limite globale au proxy reste utile devant le tout.
 ```json
 "runs": {
   "games": { "reference": { "dir": "/srv/games/reference", "fingerprint": { "logic": "…", "trustedExtensions": "…", "presentation": "…", "engine": "…" } } },
-  "worker": ["/usr/bin/node", "/srv/web-scumm/node_modules/tsx/dist/cli.mjs", "/srv/web-scumm/tools/speedrun/worker.ts"],
+  "worker": ["/usr/bin/node", "/srv/quest-n-click/node_modules/tsx/dist/cli.mjs", "/srv/quest-n-click/tools/speedrun/worker.ts"],
   "workers": 2
 },
 "daily": { "games": { "reference": { "daily": "daily", "mystery": "mystery" } }, "kid": "daily-2026", "keyFile": "daily.jwk", "secretFile": "daily.secret" }

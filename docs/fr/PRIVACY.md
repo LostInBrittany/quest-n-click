@@ -1,6 +1,6 @@
 # Données personnelles : ce qui est gardé, où, combien de temps
 
-Ce qu'un jeu web-scumm, son Reality Bridge et ses connecteurs gardent sur un joueur (4.1.9). L'opérateur qui fait
+Ce qu'un jeu quest'n'click, son Reality Bridge et ses connecteurs gardent sur un joueur (4.1.9). L'opérateur qui fait
 tourner un Bridge et ses connecteurs est celui qui répond de ces données devant les joueurs ; cette page dit ce que
 le logiciel garde pour que l'opérateur puisse le dire à son tour. Un jeu sans `reality` ne garde rien au-delà de
 l'appareil du joueur.

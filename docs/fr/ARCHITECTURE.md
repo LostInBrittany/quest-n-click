@@ -1,6 +1,6 @@
 # Architecture
 
-Comment web-scumm est construit, pour qui lit son code pour la première fois (4.1.0). `docs/fr/CODE_TOUR.md` parcourt
+Comment quest'n'click est construit, pour qui lit son code pour la première fois (4.1.0). `docs/fr/CODE_TOUR.md` parcourt
 la même carte dans l'ordre, en une demi-heure avec le code ouvert ; `docs/dev/adr/` explique les décisions qui
 semblent surprenantes sans leur contexte.
 
@@ -90,8 +90,8 @@ sauvegardée avant l'accusé de réception. Le moteur ne touche jamais au résea
 
 ## Public et interne
 
-Public : `web-scumm/content` (les types et `defineGame`), `web-scumm/player` (le démarrage), `web-scumm/minigames`,
-`web-scumm/testing` (`Engine`, les doublures, l'enveloppe de sauvegarde, `solve`), le format du contenu,
+Public : `quest-n-click/content` (les types et `defineGame`), `quest-n-click/player` (le démarrage), `quest-n-click/minigames`,
+`quest-n-click/testing` (`Engine`, les doublures, l'enveloppe de sauvegarde, `solve`), le format du contenu,
 l'enveloppe de sauvegarde et les outils MCP, tenus par `tests/api-surface.json` et `docs/fr/SUPPORT.md`. Interne :
 les modules derrière les façades `Engine` et `App` (leurs membres marqués `@internal`), les modules du solveur, le
 code des outils.
