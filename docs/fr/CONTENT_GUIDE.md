@@ -210,6 +210,19 @@ marche dans un jeu qui a le réglage, `onTap: 'go'` la fait franchir dans un jeu
 (`exits: { path: { name: 'chemin', to: 'village', onTap: 'go' } }`). Désactivé par défaut. C'est de l'entrée
 seulement : les règles, le solveur et les sauvegardes ne le voient pas.
 
+**Une touche par verbe (4.2.5).** Sur un ordinateur, les jeux LucasArts choisissaient un verbe au clavier : O pour
+Ouvrir, R pour Regarder. Le `key` d'un verbe fait de même : `{ id: 'open', label: 'Open', color: '#8fd3ff', key: 'o' }`.
+La touche, en majuscule ou en minuscule et sans Ctrl, Alt ni Meta, choisit le verbe comme un tap sur son bouton (et le
+retire s'il est déjà choisi) ; elle ne fait rien quand le moteur est occupé, quand une réplique est à l'écran, ou quand
+une conversation, la carte, un mini-jeu ou un menu recouvre la scène. Le bouton souligne la première occurrence de la
+lettre dans son libellé et l'annonce aux lecteurs d'écran (`aria-keyshortcuts`). La touche se traduit avec le libellé
+(`verb:close/key` dans les locales : le `c` de Close devient le `f` de Fermer). `npm run validate` refuse une touche
+qui n'est pas un seul caractère, Espace (qui fait avancer une réplique) et une touche partagée par deux verbes, dans le
+jeu et dans chaque traduction, et prévient quand le libellé ne contient pas la lettre. Choisissez les lettres une fois
+les libellés écrits : « Pousser » et « Prendre » commencent tous deux par P, l'un des deux prend donc une autre lettre
+de son libellé (`s` pour Pousser). Sans `key`, pas de raccourci. Présentation seulement : les règles, le solveur et les
+sauvegardes ne le voient pas.
+
 ## Les commandes
 
 Une commande seule, sous forme de texte, fait parler le héros : `'Et voilà. Un marchepied.'`.

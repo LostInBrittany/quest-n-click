@@ -50,7 +50,7 @@ const each = <V, R>(rec: Readonly<Record<Id, V>> | undefined, f: (v: V) => R | u
 /**
  * What the fingerprint's `presentation` hashes: the asset manifest, and every field core/ir-fields.ts classes as
  * presentation (whole) or both (its presentation part: a room's decor, music, stage layers and lights, its props'
- * images and animation frames, its actors' poses; the characters' looks; the items' icons; the verbs' colours; the
+ * images and animation frames, its actors' poses; the characters' looks; the items' icons; the verbs' colours and keys; the
  * map's images and pins). No condition nor command of the content is in it.
  * @public
  */
@@ -74,7 +74,8 @@ export function presentationOf(game: CompiledGame | GameDef, manifest: unknown =
         'creditsScreen',
         'credits',
       ]),
-      verbs: g.verbs.map((v) => ({ id: v.id, color: v.color })),
+      // A verb's key (#203) only when set: a game without keys keeps its fingerprint.
+      verbs: g.verbs.map((v) => ({ id: v.id, color: v.color, ...(v.key !== undefined ? { key: v.key } : {}) })),
       characters: each(g.characters, (c) =>
         pick(c, [
           'color',

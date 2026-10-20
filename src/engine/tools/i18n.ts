@@ -193,6 +193,10 @@ function walkTexts(game: GameDef, fn: Fn, minigames: MinigameTexts = {}): void {
     one(`verb:${v.id}/join`, v.join, (x) => {
       v.join = x;
     });
+    // The shortcut follows the word: Close's C is Fermer's F (#203).
+    one(`verb:${v.id}/key`, v.key, (x) => {
+      v.key = x;
+    });
   });
   for (const [id, it] of Object.entries(game.items)) {
     one(`item:${id}/name`, it.name, (x) => {
@@ -390,9 +394,12 @@ export function localeStatus(game: GameDef, table: Record<string, string>, maxTe
     k.startsWith('_stale:') ? !keys.has(k.slice(7)) : !k.startsWith('_') && !keys.has(k),
   );
   const long = paths.filter((p) => (table[p.path] ?? '').length > maxText).map((p) => p.path);
-  // Present but identical to the source text: not translated yet (names and numbers can legitimately stay the same).
+  // Present but identical to the source text: not translated yet (names, numbers and a verb's key, Open's O being
+  // Ouvrir's, can legitimately stay the same).
   const same = paths
-    .filter((p) => p.text && table[p.path] === p.text && !/^[\d\s.,:%-]*$/.test(p.text))
+    .filter(
+      (p) => p.text && table[p.path] === p.text && !/^[\d\s.,:%-]*$/.test(p.text) && !/^verb:.+\/key$/.test(p.path),
+    )
     .map((p) => p.path);
   const allowed = new Set(game.i18n?.same ?? []);
   const untranslated = same.filter((p) => !allowed.has(p));

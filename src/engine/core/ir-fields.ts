@@ -31,7 +31,7 @@ const game: Classes<GameDef> = {
   players: 'logic',
   hintItem: 'logic',
   hintVoice: 'logic',
-  // Ids and joining words are logic; labels too (said in the sentence line); colours are presentation.
+  // Ids and joining words are logic; labels too (said in the sentence line); colours and keys (#203) are presentation.
   verbs: 'both',
   characters: 'both',
   items: 'both',
