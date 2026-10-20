@@ -23,7 +23,7 @@ ou Linux. Le moteur s'installe depuis l'archive d'une release (la
 publication npm arrive dans une 4.2.x ultérieure) :
 
 ```bash
-T=https://github.com/wanoo/web-scumm/releases/download/v4.2.3/web-scumm-4.2.3.tgz
+T=https://github.com/wanoo/web-scumm/releases/download/v4.2.4/web-scumm-4.2.4.tgz
 npx --package=$T web-scumm create mon-jeu "Mon jeu" --engine=$T
 cd mon-jeu && npm install
 npm run assets && npm run dev        # y jouer ; puis npm run verify, npm run build
@@ -156,15 +156,16 @@ Chaque page existe en anglais (`docs/en/`) et en français (`docs/fr/`), et un t
 dans [TOOLS](docs/fr/TOOLS.md), ce qui change dans le [CHANGELOG](CHANGELOG.md), passer à une nouvelle version dans
 [UPGRADING](docs/fr/UPGRADING.md), et d'où vient le projet dans la [ROADMAP](docs/fr/ROADMAP.md).
 
-Release actuelle : [v4.2.3 « Coordination »](https://github.com/wanoo/web-scumm/releases/tag/v4.2.3), le Studio en
-ligne pour une équipe, expérimental ([STUDIO-SERVER](docs/fr/STUDIO-SERVER.md)) : prévisualisations par révision,
-santé, annulation personnelle, builds publiés, sauvegarde et restauration du serveur, et depuis la 4.2.3 une carte du
-scénario, des commentaires ancrés, un diff par nom, des agents IA par un MCP distant, l'envoi et l'import Git, l'onglet
-Assets hébergé ; sur la 4.2.0 « Stable World ». La
-4.2.0 a rétabli le SemVer strict après la ligne d'incubation 4.1.x : une mineure ajoute, une majeure retire ; l'API
-publique le suit ([SUPPORT](docs/fr/SUPPORT.md)). La 4.2.0 est sortie avant les passes humaines : des surfaces
-ci-dessus, seule la colonne Stable est promise ; les passes se font sur une 4.2.x, qui promeut ce qu'elles prouvent
-([GO / NO-GO 4.2](docs/dev/GO-NO-GO-4.2.md), D38).
+Release actuelle : [v4.2.4 (les quatre du contributeur)](https://github.com/wanoo/web-scumm/releases/tag/v4.2.4),
+des changements pour les auteurs (une sortie franchie d'un simple tap, `actorGap`, le fond des planches de sprites,
+`face: 'hero'` corrigé) sur la 4.2.3 « Coordination », le Studio en ligne pour une équipe, expérimental
+([STUDIO-SERVER](docs/fr/STUDIO-SERVER.md)) : prévisualisations par révision, santé, annulation personnelle, builds
+publiés, sauvegarde et restauration du serveur, et depuis la 4.2.3 une carte du scénario, des commentaires ancrés, un
+diff par nom, des agents IA par un MCP distant, l'envoi et l'import Git, l'onglet Assets hébergé ; sur la 4.2.0
+« Stable World ». La 4.2.0 a rétabli le SemVer strict après la ligne d'incubation 4.1.x : une mineure ajoute, une
+majeure retire ; l'API publique le suit ([SUPPORT](docs/fr/SUPPORT.md)). La 4.2.0 est sortie avant les passes
+humaines : des surfaces ci-dessus, seule la colonne Stable est promise ; les passes se font sur une 4.2.x, qui promeut
+ce qu'elles prouvent ([GO / NO-GO 4.2](docs/dev/GO-NO-GO-4.2.md), D38).
 
 ## Licences
 

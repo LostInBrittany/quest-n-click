@@ -59,6 +59,14 @@ opens no browser, no Windows runner and no Node 24 (`CONTRIBUTING.md`, "What CI 
 | Bridge, `distributed` profile (4.1.10, `experimental`) | Postgres 16 in CI (`bridge-postgres`): the same contract, tenants and fan-out between instances; the nightly load run; the qualification profile (`ops/qualify/`: HTTPS, three instances, the leaderboard, a worker killed mid-verification, a restore after the topology is destroyed) in the `qualify` workflow; since 4.1.20 the full profile in every candidate a tag may name (both restore modes under the maintenance lease), `--short` in a pull request's | a real deployment: until one, `experimental` |
 | Connectors (4.1.9), **experimental** (D19) | email (signed webhook, IMAP), Telnet, SSH, Open Badges 2 and 3: the same contract on all four, abuse and fuzz tests, a run under `--disallow-code-generation-from-strings`, the sample chapter's replays; the four played from their archive in the candidate (4.1.19); Telnet and SSH tests not on Windows yet | a real email provider, a real badge from a real issuer, SSH and Telnet exposed in a controlled environment |
 
+## 4.2.4: optional presentation fields (D46)
+
+4.2.4 changes no surface's status. The content format stays 4.2.0's, read with one exception since 4.2.4 (D46): a
+4.2.x may add an optional content field that is presentation only, needs no schema, save envelope or IR change, and
+leaves a game without it identical. 4.2.4 adds three: `input.exitOnTap`, an exit's `onTap` and `actorGap`
+(`docs/dev/DSL-STABILITY.md`). `sheetBackground` in `site.json` is a setting of the art tools, not of the content.
+Renaming, removing or changing the meaning of a field still waits for a 4.3.
+
 ## 4.2.3: the end of the 4.2.x line
 
 4.2.3 ends the Studio Server's 4.2.x line (D40, D44). No pass has been made yet, so no surface is promoted by it:
