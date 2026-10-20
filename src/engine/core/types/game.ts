@@ -294,12 +294,27 @@ export interface GameDef {
    */
   settings?: boolean;
   /**
+   * How the player's taps read (4.2.4). `exitOnTap`: a single tap on an exit with no verb picked walks there and goes
+   * through on arrival, as in the LucasArts classics, instead of only walking there (a double tap always went through);
+   * a picked verb still wins, a tap elsewhere during the walk still redirects, and an exit's `onTap` overrides it.
+   * Default off. Input only: the rules, the solver and saves do not see it.
+   */
+  input?: { exitOnTap?: boolean };
+  /**
    * What the game caches for offline play. `full` (default): after the current room and its neighbours, every image
    * and sound of the game is fetched in the background, in batches, so the whole game plays offline after the first
    * visit (skipped on a "save data" or 2G connection; music waits for better than 3G). `nearby`: only the current
    * room and its neighbours, a room never visited may need the network.
    */
   offline?: 'full' | 'nearby';
+  /**
+   * How far the hero stands from a character it walks up to (talk, give, look…) when the layout gives no `approach`
+   * point (4.2.4): a share of the two characters' mean height, times the depth scale where the character stands. `0.8`
+   * suits characters who gesture as they talk (their arms stay clear of each other). Omitted (or not a positive
+   * number): a fixed 44 units, whatever their size. Presentation only, like the layout's approach points: no rule nor
+   * the solver reads it.
+   */
+  actorGap?: number;
   /** Content lint (`npm run lint`): codes to silence, as `code`, `code:<stable id>` or `code:<room>/<path>`. */
   lint?: { ignore?: string[] };
   /** Translation paths whose text stays the same in every language on purpose (a name, "OK", ▲): every other text

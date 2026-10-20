@@ -599,6 +599,15 @@ par la baseline ; un script de liens. Laissé pour plus tard, dit comme tel : le
 (`docs/dev/passes/4.1.8.md`), l'accélération du workflow de release (son propre lot), les 845 lignes de l'onglet
 assistant.
 
+## v4.2.4 (livrée en octobre 2026) : quatre changements d'un contributeur pour les auteurs
+
+Quatre pull requests d'un contributeur extérieur, Horacio (LostInBrittany), trouvées en faisant son jeu « Jack cherche
+un taf », chacune relue et complétée sur sa branche : `face: 'hero'` tourne un personnage vers le héros (#194) ; le
+fond des planches de sprites, transparent ou d'une couleur choisie, et un découpeur qui coupe sur l'alpha (#187) ; une
+sortie franchie d'un simple tap, `input.exitOnTap` et le `onTap` d'une sortie (#191) ; `actorGap`, la distance du
+héros à un personnage qui suit leur taille (#199). Un jeu qui n'en utilise aucun ne change pas. Les premiers champs de
+contenu optionnels et de présentation seulement admis en 4.2.x (D46).
+
 ## v4.2.3 « Coordination » (livrée en octobre 2026) : l'équipe organisée, les agents et Git sur le Studio hébergé
 
 La dernière étape 4.2.x (D44) : une écriture porte la révision que son éditeur a lue, et une écriture en retard est

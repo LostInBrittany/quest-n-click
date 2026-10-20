@@ -620,9 +620,26 @@ installs from `releases/download/v4.2.3/…`. For a hosted Studio:
 - **If you passed `invite` its role first** (`invite owner --email …`): it is now refused; write `invite --email …
   --role owner`.
 
-## 37. From 4.2.3 to 4.3.0 "Hero Choice"
+## 37. From 4.2.3 to 4.2.4
 
-Nothing to change in a game: the content format only grows (ADR 0022, D46), `schemaVersion` stays 3, saves and the
+Nothing to change: a game that uses none of the new fields builds, plays and saves as on 4.2.3 (the same
+fingerprints, golden saves and reference runs). The engine installs from `releases/download/v4.2.4/…`. The new fields
+are optional and presentation only (D46: no schema, save envelope or IR change):
+
+- **`input: { exitOnTap: true }`** in `game.ts`: a single tap on an exit, with no verb picked, walks there and goes
+  through on arrival; an exit's **`onTap: 'go' | 'walk'`** overrides the game's setting either way (CONTENT_GUIDE, "A
+  double tap: the verb a player means").
+- **`actorGap`** on the game (for example `0.8`): without an `approach` point in the layout, the hero stops at that
+  share of the two characters' mean height, times the depth scale, instead of 44 units (CONTENT_GUIDE, the layout).
+- **`"sheetBackground"`** in `site.json`: `"transparent"` or a `#RRGGBB` colour for the generated sprite sheets
+  (default `#2B2E45`, the same prompts as before); PROMPTS, "Choosing the sheet background".
+
+**A fix to know**: a game that wrote `{ face: 'hero', who: X }` saw X turn right wherever the hero stood; X now turns
+toward the hero. If a scene relied on the old facing, write `{ face: 'right', who: X }`.
+
+## 38. From 4.2.4 to 4.3.0 "Hero Choice"
+
+Nothing to change in a game: the content format only grows (ADR 0022, D47), `schemaVersion` stays 3, saves and the
 save envelope are 4.2.0's, the logic fingerprint of a game that uses none of what follows does not move. The engine
 installs from `releases/download/v4.3.0/…`. What is new, all optional (CONTENT_GUIDE, "Choosing the hero"):
 

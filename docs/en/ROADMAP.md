@@ -611,6 +611,15 @@ views with 105 tests; every public export carries `@public` or `@extension` and 
 written by the baseline; a links script. Left for later, said as such: the human passes of the sheet
 (`docs/dev/passes/4.1.8.md`), the release workflow's acceleration (its own lot), the assistant tab's 845 lines.
 
+## v4.2.4 (shipped October 2026): a contributor's four changes for authors
+
+Four pull requests from an outside contributor, Horacio (LostInBrittany), found while making his game "Jack cherche un
+taf", each reviewed and completed on its branch: `face: 'hero'` turns a character toward the hero (#194); the sprite
+sheets' background, transparent or a chosen colour, and a cutter that cuts on the alpha (#187); an exit gone through
+on a single tap, `input.exitOnTap` and an exit's `onTap` (#191); `actorGap`, the hero's distance to a character
+following their size (#199). A game that uses none of them is unchanged. The first optional, presentation-only content
+fields allowed in 4.2.x (D46).
+
 ## v4.2.3 "Coordination" (shipped October 2026): the team organised, agents and Git on the hosted Studio
 
 The last 4.2.x step (D44): a write carries the revision its editor read, and a late one is refused with what changed

@@ -4,8 +4,8 @@
   there and any number of heroes in general. `docs/dev/PLAN-4.3-HERO-CHOICE.md` (its §2 the admission file: `players`
   shows a switch button per hero, a Remix dimension is filled at boot where the hero belongs to a save, lines
   duplicated under `if` double with every translation), ADR 0022 (the first DSL extension since the freeze, through
-  D33's gate), D46.
-- **The maintainer's answers (20 Oct, D46)**: the switch syntax `{form?m=him|f=her}` kept as written; the choice shows
+  D33's gate), D47.
+- **The maintainer's answers (20 Oct, D47)**: the switch syntax `{form?m=him|f=her}` kept as written; the choice shows
   portraits **and** text; the number of heroes is arbitrary (the fixture has three); one name per hero; voices
   "eventually", so their lookup is designed now (`<id>~<flag>=<value>`) and built last.
 - **Step 2, a name per variant**: `CharacterDef.variants[].name`; `character()` merges it, `nameOf()` reads through

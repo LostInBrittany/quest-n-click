@@ -656,9 +656,29 @@ Rien à changer dans un jeu : l'API publique, le format du contenu et l'envelopp
 - **Si vous donniez à `invite` son rôle en premier** (`invite owner --email …`) : c'est maintenant refusé ; écrivez
   `invite --email … --role owner`.
 
-## 37. De la 4.2.3 à la 4.3.0 « Hero Choice »
+## 37. De la 4.2.3 à la 4.2.4
 
-Rien à changer dans un jeu : le format du contenu ne fait que grandir (ADR 0022, D46), `schemaVersion` reste 3, les
+Rien à changer : un jeu qui n'utilise aucun des nouveaux champs se construit, se joue et se sauvegarde comme sur la
+4.2.3 (les mêmes empreintes, sauvegardes de référence et runs de référence). Le moteur s'installe depuis
+`releases/download/v4.2.4/…`. Les nouveaux champs sont optionnels et de présentation seulement (D46 : aucun changement
+de schéma, d'enveloppe de sauvegarde ni d'IR) :
+
+- **`input: { exitOnTap: true }`** dans `game.ts` : un simple tap sur une sortie, sans verbe choisi, y marche et la
+  franchit à l'arrivée ; le **`onTap: 'go' | 'walk'`** d'une sortie remplace le réglage du jeu dans un sens ou dans
+  l'autre (CONTENT_GUIDE, « Un double tap : le verbe que le joueur veut dire »).
+- **`actorGap`** sur le jeu (par exemple `0.8`) : sans point `approach` dans le layout, le héros s'arrête à cette part de
+  la taille moyenne des deux personnages, fois l'échelle de profondeur, au lieu de 44 unités (CONTENT_GUIDE, le
+  layout).
+- **`"sheetBackground"`** dans `site.json` : `"transparent"` ou une couleur `#RRGGBB` pour les planches de sprites
+  générées (par défaut `#2B2E45`, les mêmes prompts qu'avant) ; PROMPTS, « Choisir le fond des planches ».
+
+**Un correctif à connaître** : un jeu qui écrivait `{ face: 'hero', who: X }` voyait X se tourner vers la droite où
+que soit le héros ; X se tourne maintenant vers le héros. Si une scène comptait sur l'ancienne orientation, écrivez
+`{ face: 'right', who: X }`.
+
+## 38. De la 4.2.4 à la 4.3.0 « Hero Choice »
+
+Rien à changer dans un jeu : le format du contenu ne fait que grandir (ADR 0022, D47), `schemaVersion` reste 3, les
 sauvegardes et leur enveloppe sont celles de la 4.2.0, l'empreinte logique d'un jeu qui n'utilise rien de ce qui suit
 ne bouge pas. Le moteur s'installe depuis `releases/download/v4.3.0/…`. Ce qui est nouveau, tout optionnel
 (CONTENT_GUIDE, « Choisir le héros ») :

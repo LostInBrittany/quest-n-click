@@ -57,6 +57,9 @@ games/<jeu>/
 vaut `"cel"` (défaut : dessin animé peint) ou `"pixel"` (pixel art rétro) : il change les prompts d'images
 (`npm run prompts`), le découpage (`tools/cut-sheet.py`) et `npm run assets` (WebP sans perte, redimensionnement au
 plus proche voisin) ; voir [PROMPTS.md](PROMPTS.md). Pour `pixel`, mettre aussi `skin: { pixelArt: true }` dans `game.ts`.
+`sheetBackground` (facultatif) est le fond sur lequel les planches de sprites sont générées : `"transparent"` ou une
+couleur `"#RRGGBB"`, `#2B2E45` en son absence ; il change les prompts d'images, et le découpage suit la planche qu'on
+lui donne (PROMPTS.md, « Choisir le fond des planches »).
 
 ## Un lieu, pas à pas
 
@@ -197,6 +200,15 @@ verbe), un personnage reçoit la parole, tout le reste est regardé. Quand ce n'
 `hotspots: { cupboard: { name: 'placard', defaultVerb: 'open' } }` (aussi sur un accessoire, un acteur, une sortie). Un
 objet pris dans le sac sans verbe est donné à un personnage et utilisé sur tout le reste ; la ligne de phrase dit lequel
 avant le tap. Un verbe que le jeu n'a pas n'est jamais choisi (`src/engine/core/default-verb.ts`).
+
+**Un tap qui franchit la sortie (4.2.4).** Dans les classiques de LucasArts, un clic sur une porte avec le « Marcher
+vers » par défaut y faisait passer le héros. `input: { exitOnTap: true }` dans `game.ts` fait de même : un tap sur une
+sortie sans verbe choisi y marche et la franchit à l'arrivée, avec le verbe du double tap (une sortie fermée dit sa ligne
+`locked`). Un verbe choisi l'emporte toujours, un tap ailleurs pendant la marche redirige toujours le héros (et rien
+n'est franchi), et le double tap ne change pas. Une sortie peut dire autre chose : `onTap: 'walk'` la garde en simple
+marche dans un jeu qui a le réglage, `onTap: 'go'` la fait franchir dans un jeu qui ne l'a pas
+(`exits: { path: { name: 'chemin', to: 'village', onTap: 'go' } }`). Désactivé par défaut. C'est de l'entrée
+seulement : les règles, le solveur et les sauvegardes ne le voient pas.
 
 ## Les commandes
 
@@ -579,7 +591,8 @@ sa ligne dans `look`) et en règles ajoutées à la fin de `on` : « VERBE sorti
 gagne toujours. `verbs` vaut par défaut use, open, walk, go, enter, push, pull (ceux que ton jeu a). À partir des sorties,
 des commandes `goto` et de la carte, le validateur sait **quels lieux ne sont atteints par rien** et **quelles sorties
 n'ont pas de retour** (indique `oneWay: true` quand c'est voulu) ; l'onglet Check du Studio et `npm run page:world`
-dessinent cette carte.
+dessinent cette carte. Ce que fait un simple tap sur une sortie, c'est `onTap` (voir « Un tap qui franchit la sortie »
+plus haut).
 
 ### Chapitres et invariants
 
@@ -850,6 +863,13 @@ Champs lus par le moteur, en plus des positions : sur un accessoire (et dans cha
 `flip` (miroir horizontal), `flipV` (miroir vertical, l'image passe sous la ligne des pieds, comme dans la page de placement), `z` (couche forcée) ;
 un champ absent d'un état reprend celui de l'accessoire. Sur un acteur : `z` force sa couche (sinon, celle de ses pieds).
 Sur le lieu : `floor` (défaut 395) est le bas du sol ; un point d'approche calculé ne descend pas plus bas.
+
+Un personnage sans point `approach` dans le layout est abordé du côté qui regarde le milieu du lieu, à 44 unités quelle
+que soit la taille des personnages. Des grands personnages qui gesticulent en parlant finissent la main dans la tête
+l'un de l'autre : avec `actorGap` sur le jeu (4.2.4 ; par exemple `0.8`), la distance devient cette part de leur taille
+moyenne (`height` du héros et du personnage, ou `h` de l'acteur dans le layout), multipliée par l'échelle de profondeur
+là où se tient le personnage. Un point `approach` dans le layout reste prioritaire, pour un personnage qu'il faut
+aborder par l'autre côté.
 
 ## Écran titre et générique
 

@@ -128,6 +128,41 @@ describe('fixture game', () => {
     expect(e.approach('shed')).toEqual([460, 380]);
   });
 
+  it('actorGap sets the distance to a character from both heights and the depth scale', async () => {
+    // Grandma (110 tall) stands at [450, 340]; the hero is 84 tall.
+    const at = async (g: GameDef, L = layouts) => {
+      const e = new Engine(structuredClone(g), L, new FakePresenter(), new MemoryStore());
+      await e.checkpoint('free');
+      await e.script([{ goto: 'house' }]);
+      return e.approach('grandma');
+    };
+    expect(await at(game)).toEqual([406, 340]);
+    expect(await at({ ...game, actorGap: 0.8 })).toEqual([372, 340]);
+    const deep = {
+      ...layouts,
+      house: {
+        ...layouts.house,
+        scale: [
+          [300, 0.5],
+          [400, 1],
+        ] as [[number, number], [number, number]],
+      },
+    };
+    expect(await at({ ...game, actorGap: 0.8 }, deep)).toEqual([396, 340]);
+    // Anything but a positive finite number keeps the 44.
+    for (const bad of [0, -1, Number.NaN, Number.POSITIVE_INFINITY, '0.8' as never])
+      expect(await at({ ...game, actorGap: bad })).toEqual([406, 340]);
+  });
+
+  it("actorGap reaches a guest (another playable character) at the size it is drawn: the hero's default height", async () => {
+    // Ann in the cellar, where Bob stands at the default entry; neither has a height: both are drawn 84 tall.
+    const e = new Engine({ ...cast(), actorGap: 1 }, castLayouts, new FakePresenter(), new MemoryStore());
+    await e.newGame();
+    await e.teleport('cellar');
+    const bob = e.guests().bob!.at;
+    expect(e.approach('bob')).toEqual([bob[0] + 84, bob[1]]);
+  });
+
   it('{ ending } and the old { reveal } play the ending, then the lines, then the card', async () => {
     for (const cmd of [{ ending: true as const }, { reveal: true as const }]) {
       const { e, ui } = boot();
