@@ -761,7 +761,7 @@ skin: {
     confetti: ['ui/r4c1', 'ui/r4c2'], cardFallback: 'items/r3c6',      // fin scellée
   },
   sounds: { phone: 'phone', plane: 'plane', confetti: 'confetti', jingle: 'jingle', end: 'end' },
-  fonts: { ui: 'DotGothic16', pixel: 'Press Start 2P' },   // familles CSS → variables --font-ui et --font-pixel
+  fonts: { ui: 'Galmuri11', pixel: 'Press Start 2P' },     // familles CSS → variables --font-ui et --font-pixel
   heights: { actor: 110, hero: 84 },                       // hauteur d'un personnage sans `height`
   callPoses: ['phone', 'telephone', 'front', 'face', 'idle'],   // poses essayées pour le cadre d'un appel
   pixelArt: false,                                         // true : les images agrandies gardent des bords nets (artStyle "pixel")

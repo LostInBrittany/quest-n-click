@@ -729,3 +729,15 @@ attestations, qui nomment le dépôt `wanoo/web-scumm` ; à partir de la v4.2.5,
 `wanoo/quest-n-click` (`ship verify` demande celui sous lequel chaque release a été signée). Les crédits du jeu
 d'exemple et du chapitre de référence disent maintenant quest'n'click : leur empreinte de présentation a bougé, leur
 run de référence est donc enregistré à nouveau ; l'empreinte d'un jeu ne bouge que si son propre texte change.
+
+## 39. De la 4.2.5 à la 4.3.0
+
+**La police d'interface** (#204). Un jeu qui ne fixe pas `skin.fonts.ui` affiche maintenant ses dialogues, ses verbes
+et ses menus en Galmuri11, une police pixel proportionnelle, au lieu de DotGothic16 ; son `size-adjust` garde le texte
+à la même hauteur, et les lignes sortent un peu plus étroites. Sauvegardes, sessions et runs ne changent pas : la
+police relève de la présentation, hors des empreintes. Pour garder l'ancien rendu, écrire `skin: { fonts: { ui:
+'DotGothic16' } }` dans `game.ts` (un changement de skin : l'empreinte de présentation du jeu bouge, son run de
+référence, s'il en garde un, est donc à enregistrer à nouveau). Un jeu qui fixe déjà `skin.fonts.ui` garde sa police ;
+un caractère qui lui manque passe maintenant par DotGothic16 (le sous-ensemble latin, puis la police complète pour le
+japonais) avant `'Courier New'`. Regarder un lieu avec un dialogue et un choix après la mise à jour, sur un téléphone :
+une réplique tout juste contenue peut passer à la ligne autrement.

@@ -749,7 +749,7 @@ skin: {
     confetti: ['ui/r4c1', 'ui/r4c2'], cardFallback: 'items/r3c6',      // sealed ending
   },
   sounds: { phone: 'phone', plane: 'plane', confetti: 'confetti', jingle: 'jingle', end: 'end' },
-  fonts: { ui: 'DotGothic16', pixel: 'Press Start 2P' },   // CSS families → the --font-ui and --font-pixel variables
+  fonts: { ui: 'Galmuri11', pixel: 'Press Start 2P' },     // CSS families → the --font-ui and --font-pixel variables
   heights: { actor: 110, hero: 84 },                       // default height for a character with no `height`
   callPoses: ['phone', 'telephone', 'front', 'face', 'idle'],   // poses tried for a call's frame
   pixelArt: false,                                         // true: scaled-up images keep hard edges (artStyle "pixel")

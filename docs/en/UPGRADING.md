@@ -687,3 +687,14 @@ their attestations, which name the repository `wanoo/web-scumm`; from v4.2.5 the
 `wanoo/quest-n-click` (`ship verify` asks for the one each release was signed under). The sample game's and the
 reference chapter's credits now say quest'n'click: their presentation fingerprint moved, so their reference run is
 recorded again; a game's own fingerprint moves only if its own text changes.
+
+## 39. From 4.2.5 to 4.3.0
+
+**The interface font** (#204). A game that sets no `skin.fonts.ui` now shows its dialogue, verbs and menus in
+Galmuri11, a proportional pixel font, instead of DotGothic16; its `size-adjust` keeps the text at the same height, and
+lines come out slightly narrower. Saves, sessions and runs are unchanged: the font is presentation, outside the
+fingerprints. To keep the old look, set `skin: { fonts: { ui: 'DotGothic16' } }` in `game.ts` (a skin change: the
+game's presentation fingerprint moves, so record its reference run again, if it keeps one). A game that already sets
+`skin.fonts.ui` keeps its font; a character that font lacks now falls back to DotGothic16 (the Latin subset, then the
+full font for Japanese) before `'Courier New'`. Look at a room with dialogue and a choice after upgrading, on a phone:
+a line that just fitted may wrap differently.
