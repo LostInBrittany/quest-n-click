@@ -1,5 +1,33 @@
 # Changelog
 
+## 4.3.1 — 2026-10-21
+
+LOG #254–#255: "Voices by Language", a patch on 4.3.0 after an outside reading of it. A translation that agrees a line
+its source never agrees (`Ready?`, `Prêt{form?witch=e|knight=|robot=} ?`) now gets its voices by value through the
+whole chain: export, import, orphans, the validator's warning (the command line, the Studio's server and its
+in-browser demo alike) and playback. `npm run solve` is said to find one winning path, and `--prove` to prove every
+state, every hero included, in the guides and in the solver's own sentence. A new mutation set, `voices`, gated from
+the start. Nothing to change in a game (UPGRADING §40): no content field, save, schema or fingerprint moves (strict
+SemVer, as since 4.2).
+
+### Fixed
+
+- **A translation's own switches get their voices (4.3.1)**: a translation may agree a line the source language never
+  agrees, e.g. English `Ready?`, French `Prêt{form?witch=e|knight=|robot=} ?`. `npm run voices -- export --lang fr`
+  already listed the three French clips (`ready~form=witch`…), but `import` refused them as unknown lines, `status`
+  called their clips orphans, the Studio refused their status, and `npm run validate` said nothing when one was
+  missing: those read the switches of the text as written, not as translated. Each language's clips now come from
+  its own text everywhere, the command line, the Studio's server (its guard and the processing worker) and its
+  in-browser demo alike; a switch a translation drops no longer asks for clips by value in that language either. The
+  engine already played the right clip; a test now holds the whole chain. And a line whose switches list only a
+  default (`{form?*=there}`) showed its braces in the recording table; it now reads as spoken.
+- **`npm run solve` says it found one path, not a proof (4.3.1)**: the hero-choice guide said `npm run solve` "proves
+  every hero"; it stops at the first winning path, which one hero may be enough for. A game where only the robot can
+  finish printed `solved`; `--prove` reports its softlocks. The guide, CLASSICS, DESIGN and WORKFLOW now name
+  `npm run solve -- --prove` for that, and the witness's sentence, shared by the command line, its JSON, the Studio
+  and the MCP tool, reads "the ending is reached on one path (…; only --prove checks every state, every answer of a
+  choice included)".
+
 ## 4.3.0 — 2026-10-21
 
 LOG #246–#253: "Hero Choice". The player chooses the hero at New Game, among any number of heroes a game declares:

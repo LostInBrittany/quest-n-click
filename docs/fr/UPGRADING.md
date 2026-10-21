@@ -826,3 +826,17 @@ une réplique tout juste contenue peut passer à la ligne autrement.
 Pillow 13.0.0 ; relancer `python3 -m pip install -r requirements.txt`. Leur résultat ne change pas (les images du jeu
 d'exemple ressortent identiques à l'octet) ; un hébergeur qui installe l'application de traitement depuis
 `ops/studio/worker-requirements.lock` reçoit le nouveau wheel par son sha256.
+
+## 40. De la 4.3.0 à la 4.3.1
+
+Rien à changer : un jeu se construit, se joue et se sauvegarde comme en 4.3.0 (mêmes empreintes, sauvegardes de
+référence et runs de référence). Le moteur s'installe depuis `releases/download/v4.3.1/…`. Ce qu'un jeu peut remarquer :
+
+- **Voix d'une traduction** : quand une traduction ajoute un aiguillage que sa ligne source n'a pas
+  (`Prêt{form?witch=e|*=} ?` pour `Ready?`), `npm run voices -- import` accepte désormais les clips par valeur de cette
+  langue, `status` ne les dit plus orphelins, et `npm run validate` avertit quand l'un manque. Un jeu qui contournait le
+  refus en rangeant ces clips sous l'id simple peut maintenant les ranger par valeur.
+- **`npm run solve`** trouve un chemin gagnant ; `npm run solve -- --prove` vérifie chaque état atteignable, chaque
+  réponse d'un choix d'intro comprise. Un jeu dont tous les héros ou parcours doivent atteindre la fin lance `--prove`.
+  La phrase du témoin dit maintenant « on one path » ; un script qui lisait l'ancienne formulation lit `status` dans
+  `--json`.

@@ -31,7 +31,7 @@ Linux. The engine installs from a release's archive (npm publishing comes
 in a later release):
 
 ```bash
-T=https://github.com/wanoo/quest-n-click/releases/download/v4.3.0/quest-n-click-4.3.0.tgz
+T=https://github.com/wanoo/quest-n-click/releases/download/v4.3.1/quest-n-click-4.3.1.tgz
 npx --package=$T quest-n-click create my-game "My Game" --engine=$T
 cd my-game && npm install
 npm run assets && npm run dev        # play it; then npm run verify, npm run build
@@ -160,7 +160,9 @@ Every page exists in English (`docs/en/`) and French (`docs/fr/`), and a test ke
 command in [TOOLS](docs/en/TOOLS.md), what changed in the [CHANGELOG](CHANGELOG.md), moving to a new version in
 [UPGRADING](docs/en/UPGRADING.md), and where it comes from in the [ROADMAP](docs/en/ROADMAP.md).
 
-Current release: [v4.3.0 (Hero Choice)](https://github.com/wanoo/quest-n-click/releases/tag/v4.3.0): the player
+Current release: [v4.3.1 (Voices by Language)](https://github.com/wanoo/quest-n-click/releases/tag/v4.3.1): a translation's own text
+switches get their voices by value through the whole chain, and `npm run solve` is said to find one winning path
+(`--prove` proves every hero). Over 4.3.0 "Hero Choice": the player
 chooses the hero at New Game (portraits in a choice, a name per variant, text switches so the others' words follow the
 hero), a key per verb and a proportional pixel font for the interface, most of it from an outside contributor, Horacio
 (LostInBrittany); the former `web-scumm` names are gone (`npx quest-n-click migrate`). Over 4.2.5, the project's new
