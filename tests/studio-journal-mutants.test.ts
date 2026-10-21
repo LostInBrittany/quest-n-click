@@ -15,7 +15,7 @@ import {
   writeFileSync,
 } from 'node:fs';
 import { join } from 'node:path';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { openSqliteDb } from '../bridge/src/store-sqlite';
 import { fsBlobStore } from '../studio-server/src/ops/blobs';
 import { ABSENT, sha256 } from '../studio-server/src/ops/durable';
@@ -367,6 +367,27 @@ describe('the lease', () => {
     expect(Date.now() - t0).toBeGreaterThanOrEqual(300);
     expect(read('rooms/a.ts')).toBe('a1');
     expect(fence).toBe(6);
+    await j.close();
+  });
+
+  it('tries again at the very millisecond of its deadline, and gives up only after it (4.3.0)', async () => {
+    // Kills journal.ts withLease's `Date.now() > deadline` → `>=`. With leaseWaitMs 0 and the clock held still, the
+    // deadline is now: the original keeps trying (now is not past it) and takes the lease once it is free; `>=` would
+    // refuse at once.
+    const j = await open({ leaseWaitMs: 0 });
+    const db = await openDb();
+    await db.run('DELETE FROM studio_lease');
+    await db.run("INSERT INTO studio_lease (id, holder, fence, until_ms) VALUES (1, 'other', 5, $1)", [
+      Date.now() + 60_000,
+    ]);
+    const still = vi.spyOn(Date, 'now').mockReturnValue(Date.now());
+    try {
+      setTimeout(() => void db.run('DELETE FROM studio_lease'), 150);
+      await write(j, 'rooms/a.ts', 'a1');
+      expect(read('rooms/a.ts')).toBe('a1');
+    } finally {
+      still.mockRestore();
+    }
     await j.close();
   });
 
