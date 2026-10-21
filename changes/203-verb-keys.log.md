@@ -1,4 +1,4 @@
-## 4.2.5: a keyboard shortcut per verb (#203)
+## 4.3.0: a keyboard shortcut per verb (#203)
 
 - `VerbDef.key` (one character, presentation): `core/ir-fields.ts` says verbs' keys are presentation, the IR leaves
   them out (its verbs keep id, label and join), `core/fingerprint.ts` hashes a verb's key with the presentation only
@@ -23,4 +23,10 @@
 - Left as is: the demo sets no keys. Its English verbs Pick up, Push and Pull share P, U and L with Look at and Use,
   so its letters are a content choice for its author.
 
-→ next: the maintainer's review; Jack cherche un taf sets its verbs' keys.
+- Second reading (4.3.0): a single-letter shortcut must be one the player can turn off (WCAG 2.1.4, for voice input
+  and stray keys): `Settings.verbKeys` (on by default), a settings row shown only when a verb has a key, `ui.verbKeys`
+  (English default "Verb keys"; the demo's en and fr locales name it), and validator warnings for keys without a
+  settings menu or without that text. The credits rolled from the pause menu are a `.credits` box, not an overlay: a
+  key no longer picks a verb under them. Tests for both, failing without.
+
+→ next: merged into 4.3.0 (D48); Jack cherche un taf sets its verbs' keys.

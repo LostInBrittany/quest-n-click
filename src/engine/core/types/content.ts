@@ -223,7 +223,7 @@ export interface VerbDef {
   /** For Use / Give: joining word shown in the sentence ("with", "to"). */
   join?: string;
   /**
-   * The keyboard shortcut that picks the verb, one character (4.2.5, #203): `'o'` for Open. Any case, without Ctrl,
+   * The keyboard shortcut that picks the verb, one character (4.3.0, #203): `'o'` for Open. Any case, without Ctrl,
    * Alt or Meta; ignored while the engine is busy or something covers the scene (a conversation, the map, a menu).
    * The button underlines its first occurrence in the label. Translated like the label (`verb:<id>/key`), since the
    * letter follows the word. Omitted: no shortcut. Presentation only: no rule nor save sees it.

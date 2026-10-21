@@ -80,8 +80,8 @@ lequel est choisi), les cibles de la scène (un bouton caché par point chaud, p
 de la scène), le sac et les outils ; les choix d'une conversation et les lieux de la carte prennent le focus quand ils
 apparaissent (flèches, Entrée) ; Espace ou Entrée fait avancer une réplique ; Échap ferme ce qui est au-dessus (un
 menu, la carte, une transcription, le Passer d'une cinématique ou d'un mini-jeu) et sinon ouvre le menu pause, dont
-le focus ne sort pas. Un verbe qui a un `key` (4.2.5, CONTENT_GUIDE) se choisit aussi par cette lettre, annoncée par
-`aria-keyshortcuts`. Une région live annonce le lieu, chaque réplique et chaque objet gagné. `ui.advance` nomme le
+le focus ne sort pas. Un verbe qui a un `key` (4.3.0, CONTENT_GUIDE) se choisit aussi par cette lettre, annoncée par
+`aria-keyshortcuts` ; les réglages coupent ces touches. Une région live annonce le lieu, chaque réplique et chaque objet gagné. `ui.advance` nomme le
 repère « toucher pour continuer » pour les lecteurs d'écran. `npm run e2e -- --generic --keyboard` rejoue la solution
 du solveur au clavier ; les mini-jeux eux-mêmes y sont passés (leur bouton Passer prend le focus).
 

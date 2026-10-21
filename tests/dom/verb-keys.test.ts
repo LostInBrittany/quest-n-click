@@ -129,6 +129,39 @@ describe("the verbs' keys in the player (#203)", () => {
     expect(app.verb).toBeNull();
     app.destroy();
   });
+
+  it('does nothing while the credits roll over the scene (4.3.0)', async () => {
+    const app = await start({ keys: true });
+    app.credits();
+    press('l');
+    expect(app.verb).toBeNull();
+    app.scene.querySelector('.credits')!.remove();
+    press('l');
+    expect(app.verb).toBe('look');
+    app.destroy();
+  });
+
+  it('does nothing once the player turned the keys off, offered in the settings only with keys (4.3.0)', async () => {
+    const app = await start({ keys: true });
+    const rows = (a: App) => {
+      const d = document.createElement('div');
+      const m = document.createElement('div');
+      a.settingsMenu(d, m);
+      return [...m.querySelectorAll('button')];
+    };
+    const row = rows(app).find((b) => b.textContent!.startsWith('Verb keys'))!;
+    expect(row.textContent).toBe(`Verb keys${demo.ui.on}`);
+    row.click();
+    expect(app.settings.verbKeys).toBe(false);
+    expect(row.textContent).toBe(`Verb keys${demo.ui.off}`);
+    const e = press('l');
+    expect(app.verb).toBeNull();
+    expect(e.defaultPrevented).toBe(false);
+    app.destroy();
+    const plain = await start();
+    expect(rows(plain).some((b) => b.textContent!.startsWith('Verb keys'))).toBe(false);
+    plain.destroy();
+  });
 });
 
 describe('verbLabelHtml (#203)', () => {
@@ -164,6 +197,22 @@ describe("the validator on the verbs' keys (validate/player.ts, #203)", () => {
       "verbs.open.key › a verb's key cannot be a space: Space advances a line of dialogue",
     ]);
     expect(keyErrs(withKeys({ push: 'p', pull: 'P' }))).toEqual(['verbs.pull.key › "P" is already the key of "push"']);
+  });
+
+  it('warns when the player could not turn the keys off: no settings menu, or its row untitled (4.3.0)', () => {
+    const g = withKeys({ open: 'o' });
+    expect(keyWarns(g)).toEqual([]);
+    const settingsWarns = (x: GameDef) =>
+      validate(x, {}).warnings.filter((w) => w.startsWith('settings ›') || w.startsWith('ui.verbKeys'));
+    expect(settingsWarns(g)).toEqual([]);
+    expect(settingsWarns({ ...g, settings: false })).toEqual([
+      'settings › the verbs have keys but no settings menu: a player cannot turn them off (settings: true)',
+    ]);
+    const { verbKeys: _, ...ui } = g.ui;
+    expect(settingsWarns({ ...g, ui })).toEqual([
+      'ui.verbKeys › missing text for the settings menu (English default used)',
+    ]);
+    expect(settingsWarns({ ...structuredClone(demo), settings: false } as GameDef)).toEqual([]);
   });
 
   it('warns about a key the label does not contain (it works, but shows nowhere)', () => {

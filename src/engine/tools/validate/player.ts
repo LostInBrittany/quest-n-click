@@ -46,6 +46,12 @@ export function playerChecks(
       if (ex.onTap !== undefined && !ON_TAP.has(ex.onTap))
         err(`${r.id}.exits.${xid}`, `onTap is "go" or "walk", not "${String(ex.onTap)}"`);
   verbKeyChecks(game.verbs, o);
+  // A single-letter shortcut must be one the player can turn off (WCAG 2.1.4): the settings row does it (4.3.0).
+  if (game.verbs.some((v) => v.key !== undefined)) {
+    if (!game.settings)
+      warn('settings', 'the verbs have keys but no settings menu: a player cannot turn them off (settings: true)');
+    else if (!game.ui.verbKeys) warn('ui.verbKeys', 'missing text for the settings menu (English default used)');
+  }
 }
 
 /** The verbs' keys in each translation (#203): a clash there is the translator's, reported as `<lang>: verbs.…`. */

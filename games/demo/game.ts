@@ -227,7 +227,7 @@ export const game = defineGame({
     remix: 'Remix', remixTitle: 'Which world?', remixStory: 'Story', remixRandom: 'A new world', remixSeed: 'Type a seed', remixDaily: 'Daily challenge', remixMystery: 'Mystery world',
     remixPlay: 'Play', remixInvalid: 'Not a seed code', remixWorld: 'World', remixHidden: 'hidden until the end', remixCopied: 'Copied', remixNoBridge: 'needs the Bridge',
     remixConflict: 'Your saved game lives in another world', remixKeepSaved: 'Continue the saved game', remixStartLinked: 'Start the link\'s world (replaces it)',
-    settings: 'Settings', textSpeed: 'Text speed', textSize: 'Text size', reduceMotion: 'Reduce motion', readableFont: 'Readable font', captions: 'Sound captions',
+    settings: 'Settings', textSpeed: 'Text speed', textSize: 'Text size', reduceMotion: 'Reduce motion', readableFont: 'Readable font', captions: 'Sound captions', verbKeys: 'Verb keys',
     volumeMusic: 'Music volume', volumeSfx: 'Sound volume', volumeVoice: 'Voice volume', slow: 'slow', normal: 'normal', fast: 'fast', large: 'large',
     language: 'Language', fingerprint: 'Build', objectives: 'Objectives',
     speedrun: 'Speedrun', exportRun: 'Export run', abandonRun: 'Abandon run',

@@ -70,14 +70,16 @@ export function onKey(app: App, e: KeyboardEvent) {
 
 /**
  * The verb a key picks (#203): the verb whose `key` it is, any case, without Ctrl, Alt or Meta, and only when the
- * verb bar is what the player plays with (shown, nothing over the scene, no line on screen, the engine idle).
+ * verb bar is what the player plays with (shown, nothing over the scene, no line on screen, the engine idle), and while
+ * the player has not turned the keys off in the settings (4.3.0).
  */
 function verbForKey(app: App, e: KeyboardEvent): VerbId | null {
-  if (e.ctrlKey || e.altKey || e.metaKey || e.repeat || e.key.length !== 1) return null;
+  if (!app.settings.verbKeys || e.ctrlKey || e.altKey || e.metaKey || e.repeat || e.key.length !== 1) return null;
   const k = e.key.toLocaleLowerCase();
   const v = app.game.verbs.find((x) => x.key?.toLocaleLowerCase() === k);
   if (!v || app.engine.busy || app.verbsEl.hidden || app.speechEl || app.choosing || app.transcript) return null;
-  if (app.scene.querySelector('.overlay, .dim')) return null;
+  // The credits (from the pause menu) roll over the scene too, without being an overlay (4.3.0).
+  if (app.scene.querySelector('.overlay, .dim, .credits')) return null;
   // A dialog outside the scene (a remix or revision prompt) holds the focus: the letter is for it.
   if ((e.target as HTMLElement | null)?.closest?.('[role="dialog"], [aria-modal="true"]')) return null;
   return v.id;
