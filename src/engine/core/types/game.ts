@@ -174,7 +174,7 @@ export interface SkinDef {
     cardFallback?: Id;
   };
   sounds?: { phone?: Id; plane?: Id; confetti?: Id; jingle?: Id; end?: Id };
-  /** CSS font families (--font-ui and --font-pixel variables). Default: 'DotGothic16' and 'Press Start 2P'. `readable`: the "readable font" setting (e.g. a dyslexia-friendly family the game ships). */
+  /** CSS font families (--font-ui and --font-pixel variables). Default: 'Galmuri11' (4.3.0; 'DotGothic16' before, still behind any `ui` family for Japanese) and 'Press Start 2P'. `readable`: the "readable font" setting (e.g. a dyslexia-friendly family the game ships). */
   fonts?: { ui?: string; pixel?: string; readable?: string };
   /** Default heights for characters with no `height` (logical units). Default: actor 110, hero 84. */
   heights?: { actor?: number; hero?: number };
@@ -490,6 +490,8 @@ export interface UiTexts {
   readableFont?: string;
   /** The settings row of the sound captions (shown only in a game that captions a sound). */
   captions?: string;
+  /** The settings row that turns the verbs' keys off (4.3.0, shown only when a verb has a `key`). English default "Verb keys". */
+  verbKeys?: string;
   volumeMusic?: string;
   volumeSfx?: string;
   volumeVoice?: string;

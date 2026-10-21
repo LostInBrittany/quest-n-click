@@ -690,7 +690,7 @@ recorded again; a game's own fingerprint moves only if its own text changes.
 
 ## 39. From 4.2.5 to 4.3.0 "Hero Choice"
 
-Nothing to change in a game: the content format only grows (ADR 0022, D49), `schemaVersion` stays 3, saves and the
+Nothing to change in a game's content: the content format only grows (ADR 0022, D49), `schemaVersion` stays 3, saves and the
 save envelope are 4.2.0's, the logic fingerprint of a game that uses none of what follows does not move. The engine
 installs from `releases/download/v4.3.0/…`. What is new, all optional (CONTENT_GUIDE, "Choosing the hero"):
 
@@ -702,6 +702,8 @@ installs from `releases/download/v4.3.0/…`. What is new, all optional (CONTENT
   verbs, character and variant names, `ui`, the title, the map, the ending and minigame params.
 - **`img` on a choice option**: the option is a card, the image with its `text` as the label.
 - **Voices by value**: a line with a switch looks up `<id>~<flag>=<value>` before its plain id (AUDIO.md).
+- **A key per verb** (#203): `key: 'o'` on a verb picks it at the keyboard, translated like the label; with
+  `settings: true` the player can turn the keys off (`ui.verbKeys`, CONTENT_GUIDE, "A key per verb").
 - **`npm run lint`** has `hero-looks-default` (info), and no longer calls `action-dead` a rule that only sets a flag a
   character's variant or a text switch reads.
 
@@ -710,3 +712,12 @@ installs from `releases/download/v4.3.0/…`. What is new, all optional (CONTENT
 a malformed switch, or one in a text shown as written); a `{hero}` in a line is valid, so search for it
 (`grep -rn '{hero}' games/<id>`). To keep the braces on screen, write them otherwise (`[hero]`, or `{word ? …}` with a
 space before the `?`). A text with no such group shows exactly as before.
+
+**The interface font** (#204). A game that sets no `skin.fonts.ui` now shows its dialogue, verbs and menus in
+Galmuri11, a proportional pixel font, instead of DotGothic16; its `size-adjust` keeps the text at the same height, and
+lines come out slightly narrower. Saves, sessions and runs are unchanged: the font is presentation, outside the
+fingerprints. To keep the old look, set `skin: { fonts: { ui: 'DotGothic16' } }` in `game.ts` (a skin change: the
+game's presentation fingerprint moves, so record its reference run again, if it keeps one). A game that already sets
+`skin.fonts.ui` keeps its font; a character that font lacks now falls back to DotGothic16 (the Latin subset, then the
+full font for Japanese) before `'Courier New'`. Look at a room with dialogue and a choice after upgrading, on a phone:
+a line that just fitted may wrap differently.

@@ -18,7 +18,7 @@ src/engine/
   dom/          l'affichage navigateur
     app.ts        mise en page paysage, verbes, sac, menus, écran titre ; compose le moteur, le presenter, le renderer
     presenter.ts  le Presenter auquel parle le moteur (répliques, surcouches, carte, mini-jeux, fin scellée) et `intent()`
-    fonts.ts      polices par défaut (DotGothic16, Press Start 2P), remplacées par `skin.fonts`
+    fonts.ts      polices par défaut (Galmuri11, DotGothic16 derrière elle, Press Start 2P), remplacées par `skin.fonts`
     room.ts       la scène : décor, accessoires, personnages, tri en profondeur, marche, poses
     walk.ts       zone marchable (triangulation earcut + chemins navmesh), échelle selon la profondeur
     audio.ts      musique (fondu, pile, morceau ponctuel) et bruitages, avec Howler
@@ -80,7 +80,8 @@ lequel est choisi), les cibles de la scène (un bouton caché par point chaud, p
 de la scène), le sac et les outils ; les choix d'une conversation et les lieux de la carte prennent le focus quand ils
 apparaissent (flèches, Entrée) ; Espace ou Entrée fait avancer une réplique ; Échap ferme ce qui est au-dessus (un
 menu, la carte, une transcription, le Passer d'une cinématique ou d'un mini-jeu) et sinon ouvre le menu pause, dont
-le focus ne sort pas. Une région live annonce le lieu, chaque réplique et chaque objet gagné. `ui.advance` nomme le
+le focus ne sort pas. Un verbe qui a un `key` (4.3.0, CONTENT_GUIDE) se choisit aussi par cette lettre, annoncée par
+`aria-keyshortcuts` ; les réglages coupent ces touches. Une région live annonce le lieu, chaque réplique et chaque objet gagné. `ui.advance` nomme le
 repère « toucher pour continuer » pour les lecteurs d'écran. `npm run e2e -- --generic --keyboard` rejoue la solution
 du solveur au clavier ; les mini-jeux eux-mêmes y sont passés (leur bouton Passer prend le focus).
 
@@ -259,9 +260,13 @@ autres. La portée d'un lieu sur-approxime une visite (toutes les variantes, cha
 jamais l'inverse : `npm run e2e:weight` échoue sur une requête hors prédiction.
 
 Les polices par défaut passent par le bundler, avec des noms hachés : le précache du service worker les prend dans le
-cache HTTP au lieu de les télécharger une seconde fois. La police d'interface est un sous-ensemble latin (118 Ko,
-`tools/subset-font.py`) ; DotGothic16 complète (2 Mo, surtout du japonais) est une seconde face dont le `unicode-range`
-ne couvre que le reste : un navigateur ne la télécharge, et ne la garde, que pour un caractère hors du sous-ensemble.
+cache HTTP au lieu de les télécharger une seconde fois. La police d'interface, Galmuri11 (4.3.0), est une police pixel
+proportionnelle proche des polices de dialogue LucasArts, livrée en sous-ensemble latin (125 Ko, `tools/subset-font.py`)
+avec un `size-adjust` qui donne à ses capitales la hauteur de celles de DotGothic16. DotGothic16, la police par défaut
+jusqu'à 4.2.5, reste derrière toute famille d'interface (`fontStack` dans `dom/fonts.ts`) : son propre sous-ensemble
+latin (118 Ko) répond aux quelques symboles absents de Galmuri11, et la police complète (2 Mo, surtout du japonais) est
+une face dont le `unicode-range` ne couvre que le reste : un navigateur ne la télécharge, et ne la garde, que pour un
+caractère hors des sous-ensembles.
 
 ## Musique : un directeur et ses stems
 

@@ -8,7 +8,8 @@ import { DOUBLE_TAP_MS, el, esc, NEAR_MISS } from './app-shared';
 import type { App } from './app';
 
 /** Escape closes the topmost thing (a menu, the map, the transcript, a cutscene's skip) or opens the pause menu;
- * Space and Enter advance a line of dialogue (a focused button already acts on Enter and Space on its own). */
+ * Space and Enter advance a line of dialogue (a focused button already acts on Enter and Space on its own); a verb's
+ * `key` picks it (#203). */
 export function onKey(app: App, e: KeyboardEvent) {
   if (isTyping(e) || !app.engine.state) return;
   const onButton = (e.target as HTMLElement | null)?.tagName === 'BUTTON';
@@ -58,7 +59,30 @@ export function onKey(app: App, e: KeyboardEvent) {
     e.preventDefault();
     app.endSpeech();
     app.eatClick = performance.now();
+    return;
   }
+  const v = verbForKey(app, e);
+  if (v) {
+    e.preventDefault();
+    app.pickVerb(v);
+  }
+}
+
+/**
+ * The verb a key picks (#203): the verb whose `key` it is, any case, without Ctrl, Alt or Meta, and only when the
+ * verb bar is what the player plays with (shown, nothing over the scene, no line on screen, the engine idle), and while
+ * the player has not turned the keys off in the settings (4.3.0).
+ */
+function verbForKey(app: App, e: KeyboardEvent): VerbId | null {
+  if (!app.settings.verbKeys || e.ctrlKey || e.altKey || e.metaKey || e.repeat || e.key.length !== 1) return null;
+  const k = e.key.toLocaleLowerCase();
+  const v = app.game.verbs.find((x) => x.key?.toLocaleLowerCase() === k);
+  if (!v || app.engine.busy || app.verbsEl.hidden || app.speechEl || app.choosing || app.transcript) return null;
+  // The credits (from the pause menu) roll over the scene too, without being an overlay (4.3.0).
+  if (app.scene.querySelector('.overlay, .dim, .credits')) return null;
+  // A dialog outside the scene (a remix or revision prompt) holds the focus: the letter is for it.
+  if ((e.target as HTMLElement | null)?.closest?.('[role="dialog"], [aria-modal="true"]')) return null;
+  return v.id;
 }
 
 export function toScene(app: App, e: PointerEvent): Point {

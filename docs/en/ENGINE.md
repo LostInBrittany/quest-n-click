@@ -18,7 +18,7 @@ src/engine/
   dom/          the browser display
     app.ts        landscape layout, verbs, inventory, menus, title screen; composes the engine, the presenter, the renderer
     presenter.ts  the Presenter the engine talks to (lines, overlays, map, minigames, sealed ending) and `intent()`
-    fonts.ts      default fonts (DotGothic16, Press Start 2P), overridden by `skin.fonts`
+    fonts.ts      default fonts (Galmuri11, DotGothic16 behind it, Press Start 2P), overridden by `skin.fonts`
     room.ts       the scene: background, props, characters, depth sorting, walking, poses
     walk.ts       walkable area (earcut triangulation + navmesh paths), scale by depth
     audio.ts      music (fade, stack, one-off track) and sound effects, via Howler
@@ -76,7 +76,8 @@ The whole game plays at the keyboard: Tab reaches the verbs (arrows move inside 
 one is chosen), the scene's targets (one hidden button per visible hotspot, prop or actor, in the scene's order), the
 inventory and the tools; a conversation's choices and the map's places take the focus when they appear (arrows,
 Enter); Space or Enter advances a line of dialogue; Escape closes what is on top (a menu, the map, a transcript, a
-cutscene's or minigame's Skip) and otherwise opens the pause menu, whose focus stays inside. A live region announces
+cutscene's or minigame's Skip) and otherwise opens the pause menu, whose focus stays inside. A verb with a `key`
+(4.3.0, CONTENT_GUIDE) is also picked by that letter, announced with `aria-keyshortcuts`; the settings turn the keys off. A live region announces
 the room, each line and each item gained. `ui.advance` names the "tap to continue" marker for screen readers.
 `npm run e2e -- --generic --keyboard` replays the solver's solution at the keyboard.
 
@@ -243,9 +244,12 @@ file one of them knows cannot escape the others. A room's scope over-approximate
 character who could be there), never the other way: `npm run e2e:weight` fails on a request outside the prediction.
 
 The default fonts go through the bundler, with hashed names, so the service worker's precache takes them from the HTTP
-cache instead of downloading them again. The interface font is a Latin subset (118 KB, `tools/subset-font.py`); the
-full DotGothic16 (2 MB, mostly Japanese) is a second face whose `unicode-range` covers only the rest, so a browser
-fetches it, and caches it, only for a character outside the subset.
+cache instead of downloading them again. The interface font, Galmuri11 (4.3.0), is a proportional pixel font close to
+the LucasArts dialogue fonts, shipped as a Latin subset (125 KB, `tools/subset-font.py`) with a `size-adjust` that gives
+its capitals the height DotGothic16's had. DotGothic16, the default until 4.2.5, stays behind every interface family
+(`fontStack` in `dom/fonts.ts`): its own Latin subset (118 KB) answers the few symbols Galmuri11 lacks, and the full
+font (2 MB, mostly Japanese) is a face whose `unicode-range` covers only the rest, so a browser fetches it, and caches
+it, only for a character outside the subsets.
 
 ## Music: a director and its stems
 

@@ -1,15 +1,20 @@
 /* The default fonts, through the bundler (hashed names: the service worker's precache takes them from the HTTP cache
-   instead of downloading them a second time). DotGothic16: the Latin subset (tools/subset-font.py) answers every
-   character it has; the full font (public/fonts, 2 MB of mostly Japanese glyphs, not precached) covers exactly the
-   rest, so a browser fetches it only for a character outside the subset (a face whose range meets the text is
-   downloaded even when another face wins: the two ranges must not overlap). */
+   instead of downloading them a second time). Galmuri11 (4.3.0): a proportional pixel font, as a Latin subset
+   (tools/subset-font.py); its range is exactly what the subset holds, and size-adjust gives its capitals DotGothic16's height
+   (Galmuri11 draws them at .92 em, DotGothic16 at .79), so a game's text keeps its size. DotGothic16, the default until 4.2.5, follows it
+   in the stack (fonts.ts): its Latin subset answers the few symbols Galmuri11 lacks, and the full font (public/fonts,
+   2 MB of mostly Japanese glyphs, not precached) covers exactly the rest, so a browser fetches it only for a character
+   outside the subsets (a face whose range meets the text is downloaded even when another face wins: the two
+   DotGothic16 ranges must not overlap). */
+@font-face { font-family: 'Galmuri11'; src: url('./fonts/Galmuri11-latin.ttf'); font-display: swap; size-adjust: 86%;
+  unicode-range: U+0020-007E, U+00A0-017F, U+2010-2027, U+2030-203A, U+20AC, U+2122, U+2190-21FF, U+2500-2603, U+2605-2606, U+260E-2612, U+261C, U+261E, U+262E, U+2630-2637, U+2639-263C, U+2640-2642, U+2660-266F, U+2680-2689, U+26A0, U+26C4, U+26D4, U+2706, U+2709, U+2753, U+2757, U+2776-2793; }
 @font-face { font-family: 'DotGothic16'; src: url('/fonts/DotGothic16.ttf'); font-display: swap;
   unicode-range: U+0000-001F, U+007F-009F, U+0180-200F, U+2028-202F, U+203B-20AB, U+20AD-2121, U+2123-218F, U+2200-24FF, U+27C0-10FFFF; }
 @font-face { font-family: 'DotGothic16'; src: url('./fonts/DotGothic16-latin.ttf'); font-display: swap;
   unicode-range: U+0020-007E, U+00A0-017F, U+2010-2027, U+2030-203A, U+20AC, U+2122, U+2190-21FF, U+2500-25FF, U+2600-26FF, U+2700-27BF; }
 @font-face { font-family: 'Press Start 2P'; src: url('./fonts/PressStart2P.ttf'); font-display: swap; }
 /* Engine UI: validated against the UX mockups (landscape, right-hand column, floating text). */
-:root { --font-ui: 'DotGothic16', 'Courier New', monospace; --font-pixel: 'Press Start 2P', 'Courier New', monospace; } /* GameDef.skin.fonts replaces these */
+:root { --font-ui: 'Galmuri11', 'DotGothic16', 'Courier New', monospace; --font-pixel: 'Press Start 2P', 'Courier New', monospace; } /* GameDef.skin.fonts replaces these */
 html, body { margin: 0; height: 100%; background: #000; overflow: hidden; overscroll-behavior: none; }
 body { -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
 #app { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; background: #000;

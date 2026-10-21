@@ -246,14 +246,14 @@ Un jeu ajoute les siens dans `minigames` de son module (même contrat) : c'est l
 | `storyVariant` | `(manifest: VariationManifest \| undefined, world: RemixWorld): WorldVariant` | public | The story world of a game: every dimension at its story value (an empty manifest gives an empty assignment). |
 | `TalkTopic` | `interface { id, topic, if, do }` | public | A conversation topic offered when talking to an actor: its line, when it is offered, what it runs. |
 | `TransitionKind` | `type TransitionKind = 'cut' \| 'fade' \| 'wipe'` | public | How a room appears when entered: a cut, a fade or a wipe. |
-| `UiTexts` | `interface { walkTo, newGame, continue, confirmErase, yes, no, … 83 more }` | public | Every text the interface shows (menus, confirmations, settings), so a game speaks its own language. |
+| `UiTexts` | `interface { walkTo, newGame, continue, confirmErase, yes, no, … 84 more }` | public | Every text the interface shows (menus, confirmations, settings), so a game speaks its own language. |
 | `Value` | `type Value = boolean \| number \| string` | public | What a flag holds: a boolean, a number or a string. |
 | `variantFlag` | `(dimension: string, group?: string): string` | public | The reserved flag a logical dimension writes (`remix.<id>`; a puzzle order writes `remix.<id>.<group>`). |
 | `VariationConstraint` | `type VariationConstraint = union of 3` | public | A constraint between dimensions: `exclusive` (no two of them take the same value), `requires` (`a` and `b` are `<dimension>=<value>`: when ` |
 | `VariationDimension` | `type VariationDimension = union of 6` | public | A dimension: what varies and its finite domain. Logical dimensions are in the solver's space (each instance is proved); `presentation` ones  |
 | `VariationManifest` | `interface { schema, algorithm, modes, dimensions, constraints, daily }` | public | What a game lets vary (`GameDef.remix`), schema 1, algorithm `web-scumm-remix-1`. `daily` names the Bridge key a daily challenge is signed w |
 | `VariationMode` | `interface { id, strategy, dimensions, mask }` | public | A mode of play: which dimensions vary (the others keep their story value) and the strategy that backs it (D25): `catalogue` (every instance  |
-| `VerbDef` | `interface { id, label, color, join }` | public | A verb as the interface shows it: its id, its label, its colour and the joining word of a two-term sentence. |
+| `VerbDef` | `interface { id, label, color, join, key }` | public | A verb as the interface shows it: its id, its label, its colour and the joining word of a two-term sentence. |
 | `VerbId` | `type VerbId = string` | public | Verb id, free-form: the game's own `verbs` declare them. Four ids have meaning to the engine: `look` ("Look" text for rooms and items), `tal |
 | `WalkTarget` | `type WalkTarget = Id \| Point` | public | Target of a move: a hotspot, an actor or a prop in the room (its approach point), or a point. |
 | `WheelItem` | `interface { id, label, img }` | public | One item of a disc: its id, its name (said to a screen reader, printed), its image (a sprite, a portrait). |

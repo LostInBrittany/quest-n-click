@@ -732,7 +732,7 @@ run de référence est donc enregistré à nouveau ; l'empreinte d'un jeu ne bou
 
 ## 39. De la 4.2.5 à la 4.3.0 « Hero Choice »
 
-Rien à changer dans un jeu : le format du contenu ne fait que grandir (ADR 0022, D49), `schemaVersion` reste 3, les
+Rien à changer dans le contenu d'un jeu : le format du contenu ne fait que grandir (ADR 0022, D49), `schemaVersion` reste 3, les
 sauvegardes et leur enveloppe sont celles de la 4.2.0, l'empreinte logique d'un jeu qui n'utilise rien de ce qui suit
 ne bouge pas. Le moteur s'installe depuis `releases/download/v4.3.0/…`. Ce qui est nouveau, tout optionnel
 (CONTENT_GUIDE, « Choisir le héros ») :
@@ -747,6 +747,8 @@ ne bouge pas. Le moteur s'installe depuis `releases/download/v4.3.0/…`. Ce qui
   variantes, `ui`, le titre, la carte, la fin et les params des mini-jeux.
 - **`img` sur une option de choix** : l'option devient une carte, l'image avec son `text` pour étiquette.
 - **Des voix par valeur** : une réplique à aiguillage cherche `<id>~<drapeau>=<valeur>` avant son id seul (AUDIO.md).
+- **Une touche par verbe** (#203) : `key: 'o'` sur un verbe le choisit au clavier, traduite comme le libellé ; avec
+  `settings: true`, le joueur peut couper ces touches (`ui.verbKeys`, CONTENT_GUIDE, « Une touche par verbe »).
 - **`npm run lint`** a `hero-looks-default` (info), et ne traite plus d'`action-dead` une règle qui ne pose qu'un
   drapeau lu par une variante de personnage ou par un aiguillage.
 
@@ -756,3 +758,13 @@ drapeau qu'aucune commande ne pose, un aiguillage mal formé, ou un aiguillage d
 `{hero}` dans une réplique est valide, il faut donc le chercher (`grep -rn '{hero}' games/<id>`). Pour garder les
 accolades à l'écran, les écrire autrement (`[hero]`, ou `{mot ? …}` avec une espace avant le `?`). Un texte sans un tel
 groupe s'affiche exactement comme avant.
+
+**La police d'interface** (#204). Un jeu qui ne fixe pas `skin.fonts.ui` affiche maintenant ses dialogues, ses verbes
+et ses menus en Galmuri11, une police pixel proportionnelle, au lieu de DotGothic16 ; son `size-adjust` garde le texte
+à la même hauteur, et les lignes sortent un peu plus étroites. Sauvegardes, sessions et runs ne changent pas : la
+police relève de la présentation, hors des empreintes. Pour garder l'ancien rendu, écrire `skin: { fonts: { ui:
+'DotGothic16' } }` dans `game.ts` (un changement de skin : l'empreinte de présentation du jeu bouge, son run de
+référence, s'il en garde un, est donc à enregistrer à nouveau). Un jeu qui fixe déjà `skin.fonts.ui` garde sa police ;
+un caractère qui lui manque passe maintenant par DotGothic16 (le sous-ensemble latin, puis la police complète pour le
+japonais) avant `'Courier New'`. Regarder un lieu avec un dialogue et un choix après la mise à jour, sur un téléphone :
+une réplique tout juste contenue peut passer à la ligne autrement.
