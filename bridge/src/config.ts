@@ -75,6 +75,27 @@ export const DEFAULT_LIMITS: Limits = {
   streamPage: 100,
 };
 
+/**
+ * A configuration's limits merged over the defaults, each checked (4.3.0): a limit is a count, a size or a duration, so
+ * a non-negative integer. A name that is no limit, or a value that is not one (a negative number, a fraction, a string,
+ * a number JSON reads as Infinity), stops the Bridge before it starts, with the name and the value; a limit left out
+ * (or undefined) keeps its default.
+ */
+export function checkLimits(given: Partial<Limits> = {}): Limits {
+  const out: Limits = { ...DEFAULT_LIMITS };
+  for (const [k, v] of Object.entries(given)) {
+    if (!Object.hasOwn(DEFAULT_LIMITS, k))
+      throw new Error(`limits.${k} is no limit of the Bridge (${Object.keys(DEFAULT_LIMITS).join(', ')})`);
+    if (v === undefined) continue;
+    if (!Number.isSafeInteger(v) || v < 0)
+      throw new Error(
+        `limits.${k} must be a non-negative integer, not ${typeof v === 'string' ? JSON.stringify(v) : String(v)}`,
+      );
+    out[k as keyof Limits] = v;
+  }
+  return out;
+}
+
 export class BridgeError extends Error {
   constructor(
     readonly status: number,

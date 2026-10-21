@@ -814,6 +814,35 @@ describe('bounded, validated, one per journal (4.1.8)', () => {
     expect(new JsonlBridgeStore(file, { lock: false }).acked('p-1')).toBe(2);
   });
 
+  it('refuses to start on a limit that is not a non-negative integer, or on a name that is no limit (4.3.0)', async () => {
+    // config.json's limits were spread unchecked: `resignedCache: -1` made the re-sign cache's eviction loop run on an
+    // empty map, held off only by a guard; now the Bridge does not start, and says which limit and what it was given.
+    for (const [limits, said] of [
+      [{ resignedCache: -1 }, /^limits\.resignedCache must be a non-negative integer, not -1$/],
+      [{ streamPage: 1.5 }, /^limits\.streamPage must be a non-negative integer, not 1\.5$/],
+      [{ bodyBytes: '8192' }, /^limits\.bodyBytes must be a non-negative integer, not "8192"$/],
+      [{ pairingMs: JSON.parse('1e400') }, /^limits\.pairingMs must be a non-negative integer, not Infinity$/],
+      [{ pendingPairings: null }, /^limits\.pendingPairings must be a non-negative integer, not null$/],
+      [{ resignCache: 10 }, /^limits\.resignCache is no limit of the Bridge \(bodyBytes, /],
+    ] as const)
+      await expect(setup({ limits: limits as never }), JSON.stringify(limits)).rejects.toThrow(said);
+    const zero = await setup({ limits: { resignedCache: 0, streamPage: 7, pendingPairings: undefined } });
+    expect(zero.bridge.limits).toMatchObject({ resignedCache: 0, streamPage: 7, pendingPairings: 1000 });
+  });
+
+  it('a journal line that is not JSON is refused with what the parser said of it', () => {
+    // 4.3.0 (the reread of the exemptions) kills store.ts parseLine `err instanceof Error` → false: the message the
+    // Bridge refuses to start with, and `doctor` prints, quotes JSON.parse's reason, never a bare "unreadable"
+    const dir = mkdtempSync(join(tmpdir(), 'bridge-notjson-'));
+    temps.push(dir);
+    const file = join(dir, 'journal.jsonl');
+    writeFileSync(file, 'not json\n');
+    expect(() => new JsonlBridgeStore(file, { lock: false })).toThrow(
+      /^journal line 1 is not an event \((?!unreadable\)).*JSON/,
+    );
+    expect(inspectJournal(file).corrupt).toMatch(/^journal line 1 is not an event \((?!unreadable\)).*JSON/);
+  });
+
   it('one Bridge per journal: a live owner refuses the second, a dead one is taken over and said', () => {
     const dir = mkdtempSync(join(tmpdir(), 'bridge-lock-'));
     temps.push(dir);
