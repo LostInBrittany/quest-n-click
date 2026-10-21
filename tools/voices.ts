@@ -53,7 +53,7 @@ if (cmd === 'status') {
   for (const lang of arg('lang') ? [arg('lang')!] : langs) {
     const rows = table(lang);
     const by = Object.fromEntries(VOICE_STATUSES.map((s) => [s, rows.filter((r) => r.status === s).length]));
-    const orphans = orphanClips(game, lang);
+    const orphans = orphanClips(game, lang, localized(lang));
     console.log(
       `[${GAME}] ${lang}: ${rows.length} clip(s) for the lines with an id (one per value for a line with switches) — ${VOICE_STATUSES.map((s) => `${by[s]} ${s}`).join(', ')}; ${rows.filter((r) => r.file).length} with a clip${orphans.length ? `, ${orphans.length} clip(s) no line claims` : ''}`,
     );
@@ -78,7 +78,7 @@ if (cmd === 'import') {
   }
   const text = readFileSync(file, 'utf8');
   const rows = file.endsWith('.json') ? (JSON.parse(text) as Record<string, string>[]) : parseCsv(text);
-  const r = mergeSheet(sheet, lang, rows, voiceIds(game));
+  const r = mergeSheet(sheet, lang, rows, voiceIds(localized(lang)));
   for (const u of r.unknown) console.log(`  ✖ no line "${u}" in the game`);
   for (const b of r.bad) console.log(`  ✖ ${b}`);
   if (r.unknown.length || r.bad.length) process.exit(1);

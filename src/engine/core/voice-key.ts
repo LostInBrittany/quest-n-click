@@ -11,7 +11,7 @@
 // encodes a key in its `PUT voices/<lang>/<id>` route).
 // Pure: no DOM, no engine.
 import { parseText, switchFlags } from './text-switch';
-import type { Id, Value } from './types';
+import type { GameDef, Id, Value } from './types';
 
 /** Between the id and each `flag=value`. */
 const VOICE_KEY_SEP = '~';
@@ -34,6 +34,17 @@ export function lineClip(
   const k = text !== undefined && flags ? voiceKey(id, text, flags) : undefined;
   if (k && voices[k]) return k;
   return voices[id] ? id : undefined;
+}
+
+/**
+ * The clips a translation plays (boot.ts): `audio.voicesByLang[lang]` for a language other than the game's own;
+ * undefined for the game's own language or one without clips (the game's `audio.voices` play then).
+ */
+export function langVoices(
+  game: Pick<GameDef, 'lang' | 'audio'>,
+  lang: string | undefined,
+): Record<Id, string> | undefined {
+  return lang && lang !== (game.lang ?? 'en') ? game.audio?.voicesByLang?.[lang] : undefined;
 }
 
 /** The id a clip key belongs to: the key before its first `~` (a plain id is its own). */

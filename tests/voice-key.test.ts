@@ -7,7 +7,7 @@ import { assetGraph } from '@engine/core/asset-graph';
 import { Engine } from '@engine/core/engine';
 import { FakePresenter, MemoryStore } from '@engine/core/ports';
 import type { Cmd, GameDef } from '@engine/core/types';
-import { lineClip, voiceBase, voiceKey, voiceVariants } from '@engine/core/voice-key';
+import { langVoices, lineClip, voiceBase, voiceKey, voiceVariants } from '@engine/core/voice-key';
 import { validate } from '@engine/tools/validate';
 import { mergeSheet, orphanClips, voiceIds, voiceTable } from '@engine/tools/voices';
 import { routes } from '../studio-server/src/ops/routes';
@@ -121,7 +121,10 @@ describe('the engine', () => {
     const g = voiced(clips);
     g.audio!.voicesByLang = { fr: { 'grandma~form=f': 'fr/grandma-f.mp3', grandma: 'fr/grandma.mp3' } };
     // What bootGame does for a translated language (src/engine/boot.ts).
-    const fr = { ...g, audio: { ...g.audio, voices: g.audio!.voicesByLang.fr } };
+    expect(langVoices(g, 'en')).toBeUndefined();
+    expect(langVoices(g, 'de')).toBeUndefined();
+    expect(langVoices({ ...g, lang: 'fr' }, 'fr')).toBeUndefined();
+    const fr = { ...g, audio: { ...g.audio, voices: langVoices(g, 'fr') } };
     expect(await play(fr, { form: 'f', mood: 'calm' })).toEqual(['grandma~form=f']);
     expect(await play(fr, { form: 'm', mood: 'calm' })).toEqual(['grandma']);
   });

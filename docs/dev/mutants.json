@@ -1558,5 +1558,89 @@
   "proof": "argument",
   "owner": "@wanoo",
   "revisit": "4.4.0"
+ },
+ {
+  "file": "src/engine/tools/voices.ts",
+  "operator": "condition false",
+  "from": "v === undefined",
+  "to": "false",
+  "context": "const cell = (v: string | undefined) => (v === undefined ? '' : /[\",\\n\\r]/.test(v) ? `\"${v.replace(/\"/g, '\"\"')}\"` : v);",
+  "why": "`cell`: an absent cell goes to `/[\",\\n\\r]/.test(undefined)`, which tests the string \"undefined\" and fails, so the cell is `undefined`, and `Array.prototype.join` writes an undefined element as the empty string, as the source's `''`",
+  "category": "equivalent",
+  "proof": "argument",
+  "owner": "@wanoo",
+  "revisit": "4.4.0"
+ },
+ {
+  "file": "src/engine/tools/voices.ts",
+  "operator": "condition false",
+  "from": "ch === '\\r' && text[i + 1] === '\\n'",
+  "to": "false",
+  "context": "if (ch === '\\r' && text[i + 1] === '\\n') i++;",
+  "why": "`parseCsv`: without the skip, the `\\n` of a CRLF ends one more row, which holds a single empty cell and is dropped by the blank-row filter (`row.some((x) => x !== '')`); a CR inside quotes never reaches this branch",
+  "category": "equivalent",
+  "proof": "argument",
+  "owner": "@wanoo",
+  "revisit": "4.4.0"
+ },
+ {
+  "file": "src/engine/tools/voices.ts",
+  "operator": "operator",
+  "from": "===",
+  "to": "!==",
+  "context": "if (ch === '\\r' && text[i + 1] === '\\n') i++;",
+  "why": "`parseCsv`: `ch !== '\\r' && text[i + 1] === '\\n'` skips the second `\\n` of a blank line (its row would be `['']`, dropped by the blank-row filter anyway) and never the `\\n` of a CRLF, whose row is blank and dropped too (see the `condition false` entry above); a lone CR skips nothing in either",
+  "category": "equivalent",
+  "proof": "argument",
+  "owner": "@wanoo",
+  "revisit": "4.4.0"
+ },
+ {
+  "file": "src/engine/tools/voices.ts",
+  "operator": "condition true",
+  "from": "f !== '' || row.length",
+  "to": "true",
+  "context": "if (f !== '' || row.length) {",
+  "why": "`parseCsv`: the block is skipped only when no cell is pending and the row is empty (an empty text, a text ending on a line break, a last line holding only an empty quoted field such as `\"\"`); entered then, it pushes `''` into the empty row, `['']`, which the blank-row filter just below drops",
+  "category": "equivalent",
+  "proof": "argument",
+  "owner": "@wanoo",
+  "revisit": "4.4.0"
+ },
+ {
+  "file": "src/engine/tools/validate/voices.ts",
+  "operator": "condition true",
+  "from": "locales[l]",
+  "to": "true",
+  "context": "locales[l] ? applyLocale(game, locales[l]) : game,",
+  "why": "`voiceValueChecks`: `applyLocale(game, undefined)` returns `game` itself (its first line: `if (!table) return game`), the source's other branch",
+  "category": "equivalent",
+  "proof": "argument",
+  "owner": "@wanoo",
+  "revisit": "4.4.0"
+ },
+ {
+  "file": "src/engine/tools/validate/voices.ts",
+  "operator": "condition false",
+  "from": "!voiced.size",
+  "to": "false",
+  "context": "if (!voiced.size) continue;",
+  "why": "`voiceValueChecks`: a language without clips voices no line, so every line of the loop below meets `if (!voiced.has(l.id)) continue;` and nothing is warned; the early `continue` only saves the loop",
+  "category": "equivalent",
+  "proof": "argument",
+  "owner": "@wanoo",
+  "revisit": "4.4.0"
+ },
+ {
+  "file": "src/engine/tools/status.ts",
+  "operator": "operator",
+  "from": ">=",
+  "to": ">",
+  "context": "export const worstStatus = (a: SolveStatus, b: SolveStatus): SolveStatus => (RANK[a] >= RANK[b] ? a : b);",
+  "why": "`worstStatus`: every status has its own rank, so `RANK[a] === RANK[b]` means `a === b`, and returning `b` instead of `a` returns the same status",
+  "category": "equivalent",
+  "proof": "argument",
+  "owner": "@wanoo",
+  "revisit": "4.4.0"
  }
 ]
