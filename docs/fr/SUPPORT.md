@@ -63,6 +63,18 @@ aucun runner Windows ni Node 24 (`CONTRIBUTING.md`, « What CI runs ») :
 | Bridge, profil `distributed` (4.1.10, `experimental`) | Postgres 16 en CI (`bridge-postgres`) : le même contrat, les tenants et la diffusion entre instances ; la charge de nuit ; le profil de qualification (`ops/qualify/` : HTTPS, trois instances, le classement, un worker tué en pleine vérification, une restauration après destruction de la topologie) dans le workflow `qualify` ; depuis 4.1.20 le profil complet dans chaque candidat qu'un tag peut nommer (les deux modes de restauration sous le bail de maintenance), `--short` dans celui d'une pull request | un vrai déploiement : jusque-là, `experimental` |
 | Connecteurs (4.1.9), **expérimental** (D19) | email (webhook signé, IMAP), Telnet, SSH, Open Badges 2 et 3 : le même contrat pour les quatre, tests d'abus et de fuzz, une exécution sous `--disallow-code-generation-from-strings`, les replays du chapitre d'exemple ; les quatre joués depuis leur archive dans le candidat (4.1.19) ; les tests Telnet et SSH pas encore sous Windows | un vrai fournisseur d'email, un vrai badge d'un vrai émetteur, SSH et Telnet exposés dans un environnement contrôlé |
 
+## 4.3.0 « Hero Choice » : la ligne 4.3 (D48)
+
+La 4.3.0 ne change le statut d'aucune surface. Elle ajoute au schéma d'écriture, en SemVer strict : le `name` d'une
+variante de personnage, les aiguillages de texte et `{hero}`, `img` sur une option de choix, les clips de voix rangés
+par valeur d'un drapeau (le choix du héros, ADR 0022, D49) et la `key` d'un verbe (#203), chacun optionnel, de
+présentation seulement, sans nouvelle condition, commande ni état ; `schemaVersion` reste 3 et l'enveloppe de
+sauvegarde est celle de la 4.2.0 (`docs/dev/DSL-STABILITY.md`, sa ligne 4.3.x). Aucune passe humaine ne les couvre
+encore (`docs/dev/passes/4.3.0.md`). La police d'interface par défaut est Galmuri11 (#204) : une apparence, pas un
+format. Elle retire les alias `web-scumm`, comme la D47 l'annonçait : le seul retrait dans une mineure, l'exception
+choisie par le mainteneur pour eux (ci-dessous, 4.2.5). `main` est la ligne 4.3 (D48) : la 4.2.5 est la mineure
+précédente et reçoit les correctifs de sécurité jusqu'au 21 janvier 2027, sur une branche partie de `v4.2.5`.
+
 ## 4.2.5 : le nouveau nom (D47)
 
 La 4.2.5 renomme le projet quest'n'click et ne change le statut d'aucune surface. Les noms `web-scumm` (le paquet et sa
