@@ -19,7 +19,13 @@ export async function resolve(eng: Engine, act: Action, ctx: Ctx): Promise<Sourc
   const rule = eng.findRule(verb, a, b, room);
   if (rule) {
     eng.ran(rule.id);
-    await eng.exec(rule.do, ctx);
+    const last = rule.do.at(-1);
+    eng.tailTalk = typeof last === 'object' && 'talk' in last ? last : null;
+    try {
+      await eng.exec(rule.do, ctx);
+    } finally {
+      eng.tailTalk = null;
+    }
     return 'rule';
   }
 
@@ -37,7 +43,7 @@ export async function resolve(eng: Engine, act: Action, ctx: Ctx): Promise<Sourc
       return 'hint';
     }
     if (room.talk?.[a]) {
-      await eng.talkLoop(a, ctx);
+      await eng.talkLoop(a, ctx, true);
       return 'talk';
     }
   }
@@ -192,8 +198,11 @@ export async function hint(eng: Engine, ctx: Ctx) {
   await eng.say(voice, listText(l), ctx, false, eng.voiceOf(l));
 }
 
-/** Conversation topic menu, until "Bye". */
-export async function talkLoop(eng: Engine, actor: Id, ctx: Ctx) {
+/**
+ * Conversation topic menu, until "Bye". With `saveTopics` (the conversation is the rest of its action: the talk verb
+ * on a character with topics, or a rule's last command), each topic is saved once whole (4.3.0, #218).
+ */
+export async function talkLoop(eng: Engine, actor: Id, ctx: Ctx, saveTopics = false) {
   const room = ctx.room;
   const char = room.actors?.[actor]?.char ?? actor;
   const g = eng.game.globalTalk ?? {};
@@ -212,8 +221,10 @@ export async function talkLoop(eng: Engine, actor: Id, ctx: Ctx) {
       eng.state.seen[topicKey(t, i)] = 1;
       eng.writes?.add(`seen:${topicKey(t, i)}`);
       // A conversation is one action, saved at "Bye": a topic's progress (a flag, an item, a minigame won) would be
-      // lost if the page died before it (#218). The topic is whole here; `saveMade` stays at the action's end.
-      eng.save();
+      // lost if the page died before it (#218). The topic is whole here; `saveMade` stays at the action's end. Only
+      // when nothing of the action follows the conversation: a talk in a cutscene, a topic's `do` or the middle of a
+      // rule would save half a `do` that a reload never finishes.
+      if (saveTopics) eng.save();
       continue;
     }
     if (g.hug && pick === topics.length) {

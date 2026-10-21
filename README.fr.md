@@ -29,10 +29,10 @@ vérifier qu'on peut le finir, et le livrer comme un jeu web qui s'installe sur 
 <!-- install:begin -->
 Node 22.12 ou plus récent et Python 3 avec Pillow (`npm run assets` prépare les images avec eux), sous Windows, macOS
 ou Linux. Le moteur s'installe depuis l'archive d'une release (la
-publication npm arrive dans une 4.2.x ultérieure) :
+publication npm arrive dans une release ultérieure) :
 
 ```bash
-T=https://github.com/wanoo/quest-n-click/releases/download/v4.2.5/quest-n-click-4.2.5.tgz
+T=https://github.com/wanoo/quest-n-click/releases/download/v4.3.0/quest-n-click-4.3.0.tgz
 npx --package=$T quest-n-click create mon-jeu "Mon jeu" --engine=$T
 cd mon-jeu && npm install
 npm run assets && npm run dev        # y jouer ; puis npm run verify, npm run build
@@ -151,7 +151,7 @@ erreurs avant qu'une personne les voie. Chaque résultat reste relisible, dans l
 ## En chiffres
 
 Mesuré sur ce commit de `main` par les vérifications automatiques (`npm run quality:baseline` écrit ces chiffres) :
-<!-- metric:tests -->2808<!-- /metric --> déclarations de tests unitaires, sous Node 22 et 24, avec des planchers de
+<!-- metric:tests -->2841<!-- /metric --> déclarations de tests unitaires, sous Node 22 et 24, avec des planchers de
 couverture et des tests de mutation bloquants ; le jeu de référence prouvé en <!-- metric:referenceStates -->288<!-- /metric -->
 états ; la première visite du joueur, <!-- metric:initialJsKB -->135<!-- /metric --> Ko de JavaScript compressé. Chaque
 release est construite depuis le commit que son candidat a testé. Le candidat produit les quatre archives de packages,
@@ -167,8 +167,11 @@ Chaque page existe en anglais (`docs/en/`) et en français (`docs/fr/`), et un t
 dans [TOOLS](docs/fr/TOOLS.md), ce qui change dans le [CHANGELOG](CHANGELOG.md), passer à une nouvelle version dans
 [UPGRADING](docs/fr/UPGRADING.md), et d'où vient le projet dans la [ROADMAP](docs/fr/ROADMAP.md).
 
-Release actuelle : [v4.2.5 (quest'n'click)](https://github.com/wanoo/quest-n-click/releases/tag/v4.2.5), le
-nouveau nom du projet, les anciens noms `web-scumm` gardés comme alias pendant toute la 4.2.x (retirés en 4.3.0) ; sur les changements de
+Release actuelle : [v4.3.0 (Hero Choice)](https://github.com/wanoo/quest-n-click/releases/tag/v4.3.0) : le
+joueur choisit son héros à la Nouvelle partie (des portraits dans un choix, un nom par variante, des aiguillages de
+texte pour que les mots des autres suivent le héros), une touche par verbe et une police pixel proportionnelle pour
+l'interface, pour l'essentiel d'un contributeur extérieur, Horacio (LostInBrittany) ; les anciens noms `web-scumm`
+disparaissent (`npx quest-n-click migrate`). Sur la 4.2.5, le nouveau nom du projet ; les changements de
 la 4.2.4 pour les auteurs (une sortie franchie d'un simple tap, `actorGap`, le fond des planches de sprites,
 `face: 'hero'` corrigé) et la 4.2.3 « Coordination », le Studio en ligne pour une équipe, expérimental
 ([STUDIO-SERVER](docs/fr/STUDIO-SERVER.md)) : prévisualisations par révision, santé, annulation personnelle, builds

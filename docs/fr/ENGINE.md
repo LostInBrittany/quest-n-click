@@ -317,7 +317,11 @@ sauvegardé.
 6. À la fin, l'état est sauvegardé (autosauvegarde IndexedDB vérifiée ; les emplacements manuels vivent dans la même
    base, en enveloppes, vérifiés aussi ; localStorage est le repli de compatibilité). Tout l'état est du JSON : `GameState` dans `types.ts`.
    Une conversation est une seule action jusqu'à « Au revoir » ; elle est aussi sauvegardée après chaque sujet (4.3.0,
-   #218), si bien que ce qu'un sujet a changé survit à une page qui meurt avant la fin de la conversation.
+   #218), si bien que ce qu'un sujet a changé survit à une page qui meurt avant la fin de la conversation. Seulement
+   quand la conversation est le reste de son action (le verbe parler sur un personnage qui a des sujets, ou un
+   `{ talk }` qui termine une règle) : une conversation suivie d'autres commandes, dans une cinématique ou dans un
+   sujet, est sauvegardée à la fin de l'action, jamais avec la moitié d'un `do` faite. Une sauvegarde ne contient pas
+   de conversation ouverte : chargée, elle reprend dans la pièce, les sujets vus marqués.
 7. Dans les creux entre deux actions, les **scripts** du monde avancent d'une commande chacun (`ScriptDef`,
    `Engine.advance`) : PNJ qui déambule, gag d'ambiance, personnage qui change de lieu (`moveActor`) quand un événement
    émis (`emit`) réveille son `waitEvent`. Leur position vit aussi dans l'état : une sauvegarde les reprend, et le solveur

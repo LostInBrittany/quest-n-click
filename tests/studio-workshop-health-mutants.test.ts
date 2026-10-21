@@ -30,7 +30,13 @@ afterEach(async () => {
 });
 
 /** Revisions from `k` on fail; `down(rev)` says the worker refuses that revision's job. */
-function history(o: { k: number; down?: (rev: number) => boolean; log?: (l: Record<string, unknown>) => void }) {
+function history(o: {
+  k: number;
+  down?: (rev: number) => boolean;
+  log?: (l: Record<string, unknown>) => void;
+  /** Awaited by each judgement before it answers (a judgement in flight, 4.3.0). */
+  hold?: () => Promise<void>;
+}) {
   let head = { epoch: 'e1', rev: 1 };
   const judged: number[] = [];
   const files = (rev: number) => [{ path: 'game.ts', bytes: Buffer.from(`rev ${rev}`) }];
@@ -45,6 +51,7 @@ function history(o: { k: number; down?: (rev: number) => boolean; log?: (l: Reco
     },
     snapshot: async () => ({ ...head, bytes: packFiles(files(head.rev)) }),
     judge: async (bytes) => {
+      await o.hold?.();
       const rev = revOf(bytes);
       if (o.down?.(rev)) throw new Error(`the processing worker refused revision ${rev} (503)`);
       judged.push(rev);
@@ -100,6 +107,28 @@ describe('the runs', () => {
     await h.health.schedule();
     expect(h.judged).toEqual([]);
     expect(h.health.state().rev).toBeNull();
+  });
+
+  it('once closed, answers a schedule at once, even while a judgement is in flight (4.3.0)', async () => {
+    // Kills health.ts schedule's `if (this.closed) return Promise.resolve();` → false: forced, a schedule after close
+    // joins the run in flight and waits for its judgement to end. Nothing more is judged either way.
+    let release = () => {};
+    const held = new Promise<void>((ok) => {
+      release = ok;
+    });
+    const h = history({ k: 99, hold: () => held });
+    const first = h.health.schedule();
+    await expect.poll(() => h.health.state().running).not.toBeNull();
+    h.health.close();
+    let done = false;
+    void h.health.schedule().then(() => {
+      done = true;
+    });
+    await new Promise((ok) => setTimeout(ok, 0));
+    expect(done).toBe(true);
+    release();
+    await first;
+    expect(h.judged).toEqual([1]);
   });
 
   it('gives up on a revision at its fifth failure, counting each revision apart', async () => {

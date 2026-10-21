@@ -6738,3 +6738,332 @@ magenta, and it is the delicate part).
   `docs/dev/passes/4.2.5.md` (nineteen passes, none new, none carried).
 
 → next: Claude (the merge, the candidate on main, `v4.2.5` signed on it, `ship verify`)
+
+## #246 · 2026-10-20 · Claude · proposal · 4.3.0 "Hero Choice": the player chooses the hero, its look, its name and the words the others use
+
+- **The need and the plan**: the maintainer's next game lets the player choose the hero at New Game, male or female
+  there and any number of heroes in general. `docs/dev/PLAN-4.3-HERO-CHOICE.md` (its §2 the admission file: `players`
+  shows a switch button per hero, a Remix dimension is filled at boot where the hero belongs to a save, lines
+  duplicated under `if` double with every translation), ADR 0022 (the first DSL extension since the freeze, through
+  D33's gate), D49.
+- **The maintainer's answers (20 Oct, D49)**: the switch syntax `{form?m=him|f=her}` kept as written; the choice shows
+  portraits **and** text; the number of heroes is arbitrary (the fixture has three); one name per hero; voices
+  "eventually", so their lookup is designed now (`<id>~<flag>=<value>`) and built last.
+- **Step 2, a name per variant**: `CharacterDef.variants[].name`; `character()` merges it, `nameOf()` reads through
+  it (so `{name}` in a fallback), the DOM's speaker label, live region, transcript and talk header read it; an i18n
+  path `char:<id>/variants[<i>].name`. Tools keep the written name.
+- **Step 3, text switches**: `core/text-switch.ts`, a pure parser (`{hero}`; `{<flag>?<value>=<text>|…|*=<text>}`,
+  `String(value)` compared exactly, `*=` then the first text, no nesting, a malformed switch left as written);
+  `Engine.text` at every display site (lines, choices, looks, hints, toasts, captions, item and object names,
+  objective titles), after `fill()` and the translation. The validator (`validate/text-switches.ts`) reports a
+  malformed switch, one in a text shown as written, a flag no command sets, a value listed that nothing writes, a value
+  written that no switch covers; `npm run i18n -- status` lists translations that drop a choice their source makes.
+- **Step 4, portraits in a choice**: `Choice.img`, shown as cards with the option's text as the label; presentation
+  only (the logic fingerprint does not move), preloaded by the asset graph, checked by the validator.
+- **Step 5, the fixture and the docs**: `tests/fixtures/heroes.ts`, three heroes (the written look is the robot, two
+  variants make the knight and the witch, each named), an intro choice of portraits setting `form`, Grandma's lines
+  with switches and `{hero}`, a key under a rug, a French table with its own words in the braces (the agreement
+  `Prêt{form?witch=e|*=}`), a checkpoint per hero. `tests/hero-choice.test.ts`: validates clean; the proof finishes,
+  and with the door opening for one hero only it still finishes, for each of the three (every answer of the intro is
+  searched); a walkthrough per hero (the name, the switched lines, `{hero}` in a line and in an item's look, no brace
+  on screen); the French forms for each; a save loaded in a new engine keeps the witch; a checkpoint names its hero.
+  The lint: `hero-looks-default` (info, `src/engine/tools/lint-hero.ts`) when two or more values a `set` writes for a flag the
+  hero's variants read match none of them (one such value is the usual design: the written look is a hero too); and
+  the intro's `set` is no longer `action-dead` when what it sets is read by a variant or a switch. Docs (en, fr):
+  CONTENT_GUIDE "Choosing the hero" (its voices and Studio paragraphs included), CLASSICS (Maniac Mansion, "Choose your hero at the start"), TOOLS (the lint row),
+  UPGRADING §39 (a literal `{hero}` or `{word?…=…}` in a 4.2 text is now filled), DSL-STABILITY (the four admitted
+  elements).
+- **Step 6, voices by value**: `core/voice-key.ts` (`<id>~<flag>=<value>`, flags sorted, the plain id as the fallback,
+  no keyed lookup while a flag is unset), the engine's lookup in `audio.voices` and `voicesByLang`, the recording table
+  one row per value (`npm run voices`, the Studio's Voices tab), the validator's warning for a missing value's clip
+  (`validate/voices.ts`), AUDIO.md "Lines with text switches". The fixture voices Grandma's dust line once per hero
+  (`sneeze~form=knight|witch|robot`): each walkthrough hears its hero's clip; without the robot's, the validator warns
+  and the plain id plays.
+- **The Studio**: the Play tab's "Text switches" picker (the flag's value, `{hero}`'s name) and a preview line under a
+  switched text in the Rooms tab (`src/studio/hero-picker.ts`, STUDIO.md).
+- **Found by the fixture**: `npm run i18n -- status` listed a translation that adds a switch its source does not need
+  (French agreement on an English line with none). The comparison now reports only a choice the translation drops (a
+  flag, or a value neither listed nor covered by `*=`); an added switch or value is the translation's own.
+- **Checks**: `npm run -s tsc -- --noEmit`; `npx vitest run tests/hero-choice.test.ts tests/lint.test.ts`;
+  `npm run validate && npm run solve`; `npm run lint`; `npm run changes -- --check`; `npm run docs:truth`;
+  `npm run format:check`; `npm run lint:code`; knip; `npm run -s test:node`.
+
+- Second reading (4.3.0, D48): merged after 4.2.5, the decision renumbered D49 (D47 is the rename), UPGRADING §39
+  from 4.2.5. A variant's `name` is shown as written (the speech box, the transcript and the talk header read
+  `character().name`), so the validator now refuses a switch or `{hero}` there, as in a character's name (a test).
+  The hero chosen at New Game is tested through the real save file: the v4 envelope as JSON, and a v3 one, read
+  back with `parseSave` and continued.
+- After #205 (4.3.0): a verb's `key` is a text of the game, so a malformed one (`key: 1`) reached `parseText`, which
+  threw and stopped the validator before the key's own check; a text of the wrong type now holds nothing (a test).
+
+→ next: 4.3.0's release checklist (the version, the golden save, UPGRADING §39's install line, SUPPORT, ROADMAP)
+
+
+## #247 · 2026-10-20 · Claude · proposal · 4.3.0: a keyboard shortcut per verb (#203)
+
+- `VerbDef.key` (one character, presentation): `core/ir-fields.ts` says verbs' keys are presentation, the IR leaves
+  them out (its verbs keep id, label and join), `core/fingerprint.ts` hashes a verb's key with the presentation only
+  when it is set, so a game without keys keeps its fingerprint.
+- `dom/input.ts` `onKey` → `verbForKey`: the key, lower-cased, against the verbs' keys; nothing with Ctrl, Alt, Meta
+  or a held key, nor while the engine is busy, the verb bar is hidden, a line is on screen, a choice is asked, a
+  transcript is open, an `.overlay` or `.dim` is in the scene, or the focus is inside a dialog. Then `pickVerb`, as a
+  tap (a second press drops the verb).
+- `dom/app-shared.ts` `verbLabelHtml`: the label with the key's first occurrence in `<u>`, escaped; `dom/shell.ts`
+  uses it and sets `aria-keyshortcuts`.
+- `tools/i18n.ts`: `verb:<id>/key` is a text to translate, applied like the label; `localeStatus` does not count an
+  unchanged key as untranslated (Open's O is Ouvrir's).
+- The validator (`tools/validate/player.ts`): `verbKeyChecks` refuses a key that is not one character, Space and a key
+  shared in any case, and warns when the label lacks the letter; `localeVerbKeyChecks` runs it on each translation
+  (`<lang>: verbs.<id>.key`), called by `tools/validate.ts`.
+- Tests: `tests/dom/verb-keys.test.ts` (a key picks and drops its verb in any case; nothing without keys, with a
+  modifier, while typing, under the pause menu, during a choice, inside a dialog or while busy; the underline and
+  `aria-keyshortcuts`; the validator in the game and in a translation; the locale path and the status; the
+  fingerprint unchanged without keys).
+- Docs: CONTENT_GUIDE (en, fr) after the single tap; ENGINE's accessibility (en, fr); `docs/dev/DSL-STABILITY.md`
+  under D46.
+- Left as is: the demo sets no keys. Its English verbs Pick up, Push and Pull share P, U and L with Look at and Use,
+  so its letters are a content choice for its author.
+
+- Second reading (4.3.0): a single-letter shortcut must be one the player can turn off (WCAG 2.1.4, for voice input
+  and stray keys): `Settings.verbKeys` (on by default), a settings row shown only when a verb has a key, `ui.verbKeys`
+  (English default "Verb keys"; the demo's en and fr locales name it), and validator warnings for keys without a
+  settings menu or without that text. The credits rolled from the pause menu are a `.credits` box, not an overlay: a
+  key no longer picks a verb under them. Tests for both, failing without.
+
+→ next: merged into 4.3.0 (D48); Jack cherche un taf sets its verbs' keys.
+
+
+## #248 · 2026-10-20 · Claude · proposal · 4.3.0: a job heard once it has ended (#210)
+
+- `studio/jobs.ts` `followJob`: the job is followed by the live stream and by a poll every 3 s. Clearing the interval
+  at the end did not stop a poll already in flight, and `seen()` only dropped a non-final state after the end, so a
+  late `done` called `onChange` a second time and `assetsPanel` lost its "prepared from revision …" line. An `over`
+  flag now drops everything once the job has ended.
+- Seen in CI: the Firefox pass of `e2e:studio-hosted` timed out at step 6d (Prepare assets) on `main` (run
+  39407655126), `feature/430-hero-choice` (39429018780) and `feature/203-verb-keys` (39486048838), in `innerText` or
+  `waitFor` depending on when the overwrite landed.
+- Tests: `tests/dom/studio-jobs.test.ts` holds a poll in flight, ends the job by the stream, lets the poll answer
+  `done`, and checks that `onChange` heard `done` once.
+- Second reading (4.3.0): the Cancel button had the same late answer. Sent just before the end and refused after it
+  (409, the job has ended), its error was appended to the panel's last word. It is dropped once the job has ended; a
+  test holds the refusal until after the end.
+
+→ next: merged into 4.3.0 (D48).
+
+
+## #249 · 2026-10-21 · Claude · proposal · 4.3: main becomes the 4.3 line, the open pull requests go into it (D48)
+
+- After v4.2.5, « ok include all PR in gh into 4.3 »: D48 records it. The six open pull requests (#208, #211, #213,
+  #206, #205, #202) are read a second time, completed on their branches, and merged into main, smallest first.
+
+→ next: the six pull requests, then a 4.3.0 plan for what else 4.3 carries (the aliases' removal, the passes).
+
+
+## #250 · 2026-10-21 · Claude · proposal · 4.3.0: the web-scumm aliases removed (D47)
+
+- D47 kept the former names as full-copy aliases through 4.2.x, removed in 4.3; D48 makes main the 4.3 line. Removed:
+  the alias packing in `scripts/pack.mjs` (`aliasManifest`, `oldCommand`, `create-web-scumm`), the old `bin` entries
+  in `scripts/pack-manifests.mjs` and the three locks, `cli/web-scumm.mjs`, the alias SBOMs in `scripts/sbom.mjs`, the
+  `web-scumm/*` path in `tsconfig.json` and the `web-scumm` branch of the import alias in `vite.config.ts` and the
+  hosted preview build, the engine looked up as `web-scumm` by the Studio Server's launcher, the Bridge's version read
+  from a `web-scumm(-bridge)` package, `tools/bridge.ts`'s `web-scumm-bridge/cli` and `tools/dist.ts`'s exception.
+- Kept: `tools/release/artifacts.mjs` (`ALIASES_UNTIL`), so a release up to 4.2.5 is still judged with its aliases
+  (`ship verify v4.2.5`); the format identifiers; the provenance of releases up to v4.2.4 under `wanoo/web-scumm`;
+  the scripts that install old releases by their old names; the nightly's watch on the old npm names.
+- The pack no longer decides by version: main is the 4.3 line and a 4.2.x fix branches from `v4.2.5` (D48). A
+  candidate built from main before the version is 4.3.0 would miss the aliases its manifest still expects for 4.2.5;
+  only the 4.3.0 candidate proves the archives, SBOMs and release files agree. `tests/release-artifacts.test.ts`
+  holds the 4.3.0 candidate's packages and SBOMs to the five new names.
+- `tools/migrate-name.ts`: `quest-n-click migrate` renames, before it loads the game, the `web-scumm/…` imports of the
+  project's sources (both quote styles; a format identifier or a URL is left alone), `tsconfig.json`'s paths and
+  includes, `package.json`'s script commands and a former dependency the new one replaces; then runs again in a new
+  process that reads the renamed tsconfig. `--check` exits 1 while any is left.
+- The hosted engine upgrade (`studio-server/src/worker/migrate.ts`): the child renames the snapshot's imports before
+  loading the game; the Studio accepts a source outside the migration's files only as exactly `renameImports` of the
+  text it has. The guard's baseline of a head that does not load is that failure, so the upgrade can be written; its
+  Undo, which would put the old imports back, is refused.
+- Second reading (4.3.0): the hosted rename is the Studio's own step (`EngineUpgrade.renameFormer`: `renameImports` on
+  the head's texts, no game code), a revision of its own judged by the validator alone (the game loads after it, and
+  gains no error if it loaded before), never by the solver, so an unfinished game is not stuck; written without an
+  undo, so the owner's earlier history stays reachable; the schema's migration follows, its 422 saying the rename was
+  kept. The worker says a game whose code does not load apart from a failing job (`unloadable`, `GameDoesNotLoad`);
+  the guard takes only that for a head's baseline (then judges an edit by whether the game loads after it) and turns
+  a worker that cannot answer into a 503, never cached; an edit after which the game would no longer load is a 422.
+  `tools/migrate-name.ts` follows symbolic links inside the project and names those that lead out or nowhere, leaves a
+  `web-scumm` script beside a `quest-n-click` one and says so, keeps package.json's indentation and byte order mark.
+  `tools/mutate.ts` resolves `quest-n-click/…` only. UPGRADING's `grep`/`sed` covers every source extension, spaces in
+  names, `public` and hidden folders.
+- `scripts/external-consumer.mjs` and `scripts/upgrade-check.mjs` move an old game as its author would: uninstall
+  `web-scumm`, install `quest-n-click`, `npx quest-n-click migrate`, then the new commands; the external consumer also
+  fails when an alias archive or a `web-scumm…` command is still packed. `scripts/studio-install-smoke.mjs` and the CI's
+  connectors job check the old commands are gone.
+- Tests: `tests/former-name.test.ts` (rewritten: nothing of the aliases left, the rename's rules and a project
+  renamed on disk), `tests/studio-engine-upgrade.test.ts` (a game still under the former name upgraded as one
+  revision, its Undo refused; a rename-only answer accepted, a rename plus anything refused),
+  `tests/release-artifacts.test.ts`, `tests/reality-store-backup-mutants.test.ts`.
+- `tests/fixtures/game-4.1` keeps its `web-scumm/…` imports (a 4.1.x game as it was) and leaves the type check
+  (`tsconfig.json`'s `exclude`): nothing resolves them any more, and the tests rename them or let the upgrade do it.
+- Docs (en, fr): UPGRADING §39, README, PACKAGE, SUPPORT, API, TOOLS, STUDIO-SERVER.
+
+→ next: the 4.3.0 release PR bumps the version; its candidate is the first to pack and publish without the aliases.
+
+## #251 · 2026-10-21 · Claude · proposal · 4.3.0: the 158 mutation exemptions read again (28 killed, 2 fixed, the rest to 4.4.0)
+
+- Every entry of `docs/dev/mutants.json` was due at 4.3.0. Four reviewers read each one against origin/main 8f3d5d3d:
+  128 kept, 30 to kill. Each kill's test was written in a file the entry's mutation set runs, then checked by hand
+  to fail with the mutant applied and pass without it. 27 entries were removed; 131 remain, all with `revisit: 4.4.0`,
+  the reviewed `why`, and a `context` line (added to 0, 1, 4 and 29; idx 1's is `private chosen = false;`, so it no
+  longer also covers `digestOn = false`; idx 4's no longer covers the four other `&&` of reality-runtime.ts).
+- Killed, engine: `migrate.ts` step and active player renamed through a map key "undefined" (`critical-migrate`);
+  `reality-runtime.ts` `fast: false` timed on the run clock (`reality-engine`); `protocol.ts` b64url's own alphabet,
+  `fatal` UTF-8 header, non-extractable key (`reality-protocol`); `client.ts` the payload's padding at length ≡ 3
+  (`reality-client`); `daily.ts` `fatal` (`remix-tokens`).
+- Killed, Bridge: `lock.ts` an idle key forgotten (`bridge-mutants-tenant`); `store.ts` three lock attempts exactly
+  (`bridge-lock-races`), parseLine quoting JSON.parse (`bridge`); `runs.ts` an answer written after the worker exited
+  (`ended`, both mutants; new fake-worker mode `late`, `bridge-runs-worker`), a 429 with `retryAfterS: 0` has no
+  Retry-After (`bridge-runs-http`); `runs-store.ts` a claim whose UPDATE changes no row, `runs-limiter.ts` a purge
+  whose edge row is gone (`bridge-runs-store`, a SqlDb wrapper staging the other process); `store-postgres.ts`
+  giveBack under two concurrent releases (`reality-store-postgres-mutants`).
+- Killed, connectors: `email/connector.ts` tick's `stopping` guard after `start()` twice
+  (`connectors-email-edge-mutants`). Making `start()` idempotent was left out: a start that fails half-way would need
+  its own rollback, and the new guard's mutants their own tests.
+- Killed, Studio Server: `journal.ts` the lease deadline's exact millisecond (`studio-journal-mutants`, Date.now held);
+  `durable.ts` fsyncDir's catch and finally, four mutants (`studio-durable-mutants`, node:fs `openSync` mocked for the
+  directory only); `auth/store.ts` a logout with `sid: ''` (`studio-store-mutants`); `leases.ts` check and list
+  read-only under another process's write lock (`studio-leases-mutants`, a raw node:sqlite `BEGIN IMMEDIATE`);
+  `health.ts` schedule after close while a judgement is in flight (`studio-workshop-health-mutants`).
+- Fixed, kept: `badges/crypto.ts` `verifyEddsaJcs` refuses a key that is not Ed25519 (an RSA-512 key's 64-byte
+  signature verified); the length check's mutant is equivalent again. `bridge/src/config.ts` `checkLimits`: the
+  Bridge's limits are non-negative integers with known names; `bridge.ts`'s `oldest === undefined` guard is now
+  `unreachable`, proved by `tests/bridge.test.ts`. `remix/compile.ts` `loadVariant` turns canonicalJson's refusal into
+  a `world-shape` RemixSeedError (the reviewer asked for world-shape; done at the source rather than in the verifier,
+  so a real bug still answers `crash`); `verify.ts`'s `instanceof` mutant is equivalent again.
+- Sets touched: core, reality, runs, remix, speedrun, connectors-pure, connectors-edge, reality-store-postgres,
+  studio-ops, studio-auth, studio-workshop.
+- Second reading (4.3.0): `checkLimits` takes a least per limit, 1 for `streamPage` (0 looped `signals()` forever),
+  `bodyBytes` and `streamBufferBytes`, 0 for the others (0 there refuses visibly: no pairing, no stream, no cache);
+  UPGRADING §39 (en, fr) says the limits are checked, that a shared Bridge stops for every tenant, and how to list them
+  first, pinned against `checkLimits` by `tests/bridge.test.ts`. `verifyJws` takes RS256 from 2048 bits and ES256 on
+  P-256 only (an OB2 `publicKeyPem` of 512 bits could be factored), the badges refused end to end in
+  `tests/connectors-badges-edge-mutants.test.ts`, the guard's new mutants killed by hand. The verifier's `instanceof`
+  entry is killed after all (`tests/speedrun-verify-crash.test.ts`: a fault that is no RemixSeedError is
+  `inconclusive/crash`), so 130 entries remain. The `toRun(r)` entry covers claimNext's re-read only: `get` and
+  `summary` of an id not held are tested. The `late` worker test stays POSIX only: untried on Windows.
+
+→ next: the mutation sets run on the branch in CI; the remaining 130 are read again at 4.4.0.
+
+## #252 · 2026-10-21 · Claude · proposal · 4.3.0: a conversation saved after each topic (#218)
+
+- `core/interactions.ts` `talkLoop`: the topic menu runs until "Bye" inside one `Engine.run`, whose `finally` is the
+  autosave. A topic's `do` changed the state, but nothing reached the store before "Bye". Found in a game whose
+  character offers three trials as topics, each a minigame setting a flag: after trial 1 the autosave still lacked the
+  flag, and a player who lost the tab during trial 2 replayed trial 1. Reported and fixed by Horacio (LostInBrittany),
+  #219; the maintainer wanted it in 4.3.0, whose candidate was cancelled for it.
+- The fix: `eng.save()` after the topic's `do` and its `seen` key (and its `writes` entry), the point where the topic
+  is whole and the menu is about to come back. Like the save in a room's `enter`, it does not emit `saveMade`: the
+  journal's `saved()` stays at the action's end, so one action still journals one autosave. `Engine.save` checks the
+  objectives first: an objective completed by a flag or an item was already announced when it changed (the journal's
+  check); one that reads a topic's `seen`, a prop or an unlock is now announced at the topic, not at "Bye".
+- Second reading (4.3.0): the save after a topic kept half a `do` when the conversation was not the end of its action:
+  a rule `[{ lose: coin }, { talk: x }, { gain: ticket }]`, a talk in a cutscene, a talk in a topic's `do`. A page that
+  died at the menu came back with the coin gone and no ticket, the rest never run (the PR's own reason for not saving
+  after a `minigame`). `talkLoop` now takes `saveTopics`: true for the talk verb on a character with topics (the
+  conversation is the whole action) and for the `{ talk }` that is the last command of the rule being resolved
+  (`Engine.tailTalk`, set by `resolve` for that rule only, cleared in a `finally`); any other talk saves at the
+  action's end, as before. Tests in `tests/core.test.ts`: a rule ending with a talk saves each topic, a rule with a
+  command after its talk saves nothing until it ends; each fails when its `saveTopics` is forced the other way.
+- What a save holds: `GameState` has no open conversation. A save made at a topic loads like any other, in the room,
+  the topics seen marked, the conversation closed. A topic whose `do` ran `goto` saves the new room (as `enter`
+  already did), one that ran `end` or an ending saves `done` (they saved already). Determinism: the save writes the
+  store only, it changes no state, no session step and no replay; `save-v3`, `critical-save`, `critical-session`,
+  `critical-replay`, `replay`, `journal`, `speedrun-reference`, `reference-proof`, `solver-contract` and
+  `solver-oracle` pass unchanged. Cost: one verified IndexedDB write (or one localStorage write) per topic, chained
+  behind the previous one like every autosave, at the pace of a player's picks; the solver's `MemoryStore` clones
+  once more per topic.
+- Not done: a save after the `minigame` command itself. A topic is the unit a player sees end; a minigame sits in
+  the middle of a `do` (its `then`, the commands after it), and a save there would keep half a `do` that a reload
+  never finishes. A minigame run by a rule ends its action and was already saved.
+- Mutation sets: no gated source touched (`interactions.ts`, `engine.ts`, `command-handlers.ts` are in none);
+  `tests/core.test.ts`, which judges the `core` set, gains three tests.
+
+→ next: the 4.3.0 release (LOG #253).
+
+## #253 · 2026-10-21 · Claude · release · 4.3.0 "Hero Choice": the player chooses the hero
+
+- **What ships**: main as the 4.3 line (D48, LOG #249), with nine pull requests and their fragments (LOG #246–#252):
+  - #202 (#200), "Hero Choice" (D49, ADR 0022, LOG #246): the hero chosen at New Game among any number, a name per
+    character variant, text switches and `{hero}`, portraits in a choice (`Choice.img`), voices keyed by value, the
+    Studio's picker, the `hero-looks-default` lint;
+  - #205 (#203): a key per verb, which the player can turn off (LOG #247);
+  - #206 (#204): Galmuri11, a proportional pixel font, as the default interface font, DotGothic16 behind it;
+  - #211 (#210): a job heard no more once it has ended, a late poll or Cancel no longer overwriting its result
+    (LOG #248);
+  - #208 (#207): a naming convention for issues, pull requests and branches in CONTRIBUTING;
+  - #213: Pillow 13, the worker's lock with the new wheel's sha256;
+  - #217: the 158 mutation exemptions read again (LOG #251): the maintainer chose « Reread them all » ; four
+    readers checked every entry against the code, 28 are killed by a test, and the reading found and fixed a badge
+    key check (a weak or foreign key made a valid badge), the Bridge's limits (`streamPage: 0` looped forever) and a
+    run whose world cannot be hashed (now `world-shape`); 130 remain, each with its line, read again at 4.4.0;
+  - #215: the `web-scumm` aliases removed (D47, LOG #250), `npx quest-n-click migrate` renaming an old game's
+    imports, tsconfig paths and script commands, the hosted engine upgrade renaming a hosted game's imports first.
+  - #219 (#218): a conversation saved after each topic, when it is the rest of its action (LOG #252), folded into
+    this section after the first 4.3.0 candidate was cancelled for it;
+  Six of them, #202, #205, #206, #208, #211 and #219, are Horacio's (LostInBrittany), the outside contributor of
+  4.2.4.
+- **The maintainer's words**:
+  - « ok include all PR in gh into 4.3 » (after v4.2.5, D48): the six open pull requests, reviewed a second time,
+    completed on their branches and merged into main, smallest first; then #215;
+  - « also do a pass onto the issues to see what it can be close »: the triage found nothing to close beyond the five
+    issues closed by their pull requests (#200, #203, #204, #207, #210); the open issues are the nineteen field passes,
+    which stay open until the maintainer has made them (#75–#87, #149, #150, #166, #167, #196, #197);
+  - « yes sign v4.3.0 » (21 Oct), the yes for `v4.3.0` only (D37), signed on its own green candidate run; a later tag
+    gets its own.
+- **What was added on the contributor's branches, and why** (each change with a test that fails without it):
+  - every branch: main merged after `v4.2.5`, its fragment and docs labelled 4.3.0 (D48), the baseline and the first
+    visit recorded again (133 KB, then 134 KB with the verb keys, 135 KB with the text switches and the cards, each a
+    deliberate growth);
+  - #202: a variant's `name` is shown as written (the speech box, the transcript and the talk header read
+    `character().name`, not `Engine.text`), so braces reached the screen; the validator now refuses a switch or
+    `{hero}` there. The hero chosen at New Game tested through the real save file (the v4 envelope as JSON and a v3
+    one, read back with `parseSave` and continued). The decision renumbered D49 (D47 is the rename, D48 the line),
+    UPGRADING §39 from 4.2.5. After #205, a verb's `key` is a text of the game: a malformed one (`key: 1`) reached
+    `parseText`, which threw and stopped the validator; a text of the wrong type now holds no switch;
+  - #205: a single-letter shortcut must be one the player can turn off (WCAG 2.1.4, voice input and stray keys):
+    `Settings.verbKeys`, a settings row shown only when a verb has a key, `ui.verbKeys` named in the demo's and the
+    reference game's locales (en, fr), validator warnings for keys without a settings menu or without that text; the
+    credits rolled from the pause menu are a `.credits` box, not an overlay, so a key picked a verb under them;
+    `VerbDef.key` in DSL-STABILITY's 4.3.x row;
+  - #206: `tools/subset-font.py` refuses a Galmuri11 source whose sha256 is not the pinned v2.40.4 release's;
+    `tests/fonts.test.ts` (the fallback stack, the refusal); UPGRADING §39 says every game without `skin.fonts.ui`
+    changes look and how to keep DotGothic16;
+  - #208: the branch prefixes written in CONTRIBUTING, where the pull request template points, unquoted so
+    `docs:truth` does not read them as paths; a fragment;
+  - #211: the Cancel button had the same late answer (a 409 after the end appended to the panel's last word); dropped
+    once the job has ended, with a test holding the refusal past the end;
+  - #213 (Dependabot): the worker's lock remade for Pillow 13.0.0's manylinux wheel, its sha256 checked against PyPI,
+    since `tests/worker-python-lock.test.ts` and the `--require-hashes` install want it to follow `requirements.txt`.
+- **What this release commit adds**: `430-line` had only a LOG part, so a CHANGELOG line was written beside it (main
+  is the 4.3 line); UPGRADING §39 gets a paragraph on Pillow 13 (`pip install -r requirements.txt` again), otherwise
+  checked complete (the hero choice, the verb keys, the `web-scumm` names gone with `migrate` and the hosted upgrade,
+  `{hero}` in a 4.2 text, the font). The Studio Server's lock (`scripts/locks/quest-n-click-studio-server.json`)
+  names its optional peer `quest-n-click` as `4.3.x`, the manifest's range at this version: `scripts/pack.mjs`
+  refused the `4.2.x` the lock still said; edited by hand as #215 did (`npm run locks` would pull unrelated bumps),
+  `locks --check` passes. The reference run is recorded again: `ui.verbKeys` in the reference game's
+  locales moved its presentation fingerprint, with its engine version and the hashes that follow; its 49 steps, its
+  times and its final state did not.
+- **What stays open**:
+  - the field passes: the nineteen, none passed; none added for 4.3.0's new player surfaces (the hero choice's cards
+    on a phone, the verb keys and their setting with a real keyboard and a screen reader, Galmuri11 read on real
+    devices), which `tools/field/schema.ts` does not name; the existing passes see them in the demo's interface;
+  - npm publishing, which will take the new names;
+  - the Clever spike applications, still named `web-scumm-spike-*` (the reference deployment);
+  - `studio-server/src/ops/core.ts`, changed by #215, is in no mutation set (`studio-ops` holds journal, durable and
+    spans; `tools/mutate.ts` maps it to `all`, which needs `BRIDGE_PG_URL`);
+  - only the 4.3.0 candidate proves the pack, SBOMs, manifest and release files agree without the aliases, and that
+    `external-consumer` passes on Linux and Windows.
+- **The version**: 4.3.0; the golden save `demo-4.3.0.json`; the reference run recorded again; the CHANGELOG
+  assembled from 8 fragments, 5 with a LOG part (#246–#250); UPGRADING §39 (en, fr), SUPPORT "4.3.0", ROADMAP,
+  README (en, fr; "v4.3.0 (Hero Choice)", the install from `quest-n-click-4.3.0.tgz`);
+  `docs/dev/passes/4.3.0.md` (nineteen passes, none new, none carried).
+
+→ next: Claude (the merge, the candidate on main, `v4.3.0` signed on it, `ship verify`)

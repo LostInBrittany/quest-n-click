@@ -28,10 +28,10 @@ be finished, and ship it as a web game that installs on a phone and plays offlin
 <!-- install:begin -->
 Node 22.12 or newer and Python 3 with Pillow (`npm run assets` prepares the art with them), on Windows, macOS or
 Linux. The engine installs from a release's archive (npm publishing comes
-in a later 4.2.x):
+in a later release):
 
 ```bash
-T=https://github.com/wanoo/quest-n-click/releases/download/v4.2.5/quest-n-click-4.2.5.tgz
+T=https://github.com/wanoo/quest-n-click/releases/download/v4.3.0/quest-n-click-4.3.0.tgz
 npx --package=$T quest-n-click create my-game "My Game" --engine=$T
 cd my-game && npm install
 npm run assets && npm run dev        # play it; then npm run verify, npm run build
@@ -145,7 +145,7 @@ mistakes before a person does. Every result stays reviewable, in the Studio and 
 ## In numbers
 
 Measured on this commit of `main` by the automated gates (`npm run quality:baseline` writes these figures):
-<!-- metric:tests -->2808<!-- /metric --> unit test declarations, on Node 22 and 24, with coverage floors and gated
+<!-- metric:tests -->2841<!-- /metric --> unit test declarations, on Node 22 and 24, with coverage floors and gated
 mutation testing; the reference game proved in <!-- metric:referenceStates -->288<!-- /metric --> states; the player's
 first visit <!-- metric:initialJsKB -->135<!-- /metric --> KB of JavaScript, gzipped. Each release is built from the
 commit its candidate tested. The candidate makes the four package archives, the Bridge's image, the SBOMs, the runs and
@@ -160,8 +160,11 @@ Every page exists in English (`docs/en/`) and French (`docs/fr/`), and a test ke
 command in [TOOLS](docs/en/TOOLS.md), what changed in the [CHANGELOG](CHANGELOG.md), moving to a new version in
 [UPGRADING](docs/en/UPGRADING.md), and where it comes from in the [ROADMAP](docs/en/ROADMAP.md).
 
-Current release: [v4.2.5 (quest'n'click)](https://github.com/wanoo/quest-n-click/releases/tag/v4.2.5), the project's
-new name, with the old `web-scumm` names kept as aliases through 4.2.x (removed in 4.3.0); over 4.2.4's changes for authors (an exit gone
+Current release: [v4.3.0 (Hero Choice)](https://github.com/wanoo/quest-n-click/releases/tag/v4.3.0): the player
+chooses the hero at New Game (portraits in a choice, a name per variant, text switches so the others' words follow the
+hero), a key per verb and a proportional pixel font for the interface, most of it from an outside contributor, Horacio
+(LostInBrittany); the former `web-scumm` names are gone (`npx quest-n-click migrate`). Over 4.2.5, the project's new
+name; 4.2.4's changes for authors (an exit gone
 through on a single tap, `actorGap`, the sprite sheets' background, `face: 'hero'` fixed) and 4.2.3 "Coordination",
 the Studio online for a team, experimental ([STUDIO-SERVER](docs/en/STUDIO-SERVER.md)): previews per revision, health, personal undo, published builds, backup and restore, and since 4.2.3 a scenario map, anchored
 comments, a diff by name, AI agents through a remote MCP, Git push and import, the hosted Assets tab; over 4.2.0 "Stable

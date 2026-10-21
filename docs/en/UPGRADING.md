@@ -707,6 +707,12 @@ installs from `releases/download/v4.3.0/…`. What is new, all optional (CONTENT
 - **`npm run lint`** has `hero-looks-default` (info), and no longer calls `action-dead` a rule that only sets a flag a
   character's variant or a text switch reads.
 
+**A Bridge checks the `limits` of its `config.json` at start** (4.3.0): an unknown name, or a value that is not an
+integer of at least 0 (at least 1 for `streamPage`, `bodyBytes` and `streamBufferBytes`), stops it with the name
+and the value; on a shared Bridge that is every tenant. Before upgrading, list each tenant's limits and compare them
+with `DEFAULT_LIMITS`'s names (`bridge/src/config.ts`):
+`node -e 'console.log(JSON.parse(require("fs").readFileSync(process.argv[1], "utf8")).limits ?? {})' <dir>/config.json`.
+
 **The `web-scumm` names are gone** (D47). Through 4.2.x the engine's former names were aliases; 4.3.0 removes them.
 There is no `web-scumm-<version>.tgz`, `create-web-scumm`, `web-scumm-bridge`, `web-scumm-connectors` or
 `web-scumm-studio-server` archive any more, no `web-scumm`, `web-scumm-bridge`, `web-scumm-connector`,
@@ -766,3 +772,8 @@ game's presentation fingerprint moves, so record its reference run again, if it 
 `skin.fonts.ui` keeps its font; a character that font lacks now falls back to DotGothic16 (the Latin subset, then the
 full font for Japanese) before `'Courier New'`. Look at a room with dialogue and a choice after upgrading, on a phone:
 a line that just fitted may wrap differently.
+
+**The Python tools** (#213): the asset tools and a hosted Studio's processing worker use Pillow 13.0.0; run
+`python3 -m pip install -r requirements.txt` again. Their output does not change (the sample game's images come out
+byte for byte the same); a host that installs the worker from `ops/studio/worker-requirements.lock` gets the new wheel
+by its sha256.

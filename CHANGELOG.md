@@ -1,5 +1,135 @@
 # Changelog
 
+## 4.3.0 — 2026-10-21
+
+LOG #246–#253: "Hero Choice". The player chooses the hero at New Game, among any number of heroes a game declares:
+portraits in a choice, a name per character variant, and text switches (`{hero}`, `{form?knight=him|witch=her}`) so
+the other characters' words follow the hero, in every language; voices follow the same keys (D49, ADR 0022). Most of
+this release comes from an outside contributor, Horacio (LostInBrittany), thank you: the hero choice itself (#202),
+a key per verb (#205), a proportional pixel font for the interface by default (#206), a job's late
+answer that no longer overwrites its result (#211), a naming convention for titles and branches (#208) and a
+conversation saved after each topic (#219); each was
+reviewed, completed on its branch and merged into main, the 4.3 line (D48). A game that uses none of it keeps its
+saves, its logic fingerprint and `schemaVersion` 3; its interface font changes unless it sets its own (UPGRADING §39).
+**Breaking**: the former `web-scumm` names, aliases through 4.2.x, are gone (D47). A game that still imports
+`web-scumm/…` runs `npx quest-n-click migrate` once, after installing `quest-n-click` (UPGRADING §39); the formats
+keep their names. The tag is signed with the maintainer's SSH key on their yes of 21 October, « yes sign v4.3.0 »,
+the yes for `v4.3.0` only (D37).
+
+### Breaking
+
+- **The `web-scumm` names are gone (4.3.0, D47)**: the release no longer ships `web-scumm-<version>.tgz`,
+  `create-web-scumm`, `web-scumm-bridge`, `web-scumm-connectors` or `web-scumm-studio-server` (nor their SBOMs), the
+  packages no longer carry the `web-scumm`, `web-scumm-bridge`, `web-scumm-connector`, `web-scumm-studio-server` and
+  `web-scumm-studio-worker` commands, and `web-scumm/content` and the other old imports no longer resolve. A game still
+  under the old name runs `npm uninstall web-scumm`, installs `quest-n-click`, then `npx quest-n-click migrate`, which
+  now renames its `web-scumm/…` imports, its tsconfig's paths and its scripts' commands (`--check` names what is left;
+  UPGRADING §39 also gives the `grep`/`sed` by hand). On a hosted Studio such a game does not load until its owner runs
+  the engine's upgrade, which renames its imports first, as a revision of its own judged by loading only (a game that
+  cannot be finished yet is never stuck) and not undoable, then migrates its schema as before. Format identifiers (`web-scumm-save`, sessions, `.wsrun`,
+  storage keys, headers, `WEB_SCUMM_*`) keep their names, and releases up to 4.2.5 keep their files.
+
+### Fixed
+
+- **A prepared job keeps its result on screen (4.3.0, #210)**: on a hosted Studio, the Assets panel could replace
+  "prepared from revision 3: 218 files" with "Preparing the assets: done" a moment after the job ended, when a status
+  check sent before the end answered after it. Once a job has ended, the page hears nothing more of it, nor of a Cancel
+  sent just before the end and refused after it (the panel used to add "(the job has ended)" to its last word). This
+  also made the Firefox pass of `npm run e2e:studio-hosted` fail now and then.
+- **A badge signed with a weak or foreign key is refused (4.3.0)**: the badge connector takes the key from the
+  issuer's documents, and the algorithm's name said nothing of its strength. An `eddsa-jcs-2022` proof is now checked
+  with an Ed25519 key only (an RSA-512 key, whose signature is exactly 64 bytes, made a valid proof); a JWS (an OB3
+  JWT, an OB2 signed assertion and its `publicKeyPem`, a status list) signed RS256 needs a modulus of at least 2048
+  bits, and ES256 a P-256 key. A 512-bit RSA key can be factored, so a badge it signed could be forged. Such badges
+  are now `invalid`.
+- **The Bridge checks its limits before it starts (4.3.0)**: each of `config.json`'s `limits` must be an integer, at
+  least 1 for `streamPage`, `bodyBytes` and `streamBufferBytes` (`streamPage: 0` made a fetch by cursor loop forever)
+  and at least 0 for the others, and a name that is no limit is refused. Before, any value was taken. A Bridge given
+  such a value does not start, and says which limit, the least it takes and what it was given; on a shared Bridge
+  that stops every tenant (UPGRADING §39 says how to look first).
+- **A run whose world cannot be hashed is refused, not a crash (4.3.0)**: a `.wsrun` whose world holds a number JSON
+  reads as Infinity (`1e400`), or two keys equal once NFC-composed, is `invalid-replay` / `world-shape`; the verifier
+  answered `inconclusive` / `crash`. Loading such a stored world says the same.
+- **A conversation saves after each topic (4.3.0, #218)**: a conversation is one action, and the autosave came only
+  when it ended, at "Bye". What a topic changed (a flag, an item, a minigame won) was lost if the page died before:
+  on a phone, a tab killed in the background or a battery gone flat sent the player back before the topic. The state
+  is now saved after each topic's `do`, once the topic is marked as seen, when the conversation is the rest of its
+  action (the talk verb, or a `{ talk }` that ends a rule); a talk followed by more commands is still saved at the
+  action's end, so a save never holds half a `do`. A loaded save opens no conversation: the player is in the room,
+  the topics seen marked. Nothing to change in a game.
+
+### Changes
+
+- **The player chooses the hero at New Game (4.3.0)**: any number of heroes, one character with a variant per hero.
+  A game asks in its intro with a `choice` whose options set a flag (`{ set: ['form', 'witch'] }`); the rest follows
+  from that flag. Nothing changes for a game that does not use it (no new condition, command or state, saves and
+  `schemaVersion` 3 unchanged). CONTENT_GUIDE, "Choosing the hero"; UPGRADING §39.
+- **A character variant may carry a `name` (4.3.0)**: while the variant applies, the speech box, the transcript, the
+  talk header and `{name}` in a fallback line call the character by it. Translated like any text
+  (`char:<id>/variants[<i>].name`).
+- **Text switches and `{hero}` (4.3.0)**: `{hero}` is the active hero's name; `{form?knight=him|witch=her|*=it}` is the
+  text listed for the flag's current value, `*=` covering the rest. Filled when a text is shown (lines, choices,
+  looks, hints, toasts, captions, item and object names, objective titles), after the translation, so each language
+  writes its own words inside the braces (`content{form?witch=e|*=}`). The validator reports a malformed switch, a
+  flag no command sets, a value listed that nothing writes and a value written that a switch does not cover;
+  `npm run i18n -- status` lists the translations that drop a choice their source's switches make. Room, verb,
+  character and variant names are shown as written: a switch there is an error. A 4.2 text holding a
+  literal `{hero}` or `{word?…=…}` is now filled (UPGRADING §39).
+- **Portraits in a choice (4.3.0)**: `img` on a choice option shows it as a card, the image with the option's text as
+  its label and its accessible name; the cards wrap and scroll, so a phone fits any number of heroes.
+- **Voices for lines with switches (4.3.0)**: a line whose words follow a flag (`{form?m=him|f=her}`) is recorded once
+  per value: its clips go in `audio.voices` under `<id>~<flag>=<value>` (`grandma_saw~form=f`); with several flags in
+  one line, sorted by name and joined with `~` (`greet~form=f~mood=calm`), values written as text (`true`, `2`). The
+  engine plays the clip for the flags as they stand and falls back to the plain id when that clip is missing or a flag
+  is not set yet, so a game can ship before every recording exists. `voicesByLang` uses the same keys. `npm run voices`
+  (and the Studio's Voices tab) lists one row per value, each with its text, and `npm run validate` warns when a voiced
+  line lacks a value's clip. The keys are only map keys: the file names stay the author's (AUDIO.md, "Voices").
+- **The Studio previews each hero (4.3.0)**: the Play tab's **Text switches** picker sets the flag a game's switches
+  read (and shows `{hero}`'s name), and the Rooms tab shows under a switched text how it reads (local Studio;
+  STUDIO.md).
+- **`npm run lint` and the chosen hero (4.3.0)**: `hero-looks-default` (info) says when two or more values of the
+  hero's flag match no variant, so those heroes would look like the written one; a rule that only sets a flag read by
+  a character's variant or a text switch (the intro's choice) is no longer reported as `action-dead`.
+
+- **A key per verb: O for Open, as in the LucasArts games (4.3.0, #203)**: a verb's optional `key`
+  (`{ id: 'open', label: 'Open', color: '#8fd3ff', key: 'o' }`) picks it at the keyboard as a tap on its button would,
+  in any case and without Ctrl, Alt or Meta, and does nothing while the engine is busy, a line is on screen or
+  something covers the scene. The button underlines the letter in its label and announces it (`aria-keyshortcuts`).
+  The key is translated with the label (`verb:<id>/key`). `npm run validate` refuses a key that is not one character,
+  Space and a key two verbs share, in the game and in each translation. With `settings: true` the player can turn the
+  keys off (a "Verb keys" row, `ui.verbKeys`, shown only when a verb has a key: WCAG 2.1.4), and the validator warns
+  about keys in a game without a settings menu. Without `key`, nothing changes.
+
+- **A proportional pixel font for the interface (4.3.0, #204).** The default `--font-ui` is now Galmuri11 (OFL 1.1, a
+  125 KB Latin subset) instead of DotGothic16, a Japanese face whose fixed-width Latin left gaps around `i` and `l` and
+  set the period a pixel above the line. Galmuri11 has a narrow `i`, a wide `m` and a period on the baseline, close to
+  the LucasArts dialogue fonts, and a `size-adjust` keeps a game's text at the same size. DotGothic16 now stands behind
+  every interface family, so Japanese text and the few symbols Galmuri11 lacks still render. A game that wants the old
+  look sets `skin.fonts.ui: 'DotGothic16'`; a game that already sets `skin.fonts.ui` keeps its font, and a character its
+  font lacks now falls back to DotGothic16 before `'Courier New'` (UPGRADING §39). `tools/subset-font.py` checks the
+  sha256 of the pinned Galmuri release before it cuts the subset.
+
+- **main is the 4.3 line (4.3.0, D48)**: after v4.2.5 the six open pull requests (#202, #205, #206, #208, #211,
+  #213) were reviewed, completed on their branches and merged into main, which prepares 4.3.0. The 4.2.x freeze of
+  the content format and the public API (D40, eased by D46) no longer binds main; a 4.2.x fix, if one is needed,
+  branches from `v4.2.5`.
+
+- **A naming convention for titles and branches (4.3.0, #207)**: CONTRIBUTING.md says how an issue, a pull request
+  and a branch are named: an issue starts with its template's prefix (`[bug]`, `[feature]`, `[field]`), a pull request
+  reads `<Area>: <what changes> (#issue)` (a release's pass starts with its version), a branch starts with its kind
+  (`feature/`, `fix/`, `docs/`…) and the issue's number. The pull request template's pointer to the branch prefixes now
+  finds them there.
+
+- **Pillow 13 (4.3.0, #213)**: the asset tools (`npm run assets`, `tools/cut-sheet.py`, `check-alpha.py`, `pick-bg.py`,
+  the code wheel's PDF) and a hosted Studio's processing worker use Pillow 13.0.0. Nothing changes for an author: the
+  sample game's images come out byte for byte the same, and no tool used an API that Pillow 13 removed or deprecated.
+  Run `python3 -m pip install -r requirements.txt` again. The worker's lock (`ops/studio/worker-requirements.lock`)
+  carries the new wheel's sha256, checked against PyPI.
+- **The 158 mutation exemptions read again (4.3.0)**: each entry of `docs/dev/mutants.json` came due at 4.3.0 and was
+  checked against the code. 28 were not what they said and are now killed by a test; two led to the fixes above and
+  stay, their reason rewritten. The other 128 keep their place with a reviewed reason, and every entry now names its
+  line and is read again at 4.4.0. 130 remain.
+
 ## 4.2.5 — 2026-10-20
 
 LOG #244–#245: the project is now called quest'n'click. It was web-scumm, named in homage to SCUMM, the LucasArts

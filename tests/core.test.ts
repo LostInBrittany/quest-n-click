@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { Engine } from '@engine/core/engine';
 import { FakePresenter, MemoryStore } from '@engine/core/ports';
 import { check } from '@engine/core/cond';
-import type { GameDef, GameState } from '@engine/core/types';
+import type { Cmd, GameDef, GameState } from '@engine/core/types';
 import { validate } from '@engine/tools/validate';
 import { solve } from '@engine/tools/solve';
 import { migrate } from '@engine/core/migrate';
@@ -117,6 +117,40 @@ describe('fixture game', () => {
     expect(atMenu[0]?.flags.asked).toBeUndefined();
     expect(atMenu[1]?.flags.asked).toBe(true);
     expect(atMenu[1]?.seen['house.grandma.0']).toBe(1);
+  });
+
+  // A topic is saved only when the conversation is the rest of its action (4.3.0, #218): a `{ talk }` that ends a rule
+  // is, one followed by more commands is not (a save there would keep half the rule's `do`).
+  async function talkFromRule(tail: Cmd[]) {
+    const g = structuredClone(game);
+    const house = g.rooms.find((r) => r.talk?.grandma)!;
+    house.talk!.grandma![0]!.do = [{ say: ['grandma', 'Bring me a coin.'] }, { set: 'asked' }];
+    house.on![0]!.do = [{ set: 'lit' }, { talk: 'grandma' }, ...tail];
+    const { e, ui, store } = boot(g);
+    await e.checkpoint('free');
+    const atMenu: (GameState | null)[] = [];
+    const choose = ui.choose.bind(ui);
+    ui.choose = (options, who) => {
+      if (who !== undefined) atMenu.push(store.load());
+      return choose(options, who);
+    };
+    ui.picks = [0, 3];
+    await e.act({ verb: 'use', a: 'lamp' });
+    expect(atMenu).toHaveLength(2);
+    return { atMenu, end: store.load() };
+  }
+
+  it("a rule's last talk saves each topic (#218)", async () => {
+    const { atMenu, end } = await talkFromRule([]);
+    expect(atMenu[1]?.flags).toMatchObject({ lit: true, asked: true });
+    expect(end?.flags).toMatchObject({ lit: true, asked: true });
+  });
+
+  it('a talk in the middle of a rule saves nothing before the rule ends (#218)', async () => {
+    const { atMenu, end } = await talkFromRule([{ set: 'after' }]);
+    expect(atMenu[1]?.flags.lit).toBeUndefined();
+    expect(atMenu[1]?.flags.asked).toBeUndefined();
+    expect(end?.flags).toMatchObject({ lit: true, asked: true, after: true });
   });
 
   it('hints follow progress', async () => {

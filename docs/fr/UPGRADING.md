@@ -752,6 +752,12 @@ ne bouge pas. Le moteur s'installe depuis `releases/download/v4.3.0/…`. Ce qui
 - **`npm run lint`** a `hero-looks-default` (info), et ne traite plus d'`action-dead` une règle qui ne pose qu'un
   drapeau lu par une variante de personnage ou par un aiguillage.
 
+**Un Bridge vérifie les `limits` de son `config.json` au démarrage** (4.3.0) : un nom inconnu, ou une valeur qui
+n'est pas un entier d'au moins 0 (au moins 1 pour `streamPage`, `bodyBytes` et `streamBufferBytes`), l'arrête en
+nommant la limite et la valeur ; sur un Bridge partagé, ce sont tous les locataires. Avant la mise à jour, listez
+les limites de chaque locataire et comparez-les aux noms de `DEFAULT_LIMITS` (`bridge/src/config.ts`) :
+`node -e 'console.log(JSON.parse(require("fs").readFileSync(process.argv[1], "utf8")).limits ?? {})' <dir>/config.json`.
+
 **Les noms `web-scumm` disparaissent** (D47). Pendant toute la 4.2.x, les anciens noms du moteur étaient des alias ;
 la 4.3.0 les retire. Il n'y a plus d'archive `web-scumm-<version>.tgz`, `create-web-scumm`, `web-scumm-bridge`,
 `web-scumm-connectors` ni `web-scumm-studio-server`, plus de commande `web-scumm`, `web-scumm-bridge`,
@@ -815,3 +821,8 @@ référence, s'il en garde un, est donc à enregistrer à nouveau). Un jeu qui f
 un caractère qui lui manque passe maintenant par DotGothic16 (le sous-ensemble latin, puis la police complète pour le
 japonais) avant `'Courier New'`. Regarder un lieu avec un dialogue et un choix après la mise à jour, sur un téléphone :
 une réplique tout juste contenue peut passer à la ligne autrement.
+
+**Les outils Python** (#213) : les outils d'assets et l'application de traitement d'un Studio hébergé utilisent
+Pillow 13.0.0 ; relancer `python3 -m pip install -r requirements.txt`. Leur résultat ne change pas (les images du jeu
+d'exemple ressortent identiques à l'octet) ; un hébergeur qui installe l'application de traitement depuis
+`ops/studio/worker-requirements.lock` reçoit le nouveau wheel par son sha256.

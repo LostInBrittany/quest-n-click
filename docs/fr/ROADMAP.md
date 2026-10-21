@@ -599,6 +599,21 @@ par la baseline ; un script de liens. Laissé pour plus tard, dit comme tel : le
 (`docs/dev/passes/4.1.8.md`), l'accélération du workflow de release (son propre lot), les 845 lignes de l'onglet
 assistant.
 
+## v4.3.0 « Hero Choice » (livrée en octobre 2026) : le joueur choisit son héros
+
+Le joueur choisit son héros à la Nouvelle partie, parmi autant de héros que le jeu en déclare : des portraits dans un
+choix, un nom par variante de personnage, des aiguillages de texte (`{hero}`, `{form?knight=him|witch=her}`) pour que
+les mots des autres suivent le héros dans chaque langue, des clips de voix rangés par les mêmes valeurs, un sélecteur
+du Studio pour prévisualiser chaque héros (ADR 0022, D49, la première admission dans le DSL depuis le gel). Avec lui,
+une touche par verbe que le joueur peut désactiver (#203), Galmuri11, une police pixel proportionnelle, comme police
+d'interface par défaut (#204), la réponse tardive d'une tâche qui n'écrase plus son résultat (#210), une convention de
+nommage des titres et des branches (#207) et Pillow 13. L'essentiel vient d'un contributeur extérieur, Horacio
+(LostInBrittany) ; après la v4.2.5, `main` est devenue la ligne 4.3 et toutes les pull requests ouvertes y sont entrées
+(D48). Les anciens noms `web-scumm`, des alias pendant la 4.2.x, ont disparu (D47) : `npx quest-n-click migrate`
+renomme les imports d'un ancien jeu, et la mise à niveau du moteur d'un Studio hébergé les renomme aussi. Encore
+ouverts : les passes humaines, la publication npm, et les restes de la 4.2.3 (les captures du diff, `ids --lines` en
+opération exclusive).
+
 ## v4.2.5 « quest'n'click » (livrée en octobre 2026) : le nouveau nom
 
 web-scumm, nommé en hommage à SCUMM, devient quest'n'click, pour que son nom n'ouvre aucun débat inutile (D47). Le dépôt

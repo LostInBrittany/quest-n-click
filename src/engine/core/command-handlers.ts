@@ -518,7 +518,7 @@ export const HANDLERS: Handlers = {
   minigame,
   phone,
   guide,
-  talk: (eng, c, ctx) => eng.talkLoop(c.talk, ctx),
+  talk: (eng, c, ctx) => eng.talkLoop(c.talk, ctx, c === eng.tailTalk),
   hint: (eng, _c, ctx) => eng.hint(ctx),
   ending,
   reveal: ending,

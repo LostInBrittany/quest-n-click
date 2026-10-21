@@ -117,6 +117,11 @@ export class Engine {
   private rooms: Map<Id, RoomDef>;
   /** @internal Read by the modules of core/ (4.1.0). */
   lastFallback: Record<string, number> = {};
+  /**
+   * @internal The `{ talk }` command that ends the rule being resolved (4.3.0, #218): the one conversation that is the
+   * whole rest of its action, so its topics may be saved. Null outside a rule.
+   */
+  tailTalk: Cmd | null = null;
   /** @internal The busy owner (4.1.11, core/busy.ts): runs in progress, the tutorial step waited for, a skip. */
   readonly busyState = new Busy();
   /** Called on every state change relevant to the UI (inventory, room, busy state). */
@@ -691,9 +696,9 @@ export class Engine {
     return hintImpl(this, ctx);
   }
 
-  /** Conversation topic menu, until "Bye". */
-  async talkLoop(actor: Id, ctx: Ctx) {
-    return talkLoopImpl(this, actor, ctx);
+  /** Conversation topic menu, until "Bye"; `saveTopics` when nothing of the action follows it (4.3.0, #218). */
+  async talkLoop(actor: Id, ctx: Ctx, saveTopics = false) {
+    return talkLoopImpl(this, actor, ctx, saveTopics);
   }
 
   // ------------------------------------------------------------------ rooms

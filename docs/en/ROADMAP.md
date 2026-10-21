@@ -611,6 +611,19 @@ views with 105 tests; every public export carries `@public` or `@extension` and 
 written by the baseline; a links script. Left for later, said as such: the human passes of the sheet
 (`docs/dev/passes/4.1.8.md`), the release workflow's acceleration (its own lot), the assistant tab's 845 lines.
 
+## v4.3.0 "Hero Choice" (shipped October 2026): the player chooses the hero
+
+The player chooses the hero at New Game, among any number of heroes: portraits in a choice, a name per character
+variant, text switches (`{hero}`, `{form?knight=him|witch=her}`) so the others' words follow the hero in every
+language, voice clips keyed by the same values, a Studio picker to preview each hero (ADR 0022, D49, the first DSL
+admission since the freeze). With it, a key per verb that the player can turn off (#203), Galmuri11, a proportional
+pixel font, as the default interface font (#204), a job's late answer that no longer overwrites its result (#210), a
+naming convention for titles and branches (#207) and Pillow 13. Most of it comes from an outside contributor, Horacio
+(LostInBrittany); after v4.2.5 main became the 4.3 line and every open pull request went into it (D48). The former
+`web-scumm` names, aliases through 4.2.x, are gone (D47): `npx quest-n-click migrate` renames an old game's imports,
+and a hosted Studio's engine upgrade renames them too. Still open: the people's passes, npm publishing, and 4.2.3's
+leftovers (the diff's captures, `ids --lines` as an exclusive operation).
+
 ## v4.2.5 "quest'n'click" (shipped October 2026): the new name
 
 web-scumm, named in homage to SCUMM, becomes quest'n'click, so its name sparks no needless debate (D47). The
