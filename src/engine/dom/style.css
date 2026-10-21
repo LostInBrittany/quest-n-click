@@ -80,7 +80,7 @@ body { -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
 .choice:hover, .choice:focus-visible { color: #ffd84d; background: #141c2c; }
 .choice.read { color: #5f7fa0; }
 .choice.gl { color: #c9b8ff; }
-/* Options with an image (`Choice.img`, 4.3): cards in a grid before the text lines, as many per row as fit; the panel
+/* Options with an image (`Choice.img`, 4.3.0): cards in a grid before the text lines, as many per row as fit; the panel
    scrolls past what does not. The label under the image is the button's name. */
 .choices .cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 5.5em), 1fr)); gap: 6px; margin-bottom: 4px; flex: none; }
 .choice.card { display: flex; flex-direction: column; align-items: center; gap: 3px; min-width: 0; padding: 4px 4px 5px; text-align: center; border: 2px solid #1e2a3a; background: #0b1220; }

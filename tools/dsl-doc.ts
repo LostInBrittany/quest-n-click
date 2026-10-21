@@ -3,7 +3,7 @@
 // `<!-- dsl-doc:end -->`, each in its language): every condition (core/ir-schema.ts, tools/dsl-meta.ts), every
 // command with its shape (src/studio/schema.ts `CMD_SPECS`, the Studio's forms) and its sentence, the objectives'
 // fields (`objectiveSchema` and its metadata), and how each field of the game and of a room counts for the IR and the
-// fingerprint (core/ir-fields.ts), and the placeholders a text may hold (4.3: text switches, core/text-switch.ts). `--check` exits 1 when a page is behind; tests/dsl-doc.test.ts runs it.
+// fingerprint (core/ir-fields.ts), and the placeholders a text may hold (4.3.0: text switches, core/text-switch.ts). `--check` exits 1 when a page is behind; tests/dsl-doc.test.ts runs it.
 import { readFileSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import type * as z from 'zod';

@@ -403,9 +403,9 @@
  },
  "tests": {
   "files": 329,
-  "declarations": 2774
+  "declarations": 2776
  },
  "bundle": {
-  "initialJsKB": 133
+  "initialJsKB": 134
  }
 }

@@ -1,4 +1,4 @@
-// The content lint's rows about the hero a player chooses (4.3 "Hero Choice", PLAN-4.3-HERO-CHOICE §5). A flag the
+// The content lint's rows about the hero a player chooses (4.3.0 "Hero Choice", PLAN-4.3-HERO-CHOICE §5). A flag the
 // intro sets for the hero (`form`) is read by the hero's variants and by text switches, never by a condition: the
 // solver calls the command that sets it decoration, and nothing checks that each value gets a look. Two findings:
 // - `hero-looks-default` (info): two or more values a `set` writes for a flag the hero's variants read match none of

@@ -136,7 +136,7 @@ export function fill(eng: Engine, text: string, a: Id, b?: Id): string {
 }
 
 /**
- * A text as the player reads it now (4.3, core/text-switch.ts): `{<flag>?<value>=<text>|…|*=<text>}` takes the text
+ * A text as the player reads it now (4.3.0, core/text-switch.ts): `{<flag>?<value>=<text>|…|*=<text>}` takes the text
  * listed for the flag's current value, `{hero}` the active hero's name (its variant's). Called where a text is shown,
  * after `fill()` and after the translation; it reads the state and never changes it.
  */
@@ -150,7 +150,7 @@ export function text(eng: Engine, s: string): string {
 
 /**
  * A line's voice clip (the rule of `say` lines): `<id>~<flag>=<value>…` when its text (as written) has switches and
- * `audio.voices` has that clip (4.3, core/voice-key.ts), else its id when `audio.voices` has a clip under it.
+ * `audio.voices` has that clip (4.3.0, core/voice-key.ts), else its id when `audio.voices` has a clip under it.
  */
 export function voiceOf(eng: Engine, l: ListLine | { id?: Id }, text?: string): Id | undefined {
   const id = typeof l === 'string' ? undefined : 'text' in l ? listId(l) : l.id;

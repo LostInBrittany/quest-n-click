@@ -1,4 +1,4 @@
-// The Play tab's "Text switches" picker (4.3, PLAN-4.3-HERO-CHOICE §5): the flags the game's text switches read
+// The Play tab's "Text switches" picker (4.3.0, PLAN-4.3-HERO-CHOICE §5): the flags the game's text switches read
 // (`{form?m=…|f=…}`, core/text-switch.ts), each with the values it can take, as a select. Choosing one sets the flag in
 // the game in the frame (a `set` command, as the DEV panel's "Set the flag"), so the room, the hero's sprite variant,
 // `{hero}` and every line show that hero. The values offered are the ones the switches list and the ones a literal `set`

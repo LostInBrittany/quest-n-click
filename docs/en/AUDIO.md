@@ -146,7 +146,7 @@ A line with a stable `id` (`npm run ids -- --lines`) plays its clip from `audio.
 `audio.voicesByLang[lang]` instead, under the same ids. `npm run voices` keeps the recording table (status, actor,
 note per clip, `games/<id>/voices.json`); `npm run voices -- check` measures the files with ffmpeg.
 
-### Lines with text switches (4.3)
+### Lines with text switches (4.3.0)
 A line whose words follow a flag (`{form?m=him|f=her}`, CONTENT_GUIDE) is recorded once per value: Grandma saying
 "him" and "her" is two clips. The clip is keyed by the line's id and the values of the flags its switches read:
 

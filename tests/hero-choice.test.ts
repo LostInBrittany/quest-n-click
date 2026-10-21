@@ -1,10 +1,11 @@
-// The hero chosen at New Game (4.3 "Hero Choice", PLAN-4.3-HERO-CHOICE §6 step 5): the fixture `heroes` has three
+// The hero chosen at New Game (4.3.0 "Hero Choice", PLAN-4.3-HERO-CHOICE §6 step 5): the fixture `heroes` has three
 // heroes, one character with two variants (tests/fixtures/heroes.ts). The validator finds nothing; the solver finishes
 // and every answer of the intro is a path to the end; each hero is played through with its name, Grandma's switched
 // lines and `{hero}`; a French table gives the French words; a save keeps the hero.
 import { describe, expect, it } from 'vitest';
 import { Engine } from '@engine/core/engine';
 import { FakePresenter, MemoryStore } from '@engine/core/ports';
+import { parseSave, SaveEnvelopeV4Schema, saveEnvelope } from '@engine/core/save';
 import type { GameDef } from '@engine/core/types';
 import { applyLocale } from '@engine/tools/i18n';
 import { lintContent } from '@engine/tools/lint';
@@ -193,6 +194,29 @@ describe('choosing the hero (the heroes fixture)', () => {
     expect(again.character('kid')?.portrait).toBe('kid/witch_face');
     await again.act({ verb: 'use', a: 'key', b: 'door' });
     expect(ui.log).toContain('grandma: Off you go, Morwen. Come back safe!');
+  });
+
+  it('the hero chosen at New Game goes through the save file and back: the 4.2 envelope, as JSON (4.3.0)', async () => {
+    const g = heroes();
+    const { e } = await play(g, 0);
+    await e.act({ verb: 'take', a: 'rug' });
+    // The envelope a 4.2.x player writes (schema 4), unchanged: the hero is a flag like any other.
+    const file = JSON.parse(JSON.stringify(saveEnvelope(g, e.state)));
+    expect(SaveEnvelopeV4Schema.parse(file).schema).toBe(4);
+    expect(file.state.flags.form).toBe('knight');
+    // A v3 envelope (before 4.1.15) is read the same way.
+    const { variant: _v, ...v3 } = { ...file, schema: 3 };
+    for (const env of [file, v3]) {
+      const store = new MemoryStore();
+      store.save(parseSave(g, env));
+      const ui = new FakePresenter();
+      const again = new Engine(heroes(), heroesLayouts, ui, store);
+      await again.continueGame();
+      expect(again.nameOf('kid')).toBe('Sir Lance');
+      expect(again.character('kid')?.portrait).toBe('kid/knight_face');
+      await again.act({ verb: 'use', a: 'key', b: 'door' });
+      expect(ui.log).toContain('grandma: Off you go, Sir Lance. Come back safe!');
+    }
   });
 
   it('a checkpoint names the hero with its flags', async () => {

@@ -743,8 +743,8 @@ ne bouge pas. Le moteur s'installe depuis `releases/download/v4.3.0/…`. Ce qui
 - **Les aiguillages de texte et `{hero}`**, remplis quand un texte s'affiche, après la traduction : `{hero}` est le
   nom du héros actif, `{form?knight=le|witch=la|*=le}` le texte listé pour la valeur courante du drapeau. Dans les
   répliques, les choix, les descriptions, les indices, les toasts, les sous-titres, les noms d'objets et les titres
-  d'objectifs ; le validateur les refuse dans les noms de lieux, les verbes, les noms de personnages, `ui`, le titre,
-  la carte, la fin et les params des mini-jeux.
+  d'objectifs ; le validateur les refuse dans les noms de lieux, les verbes, les noms de personnages et de
+  variantes, `ui`, le titre, la carte, la fin et les params des mini-jeux.
 - **`img` sur une option de choix** : l'option devient une carte, l'image avec son `text` pour étiquette.
 - **Des voix par valeur** : une réplique à aiguillage cherche `<id>~<drapeau>=<valeur>` avant son id seul (AUDIO.md).
 - **`npm run lint`** a `hero-looks-default` (info), et ne traite plus d'`action-dead` une règle qui ne pose qu'un

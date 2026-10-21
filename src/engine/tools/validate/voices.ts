@@ -1,4 +1,4 @@
-// The validator's check of voices by value (4.3, PLAN-4.3-HERO-CHOICE §3.4, core/voice-key.ts): a voiced line (a clip
+// The validator's check of voices by value (4.3.0, PLAN-4.3-HERO-CHOICE §3.4, core/voice-key.ts): a voiced line (a clip
 // under its id or under one of its keyed ids, `<id>~<flag>=<value>`) whose text has switches needs a clip per
 // combination of the values they list. A warning, not an error: the plain id is the fallback, so a game ships before
 // every recording exists. Checked in `audio.voices` and in each language of `audio.voicesByLang`.

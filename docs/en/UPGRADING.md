@@ -699,7 +699,7 @@ installs from `releases/download/v4.3.0/…`. What is new, all optional (CONTENT
 - **Text switches and `{hero}`**, filled when a text is shown, after the translation: `{hero}` is the active hero's
   name, `{form?knight=him|witch=her|*=it}` the text listed for the flag's current value. In lines, choices, looks,
   hints, toasts, captions, item and object names and objective titles; the validator refuses them in room names,
-  verbs, character names, `ui`, the title, the map, the ending and minigame params.
+  verbs, character and variant names, `ui`, the title, the map, the ending and minigame params.
 - **`img` on a choice option**: the option is a card, the image with its `text` as the label.
 - **Voices by value**: a line with a switch looks up `<id>~<flag>=<value>` before its plain id (AUDIO.md).
 - **`npm run lint`** has `hero-looks-default` (info), and no longer calls `action-dead` a rule that only sets a flag a

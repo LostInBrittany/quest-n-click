@@ -261,7 +261,7 @@ export function lintContent(game: GameDef, layouts: Record<Id, Layout>, opts: Li
   }
 
   // ---- actions dead for the solver that still change something: decoration, or a lost thread. A flag the player sees
-  // through a character's variant or a text switch (4.3: the hero chosen in the intro) is not a lost thread.
+  // through a character's variant or a text switch (4.3.0: the hero chosen in the intro) is not a lost thread.
   const shown = shownFlags(game);
   for (const n of g.nodes) {
     if (!['rule', 'topic', 'listener', 'script'].includes(n.kind) || classes.get(n.id) !== 'dead') continue;
@@ -276,7 +276,7 @@ export function lintContent(game: GameDef, layouts: Record<Id, Layout>, opts: Li
     });
   }
 
-  // ---- the hero chosen in the intro (4.3): values of its flag that several heroes share with the written look
+  // ---- the hero chosen in the intro (4.3.0): values of its flag that several heroes share with the written look
   for (const f of heroLooks(game)) add(f);
 
   // ---- from a solver run

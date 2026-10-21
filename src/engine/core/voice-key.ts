@@ -1,4 +1,4 @@
-// Voices by value (4.3, PLAN-4.3-HERO-CHOICE §3.4, ADR 0022): a line whose text has switches is recorded once per
+// Voices by value (4.3.0, PLAN-4.3-HERO-CHOICE §3.4, ADR 0022): a line whose text has switches is recorded once per
 // value ("him" and "her" are two clips), keyed by its id and the values of the flags its switches read:
 //
 //   <id>~<flag>=<value>[~<flag>=<value>…]    flags sorted (`switchFlags`), each value as `String(value)`

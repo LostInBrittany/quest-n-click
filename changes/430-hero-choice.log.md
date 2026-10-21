@@ -1,11 +1,11 @@
-## 4.3 "Hero Choice": the player chooses the hero, its look, its name and the words the others use
+## 4.3.0 "Hero Choice": the player chooses the hero, its look, its name and the words the others use
 
 - **The need and the plan**: the maintainer's next game lets the player choose the hero at New Game, male or female
   there and any number of heroes in general. `docs/dev/PLAN-4.3-HERO-CHOICE.md` (its §2 the admission file: `players`
   shows a switch button per hero, a Remix dimension is filled at boot where the hero belongs to a save, lines
   duplicated under `if` double with every translation), ADR 0022 (the first DSL extension since the freeze, through
-  D33's gate), D47.
-- **The maintainer's answers (20 Oct, D47)**: the switch syntax `{form?m=him|f=her}` kept as written; the choice shows
+  D33's gate), D49.
+- **The maintainer's answers (20 Oct, D49)**: the switch syntax `{form?m=him|f=her}` kept as written; the choice shows
   portraits **and** text; the number of heroes is arbitrary (the fixture has three); one name per hero; voices
   "eventually", so their lookup is designed now (`<id>~<flag>=<value>`) and built last.
 - **Step 2, a name per variant**: `CharacterDef.variants[].name`; `character()` merges it, `nameOf()` reads through
@@ -30,7 +30,7 @@
   hero's variants read match none of them (one such value is the usual design: the written look is a hero too); and
   the intro's `set` is no longer `action-dead` when what it sets is read by a variant or a switch. Docs (en, fr):
   CONTENT_GUIDE "Choosing the hero" (its voices and Studio paragraphs included), CLASSICS (Maniac Mansion, "Choose your hero at the start"), TOOLS (the lint row),
-  UPGRADING §37 (a literal `{hero}` or `{word?…=…}` in a 4.2 text is now filled), DSL-STABILITY (the four admitted
+  UPGRADING §39 (a literal `{hero}` or `{word?…=…}` in a 4.2 text is now filled), DSL-STABILITY (the four admitted
   elements).
 - **Step 6, voices by value**: `core/voice-key.ts` (`<id>~<flag>=<value>`, flags sorted, the plain id as the fallback,
   no keyed lookup while a flag is unset), the engine's lookup in `audio.voices` and `voicesByLang`, the recording table
@@ -47,4 +47,10 @@
   `npm run validate && npm run solve`; `npm run lint`; `npm run changes -- --check`; `npm run docs:truth`;
   `npm run format:check`; `npm run lint:code`; knip; `npm run -s test:node`.
 
-→ next: 4.3.0's release checklist (the version, the golden save, UPGRADING §37's install line, SUPPORT, ROADMAP)
+- Second reading (4.3.0, D48): merged after 4.2.5, the decision renumbered D49 (D47 is the rename), UPGRADING §39
+  from 4.2.5. A variant's `name` is shown as written (the speech box, the transcript and the talk header read
+  `character().name`), so the validator now refuses a switch or `{hero}` there, as in a character's name (a test).
+  The hero chosen at New Game is tested through the real save file: the v4 envelope as JSON, and a v3 one, read
+  back with `parseSave` and continued.
+
+→ next: 4.3.0's release checklist (the version, the golden save, UPGRADING §39's install line, SUPPORT, ROADMAP)

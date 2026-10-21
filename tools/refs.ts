@@ -41,7 +41,7 @@ export function collectRefs({
         if (Array.isArray(o[k])) (o[k] as unknown[]).forEach(scanCmds);
       if (Array.isArray(o.choice))
         (o.choice as { img?: string; do: unknown }[]).forEach((x) => {
-          add(x.img); // a card's image (4.3)
+          add(x.img); // a card's image (4.3.0)
           scanCmds(x.do);
         });
     }

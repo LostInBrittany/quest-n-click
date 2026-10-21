@@ -1,5 +1,5 @@
 // @vitest-environment happy-dom
-// The Play tab's "Text switches" picker (src/studio/hero-picker.ts, 4.3): the flags the game's texts switch on, with
+// The Play tab's "Text switches" picker (src/studio/hero-picker.ts, 4.3.0): the flags the game's texts switch on, with
 // the values listed and written, as selects; a pick sets the flag in the frame's engine and redraws the room. And the
 // Rooms tab's read-only preview under a text holding a switch (rooms-lines.ts `switchPreview`), raw braces kept.
 import { afterEach, describe, expect, it, vi } from 'vitest';

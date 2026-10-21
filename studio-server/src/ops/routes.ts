@@ -97,7 +97,7 @@ export function routes(s: Studio): [string, RegExp, Handler][] {
     ['POST', /^\/redo$/, () => s.redo()],
     ['GET', /^\/history$/, () => s.history()],
     ['GET', /^\/voices(?:\/([\w-]+))?$/, (m) => s.voices(m[1])],
-    // A clip of a line with switches is keyed `<id>~<flag>=<value>` (4.3): the client encodes it (`=` is `%3D`).
+    // A clip of a line with switches is keyed `<id>~<flag>=<value>` (4.3.0): the client encodes it (`=` is `%3D`).
     ['PUT', /^\/voices\/([\w-]+)\/([\w.~%-]+)$/, (m, b) => s.setVoice(m[1], voiceId(m[2]), voicePatch(b))],
     ['GET', /^\/voices\/([\w-]+)\/csv$/, (m) => s.voicesCsv(m[1])],
     ['GET', /^\/storyboard$/, () => s.getStoryboard()],

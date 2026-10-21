@@ -1,4 +1,4 @@
-// Text switches (4.3, PLAN-4.3-HERO-CHOICE §3.2, core/text-switch.ts): `{hero}` and `{<flag>?<value>=<text>|…|*=<text>}`
+// Text switches (4.3.0, PLAN-4.3-HERO-CHOICE §3.2, core/text-switch.ts): `{hero}` and `{<flag>?<value>=<text>|…|*=<text>}`
 // filled when a text is shown. The parser on its own (properties: a text without a switch comes back unchanged, a
 // well-formed switch never leaves a brace), the engine's display sites (a hero line, another character's line, a
 // choice, a toast, a caption, a fallback with `{name}`), the validator's checks and `npm run i18n -- status`.
@@ -242,6 +242,19 @@ describe('the validator', () => {
     });
     expect(errors).toHaveLength(3);
     expect(errors.every((e) => e.includes('in a text shown as written'))).toBe(true);
+  });
+
+  it("a switch or {hero} in a variant's name: the speech box shows it as written (4.3.0)", () => {
+    const { errors } = withLine('fine', (g) => {
+      g.characters.hero!.variants = [
+        { if: { flag: 'form', eq: 'm' }, name: '{form?m=Sir|*=Dame} Lance' },
+        { if: { flag: 'form', eq: 'f' }, name: '{hero}' },
+      ];
+    });
+    expect(errors).toEqual([
+      'char:hero/variants[0].name › "{form?m=Sir|*=Dame}" in a text shown as written: switches and {hero} are filled in lines, choices, looks, hints, toasts, captions, item and object names and objective titles only',
+      'char:hero/variants[1].name › {hero} in a text shown as written: switches and {hero} are filled in lines, choices, looks, hints, toasts, captions, item and object names and objective titles only',
+    ]);
   });
 });
 

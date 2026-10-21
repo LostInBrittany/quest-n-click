@@ -1,5 +1,5 @@
 // Voice production (3.4): the table a studio records from. One row per clip of a line with a stable id (a line with
-// text switches has one per value since 4.3, `<id>~<flag>=<value>`, core/voice-key.ts) and per language: who
+// text switches has one per value since 4.3.0, `<id>~<flag>=<value>`, core/voice-key.ts) and per language: who
 // speaks, the text in that language, the clip (`audio.voices` for the game's language, `audio.voicesByLang[lang]`
 // for the others) and where the line stands (draft, to record, recorded, approved: `games/<id>/voices.json`). CSV or
 // JSON out for the actors, back in with their statuses and notes; the clips' facts (duration, loudness, peak, rate,
@@ -30,7 +30,7 @@ function clipsOf(game: GameDef, lang: string): Record<Id, string> {
 }
 
 /**
- * The clips a line needs (4.3, core/voice-key.ts): a line whose text has switches needs one per combination of the
+ * The clips a line needs (4.3.0, core/voice-key.ts): a line whose text has switches needs one per combination of the
  * values they list (`<id>~<flag>=<value>…`, its text as it reads then), plus its plain id as the fallback when a
  * switch has `*=` or when a clip is already filed under it; any other line, its plain id.
  */

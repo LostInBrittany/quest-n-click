@@ -1,4 +1,4 @@
-# 0022 · The player chooses the hero: variant names, text switches, portraits in a choice (4.3)
+# 0022 · The player chooses the hero: variant names, text switches, portraits in a choice (4.3.0)
 
 **Context.** A game the maintainer is preparing lets the player choose the hero at New Game: male or female there,
 and in general any number of heroes a game declares. The hero keeps the same puzzles and rooms; the look, the name

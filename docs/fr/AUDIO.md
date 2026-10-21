@@ -157,7 +157,7 @@ traduit joue `audio.voicesByLang[lang]` à la place, sous les mêmes ids. `npm r
 d'enregistrement (statut, comédien, note par clip, `games/<id>/voices.json`) ; `npm run voices -- check` mesure les
 fichiers avec ffmpeg.
 
-### Répliques avec des aiguillages de texte (4.3)
+### Répliques avec des aiguillages de texte (4.3.0)
 Une réplique dont les mots suivent un flag (`{form?m=lui|f=elle}`, CONTENT_GUIDE) s'enregistre une fois par valeur :
 Grand-mère qui dit « lui » et « elle », ce sont deux clips. Le clip a pour clé l'id de la réplique et les valeurs des flags
 que lisent ses aiguillages :

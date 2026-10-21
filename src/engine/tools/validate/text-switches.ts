@@ -1,4 +1,4 @@
-// The validator's checks of text switches (4.3, PLAN-4.3-HERO-CHOICE §3.2, §5; grammar in core/text-switch.ts): every
+// The validator's checks of text switches (4.3.0, PLAN-4.3-HERO-CHOICE §3.2, §5; grammar in core/text-switch.ts): every
 // text of the game (the paths of `npm run i18n`) is parsed. A malformed switch, a switch or `{hero}` in a text the
 // engine shows as written (a title, a menu, a verb, a character's name, a minigame's text), a switch on a flag no
 // command sets, a value listed that nothing writes, and a value written that the switch neither lists nor covers with
@@ -21,11 +21,12 @@ interface Sink {
 
 /**
  * The texts the engine shows as written, never through `Engine.text`: the game's title, room names (the map, the
- * save slots), verbs, characters' names (a variant's `name` changes one), the interface, credits, the title screen,
- * the map, the sealed ending, and minigames' texts (a minigame reads its params itself).
+ * save slots), verbs, characters' names and their variants' (the speech box, the transcript and the talk header show
+ * `character().name` as it is, 4.3.0), the interface, credits, the title screen, the map, the sealed ending, and
+ * minigames' texts (a minigame reads its params itself).
  */
 const PLAIN =
-  /^(?:title$|verb:|char:[^/]+\/name$|ui\/|credits\[|titleScreen\/|map\/|ending\/|room:[^/]+\/name$)|\.params[.[]/;
+  /^(?:title$|verb:|char:[^/]+\/(?:name|variants\[\d+\]\.name)$|ui\/|credits\[|titleScreen\/|map\/|ending\/|room:[^/]+\/name$)|\.params[.[]/;
 
 /** A switch as written in a text, with where. */
 interface WrittenSwitch {

@@ -165,7 +165,7 @@ The honest difference with the original: scripts run *between* the player's acti
 turn by turn, not real time: Edna cannot walk in while the hero is mid-sentence. That is what makes the solver able to
 prove the puzzle (it waits for her to leave, then crosses), and what a save restores exactly.
 
-### Choose your hero at the start — native (4.3, tested)
+### Choose your hero at the start — native (4.3.0, tested)
 
 Maniac Mansion opens on a choice of kids, each with a talent of their own. When the choice is *who the hero is* (the
 same story, another look, name and the words the others use: "him", "her", "it"), it is one character with a variant

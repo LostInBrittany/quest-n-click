@@ -1,4 +1,4 @@
-// Text switches (4.3, PLAN-4.3-HERO-CHOICE §3.2): two placeholders filled when a line is shown, never at boot, so a
+// Text switches (4.3.0, PLAN-4.3-HERO-CHOICE §3.2): two placeholders filled when a line is shown, never at boot, so a
 // choice the player made (a flag in the save) picks the words. Pure: no DOM, no engine; `Engine.text` reads the flags
 // and the hero's name and calls `renderText`; the validator and `npm run i18n -- status` read `parseText`.
 //

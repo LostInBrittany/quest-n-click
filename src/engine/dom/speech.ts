@@ -156,7 +156,7 @@ export function choose(
       }
       res(i);
     };
-    // Options with an image are cards (4.3): a grid before the text lines, in their own order; the index picked is
+    // Options with an image are cards (4.3.0): a grid before the text lines, in their own order; the index picked is
     // still the option's. The card's name is its label (the image is decoration: `alt=""`).
     const cards = options.some((o) => o.img) ? el('div', 'cards') : null;
     if (cards) box.append(cards);

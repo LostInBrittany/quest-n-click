@@ -1,5 +1,5 @@
 // @vitest-environment happy-dom
-// Portraits in a choice (4.3, PLAN-4.3-HERO-CHOICE §3.3): options with `img` are cards (the image, the option's text
+// Portraits in a choice (4.3.0, PLAN-4.3-HERO-CHOICE §3.3): options with `img` are cards (the image, the option's text
 // as the label and the button's name), in a grid before the text lines; the index answered is the option's own; the
 // keyboard walks the cards then the lines; a choice without any img renders exactly as before.
 import { afterEach, describe, expect, it } from 'vitest';

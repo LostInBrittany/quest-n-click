@@ -15,7 +15,7 @@ The reference of every condition and command, generated from the schema, is `doc
 | 4.1.16 "Convergence" | **Frozen**, with one additive correction before 4.2 (D29, ADR 0019): `SpeedrunCategory.world` (`SpeedrunWorldPolicy`) names a run's world apart from its generator `seed`; every 4.1.15 field keeps its meaning (`seed: 'daily' \| 'mystery'` without `world` is read as that world, with a warning). |
 | 4.2.0 "Stable World" | **Strict SemVer** (D18): the frozen surface below is the public API; a change to a name or a meaning is a major release. A new element enters through D33's gate (an admission file, an ADR) and is additive, in a minor release. |
 | 4.2.x | **Frozen** (D40), with optional, presentation-only fields allowed (D46): no schema, save or IR change, and a game without them behaves identically. 4.2.4 adds the first three, `GameDef.input.exitOnTap` and `ExitDef.onTap` (#188), `GameDef.actorGap` (#198). |
-| 4.3.0 "Hero Choice" (now) | **First admission since the freeze** (ADR 0022, D47): four additive, optional, presentation-only elements, listed below. No condition, command or state added; `schemaVersion` 3, saves and IR schema 1 unchanged. |
+| 4.3.0 "Hero Choice" (now) | **First admission since the freeze** (ADR 0022, D49): four additive, optional, presentation-only elements, listed below. No condition, command or state added; `schemaVersion` 3, saves and IR schema 1 unchanged. |
 
 ## Frozen (stable from 4.1.12, frozen at 4.1.15)
 
@@ -60,7 +60,7 @@ The reference of every condition and command, generated from the schema, is `doc
   validator. `GameDef.actorGap` (#198), the hero's distance to a character scaled by its size: geometry, in the
   presentation fingerprint like the layout's approach points, checked by the validator (a positive number).
 
-## Admitted after the freeze: 4.3 "Hero Choice" (ADR 0022, D47)
+## Admitted after the freeze: 4.3.0 "Hero Choice" (ADR 0022, D49)
 
 The player chooses the hero at New Game (`docs/dev/PLAN-4.3-HERO-CHOICE.md`; its §2 is the admission file: `players`,
 a Remix dimension and lines duplicated under `if` were tried and fall short). Additive and optional; a game that uses
@@ -107,7 +107,7 @@ express it (programme §3, D22). The candidates, each with its verdict and its p
 | Stage | sync on an audio cue | refused without proof | `{ music: { stinger } }` and the music director's bar; no game or fixture of 4.1.11 needs a cue as a trigger. |
 | Remix | a `{ variant }` condition | refused (4.1.15, D28), the existing ones suffice | the reserved flags `remix.<dimension>` and `{ flag, eq }` (`games/demo/rooms/market.ts`: the key under the oranges or in the lantern; `games/reference/rooms/hall.ts`: the board first, the password). |
 | Remix | variation itself | admitted as data, not as a primitive (ADR 0018) | `GameDef.remix`, `RoomDef.anchors`: applied to the game before anything runs it; the runtime, the solver and the replay see plain flags. |
-| Narration | the player's hero: look, name, the words others use | **admitted** (ADR 0022, D47) | a game in preparation lets the player choose the hero; `players` shows a switch button, Remix fills at boot, duplicated lines double with every translation (PLAN-4.3-HERO-CHOICE §2); `tests/fixtures/heroes.ts` plays three heroes, in English and French. |
+| Narration | the player's hero: look, name, the words others use | **admitted** (ADR 0022, D49) | a game in preparation lets the player choose the hero; `players` shows a switch button, Remix fills at boot, duplicated lines double with every translation (PLAN-4.3-HERO-CHOICE §2); `tests/fixtures/heroes.ts` plays three heroes, in English and French. |
 
 No Reality nor stage primitive is admitted in 4.1.12: Gateways (4.1.9) and Viewport (4.1.11) needed none that the
 existing commands, conditions and data cannot express, and the sheet's rule is "otherwise nothing".

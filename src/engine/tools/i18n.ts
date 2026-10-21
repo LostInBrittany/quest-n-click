@@ -215,7 +215,7 @@ function walkTexts(game: GameDef, fn: Fn, minigames: MinigameTexts = {}): void {
     one(`char:${id}/hug`, c.hug, (x) => {
       c.hug = x;
     });
-    // A variant's name (4.3): shown instead of the character's while the variant applies.
+    // A variant's name (4.3.0): shown instead of the character's while the variant applies.
     (c.variants ?? []).forEach((v, i) =>
       one(`char:${id}/variants[${i}].name`, v.name, (x) => {
         v.name = x;
@@ -389,7 +389,7 @@ export function mergeLocale(
 }
 
 /**
- * The switches of a text as a comparable signature (4.3): each `flag?values` (values sorted, `*` included), sorted;
+ * The switches of a text as a comparable signature (4.3.0): each `flag?values` (values sorted, `*` included), sorted;
  * a malformed span counts as itself. Two texts with the same signature switch on the same flags and values.
  */
 function switchSignature(text: string): string {
@@ -409,7 +409,7 @@ function switchSignature(text: string): string {
 }
 
 /**
- * Whether a translation keeps every choice its source's switches make (4.3): each flag the source switches on is
+ * Whether a translation keeps every choice its source's switches make (4.3.0): each flag the source switches on is
  * switched on in the translation too, and each value the source lists is listed there or covered by its `*=`; a
  * source's `*=` needs one in the translation. A translation may add switches or values (French agreement on a line
  * English writes alike: `Prêt{form?f=e|*=}`). A malformed span in the translation is never kept.
@@ -429,7 +429,7 @@ function switchesKept(source: string, translation: string): boolean {
 
 /**
  * Coverage of a translation table against the game: what is missing, what no longer exists, what is long, and
- * (4.3) the translations that drop a choice their source's text switches make (`switches`: path, source's,
+ * (4.3.0) the translations that drop a choice their source's text switches make (`switches`: path, source's,
  * translation's; see `switchesKept`).
  */
 export function localeStatus(game: GameDef, table: Record<string, string>, maxText = 140) {

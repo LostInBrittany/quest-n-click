@@ -1,4 +1,4 @@
-// A character variant may carry a `name` (4.3 "Hero Choice", plan §3.1): while the variant applies, the character is
+// A character variant may carry a `name` (4.3.0 "Hero Choice", plan §3.1): while the variant applies, the character is
 // called by it everywhere the player reads a name (`character()`, `nameOf()`, a `{name}` in a fallback line); with no
 // variant matching, the written name stays.
 import { describe, expect, it } from 'vitest';

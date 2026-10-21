@@ -1,4 +1,4 @@
-// Portraits in a choice (4.3, PLAN-4.3-HERO-CHOICE §3.3): an option may carry `img`, a manifest image shown as a card.
+// Portraits in a choice (4.3.0, PLAN-4.3-HERO-CHOICE §3.3): an option may carry `img`, a manifest image shown as a card.
 // It is presentation only: the schema accepts it, the engine hands it to the presenter, the asset graph preloads it
 // with the intro or the room, the validator checks the id, the IR (logic) leaves it out and the presentation hash
 // carries it, and the solver still branches over an intro choice of cards.

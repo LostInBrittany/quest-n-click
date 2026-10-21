@@ -374,7 +374,7 @@ active one. If a room declares an actor for a playable character, that actor sta
 (poses, talk topics); they are not drawn twice. Checkpoints take `active` and `players: { id: { room, inventory } }`.
 The solver switches characters like the player would ("Switch to hoagie" in its path).
 
-## Choosing the hero (4.3)
+## Choosing the hero (4.3.0)
 
 The player picks the hero at New Game: a knight, a witch or a robot, a boy or a girl, as many heroes as the game
 declares. The hero keeps the same puzzles and rooms; what changes is the look, the name, and the words the others use
@@ -424,7 +424,8 @@ look: { grandma: 'Grandma. Dust makes {form?knight=him|witch=her|robot=it} sneez
   written. No nesting: put two switches side by side. A switch reads any flag, not only the hero's.
 - **Where they are filled**: when a text is shown, in lines, choice options, looks, hints, toasts, captions, item and
   object names and objective titles. Not in room names, verbs, character names, `ui`, the title, the map, the sealed
-  ending or a minigame's params: the validator refuses them there (a variant's `name` changes a character's name).
+  ending or a minigame's params: the validator refuses them there. A variant's `name` changes a character's name, and
+  is shown as written too: give each hero its own variant and name instead of a switch.
 - **The intro runs before the first room's arrival**, so the hero is chosen before anyone talks. With `img`, each
   option is a card: the portrait with its `text` as the label (and the screen reader's name); the cards wrap and
   scroll, so any number of heroes fits on a phone. Without `img`, the options are text lines as before.
@@ -767,7 +768,7 @@ hero: { …, sprites: cat('hero'), variants: [{ if: { has: 'bucket' }, sprites: 
 ```
 
 The first variant whose condition is true replaces `sprites`, `mouths` and `portrait`, and the `name` when it has
-one (4.3: "Choosing the hero"). The change shows right away
+one (4.3.0: "Choosing the hero"). The change shows right away
 (e.g. as soon as the bucket is picked up).
 
 ### Palette swap (`palette`, also on variants)

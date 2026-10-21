@@ -214,7 +214,7 @@ export class Engine {
       who,
     );
   }
-  /** A text as shown now (4.3, core/text-switch.ts): its switches and `{hero}` filled, after `fill()` and translation. */
+  /** A text as shown now (4.3.0, core/text-switch.ts): its switches and `{hero}` filled, after `fill()` and translation. */
   text(s: string): string {
     return textImpl(this, s);
   }
@@ -486,7 +486,7 @@ export class Engine {
     return transferImpl(this, item, to);
   }
 
-  /** Display name of any id (item, actor, prop, hotspot), its switches filled (4.3). */
+  /** Display name of any id (item, actor, prop, hotspot), its switches filled (4.3.0). */
   nameOf(id: Id, room: RoomDef = this.room()): string {
     return this.text(nameOfImpl(this, id, room));
   }

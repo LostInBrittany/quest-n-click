@@ -166,7 +166,7 @@ La différence honnête avec l'original : les scripts tournent *entre* les actio
 au tour par tour, pas en temps réel : Edna ne peut pas entrer pendant que le héros parle. C'est ce qui permet au solveur
 de prouver l'énigme (il attend qu'elle parte, puis traverse), et ce qu'une sauvegarde restitue exactement.
 
-### Choisir son héros au départ — natif (4.3, testé)
+### Choisir son héros au départ — natif (4.3.0, testé)
 
 Maniac Mansion s'ouvre sur un choix d'ados, chacun avec son talent. Quand le choix porte sur *qui est le héros* (la
 même histoire, une autre allure, un autre nom et d'autres mots chez les autres : « le », « la »), c'est un seul

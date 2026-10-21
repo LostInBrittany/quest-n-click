@@ -377,7 +377,7 @@ toujours l'actif. Si un lieu déclare un acteur pour un personnage jouable, cet 
 (poses, sujets de conversation) ; il n'est pas dessiné deux fois. Les checkpoints acceptent `active` et
 `players: { id: { room, inventory } }`. Le solveur change de personnage comme le joueur (« Switch to hoagie » dans son chemin).
 
-## Choisir le héros (4.3)
+## Choisir le héros (4.3.0)
 
 Le joueur choisit le héros à la Nouvelle partie : un chevalier, une sorcière ou un robot, un garçon ou une fille,
 autant de héros que le jeu en déclare. Le héros garde les mêmes énigmes et les mêmes lieux ; ce qui change, c'est son
@@ -431,7 +431,8 @@ look: { grandma: 'Grand-mère. La poussière {form?knight=le|witch=la|robot=le} 
 - **Où ils sont remplis** : quand un texte s'affiche, dans les répliques, les options de choix, les descriptions, les
   indices, les toasts, les sous-titres, les noms d'objets et les titres d'objectifs. Pas dans les noms de lieux, les
   verbes, les noms de personnages, `ui`, le titre, la carte, la fin scellée ni les params d'un mini-jeu : le
-  validateur les y refuse (le `name` d'une variante change le nom d'un personnage).
+  validateur les y refuse. Le `name` d'une variante change le nom d'un personnage, et s'affiche tel qu'écrit lui aussi :
+  donnez à chaque héros sa variante et son nom plutôt qu'un aiguillage.
 - **L'intro se joue avant l'arrivée dans le premier lieu** : le héros est choisi avant que quiconque parle. Avec `img`,
   chaque option est une carte : le portrait, avec son `text` pour étiquette (et pour nom lu par le lecteur d'écran) ;
   les cartes passent à la ligne et défilent, si bien que tous les héros tiennent sur un téléphone. Sans `img`, les
@@ -787,7 +788,7 @@ hero: { …, sprites: cat('hero'), variants: [{ if: { has: 'seau' }, sprites: ca
 ```
 
 La première variante dont la condition est vraie remplace `sprites`, `mouths` et `portrait`, et le `name` quand elle
-en a un (4.3 : « Choisir le héros »). Le changement se voit tout de suite (ex. dès qu'on prend le seau).
+en a un (4.3.0 : « Choisir le héros »). Le changement se voit tout de suite (ex. dès qu'on prend le seau).
 
 ### Changement de palette (`palette`, aussi sur les variantes)
 

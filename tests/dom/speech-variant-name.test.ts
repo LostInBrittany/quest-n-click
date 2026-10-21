@@ -1,5 +1,5 @@
 // @vitest-environment happy-dom
-// The speaker's name on screen follows the character's variant (4.3 "Hero Choice", plan §3.1): the speech label, the
+// The speaker's name on screen follows the character's variant (4.3.0 "Hero Choice", plan §3.1): the speech label, the
 // live region, the transcript and the talk header read it through the engine's `character()`.
 import { afterEach, describe, expect, it } from 'vitest';
 import { App } from '@engine/dom/app';

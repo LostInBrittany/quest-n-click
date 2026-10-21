@@ -120,7 +120,7 @@ export function line(
 }
 
 /**
- * Under a text holding a text switch or `{hero}` (4.3), read-only: the text as a player reads it with the values picked
+ * Under a text holding a text switch or `{hero}` (4.3.0), read-only: the text as a player reads it with the values picked
  * in the Play tab's "Text switches" (hero-picker.ts; none picked: each switch's `*=` or first text). The text itself
  * stays as written, braces and all. Null for a text without either.
  */

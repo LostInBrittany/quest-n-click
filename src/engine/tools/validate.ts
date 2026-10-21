@@ -1071,7 +1071,7 @@ export function validate(gameIn: GameDef, layouts: Record<string, Layout>, opts:
       for (const i of p.inventory ?? []) if (!items[i]) err(`${w}.players.${pid}`, `unknown item: "${i}"`);
     }
   }
-  // Events and scripts, objectives, Remix (4.1.15), the speedrun manifest (4.1.14), text switches (4.3); then the flags
+  // Events and scripts, objectives, Remix (4.1.15), the speedrun manifest (4.1.14), text switches (4.3.0); then the flags
   for (const [id, where] of scriptRefs) if (!scriptIds.has(id)) err(where, `unknown script: "${id}"`);
   eventChecks(game, { emitted, listened, waited }, err, warn);
   objectiveChecks(game, { cond, err, warn, commands: opts.commands });

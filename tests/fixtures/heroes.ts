@@ -1,4 +1,4 @@
-// Three heroes chosen at New Game (4.3 "Hero Choice", PLAN-4.3-HERO-CHOICE §6 step 5; tests/hero-choice.test.ts).
+// Three heroes chosen at New Game (4.3.0 "Hero Choice", PLAN-4.3-HERO-CHOICE §6 step 5; tests/hero-choice.test.ts).
 // One hero character, `kid`: its written look and name are the robot's, and two variants, read from the flag `form`,
 // make it the knight or the witch, each with its own name. The intro asks with portraits; Grandma's lines switch on
 // `form` and name the hero with `{hero}`; a French table translates some lines, its own words inside the braces.

@@ -1,4 +1,4 @@
-// Voices by value (4.3, PLAN-4.3-HERO-CHOICE §3.4, core/voice-key.ts): a line with switches plays `<id>~<flag>=<value>`
+// Voices by value (4.3.0, PLAN-4.3-HERO-CHOICE §3.4, core/voice-key.ts): a line with switches plays `<id>~<flag>=<value>`
 // (flags sorted) before its plain id; an unset flag means the plain id; the voice table lists a clip per value; the
 // validator warns about a voiced line missing one; a translated game's clips (`voicesByLang`, swapped in at boot)
 // follow the same keys; the asset graph warms the keyed clips.

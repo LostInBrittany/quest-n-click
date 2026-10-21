@@ -45,7 +45,7 @@ export class PlayTab {
 
   /** Signals from outside, simulated (4.1.1): shown for a game that declares `reality`. */
   private reality = new RealityPanel(() => this.frame.contentWindow);
-  /** The flags the texts switch on, each as a select: preview each hero (4.3). */
+  /** The flags the texts switch on, each as a select: preview each hero (4.3.0). */
   private heroes = new HeroPicker(() => this.game());
   /** Speedrun categories, splits, routes, preview and export (4.1.14): shown for a game that declares `speedrun`. */
   private speedrun = new SpeedrunPanel(() => this.game() as SpeedrunFrame | null, {

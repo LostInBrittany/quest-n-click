@@ -3,7 +3,7 @@
 - **The player chooses the hero at New Game (4.3.0)**: any number of heroes, one character with a variant per hero.
   A game asks in its intro with a `choice` whose options set a flag (`{ set: ['form', 'witch'] }`); the rest follows
   from that flag. Nothing changes for a game that does not use it (no new condition, command or state, saves and
-  `schemaVersion` 3 unchanged). CONTENT_GUIDE, "Choosing the hero"; UPGRADING §37.
+  `schemaVersion` 3 unchanged). CONTENT_GUIDE, "Choosing the hero"; UPGRADING §39.
 - **A character variant may carry a `name` (4.3.0)**: while the variant applies, the speech box, the transcript, the
   talk header and `{name}` in a fallback line call the character by it. Translated like any text
   (`char:<id>/variants[<i>].name`).
@@ -12,8 +12,9 @@
   looks, hints, toasts, captions, item and object names, objective titles), after the translation, so each language
   writes its own words inside the braces (`content{form?witch=e|*=}`). The validator reports a malformed switch, a
   flag no command sets, a value listed that nothing writes and a value written that a switch does not cover;
-  `npm run i18n -- status` lists the translations that drop a choice their source's switches make. A 4.2 text holding a
-  literal `{hero}` or `{word?…=…}` is now filled (UPGRADING §37).
+  `npm run i18n -- status` lists the translations that drop a choice their source's switches make. Room, verb,
+  character and variant names are shown as written: a switch there is an error. A 4.2 text holding a
+  literal `{hero}` or `{word?…=…}` is now filled (UPGRADING §39).
 - **Portraits in a choice (4.3.0)**: `img` on a choice option shows it as a card, the image with the option's text as
   its label and its accessible name; the cards wrap and scroll, so a phone fits any number of heroes.
 - **Voices for lines with switches (4.3.0)**: a line whose words follow a flag (`{form?m=him|f=her}`) is recorded once
