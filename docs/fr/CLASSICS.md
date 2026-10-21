@@ -166,6 +166,15 @@ La différence honnête avec l'original : les scripts tournent *entre* les actio
 au tour par tour, pas en temps réel : Edna ne peut pas entrer pendant que le héros parle. C'est ce qui permet au solveur
 de prouver l'énigme (il attend qu'elle parte, puis traverse), et ce qu'une sauvegarde restitue exactement.
 
+### Choisir son héros au départ — natif (4.3.0, testé)
+
+Maniac Mansion s'ouvre sur un choix d'ados, chacun avec son talent. Quand le choix porte sur *qui est le héros* (la
+même histoire, une autre allure, un autre nom et d'autres mots chez les autres : « le », « la »), c'est un seul
+personnage avec une variante par héros, un `choice` d'intro à portraits qui pose un drapeau, et des aiguillages dans
+les répliques : `'Bonjour, {hero} ! Prêt{form?witch=e|*=} ?'`. Le solveur prouve chaque héros. La recette complète :
+CONTENT_GUIDE, « Choisir le héros » (fixture `tests/fixtures/heroes.ts`). Quand les ados *accompagnent* le héros et que
+le joueur passe de l'un à l'autre, c'est `players` (« Plusieurs personnages jouables »).
+
 ### La sonnette — natif
 
 `{ emit: 'doorbell' }` sur le bouton, des écouteurs dans les salles qui réagissent (`once: true` pour le gag unique).

@@ -388,6 +388,94 @@ active one. If a room declares an actor for a playable character, that actor sta
 (poses, talk topics); they are not drawn twice. Checkpoints take `active` and `players: { id: { room, inventory } }`.
 The solver switches characters like the player would ("Switch to hoagie" in its path).
 
+## Choosing the hero (4.3.0)
+
+The player picks the hero at New Game: a knight, a witch or a robot, a boy or a girl, as many heroes as the game
+declares. The hero keeps the same puzzles and rooms; what changes is the look, the name, and the words the others use
+for the hero. It takes one flag (`form` here, any name works), one character with a variant per hero, an intro choice
+that sets the flag, and switches in the texts that depend on it.
+
+```ts
+hero: 'kid',
+characters: {
+  kid: {
+    name: 'Robo', sprites: cat('robot'), portrait: 'robot/portrait',          // the written look is a hero too
+    variants: [
+      { if: { flag: 'form', eq: 'knight' }, name: 'Sir Lance', sprites: cat('knight'), portrait: 'knight/portrait' },
+      { if: { flag: 'form', eq: 'witch' }, name: 'Morwen', sprites: cat('witch'), portrait: 'witch/portrait' },
+    ],
+  },
+},
+start: { room: 'hall', intro: [
+  'Who am I this morning?',
+  { choice: [
+    { text: 'Sir Lance', img: 'knight/portrait', do: [{ set: ['form', 'knight'] }] },
+    { text: 'Morwen', img: 'witch/portrait', do: [{ set: ['form', 'witch'] }] },
+    { text: 'Robo', img: 'robot/portrait', do: [{ set: ['form', 'robot'] }] },
+  ] },
+] },
+checkpoints: {
+  door_witch: { room: 'hall', inventory: ['key'], flags: { form: 'witch', key_found: true } },
+},
+```
+
+And in a room:
+
+```ts
+talk: { grandma: [{ topic: 'Good morning, Grandma!', do: [
+  { say: ['grandma', 'Good morning, {hero}! Ready, my {form?knight=brave knight|witch=clever witch|*=shiny robot}?'] },
+] }] },
+look: { grandma: 'Grandma. Dust makes {form?knight=him|witch=her|robot=it} sneeze.' },
+```
+
+- **The variant's `name`** replaces the character's name while the variant applies, like its `sprites`, `mouths`,
+  `portrait` and `palette`: the speech box, the transcript, the talk header and `{name}` in a fallback read it. The
+  first variant whose `if` holds wins; a value no variant matches gets the written look and name.
+- **`{hero}`** is the active hero's name, its variant's included.
+- **A switch** `{<flag>?<value>=<text>|…|*=<text>}` is the text listed for the flag's current value; `*=` covers
+  every value not listed, so a line that is the same for most heroes lists only the odd ones
+  (`{form?witch=my girl|*=my dear}`). No value matching and no `*=`: the first text. A text with no `{` stays as
+  written. No nesting: put two switches side by side. A switch reads any flag, not only the hero's.
+- **Where they are filled**: when a text is shown, in lines, choice options, looks, hints, toasts, captions, item and
+  object names and objective titles. Not in room names, verbs, character names, `ui`, the title, the map, the sealed
+  ending or a minigame's params: the validator refuses them there. A variant's `name` changes a character's name, and
+  is shown as written too: give each hero its own variant and name instead of a switch.
+- **The intro runs before the first room's arrival**, so the hero is chosen before anyone talks. With `img`, each
+  option is a card: the portrait with its `text` as the label (and the screen reader's name); the cards wrap and
+  scroll, so any number of heroes fits on a phone. Without `img`, the options are text lines as before.
+- **Logic stays logic**: a rule that must differ by hero carries `if: { flag: 'form', eq: 'witch' }`. The solver
+  branches over the intro's choice, so `npm run solve` proves every hero; saves keep the flag, checkpoints take it in
+  `flags`.
+- **Why not `players`**: playable characters each have a button in the tools row and stand in their own rooms, so the
+  player could switch heroes mid-game. Choosing the hero is one character with variants.
+- **Translations** write their own words inside the braces, with the same flag and values (the switch is filled after
+  the translation): `room:hall/look.grandma` → `Grand-mère. La poussière {form?knight=le|witch=la|robot=le} fait éternuer.`.
+  A language may add a switch its source does not need, for its grammar: `Ready?` becomes
+  `Prêt{form?witch=e|*=} ?`. The variants' names are translated too (`char:kid/variants[0].name`).
+  `npm run i18n -- status` lists the translations that drop a choice the source makes (a flag it no longer switches
+  on, a value neither listed nor covered by `*=`); a switch or a value added for the grammar is fine.
+- **Voices for lines with switches.** A line whose words follow a flag (`{form?m=him|f=her}`) is recorded once per
+  value: put its clips in `audio.voices` under `<id>~<flag>=<value>` (`grandma_saw~form=f`). With several flags in
+  one line, sort them by name and join them with `~` (`greet~form=f~mood=calm`); values are written as text (`true`,
+  `2`). The engine plays the clip for the flags as they stand and falls back to the plain id when that clip is
+  missing or a flag is not set yet, so a game can ship before every recording exists. `voicesByLang` uses the same
+  keys. `npm run voices` (and the Studio's Voices tab) lists one row per value, each with its text, and
+  `npm run validate` warns when a voiced line lacks a value's clip. The keys are only map keys: the file names stay
+  yours ([AUDIO.md](AUDIO.md), "Voices"). `{hero}` alone is not a switch: such a line keeps one clip.
+- **Previewing each hero**: the Studio's Play tab has a "Text switches" picker that sets the flag, and the Rooms tab
+  shows under a switched text how it reads ([STUDIO.md](STUDIO.md)).
+
+What the tools say:
+
+- `npm run validate`: `malformed text switch "…"` (a missing `=` or `}`, a value listed twice, a brace inside);
+  `text switch "…" reads flag "form", which no command sets`; `… lists value "x" for "form", which no set writes`;
+  `… has no text for "form" = "robot" (written at …): list it or add "*="`; `{hero} in a text shown as written`;
+  `start.intro[1].choice[0].img › image not found: "…"`. A flag counted with `inc` cannot be listed: its switch needs
+  `*=` (a warning).
+- `npm run validate` also warns: `voiced line with text switches lacks 1 of 3 clip(s) by value: sneeze~form=robot`.
+- `npm run lint`: `hero-looks-default` (info) when two or more values of the hero's flag match no variant, so those
+  heroes look like the written one (a typo in a variant's `if`, or a variant not written yet).
+
 ## Staging: wide rooms, animations, voice, settings
 
 ### Wide rooms and the camera
@@ -694,7 +782,8 @@ import { cat } from './cast';
 hero: { …, sprites: cat('hero'), variants: [{ if: { has: 'bucket' }, sprites: cat('hero_bucket'), mouths: … }] },
 ```
 
-The first variant whose condition is true replaces `sprites`, `mouths` and `portrait`. The change shows right away
+The first variant whose condition is true replaces `sprites`, `mouths` and `portrait`, and the `name` when it has
+one (4.3.0: "Choosing the hero"). The change shows right away
 (e.g. as soon as the bucket is picked up).
 
 ### Palette swap (`palette`, also on variants)

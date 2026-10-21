@@ -165,6 +165,15 @@ The honest difference with the original: scripts run *between* the player's acti
 turn by turn, not real time: Edna cannot walk in while the hero is mid-sentence. That is what makes the solver able to
 prove the puzzle (it waits for her to leave, then crosses), and what a save restores exactly.
 
+### Choose your hero at the start — native (4.3.0, tested)
+
+Maniac Mansion opens on a choice of kids, each with a talent of their own. When the choice is *who the hero is* (the
+same story, another look, name and the words the others use: "him", "her", "it"), it is one character with a variant
+per hero, an intro `choice` with portraits that sets a flag, and switches in the lines:
+`'Good morning, {hero}! Ready, my {form?knight=brave knight|witch=clever witch|*=shiny robot}?'`. The solver proves
+every hero. The whole recipe: CONTENT_GUIDE, "Choosing the hero" (fixture `tests/fixtures/heroes.ts`). When the kids
+come *along* and the player switches between them, that is `players` ("Several playable characters").
+
 ### The doorbell — native
 
 `{ emit: 'doorbell' }` on the button, listeners in the rooms that react (`once: true` for the one-time gag).

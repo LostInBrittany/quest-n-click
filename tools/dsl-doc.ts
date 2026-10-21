@@ -3,7 +3,7 @@
 // `<!-- dsl-doc:end -->`, each in its language): every condition (core/ir-schema.ts, tools/dsl-meta.ts), every
 // command with its shape (src/studio/schema.ts `CMD_SPECS`, the Studio's forms) and its sentence, the objectives'
 // fields (`objectiveSchema` and its metadata), and how each field of the game and of a room counts for the IR and the
-// fingerprint (core/ir-fields.ts). `--check` exits 1 when a page is behind; tests/dsl-doc.test.ts runs it.
+// fingerprint (core/ir-fields.ts), and the placeholders a text may hold (4.3.0: text switches, core/text-switch.ts). `--check` exits 1 when a page is behind; tests/dsl-doc.test.ts runs it.
 import { readFileSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import type * as z from 'zod';
@@ -74,6 +74,26 @@ const T = {
     game: 'The game (`GameDef`)',
     room: 'A room (`RoomDef`)',
     counts: { logic: 'logic', presentation: 'presentation', both: 'both', meta: 'meta' } as Record<FieldClass, string>,
+    placeholders: 'Placeholders in texts',
+    placeholderIntro:
+      'Written inside any text; anything else between braces stays as written. A switch compares `String(value)` of the flag exactly; no value matching (or the flag unset) takes `*=`, else the first text. No nesting, no escaping: an alternative holds no `{`, `}` or `|`. The validator reports a malformed switch, a flag no command sets, a value listed that no `set` writes, and a value written that the switch neither lists nor covers with `*=`.',
+    placeholder: 'Placeholder',
+    filled: 'Filled',
+    placeholderRows: [
+      [
+        '{hero}',
+        'when shown: the active hero’s name (its variant’s); lines, choices, looks, hints, toasts, captions, item and object names, objective titles',
+      ],
+      [
+        '{<flag>?<value>=<text>|…|*=<text>}',
+        'when shown, after the translation: the text listed for the flag’s current value (`{form?m=him|f=her}`, `content{form?f=e|*=}`)',
+      ],
+      [
+        '{item} {target} {name}',
+        'in a fallback, kind or give line: the thing acted on, what it is used on, the target',
+      ],
+      ['{code:<id>} {hint:<id>}', 'at boot, by Remix: a coupled dimension’s code and its clue'],
+    ] as [string, string][],
   },
   fr: {
     conditions: 'Conditions',
@@ -96,6 +116,26 @@ const T = {
     game: 'Le jeu (`GameDef`)',
     room: 'Une salle (`RoomDef`)',
     counts: { logic: 'logic', presentation: 'presentation', both: 'both', meta: 'meta' } as Record<FieldClass, string>,
+    placeholders: 'Marqueurs dans les textes',
+    placeholderIntro:
+      'Écrits dans n’importe quel texte ; le reste entre accolades reste tel quel. Un aiguillage compare exactement `String(valeur)` du drapeau ; sans valeur qui corresponde (ou drapeau absent), il prend `*=`, sinon le premier texte. Pas d’imbrication, pas d’échappement : une alternative ne contient ni `{`, ni `}`, ni `|`. Le validateur signale un aiguillage mal formé, un drapeau qu’aucune commande ne pose, une valeur listée qu’aucun `set` n’écrit, et une valeur écrite que l’aiguillage ne liste pas sans `*=`.',
+    placeholder: 'Marqueur',
+    filled: 'Rempli',
+    placeholderRows: [
+      [
+        '{hero}',
+        'à l’affichage : le nom du héros actif (celui de sa variante) ; répliques, choix, regards, indices, toasts, sous-titres, noms d’objets, titres d’objectifs',
+      ],
+      [
+        '{<flag>?<value>=<text>|…|*=<text>}',
+        'à l’affichage, après la traduction : le texte listé pour la valeur courante du drapeau (`{form?m=him|f=her}`, `content{form?f=e|*=}`)',
+      ],
+      [
+        '{item} {target} {name}',
+        'dans une réplique par défaut, de genre ou de don : la chose visée, ce sur quoi on l’utilise, la cible',
+      ],
+      ['{code:<id>} {hint:<id>}', 'au démarrage, par Remix : le code d’une dimension couplée et son indice'],
+    ] as [string, string][],
   },
 };
 
@@ -131,6 +171,9 @@ export function dslBlock(lang: Lang): string {
     const m = metaOf(s);
     out.push(`| \`${k}\` | ${typeOf(s, lang)} | ${cell(m ? (lang === 'en' ? m.description : m.fr) : '')} |`);
   }
+  out.push('', `### ${t.placeholders}`, '', t.placeholderIntro, '', `| ${t.placeholder} | ${t.filled} |`, '|---|---|');
+  for (const [k, v] of t.placeholderRows)
+    out.push(`| \`${k.replace(/\|/g, '\\|')}\` | ${cell(v.replace(/\|/g, '\\|'))} |`);
   out.push('', `### ${t.classes}`, '', t.classIntro, '');
   for (const [title, table] of [
     [t.game, FIELD_CLASSES.game],

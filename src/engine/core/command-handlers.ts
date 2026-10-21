@@ -18,8 +18,9 @@ type CmdOf<K extends CmdKey> = K extends unknown ? Extract<CmdObj, Record<K, unk
 export type Handler<K extends CmdKey> = (eng: Engine, c: CmdOf<K>, ctx: Ctx) => Promise<void> | void;
 type Handlers = { [K in CmdKey]: Handler<K> };
 
+// The clip: `voice` as written, else the line's id, keyed by its switches' values when it has some (voice-key.ts).
 const sayLine: Handler<'say'> = (eng, c, ctx) =>
-  eng.say(c.say[0], c.say[1], ctx, !!c.shout, c.voice ?? (c.id && eng.game.audio?.voices?.[c.id] ? c.id : undefined));
+  eng.say(c.say[0], c.say[1], ctx, !!c.shout, c.voice ?? eng.voiceOf(c, c.say[1]));
 
 const walk: Handler<'walk'> = async (eng, c, ctx) => {
   const s = eng.state;
@@ -408,7 +409,7 @@ const choice: Handler<'choice'> = async (eng, c, ctx) => {
       return eng.cond(o.if, room.id) && !(o.once && s.seen[k]);
     });
   if (!opts.length) return;
-  const pick = await eng.choose(opts.map(({ o }) => ({ text: o.text })));
+  const pick = await eng.choose(opts.map(({ o }) => ({ text: o.text, ...(o.img ? { img: o.img } : {}) })));
   const { o } = must(opts[Math.max(0, Math.min(pick, opts.length - 1))], 'choice option');
   if (o.once) {
     s.seen[choiceKey(o)] = 1;
@@ -500,10 +501,10 @@ export const HANDLERS: Handlers = {
   transfer: (eng, c) => eng.transfer(c.transfer[0], c.transfer[1]),
   custom,
   sfx: (eng, c, ctx) => {
-    if (!ctx.fast) eng.ui.sfx(c.sfx, c.caption);
+    if (!ctx.fast) eng.ui.sfx(c.sfx, c.caption === undefined ? undefined : eng.text(c.caption));
   },
   music: (eng, c) => eng.ui.music(typeof c.music === 'string' ? { play: c.music } : c.music),
-  toast: (eng, c) => eng.ui.toast(c.toast),
+  toast: (eng, c) => eng.ui.toast(eng.text(c.toast)),
   shake: (eng, c, ctx) => {
     if (!ctx.fast) eng.ui.shake(c.shake);
   },

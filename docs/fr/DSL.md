@@ -98,7 +98,7 @@ Une commande est une clé de `CMD_KEYS` ; ses champs sont ceux du formulaire du 
 | `cycle` | `{ cycle: [[cmd, …], …], id?: id }` | Joue ses listes tour à tour, en boucle. |
 | `random` | `{ random: [[cmd, …], …], id?: id }` | Joue une de ses listes au hasard (enregistré pour les rejeux). |
 | `cutscene` | `{ cutscene: [cmd, …] }` | Joue une liste que le joueur peut passer. |
-| `choice` | `{ choice: [{ id?: id, text: text, if?: cond, once?: true, do: [cmd, …] }, …] }` | Propose des options au joueur, chacune avec ses commandes. |
+| `choice` | `{ choice: [{ id?: id, text: text, img?: image, if?: cond, once?: true, do: [cmd, …] }, …] }` | Propose des options au joueur, chacune avec ses commandes ; une option avec `img` s'affiche en carte (l'image, son texte dessous), les cartes d'abord. |
 | `minigame` | `{ minigame: minigame, params?: …, then?: [cmd, …] }` | Lance un mini-jeu, puis joue `then`. |
 | `phone` | `{ phone: char, do: [cmd, …] }` | Un appel entrant d'un ou plusieurs personnages. |
 | `guide` | `{ guide: { verb: verb, target: target, say: text }, id?: id }` | Une étape du tutoriel : attend ce verbe sur cette cible. |
@@ -116,6 +116,17 @@ Une commande est une clé de `CMD_KEYS` ; ses champs sont ceux du formulaire du 
 | `done` | cond | Accompli la première fois que cette condition est vraie après une action ; de préférence une condition qui le reste. |
 | `optional` | boolean (facultatif) | Un objectif secondaire : hors du 100 % (`npm run solve -- --goal=100%`). |
 | `parent` | string (facultatif) | L'objectif dont celui-ci est une étape : affiché sous lui. |
+
+### Marqueurs dans les textes
+
+Écrits dans n’importe quel texte ; le reste entre accolades reste tel quel. Un aiguillage compare exactement `String(valeur)` du drapeau ; sans valeur qui corresponde (ou drapeau absent), il prend `*=`, sinon le premier texte. Pas d’imbrication, pas d’échappement : une alternative ne contient ni `{`, ni `}`, ni `|`. Le validateur signale un aiguillage mal formé, un drapeau qu’aucune commande ne pose, une valeur listée qu’aucun `set` n’écrit, et une valeur écrite que l’aiguillage ne liste pas sans `*=`.
+
+| Marqueur | Rempli |
+|---|---|
+| `{hero}` | à l’affichage : le nom du héros actif (celui de sa variante) ; répliques, choix, regards, indices, toasts, sous-titres, noms d’objets, titres d’objectifs |
+| `{<flag>?<value>=<text>\|…\|*=<text>}` | à l’affichage, après la traduction : le texte listé pour la valeur courante du drapeau (`{form?m=him\|f=her}`, `content{form?f=e\|*=}`) |
+| `{item} {target} {name}` | dans une réplique par défaut, de genre ou de don : la chose visée, ce sur quoi on l’utilise, la cible |
+| `{code:<id>} {hint:<id>}` | au démarrage, par Remix : le code d’une dimension couplée et son indice |
 
 ### Ce que compte chaque champ (IR et empreinte)
 

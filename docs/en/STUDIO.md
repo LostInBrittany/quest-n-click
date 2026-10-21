@@ -81,6 +81,12 @@ A provider call never follows a redirect, gives up after 60 s, and reads at most
   `@game`), **Preview on this session** (the frame's session replayed with the category's splits: the times a run
   would record), **Export route** / **Import route** (`.wsroute`), **Logical route (solver)** (the witness, never a
   record), the last two routes compared, and **Export run (.wsrun)** once an attempt in the frame is sealed.
+  For a game whose texts hold switches (4.3.0, `{form?m=…|f=…}`, `{hero}`), **Text switches** under the state: a select
+  per flag a switch reads, its values the ones the switches list and the ones a literal `set` writes. A pick sets the
+  flag in the frame (unset removes it), so the room, the hero's sprite variant, `{hero}` and every line show that hero;
+  the hero's name as shown now is in the heading. The Rooms tab keeps the raw braces in its text editor and, under a
+  text holding a switch, a read-only line: the text as a player reads it with the values picked here (`(form=?)` while
+  none is). The local Studio only: a hosted Studio's game runs on its own origin (set the flag in the game's DEV panel).
 - **Language** (4.1.12): the game as the tools see it. First its **objectives** (ADR 0014): id, title, condition,
   parent, optional, and the `file:line` that writes each; **Edit** and **+ objective** open a form generated from the
   objective's schema (`src/studio/forms-gen.ts`: each field with its description, the parent's id with the game's

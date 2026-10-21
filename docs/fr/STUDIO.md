@@ -93,6 +93,13 @@ commandes personnalisées sont du code de confiance, pas des données isolées. 
   catégorie : les temps qu'un run enregistrerait), **Export route** / **Import route** (`.wsroute`), **Logical route
   (solver)** (le témoin, jamais un record), les deux dernières routes comparées, et **Export run (.wsrun)** une fois une
   tentative du cadre scellée.
+  Pour un jeu dont les textes portent des aiguillages (4.3.0, `{form?m=…|f=…}`, `{hero}`), **Text switches** sous l'état :
+  un menu par flag qu'un aiguillage lit, ses valeurs celles que les aiguillages listent et celles qu'un `set` littéral
+  écrit. Un choix pose le flag dans le cadre (« unset » l'enlève) : le lieu, la variante de sprite du héros, `{hero}` et
+  chaque ligne montrent ce héros ; le nom du héros tel qu'affiché est dans le titre. L'onglet Rooms garde les accolades
+  brutes dans son éditeur de texte et, sous un texte qui porte un aiguillage, une ligne en lecture seule : le texte tel
+  qu'un joueur le lit avec les valeurs choisies ici (`(form=?)` tant qu'aucune ne l'est). Studio local seulement : le
+  jeu d'un Studio hébergé tourne sur sa propre origine (poser le flag dans le panneau DEV du jeu).
 - **Language** (4.1.12) : le jeu tel que le voient les outils. D'abord ses **objectifs** (ADR 0014) : id, titre,
   condition, parent, optionnel, et le `fichier:ligne` qui écrit chacun ; **Edit** et **+ objective** ouvrent un
   formulaire généré depuis le schéma d'un objectif (`src/studio/forms-gen.ts` : chaque champ avec sa description, l'id

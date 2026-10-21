@@ -199,6 +199,7 @@ npm run ids [-- --write --map]     # ids stables (schéma 3) écrits dans les so
 npm run ids -- --lines [--write --map]   # un id sur chaque objet say / toast / guide, ligne de liste, indice et réaction par sorte (--lines=all : les chaînes nues aussi, exigé pour une release traduite ou doublée) : traductions et voix indexées par lui (UPGRADING §9, §10)
 npm run i18n -- voices             # les lignes avec un id et sans clip de voix, les clips qu'aucune ligne ne réclame
 npm run voices -- status [--lang xx]                 # par langue : les lignes avec un id par statut (draft, record, recorded, approved), les clips, les orphelins
+                                                     # une réplique à aiguillages (4.3.0) a une ligne par valeur, `<id>~form=f`, chacune avec son texte (AUDIO.md, « Voix »)
 npm run voices -- export --lang xx [--json] > t.csv  # le tableau des comédiens : id, qui, le texte dans cette langue, statut, fichier, comédien, note
 npm run voices -- import t.csv --lang xx             # leurs statuts, comédiens et notes reviennent dans games/<id>/voices.json (lignes inconnues refusées)
 npm run voices -- check [--lang xx] [--release]      # chaque clip mesuré avec ffmpeg : codec, fréquence, durée pour son texte, niveau (≈ −16 LUFS), crête ; --release : une ligne approuvée exige son clip
@@ -249,7 +250,7 @@ ne dit pas fort (il répond « ça se finit ? ») : depuis le graphe de puzzles,
 n'exige (`item-red-herring`) ou que rien ne donne (`item-never-gained`), un indice qui attend ce que rien ne pose
 (`hint-stuck`, une erreur) ou qui a le même `until` qu'un indice antérieur (`hint-never-fires`), un sujet, une option
 de choix ou un écouteur morts, un choix à une seule option, une sortie conditionnée sans ligne `locked`, une action
-qui ne change que ce que rien de vivant ne lit (`action-dead`, info), une cible derrière un lien de marche qu'une
+qui ne change que ce que rien de vivant ne lit (`action-dead`, info ; un drapeau que lit une variante de personnage ou un aiguillage de texte compte comme lu, donc le choix du héros dans l'intro n'est pas signalé), deux valeurs ou plus du drapeau du héros qu'aucune variante du héros ne reconnaît, si bien que ces héros ont l'air de celui écrit (`hero-looks-default`, info ; CONTENT_GUIDE, « Choisir le héros »), une cible derrière un lien de marche qu'une
 condition ferme et dont la règle ne vérifie pas cette condition (`walk-link-gate` : le lien arrête la marche, jamais
 l'action) ; après une passe du solveur, le fallback d'un signal requis que le témoin du monde fermé ne joue jamais (`fallback-unplayed`, un avertissement), une action vivante
 que le témoin n'a jamais jouée et un lieu jamais atteint (`rule-never-run`, `room-never-reached` : info avec le

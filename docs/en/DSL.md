@@ -98,7 +98,7 @@ A command is one key of `CMD_KEYS`; its fields are the Studio form’s. A plain 
 | `cycle` | `{ cycle: [[cmd, …], …], id?: id }` | Runs its lists in turn, looping. |
 | `random` | `{ random: [[cmd, …], …], id?: id }` | Runs one of its lists at random (recorded for replays). |
 | `cutscene` | `{ cutscene: [cmd, …] }` | Runs a list the player can skip. |
-| `choice` | `{ choice: [{ id?: id, text: text, if?: cond, once?: true, do: [cmd, …] }, …] }` | Offers the player options, each with its commands. |
+| `choice` | `{ choice: [{ id?: id, text: text, img?: image, if?: cond, once?: true, do: [cmd, …] }, …] }` | Offers the player options, each with its commands; an option with an `img` shows as a card (the image, its text under it), the cards first. |
 | `minigame` | `{ minigame: minigame, params?: …, then?: [cmd, …] }` | Starts a minigame, then runs `then`. |
 | `phone` | `{ phone: char, do: [cmd, …] }` | An incoming call from one or several characters. |
 | `guide` | `{ guide: { verb: verb, target: target, say: text }, id?: id }` | A tutorial step: waits for that verb on that target. |
@@ -116,6 +116,17 @@ A command is one key of `CMD_KEYS`; its fields are the Studio form’s. A plain 
 | `done` | cond | Done the first time this condition holds after an action; best a condition that stays true. |
 | `optional` | boolean (optional) | A side objective: not part of 100% (`npm run solve -- --goal=100%`). |
 | `parent` | string (optional) | The objective this one is a step of: shown under it. |
+
+### Placeholders in texts
+
+Written inside any text; anything else between braces stays as written. A switch compares `String(value)` of the flag exactly; no value matching (or the flag unset) takes `*=`, else the first text. No nesting, no escaping: an alternative holds no `{`, `}` or `|`. The validator reports a malformed switch, a flag no command sets, a value listed that no `set` writes, and a value written that the switch neither lists nor covers with `*=`.
+
+| Placeholder | Filled |
+|---|---|
+| `{hero}` | when shown: the active hero’s name (its variant’s); lines, choices, looks, hints, toasts, captions, item and object names, objective titles |
+| `{<flag>?<value>=<text>\|…\|*=<text>}` | when shown, after the translation: the text listed for the flag’s current value (`{form?m=him\|f=her}`, `content{form?f=e\|*=}`) |
+| `{item} {target} {name}` | in a fallback, kind or give line: the thing acted on, what it is used on, the target |
+| `{code:<id>} {hint:<id>}` | at boot, by Remix: a coupled dimension’s code and its clue |
 
 ### How each field counts (IR and fingerprint)
 

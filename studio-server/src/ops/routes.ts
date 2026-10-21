@@ -51,6 +51,15 @@ export function noteEdit(b: Body): NoteEdit {
   return { text: t, about: optText(b.about) };
 }
 
+/** PUT voices/:lang/:id: the id as the client encoded it (`encodeURIComponent`). */
+function voiceId(raw: string): string {
+  try {
+    return decodeURIComponent(raw);
+  } catch {
+    throw new StudioError(`malformed voice id "${raw}"`);
+  }
+}
+
 /** PUT voices/:lang/:id: each field a string, or absent (null: absent). */
 export function voicePatch(b: Body): { status?: string; note?: string; actor?: string } {
   const field = (k: 'status' | 'note' | 'actor') => {
@@ -88,7 +97,8 @@ export function routes(s: Studio): [string, RegExp, Handler][] {
     ['POST', /^\/redo$/, () => s.redo()],
     ['GET', /^\/history$/, () => s.history()],
     ['GET', /^\/voices(?:\/([\w-]+))?$/, (m) => s.voices(m[1])],
-    ['PUT', /^\/voices\/([\w-]+)\/([\w.-]+)$/, (m, b) => s.setVoice(m[1], m[2], voicePatch(b))],
+    // A clip of a line with switches is keyed `<id>~<flag>=<value>` (4.3.0): the client encodes it (`=` is `%3D`).
+    ['PUT', /^\/voices\/([\w-]+)\/([\w.~%-]+)$/, (m, b) => s.setVoice(m[1], voiceId(m[2]), voicePatch(b))],
     ['GET', /^\/voices\/([\w-]+)\/csv$/, (m) => s.voicesCsv(m[1])],
     ['GET', /^\/storyboard$/, () => s.getStoryboard()],
     ['PUT', /^\/storyboard$/, (_m, b) => s.setStoryboard(b)],

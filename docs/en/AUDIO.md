@@ -141,6 +141,42 @@ sample game's `sfx.json` covers the usual vocabulary of an adventure game: click
 error, doors and latches, coins, cloth, paper, a phone ring, drops, bells, glass, metal, shuffles, a gong. Copy it
 into a new game and keep the ids: the engine's defaults (`select`, `success`, `error`…) expect them.
 
+## Voices
+A line with a stable `id` (`npm run ids -- --lines`) plays its clip from `audio.voices[id]`; a translated game plays
+`audio.voicesByLang[lang]` instead, under the same ids. `npm run voices` keeps the recording table (status, actor,
+note per clip, `games/<id>/voices.json`); `npm run voices -- check` measures the files with ffmpeg.
+
+### Lines with text switches (4.3.0)
+A line whose words follow a flag (`{form?m=him|f=her}`, CONTENT_GUIDE) is recorded once per value: Grandma saying
+"him" and "her" is two clips. The clip is keyed by the line's id and the values of the flags its switches read:
+
+```ts
+audio: { voices: {
+  grandma_saw: 'grandma_saw.mp3',              // the plain id: the fallback
+  'grandma_saw~form=m': 'grandma_saw_m.mp3',   // {form?m=…} with form = "m"
+  'grandma_saw~form=f': 'grandma_saw_f.mp3',
+  'greet~form=f~mood=calm': 'greet_f_calm.mp3', // two flags in one line: sorted by name, joined by "~"
+} }
+```
+
+- **The lookup**: when the line is spoken, `<id>~<flag>=<value>` for the flags as they stand (values as text:
+  `true`, `2`, `f`), then the plain id. The text as written decides which flags count, so a translation keeps the
+  keys (its switches read the same flags: `npm run i18n -- status` checks it). The same rule in `voicesByLang`.
+- **A flag not set yet** (the line is spoken before the choice): no keyed lookup, the plain id. The text shows the
+  `*=` alternative then (else the first one), so that is what the plain clip should say.
+- **A value no switch lists** (covered by `*=`): the keyed clip if there is one for that value, else the plain id.
+- **The recording table** (`npm run voices -- export`, the Studio's Voices tab) lists one row per combination of the
+  values the switches list, with the text as it reads for those values, then the plain id when a switch has `*=`
+  (or when a clip is already filed under it). `{hero}` stays as written in that text.
+- **The validator** warns when a voiced line (a clip under its id or one of its keyed ids) with switches lacks a
+  clip for a listed value; the plain id plays meanwhile, so a game can ship before every recording exists.
+- **A line without switches** keeps one clip. `{hero}` alone is not a switch: a line that says the hero's name in
+  a game with several heroes has one clip; write `{form?m=Max|f=Fay}` instead when it must be recorded per hero.
+- **An explicit `voice`** on a `say` names one clip exactly, without keys.
+- **Files**: the keys are map keys only. The file each one names is written by hand (`'grandma_saw_f.mp3'`), and
+  `npm run assets` and the player build paths from the file, never from the key, so `~` and `=` never reach a file
+  name or an asset URL. Name the files as you like; letters, digits, `_` and `-` are safe everywhere.
+
 ## In the Studio and the tools
 The Assets tab lists the music and sound ids a game declares and whether a file exists for each; `npm run assets`
 ships what is there and reports what is missing. The MCP `read_doc` tool serves this page as `AUDIO`.

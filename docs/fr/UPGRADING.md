@@ -730,7 +730,34 @@ attestations, qui nomment le dépôt `wanoo/web-scumm` ; à partir de la v4.2.5,
 d'exemple et du chapitre de référence disent maintenant quest'n'click : leur empreinte de présentation a bougé, leur
 run de référence est donc enregistré à nouveau ; l'empreinte d'un jeu ne bouge que si son propre texte change.
 
-## 39. De la 4.2.5 à la 4.3.0
+## 39. De la 4.2.5 à la 4.3.0 « Hero Choice »
+
+Rien à changer dans le contenu d'un jeu : le format du contenu ne fait que grandir (ADR 0022, D49), `schemaVersion` reste 3, les
+sauvegardes et leur enveloppe sont celles de la 4.2.0, l'empreinte logique d'un jeu qui n'utilise rien de ce qui suit
+ne bouge pas. Le moteur s'installe depuis `releases/download/v4.3.0/…`. Ce qui est nouveau, tout optionnel
+(CONTENT_GUIDE, « Choisir le héros ») :
+
+- **Une variante de personnage peut porter un `name`** : tant qu'elle s'applique, la bulle, la transcription,
+  l'en-tête de conversation et `{name}` dans une réplique de repli le lisent. Une traduction le liste
+  (`char:<id>/variants[<i>].name`).
+- **Les aiguillages de texte et `{hero}`**, remplis quand un texte s'affiche, après la traduction : `{hero}` est le
+  nom du héros actif, `{form?knight=le|witch=la|*=le}` le texte listé pour la valeur courante du drapeau. Dans les
+  répliques, les choix, les descriptions, les indices, les toasts, les sous-titres, les noms d'objets et les titres
+  d'objectifs ; le validateur les refuse dans les noms de lieux, les verbes, les noms de personnages et de
+  variantes, `ui`, le titre, la carte, la fin et les params des mini-jeux.
+- **`img` sur une option de choix** : l'option devient une carte, l'image avec son `text` pour étiquette.
+- **Des voix par valeur** : une réplique à aiguillage cherche `<id>~<drapeau>=<valeur>` avant son id seul (AUDIO.md).
+- **Une touche par verbe** (#203) : `key: 'o'` sur un verbe le choisit au clavier, traduite comme le libellé ; avec
+  `settings: true`, le joueur peut couper ces touches (`ui.verbKeys`, CONTENT_GUIDE, « Une touche par verbe »).
+- **`npm run lint`** a `hero-looks-default` (info), et ne traite plus d'`action-dead` une règle qui ne pose qu'un
+  drapeau lu par une variante de personnage ou par un aiguillage.
+
+**Une chose à vérifier** : un texte 4.2 qui contient tel quel `{hero}` ou un groupe entre accolades en forme
+d'aiguillage (`{mot?…=…}`) est désormais rempli à l'affichage. `npm run validate` signale un groupe en forme d'aiguillage (un
+drapeau qu'aucune commande ne pose, un aiguillage mal formé, ou un aiguillage dans un texte affiché tel quel) ; un
+`{hero}` dans une réplique est valide, il faut donc le chercher (`grep -rn '{hero}' games/<id>`). Pour garder les
+accolades à l'écran, les écrire autrement (`[hero]`, ou `{mot ? …}` avec une espace avant le `?`). Un texte sans un tel
+groupe s'affiche exactement comme avant.
 
 **La police d'interface** (#204). Un jeu qui ne fixe pas `skin.fonts.ui` affiche maintenant ses dialogues, ses verbes
 et ses menus en Galmuri11, une police pixel proportionnelle, au lieu de DotGothic16 ; son `size-adjust` garde le texte

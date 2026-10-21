@@ -8,6 +8,8 @@ import type { Action, ListLine, Id, RoomDef, Rule, VerbId } from './types';
 import { HERO, type Ctx, type Source } from './engine-shared';
 import type { Engine } from './engine';
 import { seenKey } from './keys';
+import { renderText } from './text-switch';
+import { lineClip } from './voice-key';
 
 // ------------------------------------------------------------------ resolution
 /** Finds the reaction to an action and executes it. */
@@ -41,7 +43,7 @@ export async function resolve(eng: Engine, act: Action, ctx: Ctx): Promise<Sourc
   }
   const kind = eng.findKind(verb, a, b, room);
   if (kind) {
-    await eng.say(HERO, eng.fill(kind.say, a, b), ctx, false, eng.voiceOf(kind));
+    await eng.say(HERO, eng.fill(kind.say, a, b), ctx, false, eng.voiceOf(kind, kind.say));
     return 'kind';
   }
   if (verb === 'give' && b) {
@@ -133,10 +135,27 @@ export function fill(eng: Engine, text: string, a: Id, b?: Id): string {
   return text.replace(/\{(\w+)\}/g, (m, k: string) => (PLACEHOLDERS[k] ? value[PLACEHOLDERS[k]] : m));
 }
 
-/** A line's voice clip: its id, when `audio.voices` has a clip under it (the rule of `say` lines). */
-export function voiceOf(eng: Engine, l: ListLine | { id?: Id }): Id | undefined {
+/**
+ * A text as the player reads it now (4.3.0, core/text-switch.ts): `{<flag>?<value>=<text>|…|*=<text>}` takes the text
+ * listed for the flag's current value, `{hero}` the active hero's name (its variant's). Called where a text is shown,
+ * after `fill()` and after the translation; it reads the state and never changes it.
+ */
+export function text(eng: Engine, s: string): string {
+  if (!eng.state) return s;
+  return renderText(s, eng.state.flags, () => {
+    const id = eng.heroId();
+    return eng.character(id)?.name ?? eng.game.characters[id]?.name ?? id;
+  });
+}
+
+/**
+ * A line's voice clip (the rule of `say` lines): `<id>~<flag>=<value>…` when its text (as written) has switches and
+ * `audio.voices` has that clip (4.3.0, core/voice-key.ts), else its id when `audio.voices` has a clip under it.
+ */
+export function voiceOf(eng: Engine, l: ListLine | { id?: Id }, text?: string): Id | undefined {
   const id = typeof l === 'string' ? undefined : 'text' in l ? listId(l) : l.id;
-  return id && eng.game.audio?.voices?.[id] ? id : undefined;
+  const written = text ?? (typeof l !== 'string' && 'text' in l ? l.text : undefined);
+  return lineClip(eng.game.audio?.voices, id, written, eng.state?.flags);
 }
 
 export async function sayFallback(eng: Engine, who: Id, key: string, ctx: Ctx, a: Id, b?: Id) {

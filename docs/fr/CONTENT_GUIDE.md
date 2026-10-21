@@ -394,6 +394,103 @@ toujours l'actif. Si un lieu déclare un acteur pour un personnage jouable, cet 
 (poses, sujets de conversation) ; il n'est pas dessiné deux fois. Les checkpoints acceptent `active` et
 `players: { id: { room, inventory } }`. Le solveur change de personnage comme le joueur (« Switch to hoagie » dans son chemin).
 
+## Choisir le héros (4.3.0)
+
+Le joueur choisit le héros à la Nouvelle partie : un chevalier, une sorcière ou un robot, un garçon ou une fille,
+autant de héros que le jeu en déclare. Le héros garde les mêmes énigmes et les mêmes lieux ; ce qui change, c'est son
+allure, son nom, et les mots que les autres emploient pour lui. Il faut un drapeau (`form` ici, n'importe quel nom
+convient), un personnage avec une variante par héros, un choix d'intro qui pose le drapeau, et des aiguillages dans les
+textes qui en dépendent.
+
+```ts
+hero: 'kid',
+characters: {
+  kid: {
+    name: 'Robo', sprites: cat('robot'), portrait: 'robot/portrait',          // l'allure écrite est aussi un héros
+    variants: [
+      { if: { flag: 'form', eq: 'knight' }, name: 'Sire Lancelot', sprites: cat('knight'), portrait: 'knight/portrait' },
+      { if: { flag: 'form', eq: 'witch' }, name: 'Morwen', sprites: cat('witch'), portrait: 'witch/portrait' },
+    ],
+  },
+},
+start: { room: 'hall', intro: [
+  'Qui suis-je ce matin ?',
+  { choice: [
+    { text: 'Sire Lancelot', img: 'knight/portrait', do: [{ set: ['form', 'knight'] }] },
+    { text: 'Morwen', img: 'witch/portrait', do: [{ set: ['form', 'witch'] }] },
+    { text: 'Robo', img: 'robot/portrait', do: [{ set: ['form', 'robot'] }] },
+  ] },
+] },
+checkpoints: {
+  porte_sorciere: { room: 'hall', inventory: ['key'], flags: { form: 'witch', key_found: true } },
+},
+```
+
+Et dans un lieu :
+
+```ts
+talk: { grandma: [{ topic: 'Bonjour, Grand-mère !', do: [
+  { say: ['grandma', 'Bonjour, {hero} ! Prêt{form?witch=e|*=}, {form?knight=mon brave chevalier|witch=ma sorcière futée|*=mon robot qui brille} ?'] },
+] }] },
+look: { grandma: 'Grand-mère. La poussière {form?knight=le|witch=la|robot=le} fait éternuer.' },
+```
+
+- **Le `name` de la variante** remplace le nom du personnage tant que la variante s'applique, comme ses `sprites`,
+  `mouths`, `portrait` et `palette` : la bulle, la transcription, l'en-tête de conversation et `{name}` dans une
+  réplique de repli le lisent. La première variante dont le `if` tient l'emporte ; une valeur qu'aucune variante ne
+  reconnaît garde l'allure et le nom écrits.
+- **`{hero}`** est le nom du héros actif, celui de sa variante compris.
+- **Un aiguillage** `{<drapeau>?<valeur>=<texte>|…|*=<texte>}` est le texte listé pour la valeur courante du drapeau ;
+  `*=` couvre toutes les valeurs non listées, si bien qu'une réplique identique pour la plupart des héros ne liste que
+  les exceptions (`content{form?witch=e|*=}`). Sans valeur qui corresponde et sans `*=` : le premier texte. Un texte
+  sans `{` reste tel quel. Pas d'imbrication : deux aiguillages côte à côte. Un aiguillage lit n'importe quel drapeau,
+  pas seulement celui du héros.
+- **Où ils sont remplis** : quand un texte s'affiche, dans les répliques, les options de choix, les descriptions, les
+  indices, les toasts, les sous-titres, les noms d'objets et les titres d'objectifs. Pas dans les noms de lieux, les
+  verbes, les noms de personnages, `ui`, le titre, la carte, la fin scellée ni les params d'un mini-jeu : le
+  validateur les y refuse. Le `name` d'une variante change le nom d'un personnage, et s'affiche tel qu'écrit lui aussi :
+  donnez à chaque héros sa variante et son nom plutôt qu'un aiguillage.
+- **L'intro se joue avant l'arrivée dans le premier lieu** : le héros est choisi avant que quiconque parle. Avec `img`,
+  chaque option est une carte : le portrait, avec son `text` pour étiquette (et pour nom lu par le lecteur d'écran) ;
+  les cartes passent à la ligne et défilent, si bien que tous les héros tiennent sur un téléphone. Sans `img`, les
+  options restent des lignes de texte.
+- **La logique reste de la logique** : une règle qui doit changer selon le héros porte
+  `if: { flag: 'form', eq: 'witch' }`. Le solveur explore chaque réponse du choix d'intro, donc `npm run solve` prouve
+  chaque héros ; les sauvegardes gardent le drapeau, les checkpoints le prennent dans `flags`.
+- **Pourquoi pas `players`** : chaque personnage jouable a son bouton dans la rangée d'outils et se tient dans son
+  propre lieu, le joueur pourrait donc changer de héros en cours de partie. Choisir le héros, c'est un seul
+  personnage avec des variantes.
+- **Les traductions** écrivent leurs propres mots entre les accolades, avec le même drapeau et les mêmes valeurs
+  (l'aiguillage est rempli après la traduction). Une langue peut ajouter un aiguillage dont sa source n'a pas besoin,
+  pour sa grammaire : l'anglais `Ready?` devient `Prêt{form?witch=e|*=} ?`. Les noms des variantes se traduisent aussi
+  (`char:kid/variants[0].name`). `npm run i18n -- status` liste les traductions qui perdent un choix de la source (un
+  drapeau qu'elles n'aiguillent plus, une valeur ni listée ni couverte par `*=`) ; un aiguillage ou une valeur ajoutés
+  pour la grammaire sont voulus.
+- **Les voix des répliques à aiguillage.** Une réplique dont les mots suivent un drapeau (`{form?m=le|f=la}`)
+  s'enregistre une fois par valeur : ses clips vont dans `audio.voices` sous `<id>~<drapeau>=<valeur>`
+  (`grandma_saw~form=f`). Avec plusieurs drapeaux dans une réplique, les trier par nom et les joindre par `~`
+  (`greet~form=f~mood=calm`) ; les valeurs s'écrivent en texte (`true`, `2`). Le moteur joue le clip des drapeaux tels
+  qu'ils sont et se rabat sur l'id seul quand ce clip manque ou qu'un drapeau n'est pas encore posé : un jeu peut
+  sortir avant que tout soit enregistré. `voicesByLang` prend les mêmes clés. `npm run voices` (et l'onglet Voices du
+  Studio) liste une ligne par valeur, chacune avec son texte, et `npm run validate` avertit quand une réplique doublée
+  n'a pas le clip d'une valeur. Les clés ne sont que des clés : les noms de fichiers restent les tiens
+  ([AUDIO.md](AUDIO.md), « Voix »). `{hero}` seul n'est pas un aiguillage : une telle réplique garde un seul clip.
+- **Voir chaque héros** : l'onglet Play du Studio a un sélecteur « Text switches » qui pose le drapeau, et l'onglet
+  Rooms montre sous un texte à aiguillage comment il se lit ([STUDIO.md](STUDIO.md)).
+
+Ce que disent les outils :
+
+- `npm run validate` : `malformed text switch "…"` (un `=` ou une `}` manquants, une valeur listée deux fois, une
+  accolade à l'intérieur) ; `text switch "…" reads flag "form", which no command sets` ;
+  `… lists value "x" for "form", which no set writes` ;
+  `… has no text for "form" = "robot" (written at …): list it or add "*="` ; `{hero} in a text shown as written` ;
+  `start.intro[1].choice[0].img › image not found: "…"`. Un drapeau compté avec `inc` ne se liste pas : son aiguillage
+  demande `*=` (un avertissement).
+- `npm run validate` avertit aussi : `voiced line with text switches lacks 1 of 3 clip(s) by value: sneeze~form=robot`.
+- `npm run lint` : `hero-looks-default` (info) quand deux valeurs ou plus du drapeau du héros ne correspondent à aucune
+  variante, si bien que ces héros ont l'air de celui écrit (une faute de frappe dans le `if` d'une variante, ou une
+  variante pas encore écrite).
+
 ## Mise en scène : lieux larges, animations, voix, réglages
 
 ### Lieux larges et caméra
@@ -708,7 +805,8 @@ import { cat } from './cast';
 hero: { …, sprites: cat('hero'), variants: [{ if: { has: 'seau' }, sprites: cat('hero_seau'), mouths: … }] },
 ```
 
-La première variante dont la condition est vraie remplace `sprites`, `mouths` et `portrait`. Le changement se voit tout de suite (ex. dès qu'on prend le seau).
+La première variante dont la condition est vraie remplace `sprites`, `mouths` et `portrait`, et le `name` quand elle
+en a un (4.3.0 : « Choisir le héros »). Le changement se voit tout de suite (ex. dès qu'on prend le seau).
 
 ### Changement de palette (`palette`, aussi sur les variantes)
 

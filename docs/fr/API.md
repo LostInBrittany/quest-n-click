@@ -139,7 +139,7 @@ Un jeu ajoute les siens dans `minigames` de son module (même contrat) : c'est l
 | `CATALOGUE_MAX` | `number` | public | The largest catalogue a mode may enumerate (D25): beyond it, the mode is a generator with a published sample. |
 | `CharacterDef` | `interface { name, description, color, height, sprites, portrait, … 11 more }` | public | A character: its name, dialogue colour, poses, mouths and portrait, its kinds, and the variants its state selects. |
 | `checkWheel` | `(w: CodeWheel): string[]` | public | The wheel's solution, checked the way a player reads it (turn, then read): a solution exists, it is unique (one rotation aligns the pair), a |
-| `Choice` | `interface { id, text, if, once, do }` | public | One answer the player may pick in a `{ choice }` command: its text, when it is offered, what it runs. |
+| `Choice` | `interface { id, text, if, once, img, do }` | public | One answer the player may pick in a `{ choice }` command: its text, when it is offered, what it runs. |
 | `Cmd` | `type Cmd = union of 56` | public | A command. A plain string = the hero says this line. Command lists run in order, each one waiting for the previous one to finish. |
 | `CODE_WHEEL_VERSION` | `number` | public | The wheel's layout version: a stored record of another version is replayed as it is, never regenerated. |
 | `CodeWheel` | `interface { version, seed, n, outer, track, inner, … 3 more }` | public | A wheel as a seed makes it: the order of each disc, the windows' offsets, the question and its answer. |

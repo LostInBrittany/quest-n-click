@@ -402,10 +402,10 @@
   "api": "a029b70768d9feba"
  },
  "tests": {
-  "files": 323,
-  "declarations": 2731
+  "files": 331,
+  "declarations": 2795
  },
  "bundle": {
-  "initialJsKB": 134
+  "initialJsKB": 135
  }
 }
