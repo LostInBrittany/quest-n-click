@@ -67,3 +67,4 @@ may write in French; the assistant adds the English next to it.
 ## Pending (asked, not decided)
 
 - (none)
+- **D48 · 2026-10-21** · **main is the 4.3 line; the open pull requests go into 4.3.** After v4.2.5, the maintainer wrote « ok include all PR in gh into 4.3 »: the six open pull requests (#208 a title convention, #211 a job's late poll, #213 Pillow 13, #206 the interface font, #205 verb keys, #202 "Hero Choice") are reviewed, completed on their branches and merged into main, which from now on prepares 4.3.0. The 4.2.x freeze of the content format and the public API (D40, eased by D46) does not bind main any more; a change to the save format or the authoring schema still says so in UPGRADING and keeps the 4.2.x saves loading. The `web-scumm` aliases (D47) go in 4.3.0. A 4.2.x fix, if one is needed, is made on a branch from `v4.2.5`. Tagging `v4.3.0` needs its own yes (D37).
