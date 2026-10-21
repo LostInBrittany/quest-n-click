@@ -210,6 +210,20 @@ double tap is unchanged. An exit can say otherwise: `onTap: 'walk'` keeps it wal
 (`exits: { path: { name: 'path', to: 'village', onTap: 'go' } }`). Off by default. It is input only: the rules, the
 solver and saves do not see it.
 
+**A key per verb (4.3.0).** On a desktop, the LucasArts games picked a verb at the keyboard: O for Open, L for Look at.
+A verb's `key` does the same: `{ id: 'open', label: 'Open', color: '#8fd3ff', key: 'o' }`. The key, in any case and
+without Ctrl, Alt or Meta, picks the verb as a tap on its button would (and drops it if it is already picked); it does
+nothing while the engine is busy, while a line is on screen, or while a conversation, the map, a minigame or a menu is
+over the scene. The button underlines the letter's first occurrence in its label and says it to a screen reader
+(`aria-keyshortcuts`). The key is translated with the label (`verb:open/key` in the locales: Close's `c` is Fermer's
+`f`). `npm run validate` refuses a key that is not one character, Space (it advances a line) and a key two verbs share,
+in the game and in each translation, and warns when the label does not contain the letter. Choose letters once the
+labels are written: "Pick up", "Push" and "Pull" all start with P, so one of them takes another letter of its label
+(`s` for Push). Without `key`, no shortcut. Presentation only: the rules, the solver and saves do not see it. Nothing
+happens either while the credits roll or once the player turns the keys off: with `settings: true`, the settings offer
+a "Verb keys" row (`ui.verbKeys`) in any game whose verbs have keys, as WCAG 2.1.4 asks of a single-letter shortcut
+(someone who types by voice, or hits keys by accident); `npm run validate` warns about keys without a settings menu.
+
 ## The commands
 
 A single command, as plain text, makes the hero speak: `'There. A step up.'`.
@@ -428,9 +442,10 @@ the settings only when the game captions something) and translated like any line
 
 `settings: true` adds a Settings entry to the pause menu: text speed (slow / normal / fast), text size (normal / large),
 reduce motion (no shake, instant camera and fades), a readable font when the game ships one (`skin.fonts.readable`),
-music / sound / voice volumes. Preferences stay in the browser, outside the save. Texts: `ui.settings`, `ui.textSpeed`,
-`ui.textSize`, `ui.reduceMotion`, `ui.readableFont`, `ui.volumeMusic`, `ui.volumeSfx`, `ui.volumeVoice`, `ui.slow`,
-`ui.normal`, `ui.fast`, `ui.large` (English defaults when absent).
+music / sound / voice volumes, and the verbs' keys on or off when a verb has a `key` (4.3.0). Preferences stay in the
+browser, outside the save. Texts: `ui.settings`, `ui.textSpeed`, `ui.textSize`, `ui.reduceMotion`, `ui.readableFont`,
+`ui.volumeMusic`, `ui.volumeSfx`, `ui.volumeVoice`, `ui.verbKeys`, `ui.slow`, `ui.normal`, `ui.fast`, `ui.large`
+(English defaults when absent).
 
 ## The stage (3.4): layers, masks, lights, particles, floors
 
@@ -747,7 +762,7 @@ keys the engine shows itself have an **English default** when the game leaves th
 `duck`, `offlineStatus`, `offlineComplete`, `offlineRetry`, `save`, `load`, `slot`, `emptySlot`, `confirmOverwrite`,
 `exportSave`, `importSave`, `exportSession`, `shareSession`, `settings`, `textSpeed`, `textSize`, `slow`, `normal`,
 `fast`, `large`, `reduceMotion`, `readableFont`, `language`, `volumeMusic`, `volumeSfx`, `volumeVoice`, and since 4.1.14
-`speedrun`, `exportRun`, `abandonRun` (the pause menu's speedrun rows). A game in
+`speedrun`, `exportRun`, `abandonRun` (the pause menu's speedrun rows), since 4.3.0 `verbKeys`. A game in
 another language provides them all: `npm run i18n -- status` lists the keys left to the defaults, and
 `npm run e2e -- --lang <xx>` fails when one is visible.
 

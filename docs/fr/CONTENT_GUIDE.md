@@ -210,6 +210,23 @@ marche dans un jeu qui a le réglage, `onTap: 'go'` la fait franchir dans un jeu
 (`exits: { path: { name: 'chemin', to: 'village', onTap: 'go' } }`). Désactivé par défaut. C'est de l'entrée
 seulement : les règles, le solveur et les sauvegardes ne le voient pas.
 
+**Une touche par verbe (4.3.0).** Sur un ordinateur, les jeux LucasArts choisissaient un verbe au clavier : O pour
+Ouvrir, R pour Regarder. Le `key` d'un verbe fait de même : `{ id: 'open', label: 'Open', color: '#8fd3ff', key: 'o' }`.
+La touche, en majuscule ou en minuscule et sans Ctrl, Alt ni Meta, choisit le verbe comme un tap sur son bouton (et le
+retire s'il est déjà choisi) ; elle ne fait rien quand le moteur est occupé, quand une réplique est à l'écran, ou quand
+une conversation, la carte, un mini-jeu ou un menu recouvre la scène. Le bouton souligne la première occurrence de la
+lettre dans son libellé et l'annonce aux lecteurs d'écran (`aria-keyshortcuts`). La touche se traduit avec le libellé
+(`verb:close/key` dans les locales : le `c` de Close devient le `f` de Fermer). `npm run validate` refuse une touche
+qui n'est pas un seul caractère, Espace (qui fait avancer une réplique) et une touche partagée par deux verbes, dans le
+jeu et dans chaque traduction, et prévient quand le libellé ne contient pas la lettre. Choisissez les lettres une fois
+les libellés écrits : « Pousser » et « Prendre » commencent tous deux par P, l'un des deux prend donc une autre lettre
+de son libellé (`s` pour Pousser). Sans `key`, pas de raccourci. Présentation seulement : les règles, le solveur et les
+sauvegardes ne le voient pas. Rien ne se passe non plus pendant le générique ni une fois que le joueur a coupé les
+touches : avec `settings: true`, les réglages offrent une ligne « Touches des verbes » (`ui.verbKeys`) dans tout jeu
+dont les verbes ont des touches, comme le demande le WCAG 2.1.4 pour un raccourci d'une seule lettre (qui dicte à la
+voix, ou appuie sur une touche par mégarde) ; `npm run validate` prévient quand des touches n'ont pas de menu de
+réglages.
+
 ## Les commandes
 
 Une commande seule, sous forme de texte, fait parler le héros : `'Et voilà. Un marchepied.'`.
@@ -434,9 +451,10 @@ proposé dans les réglages seulement quand le jeu sous-titre quelque chose) et 
 
 `settings: true` ajoute une entrée Réglages au menu pause : vitesse du texte (lent / normal / rapide), taille du texte
 (normal / grand), réduire les animations (pas de tremblement, caméra et fondus instantanés), une police lisible quand le
-jeu en fournit une (`skin.fonts.readable`), volumes musique / sons / voix. Les préférences restent dans le navigateur,
-hors sauvegarde. Textes : `ui.settings`, `ui.textSpeed`, `ui.textSize`, `ui.reduceMotion`, `ui.readableFont`,
-`ui.volumeMusic`, `ui.volumeSfx`, `ui.volumeVoice`, `ui.slow`, `ui.normal`, `ui.fast`, `ui.large` (défauts anglais si absents).
+jeu en fournit une (`skin.fonts.readable`), volumes musique / sons / voix, et les touches des verbes activées ou non
+quand un verbe a un `key` (4.3.0). Les préférences restent dans le navigateur, hors sauvegarde. Textes : `ui.settings`,
+`ui.textSpeed`, `ui.textSize`, `ui.reduceMotion`, `ui.readableFont`, `ui.volumeMusic`, `ui.volumeSfx`, `ui.volumeVoice`,
+`ui.verbKeys`, `ui.slow`, `ui.normal`, `ui.fast`, `ui.large` (défauts anglais si absents).
 
 ## La scène (3.4) : calques, masques, lumières, particules, sols
 
@@ -756,7 +774,7 @@ clés que le moteur affiche lui-même ont une **valeur anglaise par défaut** qu
 `duck`, `offlineStatus`, `offlineComplete`, `offlineRetry`, `save`, `load`, `slot`, `emptySlot`, `confirmOverwrite`,
 `exportSave`, `importSave`, `exportSession`, `shareSession`, `settings`, `textSpeed`, `textSize`, `slow`, `normal`,
 `fast`, `large`, `reduceMotion`, `readableFont`, `language`, `volumeMusic`, `volumeSfx`, `volumeVoice`, et depuis 4.1.14
-`speedrun`, `exportRun`, `abandonRun` (les lignes speedrun du menu pause). Un jeu dans une
+`speedrun`, `exportRun`, `abandonRun` (les lignes speedrun du menu pause), depuis 4.3.0 `verbKeys`. Un jeu dans une
 autre langue les fournit toutes : `npm run i18n -- status` liste les clés laissées aux valeurs par défaut, et
 `npm run e2e -- --lang <xx>` échoue dès que l'une d'elles est visible.
 

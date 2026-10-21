@@ -490,6 +490,8 @@ export interface UiTexts {
   readableFont?: string;
   /** The settings row of the sound captions (shown only in a game that captions a sound). */
   captions?: string;
+  /** The settings row that turns the verbs' keys off (4.3.0, shown only when a verb has a `key`). English default "Verb keys". */
+  verbKeys?: string;
   volumeMusic?: string;
   volumeSfx?: string;
   volumeVoice?: string;

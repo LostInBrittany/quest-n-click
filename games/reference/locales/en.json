@@ -369,6 +369,7 @@
  "ui/reduceMotion": "Reduce motion",
  "ui/readableFont": "Readable font",
  "ui/captions": "Sound captions",
+ "ui/verbKeys": "Verb keys",
  "ui/volumeMusic": "Music volume",
  "ui/volumeSfx": "Sound volume",
  "ui/volumeVoice": "Voice volume",

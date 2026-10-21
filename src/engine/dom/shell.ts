@@ -3,7 +3,7 @@
 
 import type { Id } from '../core/types';
 import { roving } from './a11y';
-import { el, esc } from './app-shared';
+import { el, esc, verbLabelHtml } from './app-shared';
 import type { App } from './app';
 
 // ================================================================== layout
@@ -35,9 +35,10 @@ export function buildShell(app: App) {
   app.verbsEl.setAttribute('aria-label', app.t('verbs'));
   roving(app.verbsEl, '.verb');
   for (const v of app.game.verbs) {
-    const b = el('button', 'verb', esc(v.label));
+    const b = el('button', 'verb', verbLabelHtml(v));
     b.style.color = v.color;
     b.dataset.verb = v.id;
+    if (v.key) b.setAttribute('aria-keyshortcuts', v.key.toUpperCase());
     b.onclick = () => app.pickVerb(v.id);
     app.verbsEl.append(b);
   }

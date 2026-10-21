@@ -76,7 +76,8 @@ The whole game plays at the keyboard: Tab reaches the verbs (arrows move inside 
 one is chosen), the scene's targets (one hidden button per visible hotspot, prop or actor, in the scene's order), the
 inventory and the tools; a conversation's choices and the map's places take the focus when they appear (arrows,
 Enter); Space or Enter advances a line of dialogue; Escape closes what is on top (a menu, the map, a transcript, a
-cutscene's or minigame's Skip) and otherwise opens the pause menu, whose focus stays inside. A live region announces
+cutscene's or minigame's Skip) and otherwise opens the pause menu, whose focus stays inside. A verb with a `key`
+(4.3.0, CONTENT_GUIDE) is also picked by that letter, announced with `aria-keyshortcuts`; the settings turn the keys off. A live region announces
 the room, each line and each item gained. `ui.advance` names the "tap to continue" marker for screen readers.
 `npm run e2e -- --generic --keyboard` replays the solver's solution at the keyboard.
 

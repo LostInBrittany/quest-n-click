@@ -13,7 +13,8 @@ The reference of every condition and command, generated from the schema, is `doc
 | 4.1.13 → 4.1.15 | **Additive** only on what is listed "additive": new optional fields, new commands or conditions each admitted by a short ADR (0014 onward) with its proof. The IR's `variant` slot is filled by 4.1.15. |
 | 4.1.15 "Remix" | **Frozen** as the 4.2 release candidate (D28): the stable list absorbs what Remix added; `tests/api-surface.json` records the candidate surface; 4.2.0 restores strict SemVer (D18). |
 | 4.1.16 "Convergence" | **Frozen**, with one additive correction before 4.2 (D29, ADR 0019): `SpeedrunCategory.world` (`SpeedrunWorldPolicy`) names a run's world apart from its generator `seed`; every 4.1.15 field keeps its meaning (`seed: 'daily' \| 'mystery'` without `world` is read as that world, with a warning). |
-| 4.2.x (now) | **Frozen** (D40), with optional, presentation-only fields allowed (D46): no schema, save or IR change, and a game without them behaves identically. 4.2.4 adds the first three, `GameDef.input.exitOnTap` and `ExitDef.onTap` (#188), `GameDef.actorGap` (#198). |
+| 4.2.x | **Frozen** (D40), with optional, presentation-only fields allowed (D46): no schema, save or IR change, and a game without them behaves identically. 4.2.4 adds the first three, `GameDef.input.exitOnTap` and `ExitDef.onTap` (#188), `GameDef.actorGap` (#198). |
+| 4.3.x (now) | **Additive** on `main` (D48): the 4.2.x freeze no longer binds, a change to the save format or the authoring schema says so in UPGRADING and keeps the 4.2.x saves loading. 4.3.0 adds `VerbDef.key` (#203). |
 
 ## Frozen (stable from 4.1.12, frozen at 4.1.15)
 
@@ -56,7 +57,11 @@ The reference of every condition and command, generated from the schema, is `doc
   IR change and a game without them behaves identically. 4.2.4: `GameDef.input.exitOnTap` and `ExitDef.onTap` (`go` or
   `walk`), a single tap on an exit going through it (#188); input only, outside the IR's logic, checked by the
   validator. `GameDef.actorGap` (#198), the hero's distance to a character scaled by its size: geometry, in the
-  presentation fingerprint like the layout's approach points, checked by the validator (a positive number).
+  presentation fingerprint like the layout's approach points, checked by the validator (a positive number). 4.3.0:
+  `VerbDef.key` (#203), the keyboard shortcut that picks a verb: input only, out of the IR (whose verbs keep id, label
+  and join), in the presentation fingerprint only when set (a game without keys keeps its fingerprint), translated
+  like the label (`verb:<id>/key`), checked by the validator in the game and in each translation (one character, not
+  Space, never shared); the player can turn the keys off in the settings (WCAG 2.1.4).
 
 ## The candidate primitives (programme §8.3)
 
