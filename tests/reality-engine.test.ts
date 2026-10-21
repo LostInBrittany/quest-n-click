@@ -431,3 +431,15 @@ describe('the golden saves of games/signals', () => {
     },
   );
 });
+
+// Killed mutant (4.3.0 reread of the exemptions): a signal's listener runs at the normal pace (`fast: false`), so its
+// lines count on the run clock like any other; `fast: true` would add nothing.
+describe('Engine.receive and the run clock', () => {
+  it("times a signal's line like a line the player reads", async () => {
+    const { MICROTICKS_PER_MS, SAY_LOGICAL_MS } = await import('@engine/core/timing');
+    const e = await engine();
+    const t0 = e.runClock.logicalTime();
+    expect(await e.receive(x(1))).toBe('applied');
+    expect(e.runClock.logicalTime() - t0).toBe(BigInt(SAY_LOGICAL_MS) * MICROTICKS_PER_MS);
+  });
+});
