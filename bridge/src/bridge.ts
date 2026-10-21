@@ -9,7 +9,7 @@ import { readFileSync } from 'node:fs';
 import { manifestHash } from '../../src/engine/reality/manifest';
 import { type WorldSignal, WorldSignalV1Schema, WorldSignalV2Schema } from '../../src/engine/reality/protocol';
 import { biscuitLib, errorClass } from './biscuit';
-import { type BridgeConfig, BridgeError, type BridgeLog, DEFAULT_LIMITS, IDENT, type Limits, sha256 } from './config';
+import { type BridgeConfig, BridgeError, type BridgeLog, checkLimits, IDENT, type Limits, sha256 } from './config';
 import { KeyedLock } from './lock';
 import { authorize, LIMITS, type Proposal } from './policy';
 import { keyObject, signSignalSync } from './sign';
@@ -57,7 +57,7 @@ export class Bridge {
     private log: (l: BridgeLog) => void,
     telemetry: Telemetry,
   ) {
-    this.limits = { ...DEFAULT_LIMITS, ...config.limits };
+    this.limits = checkLimits(config.limits);
     this.tenantId = config.tenantId ?? DEFAULT_TENANT;
     this.store = store;
     this.telemetry = telemetry;
