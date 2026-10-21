@@ -3,7 +3,7 @@
 La méthode, de bout en bout, est [WORKFLOW](WORKFLOW.md) ; le format, champ par champ, est
 [CONTENT_GUIDE](CONTENT_GUIDE.md). Cette page est le chemin le plus court de rien à une pièce jouable sur votre
 téléphone, avec les fichiers touchés nommés à chaque étape. Quinze minutes avec un checkout de ce dépôt ; les mêmes
-étapes valent dans un projet de jeu créé avec `web-scumm create` ([PACKAGE](PACKAGE.md)), où `games/<id>/` est
+étapes valent dans un projet de jeu créé avec `quest-n-click create` ([PACKAGE](PACKAGE.md)), où `games/<id>/` est
 `game/`.
 
 ## 1. Un jeu depuis le modèle (une minute)

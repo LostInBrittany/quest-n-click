@@ -1,6 +1,6 @@
 # Personal data: what is kept, where, for how long
 
-What a web-scumm game, its Reality Bridge and its connectors keep about a player (4.1.9). The operator who runs a
+What a quest'n'click game, its Reality Bridge and its connectors keep about a player (4.1.9). The operator who runs a
 Bridge and its connectors is the one who answers for this data to the players; this page says what the software
 keeps so the operator can say it in turn. A game without `reality` keeps nothing beyond the player's own device.
 

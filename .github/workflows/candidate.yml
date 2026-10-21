@@ -493,7 +493,7 @@ jobs:
           name: candidate-pack
           path: candidate-pack
       - run: node scripts/connector-archive-e2e.mjs --tarballs=candidate-pack
-  # The Bridge's qualification profile (4.1.18, plan §8) built from this candidate's own `web-scumm-bridge` archive:
+  # The Bridge's qualification profile (4.1.18, plan §8) built from this candidate's own `quest-n-click-bridge` archive:
   # three instances behind HTTPS on Postgres, an instance killed with proposals in flight, the tenants apart, backup,
   # the topology destroyed and restored (scripts/ops-qualify.mjs; its report kept with the run).
   deployment-smoke:
@@ -576,7 +576,7 @@ jobs:
       - name: The candidate's Bridge, from its archive and its lock
         shell: bash
         run: |
-          mkdir -p .cache/bridge && tar -xzf candidate-pack/web-scumm-bridge-*.tgz -C .cache/bridge --strip-components=1
+          mkdir -p .cache/bridge && tar -xzf candidate-pack/quest-n-click-bridge-[0-9]*.tgz -C .cache/bridge --strip-components=1
           (cd .cache/bridge && npm ci --omit=dev --ignore-scripts --no-audit --no-fund)
       - shell: bash
         env:

@@ -38,7 +38,7 @@ The sample game is `games/signals/`: a gate opened by an emailed answer, or by t
 
 ## Prove it in every world
 
-A proof never assumes the outside cooperates. `npm run solve:reality` (part of `prove:game` and `web-scumm release`)
+A proof never assumes the outside cooperates. `npm run solve:reality` (part of `prove:game` and `quest-n-click release`)
 proves the game in three kinds of world:
 
 1. **closed**: no signal at all. The game must be finishable through its fallbacks.
@@ -111,5 +111,5 @@ applied again. The solver's worlds name no player, so they bind nothing.
 
 ## The API
 
-`web-scumm/reality` (`docs/en/API.md`): the signed signal and its verification, the client and its HTTP transport,
+`quest-n-click/reality` (`docs/en/API.md`): the signed signal and its verification, the client and its HTTP transport,
 the simulator, the manifest. A game with its own transport implements `WorldSignalPort`.

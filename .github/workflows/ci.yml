@@ -313,8 +313,10 @@ jobs:
         run: |
           node scripts/pack.mjs --out=.cache/pack
           mkdir -p .cache/operator && cd .cache/operator && echo '{"name":"operator","private":true}' > package.json
-          npm install --omit=optional --ignore-scripts --no-audit --no-fund ../pack/web-scumm-connectors-*.tgz
-          npx web-scumm-connector --help | grep -q 'usage: web-scumm-connector'
+          npm install --omit=optional --ignore-scripts --no-audit --no-fund ../pack/quest-n-click-connectors-[0-9]*.tgz
+          npx quest-n-click-connector --help | grep -q 'usage: quest-n-click-connector'
+          # The former command (D47), through 4.2.x: a notice, then the same answer.
+          npx web-scumm-connector --help 2>&1 | grep -q 'web-scumm-connector is now quest-n-click-connector'
           ! find node_modules -name '*.node' | grep -q .
   # The hosted Studio (4.2.1): the journal on Postgres with its blobs in S3, the service lease, the processing worker
   # through presigned URLs, the spans' leases racing on Postgres, and the login, back-channel logout and a disabled

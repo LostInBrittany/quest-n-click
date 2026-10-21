@@ -1,21 +1,21 @@
-// The package.json of the two packages whose dependencies are locked (4.1.19, plan §6.1): the Bridge and the
+// The package.json of the packages whose dependencies are locked (4.1.19, plan §6.1): the Bridge and the
 // connectors, written by scripts/pack.mjs and by scripts/locks.mjs from the same function, so a lock is always made for
 // the very manifest an archive carries. Their locks are versioned under scripts/locks/ (`npm run locks` makes them from
 // the root lock; tests/pack-locks.test.ts holds them to it), copied into each archive as npm-shrinkwrap.json: an
 // install of an archive resolves nothing. The qualification image installs from a lock of its own (`image`), the
 // Bridge's dependencies and the optional peers it runs with (pg, OpenTelemetry's API), at exact versions.
 
-/** web-scumm-bridge's package.json. */
+/** quest-n-click-bridge's package.json (web-scumm-bridge before 4.2.5, D47: its old command still answers). */
 export const bridgeManifest = (root) => ({
-  name: 'web-scumm-bridge',
+  name: 'quest-n-click-bridge',
   version: root.version,
   description:
-    'The reference Reality Bridge for web-scumm games: signals from the world outside, signed, delivered at least once.',
+    "The reference Reality Bridge for quest'n'click games: signals from the world outside, signed, delivered at least once.",
   license: 'MIT',
   type: 'module',
   engines: root.engines,
-  repository: { type: 'git', url: 'git+https://github.com/wanoo/web-scumm.git' },
-  bin: { 'web-scumm-bridge': 'bin.mjs' },
+  repository: { type: 'git', url: 'git+https://github.com/wanoo/quest-n-click.git' },
+  bin: { 'quest-n-click-bridge': 'bin.mjs', 'web-scumm-bridge': 'bin-web-scumm.mjs' },
   exports: { './cli': './src/cli.mjs', './package.json': './package.json' },
   dependencies: {
     '@biscuit-auth/biscuit-wasm': root.devDependencies['@biscuit-auth/biscuit-wasm'],
@@ -27,38 +27,44 @@ export const bridgeManifest = (root) => ({
   peerDependenciesMeta: { pg: { optional: true }, '@opentelemetry/api': { optional: true } },
 });
 
-/** web-scumm-connectors' package.json. */
+/** quest-n-click-connectors' package.json (web-scumm-connectors before 4.2.5, D47). */
 export const connectorsManifest = (root) => ({
-  name: 'web-scumm-connectors',
+  name: 'quest-n-click-connectors',
   version: root.version,
   description:
-    'Connectors of the world outside for web-scumm games (email, Telnet, SSH, Open Badges): each its own process, proposing signals to a web-scumm-bridge. Experimental.',
+    "Connectors of the world outside for quest'n'click games (email, Telnet, SSH, Open Badges): each its own process, proposing signals to a quest-n-click-bridge. Experimental.",
   license: 'MIT',
   type: 'module',
   engines: root.engines,
-  repository: { type: 'git', url: 'git+https://github.com/wanoo/web-scumm.git' },
-  bin: { 'web-scumm-connector': 'bin.mjs' },
+  repository: { type: 'git', url: 'git+https://github.com/wanoo/quest-n-click.git' },
+  bin: { 'quest-n-click-connector': 'bin.mjs', 'web-scumm-connector': 'bin-web-scumm.mjs' },
   exports: { './run': './src/run.mjs', './package.json': './package.json' },
   dependencies: { ssh2: root.devDependencies.ssh2 },
 });
 
 /**
- * web-scumm-studio-server's package.json (4.2.1, plan §7 row 8): the Studio Server and its processing worker, two
- * commands that run the server of the engine installed beside it (`web-scumm`, the same version: its sources, Vite and
+ * quest-n-click-studio-server's package.json (4.2.1, plan §7 row 8; web-scumm-studio-server before 4.2.5, D47): the
+ * Studio Server and its processing worker, two commands that run the server of the engine installed beside it
+ * (`quest-n-click`, or its alias `web-scumm` through 4.2.x, the same version: its sources, Vite and
  * tsx), with the Studio's page built in. Its own dependencies (OpenID Connect, JWT, Postgres) are locked; the engine is
  * an optional peer, installed from the same release's archive (it is not on npm, so no lock can name it); the commands
  * check that its version is theirs.
  */
 export const studioServerManifest = (root) => ({
-  name: 'web-scumm-studio-server',
+  name: 'quest-n-click-studio-server',
   version: root.version,
   description:
-    'The web-scumm Studio Server: one game, several people, online (OpenID Connect, PostgreSQL, S3), and its processing worker.',
+    "The quest'n'click Studio Server: one game, several people, online (OpenID Connect, PostgreSQL, S3), and its processing worker.",
   license: 'MIT',
   type: 'module',
   engines: root.engines,
-  repository: { type: 'git', url: 'git+https://github.com/wanoo/web-scumm.git' },
-  bin: { 'web-scumm-studio-server': 'bin/server.mjs', 'web-scumm-studio-worker': 'bin/worker.mjs' },
+  repository: { type: 'git', url: 'git+https://github.com/wanoo/quest-n-click.git' },
+  bin: {
+    'quest-n-click-studio-server': 'bin/server.mjs',
+    'quest-n-click-studio-worker': 'bin/worker.mjs',
+    'web-scumm-studio-server': 'bin/web-scumm-server.mjs',
+    'web-scumm-studio-worker': 'bin/web-scumm-worker.mjs',
+  },
   exports: { './package.json': './package.json' },
   dependencies: {
     'openid-client': root.devDependencies['openid-client'],
@@ -66,8 +72,8 @@ export const studioServerManifest = (root) => ({
     pg: root.devDependencies.pg,
   },
   // The engine's line (`4.2.x`): the commands refuse to start on another version than their own.
-  peerDependencies: { 'web-scumm': root.version.replace(/^(\d+)\.(\d+)\..*$/, '$1.$2.x') },
-  peerDependenciesMeta: { 'web-scumm': { optional: true } },
+  peerDependencies: { 'quest-n-click': root.version.replace(/^(\d+)\.(\d+)\..*$/, '$1.$2.x') },
+  peerDependenciesMeta: { 'quest-n-click': { optional: true } },
 });
 
 /** The range the Bridge accepts for OpenTelemetry's API; the image locks one version of it. */
@@ -79,7 +85,7 @@ const OTEL_API = '^1.9.0';
  * the lock gives.
  */
 export const imageManifest = (root) => ({
-  name: 'web-scumm-bridge-image',
+  name: 'quest-n-click-bridge-image',
   version: root.version,
   private: true,
   license: 'MIT',
@@ -92,13 +98,21 @@ export const imageManifest = (root) => ({
 
 /** Each locked package: its manifest and the file of its lock. */
 export const LOCKED = [
-  { name: 'web-scumm-bridge', manifest: bridgeManifest, lock: 'scripts/locks/web-scumm-bridge.json' },
-  { name: 'web-scumm-connectors', manifest: connectorsManifest, lock: 'scripts/locks/web-scumm-connectors.json' },
-  { name: 'web-scumm-bridge-image', manifest: imageManifest, lock: 'scripts/locks/web-scumm-bridge-image.json' },
+  { name: 'quest-n-click-bridge', manifest: bridgeManifest, lock: 'scripts/locks/quest-n-click-bridge.json' },
   {
-    name: 'web-scumm-studio-server',
+    name: 'quest-n-click-connectors',
+    manifest: connectorsManifest,
+    lock: 'scripts/locks/quest-n-click-connectors.json',
+  },
+  {
+    name: 'quest-n-click-bridge-image',
+    manifest: imageManifest,
+    lock: 'scripts/locks/quest-n-click-bridge-image.json',
+  },
+  {
+    name: 'quest-n-click-studio-server',
     manifest: studioServerManifest,
-    lock: 'scripts/locks/web-scumm-studio-server.json',
+    lock: 'scripts/locks/quest-n-click-studio-server.json',
   },
 ];
 
@@ -131,11 +145,37 @@ export function lockProblems(lock, manifest) {
   return bad;
 }
 
-/** A lock made for this release's manifest: only its name and version are this release's, nothing is resolved. */
+/**
+ * A lock made for this release's manifest: only its name, version, commands and peers are the manifest's (an alias's
+ * old name, 4.2.5), nothing is resolved.
+ */
 export function lockFor(lock, manifest) {
   const out = structuredClone(lock);
   out.name = manifest.name;
   out.version = manifest.version;
-  out.packages[''] = { ...out.packages[''], name: manifest.name, version: manifest.version };
+  out.packages[''] = {
+    ...out.packages[''],
+    name: manifest.name,
+    version: manifest.version,
+    ...(manifest.bin ? { bin: manifest.bin } : {}),
+    ...(manifest.peerDependencies ? { peerDependencies: manifest.peerDependencies } : {}),
+    ...(manifest.peerDependenciesMeta ? { peerDependenciesMeta: manifest.peerDependenciesMeta } : {}),
+  };
   return out;
+}
+
+/**
+ * The old name of a package, through 4.2.x (D47): the same manifest under the name it had before 4.2.5, its engine peer
+ * the engine's old name too; the aliases go in 4.3.
+ */
+export function aliasManifest(manifest) {
+  const old = (n) => n.replace(/^quest-n-click/, 'web-scumm').replace(/^create-quest-n-click$/, 'create-web-scumm');
+  const rename = (o) => o && Object.fromEntries(Object.entries(o).map(([k, v]) => [old(k), v]));
+  return {
+    ...manifest,
+    name: old(manifest.name),
+    description: `${manifest.name} under its former name (an alias through 4.2.x, removed in 4.3): ${manifest.description}`,
+    ...(manifest.peerDependencies ? { peerDependencies: rename(manifest.peerDependencies) } : {}),
+    ...(manifest.peerDependenciesMeta ? { peerDependenciesMeta: rename(manifest.peerDependenciesMeta) } : {}),
+  };
 }

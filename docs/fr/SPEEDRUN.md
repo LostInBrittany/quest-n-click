@@ -1,6 +1,6 @@
 # Speedrun (4.1.14 « Time Attack »)
 
-Un jeu fait avec web-scumm peut déclarer des catégories de speedrun dans son contenu. Le joueur lance une tentative
+Un jeu fait avec quest'n'click peut déclarer des catégories de speedrun dans son contenu. Le joueur lance une tentative
 depuis le menu pause, le moteur la chronomètre, la découpe en splits sur ce qui se passe dans le jeu (jamais sur des
 pixels) et scelle le run dans un fichier `.wsrun` que n'importe qui peut rejouer et vérifier. La conception est dans
 `docs/dev/adr/0016-run-clock-and-envelope.md` (l'horloge, le générateur à graine, la preuve chaînée) et
@@ -106,7 +106,7 @@ catégorie Remix il est refusé (`legacy-world-missing`), jamais requalifié d'a
 
 ```
 npm run speedrun:verify -- run.wsrun [--keys=bridge-keys.json] [--json]
-web-scumm speedrun verify run.wsrun
+quest-n-click speedrun verify run.wsrun
 ```
 
 L'outil MCP `speedrun_verify` fait de même pour un assistant. Le vérificateur recharge la catégorie depuis le jeu,

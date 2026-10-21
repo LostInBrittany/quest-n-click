@@ -7,83 +7,96 @@
 //
 //   release-files --tag=<vX.Y.Z> --candidate=<candidate.json>   the names the release publishes, one per line
 //   check-release --tag=<vX.Y.Z> --candidate=<candidate.json> --dir=<dir>   those files, and no other, under --dir
+//   project --tag=<vX.Y.Z>   the name the tag's files start with: quest-n-click from 4.2.5 (D47), web-scumm before
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { atLeast } from './candidate.mjs';
 
+/** The first release whose files carry the project's new name, quest'n'click (4.2.5, D47); every earlier one keeps
+ * `web-scumm-…`, as it was published (its downloads, sums and attestations name those files). */
+export const RENAMED = '4.2.5';
+/** The line that no longer ships the old package names as aliases (D47): through 4.2.x they are published too. */
+export const ALIASES_UNTIL = '4.3.0';
+
+/** The name a release's own files start with (`{proj}`): `quest-n-click` from 4.2.5, `web-scumm` before. */
+export const projectOf = (version) => (atLeast(version.replace(/-.*$/, ''), RENAMED) ? 'quest-n-click' : 'web-scumm');
+
+/** Each package by its name, the name it had before 4.2.5, and the release that first shipped it. */
+export const PACKAGES = [
+  { name: 'quest-n-click', old: 'web-scumm' },
+  { name: 'create-quest-n-click', old: 'create-web-scumm' },
+  { name: 'quest-n-click-bridge', old: 'web-scumm-bridge' },
+  { name: 'quest-n-click-connectors', old: 'web-scumm-connectors' },
+  { name: 'quest-n-click-studio-server', old: 'web-scumm-studio-server', since: '4.2.1' },
+];
+
+/** A package's archive and its SBOM, published under its own name, for the releases `since` (and before `until`). */
+function packageEntries(p, { since, until }) {
+  const span = { ...(since ? { since } : {}), ...(until ? { until } : {}) };
+  return [
+    {
+      id: `package:${p}`,
+      kind: 'package',
+      candidate: `pack/${p}-{pkg}.tgz`,
+      artifact: 'candidate-pack',
+      job: 'pack',
+      published: `${p}-{pkg}.tgz`,
+      sbom: `${p}-{tag}-sbom.cdx.json`,
+      ...span,
+    },
+    {
+      id: `sbom:${p}`,
+      kind: 'sbom',
+      candidate: `sbom/${p}.cdx.json`,
+      artifact: 'candidate-sbom',
+      job: 'pack',
+      published: `${p}-{tag}-sbom.cdx.json`,
+      ...span,
+    },
+  ];
+}
+
 /**
  * Every file of a release. `candidate`: its path in the candidate's manifest (`{pkg}` the package version, `{v}` the
  * version, `*` a run's name), `artifact` and `job` the candidate job that uploads it; `null` when the release job makes
- * it. `published`: its name on the release (`{tag}` the tag). `sbom`: the published SBOM that describes it. `since`:
- * the first release that has it (an older one is judged without it).
+ * it. `published`: its name on the release (`{tag}` the tag, `{proj}` the name the release's files start with). `sbom`:
+ * the published SBOM that describes it. `since`: the first release that has it (an older one is judged without it);
+ * `until`: the first release that no longer has it.
  */
 export const ARTIFACTS = [
-  // The four packages (4.1.18), packed once by the candidate, installed outside the repository on three systems.
-  ...['web-scumm', 'create-web-scumm', 'web-scumm-bridge', 'web-scumm-connectors'].map((p) => ({
-    id: `package:${p}`,
-    kind: 'package',
-    candidate: `pack/${p}-{pkg}.tgz`,
-    artifact: 'candidate-pack',
-    job: 'pack',
-    published: `${p}-{pkg}.tgz`,
-    sbom: `${p}-{tag}-sbom.cdx.json`,
-  })),
-  // Their SBOMs (4.1.19), from what each archive holds.
-  ...['web-scumm', 'create-web-scumm', 'web-scumm-bridge', 'web-scumm-connectors'].map((p) => ({
-    id: `sbom:${p}`,
-    kind: 'sbom',
-    candidate: `sbom/${p}.cdx.json`,
-    artifact: 'candidate-sbom',
-    job: 'pack',
-    published: `${p}-{tag}-sbom.cdx.json`,
-  })),
-  // The Studio Server (4.2.1): its archive, installed from the candidate's own beside the engine (studio-install-smoke),
-  // and its SBOM, from its lock.
-  {
-    id: 'package:web-scumm-studio-server',
-    kind: 'package',
-    candidate: 'pack/web-scumm-studio-server-{pkg}.tgz',
-    artifact: 'candidate-pack',
-    job: 'pack',
-    published: 'web-scumm-studio-server-{pkg}.tgz',
-    sbom: 'web-scumm-studio-server-{tag}-sbom.cdx.json',
-    since: '4.2.1',
-  },
-  {
-    id: 'sbom:web-scumm-studio-server',
-    kind: 'sbom',
-    candidate: 'sbom/web-scumm-studio-server.cdx.json',
-    artifact: 'candidate-sbom',
-    job: 'pack',
-    published: 'web-scumm-studio-server-{tag}-sbom.cdx.json',
-    since: '4.2.1',
-  },
+  // The packages (4.1.18; the Studio Server since 4.2.1), packed once by the candidate, installed outside the repository
+  // on three systems, and their SBOMs (4.1.19), from what each archive holds. Their names since 4.2.5 (D47), and the old
+  // names through 4.2.x: before 4.2.5 the packages themselves, from 4.2.5 their aliases (the same files, the old name).
+  ...PACKAGES.flatMap(({ name, old, since }) => [
+    ...packageEntries(name, { since: RENAMED }),
+    ...packageEntries(old, { since, until: ALIASES_UNTIL }),
+  ]),
   // The Bridge's qualification image (4.1.19): its archive, its three identities, its SBOM.
   {
     id: 'image:archive',
     kind: 'image',
-    candidate: 'image/web-scumm-bridge-image.tar',
+    candidate: 'image/{proj}-bridge-image.tar',
     artifact: 'candidate-image',
     job: 'image',
-    published: 'web-scumm-bridge-image-{tag}.tar',
-    sbom: 'web-scumm-bridge-image-{tag}-sbom.cdx.json',
+    published: '{proj}-bridge-image-{tag}.tar',
+    sbom: '{proj}-bridge-image-{tag}-sbom.cdx.json',
   },
   {
     id: 'image:identity',
     kind: 'image',
-    candidate: 'image/web-scumm-bridge-image.json',
+    candidate: 'image/{proj}-bridge-image.json',
     artifact: 'candidate-image',
     job: 'image',
-    published: 'web-scumm-bridge-image-{tag}.json',
+    published: '{proj}-bridge-image-{tag}.json',
   },
   {
     id: 'image:sbom',
     kind: 'sbom',
-    candidate: 'image/web-scumm-bridge-image.cdx.json',
+    candidate: 'image/{proj}-bridge-image.cdx.json',
     artifact: 'candidate-image',
     job: 'image',
-    published: 'web-scumm-bridge-image-{tag}-sbom.cdx.json',
+    published: '{proj}-bridge-image-{tag}-sbom.cdx.json',
   },
   // The runs the Remix × Time Attack check wrote (4.1.17), their manifest and the check's report.
   {
@@ -92,7 +105,7 @@ export const ARTIFACTS = [
     candidate: 'wsrun/*.wsrun',
     artifact: 'candidate-release',
     job: 'cross-runtime',
-    published: 'web-scumm-{tag}-*.wsrun',
+    published: '{proj}-{tag}-*.wsrun',
   },
   {
     id: 'runs:manifest',
@@ -100,7 +113,7 @@ export const ARTIFACTS = [
     candidate: 'wsrun/wsrun-manifest.json',
     artifact: 'candidate-release',
     job: 'cross-runtime',
-    published: 'web-scumm-{tag}-wsrun-manifest.json',
+    published: '{proj}-{tag}-wsrun-manifest.json',
   },
   {
     id: 'runs:report',
@@ -108,7 +121,7 @@ export const ARTIFACTS = [
     candidate: 'e2e-remix-speedrun.txt',
     artifact: 'candidate-release',
     job: 'cross-runtime',
-    published: 'web-scumm-{tag}-e2e-remix-speedrun.txt',
+    published: '{proj}-{tag}-e2e-remix-speedrun.txt',
   },
   // The candidate's baseline of itself (4.1.19) and its manifest (4.1.17), written by its gate.
   ...['json', 'md'].map((ext) => ({
@@ -117,7 +130,7 @@ export const ARTIFACTS = [
     candidate: `baseline/baseline-{v}.${ext}`,
     artifact: 'candidate-baseline',
     job: 'candidate-gate',
-    published: `web-scumm-{tag}-baseline.${ext}`,
+    published: `{proj}-{tag}-baseline.${ext}`,
   })),
   {
     id: 'candidate:manifest',
@@ -126,7 +139,7 @@ export const ARTIFACTS = [
     candidate: null,
     artifact: 'candidate-manifest',
     job: 'candidate-gate',
-    published: 'web-scumm-{tag}-candidate.json',
+    published: '{proj}-{tag}-candidate.json',
   },
   // The built game (4.1.20 PR 4): the very site release-core built and checked, its assets manifest, and the SHA-256 of
   // every file it serves, which the people's passes are bound to (docs/dev/surfaces.json). Before 4.1.20 the release
@@ -137,8 +150,8 @@ export const ARTIFACTS = [
     candidate: 'site/dist.tar.gz',
     artifact: 'candidate-site',
     job: 'release-core',
-    published: 'web-scumm-{tag}-dist.tar.gz',
-    sbom: 'web-scumm-{tag}-sbom.cdx.json',
+    published: '{proj}-{tag}-dist.tar.gz',
+    sbom: '{proj}-{tag}-sbom.cdx.json',
   },
   {
     id: 'game:assets',
@@ -146,7 +159,7 @@ export const ARTIFACTS = [
     candidate: 'site/assets-manifest.json',
     artifact: 'candidate-site',
     job: 'release-core',
-    published: 'web-scumm-{tag}-assets-manifest.json',
+    published: '{proj}-{tag}-assets-manifest.json',
   },
   {
     id: 'game:files',
@@ -154,7 +167,7 @@ export const ARTIFACTS = [
     candidate: 'site/site-files.json',
     artifact: 'candidate-site',
     job: 'release-core',
-    published: 'web-scumm-{tag}-site-files.json',
+    published: '{proj}-{tag}-site-files.json',
   },
   // The surfaces of the people's passes (4.1.20 PR 4, ADR 0024): what each pass is bound to, under the manifest's
   // attestation (written by the gate before the manifest, from the files above).
@@ -164,7 +177,7 @@ export const ARTIFACTS = [
     candidate: 'surfaces/qualification-surfaces.json',
     artifact: 'candidate-surfaces',
     job: 'candidate-gate',
-    published: 'web-scumm-{tag}-surfaces.json',
+    published: '{proj}-{tag}-surfaces.json',
   },
   // The signing of 4.2's tags rehearsed by the candidate (4.1.20 PR 3b): its report.
   {
@@ -173,7 +186,7 @@ export const ARTIFACTS = [
     candidate: 'signing/signing-rehearsal.json',
     artifact: 'candidate-signing',
     job: 'signing-rehearsal',
-    published: 'web-scumm-{tag}-signing-rehearsal.json',
+    published: '{proj}-{tag}-signing-rehearsal.json',
   },
   // What the release job makes from the tag's commit: the Remix catalogues proved, the reference speedrun, the sums.
   ...['demo', 'reference'].map((g) => ({
@@ -181,20 +194,27 @@ export const ARTIFACTS = [
     kind: 'report',
     candidate: null,
     job: 'release',
-    published: `web-scumm-{tag}-remix-${g}.json`,
+    published: `{proj}-{tag}-remix-${g}.json`,
   })),
   {
     id: 'speedrun:reference',
     kind: 'run',
     candidate: null,
     job: 'release',
-    published: 'web-scumm-{tag}-reference-any.wsrun',
+    published: '{proj}-{tag}-reference-any.wsrun',
   },
-  { id: 'sums', kind: 'sums', candidate: null, job: 'release', published: 'web-scumm-{tag}-SHA256SUMS' },
+  { id: 'sums', kind: 'sums', candidate: null, job: 'release', published: '{proj}-{tag}-SHA256SUMS' },
 ];
 
 const fill = (s, { tag, version }) =>
-  s.replaceAll('{tag}', tag).replaceAll('{v}', version).replaceAll('{pkg}', version.replace(/-.*$/, ''));
+  s
+    .replaceAll('{proj}', projectOf(version))
+    .replaceAll('{tag}', tag)
+    .replaceAll('{v}', version)
+    .replaceAll('{pkg}', version.replace(/-.*$/, ''));
+
+/** Whether a release of `version` has an entry (its `since`, its `until`). */
+const has = (a, version) => (!a.since || atLeast(version, a.since)) && (!a.until || !atLeast(version, a.until));
 
 /** The version a tag names (`v4.1.20-rc.1` → `4.1.20-rc.1`). */
 const versionOfTag = (tag) => {
@@ -211,7 +231,7 @@ const runsOf = (candidateFiles) =>
 
 /** The files a candidate's manifest must list for a version (the runs as the manifest names them). */
 export function candidateFiles(version, runs) {
-  return ARTIFACTS.filter((a) => a.candidate && (!a.since || atLeast(version, a.since)))
+  return ARTIFACTS.filter((a) => a.candidate && has(a, version))
     .flatMap((a) =>
       a.candidate.includes('*')
         ? runs.map((r) => fill(a.candidate.replace('*', r), { tag: `v${version}`, version }))
@@ -224,7 +244,7 @@ export function candidateFiles(version, runs) {
 export function releaseFiles(tag, candidate) {
   const version = versionOfTag(tag);
   const runs = runsOf(candidate);
-  return ARTIFACTS.filter((a) => !a.since || atLeast(version, a.since))
+  return ARTIFACTS.filter((a) => has(a, version))
     .flatMap((a) =>
       a.published.includes('*')
         ? runs.map((r) => fill(a.published.replace('*', r), { tag, version }))
@@ -252,7 +272,7 @@ export const FIRST = '4.1.20';
  */
 export function publishedProblems(tag, files, dir) {
   if (!atLeast(versionOfTag(tag), FIRST)) return [];
-  const cand = `web-scumm-${tag}-candidate.json`;
+  const cand = `${projectOf(versionOfTag(tag))}-${tag}-candidate.json`;
   if (!files.includes(cand)) return [`${cand}: missing (the candidate's manifest names the runs)`];
   return checkRelease(tag, filesOfManifest(join(dir, cand)), files);
 }
@@ -266,11 +286,19 @@ if (import.meta.url === pathToFileURL(process.argv[1] ?? '').href) {
   const [cmd] = process.argv.slice(2).filter((a) => !a.startsWith('--'));
   const tag = flag('tag');
   const cand = flag('candidate');
-  if ((cmd === 'release-files' || cmd === 'check-release') && tag && cand && existsSync(cand)) {
+  // The name this tag's files start with (4.2.5, D47), for release.yml.
+  if (cmd === 'project' && tag) console.log(projectOf(versionOfTag(tag)));
+  else if ((cmd === 'release-files' || cmd === 'check-release') && tag && cand && existsSync(cand)) {
     if (cmd === 'release-files') console.log(releaseFiles(tag, filesOfManifest(cand)).join('\n'));
     else {
       const dir = flag('dir') ?? '.';
-      const ours = new Set(ARTIFACTS.map((a) => a.published.split('{')[0]));
+      const ours = new Set(
+        ARTIFACTS.map((a) =>
+          fill(a.published, { tag, version: versionOfTag(tag) })
+            .split(tag)[0]
+            .replace(/\d.*$/, ''),
+        ),
+      );
       // The folder holds more than the release (the checkout): only names that start as one of ours are judged.
       const present = readdirSync(dir).filter((f) => [...ours].some((p) => f.startsWith(p)) && releaseLike(f, tag));
       const bad = checkRelease(tag, filesOfManifest(cand), present);
@@ -279,7 +307,9 @@ if (import.meta.url === pathToFileURL(process.argv[1] ?? '').href) {
       process.exit(bad.length ? 1 : 0);
     }
   } else {
-    console.error('usage: node tools/release/artifacts.mjs <release-files|check-release> --tag= --candidate= [--dir=]');
+    console.error(
+      'usage: node tools/release/artifacts.mjs <release-files|check-release> --tag= --candidate= [--dir=] | project --tag=',
+    );
     process.exit(2);
   }
 }

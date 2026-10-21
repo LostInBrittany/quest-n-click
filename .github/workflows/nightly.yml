@@ -13,8 +13,9 @@ on:
 permissions:
   contents: read
 jobs:
-  # The four npm names (4.1.20 PR 3b, D34: squatting accepted until 4.2): still free, or ours. Never gating: a name
-  # taken by someone else is said as a warning and in the summary, for the maintainer to act before 4.2.
+  # The npm names (4.1.20 PR 3b, D34: squatting accepted until 4.2): still free, or ours. Never gating: a name
+  # taken by someone else is said as a warning and in the summary, for the maintainer to act before 4.2. The names
+  # since 4.2.5 (D47), and the former ones, which a reader may still look for.
   npm-names:
     runs-on: ubuntu-24.04
     timeout-minutes: 5
@@ -22,7 +23,7 @@ jobs:
     steps:
       - shell: bash
         run: |
-          for p in web-scumm create-web-scumm web-scumm-bridge web-scumm-connectors web-scumm-studio-server; do
+          for p in quest-n-click create-quest-n-click quest-n-click-bridge quest-n-click-connectors quest-n-click-studio-server web-scumm create-web-scumm web-scumm-bridge web-scumm-connectors web-scumm-studio-server; do
             # The maintainer's npm user exactly (`wanoo <mail>`), never a prefix; a 404 is free, any other error said.
             if who=$(npm view "$p" maintainers --json 2>/tmp/npm-err); then
               if echo "$who" | grep -Eq '"wanoo( <|")'; then echo "✔ $p: ours"; else echo "::warning title=npm name taken::$p is published by someone else: $who"; echo "- $p: TAKEN by $who" >> "$GITHUB_STEP_SUMMARY"; fi

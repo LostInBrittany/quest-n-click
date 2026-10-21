@@ -6659,3 +6659,82 @@ magenta, and it is the delicate part).
   (en, fr); `docs/dev/passes/4.2.4.md` (nineteen passes, none new).
 
 → next: Claude (the merge, the candidate on main, `v4.2.4` signed on it, `ship verify`)
+
+## #244 · 2026-10-20 · Claude · proposal · 4.2.5: web-scumm becomes quest'n'click
+
+- **Asked** (20 October, D47): rename the project quest'n'click, keep the trace of web-scumm in the README, a redirect,
+  "ne pas perdre les gens qui étaient déjà sur le sujet"; the slug `quest-n-click`; the old names still working through
+  4.2.x, gone in 4.3; Horacio's #202 left to 4.3.
+- **Done**:
+  - every occurrence of the old name inventoried (about 430 files) and classed: a name people see or install is
+    renamed; an identifier written in a file, a store, a header or a signature is a format and kept byte for byte; a
+    historical record (CHANGELOG, LOG, plans, passes, baselines, ADRs) is left as written;
+  - the docs (en, fr): the READMEs with the new logo and a "Formerly web-scumm" note (old Pages address not
+    redirected), every guide's names, commands and URLs, UPGRADING §38, SUPPORT "4.2.5" (the aliases deprecated through
+    4.2.x), D47 with the maintainer's words;
+  - the packages, their commands and the release's files under the new names, the old ones as aliases (the same files,
+    the old package name), the old commands with a notice, both import names resolved; past releases' names and
+    attestation identity kept for the tools that fetch and verify them.
+- **What stays open**: the Clever applications' names (the reference deployment) and the private game (D8), not
+  touched; npm publishing, which will take the new names; the local folder, renamed by the maintainer.
+  The sample games' own credits and title-screen line (demo, reference) still say web-scumm: they enter the
+  presentation fingerprint the reference run is sealed with, so they move with the 4.2.5 release commit, which records
+  that run again. The README's quick start stays on v4.2.4's archive (`web-scumm-4.2.4.tgz`, under the new repository's
+  URL) until that commit too. The Bridge's qualification files are renamed (image, lock, compose project), so the
+  surfaces of the passes that read them change: those passes are not carried from 4.2.4.
+
+→ next: the maintainer (the review of the pull request; the folder renamed), then the 4.2.5 release
+
+## #245 · 2026-10-20 · Claude · release · 4.2.5 "quest'n'click": the new name
+
+- **What ships**: the rename of #209 (LOG #244, D47): web-scumm, named in homage to SCUMM, becomes quest'n'click, so
+  its name sparks no needless debate. The display name quest'n'click; the packages and commands `quest-n-click`,
+  `create-quest-n-click`, `quest-n-click-bridge`, `quest-n-click-connectors`, `quest-n-click-studio-server`, with
+  full-copy `web-scumm…` alias archives through 4.2.x (the old commands run after a one-line notice, the old imports
+  resolve); the formats unchanged (`web-scumm-save`, `web-scumm-session`, `.wsrun`, `web-scumm-remix-1`, the stores'
+  and headers' names, `WEB_SCUMM_*`); the release's files named `quest-n-click-…` from 4.2.5
+  (`tools/release/artifacts.mjs` picks the name by version, so v4.1.20–v4.2.4 are still judged by their published
+  names); the attestations signed as `wanoo/quest-n-click` from 4.2.5, `wanoo/web-scumm` before; the old Pages address
+  redirected through `wanoo/wanoo.github.io`, whose page also retires the old service worker (LOG #244 still says "not
+  redirected": its second reading in #209 changed that, the READMEs and UPGRADING §38 say it redirects).
+- **The maintainer's words** (20 October, in French, as D47 quotes them): « l'idée pour moi c'est maintenant de
+  renommer ce projet en quest and click » ; « changement du repos, mise à jour du RIDMI pour garder la trace de
+  WebSkum, histoire que s'il y a des gens qui viennent rechercher, etc., et avoir un lien de redirection. Bref, ne pas
+  perdre les gens qui étaient déjà sur le sujet » ; « dire qu'initialement ça s'appelait WebSkum et que c'était un
+  hommage au SCUM, mais dans la réalité, pas envie de perdre du temps sur des débats stériles » ; « je veux que tu
+  renommes le repos […], le répertoire sur mon ordinateur, les références, faire un truc clean » (dictated: WebSkum,
+  SCUM and RIDMI stand for WebSCUMM, SCUMM and README).
+- **The maintainer's answers**:
+  - « quest-n-click (Recommended) » for the slug; « Old names still work (Recommended) » for compatibility, the aliases
+    through 4.2.x, removed in 4.3; « 4.3 is ok » for Horacio's #202;
+  - « Yes, create the redirect (Recommended) »: the page in `wanoo/wanoo.github.io` that sends the old Pages address,
+    its deep links and the old installed app to `wanoo.github.io/quest-n-click`;
+  - « Yes, sign v4.2.5 » (20 Oct), the yes for `v4.2.5` only (D37), signed on its own green candidate run; a later tag
+    gets its own.
+- **What this release commit adds**: the sample games' credits (the Pantry Key: "A quest'n'click sample game", "Sound
+  effects: generated by quest'n'click"; the Night Market: its credits and its title-screen line "The reference chapter
+  of quest'n'click"), en and fr, left by #209 because they enter the presentation fingerprint; so the reference run is
+  recorded again (its engine version, the engine and presentation fingerprints and the hashes that follow from them
+  moved; its 49 steps and its times did not). No test pins those strings, and no visual reference shows the credits.
+  The README's quick start installs `releases/download/v4.2.5/quest-n-click-4.2.5.tgz` with `npx quest-n-click`, and
+  says the old archive and command still work; the template (`games/_template`, `cli/create.mjs`) already said
+  quest'n'click.
+- **What stays open**:
+  - the aliases: removed in 4.3 (`scripts/pack.mjs`, the notices, both import names, the `web-scumm` package names in
+    the Studio Server and the Bridge's lookups);
+  - npm publishing, which will take the new names;
+  - the Clever spike applications, still named `web-scumm-spike-*` (the reference deployment);
+  - the field passes whose surfaces changed name: the Bridge's image files and lock are renamed
+    (`quest-n-click-bridge-image.*`), so the passes that read them (`bridge-postgres-https`, `runs-real-players`,
+    `mystery-deployed`, `connectors-real-security`) do not carry over and must run again on the 4.2.5 candidate, as do
+    the Studio's six (their archives renamed) and `archive-human-install` (the README's install section changed); the
+    nineteen stay open (#75–#87, #149, #150, #166, #167, #196, #197);
+  - Horacio's #202, for 4.3;
+  - the "kept, not sure they are formats" list of #209 (the MCP resource URIs `webscumm://…`, the Keycloak examples'
+    realm, the Studio's default committer, the OpenTelemetry meter…), for 4.3 to decide.
+- **The version**: 4.2.5; the golden save `demo-4.2.5.json`; the reference run recorded again; the CHANGELOG assembled
+  from 1 fragment with its LOG part (#244); UPGRADING §38 (the attestations' identity and the sample credits added),
+  ROADMAP, README (en, fr; "v4.2.5 (quest'n'click)"); SUPPORT "4.2.5" already written by #209;
+  `docs/dev/passes/4.2.5.md` (nineteen passes, none new, none carried).
+
+→ next: Claude (the merge, the candidate on main, `v4.2.5` signed on it, `ship verify`)

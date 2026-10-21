@@ -1,15 +1,15 @@
 #!/usr/bin/env node
 // node scripts/studio-install-smoke.mjs --tarballs=<dir> (4.2.1, plan §7 row 9): the Studio Server as an operator gets
 // it, from this release's archives, outside the repository. In an empty folder: `npm install` of the engine and the
-// Studio Server archives (nothing else of the repository); `web-scumm-studio-server import` of the engine's own game
+// Studio Server archives (nothing else of the repository); `quest-n-click-studio-server import` of the engine's own game
 // template; `serve` on the loopback (SQLite, a folder of blobs): its probes, the Studio's page built into the package,
-// the API reading the game; `worker-keys`, then `web-scumm-studio-worker` answering its probe. And its own dependencies
+// the API reading the game; `worker-keys`, then `quest-n-click-studio-worker` answering its probe. And its own dependencies
 // (OpenID Connect, JWT, Postgres: `deps` imports each) found from the engine's sources whether npm hoists them (an
 // install from the archive file) or nests them under the package (`--install-strategy=nested`, as an install from the
 // registry with its shrinkwrap does). From 4.2.3 (PR 0, H7): the worker's Python lock in the engine's package, the very
 // file of the repository; with `--python`, installed as the worker's build hook installs it (`--require-hashes`, wheels
 // only) and its packages imported from that folder (CI's job has CPython 3.13, the lock's). Exit 0 / 1.
-import { execFileSync, spawn } from 'node:child_process';
+import { execFileSync, spawn, spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { cpSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { createServer } from 'node:net';
@@ -51,11 +51,11 @@ const install = (dir, extra = []) => {
   writeFileSync(join(dir, 'package.json'), '{"name":"studio-install-smoke","private":true,"type":"module"}\n');
   execFileSync(
     WIN ? 'npm.cmd' : 'npm',
-    ['install', '--no-audit', '--no-fund', ...extra, tgz('web-scumm'), tgz('web-scumm-studio-server')],
+    ['install', '--no-audit', '--no-fund', ...extra, tgz('quest-n-click'), tgz('quest-n-click-studio-server')],
     { cwd: dir, stdio: ['ignore', 'ignore', 'inherit'], shell: WIN },
   );
 };
-const binIn = (dir, name) => join(dir, 'node_modules', 'web-scumm-studio-server', 'bin', `${name}.mjs`);
+const binIn = (dir, name) => join(dir, 'node_modules', 'quest-n-click-studio-server', 'bin', `${name}.mjs`);
 /** `deps` in an install: each of the server's own dependencies found and imported, with its version and folder. */
 const deps = (dir) =>
   JSON.parse(
@@ -72,7 +72,7 @@ try {
   check('the engine and the Studio Server install from their archives', true);
   const sha = (f) => createHash('sha256').update(readFileSync(f)).digest('hex');
   const LOCK = join('ops', 'studio', 'worker-requirements.lock');
-  const shipped = join(home, 'node_modules', 'web-scumm', LOCK);
+  const shipped = join(home, 'node_modules', 'quest-n-click', LOCK);
   check(
     "the worker's Python lock is in the engine's package, as in the repository",
     sha(shipped) === sha(resolve(import.meta.dirname, '..', LOCK)),
@@ -118,11 +118,23 @@ try {
     OWN.every((n) => hoisted[n]?.version),
     said(hoisted),
   );
+  // The former command (D47), through 4.2.x: its notice on stderr, then the same command.
+  const former = spawnSync(process.execPath, [binIn(home, 'web-scumm-server'), 'deps'], {
+    cwd: home,
+    encoding: 'utf8',
+  });
+  check(
+    'web-scumm-studio-server still answers, after its notice',
+    former.status === 0 &&
+      former.stderr.includes('web-scumm-studio-server is now quest-n-click-studio-server') &&
+      former.stdout.includes('"jose"'),
+    `${former.status}`,
+  );
   const nestedHome = mkdtempSync(join(tmpdir(), 'studio-install-nested-'));
   try {
     install(nestedHome, ['--install-strategy=nested']);
     const nested = deps(nestedHome);
-    const under = join('node_modules', 'web-scumm-studio-server', 'node_modules');
+    const under = join('node_modules', 'quest-n-click-studio-server', 'node_modules');
     check(
       'and when npm nests them under the package',
       OWN.every((n) => nested[n]?.from.includes(under)),
@@ -133,7 +145,9 @@ try {
   }
 
   // The game: the engine's own template, imported as the instance's project.
-  cpSync(join(home, 'node_modules', 'web-scumm', 'games', '_template'), join(home, 'game-src'), { recursive: true });
+  cpSync(join(home, 'node_modules', 'quest-n-click', 'games', '_template'), join(home, 'game-src'), {
+    recursive: true,
+  });
   const port = await freePort();
   const config = {
     publicUrl: `http://127.0.0.1:${port}`,

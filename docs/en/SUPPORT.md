@@ -1,12 +1,12 @@
 # Support and stability
 
-What web-scumm promises from 4.0 on, and how it changes.
+What quest'n'click promises from 4.0 on, and how it changes.
 
 ## What is stable
 
-The public API (`docs/en/API.md`): the entries `web-scumm/content`, `/player`, `/minigames`, `/testing` and, since
+The public API (`docs/en/API.md`): the entries `quest-n-click/content`, `/player`, `/minigames`, `/testing` and, since
 4.1.1, `/reality`, the
-authoring schema (`schemaVersion: 3`), the save envelope, the Studio/MCP tools' schemas and the `web-scumm` command.
+authoring schema (`schemaVersion: 3`), the save envelope, the Studio/MCP tools' schemas and the `quest-n-click` command.
 Everything else under `src/engine` is internal: it may change in any release, and a game that reaches it through the
 `@engine/*` alias takes that risk.
 
@@ -20,7 +20,7 @@ Semantic versioning on the public API:
 
 **The 4.1.x line is the exception, said once (D14).** Since 4.1.1 the project stays on 4.1.x until 4.2, the final
 version, and a 4.1.x release may *add*: an optional entry, field, route, command, hook or sub-object (4.1.1's
-`web-scumm/reality`, 4.1.2's Bridge options, 4.1.4's `destroy` and hooks, 4.1.5's `sessions`, `camera` and `walker`,
+`quest-n-click/reality`, 4.1.2's Bridge options, 4.1.4's `destroy` and hooks, 4.1.5's `sessions`, `camera` and `walker`,
 4.1.6's two commands). What it may not do is what a patch may not do either: change or remove a public name or a
 format. Every addition is optional, nothing of 4.1.0 changes, and a game or a host written against any 4.1.x runs on
 every later 4.1.x, **up to 4.1.7**. `docs/en/UPGRADING.md` has one section per release that says what, if anything, a host must know.
@@ -35,7 +35,7 @@ adds and a major removes, as above. The riskiest versions get a release candidat
 pre-release with the same files and checks).
 
 Supported: the current major's last minor gets fixes; the previous minor gets security fixes for three months after
-the next one. The 3.x line ended with 3.9; its games move to 4.0 with `web-scumm migrate` (nothing to rewrite for a
+the next one. The 3.x line ended with 3.9; its games move to 4.0 with `quest-n-click migrate` (nothing to rewrite for a
 game already on schema 3).
 
 ## Support matrix
@@ -58,6 +58,17 @@ opens no browser, no Windows runner and no Node 24 (`CONTRIBUTING.md`, "What CI 
 | Bridge, `local` profile (4.1.10) | SQLite through `node:sqlite` (Node 22.13+): the store contract, tenants crossed in property tests, three processes on one file with one killed during 1 000 proposals, backup as one snapshot and restore all or nothing (4.1.19); backup schema 4, whole-store and quota included, and two restore modes, `merge` and `replace-store`, under a maintenance lease (4.1.20); a load run of 50 000 proposals every night | a long-running install on a real machine |
 | Bridge, `distributed` profile (4.1.10, `experimental`) | Postgres 16 in CI (`bridge-postgres`): the same contract, tenants and fan-out between instances; the nightly load run; the qualification profile (`ops/qualify/`: HTTPS, three instances, the leaderboard, a worker killed mid-verification, a restore after the topology is destroyed) in the `qualify` workflow; since 4.1.20 the full profile in every candidate a tag may name (both restore modes under the maintenance lease), `--short` in a pull request's | a real deployment: until one, `experimental` |
 | Connectors (4.1.9), **experimental** (D19) | email (signed webhook, IMAP), Telnet, SSH, Open Badges 2 and 3: the same contract on all four, abuse and fuzz tests, a run under `--disallow-code-generation-from-strings`, the sample chapter's replays; the four played from their archive in the candidate (4.1.19); Telnet and SSH tests not on Windows yet | a real email provider, a real badge from a real issuer, SSH and Telnet exposed in a controlled environment |
+
+## 4.2.5: the new name (D47)
+
+4.2.5 renames the project quest'n'click and changes no surface's status. The names `web-scumm` (the package and its
+command), `web-scumm/content`, `/player`, `/minigames`, `/testing`, `/reality`, `create-web-scumm`, `web-scumm-bridge`,
+`web-scumm-connectors` (command `web-scumm-connector`) and `web-scumm-studio-server` (commands `web-scumm-studio-server`,
+`web-scumm-studio-worker`) are **deprecated aliases** of their `quest-n-click` names: supported through 4.2.x, each
+release of the line ships them, and removed in 4.3, an exception to the rule below that the maintainer chose (D47).
+The format identifiers that say web-scumm (`web-scumm-save`, `web-scumm-session`, `.wsrun`'s `web-scumm-speedrun`,
+`web-scumm-remix-1`, the stores' and headers' names, `WEB_SCUMM_*`) are not names of the project but parts of the
+formats: they stay, and no 4.3 removes them.
 
 ## 4.2.4: optional presentation fields (D46)
 
@@ -123,7 +134,7 @@ editors still do not send the revision they read.
 
 4.2.1 to 4.2.3 may **add** (a tool, a command, a Studio Server route, a package) but never change or remove a public
 name or a format: the public API (`src/engine/api`), the content format and the save envelope stay 4.2.0's (D40). The
-**Studio Server** (`docs/en/STUDIO-SERVER.md`, the `web-scumm-studio-server` archive) is **experimental**: its machine
+**Studio Server** (`docs/en/STUDIO-SERVER.md`, the `quest-n-click-studio-server` archive) is **experimental**: its machine
 proofs are the `studio-hosted` CI job and the candidate's `studio-install-smoke`; it becomes limited, then stable,
 with its passes `studio-hosted` (a real Clever Cloud deployment, a real Safari) and `studio-collab` (three people, a
 cut, a redeploy). Its browser tests run in Chromium and Firefox in CI (job `studio-hosted`, on main and every tag),
@@ -132,7 +143,7 @@ and in WebKit on macOS by hand: no WebKit runs them in CI, and WebKit on Linux c
 and the Assistant are not on it yet; a refused write keeps its draft to copy and try again (no diff to merge), and the
 editors do not send the revision they read (P5's base). The Studio and the tools that write a game need Node 22.13+.
 The archive's dependencies are locked for an install from the registry; installed from the archive file, npm resolves
-them from their ranges (`web-scumm-studio-server deps` says which).
+them from their ranges (`quest-n-click-studio-server deps` says which).
 
 ## 4.2.0: what is promised (D38)
 
@@ -161,6 +172,6 @@ newer than the game it is loaded into is refused, never half read. A speedrun's 
 ## Releases
 
 Each release is built from the commit CI tested, carries its licences inside the archive, attaches an assets manifest,
-five CycloneDX SBOMs (the engine, `create-web-scumm`, the Bridge, the connectors and the Bridge's image, 4.1.19),
+five CycloneDX SBOMs (the engine, `create-quest-n-click`, the Bridge, the connectors and the Bridge's image, 4.1.19),
 SHA-256 sums and a provenance attestation, and is never replaced once published (`docs/en/TOOLS.md`). What
 only people and real devices can check is reported in its notes (`docs/en/FIELD.md`).

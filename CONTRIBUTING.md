@@ -1,4 +1,4 @@
-# Contributing to web-scumm
+# Contributing to quest'n'click
 
 Use Node.js 22.12 or newer. Asset tests also need Python 3 with `requirements.txt`; audio authoring needs ffmpeg. Run `npm run doctor` for an exact local report.
 

@@ -149,7 +149,7 @@ const cell = (s: string) => s.replace(/\|/g, '\\|');
 export function signatures(rows = apiRows()): string {
   const out: string[] = [];
   for (const entry of ENTRIES) {
-    out.push(`### web-scumm/${entry}`, '', '| Name | Signature | Stability | Doc |', '|---|---|---|---|');
+    out.push(`### quest-n-click/${entry}`, '', '| Name | Signature | Stability | Doc |', '|---|---|---|---|');
     for (const r of rows.filter((r) => r.entry === entry))
       out.push(
         `| \`${r.name}\` | \`${cell(r.signature)}\` | ${r.stability}${r.deprecated ? ' (deprecated)' : ''} | ${cell(r.doc).slice(0, 140)} |`,

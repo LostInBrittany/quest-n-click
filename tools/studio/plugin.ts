@@ -50,7 +50,7 @@ function send(res: ServerResponse, status: number, data: unknown) {
 
 export function studioPlugin(): Plugin {
   return {
-    name: 'web-scumm-studio',
+    name: 'quest-n-click-studio',
     apply: 'serve',
     async configureServer(server) {
       if (process.env.VITEST) return;

@@ -15,7 +15,7 @@ treated as hostile; each one has its threat model in `docs/dev/threat-models/`. 
 ```sh
 npm run bridge -- grant --connector=shed-telnet --source=terminal --signals=terminal.lamp --pair > telnet.token
 npm run connector -- telnet --config telnet.json        # from the repository
-npx web-scumm-connector telnet --config telnet.json     # from the package web-scumm-connectors
+npx quest-n-click-connector telnet --config telnet.json     # from the package quest-n-click-connectors
 ```
 
 The configuration names the Bridge and the file of the connector's token (never the token on the command line), the
@@ -36,7 +36,7 @@ The game's Reality manifest comes from the Bridge (`GET /v1/manifest`), or from 
 `health`, `GET /health` (200 when healthy, 503 otherwise) and `GET /metrics` answer on 127.0.0.1 (counts of proposals, duplicates, refusals by code,
 inputs rejected, retries). SIGTERM or Ctrl-C stops it: no new input, work in flight drained for at most five seconds,
 exit 0. Secrets come from files (`secretFile`, `passwordFile`, `tokenFile`); an inline `secret`, `password` or `token`
-is a development shortcut and must be a string, or the connector refuses to start. Install the package without native code: `npm install --omit=optional --ignore-scripts web-scumm-connectors`.
+is a development shortcut and must be a string, or the connector refuses to start. Install the package without native code: `npm install --omit=optional --ignore-scripts quest-n-click-connectors`.
 
 ## Declare what the connectors may do
 

@@ -6,22 +6,20 @@
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { join } from 'node:path';
+import { PACKAGES as NAMED, RENAMED } from './artifacts.mjs';
 
 /** The exact Node and npm of the future publishing step (release.yml's env): npm 11.15.0 at least for `npm stage`. */
 export const MINIMUM = { node: '22.14.0', npm: '11.15.0' };
-export const PACKAGES = [
-  'web-scumm',
-  'create-web-scumm',
-  'web-scumm-bridge',
-  'web-scumm-connectors',
-  'web-scumm-studio-server',
-];
-
-/** The first release each package is part of (an older candidate is judged without it). */
-const PACKAGE_SINCE = { 'web-scumm-studio-server': '4.2.1' };
-/** The packages of a release (`4.2.1`, `4.2.1-rc.1`). */
-export const packagesFor = (version) =>
-  PACKAGES.filter((p) => !PACKAGE_SINCE[p] || atLeast(version.replace(/-.*$/, ''), PACKAGE_SINCE[p]));
+/** The packages npm will carry, by their names since 4.2.5 (D47); their former names are only aliases, never published. */
+export const PACKAGES = NAMED.map((p) => p.name);
+/**
+ * The packages of a release (`4.2.1`, `4.2.1-rc.1`), each from the first release it is part of (an older candidate is
+ * judged without it), under the name that release packed it: quest-n-click… from 4.2.5, web-scumm… before.
+ */
+export const packagesFor = (version) => {
+  const v = version.replace(/-.*$/, '');
+  return NAMED.filter((p) => !p.since || atLeast(v, p.since)).map((p) => (atLeast(v, RENAMED) ? p.name : p.old));
+};
 
 /**
  * The passes asked of a release, from docs/dev/surfaces.json (one surface per pass, with the release it came in): a

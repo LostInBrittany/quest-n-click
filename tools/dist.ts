@@ -88,8 +88,9 @@ function bundlePackages(): string[] {
     ))
       add(d);
   };
-  // The engine itself (an installed web-scumm) is LICENSE; its tools' dependencies never reach the bundle.
-  for (const p of [...listed, ...workbox]) if (p !== 'web-scumm') add(p);
+  // The engine itself (an installed quest-n-click, or its former name's alias, web-scumm) is LICENSE; its tools'
+  // dependencies never reach the bundle.
+  for (const p of [...listed, ...workbox]) if (p !== 'quest-n-click' && p !== 'web-scumm') add(p);
   return [...all].sort();
 }
 
@@ -112,7 +113,7 @@ function credits(): string {
   const lines = [
     `# Credits: ${game.title ?? GAME}`,
     '',
-    'Built with web-scumm (MIT, see LICENSE). Assets of this game, by entry of its provenance (assets-manifest.json lists every file):',
+    "Built with quest'n'click (MIT, see LICENSE). Assets of this game, by entry of its provenance (assets-manifest.json lists every file):",
     '',
   ];
   for (const e of prov.assets ?? []) {
