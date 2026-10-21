@@ -16,7 +16,7 @@ est l'ADR 0008.
 ```sh
 npm run bridge -- grant --connector=shed-telnet --source=terminal --signals=terminal.lamp --pair > telnet.token
 npm run connector -- telnet --config telnet.json        # depuis le dépôt
-npx web-scumm-connector telnet --config telnet.json     # depuis le paquet web-scumm-connectors
+npx quest-n-click-connector telnet --config telnet.json     # depuis le paquet quest-n-click-connectors
 ```
 
 La configuration nomme le Bridge et le fichier du jeton du connecteur (jamais le jeton sur la ligne de commande), le
@@ -39,7 +39,7 @@ doublons, de refus par code, d'entrées rejetées, de nouvelles tentatives). SIG
 nouvelle, le travail en cours vidé en cinq secondes au plus, sortie 0. Les secrets viennent de fichiers (`secretFile`, `passwordFile`, `tokenFile`) ; un `secret`, un `password`
 ou un `token` en ligne est un raccourci de développement et doit être une chaîne, sinon le connecteur refuse de démarrer.
 Installer le paquet sans code natif :
-`npm install --omit=optional --ignore-scripts web-scumm-connectors`.
+`npm install --omit=optional --ignore-scripts quest-n-click-connectors`.
 
 ## Déclarer ce que les connecteurs peuvent faire
 

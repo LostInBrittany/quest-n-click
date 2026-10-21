@@ -1,6 +1,6 @@
 # Code of conduct
 
-web-scumm is a small project with one maintainer. Everyone who opens an issue, a pull request or a discussion is
+quest'n'click is a small project with one maintainer. Everyone who opens an issue, a pull request or a discussion is
 expected to be respectful: no harassment, no insults, no discrimination, no publishing of someone else's private
 information. Disagreement is welcome when it is about the code, the content or the decision, and stays polite.
 

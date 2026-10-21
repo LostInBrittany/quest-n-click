@@ -1,13 +1,20 @@
 // tools/release/provenance.mjs (4.1.19, plan §6.5): the one contract `ship` and the Field Kit verify a candidate with.
 // The manifest read strictly, files against its digests, the run an attestation names, and what makes a run one a tag
 // or a pass may stand on. The GitHub calls themselves are field-kit.test.ts's (a stand-in `gh`) and ship's.
+import { mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import {
   candidateRunProblem,
   digestProblems,
+  FORMER_REPO,
+  REPO,
   readCandidateManifest,
+  repoOfRelease,
   runOfStatement,
   sha256,
+  verifyAttestation,
   // @ts-expect-error: a plain .mjs module without declarations
 } from '../tools/release/provenance.mjs';
 
@@ -68,4 +75,37 @@ describe('provenance', () => {
     expect(candidateRunProblem({ ...ok, headBranch: 'feature' }, '1')).toMatch(/started by hand on main/);
     expect(candidateRunProblem({ ...ok, conclusion: 'failure' }, '1')).toMatch(/green candidate/);
   });
+});
+
+describe("the repository's former name (4.2.5, D47)", () => {
+  it('verifies a release up to 4.2.4 under wanoo/web-scumm, every later one under wanoo/quest-n-click', () => {
+    expect(REPO).toBe('wanoo/quest-n-click');
+    expect(FORMER_REPO).toBe('wanoo/web-scumm');
+    expect(repoOfRelease('4.2.4')).toBe('wanoo/web-scumm');
+    expect(repoOfRelease('v4.1.20-rc.1')).toBe('wanoo/web-scumm');
+    expect(repoOfRelease('4.2.5')).toBe('wanoo/quest-n-click');
+    expect(repoOfRelease('4.2.5-rc.1')).toBe('wanoo/quest-n-click');
+  });
+
+  it.skipIf(process.platform === 'win32')(
+    'tries the former name only when asked, and its workflow under that name',
+    () => {
+      const d = mkdtempSync(join(tmpdir(), 'former-repo-'));
+      const gh = join(d, 'gh');
+      // A `gh` whose attestations name wanoo/web-scumm only, as a candidate made before the rename.
+      writeFileSync(
+        gh,
+        `#!/bin/sh\necho "$@" >> "${d}/calls"\ncase "$*" in\n  *"--repo wanoo/web-scumm "*) echo '[{"x":"/actions/runs/7/attempts/1"}]' ;;\n  *) echo "no attestation" >&2; exit 1 ;;\nesac\n`,
+        { mode: 0o755 },
+      );
+      const file = join(d, 'candidate-manifest.json');
+      writeFileSync(file, '{}');
+      const signerWorkflow = `${REPO}/.github/workflows/candidate.yml`;
+      expect(() => verifyAttestation(file, { gh, signerWorkflow })).toThrow(/does not verify/);
+      expect(verifyAttestation(file, { gh, signerWorkflow, former: true })).toEqual({ runId: '7' });
+      expect(readFileSync(join(d, 'calls'), 'utf8')).toContain(
+        '--repo wanoo/web-scumm --format json --signer-workflow wanoo/web-scumm/.github/workflows/candidate.yml',
+      );
+    },
+  );
 });

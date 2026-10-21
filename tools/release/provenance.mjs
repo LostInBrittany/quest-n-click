@@ -10,9 +10,20 @@
 // manifest.
 import { execFileSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
+import { atLeast } from './candidate.mjs';
 
-export const REPO = process.env.WEB_SCUMM_REPO ?? 'wanoo/web-scumm';
+export const REPO = process.env.WEB_SCUMM_REPO ?? 'wanoo/quest-n-click';
 export const CANDIDATE_WORKFLOW = `${REPO}/.github/workflows/candidate.yml`;
+/**
+ * The repository's name before 4.2.5 (D47): a release or a candidate made before the rename is attested by a workflow
+ * of wanoo/web-scumm, and its signing certificate keeps saying so. Verifying one of them asks for that identity.
+ */
+export const FORMER_REPO = 'wanoo/web-scumm';
+/** The first release attested under the repository's new name. */
+export const RENAMED = '4.2.5';
+/** The repository whose workflow attested the files of a release of `version`: the former name up to 4.2.4. */
+export const repoOfRelease = (version) =>
+  process.env.WEB_SCUMM_REPO ?? (atLeast(String(version).replace(/^v/, ''), RENAMED) ? REPO : FORMER_REPO);
 
 export const sha256 = (bytes) => createHash('sha256').update(bytes).digest('hex');
 
@@ -58,13 +69,22 @@ export const runOfStatement = (json) => /\/actions\/runs\/(\d+)(?:\/attempts\/\d
 /**
  * A file's provenance attestation, verified by the GitHub CLI: `bundle` and `trustedRoot` given, nothing is fetched
  * (offline); else the attestation is looked up on GitHub. `signerWorkflow` asks for the workflow that signed it,
- * `sourceRef` for the branch it ran on.
+ * `sourceRef` for the branch it ran on. `former`: a file whose version is not known (a field bundle's candidate) may
+ * also be attested by the repository under its former name (FORMER_REPO, before 4.2.5), and nothing else.
  * Returns the run id the attestation names; throws when it does not verify.
  */
-export function verifyAttestation(
-  file,
-  { repo = REPO, bundle, trustedRoot, signerWorkflow, sourceRef, gh = 'gh', timeoutMs } = {},
-) {
+export function verifyAttestation(file, options = {}) {
+  const { repo = REPO, signerWorkflow, former = false } = options;
+  try {
+    return verifyOnce(file, options);
+  } catch (e) {
+    if (!former || repo === FORMER_REPO) throw e;
+    const old = (s) => s?.replace(`${repo}/`, `${FORMER_REPO}/`);
+    return verifyOnce(file, { ...options, repo: FORMER_REPO, signerWorkflow: old(signerWorkflow) });
+  }
+}
+
+function verifyOnce(file, { repo = REPO, bundle, trustedRoot, signerWorkflow, sourceRef, gh = 'gh', timeoutMs } = {}) {
   const args = ['attestation', 'verify', file, '--repo', repo, '--format', 'json'];
   if (bundle) args.push('--bundle', bundle);
   if (trustedRoot) args.push('--custom-trusted-root', trustedRoot);
