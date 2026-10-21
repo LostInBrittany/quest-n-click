@@ -21,6 +21,17 @@
   loading the game; the Studio accepts a source outside the migration's files only as exactly `renameImports` of the
   text it has. The guard's baseline of a head that does not load is that failure, so the upgrade can be written; its
   Undo, which would put the old imports back, is refused.
+- Second reading (4.3.0): the hosted rename is the Studio's own step (`EngineUpgrade.renameFormer`: `renameImports` on
+  the head's texts, no game code), a revision of its own judged by the validator alone (the game loads after it, and
+  gains no error if it loaded before), never by the solver, so an unfinished game is not stuck; written without an
+  undo, so the owner's earlier history stays reachable; the schema's migration follows, its 422 saying the rename was
+  kept. The worker says a game whose code does not load apart from a failing job (`unloadable`, `GameDoesNotLoad`);
+  the guard takes only that for a head's baseline (then judges an edit by whether the game loads after it) and turns
+  a worker that cannot answer into a 503, never cached; an edit after which the game would no longer load is a 422.
+  `tools/migrate-name.ts` follows symbolic links inside the project and names those that lead out or nowhere, leaves a
+  `web-scumm` script beside a `quest-n-click` one and says so, keeps package.json's indentation and byte order mark.
+  `tools/mutate.ts` resolves `quest-n-click/…` only. UPGRADING's `grep`/`sed` covers every source extension, spaces in
+  names, `public` and hidden folders.
 - `scripts/external-consumer.mjs` and `scripts/upgrade-check.mjs` move an old game as its author would: uninstall
   `web-scumm`, install `quest-n-click`, `npx quest-n-click migrate`, then the new commands; the external consumer also
   fails when an alias archive or a `web-scumm…` command is still packed. `scripts/studio-install-smoke.mjs` and the CI's

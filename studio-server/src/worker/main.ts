@@ -49,6 +49,8 @@ export interface JobResult {
   /** validate: the verdict. */
   errors?: string[];
   warnings?: string[];
+  /** validate (4.3.0): the game's own code did not load, and why; no verdict then. */
+  unloadable?: string;
   /** load: the module as data. */
   module?: unknown;
   /** lint, solve, playtests (4.2.2): the diagnostic, as the Studio's route answers it; prepare, migrate: their answer. */
@@ -203,9 +205,12 @@ export function createWorker(o: WorkerOptions) {
           result.failed = `the game does not load (exit ${r.code})`;
         }
       if (!result.failed && job.kind === 'validate') {
-        const v = (parsed ?? {}) as { errors?: unknown; warnings?: unknown };
-        result.errors = strings(v.errors);
-        result.warnings = strings(v.warnings);
+        const v = (parsed ?? {}) as { errors?: unknown; warnings?: unknown; unloadable?: unknown };
+        if (typeof v.unloadable === 'string') result.unloadable = v.unloadable.slice(0, 2_000);
+        else {
+          result.errors = strings(v.errors);
+          result.warnings = strings(v.warnings);
+        }
       } else if (!result.failed && job.kind === 'preview') {
         const files = previewFiles((parsed as { files?: unknown } | undefined)?.files);
         if (files) result.files = files;

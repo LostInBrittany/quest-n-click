@@ -768,22 +768,34 @@ npx quest-n-click migrate
 `quest-n-click migrate` renomme, dans toutes les sources du projet (hors `node_modules`, `dist`, `public` et dossiers
 cachés), les imports `web-scumm/…` en `quest-n-click/…` ; dans `tsconfig.json`, le chemin `web-scumm/*` et les cibles
 `node_modules/web-scumm/…` ; dans `package.json`, les commandes des scripts (`web-scumm dev` devient
-`quest-n-click dev`, `web-scumm-bridge serve` devient `quest-n-click-bridge serve`). `migrate --check` nomme ce qui
-reste. Les commandes que vous tapez changent de même : `npx web-scumm …` devient `npx quest-n-click …`, et
-`npx web-scumm-bridge`, `npx web-scumm-connector`, `npx web-scumm-studio-server` deviennent `npx quest-n-click-bridge`,
-`npx quest-n-click-connector`, `npx quest-n-click-studio-server`. À la main, les imports dans les deux styles de
-guillemets (avec le `sed` GNU comme BSD), puis `tsconfig.json` et `package.json` comme le dit le §38 :
+`quest-n-click dev`, `web-scumm-bridge serve` devient `quest-n-click-bridge serve`). Toute chaîne entre guillemets qui
+commence par `web-scumm/` est renommée, import ou non ; `web-scumm-save` et les autres noms de format ne le sont pas.
+Un lien symbolique qui sort du projet, un script `web-scumm` à côté d'un script `quest-n-click`, ou une dépendance à un
+ancien paquet dont le nouveau n'est pas installé est signalé et vous est laissé. `migrate --check` nomme ce qui reste.
+Les commandes que vous tapez changent de même : `npx web-scumm …` devient `npx quest-n-click …`, et
+`npx web-scumm-bridge`, `npx web-scumm-connector`, `npx web-scumm-studio-server`, `npx web-scumm-studio-worker`
+deviennent `npx quest-n-click-bridge`, `npx quest-n-click-connector`, `npx quest-n-click-studio-server`,
+`npx quest-n-click-studio-worker`. À la main, depuis le dossier du projet, les imports dans les deux styles de
+guillemets dans les fichiers `.ts`, `.tsx`, `.mts`, `.cts`, `.js`, `.jsx`, `.mjs` et `.cjs`, noms avec espaces compris
+(avec le `grep` et le `sed` GNU comme BSD), puis `tsconfig.json` et `package.json` comme le dit le §38 :
 
 ```bash
-grep -rlE --include='*.ts' --exclude-dir=node_modules --exclude-dir=dist "['\"]web-scumm/" . \
-  | xargs sed -i.bak -e "s#'web-scumm/#'quest-n-click/#g" -e 's#"web-scumm/#"quest-n-click/#g'
-find . -name '*.ts.bak' -not -path './node_modules/*' -delete
+grep -rl --null -E --include='*.ts' --include='*.tsx' --include='*.mts' --include='*.cts' --include='*.js' \
+  --include='*.jsx' --include='*.mjs' --include='*.cjs' --exclude-dir=node_modules --exclude-dir=dist \
+  --exclude-dir=public --exclude-dir='.*' "['\"]web-scumm/" * \
+  | xargs -0 sed -i.bak -e "s#'web-scumm/#'quest-n-click/#g" -e 's#"web-scumm/#"quest-n-click/#g'
+find . -name '*.bak' -not -path './node_modules/*' -delete
 ```
 
 Un hébergeur du Bridge, des connecteurs ou du Studio Server installe les archives `quest-n-click-…` et appelle les
 nouvelles commandes dans ses fichiers d'unité et ses scripts. Un jeu d'un Studio hébergé qui importe encore
 `web-scumm/…` ne se charge plus (sa santé n'est pas verte et ses écritures sont refusées) tant que son owner n'a pas
-lancé la mise à niveau du moteur (`POST /api/engine/migrate`, STUDIO-SERVER), qui renomme ses imports en une révision.
+lancé la mise à niveau du moteur (`POST /api/engine/migrate`, STUDIO-SERVER). La mise à niveau renomme d'abord ses
+imports, en une révision à part jugée seulement sur le fait que le jeu se charge (et, s'il se chargeait avant, sur
+aucune nouvelle erreur du validateur), jamais par le solveur : un jeu qu'on ne peut pas encore finir voit ses imports
+renommés et se charge de nouveau ; puis la migration du schéma, s'il en faut une, est jugée comme avant et peut encore
+être refusée (422, le renommage gardé). Le renommage n'est pas annulable (son annulation ramènerait des imports qui ne
+se résolvent plus) : faites une sauvegarde d'abord pour revenir en arrière.
 Les formats gardent leurs noms : sauvegardes, sessions, runs, stockages, en-têtes et `WEB_SCUMM_*` ne changent pas
 (§38).
 

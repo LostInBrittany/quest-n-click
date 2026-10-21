@@ -2,7 +2,7 @@
 // 4.3.0 removes them (D47, D48): no `web-scumm` command, no `web-scumm/…` import, no package packed under the old name.
 // `quest-n-click migrate` renames what a game project of 4.2.x or before still says (tools/migrate-name.ts), and the
 // formats keep their names.
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
@@ -35,6 +35,8 @@ describe('the former name, web-scumm, gone in 4.3.0', () => {
       expect(JSON.stringify(m.bin), m.name).not.toContain('web-scumm');
       expect(Object.keys(m.peerDependencies ?? {}).join(), m.name).not.toContain('web-scumm');
     }
+    // The mutation tool resolves the repository's own imports by the new name only.
+    expect(readFileSync('tools/mutate.ts', 'utf8')).not.toContain('web-scumm');
     const pack = readFileSync('scripts/pack.mjs', 'utf8');
     expect(pack).not.toMatch(/create-web-scumm|bin-web-scumm|oldCommand|aliasManifest|'web-scumm'/);
     for (const f of ['quest-n-click-bridge', 'quest-n-click-connectors', 'quest-n-click-studio-server'])
@@ -158,6 +160,56 @@ describe('quest-n-click migrate and the former name', () => {
       expect(renameProject(dir, { write: false })).toEqual({ files: [], todo: [] });
     } finally {
       rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it("keeps a package.json's indentation and byte order mark, and says a script name both names hold", () => {
+    const tabs = `\uFEFF${JSON.stringify({ name: 'k', scripts: { dev: 'web-scumm dev' } }, null, '\t')}\n`;
+    expect(renamePackageJson(tabs).text).toBe(
+      `\uFEFF${JSON.stringify({ name: 'k', scripts: { dev: 'quest-n-click dev' } }, null, '\t')}\n`,
+    );
+    const four = `${JSON.stringify({ scripts: { dev: 'web-scumm dev' } }, null, 4)}\n`;
+    expect(renamePackageJson(four).text).toBe(
+      `${JSON.stringify({ scripts: { dev: 'quest-n-click dev' } }, null, 4)}\n`,
+    );
+    const both = { scripts: { 'web-scumm': 'web-scumm', 'quest-n-click': 'quest-n-click --x', dev: 'web-scumm dev' } };
+    const r = renamePackageJson(JSON.stringify(both));
+    expect(JSON.parse(r.text!).scripts).toEqual({
+      'web-scumm': 'web-scumm',
+      'quest-n-click': 'quest-n-click --x',
+      dev: 'quest-n-click dev',
+    });
+    expect(r.todo).toEqual([
+      'package.json has both a web-scumm and a quest-n-click script: the web-scumm one is left as it is',
+    ]);
+  });
+
+  it('follows a symbolic link inside the project, and names one that leads out, never calling the project clean', () => {
+    const base = mkdtempSync(join(tmpdir(), 'qnc-links-'));
+    try {
+      const dir = join(base, 'p');
+      const imp = "import { defineGame } from 'web-scumm/content';\n";
+      mkdirSync(join(dir, 'game', 'shared'), { recursive: true });
+      mkdirSync(join(base, 'elsewhere'), { recursive: true });
+      writeFileSync(join(dir, 'game', 'shared', 'a.ts'), imp);
+      writeFileSync(join(base, 'elsewhere', 'b.ts'), imp);
+      symlinkSync(join(dir, 'game', 'shared'), join(dir, 'game', 'linked'), 'dir');
+      symlinkSync(join(base, 'elsewhere'), join(dir, 'game', 'outside'), 'dir');
+      symlinkSync(join(base, 'nowhere'), join(dir, 'game', 'dangling.ts'));
+      const todo: string[] = [];
+      // The linked folder is the shared one: its file once, by its first path.
+      expect(sourcesIn(dir, todo)).toEqual(['game/linked/a.ts']);
+      expect(todo).toEqual([
+        'game/dangling.ts: a symbolic link that leads nowhere, not renamed',
+        'game/outside: a symbolic link out of the project, not renamed (rename what it leads to by hand)',
+      ]);
+      const r = renameProject(dir, { write: true });
+      expect(r.files).toEqual(['game/linked/a.ts']);
+      expect(r.todo).toHaveLength(2);
+      expect(readFileSync(join(dir, 'game', 'shared', 'a.ts'), 'utf8')).toContain('quest-n-click/content');
+      expect(readFileSync(join(base, 'elsewhere', 'b.ts'), 'utf8')).toBe(imp);
+    } finally {
+      rmSync(base, { recursive: true, force: true });
     }
   });
 

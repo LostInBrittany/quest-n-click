@@ -328,11 +328,15 @@ curl -X POST -H "Authorization: Bearer $(npx quest-n-click-studio-server token -
 - **Taken back.** The owner's Undo takes it back, as a new revision (409 if someone wrote one of its files since); or
   the project goes back to a backup taken before (see below): take one first.
 - **The former name (4.3.0, D47).** A game that still imports `web-scumm/…` does not load on a 4.3.0 Studio (the
-  aliases are gone): its health is not green and the guard refuses its writes. The upgrade renames those imports
-  first, in any TypeScript source of the game (the Studio accepts such a file only as exactly that rename of the text it
-  has), then migrates as above; a game already at schema 3 gets one revision, `engine upgrade: the former name's
-  imports renamed`. Its Undo would put back imports that no longer resolve, so the guard refuses it: a backup is the
-  way back.
+  aliases are gone): its health is not green and the guard refuses its writes (a 422: the game still does not load).
+  The upgrade first renames those imports itself, in every TypeScript source of the head (no game code involved), as
+  a revision of its own, `engine upgrade: the former name's imports renamed`, judged by the validator alone: the game
+  must load after it and, if it loaded before, gain no error. The solver does not judge it, so a game that cannot be
+  finished yet is never stuck. The schema's migration follows, judged as above; when it is refused the answer's
+  `body.renamed` says the rename was kept. The rename is written without an undo (it would bring back imports that no
+  longer resolve), so the owner's earlier history stays reachable; a backup taken before is the way back. A worker
+  that refuses, times out or leaves no result while the guard asks never counts as the game not loading: the write
+  fails (503) and the next one asks again.
 
 In the 4.2.x line the content format is frozen (D40): this is for a game made on 4.1.x. A local Studio has no route:
 run `quest-n-click migrate` in the project. The project's `tsconfig.json` (`baseUrl`, which `quest-n-click migrate` also

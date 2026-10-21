@@ -18,13 +18,13 @@ import { backupOf, checkBackup, restoreInto } from '../studio-server/src/ops/bac
 import { type BlobStore, fsBlobStore } from '../studio-server/src/ops/blobs';
 import { createStudio, importInChild, operationContext } from '../studio-server/src/ops/core';
 import { HOSTED_SOLVE_MS } from '../studio-server/src/ops/diagnose';
-import { StudioError } from '../studio-server/src/ops/errors';
+import { isGameDoesNotLoad, StudioError } from '../studio-server/src/ops/errors';
 import { Journal } from '../studio-server/src/ops/journal';
 import { finishRestore } from '../studio-server/src/ops/ship';
 import { spansOf } from '../studio-server/src/ops/spans';
 import { PersonalUndo } from '../studio-server/src/ops/undo';
 import { Gate } from '../studio-server/src/server/auth/gate';
-import { EngineUpgrade } from '../studio-server/src/server/engine-upgrade';
+import { EngineUpgrade, RENAMED_WHAT } from '../studio-server/src/server/engine-upgrade';
 import { judgeBy, type Verdict } from '../studio-server/src/server/health';
 import { studioServer } from '../studio-server/src/server/http';
 import { exclusiveRunner, Leases } from '../studio-server/src/server/leases';
@@ -67,9 +67,22 @@ const judge = judgeBy({
 });
 
 /** A hosted project made of a copy of the fixture, the owner's personal undo, the leases, an upgrade. */
-async function project(name: string, o: { judge?: typeof judge; edit?: (dir: string) => void; former?: boolean } = {}) {
+async function project(
+  name: string,
+  o: {
+    judge?: typeof judge;
+    edit?: (dir: string) => void;
+    former?: boolean;
+    from?: string;
+    executor?: Parameters<typeof createStudio>[0] extends infer O
+      ? O extends { executor?: infer E }
+        ? E
+        : never
+      : never;
+  } = {},
+) {
   const game = join(tmp, name);
-  cpSync(FIXTURE, game, { recursive: true });
+  cpSync(o.from ?? FIXTURE, game, { recursive: true });
   if (!o.former)
     for (const f of sourcesIn(game)) {
       const next = renameImports(readFileSync(join(game, f), 'utf8'));
@@ -97,14 +110,22 @@ async function project(name: string, o: { judge?: typeof judge; edit?: (dir: str
   });
   opened.push(db, journal);
   const personalUndo = new PersonalUndo(db, () => journal.epoch());
-  const studio = createStudio({ gameDir: game, root: tmp, journal, importFresh: importInChild, personalUndo });
+  const studio = createStudio({
+    gameDir: game,
+    root: tmp,
+    journal,
+    importFresh: importInChild,
+    personalUndo,
+    ...(o.executor ? { executor: o.executor } : {}),
+  });
   const log: string[] = [];
   const up = new EngineUpgrade({
     snapshot: async () => ({ epoch: await journal.epoch(), rev: await journal.revision(), bytes: packSnapshot(game) }),
     migrate: (bytes) => localMigrate(bytes),
     judge: o.judge ?? judge,
-    write: async (what, files) => {
-      await studio.writeFiles(what, files);
+    validate: (bytes) => localValidate(bytes),
+    write: async (what, files, w) => {
+      await studio.writeFiles(what, files, w);
       return journal.revision();
     },
     exclusive: async (fn) => {
@@ -269,30 +290,110 @@ describe("the engine's upgrade of a game in the format of a 4.1.x", () => {
 });
 
 describe("the engine's upgrade of a game still under the former name (4.3.0, D47)", () => {
-  it('renames its `web-scumm/…` imports with its ids, as one revision, the head not loading before it', async () => {
+  it('renames its `web-scumm/…` imports as a revision of their own, then migrates its ids; the rename is not undone', async () => {
     const p = await project('former', { former: true });
     // The alias is gone: the head does not load, so its health is not green, until the upgrade.
-    await expect(judge(packSnapshot(p.game), { epoch: '', rev: 0 })).rejects.toThrow();
+    await expect(judge(packSnapshot(p.game), { epoch: '', rev: 0 })).rejects.toThrow(/does not load/);
     const rev = await p.journal.revision();
     const r = await p.as('owner', () => p.up.migrate('owner'));
-    expect(r).toMatchObject({ revision: rev + 1, schema: { from: 2, to: 3 } });
-    expect((r as { paths: string[] }).paths).toEqual([
-      'cast.ts',
-      'game.ts',
-      'ids.migration.json',
-      'ids.paths.json',
-      'index.ts',
-      'items.ts',
-      'rooms/start.ts',
-      'rules.ts',
-    ]);
+    expect(r).toEqual({
+      changed: 4,
+      revision: rev + 2,
+      paths: ['game.ts', 'ids.migration.json', 'ids.paths.json', 'rooms/start.ts'],
+      schema: { from: 2, to: 3 },
+      renamed: {
+        revision: rev + 1,
+        paths: ['cast.ts', 'game.ts', 'index.ts', 'items.ts', 'rooms/start.ts', 'rules.ts'],
+      },
+    });
+    expect((await p.journal.opAt(rev + 1))?.what).toBe(RENAMED_WHAT);
     for (const f of sourcesIn(p.game)) expect(readFileSync(join(p.game, f), 'utf8'), f).not.toMatch(/['"]web-scumm\//);
-    expect(await judge(packSnapshot(p.game), { epoch: '', rev: rev + 1 })).toMatchObject({ ok: true, errors: [] });
+    expect(await judge(packSnapshot(p.game), { epoch: '', rev: rev + 2 })).toMatchObject({ ok: true, errors: [] });
     expect(await p.as('owner', () => p.up.migrate('owner'))).toEqual({ changed: 0, schema: { from: 3, to: 3 } });
-    // Its Undo would put back imports that no longer resolve: the guard refuses it, the head stays migrated.
-    await expect(p.as('owner', () => p.studio.undo())).rejects.toThrow(/does not load/);
+    // The schema's migration is undone; the rename is not recorded for undo (it would put back imports that no longer
+    // resolve), so the owner's history before it stays reachable and the head keeps loading.
+    expect(await p.as('owner', () => p.studio.undo())).toMatchObject({
+      ok: true,
+      what: expect.stringMatching(/schema 2 → 3/),
+    });
+    expect(await p.as('owner', () => p.studio.undo())).toEqual({ ok: false, reason: 'nothing to undo' });
+    expect(readFileSync(join(p.game, 'game.ts'), 'utf8')).toContain("from 'quest-n-click/content'");
+    expect(await judge(packSnapshot(p.game), { epoch: '', rev: rev + 3 })).toMatchObject({ ok: true });
+  }, 120_000);
+
+  it('renames the imports of a game the solver cannot finish yet: never stuck on a head that does not load', async () => {
+    const unfinished = async () => ({ ok: false, errors: ['the game cannot be finished'], warnings: [], ms: 1 });
+    // Schema 3, the template with its imports under the former name: the rename alone, judged by loading.
+    const three = await project('former-unfinished-3', {
+      former: true,
+      from: join(ROOT, 'games', '_template'),
+      judge: unfinished,
+      edit: (dir) => {
+        for (const f of sourcesIn(dir))
+          writeFileSync(join(dir, f), readFileSync(join(dir, f), 'utf8').replaceAll("'quest-n-click/", "'web-scumm/"));
+      },
+    });
+    const rev3 = await three.journal.revision();
+    const r3 = await three.as('owner', () => three.up.migrate('owner'));
+    expect(r3).toMatchObject({ revision: rev3 + 1, schema: { from: 3, to: 3 }, renamed: { revision: rev3 + 1 } });
+    expect((r3 as { paths: string[] }).paths).toContain('index.ts');
+    // Schema 2: the rename is written, the schema's migration is refused by the solver, the game loads and is edited.
+    const two = await project('former-unfinished-2', { former: true, judge: unfinished });
+    const rev2 = await two.journal.revision();
+    const e = await two.as('owner', () => two.up.migrate('owner')).catch((x: unknown) => x);
+    expect(e).toMatchObject({ status: 422, message: expect.stringMatching(/cannot be finished/) });
+    expect((e as { body: { renamed: { revision: number } } }).body.renamed.revision).toBe(rev2 + 1);
+    expect(await two.journal.revision()).toBe(rev2 + 1);
+    const items = readFileSync(join(two.game, 'items.ts'), 'utf8');
+    await two.as('owner', () =>
+      two.studio.writeFiles('an edit after the rename', [{ path: 'items.ts', after: `${items}// edited\n` }]),
+    );
+    expect(await two.journal.revision()).toBe(rev2 + 2);
+  }, 120_000);
+
+  it('refuses an edit after which the game would no longer load, with a 422 that says so', async () => {
+    const p = await project('breaks');
+    const gameTs = readFileSync(join(p.game, 'game.ts'), 'utf8');
+    const rev = await p.journal.revision();
+    await expect(
+      p.as('owner', () =>
+        p.studio.writeFiles('back to the old name', [
+          { path: 'game.ts', after: gameTs.replaceAll("'quest-n-click/", "'web-scumm/") },
+        ]),
+      ),
+    ).rejects.toMatchObject({ status: 422, message: expect.stringMatching(/would no longer load/) });
+    expect(await p.journal.revision()).toBe(rev);
+  }, 120_000);
+
+  it("never keeps a worker's failure as the guard's baseline: it propagates, and the next write asks again", async () => {
+    let failNext = 0;
+    const p = await project('flaky', {
+      executor: {
+        validate: async (dir: string) => {
+          if (failNext-- > 0) throw new Error('the processing worker refused the job (503)');
+          return localValidate(packSnapshot(dir));
+        },
+        load: (dir: string) => importInChild(join(dir, 'index.ts')),
+      },
+    });
+    const items = readFileSync(join(p.game, 'items.ts'), 'utf8');
+    const rev = await p.journal.revision();
+    failNext = 1;
+    await expect(
+      p.as('owner', () => p.studio.writeFiles('one', [{ path: 'items.ts', after: `${items}// one\n` }])),
+    ).rejects.toMatchObject({ status: 503 });
+    expect(await p.journal.revision()).toBe(rev);
+    await p.as('owner', () => p.studio.writeFiles('two', [{ path: 'items.ts', after: `${items}// two\n` }]));
     expect(await p.journal.revision()).toBe(rev + 1);
   }, 120_000);
+
+  it('says a game whose code does not load apart from a failing job, on the worker', async () => {
+    const dir = join(tmp, 'unloadable');
+    cpSync(FIXTURE, dir, { recursive: true });
+    await expect(localValidate(packSnapshot(dir))).rejects.toSatisfy(
+      (e: unknown) => isGameDoesNotLoad(e) && /web-scumm/.test((e as Error).message),
+    );
+  }, 60_000);
 
   it('renames the imports alone of a game already at schema 3', async () => {
     const dir = join(tmp, 'former-3');

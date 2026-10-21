@@ -3,7 +3,7 @@
 // import), and the Studio Server's engine upgrade renames a hosted game's imports with it (studio-server/src/worker).
 // Only the names of the package, its imports and its commands move: a format identifier (`web-scumm-save`, the
 // `WEB_SCUMM_*` variables, the storage keys) has no `/` after it and is not a command, so it stays as it is.
-import { existsSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, lstatSync, readdirSync, readFileSync, realpathSync, statSync, writeFileSync } from 'node:fs';
 import { join, relative, sep } from 'node:path';
 
 /** `'web-scumm/content'` and `"web-scumm/…"` → `quest-n-click/…`, in either quote style. */
@@ -43,22 +43,31 @@ export interface RenamedPackage {
 /**
  * package.json: the scripts' commands and a script named after the command; a dependency on a former package dropped
  * when the new one is there too (`npm install` then prunes it), otherwise said, never guessed (its spec names an
- * archive or a version of the old package).
+ * archive or a version of the old package). A `web-scumm` script beside a `quest-n-click` one is left as it is and
+ * said. The file keeps its indentation (tabs or spaces) and its byte order mark.
  */
 export function renamePackageJson(text: string): RenamedPackage {
-  const pkg = JSON.parse(text) as Record<string, unknown> & {
+  const bom = text.startsWith('\uFEFF') ? '\uFEFF' : '';
+  const body = text.slice(bom.length);
+  const indent = /^[ \t]+(?=")/m.exec(body)?.[0] ?? 2;
+  const pkg = JSON.parse(body) as Record<string, unknown> & {
     scripts?: Record<string, string>;
     dependencies?: Record<string, string>;
     devDependencies?: Record<string, string>;
   };
   const todo: string[] = [];
-  if (pkg.scripts)
+  if (pkg.scripts) {
+    const both = 'web-scumm' in pkg.scripts && 'quest-n-click' in pkg.scripts;
+    if (both)
+      todo.push('package.json has both a web-scumm and a quest-n-click script: the web-scumm one is left as it is');
     pkg.scripts = Object.fromEntries(
-      Object.entries(pkg.scripts).map(([k, v]) => [
-        k === 'web-scumm' ? 'quest-n-click' : k,
-        String(v).replace(COMMAND, '$1quest-n-click$2'),
-      ]),
+      Object.entries(pkg.scripts).map(([k, v]) =>
+        both && k === 'web-scumm'
+          ? [k, v]
+          : [k === 'web-scumm' ? 'quest-n-click' : k, String(v).replace(COMMAND, '$1quest-n-click$2')],
+      ),
     );
+  }
   const all = { ...pkg.dependencies, ...pkg.devDependencies };
   for (const field of ['dependencies', 'devDependencies'] as const) {
     const deps = pkg[field];
@@ -69,23 +78,45 @@ export function renamePackageJson(text: string): RenamedPackage {
         else todo.push(`package.json depends on ${old}: npm uninstall ${old} && npm install ${now}`);
       }
   }
-  const next = `${JSON.stringify(pkg, null, 2)}\n`;
-  return { text: JSON.stringify(JSON.parse(text)) === JSON.stringify(pkg) ? null : next, todo };
+  const next = `${bom}${JSON.stringify(pkg, null, indent)}\n`;
+  return { text: JSON.stringify(JSON.parse(body)) === JSON.stringify(pkg) ? null : next, todo };
 }
 
 /** The folders of a project the rename never enters: dependencies, builds, caches, the built assets, anything hidden. */
 const SKIP = new Set(['node_modules', 'dist', 'public']);
 const SOURCE = /\.(?:[cm]?[jt]s|tsx|jsx)$/;
 
-/** Every source file of a project (`/` paths), its folders above left out. */
-export function sourcesIn(dir: string): string[] {
+/**
+ * Every source file of a project (`/` paths), its folders above left out. A symbolic link is followed when it leads
+ * inside the project (each file once, by its first path); one that leads outside, or nowhere, is named in `todo`
+ * (renaming another folder's files is not this command's), so `--check` never calls such a project clean.
+ */
+export function sourcesIn(dir: string, todo: string[] = []): string[] {
   const out: string[] = [];
+  const root = realpathSync(dir);
+  const seen = new Set<string>();
+  const inside = (real: string) => real === root || real.startsWith(root + sep);
   const walk = (d: string) => {
-    for (const e of readdirSync(d, { withFileTypes: true })) {
-      if (e.name.startsWith('.') || SKIP.has(e.name)) continue;
-      const p = join(d, e.name);
-      if (e.isDirectory()) walk(p);
-      else if (e.isFile() && SOURCE.test(e.name)) out.push(relative(dir, p).split(sep).join('/'));
+    for (const name of readdirSync(d).sort()) {
+      if (name.startsWith('.') || SKIP.has(name)) continue;
+      const p = join(d, name);
+      const rel = relative(dir, p).split(sep).join('/');
+      let real: string;
+      try {
+        real = realpathSync(p);
+      } catch {
+        todo.push(`${rel}: a symbolic link that leads nowhere, not renamed`);
+        continue;
+      }
+      if (lstatSync(p).isSymbolicLink() && !inside(real)) {
+        todo.push(`${rel}: a symbolic link out of the project, not renamed (rename what it leads to by hand)`);
+        continue;
+      }
+      if (seen.has(real)) continue;
+      seen.add(real);
+      const st = statSync(p);
+      if (st.isDirectory()) walk(p);
+      else if (st.isFile() && SOURCE.test(name)) out.push(rel);
     }
   };
   walk(dir);
@@ -104,7 +135,7 @@ export function renameProject(dir: string, o: { write: boolean }): { files: stri
     files.push(path);
     if (o.write) writeFileSync(join(dir, path), next);
   };
-  for (const f of sourcesIn(dir)) change(f, renameImports(readFileSync(join(dir, f), 'utf8')));
+  for (const f of sourcesIn(dir, todo)) change(f, renameImports(readFileSync(join(dir, f), 'utf8')));
   if (existsSync(join(dir, 'tsconfig.json')))
     change('tsconfig.json', renameTsconfig(readFileSync(join(dir, 'tsconfig.json'), 'utf8')));
   if (existsSync(join(dir, 'package.json'))) {
