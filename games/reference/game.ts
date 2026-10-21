@@ -12,7 +12,7 @@ import cellar from './rooms/cellar';
 import hall from './rooms/hall';
 import { game as demo } from '../demo/game';
 
-// "The Night Market": web-scumm's reference chapter (3.4, D13: the sample game's art). Pixel and Biscuit light up the
+// "The Night Market": quest'n'click's reference chapter (3.4, D13: the sample game's art). Pixel and Biscuit light up the
 // market before the festival: two playable cats with their own bags, an item handed from one to the other, a floor
 // one of them changes for the other, a staged scene with layers, masks, lights and particles, a timed finale, choices,
 // a character walking on his own until an event stops him, a minigame, English and French. Design: STORY.md.
@@ -165,8 +165,8 @@ export const game = defineGame({
     ],
   },
   skin: { ...demo.skin, icons: { ...demo.skin.icons } },
-  titleScreen: { decor: 'decor/market_wide', music: 'theme', footer: 'The reference chapter of web-scumm. Turn your phone sideways.' },
-  credits: ['THE NIGHT MARKET', '', 'The reference chapter of web-scumm (3.4)', '', 'Art and sound: the sample game\'s (CC BY 4.0)', 'Music: Swan Lake theme, arranged (CC BY 4.0)', '', 'Thanks for playing!'],
+  titleScreen: { decor: 'decor/market_wide', music: 'theme', footer: "The reference chapter of quest'n'click. Turn your phone sideways." },
+  credits: ['THE NIGHT MARKET', '', "The reference chapter of quest'n'click (3.4)", '', 'Art and sound: the sample game\'s (CC BY 4.0)', 'Music: Swan Lake theme, arranged (CC BY 4.0)', '', 'Thanks for playing!'],
   // Measured with `npm run weight` and `npm run e2e:weight` once built: see BENCH.md "3.4".
   // 3.7: two scores' stems (3.9 MB), the full warm-up (9.2 MB), the most decoded at once during a transition (128 MB:
   // both scores and a bridge).

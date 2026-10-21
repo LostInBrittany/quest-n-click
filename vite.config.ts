@@ -161,8 +161,12 @@ export default defineConfig({
   // The current game (GAME, otherwise package.json → config.game, otherwise demo): `@game` → games/<GAME>/index.ts.
   resolve: {
     alias: [
-      // The public API (4.0, src/engine/api): `web-scumm/content`, `/player`, `/minigames`, `/testing`.
-      { find: /^web-scumm\/(content|player|minigames|testing)$/, replacement: r('./src/engine/api/$1.ts') },
+      // The public API (4.0, src/engine/api): `quest-n-click/content`, `/player`, `/minigames`, `/testing`; through
+      // 4.2.x also under the engine's former name, `web-scumm/…` (D47), so a game written before 4.2.5 still builds.
+      {
+        find: /^(?:quest-n-click|web-scumm)\/(content|player|minigames|testing)$/,
+        replacement: r('./src/engine/api/$1.ts'),
+      },
       { find: '@engine', replacement: r('./src/engine') },
       { find: /^@game$/, replacement: resolve(GAME_DIR, 'index.ts') },
       { find: /^@game\//, replacement: GAME_DIR + '/' },

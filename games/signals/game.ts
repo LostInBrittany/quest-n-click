@@ -1,4 +1,4 @@
-import { defineGame } from 'web-scumm/content';
+import { defineGame } from 'quest-n-click/content';
 import { characters } from './cast';
 import { items } from './items';
 import { rules } from './rules';
@@ -83,7 +83,7 @@ export const game = defineGame({
     sounds: {},
   },
   titleScreen: { decor: 'starter/decor/backyard', footer: 'Signals' },
-  credits: ['Signals', '', 'Made with web-scumm'],
+  credits: ['Signals', '', "Made with quest'n'click"],
   ui: {
     walkTo: 'Walk to', newGame: 'New game', continue: 'Continue', confirmErase: 'Erase the saved game?', yes: 'Yes', no: 'No',
     pause: 'Pause', resume: 'Resume', music: 'Music', sfx: 'Sounds', autosave: 'Autosave', credits: 'Credits', restart: 'Restart',

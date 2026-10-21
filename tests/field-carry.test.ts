@@ -131,6 +131,38 @@ describe('the surfaces of a candidate', () => {
     expect(Object.keys(v421.surfaces.find((x) => x.id === 'studio-hosted')!.artifactDigests)).toContain(
       'pack/web-scumm-studio-server-4.2.1.tgz',
     );
+    // 4.2.5 (D47): the packages read under their new names; the former names' aliases, the same files, under status.
+    const c425 = candidate('4.2.5', { 'pack/web-scumm-studio-server-4.2.5.tgz': h('7') });
+    const files425: Record<string, string> = {};
+    for (const [f, d] of Object.entries(c425.files)) {
+      if (!f.startsWith('image/')) files425[f] = d;
+      if (/web-scumm/.test(f)) files425[f.replace('web-scumm', 'quest-n-click')] = d;
+    }
+    const v425: Surfaces = surfacesOf({
+      candidate: files425,
+      site: c425.site,
+      declared,
+      version: '4.2.5',
+      config: () => h('9'),
+    });
+    expect(v425.surfaces.map((x) => x.id).sort()).toEqual([...PASS_IDS].sort());
+    const read = v425.surfaces.flatMap((x) => Object.keys(x.artifactDigests));
+    expect(read).toContain('pack/quest-n-click-4.2.5.tgz');
+    expect(read).toContain('image/quest-n-click-bridge-image.tar');
+    // The aliases are read by the archives' own pass only (it installs every archive), never in place of a package.
+    for (const x of v425.surfaces)
+      if (x.id !== 'archive-human-install')
+        expect(
+          Object.keys(x.artifactDigests).filter((f) => /web-scumm/.test(f)),
+          x.id,
+        ).toEqual([]);
+    expect(Object.keys(v425.surfaces.find((x) => x.id === 'archive-human-install')!.artifactDigests)).toContain(
+      'pack/web-scumm-4.2.5.tgz',
+    );
+    // A 4.2.5 candidate with the former names only is not one: its surfaces read the new names.
+    expect(() => surfaces('4.2.5', { 'pack/web-scumm-studio-server-4.2.5.tgz': h('7') })).toThrow(
+      /names no file of this candidate/,
+    );
     for (const id of PASS_IDS) expect(Object.keys(declared.surfaces[id].artifacts).length).toBeGreaterThan(0);
     for (const x of Object.values(declared.surfaces) as { exclusions: { reason: string; test: string }[] }[])
       for (const e of x.exclusions) {

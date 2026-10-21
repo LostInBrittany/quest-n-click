@@ -29,12 +29,18 @@ import { spawnSync } from 'node:child_process';
 import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
 import { checkAncestry } from './ancestry.mjs';
-import { FIRST as FIRST_LISTED, publishedProblems } from './artifacts.mjs';
+import { FIRST as FIRST_LISTED, projectOf, publishedProblems } from './artifacts.mjs';
 import { atLeast } from './candidate.mjs';
 import { preflight } from './preflight.mjs';
 import { isSignedTag, tagArgs } from './signing.mjs';
 import { candidateOf, requiresCandidate, tagMessage } from './candidate.mjs';
-import { candidateRunProblem, queryRun, readCandidateManifest, verifyAttestation } from './provenance.mjs';
+import {
+  candidateRunProblem,
+  queryRun,
+  readCandidateManifest,
+  repoOfRelease,
+  verifyAttestation,
+} from './provenance.mjs';
 import {
   gh,
   ghJson,
@@ -380,7 +386,8 @@ async function verify(versionArg) {
   if (/FAILED/.test(check)) throw new Error(`${name}: a checksum failed`);
   let attested = 0;
   for (const f of files) {
-    verifyAttestation(join(dir, f), { repo: REPO });
+    // A release up to 4.2.4 was attested under the repository's former name (D47), and is verified as such.
+    verifyAttestation(join(dir, f), { repo: repoOfRelease(version) });
     attested++;
   }
   // GitHub's own release attestation (4.1.20 PR 3b, immutable releases): the release, then each of its files.
@@ -394,9 +401,11 @@ async function verify(versionArg) {
   if (listed.length)
     throw new Error(`${name}: not the files tools/release/artifacts.mjs lists:\n  ${listed.join('\n  ')}`);
   say(`${name}: ${files.length} files, sums ok, ${attested} attestations verified, as the manifest lists them`);
-  // The tarballs carry package.json's version, never a tag's pre-release suffix (v4.1.8-rc.1 ships web-scumm-4.1.8.tgz).
+  // The tarballs carry package.json's version, never a tag's pre-release suffix (v4.1.8-rc.1 ships web-scumm-4.1.8.tgz;
+  // from 4.2.5, quest-n-click-4.2.5.tgz).
   const packed = version.replace(/-.*$/, '');
-  if (!existsSync(join(dir, `web-scumm-${packed}.tgz`))) throw new Error(`${name}: web-scumm-${packed}.tgz missing`);
+  const engine = `${projectOf(version)}-${packed}.tgz`;
+  if (!existsSync(join(dir, engine))) throw new Error(`${name}: ${engine} missing`);
   return { files, attested };
 }
 

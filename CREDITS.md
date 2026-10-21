@@ -1,9 +1,9 @@
 # Credits
 
 ## Code
-web-scumm engine and tools: MIT License, (c) 2026 Wano. Built with Vite, Vitest, Howler, earcut, navmesh, Tweakpane, Playwright, zod.
+quest'n'click (formerly web-scumm) engine and tools: MIT License, (c) 2026 Wano. Built with Vite, Vitest, Howler, earcut, navmesh, Tweakpane, Playwright, zod.
 The Biscuit test vectors under `bridge/test-vectors/biscuit/` come from the Biscuit project (Apache-2.0, their `LICENSE` beside them).
-The SSH connector (`web-scumm-connectors`, 4.1.9) runs on ssh2 (MIT, Brian White) and its dependencies asn1 (MIT),
+The SSH connector (`quest-n-click-connectors`, 4.1.9) runs on ssh2 (MIT, Brian White) and its dependencies asn1 (MIT),
 bcrypt-pbkdf (BSD-3-Clause), safer-buffer (MIT) and tweetnacl (Unlicense).
 
 ## Sample game artwork (games/demo/art)
@@ -29,6 +29,6 @@ Rendered for the project with the Mega Drive audio pipeline in `tools/audio` (do
 
 ## Not affiliated
 
-web-scumm is an independent project. "SCUMM-style" describes a kind of game (verbs, a bag, rooms, dialogue with
+quest'n'click (formerly web-scumm) is an independent project. "SCUMM-style" describes a kind of game (verbs, a bag, rooms, dialogue with
 choices); the project is not affiliated with, endorsed by or derived from LucasArts, Lucasfilm, Disney or the ScummVM
 project, and ships none of their code, data or art.
