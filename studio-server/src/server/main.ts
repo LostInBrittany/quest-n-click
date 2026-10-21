@@ -609,8 +609,9 @@ async function main(argv: string[]): Promise<number> {
             }),
           migrate: (bytes, at) => executor!.migrate(bytes, at),
           judge,
-          write: async (what, files) => {
-            await studio.writeFiles(what, files);
+          validate: (bytes, at) => executor!.validateSnapshot(bytes, at),
+          write: async (what, files, o) => {
+            await studio.writeFiles(what, files, o);
             return journal.revision();
           },
           exclusive: exclusiveLease,

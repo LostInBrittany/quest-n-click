@@ -8,8 +8,8 @@ promise.
 
 In a game project the entries are `quest-n-click/content`, `quest-n-click/player`, `quest-n-click/minigames` and
 `quest-n-click/testing` and, since 4.1.1, `quest-n-click/reality` (the package's `exports`); in this repository the same names resolve to `src/engine/api/`.
-The old names `web-scumm/content` and the others (before 4.2.5, D47) still resolve through 4.2.x and are removed in
-4.3. The save envelope's `web-scumm-save` and the other `format` strings below are format identifiers from web-scumm,
+The old names `web-scumm/content` and the others (before 4.2.5, D47) resolved through 4.2.x and are removed in
+4.3.0 (`quest-n-click migrate` renames them). The save envelope's `web-scumm-save` and the other `format` strings below are format identifiers from web-scumm,
 kept so existing saves and files still load.
 
 ## quest-n-click/content: writing a game

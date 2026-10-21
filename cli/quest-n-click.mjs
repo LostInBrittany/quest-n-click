@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// quest-n-click <command> (3.9; `web-scumm` before 4.2.5, D47, still an alias through 4.2.x: cli/web-scumm.mjs): the
+// quest-n-click <command> (3.9; `web-scumm` before 4.2.5, D47, an alias through 4.2.x, gone in 4.3.0): the
 // engine's tools for a game project that installed the package. The project's folder (where this runs) holds game/ (the
 // game's sources), public/ (the built assets), dist/ (the build) and .cache/; the engine, its pages and its tools stay
 // in the package, never written. `quest-n-click help` lists the commands.

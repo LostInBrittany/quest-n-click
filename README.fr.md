@@ -11,8 +11,9 @@ vérifier qu'on peut le finir, et le livrer comme un jeu web qui s'installe sur 
 > LucasArts dont il suit l'esprit. Il a été renommé quest'n'click pour que son nom ne suscite aucun débat inutile. Les
 > liens vers l'ancien dépôt sont redirigés ici, et l'ancienne adresse de la démo, `wanoo.github.io/web-scumm`, redirige
 > vers la nouvelle : le jeu et le Studio sont maintenant sur [wanoo.github.io/quest-n-click](https://wanoo.github.io/quest-n-click/).
-> À partir de la 4.2.5, les packages et les commandes s'appellent `quest-n-click`, et les anciens noms `web-scumm`
-> marchent toujours pendant toute la 4.2.x ([UPGRADING](docs/fr/UPGRADING.md#38-de-la-424-à-la-425)). Les
+> À partir de la 4.2.5, les packages et les commandes s'appellent `quest-n-click` ; les anciens noms `web-scumm` ont
+> marché pendant toute la 4.2.x et disparaissent en 4.3.0, où `npx quest-n-click migrate` renomme les imports et les
+> commandes d'un jeu ([UPGRADING](docs/fr/UPGRADING.md#39-de-la-425-à-la-430--hero-choice-)). Les
 > sauvegardes, les runs et les sessions gardent leurs formats et se chargent comme avant.
 
 | | |
@@ -41,8 +42,8 @@ npm run assets && npm run dev        # y jouer ; puis npm run verify, npm run bu
 `npm run build` écrit `dist/`, un site statique que n'importe quel hébergement sert. ffmpeg sert au pipeline sonore
 et reste optionnel ; `npx quest-n-click doctor` dit ce qui manque. [PACKAGE](docs/fr/PACKAGE.md)
 est le guide complet ; le [TUTORIAL](docs/fr/TUTORIAL.md) accompagne la première pièce.
-Avant la 4.2.5, l'archive et la commande s'appelaient `web-scumm` : jusqu'à la fin des 4.2.x, la release livre aussi
-`web-scumm-4.2.5.tgz`, et `npx web-scumm …` fonctionne toujours, après une ligne d'avis ([UPGRADING](docs/fr/UPGRADING.md#38-de-la-424-à-la-425)).
+Avant la 4.2.5, l'archive et la commande s'appelaient `web-scumm` ; la 4.2.5 les livrait aussi sous ce nom, la 4.3.0
+ne le fait plus : un jeu fait avant passe avec `npx quest-n-click migrate` ([UPGRADING](docs/fr/UPGRADING.md#39-de-la-425-à-la-430--hero-choice-)).
 
 ## Fabriquer un jeu
 
@@ -150,7 +151,7 @@ erreurs avant qu'une personne les voie. Chaque résultat reste relisible, dans l
 ## En chiffres
 
 Mesuré sur ce commit de `main` par les vérifications automatiques (`npm run quality:baseline` écrit ces chiffres) :
-<!-- metric:tests -->2795<!-- /metric --> déclarations de tests unitaires, sous Node 22 et 24, avec des planchers de
+<!-- metric:tests -->2807<!-- /metric --> déclarations de tests unitaires, sous Node 22 et 24, avec des planchers de
 couverture et des tests de mutation bloquants ; le jeu de référence prouvé en <!-- metric:referenceStates -->288<!-- /metric -->
 états ; la première visite du joueur, <!-- metric:initialJsKB -->135<!-- /metric --> Ko de JavaScript compressé. Chaque
 release est construite depuis le commit que son candidat a testé. Le candidat produit les quatre archives de packages,
@@ -167,7 +168,7 @@ dans [TOOLS](docs/fr/TOOLS.md), ce qui change dans le [CHANGELOG](CHANGELOG.md),
 [UPGRADING](docs/fr/UPGRADING.md), et d'où vient le projet dans la [ROADMAP](docs/fr/ROADMAP.md).
 
 Release actuelle : [v4.2.5 (quest'n'click)](https://github.com/wanoo/quest-n-click/releases/tag/v4.2.5), le
-nouveau nom du projet, les anciens noms `web-scumm` gardés comme alias pendant toute la 4.2.x ; sur les changements de
+nouveau nom du projet, les anciens noms `web-scumm` gardés comme alias pendant toute la 4.2.x (retirés en 4.3.0) ; sur les changements de
 la 4.2.4 pour les auteurs (une sortie franchie d'un simple tap, `actorGap`, le fond des planches de sprites,
 `face: 'hero'` corrigé) et la 4.2.3 « Coordination », le Studio en ligne pour une équipe, expérimental
 ([STUDIO-SERVER](docs/fr/STUDIO-SERVER.md)) : prévisualisations par révision, santé, annulation personnelle, builds

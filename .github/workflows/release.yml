@@ -7,7 +7,7 @@ name: release
 # release with the matching CHANGELOG section and the manual passes of docs/dev/passes/; the two mutation sets run as jobs
 # beside it (4.1.10). Attached: the built game
 # (dist, its licences inside), its assets manifest, the engine's npm packages (quest-n-click, create-quest-n-click, 3.9;
-# quest-n-click-bridge, 4.1.1; through 4.2.x their web-scumm names too, D47), a complete speedrun of the reference chapter verified by `speedrun:verify` (4.1.14),
+# quest-n-click-bridge, 4.1.1; from 4.2.5 to 4.2.x their web-scumm names too, D47), a complete speedrun of the reference chapter verified by `speedrun:verify` (4.1.14),
 # SHA-256 sums, an SBOM of the shipped dependencies (CycloneDX) and
 # a build provenance attestation (`gh attestation verify <file> -R wanoo/quest-n-click`), and reads it all back once published
 # (`ship verify`, 4.1.8). A release that already has

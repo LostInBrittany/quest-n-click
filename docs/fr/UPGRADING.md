@@ -752,6 +752,53 @@ ne bouge pas. Le moteur s'installe depuis `releases/download/v4.3.0/…`. Ce qui
 - **`npm run lint`** a `hero-looks-default` (info), et ne traite plus d'`action-dead` une règle qui ne pose qu'un
   drapeau lu par une variante de personnage ou par un aiguillage.
 
+**Les noms `web-scumm` disparaissent** (D47). Pendant toute la 4.2.x, les anciens noms du moteur étaient des alias ;
+la 4.3.0 les retire. Il n'y a plus d'archive `web-scumm-<version>.tgz`, `create-web-scumm`, `web-scumm-bridge`,
+`web-scumm-connectors` ni `web-scumm-studio-server`, plus de commande `web-scumm`, `web-scumm-bridge`,
+`web-scumm-connector`, `web-scumm-studio-server` ni `web-scumm-studio-worker`, et `web-scumm/content` et les autres
+anciens imports ne se résolvent plus. Un jeu passé aux nouveaux noms (§38) n'a rien à faire. Un jeu qui dit encore
+`web-scumm` passe ainsi, puis `npm run verify` :
+
+```bash
+npm uninstall web-scumm
+npm install https://github.com/wanoo/quest-n-click/releases/download/v4.3.0/quest-n-click-4.3.0.tgz
+npx quest-n-click migrate
+```
+
+`quest-n-click migrate` renomme, dans toutes les sources du projet (hors `node_modules`, `dist`, `public` et dossiers
+cachés), les imports `web-scumm/…` en `quest-n-click/…` ; dans `tsconfig.json`, le chemin `web-scumm/*` et les cibles
+`node_modules/web-scumm/…` ; dans `package.json`, les commandes des scripts (`web-scumm dev` devient
+`quest-n-click dev`, `web-scumm-bridge serve` devient `quest-n-click-bridge serve`). Toute chaîne entre guillemets qui
+commence par `web-scumm/` est renommée, import ou non ; `web-scumm-save` et les autres noms de format ne le sont pas.
+Un lien symbolique qui sort du projet, un script `web-scumm` à côté d'un script `quest-n-click`, ou une dépendance à un
+ancien paquet dont le nouveau n'est pas installé est signalé et vous est laissé. `migrate --check` nomme ce qui reste.
+Les commandes que vous tapez changent de même : `npx web-scumm …` devient `npx quest-n-click …`, et
+`npx web-scumm-bridge`, `npx web-scumm-connector`, `npx web-scumm-studio-server`, `npx web-scumm-studio-worker`
+deviennent `npx quest-n-click-bridge`, `npx quest-n-click-connector`, `npx quest-n-click-studio-server`,
+`npx quest-n-click-studio-worker`. À la main, depuis le dossier du projet, les imports dans les deux styles de
+guillemets dans les fichiers `.ts`, `.tsx`, `.mts`, `.cts`, `.js`, `.jsx`, `.mjs` et `.cjs`, noms avec espaces compris
+(avec le `grep` et le `sed` GNU comme BSD), puis `tsconfig.json` et `package.json` comme le dit le §38 :
+
+```bash
+grep -rl --null -E --include='*.ts' --include='*.tsx' --include='*.mts' --include='*.cts' --include='*.js' \
+  --include='*.jsx' --include='*.mjs' --include='*.cjs' --exclude-dir=node_modules --exclude-dir=dist \
+  --exclude-dir=public --exclude-dir='.*' "['\"]web-scumm/" * \
+  | xargs -0 sed -i.bak -e "s#'web-scumm/#'quest-n-click/#g" -e 's#"web-scumm/#"quest-n-click/#g'
+find . -name '*.bak' -not -path './node_modules/*' -delete
+```
+
+Un hébergeur du Bridge, des connecteurs ou du Studio Server installe les archives `quest-n-click-…` et appelle les
+nouvelles commandes dans ses fichiers d'unité et ses scripts. Un jeu d'un Studio hébergé qui importe encore
+`web-scumm/…` ne se charge plus (sa santé n'est pas verte et ses écritures sont refusées) tant que son owner n'a pas
+lancé la mise à niveau du moteur (`POST /api/engine/migrate`, STUDIO-SERVER). La mise à niveau renomme d'abord ses
+imports, en une révision à part jugée seulement sur le fait que le jeu se charge (et, s'il se chargeait avant, sur
+aucune nouvelle erreur du validateur), jamais par le solveur : un jeu qu'on ne peut pas encore finir voit ses imports
+renommés et se charge de nouveau ; puis la migration du schéma, s'il en faut une, est jugée comme avant et peut encore
+être refusée (422, le renommage gardé). Le renommage n'est pas annulable (son annulation ramènerait des imports qui ne
+se résolvent plus) : faites une sauvegarde d'abord pour revenir en arrière.
+Les formats gardent leurs noms : sauvegardes, sessions, runs, stockages, en-têtes et `WEB_SCUMM_*` ne changent pas
+(§38).
+
 **Une chose à vérifier** : un texte 4.2 qui contient tel quel `{hero}` ou un groupe entre accolades en forme
 d'aiguillage (`{mot?…=…}`) est désormais rempli à l'affichage. `npm run validate` signale un groupe en forme d'aiguillage (un
 drapeau qu'aucune commande ne pose, un aiguillage mal formé, ou un aiguillage dans un texte affiché tel quel) ; un

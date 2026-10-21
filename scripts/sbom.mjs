@@ -9,16 +9,15 @@
 //     --package-lock-only`, which keeps every version the root lock has), then read the same way;
 //   - create-quest-n-click: one dependency, the engine of the same version, named by its archive's SHA-256 (the
 //     engine's own SBOM lists the rest).
-// Through 4.2.x (D47) each package's alias under its former name (web-scumm, create-web-scumm, …) has its own SBOM
-// too, made the same way from its own archive. The image's SBOM is scripts/bridge-image.mjs'. Each file names its
-// archive's SHA-256 in its metadata.
+// Through 4.2.x (D47) each package's alias under its former name (web-scumm, create-web-scumm, …) had its own SBOM
+// too; 4.3.0 packs no alias (tools/release/artifacts.mjs keeps them for the releases that had them). The image's SBOM
+// is scripts/bridge-image.mjs'. Each file names its archive's SHA-256 in its metadata.
 import { execFileSync } from 'node:child_process';
 import { createHash, randomUUID } from 'node:crypto';
 import { copyFileSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
-import { ALIASES_UNTIL, PACKAGES } from '../tools/release/artifacts.mjs';
-import { atLeast } from '../tools/release/candidate.mjs';
+import { PACKAGES } from '../tools/release/artifacts.mjs';
 
 const ROOT = resolve(import.meta.dirname, '..');
 const root = JSON.parse(readFileSync(join(ROOT, 'package.json'), 'utf8'));
@@ -55,12 +54,9 @@ function named(sbom, name, tgz) {
 }
 
 const done = [];
-// The locked packages first, the engines, then their creators (each names its engine's archive); the aliases after.
+// The locked packages first, the engines, then their creators (each names its engine's archive).
 const order = (n) => (n.startsWith('create-') ? 2 : /-(bridge|connectors|studio-server)$/.test(n) ? 0 : 1);
-const names = [
-  ...PACKAGES.map((p) => p.name),
-  ...(atLeast(root.version, ALIASES_UNTIL) ? [] : PACKAGES.map((p) => p.old)),
-].sort((a, b) => order(a) - order(b));
+const names = PACKAGES.map((p) => p.name).sort((a, b) => order(a) - order(b));
 for (const name of names) {
   const tgz = join(pack, `${name}-${root.version}.tgz`);
   if (!existsSync(tgz)) throw new Error(`${tgz}: missing`);

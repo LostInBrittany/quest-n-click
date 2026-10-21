@@ -158,7 +158,7 @@ export async function buildPreview(dir: string, p: PreviewParams, cacheDir: stri
     resolve: {
       alias: [
         {
-          find: /^(?:quest-n-click|web-scumm)\/(content|player|minigames|testing)$/,
+          find: /^quest-n-click\/(content|player|minigames|testing)$/,
           replacement: r('./src/engine/api/$1.ts'),
         },
         { find: '@engine', replacement: r('./src/engine') },

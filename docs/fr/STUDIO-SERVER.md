@@ -346,6 +346,17 @@ curl -X POST -H "Authorization: Bearer $(npx quest-n-click-studio-server token -
   3 répond `{ changed: 0 }` et rien n'est écrit.
 - **Annulable.** L'Undo de l'owner l'annule, par une nouvelle révision (409 si quelqu'un a écrit l'un de ses fichiers
   depuis) ; ou le projet revient à une sauvegarde faite avant (voir plus bas) : faites-en une d'abord.
+- **L'ancien nom (4.3.0, D47).** Un jeu qui importe encore `web-scumm/…` ne se charge pas sur un Studio 4.3.0 (les
+  alias ont disparu) : sa santé n'est pas verte et la garde refuse ses écritures (un 422 : le jeu ne se charge
+  toujours pas). La mise à niveau renomme d'abord ces imports elle-même, dans toutes les sources TypeScript de la tête
+  (sans exécuter le code du jeu), en une révision à part, `engine upgrade: the former name's imports renamed`, jugée
+  par le seul validateur : le jeu doit se charger après et, s'il se chargeait avant, ne gagner aucune erreur. Le
+  solveur ne la juge pas : un jeu qu'on ne peut pas encore finir n'est jamais bloqué. La migration du schéma suit,
+  jugée comme ci-dessus ; si elle est refusée, le `body.renamed` de la réponse dit que le renommage est gardé. Le
+  renommage est écrit sans annulation (elle ramènerait des imports qui ne se résolvent plus), si bien que l'historique
+  antérieur de l'owner reste accessible ; une sauvegarde faite avant est le chemin du retour. Une application de
+  traitement qui refuse, dépasse son délai ou ne laisse aucun résultat pendant que la garde l'interroge ne compte
+  jamais comme un jeu qui ne se charge pas : l'écriture échoue (503) et la suivante redemande.
 
 Dans la ligne 4.2.x le format du contenu est gelé (D40) : c'est pour un jeu fait sur une 4.1.x. Un Studio local n'a
 pas de route : lancez `quest-n-click migrate` dans le projet. Le `tsconfig.json` du projet (`baseUrl`, que

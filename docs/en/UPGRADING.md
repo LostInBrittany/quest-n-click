@@ -707,6 +707,51 @@ installs from `releases/download/v4.3.0/…`. What is new, all optional (CONTENT
 - **`npm run lint`** has `hero-looks-default` (info), and no longer calls `action-dead` a rule that only sets a flag a
   character's variant or a text switch reads.
 
+**The `web-scumm` names are gone** (D47). Through 4.2.x the engine's former names were aliases; 4.3.0 removes them.
+There is no `web-scumm-<version>.tgz`, `create-web-scumm`, `web-scumm-bridge`, `web-scumm-connectors` or
+`web-scumm-studio-server` archive any more, no `web-scumm`, `web-scumm-bridge`, `web-scumm-connector`,
+`web-scumm-studio-server` or `web-scumm-studio-worker` command, and `web-scumm/content` and the other old imports no
+longer resolve. A game that switched to the new names (§38) has nothing to do. A game that still says `web-scumm` moves
+like this, then `npm run verify`:
+
+```bash
+npm uninstall web-scumm
+npm install https://github.com/wanoo/quest-n-click/releases/download/v4.3.0/quest-n-click-4.3.0.tgz
+npx quest-n-click migrate
+```
+
+`quest-n-click migrate` renames, in every source of the project (`node_modules`, `dist`, `public` and hidden folders
+left out), the imports `web-scumm/…` to `quest-n-click/…`; in `tsconfig.json`, the path `web-scumm/*` and the
+`node_modules/web-scumm/…` targets; in `package.json`, the scripts' commands (`web-scumm dev` becomes
+`quest-n-click dev`, `web-scumm-bridge serve` becomes `quest-n-click-bridge serve`). Any string that starts with
+`web-scumm/` in quotes is renamed, an import or not; `web-scumm-save` and the other format names are not. A
+symbolic link out of the project, a `web-scumm` script beside a `quest-n-click` one, or a dependency on an old package
+whose new one is not installed is said and left to you. `migrate --check` names what is left. The commands you type
+change the same way: `npx web-scumm …` becomes `npx quest-n-click …`, and `npx web-scumm-bridge`,
+`npx web-scumm-connector`, `npx web-scumm-studio-server`, `npx web-scumm-studio-worker` become
+`npx quest-n-click-bridge`, `npx quest-n-click-connector`, `npx quest-n-click-studio-server`,
+`npx quest-n-click-studio-worker`. By hand instead, from the project's folder, the imports in both quote styles in
+`.ts`, `.tsx`, `.mts`, `.cts`, `.js`, `.jsx`, `.mjs` and `.cjs` files, names with spaces included (GNU and BSD `grep`
+and `sed` alike), then `tsconfig.json` and `package.json` as §38 says:
+
+```bash
+grep -rl --null -E --include='*.ts' --include='*.tsx' --include='*.mts' --include='*.cts' --include='*.js' \
+  --include='*.jsx' --include='*.mjs' --include='*.cjs' --exclude-dir=node_modules --exclude-dir=dist \
+  --exclude-dir=public --exclude-dir='.*' "['\"]web-scumm/" * \
+  | xargs -0 sed -i.bak -e "s#'web-scumm/#'quest-n-click/#g" -e 's#"web-scumm/#"quest-n-click/#g'
+find . -name '*.bak' -not -path './node_modules/*' -delete
+```
+
+A host of the Bridge, the connectors or the Studio Server installs the `quest-n-click-…` archives and calls the new
+commands in its unit files and scripts. A game on a hosted Studio that still imports `web-scumm/…` no longer loads
+(its health is not green and its writes are refused) until its owner runs the engine's upgrade
+(`POST /api/engine/migrate`, STUDIO-SERVER). The upgrade renames its imports first, as a revision of its own judged
+only by whether the game loads (and, if it loaded before, by no new validator error), never by the solver: a game that
+cannot be finished yet gets its imports renamed and loads again; then the schema's migration, if one is due, is judged
+as before and may still be refused (422, the rename kept). The rename is not undoable (its undo would bring back
+imports that no longer resolve): take a backup first to go back. The formats keep their names:
+saves, sessions, runs, the stores, the headers and `WEB_SCUMM_*` are unchanged (§38).
+
 **Check one thing**: a 4.2 text that holds, literally, `{hero}` or a brace group shaped like a switch
 (`{word?…=…}`) is now filled when shown. `npm run validate` reports a switch-shaped group (a flag no command sets,
 a malformed switch, or one in a text shown as written); a `{hero}` in a line is valid, so search for it

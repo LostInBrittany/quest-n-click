@@ -5,9 +5,9 @@ pages, its tools and the `quest-n-click` command, the game template), `create-qu
 since 4.1.1, `quest-n-click-bridge` (the reference Reality Bridge, `docs/en/REALITY-OPS.md`).
 
 Until 4.2.4 these were `web-scumm`, `create-web-scumm` and `web-scumm-bridge` (the project was called web-scumm, D47).
-From 4.2.5 each release also ships them under their old names, the same files at the same version, and the old
-commands and imports (`web-scumm dev`, `web-scumm/content`) still work, after a one-line notice, through 4.2.x; they
-are removed in 4.3. UPGRADING §38 says how to switch.
+Through 4.2.x each release also shipped them under their old names, and the old commands and imports
+(`web-scumm dev`, `web-scumm/content`) still worked, after a one-line notice. 4.3.0 removes them: `npx quest-n-click
+migrate` renames what a game still says (UPGRADING §39).
 
 ## A new game
 

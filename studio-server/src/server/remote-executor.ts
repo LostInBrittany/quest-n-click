@@ -14,7 +14,7 @@ import type { JobResult } from '../worker/main';
 import { PreviewBuildFailed, type PreviewParams, previewFiles } from '../worker/preview-build';
 import { packSnapshot, snapshotTexts } from '../worker/snapshot';
 import type { DiagnoseKind } from '../ops/diagnose';
-import { StudioError } from '../ops/errors';
+import { GameDoesNotLoad, StudioError } from '../ops/errors';
 import { type Migrated, migratedShape } from '../worker/migrate';
 import { type Prepared, preparedShape } from '../worker/prepare';
 import { type Cut, cutShape } from '../worker/cut';
@@ -122,7 +122,12 @@ export function remoteExecutor(o: RemoteExecutorOptions) {
       if (!bytes) throw new Error('the processing worker left no usable result');
       const v = JSON.parse(bytes.toString('utf8')) as JobResult;
       if (v.job !== id || v.kind !== kind) throw new Error('the processing worker result does not answer this job');
-      if (!v.failed && kind === 'validate' && (!Array.isArray(v.errors) || !Array.isArray(v.warnings)))
+      if (
+        !v.failed &&
+        kind === 'validate' &&
+        typeof v.unloadable !== 'string' &&
+        (!Array.isArray(v.errors) || !Array.isArray(v.warnings))
+      )
         throw new Error('the processing worker result does not answer this job');
       if (!v.failed && kind === 'preview' && !previewFiles(v.files))
         throw new Error('the processing worker result does not answer this job');
@@ -158,6 +163,7 @@ export function remoteExecutor(o: RemoteExecutorOptions) {
     const t0 = Date.now();
     const v = await run('validate', snapshot, {}, at);
     if (v.failed) throw new Error(v.failed);
+    if (typeof v.unloadable === 'string') throw new GameDoesNotLoad(v.unloadable.slice(0, 2_000), 422);
     const errors = v.errors!.map(String);
     return { ok: errors.length === 0, errors, warnings: (v.warnings ?? []).map(String), ms: Date.now() - t0 };
   }
@@ -198,7 +204,7 @@ export function remoteExecutor(o: RemoteExecutorOptions) {
       const v = await run('migrate', snapshot, {}, at);
       if (v.timedOut) throw new StudioError(`${v.failed}: try again`, 504);
       if (v.failed) throw new StudioError(`the migration cannot run: ${v.failed}`, 422);
-      const m = migratedShape(v.data, new Set(snapshotTexts(snapshot).keys()));
+      const m = migratedShape(v.data, snapshotTexts(snapshot));
       if ('refused' in m) throw new StudioError(`the migration is refused: ${m.refused}`, 422);
       return m;
     },

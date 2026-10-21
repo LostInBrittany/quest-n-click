@@ -47,6 +47,10 @@ const WRITERS: Record<string, string> = {
     "elsewhere: the job's output file beside its folder in .cache/jobs/, read and removed by the supervisor",
   // Game folders written directly (local mode: adopted by the journal; hosted: unavailable or in the executor).
   'tools/migrate.ts': 'adopted: web-scumm migrate rewrites a project (an exclusive operation in 4.2.3)',
+  'tools/migrate-name.ts':
+    "adopted: quest-n-click migrate renames the former name's imports and commands in a project (4.3.0, D47)",
+  'studio-server/src/worker/migrate.ts':
+    "elsewhere: the worker's own copy of the snapshot in its job folder, the imports renamed before the game loads (4.3.0)",
   'tools/assets.py': 'adopted: npm run assets writes assets.gen.json (and public/assets, outside the game)',
   'tools/cut-sheet.py': 'adopted: run by hand; the Studio runs it on a scratch copy',
   'tools/talk-apply.py': 'adopted: npm run talk writes art/',

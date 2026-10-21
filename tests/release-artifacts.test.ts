@@ -5,7 +5,7 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 // @ts-expect-error: a plain .mjs module without declarations
-import { ARTIFACTS, candidateFiles, checkRelease, releaseFiles } from '../tools/release/artifacts.mjs';
+import { ARTIFACTS, PACKAGES, candidateFiles, checkRelease, releaseFiles } from '../tools/release/artifacts.mjs';
 
 interface Artifact {
   id: string;
@@ -179,6 +179,22 @@ describe('the manifest of a release', () => {
       [],
     );
     expect(releaseFiles('v4.3.0', candidateFiles('4.3.0', [])).filter((f: string) => /web-scumm/.test(f))).toEqual([]);
+    // 4.3.0 (D47, D48): the candidate's archives and SBOMs are the five packages under their own names, exactly what
+    // scripts/pack.mjs and scripts/sbom.mjs now make (no alias), from the first release candidate on.
+    for (const v of ['4.3.0-rc.1', '4.3.0', '4.3.1']) {
+      const pkg = v.replace(/-.*$/, '');
+      const files = candidateFiles(v, []);
+      expect(
+        files.filter((f: string) => f.startsWith('pack/')),
+        v,
+      ).toEqual(PACKAGES.map((p: { name: string }) => `pack/${p.name}-${pkg}.tgz`).sort());
+      expect(
+        files.filter((f: string) => f.startsWith('sbom/')),
+        v,
+      ).toEqual(PACKAGES.map((p: { name: string }) => `sbom/${p.name}.cdx.json`).sort());
+    }
+    for (const f of ['scripts/pack.mjs', 'scripts/sbom.mjs'])
+      expect(readFileSync(f, 'utf8'), f).not.toMatch(/aliasManifest|ALIASES_UNTIL|p\.old/);
   });
 });
 

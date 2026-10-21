@@ -69,8 +69,10 @@ La 4.2.5 renomme le projet quest'n'click et ne change le statut d'aucune surface
 commande), `web-scumm/content`, `/player`, `/minigames`, `/testing`, `/reality`, `create-web-scumm`, `web-scumm-bridge`,
 `web-scumm-connectors` (commande `web-scumm-connector`) et `web-scumm-studio-server` (commandes
 `web-scumm-studio-server`, `web-scumm-studio-worker`) sont des **alias dépréciés** de leurs noms `quest-n-click` :
-pris en charge pendant toute la 4.2.x, livrés par chaque release de la ligne, et retirés en 4.3, une exception à la
-règle ci-dessous choisie par le mainteneur (D47). Les identifiants de format qui disent web-scumm (`web-scumm-save`,
+pris en charge pendant toute la 4.2.x, livrés par chaque release de la ligne, et retirés en 4.3.0, une exception à la
+règle ci-dessous choisie par le mainteneur (D47). En 4.3.0, ils ont disparu : `quest-n-click migrate` renomme les
+imports d'un jeu, les chemins de son tsconfig et les commandes de ses scripts, et la mise à niveau du moteur du Studio
+hébergé renomme les imports d'un jeu hébergé (UPGRADING §39). Les identifiants de format qui disent web-scumm (`web-scumm-save`,
 `web-scumm-session`, le `web-scumm-speedrun` des `.wsrun`, `web-scumm-remix-1`, les noms des stockages et des
 en-têtes, `WEB_SCUMM_*`) ne sont pas des noms du projet mais des parties des formats : ils restent, et aucune 4.3 ne
 les retire.

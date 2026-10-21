@@ -15,9 +15,7 @@
       },
       "bin": {
         "quest-n-click-studio-server": "bin/server.mjs",
-        "quest-n-click-studio-worker": "bin/worker.mjs",
-        "web-scumm-studio-server": "bin/web-scumm-server.mjs",
-        "web-scumm-studio-worker": "bin/web-scumm-worker.mjs"
+        "quest-n-click-studio-worker": "bin/worker.mjs"
       },
       "engines": {
         "node": ">=22.12"

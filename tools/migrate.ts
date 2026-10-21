@@ -1,11 +1,14 @@
 // quest-n-click migrate (3.9): brings the game's sources to the authoring schema of the installed engine. The schema is
 // `schemaVersion` in defineGame (docs/en/UPGRADING.md, docs/en/SUPPORT.md): 3 is the current one. A game on 3 has
 // nothing to do; an older game gets its stable ids written (`npm run ids -- --write --map`) and the steps left to do
-// by hand are printed. `--check`: exit 1 when a migration is due, write nothing.
+// by hand are printed. 4.3.0: first, a project still under the former name (D47) has its `web-scumm/…` imports, its
+// tsconfig.json and its package.json's commands renamed (tools/migrate-name.ts). `--check`: exit 1 when a migration
+// is due, write nothing.
 import { spawnSync } from 'node:child_process';
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { GAME, loadGameModule, PROJECT } from './game';
+import { renameProject } from './migrate-name';
 import { tsconfigWithoutBaseUrl } from './migrate-tsconfig';
 
 export const CURRENT_SCHEMA = 3;
@@ -26,6 +29,28 @@ if (tsconfig && existsSync(tsconfig)) {
       '✔  tsconfig.json: `baseUrl` removed, its `paths` made relative (TypeScript 7, 4.1.8); a comment it had is not kept',
     );
   }
+}
+// The former name (4.3.0, D47): the aliases are gone, so a project of 4.2.x or before has its imports and commands
+// renamed before its game is loaded; then this runs again in a new process, which reads the renamed tsconfig.json.
+if (PROJECT) {
+  const check = process.argv.includes('--check');
+  const r = renameProject(PROJECT, { write: !check });
+  for (const t of r.todo) console.error(`✖  ${t}`);
+  if (r.files.length && check) {
+    console.error(
+      `✖  still under the former name web-scumm: ${r.files.join(', ')} (quest-n-click migrate renames them)`,
+    );
+    process.exit(1);
+  }
+  if (r.files.length) {
+    console.log(`✔  the former name web-scumm renamed quest-n-click in ${r.files.join(', ')} (then: npm install)`);
+    const again = spawnSync(process.execPath, [...process.execArgv, ...process.argv.slice(1)], {
+      stdio: 'inherit',
+      env: process.env,
+    });
+    process.exit(again.status ?? 1);
+  }
+  if (r.todo.length && check) process.exit(1);
 }
 const { game } = await loadGameModule();
 const at = game.schemaVersion ?? 2;

@@ -90,7 +90,7 @@ import type {
 
 import { openSqliteDb } from '../../../bridge/src/store-sqlite';
 import { fsBlobStore } from './blobs';
-import { StudioError } from './errors';
+import { GameDoesNotLoad, isGameDoesNotLoad, isStudioError, StudioError } from './errors';
 import { ABSENT, sha256 } from './durable';
 import { type FileEffect, Journal } from './journal';
 import { validateDir } from './validate-dir';
@@ -258,11 +258,17 @@ export function createStudio(opts: StudioOptions = {}) {
   };
 
   async function loadModule(d = dir): Promise<GameModule> {
+    if (opts.executor)
+      try {
+        return (await opts.executor.load(d)) as GameModule;
+      } catch (e) {
+        throw isGameDoesNotLoad(e) ? e : new StudioError(`the game does not load: ${(e as Error).message}`, 500);
+      }
     try {
-      if (opts.executor) return (await opts.executor.load(d)) as GameModule;
       return (await importFresh(join(d, 'index.ts'))) as GameModule;
     } catch (e) {
-      throw new StudioError(`the game does not load: ${(e as Error).message}`, 500);
+      // The game's own code, imported here: its failure is the game's (the guard's baseline may be it).
+      throw isGameDoesNotLoad(e) ? e : new GameDoesNotLoad((e as Error).message);
     }
   }
 
@@ -328,17 +334,31 @@ export function createStudio(opts: StudioOptions = {}) {
   const UNGUARDED = /^(notes\.json|storyboard\.(json|md)|voices\.json|playtests\/|art\/|audio\/|private\/)/;
 
   /** The game's validation errors at the journal's head, kept per revision (the guard compares against them). */
-  let baseline: { rev: number; errors: Set<string> } | undefined;
+  let baseline: { rev: number; errors: Set<string>; unloadable?: string } | undefined;
 
   /**
    * The guard (P3): the game as it would be after the operation, built in a staging folder (links to every file, the
    * changed ones written), validated; an operation that adds a validation error is refused (422) before anything is
    * logged. Judged on the final state, so "create the object + refer to it" in one operation passes.
    */
+  /** A validator that could not answer (a worker that refused, timed out, left no result): a 503, never a verdict. */
+  const unanswered = (e: unknown): StudioError =>
+    isStudioError(e) ? e : new StudioError(`the edit cannot be judged now: ${(e as Error)?.message ?? e}`, 503);
+
   async function guard(j: Journal, changed: FileEffect[], diff: string): Promise<void> {
     if (changed.every((e) => UNGUARDED.test(e.path))) return;
     const rev = await j.revision();
-    if (baseline?.rev !== rev) baseline = { rev, errors: new Set((await validateIn(dir)).errors) };
+    // A head whose code does not load (4.3.0: a game still importing the former name's `web-scumm/…`, D47) has no
+    // verdict to compare with: an operation is then judged by whether the game loads after it, its errors becoming the
+    // next baseline. Only the game's own failure counts: a worker that refused, timed out or left no result propagates
+    // (a 503, say) and nothing is kept, so the next write asks again.
+    if (baseline?.rev !== rev)
+      try {
+        baseline = { rev, errors: new Set((await validateIn(dir)).errors) };
+      } catch (e) {
+        if (!isGameDoesNotLoad(e)) throw unanswered(e);
+        baseline = { rev, errors: new Set(), unloadable: e.message };
+      }
     const stage = join(root, '.cache', 'studio-stage', `${gameId}-${process.pid}-${Date.now().toString(36)}`);
     try {
       linkTree(dir, stage);
@@ -355,9 +375,21 @@ export function createStudio(opts: StudioOptions = {}) {
       // as not found: that says the assets wait for `npm run assets`, not that the edit is wrong. With prepared images,
       // `addEntity` refuses an unknown one itself.
       const unprepared = !Object.keys(loadAssets(join(stage, 'assets.gen.json'))?.images ?? {}).length;
-      const added = (await validateIn(stage)).errors.filter(
-        (e) => !was.has(e) && !(unprepared && e.includes('image not found')),
-      );
+      const after = await validateIn(stage).catch((e: unknown) => {
+        if (!isGameDoesNotLoad(e)) throw unanswered(e);
+        throw Object.assign(
+          new StudioError(
+            baseline?.unloadable
+              ? `refused: the game still does not load after the edit (${e.message}); nothing was written`
+              : `refused: the game would no longer load after the edit (${e.message}); nothing was written`,
+            422,
+          ),
+          { body: { errors: [e.message], diff } },
+        );
+      });
+      const added = baseline.unloadable
+        ? []
+        : after.errors.filter((e) => !was.has(e) && !(unprepared && e.includes('image not found')));
       if (added.length)
         throw Object.assign(
           new StudioError(
