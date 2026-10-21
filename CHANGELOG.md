@@ -2,7 +2,7 @@
 
 ## 4.3.0 — 2026-10-21
 
-LOG #246–#251: "Hero Choice". The player chooses the hero at New Game, among any number of heroes a game declares:
+LOG #246–#252: "Hero Choice". The player chooses the hero at New Game, among any number of heroes a game declares:
 portraits in a choice, a name per character variant, and text switches (`{hero}`, `{form?knight=him|witch=her}`) so
 the other characters' words follow the hero, in every language; voices follow the same keys (D49, ADR 0022). Most of
 this release comes from an outside contributor, Horacio (LostInBrittany), thank you: the hero choice itself (#202),
@@ -35,6 +35,20 @@ the yes for `v4.3.0` only (D37).
   check sent before the end answered after it. Once a job has ended, the page hears nothing more of it, nor of a Cancel
   sent just before the end and refused after it (the panel used to add "(the job has ended)" to its last word). This
   also made the Firefox pass of `npm run e2e:studio-hosted` fail now and then.
+- **A badge signed with a weak or foreign key is refused (4.3.0)**: the badge connector takes the key from the
+  issuer's documents, and the algorithm's name said nothing of its strength. An `eddsa-jcs-2022` proof is now checked
+  with an Ed25519 key only (an RSA-512 key, whose signature is exactly 64 bytes, made a valid proof); a JWS (an OB3
+  JWT, an OB2 signed assertion and its `publicKeyPem`, a status list) signed RS256 needs a modulus of at least 2048
+  bits, and ES256 a P-256 key. A 512-bit RSA key can be factored, so a badge it signed could be forged. Such badges
+  are now `invalid`.
+- **The Bridge checks its limits before it starts (4.3.0)**: each of `config.json`'s `limits` must be an integer, at
+  least 1 for `streamPage`, `bodyBytes` and `streamBufferBytes` (`streamPage: 0` made a fetch by cursor loop forever)
+  and at least 0 for the others, and a name that is no limit is refused. Before, any value was taken. A Bridge given
+  such a value does not start, and says which limit, the least it takes and what it was given; on a shared Bridge
+  that stops every tenant (UPGRADING §39 says how to look first).
+- **A run whose world cannot be hashed is refused, not a crash (4.3.0)**: a `.wsrun` whose world holds a number JSON
+  reads as Infinity (`1e400`), or two keys equal once NFC-composed, is `invalid-replay` / `world-shape`; the verifier
+  answered `inconclusive` / `crash`. Loading such a stored world says the same.
 
 ### Changes
 
@@ -103,6 +117,10 @@ the yes for `v4.3.0` only (D37).
   sample game's images come out byte for byte the same, and no tool used an API that Pillow 13 removed or deprecated.
   Run `python3 -m pip install -r requirements.txt` again. The worker's lock (`ops/studio/worker-requirements.lock`)
   carries the new wheel's sha256, checked against PyPI.
+- **The 158 mutation exemptions read again (4.3.0)**: each entry of `docs/dev/mutants.json` came due at 4.3.0 and was
+  checked against the code. 28 were not what they said and are now killed by a test; two led to the fixes above and
+  stay, their reason rewritten. The other 128 keep their place with a reviewed reason, and every entry now names its
+  line and is read again at 4.4.0. 130 remain.
 
 ## 4.2.5 — 2026-10-20
 
