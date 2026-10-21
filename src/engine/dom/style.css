@@ -1,7 +1,7 @@
 /* The default fonts, through the bundler (hashed names: the service worker's precache takes them from the HTTP cache
-   instead of downloading them a second time). Galmuri11 (4.2.5): a proportional pixel font, as a Latin subset
+   instead of downloading them a second time). Galmuri11 (4.3.0): a proportional pixel font, as a Latin subset
    (tools/subset-font.py); its range is exactly what the subset holds, and size-adjust gives its capitals DotGothic16's height
-   (Galmuri11 draws them at .92 em, DotGothic16 at .79), so a game's text keeps its size. DotGothic16, the default until 4.2.4, follows it
+   (Galmuri11 draws them at .92 em, DotGothic16 at .79), so a game's text keeps its size. DotGothic16, the default until 4.2.5, follows it
    in the stack (fonts.ts): its Latin subset answers the few symbols Galmuri11 lacks, and the full font (public/fonts,
    2 MB of mostly Japanese glyphs, not precached) covers exactly the rest, so a browser fetches it only for a character
    outside the subsets (a face whose range meets the text is downloaded even when another face wins: the two

@@ -243,9 +243,9 @@ file one of them knows cannot escape the others. A room's scope over-approximate
 character who could be there), never the other way: `npm run e2e:weight` fails on a request outside the prediction.
 
 The default fonts go through the bundler, with hashed names, so the service worker's precache takes them from the HTTP
-cache instead of downloading them again. The interface font, Galmuri11 (4.2.5), is a proportional pixel font close to
+cache instead of downloading them again. The interface font, Galmuri11 (4.3.0), is a proportional pixel font close to
 the LucasArts dialogue fonts, shipped as a Latin subset (125 KB, `tools/subset-font.py`) with a `size-adjust` that gives
-its capitals the height DotGothic16's had. DotGothic16, the default until 4.2.4, stays behind every interface family
+its capitals the height DotGothic16's had. DotGothic16, the default until 4.2.5, stays behind every interface family
 (`fontStack` in `dom/fonts.ts`): its own Latin subset (118 KB) answers the few symbols Galmuri11 lacks, and the full
 font (2 MB, mostly Japanese) is a face whose `unicode-range` covers only the rest, so a browser fetches it, and caches
 it, only for a character outside the subsets.

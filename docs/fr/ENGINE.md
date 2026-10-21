@@ -259,10 +259,10 @@ autres. La portée d'un lieu sur-approxime une visite (toutes les variantes, cha
 jamais l'inverse : `npm run e2e:weight` échoue sur une requête hors prédiction.
 
 Les polices par défaut passent par le bundler, avec des noms hachés : le précache du service worker les prend dans le
-cache HTTP au lieu de les télécharger une seconde fois. La police d'interface, Galmuri11 (4.2.5), est une police pixel
+cache HTTP au lieu de les télécharger une seconde fois. La police d'interface, Galmuri11 (4.3.0), est une police pixel
 proportionnelle proche des polices de dialogue LucasArts, livrée en sous-ensemble latin (125 Ko, `tools/subset-font.py`)
 avec un `size-adjust` qui donne à ses capitales la hauteur de celles de DotGothic16. DotGothic16, la police par défaut
-jusqu'à 4.2.4, reste derrière toute famille d'interface (`fontStack` dans `dom/fonts.ts`) : son propre sous-ensemble
+jusqu'à 4.2.5, reste derrière toute famille d'interface (`fontStack` dans `dom/fonts.ts`) : son propre sous-ensemble
 latin (118 Ko) répond aux quelques symboles absents de Galmuri11, et la police complète (2 Mo, surtout du japonais) est
 une face dont le `unicode-range` ne couvre que le reste : un navigateur ne la télécharge, et ne la garde, que pour un
 caractère hors des sous-ensembles.
