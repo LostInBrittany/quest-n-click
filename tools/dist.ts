@@ -125,7 +125,7 @@ function credits(): string {
   }
   lines.push(
     '',
-    'Fonts: DotGothic16 (Fontworks) and Press Start 2P (CodeMan38), SIL Open Font License 1.1: THIRD_PARTY_NOTICES.txt.',
+    'Fonts: Galmuri11 (Lee Minseo), DotGothic16 (Fontworks) and Press Start 2P (CodeMan38), SIL Open Font License 1.1: THIRD_PARTY_NOTICES.txt.',
     '',
   );
   return lines.join('\n');
