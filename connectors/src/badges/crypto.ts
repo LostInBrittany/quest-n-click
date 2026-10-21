@@ -117,15 +117,24 @@ export function parseJws(s: string): Jws | null {
   };
 }
 
-/** The JWS's signature with this key, for EdDSA, ES256 and RS256 only (`none` and the HMAC family never). */
+/** The least RSA modulus a badge's RS256 key may have (4.3.0): a 512-bit one can be factored, so its badges forged. */
+const RSA_MIN_BITS = 2048;
+
+/**
+ * The JWS's signature with this key, for EdDSA, ES256 and RS256 only (`none` and the HMAC family never). ES256 is
+ * P-256 only and RS256 a modulus of at least 2048 bits (4.3.0): the key comes from the issuer's documents, and an
+ * algorithm's name says nothing of the key's strength.
+ */
 export function verifyJws(jws: Jws, key: KeyObject): boolean {
   const alg = jws.header.alg;
   const data = Buffer.from(jws.signingInput);
+  const details = key.asymmetricKeyDetails ?? {};
   try {
     if (alg === 'EdDSA' && key.asymmetricKeyType === 'ed25519') return verify(null, data, key, jws.signature);
-    if (alg === 'ES256' && key.asymmetricKeyType === 'ec')
+    if (alg === 'ES256' && key.asymmetricKeyType === 'ec' && details.namedCurve === 'prime256v1')
       return verify('sha256', data, { key, dsaEncoding: 'ieee-p1363' }, jws.signature);
-    if (alg === 'RS256' && key.asymmetricKeyType === 'rsa') return verify('sha256', data, key, jws.signature);
+    if (alg === 'RS256' && key.asymmetricKeyType === 'rsa' && (details.modulusLength ?? 0) >= RSA_MIN_BITS)
+      return verify('sha256', data, key, jws.signature);
   } catch {
     return false;
   }
