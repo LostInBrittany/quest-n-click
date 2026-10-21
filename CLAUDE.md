@@ -1,4 +1,4 @@
-# web-scumm — notes for an AI assistant working in this repo
+# quest'n'click — notes for an AI assistant working in this repo
 
 The vendor-neutral manual is `AGENTS.md`: read it first; this file only adds what is specific to Claude Code (skills, MCP via `.mcp.json`).
 

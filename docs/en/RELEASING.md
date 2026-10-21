@@ -68,8 +68,8 @@ It exits 1 only on a `blocked`.
 4.2.0 is published on GitHub Releases only (D38): every step below needs the maintainer's 2FA, and 4.2.0 did not
 wait for it. The steps are unchanged; the first version they publish is a 4.2.x.
 
-Nothing is published to npm in 4.1.x. The four names (`web-scumm`, `create-web-scumm`, `web-scumm-bridge`,
-`web-scumm-connectors`) are free. Each night a job that does not gate checks that they still are, or that they are
+Nothing is published to npm in 4.1.x. The four names (`quest-n-click`, `create-quest-n-click`, `quest-n-click-bridge`,
+`quest-n-click-connectors`) are free. Each night a job that does not gate checks that they still are, or that they are
 ours (D34: squatting is an accepted risk until npm publishing, a 4.2.x, D38).
 
 1. **Versions.** Staged publishing needs npm 11.15.0 and Node 22.14.0 at least ([npm docs][staged]). release.yml pins
@@ -91,7 +91,7 @@ ours (D34: squatting is an accepted risk until npm publishing, a 4.2.x, D38).
 4. **Trusted publishing, stage-only.** On each package, run:
 
    ```sh
-   npm trust github <name> --repo wanoo/web-scumm --file release.yml --allow-stage-publish
+   npm trust github <name> --repo wanoo/quest-n-click --file release.yml --allow-stage-publish
    ```
 
    - CI may then stage, never publish.
@@ -100,7 +100,7 @@ ours (D34: squatting is an accepted risk until npm publishing, a 4.2.x, D38).
 5. **Promotion.** The release run stages each package by OIDC. The maintainer promotes each one with 2FA
    (`npm stage approve <id>`, or on npmjs.com). 4.2.0, published from the status candidate's run, is the first version
    of the product.
-6. **Dual-use classification of `web-scumm-connectors`** (decided in 4.1.20, PR 3b):
+6. **Dual-use classification of `quest-n-click-connectors`** (decided in 4.1.20, PR 3b):
    - npm's [dual-use policy][dual] covers "security-relevant capabilities that can resemble malicious software":
      penetration-testing tools, security research utilities, code obfuscation.
    - The connectors are servers a game runs (an SSH and a Telnet front for its terminal, an email webhook and IMAP

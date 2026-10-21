@@ -14,8 +14,16 @@ interface Artifact {
   job: string;
   published: string;
   sbom?: string;
+  since?: string;
+  until?: string;
 }
 const ALL = ARTIFACTS as Artifact[];
+/** A manifest name for a tag (`{proj}` the name the release's files start with, D47). */
+const fill = (name: string, tag: string, version: string) =>
+  name
+    .replaceAll('{proj}', version >= '4.2.5' ? 'quest-n-click' : 'web-scumm')
+    .replaceAll('{tag}', tag)
+    .replaceAll('{pkg}', version);
 
 /** What the v4.1.19 release published (`gh release view v4.1.19`), and what its candidate's manifest listed. */
 const PUBLISHED_4119 = [
@@ -123,8 +131,54 @@ describe('the manifest of a release', () => {
     expect(new Set(ids).size).toBe(ids.length);
     const names = ALL.map((a) => a.published);
     expect(new Set(names).size).toBe(names.length);
-    for (const a of ALL) if (a.sbom) expect(names).toContain(a.sbom);
+    // Each release's SBOMs are among its own files, before the rename and after it (D47).
+    for (const [tag, version] of [
+      ['v4.2.4', '4.2.4'],
+      ['v4.2.5', '4.2.5'],
+    ]) {
+      const files = releaseFiles(tag, candidateFiles(version, []));
+      for (const a of ALL.filter((x) => (!x.since || version >= x.since) && (!x.until || version < x.until)))
+        if (a.sbom) expect(files, a.id).toContain(fill(a.sbom, tag, version));
+    }
     for (const a of ALL) if (a.candidate !== null || a.artifact) expect(a.job).not.toBe('release');
+  });
+
+  it("names a release's files quest-n-click from 4.2.5, and ships the former names' aliases through 4.2.x (D47)", () => {
+    const v425 = releaseFiles('v4.2.5', candidateFiles('4.2.5', ['run-daily']));
+    for (const f of [
+      'quest-n-click-4.2.5.tgz',
+      'create-quest-n-click-4.2.5.tgz',
+      'quest-n-click-bridge-4.2.5.tgz',
+      'quest-n-click-connectors-4.2.5.tgz',
+      'quest-n-click-studio-server-4.2.5.tgz',
+      'quest-n-click-v4.2.5-sbom.cdx.json',
+      'quest-n-click-v4.2.5-dist.tar.gz',
+      'quest-n-click-v4.2.5-SHA256SUMS',
+      'quest-n-click-v4.2.5-run-daily.wsrun',
+      'quest-n-click-bridge-image-v4.2.5.tar',
+      // The aliases, the same files under the former names.
+      'web-scumm-4.2.5.tgz',
+      'create-web-scumm-4.2.5.tgz',
+      'web-scumm-bridge-4.2.5.tgz',
+      'web-scumm-connectors-4.2.5.tgz',
+      'web-scumm-studio-server-4.2.5.tgz',
+      'web-scumm-v4.2.5-sbom.cdx.json',
+    ])
+      expect(v425).toContain(f);
+    // Nothing else of 4.2.5 keeps the former name: only the aliases and their SBOMs.
+    expect(
+      v425.filter(
+        (f: string) =>
+          /web-scumm/.test(f) && !/^(create-)?web-scumm(-[a-z-]+)?-(4\.2\.5\.tgz|v4\.2\.5-sbom\.cdx\.json)$/.test(f),
+      ),
+    ).toEqual([]);
+    expect(candidateFiles('4.2.5', [])).toContain('image/quest-n-click-bridge-image.tar');
+    expect(candidateFiles('4.2.5', [])).toContain('pack/web-scumm-4.2.5.tgz');
+    // 4.2.4 is as it was published; 4.3 has no alias left.
+    expect(releaseFiles('v4.2.4', candidateFiles('4.2.4', [])).filter((f: string) => /quest-n-click/.test(f))).toEqual(
+      [],
+    );
+    expect(releaseFiles('v4.3.0', candidateFiles('4.3.0', [])).filter((f: string) => /web-scumm/.test(f))).toEqual([]);
   });
 });
 

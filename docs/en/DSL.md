@@ -1,7 +1,7 @@
 # The DSL, generated from its schemas
 
 A game is data (`docs/en/CONTENT_GUIDE.md` shows how to write one): conditions and commands inside rooms, rules,
-topics, listeners and scripts, typed by `web-scumm/content`. This page is the reference of that vocabulary, generated
+topics, listeners and scripts, typed by `quest-n-click/content`. This page is the reference of that vocabulary, generated
 by `npx tsx tools/dsl-doc.ts` from the schemas the tools themselves read: the Studio's forms (`src/studio/schema.ts`),
 the IR's schema (`src/engine/core/ir-schema.ts`) and the table that says what each field of a game counts as
 (`src/engine/core/ir-fields.ts`). `tests/dsl-doc.test.ts` fails when the page is behind them, so what you read here is

@@ -676,9 +676,63 @@ de schéma, d'enveloppe de sauvegarde ni d'IR) :
 que soit le héros ; X se tourne maintenant vers le héros. Si une scène comptait sur l'ancienne orientation, écrivez
 `{ face: 'right', who: X }`.
 
-## 38. De la 4.2.4 à la 4.3.0 « Hero Choice »
+## 38. De la 4.2.4 à la 4.2.5
 
-Rien à changer dans un jeu : le format du contenu ne fait que grandir (ADR 0022, D47), `schemaVersion` reste 3, les
+**web-scumm devient quest'n'click** (D47). Rien à changer : un jeu fait pour la 4.2.4 s'installe, se construit, se joue
+et se sauvegarde comme avant, sous ses anciens noms. Le moteur s'installe depuis `releases/download/v4.2.5/…`, où le
+dépôt est maintenant `github.com/wanoo/quest-n-click` (les anciens liens `github.com/wanoo/web-scumm` sont redirigés,
+téléchargements des releases compris). Le jeu d'exemple et la démo du Studio sont passés à
+`https://wanoo.github.io/quest-n-click/` : l'ancienne adresse y redirige, mais mettez à jour un favori ou un lien
+vers `wanoo.github.io/quest-n-click`.
+
+**Les nouveaux noms**, à partir de la 4.2.5 :
+
+| Avant | À partir de la 4.2.5 |
+|---|---|
+| package `web-scumm`, commande `web-scumm` | `quest-n-click`, commande `quest-n-click` |
+| imports `web-scumm/content`, `/player`, `/minigames`, `/testing`, `/reality` | `quest-n-click/content`, … |
+| `create-web-scumm` | `create-quest-n-click` |
+| `web-scumm-bridge` (package et commande) | `quest-n-click-bridge` |
+| `web-scumm-connectors`, commande `web-scumm-connector` | `quest-n-click-connectors`, commande `quest-n-click-connector` |
+| `web-scumm-studio-server`, `web-scumm-studio-worker` | `quest-n-click-studio-server`, `quest-n-click-studio-worker` |
+| fichiers de release `web-scumm-<version>.tgz`, `web-scumm-<tag>-…` | `quest-n-click-<version>.tgz`, `quest-n-click-<tag>-…` |
+
+**Les anciens noms marchent toujours pendant toute la 4.2.x.** Chaque release de la ligne publie aussi
+`web-scumm-<version>.tgz`, `create-web-scumm-<version>.tgz`, `web-scumm-bridge-<version>.tgz`,
+`web-scumm-connectors-<version>.tgz` et `web-scumm-studio-server-<version>.tgz` : les mêmes fichiers à la même version,
+seul le nom du package est l'ancien. Les anciennes commandes tournent toujours, après une ligne d'avertissement
+(« web-scumm is now quest-n-click; the old name works until 4.3 »), et `web-scumm/content` comme les autres anciens
+imports se résolvent encore. Les alias disparaissent en 4.3.
+
+**Passer aux nouveaux noms, quand vous voulez** (un commit, puis `npm install`, `npm run verify`) :
+
+1. `package.json` : la dépendance `"web-scumm": "<spec>"` devient `"quest-n-click": "<spec>"`, son archive
+   `quest-n-click-4.2.5.tgz` ; les scripts `web-scumm dev`, `web-scumm build`… deviennent `quest-n-click dev`,
+   `quest-n-click build`….
+2. `tsconfig.json` : le chemin `web-scumm/*` devient `quest-n-click/*`, vers
+   `./node_modules/quest-n-click/src/engine/api/*` ; `@engine/*` pointe vers `./node_modules/quest-n-click/src/engine/*` ;
+   `include` nomme `node_modules/quest-n-click/src/env.d.ts`.
+3. Les sources du jeu : `from 'web-scumm/content'` devient `from 'quest-n-click/content'`, et ainsi de suite, par exemple
+   `grep -rlE "['\"]web-scumm/" game | xargs sed -i.bak -E "s#(['\"])web-scumm/#\\1quest-n-click/#g"`.
+4. Qui héberge le Bridge, les connecteurs ou le Studio Server installe les archives `quest-n-click-…` et appelle les
+   nouvelles commandes dans ses unités et ses scripts.
+
+**Les formats gardent leur nom.** Ce sont des identifiants dans des fichiers et des stockages, pas le nom du projet :
+les renommer casserait les sauvegardes, les fichiers et les déploiements existants. Une sauvegarde reste une enveloppe
+`web-scumm-save`, une session `web-scumm-session`, un run un fichier `.wsrun` au format `web-scumm-speedrun`, un monde
+Remix `web-scumm-remix-1` ; un signal reste `web-scumm-world-signal`, un manifeste de réalité
+`web-scumm-reality-manifest` ; le navigateur garde ses bases IndexedDB (`web-scumm-saves`, `web-scumm-runs`) et ses
+clés de stockage `web-scumm.…`, si bien que les sauvegardes et les runs d'un joueur se retrouvent là où ils étaient ;
+les en-têtes `X-Web-Scumm-*` du Bridge, les contextes des signatures, les variables d'environnement `WEB_SCUMM_*` et les
+tables du Studio Server ne changent pas. Les releases jusqu'à la v4.2.4 gardent le nom de leurs fichiers et leurs
+attestations, qui nomment le dépôt `wanoo/web-scumm` ; à partir de la v4.2.5, les attestations nomment
+`wanoo/quest-n-click` (`ship verify` demande celui sous lequel chaque release a été signée). Les crédits du jeu
+d'exemple et du chapitre de référence disent maintenant quest'n'click : leur empreinte de présentation a bougé, leur
+run de référence est donc enregistré à nouveau ; l'empreinte d'un jeu ne bouge que si son propre texte change.
+
+## 39. De la 4.2.5 à la 4.3.0 « Hero Choice »
+
+Rien à changer dans un jeu : le format du contenu ne fait que grandir (ADR 0022, D49), `schemaVersion` reste 3, les
 sauvegardes et leur enveloppe sont celles de la 4.2.0, l'empreinte logique d'un jeu qui n'utilise rien de ce qui suit
 ne bouge pas. Le moteur s'installe depuis `releases/download/v4.3.0/…`. Ce qui est nouveau, tout optionnel
 (CONTENT_GUIDE, « Choisir le héros ») :

@@ -3,7 +3,7 @@
 The method, end to end, is [WORKFLOW](WORKFLOW.md); the format, field by field, is [CONTENT_GUIDE](CONTENT_GUIDE.md).
 This page is the shortest path from nothing to a room you can play on your phone, with the files you touched named
 at each step. Fifteen minutes with a checkout of this repository; the same steps hold in a game project made with
-`web-scumm create` ([PACKAGE](PACKAGE.md)), where `games/<id>/` is `game/`.
+`quest-n-click create` ([PACKAGE](PACKAGE.md)), where `games/<id>/` is `game/`.
 
 ## 1. A game from the template (one minute)
 

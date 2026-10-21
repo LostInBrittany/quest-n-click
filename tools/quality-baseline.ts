@@ -152,16 +152,22 @@ export function withMetrics(page: string, m: Record<string, string>): string {
  * `archive-human-install` pass's surface (`readme:install`, docs/dev/surfaces.json): only a release changes it.
  */
 const INSTALL = /(<!-- install:begin -->)([\s\S]*?)(<!-- install:end -->)/;
+/** The name the engine's archive of a version starts with: quest-n-click from 4.2.5 (D47), web-scumm before. */
+const engineArchive = (v: string) => {
+  const [a = 0, b = 0, c = 0] = v.split(/[.-]/).map(Number);
+  return a * 1e6 + b * 1e3 + c >= 4_002_005 ? 'quest-n-click' : 'web-scumm';
+};
 export function withInstall(page: string, version: string): string {
   return page.replace(
     INSTALL,
     (_all, open: string, body: string, close: string) =>
       `${open}${body.replace(
-        /https:\/\/github\.com\/wanoo\/web-scumm\/releases\/download\/(v[^/\s]+)\/web-scumm-[^\s/]+?\.tgz/g,
+        /https:\/\/github\.com\/wanoo\/(?:quest-n-click|web-scumm)\/releases\/download\/(v[^/\s]+)\/(?:quest-n-click|web-scumm)-[^\s/]+?\.tgz/g,
         // A release candidate of this version keeps its tag (4.2.0-rc, the passes' campaign): the archive is the
         // version's, published under the rc's release until the stable one exists. Any other tag becomes this version's.
+        // The repository's name since 4.2.5 (D47), the engine's archive named as that version's release names it.
         (_url, tag: string) =>
-          `https://github.com/wanoo/web-scumm/releases/download/${tag.startsWith(`v${version}-rc.`) && /^v[\d.]+-rc\.[1-9]\d*$/.test(tag) ? tag : `v${version}`}/web-scumm-${version}.tgz`,
+          `https://github.com/wanoo/quest-n-click/releases/download/${tag.startsWith(`v${version}-rc.`) && /^v[\d.]+-rc\.[1-9]\d*$/.test(tag) ? tag : `v${version}`}/${engineArchive(version)}-${version}.tgz`,
       )}${close}`,
   );
 }

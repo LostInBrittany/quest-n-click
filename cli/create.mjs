@@ -1,19 +1,21 @@
 #!/usr/bin/env node
-// web-scumm create <folder> ["Title"] [--engine=<npm spec>] (3.9), also `npx create-web-scumm <folder>`: a game
-// project from the engine's template. The folder gets game/ (the template: one room, a hero, placeholder art drawn
-// from shapes), a package.json whose scripts call `web-scumm`, a tsconfig.json whose `@engine` points into the
+// quest-n-click create <folder> ["Title"] [--engine=<npm spec>] (3.9), also `npx create-quest-n-click <folder>`: a
+// game project from the engine's template. The folder gets game/ (the template: one room, a hero, placeholder art drawn
+// from shapes), a package.json whose scripts call the engine's command, a tsconfig.json whose `@engine` points into the
 // installed package, and a .gitignore. Then: cd <folder> && npm install && npm run dev.
+// The engine's name is the package's own (4.2.5, D47): `quest-n-click`, or `web-scumm` when this runs from the old
+// name's alias (through 4.2.x), whose project then keeps the old names throughout.
 import { cpSync, existsSync, readFileSync, readdirSync, statSync, writeFileSync } from 'node:fs';
 import { basename, dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const PKG = resolve(dirname(fileURLToPath(import.meta.url)), '..');
-const version = JSON.parse(readFileSync(join(PKG, 'package.json'), 'utf8')).version;
+const { name: NAME, version } = JSON.parse(readFileSync(join(PKG, 'package.json'), 'utf8'));
 const args = process.argv.slice(2);
 const opt = (k) => args.find((a) => a.startsWith(`--${k}=`))?.slice(k.length + 3);
 const [folder, ...words] = args.filter((a) => !a.startsWith('--'));
 if (!folder) {
-  console.error('usage: web-scumm create <folder> ["Title"] [--engine=<npm spec>]');
+  console.error(`usage: ${NAME} create <folder> ["Title"] [--engine=<npm spec>]`);
   process.exit(2);
 }
 const dir = resolve(folder);
@@ -28,7 +30,7 @@ if (existsSync(dir) && readdirSync(dir).length) {
   process.exit(1);
 }
 
-// The template's tests/ is this repository's (vitest, `npm run check`); a project checks its game with `web-scumm verify`.
+// The template's tests/ is this repository's (vitest, `npm run check`); a project checks its game with `quest-n-click verify`.
 cpSync(join(PKG, 'games', '_template'), join(dir, 'game'), {
   recursive: true,
   filter: (src) => !src.includes(`${join('_template', 'tests')}`),
@@ -42,13 +44,14 @@ const walk = (d) => {
         p,
         readFileSync(p, 'utf8')
           .replace(/__ID__/g, id)
-          .replace(/__TITLE__/g, title),
+          .replace(/__TITLE__/g, title)
+          .replace(/(['"])quest-n-click\//g, `$1${NAME}/`),
       );
   }
 };
 walk(join(dir, 'game'));
 // The template's art is a placeholder drawn from shapes (tools/placeholder-art.py): provenance says so, and a release
-// refuses it until each file is replaced and reviewed (web-scumm provenance --lock).
+// refuses it until each file is replaced and reviewed (quest-n-click provenance --lock).
 writeFileSync(
   join(dir, 'game', 'provenance.json'),
   JSON.stringify(
@@ -58,8 +61,8 @@ writeFileSync(
         {
           match: 'img:*',
           source:
-            'Placeholder drawn from shapes by tools/placeholder-art.py (web-scumm template): replace before a release',
-          author: 'web-scumm',
+            "Placeholder drawn from shapes by tools/placeholder-art.py (quest'n'click template): replace before a release",
+          author: "quest'n'click",
           licence: 'CC0 1.0',
           status: 'placeholder',
         },
@@ -85,16 +88,16 @@ writeFileSync(
       type: 'module',
       config: { game: id },
       scripts: {
-        dev: 'web-scumm dev',
-        studio: 'web-scumm studio',
-        assets: 'web-scumm assets',
-        verify: 'web-scumm verify',
-        build: 'web-scumm build',
-        release: 'web-scumm release',
-        preview: 'web-scumm preview',
-        'web-scumm': 'web-scumm',
+        dev: `${NAME} dev`,
+        studio: `${NAME} studio`,
+        assets: `${NAME} assets`,
+        verify: `${NAME} verify`,
+        build: `${NAME} build`,
+        release: `${NAME} release`,
+        preview: `${NAME} preview`,
+        [NAME]: NAME,
       },
-      dependencies: { 'web-scumm': engine },
+      dependencies: { [NAME]: engine },
     },
     null,
     2,
@@ -116,14 +119,14 @@ writeFileSync(
         resolveJsonModule: true,
         // Relative to this file, no `baseUrl` (removed by TypeScript 7, 4.1.8).
         paths: {
-          '@engine/*': ['./node_modules/web-scumm/src/engine/*'],
-          'web-scumm/*': ['./node_modules/web-scumm/src/engine/api/*'],
+          '@engine/*': [`./node_modules/${NAME}/src/engine/*`],
+          [`${NAME}/*`]: [`./node_modules/${NAME}/src/engine/api/*`],
           '@game': ['./game/index.ts'],
           '@game/*': ['./game/*'],
         },
         types: ['vite/client', 'node'],
       },
-      include: ['game', 'node_modules/web-scumm/src/env.d.ts'],
+      include: ['game', `node_modules/${NAME}/src/env.d.ts`],
     },
     null,
     2,
@@ -132,8 +135,8 @@ writeFileSync(
 writeFileSync(join(dir, '.gitignore'), 'node_modules\ndist\n.cache\npublic/assets\n');
 writeFileSync(
   join(dir, 'README.md'),
-  `# ${title}\n\nA point-and-click game made with [web-scumm](https://github.com/wanoo/web-scumm).\n\n\`\`\`bash\nnpm install\nnpm run assets   # art and audio into public/assets (Python 3 with Pillow)\nnpm run dev      # open the URL, landscape; ?edit=start places things\nnpm run verify   # the content checked, the solver finds the end\nnpm run build    # dist/, every file accounted for, licences inside\n\`\`\`\n\nThe game is in \`game/\`: rooms, characters, items, rules. The art in \`game/art\` is a placeholder; a release refuses it\nuntil it is replaced and reviewed (\`npx web-scumm provenance --lock\`).\n`,
+  `# ${title}\n\nA point-and-click game made with [quest'n'click](https://github.com/wanoo/quest-n-click).\n\n\`\`\`bash\nnpm install\nnpm run assets   # art and audio into public/assets (Python 3 with Pillow)\nnpm run dev      # open the URL, landscape; ?edit=start places things\nnpm run verify   # the content checked, the solver finds the end\nnpm run build    # dist/, every file accounted for, licences inside\n\`\`\`\n\nThe game is in \`game/\`: rooms, characters, items, rules. The art in \`game/art\` is a placeholder; a release refuses it\nuntil it is replaced and reviewed (\`npx ${NAME} provenance --lock\`).\n`,
 );
 console.log(
-  `${folder}: "${title}" created (web-scumm ${engine}).\nNext:\n  cd ${folder}\n  npm install\n  npm run assets && npm run dev`,
+  `${folder}: "${title}" created (${NAME} ${engine}).\nNext:\n  cd ${folder}\n  npm install\n  npm run assets && npm run dev`,
 );

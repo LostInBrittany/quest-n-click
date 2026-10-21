@@ -81,11 +81,11 @@ export function importClosure(files: string[]): Set<string> {
   return seen;
 }
 
-/** A specifier of the repository (`@engine/*`, `web-scumm/*`, a relative path) as a file, or null for a package. */
+/** A specifier of the repository (`@engine/*`, `quest-n-click/*` or `web-scumm/*`, a relative path) as a file, or null for a package. */
 function resolveImport(from: string, spec: string): string | null {
   let base: string;
   if (spec.startsWith('@engine/')) base = `src/engine/${spec.slice('@engine/'.length)}`;
-  else if (spec.startsWith('web-scumm/')) base = `src/engine/api/${spec.slice('web-scumm/'.length)}`;
+  else if (/^(?:quest-n-click|web-scumm)\//.test(spec)) base = `src/engine/api/${spec.replace(/^[^/]+\//, '')}`;
   else if (spec.startsWith('.')) base = relative(ROOT, resolve(ROOT, dirname(from), spec)).replace(/\\/g, '/');
   else return null;
   for (const c of [base, `${base}.ts`, `${base}.mts`, `${base}.mjs`, `${base}.js`, `${base}/index.ts`])

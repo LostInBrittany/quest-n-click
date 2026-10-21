@@ -1,4 +1,4 @@
-// web-scumm/testing (4.0): what a game's own tests drive the engine with, without a browser: the engine, fake ports,
+// quest-n-click/testing (4.0): what a game's own tests drive the engine with, without a browser: the engine, fake ports,
 // the solver, the save envelope. Public (docs/en/SUPPORT.md).
 export { Engine } from '../core/engine';
 export { FakePresenter, MemoryStore } from '../core/ports';

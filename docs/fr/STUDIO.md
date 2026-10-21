@@ -283,7 +283,7 @@ fichier sous 800 lignes).
   traitement, sous le bail exclusif du projet, montrés dans un petit panneau avec un bouton **Cancel** (un job annulé
   avant son écriture ne laisse rien). La planche téléversée elle-même n'y est pas gardée. Voir docs/fr/STUDIO-SERVER.md.
 ## Mode démo
-Le Studio tourne aussi sans aucun serveur, sur un hébergement statique : https://wanoo.github.io/web-scumm/studio.html
+Le Studio tourne aussi sans aucun serveur, sur un hébergement statique : https://wanoo.github.io/quest-n-click/studio.html
 est le Studio du jeu d'exemple, construit par la CI. Même interface, même vue du moteur et même éditeur de placement ;
 les modifications restent dans le navigateur.
 

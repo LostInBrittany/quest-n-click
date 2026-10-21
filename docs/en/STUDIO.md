@@ -261,7 +261,7 @@ the Storyboard and Rooms tabs are laid out the same way since 4.1.8, every file 
   nothing). The uploaded sheet itself is not kept there. See docs/en/STUDIO-SERVER.md.
 
 ## Demo mode
-The Studio also runs without any server, on a static host: https://wanoo.github.io/web-scumm/studio.html is the demo
+The Studio also runs without any server, on a static host: https://wanoo.github.io/quest-n-click/studio.html is the demo
 game's Studio, built by the CI. Same UI, same engine view and placement editor; the edits stay in the browser.
 
 - **Build**: `npm run build:studio-demo` (= `STUDIO=1 VITE_STUDIO_DEMO=1 vite build`); the CI sets both variables on its

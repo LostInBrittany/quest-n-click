@@ -1,16 +1,23 @@
-<p align="center"><img src="docs/img/logo.png" width="480" height="320" alt="The web-scumm logo: a pixel-art editor window with a harbour scene, a dialogue graph and a pointer, among picture cards, a treasure map, an AI panel, a notebook of puzzle diagrams and a coffee mug, under the words Web-SCUMM, Open source point &amp; click engine"></p>
+<p align="center"><img src="docs/img/logo.png" width="480" height="320" alt="The quest'n'click logo: a pixel-art editor window with a harbour scene, a dialogue graph and a pointer, among picture cards, a treasure map, an AI panel, a notebook of puzzle diagrams and a coffee mug, under the words quest'n'click, Open source point &amp; click engine"></p>
 
-# web-scumm
+# quest'n'click
 
 **Make a point-and-click adventure for the browser: write it as data, shape it in a visual Studio, check that it can
 be finished, and ship it as a web game that installs on a phone and plays offline.**
 
 *[Version française](README.fr.md)*
 
+> **Formerly web-scumm.** This project was called WebSCUMM, then web-scumm, in homage to SCUMM, the LucasArts engine
+> whose spirit it follows. It was renamed quest'n'click so its name would spark no needless debate. Links to the old
+> repository redirect here, and the old demo address, `wanoo.github.io/web-scumm`, redirects to the new one: the game
+> and the Studio now live at [wanoo.github.io/quest-n-click](https://wanoo.github.io/quest-n-click/). From 4.2.5 the packages and commands
+> are named `quest-n-click`, and the old `web-scumm` names keep working through 4.2.x
+> ([UPGRADING](docs/en/UPGRADING.md#38-from-424-to-425)). Saves, runs and sessions keep their formats and load as before.
+
 | | |
 |---|---|
-| 🎮 **Play** | [The Pantry Key](https://wanoo.github.io/web-scumm/), the sample game, on a phone in landscape or on a desktop |
-| 🛠 **Studio** | [Open the Studio](https://wanoo.github.io/web-scumm/studio.html) in demo mode: edit the sample game, your edits stay in your browser |
+| 🎮 **Play** | [The Pantry Key](https://wanoo.github.io/quest-n-click/), the sample game, on a phone in landscape or on a desktop |
+| 🛠 **Studio** | [Open the Studio](https://wanoo.github.io/quest-n-click/studio.html) in demo mode: edit the sample game, your edits stay in your browser |
 | ⏱ **Start** | [Your own game in its own folder](#start), then [a first room in fifteen minutes](docs/en/TUTORIAL.md) |
 
 ![The Pantry Key: Grandma's living room, nine verbs, the bag](docs/img/readme/4119-hero.webp)
@@ -23,16 +30,18 @@ Linux. The engine installs from a release's archive (npm publishing comes
 in a later 4.2.x):
 
 ```bash
-T=https://github.com/wanoo/web-scumm/releases/download/v4.2.4/web-scumm-4.2.4.tgz
-npx --package=$T web-scumm create my-game "My Game" --engine=$T
+T=https://github.com/wanoo/quest-n-click/releases/download/v4.2.5/quest-n-click-4.2.5.tgz
+npx --package=$T quest-n-click create my-game "My Game" --engine=$T
 cd my-game && npm install
 npm run assets && npm run dev        # play it; then npm run verify, npm run build
 ```
 <!-- install:end -->
 
 `npm run build` writes `dist/`, a static site any host serves. ffmpeg serves the sound pipeline and is optional;
-`npx web-scumm doctor` says what is missing. [PACKAGE](docs/en/PACKAGE.md) is the whole guide;
+`npx quest-n-click doctor` says what is missing. [PACKAGE](docs/en/PACKAGE.md) is the whole guide;
 [TUTORIAL](docs/en/TUTORIAL.md) walks the first room.
+Before 4.2.5 the archive and the command were named `web-scumm`: through 4.2.x the release also ships
+`web-scumm-4.2.5.tgz`, and `npx web-scumm …` still runs, after a one-line notice ([UPGRADING](docs/en/UPGRADING.md#38-from-424-to-425)).
 
 ## Build a game
 
@@ -72,7 +81,7 @@ sprites ([PROMPTS](docs/en/PROMPTS.md)); chip-tune music arranged from a MIDI an
 
 - **Validated**: broken references, unreachable rooms and untranslated lines are found before anyone plays.
 - **Solved**: the solver runs the real engine (no second model of the content). `npm run verify` asks for a
-  **witness**, a path to an ending; `npx web-scumm solve --prove` explores **every reachable state** and fails on a softlock or a truncated search. These
+  **witness**, a path to an ending; `npx quest-n-click solve --prove` explores **every reachable state** and fails on a softlock or a truncated search. These
   are two different promises, and the release asks for the second ([BENCH](docs/en/BENCH.md) says what the proof can
   and cannot do).
 - **Replayed**: a session is the unit of reproduction; saves load across versions, one frozen save per release from
@@ -118,8 +127,8 @@ src/engine/      core (the DSL, the engine), tools (validate, solve, lint, i18n�
 games/demo/      the sample game: rooms, layouts, art, audio, locales, storyboard
 games/_template/ copied by npm run new-game
 tools/           the commands, the Studio, the MCP server, the art and audio pipelines, the Vite plugins
-bridge/          the Reality Bridge (the package web-scumm-bridge)
-connectors/      the connectors of the world outside (the package web-scumm-connectors)
+bridge/          the Reality Bridge (the package quest-n-click-bridge)
+connectors/      the connectors of the world outside (the package quest-n-click-connectors)
 docs/en docs/fr  the documentation; docs/dev: the work log, the decisions, each release's passes
 ```
 
@@ -135,9 +144,9 @@ mistakes before a person does. Every result stays reviewable, in the Studio and 
 ## In numbers
 
 Measured on this commit of `main` by the automated gates (`npm run quality:baseline` writes these figures):
-<!-- metric:tests -->2765<!-- /metric --> unit test declarations, on Node 22 and 24, with coverage floors and gated
+<!-- metric:tests -->2774<!-- /metric --> unit test declarations, on Node 22 and 24, with coverage floors and gated
 mutation testing; the reference game proved in <!-- metric:referenceStates -->288<!-- /metric --> states; the player's
-first visit <!-- metric:initialJsKB -->134<!-- /metric --> KB of JavaScript, gzipped. Each release is built from the
+first visit <!-- metric:initialJsKB -->133<!-- /metric --> KB of JavaScript, gzipped. Each release is built from the
 commit its candidate tested. The candidate makes the four package archives, the Bridge's image, the SBOMs, the runs and
 the baseline, and the release publishes those very files; the release makes only the built game, its assets manifest,
 the proved Remix catalogues, the reference speedrun and the sums, from the same commit. Every file is published with
@@ -150,10 +159,10 @@ Every page exists in English (`docs/en/`) and French (`docs/fr/`), and a test ke
 command in [TOOLS](docs/en/TOOLS.md), what changed in the [CHANGELOG](CHANGELOG.md), moving to a new version in
 [UPGRADING](docs/en/UPGRADING.md), and where it comes from in the [ROADMAP](docs/en/ROADMAP.md).
 
-Current release: [v4.2.4 (the contributor's four)](https://github.com/wanoo/web-scumm/releases/tag/v4.2.4), changes for
-authors (an exit gone through on a single tap, `actorGap`, the sprite sheets' background, `face: 'hero'` fixed) over
-4.2.3 "Coordination", the Studio online for a team, experimental ([STUDIO-SERVER](docs/en/STUDIO-SERVER.md)): previews
-per revision, health, personal undo, published builds, backup and restore, and since 4.2.3 a scenario map, anchored
+Current release: [v4.2.5 (quest'n'click)](https://github.com/wanoo/quest-n-click/releases/tag/v4.2.5), the project's
+new name, with the old `web-scumm` names kept as aliases through 4.2.x; over 4.2.4's changes for authors (an exit gone
+through on a single tap, `actorGap`, the sprite sheets' background, `face: 'hero'` fixed) and 4.2.3 "Coordination",
+the Studio online for a team, experimental ([STUDIO-SERVER](docs/en/STUDIO-SERVER.md)): previews per revision, health, personal undo, published builds, backup and restore, and since 4.2.3 a scenario map, anchored
 comments, a diff by name, AI agents through a remote MCP, Git push and import, the hosted Assets tab; over 4.2.0 "Stable
 World". 4.2.0 restored strict SemVer after the 4.1.x incubation line: a minor adds, a major removes; the public API
 follows it ([SUPPORT](docs/en/SUPPORT.md)). 4.2.0 shipped before the people's passes: of the surfaces above, only the
@@ -165,5 +174,5 @@ Stable column is promised; the passes are made on a 4.2.x, which promotes what t
 Code: MIT. Sample artwork, sound effects and theme: CC BY 4.0 (attribution "Wano"); the theme is Tchaikovsky's *Swan
 Lake* (public domain), written out and arranged for the project. Fonts: SIL OFL. See `CREDITS.md`.
 
-web-scumm is an independent project. "SCUMM-style" names a kind of game; the project is not affiliated with, endorsed
+quest'n'click (formerly web-scumm) is an independent project. "SCUMM-style" names a kind of game; the project is not affiliated with, endorsed
 by or derived from LucasArts, Lucasfilm, Disney or the ScummVM project, and ships none of their code, data or art.

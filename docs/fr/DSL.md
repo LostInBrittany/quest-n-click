@@ -1,7 +1,7 @@
 # Le DSL, généré depuis ses schémas
 
 Un jeu est une donnée (`docs/fr/CONTENT_GUIDE.md` montre comment l'écrire) : des conditions et des commandes dans les
-salles, les règles, les sujets, les écouteurs et les scripts, typées par `web-scumm/content`. Cette page est la
+salles, les règles, les sujets, les écouteurs et les scripts, typées par `quest-n-click/content`. Cette page est la
 référence de ce vocabulaire, générée par `npx tsx tools/dsl-doc.ts` depuis les schémas que lisent les outils eux-mêmes :
 les formulaires du Studio (`src/studio/schema.ts`), le schéma de l'IR (`src/engine/core/ir-schema.ts`) et la table qui
 dit ce que compte chaque champ d'un jeu (`src/engine/core/ir-fields.ts`). `tests/dsl-doc.test.ts` échoue quand la page
