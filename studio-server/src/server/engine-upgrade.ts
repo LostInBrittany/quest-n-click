@@ -1,4 +1,4 @@
-// The engine's upgrade of a hosted game (4.2.3 PR 8, H6): `web-scumm migrate` as one exclusive operation of the
+// The engine's upgrade of a hosted game (4.2.3 PR 8, H6): `quest-n-click migrate` as one exclusive operation of the
 // owner. Under the project's exclusive lease (`*`: every other write waits, or is refused with the holder's name), the
 // head is packed, the worker computes the migration on it (`migrate`, migrate.ts: the files it would change, written
 // nowhere), and the migrated game is judged on the worker as the health judges a revision (the validator, then the

@@ -12,7 +12,7 @@ it was: none of this is needed.
 > jobs that can be followed and cancelled, the revision read, the scenario map, comments, the diff, the remote MCP,
 > Git, the engine's upgrade, metrics and the daily backup. It stays experimental until its people's passes
 > (`studio-hosted`, `studio-collab`, `studio-preview`, `studio-assets-hosted`, `studio-mcp-remote`,
-> `studio-oidc-generic`) are made. This guide deploys from the repository; the release archive `web-scumm-studio-server` is
+> `studio-oidc-generic`) are made. This guide deploys from the repository; the release archive `quest-n-click-studio-server` is
 > the same server (below).
 
 ## What runs where
@@ -159,23 +159,23 @@ background and stop it by its process id once you have what you need.
 
 ## From the release archives
 
-From 4.2.1 a release carries `web-scumm-studio-server-<version>.tgz`: the two commands `web-scumm-studio-server` and
-`web-scumm-studio-worker`, the Studio's page already built, and its own dependencies (OpenID Connect, JWT, Postgres).
+From 4.2.1 a release carries `quest-n-click-studio-server-<version>.tgz`: the two commands `quest-n-click-studio-server` and
+`quest-n-click-studio-worker`, the Studio's page already built, and its own dependencies (OpenID Connect, JWT, Postgres).
 Their versions are locked in its `npm-shrinkwrap.json` and its SBOM; npm reads that lock when it installs from the
-registry, not from an archive file, where `pg` takes the latest 8.x its range allows (`web-scumm-studio-server deps`
+registry, not from an archive file, where `pg` takes the latest 8.x its range allows (`quest-n-click-studio-server deps`
 says which). It runs the server of the engine installed beside it, which must be the same version:
 
 ```sh
-npm install web-scumm-<version>.tgz web-scumm-studio-server-<version>.tgz
-npx web-scumm-studio-server import ./my-game --config studio.config.json
-npx web-scumm-studio-server serve --config studio.config.json
-npx web-scumm-studio-worker          # on the worker's machine, with WORKER_PUBLIC_KEY and WORKER_INSTANCE
+npm install quest-n-click-<version>.tgz quest-n-click-studio-server-<version>.tgz
+npx quest-n-click-studio-server import ./my-game --config studio.config.json
+npx quest-n-click-studio-server serve --config studio.config.json
+npx quest-n-click-studio-worker          # on the worker's machine, with WORKER_PUBLIC_KEY and WORKER_INSTANCE
 ```
 
 A worker installed from the archives prepares assets too (since 4.2.3): its build hook installs the lock the engine's
 package carries, from the worker's folder, where the worker looks for the packages (`WORKER_PYTHON_PATH` to put them
 elsewhere): `CC_POST_BUILD_HOOK=python3 -m pip install --target .python --require-hashes --only-binary=:all: -r
-node_modules/web-scumm/ops/studio/worker-requirements.lock`. The lock is for CPython 3.13 on Linux x86_64 with glibc 2.28 or newer
+node_modules/quest-n-click/ops/studio/worker-requirements.lock`. The lock is for CPython 3.13 on Linux x86_64 with glibc 2.28 or newer
 (Clever Cloud's native runtime); another platform makes it again (its header says how). In 4.2.2 this needed a worker
 deployed from the repository.
 
@@ -299,17 +299,17 @@ disk.
 
 ## Upgrading the engine of a hosted game
 
-A game imported from a 4.1.x project that never ran `web-scumm migrate` is still at authoring schema 2 (no
+A game imported from a 4.1.x project that never ran `quest-n-click migrate` is still at authoring schema 2 (no
 `schemaVersion: 3`, no stable ids). On a hosted Studio an owner upgrades it with `POST /api/engine/migrate` (4.2.3):
 
 ```bash
-curl -X POST -H "Authorization: Bearer $(npx web-scumm-studio-server token --server https://studio.example)" \
+curl -X POST -H "Authorization: Bearer $(npx quest-n-click-studio-server token --server https://studio.example)" \
   https://studio.example/api/engine/migrate
 ```
 
 - **Exclusive.** It runs under the owner's exclusive lease (`*`): nobody else writes meanwhile (their writes get a 423
   with the owner's name, their drafts stay with them, and they write again once it is done). One at a time (429).
-- **On the worker.** The worker runs the same migration as `web-scumm migrate` on the head's snapshot: the stable ids
+- **On the worker.** The worker runs the same migration as `quest-n-click migrate` on the head's snapshot: the stable ids
   written into `rooms/*.ts`, `rules.ts`, `items.ts` and `game.ts`, the translation tables' keys renamed,
   `ids.migration.json` and `ids.paths.json`, then the three lines UPGRADING leaves to the author in `game.ts`
   (`schemaVersion: 3`, `saveVersion` + 1, `migrations: [..., idsMigration]` and its import: all three or none, said in
@@ -320,7 +320,7 @@ curl -X POST -H "Authorization: Bearer $(npx web-scumm-studio-server token --ser
   validator, then the solver from a new game, bounded in time. A game the migration would break (an id the tool could
   not write, a list built by code, a game that can no longer be finished), or that the solver cannot judge in time, is
   refused with a 422 (`errors`, `skipped`: what the tool could not write) and the head stays as it was: migrate it on a
-  local Studio (`web-scumm migrate`, then `npm run ids` to see what is left) and import it again, or fix it first.
+  local Studio (`quest-n-click migrate`, then `npm run ids` to see what is left) and import it again, or fix it first.
 - **One revision.** Otherwise the changed files are written as one operation (`engine upgrade: authoring schema 2 →
   3`), through the guard, and the answer is `{ revision, changed, paths, schema: { from, to } }` (`paths`: the files
   written). A game already at schema 3
@@ -329,7 +329,7 @@ curl -X POST -H "Authorization: Bearer $(npx web-scumm-studio-server token --ser
   the project goes back to a backup taken before (see below): take one first.
 
 In the 4.2.x line the content format is frozen (D40): this is for a game made on 4.1.x. A local Studio has no route:
-run `web-scumm migrate` in the project. The project's `tsconfig.json` (`baseUrl`, which `web-scumm migrate` also
+run `quest-n-click migrate` in the project. The project's `tsconfig.json` (`baseUrl`, which `quest-n-click migrate` also
 fixes) is not part of a hosted game and is left alone. The playtests (`playtests/`) are neither migrated nor judged:
 replay them after the upgrade (a session recorded at schema 2 may name the old positional keys). There is no button yet: the route is the way in.
 
@@ -447,7 +447,7 @@ format), or a simple prober for `/readyz`. Alert when:
 instance than number 0 (Clever runs a repository's crons on every app and every instance deployed from it: set the
 variable on the studio app only, never the worker). It runs `backup --to-bucket --keep ${STUDIO_BACKUP_KEEP:-14}`; its
 line goes to the app's logs. From the release archives (which do not carry the script), copy `ops/studio/backup-cron.sh`
-into your app with its last line as `exec npx web-scumm-studio-server backup --to-bucket --keep
+into your app with its last line as `exec npx quest-n-click-studio-server backup --to-bucket --keep
 "${STUDIO_BACKUP_KEEP:-14}"`, make it executable, and point your `clevercloud/cron.json` at it: `["17 3 * * *
 $ROOT/backup-cron.sh"]`. Clever runs a cron with no environment unless its script starts with `#!/bin/bash -l`, and with
 absolute paths only (`$ROOT` is the app's folder). An overlapping redeploy at that minute may make two backups:

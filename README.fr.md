@@ -1,16 +1,24 @@
-<p align="center"><img src="docs/img/logo.png" width="480" height="320" alt="Le logo de web-scumm : une fenêtre d’éditeur en pixel art avec une scène de port, un graphe de dialogue et un curseur, entourée de cartes illustrées, d’une carte au trésor, d’un panneau IA, d’un carnet de schémas d’énigmes et d’une tasse de café, sous les mots Web-SCUMM, Open source point &amp; click engine"></p>
+<p align="center"><img src="docs/img/logo.png" width="480" height="320" alt="Le logo de quest'n'click : une fenêtre d’éditeur en pixel art avec une scène de port, un graphe de dialogue et un curseur, entourée de cartes illustrées, d’une carte au trésor, d’un panneau IA, d’un carnet de schémas d’énigmes et d’une tasse de café, sous les mots quest'n'click, Open source point &amp; click engine"></p>
 
-# web-scumm
+# quest'n'click
 
 **Faire un point-and-click pour le navigateur : l'écrire comme des données, le façonner dans un Studio visuel,
 vérifier qu'on peut le finir, et le livrer comme un jeu web qui s'installe sur un téléphone et se joue hors ligne.**
 
 *[English version](README.md)*
 
+> **Anciennement web-scumm.** Ce projet s'appelait WebSCUMM, puis web-scumm, en hommage à SCUMM, le moteur de
+> LucasArts dont il suit l'esprit. Il a été renommé quest'n'click pour que son nom ne suscite aucun débat inutile. Les
+> liens vers l'ancien dépôt sont redirigés ici, et l'ancienne adresse de la démo, `wanoo.github.io/web-scumm`, redirige
+> vers la nouvelle : le jeu et le Studio sont maintenant sur [wanoo.github.io/quest-n-click](https://wanoo.github.io/quest-n-click/).
+> À partir de la 4.2.5, les packages et les commandes s'appellent `quest-n-click`, et les anciens noms `web-scumm`
+> marchent toujours pendant toute la 4.2.x ([UPGRADING](docs/fr/UPGRADING.md#38-de-la-424-à-la-425)). Les
+> sauvegardes, les runs et les sessions gardent leurs formats et se chargent comme avant.
+
 | | |
 |---|---|
-| 🎮 **Jouer** | [La Clé du garde-manger](https://wanoo.github.io/web-scumm/), le jeu d'exemple, sur téléphone en paysage ou sur ordinateur |
-| 🛠 **Studio** | [Ouvrir le Studio](https://wanoo.github.io/web-scumm/studio.html) en mode démo : modifiez le jeu d'exemple, vos modifications restent dans votre navigateur |
+| 🎮 **Jouer** | [La Clé du garde-manger](https://wanoo.github.io/quest-n-click/), le jeu d'exemple, sur téléphone en paysage ou sur ordinateur |
+| 🛠 **Studio** | [Ouvrir le Studio](https://wanoo.github.io/quest-n-click/studio.html) en mode démo : modifiez le jeu d'exemple, vos modifications restent dans votre navigateur |
 | ⏱ **Commencer** | [Votre jeu dans son propre dossier](#commencer), puis [une première pièce en quinze minutes](docs/fr/TUTORIAL.md) |
 
 ![La Clé du garde-manger : le salon de Grand-mère, neuf verbes, le sac](docs/img/readme/4119-hero.webp)
@@ -23,16 +31,18 @@ ou Linux. Le moteur s'installe depuis l'archive d'une release (la
 publication npm arrive dans une 4.2.x ultérieure) :
 
 ```bash
-T=https://github.com/wanoo/web-scumm/releases/download/v4.2.4/web-scumm-4.2.4.tgz
-npx --package=$T web-scumm create mon-jeu "Mon jeu" --engine=$T
+T=https://github.com/wanoo/quest-n-click/releases/download/v4.2.5/quest-n-click-4.2.5.tgz
+npx --package=$T quest-n-click create mon-jeu "Mon jeu" --engine=$T
 cd mon-jeu && npm install
 npm run assets && npm run dev        # y jouer ; puis npm run verify, npm run build
 ```
 <!-- install:end -->
 
 `npm run build` écrit `dist/`, un site statique que n'importe quel hébergement sert. ffmpeg sert au pipeline sonore
-et reste optionnel ; `npx web-scumm doctor` dit ce qui manque. [PACKAGE](docs/fr/PACKAGE.md)
+et reste optionnel ; `npx quest-n-click doctor` dit ce qui manque. [PACKAGE](docs/fr/PACKAGE.md)
 est le guide complet ; le [TUTORIAL](docs/fr/TUTORIAL.md) accompagne la première pièce.
+Avant la 4.2.5, l'archive et la commande s'appelaient `web-scumm` : jusqu'à la fin des 4.2.x, la release livre aussi
+`web-scumm-4.2.5.tgz`, et `npx web-scumm …` fonctionne toujours, après une ligne d'avis ([UPGRADING](docs/fr/UPGRADING.md#38-de-la-424-à-la-425)).
 
 ## Fabriquer un jeu
 
@@ -76,7 +86,7 @@ avant la release.
 - **Validé** : les références cassées, les pièces inatteignables et les répliques non traduites sont trouvées avant
   que quiconque joue.
 - **Résolu** : le solveur fait tourner le vrai moteur (pas de second modèle du contenu). `npm run verify` demande un
-  **témoin**, un chemin vers une fin ; `npx web-scumm solve --prove` explore **chaque état atteignable** et échoue sur un blocage ou une
+  **témoin**, un chemin vers une fin ; `npx quest-n-click solve --prove` explore **chaque état atteignable** et échoue sur un blocage ou une
   recherche tronquée. Ce sont deux promesses différentes, et la release demande la seconde ([BENCH](docs/fr/BENCH.md)
   dit ce que la preuve peut et ne peut pas faire).
 - **Rejoué** : une session est l'unité de reproduction ; les sauvegardes se chargent d'une version à l'autre, une
@@ -123,8 +133,8 @@ src/engine/      core (le DSL, le moteur), tools (validate, solve, lint, i18n…
 games/demo/      le jeu d'exemple : pièces, mises en page, images, son, langues, storyboard
 games/_template/ copié par npm run new-game
 tools/           les commandes, le Studio, le serveur MCP, les pipelines d'image et de son, les plugins Vite
-bridge/          le Bridge Reality (le package web-scumm-bridge)
-connectors/      les connecteurs du monde extérieur (le package web-scumm-connectors)
+bridge/          le Bridge Reality (le package quest-n-click-bridge)
+connectors/      les connecteurs du monde extérieur (le package quest-n-click-connectors)
 docs/en docs/fr  la documentation ; docs/dev : le journal de travail, les décisions, les passes de chaque release
 ```
 
@@ -140,7 +150,7 @@ erreurs avant qu'une personne les voie. Chaque résultat reste relisible, dans l
 ## En chiffres
 
 Mesuré sur ce commit de `main` par les vérifications automatiques (`npm run quality:baseline` écrit ces chiffres) :
-<!-- metric:tests -->2704<!-- /metric --> déclarations de tests unitaires, sous Node 22 et 24, avec des planchers de
+<!-- metric:tests -->2711<!-- /metric --> déclarations de tests unitaires, sous Node 22 et 24, avec des planchers de
 couverture et des tests de mutation bloquants ; le jeu de référence prouvé en <!-- metric:referenceStates -->288<!-- /metric -->
 états ; la première visite du joueur, <!-- metric:initialJsKB -->133<!-- /metric --> Ko de JavaScript compressé. Chaque
 release est construite depuis le commit que son candidat a testé. Le candidat produit les quatre archives de packages,
@@ -156,9 +166,10 @@ Chaque page existe en anglais (`docs/en/`) et en français (`docs/fr/`), et un t
 dans [TOOLS](docs/fr/TOOLS.md), ce qui change dans le [CHANGELOG](CHANGELOG.md), passer à une nouvelle version dans
 [UPGRADING](docs/fr/UPGRADING.md), et d'où vient le projet dans la [ROADMAP](docs/fr/ROADMAP.md).
 
-Release actuelle : [v4.2.4 (les quatre du contributeur)](https://github.com/wanoo/web-scumm/releases/tag/v4.2.4),
-des changements pour les auteurs (une sortie franchie d'un simple tap, `actorGap`, le fond des planches de sprites,
-`face: 'hero'` corrigé) sur la 4.2.3 « Coordination », le Studio en ligne pour une équipe, expérimental
+Release actuelle : [v4.2.5 (quest'n'click)](https://github.com/wanoo/quest-n-click/releases/tag/v4.2.5), le
+nouveau nom du projet, les anciens noms `web-scumm` gardés comme alias pendant toute la 4.2.x ; sur les changements de
+la 4.2.4 pour les auteurs (une sortie franchie d'un simple tap, `actorGap`, le fond des planches de sprites,
+`face: 'hero'` corrigé) et la 4.2.3 « Coordination », le Studio en ligne pour une équipe, expérimental
 ([STUDIO-SERVER](docs/fr/STUDIO-SERVER.md)) : prévisualisations par révision, santé, annulation personnelle, builds
 publiés, sauvegarde et restauration du serveur, et depuis la 4.2.3 une carte du scénario, des commentaires ancrés, un
 diff par nom, des agents IA par un MCP distant, l'envoi et l'import Git, l'onglet Assets hébergé ; sur la 4.2.0
@@ -172,6 +183,6 @@ ce qu'elles prouvent ([GO / NO-GO 4.2](docs/dev/GO-NO-GO-4.2.md), D38).
 Code : MIT. Images, bruitages et thème du jeu d'exemple : CC BY 4.0 (attribution « Wano ») ; le thème est le *Lac des
 cygnes* de Tchaïkovski (domaine public), transcrit et arrangé pour le projet. Polices : SIL OFL. Voir `CREDITS.md`.
 
-web-scumm est un projet indépendant. « Façon SCUMM » désigne un genre de jeu ; le projet n'est ni affilié à, ni
+quest'n'click (anciennement web-scumm) est un projet indépendant. « Façon SCUMM » désigne un genre de jeu ; le projet n'est ni affilié à, ni
 approuvé par, ni dérivé de LucasArts, Lucasfilm, Disney ou du projet ScummVM, et n'en livre ni code, ni données, ni
 images.

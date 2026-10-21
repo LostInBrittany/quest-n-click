@@ -1,15 +1,26 @@
 // node scripts/pack.mjs [--out=.cache/pack] [--publish-dry-run] (3.9): the engine as npm packages, from the files git tracks. 4.1.1:
-// `web-scumm-bridge`, the reference Reality Bridge, a package of its own (a game that does not run one never installs it).
-// 4.1.9: `web-scumm-connectors`, the connectors of the world outside, a fourth package (an operator's, never a game's).
-// 4.2.1: `web-scumm-studio-server`, the Studio online and its worker, a fifth (an operator's, beside the engine).
-// `web-scumm`: the engine (src/), its pages, its tools and the `web-scumm` command, the game template; never a game
-// of this repository, a test, a doc page or a build. `create-web-scumm`: `npx create-web-scumm <folder>`, which runs
-// `web-scumm create`. Both are packed (`npm pack`) into <out>/, ready for `npm install <tarball>` or `npm publish`.
+// `quest-n-click-bridge`, the reference Reality Bridge, a package of its own (a game that does not run one never
+// installs it). 4.1.9: `quest-n-click-connectors`, the connectors of the world outside, a fourth package (an operator's,
+// never a game's). 4.2.1: `quest-n-click-studio-server`, the Studio online and its worker, a fifth (an operator's,
+// beside the engine). `quest-n-click`: the engine (src/), its pages, its tools and the `quest-n-click` command, the game
+// template; never a game of this repository, a test, a doc page or a build. `create-quest-n-click`: `npx
+// create-quest-n-click <folder>`, which runs `quest-n-click create`. All are packed (`npm pack`) into <out>/, ready for
+// `npm install <tarball>` or `npm publish`.
+// 4.2.5 (D47): the project was web-scumm. Through 4.2.x each package is also packed under its old name, an alias with
+// the same files and version (web-scumm-<v>.tgz, create-web-scumm-<v>.tgz, …), so a game or an operator that names
+// the old package keeps working; each old command answers too, after a one-line notice. The aliases go in 4.3.
 import { execFileSync } from 'node:child_process';
 import { cpSync, mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { buildSync } from 'esbuild';
-import { bridgeManifest, connectorsManifest, lockFor, lockProblems, studioServerManifest } from './pack-manifests.mjs';
+import {
+  aliasManifest,
+  bridgeManifest,
+  connectorsManifest,
+  lockFor,
+  lockProblems,
+  studioServerManifest,
+} from './pack-manifests.mjs';
 
 const ROOT = resolve(import.meta.dirname, '..');
 const out = resolve(ROOT, process.argv.find((a) => a.startsWith('--out='))?.slice(6) ?? '.cache/pack');
@@ -25,6 +36,17 @@ function writeLocked(dir, manifest, lockFile) {
   const bad = lockProblems(lock, manifest);
   if (bad.length) throw new Error(`${lockFile} does not fit ${manifest.name}: ${bad.join('; ')} (npm run locks)`);
   writeFileSync(join(dir, 'npm-shrinkwrap.json'), `${JSON.stringify(lockFor(lock, manifest), null, 2)}\n`);
+}
+
+/**
+ * An old command (4.2.5, D47): `file` in `dir` says on stderr that the name changed, then runs `target` (a sibling
+ * module that runs its command on import). Through 4.2.x; the old names go in 4.3.
+ */
+function oldCommand(dir, file, target, said) {
+  writeFileSync(
+    join(dir, file),
+    `#!/usr/bin/env node\n// The command under its former name (D47), an alias through 4.2.x, removed in 4.3.\nconsole.error(${JSON.stringify(`${said}; the old name works until 4.3`)});\nawait import('${target}');\n`,
+  );
 }
 
 /** What the package ships, by tracked path. */
@@ -88,7 +110,7 @@ const pick = (names) =>
   Object.fromEntries(names.filter((n) => root.devDependencies?.[n]).map((n) => [n, root.devDependencies[n]]));
 
 rmSync(out, { recursive: true, force: true });
-const engine = join(out, 'web-scumm');
+const engine = join(out, 'quest-n-click');
 for (const f of files) {
   mkdirSync(dirname(join(engine, f)), { recursive: true });
   cpSync(join(ROOT, f), join(engine, f));
@@ -97,15 +119,16 @@ writeFileSync(
   join(engine, 'package.json'),
   JSON.stringify(
     {
-      name: 'web-scumm',
+      name: 'quest-n-click',
       version: root.version,
       description:
         'An engine for point-and-click adventure games in the browser: content as typed data, a solver that proves the game can be finished, a Studio.',
       license: 'MIT',
       type: 'module',
       engines: root.engines,
-      repository: { type: 'git', url: 'git+https://github.com/wanoo/web-scumm.git' },
-      bin: { 'web-scumm': 'cli/web-scumm.mjs' },
+      repository: { type: 'git', url: 'git+https://github.com/wanoo/quest-n-click.git' },
+      // The old command (D47), an alias through 4.2.x: a notice, then the same command.
+      bin: { 'quest-n-click': 'cli/quest-n-click.mjs', 'web-scumm': 'cli/web-scumm.mjs' },
       // The public API (4.0, docs/en/API.md): four entry modules, the command line. Anything else is internal.
       exports: {
         './content': './src/engine/api/content.ts',
@@ -127,38 +150,49 @@ writeFileSync(
 );
 writeFileSync(
   join(engine, 'README.md'),
-  `# web-scumm\n\nAn engine for point-and-click adventure games in the browser. Start a game:\n\n\`\`\`bash\nnpx create-web-scumm my-game\ncd my-game && npm install\nnpm run assets && npm run dev\n\`\`\`\n\nThen \`npx web-scumm help\`. Documentation: https://github.com/wanoo/web-scumm (docs/en/PACKAGE.md).\n`,
+  `# quest'n'click\n\nAn engine for point-and-click adventure games in the browser (formerly web-scumm). Start a game:\n\n\`\`\`bash\nnpx create-quest-n-click my-game\ncd my-game && npm install\nnpm run assets && npm run dev\n\`\`\`\n\nThen \`npx quest-n-click help\`. Documentation: https://github.com/wanoo/quest-n-click (docs/en/PACKAGE.md).\n`,
 );
 
-const create = join(out, 'create-web-scumm');
-mkdirSync(create, { recursive: true });
-writeFileSync(
-  join(create, 'index.mjs'),
-  `#!/usr/bin/env node\n// npx create-web-scumm <folder> ["Title"]: runs \`web-scumm create\` from the engine this package depends on.\nimport 'web-scumm/cli/create.mjs';\n`,
-);
-writeFileSync(
-  join(create, 'package.json'),
-  JSON.stringify(
-    {
-      name: 'create-web-scumm',
-      version: root.version,
-      description: 'Creates a web-scumm game project: npx create-web-scumm my-game',
-      license: 'MIT',
-      type: 'module',
-      bin: { 'create-web-scumm': 'index.mjs' },
-      dependencies: { 'web-scumm': root.version },
-    },
-    null,
-    2,
-  ) + '\n',
-);
-cpSync(join(ROOT, 'LICENSE'), join(create, 'LICENSE'));
+/**
+ * `create-<engine>`: `npx create-quest-n-click <folder>` runs `quest-n-click create` from the engine it depends on.
+ * Its old name's alias (D47) depends on the engine's alias and runs its `create`, so the project it makes keeps the old
+ * names throughout (cli/create.mjs writes the engine's own name), and says so first.
+ */
+function createPackage(dir, engineName, notice) {
+  const name = `create-${engineName}`;
+  mkdirSync(dir, { recursive: true });
+  writeFileSync(
+    join(dir, 'index.mjs'),
+    `#!/usr/bin/env node\n// npx ${name} <folder> ["Title"]: runs \`${engineName} create\` from the engine this package depends on.\n${notice ? `console.error(${JSON.stringify(notice)});\n` : ''}await import('${engineName}/cli/create.mjs');\n`,
+  );
+  writeFileSync(
+    join(dir, 'package.json'),
+    JSON.stringify(
+      {
+        name,
+        version: root.version,
+        description: notice
+          ? `create-quest-n-click under its former name (an alias through 4.2.x, removed in 4.3): npx ${name} my-game`
+          : `Creates a quest'n'click game project: npx ${name} my-game`,
+        license: 'MIT',
+        type: 'module',
+        bin: { [name]: 'index.mjs' },
+        dependencies: { [engineName]: root.version },
+      },
+      null,
+      2,
+    ) + '\n',
+  );
+  cpSync(join(ROOT, 'LICENSE'), join(dir, 'LICENSE'));
+}
+const create = join(out, 'create-quest-n-click');
+createPackage(create, 'quest-n-click');
 
 // The Reality Bridge (4.1.1; compiled since 4.1.2): bridge/src and the protocol it shares with the player, bundled
 // into one JavaScript module by esbuild, so the package runs on Node alone (no tsx, no TypeScript at run time); the
 // Datalog policies beside it, where `new URL('../policy/…', import.meta.url)` finds them from src/cli.mjs; Biscuit's
 // WebAssembly and zod stay dependencies.
-const bridge = join(out, 'web-scumm-bridge');
+const bridge = join(out, 'quest-n-click-bridge');
 mkdirSync(join(bridge, 'src'), { recursive: true });
 // esbuild's API, not its binary under node_modules/.bin (4.1.18: a `.cmd` on Windows, which execFileSync cannot run).
 const bundle = (entry, outfile, external) =>
@@ -192,19 +226,20 @@ for (const f of readdirSync(join(ROOT, 'bridge', 'migrations')).filter((f) => f.
 }
 writeFileSync(
   join(bridge, 'bin.mjs'),
-  `#!/usr/bin/env node\n// web-scumm-bridge <init|serve|grant|rotate|revoke|doctor|compact|migrate|tenant|backup|restore>: the reference Reality Bridge on its own, for a\n// game that is already built: \`init --manifest=<game>/dist/reality-manifest.json\`, then \`serve\`. docs/en/REALITY-OPS.md.\nconst { main } = await import('./src/cli.mjs');\nprocess.exitCode = await main(process.argv.slice(2));\n`,
+  `#!/usr/bin/env node\n// quest-n-click-bridge <init|serve|grant|rotate|revoke|doctor|compact|migrate|tenant|backup|restore>: the reference Reality Bridge on its own, for a\n// game that is already built: \`init --manifest=<game>/dist/reality-manifest.json\`, then \`serve\`. docs/en/REALITY-OPS.md.\nconst { main } = await import('./src/cli.mjs');\nprocess.exitCode = await main(process.argv.slice(2));\n`,
 );
-writeLocked(bridge, bridgeManifest(root), 'scripts/locks/web-scumm-bridge.json');
+oldCommand(bridge, 'bin-web-scumm.mjs', './bin.mjs', 'web-scumm-bridge is now quest-n-click-bridge');
+writeLocked(bridge, bridgeManifest(root), 'scripts/locks/quest-n-click-bridge.json');
 cpSync(join(ROOT, 'LICENSE'), join(bridge, 'LICENSE'));
 writeFileSync(
   join(bridge, 'README.md'),
-  `# web-scumm-bridge\n\nThe reference Reality Bridge for a web-scumm game. \`npx web-scumm-bridge init --manifest=dist/reality-manifest.json\`, then \`npx web-scumm-bridge serve\`; \`doctor\` and \`compact\` for the journal. Documentation: https://github.com/wanoo/web-scumm (docs/en/REALITY-OPS.md).\n`,
+  `# quest-n-click-bridge\n\nThe reference Reality Bridge for a quest'n'click game (formerly web-scumm-bridge). \`npx quest-n-click-bridge init --manifest=dist/reality-manifest.json\`, then \`npx quest-n-click-bridge serve\`; \`doctor\` and \`compact\` for the journal. Documentation: https://github.com/wanoo/quest-n-click (docs/en/REALITY-OPS.md).\n`,
 );
 
-// The connectors (4.1.9, docs/en/CONNECTORS.md): the SDK, `web-scumm-connector` and the four connectors bundled into
+// The connectors (4.1.9, docs/en/CONNECTORS.md): the SDK, `quest-n-click-connector` and the four connectors bundled into
 // one module (src/run.mjs), the MIME reader's worker beside it (src/mime-worker.mjs, where `new URL('./mime-worker.mjs',
 // import.meta.url)` finds it), `ssh2` a dependency. A game never installs it; an operator runs it next to a Bridge.
-const connectors = join(out, 'web-scumm-connectors');
+const connectors = join(out, 'quest-n-click-connectors');
 mkdirSync(join(connectors, 'src'), { recursive: true });
 for (const [entry, outfile] of [
   ['connectors/src/run.ts', 'run.mjs'],
@@ -213,13 +248,14 @@ for (const [entry, outfile] of [
   bundle(entry, join(connectors, 'src', outfile), ['ssh2']);
 writeFileSync(
   join(connectors, 'bin.mjs'),
-  `#!/usr/bin/env node\n// web-scumm-connector <email|telnet|ssh|open-badge> --config <file.json>: one connector of the world outside, as its own\n// process, beside a web-scumm-bridge. docs/en/CONNECTORS.md.\nconst { main } = await import('./src/run.mjs');\nprocess.exitCode = await main(process.argv.slice(2));\n`,
+  `#!/usr/bin/env node\n// quest-n-click-connector <email|telnet|ssh|open-badge> --config <file.json>: one connector of the world outside, as its own\n// process, beside a quest-n-click-bridge. docs/en/CONNECTORS.md.\nconst { main } = await import('./src/run.mjs');\nprocess.exitCode = await main(process.argv.slice(2));\n`,
 );
-writeLocked(connectors, connectorsManifest(root), 'scripts/locks/web-scumm-connectors.json');
+oldCommand(connectors, 'bin-web-scumm.mjs', './bin.mjs', 'web-scumm-connector is now quest-n-click-connector');
+writeLocked(connectors, connectorsManifest(root), 'scripts/locks/quest-n-click-connectors.json');
 cpSync(join(ROOT, 'LICENSE'), join(connectors, 'LICENSE'));
 writeFileSync(
   join(connectors, 'README.md'),
-  `# web-scumm-connectors\n\nConnectors of the world outside for a web-scumm game: email, Telnet, SSH and Open Badges, each its own process, each proposing the signals its game declares to a \`web-scumm-bridge\` under its own Biscuit. Experimental (4.1.9). Install without native code: \`npm install --omit=optional --ignore-scripts web-scumm-connectors\`. Then \`npx web-scumm-connector <email|telnet|ssh|open-badge> --config connector.json\`. Documentation: https://github.com/wanoo/web-scumm (docs/en/CONNECTORS.md).\n`,
+  `# quest-n-click-connectors\n\nConnectors of the world outside for a quest'n'click game (formerly web-scumm-connectors): email, Telnet, SSH and Open Badges, each its own process, each proposing the signals its game declares to a \`quest-n-click-bridge\` under its own Biscuit. Experimental (4.1.9). Install without native code: \`npm install --omit=optional --ignore-scripts quest-n-click-connectors\`. Then \`npx quest-n-click-connector <email|telnet|ssh|open-badge> --config connector.json\`. Documentation: https://github.com/wanoo/quest-n-click (docs/en/CONNECTORS.md).\n`,
 );
 
 // npm is `npm.cmd` on Windows: run through the shell there (4.1.18), the arguments being this script's own.
@@ -230,7 +266,7 @@ const npm = (a, o) =>
 // The Studio Server (4.2.1, docs/en/STUDIO-SERVER.md): two commands that run the server and the processing worker of
 // the engine installed beside it (its sources, Vite, tsx), and the Studio's page built once here (`npm run
 // studio-client`: studio.html and its code, no game). Its own dependencies are locked; the engine is a peer.
-const studio = join(out, 'web-scumm-studio-server');
+const studio = join(out, 'quest-n-click-studio-server');
 mkdirSync(join(studio, 'bin'), { recursive: true });
 npm(['run', 'studio-client', '--silent'], { cwd: ROOT, stdio: ['ignore', 'ignore', 'inherit'] });
 cpSync(join(ROOT, '.cache', 'studio-client'), join(studio, 'client'), { recursive: true });
@@ -239,7 +275,8 @@ writeFileSync(
   `// Runs one of the engine's Studio Server commands with the engine installed beside this package, of the same version:
 // node itself, with tsx's loader (no second process between the command and the server: a signal reaches it once) and
 // a resolve hook (resolve.mjs) that finds this package's own dependencies from here, wherever npm put them; the Studio's
-// page built in this package unless WEB_SCUMM_STUDIO_CLIENT names another.
+// page built in this package unless WEB_SCUMM_STUDIO_CLIENT names another. The engine is \`quest-n-click\`, or through
+// 4.2.x its former name's alias, \`web-scumm\` (D47): the same files.
 import { spawn } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
@@ -250,15 +287,18 @@ export function launch(entry) {
   const here = dirname(fileURLToPath(import.meta.url));
   const own = JSON.parse(readFileSync(join(here, '..', 'package.json'), 'utf8'));
   let engine;
-  try {
-    engine = dirname(createRequire(import.meta.url).resolve('web-scumm/package.json'));
-  } catch {
-    console.error(\`\${own.name}: the engine is not installed: npm install web-scumm-\${own.version}.tgz beside it\`);
+  for (const name of ['quest-n-click', 'web-scumm'])
+    try {
+      engine = dirname(createRequire(import.meta.url).resolve(\`\${name}/package.json\`));
+      break;
+    } catch {}
+  if (!engine) {
+    console.error(\`\${own.name}: the engine is not installed: npm install quest-n-click-\${own.version}.tgz beside it\`);
     process.exit(2);
   }
   const version = JSON.parse(readFileSync(join(engine, 'package.json'), 'utf8')).version;
   if (version !== own.version) {
-    console.error(\`\${own.name} \${own.version} runs with web-scumm \${own.version}, not \${version}\`);
+    console.error(\`\${own.name} \${own.version} runs with quest-n-click \${own.version}, not \${version}\`);
     process.exit(2);
   }
   const tsx = pathToFileURL(createRequire(join(engine, 'package.json')).resolve('tsx/esm')).href;
@@ -309,26 +349,66 @@ export function resolve(specifier, context, next) {
 );
 writeFileSync(
   join(studio, 'bin', 'server.mjs'),
-  `#!/usr/bin/env node\n// web-scumm-studio-server <serve|import|export|invite|worker-keys|login|token|backup|restore|replay|gc> …: the Studio Server (docs/en/STUDIO-SERVER.md).\nimport { launch } from './launch.mjs';\nlaunch('studio-server/src/server/main.ts');\n`,
+  `#!/usr/bin/env node\n// quest-n-click-studio-server <serve|import|export|invite|worker-keys|login|token|backup|restore|replay|gc> …: the Studio Server (docs/en/STUDIO-SERVER.md).\nimport { launch } from './launch.mjs';\nlaunch('studio-server/src/server/main.ts');\n`,
 );
 writeFileSync(
   join(studio, 'bin', 'worker.mjs'),
-  `#!/usr/bin/env node\n// web-scumm-studio-worker: the Studio Server's processing worker, with no secret of the platform (ADR 0028).\nimport { launch } from './launch.mjs';\nlaunch('studio-server/src/worker/main.ts');\n`,
+  `#!/usr/bin/env node\n// quest-n-click-studio-worker: the Studio Server's processing worker, with no secret of the platform (ADR 0028).\nimport { launch } from './launch.mjs';\nlaunch('studio-server/src/worker/main.ts');\n`,
 );
-writeLocked(studio, studioServerManifest(root), 'scripts/locks/web-scumm-studio-server.json');
+oldCommand(
+  studio,
+  'bin/web-scumm-server.mjs',
+  './server.mjs',
+  'web-scumm-studio-server is now quest-n-click-studio-server',
+);
+oldCommand(
+  studio,
+  'bin/web-scumm-worker.mjs',
+  './worker.mjs',
+  'web-scumm-studio-worker is now quest-n-click-studio-worker',
+);
+writeLocked(studio, studioServerManifest(root), 'scripts/locks/quest-n-click-studio-server.json');
 cpSync(join(ROOT, 'LICENSE'), join(studio, 'LICENSE'));
 writeFileSync(
   join(studio, 'README.md'),
-  `# web-scumm-studio-server\n\nThe web-scumm Studio Server: one game, several people, online, with OpenID Connect, PostgreSQL and S3; and its processing worker. Install it beside the engine of the same version: \`npm install web-scumm-${root.version}.tgz web-scumm-studio-server-${root.version}.tgz\`. Then \`npx web-scumm-studio-server serve --config studio.config.json\` and \`npx web-scumm-studio-worker\`. Documentation: https://github.com/wanoo/web-scumm (docs/en/STUDIO-SERVER.md).\n`,
+  `# quest-n-click-studio-server\n\nThe quest'n'click Studio Server (formerly web-scumm-studio-server): one game, several people, online, with OpenID Connect, PostgreSQL and S3; and its processing worker. Install it beside the engine of the same version: \`npm install quest-n-click-${root.version}.tgz quest-n-click-studio-server-${root.version}.tgz\`. Then \`npx quest-n-click-studio-server serve --config studio.config.json\` and \`npx quest-n-click-studio-worker\`. Documentation: https://github.com/wanoo/quest-n-click (docs/en/STUDIO-SERVER.md).\n`,
 );
 
-for (const d of [engine, create, bridge, connectors, studio])
+// The old names (4.2.5, D47), through 4.2.x: each package again under the name it had, the same files and version.
+// The engine's and the locked packages' alias is a copy whose package.json (and lock) carries the old name; the
+// creator's is its own (it depends on the engine's alias, so its projects keep the old names).
+const ALIAS_NOTE = (name) =>
+  `\n\n*${name} is now ${name.replace(/web-scumm/, 'quest-n-click')}: this archive is the same package under its former name, an alias through 4.2.x, removed in 4.3.*\n`;
+function alias(dir) {
+  const manifest = JSON.parse(readFileSync(join(dir, 'package.json'), 'utf8'));
+  const old = aliasManifest(manifest);
+  const to = join(out, old.name);
+  cpSync(dir, to, { recursive: true });
+  writeFileSync(join(to, 'package.json'), `${JSON.stringify(old, null, 2)}\n`);
+  const shrinkwrap = join(to, 'npm-shrinkwrap.json');
+  try {
+    writeFileSync(
+      shrinkwrap,
+      `${JSON.stringify(lockFor(JSON.parse(readFileSync(shrinkwrap, 'utf8')), old), null, 2)}\n`,
+    );
+  } catch (e) {
+    if (e.code !== 'ENOENT') throw e;
+  }
+  writeFileSync(join(to, 'README.md'), readFileSync(join(dir, 'README.md'), 'utf8') + ALIAS_NOTE(old.name));
+  return to;
+}
+const aliases = [engine, bridge, connectors, studio].map(alias);
+const createAlias = join(out, 'create-web-scumm');
+createPackage(createAlias, 'web-scumm', 'create-web-scumm is now create-quest-n-click; the old name works until 4.3');
+const ALL = [engine, create, bridge, connectors, studio, ...aliases, createAlias];
+
+for (const d of ALL)
   npm(['pack', '--pack-destination', out, '--silent'], { cwd: d, stdio: ['ignore', 'inherit', 'inherit'] });
 console.log(
-  `packed into ${out}: web-scumm ${root.version} (${files.length} files), create-web-scumm, web-scumm-bridge (one module, its policies), web-scumm-connectors (one module, its MIME worker), web-scumm-studio-server (two commands, the Studio's page)`,
+  `packed into ${out}: quest-n-click ${root.version} (${files.length} files), create-quest-n-click, quest-n-click-bridge (one module, its policies), quest-n-click-connectors (one module, its MIME worker), quest-n-click-studio-server (two commands, the Studio's page); and, through 4.2.x, each under its former web-scumm name`,
 );
 // --publish-dry-run (4.1.8): what `npm publish` would send, for each package, without sending it (release-check).
 if (process.argv.includes('--publish-dry-run'))
-  for (const dir of [engine, create, bridge, connectors, studio]) {
+  for (const dir of ALL) {
     npm(['publish', '--dry-run', '--ignore-scripts'], { cwd: dir, stdio: 'inherit' });
   }

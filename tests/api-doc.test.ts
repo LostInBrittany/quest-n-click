@@ -10,7 +10,7 @@ describe('the API pages carry the signatures of the code', () => {
   const block = signatures(rows);
   it('names every entry and more than a hundred exports', () => {
     for (const e of ['content', 'player', 'minigames', 'testing', 'reality'])
-      expect(block).toContain(`### web-scumm/${e}`);
+      expect(block).toContain(`### quest-n-click/${e}`);
     expect(rows.length).toBeGreaterThan(100);
     expect(block.split('\n').filter((l) => l.startsWith('| `')).length).toBe(rows.length);
   });

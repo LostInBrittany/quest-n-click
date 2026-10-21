@@ -4,7 +4,9 @@ import { spawnSync } from 'node:child_process';
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 
-export const REPO = process.env.WEB_SCUMM_REPO ?? 'wanoo/web-scumm';
+// The repository (renamed in 4.2.5, D47; GitHub redirects the former name, wanoo/web-scumm). WEB_SCUMM_REPO keeps its
+// name: an environment variable a fork's maintainer may already set.
+export const REPO = process.env.WEB_SCUMM_REPO ?? 'wanoo/quest-n-click';
 
 /** Runs a command and returns its trimmed stdout; throws with stderr when it fails (unless `ok` lists the code). */
 export function run(cmd, args, { ok = [0], input, cwd } = {}) {
