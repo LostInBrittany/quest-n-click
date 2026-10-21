@@ -52,5 +52,7 @@
   `character().name`), so the validator now refuses a switch or `{hero}` there, as in a character's name (a test).
   The hero chosen at New Game is tested through the real save file: the v4 envelope as JSON, and a v3 one, read
   back with `parseSave` and continued.
+- After #205 (4.3.0): a verb's `key` is a text of the game, so a malformed one (`key: 1`) reached `parseText`, which
+  threw and stopped the validator before the key's own check; a text of the wrong type now holds nothing (a test).
 
 → next: 4.3.0's release checklist (the version, the golden save, UPGRADING §39's install line, SUPPORT, ROADMAP)

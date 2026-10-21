@@ -72,7 +72,8 @@ function readAlts(body: string): SwitchAlt[] | string {
 
 /** Every switch of a text, `{hero}`, and what is malformed. */
 export function parseText(s: string): ParsedText {
-  const out: ParsedText = { switches: [], hero: s.includes(HERO), malformed: [] };
+  // A text of the wrong type (a verb's `key: 1`, refused by its own check) holds nothing: the validator goes on (4.3.0).
+  const out: ParsedText = { switches: [], hero: typeof s === 'string' && s.includes(HERO), malformed: [] };
   if (!mayHold(s)) return out;
   OPEN.lastIndex = 0;
   for (let m = OPEN.exec(s); m; m = OPEN.exec(s)) {

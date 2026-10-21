@@ -77,6 +77,11 @@ describe('the parser', () => {
     expect(asked).toBe(1);
   });
 
+  it('reads a text of the wrong type as holding nothing, so the validator goes on (4.3.0)', () => {
+    expect(parseText(1 as unknown as string)).toEqual({ switches: [], hero: false, malformed: [] });
+    expect(renderText(1 as unknown as string, {}, 'Lance')).toBe(1);
+  });
+
   it('leaves a malformed switch as written and says why', () => {
     for (const [s, why] of [
       ['{form?}', 'no alternative'],
