@@ -1,4 +1,4 @@
-## 4.3.0: the 158 mutation exemptions read again (27 killed, 3 fixed, the rest to 4.4.0)
+## 4.3.0: the 158 mutation exemptions read again (28 killed, 2 fixed, the rest to 4.4.0)
 
 - Every entry of `docs/dev/mutants.json` was due at 4.3.0. Four reviewers read each one against origin/main 8f3d5d3d:
   128 kept, 30 to kill. Each kill's test was written in a file the entry's mutation set runs, then checked by hand
@@ -31,5 +31,14 @@
   so a real bug still answers `crash`); `verify.ts`'s `instanceof` mutant is equivalent again.
 - Sets touched: core, reality, runs, remix, speedrun, connectors-pure, connectors-edge, reality-store-postgres,
   studio-ops, studio-auth, studio-workshop.
+- Second reading (4.3.0): `checkLimits` takes a least per limit, 1 for `streamPage` (0 looped `signals()` forever),
+  `bodyBytes` and `streamBufferBytes`, 0 for the others (0 there refuses visibly: no pairing, no stream, no cache);
+  UPGRADING §39 (en, fr) says the limits are checked, that a shared Bridge stops for every tenant, and how to list them
+  first, pinned against `checkLimits` by `tests/bridge.test.ts`. `verifyJws` takes RS256 from 2048 bits and ES256 on
+  P-256 only (an OB2 `publicKeyPem` of 512 bits could be factored), the badges refused end to end in
+  `tests/connectors-badges-edge-mutants.test.ts`, the guard's new mutants killed by hand. The verifier's `instanceof`
+  entry is killed after all (`tests/speedrun-verify-crash.test.ts`: a fault that is no RemixSeedError is
+  `inconclusive/crash`), so 130 entries remain. The `toRun(r)` entry covers claimNext's re-read only: `get` and
+  `summary` of an id not held are tested. The `late` worker test stays POSIX only: untried on Windows.
 
-→ next: the mutation sets run on the branch in CI; the remaining 131 are read again at 4.4.0.
+→ next: the mutation sets run on the branch in CI; the remaining 130 are read again at 4.4.0.

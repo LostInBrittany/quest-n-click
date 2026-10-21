@@ -127,6 +127,17 @@ for (const [name, make] of [
       expect(await s.admit(run({ id: 'r2' }), 1)).toBe('full');
     });
 
+    it('reads no run for an id it does not hold, whole or summed up (4.3.0)', async () => {
+      // Kills runs-store.ts `return r ? toRun(r) : undefined;` → true in get and summary: no row is no run, never a
+      // TypeError of reading a row that is not there.
+      const s = await make();
+      await s.create(run({ id: 'a' }));
+      expect(await s.get('t', 'nope')).toBeUndefined();
+      expect(await s.get('u', 'a')).toBeUndefined();
+      expect(await s.summary('t', 'nope')).toBeUndefined();
+      expect(await s.summary('t', 'a')).toMatchObject({ id: 'a' });
+    });
+
     it('purges the runs submitted strictly before the date, and says how many', async () => {
       const s = await make();
       await s.create(run({ id: 'old', submittedAt: 99 }));
