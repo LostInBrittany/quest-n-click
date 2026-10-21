@@ -752,6 +752,12 @@ ne bouge pas. Le moteur s'installe depuis `releases/download/v4.3.0/…`. Ce qui
 - **`npm run lint`** a `hero-looks-default` (info), et ne traite plus d'`action-dead` une règle qui ne pose qu'un
   drapeau lu par une variante de personnage ou par un aiguillage.
 
+**Un Bridge vérifie les `limits` de son `config.json` au démarrage** (4.3.0) : un nom inconnu, ou une valeur qui
+n'est pas un entier d'au moins 0 (au moins 1 pour `streamPage`, `bodyBytes` et `streamBufferBytes`), l'arrête en
+nommant la limite et la valeur ; sur un Bridge partagé, ce sont tous les locataires. Avant la mise à jour, listez
+les limites de chaque locataire et comparez-les aux noms de `DEFAULT_LIMITS` (`bridge/src/config.ts`) :
+`node -e 'console.log(JSON.parse(require("fs").readFileSync(process.argv[1], "utf8")).limits ?? {})' <dir>/config.json`.
+
 **Les noms `web-scumm` disparaissent** (D47). Pendant toute la 4.2.x, les anciens noms du moteur étaient des alias ;
 la 4.3.0 les retire. Il n'y a plus d'archive `web-scumm-<version>.tgz`, `create-web-scumm`, `web-scumm-bridge`,
 `web-scumm-connectors` ni `web-scumm-studio-server`, plus de commande `web-scumm`, `web-scumm-bridge`,

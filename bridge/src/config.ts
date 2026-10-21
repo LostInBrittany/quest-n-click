@@ -76,10 +76,17 @@ export const DEFAULT_LIMITS: Limits = {
 };
 
 /**
+ * The least each limit takes (4.3.0): 0 for most (no pairing, no stream, no cache: the Bridge refuses that, visibly),
+ * 1 for the three where 0 would break it: `streamPage` (a page of none never ends the fetch by cursor), `bodyBytes`
+ * (no request could carry a body) and `streamBufferBytes` (every stream closed as soon as it holds a byte).
+ */
+const LIMIT_MIN: Partial<Record<keyof Limits, number>> = { streamPage: 1, bodyBytes: 1, streamBufferBytes: 1 };
+
+/**
  * A configuration's limits merged over the defaults, each checked (4.3.0): a limit is a count, a size or a duration, so
- * a non-negative integer. A name that is no limit, or a value that is not one (a negative number, a fraction, a string,
- * a number JSON reads as Infinity), stops the Bridge before it starts, with the name and the value; a limit left out
- * (or undefined) keeps its default.
+ * an integer, at least its `LIMIT_MIN` (0 when it has none). A name that is no limit, or a value that is not one (a
+ * number below the least, a fraction, a string, a number JSON reads as Infinity), stops the Bridge before it starts,
+ * with the name, the least it takes and the value; a limit left out (or undefined) keeps its default.
  */
 export function checkLimits(given: Partial<Limits> = {}): Limits {
   const out: Limits = { ...DEFAULT_LIMITS };
@@ -87,9 +94,10 @@ export function checkLimits(given: Partial<Limits> = {}): Limits {
     if (!Object.hasOwn(DEFAULT_LIMITS, k))
       throw new Error(`limits.${k} is no limit of the Bridge (${Object.keys(DEFAULT_LIMITS).join(', ')})`);
     if (v === undefined) continue;
-    if (!Number.isSafeInteger(v) || v < 0)
+    const min = LIMIT_MIN[k as keyof Limits] ?? 0;
+    if (!Number.isSafeInteger(v) || v < min)
       throw new Error(
-        `limits.${k} must be a non-negative integer, not ${typeof v === 'string' ? JSON.stringify(v) : String(v)}`,
+        `limits.${k} must be an integer of at least ${min}, not ${typeof v === 'string' ? JSON.stringify(v) : String(v)}`,
       );
     out[k as keyof Limits] = v;
   }

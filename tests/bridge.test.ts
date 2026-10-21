@@ -814,20 +814,46 @@ describe('bounded, validated, one per journal (4.1.8)', () => {
     expect(new JsonlBridgeStore(file, { lock: false }).acked('p-1')).toBe(2);
   });
 
-  it('refuses to start on a limit that is not a non-negative integer, or on a name that is no limit (4.3.0)', async () => {
+  it('refuses to start on a limit below its least, not an integer, or a name that is no limit (4.3.0)', async () => {
     // config.json's limits were spread unchecked: `resignedCache: -1` made the re-sign cache's eviction loop run on an
     // empty map, held off only by a guard; now the Bridge does not start, and says which limit and what it was given.
     for (const [limits, said] of [
-      [{ resignedCache: -1 }, /^limits\.resignedCache must be a non-negative integer, not -1$/],
-      [{ streamPage: 1.5 }, /^limits\.streamPage must be a non-negative integer, not 1\.5$/],
-      [{ bodyBytes: '8192' }, /^limits\.bodyBytes must be a non-negative integer, not "8192"$/],
-      [{ pairingMs: JSON.parse('1e400') }, /^limits\.pairingMs must be a non-negative integer, not Infinity$/],
-      [{ pendingPairings: null }, /^limits\.pendingPairings must be a non-negative integer, not null$/],
+      [{ resignedCache: -1 }, /^limits\.resignedCache must be an integer of at least 0, not -1$/],
+      [{ streamPage: 1.5 }, /^limits\.streamPage must be an integer of at least 1, not 1\.5$/],
+      [{ bodyBytes: '8192' }, /^limits\.bodyBytes must be an integer of at least 1, not "8192"$/],
+      [{ pairingMs: JSON.parse('1e400') }, /^limits\.pairingMs must be an integer of at least 0, not Infinity$/],
+      [{ pendingPairings: null }, /^limits\.pendingPairings must be an integer of at least 0, not null$/],
       [{ resignCache: 10 }, /^limits\.resignCache is no limit of the Bridge \(bodyBytes, /],
+      // 0 would break these three: a fetch by cursor that never ends, no body, every stream closed at once.
+      [{ streamPage: 0 }, /^limits\.streamPage must be an integer of at least 1, not 0$/],
+      [{ bodyBytes: 0 }, /^limits\.bodyBytes must be an integer of at least 1, not 0$/],
+      [{ streamBufferBytes: 0 }, /^limits\.streamBufferBytes must be an integer of at least 1, not 0$/],
     ] as const)
       await expect(setup({ limits: limits as never }), JSON.stringify(limits)).rejects.toThrow(said);
     const zero = await setup({ limits: { resignedCache: 0, streamPage: 7, pendingPairings: undefined } });
     expect(zero.bridge.limits).toMatchObject({ resignedCache: 0, streamPage: 7, pendingPairings: 1000 });
+  });
+
+  it('UPGRADING §39 says, in English and in French, that the limits are checked and which take at least 1', async () => {
+    // A host upgrading to 4.3.0 learns there that a limit its Bridge took before may now stop it (every tenant of a
+    // shared one); the limits named there as taking at least 1 are exactly those checkLimits refuses at 0.
+    const { checkLimits, DEFAULT_LIMITS } = await import('../bridge/src/config');
+    const atLeastOne = Object.keys(DEFAULT_LIMITS).filter((k) => {
+      try {
+        checkLimits({ [k]: 0 });
+        return false;
+      } catch {
+        return true;
+      }
+    });
+    expect(atLeastOne.sort()).toEqual(['bodyBytes', 'streamBufferBytes', 'streamPage']);
+    for (const lang of ['en', 'fr']) {
+      const doc = readFileSync(`docs/${lang}/UPGRADING.md`, 'utf8');
+      const s39 = doc.slice(doc.indexOf('\n## 39.'), doc.indexOf('\n## 40.') > 0 ? doc.indexOf('\n## 40.') : undefined);
+      const para = s39.split('\n\n').find((p) => p.includes('`limits`') && p.includes('config.json')) ?? '';
+      expect(para, lang).toMatch(/DEFAULT_LIMITS/);
+      for (const k of atLeastOne) expect(para, `${lang}: ${k}`).toContain(`\`${k}\``);
+    }
   });
 
   it('a journal line that is not JSON is refused with what the parser said of it', () => {

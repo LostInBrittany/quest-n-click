@@ -707,6 +707,12 @@ installs from `releases/download/v4.3.0/…`. What is new, all optional (CONTENT
 - **`npm run lint`** has `hero-looks-default` (info), and no longer calls `action-dead` a rule that only sets a flag a
   character's variant or a text switch reads.
 
+**A Bridge checks the `limits` of its `config.json` at start** (4.3.0): an unknown name, or a value that is not an
+integer of at least 0 (at least 1 for `streamPage`, `bodyBytes` and `streamBufferBytes`), stops it with the name
+and the value; on a shared Bridge that is every tenant. Before upgrading, list each tenant's limits and compare them
+with `DEFAULT_LIMITS`'s names (`bridge/src/config.ts`):
+`node -e 'console.log(JSON.parse(require("fs").readFileSync(process.argv[1], "utf8")).limits ?? {})' <dir>/config.json`.
+
 **The `web-scumm` names are gone** (D47). Through 4.2.x the engine's former names were aliases; 4.3.0 removes them.
 There is no `web-scumm-<version>.tgz`, `create-web-scumm`, `web-scumm-bridge`, `web-scumm-connectors` or
 `web-scumm-studio-server` archive any more, no `web-scumm`, `web-scumm-bridge`, `web-scumm-connector`,
