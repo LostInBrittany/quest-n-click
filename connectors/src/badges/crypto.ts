@@ -135,9 +135,11 @@ export function verifyJws(jws: Jws, key: KeyObject): boolean {
 /**
  * `eddsa-jcs-2022` (W3C Data Integrity EdDSA Cryptosuites): SHA-256 of the JCS of the proof's configuration (the proof
  * without `proofValue`, with the document's `@context`), then SHA-256 of the JCS of the document without its proof;
- * the Ed25519 signature is over the two hashes joined.
+ * the Ed25519 signature is over the two hashes joined. An Ed25519 key only (4.3.0): the key comes from the issuer's
+ * document, which may give an RSA or EC one, and `verify(null, …)` would then check that algorithm's signature.
  */
 export function verifyEddsaJcs(doc: Record<string, unknown>, proof: Record<string, unknown>, key: KeyObject): boolean {
+  if (key.asymmetricKeyType !== 'ed25519') return false;
   if (typeof proof.proofValue !== 'string' || !proof.proofValue.startsWith('z')) return false;
   const sig = base58Decode(proof.proofValue.slice(1));
   if (!sig || sig.length !== 64) return false;
