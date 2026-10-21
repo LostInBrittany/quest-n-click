@@ -13,7 +13,7 @@ Titles read the same way whoever opens them (4.3.0):
 - **Pull request:** `<Area>: <what changes> (#issue)`, e.g. `Interface font: a proportional pixel font by default
   (#204)`. A pull request of a release's pass starts with its version instead (`4.2.3: …`, `4.3 "Name": …`).
 - **Body:** every section of the template, "Not done, said as such" included ("Nothing" when nothing is left).
-- **Branch:** its kind as a prefix (`feature/`, `fix/`, `docs/`, `test/`, `refactor/`, `release/x.y.z`), then the
+- **Branch:** its kind and a slash as a prefix (`feature`, `fix`, `docs`, `test`, `refactor`, or `release` with its version), then the
   issue's number and a few words, e.g. `fix/210-job-late-poll`. The fragment under `changes/` takes the branch without
   its prefix as its name (`210-job-late-poll.md`).
 
