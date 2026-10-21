@@ -59,6 +59,17 @@ opens no browser, no Windows runner and no Node 24 (`CONTRIBUTING.md`, "What CI 
 | Bridge, `distributed` profile (4.1.10, `experimental`) | Postgres 16 in CI (`bridge-postgres`): the same contract, tenants and fan-out between instances; the nightly load run; the qualification profile (`ops/qualify/`: HTTPS, three instances, the leaderboard, a worker killed mid-verification, a restore after the topology is destroyed) in the `qualify` workflow; since 4.1.20 the full profile in every candidate a tag may name (both restore modes under the maintenance lease), `--short` in a pull request's | a real deployment: until one, `experimental` |
 | Connectors (4.1.9), **experimental** (D19) | email (signed webhook, IMAP), Telnet, SSH, Open Badges 2 and 3: the same contract on all four, abuse and fuzz tests, a run under `--disallow-code-generation-from-strings`, the sample chapter's replays; the four played from their archive in the candidate (4.1.19); Telnet and SSH tests not on Windows yet | a real email provider, a real badge from a real issuer, SSH and Telnet exposed in a controlled environment |
 
+## 4.3.0 "Hero Choice": the 4.3 line (D48)
+
+4.3.0 changes no surface's status. It adds to the authoring schema, under strict SemVer: a character variant's
+`name`, text switches and `{hero}`, `img` on a choice option, voice clips keyed by a flag's value (the hero choice,
+ADR 0022, D49) and a verb's `key` (#203), each optional, presentation only, with no new condition, command or state;
+`schemaVersion` stays 3 and the save envelope is 4.2.0's (`docs/dev/DSL-STABILITY.md`, its 4.3.x row). No people's
+pass covers them yet (`docs/dev/passes/4.3.0.md`). The default interface font is Galmuri11 (#204): a look, not a
+format. It removes the `web-scumm` aliases, as D47 announced: the one removal in a minor, the exception the maintainer
+chose for them (below, 4.2.5). Main is the 4.3 line (D48): 4.2.5 is the previous minor and gets security fixes until
+21 January 2027, on a branch from `v4.2.5`.
+
 ## 4.2.5: the new name (D47)
 
 4.2.5 renames the project quest'n'click and changes no surface's status. The names `web-scumm` (the package and its

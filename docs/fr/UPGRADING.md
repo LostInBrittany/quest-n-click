@@ -821,3 +821,8 @@ référence, s'il en garde un, est donc à enregistrer à nouveau). Un jeu qui f
 un caractère qui lui manque passe maintenant par DotGothic16 (le sous-ensemble latin, puis la police complète pour le
 japonais) avant `'Courier New'`. Regarder un lieu avec un dialogue et un choix après la mise à jour, sur un téléphone :
 une réplique tout juste contenue peut passer à la ligne autrement.
+
+**Les outils Python** (#213) : les outils d'assets et l'application de traitement d'un Studio hébergé utilisent
+Pillow 13.0.0 ; relancer `python3 -m pip install -r requirements.txt`. Leur résultat ne change pas (les images du jeu
+d'exemple ressortent identiques à l'octet) ; un hébergeur qui installe l'application de traitement depuis
+`ops/studio/worker-requirements.lock` reçoit le nouveau wheel par son sha256.

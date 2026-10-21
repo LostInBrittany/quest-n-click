@@ -772,3 +772,8 @@ game's presentation fingerprint moves, so record its reference run again, if it 
 `skin.fonts.ui` keeps its font; a character that font lacks now falls back to DotGothic16 (the Latin subset, then the
 full font for Japanese) before `'Courier New'`. Look at a room with dialogue and a choice after upgrading, on a phone:
 a line that just fitted may wrap differently.
+
+**The Python tools** (#213): the asset tools and a hosted Studio's processing worker use Pillow 13.0.0; run
+`python3 -m pip install -r requirements.txt` again. Their output does not change (the sample game's images come out
+byte for byte the same); a host that installs the worker from `ops/studio/worker-requirements.lock` gets the new wheel
+by its sha256.
