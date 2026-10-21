@@ -12,8 +12,7 @@
         "ssh2": "^1.17.0"
       },
       "bin": {
-        "quest-n-click-connector": "bin.mjs",
-        "web-scumm-connector": "bin-web-scumm.mjs"
+        "quest-n-click-connector": "bin.mjs"
       },
       "engines": {
         "node": ">=22.12"

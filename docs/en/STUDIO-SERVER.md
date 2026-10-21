@@ -327,6 +327,12 @@ curl -X POST -H "Authorization: Bearer $(npx quest-n-click-studio-server token -
   answers `{ changed: 0 }` and nothing is written.
 - **Taken back.** The owner's Undo takes it back, as a new revision (409 if someone wrote one of its files since); or
   the project goes back to a backup taken before (see below): take one first.
+- **The former name (4.3.0, D47).** A game that still imports `web-scumm/…` does not load on a 4.3.0 Studio (the
+  aliases are gone): its health is not green and the guard refuses its writes. The upgrade renames those imports
+  first, in any TypeScript source of the game (the Studio accepts such a file only as exactly that rename of the text it
+  has), then migrates as above; a game already at schema 3 gets one revision, `engine upgrade: the former name's
+  imports renamed`. Its Undo would put back imports that no longer resolve, so the guard refuses it: a backup is the
+  way back.
 
 In the 4.2.x line the content format is frozen (D40): this is for a game made on 4.1.x. A local Studio has no route:
 run `quest-n-click migrate` in the project. The project's `tsconfig.json` (`baseUrl`, which `quest-n-click migrate` also

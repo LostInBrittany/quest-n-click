@@ -5,7 +5,7 @@
 // install of an archive resolves nothing. The qualification image installs from a lock of its own (`image`), the
 // Bridge's dependencies and the optional peers it runs with (pg, OpenTelemetry's API), at exact versions.
 
-/** quest-n-click-bridge's package.json (web-scumm-bridge before 4.2.5, D47: its old command still answers). */
+/** quest-n-click-bridge's package.json (web-scumm-bridge before 4.2.5, D47). */
 export const bridgeManifest = (root) => ({
   name: 'quest-n-click-bridge',
   version: root.version,
@@ -15,7 +15,7 @@ export const bridgeManifest = (root) => ({
   type: 'module',
   engines: root.engines,
   repository: { type: 'git', url: 'git+https://github.com/wanoo/quest-n-click.git' },
-  bin: { 'quest-n-click-bridge': 'bin.mjs', 'web-scumm-bridge': 'bin-web-scumm.mjs' },
+  bin: { 'quest-n-click-bridge': 'bin.mjs' },
   exports: { './cli': './src/cli.mjs', './package.json': './package.json' },
   dependencies: {
     '@biscuit-auth/biscuit-wasm': root.devDependencies['@biscuit-auth/biscuit-wasm'],
@@ -37,7 +37,7 @@ export const connectorsManifest = (root) => ({
   type: 'module',
   engines: root.engines,
   repository: { type: 'git', url: 'git+https://github.com/wanoo/quest-n-click.git' },
-  bin: { 'quest-n-click-connector': 'bin.mjs', 'web-scumm-connector': 'bin-web-scumm.mjs' },
+  bin: { 'quest-n-click-connector': 'bin.mjs' },
   exports: { './run': './src/run.mjs', './package.json': './package.json' },
   dependencies: { ssh2: root.devDependencies.ssh2 },
 });
@@ -45,8 +45,7 @@ export const connectorsManifest = (root) => ({
 /**
  * quest-n-click-studio-server's package.json (4.2.1, plan §7 row 8; web-scumm-studio-server before 4.2.5, D47): the
  * Studio Server and its processing worker, two commands that run the server of the engine installed beside it
- * (`quest-n-click`, or its alias `web-scumm` through 4.2.x, the same version: its sources, Vite and
- * tsx), with the Studio's page built in. Its own dependencies (OpenID Connect, JWT, Postgres) are locked; the engine is
+ * (`quest-n-click`, the same version: its sources, Vite and tsx), with the Studio's page built in. Its own dependencies (OpenID Connect, JWT, Postgres) are locked; the engine is
  * an optional peer, installed from the same release's archive (it is not on npm, so no lock can name it); the commands
  * check that its version is theirs.
  */
@@ -62,8 +61,6 @@ export const studioServerManifest = (root) => ({
   bin: {
     'quest-n-click-studio-server': 'bin/server.mjs',
     'quest-n-click-studio-worker': 'bin/worker.mjs',
-    'web-scumm-studio-server': 'bin/web-scumm-server.mjs',
-    'web-scumm-studio-worker': 'bin/web-scumm-worker.mjs',
   },
   exports: { './package.json': './package.json' },
   dependencies: {
@@ -146,8 +143,8 @@ export function lockProblems(lock, manifest) {
 }
 
 /**
- * A lock made for this release's manifest: only its name, version, commands and peers are the manifest's (an alias's
- * old name, 4.2.5), nothing is resolved.
+ * A lock made for this release's manifest: only its name, version, commands and peers are the manifest's, nothing is
+ * resolved.
  */
 export function lockFor(lock, manifest) {
   const out = structuredClone(lock);
@@ -162,20 +159,4 @@ export function lockFor(lock, manifest) {
     ...(manifest.peerDependenciesMeta ? { peerDependenciesMeta: manifest.peerDependenciesMeta } : {}),
   };
   return out;
-}
-
-/**
- * The old name of a package, through 4.2.x (D47): the same manifest under the name it had before 4.2.5, its engine peer
- * the engine's old name too; the aliases go in 4.3.
- */
-export function aliasManifest(manifest) {
-  const old = (n) => n.replace(/^quest-n-click/, 'web-scumm').replace(/^create-quest-n-click$/, 'create-web-scumm');
-  const rename = (o) => o && Object.fromEntries(Object.entries(o).map(([k, v]) => [old(k), v]));
-  return {
-    ...manifest,
-    name: old(manifest.name),
-    description: `${manifest.name} under its former name (an alias through 4.2.x, removed in 4.3): ${manifest.description}`,
-    ...(manifest.peerDependencies ? { peerDependencies: rename(manifest.peerDependencies) } : {}),
-    ...(manifest.peerDependenciesMeta ? { peerDependenciesMeta: rename(manifest.peerDependenciesMeta) } : {}),
-  };
 }

@@ -65,7 +65,9 @@ export class EngineUpgrade {
         }
         const before = snapshotTexts(snap.bytes);
         const revision = await this.o.write(
-          `engine upgrade: authoring schema ${m.schema.from} → ${m.schema.to}`,
+          m.schema.from === m.schema.to
+            ? "engine upgrade: the former name's imports renamed (web-scumm/… → quest-n-click/…)"
+            : `engine upgrade: authoring schema ${m.schema.from} → ${m.schema.to}`,
           paths.map((path) => ({ path, after: m.files[path]!, from: before.get(path) ?? null })),
         );
         this.o.log?.({ event: 'engine-upgraded', rev: revision, by, files: paths.length, schema: m.schema });

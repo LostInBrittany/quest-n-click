@@ -51,10 +51,12 @@ if (kind === 'preview') {
     writeFileSync(outFile, JSON.stringify({ error: String((e as Error).message).slice(0, 2_000) }));
   }
 } else if (kind === 'migrate') {
-  const { migrateIn } = await import('./migrate');
+  const { migrateIn, renameImportsIn } = await import('./migrate');
   try {
+    // The former name's imports first (4.3.0, D47): a game of 4.2.x or before loads only once they are renamed.
+    const renamed = renameImportsIn(dir);
     const mod = (await importFresh(join(dir, 'index.ts'))) as GameModule;
-    writeFileSync(outFile, JSON.stringify({ data: migrateIn(dir, mod.game) }));
+    writeFileSync(outFile, JSON.stringify({ data: migrateIn(dir, mod.game, renamed) }));
   } catch (e) {
     writeFileSync(outFile, JSON.stringify({ error: String((e as Error).message).slice(0, 2_000) }));
   }

@@ -147,7 +147,7 @@ export async function localMigrate(snapshot: Buffer, timeoutMs = 60_000): Promis
     if (r.timedOut) throw new Error(`the game's code did not finish within ${timeoutMs} ms`);
     const v = JSON.parse(r.out || '{}') as { data?: unknown; error?: string };
     if (!v.data) throw new Error(v.error ?? `migrate gave no answer (exit ${r.code})`);
-    const m = migratedShape(v.data, new Set(snapshotTexts(snapshot).keys()));
+    const m = migratedShape(v.data, snapshotTexts(snapshot));
     if ('refused' in m) throw new Error(`the migration is refused: ${m.refused}`);
     return m;
   } finally {

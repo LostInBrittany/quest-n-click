@@ -43,7 +43,8 @@
   "ignore": [
     "games/*/ending.config.example.ts",
     "games/signals/cast.ts",
-    "src/studio/rooms.ts"
+    "src/studio/rooms.ts",
+    "tests/fixtures/game-4.1/**"
   ],
   "ignoreDependencies": [
     "@tweakpane/core",

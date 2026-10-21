@@ -65,7 +65,9 @@ opens no browser, no Windows runner and no Node 24 (`CONTRIBUTING.md`, "What CI 
 command), `web-scumm/content`, `/player`, `/minigames`, `/testing`, `/reality`, `create-web-scumm`, `web-scumm-bridge`,
 `web-scumm-connectors` (command `web-scumm-connector`) and `web-scumm-studio-server` (commands `web-scumm-studio-server`,
 `web-scumm-studio-worker`) are **deprecated aliases** of their `quest-n-click` names: supported through 4.2.x, each
-release of the line ships them, and removed in 4.3, an exception to the rule below that the maintainer chose (D47).
+release of the line ships them, and removed in 4.3.0, an exception to the rule below that the maintainer chose (D47).
+In 4.3.0 they are gone: `quest-n-click migrate` renames a game's imports, its tsconfig's paths and its scripts'
+commands, and the hosted Studio's engine upgrade renames a hosted game's imports (UPGRADING §39).
 The format identifiers that say web-scumm (`web-scumm-save`, `web-scumm-session`, `.wsrun`'s `web-scumm-speedrun`,
 `web-scumm-remix-1`, the stores' and headers' names, `WEB_SCUMM_*`) are not names of the project but parts of the
 formats: they stay, and no 4.3 removes them.

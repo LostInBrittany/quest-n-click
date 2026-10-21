@@ -338,7 +338,18 @@ export function createStudio(opts: StudioOptions = {}) {
   async function guard(j: Journal, changed: FileEffect[], diff: string): Promise<void> {
     if (changed.every((e) => UNGUARDED.test(e.path))) return;
     const rev = await j.revision();
-    if (baseline?.rev !== rev) baseline = { rev, errors: new Set((await validateIn(dir)).errors) };
+    // A head that does not load (4.3.0: a game still importing the former name's `web-scumm/…`, D47) has that failure
+    // for its baseline: the operation that makes it load again (the engine's upgrade) is judged on its own errors.
+    if (baseline?.rev !== rev)
+      baseline = {
+        rev,
+        errors: new Set(
+          await validateIn(dir).then(
+            (r) => r.errors,
+            (e: Error) => [`the game does not load: ${e.message}`],
+          ),
+        ),
+      };
     const stage = join(root, '.cache', 'studio-stage', `${gameId}-${process.pid}-${Date.now().toString(36)}`);
     try {
       linkTree(dir, stage);

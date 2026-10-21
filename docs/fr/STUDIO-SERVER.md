@@ -346,6 +346,12 @@ curl -X POST -H "Authorization: Bearer $(npx quest-n-click-studio-server token -
   3 répond `{ changed: 0 }` et rien n'est écrit.
 - **Annulable.** L'Undo de l'owner l'annule, par une nouvelle révision (409 si quelqu'un a écrit l'un de ses fichiers
   depuis) ; ou le projet revient à une sauvegarde faite avant (voir plus bas) : faites-en une d'abord.
+- **L'ancien nom (4.3.0, D47).** Un jeu qui importe encore `web-scumm/…` ne se charge pas sur un Studio 4.3.0 (les
+  alias ont disparu) : sa santé n'est pas verte et la garde refuse ses écritures. La mise à niveau renomme d'abord ces
+  imports, dans toute source TypeScript du jeu (le Studio n'accepte un tel fichier que s'il est exactement ce
+  renommage du texte qu'il a), puis migre comme ci-dessus ; un jeu déjà au schéma 3 reçoit une révision,
+  `engine upgrade: the former name's imports renamed`. Son Undo remettrait des imports qui ne se résolvent plus, donc
+  la garde le refuse : une sauvegarde est le chemin du retour.
 
 Dans la ligne 4.2.x le format du contenu est gelé (D40) : c'est pour un jeu fait sur une 4.1.x. Un Studio local n'a
 pas de route : lancez `quest-n-click migrate` dans le projet. Le `tsconfig.json` du projet (`baseUrl`, que

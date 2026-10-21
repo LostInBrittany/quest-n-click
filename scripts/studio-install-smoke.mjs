@@ -9,7 +9,7 @@
 // registry with its shrinkwrap does). From 4.2.3 (PR 0, H7): the worker's Python lock in the engine's package, the very
 // file of the repository; with `--python`, installed as the worker's build hook installs it (`--require-hashes`, wheels
 // only) and its packages imported from that folder (CI's job has CPython 3.13, the lock's). Exit 0 / 1.
-import { execFileSync, spawn, spawnSync } from 'node:child_process';
+import { execFileSync, spawn } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { cpSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { createServer } from 'node:net';
@@ -118,17 +118,14 @@ try {
     OWN.every((n) => hoisted[n]?.version),
     said(hoisted),
   );
-  // The former command (D47), through 4.2.x: its notice on stderr, then the same command.
-  const former = spawnSync(process.execPath, [binIn(home, 'web-scumm-server'), 'deps'], {
-    cwd: home,
-    encoding: 'utf8',
-  });
+  // The former commands (D47) went in 4.3.0: the package names only its own.
+  const commands = Object.keys(
+    JSON.parse(readFileSync(join(home, 'node_modules', 'quest-n-click-studio-server', 'package.json'), 'utf8')).bin,
+  );
   check(
-    'web-scumm-studio-server still answers, after its notice',
-    former.status === 0 &&
-      former.stderr.includes('web-scumm-studio-server is now quest-n-click-studio-server') &&
-      former.stdout.includes('"jose"'),
-    `${former.status}`,
+    'its commands are quest-n-click-studio-server and quest-n-click-studio-worker, no former name',
+    commands.join() === 'quest-n-click-studio-server,quest-n-click-studio-worker',
+    commands.join(),
   );
   const nestedHome = mkdtempSync(join(tmpdir(), 'studio-install-nested-'));
   try {

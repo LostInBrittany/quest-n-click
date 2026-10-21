@@ -11,8 +11,9 @@ be finished, and ship it as a web game that installs on a phone and plays offlin
 > whose spirit it follows. It was renamed quest'n'click so its name would spark no needless debate. Links to the old
 > repository redirect here, and the old demo address, `wanoo.github.io/web-scumm`, redirects to the new one: the game
 > and the Studio now live at [wanoo.github.io/quest-n-click](https://wanoo.github.io/quest-n-click/). From 4.2.5 the packages and commands
-> are named `quest-n-click`, and the old `web-scumm` names keep working through 4.2.x
-> ([UPGRADING](docs/en/UPGRADING.md#38-from-424-to-425)). Saves, runs and sessions keep their formats and load as before.
+> are named `quest-n-click`; the old `web-scumm` names kept working through 4.2.x and are gone in 4.3.0, where
+> `npx quest-n-click migrate` renames a game's imports and commands
+> ([UPGRADING](docs/en/UPGRADING.md#39-from-425-to-430-hero-choice)). Saves, runs and sessions keep their formats and load as before.
 
 | | |
 |---|---|
@@ -40,8 +41,8 @@ npm run assets && npm run dev        # play it; then npm run verify, npm run bui
 `npm run build` writes `dist/`, a static site any host serves. ffmpeg serves the sound pipeline and is optional;
 `npx quest-n-click doctor` says what is missing. [PACKAGE](docs/en/PACKAGE.md) is the whole guide;
 [TUTORIAL](docs/en/TUTORIAL.md) walks the first room.
-Before 4.2.5 the archive and the command were named `web-scumm`: through 4.2.x the release also ships
-`web-scumm-4.2.5.tgz`, and `npx web-scumm …` still runs, after a one-line notice ([UPGRADING](docs/en/UPGRADING.md#38-from-424-to-425)).
+Before 4.2.5 the archive and the command were named `web-scumm`; 4.2.5 also shipped them under that name, and 4.3.0
+no longer does: a game made before moves with `npx quest-n-click migrate` ([UPGRADING](docs/en/UPGRADING.md#39-from-425-to-430-hero-choice)).
 
 ## Build a game
 
@@ -144,7 +145,7 @@ mistakes before a person does. Every result stays reviewable, in the Studio and 
 ## In numbers
 
 Measured on this commit of `main` by the automated gates (`npm run quality:baseline` writes these figures):
-<!-- metric:tests -->2795<!-- /metric --> unit test declarations, on Node 22 and 24, with coverage floors and gated
+<!-- metric:tests -->2801<!-- /metric --> unit test declarations, on Node 22 and 24, with coverage floors and gated
 mutation testing; the reference game proved in <!-- metric:referenceStates -->288<!-- /metric --> states; the player's
 first visit <!-- metric:initialJsKB -->135<!-- /metric --> KB of JavaScript, gzipped. Each release is built from the
 commit its candidate tested. The candidate makes the four package archives, the Bridge's image, the SBOMs, the runs and
@@ -160,7 +161,7 @@ command in [TOOLS](docs/en/TOOLS.md), what changed in the [CHANGELOG](CHANGELOG.
 [UPGRADING](docs/en/UPGRADING.md), and where it comes from in the [ROADMAP](docs/en/ROADMAP.md).
 
 Current release: [v4.2.5 (quest'n'click)](https://github.com/wanoo/quest-n-click/releases/tag/v4.2.5), the project's
-new name, with the old `web-scumm` names kept as aliases through 4.2.x; over 4.2.4's changes for authors (an exit gone
+new name, with the old `web-scumm` names kept as aliases through 4.2.x (removed in 4.3.0); over 4.2.4's changes for authors (an exit gone
 through on a single tap, `actorGap`, the sprite sheets' background, `face: 'hero'` fixed) and 4.2.3 "Coordination",
 the Studio online for a team, experimental ([STUDIO-SERVER](docs/en/STUDIO-SERVER.md)): previews per revision, health, personal undo, published builds, backup and restore, and since 4.2.3 a scenario map, anchored
 comments, a diff by name, AI agents through a remote MCP, Git push and import, the hosted Assets tab; over 4.2.0 "Stable

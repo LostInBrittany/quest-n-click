@@ -8,11 +8,12 @@
 //
 //   1. the archives read: name, version, licence, binaries, exports, no `file:`/`link:` dependency, no checkout path;
 //   2. a game created on the older release (`--from`, 4.1.17 by default), its assets, verify, and a save made by that
-//      engine; then the candidate installed over it under the name that game depends on, `web-scumm` (since 4.2.5 the
-//      engine's alias under its former name, D47), its old commands and imports unchanged: migrate, migrate --check,
-//      assets, verify, build, the old save loaded and played to the ending through `web-scumm/testing`, a new game
-//      played to the ending the same way;
-//   3. `npx create-quest-n-click` from its archive, and its former name's alias, `npx create-web-scumm`;
+//      engine; then moved to the candidate as its author would (4.3.0, D47: the former name's aliases are gone): the
+//      old package uninstalled, `quest-n-click` installed from its archive, `npx quest-n-click migrate` (which renames
+//      the `web-scumm/…` imports, the tsconfig's paths and the scripts' commands), migrate --check, assets, verify,
+//      build, the old save loaded and played to the ending through `quest-n-click/testing`, a new game played to the
+//      ending the same way;
+//   3. `npx create-quest-n-click` from its archive;
 //   4. the Bridge from its archive: init, doctor, serve on SQLite (and on Postgres when CONSUMER_PG_URL is set), its
 //      keys answered;
 //   5. the connectors from their archive (`--omit=optional --ignore-scripts`): every connector's `--help`, then a
@@ -83,17 +84,9 @@ function leaksIn(dir) {
 }
 
 // ---------------------------------------------------------------- the archives
-// The packages under their names since 4.2.5 (D47), and their former names' aliases, through 4.2.x.
-const NAMES = [
-  'quest-n-click',
-  'create-quest-n-click',
-  'quest-n-click-bridge',
-  'quest-n-click-connectors',
-  'web-scumm',
-  'create-web-scumm',
-  'web-scumm-bridge',
-  'web-scumm-connectors',
-];
+// The packages under their names since 4.2.5 (D47); their former names' aliases went in 4.3.0.
+const NAMES = ['quest-n-click', 'create-quest-n-click', 'quest-n-click-bridge', 'quest-n-click-connectors'];
+const FORMER = ['web-scumm', 'create-web-scumm', 'web-scumm-bridge', 'web-scumm-connectors', 'web-scumm-studio-server'];
 let tarballs = flag('tarballs');
 if (!tarballs) {
   tarballs = join(base, 'pack');
@@ -114,6 +107,8 @@ for (const n of NAMES) {
 }
 const tgz = Object.fromEntries(NAMES.map((n) => [n, join(archives, `${n}-${version}.tgz`)]));
 for (const [n, f] of Object.entries(tgz)) if (!existsSync(f)) throw new Error(`${f}: no ${n} archive of ${version}`);
+for (const n of FORMER)
+  if (existsSync(join(tarballs, `${n}-${version}.tgz`))) fail(`${n}-${version}.tgz: the former name's alias is packed`);
 
 console.log('\n▶ the archives, read');
 for (const [n, f] of Object.entries(tgz)) {
@@ -122,8 +117,10 @@ for (const [n, f] of Object.entries(tgz)) {
   if (pkg.name !== n) fail(`${n}: its package.json says ${pkg.name}`);
   if (pkg.version !== version) fail(`${n}: version ${pkg.version}, not ${version}`);
   if (!pkg.license) fail(`${n}: no licence`);
-  for (const [bin, target] of Object.entries(typeof pkg.bin === 'string' ? { [n]: pkg.bin } : (pkg.bin ?? {})))
+  for (const [bin, target] of Object.entries(typeof pkg.bin === 'string' ? { [n]: pkg.bin } : (pkg.bin ?? {}))) {
     if (!existsSync(join(dir, target))) fail(`${n}: its binary ${bin} (${target}) is not in the archive`);
+    if (bin.includes('web-scumm')) fail(`${n}: still names the former command ${bin}`);
+  }
   for (const [k, target] of Object.entries(pkg.exports ?? {}))
     if (typeof target === 'string' && !target.includes('*') && !existsSync(join(dir, target)))
       fail(`${n}: its export ${k} (${target}) is not in the archive`);
@@ -160,7 +157,7 @@ else {
   writeFileSync(oldTgz, bytes);
 }
 const oldPkg = unpack(oldTgz, join(base, 'old-engine'));
-const oldVersion = json(join(oldPkg, 'package.json')).version;
+const { version: oldVersion, name: oldName } = json(join(oldPkg, 'package.json'));
 node(
   `create on ${oldVersion}`,
   [join(oldPkg, 'cli', 'create.mjs'), 'keeper', 'The Keeper', `--engine=file:${oldTgz}`],
@@ -168,13 +165,13 @@ node(
 );
 const game = join(base, 'keeper');
 run('install', 'npm', ['install'], game);
-run(`assets on ${oldVersion}`, 'npx', ['web-scumm', 'assets'], game);
-run(`verify on ${oldVersion}`, 'npx', ['web-scumm', 'verify'], game);
+run(`assets on ${oldVersion}`, 'npx', [oldName, 'assets'], game);
+run(`verify on ${oldVersion}`, 'npx', [oldName, 'verify'], game);
 const LAYOUTS =
   "const layouts = Object.fromEntries(readdirSync('game/layout').map((f) => [f.replace('.json', ''), JSON.parse(readFileSync('game/layout/' + f, 'utf8'))]));";
 writeFileSync(
   join(game, 'make-save.ts'),
-  `import { Engine, FakePresenter, MemoryStore, saveEnvelope, solve } from 'web-scumm/testing';
+  `import { Engine, FakePresenter, MemoryStore, saveEnvelope, solve } from '${oldName}/testing';
 import { readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { game } from './game/game';
 ${LAYOUTS}
@@ -189,20 +186,24 @@ console.log('saved after', half.length, 'of', r.steps.length, 'steps in', e.stat
 );
 run(`a save made by ${oldVersion}`, 'npx', ['tsx', '--tsconfig', 'tsconfig.json', 'make-save.ts'], game);
 
-// The game names its engine `web-scumm`, as every game made before 4.2.5 does: the candidate's alias of that name.
-run(`the candidate over it (${version})`, 'npm', ['install', tgz['web-scumm']], game);
-const dep = json(join(game, 'package.json')).dependencies?.['web-scumm'] ?? '';
-if (!dep.includes(`web-scumm-${version}.tgz`))
-  fail(`the project depends on web-scumm through ${dep}, not the candidate's archive`);
-run('migrate', 'npx', ['web-scumm', 'migrate'], game);
-run('migrate --check', 'npx', ['web-scumm', 'migrate', '--check'], game);
-run(`assets on ${version}`, 'npx', ['web-scumm', 'assets'], game);
-run(`verify on ${version}`, 'npx', ['web-scumm', 'verify'], game);
-run(`build on ${version}`, 'npx', ['web-scumm', 'build'], game);
+// The engine's name as the older release packed it (D47): `web-scumm` up to 4.2.4. The candidate has no alias of that
+// name (4.3.0): its author uninstalls the old package, installs the new one, and `migrate` renames the rest.
+if (oldName !== 'quest-n-click') run(`uninstall ${oldName}`, 'npm', ['uninstall', oldName], game);
+run(`the candidate over it (${version})`, 'npm', ['install', tgz['quest-n-click']], game);
+const dep = json(join(game, 'package.json')).dependencies?.['quest-n-click'] ?? '';
+if (!dep.includes(`quest-n-click-${version}.tgz`))
+  fail(`the project depends on quest-n-click through ${dep}, not the candidate's archive`);
+run('migrate', 'npx', ['quest-n-click', 'migrate'], game);
+run('migrate --check', 'npx', ['quest-n-click', 'migrate', '--check'], game);
+for (const f of ['package.json', 'tsconfig.json', 'make-save.ts', 'game/game.ts', 'game/index.ts'])
+  if (/web-scumm(?=[/ "])/.test(readFileSync(join(game, f), 'utf8'))) fail(`${f}: still names web-scumm after migrate`);
+run(`assets on ${version}`, 'npx', ['quest-n-click', 'assets'], game);
+run(`verify on ${version}`, 'npx', ['quest-n-click', 'verify'], game);
+run(`build on ${version}`, 'npx', ['quest-n-click', 'build'], game);
 if (!existsSync(join(game, 'dist', 'index.html'))) fail('the build has no index.html');
 writeFileSync(
   join(game, 'play.ts'),
-  `import { Engine, FakePresenter, MemoryStore, parseSave, solve } from 'web-scumm/testing';
+  `import { Engine, FakePresenter, MemoryStore, parseSave, solve } from 'quest-n-click/testing';
 import { readdirSync, readFileSync } from 'node:fs';
 import { game } from './game/game';
 ${LAYOUTS}
@@ -229,12 +230,8 @@ run(
 );
 for (const leak of leaksIn(game)) fail(leak);
 
-// ---------------------------------------------------------------- create-quest-n-click, and create-web-scumm
-// Each creator makes a project that names its own engine: the new name, or (the alias, D47) the former one throughout.
-for (const [creatorName, engineName] of [
-  ['create-quest-n-click', 'quest-n-click'],
-  ['create-web-scumm', 'web-scumm'],
-]) {
+// ---------------------------------------------------------------- create-quest-n-click
+for (const [creatorName, engineName] of [['create-quest-n-click', 'quest-n-click']]) {
   const creator = join(base, creatorName);
   mkdirSync(creator, { recursive: true });
   writeFileSync(join(creator, 'package.json'), '{ "name": "creator", "private": true }\n');
@@ -305,15 +302,9 @@ try {
     capture: true,
   });
   if (!help.includes('usage: quest-n-click-connector')) fail('quest-n-click-connector --help says no usage');
-  // The former command (D47), through 4.2.x: the same usage, after its notice on stderr.
-  const old = spawnSync(WIN ? 'npx.cmd' : 'npx', ['web-scumm-connector', '--help'], {
-    cwd: operator,
-    env: ENV,
-    shell: WIN,
-    encoding: 'utf8',
-  });
-  if (!old.stderr.includes('web-scumm-connector is now quest-n-click-connector') || !old.stdout.includes('usage:'))
-    fail('web-scumm-connector --help: no notice, or no usage');
+  // The former command (D47) went in 4.3.0: npm links no `web-scumm-connector`.
+  if (readdirSync(join(operator, 'node_modules', '.bin')).some((b) => b.startsWith('web-scumm')))
+    fail('the connectors still install a web-scumm-… command');
   for (const id of ['email', 'telnet', 'ssh', 'open-badge']) {
     const r = spawnSync(WIN ? 'npx.cmd' : 'npx', ['quest-n-click-connector', id], {
       cwd: operator,
@@ -420,5 +411,5 @@ if (failed) {
 }
 if (!args.includes('--keep') && !flag('dir')) rmSync(base, { recursive: true, force: true });
 console.log(
-  `\n✔  external consumer (${process.platform}, Node ${process.versions.node}): the ${NAMES.length} ${version} archives (the former names' aliases among them) installed outside the repository; a ${oldVersion} game moved to ${version} through the web-scumm alias, its save and a new game played to the end; the Bridge and a connector scenario from their archives`,
+  `\n✔  external consumer (${process.platform}, Node ${process.versions.node}): the ${NAMES.length} ${version} archives installed outside the repository; a ${oldVersion} game moved to ${version} by uninstall, install and migrate, its save and a new game played to the end; the Bridge and a connector scenario from their archives`,
 );

@@ -707,6 +707,40 @@ installs from `releases/download/v4.3.0/…`. What is new, all optional (CONTENT
 - **`npm run lint`** has `hero-looks-default` (info), and no longer calls `action-dead` a rule that only sets a flag a
   character's variant or a text switch reads.
 
+**The `web-scumm` names are gone** (D47). Through 4.2.x the engine's former names were aliases; 4.3.0 removes them.
+There is no `web-scumm-<version>.tgz`, `create-web-scumm`, `web-scumm-bridge`, `web-scumm-connectors` or
+`web-scumm-studio-server` archive any more, no `web-scumm`, `web-scumm-bridge`, `web-scumm-connector`,
+`web-scumm-studio-server` or `web-scumm-studio-worker` command, and `web-scumm/content` and the other old imports no
+longer resolve. A game that switched to the new names (§38) has nothing to do. A game that still says `web-scumm` moves
+like this, then `npm run verify`:
+
+```bash
+npm uninstall web-scumm
+npm install https://github.com/wanoo/quest-n-click/releases/download/v4.3.0/quest-n-click-4.3.0.tgz
+npx quest-n-click migrate
+```
+
+`quest-n-click migrate` renames, in every source of the project (`node_modules`, `dist`, `public` and hidden folders
+left out), the imports `web-scumm/…` to `quest-n-click/…`; in `tsconfig.json`, the path `web-scumm/*` and the
+`node_modules/web-scumm/…` targets; in `package.json`, the scripts' commands (`web-scumm dev` becomes
+`quest-n-click dev`, `web-scumm-bridge serve` becomes `quest-n-click-bridge serve`). `migrate --check` names what is
+left. The commands you type change the same way: `npx web-scumm …` becomes `npx quest-n-click …`, and
+`npx web-scumm-bridge`, `npx web-scumm-connector`, `npx web-scumm-studio-server` become `npx quest-n-click-bridge`,
+`npx quest-n-click-connector`, `npx quest-n-click-studio-server`. By hand instead, the imports in both quote styles
+(GNU and BSD `sed` alike), then `tsconfig.json` and `package.json` as §38 says:
+
+```bash
+grep -rlE --include='*.ts' --exclude-dir=node_modules --exclude-dir=dist "['\"]web-scumm/" . \
+  | xargs sed -i.bak -e "s#'web-scumm/#'quest-n-click/#g" -e 's#"web-scumm/#"quest-n-click/#g'
+find . -name '*.ts.bak' -not -path './node_modules/*' -delete
+```
+
+A host of the Bridge, the connectors or the Studio Server installs the `quest-n-click-…` archives and calls the new
+commands in its unit files and scripts. A game on a hosted Studio that still imports `web-scumm/…` no longer loads
+(its health is not green and its writes are refused) until its owner runs the engine's upgrade
+(`POST /api/engine/migrate`, STUDIO-SERVER), which renames its imports as one revision. The formats keep their names:
+saves, sessions, runs, the stores, the headers and `WEB_SCUMM_*` are unchanged (§38).
+
 **Check one thing**: a 4.2 text that holds, literally, `{hero}` or a brace group shaped like a switch
 (`{word?…=…}`) is now filled when shown. `npm run validate` reports a switch-shaped group (a flag no command sets,
 a malformed switch, or one in a text shown as written); a `{hero}` in a line is valid, so search for it

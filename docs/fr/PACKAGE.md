@@ -5,10 +5,9 @@ ses outils et la commande `quest-n-click`, le modèle de jeu), `create-quest-n-c
 4.1.1, `quest-n-click-bridge` (le Reality Bridge de référence, `docs/fr/REALITY-OPS.md`).
 
 Jusqu'à la 4.2.4, ils s'appelaient `web-scumm`, `create-web-scumm` et `web-scumm-bridge` (le projet s'appelait
-web-scumm, D47). À partir de la 4.2.5, chaque release les livre aussi sous leurs anciens noms, les mêmes fichiers à la
-même version, et les anciennes commandes et les anciens imports (`web-scumm dev`, `web-scumm/content`) marchent
-toujours, après une ligne d'avertissement, pendant toute la 4.2.x ; ils disparaissent en 4.3. UPGRADING §38 dit
-comment passer aux nouveaux noms.
+web-scumm, D47). Pendant toute la 4.2.x, chaque release les livrait aussi sous leurs anciens noms, et les anciennes commandes et
+les anciens imports (`web-scumm dev`, `web-scumm/content`) marchaient encore, après une ligne d'avertissement. La 4.3.0
+les retire : `npx quest-n-click migrate` renomme ce qu'un jeu dit encore (UPGRADING §39).
 
 ## Un nouveau jeu
 

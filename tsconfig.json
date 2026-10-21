@@ -22,9 +22,6 @@
       "quest-n-click/*": [
         "./src/engine/api/*"
       ],
-      "web-scumm/*": [
-        "./src/engine/api/*"
-      ],
       "@engine/*": [
         "./src/engine/*"
       ],
@@ -55,6 +52,7 @@
   "exclude": [
     "legacy",
     "node_modules",
-    "dist"
+    "dist",
+    "tests/fixtures/game-4.1"
   ]
 }

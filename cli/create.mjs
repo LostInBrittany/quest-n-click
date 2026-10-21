@@ -3,8 +3,8 @@
 // game project from the engine's template. The folder gets game/ (the template: one room, a hero, placeholder art drawn
 // from shapes), a package.json whose scripts call the engine's command, a tsconfig.json whose `@engine` points into the
 // installed package, and a .gitignore. Then: cd <folder> && npm install && npm run dev.
-// The engine's name is the package's own (4.2.5, D47): `quest-n-click`, or `web-scumm` when this runs from the old
-// name's alias (through 4.2.x), whose project then keeps the old names throughout.
+// The engine's name is the package's own (4.2.5, D47): `quest-n-click` (its former name's alias, `web-scumm`, made
+// projects under the old names through 4.2.x; `quest-n-click migrate` moves them, 4.3.0).
 import { cpSync, existsSync, readFileSync, readdirSync, statSync, writeFileSync } from 'node:fs';
 import { basename, dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';

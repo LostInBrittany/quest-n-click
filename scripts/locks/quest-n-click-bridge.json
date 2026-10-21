@@ -13,8 +13,7 @@
         "zod": "^4.6.7"
       },
       "bin": {
-        "quest-n-click-bridge": "bin.mjs",
-        "web-scumm-bridge": "bin-web-scumm.mjs"
+        "quest-n-click-bridge": "bin.mjs"
       },
       "engines": {
         "node": ">=22.12"

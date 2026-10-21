@@ -262,10 +262,13 @@ describe('a backup file is written whole', () => {
   it('names its own package’s version only', () => {
     hook.pkg = '{"name":"someone-else","version":"6.6.6"}';
     expect(bridgeVersion()).toBe('unknown');
-    hook.pkg = '{"name":"web-scumm"}';
+    hook.pkg = '{"name":"quest-n-click"}';
     expect(bridgeVersion()).toBe('unknown');
-    hook.pkg = '{"name":"web-scumm-bridge","version":"1.2.3"}';
+    hook.pkg = '{"name":"quest-n-click-bridge","version":"1.2.3"}';
     expect(bridgeVersion()).toBe('1.2.3');
+    // The former name's alias went in 4.3.0 (D47): not this Bridge's package any more.
+    hook.pkg = '{"name":"web-scumm-bridge","version":"1.2.3"}';
+    expect(bridgeVersion()).toBe('unknown');
     hook.pkg = undefined;
     expect(bridgeVersion()).toMatch(/^\d+\.\d+\.\d+/);
   });

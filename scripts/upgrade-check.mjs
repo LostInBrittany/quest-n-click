@@ -1,8 +1,8 @@
 // npm run upgrade-check -- --from=<version | previous | path to an engine tarball> (4.0): a game moved from one release of the
 // engine to this one, the way a team would. The game is created with the older package (its template, its command),
 // verified, and a save is made in it by that engine (the witness's first half, through `<engine>/testing`). Then the
-// project installs this repository's package (scripts/pack.mjs), runs `<engine> migrate --check`, `verify` and
-// `build`, and loads the old save with the new engine, which must reach the ending from it. --from=<version> takes
+// project installs this repository's package (scripts/pack.mjs), `quest-n-click` (4.3.0: an older project named
+// `web-scumm` uninstalls it first, D47), runs `quest-n-click migrate`, `migrate --check`, `verify` and `build`, and loads the old save with the new engine, which must reach the ending from it. --from=<version> takes
 // the tarball attached to that GitHub release. Exit 0 when every step passes.
 import { execFileSync } from 'node:child_process';
 import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
@@ -70,8 +70,8 @@ if (source.kind === 'release')
     base,
   );
 show('create the game with the older engine', 'tar', ['-xzf', oldTgz, '-C', base], base);
-// The engine's name as the older release packed it (D47): `web-scumm` up to 4.2.4, `quest-n-click` since. The project
-// keeps it: the new engine is installed under that name (its alias through 4.2.x), its commands and imports unchanged.
+// The engine's name as the older release packed it (D47): `web-scumm` up to 4.2.4, `quest-n-click` since. The new
+// engine has no alias of the former name (4.3.0): the project moves as its author would, `migrate` renaming the rest.
 const { version: oldVersion, name: E } = JSON.parse(readFileSync(join(base, 'package', 'package.json'), 'utf8'));
 show(
   'create',
@@ -106,23 +106,25 @@ show(`a save made by ${oldVersion}`, 'npx', ['tsx', '--tsconfig', 'tsconfig.json
 const pack = join(base, 'pack');
 run('pack this engine', process.execPath, [join(ROOT, 'scripts', 'pack.mjs'), `--out=${pack}`], ROOT);
 const newVersion = JSON.parse(readFileSync(join(ROOT, 'package.json'), 'utf8')).version;
+if (E !== 'quest-n-click') show(`uninstall ${E}`, 'npm', ['uninstall', '--no-audit', '--no-fund', E], game);
 show(
   `upgrade to ${newVersion}`,
   'npm',
-  ['install', '--no-audit', '--no-fund', join(pack, `${E}-${newVersion}.tgz`)],
+  ['install', '--no-audit', '--no-fund', join(pack, `quest-n-click-${newVersion}.tgz`)],
   game,
 );
 // A project of the previous release has what the new one migrates (4.1.8: a tsconfig with `baseUrl`): `migrate`
-// first, then `--check` says nothing is left; `--check` before a migration exits 1 on purpose.
-show('migrate', 'npx', [E, 'migrate'], game);
-show('migrate --check', 'npx', [E, 'migrate', '--check'], game);
-show(`assets on ${newVersion}`, 'npx', [E, 'assets'], game);
-show(`verify on ${newVersion}`, 'npx', [E, 'verify'], game);
-show(`build on ${newVersion}`, 'npx', [E, 'build'], game);
+// first, then `--check` says nothing is left; `--check` before a migration exits 1 on purpose. 4.3.0: `migrate` also
+// renames the former name's imports and commands (make-save.ts's among them).
+show('migrate', 'npx', ['quest-n-click', 'migrate'], game);
+show('migrate --check', 'npx', ['quest-n-click', 'migrate', '--check'], game);
+show(`assets on ${newVersion}`, 'npx', ['quest-n-click', 'assets'], game);
+show(`verify on ${newVersion}`, 'npx', ['quest-n-click', 'verify'], game);
+show(`build on ${newVersion}`, 'npx', ['quest-n-click', 'build'], game);
 
 writeFileSync(
   join(game, 'load-save.ts'),
-  `import { Engine, FakePresenter, MemoryStore, parseSave, solve } from '${E}/testing';
+  `import { Engine, FakePresenter, MemoryStore, parseSave, solve } from 'quest-n-click/testing';
 import { readdirSync, readFileSync } from 'node:fs';
 import { game } from './game/game';
 const layouts = Object.fromEntries(readdirSync('game/layout').map((f) => [f.replace('.json', ''), JSON.parse(readFileSync('game/layout/' + f, 'utf8'))]));

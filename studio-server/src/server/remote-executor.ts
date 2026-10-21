@@ -198,7 +198,7 @@ export function remoteExecutor(o: RemoteExecutorOptions) {
       const v = await run('migrate', snapshot, {}, at);
       if (v.timedOut) throw new StudioError(`${v.failed}: try again`, 504);
       if (v.failed) throw new StudioError(`the migration cannot run: ${v.failed}`, 422);
-      const m = migratedShape(v.data, new Set(snapshotTexts(snapshot).keys()));
+      const m = migratedShape(v.data, snapshotTexts(snapshot));
       if ('refused' in m) throw new StudioError(`the migration is refused: ${m.refused}`, 422);
       return m;
     },

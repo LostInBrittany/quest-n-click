@@ -8,8 +8,8 @@ version majeure suivante). Tout le reste de `src/engine` est interne et peut cha
 
 Dans un projet de jeu, les entrées sont `quest-n-click/content`, `quest-n-click/player`, `quest-n-click/minigames` et
 `quest-n-click/testing` et, depuis la 4.1.1, `quest-n-click/reality` (les `exports` du paquet) ; dans ce dépôt, les mêmes noms mènent à `src/engine/api/`.
-Les anciens noms `web-scumm/content` et les autres (avant la 4.2.5, D47) se résolvent encore pendant toute la 4.2.x
-et disparaissent en 4.3. Le `web-scumm-save` de l'enveloppe de sauvegarde et les autres chaînes `format` ci-dessous sont
+Les anciens noms `web-scumm/content` et les autres (avant la 4.2.5, D47) se résolvaient pendant toute la 4.2.x et
+disparaissent en 4.3.0 (`quest-n-click migrate` les renomme). Le `web-scumm-save` de l'enveloppe de sauvegarde et les autres chaînes `format` ci-dessous sont
 des identifiants de format hérités de web-scumm, gardés pour que les sauvegardes et les fichiers existants se chargent
 toujours.
 
