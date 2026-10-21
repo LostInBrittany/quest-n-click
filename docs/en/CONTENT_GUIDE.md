@@ -444,8 +444,9 @@ look: { grandma: 'Grandma. Dust makes {form?knight=him|witch=her|robot=it} sneez
   option is a card: the portrait with its `text` as the label (and the screen reader's name); the cards wrap and
   scroll, so any number of heroes fits on a phone. Without `img`, the options are text lines as before.
 - **Logic stays logic**: a rule that must differ by hero carries `if: { flag: 'form', eq: 'witch' }`. The solver
-  branches over the intro's choice, so `npm run solve` proves every hero; saves keep the flag, checkpoints take it in
-  `flags`.
+  branches over the intro's choice, but `npm run solve` stops at the first winning path, which one hero may be enough
+  for: run `npm run solve -- --prove`, which checks every reachable state and so every hero, and reports a hero who
+  can no longer finish as a softlock. Saves keep the flag, checkpoints take it in `flags`.
 - **Why not `players`**: playable characters each have a button in the tools row and stand in their own rooms, so the
   player could switch heroes mid-game. Choosing the hero is one character with variants.
 - **Translations** write their own words inside the braces, with the same flag and values (the switch is filled after

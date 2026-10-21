@@ -14,7 +14,7 @@ The classic LucasArts adventures (Monkey Island, Day of the Tentacle) settled a 
 | Rule | What it means here |
 |---|---|
 | **No death** | The hero never dies and never loses. Minigames cannot be failed (`then` always plays). |
-| **No dead ends** | The player can never reach a state where the game cannot be finished. `npm run solve` proves it. |
+| **No dead ends** | The player can never reach a state where the game cannot be finished. `npm run solve -- --prove` proves it (`npm run solve` finds one winning path). |
 | **Every action is answered** | Any verb on any thing gets a line. A wrong try is a joke, not a silence. |
 | **Humour lives in the failures** | Most of what a player reads is a reaction to a wrong idea. That is where the voice is. |
 | **Thinking, not pixel hunting** | Every useful thing is named, visible and has a Look line. The puzzle is in the head, not in the hitbox. |
@@ -111,6 +111,9 @@ rest of the game, so the hint voice is never silent in a room the player comes b
 `npm run solve` plays the real engine with a silent screen. It tries every action from "New game", keeps only states
 that differ in what matters, and stops when it reaches the ending. The demo prints "The game can be finished" and a
 16-action path, from "(tutorial) Look at pantry" to "Use key with pantry". What the solver finds, a player can do.
+That is one winning path: a game where one hero of an intro's choice can finish and another cannot still prints
+"solved". `npm run solve -- --prove` explores every reachable state and reports each one that can no longer reach the
+ending as a softlock: only a `solved` from `--prove` is a proof.
 
 It also prints three warnings worth reading:
 

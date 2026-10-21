@@ -70,6 +70,7 @@ const { errors, warnings } = validate(game, layouts, {
   commands: mod.commands,
   release,
   translated: Object.keys(locales).some((l) => l !== (game.lang ?? 'en')),
+  locales,
 });
 // The verbs' keys once translated (#203): a translation may give two verbs the same letter.
 localeVerbKeyChecks(game, locales, {

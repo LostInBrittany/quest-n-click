@@ -37,8 +37,8 @@ case existante sans demander) et lance `npm run assets`.
 Un fichier par lieu dans `games/<id>/rooms/`, pure donnée : accessoires et leurs états, personnages, zones
 cliquables, répliques de regard, réactions (`verbe` + cible + condition + commandes), sujets de conversation,
 indices, points de sauvegarde. Voir `CONTENT_GUIDE.md`. Compétence : `/new-room`. `npm run validate` repère les
-identifiants cassés, les répliques de regard manquantes, les drapeaux inutilisés. `npm run solve` prouve que le
-jeu peut être terminé.
+identifiants cassés, les répliques de regard manquantes, les drapeaux inutilisés. `npm run solve` trouve un moyen de
+terminer le jeu ; `npm run solve -- --prove` prouve qu'il peut toujours l'être, depuis chaque état atteignable.
 
 ## 6. Placer les éléments
 La géométrie vit à part de la logique, dans `games/<id>/layout/<lieu>.json`, et n'est jamais tapée à la main :

@@ -9,7 +9,7 @@ import { playerChecks } from './validate/player';
 import { remixChecks } from './validate/remix';
 import { speedrunChecks } from './validate/speedrun';
 import { textSwitchChecks } from './validate/text-switches';
-import { voiceValueChecks } from './validate/voices';
+import { type VoiceCheckOptions, voiceValueChecks } from './validate/voices';
 import { listId, listText } from '../core/list-lines';
 import { condFlags } from '../core/cond';
 import { subLists } from '../core/cmds';
@@ -35,7 +35,7 @@ export interface AssetIndex {
   images: Record<string, [number, number]>;
   audio?: Record<string, unknown>;
 }
-export interface ValidateOptions {
+export interface ValidateOptions extends VoiceCheckOptions {
   /** A release: every `say` / `toast` / `guide` object needs a stable `id` (translations and voices are keyed by it). */
   release?: boolean;
   /** The game ships more than one language (or voices): in a release every line, plain strings included, needs a stable id. */
@@ -1078,7 +1078,7 @@ export function validate(gameIn: GameDef, layouts: Record<string, Layout>, opts:
   remixChecks(game, { err, warn, flagsSet, flagsRead });
   speedrunChecks(game, { err, warn, flags: new Set(flagsSet.keys()) });
   textSwitchChecks(gameIn, { err, warn, flagsSet, flagsRead, commands: opts.commands });
-  voiceValueChecks(gameIn, warn);
+  voiceValueChecks(gameIn, warn, opts.locales);
   for (const [f, where] of flagsRead) if (!flagsSet.has(f)) warn(where, `flag "${f}" is read but never set`);
   // A decorative flag kept on purpose: `lint.ignore` names it (`flag-never-read` or `flag-never-read:<flag>`), like the lint's codes.
   const ignored = new Set(game.lint?.ignore ?? []);

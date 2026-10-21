@@ -15,7 +15,7 @@ Les aventures LucasArts classiques (Monkey Island, Day of the Tentacle) ont fix�
 | Règle | Ce que ça veut dire ici |
 |---|---|
 | **Pas de mort** | Le héros ne meurt jamais et ne perd jamais. Un mini-jeu ne peut pas être raté (`then` est toujours joué). |
-| **Pas d'impasse** | Le joueur ne peut jamais arriver dans un état où le jeu ne peut plus être fini. `npm run solve` le prouve. |
+| **Pas d'impasse** | Le joueur ne peut jamais arriver dans un état où le jeu ne peut plus être fini. `npm run solve -- --prove` le prouve (`npm run solve` trouve un chemin gagnant). |
 | **Chaque action a une réponse** | N'importe quel verbe sur n'importe quoi donne une réplique. Un essai raté est une blague, pas un silence. |
 | **L'humour est dans les échecs** | L'essentiel de ce que lit le joueur, ce sont des réactions à de mauvaises idées. C'est là qu'est la voix. |
 | **Réfléchir, pas chercher le pixel** | Tout ce qui sert est nommé, visible et a une réplique Regarder. L'énigme est dans la tête, pas dans la zone cliquable. |
@@ -114,7 +114,9 @@ couvrir la suite du jeu, pour que la voix d'aide ne se taise jamais dans un lieu
 `npm run solve` joue le vrai moteur avec un écran muet. Il essaie chaque action depuis « Nouvelle partie », ne garde
 que les états qui diffèrent sur ce qui compte, et s'arrête à la fin. La démo affiche « The game can be finished » et
 un chemin de 16 actions, de « (tutorial) Look at pantry » à « Use key with pantry ». Ce que le solveur trouve, un
-joueur peut le faire.
+joueur peut le faire. C'est un chemin gagnant : un jeu où un héros du choix d'intro peut finir et un autre non affiche
+quand même « solved ». `npm run solve -- --prove` explore tous les états atteignables et signale comme softlock chacun
+de ceux qui ne peuvent plus atteindre la fin : seul un `solved` obtenu avec `--prove` est une preuve.
 
 Il affiche aussi trois alertes à lire :
 
