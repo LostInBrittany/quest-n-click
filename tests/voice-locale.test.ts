@@ -3,9 +3,9 @@
 // own text, all along the chain: the export lists the three French clips, the import takes them back, none is an
 // orphan, the validator warns when one is missing (the command line, the Studio's server and its in-browser demo
 // alike), and the engine plays them. The reverse too: a switch the translation drops asks no clip by value there.
-import { spawnSync } from 'node:child_process';
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
+import { pathToFileURL } from 'node:url';
 import { afterAll, describe, expect, it } from 'vitest';
 import { Engine } from '@engine/core/engine';
 import { FakePresenter, MemoryStore } from '@engine/core/ports';
@@ -19,6 +19,7 @@ import { validateDir } from '../studio-server/src/ops/validate-dir';
 import { BrowserApi } from '../src/studio/api-browser';
 import type { StudioSnapshot } from '../tools/studio/types';
 import { heroesImages, heroesLayouts } from './fixtures/heroes';
+import { runTool } from './run-tool';
 import { frReady, READY_FR, readyGame } from './fixtures/voice-locale';
 
 const ROOT = resolve(__dirname, '..');
@@ -130,8 +131,8 @@ describe('the same verdict everywhere', () => {
     mkdirSync(join(ROOT, '.cache'), { recursive: true });
     const dir = mkdtempSync(join(ROOT, '.cache', 'voice-locale-'));
     temps.push(dir);
-    const fixture = JSON.stringify(join(ROOT, 'tests', 'fixtures', 'voice-locale.ts'));
-    const heroesFile = JSON.stringify(join(ROOT, 'tests', 'fixtures', 'heroes.ts'));
+    const fixture = JSON.stringify(pathToFileURL(join(ROOT, 'tests', 'fixtures', 'voice-locale.ts')).href);
+    const heroesFile = JSON.stringify(pathToFileURL(join(ROOT, 'tests', 'fixtures', 'heroes.ts')).href);
     writeFileSync(
       join(dir, 'index.ts'),
       `import { readyGame } from ${fixture};
@@ -156,11 +157,7 @@ export const manifest = {};
     const dir = gameDir();
     const want = expect.stringMatching(/^voice:ready › .*\(fr\): ready~form=knight /);
     // The command line.
-    const cli = spawnSync(join(ROOT, 'node_modules', '.bin', 'tsx'), ['tools/validate.ts'], {
-      cwd: ROOT,
-      env: { ...process.env, GAME_DIR: dir },
-      encoding: 'utf8',
-    });
+    const cli = runTool(['tools/validate.ts'], { cwd: ROOT, env: { ...process.env, GAME_DIR: dir } });
     const cliVoice = cli.stdout
       .split('\n')
       .map((l) => l.trim())
