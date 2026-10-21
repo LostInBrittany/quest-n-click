@@ -122,6 +122,10 @@ body { -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
 .mapview .pin { position: absolute; transform: translate(-50%, -100%); border: 0; background: none; padding: 0; cursor: pointer; }
 .mapview .pin .face { width: 100%; border-radius: 50%; border: 3px solid #fff; background: #1b1426; display: block; aspect-ratio: 1; object-fit: cover; }
 .mapview .pin.here .face { border-color: #ffd84d; }
+.mapview .pin .facebtn { border: 0; background: none; padding: 0; cursor: pointer; display: block; }
+.mapview .pin .facebtn .face { box-sizing: border-box; }
+.mapview div.pin.here .face { border-color: #fff; }
+.mapview .pin .facebtn.here .face { border-color: #ffd84d; }
 .mapview .pin .needle { width: 40%; display: block; margin: -6% auto 0; }
 .mapview .pin .news { position: absolute; right: -35%; top: -30%; width: 60%; animation: bob 1s ease-in-out infinite; }
 .credits { position: absolute; inset: 0; background: #0a0612; z-index: 1200; overflow: hidden; display: flex; justify-content: center; }

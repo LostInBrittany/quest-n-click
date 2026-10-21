@@ -260,7 +260,7 @@ export function assetGraph(
   const map = new Set<string>();
   const M = game.map;
   for (const reg of Object.values(M?.regions ?? {})) add(map, 'img', reg.image);
-  for (const p of Object.values(M?.places ?? {})) add(map, 'img', p.portrait);
+  for (const p of Object.values(M?.places ?? {})) for (const f of asList(p.portrait)) add(map, 'img', f);
   for (const v of Object.values(M?.vehicles ?? {})) add(map, 'img', v);
   addMusic(game, map, M?.music, stems);
   for (const x of [icons?.pin, icons?.news, icons?.plane, icons?.car]) add(map, 'img', x);

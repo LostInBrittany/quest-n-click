@@ -210,7 +210,7 @@ Un jeu ajoute les siens dans `minigames` de son module (même contrat) : c'est l
 | `normalizeSeed` | `(input: string): string` | public | The canonical form of a typed code (`ws-abcd-efgh`, `WSABCDEFGH`, with `I`/`L`/`O` read as digits), or a `RemixSeedError` that says what is  |
 | `ObjectiveDef` | `interface { title, done, optional, parent }` | public | An objective of the game (4.1.12, ADR 0014): its title in the quest journal, the condition that completes it, whether 100% needs it, and the |
 | `parseManifest` | `(input: unknown): VariationManifest` | public | A manifest checked against its schema (a malformed one is an error naming the path). |
-| `PlaceDef` | `interface { name, room, region, pos, portrait, vehicle, … 1 more }` | public | A place on the travel map: the room it opens, its region and position, its vehicle and its news marker. |
+| `PlaceDef` | `interface { name, room, region, pos, portrait, joins, … 2 more }` | public | A place on the travel map: the room it opens, its region and position, its vehicle and its news marker. |
 | `Point` | `type Point = [number, number]` | public | Logical coordinates of a backdrop: 640 × 400, origin top-left. |
 | `PropAnim` | `interface { frames, fps, loop, at }` | public | A prop animation: images in order at `fps` (default 8); `at` = commands run when a frame is reached (index). |
 | `PropDef` | `interface { defaultVerb, img, states, anims, initial, name, … 2 more }` | public | A prop in the scenery, with states (e.g. amp off/on). Its position comes from the layout. |
