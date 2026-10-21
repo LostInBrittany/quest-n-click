@@ -211,6 +211,9 @@ export async function talkLoop(eng: Engine, actor: Id, ctx: Ctx) {
       await eng.exec(t.do, ctx);
       eng.state.seen[topicKey(t, i)] = 1;
       eng.writes?.add(`seen:${topicKey(t, i)}`);
+      // A conversation is one action, saved at "Bye": a topic's progress (a flag, an item, a minigame won) would be
+      // lost if the page died before it (#218). The topic is whole here; `saveMade` stays at the action's end.
+      eng.save();
       continue;
     }
     if (g.hug && pick === topics.length) {

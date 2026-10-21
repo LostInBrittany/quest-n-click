@@ -311,6 +311,8 @@ saved point.
 6. At the end, the state is saved (verified IndexedDB autosave; the manual slots live in the same database, as
    envelopes, verified too; localStorage is the compatibility fallback). All of the
    state is JSON: `GameState` in `types.ts`.
+   A conversation is one action until "Bye"; it is also saved after each topic (4.3.0, #218), so what a topic
+   changed survives a page that dies before "Bye".
 7. In the gaps between actions, the world's **scripts** advance one command each (`ScriptDef`, `Engine.advance`): NPC
    strolls, ambient gags, a character that `moveActor`s to another room when an `emit`ted event wakes its `waitEvent`.
    Their position lives in the state too, so a save resumes them, and the solver plays them as actions ("Script <id>": the script runs up to its next `wait`, so a patrol is seen room by room). The solver also tries every option of a `choice` prompt (the path then reads `Talk x: "topic" › "reply"`), and keeps the exact value of a counter that is ever lowered or set to a number. It leaves out of the state whatever

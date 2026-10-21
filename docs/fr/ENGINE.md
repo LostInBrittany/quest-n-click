@@ -316,6 +316,8 @@ sauvegardé.
 5. Les commandes s'exécutent une à une ; chacune appelle le Presenter (dire, marcher, changer un accessoire, jouer un son…).
 6. À la fin, l'état est sauvegardé (autosauvegarde IndexedDB vérifiée ; les emplacements manuels vivent dans la même
    base, en enveloppes, vérifiés aussi ; localStorage est le repli de compatibilité). Tout l'état est du JSON : `GameState` dans `types.ts`.
+   Une conversation est une seule action jusqu'à « Au revoir » ; elle est aussi sauvegardée après chaque sujet (4.3.0,
+   #218), si bien que ce qu'un sujet a changé survit à une page qui meurt avant la fin de la conversation.
 7. Dans les creux entre deux actions, les **scripts** du monde avancent d'une commande chacun (`ScriptDef`,
    `Engine.advance`) : PNJ qui déambule, gag d'ambiance, personnage qui change de lieu (`moveActor`) quand un événement
    émis (`emit`) réveille son `waitEvent`. Leur position vit aussi dans l'état : une sauvegarde les reprend, et le solveur

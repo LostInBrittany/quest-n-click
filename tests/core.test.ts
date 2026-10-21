@@ -98,6 +98,27 @@ describe('fixture game', () => {
     expect(ui.log.at(-1)).toBe('hero: See you!');
   });
 
+  it('each topic is saved before the menu comes back, not only at Bye (#218)', async () => {
+    const g = structuredClone(game);
+    const house = g.rooms.find((r) => r.talk?.grandma)!;
+    house.talk!.grandma![0]!.do = [{ say: ['grandma', 'Bring me a coin.'] }, { set: 'asked' }];
+    const { e, ui, store } = boot(g);
+    await e.checkpoint('free');
+    // What the store holds each time the topic menu is shown: the page could die at any of these moments.
+    const atMenu: (GameState | null)[] = [];
+    const choose = ui.choose.bind(ui);
+    ui.choose = (options, who) => {
+      if (who !== undefined) atMenu.push(store.load());
+      return choose(options, who);
+    };
+    ui.picks = [0, 3];
+    await e.act({ verb: 'talk', a: 'grandma' });
+    expect(atMenu).toHaveLength(2);
+    expect(atMenu[0]?.flags.asked).toBeUndefined();
+    expect(atMenu[1]?.flags.asked).toBe(true);
+    expect(atMenu[1]?.seen['house.grandma.0']).toBe(1);
+  });
+
   it('hints follow progress', async () => {
     const { e, ui } = boot();
     await e.checkpoint('free');
