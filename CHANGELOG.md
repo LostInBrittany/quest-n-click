@@ -2,12 +2,13 @@
 
 ## 4.3.0 — 2026-10-21
 
-LOG #246–#252: "Hero Choice". The player chooses the hero at New Game, among any number of heroes a game declares:
+LOG #246–#253: "Hero Choice". The player chooses the hero at New Game, among any number of heroes a game declares:
 portraits in a choice, a name per character variant, and text switches (`{hero}`, `{form?knight=him|witch=her}`) so
 the other characters' words follow the hero, in every language; voices follow the same keys (D49, ADR 0022). Most of
 this release comes from an outside contributor, Horacio (LostInBrittany), thank you: the hero choice itself (#202),
 a key per verb (#205), a proportional pixel font for the interface by default (#206), a job's late
-answer that no longer overwrites its result (#211) and a naming convention for titles and branches (#208); each was
+answer that no longer overwrites its result (#211), a naming convention for titles and branches (#208) and a
+conversation saved after each topic (#219); each was
 reviewed, completed on its branch and merged into main, the 4.3 line (D48). A game that uses none of it keeps its
 saves, its logic fingerprint and `schemaVersion` 3; its interface font changes unless it sets its own (UPGRADING §39).
 **Breaking**: the former `web-scumm` names, aliases through 4.2.x, are gone (D47). A game that still imports
@@ -49,6 +50,13 @@ the yes for `v4.3.0` only (D37).
 - **A run whose world cannot be hashed is refused, not a crash (4.3.0)**: a `.wsrun` whose world holds a number JSON
   reads as Infinity (`1e400`), or two keys equal once NFC-composed, is `invalid-replay` / `world-shape`; the verifier
   answered `inconclusive` / `crash`. Loading such a stored world says the same.
+- **A conversation saves after each topic (4.3.0, #218)**: a conversation is one action, and the autosave came only
+  when it ended, at "Bye". What a topic changed (a flag, an item, a minigame won) was lost if the page died before:
+  on a phone, a tab killed in the background or a battery gone flat sent the player back before the topic. The state
+  is now saved after each topic's `do`, once the topic is marked as seen, when the conversation is the rest of its
+  action (the talk verb, or a `{ talk }` that ends a rule); a talk followed by more commands is still saved at the
+  action's end, so a save never holds half a `do`. A loaded save opens no conversation: the player is in the room,
+  the topics seen marked. Nothing to change in a game.
 
 ### Changes
 

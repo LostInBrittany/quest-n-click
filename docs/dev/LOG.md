@@ -6952,9 +6952,45 @@ magenta, and it is the delicate part).
 
 → next: the mutation sets run on the branch in CI; the remaining 130 are read again at 4.4.0.
 
-## #252 · 2026-10-21 · Claude · release · 4.3.0 "Hero Choice": the player chooses the hero
+## #252 · 2026-10-21 · Claude · proposal · 4.3.0: a conversation saved after each topic (#218)
 
-- **What ships**: main as the 4.3 line (D48, LOG #249), with eight pull requests and their fragments (LOG #246–#251):
+- `core/interactions.ts` `talkLoop`: the topic menu runs until "Bye" inside one `Engine.run`, whose `finally` is the
+  autosave. A topic's `do` changed the state, but nothing reached the store before "Bye". Found in a game whose
+  character offers three trials as topics, each a minigame setting a flag: after trial 1 the autosave still lacked the
+  flag, and a player who lost the tab during trial 2 replayed trial 1. Reported and fixed by Horacio (LostInBrittany),
+  #219; the maintainer wanted it in 4.3.0, whose candidate was cancelled for it.
+- The fix: `eng.save()` after the topic's `do` and its `seen` key (and its `writes` entry), the point where the topic
+  is whole and the menu is about to come back. Like the save in a room's `enter`, it does not emit `saveMade`: the
+  journal's `saved()` stays at the action's end, so one action still journals one autosave. `Engine.save` checks the
+  objectives first: an objective completed by a flag or an item was already announced when it changed (the journal's
+  check); one that reads a topic's `seen`, a prop or an unlock is now announced at the topic, not at "Bye".
+- Second reading (4.3.0): the save after a topic kept half a `do` when the conversation was not the end of its action:
+  a rule `[{ lose: coin }, { talk: x }, { gain: ticket }]`, a talk in a cutscene, a talk in a topic's `do`. A page that
+  died at the menu came back with the coin gone and no ticket, the rest never run (the PR's own reason for not saving
+  after a `minigame`). `talkLoop` now takes `saveTopics`: true for the talk verb on a character with topics (the
+  conversation is the whole action) and for the `{ talk }` that is the last command of the rule being resolved
+  (`Engine.tailTalk`, set by `resolve` for that rule only, cleared in a `finally`); any other talk saves at the
+  action's end, as before. Tests in `tests/core.test.ts`: a rule ending with a talk saves each topic, a rule with a
+  command after its talk saves nothing until it ends; each fails when its `saveTopics` is forced the other way.
+- What a save holds: `GameState` has no open conversation. A save made at a topic loads like any other, in the room,
+  the topics seen marked, the conversation closed. A topic whose `do` ran `goto` saves the new room (as `enter`
+  already did), one that ran `end` or an ending saves `done` (they saved already). Determinism: the save writes the
+  store only, it changes no state, no session step and no replay; `save-v3`, `critical-save`, `critical-session`,
+  `critical-replay`, `replay`, `journal`, `speedrun-reference`, `reference-proof`, `solver-contract` and
+  `solver-oracle` pass unchanged. Cost: one verified IndexedDB write (or one localStorage write) per topic, chained
+  behind the previous one like every autosave, at the pace of a player's picks; the solver's `MemoryStore` clones
+  once more per topic.
+- Not done: a save after the `minigame` command itself. A topic is the unit a player sees end; a minigame sits in
+  the middle of a `do` (its `then`, the commands after it), and a save there would keep half a `do` that a reload
+  never finishes. A minigame run by a rule ends its action and was already saved.
+- Mutation sets: no gated source touched (`interactions.ts`, `engine.ts`, `command-handlers.ts` are in none);
+  `tests/core.test.ts`, which judges the `core` set, gains three tests.
+
+→ next: the 4.3.0 release (LOG #253).
+
+## #253 · 2026-10-21 · Claude · release · 4.3.0 "Hero Choice": the player chooses the hero
+
+- **What ships**: main as the 4.3 line (D48, LOG #249), with nine pull requests and their fragments (LOG #246–#252):
   - #202 (#200), "Hero Choice" (D49, ADR 0022, LOG #246): the hero chosen at New Game among any number, a name per
     character variant, text switches and `{hero}`, portraits in a choice (`Choice.img`), voices keyed by value, the
     Studio's picker, the `hero-looks-default` lint;
@@ -6970,7 +7006,10 @@ magenta, and it is the delicate part).
     run whose world cannot be hashed (now `world-shape`); 130 remain, each with its line, read again at 4.4.0;
   - #215: the `web-scumm` aliases removed (D47, LOG #250), `npx quest-n-click migrate` renaming an old game's
     imports, tsconfig paths and script commands, the hosted engine upgrade renaming a hosted game's imports first.
-  Five of them, #202, #205, #206, #208 and #211, are Horacio's (LostInBrittany), the outside contributor of 4.2.4.
+  - #219 (#218): a conversation saved after each topic, when it is the rest of its action (LOG #252), folded into
+    this section after the first 4.3.0 candidate was cancelled for it;
+  Six of them, #202, #205, #206, #208, #211 and #219, are Horacio's (LostInBrittany), the outside contributor of
+  4.2.4.
 - **The maintainer's words**:
   - « ok include all PR in gh into 4.3 » (after v4.2.5, D48): the six open pull requests, reviewed a second time,
     completed on their branches and merged into main, smallest first; then #215;
