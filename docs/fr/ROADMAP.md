@@ -599,6 +599,16 @@ par la baseline ; un script de liens. Laissé pour plus tard, dit comme tel : le
 (`docs/dev/passes/4.1.8.md`), l'accélération du workflow de release (son propre lot), les 845 lignes de l'onglet
 assistant.
 
+## v4.3.1 « Voices by Language » (livrée en octobre 2026) : un correctif après une relecture extérieure
+
+Une relecture extérieure de la 4.3.0 a trouvé les aiguillages propres à une traduction perdus entre l'export des voix
+et l'import, les orphelins et le validateur, et un guide qui disait que `npm run solve` prouve chaque héros. Les deux
+sont corrigés : les clips de chaque langue se lisent dans son propre texte, par tous les points d'entrée, et les
+guides nomment `--prove` ; un nouvel ensemble de mutation, `voices`, est bloquant dès le départ, et sa seconde lecture
+a trouvé un bug de plus (les accolades d'une ligne à `*=` seul dans la table d'enregistrement). La même relecture fixe
+l'ordre de la 4.4.0 : un exemple jouable à plusieurs héros en deux langues, les premières passes humaines tôt, la
+prévisualisation hébergée mesurée, puis la matrice héros × langue du Studio.
+
 ## v4.3.0 « Hero Choice » (livrée en octobre 2026) : le joueur choisit son héros
 
 Le joueur choisit son héros à la Nouvelle partie, parmi autant de héros que le jeu en déclare : des portraits dans un
