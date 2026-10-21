@@ -68,6 +68,18 @@ describe('a job that ended', () => {
       vi.useRealTimers();
     }
   });
+  it('keeps its last word when a Cancel sent before the end is refused after it (4.3.0)', async () => {
+    let refuse!: (r: Response) => void;
+    vi.spyOn(globalThis, 'fetch').mockReturnValue(new Promise<Response>((ok) => (refuse = ok)));
+    const done = followJob(job({ kind: 'prepare', state: 'running' }));
+    document.querySelector<HTMLButtonElement>('[data-job="j1"] button')!.click(); // the cancel is sent
+    tell(job({ kind: 'prepare', state: 'done' }));
+    await done;
+    refuse(json(409, { error: 'the job has ended' }));
+    await new Promise((r) => setTimeout(r, 0));
+    await new Promise((r) => setTimeout(r, 0));
+    expect(document.querySelector('[data-job="j1"]')!.textContent).toBe('Preparing the assets: done ');
+  });
 });
 
 describe('a job the server no longer knows', () => {

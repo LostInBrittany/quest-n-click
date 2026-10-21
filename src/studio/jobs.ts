@@ -50,7 +50,8 @@ async function cancelJob(id: string): Promise<void> {
 
 /**
  * Follows a job to its end, with its panel (its state and a Cancel button) at the bottom right; `onChange` hears each
- * state. Resolves with the job as it ended.
+ * state. Resolves with the job as it ended; from then on nothing more is heard of it, not a poll nor a Cancel that
+ * answers late (4.3.0).
  */
 export function followJob(first: JobInfo, onChange?: (j: JobInfo) => void): Promise<JobInfo> {
   const text = h('span', null, jobText(first));
@@ -95,6 +96,8 @@ export function followJob(first: JobInfo, onChange?: (j: JobInfo) => void): Prom
     cancel.onclick = () => {
       cancel.disabled = true;
       cancelJob(first.id).catch((e) => {
+        // Refused after the job ended (it had nothing left to cancel): the panel keeps its last word (4.3.0).
+        if (over) return;
         cancel.disabled = false;
         text.textContent = `${jobText(last)} (${(e as Error).message})`;
       });

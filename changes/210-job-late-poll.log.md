@@ -1,4 +1,4 @@
-## 4.2.5: a job heard once it has ended (#210)
+## 4.3.0: a job heard once it has ended (#210)
 
 - `studio/jobs.ts` `followJob`: the job is followed by the live stream and by a poll every 3 s. Clearing the interval
   at the end did not stop a poll already in flight, and `seen()` only dropped a non-final state after the end, so a
@@ -9,5 +9,8 @@
   `waitFor` depending on when the overwrite landed.
 - Tests: `tests/dom/studio-jobs.test.ts` holds a poll in flight, ends the job by the stream, lets the poll answer
   `done`, and checks that `onChange` heard `done` once.
+- Second reading (4.3.0): the Cancel button had the same late answer. Sent just before the end and refused after it
+  (409, the job has ended), its error was appended to the panel's last word. It is dropped once the job has ended; a
+  test holds the refusal until after the end.
 
-→ next: the maintainer's review.
+→ next: merged into 4.3.0 (D48).
