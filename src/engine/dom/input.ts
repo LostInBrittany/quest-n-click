@@ -6,6 +6,7 @@ import { defaultVerb } from '../core/default-verb';
 import { isTyping } from './a11y';
 import { DOUBLE_TAP_MS, el, esc, NEAR_MISS } from './app-shared';
 import type { App } from './app';
+import { fitSideColumn } from './shell';
 
 /** Escape closes the topmost thing (a menu, the map, the transcript, a cutscene's skip) or opens the pause menu;
  * Space and Enter advance a line of dialogue (a focused button already acts on Enter and Space on its own); a verb's
@@ -343,6 +344,8 @@ export function renderInv(app: App) {
     else b.removeAttribute('aria-disabled');
   }
   app.invNav.hidden = n <= per && !app.desk;
+  // The page buttons take or give back a row of the column, and the verbs come back here after a talk or the map.
+  fitSideColumn(app);
   // The three buttons appended when the side panel was built.
   const [up, pg, down] = app.invNav.children as HTMLCollectionOf<HTMLButtonElement>;
   must(up, 'page up button').disabled = app.invPage === 0;
