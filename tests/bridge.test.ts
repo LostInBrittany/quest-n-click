@@ -6,7 +6,7 @@ import type { AddressInfo } from 'node:net';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import fc from 'fast-check';
-import { afterAll, describe, expect, it } from 'vitest';
+import { afterAll, describe, expect, it, vi } from 'vitest';
 import { Engine } from '@engine/core/engine';
 import { FakePresenter, MemoryStore } from '@engine/core/ports';
 import { manifestHash, realityManifest } from '@engine/reality/manifest';
@@ -27,6 +27,14 @@ import {
 import { signals, signalsLayouts } from './fixtures/signals';
 import { spawn } from 'node:child_process';
 import { createHash } from 'node:crypto';
+import { signSignalSync } from '../bridge/src/sign';
+
+// The re-sign cache's hits are counted by the signatures made (4.4.0): the JWS of a hit and of a miss are the same
+// bytes (Ed25519 is deterministic), so only the calls tell a hit from a signature made again.
+vi.mock('../bridge/src/sign', async (orig) => {
+  const m = await orig<typeof import('../bridge/src/sign')>();
+  return { ...m, signSignalSync: vi.fn(m.signSignalSync) };
+});
 
 const temps: string[] = [];
 const servers: { close(): void }[] = [];
@@ -793,9 +801,14 @@ describe('bounded, validated, one per journal (4.1.8)', () => {
     await before.propose(link.playerId, 'mail.answer.correct', 'mail:3');
     await wide.bridge.signals(link.capability, 0); // s1, s2, s3 signed: s1 evicted when s3 arrives, s2 and s3 kept
     expect(wide.bridge.resignedCount()).toBe(2);
+    vi.mocked(signSignalSync).mockClear();
     await wide.bridge.signals(link.capability, 1); // s2 (hit, moved to the back), s3 (hit): nothing signed again
+    expect(signSignalSync).not.toHaveBeenCalled();
     const beforeAgain = wide.bridge.resignedCount();
-    await wide.bridge.signals(link.capability, 0); // s1 (miss: evicts the least recently used, s2), s2 (miss), s3 (hit)
+    // s1 (miss: evicts the least recently used, s2), s2 (miss: evicts s3), s3 (miss): a scan wider than the cache
+    // misses all along, as an LRU does.
+    await wide.bridge.signals(link.capability, 0);
+    expect(signSignalSync).toHaveBeenCalledTimes(3);
     expect(beforeAgain).toBe(2);
     expect(wide.bridge.resignedCount()).toBe(2);
   });
