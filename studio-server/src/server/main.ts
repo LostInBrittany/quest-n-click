@@ -21,6 +21,7 @@ import { createStudio, operationContext } from '../ops/core';
 import { anchorsOf, Comments } from './comments';
 import { GitSync } from './git';
 import { mcpEndpoint, type McpEndpoint } from './mcp';
+import { snapshotMemo } from './snapshot-memo';
 import { StudioError } from '../ops/errors';
 import { spansOf } from '../ops/spans';
 import { type BlobStore, fsBlobStore } from '../ops/blobs';
@@ -428,6 +429,7 @@ async function main(argv: string[]): Promise<number> {
       privateKeyPem: secrets.STUDIO_WORKER_KEY.replace(/\\n/g, '\n'),
       instance: config.worker.instance,
       metrics,
+      log: logLine,
       at: async () => ({ epoch: await journal.epoch(), rev: await journal.revision() }),
     });
   }
@@ -538,6 +540,17 @@ async function main(argv: string[]): Promise<number> {
   // between reading the head and packing it, and the folder (a cache) has not drifted from it. The prepared assets are
   // read only on a hosted Studio: their version is computed once, at the first build.
   let version: string | undefined;
+  // One snapshot per revision (4.4.0), shared by the preview, the health, the published builds and the engine's
+  // upgrade: packed once under the lock, given again while the head has not moved (snapshot-memo.ts).
+  const snapshot = snapshotMemo({
+    pack: () =>
+      server.exclusive(async () => {
+        await journal.reconcile();
+        return { epoch: await journal.epoch(), rev: await journal.revision(), bytes: packSnapshot(gameDir) };
+      }),
+    head: async () => ({ epoch: await journal.epoch(), rev: await journal.revision() }),
+    events: journal.events,
+  });
   const previews =
     auth && authStore && executor
       ? new Previews({
@@ -546,11 +559,7 @@ async function main(argv: string[]): Promise<number> {
           publicDir,
           game: config.game,
           studioOrigin: config.publicUrl,
-          snapshot: () =>
-            server.exclusive(async () => {
-              await journal.reconcile();
-              return { epoch: await journal.epoch(), rev: await journal.revision(), bytes: packSnapshot(gameDir) };
-            }),
+          snapshot,
           build: (bytes, params, at) => executor!.preview(bytes, params, at),
           assetsVersion: () => prepared?.version() ?? (version ??= assetsVersion(join(publicDir, 'assets'))),
           prepared: () => prepared?.folder() ?? null,
@@ -587,11 +596,7 @@ async function main(argv: string[]): Promise<number> {
       ? new Health({
           db,
           journal,
-          snapshot: () =>
-            server.exclusive(async () => {
-              await journal.reconcile();
-              return { epoch: await journal.epoch(), rev: await journal.revision(), bytes: packSnapshot(gameDir) };
-            }),
+          snapshot,
           judge: judge!,
           log: logLine,
         })
@@ -602,11 +607,7 @@ async function main(argv: string[]): Promise<number> {
   const engineUpgrade =
     executor && hosted && judge
       ? new EngineUpgrade({
-          snapshot: () =>
-            server.exclusive(async () => {
-              await journal.reconcile();
-              return { epoch: await journal.epoch(), rev: await journal.revision(), bytes: packSnapshot(gameDir) };
-            }),
+          snapshot,
           migrate: (bytes, at) => executor!.migrate(bytes, at),
           judge,
           validate: (bytes, at) => executor!.validateSnapshot(bytes, at),
@@ -655,11 +656,7 @@ async function main(argv: string[]): Promise<number> {
           studioOrigin: config.publicUrl,
           assetsVersion: () => prepared?.version() ?? (version ??= assetsVersion(join(publicDir, 'assets'))),
           prepared: () => prepared?.folder() ?? null,
-          snapshot: () =>
-            server.exclusive(async () => {
-              await journal.reconcile();
-              return { epoch: await journal.epoch(), rev: await journal.revision(), bytes: packSnapshot(gameDir) };
-            }),
+          snapshot,
           snapshotAt: async (rev) => packFiles(await journal.filesAt(rev, (p) => packable(p))),
           epoch: () => journal.epoch(),
           build: (bytes, params, at) => executor!.preview(bytes, params, at),

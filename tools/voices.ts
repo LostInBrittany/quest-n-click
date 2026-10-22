@@ -105,7 +105,8 @@ if (cmd === 'check') {
       errors += errs.length;
       warnings += warns.length;
     }
-    for (const o of orphanClips(game, lang)) {
+    // The clips a language claims follow its own text (4.4.0: `status` read the translation, `check` the source).
+    for (const o of orphanClips(game, lang, localized(lang))) {
       console.log(`  ⚠ ${lang} ${o.id}: a clip no line claims (${o.file})`);
       warnings++;
     }

@@ -14,7 +14,7 @@ import {
   rmSync,
   writeFileSync,
 } from 'node:fs';
-import { basename, isAbsolute, join, relative, resolve } from 'node:path';
+import { basename, isAbsolute, join, relative, resolve, sep } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import ts from '@typescript/typescript6';
 import type { Layout, Point } from '../../../src/engine/core/types';
@@ -32,10 +32,12 @@ import {
 } from '../../../src/engine/tools/puzzle';
 import { coverageMarkdown, storyboardCoverage } from '../../../src/engine/tools/coverage';
 import { loadAssets, loadLayouts, loadLocales } from '../../../src/engine/tools/load';
-import { GAME_DIR, ROOT, type GameModule } from '../../../tools/game';
+import { ASSETS_DIR, GAME_DIR, ROOT, WORK, type GameModule } from '../../../tools/game';
 import { gameIR } from '../../../tools/game-ir';
 import type { GameIR } from '../../../src/engine/core/ir';
 import { diffFile, type FileDiff, type Side } from '../../../tools/studio/semantic-diff';
+import { roomsToCapture } from '../../../tools/studio/diff-rooms';
+import { captureDiff } from './diff-captures';
 import {
   type GroupingsFile,
   groupingsProblems,
@@ -64,10 +66,12 @@ import {
   type VoiceSheet,
   type VoiceStatus,
 } from '../../../src/engine/tools/voices';
+import { heroMatrix as heroMatrixOf, type HeroMatrix } from '../../../src/engine/tools/hero-matrix';
 import { PersonalUndo, type UndoDir } from './undo';
 import { type DiagnoseKind, HOSTED_SOLVE_MS, lintIn, playtestsIn, type SolveParams, solveIn } from './diagnose';
 import type {
   CoverageData,
+  DiffCaptures,
   LintData,
   PlaytestsData,
   AddEntity,
@@ -651,6 +655,51 @@ export function createStudio(opts: StudioOptions = {}) {
     return { from, to, files, ...(changed.length > 500 ? { cut: true } : {}) };
   }
 
+  /**
+   * The diff's captures (4.4.0): each room the diff between `from` and `to` names, rendered at both revisions
+   * (diff-captures.ts). Local only: a hosted Studio's game code runs on the worker, which has no browser.
+   */
+  async function diffCaptures(from: number, to: number): Promise<DiffCaptures> {
+    if (opts.executor)
+      return {
+        unavailable: true,
+        reason: "the diff's captures need a local Studio (npm run studio): a hosted Studio has no browser to draw them",
+      };
+    const d = await diff(from, to);
+    // The head's rooms and their files: what a changed file names (a room added or removed is named by its paths).
+    const roomFiles: Record<string, string> = {};
+    for (const r of (await loadModule()).game.rooms)
+      try {
+        roomFiles[r.id] = relative(dir, roomFile(r.id)).split(sep).join('/');
+      } catch {
+        /* a room without a file of its own: named by its layout only */
+      }
+    const pick = roomsToCapture(d.files, roomFiles);
+    return captureDiff(
+      {
+        journal: await journal(),
+        gameDir: dir,
+        game: gameId,
+        publicDir: join(WORK, 'public'),
+        assetsDir: ASSETS_DIR,
+        outDir: join(shotsDir(), `${gameId}-diff-${from}-${to}`),
+        rel,
+        // The worker's child on this machine, loaded on demand (the dev server's plugin imports this file).
+        build: async (snapshot, rev) =>
+          (await import('../worker/local')).localPreview(snapshot, {
+            rev,
+            game: gameId,
+            studioOrigin: 'http://localhost:9',
+            assetsVersion: '0',
+          }),
+      },
+      from,
+      to,
+      pick.rooms,
+      pick.cut,
+    );
+  }
+
   /** The game's IR (4.1.12, ADR 0013), with the file and line of each id and the trusted extensions' hash. */
   async function ir(): Promise<GameIR> {
     return gameIR(await loadModule(), dir);
@@ -927,6 +976,10 @@ export function createStudio(opts: StudioOptions = {}) {
     const v = await voices(lang);
     return { lang: v.lang, csv: toCsv(v.rows) };
   }
+  /** 4.4.0: the hero × language matrix (tools/hero-matrix.ts), read-only, over the game and its locale tables. */
+  async function heroMatrix(): Promise<HeroMatrix> {
+    return heroMatrixOf((await loadModule()).game, loadLocales(join(dir, 'locales')));
+  }
 
   /**
    * The validator's verdict on the game in `d` (the game folder, or the guard's staging folder): through the executor
@@ -1088,6 +1141,7 @@ export function createStudio(opts: StudioOptions = {}) {
     loadGame: loadModule,
     gameInfo,
     diff,
+    diffCaptures,
     ir,
     getRoom,
     texts,
@@ -1122,6 +1176,7 @@ export function createStudio(opts: StudioOptions = {}) {
     voices,
     setVoice,
     voicesCsv,
+    heroMatrix,
   };
 }
 

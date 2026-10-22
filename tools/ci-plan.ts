@@ -121,8 +121,10 @@ export const RULES: readonly Rule[] = [
   },
 
   // The games.
-  { re: /^games\/demo\//, gates: ['e2e', ...UNIT], why: 'the sample game' },
+  // The reference job also builds and plays games/heroes (4.4.0), which reads the sample game's cast, verbs and ui.
+  { re: /^games\/demo\//, gates: ['e2e', 'reference', ...UNIT], why: 'the sample game' },
   { re: /^games\/reference\//, gates: ['reference', 'node24'], why: 'the reference chapter' },
+  { re: /^games\/heroes\//, gates: ['reference', 'node24'], why: 'the hero choice example (in the reference job)' },
   // The Bridge's qualification profile (4.1.18): brought up by its own workflow (qualify.yml) and the candidate's
   // `deployment-smoke`; here its static test only.
   {
@@ -168,7 +170,7 @@ export const RULES: readonly Rule[] = [
   },
   { re: /^(tools|scripts)\//, gates: [...AUTHORING], why: 'the authoring pipeline' },
   {
-    re: /^(tests\/studio-(server|worker|collab|keycloak|client)\.test\.ts|ops\/studio\/(ci|keycloak)\/)/,
+    re: /^(tests\/studio-(server|worker|collab|keycloak|client|diff-captures)\.test\.ts|tools\/studio\/diff-rooms\.ts$|ops\/studio\/(ci|keycloak)\/)/,
     gates: [...UNIT, 'studioHosted'],
     why: 'the hosted Studio against Postgres and S3 (4.2.1)',
   },

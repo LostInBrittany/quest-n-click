@@ -51,7 +51,19 @@ A provider call never follows a redirect, gives up after 60 s, and reads at most
   is missing, ? prose), and under a panel the list of what is not there yet (an action no rule answers, a line the game
   does not say, a sound not in `audio.sfx`); the bar shows the overall score.
 - **Check**: the validator and the solver run after every save; their output and the solver path are shown here.
-  "Screenshot" renders a room at a checkpoint (needs Playwright).
+  "Screenshot" renders a room at a checkpoint (needs Playwright). **Changes between revisions** says what changed
+  between two revisions by what the game names; since 4.4.0, **Capture the rooms (before / after)** draws each room
+  those changes name at both revisions, side by side, the rectangle where they differ outlined ("no visible change"
+  when no pixel moved): a room's layout, its source, its texts in a language (`room:<id>/…`); shared files alone (the
+  cast, the items, `site.json`) draw the first room; six rooms at most. Each revision is the game folder with the
+  journal's later operations undone, built as a preview (the worker's child, never the Studio's process) and drawn
+  in headless Chromium at 960 × 600 (one device pixel, reduced motion, no CSS animation, fonts loaded, the editor's
+  overlays hidden). Limits: a local Studio only (`npm run studio`; a hosted Studio answers 501, its worker has no
+  browser); the game's default language; the room as it is entered (its first checkpoint, else a fresh state), not
+  at a checkpoint you choose; the prepared images, sounds and fonts of today on both sides (a changed picture is not
+  shown until it is prepared, then on both sides); a hand edit the journal did not record is in both sides; a channel
+  off by 16 or less is the same pixel (an anti-aliased edge moves by 2 between two renders). The PNGs are kept under
+  `.cache/studio/<game>-diff-<from>-<to>/`.
   Below them, the **world map** (rooms, exits, gotos; unreachable rooms and exits with no way back in red) and the
   **content report** (what each room, item and character amounts to: the profiler of `npm run validate -- --report`),
   and the **puzzle graph**: every rule, topic, script and listener with what it needs (grey arrows, dotted when read
@@ -144,7 +156,12 @@ A provider call never follows a redirect, gives up after 60 s, and reads at most
 - **Play.** The painter of every room (as the game says, DOM or canvas) and how fast it draws (frames per second, the
   canvas painter's repaints).
 - **Voices.** The voice production table per language (`npm run voices`): status, actor and note per line, saved at
-  once; Export CSV for the actors.
+  once; Export CSV for the actors. Its second view, **Heroes × languages** (4.4.0, read-only, the demo too): each line
+  with an id that depends on the hero (a text switch or `{hero}`, in any language), a column per hero (the values the
+  switched flags take, headed by the variant's portrait and name) and per language, each cell the text that hero reads
+  and the clip that plays, or the one missing (the plain id named when it plays instead). A row flags an untranslated
+  language, a translation that drops a choice of the source (`agreement`) and a value no switch lists without `*=`
+  (`unlisted`); "Lines with a problem" keeps those ([CONTENT_GUIDE.md](CONTENT_GUIDE.md), "Choosing the hero").
 - **Music** (3.5). The game's scores through its own music director: play one, hear each state's mix on the next bar,
   mute or solo a stem, the bar and beat shown as it plays. Nothing is written: the states are content in `game.ts`.
 
@@ -166,6 +183,7 @@ All paths are relative to the current game (`GAME`). Errors return `{ error }` w
 | GET/PUT `storyboard` | `storyboard.json` (`{ boards: [] }` if absent). PUT needs `{ boards: [...] }`, returns `{ ok, changed }`: an unchanged storyboard is not rewritten, a changed one is written compactly (what fits on 120 columns stays on one line) |
 | POST `storyboard/markdown` | → writes `games/<id>/storyboard.md` from the saved `storyboard.json` (same text as `npm run page:storyboard -- --md`); `{ ok, file, bytes, boards, panels }`; 404 without a `storyboard.json` |
 | GET `diff/<from>..<to>` | 4.2.3: what changed between two revisions, by what the game names: `{ files: [{ path, change: added\|removed\|changed, ids?: { added, removed, changed: [{ id, fields }] }, values?: { added, removed, changed }, opaque?, cut? }] }` (2,000 revisions at most; the Check tab's "Changes between revisions") |
+| GET `diff/<from>..<to>/captures` | 4.4.0, local Studio only: each room the diff names drawn at both revisions: `{ from, to, size: [960, 600], rooms: [{ room, why, before, after, box?, same? }], cut?, ms }`, a side `{ file, url }` (a PNG data URL and its file under `.cache/studio/`) or `{ missing }` (why it is not drawn: the revision does not build, the room is not there); `box` `[x, y, w, h]` where they differ, `same` when nowhere; 501 `{ unavailable, reason }` on a hosted Studio or without Playwright |
 | GET `groupings`, PUT `groupings`, GET `map` | 4.2.3: the groupings file `{ groupings: [{ id, kind: chapter\|puzzle\|character, title, refs }] }` (checked: ids unique and lowercase, kinds known, references without spaces; 500 at most of each), and the map derived from it and the IR: `{ groupings: [{ …, refs: [{ ref, kind, at? }] }], ungrouped: { <kind>: [refs] } }` |
 | GET `notes`, POST `notes` | GET → `{ entries: Note[] }`; POST `{ about?, author?, text }` → the new `Note = { id, about, author, text, at, edited? }` (author defaults to `you`, `at` is an ISO date), appended to `notes.json` (created on first write) |
 | PUT `notes/:id` | `{ text, about? }` → the updated `Note` (text trimmed, `edited` set to now; `at`, `author` and the order unchanged); 400 empty text, 404 unknown id |
@@ -189,6 +207,7 @@ All paths are relative to the current game (`GAME`). Errors return `{ error }` w
 | GET `ir` | the game's IR (4.1.12, `docs/en/DSL.md`): its logic as data with the `file:line` of each id (`provenance`) and the trusted extensions' hash; the same JSON as `npm run ir -- --json` |
 | POST `undo`, POST `redo`, GET `history` | → `{ ok, file, what }` or `{ ok: false, reason }`; 409 when the file changed since; `history` → `{ undo: [what], redo: [what] }` |
 | GET `voices[/:lang]`, PUT `voices/:lang/:id`, GET `voices/:lang/csv` | the voice table `{ lang, langs, statuses, rows }`; `{ status?, note?, actor? }` → `{ ok }` (into `voices.json`); `{ lang, csv }` |
+| GET `hero-matrix` | the hero × language matrix (4.4.0, `src/engine/tools/hero-matrix.ts`): `{ langs, flags, columns, rows, truncated? }`, each row's `cells[column][language]` `{ text, want, clip?, file?, fallback?, missing?, borrowed?, unlisted? }` and its `untranslated`, `agreement`, `problem` |
 | GET `events` | server-sent events: `{ type: 'hello', game }` on connection, then `{ type: 'changed', file }` when a file of the game folder changes on disk (`file` relative to it, e.g. `rooms/house.ts`; dotfiles and `private/` are ignored; 150 ms debounce per file) |
 
 The same operations exist as plain functions in `studio-server/src/ops/core.ts`, used by the Vite plugin, by the tests and by

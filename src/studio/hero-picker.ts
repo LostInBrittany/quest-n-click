@@ -5,61 +5,15 @@
 // (or the start, a checkpoint) writes. The pick is also kept in `previewFlags`: the Rooms tab renders a text holding a
 // switch with it (rooms-lines.ts). The local Studio only: a hosted Studio's game is on another origin (game-origin.ts).
 import type { Engine } from '@engine/core/engine';
-import { parseText } from '@engine/core/text-switch';
 import type { GameDef, Value } from '@engine/core/types';
-import { textPaths } from '@engine/tools/i18n';
+import { gameSwitchFlags, type SwitchFlag } from '@engine/tools/hero-matrix';
 import { h, select, toast } from './ui';
 
-/** A flag a text switch reads, and the values to offer for it (`key` is `String(value)`, as a switch compares). */
-export interface SwitchFlag {
-  flag: string;
-  values: { key: string; value: Value }[];
-}
+// The flags and their values: engine-side since 4.4.0, the hero × language matrix reads them too (hero-matrix.ts).
+export { gameSwitchFlags as switchFlags, type SwitchFlag };
 
 /** The values picked last in the Play tab, by flag: what the Rooms tab previews a switch with. */
 export const previewFlags: Record<string, Value> = {};
-
-/** The values literal commands write, by flag (a `set` of the rooms, rules, scripts, events, the intro, the start). */
-function written(game: GameDef): Map<string, Map<string, Value>> {
-  const out = new Map<string, Map<string, Value>>();
-  const add = (f: string, v: Value) => {
-    const m = out.get(f) ?? new Map<string, Value>();
-    if (!m.has(String(v))) m.set(String(v), v);
-    out.set(f, m);
-  };
-  const walk = (x: unknown) => {
-    if (Array.isArray(x)) x.forEach(walk);
-    else if (x && typeof x === 'object') {
-      const o = x as Record<string, unknown>;
-      if (typeof o.set === 'string') add(o.set, true);
-      else if (Array.isArray(o.set) && typeof o.set[0] === 'string' && o.set[1] !== undefined)
-        add(o.set[0], o.set[1] as Value);
-      Object.values(o).forEach(walk);
-    }
-  };
-  walk([game.rooms, game.rules, game.scripts, game.events, game.start.intro]);
-  for (const [f, v] of Object.entries(game.start.flags ?? {})) add(f, v);
-  for (const c of Object.values(game.checkpoints ?? {})) for (const [f, v] of Object.entries(c.flags ?? {})) add(f, v);
-  return out;
-}
-
-/** Every flag the game's texts switch on, sorted, with the values written first then the ones only listed. */
-export function switchFlags(game: GameDef): SwitchFlag[] {
-  const listed = new Map<string, Set<string>>();
-  for (const { text } of textPaths(game))
-    for (const sw of parseText(text).switches) {
-      const s = listed.get(sw.flag) ?? new Set<string>();
-      for (const a of sw.alts) if (a.value !== '*') s.add(a.value);
-      listed.set(sw.flag, s);
-    }
-  if (!listed.size) return [];
-  const w = written(game);
-  return [...listed.keys()].sort().map((flag) => {
-    const values = new Map(w.get(flag));
-    for (const k of listed.get(flag)!) if (!values.has(k)) values.set(k, k);
-    return { flag, values: [...values].map(([key, value]) => ({ key, value })) };
-  });
-}
 
 type FrameGame = {
   engine: Engine;
@@ -85,7 +39,7 @@ export class HeroPicker {
     }
     if (this.shown !== g.game) {
       this.shown = g.game;
-      this.flags = switchFlags(g.game);
+      this.flags = gameSwitchFlags(g.game);
       this.draw();
     }
     this.el.hidden = !this.flags.length;

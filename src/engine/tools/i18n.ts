@@ -418,7 +418,7 @@ function switchSignature(text: string): string {
  * source's `*=` needs one in the translation. A translation may add switches or values (French agreement on a line
  * English writes alike: `Prêt{form?f=e|*=}`). A malformed span in the translation is never kept.
  */
-function switchesKept(source: string, translation: string): boolean {
+export function switchesKept(source: string, translation: string): boolean {
   const t = parseText(translation);
   if (t.malformed.length) return false;
   const values = (sw: typeof t.switches, flag: string) =>

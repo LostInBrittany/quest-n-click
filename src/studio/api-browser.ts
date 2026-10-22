@@ -14,6 +14,7 @@ import { extraReads, liveClasses, puzzleGraph, puzzleMarkdown, toPuzzleDot, toPu
 import { normalizeStoryboard, storyboardMarkdown, storyboardProblems } from '../../tools/pages/storyboard-data';
 import { coverageMarkdown, storyboardCoverage } from '@engine/tools/coverage';
 import { lintContent, lintMarkdown } from '@engine/tools/lint';
+import { heroMatrix as heroMatrixOf, type HeroMatrix } from '@engine/tools/hero-matrix';
 import { classify, formatPath, parsePath, SourceError, type Seg } from '../../tools/studio/paths';
 import type {
   CoverageData,
@@ -396,6 +397,12 @@ export class BrowserApi implements Api {
     return compileIR(compileGame(game), {
       extensions: { trusted: '', commands: mod.commands, minigames: Object.keys(mod.minigames ?? {}) },
     });
+  }
+
+  /** The hero × language matrix of the game with this browser's edits (4.4.0), over the module's locale tables. */
+  async heroMatrix(): Promise<HeroMatrix> {
+    const { mod, game } = await this.editedGame();
+    return heroMatrixOf(game, mod.locales ?? {});
   }
 
   async validate(): Promise<ValidateResult> {

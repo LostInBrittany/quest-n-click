@@ -429,7 +429,9 @@ game's session is refused before its path is read (a 401, "open the game from th
 | `studio_worker_jobs_in_flight` | the jobs asked of the worker and not answered yet: the queue as the Studio sees it |
 | `studio_worker_job_seconds{kind,outcome}` | the worker's jobs by kind (`validate`, `load`, `preview`, `prepare`, `lint`, `solve`, `playtests`) and outcome (`ok`, `failed`, `timeout`, `error`) |
 | `studio_lease_conflicts_total` | the 423s answered: someone else's span, or a lease that ended |
-| `studio_preview_build_seconds{outcome}` | a revision's preview, snapshot to stored files (`built`, `failed`) |
+| `studio_preview_build_seconds{outcome}` | a revision's preview, the worker's build and the files stored, after the snapshot (`built`, `failed`) |
+| `studio_preview_phase_seconds{phase}` | since 4.4.0, a preview by phase: `queued` (from the write to the build's start: the coalescing, a build before it, the retries), `snapshot`, `job` (the worker's job as the Studio waits for it, its queue on the worker included), `store`, and `since_write` (from the write to the preview ready) |
+| `studio_worker_job_phase_seconds{kind,phase}` | since 4.4.0, a job by phase as the Studio runs it: `put` (the snapshot staged), `post` (the worker's answer), `get` (the result read), `del` (the staging deleted) |
 | `studio_health_judgement_seconds{verdict}` | the health's verdict on a revision |
 | `studio_journal_rpo_seconds` | the age of the oldest operation not shipped to the bucket (the `rpoMs` of `/readyz`) |
 | `studio_journal_revision`, `studio_service_lease_held` | the head, and whether this instance serves writes (1) |
@@ -437,7 +439,10 @@ game's session is refused before its path is read (a 401, "open the game from th
 
 They are counts and durations: no path, no name, no author, no content. They live in the instance's memory, so a
 restart starts them again from zero (a counter reset, which Prometheus' `rate` reads as such). The worker's own queue
-is not measured from the worker: the Studio's side of it is. OpenTelemetry is not supported in 4.2.3; it stays an
+is not measured from the worker: the Studio's side of it is. Since 4.4.0 the logs say more: a `"event":"preview"`
+line carries `queuedMs`, `snapMs`, `jobMs`, `storeMs` and `sinceWriteMs`; a `"event":"worker-call"` line (one per job,
+the Studio's side) carries `putMs`, `postMs`, `getMs` and `delMs`; and the worker's own `worker-job` line carries
+`queueMs` (from its POST received to its run's start), `fetchMs`, `unpackMs`, `childMs` and `putMs`. OpenTelemetry is not supported in 4.2.3; it stays an
 option for later.
 
 **Alerts** (to a person). Clever Cloud notifies deployments (`clever notify-email add --notify <you> --event
@@ -447,7 +452,8 @@ format), or a simple prober for `/readyz`. Alert when:
 - `/readyz` is not 200 for 2 min (no instance serves writes; a deploy keeps it at 503 for about 20 s, above; the
   first deploy onto 4.2.3 for about 2.5 min: expect that alert then);
 - `studio_journal_rpo_seconds` is above 60 for 5 min (the target is 1 min, D42), or `ship-failed` keeps rising;
-- `studio_worker_jobs_in_flight` stays above 3 for 10 min (the worker runs one job at a time: work is piling up);
+- `studio_worker_jobs_in_flight` stays above 3 for 10 min (the worker runs one job at a time per lane, two lanes:
+  work is piling up);
 - jobs fail: `studio_worker_job_seconds_count{outcome!="ok"}` rises, or `health-failed`;
 - `studio_lease_conflicts_total` jumps (people waiting on each other's spans: not a fault, a sign to look at);
 - the daily backup's line (`"event":"backup"`) is missing from the logs one morning.
@@ -546,9 +552,19 @@ SQLite and a folder for the contents, on the loopback only.
   bisection; a revision that fails to be judged five times says "cannot be judged", with its reason. An older
   verdict is shown greyed, never green. A Check run holds the instance's reads while the
   worker runs its diagnostics: a write waits for it.
-- The worker runs one job at a time, and each revision now asks it for three: a preview's build, the validator and a
-  solver run (up to 45 s): the next change's validation can wait for them (not yet measured on a Clever worker, the
-  `studio-preview` pass does). A bisection asks for up to two jobs per revision it judges.
+- The worker runs one job at a time per lane (4.4.0): a preview's build (or a published build) in its own lane, every
+  other kind in the other, so two children at most at once. Each revision asks it for three jobs: a preview's build,
+  the validator and a solver run (up to 45 s); the preview no longer waits behind the other two, and the next
+  change's validation can still wait for them. A bisection asks for up to two jobs per revision it judges. Each lane
+  holds 8 jobs at most (running or waiting); the next is refused (429).
+- A preview, since 4.4.0: one snapshot per revision is packed (under the lock, the folder repaired) and shared by the
+  preview, the health, the published builds and the engine's upgrade, given again while the head has not moved; its
+  files are stored 8 at a time, and a blob this instance stored less than an hour ago is not written again (its date
+  is already well within the collection's day of grace, and its key is its content's hash); the Studio answers as
+  soon as it has read the worker's result, its staging deleted after. What each phase takes is in the `preview` log
+  line and in `studio_preview_phase_seconds` (Metrics, above). Vite's cache is not kept between jobs: a `vite build`
+  does not use it (it holds the dev server's prebundled dependencies), and a folder the game's code writes in must
+  not outlive its job (ADR 0028).
 - Each revision's preview is kept (about 1 MB for the sample game: the base `/preview/<rev>/` is written into the
   page and its code, so few files are shared between revisions) until the collection of a later 4.2.2 PR.
 - The Assets tab is on a hosted Studio since 4.2.3: a reviewer reads its listing, prompts and files; a dev uploads and

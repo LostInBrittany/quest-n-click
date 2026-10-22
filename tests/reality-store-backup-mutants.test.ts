@@ -525,6 +525,51 @@ describe('a restore', () => {
     expect(await count(s, 'daily_kv')).toBe(1);
   });
 
+  it('without --force it deletes nothing: a row another connection commits after its checks is refused, kept (4.4.0)', async () => {
+    // Postgres READ COMMITTED: a run or a quota of t-a committed elsewhere between the checks and the writes. The checks
+    // here do not see it (the wrapper answers as the store was before that commit); a restore without --force must keep
+    // it: the read-back sees a row the file does not hold and refuses, rolled back. Deleting it (what --force does) would
+    // read back clean and lose another connection's data.
+    const racing = async (held: BackupPayload) => {
+      const s = await open();
+      await fill(s, held);
+      const tx = s.db.tx.bind(s.db);
+      (s.db as { tx: typeof s.db.tx }).tx = (key, fn, o) =>
+        tx(
+          key,
+          (q) =>
+            fn({
+              all: async (x, a) => {
+                if (/^SELECT COUNT\(\*\) AS n FROM (runs|run_quota) /.test(x)) return [{ n: 0 }];
+                const rows = await q.all(x, a);
+                return x.startsWith('SELECT tenant_id FROM players UNION')
+                  ? rows.filter((r) => r.tenant_id !== 't-a')
+                  : rows;
+              },
+              run: (x, a) => q.run(x, a),
+              exec: (x) => q.exec(x),
+            } as SqlQuery),
+          o,
+        );
+      const r = await restoreBackup(
+        s,
+        { tenants: [tenant('t-a')], runs: [], daily: [], quotas: [] },
+        { force: false, carriesRuns: true, carriesQuotas: true },
+      );
+      expect(await s.db.all("SELECT tenant_id FROM players WHERE tenant_id = 't-a'")).toEqual([]);
+      return [r.ok ? 'restored' : r.why, await count(s, 'runs'), await count(s, 'run_quota')];
+    };
+    expect(await racing({ tenants: [tenant('t-z')], runs: [run('t-a', 'r9')], daily: [], quotas: [] })).toEqual([
+      'the runs do not read back as the backup holds them',
+      1,
+      0,
+    ]);
+    const quotaOnly = await racing({ tenants: [tenant('t-z')], runs: [], daily: [], quotas: [quota('t-a', 'c1')] });
+    expect(quotaOnly[1]).toBe(0);
+    expect(quotaOnly[2]).toBe(1);
+    expect(quotaOnly[0]).not.toBe('restored');
+  });
+
   it('an error before the commit is let through as it is; a commit whose answer is lost is unknown', async () => {
     const s = await open();
     const twice: BackupPayload = { tenants: [tenant('t-a')], runs: [run('t-a', 'r1'), run('t-a', 'r1')], daily: [] };

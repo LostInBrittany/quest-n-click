@@ -210,6 +210,11 @@ double tap is unchanged. An exit can say otherwise: `onTap: 'walk'` keeps it wal
 (`exits: { path: { name: 'path', to: 'village', onTap: 'go' } }`). Off by default. It is input only: the rules, the
 solver and saves do not see it.
 
+A hotspot can say `onTap: 'go'` too (4.4.0): a single tap walks there and acts on arrival with its `defaultVerb`, e.g.
+an endless aisle that says why one does not walk down it:
+`hotspots: { aisle: { name: 'aisle', defaultVerb: 'use', onTap: 'go' } }` with a rule for Use aisle. Without it a
+tap on a hotspot only walks there; `input.exitOnTap` is about exits and never changes that.
+
 **A key per verb (4.3.0).** On a desktop, the LucasArts games picked a verb at the keyboard: O for Open, L for Look at.
 A verb's `key` does the same: `{ id: 'open', label: 'Open', color: '#8fd3ff', key: 'o' }`. The key, in any case and
 without Ctrl, Alt or Meta, picks the verb as a tap on its button would (and drops it if it is already picked); it does
@@ -395,6 +400,13 @@ declares. The hero keeps the same puzzles and rooms; what changes is the look, t
 for the hero. It takes one flag (`form` here, any name works), one character with a variant per hero, an intro choice
 that sets the flag, and switches in the texts that depend on it.
 
+**A playable example**: `games/heroes` ("Who Am I Today?", 4.4.0) puts it all together in one room. Three heroes on
+portrait cards (Pixel, Biscuit, Gaby the gull), `{hero}` and switches in Grandma's lines, a French table that adds its
+own agreements (`Prêt{form?gull=e|*=}`), Grandma's lines voiced per hero in both languages, one rule only the gull gets,
+and a save that keeps the hero. `GAME=heroes npm run dev` to play it; `GAME=heroes npm run solve -- --prove` proves it
+for every hero; its browser test (`games/heroes/e2e.mjs`) picks each hero in English and in French, saves, reloads,
+continues and finishes.
+
 ```ts
 hero: 'kid',
 characters: {
@@ -465,6 +477,13 @@ look: { grandma: 'Grandma. Dust makes {form?knight=him|witch=her|robot=it} sneez
   yours ([AUDIO.md](AUDIO.md), "Voices"). `{hero}` alone is not a switch: such a line keeps one clip.
 - **Previewing each hero**: the Studio's Play tab has a "Text switches" picker that sets the flag, and the Rooms tab
   shows under a switched text how it reads ([STUDIO.md](STUDIO.md)).
+- **Every hero in every language at once** (4.4.0): the Studio's Voices tab, "Heroes × languages", is a read-only
+  matrix of the lines with an id that depend on the hero (a switch or `{hero}`, in any language). A column per hero
+  (each value the switched flags take, headed by its variant's portrait and name) and per language; each cell the
+  text as that hero reads it and the clip that plays, or `missing <key>` (with the plain id when it plays as the
+  fallback). A row also says when a language still has the source's text (`untranslated`), when a translation drops
+  a choice the source makes (`agreement`), and when a hero's value is listed by no switch of the line and has no `*=`
+  (`unlisted`). "Lines with a problem" keeps only those.
 
 What the tools say:
 
@@ -757,9 +776,17 @@ map: {
   regions: { world: { name: 'World', image: 'decor/map' }, town: { name: 'Town', image: 'decor/map_town', parent: 'world' } },
   places: {
     market: { name: 'Market', room: 'market', region: 'town', pos: [61, 41], portrait: 'seller/r1c2', vehicle: 'car', news: '!market_done' },
+    // Several people live there: their faces side by side on the pin (4.4.0).
+    harbour: { name: 'Harbour', room: 'quay', region: 'town', pos: [30, 70], portrait: ['captain/r1c2', 'cook/r1c2'] },
+    // Another room of the same town: its face joins the harbour's pin and leads straight there (4.4.0).
+    lighthouse: { name: 'Harbour: the lighthouse', room: 'lighthouse', region: 'town', pos: [30, 70], portrait: 'keeper/r1c2', joins: 'harbour' },
   },
 },
 ```
+
+A place that `joins` another sits on its pin instead of having one: once it is unlocked its face is added there, a tap
+on a face travels to that face's place, and from any of them the pin is "here". Moving between two places of one pin
+draws no journey. The validator wants the pin's place to exist, in the same region, and not to join another itself.
 
 ### Speech: only the mouth moves
 

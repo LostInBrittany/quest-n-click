@@ -29,6 +29,8 @@ const WRITERS: Record<string, string> = {
     "elsewhere: the CLI's token file (0600) in the user's configuration folder",
   'studio-server/src/server/main.ts':
     'journal: import copies a game beside the instance folder and renames it in before the journal adopts it; export writes a folder named on the command line; worker-keys writes a key pair to a folder named on the command line',
+  'studio-server/src/ops/diff-captures.ts':
+    "elsewhere: the diff's captures and the two revisions' scratch copies, in .cache/studio/<game>-diff-<from>-<to>/",
   'studio-server/src/worker/snapshot.ts':
     "elsewhere: a job's snapshot, unpacked into the worker's fresh job folder in .cache/jobs/",
   'studio-server/src/worker/main.ts':

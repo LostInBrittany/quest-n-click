@@ -420,6 +420,12 @@ export interface HotspotDef {
   visible?: Cond;
   /** Generated from `RoomDef.exits` (core/define.ts): not written by the author. */
   exit?: boolean;
+  /**
+   * What a single tap on it does with no verb picked (4.4.0): `go` walks there and acts on arrival with the double
+   * tap's verb (`defaultVerb`), like an exit with `input.exitOnTap`; `walk` (the default) only walks there. E.g. an
+   * endless aisle that says why one does not walk down it. Input only: the rules, the solver and saves do not see it.
+   */
+  onTap?: 'go' | 'walk';
 }
 
 /** A conversation topic offered when talking to an actor: its line, when it is offered, what it runs. @public */

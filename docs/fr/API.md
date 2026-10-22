@@ -178,7 +178,7 @@ Un jeu ajoute les siens dans `minigames` de son module (même contrat) : c'est l
 | `GameState` | `interface { v, room, inventory, flags, props, actors, … 15 more }` | public | The state of a game in progress, serialised as-is in a save: room, inventory, flags, props, actors, counters, scripts. |
 | `generateWheel` | `(p: CodeWheelParams, seed: string, id?: string): CodeWheel` | public | The wheel of a seed (the `copy-protection` stream of `<seed>\|code-wheel\|<id>`). Throws on parameters `wheelProblems` refuses. |
 | `HintDef` | `interface { id, until, lines }` | public | A hint the hint item gives while its `until` condition is false, as lines said in order. |
-| `HotspotDef` | `interface { defaultVerb, name, kind, visible, exit }` | public | A named zone of the room the player can act on; its geometry lives in the layout. |
+| `HotspotDef` | `interface { defaultVerb, name, kind, visible, exit, onTap }` | public | A named zone of the room the player can act on; its geometry lives in the layout. |
 | `Id` | `type Id = string` | public | An identifier in the content (a room, an item, a flag, a character, a prop…): a plain string the game chooses. |
 | `IrEntity` | `interface { key, kind, id, room, name, kinds, … 12 more }` | public | A thing of the game: a prop, an actor or a hotspot of a room, an item, a character. |
 | `IrExtensions` | `interface { trusted, commands, minigames, plugins }` | public | The trusted code a game names (ADR 0002): custom commands with their declared effects, minigames, plugins. |
@@ -210,7 +210,7 @@ Un jeu ajoute les siens dans `minigames` de son module (même contrat) : c'est l
 | `normalizeSeed` | `(input: string): string` | public | The canonical form of a typed code (`ws-abcd-efgh`, `WSABCDEFGH`, with `I`/`L`/`O` read as digits), or a `RemixSeedError` that says what is  |
 | `ObjectiveDef` | `interface { title, done, optional, parent }` | public | An objective of the game (4.1.12, ADR 0014): its title in the quest journal, the condition that completes it, whether 100% needs it, and the |
 | `parseManifest` | `(input: unknown): VariationManifest` | public | A manifest checked against its schema (a malformed one is an error naming the path). |
-| `PlaceDef` | `interface { name, room, region, pos, portrait, vehicle, … 1 more }` | public | A place on the travel map: the room it opens, its region and position, its vehicle and its news marker. |
+| `PlaceDef` | `interface { name, room, region, pos, portrait, joins, … 2 more }` | public | A place on the travel map: the room it opens, its region and position, its vehicle and its news marker. |
 | `Point` | `type Point = [number, number]` | public | Logical coordinates of a backdrop: 640 × 400, origin top-left. |
 | `PropAnim` | `interface { frames, fps, loop, at }` | public | A prop animation: images in order at `fps` (default 8); `at` = commands run when a frame is reached (index). |
 | `PropDef` | `interface { defaultVerb, img, states, anims, initial, name, … 2 more }` | public | A prop in the scenery, with states (e.g. amp off/on). Its position comes from the layout. |

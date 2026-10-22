@@ -5,6 +5,7 @@ import { rendererOf, stageOf } from '../core/stage';
 import { stageLayoutChecks } from './validate-stage';
 import { migrationChecks } from './validate/migrations';
 import { objectiveChecks } from './validate/objectives';
+import { mapChecks } from './validate/map';
 import { playerChecks } from './validate/player';
 import { remixChecks } from './validate/remix';
 import { speedrunChecks } from './validate/speedrun';
@@ -832,23 +833,7 @@ export function validate(gameIn: GameDef, layouts: Record<string, Layout>, opts:
   events(game.events, 'events');
 
   // Map
-  if (game.map) {
-    const m = game.map;
-    if (!m.regions[m.start]) err('map', `unknown start region: "${m.start}"`);
-    for (const [rid, reg] of Object.entries(m.regions)) {
-      img(reg.image, `map.${rid}`);
-      if (reg.parent && !m.regions[reg.parent]) err(`map.${rid}`, `unknown parent region: "${reg.parent}"`);
-    }
-    for (const [pid, p] of Object.entries(m.places)) {
-      const w = `map.${pid}`;
-      if (!rooms.has(p.room)) err(w, `unknown room: "${p.room}"`);
-      if (!m.regions[p.region]) err(w, `unknown region: "${p.region}"`);
-      img(p.portrait, w);
-      cond(p.news, w);
-    }
-    for (const v of Object.values(m.vehicles ?? {})) img(v, 'map.vehicles');
-    if (m.music && !music[m.music]) err('map', `unknown music: "${m.music}"`);
-  }
+  mapChecks(game, { err, img, cond: (c, w) => cond(c, w), rooms, music });
 
   // Rooms
   // The stage (3.4): ids, images, geometry for every id and nothing else, walk zones joined by their links, what
@@ -1053,7 +1038,7 @@ export function validate(gameIn: GameDef, layouts: Record<string, Layout>, opts:
 
   // Chapters, invariants, the player's side (menus, taps), migrations
   (game.invariants ?? []).forEach((c, i) => cond(c, `invariants[${i}]`));
-  playerChecks(game, { err, warn });
+  playerChecks(game, { err, warn, locales: opts.locales });
   migrationChecks(game, { items, rooms, places, scriptIds, playerIds, chars, err, warn });
   // Checkpoints
   for (const [cid, c] of Object.entries(game.checkpoints ?? {})) {

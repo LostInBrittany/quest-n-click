@@ -86,7 +86,7 @@ export function collectRefs({
   for (const it of Object.values(game.items)) add(it.icon);
   if (game.map) {
     Object.values(game.map.regions).forEach((r) => add(r.image));
-    Object.values(game.map.places).forEach((p) => add(p.portrait));
+    Object.values(game.map.places).forEach((p) => ([] as string[]).concat(p.portrait ?? []).forEach(add));
     Object.values(game.map.vehicles ?? {}).forEach(add);
   }
 
@@ -122,7 +122,16 @@ export function collectRefs({
     audio: {
       music: { ...(game.audio?.music ?? {}), ...stems },
       sfx: game.audio?.sfx ?? {},
-      voices: game.audio?.voices ?? {},
+      // A translation's clips ship too (4.4.0: before, only `audio.voices` did and a French clip was never encoded),
+      // keyed `<lang>:<id>`; the player finds them by file name (`voicesByLang`, boot.ts).
+      voices: {
+        ...(game.audio?.voices ?? {}),
+        ...Object.fromEntries(
+          Object.entries(game.audio?.voicesByLang ?? {}).flatMap(([lang, m]) =>
+            Object.entries(m).map(([id, f]) => [`${lang}:${id}`, f]),
+          ),
+        ),
+      },
     },
   };
 }

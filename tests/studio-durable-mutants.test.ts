@@ -10,7 +10,7 @@ import { sweepTemporaries, writeDurable } from '../studio-server/src/ops/durable
  * 4.3.0: the directory's open for its fsync, made to fail with a chosen code (`fail.code`, for the directory
  * `fail.dir` only). Every other call of node:fs is the real one, so the tests above run as they always did.
  */
-const fail = vi.hoisted(() => ({ dir: '', code: '' }));
+const fail = vi.hoisted(() => ({ dir: '', code: '', short: 0 }));
 vi.mock('node:fs', async (orig) => {
   const real = await orig<typeof import('node:fs')>();
   const openSync = ((p: string, flags: string, mode?: number) => {
@@ -18,7 +18,15 @@ vi.mock('node:fs', async (orig) => {
       throw Object.assign(new Error(`${fail.code}: open of ${p}`), { code: fail.code });
     return real.openSync(p, flags, mode);
   }) as typeof real.openSync;
-  return { ...real, openSync, default: { ...real, openSync } };
+  // 4.4.0: the next `fail.short` writes are short by one byte (a FUSE or network file system may write less than asked).
+  const writeSync = ((fd: number, buf: Buffer, off: number, len: number) => {
+    if (fail.short > 0 && len > 1) {
+      fail.short--;
+      return real.writeSync(fd, buf, off, len - 1);
+    }
+    return real.writeSync(fd, buf, off, len);
+  }) as typeof real.writeSync;
+  return { ...real, openSync, writeSync, default: { ...real, openSync, writeSync } };
 });
 
 let dir: string;
@@ -28,6 +36,7 @@ beforeEach(() => {
 });
 afterEach(() => {
   fail.code = '';
+  fail.short = 0;
   rmSync(dir, { recursive: true, force: true });
 });
 
@@ -52,6 +61,16 @@ describe('writeDurable', () => {
     writeDurable(b, 'replaced');
     expect(readFileSync(b, 'utf8')).toBe('replaced');
     expect(sweepTemporaries(dir)).toEqual([]);
+  });
+});
+
+describe('a short write', () => {
+  it('writes the rest from where it stopped, whole (4.4.0)', () => {
+    const f = join(dir, 'short.txt');
+    fail.short = 1;
+    writeDurable(f, 'abcdefgh');
+    expect(fail.short).toBe(0);
+    expect(readFileSync(f, 'utf8')).toBe('abcdefgh');
   });
 });
 

@@ -210,6 +210,11 @@ marche dans un jeu qui a le réglage, `onTap: 'go'` la fait franchir dans un jeu
 (`exits: { path: { name: 'chemin', to: 'village', onTap: 'go' } }`). Désactivé par défaut. C'est de l'entrée
 seulement : les règles, le solveur et les sauvegardes ne le voient pas.
 
+Une zone peut aussi dire `onTap: 'go'` (4.4.0) : un simple tap y marche et agit à l'arrivée avec son `defaultVerb`.
+Par exemple une allée sans fin qui dit pourquoi on ne s'y engage pas :
+`hotspots: { allee: { name: 'allée', defaultVerb: 'use', onTap: 'go' } }`, avec une règle pour Utiliser allée. Sans
+lui, un tap sur une zone ne fait qu'y marcher ; `input.exitOnTap` ne concerne que les sorties et n'y change rien.
+
 **Une touche par verbe (4.3.0).** Sur un ordinateur, les jeux LucasArts choisissaient un verbe au clavier : O pour
 Ouvrir, R pour Regarder. Le `key` d'un verbe fait de même : `{ id: 'open', label: 'Open', color: '#8fd3ff', key: 'o' }`.
 La touche, en majuscule ou en minuscule et sans Ctrl, Alt ni Meta, choisit le verbe comme un tap sur son bouton (et le
@@ -402,6 +407,14 @@ allure, son nom, et les mots que les autres emploient pour lui. Il faut un drape
 convient), un personnage avec une variante par héros, un choix d'intro qui pose le drapeau, et des aiguillages dans les
 textes qui en dépendent.
 
+**Un exemple jouable** : `games/heroes` (« Qui suis-je aujourd'hui ? », 4.4.0) réunit le tout dans un seul lieu. Trois
+héros sur des cartes à portrait (Pixel, Biscuit, Gaby la mouette), `{hero}` et des aiguillages dans les répliques de
+Grand-mère, une table française qui ajoute ses propres accords (`Prêt{form?gull=e|*=}`), les répliques de Grand-mère
+doublées par héros dans les deux langues, une règle que seule la mouette reçoit, et une sauvegarde qui garde le héros.
+`GAME=heroes npm run dev` pour y jouer ; `GAME=heroes npm run solve -- --prove` le prouve pour chaque héros ; son test
+navigateur (`games/heroes/e2e.mjs`) choisit chaque héros en anglais et en français, sauvegarde, recharge, reprend et
+termine.
+
 ```ts
 hero: 'kid',
 characters: {
@@ -479,6 +492,14 @@ look: { grandma: 'Grand-mère. La poussière {form?knight=le|witch=la|robot=le} 
   ([AUDIO.md](AUDIO.md), « Voix »). `{hero}` seul n'est pas un aiguillage : une telle réplique garde un seul clip.
 - **Voir chaque héros** : l'onglet Play du Studio a un sélecteur « Text switches » qui pose le drapeau, et l'onglet
   Rooms montre sous un texte à aiguillage comment il se lit ([STUDIO.md](STUDIO.md)).
+- **Tous les héros dans toutes les langues d'un coup** (4.4.0) : l'onglet Voices du Studio, vue « Heroes ×
+  languages », est une matrice en lecture seule des répliques à id qui dépendent du héros (un aiguillage ou `{hero}`,
+  dans n'importe quelle langue). Une colonne par héros (chaque valeur que prennent les drapeaux aiguillés, avec le
+  portrait et le nom de sa variante) et par langue ; dans chaque case, le texte tel que ce héros le lit et le clip qui
+  se joue, ou `missing <clé>` (avec l'id seul quand il se joue en repli). Une ligne dit aussi quand une langue a
+  encore le texte de la source (`untranslated`), quand une traduction perd un choix de la source (`agreement`), et
+  quand la valeur d'un héros n'est listée par aucun aiguillage de la réplique sans `*=` (`unlisted`). « Lines with a
+  problem » ne garde que celles-là.
 
 Ce que disent les outils :
 
@@ -782,9 +803,18 @@ map: {
   regions: { monde: { name: 'Monde', image: 'decor/carte' }, ville: { name: 'Ville', image: 'decor/carte_ville', parent: 'monde' } },
   places: {
     marche: { name: 'Marché', room: 'marche', region: 'ville', pos: [61, 41], portrait: 'vendeuse/r1c2', vehicle: 'car', news: '!marche_fini' },
+    // Plusieurs personnes y vivent : leurs visages côte à côte sur l'épingle (4.4.0).
+    port: { name: 'Port', room: 'quai', region: 'ville', pos: [30, 70], portrait: ['capitaine/r1c2', 'cuisinier/r1c2'] },
+    // Un autre lieu de la même ville : son visage rejoint l'épingle du port et y mène directement (4.4.0).
+    phare: { name: 'Port : le phare', room: 'phare', region: 'ville', pos: [30, 70], portrait: 'gardien/r1c2', joins: 'port' },
   },
 },
 ```
+
+Un lieu qui `joins` un autre se place sur son épingle au lieu d'avoir la sienne : une fois débloqué, son visage s'y
+ajoute, toucher un visage mène au lieu de ce visage, et depuis chacun d'eux l'épingle est « ici ». Passer d'un lieu à
+l'autre de la même épingle ne trace pas de trajet. Le validateur veut que le lieu de l'épingle existe, dans la même
+région, et qu'il n'en rejoigne pas lui-même un autre.
 
 ### Parole : seule la bouche bouge
 

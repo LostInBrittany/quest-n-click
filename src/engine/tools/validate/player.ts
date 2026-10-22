@@ -21,9 +21,15 @@ const ON_TAP = new Set(['go', 'walk']);
 
 export function playerChecks(
   game: GameDef,
-  o: { err: (where: string, msg: string) => void; warn: (where: string, msg: string) => void },
+  o: {
+    err: (where: string, msg: string) => void;
+    warn: (where: string, msg: string) => void;
+    /** The translations: their verb keys are checked too (4.4.0: by every caller of `validate`, the Studio's too). */
+    locales?: Readonly<Record<string, Record<string, string>>>;
+  },
 ): void {
   const { err, warn } = o;
+  if (o.locales) localeVerbKeyChecks(game, o.locales, o);
   if (game.saves && (!Number.isInteger(game.saves.slots) || game.saves.slots < 0))
     err('saves', 'slots must be a whole number');
   if (game.saves?.slots)
@@ -45,6 +51,10 @@ export function playerChecks(
     for (const [xid, ex] of Object.entries(r.exits ?? {}))
       if (ex.onTap !== undefined && !ON_TAP.has(ex.onTap))
         err(`${r.id}.exits.${xid}`, `onTap is "go" or "walk", not "${String(ex.onTap)}"`);
+  for (const r of game.rooms)
+    for (const [hid, h] of Object.entries(r.hotspots ?? {}))
+      if (!h.exit && h.onTap !== undefined && !ON_TAP.has(h.onTap))
+        err(`${r.id}.hotspots.${hid}`, `onTap is "go" or "walk", not "${String(h.onTap)}"`);
   verbKeyChecks(game.verbs, o);
   // A single-letter shortcut must be one the player can turn off (WCAG 2.1.4): the settings row does it (4.3.0).
   if (game.verbs.some((v) => v.key !== undefined)) {

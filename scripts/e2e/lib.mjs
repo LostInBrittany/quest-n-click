@@ -274,7 +274,11 @@ export async function launch(url, opts = {}) {
     throw new Error(`verb: refused "${label}"`);
   }
 
+  // The labels of the page as loaded: another load (a reload, another `?lang=`) reads them again.
   let verbsCache = null;
+  page.on('framenavigated', (f) => {
+    if (f === page.mainFrame()) verbsCache = null;
+  });
   async function verbs() {
     if (!verbsCache)
       verbsCache = await page.evaluate(() =>

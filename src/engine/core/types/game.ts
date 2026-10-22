@@ -99,7 +99,13 @@ export interface PlaceDef {
   region: Id;
   /** Position on the region's image, in % [x, y]. */
   pos: [number, number];
-  portrait?: Id;
+  /** The face on its pin, or several faces side by side (4.4.0) when several characters live there. */
+  portrait?: Id | Id[];
+  /**
+   * Another place whose pin this one sits on (4.4.0): a city with several rooms to travel to is one pin, each face on it
+   * a way to its own place. The face shows once this place is unlocked; its `pos` is not used (write the pin's).
+   */
+  joins?: Id;
   /** Vehicle drawn along the route. */
   vehicle?: 'car' | 'plane';
   /** "!" shown while this condition is true. */

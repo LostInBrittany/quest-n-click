@@ -318,6 +318,7 @@ async function start() {
     rooms.onFileChanged(file);
     assets.onFileChanged(file);
     scenario.onFileChanged(file);
+    voices.onFileChanged(file);
     if (file === 'storyboard.json' && outside) storyboard.onDiskChange();
     if (file === 'notes.json' && outside) void store.load();
     // Another member's voice row (H10): read again, so the next edit is made from it.

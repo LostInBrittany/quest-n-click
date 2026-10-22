@@ -585,3 +585,21 @@ button.danger { color: var(--red); border-color: #5a2a2a; }
 .line .txt textarea { width: 100%; }
 .switch-preview { padding: 2px 4px 0; overflow-wrap: anywhere; }
 .switches label { white-space: nowrap; }
+/* 4.4.0: the hero × language matrix (src/studio/hero-matrix.ts), the Voices tab's second view */
+.voices > .bar:first-child button.on { border-color: var(--yellow); color: var(--yellow); }
+.hm-scroll { overflow-x: auto; }
+.vtable.hm { width: auto; min-width: 100%; }
+.vtable.hm th.hm-hero { text-align: center; border-left: 1px solid rgba(160, 140, 220, .3); }
+.hm-portrait { width: 40px; height: 40px; object-fit: contain; image-rendering: pixelated; display: block; margin: 0 auto 2px; }
+.hm-cell { min-width: 160px; max-width: 280px; }
+.hm-clip { margin-top: 2px; color: var(--muted); }
+.hm-fallback { color: var(--yellow); }
+.vtable.hm tr.hm-problem td:first-child { box-shadow: inset 3px 0 var(--yellow); }
+.vtable.hm td.hm-bad { background: rgba(255, 107, 107, .07); }
+.tag.hm-warn { color: var(--yellow); margin: 2px 2px 0 0; display: inline-block; }
+/* 4.4.0: the diff's captures, before and after side by side (src/studio/diff-captures-view.ts) */
+.diff-pair { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 8px; }
+.diff-shot { margin: 0; }
+.diff-shot img { width: 100%; height: auto; border: 1px solid var(--line2); border-radius: 4px; }
+.diff-frame { position: relative; line-height: 0; }
+.diff-box { position: absolute; outline: 2px solid var(--red); outline-offset: 1px; pointer-events: none; }

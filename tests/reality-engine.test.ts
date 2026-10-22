@@ -104,6 +104,16 @@ describe('Engine.receive', () => {
     expect(e.state.reality?.playerId).toBe(PLAYER);
   });
 
+  it('a delivery without a player, or with an empty one, binds nothing: the save stays valid (4.4.0)', async () => {
+    const e = await engine();
+    expect(await e.receive(x(1))).toBe('applied');
+    expect(e.state.reality).not.toHaveProperty('playerId');
+    // `receive` is public (a replay tool calls it from a session file): '' is no player, and the save schema refuses it.
+    expect(await e.receive({ ...x(2, 'mail.answer.wrong'), playerId: '' })).toBe('applied');
+    expect(e.state.reality).not.toHaveProperty('playerId');
+    expect(() => parseSave(e.game, JSON.parse(JSON.stringify(saveEnvelope(e.game, e.state))))).not.toThrow();
+  });
+
   it('a skipped delivery moves the cursor and emits nothing; beyond MAX_PENDING ids above the cursor, overflow', async () => {
     const e = await engine();
     // Signed by the Bridge, expired for good: recorded as skipped, its event never runs.
