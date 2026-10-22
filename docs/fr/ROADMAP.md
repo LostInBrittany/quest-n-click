@@ -599,6 +599,20 @@ par la baseline ; un script de liens. Laissé pour plus tard, dit comme tel : le
 (`docs/dev/passes/4.1.8.md`), l'accélération du workflow de release (son propre lot), les 845 lignes de l'onglet
 assistant.
 
+## v4.4.0 « Author's Desk » (livrée en octobre 2026) : rendre plus simple la fabrication d'un jeu complet
+
+L'ordre qu'une relecture extérieure de la 4.3 demandait, moins ce que seules des personnes peuvent faire. Un exemple
+jouable du choix du héros en deux langues, `games/heroes`, avec son test navigateur ; le construire a trouvé trois bugs
+(les clips français jamais livrés, `voices check` qui lisait le texte source, les libellés du harnais e2e). La matrice
+héros × langue du Studio : chaque réplique aiguillée telle que chaque héros l'entend dans chaque langue, son clip et ce
+qui manque. Des captures avant/après des lieux que le diff sémantique nomme (Studio local). La prévisualisation
+hébergée mesurée phase par phase, puis une file à elle sur le worker, des écritures en parallèle et un seul instantané
+par révision. Les taps sur hotspot, les épingles de carte partagées et la colonne paysage du téléphone de Horacio
+(LostInBrittany). Les 137 exemptions de mutation relues (deux bugs : un listener par sondage Reality, le texte d'un
+e-mail décalé par `İ`), puis relues une seconde fois (une course à la restauration et une écriture courte fixées par
+des tests). Deux nouvelles passes, l'exemple sur téléphone et la matrice lue par un auteur : les passes humaines
+restent ce que la 4.4 ne pouvait pas faire.
+
 ## v4.3.1 « Voices by Language » (livrée en octobre 2026) : un correctif après une relecture extérieure
 
 Une relecture extérieure de la 4.3.0 a trouvé les aiguillages propres à une traduction perdus entre l'export des voix

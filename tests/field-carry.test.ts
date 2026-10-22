@@ -125,9 +125,14 @@ describe('the surfaces of a candidate', () => {
     // 4.2.2's two, from 4.2.2 on.
     const v422 = surfaces('4.2.2', { 'pack/web-scumm-studio-server-4.2.2.tgz': h('7') });
     expect(v422.surfaces.map((x) => x.id).sort()).toEqual([...passesFor('4.2.2')].sort());
-    // 4.2.3's two, from 4.2.3 on: every pass.
+    // 4.2.3's two, from 4.2.3 on.
     const v423 = surfaces('4.2.3', { 'pack/web-scumm-studio-server-4.2.3.tgz': h('7') });
-    expect(v423.surfaces.map((x) => x.id).sort()).toEqual([...PASS_IDS].sort());
+    expect(v423.surfaces.map((x) => x.id).sort()).toEqual([...passesFor('4.2.3')].sort());
+    // 4.4.0's two (the heroes example in two languages, the Studio's hero × language matrix): every pass. (This fake
+    // candidate's files bear the names before 4.2.5; the candidate run checks 4.4.0's own surfaces.)
+    expect(passesFor('4.4.0')).toEqual([...PASS_IDS]);
+    expect(passesFor('4.3.1')).not.toContain('heroes-two-languages');
+    expect(passesFor('4.3.1')).not.toContain('studio-hero-matrix');
     expect(Object.keys(v421.surfaces.find((x) => x.id === 'studio-hosted')!.artifactDigests)).toContain(
       'pack/web-scumm-studio-server-4.2.1.tgz',
     );
@@ -145,7 +150,7 @@ describe('the surfaces of a candidate', () => {
       version: '4.2.5',
       config: () => h('9'),
     });
-    expect(v425.surfaces.map((x) => x.id).sort()).toEqual([...PASS_IDS].sort());
+    expect(v425.surfaces.map((x) => x.id).sort()).toEqual([...passesFor('4.2.5')].sort());
     const read = v425.surfaces.flatMap((x) => Object.keys(x.artifactDigests));
     expect(read).toContain('pack/quest-n-click-4.2.5.tgz');
     expect(read).toContain('image/quest-n-click-bridge-image.tar');

@@ -7108,3 +7108,255 @@ magenta, and it is the delicate part).
 → next: 4.4.0, in this order: a playable example with three heroes in two languages (browser tests, save and resume),
 the first people's passes early, the hosted preview measured in parallel, then the Studio's hero × language matrix
 shaped by what the passes show, captures in the semantic diff, npm publishing.
+
+## #256 · 2026-10-21 · Claude · proposal · 4.4.0: a hotspot that acts on a single tap, onTap: 'go' (#221)
+
+- `dom/input.ts` `tapVerb()`: a single tap with no verb picked acted only on exits (an exit's `onTap`, or the game's
+  `input.exitOnTap`, #188); on any other hotspot it only walked. Found in a game whose cellar has an endless aisle:
+  Use aisle says why one does not walk down it, but the player's first gesture, a single tap, walked the hero there in
+  silence.
+- `HotspotDef.onTap?: 'go' | 'walk'`, the exit's field on a plain hotspot: `go` returns the hotspot's `defaultVerb`
+  from `tapVerb()`, `walk` (the default) returns null as before. `input.exitOnTap` is not read for a plain hotspot:
+  it is about exits, and a game that sets it keeps its hotspots walk-only. A picked verb still wins.
+- Input only: `ir-fields.ts` classes it `presentation`, so the logic fingerprint, the solver and saves do not move.
+  The validator checks the value as it does an exit's (`tools/validate/player.ts`).
+- Tests: `tests/dom/hotspot-on-tap.test.ts` (go acts on arrival, no onTap only walks even with `exitOnTap`, walk only
+  walks, a picked verb wins, the validator). CONTENT_GUIDE in both languages, API.md regenerated.
+
+→ next: review.
+
+
+## #257 · 2026-10-21 · Claude · proposal · 4.4.0: one map pin for a city with several places, portrait lists and joins (#223)
+
+- Found in a game whose city has two destinations (the reception, an open space): two places drew two pins, on top
+  of each other at one `pos` (only the top one tappable, a journey drawn from the city to itself) or apart, as if the
+  city were two towns.
+- `PlaceDef.portrait?: Id | Id[]`: several faces side by side on one pin, overlapping a little; the pin widens, each
+  face keeps its size. `asset-graph.ts`, `tools/refs.ts` and the validator read every face.
+- `PlaceDef.joins?: Id`: `dom/map-view.ts` groups the unlocked places by their pin (`joins ?? id`). A one-place pin
+  is a button as before; a pin with several places is a `div` with one `.facebtn` per face, named after its place
+  (`aria-label`), the current one ringed (`.facebtn.here`). Going between two places of one pin resolves at once, no
+  journey drawn; a journey to or from a joined place starts or ends at its pin's `pos`. The list under the map still
+  names each place. `style.css`: the face button's rules, `box-sizing: border-box` so a face's border does not cover
+  its neighbour's button.
+- The map checks moved out of `tools/validate.ts` to `tools/validate/map.ts` (`mapChecks`), with the new ones: the
+  joined place exists, is not the place itself, joins no other pin, is in the same region. `validate.ts` shrank by 15
+  lines, its cap in `tests/file-size.test.ts` lowered to its size (1096 → 1081).
+- Tests: `tests/dom/map-portraits.test.ts` (every face drawn in order, the validator and asset graph read each) and
+  `tests/dom/map-joined-places.test.ts` (one pin with both faces, a face travels to its own place with no journey,
+  the locked place's face hidden, "here" from the joined room, the validator's four refusals). CONTENT_GUIDE in both
+  languages, API.md regenerated.
+
+→ next: review.
+
+
+## #258 · 2026-10-22 · Claude · proposal · 4.4.0: the phone column fits a short landscape screen (#227)
+
+- `dom/shell.ts` `layout()`: the column's width is `W - 1.6 × H` (176 to 300 px), the verbs a fixed `max(44, min(56,
+  12% of H))` px, the slots squares a third of the column wide (`.slot { aspect-ratio: 1 }`). Nothing tied the sum to
+  the height: on a wide and short screen (a phone in landscape with its browser's bars, 844 × 320) the stack reached
+  387 px and the tools row, pushed last, left the screen. Reported on a phone playing a game in production; our
+  844 × 390 screenshots fit, which is why it went unseen.
+- The fix: `dom/side-fit.ts` `fitSide()`, pure, from the column's height and what is neither a verb row nor a slot row
+  (measured by `fitSideColumn()`: padding, gaps, the tools row as the fonts draw it, the bag's page buttons when they
+  show). Order of sacrifice: the slots' squareness (`.inv.fit`, a `--slot-max` height), the verbs' comfort (down to
+  44 px), then an even share, never under 24 px. `renderInv` refits when the page buttons show or hide. The tools row
+  and the page buttons are `flex: none`; `.side` scrolls past the floor rather than cutting.
+- Also: `layout()` read `#app`'s border box, safe-area padding included; it now reads the content box, so the game no
+  longer overflows into the notch or the home indicator.
+- Measured (Playwright, touch Chromium, DPR 2, demo `?dev&at=house`): 568 × 320, 640 × 360, 667 × 375, 740 × 360,
+  812 × 375, 844 × 390, 932 × 430 unchanged; 844 × 320 and 844 × 300 now fit (44/50 and 42/42 px verbs/slots), and
+  with nine items 568 × 320 and 844 × 320 too; the desktop layout is untouched.
+- Tests: `tests/side-fit.test.ts`, the order of sacrifice and the column's total against the height.
+
+→ next: review.
+
+
+## #259 · 2026-10-22 · Claude · proposal · 4.4.0: a translation's verb keys checked by every caller of validate
+
+- `localeVerbKeyChecks` ran in `tools/validate.ts` only; 4.3.1's reading named the gap (LOG #255). `playerChecks`
+  takes `locales` (which `validate` has had since 4.3.1 for the voices) and runs it; the command line's own call is
+  gone, so it is checked once. `tests/dom/verb-keys.test.ts`: the clash through `validate`, and nothing without the
+  tables. `validate.ts` keeps its line count (the size cap).
+→ next: none.
+
+
+## #260 · 2026-10-22 · Claude · proposal · 4.4.0: the Studio's hero × language matrix
+
+- An outside review asked for one view of what the data already implies: every hero's final text and clip, in every
+  language. `src/engine/tools/hero-matrix.ts` (pure) builds it from what exists: the game's switched flags and their
+  values (`gameSwitchFlags`, moved out of `src/studio/hero-picker.ts`, which re-exports it as `switchFlags`), the
+  hero's variant per combination (`check` on a state built from the start plus the column's flags), `applyLocale`,
+  `lineIds`, `renderText`, `voiceKey` / `lineClip` over each language's clips as boot.ts picks them (`langVoices`,
+  else the game's own: `borrowed`), and `switchesKept` (now exported from i18n.ts) for a lost agreement.
+- Exposed as `GET hero-matrix` (studio-server ops/core.ts + routes.ts, a reviewer's read), `api.heroMatrix` (server
+  and `BrowserApi`, over `mod.locales`), and the Voices tab's view switch (`src/studio/hero-matrix.ts`); the demo,
+  which has no recording table, opens on the matrix. Not an MCP tool: the voice table is not one either.
+- Choices: no "(unset)" column (the plain clip before the choice is the voice table's business); a voiced language
+  only flags missing clips (a game without any voice says nothing); columns capped at 24 combinations (`truncated`).
+- Tests: `tests/hero-matrix.test.ts` (the matrix on the heroes fixture and its French "Ready?", the server, its route
+  and the demo alike), `tests/dom/studio-hero-matrix.test.ts` (headers, cells, filters, the tab's switch).
+→ next: a human pass on the Voices tab's matrix with the heroes example.
+
+
+## #261 · 2026-10-22 · Claude · proposal · 4.4.0: before/after captures in the semantic diff
+
+- An outside review asked for them ("voir immédiatement une régression de placement, de police ou de débordement"),
+  and 4.2.3 left them open (D45). `tools/studio/diff-rooms.ts` (pure) says which rooms: `layout/<id>.json`, a room's
+  source (every room a shared file defines, by the head's room files), `rooms/<id>.ts` for a room added or removed,
+  a locale's `room:<id>/…` keys; other drawn files (`cast.ts`, `site.json`, a locale's other keys) alone give the
+  first room as a sample; authoring files, tests, `private/`, `art/`, `audio/` are not drawn; cut at 6.
+- `studio-server/src/ops/diff-captures.ts`: a revision is the folder on disk with every journal operation after it
+  undone from its "before" blob (`snapshotAt`, packed as the worker's snapshot), built by `localPreview` (the
+  worker's child, `vite build` of preview-build.ts: the game's code never runs in the Studio's process), and served
+  to one headless Chromium from memory through `context.route` (no server, no port): the build's files, else
+  `public/` and the prepared assets, the same for both sides. 960 × 600, one device pixel, reduced motion, CSS
+  animations and transitions off, `document.fonts.ready`, images decoded, the editor's overlays hidden (as the
+  existing screenshot). The two captures are compared in that browser: `box` where any channel is off by more than
+  16, `same` when nowhere. Exact bytes were not enough: two renders of one page differed by 2 on an anti-aliased
+  corner of the inventory. Measured on the demo: the whole route (two builds, four captures) in about 5 s.
+- `core.diffCaptures` (unavailable with an `executor`: hosted), `GET diff/<from>..<to>/captures` (501 with the
+  reason), the panel's button and view (`src/studio/diff-captures-view.ts`), PNGs as data URLs (both servers answer
+  them; no file route needed) and as files under `.cache/studio/<game>-diff-<from>-<to>/`.
+- Limits, said in STUDIO "Check": local only; default language; the room as entered, not at a chosen checkpoint;
+  today's prepared images, sounds and fonts on both sides; a hand edit the journal did not record is on both sides.
+- Tests: `tests/studio-diff-rooms.test.ts` (which rooms), `tests/studio-diff-captures.test.ts` (the demo over a
+  journal: a revision put back; the garden's tank moved 200 px gives two different PNGs and a box in the scene; a
+  market look line gives `same`; hosted unavailable; real builds and Chromium), `tests/dom/studio-diff-panel.test.ts`
+  (the captures asked on demand, the box in percents, a missing side, the hosted refusal). CI: the unit jobs do not
+  install Chromium, so the drawing test is skipped there; `studio-hosted` (which does) runs it with
+  `STUDIO_TEST_CAPTURES=1`, required; Windows excludes it like the worker's tests; `tools/ci-plan.ts` gates the test
+  and `diff-rooms.ts` on `studioHosted`.
+→ next: the captures on a hosted Studio (Chromium qualified on the worker, or drawn from the revisions' previews in
+the reviewer's browser), and a checkpoint or a language to draw at.
+
+
+## #262 · 2026-10-22 · Claude · proposal · 4.4.0: the hosted preview, measured phase by phase, then made faster
+
+- **Why**: on the reference deployment (QUALIF-4.2.3 §6) a hosted preview takes p50 34 s, p95 44 s from a write to
+  ready, while the worker's own `preview` job takes about 6 s. A reading of the code gave suspects (the worker's one
+  job at a time behind the health's `validate` and `solve`, the files stored one after another, the staging deletes
+  awaited, a snapshot packed three times per revision) but no measure said which.
+- **Instrumentation, no behaviour change**: the `preview` line's phases (`queuedMs`, `snapMs`, `jobMs`, `storeMs`,
+  `sinceWriteMs`); a `worker-call` line per job on the Studio's side (`putMs`, `postMs`, `getMs`, `delMs`); the
+  worker's `worker-job` line (`queueMs`, `fetchMs`, `unpackMs`, `childMs`, `putMs`); two histograms. The help of
+  `studio_preview_build_seconds` said it included the snapshot: it never did.
+- **Optimizations** (a second commit, to measure against the first):
+  - the worker's lanes (`worker/lanes.ts`): `preview` and `other`, one child each at most, 8 jobs held per lane; ADR
+    0028 says what two children at once change (nothing past the trust domain it already assumed);
+  - one snapshot per revision (`server/snapshot-memo.ts`), given again while the head (epoch, revision, read without
+    the lock) has not moved, forgotten at each `confirmed`; a failed pack is not kept;
+  - a build's files stored 8 at a time (`storeFiles`); the S3 blob store skips the PUT of a blob it wrote itself less
+    than an hour ago (the collection's grace is a day; the key is the content's hash); a HEAD was not enough: an old
+    blob's date must be refreshed, or the collection may take it before its row lands;
+  - the remote executor no longer awaits the staging deletes (`settled()` for the tests);
+  - not done: a persistent Vite `cacheDir` per worker. `vite build` does not use it (it holds the dev server's
+    prebundled dependencies), and a folder the game's code writes in must not outlive its job (ADR 0028).
+- **Tests**: tests/studio-worker-lanes, tests/studio-snapshot-memo, tests/studio-s3-blobs (new); the previews' phases
+  and `storeFiles` in tests/studio-workshop-previews-mutants; the phases and the staging in
+  tests/studio-remote-executor; the worker's line and a preview run beside a load in tests/studio-worker; the
+  histograms in tests/studio-metrics.
+→ next: measure both commits on the reference deployment (write → ready p50/p95, by phase) and write the numbers in
+QUALIF-4.2.3 §6; then the passes.
+
+
+## #263 · 2026-10-22 · Claude · proposal · 4.4.0: a playable example of choosing the hero (games/heroes)
+
+- The outside review of 4.3 asked for "un petit exemple réellement jouable, avec plusieurs héros et deux langues".
+  `games/heroes` ("Who Am I Today?") is one room, the demo's garden and art (D13; only `cat/r1c1`, `extras/r2c4` and
+  `extras/r2c5` are new in `public/assets/img`): one hero character (Pixel) with two variants (Biscuit, Gaby the gull)
+  read from `form`, set by the intro's three portrait cards. Grandma greets each by name with her own words, French
+  agrees what English does not (`Prêt{form?gull=e|*=}`, the farewell `sain{form?gull=e|*=} et sau{form?gull=ve|*=f}`),
+  her dust line has a clip per hero in English and in French, and her farewell one English clip, the gull's own in
+  French and the plain one for the cats. The clips are a babble synthesised by `games/heroes/audio/babble.py`
+  (provenance: stand-ins). `validate --release`, `solve --prove`, `i18n status`, `voices check`, `lint` and
+  `build:game` are clean; `provenance.lock.json` locks the 81 files.
+- The solver merges the heroes (the flag only feeds texts and looks): the proof has 3 states. `tests/heroes-game.test.ts`
+  shows it still goes down each card (a gate only one hero may open still finishes; a gate for nobody does not), then
+  plays the 3 heroes × 2 languages through the engine (names, lines, clips), and a French save continued in a new
+  engine.
+- The example found three gaps, fixed here: `tools/refs.ts` never listed `voicesByLang`, so `npm run assets` never
+  shipped a translation's clips (the player looks them up by file name: they 404ed); `tools/voices.ts check` called
+  `orphanClips` without the localized game (4.3.1 fixed `status` only); `scripts/e2e/lib.mjs` cached the verb labels
+  across page loads.
+- Browser: `games/heroes/e2e.mjs`, from the real title screen, for en then fr (`?lang=fr`) and each hero: the three cards
+  with their images, the hero's own line, its name on the engine's character, Grandma's greeting and dust line (the
+  clip id spied on `App.audio.voice`), the key, a reload and Continue (same hero, same key), the farewell and its clip,
+  the ending; in French no English default visible. Wired into the `reference` job (Chromium, after the chapter's own
+  steps: its build replaces the chapter's); `tools/ci-plan.ts` sends `games/heroes/` and `games/demo/` (which the
+  example reads) to that gate. Played locally on a production build in Chromium only.
+→ next: the first human passes of the example (a phone, both languages, the three heroes), then the Studio's hero ×
+language matrix.
+
+
+## #264 · 2026-10-22 · Claude · proposal · 4.4.0: the 137 mutation exemptions read again (4 killed, 2 bugs fixed, 133 to 4.5.0)
+
+- Every entry of `docs/dev/mutants.json` was due at 4.4.0. Four reviewers read them against origin/main 829d1126 (one
+  context per quarter, read-only), then each verdict was checked again here. Each kill's test sits in a file the
+  entry's set runs, checked by hand to fail with the mutant applied and pass without it.
+- Killed: `reality-runtime.ts` the binding's `&&` (`reality`, tests/reality-engine.test.ts: a delivery without a
+  player, or with `playerId: ''`, binds nothing; with `||` the save held `playerId: ''`, which the save schema
+  refuses); `bridge.ts` the re-sign cache's hit (`reality`, tests/bridge.test.ts: `signSignalSync` spied, a hit signs
+  nothing; the test's own comment was wrong, a scan wider than the cache misses all three, not two);
+  `badges/fetch.ts` the request's `timeout` answering `ok: false` (`connectors-pure`, new
+  tests/connectors-badges-timeout-mutants.test.ts: the socket's idle timer is armed in the request's constructor,
+  before the whole-exchange timer, so a connect that never completes fires it first; the old reason said the
+  opposite); `oidc.ts` verifyLogoutToken's `&&` (`studio-auth`, tests/studio-oidc-mutants.test.ts: `events: null`).
+- Fixed: `http-port.ts` `sleep` removes its abort listener when the wait ends on time (tests/reality-port.test.ts
+  counts them over twenty polls; the `once` entry is equivalent again, its context line updated);
+  `email/mime.ts` `htmlToText` lowers ASCII only, so `lower` keeps `html`'s indexes (tests/connectors-mime-mutants:
+  İ before a script, a comment, inside a style).
+- Kept, reason rewritten (16): `runs.ts` seedKind ×2 and `answer` ×2, `runs-store.ts` toRun, `envelope.ts`
+  worldEvidence, `verify.ts` the links count, `compile.ts` ×2 (a null command throws in eachCmd anyway),
+  `restore.ts` the deletes without --force (only a row committed in between by another connection, Postgres READ
+  COMMITTED, would differ), `ssh/connector.ts` parseKey may answer undefined too, `durable.ts` ×2, `oidc.ts`
+  `idTokenExpected` (openid-client sets it itself for a string nonce), `backup.ts` row order, `http-port.ts` sleep.
+- Per set, kept / killed / fixed: core 3/0/0, reality 15/2/1, runs 20/0/0, speedrun 9/0/0, remix 15/0/0,
+  connectors-pure 11/1/1, connectors-edge 14/0/0, reality-store 7/0/0, reality-store-postgres 1/0/0 (read by
+  argument, no database here), studio-ops 12/0/0, studio-auth 9/1/0, studio-workshop 10/0/0, voices 7/0/0.
+- Left as is, by choice: four entries (`runs.ts` ×2, `runs-store.ts` toRun, `envelope.ts`) differ only by an own key
+  set to undefined that no reader tells from an absent one; pinning object shapes was not worth four tests.
+
+→ next: the mutation sets run on the branch in CI; the remaining 133 are read again at 4.5.0.
+
+
+## #265 · 2026-10-22 · Claude · proposal · 4.4.0: the mutation reread read again (a restore race pinned, a short write tested, the simulator's listener)
+
+- A second automated reading of #235's work (LOG: the 137 exemptions read again) found two entries wrong and one leak
+  more. `restore.ts`'s `if (o.force)` was named equivalent, yet its own reason described a difference: a run or quota
+  that another connection commits after the checks (Postgres READ COMMITTED). Without `--force` the read-back refuses
+  and rolls back, keeping that row; the mutant would delete it and succeed. `tests/reality-store-backup-mutants.test.ts`
+  now stages that commit (a wrapper answers the checks as the store was before it) and kills the runs' and the quotas'
+  DELETE mutants; the daily records' stays named (without --force its key list is empty, nothing is sent).
+- `durable.ts`'s write loop: `buf.length - off` → `+` was named equivalent ("a regular file is written whole");
+  POSIX does not promise that (FUSE, network file systems). `tests/studio-durable-mutants.test.ts` makes one write
+  short by a byte: the original finishes the file, the mutant throws. The entry is removed.
+- `simulator.ts`: the same `{ once: true }` leak as the port's sleep, one listener per empty wait; removed when the
+  wait ends, `tests/reality-simulator.test.ts`.
+→ next: the release.
+
+
+## #266 · 2026-10-22 · Claude · proposal · 4.4.0: the device login's refusal named; offline_access in the runbook
+
+- Found on the reference deployment while measuring the preview: after the realm's admin was recovered, the login was
+  refused with a bare `ResponseBodyError`. `auth/device.ts` now turns the OAuth error (`error`, `error_description`)
+  into the message; the cause was the user's missing `offline_access` role (the CLI asks for `offline_access`, for its
+  refresh token). STUDIO-SERVER (en, fr) lists both requirements.
+→ next: none.
+
+## #267 · 2026-10-22 · Claude · release · 4.4.0 "Author's Desk": making a whole game simpler
+
+- **The maintainer's go** (22 October): « Va pour réaliser la 4.4 et prends en compte les PR qui ont été faites. Lance
+  la release. Je t'autorise à la signer. » The Studio's matrix went in without waiting for people's passes (« tu vas
+  direct en 4.4 »); the hosted preview measured and optimized on the reference deployment; no npm publishing.
+- **What ships**: #228 (#227), then one integration PR, #234, for #222 (#221), #224 (#223), #229, #230, #231, #232,
+  #233 and #235 (each reviewed and green on its own; together they conflicted only on generated files), LOG #256–#266.
+- **Read twice**: the second automated reading of the mutation reread named two entries wrong (a restore race, a short
+  write), both now killed by tests, and one leak more (the simulator), fixed (LOG #265).
+- **Measured**: the reference deployment, ten notes per series: median 17.8 s → 5.6 s, max 26.0 s → 11.7 s from a
+  write to a ready preview; the files stored 8 at a time are the gain, the worker's cold build is now the larger part.
+  Recovering the realm's admin for the measurement found the CLI's bare `ResponseBodyError` (LOG #266).
+- **Budgets**: the first visit's JavaScript 135 → 136 KB on the demo, the reference chapter's budget 140 → 142 KB.
+- **Passes**: 21, two new; none passed (docs/dev/passes/4.4.0.md).
+→ next: the people's passes, the heroes example and the matrix first; the worker's cold build (the preview's larger
+part now); captures on a hosted Studio; npm publishing.

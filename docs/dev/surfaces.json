@@ -279,6 +279,30 @@
    "dependencies": [
     "studio-hosted"
    ]
+  },
+  "heroes-two-languages": {
+   "since": "4.4.0",
+   "artifacts": [
+    "pack/{proj}-{pkg}.tgz"
+   ],
+   "config": [
+    "games/heroes/**",
+    "docs/en/CONTENT_GUIDE.md"
+   ],
+   "exclusions": [],
+   "dependencies": []
+  },
+  "studio-hero-matrix": {
+   "since": "4.4.0",
+   "artifacts": [
+    "pack/{proj}-{pkg}.tgz"
+   ],
+   "config": [
+    "docs/en/STUDIO.md",
+    "docs/en/CONTENT_GUIDE.md"
+   ],
+   "exclusions": [],
+   "dependencies": []
   }
  },
  "status": [
