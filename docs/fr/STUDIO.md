@@ -59,7 +59,21 @@ commandes personnalisées sont du code de confiance, pas des données isolées. 
   action qu'aucune règle ne répond, une réplique que le jeu ne dit pas, un son absent de `audio.sfx`) ; la barre montre
   le score global.
 - **Check** : le validateur et le solveur tournent après chaque enregistrement ; leur sortie et le chemin du
-  solveur sont affichés ici. « Screenshot » rend un lieu à un checkpoint (nécessite Playwright).
+  solveur sont affichés ici. « Screenshot » rend un lieu à un checkpoint (nécessite Playwright). **Changes between
+  revisions** dit ce qui a changé entre deux révisions, par ce que le jeu nomme ; depuis la 4.4.0, **Capture the rooms
+  (before / after)** dessine chaque lieu que ces changements nomment aux deux révisions, côte à côte, le rectangle où
+  elles diffèrent encadré (« no visible change » quand aucun pixel n'a bougé) : la disposition d'un lieu, sa source,
+  ses textes dans une langue (`room:<id>/…`) ; des fichiers partagés seuls (le casting, les objets, `site.json`)
+  dessinent le premier lieu ; six lieux au plus. Chaque révision est le dossier du jeu avec les opérations suivantes du
+  journal défaites, construit comme une prévisualisation (l'enfant du worker, jamais le processus du Studio) et dessiné
+  dans un Chromium sans tête en 960 × 600 (un pixel d'appareil, mouvements réduits, pas d'animation CSS, polices
+  chargées, surcouches de l'éditeur cachées). Limites : un Studio local seulement (`npm run studio` ; un Studio
+  hébergé répond 501, son worker n'a pas de navigateur) ; la langue par défaut du jeu ; le lieu tel qu'on y entre (son
+  premier checkpoint, sinon un état neuf), pas à un checkpoint choisi ; les images, sons et polices préparés
+  d'aujourd'hui des deux côtés (une image changée ne se voit qu'une fois préparée, et alors des deux côtés) ; une
+  retouche à la main que le journal n'a pas enregistrée est des deux côtés ; un canal décalé de 16 ou moins est le même
+  pixel (un bord anticrénelé bouge de 2 d'un rendu à l'autre). Les PNG restent sous
+  `.cache/studio/<jeu>-diff-<de>-<à>/`.
   En dessous, la **carte du monde** (lieux, sorties, gotos ; lieux inaccessibles et sorties sans retour en rouge) et le
   **rapport de contenu** (ce que pèse chaque lieu, objet et personnage : le profileur de `npm run validate -- --report`),
   et le **graphe de puzzles** : chaque règle, sujet, script et écouteur avec ce qu'il exige (flèches grises, pointillées
@@ -190,6 +204,7 @@ capture d'écran indisponible).
 | GET/PUT `storyboard` | `storyboard.json` (`{ boards: [] }` si absent). PUT attend `{ boards: [...] }`, renvoie `{ ok, changed }` : un storyboard inchangé n'est pas réécrit, un storyboard modifié est écrit de façon compacte (ce qui tient sur 120 colonnes reste sur une ligne) |
 | POST `storyboard/markdown` | → écrit `games/<id>/storyboard.md` à partir du `storyboard.json` enregistré (même texte que `npm run page:storyboard -- --md`) ; `{ ok, file, bytes, boards, panels }` ; 404 sans `storyboard.json` |
 | GET `diff/<de>..<à>` | 4.2.3 : ce qui a changé entre deux révisions, par ce que le jeu nomme : `{ files: [{ path, change: added\|removed\|changed, ids?: { added, removed, changed: [{ id, fields }] }, values?: { added, removed, changed }, opaque?, cut? }] }` (2 000 révisions au plus ; « Changes between revisions » dans l'onglet Check) |
+| GET `diff/<de>..<à>/captures` | 4.4.0, Studio local seulement : chaque lieu que le diff nomme dessiné aux deux révisions : `{ from, to, size: [960, 600], rooms: [{ room, why, before, after, box?, same? }], cut?, ms }`, un côté `{ file, url }` (une data URL PNG et son fichier sous `.cache/studio/`) ou `{ missing }` (pourquoi il n'est pas dessiné : la révision ne se construit pas, le lieu n'y est pas) ; `box` `[x, y, l, h]` où ils diffèrent, `same` quand nulle part ; 501 `{ unavailable, reason }` sur un Studio hébergé ou sans Playwright |
 | GET `groupings`, PUT `groupings`, GET `map` | 4.2.3 : le fichier des regroupements `{ groupings: [{ id, kind: chapter\|puzzle\|character, title, refs }] }` (vérifié : ids uniques et en minuscules, sortes connues, références sans espace ; 500 au plus de chaque), et la carte dérivée de lui et de l'IR : `{ groupings: [{ …, refs: [{ ref, kind, at? }] }], ungrouped: { <sorte>: [refs] } }` |
 | GET `notes`, POST `notes` | GET → `{ entries: Note[] }` ; POST `{ about?, author?, text }` → la nouvelle `Note = { id, about, author, text, at, edited? }` (auteur par défaut `you`, `at` est une date ISO), ajoutée à `notes.json` (créé à la première écriture) |
 | PUT `notes/:id` | `{ text, about? }` → la `Note` mise à jour (texte débarrassé des espaces superflus, `edited` réglé à maintenant ; `at`, `author` et l'ordre inchangés) ; 400 texte vide, 404 id inconnu |

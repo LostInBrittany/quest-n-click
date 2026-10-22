@@ -138,8 +138,9 @@ surface, à la fin de la 4.2.x :
 - une sauvegarde signée : son condensé dit qu'elle est entière, pas qui l'a faite (une sauvegarde est une entrée de
   confiance, elle peut ajouter des propriétaires) ; la signer demande une clé hors de l'instance, à décider avec la
   rotation des clés (D37) ;
-- les captures avant/après du diff, en local comme en hébergé (D45), avec Chromium qualifié sur l'application de
-  traitement : 4.3 ;
+- les captures avant/après du diff (D45) : en local depuis la 4.4.0 (un Studio local construit les deux révisions et
+  dessine leurs lieux dans Chromium, docs/fr/STUDIO.md « Check ») ; en hébergé toujours ouvertes, avec Chromium
+  qualifié sur l'application de traitement ;
 - `ids --lines` en opération exclusive (l'id d'une ligne n'est pas l'ancre d'un commentaire) : 4.3 ;
 - la publication npm : pas dans la 4.2.3 ; le moteur s'installe toujours depuis l'archive d'une release.
 

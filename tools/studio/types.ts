@@ -222,6 +222,32 @@ export interface SolveData {
 
 export type ScreenshotResult = { file: string; url: string } | { unavailable: true; reason: string };
 
+/** One side of a room's capture in the diff (4.4.0): the PNG (a data URL, and its file), or why there is none. */
+export type DiffShot = { file: string; url: string } | { missing: string };
+
+/** GET /diff/<from>..<to>/captures (4.4.0): each room the diff names, rendered at both revisions. */
+export type DiffCaptures =
+  | {
+      from: number;
+      to: number;
+      /** The captures' size in pixels (a fixed viewport, one device pixel). */
+      size: [number, number];
+      rooms: {
+        room: string;
+        why: string[];
+        before: DiffShot;
+        after: DiffShot;
+        /** Both sides drawn: where they differ ([x, y, width, height], in the captures' pixels)… */
+        box?: [number, number, number, number];
+        /** …or nowhere (no channel off by more than 16): no visible change at this size. */
+        same?: true;
+      }[];
+      /** More rooms than the captures show (6). */
+      cut?: true;
+      ms: number;
+    }
+  | { unavailable: true; reason: string };
+
 /** Server-sent event of GET /__studio/api/events. `file` is relative to the game folder (`rooms/house.ts`). */
 // ---------------------------------------------------------------------------
 // Demo mode (no server: GitHub Pages): a snapshot of the game, the user's edits as a patch list.
