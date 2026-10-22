@@ -948,7 +948,8 @@ jobs:
   # chapter by chapter, played to the end at the keyboard in Chromium and WebKit, in French with no English default
   # visible; its rooms against their references, its staged market at 30 fps or more with the CPU slowed 4×, its first
   # visit inside the weight prediction. Its own build (GAME=reference). Gate: `reference` (its content, the painters,
-  # the music, the e2e scripts, the authoring tools).
+  # the music, the e2e scripts, the authoring tools). Since 4.4.0 it also builds and plays the hero choice example
+  # (games/heroes) in Chromium.
   reference:
     needs: [plan, check]
     runs-on: ubuntu-24.04
@@ -1013,6 +1014,18 @@ jobs:
       # The default verb (4.0): a double tap goes through a door, talks to a character; an item from the bag is given or used.
       - if: env.RUN == 'true'
         run: npm run e2e:taps -- http://127.0.0.1:5175/ --browser=${{ matrix.browser }}
+      # The hero choice example (4.4.0, games/heroes), last: its own build replaces the chapter's. Proved for every hero,
+      # then each hero picked on its portrait card, in English and in French, saved, continued and finished.
+      - if: env.RUN == 'true' && matrix.browser == 'chromium'
+        run: GAME=heroes npm run build:game && GAME=heroes npm run solve -- --prove
+      - if: env.RUN == 'true' && matrix.browser == 'chromium'
+        run: npm run preview -- --port 5177 &
+      - if: env.RUN == 'true' && matrix.browser == 'chromium'
+        run: for i in $(seq 1 60); do curl -sf http://127.0.0.1:5177/ > /dev/null && break; sleep 1; done
+      - if: env.RUN == 'true' && matrix.browser == 'chromium'
+        run: npm run e2e -- http://127.0.0.1:5177/ --game heroes --prod
+        env:
+          E2E_OUT: /tmp/e2e-reference-heroes
       - if: failure() && env.RUN == 'true'
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
