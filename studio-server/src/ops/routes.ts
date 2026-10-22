@@ -100,6 +100,8 @@ export function routes(s: Studio): [string, RegExp, Handler][] {
     // A clip of a line with switches is keyed `<id>~<flag>=<value>` (4.3.0): the client encodes it (`=` is `%3D`).
     ['PUT', /^\/voices\/([\w-]+)\/([\w.~%-]+)$/, (m, b) => s.setVoice(m[1], voiceId(m[2]), voicePatch(b))],
     ['GET', /^\/voices\/([\w-]+)\/csv$/, (m) => s.voicesCsv(m[1])],
+    // 4.4.0: the hero × language matrix, read-only (a reviewer's, as every GET).
+    ['GET', /^\/hero-matrix$/, () => s.heroMatrix()],
     ['GET', /^\/storyboard$/, () => s.getStoryboard()],
     ['PUT', /^\/storyboard$/, (_m, b) => s.setStoryboard(b)],
     ['POST', /^\/storyboard\/markdown$/, () => s.exportStoryboardMarkdown()],

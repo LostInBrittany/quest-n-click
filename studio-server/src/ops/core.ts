@@ -64,6 +64,7 @@ import {
   type VoiceSheet,
   type VoiceStatus,
 } from '../../../src/engine/tools/voices';
+import { heroMatrix as heroMatrixOf, type HeroMatrix } from '../../../src/engine/tools/hero-matrix';
 import { PersonalUndo, type UndoDir } from './undo';
 import { type DiagnoseKind, HOSTED_SOLVE_MS, lintIn, playtestsIn, type SolveParams, solveIn } from './diagnose';
 import type {
@@ -927,6 +928,10 @@ export function createStudio(opts: StudioOptions = {}) {
     const v = await voices(lang);
     return { lang: v.lang, csv: toCsv(v.rows) };
   }
+  /** 4.4.0: the hero × language matrix (tools/hero-matrix.ts), read-only, over the game and its locale tables. */
+  async function heroMatrix(): Promise<HeroMatrix> {
+    return heroMatrixOf((await loadModule()).game, loadLocales(join(dir, 'locales')));
+  }
 
   /**
    * The validator's verdict on the game in `d` (the game folder, or the guard's staging folder): through the executor
@@ -1122,6 +1127,7 @@ export function createStudio(opts: StudioOptions = {}) {
     voices,
     setVoice,
     voicesCsv,
+    heroMatrix,
   };
 }
 

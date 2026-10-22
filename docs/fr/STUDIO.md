@@ -166,7 +166,13 @@ commandes personnalisées sont du code de confiance, pas des données isolées. 
 - **Jouer.** Le peintre de chaque lieu (celui du jeu, DOM ou canvas) et la vitesse de dessin (images par seconde,
   repeints du peintre canvas).
 - **Voix.** Le tableau de production des voix par langue (`npm run voices`) : statut, comédien et note par ligne,
-  enregistrés aussitôt ; Export CSV pour les comédiens.
+  enregistrés aussitôt ; Export CSV pour les comédiens. Sa seconde vue, **Heroes × languages** (4.4.0, en lecture
+  seule, la démo aussi) : chaque réplique à id qui dépend du héros (un aiguillage ou `{hero}`, dans n'importe quelle
+  langue), une colonne par héros (les valeurs des drapeaux aiguillés, avec le portrait et le nom de la variante) et par
+  langue, dans chaque case le texte que lit ce héros et le clip qui se joue, ou celui qui manque (l'id seul nommé quand
+  il se joue à sa place). Une ligne signale une langue non traduite, une traduction qui perd un choix de la source
+  (`agreement`) et une valeur qu'aucun aiguillage ne liste sans `*=` (`unlisted`) ; « Lines with a problem » ne garde
+  que celles-là ([CONTENT_GUIDE.md](CONTENT_GUIDE.md), « Choisir le héros »). Route : GET `hero-matrix`.
 - **Musique** (3.5). Les partitions du jeu par son propre directeur musical : en jouer une, entendre le mix de chaque
   état à la mesure suivante, couper ou isoler un stem, la mesure et le temps affichés pendant la lecture. Rien n'est
   écrit : les états sont du contenu dans `game.ts`.

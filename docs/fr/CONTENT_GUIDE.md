@@ -479,6 +479,14 @@ look: { grandma: 'Grand-mère. La poussière {form?knight=le|witch=la|robot=le} 
   ([AUDIO.md](AUDIO.md), « Voix »). `{hero}` seul n'est pas un aiguillage : une telle réplique garde un seul clip.
 - **Voir chaque héros** : l'onglet Play du Studio a un sélecteur « Text switches » qui pose le drapeau, et l'onglet
   Rooms montre sous un texte à aiguillage comment il se lit ([STUDIO.md](STUDIO.md)).
+- **Tous les héros dans toutes les langues d'un coup** (4.4.0) : l'onglet Voices du Studio, vue « Heroes ×
+  languages », est une matrice en lecture seule des répliques à id qui dépendent du héros (un aiguillage ou `{hero}`,
+  dans n'importe quelle langue). Une colonne par héros (chaque valeur que prennent les drapeaux aiguillés, avec le
+  portrait et le nom de sa variante) et par langue ; dans chaque case, le texte tel que ce héros le lit et le clip qui
+  se joue, ou `missing <clé>` (avec l'id seul quand il se joue en repli). Une ligne dit aussi quand une langue a
+  encore le texte de la source (`untranslated`), quand une traduction perd un choix de la source (`agreement`), et
+  quand la valeur d'un héros n'est listée par aucun aiguillage de la réplique sans `*=` (`unlisted`). « Lines with a
+  problem » ne garde que celles-là.
 
 Ce que disent les outils :
 
