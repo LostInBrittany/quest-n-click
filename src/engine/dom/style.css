@@ -36,7 +36,9 @@ body { -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
 .a11y-target { position:absolute; padding:0; border:2px solid transparent; color:transparent; background:transparent; opacity:.01; pointer-events:none }
 .a11y-target:focus-visible { opacity:1; color:#fff; background:rgba(12,16,28,.82); border-color:#ffd84d; outline:3px solid #111; outline-offset:2px; font:12px var(--font-pixel); z-index:2 }
 .shadow { position: absolute; border-radius: 50%; background: rgba(25, 5, 35, .35); pointer-events: none; }
-.side { flex: 1; min-width: 0; background: #07070d; border-left: 2px solid #1e2a3a; display: flex; flex-direction: column; gap: 6px; padding: 8px; box-sizing: border-box; }
+.side { flex: 1; min-width: 0; background: #07070d; border-left: 2px solid #1e2a3a; display: flex; flex-direction: column; gap: 6px; padding: 8px; box-sizing: border-box; overflow-y: auto; }
+/* The column fits the screen (dom/side-fit.ts: verbs and slots shrink first); the scroll is the last resort, never a cut. */
+.side > .tools, .side > .invnav { flex: none; }
 .side.off { opacity: .35; pointer-events: none; }
 .verbs { display: grid; grid-template-columns: repeat(3, 1fr); gap: 2px; }
 .verbs[hidden], .inv[hidden], .invnav[hidden], .tools[hidden] { display: none; }
@@ -46,6 +48,8 @@ body { -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
 @keyframes blink { 50% { background: #5a4a10; box-shadow: 0 0 0 2px #ffd84d inset; } }
 .inv { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; border: 2px solid #1e2a3a; border-radius: 6px; padding: 4px; }
 .slot { aspect-ratio: 1; background: #0b1220; border: 2px solid transparent; border-radius: 6px; display: flex; align-items: center; justify-content: center; cursor: pointer; padding: 0; }
+/* A column too short for square slots (dom/side-fit.ts): the slots keep their width and take the height it allows. */
+.inv.fit .slot { aspect-ratio: auto; height: var(--slot-max); }
 .slot img { width: 78%; height: 78%; object-fit: contain; pointer-events: none; }
 .slot.sel { border-color: #ffd84d; background: #2a2410; }
 .invnav { display: flex; gap: 5px; align-items: center; }

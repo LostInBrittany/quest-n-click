@@ -108,7 +108,9 @@ checked", not "WCAG AA".
 ## Two layouts
 
 - **Phone (touchscreen), landscape**: the scene on the left; on the right, a column with the 9 verbs in a 3×3 grid, the
-  inventory over 3 columns, and the Map / Pause / Sound icons. The sentence shows at the bottom of the scene.
+  inventory over 3 columns, and the Map / Pause / Sound icons. The sentence shows at the bottom of the scene. The
+  column fits the screen's height inside the safe areas (`dom/side-fit.ts`): on a short screen the inventory's slots
+  stop being square first, then the verbs come down to 44 px, and the icons always stay in sight.
 - **Desktop (mouse, screen at least 720 × 450)**: the classic SCUMM layout. The scene takes the top; the sentence sits
   just below it; bottom left, the 9 verbs; on the right, the inventory (4 × 2, arrows on the left); far right, the 3
   icons in a column. Conversation choices and the place list take the spot of the verbs and the inventory.

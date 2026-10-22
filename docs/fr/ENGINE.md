@@ -113,7 +113,7 @@ que le moteur peut affirmer est donc « testé au clavier, aucune violation axe 
 contrôlés », pas « WCAG AA ».
 ## Deux dispositions
 
-- **Téléphone (écran tactile), en paysage** : la scène à gauche ; à droite, une colonne avec les 9 verbes en 3×3, le sac sur 3 colonnes et les icônes Carte / Menu / Son. La phrase s'affiche en bas de la scène.
+- **Téléphone (écran tactile), en paysage** : la scène à gauche ; à droite, une colonne avec les 9 verbes en 3×3, le sac sur 3 colonnes et les icônes Carte / Menu / Son. La phrase s'affiche en bas de la scène. La colonne tient dans la hauteur de l'écran, zones sûres déduites (`dom/side-fit.ts`) : sur un écran bas, les cases du sac cessent d'abord d'être carrées, puis les verbes descendent à 44 px, et les icônes restent toujours visibles.
 - **Ordinateur (souris, écran d'au moins 720 × 450)** : disposition SCUMM classique. La scène occupe le haut ; la phrase est juste en dessous ; en bas à gauche, les 9 verbes ; à droite, le sac (4 × 2, flèches à gauche) ; tout à droite, les 3 icônes en colonne.
   Les choix de conversation et la liste des lieux prennent la place des verbes et du sac.
 
