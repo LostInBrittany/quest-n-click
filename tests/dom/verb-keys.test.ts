@@ -231,6 +231,14 @@ describe("the validator on the verbs' keys (validate/player.ts, #203)", () => {
     localeVerbKeyChecks(g, { en: { 'verb:take/key': 'c' }, fr: { 'verb:close/key': 'f' } }, o);
     expect(errs).toEqual([]);
   });
+  it('validate checks them when given the translations, so the Studio says what the command line says (4.4.0)', () => {
+    const g = withKeys({ close: 'c', take: 'p' });
+    const clash = { fr: { 'verb:close/key': 'f', 'verb:take/key': 'F' } };
+    expect(validate(g, miniLayouts, { locales: clash }).errors).toContain(
+      'fr: verbs.take.key › "F" is already the key of "close"',
+    );
+    expect(validate(g, miniLayouts).errors.filter((e) => e.startsWith('fr:'))).toEqual([]);
+  });
 });
 
 describe("the verbs' keys in translations and in the fingerprint (#203)", () => {

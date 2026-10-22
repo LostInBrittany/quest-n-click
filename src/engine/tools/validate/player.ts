@@ -21,9 +21,15 @@ const ON_TAP = new Set(['go', 'walk']);
 
 export function playerChecks(
   game: GameDef,
-  o: { err: (where: string, msg: string) => void; warn: (where: string, msg: string) => void },
+  o: {
+    err: (where: string, msg: string) => void;
+    warn: (where: string, msg: string) => void;
+    /** The translations: their verb keys are checked too (4.4.0: by every caller of `validate`, the Studio's too). */
+    locales?: Readonly<Record<string, Record<string, string>>>;
+  },
 ): void {
   const { err, warn } = o;
+  if (o.locales) localeVerbKeyChecks(game, o.locales, o);
   if (game.saves && (!Number.isInteger(game.saves.slots) || game.saves.slots < 0))
     err('saves', 'slots must be a whole number');
   if (game.saves?.slots)
