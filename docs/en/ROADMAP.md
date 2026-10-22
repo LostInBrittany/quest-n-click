@@ -611,6 +611,18 @@ views with 105 tests; every public export carries `@public` or `@extension` and 
 written by the baseline; a links script. Left for later, said as such: the human passes of the sheet
 (`docs/dev/passes/4.1.8.md`), the release workflow's acceleration (its own lot), the assistant tab's 845 lines.
 
+## v4.4.0 "Author's Desk" (shipped October 2026): making a whole game simpler
+
+The order an outside reading of 4.3 asked for, minus what only people can do. A playable example of the hero choice
+in two languages, `games/heroes`, with its browser test; building it found three bugs (French clips never shipped,
+`voices check` reading the source text, the e2e harness's labels). The Studio's hero × language matrix: each switched
+line as each hero hears it in each language, its clip and what is missing. Before/after captures of the rooms the
+semantic diff names (a local Studio). The hosted preview measured phase by phase, then a lane of its own on the worker,
+parallel stores and one snapshot per revision. Horacio's (LostInBrittany) hotspot taps, shared map pins and the phone's
+short landscape column. The 137 mutation exemptions read again (two bugs: a listener per Reality poll, an e-mail's
+text shifted by `İ`), then read a second time (a restore race and a short write pinned by tests). Two new passes, the
+example on a phone and the matrix read by an author: the people's passes stay what 4.4 could not do.
+
 ## v4.3.1 "Voices by Language" (shipped October 2026): a patch after an outside reading
 
 An outside reading of 4.3.0 found a translation's own text switches lost on the way from the voice export to the
