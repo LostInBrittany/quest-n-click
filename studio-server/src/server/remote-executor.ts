@@ -2,7 +2,8 @@
 // run of the game's code goes there: the guard's validations, and the loads of the game module the Studio reads. For
 // each job it packs a snapshot of the folder, puts it under `staging/<job>/`, presigns one read (the snapshot) and one
 // write (the result) for at most 5 min, signs the job with its Ed25519 key, and asks the worker. It then reads the
-// result itself, checks that it answers this job and is bounded, and deletes the staging prefix. The worker never
+// result itself, checks that it answers this job and is bounded, and deletes the staging prefix (4.4.0: without
+// waiting for the delete before it answers). The worker never
 // names a key the Studio publishes. A result is a signal in the project's trust domain, never a security decision.
 // The last answer of each kind is kept by the snapshot's sha256 for a minute (a redeployed worker is asked again
 // soon): an unchanged game is not sent again. A failure is never kept. A failure of the game's code (a timeout, a
@@ -57,6 +58,12 @@ export interface RemoteExecutorOptions {
   timeoutMs?: number;
   /** The metrics (4.2.3, H9): each job asked of the worker, while it runs and how it ended. */
   metrics?: JobObserver;
+  /**
+   * A line per job asked of the worker (4.4.0, `worker-call`): its kind, outcome and phases in ms: `putMs` (the
+   * snapshot staged), `postMs` (the worker's answer: its queue and its run), `getMs` (the result read), `delMs` (the
+   * staging deleted). A phase not reached is left out.
+   */
+  log?: (line: Record<string, unknown>) => void;
 }
 
 const MAX_RESULT = 32 * 1024 * 1024;
@@ -66,6 +73,8 @@ export function remoteExecutor(o: RemoteExecutorOptions) {
   const key = privateKeyOf(o.privateKeyPem);
   const timeoutMs = Math.min(o.timeoutMs ?? 60_000, 120_000);
   const last = new Map<JobKind, { sha: string; at: number; result: JobResult }>();
+  /** The stagings being deleted (4.4.0: not awaited by the job): `settled` waits for them. */
+  const pending = new Set<Promise<unknown>>();
 
   async function run(
     kind: JobKind,
@@ -84,8 +93,17 @@ export function remoteExecutor(o: RemoteExecutorOptions) {
     const id = randomUUID();
     const dest = `staging/${id}/`;
     const ended = o.metrics?.job(kind);
+    const phases: Record<string, number> = {};
+    let t = performance.now();
+    const lap = (name: string) => {
+      const now = performance.now();
+      phases[name] = Math.round(now - t);
+      t = now;
+    };
+    let outcome: Parameters<ReturnType<JobObserver['job']>>[0] = 'error';
     try {
       await o.s3.put(`${dest}snapshot.json`, snapshot);
+      lap('putMs');
       const seconds = Math.floor(MAX_JOB_MS / 1000);
       const job: Job = {
         id,
@@ -109,6 +127,7 @@ export function remoteExecutor(o: RemoteExecutorOptions) {
         // The job's own expiry: the worker runs no job past it, so waiting longer would gain nothing.
         signal: signal ? AbortSignal.any([AbortSignal.timeout(MAX_JOB_MS), signal]) : AbortSignal.timeout(MAX_JOB_MS),
       });
+      lap('postMs');
       if (!r.ok) {
         // The worker's reason (an expired job, another instance's), read up to 4 KiB only: the worker is not trusted.
         const why = (JSON.parse(await headOf(r, 4_096)) as { error?: unknown } | null)?.error;
@@ -119,6 +138,7 @@ export function remoteExecutor(o: RemoteExecutorOptions) {
       await r.body?.cancel();
       signal?.throwIfAborted();
       const bytes = await o.s3.get(`${dest}result.json`, { max: MAX_RESULT });
+      lap('getMs');
       if (!bytes) throw new Error('the processing worker left no usable result');
       const v = JSON.parse(bytes.toString('utf8')) as JobResult;
       if (v.job !== id || v.kind !== kind) throw new Error('the processing worker result does not answer this job');
@@ -132,14 +152,30 @@ export function remoteExecutor(o: RemoteExecutorOptions) {
       if (!v.failed && kind === 'preview' && !previewFiles(v.files))
         throw new Error('the processing worker result does not answer this job');
       if (!v.failed && cached) last.set(kind, { sha, at: Date.now(), result: v });
-      ended?.(v.timedOut ? 'timeout' : v.failed ? 'failed' : 'ok');
+      outcome = v.timedOut ? 'timeout' : v.failed ? 'failed' : 'ok';
+      ended?.(outcome);
       return v;
     } catch (e) {
       // A wait given up on its deadline is a timeout, as the worker's own is.
-      ended?.((e as Error)?.name === 'TimeoutError' ? 'timeout' : 'error');
+      outcome = (e as Error)?.name === 'TimeoutError' ? 'timeout' : 'error';
+      ended?.(outcome);
       throw e;
     } finally {
-      await Promise.all([o.s3.delete(`${dest}snapshot.json`), o.s3.delete(`${dest}result.json`)]).catch(() => {});
+      // The staging deleted without waiting for it (4.4.0): the answer goes now. A delete that fails is said; the
+      // collection takes what is left (staging older than an hour, ops/gc.ts).
+      t = performance.now();
+      const cleared: Promise<void> = Promise.all([
+        o.s3.delete(`${dest}snapshot.json`),
+        o.s3.delete(`${dest}result.json`),
+      ])
+        .catch((e) => o.log?.({ event: 'worker-staging-left', job: id, message: String((e as Error)?.message) }))
+        .then(() => {
+          lap('delMs');
+          o.log?.({ event: 'worker-call', kind, job: id, outcome, ...phases });
+        })
+        .catch(() => {})
+        .finally(() => pending.delete(cleared));
+      pending.add(cleared);
     }
   }
 
@@ -169,6 +205,10 @@ export function remoteExecutor(o: RemoteExecutorOptions) {
   }
 
   return {
+    /** Resolves once every staging being deleted is (the tests; a stop). */
+    async settled(): Promise<void> {
+      while (pending.size) await Promise.all(pending);
+    },
     validate: (dir: string): Promise<ValidateResult> => validateSnapshot(packSnapshot(dir)),
     validateSnapshot,
     /** The asset tools' `prepare` (4.2.2 PR 6b) on a version 2 snapshot: the prepared files and the new manifest. */

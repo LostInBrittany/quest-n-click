@@ -156,6 +156,14 @@ de millisecondes), le job est refusé. Les machines précédentes ne le montraie
 | Seuil de prévisualisation : la cadence de modifications au-delà de laquelle la file s'allonge (méthode, résultat) | Une prévisualisation à la fois, ≈ 35 s chacune. À une écriture toutes les 3 s, 13 opérations n'ont donné que 5 prévisualisations : les révisions intermédiaires sont sautées et `studio_worker_jobs_in_flight` est resté à 0. Le seuil où chaque révision a la sienne est donc ≈ **une modification toutes les 35 s** ; au-delà, la file ne s'allonge pas, elle saute des révisions. Pendant le chevauchement, les deux instances ont construit la révision 43 chacune |
 | **Coût d'une recompilation fraîche** (`POST /api/builds/<n>/rebuild` : durée, octets identiques ?) | Build `#1` publié (révision 75) en **30,7 s** ; recompilation fraîche en **44,3 s**, `same: true`, `differ: []` : octets identiques |
 
+> **Note 4.4.0.** Ces chiffres sont ceux de 4.2.3. `ms` (et `studio_preview_build_seconds`) commençait après
+> l'instantané, et comprenait l'attente du job derrière le validateur et le solveur de la santé sur l'application de
+> traitement (un job à la fois) ainsi que les fichiers stockés un par un. 4.4.0 découpe ce temps par phase (`queuedMs`,
+> `snapMs`, `jobMs`, `storeMs`, `sinceWriteMs` ; côté traitement `queueMs`, `fetchMs`, `unpackMs`, `childMs`, `putMs`)
+> puis donne à la prévisualisation sa propre file, stocke ses fichiers 8 à la fois et n'empaquette qu'un instantané
+> par révision : on attend un temps de l'écriture à la prévisualisation prête proche du job lui-même (≈ 6 s) plus
+> l'instantané et le stockage. Les mesures de 4.4.0 seront ajoutées ici.
+
 ## 7. Ce qui n'a pas pu être fait, et ce que l'exécution a trouvé
 
 Défauts du serveur trouvés en phase A, **corrigés par #180** et vérifiés en phase B :
