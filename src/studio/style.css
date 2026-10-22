@@ -597,3 +597,9 @@ button.danger { color: var(--red); border-color: #5a2a2a; }
 .vtable.hm tr.hm-problem td:first-child { box-shadow: inset 3px 0 var(--yellow); }
 .vtable.hm td.hm-bad { background: rgba(255, 107, 107, .07); }
 .tag.hm-warn { color: var(--yellow); margin: 2px 2px 0 0; display: inline-block; }
+/* 4.4.0: the diff's captures, before and after side by side (src/studio/diff-captures-view.ts) */
+.diff-pair { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 8px; }
+.diff-shot { margin: 0; }
+.diff-shot img { width: 100%; height: auto; border: 1px solid var(--line2); border-radius: 4px; }
+.diff-frame { position: relative; line-height: 0; }
+.diff-box { position: absolute; outline: 2px solid var(--red); outline-offset: 1px; pointer-events: none; }

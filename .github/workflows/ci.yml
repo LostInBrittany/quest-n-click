@@ -411,6 +411,12 @@ jobs:
         timeout-minutes: 10
       - if: env.RUN == 'true'
         run: npm run studio-client && npm run e2e:studio-hosted && npm run e2e:studio-hosted -- --browser=firefox && npm run e2e:studio-collab && npm run e2e:studio-collab -- --browser=firefox
+      # The diff's captures (4.4.0): two revisions really built and drawn in Chromium, which the unit jobs do not
+      # install (there the drawing test is skipped; here it is required).
+      - if: env.RUN == 'true'
+        env:
+          STUDIO_TEST_CAPTURES: '1'
+        run: npx vitest run tests/studio-diff-captures.test.ts --maxWorkers=1
   # The Bridge's distributed profile (4.1.10, D20): the store contract, the tenants crossed and the fan-out across
   # instances, on a real Postgres 16 (a service container, pinned by digest). The truth for Postgres: the maintainer's
   # machine runs it only with a local server (docs/en/REALITY-OPS.md). Gate: `reality`.
@@ -584,7 +590,7 @@ jobs:
       - if: env.RUN == 'true'
         run: npx tsx tools/select-game.ts && npm run -s tsc -- --noEmit
       - if: env.RUN == 'true'
-        run: npm run test:node -- --exclude tests/bridge.test.ts --exclude tests/file-size.test.ts --exclude tests/prompts.test.ts --exclude tests/status.test.ts --exclude tests/studio-demo.test.ts --exclude tests/tooling.test.ts --exclude tests/connectors-terminal.test.ts --exclude tests/connectors-ssh.test.ts --exclude tests/connectors-sdk.test.ts --exclude tests/connectors-abuse.test.ts --exclude tests/studio-worker.test.ts --exclude tests/studio-client.test.ts
+        run: npm run test:node -- --exclude tests/bridge.test.ts --exclude tests/file-size.test.ts --exclude tests/prompts.test.ts --exclude tests/status.test.ts --exclude tests/studio-demo.test.ts --exclude tests/tooling.test.ts --exclude tests/connectors-terminal.test.ts --exclude tests/connectors-ssh.test.ts --exclude tests/connectors-sdk.test.ts --exclude tests/connectors-abuse.test.ts --exclude tests/studio-worker.test.ts --exclude tests/studio-client.test.ts --exclude tests/studio-diff-captures.test.ts
       - if: env.RUN == 'true'
         run: npm run build:game
       - name: The production server answers

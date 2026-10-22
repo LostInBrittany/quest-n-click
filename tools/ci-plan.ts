@@ -168,7 +168,7 @@ export const RULES: readonly Rule[] = [
   },
   { re: /^(tools|scripts)\//, gates: [...AUTHORING], why: 'the authoring pipeline' },
   {
-    re: /^(tests\/studio-(server|worker|collab|keycloak|client)\.test\.ts|ops\/studio\/(ci|keycloak)\/)/,
+    re: /^(tests\/studio-(server|worker|collab|keycloak|client|diff-captures)\.test\.ts|tools\/studio\/diff-rooms\.ts$|ops\/studio\/(ci|keycloak)\/)/,
     gates: [...UNIT, 'studioHosted'],
     why: 'the hosted Studio against Postgres and S3 (4.2.1)',
   },

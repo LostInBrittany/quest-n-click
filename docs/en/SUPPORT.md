@@ -125,7 +125,8 @@ what 4.2.0 promised stays as it was, and what came after is experimental. Surfac
 - the Assistant on a hosted Studio: a key brought by each user (BYOK, D41) needs a threat model of its own;
 - a signed backup: its digest says it is whole, not who made it (a backup is trusted input, it can add owners);
   signing it needs a key off the instance, decided with the key rotation (D37);
-- the diff's before/after captures, local or hosted (D45), with Chromium qualified on the worker: 4.3;
+- the diff's before/after captures (D45): local since 4.4.0 (a local Studio builds both revisions and draws their
+  rooms in Chromium, docs/en/STUDIO.md "Check"); hosted still open, with Chromium qualified on the worker;
 - `ids --lines` as an exclusive operation (a line's id is not a comment's anchor): 4.3;
 - npm publishing: not in 4.2.3; the engine still installs from a release's archive.
 
