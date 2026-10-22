@@ -611,6 +611,15 @@ views with 105 tests; every public export carries `@public` or `@extension` and 
 written by the baseline; a links script. Left for later, said as such: the human passes of the sheet
 (`docs/dev/passes/4.1.8.md`), the release workflow's acceleration (its own lot), the assistant tab's 845 lines.
 
+## v4.3.1 "Voices by Language" (shipped October 2026): a patch after an outside reading
+
+An outside reading of 4.3.0 found a translation's own text switches lost on the way from the voice export to the
+import, the orphans and the validator, and a guide that said `npm run solve` proves every hero. Both are fixed, each
+language's clips read from its own text by every entry point, and the guides name `--prove`; a new mutation set,
+`voices`, is gated from the start, and its second reading found one more bug (a `*=`-only line's braces in the
+recording table). The same reading set 4.4.0's order: a playable example with several heroes in two languages, the
+first people's passes early, the hosted preview measured, then the Studio's hero × language matrix.
+
 ## v4.3.0 "Hero Choice" (shipped October 2026): the player chooses the hero
 
 The player chooses the hero at New Game, among any number of heroes: portraits in a choice, a name per character

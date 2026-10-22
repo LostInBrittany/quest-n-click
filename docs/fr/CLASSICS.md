@@ -171,7 +171,8 @@ de prouver l'énigme (il attend qu'elle parte, puis traverse), et ce qu'une sauv
 Maniac Mansion s'ouvre sur un choix d'ados, chacun avec son talent. Quand le choix porte sur *qui est le héros* (la
 même histoire, une autre allure, un autre nom et d'autres mots chez les autres : « le », « la »), c'est un seul
 personnage avec une variante par héros, un `choice` d'intro à portraits qui pose un drapeau, et des aiguillages dans
-les répliques : `'Bonjour, {hero} ! Prêt{form?witch=e|*=} ?'`. Le solveur prouve chaque héros. La recette complète :
+les répliques : `'Bonjour, {hero} ! Prêt{form?witch=e|*=} ?'`. `npm run solve -- --prove` vérifie chaque héros
+(`npm run solve` seul trouve un chemin gagnant, avec un seul héros peut-être). La recette complète :
 CONTENT_GUIDE, « Choisir le héros » (fixture `tests/fixtures/heroes.ts`). Quand les ados *accompagnent* le héros et que
 le joueur passe de l'un à l'autre, c'est `players` (« Plusieurs personnages jouables »).
 

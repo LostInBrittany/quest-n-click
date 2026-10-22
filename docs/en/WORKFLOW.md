@@ -34,7 +34,8 @@ cell without asking) and runs `npm run assets`.
 ## 5. Write the rooms
 One file per room in `games/<id>/rooms/`, pure data: props and their states, actors, hotspots, look lines, reactions
 (`verb` + target + condition + commands), talk topics, hints, checkpoints. See `CONTENT_GUIDE.md`. Skill: `/new-room`.
-`npm run validate` catches broken ids, missing look lines, unused flags. `npm run solve` proves the game can be finished.
+`npm run validate` catches broken ids, missing look lines, unused flags. `npm run solve` finds a way to finish the game;
+`npm run solve -- --prove` proves it can always be finished, from every reachable state.
 
 ## 6. Place everything
 Geometry lives apart from logic, in `games/<id>/layout/<room>.json`, and is never typed by hand:

@@ -905,6 +905,9 @@ export function createStudio(opts: StudioOptions = {}) {
   ): Promise<{ ok: true }> {
     return serial(async () => {
       const mod = await loadModule();
+      const g = mod.game;
+      // The keys of a language come from its text (4.3.1): a translation may add switches the source has not.
+      const table = lang === (g.lang ?? 'en') ? undefined : loadLocales(join(dir, 'locales'))[lang];
       const sheet = readJson<VoiceSheet>(voicesFile(), {});
       const cur = sheet[lang]?.[id];
       const row = {
@@ -913,7 +916,7 @@ export function createStudio(opts: StudioOptions = {}) {
         note: patch.note ?? cur?.note ?? '',
         actor: patch.actor ?? cur?.actor ?? '',
       };
-      const m = mergeSheet(sheet, lang, [row], voiceIds(mod.game));
+      const m = mergeSheet(sheet, lang, [row], voiceIds(table ? applyLocale(g, table) : g));
       if (m.unknown.length) throw new StudioError(`no line "${id}" in the game`, 404);
       if (m.bad.length) throw new StudioError(m.bad[0]);
       await write(`voices ${lang}: ${id}`, [{ file: voicesFile(), after: JSON.stringify(m.sheet, null, 2) + '\n' }]);

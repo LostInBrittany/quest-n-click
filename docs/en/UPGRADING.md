@@ -777,3 +777,16 @@ a line that just fitted may wrap differently.
 `python3 -m pip install -r requirements.txt` again. Their output does not change (the sample game's images come out
 byte for byte the same); a host that installs the worker from `ops/studio/worker-requirements.lock` gets the new wheel
 by its sha256.
+
+## 40. From 4.3.0 to 4.3.1
+
+Nothing to change: a game builds, plays and saves as on 4.3.0 (the same fingerprints, golden saves and reference
+runs). The engine installs from `releases/download/v4.3.1/…`. What a game may notice:
+
+- **Voices of a translation**: when a translation adds a text switch its source line has not (`Prêt{form?witch=e|*=} ?`
+  for `Ready?`), `npm run voices -- import` now takes that language's clips by value, `status` no longer calls them
+  orphans, and `npm run validate` warns when one is missing. A game that worked around the refusal by filing those
+  clips under the plain id can file them by value now.
+- **`npm run solve`** finds one winning path; `npm run solve -- --prove` checks every reachable state, every answer of
+  an intro's choice included. A game whose heroes or paths must all reach the ending runs `--prove`. The witness's
+  sentence now says "on one path"; a script that matched its old wording reads `status` from `--json` instead.
