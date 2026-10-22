@@ -1,5 +1,5 @@
 // @vitest-environment happy-dom
-// A single tap on a hotspot that says `onTap: 'go'` (4.3.1): the hero walks to it and acts on arrival with the double
+// A single tap on a hotspot that says `onTap: 'go'` (4.4.0): the hero walks to it and acts on arrival with the double
 // tap's verb (its `defaultVerb`), as an exit does with `input.exitOnTap` (#188). Without it a tap on a hotspot only
 // walks there, whatever the game's `exitOnTap`: that setting is about exits. E.g. an endless aisle: walking to it
 // says why one does not walk down it.
@@ -67,7 +67,7 @@ async function start(o: { exitOnTap?: boolean; onTap?: HotspotDef['onTap'] } = {
 const acts = (app: App) =>
   app.engine.session!.log.flatMap((e) => ('act' in (e as SessionEntry) ? [(e as { act: unknown }).act] : []));
 
-describe("a single tap on a hotspot with onTap: 'go' (4.3.1)", () => {
+describe("a single tap on a hotspot with onTap: 'go' (4.4.0)", () => {
   afterEach(() => {
     vi.restoreAllMocks();
     document.body.innerHTML = '';

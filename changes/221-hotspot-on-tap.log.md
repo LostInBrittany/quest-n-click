@@ -1,4 +1,4 @@
-## 4.3.1: a hotspot that acts on a single tap, onTap: 'go' (#221)
+## 4.4.0: a hotspot that acts on a single tap, onTap: 'go' (#221)
 
 - `dom/input.ts` `tapVerb()`: a single tap with no verb picked acted only on exits (an exit's `onTap`, or the game's
   `input.exitOnTap`, #188); on any other hotspot it only walked. Found in a game whose cellar has an endless aisle:

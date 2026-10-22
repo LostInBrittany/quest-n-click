@@ -150,7 +150,7 @@ export function verbFor(app: App, target: Id): VerbId | null {
 /**
  * The verb a single tap with no verb picked goes through this exit with (#188), or null when the tap only walks: an
  * exit (declared, or its generated hotspot) whose `onTap` is `go`, or any exit but a `walk` one when the game sets
- * `input.exitOnTap`. A hotspot that says `onTap: 'go'` acts the same way (4.3.1); `exitOnTap` is about exits only.
+ * `input.exitOnTap`. A hotspot that says `onTap: 'go'` acts the same way (4.4.0); `exitOnTap` is about exits only.
  * The verb is the double tap's (`defaultVerb`).
  */
 function tapVerb(app: App, id: Id): VerbId | null {

@@ -129,7 +129,7 @@ const hotspot: Classes<HotspotDef> = {
   kind: 'logic',
   visible: 'logic',
   exit: 'logic',
-  // A single tap's meaning (4.3.1): the player's input, like an exit's.
+  // A single tap's meaning (4.4.0): the player's input, like an exit's.
   onTap: 'presentation',
 };
 
