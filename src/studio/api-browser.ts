@@ -405,6 +405,7 @@ export class BrowserApi implements Api {
     const { errors, warnings } = validateGame(game, layouts, {
       assets: mod.assets,
       commands: mod.commands,
+      locales: mod.locales,
       minigameIds: mg ? Object.keys(mg) : undefined,
       minigameParams: mg ? Object.fromEntries(Object.entries(mg).map(([k, m]) => [k, m.required ?? []])) : undefined,
       minigameBindings: mg

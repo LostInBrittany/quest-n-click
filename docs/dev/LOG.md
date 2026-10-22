@@ -7067,3 +7067,44 @@ magenta, and it is the delicate part).
   `docs/dev/passes/4.3.0.md` (nineteen passes, none new, none carried).
 
 → next: Claude (the merge, the candidate on main, `v4.3.0` signed on it, `ship verify`)
+
+## #254 · 2026-10-21 · Claude · proposal · 4.3.1: voices by value follow each language's text; one winning path is not a proof
+
+- An outside reading of v4.3.0 found both. Voices: `voiceTable` (the export) read the translated text, but
+  `voiceIds` (the import's known ids, CLI and Studio `setVoice`), `orphanClips` and `voiceValueChecks` derived the
+  `<id>~<flag>=<value>` keys from the source text. `voiceIds` now takes the game in the sheet's language,
+  `orphanClips` a `localized` game, and `validate` a `locales` option that `voiceValueChecks` applies per language of
+  `audio.voicesByLang`. The options are passed by every entry point: `tools/validate.ts`, `ops/validate-dir.ts` (the
+  Studio's guard and the worker) and `src/studio/api-browser.ts`; `tests/voice-locale.test.ts` checks the three say
+  the same, and five of its seven tests fail on 4.3.0. `langVoices` (core/voice-key.ts) is what boot.ts picks for a
+  language, so the test plays the clips a French page plays: each hero's, and the plain clip before the choice.
+- Kept as is: the i18n checks may still report a switch a translation drops, by their own policy; this patch only
+  stops the voice check from asking for clips there. `validateDir` still does not run `localeVerbKeyChecks` (a
+  translation's verb keys), which only the command line runs: a parity gap of its own, left for 4.4.0.
+- Mutation: a new set, `voices` (voice-key.ts, tools/voices.ts, validate/voices.ts, status.ts), gated from the start.
+  193 mutants, 186 killed (tests/voices-mutants.test.ts holds the CSV, import, clip-verdict and headline cases), 7
+  named equivalent in docs/dev/mutants.json. A second reading of the 9 first named found two `lineClips` entries wrong: a line whose
+  switches list only `*=` took the shortcut and went into the sheet with its braces; the shortcut is gone (the general
+  path renders a line without switches as it is), and the two entries with it.
+- Solve: `solveHeadline`'s witness sentence says "on one path" and "only --prove"; a prove `solved` alone says "stays
+  reachable from every one". `tests/status.test.ts` holds the reviewer's game (only the robot opens the door): witness
+  `solved`, prove `softlocks`, both `finished`.
+→ next: release 4.3.1 (candidate, signed tag on the maintainer's yes for `v4.3.1`), then 4.4.0: the 3-heroes ×
+2-languages example and the first human passes before the Studio's hero × language matrix.
+
+## #255 · 2026-10-21 · Claude · release · 4.3.1 "Voices by Language": a patch after an outside reading
+
+- **What ships**: #225 (LOG #254), the two defects an outside reading of v4.3.0 found: a translation's own text
+  switches lost between the voice export and the import, the orphans and the validator (each language's clips now
+  read from its own text, by the command line, `validateDir` and the in-browser Studio alike), and the guides' claim
+  that `npm run solve` proves every hero (it finds one path; `--prove` proves). Plus the bug the `voices` mutation
+  set's second reading found: a `*=`-only line's braces in the recording table.
+- **The plan's review** (the maintainer's, before any code): every validation entry point with a parity test; one
+  source for the solver's sentences, "proved" only for a `prove` that ends `solved`; the coverage floors
+  `max(floor, measure − 2)`, never lower; no survivor exempted to finish a release; SemVer strict, as since 4.2.
+- **Not in it**: the i18n check's policy on a dropped switch; `localeVerbKeyChecks` in `validateDir` (a parity gap of
+  its own, to 4.4.0).
+- **Passes**: none added, the nineteen open (`docs/dev/passes/4.3.1.md`).
+→ next: 4.4.0, in this order: a playable example with three heroes in two languages (browser tests, save and resume),
+the first people's passes early, the hosted preview measured in parallel, then the Studio's hero × language matrix
+shaped by what the passes show, captures in the semantic diff, npm publishing.

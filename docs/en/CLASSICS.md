@@ -194,8 +194,8 @@ room's `actors` without a starting `room`, so he is always there. `use max on do
 
 ### The three paths (team, wits, fists) — native
 
-A `choice` early on sets a flag; rooms, topics and rules carry `if` on it. The solver proves each path with a chapter
-checkpoint per branch.
+A `choice` early on sets a flag; rooms, topics and rules carry `if` on it. `npm run solve -- --prove --chapters`
+proves each path with a chapter checkpoint per branch (`npm run solve` alone finds one winning path, not every one).
 
 ### Fist fights, the drafts of Loom — custom
 

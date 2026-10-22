@@ -460,8 +460,10 @@ look: { grandma: 'Grand-mère. La poussière {form?knight=le|witch=la|robot=le} 
   les cartes passent à la ligne et défilent, si bien que tous les héros tiennent sur un téléphone. Sans `img`, les
   options restent des lignes de texte.
 - **La logique reste de la logique** : une règle qui doit changer selon le héros porte
-  `if: { flag: 'form', eq: 'witch' }`. Le solveur explore chaque réponse du choix d'intro, donc `npm run solve` prouve
-  chaque héros ; les sauvegardes gardent le drapeau, les checkpoints le prennent dans `flags`.
+  `if: { flag: 'form', eq: 'witch' }`. Le solveur explore chaque réponse du choix d'intro, mais `npm run solve` s'arrête au
+  premier chemin gagnant, et un seul héros peut y suffire : lancez `npm run solve -- --prove`, qui vérifie chaque état
+  atteignable, donc chaque héros, et signale comme softlock un héros qui ne peut plus finir. Les sauvegardes gardent
+  le drapeau, les checkpoints le prennent dans `flags`.
 - **Pourquoi pas `players`** : chaque personnage jouable a son bouton dans la rangée d'outils et se tient dans son
   propre lieu, le joueur pourrait donc changer de héros en cours de partie. Choisir le héros, c'est un seul
   personnage avec des variantes.
