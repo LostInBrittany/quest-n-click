@@ -178,7 +178,7 @@ Un jeu ajoute les siens dans `minigames` de son module (même contrat) : c'est l
 | `GameState` | `interface { v, room, inventory, flags, props, actors, … 15 more }` | public | The state of a game in progress, serialised as-is in a save: room, inventory, flags, props, actors, counters, scripts. |
 | `generateWheel` | `(p: CodeWheelParams, seed: string, id?: string): CodeWheel` | public | The wheel of a seed (the `copy-protection` stream of `<seed>\|code-wheel\|<id>`). Throws on parameters `wheelProblems` refuses. |
 | `HintDef` | `interface { id, until, lines }` | public | A hint the hint item gives while its `until` condition is false, as lines said in order. |
-| `HotspotDef` | `interface { defaultVerb, name, kind, visible, exit }` | public | A named zone of the room the player can act on; its geometry lives in the layout. |
+| `HotspotDef` | `interface { defaultVerb, name, kind, visible, exit, onTap }` | public | A named zone of the room the player can act on; its geometry lives in the layout. |
 | `Id` | `type Id = string` | public | An identifier in the content (a room, an item, a flag, a character, a prop…): a plain string the game chooses. |
 | `IrEntity` | `interface { key, kind, id, room, name, kinds, … 12 more }` | public | A thing of the game: a prop, an actor or a hotspot of a room, an item, a character. |
 | `IrExtensions` | `interface { trusted, commands, minigames, plugins }` | public | The trusted code a game names (ADR 0002): custom commands with their declared effects, minigames, plugins. |

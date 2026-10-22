@@ -210,6 +210,11 @@ double tap is unchanged. An exit can say otherwise: `onTap: 'walk'` keeps it wal
 (`exits: { path: { name: 'path', to: 'village', onTap: 'go' } }`). Off by default. It is input only: the rules, the
 solver and saves do not see it.
 
+A hotspot can say `onTap: 'go'` too (4.4.0): a single tap walks there and acts on arrival with its `defaultVerb`, e.g.
+an endless aisle that says why one does not walk down it:
+`hotspots: { aisle: { name: 'aisle', defaultVerb: 'use', onTap: 'go' } }` with a rule for Use aisle. Without it a
+tap on a hotspot only walks there; `input.exitOnTap` is about exits and never changes that.
+
 **A key per verb (4.3.0).** On a desktop, the LucasArts games picked a verb at the keyboard: O for Open, L for Look at.
 A verb's `key` does the same: `{ id: 'open', label: 'Open', color: '#8fd3ff', key: 'o' }`. The key, in any case and
 without Ctrl, Alt or Meta, picks the verb as a tap on its button would (and drops it if it is already picked); it does

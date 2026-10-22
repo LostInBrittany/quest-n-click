@@ -210,6 +210,11 @@ marche dans un jeu qui a le réglage, `onTap: 'go'` la fait franchir dans un jeu
 (`exits: { path: { name: 'chemin', to: 'village', onTap: 'go' } }`). Désactivé par défaut. C'est de l'entrée
 seulement : les règles, le solveur et les sauvegardes ne le voient pas.
 
+Une zone peut aussi dire `onTap: 'go'` (4.4.0) : un simple tap y marche et agit à l'arrivée avec son `defaultVerb`.
+Par exemple une allée sans fin qui dit pourquoi on ne s'y engage pas :
+`hotspots: { allee: { name: 'allée', defaultVerb: 'use', onTap: 'go' } }`, avec une règle pour Utiliser allée. Sans
+lui, un tap sur une zone ne fait qu'y marcher ; `input.exitOnTap` ne concerne que les sorties et n'y change rien.
+
 **Une touche par verbe (4.3.0).** Sur un ordinateur, les jeux LucasArts choisissaient un verbe au clavier : O pour
 Ouvrir, R pour Regarder. Le `key` d'un verbe fait de même : `{ id: 'open', label: 'Open', color: '#8fd3ff', key: 'o' }`.
 La touche, en majuscule ou en minuscule et sans Ctrl, Alt ni Meta, choisit le verbe comme un tap sur son bouton (et le
