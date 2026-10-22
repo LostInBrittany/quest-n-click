@@ -232,3 +232,70 @@ describe("a job's phases (4.4.0)", () => {
     expect(log[1]).toMatchObject({ outcome: 'timeout', getMs: expect.any(Number) });
   });
 });
+
+describe("a job's staging (4.4.0)", () => {
+  it('is deleted without the answer waiting for it; `settled` waits, and the line comes then', async () => {
+    const log: Record<string, unknown>[] = [];
+    const held: (() => void)[] = [];
+    const lazy = {
+      ...s3,
+      delete: (k: string) =>
+        new Promise<void>((ok) =>
+          held.push(() => {
+            store.delete(k);
+            ok();
+          }),
+        ),
+    } as unknown as S3;
+    const e = remoteExecutor({
+      s3: lazy,
+      workerUrl: url,
+      privateKeyPem: keys.privatePem,
+      instance: 'studio-a',
+      at: () => ({ epoch: 'e1', rev: 3 }),
+      log: (l) => log.push(l),
+    });
+    answer = (job) => result(job, { data: { files: {}, output: 'cut' } });
+    expect(await e.cut(snap, 'demo', sheet)).toEqual({ files: {}, output: 'cut' });
+    // Answered while both deletes are still under way.
+    expect(held).toHaveLength(2);
+    expect(store.size).toBe(2);
+    expect(log).toEqual([]);
+    let settled = false;
+    const s = e.settled().then(() => (settled = true));
+    await new Promise((ok) => setTimeout(ok, 10));
+    expect(settled).toBe(false);
+    for (const h of held.splice(0)) h();
+    await s;
+    expect(store.size).toBe(0);
+    expect(log).toMatchObject([{ event: 'worker-call', outcome: 'ok', delMs: expect.any(Number) }]);
+    // Nothing under way: settled at once.
+    await e.settled();
+  });
+
+  it('left when a delete fails: said, never thrown at the job', async () => {
+    const log: Record<string, unknown>[] = [];
+    const broken = {
+      ...s3,
+      delete: async () => {
+        throw new Error('S3 DELETE: 500');
+      },
+    } as unknown as S3;
+    const e = remoteExecutor({
+      s3: broken,
+      workerUrl: url,
+      privateKeyPem: keys.privatePem,
+      instance: 'studio-a',
+      at: () => ({ epoch: 'e1', rev: 3 }),
+      log: (l) => log.push(l),
+    });
+    answer = (job) => result(job, { data: { files: {}, output: 'cut' } });
+    const job = (await e.cut(snap, 'demo', sheet), seen.at(-1)!.id);
+    await e.settled();
+    expect(log).toEqual([
+      { event: 'worker-staging-left', job, message: 'S3 DELETE: 500' },
+      expect.objectContaining({ event: 'worker-call', job, outcome: 'ok' }),
+    ]);
+    store.clear();
+  });
+});

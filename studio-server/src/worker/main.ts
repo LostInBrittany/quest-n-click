@@ -1,6 +1,6 @@
 // The processing worker (4.2.1, plan §3.8, ADR 0028): a separate Clever Cloud application that holds no secret of
 // the platform — no database, no session key, no permanent Cellar credentials, no signing key. It is the trusted
-// supervisor of one job at a time:
+// supervisor of one job at a time per lane (4.4.0, lanes.ts: a preview never waits behind the other kinds):
 //   POST /jobs {token}   checks the Studio's signature (public key only), the instance, the expiry and single use;
 //                        fetches the snapshot by its presigned URL and checks its sha256 against the signed one;
 //                        runs the game's code in a fresh child process, in a fresh folder, with an emptied
@@ -17,6 +17,7 @@ import { createServer, type IncomingMessage, type ServerResponse } from 'node:ht
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { type Job, publicKeyOf, verifyJob } from './job';
+import { Lanes, laneOf } from './lanes';
 import { pythonPathOf } from './prepare';
 import { previewFiles } from './preview-build';
 import { unpackSnapshot } from './snapshot';
@@ -175,8 +176,7 @@ export function createWorker(o: WorkerOptions) {
   const key = publicKeyOf(o.publicKeyPem);
   const seen = new Map<string, number>();
   let recycle = false;
-  let chain: Promise<unknown> = Promise.resolve();
-  let queued = 0;
+  const lanes = new Lanes();
   const log = o.log ?? (() => {});
 
   /** A job run; its phases in ms go to `t` as they end (4.4.0, the `worker-job` line). */
@@ -297,22 +297,20 @@ export function createWorker(o: WorkerOptions) {
     if (seen.has(job.id)) return send(409, { error: 'the job was already run' });
     seen.set(job.id, job.exp);
     if (recycle) return send(503, { error: 'this instance is to be recycled' });
-    if (queued >= 8) return send(429, { error: 'busy' });
-    queued++;
     // The Studio closed its request before the answer (a cancel): the job is not run, or its child is killed.
     const gone = new AbortController();
-    res.on('close', () => {
-      if (!res.writableEnded) gone.abort();
-    });
     const t: Phases = {};
-    const p = chain.then(() => {
+    const p = lanes.run(laneOf(job.kind), () => {
       t.queueMs = Date.now() - received;
       // A job that waited past its expiry is not run: its URLs are dead, and the Studio has given up on it.
       if (Date.now() >= job.exp) throw new Error('the job expired while it waited');
       if (gone.signal.aborted) throw new Error('cancelled by the Studio');
       return run(job, gone.signal, t);
     });
-    chain = p.catch(() => {});
+    if (!p) return send(429, { error: 'busy' });
+    res.on('close', () => {
+      if (!res.writableEnded) gone.abort();
+    });
     try {
       const v = await p;
       log('worker-job', { job: job.id, kind: v.kind, failed: !!v.failed, ms: v.ms, ...t });
@@ -321,8 +319,7 @@ export function createWorker(o: WorkerOptions) {
       log('worker-job-failed', { job: job.id, kind: job.kind, error: (e as Error).message, ...t });
       send(502, { error: (e as Error).message });
     } finally {
-      queued--;
-      if (recycle && queued === 0) o.onRecycle?.();
+      if (recycle && lanes.held() === 0) o.onRecycle?.();
     }
   }
 

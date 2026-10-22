@@ -14,7 +14,15 @@ import type { SqlDb } from '../bridge/src/store-sql';
 import { openSqliteDb } from '../bridge/src/store-sqlite';
 import { type BlobStore, fsBlobStore } from '../studio-server/src/ops/blobs';
 import { type BuildManifest, Builds, canonicalManifest } from '../studio-server/src/server/builds';
-import { assetDirs, findAsset, Previews, serveBuilt, servedPath } from '../studio-server/src/server/previews';
+import {
+  assetDirs,
+  findAsset,
+  Previews,
+  STORE_PARALLEL,
+  serveBuilt,
+  servedPath,
+  storeFiles,
+} from '../studio-server/src/server/previews';
 import { PreviewBuildFailed } from '../studio-server/src/worker/preview-build';
 
 const ROOT = join(import.meta.dirname, '..');
@@ -409,5 +417,104 @@ describe('the published builds', () => {
     } finally {
       await s.close();
     }
+  });
+});
+
+describe("a build's files stored (4.4.0)", () => {
+  /** A store whose puts end when `release` is called, counting those under way. */
+  function slowStore(failOn?: string) {
+    let now = 0;
+    let most = 0;
+    const order: string[] = [];
+    const waiting: (() => void)[] = [];
+    const store = {
+      put: async (b: Buffer) => {
+        now++;
+        most = Math.max(most, now);
+        order.push(b.toString());
+        await new Promise<void>((ok) => waiting.push(ok));
+        now--;
+        if (b.toString() === failOn) throw new Error(`cannot store ${failOn}`);
+        return `h:${b.toString()}`;
+      },
+    };
+    const release = async () => {
+      while (waiting.length) {
+        for (const w of waiting.splice(0)) w();
+        await new Promise((ok) => setTimeout(ok, 0));
+      }
+    };
+    return { store, release, most: () => most, under: () => now, started: () => order };
+  }
+  const files = (n: number) => new Map(Array.from({ length: n }, (_, i) => [`f${i}.js`, Buffer.from(`f${i}`)]));
+
+  it(`stores ${STORE_PARALLEL} at a time at most, and that many when there are more`, async () => {
+    expect(STORE_PARALLEL).toBe(8);
+    const s = slowStore();
+    const p = storeFiles(s.store, files(19));
+    await new Promise((ok) => setTimeout(ok, 0));
+    expect(s.under()).toBe(STORE_PARALLEL);
+    await s.release();
+    const m = await p;
+    expect(s.most()).toBe(STORE_PARALLEL);
+    // Every file, by its path, in the build's order.
+    expect(Object.keys(m)).toEqual([...files(19).keys()]);
+    expect(m['f18.js']).toBe('h:f18');
+    expect(m['f0.js']).toBe('h:f0');
+  });
+
+  it('stores fewer at once when there are fewer, or when asked; none when there is none', async () => {
+    const s = slowStore();
+    const p = storeFiles(s.store, files(3));
+    await new Promise((ok) => setTimeout(ok, 0));
+    expect(s.under()).toBe(3);
+    await s.release();
+    expect(Object.keys(await p)).toHaveLength(3);
+    const two = slowStore();
+    const q = storeFiles(two.store, files(5), 2);
+    await two.release();
+    await q;
+    expect(two.most()).toBe(2);
+    const one = slowStore();
+    const r = storeFiles(one.store, files(5), 0);
+    await one.release();
+    expect(Object.keys(await r)).toHaveLength(5);
+    expect(one.most()).toBe(1);
+    expect(await storeFiles(slowStore().store, new Map())).toEqual({});
+  });
+
+  it('fails when a put fails, starting no other, once those under way have ended', async () => {
+    const s = slowStore('f1');
+    const p = storeFiles(s.store, files(6), 2);
+    let settled = false;
+    p.catch(() => {}).finally(() => (settled = true));
+    await new Promise((ok) => setTimeout(ok, 0));
+    // f0 and f1 under way end together: f0's lane takes f2 first, then f1 fails, and nothing after f2 starts.
+    expect(settled).toBe(false);
+    await s.release();
+    await expect(p).rejects.toThrow('cannot store f1');
+    expect(settled).toBe(true);
+    expect(s.started()).toEqual(['f0', 'f1', 'f2']);
+    expect(s.under()).toBe(0);
+  });
+
+  it('are stored by a preview through the blob store, by content', async () => {
+    const puts: string[] = [];
+    const counting: BlobStore = { ...blobs, put: (b) => (puts.push(b.toString()), blobs.put(b)) };
+    const p = new Previews({
+      db,
+      blobs: counting,
+      publicDir: pub,
+      game: 'demo',
+      studioOrigin: 'https://studio.example',
+      snapshot: async () => ({ epoch: 'e1', rev: 1, bytes: Buffer.from('snap') }),
+      build: async () => files(10),
+      assetsVersion: () => 'v1',
+    });
+    await p.schedule();
+    expect(puts.sort()).toEqual([...files(10).values()].map(String).sort());
+    const [row] = await db.all('SELECT manifest FROM studio_previews');
+    const m = JSON.parse(String(row!.manifest)) as Record<string, string>;
+    expect((await blobs.get(m['f9.js']!)).toString()).toBe('f9');
   });
 });

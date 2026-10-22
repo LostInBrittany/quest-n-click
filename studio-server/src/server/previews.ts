@@ -203,9 +203,7 @@ export class Previews {
           { epoch: snap.epoch },
         );
         built = this.now();
-        const entries: [string, string][] = [];
-        for (const [path, bytes] of files) entries.push([path, await this.o.blobs.put(bytes)]);
-        manifest = Object.fromEntries(entries);
+        manifest = await storeFiles(this.o.blobs, files);
       } catch (e) {
         // Only the game's own build failing is recorded: anything else is tried again (loop).
         if (!(e instanceof PreviewBuildFailed)) throw e;
@@ -275,6 +273,40 @@ export class Previews {
     res.writeHead(302, { location: `/preview/${this.s.ready}/${url.search}` });
     res.end();
   }
+}
+
+/** The files a build's store writes at once (4.4.0): a preview's twenty files no longer one after another. */
+export const STORE_PARALLEL = 8;
+
+/**
+ * A build's files stored by content, `limit` at a time at most: their hashes by path, in the build's order. A put that
+ * fails starts no other, and fails the whole once the puts under way have ended.
+ */
+export async function storeFiles(
+  blobs: Pick<BlobStore, 'put'>,
+  files: Map<string, Buffer>,
+  limit = STORE_PARALLEL,
+): Promise<Record<string, string>> {
+  const all = [...files];
+  const hashes: string[] = new Array(all.length);
+  let next = 0;
+  const lane = async () => {
+    while (next < all.length) {
+      const i = next++;
+      try {
+        hashes[i] = await blobs.put(all[i]![1]);
+      } catch (e) {
+        // No new put once one failed.
+        next = all.length;
+        throw e;
+      }
+    }
+  };
+  const lanes = Array.from({ length: Math.max(1, Math.min(limit, all.length)) }, lane);
+  const settled = await Promise.allSettled(lanes);
+  const failed = settled.find((r) => r.status === 'rejected');
+  if (failed) throw (failed as PromiseRejectedResult).reason;
+  return Object.fromEntries(all.map(([path], i) => [path, hashes[i]!]));
 }
 
 export function text(res: ServerResponse, status: number, body: string) {

@@ -18,7 +18,14 @@ import type { Applied, Operation } from '../ops/journal';
 const BUCKETS = [0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1, 2.5, 5, 10, 30, 60, 120, 300];
 
 /** The log events counted (`studio_log_events_total`): the failures an operator alerts on. */
-const COUNTED_EVENTS = new Set(['ship-failed', 'health-failed', 'reconcile-failed', 'prepared-start-failed', 'error']);
+const COUNTED_EVENTS = new Set([
+  'ship-failed',
+  'health-failed',
+  'reconcile-failed',
+  'prepared-start-failed',
+  'worker-staging-left',
+  'error',
+]);
 
 /** A label's value as Prometheus reads it (backslash, double quote and line feed escaped). */
 const labelValue = (v: string) => v.replace(/\\/g, '\\\\').replace(/"/g, '\\"').replace(/\n/g, '\\n');

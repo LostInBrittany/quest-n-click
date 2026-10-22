@@ -452,7 +452,8 @@ format), or a simple prober for `/readyz`. Alert when:
 - `/readyz` is not 200 for 2 min (no instance serves writes; a deploy keeps it at 503 for about 20 s, above; the
   first deploy onto 4.2.3 for about 2.5 min: expect that alert then);
 - `studio_journal_rpo_seconds` is above 60 for 5 min (the target is 1 min, D42), or `ship-failed` keeps rising;
-- `studio_worker_jobs_in_flight` stays above 3 for 10 min (the worker runs one job at a time: work is piling up);
+- `studio_worker_jobs_in_flight` stays above 3 for 10 min (the worker runs one job at a time per lane, two lanes:
+  work is piling up);
 - jobs fail: `studio_worker_job_seconds_count{outcome!="ok"}` rises, or `health-failed`;
 - `studio_lease_conflicts_total` jumps (people waiting on each other's spans: not a fault, a sign to look at);
 - the daily backup's line (`"event":"backup"`) is missing from the logs one morning.
@@ -551,9 +552,19 @@ SQLite and a folder for the contents, on the loopback only.
   bisection; a revision that fails to be judged five times says "cannot be judged", with its reason. An older
   verdict is shown greyed, never green. A Check run holds the instance's reads while the
   worker runs its diagnostics: a write waits for it.
-- The worker runs one job at a time, and each revision now asks it for three: a preview's build, the validator and a
-  solver run (up to 45 s): the next change's validation can wait for them (not yet measured on a Clever worker, the
-  `studio-preview` pass does). A bisection asks for up to two jobs per revision it judges.
+- The worker runs one job at a time per lane (4.4.0): a preview's build (or a published build) in its own lane, every
+  other kind in the other, so two children at most at once. Each revision asks it for three jobs: a preview's build,
+  the validator and a solver run (up to 45 s); the preview no longer waits behind the other two, and the next
+  change's validation can still wait for them. A bisection asks for up to two jobs per revision it judges. Each lane
+  holds 8 jobs at most (running or waiting); the next is refused (429).
+- A preview, since 4.4.0: one snapshot per revision is packed (under the lock, the folder repaired) and shared by the
+  preview, the health, the published builds and the engine's upgrade, given again while the head has not moved; its
+  files are stored 8 at a time, and a blob this instance stored less than an hour ago is not written again (its date
+  is already well within the collection's day of grace, and its key is its content's hash); the Studio answers as
+  soon as it has read the worker's result, its staging deleted after. What each phase takes is in the `preview` log
+  line and in `studio_preview_phase_seconds` (Metrics, above). Vite's cache is not kept between jobs: a `vite build`
+  does not use it (it holds the dev server's prebundled dependencies), and a folder the game's code writes in must
+  not outlive its job (ADR 0028).
 - Each revision's preview is kept (about 1 MB for the sample game: the base `/preview/<rev>/` is written into the
   page and its code, so few files are shared between revisions) until the collection of a later 4.2.2 PR.
 - The Assets tab is on a hosted Studio since 4.2.3: a reviewer reads its listing, prompts and files; a dev uploads and

@@ -483,7 +483,7 @@ journaux de chaque application. Elle ne lit pas `/metrics` : un collecteur que v
   environ 20 s, plus haut ; le premier déploiement vers 4.2.3 environ 2 min 30 : attendez-vous alors à cette alerte) ;
 - `studio_journal_rpo_seconds` dépasse 60 pendant 5 min (la cible est 1 min, D42), ou `ship-failed` ne cesse de monter ;
 - `studio_worker_jobs_in_flight` reste au-dessus de 3 pendant 10 min (l'application de traitement fait un job à la
-  fois : le travail s'accumule) ;
+  fois par file, deux files : le travail s'accumule) ;
 - des jobs échouent : `studio_worker_job_seconds_count{outcome!="ok"}` monte, ou `health-failed` ;
 - `studio_lease_conflicts_total` fait un bond (des personnes s'attendent sur leurs pans : pas une panne, un signe à
   regarder) ;
@@ -591,10 +591,21 @@ OIDC, avec SQLite et un dossier pour les contenus, sur le loopback seulement.
   « inconnu », jamais « valide », et arrête une bissection ; une révision qui n'a pas pu être jugée cinq fois dit « ne
   peut être jugée », avec sa raison. Un verdict plus ancien est affiché en gris, jamais en vert. Une passe de l'onglet Check retient les lectures de l'instance pendant que l'application de traitement
   exécute ses diagnostics : une écriture l'attend.
-- L'application de traitement exécute un job à la fois, et chaque révision lui en demande désormais trois : la
-  construction d'une prévisualisation, le validateur et une passe du solveur (jusqu'à 45 s) : la validation de la
-  modification suivante peut les attendre (pas encore mesuré sur une application Clever, la passe `studio-preview` le
-  fait). Une bissection demande jusqu'à deux jobs par révision qu'elle juge.
+- L'application de traitement exécute un job à la fois par file (4.4.0) : la construction d'une prévisualisation (ou
+  d'un build publié) dans sa propre file, toutes les autres sortes dans l'autre, donc deux processus enfants au plus à
+  la fois. Chaque révision lui demande trois jobs : la construction d'une prévisualisation, le validateur et une passe
+  du solveur (jusqu'à 45 s) ; la prévisualisation n'attend plus les deux autres, et la validation de la modification
+  suivante peut encore les attendre. Une bissection demande jusqu'à deux jobs par révision qu'elle juge. Chaque file
+  tient 8 jobs au plus (en cours ou en attente) ; le suivant est refusé (429).
+- Une prévisualisation, depuis 4.4.0 : un seul instantané par révision est empaqueté (sous le verrou, le dossier
+  réparé) et partagé par la prévisualisation, la santé, les builds publiés et la mise à niveau du moteur, redonné tant
+  que la tête n'a pas bougé ; ses fichiers sont stockés 8 à la fois, et un blob que cette instance a stocké il y a moins
+  d'une heure n'est pas réécrit (sa date est déjà bien dans le jour de grâce du ramassage, et sa clé est le hash de son
+  contenu) ; le Studio répond dès qu'il a lu le résultat de l'application de traitement, son dépôt effacé ensuite. Ce
+  que prend chaque phase est dans la ligne de journal `preview` et dans `studio_preview_phase_seconds` (Métriques,
+  plus haut). Le cache de Vite n'est pas gardé d'un job à l'autre : un `vite build` ne s'en sert pas (il tient les
+  dépendances pré-empaquetées du serveur de développement), et un dossier où écrit le code du jeu ne doit pas survivre
+  à son job (ADR 0028).
 - La prévisualisation de chaque révision est gardée (environ 1 Mo pour le jeu d'exemple : la base `/preview/<rev>/`
   est écrite dans la page et son code, si bien que peu de fichiers sont partagés d'une révision à l'autre) jusqu'au
   ramassage d'une PR ultérieure de 4.2.2.

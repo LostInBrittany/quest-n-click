@@ -332,6 +332,55 @@ describe('the Studio accepts a result', () => {
     }
   }, 30_000);
 
+  it('a preview runs at once while another kind runs, which still waits its turn (4.4.0)', async () => {
+    const { url, server } = await startWorker();
+    const mem = await memoryS3();
+    const priv = privateKeyOf(keys.privatePem);
+    const game = join(tmp, 'g-lanes');
+    mkdirSync(game);
+    writeFileSync(join(game, 'index.ts'), 'while (true) {}\nexport {};\n');
+    const snap = packSnapshot(game);
+    const sha = (await import('node:crypto')).createHash('sha256').update(snap).digest('hex');
+    const post = (o: Partial<Job>) => {
+      const id = randomUUID();
+      void mem.s3.put(`staging/${id}/snapshot.json`, snap);
+      const token = signJob(
+        job({
+          id,
+          snapshot: sha,
+          urls: {
+            snapshot: mem.s3.presign('GET', `staging/${id}/snapshot.json`),
+            result: mem.s3.presign('PUT', `staging/${id}/result.json`),
+          },
+          ...o,
+        }),
+        priv,
+      );
+      return fetch(`${url}/jobs`, { method: 'POST', body: JSON.stringify({ token }) });
+    };
+    try {
+      const slow = post({ kind: 'load', params: { timeoutMs: 2_000 } });
+      await new Promise((ok) => setTimeout(ok, 100));
+      // Its snapshot is not there: it fails at once, in its own lane, long before the load ends.
+      const t0 = Date.now();
+      const preview = await post({
+        kind: 'preview',
+        exp: Date.now() + 1_000,
+        urls: { snapshot: `${url}/no`, result: `${url}/no` },
+      });
+      expect(preview.status).toBe(502);
+      expect(((await preview.json()) as { error: string }).error).toMatch(/^snapshot: 404/);
+      expect(Date.now() - t0).toBeLessThan(1_000);
+      // Another kind waits behind the load, as before.
+      const late = await post({ kind: 'validate', exp: Date.now() + 500 });
+      expect(((await late.json()) as { error: string }).error).toMatch(/expired while it waited/);
+      expect((await slow).status).toBe(200);
+    } finally {
+      server.close();
+      mem.server.close();
+    }
+  }, 30_000);
+
   it('only when it answers its own job', async () => {
     // A worker that answers with another job's verdict, written where it was told.
     const store = new Map<string, Buffer>();
