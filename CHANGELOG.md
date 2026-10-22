@@ -1,6 +1,18 @@
 # Changelog
 
-## Unreleased
+## 4.4.0 — 2026-10-22
+
+LOG #256–#267: "Author's Desk", the release an outside reading of 4.3 asked for: making a whole game simpler to make
+and to check. A playable example of choosing the hero in two languages, `games/heroes`, with its browser test (building
+it found three bugs, fixed below). The Studio's hero × language matrix (the Voices tab). Before/after captures of the
+rooms the semantic diff names (a local Studio). The hosted preview measured phase by phase and made about three times
+faster on the reference deployment: from a write to a ready preview, median 17.8 s → 5.6 s, max 26.0 s → 11.7 s over
+ten revisions each (QUALIF-4.2.3-REFERENCE §6). From Horacio (LostInBrittany), thank you: a hotspot that acts on a
+single tap (#221), one map pin for several places (#223), the phone's column on a short landscape screen (#227). The
+137 mutation exemptions due at 4.4.0 read again, then read a second time: four bugs fixed with tests. Two new people's
+passes (`heroes-two-languages`, `studio-hero-matrix`); none of the twenty-one has passed yet. Nothing to change in a
+game (UPGRADING §41; strict SemVer: the new fields are optional). The tag is signed with the maintainer's SSH key on
+their yes of 22 October for `v4.4.0` (D37).
 
 ### Fixed
 

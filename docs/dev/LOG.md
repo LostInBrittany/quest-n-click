@@ -7343,3 +7343,20 @@ language matrix.
   into the message; the cause was the user's missing `offline_access` role (the CLI asks for `offline_access`, for its
   refresh token). STUDIO-SERVER (en, fr) lists both requirements.
 → next: none.
+
+## #267 · 2026-10-22 · Claude · release · 4.4.0 "Author's Desk": making a whole game simpler
+
+- **The maintainer's go** (22 October): « Va pour réaliser la 4.4 et prends en compte les PR qui ont été faites. Lance
+  la release. Je t'autorise à la signer. » The Studio's matrix went in without waiting for people's passes (« tu vas
+  direct en 4.4 »); the hosted preview measured and optimized on the reference deployment; no npm publishing.
+- **What ships**: #228 (#227), then one integration PR, #234, for #222 (#221), #224 (#223), #229, #230, #231, #232,
+  #233 and #235 (each reviewed and green on its own; together they conflicted only on generated files), LOG #256–#266.
+- **Read twice**: the second automated reading of the mutation reread named two entries wrong (a restore race, a short
+  write), both now killed by tests, and one leak more (the simulator), fixed (LOG #265).
+- **Measured**: the reference deployment, ten notes per series: median 17.8 s → 5.6 s, max 26.0 s → 11.7 s from a
+  write to a ready preview; the files stored 8 at a time are the gain, the worker's cold build is now the larger part.
+  Recovering the realm's admin for the measurement found the CLI's bare `ResponseBodyError` (LOG #266).
+- **Budgets**: the first visit's JavaScript 135 → 136 KB on the demo, the reference chapter's budget 140 → 142 KB.
+- **Passes**: 21, two new; none passed (docs/dev/passes/4.4.0.md).
+→ next: the people's passes, the heroes example and the matrix first; the worker's cold build (the preview's larger
+part now); captures on a hosted Studio; npm publishing.
