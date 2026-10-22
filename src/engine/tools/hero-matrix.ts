@@ -66,7 +66,7 @@ export function gameSwitchFlags(game: GameDef): SwitchFlag[] {
 }
 
 /** A column: one value per switched flag, and the hero as it looks then. */
-export interface MatrixColumn {
+interface MatrixColumn {
   /** `form=knight` (flags sorted, `~` between two): the column's name. */
   key: string;
   flags: Record<string, Value>;
@@ -75,7 +75,7 @@ export interface MatrixColumn {
 }
 
 /** What a line reads and plays for one hero in one language. */
-export interface MatrixCell {
+interface MatrixCell {
   /** The text as the player reads it. */
   text: string;
   /** The clip the line asks first: its keyed id when its text has switches, else its plain id. */
@@ -93,7 +93,7 @@ export interface MatrixCell {
   unlisted?: string[];
 }
 
-export interface MatrixRow {
+interface MatrixRow {
   id: Id;
   who: Id;
   /** The text as written, by language. */
