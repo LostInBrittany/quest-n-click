@@ -3,6 +3,7 @@
 // every hero; each hero is played through in English and in French with its name, Grandma's words for it and the clip
 // recorded for it; a save keeps the hero; `npm run assets` ships the French clips; `npm run voices -- check` reads the
 // French text. Its browser playthrough: games/heroes/e2e.mjs.
+import { spawnSync } from 'node:child_process';
 import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { Engine } from '@engine/core/engine';
@@ -135,7 +136,11 @@ describe('the heroes example (games/heroes)', () => {
 
   it('npm run voices -- check reads the French text: the gull’s French farewell is no orphan', () => {
     const r = runTool(['tools/voices.ts', 'check'], { cwd: ROOT, env: { ...process.env, GAME: 'heroes' } });
-    expect(r.stdout + r.stderr).toContain('[heroes] voices: 0 error(s), 0 warning(s)');
+    const out = r.stdout + r.stderr;
+    expect(out).not.toMatch(/orphan|no line claims/);
+    // Without ffprobe (the Windows runner) the clips cannot be measured: only the orphans are judged there.
+    if (spawnSync('ffprobe', ['-version']).status !== 0) return;
+    expect(out).toContain('[heroes] voices: 0 error(s), 0 warning(s)');
     expect(r.status).toBe(0);
   });
 });
