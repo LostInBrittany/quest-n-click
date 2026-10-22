@@ -470,6 +470,13 @@ look: { grandma: 'Grandma. Dust makes {form?knight=him|witch=her|robot=it} sneez
   yours ([AUDIO.md](AUDIO.md), "Voices"). `{hero}` alone is not a switch: such a line keeps one clip.
 - **Previewing each hero**: the Studio's Play tab has a "Text switches" picker that sets the flag, and the Rooms tab
   shows under a switched text how it reads ([STUDIO.md](STUDIO.md)).
+- **Every hero in every language at once** (4.4.0): the Studio's Voices tab, "Heroes × languages", is a read-only
+  matrix of the lines with an id that depend on the hero (a switch or `{hero}`, in any language). A column per hero
+  (each value the switched flags take, headed by its variant's portrait and name) and per language; each cell the
+  text as that hero reads it and the clip that plays, or `missing <key>` (with the plain id when it plays as the
+  fallback). A row also says when a language still has the source's text (`untranslated`), when a translation drops
+  a choice the source makes (`agreement`), and when a hero's value is listed by no switch of the line and has no `*=`
+  (`unlisted`). "Lines with a problem" keeps only those.
 
 What the tools say:
 

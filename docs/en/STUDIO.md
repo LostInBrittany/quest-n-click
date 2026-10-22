@@ -144,7 +144,12 @@ A provider call never follows a redirect, gives up after 60 s, and reads at most
 - **Play.** The painter of every room (as the game says, DOM or canvas) and how fast it draws (frames per second, the
   canvas painter's repaints).
 - **Voices.** The voice production table per language (`npm run voices`): status, actor and note per line, saved at
-  once; Export CSV for the actors.
+  once; Export CSV for the actors. Its second view, **Heroes × languages** (4.4.0, read-only, the demo too): each line
+  with an id that depends on the hero (a text switch or `{hero}`, in any language), a column per hero (the values the
+  switched flags take, headed by the variant's portrait and name) and per language, each cell the text that hero reads
+  and the clip that plays, or the one missing (the plain id named when it plays instead). A row flags an untranslated
+  language, a translation that drops a choice of the source (`agreement`) and a value no switch lists without `*=`
+  (`unlisted`); "Lines with a problem" keeps those ([CONTENT_GUIDE.md](CONTENT_GUIDE.md), "Choosing the hero").
 - **Music** (3.5). The game's scores through its own music director: play one, hear each state's mix on the next bar,
   mute or solo a stem, the bar and beat shown as it plays. Nothing is written: the states are content in `game.ts`.
 
@@ -189,6 +194,7 @@ All paths are relative to the current game (`GAME`). Errors return `{ error }` w
 | GET `ir` | the game's IR (4.1.12, `docs/en/DSL.md`): its logic as data with the `file:line` of each id (`provenance`) and the trusted extensions' hash; the same JSON as `npm run ir -- --json` |
 | POST `undo`, POST `redo`, GET `history` | → `{ ok, file, what }` or `{ ok: false, reason }`; 409 when the file changed since; `history` → `{ undo: [what], redo: [what] }` |
 | GET `voices[/:lang]`, PUT `voices/:lang/:id`, GET `voices/:lang/csv` | the voice table `{ lang, langs, statuses, rows }`; `{ status?, note?, actor? }` → `{ ok }` (into `voices.json`); `{ lang, csv }` |
+| GET `hero-matrix` | the hero × language matrix (4.4.0, `src/engine/tools/hero-matrix.ts`): `{ langs, flags, columns, rows, truncated? }`, each row's `cells[column][language]` `{ text, want, clip?, file?, fallback?, missing?, borrowed?, unlisted? }` and its `untranslated`, `agreement`, `problem` |
 | GET `events` | server-sent events: `{ type: 'hello', game }` on connection, then `{ type: 'changed', file }` when a file of the game folder changes on disk (`file` relative to it, e.g. `rooms/house.ts`; dotfiles and `private/` are ignored; 150 ms debounce per file) |
 
 The same operations exist as plain functions in `studio-server/src/ops/core.ts`, used by the Vite plugin, by the tests and by
