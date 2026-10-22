@@ -110,7 +110,7 @@ export async function openMap(app: App, state: GameState): Promise<Id | null> {
       layer.append(svg);
       const size = parent ? 7.5 : 6;
       list.append(el('div', 'who', `<img src="${app.bank.img(icons.map)}" alt="">${esc(app.game.ui.mapTitle)}`));
-      // One pin per place, except the places that join another's pin (4.3.1): their faces sit on it, each face a way
+      // One pin per place, except the places that join another's pin (4.4.0): their faces sit on it, each face a way
       // to its own place. Several faces (a portrait list, or joined places) sit side by side, overlapping a little: the
       // pin widens, each face keeps its size.
       const groups = new Map<Id, [Id, PlaceDef][]>();
@@ -216,7 +216,7 @@ export async function openMap(app: App, state: GameState): Promise<Id | null> {
       }
       const p = must(map.places[id], `place ${id}`);
       const herePlace = here ? must(map.places[here], `place ${here}`) : undefined;
-      // Two places of the same pin (4.3.1): no journey to draw.
+      // Two places of the same pin (4.4.0): no journey to draw.
       if (here && (herePlace?.joins ?? here) === (p.joins ?? id)) {
         cleanup();
         resolve(id);

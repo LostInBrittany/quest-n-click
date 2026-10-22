@@ -1,4 +1,4 @@
-## 4.3.1: one map pin for a city with several places, portrait lists and joins (#223)
+## 4.4.0: one map pin for a city with several places, portrait lists and joins (#223)
 
 - Found in a game whose city has two destinations (the reception, an open space): two places drew two pins, on top
   of each other at one `pos` (only the top one tappable, a journey drawn from the city to itself) or apart, as if the

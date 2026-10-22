@@ -1,5 +1,5 @@
 // @vitest-environment happy-dom
-// Several faces on one place of the map (4.3.1): a city where several characters live shows them all on its pin, side
+// Several faces on one place of the map (4.4.0): a city where several characters live shows them all on its pin, side
 // by side, `portrait: ['ann/face', 'bea/face']`. One portrait (a string) draws as before; no portrait, the pin.
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { App } from '@engine/dom/app';
@@ -37,7 +37,7 @@ async function start() {
 const faces = (pin: Element) =>
   [...pin.querySelectorAll<HTMLImageElement>('img.face')].map((i) => i.getAttribute('src'));
 
-describe('several portraits on one place of the map (4.3.1)', () => {
+describe('several portraits on one place of the map (4.4.0)', () => {
   afterEach(() => {
     vi.restoreAllMocks();
     document.body.innerHTML = '';

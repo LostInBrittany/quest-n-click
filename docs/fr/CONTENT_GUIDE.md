@@ -782,9 +782,9 @@ map: {
   regions: { monde: { name: 'Monde', image: 'decor/carte' }, ville: { name: 'Ville', image: 'decor/carte_ville', parent: 'monde' } },
   places: {
     marche: { name: 'Marché', room: 'marche', region: 'ville', pos: [61, 41], portrait: 'vendeuse/r1c2', vehicle: 'car', news: '!marche_fini' },
-    // Plusieurs personnes y vivent : leurs visages côte à côte sur l'épingle (4.3.1).
+    // Plusieurs personnes y vivent : leurs visages côte à côte sur l'épingle (4.4.0).
     port: { name: 'Port', room: 'quai', region: 'ville', pos: [30, 70], portrait: ['capitaine/r1c2', 'cuisinier/r1c2'] },
-    // Un autre lieu de la même ville : son visage rejoint l'épingle du port et y mène directement (4.3.1).
+    // Un autre lieu de la même ville : son visage rejoint l'épingle du port et y mène directement (4.4.0).
     phare: { name: 'Port : le phare', room: 'phare', region: 'ville', pos: [30, 70], portrait: 'gardien/r1c2', joins: 'port' },
   },
 },

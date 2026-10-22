@@ -757,9 +757,9 @@ map: {
   regions: { world: { name: 'World', image: 'decor/map' }, town: { name: 'Town', image: 'decor/map_town', parent: 'world' } },
   places: {
     market: { name: 'Market', room: 'market', region: 'town', pos: [61, 41], portrait: 'seller/r1c2', vehicle: 'car', news: '!market_done' },
-    // Several people live there: their faces side by side on the pin (4.3.1).
+    // Several people live there: their faces side by side on the pin (4.4.0).
     harbour: { name: 'Harbour', room: 'quay', region: 'town', pos: [30, 70], portrait: ['captain/r1c2', 'cook/r1c2'] },
-    // Another room of the same town: its face joins the harbour's pin and leads straight there (4.3.1).
+    // Another room of the same town: its face joins the harbour's pin and leads straight there (4.4.0).
     lighthouse: { name: 'Harbour: the lighthouse', room: 'lighthouse', region: 'town', pos: [30, 70], portrait: 'keeper/r1c2', joins: 'harbour' },
   },
 },

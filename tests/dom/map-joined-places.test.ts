@@ -1,5 +1,5 @@
 // @vitest-environment happy-dom
-// Several places on one pin of the map (4.3.1): a city with several rooms to travel to (the reception, an office
+// Several places on one pin of the map (4.4.0): a city with several rooms to travel to (the reception, an office
 // upstairs) is one pin, and each face on it is a way in. A place says which pin it joins, `joins: 'town'`: its face sits
 // on that pin once it is unlocked, a tap on the face travels to its own room, and from its room the city's pin is "here".
 // Moving between two places of the same pin does not draw a journey.
@@ -42,7 +42,7 @@ const faceSrcs = (pin: Element) =>
   [...pin.querySelectorAll<HTMLImageElement>('img.face')].map((i) => i.getAttribute('src'));
 const close = () => (document.querySelector('.choice.gl') as HTMLElement).click();
 
-describe('several places on one pin (4.3.1)', () => {
+describe('several places on one pin (4.4.0)', () => {
   afterEach(() => {
     vi.restoreAllMocks();
     document.body.innerHTML = '';
