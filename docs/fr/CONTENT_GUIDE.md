@@ -402,6 +402,14 @@ allure, son nom, et les mots que les autres emploient pour lui. Il faut un drape
 convient), un personnage avec une variante par héros, un choix d'intro qui pose le drapeau, et des aiguillages dans les
 textes qui en dépendent.
 
+**Un exemple jouable** : `games/heroes` (« Qui suis-je aujourd'hui ? », 4.4.0) réunit le tout dans un seul lieu. Trois
+héros sur des cartes à portrait (Pixel, Biscuit, Gaby la mouette), `{hero}` et des aiguillages dans les répliques de
+Grand-mère, une table française qui ajoute ses propres accords (`Prêt{form?gull=e|*=}`), les répliques de Grand-mère
+doublées par héros dans les deux langues, une règle que seule la mouette reçoit, et une sauvegarde qui garde le héros.
+`GAME=heroes npm run dev` pour y jouer ; `GAME=heroes npm run solve -- --prove` le prouve pour chaque héros ; son test
+navigateur (`games/heroes/e2e.mjs`) choisit chaque héros en anglais et en français, sauvegarde, recharge, reprend et
+termine.
+
 ```ts
 hero: 'kid',
 characters: {

@@ -121,8 +121,10 @@ export const RULES: readonly Rule[] = [
   },
 
   // The games.
-  { re: /^games\/demo\//, gates: ['e2e', ...UNIT], why: 'the sample game' },
+  // The reference job also builds and plays games/heroes (4.4.0), which reads the sample game's cast, verbs and ui.
+  { re: /^games\/demo\//, gates: ['e2e', 'reference', ...UNIT], why: 'the sample game' },
   { re: /^games\/reference\//, gates: ['reference', 'node24'], why: 'the reference chapter' },
+  { re: /^games\/heroes\//, gates: ['reference', 'node24'], why: 'the hero choice example (in the reference job)' },
   // The Bridge's qualification profile (4.1.18): brought up by its own workflow (qualify.yml) and the candidate's
   // `deployment-smoke`; here its static test only.
   {

@@ -1,10 +1,10 @@
 // npm run quality:baseline [-- --check] [--dist=dist]: what the engine does, frozen before a refactoring (4.1.0
-// "Clarity", docs/dev/PLAN-4.1.1-CLARITY.md lot A). For the demo, the reference game and the solver's fixture games:
-// the witness (status, length, the digest after every input), the proof (status, states, softlocks); every golden
-// save, loaded and played to its end (the last digest); the public API and MCP surface (its hash); the test
-// declarations. Written to tests/quality-baseline.json; --check compares and names each difference, so a change meant
-// to keep behaviour that moves a digest, a verdict or a name fails with what moved. --dist adds the first visit's
-// JavaScript (verify:dist), held to "no bigger": a refactoring may shrink it, never grow it.
+// "Clarity", docs/dev/PLAN-4.1.1-CLARITY.md lot A). For the demo, the reference game, the heroes example (4.4.0) and
+// the solver's fixture games: the witness (status, length, the digest after every input), the proof (status, states,
+// softlocks); every golden save, loaded and played to its end (the last digest); the public API and MCP surface (its
+// hash); the test declarations. Written to tests/quality-baseline.json; --check compares and names each difference,
+// so a change meant to keep behaviour that moves a digest, a verdict or a name fails with what moved. --dist adds the
+// first visit's JavaScript (verify:dist), held to "no bigger": a refactoring may shrink it, never grow it.
 import { createHash } from 'node:crypto';
 import { execFileSync } from 'node:child_process';
 import { existsSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
@@ -38,6 +38,7 @@ const fx = (id: string, file: string, make: string, lay: string, ...a: unknown[]
 const GAMES: GameCase[] = [
   { id: 'demo', load: async () => import('../games/demo') },
   { id: 'reference', load: async () => import('../games/reference') },
+  { id: 'heroes', load: async () => import('../games/heroes') },
   fx('classics.insults', 'classics', 'insults', 'insultsLayouts'),
   fx('classics.grog', 'classics', 'grog', 'grogLayouts'),
   fx('classics.dott', 'classics', 'dott', 'dottLayouts'),

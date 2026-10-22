@@ -132,6 +132,7 @@ les notes de chaque release disent quelles passes ont été faites.
 ```
 src/engine/      core (le DSL, le moteur), tools (validate, solve, lint, i18n…), dom (le lecteur), minigames, reality
 games/demo/      le jeu d'exemple : pièces, mises en page, images, son, langues, storyboard
+games/heroes/    un exemple en un lieu : trois héros au choix, anglais et français, voix par héros
 games/_template/ copié par npm run new-game
 tools/           les commandes, le Studio, le serveur MCP, les pipelines d'image et de son, les plugins Vite
 bridge/          le Bridge Reality (le package quest-n-click-bridge)

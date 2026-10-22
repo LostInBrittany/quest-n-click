@@ -395,6 +395,13 @@ declares. The hero keeps the same puzzles and rooms; what changes is the look, t
 for the hero. It takes one flag (`form` here, any name works), one character with a variant per hero, an intro choice
 that sets the flag, and switches in the texts that depend on it.
 
+**A playable example**: `games/heroes` ("Who Am I Today?", 4.4.0) puts it all together in one room. Three heroes on
+portrait cards (Pixel, Biscuit, Gaby the gull), `{hero}` and switches in Grandma's lines, a French table that adds its
+own agreements (`Prêt{form?gull=e|*=}`), Grandma's lines voiced per hero in both languages, one rule only the gull gets,
+and a save that keeps the hero. `GAME=heroes npm run dev` to play it; `GAME=heroes npm run solve -- --prove` proves it
+for every hero; its browser test (`games/heroes/e2e.mjs`) picks each hero in English and in French, saves, reloads,
+continues and finishes.
+
 ```ts
 hero: 'kid',
 characters: {

@@ -126,6 +126,7 @@ notes say which passes were made.
 ```
 src/engine/      core (the DSL, the engine), tools (validate, solve, lint, i18n…), dom (the player), minigames, reality
 games/demo/      the sample game: rooms, layouts, art, audio, locales, storyboard
+games/heroes/    a one-room example: three heroes to choose from, English and French, voices by hero
 games/_template/ copied by npm run new-game
 tools/           the commands, the Studio, the MCP server, the art and audio pipelines, the Vite plugins
 bridge/          the Reality Bridge (the package quest-n-click-bridge)
