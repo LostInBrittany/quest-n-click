@@ -762,9 +762,17 @@ map: {
   regions: { world: { name: 'World', image: 'decor/map' }, town: { name: 'Town', image: 'decor/map_town', parent: 'world' } },
   places: {
     market: { name: 'Market', room: 'market', region: 'town', pos: [61, 41], portrait: 'seller/r1c2', vehicle: 'car', news: '!market_done' },
+    // Several people live there: their faces side by side on the pin (4.4.0).
+    harbour: { name: 'Harbour', room: 'quay', region: 'town', pos: [30, 70], portrait: ['captain/r1c2', 'cook/r1c2'] },
+    // Another room of the same town: its face joins the harbour's pin and leads straight there (4.4.0).
+    lighthouse: { name: 'Harbour: the lighthouse', room: 'lighthouse', region: 'town', pos: [30, 70], portrait: 'keeper/r1c2', joins: 'harbour' },
   },
 },
 ```
+
+A place that `joins` another sits on its pin instead of having one: once it is unlocked its face is added there, a tap
+on a face travels to that face's place, and from any of them the pin is "here". Moving between two places of one pin
+draws no journey. The validator wants the pin's place to exist, in the same region, and not to join another itself.
 
 ### Speech: only the mouth moves
 

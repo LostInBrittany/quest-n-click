@@ -86,7 +86,7 @@ export function collectRefs({
   for (const it of Object.values(game.items)) add(it.icon);
   if (game.map) {
     Object.values(game.map.regions).forEach((r) => add(r.image));
-    Object.values(game.map.places).forEach((p) => add(p.portrait));
+    Object.values(game.map.places).forEach((p) => ([] as string[]).concat(p.portrait ?? []).forEach(add));
     Object.values(game.map.vehicles ?? {}).forEach(add);
   }
 
