@@ -26,6 +26,19 @@
     "softlocks": 0
    }
   },
+  "heroes": {
+   "witness": {
+    "status": "solved",
+    "finished": true,
+    "inputs": 3,
+    "digests": "7f247b6db64d5681"
+   },
+   "proof": {
+    "status": "solved",
+    "states": 3,
+    "softlocks": 0
+   }
+  },
   "classics.insults": {
    "witness": {
     "status": "solved",
@@ -412,8 +425,8 @@
   "api": "a029b70768d9feba"
  },
  "tests": {
-  "files": 336,
-  "declarations": 2875
+  "files": 346,
+  "declarations": 2937
  },
  "bundle": {
   "initialJsKB": 135
