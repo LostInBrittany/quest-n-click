@@ -191,7 +191,9 @@ The test realm `ops/studio/keycloak/realm.json` shows every setting. On any prov
 
 - **The `studio` client**: confidential, Authorization Code with PKCE S256, redirect URI `<publicUrl>/auth/callback`,
   post-logout redirect `<publicUrl>`, back-channel logout to `<publicUrl>/auth/backchannel` with the session id.
-- **The `web-scumm-cli` client**: public, the device authorization grant.
+- **The `web-scumm-cli` client**: public, the device authorization grant, and the client scope `offline_access`
+  (optional or default); each member who logs in from the CLI or the MCP needs the realm role `offline_access`.
+  Without them the login says `the login was refused: not_allowed (Offline tokens not allowed for the user or client)`.
 - **An audience mapper** adding `studio-api` (the `audience` above) to the access tokens of `web-scumm-cli`. It must
   differ from the `studio` client's id: an id_token is never accepted as an access token.
 - **Access tokens of 5 min.** Up to 15 if the configuration says so (`oidc.maxTokenSeconds`, 900 at most): a longer
