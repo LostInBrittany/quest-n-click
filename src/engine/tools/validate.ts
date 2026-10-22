@@ -1038,7 +1038,7 @@ export function validate(gameIn: GameDef, layouts: Record<string, Layout>, opts:
 
   // Chapters, invariants, the player's side (menus, taps), migrations
   (game.invariants ?? []).forEach((c, i) => cond(c, `invariants[${i}]`));
-  playerChecks(game, { err, warn });
+  playerChecks(game, { err, warn, locales: opts.locales });
   migrationChecks(game, { items, rooms, places, scriptIds, playerIds, chars, err, warn });
   // Checkpoints
   for (const [cid, c] of Object.entries(game.checkpoints ?? {})) {

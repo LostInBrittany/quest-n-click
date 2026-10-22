@@ -22,7 +22,6 @@ import {
 } from '../src/engine/tools/provenance';
 import { fileFacts, LOCK, readJson, shippedKeys } from './provenance-files';
 import { validate } from '../src/engine/tools/validate';
-import { localeVerbKeyChecks } from '../src/engine/tools/validate/player';
 import { report, reportMarkdown } from '../src/engine/tools/report';
 import { loadAssets, loadLayouts, loadLocales } from '../src/engine/tools/load';
 import { ASSETS_DIR, GAME, GAME_DIR, WORK, loadGameModule } from './game';
@@ -71,11 +70,6 @@ const { errors, warnings } = validate(game, layouts, {
   release,
   translated: Object.keys(locales).some((l) => l !== (game.lang ?? 'en')),
   locales,
-});
-// The verbs' keys once translated (#203): a translation may give two verbs the same letter.
-localeVerbKeyChecks(game, locales, {
-  err: (w, m) => errors.push(`${w} › ${m}`),
-  warn: (w, m) => warnings.push(`${w} › ${m}`),
 });
 // Asset provenance: where every shipped image and sound comes from, and under which licence.
 const provFile = resolve(GAME_DIR, 'provenance.json');
