@@ -407,7 +407,7 @@ jobs:
       # solicited save, the wall between the two; Chromium over http, Firefox over https. Not WebKit here: on Linux it
       # stores no cookie a frame of another host sets (even one site), unlike Safari; it is run on macOS.
       - if: env.RUN == 'true'
-        run: for i in 1 2 3; do (npx playwright install --with-deps chromium firefox) && break; [ "$i" = 3 ] && exit 1; echo "retry $i"; sleep 15; done
+        run: for i in 1 2 3; do (timeout 420 npx playwright install --with-deps chromium firefox) && break; [ "$i" = 3 ] && exit 1; echo "retry $i"; sleep 15; done
         timeout-minutes: 10
       - if: env.RUN == 'true'
         run: npm run studio-client && npm run e2e:studio-hosted && npm run e2e:studio-hosted -- --browser=firefox && npm run e2e:studio-collab && npm run e2e:studio-collab -- --browser=firefox
@@ -494,7 +494,7 @@ jobs:
         run: for i in 1 2 3; do (npm ci) && break; [ "$i" = 3 ] && exit 1; echo "retry $i"; sleep 15; done
         timeout-minutes: 20
       - if: env.RUN == 'true'
-        run: for i in 1 2 3; do (npx playwright install --with-deps ${{ matrix.browser }}) && break; [ "$i" = 3 ] && exit 1; echo "retry $i"; sleep 15; done
+        run: for i in 1 2 3; do (timeout 420 npx playwright install --with-deps ${{ matrix.browser }}) && break; [ "$i" = 3 ] && exit 1; echo "retry $i"; sleep 15; done
         timeout-minutes: 20
       - if: env.RUN == 'true'
         run: npm run assets
@@ -631,7 +631,7 @@ jobs:
         run: for i in 1 2 3; do (npm ci) && break; [ "$i" = 3 ] && exit 1; echo "retry $i"; sleep 15; done
         timeout-minutes: 20
       - if: env.RUN == 'true'
-        run: for i in 1 2 3; do (npx playwright install --with-deps chromium) && break; [ "$i" = 3 ] && exit 1; echo "retry $i"; sleep 15; done
+        run: for i in 1 2 3; do (timeout 420 npx playwright install --with-deps chromium) && break; [ "$i" = 3 ] && exit 1; echo "retry $i"; sleep 15; done
         timeout-minutes: 20
       - if: env.RUN == 'true'
         run: npm run new-game second "Second Game"
@@ -713,7 +713,7 @@ jobs:
         run: for i in 1 2 3; do (npm ci) && break; [ "$i" = 3 ] && exit 1; echo "retry $i"; sleep 15; done
         timeout-minutes: 20
       - if: env.RUN == 'true'
-        run: for i in 1 2 3; do (npx playwright install --with-deps ${{ matrix.browser }}) && break; [ "$i" = 3 ] && exit 1; echo "retry $i"; sleep 15; done
+        run: for i in 1 2 3; do (timeout 420 npx playwright install --with-deps ${{ matrix.browser }}) && break; [ "$i" = 3 ] && exit 1; echo "retry $i"; sleep 15; done
         timeout-minutes: 20
       # The two-entry build (game + Studio demo) `check` made from this very commit.
       - if: env.RUN == 'true'
@@ -805,7 +805,7 @@ jobs:
         run: for i in 1 2 3; do (npm ci) && break; [ "$i" = 3 ] && exit 1; echo "retry $i"; sleep 15; done
         timeout-minutes: 20
       - if: env.RUN == 'true'
-        run: for i in 1 2 3; do (npx playwright install --with-deps firefox) && break; [ "$i" = 3 ] && exit 1; echo "retry $i"; sleep 15; done
+        run: for i in 1 2 3; do (timeout 420 npx playwright install --with-deps firefox) && break; [ "$i" = 3 ] && exit 1; echo "retry $i"; sleep 15; done
         timeout-minutes: 20
       - if: env.RUN == 'true'
         uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
@@ -832,7 +832,7 @@ jobs:
           cache: npm
       - run: for i in 1 2 3; do (npm ci) && break; [ "$i" = 3 ] && exit 1; echo "retry $i"; sleep 15; done
         timeout-minutes: 20
-      - run: for i in 1 2 3; do (npx playwright install --with-deps chromium webkit firefox) && break; [ "$i" = 3 ] && exit 1; echo "retry $i"; sleep 15; done
+      - run: for i in 1 2 3; do (timeout 420 npx playwright install --with-deps chromium webkit firefox) && break; [ "$i" = 3 ] && exit 1; echo "retry $i"; sleep 15; done
         timeout-minutes: 20
       - run: npm run e2e:canonical
       - run: npm run e2e:remix
@@ -868,7 +868,7 @@ jobs:
         run: for i in 1 2 3; do (npm ci) && break; [ "$i" = 3 ] && exit 1; echo "retry $i"; sleep 15; done
         timeout-minutes: 20
       - if: env.RUN == 'true'
-        run: for i in 1 2 3; do (npx playwright install --with-deps chromium) && break; [ "$i" = 3 ] && exit 1; echo "retry $i"; sleep 15; done
+        run: for i in 1 2 3; do (timeout 420 npx playwright install --with-deps chromium) && break; [ "$i" = 3 ] && exit 1; echo "retry $i"; sleep 15; done
         timeout-minutes: 20
       - if: env.RUN == 'true'
         run: npm run fresh-install
@@ -982,7 +982,7 @@ jobs:
         run: for i in 1 2 3; do (npm ci) && break; [ "$i" = 3 ] && exit 1; echo "retry $i"; sleep 15; done
         timeout-minutes: 20
       - if: env.RUN == 'true'
-        run: for i in 1 2 3; do (npx playwright install --with-deps ${{ matrix.browser }}) && break; [ "$i" = 3 ] && exit 1; echo "retry $i"; sleep 15; done
+        run: for i in 1 2 3; do (timeout 420 npx playwright install --with-deps ${{ matrix.browser }}) && break; [ "$i" = 3 ] && exit 1; echo "retry $i"; sleep 15; done
         timeout-minutes: 20
       # validate --release measures the stems with ffprobe (3.6).
       - if: env.RUN == 'true'

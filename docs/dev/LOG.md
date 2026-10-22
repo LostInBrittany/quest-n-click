@@ -7357,6 +7357,8 @@ language matrix.
   write to a ready preview; the files stored 8 at a time are the gain, the worker's cold build is now the larger part.
   Recovering the realm's admin for the measurement found the CLI's bare `ResponseBodyError` (LOG #266).
 - **Budgets**: the first visit's JavaScript 135 → 136 KB on the demo, the reference chapter's budget 140 → 142 KB.
+- **CI**: each attempt of a Playwright install with its system packages is bounded to 7 min (`timeout 420`, ci.yml
+  and candidate.yml): twice in a row on #236 a WebKit install hung for the step's whole 20 min, its retries never ran.
 - **Passes**: 21, two new; none passed (docs/dev/passes/4.4.0.md).
 → next: the people's passes, the heroes example and the matrix first; the worker's cold build (the preview's larger
 part now); captures on a hosted Studio; npm publishing.
