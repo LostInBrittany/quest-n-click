@@ -98,6 +98,8 @@ export class Previews {
   private retry?: ReturnType<typeof setTimeout>;
   private retryMs = RETRY_MS;
   private running: Promise<void> | null = null;
+  /** When the oldest ask not taken by a run yet was made (4.4.0: the preview's `queuedMs` and `sinceWriteMs`). */
+  private asked: number | undefined;
   private now: () => number;
 
   constructor(private o: PreviewsOptions) {
@@ -115,6 +117,7 @@ export class Previews {
    */
   schedule(): Promise<void> {
     this.wanted = true;
+    this.asked ??= this.now();
     this.running ??= this.loop().finally(() => {
       this.running = null;
       // Asked between the loop's last look and here: run again.
@@ -130,10 +133,14 @@ export class Previews {
   private async loop() {
     while (this.wanted) {
       this.wanted = false;
+      const asked = this.asked ?? this.now();
+      this.asked = undefined;
       try {
-        await this.once();
+        await this.once(asked);
         this.retryMs = RETRY_MS;
       } catch (e) {
+        // The write still waits for its preview: its time runs on through the retries.
+        this.asked = Math.min(this.asked ?? asked, asked);
         // Not the game's fault (the worker down or busy, a timeout, the store): said, nothing recorded, tried again
         // later, waiting longer each time.
         const message = String((e as Error).message).slice(0, 300);
@@ -151,7 +158,9 @@ export class Previews {
     clearTimeout(this.retry);
   }
 
-  private async once() {
+  /** `asked`: when the write this run answers asked for it (the coalescing and the retries are part of its wait). */
+  private async once(asked: number) {
+    const tSnap = this.now();
     const snap = await this.o.snapshot();
     if (snap.epoch !== this.s.epoch) {
       // Another history (an import, a restore): its own previews only.
@@ -178,6 +187,7 @@ export class Previews {
     this.s.building = snap.rev;
     this.changed();
     const t0 = this.now();
+    let built: number | undefined;
     try {
       let manifest: Record<string, string> | null = null;
       let failed: string | null = null;
@@ -192,6 +202,7 @@ export class Previews {
           },
           { epoch: snap.epoch },
         );
+        built = this.now();
         const entries: [string, string][] = [];
         for (const [path, bytes] of files) entries.push([path, await this.o.blobs.put(bytes)]);
         manifest = Object.fromEntries(entries);
@@ -200,7 +211,18 @@ export class Previews {
         if (!(e instanceof PreviewBuildFailed)) throw e;
         failed = e.message.slice(0, 2_000);
       }
-      const ms = this.now() - t0;
+      const end = this.now();
+      // The build and the files stored, after the snapshot (the column `ms` and studio_preview_build_seconds).
+      const ms = end - t0;
+      // Its phases (4.4.0): waiting (the coalescing, a build before it, the retries), the snapshot, the worker's job
+      // as the Studio waits for it (its queue on the worker included), the files stored; and the write's whole wait.
+      const phases = {
+        queuedMs: tSnap - asked,
+        snapMs: t0 - tSnap,
+        jobMs: (built ?? end) - t0,
+        storeMs: built === undefined ? 0 : end - built,
+        sinceWriteMs: end - asked,
+      };
       await this.o.db.run(
         'INSERT INTO studio_previews (epoch, rev, manifest, failed, ms, made_at) VALUES ($1, $2, $3, $4, $5, $6) ON CONFLICT DO NOTHING',
         [snap.epoch, snap.rev, manifest && JSON.stringify(manifest), failed, ms, this.now()],
@@ -210,7 +232,7 @@ export class Previews {
         this.s.ready = snap.rev;
         this.s.failed = null;
       } else this.s.failed = { rev: snap.rev, reason: failed! };
-      this.o.log?.({ event: 'preview', rev: snap.rev, ms, failed: !!failed });
+      this.o.log?.({ event: 'preview', rev: snap.rev, ms, failed: !!failed, ...phases });
     } finally {
       this.s.building = null;
       this.changed();

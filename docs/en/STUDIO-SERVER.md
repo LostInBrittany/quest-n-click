@@ -429,7 +429,9 @@ game's session is refused before its path is read (a 401, "open the game from th
 | `studio_worker_jobs_in_flight` | the jobs asked of the worker and not answered yet: the queue as the Studio sees it |
 | `studio_worker_job_seconds{kind,outcome}` | the worker's jobs by kind (`validate`, `load`, `preview`, `prepare`, `lint`, `solve`, `playtests`) and outcome (`ok`, `failed`, `timeout`, `error`) |
 | `studio_lease_conflicts_total` | the 423s answered: someone else's span, or a lease that ended |
-| `studio_preview_build_seconds{outcome}` | a revision's preview, snapshot to stored files (`built`, `failed`) |
+| `studio_preview_build_seconds{outcome}` | a revision's preview, the worker's build and the files stored, after the snapshot (`built`, `failed`) |
+| `studio_preview_phase_seconds{phase}` | since 4.4.0, a preview by phase: `queued` (from the write to the build's start: the coalescing, a build before it, the retries), `snapshot`, `job` (the worker's job as the Studio waits for it, its queue on the worker included), `store`, and `since_write` (from the write to the preview ready) |
+| `studio_worker_job_phase_seconds{kind,phase}` | since 4.4.0, a job by phase as the Studio runs it: `put` (the snapshot staged), `post` (the worker's answer), `get` (the result read), `del` (the staging deleted) |
 | `studio_health_judgement_seconds{verdict}` | the health's verdict on a revision |
 | `studio_journal_rpo_seconds` | the age of the oldest operation not shipped to the bucket (the `rpoMs` of `/readyz`) |
 | `studio_journal_revision`, `studio_service_lease_held` | the head, and whether this instance serves writes (1) |
@@ -437,7 +439,10 @@ game's session is refused before its path is read (a 401, "open the game from th
 
 They are counts and durations: no path, no name, no author, no content. They live in the instance's memory, so a
 restart starts them again from zero (a counter reset, which Prometheus' `rate` reads as such). The worker's own queue
-is not measured from the worker: the Studio's side of it is. OpenTelemetry is not supported in 4.2.3; it stays an
+is not measured from the worker: the Studio's side of it is. Since 4.4.0 the logs say more: a `"event":"preview"`
+line carries `queuedMs`, `snapMs`, `jobMs`, `storeMs` and `sinceWriteMs`; a `"event":"worker-call"` line (one per job,
+the Studio's side) carries `putMs`, `postMs`, `getMs` and `delMs`; and the worker's own `worker-job` line carries
+`queueMs` (from its POST received to its run's start), `fetchMs`, `unpackMs`, `childMs` and `putMs`. OpenTelemetry is not supported in 4.2.3; it stays an
 option for later.
 
 **Alerts** (to a person). Clever Cloud notifies deployments (`clever notify-email add --notify <you> --event

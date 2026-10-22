@@ -458,7 +458,9 @@ Ce qu'elle donne :
 | `studio_worker_jobs_in_flight` | les jobs demandés à l'application de traitement et pas encore répondus : la file vue du Studio |
 | `studio_worker_job_seconds{kind,outcome}` | ses jobs par sorte (`validate`, `load`, `preview`, `prepare`, `lint`, `solve`, `playtests`) et issue (`ok`, `failed`, `timeout`, `error`) |
 | `studio_lease_conflicts_total` | les 423 répondus : le pan de quelqu'un d'autre, ou un bail terminé |
-| `studio_preview_build_seconds{outcome}` | la prévisualisation d'une révision, de l'instantané aux fichiers stockés (`built`, `failed`) |
+| `studio_preview_build_seconds{outcome}` | la prévisualisation d'une révision, la construction sur l'application de traitement et les fichiers stockés, après l'instantané (`built`, `failed`) |
+| `studio_preview_phase_seconds{phase}` | depuis 4.4.0, une prévisualisation par phase : `queued` (de l'écriture au début de la construction : le regroupement, une construction avant elle, les nouvelles tentatives), `snapshot`, `job` (le job tel que le Studio l'attend, sa file sur l'application de traitement comprise), `store`, et `since_write` (de l'écriture à la prévisualisation prête) |
+| `studio_worker_job_phase_seconds{kind,phase}` | depuis 4.4.0, un job par phase tel que le Studio le mène : `put` (l'instantané déposé), `post` (la réponse de l'application de traitement), `get` (le résultat lu), `del` (le dépôt effacé) |
 | `studio_health_judgement_seconds{verdict}` | le verdict de santé sur une révision |
 | `studio_journal_rpo_seconds` | l'âge de la plus ancienne opération pas encore expédiée au bucket (le `rpoMs` de `/readyz`) |
 | `studio_journal_revision`, `studio_service_lease_held` | la tête, et si cette instance sert les écritures (1) |
@@ -466,7 +468,11 @@ Ce qu'elle donne :
 
 Ce sont des comptes et des durées : aucun chemin, aucun nom, aucun auteur, aucun contenu. Elles vivent dans la mémoire
 de l'instance : un redémarrage les remet à zéro (une remise à zéro de compteur, que `rate` de Prometheus lit comme
-telle). La file propre de l'application de traitement n'est pas mesurée de son côté : celle du Studio l'est.
+telle). La file propre de l'application de traitement n'est pas mesurée de son côté : celle du Studio l'est. Depuis
+4.4.0 les journaux en disent plus : une ligne `"event":"preview"` porte `queuedMs`, `snapMs`, `jobMs`, `storeMs` et
+`sinceWriteMs` ; une ligne `"event":"worker-call"` (une par job, côté Studio) porte `putMs`, `postMs`, `getMs` et
+`delMs` ; et la ligne `worker-job` de l'application de traitement porte `queueMs` (de la réception de son POST au début
+de son exécution), `fetchMs`, `unpackMs`, `childMs` et `putMs`.
 OpenTelemetry n'est pas pris en charge en 4.2.3 ; il reste une option pour plus tard.
 
 **Les alertes** (vers une personne). Clever Cloud notifie les déploiements (`clever notify-email add --notify <vous>

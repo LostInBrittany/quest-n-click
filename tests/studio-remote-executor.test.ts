@@ -173,3 +173,62 @@ describe('a prepare on the worker', () => {
     expect([...store.keys()]).toEqual([]);
   });
 });
+
+describe("a job's phases (4.4.0)", () => {
+  it('are logged once per job: put, post, get and delete, each its own time', async () => {
+    const log: Record<string, unknown>[] = [];
+    const slow = (ms: number, f: () => unknown) => new Promise((ok) => setTimeout(() => ok(f()), ms));
+    const timed = {
+      put: (k: string, b: Buffer) => slow(40, () => void store.set(k, b)),
+      get: (k: string) => slow(60, () => store.get(k)),
+      delete: (k: string) => slow(80, () => void store.delete(k)),
+      presign: (_m: string, k: string) => `memory://${k}`,
+    } as unknown as S3;
+    const e = remoteExecutor({
+      s3: timed,
+      workerUrl: url,
+      privateKeyPem: keys.privatePem,
+      instance: 'studio-a',
+      at: () => ({ epoch: 'e1', rev: 3 }),
+      log: (l) => log.push(l),
+    });
+    answer = (job) => slow(300, () => result(job, { data: { files: {}, output: '' } }));
+    await e.cut(snap, 'demo', sheet);
+    await expect.poll(() => log.length).toBe(1);
+    const [line] = log as Record<string, number & string>[];
+    expect(line).toMatchObject({ event: 'worker-call', kind: 'cut', job: seen.at(-1)!.id, outcome: 'ok' });
+    expect(Object.keys(line!).sort()).toEqual(['delMs', 'event', 'getMs', 'job', 'kind', 'outcome', 'postMs', 'putMs']);
+    // Each phase its own (put 40 ms, the worker 300, get 60, delete 80): a lap is never the sum of those before it.
+    expect(line!.putMs).toBeGreaterThanOrEqual(35);
+    expect(line!.postMs).toBeGreaterThanOrEqual(295);
+    expect(line!.getMs).toBeGreaterThanOrEqual(55);
+    expect(line!.getMs).toBeLessThan(250);
+    expect(line!.delMs).toBeGreaterThanOrEqual(75);
+    expect(line!.delMs).toBeLessThan(250);
+    expect([...store.keys()]).toEqual([]);
+  });
+
+  it('leave out a phase not reached, and say the outcome', async () => {
+    const log: Record<string, unknown>[] = [];
+    const e = remoteExecutor({
+      s3,
+      workerUrl: url,
+      privateKeyPem: keys.privatePem,
+      instance: 'studio-a',
+      at: () => ({ epoch: 'e1', rev: 3 }),
+      log: (l) => log.push(l),
+    });
+    answer = (_job, _req, res) => {
+      res.statusCode = 503;
+      res.end('{}');
+    };
+    await expect(e.cut(snap, 'demo', sheet)).rejects.toThrow(/503/);
+    answer = (job) => result(job, { failed: 'late', timedOut: true });
+    await expect(e.cut(snap, 'demo', sheet)).rejects.toMatchObject({ status: 504 });
+    await expect.poll(() => log.length).toBe(2);
+    expect(log[0]).toMatchObject({ outcome: 'error', putMs: expect.any(Number), postMs: expect.any(Number) });
+    expect(log[0]).not.toHaveProperty('getMs');
+    expect(log[0]).toHaveProperty('delMs');
+    expect(log[1]).toMatchObject({ outcome: 'timeout', getMs: expect.any(Number) });
+  });
+});

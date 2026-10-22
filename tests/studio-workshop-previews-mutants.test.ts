@@ -209,12 +209,98 @@ describe('the previews', () => {
     expect([...failed.built, ...ready.built]).toEqual([]);
   });
 
-  it('keep how long a build took, by their clock', async () => {
+  it('keep how long a build took, by their clock, and log its phases (4.4.0)', async () => {
+    // Each look at the clock is 250 ms later: asked, snapshot started, build started, build ended, stored.
     let t = 1_000;
-    const { p } = previews({ epoch: 'e1', rev: 1 }, { now: () => (t += 250) });
+    const log: Record<string, unknown>[] = [];
+    const { p } = previews({ epoch: 'e1', rev: 1 }, { now: () => (t += 250), log: (l) => log.push(l) });
     await p.schedule();
     const [row] = await db.all('SELECT ms FROM studio_previews');
-    expect(Number(row!.ms)).toBe(250);
+    // The build and the files stored, after the snapshot.
+    expect(Number(row!.ms)).toBe(500);
+    expect(log.at(-1)).toEqual({
+      event: 'preview',
+      rev: 1,
+      ms: 500,
+      failed: false,
+      queuedMs: 250,
+      snapMs: 250,
+      jobMs: 250,
+      storeMs: 250,
+      sinceWriteMs: 1_000,
+    });
+  });
+
+  it('time a failed build as its job, nothing stored (4.4.0)', async () => {
+    let t = 0;
+    const log: Record<string, unknown>[] = [];
+    const { p } = previews(
+      { epoch: 'e1', rev: 1 },
+      { now: () => (t += 100), log: (l) => log.push(l), fail: () => 'game' },
+    );
+    await p.schedule();
+    expect(log.at(-1)).toMatchObject({ failed: true, ms: 100, jobMs: 100, storeMs: 0, sinceWriteMs: 300 });
+  });
+
+  it('count the wait of a write from its first ask: the coalescing and the retries are part of it (4.4.0)', async () => {
+    let t = 0;
+    const clock = () => t;
+    const log: Record<string, unknown>[] = [];
+    let down = true;
+    const head = { epoch: 'e1', rev: 1 };
+    const { p } = previews(head, { now: clock, log: (l) => log.push(l), fail: () => (down ? 'down' : undefined) });
+    // Asked at 0; the worker is away: the ask is kept for the retry, never replaced by a later one.
+    await p.schedule();
+    expect(log.at(-1)).toMatchObject({ event: 'preview-failed' });
+    t = 1_000;
+    down = false;
+    head.rev = 2;
+    await p.schedule();
+    p.close();
+    expect(log.at(-1)).toMatchObject({ event: 'preview', rev: 2, queuedMs: 1_000, sinceWriteMs: 1_000 });
+    // Done: the next ask starts its own wait.
+    t = 5_000;
+    head.rev = 3;
+    await p.schedule();
+    expect(log.at(-1)).toMatchObject({ event: 'preview', rev: 3, queuedMs: 0, sinceWriteMs: 0 });
+  });
+
+  it('count a run asked while one runs from that ask, not from the first (4.4.0)', async () => {
+    let t = 0;
+    const log: Record<string, unknown>[] = [];
+    const head = { epoch: 'e1', rev: 1 };
+    let open!: () => void;
+    const gate = new Promise<void>((ok) => (open = ok));
+    const p = new Previews({
+      db,
+      blobs,
+      publicDir: pub,
+      game: 'demo',
+      studioOrigin: 'https://studio.example',
+      snapshot: async () => ({ ...head, bytes: Buffer.from('snap') }),
+      build: async (_b, params) => {
+        if (params.rev === 1) await gate;
+        return new Map([['index.html', Buffer.from(`<p>${params.rev}</p>`)]]);
+      },
+      assetsVersion: () => 'v1',
+      log: (l) => log.push(l),
+      now: () => t,
+    });
+    const running = p.schedule();
+    await new Promise((ok) => setTimeout(ok, 10));
+    t = 300;
+    head.rev = 2;
+    void p.schedule();
+    t = 700;
+    void p.schedule();
+    t = 1_000;
+    open();
+    await running;
+    const lines = log.filter((l) => l.event === 'preview');
+    expect(lines.map((l) => [l.rev, l.queuedMs, l.sinceWriteMs])).toEqual([
+      [1, 0, 1_000],
+      [2, 700, 700],
+    ]);
   });
 
   it('serve a revision kept before a restart, its manifest read once', async () => {

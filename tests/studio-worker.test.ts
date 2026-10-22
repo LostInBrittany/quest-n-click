@@ -154,8 +154,11 @@ describe('the child', () => {
 });
 
 /** A worker on a free port; `stop` closes it. */
-async function startWorker(instance = 'studio-a'): Promise<{ url: string; server: Server }> {
-  const w = createWorker({ publicKeyPem: keys.publicPem, instance });
+async function startWorker(
+  instance = 'studio-a',
+  log?: (event: string, data?: Record<string, unknown>) => void,
+): Promise<{ url: string; server: Server }> {
+  const w = createWorker({ publicKeyPem: keys.publicPem, instance, log });
   const server = createServer(w.handler);
   await new Promise<void>((ok) => server.listen(0, '127.0.0.1', ok));
   return { url: `http://127.0.0.1:${(server.address() as AddressInfo).port}`, server };
@@ -220,6 +223,61 @@ describe('the worker refuses', () => {
       server.close();
     }
   });
+});
+
+describe("the worker's log of a job (4.4.0)", () => {
+  it('says its phases: waiting, the snapshot fetched and unpacked, the child, the result written', async () => {
+    const lines: [string, Record<string, unknown>][] = [];
+    const { url, server } = await startWorker('studio-a', (event, data = {}) => lines.push([event, data]));
+    const mem = await memoryS3();
+    const priv = privateKeyOf(keys.privatePem);
+    const game = join(tmp, 'g-phases');
+    mkdirSync(game);
+    writeFileSync(join(game, 'index.ts'), "export const game = { id: 'phases' };\n");
+    const snap = packSnapshot(game);
+    const sha = (await import('node:crypto')).createHash('sha256').update(snap).digest('hex');
+    const post = (o: Partial<Job>) => {
+      const id = randomUUID();
+      void mem.s3.put(`staging/${id}/snapshot.json`, snap);
+      const token = signJob(
+        job({
+          id,
+          kind: 'load',
+          snapshot: sha,
+          params: { timeoutMs: 30_000 },
+          urls: {
+            snapshot: mem.s3.presign('GET', `staging/${id}/snapshot.json`),
+            result: mem.s3.presign('PUT', `staging/${id}/result.json`),
+          },
+          ...o,
+        }),
+        priv,
+      );
+      return fetch(`${url}/jobs`, { method: 'POST', body: JSON.stringify({ token }) });
+    };
+    try {
+      expect((await post({})).status).toBe(200);
+      const [event, data] = lines.at(-1)!;
+      expect(event).toBe('worker-job');
+      for (const k of ['queueMs', 'fetchMs', 'unpackMs', 'childMs', 'putMs'])
+        expect(data[k], k).toEqual(expect.any(Number));
+      // The child is the job's longest phase here (a node and tsx started), and is counted once: not in its neighbours.
+      const n = data as Record<string, number>;
+      expect(n.childMs).toBeGreaterThan(100);
+      expect(n.putMs).toBeLessThan(n.childMs);
+      expect(n.unpackMs).toBeLessThan(n.childMs);
+      expect(n.childMs).toBeLessThanOrEqual(n.ms! + 50);
+      // A job whose snapshot cannot be read: its wait said, and nothing after it.
+      expect((await post({ urls: { snapshot: `${url}/nothing`, result: `${url}/nothing` } })).status).toBe(502);
+      const [failed, why] = lines.at(-1)!;
+      expect(failed).toBe('worker-job-failed');
+      expect(why).toMatchObject({ kind: 'load', queueMs: expect.any(Number) });
+      expect(why).not.toHaveProperty('fetchMs');
+    } finally {
+      server.close();
+      mem.server.close();
+    }
+  }, 60_000);
 });
 
 describe('the Studio accepts a result', () => {

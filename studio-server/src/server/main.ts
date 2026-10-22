@@ -428,6 +428,7 @@ async function main(argv: string[]): Promise<number> {
       privateKeyPem: secrets.STUDIO_WORKER_KEY.replace(/\\n/g, '\n'),
       instance: config.worker.instance,
       metrics,
+      log: logLine,
       at: async () => ({ epoch: await journal.epoch(), rev: await journal.revision() }),
     });
   }

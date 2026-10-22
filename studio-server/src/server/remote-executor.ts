@@ -57,6 +57,12 @@ export interface RemoteExecutorOptions {
   timeoutMs?: number;
   /** The metrics (4.2.3, H9): each job asked of the worker, while it runs and how it ended. */
   metrics?: JobObserver;
+  /**
+   * A line per job asked of the worker (4.4.0, `worker-call`): its kind, outcome and phases in ms: `putMs` (the
+   * snapshot staged), `postMs` (the worker's answer: its queue and its run), `getMs` (the result read), `delMs` (the
+   * staging deleted). A phase not reached is left out.
+   */
+  log?: (line: Record<string, unknown>) => void;
 }
 
 const MAX_RESULT = 32 * 1024 * 1024;
@@ -84,8 +90,17 @@ export function remoteExecutor(o: RemoteExecutorOptions) {
     const id = randomUUID();
     const dest = `staging/${id}/`;
     const ended = o.metrics?.job(kind);
+    const phases: Record<string, number> = {};
+    let t = performance.now();
+    const lap = (name: string) => {
+      const now = performance.now();
+      phases[name] = Math.round(now - t);
+      t = now;
+    };
+    let outcome: Parameters<ReturnType<JobObserver['job']>>[0] = 'error';
     try {
       await o.s3.put(`${dest}snapshot.json`, snapshot);
+      lap('putMs');
       const seconds = Math.floor(MAX_JOB_MS / 1000);
       const job: Job = {
         id,
@@ -109,6 +124,7 @@ export function remoteExecutor(o: RemoteExecutorOptions) {
         // The job's own expiry: the worker runs no job past it, so waiting longer would gain nothing.
         signal: signal ? AbortSignal.any([AbortSignal.timeout(MAX_JOB_MS), signal]) : AbortSignal.timeout(MAX_JOB_MS),
       });
+      lap('postMs');
       if (!r.ok) {
         // The worker's reason (an expired job, another instance's), read up to 4 KiB only: the worker is not trusted.
         const why = (JSON.parse(await headOf(r, 4_096)) as { error?: unknown } | null)?.error;
@@ -119,6 +135,7 @@ export function remoteExecutor(o: RemoteExecutorOptions) {
       await r.body?.cancel();
       signal?.throwIfAborted();
       const bytes = await o.s3.get(`${dest}result.json`, { max: MAX_RESULT });
+      lap('getMs');
       if (!bytes) throw new Error('the processing worker left no usable result');
       const v = JSON.parse(bytes.toString('utf8')) as JobResult;
       if (v.job !== id || v.kind !== kind) throw new Error('the processing worker result does not answer this job');
@@ -132,14 +149,19 @@ export function remoteExecutor(o: RemoteExecutorOptions) {
       if (!v.failed && kind === 'preview' && !previewFiles(v.files))
         throw new Error('the processing worker result does not answer this job');
       if (!v.failed && cached) last.set(kind, { sha, at: Date.now(), result: v });
-      ended?.(v.timedOut ? 'timeout' : v.failed ? 'failed' : 'ok');
+      outcome = v.timedOut ? 'timeout' : v.failed ? 'failed' : 'ok';
+      ended?.(outcome);
       return v;
     } catch (e) {
       // A wait given up on its deadline is a timeout, as the worker's own is.
-      ended?.((e as Error)?.name === 'TimeoutError' ? 'timeout' : 'error');
+      outcome = (e as Error)?.name === 'TimeoutError' ? 'timeout' : 'error';
+      ended?.(outcome);
       throw e;
     } finally {
+      t = performance.now();
       await Promise.all([o.s3.delete(`${dest}snapshot.json`), o.s3.delete(`${dest}result.json`)]).catch(() => {});
+      lap('delMs');
+      o.log?.({ event: 'worker-call', kind, job: id, outcome, ...phases });
     }
   }
 
