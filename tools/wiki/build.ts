@@ -506,50 +506,114 @@ const listed = (manifest: Manifest, published: readonly Page[]) => {
   return manifest.pages.filter((p) => ids.has(p.id));
 };
 
+// A sidebar of a hundred links reads like a wall: each domain folds (`<details>`), its name and page count showing.
 function sidebar(manifest: Manifest, published: readonly Page[], lang: Lang, style: LinkStyle): string {
   const pages = listed(manifest, published);
   const out = [`**[${L[lang].home}](${style.home})**`, ''];
   for (const d of DOMAIN_IDS) {
     const inDomain = pages.filter((p) => p.domain === d);
     if (!inDomain.length) continue;
-    out.push(`**${L[lang].domains[d]}**`, '', ...inDomain.map((p) => `- ${link(p, lang, style)}`), '');
+    out.push(
+      `<details><summary>${L[lang].domains[d]} (${inDomain.length})</summary>`,
+      '',
+      ...inDomain.map((p) => `- ${link(p, lang, style)}`),
+      '',
+      '</details>',
+      '',
+    );
   }
   return `${out.join('\n').trimEnd()}\n`;
 }
 
+/** Home's few doors, in a reader's order: what to do first, one page each, said in a short line. */
+const DOORS: readonly { id: string; label: Record<Lang, string>; line: Record<Lang, string> }[] = [
+  {
+    id: 'start.play-online',
+    label: { en: 'Play', fr: 'Jouer' },
+    line: {
+      en: 'try the demo game in your browser, nothing to install',
+      fr: 'essayer le jeu de démo dans le navigateur, sans rien installer',
+    },
+  },
+  {
+    id: 'create.first-game',
+    label: { en: 'Make a game', fr: 'Créer un jeu' },
+    line: { en: 'a first room in fifteen minutes', fr: 'une première salle en quinze minutes' },
+  },
+  {
+    id: 'install.from-archive',
+    label: { en: 'Install', fr: 'Installer' },
+    line: {
+      en: 'the engine on your machine, and a new project',
+      fr: 'le moteur sur votre machine, et un nouveau projet',
+    },
+  },
+  {
+    id: 'studio.overview',
+    label: { en: 'The Studio', fr: 'Le Studio' },
+    line: {
+      en: 'edit your game with the mouse, with or without an AI',
+      fr: 'éditer votre jeu à la souris, avec ou sans IA',
+    },
+  },
+  {
+    id: 'team.what-runs-where',
+    label: { en: 'Work as a team', fr: 'Travailler à plusieurs' },
+    line: { en: 'one game, several people, online', fr: 'un seul jeu, plusieurs personnes, en ligne' },
+  },
+  {
+    id: 'clever.overview',
+    label: { en: 'Host it on Clever Cloud', fr: "L'héberger chez Clever Cloud" },
+    line: { en: 'the team Studio, step by step', fr: "le Studio d'équipe, pas à pas" },
+  },
+  {
+    id: 'contribute.welcome',
+    label: { en: 'Contribute', fr: 'Contribuer' },
+    line: { en: 'to the engine itself', fr: 'au moteur lui-même' },
+  },
+];
+
+/** The ways to look something up, under the doors. */
+const HELP: readonly string[] = ['index.faq', 'index.by-task', 'index.by-symptom', 'index.glossary'];
+
 function home(manifest: Manifest, published: readonly Page[]): string {
-  const pages = listed(manifest, published);
-  const column = (lang: Lang) => {
-    const out: string[] = [];
-    for (const d of DOMAIN_IDS) {
-      const inDomain = pages.filter((p) => p.domain === d);
-      if (!inDomain.length) continue;
-      // The entry points first: a tutorial, then a how-to, then the rest, four at most (the four indexes fit).
-      const order: PageType[] = ['tutorial', 'howto', 'troubleshooting', 'explanation', 'reference', 'index'];
-      const first = [...inDomain].sort((a, b) => order.indexOf(a.type) - order.indexOf(b.type)).slice(0, 4);
-      out.push(`**${L[lang].domains[d]}**${L[lang].colon} ${first.map((p) => link(p, lang, WIKI_STYLE)).join(' · ')}`);
-    }
-    return out.length ? out : [L[lang].noPage];
+  const shown = new Map(listed(manifest, published).map((p) => [p.id, p]));
+  const section = (lang: Lang) => {
+    const fr = lang === 'fr';
+    const doors = DOORS.filter((d) => shown.has(d.id)).map(
+      (d) => `- **[${d.label[lang]}](${shown.get(d.id)!.url[lang]})** — ${d.line[lang]}`,
+    );
+    const help = HELP.filter((id) => shown.has(id)).map((id) => link(shown.get(id)!, lang, WIKI_STYLE));
+    const out = [`## ${fr ? 'Français' : 'English'}`, ''];
+    if (!doors.length && !help.length) return [...out, L[lang].noPage, ''];
+    if (doors.length)
+      out.push(`### ${fr ? 'Par où commencer ?' : 'Where to start'}`, '', ...doors.flatMap((l) => [l, '']));
+    if (help.length)
+      out.push(
+        `### ${fr ? 'Vous cherchez quelque chose de précis ?' : 'Looking for something specific?'}`,
+        '',
+        help.join(' · '),
+        '',
+        fr
+          ? "Ou tapez un mot, un code d'erreur (`423`) ou un nom de variable dans la recherche du wiki, en haut à droite."
+          : 'Or type a word, an error code (`423`) or a variable name in the wiki search, top right.',
+        '',
+      );
+    return out;
   };
   return `# quest'n'click
 
-| Français | English |
-|---|---|
-| La documentation de quest'n'click, en français. | The quest'n'click documentation, in English. |
-| ${column('fr').join('<br>')} | ${column('en').join('<br>')} |
+**Des jeux d'aventure point-and-click qui tournent dans le navigateur, sur téléphone comme sur ordinateur.**<br>
+*Point-and-click adventure games that run in the browser, on phones and desktops alike.*
 
-## Chercher · Search
+[Français](#français) · [English](#english)
 
-La recherche du wiki (en haut à droite) lit le texte de chaque page. Quelques exemples ·
-The wiki's search (top right) reads the text of every page. A few examples:
+---
 
-- \`423\` : un enregistrement refusé dans le Studio d'équipe · a save refused in the team Studio
-- \`STUDIO_SESSION_KEY\` : une variable d'environnement · an environment variable
-- \`verrou\` ou \`lease\` : un mot du glossaire, dans l'une ou l'autre langue · a glossary word, in either language
-- \`FR-Creer\` ou \`EN-Create\` : toutes les pages d'un domaine · every page of a domain
+${section('fr').join('\n')}
+---
 
-Les pages françaises commencent par \`FR-\`, les anglaises par \`EN-\` · French pages start with \`FR-\`, English ones with \`EN-\`.
-`;
+${section('en').join('\n')}`;
 }
 
 /**

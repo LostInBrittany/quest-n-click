@@ -478,7 +478,7 @@ describe('wiki -- build --target wiki', () => {
     expect(footer).toContain('https://wanoo.github.io/quest-n-click/docs/');
     expect(footer).toContain('`d0c`');
     expect(footer).toContain('overwritten at the next publication');
-    expect(read('Home.md')).toMatch(/\| Français \| English \|/);
+    expect(read('Home.md')).toMatch(/## Français[\s\S]*## English/);
   });
 
   it('empties its own previous build on a rebuild, keeping .git and removing a withdrawn page', () => {

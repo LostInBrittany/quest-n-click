@@ -111,7 +111,8 @@ describe('a transition page', () => {
 
   it('keeps a heading that ended on an HTML tag with its trailing `-`', () => {
     const coverage = initCoverage([inventoryOf('docs/en/T.md', '# T\n\n## 3. State on <date>\n\nText.\n')]);
-    for (const r of coverage.rows) Object.assign(r, { destinations: ['create.exits'], decision: 'keep', planned: true });
+    for (const r of coverage.rows)
+      Object.assign(r, { destinations: ['create.exits'], decision: 'keep', planned: true });
     const page = transitionPages(coverage, manifest, '4.5.0').get('docs/en/T.md')!;
     expect(inventoryOf('docs/en/T.md', page).anchors).toContain('3-state-on-');
   });
@@ -133,8 +134,7 @@ describe('after the switch-over, the matrix is final', () => {
     } finally {
       log.mockRestore();
     }
-    const check = () =>
-      checkCoverage({ wikiDir, root, manifest: readManifest(wikiDir).manifest!, tracked: [] }).errors;
+    const check = () => checkCoverage({ wikiDir, root, manifest: readManifest(wikiDir).manifest!, tracked: [] }).errors;
     return { root, wikiDir, check };
   }
 
