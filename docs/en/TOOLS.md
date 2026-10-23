@@ -83,7 +83,10 @@ The editor's panel holds:
 - **Save the layout**: writes `games/<GAME>/layout/<room>.json`, coordinates rounded to the unit. The page then reloads with the saved file.
 - **Reload (undo)**: discards unsaved changes.
 - **hidden zones**: also shows zones and props whose visibility condition is false (dashed).
-- **Selection**: the touched element and its values.
+- **Selection**: the touched element and its values. For a prop or a character, **mirror ↔** turns it around (the
+  layout's `flip`) and, for a prop, **mirror ↕** turns it upside down (`flipV`), as the placement page does. A prop is
+  mirrored in the state shown when that state sets its own mirror. A character whose room sets `facing` keeps it: the
+  room's `facing` wins over the layout's `flip`, and the panel says so under the checkbox.
 - **To place**: one button per hotspot, prop or actor defined in the room but missing from the layout. It creates it at the center, ready to be moved.
 - **Walkable zone**: create the zone, add a hole.
 - **Depth scale**: create the scale, set the back and front factors.

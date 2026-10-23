@@ -84,7 +84,10 @@ Le panneau de l'éditeur contient :
 - **Enregistrer le layout** : écrit `games/<GAME>/layout/<lieu>.json`, coordonnées arrondies à l'unité. La page se recharge alors avec le fichier enregistré.
 - **Recharger (annuler)** : abandonne les modifications non enregistrées.
 - **zones cachées** : montre aussi les zones et accessoires dont la condition de visibilité est fausse (en pointillés).
-- **Sélection** : l'élément touché et ses valeurs.
+- **Sélection** : l'élément touché et ses valeurs. Pour un accessoire ou un personnage, **mirror ↔** le retourne (le
+  `flip` du layout) et, pour un accessoire, **mirror ↕** le met à l'envers (`flipV`), comme la page de placement. Un
+  accessoire est retourné dans l'état affiché quand cet état fixe son propre miroir. Un personnage dont le lieu fixe
+  `facing` le garde : le `facing` du lieu l'emporte sur le `flip` du layout, et le panneau le dit sous la case.
 - **À placer** : un bouton par hotspot, accessoire ou acteur défini dans le lieu mais absent du layout. Il le crée au centre, prêt à être déplacé.
 - **Zone marchable** : créer la zone, ajouter un trou.
 - **Échelle de profondeur** : créer l'échelle, régler les facteurs du fond et de devant.
