@@ -85,7 +85,8 @@ les `minigames` du jeu, ses `extraImages` (images à préparer même si aucun co
 - `url` (facultatif) est l'adresse publique du jeu, `"https://example.org/mon-jeu/"`. La page donne alors aux aperçus
   de liens une image de partage absolue (`og:image`, `<url>og.png`) et sa propre adresse (`og:url`) : LinkedIn,
   Facebook et X ont besoin des deux, alors qu'un `og.png` relatif n'affiche souvent aucune image. Une adresse qui
-  n'est pas une URL `http(s)` absolue est ignorée.
+  n'est pas une URL `http(s)` absolue, ou qui porte une requête, un fragment ou des
+  identifiants, est ignorée.
 - `artStyle` vaut `"cel"` (par défaut : dessin animé peint) ou `"pixel"` (pixel art rétro). Il change les prompts
   d'images (`npm run prompts`), le découpeur (`tools/cut-sheet.py`) et `npm run assets` (WebP sans perte,
   redimensionnement au plus proche voisin). Pour `pixel`, posez aussi `skin: { pixelArt: true }` dans `game.ts`.

@@ -78,7 +78,8 @@ game's `minigames`, `extraImages` (images to prepare even when no content refere
 - `title`, `description` and `themeColor` go into `index.html` and the PWA manifest.
 - `url` (optional) is the game's public address, `"https://example.org/my-game/"`. The page then gives link previews
   an absolute share image (`og:image`, `<url>og.png`) and its own address (`og:url`): LinkedIn, Facebook and X need
-  both, where a relative `og.png` often shows no image. An address that is not an absolute `http(s)` URL is ignored.
+  both, where a relative `og.png` often shows no image. An address that is not an absolute `http(s)` URL, or that has a query, a fragment
+  or credentials, is ignored.
 - `artStyle` is `"cel"` (default: painted cartoon) or `"pixel"` (retro pixel art). It changes the art prompts
   (`npm run prompts`), the cutter (`tools/cut-sheet.py`) and `npm run assets` (lossless WebP, nearest-neighbour
   resizing). For `pixel`, also set `skin: { pixelArt: true }` in `game.ts`.

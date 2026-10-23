@@ -34,7 +34,24 @@ describe("site.json's url", () => {
 
   it('adds the final slash, and escapes what it writes', () => {
     const html = page({ url: 'https://example.org/a"b' });
-    expect(meta(html, 'og:image')).toBe('https://example.org/a&quot;b/og.png');
+    // The URL parser percent-encodes the quote; the escaping is the second guard.
+    expect(meta(html, 'og:image')).toBe('https://example.org/a%22b/og.png');
+    expect(meta(page({ url: 'https://example.org' }), 'og:image')).toBe('https://example.org/og.png');
+    expect(meta(page({ url: '  https://example.org/g/  ' }), 'og:url')).toBe('https://example.org/g/');
+  });
+
+  it("writes a $ in site.json as text, not as a replacement pattern", () => {
+    const html = page({ title: "A $& B $' C", url: "https://example.org/$&/$'/" });
+    expect(meta(html, 'og:title')).toBe("A $&amp; B $' C");
+    expect(meta(html, 'og:url')).toBe("https://example.org/$&amp;/$'/");
+  });
+
+  it('ignores an address with a query, a fragment or credentials', () => {
+    for (const url of ['https://example.org/?a=b', 'https://example.org/#x', 'https://u:p@example.org/']) {
+      const html = page({ url });
+      expect(meta(html, 'og:url'), url).toBeUndefined();
+      expect(meta(html, 'og:image'), url).not.toContain('example.org');
+    }
   });
 
   it('ignores an address that is not http(s), absolute: the page stays as without it', () => {

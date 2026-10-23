@@ -146,15 +146,21 @@ export function assetsVersion(dir = resolve(WORK, 'public', 'assets')): string {
   return h.digest('hex').slice(0, 10);
 }
 
-/** site.json's `url`, the game's public address, with its final slash; none when it is not an absolute http(s) URL. */
+/**
+ * site.json's `url`, the game's public address, normalised by the URL parser and with its final slash; none when it is
+ * not an absolute http(s) URL, or when it carries a query, a fragment or credentials (`<url>og.png` would not be the
+ * image's address, or would publish a password).
+ */
 function siteUrl(v: unknown): string | undefined {
   if (typeof v !== 'string') return undefined;
+  let u: URL;
   try {
-    if (!/^https?:$/.test(new URL(v).protocol)) return undefined;
+    u = new URL(v);
   } catch {
     return undefined;
   }
-  return v.endsWith('/') ? v : `${v}/`;
+  if (!/^https?:$/.test(u.protocol) || u.search || u.hash || u.username || u.password) return undefined;
+  return u.href.endsWith('/') ? u.href : `${u.href}/`;
 }
 
 /**
@@ -205,20 +211,21 @@ export function sitePlugin(o: { gameDir?: string; game?: string } = {}): Plugin 
             .replace(/"/g, '&quot;')
             .replace(/</g, '&lt;');
         const url = siteUrl(s.url);
+        // Function replacers: a `$&` or `$'` in a site.json value is text, not a replacement pattern.
         const page = url
           ? html
-              .replace('content="%BASE%og.png"', `content="${esc(url)}og.png"`)
+              .replace('content="%BASE%og.png"', () => `content="${esc(url)}og.png"`)
               .replace(
                 '<meta property="og:type"',
-                `<meta property="og:url" content="${esc(url)}" />\n    <meta property="og:type"`,
+                () => `<meta property="og:url" content="${esc(url)}" />\n    <meta property="og:type"`,
               )
           : html;
         return page
-          .replace(/%LANG%/g, esc(s.lang ?? 'en'))
-          .replace(/%TITLE%/g, esc(s.title ?? name))
-          .replace(/%DESCRIPTION%/g, esc(s.description))
-          .replace(/%THEME%/g, esc(s.themeColor ?? '#0a0a12'))
-          .replace(/%BASE%/g, BASE);
+          .replace(/%LANG%/g, () => esc(s.lang ?? 'en'))
+          .replace(/%TITLE%/g, () => esc(s.title ?? name))
+          .replace(/%DESCRIPTION%/g, () => esc(s.description))
+          .replace(/%THEME%/g, () => esc(s.themeColor ?? '#0a0a12'))
+          .replace(/%BASE%/g, () => BASE);
       },
     },
     configureServer(server) {
