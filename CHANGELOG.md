@@ -2,7 +2,7 @@
 
 ## 4.5.0 — 2026-10-23
 
-LOG #268–#286: "Wiki", the documentation moved. `wiki/en` and `wiki/fr` are now the documentation: 210 pages in
+LOG #268–#287: "Wiki", the documentation moved. `wiki/en` and `wiki/fr` are now the documentation: 210 pages in
 English and in French, each paired with its twin section by section, published as the GitHub wiki and as
 `/docs/<version>/` on Pages from the release's own documentation archive, never rebuilt from `main`. The old `docs/`
 pages are transition pages: every old heading and anchor stays and links to its new place and to the 4.4.0 text. An
@@ -93,6 +93,12 @@ key on their yes of 23 October for `v4.5.0` (D37, D50).
   character and a **mirror ↕** one for a prop: the layout's `flip` and `flipV`, which only the phone placement page
   could set. A character whose room sets `facing` keeps it, as before (the room's `facing` wins over the layout's
   `flip`): the panel says so under the checkbox. Nothing to change in a game.
+
+- **The reference chapter's Chromium work runs in three CI jobs side by side (4.5.0, #265)**: `reference (chromium)`
+  keeps the build, the proofs, the keyboard run, visual, perf, weight, music and taps; the French and generic runs move
+  to `reference-fr`, the hero choice example to `heroes`, both on the `reference` gate. The job that ended every run
+  (about 15 min of sequential work) becomes three of 5 to 8 min; each rebuilds its game.
+
 ## 4.4.0 — 2026-10-22
 
 LOG #256–#267: "Author's Desk", the release an outside reading of 4.3 asked for: making a whole game simpler to make
