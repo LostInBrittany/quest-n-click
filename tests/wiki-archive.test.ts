@@ -241,7 +241,8 @@ describe('the archive', () => {
       err.mockRestore();
       log.mockRestore();
     }
-  }, 120_000);
+    // Five archives of the whole wiki (210 pages in two languages): minutes under coverage's instrumentation.
+  }, 600_000);
 
   it('`wiki -- archive` refuses a file name its identity does not give', () => {
     const out = mkdtempSync(join(tmpdir(), 'archive-cli-'));

@@ -32,7 +32,7 @@ ou Linux. Le moteur s'installe depuis l'archive d'une release (la
 publication npm arrive dans une release ultérieure) :
 
 ```bash
-T=https://github.com/wanoo/quest-n-click/releases/download/v4.4.0/quest-n-click-4.4.0.tgz
+T=https://github.com/wanoo/quest-n-click/releases/download/v4.5.0/quest-n-click-4.5.0.tgz
 npx --package=$T quest-n-click create mon-jeu "Mon jeu" --engine=$T
 cd mon-jeu && npm install
 npm run assets && npm run dev        # y jouer ; puis npm run verify, npm run build
@@ -168,10 +168,14 @@ code) : [Votre premier jeu](https://github.com/wanoo/quest-n-click/wiki/FR-Creer
 de la première idée à la release, chaque commande dans les [Scripts npm](https://github.com/wanoo/quest-n-click/wiki/FR-Reference-Scripts-NPM), ce qui change
 dans le [CHANGELOG](CHANGELOG.md), passer à une nouvelle version dans [Mettre à jour](https://github.com/wanoo/quest-n-click/wiki/FR-Installer-Mise-A-Jour), et
 d'où vient le projet dans la [Feuille de route](https://github.com/wanoo/quest-n-click/wiki/FR-Demarrer-Feuille-De-Route). Un assistant lit les mêmes pages par
-le serveur MCP (`search_docs`, `read_doc`) ; la documentation de la 4.4.0 et des versions d'avant reste dans son tag
-([`docs/` à la v4.4.0](https://github.com/wanoo/quest-n-click/tree/v4.4.0/docs)).
+le serveur MCP (`search_docs`, `read_doc`) ; les anciennes pages de `docs/`
+sont des pages de transition, chaque section reliée à sa nouvelle place et à son texte de la 4.4.0.
 
-Release actuelle : [v4.4.0 (Author's Desk)](https://github.com/wanoo/quest-n-click/releases/tag/v4.4.0) : un exemple
+Release actuelle : [v4.5.0 (Wiki)](https://github.com/wanoo/quest-n-click/releases/tag/v4.5.0) : la documentation
+devient un wiki bilingue, 210 pages en français et en anglais, publié depuis l'archive de chaque release ; un assistant
+y cherche avec `search_docs` et `list_docs` et lit une section par son id avec `read_doc`, et le package du moteur la
+porte (`docs-bundle/`), si bien que `read_doc` marche dans un projet créé ; `doctor` fonctionne dans un projet créé. Sur
+la 4.4.0 « Author's Desk » : un exemple
 jouable du choix du héros en deux langues (`games/heroes`), la matrice héros × langue du Studio, des captures
 avant/après dans le diff sémantique, une prévisualisation hébergée plus rapide, un hotspot qui agit d'un seul tap et une
 épingle de carte à plusieurs lieux (Horacio, LostInBrittany), la colonne du téléphone sur un écran paysage bas. Sur la

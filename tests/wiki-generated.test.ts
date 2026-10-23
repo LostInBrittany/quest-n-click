@@ -48,7 +48,7 @@ function withData(file: string, edit: (d: Record<string, unknown>) => void): Gen
 }
 const problemsOf = (g: Generator, c: GenContext) => g.build(c).problems;
 
-describe('the repository’s generated pages', { timeout: 60_000 }, () => {
+describe('the repository’s generated pages', { timeout: 300_000 }, () => {
   it('are what their generators give, in both languages, with their identifiers, and the data agrees with the code', () => {
     const { manifest, errors } = readManifest(WIKI);
     expect(errors).toEqual([]);

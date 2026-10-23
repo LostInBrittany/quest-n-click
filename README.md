@@ -31,7 +31,7 @@ Linux. The engine installs from a release's archive (npm publishing comes
 in a later release):
 
 ```bash
-T=https://github.com/wanoo/quest-n-click/releases/download/v4.4.0/quest-n-click-4.4.0.tgz
+T=https://github.com/wanoo/quest-n-click/releases/download/v4.5.0/quest-n-click-4.5.0.tgz
 npx --package=$T quest-n-click create my-game "My Game" --engine=$T
 cd my-game && npm install
 npm run assets && npm run dev        # play it; then npm run verify, npm run build
@@ -161,9 +161,13 @@ the code): [Your first game](https://github.com/wanoo/quest-n-click/wiki/EN-Crea
 the first idea to the release, every command in [npm scripts](https://github.com/wanoo/quest-n-click/wiki/EN-Reference-NPM-Scripts), what changed in the
 [CHANGELOG](CHANGELOG.md), moving to a new version in [Upgrade](https://github.com/wanoo/quest-n-click/wiki/EN-Install-Upgrade), and where it comes from in the
 [Roadmap](https://github.com/wanoo/quest-n-click/wiki/EN-Start-Roadmap). An assistant reads the same pages through the MCP server (`search_docs`, `read_doc`);
-the documentation of 4.4.0 and earlier stays in its tag ([`docs/` at v4.4.0](https://github.com/wanoo/quest-n-click/tree/v4.4.0/docs)).
+the old `docs/` pages are transition pages, each section linked to its new place and to its 4.4.0 text.
 
-Current release: [v4.4.0 (Author's Desk)](https://github.com/wanoo/quest-n-click/releases/tag/v4.4.0): a playable
+Current release: [v4.5.0 (Wiki)](https://github.com/wanoo/quest-n-click/releases/tag/v4.5.0): the documentation
+becomes a bilingual wiki, 210 pages in English and in French, published from each release's own archive; an assistant
+searches it with `search_docs` and `list_docs` and reads a section by id with `read_doc`, and the engine's package
+carries it (`docs-bundle/`) so `read_doc` works in a created project; `doctor` runs in a created project. Over 4.4.0
+"Author's Desk": a playable
 example of choosing the hero in two languages (`games/heroes`), the Studio's hero × language matrix, before/after
 captures in the semantic diff, a faster hosted preview, a hotspot that acts on a single tap and a map pin with several
 places (Horacio, LostInBrittany), the phone's column on a short landscape screen. Over 4.3.1: a translation's own text

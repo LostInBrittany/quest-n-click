@@ -486,7 +486,16 @@ try {
     slots: { putSlot(n: number, s: unknown, m: unknown): Promise<boolean> };
     revision?: { here(): { rev: number } };
   };
+  // The writes above (the layout, Undo) build their previews in the background: wait for the head's, or one finishing
+  // between this read and the click makes the button rightly load a revision the step did not expect (#255).
+  await previews.schedule();
   const ready = previews.state().ready;
+  const head = await journal.revision();
+  check(
+    'the head revision has its preview before asking for the latest',
+    ready === head,
+    `ready ${ready}, head ${head}`,
+  );
   await page.getByRole('button', { name: 'Load the latest preview' }).click();
   const playEl = page.locator('iframe.playframe');
   let inPlay: Frame | null = null;

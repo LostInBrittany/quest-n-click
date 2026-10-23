@@ -487,9 +487,9 @@
     },
     "play-save-refused-untouched": {
       "claimTextHash": "9d0ce6b9d3c4d60846f49040fbe56700ea3ad9630ce0a4fdbf0718b5824bd188",
-      "testFileHash": "36d7094276cd868f49a19506b5f285b1d1751ef3060808197806f59102ec0d66",
+      "testFileHash": "f5f95174482b7390abd6128b80b2cb595c19aec3dd7335c36ed19ed907c85f9b",
       "reviewers": [
-        { "name": "claude-4.5-writers", "kind": "ai", "relation": "author", "date": "2026-10-23" }
+        { "name": "claude-4.5-release", "kind": "ai", "relation": "author", "date": "2026-10-23" }
       ]
     },
     "policy-provider-no-redirect": {
@@ -565,9 +565,9 @@
     },
     "save-foreign-game-refused": {
       "claimTextHash": "b5ba4a1d7beca60983eec666b84e960d7c8bc7b87c2839945476834d83059a71",
-      "testFileHash": "36d7094276cd868f49a19506b5f285b1d1751ef3060808197806f59102ec0d66",
+      "testFileHash": "f5f95174482b7390abd6128b80b2cb595c19aec3dd7335c36ed19ed907c85f9b",
       "reviewers": [
-        { "name": "claude-4.5-writers", "kind": "ai", "relation": "author", "date": "2026-10-23" }
+        { "name": "claude-4.5-release", "kind": "ai", "relation": "author", "date": "2026-10-23" }
       ]
     },
     "save-other-world-refused": {
@@ -586,9 +586,9 @@
     },
     "save-refused-untouched": {
       "claimTextHash": "e27f6a71540979a7e98eb76252a99bbd67a41e6cf8983ab93a992cf80ffe9ea6",
-      "testFileHash": "36d7094276cd868f49a19506b5f285b1d1751ef3060808197806f59102ec0d66",
+      "testFileHash": "f5f95174482b7390abd6128b80b2cb595c19aec3dd7335c36ed19ed907c85f9b",
       "reviewers": [
-        { "name": "claude-4.5-writers", "kind": "ai", "relation": "author", "date": "2026-10-23" }
+        { "name": "claude-4.5-release", "kind": "ai", "relation": "author", "date": "2026-10-23" }
       ]
     },
     "save-refused-write-reported": {
@@ -600,9 +600,9 @@
     },
     "save-stale-pruned": {
       "claimTextHash": "88a6d3ad9ceced53ef1fa24d6c6e224bc3fb450655d8c62d455316e6e4399769",
-      "testFileHash": "36d7094276cd868f49a19506b5f285b1d1751ef3060808197806f59102ec0d66",
+      "testFileHash": "f5f95174482b7390abd6128b80b2cb595c19aec3dd7335c36ed19ed907c85f9b",
       "reviewers": [
-        { "name": "claude-4.5-writers", "kind": "ai", "relation": "author", "date": "2026-10-23" }
+        { "name": "claude-4.5-release", "kind": "ai", "relation": "author", "date": "2026-10-23" }
       ]
     },
     "schema1-not-requalified": {
