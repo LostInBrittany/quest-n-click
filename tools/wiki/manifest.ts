@@ -30,9 +30,9 @@ export const DOMAIN_IDS = Object.keys(DOMAINS) as Domain[];
 
 export const PAGE_TYPES = ['tutorial', 'howto', 'reference', 'explanation', 'troubleshooting', 'index'] as const;
 export type PageType = (typeof PAGE_TYPES)[number];
-const AUDIENCES = ['player', 'author', 'admin', 'contributor'] as const;
+export const AUDIENCES = ['player', 'author', 'admin', 'contributor'] as const;
 export type Audience = (typeof AUDIENCES)[number];
-const CONTEXTS = [
+export const CONTEXTS = [
   'engine-repo',
   'created-project',
   'studio-local',

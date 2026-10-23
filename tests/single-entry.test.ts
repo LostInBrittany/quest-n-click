@@ -83,6 +83,8 @@ const WRITERS: Record<string, string> = {
   'tools/dsl-doc.ts': 'elsewhere: docs/',
   'tools/wiki/build.ts':
     'elsewhere: the wiki build, in the folder named by --out (outside the working tree, or under .cache/)',
+  'tools/wiki/bundle.ts':
+    "elsewhere: the documentation bundle, in the folder named by --out (a package's docs-bundle/, never under a folder the repository tracks)",
   'tools/wiki/coverage.ts':
     "elsewhere: the coverage matrix and what it generates, wiki/coverage.json, wiki/legacy.json and the manifest's replaces in wiki/manifest.json (of the folder --wiki names)",
   'tools/field/bundle.ts': 'elsewhere: field bundles',

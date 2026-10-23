@@ -173,8 +173,10 @@ created project, messages and comments in the code, `surfaces.json`, the DSL and
 - Both given, or neither: an `isError` result, "give either name (one of the 8 legacy pages) or id, not both". Never a
   silent choice.
 - **The legacy call `{name: "CONTENT_GUIDE"}`** answers **one Markdown text block**, as today; English by default, as
-  today; **no truncation**, as today. Provenance (identity of the bundle, §4.5.1; the list of ids) goes in
-  `structuredContent`, which older clients ignore, never in the text.
+  today; **no truncation**, as today. *Amendment (A4 review):* the legacy call carries no `structuredContent`, for
+  exact compatibility (a client that prefers structured content would otherwise lose the page); other arguments beside
+  `name` are ignored, as 4.4.0's schema stripped them. Provenance is read through `{id}` reads and `list_docs`, whose
+  `structuredContent` also holds the full text.
 - **The new call `{id, section?}`** reads by section, and is the recommended one. Provenance is both in the text and in
   `structuredContent`. `maxChars` defaults to 20 000 (cap 100 000); past it, a `cursor` for the rest. The tool's
   description points to `search_docs` then reading by section, and says that reading by `name` returns a whole, large
@@ -201,6 +203,11 @@ and receives one text block.
 
 The MCP hash and `tests/api-surface.json` change. The change is additive **provided these compatibility tests pass**:
 the minor version (4.5.0) depends on it.
+
+**Known limit: the remote MCP.** A hosted Studio's `/mcp` does not offer `read_doc`, `search_docs` nor `list_docs`
+(ADR 0029 §4: a tool whose ability a backend lacks is not offered; each remote tool is a request to the Studio's
+`/api`, which has no documentation route). An agent working on a hosted Studio reads the documentation through the
+local stdio MCP of the same engine version, or later through a `GET /api/docs` route.
 
 **4.3.3 `search_docs` and `list_docs`.**
 

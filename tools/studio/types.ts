@@ -1,5 +1,6 @@
 // Shared types of the Studio: the core functions (studio-server/src/ops/core.ts), the dev-server API (tools/studio/plugin.ts),
 // the Studio UI (src/studio/) and the MCP server all speak these shapes. Type-only: safe to import from the browser.
+import type { DocsSet } from '../wiki/docs';
 import type {
   CharacterDef,
   GameDef,
@@ -265,6 +266,11 @@ export interface StudioSnapshot {
   notes: NotesFile;
   /** Markdown documents by name (CONTENT_GUIDE). */
   docs: Record<string, string>;
+  /**
+   * 4.5.0: the documentation of wiki/ the demo's Assistant searches and reads by id: its index and its `ready` pages
+   * (never a draft). Absent from an older snapshot.
+   */
+  wiki?: DocsSet;
   /** The Assets tab's listing (read-only in the demo; thumbnails from public/assets). */
   assets?: AssetsListing;
 }

@@ -388,7 +388,7 @@ jobs:
       - run: for i in 1 2 3; do (npm ci) && break; [ "$i" = 3 ] && exit 1; echo "retry $i"; sleep 15; done
         timeout-minutes: 15
       - run: |
-          node scripts/pack.mjs --out=pack --publish-dry-run
+          node scripts/pack.mjs --out=pack --publish-dry-run --build-id=${{ github.run_id }}
           mkdir -p candidate-pack && cp pack/*.tgz candidate-pack/ && ls -l candidate-pack
       # Their SBOMs (4.1.19, plan §6.3), from what the archives hold: the Bridge's and the connectors' own locks, the
       # engine's dependencies as the root lock resolves them, the creator's one dependency by its archive's SHA-256.
