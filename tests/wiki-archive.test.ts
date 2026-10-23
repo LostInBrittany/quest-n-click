@@ -241,7 +241,7 @@ describe('the archive', () => {
       err.mockRestore();
       log.mockRestore();
     }
-  }, 120_000);
+  }, 300_000); // archives built several times: about 30 s here, up to 151 s under coverage on CI
 
   it('`wiki -- archive` refuses a file name its identity does not give', () => {
     const out = mkdtempSync(join(tmpdir(), 'archive-cli-'));
