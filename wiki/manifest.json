@@ -2709,19 +2709,46 @@
       "context": ["studio-local"],
       "title": { "en": "The local Studio: overview and launch", "fr": "Le Studio local : présentation et lancement" },
       "url": { "en": "EN-Studio-Overview", "fr": "FR-Studio-Presentation" },
-      "state": "planned",
-      "sources": [],
+      "state": "ready",
+      "versions": { "appliesFrom": "4.2.3" },
+      "surfaces": ["studio-local"],
+      "sources": [
+        "src/studio/main.ts",
+        "tools/studio/plugin.ts",
+        "tools/serve.ts",
+        "tools/serve-args.ts",
+        "tools/select-game.ts",
+        "cli/quest-n-click.mjs"
+      ],
       "replaces": [
         "docs/en/STUDIO.md#studio-local-wysiwyg-authoring-and-the-open-door-for-any-ai",
         "docs/en/STUDIO.md#layout-of-the-studio",
         "docs/fr/STUDIO.md#studio--édition-wysiwyg-locale-porte-ouverte-à-nimporte-quelle-ia",
         "docs/fr/STUDIO.md#organisation-du-studio"
       ],
-      "questions": { "en": [], "fr": [] },
-      "aliases": { "en": [], "fr": [] },
-      "identifiers": ["npm run studio", "npm run studio:lan"],
-      "related": [],
-      "prerequisites": [],
+      "questions": {
+        "en": [
+          "How do I start the Studio?",
+          "How do I open the Studio on my phone?",
+          "What does each tab of the Studio do?"
+        ],
+        "fr": [
+          "Comment lancer le Studio ?",
+          "Comment ouvrir le Studio sur mon téléphone ?",
+          "À quoi sert chaque onglet du Studio ?"
+        ]
+      },
+      "aliases": {
+        "en": ["STUDIO", "local Studio", "WYSIWYG editor", "studio.html"],
+        "fr": ["STUDIO", "Studio local", "éditeur WYSIWYG", "studio.html"]
+      },
+      "keywords": {
+        "en": ["tabs", "/__studio/", "LAN", "phone"],
+        "fr": ["onglets", "/__studio/", "réseau local", "téléphone"]
+      },
+      "identifiers": ["npm run studio", "npm run studio:lan", "/__studio/"],
+      "related": ["studio.security", "studio.troubleshooting", "team.what-runs-where"],
+      "prerequisites": ["install.from-repository"],
       "owner": "@wanoo"
     },
     {
@@ -2732,19 +2759,48 @@
       "context": ["studio-local"],
       "title": { "en": "Edit a room", "fr": "Modifier une salle" },
       "url": { "en": "EN-Studio-Edit-A-Room", "fr": "FR-Studio-Modifier-Une-Salle" },
-      "state": "planned",
-      "sources": [],
+      "state": "ready",
+      "versions": { "appliesFrom": "4.2.1" },
+      "surfaces": ["studio-local"],
+      "sources": [
+        "src/studio/rooms.ts",
+        "src/studio/rooms-sheet.ts",
+        "src/studio/rooms-text.ts",
+        "src/studio/rooms-lines.ts",
+        "src/studio/structured.ts",
+        "src/studio/schema.ts",
+        "studio-server/src/ops/core.ts",
+        "scripts/e2e-studio.mjs"
+      ],
       "replaces": [
         "docs/en/STUDIO.md#layout-of-the-studio",
         "docs/en/STUDIO.md#structured-editing-34",
         "docs/fr/STUDIO.md#organisation-du-studio",
         "docs/fr/STUDIO.md#édition-structurée-34"
       ],
-      "questions": { "en": [], "fr": [] },
-      "aliases": { "en": [], "fr": [] },
-      "identifiers": [],
-      "related": [],
-      "prerequisites": [],
+      "questions": {
+        "en": [
+          "How do I change a look line from the Studio?",
+          "How do I add a prop to a room in the Studio?",
+          "How do I edit a reaction without writing code?"
+        ],
+        "fr": [
+          "Comment changer une ligne de Regarder depuis le Studio ?",
+          "Comment ajouter un accessoire à un lieu dans le Studio ?",
+          "Comment modifier une réaction sans écrire de code ?"
+        ]
+      },
+      "aliases": {
+        "en": ["Rooms tab", "structured editing", "room sheet", "timeline"],
+        "fr": ["onglet Rooms", "édition structurée", "fiche du lieu", "timeline"]
+      },
+      "keywords": {
+        "en": ["look line", "reaction", "talk topics", "Add prop"],
+        "fr": ["ligne de Regarder", "réaction", "sujets de conversation", "ajouter un accessoire"]
+      },
+      "identifiers": ["npm run e2e:studio"],
+      "related": ["studio.placement", "studio.preview-apply", "create.rooms"],
+      "prerequisites": ["studio.overview"],
       "owner": "@wanoo"
     },
     {
@@ -2755,8 +2811,18 @@
       "context": ["studio-local"],
       "title": { "en": "Placement and stage", "fr": "Placement et scène" },
       "url": { "en": "EN-Studio-Placement", "fr": "FR-Studio-Placement" },
-      "state": "planned",
-      "sources": [],
+      "state": "ready",
+      "versions": { "appliesFrom": "4.2.1" },
+      "surfaces": ["studio-local"],
+      "sources": [
+        "src/engine/dev/editor.ts",
+        "src/studio/rooms-stage.ts",
+        "src/studio/rooms-bridge.ts",
+        "src/engine/tools/validate-stage.ts",
+        "src/engine/core/world-queries.ts",
+        "tools/pages/placement.ts",
+        "tools/pages/import-layout.ts"
+      ],
       "replaces": [
         "docs/en/CONTENT_GUIDE.md#the-layout-written-by-the-editor-never-typed-by-hand",
         "docs/en/TOOLS.md#the-placement-editor-editroom",
@@ -2765,11 +2831,29 @@
         "docs/fr/TOOLS.md#léditeur-de-placement-editlieu",
         "docs/fr/WORKFLOW.md#6-placer-les-éléments"
       ],
-      "questions": { "en": [], "fr": [] },
-      "aliases": { "en": [], "fr": [] },
+      "questions": {
+        "en": [
+          "How do I place a prop or a hotspot in a room?",
+          "How do I draw a walk zone or an occlusion mask?",
+          "Why is Save stage greyed out?"
+        ],
+        "fr": [
+          "Comment placer un accessoire ou une zone cliquable dans un lieu ?",
+          "Comment dessiner une zone de marche ou un masque d’occlusion ?",
+          "Pourquoi Save stage est grisé ?"
+        ]
+      },
+      "aliases": {
+        "en": ["placement editor", "?edit=", "layout editor", "stage editor"],
+        "fr": ["éditeur de placement", "?edit=", "éditeur de layout", "éditeur de scène"]
+      },
+      "keywords": {
+        "en": ["layout", "walkable zone", "approach point", "depth scale", "actorGap", "TOOLS", "WORKFLOW"],
+        "fr": ["layout", "zone marchable", "point d’approche", "échelle de profondeur", "actorGap", "TOOLS", "WORKFLOW"]
+      },
       "identifiers": [],
-      "related": [],
-      "prerequisites": [],
+      "related": ["create.geometry", "reference.dev-url-parameters", "studio.edit-room"],
+      "prerequisites": ["studio.overview"],
       "owner": "@wanoo"
     },
     {
@@ -2780,14 +2864,39 @@
       "context": ["studio-local"],
       "title": { "en": "Preview, apply, undo", "fr": "Aperçu, application, annulation" },
       "url": { "en": "EN-Studio-Preview-Apply-Undo", "fr": "FR-Studio-Apercu-Application-Annulation" },
-      "state": "planned",
-      "sources": [],
+      "state": "ready",
+      "versions": { "appliesFrom": "4.2.1" },
+      "surfaces": ["studio-local"],
+      "sources": [
+        "studio-server/src/ops/core.ts",
+        "studio-server/src/ops/journal.ts",
+        "studio-server/src/ops/undo.ts",
+        "src/studio/structured.ts",
+        "tests/studio-structured.test.ts"
+      ],
       "replaces": ["docs/en/STUDIO.md#layout-of-the-studio", "docs/fr/STUDIO.md#organisation-du-studio"],
       "questions": { "en": [], "fr": [] },
-      "aliases": { "en": [], "fr": [] },
+      "aliases": {
+        "en": ["dry run", "undo", "redo", "journal", "guard"],
+        "fr": ["à blanc", "annuler", "rétablir", "journal", "garde"]
+      },
+      "keywords": {
+        "en": ["Preview the change", "Apply", "422", "atomic write"],
+        "fr": ["Preview the change", "Apply", "422", "écriture atomique"]
+      },
       "identifiers": [],
-      "related": [],
+      "related": ["studio.edit-room", "studio.language-objectives", "team.concepts"],
       "prerequisites": [],
+      "claims": [
+        {
+          "id": "dry-run-writes-nothing",
+          "test": "tests/studio-structured.test.ts › the Studio core › a dry run shows the diff and writes nothing; the real write is validated, recorded, undone and redone"
+        },
+        {
+          "id": "edit-taken-back",
+          "test": "tests/studio-structured.test.ts › the Studio core › an edit that breaks the game is taken back (422), and undo refuses a file changed since"
+        }
+      ],
       "owner": "@wanoo"
     },
     {
@@ -2798,14 +2907,39 @@
       "context": ["studio-local"],
       "title": { "en": "Storyboard", "fr": "Storyboard" },
       "url": { "en": "EN-Studio-Storyboard", "fr": "FR-Studio-Storyboard" },
-      "state": "planned",
-      "sources": ["src/studio/storyboard*.ts"],
+      "state": "ready",
+      "versions": { "appliesFrom": "4.2.1" },
+      "surfaces": ["studio-local"],
+      "sources": [
+        "src/studio/storyboard*.ts",
+        "tools/pages/storyboard-data.ts",
+        "tools/pages/storyboard-schema.md",
+        "src/engine/tools/coverage.ts"
+      ],
       "replaces": ["docs/en/STUDIO.md#layout-of-the-studio", "docs/fr/STUDIO.md#organisation-du-studio"],
-      "questions": { "en": [], "fr": [] },
-      "aliases": { "en": [], "fr": [] },
+      "questions": {
+        "en": [
+          "How do I edit the storyboard in the Studio?",
+          "What do the ✓ ~ ✗ badges on a storyboard panel mean?",
+          "How do I export the storyboard as Markdown?"
+        ],
+        "fr": [
+          "Comment modifier le storyboard dans le Studio ?",
+          "Que veulent dire les badges ✓ ~ ✗ sur une case du storyboard ?",
+          "Comment exporter le storyboard en Markdown ?"
+        ]
+      },
+      "aliases": {
+        "en": ["Storyboard tab", "storyboard.json", "boards and panels"],
+        "fr": ["onglet Storyboard", "storyboard.json", "tableaux et cases"]
+      },
+      "keywords": {
+        "en": ["coverage", "Export Markdown", "panel", "board"],
+        "fr": ["couverture", "Export Markdown", "case", "tableau"]
+      },
       "identifiers": [],
-      "related": [],
-      "prerequisites": [],
+      "related": ["create.storyboard", "studio.notes", "studio.check"],
+      "prerequisites": ["studio.overview"],
       "owner": "@wanoo"
     },
     {
@@ -2816,14 +2950,47 @@
       "context": ["studio-local"],
       "title": { "en": "Assets and cutting", "fr": "Assets et découpe" },
       "url": { "en": "EN-Studio-Assets", "fr": "FR-Studio-Assets" },
-      "state": "planned",
-      "sources": ["src/studio/assets*.ts"],
+      "state": "ready",
+      "versions": { "appliesFrom": "4.2.1" },
+      "surfaces": ["studio-local"],
+      "sources": [
+        "src/studio/assets*.ts",
+        "tools/studio/assets.ts",
+        "tools/studio/cut.ts",
+        "tools/cut-sheet.py",
+        "studio-server/src/server/hosted-assets.ts",
+        "tests/studio-assets.test.ts"
+      ],
       "replaces": ["docs/en/STUDIO.md#assets-tab", "docs/fr/STUDIO.md#onglet-assets"],
-      "questions": { "en": [], "fr": [] },
-      "aliases": { "en": [], "fr": [] },
+      "questions": {
+        "en": [
+          "How do I upload a generated sprite sheet and cut it?",
+          "How do I replace one image of the game from the Studio?",
+          "What do the red, orange and grey badges of the Assets tab mean?"
+        ],
+        "fr": [
+          "Comment envoyer une planche de sprites générée et la découper ?",
+          "Comment remplacer une image du jeu depuis le Studio ?",
+          "Que veulent dire les pastilles rouge, orange et grise de l’onglet Assets ?"
+        ]
+      },
+      "aliases": {
+        "en": ["Assets tab", "sprite sheet upload", "recut"],
+        "fr": ["onglet Assets", "envoi de planche", "redécouper"]
+      },
+      "keywords": {
+        "en": ["prompt", "keying", "backup _v", "Prepare assets", "PROMPTS"],
+        "fr": ["prompt", "détourage", "sauvegarde _v", "Prepare assets", "PROMPTS"]
+      },
       "identifiers": [],
-      "related": [],
-      "prerequisites": [],
+      "related": ["create.images", "team.hosted-assets", "install.image-toolchain"],
+      "prerequisites": ["studio.overview"],
+      "claims": [
+        {
+          "id": "no-silent-recut",
+          "test": "tests/studio-assets.test.ts › asset uploads on a copy of games/demo › cuts an uploaded 6 x 4 sheet into 24 cells, and refuses to overwrite them without naming the cells"
+        }
+      ],
       "owner": "@wanoo"
     },
     {
@@ -2838,19 +3005,46 @@
         "fr": "Vérifier : validateur, solveur, chemin critique, chaleur, santé, couverture"
       },
       "url": { "en": "EN-Studio-Check", "fr": "FR-Studio-Verifier" },
-      "state": "planned",
-      "sources": ["src/studio/check.ts"],
+      "state": "ready",
+      "versions": { "appliesFrom": "4.2.1" },
+      "surfaces": ["studio-local"],
+      "sources": [
+        "src/studio/check.ts",
+        "src/studio/check-stamp.ts",
+        "src/engine/tools/puzzle.ts",
+        "src/engine/tools/lint.ts",
+        "src/engine/tools/playtests.ts",
+        "src/engine/tools/coverage.ts"
+      ],
       "replaces": [
         "docs/en/DESIGN.md#reading-the-puzzle-graph",
         "docs/en/STUDIO.md#layout-of-the-studio",
         "docs/fr/DESIGN.md#lire-le-graphe-de-puzzles",
         "docs/fr/STUDIO.md#organisation-du-studio"
       ],
-      "questions": { "en": [], "fr": [] },
-      "aliases": { "en": [], "fr": [] },
+      "questions": {
+        "en": [
+          "How do I see why the solver cannot finish my game?",
+          "How do I read the puzzle graph in the Studio?",
+          "What do Critical path and Heat do in the Check tab?"
+        ],
+        "fr": [
+          "Comment voir pourquoi le solveur ne finit pas mon jeu ?",
+          "Comment lire le graphe de puzzles dans le Studio ?",
+          "À quoi servent Critical path et Heat dans l’onglet Check ?"
+        ]
+      },
+      "aliases": {
+        "en": ["Check tab", "puzzle graph", "solver health", "content lint"],
+        "fr": ["onglet Check", "graphe de puzzles", "santé du solveur", "lint de contenu"]
+      },
+      "keywords": {
+        "en": ["validator", "solver", "critical path", "heat", "dead ends", "screenshot", "DESIGN"],
+        "fr": ["validateur", "solveur", "chemin critique", "chaleur", "impasses", "capture d’écran", "DESIGN"]
+      },
       "identifiers": [],
-      "related": [],
-      "prerequisites": [],
+      "related": ["create.checking", "create.puzzle-design", "create.solver-proofs", "studio.semantic-diff"],
+      "prerequisites": ["studio.overview"],
       "owner": "@wanoo"
     },
     {
@@ -2861,14 +3055,40 @@
       "context": ["studio-local"],
       "title": { "en": "Before and after captures", "fr": "Captures avant et après" },
       "url": { "en": "EN-Studio-Before-After-Captures", "fr": "FR-Studio-Captures-Avant-Apres" },
-      "state": "planned",
-      "sources": ["src/studio/diff-captures-view.ts"],
+      "state": "ready",
+      "versions": { "appliesFrom": "4.4.0" },
+      "surfaces": ["studio-local"],
+      "sources": [
+        "src/studio/diff-captures-view.ts",
+        "studio-server/src/ops/diff-captures.ts",
+        "tools/studio/diff-rooms.ts",
+        "tests/studio-diff-captures.test.ts"
+      ],
       "replaces": ["docs/en/STUDIO.md#layout-of-the-studio", "docs/fr/STUDIO.md#organisation-du-studio"],
-      "questions": { "en": [], "fr": [] },
-      "aliases": { "en": [], "fr": [] },
+      "questions": {
+        "en": ["How do I see what a change looks like before and after?", "Why does Capture the rooms answer 501?"],
+        "fr": [
+          "Comment voir à quoi ressemble un changement avant et après ?",
+          "Pourquoi Capture the rooms répond 501 ?"
+        ]
+      },
+      "aliases": {
+        "en": ["before/after captures", "visual diff", "Capture the rooms"],
+        "fr": ["captures avant/après", "diff visuel", "Capture the rooms"]
+      },
+      "keywords": {
+        "en": ["Playwright", "Chromium", "960 × 600", "no visible change"],
+        "fr": ["Playwright", "Chromium", "960 × 600", "no visible change"]
+      },
       "identifiers": [],
-      "related": [],
-      "prerequisites": [],
+      "related": ["studio.semantic-diff", "team.map-diff"],
+      "prerequisites": ["studio.semantic-diff"],
+      "claims": [
+        {
+          "id": "captures-local-only",
+          "test": "tests/studio-diff-captures.test.ts › the diff's captures › says a hosted Studio has no captures"
+        }
+      ],
       "owner": "@wanoo"
     },
     {
@@ -2879,14 +3099,37 @@
       "context": ["studio-local"],
       "title": { "en": "Semantic diff", "fr": "Diff sémantique" },
       "url": { "en": "EN-Studio-Semantic-Diff", "fr": "FR-Studio-Diff-Semantique" },
-      "state": "planned",
-      "sources": ["src/studio/diff-panel.ts"],
+      "state": "ready",
+      "versions": { "appliesFrom": "4.2.3" },
+      "surfaces": ["studio-local"],
+      "sources": [
+        "src/studio/diff-panel.ts",
+        "tools/studio/semantic-diff.ts",
+        "studio-server/src/ops/core.ts",
+        "tests/studio-semantic-diff.test.ts"
+      ],
       "replaces": ["docs/en/STUDIO.md#layout-of-the-studio", "docs/fr/STUDIO.md#organisation-du-studio"],
-      "questions": { "en": [], "fr": [] },
-      "aliases": { "en": [], "fr": [] },
+      "questions": {
+        "en": [
+          "How do I see what changed between two revisions of my game?",
+          "What is a revision in the local Studio?"
+        ],
+        "fr": [
+          "Comment voir ce qui a changé entre deux révisions de mon jeu ?",
+          "Qu’est-ce qu’une révision dans le Studio local ?"
+        ]
+      },
+      "aliases": {
+        "en": ["Changes between revisions", "semantic diff"],
+        "fr": ["Changes between revisions", "diff sémantique"]
+      },
+      "keywords": {
+        "en": ["revision", "journal", "ids added removed changed"],
+        "fr": ["révision", "journal", "ids ajoutés supprimés changés"]
+      },
       "identifiers": [],
-      "related": [],
-      "prerequisites": [],
+      "related": ["studio.captures", "team.map-diff", "team.concepts"],
+      "prerequisites": ["studio.overview"],
       "owner": "@wanoo"
     },
     {
@@ -2897,14 +3140,40 @@
       "context": ["studio-local"],
       "title": { "en": "Play and replay a session", "fr": "Jouer et rejouer une session" },
       "url": { "en": "EN-Studio-Sessions", "fr": "FR-Studio-Sessions" },
-      "state": "planned",
-      "sources": [],
+      "state": "ready",
+      "versions": { "appliesFrom": "4.1.14" },
+      "surfaces": ["studio-local"],
+      "sources": [
+        "src/studio/play.ts",
+        "src/studio/speedrun-panel.ts",
+        "src/studio/hero-picker.ts",
+        "tools/replay.ts",
+        "src/engine/core/engine.ts"
+      ],
       "replaces": ["docs/en/STUDIO.md#layout-of-the-studio", "docs/fr/STUDIO.md#organisation-du-studio"],
-      "questions": { "en": [], "fr": [] },
-      "aliases": { "en": [], "fr": [] },
+      "questions": {
+        "en": [
+          "How do I export a play session as a bug report?",
+          "How do I replay a session in the Studio?",
+          "How do I preview the game as another hero?"
+        ],
+        "fr": [
+          "Comment exporter une session de jeu comme rapport de bug ?",
+          "Comment rejouer une session dans le Studio ?",
+          "Comment prévisualiser le jeu avec un autre héros ?"
+        ]
+      },
+      "aliases": {
+        "en": ["Play tab", "Export session", "Replay", "journal", "text switches"],
+        "fr": ["onglet Play", "Export session", "Replay", "journal", "aiguillages de texte"]
+      },
+      "keywords": {
+        "en": ["speedrun", "wsroute", "wsrun", "Engine.trace", "state inspector"],
+        "fr": ["speedrun", "wsroute", "wsrun", "Engine.trace", "inspecteur d’état"]
+      },
       "identifiers": [],
-      "related": [],
-      "prerequisites": [],
+      "related": ["studio.rule-explainer", "create.speedrun", "create.heroes", "create.playtests"],
+      "prerequisites": ["studio.overview"],
       "owner": "@wanoo"
     },
     {
@@ -2915,14 +3184,20 @@
       "context": ["studio-local"],
       "title": { "en": "Rule explainer", "fr": "Explication des règles" },
       "url": { "en": "EN-Studio-Rule-Explainer", "fr": "FR-Studio-Explication-Des-Regles" },
-      "state": "planned",
-      "sources": [],
+      "state": "ready",
+      "versions": { "appliesFrom": "4.2.1" },
+      "surfaces": ["studio-local"],
+      "sources": ["src/studio/play.ts"],
       "replaces": ["docs/en/STUDIO.md#layout-of-the-studio", "docs/fr/STUDIO.md#organisation-du-studio"],
       "questions": { "en": [], "fr": [] },
-      "aliases": { "en": [], "fr": [] },
+      "aliases": {
+        "en": ["Why? panel", "rule explainer", "which rule answers"],
+        "fr": ["panneau Why?", "explicateur de règles", "quelle règle répond"]
+      },
+      "keywords": { "en": ["condition", "fallback", "verb", "target"], "fr": ["condition", "repli", "verbe", "cible"] },
       "identifiers": [],
-      "related": [],
-      "prerequisites": [],
+      "related": ["studio.sessions", "create.reactions", "create.conditions"],
+      "prerequisites": ["studio.sessions"],
       "owner": "@wanoo"
     },
     {
@@ -2933,14 +3208,32 @@
       "context": ["studio-local"],
       "title": { "en": "Language and objectives", "fr": "Langue et objectifs" },
       "url": { "en": "EN-Studio-Language-And-Objectives", "fr": "FR-Studio-Langue-Et-Objectifs" },
-      "state": "planned",
-      "sources": [],
+      "state": "ready",
+      "versions": { "appliesFrom": "4.2.1" },
+      "surfaces": ["studio-local"],
+      "sources": [
+        "src/studio/ir-tab.ts",
+        "src/studio/forms-gen.ts",
+        "src/studio/forms.ts",
+        "tools/ir.ts",
+        "tests/studio-objectives.test.ts"
+      ],
       "replaces": ["docs/en/STUDIO.md#layout-of-the-studio", "docs/fr/STUDIO.md#organisation-du-studio"],
-      "questions": { "en": [], "fr": [] },
-      "aliases": { "en": [], "fr": [] },
+      "questions": {
+        "en": ["How do I add an objective from the Studio?", "Where do I see the IR of my game?"],
+        "fr": ["Comment ajouter un objectif depuis le Studio ?", "Où voir l’IR de mon jeu ?"]
+      },
+      "aliases": {
+        "en": ["Language tab", "IR", "intermediate representation", "objectives form"],
+        "fr": ["onglet Language", "IR", "représentation intermédiaire", "formulaire des objectifs"]
+      },
+      "keywords": {
+        "en": ["objective", "provenance", "file:line", "@game"],
+        "fr": ["objectif", "provenance", "fichier:ligne", "@game"]
+      },
       "identifiers": [],
-      "related": [],
-      "prerequisites": [],
+      "related": ["create.chapters", "studio.preview-apply", "engine.file-formats"],
+      "prerequisites": ["studio.overview"],
       "owner": "@wanoo"
     },
     {
@@ -2951,14 +3244,37 @@
       "context": ["studio-local"],
       "title": { "en": "Voices and the heroes × languages matrix", "fr": "Voix et matrice héros × langues" },
       "url": { "en": "EN-Studio-Voices-Matrix", "fr": "FR-Studio-Matrice-Des-Voix" },
-      "state": "planned",
-      "sources": ["src/studio/hero-matrix.ts"],
+      "state": "ready",
+      "versions": { "appliesFrom": "4.4.0" },
+      "surfaces": ["studio-local", "voices-music"],
+      "sources": [
+        "src/studio/hero-matrix.ts",
+        "src/studio/voices.ts",
+        "src/engine/tools/hero-matrix.ts",
+        "tools/voices.ts"
+      ],
       "replaces": ["docs/en/STUDIO.md#layout-of-the-studio", "docs/fr/STUDIO.md#organisation-du-studio"],
-      "questions": { "en": [], "fr": [] },
-      "aliases": { "en": [], "fr": [] },
-      "identifiers": [],
-      "related": [],
-      "prerequisites": [],
+      "questions": {
+        "en": [
+          "How do I check that every hero has their lines in every language?",
+          "How do I export the voice table for the actors?"
+        ],
+        "fr": [
+          "Comment vérifier que chaque héros a ses répliques dans chaque langue ?",
+          "Comment exporter le tableau des voix pour les comédiens ?"
+        ]
+      },
+      "aliases": {
+        "en": ["Voices tab", "hero matrix", "Heroes × languages", "recording table"],
+        "fr": ["onglet Voices", "matrice des héros", "Heroes × languages", "tableau d’enregistrement"]
+      },
+      "keywords": {
+        "en": ["agreement", "unlisted", "untranslated", "clip", "Export CSV"],
+        "fr": ["agreement", "unlisted", "non traduit", "clip", "Export CSV"]
+      },
+      "identifiers": ["GET hero-matrix"],
+      "related": ["create.voices", "create.heroes", "create.translations"],
+      "prerequisites": ["studio.overview"],
       "owner": "@wanoo"
     },
     {
@@ -2969,14 +3285,38 @@
       "context": ["studio-local"],
       "title": { "en": "Map", "fr": "Carte" },
       "url": { "en": "EN-Studio-Map", "fr": "FR-Studio-Carte" },
-      "state": "planned",
-      "sources": ["src/studio/map-tab.ts"],
+      "state": "ready",
+      "versions": { "appliesFrom": "4.2.3" },
+      "surfaces": ["studio-local"],
+      "sources": ["src/studio/map-tab.ts", "tools/studio/scenario-map.ts", "tests/studio-scenario-map.test.ts"],
       "replaces": ["docs/en/STUDIO.md#layout-of-the-studio", "docs/fr/STUDIO.md#organisation-du-studio"],
-      "questions": { "en": [], "fr": [] },
-      "aliases": { "en": [], "fr": [] },
-      "identifiers": [],
-      "related": [],
-      "prerequisites": [],
+      "questions": {
+        "en": [
+          "How do I group rooms and rules into chapters in the Studio?",
+          "What does \"not declared\" mean in the Map tab?"
+        ],
+        "fr": [
+          "Comment regrouper lieux et règles en chapitres dans le Studio ?",
+          "Que veut dire « not declared » dans l’onglet Map ?"
+        ]
+      },
+      "aliases": {
+        "en": ["Map tab", "scenario map", "groupings"],
+        "fr": ["onglet Map", "carte du scénario", "regroupements"]
+      },
+      "keywords": {
+        "en": ["groupings.json", "chapter", "puzzle", "character", "ungrouped"],
+        "fr": ["groupings.json", "chapitre", "énigme", "personnage", "non regroupé"]
+      },
+      "identifiers": ["groupings.json"],
+      "related": ["team.map-diff", "create.world-map"],
+      "prerequisites": ["studio.overview"],
+      "claims": [
+        {
+          "id": "groupings-only",
+          "test": "tests/studio-scenario-map.test.ts › the scenario map › writes the groupings alone: adding then deleting one leaves every content file the same"
+        }
+      ],
       "owner": "@wanoo"
     },
     {
@@ -2987,14 +3327,23 @@
       "context": ["studio-local"],
       "title": { "en": "Notes", "fr": "Notes" },
       "url": { "en": "EN-Studio-Notes", "fr": "FR-Studio-Notes" },
-      "state": "planned",
-      "sources": ["src/studio/notes.ts"],
+      "state": "ready",
+      "versions": { "appliesFrom": "4.2.1" },
+      "surfaces": ["studio-local"],
+      "sources": ["src/studio/notes.ts", "studio-server/src/ops/core.ts", "tests/studio-storyboard.test.ts"],
       "replaces": ["docs/en/STUDIO.md#layout-of-the-studio", "docs/fr/STUDIO.md#organisation-du-studio"],
-      "questions": { "en": [], "fr": [] },
-      "aliases": { "en": [], "fr": [] },
-      "identifiers": [],
-      "related": [],
-      "prerequisites": [],
+      "questions": {
+        "en": ["How do I leave a note for the AI in the Studio?", "Where are the Studio notes stored?"],
+        "fr": ["Comment laisser une note à l’IA dans le Studio ?", "Où sont rangées les notes du Studio ?"]
+      },
+      "aliases": {
+        "en": ["Notes tab", "notes.json", "shared log", "task note"],
+        "fr": ["onglet Notes", "notes.json", "journal partagé", "note tâche"]
+      },
+      "keywords": { "en": ["about", "author", "reply", "task"], "fr": ["about", "auteur", "répondre", "tâche"] },
+      "identifiers": ["notes.json"],
+      "related": ["studio.assistant", "studio.mcp-setup", "team.comments"],
+      "prerequisites": ["studio.overview"],
       "owner": "@wanoo"
     },
     {
@@ -3005,14 +3354,26 @@
       "context": ["studio-local"],
       "title": { "en": "Remix in the Studio", "fr": "Remix dans le Studio" },
       "url": { "en": "EN-Studio-Remix", "fr": "FR-Studio-Remix" },
-      "state": "planned",
-      "sources": ["src/studio/remix-tab.ts"],
+      "state": "ready",
+      "versions": { "appliesFrom": "4.1.15" },
+      "surfaces": ["studio-local", "speedrun-remix"],
+      "sources": ["src/studio/remix-tab.ts", "src/studio/remix-model.ts"],
       "replaces": ["docs/en/REMIX.md#the-player-and-the-studio", "docs/fr/REMIX.md#le-joueur-et-le-studio"],
-      "questions": { "en": [], "fr": [] },
-      "aliases": { "en": [], "fr": [] },
+      "questions": {
+        "en": ["How do I preview a Remix seed in the Studio?", "How do I check the bias of my Remix dimensions?"],
+        "fr": [
+          "Comment prévisualiser une seed Remix dans le Studio ?",
+          "Comment vérifier le biais de mes dimensions Remix ?"
+        ]
+      },
+      "aliases": { "en": ["Remix tab", "seed", "world"], "fr": ["onglet Remix", "seed", "monde"] },
+      "keywords": {
+        "en": ["dimension", "lock", "reroll", "anchors", "coverage and bias", "REMIX"],
+        "fr": ["dimension", "verrouiller", "retirer", "ancres", "couverture et biais", "REMIX"]
+      },
       "identifiers": [],
-      "related": [],
-      "prerequisites": [],
+      "related": ["create.remix"],
+      "prerequisites": ["studio.overview"],
       "owner": "@wanoo"
     },
     {
@@ -3023,19 +3384,28 @@
       "context": ["studio-local"],
       "title": { "en": "Music", "fr": "Musique" },
       "url": { "en": "EN-Studio-Music", "fr": "FR-Studio-Musique" },
-      "state": "planned",
-      "sources": ["src/studio/music.ts"],
+      "state": "ready",
+      "versions": { "appliesFrom": "4.2.1" },
+      "surfaces": ["studio-local", "voices-music"],
+      "sources": ["src/studio/music.ts", "src/studio/assets-sounds.ts", "tools/studio/assets.ts"],
       "replaces": [
         "docs/en/AUDIO.md#in-the-studio-and-the-tools",
         "docs/en/STUDIO.md#layout-of-the-studio",
         "docs/fr/AUDIO.md#dans-le-studio-et-les-outils",
         "docs/fr/STUDIO.md#organisation-du-studio"
       ],
-      "questions": { "en": [], "fr": [] },
-      "aliases": { "en": [], "fr": [] },
+      "questions": {
+        "en": ["How do I hear each state of a score in the Studio?", "Where do I see which sounds are missing?"],
+        "fr": ["Comment entendre chaque état d’une partition dans le Studio ?", "Où voir quels sons manquent ?"]
+      },
+      "aliases": { "en": ["Music tab", "mixer", "stems"], "fr": ["onglet Music", "mixeur", "stems"] },
+      "keywords": {
+        "en": ["score", "state", "mute", "solo", "AUDIO"],
+        "fr": ["partition", "état", "couper", "isoler", "AUDIO"]
+      },
       "identifiers": [],
-      "related": [],
-      "prerequisites": [],
+      "related": ["create.music", "create.sound-effects", "studio.assets"],
+      "prerequisites": ["studio.overview"],
       "owner": "@wanoo"
     },
     {
@@ -3047,14 +3417,60 @@
       "context": ["studio-local", "studio-demo"],
       "title": { "en": "The Assistant: bring your own key", "fr": "L'Assistant : votre propre clé" },
       "url": { "en": "EN-Studio-Assistant", "fr": "FR-Studio-Assistant" },
-      "state": "planned",
-      "sources": ["src/studio/assistant.ts"],
+      "state": "ready",
+      "versions": { "appliesFrom": "4.2.1" },
+      "surfaces": ["studio-local"],
+      "sources": [
+        "src/studio/assistant.ts",
+        "tools/studio/assistant.ts",
+        "tools/studio/assistant-loop.ts",
+        "tests/studio-assistant.test.ts",
+        "tests/studio-security.test.ts"
+      ],
       "replaces": ["docs/en/STUDIO.md#assistant", "docs/fr/STUDIO.md#assistant"],
-      "questions": { "en": [], "fr": [] },
-      "aliases": { "en": [], "fr": [] },
-      "identifiers": [],
-      "related": [],
-      "prerequisites": [],
+      "questions": {
+        "en": [
+          "How do I use my own API key with the Studio Assistant?",
+          "Can I use Ollama with the Studio?",
+          "How do I use the Assistant without an API key?",
+          "Why is my custom provider URL refused?"
+        ],
+        "fr": [
+          "Comment utiliser ma propre clé d’API avec l’Assistant du Studio ?",
+          "Puis-je utiliser Ollama avec le Studio ?",
+          "Comment utiliser l’Assistant sans clé d’API ?",
+          "Pourquoi l’URL de mon fournisseur est refusée ?"
+        ]
+      },
+      "aliases": {
+        "en": ["Assistant", "BYOK", "bring your own key", "chat"],
+        "fr": ["Assistant", "BYOK", "votre propre clé", "conversation"]
+      },
+      "keywords": {
+        "en": ["OpenAI", "Anthropic", "Ollama", "Mistral", "custom provider", "task"],
+        "fr": ["OpenAI", "Anthropic", "Ollama", "Mistral", "fournisseur personnalisé", "tâche"]
+      },
+      "identifiers": [
+        "WEB_SCUMM_ALLOW_CUSTOM_PROVIDER",
+        "POST /__studio/api/assistant/chat",
+        "POST /__studio/api/assistant/task"
+      ],
+      "related": ["studio.security", "studio.mcp-setup", "studio.notes", "reference.environment-variables"],
+      "prerequisites": ["studio.overview"],
+      "claims": [
+        {
+          "id": "custom-provider-opt-in",
+          "test": "tests/studio-assistant.test.ts › provider URL policy › allows presets and explicit local Ollama, but blocks SSRF destinations"
+        },
+        {
+          "id": "provider-no-redirect",
+          "test": "tests/studio-security.test.ts › provider calls › never follows a redirect"
+        },
+        {
+          "id": "provider-answer-cap",
+          "test": "tests/studio-security.test.ts › provider calls › reads an answer up to the cap, and refuses a bigger one"
+        }
+      ],
       "owner": "@wanoo"
     },
     {
@@ -3065,14 +3481,44 @@
       "context": ["studio-demo"],
       "title": { "en": "Demo mode and studio-apply", "fr": "Mode démo et studio-apply" },
       "url": { "en": "EN-Studio-Demo-Mode", "fr": "FR-Studio-Mode-Demo" },
-      "state": "planned",
-      "sources": ["studio-server/src/ops/apply.ts"],
+      "state": "ready",
+      "versions": { "appliesFrom": "4.2.5" },
+      "surfaces": ["studio-local"],
+      "sources": [
+        "studio-server/src/ops/apply.ts",
+        "src/studio/api-browser.ts",
+        "src/studio/demo-patch.ts",
+        "tools/studio/snapshot.ts",
+        "tests/studio-demo.test.ts"
+      ],
       "replaces": ["docs/en/STUDIO.md#demo-mode", "docs/fr/STUDIO.md#mode-démo"],
-      "questions": { "en": [], "fr": [] },
-      "aliases": { "en": [], "fr": [] },
-      "identifiers": ["npm run studio-apply"],
-      "related": [],
+      "questions": {
+        "en": [
+          "How do I bring my edits from the online demo Studio into my game?",
+          "Where are my edits kept in the demo Studio?"
+        ],
+        "fr": [
+          "Comment rapatrier dans mon jeu les modifications faites dans le Studio de démo en ligne ?",
+          "Où sont gardées mes modifications dans le Studio de démo ?"
+        ]
+      },
+      "aliases": {
+        "en": ["demo Studio", "static Studio", "studio patch", "Download patch"],
+        "fr": ["Studio de démo", "Studio statique", "patch du Studio", "Download patch"]
+      },
+      "keywords": {
+        "en": ["snapshot.json", "localStorage", "GitHub Pages", "Reset demo"],
+        "fr": ["snapshot.json", "localStorage", "GitHub Pages", "Reset demo"]
+      },
+      "identifiers": ["npm run studio-apply", "npm run build:studio-demo", "npm run studio-snapshot"],
+      "related": ["start.play-online", "studio.assistant"],
       "prerequisites": [],
+      "claims": [
+        {
+          "id": "apply-replays-demo",
+          "test": "tests/studio-demo.test.ts › studio-apply › writes the demo edits into a copy of the game, which reads back as the demo showed them"
+        }
+      ],
       "owner": "@wanoo"
     },
     {
@@ -3084,14 +3530,40 @@
       "context": ["studio-local"],
       "title": { "en": "Local and LAN security", "fr": "Sécurité en local et en réseau local" },
       "url": { "en": "EN-Studio-Security", "fr": "FR-Studio-Securite" },
-      "state": "planned",
-      "sources": [],
+      "state": "ready",
+      "versions": { "appliesFrom": "4.2.1" },
+      "surfaces": ["studio-local"],
+      "sources": [
+        "tools/studio/security.ts",
+        "tools/serve-args.ts",
+        "tools/studio/assistant.ts",
+        "tools/studio/assistant-loop.ts",
+        "tests/studio-security.test.ts",
+        "vite.config.ts"
+      ],
       "replaces": ["docs/en/STUDIO.md#local-and-lan-security", "docs/fr/STUDIO.md#sécurité-locale-et-réseau"],
       "questions": { "en": [], "fr": [] },
-      "aliases": { "en": [], "fr": [] },
-      "identifiers": [],
-      "related": [],
+      "aliases": {
+        "en": ["LAN token", "capability token", "DNS rebinding", "SSRF"],
+        "fr": ["jeton réseau local", "jeton de capacité", "DNS rebinding", "SSRF"]
+      },
+      "keywords": {
+        "en": ["127.0.0.1", "same origin", "studio:lan", "trusted code", "SECURITY"],
+        "fr": ["127.0.0.1", "même origine", "studio:lan", "code de confiance", "SECURITY"]
+      },
+      "identifiers": ["WEB_SCUMM_STUDIO_TOKEN", "WEB_SCUMM_STUDIO_HOSTS", "WEB_SCUMM_LAN"],
+      "related": ["studio.assistant", "studio.troubleshooting", "reference.environment-variables"],
       "prerequisites": [],
+      "claims": [
+        {
+          "id": "lan-token-same-origin",
+          "test": "tests/studio-security.test.ts › LAN Studio capability › requires a token and same-origin writes"
+        },
+        {
+          "id": "own-names-only",
+          "test": "tests/studio-security.test.ts › the names the Studio answers to › refuses a Host that is not this machine, even with a matching Origin (DNS rebinding); LAN hosts are listed"
+        }
+      ],
       "owner": "@wanoo"
     },
     {
@@ -3127,8 +3599,10 @@
       "context": ["studio-local"],
       "title": { "en": "Local MCP: setting up each client", "fr": "MCP local : configurer chaque client" },
       "url": { "en": "EN-Studio-MCP-Setup", "fr": "FR-Studio-Configurer-MCP" },
-      "state": "planned",
-      "sources": ["tools/mcp/*.ts"],
+      "state": "ready",
+      "versions": { "appliesFrom": "4.2.5" },
+      "surfaces": ["studio-local"],
+      "sources": ["tools/mcp/*.ts", ".mcp.json", ".cursor/mcp.json", "tools/studio/tools.ts", "cli/quest-n-click.mjs"],
       "replaces": [
         "docs/en/MCP.md#mcp-the-studio-for-any-ai-assistant",
         "docs/en/MCP.md#connect-your-client",
@@ -3149,11 +3623,31 @@
         "docs/fr/MCP.md#tout-autre-client",
         "docs/fr/STUDIO.md#nimporte-quelle-ia-pas-une-seule-ia"
       ],
-      "questions": { "en": [], "fr": [] },
-      "aliases": { "en": ["Claude Code", "Cursor", "Codex", "Gemini"], "fr": ["Claude Code", "Cursor", "Codex", "Gemini"] },
-      "identifiers": ["npm run mcp"],
-      "related": [],
-      "prerequisites": [],
+      "questions": {
+        "en": [
+          "How do I connect Claude Code to my game?",
+          "How do I set up the MCP server in Claude Desktop?",
+          "How do I use the MCP server with Cursor, Codex or Gemini CLI?",
+          "My MCP client says the server sent invalid JSON"
+        ],
+        "fr": [
+          "Comment brancher Claude Code sur mon jeu ?",
+          "Comment configurer le serveur MCP dans Claude Desktop ?",
+          "Comment utiliser le serveur MCP avec Cursor, Codex ou Gemini CLI ?",
+          "Mon client MCP dit que le serveur a envoyé du JSON invalide"
+        ]
+      },
+      "aliases": {
+        "en": ["Claude Code", "Cursor", "Codex", "Gemini", "MCP", "Model Context Protocol", "Claude Desktop"],
+        "fr": ["Claude Code", "Cursor", "Codex", "Gemini", "MCP", "Model Context Protocol", "Claude Desktop"]
+      },
+      "keywords": {
+        "en": ["stdio", "npm run -s mcp", "mcpServers", ".mcp.json", "AGENTS.md", "search_docs"],
+        "fr": ["stdio", "npm run -s mcp", "mcpServers", ".mcp.json", "AGENTS.md", "search_docs"]
+      },
+      "identifiers": ["npm run mcp", "npx quest-n-click mcp"],
+      "related": ["studio.mcp-tools", "create.working-with-ai", "team.remote-mcp", "studio.notes"],
+      "prerequisites": ["install.from-repository"],
       "owner": "@wanoo"
     },
     {
@@ -3182,13 +3676,41 @@
       "context": ["studio-local"],
       "title": { "en": "Studio troubleshooting", "fr": "Dépannage du Studio" },
       "url": { "en": "EN-Studio-Troubleshooting", "fr": "FR-Studio-Depannage" },
-      "state": "planned",
-      "sources": [],
+      "state": "ready",
+      "versions": { "appliesFrom": "4.2.1" },
+      "surfaces": ["studio-local"],
+      "sources": [
+        "tools/studio/security.ts",
+        "tools/studio/assistant.ts",
+        "tools/studio/assistant-loop.ts",
+        "studio-server/src/ops/core.ts",
+        "studio-server/src/ops/diff-captures.ts",
+        "tools/select-game.ts"
+      ],
       "replaces": [],
-      "questions": { "en": [], "fr": [] },
-      "aliases": { "en": [], "fr": [] },
+      "questions": {
+        "en": [
+          "The Studio answers 403 cross-origin Studio request refused",
+          "The Studio says Studio token required (401)",
+          "Screenshot unavailable: Playwright is not installed",
+          "My edit was refused with 422 in the Studio",
+          "Undo is refused: the file changed since"
+        ],
+        "fr": [
+          "Le Studio répond 403 cross-origin Studio request refused",
+          "Le Studio dit Studio token required (401)",
+          "Capture indisponible : Playwright n’est pas installé",
+          "Ma modification a été refusée avec 422 dans le Studio",
+          "Annuler est refusé : le fichier a changé depuis"
+        ]
+      },
+      "aliases": { "en": ["Studio errors", "Studio problems"], "fr": ["erreurs du Studio", "problèmes du Studio"] },
+      "keywords": {
+        "en": ["401", "403", "409", "422", "501", "503", "Playwright"],
+        "fr": ["401", "403", "409", "422", "501", "503", "Playwright"]
+      },
       "identifiers": [],
-      "related": [],
+      "related": ["studio.security", "studio.assistant", "install.troubleshooting", "team.write-refused-409"],
       "prerequisites": [],
       "owner": "@wanoo"
     },
