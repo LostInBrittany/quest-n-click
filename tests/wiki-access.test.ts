@@ -921,6 +921,7 @@ describe('the bundle of a changed checkout', () => {
   });
 
   it('`wiki -- bundle` refuses a changed checkout without --allow-dirty', () => {
+    // Two bundles of the repository's wiki, each after its check: seconds alone, more under a full parallel run.
     // The repository's own wiki: refused when its sources differ from HEAD, unless --allow-dirty.
     const dirty = dirtySources(ROOT, join(ROOT, 'wiki')).length > 0;
     const out = join(tmp('bundle-cli-'), 'docs-bundle');
@@ -938,5 +939,5 @@ describe('the bundle of a changed checkout', () => {
       log.mockRestore();
     }
     expect(existsSync(out)).toBe(true);
-  });
+  }, 60000);
 });
