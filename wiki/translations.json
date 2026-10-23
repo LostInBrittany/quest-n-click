@@ -6387,10 +6387,10 @@
       ]
     },
     "create.geometry#layout-file": {
-      "enHash": "a36764c45e33178d6c5ab21aea031c35f8cf28ebdc8f86d3454d11184080ceda",
-      "frHash": "b10213df1162f3905b0a34eb2b675648ef73d1a1fa779b021089816e5e692c43",
+      "enHash": "ca39698abae6743fb3406ab79841c80d11a7795e379b1a09e0073153868a933f",
+      "frHash": "b9a02b2dcf6edc2b3c909a8ce75d55356490d6172b5004a7cf27368769e2b944",
       "reviewers": [
-        { "name": "claude-4.5-writers", "kind": "ai", "relation": "author", "date": "2026-10-23" }
+        { "name": "claude-pr253", "kind": "ai", "relation": "author", "date": "2026-10-23" }
       ]
     },
     "create.geometry#placement": {
@@ -17419,10 +17419,10 @@
       ]
     },
     "studio.placement#layout-fields": {
-      "enHash": "4aad8a4678f5f5bcfd8807ca2f0a718aee90bb5d4322ad46922baed8150458a2",
-      "frHash": "37823045da38c7fa1dd17f014bd5873f1bd03fedf20949f7650033a2c80a0f4b",
+      "enHash": "10a6f2bcf5fdb6bbd3a3485fbfde566616ba8c748d1cf93826a0bdebf42f7ba0",
+      "frHash": "dd8872570f841fef24d41b4f78c3ca4cdf9a918421d04a45b1cd7f7c7f512648",
       "reviewers": [
-        { "name": "claude-4.5-writers", "kind": "ai", "relation": "author", "date": "2026-10-23" }
+        { "name": "claude-pr253", "kind": "ai", "relation": "author", "date": "2026-10-23" }
       ]
     },
     "studio.placement#place-everything": {
@@ -17433,10 +17433,10 @@
       ]
     },
     "studio.placement#placement-editor": {
-      "enHash": "bef38538dbd00cfb1299544911d429da2133a7a6d1684a385aecd4bacf6b07e2",
-      "frHash": "5a17fb0b375b83e75141392622276097f328f23633522a311978dea5a12bafcb",
+      "enHash": "ce5a72a63a43eac6379bb3b5e338c65038bbb302c30512290b37d1f787b6f085",
+      "frHash": "dd2e45b4600a690234fc9b84d2d4154d05ec6610d1bea185b72e1c217564a2b0",
       "reviewers": [
-        { "name": "claude-4.5-writers", "kind": "ai", "relation": "author", "date": "2026-10-23" }
+        { "name": "claude-pr253", "kind": "ai", "relation": "author", "date": "2026-10-23" }
       ]
     },
     "studio.placement#prerequisites": {

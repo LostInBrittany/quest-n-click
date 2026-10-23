@@ -46,7 +46,9 @@ Champs lus par le moteur en plus des positions :
   horizontal), `flipV` (miroir vertical : l'image passe sous la ligne des pieds, comme sur la page de placement), `z`
   (ligne de profondeur forcée). Un champ absent d'un état reprend celui de l'accessoire. `on: true` dit que
   l'accessoire est posé sur un meuble.
-- Sur un acteur : `z` force sa profondeur (sinon elle suit ses pieds).
+- Sur un acteur : `z` force sa profondeur (sinon elle suit ses pieds) ; `flip` le tourne vers la gauche, sauf si le
+  `facing` que le lieu lui donne (ou celui qu'un script a laissé) dit autre chose. La case **mirror ↔** de l'éditeur de
+  placement le règle : [Placement](studio.placement.md#placement-editor).
 - Sur la salle : `floor`.
 
 <a name="approach"></a>

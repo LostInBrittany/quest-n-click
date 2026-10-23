@@ -43,7 +43,9 @@ Fields read by the engine besides positions:
 - On a prop (and in each of its `states`): `rot` (degrees, clockwise, pivot at the feet), `flip` (horizontal mirror),
   `flipV` (vertical mirror: the image sits below the feet line, as on the placement page), `z` (forced depth line).
   A field missing from a state falls back to the prop's own. `on: true` says the prop stands on a piece of furniture.
-- On an actor: `z` forces their depth (otherwise it follows their feet).
+- On an actor: `z` forces their depth (otherwise it follows their feet); `flip` turns them to face left, unless the
+  room's `facing` for them (or one a script left) says otherwise. The placement editor's **mirror ↔** sets it:
+  [Placement](studio.placement.md#placement-editor).
 - On the room: `floor`.
 
 <a name="approach"></a>
