@@ -1453,19 +1453,36 @@
       "context": ["engine-repo", "created-project"],
       "title": { "en": "Exits", "fr": "Sorties" },
       "url": { "en": "EN-Create-Exits", "fr": "FR-Creer-Sorties" },
-      "state": "planned",
-      "sources": [],
+      "state": "ready",
+      "versions": { "appliesFrom": "4.2.4" },
+      "sources": [
+        "src/engine/core/define.ts",
+        "src/engine/core/types/content.ts",
+        "src/engine/tools/validate.ts",
+        "src/engine/tools/validate/player.ts",
+        "src/engine/core/movement.ts"
+      ],
       "replaces": [
         "docs/en/CONTENT_GUIDE.md#exits-chapters-saves",
         "docs/en/CONTENT_GUIDE.md#declared-exits",
         "docs/fr/CONTENT_GUIDE.md#sorties-chapitres-sauvegardes",
         "docs/fr/CONTENT_GUIDE.md#les-sorties-déclarées"
       ],
-      "questions": { "en": [], "fr": [] },
-      "aliases": { "en": [], "fr": [] },
-      "identifiers": [],
-      "related": [],
-      "prerequisites": [],
+      "questions": {
+        "en": [],
+        "fr": []
+      },
+      "aliases": {
+        "en": ["CONTENT_GUIDE", "declared exits", "door to another room", "way out"],
+        "fr": ["CONTENT_GUIDE", "sorties déclarées", "porte vers un autre lieu", "issue"]
+      },
+      "keywords": {
+        "en": ["exit", "goto", "entry", "oneWay", "onTap", "exitOnTap", "locked", "no way back"],
+        "fr": ["sortie", "goto", "entrée", "oneWay", "onTap", "exitOnTap", "locked", "pas de retour"]
+      },
+      "identifiers": ["exits", "oneWay", "onTap"],
+      "related": ["create.world-map", "create.reactions", "create.geometry", "create.chapters", "create.state-saves"],
+      "prerequisites": ["create.rooms"],
       "owner": "@wanoo"
     },
     {
@@ -1477,19 +1494,51 @@
       "context": ["engine-repo", "created-project"],
       "title": { "en": "Chapters and objectives", "fr": "Chapitres et objectifs" },
       "url": { "en": "EN-Create-Chapters", "fr": "FR-Creer-Chapitres" },
-      "state": "planned",
-      "sources": ["src/engine/core/objectives.ts"],
+      "state": "ready",
+      "versions": { "appliesFrom": "4.1.14" },
+      "sources": [
+        "src/engine/core/objectives.ts",
+        "src/engine/core/types/game.ts",
+        "src/engine/tools/validate/objectives.ts",
+        "src/engine/tools/chapters.ts",
+        "tools/solve.ts",
+        "docs/dev/adr/0014-objectives.md"
+      ],
       "replaces": [
         "docs/en/CONTENT_GUIDE.md#chapters-and-invariants",
         "docs/en/CONTENT_GUIDE.md#objectives-and-the-quest-journal-4112",
         "docs/fr/CONTENT_GUIDE.md#chapitres-et-invariants",
         "docs/fr/CONTENT_GUIDE.md#objectifs-et-journal-de-quêtes-4112"
       ],
-      "questions": { "en": [], "fr": [] },
-      "aliases": { "en": [], "fr": [] },
-      "identifiers": [],
-      "related": [],
-      "prerequisites": [],
+      "questions": {
+        "en": [],
+        "fr": []
+      },
+      "aliases": {
+        "en": ["CONTENT_GUIDE", "quest journal", "checkpoints", "chapter proof"],
+        "fr": ["CONTENT_GUIDE", "journal de quêtes", "checkpoints", "preuve par chapitres"]
+      },
+      "keywords": {
+        "en": ["goals", "invariants", "objectiveCompleted", "--chapters", "--goal=100%", "optional", "parent"],
+        "fr": [
+          "goals",
+          "invariants",
+          "objectiveCompleted",
+          "--chapters",
+          "--goal=100%",
+          "objectif secondaire",
+          "parent"
+        ]
+      },
+      "identifiers": ["checkpoints", "invariants", "objectives"],
+      "related": [
+        "create.solver-options",
+        "create.solver-proofs",
+        "create.speedrun",
+        "studio.language-objectives",
+        "create.state-saves"
+      ],
+      "prerequisites": ["create.conditions"],
       "owner": "@wanoo"
     },
     {
@@ -1504,8 +1553,22 @@
         "fr": "État et sauvegardes : persistant ou temporaire, renommer un id, migrations"
       },
       "url": { "en": "EN-Create-State-And-Saves", "fr": "FR-Creer-Etat-Et-Sauvegardes" },
-      "state": "planned",
-      "sources": ["src/engine/core/save.ts", "src/engine/core/migrate.ts"],
+      "state": "ready",
+      "versions": { "appliesFrom": "4.2.2" },
+      "sources": [
+        "src/engine/core/save.ts",
+        "src/engine/core/migrate.ts",
+        "src/engine/core/keys.ts",
+        "src/engine/core/types/state.ts",
+        "src/engine/dom/save-store.ts",
+        "src/engine/dom/update.ts",
+        "src/engine/tools/validate/migrations.ts",
+        "tests/save-v3.test.ts",
+        "tests/save-store.test.ts",
+        "tests/critical-save.test.ts",
+        "docs/dev/adr/0005-indexeddb-read-back.md",
+        "docs/dev/adr/0026-saves-across-revisions.md"
+      ],
       "replaces": [
         "docs/en/CONTENT_GUIDE.md#the-v3-identity-contract",
         "docs/en/CONTENT_GUIDE.md#save-slots-and-migrations",
@@ -1516,11 +1579,85 @@
         "docs/fr/ENGINE.md#sauvegardes--ce-qui-est-garanti",
         "docs/fr/SUPPORT.md#sauvegardes"
       ],
-      "questions": { "en": [], "fr": [] },
-      "aliases": { "en": [], "fr": [] },
-      "identifiers": [],
-      "related": [],
-      "prerequisites": [],
+      "questions": {
+        "en": [
+          "How do I rename a flag without breaking players' saves?",
+          "What does a save keep, and what is lost on reload?",
+          "Will an update of my game break the players' saves?"
+        ],
+        "fr": [
+          "Comment renommer un drapeau sans casser les sauvegardes des joueurs ?",
+          "Que garde une sauvegarde, et qu'est-ce qui se perd au rechargement ?",
+          "Une mise à jour de mon jeu va-t-elle casser les sauvegardes des joueurs ?"
+        ]
+      },
+      "aliases": {
+        "en": ["CONTENT_GUIDE", "save migration", "saveVersion", "identity contract", "save slots", "IndexedDB"],
+        "fr": [
+          "CONTENT_GUIDE",
+          "migration de sauvegarde",
+          "saveVersion",
+          "contrat d'identité",
+          "emplacements de sauvegarde",
+          "IndexedDB"
+        ]
+      },
+      "keywords": {
+        "en": [
+          "persistent",
+          "temporary",
+          "renameFlag",
+          "renameItem",
+          "dropFlag",
+          "saveAdjusted",
+          "saveFailed",
+          "service worker",
+          "offline update"
+        ],
+        "fr": [
+          "persistant",
+          "temporaire",
+          "renameFlag",
+          "renameItem",
+          "dropFlag",
+          "saveAdjusted",
+          "saveFailed",
+          "service worker",
+          "mise à jour hors ligne"
+        ]
+      },
+      "identifiers": ["saveVersion", "migrations", "saves", "npm run ids"],
+      "related": [
+        "create.principles",
+        "play.saves",
+        "engine.file-formats",
+        "start.stability",
+        "install.upgrade-notes-v2-to-v3",
+        "create.flags-variables-events"
+      ],
+      "prerequisites": ["create.first-game"],
+      "claims": [
+        {
+          "id": "save-read-back",
+          "test": "tests/save-store.test.ts › IndexedDbSaveStore › writes the autosave, verifies it, and reads it back after a reopen"
+        },
+        {
+          "id": "save-refused-write-reported",
+          "test": "tests/save-store.test.ts › IndexedDbSaveStore: when the browser refuses › a write refused for quota: whenIdle rejects, the failure is reported, the cache keeps the state"
+        },
+        {
+          "id": "save-refused-untouched",
+          "test": "tests/save-v3.test.ts › save envelope v3 › rejects a foreign game, corrupt shape and missing current room without touching current state"
+        },
+        {
+          "id": "save-stale-pruned",
+          "test": "tests/save-v3.test.ts › save envelope v3 › prunes stale non-essential content references and warns once"
+        },
+        {
+          "id": "migration-newer-save-refused",
+          "test": "tests/critical-save.test.ts › parseSave: envelope and shape › migrates an older state, and rejects one that cannot be"
+        }
+      ],
       "owner": "@wanoo"
     },
     {
@@ -1531,8 +1668,15 @@
       "context": ["engine-repo", "created-project"],
       "title": { "en": "Staging: wide rooms and animations", "fr": "Mise en scène : salles larges et animations" },
       "url": { "en": "EN-Create-Staging", "fr": "FR-Creer-Mise-En-Scene" },
-      "state": "planned",
-      "sources": [],
+      "state": "ready",
+      "versions": { "appliesFrom": "4.3.0" },
+      "sources": [
+        "src/engine/core/types/content.ts",
+        "src/engine/core/types/stage.ts",
+        "src/engine/dom/settings.ts",
+        "src/engine/core/command-handlers.ts",
+        "src/engine/boot.ts"
+      ],
       "replaces": [
         "docs/en/CONTENT_GUIDE.md#staging-wide-rooms-animations-voice-settings",
         "docs/en/CONTENT_GUIDE.md#wide-rooms-and-the-camera",
@@ -1543,11 +1687,31 @@
         "docs/fr/CONTENT_GUIDE.md#animations-daccessoires-et-événements-de-frame",
         "docs/fr/CONTENT_GUIDE.md#réglages"
       ],
-      "questions": { "en": [], "fr": [] },
-      "aliases": { "en": [], "fr": [] },
-      "identifiers": [],
-      "related": [],
-      "prerequisites": [],
+      "questions": {
+        "en": [],
+        "fr": []
+      },
+      "aliases": {
+        "en": ["CONTENT_GUIDE", "scrolling room", "camera pan", "frame events", "settings menu"],
+        "fr": ["CONTENT_GUIDE", "lieu qui défile", "panoramique", "événements de frame", "menu réglages"]
+      },
+      "keywords": {
+        "en": ["width", "camera", "play", "stopAnim", "anims", "fps", "loop", "reduce motion", "text speed"],
+        "fr": [
+          "width",
+          "camera",
+          "play",
+          "stopAnim",
+          "anims",
+          "fps",
+          "loop",
+          "réduire les animations",
+          "vitesse du texte"
+        ]
+      },
+      "identifiers": ["camera", "play", "stopAnim", "settings"],
+      "related": ["create.stage", "create.geometry", "create.voices", "play.settings", "create.skin-fonts"],
+      "prerequisites": ["create.rooms"],
       "owner": "@wanoo"
     },
     {
@@ -1558,17 +1722,58 @@
       "context": ["engine-repo", "created-project"],
       "title": { "en": "The stage: lights, particles, floors", "fr": "La scène : lumières, particules, sols" },
       "url": { "en": "EN-Create-Stage", "fr": "FR-Creer-Scene" },
-      "state": "planned",
-      "sources": ["src/engine/core/stage.ts"],
+      "state": "ready",
+      "versions": { "appliesFrom": "3.4.0" },
+      "sources": [
+        "src/engine/core/stage.ts",
+        "src/engine/core/types/stage.ts",
+        "src/engine/tools/validate-stage.ts",
+        "src/engine/tools/lint.ts",
+        "tests/stage.test.ts"
+      ],
       "replaces": [
         "docs/en/CONTENT_GUIDE.md#the-stage-34-layers-masks-lights-particles-floors",
         "docs/fr/CONTENT_GUIDE.md#la-scène-34--calques-masques-lumières-particules-sols"
       ],
-      "questions": { "en": [], "fr": [] },
-      "aliases": { "en": [], "fr": [] },
-      "identifiers": [],
-      "related": [],
-      "prerequisites": [],
+      "questions": {
+        "en": [],
+        "fr": []
+      },
+      "aliases": {
+        "en": ["CONTENT_GUIDE", "layers", "occluders", "walk zones", "lights and particles"],
+        "fr": ["CONTENT_GUIDE", "calques", "occulteurs", "zones de marche", "lumières et particules"]
+      },
+      "keywords": {
+        "en": [
+          "parallax",
+          "mask",
+          "emitters",
+          "transition",
+          "walkLinks",
+          "walk-link-gate",
+          "canvas painter",
+          "renderer"
+        ],
+        "fr": [
+          "parallaxe",
+          "masque",
+          "emitters",
+          "transition",
+          "walkLinks",
+          "walk-link-gate",
+          "peintre canvas",
+          "renderer"
+        ]
+      },
+      "identifiers": ["stage", "walkZones", "walkLinks", "occluders", "renderer", "walk-link-gate"],
+      "related": ["create.geometry", "create.staging", "studio.placement", "create.unreachable"],
+      "prerequisites": ["create.rooms"],
+      "claims": [
+        {
+          "id": "stage-not-state",
+          "test": "tests/stage.test.ts › a stage is never game state › the sample game with layers, lights and links on every room: the same proof, state for state"
+        }
+      ],
       "owner": "@wanoo"
     },
     {
@@ -1579,13 +1784,38 @@
       "context": ["engine-repo", "created-project"],
       "title": { "en": "Skin and fonts", "fr": "Habillage et polices" },
       "url": { "en": "EN-Create-Skin-And-Fonts", "fr": "FR-Creer-Habillage-Et-Polices" },
-      "state": "planned",
-      "sources": [],
+      "state": "ready",
+      "versions": { "appliesFrom": "4.3.0" },
+      "sources": [
+        "src/engine/core/types/game.ts",
+        "src/engine/dom/fonts.ts",
+        "src/engine/dom/ui-defaults.ts",
+        "src/engine/dom/style.css",
+        "src/engine/dom/shell.ts"
+      ],
       "replaces": ["docs/en/CONTENT_GUIDE.md#the-skin-skin", "docs/fr/CONTENT_GUIDE.md#lhabillage-skin"],
-      "questions": { "en": [], "fr": [] },
-      "aliases": { "en": [], "fr": [] },
-      "identifiers": [],
-      "related": [],
+      "questions": {
+        "en": [],
+        "fr": []
+      },
+      "aliases": {
+        "en": ["CONTENT_GUIDE", "skin", "interface fonts", "UI texts", "readable font"],
+        "fr": ["CONTENT_GUIDE", "habillage", "polices d'interface", "textes d'interface", "police lisible"]
+      },
+      "keywords": {
+        "en": ["icons", "Galmuri11", "DotGothic16", "Press Start 2P", "pixelArt", "--font-ui", "ui defaults"],
+        "fr": [
+          "icônes",
+          "Galmuri11",
+          "DotGothic16",
+          "Press Start 2P",
+          "pixelArt",
+          "--font-ui",
+          "valeurs par défaut de ui"
+        ]
+      },
+      "identifiers": ["skin", "ui"],
+      "related": ["create.staging", "create.translations", "create.world-map", "create.sealed-ending", "create.images"],
       "prerequisites": [],
       "owner": "@wanoo"
     },
@@ -1597,17 +1827,33 @@
       "context": ["engine-repo", "created-project"],
       "title": { "en": "Title and credits", "fr": "Titre et générique" },
       "url": { "en": "EN-Create-Title-And-Credits", "fr": "FR-Creer-Titre-Et-Generique" },
-      "state": "planned",
-      "sources": [],
+      "state": "ready",
+      "versions": { "appliesFrom": "4.2.5" },
+      "sources": [
+        "src/engine/dom/menus.ts",
+        "src/engine/core/types/game.ts",
+        "tools/assets.py",
+        "src/engine/tools/validate/text-switches.ts"
+      ],
       "replaces": [
         "docs/en/CONTENT_GUIDE.md#title-screen-and-credits",
         "docs/fr/CONTENT_GUIDE.md#écran-titre-et-générique"
       ],
-      "questions": { "en": [], "fr": [] },
-      "aliases": { "en": [], "fr": [] },
-      "identifiers": [],
-      "related": [],
-      "prerequisites": [],
+      "questions": {
+        "en": ["How do I put a video behind my title screen?", "How do I add end credits?"],
+        "fr": ["Comment mettre une vidéo derrière mon écran titre ?", "Comment ajouter un générique de fin ?"]
+      },
+      "aliases": {
+        "en": ["title screen", "credits", "CONTENT_GUIDE"],
+        "fr": ["écran titre", "générique", "CONTENT_GUIDE"]
+      },
+      "keywords": {
+        "en": ["titleScreen", "creditsScreen", "logo", "footer"],
+        "fr": ["titleScreen", "creditsScreen", "logo", "pied de page"]
+      },
+      "identifiers": ["titleScreen", "creditsScreen", "credits"],
+      "related": ["create.sealed-ending", "create.skin-fonts", "create.music"],
+      "prerequisites": ["create.images"],
       "owner": "@wanoo"
     },
     {
@@ -1617,10 +1863,24 @@
       "alsoTypes": ["reference", "explanation"],
       "audience": ["author"],
       "context": ["engine-repo", "created-project"],
-      "title": { "en": "Heroes: several characters and hero choice", "fr": "Héros : plusieurs personnages et choix du héros" },
+      "title": {
+        "en": "Heroes: several characters and hero choice",
+        "fr": "Héros : plusieurs personnages et choix du héros"
+      },
       "url": { "en": "EN-Create-Heroes", "fr": "FR-Creer-Heros" },
-      "state": "planned",
-      "sources": ["games/heroes/**/*.ts"],
+      "state": "ready",
+      "versions": { "appliesFrom": "4.4.0" },
+      "sources": [
+        "games/heroes/game.ts",
+        "games/heroes/cast.ts",
+        "games/heroes/rooms/garden.ts",
+        "src/engine/core/players.ts",
+        "src/engine/core/interactions.ts",
+        "src/engine/tools/validate/text-switches.ts",
+        "src/engine/tools/lint-hero.ts",
+        "tests/hero-choice.test.ts",
+        "docs/dev/adr/0022-hero-choice.md"
+      ],
       "replaces": [
         "docs/en/CLASSICS.md#choose-your-hero-at-the-start--native-430-tested",
         "docs/en/CONTENT_GUIDE.md#several-playable-characters",
@@ -1629,11 +1889,36 @@
         "docs/fr/CONTENT_GUIDE.md#plusieurs-personnages-jouables",
         "docs/fr/CONTENT_GUIDE.md#choisir-le-héros-430"
       ],
-      "questions": { "en": [], "fr": [] },
-      "aliases": { "en": [], "fr": [] },
-      "identifiers": [],
-      "related": [],
-      "prerequisites": [],
+      "questions": {
+        "en": ["How do I let the player choose the hero at New Game?", "How do I have several playable characters?"],
+        "fr": [
+          "Comment laisser le joueur choisir son héros à la Nouvelle partie ?",
+          "Comment avoir plusieurs personnages jouables ?"
+        ]
+      },
+      "aliases": {
+        "en": ["hero choice", "text switches", "playable characters", "players"],
+        "fr": ["choix du héros", "aiguillages de texte", "personnages jouables", "players"]
+      },
+      "keywords": {
+        "en": ["{hero}", "variants", "switchPlayer", "transfer", "sharedInventory", "Who Am I Today?"],
+        "fr": ["{hero}", "variantes", "switchPlayer", "transfer", "sharedInventory", "Qui suis-je aujourd'hui ?"]
+      },
+      "identifiers": ["players", "switchPlayer", "transfer", "hero-looks-default"],
+      "related": [
+        "create.voices",
+        "create.translations",
+        "create.classics",
+        "studio.voices-matrix",
+        "create.example-games"
+      ],
+      "prerequisites": ["create.first-game"],
+      "claims": [
+        {
+          "id": "hero-choice-save-keeps-hero",
+          "test": "tests/hero-choice.test.ts › choosing the hero (the heroes fixture) › a save keeps the hero: loaded in a new engine, Morwen is still Morwen"
+        }
+      ],
       "owner": "@wanoo"
     },
     {
@@ -1644,18 +1929,46 @@
       "context": ["engine-repo", "created-project"],
       "title": { "en": "Built-in minigames", "fr": "Mini-jeux intégrés" },
       "url": { "en": "EN-Create-Minigames", "fr": "FR-Creer-Mini-Jeux" },
-      "state": "planned",
-      "sources": [],
+      "state": "ready",
+      "versions": { "appliesFrom": "4.2.5" },
+      "sources": [
+        "src/engine/minigames/*.ts",
+        "src/engine/core/remix/code-wheel.ts",
+        "src/engine/dom/presenter.ts",
+        "src/engine/core/command-handlers.ts",
+        "src/engine/tools/validate/remix.ts"
+      ],
       "replaces": [
         "docs/en/CONTENT_GUIDE.md#available-minigames",
         "docs/en/DESIGN.md#7-minigames",
         "docs/fr/CONTENT_GUIDE.md#mini-jeux-disponibles",
         "docs/fr/DESIGN.md#7-les-mini-jeux"
       ],
-      "questions": { "en": [], "fr": [] },
-      "aliases": { "en": [], "fr": [] },
-      "identifiers": [],
-      "related": [],
+      "questions": {
+        "en": [],
+        "fr": []
+      },
+      "aliases": {
+        "en": ["minigames", "pipes", "cables", "code wheel"],
+        "fr": ["mini-jeux", "tuyaux", "câbles", "roue de codes"]
+      },
+      "keywords": {
+        "en": ["pipes", "stroke", "pick", "hide", "runner", "cables", "scratch", "code-wheel", "skip", "minigame.<id>"],
+        "fr": [
+          "pipes",
+          "stroke",
+          "pick",
+          "hide",
+          "runner",
+          "cables",
+          "scratch",
+          "code-wheel",
+          "passer",
+          "minigame.<id>"
+        ]
+      },
+      "identifiers": ["minigame", "minigame.<id>", "npm run code-wheel"],
+      "related": ["create.custom-minigame", "create.puzzle-design", "create.sealed-ending", "create.remix"],
       "prerequisites": [],
       "owner": "@wanoo"
     },
@@ -1667,19 +1980,41 @@
       "context": ["engine-repo", "created-project"],
       "title": { "en": "A custom minigame", "fr": "Un mini-jeu sur mesure" },
       "url": { "en": "EN-Create-Custom-Minigame", "fr": "FR-Creer-Mini-Jeu-Sur-Mesure" },
-      "state": "planned",
-      "sources": ["src/engine/minigames/types.ts"],
+      "state": "ready",
+      "versions": { "appliesFrom": "4.2.5" },
+      "sources": [
+        "src/engine/minigames/types.ts",
+        "src/engine/minigames/index.ts",
+        "src/engine/api/minigames.ts",
+        "src/engine/dom/presenter.ts",
+        "tools/validate.ts",
+        "tools/i18n.ts",
+        "games/_template/index.ts"
+      ],
       "replaces": [
         "docs/en/API.md#quest-n-clickminigames-minigames-as-plugins",
         "docs/en/CONTENT_GUIDE.md#your-own-minigames",
         "docs/fr/API.md#quest-n-clickminigames--les-mini-jeux-comme-greffons",
         "docs/fr/CONTENT_GUIDE.md#tes-propres-mini-jeux"
       ],
-      "questions": { "en": ["How do I write my own minigame?"], "fr": ["Comment écrire mon propre mini-jeu ?"] },
-      "aliases": { "en": [], "fr": [] },
-      "identifiers": [],
-      "related": [],
-      "prerequisites": [],
+      "questions": {
+        "en": ["How do I write my own minigame?", "How does a custom minigame report that it was skipped or failed?"],
+        "fr": [
+          "Comment écrire mon propre mini-jeu ?",
+          "Comment un mini-jeu sur mesure signale-t-il qu'il a été passé ou raté ?"
+        ]
+      },
+      "aliases": {
+        "en": ["minigame plugin", "own minigame"],
+        "fr": ["greffon de mini-jeu", "mini-jeu personnalisé"]
+      },
+      "keywords": {
+        "en": ["MinigameCtx", "mg-skip", "mg-record", "textParams", "bindings"],
+        "fr": ["MinigameCtx", "mg-skip", "mg-record", "textParams", "bindings"]
+      },
+      "identifiers": ["Minigame", "MinigameCtx", "MINIGAME_CSS"],
+      "related": ["create.minigames", "create.custom-code", "engine.api"],
+      "prerequisites": ["create.first-game"],
       "owner": "@wanoo"
     },
     {
@@ -1691,14 +2026,45 @@
       "context": ["engine-repo", "created-project"],
       "title": { "en": "Translations", "fr": "Traductions" },
       "url": { "en": "EN-Create-Translations", "fr": "FR-Creer-Traductions" },
-      "state": "planned",
-      "sources": ["tools/i18n.ts"],
+      "state": "ready",
+      "versions": { "appliesFrom": "4.3.0" },
+      "sources": [
+        "tools/i18n.ts",
+        "src/engine/tools/i18n.ts",
+        "src/engine/boot.ts",
+        "src/engine/dom/settings.ts",
+        "tests/i18n.test.ts"
+      ],
       "replaces": ["docs/en/CONTENT_GUIDE.md#translations", "docs/fr/CONTENT_GUIDE.md#traductions"],
-      "questions": { "en": ["How do I find a missing translation?"], "fr": ["Comment trouver une traduction manquante ?"] },
-      "aliases": { "en": [], "fr": [] },
-      "identifiers": ["npm run i18n"],
-      "related": [],
+      "questions": {
+        "en": [
+          "How do I find a missing translation?",
+          "How do I translate my game into French?",
+          "Why is my translation reported as stale?"
+        ],
+        "fr": [
+          "Comment trouver une traduction manquante ?",
+          "Comment traduire mon jeu en anglais ?",
+          "Pourquoi ma traduction est signalée comme obsolète ?"
+        ]
+      },
+      "aliases": {
+        "en": ["i18n", "localisation", "locales", "CONTENT_GUIDE"],
+        "fr": ["i18n", "localisation", "locales", "CONTENT_GUIDE"]
+      },
+      "keywords": {
+        "en": ["_stale", "i18n.same", "?lang=", "locales/<lang>.json"],
+        "fr": ["_stale", "i18n.same", "?lang=", "locales/<lang>.json"]
+      },
+      "identifiers": ["npm run i18n", "npx quest-n-click i18n", "i18n.same"],
+      "related": ["create.voices", "create.heroes", "play.languages"],
       "prerequisites": [],
+      "claims": [
+        {
+          "id": "i18n-moved-texts",
+          "test": "tests/i18n.test.ts › mergeLocale › follows texts that moved, parks the ones that disappeared, revives the ones that come back"
+        }
+      ],
       "owner": "@wanoo"
     },
     {
@@ -1710,8 +2076,19 @@
       "context": ["engine-repo", "created-project"],
       "title": { "en": "Music in stems", "fr": "Musique en stems" },
       "url": { "en": "EN-Create-Music", "fr": "FR-Creer-Musique" },
-      "state": "planned",
-      "sources": ["src/engine/tools/stems.ts"],
+      "state": "ready",
+      "versions": { "appliesFrom": "4.2.5" },
+      "sources": [
+        "tools/audio/mdpipe/*.py",
+        "tools/audio/palette.json",
+        "tools/audio.py",
+        "src/engine/core/types/audio.ts",
+        "src/engine/core/score.ts",
+        "src/engine/dom/director.ts",
+        "src/engine/tools/stems.ts",
+        "tests/score.test.ts",
+        "tests/stems.test.ts"
+      ],
       "replaces": [
         "docs/en/AUDIO.md#audio-music-and-sound-effects-that-sound-like-one-game",
         "docs/en/AUDIO.md#the-rules",
@@ -1730,11 +2107,41 @@
         "docs/fr/CONTENT_GUIDE.md#musique-en-stems-35",
         "docs/fr/DESIGN.md#10-le-son"
       ],
-      "questions": { "en": [], "fr": [] },
-      "aliases": { "en": [], "fr": [] },
-      "identifiers": [],
-      "related": [],
-      "prerequisites": [],
+      "questions": {
+        "en": ["How do I turn a MIDI into music for my game?", "How do I make the music change with the game's state?"],
+        "fr": [
+          "Comment transformer un MIDI en musique pour mon jeu ?",
+          "Comment faire changer la musique selon l'état du jeu ?"
+        ]
+      },
+      "aliases": {
+        "en": ["AUDIO", "stems", "music director", "adaptive music", "Mega Drive pipeline", "mdpipe"],
+        "fr": ["AUDIO", "stems", "directeur musical", "musique adaptative", "chaîne Mega Drive", "mdpipe"]
+      },
+      "keywords": {
+        "en": ["audio.scores", "audio.transitions", "spec.json", "Furnace", "YM2612", "QA report", "Save-Data"],
+        "fr": ["audio.scores", "audio.transitions", "spec.json", "Furnace", "YM2612", "rapport QA", "Save-Data"]
+      },
+      "identifiers": [
+        "npm run audio",
+        "audio.music",
+        "audio.scores",
+        "audio.transitions",
+        "audio.maxDecodedMB",
+        "FURNACE_BIN"
+      ],
+      "related": ["create.sound-effects", "create.voices", "studio.music", "install.audio-toolchain"],
+      "prerequisites": ["install.audio-toolchain"],
+      "claims": [
+        {
+          "id": "stems-consistent",
+          "test": "tests/stems.test.ts › stem files › matching stems pass; each mismatch is named"
+        },
+        {
+          "id": "score-first-state-wins",
+          "test": "tests/score.test.ts › score: the mix per state › the first matching state wins; none: every stem"
+        }
+      ],
       "owner": "@wanoo"
     },
     {
@@ -1745,8 +2152,15 @@
       "context": ["engine-repo", "created-project"],
       "title": { "en": "Sound effects", "fr": "Bruitages" },
       "url": { "en": "EN-Create-Sound-Effects", "fr": "FR-Creer-Bruitages" },
-      "state": "planned",
-      "sources": [],
+      "state": "ready",
+      "versions": { "appliesFrom": "4.2.5" },
+      "sources": [
+        "tools/audio/mdpipe/sfx.py",
+        "tools/audio/palette.json",
+        "games/demo/audio/sfx.json",
+        "tools/assets.py",
+        "src/engine/core/types/audio.ts"
+      ],
       "replaces": [
         "docs/en/AUDIO.md#the-rules",
         "docs/en/AUDIO.md#sound-effects",
@@ -1755,11 +2169,21 @@
         "docs/fr/AUDIO.md#bruitages",
         "docs/fr/TOOLS.md#préparer-les-images-et-les-sons"
       ],
-      "questions": { "en": [], "fr": [] },
-      "aliases": { "en": [], "fr": [] },
-      "identifiers": [],
-      "related": [],
-      "prerequisites": [],
+      "questions": {
+        "en": [],
+        "fr": []
+      },
+      "aliases": {
+        "en": ["AUDIO", "sfx", "sound effects recipes"],
+        "fr": ["AUDIO", "sfx", "recettes de bruitages"]
+      },
+      "keywords": {
+        "en": ["sfx.json", "caption", "sources.json", "skin.sounds"],
+        "fr": ["sfx.json", "sous-titre", "sources.json", "skin.sounds"]
+      },
+      "identifiers": ["audio.sfx", "sfx.json"],
+      "related": ["create.music", "create.voices", "create.images", "create.skin-fonts"],
+      "prerequisites": ["install.audio-toolchain"],
       "owner": "@wanoo"
     },
     {
@@ -1771,8 +2195,22 @@
       "context": ["engine-repo", "created-project"],
       "title": { "en": "Voices: per language and per hero", "fr": "Voix : par langue et par héros" },
       "url": { "en": "EN-Create-Voices", "fr": "FR-Creer-Voix" },
-      "state": "planned",
-      "sources": ["tools/voices.ts", "src/engine/tools/voices.ts"],
+      "state": "ready",
+      "versions": { "appliesFrom": "4.4.0" },
+      "sources": [
+        "src/engine/core/voice-key.ts",
+        "src/engine/tools/voices.ts",
+        "tools/voices.ts",
+        "tools/voice-facts.ts",
+        "src/engine/tools/validate/voices.ts",
+        "src/engine/dom/audio.ts",
+        "src/engine/dom/speech.ts",
+        "src/engine/dom/offline.ts",
+        "src/engine/boot.ts",
+        "tests/voice-key.test.ts",
+        "tests/voice-locale.test.ts",
+        "tools/ids.ts"
+      ],
       "replaces": [
         "docs/en/AUDIO.md#voices",
         "docs/en/AUDIO.md#lines-with-text-switches-430",
@@ -1782,13 +2220,38 @@
         "docs/fr/CONTENT_GUIDE.md#voix"
       ],
       "questions": {
-        "en": ["How do I give a French voice to one hero only?"],
-        "fr": ["Comment donner une voix française à un seul héros ?"]
+        "en": [
+          "How do I give a French voice to one hero only?",
+          "Why does a voiced line disappear without sound?",
+          "How do I record a line once per hero?"
+        ],
+        "fr": [
+          "Comment donner une voix française à un seul héros ?",
+          "Pourquoi une réplique doublée disparaît sans son ?",
+          "Comment enregistrer une réplique une fois par héros ?"
+        ]
       },
-      "aliases": { "en": [], "fr": [] },
-      "identifiers": [],
-      "related": [],
-      "prerequisites": [],
+      "aliases": {
+        "en": ["AUDIO", "voice acting", "dubbing", "voice clips", "recording table"],
+        "fr": ["AUDIO", "doublage", "voix off", "clips de voix", "table d'enregistrement"]
+      },
+      "keywords": {
+        "en": ["voicesByLang", "text switch", "autoplay", "offline", "voices.json"],
+        "fr": ["voicesByLang", "aiguillage de texte", "lecture automatique", "hors ligne", "voices.json"]
+      },
+      "identifiers": ["npm run voices", "npx quest-n-click voices", "audio.voices", "audio.voicesByLang"],
+      "related": ["create.translations", "create.heroes", "studio.voices-matrix", "create.music"],
+      "prerequisites": ["create.translations"],
+      "claims": [
+        {
+          "id": "voice-keyed-then-plain",
+          "test": "tests/voice-key.test.ts › the engine › plays the keyed clip for the flags as they stand, else the plain id"
+        },
+        {
+          "id": "voices-by-language",
+          "test": "tests/voice-key.test.ts › the engine › a translated game: boot swaps audio.voices for voicesByLang[lang], the keys stay the same"
+        }
+      ],
       "owner": "@wanoo"
     },
     {
@@ -1803,8 +2266,20 @@
         "fr": "Images : prompts, découpe des planches, transparence, échelle"
       },
       "url": { "en": "EN-Create-Images", "fr": "FR-Creer-Images" },
-      "state": "planned",
-      "sources": ["tools/prompts.ts", "tools/cut-sheet.py"],
+      "state": "ready",
+      "versions": { "appliesFrom": "4.2.5" },
+      "sources": [
+        "tools/prompts.ts",
+        "tools/cut-sheet.py",
+        "tools/check-alpha.py",
+        "tools/pick-bg.py",
+        "tools/talk-*.py",
+        "tools/refs.ts",
+        "tools/assets.py",
+        "src/engine/dom/assets.ts",
+        "src/studio/assets-*.ts",
+        "cli/quest-n-click.mjs"
+      ],
       "replaces": [
         "docs/en/CONTENT_GUIDE.md#the-images",
         "docs/en/DESIGN.md#9-art-consistency",
@@ -1841,11 +2316,54 @@
         "docs/fr/WORKFLOW.md#3-générer-les-assets",
         "docs/fr/WORKFLOW.md#4-découper-détourer-et-relire"
       ],
-      "questions": { "en": ["My new image does not show in the game"], "fr": ["Ma nouvelle image n'apparaît pas dans le jeu"] },
-      "aliases": { "en": [], "fr": [] },
-      "identifiers": ["npm run prompts", "npm run assets"],
-      "related": [],
-      "prerequisites": [],
+      "questions": {
+        "en": [
+          "My new image does not show in the game",
+          "How do I cut a generated sprite sheet into images?",
+          "Which background colour should my sprite sheets use?",
+          "How do I get the image prompts for my game?"
+        ],
+        "fr": [
+          "Ma nouvelle image n'apparaît pas dans le jeu",
+          "Comment découper une planche de sprites générée en images ?",
+          "Quelle couleur de fond utiliser pour mes planches de sprites ?",
+          "Comment obtenir les prompts d'images de mon jeu ?"
+        ]
+      },
+      "aliases": {
+        "en": ["PROMPTS", "sprite sheet", "cutter", "art pipeline", "sheetBackground", "artStyle"],
+        "fr": ["PROMPTS", "planche de sprites", "découpeur", "chaîne graphique", "sheetBackground", "artStyle"]
+      },
+      "keywords": {
+        "en": [
+          "cut-sheet.py",
+          "transparency",
+          "pixel art",
+          "assets.gen.json",
+          "sources.json",
+          "mouth kit",
+          "stale image"
+        ],
+        "fr": [
+          "cut-sheet.py",
+          "transparence",
+          "pixel art",
+          "assets.gen.json",
+          "sources.json",
+          "kit bouche",
+          "image périmée"
+        ]
+      },
+      "identifiers": ["npm run prompts", "npm run assets", "asset_prompts"],
+      "related": [
+        "create.asset-provenance",
+        "create.review-pages",
+        "create.sound-effects",
+        "studio.assets",
+        "install.image-toolchain",
+        "create.skin-fonts"
+      ],
+      "prerequisites": ["install.image-toolchain"],
       "owner": "@wanoo"
     },
     {
@@ -1857,14 +2375,52 @@
       "context": ["engine-repo", "created-project"],
       "title": { "en": "Asset provenance", "fr": "Provenance des assets" },
       "url": { "en": "EN-Create-Asset-Provenance", "fr": "FR-Creer-Provenance-Des-Assets" },
-      "state": "planned",
-      "sources": ["tools/provenance.ts"],
+      "state": "ready",
+      "versions": { "appliesFrom": "4.2.5" },
+      "sources": [
+        "tools/provenance.ts",
+        "tools/provenance-files.ts",
+        "src/engine/tools/provenance.ts",
+        "tools/validate.ts",
+        "tools/dist.ts",
+        "tests/provenance.test.ts",
+        "cli/quest-n-click.mjs"
+      ],
       "replaces": ["docs/en/TOOLS.md#asset-provenance", "docs/fr/TOOLS.md#provenance-des-assets"],
-      "questions": { "en": [], "fr": [] },
-      "aliases": { "en": [], "fr": [] },
-      "identifiers": [],
-      "related": [],
-      "prerequisites": [],
+      "questions": {
+        "en": [
+          "How do I say where my game's assets come from?",
+          "Why does my release fail on a placeholder asset?",
+          "Can I sell my game with these assets?"
+        ],
+        "fr": [
+          "Comment dire d'où viennent les assets de mon jeu ?",
+          "Pourquoi ma release échoue sur un asset placeholder ?",
+          "Puis-je vendre mon jeu avec ces assets ?"
+        ]
+      },
+      "aliases": {
+        "en": ["TOOLS", "provenance.json", "provenance lock", "asset licences", "credits"],
+        "fr": ["TOOLS", "provenance.json", "verrou de provenance", "licences des assets", "crédits"]
+      },
+      "keywords": {
+        "en": ["releaseExceptions", "licences.allow", "placeholder", "commercial release", "dist/licenses"],
+        "fr": ["releaseExceptions", "licences.allow", "placeholder", "release commerciale", "dist/licenses"]
+      },
+      "identifiers": [
+        "npm run provenance",
+        "npm run verify:commercial",
+        "npm run verify:dist",
+        "npm run verify:release"
+      ],
+      "related": ["create.build-release", "create.images", "contribute.licences"],
+      "prerequisites": ["create.images"],
+      "claims": [
+        {
+          "id": "provenance-lock-detects-change",
+          "test": "tests/provenance.test.ts › the provenance lock › records each file with its claims, and finds what changed since"
+        }
+      ],
       "owner": "@wanoo"
     },
     {
@@ -1876,8 +2432,17 @@
       "context": ["engine-repo", "created-project"],
       "title": { "en": "The storyboard, source of truth", "fr": "Le storyboard, source de vérité" },
       "url": { "en": "EN-Create-Storyboard", "fr": "FR-Creer-Storyboard" },
-      "state": "planned",
-      "sources": [],
+      "state": "ready",
+      "versions": { "appliesFrom": "4.2.5" },
+      "sources": [
+        "tools/pages/storyboard-data.ts",
+        "tools/pages/storyboard-schema.md",
+        "src/engine/tools/coverage.ts",
+        "src/studio/storyboard*.ts",
+        "studio-server/src/ops/core.ts",
+        "tests/coverage.test.ts",
+        "tests/diagnostics-parity.test.ts"
+      ],
       "replaces": [
         "docs/en/DESIGN.md#2-story-first",
         "docs/en/DESIGN.md#write-it-as-the-storyboard",
@@ -1886,11 +2451,39 @@
         "docs/fr/DESIGN.md#lécrire-comme-un-storyboard",
         "docs/fr/WORKFLOW.md#1-lhistoire-dabord-sous-forme-de-données"
       ],
-      "questions": { "en": [], "fr": [] },
-      "aliases": { "en": [], "fr": [] },
-      "identifiers": [],
-      "related": [],
+      "questions": {
+        "en": [
+          "How do I keep the storyboard and the game in step?",
+          "Why does the Studio say a storyboard panel is not in the game?"
+        ],
+        "fr": [
+          "Comment garder le storyboard et le jeu alignés ?",
+          "Pourquoi le Studio dit qu'une case du storyboard n'est pas dans le jeu ?"
+        ]
+      },
+      "aliases": {
+        "en": ["WORKFLOW", "DESIGN", "storyboard.json", "script", "storyboard coverage"],
+        "fr": ["WORKFLOW", "DESIGN", "storyboard.json", "script", "couverture du storyboard"]
+      },
+      "keywords": {
+        "en": ["source of truth", "divergence", "panel", "board"],
+        "fr": ["source de vérité", "divergence", "case", "tableau"]
+      },
+      "identifiers": ["get_storyboard", "set_storyboard", "storyboard_coverage"],
+      "related": [
+        "create.review-pages",
+        "create.puzzle-design",
+        "studio.storyboard",
+        "team.write-refused-423",
+        "team.write-refused-409"
+      ],
       "prerequisites": [],
+      "claims": [
+        {
+          "id": "storyboard-coverage-reports-missing",
+          "test": "tests/coverage.test.ts › the sample game's storyboard › reports what is not there"
+        }
+      ],
       "owner": "@wanoo"
     },
     {
@@ -1901,8 +2494,9 @@
       "context": ["engine-repo", "created-project"],
       "title": { "en": "Puzzle design", "fr": "Concevoir des énigmes" },
       "url": { "en": "EN-Create-Puzzle-Design", "fr": "FR-Creer-Concevoir-Des-Enigmes" },
-      "state": "planned",
-      "sources": [],
+      "state": "ready",
+      "versions": { "appliesFrom": "4.2.5" },
+      "sources": ["games/demo/*.ts", "games/demo/rooms/*.ts", "src/engine/minigames/meta.ts"],
       "replaces": [
         "docs/en/DESIGN.md#designing-a-good-scumm-style-game-with-this-engine",
         "docs/en/DESIGN.md#1-what-makes-these-games-work",
@@ -1935,10 +2529,26 @@
         "docs/fr/DESIGN.md#8-la-carte",
         "docs/fr/DESIGN.md#10-le-son"
       ],
-      "questions": { "en": [], "fr": [] },
-      "aliases": { "en": [], "fr": [] },
-      "identifiers": [],
-      "related": [],
+      "questions": {
+        "en": [],
+        "fr": []
+      },
+      "aliases": {
+        "en": ["DESIGN", "game design", "SCUMM design", "hints", "fallbacks"],
+        "fr": ["DESIGN", "conception de jeu", "conception SCUMM", "indices", "répliques de repli"]
+      },
+      "keywords": {
+        "en": ["no dead ends", "aha", "puzzle graph", "repeated looks", "The Pantry Key"],
+        "fr": ["pas d'impasse", "eurêka", "graphe de puzzles", "regards répétés", "The Pantry Key"]
+      },
+      "identifiers": ["puzzle_graph"],
+      "related": [
+        "create.storyboard",
+        "create.solver-proofs",
+        "create.classics",
+        "create.minigames",
+        "create.playtests"
+      ],
       "prerequisites": [],
       "owner": "@wanoo"
     },
@@ -1950,8 +2560,15 @@
       "context": ["engine-repo", "created-project"],
       "title": { "en": "Classic mechanics", "fr": "Mécaniques classiques" },
       "url": { "en": "EN-Create-Classic-Mechanics", "fr": "FR-Creer-Mecaniques-Classiques" },
-      "state": "planned",
-      "sources": ["tests/classics.test.ts"],
+      "state": "ready",
+      "versions": { "appliesFrom": "4.3.0" },
+      "sources": [
+        "tests/classics.test.ts",
+        "tests/fixtures/classics.ts",
+        "tests/hero-choice.test.ts",
+        "src/engine/core/custom.ts",
+        "tools/solve.ts"
+      ],
       "replaces": [
         "docs/en/CLASSICS.md#the-classics-famous-adventure-mechanics-written-with-this-engine",
         "docs/en/CLASSICS.md#monkey-island",
@@ -2016,11 +2633,54 @@
         "docs/fr/CLASSICS.md#les-bagarres-les-mélodies-de-loom--custom",
         "docs/fr/CLASSICS.md#ce-qui-reste-hors-champ"
       ],
-      "questions": { "en": [], "fr": [] },
-      "aliases": { "en": [], "fr": [] },
+      "questions": {
+        "en": [],
+        "fr": []
+      },
+      "aliases": {
+        "en": ["CLASSICS", "LucasArts mechanics", "Monkey Island puzzles", "insult sword fighting"],
+        "fr": ["CLASSICS", "mécaniques LucasArts", "énigmes de Monkey Island", "combat d'insultes"]
+      },
+      "keywords": {
+        "en": [
+          "verdict",
+          "native",
+          "feasible",
+          "custom",
+          "out of scope",
+          "Day of the Tentacle",
+          "Maniac Mansion",
+          "Sam & Max",
+          "Loom"
+        ],
+        "fr": [
+          "verdict",
+          "natif",
+          "faisable",
+          "custom",
+          "hors champ",
+          "Day of the Tentacle",
+          "Maniac Mansion",
+          "Sam & Max",
+          "Loom"
+        ]
+      },
       "identifiers": [],
-      "related": [],
+      "related": [
+        "create.heroes",
+        "create.custom-minigame",
+        "create.scripts-events",
+        "create.moving-characters",
+        "create.chapters",
+        "index.not-supported"
+      ],
       "prerequisites": [],
+      "claims": [
+        {
+          "id": "classics-insult-duel",
+          "test": "tests/classics.test.ts › insult sword fighting › is a topic whose choices depend on what the thug taught"
+        }
+      ],
       "owner": "@wanoo"
     },
     {
@@ -2031,8 +2691,9 @@
       "context": ["engine-repo", "created-project"],
       "title": { "en": "Review pages", "fr": "Pages de relecture" },
       "url": { "en": "EN-Create-Review-Pages", "fr": "FR-Creer-Pages-De-Relecture" },
-      "state": "planned",
-      "sources": ["tools/pages/*.ts"],
+      "state": "ready",
+      "versions": { "appliesFrom": "4.2.5" },
+      "sources": ["tools/pages/*.ts", "tools/pages/storyboard-schema.md", "tests/pages.test.ts"],
       "replaces": [
         "docs/en/PAGES.md#review-pages-validate-from-a-phone",
         "docs/en/PAGES.md#the-three-pages",
@@ -2051,11 +2712,34 @@
         "docs/fr/PAGES.md#importer-des-layouts",
         "docs/fr/WORKFLOW.md#2-valider-le-storyboard-sur-une-page"
       ],
-      "questions": { "en": [], "fr": [] },
-      "aliases": { "en": [], "fr": [] },
-      "identifiers": [],
-      "related": [],
+      "questions": {
+        "en": [],
+        "fr": []
+      },
+      "aliases": {
+        "en": ["PAGES", "review page", "placement page", "artifact pages", "sprite review"],
+        "fr": ["PAGES", "page de relecture", "page de placement", "pages artifact", "relecture des sprites"]
+      },
+      "keywords": {
+        "en": ["ArtifactData", "dist-pages", "annotations", "world graph", "puzzle graph"],
+        "fr": ["ArtifactData", "dist-pages", "annotations", "graphe du monde", "graphe des puzzles"]
+      },
+      "identifiers": [
+        "npm run page:storyboard",
+        "npm run page:review",
+        "npm run page:placement",
+        "npm run page:world",
+        "npm run page:puzzles",
+        "npm run import-layout"
+      ],
+      "related": ["create.storyboard", "create.images", "studio.placement", "create.working-with-ai"],
       "prerequisites": [],
+      "claims": [
+        {
+          "id": "import-layout-merges",
+          "test": "tests/pages.test.ts › import-layout › replaces exported entities, keeps the others and the keys not exported"
+        }
+      ],
       "owner": "@wanoo"
     },
     {
