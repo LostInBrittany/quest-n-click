@@ -31,7 +31,7 @@ export const game = defineGame({
   start: { room: 'start', inventory: ['note'] },
   checkpoints: { ...startCp },
   audio: { music: {}, sfx: {} },
-  // Interface icons and engine sounds come from the game (see docs/en/CONTENT_GUIDE.md, "skin").
+  // Interface icons and engine sounds come from the game (see wiki/en/create.skin-fonts.md#skin).
   skin: {
     icons: { map: 'starter/ui/map', pause: 'starter/ui/pause', music: 'starter/ui/music', spark: 'starter/ui/spark', pin: 'starter/ui/pin', news: 'starter/ui/news', plane: 'starter/ui/plane', car: 'starter/ui/car', confetti: ['starter/ui/confetti1', 'starter/ui/confetti2'] },
     sounds: {},

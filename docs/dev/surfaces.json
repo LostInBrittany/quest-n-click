@@ -197,7 +197,8 @@
     "pack/{proj}-studio-server-{pkg}.tgz"
    ],
    "config": [
-    "docs/en/STUDIO-SERVER.md",
+    "wiki/en/team.*.md",
+    "wiki/en/clever.*.md",
     "ops/studio/**",
     "scripts/locks/quest-n-click-studio-server.json"
    ],
@@ -211,7 +212,8 @@
     "pack/{proj}-studio-server-{pkg}.tgz"
    ],
    "config": [
-    "docs/en/STUDIO-SERVER.md",
+    "wiki/en/team.*.md",
+    "wiki/en/clever.*.md",
     "ops/studio/**"
    ],
    "exclusions": [],
@@ -226,7 +228,8 @@
     "pack/{proj}-studio-server-{pkg}.tgz"
    ],
    "config": [
-    "docs/en/STUDIO-SERVER.md",
+    "wiki/en/team.*.md",
+    "wiki/en/clever.*.md",
     "ops/studio/**"
    ],
    "exclusions": [],
@@ -241,7 +244,8 @@
     "pack/{proj}-studio-server-{pkg}.tgz"
    ],
    "config": [
-    "docs/en/STUDIO-SERVER.md",
+    "wiki/en/team.*.md",
+    "wiki/en/clever.*.md",
     "ops/studio/**"
    ],
    "exclusions": [],
@@ -256,8 +260,9 @@
     "pack/{proj}-studio-server-{pkg}.tgz"
    ],
    "config": [
-    "docs/en/STUDIO-SERVER.md",
-    "docs/en/MCP.md",
+    "wiki/en/team.*.md",
+    "wiki/en/clever.*.md",
+    "wiki/en/studio.mcp-setup.md",
     "ops/studio/**"
    ],
    "exclusions": [],
@@ -272,7 +277,8 @@
     "pack/{proj}-studio-server-{pkg}.tgz"
    ],
    "config": [
-    "docs/en/STUDIO-SERVER.md",
+    "wiki/en/team.*.md",
+    "wiki/en/clever.*.md",
     "ops/studio/**"
    ],
    "exclusions": [],
@@ -287,7 +293,7 @@
    ],
    "config": [
     "games/heroes/**",
-    "docs/en/CONTENT_GUIDE.md"
+    "wiki/en/create.heroes.md"
    ],
    "exclusions": [],
    "dependencies": []
@@ -298,8 +304,8 @@
     "pack/{proj}-{pkg}.tgz"
    ],
    "config": [
-    "docs/en/STUDIO.md",
-    "docs/en/CONTENT_GUIDE.md"
+    "wiki/en/studio.voices-matrix.md",
+    "wiki/en/create.heroes.md"
    ],
    "exclusions": [],
    "dependencies": []

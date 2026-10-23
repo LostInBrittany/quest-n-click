@@ -1,6 +1,6 @@
 // The Studio: tabs Rooms / Storyboard / Check / Notes over the game on disk (/__studio/ on the dev server), or over a
 // build-time snapshot with the edits kept in this browser (demo mode: studio.html in a STUDIO=1 build, e.g. on GitHub
-// Pages; see docs/en/STUDIO.md, "Demo mode").
+// Pages; see wiki/en/studio.demo-mode.md#demo-mode).
 import { VoicesTab } from './voices';
 import { MusicTab } from './music';
 import { undoButtons } from './structured';

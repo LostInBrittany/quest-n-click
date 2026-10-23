@@ -10,7 +10,10 @@
 // a new inventory into the matrix: what a person wrote is kept, a new section is added, a section whose text changed or
 // that disappeared is flagged. The same run writes `wiki/legacy.json` (the ordered destinations that rebuild each of the
 // eight pages `read_doc {name}` serves, §4.3.2) and the manifest's `replaces`, so neither can drift from the matrix.
-// `wiki -- check` refuses a matrix out of step with `docs/`: that is the freeze of §4.2.
+// `wiki -- check` refused a matrix out of step with `docs/`: that was the freeze of §4.2, until the switch-over (C2).
+// Since C2 the files of `docs/en` and `docs/fr` are the transition pages `wiki -- transition` writes from this matrix,
+// and the matrix is final: the check requires each of them to be the page the matrix makes, holding every anchor of its
+// rows (§4.5.7, step 4), and `coverage` no longer merges an inventory.
 import { createHash } from 'node:crypto';
 import { existsSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { posix, resolve } from 'node:path';
@@ -20,6 +23,7 @@ import { DOCS } from '../studio/tools';
 import { formatJson } from './json';
 import { issuesOf, type Manifest, PAGE_ID } from './manifest';
 import { mapLine, mapLines, parsePage } from './page';
+import { TRANSITION_LINE, transitionPages } from './transition';
 
 const COVERAGE_FORMAT = 'quest-n-click-docs-coverage';
 const LEGACY_FORMAT = 'quest-n-click-docs-legacy';
@@ -39,6 +43,48 @@ function inventoryFiles(root = ROOT): string[] {
       .map((f) => `docs/${lang}/${f}`);
   };
   return [...docs('en'), ...docs('fr'), ...ROOT_FILES.filter((f) => existsSync(resolve(root, f)))];
+}
+
+/**
+ * Whether the switch-over happened (C2): an old page of `docs/en` or `docs/fr` is a transition page. From then on the
+ * matrix is final.
+ */
+export function switchedOver(root = ROOT): boolean {
+  return inventoryFiles(root)
+    .filter((f) => f.startsWith('docs/'))
+    .some((f) => TRANSITION_LINE.test(readFileSync(resolve(root, f), 'utf8')));
+}
+
+/**
+ * After the switch-over: each old page of `docs/en|fr` the matrix holds is the transition page it makes (for the
+ * version its first line names; tests/wiki-transition.test.ts checks that version is package.json's), and keeps every
+ * anchor of its rows, the headings' and the explicit ones (§4.5.7, step 4).
+ */
+export function transitionProblems(coverage: Coverage, manifest: Manifest, root = ROOT): string[] {
+  const out: string[] = [];
+  const rows = coverage.rows.filter((r) => r.flag !== 'removed' && /^docs\/(en|fr)\/[^/]+\.md$/.test(r.file));
+  const versions = new Map<string, Map<string, string>>();
+  for (const file of [...new Set(rows.map((r) => r.file))]) {
+    const path = resolve(root, file);
+    if (!existsSync(path)) {
+      out.push(`${file}: missing; its transition page keeps the old anchors: run \`npm run wiki -- transition\``);
+      continue;
+    }
+    const text = readFileSync(path, 'utf8');
+    const version = TRANSITION_LINE.exec(text)?.[1];
+    if (!version) {
+      out.push(`${file}: not a transition page (docs/ moved to wiki/ at 4.5.0): run \`npm run wiki -- transition\``);
+      continue;
+    }
+    if (!versions.has(version)) versions.set(version, transitionPages(coverage, manifest, version));
+    if (versions.get(version)!.get(file) !== text)
+      out.push(`${file}: not the transition page the matrix makes: run \`npm run wiki -- transition\``);
+    const anchors = new Set(inventoryOf(file, text).anchors);
+    for (const r of rows.filter((x) => x.file === file))
+      for (const a of [...(r.level ? [r.anchor] : []), ...r.anchors])
+        if (!anchors.has(a)) out.push(`${file}: the old anchor #${a} is gone (${r.key})`);
+  }
+  return out;
 }
 
 // ——— Anchors as GitHub computes them ———
@@ -842,8 +888,9 @@ export interface CoverageCheckOptions {
 
 /**
  * The matrix at the work level (§4.1): its schema; destinations that are manifest pages (and, on a written page, one
- * of its sections); a decision for every planned row, a reason for every drop; every code block of the pages held by a
- * row; the matrix in step with the pages (otherwise `docs/` changed behind its back: the freeze); `legacy.json` and the
+ * of its sections); a decision for every planned row, a reason for every drop; before the switch-over, every code block
+ * of the pages held by a row and the matrix in step with the pages (otherwise `docs/` changed behind its back: the
+ * freeze), after it, the transition pages (`transitionProblems`); `legacy.json` and the
  * manifest's `replaces` as the matrix makes them. Rows without a decision, flagged rows and incoming anchored links
  * that resolve to nothing are listed, not refused.
  */
@@ -920,17 +967,20 @@ export function checkCoverage({ wikiDir, root, manifest, tracked }: CoverageChec
     );
 
   const files = inventory(root);
-  const held = new Set(coverage.rows.flatMap((r) => r.codeBlocks.map((b) => b.hash)));
-  for (const s of files.flatMap((f) => f.sections))
-    for (const b of s.codeBlocks)
-      if (!held.has(b.hash))
-        report.errors.push(`coverage.json: the code block of ${s.file} line ${b.line} is in no row`);
-  const stale = staleRows(coverage, files);
-  if (stale.length) {
-    for (const s of stale) report.errors.push(`coverage.json is out of step with the pages: ${s}`);
-    report.errors.push(
-      `docs/ is frozen (PLAN-4.5-WIKI §4.2): run \`${COVERAGE_COMMAND}\`, then carry the change into the wiki pages`,
-    );
+  if (switchedOver(root)) report.errors.push(...transitionProblems(coverage, manifest, root));
+  else {
+    const held = new Set(coverage.rows.flatMap((r) => r.codeBlocks.map((b) => b.hash)));
+    for (const s of files.flatMap((f) => f.sections))
+      for (const b of s.codeBlocks)
+        if (!held.has(b.hash))
+          report.errors.push(`coverage.json: the code block of ${s.file} line ${b.line} is in no row`);
+    const stale = staleRows(coverage, files);
+    if (stale.length) {
+      for (const s of stale) report.errors.push(`coverage.json is out of step with the pages: ${s}`);
+      report.errors.push(
+        `docs/ is frozen (PLAN-4.5-WIKI §4.2): run \`${COVERAGE_COMMAND}\`, then carry the change into the wiki pages`,
+      );
+    }
   }
   const legacy = legacyPath(wikiDir);
   if (!existsSync(legacy) || readFileSync(legacy, 'utf8') !== formatJson(legacyOf(coverage)))

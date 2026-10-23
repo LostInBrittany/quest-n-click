@@ -1,4 +1,4 @@
-// Studio core: every operation of the Studio API (docs/en/STUDIO.md) as a plain function over a game folder.
+// Studio core: every operation of the Studio API (wiki/en/studio.api.md) as a plain function over a game folder.
 // Used by the Vite plugin (tools/studio/plugin.ts), the tests and the MCP server. Never exits the process: errors
 // are thrown as StudioError (with an HTTP-like status), results are plain JSON.
 import { AsyncLocalStorage } from 'node:async_hooks';

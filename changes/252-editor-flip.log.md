@@ -18,4 +18,10 @@
 - Checked in Chromium on the demo (`?edit=house`): Biscuit mirrored and back, Grandma's note (`facing: 'right'`), the
   chair's two checkboxes, none on a hotspot. Tests: `tests/editor-mirror.test.ts`.
 
-→ next: review.
+- Review and integration (Claude, for the maintainer): tests for `mirrorControls`' wiring (nothing on a hotspot, the
+  state shown, the note, the script's facing dropped, the redraw) and for the mirrors through `roundLayout`. Main
+  moved the docs to the wiki (#254): `docs/*/TOOLS.md` are transition pages now, so the mirror text went to
+  `wiki/en|fr/studio.placement.md` (`#placement-editor`, `#layout-fields`) and the actor's `flip` to
+  `create.geometry.md#layout-file`, both languages acknowledged.
+
+→ next: merge.

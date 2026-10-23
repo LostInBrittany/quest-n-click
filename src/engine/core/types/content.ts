@@ -299,7 +299,7 @@ export interface MouthSet {
 export interface CharacterDef {
   name: string;
   /**
-   * What the character looks like, in words, for the art prompts (`npm run prompts`, docs/en/PROMPTS.md): age, hair,
+   * What the character looks like, in words, for the art prompts (`npm run prompts`, wiki/en/create.images.md): age, hair,
    * glasses, build, outfit, signature accessory, personality. Not shown in the game. The more specific, the more
    * consistent the character stays across sheets generated in different conversations.
    */

@@ -20,7 +20,12 @@ const TRANSITION_MARKER = (version: string) =>
 export const TRANSITION_LINE = /^<!-- quest-n-click transition page: version (\S+);/;
 
 /** A heading's text written back so it renders as it did: Markdown's punctuation escaped, the slug unchanged. */
-const escapeHeading = (text: string) => text.replace(/[\\`*_[\]<>#|!()&~{}^]/g, (c) => `\\${c}`);
+const escapeHeading = (text: string) =>
+  text
+    .replace(/[\\`*_[\]<>#|!()&~{}^]/g, (c) => `\\${c}`)
+    // A space at an end (an old heading that ended on an HTML tag, `on <date>`) is kept by an empty comment after it,
+    // which renders nothing: Markdown trims a heading, and the slug would lose its last `-`.
+    .replace(/\s+$/, (m) => `${m}<!-- -->`);
 
 const WORDS = {
   en: {

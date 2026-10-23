@@ -847,9 +847,9 @@ describe('bounded, validated, one per journal (4.1.8)', () => {
     expect(zero.bridge.limits).toMatchObject({ resignedCache: 0, streamPage: 7, pendingPairings: 1000 });
   });
 
-  it('UPGRADING §39 says, in English and in French, that the limits are checked and which take at least 1', async () => {
-    // A host upgrading to 4.3.0 learns there that a limit its Bridge took before may now stop it (every tenant of a
-    // shared one); the limits named there as taking at least 1 are exactly those checkLimits refuses at 0.
+  it('the 4.3.0 upgrade notes say, in English and in French, that the limits are checked and which take at least 1', async () => {
+    // A host upgrading to 4.3.0 learns there (the wiki's `install.upgrade-notes-4-3#from-4-2-5-to-4-3-0`, UPGRADING
+    // §39 until 4.5.0) that a limit its Bridge took before may now stop it (every tenant of a shared one); the limits named there as taking at least 1 are exactly those checkLimits refuses at 0.
     const { checkLimits, DEFAULT_LIMITS } = await import('../bridge/src/config');
     const atLeastOne = Object.keys(DEFAULT_LIMITS).filter((k) => {
       try {
@@ -861,8 +861,11 @@ describe('bounded, validated, one per journal (4.1.8)', () => {
     });
     expect(atLeastOne.sort()).toEqual(['bodyBytes', 'streamBufferBytes', 'streamPage']);
     for (const lang of ['en', 'fr']) {
-      const doc = readFileSync(`docs/${lang}/UPGRADING.md`, 'utf8');
-      const s39 = doc.slice(doc.indexOf('\n## 39.'), doc.indexOf('\n## 40.') > 0 ? doc.indexOf('\n## 40.') : undefined);
+      const doc = readFileSync(`wiki/${lang}/install.upgrade-notes-4-3.md`, 'utf8');
+      const at = doc.indexOf('<a name="from-4-2-5-to-4-3-0">');
+      expect(at, lang).toBeGreaterThanOrEqual(0);
+      const next = doc.indexOf('<a name=', at + 1);
+      const s39 = doc.slice(at, next > 0 ? next : undefined);
       const para = s39.split('\n\n').find((p) => p.includes('`limits`') && p.includes('config.json')) ?? '';
       expect(para, lang).toMatch(/DEFAULT_LIMITS/);
       for (const k of atLeastOne) expect(para, `${lang}: ${k}`).toContain(`\`${k}\``);

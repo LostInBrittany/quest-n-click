@@ -225,6 +225,34 @@
         "definition": "Le jeu statique produit depuis les sources (npm run build), prêt à héberger ; sur un Studio d'équipe, un build peut être publié depuis une révision."
       },
       "pages": ["create.build-release", "team.builds"]
+    },
+    {
+      "id": "owner",
+      "en": {
+        "term": "owner",
+        "synonyms": ["Studio owner", "last owner"],
+        "definition": "On a team Studio, the role that manages members and invitations; the last owner can be neither removed nor demoted."
+      },
+      "fr": {
+        "term": "owner",
+        "synonyms": ["propriétaire", "dernier owner"],
+        "definition": "Sur un Studio d'équipe, le rôle qui gère les membres et les invitations ; le dernier owner ne peut être ni retiré ni rétrogradé."
+      },
+      "pages": ["team.roles", "clever.admin-recovery"]
+    },
+    {
+      "id": "stem",
+      "en": {
+        "term": "stem",
+        "synonyms": ["stems", "music stem"],
+        "definition": "One part of a piece of music (melody, harmony, bass, drums) in its own file; the music director plays a score's stems together and changes the mix with the game's state."
+      },
+      "fr": {
+        "term": "stem",
+        "synonyms": ["piste", "piste séparée"],
+        "definition": "Une partie d'un morceau (mélodie, harmonie, basse, batterie) dans son propre fichier ; le directeur musical joue les stems d'une partition ensemble et change le mix selon l'état du jeu."
+      },
+      "pages": ["create.music", "studio.music"]
     }
   ]
 }

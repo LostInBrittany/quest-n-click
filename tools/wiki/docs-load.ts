@@ -2,8 +2,9 @@
 // run time"; ADR 0030). An installed package carries a bundle, `<package>/docs-bundle/` (written by `wiki -- bundle`
 // when scripts/pack.mjs packs the engine): the `ready` pages, the index, and `legacy/<NAME>.md`, the eight historical
 // pages `read_doc {name}` serves. The engine's repository has no bundle: the same loader reads `wiki/` directly, the
-// `draft` and `ready` pages, and says it is a repository preview; `read_doc {name}` reads `docs/en/<NAME>.md`
-// there, unchanged until the switch-over (C2). A package never reads `docs/en`, and the new tools never read it.
+// `draft` and `ready` pages, and says it is a repository preview. Since the switch-over (C2), `read_doc {name}` serves
+// the concatenation `wiki/legacy.json` orders (`legacyConcatenation`, tools/wiki/docs.ts) in both: built from `wiki/`
+// in the repository, written into the bundle as `legacy/<NAME>.md` by `wiki -- bundle`. Nothing reads `docs/en` any more.
 import { execFileSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { existsSync, readFileSync } from 'node:fs';
@@ -16,6 +17,8 @@ import {
   formatProblem,
   INDEX_FORMAT,
   type IndexPage,
+  legacyBudget,
+  legacyConcatenation,
   type Provenance,
   splitSections,
 } from './docs';
@@ -258,12 +261,19 @@ export function resolveDocs(root: string): DocsSet {
 }
 
 /**
- * One of the eight historical pages, `read_doc {name}`: the bundle's exact copy in a package, `docs/en/<NAME>.md` in
- * the repository (unchanged until C2).
+ * One of the eight historical pages of a set (§4.3.2): the concatenation of its English pages in `wiki/legacy.json`'s
+ * order, within its bound. The repository's `read_doc {name}`, and the demo snapshot's content guide.
+ */
+export const legacyOfSet = (set: DocsSet, name: string): string =>
+  legacyConcatenation(set.index.legacy[name] ?? [], (id) => set.pages[`en/${id}`], legacyBudget(name));
+
+/**
+ * One of the eight historical pages, `read_doc {name}`: the bundle's `legacy/<NAME>.md` in a package, the
+ * concatenation built from `wiki/` in the repository (its `draft` and `ready` pages, like the other tools there).
  */
 export function legacyDoc(root: string, name: string): string {
   const bundle = bundleOf(root);
-  if (!bundle) return readFileSync(join(root, 'docs', 'en', `${name}.md`), 'utf8');
+  if (!bundle) return legacyOfSet(repositoryDocs(root), name);
   const text = readBundle(bundle).texts.get(`legacy/${name}.md`);
   if (text === undefined) throw new Error(`${BUNDLE_DIR}/legacy/${name}.md is not in bundle-manifest.json`);
   return text;

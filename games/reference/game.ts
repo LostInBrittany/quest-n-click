@@ -71,7 +71,7 @@ export const game = defineGame({
     board: { title: 'Hang the festival board', done: 'board_hung' },
     radio: { title: 'Make Grandma dance', done: 'radio_on', optional: true },
   },
-  // Remix (4.1.15, docs/en/REMIX.md): where the seller starts and which round he walks, whether Lou hands the board
+  // Remix (4.1.15, wiki/en/create.remix.md): where the seller starts and which round he walks, whether Lou hands the board
   // before or after the lights, the festival password and its riddle, how Pixel greets the night. Every mode is a
   // catalogue (D25): 24 logical worlds, each validated and solved by `npm run verify:variants`. The daily challenge is
   // the same catalogue, its seed signed by the Bridge (the key below is the reference's published TEST key: it shows
@@ -109,7 +109,7 @@ export const game = defineGame({
     constraints: [],
     daily: { kid: 'reference-daily-test', publicKey: 'lbigQxp3ncZ_4aScu3-8hXDpy44WB55ZJ0yMy8BkE1o', mode: 'daily' },
   },
-  // Speedrun categories (4.1.14, docs/en/SPEEDRUN.md): content only. Any% is ranked on the logical time; No Hints on
+  // Speedrun categories (4.1.14, wiki/en/create.speedrun.md): content only. Any% is ranked on the logical time; No Hints on
   // the active time (the cutscenes aside), without a hint, a save or a load; Real Time on the wall clock (unranked
   // without a witness). The splits follow the objectives, then the ending.
   speedrun: {

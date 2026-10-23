@@ -1,132 +1,151 @@
-// The readers of the documentation (4.5.0 "Wiki", docs/dev/PLAN-4.5-WIKI.md §4.3.1, phase A4): every program and
+// The readers of the documentation (4.5.0 "Wiki", docs/dev/PLAN-4.5-WIKI.md §4.3.1 and §4.5.7): every program and
 // test of the repository that reads the user documentation's files, `docs/en`, `docs/fr`, `docs/img` or `wiki/`, is
-// declared here with its migration phase. `A4 active`: it reads the wiki (or the bundle, or runs its tools) and stays
-// as it is. `C2 switch`: it reads `docs/` and is repointed by the switch-over pull request (C2), when `docs/en` and
-// `docs/fr` become transition pages. A new reader, or one that stopped reading, fails this test until it is declared
-// or removed. The patterns find a path written in code beside a file read (comments and imports aside), literal or
-// built from a template (`docs/${lang}/…`, `join('docs', lang, …)`): a reader that builds its path some other way is
-// caught by review. `docs/dev` stays where it is (D50): its readers are not listed. Two more inventories, both
-// repointed at C2: the messages a person reads that cite a `docs/en|fr/…` page (an error, a hint, a usage line, a
-// docstring), and the data files that name such a page (`docs/dev/surfaces.json`'s pass surfaces, workflows, templates).
-// MCP's tools reach the documentation through tools/wiki/docs-load.ts only; the remote MCP and the Studio's pages read
-// no file (the Assistant's demo reads the snapshot).
+// declared here with what it reads. Since the switch-over (C2) the readers read the wiki (or the bundle, or run its
+// tools), `wiki`; a few still read `docs/en|fr` because those are the transition pages or the frozen inventory they
+// came from, `transition`. A new reader, or one that stopped reading, fails this test until it is declared or removed.
+// The patterns find a path written in code beside a file read (comments and imports aside), literal or built from a
+// template (`docs/${lang}/…`, `join('docs', lang, …)`): a reader that builds its path some other way is caught by
+// review. `docs/dev` stays where it is (D50): its readers are not listed. Two more guarantees of C2: no program's
+// message and no data file names a page of docs/en|fr|img any more (they name the wiki), and no ACTIVE file of the
+// repository cites `docs/en/…` or `docs/fr/…`: the historical records keep the paths they were written with (their
+// links land on the transition pages), and the exceptions below are versioned, each with its reason. MCP's tools reach
+// the documentation through tools/wiki/docs-load.ts only; the remote MCP and the Studio's pages read no file (the
+// Assistant's demo reads the snapshot).
 import { execFileSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 
-type Phase = 'A4 active' | 'C2 switch';
-const CONSUMERS: Record<string, { phase: Phase; reads: string }> = {
-  // The access contract (A4): MCP's read_doc, search_docs and list_docs, the demo snapshot, the package.
+type Reads = 'wiki' | 'transition';
+const CONSUMERS: Record<string, { phase: Reads; reads: string }> = {
+  // The access contract: MCP's read_doc, search_docs and list_docs, the demo snapshot, the package.
   'tools/wiki/docs-load.ts': {
-    phase: 'C2 switch',
-    reads: "wiki/ in the repository and a package's docs-bundle/; read_doc {name}'s eight pages in docs/en until C2",
+    phase: 'wiki',
+    reads: "wiki/ in the repository and a package's docs-bundle/; read_doc {name}'s eight pages rebuilt from them",
   },
-  'tools/wiki/bundle.ts': { phase: 'C2 switch', reads: 'the eight legacy pages of docs/en, copied exactly until C2' },
-  'tools/studio/snapshot.ts': { phase: 'A4 active', reads: "wiki/'s manifest, to embed the ready pages" },
-  'scripts/pack.mjs': { phase: 'A4 active', reads: 'runs `wiki -- bundle` into the prepared package' },
-  // The wiki's own tools (A2, A3).
-  'tools/wiki.ts': { phase: 'A4 active', reads: 'wiki/, the source of every output' },
-  'tools/wiki/coverage.ts': { phase: 'C2 switch', reads: 'docs/en and docs/fr, the inventory frozen by L2' },
-  'tools/ci-plan.ts': { phase: 'A4 active', reads: "wiki/manifest.json, the docs family's pages" },
-  // The generators and checks of the old pages.
-  'tools/api-doc.ts': {
-    phase: 'C2 switch',
-    reads: 'the generated block of docs/en|fr/API.md: generators move to wiki/',
+  'tools/studio/snapshot.ts': { phase: 'wiki', reads: "wiki/'s manifest, to embed the ready pages" },
+  'scripts/pack.mjs': { phase: 'wiki', reads: 'runs `wiki -- bundle` into the prepared package' },
+  // The wiki's own tools.
+  'tools/wiki.ts': { phase: 'wiki', reads: 'wiki/, the source of every output' },
+  'tools/wiki/coverage.ts': {
+    phase: 'transition',
+    reads: 'docs/en and docs/fr: the inventory frozen by L2, then the transition pages it checks',
   },
-  'tools/dsl-doc.ts': {
-    phase: 'C2 switch',
-    reads: 'the generated block of docs/en|fr/DSL.md: generators move to wiki/',
-  },
-  'tools/docs-truth.ts': { phase: 'C2 switch', reads: 'every page of docs/en and docs/fr' },
-  'tools/audit-assets.ts': { phase: 'C2 switch', reads: 'the images docs/ shows' },
-  'scripts/check-links.mjs': { phase: 'C2 switch', reads: "docs/'s links" },
-  'scripts/docs-screenshots.mjs': { phase: 'C2 switch', reads: 'writes docs/img/readme (wiki/images at C2)' },
+  'tools/ci-plan.ts': { phase: 'wiki', reads: "wiki/manifest.json, the docs family's pages" },
+  // The generators and checks of the documentation.
+  'tools/api-doc.ts': { phase: 'wiki', reads: 'the generated part of wiki/en|fr/engine.api.md' },
+  'tools/docs-truth.ts': { phase: 'wiki', reads: 'every page of wiki/en and wiki/fr' },
+  'tools/audit-assets.ts': { phase: 'wiki', reads: "docs/ and wiki/'s text, for the private origin's words" },
+  'scripts/check-links.mjs': { phase: 'wiki', reads: 'the external links of wiki/en, wiki/fr and docs/' },
+  'scripts/docs-screenshots.mjs': { phase: 'wiki', reads: "writes docs/img/readme, the READMEs' captures" },
   // The tests.
-  'tests/api-doc.test.ts': { phase: 'C2 switch', reads: 'docs/en|fr/API.md' },
-  'tests/api-surface.test.ts': { phase: 'C2 switch', reads: 'docs/en|fr/API.md' },
-  'tests/ci-plan.test.ts': { phase: 'A4 active', reads: 'paths only, for the plan' },
-  'tests/dsl-doc.test.ts': { phase: 'C2 switch', reads: 'docs/en|fr/DSL.md' },
-  'tests/bridge.test.ts': { phase: 'C2 switch', reads: 'docs/en|fr/UPGRADING.md' },
-  'tests/docs-links.test.ts': { phase: 'C2 switch', reads: 'every page of docs/en and docs/fr' },
-  'tests/docs-truth.test.ts': { phase: 'C2 switch', reads: 'docs/en|fr pages' },
-  'tests/propagation.test.ts': { phase: 'C2 switch', reads: 'docs/en|fr/DSL.md' },
-  'tests/scripts-documented.test.ts': { phase: 'C2 switch', reads: 'docs/en|fr/TOOLS.md' },
-  'tests/support-truth.test.ts': { phase: 'C2 switch', reads: 'docs/en|fr/SUPPORT.md' },
-  'tests/wiki-check.test.ts': { phase: 'A4 active', reads: 'the wiki fixtures and the build' },
+  'tests/api-doc.test.ts': { phase: 'wiki', reads: 'wiki/en|fr/engine.api.md and its identifiers' },
+  'tests/api-surface.test.ts': { phase: 'wiki', reads: 'wiki/en|fr/engine.api.md' },
+  'tests/ci-plan.test.ts': { phase: 'wiki', reads: 'paths only, for the plan' },
+  'tests/dsl-doc.test.ts': { phase: 'wiki', reads: 'wiki/en|fr/create.dsl.md and its identifiers' },
+  'tests/docs-links.test.ts': { phase: 'wiki', reads: 'every page of wiki/en|fr, and the transition pages' },
+  'tests/docs-truth.test.ts': {
+    phase: 'wiki',
+    reads: 'contribute.architecture, contribute.code-tour, the EN/FR pairs',
+  },
+  'tests/propagation.test.ts': { phase: 'wiki', reads: 'wiki/en|fr/create.dsl.md' },
+  'tests/scripts-documented.test.ts': { phase: 'wiki', reads: 'wiki/en|fr/reference.npm-scripts.md' },
+  'tests/support-truth.test.ts': { phase: 'wiki', reads: 'wiki/en|fr/reference.support-matrix.md' },
+  'tests/wiki-check.test.ts': { phase: 'wiki', reads: 'the wiki fixtures and the build' },
   'tests/field-carry.test.ts': {
-    phase: 'A4 active',
+    phase: 'wiki',
     reads:
       "the docs-beginner-reader pass's binding (wiki/en/** …), digested over a temporary copy, never the wiki itself",
   },
   'tests/wiki-acceptance.test.ts': {
-    phase: 'A4 active',
+    phase: 'wiki',
     reads: "wiki/acceptance/questions.json and wiki/'s pages through the loader, and the acceptance fixture",
   },
   'tests/wiki-archive.test.ts': {
-    phase: 'A4 active',
+    phase: 'wiki',
     reads: "the wiki fixture's archive in memory, and the repository wiki's archive built with a test report (A7)",
   },
   'tests/wiki-env.test.ts': {
-    phase: 'A4 active',
+    phase: 'wiki',
     reads:
       "wiki/data/env.json, the reference page it generates and the manifest's identifiers; a temporary copy of wiki/",
   },
-  'tests/wiki-publish.test.ts': {
-    phase: 'A4 active',
-    reads: "a copy of the wiki fixture under a test repository's wiki/",
+  'tests/wiki-generated.test.ts': {
+    phase: 'wiki',
+    reads:
+      "the generated reference pages, wiki/data/'s registers and the manifest's identifiers; a temporary copy of wiki/data",
   },
+  'tests/wiki-publish.test.ts': { phase: 'wiki', reads: "a copy of the wiki fixture under a test repository's wiki/" },
   'tests/contracts.test.ts': {
-    phase: 'C2 switch',
-    reads: "docs/en|fr/SUPPORT.md, which the status registry's quotes agree with",
+    phase: 'wiki',
+    reads: "wiki/en|fr/start.stability.md and reference.support-matrix.md, which the registry's quotes agree with",
   },
-  'tests/wiki-coverage.test.ts': { phase: 'C2 switch', reads: 'docs/en|fr, the frozen inventory' },
-  'tests/wiki-access.test.ts': { phase: 'C2 switch', reads: "docs/en's eight pages, against the bundle's copies" },
-  'tests/mcp-docs.test.ts': { phase: 'C2 switch', reads: "docs/en's eight pages, against read_doc {name}" },
+  'tests/wiki-coverage.test.ts': { phase: 'transition', reads: 'docs/en|fr: the inventory, now the transition pages' },
+  'tests/wiki-access.test.ts': { phase: 'wiki', reads: "the bundle's legacy pages and the repository's wiki/" },
+  'tests/mcp-docs.test.ts': { phase: 'wiki', reads: "wiki/'s matrix, against read_doc {name}'s concatenation" },
   'tests/wiki-publication.test.ts': {
-    phase: 'A4 active',
+    phase: 'wiki',
     reads: 'the wiki fixture, built into archives whose wiki is pushed to throwaway repositories',
   },
   'tests/wiki-transition.test.ts': {
-    phase: 'C2 switch',
-    reads: "docs/en|fr: a transition page's version against package.json's (none before C2)",
+    phase: 'transition',
+    reads: "docs/en|fr: each transition page's anchors, and its version against package.json's",
   },
 };
 
 const PATH =
   /['"`](?:\.\.?\/)*(?:docs\/(?:en|fr|img|\$\{)|docs['"`](?!\s*,\s*['"`]dev['"`])|wiki\/(?:en|fr|manifest|legacy|coverage|data|images)\b|wiki['"`])/;
 
-/** Programs whose messages or docstrings cite a page of docs/en|fr (C2: repoint the message to its wiki page). */
-const MESSAGES = [
-  'cli/quest-n-click.mjs',
-  'connectors/src/run.ts',
-  'scripts/new-game.mjs',
-  'scripts/pack.mjs',
-  'scripts/release-notes.mjs',
-  'src/studio/assistant.ts',
-  'src/studio/music.ts',
-  'src/studio/remix-tab.ts',
-  'tools/api-doc.ts',
-  'tools/assets.py',
-  'tools/audio.py',
-  'tools/audio/mdpipe/sfx.py',
-  'tools/check-alpha.py',
-  'tools/cut-sheet.py',
-  'tools/migrate.ts',
-  'tools/pick-bg.py',
-  'tools/provenance.ts',
-  'tools/release/ship.mjs',
-  'tools/validate.ts',
-];
-/** Data files that name a page of docs/en|fr|img (C2 switch: the surfaces change, ADR 0024; the rest repointed). */
-const DATA = [
-  '.github/ISSUE_TEMPLATE/feature.yml',
-  '.github/workflows/ci.yml',
-  '.github/workflows/prove.yml',
-  'bridge/dev/docker-compose.yml',
-  'docs/dev/surfaces.json',
-  'games/demo/audio/sfx.json',
-  'games/demo/provenance.json',
-  'games/reference/provenance.json',
+/**
+ * The files whose job is the old paths, allowed to cite `docs/en/…` or `docs/fr/…`, each with its reason (C2: every
+ * other ACTIVE file names the wiki). The transition pages themselves are excepted by their folder.
+ */
+const MECHANISM: Record<string, string> = {
+  'tests/docs-consumers.test.ts': 'this test, which names the old paths it looks for',
+  'tools/wiki/coverage.ts': 'the L2 inventory of the old pages and the check of their transition pages',
+  'tools/wiki/transition.ts': 'writes the transition pages',
+  'tools/wiki/docs.ts': 'names the 4.4.0 pages whose size bounds read_doc {name}',
+  'tools/wiki/manifest.ts': "a page's `replaces`: the old sections it takes over",
+  'wiki/coverage.json': 'the L2 matrix, one row per old section',
+  'wiki/manifest.json': "each page's `replaces`, from the matrix",
+  'wiki/acceptance/questions.json': 'the questions a reader with an old link asks',
+  'tests/wiki-coverage.test.ts': 'the matrix and its inventory',
+  'tests/wiki-transition.test.ts': 'the transition pages',
+  'tests/mcp-docs.test.ts': "read_doc {name}'s old headings, rows of the matrix",
+  'tests/changes.test.ts': 'a docs-only change needs no fragment (a path as data)',
+  'tests/ci-plan.test.ts': 'the docs family on a transition page (a path as data)',
+  'tests/fixtures/mcp/read_doc-4.4.0.json': "the 4.4.0 pages' sizes, recorded",
+  'tests/fixtures/wiki/coverage/README.md': 'the coverage fixture links to its own old pages',
+  'tests/fixtures/wiki/coverage/notes.yml': 'the coverage fixture names its own old pages',
+  'tests/fixtures/game-4.1/cast.ts': 'a 4.1 game as it was written, for the migration tests',
+  'tests/fixtures/game-4.1/game.ts': 'a 4.1 game as it was written, for the migration tests',
+  'tests/fixtures/game-4.1/index.ts': 'a 4.1 game as it was written, for the migration tests',
+};
+/** Wiki pages that name an old page as history (the old page, its section numbers, the 4.4.0 template). */
+const HISTORY_PAGES = [
+  'contribute.welcome',
+  'create.clever-static',
+  'create.principles',
+  'create.production-template',
+  'index.faq',
+  'install.upgrade-notes-4-1',
+  'install.upgrade-notes-4-2',
+  'install.upgrade-notes-4-3',
+  'install.upgrade-notes-4-4',
+  'install.upgrade-notes-v3',
+].flatMap((id) => [`wiki/en/${id}.md`, `wiki/fr/${id}.md`]);
+/**
+ * The historical records, preserved as written (§4.5.7): their links land on the transition pages. A pass sheet's
+ * template is active, the sheets are not.
+ */
+const HISTORICAL = [
+  /^CHANGELOG\.md$/,
+  /^docs\/dev\/(LOG|DECISIONS|PROGRAM-4\.1)\.md$/,
+  /^docs\/dev\/(adr|plans|threat-models|baselines)\//,
+  /^docs\/dev\/passes\/(?!TEMPLATE\.md$)/,
+  /^docs\/dev\/(PLAN|QUALIF|SPIKE|GO-NO-GO)-/,
+  /^docs\/dev\/acceptance\/A7-DEMONSTRATORS\.md$/,
+  // The 4.5.0 fragments, folded into the CHANGELOG and the LOG at the release: records of what each step did.
+  /^changes\/450-[a-z0-9-]+(\.log)?\.md$/,
 ];
 const CITE = /docs\/(?:en|fr)\/[A-Za-z_.-]+\.md/;
 const COMMENT = /^\s*(\/\/|\*|\/\*|#)/;
@@ -206,17 +225,41 @@ describe('the readers of the documentation (§4.3.1)', () => {
     expect(Object.keys(CONSUMERS).filter((f) => !found.has(f))).toEqual([]);
   });
 
-  it('lists the messages that cite a docs/en|fr page (C2: repoint the message)', () => {
-    expect(messages()).toEqual([...MESSAGES].sort());
+  it('finds no program message that cites a docs/en|fr page: they name the wiki since C2', () => {
+    expect(messages()).toEqual([]);
   });
 
-  it('lists the data files that name a docs/ page, surfaces.json among them (C2 switch)', () => {
-    expect(dataFiles()).toEqual([...DATA].sort());
+  it('finds no data file that names a docs/en|fr|img page (surfaces.json binds the wiki pages since C2)', () => {
+    expect(dataFiles()).toEqual([]);
   });
 
-  it('reaches docs/en through the loader only, among the MCP and Studio code', () => {
+  it('reaches the documentation through the loader only, among the MCP and Studio code', () => {
     for (const f of found.keys())
       if (/^(tools\/studio|tools\/mcp|src\/studio|studio-server)\//.test(f))
-        expect(CONSUMERS[f]?.phase, f).toBe('A4 active');
+        expect(CONSUMERS[f]?.phase, f).toBe('wiki');
+  });
+});
+
+describe('the active references (§4.5.7, C2)', () => {
+  /**
+   * A line holding a permalink at a commit or a tag (`blob/<ref>/docs/en/…`): a proof's source or the 4.4.0 fallback,
+   * never repointed, its label naming that file too.
+   */
+  const PERMALINK = /^.*blob\/[0-9a-zv.]+\/docs\/(en|fr)\/.*$/gm;
+  const citing = () =>
+    listed(['.'])
+      .filter((f) => !/^docs\/(en|fr)\//.test(f) && !/\.(png|webp|jpe?g|gif|mp3|ogg|wav|ttf|woff2?)$/.test(f))
+      .filter((f) => /docs\/(en|fr)\//.test((textOf(f) ?? '').replace(PERMALINK, '')));
+
+  it('cites no docs/en|fr page from an active file: the historical records and the versioned exceptions aside', () => {
+    const active = citing().filter(
+      (f) => !HISTORICAL.some((re) => re.test(f)) && !(f in MECHANISM) && !HISTORY_PAGES.includes(f),
+    );
+    expect(active, 'repoint it to wiki/<lang>/<id>.md (code) or its wiki URL (a message)').toEqual([]);
+  });
+
+  it('keeps no stale exception: each one still cites an old page', () => {
+    const found = new Set(citing());
+    expect([...Object.keys(MECHANISM), ...HISTORY_PAGES].filter((f) => !found.has(f))).toEqual([]);
   });
 });

@@ -8,12 +8,12 @@ bcrypt-pbkdf (BSD-3-Clause), safer-buffer (MIT) and tweetnacl (Unlicense).
 
 ## Sample game artwork (games/demo/art)
 Backgrounds, characters, objects and interface icons: generated for the project with an image model from written prompts
-(see docs/en/PROMPTS.md), then cut and keyed with the tools in this repository. CC BY 4.0, attribution "Wano".
+(see wiki/en/create.images.md), then cut and keyed with the tools in this repository. CC BY 4.0, attribution "Wano".
 The four human characters are cartoon caricatures used with the consent of the people they are based on; they are
 published under names that are not theirs.
 
 ## Music and sound effects (games/demo/audio)
-Rendered for the project with the Mega Drive audio pipeline in `tools/audio` (docs/en/AUDIO.md), which drives
+Rendered for the project with the Mega Drive audio pipeline in `tools/audio` (wiki/en/create.music.md), which drives
 [Furnace](https://github.com/tildearrow/furnace) (GPL-2.0, downloaded by `npm run audio -- setup`, not bundled).
 - Music: the oboe theme of *Swan Lake* (Pyotr Ilyich Tchaikovsky, 1876, public domain), its notes, harmony and
   arrangement written for the project (`audio/projects/swan-theme/compose.py`, then `spec.json`) and rendered for

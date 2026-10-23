@@ -11,6 +11,8 @@
 // French and English words and synonyms widen a query (« verrou » also looks for "lease"). Weights: a page's title or
 // one of its questions, then its aliases, keywords and identifiers, then a section's heading, then a section's body.
 // Under a confidence threshold the answer is an explicit empty result, never weak results dressed as relevant.
+// With a `context` filter, a section headed by that context's name answers for a page that spans several, and a status
+// code typed is a symptom of that context's service: a reference register ranks below its troubleshooting pages.
 import { appliesMarker, mapLines, type SectionVersions } from './page';
 
 export const INDEX_FORMAT = 'quest-n-click-docs-index';
@@ -177,14 +179,119 @@ export function splitSections(markdown: string): Section[] {
   return out;
 }
 
+/**
+ * The size in bytes of each of the eight historical pages at 4.4.0 (docs/en/<NAME>.md at c00b44fc, as
+ * tests/fixtures/mcp/read_doc-4.4.0.json records it). `read_doc {name}` stays within 1.5 times it (§4.3.2).
+ */
+export const LEGACY_BYTES_4_4_0: Readonly<Record<string, number>> = {
+  CONTENT_GUIDE: 68195,
+  ENGINE: 31143,
+  TOOLS: 59054,
+  STUDIO: 42276,
+  WORKFLOW: 4395,
+  AUDIO: 14345,
+  UPGRADING: 62223,
+  CLASSICS: 10850,
+};
+/** The bound of a legacy page: 1.5 times its 4.4.0 size (§4.3.2, to catch a bloat). */
+export const legacyBudget = (name: string): number | undefined =>
+  LEGACY_BYTES_4_4_0[name] === undefined ? undefined : Math.floor(1.5 * LEGACY_BYTES_4_4_0[name]);
+
+/** A section's anchor line, which only a page's own reader needs. */
+const ANCHOR_LINE = /^<a name="[^"]*"><\/a>\n+/gm;
+
+/**
+ * One of the eight historical pages `read_doc {name}` serves since the switch-over (C2, §4.3.2): the English wiki
+ * pages' sections in the legacy order of `wiki/legacy.json` (the order of the old page's sections), joined, their
+ * `<a name>` lines left out. An `id#section` gives that section; a bare `id` gives its whole page, lead included, but
+ * only the parts not given yet (dedup `page-covers-sections`); nothing is given twice. A page the set does not hold (a
+ * draft, in a package) is named as coming, never silently left out. `pageOf` is the English Markdown of a page, or
+ * undefined.
+ *
+ * Within `budget` bytes (1.5 times the 4.4.0 page, `legacyBudget`): the wiki's sections say more than the old pages
+ * did, so when the whole text is longer, the longest sections are given by their heading and first paragraph and the
+ * section read that gives the rest (`read_doc {"id": …, "section": …}`), one at a time from the longest, until the page
+ * fits; if that is not enough, the longest by their heading and that read alone. Every section's heading stays; no
+ * text is cut in the middle, and nothing is left without the read that gives it.
+ */
+export function legacyConcatenation(
+  order: readonly string[],
+  pageOf: (id: string) => string | undefined,
+  budget?: number,
+): string {
+  const parts: { text: string; shorter: string[] }[] = [];
+  const given = new Set<string>();
+  const sectionsOf = new Map<string, Section[] | undefined>();
+  const sections = (id: string) => {
+    if (!sectionsOf.has(id)) {
+      const text = pageOf(id);
+      sectionsOf.set(id, text === undefined ? undefined : splitSections(text.replace(/\r\n/g, '\n')));
+    }
+    return sectionsOf.get(id);
+  };
+  for (const d of order) {
+    const [id, section] = d.split('#') as [string, string | undefined];
+    const all = sections(id);
+    if (!all) {
+      if (!given.has(id)) parts.push({ text: `(${id}: coming in a later documentation)`, shorter: [] });
+      given.add(id);
+      continue;
+    }
+    for (const s of all) {
+      const key = `${id}#${s.id}`;
+      if ((section !== undefined && s.id !== section) || given.has(key)) continue;
+      given.add(key);
+      const text = s.text.replace(ANCHOR_LINE, '').trim();
+      parts.push({ text, shorter: shortSections(text, id, s.id) });
+    }
+  }
+  const size = () => Buffer.byteLength(parts.map((p) => p.text).join('\n\n')) + 1;
+  // Two rounds, each from the longest section: its heading and first paragraph, then its heading alone.
+  for (let round = 0; round < 2 && budget !== undefined && size() > budget; round++) {
+    const longest = parts
+      .map((p, i) => ({ i, bytes: Buffer.byteLength(p.text) }))
+      .filter(({ i }) => parts[i]!.shorter[round] !== undefined)
+      .sort((a, b) => b.bytes - a.bytes || a.i - b.i);
+    for (const { i } of longest) {
+      if (size() <= budget) break;
+      const p = parts[i]!;
+      const next = p.shorter[round]!;
+      if (Buffer.byteLength(next) < Buffer.byteLength(p.text)) p.text = next;
+    }
+  }
+  return `${parts.map((p) => p.text).join('\n\n')}\n`;
+}
+
+/**
+ * A section given shorter, with the read that gives the rest: by its heading and first paragraph, then by its heading
+ * alone.
+ */
+function shortSections(text: string, id: string, section: string): string[] {
+  const lines = text.split('\n');
+  const head: string[] = [];
+  let k = 0;
+  // The heading (and a versions comment), then the first paragraph or block, up to a blank line.
+  while (k < lines.length && (/^#{1,6}\s/.test(lines[k]!) || /^<!-- applies:/.test(lines[k]!) || !lines[k]!.trim()))
+    head.push(lines[k++]!);
+  const heading = head.join('\n').trim();
+  while (k < lines.length && lines[k]!.trim()) head.push(lines[k++]!);
+  const read = `\`read_doc ${JSON.stringify(section ? { id, section } : { id })}\``;
+  return [
+    `${head.join('\n').trim()}\n\n(The rest of this section: ${read}.)`,
+    `${heading}\n\n(This section: ${read}.)`,
+  ];
+}
+
 // ------------------------------------------------------------------------------------------------- words
 
 const STOP = new Set(
   (
     'a an the of to in on at by for from and or is are be do does did how i my me we you your it its this that these ' +
     'what why where when which who with can could should would not no if as into get use using want ' +
+    'their they them our his her any some don doesn didn isn aren wasn won ' +
     'le la les l un une des de du d et ou est sont etre pour dans sur en au aux ce cet cette ces que qui quoi quel ' +
-    'quelle comment pourquoi je j mon ma mes il elle on ne n se s sa son ses par avec plus y a veux faire'
+    'quelle comment pourquoi je j mon ma mes il elle on ne n se s sa son ses par avec plus y a veux faire ' +
+    'notre nos votre vos leur leurs'
   ).split(' '),
 );
 /** Lowercase, accents removed, anything but letters and digits a space. */
@@ -484,6 +591,48 @@ const typedIdentifier = (query: string, id: string) => {
   return /^[A-Za-z][A-Za-z0-9_]*$/.test(q) && q.includes('_') && q.toUpperCase() === id.toUpperCase();
 };
 
+interface Analysed {
+  section: Section;
+  /** The words of its heading. */
+  title: Set<string>;
+  /** The words of its body (its lines but its anchor and its heading), each with its count. */
+  counts: Map<string, number>;
+}
+/** A page's sections and their words, by the page's text: a page is cut and read once, not once per search. */
+const ANALYSED = new Map<string, Analysed[]>();
+function analysed(markdown: string): Analysed[] {
+  let out = ANALYSED.get(markdown);
+  if (out) return out;
+  out = splitSections(markdown).map((section) => {
+    const lines = section.text.split('\n').filter((l) => !ANCHOR.test(l.trim()));
+    const heading = lines.findIndex((l) => /^#{1,6}\s/.test(l));
+    const counts = new Map<string, number>();
+    for (const w of words(lines.filter((_, i) => i !== heading).join('\n'))) counts.set(w, (counts.get(w) ?? 0) + 1);
+    return { section, title: new Set(words(section.title)), counts };
+  });
+  // Bounded: a long-running server reading new revisions does not keep every old text.
+  if (ANALYSED.size >= 4096) ANALYSED.clear();
+  ANALYSED.set(markdown, out);
+  return out;
+}
+
+/**
+ * Each context's name as the pages write it in their headings ("The engine repository", « Un projet créé »). With a
+ * `context` filter, a section headed by that context's name is the one a page that spans several contexts answers
+ * with: the name counts as a word of the query found in the heading.
+ */
+const CONTEXT_NAMES: Record<string, Bilingual<string[]>> = {
+  'engine-repo': { en: ['engine repository'], fr: ['dépôt du moteur'] },
+  'created-project': { en: ['created project'], fr: ['projet créé'] },
+  'studio-local': { en: ['local Studio'], fr: ['Studio local'] },
+  'studio-demo': { en: ['demo Studio'], fr: ['Studio de démo'] },
+  'studio-hosted': { en: ['hosted Studio'], fr: ['Studio hébergé'] },
+  bridge: { en: ['Bridge'], fr: ['Bridge'] },
+  player: { en: ['player'], fr: ['joueur'] },
+};
+const headedByContext = (title: string, context: string | undefined, lang: DocsLang) =>
+  !!context && (CONTEXT_NAMES[context]?.[lang] ?? []).some((n) => phrase(title).includes(phrase(n)));
+
 /** The best section of one page in one language, and its score; undefined when nothing of the query is in it. */
 function scorePage(
   p: IndexPage,
@@ -493,6 +642,7 @@ function scorePage(
   query: string,
   glossary: readonly string[],
   skip: (s: Section) => boolean = () => false,
+  context?: string,
 ) {
   const typed = new Set(terms.filter((t) => t.weight === 1).map((t) => t.word));
   const q = phrase(query);
@@ -533,14 +683,8 @@ function scorePage(
       }
     }
   let best: { section: Section; score: number; reason: MatchReason; text: string; found: Set<string> } | undefined;
-  for (const s of splitSections(markdown)) {
+  for (const { section: s, title, counts } of analysed(markdown)) {
     if (skip(s)) continue;
-    const title = new Set(words(s.title));
-    // The body: the section's lines but its anchor and its heading.
-    const lines = s.text.split('\n').filter((l) => !ANCHOR.test(l.trim()));
-    const heading = lines.findIndex((l) => /^#{1,6}\s/.test(l));
-    const counts = new Map<string, number>();
-    for (const w of words(lines.filter((_, i) => i !== heading).join('\n'))) counts.set(w, (counts.get(w) ?? 0) + 1);
     // The section headed by the identifier typed, exactly (`PATH`, not `WORKER_PYTHON_PATH`), ranks first.
     let score = bonus + (named.has(s.title.replace(/`/g, '').trim().toLowerCase()) ? WEIGHT.identifier : 0);
     const found = new Set<string>();
@@ -562,6 +706,21 @@ function scorePage(
       if (reason && (!top || sec > top.score)) top = { reason, score: sec, text: s.text };
     }
     if (!top) continue;
+    if (headedByContext(s.title, context, lang)) score += WEIGHT.section;
+    // The excerpt of a page-level match is the field that holds the most words found, the heaviest on a tie: an alias
+    // "Studio backup" says more than the title "Backups" alone, and names its context.
+    if (top.reason !== 'section' && top.reason !== 'body') {
+      const holds = (ws: ReadonlySet<string>) => [...found].filter((w) => ws.has(w)).length;
+      let most = holds(new Set(words(top.text)));
+      for (const [i, f] of fields.entries())
+        for (const [j, t] of f.texts.entries()) {
+          const n = holds(fieldWords[i]![j]!);
+          if (n > most) {
+            most = n;
+            top = { reason: f.reason, score: WEIGHT[f.reason], text: t };
+          }
+        }
+    }
     const coverage = typed.size ? [...typed].filter((w) => covered.has(w)).length / typed.size : 0;
     const final = Math.round(score * (0.4 + 0.6 * coverage) * 100) / 100;
     if (final < THRESHOLD || coverage < MIN_COVERAGE) continue;
@@ -572,6 +731,16 @@ function scorePage(
   return best;
 }
 
+/** An HTTP status typed as a symptom: `409`, `Error 503`, « erreur 423 ». */
+const STATUS_CODE = /(?<![\w.-])[45]\d\d(?![\w.-])/;
+/**
+ * A reference register's weight for a symptom asked within a context. A status code typed with a `context` filter is
+ * a symptom of that context's service: its troubleshooting or how-to page answers it (cause, diagnosis, recovery), and
+ * a reference page that lists the code for every service ranks below them. Without a context the register keeps its
+ * score: it is the one page that names every service the code belongs to.
+ */
+const REFERENCE_FOR_SYMPTOM = 0.5;
+
 /** `search_docs`: one result per page, its best section, by score then id. */
 export function searchDocs(set: DocsSet, input: SearchInput): SearchOutput {
   const limit = Math.min(Math.max(1, input.limit ?? 5), 20);
@@ -579,6 +748,7 @@ export function searchDocs(set: DocsSet, input: SearchInput): SearchOutput {
   const request = { ...input, limit, includeArchived: !!input.includeArchived };
   const offset = input.cursor ? cursorOffset(input.cursor, set, lang ?? '*', request) : 0;
   const { terms, aliases } = termsOf(input.query, set);
+  const symptom = input.context !== undefined && STATUS_CODE.test(input.query);
   const scored: Scored[] = [];
   filtered(set, input).forEach((p, order) => {
     const notApplicable = input.version !== undefined && !applies(p, input.version);
@@ -589,10 +759,20 @@ export function searchDocs(set: DocsSet, input: SearchInput): SearchOutput {
       if (md === undefined) continue;
       // A section that does not apply to the version asked is left out, or kept and marked with includeArchived.
       const off = (s: Section) => input.version !== undefined && !sectionApplies(p, s, input.version);
-      const b = scorePage(p, l, md, terms, input.query, aliases.get(p.id)?.[l] ?? [], (s) =>
-        input.includeArchived ? false : off(s) || !!s.versions?.lifecycle,
+      const b = scorePage(
+        p,
+        l,
+        md,
+        terms,
+        input.query,
+        aliases.get(p.id)?.[l] ?? [],
+        (s) => (input.includeArchived ? false : off(s) || !!s.versions?.lifecycle),
+        input.context,
       );
-      if (!b || (pick && pick.score >= b.score)) continue;
+      if (!b) continue;
+      const score =
+        symptom && typesOf(p).includes('reference') ? Math.round(b.score * REFERENCE_FOR_SYMPTOM * 100) / 100 : b.score;
+      if (pick && pick.score >= score) continue;
       const na = notApplicable || off(b.section);
       pick = {
         ref: b.section.id ? `${p.id}#${b.section.id}` : p.id,
@@ -607,7 +787,7 @@ export function searchDocs(set: DocsSet, input: SearchInput): SearchOutput {
         state: p.state,
         status: p.lifecycle ?? b.section.versions?.lifecycle ?? 'current',
         ...(na ? { notApplicable: true as const } : {}),
-        score: b.score,
+        score,
         reason: b.reason,
         snippet: snippetOf(b.text, b.found),
         order,

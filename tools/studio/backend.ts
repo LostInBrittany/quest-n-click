@@ -53,8 +53,8 @@ export function coreBackend(studio: Studio, o: CoreBackendOptions): ToolBackend 
     lint: (prove) => studio.lint(prove),
     solve: (from, prove, reality) => studio.solve(from, undefined, prove ? 'prove' : 'witness', reality),
     author: o.author,
-    // In a package, its docs-bundle/ (the eight pages copied exactly, and the wiki's ready pages); in the repository,
-    // docs/en/ for the eight pages and wiki/ for the rest (4.5.0, docs/dev/PLAN-4.5-WIKI.md §4.3.4).
+    // In a package, its docs-bundle/ (the eight legacy pages and the wiki's ready pages); in the repository, wiki/,
+    // the eight pages rebuilt from it (4.5.0, docs/dev/PLAN-4.5-WIKI.md §4.3.2 and §4.3.4).
     readDoc: async (name) => legacyDoc(o.root, name),
     docs: async () => resolveDocs(o.root),
     assetPrompts: async (missing) => {

@@ -1,4 +1,4 @@
-// The Studio API's routes (docs/en/STUDIO.md) and the checks of their bodies, shared by the dev server's plugin
+// The Studio API's routes (wiki/en/studio.api.md) and the checks of their bodies, shared by the dev server's plugin
 // (tools/studio/plugin.ts) and the Studio Server (4.2.1): one table, so both serve the same API.
 import type { Point } from '../../../src/engine/core/types.ts';
 import type { AddEntity, EntityKind, NoteEdit } from '../../../tools/studio/types.ts';
@@ -71,7 +71,7 @@ export function voicePatch(b: Body): { status?: string; note?: string; actor?: s
   return { status: field('status'), note: field('note'), actor: field('actor') };
 }
 
-/** The Studio API's routes (docs/en/STUDIO.md): the dev server and the Studio Server serve the same table. */
+/** The Studio API's routes (wiki/en/studio.api.md): the dev server and the Studio Server serve the same table. */
 export function routes(s: Studio): [string, RegExp, Handler][] {
   return [
     ['GET', /^\/game$/, () => s.gameInfo()],

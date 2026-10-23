@@ -64,7 +64,10 @@ export interface ToolBackend {
   lint?(prove?: boolean): Promise<LintData>;
   /** Optional abilities: a tool whose ability is missing is left out of `toolsFor(backend)`. */
   screenshot?(room: string, checkpoint?: string): Promise<ToolResult>;
-  /** One of the eight historical pages (`read_doc {name}`): `docs/en/<NAME>.md`, or the bundle's exact copy. */
+  /**
+   * One of the eight historical pages (`read_doc {name}`): rebuilt from the wiki's sections in `wiki/legacy.json`'s
+   * order (the bundle's `legacy/<NAME>.md` in a package; tools/wiki/docs-load.ts `legacyDoc`).
+   */
   readDoc?(name: DocName): Promise<string>;
   /**
    * The documentation of `wiki/` (4.5.0, ADR 0030): a package's bundle, the repository's preview, the demo's embedded
@@ -581,7 +584,7 @@ export const TOOLS: ToolDef[] = [
       'Reads the documentation. Recommended: search_docs, then read_doc { id, section } for the section it found ' +
       '(`lang` en or fr, default en; `maxChars` 20000 by default, at most 100000, and a `cursor` for the rest), with ' +
       'where the text comes from (version, commit, doc revision) at its top. `name` instead returns a whole, large ' +
-      'historical page of docs/en/ in one block: CONTENT_GUIDE (the game format, the DSL of rooms, conditions and ' +
+      'historical page in one block, rebuilt from the sections of the documentation: CONTENT_GUIDE (the game format, the DSL of rooms, conditions and ' +
       'commands), ENGINE, TOOLS, STUDIO, WORKFLOW, AUDIO (music and effects), UPGRADING (v2 to v3), CLASSICS (the ' +
       'famous mechanics of the genre, each with its DSL: read it before asking for a new command); with `name`, ' +
       'the other arguments are ignored. Give either `name` or `id`, not both. Read-only.',

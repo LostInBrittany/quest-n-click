@@ -120,7 +120,7 @@ export const game = defineGame({
     pantry: { title: 'Open the pantry', done: 'pantry_open' },
   },
   // Three manual save slots in the pause menu (export / import as a file too), and a Settings entry.
-  // Remix (4.1.15, docs/en/REMIX.md): where the seller leaves the pantry key, and how Pixel turns the oranges down.
+  // Remix (4.1.15, wiki/en/create.remix.md): where the seller leaves the pantry key, and how Pixel turns the oranges down.
   // Both modes are catalogues (D25): three logical worlds, each proved by `npm run verify:variants`.
   remix: {
     schema: 1,
@@ -154,7 +154,7 @@ export const game = defineGame({
   // Texts that stay the same in French on purpose: names, ▲ ▼, OK, words French borrowed (`npm run i18n -- status`).
   i18n: { same: ['room:market/props.oranges.name', 'room:market/props.bouquet.name', 'item:bouquet/name', 'char:hero/name', 'char:biscuit/name', 'char:neighbor/name', 'ui/pause', 'ui/remix', 'ui/zoomIn', 'ui/ok', 'ui/jump', 'ui/duck', 'ui/normal', 'ui/speedrun'] },
   settings: true,
-  // The music and the sound effects are Mega Drive renders built by `npm run audio` (docs/en/AUDIO.md): the theme is
+  // The music and the sound effects are Mega Drive renders built by `npm run audio` (wiki/en/create.music.md): the theme is
   // the oboe theme of Tchaikovsky's Swan Lake (public domain) written out for the project (audio/projects/swan-theme),
   // the effects come from games/demo/audio/sfx.json.
   audio: {

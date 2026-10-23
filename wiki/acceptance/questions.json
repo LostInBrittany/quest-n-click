@@ -823,15 +823,15 @@
         },
         {
           "context": "created-project",
-          "expect": ["create.working-loop", "create.project-layout#game-files"],
+          "expect": ["create.project-layout#created-project", "create.working-loop"],
           "expectNotFirst": ["contribute.dev-loop"]
         }
       ],
       "withoutContext": {
-        "expectAll": ["create.working-loop", "contribute.dev-loop"],
+        "expectAll": ["create.working-loop", "create.project-layout"],
         "names": {
           "create.working-loop": ["project", "projet"],
-          "contribute.dev-loop": ["engine repository", "dépôt du moteur"]
+          "create.project-layout": ["engine repository", "dépôt du moteur"]
         }
       },
       "facts": [

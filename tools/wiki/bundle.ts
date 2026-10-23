@@ -6,7 +6,9 @@
 //   - `md/<lang>/<id>.md`: the `ready` pages only (a bundle never carries a draft), their links rewritten for a local
 //     reading (§4.5.6): another page `../<lang>/<id>.md#<anchor>`, a page not in the bundle its text and "(coming)",
 //     the code `blob/<productCommit>/…`, an image of the wiki `../../assets/<path>`;
-//   - `legacy/<NAME>.md`: an exact copy of `docs/en/<NAME>.md` for each of the eight `read_doc` names, until C2;
+//   - `legacy/<NAME>.md`: for each of the eight `read_doc` names, the concatenation of the bundled English pages in the
+//     order of `wiki/legacy.json` (tools/wiki/docs.ts `legacyConcatenation`, since the switch-over, C2), its links
+//     rewritten for its folder;
 //   - `assets/`: the wiki's images the bundled pages show;
 //   - `bundle-manifest.json` (`quest-n-click-docs-bundle` v1): the identity (product version and commit, doc revision,
 //     the build when given, the git tree of `wiki/`) and the sha256 of every other file. No publication state: a
@@ -16,7 +18,7 @@ import { execFileSync } from 'node:child_process';
 import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { dirname, relative, resolve, sep } from 'node:path';
 import { DOCS } from '../studio/tools';
-import { BUNDLE_FORMAT, type DocsLang } from './docs';
+import { BUNDLE_FORMAT, type DocsLang, legacyBudget, legacyConcatenation } from './docs';
 import { type BundleManifest, indexWiki, sha256 } from './docs-load';
 import { formatJson } from './json';
 import { readManifest } from './manifest';
@@ -25,7 +27,7 @@ import { classifyTarget, type Link, mapPage, renderLink } from './page';
 const REPO_URL = 'https://github.com/wanoo/quest-n-click';
 
 export interface BundleOptions {
-  /** The repository (its `docs/en/` for the legacy copies, its git for the tree of `wiki/`). */
+  /** The repository (its git, for the tree of `wiki/`). */
   root: string;
   wikiDir: string;
   outDir: string;
@@ -41,12 +43,13 @@ export interface BundleOptions {
 }
 
 /**
- * What git reports changed or untracked under the wiki's folder and `docs/en` (the bundle's two sources), as
- * `git status --porcelain` lines; empty on a clean checkout, and outside git.
+ * What git reports changed or untracked under the wiki's folder (the bundle's source), as `git status --porcelain`
+ * lines; empty on a clean checkout, and outside git (or for a wiki outside the repository).
  */
 export function dirtySources(root: string, wikiDir: string): string[] {
   const rel = relative(root, wikiDir).split(sep).join('/');
-  const paths = [...(rel && !rel.startsWith('..') ? [rel] : []), 'docs/en'];
+  if (!rel || rel.startsWith('..')) return [];
+  const paths = [rel];
   try {
     return execFileSync('git', ['status', '--porcelain', '--', ...paths], {
       cwd: root,
@@ -96,7 +99,9 @@ export function bundleContents(o: Omit<BundleOptions, 'outDir'>): {
   if (!manifest) throw new Error(`the wiki's manifest is not valid: ${errors.join('; ')}`);
   const bundled = new Set(manifest.pages.filter((p) => p.state === 'ready' && !p.generated).map((p) => p.id));
   const images = new Set<string>();
-  const local = (markdown: string, lang: DocsLang) =>
+  // A page of `md/<lang>/` reaches another as `../<lang>/<id>.md` and an image as `../../assets/…`; a legacy page,
+  // one folder up, as `../md/<lang>/<id>.md` and `../assets/…`.
+  const linked = (markdown: string, lang: DocsLang, folder: 'md' | 'legacy') =>
     mapPage(
       markdown,
       (l: Link) => {
@@ -104,25 +109,37 @@ export function bundleContents(o: Omit<BundleOptions, 'outDir'>): {
         const to = (target: string) => renderLink({ ...l, target });
         if (t.kind === 'page')
           return bundled.has(t.id)
-            ? to(`../${lang}/${t.id}.md${t.anchor ? `#${t.anchor}` : ''}`)
+            ? to(`${folder === 'md' ? '..' : '../md'}/${lang}/${t.id}.md${t.anchor ? `#${t.anchor}` : ''}`)
             : `${l.label} (coming)`;
         if (t.kind === 'repo')
           return to(`${REPO_URL}/blob/${o.productCommit}/${t.path}${t.anchor ? `#${t.anchor}` : ''}`);
         if (t.kind === 'wiki-image') {
           images.add(t.path);
-          return to(`../../assets/${t.path}`);
+          return to(`${folder === 'md' ? '../..' : '..'}/assets/${t.path}`);
         }
         return undefined;
       },
       (kind, id) => `> [!${kind} id=${id}]`,
     );
+  const local = (markdown: string, lang: DocsLang) => linked(markdown, lang, 'md');
   const { index, pages } = indexWiki(o.wikiDir, ['ready'], local);
 
   const files = new Map<string, Buffer>();
   files.set('index.json', Buffer.from(formatJson(index)));
   for (const [key, text] of Object.entries(pages)) files.set(`md/${key}.md`, Buffer.from(text));
-  // The eight historical pages, byte for byte: `read_doc {name}` answers in a package what it answers in the repository.
-  for (const name of DOCS) files.set(`legacy/${name}.md`, readFileSync(resolve(o.root, 'docs', 'en', `${name}.md`)));
+  // The eight historical pages (§4.3.2): the bundled English pages concatenated in the legacy order, within their bound,
+  // as the repository builds them, their links made for the `legacy/` folder.
+  const legacyPage = (id: string) => {
+    const file = resolve(o.wikiDir, 'en', `${id}.md`);
+    return bundled.has(id) && existsSync(file)
+      ? linked(readFileSync(file, 'utf8').replace(/\r\n/g, '\n'), 'en', 'legacy')
+      : undefined;
+  };
+  for (const name of DOCS)
+    files.set(
+      `legacy/${name}.md`,
+      Buffer.from(legacyConcatenation(index.legacy[name] ?? [], legacyPage, legacyBudget(name))),
+    );
   for (const image of images) files.set(`assets/${image}`, readFileSync(resolve(o.wikiDir, 'images', image)));
 
   const paths = [...files.keys()].sort();

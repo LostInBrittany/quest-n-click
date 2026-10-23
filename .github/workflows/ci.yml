@@ -337,7 +337,7 @@ jobs:
         timeout-minutes: 20
       - if: env.RUN == 'true'
         run: npm run reality:xcheck -- --require-rust
-  # The connectors of the world outside (4.1.9, D19, docs/en/CONNECTORS.md): the SDK's contract on the four connectors
+  # The connectors of the world outside (4.1.9, D19, wiki/en/bridge.connectors.md): the SDK's contract on the four connectors
   # against a real Bridge, their abuse and fuzz tests, the sample chapter's replays, a game without server code, then
   # the fuzz harness for half a minute per connector (the nightly runs a minute) and the connectors' tarball installed
   # without native code (ssh2's install script attempts a build and fails: no .node file). Gate: `reality`.
@@ -486,7 +486,7 @@ jobs:
         run: npx vitest run tests/studio-diff-captures.test.ts --maxWorkers=1
   # The Bridge's distributed profile (4.1.10, D20): the store contract, the tenants crossed and the fan-out across
   # instances, on a real Postgres 16 (a service container, pinned by digest). The truth for Postgres: the maintainer's
-  # machine runs it only with a local server (docs/en/REALITY-OPS.md). Gate: `reality`.
+  # machine runs it only with a local server (wiki/en/bridge.install-run.md). Gate: `reality`.
   bridge-postgres:
     needs: plan
     runs-on: ubuntu-24.04
