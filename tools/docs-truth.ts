@@ -4,7 +4,7 @@
 // true), and the current release the READMEs give (their link and download URL name this version). Exit 1 on the first list of contradictions, with each
 // one named; the counters (tests, first-visit KB, states) stay `npm run quality:baseline`'s (README metric markers).
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
-import { join, resolve } from 'node:path';
+import { resolve } from 'node:path';
 
 const ROOT = resolve(import.meta.dirname, '..');
 const read = (p: string) => readFileSync(resolve(ROOT, p), 'utf8');
@@ -26,7 +26,7 @@ const created = new Set([
 export function documents(): string[] {
   const out = ['README.md', 'README.fr.md', 'CONTRIBUTING.md', 'SECURITY.md'];
   for (const d of ['wiki/en', 'wiki/fr'])
-    for (const f of readdirSync(resolve(ROOT, d)).sort()) if (f.endsWith('.md')) out.push(join(d, f));
+    for (const f of readdirSync(resolve(ROOT, d)).sort()) if (f.endsWith('.md')) out.push(`${d}/${f}`);
   return out.filter((f) => existsSync(resolve(ROOT, f)));
 }
 

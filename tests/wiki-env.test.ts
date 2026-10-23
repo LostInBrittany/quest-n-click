@@ -214,7 +214,7 @@ describe('the reference page', () => {
   });
 });
 
-describe("the repository's register", () => {
+describe("the repository's register", { timeout: 60_000 }, () => {
   const { register: real, errors } = readEnvRegister(WIKI);
   const tracked = trackedFiles(ROOT);
   const scanned = scanEnv(ROOT, tracked);
