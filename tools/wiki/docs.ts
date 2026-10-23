@@ -179,6 +179,109 @@ export function splitSections(markdown: string): Section[] {
   return out;
 }
 
+/**
+ * The size in bytes of each of the eight historical pages at 4.4.0 (docs/en/<NAME>.md at c00b44fc, as
+ * tests/fixtures/mcp/read_doc-4.4.0.json records it). `read_doc {name}` stays within 1.5 times it (§4.3.2).
+ */
+export const LEGACY_BYTES_4_4_0: Readonly<Record<string, number>> = {
+  CONTENT_GUIDE: 68195,
+  ENGINE: 31143,
+  TOOLS: 59054,
+  STUDIO: 42276,
+  WORKFLOW: 4395,
+  AUDIO: 14345,
+  UPGRADING: 62223,
+  CLASSICS: 10850,
+};
+/** The bound of a legacy page: 1.5 times its 4.4.0 size (§4.3.2, to catch a bloat). */
+export const legacyBudget = (name: string): number | undefined =>
+  LEGACY_BYTES_4_4_0[name] === undefined ? undefined : Math.floor(1.5 * LEGACY_BYTES_4_4_0[name]);
+
+/** A section's anchor line, which only a page's own reader needs. */
+const ANCHOR_LINE = /^<a name="[^"]*"><\/a>\n+/gm;
+
+/**
+ * One of the eight historical pages `read_doc {name}` serves since the switch-over (C2, §4.3.2): the English wiki
+ * pages' sections in the legacy order of `wiki/legacy.json` (the order of the old page's sections), joined, their
+ * `<a name>` lines left out. An `id#section` gives that section; a bare `id` gives its whole page, lead included, but
+ * only the parts not given yet (dedup `page-covers-sections`); nothing is given twice. A page the set does not hold (a
+ * draft, in a package) is named as coming, never silently left out. `pageOf` is the English Markdown of a page, or
+ * undefined.
+ *
+ * Within `budget` bytes (1.5 times the 4.4.0 page, `legacyBudget`): the wiki's sections say more than the old pages
+ * did, so when the whole text is longer, the longest sections are given by their heading and first paragraph and the
+ * section read that gives the rest (`read_doc {"id": …, "section": …}`), one at a time from the longest, until the page
+ * fits; if that is not enough, the longest by their heading and that read alone. Every section's heading stays; no
+ * text is cut in the middle, and nothing is left without the read that gives it.
+ */
+export function legacyConcatenation(
+  order: readonly string[],
+  pageOf: (id: string) => string | undefined,
+  budget?: number,
+): string {
+  const parts: { text: string; shorter: string[] }[] = [];
+  const given = new Set<string>();
+  const sectionsOf = new Map<string, Section[] | undefined>();
+  const sections = (id: string) => {
+    if (!sectionsOf.has(id)) {
+      const text = pageOf(id);
+      sectionsOf.set(id, text === undefined ? undefined : splitSections(text.replace(/\r\n/g, '\n')));
+    }
+    return sectionsOf.get(id);
+  };
+  for (const d of order) {
+    const [id, section] = d.split('#') as [string, string | undefined];
+    const all = sections(id);
+    if (!all) {
+      if (!given.has(id)) parts.push({ text: `(${id}: coming in a later documentation)`, shorter: [] });
+      given.add(id);
+      continue;
+    }
+    for (const s of all) {
+      const key = `${id}#${s.id}`;
+      if ((section !== undefined && s.id !== section) || given.has(key)) continue;
+      given.add(key);
+      const text = s.text.replace(ANCHOR_LINE, '').trim();
+      parts.push({ text, shorter: shortSections(text, id, s.id) });
+    }
+  }
+  const size = () => Buffer.byteLength(parts.map((p) => p.text).join('\n\n')) + 1;
+  // Two rounds, each from the longest section: its heading and first paragraph, then its heading alone.
+  for (let round = 0; round < 2 && budget !== undefined && size() > budget; round++) {
+    const longest = parts
+      .map((p, i) => ({ i, bytes: Buffer.byteLength(p.text) }))
+      .filter(({ i }) => parts[i]!.shorter[round] !== undefined)
+      .sort((a, b) => b.bytes - a.bytes || a.i - b.i);
+    for (const { i } of longest) {
+      if (size() <= budget) break;
+      const p = parts[i]!;
+      const next = p.shorter[round]!;
+      if (Buffer.byteLength(next) < Buffer.byteLength(p.text)) p.text = next;
+    }
+  }
+  return `${parts.map((p) => p.text).join('\n\n')}\n`;
+}
+
+/**
+ * A section given shorter, with the read that gives the rest: by its heading and first paragraph, then by its heading
+ * alone.
+ */
+function shortSections(text: string, id: string, section: string): string[] {
+  const lines = text.split('\n');
+  const head: string[] = [];
+  let k = 0;
+  // The heading (and a versions comment), then the first paragraph or block, up to a blank line.
+  while (k < lines.length && (/^#{1,6}\s/.test(lines[k]!) || /^<!-- applies:/.test(lines[k]!) || !lines[k]!.trim()))
+    head.push(lines[k++]!);
+  const heading = head.join('\n').trim();
+  while (k < lines.length && lines[k]!.trim()) head.push(lines[k++]!);
+  const read = `\`read_doc ${JSON.stringify(section ? { id, section } : { id })}\``;
+  return [
+    `${head.join('\n').trim()}\n\n(The rest of this section: ${read}.)`,
+    `${heading}\n\n(This section: ${read}.)`,
+  ];
+}
+
 // ------------------------------------------------------------------------------------------------- words
 
 const STOP = new Set(

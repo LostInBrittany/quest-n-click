@@ -429,7 +429,7 @@ Input:
 
 ### `read_doc`
 
-**Read a documentation page.** Reads the documentation. Recommended: search_docs, then read_doc { id, section } for the section it found (`lang` en or fr, default en; `maxChars` 20000 by default, at most 100000, and a `cursor` for the rest), with where the text comes from (version, commit, doc revision) at its top. `name` instead returns a whole, large historical page of docs/en/ in one block: CONTENT_GUIDE (the game format, the DSL of rooms, conditions and commands), ENGINE, TOOLS, STUDIO, WORKFLOW, AUDIO (music and effects), UPGRADING (v2 to v3), CLASSICS (the famous mechanics of the genre, each with its DSL: read it before asking for a new command); with `name`, the other arguments are ignored. Give either `name` or `id`, not both. Read-only.
+**Read a documentation page.** Reads the documentation. Recommended: search_docs, then read_doc { id, section } for the section it found (`lang` en or fr, default en; `maxChars` 20000 by default, at most 100000, and a `cursor` for the rest), with where the text comes from (version, commit, doc revision) at its top. `name` instead returns a whole, large historical page in one block, rebuilt from the sections of the documentation: CONTENT_GUIDE (the game format, the DSL of rooms, conditions and commands), ENGINE, TOOLS, STUDIO, WORKFLOW, AUDIO (music and effects), UPGRADING (v2 to v3), CLASSICS (the famous mechanics of the genre, each with its DSL: read it before asking for a new command); with `name`, the other arguments are ignored. Give either `name` or `id`, not both. Read-only.
 
 - Writes: no (read-only).
 - Needs: the backend ability `readDoc`: a backend without it (the demo, a hosted Studio without that route) leaves the tool out.
