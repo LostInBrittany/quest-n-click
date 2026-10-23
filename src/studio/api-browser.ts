@@ -40,6 +40,7 @@ import type {
   ValidateResult,
 } from '../../tools/studio/types';
 import { ApiError, type Api } from './api';
+import type { DocName, ToolBackend } from '../../tools/studio/tools';
 import { must } from '../engine/core/must';
 import {
   addRoomEntity,
@@ -119,6 +120,22 @@ export class BrowserApi implements Api {
   /** 4.5.0: the wiki's index and ready pages of the snapshot (the Assistant's search_docs, list_docs, read_doc by id). */
   wikiDocs() {
     return this.o.snapshot.wiki;
+  }
+  /** The Assistant's document abilities in the demo: the legacy pages the snapshot holds, and its wiki when it has one. */
+  docAbilities(): Pick<ToolBackend, 'readDoc' | 'docs'> {
+    const wiki = this.wikiDocs();
+    return {
+      readDoc: async (name: DocName) => {
+        const d = this.doc(name);
+        if (d === undefined)
+          throw new Error(
+            `${name} is not in the demo (only ${this.docNames().join(', ') || 'no document'}); see docs/en/${name}.md in the repository`,
+          );
+        return d;
+      },
+      // Absent from an older snapshot.
+      ...(wiki ? { docs: async () => wiki } : {}),
+    };
   }
   /** Number of edits kept in this browser. */
   get edits() {
