@@ -246,6 +246,16 @@ describe('read_doc by id', () => {
     expect(readDocById(set, { id: 'studio.notes' }).text).toMatch(/\(en, draft: not reviewed yet\)/);
   });
 
+  it("gives a bundle's page its permalink on Pages and the wiki's current page; a repository preview neither (§4.5.4)", () => {
+    expect(readDocById(set, { id: 'team.write-refused-423', section: 'symptom' }).structured).not.toHaveProperty('url');
+    const r = readDocById(resolveDocs(packageRoot()), { id: 'team.write-refused-423', section: 'symptom', lang: 'fr' });
+    expect(r.structured.url).toEqual({
+      versioned: 'https://wanoo.github.io/quest-n-click/docs/4.5.0/r1/fr/team.write-refused-423.html#symptom',
+      current: 'https://github.com/wanoo/quest-n-click/wiki/FR-Equipe-Ecriture-Refusee-423#symptom',
+      currentLabel: 'current documentation (the latest release), not necessarily this version',
+    });
+  });
+
   it('gives maxChars at a time and a cursor for the rest; a cursor of another request is stale', () => {
     const whole = readDocById(set, { id: 'create.rooms' }).structured.range.total;
     let cursor: string | undefined;

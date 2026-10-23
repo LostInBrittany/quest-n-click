@@ -10,3 +10,4 @@
 ### Fixed
 
 - **`search_docs` no longer reads the word "studio" as the variable `STUDIO`** (4.5.0). An identifier written in capitals (an environment variable such as `STUDIO`, `PATH` or `PORT`) now counts only when the query holds it exactly; before, any question with the word "studio" ranked the environment variable page high. A search for `STUDIO_SESSION_KEY` now shows that whole name in its excerpt, not `STUDIO`, and an excerpt no longer doubles the page's own bold.
+- **`read_doc {id}` from an installed package now says where the page lives online** (4.5.0). Its structured content gives `url.versioned`, the page's permalink on Pages for that very version and doc revision (`/docs/<version>/r<n>/<lang>/<id>.html#<section>`), and `url.current`, the wiki's page, labelled as the current documentation rather than this version's. The plan asked for both; the package only gave the version and the commits.

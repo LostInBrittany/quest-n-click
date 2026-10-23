@@ -69,8 +69,34 @@ export interface Provenance {
   productCommit: string;
   docRevision: string;
   buildId?: string;
+  /** A release archive's doc revision (`r2`…); a package's bundle is its release's own documentation, r1. */
+  docRevisionNumber?: string;
   /** The same in words, for a reader: "repository preview", or the bundle's build and where promotion is recorded. */
   label: string;
+}
+
+/** Pages' documentation (§4.5.4) and the GitHub wiki: where a page of a bundle is published (§4.5.6). */
+const PAGES_DOCS = 'https://wanoo.github.io/quest-n-click/docs';
+const WIKI_URL = 'https://github.com/wanoo/quest-n-click/wiki';
+
+/**
+ * Where a page read from a bundle lives online (§4.5.4): `versioned`, its permalink on Pages for this very version and
+ * doc revision, which never changes; `current`, the wiki's page, labelled current, which follows the latest release.
+ * A repository preview is not published: it has none.
+ */
+function onlineUrls(
+  p: Provenance,
+  page: { id: string; url: Bilingual<string> },
+  lang: DocsLang,
+  section?: string,
+): { versioned: string; current: string; currentLabel: string } | undefined {
+  if (p.source !== 'bundle') return undefined;
+  const at = section ? `#${section}` : '';
+  return {
+    versioned: `${PAGES_DOCS}/${p.productVersion}/${p.docRevisionNumber ?? 'r1'}/${lang}/${page.id}.html${at}`,
+    current: `${WIKI_URL}/${page.url[lang]}${at}`,
+    currentLabel: 'current documentation (the latest release), not necessarily this version',
+  };
 }
 
 export interface DocsSet {
@@ -688,6 +714,10 @@ export function readDocById(set: DocsSet, input: ReadInput) {
       ...(cursor ? { cursor } : {}),
       sections: sections.map((s) => ({ id: s.id, title: s.title })),
       provenance: set.provenance,
+      ...(() => {
+        const url = onlineUrls(set.provenance, p, lang, input.section);
+        return url ? { url } : {};
+      })(),
     },
   };
 }

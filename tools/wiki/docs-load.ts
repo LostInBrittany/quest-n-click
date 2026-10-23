@@ -234,6 +234,7 @@ function readBundle(dir: string): Bundle {
     productCommit: m.productCommit,
     docRevision: m.docRevision,
     ...(m.buildId ? { buildId: m.buildId } : {}),
+    ...(m.docRevisionNumber ? { docRevisionNumber: m.docRevisionNumber } : {}),
     label: `bundle built for quest'n'click ${m.productVersion}${m.buildId ? `, build ${m.buildId}` : ''}; whether it was promoted to a release is checked at ${PUBLICATION_URL}, never in the bundle`,
   };
   const bundle = { set: { provenance, index, pages }, texts };
