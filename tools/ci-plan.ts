@@ -210,9 +210,12 @@ export function globToRegExp(glob: string): RegExp {
   return new RegExp(`^${part(glob)}$`);
 }
 
-/** The paths the documentation's checks read besides the docs themselves: the wiki and its generators. */
+/**
+ * The paths the documentation's checks read besides the docs themselves: the wiki and its generators, and the root
+ * pages the coverage matrix inventories with `docs/` (A3), so a change to them is checked against the freeze.
+ */
 const DOCS_PATHS =
-  /^(docs\/|wiki\/|tools\/wiki(\.ts$|\/)|tools\/(dsl-doc|api-doc|docs-truth)\.ts$|scripts\/pack\.mjs$)/;
+  /^(docs\/|wiki\/|tools\/wiki(\.ts$|\/)|tools\/(dsl-doc|api-doc|docs-truth)\.ts$|scripts\/pack\.mjs$|(README(\.fr)?|CONTRIBUTING|SECURITY|CODE_OF_CONDUCT|CREDITS)\.md$)/;
 
 interface WikiPage {
   id: string;
