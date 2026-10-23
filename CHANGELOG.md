@@ -2,7 +2,7 @@
 
 ## 4.5.0 — 2026-10-23
 
-LOG #268–#282: "Wiki", the documentation moved. `wiki/en` and `wiki/fr` are now the documentation: 210 pages in
+LOG #268–#285: "Wiki", the documentation moved. `wiki/en` and `wiki/fr` are now the documentation: 210 pages in
 English and in French, each paired with its twin section by section, published as the GitHub wiki and as
 `/docs/<version>/` on Pages from the release's own documentation archive, never rebuilt from `main`. The old `docs/`
 pages are transition pages: every old heading and anchor stays and links to its new place and to the 4.4.0 text. An
@@ -27,6 +27,16 @@ key on their yes of 23 October for `v4.5.0` (D37, D50).
 - **`npm run page:world` and `npm run page:puzzles` write a `.html` file** (4.5.0). By default they wrote `dist-pages/world` and `dist-pages/puzzles`, without an extension; an explicit `--out file.html` is still used as given.
 
 - **A Markdown link whose text wraps onto the next line is seen** (4.5.0). The wiki's link scanner read one line at a time: `[the\npage](x.md)` was neither checked nor rewritten for the published wiki. A link whose text breaks across one line of its paragraph is now read whole, as CommonMark reads it.
+- **The hosted Studio's end-to-end run no longer fails at random on "Load the latest preview" (4.5.0, #255)**: the
+  script read the last ready preview, then clicked; when a preview finished building in between, the Studio rightly
+  loaded the newer one and the check failed (seen on a PR's CI, HTTPS pass). It now waits for the head's preview first.
+  Nothing changes in the Studio.
+
+- **An image cached for offline play is served even when the worker's lookup fails (4.5.0, #257)**: Firefox's service
+  worker now and then failed a cached image offline ("A ServiceWorker intercepted the request and encountered an
+  unexpected error"), a sprite frame then missing. When the image route fails, the worker now looks the image up in
+  every cache before giving up, and says why it failed; `npm run e2e:pwa` prints that reason. Nothing to change in a
+  game.
 
 ### Changes
 
@@ -72,7 +82,11 @@ key on their yes of 23 October for `v4.5.0` (D37, D50).
 
 - **The documentation moved to the wiki** (4.5.0). `wiki/en` and `wiki/fr` are now the documentation, published as the GitHub wiki; the README, the package READMEs, the created project's README, the command line's and the tools' messages, the Studio, the skills and the templates point to it. `docs/en/*.md` and `docs/fr/*.md` become transition pages: each old heading and explicit anchor stays, so an old link still lands, and links to its new place in the documentation of its version and to the complete 4.4.0 page (`blob/v4.4.0/docs/…`). `npm run wiki -- check` refuses a transition page edited by hand or one that lost an old anchor; `npx tsx tools/dsl-doc.ts` and `npx tsx tools/api-doc.ts` write the wiki's DSL and API references.
 - **`read_doc {name}` reads its page from the wiki** (4.5.0). The eight historical pages (`CONTENT_GUIDE`, `ENGINE`, `TOOLS`, `STUDIO`, `WORKFLOW`, `AUDIO`, `UPGRADING`, `CLASSICS`) are rebuilt from the wiki's sections in the order of the old page, in the repository and in the package alike, still one text block and still accepted with 4.4.0's arguments. Each stays within 1.5 times its 4.4.0 size: where the new sections say more, the longest give their heading, their first paragraph and the `read_doc {id, section}` that returns the rest. The MCP server's instructions now say: `search_docs`, then `read_doc` by id and section.
-
+- **The placement editor turns a character or a prop around (4.5.0, #252)**: the editor's Selection folder
+  (`?edit=<room>`, and the Studio's Rooms tab, which embeds it) has a **mirror ↔** checkbox for the selected prop or
+  character and a **mirror ↕** one for a prop: the layout's `flip` and `flipV`, which only the phone placement page
+  could set. A character whose room sets `facing` keeps it, as before (the room's `facing` wins over the layout's
+  `flip`): the panel says so under the checkbox. Nothing to change in a game.
 ## 4.4.0 — 2026-10-22
 
 LOG #256–#267: "Author's Desk", the release an outside reading of 4.3 asked for: making a whole game simpler to make

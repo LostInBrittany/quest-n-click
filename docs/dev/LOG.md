@@ -7662,5 +7662,71 @@ part now); captures on a hosted Studio; npm publishing.
   of 4.4.0 keep their open issues, recorded for 4.5.0 in `docs/dev/contracts.json`.
 - **Left to people**: the review of the translation pairs and of the guarantees' scopes by a person, which
   `check --publish` wants before it publishes a page that only its AI author checked.
+- **Joined at the end, at the maintainer's request** (« 252;257;255 »): Horacio's #253 (the placement editor's mirrors, #252), #260 (offline images' last resort, #257) and #256 (the e2e's latest-preview race, #255), LOG #283–#285. The repository-wide wiki suites get 300 s (Windows runners).
 → next: the candidate on the merge commit, the signed tag `v4.5.0`, `ship verify`, then `docs-publish` (the wiki and
 `/docs/4.5.0/r1/`) and a read of the published outputs; the people's passes, `docs-beginner-reader` first.
+
+## #283 · 2026-10-23 · Claude · proposal · 4.5.0: the placement editor's mirrors (#252)
+
+- `dev/editor.ts`: the Selection folder was read-only, so the layout's `flip` (a prop or an actor) and `flipV` (a
+  prop), read by `dom/room.ts`, could only be set from the phone placement page (`tools/pages/placement.ts`) or by
+  hand in the JSON. Found turning an NPC toward the room in a game: the editor moves and sizes a character, but cannot
+  turn it around.
+- `dev/mirror.ts`: the checkboxes, rebuilt on each selection (from the overlay and from the Studio's bridge). A prop
+  is edited in the state shown when that state's variant sets its own mirror, as its position is; otherwise the
+  prop's own value. Off on an element's own entry removes the field, as the placement page does; off on a state's
+  variant stays written, or the state would fall back to the prop's value. Turning an actor drops the facing a script
+  left in the state (`face`, `place`), as a drag drops its remembered position. An actor whose room sets `facing`
+  shows a note: that facing wins (`o.facing ?? a.facing ?? flip`, unchanged).
+- `roundLayout` moved from `dev/editor.ts` to `dev/save-layout.ts` (what is written), so the editor stays under its
+  size cap (`tests/file-size.test.ts`).
+- `docs/` is frozen for the wiki (PLAN-4.5-WIKI §4.2): the two `TOOLS.md` sections changed, `wiki/coverage.json`
+  refreshed (`npm run wiki -- coverage`) and both acknowledged (`--ack`); their destination,
+  `studio.placement#placement-editor`, is planned and not written yet, so no wiki page to carry the text into.
+- Checked in Chromium on the demo (`?edit=house`): Biscuit mirrored and back, Grandma's note (`facing: 'right'`), the
+  chair's two checkboxes, none on a hotspot. Tests: `tests/editor-mirror.test.ts`.
+
+- Review and integration (Claude, for the maintainer): tests for `mirrorControls`' wiring (nothing on a hotspot, the
+  state shown, the note, the script's facing dropped, the redraw) and for the mirrors through `roundLayout`. Main
+  moved the docs to the wiki (#254): `docs/*/TOOLS.md` are transition pages now, so the mirror text went to
+  `wiki/en|fr/studio.placement.md` (`#placement-editor`, `#layout-fields`) and the actor's `flip` to
+  `create.geometry.md#layout-file`, both languages acknowledged.
+
+→ next: merge.
+
+
+## #284 · 2026-10-23 · Claude · proposal · 4.5.0: e2e studio-hosted, the latest preview read after the head's is built (#255)
+
+- `scripts/e2e-studio-hosted.ts` step 6b read `previews.state().ready`, then clicked "Load the latest preview". The
+  layout written meanwhile and Undo (revisions 2 and 3) schedule their previews in the background
+  (`journal.events.on('confirmed')`); when revision 3's finished between the read and the click, the Play frame opened
+  `/preview/3/` against an expected 2. Seen on PR #253's CI (run 39955383402, the Firefox/HTTPS pass; its HTTP pass
+  read 2 and passed).
+- The fix: `await previews.schedule()` (it resolves when the run building the head ends) before the read, and a check
+  that the ready revision is then the journal's head, so the step loads the latest revision, not just a stable one.
+- Checked: Chromium three times locally (ready 3, head 3, `/preview/3/`); the Firefox pass does not launch on this
+  machine, CI runs it.
+
+→ next: review.
+
+
+## #285 · 2026-10-23 · Claude · proposal · 4.5.0: the image route's last resort, and its reason told (#257)
+
+- `pwa-firefox` failed twice on 2026-10-23 (`main` run 39954872309, PR #253 run 39961281118): every step passed, then
+  three cached cat frames refused offline by Firefox's worker, over `MAX_REFUSED = 2` in `scripts/e2e-pwa.mjs`. The
+  reason was logged nowhere: the test could only count.
+- `vite.config.ts`: `imageLastResort`, a workbox plugin on the `/assets/img/` route (`CacheFirst`, `jeu-images`). Its
+  `handlerDidError` runs when the strategy throws (a cache read failing, the expiration plugin, `no-response`): it
+  answers with `caches.match(request)` across every cache, and posts `{ type: 'qnc-sw-error', url, reason, recovered }`
+  to the open pages (the game ignores it). Workbox copies the plugin into `sw.js` as text: nothing from the config's
+  scope.
+- `scripts/e2e-pwa.mjs`: an init script relays each `qnc-sw-error` to the console as a warning; the run prints them
+  (and a CI `::warning::` with the distinct reasons), not counted. `MAX_REFUSED` is unchanged: a refusal the worker
+  recovered from no longer reaches the browser's console, one it could not still counts.
+- Checked (Chromium, `vite preview`, offline after the warm-up): an image removed from `jeu-images` but kept in another
+  cache answers 200, reported `recovered: true` (`no-response`); an image in no cache still fails, reported
+  `recovered: false`. `npm run e2e:pwa -- --serve=dist --update --interrupted --reinstall` passes in Chromium. Firefox
+  does not launch on this machine: CI's `pwa-firefox` will show the actual reason. If it shows none, Firefox's error is
+  outside workbox's handler (the `respondWith` itself), which this does not reach.
+
+→ next: review.

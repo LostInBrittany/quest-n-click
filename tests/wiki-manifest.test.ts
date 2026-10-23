@@ -20,7 +20,7 @@ import {
 const WIKI = resolve('wiki');
 const { manifest, errors } = readManifest(WIKI);
 
-describe('the wiki manifest', { timeout: 60_000 }, () => {
+describe('the wiki manifest', { timeout: 300_000 }, () => {
   it('is valid', () => {
     expect(errors).toEqual([]);
     expect(manifest).toBeDefined();

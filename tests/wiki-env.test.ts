@@ -214,7 +214,8 @@ describe('the reference page', () => {
   });
 });
 
-describe("the repository's register", { timeout: 60_000 }, () => {
+// A whole \`wiki -- check\` of the repository per case: past a minute on Windows' runners.
+describe("the repository's register", { timeout: 300_000 }, () => {
   const { register: real, errors } = readEnvRegister(WIKI);
   const tracked = trackedFiles(ROOT);
   const scanned = scanEnv(ROOT, tracked);
