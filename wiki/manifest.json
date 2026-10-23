@@ -7414,13 +7414,21 @@
       "context": ["engine-repo"],
       "title": { "en": "Welcome", "fr": "Bienvenue" },
       "url": { "en": "EN-Contribute-Welcome", "fr": "FR-Contribuer-Bienvenue" },
-      "state": "planned",
-      "sources": [],
+      "state": "ready",
+      "versions": { "appliesFrom": "4.4.0" },
+      "sources": ["CONTRIBUTING.md", ".github/ISSUE_TEMPLATE/feature.yml"],
       "replaces": ["CONTRIBUTING.md#contributing-to-questnclick"],
       "questions": { "en": [], "fr": [] },
-      "aliases": { "en": [], "fr": [] },
+      "aliases": {
+        "en": ["CONTRIBUTING", "how to contribute", "getting started as a contributor"],
+        "fr": ["CONTRIBUTING", "comment contribuer", "débuter comme contributeur"]
+      },
+      "keywords": {
+        "en": ["contribution", "pull request", "semantic versioning", "public API"],
+        "fr": ["contribution", "pull request", "versionnage sémantique", "API publique"]
+      },
       "identifiers": [],
-      "related": [],
+      "related": ["contribute.setup", "contribute.before-a-pr", "contribute.conventions", "contribute.governance"],
       "prerequisites": [],
       "owner": "@wanoo"
     },
@@ -7432,13 +7440,37 @@
       "context": ["engine-repo"],
       "title": { "en": "Developer setup", "fr": "Préparer son poste de développement" },
       "url": { "en": "EN-Contribute-Developer-Setup", "fr": "FR-Contribuer-Poste-De-Developpement" },
-      "state": "planned",
-      "sources": [".nvmrc", "requirements.txt"],
+      "state": "ready",
+      "versions": { "appliesFrom": "4.4.0" },
+      "sources": [
+        ".nvmrc",
+        "requirements.txt",
+        "tools/doctor-checks.ts",
+        "tools/doctor.ts",
+        "tools/game.ts",
+        "tools/select-game.ts"
+      ],
       "replaces": ["CONTRIBUTING.md#contributing-to-questnclick"],
-      "questions": { "en": [], "fr": [] },
-      "aliases": { "en": [], "fr": [] },
-      "identifiers": [],
-      "related": [],
+      "questions": {
+        "en": [
+          "How do I set up my machine to work on the engine?",
+          "Which Node version do I need to develop quest'n'click?"
+        ],
+        "fr": [
+          "Comment préparer ma machine pour travailler sur le moteur ?",
+          "Quelle version de Node faut-il pour développer quest'n'click ?"
+        ]
+      },
+      "aliases": {
+        "en": ["developer setup", "dev environment", "clone the repository"],
+        "fr": ["poste de développement", "environnement de dev", "cloner le dépôt"]
+      },
+      "keywords": {
+        "en": ["nvm", "npm ci", "requirements.txt", "Playwright", "doctor", "GAME"],
+        "fr": ["nvm", "npm ci", "requirements.txt", "Playwright", "doctor", "GAME"]
+      },
+      "identifiers": ["npm run doctor", "npm run game", "npm run dev"],
+      "related": ["install.requirements", "install.doctor", "contribute.dev-loop", "reference.npm-scripts"],
       "prerequisites": [],
       "owner": "@wanoo"
     },
@@ -7450,14 +7482,35 @@
       "context": ["engine-repo"],
       "title": { "en": "The dev loop", "fr": "La boucle de développement" },
       "url": { "en": "EN-Contribute-Dev-Loop", "fr": "FR-Contribuer-Boucle-De-Developpement" },
-      "state": "planned",
-      "sources": [],
+      "state": "ready",
+      "versions": { "appliesFrom": "4.1.11" },
+      "sources": [
+        "src/engine/core/cmds.ts",
+        "src/engine/core/command-handlers.ts",
+        "src/engine/core/command-runtime.ts",
+        "src/engine/dom/presenter.ts",
+        "src/studio/schema.ts",
+        "tests/cmds.test.ts"
+      ],
       "replaces": ["CONTRIBUTING.md#changing-a-command-end-to-end"],
-      "questions": { "en": [], "fr": [] },
-      "aliases": { "en": [], "fr": [] },
-      "identifiers": [],
-      "related": [],
-      "prerequisites": [],
+      "questions": {
+        "en": ["How do I add a new command to the DSL?", "Which files do I touch to change an engine command?"],
+        "fr": [
+          "Comment ajouter une nouvelle commande au DSL ?",
+          "Quels fichiers toucher pour changer une commande du moteur ?"
+        ]
+      },
+      "aliases": {
+        "en": ["changing a command end to end", "add a command", "Cmd"],
+        "fr": ["changer une commande de bout en bout", "ajouter une commande", "Cmd"]
+      },
+      "keywords": {
+        "en": ["CMD_KEYS", "CHANGES", "HANDLERS", "Presenter", "shake", "vitest"],
+        "fr": ["CMD_KEYS", "CHANGES", "HANDLERS", "Presenter", "shake", "vitest"]
+      },
+      "identifiers": ["npm run tsc"],
+      "related": ["contribute.architecture", "contribute.code-tour", "create.commands", "create.dsl"],
+      "prerequisites": ["contribute.setup"],
       "owner": "@wanoo"
     },
     {
@@ -7468,21 +7521,42 @@
       "context": ["engine-repo"],
       "title": { "en": "Before a pull request", "fr": "Avant une pull request" },
       "url": { "en": "EN-Contribute-Before-A-Pull-Request", "fr": "FR-Contribuer-Avant-Une-Pull-Request" },
-      "state": "planned",
-      "sources": [],
+      "state": "ready",
+      "versions": { "appliesFrom": "4.5.0" },
+      "sources": [
+        "CONTRIBUTING.md",
+        ".github/PULL_REQUEST_TEMPLATE.md",
+        "tools/changes.ts",
+        "tools/quality-baseline.ts"
+      ],
       "replaces": [
         "docs/en/ROADMAP.md#verification-every-milestone",
         "docs/fr/ROADMAP.md#vérification-à-chaque-jalon",
         "CONTRIBUTING.md#contributing-to-questnclick"
       ],
       "questions": {
-        "en": ["Which tests do I run before a pull request?"],
-        "fr": ["Quels tests lancer avant une pull request ?"]
+        "en": ["Which tests do I run before a pull request?", "What must a pull request contain?"],
+        "fr": ["Quels tests lancer avant une pull request ?", "Que doit contenir une pull request ?"]
       },
-      "aliases": { "en": [], "fr": [] },
-      "identifiers": ["npm run quality", "npm run check"],
-      "related": [],
-      "prerequisites": [],
+      "aliases": {
+        "en": ["pre-PR checklist", "pull request checklist", "milestone verification"],
+        "fr": ["liste avant PR", "liste de la pull request", "vérification à chaque jalon"]
+      },
+      "keywords": {
+        "en": ["quality", "knip", "check", "verify:game", "e2e:smoke", "fragment"],
+        "fr": ["quality", "knip", "check", "verify:game", "e2e:smoke", "fragment"]
+      },
+      "identifiers": [
+        "npm run quality",
+        "npm run check",
+        "npm run test:assets",
+        "npm run verify:game",
+        "npm run release-check:local",
+        "npm run e2e:smoke",
+        "npm run preview"
+      ],
+      "related": ["contribute.which-tests", "contribute.ci", "contribute.conventions", "contribute.quality-baseline"],
+      "prerequisites": ["contribute.setup", "contribute.dev-loop"],
       "owner": "@wanoo"
     },
     {
@@ -7493,13 +7567,31 @@
       "context": ["engine-repo"],
       "title": { "en": "Conventions", "fr": "Conventions" },
       "url": { "en": "EN-Contribute-Conventions", "fr": "FR-Contribuer-Conventions" },
-      "state": "planned",
-      "sources": ["tools/changes.ts"],
+      "state": "ready",
+      "versions": { "appliesFrom": "4.5.0" },
+      "sources": [
+        "tools/changes.ts",
+        "changes/README.md",
+        "biome.json",
+        ".git-blame-ignore-revs",
+        ".github/CODEOWNERS",
+        ".github/ISSUE_TEMPLATE/*.yml"
+      ],
       "replaces": ["CONTRIBUTING.md#contributing-to-questnclick"],
-      "questions": { "en": ["My changes/ fragment is refused"], "fr": ["Mon fragment changes/ est refusé"] },
-      "aliases": { "en": [], "fr": [] },
-      "identifiers": [],
-      "related": [],
+      "questions": {
+        "en": ["My changes/ fragment is refused", "How do I name my branch and my pull request?"],
+        "fr": ["Mon fragment changes/ est refusé", "Comment nommer ma branche et ma pull request ?"]
+      },
+      "aliases": {
+        "en": ["changelog fragment", "branch naming", "PR title"],
+        "fr": ["fragment du changelog", "nom de branche", "titre de PR"]
+      },
+      "keywords": {
+        "en": ["changes/", "Breaking", "Fixed", "Changes", "git blame", "Biome", "CODEOWNERS"],
+        "fr": ["changes/", "Breaking", "Fixed", "Changes", "git blame", "Biome", "CODEOWNERS"]
+      },
+      "identifiers": ["npm run changes", "npm run format", "npm run format:check", "npm run lint:code"],
+      "related": ["contribute.before-a-pr", "contribute.writing-docs", "contribute.governance"],
       "prerequisites": [],
       "owner": "@wanoo"
     },
@@ -7512,14 +7604,66 @@
       "context": ["engine-repo"],
       "title": { "en": "Writing documentation", "fr": "Écrire la documentation" },
       "url": { "en": "EN-Contribute-Writing-Documentation", "fr": "FR-Contribuer-Ecrire-La-Documentation" },
-      "state": "planned",
-      "sources": ["tools/wiki.ts", "tools/wiki/{manifest,page,check,coverage,translations,reviewer,claims,examples}.ts", "wiki/_templates/*.md"],
+      "state": "ready",
+      "versions": { "appliesFrom": "4.5.0" },
+      "sources": [
+        "tools/wiki.ts",
+        "tools/wiki/{manifest,page,check,coverage,translations,reviewer,claims,examples}.ts",
+        "wiki/_templates/*.md",
+        "tools/docs-truth.ts",
+        "scripts/check-links.mjs"
+      ],
       "replaces": [],
-      "questions": { "en": [], "fr": [] },
-      "aliases": { "en": [], "fr": [] },
-      "identifiers": ["npm run wiki"],
-      "related": [],
-      "prerequisites": [],
+      "questions": {
+        "en": [
+          "How do I write or change a wiki page?",
+          "Why does npm run wiki -- check fail on my page?",
+          "How do I record that a translation was reviewed?"
+        ],
+        "fr": [
+          "Comment écrire ou modifier une page du wiki ?",
+          "Pourquoi npm run wiki -- check échoue sur ma page ?",
+          "Comment consigner qu'une traduction a été relue ?"
+        ]
+      },
+      "aliases": {
+        "en": ["wiki", "documentation guide", "docs contributing"],
+        "fr": ["wiki", "guide de la documentation", "contribuer à la doc"]
+      },
+      "keywords": {
+        "en": [
+          "manifest",
+          "section id",
+          "LIMIT",
+          "GUARANTEE",
+          "MEASURE",
+          "parity",
+          "translations.json",
+          "reviews.json",
+          "coverage matrix",
+          "freeze"
+        ],
+        "fr": [
+          "manifeste",
+          "id de section",
+          "LIMIT",
+          "GUARANTEE",
+          "MEASURE",
+          "parité",
+          "translations.json",
+          "reviews.json",
+          "matrice de couverture",
+          "gel"
+        ]
+      },
+      "identifiers": ["npm run wiki", "npm run docs:truth", "npm run docs:links"],
+      "related": [
+        "contribute.conventions",
+        "contribute.before-a-pr",
+        "reference.environment-variables",
+        "contribute.releasing"
+      ],
+      "prerequisites": ["contribute.setup"],
       "owner": "@wanoo"
     },
     {
@@ -7530,8 +7674,16 @@
       "context": ["engine-repo"],
       "title": { "en": "Architecture", "fr": "Architecture" },
       "url": { "en": "EN-Contribute-Architecture", "fr": "FR-Contribuer-Architecture" },
-      "state": "planned",
-      "sources": [],
+      "state": "ready",
+      "versions": { "appliesFrom": "4.1.15" },
+      "sources": [
+        "src/engine/BOUNDARIES.md",
+        "src/engine/core/engine.ts",
+        "src/engine/core/ports.ts",
+        "src/engine/core/define.ts",
+        "src/engine/core/save.ts",
+        "tools/game.ts"
+      ],
       "replaces": [
         "docs/en/ARCHITECTURE.md#architecture",
         "docs/en/ARCHITECTURE.md#the-layers",
@@ -7556,9 +7708,16 @@
         "CONTRIBUTING.md#reading-the-code"
       ],
       "questions": { "en": [], "fr": [] },
-      "aliases": { "en": [], "fr": [] },
+      "aliases": {
+        "en": ["ARCHITECTURE", "ENGINE layout of the code", "how the code is organised"],
+        "fr": ["ARCHITECTURE", "découpage du code", "organisation du code"]
+      },
+      "keywords": {
+        "en": ["layers", "Presenter", "GameDef", "session", "solver", "trusted content"],
+        "fr": ["couches", "Presenter", "GameDef", "session", "solveur", "contenu de confiance"]
+      },
       "identifiers": [],
-      "related": [],
+      "related": ["contribute.code-tour", "contribute.boundaries", "engine.how-it-works", "engine.execution-model"],
       "prerequisites": [],
       "owner": "@wanoo"
     },
@@ -7570,8 +7729,16 @@
       "context": ["engine-repo"],
       "title": { "en": "Code tour", "fr": "Visite du code" },
       "url": { "en": "EN-Contribute-Code-Tour", "fr": "FR-Contribuer-Visite-Du-Code" },
-      "state": "planned",
-      "sources": [],
+      "state": "ready",
+      "versions": { "appliesFrom": "4.1.11" },
+      "sources": [
+        "tests/fixtures/classics.ts",
+        "tests/core.test.ts",
+        "tests/core-runtime.test.ts",
+        "tests/replay.test.ts",
+        "tests/solver-contract.test.ts",
+        "tests/reality-engine.test.ts"
+      ],
       "replaces": [
         "docs/en/CODE_TOUR.md#code-tour",
         "docs/en/CODE_TOUR.md#1-declare-a-small-game",
@@ -7594,10 +7761,17 @@
         "CONTRIBUTING.md#reading-the-code"
       ],
       "questions": { "en": [], "fr": [] },
-      "aliases": { "en": [], "fr": [] },
+      "aliases": {
+        "en": ["CODE_TOUR", "code walkthrough", "read the code"],
+        "fr": ["CODE_TOUR", "visite guidée du code", "lire le code"]
+      },
+      "keywords": {
+        "en": ["compileGame", "Engine.act", "replay", "makeExpander", "receive"],
+        "fr": ["compileGame", "Engine.act", "replay", "makeExpander", "receive"]
+      },
       "identifiers": [],
-      "related": [],
-      "prerequisites": [],
+      "related": ["contribute.architecture", "contribute.which-tests", "contribute.dev-loop"],
+      "prerequisites": ["contribute.setup"],
       "owner": "@wanoo"
     },
     {
@@ -7608,14 +7782,28 @@
       "context": ["engine-repo"],
       "title": { "en": "Import boundaries", "fr": "Frontières d'import" },
       "url": { "en": "EN-Contribute-Import-Boundaries", "fr": "FR-Contribuer-Frontieres-D-Import" },
-      "state": "planned",
-      "sources": ["src/engine/BOUNDARIES.md", "tests/boundaries.test.ts"],
+      "state": "ready",
+      "versions": { "appliesFrom": "4.1.14" },
+      "sources": ["src/engine/BOUNDARIES.md", "tests/boundaries.test.ts", "tests/file-size.test.ts"],
       "replaces": ["docs/en/ARCHITECTURE.md#public-and-internal", "docs/fr/ARCHITECTURE.md#public-et-interne"],
       "questions": { "en": [], "fr": [] },
-      "aliases": { "en": [], "fr": [] },
-      "identifiers": [],
-      "related": [],
+      "aliases": {
+        "en": ["BOUNDARIES", "layer rules", "what may import what"],
+        "fr": ["BOUNDARIES", "règles de couches", "qui peut importer quoi"]
+      },
+      "keywords": {
+        "en": ["core", "player", "scene", "painter", "cycle", "public API", "internal"],
+        "fr": ["cœur", "joueur", "scène", "peintre", "cycle", "API publique", "interne"]
+      },
+      "identifiers": ["npm run verify:dist"],
+      "related": ["contribute.architecture", "engine.api", "start.stability"],
       "prerequisites": [],
+      "claims": [
+        {
+          "id": "core-imports-no-dom",
+          "test": "tests/boundaries.test.ts › the engine's layers › core imports nothing but core and plain packages: no DOM, no tools, no dev, no minigames"
+        }
+      ],
       "owner": "@wanoo"
     },
     {
@@ -7626,17 +7814,48 @@
       "context": ["engine-repo"],
       "title": { "en": "Which tests run when", "fr": "Quels tests tournent quand" },
       "url": { "en": "EN-Contribute-Which-Tests-Run-When", "fr": "FR-Contribuer-Quels-Tests-Tournent-Quand" },
-      "state": "planned",
-      "sources": ["tools/ci-plan.ts"],
+      "state": "ready",
+      "versions": { "appliesFrom": "4.5.0" },
+      "sources": [
+        "tools/ci-plan.ts",
+        ".github/workflows/ci.yml",
+        ".github/workflows/nightly.yml",
+        ".github/workflows/candidate.yml",
+        ".github/workflows/prove.yml",
+        "package.json"
+      ],
       "replaces": [
         "docs/en/CODE_TOUR.md#7-find-the-test-of-a-thing",
         "docs/fr/CODE_TOUR.md#7-trouver-le-test-dune-chose",
         "CONTRIBUTING.md#what-ci-runs"
       ],
-      "questions": { "en": [], "fr": [] },
-      "aliases": { "en": [], "fr": [] },
-      "identifiers": [],
-      "related": [],
+      "questions": {
+        "en": [
+          "Which test suite runs on a pull request and which runs at night?",
+          "Where is the test of this command?"
+        ],
+        "fr": [
+          "Quelle suite de tests tourne sur une pull request et laquelle la nuit ?",
+          "Où est le test de cette commande ?"
+        ]
+      },
+      "aliases": {
+        "en": ["test matrix", "find the test of a thing", "test suites"],
+        "fr": ["matrice des tests", "trouver le test d'une chose", "suites de tests"]
+      },
+      "keywords": {
+        "en": ["unit", "heavy", "coverage", "e2e", "WebKit", "Firefox", "nightly", "weekly", "candidate"],
+        "fr": ["unitaire", "lourd", "couverture", "e2e", "WebKit", "Firefox", "nightly", "hebdomadaire", "candidat"]
+      },
+      "identifiers": [
+        "npm run test",
+        "npm run test:node",
+        "npm run test:coverage",
+        "npm run test:heavy",
+        "npm run prove:game",
+        "npm run e2e"
+      ],
+      "related": ["contribute.ci", "contribute.before-a-pr", "contribute.mutation-testing", "contribute.code-tour"],
       "prerequisites": [],
       "owner": "@wanoo"
     },
@@ -7649,14 +7868,39 @@
       "context": ["engine-repo"],
       "title": { "en": "Mutation testing", "fr": "Tests de mutation" },
       "url": { "en": "EN-Contribute-Mutation-Testing", "fr": "FR-Contribuer-Tests-De-Mutation" },
-      "state": "planned",
-      "sources": ["tools/mutate.ts", "tools/mutation-sets.ts"],
+      "state": "ready",
+      "versions": { "appliesFrom": "4.3.1" },
+      "sources": [
+        "tools/mutate.ts",
+        "tools/mutation-sets.ts",
+        "tools/mutation-shards.ts",
+        "vitest.mutation.config.ts",
+        "docs/dev/MUTANTS.md",
+        "docs/dev/mutants.json",
+        ".github/workflows/mutation.yml"
+      ],
       "replaces": [],
-      "questions": { "en": ["A mutant survived my change"], "fr": ["Un mutant a survécu à mon changement"] },
-      "aliases": { "en": [], "fr": [] },
-      "identifiers": [],
-      "related": [],
-      "prerequisites": [],
+      "questions": {
+        "en": ["A mutant survived my change", "How do I run mutation testing on one file?"],
+        "fr": ["Un mutant a survécu à mon changement", "Comment lancer les tests de mutation sur un seul fichier ?"]
+      },
+      "aliases": {
+        "en": ["MUTANTS", "surviving mutant", "equivalent mutant", "Stryker"],
+        "fr": ["MUTANTS", "mutant survivant", "mutant équivalent", "Stryker"]
+      },
+      "keywords": {
+        "en": ["mutation set", "gated", "shard", "revisit", "mutants.json"],
+        "fr": ["ensemble de mutation", "barrière", "morceau", "revisit", "mutants.json"]
+      },
+      "identifiers": [
+        "npm run test:mutation:core",
+        "npm run test:mutation:reality",
+        "npm run test:mutation:remix",
+        "npm run test:mutation:speedrun",
+        "npm run test:mutation:runs"
+      ],
+      "related": ["contribute.coverage-ratchet", "contribute.which-tests", "contribute.ci"],
+      "prerequisites": ["contribute.setup"],
       "owner": "@wanoo"
     },
     {
@@ -7667,14 +7911,25 @@
       "context": ["engine-repo"],
       "title": { "en": "The coverage ratchet", "fr": "Le cliquet de couverture" },
       "url": { "en": "EN-Contribute-Coverage-Ratchet", "fr": "FR-Contribuer-Cliquet-De-Couverture" },
-      "state": "planned",
-      "sources": ["tools/coverage-ratchet.ts"],
+      "state": "ready",
+      "versions": { "appliesFrom": "4.2.3" },
+      "sources": ["tools/coverage-ratchet.ts", "vite.config.ts"],
       "replaces": [],
-      "questions": { "en": ["The coverage ratchet is red"], "fr": ["Le cliquet de couverture est rouge"] },
-      "aliases": { "en": [], "fr": [] },
-      "identifiers": [],
-      "related": [],
-      "prerequisites": [],
+      "questions": {
+        "en": ["The coverage ratchet is red", "How do I raise a coverage floor?"],
+        "fr": ["Le cliquet de couverture est rouge", "Comment relever un seuil de couverture ?"]
+      },
+      "aliases": {
+        "en": ["coverage floor", "coverage threshold", "ratchet"],
+        "fr": ["seuil de couverture", "plancher de couverture", "cliquet"]
+      },
+      "keywords": {
+        "en": ["V8 coverage", "thresholds", "--strict", "coverage-summary.json"],
+        "fr": ["couverture V8", "seuils", "--strict", "coverage-summary.json"]
+      },
+      "identifiers": ["npm run test:coverage"],
+      "related": ["contribute.mutation-testing", "contribute.ci", "contribute.which-tests"],
+      "prerequisites": ["contribute.setup"],
       "owner": "@wanoo"
     },
     {
@@ -7685,14 +7940,28 @@
       "context": ["engine-repo"],
       "title": { "en": "The quality baseline", "fr": "La référence de qualité" },
       "url": { "en": "EN-Contribute-Quality-Baseline", "fr": "FR-Contribuer-Reference-De-Qualite" },
-      "state": "planned",
-      "sources": ["tools/quality-baseline.ts"],
+      "state": "ready",
+      "versions": { "appliesFrom": "4.4.0" },
+      "sources": ["tools/quality-baseline.ts", "tests/quality-baseline.json"],
       "replaces": [],
-      "questions": { "en": [], "fr": [] },
-      "aliases": { "en": [], "fr": [] },
+      "questions": {
+        "en": ["The quality baseline check fails after my change", "How do I update tests/quality-baseline.json?"],
+        "fr": [
+          "La vérification de la référence de qualité échoue après mon changement",
+          "Comment mettre à jour tests/quality-baseline.json ?"
+        ]
+      },
+      "aliases": {
+        "en": ["baseline", "behaviour frozen", "golden saves"],
+        "fr": ["référence", "comportement figé", "sauvegardes de référence"]
+      },
+      "keywords": {
+        "en": ["witness", "digest", "proof", "api-surface", "initialJsKB", "README figures"],
+        "fr": ["témoin", "empreinte", "preuve", "api-surface", "initialJsKB", "chiffres du README"]
+      },
       "identifiers": ["npm run quality:baseline"],
-      "related": [],
-      "prerequisites": [],
+      "related": ["contribute.before-a-pr", "contribute.dev-loop", "contribute.benchmarks"],
+      "prerequisites": ["contribute.setup"],
       "owner": "@wanoo"
     },
     {
@@ -7704,13 +7973,37 @@
       "context": ["engine-repo"],
       "title": { "en": "CI explained", "fr": "La CI expliquée" },
       "url": { "en": "EN-Contribute-CI", "fr": "FR-Contribuer-CI" },
-      "state": "planned",
-      "sources": [".github/workflows/ci.yml"],
+      "state": "ready",
+      "versions": { "appliesFrom": "4.5.0" },
+      "sources": [".github/workflows/*.yml", "tools/ci-plan.ts", "scripts/ci-ffmpeg.sh"],
       "replaces": ["CONTRIBUTING.md#what-ci-runs"],
-      "questions": { "en": ["A CI job failed on my pull request"], "fr": ["Un job de la CI a échoué sur ma pull request"] },
-      "aliases": { "en": [], "fr": [] },
-      "identifiers": [],
-      "related": [],
+      "questions": {
+        "en": [
+          "A CI job failed on my pull request",
+          "Why did a CI job say not needed by the plan?",
+          "What does the full-ci label do?"
+        ],
+        "fr": [
+          "Un job de la CI a échoué sur ma pull request",
+          "Pourquoi un job de la CI dit not needed by the plan ?",
+          "À quoi sert l'étiquette full-ci ?"
+        ]
+      },
+      "aliases": {
+        "en": ["What CI runs", "GitHub Actions", "flaky test", "pr-gate"],
+        "fr": ["ce que lance la CI", "GitHub Actions", "test instable", "pr-gate"]
+      },
+      "keywords": {
+        "en": ["plan", "gate", "full-ci", "pages-only", "Context is stopped", "apt mirror", "nightly", "candidate"],
+        "fr": ["plan", "barrière", "full-ci", "pages-only", "Context is stopped", "miroir apt", "nightly", "candidat"]
+      },
+      "identifiers": ["npm run ci:plan"],
+      "related": [
+        "contribute.which-tests",
+        "contribute.before-a-pr",
+        "contribute.releasing",
+        "contribute.mutation-testing"
+      ],
       "prerequisites": [],
       "owner": "@wanoo"
     },
@@ -7722,8 +8015,15 @@
       "context": ["engine-repo"],
       "title": { "en": "Field passes", "fr": "Passes de terrain" },
       "url": { "en": "EN-Contribute-Field-Passes", "fr": "FR-Contribuer-Passes-De-Terrain" },
-      "state": "planned",
-      "sources": ["tools/field/*.ts"],
+      "state": "ready",
+      "versions": { "appliesFrom": "4.1.20" },
+      "sources": [
+        "tools/field/*.ts",
+        "tools/field/surfaces.mjs",
+        "scripts/release-notes.mjs",
+        "docs/dev/passes/TEMPLATE.md",
+        "tools/playtests.ts"
+      ],
       "replaces": [
         "docs/en/FIELD.md#field-proof-what-only-people-and-real-devices-can-check",
         "docs/en/FIELD.md#playtesters-pass-4",
@@ -7736,11 +8036,57 @@
         "docs/fr/FIELD.md#le-field-kit-4118",
         "docs/fr/FIELD.md#reporter-une-passe-sur-un-nouveau-candidat-4120"
       ],
-      "questions": { "en": [], "fr": [] },
-      "aliases": { "en": [], "fr": [] },
-      "identifiers": [],
-      "related": [],
-      "prerequisites": [],
+      "questions": {
+        "en": [
+          "How do I make a field pass for a release?",
+          "How do I carry a field pass to a new candidate?",
+          "Why does my field report not check against the new candidate?"
+        ],
+        "fr": [
+          "Comment faire une passe de terrain pour une release ?",
+          "Comment reporter une passe de terrain sur un nouveau candidat ?",
+          "Pourquoi mon rapport de passe ne se vérifie plus sur le nouveau candidat ?"
+        ]
+      },
+      "aliases": {
+        "en": ["FIELD", "Field Kit", "human pass", "manual pass", "field proof"],
+        "fr": ["FIELD", "Field Kit", "passe humaine", "passe manuelle", "preuve terrain"]
+      },
+      "keywords": {
+        "en": [
+          "field-pass issue",
+          "candidate run",
+          "playtesters",
+          "bundle",
+          "carry",
+          "not-run",
+          "blocked",
+          "failed",
+          "passed"
+        ],
+        "fr": [
+          "issue field-pass",
+          "candidate run",
+          "testeurs",
+          "bundle",
+          "report",
+          "not-run",
+          "blocked",
+          "failed",
+          "passed"
+        ]
+      },
+      "identifiers": [
+        "npm run field:init",
+        "npm run field:check",
+        "npm run field:report",
+        "npm run field:bundle",
+        "npm run field:verify-bundle",
+        "npm run field:carry",
+        "npm run verify:field"
+      ],
+      "related": ["contribute.releasing", "create.playtests", "start.stability"],
+      "prerequisites": ["contribute.setup", "contribute.releasing"],
       "owner": "@wanoo"
     },
     {
@@ -7751,8 +8097,9 @@
       "context": ["engine-repo"],
       "title": { "en": "Benchmarks", "fr": "Mesures de performance" },
       "url": { "en": "EN-Contribute-Benchmarks", "fr": "FR-Contribuer-Mesures-De-Performance" },
-      "state": "planned",
-      "sources": ["tools/bench.ts"],
+      "state": "ready",
+      "versions": { "appliesFrom": "4.1.13" },
+      "sources": ["tools/bench.ts", "tools/prove-matrix.ts", "src/engine/tools/stress.ts", "docs/dev/PROOF-MATRIX.md"],
       "replaces": [
         "docs/en/BENCH.md#benchmark-a-generated-game-of-any-size",
         "docs/en/BENCH.md#results",
@@ -7802,10 +8149,35 @@
         "docs/fr/BENCH.md#4113--la-matrice-de-preuve-un-stockage-compact-des-points-de-reprise-7-octobre-2026"
       ],
       "questions": { "en": [], "fr": [] },
-      "aliases": { "en": [], "fr": [] },
-      "identifiers": [],
-      "related": [],
-      "prerequisites": [],
+      "aliases": {
+        "en": ["BENCH", "benchmark", "solver performance", "proof matrix"],
+        "fr": ["BENCH", "banc d'essai", "performance du solveur", "matrice de preuve"]
+      },
+      "keywords": {
+        "en": [
+          "states",
+          "engine runs",
+          "workers",
+          "peak RSS",
+          "no-op memo",
+          "mobility regions",
+          "canonical owner",
+          "partial-order reduction"
+        ],
+        "fr": [
+          "états",
+          "exécutions du moteur",
+          "workers",
+          "RSS maximal",
+          "mémoire des no-ops",
+          "régions de mobilité",
+          "propriétaire canonique",
+          "réduction d'ordre partiel"
+        ]
+      },
+      "identifiers": ["npm run bench", "npm run prove:matrix", "npm run audit:corpus"],
+      "related": ["create.solver-proofs", "create.solver-options", "contribute.which-tests"],
+      "prerequisites": ["contribute.setup"],
       "owner": "@wanoo"
     },
     {
@@ -7816,8 +8188,9 @@
       "context": ["engine-repo"],
       "title": { "en": "Releasing", "fr": "Publier une release" },
       "url": { "en": "EN-Contribute-Releasing", "fr": "FR-Contribuer-Publier-Une-Release" },
-      "state": "planned",
-      "sources": ["tools/release/*.mjs", ".github/workflows/release.yml"],
+      "state": "ready",
+      "versions": { "appliesFrom": "4.2.0" },
+      "sources": ["tools/release/*.mjs", ".github/workflows/release.yml", ".github/workflows/candidate.yml"],
       "replaces": [
         "docs/en/RELEASING.md#releasing",
         "docs/en/RELEASING.md#the-chain",
@@ -7832,11 +8205,29 @@
         "docs/fr/RELEASING.md#le-préflight-de-42",
         "docs/fr/SUPPORT.md#releases"
       ],
-      "questions": { "en": [], "fr": [] },
-      "aliases": { "en": [], "fr": [] },
-      "identifiers": [],
-      "related": [],
-      "prerequisites": [],
+      "questions": {
+        "en": [
+          "How do I release a new version?",
+          "How do I sign a release tag?",
+          "The release run says the tag names no candidate run"
+        ],
+        "fr": [
+          "Comment publier une nouvelle version ?",
+          "Comment signer un tag de release ?",
+          "Le run de release dit que le tag ne nomme aucun candidate run"
+        ]
+      },
+      "aliases": {
+        "en": ["RELEASING", "release", "publish a version", "ship"],
+        "fr": ["RELEASING", "release", "publier une version", "ship"]
+      },
+      "keywords": {
+        "en": ["candidate", "signed tag", "immutable release", "preflight-stable", "ship verify", "allowed_signers"],
+        "fr": ["candidat", "tag signé", "release immuable", "preflight-stable", "ship verify", "allowed_signers"]
+      },
+      "identifiers": ["npm run ship", "npm run release-check", "npm run release-check:ci"],
+      "related": ["contribute.field-passes", "contribute.npm-packages", "start.stability", "contribute.ci"],
+      "prerequisites": ["contribute.setup"],
       "owner": "@wanoo"
     },
     {
@@ -7847,8 +8238,17 @@
       "context": ["engine-repo"],
       "title": { "en": "npm packages", "fr": "Paquets npm" },
       "url": { "en": "EN-Contribute-NPM-Packages", "fr": "FR-Contribuer-Paquets-NPM" },
-      "state": "planned",
-      "sources": ["scripts/pack.mjs"],
+      "state": "ready",
+      "versions": { "appliesFrom": "4.3.0" },
+      "sources": [
+        "scripts/pack.mjs",
+        "scripts/pack-manifests.mjs",
+        "scripts/fresh-install.mjs",
+        "scripts/external-consumer.mjs",
+        "scripts/sbom.mjs",
+        "scripts/locks.mjs",
+        "tools/release/artifacts.mjs"
+      ],
       "replaces": [
         "docs/en/PACKAGE.md#how-it-is-checked",
         "docs/en/RELEASING.md#npm-written-in-4120-played-in-a-later-42x",
@@ -7856,10 +8256,35 @@
         "docs/fr/RELEASING.md#npm-écrit-en-4120-joué-dans-une-42x-ultérieure"
       ],
       "questions": { "en": [], "fr": [] },
-      "aliases": { "en": [], "fr": [] },
-      "identifiers": [],
-      "related": [],
-      "prerequisites": [],
+      "aliases": {
+        "en": ["PACKAGE", "npm publish", "tarball", "packages"],
+        "fr": ["PACKAGE", "npm publish", "archive npm", "paquets"]
+      },
+      "keywords": {
+        "en": [
+          "quest-n-click",
+          "create-quest-n-click",
+          "quest-n-click-bridge",
+          "quest-n-click-connectors",
+          "quest-n-click-studio-server",
+          "staged publishing",
+          "trusted publishing",
+          "dual-use"
+        ],
+        "fr": [
+          "quest-n-click",
+          "create-quest-n-click",
+          "quest-n-click-bridge",
+          "quest-n-click-connectors",
+          "quest-n-click-studio-server",
+          "publication en étapes",
+          "trusted publishing",
+          "dual-use"
+        ]
+      },
+      "identifiers": ["npm run pack", "npm run fresh-install", "npm run external-consumer", "npm run locks"],
+      "related": ["contribute.releasing", "install.package", "install.from-npm", "install.from-archive"],
+      "prerequisites": ["contribute.setup"],
       "owner": "@wanoo"
     },
     {
@@ -7870,13 +8295,18 @@
       "context": ["engine-repo"],
       "title": { "en": "Decisions and ADRs", "fr": "Décisions et ADR" },
       "url": { "en": "EN-Contribute-Decisions", "fr": "FR-Contribuer-Decisions" },
-      "state": "planned",
-      "sources": ["docs/dev/DECISIONS.md"],
+      "state": "ready",
+      "versions": { "appliesFrom": "4.5.0" },
+      "sources": ["docs/dev/DECISIONS.md", "docs/dev/adr/README.md"],
       "replaces": [],
       "questions": { "en": [], "fr": [] },
-      "aliases": { "en": [], "fr": [] },
+      "aliases": {
+        "en": ["ADR", "architecture decision records", "DECISIONS"],
+        "fr": ["ADR", "décisions d'architecture", "DECISIONS"]
+      },
+      "keywords": { "en": ["D1", "D50", "decision log"], "fr": ["D1", "D50", "journal des décisions"] },
       "identifiers": [],
-      "related": [],
+      "related": ["contribute.governance", "contribute.architecture"],
       "prerequisites": [],
       "owner": "@wanoo"
     },
@@ -7888,13 +8318,18 @@
       "context": ["engine-repo"],
       "title": { "en": "Governance", "fr": "Gouvernance" },
       "url": { "en": "EN-Contribute-Governance", "fr": "FR-Contribuer-Gouvernance" },
-      "state": "planned",
-      "sources": [],
+      "state": "ready",
+      "versions": { "appliesFrom": "4.4.0" },
+      "sources": ["docs/dev/CHARTER.md", "docs/dev/DECISIONS.md", ".github/CODEOWNERS", ".github/allowed_signers"],
       "replaces": [],
       "questions": { "en": [], "fr": [] },
-      "aliases": { "en": [], "fr": [] },
+      "aliases": { "en": ["charter", "maintainer", "who decides"], "fr": ["charte", "mainteneur", "qui décide"] },
+      "keywords": {
+        "en": ["D3", "D12", "D37", "field-pass", "second reading", "CODEOWNERS"],
+        "fr": ["D3", "D12", "D37", "field-pass", "seconde lecture", "CODEOWNERS"]
+      },
       "identifiers": [],
-      "related": [],
+      "related": ["contribute.decisions", "contribute.field-passes", "contribute.releasing", "contribute.ai-agents"],
       "prerequisites": [],
       "owner": "@wanoo"
     },
@@ -7906,14 +8341,18 @@
       "context": ["engine-repo"],
       "title": { "en": "Bot pull requests", "fr": "Pull requests des bots" },
       "url": { "en": "EN-Contribute-Bot-Pull-Requests", "fr": "FR-Contribuer-Pull-Requests-Des-Bots" },
-      "state": "planned",
-      "sources": [],
+      "state": "ready",
+      "versions": { "appliesFrom": "4.4.0" },
+      "sources": [".github/dependabot.yml", "scripts/locks.mjs", "scripts/locks/*.json"],
       "replaces": [],
-      "questions": { "en": [], "fr": [] },
-      "aliases": { "en": ["Dependabot"], "fr": ["Dependabot"] },
-      "identifiers": [],
-      "related": [],
-      "prerequisites": [],
+      "questions": {
+        "en": ["What do I do with the Dependabot pull requests?", "A Dependabot pull request is red"],
+        "fr": ["Que faire des pull requests de Dependabot ?", "Une pull request de Dependabot est rouge"]
+      },
+      "aliases": { "en": ["Dependabot", "dependency updates"], "fr": ["Dependabot", "mises à jour des dépendances"] },
+      "identifiers": ["npm run locks"],
+      "related": ["contribute.ci", "contribute.releasing"],
+      "prerequisites": ["contribute.setup"],
       "owner": "@wanoo"
     },
     {
@@ -7924,14 +8363,31 @@
       "context": ["engine-repo"],
       "title": { "en": "Contributing with AI agents", "fr": "Contribuer avec des agents IA" },
       "url": { "en": "EN-Contribute-AI-Agents", "fr": "FR-Contribuer-Agents-IA" },
-      "state": "planned",
-      "sources": ["AGENTS.md"],
+      "state": "ready",
+      "versions": { "appliesFrom": "4.5.0" },
+      "sources": ["AGENTS.md", "CLAUDE.md", ".mcp.json", ".cursor/mcp.json", "tools/studio/tools.ts"],
       "replaces": ["README.md#how-it-is-made", "README.fr.md#comment-cest-fait"],
-      "questions": { "en": [], "fr": [] },
-      "aliases": { "en": [], "fr": [] },
-      "identifiers": [],
-      "related": [],
-      "prerequisites": [],
+      "questions": {
+        "en": [
+          "How do I set up an AI assistant to work on the engine?",
+          "Which rules must an AI agent follow in this repository?"
+        ],
+        "fr": [
+          "Comment configurer un assistant IA pour travailler sur le moteur ?",
+          "Quelles règles un agent IA doit-il suivre dans ce dépôt ?"
+        ]
+      },
+      "aliases": {
+        "en": ["AGENTS.md", "CLAUDE.md", "AI assistant", "Claude Code", "Cursor"],
+        "fr": ["AGENTS.md", "CLAUDE.md", "assistant IA", "Claude Code", "Cursor"]
+      },
+      "keywords": {
+        "en": ["MCP", "skills", "second context", "how it is made"],
+        "fr": ["MCP", "skills", "second contexte", "comment c'est fait"]
+      },
+      "identifiers": ["npm run mcp", "search_docs", "list_docs"],
+      "related": ["create.working-with-ai", "studio.mcp-setup", "studio.mcp-tools", "contribute.governance"],
+      "prerequisites": ["contribute.setup"],
       "owner": "@wanoo"
     },
     {
@@ -7942,14 +8398,38 @@
       "context": ["engine-repo"],
       "title": { "en": "Security policy", "fr": "Politique de sécurité" },
       "url": { "en": "EN-Contribute-Security-Policy", "fr": "FR-Contribuer-Politique-De-Securite" },
-      "state": "planned",
-      "sources": ["SECURITY.md"],
+      "state": "ready",
+      "versions": { "appliesFrom": "4.2.5" },
+      "sources": [
+        "SECURITY.md",
+        "tools/studio/assistant.ts",
+        "tools/studio/assistant-loop.ts",
+        "tools/studio/security.ts",
+        "tests/studio-security.test.ts"
+      ],
       "replaces": ["SECURITY.md#security-policy"],
       "questions": { "en": [], "fr": [] },
-      "aliases": { "en": [], "fr": [] },
-      "identifiers": [],
-      "related": [],
+      "aliases": {
+        "en": ["SECURITY", "report a vulnerability", "security advisory"],
+        "fr": ["SECURITY", "signaler une vulnérabilité", "avis de sécurité"]
+      },
+      "keywords": {
+        "en": ["loopback", "LAN token", "trusted code", "provider key", "SSRF", "DNS rebinding"],
+        "fr": ["boucle locale", "jeton LAN", "code de confiance", "clé du fournisseur", "SSRF", "DNS rebinding"]
+      },
+      "identifiers": ["npm run studio:lan", "npm run dev:lan"],
+      "related": ["studio.security", "clever.security", "bridge.security", "contribute.code-of-conduct"],
       "prerequisites": [],
+      "claims": [
+        {
+          "id": "lan-token-required",
+          "test": "tests/studio-security.test.ts › LAN Studio capability › requires a token and same-origin writes"
+        },
+        {
+          "id": "provider-no-redirect",
+          "test": "tests/studio-security.test.ts › provider calls › never follows a redirect"
+        }
+      ],
       "owner": "@wanoo"
     },
     {
@@ -7960,13 +8440,21 @@
       "context": ["engine-repo"],
       "title": { "en": "Code of conduct", "fr": "Code de conduite" },
       "url": { "en": "EN-Contribute-Code-Of-Conduct", "fr": "FR-Contribuer-Code-De-Conduite" },
-      "state": "planned",
+      "state": "ready",
+      "versions": { "appliesFrom": "4.2.5" },
       "sources": ["CODE_OF_CONDUCT.md"],
       "replaces": ["CODE_OF_CONDUCT.md#code-of-conduct"],
       "questions": { "en": [], "fr": [] },
-      "aliases": { "en": [], "fr": [] },
+      "aliases": {
+        "en": ["CODE_OF_CONDUCT", "report harassment", "Contributor Covenant"],
+        "fr": ["CODE_OF_CONDUCT", "signaler un harcèlement", "Contributor Covenant"]
+      },
+      "keywords": {
+        "en": ["respect", "warning", "ban", "report"],
+        "fr": ["respect", "avertissement", "exclusion", "signalement"]
+      },
       "identifiers": [],
-      "related": [],
+      "related": ["contribute.governance", "contribute.security-policy", "contribute.welcome"],
       "prerequisites": [],
       "owner": "@wanoo"
     },
@@ -7978,8 +8466,14 @@
       "context": ["engine-repo"],
       "title": { "en": "Licences and credits", "fr": "Licences et crédits" },
       "url": { "en": "EN-Contribute-Licences-And-Credits", "fr": "FR-Contribuer-Licences-Et-Credits" },
-      "state": "planned",
-      "sources": ["CREDITS.md", "LICENSE*"],
+      "state": "ready",
+      "versions": { "appliesFrom": "4.3.0" },
+      "sources": [
+        "CREDITS.md",
+        "LICENSE*",
+        "src/engine/dom/fonts/OFL.txt",
+        "games/demo/audio/projects/swan-theme/SOURCE.md"
+      ],
       "replaces": [
         "docs/en/AUDIO.md#audio-sources",
         "docs/fr/AUDIO.md#sources-audio",
@@ -7993,9 +8487,16 @@
         "CREDITS.md#not-affiliated"
       ],
       "questions": { "en": [], "fr": [] },
-      "aliases": { "en": [], "fr": [] },
-      "identifiers": [],
-      "related": [],
+      "aliases": {
+        "en": ["CREDITS", "LICENSE", "licence", "license", "attribution"],
+        "fr": ["CREDITS", "LICENSE", "licence", "attribution", "droits d'auteur"]
+      },
+      "keywords": {
+        "en": ["MIT", "CC BY 4.0", "SIL OFL", "Swan Lake", "Furnace", "not affiliated", "LucasArts", "ScummVM"],
+        "fr": ["MIT", "CC BY 4.0", "SIL OFL", "Lac des cygnes", "Furnace", "aucune affiliation", "LucasArts", "ScummVM"]
+      },
+      "identifiers": ["npm run verify:commercial"],
+      "related": ["create.asset-provenance", "create.music", "contribute.security-policy"],
       "prerequisites": [],
       "owner": "@wanoo"
     },
