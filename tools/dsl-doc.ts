@@ -4,6 +4,8 @@
 // command with its shape (src/studio/schema.ts `CMD_SPECS`, the Studio's forms) and its sentence, the objectives'
 // fields (`objectiveSchema` and its metadata), and how each field of the game and of a room counts for the IR and the
 // fingerprint (core/ir-fields.ts), and the placeholders a text may hold (4.3.0: text switches, core/text-switch.ts). `--check` exits 1 when a page is behind; tests/dsl-doc.test.ts runs it.
+// 4.5.0: `dslWikiBlock` gives the same block to the wiki's `create.dsl` (`npm run wiki -- generate`); docs/en|fr/DSL.md
+// stay generated here until the switch-over (C2).
 import { readFileSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import type * as z from 'zod';
@@ -188,6 +190,22 @@ export function dslBlock(lang: Lang): string {
     out.push('');
   }
   return out.join('\n').trimEnd();
+}
+
+/** The section ids of the wiki's `create.dsl`, one per `###` heading of the block, in its order (4.5.0, lot B11). */
+const WIKI_SECTIONS = ['conditions', 'commands', 'objectives', 'placeholders', 'field-counts'] as const;
+
+/**
+ * The block as the wiki's `create.dsl` holds it (`npm run wiki -- generate create.dsl`, tools/wiki/generators.ts):
+ * the same text, each `###` heading after its `<a name>` section id, the same in both languages.
+ */
+export function dslWikiBlock(lang: Lang): string {
+  let i = 0;
+  const out = dslBlock(lang)
+    .split('\n')
+    .flatMap((l) => (l.startsWith('### ') ? [`<a name="${WIKI_SECTIONS[i++] ?? 'unknown'}"></a>`, '', l] : [l]));
+  if (i !== WIKI_SECTIONS.length) throw new Error(`dsl-doc: ${i} sections, the wiki names ${WIKI_SECTIONS.length}`);
+  return out.join('\n');
 }
 
 /** The page with its generated block replaced (added at the end when the page has none). */

@@ -71,6 +71,11 @@ const CONSUMERS: Record<string, { phase: Phase; reads: string }> = {
     reads:
       "wiki/data/env.json, the reference page it generates and the manifest's identifiers; a temporary copy of wiki/",
   },
+  'tests/wiki-generated.test.ts': {
+    phase: 'A4 active',
+    reads:
+      "the generated reference pages, wiki/data/'s registers and the manifest's identifiers; a temporary copy of wiki/data",
+  },
   'tests/wiki-publish.test.ts': {
     phase: 'A4 active',
     reads: "a copy of the wiki fixture under a test repository's wiki/",

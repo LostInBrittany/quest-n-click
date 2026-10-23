@@ -92,6 +92,8 @@ const WRITERS: Record<string, string> = {
   'tools/wiki/coverage.ts':
     "elsewhere: the coverage matrix and what it generates, wiki/coverage.json, wiki/legacy.json and the manifest's replaces in wiki/manifest.json (of the folder --wiki names)",
   'tools/wiki.ts': 'elsewhere: the documentation archive, the file named by `wiki -- archive --out`',
+  'tools/wiki/generators.ts':
+    "elsewhere: the generated reference pages' region in wiki/en|fr/<page>.md and their identifiers in wiki/manifest.json (`wiki -- generate`, of the folder --wiki names)",
   'tools/wiki/pages.ts':
     "elsewhere: Pages' /docs/, into the empty folder named by `wiki -- pages --out` (dist/docs in ci)",
   'tools/wiki/publication.ts':

@@ -145,18 +145,44 @@ export function apiRows(): ApiRow[] {
 
 const cell = (s: string) => s.replace(/\|/g, '\\|');
 
-/** The generated block: one table per entry, one line per export. */
-export function signatures(rows = apiRows()): string {
+const LABELS = {
+  en: { head: '| Name | Signature | Stability | Doc |', deprecated: 'deprecated' },
+  fr: { head: '| Nom | Signature | Stabilité | Doc |', deprecated: 'dépréciée' },
+} as const;
+
+function block(rows: ApiRow[], lang: 'en' | 'fr', anchors: boolean): string {
   const out: string[] = [];
   for (const entry of ENTRIES) {
-    out.push(`### quest-n-click/${entry}`, '', '| Name | Signature | Stability | Doc |', '|---|---|---|---|');
+    if (anchors) out.push(`<a name="${entry}-reference"></a>`, '');
+    out.push(`### quest-n-click/${entry}`, '', LABELS[lang].head, '|---|---|---|---|');
     for (const r of rows.filter((r) => r.entry === entry))
       out.push(
-        `| \`${r.name}\` | \`${cell(r.signature)}\` | ${r.stability}${r.deprecated ? ' (deprecated)' : ''} | ${cell(r.doc).slice(0, 140)} |`,
+        `| \`${r.name}\` | \`${cell(r.signature)}\` | ${r.stability}${r.deprecated ? ` (${LABELS[lang].deprecated})` : ''} | ${cell(r.doc).slice(0, 140)} |`,
       );
     out.push('');
   }
   return out.join('\n');
+}
+
+/** The generated block: one table per entry, one line per export. */
+export const signatures = (rows = apiRows()): string => block(rows, 'en', false);
+
+/**
+ * The block as the wiki's `engine.api` holds it (4.5.0, lot B11: `npm run wiki -- generate engine.api`): each entry's
+ * table after its `<a name="<entry>-reference">` section id, its header in the page's language; the docs stay the
+ * source's English first sentences. docs/en|fr/API.md keep `signatures` until the switch-over (C2).
+ */
+export const signaturesWiki = (rows: ApiRow[], lang: 'en' | 'fr'): string => block(rows, lang, true);
+
+/** The rows a page cannot show: no description, no stability, or both tags. */
+export function rowProblems(rows: ApiRow[]): string[] {
+  const out: string[] = [];
+  for (const r of rows) {
+    if (!r.doc) out.push(`${r.entry}: ${r.name} has no description`);
+    if (!r.stability) out.push(`${r.entry}: ${r.name} declares no stability (@public or @extension)`);
+    if (r.bothTags) out.push(`${r.entry}: ${r.name} declares both @public and @extension`);
+  }
+  return out;
 }
 
 /** The page with its generated block replaced (added at the end when the page has none). */
