@@ -840,7 +840,6 @@
       "versions": { "appliesFrom": "4.2.5" },
       "sources": [
         "cli/create.mjs",
-        "cli/quest-n-click.mjs",
         "scripts/readme-quickstart.mjs",
         "scripts/studio-install-smoke.mjs"
       ],
@@ -3131,8 +3130,7 @@
         "tools/refs.ts",
         "tools/assets.py",
         "src/engine/dom/assets.ts",
-        "src/studio/assets-*.ts",
-        "cli/quest-n-click.mjs"
+        "src/studio/assets-*.ts"
       ],
       "replaces": [
         "docs/en/CONTENT_GUIDE.md#the-images",
@@ -3237,8 +3235,7 @@
         "src/engine/tools/provenance.ts",
         "tools/validate.ts",
         "tools/dist.ts",
-        "tests/provenance.test.ts",
-        "cli/quest-n-click.mjs"
+        "tests/provenance.test.ts"
       ],
       "replaces": ["docs/en/TOOLS.md#asset-provenance", "docs/fr/TOOLS.md#provenance-des-assets"],
       "questions": {
@@ -4494,7 +4491,6 @@
         "AGENTS.md",
         ".mcp.json",
         ".cursor/mcp.json",
-        "cli/quest-n-click.mjs",
         ".claude/skills/production-plan/SKILL.md"
       ],
       "replaces": [
@@ -4629,7 +4625,7 @@
       "url": { "en": "EN-Create-GitHub-Pages", "fr": "FR-Creer-GitHub-Pages" },
       "state": "ready",
       "versions": { "appliesFrom": "4.2.5" },
-      "sources": [".github/workflows/ci.yml", "tools/vite/plugins.ts", "cli/quest-n-click.mjs", "cli/create.mjs"],
+      "sources": [".github/workflows/ci.yml", "tools/vite/plugins.ts", "cli/create.mjs"],
       "replaces": ["docs/en/TOOLS.md#deploying", "docs/fr/TOOLS.md#déployer"],
       "questions": {
         "en": [
@@ -4664,7 +4660,7 @@
       "url": { "en": "EN-Create-Static-Game-On-Clever", "fr": "FR-Creer-Jeu-Statique-Sur-Clever" },
       "state": "ready",
       "versions": { "appliesFrom": "4.2.5" },
-      "sources": ["scripts/start.mjs", "package.json", "tools/game.ts", "cli/quest-n-click.mjs", "scripts/pack.mjs"],
+      "sources": ["scripts/start.mjs", "package.json", "tools/game.ts", "scripts/pack.mjs"],
       "replaces": [],
       "questions": {
         "en": ["How do I host my game on Clever Cloud?", "Which variables does the static game need on Clever Cloud?"],
@@ -4800,7 +4796,6 @@
         "tools/serve-args.ts",
         "tools/studio/security.ts",
         "vite.config.ts",
-        "cli/quest-n-click.mjs",
         "tests/studio-security.test.ts"
       ],
       "replaces": [
@@ -5571,8 +5566,7 @@
         "tools/studio/plugin.ts",
         "tools/serve.ts",
         "tools/serve-args.ts",
-        "tools/select-game.ts",
-        "cli/quest-n-click.mjs"
+        "tools/select-game.ts"
       ],
       "replaces": [
         "docs/en/STUDIO.md#studio-local-wysiwyg-authoring-and-the-open-door-for-any-ai",
@@ -6693,7 +6687,6 @@
       "surfaces": ["studio-server"],
       "sources": [
         "studio-server/src/server/main.ts",
-        "studio-server/src/server/config.ts",
         "studio-server/src/worker/main.ts",
         "docs/dev/adr/0025-studio-server.md",
         "docs/dev/adr/0027-studio-oidc-sessions-tokens.md",
@@ -7581,7 +7574,7 @@
       "state": "ready",
       "versions": { "appliesFrom": "4.4.0" },
       "surfaces": ["studio-server"],
-      "sources": ["studio-server/src/server/*.ts", "studio-server/src/worker/lanes.ts", "src/studio/hosted.ts"],
+      "sources": ["studio-server/src/server/service-lease.ts", "studio-server/src/server/previews.ts", "studio-server/src/server/play.ts", "studio-server/src/server/health.ts", "studio-server/src/server/hosted-assets.ts", "studio-server/src/server/jobs.ts", "studio-server/src/server/snapshot-memo.ts", "studio-server/src/worker/lanes.ts", "src/studio/hosted.ts"],
       "replaces": ["docs/en/STUDIO-SERVER.md#known-limits", "docs/fr/STUDIO-SERVER.md#limites-connues"],
       "questions": { "en": [], "fr": [] },
       "aliases": {
@@ -8028,7 +8021,6 @@
         "studio-server/src/ops/backup.ts",
         "studio-server/src/ops/ship.ts",
         "studio-server/src/server/main.ts",
-        "studio-server/src/server/config.ts",
         "tests/studio-backup.test.ts",
         "docs/dev/QUALIF-4.2.3-REFERENCE.md"
       ],
