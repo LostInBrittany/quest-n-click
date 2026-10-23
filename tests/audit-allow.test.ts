@@ -47,6 +47,20 @@ describe("a game's allowance in the leak audit", () => {
     // Built from another game, the assets get none of alpha's allowance.
     expect(allowances(root, BLOCKED, 'beta')('public/assets/img/zorglub/r1c1.webp').size).toBe(0);
     expect(allowances(root, BLOCKED)('public/assets/img/zorglub/r1c1.webp').size).toBe(0);
+    // The allowance file allows nothing in itself: a reason that spells the word is still a leak.
+    expect(ok('games/alpha/audit-allow.json').size).toBe(0);
+    expect(ok('games\\alpha\\audit-allow.json').size).toBe(0);
+  });
+
+  it('names the file that is not JSON', () => {
+    const r = mkdtempSync(join('.cache', 'audit-allow-json-'));
+    try {
+      mkdirSync(join(r, 'games', 'delta'), { recursive: true });
+      writeFileSync(join(r, 'games', 'delta', 'audit-allow.json'), '{ nope');
+      expect(() => allowances(r, BLOCKED)).toThrow(/games\/delta\/audit-allow\.json: not JSON/);
+    } finally {
+      rmSync(r, { recursive: true, force: true });
+    }
   });
 
   it('stops the audit on a faulty file, naming it', () => {

@@ -228,9 +228,9 @@ prefix the audit already holds and a reason that does not spell the word:
 ```
 
 The prefix of a word: `node -e "console.log(require('crypto').createHash('sha1').update('<word>').digest('hex').slice(0, 12))"`,
-in lowercase. The word is then allowed in `games/<id>/` and, when `<id>` is the game being built, in `public/assets/`;
-everywhere else it is still a leak. A prefix the audit does not block stops the audit, so the file cannot outlive the
-word it excuses.
+in lowercase. The word is then allowed in `games/<id>/` (except in `audit-allow.json` itself) and, when `<id>` is
+the game being built, in `public/assets/`; everywhere else it is still a leak. A prefix the audit does not block stops
+the audit, so the file cannot outlive the word it excuses.
 
 <a name="files-changed"></a>
 

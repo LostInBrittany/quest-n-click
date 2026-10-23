@@ -63,7 +63,10 @@ A file no rule names is refused (422) on a shared Studio until the engine gives 
 A game's own files (4.5.1), which the engine cannot know (the modules its `index.ts` imports, its notes, its scripts),
 get their span from the game's `spans.json`, `meta` itself: a path, a folder (`minigames/`) or a glob (`prompts-*.md`,
 `art-tools/**/*.py`), each with a span a client may take. The first that matches wins; the engine's rules above come
-first, so a game never moves an engine file. A file neither names is still refused.
+first, so a game never moves an engine file, and a key that names an engine file or folder literally (`cast.ts`,
+`art/`) is refused. A file neither names is still refused. The file holds at most 256 entries of at most 256
+characters, in 64 KiB; the hosted Studio reads it again when it changes, and while it is faulty it reports why and
+the game's own files have no span, `spans.json` itself staying writable to repair it.
 
 ```json
 { "minigames/": "meta", "commands/": "meta", "swag.ts": "items", "prompts-*.md": "story", "art-tools/": "assets" }

@@ -216,7 +216,6 @@ describe("a game's own spans (spans.json, 4.5.1)", () => {
       'prompts-*.md': 'story',
       'art-tools/**/*.py': 'assets',
       'swag.ts': 'items',
-      'cast.ts': 'meta',
       'rooms/**': 'meta',
       '*.ts': 'rules',
     });
@@ -228,8 +227,9 @@ describe("a game's own spans (spans.json, 4.5.1)", () => {
     // The first pattern that matches wins: swag.ts is items, not the rules of '*.ts'.
     expect(spanOf('swag.ts', own)).toBe('items');
     expect(spanOf('judu.ts', own)).toBe('rules');
-    // An engine file keeps its span whatever the game says.
+    // An engine file keeps its span whatever the game says ('*.ts' matches cast.ts, the engine's rule comes first).
     expect(spanOf('cast.ts', own)).toBe('cast');
+    expect(spanOf('rooms/notes.md', own)).toBe('meta');
     expect(spanOf('rooms/garden.ts', own)).toBe('room:garden');
     expect(spanOf('spans.json', own)).toBe('meta');
     expect(spanOf('audit-allow.json', own)).toBe('meta');
@@ -249,11 +249,40 @@ describe("a game's own spans (spans.json, 4.5.1)", () => {
       { '/x.ts': 'meta' },
       { 'a\\b.ts': 'meta' },
       { '': 'meta' },
+      { './x.ts': 'meta' },
+      { 'a\u0000b': 'meta' },
+      // An engine file or folder, named literally: the engine's rule would win, the line could only mislead.
+      { 'cast.ts': 'meta' },
+      { 'art/': 'meta' },
+      { 'locales/fr.json': 'meta' },
+      { 'rooms/hall.ts': 'meta' },
+      // Too much: a key, or entries.
+      { ['a'.repeat(257)]: 'meta' },
+      Object.fromEntries(Array.from({ length: 257 }, (_, i) => [`f${i}.md`, 'meta'])),
     ])
       expect(() => parseOwnSpans(bad), JSON.stringify(bad)).toThrow(/spans\.json/);
     for (const span of ['*', 'room:', 'nope', 3, 'toString'])
       expect(() => parseOwnSpans({ 'x.ts': span }), String(span)).toThrow(/names no span/);
     expect(spanOf('x.ts', parseOwnSpans({ 'x.ts': 'room:hall' }))).toBe('room:hall');
+    // A key named like an Object.prototype member is a key like any other; so is a path named like one.
+    expect(spanOf('constructor', parseOwnSpans({ constructor: 'notes' }))).toBe('notes');
+    expect(() => spanOf('toString')).toThrow(/no span/);
+  });
+
+  it('matches a hostile glob in time proportional to its length times the path', () => {
+    const own = parseOwnSpans({ ['*a'.repeat(60) + 'b']: 'meta', ['**/'.repeat(60) + 'x']: 'notes' });
+    const t = performance.now();
+    for (let i = 0; i < 50; i++) expect(() => spanOf('a'.repeat(200), own)).toThrow(/no span/);
+    expect(spanOf(`${'d/'.repeat(100)}x`, own)).toBe('notes');
+    expect(performance.now() - t).toBeLessThan(2_000);
+    // The wildcards still mean what they say.
+    const g = parseOwnSpans({ 'a/**/b.md': 'notes', 'c*.md': 'story', 'd/**': 'meta' });
+    expect(spanOf('a/b.md', g)).toBe('notes');
+    expect(spanOf('a/x/y/b.md', g)).toBe('notes');
+    expect(() => spanOf('a/xb.md', g)).toThrow(/no span/);
+    expect(spanOf('c.md', g)).toBe('story');
+    expect(() => spanOf('c/x.md', g)).toThrow(/no span/);
+    expect(spanOf('d/e/f', g)).toBe('meta');
   });
 
   it('is read from the game folder, again once it changed; no file is no own span', () => {
@@ -269,6 +298,17 @@ describe("a game's own spans (spans.json, 4.5.1)", () => {
     writeFileSync(join(game, 'spans.json'), '{ "x.ts": "nope" }');
     utimesSync(join(game, 'spans.json'), new Date(), new Date(Date.now() + 10_000));
     expect(() => readOwnSpans(game)).toThrow(/names no span/);
+    // On a shared Studio a faulty or oversized file is reported and leaves the engine's rules alone: spans.json
+    // itself (meta) can still be written to repair it.
+    const faults: string[] = [];
+    expect(readOwnSpans(game, (e) => faults.push(e.message))).toEqual([]);
+    writeFileSync(join(game, 'spans.json'), '{ not json');
+    utimesSync(join(game, 'spans.json'), new Date(), new Date(Date.now() + 15_000));
+    expect(() => readOwnSpans(game)).toThrow(/not JSON/);
+    writeFileSync(join(game, 'spans.json'), JSON.stringify({ 'x.md': 'notes', pad: 'x'.repeat(70_000) }));
+    expect(readOwnSpans(game, (e) => faults.push(e.message))).toEqual([]);
+    expect(faults).toEqual([expect.stringMatching(/names no span/), expect.stringMatching(/at most 65536/)]);
+    expect(spanOf('spans.json', readOwnSpans(game, () => {}))).toBe('meta');
   });
 
   it('a write on a shared Studio claims the span the game declared', async () => {

@@ -260,6 +260,9 @@ Messages :
 - `refused: the edit adds … validation error(s): …` ([`studio-server/src/ops/core.ts`](../../studio-server/src/ops/core.ts))
 - `refused: the prepared assets would lose … image(s) or sound(s) the game had (…): prepare them on a local Studio` ([`studio-server/src/server/prepared.ts`](../../studio-server/src/server/prepared.ts))
 - `refused: …; nothing was written` ([`studio-server/src/server/engine-upgrade.ts`](../../studio-server/src/server/engine-upgrade.ts))
+- `spans.json: not JSON (…)` ([`studio-server/src/ops/spans.ts`](../../studio-server/src/ops/spans.ts))
+- `spans.json: not a file` ([`studio-server/src/ops/spans.ts`](../../studio-server/src/ops/spans.ts))
+- `spans.json: … bytes, at most …` ([`studio-server/src/ops/spans.ts`](../../studio-server/src/ops/spans.ts))
 - `the commit holds no game at "…"` ([`studio-server/src/server/git.ts`](../../studio-server/src/server/git.ts))
 - `the cut is refused: …` ([`studio-server/src/server/remote-executor.ts`](../../studio-server/src/server/remote-executor.ts))
 - `the migration cannot run: …` ([`studio-server/src/server/remote-executor.ts`](../../studio-server/src/server/remote-executor.ts))
@@ -267,9 +270,12 @@ Messages :
 - `the prepared assets are refused: …` ([`studio-server/src/server/remote-executor.ts`](../../studio-server/src/server/remote-executor.ts))
 - `… is a link or a submodule: not imported` ([`studio-server/src/server/git.ts`](../../studio-server/src/server/git.ts))
 - `… is not a folder of the repository (a file, a link or a submodule): not read` ([`studio-server/src/server/git.ts`](../../studio-server/src/server/git.ts))
+- `…: "…" is an engine file, its span is the engine's` ([`studio-server/src/ops/spans.ts`](../../studio-server/src/ops/spans.ts))
 - `…: "…" is not a path relative to the game folder` ([`studio-server/src/ops/spans.ts`](../../studio-server/src/ops/spans.ts))
 - `…: "…" names no span a client may take (…)` ([`studio-server/src/ops/spans.ts`](../../studio-server/src/ops/spans.ts))
+- `…: a key of … characters, at most …` ([`studio-server/src/ops/spans.ts`](../../studio-server/src/ops/spans.ts))
 - `…: an object { "<path>, <folder>/ or <glob>": "<span>" }` ([`studio-server/src/ops/spans.ts`](../../studio-server/src/ops/spans.ts))
+- `…: … entries, at most …` ([`studio-server/src/ops/spans.ts`](../../studio-server/src/ops/spans.ts))
 - et 2 message(s) construit(s) à l’exécution.
 
 <a name="studio-423"></a>

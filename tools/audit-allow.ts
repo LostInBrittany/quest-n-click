@@ -2,8 +2,9 @@
 // of this game (a real colleague's first name, say). `games/<id>/audit-allow.json` lists them the way the audit lists
 // its words, as SHA-1 prefixes, so the allowance publishes no word either:
 //   { "allow": [{ "sha1": "<12 hex>", "why": "<the reason, without the word>" }] }
-// A word is allowed only inside games/<id>/, and in public/assets/ when <id> is the game being built. A prefix the
-// audit does not block is an error: the file cannot outlive the word it excuses.
+// A word is allowed only inside games/<id>/ (audit-allow.json itself excepted: its reason must not spell the word), and
+// in public/assets/ when <id> is the game being built. A prefix the audit does not block is an error: the file cannot
+// outlive the word it excuses.
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
@@ -35,11 +36,19 @@ export function allowances(
     const file = join(games, g, 'audit-allow.json');
     if (!existsSync(file)) continue;
     const where = `games/${g}/audit-allow.json`;
-    byGame.set(g, new Set(parseAuditAllow(JSON.parse(readFileSync(file, 'utf8')), blocked, where).map((a) => a.sha1)));
+    let json: unknown;
+    try {
+      json = JSON.parse(readFileSync(file, 'utf8'));
+    } catch (e) {
+      throw new Error(`${where}: not JSON (${(e as Error).message})`);
+    }
+    byGame.set(g, new Set(parseAuditAllow(json, blocked, where).map((a) => a.sha1)));
   }
   const none: ReadonlySet<string> = new Set();
   return (path) => {
     const p = path.split('\\').join('/');
+    // The allowance itself allows nothing: a reason (or any other text in it) that spells the word is still a leak.
+    if (/^games\/[^/]+\/audit-allow\.json$/.test(p)) return none;
     const game = /^games\/([^/]+)\//.exec(p)?.[1] ?? (current && p.startsWith('public/assets/') ? current : undefined);
     return (game && byGame.get(game)) || none;
   };

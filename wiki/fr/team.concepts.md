@@ -68,7 +68,10 @@ Les fichiers propres à un jeu (4.5.1), que le moteur ne peut pas connaître (le
 notes, ses scripts), prennent leur pan dans le `spans.json` du jeu, lui-même `meta` : un chemin, un dossier
 (`minigames/`) ou un motif (`prompts-*.md`, `art-tools/**/*.py`), chacun avec un pan qu'un client peut prendre. Le
 premier qui correspond l'emporte ; les règles du moteur ci-dessus passent avant, si bien qu'un jeu ne déplace jamais un
-fichier du moteur. Un fichier que ni l'un ni l'autre ne nomme est toujours refusé.
+fichier du moteur, et une clé qui nomme littéralement un fichier ou un dossier du moteur (`cast.ts`, `art/`) est
+refusée. Un fichier que ni l'un ni l'autre ne nomme est toujours refusé. Le fichier tient au plus 256 entrées d'au plus
+256 caractères, en 64 Kio ; le Studio hébergé le relit quand il change et, tant qu'il est fautif, dit pourquoi et les
+fichiers propres au jeu n'ont pas de pan, `spans.json` lui-même restant modifiable pour le réparer.
 
 ```json
 { "minigames/": "meta", "commands/": "meta", "swag.ts": "items", "prompts-*.md": "story", "art-tools/": "assets" }

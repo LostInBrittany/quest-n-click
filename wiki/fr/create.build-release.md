@@ -235,9 +235,9 @@ Quand l'un d'eux est aussi un mot dont votre jeu a besoin, autorisez-le pour vot
 ```
 
 Le préfixe d'un mot : `node -e "console.log(require('crypto').createHash('sha1').update('<mot>').digest('hex').slice(0, 12))"`,
-en minuscules. Le mot est alors autorisé dans `games/<id>/` et, quand `<id>` est le jeu construit, dans
-`public/assets/` ; partout ailleurs, c'est toujours une fuite. Un préfixe que l'audit ne bloque pas arrête l'audit :
-le fichier ne peut pas survivre au mot qu'il excuse.
+en minuscules. Le mot est alors autorisé dans `games/<id>/` (sauf dans `audit-allow.json` lui-même) et, quand `<id>`
+est le jeu construit, dans `public/assets/` ; partout ailleurs, c'est toujours une fuite. Un préfixe que l'audit ne
+bloque pas arrête l'audit : le fichier ne peut pas survivre au mot qu'il excuse.
 
 <a name="files-changed"></a>
 
