@@ -8672,18 +8672,40 @@
       "context": ["bridge"],
       "title": { "en": "The Reality Bridge: what it is", "fr": "Le Reality Bridge : ce que c'est" },
       "url": { "en": "EN-Bridge-What-It-Is", "fr": "FR-Bridge-Presentation" },
-      "state": "planned",
-      "sources": [],
+      "state": "ready",
+      "versions": { "appliesFrom": "4.2.5" },
+      "surfaces": ["bridge-local", "bridge-distributed", "connectors"],
+      "sources": [
+        "bridge/src/bridge.ts",
+        "src/engine/reality/protocol.ts",
+        "src/engine/reality/client.ts",
+        "connectors/src/sdk.ts",
+        "docs/dev/adr/0007-biscuit-and-signed-events.md",
+        "docs/dev/adr/0008-connector-sdk.md",
+        "docs/dev/adr/0009-reality-store.md",
+        "docs/dev/adr/0010-signal-v2.md",
+        "docs/dev/reality-spike.md"
+      ],
       "replaces": [
         "docs/en/ARCHITECTURE.md#signals-from-outside-411",
         "docs/en/REALITY.md#reality-bridge-a-game-that-reacts-to-the-world-outside",
         "docs/fr/ARCHITECTURE.md#les-signaux-de-lextérieur-411",
         "docs/fr/REALITY.md#reality-bridge--un-jeu-qui-réagit-au-monde-extérieur"
       ],
-      "questions": { "en": [], "fr": [] },
-      "aliases": { "en": [], "fr": [] },
-      "identifiers": [],
-      "related": [],
+      "questions": {
+        "en": ["What is the Reality Bridge?", "How can my game react to an email or a badge?"],
+        "fr": ["Qu’est-ce que le Reality Bridge ?", "Comment mon jeu peut-il réagir à un e-mail ou à un badge ?"]
+      },
+      "aliases": {
+        "en": ["Reality Bridge", "world signals", "REALITY", "signals from outside"],
+        "fr": ["Reality Bridge", "signaux du monde", "REALITY", "signaux de l’extérieur"]
+      },
+      "keywords": {
+        "en": ["connector", "signed signal", "Biscuit", "pairing", "architecture"],
+        "fr": ["connecteur", "signal signé", "Biscuit", "appairage", "architecture"]
+      },
+      "identifiers": ["quest-n-click-bridge", "WorldSignalPort"],
+      "related": ["bridge.quick-start", "bridge.guarantees", "bridge.security", "bridge.connectors"],
       "prerequisites": [],
       "owner": "@wanoo"
     },
@@ -8695,8 +8717,17 @@
       "context": ["bridge"],
       "title": { "en": "Quick start", "fr": "Démarrage rapide" },
       "url": { "en": "EN-Bridge-Quick-Start", "fr": "FR-Bridge-Demarrage-Rapide" },
-      "state": "planned",
-      "sources": [],
+      "state": "ready",
+      "versions": { "appliesFrom": "4.2.5" },
+      "surfaces": ["bridge-local"],
+      "sources": [
+        "games/signals/game.ts",
+        "bridge/src/cli.ts",
+        "bridge/src/server.ts",
+        "src/engine/dom/reality-ui.ts",
+        "src/studio/reality-panel.ts",
+        "tools/bridge.ts"
+      ],
       "replaces": [
         "docs/en/CONNECTORS.md#playing-the-sample-chapter",
         "docs/en/REALITY.md#try-it-in-the-studio",
@@ -8705,11 +8736,29 @@
         "docs/fr/REALITY.md#lessayer-dans-le-studio",
         "docs/fr/REALITY.md#entre-les-mains-du-joueur"
       ],
-      "questions": { "en": [], "fr": [] },
-      "aliases": { "en": [], "fr": [] },
-      "identifiers": [],
-      "related": [],
-      "prerequisites": [],
+      "questions": {
+        "en": [
+          "How do I try the Reality Bridge on my machine?",
+          "How do I link my game to a Bridge?",
+          "How do I send a test signal to my game?"
+        ],
+        "fr": [
+          "Comment essayer le Reality Bridge sur ma machine ?",
+          "Comment lier mon jeu à un Bridge ?",
+          "Comment envoyer un signal de test à mon jeu ?"
+        ]
+      },
+      "aliases": {
+        "en": ["Reality tutorial", "World link", "try it in the Studio", "sample chapter"],
+        "fr": ["tutoriel Reality", "lien au monde", "l’essayer dans le Studio", "chapitre d’exemple"]
+      },
+      "keywords": {
+        "en": ["pairing code", "demonstration webhook", "games/signals", "Reality panel"],
+        "fr": ["code d’appairage", "webhook de démonstration", "games/signals", "panneau Reality"]
+      },
+      "identifiers": ["realityLink", "POST /v1/hooks/<source>", "POST /v1/pairings/<code>/confirm"],
+      "related": ["bridge.what-it-is", "bridge.install-run", "bridge.connector-telnet", "bridge.troubleshooting"],
+      "prerequisites": ["install.from-repository"],
       "owner": "@wanoo"
     },
     {
@@ -8721,8 +8770,27 @@
       "context": ["bridge"],
       "title": { "en": "Guarantees", "fr": "Garanties" },
       "url": { "en": "EN-Bridge-Guarantees", "fr": "FR-Bridge-Garanties" },
-      "state": "planned",
-      "sources": [],
+      "state": "ready",
+      "versions": { "appliesFrom": "4.2.5" },
+      "surfaces": ["bridge-local", "bridge-distributed", "connectors"],
+      "sources": [
+        "bridge/src/bridge.ts",
+        "bridge/src/server.ts",
+        "bridge/src/store-sql.ts",
+        "bridge/src/store-sqlite.ts",
+        "bridge/src/config.ts",
+        "src/engine/reality/client.ts",
+        "src/engine/reality/http-port.ts",
+        "src/engine/core/reality-runtime.ts",
+        "tools/solve-reality.ts",
+        "tests/bridge.test.ts",
+        "tests/bridge-tenancy.test.ts",
+        "tests/bridge-hardening.test.ts",
+        "tests/reality-engine.test.ts",
+        "tests/reality-proof.test.ts",
+        "tests/reality-cursor.test.ts",
+        "tests/speedrun-reality.test.ts"
+      ],
       "replaces": [
         "docs/en/PRIVACY.md#on-the-bridge",
         "docs/en/REALITY-OPS.md#revocation-quotas-limits",
@@ -8737,11 +8805,121 @@
         "docs/fr/REALITY.md#ce-que-la-session-et-la-sauvegarde-gardent",
         "docs/fr/SPEEDRUN.md#politiques-reality"
       ],
-      "questions": { "en": [], "fr": [] },
-      "aliases": { "en": [], "fr": [] },
-      "identifiers": [],
-      "related": [],
-      "prerequisites": [],
+      "questions": {
+        "en": [
+          "The Bridge received the same event twice",
+          "A connector is down: what happens to the game?",
+          "Is a signal applied twice if it is delivered twice?",
+          "Can the outside world block my game?",
+          "Are two tenants isolated from each other?"
+        ],
+        "fr": [
+          "Le Bridge a reçu deux fois le même événement",
+          "Un connecteur est en panne : que devient le jeu ?",
+          "Un signal livré deux fois est-il appliqué deux fois ?",
+          "Le monde extérieur peut-il bloquer mon jeu ?",
+          "Deux tenants sont-ils isolés l’un de l’autre ?"
+        ]
+      },
+      "aliases": {
+        "en": ["at least once", "idempotence", "deduplication", "exactly once"],
+        "fr": ["au moins une fois", "idempotence", "déduplication", "exactement une fois"]
+      },
+      "keywords": {
+        "en": [
+          "duplicate",
+          "dedupeKey",
+          "sequence",
+          "order",
+          "replay",
+          "503 busy",
+          "Retry-After",
+          "tenant isolation",
+          "solve:reality",
+          "fallback",
+          "mismatch"
+        ],
+        "fr": [
+          "doublon",
+          "dedupeKey",
+          "séquence",
+          "ordre",
+          "rejeu",
+          "503 busy",
+          "Retry-After",
+          "isolation des tenants",
+          "solve:reality",
+          "solution de repli",
+          "désaccord"
+        ]
+      },
+      "identifiers": ["npm run solve:reality", "dedupeKey", "POST /v1/signals", "POST /v1/ack", "Retry-After"],
+      "related": [
+        "bridge.troubleshooting",
+        "bridge.multi-tenant",
+        "create.solver-proofs",
+        "create.speedrun",
+        "play.privacy"
+      ],
+      "prerequisites": ["bridge.what-it-is"],
+      "claims": [
+        {
+          "id": "bridge-duplicate-200",
+          "test": "tests/bridge.test.ts › the reference Bridge › pairs a game, accepts a signal once, delivers it by cursor, takes the acknowledgement"
+        },
+        {
+          "id": "bridge-dedupe-concurrent",
+          "test": "tests/bridge.test.ts › the reference Bridge › sequences concurrent proposals one by one: no shared sequence, one acceptance per dedupeKey"
+        },
+        {
+          "id": "bridge-sequences-contiguous",
+          "test": "tests/bridge.test.ts › the reference Bridge › whatever the interleaving and the repeats, sequences are 1..n and a dedupeKey is accepted once"
+        },
+        {
+          "id": "bridge-ack-after-durable-save",
+          "test": "tests/reality-engine.test.ts › the client: verify, apply, save, acknowledge › acknowledges only after the save is durable, and through the contiguous cursor"
+        },
+        {
+          "id": "bridge-resume-from-durable",
+          "test": "tests/reality-cursor.test.ts › the port resumes from the acknowledged cursor, not from the delivered one (P0, fixed in 4.1.8) › polling: a signal handed over and not acknowledged is asked for again (reproduced on 4.1.7: after=1)"
+        },
+        {
+          "id": "bridge-session-replays-offline",
+          "test": "tests/reality-engine.test.ts › Engine.receive › a session with signals replays offline to the same state"
+        },
+        {
+          "id": "bridge-busy-503",
+          "test": "tests/bridge-hardening.test.ts › SQLite under contention › a store busy longer than busyMs answers 503 with Retry-After; its files are 0600"
+        },
+        {
+          "id": "bridge-tenant-token-bound",
+          "test": "tests/bridge-tenancy.test.ts › one root or one key shared by two tenants (a misconfiguration) › a connector token bound to its tenant is refused by the other, even with the same Biscuit root"
+        },
+        {
+          "id": "bridge-tenant-routing",
+          "test": "tests/bridge-tenancy.test.ts › one server, several tenants › routes by Host, by the tenant header when allowed, and answers 404 to an unknown tenant"
+        },
+        {
+          "id": "bridge-applied-once",
+          "test": "tests/reality-engine.test.ts › Engine.receive › applies a declared signal once, records it, and saves it with the state"
+        },
+        {
+          "id": "bridge-save-bound-to-player",
+          "test": "tests/reality-engine.test.ts › Engine.receive › the first delivery binds the save to its player; a delivery for another player is a mismatch"
+        },
+        {
+          "id": "bridge-proof-closed",
+          "test": "tests/reality-proof.test.ts › the solver under the reality policies › closed: finished through the fallback, never through a signal"
+        },
+        {
+          "id": "bridge-proof-adversarial",
+          "test": "tests/reality-proof.test.ts › the solver under the reality policies › adversarial: duplicates and every order of the declared signals never lose the game"
+        },
+        {
+          "id": "bridge-speedrun-reality-proof",
+          "test": "tests/speedrun-reality.test.ts › Reality policies › a missing, altered or foreign-signed proof is missing-reality-proof; no keyring is inconclusive"
+        }
+      ],
       "owner": "@wanoo"
     },
     {
@@ -8752,8 +8930,21 @@
       "context": ["bridge"],
       "title": { "en": "Install and run the Bridge", "fr": "Installer et lancer le Bridge" },
       "url": { "en": "EN-Bridge-Install-And-Run", "fr": "FR-Bridge-Installer-Et-Lancer" },
-      "state": "planned",
-      "sources": ["bridge/src/server.ts"],
+      "state": "ready",
+      "versions": { "appliesFrom": "4.3.0" },
+      "surfaces": ["bridge-local", "bridge-distributed"],
+      "sources": [
+        "bridge/src/server.ts",
+        "bridge/src/cli.ts",
+        "bridge/src/cli-store.ts",
+        "bridge/src/config.ts",
+        "bridge/src/runs.ts",
+        "bridge/src/daily.ts",
+        "bridge/src/store.ts",
+        "tools/speedrun/container.mjs",
+        "ops/qualify/README.md",
+        "scripts/pack-manifests.mjs"
+      ],
       "replaces": [
         "docs/en/REALITY-OPS.md#running-a-reality-bridge",
         "docs/en/REALITY-OPS.md#start-one",
@@ -8776,11 +8967,81 @@
         "docs/fr/REALITY-OPS.md#modération",
         "docs/fr/SPEEDRUN.md#classements-sur-le-bridge"
       ],
-      "questions": { "en": [], "fr": [] },
-      "aliases": { "en": [], "fr": [] },
-      "identifiers": [],
-      "related": [],
-      "prerequisites": [],
+      "questions": {
+        "en": [
+          "How do I run a Reality Bridge for real players?",
+          "How do I put the Bridge behind HTTPS?",
+          "Which store should my Bridge use?",
+          "How do I delete a player’s data on the Bridge?"
+        ],
+        "fr": [
+          "Comment faire tourner un Reality Bridge pour de vrais joueurs ?",
+          "Comment mettre le Bridge derrière HTTPS ?",
+          "Quel stockage choisir pour mon Bridge ?",
+          "Comment supprimer les données d’un joueur sur le Bridge ?"
+        ]
+      },
+      "aliases": {
+        "en": ["REALITY-OPS", "running a Reality Bridge", "Bridge deployment", "self-hosting the Bridge"],
+        "fr": ["REALITY-OPS", "faire tourner un Reality Bridge", "déploiement du Bridge", "héberger le Bridge"]
+      },
+      "keywords": {
+        "en": [
+          "init",
+          "serve",
+          "trust-proxy",
+          "SQLite",
+          "Postgres",
+          "journal",
+          "leaderboards",
+          "daily challenge",
+          "speedrun worker",
+          "moderation",
+          "retention"
+        ],
+        "fr": [
+          "init",
+          "serve",
+          "trust-proxy",
+          "SQLite",
+          "Postgres",
+          "journal",
+          "classements",
+          "défi du jour",
+          "worker des speedruns",
+          "modération",
+          "conservation"
+        ]
+      },
+      "identifiers": [
+        "npm run bridge -- init",
+        "npm run bridge -- serve",
+        "npm run ops:qualify",
+        "npm run e2e:worker-container",
+        "GET /livez",
+        "GET /readyz",
+        "GET /healthz",
+        "GET /v1/admin/players/<id>",
+        "DELETE /v1/admin/players/<id>",
+        "POST /v1/pairings",
+        "GET /v1/events",
+        "GET /v1/signals",
+        "GET /v1/keys",
+        "GET /v1/manifest",
+        "POST /v1/unlink",
+        "POST /v1/runs",
+        "GET /v1/daily",
+        "POST /v1/runs/<id>/moderate"
+      ],
+      "related": [
+        "bridge.cli",
+        "bridge.backup-restore",
+        "bridge.multi-tenant",
+        "bridge.security",
+        "bridge.troubleshooting",
+        "create.speedrun"
+      ],
+      "prerequisites": ["bridge.what-it-is", "install.requirements"],
       "owner": "@wanoo"
     },
     {
@@ -8791,19 +9052,95 @@
       "context": ["bridge"],
       "title": { "en": "Backup and restore", "fr": "Sauvegarde et restauration" },
       "url": { "en": "EN-Bridge-Backup-And-Restore", "fr": "FR-Bridge-Sauvegarde-Et-Restauration" },
-      "state": "planned",
-      "sources": ["bridge/src/backup/**"],
+      "state": "ready",
+      "versions": { "appliesFrom": "4.2.5" },
+      "surfaces": ["bridge-local", "bridge-distributed"],
+      "sources": [
+        "bridge/src/backup/*.ts",
+        "bridge/src/cli-store.ts",
+        "bridge/src/maintenance.ts",
+        "docs/dev/adr/0021-backup-snapshot-and-atomic-restore.md",
+        "docs/dev/adr/0023-backup-completeness-and-restore-modes.md",
+        "tests/bridge-backup.test.ts",
+        "tests/bridge-backup-v4.test.ts",
+        "tests/bridge-maintenance.test.ts",
+        "tests/bridge-ops.test.ts",
+        "tools/backup-memory.ts"
+      ],
       "replaces": [
         "docs/en/REALITY-OPS.md#health-measures-backups",
         "docs/en/REALITY-OPS.md#procedures",
         "docs/fr/REALITY-OPS.md#santé-mesures-sauvegardes",
         "docs/fr/REALITY-OPS.md#procédures"
       ],
-      "questions": { "en": [], "fr": [] },
-      "aliases": { "en": [], "fr": [] },
-      "identifiers": [],
-      "related": [],
-      "prerequisites": [],
+      "questions": {
+        "en": [
+          "How do I back up the Reality Bridge?",
+          "How do I restore the Bridge’s store?",
+          "Why is my Bridge restore refused?",
+          "How much memory does a Bridge restore need?"
+        ],
+        "fr": [
+          "Comment sauvegarder le Reality Bridge ?",
+          "Comment restaurer le stockage du Bridge ?",
+          "Pourquoi la restauration de mon Bridge est-elle refusée ?",
+          "Combien de mémoire faut-il pour restaurer un Bridge ?"
+        ]
+      },
+      "aliases": {
+        "en": ["Bridge backup", "Bridge restore", "replace-store", "merge restore", "maintenance lease"],
+        "fr": [
+          "sauvegarde du Bridge",
+          "restauration du Bridge",
+          "replace-store",
+          "restauration merge",
+          "bail de maintenance"
+        ]
+      },
+      "keywords": {
+        "en": [
+          "snapshot",
+          "schema 4",
+          "safety backup",
+          "doctor",
+          "health",
+          "metrics",
+          "OpenTelemetry",
+          "exit code 3",
+          "P0"
+        ],
+        "fr": [
+          "instantané",
+          "schéma 4",
+          "sauvegarde de sécurité",
+          "doctor",
+          "santé",
+          "métriques",
+          "OpenTelemetry",
+          "code de sortie 3",
+          "P0"
+        ]
+      },
+      "identifiers": [
+        "npm run bridge -- backup",
+        "npm run bridge -- restore",
+        "npm run bridge -- tenant",
+        "--mode=merge",
+        "--mode=replace-store",
+        "--safety-out"
+      ],
+      "related": ["bridge.cli", "bridge.install-run", "bridge.troubleshooting", "clever.backups"],
+      "prerequisites": ["bridge.install-run"],
+      "claims": [
+        {
+          "id": "bridge-restore-names-its-mode",
+          "test": "tests/bridge-backup-v4.test.ts › restore from the command line names its mode › without --mode, or with --force alone, nothing is restored and both modes are named"
+        },
+        {
+          "id": "bridge-restore-refused-while-serving",
+          "test": "tests/bridge-maintenance.test.ts › maintenance leases on $name › restore refuses at once while a Bridge serves the store; once it stops, restores"
+        }
+      ],
       "owner": "@wanoo"
     },
     {
@@ -8814,17 +9151,44 @@
       "context": ["bridge"],
       "title": { "en": "Several tenants", "fr": "Plusieurs tenants" },
       "url": { "en": "EN-Bridge-Multi-Tenant", "fr": "FR-Bridge-Multi-Tenant" },
-      "state": "planned",
-      "sources": [],
+      "state": "ready",
+      "versions": { "appliesFrom": "4.2.5" },
+      "surfaces": ["bridge-distributed"],
+      "sources": [
+        "bridge/src/server.ts",
+        "bridge/src/cli.ts",
+        "bridge/src/store-async.ts",
+        "bridge/src/store-postgres.ts",
+        "bridge/src/streams.ts",
+        "docs/dev/threat-models/constellation.md",
+        "tests/bridge-tenancy.test.ts",
+        "tests/bridge-fanout.test.ts"
+      ],
       "replaces": [
         "docs/en/REALITY-OPS.md#several-tenants-several-instances",
         "docs/fr/REALITY-OPS.md#plusieurs-tenants-plusieurs-instances"
       ],
-      "questions": { "en": [], "fr": [] },
-      "aliases": { "en": [], "fr": [] },
-      "identifiers": [],
-      "related": [],
-      "prerequisites": [],
+      "questions": {
+        "en": [
+          "How do I serve several games from one Bridge?",
+          "How do I run several Bridge instances on one database?"
+        ],
+        "fr": [
+          "Comment servir plusieurs jeux depuis un seul Bridge ?",
+          "Comment faire tourner plusieurs instances du Bridge sur une même base ?"
+        ]
+      },
+      "aliases": {
+        "en": ["several tenants", "multi-tenant", "several instances", "distributed profile", "Constellation"],
+        "fr": ["plusieurs tenants", "multi-tenant", "plusieurs instances", "profil distributed", "Constellation"]
+      },
+      "keywords": {
+        "en": ["tenant", "Host", "X-Web-Scumm-Tenant", "Postgres", "NOTIFY", "load balancer"],
+        "fr": ["tenant", "Host", "X-Web-Scumm-Tenant", "Postgres", "NOTIFY", "répartiteur de charge"]
+      },
+      "identifiers": ["--tenants", "--tenant-header", "X-Web-Scumm-Tenant", "BRIDGE_STORE"],
+      "related": ["bridge.guarantees", "bridge.install-run", "bridge.security"],
+      "prerequisites": ["bridge.install-run"],
       "owner": "@wanoo"
     },
     {
@@ -8835,19 +9199,47 @@
       "context": ["bridge"],
       "title": { "en": "Signals and the manifest", "fr": "Signaux et manifeste" },
       "url": { "en": "EN-Bridge-Signals-And-Manifest", "fr": "FR-Bridge-Signaux-Et-Manifeste" },
-      "state": "planned",
-      "sources": [],
+      "state": "ready",
+      "versions": { "appliesFrom": "4.2.5" },
+      "surfaces": ["bridge-local"],
+      "sources": [
+        "src/engine/core/types/reality.ts",
+        "src/engine/reality/manifest.ts",
+        "src/engine/reality/protocol.ts",
+        "src/engine/tools/validate-events.ts",
+        "tools/solve-reality.ts",
+        "games/signals/game.ts"
+      ],
       "replaces": [
         "docs/en/API.md#quest-n-clickreality-signals-from-the-world-outside-411",
         "docs/en/REALITY.md#declare-the-signals",
         "docs/fr/API.md#quest-n-clickreality--les-signaux-du-monde-extérieur-411",
         "docs/fr/REALITY.md#déclarer-les-signaux"
       ],
-      "questions": { "en": [], "fr": [] },
-      "aliases": { "en": [], "fr": [] },
-      "identifiers": [],
-      "related": [],
-      "prerequisites": [],
+      "questions": {
+        "en": ["How do I declare a signal from outside in my game?", "What does the Reality manifest contain?"],
+        "fr": ["Comment déclarer un signal de l’extérieur dans mon jeu ?", "Que contient le manifeste Reality ?"]
+      },
+      "aliases": {
+        "en": ["declare the signals", "reality manifest", "signal schema", "WorldSignal"],
+        "fr": ["déclarer les signaux", "manifeste reality", "schéma du signal", "WorldSignal"]
+      },
+      "keywords": {
+        "en": ["availability", "required", "fallback", "once", "scenarios", "evidenceHash", "V2"],
+        "fr": ["availability", "required", "fallback", "once", "scénarios", "evidenceHash", "V2"]
+      },
+      "identifiers": [
+        "reality.bridge",
+        "reality.signals",
+        "reality.connectors",
+        "reality-manifest.json",
+        "WorldSignalV1",
+        "WorldSignalV2",
+        "manifestHash",
+        "MAX_SIGNAL_CHARS"
+      ],
+      "related": ["bridge.guarantees", "bridge.connectors", "engine.api", "create.checking"],
+      "prerequisites": ["bridge.what-it-is"],
       "owner": "@wanoo"
     },
     {
@@ -8858,16 +9250,77 @@
       "context": ["bridge"],
       "title": { "en": "The Bridge's command line", "fr": "La ligne de commande du Bridge" },
       "url": { "en": "EN-Bridge-CLI", "fr": "FR-Bridge-CLI" },
-      "state": "planned",
-      "sources": ["bridge/src/cli.ts"],
+      "state": "ready",
+      "versions": { "appliesFrom": "4.3.0" },
+      "surfaces": ["bridge-local", "bridge-distributed"],
+      "sources": [
+        "bridge/src/cli.ts",
+        "bridge/src/cli-store.ts",
+        "bridge/src/config.ts",
+        "bridge/bin.mjs",
+        "tools/bridge.ts",
+        "cli/quest-n-click.mjs"
+      ],
       "replaces": [
         "docs/en/PRIVACY.md#deleting-a-players-data-everywhere",
         "docs/fr/PRIVACY.md#supprimer-les-données-dun-joueur-partout"
       ],
-      "questions": { "en": [], "fr": [] },
-      "aliases": { "en": [], "fr": [] },
-      "identifiers": ["npm run bridge"],
-      "related": [],
+      "questions": {
+        "en": ["What are the Bridge’s commands and options?", "How do I delete a player’s data everywhere?"],
+        "fr": [
+          "Quelles sont les commandes et options du Bridge ?",
+          "Comment supprimer partout les données d’un joueur ?"
+        ]
+      },
+      "aliases": {
+        "en": ["quest-n-click-bridge", "Bridge CLI", "web-scumm-bridge"],
+        "fr": ["quest-n-click-bridge", "CLI du Bridge", "web-scumm-bridge"]
+      },
+      "keywords": {
+        "en": [
+          "init",
+          "serve",
+          "grant",
+          "rotate",
+          "revoke",
+          "doctor",
+          "compact",
+          "migrate",
+          "tenant",
+          "backup",
+          "restore",
+          "limits",
+          "exit code"
+        ],
+        "fr": [
+          "init",
+          "serve",
+          "grant",
+          "rotate",
+          "revoke",
+          "doctor",
+          "compact",
+          "migrate",
+          "tenant",
+          "backup",
+          "restore",
+          "limits",
+          "code de sortie"
+        ]
+      },
+      "identifiers": [
+        "npm run bridge",
+        "quest-n-click-bridge",
+        "npm run bridge -- grant",
+        "npm run bridge -- rotate",
+        "npm run bridge -- revoke",
+        "npm run bridge -- doctor",
+        "npm run bridge -- compact",
+        "npm run bridge -- migrate",
+        "npm run bridge:load",
+        "BRIDGE_STORE_FILE"
+      ],
+      "related": ["bridge.install-run", "bridge.backup-restore", "reference.cli", "play.privacy"],
       "prerequisites": [],
       "owner": "@wanoo"
     },
@@ -8879,8 +9332,17 @@
       "context": ["bridge"],
       "title": { "en": "Connectors overview", "fr": "Vue d'ensemble des connecteurs" },
       "url": { "en": "EN-Bridge-Connectors", "fr": "FR-Bridge-Connecteurs" },
-      "state": "planned",
-      "sources": [],
+      "state": "ready",
+      "versions": { "appliesFrom": "4.2.5" },
+      "surfaces": ["connectors"],
+      "sources": [
+        "connectors/src/run.ts",
+        "connectors/src/sdk.ts",
+        "connectors/src/registry.ts",
+        "connectors/src/config.ts",
+        "docs/dev/adr/0008-connector-sdk.md",
+        "scripts/pack-manifests.mjs"
+      ],
       "replaces": [
         "docs/en/CONNECTORS.md#connectors-of-the-world-outside",
         "docs/en/CONNECTORS.md#run-one",
@@ -8893,11 +9355,34 @@
         "docs/fr/CONNECTORS.md#ce-qui-sort-dun-connecteur",
         "docs/fr/REALITY-OPS.md#les-connecteurs"
       ],
-      "questions": { "en": [], "fr": [] },
-      "aliases": { "en": [], "fr": [] },
-      "identifiers": [],
-      "related": [],
-      "prerequisites": [],
+      "questions": {
+        "en": ["How do I run a connector?", "What leaves a connector?"],
+        "fr": ["Comment lancer un connecteur ?", "Qu’est-ce qui sort d’un connecteur ?"]
+      },
+      "aliases": {
+        "en": ["CONNECTORS", "connectors of the world outside", "quest-n-click-connectors", "web-scumm-connectors"],
+        "fr": ["CONNECTORS", "connecteurs du monde extérieur", "quest-n-click-connectors", "web-scumm-connectors"]
+      },
+      "keywords": {
+        "en": ["email", "Telnet", "SSH", "Open Badges", "health", "metrics", "token", "grant"],
+        "fr": ["e-mail", "Telnet", "SSH", "Open Badges", "santé", "métriques", "jeton", "grant"]
+      },
+      "identifiers": [
+        "npm run connector",
+        "quest-n-click-connector",
+        "POST /v1/signals",
+        "POST /v1/pairings/<code>/confirm",
+        "POST /v1/hooks/<source>"
+      ],
+      "related": [
+        "bridge.connector-email",
+        "bridge.connector-telnet",
+        "bridge.connector-ssh",
+        "bridge.connector-open-badges",
+        "bridge.connector-sdk",
+        "bridge.security"
+      ],
+      "prerequisites": ["bridge.install-run"],
       "owner": "@wanoo"
     },
     {
@@ -8909,19 +9394,37 @@
       "context": ["bridge"],
       "title": { "en": "Email connector", "fr": "Connecteur email" },
       "url": { "en": "EN-Bridge-Connector-Email", "fr": "FR-Bridge-Connecteur-Email" },
-      "state": "planned",
-      "sources": ["connectors/src/email/*.ts"],
+      "state": "ready",
+      "versions": { "appliesFrom": "4.2.5" },
+      "surfaces": ["connectors"],
+      "sources": ["connectors/src/email/*.ts", "tests/connectors-email.test.ts", "docs/dev/threat-models/email.md"],
       "replaces": [
         "docs/en/CONNECTORS.md#email",
         "docs/en/PRIVACY.md#email-connector",
         "docs/fr/CONNECTORS.md#email",
         "docs/fr/PRIVACY.md#connecteur-email"
       ],
-      "questions": { "en": [], "fr": [] },
-      "aliases": { "en": [], "fr": [] },
-      "identifiers": [],
-      "related": [],
-      "prerequisites": [],
+      "questions": {
+        "en": ["How do I set up the email connector?", "Why is my email not turned into a signal?"],
+        "fr": ["Comment configurer le connecteur e-mail ?", "Pourquoi mon e-mail ne devient-il pas un signal ?"]
+      },
+      "aliases": {
+        "en": ["email connector", "mail connector", "IMAP connector"],
+        "fr": ["connecteur e-mail", "connecteur mail", "connecteur IMAP"]
+      },
+      "keywords": {
+        "en": ["webhook", "IMAP", "HMAC", "keepDays", "Message-ID", "PAIR"],
+        "fr": ["webhook", "IMAP", "HMAC", "keepDays", "Message-ID", "PAIR"]
+      },
+      "identifiers": ["POST /v1/inbound", "X-Web-Scumm-Timestamp", "X-Web-Scumm-Signature", "keepDays"],
+      "related": ["bridge.connectors", "bridge.troubleshooting", "play.privacy"],
+      "prerequisites": ["bridge.connectors"],
+      "claims": [
+        {
+          "id": "bridge-email-unseen-when-away",
+          "test": "tests/connectors-email.test.ts › the IMAP mode › leaves a message unseen when the Bridge is away (retried later), flags it when refused for good"
+        }
+      ],
       "owner": "@wanoo"
     },
     {
@@ -8933,19 +9436,39 @@
       "context": ["bridge"],
       "title": { "en": "Telnet connector", "fr": "Connecteur Telnet" },
       "url": { "en": "EN-Bridge-Connector-Telnet", "fr": "FR-Bridge-Connecteur-Telnet" },
-      "state": "planned",
-      "sources": ["connectors/src/telnet/*.ts"],
+      "state": "ready",
+      "versions": { "appliesFrom": "4.2.5" },
+      "surfaces": ["connectors"],
+      "sources": [
+        "connectors/src/telnet/*.ts",
+        "connectors/src/terminal/*.ts",
+        "tests/connectors-terminal.test.ts",
+        "docs/dev/threat-models/telnet.md"
+      ],
       "replaces": [
         "docs/en/CONNECTORS.md#telnet",
         "docs/en/PRIVACY.md#telnet-and-ssh-connectors",
         "docs/fr/CONNECTORS.md#telnet",
         "docs/fr/PRIVACY.md#connecteurs-telnet-et-ssh"
       ],
-      "questions": { "en": [], "fr": [] },
-      "aliases": { "en": [], "fr": [] },
-      "identifiers": [],
-      "related": [],
-      "prerequisites": [],
+      "questions": {
+        "en": ["How do I set up the Telnet connector?", "Why does the terminal say my code does not work?"],
+        "fr": ["Comment configurer le connecteur Telnet ?", "Pourquoi le terminal dit-il que mon code ne marche pas ?"]
+      },
+      "aliases": { "en": ["Telnet connector", "virtual terminal"], "fr": ["connecteur Telnet", "terminal virtuel"] },
+      "keywords": {
+        "en": ["resume word", "pairing code", "stunnel", "limits"],
+        "fr": ["mot de reprise", "code d’appairage", "stunnel", "limites"]
+      },
+      "identifiers": ["npm run connector -- telnet"],
+      "related": ["bridge.connector-ssh", "bridge.connectors"],
+      "prerequisites": ["bridge.connectors"],
+      "claims": [
+        {
+          "id": "bridge-telnet-address-limits",
+          "test": "tests/connectors-terminal.test.ts › the Telnet connector › holds three connections per address, counts wrong codes across reconnections, closes an unpaired one"
+        }
+      ],
       "owner": "@wanoo"
     },
     {
@@ -8957,19 +9480,45 @@
       "context": ["bridge"],
       "title": { "en": "SSH connector", "fr": "Connecteur SSH" },
       "url": { "en": "EN-Bridge-Connector-SSH", "fr": "FR-Bridge-Connecteur-SSH" },
-      "state": "planned",
-      "sources": ["connectors/src/ssh/*.ts"],
+      "state": "ready",
+      "versions": { "appliesFrom": "4.2.5" },
+      "surfaces": ["connectors"],
+      "sources": [
+        "connectors/src/ssh/*.ts",
+        "connectors/src/terminal/*.ts",
+        "tests/connectors-ssh.test.ts",
+        "docs/dev/threat-models/ssh.md"
+      ],
       "replaces": [
         "docs/en/CONNECTORS.md#ssh",
         "docs/en/PRIVACY.md#telnet-and-ssh-connectors",
         "docs/fr/CONNECTORS.md#ssh",
         "docs/fr/PRIVACY.md#connecteurs-telnet-et-ssh"
       ],
-      "questions": { "en": [], "fr": [] },
-      "aliases": { "en": [], "fr": [] },
-      "identifiers": [],
-      "related": [],
-      "prerequisites": [],
+      "questions": {
+        "en": ["How do I set up the SSH connector?", "Can a player log in to the SSH connector with a key?"],
+        "fr": [
+          "Comment configurer le connecteur SSH ?",
+          "Un joueur peut-il se connecter au connecteur SSH avec une clé ?"
+        ]
+      },
+      "aliases": {
+        "en": ["SSH connector", "virtual terminal over SSH"],
+        "fr": ["connecteur SSH", "terminal virtuel en SSH"]
+      },
+      "keywords": {
+        "en": ["host key", "ssh-keygen", "ssh2", "virtual disk", "resume word"],
+        "fr": ["clé d’hôte", "ssh-keygen", "ssh2", "disque virtuel", "mot de reprise"]
+      },
+      "identifiers": ["npm run connector -- ssh", "hostKeyFile"],
+      "related": ["bridge.connector-telnet", "bridge.connectors", "play.privacy"],
+      "prerequisites": ["bridge.connectors"],
+      "claims": [
+        {
+          "id": "bridge-ssh-terminal-only",
+          "test": "tests/connectors-ssh.test.ts › the SSH connector › refuses exec, sftp and forwarding, and wraps output at the terminal width"
+        }
+      ],
       "owner": "@wanoo"
     },
     {
@@ -8981,19 +9530,41 @@
       "context": ["bridge"],
       "title": { "en": "Open Badges connector", "fr": "Connecteur Open Badges" },
       "url": { "en": "EN-Bridge-Connector-Open-Badges", "fr": "FR-Bridge-Connecteur-Open-Badges" },
-      "state": "planned",
-      "sources": ["connectors/src/badges/*.ts"],
+      "state": "ready",
+      "versions": { "appliesFrom": "4.3.0" },
+      "surfaces": ["connectors"],
+      "sources": [
+        "connectors/src/badges/*.ts",
+        "tests/connectors-badges.test.ts",
+        "docs/dev/threat-models/open-badge.md"
+      ],
       "replaces": [
         "docs/en/CONNECTORS.md#open-badges",
         "docs/en/PRIVACY.md#open-badges-connector",
         "docs/fr/CONNECTORS.md#open-badges",
         "docs/fr/PRIVACY.md#connecteur-open-badges"
       ],
-      "questions": { "en": [], "fr": [] },
-      "aliases": { "en": [], "fr": [] },
-      "identifiers": [],
-      "related": [],
-      "prerequisites": [],
+      "questions": {
+        "en": ["How do I set up the Open Badges connector?", "Why is my badge indeterminate?"],
+        "fr": ["Comment configurer le connecteur Open Badges ?", "Pourquoi mon badge est-il indeterminate ?"]
+      },
+      "aliases": {
+        "en": ["Open Badges connector", "badge connector", "OB2", "OB3"],
+        "fr": ["connecteur Open Badges", "connecteur de badges", "OB2", "OB3"]
+      },
+      "keywords": {
+        "en": ["verdict", "issuer", "revocation list", "eddsa-jcs-2022", "VC-JWT", "network policy"],
+        "fr": ["verdict", "émetteur", "liste de révocation", "eddsa-jcs-2022", "VC-JWT", "politique réseau"]
+      },
+      "identifiers": ["POST /v1/badges", "npm run connector -- open-badge"],
+      "related": ["bridge.connectors", "play.privacy"],
+      "prerequisites": ["bridge.connectors"],
+      "claims": [
+        {
+          "id": "bridge-badge-network-policy",
+          "test": "tests/connectors-badges.test.ts › the network policy › refuses https-less, unlisted hosts, credentials, private answers; resolves once (no rebinding)"
+        }
+      ],
       "owner": "@wanoo"
     },
     {
@@ -9004,14 +9575,46 @@
       "context": ["bridge"],
       "title": { "en": "The connector SDK", "fr": "Le SDK des connecteurs" },
       "url": { "en": "EN-Bridge-Connector-SDK", "fr": "FR-Bridge-SDK-Des-Connecteurs" },
-      "state": "planned",
-      "sources": ["connectors/src/sdk.ts"],
+      "state": "ready",
+      "versions": { "appliesFrom": "4.2.5" },
+      "surfaces": ["connectors"],
+      "sources": [
+        "connectors/src/sdk.ts",
+        "connectors/src/registry.ts",
+        "connectors/src/run.ts",
+        "tools/fuzz-connectors.ts",
+        "tests/connectors-sdk.test.ts",
+        "tests/connectors-replays.test.ts",
+        "scripts/connector-archive-e2e.mjs"
+      ],
       "replaces": ["docs/en/CONNECTORS.md#testing-without-a-network", "docs/fr/CONNECTORS.md#tester-sans-réseau"],
-      "questions": { "en": [], "fr": [] },
-      "aliases": { "en": [], "fr": [] },
-      "identifiers": [],
-      "related": [],
-      "prerequisites": [],
+      "questions": {
+        "en": ["How do I test the connectors without a network?", "How do I write a new connector?"],
+        "fr": ["Comment tester les connecteurs sans réseau ?", "Comment écrire un nouveau connecteur ?"]
+      },
+      "aliases": {
+        "en": ["connector SDK", "RealityConnector", "testing without a network"],
+        "fr": ["SDK des connecteurs", "RealityConnector", "tester sans réseau"]
+      },
+      "keywords": {
+        "en": ["ConnectorContext", "RefusalCode", "dedupeKey", "safeLog", "fuzz"],
+        "fr": ["ConnectorContext", "RefusalCode", "dedupeKey", "safeLog", "fuzz"]
+      },
+      "identifiers": [
+        "npm run fuzz:connectors",
+        "npm run connector-archive-e2e",
+        "RealityConnector",
+        "ConnectorContext",
+        "RefusalCode"
+      ],
+      "related": ["bridge.connectors", "contribute.which-tests", "contribute.mutation-testing"],
+      "prerequisites": ["bridge.connectors"],
+      "claims": [
+        {
+          "id": "bridge-sdk-same-key-one-effect",
+          "test": "tests/connectors-sdk.test.ts › the SDK alone › two connectors sending the same key three times each: one sequence, one logical effect"
+        }
+      ],
       "owner": "@wanoo"
     },
     {
@@ -9022,8 +9625,19 @@
       "context": ["bridge"],
       "title": { "en": "Security: Biscuit and signatures", "fr": "Sécurité : Biscuit et signatures" },
       "url": { "en": "EN-Bridge-Security", "fr": "FR-Bridge-Securite" },
-      "state": "planned",
-      "sources": ["bridge/src/biscuit.ts", "bridge/src/sign.ts"],
+      "state": "ready",
+      "versions": { "appliesFrom": "4.2.5" },
+      "surfaces": ["bridge-local", "bridge-distributed", "connectors"],
+      "sources": [
+        "bridge/src/biscuit.ts",
+        "bridge/src/sign.ts",
+        "bridge/src/policy.ts",
+        "bridge/policy/*.datalog",
+        "src/engine/reality/protocol.ts",
+        "docs/dev/adr/0007-biscuit-and-signed-events.md",
+        "docs/dev/adr/0010-signal-v2.md",
+        "docs/dev/THREAT-MODEL.md"
+      ],
       "replaces": [
         "docs/en/CONNECTORS.md#declare-what-the-connectors-may-do",
         "docs/en/REALITY-OPS.md#keys-and-rotation",
@@ -9032,11 +9646,27 @@
         "docs/fr/REALITY-OPS.md#clés-et-rotation",
         "docs/fr/REALITY-OPS.md#révocation-quotas-limites"
       ],
-      "questions": { "en": [], "fr": [] },
-      "aliases": { "en": [], "fr": [] },
-      "identifiers": [],
-      "related": [],
-      "prerequisites": [],
+      "questions": {
+        "en": ["How do I rotate the Bridge’s signing key?", "A Bridge key leaked: what do I do?"],
+        "fr": ["Comment faire tourner la clé de signature du Bridge ?", "Une clé du Bridge a fuité : que faire ?"]
+      },
+      "aliases": {
+        "en": ["Biscuit", "signatures", "keys and rotation", "revocation", "compromised key"],
+        "fr": ["Biscuit", "signatures", "clés et rotation", "révocation", "clé compromise"]
+      },
+      "keywords": {
+        "en": ["Ed25519", "JWS", "root.key", "admin-token", "capability", "HMAC", "reality:xcheck"],
+        "fr": ["Ed25519", "JWS", "root.key", "admin-token", "capacité", "HMAC", "reality:xcheck"]
+      },
+      "identifiers": ["npm run reality:xcheck", "POST /v1/admin/revoke", "root.key", "admin-token"],
+      "related": ["bridge.what-it-is", "bridge.multi-tenant", "bridge.cli"],
+      "prerequisites": ["bridge.what-it-is"],
+      "claims": [
+        {
+          "id": "bridge-bad-token-before-player",
+          "test": "tests/bridge.test.ts › the reference Bridge › a bad token is refused before an unknown player is named; an address out of failed authentications waits"
+        }
+      ],
       "owner": "@wanoo"
     },
     {
