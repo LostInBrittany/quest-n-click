@@ -6749,16 +6749,29 @@
         "fr": "Clever Cloud : vue d'ensemble, coût et prérequis"
       },
       "url": { "en": "EN-Clever-Overview", "fr": "FR-Clever-Vue-D-Ensemble" },
-      "state": "planned",
-      "sources": [],
+      "state": "ready",
+      "versions": { "appliesFrom": "4.2.3" },
+      "surfaces": ["studio-server"],
+      "sources": [
+        "docs/dev/SPIKE-4.2.1-CLEVER.md",
+        "docs/dev/adr/0028-studio-content-execution.md",
+        "docs/dev/passes/4.4.0.md"
+      ],
       "replaces": [
         "docs/en/STUDIO-SERVER.md#deploying-on-clever-cloud",
         "docs/fr/STUDIO-SERVER.md#déployer-sur-clever-cloud"
       ],
       "questions": { "en": [], "fr": [] },
-      "aliases": { "en": [], "fr": [] },
+      "aliases": {
+        "en": ["hosting the team Studio", "Studio Server on Clever Cloud", "STUDIO-SERVER"],
+        "fr": ["héberger le Studio d'équipe", "Studio Server sur Clever Cloud", "STUDIO-SERVER"]
+      },
+      "keywords": {
+        "en": ["architecture", "cost", "prerequisites", "studio-worker", "PostgreSQL", "Cellar", "Keycloak"],
+        "fr": ["architecture", "coût", "prérequis", "studio-worker", "PostgreSQL", "Cellar", "Keycloak"]
+      },
       "identifiers": [],
-      "related": [],
+      "related": ["clever.apps-addons", "clever.first-deployment", "clever.costs-teardown", "team.what-runs-where"],
       "prerequisites": [],
       "owner": "@wanoo"
     },
@@ -6770,17 +6783,39 @@
       "context": ["studio-hosted"],
       "title": { "en": "Apps and add-ons", "fr": "Applications et add-ons" },
       "url": { "en": "EN-Clever-Apps-And-Addons", "fr": "FR-Clever-Applications-Et-Addons" },
-      "state": "planned",
-      "sources": [],
+      "state": "ready",
+      "versions": { "appliesFrom": "4.2.3" },
+      "surfaces": ["studio-server"],
+      "sources": [
+        "studio-server/src/server/postgres.ts",
+        "docs/dev/QUALIF-4.2.3-REFERENCE.md",
+        "docs/dev/SPIKE-4.2.1-CLEVER.md"
+      ],
       "replaces": [
         "docs/en/STUDIO-SERVER.md#deploying-on-clever-cloud",
         "docs/fr/STUDIO-SERVER.md#déployer-sur-clever-cloud"
       ],
-      "questions": { "en": [], "fr": [] },
-      "aliases": { "en": ["PostgreSQL", "Cellar"], "fr": ["PostgreSQL", "Cellar"] },
-      "identifiers": [],
-      "related": [],
-      "prerequisites": [],
+      "questions": {
+        "en": [
+          "How do I create the Clever Cloud apps and add-ons for the team Studio?",
+          "Which PostgreSQL plan do I need for the hosted Studio?"
+        ],
+        "fr": [
+          "Comment créer les applications et add-ons Clever Cloud du Studio d'équipe ?",
+          "Quel plan PostgreSQL faut-il pour le Studio hébergé ?"
+        ]
+      },
+      "aliases": {
+        "en": ["PostgreSQL", "Cellar", "clever create", "clever addon create", "too many connections"],
+        "fr": ["PostgreSQL", "Cellar", "clever create", "clever addon create", "too many connections"]
+      },
+      "keywords": {
+        "en": ["APP_FOLDER", "clever link", "alias", "DEV plan", "bucket"],
+        "fr": ["APP_FOLDER", "clever link", "alias", "plan DEV", "bucket"]
+      },
+      "identifiers": ["clever create", "clever addon create", "clever service link-addon", "clever link"],
+      "related": ["clever.overview", "clever.domains-tls", "clever.configuration", "clever.redeploys"],
+      "prerequisites": ["clever.overview"],
       "owner": "@wanoo"
     },
     {
@@ -6791,17 +6826,36 @@
       "context": ["studio-hosted"],
       "title": { "en": "Domains and TLS", "fr": "Domaines et TLS" },
       "url": { "en": "EN-Clever-Domains-And-TLS", "fr": "FR-Clever-Domaines-Et-TLS" },
-      "state": "planned",
-      "sources": [],
+      "state": "ready",
+      "versions": { "appliesFrom": "4.2.3" },
+      "surfaces": ["studio-server"],
+      "sources": [
+        "studio-server/src/server/play.ts",
+        "studio-server/src/server/config.ts",
+        "docs/dev/SPIKE-4.2.1-CLEVER.md"
+      ],
       "replaces": [
         "docs/en/STUDIO-SERVER.md#deploying-on-clever-cloud",
         "docs/fr/STUDIO-SERVER.md#déployer-sur-clever-cloud"
       ],
-      "questions": { "en": [], "fr": [] },
-      "aliases": { "en": [], "fr": [] },
-      "identifiers": [],
-      "related": [],
-      "prerequisites": [],
+      "questions": {
+        "en": ["Which domains do I need for the hosted Studio?", "Can I use cleverapps.io domains for the Studio?"],
+        "fr": [
+          "Quels domaines faut-il pour le Studio hébergé ?",
+          "Puis-je utiliser des domaines cleverapps.io pour le Studio ?"
+        ]
+      },
+      "aliases": {
+        "en": ["cleverapps.io", "Public Suffix List", "CHIPS", "publicUrl", "playUrl"],
+        "fr": ["cleverapps.io", "Public Suffix List", "CHIPS", "publicUrl", "playUrl"]
+      },
+      "keywords": {
+        "en": ["custom domain", "TLS", "certificate", "cookie", "Safari", "same site"],
+        "fr": ["domaine personnalisé", "TLS", "certificat", "cookie", "Safari", "même site"]
+      },
+      "identifiers": ["clever domain add"],
+      "related": ["clever.configuration", "clever.change-domain", "clever.troubleshooting", "clever.security"],
+      "prerequisites": ["clever.apps-addons"],
       "owner": "@wanoo"
     },
     {
@@ -6812,14 +6866,50 @@
       "context": ["studio-hosted"],
       "title": { "en": "Keycloak", "fr": "Keycloak" },
       "url": { "en": "EN-Clever-Keycloak", "fr": "FR-Clever-Keycloak" },
-      "state": "planned",
-      "sources": ["ops/studio/keycloak/realm.json"],
+      "state": "ready",
+      "versions": { "appliesFrom": "4.2.3" },
+      "surfaces": ["studio-server"],
+      "sources": [
+        "ops/studio/keycloak/realm.json",
+        "studio-server/src/server/auth/oidc.ts",
+        "studio-server/src/server/auth/routes.ts"
+      ],
       "replaces": ["docs/en/STUDIO-SERVER.md#the-openid-provider", "docs/fr/STUDIO-SERVER.md#le-fournisseur-openid"],
-      "questions": { "en": [], "fr": [] },
-      "aliases": { "en": [], "fr": [] },
-      "identifiers": [],
-      "related": [],
-      "prerequisites": [],
+      "questions": {
+        "en": [
+          "How do I set up Keycloak for the hosted Studio?",
+          "Why does the CLI login say Offline tokens not allowed?"
+        ],
+        "fr": [
+          "Comment configurer Keycloak pour le Studio hébergé ?",
+          "Pourquoi la connexion de la CLI dit Offline tokens not allowed ?"
+        ]
+      },
+      "aliases": {
+        "en": ["realm.json", "managed Keycloak", "OpenID provider", "identity provider"],
+        "fr": ["realm.json", "Keycloak managé", "fournisseur OpenID", "fournisseur d'identité"]
+      },
+      "keywords": {
+        "en": [
+          "offline_access",
+          "audience mapper",
+          "studio-api",
+          "web-scumm-cli",
+          "invalid_client",
+          "back-channel logout"
+        ],
+        "fr": [
+          "offline_access",
+          "mapper d'audience",
+          "studio-api",
+          "web-scumm-cli",
+          "invalid_client",
+          "déconnexion back-channel"
+        ]
+      },
+      "identifiers": ["clever keycloak get", "STUDIO_OIDC_CLIENT_SECRET"],
+      "related": ["clever.generic-oidc", "clever.configuration", "clever.admin-recovery", "clever.security"],
+      "prerequisites": ["clever.domains-tls"],
       "owner": "@wanoo"
     },
     {
@@ -6831,14 +6921,41 @@
       "context": ["studio-hosted"],
       "title": { "en": "Generic OIDC and GitLab", "fr": "OIDC générique et GitLab" },
       "url": { "en": "EN-Clever-Generic-OIDC", "fr": "FR-Clever-OIDC-Generique" },
-      "state": "planned",
-      "sources": ["studio-server/src/server/auth/oidc.ts"],
+      "state": "ready",
+      "versions": { "appliesFrom": "4.2.3" },
+      "surfaces": ["studio-server"],
+      "sources": [
+        "studio-server/src/server/auth/oidc.ts",
+        "studio-server/src/server/config.ts",
+        "studio-server/src/server/auth/routes.ts"
+      ],
       "replaces": ["docs/en/STUDIO-SERVER.md#the-openid-provider", "docs/fr/STUDIO-SERVER.md#le-fournisseur-openid"],
-      "questions": { "en": [], "fr": [] },
-      "aliases": { "en": [], "fr": [] },
-      "identifiers": [],
-      "related": [],
-      "prerequisites": [],
+      "questions": {
+        "en": ["Can I use GitLab or another OpenID provider for the Studio?", "Why does the CLI not work with GitLab?"],
+        "fr": [
+          "Puis-je utiliser GitLab ou un autre fournisseur OpenID pour le Studio ?",
+          "Pourquoi la CLI ne marche pas avec GitLab ?"
+        ]
+      },
+      "aliases": {
+        "en": ["GitLab", "Authentik", "OpenID Connect", "another provider"],
+        "fr": ["GitLab", "Authentik", "OpenID Connect", "un autre fournisseur"]
+      },
+      "keywords": {
+        "en": ["opaque access token", "JWT", "maxTokenSeconds", "back-channel logout", "oidc"],
+        "fr": ["jeton d'accès opaque", "JWT", "maxTokenSeconds", "déconnexion back-channel", "oidc"]
+      },
+      "identifiers": [
+        "oidc.issuer",
+        "oidc.clientId",
+        "oidc.audience",
+        "oidc.cliClientId",
+        "oidc.scopes",
+        "oidc.maxTokenSeconds",
+        "oidc.allowInsecure"
+      ],
+      "related": ["clever.keycloak", "clever.security", "clever.change-domain"],
+      "prerequisites": ["clever.domains-tls"],
       "owner": "@wanoo"
     },
     {
@@ -6850,17 +6967,47 @@
       "context": ["studio-hosted"],
       "title": { "en": "Configuration", "fr": "Configuration" },
       "url": { "en": "EN-Clever-Configuration", "fr": "FR-Clever-Configuration" },
-      "state": "planned",
-      "sources": ["studio-server/src/server/config.ts", "ops/studio/studio.config.example.json"],
+      "state": "ready",
+      "versions": { "appliesFrom": "4.2.3" },
+      "surfaces": ["studio-server"],
+      "sources": [
+        "studio-server/src/server/config.ts",
+        "ops/studio/studio.config.example.json",
+        "studio-server/src/server/main.ts",
+        "studio-server/src/worker/main.ts",
+        "ops/studio/worker-requirements.lock",
+        "docs/dev/QUALIF-4.2.2-ASSETS.md"
+      ],
       "replaces": [
         "docs/en/STUDIO-SERVER.md#deploying-on-clever-cloud",
         "docs/fr/STUDIO-SERVER.md#déployer-sur-clever-cloud"
       ],
-      "questions": { "en": [], "fr": [] },
-      "aliases": { "en": [], "fr": [] },
-      "identifiers": ["STUDIO_CONFIG_JSON"],
-      "related": [],
-      "prerequisites": [],
+      "questions": {
+        "en": [
+          "How do I configure the Studio Server on Clever Cloud?",
+          "How do I see the Clever environment variables without printing secrets?"
+        ],
+        "fr": [
+          "Comment configurer le Studio Server sur Clever Cloud ?",
+          "Comment voir les variables Clever sans afficher les secrets ?"
+        ]
+      },
+      "aliases": {
+        "en": ["studio.config.json", "clever env", "secrets", "trustProxy"],
+        "fr": ["studio.config.json", "clever env", "secrets", "trustProxy"]
+      },
+      "keywords": {
+        "en": ["_FILE", "worker-keys", "CC_RUN_COMMAND", "CC_POST_BUILD_HOOK", "publicBuilds", "workDir"],
+        "fr": ["_FILE", "worker-keys", "CC_RUN_COMMAND", "CC_POST_BUILD_HOOK", "publicBuilds", "workDir"]
+      },
+      "identifiers": ["STUDIO_CONFIG_JSON", "npm run studio-server -- worker-keys", "clever env set"],
+      "related": [
+        "reference.environment-variables",
+        "clever.key-rotation",
+        "clever.first-deployment",
+        "clever.generic-oidc"
+      ],
+      "prerequisites": ["clever.apps-addons", "clever.domains-tls", "clever.keycloak"],
       "owner": "@wanoo"
     },
     {
@@ -6871,8 +7018,15 @@
       "context": ["studio-hosted"],
       "title": { "en": "First deployment", "fr": "Premier déploiement" },
       "url": { "en": "EN-Clever-First-Deployment", "fr": "FR-Clever-Premier-Deploiement" },
-      "state": "planned",
-      "sources": [],
+      "state": "ready",
+      "versions": { "appliesFrom": "4.3.0" },
+      "surfaces": ["studio-server"],
+      "sources": [
+        "studio-server/src/server/main.ts",
+        "studio-server/src/server/http.ts",
+        "docs/dev/QUALIF-4.2.3-REFERENCE.md",
+        "scripts/studio-install-smoke.mjs"
+      ],
       "replaces": [
         "docs/en/STUDIO-SERVER.md#deploying-on-clever-cloud",
         "docs/en/STUDIO-SERVER.md#from-the-release-archives",
@@ -6880,10 +7034,31 @@
         "docs/fr/STUDIO-SERVER.md#depuis-les-archives-de-la-release"
       ],
       "questions": { "en": [], "fr": [] },
-      "aliases": { "en": [], "fr": [] },
-      "identifiers": [],
-      "related": [],
-      "prerequisites": [],
+      "aliases": {
+        "en": ["deploy the Studio", "clever deploy", "first owner", "quest-n-click-studio-server"],
+        "fr": ["déployer le Studio", "clever deploy", "premier owner", "quest-n-click-studio-server"]
+      },
+      "keywords": {
+        "en": ["import", "invite", "readyz", "clever ssh", "clever logs", "release archive"],
+        "fr": ["import", "invite", "readyz", "clever ssh", "clever logs", "archive de la release"]
+      },
+      "identifiers": [
+        "npm run studio-server -- import",
+        "npm run studio-server -- invite",
+        "clever deploy",
+        "clever ssh",
+        "clever logs",
+        "/readyz"
+      ],
+      "related": [
+        "clever.configuration",
+        "clever.backups",
+        "clever.redeploys",
+        "install.from-archive",
+        "team.server-cli",
+        "team.invitations"
+      ],
+      "prerequisites": ["clever.configuration"],
       "owner": "@wanoo"
     },
     {
@@ -6895,17 +7070,49 @@
       "context": ["studio-hosted"],
       "title": { "en": "Backups", "fr": "Sauvegardes" },
       "url": { "en": "EN-Clever-Backups", "fr": "FR-Clever-Sauvegardes" },
-      "state": "planned",
-      "sources": ["studio-server/src/ops/backup.ts", "studio-server/src/ops/backup-bucket.ts", "clevercloud/cron.json"],
+      "state": "ready",
+      "versions": { "appliesFrom": "4.2.3" },
+      "surfaces": ["studio-server"],
+      "sources": [
+        "studio-server/src/ops/backup.ts",
+        "studio-server/src/ops/backup-bucket.ts",
+        "studio-server/src/ops/gc.ts",
+        "studio-server/src/ops/ship.ts",
+        "ops/studio/backup-cron.sh",
+        "clevercloud/cron.json",
+        "tests/studio-metrics.test.ts",
+        "docs/dev/QUALIF-4.2.3-REFERENCE.md"
+      ],
       "replaces": [
         "docs/en/STUDIO-SERVER.md#backup-and-restore",
         "docs/fr/STUDIO-SERVER.md#sauvegarde-et-restauration"
       ],
-      "questions": { "en": [], "fr": [] },
-      "aliases": { "en": [], "fr": [] },
-      "identifiers": [],
-      "related": [],
-      "prerequisites": [],
+      "questions": {
+        "en": ["How do I back up the hosted Studio every day?", "What does a Studio backup contain?"],
+        "fr": ["Comment sauvegarder le Studio hébergé chaque jour ?", "Que contient une sauvegarde du Studio ?"]
+      },
+      "aliases": {
+        "en": ["daily backup", "cron", "backup --to-bucket", "garbage collection"],
+        "fr": ["sauvegarde quotidienne", "tâche planifiée", "backup --to-bucket", "ramassage"]
+      },
+      "keywords": {
+        "en": ["journal shipped", "rpoMs", "--keep", "gc --delete", "bucket copy"],
+        "fr": ["journal expédié", "rpoMs", "--keep", "gc --delete", "copie du bucket"]
+      },
+      "identifiers": [
+        "npm run studio-server -- backup",
+        "npm run studio-server -- gc",
+        "STUDIO_BACKUP_CRON",
+        "STUDIO_BACKUP_KEEP"
+      ],
+      "related": ["clever.restore-drill", "clever.rpo-rto", "clever.retention", "reference.environment-variables"],
+      "prerequisites": ["clever.first-deployment"],
+      "claims": [
+        {
+          "id": "backup-keep-own-only",
+          "test": "tests/studio-metrics.test.ts › backup --to-bucket › writes the backup to the bucket and keeps the n most recent of its own"
+        }
+      ],
       "owner": "@wanoo"
     },
     {
@@ -6916,16 +7123,34 @@
       "context": ["studio-hosted"],
       "title": { "en": "RPO and RTO", "fr": "RPO et RTO" },
       "url": { "en": "EN-Clever-RPO-And-RTO", "fr": "FR-Clever-RPO-Et-RTO" },
-      "state": "planned",
-      "sources": [],
+      "state": "ready",
+      "versions": { "appliesFrom": "4.2.3" },
+      "surfaces": ["studio-server"],
+      "sources": [
+        "studio-server/src/ops/ship.ts",
+        "studio-server/src/ops/backup.ts",
+        "docs/dev/QUALIF-4.2.3-REFERENCE.md"
+      ],
       "replaces": [
         "docs/en/STUDIO-SERVER.md#running-it-the-reference-deployment",
         "docs/fr/STUDIO-SERVER.md#le-faire-tourner--le-déploiement-de-référence"
       ],
       "questions": { "en": [], "fr": [] },
-      "aliases": { "en": [], "fr": [] },
+      "aliases": {
+        "en": ["recovery point objective", "recovery time objective", "data loss", "disaster recovery"],
+        "fr": [
+          "objectif de point de reprise",
+          "objectif de temps de reprise",
+          "perte de données",
+          "reprise après sinistre"
+        ]
+      },
+      "keywords": {
+        "en": ["rpoMs", "studio_journal_rpo_seconds", "restore time"],
+        "fr": ["rpoMs", "studio_journal_rpo_seconds", "durée de restauration"]
+      },
       "identifiers": [],
-      "related": [],
+      "related": ["clever.backups", "clever.restore-drill", "clever.monitoring"],
       "prerequisites": [],
       "owner": "@wanoo"
     },
@@ -6986,17 +7211,40 @@
       "context": ["studio-hosted"],
       "title": { "en": "Redeploys", "fr": "Redéploiements" },
       "url": { "en": "EN-Clever-Redeploys", "fr": "FR-Clever-Redeploiements" },
-      "state": "planned",
-      "sources": [],
+      "state": "ready",
+      "versions": { "appliesFrom": "4.2.3" },
+      "surfaces": ["studio-server"],
+      "sources": [
+        "studio-server/src/server/service-lease.ts",
+        "studio-server/src/server/http.ts",
+        "docs/dev/QUALIF-4.2.3-REFERENCE.md",
+        "docs/dev/SPIKE-4.2.1-CLEVER.md"
+      ],
       "replaces": [
         "docs/en/STUDIO-SERVER.md#running-it-the-reference-deployment",
         "docs/fr/STUDIO-SERVER.md#le-faire-tourner--le-déploiement-de-référence"
       ],
-      "questions": { "en": ["I get a 503 during a deploy"], "fr": ["J'ai une 503 pendant un déploiement"] },
-      "aliases": { "en": [], "fr": [] },
+      "questions": {
+        "en": [
+          "Why are writes refused for a minute after each Clever deploy?",
+          "Is anything lost during a redeploy of the Studio?"
+        ],
+        "fr": [
+          "Pourquoi les écritures sont refusées une minute après chaque déploiement Clever ?",
+          "Perd-on quelque chose pendant un redéploiement du Studio ?"
+        ]
+      },
+      "aliases": {
+        "en": ["overlapping redeploy", "service lease", "lease handoff", "SIGTERM", "Retry-After"],
+        "fr": ["redéploiement à chevauchement", "bail de service", "passation du bail", "SIGTERM", "Retry-After"]
+      },
+      "keywords": {
+        "en": ["503", "lease-taken", "lease-lost", "STOPPING", "readyz"],
+        "fr": ["503", "lease-taken", "lease-lost", "STOPPING", "readyz"]
+      },
       "identifiers": [],
-      "related": [],
-      "prerequisites": [],
+      "related": ["clever.upgrade-server", "clever.troubleshooting", "clever.apps-addons", "clever.monitoring"],
+      "prerequisites": ["clever.first-deployment"],
       "owner": "@wanoo"
     },
     {
@@ -7010,14 +7258,36 @@
         "fr": "Mettre à jour le serveur et vérifier l'état après une migration"
       },
       "url": { "en": "EN-Clever-Upgrade-Server", "fr": "FR-Clever-Mettre-A-Jour-Le-Serveur" },
-      "state": "planned",
-      "sources": [],
+      "state": "ready",
+      "versions": { "appliesFrom": "4.2.3" },
+      "surfaces": ["studio-server"],
+      "sources": [
+        "studio-server/migrations/*.up.sql",
+        "bridge/src/migrations.ts",
+        "docs/dev/QUALIF-4.2.3-REFERENCE.md"
+      ],
       "replaces": [],
-      "questions": { "en": [], "fr": [] },
-      "aliases": { "en": [], "fr": [] },
+      "questions": {
+        "en": [
+          "How do I upgrade the hosted Studio to a new version?",
+          "How do I check the state after a database migration?"
+        ],
+        "fr": [
+          "Comment mettre à jour le Studio hébergé vers une nouvelle version ?",
+          "Comment vérifier l'état après une migration de la base ?"
+        ]
+      },
+      "aliases": {
+        "en": ["upgrade the Studio Server", "new engine version", "migration"],
+        "fr": ["mettre à jour le Studio Server", "nouvelle version du moteur", "migration"]
+      },
+      "keywords": {
+        "en": ["schema_migrations", "clever stop", "worker first", "CHANGELOG"],
+        "fr": ["schema_migrations", "clever stop", "worker d'abord", "CHANGELOG"]
+      },
       "identifiers": [],
-      "related": [],
-      "prerequisites": [],
+      "related": ["clever.redeploys", "clever.going-back", "clever.backups", "team.upgrade-engine"],
+      "prerequisites": ["clever.backups"],
       "owner": "@wanoo"
     },
     {
@@ -7029,14 +7299,42 @@
       "context": ["studio-hosted"],
       "title": { "en": "Limits of going back", "fr": "Limites du retour arrière" },
       "url": { "en": "EN-Clever-Going-Back", "fr": "FR-Clever-Retour-Arriere" },
-      "state": "planned",
-      "sources": [],
+      "state": "ready",
+      "versions": { "appliesFrom": "4.2.3" },
+      "surfaces": ["studio-server"],
+      "sources": [
+        "bridge/src/migrations.ts",
+        "studio-server/migrations/*.down.sql",
+        "tests/bridge-reality-store.test.ts"
+      ],
       "replaces": [],
-      "questions": { "en": [], "fr": [] },
-      "aliases": { "en": [], "fr": [] },
+      "questions": {
+        "en": [
+          "Can I roll back the Studio Server to the previous version?",
+          "What happens if I deploy an older Studio on a migrated database?"
+        ],
+        "fr": [
+          "Puis-je revenir à la version précédente du Studio Server ?",
+          "Que se passe-t-il si je déploie un Studio plus ancien sur une base migrée ?"
+        ]
+      },
+      "aliases": {
+        "en": ["rollback", "downgrade", "down migrations"],
+        "fr": ["retour arrière", "rétrogradation", "migrations descendantes"]
+      },
+      "keywords": {
+        "en": ["newer than this Bridge knows", "schema", "restore an older backup"],
+        "fr": ["newer than this Bridge knows", "schéma", "restaurer une sauvegarde plus ancienne"]
+      },
       "identifiers": [],
-      "related": [],
+      "related": ["clever.upgrade-server", "clever.restore-drill", "clever.backups"],
       "prerequisites": [],
+      "claims": [
+        {
+          "id": "newer-schema-refused",
+          "test": "tests/bridge-reality-store.test.ts › the schema › SQLite: goes up, down to empty, and up again; a database newer than the Bridge is refused"
+        }
+      ],
       "owner": "@wanoo"
     },
     {
@@ -7048,17 +7346,46 @@
       "context": ["studio-hosted"],
       "title": { "en": "Monitoring", "fr": "Supervision" },
       "url": { "en": "EN-Clever-Monitoring", "fr": "FR-Clever-Supervision" },
-      "state": "planned",
-      "sources": [],
+      "state": "ready",
+      "versions": { "appliesFrom": "4.2.3" },
+      "surfaces": ["studio-server"],
+      "sources": [
+        "studio-server/src/server/metrics.ts",
+        "studio-server/src/server/http.ts",
+        "tests/studio-metrics.test.ts",
+        "docs/dev/QUALIF-4.2.3-REFERENCE.md"
+      ],
       "replaces": [
         "docs/en/STUDIO-SERVER.md#running-it-the-reference-deployment",
         "docs/fr/STUDIO-SERVER.md#le-faire-tourner--le-déploiement-de-référence"
       ],
-      "questions": { "en": [], "fr": [] },
-      "aliases": { "en": [], "fr": [] },
-      "identifiers": [],
-      "related": [],
-      "prerequisites": [],
+      "questions": {
+        "en": [
+          "Which alerts should I set on the hosted Studio?",
+          "How do I read the Studio's metrics with Prometheus?"
+        ],
+        "fr": [
+          "Quelles alertes poser sur le Studio hébergé ?",
+          "Comment lire les métriques du Studio avec Prometheus ?"
+        ]
+      },
+      "aliases": {
+        "en": ["metrics", "Prometheus", "alerts", "logs"],
+        "fr": ["métriques", "Prometheus", "alertes", "journaux"]
+      },
+      "keywords": {
+        "en": ["/metrics", "clever notify-email", "readyz", "studio_journal_rpo_seconds", "OpenTelemetry"],
+        "fr": ["/metrics", "clever notify-email", "readyz", "studio_journal_rpo_seconds", "OpenTelemetry"]
+      },
+      "identifiers": ["/metrics", "STUDIO_METRICS_TOKEN", "clever notify-email"],
+      "related": ["team.health-metrics", "clever.rpo-rto", "clever.troubleshooting", "clever.redeploys"],
+      "prerequisites": ["clever.first-deployment"],
+      "claims": [
+        {
+          "id": "metrics-token-required",
+          "test": "tests/studio-metrics.test.ts › the metrics over HTTP › answers 401 without the token or with another, compared in constant time"
+        }
+      ],
       "owner": "@wanoo"
     },
     {
@@ -7070,17 +7397,39 @@
       "context": ["studio-hosted"],
       "title": { "en": "Security", "fr": "Sécurité" },
       "url": { "en": "EN-Clever-Security", "fr": "FR-Clever-Securite" },
-      "state": "planned",
-      "sources": [],
+      "state": "ready",
+      "versions": { "appliesFrom": "4.2.3" },
+      "surfaces": ["studio-server"],
+      "sources": [
+        "studio-server/src/server/auth/gate.ts",
+        "studio-server/src/server/auth/routes.ts",
+        "studio-server/src/server/play.ts",
+        "docs/dev/adr/0027-studio-oidc-sessions-tokens.md",
+        "docs/dev/threat-models/studio-server.md",
+        "studio-server/src/worker/job.ts"
+      ],
       "replaces": [
         "docs/en/STUDIO-SERVER.md#running-it-the-reference-deployment",
         "docs/fr/STUDIO-SERVER.md#le-faire-tourner--le-déploiement-de-référence"
       ],
       "questions": { "en": [], "fr": [] },
-      "aliases": { "en": [], "fr": [] },
+      "aliases": {
+        "en": ["HTTP policies", "revocation", "CHIPS", "trustProxy", "worker without secrets"],
+        "fr": ["politiques HTTP", "révocation", "CHIPS", "trustProxy", "worker sans secret"]
+      },
+      "keywords": {
+        "en": ["R = 15 min", "back-channel logout", "Bearer", "session cookie", "CSRF", "ADR 0027", "ADR 0028"],
+        "fr": ["R = 15 min", "déconnexion back-channel", "Bearer", "cookie de session", "CSRF", "ADR 0027", "ADR 0028"]
+      },
       "identifiers": [],
-      "related": [],
+      "related": ["clever.key-rotation", "clever.generic-oidc", "clever.domains-tls", "clever.configuration"],
       "prerequisites": [],
+      "claims": [
+        {
+          "id": "provider-unreachable-suspends",
+          "test": "tests/studio-auth.test.ts › revocation within R (simulated clock) › a provider unreachable past R suspends the session (503), which comes back once it answers"
+        }
+      ],
       "owner": "@wanoo"
     },
     {
@@ -7091,14 +7440,54 @@
       "context": ["studio-hosted"],
       "title": { "en": "Rotating keys", "fr": "Renouveler les clés" },
       "url": { "en": "EN-Clever-Key-Rotation", "fr": "FR-Clever-Renouveler-Les-Cles" },
-      "state": "planned",
-      "sources": [],
+      "state": "ready",
+      "versions": { "appliesFrom": "4.2.3" },
+      "surfaces": ["studio-server"],
+      "sources": [
+        "studio-server/src/server/auth/store.ts",
+        "studio-server/src/server/auth/gate.ts",
+        "studio-server/src/worker/job.ts",
+        "studio-server/src/server/builds.ts",
+        "studio-server/src/server/git.ts",
+        "studio-server/src/server/config.ts",
+        "studio-server/src/server/auth/oidc.ts"
+      ],
       "replaces": [],
-      "questions": { "en": ["How do I rotate STUDIO_SESSION_KEY?"], "fr": ["Comment renouveler STUDIO_SESSION_KEY ?"] },
-      "aliases": { "en": [], "fr": [] },
+      "questions": {
+        "en": [
+          "How do I rotate STUDIO_SESSION_KEY?",
+          "Does changing the session key log everyone out?",
+          "How do I rotate the worker's job key?"
+        ],
+        "fr": [
+          "Comment renouveler STUDIO_SESSION_KEY ?",
+          "Changer la clé de session déconnecte-t-il tout le monde ?",
+          "Comment renouveler la clé des jobs du worker ?"
+        ]
+      },
+      "aliases": {
+        "en": ["key rotation", "rotate secrets", "key ring"],
+        "fr": ["rotation des clés", "renouveler les secrets", "trousseau de clés"]
+      },
+      "keywords": {
+        "en": ["STUDIO_OIDC_CLIENT_SECRET", "STUDIO_METRICS_TOKEN", "WORKER_PUBLIC_KEY", "deploy key", "sessions"],
+        "fr": [
+          "STUDIO_OIDC_CLIENT_SECRET",
+          "STUDIO_METRICS_TOKEN",
+          "WORKER_PUBLIC_KEY",
+          "clé de déploiement",
+          "sessions"
+        ]
+      },
       "identifiers": ["STUDIO_SESSION_KEY", "STUDIO_WORKER_KEY", "STUDIO_GIT_KEY"],
-      "related": [],
-      "prerequisites": [],
+      "related": ["clever.security", "clever.configuration", "reference.environment-variables"],
+      "prerequisites": ["clever.configuration"],
+      "claims": [
+        {
+          "id": "unreadable-session-ends",
+          "test": "tests/studio-auth.test.ts › revocation within R (simulated clock) › a refresh token that no longer opens ends the session (fail closed)"
+        }
+      ],
       "owner": "@wanoo"
     },
     {
@@ -7109,14 +7498,44 @@
       "context": ["studio-hosted"],
       "title": { "en": "Recovering admin access", "fr": "Récupérer l'accès administrateur" },
       "url": { "en": "EN-Clever-Admin-Recovery", "fr": "FR-Clever-Recuperer-Acces-Admin" },
-      "state": "planned",
-      "sources": [],
+      "state": "ready",
+      "versions": { "appliesFrom": "4.2.3" },
+      "surfaces": ["studio-server"],
+      "sources": [
+        "studio-server/src/server/auth/store.ts",
+        "studio-server/src/server/main.ts",
+        "tests/studio-auth.test.ts"
+      ],
       "replaces": [],
-      "questions": { "en": ["I lost owner access to the Studio"], "fr": ["J'ai perdu l'accès owner au Studio"] },
-      "aliases": { "en": [], "fr": [] },
+      "questions": {
+        "en": [
+          "I lost owner access to the Studio",
+          "The last owner left: how do I get an owner back?",
+          "I lost the Keycloak admin password"
+        ],
+        "fr": [
+          "J'ai perdu l'accès owner au Studio",
+          "Le dernier owner est parti : comment retrouver un owner ?",
+          "J'ai perdu le mot de passe administrateur de Keycloak"
+        ]
+      },
+      "aliases": {
+        "en": ["lost owner", "last owner", "locked out", "admin access"],
+        "fr": ["owner perdu", "dernier owner", "plus d'accès", "accès administrateur"]
+      },
+      "keywords": {
+        "en": ["invite --role owner", "clever ssh", "Keycloak admin", "CC_KEYCLOAK_ADMIN_DEFAULT_PASSWORD"],
+        "fr": ["invite --role owner", "clever ssh", "administrateur Keycloak", "CC_KEYCLOAK_ADMIN_DEFAULT_PASSWORD"]
+      },
       "identifiers": [],
-      "related": [],
+      "related": ["team.members", "team.invitations", "clever.keycloak", "clever.change-domain"],
       "prerequisites": [],
+      "claims": [
+        {
+          "id": "last-owner-stays",
+          "test": "tests/studio-auth.test.ts › the owner › lists members, invites, cannot demote the last owner, and a removal ends access at once"
+        }
+      ],
       "owner": "@wanoo"
     },
     {
@@ -7127,16 +7546,32 @@
       "context": ["studio-hosted"],
       "title": { "en": "Changing domain or OIDC provider", "fr": "Changer de domaine ou de fournisseur OIDC" },
       "url": { "en": "EN-Clever-Change-Domain", "fr": "FR-Clever-Changer-De-Domaine" },
-      "state": "planned",
-      "sources": [],
+      "state": "ready",
+      "versions": { "appliesFrom": "4.2.3" },
+      "surfaces": ["studio-server"],
+      "sources": [
+        "studio-server/src/server/config.ts",
+        "studio-server/src/server/auth/store.ts",
+        "studio-server/src/server/auth/routes.ts"
+      ],
       "replaces": [],
       "questions": {
-        "en": ["How do I move the Studio to another domain?"],
-        "fr": ["Comment déplacer le Studio sur un autre domaine ?"]
+        "en": ["How do I move the Studio to another domain?", "How do I switch the Studio to another OpenID provider?"],
+        "fr": [
+          "Comment déplacer le Studio sur un autre domaine ?",
+          "Comment passer le Studio sur un autre fournisseur OpenID ?"
+        ]
       },
-      "aliases": { "en": [], "fr": [] },
+      "aliases": {
+        "en": ["change domain", "migrate provider", "new issuer"],
+        "fr": ["changer de domaine", "changer de fournisseur", "nouvel émetteur"]
+      },
+      "keywords": {
+        "en": ["publicUrl", "playUrl", "redirect URI", "iss", "sub", "re-invite"],
+        "fr": ["publicUrl", "playUrl", "URI de redirection", "iss", "sub", "réinviter"]
+      },
       "identifiers": [],
-      "related": [],
+      "related": ["clever.domains-tls", "clever.keycloak", "clever.generic-oidc", "clever.admin-recovery"],
       "prerequisites": [],
       "owner": "@wanoo"
     },
@@ -7148,13 +7583,39 @@
       "context": ["studio-hosted"],
       "title": { "en": "Worker, PostgreSQL or Cellar down", "fr": "Worker, PostgreSQL ou Cellar en panne" },
       "url": { "en": "EN-Clever-Dependency-Down", "fr": "FR-Clever-Dependance-En-Panne" },
-      "state": "planned",
-      "sources": [],
+      "state": "ready",
+      "versions": { "appliesFrom": "4.2.3" },
+      "surfaces": ["studio-server"],
+      "sources": [
+        "studio-server/src/server/remote-executor.ts",
+        "studio-server/src/server/service-lease.ts",
+        "studio-server/src/ops/ship.ts",
+        "studio-server/src/ops/core.ts",
+        "studio-server/src/server/auth/gate.ts"
+      ],
       "replaces": [],
-      "questions": { "en": ["The worker, PostgreSQL or Cellar is down"], "fr": ["Le worker, PostgreSQL ou Cellar est en panne"] },
-      "aliases": { "en": [], "fr": [] },
+      "questions": {
+        "en": [
+          "The worker, PostgreSQL or Cellar is down",
+          "What happens to the Studio when the worker is down?",
+          "What happens when Cellar is unreachable?"
+        ],
+        "fr": [
+          "Le worker, PostgreSQL ou Cellar est en panne",
+          "Que devient le Studio quand le worker est en panne ?",
+          "Que se passe-t-il quand Cellar est injoignable ?"
+        ]
+      },
+      "aliases": {
+        "en": ["outage", "worker down", "database down", "S3 down", "Keycloak down"],
+        "fr": ["panne", "worker en panne", "base en panne", "S3 en panne", "Keycloak en panne"]
+      },
+      "keywords": {
+        "en": ["the edit cannot be judged now", "ship-failed", "rpoMs", "suspended", "503"],
+        "fr": ["the edit cannot be judged now", "ship-failed", "rpoMs", "suspendue", "503"]
+      },
       "identifiers": [],
-      "related": [],
+      "related": ["clever.troubleshooting", "clever.monitoring", "clever.rpo-rto", "clever.restore-drill"],
       "prerequisites": [],
       "owner": "@wanoo"
     },
@@ -7164,16 +7625,41 @@
       "type": "howto",
       "audience": ["admin"],
       "context": ["studio-hosted"],
-      "title": { "en": "Exporting the game and leaving the installation", "fr": "Exporter le jeu et quitter l'installation" },
+      "title": {
+        "en": "Exporting the game and leaving the installation",
+        "fr": "Exporter le jeu et quitter l'installation"
+      },
       "url": { "en": "EN-Clever-Export-And-Leave", "fr": "FR-Clever-Exporter-Et-Quitter" },
-      "state": "planned",
-      "sources": [],
+      "state": "ready",
+      "versions": { "appliesFrom": "4.2.3" },
+      "surfaces": ["studio-server"],
+      "sources": [
+        "studio-server/src/server/main.ts",
+        "studio-server/src/server/git.ts",
+        "studio-server/src/ops/backup.ts"
+      ],
       "replaces": [],
-      "questions": { "en": [], "fr": [] },
-      "aliases": { "en": [], "fr": [] },
-      "identifiers": [],
-      "related": [],
-      "prerequisites": [],
+      "questions": {
+        "en": [
+          "How do I get my game out of the hosted Studio?",
+          "How do I leave the Clever Cloud installation and keep my game?"
+        ],
+        "fr": [
+          "Comment récupérer mon jeu depuis le Studio hébergé ?",
+          "Comment quitter l'installation Clever Cloud en gardant mon jeu ?"
+        ]
+      },
+      "aliases": {
+        "en": ["export", "leave", "take the game out", "reversibility"],
+        "fr": ["export", "partir", "sortir le jeu", "réversibilité"]
+      },
+      "keywords": {
+        "en": ["export-manifest.json", "Git push", "bucket copy", "local Studio"],
+        "fr": ["export-manifest.json", "push Git", "copie du bucket", "Studio local"]
+      },
+      "identifiers": ["npm run studio-server -- export"],
+      "related": ["clever.costs-teardown", "clever.restore-drill", "team.game-in-git", "clever.retention"],
+      "prerequisites": ["clever.backups"],
       "owner": "@wanoo"
     },
     {
@@ -7185,14 +7671,46 @@
       "context": ["studio-hosted"],
       "title": { "en": "Retention", "fr": "Rétention" },
       "url": { "en": "EN-Clever-Retention", "fr": "FR-Clever-Retention" },
-      "state": "planned",
-      "sources": [],
+      "state": "ready",
+      "versions": { "appliesFrom": "4.2.3" },
+      "surfaces": ["studio-server"],
+      "sources": [
+        "studio-server/src/ops/backup.ts",
+        "studio-server/src/ops/backup-bucket.ts",
+        "studio-server/src/ops/gc.ts",
+        "studio-server/src/server/auth/store.ts",
+        "studio-server/src/server/http.ts",
+        "studio-server/src/server/jobs.ts",
+        "tests/studio-backup.test.ts"
+      ],
       "replaces": [],
-      "questions": { "en": [], "fr": [] },
-      "aliases": { "en": [], "fr": [] },
+      "questions": {
+        "en": [
+          "How long does the hosted Studio keep data, backups and previews?",
+          "How do I delete old previews and unused files?"
+        ],
+        "fr": [
+          "Combien de temps le Studio hébergé garde-t-il données, sauvegardes et prévisualisations ?",
+          "Comment supprimer les vieilles prévisualisations et les fichiers inutilisés ?"
+        ]
+      },
+      "aliases": {
+        "en": ["retention", "data lifetime", "purge", "personal data"],
+        "fr": ["rétention", "durée de conservation", "purge", "données personnelles"]
+      },
+      "keywords": {
+        "en": ["audit log", "journal", "sessions", "gc", "STUDIO_BACKUP_KEEP"],
+        "fr": ["journal d'audit", "journal", "sessions", "gc", "STUDIO_BACKUP_KEEP"]
+      },
       "identifiers": [],
-      "related": [],
+      "related": ["clever.backups", "clever.export-leave", "clever.costs-teardown"],
       "prerequisites": [],
+      "claims": [
+        {
+          "id": "gc-keeps-referenced",
+          "test": "tests/studio-backup.test.ts › the collection of the blobs › keeps what a row names and what is young; deletes the rest only when asked"
+        }
+      ],
       "owner": "@wanoo"
     },
     {
@@ -7203,17 +7721,55 @@
       "context": ["studio-hosted"],
       "title": { "en": "Clever Cloud troubleshooting", "fr": "Dépannage sur Clever Cloud" },
       "url": { "en": "EN-Clever-Troubleshooting", "fr": "FR-Clever-Depannage" },
-      "state": "planned",
-      "sources": [],
+      "state": "ready",
+      "versions": { "appliesFrom": "4.2.3" },
+      "surfaces": ["studio-server"],
+      "sources": [
+        "studio-server/src/server/http.ts",
+        "studio-server/src/worker/job.ts",
+        "studio-server/src/server/remote-executor.ts",
+        "ops/studio/backup-cron.sh",
+        "tests/studio-job-clock.test.ts",
+        "docs/dev/QUALIF-4.2.3-REFERENCE.md"
+      ],
       "replaces": [],
       "questions": {
-        "en": ["I get a 503 on Clever Cloud", "Safari does not keep the session cookie"],
-        "fr": ["J'ai une 503 sur Clever Cloud", "Safari ne garde pas le cookie de session"]
+        "en": [
+          "I get a 503 on Clever Cloud",
+          "Safari does not keep the session cookie",
+          "The daily backup did not run",
+          "The worker refuses jobs with 403 the job has expired"
+        ],
+        "fr": [
+          "J'ai une 503 sur Clever Cloud",
+          "Safari ne garde pas le cookie de session",
+          "La sauvegarde quotidienne n'a pas tourné",
+          "Le worker refuse des jobs en 403 the job has expired"
+        ]
       },
-      "aliases": { "en": [], "fr": [] },
+      "aliases": {
+        "en": ["Clever problems", "hosted Studio errors", "too many connections", "clock skew"],
+        "fr": ["problèmes Clever", "erreurs du Studio hébergé", "too many connections", "décalage d'horloge"]
+      },
+      "keywords": {
+        "en": ["503", "Retry-After", "cookie", "slow preview", "cron", "403"],
+        "fr": ["503", "Retry-After", "cookie", "prévisualisation lente", "cron", "403"]
+      },
       "identifiers": ["503"],
-      "related": [],
+      "related": [
+        "clever.redeploys",
+        "clever.dependency-down",
+        "clever.domains-tls",
+        "clever.backups",
+        "team.write-refused-423"
+      ],
       "prerequisites": [],
+      "claims": [
+        {
+          "id": "job-clock-skew",
+          "test": "tests/studio-job-clock.test.ts › a job's lifetime on the worker's clock › accepts a job signed by a Studio whose clock runs ahead, within the skew"
+        }
+      ],
       "owner": "@wanoo"
     },
     {
@@ -7224,14 +7780,32 @@
       "context": ["studio-hosted"],
       "title": { "en": "Costs and teardown", "fr": "Coûts et démontage" },
       "url": { "en": "EN-Clever-Costs-And-Teardown", "fr": "FR-Clever-Couts-Et-Demontage" },
-      "state": "planned",
-      "sources": [],
+      "state": "ready",
+      "versions": { "appliesFrom": "4.2.3" },
+      "surfaces": ["studio-server"],
+      "sources": ["docs/dev/SPIKE-4.2.1-CLEVER.md", "ops/studio/backup-cron.sh"],
       "replaces": [],
-      "questions": { "en": [], "fr": [] },
-      "aliases": { "en": [], "fr": [] },
-      "identifiers": [],
-      "related": [],
-      "prerequisites": [],
+      "questions": {
+        "en": [
+          "How much does the hosted Studio cost on Clever Cloud?",
+          "How do I delete the Studio's apps and add-ons?"
+        ],
+        "fr": [
+          "Combien coûte le Studio hébergé sur Clever Cloud ?",
+          "Comment supprimer les applications et add-ons du Studio ?"
+        ]
+      },
+      "aliases": {
+        "en": ["teardown", "delete the installation", "pricing", "billing"],
+        "fr": ["démontage", "supprimer l'installation", "tarifs", "facturation"]
+      },
+      "keywords": {
+        "en": ["clever delete", "clever addon delete", "bucket", "cost"],
+        "fr": ["clever delete", "clever addon delete", "bucket", "coût"]
+      },
+      "identifiers": ["clever delete", "clever addon delete"],
+      "related": ["clever.export-leave", "clever.overview", "clever.retention"],
+      "prerequisites": ["clever.export-leave"],
       "owner": "@wanoo"
     },
     {
