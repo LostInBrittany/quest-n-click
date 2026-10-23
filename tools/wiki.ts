@@ -3,9 +3,11 @@
 // [the same three] | check --publish --product-ref <tag|sha> [--doc-ref <sha>] [--released] [--state preview|candidate|published]
 // [--test-report <vitest.json>]… [--candidate <run id>] | review-claim <id> --by <name> | translations --ack <id#section> --by <name>
 // | archive --out <file.tar.gz> [--revision r<n>] [--preview] [--build-id <id>] [--allow-dirty] [the same three]
-// | publish --target wiki --version <v> --revision r<n> --tag <tag> --repo <owner/name> --archive <file> [--sha256 <hex>]
-// [--rollback-to <v>[-r<n>]] [--dry-run] [--remote <url>] [--preview] | pages --out <dir> (--repo <owner/name> |
-// --releases <dir>) [--publication <file>] | transition [--root <dir>] [--version <v>]
+// | publish --target wiki --mode release|revision|rollback|promote|preview --ref <ref> --version <v> --revision r<n>
+// --tag <tag> --repo <owner/name> --archive <file> [--sha256 <hex>] [--rollback-to <v>[-r<n>]] [--dry-run] [--remote <url>]
+// | pages --out <dir> (--repo <owner/name> [--cache <dir>] | --releases <dir> (--repo <r> | --skip-attestations))
+// [--publication <file>] | next-revision --version <v> --repo <owner/name> | attest --repo <r> --tag <tag> --file <f>
+// | transition [--root <dir>] [--version <v>]
 // (4.5.0 "Wiki", docs/dev/PLAN-4.5-WIKI.md §5, phases A2 to A5; ADR 0030).
 // The documentation's source is `wiki/` (a manifest, then `wiki/<lang>/<id>.md`); every output is generated from it.
 // `check` is the work level of every pull request: it fails on errors only, and prints the warnings and what is still
@@ -54,8 +56,19 @@ import {
   writeCoverage,
 } from './wiki/coverage';
 import { readManifest } from './wiki/manifest';
-import { assemblePages, downloadReleases, writePages } from './wiki/pages';
-import { keyAuth, parsePublication, pushWiki, type WikiAuth, wikiRemote } from './wiki/publication';
+import { assemblePages, downloadReleases, ghAttestation, ghRetry, writePages } from './wiki/pages';
+import {
+  gitEnv,
+  keyAuth,
+  MODES,
+  type Mode,
+  nextRevision,
+  parsePublication,
+  pushWiki,
+  refProblem,
+  type WikiAuth,
+  wikiRemote,
+} from './wiki/publication';
 import { transitionPages, writeTransitionPages } from './wiki/transition';
 import { ackTranslation } from './wiki/translations';
 
@@ -106,7 +119,7 @@ export function bundleOutProblem(out: string, tracked: readonly string[], root =
 }
 
 const USAGE =
-  'usage: npm run wiki -- check [--test-report <file>]… | check --publish --product-ref <tag|sha> [--doc-ref <sha>] [--released] [--state preview|candidate|published] [--test-report <file>]… [--candidate <run id>] | review-claim <id> --by <name> | translations --ack <id#section> --by <name> | stats [--json] | coverage [--init [--force] | --ack <key>] | build --target wiki --out <dir> [--preview] [--product-version <v>] [--doc-revision <sha>] [--product-commit <sha>] | bundle --out <dir> [--build-id <id>] [--allow-dirty] [--product-version <v>] [--doc-revision <sha>] [--product-commit <sha>] | archive --out <quest-n-click-docs-<v>[-r<n>].tar.gz> [--revision r<n>] [--preview] [--build-id <id>] [--allow-dirty] [--product-version <v>] [--doc-revision <sha>] [--product-commit <sha>] | publish --target wiki --version <v> --revision r<n> --tag <tag> --archive <file> (--repo <owner/name> | --remote <url>) [--sha256 <hex>] [--rollback-to <v>[-r<n>]] [--preview] [--dry-run] | pages --out <dir> (--repo <owner/name> | --releases <dir>) [--publication <file>] | transition [--root <dir>] [--version <v>]';
+  'usage: npm run wiki -- check [--test-report <file>]… | check --publish --product-ref <tag|sha> [--doc-ref <sha>] [--released] [--state preview|candidate|published] [--test-report <file>]… [--candidate <run id>] | review-claim <id> --by <name> | translations --ack <id#section> --by <name> | stats [--json] | coverage [--init [--force] | --ack <key>] | build --target wiki --out <dir> [--preview] [--product-version <v>] [--doc-revision <sha>] [--product-commit <sha>] | bundle --out <dir> [--build-id <id>] [--allow-dirty] [--product-version <v>] [--doc-revision <sha>] [--product-commit <sha>] | archive --out <quest-n-click-docs-<v>[-r<n>].tar.gz> [--revision r<n>] [--preview] [--build-id <id>] [--allow-dirty] [--product-version <v>] [--doc-revision <sha>] [--product-commit <sha>] | publish --target wiki --mode release|revision|rollback|promote|preview --ref <ref> --version <v> --revision r<n> --tag <tag> --archive <file> (--repo <owner/name> | --remote <url>) [--sha256 <hex>] [--rollback-to <v>[-r<n>]] [--dry-run] | pages --out <dir> (--repo <owner/name> [--cache <dir>] | --releases <dir> (--repo <owner/name> | --skip-attestations)) [--publication <file>] | next-revision --version <v> --repo <owner/name> | attest --repo <owner/name> --tag <tag> --file <archive> | transition [--root <dir>] [--version <v>]';
 
 /** Today, as a day (the date a review or an ack records). */
 const today = () => new Date().toISOString().slice(0, 10);
@@ -340,6 +353,23 @@ function run(args: readonly string[]): number {
   if (command === 'publish') return publish(args);
   if (command === 'pages') return pages(args);
   if (command === 'transition') return transition(args, wikiDir);
+  if (command === 'next-revision') return nextRevisionCommand(args);
+  if (command === 'attest') {
+    // `attest --repo <r> --tag <tag> --file <archive>`: the archive's attestation, by the workflow and ref that must
+    // have signed it for that tag (tools/wiki/pages.ts attestationArgs): what Pages checks, docs-publish checks too.
+    const repo = option(args, 'repo');
+    const tag = option(args, 'tag');
+    const file = option(args, 'file');
+    if (!repo || !tag || !file) throw new UsageError('attest needs --repo, --tag and --file');
+    try {
+      ghAttestation(repo)(resolve(file), tag);
+    } catch (e) {
+      console.error(`✖  ${(e as Error).message}`);
+      return 1;
+    }
+    console.log(`✔  ${tag}: ${basename(file)} is attested by the workflow that must have made it`);
+    return 0;
+  }
   throw new UsageError(command ? `unknown command "${command}"` : 'a command is needed');
 }
 
@@ -432,7 +462,27 @@ function publish(args: readonly string[]): number {
   const file = option(args, 'archive');
   if (!version || !tag || !file || (!repo && !option(args, 'remote')))
     throw new UsageError('publish needs --version, --revision, --tag, --archive and --repo <owner/name>');
-  const preview = args.includes('--preview');
+  const mode = option(args, 'mode') as Mode | undefined;
+  const ref = option(args, 'ref');
+  if (!mode || !MODES.includes(mode) || !ref)
+    throw new UsageError(`publish needs --mode (${MODES.join(', ')}) and --ref, the ref the run stands on`);
+  const rollbackTo = option(args, 'rollback-to');
+  const preview = mode === 'preview';
+  const modeProblem =
+    refProblem(mode, ref, version) ??
+    (mode === 'rollback' && !rollbackTo
+      ? 'a rollback needs --rollback-to <v>[-r<n>]'
+      : mode !== 'rollback' && rollbackTo
+        ? '--rollback-to is the rollback mode only'
+        : mode === 'release' && revision !== 'r1'
+          ? 'a release publishes its own revision, r1'
+          : mode === 'revision' && revision === 'r1'
+            ? 'a doc revision is r2 or later'
+            : undefined);
+  if (modeProblem) {
+    console.error(`✖  ${modeProblem}`);
+    return 1;
+  }
   const bytes = readFileSync(resolve(file));
   const sum = createHash('sha256').update(bytes).digest('hex');
   const expected = option(args, 'sha256');
@@ -474,11 +524,12 @@ function publish(args: readonly string[]): number {
         sha256: sum,
         tag,
         date: new Date().toISOString().slice(0, 10),
+        docRevision: m.docRevision,
+        ...(m.buildId ? { buildId: m.buildId } : {}),
         ...(preview ? { preview: true } : {}),
       },
       wiki,
-      docRevision: m.docRevision,
-      ...(option(args, 'rollback-to') ? { rollbackTo: option(args, 'rollback-to') } : {}),
+      ...(rollbackTo ? { rollbackTo } : {}),
       push: !args.includes('--dry-run'),
     });
     if (!r.ok) {
@@ -496,39 +547,40 @@ function publish(args: readonly string[]): number {
 
 /**
  * `pages --out <dir>`: Pages' `/docs/`, from the released archives only (tools/wiki/pages.ts). `--repo` downloads
- * them with `gh` and reads the record from the wiki's repository; `--releases <dir>` and `--publication <file>` read
- * folders already there (the tests, a check by hand).
+ * them with `gh` (into `--cache <dir>` when given, which CI restores by the release list), verifies each archive's
+ * attestation and reads the record from the wiki's repository. `--releases <dir>` and `--publication <file>` read
+ * folders already there; the attestations are then verified against `--repo`, or skipped with
+ * `--skip-attestations`, for a look on a disk only (never a deployment: ci.yml always passes `--repo`).
  */
 function pages(args: readonly string[]): number {
   const out = option(args, 'out');
   if (!out) throw new UsageError('pages needs --out <dir> and --repo <owner/name> or --releases <dir>');
   const repo = option(args, 'repo');
-  let releasesDir = option(args, 'releases');
-  if (!repo && !releasesDir) throw new UsageError('pages needs --repo <owner/name> or --releases <dir>');
+  const given = option(args, 'releases');
+  if (!repo && !given) throw new UsageError('pages needs --repo <owner/name> or --releases <dir>');
+  const skip = args.includes('--skip-attestations');
+  if (!repo && !skip)
+    throw new UsageError(
+      'pages verifies each archive against --repo <owner/name> (or --skip-attestations, never to deploy)',
+    );
   const scratch = mkdtempSync(join(tmpdir(), 'wiki-pages-'));
   try {
     let publicationText: string | undefined;
-    const given = option(args, 'publication');
-    if (given) publicationText = readFileSync(resolve(given), 'utf8');
+    const record = option(args, 'publication');
+    if (record) publicationText = readFileSync(resolve(record), 'utf8');
+    let releasesDir = given ? resolve(given) : undefined;
+    let tags: string[] | undefined;
     if (repo && !releasesDir) {
-      releasesDir = join(scratch, 'releases');
-      const tags = downloadReleases(repo, releasesDir);
+      releasesDir = resolve(option(args, 'cache') ?? join(scratch, 'releases'));
+      tags = downloadReleases(repo, releasesDir);
       console.log(`·  ${tags.length} release(s) with documentation: ${tags.join(', ') || 'none'}`);
-      if (!given) {
+      if (!record) {
         // The record lives in the wiki's repository; a wiki not created yet has none (the bootstrap).
-        const clone = join(scratch, 'wiki');
-        const auth = wikiAuth(scratch);
         try {
-          execFileSync('git', ['clone', '--depth', '1', '--no-tags', wikiRemote(repo, auth), clone], {
-            stdio: ['ignore', 'pipe', 'pipe'],
-            timeout: 120_000,
-            env: { ...process.env, GIT_TERMINAL_PROMPT: '0' },
-          });
-          if (existsSync(join(clone, 'publication.json')))
-            publicationText = readFileSync(join(clone, 'publication.json'), 'utf8');
+          publicationText = recordOf(repo, scratch);
         } catch (e) {
-          // No record can be read: fine while nothing is released; refused once something is (an alias would lie).
-          if (tags.some((t) => /^v/.test(t))) {
+          // No record can be read: fine while only pre-releases exist; refused otherwise (an alias would lie).
+          if (tags.some((t) => !/^v[^-]+-/.test(t))) {
             console.error(
               `✖  the wiki's repository did not answer (${(e as Error).message.split('\n')[0]}): its publication.json is needed`,
             );
@@ -537,12 +589,55 @@ function pages(args: readonly string[]): number {
         }
       }
     }
+    if (skip) console.warn('⚠  --skip-attestations: the archives are not authenticated; never deploy this folder');
     const files = assemblePages({
       releasesDir: releasesDir!,
+      ...(tags ? { tags } : {}),
       publication: publicationText ? parsePublication(publicationText) : null,
+      verify: skip ? () => {} : ghAttestation(repo!),
     });
     const written = writePages(resolve(out), files);
     console.log(`✔  /docs/: ${written.length} files → ${resolve(out)}`);
+    return 0;
+  } catch (e) {
+    console.error(`✖  ${(e as Error).message}`);
+    return 1;
+  } finally {
+    rmSync(scratch, { recursive: true, force: true });
+  }
+}
+
+/** The wiki repository's `publication.json`, or undefined when it has none; throws when the wiki cannot be read. */
+function recordOf(repo: string, scratch: string): string | undefined {
+  const clone = join(scratch, 'wiki-record');
+  const auth = wikiAuth(scratch);
+  execFileSync('git', ['clone', '--depth', '1', '--no-tags', wikiRemote(repo, auth), clone], {
+    stdio: ['ignore', 'pipe', 'pipe'],
+    timeout: 120_000,
+    env: gitEnv(auth),
+  });
+  const file = join(clone, 'publication.json');
+  return existsSync(file) ? readFileSync(file, 'utf8') : undefined;
+}
+
+/**
+ * `next-revision --version <v> --repo <r>`: the doc revision docs-publish publishes from `docs/<v>`, and whether its
+ * release already exists unrecorded (a run to complete), as `r<n> new` or `r<n> existing`.
+ */
+function nextRevisionCommand(args: readonly string[]): number {
+  const version = option(args, 'version');
+  const repo = option(args, 'repo');
+  if (!version || !repo) throw new UsageError('next-revision needs --version <v> and --repo <owner/name>');
+  const scratch = mkdtempSync(join(tmpdir(), 'wiki-next-'));
+  try {
+    const tags = (
+      JSON.parse(ghRetry(['release', 'list', '--repo', repo, '--limit', '1000', '--json', 'tagName'])) as {
+        tagName: string;
+      }[]
+    ).map((r) => r.tagName);
+    const text = recordOf(repo, scratch);
+    const r = nextRevision(version, tags, text ? parsePublication(text) : null);
+    console.log(`${r.revision} ${r.existing ? 'existing' : 'new'}`);
     return 0;
   } catch (e) {
     console.error(`✖  ${(e as Error).message}`);

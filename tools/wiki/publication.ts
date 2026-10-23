@@ -34,23 +34,35 @@ const day = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
 const sha = z.string().regex(/^[0-9a-f]{64}$/);
 const version = z.string().regex(SEMVER);
 const revision = z.string().regex(REVISION);
+/**
+ * What the archive says it is, beside its sha256: the doc revision (a commit) and the build (the candidate run). A
+ * page compares them with its own (tools/wiki/display.ts), so an rc's page, which says 4.5.0 r1 like the final's,
+ * is never called the published one unless it is the same build.
+ */
+const built = { docRevision: z.string().min(1), buildId: z.string().min(1).optional() };
 const PublicationSchema = z
   .object({
     format: z.literal(PUBLICATION_FORMAT),
     version: z.literal(1),
-    latest: z.object({ version, revision, sha256: sha, date: day }).strict().nullable(),
+    latest: z
+      .object({ version, revision, sha256: sha, date: day, ...built })
+      .strict()
+      .nullable(),
     versions: z.record(
       version,
       z
         .object({
           approved: revision,
-          revisions: z.record(revision, z.object({ sha256: sha, tag: z.string().min(1), date: day }).strict()),
+          revisions: z.record(
+            revision,
+            z.object({ sha256: sha, tag: z.string().min(1), date: day, ...built }).strict(),
+          ),
         })
         .strict(),
     ),
     /** The bootstrap's preview (§4.5.3), recorded until a release is: Pages serves it under `/docs/preview/`. */
     preview: z
-      .object({ version, sha256: sha, tag: z.string().min(1), date: day })
+      .object({ version, sha256: sha, tag: z.string().min(1), date: day, ...built })
       .strict()
       .optional(),
   })
@@ -97,8 +109,25 @@ export interface Promotion {
   /** The release that carries the archive: `v<version>` for r1, `docs-v<version>-r<n>` for a fix. */
   tag: string;
   date: string;
+  /** The archive's doc revision and build (its `bundle-manifest.json`). */
+  docRevision: string;
+  buildId?: string;
   /** The bootstrap's preview (§4.5.3), not a release. */
   preview?: boolean;
+}
+
+const builtOf = (p: Promotion) => ({ docRevision: p.docRevision, ...(p.buildId ? { buildId: p.buildId } : {}) });
+
+/** The ways docs-publish writes, and the one ref each may run from (a dispatch from elsewhere is refused). */
+export const MODES = ['release', 'revision', 'rollback', 'promote', 'preview'] as const;
+export type Mode = (typeof MODES)[number];
+/**
+ * Why a mode may not write from this ref: a doc revision from `refs/heads/docs/<v>` only; everything else (a release,
+ * called from release.yml on main, a rollback, a promotion, the preview) from `refs/heads/main` only.
+ */
+export function refProblem(mode: Mode, ref: string, version: string): string | undefined {
+  const want = mode === 'revision' ? `refs/heads/docs/${version}` : 'refs/heads/main';
+  return ref === want ? undefined : `a ${mode} publishes from ${want}, not from ${ref}`;
 }
 
 export type Decision =
@@ -137,7 +166,7 @@ export function decide(record: Publication, p: Promotion, o: { rollbackTo?: stri
       };
     if (o.rollbackTo) return { ok: false, problem: '--rollback-to is for a published state, not a preview' };
     const same = record.preview?.sha256 === p.sha256;
-    if (!same) next.preview = { version: p.version, sha256: p.sha256, tag: p.tag, date: p.date };
+    if (!same) next.preview = { version: p.version, sha256: p.sha256, tag: p.tag, date: p.date, ...builtOf(p) };
     return { ok: true, record: next, wiki: true, note: same ? 'the same preview again' : `preview of ${p.version}` };
   }
   const entry = record.versions[p.version];
@@ -175,13 +204,13 @@ export function decide(record: Publication, p: Promotion, o: { rollbackTo?: stri
     };
   if (!known) {
     next.versions[p.version] ??= { approved: p.revision, revisions: {} };
-    next.versions[p.version]!.revisions[p.revision] = { sha256: p.sha256, tag: p.tag, date: p.date };
+    next.versions[p.version]!.revisions[p.revision] = { sha256: p.sha256, tag: p.tag, date: p.date, ...builtOf(p) };
   }
   next.versions[p.version]!.approved = p.revision;
   // Newer than the latest, the latest again, or a rollback: the wiki follows. An older version's fix: Pages only.
   const moves = vsLatest >= 0 || Boolean(rollback);
   if (moves && !(latest && vsLatest === 0))
-    next.latest = { version: p.version, revision: p.revision, sha256: p.sha256, date: p.date };
+    next.latest = { version: p.version, revision: p.revision, sha256: p.sha256, date: p.date, ...builtOf(p) };
   // A release recorded ends the bootstrap: the preview is no longer served.
   if (moves) delete next.preview;
   const note = rollback
@@ -192,6 +221,25 @@ export function decide(record: Publication, p: Promotion, o: { rollbackTo?: stri
         ? `${p.version} ${p.revision} is already the latest`
         : `${p.version} ${p.revision} is the latest`;
   return { ok: true, record: next, wiki: moves, note };
+}
+
+/**
+ * The doc revision a run from `docs/<v>` publishes: the next one after the last released, unless the last released
+ * one was never recorded (its release went out, the push of the record did not): then that one again, to complete
+ * (`existing`: its release is reused when the rebuilt archive has its sha256, refused otherwise).
+ */
+export function nextRevision(
+  version: string,
+  releaseTags: readonly string[],
+  record: Publication | null,
+): { revision: string; existing: boolean } {
+  const n = releaseTags
+    .map((t) => new RegExp(`^docs-v${version.replace(/\./g, '\\.')}-r([1-9]\\d*)$`).exec(t)?.[1])
+    .filter((x): x is string => x !== undefined)
+    .map(Number);
+  const last = Math.max(1, ...n);
+  if (last > 1 && !record?.versions[version]?.revisions[`r${last}`]) return { revision: `r${last}`, existing: true };
+  return { revision: `r${last + 1}`, existing: false };
 }
 
 // ——— The wiki's repository ———
@@ -243,11 +291,11 @@ export interface PushOptions {
   promotion: Promotion;
   /** The archive's `wiki/` folder, by path inside it. */
   wiki: Map<string, Buffer>;
-  /** The doc revision the archive was built from (the commit message names it). */
-  docRevision: string;
   rollbackTo?: string;
   /** false: decide and prepare the commit, push nothing (a dry run). */
   push: boolean;
+  /** A test seam: runs between the commit and the push, where another publication could land. */
+  beforePush?: () => void;
 }
 
 export type PushResult =
@@ -316,10 +364,23 @@ export function pushWiki(o: PushOptions): PushResult {
     'commit',
     '--quiet',
     '-m',
-    `wiki: ${what} (${o.docRevision})`,
+    `wiki: ${what} (${o.promotion.docRevision})`,
     '-m',
     `${d.note}. Generated from wiki/ by npm run wiki -- publish; an edit made in the wiki is overwritten.`,
   ]);
-  if (o.push) git(['push', 'origin', 'HEAD']);
+  if (o.push) {
+    o.beforePush?.();
+    try {
+      git(['push', 'origin', 'HEAD']);
+    } catch (e) {
+      // Never forced: the wiki moved since the clone (another publication, a web edit), so this one is refused whole
+      // and the wiki keeps its last good state. Running docs-publish again decides on the new state.
+      const why = String((e as { stderr?: unknown }).stderr ?? (e as Error).message).trim();
+      return {
+        ok: false,
+        problem: `the push was refused, nothing published (${/non-fast-forward|fetch first|rejected/.test(why) ? 'the wiki moved since the clone' : why.split('\n')[0]}): run docs-publish again`,
+      };
+    }
+  }
   return { ok: true, committed: true, pushed: o.push, wiki: d.wiki, note: d.note, record: d.record };
 }

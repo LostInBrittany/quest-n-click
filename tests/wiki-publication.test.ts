@@ -14,6 +14,8 @@ import { type ArchiveOptions, buildArchive, readArchive } from '../tools/wiki/ar
 import { readManifest } from '../tools/wiki/manifest';
 import {
   compareStates,
+  nextRevision,
+  refProblem,
   decide,
   emptyPublication,
   gitEnv,
@@ -42,6 +44,8 @@ const promo = (version: string, revision: string, s = sha('a'), o: Partial<Promo
   sha256: s,
   tag: revision === 'r1' ? `v${version}` : `docs-v${version}-${revision}`,
   date: '2026-11-01',
+  docRevision: 'd'.repeat(40),
+  buildId: '1',
   ...o,
 });
 /** A record after the given promotions, each required to pass. */
@@ -76,10 +80,19 @@ describe('the ordering rule', () => {
     const d = decide(emptyPublication(), promo('4.5.0', 'r1'));
     expect(d.ok && d.wiki).toBe(true);
     const r = after([promo('4.5.0', 'r1')]);
-    expect(r.latest).toEqual({ version: '4.5.0', revision: 'r1', sha256: sha('a'), date: '2026-11-01' });
+    expect(r.latest).toEqual({
+      version: '4.5.0',
+      revision: 'r1',
+      sha256: sha('a'),
+      date: '2026-11-01',
+      docRevision: 'd'.repeat(40),
+      buildId: '1',
+    });
     expect(r.versions['4.5.0']).toEqual({
       approved: 'r1',
-      revisions: { r1: { sha256: sha('a'), tag: 'v4.5.0', date: '2026-11-01' } },
+      revisions: {
+        r1: { sha256: sha('a'), tag: 'v4.5.0', date: '2026-11-01', docRevision: 'd'.repeat(40), buildId: '1' },
+      },
     });
     const again = decide(r, promo('4.5.0', 'r1', sha('a'), { date: '2026-12-01' }));
     expect(again.ok && again.record).toEqual(r);
@@ -162,6 +175,26 @@ describe('the ordering rule', () => {
   });
 });
 
+describe('the doc revision a run from docs/<v> publishes', () => {
+  it('the next after the last released; the last again when its record never went out', () => {
+    expect(nextRevision('4.5.0', ['v4.5.0'], null)).toEqual({ revision: 'r2', existing: false });
+    const r2 = after([promo('4.5.0', 'r1')], [promo('4.5.0', 'r2', sha('b'))]);
+    expect(nextRevision('4.5.0', ['v4.5.0', 'docs-v4.5.0-r2', 'docs-v4.6.0-r7'], r2)).toEqual({
+      revision: 'r3',
+      existing: false,
+    });
+    // r3's release went out, its record did not: the run completes r3, never skips to r4.
+    expect(nextRevision('4.5.0', ['v4.5.0', 'docs-v4.5.0-r2', 'docs-v4.5.0-r3'], r2)).toEqual({
+      revision: 'r3',
+      existing: true,
+    });
+    expect(nextRevision('4.5.0', ['docs-v4.5.0-r10', 'docs-v4.5.0-r9'], null)).toEqual({
+      revision: 'r10',
+      existing: true,
+    });
+  });
+});
+
 describe('how git reaches the wiki', () => {
   it('passes a token as a header, never in a URL or an argument', () => {
     const env = gitEnv({ kind: 'token', token: 'secret-token' });
@@ -240,14 +273,13 @@ function tip(bare: string) {
     read: (f: string) => readFileSync(join(c, f), 'utf8'),
   };
 }
-const push = (bare: string, bytes: Buffer, p: Promotion, o: { rollbackTo?: string } = {}) =>
+const push = (bare: string, bytes: Buffer, p: Promotion, o: { rollbackTo?: string; beforePush?: () => void } = {}) =>
   pushWiki({
     remote: bare,
     auth: { kind: 'none' },
     workDir: join(tmp('wiki-work-'), 'clone'),
     promotion: p,
     wiki: wikiOf(bytes),
-    docRevision: 'd'.repeat(40),
     push: true,
     ...o,
   });
@@ -311,6 +343,54 @@ describe('the push to the wiki', () => {
     });
   });
 
+  it('refuses a push the wiki moved under (non-fast-forward): nothing published, the other state kept', () => {
+    const bare = wikiRemote();
+    const other = () => {
+      const c = join(tmp('wiki-other-'), 'c');
+      execFileSync('git', ['clone', '--quiet', bare, c], { stdio: 'ignore' });
+      writeFileSync(join(c, 'Home.md'), 'Edited on the web meanwhile.\n');
+      git(c, 'commit', '--quiet', '-am', 'a web edit');
+      git(c, 'push', '--quiet', 'origin', 'HEAD:master');
+    };
+    const r = push(bare, r1.bytes, promo('4.5.0', 'r1', r1sum), { beforePush: other });
+    expect(r).toMatchObject({ ok: false });
+    expect(!r.ok && r.problem).toMatch(/push was refused, nothing published \(the wiki moved since the clone\)/);
+    expect(tip(bare).subject).toBe('a web edit');
+  });
+
+  it('`wiki -- publish` writes from the one ref its mode allows: a rollback off main is refused', () => {
+    expect(refProblem('rollback', 'refs/heads/docs/4.5.0', '4.5.0')).toMatch(
+      /rollback publishes from refs\/heads\/main/,
+    );
+    expect(refProblem('promote', 'refs/heads/feature/x', '4.5.0')).toMatch(/from refs\/heads\/main/);
+    expect(refProblem('preview', 'refs/heads/main', '4.5.0')).toBeUndefined();
+    expect(refProblem('release', 'refs/heads/main', '4.5.0')).toBeUndefined();
+    expect(refProblem('revision', 'refs/heads/docs/4.5.0', '4.5.0')).toBeUndefined();
+    expect(refProblem('revision', 'refs/heads/main', '4.5.0')).toMatch(/refs\/heads\/docs\/4\.5\.0/);
+    const dir = tmp('wiki-publish-ref-');
+    const file = join(dir, 'quest-n-click-docs-4.5.0.tar.gz');
+    writeFileSync(file, r1.bytes);
+    const bare = wikiRemote();
+    const err = vi.spyOn(console, 'error').mockImplementation(() => {});
+    try {
+      const args = ['publish', '--target', 'wiki', '--tag', 'v4.5.0', '--archive', file, '--remote', bare];
+      const v = ['--version', '4.5.0', '--revision', 'r1'];
+      expect(
+        main([...args, ...v, '--mode', 'rollback', '--ref', 'refs/heads/docs/4.5.0', '--rollback-to', '4.5.0']),
+      ).toBe(1);
+      expect(main([...args, ...v, '--mode', 'rollback', '--ref', 'refs/heads/main'])).toBe(1);
+      expect(main([...args, ...v, '--mode', 'release', '--ref', 'refs/heads/main', '--rollback-to', '4.5.0'])).toBe(1);
+      expect(main([...args, ...v, '--ref', 'refs/heads/main'])).toBe(2);
+      const said = err.mock.calls.flat().join('\n');
+      expect(said).toMatch(/a rollback publishes from refs\/heads\/main, not from refs\/heads\/docs\/4\.5\.0/);
+      expect(said).toMatch(/a rollback needs --rollback-to/);
+      expect(said).toMatch(/--rollback-to is the rollback mode only/);
+      expect(tip(bare).subject).toBe('Home');
+    } finally {
+      err.mockRestore();
+    }
+  });
+
   it('`wiki -- publish` checks the archive against --sha256 and its identity before anything', () => {
     const dir = tmp('wiki-publish-cli-');
     const file = join(dir, 'quest-n-click-docs-4.5.0.tar.gz');
@@ -319,10 +399,13 @@ describe('the push to the wiki', () => {
     const err = vi.spyOn(console, 'error').mockImplementation(() => {});
     const log = vi.spyOn(console, 'log').mockImplementation(() => {});
     try {
-      const base = ['publish', '--target', 'wiki', '--tag', 'v4.5.0', '--archive', file, '--remote', bare];
+      const at = ['publish', '--target', 'wiki', '--tag', 'v4.5.0', '--archive', file, '--remote', bare];
+      const base = [...at, '--mode', 'release', '--ref', 'refs/heads/main'];
       expect(main([...base, '--version', '4.5.0', '--revision', 'r1', '--sha256', sha('0')])).toBe(1);
       expect(main([...base, '--version', '4.6.0', '--revision', 'r1'])).toBe(1);
-      expect(main([...base, '--version', '4.5.0', '--revision', 'r2'])).toBe(1);
+      expect(
+        main([...at, '--mode', 'promote', '--ref', 'refs/heads/main', '--version', '4.5.0', '--revision', 'r2']),
+      ).toBe(1);
       expect(err.mock.calls.flat().join('\n')).toMatch(/not the verified|is 4\.5\.0 r1, not 4\.6\.0 r1/);
       expect(main([...base, '--version', '4.5.0', '--revision', 'r1', '--sha256', r1sum, '--dry-run'])).toBe(0);
       expect(log.mock.calls.flat().join('\n')).toMatch(/committed, not pushed/);

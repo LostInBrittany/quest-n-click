@@ -15,7 +15,9 @@ const esc = (s: string) =>
 export function safeHref(target: string): string | undefined {
   const t = target.trim();
   if (/^(https?:|mailto:)/i.test(t)) return t;
-  if (/^[a-z][a-z0-9+.-]*:/i.test(t) || t.startsWith('//') || /[\u0000-\u001f]/.test(t)) return undefined;
+  // `//host` and `/\host` (a browser reads a backslash as a slash): another site, not a relative path.
+  if (/^[a-z][a-z0-9+.-]*:/i.test(t) || /^[/\\]{2}/.test(t) || /^\/?\\/.test(t) || /[\u0000-\u001f]/.test(t))
+    return undefined;
   return t;
 }
 
@@ -369,7 +371,7 @@ export function htmlPage(s: PageShell): string {
 <link rel="stylesheet" href="${s.root}style.css">
 ${s.canonical ? `<link rel="canonical" href="${esc(s.canonical)}">\n` : ''}${s.twin ? `<link rel="alternate" hreflang="${fr ? 'en' : 'fr'}" href="${esc(s.twin)}">\n` : ''}<script src="${s.root}search.js" defer></script>
 </head>
-<body data-root="${s.root}" data-lang="${s.lang}" data-version="${esc(id.productVersion)}" data-revision="${esc(id.revision)}" data-publication="${esc(id.publication)}">
+<body data-root="${s.root}" data-lang="${s.lang}" data-version="${esc(id.productVersion)}" data-revision="${esc(id.revision)}" data-doc-revision="${esc(id.docRevision)}"${id.buildId ? ` data-build="${esc(id.buildId)}"` : ''} data-publication="${esc(id.publication)}">
 <header><a class="home" href="${s.root}index.html">quest'n'click ${esc(id.productVersion)} · ${esc(id.revision)}</a><form role="search" id="docs-search-form"><input type="search" id="docs-search" aria-label="${words.search}" placeholder="${words.search}"></form><div id="results" aria-live="polite"></div></header>
 <p class="state" id="publication-state">${words.state} <a href="${esc(id.publication)}">publication.json</a>.</p>
 <div class="layout">

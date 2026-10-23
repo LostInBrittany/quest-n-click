@@ -11,8 +11,15 @@
 //     `/docs/publication.json`); a pre-release's `/docs/<v-rc>/` points to its one revision, r1;
 //   - `/docs/preview/` only in the bootstrap (§4.5.3): no release ≥ 4.5.0 yet, and a preview recorded;
 //   - with no release ≥ 4.5.0 at all, a placeholder page pointing to the 4.4.0 documentation (`blob/v4.4.0/docs/`).
-// Two parts: `downloadReleases` (the one that needs `gh` and the network) puts each release's files in a folder of
-// its own; `assemblePages` reads those folders and the record and writes the tree, the same bytes for the same inputs
+// What is served is authenticated, not only consistent: each archive's build provenance is verified with `gh
+// attestation verify` and the workflow that must have signed it (`attestationArgs`: release.yml for a product release,
+// docs-publish.yml from `refs/heads/docs/<v>` for a doc revision, from `refs/heads/main` for the preview); a doc
+// revision is served only when `publication.json` records it with the same sha256 and the same release tag, a preview
+// only when it is the one recorded. Anything else is refused, the release named: the job fails closed, and Pages is
+// not deployed without `/docs/`.
+// Three parts: `downloadReleases` and `ghAttestation` (the two that need `gh` and the network, each call tried three
+// times; a release already in the cache folder is not downloaded again, its bytes are checked all the same) and
+// `assemblePages`, which reads the folders and the record and writes the tree, the same bytes for the same inputs
 // whatever the branch's `wiki/` holds (§4.5.5's required test).
 import { execFileSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
@@ -59,14 +66,69 @@ export function docsTag(tag: string): DocsTag | undefined {
 const archiveOf = (t: DocsTag) =>
   t.kind === 'preview' ? archiveName(t.version, 'r1', true) : archiveName(t.version, t.revision);
 
+/** Waits, synchronously (a command line tool between two tries). */
+const sleep = (ms: number) => Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms);
+/** `gh`, tried three times (5 s, then 20 s apart): a network hiccup is not a failed deployment. */
+export function ghRetry(args: string[]): string {
+  for (let attempt = 1; ; attempt++) {
+    try {
+      return execFileSync('gh', args, { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'], timeout: 600_000 });
+    } catch (e) {
+      if (attempt >= 3) throw e;
+      sleep(attempt === 1 ? 5_000 : 20_000);
+    }
+  }
+}
+
+/**
+ * The `gh attestation verify` arguments that bind an archive to the workflow that must have signed it: a product
+ * release's files are attested by release.yml (started by `workflow_run` on main); a doc revision's and the preview's
+ * by docs-publish.yml, dispatched from `docs/<v>` and from main.
+ */
+export function attestationArgs(repo: string, tag: string, file: string): string[] {
+  const t = docsTag(tag);
+  if (!t) throw new Error(`${tag}: not a release with documentation`);
+  const base = ['attestation', 'verify', file, '--repo', repo];
+  if (t.kind === 'release') return [...base, '--signer-workflow', `${repo}/.github/workflows/release.yml`];
+  return [
+    ...base,
+    '--signer-workflow',
+    `${repo}/.github/workflows/docs-publish.yml`,
+    '--source-ref',
+    t.kind === 'revision' ? `refs/heads/docs/${t.version}` : 'refs/heads/main',
+  ];
+}
+
+/** The verifier `pages` uses: GitHub's attestation of the archive, by its signer workflow and ref. */
+export const ghAttestation =
+  (repo: string): Verify =>
+  (file, tag) => {
+    try {
+      ghRetry(attestationArgs(repo, tag, file));
+    } catch (e) {
+      throw new Error(
+        `${tag}: its archive's attestation does not verify (${
+          String((e as { stderr?: unknown }).stderr ?? (e as Error).message)
+            .trim()
+            .split('\n')[0]
+        })`,
+      );
+    }
+  };
+
+/** Throws, naming the release, when an archive is not attested by the workflow that must have made it. */
+export type Verify = (file: string, tag: string) => void;
+
 /**
  * Downloads, for each release of the repository that carries documentation, its archive, its sums and (a product
- * release) its candidate's manifest into `<dir>/<tag>/`. Drafts are left out. Needs `gh` and a token.
+ * release) its candidate's manifest into `<dir>/<tag>/`; a release already complete there (the cache, releases being
+ * immutable) is kept, and checked like the others. Drafts are left out. Returns the tags, which are the only folders
+ * `assemblePages` reads. Needs `gh` and a token.
  */
 export function downloadReleases(repo: string, dir: string): string[] {
-  const gh = (args: string[]) =>
-    execFileSync('gh', args, { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'], timeout: 600_000 });
-  const list = JSON.parse(gh(['release', 'list', '--repo', repo, '--limit', '1000', '--json', 'tagName,isDraft'])) as {
+  const list = JSON.parse(
+    ghRetry(['release', 'list', '--repo', repo, '--limit', '1000', '--json', 'tagName,isDraft']),
+  ) as {
     tagName: string;
     isDraft: boolean;
   }[];
@@ -76,9 +138,11 @@ export function downloadReleases(repo: string, dir: string): string[] {
     .sort();
   for (const tag of tags) {
     const out = join(dir, tag);
-    mkdirSync(out, { recursive: true });
     const t = docsTag(tag)!;
-    gh([
+    const have = existsSync(out) ? readdirSync(out) : [];
+    if (have.includes(archiveOf(t)) && have.some((f) => f.endsWith('SHA256SUMS'))) continue;
+    mkdirSync(out, { recursive: true });
+    ghRetry([
       'release',
       'download',
       tag,
@@ -115,7 +179,7 @@ interface Loaded {
 }
 
 /** One release's folder read and checked: its archive against its sums, its manifest and its identity. */
-function loadRelease(dir: string, tag: string): Loaded {
+function loadRelease(dir: string, tag: string, verify: Verify): Loaded {
   const t = docsTag(tag);
   if (!t) throw new Error(`${tag}: not a release with documentation`);
   const name = archiveOf(t);
@@ -127,6 +191,7 @@ function loadRelease(dir: string, tag: string): Loaded {
   if (!sumsFile) throw new Error(`${tag}: no SHA256SUMS beside ${name}`);
   const listed = sumsOf(readFileSync(join(dir, tag, sumsFile), 'utf8')).get(name);
   if (listed !== digest) throw new Error(`${tag}: ${name} does not match its SHA256SUMS (${listed ?? 'not listed'})`);
+  verify(file, tag);
   // A product release's archive is the candidate's, byte for byte (§4.5.4: in candidate-manifest.json).
   if (t.kind === 'release') {
     const cand = join(dir, tag, `quest-n-click-${tag}-candidate.json`);
@@ -158,24 +223,55 @@ function loadRelease(dir: string, tag: string): Loaded {
 export interface AssembleOptions {
   /** A folder per release, as `downloadReleases` fills it. */
   releasesDir: string;
+  /** The releases to read (`downloadReleases`' list); every folder of `releasesDir` when absent. */
+  tags?: readonly string[];
   /** The record, from the wiki's repository; null when none exists yet. */
   publication: Publication | null;
+  /** Each archive's attestation (`ghAttestation`); the tests give their own. */
+  verify: Verify;
 }
 
 /** `/docs/`'s files, by path inside it; the same inputs give the same bytes. */
 export function assemblePages(o: AssembleOptions): Map<string, Buffer> {
-  const tags = existsSync(o.releasesDir)
-    ? readdirSync(o.releasesDir, { withFileTypes: true })
-        .filter((e) => e.isDirectory() && docsTag(e.name))
-        .map((e) => e.name)
-        .sort()
-    : [];
-  const loaded = tags.map((tag) => loadRelease(o.releasesDir, tag));
+  const all = (
+    o.tags ??
+    (existsSync(o.releasesDir)
+      ? readdirSync(o.releasesDir, { withFileTypes: true })
+          .filter((e) => e.isDirectory())
+          .map((e) => e.name)
+      : [])
+  )
+    .filter((tag) => docsTag(tag))
+    .sort();
+  const p = o.publication;
+  if (p?.latest && p.versions[p.latest.version]?.revisions[p.latest.revision]?.sha256 !== p.latest.sha256)
+    throw new Error(
+      `publication.json: latest is ${p.latest.version} ${p.latest.revision}, which its versions do not record (with that sha256)`,
+    );
+  const isStable = (tag: string) => {
+    const t = docsTag(tag)!;
+    return t.kind === 'release' && !t.prerelease;
+  };
+  const bootstrap = !all.some(isStable);
+  // A doc revision is served only when recorded with its tag; a preview only in the bootstrap, and only the recorded
+  // one (earlier previews stay released, never served). Refused before any byte is read, the release named.
+  const tags = all.filter((tag) => {
+    const t = docsTag(tag)!;
+    if (t.kind === 'preview') return bootstrap && p?.preview?.tag === tag;
+    if (t.kind === 'revision') {
+      const rec = p?.versions[t.version]?.revisions[t.revision];
+      if (!rec)
+        throw new Error(
+          `${tag}: a doc revision publication.json does not record: not served (complete it by running docs-publish again, or promote it)`,
+        );
+      if (rec.tag !== tag)
+        throw new Error(`${tag}: publication.json records ${t.version} ${t.revision} from ${rec.tag}`);
+    }
+    return true;
+  });
+  const loaded = tags.map((tag) => loadRelease(o.releasesDir, tag, o.verify));
   const out = new Map<string, Buffer>();
   const put = (path: string, data: string | Buffer) => out.set(path, Buffer.isBuffer(data) ? data : Buffer.from(data));
-  const stable = loaded.filter((l) => l.t.kind !== 'preview' && !(l.t.kind === 'release' && l.t.prerelease));
-  const bootstrap = stable.length === 0;
-  const p = o.publication;
   // The permalinks: every revision's site, as it is.
   const permalinks = new Map<string, Loaded>();
   for (const l of loaded) {
@@ -189,6 +285,8 @@ export function assemblePages(o: AssembleOptions): Map<string, Buffer> {
     for (const [r, rec] of Object.entries(entry.revisions)) {
       const l = permalinks.get(`${v}/${r}`);
       if (!l) throw new Error(`publication.json records ${v} ${r}, which no release carries`);
+      if (l.tag !== rec.tag)
+        throw new Error(`publication.json records ${v} ${r} from ${rec.tag}, the release is ${l.tag}`);
       if (l.sha256 !== rec.sha256)
         throw new Error(
           `publication.json records ${v} ${r} as ${rec.sha256.slice(0, 12)}, the release carries ${l.sha256.slice(0, 12)}`,
@@ -222,8 +320,10 @@ export function assemblePages(o: AssembleOptions): Map<string, Buffer> {
   // The bootstrap's preview, while no release ≥ 4.5.0 is out.
   let preview: Loaded | undefined;
   if (bootstrap && p?.preview) {
-    preview = loaded.find((l) => l.t.kind === 'preview' && l.sha256 === p.preview!.sha256);
+    preview = loaded.find((l) => l.t.kind === 'preview');
     if (!preview) throw new Error(`publication.json records a preview (${p.preview.tag}) no release carries`);
+    if (preview.sha256 !== p.preview.sha256)
+      throw new Error(`${preview.tag}: its archive is not the preview publication.json records`);
     for (const [path, b] of preview.html) put(`preview/${path}`, b);
   }
   if (p) put('publication.json', formatJson(p));

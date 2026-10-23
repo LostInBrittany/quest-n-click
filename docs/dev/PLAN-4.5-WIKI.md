@@ -381,8 +381,8 @@ the banner. If the candidate fails, the preview stays as it is. This exception e
   immutable and updated at the same time.
 - The wiki shows the **current version** only, and says so in each footer: "current documentation (4.x.y rN); earlier
   versions: …".
-- The transition pages `docs/en/*.md` of a tag ≥ 4.5 point to `/docs/<that tag's version>/r1/` (the permalink of the
-  release's own documentation), never to the current wiki nor to the alias. The release pull request regenerates them; a test checks their version equals `package.json`'s.
+- The transition pages `docs/en/*.md` of a tag ≥ 4.5 point to `/docs/<that tag's version>/` (*amended in A5b:* the
+  version's alias, so a later doc revision of that version is followed), never to the current wiki nor to `latest`. The release pull request regenerates them; a test checks their version equals `package.json`'s.
 - A local bundle's provenance gives `url.versioned` (Pages, with the revision) and `url.current` (the wiki, labelled
   "current").
 - Versions ≤ 4.4.0: `blob/v<v>/docs/en|fr/` stays valid; those tags hold the full files.
@@ -470,29 +470,56 @@ artifact.
   published.
 - **`publication.json` lives at the root of the wiki's repository** (pushed with the pages; Pages copies it to
   `/docs/publication.json`); format `quest-n-click-docs-publication` v1, `{latest, versions: {<v>: {approved,
-  revisions: {r<n>: {sha256, tag, date}}}}, preview?}`. The ordering rule: SemVer then the revision number, across
+  revisions: {r<n>: {sha256, tag, date, docRevision, buildId?}}}}, preview?}`. A page of the site matches itself on
+  version, revision, doc revision and build (`tools/wiki/display.ts`): an rc's archive says `<v> r1` like the final's,
+  and is never shown as the published one unless it is that very build. The ordering rule: SemVer then the revision number, across
   versions too; the same state again commits nothing; an older version's fix records `versions[<v>]` (Pages' alias
   moves) and leaves the wiki pages and `latest`; a revision older than the approved one, or one recorded with other
   bytes, is refused; `--rollback-to <v>[-r<n>]` is the way back. A pre-release is never recorded: its release is the
   record of `/docs/<v-rc>/`, whose alias points to its one revision, r1.
-- **Pages.** `npm run wiki -- pages` downloads every release ≥ 4.5.0 and `docs-v*`, checks each archive against its
-  release's SHA256SUMS, the candidate manifest the release carries, its own manifest and its tag's identity, and that
-  `publication.json` names only archives the releases carry, then copies `html/` as it is; aliases are pages that say
-  they are aliases and go to the target with the `#section`. ci.yml runs it in `check` on main, before the Pages
-  artifact. docs-publish ends by `gh workflow run ci.yml --ref main` (ci gains `workflow_dispatch`; a dispatched run
-  cancels nothing and waits for a push's run, a later push cancels it and assembles everything released by then).
+- **Pages authenticates what it serves.** `npm run wiki -- pages` downloads every release ≥ 4.5.0 and `docs-v*`, and
+  checks each archive against its release's SHA256SUMS, the candidate manifest the release carries, its own manifest,
+  its tag's identity, and its build provenance (`gh attestation verify --signer-workflow`: release.yml for a `v*`
+  release; docs-publish.yml with `--source-ref refs/heads/docs/<v>` for a `docs-v*-r<n>`, `refs/heads/main` for the
+  preview; docs-publish verifies with the same rule, `wiki -- attest`). A doc revision is served only when
+  `publication.json` records it with the same sha256 and the same release tag, the preview only when it is the one
+  recorded; an unrecorded or unattested one is refused, the release named. The record's `latest` must be in its
+  `versions`. Then `html/` is copied as is; aliases are pages that say they are aliases and go to the target with the
+  `#section`. **Recommended to the maintainer:** a tag ruleset on `docs-v*` (creation by the docs-publish workflow's
+  token only, no update, no deletion); the attestation check stands either way.
+- **Pages in CI.** ci.yml runs `pages` in `check` on main, before the Pages artifact, with the archives kept by
+  `actions/cache` keyed on the release list (a cached release is checked like a downloaded one) and every `gh` call
+  tried three times. If `/docs/` still cannot be assembled the job fails: Pages is not deployed without it nor with an
+  unchecked one (fail closed); a rerun is the recovery. docs-publish ends by `gh workflow run ci.yml --ref main -f
+  pages-only=true`: the plan (`tools/ci-plan.ts --pages-only`) opens no gate and `check`, `coverage` and
+  `cross-runtime` skip everything but the Pages build, `/docs/` and the upload. A dispatched run cancels no running run
+  and waits; but GitHub keeps one pending run per group whatever `cancel-in-progress` says, so a dispatch queued while a
+  push's run on main is pending replaces it (that commit is then deployed by the dispatch without its own checks), and
+  a later push replaces a pending dispatch.
 - **Beside the game.** Pages' `/docs/` is inside the game's service worker scope: its navigation fallback skips
   `/docs/` (`navigateFallbackDenylist`), or a reader who played would get the game instead of a page.
-- **Concurrency.** `docs-publish` is the group of docs-publish's job (a called workflow honours it there), never
-  cancelled. Pages' deployment is not put in it: GitHub keeps one pending run per group and a newer one replaces it,
-  so a deployment queued there could drop a pending publication; ci's own group orders the deployments instead. The
-  same rule means a third publication queued behind two replaces the pending one, which is then dispatched again.
+- **Concurrency, truthfully.** `docs-publish` is the group of docs-publish's job (a called workflow honours it there);
+  the running publication is never cancelled. GitHub keeps one *pending* run per group, whatever `cancel-in-progress`
+  says: a publication queued behind a pending one replaces it, and the replaced one is cancelled. Two recoveries,
+  written in the workflow: re-run the cancelled job, or dispatch `mode=promote target=<v>[-r<n>]`. Pages' deployment is
+  not in this group (a deployment pending there could replace a publication); ci's own group orders deployments.
+- **Modes and refs.** docs-publish writes in five modes, each from one ref, checked in the workflow and again by
+  `wiki -- publish --mode --ref`: `release` (called from release.yml, on main), `revision` (from `docs/<v>` only),
+  `rollback` and `promote` (from main, `target=<v>[-r<n>]`; promote only forwards or the same state again, rollback
+  only backwards), `preview` (from main). A revision whose release went out but whose record did not is completed by
+  re-running its job (`wiki -- next-revision` returns that revision; the rebuilt archive must have the released
+  sha256, else the run is refused and says to promote it); a preview rerun on the same commit reuses its release the
+  same way. Inputs reach the shell through `env` only.
+- **Secrets and approval.** The job that writes runs in the environment `docs-publish`; **the maintainer creates and
+  protects it** (required reviewers, a branch policy: main and `docs/*`), and may keep `WIKI_DEPLOY_KEY` there.
+  release.yml passes `WIKI_DEPLOY_KEY` explicitly, never every secret.
 - **The wiki's push** clones `<repo>.wiki.git`, keeps `.git` and any page that starts with the generated redirect
-  marker, writes the archive's `wiki/` and the record, and pushes one commit. Credentials: the deploy key
-  `WIKI_DEPLOY_KEY` over SSH when the secret is set (GitHub's host key pinned), otherwise `GITHUB_TOKEN` as an HTTP
-  header, never in a URL. **Open, for the A1 spike:** whether `GITHUB_TOKEN` may push to the wiki (else the deploy
-  key), whether a ruleset lets `GITHUB_TOKEN` create the `docs-v*` tags, the wiki's handling of the `en/` and `fr/`
-  folders; and the sandbox replay of the chain (A7).
+  marker, writes the archive's `wiki/` and the record, and pushes one commit, never forced (a wiki that moved since the
+  clone refuses the push: nothing is published, a rerun decides again). Credentials: **the deploy key
+  `WIKI_DEPLOY_KEY` over SSH is the expected default** (GitHub's host key pinned), as `GITHUB_TOKEN` is not expected to
+  push to a wiki; without it, `GITHUB_TOKEN` as an HTTP header, never in a URL. **Open, for the A1 spike:** confirm
+  that `GITHUB_TOKEN` cannot push to the wiki, whether a ruleset lets the workflow create the `docs-v*` tags, the
+  wiki's handling of the `en/` and `fr/` folders; and the sandbox replay of the chain (A7).
 
 ### 4.6 L6 — Acceptance by real questions, with counter-examples
 

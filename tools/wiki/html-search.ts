@@ -4,6 +4,7 @@
 // an agent get the same answers. It also reads `publication.json` and says what this revision is to a reader:
 // published and current, published but not current (an alias names the current one), or not published (a candidate,
 // a preview). The page's HTML says where that record is when this script cannot load it. Browser code only.
+import { displayState, type PageIdentity, type PublicationView } from './display';
 import { type DocsSet, searchDocs } from './docs';
 
 const body = document.body;
@@ -51,36 +52,37 @@ document.getElementById('docs-search-form')?.addEventListener('submit', (e) => {
   void search(input?.value ?? '');
 });
 
-interface Publication {
-  latest: { version: string; revision: string } | null;
-  versions: Record<string, { approved: string }>;
-}
 /** What this revision is, from the publication record (§4.5.1): the archive itself never says it is published. */
 async function state() {
   const el = document.getElementById('publication-state');
   const url = body.dataset.publication;
-  const version = body.dataset.version ?? '';
-  const revision = body.dataset.revision ?? '';
+  const page: PageIdentity = {
+    version: body.dataset.version ?? '',
+    revision: body.dataset.revision ?? '',
+    docRevision: body.dataset.docRevision ?? '',
+    ...(body.dataset.build ? { buildId: body.dataset.build } : {}),
+  };
   if (!el || !url) return;
   try {
-    const p = (await (await fetch(url, { cache: 'no-cache' })).json()) as Publication;
-    const approved = p.versions?.[version]?.approved;
-    const current = p.latest?.version === version && p.latest.revision === revision;
-    el.textContent = current
-      ? fr
-        ? `Documentation publiée et courante : quest'n'click ${version} ${revision}.`
-        : `Published and current documentation: quest'n'click ${version} ${revision}.`
-      : approved === revision
+    const p = (await (await fetch(url, { cache: 'no-cache' })).json()) as PublicationView;
+    const s = displayState(p, page);
+    const { version, revision } = page;
+    el.textContent =
+      s.kind === 'current'
         ? fr
-          ? `Documentation publiée de la ${version} (${revision}). La courante est la ${p.latest?.version} ${p.latest?.revision}.`
-          : `Published documentation of ${version} (${revision}). The current one is ${p.latest?.version} ${p.latest?.revision}.`
-        : approved
+          ? `Documentation publiée et courante : quest'n'click ${version} ${revision}.`
+          : `Published and current documentation: quest'n'click ${version} ${revision}.`
+        : s.kind === 'published'
           ? fr
-            ? `Révision ${revision} de la ${version} : la révision approuvée est la ${approved}.`
-            : `Revision ${revision} of ${version}: the approved revision is ${approved}.`
-          : fr
-            ? `Non publiée : construite pour la ${version}, révision ${revision} (un candidat ou un aperçu).`
-            : `Not published: built for ${version}, revision ${revision} (a candidate or a preview).`;
+            ? `Documentation publiée de la ${version} (${revision}). La courante est la ${s.latest}.`
+            : `Published documentation of ${version} (${revision}). The current one is ${s.latest}.`
+          : s.kind === 'superseded'
+            ? fr
+              ? `Révision ${revision} de la ${version} : la révision approuvée est la ${s.approved}.`
+              : `Revision ${revision} of ${version}: the approved revision is ${s.approved}.`
+            : fr
+              ? `Non publiée : construite pour la ${version}, révision ${revision} (un candidat, une pré-version ou un aperçu).`
+              : `Not published: built for ${version}, revision ${revision} (a candidate, a pre-release or a preview).`;
   } catch {
     // Offline or from a disk: the static sentence stays, with the record's address.
   }

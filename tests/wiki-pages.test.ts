@@ -13,7 +13,7 @@ import { afterAll, describe, expect, it, vi } from 'vitest';
 import { main } from '../tools/wiki';
 import { type ArchiveOptions, buildArchive, readArchive } from '../tools/wiki/archive';
 import { readManifest } from '../tools/wiki/manifest';
-import { assemblePages, docsTag } from '../tools/wiki/pages';
+import { type AssembleOptions, assemblePages, attestationArgs, docsTag } from '../tools/wiki/pages';
 import { decide, emptyPublication, type Promotion, type Publication } from '../tools/wiki/publication';
 
 const BASE = resolve('tests/fixtures/wiki/base');
@@ -66,14 +66,22 @@ const record = (...steps: Promotion[]): Publication =>
     if (!d.ok) throw new Error(d.problem);
     return d.record;
   }, emptyPublication());
-const promo = (version: string, revision: string, bytes: Buffer, o: Partial<Promotion> = {}): Promotion => ({
-  version,
-  revision,
-  sha256: sum(bytes),
-  tag: revision === 'r1' ? `v${version}` : `docs-v${version}-${revision}`,
-  date: '2026-11-01',
-  ...o,
-});
+const promo = (version: string, revision: string, bytes: Buffer, o: Partial<Promotion> = {}): Promotion => {
+  const m = readArchive(bytes).manifest;
+  return {
+    version,
+    revision,
+    sha256: sum(bytes),
+    tag: revision === 'r1' ? `v${version}` : `docs-v${version}-${revision}`,
+    date: '2026-11-01',
+    docRevision: m.docRevision,
+    ...(m.buildId ? { buildId: m.buildId } : {}),
+    ...o,
+  };
+};
+/** Pages' assembly with every attestation accepted, unless a test gives its verifier. */
+const assemble = (o: Omit<AssembleOptions, 'verify'> & { verify?: AssembleOptions['verify'] }) =>
+  assemblePages({ verify: () => {}, ...o });
 
 /** Three releases: 4.5.0 (r1 and its fix r2), and 4.6.0-rc.1; 4.5.0 r2 approved and latest. */
 function fixture(wikiDir = BASE) {
@@ -104,7 +112,7 @@ describe('the tags Pages reads', () => {
 
 describe('/docs/, from the released archives only', () => {
   const f = fixture();
-  const files = assemblePages({ releasesDir: f.dir, publication: f.pub });
+  const files = assemble({ releasesDir: f.dir, publication: f.pub });
 
   it("copies each revision's html/ as it is, byte for byte, under its permalink", () => {
     for (const [at, a] of [
@@ -143,7 +151,7 @@ describe('/docs/, from the released archives only', () => {
     const fromBranch = archive({ wikiDir: branch });
     expect(fromBranch.bytes.equals(f.r1.bytes)).toBe(false);
     // Pages assembles from the releases: the same tree, to the byte, with nothing of the branch in it.
-    const again = assemblePages({ releasesDir: f.dir, publication: f.pub });
+    const again = assemble({ releasesDir: f.dir, publication: f.pub });
     expect([...again.keys()]).toEqual([...files.keys()]);
     for (const [k, v] of files) expect(again.get(k)!.equals(v), k).toBe(true);
     expect([...again.values()].some((v) => v.includes('UNRELEASED-TELEPORTER'))).toBe(false);
@@ -156,9 +164,9 @@ describe('/docs/, from the released archives only', () => {
     const log = vi.spyOn(console, 'log').mockImplementation(() => {});
     const err = vi.spyOn(console, 'error').mockImplementation(() => {});
     try {
-      expect(main(['pages', '--releases', f.dir, '--publication', pub, '--out', out])).toBe(0);
+      expect(main(['pages', '--releases', f.dir, '--skip-attestations', '--publication', pub, '--out', out])).toBe(0);
       for (const [k, v] of files) expect(readFileSync(join(out, k)).equals(v), k).toBe(true);
-      expect(main(['pages', '--releases', f.dir, '--publication', pub, '--out', out])).toBe(1);
+      expect(main(['pages', '--releases', f.dir, '--skip-attestations', '--publication', pub, '--out', out])).toBe(1);
       expect(err.mock.calls.flat().join('\n')).toMatch(/not empty/);
     } finally {
       log.mockRestore();
@@ -172,24 +180,102 @@ describe('what /docs/ refuses', () => {
     const a = archive();
     const sums = tmp('pages-bad-sums-');
     release(sums, 'v4.5.0', a.bytes, 'quest-n-click-docs-4.5.0.tar.gz', { sums: '0'.repeat(64) });
-    expect(() => assemblePages({ releasesDir: sums, publication: null })).toThrow(/does not match its SHA256SUMS/);
+    expect(() => assemble({ releasesDir: sums, publication: null })).toThrow(/does not match its SHA256SUMS/);
     const cand = tmp('pages-bad-candidate-');
     release(cand, 'v4.5.0', a.bytes, 'quest-n-click-docs-4.5.0.tar.gz', { candidate: '1'.repeat(64) });
-    expect(() => assemblePages({ releasesDir: cand, publication: null })).toThrow(/not the archive the candidate/);
+    expect(() => assemble({ releasesDir: cand, publication: null })).toThrow(/not the archive the candidate/);
     const other = tmp('pages-bad-identity-');
     release(other, 'v4.5.1', a.bytes, 'quest-n-click-docs-4.5.1.tar.gz');
-    expect(() => assemblePages({ releasesDir: other, publication: null })).toThrow(/built for 4\.5\.0, not 4\.5\.1/);
+    expect(() => assemble({ releasesDir: other, publication: null })).toThrow(/built for 4\.5\.0, not 4\.5\.1/);
     const rev = tmp('pages-bad-revision-');
     release(rev, 'docs-v4.5.0-r3', a.bytes, 'quest-n-click-docs-4.5.0-r3.tar.gz');
-    expect(() => assemblePages({ releasesDir: rev, publication: null })).toThrow(/revision r1, not r3/);
+    expect(() =>
+      assemble({ releasesDir: rev, publication: record(promo('4.5.0', 'r3', a.bytes, { tag: 'docs-v4.5.0-r3' })) }),
+    ).toThrow(/revision r1, not r3/);
   });
 
   it('a record naming a revision no release carries, or another archive', () => {
     const f = fixture();
-    const missing = record(promo('4.5.0', 'r1', f.r1.bytes), promo('4.7.0', 'r1', f.r1.bytes));
-    expect(() => assemblePages({ releasesDir: f.dir, publication: missing })).toThrow(/4\.7\.0 r1, which no release/);
-    const wrong = record(promo('4.5.0', 'r1', f.r2.bytes));
-    expect(() => assemblePages({ releasesDir: f.dir, publication: wrong })).toThrow(/records 4\.5\.0 r1 as/);
+    const missing = record(
+      promo('4.5.0', 'r1', f.r1.bytes),
+      promo('4.5.0', 'r2', f.r2.bytes),
+      promo('4.7.0', 'r1', f.r1.bytes),
+    );
+    expect(() => assemble({ releasesDir: f.dir, publication: missing })).toThrow(/4\.7\.0 r1, which no release/);
+    const wrong = record(
+      promo('4.5.0', 'r1', f.r2.bytes),
+      promo('4.5.0', 'r2', f.r2.bytes, { sha256: sum(f.r2.bytes) }),
+    );
+    expect(() => assemble({ releasesDir: f.dir, publication: wrong })).toThrow(/records 4\.5\.0 r1 as/);
+  });
+});
+
+describe('what /docs/ serves is authenticated', () => {
+  it('binds each archive to the workflow and ref that must have signed it', () => {
+    const repo = 'wanoo/quest-n-click';
+    expect(attestationArgs(repo, 'v4.5.0', 'a.tgz')).toEqual([
+      'attestation',
+      'verify',
+      'a.tgz',
+      '--repo',
+      repo,
+      '--signer-workflow',
+      `${repo}/.github/workflows/release.yml`,
+    ]);
+    expect(attestationArgs(repo, 'docs-v4.5.0-r2', 'a.tgz').slice(-4)).toEqual([
+      '--signer-workflow',
+      `${repo}/.github/workflows/docs-publish.yml`,
+      '--source-ref',
+      'refs/heads/docs/4.5.0',
+    ]);
+    expect(attestationArgs(repo, 'docs-v4.5.0-preview-0123456789ab', 'a.tgz').slice(-2)).toEqual([
+      '--source-ref',
+      'refs/heads/main',
+    ]);
+  });
+
+  it('refuses an archive whose attestation does not verify, naming the release', () => {
+    const f = fixture();
+    const verify = (_file: string, tag: string) => {
+      if (tag === 'docs-v4.5.0-r2')
+        throw new Error(`${tag}: its archive's attestation does not verify (no attestation)`);
+    };
+    expect(() => assemble({ releasesDir: f.dir, publication: f.pub, verify })).toThrow(
+      /docs-v4\.5\.0-r2: its archive's attestation/,
+    );
+    // Every served archive is verified, the release, the revision and the rc.
+    const seen: string[] = [];
+    assemble({ releasesDir: f.dir, publication: f.pub, verify: (_f, tag) => void seen.push(tag) });
+    expect(seen.sort()).toEqual(['docs-v4.5.0-r2', 'v4.5.0', 'v4.6.0-rc.1']);
+  });
+
+  it('refuses a doc revision publication.json does not record, or records from another release', () => {
+    const f = fixture();
+    const unrecorded = record(promo('4.5.0', 'r1', f.r1.bytes));
+    expect(() => assemble({ releasesDir: f.dir, publication: unrecorded })).toThrow(
+      /docs-v4\.5\.0-r2: a doc revision publication\.json does not record/,
+    );
+    expect(() => assemble({ releasesDir: f.dir, publication: null })).toThrow(/docs-v4\.5\.0-r2: a doc revision/);
+    const otherTag = structuredClone(f.pub);
+    otherTag.versions['4.5.0']!.revisions.r2!.tag = 'docs-v4.5.0-r9';
+    expect(() => assemble({ releasesDir: f.dir, publication: otherTag })).toThrow(
+      /records 4\.5\.0 r2 from docs-v4\.5\.0-r9/,
+    );
+  });
+
+  it('refuses a record whose latest its versions do not hold, with a message', () => {
+    const f = fixture();
+    const odd = structuredClone(f.pub);
+    odd.latest = { ...odd.latest!, version: '4.9.0' };
+    expect(() => assemble({ releasesDir: f.dir, publication: odd })).toThrow(
+      /latest is 4\.9\.0 r2, which its versions do not record/,
+    );
+  });
+
+  it('reads only the releases it is given (a cached folder of a deleted release is not served)', () => {
+    const f = fixture();
+    const files = assemble({ releasesDir: f.dir, tags: ['v4.5.0', 'docs-v4.5.0-r2'], publication: f.pub });
+    expect([...files.keys()].some((k) => k.startsWith('4.6.0-rc.1/'))).toBe(false);
   });
 });
 
@@ -197,12 +283,29 @@ describe('beside the game', () => {
   it("the game's service worker never answers a /docs/ page with the game (its navigation fallback skips /docs/)", () => {
     const vite = readFileSync('vite.config.ts', 'utf8');
     expect(vite).toMatch(/navigateFallback: 'index\.html',[\s\S]{0,300}navigateFallbackDenylist: \[\/\\\/docs\\\/\/\]/);
+    // Under Pages' base path the worker's scope is /quest-n-click/: the pattern still matches the documentation's
+    // pages there, and no page of the game.
+    const pattern = /\/docs\//;
+    for (const url of [
+      '/quest-n-click/docs/',
+      '/quest-n-click/docs/4.5.0/r1/en/create.rooms.html',
+      '/quest-n-click/docs/latest/index.html',
+    ])
+      expect(pattern.test(url), url).toBe(true);
+    for (const url of [
+      '/quest-n-click/',
+      '/quest-n-click/index.html',
+      '/quest-n-click/?room=hall',
+      '/quest-n-click/studio.html',
+    ])
+      expect(pattern.test(url), url).toBe(false);
+    expect(vite).toMatch(/navigateFallbackDenylist: \[\/\\\/docs\\\/\/\]/);
   });
 });
 
 describe('the bootstrap', () => {
   it('nothing released: a placeholder pointing to the 4.4.0 documentation, and nothing else', () => {
-    const files = assemblePages({ releasesDir: join(tmp('pages-none-'), 'absent'), publication: null });
+    const files = assemble({ releasesDir: join(tmp('pages-none-'), 'absent'), publication: null });
     expect([...files.keys()]).toEqual(['index.html', 'style.css']);
     expect(html(files, 'index.html')).toContain('https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/');
   });
@@ -215,7 +318,7 @@ describe('the bootstrap', () => {
     const rc = archive();
     release(dir, 'v4.5.0-rc.1', rc.bytes, 'quest-n-click-docs-4.5.0-rc.1.tar.gz');
     const pub = record(promo('4.5.0', 'r1', p.bytes, { preview: true, tag }));
-    const during = assemblePages({ releasesDir: dir, publication: pub });
+    const during = assemble({ releasesDir: dir, publication: pub });
     expect(during.get('preview/en/studio.notes.html')).toBeDefined();
     expect(html(during, 'index.html')).toContain('preview/index.html');
     expect(during.get('4.5.0-rc.1/r1/index.html')).toBeDefined();
@@ -224,7 +327,7 @@ describe('the bootstrap', () => {
     release(dir, 'v4.5.0', rc.bytes, 'quest-n-click-docs-4.5.0.tar.gz');
     const released = decide(pub, promo('4.5.0', 'r1', rc.bytes));
     if (!released.ok) throw new Error(released.problem);
-    const after = assemblePages({ releasesDir: dir, publication: released.record });
+    const after = assemble({ releasesDir: dir, publication: released.record });
     expect([...after.keys()].some((k) => k.startsWith('preview/'))).toBe(false);
     expect(after.has('latest/index.html')).toBe(true);
   });

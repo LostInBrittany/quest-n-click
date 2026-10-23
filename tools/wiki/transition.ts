@@ -2,8 +2,9 @@
 // transition pages C2 writes in place of `docs/en/*.md` and `docs/fr/*.md`. Each keeps every heading of the old page
 // at its level, in its order and with its text (escaped, so GitHub computes the same anchor, `-1` and `-2` for repeated
 // ones), and every explicit `<a id>` of the L2 inventory (`wiki/coverage.json`). Under each heading, the section's new
-// places: the permalinks of this release's own documentation, `<Pages>/docs/<version>/r1/<lang>/<id>.html#<section>`
-// (never the wiki nor an alias), the version read from package.json; and a fallback link that always works, to the
+// places in this release's own documentation, through its version alias `<Pages>/docs/<version>/<lang>/<id>.html#<section>`
+// (so a later doc revision of that version is followed; never the wiki nor `latest`), the version read from
+// package.json; and a fallback link that always works, to the
 // complete 4.4.0 page at `blob/v4.4.0/docs/<lang>/<FILE>.md#<anchor>`. A section dropped says why. The release pull
 // request regenerates them; a test checks their version is package.json's. Written by C2, not before.
 import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
@@ -51,7 +52,7 @@ function transitionPage(file: string, rows: readonly CoverageRow[], manifest: Ma
     if (r.decision === 'drop') return `${w.dropped}${lang === 'fr' ? ' :' : ':'} ${r.reason ?? ''} · ${back}`;
     const to = r.destinations.map((d) => {
       const [id, section] = d.split('#') as [string, string | undefined];
-      return `[${title(id)}${section ? ` › ${section}` : ''}](${PAGES_DOCS_URL}/${version}/r1/${lang}/${id}.html${section ? `#${section}` : ''})`;
+      return `[${title(id)}${section ? ` › ${section}` : ''}](${PAGES_DOCS_URL}/${version}/${lang}/${id}.html${section ? `#${section}` : ''})`;
     });
     return `${w.now}${lang === 'fr' ? ' :' : ':'} ${to.length ? to.join(' · ') : w.planned} · ${back}`;
   };

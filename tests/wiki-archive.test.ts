@@ -13,6 +13,7 @@ import { writeTarGz } from '../tools/field/tar';
 import { main } from '../tools/wiki';
 import { type ArchiveOptions, archiveName, buildArchive, readArchive } from '../tools/wiki/archive';
 import { searchDocs, type DocsSet } from '../tools/wiki/docs';
+import { displayState, type PageIdentity, type PublicationView } from '../tools/wiki/display';
 import { inline, renderMarkdown, safeHref } from '../tools/wiki/html';
 import { readManifest } from '../tools/wiki/manifest';
 
@@ -33,6 +34,7 @@ const options = (o: Partial<ArchiveOptions> = {}): ArchiveOptions => ({
   identifiers: [],
   ...o,
 });
+const files0 = () => readArchive(buildArchive(options()).bytes).files;
 const text = (files: Map<string, Buffer>, path: string) => {
   const b = files.get(path);
   if (!b) throw new Error(`${path} is not in the archive`);
@@ -196,6 +198,51 @@ describe('the archive', () => {
   });
 });
 
+describe('what a page says it is (publication.json, §4.5.1)', () => {
+  const rc: PageIdentity = { version: '4.5.0', revision: 'r1', docRevision: 'a'.repeat(40), buildId: '100' };
+  const final: PageIdentity = { version: '4.5.0', revision: 'r1', docRevision: 'b'.repeat(40), buildId: '200' };
+  const shipped: PublicationView = {
+    latest: { version: '4.5.0', revision: 'r1', docRevision: final.docRevision, buildId: '200' },
+    versions: { '4.5.0': { approved: 'r1', revisions: { r1: { docRevision: final.docRevision, buildId: '200' } } } },
+  };
+
+  it("an rc's page is never the published one once the final ships, though both say 4.5.0 r1", () => {
+    expect(displayState(shipped, final)).toEqual({ kind: 'current' });
+    expect(displayState(shipped, rc)).toEqual({ kind: 'unpublished' });
+    // The same commit, another candidate run: still not the published build.
+    expect(displayState(shipped, { ...final, buildId: '201' })).toEqual({ kind: 'unpublished' });
+    expect(displayState({ latest: null, versions: {} }, rc)).toEqual({ kind: 'unpublished' });
+  });
+
+  it('a published revision that is no longer the latest, or no longer approved, says so', () => {
+    const later: PublicationView = {
+      latest: { version: '4.6.0', revision: 'r1', docRevision: 'c'.repeat(40) },
+      versions: {
+        ...shipped.versions,
+        '4.6.0': { approved: 'r1', revisions: { r1: { docRevision: 'c'.repeat(40) } } },
+      },
+    };
+    expect(displayState(later, final)).toEqual({ kind: 'published', latest: '4.6.0 r1' });
+    const fixed: PublicationView = {
+      latest: { version: '4.5.0', revision: 'r2', docRevision: 'e'.repeat(40) },
+      versions: {
+        '4.5.0': {
+          approved: 'r2',
+          revisions: { r1: { docRevision: final.docRevision, buildId: '200' }, r2: { docRevision: 'e'.repeat(40) } },
+        },
+      },
+    };
+    expect(displayState(fixed, final)).toEqual({ kind: 'superseded', approved: 'r2' });
+  });
+
+  it('every page carries what it is matched on: version, revision, doc revision, build', () => {
+    const html = text(files0(), 'html/en/create.rooms.html');
+    expect(html).toContain(
+      `data-version="4.5.0" data-revision="r1" data-doc-revision="${'d'.repeat(40)}" data-build="123"`,
+    );
+  });
+});
+
 describe('the HTML renderer', () => {
   it('escapes every character a page holds, raw HTML included, the anchor line aside', () => {
     const html = renderMarkdown('<a name="x"></a>\n\n## A <b>bold</b> & "quoted" title\n\n<script>alert(1)</script>\n');
@@ -209,6 +256,13 @@ describe('the HTML renderer', () => {
     expect(safeHref(' JaVaScRiPt:alert(1)')).toBeUndefined();
     expect(safeHref('data:text/html,x')).toBeUndefined();
     expect(safeHref('//evil.example')).toBeUndefined();
+    // A browser reads a backslash as a slash: `/\host` and `\\host` are other sites, `\x` is no relative path.
+    for (const t of ['/\\evil.example', '\\\\evil.example', '\\evil.example', '/\\/evil.example', '\\/evil.example'])
+      expect(safeHref(t), t).toBeUndefined();
+    // In a page's Markdown, two backslashes are one: `/\\host` written in a page is read `/\host`, refused.
+    expect(inline('[x](/\\\\evil.example)')).toBe('x');
+    expect(safeHref('../fr/a.html#b')).toBe('../fr/a.html#b');
+    expect(safeHref('/docs/4.5.0/')).toBe('/docs/4.5.0/');
     expect(inline('[click](javascript:alert(1))')).toBe('click');
     expect(inline('![x](data:image/png;base64,AA)')).toBe('x');
     expect(inline('[ok](https://example.com/a?b=1&c=2 "t")')).toBe(

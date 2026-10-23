@@ -5,7 +5,17 @@
 import { execFileSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
-import { type CiPlan, classify, docsFor, explain, fullPlan, GATES, type Gate, planFor } from '../tools/ci-plan';
+import {
+  type CiPlan,
+  classify,
+  docsFor,
+  explain,
+  fullPlan,
+  GATES,
+  type Gate,
+  pagesOnlyPlan,
+  planFor,
+} from '../tools/ci-plan';
 
 /** The gates a plan opens, sorted, `all` first when set. */
 const on = (p: CiPlan) => [...(p.all ? ['all'] : []), ...GATES.filter((g) => p[g])].sort();
@@ -160,7 +170,36 @@ describe('ci.yml and the plan', () => {
 
   it('reads every gate, and no gate the plan does not give', () => {
     const read = new Set([...yml.matchAll(/fromJSON\(needs\.plan\.outputs\.plan\)\.(\w+)/g)].map((m) => m[1]));
-    expect([...read].sort()).toEqual([...GATES].sort());
+    // Every gate, and `pagesOnly` (4.5.0 A5b), which the jobs that run whatever the gates read to skip their work.
+    expect([...read].sort()).toEqual([...GATES, 'pagesOnly'].sort());
+  });
+
+  it('a pages-only run (docs-publish) opens no gate, and its jobs build the Pages artifact only', () => {
+    const p = pagesOnlyPlan();
+    expect(on(p)).toEqual([]);
+    expect(p.pagesOnly).toBe(true);
+    expect(fullPlan().pagesOnly).toBe(false);
+    expect(planFor(['src/engine/core/engine.ts']).pagesOnly).toBe(false);
+    const plan = job('plan');
+    expect(plan).toMatch(/PAGES_ONLY: \$\{\{ github\.event_name == 'workflow_dispatch' && inputs\.pages-only \}\}/);
+    expect(plan).toMatch(/if \[ "\$PAGES_ONLY" = true \]; then flag=--pages-only/);
+    const check = job('check');
+    expect(check).toMatch(/FULL: \$\{\{ !fromJSON\(needs\.plan\.outputs\.plan\)\.pagesOnly \}\}/);
+    // Skipped: the gates, the game's build and proofs; kept: the Pages build, /docs/ and the upload.
+    for (const run of ['npm run quality', 'npm run build:game', 'npm run prove:game', 'npm run quality:baseline'])
+      expect(check.slice(check.indexOf(run) - 60, check.indexOf(run)), run).toMatch(/if: env\.FULL == 'true'/);
+    const pages = check.slice(check.indexOf('BASE_PATH:') - 200);
+    expect(pages).not.toMatch(/env\.FULL/);
+    for (const id of ['coverage', 'cross-runtime']) {
+      expect(job(id)).toMatch(/FULL: \$\{\{ !fromJSON\(needs\.plan\.outputs\.plan\)\.pagesOnly \}\}/);
+      const steps = job(id)
+        .split(/\n {6}- /)
+        .slice(1);
+      expect(
+        steps.every((st) => /env\.FULL/.test(st)),
+        id,
+      ).toBe(true);
+    }
   });
 
   it('keeps every check the ruleset of main requires, under its name', () => {

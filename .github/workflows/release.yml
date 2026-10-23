@@ -414,7 +414,10 @@ jobs:
       actions: write
       id-token: write
       attestations: write
-    secrets: inherit
+    # Only the wiki's deploy key, never every secret of the repository; it may also live in the `docs-publish`
+    # environment the called job runs in.
+    secrets:
+      WIKI_DEPLOY_KEY: ${{ secrets.WIKI_DEPLOY_KEY }}
     with:
       version: ${{ needs.release.outputs.version }}
       tag: v${{ needs.release.outputs.version }}
