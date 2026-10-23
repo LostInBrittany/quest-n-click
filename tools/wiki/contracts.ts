@@ -40,10 +40,21 @@ const ContractsSchema = z
         .object({
           title: bilingual,
           status: z.enum(CONTRACT_STATUSES),
-          /** The sentence of docs/en|fr/SUPPORT.md that states the status, quoted (spaces aside). */
-          support: z.object({ en: z.string().min(1), fr: z.string().min(1) }).strict(),
-          /** The rows of SUPPORT.md's support matrix that speak for it, by their first cell. */
-          matrixRows: z.object({ en: z.array(z.string().min(1)), fr: z.array(z.string().min(1)) }).strict(),
+          /**
+           * The sentence of docs/en|fr/SUPPORT.md that states the status, quoted (spaces aside); null, with `reason`,
+           * for a surface SUPPORT.md does not name yet.
+           */
+          support: z
+            .object({ en: z.string().min(1), fr: z.string().min(1) })
+            .strict()
+            .nullable(),
+          /** The rows of SUPPORT.md's support matrix that speak for it, by their first cell; null, with `reason`. */
+          matrixRows: z
+            .object({ en: z.array(z.string().min(1)), fr: z.array(z.string().min(1)) })
+            .strict()
+            .nullable(),
+          /** Why `support` or `matrixRows` is null (the documentation's surface: SUPPORT.md gains its row at C2). */
+          reason: z.string().trim().min(20).optional(),
           environments: z.array(bilingual),
           checks: z
             .object({
@@ -54,7 +65,13 @@ const ContractsSchema = z
             .strict(),
           passes: z.array(passId),
         })
-        .strict(),
+        .strict()
+        .refine((k) => (k.support !== null && k.matrixRows !== null) || !!k.reason, {
+          message: 'support or matrixRows is null without a reason',
+        })
+        .refine((k) => !k.reason || k.support === null || k.matrixRows === null, {
+          message: 'a reason explains a null support or matrixRows; this surface has both',
+        }),
     ),
   })
   .strict();

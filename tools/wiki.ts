@@ -2,6 +2,7 @@
 // [--product-version <v>] [--doc-revision <sha>] [--product-commit <sha>] | bundle --out <dir> [--build-id <id>] [--allow-dirty]
 // [the same three] | check --publish --product-ref <tag|sha> [--doc-ref <sha>] [--released] [--state preview|candidate|published]
 // [--test-report <vitest.json>]… [--candidate <run id>] | review-claim <id> --by <name> | translations --ack <id#section> --by <name>
+// | acceptance [--lang en|fr] [--json] [--strict] [--export-prompts <dir> [--channel mcp|web] [--url <url>]]
 // (4.5.0 "Wiki", docs/dev/PLAN-4.5-WIKI.md §5, phases A2 to A5; ADR 0030).
 // The documentation's source is `wiki/` (a manifest, then `wiki/<lang>/<id>.md`); every output is generated from it.
 // `check` is the work level of every pull request: it fails on errors only, and prints the warnings and what is still
@@ -16,13 +17,24 @@
 // the `commit.json` the candidate writes beside it; `--candidate <run>` names the run they must come from, required for
 // `--state candidate|published`), and the source set is the product's plus documentation only
 // (§4.5.2). `review-claim` records that a person checked a claim's test covers it (`wiki/reviews.json`);
-// `translations --ack` that a section's two languages were read against each other (`wiki/translations.json`). The
+// `translations --ack` that a section's two languages were read against each other (`wiki/translations.json`).
+// `acceptance` runs the real questions of `wiki/acceptance/questions.json` through search_docs (§4.6, L6 level 1,
+// tools/wiki/acceptance.ts): reported, exit 0, unless `--strict` (C1), which fails on a miss, a failed
+// counter-example or a pending question; `--export-prompts` writes level 2's prompts instead. The
 // other commands of §5 (`publish`…) come with their phases. `--wiki=<dir>` reads another source folder (the tests' fixtures). The output folder is outside the
 // working tree (or under `.cache/`), so a build never lands among the sources, and only a previous build is emptied.
 import { execFileSync } from 'node:child_process';
 import { existsSync, readFileSync } from 'node:fs';
 import { isAbsolute, relative, resolve, sep } from 'node:path';
 import { ROOT } from './game';
+import {
+  acceptanceLines,
+  checkQuestions,
+  exportPrompts,
+  questionsPath,
+  readQuestions,
+  runAcceptance,
+} from './wiki/acceptance';
 import { buildWiki } from './wiki/build';
 import { dirtySources, writeBundle } from './wiki/bundle';
 import { checkWiki, trackedFiles, wikiStats } from './wiki/check';
@@ -41,6 +53,7 @@ import {
   unresolvedLinks,
   writeCoverage,
 } from './wiki/coverage';
+import { repositoryDocs } from './wiki/docs-load';
 import { readManifest } from './wiki/manifest';
 import { ackTranslation } from './wiki/translations';
 
@@ -91,7 +104,7 @@ export function bundleOutProblem(out: string, tracked: readonly string[], root =
 }
 
 const USAGE =
-  'usage: npm run wiki -- check [--test-report <file>]… | check --publish --product-ref <tag|sha> [--doc-ref <sha>] [--released] [--state preview|candidate|published] [--test-report <file>]… [--candidate <run id>] | review-claim <id> --by <name> | translations --ack <id#section> --by <name> | stats [--json] | coverage [--init [--force] | --ack <key>] | build --target wiki --out <dir> [--preview] [--product-version <v>] [--doc-revision <sha>] [--product-commit <sha>] | bundle --out <dir> [--build-id <id>] [--allow-dirty] [--product-version <v>] [--doc-revision <sha>] [--product-commit <sha>]';
+  'usage: npm run wiki -- check [--test-report <file>]… | check --publish --product-ref <tag|sha> [--doc-ref <sha>] [--released] [--state preview|candidate|published] [--test-report <file>]… [--candidate <run id>] | review-claim <id> --by <name> | translations --ack <id#section> --by <name> | acceptance [--lang en|fr] [--json] [--strict] [--export-prompts <dir> [--channel mcp|web] [--url <url>]] | stats [--json] | coverage [--init [--force] | --ack <key>] | build --target wiki --out <dir> [--preview] [--product-version <v>] [--doc-revision <sha>] [--product-commit <sha>] | bundle --out <dir> [--build-id <id>] [--allow-dirty] [--product-version <v>] [--doc-revision <sha>] [--product-commit <sha>]';
 
 /** Today, as a day (the date a review or an ack records). */
 const today = () => new Date().toISOString().slice(0, 10);
@@ -152,6 +165,11 @@ function run(args: readonly string[]): number {
       r.warnings.push(...c.warnings);
       r.gaps.push(...c.gaps);
       if (c.counters) counters.push(...counterLines(c.counters));
+    }
+    // The real questions (§4.6), when the folder has them: valid, and naming pages and sections that exist.
+    if (r.manifest && existsSync(questionsPath(wikiDir))) {
+      const q = readQuestions(wikiDir);
+      r.errors.push(...q.errors, ...(q.questions ? checkQuestions(wikiDir, r.manifest, q.questions) : []));
     }
     for (const e of r.errors) console.error(`✖  ${e}`);
     for (const w of r.warnings) console.warn(`⚠  ${w}`);
@@ -232,6 +250,7 @@ function run(args: readonly string[]): number {
     return 0;
   }
   if (command === 'coverage') return coverage(args, wikiDir);
+  if (command === 'acceptance') return acceptance(args, wikiDir);
   if (command === 'build') {
     const target = option(args, 'target') ?? 'wiki';
     const out = option(args, 'out');
@@ -322,6 +341,56 @@ function run(args: readonly string[]): number {
     return 0;
   }
   throw new UsageError(command ? `unknown command "${command}"` : 'a command is needed');
+}
+
+/**
+ * `acceptance`: level 1 of §4.6 over the documentation the loader reads in the repository (`wiki/`, draft and ready
+ * pages), reported and exit 0; `--strict` exits 1 on a miss, a failed counter-example or a pending question (C1:
+ * every page is written by then). `--export-prompts <dir>` writes level 2's prompts (outside the working tree, or
+ * under .cache/) and runs nothing.
+ */
+function acceptance(args: readonly string[], wikiDir: string): number {
+  const lang = option(args, 'lang');
+  if (lang !== undefined && lang !== 'en' && lang !== 'fr') throw new UsageError('--lang is en or fr');
+  const langs: readonly ('en' | 'fr')[] = lang === 'en' || lang === 'fr' ? [lang] : ['en', 'fr'];
+  const { manifest, errors } = readManifest(wikiDir);
+  const q = readQuestions(wikiDir);
+  const problems = [
+    ...errors,
+    ...q.errors,
+    ...(manifest && q.questions ? checkQuestions(wikiDir, manifest, q.questions) : []),
+  ];
+  if (problems.length || !q.questions) {
+    for (const e of problems) console.error(`✖  ${e}`);
+    return 1;
+  }
+  const out = option(args, 'export-prompts');
+  if (out && args.includes('--strict'))
+    throw new UsageError('--export-prompts writes prompts and runs nothing: --strict does not go with it');
+  if (out) {
+    const refused = outProblem(out);
+    if (refused) {
+      console.error(`✖  ${refused}`);
+      return 1;
+    }
+    const channel = option(args, 'channel') ?? 'mcp';
+    if (channel !== 'mcp' && channel !== 'web') throw new UsageError('--channel is mcp or web');
+    const url = option(args, 'url');
+    const files = exportPrompts(q.questions, resolve(out), { langs, channel, ...(url ? { url } : {}) });
+    console.log(
+      `✔  ${files.length - 2} prompt(s) and prompts.json written to ${resolve(out, 'prompts')} (the answering agent's only input, no answer inside); the numbers' key to ${resolve(out, 'grading', 'key.json')} (the grader's only)`,
+    );
+    return 0;
+  }
+  const report = runAcceptance(repositoryDocs(ROOT, { wikiDir }), q.questions, langs);
+  if (args.includes('--json')) console.log(JSON.stringify(report));
+  else for (const l of acceptanceLines(report)) console.log(l);
+  const bad = report.outcomes.filter((o) => o.status !== 'hit' && o.status !== 'pass');
+  if (args.includes('--strict') && bad.length) {
+    console.error(`✖  acceptance (strict): ${bad.length} run(s) missed, failed or pending`);
+    return 1;
+  }
+  return 0;
 }
 
 /**
