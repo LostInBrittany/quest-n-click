@@ -7647,10 +7647,10 @@
       ]
     },
     "create.project-layout#site-json": {
-      "enHash": "9796ae44d9b09a3a9b9cb9ba122dced76a86e9d44f468c7f45e2a6bc33e0e502",
-      "frHash": "43bd87c9c94e8cd2a120e210a4bb40f1c7a87eccd831340547fb2e39cf81aed5",
+      "enHash": "112a032c0e358c11514c06f693d7110a612940b3a8be017edc9226d69aafddbb",
+      "frHash": "f3f0caac5bd03867f9c1080494bf418666a33afd7f9358b31e384fd43c5b8e2a",
       "reviewers": [
-        { "name": "Claude", "kind": "ai", "relation": "author", "date": "2026-10-23" }
+        { "name": "claude-pr272", "kind": "ai", "relation": "author", "date": "2026-10-23" }
       ]
     },
     "create.puzzle-design#_lead": {
