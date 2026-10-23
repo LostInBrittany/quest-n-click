@@ -261,6 +261,8 @@ describe("a game's own spans (spans.json, 4.5.1)", () => {
     expect(readOwnSpans(game)).toEqual([]);
     writeFileSync(join(game, 'spans.json'), JSON.stringify({ 'minigames/': 'meta' }));
     expect(spanOf('minigames/dance.ts', readOwnSpans(game))).toBe('meta');
+    // Unchanged: not read again (the same parsed spans come back).
+    expect(readOwnSpans(game)).toBe(readOwnSpans(game));
     writeFileSync(join(game, 'spans.json'), JSON.stringify({ 'minigames/': 'story' }));
     utimesSync(join(game, 'spans.json'), new Date(), new Date(Date.now() + 5_000));
     expect(spanOf('minigames/dance.ts', readOwnSpans(game))).toBe('story');
