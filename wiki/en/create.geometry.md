@@ -151,7 +151,7 @@ closed link does not. The puzzle is the rule; the link only stops the walk.
 > [!GUARANTEE id=closed-link-stops-walk]
 > A walk link whose condition does not hold is never crossed: the walk stops at its foot and names the link.
 
-> [!GUARANTEE id=stage-not-state]
+> [!GUARANTEE id=geometry-stage-not-state]
 > Nothing on the stage is game state: layers, lights, particles and links never change what the solver sees. The
 > sample game with a stage on every room proves the same, state for state.
 

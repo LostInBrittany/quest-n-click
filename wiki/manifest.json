@@ -563,7 +563,7 @@
       "prerequisites": [],
       "claims": [
         {
-          "id": "save-refused-untouched",
+          "id": "play-save-refused-untouched",
           "test": "tests/save-v3.test.ts › save envelope v3 › rejects a foreign game, corrupt shape and missing current room without touching current state"
         }
       ],
@@ -1768,7 +1768,7 @@
       "prerequisites": ["create.rooms"],
       "claims": [
         {"id": "closed-link-stops-walk", "test": "tests/walk-topology.test.ts › walk topology › a closed link is not crossed: the walk stops at its foot and says which link"},
-        {"id": "stage-not-state", "test": "tests/stage.test.ts › a stage is never game state › the sample game with layers, lights and links on every room: the same proof, state for state"}
+        {"id": "geometry-stage-not-state", "test": "tests/stage.test.ts › a stage is never game state › the sample game with layers, lights and links on every room: the same proof, state for state"}
       ],
       "owner": "@wanoo"
     },
@@ -10731,7 +10731,7 @@
           "test": "tests/studio-security.test.ts › LAN Studio capability › requires a token and same-origin writes"
         },
         {
-          "id": "provider-no-redirect",
+          "id": "policy-provider-no-redirect",
           "test": "tests/studio-security.test.ts › provider calls › never follows a redirect"
         }
       ],

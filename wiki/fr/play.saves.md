@@ -95,7 +95,7 @@ une version plus récente d’un jeu n’a plus quelque chose que votre sauvegar
 se charge quand même, sans cela, et le jeu affiche « Sauvegarde adaptée à cette version » avec ce qu’il a laissé de
 côté. Voir [Stabilité et support](start.stability.md#saves).
 
-> [!GUARANTEE id=save-refused-untouched]
+> [!GUARANTEE id=play-save-refused-untouched]
 > La sauvegarde d’un autre jeu, une sauvegarde abîmée, ou une sauvegarde dont la salle courante n’existe plus est
 > refusée, et la partie en cours reste telle quelle.
 

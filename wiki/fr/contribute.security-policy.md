@@ -76,7 +76,7 @@ de quelqu'un en qui vous n'avez pas confiance comme vous lanceriez son programme
 - Un appel au fournisseur **ne suit jamais de redirection**, **abandonne après 60 s** et lit **au plus 8 Mo** de
   réponse.
 
-> [!GUARANTEE id=provider-no-redirect]
+> [!GUARANTEE id=policy-provider-no-redirect]
 > Un fournisseur qui répond par une redirection est refusé : la requête n'atteint jamais la seconde adresse.
 
 ### Contraintes

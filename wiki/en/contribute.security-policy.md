@@ -74,7 +74,7 @@ would run their program.
   refused, in both IP families, including bracketed and IPv4-mapped IPv6 forms. A URL holding credentials is refused.
 - A provider call **never follows a redirect**, **times out after 60 s** and reads **at most 8 MB** of answer.
 
-> [!GUARANTEE id=provider-no-redirect]
+> [!GUARANTEE id=policy-provider-no-redirect]
 > A provider that answers with a redirect is refused: the request never reaches the second address.
 
 ### Constraints

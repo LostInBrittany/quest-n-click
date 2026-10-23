@@ -89,7 +89,7 @@ a way an old save cannot follow, the game carries the save over itself. When a n
 something your save names (an item, a place), the save still loads, without it, and the game says "Save adjusted for
 this version" with what it left out. See [Stability and support](start.stability.md#saves).
 
-> [!GUARANTEE id=save-refused-untouched]
+> [!GUARANTEE id=play-save-refused-untouched]
 > A save of another game, a corrupt one, or one whose current room no longer exists is refused, and the game you are
 > playing is left as it was.
 

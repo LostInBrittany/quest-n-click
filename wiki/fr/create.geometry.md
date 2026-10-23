@@ -162,7 +162,7 @@ cible derrière un lien fermé ne le fait pas. L'énigme, c'est la règle ; le l
 > Un lien de marche dont la condition ne tient pas n'est jamais franchi : la marche s'arrête à son pied et nomme le
 > lien.
 
-> [!GUARANTEE id=stage-not-state]
+> [!GUARANTEE id=geometry-stage-not-state]
 > Rien sur la scène n'est un état du jeu : calques, lumières, particules et liens ne changent jamais ce que voit le
 > solveur. Le jeu d'exemple, avec une scène dans chaque salle, se prouve à l'identique, état pour état.
 
