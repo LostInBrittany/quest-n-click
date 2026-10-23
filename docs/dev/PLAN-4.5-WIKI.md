@@ -84,7 +84,7 @@ in the repository; the build rewrites it for each output (§4.5.6).
 (`EN-Studio-Conflicts`, `FR-Studio-Conflits`). The domains are fixed: Start/Demarrer, Play/Jouer, Install/Installer,
 Create/Creer, Engine/Moteur, Studio/Studio, Team/Equipe, Clever/Clever, Bridge/Bridge, Contribute/Contribuer,
 Reference/Reference, Help/Aide, Index/Index. Titles shown stay natural. The language prefix makes collisions
-impossible ("Commands" becomes `EN-Create-Game-Commands` and `EN-Reference-Npm-Scripts`). A URL that changes leaves a
+impossible ("Commands" becomes `EN-Create-Game-Commands` and `EN-Reference-NPM-Scripts`). A URL that changes leaves a
 generated redirect page behind.
 
 **Metadata.** Required for every page: `id`, `type` (`tutorial`, `howto`, `reference`, `explanation`,
@@ -99,14 +99,19 @@ le Studio sur une base vide ? ».
 
 Optional: `aliases`, `keywords`, `prerequisites`, `related`, `claims`, `owner`, `reviewed` and its cadence.
 
+*Amendment (A2):* `versions` and a non-empty `sources` are required from `draft` on; a `planned` page may not know
+them yet, but any source glob it gives must already match a tracked file. The four indexes are marked
+`generated: true`: they have no source file (a file for one is an error) and are built with the first published page,
+listing published pages only.
+
 **Generated from the manifest:** `Home`, the two sidebars, the footer, each page's header (type, audience, context,
 versions, status, language switch), and four indexes:
 
 | Index | Entry | Source |
 |---|---|---|
 | By task ("I want to…") | A goal | How-to and tutorial pages, their `questions` and `aliases` |
-| By symptom or error | An exact message, a code (`409`, `423`, `503`), an observed behaviour | Troubleshooting pages, and an **error register** taken from the code (HTTP codes of the routes, validator, solver and `doctor` messages) |
-| By identifier | DSL command, field, npm script, CLI subcommand, environment variable, HTTP route, MCP tool | **Generated** from structured sources: `package.json`, the DSL command table, `studio-server/src/ops/routes.ts`, `tools/studio/tools.ts`, the variable register (§4.7.4), the CLIs. A test requires a destination for each identifier |
+| By symptom or error | An exact message, a code (`409`, `423`, `503`), an observed behaviour | Troubleshooting pages, and an **error register** taken from the code (HTTP codes of the routes, validator, solver and `doctor` messages; deferred to A5) |
+| By identifier | DSL command, field, npm script, CLI subcommand, environment variable, HTTP route, MCP tool | **Generated** from structured sources: `package.json`, the DSL command table, `studio-server/src/ops/routes.ts`, `tools/studio/tools.ts`, the variable register (§4.7.4), the CLIs. A test requires a destination for each identifier (A2 generates the npm scripts and MCP tools and lists the unclaimed ones as gaps; the rest, and the requirement, come in A5) |
 | By vocabulary | Common word, project word, old name (`web-scumm`), FR ↔ EN equivalent (verrou / bail / lease) | The bilingual glossary and `aliases` |
 
 Page templates are in Annex B. A screenshot is always doubled by text giving its important labels.
@@ -560,7 +565,7 @@ tests are added; a second-context review; a `changes/` fragment.
 | PR | Content |
 |---|---|
 | A1 | This plan, D50 (with the bootstrap exception of §4.5.3 and the D37 yes for v4.5.0), ADR 0030 "Documentation is generated from `wiki/`". **Spike** on the real wiki: the maintainer creates the `Home` page (that creates `.wiki.git`); then check a push with `GITHUB_TOKEN`, per-folder `_Sidebar`, `[[ ]]` and relative links, `<a name>` anchors in the wiki, images, GitHub's wiki search, on 3 test pages removed afterwards |
-| A2 | L1: schema, states, `wiki/<lang>/<id>.md`, `<a name>` section anchors, the URL convention, required `questions`, the two check levels, the whole catalogue as `planned`, generators (Home, sidebars, footer, headers, four indexes), `tests/wiki-manifest.test.ts`, `wiki -- stats` |
+| A2 | L1: schema, states, `wiki/<lang>/<id>.md`, `<a name>` section anchors, the URL convention, required `questions`, the work check level (`check --publish` moves to A5), the whole catalogue as `planned`, generators (Home, sidebars, footer, headers, four indexes), `tests/wiki-manifest.test.ts`, `wiki -- stats` |
 | A3 | L2: the full anchor inventory, the matrix, the two counters, `wiki/legacy.json`, the `docs/` freeze |
 | A4 | L3: `read_doc` extended without replacing the active reader (fixtures of the 8 calls of 4.4.0, schema inclusion), `search_docs`, `list_docs`, cursors, the common loader, the reproducible bundle in `pack.mjs` with `legacy/` as an exact copy of `docs/en`, `external-consumer` extended, the demo snapshot, the Assistant; `api-surface`, the MCP hash, the quality baseline |
 | A5 | L4 + L5: `appliesFrom` / `featureSince`, the status register, three-state guarantees (JSON reporter in the candidate), structured blocks, identity in the bundle and `publication.json` outside it, `check --publish`, the `docs/<v>` branch and `docs-v<v>-r<n>` releases, the self-contained archive in `candidate.yml`, `release.yml` and `ship verify`, `docs-publish.yml` called after `ship verify` and its sandbox test, Pages' `/docs/` assembled from archives and its byte-identity test, the shared `docs-publish` concurrency |

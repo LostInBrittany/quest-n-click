@@ -1,0 +1,408 @@
+// `npm run wiki -- build --target wiki` (4.5.0 "Wiki", docs/dev/PLAN-4.5-WIKI.md §4.1 "Generated from the manifest",
+// §4.5.6 links by output, §4.5.7 read-only wording): the folder a publication pushes to the GitHub wiki. Generated
+// whole from `wiki/`, never edited there: `Home.md` (both languages side by side), a sidebar per language grouped by
+// domain, a footer that says the page is generated and how to change it, one file per published page under its public
+// URL with a header (the twin's URL, type, audience, context, versions), and the four indexes (by task, by symptom,
+// by identifier, by vocabulary). Published means `ready`; `--preview` adds the `draft` pages under a banner. A link to
+// another page's source becomes its public URL in the same language; a link to a page not published keeps its text
+// and says it is coming; a link to a repository file points at `blob/<productCommit>/` so it shows the code of the
+// product the page describes, not today's `main` (an image, at `raw.githubusercontent.com`); an image of `wiki/images/`
+// is copied into the output and linked from the wiki's root (a wiki resolves a page's links from its root, whatever
+// the page's folder: the A1 spike's question). The four indexes are generated pages: built with the first published
+// page, listing published pages only.
+import { copyFileSync, existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { dirname, resolve } from 'node:path';
+import { type Glossary, readGlossary } from './glossary';
+import { generatedIdentifiers, type Identifier } from './identifiers';
+import {
+  type Audience,
+  type Context,
+  DOMAIN_IDS,
+  GENERATED_INDEXES,
+  type Domain,
+  type Lang,
+  LANGS,
+  type Manifest,
+  type Page,
+  type PageType,
+  typesOf,
+} from './manifest';
+import { classifyTarget, type Link, mapPage, renderLink } from './page';
+
+const REPO_URL = 'https://github.com/wanoo/quest-n-click';
+const RAW_URL = 'https://raw.githubusercontent.com/wanoo/quest-n-click';
+/** Written into every output folder: a folder without it is not a build, and is never emptied. */
+const BUILD_MARKER = '.quest-n-click-wiki-build';
+
+export interface BuildOptions {
+  wikiDir: string;
+  outDir: string;
+  manifest: Manifest;
+  /** Include the `draft` pages, each under a banner (a preview artifact, never the public wiki). */
+  preview: boolean;
+  productVersion: string;
+  /** The commit of the `wiki/` sources built. */
+  docRevision: string;
+  /** The commit of the product the pages describe: links to the code point there. */
+  productCommit: string;
+  /** The generated identifiers (npm scripts, MCP tools); read from the repository when absent. */
+  identifiers?: readonly Identifier[];
+}
+
+const L = {
+  en: {
+    domains: {
+      index: 'Index',
+      start: 'Start',
+      play: 'Play',
+      install: 'Install',
+      create: 'Create a game',
+      engine: 'Engine',
+      studio: 'Local Studio',
+      team: 'Team Studio',
+      clever: 'Clever Cloud',
+      bridge: 'Reality Bridge and connectors',
+      contribute: 'Contribute',
+      reference: 'Reference',
+      help: 'Help',
+    } satisfies Record<Domain, string>,
+    types: {
+      tutorial: 'tutorial',
+      howto: 'how-to',
+      reference: 'reference',
+      explanation: 'explanation',
+      troubleshooting: 'troubleshooting',
+      index: 'index',
+    } satisfies Record<PageType, string>,
+    audiences: { player: 'player', author: 'author', admin: 'admin', contributor: 'contributor' } satisfies Record<
+      Audience,
+      string
+    >,
+    contexts: {
+      'engine-repo': 'engine repository',
+      'created-project': 'created project',
+      'studio-local': 'local Studio',
+      'studio-demo': 'demo Studio',
+      'studio-hosted': 'hosted Studio',
+      bridge: 'Reality Bridge',
+      player: "player's browser",
+    } satisfies Record<Context, string>,
+    colon: ':',
+    status: 'Status',
+    states: { planned: 'planned', draft: 'draft', ready: 'ready', generated: 'generated' },
+    synonyms: 'also',
+    twinLanguage: 'French',
+    type: 'Type',
+    audience: 'Audience',
+    context: 'Context',
+    appliesFrom: 'Applies from',
+    other: 'Français',
+    home: 'Home',
+    draft: '**Draft**: this page is not reviewed yet. It is shown in a preview only, never in the published wiki.',
+    coming: 'coming',
+    edit: 'Edit the source of this page',
+    report: 'Report an error',
+    noPage: 'No published page yet.',
+    byTask: 'I want to…',
+    bySymptom: 'I see…',
+    otherNames: 'Other names',
+  },
+  fr: {
+    domains: {
+      index: 'Index',
+      start: 'Démarrer',
+      play: 'Jouer',
+      install: 'Installer',
+      create: 'Créer un jeu',
+      engine: 'Moteur',
+      studio: 'Studio local',
+      team: "Studio d'équipe",
+      clever: 'Clever Cloud',
+      bridge: 'Reality Bridge et connecteurs',
+      contribute: 'Contribuer',
+      reference: 'Référence',
+      help: 'Aide',
+    } satisfies Record<Domain, string>,
+    types: {
+      tutorial: 'tutoriel',
+      howto: 'procédure',
+      reference: 'référence',
+      explanation: 'explication',
+      troubleshooting: 'dépannage',
+      index: 'index',
+    } satisfies Record<PageType, string>,
+    audiences: {
+      player: 'joueur',
+      author: 'auteur',
+      admin: 'administrateur',
+      contributor: 'contributeur',
+    } satisfies Record<Audience, string>,
+    contexts: {
+      'engine-repo': 'dépôt du moteur',
+      'created-project': 'projet créé',
+      'studio-local': 'Studio local',
+      'studio-demo': 'Studio de démo',
+      'studio-hosted': 'Studio hébergé',
+      bridge: 'Reality Bridge',
+      player: 'navigateur du joueur',
+    } satisfies Record<Context, string>,
+    colon: ' :',
+    status: 'Statut',
+    states: { planned: 'prévue', draft: 'brouillon', ready: 'prête', generated: 'générée' },
+    synonyms: 'aussi',
+    twinLanguage: 'anglais',
+    type: 'Type',
+    audience: 'Public',
+    context: 'Contexte',
+    appliesFrom: "S'applique depuis",
+    other: 'English',
+    home: 'Accueil',
+    draft:
+      "**Brouillon** : cette page n'est pas encore relue. Elle n'apparaît que dans un aperçu, jamais dans le wiki publié.",
+    coming: 'à venir',
+    edit: 'Modifier la source de cette page',
+    report: 'Signaler une erreur',
+    noPage: "Aucune page publiée pour l'instant.",
+    byTask: 'Je veux…',
+    bySymptom: 'Je vois…',
+    otherNames: 'Autres noms',
+  },
+} as const;
+
+const BLOCK_NAMES = {
+  en: { LIMIT: 'Limit', GUARANTEE: 'Guarantee', MEASURE: 'Measure' },
+  fr: { LIMIT: 'Limite', GUARANTEE: 'Garantie', MEASURE: 'Mesure' },
+} as const;
+
+/** The footer of every page: what the publication is, and that an edit made in the wiki does not last. */
+const footer = (productVersion: string, docRevision: string) =>
+  `Generated publication · publication générée — quest'n'click ${productVersion}, documentation revision · révision de la documentation \`${docRevision}\`.
+An edit made in this wiki is overwritten at the next publication · une modification faite dans ce wiki est écrasée à la publication suivante.
+[Edit the source · Modifier la source](${REPO_URL}/tree/main/wiki) · [Report an error · Signaler une erreur](${REPO_URL}/issues/new?title=${encodeURIComponent('[bug] docs: ')})
+`;
+
+/** The pages this build publishes: `ready`, and `draft` too in a preview. */
+const publishedPages = (manifest: Manifest, preview: boolean): Page[] =>
+  manifest.pages.filter((p) => p.state === 'ready' || (preview && p.state === 'draft'));
+
+/**
+ * The page's body for one language, its links rewritten for the wiki (§4.5.6) and its blocks named; the images of
+ * `wiki/images/` it shows are added to `images`, to be copied.
+ */
+function rewritePage(
+  markdown: string,
+  lang: Lang,
+  urls: ReadonlyMap<string, string>,
+  productCommit: string,
+  images: Set<string>,
+): string {
+  const rewrite = (l: Link): string | undefined => {
+    const t = classifyTarget(l.target, lang);
+    const to = (target: string) => renderLink({ ...l, target });
+    if (t.kind === 'page') {
+      const url = urls.get(t.id);
+      return url ? to(`${url}${t.anchor ? `#${t.anchor}` : ''}`) : `${l.label} (${L[lang].coming})`;
+    }
+    if (t.kind === 'repo')
+      return l.image
+        ? to(`${RAW_URL}/${productCommit}/${t.path}`)
+        : to(`${REPO_URL}/blob/${productCommit}/${t.path}${t.anchor ? `#${t.anchor}` : ''}`);
+    if (t.kind === 'wiki-image') {
+      images.add(t.path);
+      return to(`images/${t.path}`);
+    }
+    return undefined;
+  };
+  return mapPage(markdown, rewrite, (kind, id) => `> **${BLOCK_NAMES[lang][kind]}** · \`${id}\``);
+}
+
+function header(p: Page, lang: Lang): string {
+  const t = L[lang];
+  const twin = lang === 'en' ? 'fr' : 'en';
+  const parts = [
+    `[${t.other}](${p.url[twin]})`,
+    `${t.type}: ${typesOf(p)
+      .map((x) => t.types[x])
+      .join(' + ')}`,
+    `${t.audience}: ${p.audience.map((a) => t.audiences[a]).join(', ')}`,
+    `${t.context}: ${p.context.map((c) => t.contexts[c]).join(', ')}`,
+    `${t.status}: ${t.states[p.generated ? 'generated' : p.state]}`,
+  ];
+  if (p.versions?.appliesFrom) parts.push(`${t.appliesFrom}: ${p.versions.appliesFrom}`);
+  // The labels hold no colon of their own: French puts a space before each one.
+  return `> ${parts.join(' · ').replace(/: /g, `${t.colon} `)}`;
+}
+
+const pageFooter = (p: Page, lang: Lang, productVersion: string) =>
+  `[${L[lang].edit}](${REPO_URL}/edit/main/wiki/${lang}/${p.id}.md) · [${L[lang].report}](${REPO_URL}/issues/new?title=${encodeURIComponent(`[bug] docs: ${p.id} (${lang}, ${productVersion})`)})`;
+
+const link = (p: Page, lang: Lang) => `[${p.title[lang]}](${p.url[lang]})`;
+const byText = (lang: Lang) => (a: { text: string }, b: { text: string }) => a.text.localeCompare(b.text, lang);
+
+/** The four generated indexes of one language (§4.1), over the published pages only. */
+function indexPages(
+  manifest: Manifest,
+  published: readonly Page[],
+  glossary: Glossary,
+  generated: readonly Identifier[],
+  lang: Lang,
+): { id: string; body: string }[] {
+  const t = L[lang];
+  const urls = new Set(published.map((p) => p.id));
+  const list = (rows: { text: string; to: Page }[]) =>
+    rows.length ? rows.sort(byText(lang)).map((r) => `- ${r.text} → ${link(r.to, lang)}`) : [t.noPage];
+  const of = (types: PageType[], withTitle: boolean) =>
+    published
+      .filter((p) => typesOf(p).some((x) => types.includes(x)))
+      .flatMap((p) => [
+        ...(withTitle ? [{ text: p.title[lang], to: p }, ...p.aliases[lang].map((a) => ({ text: a, to: p }))] : []),
+        ...p.questions[lang].map((q) => ({ text: q, to: p })),
+      ]);
+  // Every identifier a published page claims, the generated ones (npm scripts, MCP tools) among them; one claimed by
+  // no published page is not listed: the index points at pages only.
+  const known = new Set([...generated.map((i) => i.id), ...published.flatMap((p) => p.identifiers)]);
+  const identifiers = [...known].flatMap((i) =>
+    published.filter((p) => p.identifiers.includes(i)).map((p) => ({ text: `\`${i}\``, to: p })),
+  );
+  const vocabulary: string[] = glossary.terms
+    .map((term) => ({ term, text: term[lang].term }))
+    .sort(byText(lang))
+    .map(({ term }) => {
+      const side = term[lang];
+      const pages = term.pages
+        .filter((id) => urls.has(id))
+        .map((id) => link(manifest.pages.find((p) => p.id === id)!, lang));
+      const other = term[lang === 'en' ? 'fr' : 'en'].term;
+      const names = [
+        ...(side.synonyms.length ? [`${t.synonyms}${t.colon} ${side.synonyms.join(', ')}`] : []),
+        `${t.twinLanguage}${t.colon} ${other}`,
+      ];
+      return `- **${side.term}** (${names.join(lang === 'fr' ? ' ; ' : '; ')}). ${side.definition}${pages.length ? ` → ${pages.join(', ')}` : ''}`;
+    });
+  const aliases = published.flatMap((p) => p.aliases[lang].map((a) => ({ text: a, to: p })));
+  const bodies: Record<(typeof GENERATED_INDEXES)[number], string[]> = {
+    'index.by-task': [`## ${t.byTask}`, '', ...list(of(['tutorial', 'howto'], true))],
+    'index.by-symptom': [`## ${t.bySymptom}`, '', ...list(of(['troubleshooting'], false))],
+    'index.identifiers': list(identifiers),
+    'index.glossary': [
+      ...(vocabulary.length ? vocabulary : [t.noPage]),
+      ...(aliases.length ? ['', `## ${t.otherNames}`, '', ...list(aliases)] : []),
+    ],
+  };
+  return GENERATED_INDEXES.flatMap((id) => {
+    const page = generatedPages(manifest, published).find((p) => p.id === id);
+    if (!page) return [];
+    return [{ id, body: `# ${page.title[lang]}\n\n${header(page, lang)}\n\n${bodies[id].join('\n')}\n` }];
+  });
+}
+
+/** The generated pages this build makes: none until a page is published, then those of the manifest. */
+const generatedPages = (manifest: Manifest, published: readonly Page[]) =>
+  published.length ? manifest.pages.filter((p) => p.generated) : [];
+
+/** The pages a sidebar or Home lists: the published ones and the generated indexes, in the manifest's order. */
+const listed = (manifest: Manifest, published: readonly Page[]) => {
+  const ids = new Set([...published, ...generatedPages(manifest, published)].map((p) => p.id));
+  return manifest.pages.filter((p) => ids.has(p.id));
+};
+
+function sidebar(manifest: Manifest, published: readonly Page[], lang: Lang): string {
+  const pages = listed(manifest, published);
+  const out = [`**[${L[lang].home}](Home)**`, ''];
+  for (const d of DOMAIN_IDS) {
+    const inDomain = pages.filter((p) => p.domain === d);
+    if (!inDomain.length) continue;
+    out.push(`**${L[lang].domains[d]}**`, '', ...inDomain.map((p) => `- ${link(p, lang)}`), '');
+  }
+  return `${out.join('\n').trimEnd()}\n`;
+}
+
+function home(manifest: Manifest, published: readonly Page[]): string {
+  const pages = listed(manifest, published);
+  const column = (lang: Lang) => {
+    const out: string[] = [];
+    for (const d of DOMAIN_IDS) {
+      const inDomain = pages.filter((p) => p.domain === d);
+      if (!inDomain.length) continue;
+      // The entry points first: a tutorial, then a how-to, then the rest, four at most (the four indexes fit).
+      const order: PageType[] = ['tutorial', 'howto', 'troubleshooting', 'explanation', 'reference', 'index'];
+      const first = [...inDomain].sort((a, b) => order.indexOf(a.type) - order.indexOf(b.type)).slice(0, 4);
+      out.push(`**${L[lang].domains[d]}**${L[lang].colon} ${first.map((p) => link(p, lang)).join(' · ')}`);
+    }
+    return out.length ? out : [L[lang].noPage];
+  };
+  return `# quest'n'click
+
+| Français | English |
+|---|---|
+| La documentation de quest'n'click, en français. | The quest'n'click documentation, in English. |
+| ${column('fr').join('<br>')} | ${column('en').join('<br>')} |
+
+## Chercher · Search
+
+La recherche du wiki (en haut à droite) lit le texte de chaque page. Quelques exemples ·
+The wiki's search (top right) reads the text of every page. A few examples:
+
+- \`423\` : un enregistrement refusé dans le Studio d'équipe · a save refused in the team Studio
+- \`STUDIO_SESSION_KEY\` : une variable d'environnement · an environment variable
+- \`verrou\` ou \`lease\` : un mot du glossaire, dans l'une ou l'autre langue · a glossary word, in either language
+- \`FR-Creer\` ou \`EN-Create\` : toutes les pages d'un domaine · every page of a domain
+
+Les pages françaises commencent par \`FR-\`, les anglaises par \`EN-\` · French pages start with \`FR-\`, English ones with \`EN-\`.
+`;
+}
+
+/**
+ * Empties the output folder before a build, so a page withdrawn from the manifest leaves no file behind. Only a folder
+ * a build wrote (it holds BUILD_MARKER) is emptied; any other non-empty folder is refused. A `.git` folder (a clone of
+ * the wiki's repository) is kept.
+ */
+function clearOutput(outDir: string): void {
+  if (!existsSync(outDir)) return;
+  const entries = readdirSync(outDir);
+  if (entries.length && !entries.includes(BUILD_MARKER))
+    throw new Error(`${outDir} is not empty and holds no previous build (no ${BUILD_MARKER}): choose an empty folder`);
+  for (const name of entries) if (name !== '.git') rmSync(resolve(outDir, name), { recursive: true, force: true });
+}
+
+/** Writes the wiki folder; returns the files written, relative to `outDir`, sorted. */
+export function buildWiki(o: BuildOptions): string[] {
+  const published = publishedPages(o.manifest, o.preview);
+  const generated = generatedPages(o.manifest, published);
+  const { glossary } = readGlossary(o.wikiDir);
+  const identifiers = o.identifiers ?? generatedIdentifiers();
+  const files = new Map<string, string>();
+  const images = new Set<string>();
+  for (const lang of LANGS) {
+    const urls = new Map([...published, ...generated].map((p) => [p.id, p.url[lang]]));
+    for (const p of published) {
+      const source = readFileSync(resolve(o.wikiDir, lang, `${p.id}.md`), 'utf8');
+      const body = rewritePage(source, lang, urls, o.productCommit, images).trim();
+      // The header goes under the page's title when it opens with one, the draft banner above the header.
+      const top = `${p.state === 'draft' ? `> ${L[lang].draft}\n\n` : ''}${header(p, lang)}`;
+      const [first = '', ...rest] = body.split('\n');
+      const page = first.startsWith('# ') ? `${first}\n\n${top}\n${rest.join('\n')}` : `${top}\n\n${body}`;
+      files.set(`${lang}/${p.url[lang]}.md`, `${page}\n\n---\n\n${pageFooter(p, lang, o.productVersion)}\n`);
+    }
+    for (const index of indexPages(o.manifest, published, glossary, identifiers, lang)) {
+      const p = o.manifest.pages.find((x) => x.id === index.id)!;
+      files.set(`${lang}/${p.url[lang]}.md`, index.body);
+    }
+    files.set(`${lang}/_Sidebar.md`, sidebar(o.manifest, published, lang));
+  }
+  files.set('Home.md', home(o.manifest, published));
+  files.set('_Footer.md', footer(o.productVersion, o.docRevision));
+  files.set(BUILD_MARKER, `quest'n'click wiki build ${o.productVersion} ${o.docRevision}\n`);
+  clearOutput(o.outDir);
+  for (const [rel, content] of files) {
+    const file = resolve(o.outDir, rel);
+    mkdirSync(dirname(file), { recursive: true });
+    writeFileSync(file, content);
+  }
+  for (const image of images) {
+    const file = resolve(o.outDir, 'images', image);
+    mkdirSync(dirname(file), { recursive: true });
+    copyFileSync(resolve(o.wikiDir, 'images', image), file);
+  }
+  return [...files.keys(), ...[...images].map((i) => `images/${i}`)].sort();
+}

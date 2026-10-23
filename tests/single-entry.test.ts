@@ -81,6 +81,8 @@ const WRITERS: Record<string, string> = {
   'tools/code-wheel-pdf.py': 'elsewhere: the PDF named on the command line',
   'tools/dist.ts': 'elsewhere: dist/',
   'tools/dsl-doc.ts': 'elsewhere: docs/',
+  'tools/wiki/build.ts':
+    'elsewhere: the wiki build, in the folder named by --out (outside the working tree, or under .cache/)',
   'tools/field/bundle.ts': 'elsewhere: field bundles',
   'tools/field/field.ts': 'elsewhere: field reports',
   'tools/field/surfaces.mjs': 'elsewhere: qualification surfaces',
