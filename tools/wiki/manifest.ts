@@ -126,6 +126,11 @@ const PageSchema = z
       })
       .optional(),
     /**
+     * A page kept for older versions (§9, "Obsolete pages"): `deprecated`, then `archived`. It is no longer current:
+     * search_docs shows it only with includeArchived, and a publication accepts its `appliesUntil` before the product.
+     */
+    lifecycle: z.enum(['deprecated', 'archived']).optional(),
+    /**
      * The surfaces the page documents, ids of docs/dev/contracts.json (§4.4.2): the header shows each one's five
      * statuses, generated from the registry, never typed.
      */

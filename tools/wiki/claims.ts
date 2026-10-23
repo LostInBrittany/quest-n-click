@@ -3,14 +3,20 @@
 // is known of it, never more:
 //   1. referenced: the test file is tracked and holds a test of that exact name (its `describe` titles and its own,
 //      joined with ` › `, read from the source by a scanner of `describe(`, `it(` and `test(` calls);
-//   2. executed on <sha>: a Vitest JSON report (`--reporter=json`) says that test `passed`, and the report's sidecar
-//      `commit.json`, written beside it by the candidate, names the documented product commit;
+//   2. executed on <sha>: a Vitest JSON report (`--reporter=json`) says that test `passed` (never `skipped`, `todo`
+//      or `pending`), and the report's sidecar `commit.json`, written beside it by the candidate, names the documented
+//      product commit, the checkout's root (so a report's file is matched by its exact repository path) and the run.
+//      The local file alone proves nothing about who made it: `--candidate <run>` requires the run, and A5b's
+//      publication workflow downloads `candidate-test-report` from that attested candidate run itself;
 //   3. scope reviewed: `wiki/reviews.json` holds a person's record that the test covers the claim, with the hash of
 //      the claim's text (the test's name and the block in both languages) and of the test file: any change to either
 //      resets it, and `npm run wiki -- review-claim <id> --by <name>` records it again.
+// A claim naming a test written `.skip`, `.todo`, `.only`, `.fails` (or `.skipIf`, `.runIf`, on it or a describe
+// around it) is refused at the first state: such a test does not run as it reads, or proves the opposite.
 import { createHash } from 'node:crypto';
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
-import { dirname, join, resolve } from 'node:path';
+import { dirname, join, relative, resolve } from 'node:path';
+import { globToRegExp } from '../ci-plan';
 import { z } from 'zod';
 import { formatJson } from './json';
 import { issuesOf, type Manifest, type Page } from './manifest';
@@ -37,6 +43,12 @@ const MODIFIERS = new Set([
   'for',
 ]);
 
+export interface TestName {
+  /** `describe › describe › test`. */
+  name: string;
+  /** The modifiers on the test and its describes (`skip`, `only`, `todo`, `fails`, `skipIf`…), once each. */
+  modifiers: string[];
+}
 /**
  * Every test's full name in a test file, `describe › describe › test`, read from the source: the calls `describe(`,
  * `suite(`, `it(` and `test(` (with `.skip`, `.only`…) whose first argument is a string or a template without
@@ -44,10 +56,10 @@ const MODIFIERS = new Set([
  * skipped, so a title quoted in a string is not read as a test. A title built at run time (a variable, `.each`'s `%s`)
  * is read as written.
  */
-export function testNames(source: string): string[] {
+export function testNames(source: string): TestName[] {
   const s = source;
-  const names: string[] = [];
-  const stack: { title: string; depth: number }[] = [];
+  const names: TestName[] = [];
+  const stack: { title: string; depth: number; mods: string[] }[] = [];
   let depth = 0;
   let i = 0;
   /** The last significant character before `i`, to tell a regular expression from a division. */
@@ -120,6 +132,7 @@ export function testNames(source: string): string[] {
         // Its modifiers, `.skip`, `.only`, `.each(…)`: read past them to the call's parenthesis.
         let j = i;
         let call = -1;
+        const mods: string[] = [];
         for (;;) {
           while (/\s/.test(s[j] ?? '')) j++;
           if (s[j] === '.') {
@@ -127,6 +140,7 @@ export function testNames(source: string): string[] {
             while (/\s/.test(s[j] ?? '')) j++;
             const m = /^[A-Za-z]+/.exec(s.slice(j));
             if (!m || !MODIFIERS.has(m[0])) break;
+            mods.push(m[0]);
             j += m[0].length;
             // `.each([…])(title, …)`, `.skipIf(cond)(title, …)`: the modifier's own arguments come first.
             while (/\s/.test(s[j] ?? '')) j++;
@@ -150,8 +164,12 @@ export function testNames(source: string): string[] {
           const q = s[i];
           if (q === "'" || q === '"' || q === '`') {
             const { value } = readString(q);
-            if (word === 'describe' || word === 'suite') stack.push({ title: value, depth });
-            else names.push([...stack.map((d) => d.title), value].join(' › '));
+            if (word === 'describe' || word === 'suite') stack.push({ title: value, depth, mods });
+            else
+              names.push({
+                name: [...stack.map((d) => d.title), value].join(' › '),
+                modifiers: [...new Set([...stack.flatMap((d) => d.mods), ...mods])],
+              });
           }
           prev = '(';
           continue;
@@ -177,7 +195,44 @@ function splitTest(test: string): { file: string; name: string } {
   return { file: test.slice(0, at), name: test.slice(at + 3) };
 }
 
+/** The modifiers that make a test not back a claim: not run, run alone, conditionally run, or expected to fail. */
+const NOT_PLAIN = new Set(['skip', 'todo', 'only', 'fails', 'skipIf', 'runIf']);
+
 // ------------------------------------------------------------------------------------------------- reports
+
+/** The script whose run makes the candidate's report (package.json's `release-check:ci` runs it). */
+const REPORT_SCRIPT = 'test:coverage';
+
+/**
+ * Why the run that writes the candidate's report never runs a test file, or undefined: an `--exclude` of
+ * `npm run test:coverage` in package.json, or no glob of vite.config.ts's `test.include` matching it.
+ */
+function excludedFiles(root: string): (file: string) => string | undefined {
+  let script = '';
+  let include: string[] = [];
+  try {
+    script =
+      (JSON.parse(readFileSync(join(root, 'package.json'), 'utf8')) as { scripts?: Record<string, string> }).scripts?.[
+        REPORT_SCRIPT
+      ] ?? '';
+  } catch {}
+  try {
+    const config = readFileSync(join(root, 'vite.config.ts'), 'utf8');
+    const test = config.slice(config.search(/\btest:\s*\{/));
+    const list = /\binclude:\s*\[([^\]]*)\]/.exec(test)?.[1] ?? '';
+    // A template's `${…}` (the game chosen) matches any folder.
+    include = [...list.matchAll(/['"`]([^'"`]+)['"`]/g)].map((m) => m[1]!.replace(/\$\{[^}]*\}/g, '*'));
+  } catch {}
+  const excludes = [...script.matchAll(/--exclude[= ](\S+)/g)].map((m) => m[1]!.replace(/^['"]|['"]$/g, ''));
+  return (file) => {
+    if (!script) return undefined;
+    const ex = excludes.find((g) => globToRegExp(g).test(file));
+    if (ex) return `\`npm run ${REPORT_SCRIPT}\` (--exclude ${ex}, package.json)`;
+    if (include.length && !include.some((g) => globToRegExp(g).test(file)))
+      return `vite.config.ts's test.include (${include.join(', ')}), which does not match it`;
+    return undefined;
+  };
+}
 
 const REPORT_COMMIT_FILE = 'commit.json';
 const ReportCommitSchema = z
@@ -185,6 +240,8 @@ const ReportCommitSchema = z
     format: z.literal('quest-n-click-test-report'),
     version: z.literal(1),
     commit: z.string().regex(/^[0-9a-f]{40}$/, 'the full SHA the suite ran on'),
+    /** The checkout's absolute path the suite ran in: a report's files are made relative to it. */
+    root: z.string().min(1),
     run: z.string().regex(/^\d+$/).optional(),
   })
   .strict();
@@ -194,13 +251,14 @@ export interface TestReport {
   file: string;
   commit: string;
   run?: string;
+  /** Each test, its file relative to the checkout's root (forward slashes). */
   tests: { file: string; name: string; status: string }[];
 }
 
 /**
  * A Vitest JSON report (`vitest run --reporter=json --outputFile.json=<file>`) and the `commit.json` beside it,
- * `{format: "quest-n-click-test-report", version: 1, commit, run?}`, which the candidate writes from the checkout it
- * tested. A report without its sidecar names no commit, and proves nothing about one: it is refused.
+ * `{format: "quest-n-click-test-report", version: 1, commit, root, run?}`, which the candidate writes from the checkout
+ * it tested. A report without its sidecar names no commit, and proves nothing about one: it is refused.
  */
 export function readTestReport(file: string): { report?: TestReport; error?: string } {
   const sidecar = join(dirname(file), REPORT_COMMIT_FILE);
@@ -228,7 +286,7 @@ export function readTestReport(file: string): { report?: TestReport; error?: str
   }
   const tests = raw.testResults.flatMap((r) =>
     (r.assertionResults ?? []).map((a) => ({
-      file: posix(r.name ?? ''),
+      file: posix(relative(commit.root, r.name ?? '')),
       name: [...(a.ancestorTitles ?? []), a.title ?? ''].join(' › '),
       status: a.status ?? 'unknown',
     })),
@@ -301,6 +359,8 @@ export interface ClaimState {
   executedOn?: string;
   /** Why it is not executed (no report, not found, not passed, another commit). */
   notExecuted?: string;
+  /** Why the run that makes the candidate's report never runs its file, when it does not. */
+  excluded?: string;
   reviewed?: { by: string; date: string };
   /** Why a recorded review no longer holds (the claim's text or the test file changed). */
   reviewStale?: string;
@@ -329,6 +389,7 @@ export function claimStates(o: {
   /** The documented product commit, a full SHA; a report of another commit executes nothing. */
   commit?: string;
 }): ClaimState[] {
+  const excluded = excludedFiles(o.root);
   const sources = new Map<string, string | undefined>();
   return o.claims.map((c) => {
     const { file, name } = splitTest(c.claim.test);
@@ -338,17 +399,23 @@ export function claimStates(o: {
       if (!sources.has(file)) sources.set(file, readFileSync(join(o.root, file), 'utf8'));
       const text = sources.get(file)!;
       state.testFileHash = textHash(text);
-      if (!testNames(text).includes(name)) state.unreferenced = `${file} holds no test named "${name}"`;
+      const found = testNames(text).find((t) => t.name === name);
+      const odd = found?.modifiers.filter((m) => NOT_PLAIN.has(m));
+      if (!found) state.unreferenced = `${file} holds no test named "${name}"`;
+      else if (odd?.length)
+        state.unreferenced = `"${name}" is written .${odd.join(', .')}: it does not run as it reads, so it backs no claim`;
     }
     const own = o.reports.filter((r) => r.commit === o.commit);
-    const hits = own.flatMap((r) =>
-      r.tests.filter((t) => (t.file === file || t.file.endsWith(`/${file}`)) && t.name === name),
-    );
+    const hits = own.flatMap((r) => r.tests.filter((t) => t.file === file && t.name === name));
+    const out = excluded(file);
+    if (out) state.excluded = `${file} is not in the candidate's report: excluded by ${out}`;
     if (!o.reports.length) state.notExecuted = 'no test report given (--test-report)';
     else if (!o.commit) state.notExecuted = 'no documented commit to compare the reports with';
     else if (!own.length)
       state.notExecuted = `the reports name ${[...new Set(o.reports.map((r) => r.commit.slice(0, 12)))].join(', ')}, not the documented commit ${o.commit.slice(0, 12)}`;
-    else if (!hits.length) state.notExecuted = `no report of ${o.commit.slice(0, 12)} ran "${c.claim.test}"`;
+    else if (!hits.length)
+      state.notExecuted = state.excluded ?? `no report of ${o.commit.slice(0, 12)} ran "${c.claim.test}"`;
+    // Only `passed` counts: `skipped`, `todo` and `pending` ran nothing.
     else if (!hits.every((h) => h.status === 'passed'))
       state.notExecuted = `"${c.claim.test}" did not pass on ${o.commit.slice(0, 12)} (${hits.map((h) => h.status).join(', ')})`;
     else state.executedOn = o.commit;

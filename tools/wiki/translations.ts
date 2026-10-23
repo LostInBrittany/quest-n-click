@@ -1,9 +1,9 @@
 // The translation state (4.5.0 "Wiki", docs/dev/PLAN-4.5-WIKI.md §4.7.1, phase A5): no language is the source. For
 // each section of a `ready` page, `wiki/translations.json` records which revision of each language a person read
 // against the other, `{enHash, frHash, reviewedAt, by}` under `<id>#<section>` (`<id>#_lead` for the text before the
-// first section). When either side's text changes, the pair is "to review": a warning at the work level, an error for
-// `check --publish`. `npm run wiki -- translations --ack <id#section> --by <name>` records the pair again, once both
-// sides were read.
+// first section). When either side's text, or an image a section shows, changes, the pair is "to review": a warning at
+// the work level, an error for `check --publish`. `npm run wiki -- translations --ack <id#section> --by <name>`
+// records the pair again, once both sides were read.
 import { createHash } from 'node:crypto';
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
@@ -11,6 +11,7 @@ import { z } from 'zod';
 import { splitSections } from './docs';
 import { formatJson } from './json';
 import { issuesOf, type Manifest } from './manifest';
+import { classifyTarget, mapLine, mapLines } from './page';
 
 const TRANSLATIONS_FILE = 'translations.json';
 /** The key of the text before a page's first section: `_` is never in a section id. */
@@ -44,11 +45,33 @@ export function readTranslations(wikiDir: string): { translations: Translations;
 }
 
 /** A section's text as a pair compares it: line ends made LF, outer blank lines dropped. */
-const sectionHash = (text: string) => createHash('sha256').update(text.replace(/\r\n/g, '\n').trim()).digest('hex');
+/**
+ * A section's hash: its text (line ends made LF, outer blank lines dropped) and the bytes of each image of `wiki/images/`
+ * it shows, so a replaced screenshot makes the pair to review like a changed sentence.
+ */
+function sectionHash(text: string, wikiDir: string, lang: string): string {
+  const h = createHash('sha256').update(text.replace(/\r\n/g, '\n').trim());
+  const images: string[] = [];
+  mapLines(text, (line, n) =>
+    mapLine(line, n, (l) => {
+      const t = classifyTarget(l.target, lang);
+      if (t.kind === 'wiki-image') images.push(t.path);
+      return undefined;
+    }),
+  );
+  for (const image of images) {
+    const file = resolve(wikiDir, 'images', image);
+    h.update(`\0${image}\0`);
+    if (existsSync(file)) h.update(readFileSync(file));
+  }
+  return h.digest('hex');
+}
 
 /** Each section of a page in one language, by its key's section part (`_lead` for the lead), with its hash. */
-function sectionHashes(markdown: string): Map<string, string> {
-  return new Map(splitSections(markdown.replace(/\r\n/g, '\n')).map((s) => [s.id || LEAD, sectionHash(s.text)]));
+function sectionHashes(markdown: string, wikiDir: string, lang: string): Map<string, string> {
+  return new Map(
+    splitSections(markdown.replace(/\r\n/g, '\n')).map((s) => [s.id || LEAD, sectionHash(s.text, wikiDir, lang)]),
+  );
 }
 
 export interface PairState {
@@ -73,8 +96,8 @@ export function translationStates(
   for (const p of manifest.pages.filter((x) => x.state !== 'planned' && !x.generated)) {
     const files = { en: resolve(wikiDir, 'en', `${p.id}.md`), fr: resolve(wikiDir, 'fr', `${p.id}.md`) };
     if (!existsSync(files.en) || !existsSync(files.fr)) continue;
-    const en = sectionHashes(readFileSync(files.en, 'utf8'));
-    const fr = sectionHashes(readFileSync(files.fr, 'utf8'));
+    const en = sectionHashes(readFileSync(files.en, 'utf8'), wikiDir, 'en');
+    const fr = sectionHashes(readFileSync(files.fr, 'utf8'), wikiDir, 'fr');
     for (const [section, enHash] of en) {
       const frHash = fr.get(section);
       if (frHash === undefined) continue;
@@ -117,7 +140,7 @@ export function ackTranslation(o: {
   for (const lang of ['en', 'fr'] as const) {
     const file = resolve(o.wikiDir, lang, `${id}.md`);
     if (!existsSync(file)) return `${lang}/${id}.md does not exist`;
-    sides[lang] = sectionHashes(readFileSync(file, 'utf8')).get(section);
+    sides[lang] = sectionHashes(readFileSync(file, 'utf8'), o.wikiDir, lang).get(section);
     if (!sides[lang]) return `${lang}/${id}.md has no section "${section}"`;
   }
   const { translations, errors } = readTranslations(o.wikiDir);

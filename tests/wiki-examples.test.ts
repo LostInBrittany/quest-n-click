@@ -107,11 +107,41 @@ describe('room-example blocks, through the engine validator', () => {
     );
   });
 
+  it("validates a room with the game's own verbs and hero, which the template's verbs would refuse", () => {
+    const custom = {
+      room: {
+        id: 'lab',
+        name: 'Lab',
+        decor: 'd/lab',
+        hotspots: { lever: { name: 'lever' } },
+        look: { lever: 'A lever.' },
+        on: [{ id: 'lab.yank', verb: 'yank', a: 'lever', do: ['Clunk.', { end: true }] }],
+      },
+      layout: {
+        entries: { default: [320, 360] },
+        hotspots: { lever: { rect: [100, 100, 40, 80], approach: [120, 300] } },
+      },
+      characters: { ada: { name: 'Ada', color: '#fff', sprites: { idle: ['ada/idle'] } } },
+      verbs: [
+        { id: 'look', label: 'Look', color: '#fff' },
+        { id: 'yank', label: 'Yank', color: '#fff' },
+      ],
+      hero: 'ada',
+    };
+    expect(roomExampleProblems(JSON.stringify(custom))).toEqual([]);
+    const { verbs: _v, ...templateVerbs } = custom;
+    expect(roomExampleProblems(JSON.stringify(templateVerbs)).some((e) => e.includes('yank'))).toBe(true);
+    expect(roomExampleProblems(JSON.stringify({ ...custom, verbs: [] }))).toEqual([
+      '"verbs" is a non-empty list of verbs ({ "id", "label", "color" })',
+    ]);
+    expect(check(fence('room-example', custom)).errors).toEqual([]);
+  });
+
   it('refuses what is not a room: no JSON, no id, an unknown wrapper key', () => {
     expect(roomExampleProblems('{ id: garden }')[0]).toMatch(/^not JSON: /);
     expect(roomExampleProblems('{"name": "x"}')).toEqual(['the room has no "id"']);
     expect(roomExampleProblems(JSON.stringify({ room: GARDEN.room, cast: {} }))).toEqual([
-      'unknown key(s) cast: a wrapper holds room, layout, items, characters',
+      'unknown key(s) cast: a wrapper holds room, layout, items, characters, verbs, hero',
     ]);
   });
 });

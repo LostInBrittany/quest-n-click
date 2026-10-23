@@ -77,7 +77,7 @@ export interface PublishOptions {
   productRef: string;
   /** The documentation's revision; HEAD when absent. */
   docRef?: string;
-  /** Refuse a page or a section whose `appliesFrom` is after the product's version. */
+  /** Refuse a page or a section whose `appliesFrom` is after the product's version (implied by `published`). */
   released: boolean;
   /** What the publication will be shown as (§4.5.1); `preview` is the bootstrap's exception. */
   state: 'preview' | 'candidate' | 'published';
@@ -96,6 +96,12 @@ export interface CheckOptions {
   testReports?: readonly string[];
   /** The documented product commit, a claim is executed on; the product ref's at --publish, HEAD otherwise. */
   productCommit?: string;
+  /**
+   * The candidate run the reports must come from (`commit.json`'s `run`); required to publish a candidate or a
+   * release. The local file proves nothing about who made it: A5b's workflow downloads `candidate-test-report` from
+   * that attested candidate run itself.
+   */
+  candidate?: string;
   /** The publication level, stricter; the work level when absent. */
   publish?: PublishOptions;
 }
@@ -128,6 +134,7 @@ export function checkWiki({
   root = ROOT,
   testReports = [],
   productCommit,
+  candidate,
   publish,
 }: CheckOptions): CheckReport {
   const report: CheckReport = {
@@ -268,7 +275,8 @@ export function checkWiki({
     compare('step ids', en.steps, fr.steps);
     const marks = (x: ParsedPage) =>
       Object.entries(x.sectionVersions).map(
-        ([sid, v]) => `${sid}:${v.appliesFrom ?? ''}..${v.appliesUntil ?? ''}/${v.featureSince ?? ''}`,
+        ([sid, v]) =>
+          `${sid}:${v.appliesFrom ?? ''}..${v.appliesUntil ?? ''}/${v.featureSince ?? ''}${v.lifecycle ? `/${v.lifecycle}` : ''}`,
       );
     compare('section versions', marks(en), marks(fr));
     // A measure's figures are the same in both languages: its date, version and source (§4.7.1).
@@ -283,7 +291,7 @@ export function checkWiki({
   checkBlocks(manifest, parsed, report);
   for (const [key, page] of parsed) report.errors.push(...exampleProblems(`${key}.md`, page.fences));
   // The product documented: the publication's product ref, otherwise the checkout (and the commit given, if any).
-  const product = publish ? publishedProduct(root, wikiDir, manifest, publish, report) : undefined;
+  const product = publish ? publishedProduct(root, candidate, wikiDir, manifest, publish, report) : undefined;
   const version = product?.version ?? checkoutVersion(root);
   checkSurfaces(root, tracked, manifest, report, version);
   checkClaims({
@@ -294,6 +302,7 @@ export function checkWiki({
     parsed,
     report,
     testReports,
+    candidate,
     commit: product?.commit ?? productCommit ?? commitOf(root, 'HEAD'),
     publish: !!publish,
   });
@@ -515,6 +524,7 @@ function checkClaims(o: {
   parsed: ReadonlyMap<string, ParsedPage>;
   report: CheckReport;
   testReports: readonly string[];
+  candidate?: string;
   commit?: string;
   publish: boolean;
 }): void {
@@ -522,6 +532,10 @@ function checkClaims(o: {
   for (const f of o.testReports) {
     const r = readTestReport(f);
     if (r.error) o.report.errors.push(`--test-report ${r.error}`);
+    else if (o.candidate && r.report!.run !== o.candidate)
+      o.report.errors.push(
+        `--test-report ${f}: its commit.json names the run ${r.report!.run ?? '(none)'}, not the candidate ${o.candidate}`,
+      );
     else reports.push(r.report!);
   }
   const { reviews, errors } = readReviews(o.wikiDir);
@@ -541,6 +555,7 @@ function checkClaims(o: {
   for (const s of o.report.claims) {
     const page = o.manifest.pages.find((p) => p.id === s.page)!;
     if (s.unreferenced) o.report.errors.push(`${s.page}: the claim ${s.id} is not referenced: ${s.unreferenced}`);
+    if (s.excluded) o.report.warnings.push(`${s.page}: the claim ${s.id} cannot be executed: ${s.excluded}`);
     if (s.reviewStale)
       o.report.warnings.push(`${s.page}: the claim ${s.id}'s review no longer holds: ${s.reviewStale}`);
     // A published claim was executed on the documented product (§4.1.4); before that, its state is said.
@@ -573,6 +588,7 @@ function checkTranslations(wikiDir: string, manifest: Manifest, report: CheckRep
  */
 function publishedProduct(
   root: string,
+  candidate: string | undefined,
   wikiDir: string,
   manifest: Manifest,
   o: PublishOptions,
@@ -583,7 +599,10 @@ function publishedProduct(
   if (o.state === 'preview') {
     const refused = previewProblem(root);
     if (refused) report.errors.push(refused);
-  }
+  } else if (!candidate)
+    report.errors.push(
+      `--state ${o.state} needs --candidate <run id>: the test reports must come from that candidate run (A5b's workflow downloads its candidate-test-report)`,
+    );
   const product = commitOf(root, o.productRef);
   const doc = commitOf(root, o.docRef ?? 'HEAD');
   if (!product) report.errors.push(`--product-ref ${o.productRef}: not a commit of this repository`);
@@ -609,7 +628,11 @@ function publishedProduct(
   return { commit: product, version };
 }
 
-/** `--released`: no published page or section applies only from a version after the product's (§4.5.2). */
+/**
+ * `--released` (implied by `--state published`): no published page or section applies only from a version after the
+ * product's (§4.5.2). And at any publication, none stopped applying before it (`appliesUntil` below the product's
+ * version) unless it is marked deprecated or archived: what is published as current is true for the product.
+ */
 function checkReleased(
   manifest: Manifest,
   parsed: ReadonlyMap<string, ParsedPage>,
@@ -617,16 +640,26 @@ function checkReleased(
   version: string,
   report: CheckReport,
 ): void {
-  if (!o.released) return;
+  const released = o.released || o.state === 'published';
+  const old = (until: string | undefined) => !!until && compareVersions(until, version) < 0;
   for (const p of manifest.pages.filter((x) => x.state === 'ready' && !x.generated)) {
     const from = p.versions?.appliesFrom;
-    if (from && compareVersions(from, version) > 0)
+    if (released && from && compareVersions(from, version) > 0)
       report.errors.push(`${p.id}: applies from ${from}, after the released product ${version}`);
+    if (old(p.versions?.appliesUntil) && !p.lifecycle)
+      report.errors.push(
+        `${p.id}: applies until ${p.versions!.appliesUntil}, before the product ${version}, and is not marked deprecated or archived (lifecycle)`,
+      );
     for (const lang of LANGS)
-      for (const [sid, v] of Object.entries(parsed.get(`${lang}/${p.id}`)?.sectionVersions ?? {}))
-        if (v.appliesFrom && compareVersions(v.appliesFrom, version) > 0)
+      for (const [sid, v] of Object.entries(parsed.get(`${lang}/${p.id}`)?.sectionVersions ?? {})) {
+        if (released && v.appliesFrom && compareVersions(v.appliesFrom, version) > 0)
           report.errors.push(
             `${lang}/${p.id}.md#${sid}: applies from ${v.appliesFrom}, after the released product ${version}`,
           );
+        if (old(v.appliesUntil) && !v.lifecycle && !p.lifecycle)
+          report.errors.push(
+            `${lang}/${p.id}.md#${sid}: applies until ${v.appliesUntil}, before the product ${version}, and is not marked deprecated or archived`,
+          );
+      }
   }
 }

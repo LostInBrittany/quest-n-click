@@ -10,8 +10,10 @@ comme « Reprise » ci-dessous : `applies: 4.2.2..` (depuis), `applies: 4.2.2..4
 les versions de sa page, la même dans les deux langues. Un `[!GUARANTEE id]` a son affirmation dans le manifeste,
 `{"id", "test": "fichier.test.ts › son nom"}`. Un `[!MEASURE id]` donne cinq lignes `- clé: valeur`, les mêmes clés
 dans les deux langues : date, version, volume, conditions, source (un lien GitHub à un commit complet de 40
-caractères, `blob/<sha>/…`). Un bloc de code marqué `room-example` (le JSON d'une salle) ou `studio-config` (une
-configuration du Studio Server) passe par le vrai validateur dans `wiki -- check`. Supprimez ces commentaires.
+caractères, `blob/<sha>/…`). Un bloc de code marqué `room-example` (le JSON d'une salle, ou
+`{"room", "layout", "items", "characters", "verbs", "hero"}` quand elle a besoin de sa géométrie, de ses objets, de
+ses acteurs, des verbes propres au jeu ou d'un autre héros) ou `studio-config` (une configuration du Studio Server)
+passe par le vrai validateur dans `wiki -- check`. Supprimez ces commentaires.
 -->
 
 # Restaurer le Studio sur une installation neuve

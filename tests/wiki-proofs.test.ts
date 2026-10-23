@@ -123,7 +123,10 @@ const write = (dir: string, lang: 'en' | 'fr', text: string) =>
   writeFileSync(join(dir, lang, 'clever.restore-drill.md'), text);
 
 /** A Vitest JSON report of the claim's test, with its commit.json unless `commit` is null. */
-function report(o: { commit?: string | null; status?: string; name?: string } = {}): string {
+const RUNNER = '/home/runner/work/quest-n-click/quest-n-click';
+function report(
+  o: { commit?: string | null; status?: string; name?: string; file?: string; run?: string } = {},
+): string {
   const dir = tmp('wiki-report-');
   writeFileSync(
     join(dir, 'vitest.json'),
@@ -131,7 +134,7 @@ function report(o: { commit?: string | null; status?: string; name?: string } = 
       success: true,
       testResults: [
         {
-          name: `/home/runner/work/quest-n-click/quest-n-click/${TEST_FILE}`,
+          name: `${RUNNER}/${o.file ?? TEST_FILE}`,
           assertionResults: [
             {
               ancestorTitles: ["the Studio Server's backup"],
@@ -146,7 +149,13 @@ function report(o: { commit?: string | null; status?: string; name?: string } = 
   if (o.commit !== null)
     writeFileSync(
       join(dir, 'commit.json'),
-      JSON.stringify({ format: 'quest-n-click-test-report', version: 1, commit: o.commit ?? HEAD, run: '42' }),
+      JSON.stringify({
+        format: 'quest-n-click-test-report',
+        version: 1,
+        commit: o.commit ?? HEAD,
+        root: RUNNER,
+        run: o.run ?? '42',
+      }),
     );
   return join(dir, 'vitest.json');
 }
@@ -169,6 +178,10 @@ describe('versions (§4.4.1)', () => {
     ])
       expect(appliesMarker(bad), bad).toBeNull();
     expect(appliesMarker('<!-- step: x -->')).toBeUndefined();
+    expect(appliesMarker('<!-- applies: ..4.4.0 archived -->')).toEqual({
+      appliesUntil: '4.4.0',
+      lifecycle: 'archived',
+    });
   });
 
   it('passes the drill: a section narrowed inside its page, the same in both languages', () => {
@@ -230,6 +243,21 @@ describe('versions (§4.4.1)', () => {
     expect(issues({ appliesFrom: '4.5.0', appliesUntil: '4.6.0', featureSince: '4.7.0' })).toEqual([
       'featureSince is not after appliesUntil',
     ]);
+  });
+
+  it('keeps a deprecated or archived page or section out of search_docs unless includeArchived, and says its status', () => {
+    const { dir } = wiki((d, m) => {
+      drillOf(m).lifecycle = 'deprecated';
+      for (const lang of ['en', 'fr'] as const)
+        write(d, lang, drill(lang, { marker: '<!-- applies: 4.2.2.. archived -->' }));
+    });
+    const set = repositoryDocs(ROOT, { wikiDir: dir });
+    const q = { query: 'replay the journal shipped', lang: 'en' as const };
+    expect(searchDocs(set, q).results.map((r) => r.id)).not.toContain('clever.restore-drill');
+    expect(searchDocs(set, { ...q, includeArchived: true }).results[0]).toMatchObject({
+      ref: 'clever.restore-drill#recovery',
+      status: 'deprecated',
+    });
   });
 
   it('leaves out of search_docs a section that does not apply to the version asked, or marks it with includeArchived', () => {
@@ -323,13 +351,13 @@ describe('outer', () => {
 it('top', () => {});
 `;
     expect(testNames(source)).toEqual([
-      'outer › first',
-      'outer › inner › each %s',
-      'outer › inner › second',
-      'outer › third',
-      'top',
+      { name: 'outer › first', modifiers: [] },
+      { name: 'outer › inner › each %s', modifiers: ['skip', 'each'] },
+      { name: 'outer › inner › second', modifiers: ['skip', 'only'] },
+      { name: 'outer › third', modifiers: [] },
+      { name: 'top', modifiers: [] },
     ]);
-    expect(testNames(readFileSync(TEST_FILE, 'utf8'))).toContain(TEST_NAME);
+    expect(testNames(readFileSync(TEST_FILE, 'utf8'))).toContainEqual({ name: TEST_NAME, modifiers: [] });
   });
 
   it('is referenced when the tracked test file holds that exact name, and refused otherwise', () => {
@@ -348,6 +376,71 @@ it('top', () => {});
     expect(untracked).toContain(
       `clever.restore-drill: the claim ${CLAIM.id} is not referenced: the test file tests/no-such.test.ts is not tracked`,
     );
+  });
+
+  it('refuses, at the first state, a test written .skip, .todo, .only or .fails (or under such a describe)', () => {
+    const root = tmp('wiki-claim-mods-');
+    mkdirSync(join(root, 'tests'));
+    writeFileSync(
+      join(root, 'tests/mods.test.ts'),
+      "describe('d', () => {\n  it.skip('a', () => {});\n  it.todo('b');\n  it.only('c', () => {});\n  it.fails('e', () => {});\n  it('plain', () => {});\n});\ndescribe.skip('s', () => { it('under', () => {}); });\n",
+    );
+    const { manifest } = wiki().report;
+    const page = manifest!.pages.find((p) => p.id === 'clever.restore-drill')!;
+    const states = claimStates({
+      root,
+      tracked: new Set(['tests/mods.test.ts']),
+      claims: ['d › a', 'd › b', 'd › c', 'd › e', 'd › plain', 's › under'].map((n, i) => ({
+        page,
+        claim: { id: `c${i}`, test: `tests/mods.test.ts › ${n}` },
+        blocks: {},
+      })),
+      reports: [],
+      reviews: { format: 'quest-n-click-docs-reviews', version: 1, claims: {} },
+    });
+    expect(states.map((x) => x.unreferenced)).toEqual([
+      '"d › a" is written .skip: it does not run as it reads, so it backs no claim',
+      '"d › b" is written .todo: it does not run as it reads, so it backs no claim',
+      '"d › c" is written .only: it does not run as it reads, so it backs no claim',
+      '"d › e" is written .fails: it does not run as it reads, so it backs no claim',
+      undefined,
+      '"s › under" is written .skip: it does not run as it reads, so it backs no claim',
+    ]);
+  });
+
+  it('counts only a passed test as executed: skipped, todo and pending ran nothing', () => {
+    for (const status of ['skipped', 'todo', 'pending'])
+      expect(
+        wiki(undefined, { testReports: [report({ status })], productCommit: HEAD }).report.claims[0]!.notExecuted,
+      ).toBe(`"${CLAIM.test}" did not pass on ${HEAD.slice(0, 12)} (${status})`);
+  });
+
+  it("matches a report's file by its exact repository path, and names the run a report must come from", () => {
+    // A file elsewhere whose path merely ends the same is not the claim's.
+    const elsewhere = wiki(undefined, { testReports: [report({ file: `vendor/${TEST_FILE}` })], productCommit: HEAD });
+    expect(elsewhere.report.claims[0]!.notExecuted).toBe(`no report of ${HEAD.slice(0, 12)} ran "${CLAIM.test}"`);
+    const other = report({ run: '7' });
+    const wrongRun = wiki(undefined, { testReports: [other], productCommit: HEAD, candidate: '42' });
+    expect(wrongRun.report.errors).toEqual([
+      `--test-report ${other}: its commit.json names the run 7, not the candidate 42`,
+    ]);
+    expect(
+      wiki(undefined, { testReports: [report()], productCommit: HEAD, candidate: '42' }).report.claims[0]!.executedOn,
+    ).toBe(HEAD);
+  });
+
+  it("says plainly when a claim's test file is excluded from the run that makes the candidate's report", () => {
+    const file = 'tests/audit.test.ts';
+    const name = testNames(readFileSync(file, 'utf8')).find((t) => !t.modifiers.length)!.name;
+    const r = wiki(
+      (_, m) => {
+        drillOf(m).claims = [{ id: CLAIM.id, test: `${file} › ${name}` }];
+      },
+      { testReports: [report()], productCommit: HEAD },
+    ).report;
+    const why = `${file} is not in the candidate's report: excluded by \`npm run test:coverage\` (--exclude ${file}, package.json)`;
+    expect(r.warnings).toContain(`clever.restore-drill: the claim ${CLAIM.id} cannot be executed: ${why}`);
+    expect(r.claims[0]!.notExecuted).toBe(why);
   });
 
   it('is executed on a commit only when a report with its commit.json names that commit and the test passed', () => {

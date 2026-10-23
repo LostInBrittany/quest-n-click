@@ -10,8 +10,9 @@ A section true for fewer versions than its page says so in an HTML comment on th
 in both languages. A `[!GUARANTEE id]` has its claim in the manifest, `{"id", "test": "file.test.ts › its name"}`.
 A `[!MEASURE id]` gives five `- key: value` lines, the same keys in both languages: date, version, volume, conditions,
 source (a GitHub link at a full 40-character commit, `blob/<sha>/…`). A fenced block tagged `room-example` (a room's
-JSON) or `studio-config` (a Studio Server configuration) is run through the real validator by `wiki -- check`.
-Delete these comments.
+JSON, or `{"room", "layout", "items", "characters", "verbs", "hero"}` when it needs its geometry, its items, its
+actors, the game's own verbs or another hero) or `studio-config` (a Studio Server configuration) is run through the
+real validator by `wiki -- check`. Delete these comments.
 -->
 
 # Restore the Studio on a fresh installation

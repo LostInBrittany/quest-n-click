@@ -1,7 +1,7 @@
 // npm run wiki -- check | stats [--json] | coverage [--init [--force] | --ack <key>] | build --target wiki --out <dir> [--preview]
 // [--product-version <v>] [--doc-revision <sha>] [--product-commit <sha>] | bundle --out <dir> [--build-id <id>] [--allow-dirty]
 // [the same three] | check --publish --product-ref <tag|sha> [--doc-ref <sha>] [--released] [--state preview|candidate|published]
-// [--test-report <vitest.json>]… | review-claim <id> --by <name> | translations --ack <id#section> --by <name>
+// [--test-report <vitest.json>]… [--candidate <run id>] | review-claim <id> --by <name> | translations --ack <id#section> --by <name>
 // (4.5.0 "Wiki", docs/dev/PLAN-4.5-WIKI.md §5, phases A2 to A5; ADR 0030).
 // The documentation's source is `wiki/` (a manifest, then `wiki/<lang>/<id>.md`); every output is generated from it.
 // `check` is the work level of every pull request: it fails on errors only, and prints the warnings and what is still
@@ -13,7 +13,8 @@
 // carries (tools/wiki/bundle.ts, §4.3.4), into the package scripts/pack.mjs prepares: never under a folder the
 // repository tracks. `check --publish` is the publication level (§4.1.4): the published pages reach ready pages only,
 // no translation is to review, every claim was executed on the product (`--test-report`, a Vitest JSON report with
-// the `commit.json` the candidate writes beside it), and the source set is the product's plus documentation only
+// the `commit.json` the candidate writes beside it; `--candidate <run>` names the run they must come from, required for
+// `--state candidate|published`), and the source set is the product's plus documentation only
 // (§4.5.2). `review-claim` records that a person checked a claim's test covers it (`wiki/reviews.json`);
 // `translations --ack` that a section's two languages were read against each other (`wiki/translations.json`). The
 // other commands of §5 (`publish`…) come with their phases. `--wiki=<dir>` reads another source folder (the tests' fixtures). The output folder is outside the
@@ -90,7 +91,7 @@ export function bundleOutProblem(out: string, tracked: readonly string[], root =
 }
 
 const USAGE =
-  'usage: npm run wiki -- check [--test-report <file>]… | check --publish --product-ref <tag|sha> [--doc-ref <sha>] [--released] [--state preview|candidate|published] [--test-report <file>]… | review-claim <id> --by <name> | translations --ack <id#section> --by <name> | stats [--json] | coverage [--init [--force] | --ack <key>] | build --target wiki --out <dir> [--preview] [--product-version <v>] [--doc-revision <sha>] [--product-commit <sha>] | bundle --out <dir> [--build-id <id>] [--allow-dirty] [--product-version <v>] [--doc-revision <sha>] [--product-commit <sha>]';
+  'usage: npm run wiki -- check [--test-report <file>]… | check --publish --product-ref <tag|sha> [--doc-ref <sha>] [--released] [--state preview|candidate|published] [--test-report <file>]… [--candidate <run id>] | review-claim <id> --by <name> | translations --ack <id#section> --by <name> | stats [--json] | coverage [--init [--force] | --ack <key>] | build --target wiki --out <dir> [--preview] [--product-version <v>] [--doc-revision <sha>] [--product-commit <sha>] | bundle --out <dir> [--build-id <id>] [--allow-dirty] [--product-version <v>] [--doc-revision <sha>] [--product-commit <sha>]';
 
 /** Today, as a day (the date a review or an ack records). */
 const today = () => new Date().toISOString().slice(0, 10);
@@ -130,6 +131,7 @@ function run(args: readonly string[]): number {
       wikiDir,
       tracked,
       testReports: options(args, 'test-report').map((f) => resolve(f)),
+      ...(option(args, 'candidate') ? { candidate: option(args, 'candidate') } : {}),
       ...(publish
         ? {
             publish: {

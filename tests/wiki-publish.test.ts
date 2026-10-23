@@ -97,17 +97,22 @@ function report(sha: string): string {
     join(dir, 'vitest.json'),
     JSON.stringify({
       testResults: [
-        { name: `/runner/${TEST}`, assertionResults: [{ ancestorTitles: ['zones'], title: 'hold', status: 'passed' }] },
+        {
+          name: `/runner/repo/${TEST}`,
+          assertionResults: [{ ancestorTitles: ['zones'], title: 'hold', status: 'passed' }],
+        },
       ],
     }),
   );
   writeFileSync(
     join(dir, 'commit.json'),
-    JSON.stringify({ format: 'quest-n-click-test-report', version: 1, commit: sha }),
+    JSON.stringify({ format: 'quest-n-click-test-report', version: 1, commit: sha, root: '/runner/repo', run: RUN }),
   );
   return join(dir, 'vitest.json');
 }
 
+/** The candidate run the reports come from. */
+const RUN = '9';
 const check = (
   r: { root: string; wikiDir: string },
   publish?: Partial<PublishOptions> & { productRef: string },
@@ -119,7 +124,7 @@ const check = (
     tracked: [...TRACKED, TEST],
     identifiers: [],
     testReports,
-    ...(publish ? { publish: { released: false, state: 'published', ...publish } } : {}),
+    ...(publish ? { candidate: RUN, publish: { released: false, state: 'published', ...publish } } : {}),
   });
 
 describe('wiki -- check --publish', () => {
@@ -203,7 +208,7 @@ describe('wiki -- check --publish', () => {
     writeFileSync(join(r.root, 'wiki', 'coverage.json'), '{}\n');
     commit(r.root, 'code and a generator input');
     expect(check(r, { productRef: r.product }, [report(r.product)]).errors).toEqual([
-      'the doc revision changes 2 file(s) outside the documentation since the product commit (only wiki/<lang>/*.md, wiki/manifest.json, wiki/translations.json, wiki/reviews.json and wiki/images/** may change): tests/sample.test.ts, wiki/coverage.json',
+      'the doc revision changes 2 file(s) outside the documentation since the product commit (only wiki/<lang>/*.md, wiki/manifest.json, wiki/translations.json, wiki/reviews.json and images under wiki/images/ may change): tests/sample.test.ts, wiki/coverage.json',
     ]);
     const later = git(r.root, 'rev-parse', 'HEAD');
     // The product is after the doc revision: the doc does not descend from it.
@@ -238,7 +243,7 @@ describe('wiki -- check --publish', () => {
       );
     const doc = commit(r.root, 'later pages');
     expect(
-      check(r, { productRef: r.product, docRef: doc }, [report(r.product)]).errors.filter(
+      check(r, { productRef: r.product, docRef: doc, state: 'candidate' }, [report(r.product)]).errors.filter(
         (e) => !e.startsWith('translations'),
       ),
     ).toEqual([]);
@@ -261,6 +266,108 @@ describe('wiki -- check --publish', () => {
     ]);
     // A published state is not concerned.
     expect(check(r, { productRef: 'v4.5.0' }, [report(r.product)]).errors).toEqual([]);
+  });
+
+  it('judges both sides of a rename: code moved into wiki/images/ or into a page is still code; an image folder holds images', () => {
+    const r = repo({ paired: true });
+    mkdirSync(join(r.root, 'src'));
+    writeFileSync(join(r.root, 'src', 'code.ts'), 'export const a = 1;\n');
+    writeFileSync(join(r.root, 'src', 'more.ts'), 'export const b = 2;\n');
+    const product = commit(r.root, 'code');
+    git(r.root, 'mv', 'src/code.ts', 'wiki/images/code.png');
+    git(r.root, 'mv', 'src/more.ts', 'wiki/en/more.md');
+    writeFileSync(join(r.wikiDir, 'images', 'notes.txt'), 'not an image\n');
+    commit(r.root, 'moved into the wiki');
+    const errors = check(r, { productRef: product }, [report(product)]).errors;
+    expect(errors.find((e) => e.startsWith('the doc revision changes'))).toBe(
+      'the doc revision changes 3 file(s) outside the documentation since the product commit (only wiki/<lang>/*.md, wiki/manifest.json, wiki/translations.json, wiki/reviews.json and images under wiki/images/ may change): src/code.ts, src/more.ts, wiki/images/notes.txt',
+    );
+  });
+
+  it('fails closed when the release tags cannot be read: tagless or shallow, origin unreachable; reads origin when it answers', () => {
+    const r = repo({ paired: true });
+    const preview = (root: string) =>
+      check({ root, wikiDir: join(root, 'wiki') }, { productRef: r.product, state: 'preview' }, [report(r.product)])
+        .errors;
+    // Only v4.5.0-rc.1 (not a release) and no origin: nothing tells whether 4.5.0 is out.
+    expect(preview(r.root)).toEqual([
+      expect.stringMatching(
+        /^--state preview is refused: the release tags cannot be read \(origin did not answer .*, and the clone holds no release tag\); fetch them/,
+      ),
+    ]);
+    // A shallow clone whose origin is gone.
+    const shallow = join(tmp('wiki-publish-shallow-'), 'clone');
+    git(r.root, 'tag', 'v4.4.0');
+    execFileSync('git', ['clone', '-q', '--depth', '1', `file://${r.root}`, shallow], { stdio: 'ignore' });
+    git(shallow, 'remote', 'set-url', 'origin', join(r.root, 'nowhere.git'));
+    expect(preview(shallow)[0]).toMatch(
+      /release tags cannot be read \(origin did not answer .*, and the clone is shallow\)/,
+    );
+    // Origin answers and holds v4.5.0, which the local clone lacks.
+    const origin = join(tmp('wiki-publish-origin-'), 'origin.git');
+    execFileSync('git', ['init', '-q', '--bare', origin], { stdio: 'ignore' });
+    git(r.root, 'remote', 'add', 'origin', origin);
+    git(r.root, 'push', '-q', 'origin', 'main', 'v4.4.0');
+    expect(preview(r.root)).toEqual([]);
+    git(r.root, 'tag', 'v4.5.0');
+    git(r.root, 'push', '-q', 'origin', 'v4.5.0');
+    git(r.root, 'tag', '-d', 'v4.5.0');
+    expect(preview(r.root)).toEqual([
+      "--state preview is the bootstrap's one exception (§4.5.3), refused once a release 4.5.0 or later exists: v4.5.0 does",
+    ]);
+  });
+
+  it('takes --state published as --released, and refuses what stopped applying before the product unless archived', () => {
+    const r = repo({ paired: true });
+    const m = JSON.parse(readFileSync(join(r.wikiDir, 'manifest.json'), 'utf8')) as Manifest;
+    m.pages.find((p) => p.id === 'create.exits')!.versions = { appliesFrom: '4.5.1' };
+    m.pages.find((p) => p.id === 'team.write-refused-423')!.versions = { appliesFrom: '4.2.0', appliesUntil: '4.4.0' };
+    m.pages.find((p) => p.id === 'create.rooms')!.versions = { appliesFrom: '4.2.0' };
+    writeFileSync(join(r.wikiDir, 'manifest.json'), JSON.stringify(m, null, 2));
+    for (const lang of ['en', 'fr'])
+      edit(
+        join(r.wikiDir, lang, 'create.rooms.md'),
+        '<a name="checking"></a>\n',
+        '<a name="checking"></a>\n<!-- applies: ..4.4.0 -->\n',
+      );
+    commit(r.root, 'older pages');
+    const errors = () =>
+      check(r, { productRef: r.product }, [report(r.product)]).errors.filter((e) => !e.startsWith('translations'));
+    expect(errors().sort()).toEqual([
+      'create.exits: applies from 4.5.1, after the released product 4.5.0',
+      'en/create.rooms.md#checking: applies until 4.4.0, before the product 4.5.0, and is not marked deprecated or archived',
+      'fr/create.rooms.md#checking: applies until 4.4.0, before the product 4.5.0, and is not marked deprecated or archived',
+      'team.write-refused-423: applies until 4.4.0, before the product 4.5.0, and is not marked deprecated or archived (lifecycle)',
+    ]);
+    m.pages.find((p) => p.id === 'team.write-refused-423')!.lifecycle = 'archived';
+    m.pages.find((p) => p.id === 'create.exits')!.versions = { appliesFrom: '4.5.0' };
+    writeFileSync(join(r.wikiDir, 'manifest.json'), JSON.stringify(m, null, 2));
+    for (const lang of ['en', 'fr'])
+      edit(join(r.wikiDir, lang, 'create.rooms.md'), '<!-- applies: ..4.4.0 -->', '<!-- applies: ..4.4.0 archived -->');
+    commit(r.root, 'archived');
+    expect(errors()).toEqual([]);
+  });
+
+  it('makes a pair to review when an image its section shows changes, not only its text', () => {
+    const r = repo({ paired: true });
+    writeFileSync(join(r.wikiDir, 'images', 'room.png'), Buffer.from([0x89, 0x50, 0x4e, 0x47, 1, 2, 3]));
+    commit(r.root, 'a new screenshot');
+    const to = check(r).warnings.filter((w) => w.startsWith('translations:'));
+    expect(to.map((w) => w.split(' is to review')[0])).toEqual(['translations: create.rooms#checking']);
+    expect(to[0]).toContain('(both sides changed since 2026-10-23)');
+  });
+
+  it('refuses to publish a section written in one language only', () => {
+    const r = repo({ paired: true });
+    writeFileSync(
+      join(r.wikiDir, 'en', 'create.exits.md'),
+      `${readFileSync(join(r.wikiDir, 'en', 'create.exits.md'), 'utf8')}\n<a name="locks"></a>\n\n## Locks\n\nA door may be locked.\n`,
+    );
+    commit(r.root, 'an English section');
+    const errors = check(r, { productRef: r.product }, [report(r.product)]).errors;
+    expect(errors).toContain(
+      'create.exits: the section ids differ between en and fr (only in en: locks; only in fr: -)',
+    );
   });
 
   it('needs --product-ref, and says the level it checked', () => {

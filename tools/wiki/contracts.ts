@@ -32,7 +32,8 @@ const ContractsSchema = z
     note: z.string(),
     /** The support matrix's revision the environments are read from: a version and its date. */
     asOf: z.object({ version: z.string().regex(SEMVER), date: z.iso.date() }).strict(),
-    passIssues: z.record(passId, z.number().int().positive()),
+    /** The issue that tracks each pass, by the version of the sheet that asks it. */
+    passIssues: z.partialRecord(passId, z.record(z.string().regex(SEMVER), z.number().int().positive())),
     contracts: z.record(
       z.string().regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/),
       z
@@ -41,6 +42,8 @@ const ContractsSchema = z
           status: z.enum(CONTRACT_STATUSES),
           /** The sentence of docs/en|fr/SUPPORT.md that states the status, quoted (spaces aside). */
           support: z.object({ en: z.string().min(1), fr: z.string().min(1) }).strict(),
+          /** The rows of SUPPORT.md's support matrix that speak for it, by their first cell. */
+          matrixRows: z.object({ en: z.array(z.string().min(1)), fr: z.array(z.string().min(1)) }).strict(),
           environments: z.array(bilingual),
           checks: z
             .object({
@@ -110,10 +113,16 @@ export function checkContracts(root: string, tracked: readonly string[], c: Cont
         errors.push(`${CONTRACTS_FILE}: ${id} waits for ${pass}, a pass ${SURFACES_FILE} does not bind`);
   }
   const waited = new Set(Object.values(c.contracts).flatMap((k) => k.passes));
-  for (const pass of PASS_IDS) {
+  for (const pass of PASS_IDS)
     if (!waited.has(pass)) errors.push(`${CONTRACTS_FILE}: no contract waits for the pass ${pass}`);
-    if (!c.passIssues[pass]) errors.push(`${CONTRACTS_FILE}: the pass ${pass} has no issue in passIssues`);
-  }
+  // Every pass the newest sheet asks has its issue for that version.
+  const newest = passSheet(root, '999.0.0');
+  if (newest)
+    for (const pass of passesFor(newest))
+      if (!c.passIssues[pass]?.[newest])
+        errors.push(
+          `${CONTRACTS_FILE}: the pass ${pass} has no issue for ${newest} in passIssues (docs/dev/passes/${newest}.md asks it)`,
+        );
   return errors;
 }
 
@@ -183,7 +192,7 @@ export function surfaceStatuses(root: string, c: Contracts, productVersion: stri
       passes: k.passes.map((p) => ({
         id: p,
         state: asked.has(p) ? (states.get(p) ?? 'not-run') : 'not-asked',
-        issue: c.passIssues[p],
+        ...(sheet && c.passIssues[p]?.[sheet] ? { issue: c.passIssues[p][sheet] } : {}),
         ...(sheet ? { sheet: `${PASSES_DIR}/${sheet}.md` } : {}),
       })),
       limits: [],

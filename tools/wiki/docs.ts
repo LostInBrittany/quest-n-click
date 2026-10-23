@@ -37,6 +37,8 @@ export interface IndexPage {
   versions?: { appliesFrom: string; appliesUntil?: string; featureSince?: string };
   /** Never `planned`: a page without a file is not in an index. A bundle holds `ready` pages only. */
   state: 'draft' | 'ready';
+  /** A page kept for older versions: never `current` in a search (§9). */
+  lifecycle?: 'deprecated' | 'archived';
   title: Bilingual<string>;
   url: Bilingual<string>;
   questions: Bilingual<string[]>;
@@ -318,7 +320,7 @@ interface SearchResult {
   context: string[];
   versions?: IndexPage['versions'];
   state: IndexPage['state'];
-  /** `current` until A5 brings `deprecated` and `archived` (shown only with `includeArchived`). */
+  /** The page's or the section's lifecycle; `deprecated` and `archived` are shown only with `includeArchived`. */
   status: 'current' | 'deprecated' | 'archived';
   /** With `includeArchived` and `version`: the page does not apply to that version. */
   notApplicable?: true;
@@ -500,7 +502,7 @@ export function searchDocs(set: DocsSet, input: SearchInput): SearchOutput {
   const scored: Scored[] = [];
   filtered(set, input).forEach((p, order) => {
     const notApplicable = input.version !== undefined && !applies(p, input.version);
-    if (notApplicable && !input.includeArchived) return;
+    if ((notApplicable || p.lifecycle) && !input.includeArchived) return;
     let pick: Scored | undefined;
     for (const l of lang ? [lang] : LANGS) {
       const md = p.langs[l] ? set.pages[`${l}/${p.id}`] : undefined;
@@ -508,7 +510,7 @@ export function searchDocs(set: DocsSet, input: SearchInput): SearchOutput {
       // A section that does not apply to the version asked is left out, or kept and marked with includeArchived.
       const off = (s: Section) => input.version !== undefined && !sectionApplies(p, s, input.version);
       const b = scorePage(p, l, md, terms, input.query, aliases.get(p.id)?.[l] ?? [], (s) =>
-        input.includeArchived ? false : off(s),
+        input.includeArchived ? false : off(s) || !!s.versions?.lifecycle,
       );
       if (!b || (pick && pick.score >= b.score)) continue;
       const na = notApplicable || off(b.section);
@@ -523,7 +525,7 @@ export function searchDocs(set: DocsSet, input: SearchInput): SearchOutput {
         context: p.context,
         ...(p.versions ? { versions: p.versions } : {}),
         state: p.state,
-        status: 'current',
+        status: p.lifecycle ?? b.section.versions?.lifecycle ?? 'current',
         ...(na ? { notApplicable: true as const } : {}),
         score: b.score,
         reason: b.reason,

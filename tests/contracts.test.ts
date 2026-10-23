@@ -1,14 +1,16 @@
 // The status registry (4.5.0 "Wiki", docs/dev/PLAN-4.5-WIKI.md §4.4.2, phase A5): docs/dev/contracts.json says, per
 // surface, its contract status, the environments CI verifies, its automated checks and the people's passes it waits
 // for. Here: the registry is sound against the repository (each job defined, each test file tracked, each pass bound by
-// docs/dev/surfaces.json and tracked by an issue, every pass waited for); it agrees with docs/en|fr/SUPPORT.md (each
-// quote is there, and says the status: an experimental surface's quote says experimental, a stable one's never does);
+// docs/dev/surfaces.json and tracked by an issue for the newest sheet's version, every pass waited for); it agrees
+// with docs/en|fr/SUPPORT.md (each quote is there, and says the status: an experimental surface's quote says
+// experimental, a stable one's never does; every row of the support matrix is named by a surface and every row a
+// surface names is in the matrix; a row the matrix calls experimental only speaks for experimental surfaces);
 // the passes' states are read from the version's sheet, never typed; and the five statuses stay apart.
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterAll, describe, expect, it } from 'vitest';
-import { PASS_IDS } from '../tools/field/schema';
+import { PASS_IDS, passesFor } from '../tools/field/schema';
 import { ROOT } from '../tools/game';
 import { trackedFiles } from '../tools/wiki/check';
 import { checkContracts, passSheet, passStates, readContracts, surfaceStatuses } from '../tools/wiki/contracts';
@@ -16,10 +18,22 @@ import { checkContracts, passSheet, passStates, readContracts, surfaceStatuses }
 const TRACKED = trackedFiles();
 const { contracts, errors } = readContracts(ROOT);
 const flat = (s: string) => s.replace(/\s+/g, ' ');
-const SUPPORT = {
-  en: flat(readFileSync('docs/en/SUPPORT.md', 'utf8')),
-  fr: flat(readFileSync('docs/fr/SUPPORT.md', 'utf8')),
-};
+const RAW = { en: readFileSync('docs/en/SUPPORT.md', 'utf8'), fr: readFileSync('docs/fr/SUPPORT.md', 'utf8') };
+const SUPPORT = { en: flat(RAW.en), fr: flat(RAW.fr) };
+const WORD = {
+  en: { experimental: /experimental/i, deprecated: /deprecated/i },
+  fr: { experimental: /exp[ée]rimental/i, deprecated: /d[ée]pr[ée]ci[ée]|obsol[eè]te/i },
+} as const;
+/** The first cell of each row of the support matrix's table (the section `## Support matrix` / `## Matrice de support`). */
+function matrixRows(markdown: string): string[] {
+  const at = markdown.search(/^## (Support matrix|Matrice de support)\s*$/m);
+  const lines = markdown.slice(at).split('\n').slice(1);
+  const end = lines.findIndex((l) => l.startsWith('## '));
+  return lines
+    .slice(0, end < 0 ? undefined : end)
+    .filter((l) => l.startsWith('|') && !/^\|\s*-/.test(l) && !/^\|\s*\|/.test(l))
+    .map((l) => l.split('|')[1]!.trim());
+}
 const temps: string[] = [];
 afterAll(() => {
   for (const t of temps) rmSync(t, { recursive: true, force: true });
@@ -31,32 +45,49 @@ describe('the status registry, docs/dev/contracts.json', () => {
     expect(checkContracts(ROOT, TRACKED, contracts!)).toEqual([]);
   });
 
-  it('waits for every pass of the Field Kit somewhere, and tracks each by its issue', () => {
+  it("waits for every pass of the Field Kit somewhere, and tracks each by its issue for the newest sheet's version", () => {
     const waited = new Set(Object.values(contracts!.contracts).flatMap((c) => c.passes));
     expect(PASS_IDS.filter((p) => !waited.has(p))).toEqual([]);
-    expect(PASS_IDS.filter((p) => !contracts!.passIssues[p])).toEqual([]);
+    const newest = passSheet(ROOT, '999.0.0')!;
+    expect(passesFor(newest).filter((p) => !contracts!.passIssues[p]?.[newest])).toEqual([]);
+  });
+
+  it("maps every row of SUPPORT.md's support matrix to a surface, and back, in both languages", () => {
+    for (const lang of ['en', 'fr'] as const) {
+      const rows = matrixRows(RAW[lang]);
+      expect(rows.length, lang).toBeGreaterThan(8);
+      const named = new Set(Object.values(contracts!.contracts).flatMap((c) => c.matrixRows[lang]));
+      expect(
+        rows.filter((r) => !named.has(r)),
+        `${lang}: rows no surface names`,
+      ).toEqual([]);
+      expect(
+        [...named].filter((r) => !rows.includes(r)),
+        `${lang}: rows not in the matrix`,
+      ).toEqual([]);
+    }
   });
 
   it('agrees with SUPPORT.md in both languages: each quote is there and says the status', () => {
-    const word = {
-      en: { experimental: /experimental/i, deprecated: /deprecated/i },
-      fr: { experimental: /exp[ée]rimental/i, deprecated: /d[ée]pr[ée]ci[ée]|obsol[eè]te/i },
-    } as const;
     for (const [id, c] of Object.entries(contracts!.contracts))
       for (const lang of ['en', 'fr'] as const) {
         const quote = flat(c.support[lang]);
         expect(SUPPORT[lang].includes(quote), `${id} (${lang}): "${quote}" is not in SUPPORT.md`).toBe(true);
-        if (c.status === 'experimental') expect(quote, `${id} (${lang})`).toMatch(word[lang].experimental);
-        else expect(quote, `${id} (${lang})`).not.toMatch(word[lang].experimental);
-        if (c.status === 'deprecated') expect(quote, `${id} (${lang})`).toMatch(word[lang].deprecated);
+        if (c.status === 'experimental') expect(quote, `${id} (${lang})`).toMatch(WORD[lang].experimental);
+        else expect(quote, `${id} (${lang})`).not.toMatch(WORD[lang].experimental);
+        if (c.status === 'deprecated') expect(quote, `${id} (${lang})`).toMatch(WORD[lang].deprecated);
       }
   });
 
-  it('keeps the surfaces support-truth guards experimental, experimental here too', () => {
-    // tests/support-truth.test.ts keeps them experimental until their pass; the registry cannot say otherwise.
-    expect(contracts!.contracts['bridge-distributed']?.status).toBe('experimental');
-    expect(contracts!.contracts.connectors?.status).toBe('experimental');
-    expect(contracts!.contracts['studio-server']?.status).toBe('experimental');
+  it('keeps experimental every surface a row the matrix calls experimental speaks for', () => {
+    // Derived from SUPPORT.md, which tests/support-truth.test.ts keeps experimental until the passes.
+    for (const lang of ['en', 'fr'] as const) {
+      const experimental = matrixRows(RAW[lang]).filter((r) => WORD[lang].experimental.test(r));
+      expect(experimental.length, lang).toBeGreaterThan(0);
+      for (const [id, c] of Object.entries(contracts!.contracts))
+        if (c.matrixRows[lang].some((r) => experimental.includes(r)))
+          expect(c.status, `${id} (${lang})`).toBe('experimental');
+    }
   });
 
   it('refuses a job no workflow defines, a test glob that matches nothing, a pass surfaces.json does not bind', () => {

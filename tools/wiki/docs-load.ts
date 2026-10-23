@@ -87,6 +87,7 @@ export function indexWiki(
       context: p.context,
       ...(p.versions ? { versions: p.versions } : {}),
       state: p.state,
+      ...(p.lifecycle ? { lifecycle: p.lifecycle } : {}),
       title: p.title,
       url: p.url,
       questions: p.questions,
