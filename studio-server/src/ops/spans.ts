@@ -95,14 +95,8 @@ export const OWN_SPANS_LIMITS = { bytes: 64 * 1024, entries: 256, keyLength: 256
 function glob(key: string): Glob {
   const out: (string | '*' | '**' | '**/')[] = [];
   for (const part of key.split(/(\*\*\/?|\*)/)) {
-    if (part === '**/' || part === '**' || part === '*') {
-      // Repeated wildcards say nothing more: `**/**/` is `**/`, `**` after `*` or `**` is `**`.
-      const last = out[out.length - 1];
-      if (part === STAR && (last === STAR || last === ANY)) continue;
-      if (part === ANY_DIR && (last === ANY_DIR || last === ANY)) continue;
-      if (part === ANY && (last === STAR || last === ANY_DIR || last === ANY)) out.pop();
-      out.push(part);
-    } else out.push(...part);
+    if (part === ANY_DIR || part === ANY || part === STAR) out.push(part);
+    else out.push(...part);
   }
   if (key.endsWith('/')) out.push(ANY);
   return out;

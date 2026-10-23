@@ -308,7 +308,15 @@ describe("a game's own spans (spans.json, 4.5.1)", () => {
     writeFileSync(join(game, 'spans.json'), JSON.stringify({ 'x.md': 'notes', pad: 'x'.repeat(70_000) }));
     expect(readOwnSpans(game, (e) => faults.push(e.message))).toEqual([]);
     expect(faults).toEqual([expect.stringMatching(/names no span/), expect.stringMatching(/at most 65536/)]);
-    expect(spanOf('spans.json', readOwnSpans(game, () => {}))).toBe('meta');
+    expect(
+      spanOf(
+        'spans.json',
+        readOwnSpans(game, () => {}),
+      ),
+    ).toBe('meta');
+    const folder = mkdtempSync(join(tmp, 'own-dir-'));
+    mkdirSync(join(folder, 'spans.json'));
+    expect(() => readOwnSpans(folder)).toThrow(/not a file/);
   });
 
   it('a write on a shared Studio claims the span the game declared', async () => {
