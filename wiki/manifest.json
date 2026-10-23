@@ -1481,8 +1481,16 @@
       "context": ["engine-repo", "created-project"],
       "title": { "en": "Your first game", "fr": "Votre premier jeu" },
       "url": { "en": "EN-Create-First-Game", "fr": "FR-Creer-Premier-Jeu" },
-      "state": "planned",
-      "sources": ["games/_template/*.ts", "games/_template/rooms/*.ts", "games/_template/storyboard.json"],
+      "state": "ready",
+      "versions": { "appliesFrom": "4.3.0" },
+      "sources": [
+        "games/_template/*.ts",
+        "games/_template/rooms/*.ts",
+        "games/_template/layout/*.json",
+        "games/_template/storyboard.json",
+        "cli/create.mjs",
+        "scripts/new-game.mjs"
+      ],
       "replaces": [
         "docs/en/PACKAGE.md#a-new-game",
         "docs/en/TUTORIAL.md#a-first-room-in-fifteen-minutes",
@@ -1503,11 +1511,21 @@
         "README.md#build-a-game",
         "README.fr.md#fabriquer-un-jeu"
       ],
-      "questions": { "en": [], "fr": [] },
-      "aliases": { "en": [], "fr": [] },
-      "identifiers": [],
-      "related": [],
-      "prerequisites": [],
+      "questions": {
+        "en": ["How do I start my first game?", "How do I make a new game from the template?"],
+        "fr": ["Comment commencer mon premier jeu ?", "Comment créer un nouveau jeu à partir du modèle ?"]
+      },
+      "aliases": {
+        "en": ["tutorial", "first room", "getting started", "TUTORIAL"],
+        "fr": ["tutoriel", "première salle", "démarrer", "TUTORIAL"]
+      },
+      "keywords": {
+        "en": ["template", "lamp", "bucket", "quickstart"],
+        "fr": ["modèle", "lampe", "seau", "prise en main"]
+      },
+      "identifiers": ["npx create-quest-n-click", "npm run new-game"],
+      "related": ["create.working-loop", "create.rooms", "create.project-layout"],
+      "prerequisites": ["install.requirements"],
       "owner": "@wanoo"
     },
     {
@@ -1521,8 +1539,16 @@
         "fr": "Organisation d'un projet créé et du dépôt du moteur"
       },
       "url": { "en": "EN-Create-Project-Layout", "fr": "FR-Creer-Organisation-Projet" },
-      "state": "planned",
-      "sources": [],
+      "state": "ready",
+      "versions": { "appliesFrom": "4.3.0" },
+      "sources": [
+        "cli/create.mjs",
+        "cli/quest-n-click.mjs",
+        "package.json",
+        "games/_template/index.ts",
+        "tools/game.ts",
+        "src/engine/core/types.ts"
+      ],
       "replaces": [
         "docs/en/CONTENT_GUIDE.md#the-files",
         "docs/en/ENGINE.md#layout-of-the-code",
@@ -1530,9 +1556,23 @@
         "docs/fr/ENGINE.md#découpage"
       ],
       "questions": { "en": ["Where do I run this command?"], "fr": ["Cette commande se lance où ?"] },
-      "aliases": { "en": [], "fr": [] },
-      "identifiers": [],
-      "related": [],
+      "aliases": {
+        "en": ["project structure", "folder layout", "created project", "engine repository", "ENGINE"],
+        "fr": ["structure du projet", "arborescence", "projet créé", "dépôt du moteur", "ENGINE"]
+      },
+      "keywords": {
+        "en": ["site.json", "game folder", "scripts", "package.json"],
+        "fr": ["site.json", "dossier du jeu", "scripts", "package.json"]
+      },
+      "identifiers": [
+        "quest-n-click create",
+        "npm run verify",
+        "npm run release",
+        "npm run quest-n-click",
+        "site.json",
+        "npm run verify:game"
+      ],
+      "related": ["create.working-loop", "reference.npm-scripts", "reference.cli", "contribute.architecture"],
       "prerequisites": [],
       "owner": "@wanoo"
     },
@@ -1544,19 +1584,53 @@
       "context": ["engine-repo", "created-project"],
       "title": { "en": "The working loop", "fr": "La boucle de travail" },
       "url": { "en": "EN-Create-Working-Loop", "fr": "FR-Creer-Boucle-De-Travail" },
-      "state": "planned",
-      "sources": [],
+      "state": "ready",
+      "versions": { "appliesFrom": "4.3.0" },
+      "sources": [
+        "tools/game.ts",
+        "tools/select-game.ts",
+        "src/engine/dev/index.ts",
+        "cli/quest-n-click.mjs",
+        "vite.config.ts"
+      ],
       "replaces": [
         "docs/en/TOOLS.md#choosing-the-game-game",
         "docs/en/TOOLS.md#playing-and-debugging",
         "docs/fr/TOOLS.md#choisir-le-jeu-game",
         "docs/fr/TOOLS.md#jouer-et-déboguer"
       ],
-      "questions": { "en": [], "fr": [] },
-      "aliases": { "en": [], "fr": [] },
-      "identifiers": [],
-      "related": [],
-      "prerequisites": [],
+      "questions": {
+        "en": [
+          "How do I play and check my game while I write it?",
+          "Which game does npm run dev play?",
+          "What does npm run studio open?"
+        ],
+        "fr": [
+          "Comment jouer à mon jeu et le vérifier pendant que je l'écris ?",
+          "Quel jeu lance npm run dev ?",
+          "Que lance npm run studio ?"
+        ]
+      },
+      "aliases": {
+        "en": ["dev loop", "GAME variable", "choosing the game", "TOOLS"],
+        "fr": ["boucle de développement", "variable GAME", "choisir le jeu", "TOOLS"]
+      },
+      "keywords": {
+        "en": ["?dev", "?edit", "checkpoint", "dev server"],
+        "fr": ["?dev", "?edit", "point de reprise", "serveur de développement"]
+      },
+      "identifiers": [
+        "npm run dev",
+        "GAME",
+        "GAME_DIR",
+        "npm run game",
+        "npm run dev:lan",
+        "npm run studio:lan",
+        "?dev",
+        "?edit"
+      ],
+      "related": ["create.project-layout", "create.checking", "studio.overview", "reference.dev-url-parameters"],
+      "prerequisites": ["install.requirements", "create.first-game"],
       "owner": "@wanoo"
     },
     {
@@ -1567,8 +1641,14 @@
       "context": ["engine-repo", "created-project"],
       "title": { "en": "Content principles and the identity contract", "fr": "Principes du contenu et contrat d'identité" },
       "url": { "en": "EN-Create-Principles", "fr": "FR-Creer-Principes" },
-      "state": "planned",
-      "sources": ["src/engine/core/content-ids.ts"],
+      "state": "ready",
+      "versions": { "appliesFrom": "4.3.0" },
+      "sources": [
+        "src/engine/core/content-ids.ts",
+        "src/engine/core/define.ts",
+        "src/engine/core/types.ts",
+        "docs/dev/adr/0002-declarative-content.md"
+      ],
       "replaces": [
         "docs/en/CONTENT_GUIDE.md#writing-the-game-content",
         "docs/en/CONTENT_GUIDE.md#the-principles",
@@ -1578,9 +1658,16 @@
         "docs/fr/CONTENT_GUIDE.md#le-contrat-didentité-v3"
       ],
       "questions": { "en": [], "fr": [] },
-      "aliases": { "en": [], "fr": [] },
-      "identifiers": [],
-      "related": [],
+      "aliases": {
+        "en": ["CONTENT_GUIDE", "content guide", "schema 3", "stable ids", "identity contract"],
+        "fr": ["CONTENT_GUIDE", "guide du contenu", "schéma 3", "ids stables", "contrat d'identité"]
+      },
+      "keywords": {
+        "en": ["schemaVersion", "compileGame", "content is data"],
+        "fr": ["schemaVersion", "compileGame", "le contenu est une donnée"]
+      },
+      "identifiers": ["schemaVersion", "compileGame", "npm run ids"],
+      "related": ["create.rooms", "create.state-saves", "create.custom-code"],
       "prerequisites": [],
       "owner": "@wanoo"
     },
@@ -1593,8 +1680,14 @@
       "context": ["engine-repo", "created-project"],
       "title": { "en": "Rooms", "fr": "Salles" },
       "url": { "en": "EN-Create-Rooms", "fr": "FR-Creer-Salles" },
-      "state": "planned",
-      "sources": [],
+      "state": "ready",
+      "versions": { "appliesFrom": "4.3.0" },
+      "sources": [
+        "src/engine/core/types/game.ts",
+        "src/engine/core/types/content.ts",
+        "src/engine/tools/validate.ts",
+        "games/_template/rooms/*.ts"
+      ],
       "replaces": [
         "docs/en/CONTENT_GUIDE.md#a-room-step-by-step",
         "docs/en/DESIGN.md#4-rooms",
@@ -1604,10 +1697,14 @@
         "docs/fr/WORKFLOW.md#5-écrire-les-lieux"
       ],
       "questions": { "en": [], "fr": [] },
-      "aliases": { "en": [], "fr": [] },
-      "identifiers": [],
-      "related": [],
-      "prerequisites": [],
+      "aliases": { "en": ["room", "scene", "location", "WORKFLOW"], "fr": ["salle", "lieu", "scène", "WORKFLOW"] },
+      "keywords": {
+        "en": ["props", "hotspots", "actors", "look", "hints", "onEnter"],
+        "fr": ["accessoires", "zones cliquables", "acteurs", "regarder", "indices", "onEnter"]
+      },
+      "identifiers": ["defineRoom", "RoomDef", "props", "hotspots", "actors", "look", "hints", "onEnter"],
+      "related": ["create.geometry", "create.reactions", "create.dialogues", "create.exits"],
+      "prerequisites": ["create.first-game"],
       "owner": "@wanoo"
     },
     {
@@ -1622,8 +1719,19 @@
         "fr": "Géométrie : placement, zones de marche, masques, calques, caméra"
       },
       "url": { "en": "EN-Create-Geometry", "fr": "FR-Creer-Geometrie" },
-      "state": "planned",
-      "sources": [],
+      "state": "ready",
+      "versions": { "appliesFrom": "4.3.0" },
+      "sources": [
+        "src/engine/core/types/stage.ts",
+        "src/engine/core/world-queries.ts",
+        "src/engine/core/define.ts",
+        "src/engine/dom/walk.ts",
+        "src/engine/scene/frame.ts",
+        "src/engine/dev/overlay.ts",
+        "src/engine/tools/validate-stage.ts",
+        "tests/walk-topology.test.ts",
+        "tests/stage.test.ts"
+      ],
       "replaces": [
         "docs/en/CONTENT_GUIDE.md#a-room-step-by-step",
         "docs/en/CONTENT_GUIDE.md#wide-rooms-and-the-camera",
@@ -1635,10 +1743,33 @@
         "docs/fr/CONTENT_GUIDE.md#le-layout-écrit-par-léditeur-à-ne-pas-taper-à-la-main"
       ],
       "questions": { "en": [], "fr": [] },
-      "aliases": { "en": ["walkable zone", "walk box"], "fr": ["zone de marche"] },
-      "identifiers": [],
-      "related": [],
-      "prerequisites": [],
+      "aliases": {
+        "en": ["walkable zone", "walk box", "layout", "approach point", "camera"],
+        "fr": ["zone de marche", "layout", "point d'approche", "caméra"]
+      },
+      "keywords": {
+        "en": ["walkZones", "walkLinks", "occluders", "parallax", "hit test", "actorGap"],
+        "fr": ["walkZones", "walkLinks", "masques", "parallaxe", "test de toucher", "actorGap"]
+      },
+      "identifiers": [
+        "layout",
+        "walk",
+        "walkZones",
+        "walkLinks",
+        "occluders",
+        "approach",
+        "floor",
+        "actorGap",
+        "camera",
+        "FLOOR",
+        "NEAR"
+      ],
+      "related": ["create.unreachable", "create.stage", "create.staging", "studio.placement"],
+      "prerequisites": ["create.rooms"],
+      "claims": [
+        {"id": "closed-link-stops-walk", "test": "tests/walk-topology.test.ts › walk topology › a closed link is not crossed: the walk stops at its foot and says which link"},
+        {"id": "stage-not-state", "test": "tests/stage.test.ts › a stage is never game state › the sample game with layers, lights and links on every room: the same proof, state for state"}
+      ],
       "owner": "@wanoo"
     },
     {
@@ -1649,17 +1780,40 @@
       "context": ["engine-repo", "created-project"],
       "title": { "en": "Something is visible but unreachable", "fr": "Un objet est visible mais inaccessible" },
       "url": { "en": "EN-Create-Visible-But-Unreachable", "fr": "FR-Creer-Visible-Mais-Inaccessible" },
-      "state": "planned",
-      "sources": [],
+      "state": "ready",
+      "versions": { "appliesFrom": "4.3.0" },
+      "sources": [
+        "src/engine/scene/frame.ts",
+        "src/engine/core/world-queries.ts",
+        "src/engine/dom/walk.ts",
+        "src/engine/dev/overlay.ts",
+        "src/engine/tools/validate.ts",
+        "src/engine/tools/lint.ts"
+      ],
       "replaces": [],
       "questions": {
-        "en": ["An object is visible but the hero cannot reach it"],
-        "fr": ["Un objet est visible mais le héros ne peut pas l'atteindre"]
+        "en": [
+          "An object is visible but the hero cannot reach it",
+          "Tapping a thing does nothing",
+          "My character stops before reaching an object"
+        ],
+        "fr": [
+          "Un objet est visible mais le héros ne peut pas l'atteindre",
+          "Toucher une chose ne fait rien",
+          "Mon personnage s'arrête avant d'atteindre un objet"
+        ]
       },
-      "aliases": { "en": [], "fr": [] },
-      "identifiers": [],
-      "related": ["create.geometry"],
-      "prerequisites": [],
+      "aliases": {
+        "en": ["cannot click", "not clickable", "unreachable object"],
+        "fr": ["pas cliquable", "objet inaccessible", "impossible de cliquer"]
+      },
+      "keywords": {
+        "en": ["approach point", "walk area", "hotspot", "walk-link-gate"],
+        "fr": ["point d'approche", "zone de marche", "zone cliquable", "walk-link-gate"]
+      },
+      "identifiers": ["walk-link-gate"],
+      "related": ["create.geometry", "create.reactions", "studio.placement"],
+      "prerequisites": ["create.geometry"],
       "owner": "@wanoo"
     },
     {
@@ -1670,8 +1824,15 @@
       "context": ["engine-repo", "created-project"],
       "title": { "en": "Reactions", "fr": "Réactions" },
       "url": { "en": "EN-Create-Reactions", "fr": "FR-Creer-Reactions" },
-      "state": "planned",
-      "sources": [],
+      "state": "ready",
+      "versions": { "appliesFrom": "4.3.0" },
+      "sources": [
+        "src/engine/core/interactions.ts",
+        "src/engine/core/default-verb.ts",
+        "src/engine/core/types/content.ts",
+        "src/engine/core/types/game.ts",
+        "tests/core.test.ts"
+      ],
       "replaces": [
         "docs/en/CONTENT_GUIDE.md#the-reactions",
         "docs/en/CONTENT_GUIDE.md#when-nothing-is-written",
@@ -1683,10 +1844,29 @@
         "docs/fr/DESIGN.md#6-la-couche-de-repli"
       ],
       "questions": { "en": [], "fr": [] },
-      "aliases": { "en": [], "fr": [] },
-      "identifiers": [],
-      "related": [],
-      "prerequisites": [],
+      "aliases": {
+        "en": ["rules", "fallback responses", "double tap", "verb keys"],
+        "fr": ["règles", "réponses de repli", "double tap", "touches des verbes"]
+      },
+      "keywords": {
+        "en": ["defaultVerb", "kinds", "refuse", "use2", "exitOnTap", "onTap"],
+        "fr": ["defaultVerb", "sortes", "refus", "use2", "exitOnTap", "onTap"]
+      },
+      "identifiers": [
+        "on",
+        "rules.on",
+        "rules.kinds",
+        "rules.fallbacks",
+        "defaultVerb",
+        "onTap",
+        "input.exitOnTap",
+        "refuse"
+      ],
+      "related": ["create.commands", "create.conditions", "play.controls", "create.dsl"],
+      "prerequisites": ["create.rooms"],
+      "claims": [
+        {"id": "fallback-order", "test": "tests/core.test.ts › fixture game › fallback responses follow the order: kind, refuse, fallback"}
+      ],
       "owner": "@wanoo"
     },
     {
@@ -1697,8 +1877,9 @@
       "context": ["engine-repo", "created-project"],
       "title": { "en": "Game commands", "fr": "Commandes du jeu" },
       "url": { "en": "EN-Create-Game-Commands", "fr": "FR-Creer-Commandes-Du-Jeu" },
-      "state": "planned",
-      "sources": ["src/engine/core/cmds.ts"],
+      "state": "ready",
+      "versions": { "appliesFrom": "4.3.0" },
+      "sources": ["src/engine/core/cmds.ts", "src/engine/core/command-handlers.ts", "src/engine/core/types/content.ts"],
       "replaces": [
         "docs/en/CONTENT_GUIDE.md#the-commands",
         "docs/en/CONTENT_GUIDE.md#speech",
@@ -1716,10 +1897,57 @@
         "docs/fr/CONTENT_GUIDE.md#séquences-et-écrans"
       ],
       "questions": { "en": [], "fr": [] },
-      "aliases": { "en": [], "fr": [] },
-      "identifiers": [],
-      "related": ["create.dsl"],
-      "prerequisites": [],
+      "aliases": { "en": ["DSL commands", "actions", "do"], "fr": ["commandes du DSL", "actions", "do"] },
+      "keywords": {
+        "en": ["say", "walk", "gain", "set", "cutscene", "choice", "phone"],
+        "fr": ["say", "walk", "gain", "set", "cinématique", "choice", "phone"]
+      },
+      "identifiers": [
+        "say",
+        "walk",
+        "face",
+        "pose",
+        "anim",
+        "place",
+        "launch",
+        "spring",
+        "path",
+        "follow",
+        "wait",
+        "parallel",
+        "prop",
+        "show",
+        "hide",
+        "gain",
+        "lose",
+        "used",
+        "set",
+        "unset",
+        "inc",
+        "unlock",
+        "goto",
+        "map",
+        "sfx",
+        "music",
+        "toast",
+        "shake",
+        "if",
+        "once",
+        "nth",
+        "cycle",
+        "random",
+        "cutscene",
+        "choice",
+        "talk",
+        "minigame",
+        "phone",
+        "guide",
+        "hint",
+        "ending",
+        "end"
+      ],
+      "related": ["create.dsl", "create.reactions", "create.conditions", "create.scripts-events"],
+      "prerequisites": ["create.reactions"],
       "owner": "@wanoo"
     },
     {
@@ -1730,13 +1958,18 @@
       "context": ["engine-repo", "created-project"],
       "title": { "en": "Conditions", "fr": "Conditions" },
       "url": { "en": "EN-Create-Conditions", "fr": "FR-Creer-Conditions" },
-      "state": "planned",
-      "sources": ["src/engine/core/cond.ts"],
+      "state": "ready",
+      "versions": { "appliesFrom": "4.3.0" },
+      "sources": ["src/engine/core/cond.ts", "src/engine/core/keys.ts", "src/engine/core/types/content.ts"],
       "replaces": ["docs/en/CONTENT_GUIDE.md#the-conditions", "docs/fr/CONTENT_GUIDE.md#les-conditions"],
       "questions": { "en": [], "fr": [] },
-      "aliases": { "en": [], "fr": [] },
-      "identifiers": [],
-      "related": [],
+      "aliases": { "en": ["if", "cond", "condition"], "fr": ["si", "cond", "condition"] },
+      "keywords": {
+        "en": ["has", "flag", "visited", "seen", "actorIn", "unlocked"],
+        "fr": ["has", "flag", "visited", "seen", "actorIn", "unlocked"]
+      },
+      "identifiers": ["has", "flag", "not", "all", "any", "visited", "room", "unlocked", "seen", "actorIn", "player"],
+      "related": ["create.dsl", "create.flags-variables-events", "create.reactions"],
       "prerequisites": [],
       "owner": "@wanoo"
     },
@@ -1751,8 +1984,14 @@
         "fr": "Drapeaux, variables et événements : lequel choisir"
       },
       "url": { "en": "EN-Create-Flags-Variables-Events", "fr": "FR-Creer-Drapeaux-Variables-Evenements" },
-      "state": "planned",
-      "sources": [],
+      "state": "ready",
+      "versions": { "appliesFrom": "4.3.0" },
+      "sources": [
+        "src/engine/core/command-handlers.ts",
+        "src/engine/core/event-runtime.ts",
+        "src/engine/core/cond.ts",
+        "src/engine/core/types/state.ts"
+      ],
       "replaces": [
         "docs/en/CONTENT_GUIDE.md#logic",
         "docs/en/CONTENT_GUIDE.md#events-something-just-happened",
@@ -1760,12 +1999,16 @@
         "docs/fr/CONTENT_GUIDE.md#les-événements---il-vient-de-se-passer-quelque-chose-"
       ],
       "questions": {
-        "en": ["What is the difference between a flag and an event?"],
-        "fr": ["Quelle différence entre flag et événement ?"]
+        "en": ["What is the difference between a flag and an event?", "How do I make a counter?"],
+        "fr": ["Quelle différence entre flag et événement ?", "Comment faire un compteur ?"]
       },
-      "aliases": { "en": ["flag", "event"], "fr": ["flag", "événement"] },
-      "identifiers": [],
-      "related": [],
+      "aliases": {
+        "en": ["flag", "event", "variable", "counter"],
+        "fr": ["flag", "drapeau", "événement", "variable", "compteur"]
+      },
+      "keywords": { "en": ["emit", "listener", "state", "moment"], "fr": ["emit", "écouteur", "état", "moment"] },
+      "identifiers": ["inc", "unset", "emit", "events"],
+      "related": ["create.scripts-events", "create.conditions", "create.commands", "create.state-saves"],
       "prerequisites": [],
       "owner": "@wanoo"
     },
@@ -1778,17 +2021,37 @@
       "context": ["engine-repo", "created-project"],
       "title": { "en": "Custom code", "fr": "Code sur mesure" },
       "url": { "en": "EN-Create-Custom-Code", "fr": "FR-Creer-Code-Sur-Mesure" },
-      "state": "planned",
-      "sources": ["src/engine/core/custom.ts"],
+      "state": "ready",
+      "versions": { "appliesFrom": "4.3.0" },
+      "sources": [
+        "src/engine/core/custom.ts",
+        "src/engine/core/command-handlers.ts",
+        "src/engine/tools/validate.ts",
+        "games/_template/index.ts",
+        "tests/open.test.ts"
+      ],
       "replaces": [
         "docs/en/CONTENT_GUIDE.md#when-the-dsl-is-not-enough",
         "docs/fr/CONTENT_GUIDE.md#quand-le-dsl-ne-suffit-pas"
       ],
-      "questions": { "en": [], "fr": [] },
-      "aliases": { "en": [], "fr": [] },
-      "identifiers": [],
-      "related": [],
+      "questions": {
+        "en": ["How do I add my own command when the DSL is not enough?"],
+        "fr": ["Comment ajouter ma propre commande quand le DSL ne suffit pas ?"]
+      },
+      "aliases": {
+        "en": ["custom command", "escape hatch", "plugin"],
+        "fr": ["commande sur mesure", "porte de sortie", "greffon"]
+      },
+      "keywords": {
+        "en": ["effects", "pure", "run", "CustomCommands"],
+        "fr": ["effects", "pure", "run", "CustomCommands"]
+      },
+      "identifiers": ["custom", "CustomCommands", "commands"],
+      "related": ["create.custom-minigame", "create.principles", "create.commands"],
       "prerequisites": [],
+      "claims": [
+        {"id": "custom-effects-everywhere", "test": "tests/open.test.ts › custom commands › apply their declared effects everywhere, run their visual part only when asked"}
+      ],
       "owner": "@wanoo"
     },
     {
@@ -1799,8 +2062,14 @@
       "context": ["engine-repo", "created-project"],
       "title": { "en": "Characters", "fr": "Personnages" },
       "url": { "en": "EN-Create-Characters", "fr": "FR-Creer-Personnages" },
-      "state": "planned",
-      "sources": [],
+      "state": "ready",
+      "versions": { "appliesFrom": "4.3.0" },
+      "sources": [
+        "src/engine/core/types/content.ts",
+        "src/engine/core/world-queries.ts",
+        "src/engine/dom/palette.ts",
+        "games/_template/cast.ts"
+      ],
       "replaces": [
         "docs/en/CONTENT_GUIDE.md#characters-items-map",
         "docs/en/CONTENT_GUIDE.md#speech-only-the-mouth-moves",
@@ -1816,9 +2085,25 @@
         "docs/fr/CONTENT_GUIDE.md#présence-sans-interaction"
       ],
       "questions": { "en": [], "fr": [] },
-      "aliases": { "en": [], "fr": [] },
-      "identifiers": [],
-      "related": [],
+      "aliases": {
+        "en": ["character", "NPC", "cast", "sprites", "mouths"],
+        "fr": ["personnage", "PNJ", "distribution", "sprites", "bouches"]
+      },
+      "keywords": {
+        "en": ["variants", "palette", "poses", "portrait"],
+        "fr": ["variantes", "palette", "poses", "portrait"]
+      },
+      "identifiers": [
+        "characters",
+        "sprites",
+        "mouths",
+        "variants",
+        "palette",
+        "paletteTolerance",
+        "interactive",
+        "offscreen"
+      ],
+      "related": ["create.heroes", "create.dialogues", "create.images", "create.moving-characters"],
       "prerequisites": [],
       "owner": "@wanoo"
     },
@@ -1830,16 +2115,29 @@
       "context": ["engine-repo", "created-project"],
       "title": { "en": "Items and inventory", "fr": "Objets et inventaire" },
       "url": { "en": "EN-Create-Items", "fr": "FR-Creer-Objets" },
-      "state": "planned",
-      "sources": [],
+      "state": "ready",
+      "versions": { "appliesFrom": "4.3.0" },
+      "sources": [
+        "src/engine/core/types/content.ts",
+        "src/engine/core/command-handlers.ts",
+        "src/engine/core/world-queries.ts",
+        "games/_template/items.ts"
+      ],
       "replaces": [
         "docs/en/CONTENT_GUIDE.md#characters-items-map",
         "docs/fr/CONTENT_GUIDE.md#personnages-objets-carte"
       ],
       "questions": { "en": [], "fr": [] },
-      "aliases": { "en": [], "fr": [] },
-      "identifiers": [],
-      "related": [],
+      "aliases": {
+        "en": ["inventory", "bag", "item", "used item"],
+        "fr": ["inventaire", "sac", "objet", "objet utilisé"]
+      },
+      "keywords": {
+        "en": ["gain", "lose", "used", "combine", "hintItem"],
+        "fr": ["gain", "lose", "used", "combiner", "hintItem"]
+      },
+      "identifiers": ["items", "gain", "lose", "used", "hintItem", "hintVoice"],
+      "related": ["create.reactions", "create.conditions", "create.heroes"],
       "prerequisites": [],
       "owner": "@wanoo"
     },
@@ -1851,8 +2149,14 @@
       "context": ["engine-repo", "created-project"],
       "title": { "en": "World map", "fr": "Carte du monde" },
       "url": { "en": "EN-Create-World-Map", "fr": "FR-Creer-Carte-Du-Monde" },
-      "state": "planned",
-      "sources": [],
+      "state": "ready",
+      "versions": { "appliesFrom": "4.3.0" },
+      "sources": [
+        "src/engine/core/types/game.ts",
+        "src/engine/tools/validate/map.ts",
+        "src/engine/dom/map-view.ts",
+        "src/engine/core/movement.ts"
+      ],
       "replaces": [
         "docs/en/CONTENT_GUIDE.md#characters-items-map",
         "docs/en/DESIGN.md#8-the-map",
@@ -1860,9 +2164,16 @@
         "docs/fr/DESIGN.md#8-la-carte"
       ],
       "questions": { "en": [], "fr": [] },
-      "aliases": { "en": [], "fr": [] },
-      "identifiers": [],
-      "related": [],
+      "aliases": {
+        "en": ["map", "travel map", "places", "pins"],
+        "fr": ["carte", "carte de voyage", "lieux", "épingles"]
+      },
+      "keywords": {
+        "en": ["unlock", "regions", "news", "vehicle", "joins"],
+        "fr": ["unlock", "régions", "nouveauté", "véhicule", "joins"]
+      },
+      "identifiers": ["map", "unlock", "unlocked", "joins"],
+      "related": ["create.exits", "studio.map", "create.puzzle-design"],
       "prerequisites": [],
       "owner": "@wanoo"
     },
@@ -1875,14 +2186,30 @@
       "context": ["engine-repo", "created-project"],
       "title": { "en": "Dialogues", "fr": "Dialogues" },
       "url": { "en": "EN-Create-Dialogues", "fr": "FR-Creer-Dialogues" },
-      "state": "planned",
-      "sources": [],
+      "state": "ready",
+      "versions": { "appliesFrom": "4.3.0" },
+      "sources": [
+        "src/engine/core/interactions.ts",
+        "src/engine/core/command-handlers.ts",
+        "src/engine/core/keys.ts",
+        "src/engine/core/types/content.ts"
+      ],
       "replaces": ["docs/en/DESIGN.md#5-dialogue", "docs/fr/DESIGN.md#5-les-dialogues"],
-      "questions": { "en": [], "fr": [] },
-      "aliases": { "en": [], "fr": [] },
-      "identifiers": [],
-      "related": [],
-      "prerequisites": [],
+      "questions": {
+        "en": ["How do I write a conversation with a character?"],
+        "fr": ["Comment écrire une conversation avec un personnage ?"]
+      },
+      "aliases": {
+        "en": ["conversation", "talk topics", "dialogue tree", "choice"],
+        "fr": ["conversation", "sujets de conversation", "arbre de dialogue", "choix"]
+      },
+      "keywords": {
+        "en": ["talk", "topic", "globalTalk", "hug", "bye"],
+        "fr": ["talk", "sujet", "globalTalk", "câlin", "au revoir"]
+      },
+      "identifiers": ["talk", "choice", "globalTalk", "dialogue_tree"],
+      "related": ["create.characters", "create.translations", "create.voices", "create.puzzle-design"],
+      "prerequisites": ["create.rooms"],
       "owner": "@wanoo"
     },
     {
@@ -1893,8 +2220,15 @@
       "context": ["engine-repo", "created-project"],
       "title": { "en": "Scripts and events", "fr": "Scripts et événements" },
       "url": { "en": "EN-Create-Scripts-Events", "fr": "FR-Creer-Scripts-Evenements" },
-      "state": "planned",
-      "sources": ["src/engine/core/script-runtime.ts", "src/engine/core/event-runtime.ts"],
+      "state": "ready",
+      "versions": { "appliesFrom": "4.3.0" },
+      "sources": [
+        "src/engine/core/script-runtime.ts",
+        "src/engine/core/event-runtime.ts",
+        "src/engine/core/types/content.ts",
+        "src/engine/tools/validate-events.ts",
+        "tests/core.test.ts"
+      ],
       "replaces": [
         "docs/en/CONTENT_GUIDE.md#the-world-lives-scripts-events-moving-characters",
         "docs/en/CONTENT_GUIDE.md#scripts-things-that-happen-without-a-tap",
@@ -1904,10 +2238,21 @@
         "docs/fr/CONTENT_GUIDE.md#les-événements---il-vient-de-se-passer-quelque-chose-"
       ],
       "questions": { "en": [], "fr": [] },
-      "aliases": { "en": [], "fr": [] },
-      "identifiers": [],
-      "related": [],
+      "aliases": {
+        "en": ["scripts", "events", "listeners", "the world lives"],
+        "fr": ["scripts", "événements", "écouteurs", "le monde vit"]
+      },
+      "keywords": {
+        "en": ["loop", "while", "waitEvent", "waitUntil", "stepIds"],
+        "fr": ["boucle", "while", "waitEvent", "waitUntil", "stepIds"]
+      },
+      "identifiers": ["scripts", "events", "emit", "waitUntil", "waitEvent", "startScript", "stopScript", "stepIds"],
+      "related": ["create.moving-characters", "create.flags-variables-events", "engine.execution-model"],
       "prerequisites": [],
+      "claims": [
+        {"id": "scripts-between-actions", "test": "tests/core.test.ts › the world lives › scripts pause while the engine is busy, and the while condition rewinds them"},
+        {"id": "emit-order", "test": "tests/core.test.ts › the world lives › emit runs the room listeners, then the game ones; once is once"}
+      ],
       "owner": "@wanoo"
     },
     {
@@ -1918,19 +2263,40 @@
       "context": ["engine-repo", "created-project"],
       "title": { "en": "Moving characters: patrols and walks", "fr": "Faire bouger les personnages : patrouilles et marches" },
       "url": { "en": "EN-Create-Moving-Characters", "fr": "FR-Creer-Deplacer-Personnages" },
-      "state": "planned",
-      "sources": ["src/engine/core/movement.ts"],
+      "state": "ready",
+      "versions": { "appliesFrom": "4.3.0" },
+      "sources": [
+        "src/engine/core/movement.ts",
+        "src/engine/core/command-handlers.ts",
+        "src/engine/core/script-runtime.ts",
+        "tests/classics.test.ts",
+        "tests/fixtures/classics.ts"
+      ],
       "replaces": [
         "docs/en/CLASSICS.md#the-nurse-on-patrol-and-the-dungeon--feasible-with-a-different-clock-tested",
         "docs/en/CONTENT_GUIDE.md#moving-characters",
         "docs/fr/CLASSICS.md#linfirmière-en-ronde-et-le-donjon--faisable-avec-une-autre-horloge-testé",
         "docs/fr/CONTENT_GUIDE.md#les-personnages-mobiles"
       ],
-      "questions": { "en": ["I want the guard to patrol"], "fr": ["Je veux que le garde patrouille"] },
-      "aliases": { "en": ["patrol"], "fr": ["patrouille"] },
-      "identifiers": [],
-      "related": [],
-      "prerequisites": [],
+      "questions": {
+        "en": ["I want the guard to patrol", "How do I move a character to another room?"],
+        "fr": ["Je veux que le garde patrouille", "Comment envoyer un personnage dans une autre salle ?"]
+      },
+      "aliases": {
+        "en": ["patrol", "NPC movement", "moveActor"],
+        "fr": ["patrouille", "déplacement de PNJ", "moveActor"]
+      },
+      "keywords": {
+        "en": ["guard", "nurse", "actorIn", "walk who"],
+        "fr": ["garde", "infirmière", "actorIn", "walk who"]
+      },
+      "identifiers": ["moveActor", "actorIn", "where"],
+      "related": ["create.scripts-events", "create.classics", "create.chapters"],
+      "prerequisites": ["create.scripts-events"],
+      "claims": [
+        {"id": "patrol-turn-by-turn", "test": "tests/classics.test.ts › the patrolling nurse › catches the hero turn by turn: entering her room, or her entering his"},
+        {"id": "patrol-solved", "test": "tests/classics.test.ts › the patrolling nurse › is proven by the solver, which waits for her to leave"}
+      ],
       "owner": "@wanoo"
     },
     {
