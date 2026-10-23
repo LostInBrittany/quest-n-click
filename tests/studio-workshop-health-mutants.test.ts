@@ -174,6 +174,16 @@ describe('the runs', () => {
 });
 
 describe('a bisection asked for', () => {
+  it('never judges a revision past the head, even when bisect itself is called with one (4.5.0)', async () => {
+    // Kills health.ts judge's `rev > head` → `false`: its snapshot would be the head's files, kept under a number the
+    // next write takes. bisect is public: 1..9 with the head at 3 asks for revision 5 first.
+    const h = history({ k: 6 });
+    h.go(3);
+    await expect(h.health.bisect('e1', 1, 9, 3)).rejects.toThrow('revision 5 is past the head (3)');
+    expect(h.judged).toEqual([]);
+    expect(await db.all('SELECT rev FROM studio_health')).toEqual([]);
+  });
+
   it('reads back the revisions already judged, judging none twice', async () => {
     const h = history({ k: 6 });
     await h.health.schedule();

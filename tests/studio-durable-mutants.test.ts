@@ -19,12 +19,19 @@ vi.mock('node:fs', async (orig) => {
     return real.openSync(p, flags, mode);
   }) as typeof real.openSync;
   // 4.4.0: the next `fail.short` writes are short by one byte (a FUSE or network file system may write less than asked).
-  const writeSync = ((fd: number, buf: Buffer, off: number, len: number) => {
+  // 4.5.0: a string handed to writeSync as is (its overload `writeSync(fd, text, position)`) is cut the same way, one
+  // byte short of its UTF-8, so a write that passes the text instead of its bytes is seen: its next call would write
+  // the whole text again at the position where the first stopped.
+  const writeSync = ((fd: number, buf: Buffer | string, off: number, len: number) => {
     if (fail.short > 0 && len > 1) {
       fail.short--;
+      if (typeof buf === 'string') {
+        const b = Buffer.from(buf);
+        return real.writeSync(fd, b, 0, b.length - 1, off);
+      }
       return real.writeSync(fd, buf, off, len - 1);
     }
-    return real.writeSync(fd, buf, off, len);
+    return real.writeSync(fd, buf as Buffer, off, len);
   }) as typeof real.writeSync;
   return { ...real, openSync, writeSync, default: { ...real, openSync, writeSync } };
 });
