@@ -2,7 +2,7 @@
 
 ## 4.5.0 — 2026-10-23
 
-LOG #268–#285: "Wiki", the documentation moved. `wiki/en` and `wiki/fr` are now the documentation: 210 pages in
+LOG #268–#286: "Wiki", the documentation moved. `wiki/en` and `wiki/fr` are now the documentation: 210 pages in
 English and in French, each paired with its twin section by section, published as the GitHub wiki and as
 `/docs/<version>/` on Pages from the release's own documentation archive, never rebuilt from `main`. The old `docs/`
 pages are transition pages: every old heading and anchor stays and links to its new place and to the 4.4.0 text. An
@@ -37,6 +37,12 @@ key on their yes of 23 October for `v4.5.0` (D37, D50).
   unexpected error"), a sprite frame then missing. When the image route fails, the worker now looks the image up in
   every cache before giving up, and says why it failed; `npm run e2e:pwa` prints that reason. Nothing to change in a
   game.
+
+- **The browser jobs of CI no longer time out installing Playwright's system packages (4.5.0, #261)**: seven Linux
+  jobs (`e2e`, `reality`, `pwa-firefox`, `cross-runtime`, `fresh-install`, `second-game`, `reference`) run in
+  Playwright's own image, the lockfile's version pinned by digest, where the browsers and their libraries are already
+  installed; `--with-deps` fetched 52 MB from an apt mirror that sometimes served 50 kB/s. A test keeps the image's
+  version equal to the lockfile's.
 
 ### Changes
 
