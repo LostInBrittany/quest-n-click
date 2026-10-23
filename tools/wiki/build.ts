@@ -12,6 +12,8 @@
 // page, listing published pages only.
 import { copyFileSync, existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
+import { type ClaimState } from './claims';
+import type { SurfaceStatus } from './contracts';
 import { type Glossary, readGlossary } from './glossary';
 import { generatedIdentifiers, type Identifier } from './identifiers';
 import {
@@ -27,7 +29,17 @@ import {
   type PageType,
   typesOf,
 } from './manifest';
-import { classifyTarget, type Link, mapPage, renderLink } from './page';
+import {
+  ANCHOR_LINE,
+  appliesMarker,
+  classifyTarget,
+  type Link,
+  mapLines,
+  mapPage,
+  parsePage,
+  renderLink,
+  type SectionVersions,
+} from './page';
 
 const REPO_URL = 'https://github.com/wanoo/quest-n-click';
 const RAW_URL = 'https://raw.githubusercontent.com/wanoo/quest-n-click';
@@ -47,6 +59,10 @@ export interface BuildOptions {
   productCommit: string;
   /** The generated identifiers (npm scripts, MCP tools); read from the repository when absent. */
   identifiers?: readonly Identifier[];
+  /** The five statuses of each surface (§4.4.2), for the pages that name surfaces; from `wiki -- check`. */
+  statuses?: ReadonlyMap<string, SurfaceStatus>;
+  /** Each claim's states (§4.4.3), shown on its `[!GUARANTEE]` block; from `wiki -- check`. */
+  claims?: readonly ClaimState[];
 }
 
 const L = {
@@ -106,6 +122,43 @@ const L = {
     byTask: 'I want to…',
     bySymptom: 'I see…',
     otherNames: 'Other names',
+    contract: 'contract',
+    contracts: { experimental: 'experimental', stable: 'stable', deprecated: 'deprecated' },
+    verified: (v: string, d: string) => `verified by CI (support matrix of ${v}, ${d})`,
+    checks: 'automated checks',
+    jobs: 'jobs',
+    gates: 'CI plan',
+    tests: (n: number) => `${n} test file${n === 1 ? '' : 's'}`,
+    passes: "people's passes",
+    passStates: {
+      passed: 'passed',
+      failed: 'failed',
+      blocked: 'blocked',
+      'not-run': 'not run',
+      'not-asked': 'not asked yet',
+    },
+    none: 'none',
+    limits: 'known limits',
+    noLimit: 'none listed on this page',
+    claim: {
+      referenced: 'referenced',
+      unreferenced: 'not referenced',
+      executed: 'executed on',
+      reviewed: 'scope reviewed',
+    },
+    applies: (v: SectionVersions) =>
+      [
+        v.appliesFrom && v.appliesUntil
+          ? `Applies from ${v.appliesFrom} to ${v.appliesUntil}`
+          : v.appliesFrom
+            ? `Applies from ${v.appliesFrom}`
+            : v.appliesUntil
+              ? `Applies until ${v.appliesUntil}`
+              : '',
+        v.featureSince ? `feature since ${v.featureSince}` : '',
+      ]
+        .filter(Boolean)
+        .join(' · '),
   },
   fr: {
     domains: {
@@ -166,6 +219,43 @@ const L = {
     byTask: 'Je veux…',
     bySymptom: 'Je vois…',
     otherNames: 'Autres noms',
+    contract: 'contrat',
+    contracts: { experimental: 'expérimental', stable: 'stable', deprecated: 'déprécié' },
+    verified: (v: string, d: string) => `vérifié par la CI (matrice de support de la ${v}, ${d})`,
+    checks: 'vérifications automatiques',
+    jobs: 'jobs',
+    gates: 'plan de CI',
+    tests: (n: number) => `${n} fichier${n === 1 ? '' : 's'} de tests`,
+    passes: 'passes humaines',
+    passStates: {
+      passed: 'passée',
+      failed: 'échouée',
+      blocked: 'bloquée',
+      'not-run': 'pas faite',
+      'not-asked': 'pas encore demandée',
+    },
+    none: 'aucune',
+    limits: 'limites connues',
+    noLimit: 'aucune listée sur cette page',
+    claim: {
+      referenced: 'référencée',
+      unreferenced: 'non référencée',
+      executed: 'exécutée sur',
+      reviewed: 'portée relue',
+    },
+    applies: (v: SectionVersions) =>
+      [
+        v.appliesFrom && v.appliesUntil
+          ? `S'applique de la ${v.appliesFrom} à la ${v.appliesUntil}`
+          : v.appliesFrom
+            ? `S'applique depuis la ${v.appliesFrom}`
+            : v.appliesUntil
+              ? `S'applique jusqu'à la ${v.appliesUntil}`
+              : '',
+        v.featureSince ? `fonction apparue en ${v.featureSince}` : '',
+      ]
+        .filter(Boolean)
+        .join(' · '),
   },
 } as const;
 
@@ -195,6 +285,7 @@ function rewritePage(
   urls: ReadonlyMap<string, string>,
   productCommit: string,
   images: Set<string>,
+  claims: ReadonlyMap<string, ClaimState> = new Map(),
 ): string {
   const rewrite = (l: Link): string | undefined => {
     const t = classifyTarget(l.target, lang);
@@ -213,7 +304,79 @@ function rewritePage(
     }
     return undefined;
   };
-  return mapPage(markdown, rewrite, (kind, id) => `> **${BLOCK_NAMES[lang][kind]}** · \`${id}\``);
+  const t = L[lang];
+  const claimWords = (c: ClaimState | undefined) =>
+    !c
+      ? ''
+      : ` · ${[
+          c.unreferenced ? t.claim.unreferenced : t.claim.referenced,
+          ...(c.executedOn ? [`${t.claim.executed} \`${c.executedOn.slice(0, 12)}\``] : []),
+          ...(c.reviewed ? [t.claim.reviewed] : []),
+        ].join(' · ')}`;
+  return mapPage(
+    showVersions(markdown, lang),
+    rewrite,
+    (kind, id) =>
+      `> **${BLOCK_NAMES[lang][kind]}** · \`${id}\`${kind === 'GUARANTEE' ? claimWords(claims.get(id)) : ''}`,
+  );
+}
+
+/**
+ * A section's applies marker is a comment, unseen once rendered: it is moved under the section's heading as a line a
+ * reader sees ("Applies from 4.2.2 to 4.4.0").
+ */
+function showVersions(markdown: string, lang: Lang): string {
+  let pending: SectionVersions | undefined;
+  let afterAnchor = false;
+  return mapLines(markdown, (line) => {
+    const t = line.trim();
+    if (ANCHOR_LINE.test(t)) {
+      afterAnchor = true;
+      return line;
+    }
+    const marker = afterAnchor ? appliesMarker(t) : undefined;
+    if (t) afterAnchor = false;
+    if (marker) {
+      pending = marker;
+      return '';
+    }
+    if (pending && /^#{1,6}\s/.test(t)) {
+      const note = L[lang].applies(pending);
+      pending = undefined;
+      return note ? `${line}\n\n> *${note}*` : line;
+    }
+    return line;
+  }).text;
+}
+
+/**
+ * The page's surfaces, each with its five statuses kept apart (§4.4.2): the contract, the environments CI verifies,
+ * the automated checks, the people's passes with their issues, and the page's known limits.
+ */
+function statusBlock(p: Page, lang: Lang, statuses: ReadonlyMap<string, SurfaceStatus>, limits: string[]): string[] {
+  const t = L[lang];
+  const issue = (n: number) => `[#${n}](${REPO_URL}/issues/${n})`;
+  return (p.surfaces ?? []).flatMap((id) => {
+    const s = statuses.get(id);
+    if (!s) return [];
+    const checks = [
+      ...(s.checks.jobs.length ? [`${t.jobs} ${s.checks.jobs.map((j) => `\`${j}\``).join(', ')}`] : []),
+      ...(s.checks.gates.length ? [`${t.gates} ${s.checks.gates.map((g) => `\`${g}\``).join(', ')}`] : []),
+      ...(s.checks.tests.length ? [t.tests(s.checks.tests.length)] : []),
+    ];
+    const parts = [
+      `${t.contract}${t.colon} ${t.contracts[s.contract]}`,
+      `${t.verified(s.asOf.version, s.asOf.date)}${t.colon} ${s.environments.map((e) => e[lang]).join(lang === 'fr' ? ' ; ' : '; ') || t.none}`,
+      `${t.checks}${t.colon} ${checks.join(lang === 'fr' ? ' ; ' : '; ') || t.none}`,
+      `${t.passes}${t.colon} ${
+        s.passes
+          .map((x) => `\`${x.id}\` ${t.passStates[x.state]}${x.issue ? ` (${issue(x.issue)})` : ''}`)
+          .join(', ') || t.none
+      }`,
+      `${t.limits}${t.colon} ${limits.length ? limits.map((l) => `\`${l}\``).join(', ') : t.noLimit}`,
+    ];
+    return [`> **${s.title[lang]}** · ${parts.join(' · ')}`];
+  });
 }
 
 function header(p: Page, lang: Lang): string {
@@ -373,13 +536,18 @@ export function buildWiki(o: BuildOptions): string[] {
   const identifiers = o.identifiers ?? generatedIdentifiers();
   const files = new Map<string, string>();
   const images = new Set<string>();
+  const claims = new Map((o.claims ?? []).map((c) => [c.id, c]));
   for (const lang of LANGS) {
     const urls = new Map([...published, ...generated].map((p) => [p.id, p.url[lang]]));
     for (const p of published) {
       const source = readFileSync(resolve(o.wikiDir, lang, `${p.id}.md`), 'utf8');
-      const body = rewritePage(source, lang, urls, o.productCommit, images).trim();
+      const body = rewritePage(source, lang, urls, o.productCommit, images, claims).trim();
+      const limits = parsePage(source, lang)
+        .blocks.filter((b) => b.kind === 'LIMIT')
+        .map((b) => b.id);
+      const status = statusBlock(p, lang, o.statuses ?? new Map(), limits);
       // The header goes under the page's title when it opens with one, the draft banner above the header.
-      const top = `${p.state === 'draft' ? `> ${L[lang].draft}\n\n` : ''}${header(p, lang)}`;
+      const top = `${p.state === 'draft' ? `> ${L[lang].draft}\n\n` : ''}${header(p, lang)}${status.length ? `\n>\n${status.join('\n>\n')}` : ''}`;
       const [first = '', ...rest] = body.split('\n');
       const page = first.startsWith('# ') ? `${first}\n\n${top}\n${rest.join('\n')}` : `${top}\n\n${body}`;
       files.set(`${lang}/${p.url[lang]}.md`, `${page}\n\n---\n\n${pageFooter(p, lang, o.productVersion)}\n`);

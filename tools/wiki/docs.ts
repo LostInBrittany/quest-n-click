@@ -11,7 +11,7 @@
 // French and English words and synonyms widen a query (« verrou » also looks for "lease"). Weights: a page's title or
 // one of its questions, then its aliases, keywords and identifiers, then a section's heading, then a section's body.
 // Under a confidence threshold the answer is an explicit empty result, never weak results dressed as relevant.
-import { mapLines } from './page';
+import { appliesMarker, mapLines, type SectionVersions } from './page';
 
 export const INDEX_FORMAT = 'quest-n-click-docs-index';
 export const BUNDLE_FORMAT = 'quest-n-click-docs-bundle';
@@ -24,6 +24,8 @@ interface IndexSection {
   id: string;
   title: string;
   sha256: string;
+  /** The section's own versions, from its applies marker (§4.4.1); absent when it follows its page's. */
+  versions?: SectionVersions;
 }
 export interface IndexPage {
   id: string;
@@ -35,6 +37,8 @@ export interface IndexPage {
   versions?: { appliesFrom: string; appliesUntil?: string; featureSince?: string };
   /** Never `planned`: a page without a file is not in an index. A bundle holds `ready` pages only. */
   state: 'draft' | 'ready';
+  /** A page kept for older versions: never `current` in a search (§9). */
+  lifecycle?: 'deprecated' | 'archived';
   title: Bilingual<string>;
   url: Bilingual<string>;
   questions: Bilingual<string[]>;
@@ -97,6 +101,8 @@ export interface Section {
   title: string;
   /** The section's Markdown as written, its anchor line and heading included. */
   text: string;
+  /** Its applies marker's versions, when it has a well-formed one (§4.4.1). */
+  versions?: SectionVersions;
 }
 
 const ANCHOR = /^<a (?:name|id)="([a-z0-9]+(?:-[a-z0-9]+)*)"><\/a>\s*$/;
@@ -120,7 +126,14 @@ export function splitSections(markdown: string): Section[] {
     out.push({ id: '', title: headingOf(lead.find((l) => /^#\s/.test(l))), text: lead.join('\n').trim() });
   anchors.forEach((a, i) => {
     const body = lines.slice(a.line, anchors[i + 1]?.line ?? lines.length);
-    out.push({ id: a.id, title: headingOf(body.slice(1).find((l) => l.trim())), text: body.join('\n').trim() });
+    const rest = body.slice(1).filter((l) => l.trim());
+    const versions = rest[0] === undefined ? undefined : appliesMarker(rest[0]);
+    out.push({
+      id: a.id,
+      title: headingOf(versions === undefined ? rest[0] : rest[1]),
+      text: body.join('\n').trim(),
+      ...(versions ? { versions } : {}),
+    });
   });
   return out;
 }
@@ -200,6 +213,19 @@ const applies = (p: IndexPage, version: string) =>
   !p.versions ||
   (compareVersions(version, p.versions.appliesFrom) >= 0 &&
     (!p.versions.appliesUntil || compareVersions(version, p.versions.appliesUntil) <= 0));
+/**
+ * Whether a section is true for `version`: its own marker's bounds where it gives them, its page's otherwise (§4.4.1;
+ * `wiki -- check` keeps a section's range inside its page's).
+ */
+function sectionApplies(
+  p: { versions?: IndexPage['versions'] },
+  s: { versions?: SectionVersions },
+  version: string,
+): boolean {
+  const from = s.versions?.appliesFrom ?? p.versions?.appliesFrom;
+  const until = s.versions?.appliesUntil ?? p.versions?.appliesUntil;
+  return (!from || compareVersions(version, from) >= 0) && (!until || compareVersions(version, until) <= 0);
+}
 
 // ------------------------------------------------------------------------------------------------- cursors
 
@@ -294,7 +320,7 @@ interface SearchResult {
   context: string[];
   versions?: IndexPage['versions'];
   state: IndexPage['state'];
-  /** `current` until A5 brings `deprecated` and `archived` (shown only with `includeArchived`). */
+  /** The page's or the section's lifecycle; `deprecated` and `archived` are shown only with `includeArchived`. */
   status: 'current' | 'deprecated' | 'archived';
   /** With `includeArchived` and `version`: the page does not apply to that version. */
   notApplicable?: true;
@@ -395,6 +421,7 @@ function scorePage(
   terms: readonly Term[],
   query: string,
   glossary: readonly string[],
+  skip: (s: Section) => boolean = () => false,
 ) {
   const typed = new Set(terms.filter((t) => t.weight === 1).map((t) => t.word));
   const q = phrase(query);
@@ -430,6 +457,7 @@ function scorePage(
     }
   let best: { section: Section; score: number; reason: MatchReason; text: string; found: Set<string> } | undefined;
   for (const s of splitSections(markdown)) {
+    if (skip(s)) continue;
     const title = new Set(words(s.title));
     // The body: the section's lines but its anchor and its heading.
     const lines = s.text.split('\n').filter((l) => !ANCHOR.test(l.trim()));
@@ -474,13 +502,18 @@ export function searchDocs(set: DocsSet, input: SearchInput): SearchOutput {
   const scored: Scored[] = [];
   filtered(set, input).forEach((p, order) => {
     const notApplicable = input.version !== undefined && !applies(p, input.version);
-    if (notApplicable && !input.includeArchived) return;
+    if ((notApplicable || p.lifecycle) && !input.includeArchived) return;
     let pick: Scored | undefined;
     for (const l of lang ? [lang] : LANGS) {
       const md = p.langs[l] ? set.pages[`${l}/${p.id}`] : undefined;
       if (md === undefined) continue;
-      const b = scorePage(p, l, md, terms, input.query, aliases.get(p.id)?.[l] ?? []);
+      // A section that does not apply to the version asked is left out, or kept and marked with includeArchived.
+      const off = (s: Section) => input.version !== undefined && !sectionApplies(p, s, input.version);
+      const b = scorePage(p, l, md, terms, input.query, aliases.get(p.id)?.[l] ?? [], (s) =>
+        input.includeArchived ? false : off(s) || !!s.versions?.lifecycle,
+      );
       if (!b || (pick && pick.score >= b.score)) continue;
+      const na = notApplicable || off(b.section);
       pick = {
         ref: b.section.id ? `${p.id}#${b.section.id}` : p.id,
         id: p.id,
@@ -492,8 +525,8 @@ export function searchDocs(set: DocsSet, input: SearchInput): SearchOutput {
         context: p.context,
         ...(p.versions ? { versions: p.versions } : {}),
         state: p.state,
-        status: 'current',
-        ...(notApplicable ? { notApplicable: true as const } : {}),
+        status: p.lifecycle ?? b.section.versions?.lifecycle ?? 'current',
+        ...(na ? { notApplicable: true as const } : {}),
         score: b.score,
         reason: b.reason,
         snippet: snippetOf(b.text, b.found),
@@ -549,7 +582,11 @@ export function listDocs(set: DocsSet, input: ListInput) {
         ...(p.versions ? { versions: p.versions } : {}),
         state: p.state,
         langs,
-        sections: (p.langs[l]?.sections ?? []).map((s) => ({ id: s.id, title: s.title })),
+        sections: (p.langs[l]?.sections ?? []).map((s) => ({
+          id: s.id,
+          title: s.title,
+          ...(s.versions ? { versions: s.versions } : {}),
+        })),
       };
     });
   return { pages, total: pages.length, provenance: set.provenance };

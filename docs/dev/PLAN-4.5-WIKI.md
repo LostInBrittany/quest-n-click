@@ -133,6 +133,16 @@ Page templates are in Annex B. A screenshot is always doubled by text giving its
 unique, both languages present, `sources` resolve, and the count of pages by domain, type, state and language is
 printed: it is the workload estimate (Annex A lists about 140 entries per language, before sub-pages).
 
+*Amendment (A5):* "every published page `ready`" holds by construction (the build and the bundle take `ready` pages
+only); `check --publish` lists the drafts it leaves out, refuses a `ready` page linking to a `draft` or `planned` one,
+and requires `--product-ref`, with `--doc-ref` (default HEAD) the clean checkout; `--state preview|candidate|published`
+(default `published`, which implies `--released`); `--state candidate|published` requires `--candidate <run id>`, the
+run the test reports must come from. The source set is judged on `git diff --no-renames --name-status` (both sides of
+a rename), `wiki/images/` holding image files only. A page or section whose `appliesUntil` is below the product is
+refused unless marked `lifecycle: deprecated|archived` (a section: `archived` or `deprecated` at the end of its marker).
+The preview's tag rule fails closed: it reads `git ls-remote --tags origin` and the local tags, and refuses when
+neither can be trusted; `docs-publish` (A5b) checks out with `fetch-depth: 0` and fetches the tags.
+
 ### 4.2 L2 — The coverage matrix (`wiki/coverage.json`)
 
 **A complete anchor inventory**, made by `wiki -- coverage --init` over the 31 × 2 pages of `docs/`, `CONTRIBUTING`,
@@ -254,6 +264,9 @@ version with a plain message.
 - `featureSince` (optional, on a section or an identifier): the version the feature appeared in. Generated from the
   sources when they carry it (version notes of the DSL commands, for instance).
 - A page's creation date is not metadata: git has it.
+- *Amendment (A5):* a section's own versions are an HTML comment on the line right after its anchor,
+  `<!-- applies: <from>..<until> since <v> [deprecated|archived] -->` (each part optional, the range inclusive, inside the page's, the same
+  in both languages); `wiki -- build` shows it under the heading, `search_docs` filters sections by it.
 
 **4.4.2 Five separate statuses**, never merged into one "experimental" banner, all generated from the same data for the
 Stability, Support matrix and Discover pages and for the page headers:
@@ -265,6 +278,11 @@ Stability, Support matrix and Discover pages and for the page headers:
 | Automated checks | test families and CI jobs covering the surface | `surfaces.json`, `ci:plan` |
 | Human passes | done (with report), missing (with issue) | `docs/dev/passes/<v>.md` |
 | Known limits | a list | the page's "Limits" section |
+
+*Amendment (A5):* the registry is `docs/dev/contracts.json` (contract status quoted from SUPPORT.md and tested against
+it, every row of the support matrix mapped to a surface and back, CI environments as of the support matrix's version
+and date, gates, jobs and test files, the passes and their issues by version); the passes' states are read from `docs/dev/passes/<v>.md`, the limits are the page's `[!LIMIT]` ids; a page
+names its surfaces in the manifest's `surfaces`.
 
 **4.4.3 What each kind of claim is checked by.**
 
@@ -289,6 +307,18 @@ A guarantee has three states, shown as they are:
 
 A measure about Clever is always given with its context, for instance "restore observed in 30 to 60 s, 19 Oct 2026,
 v4.2.3, 508 journal lines, PostgreSQL plan X, QUALIF-4.2.3 §4": an observation, never a promise.
+
+*Amendment (A5):* a measure writes its context as `- date:`, `- version:`, `- volume:`, `- conditions:`, `- source:`
+lines (the keys in English in both languages; date, version and source identical across them). A claim's test name
+is its `describe` titles and its own joined with ` › `; claim ids are unique across the manifest. "Executed" is bound
+to a commit by a `commit.json` (`{format: "quest-n-click-test-report", version: 1, commit, root, run}`) beside the
+Vitest JSON report (its files matched by their exact path under `root`; only `passed` counts): the candidate's
+`release-core` writes both to `.cache/test-report/` and uploads them as `candidate-test-report`. The local file
+proves nothing about who made it: A5b's workflow downloads `candidate-test-report` from the attested candidate run
+`--candidate` names. A test written `.skip`, `.todo`, `.only` or `.fails` (or `.skipIf`, `.runIf`) backs no claim; a
+test file `test:coverage` does not run is said plainly. A review's claim hash covers the test name and the block's
+text in both languages. A `room-example` is a room's JSON, or `{room, layout, items, characters, verbs, hero}`,
+validated in a one-room schema-3 game.
 
 **Links to the code:** `blob/<productCommit>/…` for the sources of the documented release, `blob/<sha of the
 measure>/…` for any proof (QUALIF, measures, ADRs cited as proof).
@@ -474,6 +504,8 @@ reader on 10 questions, opened as a `field-pass` issue. Levels 2 and 3 are repor
   `{enHash, frHash, reviewedAt, by}`: which revision of each language was reviewed against which revision of the
   other. If either hash changes, the pair is "to review": a warning on a PR, a block for `check --publish`.
   `wiki -- translations --ack` records the new pair after both sides were read.
+  *Amendment (A5):* the text before a page's first section pairs as `<id>#_lead`; pairs are judged on `ready` pages;
+  a section's hash covers the bytes of the `wiki/images/` files it shows.
 - The word count stays as a mere warning.
 - The glossary is bilingual, with synonyms (lease / bail / verrou; span / pan; candidate / candidat…).
 

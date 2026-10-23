@@ -8,6 +8,8 @@
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { z } from 'zod';
+import { compareVersions } from './docs';
+import { SEMVER } from './page';
 
 /** The thirteen domains (§4.1), each with its fixed word in an English and in a French URL. The order is the sidebars'. */
 const DOMAINS = {
@@ -90,7 +92,7 @@ export function urlProblem(lang: Lang, domain: Domain, url: string): string | un
 }
 
 const text = (max: number) => z.string().trim().min(1).max(max);
-const version = z.string().regex(/^\d+\.\d+\.\d+(?:-[0-9A-Za-z.]+)?$/, 'a product version (4.5.0, 4.5.0-rc.1)');
+const version = z.string().regex(SEMVER, 'a product version, as SemVer writes it (4.5.0, 4.5.0-rc.1)');
 const bilingual = <T extends z.ZodType>(item: T) => z.object({ en: item, fr: item }).strict();
 const unique = <T extends z.ZodType>(item: T) =>
   z.array(item).refine((a) => new Set(a).size === a.length, { message: 'no item twice' });
@@ -116,7 +118,23 @@ const PageSchema = z
     versions: z
       .object({ appliesFrom: version, appliesUntil: version.optional(), featureSince: version.optional() })
       .strict()
+      .refine((v) => !v.appliesUntil || compareVersions(v.appliesFrom, v.appliesUntil) <= 0, {
+        message: 'appliesUntil is not before appliesFrom',
+      })
+      .refine((v) => !v.featureSince || !v.appliesUntil || compareVersions(v.featureSince, v.appliesUntil) <= 0, {
+        message: 'featureSince is not after appliesUntil',
+      })
       .optional(),
+    /**
+     * A page kept for older versions (§9, "Obsolete pages"): `deprecated`, then `archived`. It is no longer current:
+     * search_docs shows it only with includeArchived, and a publication accepts its `appliesUntil` before the product.
+     */
+    lifecycle: z.enum(['deprecated', 'archived']).optional(),
+    /**
+     * The surfaces the page documents, ids of docs/dev/contracts.json (§4.4.2): the header shows each one's five
+     * statuses, generated from the registry, never typed.
+     */
+    surfaces: unique(z.string().regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/)).optional(),
     /**
      * Globs of the tracked files the page rests on (code, schemas, tests, qualifications): its drift sources (§9).
      * Required non-empty from `draft` on; a glob given earlier must already match.

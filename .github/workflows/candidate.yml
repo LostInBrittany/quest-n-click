@@ -68,6 +68,21 @@ jobs:
       - run: for i in 1 2 3; do (npx playwright install --with-deps chromium) && break; [ "$i" = 3 ] && exit 1; echo "retry $i"; sleep 15; done
         timeout-minutes: 20
       - run: npm run release-check:ci
+      # The node suite's report (4.5.0, docs/dev/PLAN-4.5-WIKI.md §4.4.3): release-check:ci writes Vitest's JSON report,
+      # and this step writes beside it the commit the suite ran on, the checkout's root and this run's id; `wiki -- check
+      # --test-report --candidate <this run>` reads both to call a documented guarantee "executed on <sha>". A report of
+      # another commit or another run executes nothing; A5b's publication downloads this artifact from this run.
+      - name: The test report of this candidate
+        run: |
+          test -f .cache/test-report/vitest.json || { echo "::error::no Vitest JSON report from release-check:ci"; exit 1; }
+          node -e 'require("fs").writeFileSync(".cache/test-report/commit.json", JSON.stringify({ format: "quest-n-click-test-report", version: 1, commit: process.argv[1], root: process.cwd(), run: process.argv[2] }) + "\n")' "$(git rev-parse HEAD)" "${{ github.run_id }}"
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: candidate-test-report
+          path: .cache/test-report
+          include-hidden-files: true
+          if-no-files-found: error
+          overwrite: true
       # The site as the release publishes it (4.1.20 PR 4, plan §9.2): the very build release-check made, its archive,
       # its assets manifest and the SHA-256 of each file it serves (the surfaces of the people's passes read them).
       # release.yml publishes these files and builds no site of its own to publish.

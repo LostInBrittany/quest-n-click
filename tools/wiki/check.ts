@@ -12,6 +12,11 @@ import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { globToRegExp } from '../ci-plan';
 import { ROOT } from '../game';
+import { type ClaimState, claimStates, claimsOf, readReviews, readTestReport, type TestReport } from './claims';
+import { CONTRACTS_FILE, checkContracts, readContracts, type SurfaceStatus, surfaceStatuses } from './contracts';
+import { dirtySources } from './bundle';
+import { compareVersions } from './docs';
+import { exampleProblems } from './examples';
 import { readGlossary } from './glossary';
 import { generatedIdentifiers, type Identifier } from './identifiers';
 import {
@@ -26,7 +31,9 @@ import {
   STATES,
   typesOf,
 } from './manifest';
-import { linkDestinations, type ParsedPage, parsePage } from './page';
+import { type Block, linkDestinations, type ParsedPage, parsePage, SEMVER } from './page';
+import { commitOf, previewProblem, sourceSetProblems, versionAt } from './publish';
+import { type PairState, readTranslations, translationStates } from './translations';
 
 /** A glob past this many files, or a file feeding more pages than this, makes an ordinary change ask too much (§9). */
 const GLOB_WARN_FILES = 25;
@@ -54,6 +61,26 @@ export interface CheckReport {
   /** Links from a written page to a page still `planned`: allowed, and listed. */
   plannedLinks: PlannedLink[];
   manifest?: Manifest;
+  /** Each claim's three states (§4.4.3), as far as this check could establish them. */
+  claims: ClaimState[];
+  /** The ready pages' translation pairs (§4.7.1). */
+  pairs: PairState[];
+  /** The five statuses of every surface of the registry, for the product version checked (§4.4.2). */
+  statuses: Map<string, SurfaceStatus>;
+  /** The written pages, parsed, by `<lang>/<id>`. */
+  parsed: Map<string, ParsedPage>;
+}
+
+/** The publication level's inputs (§4.1.4, §4.5.2, §4.5.3). */
+export interface PublishOptions {
+  /** The released product: a tag or a SHA. */
+  productRef: string;
+  /** The documentation's revision; HEAD when absent. */
+  docRef?: string;
+  /** Refuse a page or a section whose `appliesFrom` is after the product's version (implied by `published`). */
+  released: boolean;
+  /** What the publication will be shown as (§4.5.1); `preview` is the bootstrap's exception. */
+  state: 'preview' | 'candidate' | 'published';
 }
 
 export interface CheckOptions {
@@ -63,6 +90,20 @@ export interface CheckOptions {
   tracked: readonly string[];
   /** The identifiers a page should claim (npm scripts, MCP tools); read from the repository when absent. */
   identifiers?: readonly Identifier[];
+  /** The repository: its git, its registry (docs/dev/contracts.json), its test files. ROOT when absent. */
+  root?: string;
+  /** Vitest JSON reports, each with its `commit.json` beside it: what makes a claim "executed". */
+  testReports?: readonly string[];
+  /** The documented product commit, a claim is executed on; the product ref's at --publish, HEAD otherwise. */
+  productCommit?: string;
+  /**
+   * The candidate run the reports must come from (`commit.json`'s `run`); required to publish a candidate or a
+   * release. The local file proves nothing about who made it: A5b's workflow downloads `candidate-test-report` from
+   * that attested candidate run itself.
+   */
+  candidate?: string;
+  /** The publication level, stricter; the work level when absent. */
+  publish?: PublishOptions;
 }
 
 const fileOf = (wikiDir: string, lang: Lang, id: string) => resolve(wikiDir, lang, `${id}.md`);
@@ -86,8 +127,26 @@ function walk(dir: string, prefix = ''): string[] {
   return out;
 }
 
-export function checkWiki({ wikiDir, tracked, identifiers }: CheckOptions): CheckReport {
-  const report: CheckReport = { errors: [], warnings: [], gaps: [], plannedLinks: [] };
+export function checkWiki({
+  wikiDir,
+  tracked,
+  identifiers,
+  root = ROOT,
+  testReports = [],
+  productCommit,
+  candidate,
+  publish,
+}: CheckOptions): CheckReport {
+  const report: CheckReport = {
+    errors: [],
+    warnings: [],
+    gaps: [],
+    plannedLinks: [],
+    claims: [],
+    pairs: [],
+    statuses: new Map(),
+    parsed: new Map(),
+  };
   const { manifest, errors } = readManifest(wikiDir);
   report.errors.push(...errors);
   const glossary = readGlossary(wikiDir);
@@ -157,9 +216,11 @@ export function checkWiki({ wikiDir, tracked, identifiers }: CheckOptions): Chec
       const file = fileOf(wikiDir, lang, p.id);
       if (existsSync(file)) parsed.set(`${lang}/${p.id}`, parsePage(readFileSync(file, 'utf8'), lang));
     }
+  report.parsed = parsed;
   const trackedSet = new Set(tracked);
   for (const [key, page] of parsed) {
     const [lang, id] = key.split('/') as [Lang, string];
+    const from = byId.get(id)!;
     for (const problem of page.problems) report.errors.push(`${key}.md ${problem}`);
     for (const own of page.ownAnchors)
       if (!page.sections.includes(own.anchor))
@@ -175,6 +236,9 @@ export function checkWiki({ wikiDir, tracked, identifiers }: CheckOptions): Chec
         if (link.anchor) report.errors.push(`${at}: ${link.id} is generated and has no section ids`);
         continue;
       }
+      // At publication, a published page reaches published pages only (§4.1.4).
+      if (publish && from.state === 'ready' && target.state !== 'ready')
+        report.errors.push(`${at}: links to ${link.id}, ${target.state}: a published page links to ready pages only`);
       if (target.state === 'planned') {
         report.plannedLinks.push({ from: id, lang, to: link.id, anchor: link.anchor, line: link.line });
         continue;
@@ -208,7 +272,42 @@ export function checkWiki({ wikiDir, tracked, identifiers }: CheckOptions): Chec
       en.blocks.map((b) => `${b.kind}:${b.id}`),
       fr.blocks.map((b) => `${b.kind}:${b.id}`),
     );
+    compare('step ids', en.steps, fr.steps);
+    const marks = (x: ParsedPage) =>
+      Object.entries(x.sectionVersions).map(
+        ([sid, v]) =>
+          `${sid}:${v.appliesFrom ?? ''}..${v.appliesUntil ?? ''}/${v.featureSince ?? ''}${v.lifecycle ? `/${v.lifecycle}` : ''}`,
+      );
+    compare('section versions', marks(en), marks(fr));
+    // A measure's figures are the same in both languages: its date, version and source (§4.7.1).
+    const figures = (x: ParsedPage) =>
+      x.blocks
+        .filter((b) => b.kind === 'MEASURE')
+        .flatMap((b) => ['date', 'version', 'source'].map((k) => `${b.id}.${k}=${sourceUrl(b.fields[k] ?? '')}`));
+    compare('measure figures', figures(en), figures(fr));
   }
+
+  checkVersions(manifest, parsed, report);
+  checkBlocks(manifest, parsed, report);
+  for (const [key, page] of parsed) report.errors.push(...exampleProblems(`${key}.md`, page.fences));
+  // The product documented: the publication's product ref, otherwise the checkout (and the commit given, if any).
+  const product = publish ? publishedProduct(root, candidate, wikiDir, manifest, publish, report) : undefined;
+  const version = product?.version ?? checkoutVersion(root);
+  checkSurfaces(root, tracked, manifest, report, version);
+  checkClaims({
+    root,
+    wikiDir,
+    trackedSet,
+    manifest,
+    parsed,
+    report,
+    testReports,
+    candidate,
+    commit: product?.commit ?? productCommit ?? commitOf(root, 'HEAD'),
+    publish: !!publish,
+  });
+  checkTranslations(wikiDir, manifest, report, !!publish);
+  if (publish && product) checkReleased(manifest, parsed, publish, product.version, report);
 
   const planned = manifest.pages.filter((p) => p.state === 'planned' && !p.generated).length;
   if (planned) report.gaps.push(`${planned} of ${manifest.pages.length} pages are planned (no file yet)`);
@@ -247,8 +346,19 @@ function checkTemplates(wikiDir: string, report: CheckReport): void {
     }
     const a = parsePage(readFileSync(join(dir, en), 'utf8'), 'en');
     const b = parsePage(readFileSync(join(dir, fr), 'utf8'), 'fr');
-    for (const problem of a.problems) report.errors.push(`_templates/${en} ${problem}`);
-    for (const problem of b.problems) report.errors.push(`_templates/${fr} ${problem}`);
+    for (const [name, t] of [
+      [en, a],
+      [fr, b],
+    ] as const) {
+      for (const problem of t.problems) report.errors.push(`_templates/${name} ${problem}`);
+      // A template shows a measure as a page must write it.
+      for (const m of t.blocks.filter((x) => x.kind === 'MEASURE'))
+        for (const problem of measureProblems(m))
+          report.errors.push(`_templates/${name} line ${m.line}: [!MEASURE id=${m.id}] ${problem}`);
+    }
+    if (!sameSet(a.steps, b.steps)) report.errors.push(`_templates/${en} and ${fr}: the step ids differ`);
+    if (!sameSet(Object.keys(a.sectionVersions), Object.keys(b.sectionVersions)))
+      report.errors.push(`_templates/${en} and ${fr}: the sections with an applies marker differ`);
     if (!sameSet(a.sections, b.sections)) report.errors.push(`_templates/${en} and ${fr}: the section ids differ`);
     if (
       !sameSet(
@@ -286,4 +396,270 @@ export function wikiStats(manifest: Manifest, wikiDir: string): WikiStats {
       fr: manifest.pages.filter((p) => existsSync(fileOf(wikiDir, 'fr', p.id))).length,
     },
   };
+}
+
+// ------------------------------------------------------------------------------------------------- A5: versions
+
+/** The checkout's product version, from its package.json; '0.0.0' when it has none (a fixture). */
+function checkoutVersion(root: string): string {
+  try {
+    const v = (JSON.parse(readFileSync(join(root, 'package.json'), 'utf8')) as { version?: unknown }).version;
+    return typeof v === 'string' && SEMVER.test(v) ? v : '0.0.0';
+  } catch {
+    return '0.0.0';
+  }
+}
+
+/**
+ * A section's versions stay inside its page's (§4.4.1): a section may narrow `appliesFrom`..`appliesUntil`, never
+ * widen it; its own bounds are in order, and `featureSince` is not after `appliesUntil`.
+ */
+function checkVersions(manifest: Manifest, parsed: ReadonlyMap<string, ParsedPage>, report: CheckReport): void {
+  for (const [key, page] of parsed) {
+    const p = manifest.pages.find((x) => x.id === key.split('/')[1])!;
+    const pv = p.versions;
+    for (const [sid, v] of Object.entries(page.sectionVersions)) {
+      const at = `${key}.md line ${v.line} (#${sid})`;
+      const from = v.appliesFrom ?? pv?.appliesFrom;
+      const until = v.appliesUntil ?? pv?.appliesUntil;
+      if (v.appliesFrom && pv?.appliesFrom && compareVersions(v.appliesFrom, pv.appliesFrom) < 0)
+        report.errors.push(`${at}: applies from ${v.appliesFrom}, before its page (${pv.appliesFrom})`);
+      if (v.appliesUntil && pv?.appliesUntil && compareVersions(v.appliesUntil, pv.appliesUntil) > 0)
+        report.errors.push(`${at}: applies until ${v.appliesUntil}, after its page (${pv.appliesUntil})`);
+      if (from && until && compareVersions(from, until) > 0)
+        report.errors.push(`${at}: applies from ${from} until ${until}, an empty range`);
+      if (v.featureSince && until && compareVersions(v.featureSince, until) > 0)
+        report.errors.push(`${at}: featureSince ${v.featureSince} is after appliesUntil ${until}`);
+    }
+  }
+}
+
+// ------------------------------------------------------------------------------------------------- A5: blocks
+
+/** A measure's source: the URL of a Markdown link `[label](url)`, or the value as written. */
+const sourceUrl = (value: string) => /\]\((\S+?)\)/.exec(value)?.[1] ?? value.trim();
+/** A proof's link is pinned: a GitHub file at a full commit (§4.4.3, §4.5.6), never a branch. */
+const PINNED = /^https:\/\/github\.com\/[\w.-]+\/[\w.-]+\/blob\/[0-9a-f]{40}\/\S+$/;
+const MEASURE_FIELDS = ['date', 'version', 'volume', 'conditions', 'source'] as const;
+
+/** What a `[!MEASURE]` block lacks: each field present, the date a day, the version SemVer, the source pinned. */
+function measureProblems(b: Block): string[] {
+  const out: string[] = [];
+  for (const k of MEASURE_FIELDS) if (!b.fields[k]) out.push(`has no "- ${k}: …" line`);
+  const { date, version, source } = b.fields;
+  if (date && (!/^\d{4}-\d{2}-\d{2}$/.test(date) || Number.isNaN(Date.parse(date))))
+    out.push(`its date "${date}" is not a day (2026-10-19)`);
+  if (version && !SEMVER.test(version.replace(/^v/, ''))) out.push(`its version "${version}" is not a product version`);
+  if (source && !PINNED.test(sourceUrl(source)))
+    out.push(
+      `its source "${sourceUrl(source)}" is not pinned: https://github.com/<owner>/<repo>/blob/<40-hex commit>/<path>`,
+    );
+  return out;
+}
+
+/**
+ * The structured blocks: a measure carries its five fields; a guarantee is a claim of its page's manifest entry, and a
+ * written page's claim has its block in each language; claim ids are unique across the manifest.
+ */
+function checkBlocks(manifest: Manifest, parsed: ReadonlyMap<string, ParsedPage>, report: CheckReport): void {
+  for (const [key, page] of parsed) {
+    const p = manifest.pages.find((x) => x.id === key.split('/')[1])!;
+    const seen = new Set<string>();
+    for (const b of page.blocks) {
+      const at = `${key}.md line ${b.line}`;
+      if (seen.has(`${b.kind}:${b.id}`)) report.errors.push(`${at}: the ${b.kind} id "${b.id}" is given twice`);
+      seen.add(`${b.kind}:${b.id}`);
+      if (b.kind === 'MEASURE')
+        for (const m of measureProblems(b)) report.errors.push(`${at}: [!MEASURE id=${b.id}] ${m}`);
+      if (b.kind === 'GUARANTEE' && !p.claims?.some((c) => c.id === b.id))
+        report.errors.push(
+          `${at}: [!GUARANTEE id=${b.id}] has no claim in the manifest (${p.id}.claims: {"id": "${b.id}", "test": "file.test.ts › its name"})`,
+        );
+    }
+    for (const c of p.claims ?? [])
+      if (!page.blocks.some((b) => b.kind === 'GUARANTEE' && b.id === c.id))
+        report.errors.push(`${key}.md: the claim ${c.id} of the manifest has no [!GUARANTEE id=${c.id}] block`);
+  }
+  const owners = new Map<string, string>();
+  for (const p of manifest.pages)
+    for (const c of p.claims ?? []) {
+      const owner = owners.get(c.id);
+      if (owner && owner !== p.id) report.errors.push(`${p.id}: the claim id ${c.id} is already ${owner}'s`);
+      owners.set(c.id, p.id);
+    }
+}
+
+// ------------------------------------------------------------------------------------------------- A5: statuses
+
+/** The surfaces a page names exist in the registry, the registry is sound, and each surface's statuses are known. */
+function checkSurfaces(
+  root: string,
+  tracked: readonly string[],
+  manifest: Manifest,
+  report: CheckReport,
+  version: string,
+): void {
+  // A repository without a registry (a test's) is checked only when one of its pages names a surface.
+  if (!existsSync(join(root, CONTRACTS_FILE)) && !manifest.pages.some((p) => p.surfaces?.length)) return;
+  const { contracts, errors } = readContracts(root);
+  report.errors.push(...errors);
+  if (!contracts) return;
+  report.errors.push(...checkContracts(root, tracked, contracts));
+  report.statuses = surfaceStatuses(root, contracts, version);
+  for (const p of manifest.pages)
+    for (const s of p.surfaces ?? [])
+      if (!(s in contracts.contracts))
+        report.errors.push(
+          `${p.id}: the surface "${s}" is not in docs/dev/contracts.json (${Object.keys(contracts.contracts).join(', ')})`,
+        );
+}
+
+// ------------------------------------------------------------------------------------------------- A5: claims
+
+function checkClaims(o: {
+  root: string;
+  wikiDir: string;
+  trackedSet: ReadonlySet<string>;
+  manifest: Manifest;
+  parsed: ReadonlyMap<string, ParsedPage>;
+  report: CheckReport;
+  testReports: readonly string[];
+  candidate?: string;
+  commit?: string;
+  publish: boolean;
+}): void {
+  const reports: TestReport[] = [];
+  for (const f of o.testReports) {
+    const r = readTestReport(f);
+    if (r.error) o.report.errors.push(`--test-report ${r.error}`);
+    else if (o.candidate && r.report!.run !== o.candidate)
+      o.report.errors.push(
+        `--test-report ${f}: its commit.json names the run ${r.report!.run ?? '(none)'}, not the candidate ${o.candidate}`,
+      );
+    else reports.push(r.report!);
+  }
+  const { reviews, errors } = readReviews(o.wikiDir);
+  o.report.errors.push(...errors);
+  const inputs = claimsOf(o.manifest, (p, l) => o.parsed.get(`${l}/${p.id}`)?.blocks);
+  o.report.claims = claimStates({
+    root: o.root,
+    tracked: o.trackedSet,
+    claims: inputs,
+    reports,
+    reviews,
+    commit: o.commit,
+  });
+  const known = new Set(inputs.map((c) => c.claim.id));
+  for (const id of Object.keys(reviews.claims))
+    if (!known.has(id)) o.report.warnings.push(`reviews.json: ${id} is no claim of the manifest (remove the record)`);
+  for (const s of o.report.claims) {
+    const page = o.manifest.pages.find((p) => p.id === s.page)!;
+    if (s.unreferenced) o.report.errors.push(`${s.page}: the claim ${s.id} is not referenced: ${s.unreferenced}`);
+    if (s.excluded) o.report.warnings.push(`${s.page}: the claim ${s.id} cannot be executed: ${s.excluded}`);
+    if (s.reviewStale)
+      o.report.warnings.push(`${s.page}: the claim ${s.id}'s review no longer holds: ${s.reviewStale}`);
+    // A published claim was executed on the documented product (§4.1.4); before that, its state is said.
+    if (o.publish && page.state === 'ready' && !s.executedOn)
+      o.report.errors.push(`${s.page}: the claim ${s.id} is not executed: ${s.notExecuted}`);
+    else if (!s.executedOn && page.state !== 'planned')
+      o.report.gaps.push(`${s.page}: the claim ${s.id} is referenced, not executed (${s.notExecuted})`);
+  }
+}
+
+// ------------------------------------------------------------------------------------------------- A5: translations
+
+function checkTranslations(wikiDir: string, manifest: Manifest, report: CheckReport, publish: boolean): void {
+  const { translations, errors } = readTranslations(wikiDir);
+  report.errors.push(...errors);
+  const { pairs, stale } = translationStates(wikiDir, manifest, translations);
+  report.pairs = pairs;
+  for (const p of pairs.filter((x) => x.state === 'to review'))
+    (publish ? report.errors : report.warnings).push(
+      `translations: ${p.key} is to review (${p.why}): read both sides, then npm run wiki -- translations --ack ${p.key} --by <name>`,
+    );
+  for (const k of stale) report.warnings.push(`translations.json: ${k} names no section of a written page (remove it)`);
+}
+
+// ------------------------------------------------------------------------------------------------- A5: publication
+
+/**
+ * The product a publication documents, from `--product-ref`, and the source-set rule against `--doc-ref` (§4.5.2);
+ * the bootstrap's preview refused after 4.5.0 (§4.5.3); the drafts left out, said.
+ */
+function publishedProduct(
+  root: string,
+  candidate: string | undefined,
+  wikiDir: string,
+  manifest: Manifest,
+  o: PublishOptions,
+  report: CheckReport,
+): { commit: string; version: string } | undefined {
+  for (const p of manifest.pages.filter((x) => x.state === 'draft' && !x.generated))
+    report.warnings.push(`${p.id} (draft): not published; a ready page may not link to it`);
+  if (o.state === 'preview') {
+    const refused = previewProblem(root);
+    if (refused) report.errors.push(refused);
+  } else if (!candidate)
+    report.errors.push(
+      `--state ${o.state} needs --candidate <run id>: the test reports must come from that candidate run (A5b's workflow downloads its candidate-test-report)`,
+    );
+  const product = commitOf(root, o.productRef);
+  const doc = commitOf(root, o.docRef ?? 'HEAD');
+  if (!product) report.errors.push(`--product-ref ${o.productRef}: not a commit of this repository`);
+  if (!doc) report.errors.push(`--doc-ref ${o.docRef ?? 'HEAD'}: not a commit of this repository`);
+  if (!product || !doc) return undefined;
+  // The check reads the checkout: the revision it names is the one checked out, with nothing changed under the wiki.
+  const head = commitOf(root, 'HEAD');
+  if (doc !== head)
+    report.errors.push(
+      `--doc-ref ${o.docRef}: ${doc.slice(0, 12)} is not the checkout's HEAD (${head?.slice(0, 12)}): check it out first`,
+    );
+  const dirty = dirtySources(root, wikiDir);
+  if (dirty.length)
+    report.errors.push(
+      `the checkout's documentation differs from ${doc.slice(0, 12)}: ${dirty.slice(0, 5).join('; ')}`,
+    );
+  report.errors.push(...sourceSetProblems(root, product, doc));
+  const version = versionAt(root, product);
+  if (!version || !SEMVER.test(version)) {
+    report.errors.push(`--product-ref ${o.productRef}: its package.json gives no product version`);
+    return undefined;
+  }
+  return { commit: product, version };
+}
+
+/**
+ * `--released` (implied by `--state published`): no published page or section applies only from a version after the
+ * product's (§4.5.2). And at any publication, none stopped applying before it (`appliesUntil` below the product's
+ * version) unless it is marked deprecated or archived: what is published as current is true for the product.
+ */
+function checkReleased(
+  manifest: Manifest,
+  parsed: ReadonlyMap<string, ParsedPage>,
+  o: PublishOptions,
+  version: string,
+  report: CheckReport,
+): void {
+  const released = o.released || o.state === 'published';
+  const old = (until: string | undefined) => !!until && compareVersions(until, version) < 0;
+  for (const p of manifest.pages.filter((x) => x.state === 'ready' && !x.generated)) {
+    const from = p.versions?.appliesFrom;
+    if (released && from && compareVersions(from, version) > 0)
+      report.errors.push(`${p.id}: applies from ${from}, after the released product ${version}`);
+    if (old(p.versions?.appliesUntil) && !p.lifecycle)
+      report.errors.push(
+        `${p.id}: applies until ${p.versions!.appliesUntil}, before the product ${version}, and is not marked deprecated or archived (lifecycle)`,
+      );
+    for (const lang of LANGS)
+      for (const [sid, v] of Object.entries(parsed.get(`${lang}/${p.id}`)?.sectionVersions ?? {})) {
+        if (released && v.appliesFrom && compareVersions(v.appliesFrom, version) > 0)
+          report.errors.push(
+            `${lang}/${p.id}.md#${sid}: applies from ${v.appliesFrom}, after the released product ${version}`,
+          );
+        if (old(v.appliesUntil) && !v.lifecycle && !p.lifecycle)
+          report.errors.push(
+            `${lang}/${p.id}.md#${sid}: applies until ${v.appliesUntil}, before the product ${version}, and is not marked deprecated or archived`,
+          );
+      }
+  }
 }

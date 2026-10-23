@@ -53,6 +53,14 @@ const CONSUMERS: Record<string, { phase: Phase; reads: string }> = {
   'tests/scripts-documented.test.ts': { phase: 'C2 switch', reads: 'docs/en|fr/TOOLS.md' },
   'tests/support-truth.test.ts': { phase: 'C2 switch', reads: 'docs/en|fr/SUPPORT.md' },
   'tests/wiki-check.test.ts': { phase: 'A4 active', reads: 'the wiki fixtures and the build' },
+  'tests/wiki-publish.test.ts': {
+    phase: 'A4 active',
+    reads: "a copy of the wiki fixture under a test repository's wiki/",
+  },
+  'tests/contracts.test.ts': {
+    phase: 'C2 switch',
+    reads: "docs/en|fr/SUPPORT.md, which the status registry's quotes agree with",
+  },
   'tests/wiki-coverage.test.ts': { phase: 'C2 switch', reads: 'docs/en|fr, the frozen inventory' },
   'tests/wiki-access.test.ts': { phase: 'C2 switch', reads: "docs/en's eight pages, against the bundle's copies" },
   'tests/mcp-docs.test.ts': { phase: 'C2 switch', reads: "docs/en's eight pages, against read_doc {name}" },
