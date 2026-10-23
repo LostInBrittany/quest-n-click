@@ -32,7 +32,7 @@ ou Linux. Le moteur s'installe depuis l'archive d'une release (la
 publication npm arrive dans une release ultérieure) :
 
 ```bash
-T=https://github.com/wanoo/quest-n-click/releases/download/v4.3.1/quest-n-click-4.3.1.tgz
+T=https://github.com/wanoo/quest-n-click/releases/download/v4.4.0/quest-n-click-4.4.0.tgz
 npx --package=$T quest-n-click create mon-jeu "Mon jeu" --engine=$T
 cd mon-jeu && npm install
 npm run assets && npm run dev        # y jouer ; puis npm run verify, npm run build
@@ -151,7 +151,7 @@ erreurs avant qu'une personne les voie. Chaque résultat reste relisible, dans l
 ## En chiffres
 
 Mesuré sur ce commit de `main` par les vérifications automatiques (`npm run quality:baseline` écrit ces chiffres) :
-<!-- metric:tests -->2949<!-- /metric --> déclarations de tests unitaires, sous Node 22 et 24, avec des planchers de
+<!-- metric:tests -->3264<!-- /metric --> déclarations de tests unitaires, sous Node 22 et 24, avec des planchers de
 couverture et des tests de mutation bloquants ; le jeu de référence prouvé en <!-- metric:referenceStates -->288<!-- /metric -->
 états ; la première visite du joueur, <!-- metric:initialJsKB -->136<!-- /metric --> Ko de JavaScript compressé. Chaque
 release est construite depuis le commit que son candidat a testé. Le candidat produit les quatre archives de packages,
@@ -167,7 +167,11 @@ Chaque page existe en anglais (`docs/en/`) et en français (`docs/fr/`), et un t
 dans [TOOLS](docs/fr/TOOLS.md), ce qui change dans le [CHANGELOG](CHANGELOG.md), passer à une nouvelle version dans
 [UPGRADING](docs/fr/UPGRADING.md), et d'où vient le projet dans la [ROADMAP](docs/fr/ROADMAP.md).
 
-Release actuelle : [v4.3.1 (Voices by Language)](https://github.com/wanoo/quest-n-click/releases/tag/v4.3.1) : les aiguillages propres à
+Release actuelle : [v4.4.0 (Author's Desk)](https://github.com/wanoo/quest-n-click/releases/tag/v4.4.0) : un exemple
+jouable du choix du héros en deux langues (`games/heroes`), la matrice héros × langue du Studio, des captures
+avant/après dans le diff sémantique, une prévisualisation hébergée plus rapide, un hotspot qui agit d'un seul tap et une
+épingle de carte à plusieurs lieux (Horacio, LostInBrittany), la colonne du téléphone sur un écran paysage bas. Sur la
+4.3.1 : les aiguillages propres à
 une traduction ont leurs voix par valeur sur toute la chaîne, et `npm run solve` est présenté comme trouvant un chemin
 gagnant (`--prove` prouve chaque héros). Sur la 4.3.0 « Hero Choice » : le
 joueur choisit son héros à la Nouvelle partie (des portraits dans un choix, un nom par variante, des aiguillages de

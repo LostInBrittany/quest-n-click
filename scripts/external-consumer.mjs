@@ -7,12 +7,15 @@
 // and every file the consumer wrote is searched for the checkout's path.
 //
 //   1. the archives read: name, version, licence, binaries, exports, no `file:`/`link:` dependency, no checkout path;
+//      the engine's documentation bundle (4.5.0), `docs-bundle/`, each file matching its manifest's sha256;
 //   2. a game created on the older release (`--from`, 4.1.17 by default), its assets, verify, and a save made by that
 //      engine; then moved to the candidate as its author would (4.3.0, D47: the former name's aliases are gone): the
 //      old package uninstalled, `quest-n-click` installed from its archive, `npx quest-n-click migrate` (which renames
 //      the `web-scumm/…` imports, the tsconfig's paths and the scripts' commands), migrate --check, assets, verify,
 //      build, the old save loaded and played to the ending through `quest-n-click/testing`, a new game played to the
-//      ending the same way;
+//      ending the same way; then (4.5.0) a real MCP client over stdio against that project's `quest-n-click mcp`:
+//      read_doc {name} one text block, the bundle's copy, nothing beside it; list_docs and search_docs offered, the
+//      bundle naming this version;
 //   3. `npx create-quest-n-click` from its archive;
 //   4. the Bridge from its archive: init, doctor, serve on SQLite (and on Postgres when CONSUMER_PG_URL is set), its
 //      keys answered;
@@ -83,6 +86,35 @@ function leaksIn(dir) {
   return out;
 }
 
+/**
+ * The engine's documentation bundle in the archive actually produced (4.5.0, docs/dev/PLAN-4.5-WIKI.md §4.3.4): its
+ * manifest names this version, each file it lists is there with its sha256, and no other file is.
+ */
+function bundleRead(dir) {
+  const b = join(dir, 'docs-bundle');
+  if (!existsSync(join(b, 'bundle-manifest.json'))) return fail('quest-n-click: no docs-bundle/ in the archive');
+  const m = json(join(b, 'bundle-manifest.json'));
+  if (m.format !== 'quest-n-click-docs-bundle' || m.version !== 1)
+    fail(`docs-bundle: format ${m.format} v${m.version}`);
+  if (m.productVersion !== version) fail(`docs-bundle: built for ${m.productVersion}, not ${version}`);
+  for (const f of m.files) {
+    const file = join(b, f.path);
+    if (!existsSync(file)) fail(`docs-bundle/${f.path}: missing`);
+    else if (createHash('sha256').update(readFileSync(file)).digest('hex') !== f.sha256)
+      fail(`docs-bundle/${f.path}: its sha256 is not the manifest's`);
+  }
+  const listed = new Set(m.files.map((f) => f.path));
+  const walk = (d, prefix) =>
+    readdirSync(d).flatMap((e) =>
+      statSync(join(d, e)).isDirectory() ? walk(join(d, e), `${prefix}${e}/`) : [`${prefix}${e}`],
+    );
+  for (const f of walk(b, ''))
+    if (f !== 'bundle-manifest.json' && !listed.has(f)) fail(`docs-bundle/${f}: not in its manifest`);
+  for (const name of ['CONTENT_GUIDE', 'ENGINE', 'TOOLS', 'STUDIO', 'WORKFLOW', 'AUDIO', 'UPGRADING', 'CLASSICS'])
+    if (!listed.has(`legacy/${name}.md`)) fail(`docs-bundle: no legacy/${name}.md`);
+  console.log(`✔  docs-bundle/ of ${version}: ${m.files.length} files, each matching its sha256`);
+}
+
 // ---------------------------------------------------------------- the archives
 // The packages under their names since 4.2.5 (D47); their former names' aliases went in 4.3.0.
 const NAMES = ['quest-n-click', 'create-quest-n-click', 'quest-n-click-bridge', 'quest-n-click-connectors'];
@@ -127,6 +159,7 @@ for (const [n, f] of Object.entries(tgz)) {
   for (const [d, spec] of Object.entries({ ...pkg.dependencies, ...pkg.peerDependencies, ...pkg.optionalDependencies }))
     if (/^(file|link|portal|workspace):/.test(String(spec))) fail(`${n}: depends on ${d} through ${spec}`);
   for (const leak of leaksIn(dir)) if (leak.includes('names the checkout')) fail(`${n}: ${leak}`);
+  if (n === 'quest-n-click') bundleRead(dir);
 }
 if (!failed)
   console.log(`✔  ${NAMES.length} archives of ${version}: names, version, licence, binaries, exports, dependencies`);
@@ -228,6 +261,39 @@ run(
   ['tsx', '--tsconfig', 'tsconfig.json', 'play.ts'],
   game,
 );
+// The documentation from the installed engine (4.5.0, plan §4.3.4): a real MCP client over stdio, the SDK the engine
+// depends on, against `quest-n-click mcp` in this project. read_doc {name} answers one block, the bundle's exact copy
+// (in 4.4.0 a created project had nothing to read); search_docs and list_docs are offered and name this version.
+writeFileSync(
+  join(game, 'mcp-docs.mjs'),
+  `import { readFileSync } from 'node:fs';
+import { Client } from '@modelcontextprotocol/sdk/client/index.js';
+import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js';
+const engine = 'node_modules/quest-n-click';
+const version = JSON.parse(readFileSync(engine + '/package.json', 'utf8')).version;
+const problems = [];
+const c = new Client({ name: 'external-consumer', version: '0' });
+await c.connect(new StdioClientTransport({ command: process.execPath, args: [engine + '/cli/quest-n-click.mjs', 'mcp'], env: process.env, stderr: 'inherit' }));
+const names = (await c.listTools()).tools.map((t) => t.name);
+for (const t of ['read_doc', 'search_docs', 'list_docs']) if (!names.includes(t)) problems.push('tools/list has no ' + t);
+const legacy = await c.callTool({ name: 'read_doc', arguments: { name: 'CONTENT_GUIDE' } });
+const copy = readFileSync(engine + '/docs-bundle/legacy/CONTENT_GUIDE.md', 'utf8');
+if (legacy.isError || legacy.content.length !== 1 || legacy.content[0].type !== 'text') problems.push('read_doc {name}: not one text block: ' + JSON.stringify(legacy).slice(0, 200));
+else if (legacy.content[0].text !== copy) problems.push('read_doc {name}: not the bundle copy of CONTENT_GUIDE');
+if (legacy.structuredContent !== undefined) problems.push('read_doc {name}: structured content beside the page (4.4.0 had none)');
+const list = await c.callTool({ name: 'list_docs', arguments: {} });
+const from = list.structuredContent?.provenance;
+if (list.isError || from?.source !== 'bundle' || from?.productVersion !== version) problems.push('list_docs: ' + JSON.stringify(list).slice(0, 200));
+const search = await c.callTool({ name: 'search_docs', arguments: { query: 'room' } });
+if (search.isError) problems.push('search_docs: ' + search.content[0]?.text);
+const byId = await c.callTool({ name: 'read_doc', arguments: { name: 'CONTENT_GUIDE', id: 'create.rooms' } });
+if (!byId.isError) problems.push('read_doc with name and id: not refused');
+await c.close();
+if (problems.length) { console.error(problems.join('\\n')); process.exit(1); }
+console.log('MCP from the installed engine: read_doc {name} one block (' + copy.length + ' characters, the bundle copy), list_docs ' + list.structuredContent.total + ' page(s), search_docs answers, provenance ' + version);
+`,
+);
+node('the documentation through MCP, from the installed engine', [join(game, 'mcp-docs.mjs')], game);
 for (const leak of leaksIn(game)) fail(leak);
 
 // ---------------------------------------------------------------- create-quest-n-click

@@ -101,6 +101,9 @@ export default defineConfig({
               ...(gameUsesReality ? [] : ['assets/reality/**']),
             ],
             navigateFallback: 'index.html',
+            // The documentation Pages serves beside the game (/docs/, 4.5.0): a reader who played keeps the worker,
+            // which must not answer a page of the documentation with the game.
+            navigateFallbackDenylist: [/\/docs\//],
             cleanupOutdatedCaches: true,
             // The worker claims the page at its first activation (the warm-up's fetches must pass through it to be cached);
             // an update never activates on its own: the banner asks, after a durable save (dom/update.ts).
@@ -227,10 +230,10 @@ export default defineConfig({
       thresholds: {
         // The floor measured at 4.1.0 (the browser-only parts of src/, the player's UI and the Studio's, are covered
         // by the e2e, not here).
-        lines: 74,
-        statements: 73,
+        lines: 75,
+        statements: 74,
         functions: 71,
-        branches: 69,
+        branches: 70,
         // What a save, a session, a condition and a migration rest on: every branch.
         'src/engine/core/cond.ts': { branches: 100 },
         'src/engine/core/diff.ts': { branches: 100 },
@@ -271,7 +274,7 @@ export default defineConfig({
         'studio-server/src/server/health.ts': { lines: 98, branches: 94 },
         'studio-server/src/server/prepared.ts': { lines: 98, branches: 92 },
         'studio-server/src/server/previews.ts': { lines: 97, branches: 96 },
-        'studio-server/src/server/remote-executor.ts': { lines: 95, branches: 87 },
+        'studio-server/src/server/remote-executor.ts': { lines: 96, branches: 88 },
         'studio-server/src/worker/job.ts': { lines: 100, branches: 100 },
         'studio-server/src/worker/snapshot.ts': { lines: 95, branches: 88 },
         'bridge/src/bridge.ts': { lines: 97, branches: 96 },

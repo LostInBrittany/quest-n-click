@@ -1,5 +1,126 @@
 # Changelog
 
+## 4.4.0 — 2026-10-22
+
+LOG #256–#267: "Author's Desk", the release an outside reading of 4.3 asked for: making a whole game simpler to make
+and to check. A playable example of choosing the hero in two languages, `games/heroes`, with its browser test (building
+it found three bugs, fixed below). The Studio's hero × language matrix (the Voices tab). Before/after captures of the
+rooms the semantic diff names (a local Studio). The hosted preview measured phase by phase and made about three times
+faster on the reference deployment: from a write to a ready preview, median 17.8 s → 5.6 s, max 26.0 s → 11.7 s over
+ten revisions each (QUALIF-4.2.3-REFERENCE §6). From Horacio (LostInBrittany), thank you: a hotspot that acts on a
+single tap (#221), one map pin for several places (#223), the phone's column on a short landscape screen (#227). The
+137 mutation exemptions due at 4.4.0 read again, then read a second time: four bugs fixed with tests. Two new people's
+passes (`heroes-two-languages`, `studio-hero-matrix`); none of the twenty-one has passed yet. Nothing to change in a
+game (UPGRADING §41; strict SemVer: the new fields are optional). The tag is signed with the maintainer's SSH key on
+their yes of 22 October for `v4.4.0` (D37).
+
+### Fixed
+
+- **The phone layout's column fits a short landscape screen (4.4.0, #227)**: on a phone in landscape under its
+  browser's bars (e.g. 844 × 320), the right-hand column was 300 px wide, each bag slot a square 87 px tall, the verbs
+  44 to 56 px, and the tools row (map, pause, music) went out at the bottom of the screen; six items or more (the bag's
+  page buttons) cut it on a 568 × 320 phone too. The column now fits its height: the slots stop being square first,
+  then the verbs come down to 44 px, and only when 44 px no longer fits do verbs and slots share the room; the tools
+  row never shrinks, and past a floor the column scrolls instead of cutting. The layout also reads the room inside the
+  safe areas (notch, home indicator) instead of the whole screen. Nothing to change in a game.
+
+- **The Studio checks a translation's verb keys too (4.4.0)**: a translation that gives two verbs the same key
+  (`fr: verbs.take.key › "F" is already the key of "close"`) was refused by `npm run validate` only; the Studio's
+  guard, its processing worker and its in-browser demo said nothing. `validate` now runs that check whenever it is
+  given the translations, so every caller says the same.
+
+- **A translation's voice clips ship with the game (4.4.0)**: `npm run assets` encoded only `audio.voices`, so the
+  clips of `audio.voicesByLang` (a French recording) never reached `public/assets/audio/voices/` and a French page
+  played nothing. They are now prepared like the others (keyed `<lang>:<id>` in `assets.gen.json`).
+- **`npm run voices -- check` reads each language's own text (4.4.0)**: 4.3.1 taught `status` that a clip keyed on a
+  switch only the translation has (`Reviens sain{form?gull=e|*=} et sau{form?gull=ve|*=f} !`) belongs to that line;
+  `check` still read the source text and warned "a clip no line claims".
+- **`npm run e2e` in two languages in one run (4.4.0)**: the e2e harness kept the verb labels of the first page it
+  read, so a game script that reloaded the page in another language (`?lang=fr`) tapped the English labels. It reads
+  them again after each load.
+
+- **A Reality page that polls no longer piles up listeners (4.4.0)**: the HTTP port's wait between two polls (or two
+  reconnections of the stream) added an `abort` listener to the port's signal and removed it only on an abort, never
+  when the wait ended on time. A page polling once a second held some 86 000 more closures a day, for as long as it
+  stayed open. Each wait now removes its listener when it ends, either way.
+- **An email's HTML read with a Turkish capital İ hides its scripts and comments again (4.4.0)**: the email
+  connector's `htmlToText` looked for tags in the message's lower case at the original's positions, and a character
+  whose lower case is longer (İ is two characters in lower case) shifted them: after an İ, a `<script>`'s or a
+  comment's content leaked into the text an answer is read from, and visible text after a `<style>` could vanish.
+  Tags are now matched in ASCII lower case, as HTML names them, which keeps every position.
+
+- **The Studio's simulated Bridge no longer leaks a listener per wait (4.4.0)**: each wait for a signal left an
+  `abort` listener on the connection, as the Reality port's sleep did (fixed in the same release); a long Studio
+  session gathered thousands.
+
+- **The CLI's login says why the provider refused it (4.4.0)**: `studio-server login` ended on a bare
+  `ResponseBodyError` when the OpenID provider refused the device login; it now names the provider's code and reason,
+  e.g. `not_allowed (Offline tokens not allowed for the user or client)`. STUDIO-SERVER says what that one needs: the
+  client scope `offline_access` on the CLI client and the realm role `offline_access` for each member.
+
+### Changes
+
+- **A hotspot can act on a single tap, as an exit can (4.4.0, #221)**: a hotspot that says `onTap: 'go'` answers a
+  single tap with no verb picked as an exit with `input.exitOnTap` does (#188): the hero walks there and acts on
+  arrival with the double tap's verb (`defaultVerb`). E.g. an endless aisle that says why one does not walk down it,
+  the LucasArts "Walk to" that gives a comment. Without it a tap on a hotspot only walks there, as before;
+  `input.exitOnTap` stays about exits. Input only: rules, solver and saves do not see it. Nothing to change in a game.
+
+- **One map pin for a city with several places (4.4.0, #223)**: a place's `portrait` can be a list, its faces side by
+  side on the pin, and a place that says `joins: '<place>'` sits on that place's pin instead of having its own: once
+  it is unlocked its face is added there, a tap on a face travels to that face's place, from any of them the pin is
+  "here" (only the current face ringed), and moving between two places of one pin draws no journey. E.g. a city whose
+  reception and office upstairs are both destinations. A pin with one place renders as before; the validator wants
+  the joined place to exist, in the same region, and not to join another itself. Nothing to change in a game.
+
+- **The Studio's hero × language matrix (4.4.0)**: the Voices tab has a second view, "Heroes × languages", read-only
+  and in the in-browser demo too. For each line with an id whose text (in any language) has a text switch or
+  `{hero}`, a column per hero (each value the switched flags take, headed by the variant's portrait and name) and per
+  language; each cell shows the text that hero reads, the clip that plays, and the keyed clip that is missing (the
+  plain id named when it plays instead). A row flags an untranslated language, a translation that drops a choice the
+  source makes, and a hero's value no switch of the line lists without `*=`; "Lines with a problem" keeps only those.
+  The same data as `GET hero-matrix` on the Studio API, and as `heroMatrix(game, locales)` in
+  `src/engine/tools/hero-matrix.ts`.
+
+- **The semantic diff draws the rooms it names, before and after (4.4.0)**: in the Check tab, under "Changes between
+  revisions", **Capture the rooms (before / after)** shows each room the changes name (its layout, its source, its
+  texts in a language; the first room when only shared files changed, such as the cast or `site.json`; six at most)
+  at both revisions, side by side, with the rectangle where they differ outlined, or "no visible change". A moved
+  prop, a font or a text that overflows is seen at once. Each revision is built as a preview and drawn in headless
+  Chromium at a fixed 960 × 600; the PNGs are kept under `.cache/studio/`. New route `GET diff/<from>..<to>/captures`.
+  A local Studio only (`npm run studio`, with Playwright): a hosted Studio answers that the captures need one, its
+  worker having no browser (docs/en/STUDIO.md "Check" lists the other limits).
+
+- **A hosted preview's time, phase by phase (4.4.0)**: a preview's log line (`"event":"preview"`) now says where its
+  time goes: `queuedMs` (from the write to the build's start: the coalescing, a build before it, the retries),
+  `snapMs`, `jobMs` (the worker's job as the Studio waits for it, its queue on the worker included), `storeMs` and the
+  whole wait, `sinceWriteMs`. Each job the Studio asks of the worker logs a `worker-call` line (`putMs`, `postMs`,
+  `getMs`, `delMs`), and the worker's own `worker-job` line says `queueMs`, `fetchMs`, `unpackMs`, `childMs` and
+  `putMs`. Two histograms read them, `studio_preview_phase_seconds{phase}` and
+  `studio_worker_job_phase_seconds{kind,phase}`; `studio_preview_build_seconds` is said to start after the snapshot,
+  as it always did.
+- **A faster hosted preview (4.4.0)**: the worker runs one job at a time per lane, a preview's build in a lane of its
+  own, so it no longer waits behind the health's validator and solver (up to 45 s) or a load; each lane holds 8 jobs
+  at most. The Studio packs one snapshot per revision, shared by the preview, the health, the published builds and the
+  engine's upgrade (the lock, the repair and the walk once, not three times); stores a build's files 8 at a time; does
+  not write again a blob it stored less than an hour ago; and answers once it has read the worker's result, the
+  staging deleted after (a delete that fails is logged, `worker-staging-left`). Nothing changes for a game.
+
+- **A playable example of choosing the hero (4.4.0)**: `games/heroes`, "Who Am I Today?", one garden and one puzzle
+  for every 4.3 hero-choice feature at once. Three heroes on portrait cards at New Game (Pixel, Biscuit, Gaby the
+  gull), their names in the lines (`{hero}`), Grandma's words switched for each (`{form?…}`), one rule only the gull
+  gets, English and French (the French table adds its own agreements: `Prête` for the gull), Grandma's lines voiced
+  per hero in both languages (`garden.dust~form=gull` in `audio.voices` and `audio.voicesByLang.fr`), and a save that
+  keeps the hero. The sample game's art. `GAME=heroes npm run dev` plays it, `GAME=heroes npm run solve -- --prove`
+  proves it for every hero, `npm run e2e -- <url> --game heroes --prod` picks each hero on its card in English and in
+  French, saves, reloads, continues and finishes (in CI's `reference` job). CONTENT_GUIDE's hero section points to it.
+
+- **The 137 mutation exemptions read again (4.4.0)**: each entry of `docs/dev/mutants.json` came due at 4.4.0 and was
+  checked against the code. Four were not what they said and are now killed by a test (a delivery with an empty
+  player id bound the save to it, the Bridge's re-sign cache hits were never counted, a badge fetch's own request
+  timeout, a logout token whose `events` is `null`); reading them found the two fixes above. The other 133 keep their
+  place, 16 with a reason rewritten, and are read again at 4.5.0.
+
 ## 4.3.1 — 2026-10-21
 
 LOG #254–#255: "Voices by Language", a patch on 4.3.0 after an outside reading of it. A translation that agrees a line

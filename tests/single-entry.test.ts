@@ -81,6 +81,25 @@ const WRITERS: Record<string, string> = {
   'tools/code-wheel-pdf.py': 'elsewhere: the PDF named on the command line',
   'tools/dist.ts': 'elsewhere: dist/',
   'tools/dsl-doc.ts': 'elsewhere: docs/',
+  'tools/wiki/acceptance.ts':
+    "elsewhere: level 2's prompts (`wiki -- acceptance --export-prompts`), in the folder named on the command line (outside the working tree, or under .cache/)",
+  'tools/wiki/build.ts':
+    'elsewhere: the wiki build, in the folder named by --out (outside the working tree, or under .cache/)',
+  'tools/wiki/bundle.ts':
+    "elsewhere: the documentation bundle, in the folder named by --out (a package's docs-bundle/, never under a folder the repository tracks)",
+  'tools/wiki/claims.ts':
+    "elsewhere: wiki/reviews.json, the claims' scope reviews `wiki -- review-claim` records (of the folder --wiki names)",
+  'tools/wiki/coverage.ts':
+    "elsewhere: the coverage matrix and what it generates, wiki/coverage.json, wiki/legacy.json and the manifest's replaces in wiki/manifest.json (of the folder --wiki names)",
+  'tools/wiki.ts': 'elsewhere: the documentation archive, the file named by `wiki -- archive --out`',
+  'tools/wiki/pages.ts':
+    "elsewhere: Pages' /docs/, into the empty folder named by `wiki -- pages --out` (dist/docs in ci)",
+  'tools/wiki/publication.ts':
+    "elsewhere: a clone of the wiki's repository in a temporary folder (its pages and publication.json, pushed), and the deploy key (0600) beside it",
+  'tools/wiki/transition.ts':
+    'elsewhere: the transition pages docs/en|fr/*.md (C2), under the root `wiki -- transition --root` names',
+  'tools/wiki/translations.ts':
+    'elsewhere: wiki/translations.json, the pairs `wiki -- translations --ack` records (of the folder --wiki names)',
   'tools/field/bundle.ts': 'elsewhere: field bundles',
   'tools/field/field.ts': 'elsewhere: field reports',
   'tools/field/surfaces.mjs': 'elsewhere: qualification surfaces',

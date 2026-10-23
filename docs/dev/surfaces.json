@@ -279,6 +279,45 @@
    "dependencies": [
     "studio-hosted"
    ]
+  },
+  "heroes-two-languages": {
+   "since": "4.4.0",
+   "artifacts": [
+    "pack/{proj}-{pkg}.tgz"
+   ],
+   "config": [
+    "games/heroes/**",
+    "docs/en/CONTENT_GUIDE.md"
+   ],
+   "exclusions": [],
+   "dependencies": []
+  },
+  "studio-hero-matrix": {
+   "since": "4.4.0",
+   "artifacts": [
+    "pack/{proj}-{pkg}.tgz"
+   ],
+   "config": [
+    "docs/en/STUDIO.md",
+    "docs/en/CONTENT_GUIDE.md"
+   ],
+   "exclusions": [],
+   "dependencies": []
+  },
+  "docs-beginner-reader": {
+   "since": "4.5.0",
+   "artifacts": [
+    "pack/{proj}-{pkg}.tgz"
+   ],
+   "config": [
+    "wiki/en/**",
+    "wiki/fr/**",
+    "wiki/manifest.json",
+    "wiki/images/**",
+    "docs/dev/acceptance/BEGINNER-READER.md"
+   ],
+   "exclusions": [],
+   "dependencies": []
   }
  },
  "status": [
@@ -317,6 +356,10 @@
   {
    "path": "signing/*",
    "reason": "the candidate's rehearsal of 4.2's tag signing: a report on the release process, read by no pass"
+  },
+  {
+   "path": "docs/*",
+   "reason": "the documentation archive (4.5.0): published by docs-publish and read by the wiki's own acceptance (PLAN-4.5-WIKI §4.6), not yet a pass surface"
   }
  ]
 }

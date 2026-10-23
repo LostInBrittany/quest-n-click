@@ -31,7 +31,7 @@ Linux. The engine installs from a release's archive (npm publishing comes
 in a later release):
 
 ```bash
-T=https://github.com/wanoo/quest-n-click/releases/download/v4.3.1/quest-n-click-4.3.1.tgz
+T=https://github.com/wanoo/quest-n-click/releases/download/v4.4.0/quest-n-click-4.4.0.tgz
 npx --package=$T quest-n-click create my-game "My Game" --engine=$T
 cd my-game && npm install
 npm run assets && npm run dev        # play it; then npm run verify, npm run build
@@ -145,7 +145,7 @@ mistakes before a person does. Every result stays reviewable, in the Studio and 
 ## In numbers
 
 Measured on this commit of `main` by the automated gates (`npm run quality:baseline` writes these figures):
-<!-- metric:tests -->2949<!-- /metric --> unit test declarations, on Node 22 and 24, with coverage floors and gated
+<!-- metric:tests -->3264<!-- /metric --> unit test declarations, on Node 22 and 24, with coverage floors and gated
 mutation testing; the reference game proved in <!-- metric:referenceStates -->288<!-- /metric --> states; the player's
 first visit <!-- metric:initialJsKB -->136<!-- /metric --> KB of JavaScript, gzipped. Each release is built from the
 commit its candidate tested. The candidate makes the four package archives, the Bridge's image, the SBOMs, the runs and
@@ -160,7 +160,10 @@ Every page exists in English (`docs/en/`) and French (`docs/fr/`), and a test ke
 command in [TOOLS](docs/en/TOOLS.md), what changed in the [CHANGELOG](CHANGELOG.md), moving to a new version in
 [UPGRADING](docs/en/UPGRADING.md), and where it comes from in the [ROADMAP](docs/en/ROADMAP.md).
 
-Current release: [v4.3.1 (Voices by Language)](https://github.com/wanoo/quest-n-click/releases/tag/v4.3.1): a translation's own text
+Current release: [v4.4.0 (Author's Desk)](https://github.com/wanoo/quest-n-click/releases/tag/v4.4.0): a playable
+example of choosing the hero in two languages (`games/heroes`), the Studio's hero × language matrix, before/after
+captures in the semantic diff, a faster hosted preview, a hotspot that acts on a single tap and a map pin with several
+places (Horacio, LostInBrittany), the phone's column on a short landscape screen. Over 4.3.1: a translation's own text
 switches get their voices by value through the whole chain, and `npm run solve` is said to find one winning path
 (`--prove` proves every hero). Over 4.3.0 "Hero Choice": the player
 chooses the hero at New Game (portraits in a choice, a name per variant, text switches so the others' words follow the

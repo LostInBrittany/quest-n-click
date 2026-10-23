@@ -162,7 +162,25 @@ de millisecondes), le job est refusé. Les machines précédentes ne le montraie
 > `snapMs`, `jobMs`, `storeMs`, `sinceWriteMs` ; côté traitement `queueMs`, `fetchMs`, `unpackMs`, `childMs`, `putMs`)
 > puis donne à la prévisualisation sa propre file, stocke ses fichiers 8 à la fois et n'empaquette qu'un instantané
 > par révision : on attend un temps de l'écriture à la prévisualisation prête proche du job lui-même (≈ 6 s) plus
-> l'instantané et le stockage. Les mesures de 4.4.0 seront ajoutées ici.
+> l'instantané et le stockage.
+>
+> **Mesures de 4.4.0** (22 octobre 2026, même déploiement de référence, même méthode : dix notes à 40 s d'intervalle,
+> lignes `"event":"preview"`) : d'abord la version instrumentée seule (`a3294282`, révisions 436 à 445), puis la
+> version optimisée (`b9336a4d`, révisions 446 à 455).
+>
+> | De l'écriture à la prévisualisation prête (`sinceWriteMs`) | Instrumentée | Optimisée |
+> |---|---|---|
+> | médiane | 17,8 s | **5,6 s** |
+> | max (rang 10/10) | 26,0 s | **11,7 s** |
+> | stockage des fichiers (`storeMs`) | 7,4 à 21,5 s | 0,3 à 7,4 s |
+> | job du traitement (`jobMs`) | 1,4 à 6,4 s | 2,7 à 7,6 s |
+> | instantané (`snapMs`) | ≈ 40 ms | ≈ 20 ms |
+> | attente (`queuedMs`) | 0 | 0 |
+>
+> Ce jour-là, la santé n'a pas retardé la prévisualisation (`queuedMs` à 0 dans les deux séries) : le gain vient des
+> fichiers stockés 8 à la fois. Le job lui-même reste la part principale ; il reconstruit le moteur à froid à chaque
+> révision (pistes : un enfant précompilé, des modules du moteur construits une fois). Dix révisions par série :
+> l'ordre de grandeur, pas une distribution.
 
 ## 7. Ce qui n'a pas pu être fait, et ce que l'exécution a trouvé
 
