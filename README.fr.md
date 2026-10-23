@@ -32,7 +32,7 @@ ou Linux. Le moteur s'installe depuis l'archive d'une release (la
 publication npm arrive dans une release ultérieure) :
 
 ```bash
-T=https://github.com/wanoo/quest-n-click/releases/download/v4.5.0/quest-n-click-4.5.0.tgz
+T=https://github.com/wanoo/quest-n-click/releases/download/v4.5.1/quest-n-click-4.5.1.tgz
 npx --package=$T quest-n-click create mon-jeu "Mon jeu" --engine=$T
 cd mon-jeu && npm install
 npm run assets && npm run dev        # y jouer ; puis npm run verify, npm run build
@@ -171,7 +171,10 @@ d'où vient le projet dans la [Feuille de route](https://github.com/wanoo/quest-
 le serveur MCP (`search_docs`, `read_doc`) ; les anciennes pages de `docs/`
 sont des pages de transition, chaque section reliée à sa nouvelle place et à son texte de la 4.4.0.
 
-Release actuelle : [v4.5.0 (Wiki)](https://github.com/wanoo/quest-n-click/releases/tag/v4.5.0) : la documentation
+Release actuelle : [v4.5.1 (Wiki)](https://github.com/wanoo/quest-n-click/releases/tag/v4.5.1) : l'audit du wiki par le
+mainteneur corrigé (liens dont le libellé est du code, le premier tutoriel, les sauvegardes, la fenêtre de support, la
+recherche), les pans propres à un jeu (`spans.json`) et ses exceptions à l'audit des fuites (`audit-allow.json`), et
+l'`url` de `site.json` pour une `og:image` absolue (Horacio). Sur la 4.5.0 « Wiki » : la documentation
 devient un wiki bilingue, 210 pages en français et en anglais, publié depuis l'archive de chaque release ; un assistant
 y cherche avec `search_docs` et `list_docs` et lit une section par son id avec `read_doc`, et le package du moteur la
 porte (`docs-bundle/`), si bien que `read_doc` marche dans un projet créé ; `doctor` fonctionne dans un projet créé. Sur

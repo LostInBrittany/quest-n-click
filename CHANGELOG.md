@@ -1,5 +1,34 @@
 # Changelog
 
+## 4.5.1 — 2026-10-24
+
+LOG #290–#293: a patch on 4.5.0. The maintainer's audit of the published wiki (24 October, 24 findings) is fixed: every
+link whose label is written as code now reaches its target in the wiki, the HTML and the bundle; the first tutorial
+starts with a command that works; the saves pages and the support window say one thing; search finds « pas de son »;
+a page's header is one short line that says who read it. A game may name the spans of its own files (`spans.json`) and
+allow a word of the leak audit (`audit-allow.json`); `site.json`'s `url` gives a deployed game an absolute `og:image`
+and an `og:url`. Nothing to change in a game (Upgrade notes: 4.5, from 4.5.0 to 4.5.1): both files and the `url` are
+optional, and no content field, save, schema or fingerprint moves.
+
+### Fixed
+
+- **Every link of the published documentation reaches its target** (4.5.1, the maintainer's wiki audit, F01–F03). A link whose label was written as code (`` [`src/x.ts`](../../src/x.ts) ``) was invisible to the scanner that rewrites links for the build and reads them for the check: 2,472 links to the repository stayed relative (a 404 on GitHub) and 84 page links kept their `<id>.md` source name (GitHub sent them to Home). The scanner now reads a line as CommonMark does, code spans inside a link's label included; the wiki, the HTML and the bundle are rebuilt with code links at the product commit and page links at their page and section, and a test reads every output back with an independent reader, the audit's 2,556 cases included.
+- **The first tutorial starts with a command that works** (4.5.1, F04, F12–F15). "Your first game" installs from the release archive first (the packages are not on npm yet), asks for Node 22.13 (the Studio it uses needs it), writes the storyboard before the room as the working loop says, gives the lamp two images the template has so switching it on shows, says what the screen shows before and after, and says that `solve` finds a winning path while `solve --prove` looks for dead ends.
+- **The saves pages say the same thing when a room disappears** (4.5.1, F05): a save whose current room (or active hero) is gone is refused, anything else gone is dropped with a warning, a room renamed with a migration loads; on Saves, Troubleshooting and State and saves.
+- **One support policy** (4.5.1, F06): the security policy, `SECURITY.md` and Stability and support give the same table (4.4 until 23 January 2027, 4.3 until 22 January 2027, 4.2.5 until 21 January 2027 on its branch).
+- **No hard-coded "current release" in the FAQ** (4.5.1, F07): it points to the page's footer and the releases page.
+- **Home says what the wiki's search box does** (4.5.1, F09, F23): it filters titles only; Home sends error messages and variables to the indexes and the pages' text to GitHub's code search, and Home gets a short bilingual sidebar.
+- **Search finds « pas de son »** (4.5.1, F10, F11): « son » is no longer a stop word where it is the noun, a symptom typed as a troubleshooting section names it ranks that section first, and the acceptance reports the top 1 apart from the top 3, with ten questions that must come first.
+- **A page's header is one short line** (4.5.1, F17, F18): its twin, its type, "published" with who read it (an AI or a person) and its versions; the audience, the context and the surfaces' statuses follow the page's first paragraph, folded.
+- **Smaller corrections** (4.5.1, F16, F19–F22, F24): the gallery names the recent screens it does not show yet; `read_doc {name}` is said to shorten long sections; the code of conduct names one private channel; Safari's seven-day rule is said not to apply to a game added to the Home Screen; Domains and TLS says which browsers were checked; the four big references open with a quick entry by task.
+
+### Changes
+
+- **A game names the spans of its own files** (4.5.1, #269). The modules a game's `index.ts` imports (`minigames/`, `commands/`, data shared by rooms), its notes and its scripts belonged to no span: the hosted Studio refused a write to them (422), and `tests/studio-collab.test.ts` failed on any game that had one. `games/<id>/spans.json` now maps a path, a folder or a glob to a span a client may take; the engine's rules come first, a file neither names is still refused, and the hosted Studio reads the file of the game it serves.
+- **A game may allow a word of the leak audit** (4.5.1, #269). `audit:assets` blocks the words of the engine's private origin; when one is also, by chance, a word of a game (a real person's first name), `games/<id>/audit-allow.json` allows it by its SHA-1 prefix and a reason, in that game's folder and in `public/assets/` built from it, and nowhere else. A prefix the audit does not block stops the audit.
+
+- **A deployed game's link preview shows its image** (4.5.1, #271). `index.html` wrote the share image as `%BASE%og.png`, a relative URL that LinkedIn's and Facebook's crawlers often ignore. An optional `url` in `games/<id>/site.json`, the game's public address, makes `og:image` absolute (`<url>og.png`) and adds `og:url`; without it, or with an address that is not an absolute `http(s)` URL (or has a query, a fragment or credentials), the page is as before.
+
 ## 4.5.0 — 2026-10-23
 
 LOG #268–#289: "Wiki", the documentation moved. `wiki/en` and `wiki/fr` are now the documentation: 210 pages in

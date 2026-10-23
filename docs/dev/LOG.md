@@ -7821,3 +7821,60 @@ part now); captures on a hosted Studio; npm publishing.
   `changes --check`.
 
 → next: review.
+
+## #290 · 2026-10-24 · Claude · proposal · A game's own files: spans.json for the shared Studio, audit-allow.json for the leak audit (#269)
+
+- **Why:** clever-onboarding, a game that tracks the engine's main, failed two checks on legitimate files after every sync. 52 of its tracked files had no span (`minigames/*.ts`, `commands/*.ts`, data modules its rooms share, the hand-written art notes and image prompts, small art scripts, a deployment hook), so `tests/studio-collab.test.ts` failed and a shared Studio would refuse a write to them; and one word of the audit's private list is also the first name of a colleague portrayed in the game, 143 hits, `build:game` failing.
+- **`studio-server/src/ops/spans.ts`:** `spanOf(path, own?)` and `spansOf(paths, own?)` take the game's own spans, consulted after the engine's rules, first match wins. `parseOwnSpans` refuses a key outside the game folder and a span a client may not take (`isSpanName`); `readOwnSpans(gameDir)` reads `spans.json` again when its mtime changes. `spans.json` and `audit-allow.json` are `meta`. `Leases` takes `own`, read by `claimPaths`; `main.ts` gives it the served game's file and uses it in the precheck; the live stream's spans use it too.
+- **`tools/audit-allow.ts`:** `parseAuditAllow` (12 hex digits, a reason, a prefix the audit blocks) and `allowances(root, blocked, current)`, which `tools/audit-assets.ts` asks per path: the game's own folder, and `public/assets/` for the current game.
+- **Tests:** `tests/studio-collab.test.ts` walks the files git tracks in `games/` (an ignored local `private/` is no file of the repository) with each game's own spans, plus four tests of the declaration (patterns, order, engine rules first, refusals, rereading, a lease claimed by a declared span); `tests/audit-allow.test.ts`, four.
+- **Docs:** `team.concepts#span` and `create.build-release#audit-allow`, both languages; the `audit:assets` entry of the npm scripts' reference.
+- **Review (maintainer):** `spans.json` keys are matched by a table over key and path (no regular expression, so no backtracking on a hostile glob), capped at 256 entries of 256 characters in 64 KiB; a key naming an engine file or folder literally, or with a `.` segment or a NUL, is refused; the file is read again on mtime, size or inode; on the hosted Studio a faulty file is logged and leaves the engine's rules alone, so the write that repairs `spans.json` (`meta`) is never blocked; `spanOf` reads its tables with `Object.hasOwn` (`spanOf('constructor')` no longer returns a function). `audit-allow.json` allows nothing in itself (a reason that spells the word is a leak), and a file that is not JSON is named.
+→ next: nothing; a game with no such file behaves as before.
+
+
+## #291 · 2026-10-24 · Claude · proposal · site.json's url: an absolute og:image and an og:url for link previews (#271)
+
+- **Why:** clever-onboarding, deployed at the root of its domain, served `og:image` = `/og.png`; the Open Graph protocol wants an absolute URL there, and LinkedIn and Facebook showed no image. The engine cannot know where a game is served, and a game could not say it without editing `index.html`.
+- **`tools/vite/plugins.ts`:** `siteUrl` reads `site.json`'s `url` (an absolute `http(s)` URL, a final slash added; anything else is none); `sitePlugin`'s page transform then writes `og:image` as `<url>og.png` and adds `og:url` before `og:type`. `index.html` is unchanged, so `tests/field-carry.test.ts`'s check of `%BASE%og.png` still holds.
+- **Tests:** `tests/site-url.test.ts`, four (without it, with it, the slash and the escaping, the addresses ignored).
+- **Docs:** `create.project-layout#site-json`, both languages.
+→ next: nothing.
+
+
+## #292 · 2026-10-24 · Claude · proposal · 4.5.1: the 24 findings of the maintainer's wiki audit of 24 Oct 2026, fixed
+
+- **Why:** the maintainer's audit of the published wiki (24 October 2026, 24 findings F01–F24, in `.cache/audit/`, not committed) found the link scanner blind to code labels (2,556 broken links in every output), a first tutorial that starts with an npm command that cannot work, contradictions (saves, support window, Safari, browsers), a search that drops « son », and headers that hide the first answer.
+- **Links (F01–F03):** `tools/wiki/page.ts` `mapLine` reads a line left to right (code spans bind tighter than links, a span inside a label is part of it; `closeBracket` skips code spans). `tests/wiki-output-links.test.ts` builds the real wiki's archive and reads the wiki, the bundle and the HTML back with an independent regular-expression reader, and checks each of the audit's 2,556 occurrences (`tests/fixtures/wiki/audit-2026-10-24-links.json`). `tests/wiki-access.test.ts`'s legacy headings skip fenced code (the longer absolute links shorten other sections).
+- **Pages (F04–F07, F12–F16, F19–F22, F24):** the tutorial, the saves trio, the support table (`SECURITY.md` too), the FAQ, `read_doc {name}` (the tool's description too, `tools/studio/tools.ts`), the code of conduct (`CODE_OF_CONDUCT.md` too), Safari, Domains and TLS, the gallery's "Not shown yet", the quick entries of the four references. Every changed pair acknowledged by `claude-451-audit` (ai, author): not a person's review.
+- **Home and headers (F09, F17, F18, F23):** `tools/wiki/build.ts` writes a root `_Sidebar.md`, Home's search note, a one-line header (`pageReview` from the translation pairs' reviewers) and the qualification folded in `<details>` after the lead; `tools/wiki/html.ts` renders `<details>`.
+- **Search (F10, F11):** `tools/wiki/docs.ts` (« son » as a noun only after a determiner; a troubleshooting section whose heading the query holds gets a bonus; a page's lead no longer takes a context's heading bonus), `tools/wiki/acceptance.ts` (`top1`, the top 1 measured apart), seven new questions.
+- **Not done:** F08 is the 4.5.0 docs-publish waiting for its environment's approval and a person's review (the 4.5.1 release publishes again); F16's screenshots need new steps in `scripts/docs-screenshots.mjs` (`games/heroes`, the Voices tab, a hosted Studio); GitHub's "Pages (427)" box cannot be removed from a wiki; the private vulnerability report form is switched off on the repository (`gh api …/private-vulnerability-reporting`: `enabled: false`), which the code of conduct and the security policy rely on.
+→ next: the maintainer turns on private vulnerability reporting; a person reviews the changed pairs; the screenshot steps.
+
+## #293 · 2026-10-24 · Claude · release · 4.5.1: the maintainer's wiki audit fixed, a game's own files, site.json's url
+
+- **The maintainer's words** (24 October): « ajoute les pr et release 4.5.1 »; the audit of the published wiki, « contre
+  ces remarques là pour corriger la 4.51 » (24 findings, LOG #292); and « wiki relu et ok », the maintainer's reading of
+  the wiki as published at v4.5.0, before the audit's fixes.
+- **What ships**: #274, the 24 findings of the audit (links whose label is code in every output, the first tutorial,
+  saves, the support window, the FAQ, Home and its sidebar, search « son », one-line page headers, LOG #292); #270,
+  a game's own files, `spans.json` and `audit-allow.json` (Horacio, #269, with the review's hardening, LOG #290);
+  #272, `site.json`'s `url`, an absolute `og:image` and an `og:url` (Horacio, #271, LOG #291).
+- **The maintainer's review recorded**: « wiki relu et ok » is recorded as a person's review (`wanoo`, human,
+  independent, 24 October) for each translation pair and each guarantee's scope whose text has not changed since
+  v4.5.0: 2,790 of the 2,837 pairs (their English and French hashes those of `v4.5.0:wiki/translations.json`) and 98
+  of the 102 scopes (claim text and test file unchanged). The 47 pairs changed since v4.5.0 (the audit's, #270's,
+  #272's and this release's upgrade notes) keep their AI author's record only, and so do the four scopes whose test
+  file, `tests/save-v3.test.ts`, this release changes (the golden save 4.5.1 added: `play-save-refused-untouched`,
+  `save-refused-untouched`, `save-stale-pruned`, `save-foreign-game-refused`); all are listed in the release PR for
+  the maintainer to confirm, and `check --publish` still wants a person's review of them.
+- **Upgrade notes**: "From 4.5.0 to 4.5.1" in `install.upgrade-notes-4-5` (both languages, from 4.5.1): nothing to
+  change in a game; `spans.json`, `audit-allow.json` and `site.json`'s `url`, all optional.
+- **Fixtures**: golden save `demo-4.5.1.json`; reference run regenerated (engine version 4.5.1). The Studio Server's
+  lock still names `quest-n-click` 4.5.x. Transition pages regenerated for 4.5.1.
+- **Passes**: none added, the twenty-two open (`docs/dev/passes/4.5.1.md`), their issues recorded for 4.5.1 in
+  `docs/dev/contracts.json`.
+- **Signature**: the tag's signature awaits the maintainer's yes for v4.5.1 (D37).
+→ next: the candidate on the merge commit, the signed tag `v4.5.1`, `ship verify`, then `docs-publish`; a person's
+review of the 47 changed pairs; the people's passes, `docs-beginner-reader` first.

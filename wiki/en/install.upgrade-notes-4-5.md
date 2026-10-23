@@ -1,6 +1,6 @@
 # Upgrade notes: 4.5
 
-What 4.5.0 "Wiki" changed. Nothing to change in a game; the documentation moved.
+What 4.5.0 "Wiki" and 4.5.1 changed. Nothing to change in a game; the documentation moved.
 
 The upgrade itself is [Upgrade](install.upgrade.md).
 
@@ -27,3 +27,23 @@ runs). The engine installs from `releases/download/v4.5.0/…`. What is new:
 - **Fixes**: `npx quest-n-click doctor` runs in a created project (Playwright is optional there); `npm run page:world`
   and `page:puzzles` write a `.html` file by default; a shared Studio accepts a lease on the scenario map's span
   (`groupings`).
+
+<a name="from-4-5-0-to-4-5-1"></a>
+<!-- applies: 4.5.1.. -->
+
+## From 4.5.0 to 4.5.1
+
+Nothing to change: a game builds, plays and saves as on 4.5.0 (the same fingerprints, golden saves and reference
+runs). The engine installs from `releases/download/v4.5.1/…`. What a game may use, each optional:
+
+- **`games/<id>/spans.json`**: the spans of the game's own files (the modules its `index.ts` imports, its notes, its
+  scripts), which a shared Studio refused to write before. The engine's rules come first; a file neither names is
+  still refused ([span](team.concepts.md#span)).
+- **`games/<id>/audit-allow.json`**: a word the leak audit blocks that is also, by chance, a word of the game (a real
+  person's first name), allowed by its SHA-1 prefix and a reason, in the game's folder and its built assets only
+  ([audit-allow.json](create.build-release.md#audit-allow)).
+- **`url` in `site.json`**: the game's public address. With it, the page's `og:image` is absolute and an `og:url` is
+  added, so LinkedIn and Facebook show the share image; without it, the page is as on 4.5.0
+  ([site.json](create.project-layout.md#site-json)).
+- **The documentation**: the fixes of the maintainer's wiki audit (links whose label is code, the first tutorial,
+  saves, the support window, search). A link to a page or a section of 4.5.0 still lands.
