@@ -40,7 +40,7 @@ describe("site.json's url", () => {
     expect(meta(page({ url: '  https://example.org/g/  ' }), 'og:url')).toBe('https://example.org/g/');
   });
 
-  it("writes a $ in site.json as text, not as a replacement pattern", () => {
+  it('writes a $ in site.json as text, not as a replacement pattern', () => {
     const html = page({ title: "A $& B $' C", url: "https://example.org/$&/$'/" });
     expect(meta(html, 'og:title')).toBe("A $&amp; B $' C");
     expect(meta(html, 'og:url')).toBe("https://example.org/$&amp;/$'/");
