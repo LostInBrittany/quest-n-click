@@ -247,7 +247,15 @@ describe('reading a page: one scanner for check and build', () => {
     ]);
     expect(p.repoLinks.map((l) => l.path)).toEqual(['src/engine/core/save.ts', 'src/engine/core/save.ts']);
     expect(p.images.map((i) => i.path)).toEqual(['room.png', 'room.png']);
-    expect(p.blocks).toEqual([{ kind: 'LIMIT', id: 'no-diagonal', line: 10 }]);
+    expect(p.blocks).toEqual([
+      {
+        kind: 'LIMIT',
+        id: 'no-diagonal',
+        line: 10,
+        body: ['A zone is a polygon; a curve is drawn with several points.'],
+        fields: {},
+      },
+    ]);
   });
 
   it('closes a fence only on the same character, at least as long; and skips inline code of any length', () => {

@@ -3,8 +3,15 @@ Modèle : procédure, docs/dev/PLAN-4.5-WIKI.md annexe B. Copiez-le dans wiki/fr
 wiki/en/<id>.md, et gardez les dix titres et leurs identifiants de section. L'en-tête (type, public, contexte,
 versions, changement de langue) et le pied de page sont générés depuis le manifeste : ne les écrivez pas. Liez une
 autre page par sa source, `create.rooms.md#walkable-zones` ; liez le code par son chemin depuis la racine du dépôt,
-`src/engine/core/save.ts`. Chaque bloc de commandes dit d'abord le dossier et le contexte où il se lance. Supprimez ces
-commentaires.
+`src/engine/core/save.ts`. Chaque bloc de commandes dit d'abord le dossier et le contexte où il se lance.
+Une section vraie pour moins de versions que sa page le dit dans un commentaire HTML sur la ligne qui suit son ancre,
+comme « Reprise » ci-dessous : `applies: 4.2.2..` (depuis), `applies: 4.2.2..4.4.0` (bornes incluses) ou
+`applies: ..4.4.0`, avec `since 4.2.0` après l'intervalle pour la version où la fonction est apparue ; elle reste dans
+les versions de sa page, la même dans les deux langues. Un `[!GUARANTEE id]` a son affirmation dans le manifeste,
+`{"id", "test": "fichier.test.ts › son nom"}`. Un `[!MEASURE id]` donne cinq lignes `- clé: valeur`, les mêmes clés
+dans les deux langues : date, version, volume, conditions, source (un lien GitHub à un commit complet de 40
+caractères, `blob/<sha>/…`). Un bloc de code marqué `room-example` (le JSON d'une salle) ou `studio-config` (une
+configuration du Studio Server) passe par le vrai validateur dans `wiki -- check`. Supprimez ces commentaires.
 -->
 
 # Restaurer le Studio sur une installation neuve
@@ -57,7 +64,12 @@ l'application Clever Cloud, par `clever ssh` ».
 > Ce que le produit garantit ici, et le test qui le montre (nommé dans le manifeste).
 
 > [!MEASURE id=example-measure]
-> Un chiffre, avec sa date, sa version, son volume, ses conditions et sa source à son commit.
+> Un chiffre, et ce sur quoi il a été mesuré : une observation, jamais une promesse.
+> - date: 2026-10-19
+> - version: 4.2.3
+> - volume: 508 lignes de journal
+> - conditions: les plus petits plans, l'organisation de test du mainteneur
+> - source: [QUALIF-4.2.3-REFERENCE.md §4](https://github.com/wanoo/quest-n-click/blob/c00b44fcffe56ffa99f9d2228297414ebe3145ac/docs/dev/QUALIF-4.2.3-REFERENCE.md)
 
 <a name="expected-result"></a>
 
@@ -80,6 +92,7 @@ Ce que vous voyez quand cela a marché, et la commande ou l'écran qui le montre
 Ce que la procédure écrit, pour savoir quoi sauvegarder ou relire.
 
 <a name="recovery"></a>
+<!-- applies: 4.2.2.. -->
 
 ## Reprise ou retour arrière
 

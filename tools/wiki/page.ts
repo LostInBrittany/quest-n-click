@@ -10,10 +10,45 @@
 
 /** A section anchor line: `<a name="id"></a>` (or `<a id="id"></a>`), nothing else on the line. */
 const ANCHOR = /^<a (?:name|id)="([a-z0-9]+(?:-[a-z0-9]+)*)"><\/a>\s*$/;
+export const ANCHOR_LINE = ANCHOR;
 /** A page source in its language folder: `<id>.md`. */
 const PAGE_FILE = /^([a-z]+\.[a-z0-9]+(?:-[a-z0-9]+)*)\.md$/;
 /** `> [!LIMIT id=local-only]`: a structured block, paired by id between the languages. */
 const BLOCK = /^>\s*\[!(LIMIT|GUARANTEE|MEASURE)\s+id=([a-z0-9]+(?:-[a-z0-9]+)*)\]\s*$/;
+/** A product version as SemVer writes it: no leading zero, a pre-release of dot-separated identifiers. */
+const SEMVER_SOURCE =
+  '(?:0|[1-9]\\d*)\\.(?:0|[1-9]\\d*)\\.(?:0|[1-9]\\d*)(?:-(?:0|[1-9]\\d*|\\d*[A-Za-z-][0-9A-Za-z-]*)(?:\\.(?:0|[1-9]\\d*|\\d*[A-Za-z-][0-9A-Za-z-]*))*)?';
+export const SEMVER = new RegExp(`^${SEMVER_SOURCE}$`);
+/**
+ * A section's own versions (§4.4.1), on the line right after its anchor: `<!-- applies: 4.2.2.. -->` (from 4.2.2),
+ * `<!-- applies: 4.2.2..4.4.0 -->` (both inclusive), `<!-- applies: ..4.4.0 -->` (until, from the page's), and
+ * `since <v>` after the range for the version the feature appeared in (`<!-- applies: 4.2.2.. since 4.2.0 -->`).
+ */
+const APPLIES = new RegExp(
+  `^<!--\\s*applies:\\s*(${SEMVER_SOURCE})?\\.\\.(${SEMVER_SOURCE})?(?:\\s+since\\s+(${SEMVER_SOURCE}))?\\s*-->$`,
+);
+/** Anything that looks like an applies marker, so a malformed one is reported rather than ignored. */
+const APPLIES_LIKE = /^<!--\s*applies\b/;
+/** `<!-- step: install-deps -->`: an essential step's id, the same in both languages (§4.7.1). */
+const STEP = /^<!--\s*step:\s*([a-z0-9]+(?:-[a-z0-9]+)*)\s*-->$/;
+
+export interface SectionVersions {
+  appliesFrom?: string;
+  appliesUntil?: string;
+  featureSince?: string;
+}
+/** The versions an applies marker line gives, `null` for a malformed marker, undefined for another line. */
+export function appliesMarker(line: string): SectionVersions | null | undefined {
+  const t = line.trim();
+  if (!APPLIES_LIKE.test(t)) return undefined;
+  const m = APPLIES.exec(t);
+  if (!m || (!m[1] && !m[2] && !m[3])) return null;
+  return {
+    ...(m[1] ? { appliesFrom: m[1] } : {}),
+    ...(m[2] ? { appliesUntil: m[2] } : {}),
+    ...(m[3] ? { featureSince: m[3] } : {}),
+  };
+}
 
 /** One Markdown link or image, as written. */
 export interface Link {
@@ -255,14 +290,32 @@ export const mapPage = (
     return b ? block(b[1] as 'LIMIT', b[2]!) : mapLine(line, n, replace);
   }).text;
 
+type BlockKind = 'LIMIT' | 'GUARANTEE' | 'MEASURE';
+/** A structured block: its kind and id, its opening line, its text (the quoted lines after the opening one). */
+export interface Block {
+  kind: BlockKind;
+  id: string;
+  line: number;
+  /** The block's lines, their `>` removed, the opening line excepted. */
+  body: string[];
+  /** Its `- key: value` lines (a measure's date, version, volume, conditions and source), by key. */
+  fields: Record<string, string>;
+}
+
 export interface ParsedPage {
   sections: string[];
+  /** The sections that carry an applies marker (§4.4.1), with the versions it gives and its line. */
+  sectionVersions: Record<string, SectionVersions & { line: number }>;
   links: { id: string; anchor?: string; line: number }[];
   /** `#section` links inside the page itself. */
   ownAnchors: { anchor: string; line: number }[];
   repoLinks: { path: string; line: number }[];
   images: { path: string; line: number }[];
-  blocks: { kind: 'LIMIT' | 'GUARANTEE' | 'MEASURE'; id: string; line: number }[];
+  blocks: Block[];
+  /** The essential steps' ids, `<!-- step: <id> -->`, in their order. */
+  steps: string[];
+  /** The fenced code blocks, with the first word of their info string (`room-example`, `studio-config`…). */
+  fences: Fence[];
   /** What is malformed in the page itself: an anchor not before a heading, a section id given twice, a bad link. */
   problems: string[];
 }
@@ -271,35 +324,90 @@ export interface ParsedPage {
 export function parsePage(markdown: string, lang: string): ParsedPage {
   const page: ParsedPage = {
     sections: [],
+    sectionVersions: {},
     links: [],
     ownAnchors: [],
     repoLinks: [],
     images: [],
     blocks: [],
+    steps: [],
+    fences: [],
     problems: [],
   };
-  const { openFence } = mapLines(markdown, (raw, line, next) => {
-    const anchor = ANCHOR.exec(raw.trim())?.[1];
-    if (anchor) {
-      if (page.sections.includes(anchor)) page.problems.push(`line ${line}: the section id "${anchor}" is given twice`);
-      else page.sections.push(anchor);
-      if (!/^#{1,6}\s/.test(next() ?? ''))
-        page.problems.push(`line ${line}: the anchor "${anchor}" is not followed by a heading`);
+  const lines = markdown.split('\n');
+  /** The non-blank lines after line `n` (1-based), with their numbers. */
+  const after = (n: number, k: number) => {
+    const out: { text: string; line: number }[] = [];
+    for (let i = n; i < lines.length && out.length < k; i++)
+      if (lines[i]!.trim()) out.push({ text: lines[i]!, line: i + 1 });
+    return out;
+  };
+  /** The line of each marker read as a section's, so the others are reported. */
+  const owned = new Set<number>();
+  let block: Block | undefined;
+  const { openFence } = mapLines(
+    markdown,
+    (raw, line) => {
+      const t = raw.trim();
+      const opening = BLOCK.exec(t);
+      if (block && !opening && t.startsWith('>')) {
+        const text = t.replace(/^>\s?/, '');
+        block.body.push(text);
+        const field = /^[-*]\s+([a-z]+)\s*:\s*(.*)$/.exec(text.trim());
+        if (field && !(field[1]! in block.fields)) block.fields[field[1]!] = field[2]!.trim();
+      } else block = undefined;
+      const anchor = ANCHOR.exec(t)?.[1];
+      if (anchor) {
+        if (page.sections.includes(anchor))
+          page.problems.push(`line ${line}: the section id "${anchor}" is given twice`);
+        else page.sections.push(anchor);
+        let [first, second] = after(line, 2);
+        const marker = first ? appliesMarker(first.text) : undefined;
+        if (marker !== undefined && first) {
+          owned.add(first.line);
+          if (marker === null)
+            page.problems.push(
+              `line ${first.line}: the applies marker is malformed (<!-- applies: 4.2.2.. -->, <!-- applies: 4.2.2..4.4.0 since 4.2.0 -->)`,
+            );
+          else if (!(anchor in page.sectionVersions)) page.sectionVersions[anchor] = { ...marker, line: first.line };
+          first = second;
+        }
+        if (!/^#{1,6}\s/.test(first?.text ?? ''))
+          page.problems.push(`line ${line}: the anchor "${anchor}" is not followed by a heading`);
+        return raw;
+      }
+      if (appliesMarker(t) !== undefined) {
+        if (!owned.has(line))
+          page.problems.push(
+            `line ${line}: an applies marker stands on the line right after a section's <a name> anchor`,
+          );
+        return raw;
+      }
+      const step = STEP.exec(t)?.[1];
+      if (step) {
+        if (page.steps.includes(step)) page.problems.push(`line ${line}: the step id "${step}" is given twice`);
+        else page.steps.push(step);
+      }
+      if (opening) {
+        block = { kind: opening[1] as BlockKind, id: opening[2]!, line, body: [], fields: {} };
+        page.blocks.push(block);
+      }
+      mapLine(raw, line, (l) => {
+        const target = classifyTarget(l.target, lang);
+        if (target.kind === 'own') page.ownAnchors.push({ anchor: target.anchor, line });
+        else if (target.kind === 'page') page.links.push({ id: target.id, anchor: target.anchor, line });
+        else if (target.kind === 'repo') page.repoLinks.push({ path: target.path, line });
+        else if (target.kind === 'wiki-image') page.images.push({ path: target.path, line });
+        else if (target.kind === 'invalid') page.problems.push(`line ${line}: the link ${target.problem}`);
+        return undefined;
+      });
       return raw;
-    }
-    const block = BLOCK.exec(raw.trim());
-    if (block) page.blocks.push({ kind: block[1] as 'LIMIT' | 'GUARANTEE' | 'MEASURE', id: block[2]!, line });
-    mapLine(raw, line, (l) => {
-      const t = classifyTarget(l.target, lang);
-      if (t.kind === 'own') page.ownAnchors.push({ anchor: t.anchor, line });
-      else if (t.kind === 'page') page.links.push({ id: t.id, anchor: t.anchor, line });
-      else if (t.kind === 'repo') page.repoLinks.push({ path: t.path, line });
-      else if (t.kind === 'wiki-image') page.images.push({ path: t.path, line });
-      else if (t.kind === 'invalid') page.problems.push(`line ${line}: the link ${t.problem}`);
-      return undefined;
-    });
-    return raw;
-  });
+    },
+    (fence) => {
+      block = undefined;
+      page.fences.push(fence);
+    },
+  );
   if (openFence) page.problems.push('a code fence is never closed');
   return page;
 }

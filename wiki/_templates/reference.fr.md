@@ -2,13 +2,16 @@
 Modèle : référence, docs/dev/PLAN-4.5-WIKI.md annexe B. Une section par identifiant (une commande, un champ, une
 variable, une route), chacune avec son identifiant de section, l'identifiant en minuscules séparées par des tirets ;
 ses sous-titres n'en ont pas.
-Listez aussi les identifiants dans le champ `identifiers` du manifeste. Copiez-le dans wiki/fr/<id>.md (jumeau anglais
+Listez aussi les identifiants dans le champ `identifiers` du manifeste. La version où un identifiant est apparu se met
+dans un commentaire HTML sur la ligne qui suit son ancre, `applies: .. since 4.5.0` comme ci-dessous (son
+`featureSince` ; un intervalle avant `since` restreint les versions où il est vrai). Copiez-le dans wiki/fr/<id>.md (jumeau anglais
 dans wiki/en/), supprimez ces commentaires.
 -->
 
 # Variables d'environnement
 
 <a name="example-identifier"></a>
+<!-- applies: .. since 4.5.0 -->
 
 ## `EXAMPLE_IDENTIFIER`
 

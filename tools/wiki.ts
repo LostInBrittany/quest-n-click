@@ -1,6 +1,8 @@
 // npm run wiki -- check | stats [--json] | coverage [--init [--force] | --ack <key>] | build --target wiki --out <dir> [--preview]
 // [--product-version <v>] [--doc-revision <sha>] [--product-commit <sha>] | bundle --out <dir> [--build-id <id>] [--allow-dirty]
-// [the same three] (4.5.0 "Wiki", docs/dev/PLAN-4.5-WIKI.md §5, phases A2 to A4; ADR 0030).
+// [the same three] | check --publish --product-ref <tag|sha> [--doc-ref <sha>] [--released] [--state preview|candidate|published]
+// [--test-report <vitest.json>]… | review-claim <id> --by <name> | translations --ack <id#section> --by <name>
+// (4.5.0 "Wiki", docs/dev/PLAN-4.5-WIKI.md §5, phases A2 to A5; ADR 0030).
 // The documentation's source is `wiki/` (a manifest, then `wiki/<lang>/<id>.md`); every output is generated from it.
 // `check` is the work level of every pull request: it fails on errors only, and prints the warnings and what is still
 // to write. `stats` counts the pages by state, domain, type and language: the workload estimate. `build --target
@@ -9,7 +11,12 @@
 // `wiki/coverage.json`; `coverage` merges a new inventory into it, keeping what a person wrote, and regenerates
 // `wiki/legacy.json` and the manifest's `replaces` (§4.2). `bundle` writes the documentation an installed engine
 // carries (tools/wiki/bundle.ts, §4.3.4), into the package scripts/pack.mjs prepares: never under a folder the
-// repository tracks. The other commands of §5 (`check --publish`, `publish`…) come with their phases. `--wiki=<dir>` reads another source folder (the tests' fixtures). The output folder is outside the
+// repository tracks. `check --publish` is the publication level (§4.1.4): the published pages reach ready pages only,
+// no translation is to review, every claim was executed on the product (`--test-report`, a Vitest JSON report with
+// the `commit.json` the candidate writes beside it), and the source set is the product's plus documentation only
+// (§4.5.2). `review-claim` records that a person checked a claim's test covers it (`wiki/reviews.json`);
+// `translations --ack` that a section's two languages were read against each other (`wiki/translations.json`). The
+// other commands of §5 (`publish`…) come with their phases. `--wiki=<dir>` reads another source folder (the tests' fixtures). The output folder is outside the
 // working tree (or under `.cache/`), so a build never lands among the sources, and only a previous build is emptied.
 import { execFileSync } from 'node:child_process';
 import { existsSync, readFileSync } from 'node:fs';
@@ -18,6 +25,7 @@ import { ROOT } from './game';
 import { buildWiki } from './wiki/build';
 import { dirtySources, writeBundle } from './wiki/bundle';
 import { checkWiki, trackedFiles, wikiStats } from './wiki/check';
+import { claimLabel, reviewClaim } from './wiki/claims';
 import {
   ackRow,
   checkCoverage,
@@ -33,6 +41,7 @@ import {
   writeCoverage,
 } from './wiki/coverage';
 import { readManifest } from './wiki/manifest';
+import { ackTranslation } from './wiki/translations';
 
 class UsageError extends Error {}
 
@@ -44,6 +53,15 @@ function option(args: readonly string[], name: string): string | undefined {
   const value = a.includes('=') ? a.slice(a.indexOf('=') + 1) : args[i + 1];
   if (!value || value.startsWith('--')) throw new UsageError(`--${name} needs a value`);
   return value;
+}
+
+/** Every value of a repeatable option (`--test-report a.json --test-report b.json`). */
+function options(args: readonly string[], name: string): string[] {
+  const out: string[] = [];
+  args.forEach((a, i) => {
+    if (a === `--${name}` || a.startsWith(`--${name}=`)) out.push(option(args.slice(i), name)!);
+  });
+  return out;
 }
 
 /** Why an output folder is refused: inside the working tree, except under `.cache/`. */
@@ -72,7 +90,10 @@ export function bundleOutProblem(out: string, tracked: readonly string[], root =
 }
 
 const USAGE =
-  'usage: npm run wiki -- check | stats [--json] | coverage [--init [--force] | --ack <key>] | build --target wiki --out <dir> [--preview] [--product-version <v>] [--doc-revision <sha>] [--product-commit <sha>] | bundle --out <dir> [--build-id <id>] [--allow-dirty] [--product-version <v>] [--doc-revision <sha>] [--product-commit <sha>]';
+  'usage: npm run wiki -- check [--test-report <file>]… | check --publish --product-ref <tag|sha> [--doc-ref <sha>] [--released] [--state preview|candidate|published] [--test-report <file>]… | review-claim <id> --by <name> | translations --ack <id#section> --by <name> | stats [--json] | coverage [--init [--force] | --ack <key>] | build --target wiki --out <dir> [--preview] [--product-version <v>] [--doc-revision <sha>] [--product-commit <sha>] | bundle --out <dir> [--build-id <id>] [--allow-dirty] [--product-version <v>] [--doc-revision <sha>] [--product-commit <sha>]';
+
+/** Today, as a day (the date a review or an ack records). */
+const today = () => new Date().toISOString().slice(0, 10);
 
 const head = () => {
   try {
@@ -97,7 +118,29 @@ function run(args: readonly string[]): number {
   const wikiDir = resolve(option(args, 'wiki') ?? resolve(ROOT, 'wiki'));
   if (command === 'check') {
     const tracked = trackedFiles();
-    const r = checkWiki({ wikiDir, tracked });
+    const publish = args.includes('--publish');
+    const productRef = option(args, 'product-ref');
+    if (publish && !productRef)
+      throw new UsageError('check --publish needs --product-ref <tag|sha>, the product documented');
+    const state = option(args, 'state') ?? 'published';
+    if (!['preview', 'candidate', 'published'].includes(state))
+      throw new UsageError('--state is preview, candidate or published');
+    const docRef = option(args, 'doc-ref');
+    const r = checkWiki({
+      wikiDir,
+      tracked,
+      testReports: options(args, 'test-report').map((f) => resolve(f)),
+      ...(publish
+        ? {
+            publish: {
+              productRef: productRef!,
+              ...(docRef ? { docRef } : {}),
+              released: args.includes('--released'),
+              state: state as 'preview' | 'candidate' | 'published',
+            },
+          }
+        : {}),
+    });
     // The coverage matrix is checked against the repository's own `docs/`, for the repository's wiki (or any wiki
     // folder that carries a matrix).
     const counters: string[] = [];
@@ -112,14 +155,51 @@ function run(args: readonly string[]): number {
     for (const w of r.warnings) console.warn(`⚠  ${w}`);
     for (const g of r.gaps) console.log(`·  ${g}`);
     for (const l of counters) console.log(`·  ${l}`);
+    for (const c of r.claims) console.log(`·  claim ${c.id} (${c.page}): ${claimLabel(c)}`);
     const n = r.manifest?.pages.length ?? 0;
+    const level = publish ? 'publication level' : 'work level';
     if (r.errors.length) {
-      console.error(`✖  wiki: ${r.errors.length} error(s), ${r.warnings.length} warning(s) over ${n} pages`);
+      console.error(`✖  wiki (${level}): ${r.errors.length} error(s), ${r.warnings.length} warning(s) over ${n} pages`);
       return 1;
     }
     console.log(
-      `✔  wiki: ${n} pages consistent, ${r.warnings.length} warning(s), ${r.plannedLinks.length} link(s) to planned pages`,
+      `✔  wiki (${level}): ${n} pages consistent, ${r.warnings.length} warning(s), ${r.plannedLinks.length} link(s) to planned pages`,
     );
+    return 0;
+  }
+  if (command === 'review-claim') {
+    const id = args[1];
+    const by = option(args, 'by');
+    if (!id || id.startsWith('--') || !by) throw new UsageError('review-claim needs <id> and --by <name>');
+    const r = checkWiki({ wikiDir, tracked: trackedFiles() });
+    const state = r.claims.find((c) => c.id === id);
+    if (!state) {
+      console.error(`✖  ${id} is no claim of the manifest (${r.claims.map((c) => c.id).join(', ') || 'none'})`);
+      return 1;
+    }
+    const problem = reviewClaim({ wikiDir, state, by, date: today() });
+    if (problem) {
+      console.error(`✖  ${problem}`);
+      return 1;
+    }
+    console.log(`✔  ${id}: scope reviewed by ${by} (${state.test}); a change to the claim or its test file resets it`);
+    return 0;
+  }
+  if (command === 'translations') {
+    const key = option(args, 'ack');
+    const by = option(args, 'by');
+    if (!key || !by) throw new UsageError('translations needs --ack <id#section> and --by <name>');
+    const { manifest, errors } = readManifest(wikiDir);
+    if (!manifest) {
+      for (const e of errors) console.error(`✖  ${e}`);
+      return 1;
+    }
+    const problem = ackTranslation({ wikiDir, manifest, key, by, date: today() });
+    if (problem) {
+      console.error(`✖  ${problem}`);
+      return 1;
+    }
+    console.log(`✔  ${key}: the two languages recorded as read against each other by ${by}`);
     return 0;
   }
   if (command === 'stats') {
@@ -178,6 +258,8 @@ function run(args: readonly string[]): number {
         productVersion: option(args, 'product-version') ?? pkg.version,
         docRevision,
         productCommit: option(args, 'product-commit') ?? docRevision,
+        statuses: r.statuses,
+        claims: r.claims,
       });
     } catch (e) {
       console.error(`✖  ${(e as Error).message}`);

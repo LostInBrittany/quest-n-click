@@ -70,7 +70,12 @@ export function indexWiki(
       langs[lang] = {
         file: `md/${lang}/${p.id}.md`,
         sha256: sha256(text),
-        sections: splitSections(text).map((s) => ({ id: s.id, title: s.title, sha256: sha256(s.text) })),
+        sections: splitSections(text).map((s) => ({
+          id: s.id,
+          title: s.title,
+          sha256: sha256(s.text),
+          ...(s.versions ? { versions: s.versions } : {}),
+        })),
       };
     }
     entries.push({
