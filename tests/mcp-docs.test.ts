@@ -101,10 +101,10 @@ describe('the new tools on the repository', () => {
     const list = await call('list_docs', {});
     expect(list.isError).toBeFalsy();
     expect(list.structuredContent).toMatchObject({ provenance: { source: 'repository' } });
-    const search = await call('search_docs', { query: 'no such words at all, zzzz' });
+    const search = await call('search_docs', { query: 'zzzz qqqq xxyyzz' });
     expect(search.structuredContent).toMatchObject({ results: [], note: 'no confident match' });
-    const byId = await call('read_doc', { id: 'create.dsl' });
+    const byId = await call('read_doc', { id: 'create.no-such-page' });
     expect(byId.isError).toBe(true);
-    expect(byId.content[0]!.text).toContain('no page "create.dsl"');
+    expect(byId.content[0]!.text).toContain('no page "create.no-such-page"');
   }, 30000);
 });
