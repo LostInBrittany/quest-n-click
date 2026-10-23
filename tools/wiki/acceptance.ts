@@ -68,6 +68,11 @@ const QuestionSchema = z
     /** The acceptable destinations: one of them in the top 3 is a hit. */
     expect: refs,
     /**
+     * A clear symptom or a name typed whole (« pas de son », `Studio token required`): one of the destinations must
+     * come first, the top 3 is not enough (the 4.5.1 audit, F11).
+     */
+    top1: z.literal(true).optional(),
+    /**
      * The facts a correct answer holds, in English (level 2 grades by them): what the product does, never what the
      * documentation lacks.
      */
@@ -252,11 +257,26 @@ interface Outcome {
   empty: boolean;
   /** Why it is a miss, a failure or pending. */
   why: string[];
+  /** A question: whether its first result is one of its destinations (the top 1, measured for every question). */
+  top1?: boolean;
+  /** A question that must come first (`top1` in questions.json). */
+  top1Required?: true;
 }
 
 export interface AcceptanceReport {
   outcomes: Outcome[];
-  questions: { runs: number; pending: number; evaluated: number; hits: number; top3: number | null };
+  questions: {
+    runs: number;
+    pending: number;
+    evaluated: number;
+    hits: number;
+    top3: number | null;
+    /** Among the questions evaluated, those whose first result is a destination: measured apart from the top 3. */
+    firstHits: number;
+    top1: number | null;
+    /** The questions that must come first (`top1`), evaluated, and those that do. */
+    top1Required: { evaluated: number; hits: number };
+  };
   counterExamples: { runs: number; pending: number; evaluated: number; passes: number; rate: number | null };
   empties: { evaluated: number; justified: number; rate: number | null };
 }
@@ -315,16 +335,22 @@ export function runAcceptance(set: DocsSet, q: Questions, langs: readonly DocsLa
       }
       if (x.kind === 'question') {
         const top = results.slice(0, 3);
-        const hit = top.some((r) => x.expect.some((d) => lands(r, d)));
+        const inTop3 = top.some((r) => x.expect.some((d) => lands(r, d)));
+        const firstHit = !!first && x.expect.some((d) => lands(first, d));
+        const hit = x.top1 ? firstHit : inTop3;
         outcomes.push({
           ...common,
           status: hit ? 'hit' : 'miss',
+          top1: firstHit,
+          ...(x.top1 ? { top1Required: true } : {}),
           why: hit
             ? []
             : [
-                results.length
-                  ? `top 3: ${top.map((r) => instead(r, x.expect)).join(', ')}`
-                  : 'the explicit empty result',
+                !results.length
+                  ? 'the explicit empty result'
+                  : x.top1 && inTop3
+                    ? `first: ${instead(first!, x.expect)} (this one must come first)`
+                    : `top 3: ${top.map((r) => instead(r, x.expect)).join(', ')}`,
               ],
         });
         continue;
@@ -382,11 +408,22 @@ export function runAcceptance(set: DocsSet, q: Questions, langs: readonly DocsLa
   );
   const hits = qs.filter((o) => o.status === 'hit').length;
   const qEval = qs.filter((o) => o.status !== 'pending').length;
+  const firstHits = qs.filter((o) => o.status !== 'pending' && o.top1).length;
+  const required = qs.filter((o) => o.status !== 'pending' && o.top1Required);
   const passes = ces.filter((o) => o.status === 'pass').length;
   const cEval = ces.filter((o) => o.status !== 'pending').length;
   return {
     outcomes,
-    questions: { runs: qs.length, pending: qs.length - qEval, evaluated: qEval, hits, top3: ratio(hits, qEval) },
+    questions: {
+      runs: qs.length,
+      pending: qs.length - qEval,
+      evaluated: qEval,
+      hits,
+      top3: ratio(hits, qEval),
+      firstHits,
+      top1: ratio(firstHits, qEval),
+      top1Required: { evaluated: required.length, hits: required.filter((o) => o.status === 'hit').length },
+    },
     counterExamples: {
       runs: ces.length,
       pending: ces.length - cEval,
@@ -422,11 +459,14 @@ export function acceptanceLines(r: AcceptanceReport): string[] {
     line(width.map((w) => '-'.repeat(w))),
     ...rows.map(line),
     '',
-    `questions        ${r.questions.runs} runs: ${r.questions.hits} in the top 3, ${r.questions.evaluated - r.questions.hits} missed, ${r.questions.pending} pending · top 3: ${pct(r.questions.top3)} of those evaluated`,
+    `questions        ${r.questions.runs} runs: ${r.questions.hits} hits, ${r.questions.evaluated - r.questions.hits} missed, ${r.questions.pending} pending · top 3: ${pct(r.questions.top3)} of those evaluated`,
+    `first result     ${r.questions.firstHits} of ${r.questions.evaluated} evaluated put a destination first · top 1: ${pct(r.questions.top1)}; of the ${r.questions.top1Required.evaluated} that must come first, ${r.questions.top1Required.hits} do`,
     `counter-examples ${r.counterExamples.runs} runs: ${r.counterExamples.passes} with no inapplicable answer first, ${r.counterExamples.evaluated - r.counterExamples.passes} failed, ${r.counterExamples.pending} pending · ${pct(r.counterExamples.rate)}`,
     `empty results    ${r.empties.evaluated} among the runs evaluated, ${r.empties.justified} justified · ${pct(r.empties.rate)}`,
     '',
     'legend: a destination id#section is found only at that section, a bare page id at any of its sections;',
+    'a hit is a destination in the top 3, or first for a question marked top1 (a clear symptom, a name typed whole);',
+    "neither measure says the answer is understood or can be followed: that is level 2 and the people's passes;",
     `${PENDING_RULE}.`,
   ];
 }

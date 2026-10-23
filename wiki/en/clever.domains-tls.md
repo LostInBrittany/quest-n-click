@@ -65,7 +65,10 @@ at your DNS provider.
 
 The game runs in a frame of the Studio, on `playUrl`, behind its own session cookie
 (`Secure; HttpOnly; SameSite=None; Partitioned`). With two subdomains of your domain, the Studio and the game are one
-**site**, and the frame keeps its cookie in every browser.
+**site**. Where that was checked, the frame keeps its cookie: the hosted e2e shows it in Chromium, Firefox and WebKit
+on macOS. Not everywhere: WebKit on Linux (GNOME Web) keeps no cookie a frame of another host sets, even on one site,
+and a real Safari on macOS and iOS has not been checked yet (the `studio-hosted` pass). One domain is the
+architecture to choose; it is not a proof on every browser.
 
 `cleverapps.io` is on the Public Suffix List (a private entry, Clever Cloud's): `studio-x.cleverapps.io` and
 `play-x.cleverapps.io` are **two sites**. The game's cookie then lives in a frame of another site only because it is

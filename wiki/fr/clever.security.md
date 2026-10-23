@@ -97,7 +97,8 @@ consignés. Les jetons de rafraîchissement et les id_tokens sont scellés en AE
 ## Le cookie du jeu et les domaines
 
 Avec `publicUrl` et `playUrl` sur deux sous-domaines d’un même domaine, le Studio et le jeu sont un seul site et le
-cadre du jeu garde son cookie dans tous les navigateurs. Deux noms en `*.cleverapps.io` sont deux sites, où le cookie
+cadre du jeu garde son cookie dans Chromium, Firefox et WebKit sous macOS, là où l’e2e hébergé le vérifie (pas WebKit
+sous Linux ; un vrai Safari n’est pas encore vérifié). Deux noms en `*.cleverapps.io` sont deux sites, où le cookie
 ne survit que partitionné (CHIPS), ce que WebKit sous Linux ne garde pas :
 [Domaines et TLS](clever.domains-tls.md#why-one-domain).
 

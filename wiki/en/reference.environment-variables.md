@@ -4,6 +4,24 @@ Every environment variable quest-n-click reads, and the ones Clever Cloud and it
 has its own section: link to it as `reference.environment-variables.md#studio-session-key` (the name in lowercase,
 `_` written `-`).
 
+<a name="quick-entry"></a>
+
+## Quick entry, by task
+
+- **Deploy a hosted Studio on Clever Cloud**: you set [`STUDIO_SESSION_KEY`](#studio-session-key) and
+  [`STUDIO_WORKER_KEY`](#studio-worker-key); the database and the bucket come from the linked add-ons, so leave
+  [`STUDIO_DATABASE_URL`](#studio-database-url) and [`STUDIO_S3_KEY_ID`](#studio-s3-key-id) unset there
+  ([the first deployment](clever.first-deployment.md)).
+- **Rotate a key**: [`STUDIO_SESSION_KEY`](#studio-session-key), then [key rotation](clever.key-rotation.md).
+- **Read the metrics**: [`STUDIO_METRICS_TOKEN`](#studio-metrics-token), then [monitoring](clever.monitoring.md).
+- **Choose the game you work on in the engine repository**: [`GAME`](#game).
+- **Open the Studio or the dev server to your network**: `npm run studio:lan` or `npm run dev:lan`, which set
+  [`WEB_SCUMM_LAN`](#web-scumm-lan) for you ([testing on a phone over the LAN](create.lan-testing.md)).
+- **Store a Reality Bridge in SQLite or Postgres**: [`BRIDGE_STORE`](#bridge-store).
+- **A variable you met in an error message**: find its name on this page (each has its own section), then the
+  troubleshooting page of its place: [hosted Studio](clever.troubleshooting.md), [local Studio](studio.troubleshooting.md),
+  [Bridge](bridge.troubleshooting.md).
+
 <a name="how-to-read"></a>
 
 ## How to read this page

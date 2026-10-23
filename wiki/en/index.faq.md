@@ -1,7 +1,7 @@
 # FAQ by audience
 
 The questions people ask most, by who asks them, each answered in a line or two with the page that says the rest. The
-answers hold for 4.4.0. Can't find yours? Search this wiki, or see [What quest'n'click does not do](index.not-supported.md).
+answers hold for the release this documentation belongs to, named at the foot of every page. Can't find yours? Search this wiki, or see [What quest'n'click does not do](index.not-supported.md).
 
 <a name="players"></a>
 
@@ -31,8 +31,8 @@ answers hold for 4.4.0. Can't find yours? Search this wiki, or see [What quest'n
 
 - **How do I start my own game?** Install the engine from a release's archive into its own folder, then follow the
   first-game tutorial ([Install from the release archive](install.from-archive.md), [Your first game](create.first-game.md)).
-- **Can I `npm install quest-n-click`?** Not yet: the packages are not on npm as of 4.4.0
-  ([Stability and support](start.stability.md#releases)).
+- **Can I `npm install quest-n-click`?** Not yet: no release has published the packages on npm; each release attaches
+  them as archives ([Stability and support](start.stability.md#releases)).
 - **Where do I run this command?** Each command in this wiki says first its folder and context: the engine repository
   or a created project, with different scripts ([Project layout](create.project-layout.md),
   [npm scripts](reference.npm-scripts.md)).
@@ -103,12 +103,19 @@ each release's passes) stays in [`docs/dev`](../../docs/dev/DECISIONS.md), in En
 
 ## What is in the current release
 
-[v4.4.0 "Author's Desk"](https://github.com/wanoo/quest-n-click/releases/tag/v4.4.0) (22 October 2026): a playable
-example of choosing the hero in two languages (`games/heroes`), the Studio's hero × language matrix, before/after
-captures in the semantic diff (on a local Studio), a faster hosted preview, a hotspot that acts on a single tap and a
-map pin with several places (from Horacio, LostInBrittany), the phone's column on a short landscape screen.
+The current release is the one at the foot of this page, and the newest on
+<https://github.com/wanoo/quest-n-click/releases/latest>; [Stability and support](start.stability.md#releases) lists
+the lines and how long each is supported. This answer does not name it, so it does not go stale at the next release.
+The recent ones, newest first:
 
-Before it: **4.3.1** gave a translation's own text switches their voices through the whole chain, and says
+**4.5.0 "Wiki"** (23 October 2026): this documentation, in English and in French, published as the GitHub wiki and on
+Pages from the release's own archive; `search_docs`, `list_docs` and `read_doc {id, section}` for an assistant.
+**4.4.0 "Author's Desk"** (22 October 2026): a playable example of choosing the hero in two languages
+(`games/heroes`), the Studio's hero × language matrix, before/after captures in the semantic diff (on a local Studio),
+a faster hosted preview, a hotspot that acts on a single tap and a map pin with several places (from Horacio,
+LostInBrittany), the phone's column on a short landscape screen.
+
+Before them: **4.3.1** gave a translation's own text switches their voices through the whole chain, and says
 `npm run solve` finds one winning path (`--prove` proves every hero). **4.3.0 "Hero Choice"**: the player chooses the
 hero at New Game, a key per verb, a proportional pixel font for the interface, most of it from an outside contributor;
 the former `web-scumm` names are gone (`npx quest-n-click migrate`). **4.2.5**: the new name. **4.2.4**: an exit gone

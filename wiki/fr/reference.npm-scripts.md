@@ -4,6 +4,20 @@ Chaque script `npm run` du dépôt du moteur, et chaque script que reçoit un pr
 Chaque script a sa propre section : on y renvoie par `reference.npm-scripts.md#verify-game` (le nom en minuscules,
 `:` écrit `-` ; le script d’un projet créé est `#project-<nom>`).
 
+<a name="quick-entry"></a>
+
+## Accès rapide, par tâche
+
+| Je veux… | Dans le dépôt du moteur | Dans un projet créé |
+|---|---|---|
+| jouer au jeu pendant que je l'écris | [`npm run dev`](#dev) | [`npm run dev`](#project-dev) |
+| le modifier à la souris | [`npm run studio`](#studio) | [`npm run studio`](#project-studio) |
+| préparer les images | [`npm run assets`](#assets) | [`npm run assets`](#project-assets) |
+| le vérifier après un changement | [`npm run validate`](#validate), [`npm run solve`](#solve) | [`npm run verify`](#project-verify) |
+| prouver que personne ne reste bloqué | [`npm run solve -- --prove`](#solve), [`npm run prove:game`](#prove-game) | `npx quest-n-click solve --prove` |
+| le construire pour le publier | [`npm run build`](#build) | [`npm run build`](#project-build) |
+| contribuer au moteur | [`npm run check`](#check), [`npm run quality`](#quality) | — |
+
 <a name="overview"></a>
 
 ## Où les lancer

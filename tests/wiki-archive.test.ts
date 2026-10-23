@@ -340,6 +340,14 @@ describe('the HTML renderer', () => {
     );
   });
 
+  it("renders a folded block as the wiki writes it: a page's qualification, a sidebar's domain", () => {
+    expect(renderMarkdown('<details><summary>Audience, `context`</summary>\n\n> Audience: author\n\n</details>')).toBe(
+      '<details><summary>Audience, <code>context</code></summary>\n<blockquote>\n<p>Audience: author</p>\n</blockquote>\n</details>',
+    );
+    // Only that shape: another tag on the line stays text.
+    expect(renderMarkdown('<details open>')).toBe('<p>&lt;details open&gt;</p>');
+  });
+
   it('renders the subset the pages use: code, emphasis, lists, tables, quotes, fences', () => {
     expect(inline('`a <b>` **bold** *em* snake_case_name \\*star')).toBe(
       '<code>a &lt;b&gt;</code> <strong>bold</strong> <em>em</em> snake_case_name *star',

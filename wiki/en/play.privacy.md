@@ -33,8 +33,9 @@ its own files from the site that serves it.
 removes the rest (Restart erases only the autosave, not the slots or the records).
 
 > [!LIMIT id=device-storage-browser-rules]
-> The browser decides how long site data lives: clearing site data, a private window, or Safari's removal of a site
-> unopened for seven days erases saves and records along with everything else.
+> The browser decides how long site data lives: clearing site data, a private window, a device short of space, or,
+> in a Safari tab (not a game added to the Home Screen), seven days of Safari use without a visit ([WebKit](https://webkit.org/tracking-prevention/)) erases saves
+> and records along with everything else.
 
 <a name="bridge"></a>
 

@@ -6,7 +6,8 @@
 // is `../../src/engine/core/save.ts`, an image of the wiki is `../images/x.png`. A bare `src/x.ts` would resolve to
 // `wiki/<lang>/src/x.ts` on GitHub: it is refused with the right form. One scanner finds the links for the check and
 // rewrites them for the build, so both read the same links: titled links, images, a linked image's outer link; and
-// neither reads inside fenced code (closed only by a fence of the same character, at least as long) or inline code. A
+// neither reads inside fenced code (closed only by a fence of the same character, at least as long) or inline code,
+// while a link whose label holds code (`[`src/x.ts`](../../src/x.ts)`) is read like any other (the 4.5.1 audit, F03). A
 // link whose label breaks across a line of its paragraph (CommonMark allows it, never across a blank line) is read whole.
 
 /** A section anchor line: `<a name="id"></a>` (or `<a id="id"></a>`), nothing else on the line. */
@@ -113,12 +114,41 @@ export function classifyTarget(target: string, lang: string): Target {
   return { kind: 'repo', path, anchor };
 }
 
-/** The end of a bracketed label starting at `open` (`[`), nested brackets counted, or -1. */
+/**
+ * The end of the code span whose opening backtick run starts at `i`, the index after its closing run, or -1 when the
+ * run is never closed (its backticks are then plain text). The closing run has exactly the same length: a longer or
+ * shorter run inside the span is part of it (CommonMark).
+ */
+function codeSpanEnd(s: string, i: number): number {
+  let run = 0;
+  while (s[i + run] === '`') run++;
+  for (let j = i + run; j < s.length; ) {
+    if (s[j] !== '`') {
+      j++;
+      continue;
+    }
+    let k = 0;
+    while (s[j + k] === '`') k++;
+    if (k === run) return j + k;
+    j += k;
+  }
+  return -1;
+}
+
+/**
+ * The end of a bracketed label starting at `open` (`[`), nested brackets counted, or -1. A code span inside the label
+ * is read whole, so a bracket inside it counts for nothing, and a span that starts in the label and closes after the
+ * bracket wins over the link (CommonMark: code spans bind tighter than links).
+ */
 export function closeBracket(s: string, open: number): number {
   let depth = 0;
   for (let i = open; i < s.length; i++) {
     if (s[i] === '\\') i++;
-    else if (s[i] === '[') depth++;
+    else if (s[i] === '`') {
+      const end = codeSpanEnd(s, i);
+      if (end > 0) i = end - 1;
+      else while (s[i + 1] === '`') i++;
+    } else if (s[i] === '[') depth++;
     else if (s[i] === ']' && --depth === 0) return i;
   }
   return -1;
@@ -170,70 +200,49 @@ export const renderLink = (l: Omit<Link, 'line'>): string =>
   `${l.image ? '!' : ''}[${l.label}](${l.target}${l.title !== undefined ? ` "${l.title}"` : ''})`;
 
 /**
- * Rewrites the links of a stretch of text outside code: `replace` returns the new text of a link, or undefined to
- * keep it. A link's label is read first, so a linked image's inner image is seen before its outer link.
+ * Rewrites the links of a line (or of a paragraph's lines joined by `\n`) outside inline code: `replace` returns the
+ * new text of a link, or undefined to keep it. Read left to right as CommonMark reads it: a backtick run opens a code
+ * span kept as written (an unclosed run is plain text), a backslash escapes the next character, and a `[` (or `![`)
+ * opens a link when its label closes and a destination follows. The label may itself hold code spans, emphasis or
+ * another image (a linked image): it is read the same way first, so a linked image's inner image is seen before its
+ * outer link, and a label written as code (`` [`src/x.ts`](../../src/x.ts) ``) is a link like any other.
  */
-function mapText(text: string, line: number, replace: (l: Link) => string | undefined): string {
+export function mapLine(line: string, n: number, replace: (l: Link) => string | undefined): string {
   let out = '';
   let i = 0;
-  while (i < text.length) {
-    const image = text[i] === '!' && text[i + 1] === '[';
+  while (i < line.length) {
+    const c = line[i]!;
+    if (c === '\\' && i + 1 < line.length) {
+      out += line.slice(i, i + 2);
+      i += 2;
+      continue;
+    }
+    if (c === '`') {
+      const end = codeSpanEnd(line, i);
+      let run = 0;
+      while (line[i + run] === '`') run++;
+      const stop = end > 0 ? end : i + run;
+      out += line.slice(i, stop);
+      i = stop;
+      continue;
+    }
+    const image = c === '!' && line[i + 1] === '[';
     const open = image ? i + 1 : i;
-    if (text[open] === '[') {
-      const close = closeBracket(text, open);
-      const dest = close > 0 && text[close + 1] === '(' ? destination(text, close + 1) : undefined;
+    if (line[open] === '[') {
+      const close = closeBracket(line, open);
+      const dest = close > 0 && line[close + 1] === '(' ? destination(line, close + 1) : undefined;
       if (dest) {
-        const label = mapText(text.slice(open + 1, close), line, replace);
-        const link: Link = { image, label, target: dest.target, title: dest.title, line };
+        const label = mapLine(line.slice(open + 1, close), n, replace);
+        const link: Link = { image, label, target: dest.target, title: dest.title, line: n };
         out += replace(link) ?? renderLink(link);
         i = dest.end + 1;
         continue;
       }
     }
-    out += text[i];
+    out += c;
     i++;
   }
   return out;
-}
-
-/** A line split into inline code spans (kept as written) and text, backtick runs paired as CommonMark pairs them. */
-export function mapLine(line: string, n: number, replace: (l: Link) => string | undefined): string {
-  let out = '';
-  let text = '';
-  let i = 0;
-  while (i < line.length) {
-    if (line[i] !== '`') {
-      text += line[i];
-      i++;
-      continue;
-    }
-    let run = 0;
-    while (line[i + run] === '`') run++;
-    // The closing run has exactly the same length: a longer or shorter run inside the span is part of it.
-    let close = -1;
-    for (let j = i + run; j < line.length; ) {
-      if (line[j] !== '`') {
-        j++;
-        continue;
-      }
-      let k = 0;
-      while (line[j + k] === '`') k++;
-      if (k === run) {
-        close = j;
-        break;
-      }
-      j += k;
-    }
-    if (close < 0) {
-      text += '`'.repeat(run);
-      i += run;
-      continue;
-    }
-    out += mapText(text, n, replace) + line.slice(i, close + run);
-    text = '';
-    i = close + run;
-  }
-  return out + mapText(text, n, replace);
 }
 
 /** A fenced code block: the first word of its info string, its opening line, the lines between its fences. */

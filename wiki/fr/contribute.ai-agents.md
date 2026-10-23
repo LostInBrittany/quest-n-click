@@ -18,8 +18,8 @@ fusionne.
 ## Contexte et versions
 
 Le dépôt du moteur. `AGENTS.md` et le serveur MCP existent depuis la 1.0.0 ; les outils de documentation
-`search_docs`, `list_docs` et `read_doc { id, section }` depuis la 4.5.0 (`read_doc { name }`, la page historique
-entière, existe avant).
+`search_docs`, `list_docs` et `read_doc { id, section }` depuis la 4.5.0 (`read_doc { name }`, la page historique,
+existe avant ; depuis la 4.5.0, elle peut réduire une longue section à un renvoi vers `read_doc { id, section }`).
 
 <a name="prerequisites"></a>
 
@@ -104,8 +104,9 @@ et voit ses erreurs avant qu'une personne les voie. Chaque résultat reste relis
      avec en tête d'où vient le texte (version, commit, révision de la doc) ;
    - `list_docs { audience?, context?, type?, lang? }` liste les pages à lire.
 
-   `read_doc { name: "CONTENT_GUIDE" }` renvoie toujours une page historique entière en un bloc ; préférez `id` et
-   `section`.
+   `read_doc { name: "CONTENT_GUIDE" }` renvoie toujours une page historique en un bloc, peut-être abrégée : une
+   longue section donne son titre, son premier paragraphe et le `read_doc { id, section }` de la suite. Préférez `id`
+   et `section`.
 
 <!-- step: skills -->
 4. **Utilisez les skills du projet (Claude Code).** `.claude/skills/` contient `new-game`, `new-room`, `new-character`,

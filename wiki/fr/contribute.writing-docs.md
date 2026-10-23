@@ -105,8 +105,12 @@ Dans le dépôt du moteur, sur votre machine. Chaque commande `npm run wiki -- �
 ## Résultat attendu, et comment le vérifier
 
 `npm run wiki -- check` finit par `✔` et 0 erreur. `npm run wiki -- stats` montre la page dans son état. Quand la page
-répond à une vraie question, `npm run wiki -- acceptance` la trouve dans les trois premiers résultats de cette question
-([les commandes](#commands)).
+répond à une vraie question, `npm run wiki -- acceptance` la trouve dans les trois premiers résultats de cette question,
+et en premier pour une question marquée `top1` (un symptôme clair comme « pas de son », un message tapé en entier) ; le
+rapport donne à part le top 3 et le top 1 ([les commandes](#commands)). Ni l'un ni l'autre ne dit qu'un lecteur
+comprend la réponse ou sait la suivre : c'est le test du lecteur IA et les passes humaines. Ajoutez une nouvelle
+formulation à `questions.json` plutôt qu'aux alias de la page, pour que le test mesure encore des formulations pour
+lesquelles la page n'a pas été écrite.
 
 <a name="common-errors"></a>
 

@@ -135,6 +135,7 @@ function findClose(text: string, from: number, mark: string): number {
 const plain = (label: string) => label.replace(/!?\[([^\]]*)\]\([^)]*\)/g, '$1').replace(/[`*_\\]/g, '');
 
 const ANCHOR = /^<a (?:name|id)="([a-z0-9]+(?:-[a-z0-9]+)*)"><\/a>\s*$/;
+const DETAILS = /^<details>(?:<summary>(.*)<\/summary>)?$/;
 const HEADING = /^(#{1,6})[ \t]+(.*?)(?:[ \t]+#+)?[ \t]*$/;
 const FENCE = /^ {0,3}(`{3,}|~{3,})(.*)$/;
 const LIST_ITEM = /^( {0,3})([-*+]|\d{1,9}[.)])[ \t]+(.*)$/;
@@ -191,6 +192,19 @@ export function renderMarkdown(markdown: string): string {
       continue;
     }
     if (COMMENT.test(t)) {
+      i++;
+      continue;
+    }
+    // A folded block, as the wiki writes it (a sidebar's domain, a page's qualification): `<details>` with its
+    // `<summary>` on the same line, its Markdown body, `</details>` on a line of its own. The summary is inline text.
+    const fold = DETAILS.exec(t);
+    if (fold) {
+      out.push(`<details>${fold[1] !== undefined ? `<summary>${inline(fold[1])}</summary>` : ''}`);
+      i++;
+      continue;
+    }
+    if (t === '</details>') {
+      out.push('</details>');
       i++;
       continue;
     }

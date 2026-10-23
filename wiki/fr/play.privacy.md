@@ -37,7 +37,8 @@ navigateur retire le reste (Recommencer n’efface que la sauvegarde automatique
 
 > [!LIMIT id=device-storage-browser-rules]
 > C’est le navigateur qui décide de la durée de vie des données d’un site : effacer les données du site, la navigation
-> privée, ou Safari qui retire un site pas ouvert depuis sept jours efface sauvegardes et records avec tout le reste.
+> privée, un appareil à court de place, ou, dans un onglet Safari (pas un jeu ajouté à l’écran d’accueil), sept jours
+> d’utilisation de Safari sans visite ([WebKit](https://webkit.org/tracking-prevention/)) efface sauvegardes et records avec tout le reste.
 
 <a name="bridge"></a>
 

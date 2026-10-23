@@ -17,7 +17,8 @@ and whose change is read again by a second context before the maintainer merges 
 ## Context and versions
 
 The engine repository. `AGENTS.md` and the MCP server exist since 1.0.0; the documentation tools `search_docs`,
-`list_docs` and `read_doc { id, section }` since 4.5.0 (`read_doc { name }`, the whole legacy page, exists before).
+`list_docs` and `read_doc { id, section }` since 4.5.0 (`read_doc { name }`, the legacy page, exists before;
+since 4.5.0 it may shorten a long section to a pointer to `read_doc { id, section }`).
 
 <a name="prerequisites"></a>
 
@@ -99,7 +100,8 @@ its own mistakes before a person does. Every result stays reviewable, in the Stu
      where the text comes from (version, commit, doc revision) at its top;
    - `list_docs { audience?, context?, type?, lang? }` lists the pages there are to read.
 
-   `read_doc { name: "CONTENT_GUIDE" }` still returns a whole legacy page in one block; prefer `id` and `section`.
+   `read_doc { name: "CONTENT_GUIDE" }` still returns a legacy page in one block, possibly shortened: a long section
+   gives its heading, first paragraph and the `read_doc { id, section }` for the rest. Prefer `id` and `section`.
 
 <!-- step: skills -->
 4. **Use the project's skills (Claude Code).** `.claude/skills/` holds `new-game`, `new-room`, `new-character`,

@@ -18,7 +18,8 @@ runs). The engine installs from `releases/download/v4.5.0/…`. What is new:
   readable at the tag `v4.4.0`.
 - **`read_doc {name}` still works**: the eight names (`CONTENT_GUIDE`, `ENGINE`, `TOOLS`, `STUDIO`, `WORKFLOW`,
   `AUDIO`, `UPGRADING`, `CLASSICS`) answer one text block, with 4.4.0's arguments; the page is rebuilt from the wiki's
-  sections.
+  sections, and a section too long for its bound is shortened to its heading, first paragraph and the
+  `read_doc { id, section }` that gives the rest.
 - **Two new MCP tools**: `search_docs` (by words or a question, in French or English) and `list_docs`; and
   `read_doc {id, section, lang}` reads one section of a page by its id. An agent searches first, then reads by id.
 - **The package carries its documentation**, `docs-bundle/`: `npx quest-n-click mcp` in a created project reads it,

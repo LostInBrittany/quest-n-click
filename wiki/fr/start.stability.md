@@ -87,10 +87,18 @@ Versionnage sémantique sur l’API publique :
 - une **majeure** (5.0) peut retirer ce qu’une mineure a déprécié, et dit comment passer dans les notes de mise à jour
   ([Mettre à jour](install.upgrade.md)).
 
-**Durée de suivi.** La dernière mineure de la majeure en cours reçoit les correctifs ; la mineure précédente reçoit les
-correctifs de sécurité pendant trois mois après la suivante. Selon cette règle, à la 4.4.0 (22 octobre 2026), la ligne
-4.3 reçoit les correctifs de sécurité jusqu’au 22 janvier 2027 ; la 4.2.5 les reçoit jusqu’au 21 janvier 2027, sur une
-branche partie de `v4.2.5` (SUPPORT, écrit à la 4.3.0). La lignée 3.x s’est arrêtée à la 3.9 ; ses jeux passent à la
+**Durée de suivi.** La dernière mineure de la majeure en cours reçoit tous les correctifs ; chaque mineure plus
+ancienne reçoit les correctifs de sécurité pendant trois mois après la mineure qui l’a suivie. Ce que cela donne à la
+4.5.0 (23 octobre 2026), le même tableau que la [politique de sécurité](contribute.security-policy.md#supported-versions) :
+
+| Ligne | Correctifs | Jusqu’au |
+| --- | --- | --- |
+| 4.5 | tous les correctifs | la mineure suivante, puis trois mois de correctifs de sécurité |
+| 4.4 | correctifs de sécurité | 23 janvier 2027 |
+| 4.3 | correctifs de sécurité | 22 janvier 2027 |
+| 4.2.5 | correctifs de sécurité, sur une branche partie de `v4.2.5` (SUPPORT, écrit à la 4.3.0) | 21 janvier 2027 |
+
+La lignée 3.x s’est arrêtée à la 3.9 ; ses jeux passent à la
 4.0 avec `quest-n-click migrate` (rien à réécrire pour un jeu déjà au schéma 3).
 
 **Historique de la politique.** Chaque ligne ci-dessous a dit ce qu’elle changeait ; la plus récente d’abord.

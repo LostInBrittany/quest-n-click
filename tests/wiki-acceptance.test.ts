@@ -28,6 +28,7 @@ import {
   ROWS,
   runAcceptance,
 } from '../tools/wiki/acceptance';
+import { searchDocs } from '../tools/wiki/docs';
 import { repositoryDocs } from '../tools/wiki/docs-load';
 import { readManifest } from '../tools/wiki/manifest';
 
@@ -107,6 +108,23 @@ describe('level 1 on the fixture wiki', () => {
     expect(sound[0]!.why[0]).toMatch(/^top 3: create\.working-loop#studio/);
   });
 
+  it('a question marked top1 is a hit only when a destination comes first (the 4.5.1 audit, F11)', () => {
+    const q = fixture();
+    const x = q.questions.find((y) => y.kind === 'question' && statuses(q)[`${y.id}/en`] === 'hit')!;
+    const results = searchDocs(set(), { query: x.text.en, lang: 'en', limit: 5 });
+    const second = 'note' in results ? undefined : results.results[1];
+    expect(second).toBeDefined();
+    // The second result as the only destination: in the top 3, so a hit; marked top1, a miss that says what came first.
+    const only = { ...x, expect: [second!.ref] };
+    const plain = runAcceptance(set(), { ...q, questions: [only] }, ['en']);
+    expect(plain.outcomes[0]!.status).toBe('hit');
+    expect(plain.questions.firstHits).toBe(0);
+    const strict = runAcceptance(set(), { ...q, questions: [{ ...only, top1: true }] }, ['en']);
+    expect(strict.outcomes[0]!.status).toBe('miss');
+    expect(strict.outcomes[0]!.why[0]).toMatch(/^first: .* \(this one must come first\)$/);
+    expect(strict.questions.top1Required).toEqual({ evaluated: 1, hits: 0 });
+  });
+
   it('measures the top 3, the counter-examples and the justified empty results', () => {
     const r = runAcceptance(set(), fixture());
     expect(r.questions).toEqual({
@@ -115,6 +133,9 @@ describe('level 1 on the fixture wiki', () => {
       evaluated: 8,
       hits: 6,
       top3: 0.75,
+      firstHits: 6,
+      top1: 0.75,
+      top1Required: { evaluated: 0, hits: 0 },
     });
     expect(r.counterExamples).toEqual({
       runs: 12,
@@ -128,7 +149,8 @@ describe('level 1 on the fixture wiki', () => {
     expect(runAcceptance(set(), fixture(), ['fr']).outcomes.every((o) => o.lang === 'fr')).toBe(true);
     const lines = acceptanceLines(r);
     const at = (prefix: string) => lines.find((l) => l.startsWith(prefix));
-    expect(at('questions ')).toMatch(/^questions +10 runs: 6 in the top 3, 2 missed, 2 pending · top 3: 75 %/);
+    expect(at('questions ')).toMatch(/^questions +10 runs: 6 hits, 2 missed, 2 pending · top 3: 75 %/);
+    expect(at('first result ')).toMatch(/^first result +6 of 8 evaluated put a destination first · top 1: 75 %/);
     expect(at('counter-examples ')).toMatch(
       /^counter-examples 12 runs: 12 with no inapplicable answer first, 0 failed, 0 pending/,
     );

@@ -77,8 +77,9 @@ Un fichier en échec, un lot sauté ou un manque de place le laisse partiel, ave
 > Personne n’a encore installé un jeu depuis Safari sur un vrai iPhone, joué hors ligne et fait sa mise à jour : la
 > passe `safari-ios-offline-update` est ouverte ([#86](https://github.com/wanoo/quest-n-click/issues/86)) à la 4.4.0.
 > La CI ne sait pas naviguer hors ligne dans WebKit : sous Safari, le jeu n’est vérifié que pour l’installation et la
-> mise à jour. Safari peut aussi effacer les données d’un site que vous n’avez pas ouvert depuis sept jours : ouvrez
-> le jeu de temps en temps.
+> mise à jour. La règle de Safari qui efface les données d’un site après sept jours d’utilisation sans visite vaut
+> pour un onglet Safari, pas pour un jeu ajouté à l’écran d’accueil ([WebKit](https://webkit.org/tracking-prevention/)) ; un iPhone à court de place peut quand même
+> les évincer. Exportez les sauvegardes qui comptent.
 
 <a name="expected-result"></a>
 

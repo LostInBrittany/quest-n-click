@@ -14,7 +14,7 @@ import { join, resolve } from 'node:path';
 import { afterAll, describe, expect, it, vi } from 'vitest';
 import { globToRegExp } from '../tools/ci-plan';
 import { main, outProblem } from '../tools/wiki';
-import { buildWiki } from '../tools/wiki/build';
+import { buildWiki, pageReview } from '../tools/wiki/build';
 import { checkWiki, trackedFiles } from '../tools/wiki/check';
 import type { Identifier } from '../tools/wiki/identifiers';
 import type { Manifest } from '../tools/wiki/manifest';
@@ -401,16 +401,46 @@ describe('wiki -- build --target wiki', () => {
     );
   });
 
-  it('heads each page with its twin, type, audience, context, status and versions, and ends with its source', () => {
+  it('heads each page with one short line (twin, type, who read it, versions), and ends with its source', () => {
     const { read } = build(false);
-    expect(read('en/EN-Create-Rooms.md')).toContain(
-      '# Rooms\n\n> [Français](FR-Creer-Salles) · Type: how-to · Audience: author · Context: created project · Status: ready · Applies from: 4.5.0\n',
+    // The 4.5.1 audit (F17, F18): one line under the title, "published" and who read it, never a bare "ready".
+    const en = read('en/EN-Create-Rooms.md');
+    expect(en).toContain(
+      '# Rooms\n\n> [Français](FR-Creer-Salles) · How-to · Published, no review recorded · Applies from: 4.5.0\n',
     );
+    expect(en.split('\n')[2]).not.toMatch(/Status|Audience|Context/);
     const fr = read('fr/FR-Creer-Salles.md');
     expect(fr).toContain(
-      "> [English](EN-Create-Rooms) · Type : procédure · Public : auteur · Contexte : projet créé · Statut : prête · S'applique depuis : 4.5.0",
+      "> [English](EN-Create-Rooms) · Procédure · Publiée, aucune relecture enregistrée · S'applique depuis : 4.5.0",
     );
     expect(fr).toContain('(https://github.com/wanoo/quest-n-click/edit/main/wiki/fr/create.rooms.md)');
+  });
+
+  it('folds the audience, the context and the statuses after the lead, before the first section', () => {
+    const { read } = build(false);
+    const en = read('en/EN-Create-Rooms.md');
+    const fold = en.indexOf(
+      '<details><summary>Audience, context, and the statuses of what this page rests on</summary>',
+    );
+    expect(fold).toBeGreaterThan(en.indexOf('> [Français]'));
+    expect(fold).toBeLessThan(en.indexOf('<a name="walkable-zones"></a>'));
+    expect(en).toContain('> Audience: author · Context: created project\n\n</details>');
+    expect(read('fr/FR-Creer-Salles.md')).toContain('> Public : auteur · Contexte : projet créé');
+  });
+
+  it("names a page's review by its translation pairs' reviewers: a person, an AI, or nobody", () => {
+    const ai = { name: 'claude', kind: 'ai', relation: 'author', date: '2026-10-24' } as const;
+    const person = { name: 'wanoo', kind: 'human', relation: 'independent', date: '2026-10-24' } as const;
+    const other = { name: 'other-ai', kind: 'ai', relation: 'independent', date: '2026-10-24' } as const;
+    expect(pageReview('create.rooms', {})).toBe('none');
+    expect(pageReview('create.rooms', { 'create.rooms#a': { reviewers: [ai] } })).toBe('author');
+    expect(pageReview('create.rooms', { 'create.rooms#a': { reviewers: [ai, other] } })).toBe('independent');
+    expect(
+      pageReview('create.rooms', { 'create.rooms#a': { reviewers: [person] }, 'create.rooms#b': { reviewers: [ai] } }),
+    ).toBe('partly');
+    expect(
+      pageReview('create.rooms', { 'create.rooms#a': { reviewers: [person] }, 'x.y#a': { reviewers: [ai] } }),
+    ).toBe('person');
   });
 
   it('builds the four indexes from the published pages, their aliases, the identifiers and the glossary', () => {
@@ -419,7 +449,7 @@ describe('wiki -- build --target wiki', () => {
     expect(task).toContain('- How do I add a room? → [Rooms](EN-Create-Rooms)');
     expect(task).toContain('- scene → [Rooms](EN-Create-Rooms)');
     expect(task).not.toContain('note');
-    expect(task).toContain('Status: generated');
+    expect(task).toContain('· Index · Generated from the published pages');
     expect(read('fr/FR-Index-Par-Symptome.md')).toContain(
       '- Pourquoi mon enregistrement est refusé avec 423 ? → [Écriture refusée : pan verrouillé (423)](FR-Equipe-Ecriture-Refusee-423)',
     );
@@ -452,6 +482,7 @@ describe('wiki -- build --target wiki', () => {
     expect(files.filter((f) => f.endsWith('.md')).sort()).toEqual([
       'Home.md',
       '_Footer.md',
+      '_Sidebar.md',
       'en/_Sidebar.md',
       'fr/_Sidebar.md',
     ]);
@@ -479,6 +510,19 @@ describe('wiki -- build --target wiki', () => {
     expect(footer).toContain('`d0c`');
     expect(footer).toContain('overwritten at the next publication');
     expect(read('Home.md')).toMatch(/## Français[\s\S]*## English/);
+  });
+
+  it("gives Home a short bilingual sidebar and says the wiki's box filters titles, not text (F09, F23)", () => {
+    const { read } = build(false);
+    const side = read('_Sidebar.md');
+    expect(side).toMatch(/^\*\*\[Accueil · Home\]\(Home\)\*\*\n\n\*\*Français\*\*[\s\S]*\*\*English\*\*/);
+    expect(side).toContain('- [Index par symptôme](FR-Index-Par-Symptome)');
+    expect(side).toContain('](EN-Index-By-Symptom)');
+    const home = read('Home.md');
+    expect(home).not.toMatch(/dans la recherche du wiki|in the wiki search/);
+    expect(home).toContain('filters page and section titles only, not their text');
+    expect(home).toContain('ne filtre que les titres des pages et des sections, pas leur texte');
+    expect(home).toContain('https://github.com/search?q=repo%3Awanoo%2Fquest-n-click%20path%3Awiki%2Fen%2F&type=code');
   });
 
   it('empties its own previous build on a rebuild, keeping .git and removing a withdrawn page', () => {

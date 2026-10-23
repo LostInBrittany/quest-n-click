@@ -146,7 +146,8 @@ et répond dans **Notes** ou dans le **Storyboard** ; l'IA relit `games/<id>/not
 ## Une session type
 
 1. Apprendre le jeu et le format : `list_rooms`, `get_storyboard`, `get_notes`, et la documentation (plus bas :
-   `search_docs` puis `read_doc { id, section }` ; ou, en entier, `read_doc { name: "CONTENT_GUIDE" }`).
+   `search_docs` puis `read_doc { id, section }` ; ou la page historique `read_doc { name: "CONTENT_GUIDE" }`, qui
+   peut réduire les longues sections à un renvoi vers `read_doc { id, section }`).
 2. Modifier : `set_storyboard` d'abord, puis `set_text` / `add_entity` dans les lieux.
 3. Vérifier : `validate`, `solve`, `lint`, `run_tests` ; `screenshot` si l'humain fait tourner le Studio.
 4. Demander : `add_note` pour tout ce que l'humain doit décider ou placer ; lire sa réponse avec `get_notes`. Les notes
@@ -167,8 +168,11 @@ titre, son type, son contexte, ses versions et un extrait : on le lit avec `read
 s'applique pas à cette version. `list_docs` liste les pages par public, contexte, type, langue ou état. Sans réponse
 sûre, `search_docs` rend une liste vide et les pages d'index à essayer.
 
-`read_doc { name }` rend toujours une des huit pages historiques en entier : `CONTENT_GUIDE`, `ENGINE`, `TOOLS`,
-`STUDIO`, `WORKFLOW`, `AUDIO`, `UPGRADING`, `CLASSICS`. Donnez `name` ou `id`, pas les deux.
+`read_doc { name }` rend toujours une des huit pages historiques : `CONTENT_GUIDE`, `ENGINE`, `TOOLS`, `STUDIO`,
+`WORKFLOW`, `AUDIO`, `UPGRADING`, `CLASSICS`. Ce n'est pas toujours le texte entier : reconstruite à partir du wiki dans
+la limite de 1,5 fois sa taille en 4.4.0, elle réduit ses sections les plus longues à leur titre, leur premier
+paragraphe et le `read_doc { id, section }` qui donne la suite ; lisez aussi celles-là avant de vous fier à une section.
+Donnez `name` ou `id`, pas les deux.
 
 <a name="publish-read-back"></a>
 

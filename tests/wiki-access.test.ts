@@ -545,7 +545,15 @@ describe('the bundle', () => {
       expect(Buffer.byteLength(text), name).toBeLessThanOrEqual(legacyBudget(name)!);
       // The same sections as the repository's, only the links differ (made for the bundle), so the bound may give
       // other sections by their first paragraph: their `#` and `##` headings stay.
-      const headings = (t: string) => t.split('\n').filter((l) => /^##?\s/.test(l));
+      // Headings outside fenced code: a shell comment (`# in the engine repository`) inside a block is not one, and a
+      // section given by its first paragraph alone drops its blocks.
+      const headings = (t: string) => {
+        let fence = false;
+        return t.split('\n').filter((l) => {
+          if (/^\s*(```|~~~)/.test(l)) fence = !fence;
+          return !fence && /^##?\s/.test(l);
+        });
+      };
       expect(headings(text), name).toEqual(headings(legacyDoc(ROOT, name)));
     }
   });
@@ -777,6 +785,31 @@ describe('the search with a context: the page or the section of that context fir
 
   it('sets contractions and possessives aside: "don\'t" and "their" weigh nothing', () => {
     expect(results(set, "Why don't their widgets open?", { lang: 'en' })[0]?.id).toBe('create.project-layout');
+  });
+});
+
+describe("the search of the repository's wiki, ordinary symptoms (the 4.5.1 audit, F10)", () => {
+  const set = repositoryDocs(ROOT);
+  const first = (query: string, lang: 'en' | 'fr', context?: string) =>
+    results(set, query, { lang, ...(context ? { context } : {}) })[0]?.ref;
+
+  it('puts « pas de son » and "no sound" on the players\' troubleshooting first, with or without a context', () => {
+    for (const context of [undefined, 'player']) {
+      expect(first('pas de son', 'fr', context)).toBe('play.troubleshooting#no-sound');
+      expect(first('no sound', 'en', context)).toBe('play.troubleshooting#no-sound');
+      expect(first('aucun son', 'fr', context)).toBe('play.troubleshooting#no-sound');
+      expect(first("je n'entends rien", 'fr', context)).toBe('play.troubleshooting#no-sound');
+    }
+    // The symptom inside a sentence still meets the section that names it.
+    expect(first("le jeu n'a pas de son", 'fr')).toBe('play.troubleshooting#no-sound');
+    expect(first('the game has no sound', 'en')).toBe('play.troubleshooting#no-sound');
+  });
+
+  it('reads « son » as the noun after a determiner, and sets the possessive aside', () => {
+    const ids = (q: string) => results(set, q, { lang: 'fr' }).map((r) => r.ref);
+    expect(ids('vérifier son jeu avant de le partager')).toEqual(ids('vérifier jeu avant de le partager'));
+    expect(ids('le joueur perd son inventaire')).toEqual(ids('le joueur perd inventaire'));
+    expect(ids('pas de son')).not.toEqual(ids('pas de'));
   });
 });
 

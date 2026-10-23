@@ -187,6 +187,12 @@ repository.
    GAME=<id> npm run i18n -- status
    ```
 
+The three cases a player meets, said the same way on [Saves](play.saves.md#what-is-kept) and
+[Troubleshooting](play.troubleshooting.md): an item gone loads, adjusted; the current room gone is refused; the current
+room renamed with a migration (`{ from: 2, renameRoom: { lobby: 'hall' } }`, [Migrations](#migrations)) loads, in
+`hall`, because the migration runs before the room is checked. So before you remove or rename a room, keep the current
+room and the active player valid after migration: rename with `renameRoom`, never by deleting the old room.
+
 <a name="migrations"></a>
 
 ## Save slots and migrations

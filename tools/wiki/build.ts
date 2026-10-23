@@ -15,7 +15,8 @@ import { dirname, resolve } from 'node:path';
 import { type ClaimState } from './claims';
 import type { SurfaceStatus } from './contracts';
 import { type Glossary, readGlossary } from './glossary';
-import { reviewWords } from './reviewer';
+import { humanReviewed, type Reviewer, reviewWords } from './reviewer';
+import { readTranslations } from './translations';
 import { generatedIdentifiers, type Identifier } from './identifiers';
 import {
   type Audience,
@@ -129,6 +130,16 @@ const L = {
     colon: ':',
     status: 'Status',
     states: { planned: 'planned', draft: 'draft', ready: 'ready', generated: 'generated' },
+    // What a published page's one-line header says of it (the 4.5.1 audit, F18): published, and who read it.
+    published: {
+      person: 'Published, reviewed by a person',
+      partly: 'Published, partly reviewed by a person',
+      independent: 'Published, checked by an independent AI, not reviewed by a person',
+      author: 'Published, written and self-checked by an AI, not reviewed by a person',
+      none: 'Published, no review recorded',
+      generated: 'Generated from the published pages',
+    } satisfies Record<PageReview | 'generated', string>,
+    qualification: 'Audience, context, and the statuses of what this page rests on',
     synonyms: 'also',
     twinLanguage: 'French',
     type: 'Type',
@@ -227,6 +238,15 @@ const L = {
     colon: ' :',
     status: 'Statut',
     states: { planned: 'prévue', draft: 'brouillon', ready: 'prête', generated: 'générée' },
+    published: {
+      person: 'Publiée, relue par une personne',
+      partly: 'Publiée, relue en partie par une personne',
+      independent: 'Publiée, vérifiée par une IA indépendante, pas relue par une personne',
+      author: 'Publiée, écrite et vérifiée par une IA, pas relue par une personne',
+      none: 'Publiée, aucune relecture enregistrée',
+      generated: 'Générée depuis les pages publiées',
+    } satisfies Record<PageReview | 'generated', string>,
+    qualification: 'Public, contexte, et statuts de ce sur quoi repose la page',
     synonyms: 'aussi',
     twinLanguage: 'anglais',
     type: 'Type',
@@ -414,21 +434,58 @@ function statusBlock(p: Page, lang: Lang, statuses: ReadonlyMap<string, SurfaceS
   });
 }
 
-function header(p: Page, lang: Lang, style: LinkStyle): string {
+/** Who read a published page, from its translation pairs' reviewers (reviewer.ts): a person, an AI, or nobody yet. */
+export type PageReview = 'person' | 'partly' | 'independent' | 'author' | 'none';
+export function pageReview(
+  id: string,
+  pairs: Readonly<Record<string, { reviewers: readonly Reviewer[] }>>,
+): PageReview {
+  const mine = Object.entries(pairs)
+    .filter(([key]) => key.startsWith(`${id}#`))
+    .map(([, v]) => v.reviewers);
+  if (!mine.length) return 'none';
+  const human = mine.filter((r) => humanReviewed(r)).length;
+  if (human === mine.length) return 'person';
+  if (human) return 'partly';
+  return mine.every((r) => r.some((x) => x.relation === 'independent')) ? 'independent' : 'author';
+}
+
+/**
+ * The page's one-line header, under its title (the 4.5.1 audit, F17 and F18): the twin, the type, what the page is
+ * (published, and who read it: a person or an AI, never just "ready"), the versions. Short, so the page's first answer
+ * stays on the first screen; the audience, the context and the surfaces' statuses follow its lead, folded
+ * (`qualification`).
+ */
+function header(p: Page, lang: Lang, style: LinkStyle, review: PageReview): string {
   const t = L[lang];
   const twin = lang === 'en' ? 'fr' : 'en';
+  const type = typesOf(p)
+    .map((x) => t.types[x])
+    .join(' + ');
   const parts = [
     `[${t.other}](${style.page(p, twin)})`,
-    `${t.type}: ${typesOf(p)
-      .map((x) => t.types[x])
-      .join(' + ')}`,
-    `${t.audience}: ${p.audience.map((a) => t.audiences[a]).join(', ')}`,
-    `${t.context}: ${p.context.map((c) => t.contexts[c]).join(', ')}`,
-    `${t.status}: ${t.states[p.generated ? 'generated' : p.state]}`,
+    `${type[0]!.toUpperCase()}${type.slice(1)}`,
+    p.generated
+      ? t.published.generated
+      : p.state === 'ready'
+        ? t.published[review]
+        : `${t.status}: ${t.states[p.state]}`,
   ];
   if (p.versions?.appliesFrom) parts.push(`${t.appliesFrom}: ${p.versions.appliesFrom}`);
   // The labels hold no colon of their own: French puts a space before each one.
   return `> ${parts.join(' · ').replace(/: /g, `${t.colon} `)}`;
+}
+
+/** The page's qualification, folded: its audience and context, then each surface's five statuses (`statusBlock`). */
+function qualification(p: Page, lang: Lang, status: readonly string[]): string {
+  const t = L[lang];
+  const who = `> ${[
+    `${t.audience}: ${p.audience.map((a) => t.audiences[a]).join(', ')}`,
+    `${t.context}: ${p.context.map((c) => t.contexts[c]).join(', ')}`,
+  ]
+    .join(' · ')
+    .replace(/: /g, `${t.colon} `)}`;
+  return `<details><summary>${t.qualification}</summary>\n\n${[who, ...status].join('\n>\n')}\n\n</details>`;
 }
 
 const pageFooter = (p: Page, lang: Lang, productVersion: string) =>
@@ -492,7 +549,9 @@ function indexPages(
   return GENERATED_INDEXES.flatMap((id) => {
     const page = generatedPages(manifest, published).find((p) => p.id === id);
     if (!page) return [];
-    return [{ id, body: `# ${page.title[lang]}\n\n${header(page, lang, style)}\n\n${bodies[id].join('\n')}\n` }];
+    return [
+      { id, body: `# ${page.title[lang]}\n\n${header(page, lang, style, 'none')}\n\n${bodies[id].join('\n')}\n` },
+    ];
   });
 }
 
@@ -523,6 +582,23 @@ function sidebar(manifest: Manifest, published: readonly Page[], lang: Lang, sty
     );
   }
   return `${out.join('\n').trimEnd()}\n`;
+}
+
+/**
+ * The sidebar of Home and of any page outside the language folders (the 4.5.1 audit, F23): GitHub gives Home none of
+ * its own, so without it Home shows only GitHub's own list of every page, its English slugs first. Short and
+ * bilingual: the doors and the indexes, French then English, each language's full sidebar one click away.
+ */
+function homeSidebar(manifest: Manifest, published: readonly Page[]): string {
+  const shown = new Map(listed(manifest, published).map((p) => [p.id, p]));
+  const block = (lang: Lang) => {
+    const doors = DOORS.filter((d) => shown.has(d.id)).map(
+      (d) => `- [${d.label[lang]}](${shown.get(d.id)!.url[lang]})`,
+    );
+    const help = HELP.filter((id) => shown.has(id)).map((id) => `- ${link(shown.get(id)!, lang, WIKI_STYLE)}`);
+    return [`**${lang === 'fr' ? 'Français' : 'English'}**`, '', ...doors, ...help, ''];
+  };
+  return `${[`**[${L.fr.home} · ${L.en.home}](Home)**`, '', ...block('fr'), ...block('en')].join('\n').trimEnd()}\n`;
 }
 
 /** Home's few doors, in a reader's order: what to do first, one page each, said in a short line. */
@@ -574,7 +650,37 @@ const DOORS: readonly { id: string; label: Record<Lang, string>; line: Record<La
 ];
 
 /** The ways to look something up, under the doors. */
-const HELP: readonly string[] = ['index.faq', 'index.by-task', 'index.by-symptom', 'index.glossary'];
+const HELP: readonly string[] = [
+  'index.faq',
+  'index.by-task',
+  'index.by-symptom',
+  'index.identifiers',
+  'index.glossary',
+];
+
+/** GitHub's code search over one language's page sources: a search of the pages' text, which the wiki's box is not. */
+const textSearch = (lang: Lang) =>
+  `https://github.com/search?q=${encodeURIComponent(`repo:wanoo/quest-n-click path:wiki/${lang}/`)}&type=code`;
+
+/**
+ * What Home says about searching (the 4.5.1 audit, F09): the box at the top right of a GitHub wiki, "Find a page or
+ * section", filters page titles and headings only, never the text; an error message or a variable is found through
+ * the indexes, and the text itself through GitHub's code search over the page sources.
+ */
+function searchNote(lang: Lang, shown: ReadonlyMap<string, Page>): string {
+  const to = (id: string, label: Record<Lang, string>) => {
+    const p = shown.get(id);
+    return p ? `[${label[lang]}](${p.url[lang]})` : undefined;
+  };
+  const indexes = [
+    to('index.by-symptom', { en: 'index by symptom or error', fr: 'index par symptôme ou erreur' }),
+    to('index.identifiers', { en: 'identifiers index', fr: 'index des identifiants' }),
+  ].filter(Boolean);
+  const where = indexes.length ? indexes.join(lang === 'fr' ? ' ou l’' : ' or the ') : undefined;
+  return lang === 'fr'
+    ? `Le champ en haut à droite (« Find a page or section ») ne filtre que les titres des pages et des sections, pas leur texte${where ? ` : un message d'erreur ou une variable se trouve dans l’${where}` : ''}. Pour chercher dans le texte des pages, utilisez la [recherche de code de GitHub](${textSearch('fr')}) (connecté), en ajoutant vos mots.`
+    : `The box at the top right ("Find a page or section") filters page and section titles only, not their text${where ? `: an error message or a variable is in the ${where}` : ''}. To search the pages' text, use [GitHub's code search](${textSearch('en')}) (signed in), adding your words.`;
+}
 
 function home(manifest: Manifest, published: readonly Page[]): string {
   const shown = new Map(listed(manifest, published).map((p) => [p.id, p]));
@@ -594,9 +700,7 @@ function home(manifest: Manifest, published: readonly Page[]): string {
         '',
         help.join(' · '),
         '',
-        fr
-          ? "Ou tapez un mot, un code d'erreur (`423`) ou un nom de variable dans la recherche du wiki, en haut à droite."
-          : 'Or type a word, an error code (`423`) or a variable name in the wiki search, top right.',
+        searchNote(lang, shown),
         '',
       );
     return out;
@@ -654,6 +758,7 @@ export function composePages(o: Omit<BuildOptions, 'outDir'>, styleFor: (lang: L
   const identifiers = o.identifiers ?? generatedIdentifiers();
   const images = new Set<string>();
   const claims = new Map((o.claims ?? []).map((c) => [c.id, c]));
+  const pairs = readTranslations(o.wikiDir).translations.pairs;
   const pages: ComposedPage[] = [];
   const sidebars = {} as Record<Lang, string>;
   for (const lang of LANGS) {
@@ -671,9 +776,17 @@ export function composePages(o: Omit<BuildOptions, 'outDir'>, styleFor: (lang: L
         ...(o.preview ? [`> ${L[lang].preview(o.productVersion)}`] : []),
         ...(p.state === 'draft' ? [`> ${L[lang].draft}`] : []),
       ];
-      const top = `${banners.map((b) => `${b}\n\n`).join('')}${header(p, lang, style)}${status.length ? `\n>\n${status.join('\n>\n')}` : ''}`;
+      const top = `${banners.map((b) => `${b}\n\n`).join('')}${header(p, lang, style, pageReview(p.id, pairs))}`;
       const [first = '', ...rest] = body.split('\n');
-      const page = first.startsWith('# ') ? `${first}\n\n${top}\n${rest.join('\n')}` : `${top}\n\n${body}`;
+      const title = first.startsWith('# ') ? first : undefined;
+      const lines = title ? rest : body.split('\n');
+      // The qualification goes after the lead, the page's first answer, right before its first section.
+      const cut = lines.findIndex((l) => ANCHOR_LINE.test(l.trim()));
+      const lead = (cut < 0 ? lines : lines.slice(0, cut)).join('\n').trim();
+      const after = cut < 0 ? '' : lines.slice(cut).join('\n');
+      const page = [title, top, lead, qualification(p, lang, status), after]
+        .filter((x) => x !== undefined && x !== '')
+        .join('\n\n');
       pages.push({ lang, page: p, markdown: `${page}\n\n---\n\n${pageFooter(p, lang, o.productVersion)}\n` });
     }
     for (const index of indexPages(o.manifest, published, glossary, identifiers, lang, style)) {
@@ -692,6 +805,7 @@ export function wikiFiles(o: Omit<BuildOptions, 'outDir'>): Map<string, Buffer> 
   for (const c of pages) files.set(`${c.lang}/${c.page.url[c.lang]}.md`, Buffer.from(c.markdown));
   for (const lang of LANGS) files.set(`${lang}/_Sidebar.md`, Buffer.from(sidebars[lang]));
   files.set('Home.md', Buffer.from(home(o.manifest, publishedPages(o.manifest, o.preview))));
+  files.set('_Sidebar.md', Buffer.from(homeSidebar(o.manifest, publishedPages(o.manifest, o.preview))));
   files.set('_Footer.md', Buffer.from(footer(o.productVersion, o.docRevision, o.docRevisionNumber ?? 'r1', o.preview)));
   for (const image of images) files.set(`images/${image}`, readFileSync(resolve(o.wikiDir, 'images', image)));
   return files;

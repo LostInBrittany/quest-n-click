@@ -70,6 +70,24 @@ sounds**. La planche **hero** (Pixel, une grille de 6 × 4, 24 cases, 19 utilis�
 path** activé : **40 critical, 47 out of the solver’s state** ; des nœuds comme **tank_drained**, **shell phone**,
 **use pipe + tank**, **pantry key**.
 
+<a name="not-shown"></a>
+
+## Pas encore montré
+
+Aucune capture ici ne montre ces écrans, chacun l’étape décisive d’un parcours récent :
+
+| Écran | Depuis | Où le voir aujourd’hui |
+|---|---|---|
+| Le choix du héros à la Nouvelle partie, en deux langues (`games/heroes`) | 4.3.0 | [Choisir son héros](create.heroes.md) |
+| L’onglet Voices du Studio, la matrice « Heroes × languages » | 4.4.0 | [La matrice héros × langue](studio.voices-matrix.md) |
+| Les captures avant/après du diff sémantique (Studio local) | 4.4.0 | le Studio local |
+| Un Studio hébergé : la modification d’un membre refusée par un 423, la prévisualisation hébergée, l’onglet Check après un enregistrement | 4.2.x | [423 sur le Studio hébergé](team.write-refused-423.md) |
+
+`npm run docs:screenshots` ne sait pas les prendre tel quel : il joue le jeu d’exemple, *La Clé du garde-manger*, et
+ouvre quatre onglets du Studio local sur lui ; il n’a aucune étape pour `games/heroes`, pour l’onglet Voices ni pour un
+Studio hébergé. Les prendre demande d’ajouter ces étapes au script, puis de placer chaque capture dans la page de son
+parcours.
+
 <a name="regenerate"></a>
 
 ## Les reprendre

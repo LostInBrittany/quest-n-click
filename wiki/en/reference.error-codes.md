@@ -5,6 +5,20 @@ server and the hosted Studio Server), the Reality Bridge's codes, the solver's s
 commands that check a game. Search this page for the exact code or the start of the message you got: a message with a
 part filled at run time is written with `…` in that place.
 
+<a name="quick-entry"></a>
+
+## Quick entry, by what you see
+
+| You see… | What it means | What to do |
+|---|---|---|
+| `409` from the hosted Studio | [someone changed the same thing first](#studio-409) | [409 on the hosted Studio](team.write-refused-409.md) |
+| `423` from the hosted Studio | [another member holds that part of the game](#studio-423) | [423 on the hosted Studio](team.write-refused-423.md) |
+| `401` or `403` from the Studio | [not signed in, or not allowed](#studio-401) | [hosted Studio troubleshooting](clever.troubleshooting.md), [local Studio troubleshooting](studio.troubleshooting.md) |
+| `422` after a save in the Studio | [the change would add a validation error](#studio-422) | read its `errors`, fix them, save again |
+| an error from the Reality Bridge | [its status and code](#bridge) | [Bridge troubleshooting](bridge.troubleshooting.md) |
+| `npm run solve` exits with 1 or 2 | [no way to the end, or a search cut short](#exit-solve) | [checking your game](create.checking.md) |
+| another command exits non-zero | [its exit codes](#exits) | the line of that command |
+
 <a name="how-to-read"></a>
 
 ## How to read this page

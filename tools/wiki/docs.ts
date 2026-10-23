@@ -290,7 +290,7 @@ const STOP = new Set(
     'what why where when which who with can could should would not no if as into get use using want ' +
     'their they them our his her any some don doesn didn isn aren wasn won ' +
     'le la les l un une des de du d et ou est sont etre pour dans sur en au aux ce cet cette ces que qui quoi quel ' +
-    'quelle comment pourquoi je j mon ma mes il elle on ne n se s sa son ses par avec plus y a veux faire ' +
+    'quelle comment pourquoi je j mon ma mes il elle on ne n se s sa ses par avec plus y a veux faire ' +
     'notre nos votre vos leur leurs'
   ).split(' '),
 );
@@ -321,6 +321,27 @@ const words = (s: string, all = false): string[] =>
     .filter((w) => w && (all || (!STOP.has(w) && (w.length > 1 || /\d/.test(w)))))
     .map(stem);
 const phrase = (s: string) => ` ${words(s, true).join(' ')} `;
+
+/**
+ * French « son » is both a possessive (« vérifier son jeu ») and a noun of this documentation (« pas de son », the
+ * sound): kept out of the stop words since 4.5.1 (the wiki audit, F10), it is a word of the query only where a
+ * determiner or « pas de » makes it the noun (« le son », « du son », « aucun son », « pas de son »), else it is the
+ * possessive and ignored as the stop words are.
+ */
+const NOUN_BEFORE: Record<string, ReadonlySet<string>> = {
+  son: new Set(['le', 'de', 'du', 'un', 'aucun', 'les', 'ce', 'des', 'au', 'sans', 'd', 'l', 'mon', 'ton', 'quel']),
+};
+/** The words of a query as searched: `words`, an ambiguous word kept only where it is the noun (`NOUN_BEFORE`). */
+const queryWords = (query: string): string[] => {
+  const all = words(query, true);
+  const kept = new Set(
+    all.filter((w, i) => {
+      const before = NOUN_BEFORE[w];
+      return !before || before.has(all[i - 1] ?? '');
+    }),
+  );
+  return words(query).filter((w) => !NOUN_BEFORE[w] || kept.has(w));
+};
 
 // ------------------------------------------------------------------------------------------------- versions
 
@@ -502,7 +523,7 @@ interface Term {
  * points at, the term's words as more aliases of that page.
  */
 function termsOf(query: string, set: DocsSet): { terms: Term[]; aliases: Map<string, Bilingual<string[]>> } {
-  const typed = [...new Set(words(query))];
+  const typed = [...new Set(queryWords(query))];
   const terms: Term[] = typed.map((w) => ({ word: w, weight: 1, covers: [w] }));
   const aliases = new Map<string, Bilingual<string[]>>();
   const q = phrase(query);
@@ -646,6 +667,7 @@ function scorePage(
 ) {
   const typed = new Set(terms.filter((t) => t.weight === 1).map((t) => t.word));
   const q = phrase(query);
+  const symptoms = typesOf(p).includes('troubleshooting');
   // Page-level fields: the best one each word is found in. An identifier in capitals (an environment variable,
   // `STUDIO`, `PATH`) counts only when the query holds it exactly, as a token: otherwise every query with the word
   // "studio" would be read as naming the variable `STUDIO` (A7, D2).
@@ -706,7 +728,15 @@ function scorePage(
       if (reason && (!top || sec > top.score)) top = { reason, score: sec, text: s.text };
     }
     if (!top) continue;
-    if (headedByContext(s.title, context, lang)) score += WEIGHT.section;
+    // The page's lead is headed by the page's title, not by a context: only a section earns the context's bonus.
+    // The page's lead is headed by the page's title, not by a context: only a section earns the context's bonus.
+    if (s.id && headedByContext(s.title, context, lang)) score += WEIGHT.section;
+    // A symptom typed as the section names it (« pas de son », "no sound", "the game has no sound"): the section's
+    // heading, two words or more, one of them not a stop word, is in the query word for word (the 4.5.1 audit, F10).
+    // Troubleshooting pages only: a reference's heading (`npm run studio`) is a name, not a symptom.
+    const heading = phrase(s.title);
+    if (symptoms && heading.trim().split(' ').length > 1 && words(s.title).length && q.includes(heading))
+      score += 2 * WEIGHT.section;
     // The excerpt of a page-level match is the field that holds the most words found, the heaviest on a tie: an alias
     // "Studio backup" says more than the title "Backups" alone, and names its context.
     if (top.reason !== 'section' && top.reason !== 'body') {

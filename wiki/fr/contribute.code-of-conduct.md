@@ -22,13 +22,17 @@ Le désaccord est bienvenu quand il porte sur le code, le contenu ou la décisio
 
 ## Signaler un manquement
 
-Signalez-le en privé par les security advisories de GitHub sur `wanoo/quest-n-click`, ou au mainteneur, @wanoo. Les
-signalements sont lus, reçoivent une réponse, et restent privés.
+Un seul canal, privé : le formulaire de signalement du dépôt, onglet **Security**, **Report a vulnerability**
+(<https://github.com/wanoo/quest-n-click/security/advisories/new>). Il est prévu pour les vulnérabilités, mais seul le
+mainteneur voit ce que vous y écrivez : il reçoit donc aussi un signalement de conduite, dites-le dans son titre.
+N'importe quel compte GitHub peut s'en servir, collaborateur ou non. Les signalements sont lus, reçoivent une réponse, et
+restent privés.
 
 > [!LIMIT id=no-report-address]
-> `CODE_OF_CONDUCT.md` envoie les signalements à « l'adresse du champ `author` de `package.json`, ou à celle du profil
-> GitHub » ; `package.json` n'a pas de champ `author`, et le projet ne publie pas d'adresse électronique dédiée aux
-> signalements. Tant que le mainteneur n'en donne pas une, utilisez les deux canaux privés ci-dessus.
+> Le projet ne publie pas d'adresse électronique pour les signalements, et GitHub n'a pas de messages privés entre
+> comptes. Si l'onglet Security ne propose pas de bouton « Report a vulnerability », ouvrez une issue qui dit seulement
+> « J'ai besoin d'un canal privé pour un signalement de conduite », sans détail : le mainteneur ouvre un advisory privé
+> et vous y ajoute.
 
 <a name="consequences"></a>
 

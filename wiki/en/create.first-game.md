@@ -7,9 +7,9 @@ The shortest path from nothing to a room you can play on your phone, with the fi
 ## What you will build
 
 A game of one room from the template: a garden, a bucket, a gate. Take the bucket, use it on the gate, the end. You
-add a lamp the hero can switch on, place it with the mouse, tell it in the storyboard, check the game with the
-validator and the solver, and play it on your phone. The steps are planned for about fifteen minutes. Everything you
-will write afterwards is a variation of what is already there.
+add a lamp the hero can switch on: you tell it in the storyboard first, write its rule, place it with the mouse,
+check the game with the validator and the solver, and play it on your phone. The steps are planned for about fifteen
+minutes. Everything you will write afterwards is a variation of what is already there.
 
 **The content is data.** Rooms, props with states, characters, items, rules, conversations, hints, scripts and events
 are plain TypeScript objects, with no code in them, so every tool can read, check and play them:
@@ -42,9 +42,10 @@ found before release ([translations](create.translations.md)).
 
 ## What you need
 
-- Node 22.12 or later; Python 3 with Pillow for `npm run assets`
-  (`pip install -r node_modules/quest-n-click/requirements.txt` in a created project, `pip install -r requirements.txt`
-  in the engine repository). See [requirements](install.requirements.md).
+- Node 22.13 or later: the local Studio (step 5) and the tools that write a game need it; 22.12 only plays and
+  builds a game ([requirements](install.requirements.md#node)). Python 3 with Pillow for `npm run assets`
+  (`python3 -m pip install -r node_modules/quest-n-click/requirements.txt` in a created project,
+  `python3 -m pip install -r requirements.txt` in the engine repository).
 - A phone on the same network, for the last step (optional).
 - One of two places to work, the same steps in both ([which is which](create.project-layout.md)):
   - **a created project**, where the game is `game/`; this page's paths say `game/`;
@@ -56,28 +57,28 @@ found before release ([translations](create.translations.md)).
 
 <a name="from-the-template"></a>
 
-### 1. A game from the template (one minute)
+### 1. A game from the release archive (two minutes)
 
 <!-- step: create -->
-In a new folder of your choice, make a created project:
+The packages are not on the npm registry yet, so a game starts from the archive each GitHub release attaches
+([install from the release archive](install.from-archive.md)). Take the latest version from
+<https://github.com/wanoo/quest-n-click/releases/latest> and, in an empty folder of your choice:
 
 ```sh
-# anywhere on your machine: makes the folder my-game
-npx create-quest-n-click my-game "My Game"     # or: npx quest-n-click create my-game "My Game"
+# in the folder that will contain the project: makes the folder my-game
+V=4.5.0             # the version of the release you take
+T=https://github.com/wanoo/quest-n-click/releases/download/v$V/quest-n-click-$V.tgz
+npx --package=$T quest-n-click create my-game "My Game" --engine=$T
 cd my-game
 npm install
+python3 -m pip install -r node_modules/quest-n-click/requirements.txt
 npm run assets      # the placeholder art into public/assets
 npm run dev         # http://127.0.0.1:5173/: a garden, a bucket, a gate
 ```
 
-Until the packages are on npm, take the tarball a release attaches
-([install from the release archive](install.from-archive.md)):
-
-```sh
-# anywhere on your machine
-T=https://github.com/wanoo/quest-n-click/releases/download/v<version>/quest-n-click-<version>.tgz
-npx --package=$T quest-n-click create my-game "My Game" --engine=$T
-```
+Once the packages are published on npm, `npx create-quest-n-click my-game "My Game"` will do the first three lines
+([install from npm, once published](install.from-npm.md)); until then that command fails, because nothing of that name
+is on the registry.
 
 Or, in the engine repository, the same template becomes `games/lamp`, set as the current game (`.cache/game`):
 
@@ -104,17 +105,32 @@ a verb, a target, a condition, what happens), `hints` (what the hint item says, 
 Geometry is not here: `layout/start.json` holds where things stand, and only the Studio or the placement editor
 writes it ([geometry](create.geometry.md)).
 
+<a name="story-then-check"></a>
+
+### 3. Tell it in the storyboard first (two minutes)
+
+<!-- step: story -->
+`storyboard.json` is the source of truth for the text: the story is written there before the room
+([the storyboard](create.storyboard.md)). Add a panel to the garden board, after the bucket's:
+
+```json
+{ "id": "start-lamp", "title": "The lamp", "action": "Use lamp", "lines": [{ "who": "hero", "text": "There. Light." }] }
+```
+
+The Studio's Storyboard tab will show this panel as not implemented yet: the next step implements it, with the same
+line.
+
 <a name="add-a-prop"></a>
 
-### 3. Add a prop and its rule (five minutes)
+### 4. Add the prop and its rule (five minutes)
 
 <!-- step: add-prop -->
-Add a lamp to the garden. In `rooms/start.ts`:
+Add the lamp to the garden. In `rooms/start.ts`:
 
 ```ts
 props: {
   bucket: { name: 'bucket', img: 'starter/items/bucket' },
-  lamp: { name: 'lamp', img: 'starter/items/bucket', states: { off: 'starter/items/bucket', on: 'starter/items/bucket' } },
+  lamp: { name: 'lamp', states: { off: 'starter/items/bucket', on: 'starter/items/note' }, initial: 'off' },
 },
 look: {
   // …
@@ -127,14 +143,16 @@ on: [
 ],
 ```
 
-The image is the bucket's for now (`npm run prompts` writes the prompt for a real one, and the Studio's Assets tab
-cuts what you generate: [images](create.images.md)). A rule is a verb, a target, a condition and a list of commands; a
-string in `do` is a line the hero says. `{ prop: ['lamp', 'on'] }` switches the prop's state, `{ set: 'lamp_on' }`
-remembers it in the save ([reactions](create.reactions.md), [commands](create.commands.md)).
+The placeholder art has no lamp, so the lamp borrows the template's two item images: switched off it shows the
+bucket's, switched on the note's. The change is a stand-in, but you see it. For a real lamp, `npm run prompts` writes
+the prompt and the Studio's Assets tab cuts what you generate ([images](create.images.md)). A rule is a verb, a
+target, a condition and a list of commands; a string in `do` is a line the hero says, the storyboard's line.
+`{ prop: ['lamp', 'on'] }` switches the prop's state, `{ set: 'lamp_on' }` remembers it in the save
+([reactions](create.reactions.md), [commands](create.commands.md)).
 
 <a name="place-it"></a>
 
-### 4. Place it (two minutes)
+### 5. Place it (two minutes)
 
 <!-- step: place -->
 ```sh
@@ -146,19 +164,18 @@ The lamp has no place yet, so the Studio shows it at the default spot. Drag it w
 `layout/start.json` gains a `lamp` entry. Never type coordinates by hand; the editor and the Studio exist for that.
 Until it is placed, `validate` says `no position in the layout`.
 
-<a name="story-then-check"></a>
+<a name="check-it"></a>
 
-### 5. Tell the story first, then check (three minutes)
+### 6. Check it (three minutes)
 
-<!-- step: story-check -->
-`storyboard.json` is the source of truth for the text: add a panel to the garden board (`"action": "Use lamp"`, the
-line the hero says) ([the storyboard](create.storyboard.md)). The Storyboard tab shows what is implemented and what is
-not; the Check tab runs the validator and the solver after every save. From the terminal:
+<!-- step: check -->
+The Storyboard tab now shows the lamp's panel as implemented; the Check tab runs the validator and the solver after
+every save. From the terminal:
 
 ```sh
 # in the engine repository
 npm run validate   # a prop without a look line, a flag nothing reads, a rule nobody can reach: said here
-npm run solve      # a way from New Game to the end, printed step by step; "softlock" if the player can get stuck
+npm run solve      # one winning path from New Game to the end, printed step by step (not a proof that no one gets stuck)
 npm test           # the engine's tests and your game's walkthrough (games/lamp/tests/game.test.ts)
 ```
 
@@ -169,12 +186,15 @@ npx quest-n-click solve
 npm run verify     # validate, solve, i18n status, lint, playtests
 ```
 
-A rule the solver never needs is not a bug (the lamp is decoration), but `npm run lint`
-(`npx quest-n-click lint`) tells you it is decoration ([checking your game](create.checking.md)).
+`solve` stops at the first way to the end it finds: another path may still lead the player into a dead end.
+`npm run solve -- --prove` (`npx quest-n-click solve --prove`) searches every state it can reach for one, within its
+budgets ([what the solver proves](create.solver-proofs.md)). A rule the solver never needs is not a bug (the lamp is
+decoration), but `npm run lint` (`npx quest-n-click lint`) tells you it is decoration
+([checking your game](create.checking.md)).
 
 <a name="play-on-your-phone"></a>
 
-### 6. Play it on your phone (two minutes)
+### 7. Play it on your phone (two minutes)
 
 <!-- step: play-phone -->
 ```sh
@@ -183,21 +203,26 @@ npm run dev:lan     # the dev server on your network; open the printed URL on th
 ```
 
 A created project has no `dev:lan`: [testing on a phone over the LAN](create.lan-testing.md) says how to do it there.
-Tap the lamp with Use. The line shows, the prop changes, and the save remembers it when you reload.
+Tap the lamp with Use. Before: the lamp shows the bucket's image. After: the hero says "There. Light.", the lamp
+shows the note's image, and a second Use no longer runs the rule (its `if: '!lamp_on'`). Reload the page: the lamp is
+still on, because the save remembers `lamp_on` and the prop's state.
 
 > [!LIMIT id=tutorial-scope]
-> This tutorial leaves out the art (the lamp keeps the bucket's image), the map, characters and conversations, and
-> publishing. Each has its page below.
+> This tutorial leaves out the art (the lamp borrows the template's placeholder images), the map, characters and
+> conversations, and publishing. Each has its page below.
 
 <a name="what-you-learned"></a>
 
 ## What you learned
 
-That is the loop: write a rule, place it, check, play ([the working loop](create.working-loop.md)).
+That is the loop: tell it in the storyboard, write the rule, place it, check, play
+([the working loop](create.working-loop.md)).
 
+- The storyboard comes first: the room's lines are the storyboard's ([the storyboard](create.storyboard.md)).
 - A room is data: props, hotspots, look lines, rules ([rooms](create.rooms.md)).
 - Geometry lives in `layout/`, placed with the mouse ([geometry](create.geometry.md)).
-- The validator and the solver check the game after each change ([checking your game](create.checking.md)).
+- The validator and the solver check the game after each change; `solve` finds a winning path, `solve --prove` looks
+  for dead ends ([checking your game](create.checking.md)).
 
 <a name="next"></a>
 

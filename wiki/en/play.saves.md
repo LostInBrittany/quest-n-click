@@ -86,16 +86,25 @@ speedrun records.
 
 A save written by any 3.x or 4.x release of the engine loads in every later 4.x: when the author changes the game in
 a way an old save cannot follow, the game carries the save over itself. When a newer version of a game no longer has
-something your save names (an item, a place), the save still loads, without it, and the game says "Save adjusted for
-this version" with what it left out. See [Stability and support](start.stability.md#saves).
+something your save names, two cases:
+
+- **the room you saved in, or the hero you were playing, is gone**: the save is **refused** ("state.room: unknown current
+  room …"), and the game you are playing stays as it was. Load an earlier slot or an exported file saved elsewhere, or
+  ask the game's author: a room renamed with a migration carries the save over and loads;
+- **anything else is gone** (an item in the bag, a place on the map, a room you visited, a character's position): the
+  save loads without it, and the game says "Save adjusted for this version" with what it left out.
+
+See [Stability and support](start.stability.md#saves), and for an author [State and saves](create.state-saves.md).
 
 > [!GUARANTEE id=play-save-refused-untouched]
 > A save of another game, a corrupt one, or one whose current room no longer exists is refused, and the game you are
 > playing is left as it was.
 
 > [!LIMIT id=saves-device-only]
-> Saves live in this browser on this device. Clearing the site's data, or Safari clearing a site unopened for seven
-> days, erases them: export the ones you care about.
+> Saves live in this browser on this device. Clearing the site's data erases them. In a Safari tab, Safari may also
+> erase them after seven days of Safari use without a visit to the game; a game added to the Home Screen is exempt from
+> that rule ([WebKit](https://webkit.org/tracking-prevention/)). Any browser may evict a site's data when the device runs short of space. The project has not
+> tested these rules on a real device: export the saves you care about.
 
 <a name="expected-result"></a>
 
