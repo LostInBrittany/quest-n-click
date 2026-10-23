@@ -161,6 +161,13 @@ export const RULES: readonly Rule[] = [
   { re: /^tests\/visual\//, gates: ['e2e', 'reference'], why: 'the visual references' },
   { re: /^(scripts\/start\.mjs|tests\/run-tool\.ts)$/, gates: [...UNIT], why: 'what Windows runs differently' },
 
+  // The documentation's publication (4.5.0, A5b): the archive, its HTML and search, Pages' /docs/, the wiki's push,
+  // the transition pages. No game is built through them; their tests are unit tests, and the docs family runs too.
+  {
+    re: /^tools\/wiki\/(archive|html|html-search|pages|publication|transition)\.ts$/,
+    gates: [...UNIT],
+    why: "the documentation's publication",
+  },
   // Tools that ship nothing and build nothing: the unit tier.
   {
     re: /^(tools\/(mutate|mutation-sets|coverage-ratchet|quality-baseline|api-doc|audit-corpus|bench|changes)\.ts$|tools\/release\/|scripts\/(release-notes\.(mjs|d\.mts)|check-links\.mjs|docs-screenshots\.mjs)$)/,

@@ -151,6 +151,11 @@ jobs:
           if-no-files-found: ignore
   release:
     needs: [mutation-plan, mutation, mutation-merge]
+    # What docs-publish needs (4.5.0): read only when this job succeeded, that is after `ship verify` passed.
+    outputs:
+      version: ${{ steps.docs.outputs.version }}
+      candidate: ${{ steps.docs.outputs.candidate }}
+      docs-sha256: ${{ steps.docs.outputs.sha256 }}
     if: github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push' && startsWith(github.event.workflow_run.head_branch, 'v') && contains(github.event.workflow_run.head_branch, '.')
     runs-on: ubuntu-24.04
     timeout-minutes: 120
@@ -211,6 +216,8 @@ jobs:
           gh run download "$run" -n candidate-site -D .candidate/site 2>/dev/null || echo "::notice::run $run kept no site"
           gh run download "$run" -n candidate-surfaces -D .candidate/surfaces 2>/dev/null || echo "::notice::run $run wrote no surfaces"
           gh run download "$run" -n candidate-signing -D .candidate/signing 2>/dev/null || echo "::notice::run $run rehearsed no signing"
+          # 4.5.0 (docs/dev/PLAN-4.5-WIKI.md §4.5.4): the documentation archive; an older candidate built none.
+          gh run download "$run" -n candidate-docs -D .candidate/docs 2>/dev/null || echo "::notice::run $run built no documentation archive"
           node tools/release/candidate.mjs check .candidate-manifest/candidate-manifest.json --sha="$SHA" --run="$run" --dir=.candidate
           echo "CANDIDATE=$run" >> "$GITHUB_ENV"
         env:
@@ -322,6 +329,15 @@ jobs:
           cp .candidate/image/$P-bridge-image.json "$P-bridge-image-$TAG.json"
           cp .candidate/image/$P-bridge-image.cdx.json "$P-bridge-image-$TAG-sbom.cdx.json"
           extra="$extra $P-bridge-image-$TAG.tar $P-bridge-image-$TAG.json $P-bridge-image-$TAG-sbom.cdx.json"
+          # The documentation archive (4.5.0, §4.5.4): the candidate's, named by the tag's version (an rc's suffix
+          # added), from v4.5.0 on; docs-publish promotes this very file once `ship verify` has read it back.
+          for f in .candidate/docs/quest-n-click-docs-*.tar.gz; do
+            [ -f "$f" ] || continue
+            n="$P-docs-${TAG#v}.tar.gz"
+            cp "$f" "$n"
+            extra="$extra $n"
+            echo "DOCS_ARCHIVE=$n" >> "$GITHUB_ENV"
+          done
           # The candidate's baseline (4.1.19): its measures of this very SHA, checked against the manifest above.
           for f in .candidate/baseline/baseline-*.json .candidate/baseline/baseline-*.md; do
             [ -f "$f" ] || continue
@@ -362,6 +378,7 @@ jobs:
           subject-path: |
             ${{ env.P }}-${{ env.TAG }}-*
             ${{ env.P }}-bridge-image-*
+            ${{ env.P }}-docs-*.tar.gz
             *.tgz
             *-${{ env.TAG }}-sbom.cdx.json
       - run: |
@@ -377,3 +394,31 @@ jobs:
       - run: node tools/release/ship.mjs verify "$TAG"
         env:
           GH_TOKEN: ${{ github.token }}
+      # The last step: what docs-publish is handed, once everything above (`ship verify` included) passed. A tag
+      # before 4.5.0 has no archive: docs-publish is skipped.
+      - id: docs
+        run: |
+          echo "version=${TAG#v}" >> "$GITHUB_OUTPUT"
+          echo "candidate=${CANDIDATE:-}" >> "$GITHUB_OUTPUT"
+          if [ -n "${DOCS_ARCHIVE:-}" ]; then echo "sha256=$(sha256sum "$DOCS_ARCHIVE" | cut -d' ' -f1)" >> "$GITHUB_OUTPUT"; fi
+  # The documentation's publication (4.5.0, docs/dev/PLAN-4.5-WIKI.md §4.5.2, ADR 0030): started by `needs`, so only
+  # after the release job succeeded, `ship verify` its last check; never by `release: published`, which a release
+  # published with GITHUB_TOKEN does not fire. It promotes the archive the release carries (the candidate's, checked
+  # again), records it in publication.json and pushes the wiki; an rc publishes `/docs/<v-rc>/` only.
+  docs-publish:
+    needs: [release]
+    if: needs.release.outputs.docs-sha256 != ''
+    uses: ./.github/workflows/docs-publish.yml
+    permissions:
+      contents: write
+      actions: write
+      id-token: write
+      attestations: write
+    secrets: inherit
+    with:
+      version: ${{ needs.release.outputs.version }}
+      tag: v${{ needs.release.outputs.version }}
+      sha: ${{ github.event.workflow_run.head_sha }}
+      candidate: ${{ needs.release.outputs.candidate }}
+      archive-sha256: ${{ needs.release.outputs.docs-sha256 }}
+      revision: r1

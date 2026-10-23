@@ -423,7 +423,11 @@ describe('wiki -- build --target wiki', () => {
   it('includes the drafts under a banner with --preview', () => {
     const { files, read } = build(true);
     expect(files).toContain('fr/FR-Studio-Notes.md');
-    expect(read('fr/FR-Studio-Notes.md')).toMatch(/^# Notes\n\n> \*\*Brouillon\*\* :/);
+    // The preview's banner first (§4.5.3: it points to the 4.4.0 documentation), then the draft's.
+    expect(read('fr/FR-Studio-Notes.md')).toMatch(
+      /^# Notes\n\n> \*\*Aperçu de la documentation de la 4\.5\.0\*\* : .*blob\/v4\.4\.0\/docs\/.*\n\n> \*\*Brouillon\*\* :/,
+    );
+    expect(read('en/EN-Create-Rooms.md')).toContain('**Preview of the 4.5.0 documentation**');
     expect(read('fr/FR-Studio-Notes.md')).toContain('Statut : brouillon');
     expect(read('en/_Sidebar.md')).toContain('[Notes](EN-Studio-Notes)');
     expect(read('en/EN-Create-Rooms.md')).toContain('[the Studio](EN-Studio-Notes)');
@@ -433,7 +437,8 @@ describe('wiki -- build --target wiki', () => {
   it('fills the footer from the product version and the doc revision, and says edits are overwritten', () => {
     const { read } = build(false);
     const footer = read('_Footer.md');
-    expect(footer).toContain("quest'n'click 4.5.0");
+    expect(footer).toContain("current documentation · documentation courante: quest'n'click 4.5.0 r1");
+    expect(footer).toContain('https://wanoo.github.io/quest-n-click/docs/');
     expect(footer).toContain('`d0c`');
     expect(footer).toContain('overwritten at the next publication');
     expect(read('Home.md')).toMatch(/\| Français \| English \|/);
@@ -476,7 +481,10 @@ describe('npm run wiki, the command line', () => {
       [['build', '--target', 'wiki', '--out', '--preview'], '--out needs a value'],
       [['build', '--target=wiki', '--out='], '--out needs a value'],
       [['build', '--target', 'html', '--out', '/tmp/x'], 'build needs --target wiki'],
-      [['publish'], 'unknown command "publish"'],
+      [['deploy'], 'unknown command "deploy"'],
+      [['publish'], 'publish needs --target wiki'],
+      [['pages'], 'pages needs --out'],
+      [['archive'], 'archive needs --out'],
     ] as const) {
       const done = quiet();
       expect(main(args), args.join(' ')).toBe(2);

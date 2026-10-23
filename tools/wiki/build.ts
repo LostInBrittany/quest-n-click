@@ -10,7 +10,7 @@
 // is copied into the output and linked from the wiki's root (a wiki resolves a page's links from its root, whatever
 // the page's folder: the A1 spike's question). The four indexes are generated pages: built with the first published
 // page, listing published pages only.
-import { copyFileSync, existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { type ClaimState } from './claims';
 import type { SurfaceStatus } from './contracts';
@@ -63,7 +63,29 @@ export interface BuildOptions {
   statuses?: ReadonlyMap<string, SurfaceStatus>;
   /** Each claim's states (§4.4.3), shown on its `[!GUARANTEE]` block; from `wiki -- check`. */
   claims?: readonly ClaimState[];
+  /** The doc revision's number (`r1`, `r2`…, §4.5.4), said in the footer; `r1` when absent. */
+  docRevisionNumber?: string;
 }
+
+/**
+ * How an output links (§4.5.6): a page in a language (from a page of `from`), an image of `wiki/images/`, the home
+ * page. The wiki links a page by its public URL, resolved by the wiki from its root; the HTML of an archive by a
+ * relative path from `html/<lang>/`, so the same files work under `/docs/<v>/r<n>/` and from a disk.
+ */
+export interface LinkStyle {
+  page(p: Pick<Page, 'id' | 'url'>, lang: Lang): string;
+  image(path: string): string;
+  home: string;
+}
+const WIKI_STYLE: LinkStyle = { page: (p, lang) => p.url[lang], image: (path) => `images/${path}`, home: 'Home' };
+/** The links of an HTML page under `html/<from>/`. */
+export const htmlStyle = (from: Lang): LinkStyle => ({
+  page: (p, lang) => (lang === from ? `${p.id}.html` : `../${lang}/${p.id}.html`),
+  image: (path) => `../assets/${path}`,
+  home: '../index.html',
+});
+/** The release whose documentation a preview points to: the bootstrap happens once, before 4.5.0 (§4.5.3). */
+export const BOOTSTRAP_LATEST = '4.4.0';
 
 const L = {
   en: {
@@ -115,6 +137,8 @@ const L = {
     other: 'Français',
     home: 'Home',
     draft: '**Draft**: this page is not reviewed yet. It is shown in a preview only, never in the published wiki.',
+    preview: (v: string) =>
+      `**Preview of the ${v} documentation**: latest published release ${BOOTSTRAP_LATEST}, its documentation is at [blob/v${BOOTSTRAP_LATEST}/docs/](${REPO_URL}/blob/v${BOOTSTRAP_LATEST}/docs/).`,
     coming: 'coming',
     edit: 'Edit the source of this page',
     report: 'Report an error',
@@ -212,6 +236,8 @@ const L = {
     home: 'Accueil',
     draft:
       "**Brouillon** : cette page n'est pas encore relue. Elle n'apparaît que dans un aperçu, jamais dans le wiki publié.",
+    preview: (v: string) =>
+      `**Aperçu de la documentation de la ${v}** : dernière version publiée ${BOOTSTRAP_LATEST}, sa documentation est sur [blob/v${BOOTSTRAP_LATEST}/docs/](${REPO_URL}/blob/v${BOOTSTRAP_LATEST}/docs/).`,
     coming: 'à venir',
     edit: 'Modifier la source de cette page',
     report: 'Signaler une erreur',
@@ -264,9 +290,16 @@ const BLOCK_NAMES = {
   fr: { LIMIT: 'Limite', GUARANTEE: 'Garantie', MEASURE: 'Mesure' },
 } as const;
 
-/** The footer of every page: what the publication is, and that an edit made in the wiki does not last. */
-const footer = (productVersion: string, docRevision: string) =>
-  `Generated publication · publication générée — quest'n'click ${productVersion}, documentation revision · révision de la documentation \`${docRevision}\`.
+/** The versioned site on GitHub Pages: `/docs/<v>/r<n>/` permalinks, `/docs/<v>/` and `/docs/latest/` aliases. */
+export const PAGES_DOCS_URL = 'https://wanoo.github.io/quest-n-click/docs';
+
+/**
+ * The footer of every page: what the publication is (the wiki shows the current version only, §4.5.4: a preview says
+ * it is one), where the earlier versions are, and that an edit made in the wiki does not last.
+ */
+const footer = (productVersion: string, docRevision: string, revision: string, preview: boolean) =>
+  `Generated publication · publication générée — ${preview ? `preview of the ${productVersion} documentation · aperçu de la documentation de la ${productVersion}` : `current documentation · documentation courante: quest'n'click ${productVersion} ${revision}`}, documentation revision · révision de la documentation \`${docRevision}\`.
+Earlier versions and permalinks · versions précédentes et liens permanents: ${PAGES_DOCS_URL}/
 An edit made in this wiki is overwritten at the next publication · une modification faite dans ce wiki est écrasée à la publication suivante.
 [Edit the source · Modifier la source](${REPO_URL}/tree/main/wiki) · [Report an error · Signaler une erreur](${REPO_URL}/issues/new?title=${encodeURIComponent('[bug] docs: ')})
 `;
@@ -286,6 +319,7 @@ function rewritePage(
   productCommit: string,
   images: Set<string>,
   claims: ReadonlyMap<string, ClaimState> = new Map(),
+  style: LinkStyle = WIKI_STYLE,
 ): string {
   const rewrite = (l: Link): string | undefined => {
     const t = classifyTarget(l.target, lang);
@@ -300,7 +334,7 @@ function rewritePage(
         : to(`${REPO_URL}/blob/${productCommit}/${t.path}${t.anchor ? `#${t.anchor}` : ''}`);
     if (t.kind === 'wiki-image') {
       images.add(t.path);
-      return to(`images/${t.path}`);
+      return to(style.image(t.path));
     }
     return undefined;
   };
@@ -379,11 +413,11 @@ function statusBlock(p: Page, lang: Lang, statuses: ReadonlyMap<string, SurfaceS
   });
 }
 
-function header(p: Page, lang: Lang): string {
+function header(p: Page, lang: Lang, style: LinkStyle): string {
   const t = L[lang];
   const twin = lang === 'en' ? 'fr' : 'en';
   const parts = [
-    `[${t.other}](${p.url[twin]})`,
+    `[${t.other}](${style.page(p, twin)})`,
     `${t.type}: ${typesOf(p)
       .map((x) => t.types[x])
       .join(' + ')}`,
@@ -399,7 +433,7 @@ function header(p: Page, lang: Lang): string {
 const pageFooter = (p: Page, lang: Lang, productVersion: string) =>
   `[${L[lang].edit}](${REPO_URL}/edit/main/wiki/${lang}/${p.id}.md) · [${L[lang].report}](${REPO_URL}/issues/new?title=${encodeURIComponent(`[bug] docs: ${p.id} (${lang}, ${productVersion})`)})`;
 
-const link = (p: Page, lang: Lang) => `[${p.title[lang]}](${p.url[lang]})`;
+const link = (p: Page, lang: Lang, style: LinkStyle) => `[${p.title[lang]}](${style.page(p, lang)})`;
 const byText = (lang: Lang) => (a: { text: string }, b: { text: string }) => a.text.localeCompare(b.text, lang);
 
 /** The four generated indexes of one language (§4.1), over the published pages only. */
@@ -409,8 +443,10 @@ function indexPages(
   glossary: Glossary,
   generated: readonly Identifier[],
   lang: Lang,
+  style: LinkStyle,
 ): { id: string; body: string }[] {
   const t = L[lang];
+  const link = (p: Page, l: Lang) => `[${p.title[l]}](${style.page(p, l)})`;
   const urls = new Set(published.map((p) => p.id));
   const list = (rows: { text: string; to: Page }[]) =>
     rows.length ? rows.sort(byText(lang)).map((r) => `- ${r.text} → ${link(r.to, lang)}`) : [t.noPage];
@@ -455,7 +491,7 @@ function indexPages(
   return GENERATED_INDEXES.flatMap((id) => {
     const page = generatedPages(manifest, published).find((p) => p.id === id);
     if (!page) return [];
-    return [{ id, body: `# ${page.title[lang]}\n\n${header(page, lang)}\n\n${bodies[id].join('\n')}\n` }];
+    return [{ id, body: `# ${page.title[lang]}\n\n${header(page, lang, style)}\n\n${bodies[id].join('\n')}\n` }];
   });
 }
 
@@ -469,13 +505,13 @@ const listed = (manifest: Manifest, published: readonly Page[]) => {
   return manifest.pages.filter((p) => ids.has(p.id));
 };
 
-function sidebar(manifest: Manifest, published: readonly Page[], lang: Lang): string {
+function sidebar(manifest: Manifest, published: readonly Page[], lang: Lang, style: LinkStyle): string {
   const pages = listed(manifest, published);
-  const out = [`**[${L[lang].home}](Home)**`, ''];
+  const out = [`**[${L[lang].home}](${style.home})**`, ''];
   for (const d of DOMAIN_IDS) {
     const inDomain = pages.filter((p) => p.domain === d);
     if (!inDomain.length) continue;
-    out.push(`**${L[lang].domains[d]}**`, '', ...inDomain.map((p) => `- ${link(p, lang)}`), '');
+    out.push(`**${L[lang].domains[d]}**`, '', ...inDomain.map((p) => `- ${link(p, lang, style)}`), '');
   }
   return `${out.join('\n').trimEnd()}\n`;
 }
@@ -490,7 +526,7 @@ function home(manifest: Manifest, published: readonly Page[]): string {
       // The entry points first: a tutorial, then a how-to, then the rest, four at most (the four indexes fit).
       const order: PageType[] = ['tutorial', 'howto', 'troubleshooting', 'explanation', 'reference', 'index'];
       const first = [...inDomain].sort((a, b) => order.indexOf(a.type) - order.indexOf(b.type)).slice(0, 4);
-      out.push(`**${L[lang].domains[d]}**${L[lang].colon} ${first.map((p) => link(p, lang)).join(' · ')}`);
+      out.push(`**${L[lang].domains[d]}**${L[lang].colon} ${first.map((p) => link(p, lang, WIKI_STYLE)).join(' · ')}`);
     }
     return out.length ? out : [L[lang].noPage];
   };
@@ -528,49 +564,83 @@ function clearOutput(outDir: string): void {
   for (const name of entries) if (name !== '.git') rmSync(resolve(outDir, name), { recursive: true, force: true });
 }
 
-/** Writes the wiki folder; returns the files written, relative to `outDir`, sorted. */
-export function buildWiki(o: BuildOptions): string[] {
+/** One page of an output, composed in Markdown: its header, statuses, body and footer, its links in the output's style. */
+interface ComposedPage {
+  lang: Lang;
+  page: Page;
+  markdown: string;
+}
+export interface Composed {
+  pages: ComposedPage[];
+  sidebars: Record<Lang, string>;
+  /** The images of `wiki/images/` the pages show, by their path in that folder. */
+  images: Set<string>;
+}
+
+/**
+ * The published pages (and the generated indexes) of both languages in Markdown, links in the output's style
+ * (`styleFor(lang)` for the pages of one language), with their sidebars: what the wiki writes as files, and what the
+ * archive's HTML renders (§4.5.6, one resolver).
+ */
+export function composePages(o: Omit<BuildOptions, 'outDir'>, styleFor: (lang: Lang) => LinkStyle): Composed {
   const published = publishedPages(o.manifest, o.preview);
   const generated = generatedPages(o.manifest, published);
   const { glossary } = readGlossary(o.wikiDir);
   const identifiers = o.identifiers ?? generatedIdentifiers();
-  const files = new Map<string, string>();
   const images = new Set<string>();
   const claims = new Map((o.claims ?? []).map((c) => [c.id, c]));
+  const pages: ComposedPage[] = [];
+  const sidebars = {} as Record<Lang, string>;
   for (const lang of LANGS) {
-    const urls = new Map([...published, ...generated].map((p) => [p.id, p.url[lang]]));
+    const style = styleFor(lang);
+    const urls = new Map([...published, ...generated].map((p) => [p.id, style.page(p, lang)]));
     for (const p of published) {
       const source = readFileSync(resolve(o.wikiDir, lang, `${p.id}.md`), 'utf8');
-      const body = rewritePage(source, lang, urls, o.productCommit, images, claims).trim();
+      const body = rewritePage(source, lang, urls, o.productCommit, images, claims, style).trim();
       const limits = parsePage(source, lang)
         .blocks.filter((b) => b.kind === 'LIMIT')
         .map((b) => b.id);
       const status = statusBlock(p, lang, o.statuses ?? new Map(), limits);
-      // The header goes under the page's title when it opens with one, the draft banner above the header.
-      const top = `${p.state === 'draft' ? `> ${L[lang].draft}\n\n` : ''}${header(p, lang)}${status.length ? `\n>\n${status.join('\n>\n')}` : ''}`;
+      // The header goes under the page's title when it opens with one, the banners above the header.
+      const banners = [
+        ...(o.preview ? [`> ${L[lang].preview(o.productVersion)}`] : []),
+        ...(p.state === 'draft' ? [`> ${L[lang].draft}`] : []),
+      ];
+      const top = `${banners.map((b) => `${b}\n\n`).join('')}${header(p, lang, style)}${status.length ? `\n>\n${status.join('\n>\n')}` : ''}`;
       const [first = '', ...rest] = body.split('\n');
       const page = first.startsWith('# ') ? `${first}\n\n${top}\n${rest.join('\n')}` : `${top}\n\n${body}`;
-      files.set(`${lang}/${p.url[lang]}.md`, `${page}\n\n---\n\n${pageFooter(p, lang, o.productVersion)}\n`);
+      pages.push({ lang, page: p, markdown: `${page}\n\n---\n\n${pageFooter(p, lang, o.productVersion)}\n` });
     }
-    for (const index of indexPages(o.manifest, published, glossary, identifiers, lang)) {
+    for (const index of indexPages(o.manifest, published, glossary, identifiers, lang, style)) {
       const p = o.manifest.pages.find((x) => x.id === index.id)!;
-      files.set(`${lang}/${p.url[lang]}.md`, index.body);
+      pages.push({ lang, page: p, markdown: index.body });
     }
-    files.set(`${lang}/_Sidebar.md`, sidebar(o.manifest, published, lang));
+    sidebars[lang] = sidebar(o.manifest, published, lang, style);
   }
-  files.set('Home.md', home(o.manifest, published));
-  files.set('_Footer.md', footer(o.productVersion, o.docRevision));
-  files.set(BUILD_MARKER, `quest'n'click wiki build ${o.productVersion} ${o.docRevision}\n`);
+  return { pages, sidebars, images };
+}
+
+/** The wiki folder's files, by path, in memory: what `buildWiki` writes and what the archive carries under `wiki/`. */
+export function wikiFiles(o: Omit<BuildOptions, 'outDir'>): Map<string, Buffer> {
+  const { pages, sidebars, images } = composePages(o, () => WIKI_STYLE);
+  const files = new Map<string, Buffer>();
+  for (const c of pages) files.set(`${c.lang}/${c.page.url[c.lang]}.md`, Buffer.from(c.markdown));
+  for (const lang of LANGS) files.set(`${lang}/_Sidebar.md`, Buffer.from(sidebars[lang]));
+  files.set('Home.md', Buffer.from(home(o.manifest, publishedPages(o.manifest, o.preview))));
+  files.set('_Footer.md', Buffer.from(footer(o.productVersion, o.docRevision, o.docRevisionNumber ?? 'r1', o.preview)));
+  for (const image of images) files.set(`images/${image}`, readFileSync(resolve(o.wikiDir, 'images', image)));
+  return files;
+}
+
+/** Writes the wiki folder; returns the files written, relative to `outDir`, sorted. */
+export function buildWiki(o: BuildOptions): string[] {
+  const files = wikiFiles(o);
+  files.set(BUILD_MARKER, Buffer.from(`quest'n'click wiki build ${o.productVersion} ${o.docRevision}\n`));
   clearOutput(o.outDir);
   for (const [rel, content] of files) {
     const file = resolve(o.outDir, rel);
     mkdirSync(dirname(file), { recursive: true });
     writeFileSync(file, content);
   }
-  for (const image of images) {
-    const file = resolve(o.outDir, 'images', image);
-    mkdirSync(dirname(file), { recursive: true });
-    copyFileSync(resolve(o.wikiDir, 'images', image), file);
-  }
-  return [...files.keys(), ...[...images].map((i) => `images/${i}`)].sort();
+  return [...files.keys()].sort();
 }

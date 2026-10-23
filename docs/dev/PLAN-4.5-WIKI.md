@@ -450,6 +450,50 @@ artifact.
 **Read-only wording.** "Generated from `wiki/`: an edit made here is overwritten at the next publication." The setting
 "restrict editing to collaborators" is recommended; it is not a guarantee.
 
+*Amendment (A5b), what was open and is now decided:*
+
+- **The archive also carries `wiki/`**, the GitHub wiki's folder as `wiki -- build` writes it, so a publication pushes
+  what the candidate built and a rollback pushes what was published, with no build at promotion. Its
+  `bundle-manifest.json` adds `docRevisionNumber` (and `preview: true` for the preview); the loader accepts and skips
+  the `html/` and `wiki/` paths. The archive is reproducible bit for bit on a fixed toolchain (`tools/field/tar.ts`,
+  time 0, no owner, the gzip system byte fixed); the candidate's `pack` job builds it twice and compares.
+- **HTML.** The project has no Markdown library; `tools/wiki/html.ts` renders the subset the pages use and escapes
+  every other character, raw HTML included; a link that is not http(s), mailto or relative loses its target. Links
+  between pages are relative (`<id>.html#<anchor>`, `../fr/<id>.html`), so once copied under `/docs/<v>/r<n>/` they
+  are the permalinks of §4.5.6 and still work from a disk; `canonical`, `sitemap.xml` and `llms.txt` give the absolute
+  permalinks. The client search is `search_docs` itself, bundled by esbuild into `html/search.js`, over
+  `html/search-index.json`; the same script reads `publication.json` to show the display state (§4.5.1).
+- **Names.** The candidate names the archive by `package.json` (`docs/quest-n-click-docs-<v>.tar.gz`), the release by
+  its tag (`quest-n-click-docs-<v-rc>.tar.gz` for an rc, whose identity says `<v>`). A doc revision is the release
+  `docs-v<v>-r<n>` (r2 on), carrying `quest-n-click-docs-<v>-r<n>.tar.gz` and `quest-n-click-docs-<v>-r<n>-SHA256SUMS`;
+  the preview is the release `docs-v<v>-preview-<sha12>`. Both are pre-releases, never latest, made as drafts then
+  published.
+- **`publication.json` lives at the root of the wiki's repository** (pushed with the pages; Pages copies it to
+  `/docs/publication.json`); format `quest-n-click-docs-publication` v1, `{latest, versions: {<v>: {approved,
+  revisions: {r<n>: {sha256, tag, date}}}}, preview?}`. The ordering rule: SemVer then the revision number, across
+  versions too; the same state again commits nothing; an older version's fix records `versions[<v>]` (Pages' alias
+  moves) and leaves the wiki pages and `latest`; a revision older than the approved one, or one recorded with other
+  bytes, is refused; `--rollback-to <v>[-r<n>]` is the way back. A pre-release is never recorded: its release is the
+  record of `/docs/<v-rc>/`, whose alias points to its one revision, r1.
+- **Pages.** `npm run wiki -- pages` downloads every release ≥ 4.5.0 and `docs-v*`, checks each archive against its
+  release's SHA256SUMS, the candidate manifest the release carries, its own manifest and its tag's identity, and that
+  `publication.json` names only archives the releases carry, then copies `html/` as it is; aliases are pages that say
+  they are aliases and go to the target with the `#section`. ci.yml runs it in `check` on main, before the Pages
+  artifact. docs-publish ends by `gh workflow run ci.yml --ref main` (ci gains `workflow_dispatch`; a dispatched run
+  cancels nothing and waits for a push's run, a later push cancels it and assembles everything released by then).
+- **Beside the game.** Pages' `/docs/` is inside the game's service worker scope: its navigation fallback skips
+  `/docs/` (`navigateFallbackDenylist`), or a reader who played would get the game instead of a page.
+- **Concurrency.** `docs-publish` is the group of docs-publish's job (a called workflow honours it there), never
+  cancelled. Pages' deployment is not put in it: GitHub keeps one pending run per group and a newer one replaces it,
+  so a deployment queued there could drop a pending publication; ci's own group orders the deployments instead. The
+  same rule means a third publication queued behind two replaces the pending one, which is then dispatched again.
+- **The wiki's push** clones `<repo>.wiki.git`, keeps `.git` and any page that starts with the generated redirect
+  marker, writes the archive's `wiki/` and the record, and pushes one commit. Credentials: the deploy key
+  `WIKI_DEPLOY_KEY` over SSH when the secret is set (GitHub's host key pinned), otherwise `GITHUB_TOKEN` as an HTTP
+  header, never in a URL. **Open, for the A1 spike:** whether `GITHUB_TOKEN` may push to the wiki (else the deploy
+  key), whether a ruleset lets `GITHUB_TOKEN` create the `docs-v*` tags, the wiki's handling of the `en/` and `fr/`
+  folders; and the sandbox replay of the chain (A7).
+
 ### 4.6 L6 — Acceptance by real questions, with counter-examples
 
 `wiki/acceptance/questions.json`: about 60 questions in French and English, each with its expected `id#section` and

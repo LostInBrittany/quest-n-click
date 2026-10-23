@@ -101,6 +101,9 @@ export default defineConfig({
               ...(gameUsesReality ? [] : ['assets/reality/**']),
             ],
             navigateFallback: 'index.html',
+            // The documentation Pages serves beside the game (/docs/, 4.5.0): a reader who played keeps the worker,
+            // which must not answer a page of the documentation with the game.
+            navigateFallbackDenylist: [/\/docs\//],
             cleanupOutdatedCaches: true,
             // The worker claims the page at its first activation (the warm-up's fetches must pass through it to be cached);
             // an update never activates on its own: the banner asks, after a durable save (dom/update.ts).

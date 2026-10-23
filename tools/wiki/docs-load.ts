@@ -35,6 +35,13 @@ export interface BundleManifest {
   productCommit: string;
   docRevision: string;
   buildId?: string;
+  /**
+   * The doc revision's number of a release archive (`r1` for the release's own, `r2`… for a fix published as
+   * `docs-v<v>-r<n>`, §4.5.4); the package's bundle has none.
+   */
+  docRevisionNumber?: string;
+  /** A preview archive (§4.5.3): its HTML and wiki hold the draft pages too, under a banner. */
+  preview?: true;
   /** The git tree of `wiki/` at the doc revision, when git knows it. */
   wikiTree: string | null;
   files: { path: string; sha256: string; bytes: number }[];
@@ -169,9 +176,14 @@ function parseVersioned<T>(text: string, format: string, label: string): T {
   return raw as T;
 }
 
-/** The only paths a bundle holds: its index, a page, a legacy page, an image (no `..`, no absolute path). */
+/**
+ * The only paths a bundle holds: its index, a page, a legacy page, an image (no `..`, no absolute path); a release
+ * archive also holds its rendered site and its wiki (`html/`, `wiki/`, §4.5.4), which the tools never read.
+ */
 const BUNDLE_PATH =
-  /^(index\.json|md\/(en|fr)\/[a-z]+\.[a-z0-9]+(-[a-z0-9]+)*\.md|legacy\/[A-Z_]+\.md|assets\/(?!.*(^|\/)\.\.?(\/|$))[A-Za-z0-9_./-]+)$/;
+  /^(index\.json|md\/(en|fr)\/[a-z]+\.[a-z0-9]+(-[a-z0-9]+)*\.md|legacy\/[A-Z_]+\.md|(assets|html|wiki)\/(?!.*(^|\/)\.\.?(\/|$))[A-Za-z0-9_./-]+)$/;
+/** The files of a bundle the tools do not read as text: images, and an archive's site and wiki. */
+const NOT_TEXT = /^(assets|html|wiki)\//;
 
 interface Bundle {
   set: DocsSet;
@@ -200,7 +212,7 @@ function readBundle(dir: string): Bundle {
     const bytes = readFileSync(join(dir, f.path));
     if (sha256(bytes) !== f.sha256)
       throw new Error(`${label(f.path)} does not match its sha256 in bundle-manifest.json: the bundle was changed`);
-    if (!f.path.startsWith('assets/')) texts.set(f.path, bytes.toString('utf8'));
+    if (!NOT_TEXT.test(f.path)) texts.set(f.path, bytes.toString('utf8'));
   }
   const indexText = texts.get('index.json');
   if (indexText === undefined) throw new Error(`${label('index.json')} is not in bundle-manifest.json`);

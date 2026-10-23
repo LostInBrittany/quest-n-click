@@ -1,0 +1,253 @@
+name: docs-publish
+# The documentation's publication (4.5.0 "Wiki", docs/dev/PLAN-4.5-WIKI.md §4.5, ADR 0030). The only workflow that
+# writes the GitHub wiki and the publication record (`publication.json`, in the wiki's repository, copied to Pages'
+# `/docs/publication.json`); Pages' `/docs/` is assembled by ci.yml from the released archives alone. Nothing on main
+# publishes.
+#
+#   - From release.yml (`workflow_call`), by a job that `needs` the release job, so after `ship verify` passed; never
+#     on `release: published`. It promotes the archive the release carries, revision r1: its sha256 is the one the
+#     release job verified and the candidate's manifest names; `check --publish` runs on the tag with the test report
+#     of the candidate run the tag names. A pre-release (`-rc.N`) publishes `/docs/<v-rc>/` only: no wiki, no latest.
+#   - By hand (`workflow_dispatch`) for three cases:
+#       a doc revision: `-f version=<v>` started on the branch `docs/<v>` (made from the tag, documentation changes
+#         only): the next `r<n>` is built, published as the immutable pre-release `docs-v<v>-r<n>` (never latest) with
+#         its sums and attestation, then promoted;
+#       a rollback: `-f version=<v> -f rollback-to=<v>[-r<n>]` promotes that published archive again, backwards on
+#         purpose;
+#       the bootstrap's preview (§4.5.3): `-f version=<v> -f preview=true` started on main, refused once a release
+#         ≥ 4.5.0 exists.
+# Every run ends by starting ci on main, whose Pages job assembles `/docs/` again from the releases.
+on:
+  workflow_call:
+    inputs:
+      version:
+        description: The version released (from the tag, an rc's suffix included)
+        type: string
+        required: true
+      tag:
+        description: The release tag
+        type: string
+        required: true
+      sha:
+        description: The tag's commit
+        type: string
+        required: true
+      candidate:
+        description: The candidate run the tag names
+        type: string
+        required: true
+      archive-sha256:
+        description: The sha256 of the documentation archive the release job verified
+        type: string
+        required: true
+      revision:
+        description: The doc revision (r1 for a release)
+        type: string
+        required: false
+        default: r1
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'The version whose documentation is published (e.g. 4.5.0)'
+        required: true
+      rollback-to:
+        description: 'Promote an earlier published archive again: <version> or <version>-r<n> (empty: none)'
+        required: false
+        default: ''
+      preview:
+        description: "The bootstrap's preview, from main (§4.5.3)"
+        type: boolean
+        required: false
+        default: false
+permissions:
+  contents: write
+  # The candidate's test report is an artifact of its run; ci is started on main at the end.
+  actions: write
+  # A doc revision's archive is attested as a release's files are.
+  id-token: write
+  attestations: write
+jobs:
+  publish:
+    # The wiki and the record are shared by every publication: one at a time, the running one never cancelled
+    # (§4.5.2). On the job, as a called workflow honours it there. GitHub keeps one run pending per group: a third run
+    # queued behind two replaces the pending one, which is then started again by hand (a dispatch).
+    concurrency:
+      group: docs-publish
+      cancel-in-progress: false
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    env:
+      REPO: ${{ github.repository }}
+      VERSION: ${{ inputs.version }}
+      # Called from release.yml, the `github` context is the caller's (event `workflow_run`, ref main): the call is
+      # known by its inputs, which a dispatch does not have.
+      CALLED: ${{ inputs.archive-sha256 != '' && inputs.sha != '' }}
+      ROLLBACK: ${{ inputs.rollback-to }}
+      PREVIEW: ${{ inputs.preview || false }}
+    steps:
+      - name: The inputs
+        env:
+          REF: ${{ github.ref }}
+        run: |
+          echo "$VERSION" | grep -Eq '^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(-[0-9A-Za-z.-]+)?$' || { echo "::error::not a version: $VERSION"; exit 1; }
+          if [ "$CALLED" = true ]; then mode=release
+          elif [ -n "$ROLLBACK" ]; then mode=rollback
+          elif [ "$PREVIEW" = true ]; then mode=preview
+            [ "$REF" = refs/heads/main ] || { echo "::error::the preview is published from main"; exit 1; }
+          else mode=revision
+            [ "$REF" = "refs/heads/docs/$VERSION" ] || { echo "::error::a doc revision is published from the branch docs/$VERSION, not $REF"; exit 1; }
+          fi
+          echo "MODE=$mode" >> "$GITHUB_ENV"
+          echo "::notice::docs-publish: $mode of $VERSION"
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ inputs.sha || github.sha }}
+          # The preview's tag rule and the source-set rule read the history and every release tag (§4.5.2, §4.5.3).
+          fetch-depth: 0
+      - name: Every tag
+        run: git fetch --force --tags origin
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 22
+          cache: npm
+      - run: for i in 1 2 3; do (npm ci) && break; [ "$i" = 3 ] && exit 1; echo "retry $i"; sleep 15; done
+        timeout-minutes: 20
+
+      # ——— A release (from release.yml): the archive it carries, checked, then promoted.
+      - name: The release's archive, checked against its sums and its candidate
+        if: env.MODE == 'release'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ inputs.tag }}
+          SHA: ${{ inputs.sha }}
+          WANT: ${{ inputs.archive-sha256 }}
+        run: |
+          test "$(git rev-parse "refs/tags/$TAG^{commit}")" = "$SHA" || { echo "::error::$TAG does not point to $SHA"; exit 1; }
+          a="quest-n-click-docs-$VERSION.tar.gz"
+          mkdir -p .release
+          gh release download "$TAG" -R "$REPO" -D .release -p "$a" -p "quest-n-click-$TAG-SHA256SUMS" -p "quest-n-click-$TAG-candidate.json"
+          got=$(sha256sum ".release/$a" | cut -d' ' -f1)
+          test "$got" = "$WANT" || { echo "::error::$a is $got, release.yml verified $WANT"; exit 1; }
+          grep -Eq "^$got  $a\$" ".release/quest-n-click-$TAG-SHA256SUMS" || { echo "::error::$a is not in the release's SHA256SUMS"; exit 1; }
+          node -e 'const m=require("./.release/quest-n-click-"+process.argv[1]+"-candidate.json"); const e=m.artifacts.find(a=>a.name==="docs/quest-n-click-docs-"+process.argv[2]+".tar.gz"); if(!e||e.sha256!==process.argv[3]){console.error("::error::the candidate manifest does not name this archive");process.exit(1)}' "$TAG" "${VERSION%%-*}" "$got"
+          gh attestation verify ".release/$a" -R "$REPO"
+          echo "ARCHIVE=.release/$a" >> "$GITHUB_ENV"
+          echo "ARCHIVE_SHA=$got" >> "$GITHUB_ENV"
+          echo "PRODUCT_TAG=$TAG" >> "$GITHUB_ENV"
+          echo "CANDIDATE=${{ inputs.candidate }}" >> "$GITHUB_ENV"
+          echo "REVISION=${{ inputs.revision }}" >> "$GITHUB_ENV"
+          echo "RELEASE_TAG=$TAG" >> "$GITHUB_ENV"
+
+      # ——— A doc revision (from docs/<v>): the next r<n>, built from this branch, released, attested.
+      - name: The next doc revision
+        if: env.MODE == 'revision'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          case "$VERSION" in *-*) echo "::error::a pre-release has no doc revision: fix it in the next rc"; exit 1 ;; esac
+          git rev-parse "refs/tags/v$VERSION^{commit}" >/dev/null || { echo "::error::no tag v$VERSION"; exit 1; }
+          last=$(gh release list -R "$REPO" --limit 1000 --json tagName --jq '.[].tagName' | sed -n "s/^docs-v$VERSION-r\([0-9]*\)\$/\1/p" | sort -n | tail -1)
+          n=$(( ${last:-1} + 1 ))
+          echo "REVISION=r$n" >> "$GITHUB_ENV"
+          echo "RELEASE_TAG=docs-v$VERSION-r$n" >> "$GITHUB_ENV"
+          echo "PRODUCT_TAG=v$VERSION" >> "$GITHUB_ENV"
+          echo "CANDIDATE=$(node tools/release/candidate.mjs run-of "v$VERSION")" >> "$GITHUB_ENV"
+
+      # ——— A rollback: an archive already published, downloaded from its release and checked.
+      - name: The archive to go back to
+        if: env.MODE == 'rollback'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          case "$ROLLBACK" in "$VERSION"|"$VERSION"-r[0-9]*) ;; *) echo "::error::rollback-to $ROLLBACK is not of $VERSION"; exit 1 ;; esac
+          r=${ROLLBACK#"$VERSION"}; r=${r#-}; r=${r:-r1}
+          if [ "$r" = r1 ]; then tag="v$VERSION"; a="quest-n-click-docs-$VERSION.tar.gz"; sums="quest-n-click-$tag-SHA256SUMS"
+          else tag="docs-v$VERSION-$r"; a="quest-n-click-docs-$VERSION-$r.tar.gz"; sums="quest-n-click-docs-$VERSION-$r-SHA256SUMS"; fi
+          mkdir -p .release
+          gh release download "$tag" -R "$REPO" -D .release -p "$a" -p "$sums"
+          got=$(sha256sum ".release/$a" | cut -d' ' -f1)
+          grep -Eq "^$got  $a\$" ".release/$sums" || { echo "::error::$a does not match its release's SHA256SUMS"; exit 1; }
+          gh attestation verify ".release/$a" -R "$REPO"
+          echo "ARCHIVE=.release/$a" >> "$GITHUB_ENV"
+          echo "ARCHIVE_SHA=$got" >> "$GITHUB_ENV"
+          echo "REVISION=$r" >> "$GITHUB_ENV"
+          echo "RELEASE_TAG=$tag" >> "$GITHUB_ENV"
+
+      # ——— The publication level, on the product: the candidate's own test report, downloaded from its run.
+      - name: The candidate's test report
+        if: env.MODE == 'release' || env.MODE == 'revision'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          test -n "$CANDIDATE" || { echo "::error::$PRODUCT_TAG names no candidate run"; exit 1; }
+          gh run download "$CANDIDATE" -R "$REPO" -n candidate-test-report -D .test-report
+      - name: check --publish
+        if: env.MODE != 'rollback'
+        run: |
+          if [ "$MODE" = preview ]; then
+            npm run -s wiki -- check --publish --product-ref HEAD --state preview
+          else
+            state=published; case "$VERSION" in *-*) state=candidate ;; esac
+            npm run -s wiki -- check --publish --product-ref "$PRODUCT_TAG" --doc-ref HEAD --state "$state" --candidate "$CANDIDATE" --test-report .test-report/vitest.json
+          fi
+
+      # ——— Build and release a doc revision or the preview (immutable, never latest).
+      - name: The archive of this revision, built twice
+        if: env.MODE == 'revision' || env.MODE == 'preview'
+        shell: bash
+        run: |
+          mkdir -p .archive .cache/docs-again
+          if [ "$MODE" = preview ]; then
+            a="quest-n-click-docs-$VERSION-preview.tar.gz"
+            flags=(--preview --product-version "$VERSION")
+            echo "RELEASE_TAG=docs-v$VERSION-preview-$(git rev-parse HEAD | cut -c1-12)" >> "$GITHUB_ENV"
+            echo "REVISION=r1" >> "$GITHUB_ENV"
+          else
+            a="quest-n-click-docs-$VERSION-$REVISION.tar.gz"
+            flags=(--revision "$REVISION" --product-version "$VERSION" --product-commit "$(git rev-parse "$PRODUCT_TAG^{commit}")")
+          fi
+          npm run -s wiki -- archive --out ".archive/$a" --build-id ${{ github.run_id }} "${flags[@]}"
+          npm run -s wiki -- archive --out ".cache/docs-again/$a" --build-id ${{ github.run_id }} "${flags[@]}"
+          cmp ".archive/$a" ".cache/docs-again/$a" || { echo "::error::the archive is not reproducible"; exit 1; }
+          (cd .archive && sha256sum "$a" > "${a%.tar.gz}-SHA256SUMS")
+          echo "ARCHIVE=.archive/$a" >> "$GITHUB_ENV"
+          echo "ARCHIVE_SHA=$(sha256sum ".archive/$a" | cut -d' ' -f1)" >> "$GITHUB_ENV"
+      - if: env.MODE == 'revision' || env.MODE == 'preview'
+        uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
+        with:
+          subject-path: .archive/quest-n-click-docs-*.tar.gz
+      - name: The release of this revision
+        if: env.MODE == 'revision' || env.MODE == 'preview'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          # A pre-release that is never latest, on this commit, made as a draft then published: immutable, like the
+          # product's releases (a new revision is a new release, §4.5.4).
+          gh release create "$RELEASE_TAG" -R "$REPO" --draft --prerelease --latest=false --target "$(git rev-parse HEAD)" \
+            --title "Documentation $VERSION $([ "$MODE" = preview ] && echo preview || echo "$REVISION")" \
+            --notes "The documentation of quest'n'click $VERSION, $([ "$MODE" = preview ] && echo 'preview (§4.5.3)' || echo "doc revision $REVISION from docs/$VERSION") (docs/dev/PLAN-4.5-WIKI.md §4.5.4). Promotion is recorded in publication.json, never here."
+          gh release upload "$RELEASE_TAG" -R "$REPO" .archive/*
+          gh release edit "$RELEASE_TAG" -R "$REPO" --draft=false
+
+      # ——— The wiki and the record. A pre-release stops before: /docs/<v-rc>/ only, from the release itself.
+      - name: The wiki and publication.json
+        if: "!contains(inputs.version, '-')"
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          # A deploy key with write access to the wiki, when GITHUB_TOKEN may not push there (the A1 spike says which).
+          WIKI_DEPLOY_KEY: ${{ secrets.WIKI_DEPLOY_KEY }}
+        run: |
+          flags=()
+          [ "$MODE" = preview ] && flags+=(--preview)
+          [ -n "$ROLLBACK" ] && flags+=(--rollback-to "$ROLLBACK")
+          npm run -s wiki -- publish --target wiki --version "$VERSION" --revision "$REVISION" --tag "$RELEASE_TAG" \
+            --repo "$REPO" --archive "$ARCHIVE" --sha256 "$ARCHIVE_SHA" "${flags[@]}"
+      - name: A pre-release leaves the wiki alone
+        if: contains(inputs.version, '-')
+        run: |
+          echo "::notice::$VERSION is a pre-release: /docs/$VERSION/ only; the wiki and latest are unchanged (§4.5.2)"
+      # Pages assembles /docs/ from the releases in ci's `check` job and deploys on main: started again now.
+      - name: Pages, assembled again
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh workflow run ci.yml -R "$REPO" --ref main

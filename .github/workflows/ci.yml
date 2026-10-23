@@ -6,13 +6,18 @@ on:
     branches: [main]
     tags: ['v*']
   pull_request:
+  # docs-publish starts ci on main after a publication (4.5.0, docs/dev/PLAN-4.5-WIKI.md §4.5.5): the Pages job
+  # assembles /docs/ again from the releases, the new revision with them.
+  workflow_dispatch:
 # The token does nothing but read (4.1.3); the Pages job asks for what it needs. One run per ref at a time: a push
 # that supersedes another cancels it (the runners are the bottleneck).
 permissions:
   contents: read
 concurrency:
   group: ci-${{ github.ref }}
-  cancel-in-progress: true
+  # A dispatched run (docs-publish, 4.5.0) cancels nothing: it waits for the push's run on main, then assembles Pages
+  # again; a later push cancels it, and assembles everything released by then.
+  cancel-in-progress: ${{ github.event_name != 'workflow_dispatch' }}
 # Three tiers (4.1.9, lot 0). The fast tier, on every change: `plan`, `check` (format, lint, knip, types, the game's
 # gates, the build, the baseline) and `coverage` (the unit suite, once). The second tier needs `check` and runs only
 # what the change can break, as `plan` (tools/ci-plan.ts) classifies the diff: a job it spares still runs, says "not
@@ -108,6 +113,15 @@ jobs:
           BASE_PATH: /${{ github.event.repository.name }}/
           STUDIO: '1'
           VITE_STUDIO_DEMO: '1'
+      # The documentation (4.5.0, docs/dev/PLAN-4.5-WIKI.md §4.5.5): /docs/ is never built from this branch. It is
+      # assembled from the released archives only (every v* ≥ 4.5.0 and docs-v* release, each checked against its
+      # sums and its candidate's manifest, its html/ copied as it is), with the aliases publication.json approves; a
+      # placeholder pointing to the 4.4.0 documentation while none is released.
+      - name: The documentation of the released versions
+        if: github.ref == 'refs/heads/main'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: npm run -s wiki -- pages --repo "${{ github.repository }}" --out dist/docs
       - uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5
         if: github.ref == 'refs/heads/main'
         with:

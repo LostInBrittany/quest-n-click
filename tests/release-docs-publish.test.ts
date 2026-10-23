@@ -1,0 +1,192 @@
+// The documentation's publication chain, read statically (4.5.0 "Wiki", docs/dev/PLAN-4.5-WIKI.md §4.5.2 to §4.5.5,
+// phase A5b; the workflows are not run here, the sandbox replay is A7's): the candidate builds the archive twice and
+// keeps it; the release publishes it with its sums and attestation and hands its sha256 on only after `ship verify`;
+// `docs-publish` is a job that `needs` the release job and calls the reusable workflow (no `release:` trigger
+// anywhere); that workflow checks out the whole history and every tag, checks the archive against the release and
+// the candidate, runs `check --publish` with the candidate's own test report, never touches the wiki for an rc,
+// publishes a doc revision as an immutable pre-release, shares one concurrency group without cancelling; Pages'
+// `/docs/` is assembled from the releases, never built from the branch.
+import { readFileSync } from 'node:fs';
+import { describe, expect, it } from 'vitest';
+
+const read = (name: string) => readFileSync(`.github/workflows/${name}.yml`, 'utf8').replace(/\r\n/g, '\n');
+/** A top-level key's block (`on:`, `jobs:`…), up to the next top-level key. */
+const top = (yml: string, key: string) => {
+  const m = new RegExp(`^${key}:.*\\n((?:[ #].*\\n|\\n)*)`, 'm').exec(yml);
+  return m ? m[1]! : '';
+};
+/** A job's block, up to the next job. */
+const job = (yml: string, name: string) => {
+  const jobs = top(yml, 'jobs');
+  const m = new RegExp(`^  ${name}:\\n((?:(?:    |  #).*\\n|\\n)*)`, 'm').exec(jobs);
+  return m ? m[1]! : '';
+};
+/** The keys directly under a block, at the given indent. */
+const keys = (block: string, indent: number) =>
+  [...block.matchAll(new RegExp(`^ {${indent}}([a-z][a-z0-9_-]*):`, 'gm'))].map((m) => m[1]!);
+/** The steps of a job, each its text, in order. */
+const steps = (block: string) => block.split(/\n {6}- /).slice(1);
+
+describe('the YAML itself', () => {
+  for (const name of ['docs-publish', 'release', 'candidate', 'ci'])
+    it(`${name}.yml: spaces only, two by two, every job under jobs:`, () => {
+      const yml = read(name);
+      expect(yml).not.toMatch(/\t/);
+      for (const [i, line] of yml.split('\n').entries())
+        if (line.trim() && !line.trimStart().startsWith('#') && !/^\s*(run|[a-z-]+): [|>]/.test(line)) {
+          const indent = line.length - line.trimStart().length;
+          // Block scalars (a `run: |` body) are free; elsewhere an odd indent is a mistake.
+          if (indent % 2 && !/^ {10,}/.test(line)) throw new Error(`${name}.yml:${i + 1}: odd indent`);
+        }
+      expect(keys(top(yml, 'jobs'), 2).length).toBeGreaterThan(0);
+    });
+});
+
+describe('no workflow starts on a release event', () => {
+  it('neither docs-publish nor any other: a release published with GITHUB_TOKEN starts nothing (§4.5.2)', () => {
+    for (const name of ['docs-publish', 'release', 'candidate', 'ci', 'nightly', 'prove', 'qualify', 'mutation'])
+      expect(keys(top(read(name), 'on'), 2), name).not.toContain('release');
+  });
+});
+
+describe('docs-publish.yml', () => {
+  const yml = read('docs-publish');
+  const publish = job(yml, 'publish');
+  const all = steps(publish);
+  const step = (re: RegExp) => {
+    const s = all.find((x) => re.test(x));
+    if (!s) throw new Error(`no step matching ${re}`);
+    return s;
+  };
+
+  it('is called by release.yml or started by hand, with the inputs the release hands it', () => {
+    expect(keys(top(yml, 'on'), 2)).toEqual(['workflow_call', 'workflow_dispatch']);
+    const on = top(yml, 'on');
+    const call = on.slice(on.indexOf('workflow_call:'), on.indexOf('workflow_dispatch:'));
+    expect(keys(call, 6)).toEqual(['version', 'tag', 'sha', 'candidate', 'archive-sha256', 'revision']);
+    expect(keys(on.slice(on.indexOf('workflow_dispatch:')), 6)).toEqual(['version', 'rollback-to', 'preview']);
+  });
+
+  it('shares one concurrency group with every publication, never cancelled, on its job (a called workflow honours it there)', () => {
+    expect(top(yml, 'concurrency')).toBe('');
+    expect(publish).toMatch(/^ {4}concurrency:\n {6}group: docs-publish\n {6}cancel-in-progress: false\n/m);
+  });
+
+  it("knows a call by its inputs: in a called workflow the github context is the caller's", () => {
+    expect(publish).not.toMatch(/github\.event_name/);
+    expect(publish).toMatch(/CALLED: \$\{\{ inputs\.archive-sha256 != '' && inputs\.sha != '' \}\}/);
+    expect(publish).toMatch(/ref: \$\{\{ inputs\.sha \|\| github\.sha \}\}/);
+  });
+
+  it('checks out the whole history and fetches every tag (the preview rule and the source set read them)', () => {
+    expect(publish).toMatch(/fetch-depth: 0/);
+    expect(publish).toMatch(/git fetch --force --tags origin/);
+  });
+
+  it("checks the release's archive against the verified sha256, the release's sums, the candidate's manifest, its attestation", () => {
+    const s = step(/The release's archive/);
+    expect(s).toMatch(/if: env\.MODE == 'release'/);
+    expect(s).toMatch(/WANT: \$\{\{ inputs\.archive-sha256 \}\}/);
+    expect(s).toMatch(/-SHA256SUMS/);
+    expect(s).toMatch(/-candidate\.json/);
+    expect(s).toMatch(/gh attestation verify/);
+    expect(s).toMatch(/does not point to \$SHA/);
+  });
+
+  it("runs check --publish on the product with the candidate's own test report, downloaded from its run", () => {
+    expect(step(/The candidate's test report/)).toMatch(/gh run download "\$CANDIDATE" .*-n candidate-test-report/);
+    const check = step(/name: check --publish/);
+    expect(check).toMatch(
+      /--product-ref "\$PRODUCT_TAG" --doc-ref HEAD --state "\$state" --candidate "\$CANDIDATE" --test-report/,
+    );
+    expect(check).toMatch(/state=candidate/);
+    expect(check).toMatch(/--state preview/);
+  });
+
+  it('publishes a doc revision as an immutable pre-release, never latest, built twice, attested', () => {
+    expect(step(/The next doc revision/)).toMatch(/refs\/heads\/docs\/\$VERSION|docs-v\$VERSION-r/);
+    expect(step(/The archive of this revision/)).toMatch(/cmp /);
+    expect(step(/attest-build-provenance/)).toMatch(/subject-path: \.archive\/quest-n-click-docs-\*\.tar\.gz/);
+    const rel = step(/The release of this revision/);
+    expect(rel).toMatch(/--draft --prerelease --latest=false/);
+    expect(rel.indexOf('gh release upload')).toBeLessThan(rel.indexOf('--draft=false'));
+    expect(yml).toMatch(/a doc revision is published from the branch docs\/\$VERSION/);
+  });
+
+  it('never touches the wiki for a pre-release; pushes it with GITHUB_TOKEN or the WIKI_DEPLOY_KEY secret', () => {
+    const wiki = step(/The wiki and publication\.json/);
+    expect(wiki).toMatch(/if: "!contains\(inputs\.version, '-'\)"/);
+    expect(wiki).toMatch(/GITHUB_TOKEN: \$\{\{ github\.token \}\}/);
+    expect(wiki).toMatch(/WIKI_DEPLOY_KEY: \$\{\{ secrets\.WIKI_DEPLOY_KEY \}\}/);
+    expect(wiki).toMatch(
+      /npm run -s wiki -- publish --target wiki --version "\$VERSION" --revision "\$REVISION" --tag "\$RELEASE_TAG"/,
+    );
+    expect(wiki).toMatch(/--archive "\$ARCHIVE" --sha256 "\$ARCHIVE_SHA"/);
+    expect(wiki).toMatch(/--rollback-to/);
+    expect(step(/A pre-release leaves the wiki alone/)).toMatch(/if: contains\(inputs\.version, '-'\)/);
+  });
+
+  it('ends by starting ci on main, whose Pages job assembles /docs/ again', () => {
+    expect(all.at(-1)).toMatch(/gh workflow run ci\.yml -R "\$REPO" --ref main/);
+  });
+});
+
+describe('release.yml', () => {
+  const yml = read('release');
+  const release = job(yml, 'release');
+  const docs = job(yml, 'docs-publish');
+
+  it('starts docs-publish from a job that needs the release job, through the reusable workflow', () => {
+    expect(docs).toMatch(/^ {4}needs: \[release\]$/m);
+    expect(docs).toMatch(/^ {4}uses: \.\/\.github\/workflows\/docs-publish\.yml$/m);
+    expect(docs).toMatch(/if: needs\.release\.outputs\.docs-sha256 != ''/);
+    expect(docs).toMatch(/archive-sha256: \$\{\{ needs\.release\.outputs\.docs-sha256 \}\}/);
+    expect(docs).toMatch(/candidate: \$\{\{ needs\.release\.outputs\.candidate \}\}/);
+    expect(docs).toMatch(/secrets: inherit/);
+  });
+
+  it('hands the archive on from its last step, after ship verify: an output is read only from a job that succeeded', () => {
+    const s = steps(release);
+    const verify = s.findIndex((x) => /tools\/release\/ship\.mjs verify/.test(x));
+    const out = s.findIndex((x) => /^id: docs\n/.test(x));
+    expect(verify).toBeGreaterThan(0);
+    expect(out).toBe(s.length - 1);
+    expect(out).toBeGreaterThan(verify);
+    expect(release).toMatch(/docs-sha256: \$\{\{ steps\.docs\.outputs\.sha256 \}\}/);
+  });
+
+  it("publishes the candidate's archive with the release's sums and attestations", () => {
+    expect(release).toMatch(/gh run download "\$run" -n candidate-docs -D \.candidate\/docs/);
+    const build = steps(release).find((x) => x.startsWith('name: Build archive, checksum and SBOM'))!;
+    expect(build).toMatch(/n="\$P-docs-\$\{TAG#v\}\.tar\.gz"/);
+    // In $extra before the sums and the manifest check, so both cover it.
+    expect(build.indexOf('quest-n-click-docs-')).toBeLessThan(build.indexOf('sha256sum '));
+    expect(release).toMatch(/\$\{\{ env\.P \}\}-docs-\*\.tar\.gz/);
+  });
+});
+
+describe('candidate.yml and ci.yml', () => {
+  it('the candidate builds the archive twice, compares the bytes, uploads it, and the gate puts it in the manifest', () => {
+    const yml = read('candidate');
+    const pack = job(yml, 'pack');
+    expect(pack.match(/npm run -s wiki -- archive --out/g)?.length).toBe(2);
+    expect(pack).toMatch(/--build-id \$\{\{ github\.run_id \}\} --revision r1/);
+    expect(pack).toMatch(/cmp "candidate-docs\/quest-n-click-docs-\$v\.tar\.gz"/);
+    expect(job(yml, 'candidate-gate')).toMatch(/cp artifacts\/candidate-docs\/\* artifacts\/candidate-release\/docs\//);
+  });
+
+  it("Pages' /docs/ is assembled from the releases on main, before the artifact is uploaded, never built from the branch", () => {
+    const yml = read('ci');
+    const check = job(yml, 'check');
+    const pages = check.indexOf('npm run -s wiki -- pages --repo');
+    expect(pages).toBeGreaterThan(0);
+    expect(pages).toBeLessThan(check.indexOf('upload-pages-artifact'));
+    expect(check.slice(pages - 300, pages)).toMatch(/if: github\.ref == 'refs\/heads\/main'/);
+    expect(yml).not.toMatch(/wiki -- (build|archive|bundle)/);
+    // docs-publish starts it by hand; a dispatched run cancels no push's run.
+    expect(keys(top(yml, 'on'), 2)).toContain('workflow_dispatch');
+    expect(top(yml, 'concurrency')).toMatch(
+      /cancel-in-progress: \$\{\{ github\.event_name != 'workflow_dispatch' \}\}/,
+    );
+  });
+});

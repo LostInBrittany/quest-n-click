@@ -19,6 +19,12 @@ describe('the plan of a change', () => {
     ['the wiki sources', ['wiki/manifest.json', 'wiki/en/create.rooms.md', 'wiki/data/glossary.json'], []],
     ['a root markdown file', ['CHANGELOG.md', 'CONTRIBUTING.md'], []],
     ['another workflow', ['.github/workflows/nightly.yml'], []],
+    ["the documentation's publication workflow", ['.github/workflows/docs-publish.yml'], []],
+    [
+      "the documentation's publication tools",
+      ['tools/wiki/archive.ts', 'tools/wiki/pages.ts', 'tools/wiki/publication.ts', 'tools/wiki/transition.ts'],
+      gates('node24', 'windows'),
+    ],
     ['the Bridge', ['bridge/src/store.ts'], gates('reality', 'freshInstall', 'node24', 'windows')],
     ['the signals game', ['games/signals/index.ts'], gates('reality', 'node24', 'windows')],
     ['the engine core', ['src/engine/core/engine.ts'], EVERYTHING],
@@ -76,6 +82,9 @@ describe('the plan of a change', () => {
     ];
     expect(docsFor(['wiki/en/create.rooms.md'], pages)).toEqual({ docs: true, docsPages: [] });
     expect(docsFor(['tools/wiki/build.ts'], pages).docs).toBe(true);
+    // A5b: the publication's tools are the docs family's too.
+    for (const f of ['tools/wiki/archive.ts', 'tools/wiki/html.ts', 'tools/wiki/pages.ts', 'tools/wiki/transition.ts'])
+      expect(docsFor([f], pages).docs, f).toBe(true);
     // The root pages the coverage matrix inventories are frozen with docs/ (A3); the CHANGELOG is not.
     expect(docsFor(['CONTRIBUTING.md'], pages).docs).toBe(true);
     expect(docsFor(['README.fr.md'], pages).docs).toBe(true);
