@@ -43,26 +43,65 @@ function inventoryFiles(root = ROOT): string[] {
 
 // ——— Anchors as GitHub computes them ———
 
-const ENTITIES: Record<string, string> = { amp: '&', lt: '<', gt: '>', quot: '"', apos: "'", nbsp: ' ', '#39': "'" };
+const ENTITIES: Record<string, string> = {
+  amp: '&',
+  lt: '<',
+  gt: '>',
+  quot: '"',
+  apos: "'",
+  nbsp: ' ',
+  ndash: '–',
+  mdash: '—',
+  hellip: '…',
+  laquo: '«',
+  raquo: '»',
+  copy: '©',
+  reg: '®',
+  trade: '™',
+  middot: '·',
+  times: '×',
+  rarr: '→',
+  larr: '←',
+};
+
+/** An entity read: a named one this list knows, or a numeric one; otherwise kept as written. */
+const entity = (m: string, body: string): string => {
+  if (body[0] === '#') {
+    const code = body[1] === 'x' || body[1] === 'X' ? Number.parseInt(body.slice(2), 16) : Number(body.slice(1));
+    return Number.isFinite(code) && code > 0 && code <= 0x10ffff ? String.fromCodePoint(code) : m;
+  }
+  return ENTITIES[body] ?? m;
+};
 
 /**
- * The text a heading renders to, the one GitHub makes its anchor from: inline code keeps its content, a link or an
- * image keeps its label, HTML tags and emphasis marks go, escapes and the common entities are read.
+ * The text a heading renders to, the one GitHub's slugger (github-slugger) reads: inline code keeps its content (one
+ * space trimmed each side when both are there, as CommonMark does), an autolink its URL, a link or an image its label,
+ * an escape its character, an entity what it stands for; HTML tags and comments go (the spaces around them stay, so
+ * `on <date>` reads `on `), and so do emphasis marks (a `_` that opens or closes nothing stays). Nothing is trimmed:
+ * the heading's own content already is.
  */
 export function headingText(raw: string): string {
-  const code: string[] = [];
-  let s = raw.replace(/(`+)(.+?)\1/g, (_, __, c: string) => {
-    code.push(c.trim());
-    return `\u0000${code.length - 1}\u0000`;
-  });
-  s = s
+  const kept: string[] = [];
+  const keep = (t: string) => {
+    kept.push(t);
+    return `\u0000${kept.length - 1}\u0000`;
+  };
+  let s = raw
+    .replace(/(`+)([^`]|[^`].*?[^`])\1(?!`)/g, (_, __, c: string) => keep(/^ .*[^ ].* $/.test(c) ? c.slice(1, -1) : c))
+    .replace(/\\([!-/:-@[-`{-~])/g, (_, c: string) => keep(c))
+    .replace(/<([A-Za-z][A-Za-z0-9+.-]{1,31}:[^\s<>]*)>/g, (_, url: string) => keep(url))
+    .replace(/<([^\s<>@]+@[A-Za-z0-9.-]+)>/g, (_, mail: string) => keep(mail))
     .replace(/!?\[([^\]]*)\]\([^)]*\)/g, '$1')
-    .replace(/<[^>]+>/g, '')
-    .replace(/&(#39|[a-z]+);/g, (m, e: string) => ENTITIES[e] ?? m)
-    .replace(/\\([!-/:-@[-`{-~])/g, '$1')
-    .replace(/\*+/g, '')
-    .replace(/(^|[^\p{L}\p{N}])_+|_+(?=$|[^\p{L}\p{N}])/gu, '$1');
-  return s.replace(/\u0000(\d+)\u0000/g, (_, i: string) => code[Number(i)]!).trim();
+    .replace(/<!--[\s\S]*?-->/g, '')
+    .replace(/<\/?[A-Za-z][^>]*>/g, '')
+    .replace(/&(#[0-9]+|#[xX][0-9a-fA-F]+|[A-Za-z][A-Za-z0-9]*);/g, (m, body: string) => keep(entity(m, body)))
+    .replace(/\*+/g, '');
+  // Underscore emphasis: a run that opens before a non-space and closes after one, not inside a word.
+  for (let before = ''; before !== s; ) {
+    before = s;
+    s = s.replace(/(^|[^\p{L}\p{N}_])(_{1,3})(?=\S)(.*?\S)\2(?![\p{L}\p{N}_])/u, '$1$3');
+  }
+  return s.replace(/\u0000(\d+)\u0000/g, (_, i: string) => kept[Number(i)]!);
 }
 
 /** GitHub's slug of a heading's text: lowercase, what is not a letter, mark, digit, `_`, space or `-` removed, spaces to `-`. */
@@ -103,6 +142,7 @@ interface Section {
   level: number;
   anchor: string;
   lines: [number, number];
+  /** The sha256 of the section's body, the lines under its heading, as written (only CRLF made LF). */
   hash: string;
   codeBlocks: CodeBlock[];
   /** The explicit `<a id>` / `<a name>` anchors inside the section. */
@@ -116,7 +156,10 @@ export interface FileInventory {
   anchors: string[];
 }
 
-const HEADING = /^ {0,3}(#{1,6})(?:[ \t]+(.*?))?(?:[ \t]+#+)?[ \t]*$/;
+const ATX = /^ {0,3}(#{1,6})(?:[ \t]+(.*?))?(?:[ \t]+#+)?[ \t]*$/;
+const SETEXT = /^ {0,3}(=+|-+)[ \t]*$/;
+/** A line that opens a block other than a paragraph: a list item, a quote, a table row, HTML, a thematic break. */
+const NOT_PARAGRAPH = /^ {0,3}([-*+][ \t]|\d+[.)][ \t]|>|\||<|([-*_])([ \t]*\2){2,}[ \t]*$)/;
 const EXPLICIT = /<a\s+(?:[^>]*?\s)?(?:id|name)\s*=\s*["']([^"']+)["']/gi;
 /**
  * The markers and turns of phrase of a limit (§4.2), English and French (`ne … pas`, and `ne … que`, the French
@@ -125,9 +168,21 @@ const EXPLICIT = /<a\s+(?:[^>]*?\s)?(?:id|name)\s*=\s*["']([^"']+)["']/gi;
 const LIMIT =
   /\b(only|not|not yet|never|cannot|no longer|local only|warning|limits?|limited|uniquement|seulement|pas encore|jamais|limites?|limitée?s?|attention)\b|n't\b|\b(?:ne|n['’])\s*(?:\S+\s+){0,4}?(?:pas\b|que\b|qu['’])/i;
 
+/** A figure `quality:baseline` writes into a README (`<!-- metric:tests -->3018<!-- /metric -->`): generated. */
 const METRIC = /(<!-- metric:[\w-]+ -->).*?(<!-- \/metric -->)/g;
+/**
+ * The blocks `npm run dsl-doc` and `npm run api-doc` write into DSL.md and API.md: generated references, whose drift
+ * `tests/dsl-doc.test.ts` and `tests/api-doc.test.ts` already guard. Their headings stay in the inventory (they are
+ * anchors); the rest of their lines is masked, so a new DSL command or API name moves no frozen section.
+ */
+const GENERATED_BEGIN = /^<!-- (dsl-doc|api-doc):begin -->\s*$/;
+const GENERATED_END = /^<!-- (dsl-doc|api-doc):end -->\s*$/;
 const sha256 = (s: string) => createHash('sha256').update(s).digest('hex');
-const keyOf = (file: string, anchor: string) => (anchor ? `${file}#${anchor}` : file);
+/**
+ * A row's key: `<file>` for the text before the first heading, `<file>#<anchor>` for a heading, so a heading whose
+ * slug is empty is `<file>#` (then `<file>#-1`…) and never collides with the preamble.
+ */
+const keyOf = (file: string, anchor: string, level: number) => (level ? `${file}#${anchor}` : file);
 
 /** The sentences of a stretch of prose that carry a limit's marker outside inline code, whitespace collapsed. */
 export function limitCandidates(prose: string): string[] {
@@ -142,44 +197,89 @@ export function limitCandidates(prose: string): string[] {
     .filter((s) => LIMIT.test(s.replace(/(`+).+?\1/g, ' ')));
 }
 
-/** The inventory of one page: its sections in order, its code blocks, its anchors and its limit candidates. */
+/**
+ * The inventory of one page: its sections in order (ATX and setext headings, never inside a fence), its code blocks,
+ * its anchors and its limit candidates. A section's hash covers its body as written, trailing spaces included (a hard
+ * break is a change), with the generated figures and blocks masked.
+ */
 export function inventoryOf(file: string, markdown: string): FileInventory {
-  // A figure `quality:baseline` writes into a README (`<!-- metric:tests -->3018<!-- /metric -->`) is generated, not
-  // written: it is masked, so adding a test does not move a section of the frozen pages.
-  const source = markdown.replace(/\r\n?/g, '\n').replace(METRIC, '$1…$2');
-  const lines = source.split('\n');
-  const headings: { line: number; level: number; text: string }[] = [];
+  const lines = markdown.replace(/\r\n?/g, '\n').replace(METRIC, '$1…$2').split('\n');
+  const masked = new Set<number>();
+  let generated = false;
+  lines.forEach((l, i) => {
+    if (GENERATED_BEGIN.test(l)) generated = true;
+    if (generated && !ATX.test(l)) masked.add(i + 1);
+    if (GENERATED_END.test(l)) generated = false;
+  });
+  const visible = lines.map((l, i) => (masked.has(i + 1) ? '' : l)).join('\n');
+  const outside = new Map<number, string>();
   const explicit: { anchor: string; line: number }[] = [];
-  const prose = new Map<number, string>();
   const fences: CodeBlock[] = [];
   mapLines(
-    source,
+    visible,
     (raw, n) => {
+      outside.set(n, raw);
       for (const m of raw.matchAll(EXPLICIT)) explicit.push({ anchor: m[1]!, line: n });
-      const h = HEADING.exec(raw);
-      if (h) headings.push({ line: n, level: h[1]!.length, text: headingText(h[2] ?? '') });
-      else prose.set(n, raw);
       return raw;
     },
     (f) => fences.push({ hash: sha256(f.content), lang: f.lang, line: f.line }),
   );
+
+  // Headings: an ATX line; or a paragraph (lines of text after a blank, a fence or another block) underlined by `===`
+  // or `---`. A `---` after a blank line, a list item or a quote is a thematic break, not an underline.
+  const headings: { line: number; body: number; level: number; text: string }[] = [];
+  let para: number | undefined;
+  let other = false;
+  for (let n = 1; n <= lines.length; n++) {
+    const raw = outside.get(n);
+    if (raw === undefined || !raw.trim()) {
+      para = undefined;
+      other = false;
+      continue;
+    }
+    const atx = ATX.exec(raw);
+    if (atx) {
+      headings.push({ line: n, body: n + 1, level: atx[1]!.length, text: headingText(atx[2] ?? '') });
+      para = undefined;
+      other = false;
+      continue;
+    }
+    const setext = SETEXT.exec(raw);
+    if (setext && para !== undefined) {
+      const text = lines
+        .slice(para - 1, n - 1)
+        .map((l) => l.trim())
+        .join(' ');
+      headings.push({ line: para, body: n + 1, level: setext[1]![0] === '=' ? 1 : 2, text: headingText(text) });
+      para = undefined;
+      continue;
+    }
+    if (para === undefined && !other) {
+      if (NOT_PARAGRAPH.test(raw)) other = true;
+      else para = n;
+    }
+  }
+  const inHeading = new Set(headings.flatMap((h) => Array.from({ length: h.body - h.line }, (_, k) => h.line + k)));
+
   const slug = slugger();
   const starts = [
     ...(lines.slice(0, (headings[0]?.line ?? lines.length + 1) - 1).some((l) => l.trim())
-      ? [{ line: 1, level: 0, text: '' }]
+      ? [{ line: 1, body: 1, level: 0, text: '' }]
       : []),
     ...headings,
   ];
   const sections = starts.map((h, i): Section => {
     const anchor = h.level ? slug(h.text) : '';
     let end = (starts[i + 1]?.line ?? lines.length + 1) - 1;
-    while (end > h.line && !lines[end - 1]!.trim()) end--;
-    const body = lines.slice(h.line - 1, end).map((l) => l.trimEnd());
+    while (end >= h.body && !lines[end - 1]!.trim()) end--;
+    end = Math.max(end, h.body - 1);
+    const body: string[] = [];
+    for (let n = h.body; n <= end; n++) if (!masked.has(n)) body.push(lines[n - 1]!);
     // Prose is cut into chunks at a blank line, a fence, a list item, a table row or a quote.
     const chunks: string[] = [];
     let chunk: string[] = [];
-    for (let n = h.line + (h.level ? 1 : 0); n <= end; n++) {
-      const line = prose.get(n);
+    for (let n = h.body; n <= end; n++) {
+      const line = inHeading.has(n) ? undefined : outside.get(n);
       const starter = line !== undefined && /^\s*([-*+]\s|\d+[.)]\s|\||>)/.test(line);
       if (line === undefined || !line.trim() || starter) {
         if (chunk.length) chunks.push(chunk.join(' '));
@@ -189,7 +289,7 @@ export function inventoryOf(file: string, markdown: string): FileInventory {
     }
     if (chunk.length) chunks.push(chunk.join(' '));
     return {
-      key: keyOf(file, anchor),
+      key: keyOf(file, anchor, h.level),
       file,
       heading: h.text,
       level: h.level,
@@ -222,7 +322,8 @@ export interface IncomingLink {
 
 /**
  * A path with an anchor, written in a file: `docs/en/TOOLS.md#deploying`, `../en/ENGINE.md#bootstrap`; a full stop or a
- * colon right after it ends the sentence, not the anchor.
+ * colon right after it ends the sentence, not the anchor. An anchor holding a `$` or a brace is a template
+ * (`` `docs/en/TOOLS.md#${anchor}` ``), not a link.
  */
 const ANCHORED_PATH = /(?<![\w./-])((?:\.{1,2}\/)*(?:[\w.-]+\/)*[\w.-]+\.md)#([^\s)"'`<>\]|,;*]*[^\s)"'`<>\]|,;*.:])/g;
 /** The same on GitHub, on the branch: what a reader of `main` lands on. */
@@ -251,7 +352,7 @@ const decode = (anchor: string) => {
 export function incomingLinks(root: string, tracked: readonly string[], targets: ReadonlySet<string>): IncomingLink[] {
   const out = new Map<string, IncomingLink>();
   const add = (from: string, line: number, path: string | undefined, anchor: string) => {
-    if (!path || !targets.has(path) || !anchor) return;
+    if (!path || !targets.has(path) || !anchor || /[${}]/.test(anchor)) return;
     out.set(`${from}|${line}|${path}|${anchor}`, { from, line, target: path, anchor });
   };
   const resolvePath = (from: string, path: string, relative: boolean) => {
@@ -266,7 +367,7 @@ export function incomingLinks(root: string, tracked: readonly string[], targets:
     if (!SCANNED.test(file) || NOT_SCANNED.test(file)) continue;
     const path = resolve(root, file);
     if (!existsSync(path)) continue;
-    const text = readFileSync(path, 'utf8');
+    const text = readFileSync(path, 'utf8').replace(/\r\n?/g, '\n');
     if (!file.endsWith('.md')) {
       text.split('\n').forEach((l, i) => {
         scanText(file, i + 1, l);
@@ -318,8 +419,9 @@ const unique = <T extends z.ZodType>(item: T) =>
 
 const RowSchema = z
   .object({
-    key: z.string().min(1),
-    file: z.string().min(1),
+    /** Paths in forward slashes on every system (a Windows path would make another key for the same section). */
+    key: z.string().regex(/^[^\\]+$/, 'a key in forward slashes, never a backslash'),
+    file: z.string().regex(/^[^\\]+$/, 'a path in forward slashes, never a backslash'),
     heading: z.string(),
     level: z.number().int().min(0).max(6),
     anchor: z.string(),
@@ -343,7 +445,11 @@ const RowSchema = z
     limits: z.array(
       z.object({ text: z.string().min(1), status: z.enum(['pending', 'reported', 'not-a-limit']) }).strict(),
     ),
-    /** Set by a merge: the section is new, its text changed, or it left its page. A person clears it once carried. */
+    /**
+     * Set by a merge: the section is new (`added`), its text or heading changed (`changed`), or it left its page
+     * (`removed`). `wiki -- coverage --ack <key>` clears the first two once a person rechecked the row; a removed row
+     * is carried to its new section or deleted.
+     */
     flag: z.enum(['added', 'changed', 'removed']).optional(),
   })
   .strict();
@@ -413,38 +519,67 @@ export const initCoverage = (files: readonly FileInventory[]): Coverage => ({
 export interface MergeReport {
   added: string[];
   changed: string[];
+  /** Rows carried to a section with the same body under another key: a renamed heading, reordered twins. */
+  carried: { from: string; to: string }[];
   removed: string[];
 }
 
 /**
- * A new inventory merged into the matrix (`coverage`): what a person wrote is kept; a new section is added (`added`); a
- * section whose text changed is `changed` and no longer `migrated`; a section that left its page stays, `removed`, at
- * the end, until a person deletes its row. A limit candidate keeps its status while its sentence is unchanged.
+ * A new inventory merged into the matrix (`coverage`). What a person wrote is kept. A row follows its section: by its
+ * key when the body is unchanged; otherwise by its body, the same hash in the same file (a renamed heading, or two
+ * same-named headings that swapped places, whose `-1` keys swap); otherwise by its key again, its text `changed`. A
+ * renamed or changed row is flagged `changed` and is no longer `migrated`. A section no row follows is `added`; a row
+ * no section takes stays at the end, `removed`, until a person carries or deletes it. A limit candidate keeps its
+ * status while its sentence is unchanged.
  */
 export function mergeCoverage(
   previous: Coverage,
   files: readonly FileInventory[],
 ): { coverage: Coverage } & MergeReport {
-  const old = new Map(previous.rows.map((r) => [r.key, r]));
-  const report: MergeReport = { added: [], changed: [], removed: [] };
+  const report: MergeReport = { added: [], changed: [], carried: [], removed: [] };
+  const sections = files.flatMap((f) => f.sections);
+  const free = new Set(previous.rows);
+  const match = new Map<Section, CoverageRow>();
+  const byKey = new Map(previous.rows.map((r) => [r.key, r]));
+  const take = (s: Section, r: CoverageRow | undefined) => {
+    if (!r || !free.has(r)) return false;
+    free.delete(r);
+    match.set(s, r);
+    return true;
+  };
+  // 1. Same key, same body: the section did not move.
+  for (const s of sections) {
+    const r = byKey.get(s.key);
+    if (r && r.hash === s.hash && r.flag !== 'removed') take(s, r);
+  }
+  // 2. Same body in the same file, another key: renamed, or reordered; a row with the same heading first.
+  for (const s of sections.filter((x) => !match.has(x))) {
+    const twins = [...free].filter((r) => r.file === s.file && r.hash === s.hash);
+    take(s, twins.find((r) => r.heading === s.heading) ?? twins[0]);
+  }
+  // 3. Same key, another body: the text changed.
+  for (const s of sections.filter((x) => !match.has(x))) take(s, byKey.get(s.key));
+
   const rows: CoverageRow[] = [];
-  for (const s of files.flatMap((f) => f.sections)) {
-    const r = old.get(s.key);
-    old.delete(s.key);
+  for (const s of sections) {
+    const r = match.get(s);
     if (!r) {
       report.added.push(s.key);
       rows.push(freshRow(s, 'added'));
       continue;
     }
-    const changed = r.hash !== s.hash || r.flag === 'removed';
+    if (r.key !== s.key) report.carried.push({ from: r.key, to: s.key });
+    const changed = r.hash !== s.hash || r.heading !== s.heading || r.level !== s.level;
     if (changed) report.changed.push(s.key);
     const status = new Map(r.limits.map((l) => [l.text, l.status]));
-    const { flag: _flag, ...kept } = r;
-    const flag = changed ? 'changed' : r.flag;
+    const { flag: old, ...kept } = r;
+    const flag = changed ? 'changed' : old === 'removed' ? undefined : old;
     rows.push({
       ...kept,
+      key: s.key,
       heading: s.heading,
       level: s.level,
+      anchor: s.anchor,
       lines: s.lines,
       hash: s.hash,
       codeBlocks: s.codeBlocks,
@@ -454,39 +589,57 @@ export function mergeCoverage(
       ...(flag ? { flag } : {}),
     });
   }
-  for (const r of old.values()) {
+  const keys = new Set(rows.map((r) => r.key));
+  for (const r of previous.rows.filter((x) => free.has(x))) {
     if (r.flag !== 'removed') report.removed.push(r.key);
-    rows.push({ ...r, flag: 'removed' });
+    // A vanished row whose key a new section took keeps its content under a key that says so.
+    let key = r.key;
+    for (let n = 1; keys.has(key); n++) key = `${r.key} (removed${n > 1 ? ` ${n}` : ''})`;
+    keys.add(key);
+    rows.push({ ...r, key, flag: 'removed' });
   }
   return { coverage: { ...previous, rows }, ...report };
 }
 
-/** What makes the matrix out of step with the pages: a new, changed or vanished section. Empty when in sync. */
+/**
+ * `coverage --ack <key>`: a person rechecked a flagged row against its section (its destinations still hold, or were
+ * corrected). An `added` or `changed` row loses its flag, its hash being the section's current one; a `removed` row is
+ * deleted (its content is accounted for). Returns why it cannot, or undefined.
+ */
+export function ackRow(coverage: Coverage, key: string): string | undefined {
+  const i = coverage.rows.findIndex((r) => r.key === key);
+  const r = coverage.rows[i];
+  if (!r) return `no row has the key ${key}`;
+  if (!r.flag) return `${key} has no flag to acknowledge`;
+  if (r.flag === 'removed') coverage.rows.splice(i, 1);
+  else delete r.flag;
+  return undefined;
+}
+
+/**
+ * What makes the matrix out of step with the pages: a new, changed or vanished section. Empty when in sync. Line
+ * numbers are not compared: they move with any edit above, and the next `coverage` refreshes them; the bodies' hashes,
+ * the headings, the code blocks, the anchors and the limit candidates are.
+ */
 export function staleRows(coverage: Coverage, files: readonly FileInventory[]): string[] {
-  const rows = new Map(coverage.rows.map((r) => [r.key, r]));
+  const rows = new Map(coverage.rows.filter((r) => r.flag !== 'removed').map((r) => [r.key, r]));
   const out: string[] = [];
   const seen = new Set<string>();
-  const same = (a: unknown, b: unknown) => JSON.stringify(a) === JSON.stringify(b);
+  const blocks = (b: readonly CodeBlock[]) => JSON.stringify(b.map((x) => [x.hash, x.lang]));
   for (const s of files.flatMap((f) => f.sections)) {
     seen.add(s.key);
     const r = rows.get(s.key);
-    if (!r || r.flag === 'removed') out.push(`${s.key}: a section the matrix does not hold`);
+    if (!r) out.push(`${s.key}: a section the matrix does not hold`);
     else if (r.hash !== s.hash) out.push(`${s.key}: its text changed`);
+    else if (r.heading !== s.heading || r.level !== s.level) out.push(`${s.key}: its heading changed`);
     else if (
-      !same(r.lines, s.lines) ||
-      r.heading !== s.heading ||
-      r.level !== s.level ||
-      !same(r.codeBlocks, s.codeBlocks) ||
-      !same(r.anchors, s.anchors) ||
-      !same(
-        r.limits.map((l) => l.text),
-        s.limits,
-      )
+      blocks(r.codeBlocks) !== blocks(s.codeBlocks) ||
+      JSON.stringify(r.anchors) !== JSON.stringify(s.anchors) ||
+      JSON.stringify(r.limits.map((l) => l.text)) !== JSON.stringify(s.limits)
     )
-      out.push(`${s.key}: moved in its page (lines, code blocks, anchors or limit candidates)`);
+      out.push(`${s.key}: its code blocks, anchors or limit candidates changed`);
   }
-  for (const r of coverage.rows)
-    if (!seen.has(r.key) && r.flag !== 'removed') out.push(`${r.key}: no longer in ${r.file}`);
+  for (const r of rows.values()) if (!seen.has(r.key)) out.push(`${r.key}: no longer in ${r.file}`);
   return out;
 }
 
@@ -498,21 +651,39 @@ const destinationId = (d: string) => d.split('#')[0]!;
 export interface Legacy {
   format: typeof LEGACY_FORMAT;
   version: 1;
-  /** For each `read_doc {name}`, the `id#section` that rebuild it, in the order of its old sections, each once. */
+  dedup: 'page-covers-sections';
+  /** For each `read_doc {name}`, the destinations that rebuild it, in the order of its old sections. */
   pages: Record<string, string[]>;
+}
+
+/**
+ * The legacy order (§4.2): for each of the eight `read_doc` names, the destinations of its old sections in their
+ * order, drops and removed rows left out. Deduplication, `page-covers-sections`: a destination is kept at its first
+ * place only; a bare `id` covers the whole page, so an `id#x` after it is dropped. An `id#x` before a bare `id` stays
+ * (its place in the order matters), and the bare `id` stays too: whoever concatenates (C2) emits, for that bare `id`,
+ * only the sections of the page not emitted yet.
+ */
+export function legacyOrder(destinations: readonly string[]): string[] {
+  const out: string[] = [];
+  const whole = new Set<string>();
+  for (const d of destinations) {
+    const id = destinationId(d);
+    if (out.includes(d) || whole.has(id)) continue;
+    if (d === id) whole.add(id);
+    out.push(d);
+  }
+  return out;
 }
 
 export function legacyOf(coverage: Coverage): Legacy {
   const pages: Record<string, string[]> = {};
   for (const name of DOCS)
-    pages[name] = [
-      ...new Set(
-        live(coverage)
-          .filter((r) => r.file === `docs/en/${name}.md` && r.decision !== 'drop')
-          .flatMap((r) => r.destinations),
-      ),
-    ];
-  return { format: LEGACY_FORMAT, version: 1, pages };
+    pages[name] = legacyOrder(
+      live(coverage)
+        .filter((r) => r.file === `docs/en/${name}.md` && r.decision !== 'drop')
+        .flatMap((r) => r.destinations),
+    );
+  return { format: LEGACY_FORMAT, version: 1, dedup: 'page-covers-sections', pages };
 }
 
 /** Each manifest page's `replaces`: the old `file#anchor` whose destinations name it, in the matrix's order. */
@@ -576,52 +747,51 @@ export interface Counters {
   sections: Counter;
   codeBlocks: Counter;
   limits: Counter;
+  /** The dropped sections, and those whose every limit candidate a person ticked. */
+  drops: { total: number; reviewed: number };
 }
+
+/** Every limit candidate of a row ticked by a person (`reported` or `not-a-limit`). */
+const limitsReviewed = (r: CoverageRow) => r.limits.every((l) => l.status !== 'pending');
+/**
+ * A row counts as "migrated and reviewed" when a person set `migrated`: for a kept or rewritten section, its content is
+ * in a `ready` page and was reviewed; for a drop, the drop was confirmed, and it counts only once every limit candidate
+ * it held is ticked too: a limit is never dropped unread.
+ */
+const reviewed = (r: CoverageRow) => r.migrated && (r.decision !== 'drop' || limitsReviewed(r));
 
 /**
  * "destinations planned" and "migrated and reviewed" (§4.2), for the sections, their code blocks and their limit
- * candidates. A limit candidate counts as migrated once its row is and a person ticked it (`reported` or
- * `not-a-limit`).
+ * candidates; a limit candidate counts as migrated once its row does and a person ticked it. The drops are counted
+ * apart too.
  */
 export function coverageCounters(coverage: Coverage): Counters {
   const rows = live(coverage);
   const sum = (of: (r: CoverageRow) => number, keep: (r: CoverageRow) => boolean = () => true) =>
     rows.filter(keep).reduce((n, r) => n + of(r), 0);
+  const blocks = (r: CoverageRow) => r.codeBlocks.length;
+  const limits = (r: CoverageRow) => r.limits.length;
+  const drops = rows.filter((r) => r.decision === 'drop');
   return {
     sections: {
       total: rows.length,
       planned: rows.filter((r) => r.planned).length,
-      migrated: rows.filter((r) => r.migrated).length,
+      migrated: rows.filter(reviewed).length,
     },
-    codeBlocks: {
-      total: sum((r) => r.codeBlocks.length),
-      planned: sum(
-        (r) => r.codeBlocks.length,
-        (r) => r.planned,
-      ),
-      migrated: sum(
-        (r) => r.codeBlocks.length,
-        (r) => r.migrated,
-      ),
-    },
+    codeBlocks: { total: sum(blocks), planned: sum(blocks, (r) => r.planned), migrated: sum(blocks, reviewed) },
     limits: {
-      total: sum((r) => r.limits.length),
-      planned: sum(
-        (r) => r.limits.length,
-        (r) => r.planned,
-      ),
-      migrated: sum(
-        (r) => r.limits.filter((l) => l.status !== 'pending').length,
-        (r) => r.migrated,
-      ),
+      total: sum(limits),
+      planned: sum(limits, (r) => r.planned),
+      migrated: sum((r) => r.limits.filter((l) => l.status !== 'pending').length, reviewed),
     },
+    drops: { total: drops.length, reviewed: drops.filter(limitsReviewed).length },
   };
 }
 
 /** A share, rounded down: 99.96 % is not 100 %. */
 const percent = (n: number, total: number) => (total ? `${Math.floor((1000 * n) / total) / 10}%` : '100%');
 
-/** The two lines of §4.2, always shown together. */
+/** The two lines of §4.2, always shown together, and the drops apart. */
 export function counterLines(c: Counters): string[] {
   const part = (k: 'planned' | 'migrated') =>
     (
@@ -633,7 +803,11 @@ export function counterLines(c: Counters): string[] {
     )
       .map(([name, x]) => `${name} ${percent(x[k], x.total)} (${x[k]}/${x.total})`)
       .join(' · ');
-  return [`destinations planned: ${part('planned')}`, `migrated and reviewed: ${part('migrated')}`];
+  return [
+    `destinations planned: ${part('planned')}`,
+    `migrated and reviewed: ${part('migrated')}`,
+    `dropped, limits reviewed: ${c.drops.reviewed}/${c.drops.total}`,
+  ];
 }
 
 // ——— Writing, and checking ———
@@ -698,6 +872,7 @@ export function checkCoverage({ wikiDir, root, manifest, tracked }: CoverageChec
     return sectionsOf.get(id);
   };
   const undecided: string[] = [];
+  const dropsToReview: string[] = [];
   for (const r of coverage.rows) {
     for (const d of r.destinations) {
       const [id, section] = d.split('#') as [string, string | undefined];
@@ -710,7 +885,12 @@ export function checkCoverage({ wikiDir, root, manifest, tracked }: CoverageChec
         report.errors.push(`coverage.json ${r.key}: ${d} is not a section of ${id}`);
     }
     if (r.flag === 'removed') {
-      report.warnings.push(`coverage.json ${r.key}: left its page; delete the row once its content is accounted for`);
+      if (r.decision)
+        report.errors.push(
+          `coverage.json ${r.key}: left its page with a decision; carry it to the section that took its content, or delete the row (\`${COVERAGE_COMMAND} --ack ${r.key}\`)`,
+        );
+      else
+        report.warnings.push(`coverage.json ${r.key}: left its page; delete the row once its content is accounted for`);
       continue;
     }
     if (r.decision === 'drop' && !r.reason) report.errors.push(`coverage.json ${r.key}: a drop says why (reason)`);
@@ -719,11 +899,21 @@ export function checkCoverage({ wikiDir, root, manifest, tracked }: CoverageChec
       report.errors.push(`coverage.json ${r.key}: planned to ${r.decision}, yet no destination`);
     if (r.migrated && !r.planned) report.errors.push(`coverage.json ${r.key}: migrated, yet not planned`);
     if (!r.decision) undecided.push(r.key);
-    if (r.flag)
+    if (r.decision === 'drop' && !r.limits.every((l) => l.status !== 'pending'))
+      dropsToReview.push(`${r.key} (${r.limits.filter((l) => l.status === 'pending').length})`);
+    if (r.flag === 'changed' && r.planned)
+      report.errors.push(
+        `coverage.json ${r.key}: its section changed while its destinations were planned; recheck them, then \`${COVERAGE_COMMAND} --ack ${r.key}\``,
+      );
+    else if (r.flag)
       report.warnings.push(
-        `coverage.json ${r.key}: ${r.flag === 'added' ? 'a new section' : 'its text changed'} since the matrix was made; carry it into its wiki pages, then remove its flag`,
+        `coverage.json ${r.key}: ${r.flag === 'added' ? 'a new section' : 'its section changed'}; decide its destinations, then \`${COVERAGE_COMMAND} --ack ${r.key}\``,
       );
   }
+  if (dropsToReview.length)
+    report.gaps.push(
+      `${dropsToReview.length} dropped section(s) still hold limit candidates nobody ticked (a drop is reviewed once each is reported or not-a-limit): ${dropsToReview.slice(0, 10).join(', ')}${dropsToReview.length > 10 ? '…' : ''}`,
+    );
   if (undecided.length)
     report.gaps.push(
       `${undecided.length} section(s) of the old documentation have no decision yet: ${undecided.slice(0, 10).join(', ')}${undecided.length > 10 ? '…' : ''}`,

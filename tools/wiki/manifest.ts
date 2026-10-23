@@ -126,7 +126,7 @@ const PageSchema = z
      * The old sections this page takes over, `docs/en/X.md#anchor` or a root page's (`CONTRIBUTING.md#what-ci-runs`),
      * the anchor as GitHub computes it. Generated from the coverage matrix by `wiki -- coverage`, never typed.
      */
-    replaces: unique(z.string().regex(/^(docs\/(en|fr)\/[A-Za-z0-9_.-]+|[A-Z_]+(\.fr)?)\.md(#[^\s#]+)?$/)),
+    replaces: unique(z.string().regex(/^(docs\/(en|fr)\/[A-Za-z0-9_.-]+|[A-Z_]+(\.fr)?)\.md(#[^\s#]*)?$/)),
     /** Natural-language questions a reader asks; at least one per language for a how-to or a troubleshooting page. */
     questions: bilingual(unique(text(200))),
     /** Other names a reader may use: an old name, a common word, a synonym. */

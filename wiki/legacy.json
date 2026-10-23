@@ -1,6 +1,7 @@
 {
   "format": "quest-n-click-docs-legacy",
   "version": 1,
+  "dedup": "page-covers-sections",
   "pages": {
     "CONTENT_GUIDE": [
       "create.principles#overview",
@@ -122,7 +123,6 @@
       "studio.rule-explainer",
       "studio.music",
       "studio.preview-apply",
-      "studio.edit-room#structured-editing",
       "studio.api#overview",
       "studio.api#texts",
       "studio.api#serving",
@@ -152,7 +152,6 @@
       "create.music#workflow",
       "create.music#audio-sources",
       "contribute.licences",
-      "install.audio-toolchain#furnace",
       "create.music#stems",
       "create.sound-effects#recipes",
       "create.voices#overview",
@@ -163,13 +162,6 @@
     "UPGRADING": [
       "install.upgrade#overview",
       "install.upgrade-notes-v2-to-v3",
-      "install.upgrade-notes-v2-to-v3#baseline",
-      "install.upgrade-notes-v2-to-v3#v3-schema",
-      "install.upgrade-notes-v2-to-v3#migrate-saves",
-      "install.upgrade-notes-v2-to-v3#translations-and-minigames",
-      "install.upgrade-notes-v2-to-v3#dev-and-ci-commands",
-      "install.upgrade-notes-v2-to-v3#verify",
-      "install.upgrade-notes-v2-to-v3#at-a-glance",
       "install.upgrade-notes-v3#embedded-engine",
       "install.upgrade-notes-v3#line-ids",
       "install.upgrade-notes-v3#list-lines",

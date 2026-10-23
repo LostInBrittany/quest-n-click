@@ -17,6 +17,7 @@ import { DOCS } from '../tools/studio/tools';
 import { main } from '../tools/wiki';
 import { trackedFiles } from '../tools/wiki/check';
 import {
+  ackRow,
   type Coverage,
   type CoverageRow,
   checkCoverage,
@@ -28,7 +29,9 @@ import {
   initCoverage,
   inventory,
   inventoryOf,
+  type Legacy,
   legacyOf,
+  legacyOrder,
   limitCandidates,
   mergeCoverage,
   readCoverage,
@@ -91,6 +94,58 @@ describe("GitHub's anchors", () => {
   it('gives a repeated heading -1, -2… in document order, never reusing a slug already given', () => {
     const slug = slugger();
     expect(['Setup', 'Setup', 'Setup 1', 'Setup'].map(slug)).toEqual(['setup', 'setup-1', 'setup-1-1', 'setup-2']);
+  });
+
+  it('reads the rendered text as github-slugger does: HTML gone but its spaces kept, autolinks, entities, `_`', () => {
+    const slug = (h: string) => githubSlug(headingText(h));
+    // A heading ending in HTML keeps the space before the tag.
+    expect(slug('3. State of the project on <date>')).toBe('3-state-of-the-project-on-');
+    expect(slug('Ends in a tag <br>')).toBe('ends-in-a-tag-');
+    expect(slug('A <!-- note --> comment')).toBe('a--comment');
+    // An autolink keeps its text (then the slug drops its punctuation).
+    expect(slug('See <https://example.com/a_b>')).toBe('see-httpsexamplecoma_b');
+    expect(slug('Write to <team@example.com>')).toBe('write-to-teamexamplecom');
+    // Entities are read, then follow the rules: a no-break space is not a space.
+    expect(slug('A&nbsp;B &amp; C &#45; D &#x41;')).toBe('ab--c---d-a');
+    // A `_` that opens or closes nothing stays; emphasis goes.
+    expect(slug('snake_case_ and _emph_ and __strong__')).toBe('snake_case_-and-emph-and-strong');
+    expect(slug('trailing_')).toBe('trailing_');
+    // A code span loses one space on each side, as CommonMark trims it.
+    expect(slug('`` `tick` ``')).toBe('tick');
+  });
+
+  it('reads setext headings, never a thematic break after a blank line or a list item', () => {
+    const md = 'Intro\n\nTitle\n=====\n\nText\n\n---\n\nTwo lines\nof title\n---\n\n- item\n---\n';
+    const { sections } = inventoryOf('x.md', md);
+    expect(sections.map((s) => [s.level, s.heading, s.anchor, s.lines[0]])).toEqual([
+      [0, '', '', 1],
+      [1, 'Title', 'title', 3],
+      [2, 'Two lines of title', 'two-lines-of-title', 10],
+    ]);
+  });
+
+  it('gives an empty heading the empty slug, keyed apart from the preamble', () => {
+    const { sections, anchors } = inventoryOf('x.md', 'Before.\n\n#\n\nA.\n\n## \n\nB.\n\n## Named\n');
+    expect(sections.map((s) => s.key)).toEqual(['x.md', 'x.md#', 'x.md#-1', 'x.md#named']);
+    expect(anchors).toEqual(['', '-1', 'named']);
+  });
+
+  it('hashes the body as written: a hard break is a change, a CRLF is not', () => {
+    const hash = (md: string) => inventoryOf('x.md', md).sections[0]!.hash;
+    expect(hash('## A\n\nline one  \nline two\n')).not.toBe(hash('## A\n\nline one\nline two\n'));
+    expect(hash('## A\r\n\r\nline one\r\n')).toBe(hash('## A\n\nline one\n'));
+  });
+
+  it('masks the generated blocks of DSL.md and API.md, keeping their headings', () => {
+    const page = (row: string) =>
+      `## Reference\n\nWritten.\n\n<!-- dsl-doc:begin -->\n### Commands\n\n| a | ${row} |\n<!-- dsl-doc:end -->\n`;
+    const [a, b] = [inventoryOf('docs/en/DSL.md', page('x')), inventoryOf('docs/en/DSL.md', page('y, never'))];
+    expect(a.sections.map((s) => s.anchor)).toEqual(['reference', 'commands']);
+    expect(a.sections.map((s) => s.hash)).toEqual(b.sections.map((s) => s.hash));
+    expect(b.sections[1]!.limits).toEqual([]);
+    expect(inventoryOf('docs/en/DSL.md', page('x').replace('Written.', 'Rewritten.')).sections[0]!.hash).not.toBe(
+      a.sections[0]!.hash,
+    );
   });
 
   it('inventories every level, the explicit anchors, and nothing inside a fence', () => {
@@ -170,6 +225,14 @@ describe('the incoming anchored links (the cross-check)', () => {
     expect(unresolvedLinks(files, links).map((l) => l.anchor)).toEqual(['gone-section', 'nowhere']);
   });
 
+  it('takes a template for no link', () => {
+    const root = tmp('coverage-template-');
+    cpSync(FIXTURE, root, { recursive: true });
+    writeFileSync(join(root, 'notes.yml'), 'a: `docs/en/GUIDE.md#${anchor}`\nb: docs/en/GUIDE.md#{x}\n');
+    const files = inventory(root);
+    expect(incomingLinks(root, ['notes.yml'], new Set(files.map((f) => f.file)))).toEqual([]);
+  });
+
   it('lists them as warnings of the check, never as errors', () => {
     const { check } = setup();
     const report = check();
@@ -217,6 +280,15 @@ describe('the matrix', () => {
     expect(errors).toContain('coverage.json docs/en/GUIDE.md#limits: planned to keep, yet no destination');
   });
 
+  it('refuses a key or a path written with a backslash', () => {
+    const { check, wikiDir } = setup();
+    const file = join(wikiDir, 'coverage.json');
+    const c = JSON.parse(readFileSync(file, 'utf8')) as Coverage;
+    c.rows[0]!.key = 'docs\\en\\GUIDE.md#the-guide';
+    writeFileSync(file, formatJson(c));
+    expect(check().errors).toContain('coverage.json rows.0.key: a key in forward slashes, never a backslash');
+  });
+
   it('refuses a code block that no row holds', () => {
     const { check, wikiDir } = setup();
     const file = join(wikiDir, 'coverage.json');
@@ -257,21 +329,19 @@ describe('a merge (`wiki -- coverage`)', () => {
         r.migrated = true;
         r.limits[0]!.status = 'reported';
       }
-      if (r.anchor === 'setup') r.verification = 'docs-truth';
     });
     edit(
       join(root, 'docs/en/GUIDE.md'),
       '- You cannot undo a deploy.',
       '- You cannot undo a deploy.\n- Never twice.\n\n## A new section\n\nText.\n',
     );
-    edit(join(root, 'docs/en/GUIDE.md'), '## Setup\n\nRun', '## Install\n\nRun');
+    edit(join(root, 'docs/fr/GUIDE.md'), "## Limites\n\n- Un déploiement ne s'annule jamais.\n", '');
     const files = inventory(root);
     expect(staleRows(coverage, files).length).toBeGreaterThan(0);
     const merged = mergeCoverage(coverage, files);
-    expect(merged.added).toEqual(['docs/en/GUIDE.md#install', 'docs/en/GUIDE.md#a-new-section']);
-    expect(merged.changed).toEqual(['docs/en/GUIDE.md#setup', 'docs/en/GUIDE.md#limits']);
-    // `Setup` became `Install`: the second `Setup` is now the first, so `setup-1` left and `setup` changed.
-    expect(merged.removed).toEqual(['docs/en/GUIDE.md#setup-1']);
+    expect(merged.added).toEqual(['docs/en/GUIDE.md#a-new-section']);
+    expect(merged.changed).toEqual(['docs/en/GUIDE.md#limits']);
+    expect(merged.removed).toEqual(['docs/fr/GUIDE.md#limites']);
     const row = (key: string) => merged.coverage.rows.find((r) => r.key === key)!;
     expect(row('docs/en/GUIDE.md#limits')).toMatchObject({
       reason: 'a person wrote this',
@@ -283,9 +353,71 @@ describe('a merge (`wiki -- coverage`)', () => {
       ],
     });
     expect(row('docs/en/GUIDE.md#a-new-section')).toMatchObject({ flag: 'added', decision: null, planned: false });
-    expect(row('docs/en/GUIDE.md#setup-1')).toMatchObject({ flag: 'removed', decision: 'keep' });
-    expect(merged.coverage.rows.at(-1)!.key).toBe('docs/en/GUIDE.md#setup-1');
+    expect(merged.coverage.rows.at(-1)).toMatchObject({ key: 'docs/fr/GUIDE.md#limites', flag: 'removed' });
     expect(staleRows(merged.coverage, files)).toEqual([]);
+  });
+
+  it('carries a renamed heading by its body, flagged changed; the check refuses it planned until acknowledged', () => {
+    const { root, wikiDir, check, manifest } = setup((r) => {
+      if (r.key === 'docs/en/GUIDE.md#setup') r.verification = 'a person wrote this';
+    });
+    edit(join(root, 'docs/en/GUIDE.md'), '## Setup\n\nRun', '## Install\n\nRun');
+    const merged = mergeCoverage(readCoverage(wikiDir).coverage!, inventory(root));
+    // `Install` takes the first `Setup`'s row; the second `Setup` is now `setup`, and takes its own row back.
+    expect(merged.carried).toEqual([
+      { from: 'docs/en/GUIDE.md#setup', to: 'docs/en/GUIDE.md#install' },
+      { from: 'docs/en/GUIDE.md#setup-1', to: 'docs/en/GUIDE.md#setup' },
+    ]);
+    expect(merged.changed).toEqual(['docs/en/GUIDE.md#install']);
+    expect(merged.added).toEqual([]);
+    expect(merged.removed).toEqual([]);
+    const install = merged.coverage.rows.find((r) => r.key === 'docs/en/GUIDE.md#install')!;
+    expect(install).toMatchObject({ verification: 'a person wrote this', flag: 'changed', anchor: 'install' });
+    writeCoverage(wikiDir, merged.coverage, manifest());
+    expect(check().errors).toContain(
+      'coverage.json docs/en/GUIDE.md#install: its section changed while its destinations were planned; recheck them, then `npm run wiki -- coverage --ack docs/en/GUIDE.md#install`',
+    );
+    const log = vi.spyOn(console, 'log').mockImplementation(() => {});
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    try {
+      expect(main(['coverage', '--ack', 'docs/en/GUIDE.md#install', `--wiki=${wikiDir}`, `--root=${root}`])).toBe(0);
+      expect(main(['coverage', '--ack', 'docs/en/GUIDE.md#install', `--wiki=${wikiDir}`, `--root=${root}`])).toBe(1);
+    } finally {
+      log.mockRestore();
+      warn.mockRestore();
+    }
+    expect(check().errors).toEqual([]);
+  });
+
+  it('carries reordered twins by their bodies, with no flag', () => {
+    const page = (a: string, b: string) => [inventoryOf('docs/en/G.md', `## Setup\n\n${a}\n\n## Setup\n\n${b}\n`)];
+    const coverage = initCoverage(page('First.', 'Second.'));
+    coverage.rows[0]!.reason = 'first';
+    coverage.rows[1]!.reason = 'second';
+    const merged = mergeCoverage(coverage, page('Second.', 'First.'));
+    expect(merged.changed).toEqual([]);
+    expect(merged.carried).toEqual([
+      { from: 'docs/en/G.md#setup-1', to: 'docs/en/G.md#setup' },
+      { from: 'docs/en/G.md#setup', to: 'docs/en/G.md#setup-1' },
+    ]);
+    expect(merged.coverage.rows.map((r) => [r.key, r.reason, r.flag])).toEqual([
+      ['docs/en/G.md#setup', 'second', undefined],
+      ['docs/en/G.md#setup-1', 'first', undefined],
+    ]);
+  });
+
+  it('refuses a vanished row that still holds a decision, until it is deleted', () => {
+    const { root, wikiDir, check, manifest } = setup();
+    edit(join(root, 'docs/fr/GUIDE.md'), "## Limites\n\n- Un déploiement ne s'annule jamais.\n", '');
+    writeCoverage(wikiDir, mergeCoverage(readCoverage(wikiDir).coverage!, inventory(root)).coverage, manifest());
+    expect(check().errors.join('\n')).toContain(
+      'coverage.json docs/fr/GUIDE.md#limites: left its page with a decision',
+    );
+    const c = readCoverage(wikiDir).coverage!;
+    expect(ackRow(c, 'docs/fr/GUIDE.md#limites')).toBeUndefined();
+    expect(c.rows.some((r) => r.key === 'docs/fr/GUIDE.md#limites')).toBe(false);
+    writeCoverage(wikiDir, c, manifest());
+    expect(check().errors).toEqual([]);
   });
 
   it('`--init` refuses to replace a matrix without --force; `coverage` merges and is stable when run twice', () => {
@@ -344,6 +476,7 @@ describe('the legacy order and the counters', () => {
         row('e', ['studio.map'], { flag: 'removed' }),
       ],
     };
+    expect(legacyOf(coverage)).toMatchObject({ dedup: 'page-covers-sections' });
     expect(legacyOf(coverage).pages.TOOLS).toEqual([
       'reference.npm-scripts#overview',
       'create.checking',
@@ -353,34 +486,72 @@ describe('the legacy order and the counters', () => {
     expect(Object.keys(legacyOf(coverage).pages)).toEqual([...DOCS]);
   });
 
+  it('lets a bare page cover its later sections, and keeps sections that come before it', () => {
+    // A bare id first: the page covers every section of it, so a later `id#x` is gone.
+    expect(legacyOrder(['create.music', 'create.voices#a', 'create.music#stems', 'create.music'])).toEqual([
+      'create.music',
+      'create.voices#a',
+    ]);
+    // Sections first: they keep their place, and the bare id stays (C2 emits only the sections not emitted yet).
+    expect(legacyOrder(['create.music#stems', 'create.voices#a', 'create.music', 'create.music#rules'])).toEqual([
+      'create.music#stems',
+      'create.voices#a',
+      'create.music',
+    ]);
+  });
+
+  it('holds the real STUDIO, AUDIO and UPGRADING cases', () => {
+    const { pages } = JSON.parse(readFileSync(resolve('wiki/legacy.json'), 'utf8')) as Legacy;
+    // STUDIO: the Layout section names the whole studio.edit-room; Structured editing's #structured-editing is in it.
+    expect(pages.STUDIO).toContain('studio.edit-room');
+    expect(pages.STUDIO).not.toContain('studio.edit-room#structured-editing');
+    // AUDIO: the title names the whole install.audio-toolchain, which covers its later #furnace.
+    expect(pages.AUDIO).toContain('install.audio-toolchain');
+    expect(pages.AUDIO).not.toContain('install.audio-toolchain#furnace');
+    // UPGRADING: the title names the whole v2-to-v3 page, so its seven steps are not listed again.
+    expect(pages.UPGRADING).toContain('install.upgrade-notes-v2-to-v3');
+    expect(pages.UPGRADING.filter((d) => d.startsWith('install.upgrade-notes-v2-to-v3#'))).toEqual([]);
+    for (const list of Object.values(pages)) expect(legacyOrder(list)).toEqual(list);
+  });
+
   it('counts sections, code blocks and limit candidates, planned and migrated, a limit only once ticked', () => {
     const block = { hash: '1'.repeat(64), lang: 'sh', line: 1 };
+    const ticked = { text: 'Only here.', status: 'reported' as const };
+    const pending = { text: 'Not there.', status: 'pending' as const };
     const coverage: Coverage = {
       format: 'quest-n-click-docs-coverage',
       version: 1,
       rows: [
-        row('a', ['create.checking'], {
-          migrated: true,
-          codeBlocks: [block],
-          limits: [
-            { text: 'Only here.', status: 'reported' },
-            { text: 'Not there.', status: 'pending' },
-          ],
-        }),
+        row('a', ['create.checking'], { migrated: true, codeBlocks: [block], limits: [ticked, pending] }),
         row('b', ['create.checking'], { codeBlocks: [block, block] }),
         row('c', [], { planned: false, decision: null, limits: [{ text: 'Never.', status: 'pending' }] }),
         row('d', ['create.checking'], { flag: 'removed' }),
+        // Drops: confirmed with every limit ticked (counts); confirmed with one pending (does not); not confirmed.
+        row('e', [], { decision: 'drop', reason: 'history', migrated: true, limits: [ticked] }),
+        row('f', [], { decision: 'drop', reason: 'history', migrated: true, codeBlocks: [block], limits: [pending] }),
+        row('g', [], { decision: 'drop', reason: 'history' }),
       ],
     };
     expect(coverageCounters(coverage)).toEqual({
-      sections: { total: 3, planned: 2, migrated: 1 },
-      codeBlocks: { total: 3, planned: 3, migrated: 1 },
-      limits: { total: 3, planned: 2, migrated: 1 },
+      sections: { total: 6, planned: 5, migrated: 2 },
+      codeBlocks: { total: 4, planned: 4, migrated: 1 },
+      limits: { total: 5, planned: 4, migrated: 2 },
+      drops: { total: 3, reviewed: 2 },
     });
     expect(counterLines(coverageCounters(coverage))).toEqual([
-      'destinations planned: sections 66.6% (2/3) · code blocks 100% (3/3) · limit candidates 66.6% (2/3)',
-      'migrated and reviewed: sections 33.3% (1/3) · code blocks 33.3% (1/3) · limit candidates 33.3% (1/3)',
+      'destinations planned: sections 83.3% (5/6) · code blocks 100% (4/4) · limit candidates 80% (4/5)',
+      'migrated and reviewed: sections 33.3% (2/6) · code blocks 25% (1/4) · limit candidates 40% (2/5)',
+      'dropped, limits reviewed: 2/3',
     ]);
+  });
+
+  it('lists a drop whose limit candidates nobody ticked as a gap', () => {
+    const { check } = setup((r) => {
+      if (r.anchor === 'limits') Object.assign(r, { decision: 'drop', reason: 'history', destinations: [] });
+    });
+    expect(check().gaps.join('\n')).toContain(
+      '1 dropped section(s) still hold limit candidates nobody ticked (a drop is reviewed once each is reported or not-a-limit): docs/en/GUIDE.md#limits (1)',
+    );
   });
 });
 
@@ -414,9 +585,15 @@ describe("the repository's matrix", () => {
     expect(report.errors).toEqual([]);
   });
 
-  it('plans a destination or a written drop for every section', () => {
+  it('plans a destination or a written drop for every section, and flags none', () => {
     expect(coverage.rows.filter((r) => !r.planned || !r.decision).map((r) => r.key)).toEqual([]);
     expect(coverage.rows.filter((r) => r.decision === 'drop' && !r.reason).map((r) => r.key)).toEqual([]);
+    expect(coverage.rows.filter((r) => r.flag).map((r) => r.key)).toEqual([]);
+    // Only shipped roadmap milestones are dropped; one that still lists open items is a rewrite to start.roadmap.
+    for (const r of coverage.rows.filter((x) => x.decision === 'drop')) {
+      expect(r.file, r.key).toMatch(/^docs\/(en|fr)\/ROADMAP\.md$/);
+      expect(r.reason, r.key).toMatch(/CHANGELOG\.md|git tag/);
+    }
   });
 
   it('covers every old `##` of the eight read_doc pages in wiki/legacy.json', () => {
@@ -427,7 +604,12 @@ describe("the repository's matrix", () => {
       expect(rows.length, name).toBeGreaterThan(0);
       for (const r of rows) {
         expect(r.destinations.length, r.key).toBeGreaterThan(0);
-        for (const d of r.destinations) expect(legacy.pages[name], r.key).toContain(d);
+        // Each destination is listed, or its whole page is (a bare id covers its sections).
+        for (const d of r.destinations)
+          expect(
+            legacy.pages[name]!.includes(d) || legacy.pages[name]!.includes(d.split('#')[0]!),
+            `${r.key} → ${d}`,
+          ).toBe(true);
       }
     }
   });
@@ -436,6 +618,16 @@ describe("the repository's matrix", () => {
     const links = incomingLinks(ROOT, ['README.md', 'README.fr.md'], new Set(files.map((f) => f.file)));
     expect(links.length).toBeGreaterThanOrEqual(4);
     expect(unresolvedLinks(files, links)).toEqual([]);
+  });
+
+  it('sets a long replaces list on several lines, and back to an empty one', () => {
+    const text = readFileSync(resolve('wiki/manifest.json'), 'utf8');
+    const manifest = JSON.parse(text) as Manifest;
+    const id = manifest.pages.find((p) => p.replaces.length > 4)!.id;
+    const empty = withReplaces(text, new Map([[id, []]]));
+    expect((JSON.parse(empty) as Manifest).pages.find((p) => p.id === id)!.replaces).toEqual([]);
+    expect(empty).toContain('"replaces": [],');
+    expect(withReplaces(empty, new Map(manifest.pages.map((p) => [p.id, p.replaces])))).toBe(text);
   });
 
   it('sets the manifest replaces in place, byte for byte, when nothing changed', () => {

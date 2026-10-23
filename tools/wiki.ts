@@ -1,4 +1,4 @@
-// npm run wiki -- check | stats [--json] | coverage [--init [--force]] | build --target wiki --out <dir> [--preview]
+// npm run wiki -- check | stats [--json] | coverage [--init [--force] | --ack <key>] | build --target wiki --out <dir> [--preview]
 // [--product-version <v>] [--doc-revision <sha>] [--product-commit <sha>] (4.5.0 "Wiki", docs/dev/PLAN-4.5-WIKI.md §5,
 // phases A2 and A3; ADR 0030).
 // The documentation's source is `wiki/` (a manifest, then `wiki/<lang>/<id>.md`); every output is generated from it.
@@ -17,6 +17,7 @@ import { ROOT } from './game';
 import { buildWiki } from './wiki/build';
 import { checkWiki, trackedFiles, wikiStats } from './wiki/check';
 import {
+  ackRow,
   checkCoverage,
   counterLines,
   coverageCounters,
@@ -54,7 +55,7 @@ export function outProblem(out: string, root = ROOT): string | undefined {
 }
 
 const USAGE =
-  'usage: npm run wiki -- check | stats [--json] | coverage [--init [--force]] | build --target wiki --out <dir> [--preview] [--product-version <v>] [--doc-revision <sha>] [--product-commit <sha>]';
+  'usage: npm run wiki -- check | stats [--json] | coverage [--init [--force] | --ack <key>] | build --target wiki --out <dir> [--preview] [--product-version <v>] [--doc-revision <sha>] [--product-commit <sha>]';
 
 const head = () => {
   try {
@@ -175,7 +176,8 @@ function run(args: readonly string[]): number {
 
 /**
  * `coverage --init` makes the matrix from the inventory (refusing to replace one without `--force`); `coverage` merges
- * a new inventory into it. Both write `legacy.json` and the manifest's `replaces`, then print the inventory's counts,
+ * a new inventory into it, and `--ack <key>` then clears that row's flag once a person rechecked it (a removed row is
+ * deleted). Both write `legacy.json` and the manifest's `replaces`, then print the inventory's counts,
  * the incoming anchored links that resolve to nothing, and the two counters. `--root=<dir>` inventories another
  * repository (the tests' fixtures).
  */
@@ -205,12 +207,22 @@ function coverage(args: readonly string[], wikiDir: string): number {
     }
     const merged = mergeCoverage(read.coverage, files);
     matrix = merged.coverage;
+    for (const c of merged.carried) console.log(`·  carried: ${c.from} → ${c.to} (same body)`);
     for (const [what, keys] of [
       ['new', merged.added],
       ['changed', merged.changed],
       ['gone', merged.removed],
     ] as const)
-      for (const k of keys) console.log(`·  ${what}: ${k} (flagged: carry it into the wiki pages)`);
+      for (const k of keys) console.log(`·  ${what}: ${k} (flagged: recheck it, then --ack it)`);
+    const ack = option(args, 'ack');
+    if (ack) {
+      const problem = ackRow(matrix, ack);
+      if (problem) {
+        console.error(`✖  --ack: ${problem}`);
+        return 1;
+      }
+      console.log(`·  acknowledged: ${ack}`);
+    }
   }
   try {
     writeCoverage(wikiDir, matrix, manifest);
