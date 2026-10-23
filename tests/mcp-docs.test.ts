@@ -7,7 +7,8 @@
 //     required it) is served exactly as before; a client that sends nothing now gets an explicit tool error ("give
 //     either name … or id") instead of a schema error. Both are refusals; neither is a silent choice.
 //   - Each of the eight calls is accepted and answers one text block, byte for byte docs/en/<NAME>.md (until C2), within
-//     1.5 × its 4.4.0 size; the provenance is in the structured content, never in the text.
+//     1.5 × its 4.4.0 size, with no structured content (the 4.4.0 result shape) and no provenance in the text; arguments
+//     beside `name` are ignored, as 4.4.0's schema stripped them.
 //   - search_docs and list_docs are offered; read_doc by id reads the wiki through the loader.
 import { readFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
@@ -73,9 +74,18 @@ describe('read_doc, compatible with 4.4.0', () => {
       expect(text).toBe(readFileSync(join(ROOT, 'docs', 'en', `${args.name}.md`), 'utf8'));
       expect(Buffer.byteLength(text)).toBeLessThanOrEqual(1.5 * FIXTURE.bytes4_4_0[args.name]!);
       expect(text).not.toContain("quest'n'click documentation ·");
-      expect(r.structuredContent).toMatchObject({ name: args.name, provenance: { source: 'repository' } });
+      expect(r.structuredContent).toBeUndefined();
     }
   }, 60000);
+
+  it('ignores the arguments beside name, as 4.4.0 did', async () => {
+    const engine = readFileSync(join(ROOT, 'docs', 'en', 'ENGINE.md'), 'utf8');
+    for (const extra of [{ lang: 'fr' }, { maxChars: 10 }]) {
+      const r = await call('read_doc', { name: 'ENGINE', ...extra });
+      expect(r.isError).toBeFalsy();
+      expect(r.content).toEqual([{ type: 'text', text: engine }]);
+    }
+  }, 30000);
 
   it('refuses nothing silently: neither, or both, is an explicit tool error', async () => {
     for (const args of [{}, { name: 'ENGINE', id: 'create.rooms' }]) {

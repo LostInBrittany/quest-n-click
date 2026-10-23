@@ -14,7 +14,8 @@
 //      the `web-scumm/…` imports, the tsconfig's paths and the scripts' commands), migrate --check, assets, verify,
 //      build, the old save loaded and played to the ending through `quest-n-click/testing`, a new game played to the
 //      ending the same way; then (4.5.0) a real MCP client over stdio against that project's `quest-n-click mcp`:
-//      read_doc {name} one text block, the bundle's copy; list_docs and search_docs offered, naming this version;
+//      read_doc {name} one text block, the bundle's copy, nothing beside it; list_docs and search_docs offered, the
+//      bundle naming this version;
 //   3. `npx create-quest-n-click` from its archive;
 //   4. the Bridge from its archive: init, doctor, serve on SQLite (and on Postgres when CONSUMER_PG_URL is set), its
 //      keys answered;
@@ -279,10 +280,10 @@ const legacy = await c.callTool({ name: 'read_doc', arguments: { name: 'CONTENT_
 const copy = readFileSync(engine + '/docs-bundle/legacy/CONTENT_GUIDE.md', 'utf8');
 if (legacy.isError || legacy.content.length !== 1 || legacy.content[0].type !== 'text') problems.push('read_doc {name}: not one text block: ' + JSON.stringify(legacy).slice(0, 200));
 else if (legacy.content[0].text !== copy) problems.push('read_doc {name}: not the bundle copy of CONTENT_GUIDE');
-const from = legacy.structuredContent?.provenance;
-if (from?.source !== 'bundle' || from?.productVersion !== version) problems.push('read_doc {name}: provenance ' + JSON.stringify(from));
+if (legacy.structuredContent !== undefined) problems.push('read_doc {name}: structured content beside the page (4.4.0 had none)');
 const list = await c.callTool({ name: 'list_docs', arguments: {} });
-if (list.isError || list.structuredContent?.provenance?.productVersion !== version) problems.push('list_docs: ' + JSON.stringify(list).slice(0, 200));
+const from = list.structuredContent?.provenance;
+if (list.isError || from?.source !== 'bundle' || from?.productVersion !== version) problems.push('list_docs: ' + JSON.stringify(list).slice(0, 200));
 const search = await c.callTool({ name: 'search_docs', arguments: { query: 'room' } });
 if (search.isError) problems.push('search_docs: ' + search.content[0]?.text);
 const byId = await c.callTool({ name: 'read_doc', arguments: { name: 'CONTENT_GUIDE', id: 'create.rooms' } });

@@ -150,18 +150,24 @@ export function errorMessage(e: unknown): string {
 }
 
 /**
- * A documentation tool's answer: JSON text and the same object as structured content (`{text, structured}`: that
- * text, that object); a stale cursor or a missing page is a tool error, `stale_cursor` named in the structured content.
+ * A documentation tool's answer: a text block, and a structured content that holds that same text beside its fields
+ * (a client that shows only the structured content loses nothing). `{text, structured}`: that text and those fields;
+ * any other object: the provenance line and the object as JSON. A stale cursor or a missing page is a tool error,
+ * `stale_cursor` named in the structured content.
  */
 async function docsResult(fn: () => Promise<object>): Promise<ToolResult> {
   try {
     const r = (await fn()) as { text?: string; structured?: Record<string, unknown> } & Record<string, unknown>;
     if (typeof r.text === 'string' && r.structured)
-      return { content: [{ type: 'text', text: r.text }], structuredContent: r.structured };
+      return { content: [{ type: 'text', text: r.text }], structuredContent: { ...r.structured, text: r.text } };
     const header = 'provenance' in r ? `${provenanceLine(r.provenance as never)}\n\n` : '';
-    return { content: [{ type: 'text', text: `${header}${JSON.stringify(r, null, 2)}` }], structuredContent: r };
+    const text = `${header}${JSON.stringify(r, null, 2)}`;
+    return { content: [{ type: 'text', text }], structuredContent: { ...r, text } };
   } catch (e) {
-    return e instanceof StaleCursor ? { ...errorResult(e), structuredContent: { error: e.code } } : errorResult(e);
+    const err = errorResult(e);
+    return e instanceof StaleCursor
+      ? { ...err, structuredContent: { error: e.code, text: err.content[0]!.text } }
+      : err;
   }
 }
 
@@ -577,10 +583,13 @@ export const TOOLS: ToolDef[] = [
       'where the text comes from (version, commit, doc revision) at its top. `name` instead returns a whole, large ' +
       'historical page of docs/en/ in one block: CONTENT_GUIDE (the game format, the DSL of rooms, conditions and ' +
       'commands), ENGINE, TOOLS, STUDIO, WORKFLOW, AUDIO (music and effects), UPGRADING (v2 to v3), CLASSICS (the ' +
-      'famous mechanics of the genre, each with its DSL: read it before asking for a new command). Give either ' +
-      '`name` or `id`, not both. Read-only.',
+      'famous mechanics of the genre, each with its DSL: read it before asking for a new command); with `name`, ' +
+      'the other arguments are ignored. Give either `name` or `id`, not both. Read-only.',
     input: {
-      name: z.enum(DOCS).optional().describe('One of the eight historical pages, whole (no other argument with it).'),
+      name: z
+        .enum(DOCS)
+        .optional()
+        .describe('One of the eight historical pages, whole (the other arguments are then ignored).'),
       id: z.string().optional().describe('A page id from search_docs or list_docs, e.g. "create.rooms".'),
       section: z.string().optional().describe('A section id of that page (its `<a name>`), e.g. "walkable-zones".'),
       lang: z.enum(['en', 'fr']).optional().describe("The page's language (default en)."),
@@ -599,27 +608,13 @@ export const TOOLS: ToolDef[] = [
       if ((name === undefined) === (id === undefined))
         return errorResult(new Error('give either name (one of the 8 legacy pages) or id, not both'));
       if (name !== undefined) {
-        const extra = Object.entries(rest).filter(([, v]) => v !== undefined);
-        if (extra.length)
-          return errorResult(
-            new Error(
-              `${extra.map(([k]) => k).join(', ')} go with id: name returns the whole English page, as it always did`,
-            ),
-          );
-        let text: string;
+        // Exactly the 4.4.0 answer: one text block, no structured content (a client that prefers structured content
+        // would otherwise lose the page), and the other arguments ignored, as 4.4.0's schema stripped unknown keys.
         try {
-          text = await b.readDoc!(name);
+          return textResult(await b.readDoc!(name));
         } catch (e) {
           return errorResult(e);
         }
-        // The text exactly as before (4.4.0); where it comes from, for a client that reads it, beside it only.
-        const set = await b.docs?.().catch(() => undefined);
-        return {
-          content: [{ type: 'text', text }],
-          ...(set
-            ? { structuredContent: { name, provenance: set.provenance, ids: set.index.legacy[name] ?? [] } }
-            : {}),
-        };
       }
       if (!b.docs) return errorResult(new Error('reading by id needs the documentation of wiki/, not available here'));
       return docsResult(async () => {

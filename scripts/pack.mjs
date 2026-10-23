@@ -1,4 +1,4 @@
-// node scripts/pack.mjs [--out=.cache/pack] [--publish-dry-run] (3.9): the engine as npm packages, from the files git tracks. 4.1.1:
+// node scripts/pack.mjs [--out=.cache/pack] [--publish-dry-run] [--build-id <id>] [--allow-dirty] (3.9): the engine as npm packages, from the files git tracks. 4.1.1:
 // `quest-n-click-bridge`, the reference Reality Bridge, a package of its own (a game that does not run one never
 // installs it). 4.1.9: `quest-n-click-connectors`, the connectors of the world outside, a fourth package (an operator's,
 // never a game's). 4.2.1: `quest-n-click-studio-server`, the Studio online and its worker, a fifth (an operator's,
@@ -18,6 +18,13 @@ import { bridgeManifest, connectorsManifest, lockFor, lockProblems, studioServer
 const ROOT = resolve(import.meta.dirname, '..');
 const out = resolve(ROOT, process.argv.find((a) => a.startsWith('--out='))?.slice(6) ?? '.cache/pack');
 const root = JSON.parse(readFileSync(join(ROOT, 'package.json'), 'utf8'));
+/** `--name value` or `--name=value`. */
+const arg = (name) => {
+  const i = process.argv.findIndex((a) => a === `--${name}` || a.startsWith(`--${name}=`));
+  if (i < 0) return undefined;
+  const a = process.argv[i];
+  return a.includes('=') ? a.slice(a.indexOf('=') + 1) : process.argv[i + 1];
+};
 
 /**
  * A package's package.json and its versioned lock as npm-shrinkwrap.json (4.1.19, plan §6.1): the lock checked against
@@ -143,10 +150,26 @@ const npm = (a, o) =>
 // prepared folder, after the tracked files are copied and before `npm pack`; never through SHIP nor git, and never
 // into the repository. `read_doc` in a created project reads it (tools/wiki/docs-load.ts). Reproducible: two packs of
 // one commit give the same bytes. The package has no `files` list: everything in the folder is packed, the bundle too.
-npm(['run', 'wiki', '--silent', '--', 'bundle', '--out', join(engine, 'docs-bundle')], {
-  cwd: ROOT,
-  stdio: ['ignore', 'inherit', 'inherit'],
-});
+// `--build-id` (the candidate's run) goes into its identity; `--allow-dirty` only when this script's caller asked for it
+// (a local try on a changed checkout: the bundle then says `-dirty`); the candidate and CI pack clean checkouts.
+const buildId = arg('build-id');
+npm(
+  [
+    'run',
+    'wiki',
+    '--silent',
+    '--',
+    'bundle',
+    '--out',
+    join(engine, 'docs-bundle'),
+    ...(buildId ? ['--build-id', buildId] : []),
+    ...(process.argv.includes('--allow-dirty') ? ['--allow-dirty'] : []),
+  ],
+  {
+    cwd: ROOT,
+    stdio: ['ignore', 'inherit', 'inherit'],
+  },
+);
 
 // `create-quest-n-click`: `npx create-quest-n-click <folder>` runs `quest-n-click create` from the engine it depends on.
 const create = join(out, 'create-quest-n-click');

@@ -1,6 +1,6 @@
 // npm run wiki -- check | stats [--json] | coverage [--init [--force] | --ack <key>] | build --target wiki --out <dir> [--preview]
-// [--product-version <v>] [--doc-revision <sha>] [--product-commit <sha>] | bundle --out <dir> [--build-id <id>] [the same
-// three] (4.5.0 "Wiki", docs/dev/PLAN-4.5-WIKI.md §5, phases A2 to A4; ADR 0030).
+// [--product-version <v>] [--doc-revision <sha>] [--product-commit <sha>] | bundle --out <dir> [--build-id <id>] [--allow-dirty]
+// [the same three] (4.5.0 "Wiki", docs/dev/PLAN-4.5-WIKI.md §5, phases A2 to A4; ADR 0030).
 // The documentation's source is `wiki/` (a manifest, then `wiki/<lang>/<id>.md`); every output is generated from it.
 // `check` is the work level of every pull request: it fails on errors only, and prints the warnings and what is still
 // to write. `stats` counts the pages by state, domain, type and language: the workload estimate. `build --target
@@ -16,7 +16,7 @@ import { existsSync, readFileSync } from 'node:fs';
 import { isAbsolute, relative, resolve, sep } from 'node:path';
 import { ROOT } from './game';
 import { buildWiki } from './wiki/build';
-import { writeBundle } from './wiki/bundle';
+import { dirtySources, writeBundle } from './wiki/bundle';
 import { checkWiki, trackedFiles, wikiStats } from './wiki/check';
 import {
   ackRow,
@@ -72,7 +72,7 @@ export function bundleOutProblem(out: string, tracked: readonly string[], root =
 }
 
 const USAGE =
-  'usage: npm run wiki -- check | stats [--json] | coverage [--init [--force] | --ack <key>] | build --target wiki --out <dir> [--preview] [--product-version <v>] [--doc-revision <sha>] [--product-commit <sha>] | bundle --out <dir> [--build-id <id>] [--product-version <v>] [--doc-revision <sha>] [--product-commit <sha>]';
+  'usage: npm run wiki -- check | stats [--json] | coverage [--init [--force] | --ack <key>] | build --target wiki --out <dir> [--preview] [--product-version <v>] [--doc-revision <sha>] [--product-commit <sha>] | bundle --out <dir> [--build-id <id>] [--allow-dirty] [--product-version <v>] [--doc-revision <sha>] [--product-commit <sha>]';
 
 const head = () => {
   try {
@@ -203,6 +203,14 @@ function run(args: readonly string[]): number {
       console.error('✖  the sources do not pass `npm run wiki -- check`: no bundle');
       return 1;
     }
+    // The bundle names the commit it was built from: sources changed since then are refused, or said (`-dirty`).
+    const dirty = dirtySources(ROOT, wikiDir);
+    if (dirty.length && !args.includes('--allow-dirty')) {
+      console.error(
+        `✖  the bundle's sources differ from HEAD (${dirty.slice(0, 5).join('; ')}${dirty.length > 5 ? '…' : ''}): commit them, or pass --allow-dirty for a bundle marked "-dirty"`,
+      );
+      return 1;
+    }
     const pkg = JSON.parse(readFileSync(resolve(ROOT, 'package.json'), 'utf8')) as { version: string };
     const docRevision = option(args, 'doc-revision') ?? head();
     const buildId = option(args, 'build-id');
@@ -216,6 +224,7 @@ function run(args: readonly string[]): number {
         productCommit: option(args, 'product-commit') ?? docRevision,
         docRevision,
         ...(buildId ? { buildId } : {}),
+        dirty: dirty.length > 0,
       });
     } catch (e) {
       console.error(`✖  ${(e as Error).message}`);

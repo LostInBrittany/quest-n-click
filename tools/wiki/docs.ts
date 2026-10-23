@@ -141,10 +141,20 @@ const fold = (s: string) =>
     .normalize('NFD')
     .replace(/[̀-ͯ]/g, '')
     .toLowerCase()
+    .replace(/œ/g, 'oe')
+    .replace(/æ/g, 'ae')
     .replace(/[^a-z0-9]+/g, ' ')
     .trim();
-/** A plural `s` set aside, so "zones" meets "zone" (French and English alike). */
-const stem = (w: string) => (w.length > 3 && w.endsWith('s') && !w.endsWith('ss') ? w.slice(0, -1) : w);
+/**
+ * A plural set aside, so "zones" meets "zone" (French and English alike) and « jeux », « niveaux » meet « jeu »,
+ * « niveau »: a final `s` (not `ss`) on a word of four letters or more, a final `x` after `eu` or `au`.
+ */
+const stem = (w: string) =>
+  w.length > 3 && w.endsWith('s') && !w.endsWith('ss')
+    ? w.slice(0, -1)
+    : w.length > 3 && /(eu|au)x$/.test(w)
+      ? w.slice(0, -1)
+      : w;
 /** The words of a text as compared: folded, stemmed; with `all`, the stop words kept (a phrase is compared whole). */
 const words = (s: string, all = false): string[] =>
   fold(s)
@@ -156,19 +166,34 @@ const phrase = (s: string) => ` ${words(s, true).join(' ')} `;
 // ------------------------------------------------------------------------------------------------- versions
 
 const semver = (v: string) => {
-  const [core = '', pre] = v.split('-', 2);
+  const plain = v.split('+')[0]!;
+  const dash = plain.indexOf('-');
+  const core = dash < 0 ? plain : plain.slice(0, dash);
   const n = core.split('.').map((x) => Number(x) || 0);
-  return { n: [n[0] ?? 0, n[1] ?? 0, n[2] ?? 0], pre };
+  return { n: [n[0] ?? 0, n[1] ?? 0, n[2] ?? 0], pre: dash < 0 ? undefined : plain.slice(dash + 1).split('.') };
 };
-/** -1, 0 or 1, SemVer's order (a pre-release before its release). */
-function compareVersions(a: string, b: string): number {
+/**
+ * -1, 0 or 1, SemVer's order (§11): a pre-release before its release; its identifiers compared one by one, numbers
+ * numerically (rc.2 < rc.10) and before words, a shorter list first when all else is equal.
+ */
+export function compareVersions(a: string, b: string): number {
   const x = semver(a);
   const y = semver(b);
   for (let i = 0; i < 3; i++) if (x.n[i] !== y.n[i]) return x.n[i]! < y.n[i]! ? -1 : 1;
-  if (x.pre === y.pre) return 0;
-  if (x.pre === undefined) return 1;
-  if (y.pre === undefined) return -1;
-  return x.pre < y.pre ? -1 : 1;
+  if (!x.pre || !y.pre) return x.pre === y.pre ? 0 : x.pre ? -1 : 1;
+  for (let i = 0; i < Math.max(x.pre.length, y.pre.length); i++) {
+    const p = x.pre[i];
+    const q = y.pre[i];
+    if (p === undefined) return -1;
+    if (q === undefined) return 1;
+    if (p === q) continue;
+    const pn = /^\d+$/.test(p);
+    const qn = /^\d+$/.test(q);
+    if (pn && qn) return Number(p) < Number(q) ? -1 : 1;
+    if (pn !== qn) return pn ? -1 : 1;
+    return p < q ? -1 : 1;
+  }
+  return 0;
 }
 /** Whether what a page describes is true for `version` (§4.4.1: `appliesFrom`, and `appliesUntil` inclusive). */
 const applies = (p: IndexPage, version: string) =>

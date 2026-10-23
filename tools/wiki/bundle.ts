@@ -33,6 +33,31 @@ export interface BundleOptions {
   productCommit: string;
   docRevision: string;
   buildId?: string;
+  /**
+   * The sources differ from the doc revision's commit (`--allow-dirty`): the bundle says so, `docRevision`
+   * `<sha>-dirty` and `wikiTree` `dirty`, rather than claim an identity its bytes do not have.
+   */
+  dirty?: boolean;
+}
+
+/**
+ * What git reports changed or untracked under the wiki's folder and `docs/en` (the bundle's two sources), as
+ * `git status --porcelain` lines; empty on a clean checkout, and outside git.
+ */
+export function dirtySources(root: string, wikiDir: string): string[] {
+  const rel = relative(root, wikiDir).split(sep).join('/');
+  const paths = [...(rel && !rel.startsWith('..') ? [rel] : []), 'docs/en'];
+  try {
+    return execFileSync('git', ['status', '--porcelain', '--', ...paths], {
+      cwd: root,
+      encoding: 'utf8',
+      stdio: ['ignore', 'pipe', 'ignore'],
+    })
+      .split('\n')
+      .filter(Boolean);
+  } catch {
+    return [];
+  }
 }
 
 /** The git tree of the wiki folder at the doc revision, or null when git does not know it (a copy, no checkout). */
@@ -103,9 +128,9 @@ export function writeBundle(o: BundleOptions): BundleManifest {
     version: 1,
     productVersion: o.productVersion,
     productCommit: o.productCommit,
-    docRevision: o.docRevision,
+    docRevision: o.dirty ? `${o.docRevision}-dirty` : o.docRevision,
     ...(o.buildId ? { buildId: o.buildId } : {}),
-    wikiTree: wikiTree(o.root, o.wikiDir, o.docRevision),
+    wikiTree: o.dirty ? 'dirty' : wikiTree(o.root, o.wikiDir, o.docRevision),
     files: paths.map((path) => ({ path, sha256: sha256(files.get(path)!), bytes: files.get(path)!.length })),
   };
   clearOutput(o.outDir);

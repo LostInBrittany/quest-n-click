@@ -11,15 +11,25 @@
 //     provenance in the structured content only;
 //   - the bundle: reproducible (two builds, the same bytes), its files hashed in its manifest, the eight legacy pages
 //     exact copies of docs/en, written only where the repository tracks nothing.
-import { cpSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { execFileSync } from 'node:child_process';
+import { createHash } from 'node:crypto';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
-import { afterAll, describe, expect, it } from 'vitest';
+import { afterAll, describe, expect, it, vi } from 'vitest';
 import { callTool, DOCS, jsonSchema, TOOLS, type ToolBackend } from '../tools/studio/tools';
-import { bundleOutProblem } from '../tools/wiki';
-import { bundleProblems, writeBundle } from '../tools/wiki/bundle';
-import { type DocsSet, formatProblem, listDocs, readDocById, searchDocs, splitSections } from '../tools/wiki/docs';
-import { bundleDocs, legacyDoc, repositoryDocs, resolveDocs } from '../tools/wiki/docs-load';
+import { bundleOutProblem, main } from '../tools/wiki';
+import { bundleProblems, dirtySources, writeBundle } from '../tools/wiki/bundle';
+import {
+  compareVersions,
+  type DocsSet,
+  formatProblem,
+  listDocs,
+  readDocById,
+  searchDocs,
+  splitSections,
+} from '../tools/wiki/docs';
+import { bundleDocs, legacyDoc, PUBLICATION_URL, repositoryDocs, resolveDocs } from '../tools/wiki/docs-load';
 import { trackedFiles } from '../tools/wiki/check';
 import { AUDIENCES, CONTEXTS, PAGE_TYPES } from '../tools/wiki/manifest';
 
@@ -48,6 +58,15 @@ const bundleOpts = (outDir: string, wikiDir = BASE) => ({
   docRevision: 'a'.repeat(40),
   buildId: '123',
 });
+/** A bundle's JSON file changed by `edit`, its sha256 in the bundle's manifest made to agree. */
+function rewrite(dir: string, path: string, edit: (o: Record<string, unknown>) => Record<string, unknown>) {
+  const text = JSON.stringify(edit(JSON.parse(readFileSync(join(dir, path), 'utf8'))));
+  writeFileSync(join(dir, path), text);
+  const mfile = join(dir, 'bundle-manifest.json');
+  const m = JSON.parse(readFileSync(mfile, 'utf8')) as { files: { path: string; sha256: string }[] };
+  m.files.find((f) => f.path === path)!.sha256 = createHash('sha256').update(text).digest('hex');
+  writeFileSync(mfile, JSON.stringify(m));
+}
 /** A package root as an install leaves it: its package.json, its bundle. */
 function packageRoot(wikiDir = BASE): string {
   const root = tmp('docs-package-');
@@ -94,7 +113,7 @@ describe('the loader', () => {
       productCommit: 'a'.repeat(40),
       docRevision: 'a'.repeat(40),
       buildId: '123',
-      label: expect.stringContaining('recorded outside it'),
+      label: expect.stringContaining('never in the bundle'),
     });
     expect(JSON.stringify(set.provenance)).not.toMatch(/"(published|candidate|preview)"/);
   });
@@ -108,9 +127,34 @@ describe('the loader', () => {
     );
     expect(formatProblem({ format: 'other', version: 1 }, 'quest-n-click-docs-index', 'x')).toMatch(/not a/);
     const root = packageRoot();
-    const file = join(root, 'docs-bundle', 'index.json');
-    writeFileSync(file, JSON.stringify({ ...JSON.parse(readFileSync(file, 'utf8')), version: 2 }));
+    rewrite(join(root, 'docs-bundle'), 'index.json', (i) => ({ ...i, version: 2 }));
     expect(() => bundleDocs(join(root, 'docs-bundle'))).toThrow(/index\.json is format version 2/);
+  });
+
+  it('checks a bundle before reading it: a tampered file, a path out of the bundle, refused by name', () => {
+    const tampered = packageRoot();
+    writeFileSync(join(tampered, 'docs-bundle', 'md', 'en', 'create.rooms.md'), 'changed');
+    expect(() => resolveDocs(tampered)).toThrow(/md\/en\/create\.rooms\.md does not match its sha256/);
+    const legacy = packageRoot();
+    writeFileSync(join(legacy, 'docs-bundle', 'legacy', 'ENGINE.md'), 'changed');
+    expect(() => legacyDoc(legacy, 'ENGINE')).toThrow(/legacy\/ENGINE\.md does not match its sha256/);
+    // An index naming a file outside md/<lang>/<id>.md, even with its hashes made to agree.
+    const hostile = packageRoot();
+    rewrite(join(hostile, 'docs-bundle'), 'index.json', (i) => {
+      (i.pages as { langs: { en: { file: string } } }[])[0]!.langs.en.file = '../../package.json';
+      return i;
+    });
+    expect(() => resolveDocs(hostile)).toThrow(/create\.rooms \(en\) names the file "\.\.\/\.\.\/package\.json"/);
+    const listedOut = packageRoot();
+    const m = JSON.parse(readFileSync(join(listedOut, 'docs-bundle', 'bundle-manifest.json'), 'utf8'));
+    m.files.push({ path: '../package.json', sha256: 'x', bytes: 1 });
+    writeFileSync(join(listedOut, 'docs-bundle', 'bundle-manifest.json'), JSON.stringify(m));
+    expect(() => resolveDocs(listedOut)).toThrow(/\.\.\/package\.json: not a path a documentation bundle holds/);
+  });
+
+  it("names the place a bundle's promotion is checked, never a state of its own", () => {
+    expect(PUBLICATION_URL).toBe('https://wanoo.github.io/quest-n-click/docs/publication.json');
+    expect(resolveDocs(packageRoot()).provenance.label).toContain(PUBLICATION_URL);
   });
 });
 
@@ -254,12 +298,18 @@ describe('read_doc, the tool', () => {
       expect(r.isError).toBe(true);
       expect(r.content[0]!.text).toBe('Error: give either name (one of the 8 legacy pages) or id, not both');
     }
-    const extra = await callTool('read_doc', { name: 'CONTENT_GUIDE', maxChars: 10 }, b);
-    expect(extra.isError).toBe(true);
-    expect(extra.content[0]!.text).toMatch(/maxChars go with id/);
   });
 
-  it('name: one text block, the whole page (the bundle copy in a package), provenance beside it only', async () => {
+  it("name: the other arguments ignored, as 4.4.0's schema stripped them; the page whole", async () => {
+    const b = backendOf(packageRoot());
+    const engine = readFileSync(join(ROOT, 'docs', 'en', 'ENGINE.md'), 'utf8');
+    for (const extra of [{ lang: 'fr' }, { maxChars: 10 }, { section: 'x' }, { cursor: 'c1.x' }]) {
+      const r = await callTool('read_doc', { name: 'ENGINE', ...extra }, b);
+      expect(r, JSON.stringify(extra)).toEqual({ content: [{ type: 'text', text: engine }] });
+    }
+  });
+
+  it('name: one text block, the whole page (the bundle copy in a package), and no structured content', async () => {
     const root = packageRoot();
     for (const name of DOCS) {
       const r = await callTool('read_doc', { name }, backendOf(root));
@@ -267,7 +317,7 @@ describe('read_doc, the tool', () => {
       expect(r.content).toHaveLength(1);
       expect(r.content[0]!.type).toBe('text');
       expect(r.content[0]!.text).toBe(readFileSync(join(ROOT, 'docs', 'en', `${name}.md`), 'utf8'));
-      expect(r.structuredContent).toMatchObject({ name, provenance: { source: 'bundle', productVersion: '4.5.0' } });
+      expect(r.structuredContent).toBeUndefined();
     }
   });
 
@@ -285,6 +335,27 @@ describe('read_doc, the tool', () => {
     expect(search.structuredContent).toMatchObject({ results: [{ id: 'create.exits' }] });
     const list = await callTool('list_docs', {}, b);
     expect((list.structuredContent as { total: number }).total).toBe(3);
+  });
+
+  it('a client that shows the structured content when there is one loses nothing', async () => {
+    const b = backendOf(packageRoot());
+    // What such a client shows: the structured content's text when it has one, otherwise the text blocks.
+    const shown = (r: { content: { text: string }[]; structuredContent?: Record<string, unknown> }) =>
+      r.structuredContent ? String(r.structuredContent.text) : r.content.map((c) => c.text).join('');
+    for (const [tool, args] of [
+      ['read_doc', { name: 'CONTENT_GUIDE' }],
+      ['read_doc', { id: 'create.rooms', section: 'checking' }],
+      ['read_doc', { id: 'create.rooms', maxChars: 40 }],
+      ['search_docs', { query: 'door' }],
+      ['search_docs', { query: 'banana' }],
+      ['list_docs', {}],
+      ['read_doc', { id: 'create.rooms', cursor: 'c1.forged' }],
+    ] as const) {
+      const r = await callTool(tool, args, b);
+      expect(shown(r), `${tool} ${JSON.stringify(args)}`).toBe(r.content[0]!.text);
+    }
+    const byId = await callTool('read_doc', { id: 'create.rooms', section: 'checking' }, b);
+    expect(byId.structuredContent).toMatchObject({ provenance: { source: 'bundle' }, ref: 'create.rooms#checking' });
   });
 
   it('in the repository, name still reads docs/en/<NAME>.md, unchanged', () => {
@@ -382,5 +453,218 @@ describe('a wiki copy with a page past its version', () => {
     expect(results(set, '423', { version: '4.6.0' })).toHaveLength(1);
     expect(results(set, '423', { version: '4.6.1' })).toEqual([]);
     expect(results(set, '423', { version: '4.6.0-rc.1' })).toHaveLength(1);
+  });
+});
+
+/**
+ * The fixture wiki with plan §13 D3's neighbour and counter-example: the team Studio's 409 (a stale base revision,
+ * context studio-hosted) and the Bridge's 409 (a signal already received, context bridge). Their pages' text names
+ * their service, so an excerpt says which 409 it is.
+ */
+function wiki409(): string {
+  const dir = tmp('wiki-409-');
+  cpSync(BASE, dir, { recursive: true });
+  const file = join(dir, 'manifest.json');
+  const m = JSON.parse(readFileSync(file, 'utf8')) as { pages: Record<string, unknown>[] };
+  const page = (id: string, domain: string, context: string, urls: [string, string], titles: [string, string]) => ({
+    id,
+    domain,
+    type: 'troubleshooting',
+    audience: ['author'],
+    context: [context],
+    title: { en: titles[0], fr: titles[1] },
+    url: { en: urls[0], fr: urls[1] },
+    state: 'ready',
+    versions: { appliesFrom: '4.5.0' },
+    sources: ['package.json'],
+    replaces: [],
+    questions: { en: [`Why ${titles[0]}?`], fr: [`Pourquoi ${titles[1]} ?`] },
+    aliases: { en: [], fr: [] },
+    identifiers: ['409'],
+    related: [],
+    prerequisites: [],
+  });
+  m.pages.push(
+    page(
+      'team.write-refused-409',
+      'team',
+      'studio-hosted',
+      ['EN-Team-Write-Refused-409', 'FR-Equipe-Ecriture-Refusee-409'],
+      ['Studio write refused: stale base revision (409)', 'Studio : écriture refusée, révision de base dépassée (409)'],
+    ),
+    page(
+      'bridge.signal-duplicate-409',
+      'bridge',
+      'bridge',
+      ['EN-Bridge-Signal-Duplicate-409', 'FR-Bridge-Signal-Doublon-409'],
+      ['Bridge signal refused: already received (409)', 'Bridge : signal refusé, déjà reçu (409)'],
+    ),
+  );
+  writeFileSync(file, JSON.stringify(m));
+  const body = (title: string, symptom: string, text: string) =>
+    `# ${title}\n\n<a name="symptom"></a>\n\n## ${symptom}\n\n${text}\n`;
+  writeFileSync(
+    join(dir, 'en', 'team.write-refused-409.md'),
+    body(
+      'Studio write refused: stale base revision (409)',
+      'Symptom',
+      'The team Studio answers 409: someone wrote first.',
+    ),
+  );
+  writeFileSync(
+    join(dir, 'fr', 'team.write-refused-409.md'),
+    body('Studio : écriture refusée (409)', 'Symptôme', "Le Studio d'équipe répond 409 : quelqu'un a écrit avant."),
+  );
+  writeFileSync(
+    join(dir, 'en', 'bridge.signal-duplicate-409.md'),
+    body('Bridge signal refused (409)', 'Symptom', 'The Bridge answers 409 for a signal it already received.'),
+  );
+  writeFileSync(
+    join(dir, 'fr', 'bridge.signal-duplicate-409.md'),
+    `${body('Bridge : signal refusé (409)', 'Symptôme', 'Le Bridge répond 409 pour un signal déjà reçu.')}
+<a name="games"></a>
+
+## Au cœur des jeux et de leurs niveaux
+
+Chaque jeu déclare ses signaux.
+`,
+  );
+  return dir;
+}
+
+describe('plan §13 D3, a neighbour and a counter-example', () => {
+  const set = preview(wiki409());
+
+  it('"423" puts the 423 page first in both languages', () => {
+    for (const lang of ['en', 'fr'] as const)
+      expect(results(set, '423', { lang })[0]!.id).toBe('team.write-refused-423');
+  });
+
+  it('"409" with the hosted Studio\'s context puts the Studio\'s 409 first', () => {
+    expect(results(set, '409', { context: 'studio-hosted' }).map((r) => r.id)).toEqual(['team.write-refused-409']);
+  });
+
+  it('"409" without a context shows both, each excerpt naming its service', () => {
+    const r = results(set, '409');
+    expect(r.map((x) => x.id).sort()).toEqual(['bridge.signal-duplicate-409', 'team.write-refused-409']);
+    expect(r.find((x) => x.id === 'team.write-refused-409')!.snippet).toMatch(/Studio/);
+    expect(r.find((x) => x.id === 'bridge.signal-duplicate-409')!.snippet).toMatch(/Bridge/);
+  });
+
+  it('« conflit de verrou » finds the 423 page through the glossary (verrou → bail → lease)', () => {
+    expect(results(set, 'conflit de verrou')[0]).toMatchObject({ id: 'team.write-refused-423', reason: 'alias' });
+  });
+
+  it('folds œ and æ, and sets a French plural in x aside', () => {
+    expect(results(set, 'coeur')[0]?.id).toBe('bridge.signal-duplicate-409');
+    expect(results(set, 'jeu niveau')[0]?.id).toBe('bridge.signal-duplicate-409');
+  });
+});
+
+describe('the search, at its edges', () => {
+  const set = preview();
+
+  it('a rare word met once in a body only is not a confident match (score 2 under 3): a heading, a title or a repeat is needed', () => {
+    // "polygon" is once in create.rooms' body, inside its LIMIT block; "zone", in a heading and repeated, is found.
+    expect(searchDocs(set, { query: 'polygon' })).toMatchObject({ results: [], note: 'no confident match' });
+    expect(results(set, 'zone')).not.toEqual([]);
+  });
+
+  it('refuses forged cursors as stale', () => {
+    const first = searchDocs(set, { query: 'zone', limit: 1 });
+    if ('note' in first) throw new Error('no result');
+    const data = JSON.parse(Buffer.from(first.cursor!.slice(3), 'base64url').toString()) as Record<string, unknown>;
+    const forge = (o: Record<string, unknown>) => `c1.${Buffer.from(JSON.stringify(o)).toString('base64url')}`;
+    for (const c of [
+      forge({ ...data, r: 'another-revision' }),
+      forge({ ...data, q: '00000000' }),
+      forge({ ...data, l: 'fr' }),
+      forge({ ...data, o: -1 }),
+      forge({ ...data, o: 1.5 }),
+      'c1.not-base64-json',
+      'c2.whatever',
+    ])
+      expect(() => searchDocs(set, { query: 'zone', limit: 1, cursor: c }), c).toThrow(/^stale_cursor/);
+    const read = readDocById(set, { id: 'create.rooms', maxChars: 40 }).structured.cursor!;
+    const r = JSON.parse(Buffer.from(read.slice(3), 'base64url').toString()) as Record<string, unknown>;
+    expect(() => readDocById(set, { id: 'create.rooms', maxChars: 40, cursor: forge({ ...r, o: 1e9 }) })).toThrow(
+      /^stale_cursor: this cursor points past the end/,
+    );
+  });
+
+  it('orders versions as SemVer does, pre-releases numerically', () => {
+    const sorted = [
+      '4.5.0',
+      '4.5.0-rc.10',
+      '4.5.0-rc.2',
+      '4.5.0-alpha',
+      '4.5.0-rc.1',
+      '4.4.9',
+      '4.10.0',
+      '4.5.0-rc',
+    ].sort(compareVersions);
+    expect(sorted).toEqual([
+      '4.4.9',
+      '4.5.0-alpha',
+      '4.5.0-rc',
+      '4.5.0-rc.1',
+      '4.5.0-rc.2',
+      '4.5.0-rc.10',
+      '4.5.0',
+      '4.10.0',
+    ]);
+    expect(compareVersions('4.5.0+build.1', '4.5.0')).toBe(0);
+  });
+});
+
+describe('the bundle of a changed checkout', () => {
+  const git = (cwd: string, ...a: string[]) => execFileSync('git', a, { cwd, encoding: 'utf8', stdio: 'pipe' });
+  /** A checkout with a committed wiki and docs/en, and a commit. */
+  function checkout(): { root: string; head: string } {
+    const root = tmp('bundle-git-');
+    cpSync(BASE, join(root, 'wiki'), { recursive: true });
+    mkdirSync(join(root, 'docs', 'en'), { recursive: true });
+    for (const n of DOCS) writeFileSync(join(root, 'docs', 'en', `${n}.md`), `# ${n}\n`);
+    git(root, 'init', '-q');
+    git(root, 'add', '.');
+    git(root, '-c', 'user.name=t', '-c', 'user.email=t@t', 'commit', '-qm', 'x');
+    return { root, head: git(root, 'rev-parse', 'HEAD').trim() };
+  }
+
+  it('lists what changed under wiki/ and docs/en, nothing on a clean checkout', () => {
+    const { root } = checkout();
+    expect(dirtySources(root, join(root, 'wiki'))).toEqual([]);
+    writeFileSync(join(root, 'wiki', 'en', 'create.rooms.md'), 'changed\n');
+    writeFileSync(join(root, 'docs', 'en', 'NEW.md'), 'new\n');
+    expect(dirtySources(root, join(root, 'wiki'))).toEqual([' M wiki/en/create.rooms.md', '?? docs/en/NEW.md']);
+  });
+
+  it('says so in its identity when allowed: docRevision <sha>-dirty, wikiTree dirty', () => {
+    const { root, head } = checkout();
+    const clean = writeBundle({ ...bundleOpts(tmp('b-'), join(root, 'wiki')), root, docRevision: head });
+    expect(clean.docRevision).toBe(head);
+    expect(clean.wikiTree).toMatch(/^[0-9a-f]{40}$/);
+    const dirty = writeBundle({ ...bundleOpts(tmp('b-'), join(root, 'wiki')), root, docRevision: head, dirty: true });
+    expect(dirty).toMatchObject({ docRevision: `${head}-dirty`, wikiTree: 'dirty' });
+  });
+
+  it('`wiki -- bundle` refuses a changed checkout without --allow-dirty', () => {
+    // The repository's own wiki: refused when its sources differ from HEAD, unless --allow-dirty.
+    const dirty = dirtySources(ROOT, join(ROOT, 'wiki')).length > 0;
+    const out = join(tmp('bundle-cli-'), 'docs-bundle');
+    const errors: string[] = [];
+    const spy = vi.spyOn(console, 'error').mockImplementation((m: string) => void errors.push(m));
+    const log = vi.spyOn(console, 'log').mockImplementation(() => undefined);
+    try {
+      expect(main(['bundle', '--out', out])).toBe(dirty ? 1 : 0);
+      if (dirty) expect(errors.join('\n')).toMatch(/--allow-dirty/);
+      expect(main(['bundle', '--out', out, '--allow-dirty'])).toBe(0);
+      const m = JSON.parse(readFileSync(join(out, 'bundle-manifest.json'), 'utf8')) as { docRevision: string };
+      expect(m.docRevision.endsWith('-dirty')).toBe(dirty);
+    } finally {
+      spy.mockRestore();
+      log.mockRestore();
+    }
+    expect(existsSync(out)).toBe(true);
   });
 });

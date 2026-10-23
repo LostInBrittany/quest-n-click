@@ -108,23 +108,20 @@ export function indexWiki(
   };
 }
 
-const heads = new Map<string, string>();
-/** `git rev-parse HEAD` of a checkout, once per process; 'unknown' outside git. */
+/**
+ * `git rev-parse HEAD` of a checkout, read again at each load (a few milliseconds), so a server that runs for days never
+ * names a commit the checkout has left; 'unknown' outside git.
+ */
 function gitHead(root: string): string {
-  let h = heads.get(root);
-  if (h === undefined) {
-    try {
-      h = execFileSync('git', ['rev-parse', 'HEAD'], {
-        cwd: root,
-        encoding: 'utf8',
-        stdio: ['ignore', 'pipe', 'ignore'],
-      }).trim();
-    } catch {
-      h = 'unknown';
-    }
-    heads.set(root, h);
+  try {
+    return execFileSync('git', ['rev-parse', 'HEAD'], {
+      cwd: root,
+      encoding: 'utf8',
+      stdio: ['ignore', 'pipe', 'ignore'],
+    }).trim();
+  } catch {
+    return 'unknown';
   }
-  return h;
 }
 
 const productVersion = (root: string) =>
@@ -155,27 +152,63 @@ export function repositoryDocs(
   };
 }
 
-/** A JSON file of the bundle, its format and version checked: an unknown major version is refused, plainly. */
-function readVersioned<T>(file: string, format: string, label: string): T {
-  const raw = JSON.parse(readFileSync(file, 'utf8')) as unknown;
+/** Where a reader checks whether a bundle's build was promoted to a release (§4.5.1): never inside the bundle. */
+export const PUBLICATION_URL = 'https://wanoo.github.io/quest-n-click/docs/publication.json';
+
+/** A JSON text of the bundle, its format and version checked: an unknown major version is refused, plainly. */
+function parseVersioned<T>(text: string, format: string, label: string): T {
+  const raw = JSON.parse(text) as unknown;
   const problem = formatProblem(raw, format, label);
   if (problem) throw new Error(problem);
   return raw as T;
 }
 
-/** A bundle folder's documentation: its identity from `bundle-manifest.json`, its index and its pages. */
-export function bundleDocs(dir: string): DocsSet {
-  const m = readVersioned<BundleManifest>(
-    join(dir, 'bundle-manifest.json'),
+/** The only paths a bundle holds: its index, a page, a legacy page, an image (no `..`, no absolute path). */
+const BUNDLE_PATH =
+  /^(index\.json|md\/(en|fr)\/[a-z]+\.[a-z0-9]+(-[a-z0-9]+)*\.md|legacy\/[A-Z_]+\.md|assets\/(?!.*(^|\/)\.\.?(\/|$))[A-Za-z0-9_./-]+)$/;
+
+interface Bundle {
+  set: DocsSet;
+  /** Every text file of the bundle, by its path, as checked against its sha256. */
+  texts: Map<string, string>;
+}
+const bundles = new Map<string, Bundle>();
+
+/**
+ * A bundle folder, read once per process (a bundle never changes) and checked first: its manifest's format, each file
+ * it lists at an allowed path and matching its sha256, the index's page files exactly `md/<lang>/<id>.md` and listed.
+ * Any mismatch is an error that names the file: a bundle that does not match its manifest is never half read.
+ */
+function readBundle(dir: string): Bundle {
+  const cached = bundles.get(dir);
+  if (cached) return cached;
+  const label = (path: string) => `${BUNDLE_DIR}/${path}`;
+  const m = parseVersioned<BundleManifest>(
+    readFileSync(join(dir, 'bundle-manifest.json'), 'utf8'),
     BUNDLE_FORMAT,
-    `${BUNDLE_DIR}/bundle-manifest.json`,
+    label('bundle-manifest.json'),
   );
-  const index = readVersioned<DocsIndex>(join(dir, 'index.json'), INDEX_FORMAT, `${BUNDLE_DIR}/index.json`);
+  const texts = new Map<string, string>();
+  for (const f of m.files) {
+    if (!BUNDLE_PATH.test(f.path)) throw new Error(`${label(f.path)}: not a path a documentation bundle holds`);
+    const bytes = readFileSync(join(dir, f.path));
+    if (sha256(bytes) !== f.sha256)
+      throw new Error(`${label(f.path)} does not match its sha256 in bundle-manifest.json: the bundle was changed`);
+    if (!f.path.startsWith('assets/')) texts.set(f.path, bytes.toString('utf8'));
+  }
+  const indexText = texts.get('index.json');
+  if (indexText === undefined) throw new Error(`${label('index.json')} is not in bundle-manifest.json`);
+  const index = parseVersioned<DocsIndex>(indexText, INDEX_FORMAT, label('index.json'));
   const pages: Record<string, string> = {};
   for (const p of index.pages)
     for (const lang of LANGS) {
       const f = p.langs[lang]?.file;
-      if (f) pages[`${lang}/${p.id}`] = readFileSync(join(dir, f), 'utf8');
+      if (f === undefined) continue;
+      if (f !== `md/${lang}/${p.id}.md`)
+        throw new Error(`${label('index.json')}: ${p.id} (${lang}) names the file "${f}"`);
+      const text = texts.get(f);
+      if (text === undefined) throw new Error(`${label(f)} is not in bundle-manifest.json`);
+      pages[`${lang}/${p.id}`] = text;
     }
   const provenance: Provenance = {
     source: 'bundle',
@@ -183,10 +216,15 @@ export function bundleDocs(dir: string): DocsSet {
     productCommit: m.productCommit,
     docRevision: m.docRevision,
     ...(m.buildId ? { buildId: m.buildId } : {}),
-    label: `bundle built for quest'n'click ${m.productVersion}${m.buildId ? `, build ${m.buildId}` : ''}; whether it was promoted to a release is recorded outside it (publication.json)`,
+    label: `bundle built for quest'n'click ${m.productVersion}${m.buildId ? `, build ${m.buildId}` : ''}; whether it was promoted to a release is checked at ${PUBLICATION_URL}, never in the bundle`,
   };
-  return { provenance, index, pages };
+  const bundle = { set: { provenance, index, pages }, texts };
+  bundles.set(dir, bundle);
+  return bundle;
 }
+
+/** A bundle folder's documentation: its identity from `bundle-manifest.json`, its index and its pages, checked. */
+export const bundleDocs = (dir: string): DocsSet => readBundle(dir).set;
 
 /** The bundle of an installed engine, or undefined in the repository (no `docs-bundle/` beside package.json). */
 const bundleOf = (root: string): string | undefined => {
@@ -206,5 +244,8 @@ export function resolveDocs(root: string): DocsSet {
  */
 export function legacyDoc(root: string, name: string): string {
   const bundle = bundleOf(root);
-  return readFileSync(bundle ? join(bundle, 'legacy', `${name}.md`) : join(root, 'docs', 'en', `${name}.md`), 'utf8');
+  if (!bundle) return readFileSync(join(root, 'docs', 'en', `${name}.md`), 'utf8');
+  const text = readBundle(bundle).texts.get(`legacy/${name}.md`);
+  if (text === undefined) throw new Error(`${BUNDLE_DIR}/legacy/${name}.md is not in bundle-manifest.json`);
+  return text;
 }
