@@ -6,3 +6,7 @@
   - "Bridge and connector troubleshooting": what the Reality Bridge's 409 and 503 mean, a signal sent twice, a connector down. A search for "409" without a context now shows the Studio's page and the Bridge's, each naming its service.
   - "Environment variables": every variable quest-n-click reads (93, from the Studio Server's secrets to the test scripts' switches) and the ones Clever Cloud and its add-ons inject, each with its own section, its origin, whether it is a secret and can come from a `_FILE`, and the files that read it.
 - **The environment variable register** (4.5.0). `wiki/data/env.json` describes each variable in French and in English. `npm run wiki -- env` regenerates the reference page and its identifiers from the register and from the code: `process.env`, `import.meta.env`, the Python tools and the shell scripts of `ops/` and `clevercloud/`. `npm run wiki -- check` fails on a variable the code reads without a description, on a described one the code no longer reads, and on a computed read (`process.env[name]`) nobody resolved.
+
+### Fixed
+
+- **`search_docs` no longer reads the word "studio" as the variable `STUDIO`** (4.5.0). An identifier written in capitals (an environment variable such as `STUDIO`, `PATH` or `PORT`) now counts only when the query holds it exactly; before, any question with the word "studio" ranked the environment variable page high. A search for `STUDIO_SESSION_KEY` now shows that whole name in its excerpt, not `STUDIO`, and an excerpt no longer doubles the page's own bold.

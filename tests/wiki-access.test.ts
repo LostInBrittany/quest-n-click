@@ -562,6 +562,27 @@ describe('plan §13 D3, a neighbour and a counter-example', () => {
 });
 
 describe('the search, at its edges', () => {
+  it('counts an identifier in capitals only when typed exactly, shows the whole one, and never doubles a bold (A7, D2)', () => {
+    const dir = tmp('wiki-screaming-');
+    cpSync(BASE, dir, { recursive: true });
+    const file = join(dir, 'manifest.json');
+    const m = JSON.parse(readFileSync(file, 'utf8')) as { pages: { id: string; identifiers: string[] }[] };
+    m.pages.find((p) => p.id === 'studio.notes')!.identifiers = ['STUDIO', 'STUDIO_SESSION_KEY'];
+    writeFileSync(file, JSON.stringify(m));
+    const page = join(dir, 'en', 'studio.notes.md');
+    writeFileSync(page, readFileSync(page, 'utf8').replace('Write in the Notes tab.', 'Write in the **Notes** tab.'));
+    const set = preview(dir);
+    const exact = results(set, 'STUDIO_SESSION_KEY')[0]!;
+    expect(exact).toMatchObject({ id: 'studio.notes', reason: 'identifier' });
+    expect(exact.snippet).toContain('**SESSION**');
+    expect(results(set, 'STUDIO')[0]).toMatchObject({ id: 'studio.notes', reason: 'identifier' });
+    // The word "studio" in a sentence is not the variable STUDIO.
+    expect(results(set, 'the studio').filter((r) => r.reason === 'identifier')).toEqual([]);
+    const bold = results(set, 'notes tab', { lang: 'en' }).find((r) => r.id === 'studio.notes')!;
+    expect(bold.snippet).toContain('**Notes**');
+    expect(bold.snippet).not.toContain('****');
+  });
+
   const set = preview();
 
   it('a rare word met once in a body only is not a confident match (score 2 under 3): a heading, a title or a repeat is needed', () => {

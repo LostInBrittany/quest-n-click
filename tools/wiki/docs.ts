@@ -383,6 +383,8 @@ function snippetOf(text: string, found: ReadonlySet<string>): string {
     .replace(/<a (?:name|id)="[^"]*"><\/a>/g, '')
     .replace(/!?\[([^\]]*)\]\([^)]*\)/g, '$1')
     .replace(/^#{1,6}\s+/gm, '')
+    // The page's own emphasis: the excerpt marks the words found, and a bold inside a bold would read `****x**`.
+    .replace(/\*\*/g, '')
     .replace(/\s+/g, ' ')
     .trim();
   const spans = [...flat.matchAll(/[\p{L}\p{N}]+/gu)].filter((m) => {
@@ -413,6 +415,20 @@ interface Scored extends SearchResult {
   order: number;
 }
 
+/** An identifier written in capitals, as environment variables are: `STUDIO_SESSION_KEY`, `PATH`. */
+const SCREAMING = /^[A-Z][A-Z0-9]*(?:_[A-Z0-9]+)*$/;
+/** Whether the query holds `id` exactly, between characters that cannot continue an identifier. */
+const typedExactly = (query: string, id: string) => {
+  let at = query.indexOf(id);
+  while (at >= 0) {
+    const before = query[at - 1] ?? ' ';
+    const after = query[at + id.length] ?? ' ';
+    if (!/[\w-]/.test(before) && !/[\w-]/.test(after)) return true;
+    at = query.indexOf(id, at + 1);
+  }
+  return false;
+};
+
 /** The best section of one page in one language, and its score; undefined when nothing of the query is in it. */
 function scorePage(
   p: IndexPage,
@@ -425,12 +441,16 @@ function scorePage(
 ) {
   const typed = new Set(terms.filter((t) => t.weight === 1).map((t) => t.word));
   const q = phrase(query);
-  // Page-level fields: the best one each word is found in.
+  // Page-level fields: the best one each word is found in. An identifier in capitals (an environment variable,
+  // `STUDIO`, `PATH`) counts only when the query holds it exactly, as a token: otherwise every query with the word
+  // "studio" would be read as naming the variable `STUDIO` (A7, D2).
+  const identifiers = p.identifiers.filter((id) => !SCREAMING.test(id) || typedExactly(query, id));
   const fields: { reason: MatchReason; texts: string[] }[] = [
     { reason: 'title', texts: [p.title[lang]] },
     { reason: 'question', texts: p.questions[lang] },
     { reason: 'alias', texts: [...p.aliases[lang], ...p.keywords[lang], ...glossary] },
-    { reason: 'identifier', texts: p.identifiers },
+    // The longest first, so a whole identifier typed is the one an excerpt shows (`STUDIO_SESSION_KEY`, not `STUDIO`).
+    { reason: 'identifier', texts: [...identifiers].sort((a, b) => b.length - a.length) },
   ];
   const fieldWords = fields.map((f) => f.texts.map((t) => new Set(words(t))));
   const pageHits = terms.map((t) => {
