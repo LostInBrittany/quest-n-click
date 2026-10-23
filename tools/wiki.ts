@@ -1,20 +1,22 @@
 // npm run wiki -- check | stats [--json] | coverage [--init [--force] | --ack <key>] | build --target wiki --out <dir> [--preview]
-// [--product-version <v>] [--doc-revision <sha>] [--product-commit <sha>] (4.5.0 "Wiki", docs/dev/PLAN-4.5-WIKI.md §5,
-// phases A2 and A3; ADR 0030).
+// [--product-version <v>] [--doc-revision <sha>] [--product-commit <sha>] | bundle --out <dir> [--build-id <id>] [the same
+// three] (4.5.0 "Wiki", docs/dev/PLAN-4.5-WIKI.md §5, phases A2 to A4; ADR 0030).
 // The documentation's source is `wiki/` (a manifest, then `wiki/<lang>/<id>.md`); every output is generated from it.
 // `check` is the work level of every pull request: it fails on errors only, and prints the warnings and what is still
 // to write. `stats` counts the pages by state, domain, type and language: the workload estimate. `build --target
 // wiki` writes the folder a publication pushes to the GitHub wiki; it publishes the `ready` pages, and the `draft`
 // ones too with `--preview`. `coverage --init` takes the anchor inventory of the old documentation into
 // `wiki/coverage.json`; `coverage` merges a new inventory into it, keeping what a person wrote, and regenerates
-// `wiki/legacy.json` and the manifest's `replaces` (§4.2). The other commands of §5 (`check --publish`, `bundle`,
-// `publish`…) come with their phases. `--wiki=<dir>` reads another source folder (the tests' fixtures). The output folder is outside the
+// `wiki/legacy.json` and the manifest's `replaces` (§4.2). `bundle` writes the documentation an installed engine
+// carries (tools/wiki/bundle.ts, §4.3.4), into the package scripts/pack.mjs prepares: never under a folder the
+// repository tracks. The other commands of §5 (`check --publish`, `publish`…) come with their phases. `--wiki=<dir>` reads another source folder (the tests' fixtures). The output folder is outside the
 // working tree (or under `.cache/`), so a build never lands among the sources, and only a previous build is emptied.
 import { execFileSync } from 'node:child_process';
 import { existsSync, readFileSync } from 'node:fs';
 import { isAbsolute, relative, resolve, sep } from 'node:path';
 import { ROOT } from './game';
 import { buildWiki } from './wiki/build';
+import { writeBundle } from './wiki/bundle';
 import { checkWiki, trackedFiles, wikiStats } from './wiki/check';
 import {
   ackRow,
@@ -54,8 +56,23 @@ export function outProblem(out: string, root = ROOT): string | undefined {
   return undefined;
 }
 
+/**
+ * Why a bundle's folder is refused: the working tree itself, or a folder in it that holds tracked files (a shipped
+ * root, `wiki/`…). A folder git does not track (`.cache/`, the candidate's `pack/`) or one outside the tree is fine.
+ */
+export function bundleOutProblem(out: string, tracked: readonly string[], root = ROOT): string | undefined {
+  const rel = relative(root, resolve(out)).split(sep).join('/');
+  if (rel.startsWith('..') || isAbsolute(rel)) return undefined;
+  if (rel === '') return `${out} is the repository itself: write the bundle into a package folder`;
+  const parts = rel.split('/');
+  const under = parts.map((_, i) => `${parts.slice(0, i + 1).join('/')}/`);
+  if (tracked.some((f) => under.some((u) => f.startsWith(u))))
+    return `${out} is inside a folder the repository tracks: write the bundle into a package folder (.cache/, or outside the tree)`;
+  return undefined;
+}
+
 const USAGE =
-  'usage: npm run wiki -- check | stats [--json] | coverage [--init [--force] | --ack <key>] | build --target wiki --out <dir> [--preview] [--product-version <v>] [--doc-revision <sha>] [--product-commit <sha>]';
+  'usage: npm run wiki -- check | stats [--json] | coverage [--init [--force] | --ack <key>] | build --target wiki --out <dir> [--preview] [--product-version <v>] [--doc-revision <sha>] [--product-commit <sha>] | bundle --out <dir> [--build-id <id>] [--product-version <v>] [--doc-revision <sha>] [--product-commit <sha>]';
 
 const head = () => {
   try {
@@ -168,6 +185,46 @@ function run(args: readonly string[]): number {
     }
     console.log(
       `✔  ${files.length} file(s) written to ${resolve(out)}${args.includes('--preview') ? ' (preview: drafts included)' : ''}`,
+    );
+    return 0;
+  }
+  if (command === 'bundle') {
+    const out = option(args, 'out');
+    if (!out) throw new UsageError('bundle needs --out <dir>');
+    const tracked = trackedFiles();
+    const refused = bundleOutProblem(out, tracked);
+    if (refused) {
+      console.error(`✖  ${refused}`);
+      return 1;
+    }
+    const r = checkWiki({ wikiDir, tracked });
+    if (!r.manifest || r.errors.length) {
+      for (const e of r.errors) console.error(`✖  ${e}`);
+      console.error('✖  the sources do not pass `npm run wiki -- check`: no bundle');
+      return 1;
+    }
+    const pkg = JSON.parse(readFileSync(resolve(ROOT, 'package.json'), 'utf8')) as { version: string };
+    const docRevision = option(args, 'doc-revision') ?? head();
+    const buildId = option(args, 'build-id');
+    let bundle: ReturnType<typeof writeBundle>;
+    try {
+      bundle = writeBundle({
+        root: ROOT,
+        wikiDir,
+        outDir: resolve(out),
+        productVersion: option(args, 'product-version') ?? pkg.version,
+        productCommit: option(args, 'product-commit') ?? docRevision,
+        docRevision,
+        ...(buildId ? { buildId } : {}),
+      });
+    } catch (e) {
+      console.error(`✖  ${(e as Error).message}`);
+      return 1;
+    }
+    const pages = bundle.files.filter((f) => f.path.startsWith('md/')).length;
+    const bytes = bundle.files.reduce((n, f) => n + f.bytes, 0);
+    console.log(
+      `✔  documentation bundle of ${bundle.productVersion} (doc revision ${bundle.docRevision.slice(0, 12)}): ${bundle.files.length} file(s), ${pages} page file(s), ${bytes} bytes → ${resolve(out)}`,
     );
     return 0;
   }

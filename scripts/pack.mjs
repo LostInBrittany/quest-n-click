@@ -3,7 +3,8 @@
 // installs it). 4.1.9: `quest-n-click-connectors`, the connectors of the world outside, a fourth package (an operator's,
 // never a game's). 4.2.1: `quest-n-click-studio-server`, the Studio online and its worker, a fifth (an operator's,
 // beside the engine). `quest-n-click`: the engine (src/), its pages, its tools and the `quest-n-click` command, the game
-// template; never a game of this repository, a test, a doc page or a build. `create-quest-n-click`: `npx
+// template, and (4.5.0) its documentation bundle, `docs-bundle/`; never a game of this repository, a test, a source doc
+// page or a build. `create-quest-n-click`: `npx
 // create-quest-n-click <folder>`, which runs `quest-n-click create`. All are packed (`npm pack`) into <out>/, ready for
 // `npm install <tarball>` or `npm publish`.
 // 4.2.5 (D47): the project was web-scumm. Through 4.2.x each package was also packed under its old name, an alias with
@@ -133,6 +134,20 @@ writeFileSync(
   `# quest'n'click\n\nAn engine for point-and-click adventure games in the browser (formerly web-scumm). Start a game:\n\n\`\`\`bash\nnpx create-quest-n-click my-game\ncd my-game && npm install\nnpm run assets && npm run dev\n\`\`\`\n\nThen \`npx quest-n-click help\`. Documentation: https://github.com/wanoo/quest-n-click (docs/en/PACKAGE.md).\n`,
 );
 
+// npm is `npm.cmd` on Windows: run through the shell there (4.1.18), the arguments being this script's own.
+const WIN = process.platform === 'win32';
+const npm = (a, o) =>
+  execFileSync(WIN ? 'npm.cmd' : 'npm', WIN ? a.map((x) => (/\s/.test(x) ? `"${x}"` : x)) : a, { ...o, shell: WIN });
+
+// The documentation the engine carries (4.5.0, docs/dev/PLAN-4.5-WIKI.md §4.3.4): `wiki -- bundle` writes it into the
+// prepared folder, after the tracked files are copied and before `npm pack`; never through SHIP nor git, and never
+// into the repository. `read_doc` in a created project reads it (tools/wiki/docs-load.ts). Reproducible: two packs of
+// one commit give the same bytes. The package has no `files` list: everything in the folder is packed, the bundle too.
+npm(['run', 'wiki', '--silent', '--', 'bundle', '--out', join(engine, 'docs-bundle')], {
+  cwd: ROOT,
+  stdio: ['ignore', 'inherit', 'inherit'],
+});
+
 // `create-quest-n-click`: `npx create-quest-n-click <folder>` runs `quest-n-click create` from the engine it depends on.
 const create = join(out, 'create-quest-n-click');
 mkdirSync(create, { recursive: true });
@@ -225,11 +240,6 @@ writeFileSync(
   join(connectors, 'README.md'),
   `# quest-n-click-connectors\n\nConnectors of the world outside for a quest'n'click game (formerly web-scumm-connectors): email, Telnet, SSH and Open Badges, each its own process, each proposing the signals its game declares to a \`quest-n-click-bridge\` under its own Biscuit. Experimental (4.1.9). Install without native code: \`npm install --omit=optional --ignore-scripts quest-n-click-connectors\`. Then \`npx quest-n-click-connector <email|telnet|ssh|open-badge> --config connector.json\`. Documentation: https://github.com/wanoo/quest-n-click (docs/en/CONNECTORS.md).\n`,
 );
-
-// npm is `npm.cmd` on Windows: run through the shell there (4.1.18), the arguments being this script's own.
-const WIN = process.platform === 'win32';
-const npm = (a, o) =>
-  execFileSync(WIN ? 'npm.cmd' : 'npm', WIN ? a.map((x) => (/\s/.test(x) ? `"${x}"` : x)) : a, { ...o, shell: WIN });
 
 // The Studio Server (4.2.1, docs/en/STUDIO-SERVER.md): two commands that run the server and the processing worker of
 // the engine installed beside it (its sources, Vite, tsx), and the Studio's page built once here (`npm run
@@ -333,7 +343,7 @@ const ALL = [engine, create, bridge, connectors, studio];
 for (const d of ALL)
   npm(['pack', '--pack-destination', out, '--silent'], { cwd: d, stdio: ['ignore', 'inherit', 'inherit'] });
 console.log(
-  `packed into ${out}: quest-n-click ${root.version} (${files.length} files), create-quest-n-click, quest-n-click-bridge (one module, its policies), quest-n-click-connectors (one module, its MIME worker), quest-n-click-studio-server (two commands, the Studio's page)`,
+  `packed into ${out}: quest-n-click ${root.version} (${files.length} files and its docs-bundle/), create-quest-n-click, quest-n-click-bridge (one module, its policies), quest-n-click-connectors (one module, its MIME worker), quest-n-click-studio-server (two commands, the Studio's page)`,
 );
 // --publish-dry-run (4.1.8): what `npm publish` would send, for each package, without sending it (release-check).
 if (process.argv.includes('--publish-dry-run'))

@@ -57,6 +57,8 @@ describe('MCP server on games/demo', () => {
       'solve',
       'screenshot',
       'read_doc',
+      'search_docs',
+      'list_docs',
       'run_tests',
       'asset_prompts',
       'content_report',

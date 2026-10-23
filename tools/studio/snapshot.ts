@@ -2,13 +2,14 @@
 // the current game, in one JSON file served next to the built Studio (public/studio-demo/snapshot.json). Written by
 // `STUDIO=1 vite build` (vite.config.ts) and by `npm run studio-snapshot`.
 //   tsx tools/studio/snapshot.ts [out.json]
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { createAssets } from './assets';
 import { createStudio, type StudioOptions } from '../../studio-server/src/ops/core';
 import type { RoomData, StudioSnapshot } from './types';
 import { ROOT } from '../game';
+import { BUNDLE_DIR, legacyDoc, repositoryDocs, resolveDocs } from '../wiki/docs-load';
 
 export const SNAPSHOT_FILE = join(ROOT, 'public', 'studio-demo', 'snapshot.json');
 
@@ -19,8 +20,22 @@ export async function buildSnapshot(opts: StudioOptions = {}): Promise<StudioSna
   const rooms: Record<string, RoomData> = {};
   for (const r of game.rooms) rooms[r.id] = await s.getRoom(r.id);
   const docs: Record<string, string> = {};
-  const guide = join(s.root, 'docs', 'en', 'CONTENT_GUIDE.md');
-  if (existsSync(guide)) docs.CONTENT_GUIDE = readFileSync(guide, 'utf8');
+  // The content guide as read_doc reads it: docs/en/ in the repository, the bundle's exact copy in a package.
+  try {
+    docs.CONTENT_GUIDE = legacyDoc(s.root, 'CONTENT_GUIDE');
+  } catch {
+    // Neither: the demo's Assistant says the page is not in the demo.
+  }
+  // 4.5.0 (docs/dev/PLAN-4.5-WIKI.md §4.3.1): the wiki's index and its ready pages, for the Assistant's search_docs,
+  // list_docs and read_doc by id: a package's bundle, or the repository's ready pages (never a draft).
+  const wiki = existsSync(join(s.root, BUNDLE_DIR, 'bundle-manifest.json'))
+    ? resolveDocs(s.root)
+    : existsSync(join(s.root, 'wiki', 'manifest.json'))
+      ? repositoryDocs(s.root, {
+          states: ['ready'],
+          label: "demo snapshot: the ready pages of the repository's wiki/ when the demo was built",
+        })
+      : undefined;
   return {
     format: 'web-scumm-studio-snapshot',
     version: 1,
@@ -31,6 +46,7 @@ export async function buildSnapshot(opts: StudioOptions = {}): Promise<StudioSna
     storyboard: s.getStoryboard(),
     notes: s.getNotes(),
     docs,
+    ...(wiki ? { wiki } : {}),
     // The Assets tab's listing (no file data: the demo shows the prepared images and sounds of public/assets).
     assets: await createAssets(s).list(),
   };

@@ -762,6 +762,7 @@ export class AssistantPanel {
     signal: AbortSignal,
   ) {
     const demo = this.ctx.demo!;
+    const wiki = demo.wikiDocs();
     const { runAssistant, systemPrompt, contextDetails } = await import('../../tools/studio/assistant-loop');
     const backend: ToolBackend = {
       game: () => demo.game(),
@@ -788,6 +789,8 @@ export class AssistantPanel {
           );
         return d;
       },
+      // The snapshot's wiki pages (4.5.0): search_docs, list_docs and read_doc by id; absent from an older snapshot.
+      ...(wiki ? { docs: async () => wiki } : {}),
     };
     const details = await contextDetails(context, backend).catch(() => '');
     await runAssistant({

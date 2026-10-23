@@ -116,6 +116,10 @@ export class BrowserApi implements Api {
   docNames(): string[] {
     return Object.keys(this.o.snapshot.docs ?? {});
   }
+  /** 4.5.0: the wiki's index and ready pages of the snapshot (the Assistant's search_docs, list_docs, read_doc by id). */
+  wikiDocs() {
+    return this.o.snapshot.wiki;
+  }
   /** Number of edits kept in this browser. */
   get edits() {
     return this.patches.length;
