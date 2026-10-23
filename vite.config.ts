@@ -289,7 +289,7 @@ export default defineConfig({
         'studio-server/src/server/config.ts': { lines: 84, branches: 83 },
         'studio-server/src/server/http.ts': { lines: 91, branches: 81 },
         'studio-server/src/server/leases.ts': { lines: 98, branches: 98 },
-        'studio-server/src/server/live.ts': { lines: 87, branches: 61 },
+        'studio-server/src/server/live.ts': { lines: 87, branches: 62 },
         'studio-server/src/server/play.ts': { lines: 100, branches: 94 },
         'studio-server/src/server/builds.ts': { lines: 98, branches: 98 },
         'studio-server/src/server/health.ts': { lines: 98, branches: 95 },
