@@ -11635,8 +11635,8 @@
       "heading": "The placement editor (?edit=<room>)",
       "level": 3,
       "anchor": "the-placement-editor-editroom",
-      "lines": [64, 100],
-      "hash": "330d1349ce8eec14c88d2b0124534d2487d7d857efed869012d3e74eaf7a06d8",
+      "lines": [64, 103],
+      "hash": "fbcc9159cddff65c684d43f84535f605d5a0a17d2aede0e3904fe575526b2243",
       "codeBlocks": [],
       "anchors": [],
       "destinations": ["studio.placement#placement-editor", "reference.dev-url-parameters#edit"],
@@ -11659,11 +11659,11 @@
       "heading": "Preparing images and sounds",
       "level": 2,
       "anchor": "preparing-images-and-sounds",
-      "lines": [102, 155],
+      "lines": [105, 158],
       "hash": "75c6c6ffb819497e9aff24c5ed3d537e98a3ed8c93547109dfa7afe7cd2ee5c5",
       "codeBlocks": [
-        { "hash": "b4e70fc8fd7af79446b12fb3750c88cc6e4bb706f2f771e7063256c08c2819cf", "lang": "bash", "line": 115 },
-        { "hash": "c0753e959dea2d1f70ada6b1a62294027bc23325e771ec03a066cb5d2eead5a5", "lang": "json", "line": 137 }
+        { "hash": "b4e70fc8fd7af79446b12fb3750c88cc6e4bb706f2f771e7063256c08c2819cf", "lang": "bash", "line": 118 },
+        { "hash": "c0753e959dea2d1f70ada6b1a62294027bc23325e771ec03a066cb5d2eead5a5", "lang": "json", "line": 140 }
       ],
       "anchors": [],
       "destinations": ["create.images#pipeline", "install.image-toolchain", "create.sound-effects"],
@@ -11694,11 +11694,11 @@
       "heading": "Checking the content",
       "level": 2,
       "anchor": "checking-the-content",
-      "lines": [157, 322],
+      "lines": [160, 325],
       "hash": "bd03fd3cb280508213d0d2c1989608c7256ab5d5f77cbe96e812f41ce6eb95fe",
       "codeBlocks": [
-        { "hash": "a6f77cdbe5231f014c5c6835ac4fa10a937a431d26da0d2faaa72edf5d5c99b7", "lang": "bash", "line": 159 },
-        { "hash": "b3525de8669ac5fd700f1a9d582d0e6f023414e7104adeca9bda256c817c2f4b", "lang": "bash", "line": 185 }
+        { "hash": "a6f77cdbe5231f014c5c6835ac4fa10a937a431d26da0d2faaa72edf5d5c99b7", "lang": "bash", "line": 162 },
+        { "hash": "b3525de8669ac5fd700f1a9d582d0e6f023414e7104adeca9bda256c817c2f4b", "lang": "bash", "line": 188 }
       ],
       "anchors": [],
       "destinations": ["create.checking#commands", "create.solver-options", "create.playtests"],
@@ -11763,7 +11763,7 @@
       "heading": "Asset provenance",
       "level": 2,
       "anchor": "asset-provenance",
-      "lines": [324, 381],
+      "lines": [327, 384],
       "hash": "635c90c744d2e5124fb4e956ae3a25b538e722619b1350eb1374a86643665e5d",
       "codeBlocks": [],
       "anchors": [],
@@ -11816,10 +11816,10 @@
       "heading": "The sealed ending",
       "level": 2,
       "anchor": "the-sealed-ending",
-      "lines": [383, 393],
+      "lines": [386, 396],
       "hash": "b0b440dcc0396e76ff688779041c94a59f8f525693de33a7b6294e8b47c52b82",
       "codeBlocks": [
-        { "hash": "3c7f23369b94dc2f186afc1c2ad0c0554890670856f8a6a355585d709faf3198", "lang": "bash", "line": 385 }
+        { "hash": "3c7f23369b94dc2f186afc1c2ad0c0554890670856f8a6a355585d709faf3198", "lang": "bash", "line": 388 }
       ],
       "anchors": [],
       "destinations": ["create.sealed-ending#tools"],
@@ -11842,11 +11842,11 @@
       "heading": "Deploying",
       "level": 2,
       "anchor": "deploying",
-      "lines": [395, 418],
+      "lines": [398, 421],
       "hash": "bf8fc9d0f0d0114c1cda65f0fe951d78bb315b2e7e01580fa55e9d77327d348a",
       "codeBlocks": [
-        { "hash": "e908dc11fd6b6d03738deede49c63e33f93327b8ad3310e9165ce3e6fe7db7bd", "lang": "bash", "line": 404 },
-        { "hash": "e181d93cde8ace5dbfd82a8a67965230f98edf388298b3f28ccb27d9a4c4687b", "lang": "bash", "line": 411 }
+        { "hash": "e908dc11fd6b6d03738deede49c63e33f93327b8ad3310e9165ce3e6fe7db7bd", "lang": "bash", "line": 407 },
+        { "hash": "e181d93cde8ace5dbfd82a8a67965230f98edf388298b3f28ccb27d9a4c4687b", "lang": "bash", "line": 414 }
       ],
       "anchors": [],
       "destinations": ["create.build-release#deploying", "create.github-pages"],
@@ -11866,7 +11866,7 @@
       "heading": "Every other script",
       "level": 2,
       "anchor": "every-other-script",
-      "lines": [420, 474],
+      "lines": [423, 477],
       "hash": "b50d7845df399dddf0520abc6e2d87643d81ba780a3244946e49de65a0b50780",
       "codeBlocks": [],
       "anchors": [],
@@ -24673,8 +24673,8 @@
       "heading": "L'éditeur de placement (?edit=<lieu>)",
       "level": 3,
       "anchor": "léditeur-de-placement-editlieu",
-      "lines": [65, 94],
-      "hash": "197cc5b6b9f061a2fbc40174a6a3071aa12753548b9a112c4316a81d8dd5b376",
+      "lines": [65, 97],
+      "hash": "cfcf5379f9a5617515bcd54f045fe1e581ce93723b12e0ad3a59320f2bb495ed",
       "codeBlocks": [],
       "anchors": [],
       "destinations": ["studio.placement#placement-editor", "reference.dev-url-parameters#edit"],
@@ -24694,11 +24694,11 @@
       "heading": "Préparer les images et les sons",
       "level": 2,
       "anchor": "préparer-les-images-et-les-sons",
-      "lines": [96, 150],
+      "lines": [99, 153],
       "hash": "b4c3d8f6e5882c17bf03d99012b704c6df6c9b5ce2538f78e114e893dbfaacc5",
       "codeBlocks": [
-        { "hash": "8c65ae3082419ca3c032ac4c0089c805961c31cc299b01ca31e959b9c309e52a", "lang": "bash", "line": 110 },
-        { "hash": "67ce774f13fa33f0ba566bce27cdead9f97be082efeb9d29a7c717796c64f250", "lang": "json", "line": 132 }
+        { "hash": "8c65ae3082419ca3c032ac4c0089c805961c31cc299b01ca31e959b9c309e52a", "lang": "bash", "line": 113 },
+        { "hash": "67ce774f13fa33f0ba566bce27cdead9f97be082efeb9d29a7c717796c64f250", "lang": "json", "line": 135 }
       ],
       "anchors": [],
       "destinations": ["create.images#pipeline", "install.image-toolchain", "create.sound-effects"],
@@ -24729,11 +24729,11 @@
       "heading": "Vérifier le contenu",
       "level": 2,
       "anchor": "vérifier-le-contenu",
-      "lines": [152, 324],
+      "lines": [155, 327],
       "hash": "645c191807aa00fffc172b2010914ac549180258397573753460d0e897efdda3",
       "codeBlocks": [
-        { "hash": "796b5d055cce3ae255a5c034ec2641993a05d098800924c06145717018592ed7", "lang": "bash", "line": 154 },
-        { "hash": "71a790ef88c6bb659c69784f8df186d06458c9a16279dd1adbeb5f3b7ce5f359", "lang": "bash", "line": 180 }
+        { "hash": "796b5d055cce3ae255a5c034ec2641993a05d098800924c06145717018592ed7", "lang": "bash", "line": 157 },
+        { "hash": "71a790ef88c6bb659c69784f8df186d06458c9a16279dd1adbeb5f3b7ce5f359", "lang": "bash", "line": 183 }
       ],
       "anchors": [],
       "destinations": ["create.checking#commands", "create.solver-options", "create.playtests"],
@@ -24781,7 +24781,7 @@
       "heading": "Provenance des assets",
       "level": 2,
       "anchor": "provenance-des-assets",
-      "lines": [326, 388],
+      "lines": [329, 391],
       "hash": "54105c8e0dadfc7d9cdc9bbd585e3976a9460553d691e60bb8c4b7dab3c59a35",
       "codeBlocks": [],
       "anchors": [],
@@ -24825,10 +24825,10 @@
       "heading": "La fin scellée",
       "level": 2,
       "anchor": "la-fin-scellée",
-      "lines": [390, 400],
+      "lines": [393, 403],
       "hash": "06416610dd140f72ba540709fddb18f2837e7b9660c41c6df6086a7e93ba2b7a",
       "codeBlocks": [
-        { "hash": "35e72c3704a745e4217a4b87bc97c94a8912911ebb4a2e5442dfdbb0ebf17164", "lang": "bash", "line": 392 }
+        { "hash": "35e72c3704a745e4217a4b87bc97c94a8912911ebb4a2e5442dfdbb0ebf17164", "lang": "bash", "line": 395 }
       ],
       "anchors": [],
       "destinations": ["create.sealed-ending#tools"],
@@ -24851,11 +24851,11 @@
       "heading": "Déployer",
       "level": 2,
       "anchor": "déployer",
-      "lines": [402, 425],
+      "lines": [405, 428],
       "hash": "3ddeb4b870ba3fd8154ddf3fa6ba1610c47c1f84510d3210a4009382f6f44820",
       "codeBlocks": [
-        { "hash": "cc35b359ee1e7e362e521b8d3197e34d27ffd5511906c81d12563ef22b49794f", "lang": "bash", "line": 411 },
-        { "hash": "18d038090cf61e76715aa3a84311326608fe659a69d826c1de56853fa7380e0b", "lang": "bash", "line": 418 }
+        { "hash": "cc35b359ee1e7e362e521b8d3197e34d27ffd5511906c81d12563ef22b49794f", "lang": "bash", "line": 414 },
+        { "hash": "18d038090cf61e76715aa3a84311326608fe659a69d826c1de56853fa7380e0b", "lang": "bash", "line": 421 }
       ],
       "anchors": [],
       "destinations": ["create.build-release#deploying", "create.github-pages"],
@@ -24876,7 +24876,7 @@
       "heading": "Tous les autres scripts",
       "level": 2,
       "anchor": "tous-les-autres-scripts",
-      "lines": [427, 481],
+      "lines": [430, 484],
       "hash": "9a5257253aa0c7a75cecd2e1bdb878717929e4a1aa4bcc6fdff90f57b97f3113",
       "codeBlocks": [],
       "anchors": [],

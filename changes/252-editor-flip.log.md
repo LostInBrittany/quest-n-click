@@ -12,6 +12,9 @@
   shows a note: that facing wins (`o.facing ?? a.facing ?? flip`, unchanged).
 - `roundLayout` moved from `dev/editor.ts` to `dev/save-layout.ts` (what is written), so the editor stays under its
   size cap (`tests/file-size.test.ts`).
+- `docs/` is frozen for the wiki (PLAN-4.5-WIKI §4.2): the two `TOOLS.md` sections changed, `wiki/coverage.json`
+  refreshed (`npm run wiki -- coverage`) and both acknowledged (`--ack`); their destination,
+  `studio.placement#placement-editor`, is planned and not written yet, so no wiki page to carry the text into.
 - Checked in Chromium on the demo (`?edit=house`): Biscuit mirrored and back, Grandma's note (`facing: 'right'`), the
   chair's two checkboxes, none on a hotspot. Tests: `tests/editor-mirror.test.ts`.
 
