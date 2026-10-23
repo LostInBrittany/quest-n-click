@@ -146,9 +146,21 @@ export function assetsVersion(dir = resolve(WORK, 'public', 'assets')): string {
   return h.digest('hex').slice(0, 10);
 }
 
+/** site.json's `url`, the game's public address, with its final slash; none when it is not an absolute http(s) URL. */
+function siteUrl(v: unknown): string | undefined {
+  if (typeof v !== 'string') return undefined;
+  try {
+    if (!/^https?:$/.test(new URL(v).protocol)) return undefined;
+  } catch {
+    return undefined;
+  }
+  return v.endsWith('/') ? v : `${v}/`;
+}
+
 /**
- * games/<id>/site.json: game title, description and color, injected into index.html and the PWA manifest. `o`: another
- * game folder and name (the Studio Server's previews, built by its worker, 4.2.2).
+ * games/<id>/site.json: game title, description and color, injected into index.html and the PWA manifest. With `url`
+ * (the game's public address, #271), the share image is absolute and the page gets its og:url: link previews need
+ * both. `o`: another game folder and name (the Studio Server's previews, built by its worker, 4.2.2).
  */
 export function sitePlugin(o: { gameDir?: string; game?: string } = {}): Plugin {
   const gameDir = o.gameDir ?? GAME_DIR;
@@ -192,7 +204,16 @@ export function sitePlugin(o: { gameDir?: string; game?: string } = {}): Plugin 
             .replace(/&/g, '&amp;')
             .replace(/"/g, '&quot;')
             .replace(/</g, '&lt;');
-        return html
+        const url = siteUrl(s.url);
+        const page = url
+          ? html
+              .replace('content="%BASE%og.png"', `content="${esc(url)}og.png"`)
+              .replace(
+                '<meta property="og:type"',
+                `<meta property="og:url" content="${esc(url)}" />\n    <meta property="og:type"`,
+              )
+          : html;
+        return page
           .replace(/%LANG%/g, esc(s.lang ?? 'en'))
           .replace(/%TITLE%/g, esc(s.title ?? name))
           .replace(/%DESCRIPTION%/g, esc(s.description))
