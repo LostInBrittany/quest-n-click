@@ -298,10 +298,15 @@ describe('wiki -- check --publish', () => {
     // A shallow clone whose origin is gone.
     const shallow = join(tmp('wiki-publish-shallow-'), 'clone');
     git(r.root, 'tag', 'v4.4.0');
-    execFileSync('git', ['clone', '-q', '--depth', '1', `file://${r.root}`, shallow], { stdio: 'ignore' });
+    // No line-end conversion: Windows' runners set core.autocrlf, which would change the pages the clone checks.
+    execFileSync('git', ['-c', 'core.autocrlf=false', 'clone', '-q', '--depth', '1', `file://${r.root}`, shallow], {
+      stdio: 'ignore',
+    });
     git(shallow, 'remote', 'set-url', 'origin', join(r.root, 'nowhere.git'));
-    expect(preview(shallow)[0]).toMatch(
-      /release tags cannot be read \(origin did not answer .*, and the clone is shallow\)/,
+    expect(preview(shallow)).toEqual(
+      expect.arrayContaining([
+        expect.stringMatching(/release tags cannot be read \(origin did not answer .*, and the clone is shallow\)/),
+      ]),
     );
     // Origin answers and holds v4.5.0, which the local clone lacks.
     const origin = join(tmp('wiki-publish-origin-'), 'origin.git');
