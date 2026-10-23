@@ -6322,8 +6322,17 @@
       "context": ["studio-hosted"],
       "title": { "en": "What runs where", "fr": "Ce qui tourne où" },
       "url": { "en": "EN-Team-What-Runs-Where", "fr": "FR-Equipe-Ce-Qui-Tourne-Ou" },
-      "state": "planned",
-      "sources": [],
+      "state": "ready",
+      "versions": { "appliesFrom": "4.2.1" },
+      "surfaces": ["studio-server"],
+      "sources": [
+        "studio-server/src/server/main.ts",
+        "studio-server/src/server/config.ts",
+        "studio-server/src/worker/main.ts",
+        "docs/dev/adr/0025-studio-server.md",
+        "docs/dev/adr/0027-studio-oidc-sessions-tokens.md",
+        "docs/dev/adr/0028-studio-content-execution.md"
+      ],
       "replaces": [
         "docs/en/STUDIO-SERVER.md#studio-server-one-game-several-people-online",
         "docs/en/STUDIO-SERVER.md#what-runs-where",
@@ -6331,9 +6340,16 @@
         "docs/fr/STUDIO-SERVER.md#ce-qui-tourne-où"
       ],
       "questions": { "en": [], "fr": [] },
-      "aliases": { "en": [], "fr": [] },
+      "aliases": {
+        "en": ["Studio Server", "team Studio", "hosted Studio", "shared Studio", "architecture", "STUDIO-SERVER"],
+        "fr": ["Studio Server", "Studio d'équipe", "Studio hébergé", "Studio partagé", "architecture", "STUDIO-SERVER"]
+      },
+      "keywords": {
+        "en": ["studio-worker", "PostgreSQL", "Cellar", "OpenID Connect", "playUrl", "publicUrl"],
+        "fr": ["studio-worker", "PostgreSQL", "Cellar", "OpenID Connect", "playUrl", "publicUrl"]
+      },
       "identifiers": [],
-      "related": [],
+      "related": ["team.concepts", "team.limits", "clever.overview", "team.try-locally"],
       "prerequisites": [],
       "owner": "@wanoo"
     },
@@ -6348,13 +6364,40 @@
         "fr": "Concepts : révision, transaction, pan, bail, aperçu, build"
       },
       "url": { "en": "EN-Team-Concepts", "fr": "FR-Equipe-Concepts" },
-      "state": "planned",
-      "sources": [],
+      "state": "ready",
+      "versions": { "appliesFrom": "4.2.3" },
+      "surfaces": ["studio-server"],
+      "sources": [
+        "studio-server/src/ops/spans.ts",
+        "studio-server/src/server/leases.ts",
+        "studio-server/src/ops/journal.ts",
+        "studio-server/src/server/http.ts",
+        "studio-server/src/server/previews.ts",
+        "studio-server/src/server/builds.ts",
+        "studio-server/src/server/jobs.ts"
+      ],
       "replaces": [],
       "questions": { "en": [], "fr": [] },
-      "aliases": { "en": ["lease", "span", "exclusive lease"], "fr": ["bail", "pan", "verrou", "bail exclusif"] },
-      "identifiers": [],
-      "related": [],
+      "aliases": {
+        "en": ["lease", "span", "exclusive lease", "lock", "revision", "epoch", "operation id", "fence"],
+        "fr": [
+          "bail",
+          "pan",
+          "verrou",
+          "bail exclusif",
+          "révision",
+          "époque",
+          "identifiant d'opération",
+          "jeton de bail",
+          "aperçu"
+        ]
+      },
+      "keywords": {
+        "en": ["x-studio-op", "x-studio-fences", "transaction", "preview", "health"],
+        "fr": ["x-studio-op", "x-studio-fences", "transaction", "prévisualisation", "santé"]
+      },
+      "identifiers": ["x-studio-op", "x-studio-fences", "x-studio-revision"],
+      "related": ["team.what-runs-where", "team.day-to-day", "team.write-refused-423", "team.write-refused-409"],
       "prerequisites": [],
       "owner": "@wanoo"
     },
@@ -6366,14 +6409,23 @@
       "context": ["studio-hosted"],
       "title": { "en": "Starting as an invited dev", "fr": "Débuter comme dev invité" },
       "url": { "en": "EN-Team-Starting-As-A-Dev", "fr": "FR-Equipe-Debuter-Comme-Dev" },
-      "state": "planned",
-      "sources": [],
+      "state": "ready",
+      "versions": { "appliesFrom": "4.2.3" },
+      "surfaces": ["studio-server"],
+      "sources": ["src/studio/hosted.ts", "src/studio/main.ts", "src/studio/spans.ts", "src/studio/comments-panel.ts"],
       "replaces": [],
       "questions": { "en": [], "fr": [] },
-      "aliases": { "en": [], "fr": [] },
+      "aliases": {
+        "en": ["getting started on the team Studio", "onboarding", "invited dev"],
+        "fr": ["prise en main du Studio d'équipe", "premier jour", "dev invité"]
+      },
+      "keywords": {
+        "en": ["invitation link", "first edit", "preview"],
+        "fr": ["lien d'invitation", "première modification", "aperçu"]
+      },
       "identifiers": [],
-      "related": [],
-      "prerequisites": [],
+      "related": ["team.day-to-day", "team.invitations", "team.concepts"],
+      "prerequisites": ["team.invitations"],
       "owner": "@wanoo"
     },
     {
@@ -6384,14 +6436,41 @@
       "context": ["studio-hosted"],
       "title": { "en": "Working together day to day", "fr": "Travailler ensemble au quotidien" },
       "url": { "en": "EN-Team-Day-To-Day", "fr": "FR-Equipe-Au-Quotidien" },
-      "state": "planned",
-      "sources": [],
+      "state": "ready",
+      "versions": { "appliesFrom": "4.2.3" },
+      "surfaces": ["studio-server"],
+      "sources": [
+        "src/studio/api.ts",
+        "src/studio/spans.ts",
+        "src/studio/hosted.ts",
+        "studio-server/src/ops/undo.ts",
+        "studio-server/src/server/live.ts",
+        "studio-server/src/server/leases.ts"
+      ],
       "replaces": ["docs/en/STUDIO-SERVER.md#working-together", "docs/fr/STUDIO-SERVER.md#travailler-à-plusieurs"],
-      "questions": { "en": [], "fr": [] },
-      "aliases": { "en": [], "fr": [] },
-      "identifiers": [],
-      "related": [],
-      "prerequisites": [],
+      "questions": {
+        "en": [
+          "How do several people work on the same game at the same time?",
+          "How do I keep a room to myself while I edit it?",
+          "Can I undo my change on the team Studio without undoing the others?"
+        ],
+        "fr": [
+          "Comment plusieurs personnes travaillent-elles sur le même jeu en même temps ?",
+          "Comment garder une salle pour moi pendant que je l'édite ?",
+          "Puis-je annuler mon changement sur le Studio d'équipe sans annuler ceux des autres ?"
+        ]
+      },
+      "aliases": {
+        "en": ["working together", "collaboration", "personal undo", "presence"],
+        "fr": ["travailler à plusieurs", "collaboration", "annulation personnelle", "présence"]
+      },
+      "keywords": {
+        "en": ["Spans panel", "live stream", "x-studio-base"],
+        "fr": ["panneau Spans", "flux en direct", "x-studio-base"]
+      },
+      "identifiers": ["GET /api/events", "POST /api/presence", "POST /api/undo", "POST /api/redo"],
+      "related": ["team.concepts", "team.write-refused-423", "team.write-refused-409", "team.recovery"],
+      "prerequisites": ["team.first-day"],
       "owner": "@wanoo"
     },
     {
@@ -6402,14 +6481,36 @@
       "context": ["studio-hosted"],
       "title": { "en": "Roles and actions: the full matrix", "fr": "Rôles et actions : la matrice complète" },
       "url": { "en": "EN-Team-Roles", "fr": "FR-Equipe-Roles" },
-      "state": "planned",
-      "sources": ["studio-server/src/server/auth/gate.ts"],
+      "state": "ready",
+      "versions": { "appliesFrom": "4.4.0" },
+      "surfaces": ["studio-server"],
+      "sources": [
+        "studio-server/src/server/auth/gate.ts",
+        "studio-server/src/server/http.ts",
+        "studio-server/src/server/auth/routes.ts",
+        "studio-server/src/ops/routes.ts",
+        "studio-server/src/server/auth/store.ts",
+        "studio-server/src/server/mcp.ts"
+      ],
       "replaces": ["docs/en/STUDIO-SERVER.md#people-and-roles", "docs/fr/STUDIO-SERVER.md#personnes-et-rôles"],
       "questions": { "en": [], "fr": [] },
-      "aliases": { "en": ["owner", "dev", "reviewer"], "fr": ["owner", "dev", "reviewer"] },
-      "identifiers": [],
-      "related": [],
+      "aliases": {
+        "en": ["owner", "dev", "reviewer", "permissions", "rights", "role matrix"],
+        "fr": ["owner", "dev", "reviewer", "permissions", "droits", "matrice des rôles"]
+      },
+      "keywords": {
+        "en": ["403", "roleFor", "policy A", "policy B"],
+        "fr": ["403", "roleFor", "politique A", "politique B"]
+      },
+      "identifiers": ["owner", "dev", "reviewer", "403"],
+      "related": ["team.members", "team.invitations", "team.concepts"],
       "prerequisites": [],
+      "claims": [
+        {
+          "id": "roles-read-review-write-dev",
+          "test": "tests/studio-auth.test.ts › the roles over every route › reading needs a reviewer, writing a dev; the read-only POSTs are reads"
+        }
+      ],
       "owner": "@wanoo"
     },
     {
@@ -6420,14 +6521,41 @@
       "context": ["studio-hosted"],
       "title": { "en": "Invitations", "fr": "Invitations" },
       "url": { "en": "EN-Team-Invitations", "fr": "FR-Equipe-Invitations" },
-      "state": "planned",
-      "sources": [],
+      "state": "ready",
+      "versions": { "appliesFrom": "4.2.1" },
+      "surfaces": ["studio-server"],
+      "sources": [
+        "studio-server/src/server/auth/store.ts",
+        "studio-server/src/server/auth/routes.ts",
+        "src/studio/members.ts"
+      ],
       "replaces": ["docs/en/STUDIO-SERVER.md#people-and-roles", "docs/fr/STUDIO-SERVER.md#personnes-et-rôles"],
-      "questions": { "en": [], "fr": [] },
-      "aliases": { "en": [], "fr": [] },
-      "identifiers": [],
-      "related": [],
+      "questions": {
+        "en": [
+          "How do I invite someone to the team Studio?",
+          "How does the first owner get in?",
+          "The invitation link says access not granted"
+        ],
+        "fr": [
+          "Comment inviter quelqu'un sur le Studio d'équipe ?",
+          "Comment le premier owner entre-t-il ?",
+          "Le lien d'invitation affiche Access not granted"
+        ]
+      },
+      "aliases": {
+        "en": ["invite", "invitation link", "first owner"],
+        "fr": ["inviter", "lien d'invitation", "premier owner"]
+      },
+      "keywords": { "en": ["verified email", "7 days"], "fr": ["email vérifié", "7 jours"] },
+      "identifiers": ["POST /api/invitations", "npm run studio-server -- invite"],
+      "related": ["team.members", "team.roles", "team.first-day"],
       "prerequisites": [],
+      "claims": [
+        {
+          "id": "invitation-once-verified-email",
+          "test": "tests/studio-auth.test.ts › login and invitations › an invitation is used once, and only by the verified email it names"
+        }
+      ],
       "owner": "@wanoo"
     },
     {
@@ -6439,14 +6567,53 @@
       "context": ["studio-hosted"],
       "title": { "en": "Managing members", "fr": "Gérer les membres" },
       "url": { "en": "EN-Team-Members", "fr": "FR-Equipe-Membres" },
-      "state": "planned",
-      "sources": ["studio-server/src/server/auth/routes.ts"],
+      "state": "ready",
+      "versions": { "appliesFrom": "4.2.1" },
+      "surfaces": ["studio-server"],
+      "sources": [
+        "studio-server/src/server/auth/routes.ts",
+        "studio-server/src/server/auth/store.ts",
+        "studio-server/src/server/auth/gate.ts",
+        "src/studio/members.ts"
+      ],
       "replaces": ["docs/en/STUDIO-SERVER.md#people-and-roles", "docs/fr/STUDIO-SERVER.md#personnes-et-rôles"],
-      "questions": { "en": [], "fr": [] },
-      "aliases": { "en": [], "fr": [] },
-      "identifiers": [],
-      "related": [],
+      "questions": {
+        "en": [
+          "How do I remove a member from the team Studio?",
+          "How do I change someone’s role?",
+          "Where is the audit log?",
+          "How do I log someone out everywhere?"
+        ],
+        "fr": [
+          "Comment retirer un membre du Studio d'équipe ?",
+          "Comment changer le rôle de quelqu'un ?",
+          "Où est le journal d'audit ?",
+          "Comment déconnecter quelqu'un partout ?"
+        ]
+      },
+      "aliases": {
+        "en": ["members", "demote", "remove a member", "audit log", "revoke sessions"],
+        "fr": ["membres", "rétrograder", "retirer un membre", "journal d'audit", "révoquer les sessions"]
+      },
+      "keywords": {
+        "en": ["last owner", "revocation", "R = 15 min"],
+        "fr": ["dernier owner", "révocation", "R = 15 min"]
+      },
+      "identifiers": [
+        "GET /api/members",
+        "PUT /api/members/<id>",
+        "DELETE /api/members/<id>",
+        "DELETE /api/members/<id>/sessions",
+        "GET /api/audit"
+      ],
+      "related": ["team.roles", "team.invitations", "clever.admin-recovery"],
       "prerequisites": [],
+      "claims": [
+        {
+          "id": "owner-last-owner-and-removal",
+          "test": "tests/studio-auth.test.ts › the owner › lists members, invites, cannot demote the last owner, and a removal ends access at once"
+        }
+      ],
       "owner": "@wanoo"
     },
     {
@@ -6521,13 +6688,42 @@
         "fr": "Reprendre après un bail perdu, une déconnexion ou un aperçu périmé"
       },
       "url": { "en": "EN-Team-Recovery", "fr": "FR-Equipe-Reprise" },
-      "state": "planned",
-      "sources": [],
+      "state": "ready",
+      "versions": { "appliesFrom": "4.2.3" },
+      "surfaces": ["studio-server"],
+      "sources": [
+        "src/studio/hosted.ts",
+        "src/studio/api.ts",
+        "studio-server/src/server/leases.ts",
+        "studio-server/src/server/live.ts",
+        "studio-server/src/server/previews.ts",
+        "studio-server/src/server/play.ts"
+      ],
       "replaces": ["docs/en/STUDIO-SERVER.md#working-together", "docs/fr/STUDIO-SERVER.md#travailler-à-plusieurs"],
-      "questions": { "en": [], "fr": [] },
-      "aliases": { "en": [], "fr": [] },
+      "questions": {
+        "en": [
+          "My lease ran out and someone took my room",
+          "The Studio says Reconnecting, what do I do?",
+          "Why does the game view show an older revision?",
+          "My changes are not answered yet, are they lost?"
+        ],
+        "fr": [
+          "Mon bail a expiré et quelqu'un a pris ma salle",
+          "Le Studio affiche Reconnecting, que faire ?",
+          "Pourquoi la vue du jeu montre une révision plus ancienne ?",
+          "Mes changements ne sont pas encore confirmés, sont-ils perdus ?"
+        ]
+      },
+      "aliases": {
+        "en": ["lost lease", "disconnection", "stale preview", "reconnecting", "session expired"],
+        "fr": ["bail perdu", "déconnexion", "aperçu périmé", "reconnexion", "session expirée"]
+      },
+      "keywords": {
+        "en": ["Load the latest preview", "Reload view", "Identity provider unreachable"],
+        "fr": ["Load the latest preview", "Reload view", "Identity provider unreachable"]
+      },
       "identifiers": [],
-      "related": [],
+      "related": ["team.write-refused-423", "team.write-refused-409", "team.day-to-day", "clever.troubleshooting"],
       "prerequisites": [],
       "owner": "@wanoo"
     },
@@ -6539,14 +6735,42 @@
       "context": ["studio-hosted"],
       "title": { "en": "Comments", "fr": "Commentaires" },
       "url": { "en": "EN-Team-Comments", "fr": "FR-Equipe-Commentaires" },
-      "state": "planned",
-      "sources": ["studio-server/src/server/comments.ts"],
+      "state": "ready",
+      "versions": { "appliesFrom": "4.2.3" },
+      "surfaces": ["studio-server"],
+      "sources": ["studio-server/src/server/comments.ts", "src/studio/comments-panel.ts"],
       "replaces": ["docs/en/STUDIO-SERVER.md#comments-423", "docs/fr/STUDIO-SERVER.md#commentaires-423"],
-      "questions": { "en": [], "fr": [] },
-      "aliases": { "en": [], "fr": [] },
-      "identifiers": [],
-      "related": [],
+      "questions": {
+        "en": [
+          "How do I comment on a room in the team Studio?",
+          "Can a reviewer leave comments?",
+          "Why is my comment marked orphan?"
+        ],
+        "fr": [
+          "Comment commenter une salle dans le Studio d'équipe ?",
+          "Un reviewer peut-il laisser des commentaires ?",
+          "Pourquoi mon commentaire est-il dit orphelin ?"
+        ]
+      },
+      "aliases": {
+        "en": ["comment threads", "review comments", "orphan comment"],
+        "fr": ["fils de commentaires", "commentaires de relecture", "commentaire orphelin"]
+      },
+      "keywords": { "en": ["anchor", "notes.json", "resolve"], "fr": ["ancre", "notes.json", "résoudre"] },
+      "identifiers": [
+        "GET /api/comments",
+        "POST /api/comments",
+        "PUT /api/comments/<id>",
+        "POST /api/comments/import-notes"
+      ],
+      "related": ["team.roles", "studio.notes"],
       "prerequisites": [],
+      "claims": [
+        {
+          "id": "comment-author-edits",
+          "test": "tests/studio-comments.test.ts › comments › lets only its author change its text; resolves a thread as a whole, a reviewer's own threads only"
+        }
+      ],
       "owner": "@wanoo"
     },
     {
@@ -6557,13 +6781,36 @@
       "context": ["studio-hosted"],
       "title": { "en": "Map and semantic diff", "fr": "Carte et diff sémantique" },
       "url": { "en": "EN-Team-Map-And-Diff", "fr": "FR-Equipe-Carte-Et-Diff" },
-      "state": "planned",
-      "sources": [],
+      "state": "ready",
+      "versions": { "appliesFrom": "4.2.3" },
+      "surfaces": ["studio-server"],
+      "sources": [
+        "tools/studio/scenario-map.ts",
+        "tools/studio/semantic-diff.ts",
+        "src/studio/map-tab.ts",
+        "src/studio/diff-panel.ts",
+        "studio-server/src/ops/core.ts"
+      ],
       "replaces": [],
-      "questions": { "en": [], "fr": [] },
-      "aliases": { "en": [], "fr": [] },
-      "identifiers": [],
-      "related": [],
+      "questions": {
+        "en": [
+          "How do I see what changed between two revisions?",
+          "How do I group rooms into chapters on the map?",
+          "How do I compare two published builds?"
+        ],
+        "fr": [
+          "Comment voir ce qui a changé entre deux révisions ?",
+          "Comment regrouper des salles en chapitres sur la carte ?",
+          "Comment comparer deux builds publiés ?"
+        ]
+      },
+      "aliases": {
+        "en": ["scenario map", "groupings", "semantic diff", "changes between revisions"],
+        "fr": ["carte du scénario", "regroupements", "diff sémantique", "changements entre révisions"]
+      },
+      "keywords": { "en": ["groupings.json", "not declared"], "fr": ["groupings.json", "not declared"] },
+      "identifiers": ["GET /api/map", "GET /api/groupings", "PUT /api/groupings", "GET /api/diff/<from>..<to>"],
+      "related": ["studio.map", "studio.semantic-diff", "team.builds"],
       "prerequisites": [],
       "owner": "@wanoo"
     },
@@ -6575,14 +6822,46 @@
       "context": ["studio-hosted"],
       "title": { "en": "Publishing builds", "fr": "Publier des builds" },
       "url": { "en": "EN-Team-Builds", "fr": "FR-Equipe-Builds" },
-      "state": "planned",
-      "sources": ["studio-server/src/server/builds.ts"],
+      "state": "ready",
+      "versions": { "appliesFrom": "4.2.2" },
+      "surfaces": ["studio-server"],
+      "sources": ["studio-server/src/server/builds.ts", "src/studio/builds-panel.ts"],
       "replaces": ["docs/en/STUDIO-SERVER.md#publishing-builds", "docs/fr/STUDIO-SERVER.md#publier-des-builds"],
-      "questions": { "en": [], "fr": [] },
-      "aliases": { "en": [], "fr": [] },
-      "identifiers": [],
-      "related": [],
+      "questions": {
+        "en": [
+          "How do I publish a build from the team Studio?",
+          "How do I check a published build’s signature?",
+          "How do I share the game with players from the hosted Studio?"
+        ],
+        "fr": [
+          "Comment publier un build depuis le Studio d'équipe ?",
+          "Comment vérifier la signature d'un build publié ?",
+          "Comment partager le jeu avec des joueurs depuis le Studio hébergé ?"
+        ]
+      },
+      "aliases": {
+        "en": ["published build", "Publish this revision", "Rebuild fresh", "reproducible build"],
+        "fr": ["build publié", "Publish this revision", "Rebuild fresh", "build reproductible"]
+      },
+      "keywords": {
+        "en": ["/play/", "manifest", "Ed25519", "publicBuilds"],
+        "fr": ["/play/", "manifeste", "Ed25519", "publicBuilds"]
+      },
+      "identifiers": [
+        "GET /api/builds",
+        "GET /api/builds/<n>",
+        "POST /api/builds",
+        "POST /api/builds/<n>/rebuild",
+        "publicBuilds"
+      ],
+      "related": ["team.hosted-assets", "create.build-release", "team.map-diff"],
       "prerequisites": [],
+      "claims": [
+        {
+          "id": "build-never-changes",
+          "test": "tests/studio-builds.test.ts › published builds › rebuilds fresh and compares, byte for byte; the published build never changes"
+        }
+      ],
       "owner": "@wanoo"
     },
     {
@@ -6594,14 +6873,46 @@
       "context": ["studio-hosted"],
       "title": { "en": "Remote MCP", "fr": "MCP distant" },
       "url": { "en": "EN-Team-Remote-MCP", "fr": "FR-Equipe-MCP-Distant" },
-      "state": "planned",
-      "sources": ["studio-server/src/server/mcp.ts"],
+      "state": "ready",
+      "versions": { "appliesFrom": "4.2.3" },
+      "surfaces": ["studio-server"],
+      "sources": [
+        "studio-server/src/server/mcp.ts",
+        "tools/studio/http-backend.ts",
+        "tools/mcp/tools-server.ts",
+        "tools/mcp/server.ts",
+        "docs/dev/adr/0029-remote-mcp.md"
+      ],
       "replaces": ["docs/en/MCP.md#a-hosted-studio-423", "docs/fr/MCP.md#un-studio-hébergé-423"],
-      "questions": { "en": [], "fr": [] },
-      "aliases": { "en": [], "fr": [] },
-      "identifiers": [],
-      "related": [],
+      "questions": {
+        "en": [
+          "How do I connect an AI agent to the hosted Studio?",
+          "Which MCP tools work on a hosted Studio?",
+          "Why does my agent get a 401 on /mcp?"
+        ],
+        "fr": [
+          "Comment brancher un agent IA sur le Studio hébergé ?",
+          "Quels outils MCP marchent sur un Studio hébergé ?",
+          "Pourquoi mon agent reçoit-il une 401 sur /mcp ?"
+        ]
+      },
+      "aliases": {
+        "en": ["remote MCP", "hosted MCP", "MCP over HTTP", "AI agent on the Studio Server"],
+        "fr": ["MCP distant", "MCP hébergé", "MCP en HTTP", "agent IA sur le Studio Server"]
+      },
+      "keywords": {
+        "en": ["Streamable HTTP", "oauth-protected-resource", "Bearer token", "audience"],
+        "fr": ["Streamable HTTP", "oauth-protected-resource", "jeton Bearer", "audience"]
+      },
+      "identifiers": ["/mcp", "/.well-known/oauth-protected-resource/mcp", "npm run mcp -- --server"],
+      "related": ["studio.mcp-setup", "studio.mcp-tools", "team.server-cli", "team.roles"],
       "prerequisites": [],
+      "claims": [
+        {
+          "id": "mcp-bearer-only",
+          "test": "tests/studio-mcp-remote.test.ts › the remote MCP › asks for a token, refuses one of another audience, the session cookie, a non-member, and a GET"
+        }
+      ],
       "owner": "@wanoo"
     },
     {
@@ -6613,14 +6924,49 @@
       "context": ["studio-hosted"],
       "title": { "en": "The game in Git", "fr": "Le jeu dans Git" },
       "url": { "en": "EN-Team-Game-In-Git", "fr": "FR-Equipe-Jeu-Dans-Git" },
-      "state": "planned",
-      "sources": ["studio-server/src/server/git.ts"],
+      "state": "ready",
+      "versions": { "appliesFrom": "4.2.3" },
+      "surfaces": ["studio-server"],
+      "sources": ["studio-server/src/server/git.ts", "studio-server/src/server/config.ts", "src/studio/git-panel.ts"],
       "replaces": ["docs/en/STUDIO-SERVER.md#the-game-in-git-423", "docs/fr/STUDIO-SERVER.md#le-jeu-dans-git-423"],
-      "questions": { "en": [], "fr": [] },
-      "aliases": { "en": [], "fr": [] },
-      "identifiers": [],
-      "related": [],
+      "questions": {
+        "en": [
+          "How do I push the hosted game to a Git repository?",
+          "Why is my push to Git refused with 409?",
+          "How do I import the game from Git into the Studio?"
+        ],
+        "fr": [
+          "Comment pousser le jeu hébergé vers un dépôt Git ?",
+          "Pourquoi mon push vers Git est-il refusé par une 409 ?",
+          "Comment importer le jeu depuis Git dans le Studio ?"
+        ]
+      },
+      "aliases": {
+        "en": ["Git push", "Git import", "deploy key", "Co-authored-by"],
+        "fr": ["push Git", "import Git", "clé de déploiement", "Co-authored-by"]
+      },
+      "keywords": {
+        "en": ["never forced", "knownHosts", "STUDIO_GIT_KEY"],
+        "fr": ["jamais forcé", "knownHosts", "STUDIO_GIT_KEY"]
+      },
+      "identifiers": [
+        "GET /api/git",
+        "POST /api/git/push",
+        "POST /api/git/import",
+        "git.remote",
+        "git.branch",
+        "git.path",
+        "git.committer",
+        "git.knownHosts"
+      ],
+      "related": ["clever.export-leave", "team.roles", "clever.backups"],
       "prerequisites": [],
+      "claims": [
+        {
+          "id": "git-never-forced",
+          "test": "tests/studio-git.test.ts › the game to and from Git › refuses a branch that moved since, and leaves it as it was: never forced"
+        }
+      ],
       "owner": "@wanoo"
     },
     {
@@ -6631,17 +6977,43 @@
       "context": ["studio-hosted"],
       "title": { "en": "Upgrading the engine of a hosted game", "fr": "Mettre à jour le moteur d'un jeu hébergé" },
       "url": { "en": "EN-Team-Upgrade-Engine", "fr": "FR-Equipe-Mettre-A-Jour-Le-Moteur" },
-      "state": "planned",
-      "sources": ["studio-server/src/server/engine-upgrade.ts"],
+      "state": "ready",
+      "versions": { "appliesFrom": "4.2.3" },
+      "surfaces": ["studio-server"],
+      "sources": ["studio-server/src/server/engine-upgrade.ts", "studio-server/src/worker/migrate.ts"],
       "replaces": [
         "docs/en/STUDIO-SERVER.md#upgrading-the-engine-of-a-hosted-game",
         "docs/fr/STUDIO-SERVER.md#monter-la-version-du-moteur-dun-jeu-hébergé"
       ],
-      "questions": { "en": [], "fr": [] },
-      "aliases": { "en": [], "fr": [] },
-      "identifiers": [],
-      "related": [],
+      "questions": {
+        "en": [
+          "How do I migrate a hosted game made on 4.1.x to schema 3?",
+          "My hosted game still imports web-scumm, how do I fix it?",
+          "Why is the engine upgrade refused with 422?"
+        ],
+        "fr": [
+          "Comment migrer un jeu hébergé fait en 4.1.x vers le schéma 3 ?",
+          "Mon jeu hébergé importe encore web-scumm, comment le corriger ?",
+          "Pourquoi la mise à niveau du moteur est-elle refusée par une 422 ?"
+        ]
+      },
+      "aliases": {
+        "en": ["engine upgrade", "schema migration", "former name", "web-scumm imports"],
+        "fr": ["montée de version du moteur", "migration de schéma", "ancien nom", "imports web-scumm"]
+      },
+      "keywords": {
+        "en": ["authoring schema 3", "stable ids", "quest-n-click migrate"],
+        "fr": ["schéma d'écriture 3", "identifiants stables", "quest-n-click migrate"]
+      },
+      "identifiers": ["POST /api/engine/migrate"],
+      "related": ["install.upgrade", "install.upgrade-notes-4-3", "clever.upgrade-server", "clever.backups"],
       "prerequisites": [],
+      "claims": [
+        {
+          "id": "engine-upgrade-judged-first",
+          "test": "tests/studio-engine-upgrade.test.ts › the engine's upgrade of a game in the format of a 4.1.x › refuses a game the migration would break, before anything is written: the head intact"
+        }
+      ],
       "owner": "@wanoo"
     },
     {
@@ -6653,13 +7025,47 @@
       "context": ["studio-hosted"],
       "title": { "en": "Hosted assets", "fr": "Assets hébergés" },
       "url": { "en": "EN-Team-Hosted-Assets", "fr": "FR-Equipe-Assets-Heberges" },
-      "state": "planned",
-      "sources": ["studio-server/src/server/hosted-assets.ts"],
+      "state": "ready",
+      "versions": { "appliesFrom": "4.2.3" },
+      "surfaces": ["studio-server"],
+      "sources": [
+        "studio-server/src/server/hosted-assets.ts",
+        "studio-server/src/server/prepared.ts",
+        "studio-server/src/server/jobs.ts",
+        "studio-server/src/worker/cut.ts",
+        "studio-server/src/worker/prepare.ts"
+      ],
       "replaces": [],
-      "questions": { "en": [], "fr": [] },
-      "aliases": { "en": [], "fr": [] },
-      "identifiers": [],
-      "related": [],
+      "questions": {
+        "en": [
+          "How do I upload a sound to the hosted Studio?",
+          "How do I cut a sprite sheet on the team Studio?",
+          "Why is Prepare assets refused on the hosted Studio?",
+          "How do I cancel a running job?"
+        ],
+        "fr": [
+          "Comment téléverser un son sur le Studio hébergé ?",
+          "Comment découper une planche de sprites sur le Studio d'équipe ?",
+          "Pourquoi Prepare assets est-il refusé sur le Studio hébergé ?",
+          "Comment annuler un job en cours ?"
+        ]
+      },
+      "aliases": {
+        "en": ["Assets tab", "Prepare assets", "upload", "sprite sheet cutting", "jobs"],
+        "fr": ["onglet Assets", "Prepare assets", "upload", "découpe de planches", "jobs"]
+      },
+      "keywords": { "en": ["413", "415", "202", "cut job"], "fr": ["413", "415", "202", "job de découpe"] },
+      "identifiers": [
+        "GET /api/assets",
+        "POST /api/assets/sound",
+        "POST /api/assets/decor",
+        "POST /api/assets/sheet",
+        "POST /api/assets/cell",
+        "POST /api/assets/prepare",
+        "GET /api/jobs/<id>",
+        "POST /api/jobs/<id>/cancel"
+      ],
+      "related": ["studio.assets", "team.builds", "team.limits"],
       "prerequisites": [],
       "owner": "@wanoo"
     },
@@ -6671,14 +7077,47 @@
       "context": ["studio-hosted"],
       "title": { "en": "The server's command line", "fr": "La ligne de commande du serveur" },
       "url": { "en": "EN-Team-Server-CLI", "fr": "FR-Equipe-CLI-Du-Serveur" },
-      "state": "planned",
-      "sources": ["studio-server/src/server/main.ts"],
+      "state": "ready",
+      "versions": { "appliesFrom": "4.2.3" },
+      "surfaces": ["studio-server"],
+      "sources": [
+        "studio-server/src/server/main.ts",
+        "studio-server/src/server/config.ts",
+        "studio-server/src/server/auth/device.ts",
+        "studio-server/src/ops/backup-bucket.ts",
+        "studio-server/src/ops/gc.ts"
+      ],
       "replaces": ["docs/en/STUDIO-SERVER.md#the-command-line", "docs/fr/STUDIO-SERVER.md#la-ligne-de-commande"],
       "questions": { "en": [], "fr": [] },
-      "aliases": { "en": [], "fr": [] },
-      "identifiers": ["npm run studio-server"],
-      "related": [],
+      "aliases": {
+        "en": ["studio-server CLI", "quest-n-click-studio-server", "server command line"],
+        "fr": ["CLI studio-server", "quest-n-click-studio-server", "ligne de commande du serveur"]
+      },
+      "keywords": {
+        "en": ["exit codes", "export-manifest.json", "device flow"],
+        "fr": ["codes de sortie", "export-manifest.json", "device flow"]
+      },
+      "identifiers": [
+        "npm run studio-server",
+        "npm run studio-server -- serve",
+        "npm run studio-server -- import",
+        "npm run studio-server -- export",
+        "npm run studio-server -- login",
+        "npm run studio-server -- token",
+        "npm run studio-server -- deps",
+        "npm run studio-server -- worker-keys",
+        "npm run studio-server -- backup",
+        "npm run studio-server -- gc",
+        "npm run studio-worker"
+      ],
+      "related": ["reference.cli", "reference.environment-variables", "clever.backups", "clever.restore-drill"],
       "prerequisites": [],
+      "claims": [
+        {
+          "id": "export-same-files",
+          "test": "tests/studio-server.test.ts › import, serve, export through the command › a game imported, then exported at its head, is the same files with a manifest of their hashes"
+        }
+      ],
       "owner": "@wanoo"
     },
     {
@@ -6689,17 +7128,48 @@
       "context": ["studio-hosted"],
       "title": { "en": "Health and metrics routes", "fr": "Routes de santé et de métriques" },
       "url": { "en": "EN-Team-Health-And-Metrics", "fr": "FR-Equipe-Sante-Et-Metriques" },
-      "state": "planned",
-      "sources": ["studio-server/src/server/health.ts", "studio-server/src/server/metrics.ts"],
+      "state": "ready",
+      "versions": { "appliesFrom": "4.2.3" },
+      "surfaces": ["studio-server"],
+      "sources": [
+        "studio-server/src/server/health.ts",
+        "studio-server/src/server/metrics.ts",
+        "studio-server/src/server/http.ts",
+        "studio-server/src/worker/main.ts"
+      ],
       "replaces": [
         "docs/en/STUDIO-SERVER.md#running-it-the-reference-deployment",
         "docs/fr/STUDIO-SERVER.md#le-faire-tourner--le-déploiement-de-référence"
       ],
       "questions": { "en": [], "fr": [] },
-      "aliases": { "en": [], "fr": [] },
-      "identifiers": ["/readyz"],
-      "related": [],
+      "aliases": {
+        "en": ["probes", "Prometheus metrics", "game health", "bisection"],
+        "fr": ["sondes", "métriques Prometheus", "santé du jeu", "bissection"]
+      },
+      "keywords": {
+        "en": ["rpoMs", "STUDIO_METRICS_TOKEN", "healthcheck"],
+        "fr": ["rpoMs", "STUDIO_METRICS_TOKEN", "healthcheck"]
+      },
+      "identifiers": [
+        "/readyz",
+        "/livez",
+        "/startz",
+        "GET /metrics",
+        "POST /api/health/bisect",
+        "studio_journal_rpo_seconds",
+        "studio_service_lease_held",
+        "studio_lease_conflicts_total",
+        "studio_worker_jobs_in_flight",
+        "studio_preview_phase_seconds"
+      ],
+      "related": ["clever.monitoring", "clever.rpo-rto", "clever.redeploys"],
       "prerequisites": [],
+      "claims": [
+        {
+          "id": "metrics-404-without-token",
+          "test": "tests/studio-metrics.test.ts › without a token configured › has no /metrics route (404)"
+        }
+      ],
       "owner": "@wanoo"
     },
     {
@@ -6710,14 +7180,28 @@
       "context": ["studio-hosted"],
       "title": { "en": "Trying it locally with compose.yml", "fr": "L'essayer en local avec compose.yml" },
       "url": { "en": "EN-Team-Try-Locally", "fr": "FR-Equipe-Essayer-En-Local" },
-      "state": "planned",
-      "sources": ["ops/studio/compose.yml"],
+      "state": "ready",
+      "versions": { "appliesFrom": "4.2.3" },
+      "surfaces": ["studio-server"],
+      "sources": [
+        "ops/studio/compose.yml",
+        "ops/studio/keycloak/realm.json",
+        "studio-server/src/server/config.ts",
+        "studio-server/src/server/main.ts"
+      ],
       "replaces": ["docs/en/STUDIO-SERVER.md#trying-it-locally", "docs/fr/STUDIO-SERVER.md#essayer-en-local"],
       "questions": { "en": [], "fr": [] },
-      "aliases": { "en": [], "fr": [] },
+      "aliases": {
+        "en": ["local Studio Server", "docker compose", "without OIDC"],
+        "fr": ["Studio Server en local", "docker compose", "sans OIDC"]
+      },
+      "keywords": {
+        "en": ["SQLite", "MinIO", "Keycloak", "loopback"],
+        "fr": ["SQLite", "MinIO", "Keycloak", "boucle locale"]
+      },
       "identifiers": [],
-      "related": [],
-      "prerequisites": [],
+      "related": ["team.what-runs-where", "team.server-cli", "clever.first-deployment"],
+      "prerequisites": ["install.requirements"],
       "owner": "@wanoo"
     },
     {
@@ -6728,13 +7212,19 @@
       "context": ["studio-hosted"],
       "title": { "en": "Known limits", "fr": "Limites connues" },
       "url": { "en": "EN-Team-Known-Limits", "fr": "FR-Equipe-Limites-Connues" },
-      "state": "planned",
-      "sources": [],
+      "state": "ready",
+      "versions": { "appliesFrom": "4.4.0" },
+      "surfaces": ["studio-server"],
+      "sources": ["studio-server/src/server/*.ts", "studio-server/src/worker/lanes.ts", "src/studio/hosted.ts"],
       "replaces": ["docs/en/STUDIO-SERVER.md#known-limits", "docs/fr/STUDIO-SERVER.md#limites-connues"],
       "questions": { "en": [], "fr": [] },
-      "aliases": { "en": [], "fr": [] },
+      "aliases": {
+        "en": ["known limits", "limitations", "what the hosted Studio does not do"],
+        "fr": ["limites connues", "limitations", "ce que ne fait pas le Studio hébergé"]
+      },
+      "keywords": { "en": ["lanes", "429", "captures", "Assistant"], "fr": ["files", "429", "captures", "Assistant"] },
       "identifiers": [],
-      "related": [],
+      "related": ["team.what-runs-where", "team.hosted-assets", "team.health-metrics"],
       "prerequisites": [],
       "owner": "@wanoo"
     },
