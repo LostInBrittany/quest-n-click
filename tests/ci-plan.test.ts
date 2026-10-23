@@ -313,7 +313,10 @@ describe("Playwright's image (#261)", () => {
     for (const j of inImage) {
       expect(j).not.toMatch(/playwright install/);
       expect(j).toMatch(/HOME: \/root/);
-      expect(j).toMatch(/safe\.directory "\$\{\{ github\.workspace \}\}"/);
+      expect(j).toMatch(/safe\.directory "\$\(pwd\)"/);
+      // The tool cache's `pip` starts with the host's path to Python (`/opt/hostedtoolcache/…`), absent in the
+      // container: pip through the interpreter.
+      expect(j).not.toMatch(/\(pip install/);
     }
   });
 });

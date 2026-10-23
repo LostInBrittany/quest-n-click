@@ -553,8 +553,9 @@ jobs:
       - if: env.RUN == 'true'
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - if: env.RUN == 'true'
-        # In the container the checkout belongs to the runner's user, not root: git is told it is safe.
-        run: git config --global --add safe.directory "${{ github.workspace }}"
+        # In the container the checkout belongs to the runner's user, not root: git is told it is safe. `$(pwd)`, the
+        # step's directory, is the workspace as the container mounts it (`/__w/…`); `github.workspace` is the host's path.
+        run: git config --global --add safe.directory "$(pwd)"
       - if: env.RUN == 'true'
         uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
@@ -565,7 +566,7 @@ jobs:
         with:
           python-version: '3.12'
       - if: env.RUN == 'true'
-        run: for i in 1 2 3; do (pip install -r requirements.txt) && break; [ "$i" = 3 ] && exit 1; echo "retry $i"; sleep 15; done
+        run: for i in 1 2 3; do (python -m pip install -r requirements.txt) && break; [ "$i" = 3 ] && exit 1; echo "retry $i"; sleep 15; done
         timeout-minutes: 20
       - if: env.RUN == 'true'
         run: for i in 1 2 3; do (npm ci) && break; [ "$i" = 3 ] && exit 1; echo "retry $i"; sleep 15; done
@@ -697,8 +698,9 @@ jobs:
       - if: env.RUN == 'true'
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - if: env.RUN == 'true'
-        # In the container the checkout belongs to the runner's user, not root: git is told it is safe.
-        run: git config --global --add safe.directory "${{ github.workspace }}"
+        # In the container the checkout belongs to the runner's user, not root: git is told it is safe. `$(pwd)`, the
+        # step's directory, is the workspace as the container mounts it (`/__w/…`); `github.workspace` is the host's path.
+        run: git config --global --add safe.directory "$(pwd)"
       - if: env.RUN == 'true'
         uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
@@ -709,7 +711,7 @@ jobs:
         with:
           python-version: '3.12'
       - if: env.RUN == 'true'
-        run: for i in 1 2 3; do (pip install -r requirements.txt) && break; [ "$i" = 3 ] && exit 1; echo "retry $i"; sleep 15; done
+        run: for i in 1 2 3; do (python -m pip install -r requirements.txt) && break; [ "$i" = 3 ] && exit 1; echo "retry $i"; sleep 15; done
         timeout-minutes: 20
       - if: env.RUN == 'true'
         run: for i in 1 2 3; do (npm ci) && break; [ "$i" = 3 ] && exit 1; echo "retry $i"; sleep 15; done
@@ -793,8 +795,9 @@ jobs:
       - if: env.RUN == 'true'
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - if: env.RUN == 'true'
-        # In the container the checkout belongs to the runner's user, not root: git is told it is safe.
-        run: git config --global --add safe.directory "${{ github.workspace }}"
+        # In the container the checkout belongs to the runner's user, not root: git is told it is safe. `$(pwd)`, the
+        # step's directory, is the workspace as the container mounts it (`/__w/…`); `github.workspace` is the host's path.
+        run: git config --global --add safe.directory "$(pwd)"
       - if: env.RUN == 'true'
         uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
@@ -892,8 +895,9 @@ jobs:
       - if: env.RUN == 'true'
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - if: env.RUN == 'true'
-        # In the container the checkout belongs to the runner's user, not root: git is told it is safe.
-        run: git config --global --add safe.directory "${{ github.workspace }}"
+        # In the container the checkout belongs to the runner's user, not root: git is told it is safe. `$(pwd)`, the
+        # step's directory, is the workspace as the container mounts it (`/__w/…`); `github.workspace` is the host's path.
+        run: git config --global --add safe.directory "$(pwd)"
       - if: env.RUN == 'true'
         uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
@@ -934,8 +938,9 @@ jobs:
       - if: env.FULL == 'true'
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - if: env.FULL == 'true'
-        # In the container the checkout belongs to the runner's user, not root: git is told it is safe.
-        run: git config --global --add safe.directory "${{ github.workspace }}"
+        # In the container the checkout belongs to the runner's user, not root: git is told it is safe. `$(pwd)`, the
+        # step's directory, is the workspace as the container mounts it (`/__w/…`); `github.workspace` is the host's path.
+        run: git config --global --add safe.directory "$(pwd)"
       - if: env.FULL == 'true'
         uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
@@ -974,8 +979,9 @@ jobs:
       - if: env.RUN == 'true'
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - if: env.RUN == 'true'
-        # In the container the checkout belongs to the runner's user, not root: git is told it is safe.
-        run: git config --global --add safe.directory "${{ github.workspace }}"
+        # In the container the checkout belongs to the runner's user, not root: git is told it is safe. `$(pwd)`, the
+        # step's directory, is the workspace as the container mounts it (`/__w/…`); `github.workspace` is the host's path.
+        run: git config --global --add safe.directory "$(pwd)"
       - if: env.RUN == 'true'
         uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
@@ -986,7 +992,7 @@ jobs:
         with:
           python-version: '3.12'
       - if: env.RUN == 'true'
-        run: for i in 1 2 3; do (pip install -r requirements.txt) && break; [ "$i" = 3 ] && exit 1; echo "retry $i"; sleep 15; done
+        run: for i in 1 2 3; do (python -m pip install -r requirements.txt) && break; [ "$i" = 3 ] && exit 1; echo "retry $i"; sleep 15; done
         timeout-minutes: 20
       - if: env.RUN == 'true'
         run: for i in 1 2 3; do (npm ci) && break; [ "$i" = 3 ] && exit 1; echo "retry $i"; sleep 15; done
@@ -1095,8 +1101,9 @@ jobs:
       - if: env.RUN == 'true'
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - if: env.RUN == 'true'
-        # In the container the checkout belongs to the runner's user, not root: git is told it is safe.
-        run: git config --global --add safe.directory "${{ github.workspace }}"
+        # In the container the checkout belongs to the runner's user, not root: git is told it is safe. `$(pwd)`, the
+        # step's directory, is the workspace as the container mounts it (`/__w/…`); `github.workspace` is the host's path.
+        run: git config --global --add safe.directory "$(pwd)"
       - if: env.RUN == 'true'
         uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
@@ -1107,7 +1114,7 @@ jobs:
         with:
           python-version: '3.12'
       - if: env.RUN == 'true'
-        run: for i in 1 2 3; do (pip install -r requirements.txt) && break; [ "$i" = 3 ] && exit 1; echo "retry $i"; sleep 15; done
+        run: for i in 1 2 3; do (python -m pip install -r requirements.txt) && break; [ "$i" = 3 ] && exit 1; echo "retry $i"; sleep 15; done
         timeout-minutes: 20
       - if: env.RUN == 'true'
         run: for i in 1 2 3; do (npm ci) && break; [ "$i" = 3 ] && exit 1; echo "retry $i"; sleep 15; done
