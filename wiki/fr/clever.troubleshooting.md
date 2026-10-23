@@ -123,8 +123,9 @@ Chaque section ci-dessous dit quelle ligne ou quelle réponse distingue son cas.
    worker ; un décalage de plus de 30 s est à corriger côté plateforme.
 
 > [!GUARANTEE id=job-clock-skew]
-> Le worker accepte un job signé par un Studio dont l’horloge avance sur la sienne jusqu’à 30 s, et refuse toujours un
-> job expiré, à la milliseconde, ou qui vivrait plus longtemps qu’un job plus le décalage.
+> Le worker accepte un job signé par un Studio dont l’horloge avance sur la sienne jusqu’à 30 s.
+
+Il refuse toujours un job expiré, à la milliseconde, ou qui vivrait plus longtemps qu’un job plus le décalage.
 
 <a name="silent-cron"></a>
 

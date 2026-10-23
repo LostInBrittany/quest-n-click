@@ -91,7 +91,9 @@ test it in `onEnter`. `validate` warns about an event emitted that nothing liste
 emitted, and a script waiting for an event never emitted.
 
 > [!GUARANTEE id=emit-order]
-> `emit` runs the current room's listeners, then the game's, in order; a `once` listener runs once.
+> `emit` runs the current room's listeners and the game's; a `once` listener runs once.
+
+The room's listeners run first, then the game's.
 
 <a name="example"></a>
 

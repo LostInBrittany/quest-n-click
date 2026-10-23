@@ -149,11 +149,11 @@ behind it must check the same condition: `npm run lint` warns (`walk-link-gate`)
 closed link does not. The puzzle is the rule; the link only stops the walk.
 
 > [!GUARANTEE id=closed-link-stops-walk]
-> A walk link whose condition does not hold is never crossed: the walk stops at its foot and names the link.
+> A closed walk link is never crossed: the walk stops at its foot and names the link.
 
 > [!GUARANTEE id=geometry-stage-not-state]
-> Nothing on the stage is game state: layers, lights, particles and links never change what the solver sees. The
-> sample game with a stage on every room proves the same, state for state.
+> Layers and lights on the stage are not game state: they do not change what the solver sees. The sample game with a
+> foreground layer and a light on every room proves the same: same verdict, same number of states, same softlocks.
 
 > [!LIMIT id=canvas-only-effects]
 > Masks from images or layers, lights, particles and blend modes are drawn only by the Canvas painter:

@@ -106,7 +106,7 @@ Nothing runs on the phone: it only opens a URL.
   Edit on the machine itself.
 
 > [!GUARANTEE id=lan-writes-need-token]
-> In LAN mode, a write route of the Studio answers 401 without the token, and 403 to a request whose `Origin` is another
+> In LAN mode, the Studio answers 401 to a request without the token, and 403 to a write whose `Origin` is another
 > site even with the token. The test runs the guard on a local HTTP server; it does not start Vite.
 
 > [!LIMIT id=lan-trusted-network]

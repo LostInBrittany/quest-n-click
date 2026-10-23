@@ -36,7 +36,8 @@ demandez.
   ([Ce qui tourne où](team.what-runs-where.md)).
 
 > [!GUARANTEE id=lan-token-same-origin]
-> En mode réseau local, les routes d'écriture du Studio exigent le jeton de la session et une requête de même origine.
+> En mode réseau local, le Studio répond 401 à une requête sans le jeton de la session, et 403 à une écriture dont
+> l'`Origin` est un autre site, même avec le jeton.
 
 > [!GUARANTEE id=own-names-only]
 > Un `Host` qui n'est pas cette machine (ou une adresse que sert `studio:lan`) est refusé, même avec un `Origin` qui

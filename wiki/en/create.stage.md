@@ -37,8 +37,8 @@ stage: {
 An old room is a stage of one backdrop (`decor`) and one walk zone (`walk`, named `main`): nothing to rewrite.
 
 > [!GUARANTEE id=stage-not-state]
-> Layers, lights and links on every room of the sample game change nothing the solver sees: the same proof, state for
-> state.
+> Layers, lights and a transition on every room of the sample game change nothing the solver reports: the same
+> verdict, the same number of states, the same number of softlocks.
 
 <a name="stage-content"></a>
 

@@ -15,10 +15,12 @@ aussi un `NNNN.down.sql`, et l’exécuteur partagé sait les appliquer, mais **
 migrer vers le bas** : redescendre le schéma n’est pas une procédure prise en charge.
 
 > [!GUARANTEE id=newer-schema-refused]
-> Un serveur dont les migrations s’arrêtent sous le schéma de la base refuse de l’ouvrir (« the database is at schema
-> N, newer than this Bridge knows (M): upgrade the Bridge »), et ne change rien. Le test le prouve sur le stockage du
-> Bridge ; le Studio Server fait tourner le même exécuteur (`bridge/src/migrations.ts`), dont le message dit encore
-> « Bridge ».
+> Sur le stockage SQLite du Bridge, migrer une base dont le schéma est plus récent que la dernière migration du Bridge
+> est refusé, avec une erreur qui dit que la base est plus récente que ce que ce Bridge connaît.
+
+Le message complet est « the database is at schema N, newer than this Bridge knows (M): upgrade the Bridge ». Le code
+le lève avant toute étape, donc rien ne change ; le test ne l’affirme pas. Le Studio Server fait tourner le même
+exécuteur (`bridge/src/migrations.ts`), dont le message dit encore « Bridge ».
 
 Il y a donc deux cas.
 

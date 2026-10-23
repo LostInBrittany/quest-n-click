@@ -39,7 +39,7 @@ included".
 > every one".
 
 > [!GUARANTEE id=truncated-never-solved]
-> A search stopped by its budget of states, of time or of memory reports `truncated`, never `solved`.
+> A proof (`--prove`) stopped by its budget of states, of time or of memory reports `truncated`, never `solved`.
 
 **A proof with abstractions.** By default `--prove` folds states that differ only in what cannot change the outcome
 (see [Abstractions](#abstractions)). Its `solved` then means: the same verdict as the explicit search would give, on

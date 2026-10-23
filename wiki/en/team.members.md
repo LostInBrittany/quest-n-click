@@ -133,8 +133,10 @@ log records `sessions-revoked`.
 - To come back, the person needs a new invitation.
 
 > [!GUARANTEE id=owner-last-owner-and-removal]
-> The last owner can be neither demoted nor removed (409), and a member removed loses access at their next request,
-> session and earlier access tokens alike.
+> The last owner cannot be demoted (409), and a member removed loses access at their next request, session and earlier
+> access tokens alike.
+
+The last owner cannot be removed either: the same check answers 409.
 
 <a name="provider-side"></a>
 

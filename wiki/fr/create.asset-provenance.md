@@ -105,8 +105,10 @@ Sur votre machine, à la racine du dépôt du moteur (`npm run …`) ou du proje
 
 > [!GUARANTEE id=provenance-lock-detects-change]
 > Après `--lock`, un fichier dont les octets ont changé, un asset livré depuis, un fichier manquant ou une entrée dont
-> les déclarations (motif, licence, statut) ont été modifiées est signalé ; `validate --release` échoue sur chacun, un
-> `validate` simple ne fait qu’avertir.
+> la licence a été modifiée est signalé.
+
+`validate --release` échoue sur chacun, un `validate` simple ne fait qu’avertir. Un motif ou un statut modifié est
+signalé comme une licence modifiée.
 
 > [!LIMIT id=claims-not-truth]
 > Les vérifications disent que les déclarations sont complètes et permettent la release (ou la vente), pas qu’elles

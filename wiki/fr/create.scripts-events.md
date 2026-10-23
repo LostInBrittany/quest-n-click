@@ -93,8 +93,9 @@ posez un drapeau dans l'écouteur et testez-le dans `onEnter`. `validate` prévi
 n'écoute, d'un écouteur d'un événement jamais déclenché, et d'un script qui attend un événement jamais déclenché.
 
 > [!GUARANTEE id=emit-order]
-> `emit` lance les écouteurs de la salle courante, puis ceux du jeu, dans l'ordre ; un écouteur `once` ne s'exécute
-> qu'une fois.
+> `emit` lance les écouteurs de la salle courante et ceux du jeu ; un écouteur `once` ne s'exécute qu'une fois.
+
+Les écouteurs de la salle passent d'abord, puis ceux du jeu.
 
 <a name="example"></a>
 

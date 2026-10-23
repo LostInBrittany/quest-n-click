@@ -64,7 +64,9 @@ is **read back and compared** before the save counts as done
 profile) gets the localStorage store ([src/engine/dom/storage.ts](../../src/engine/dom/storage.ts)), announced once.
 
 > [!GUARANTEE id=save-read-back]
-> The autosave is written to IndexedDB, read back and verified, and found again after the database is reopened.
+> The autosave is written to IndexedDB without an error, and found again, identical, after the database is reopened.
+
+Each write is read back and verified before it counts (`whenIdle()` rejects when the copy does not match).
 
 **Every operation says what it did.** `save()` reports a refused write through the store's failure callback and
 `whenIdle()` rejects; `clear()` and `clearSlot()` return `false` when the browser refused the deletion (the save is

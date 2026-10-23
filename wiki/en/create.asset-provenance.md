@@ -104,8 +104,11 @@ On your machine, at the root of the engine repository (`npm run …`) or of the 
    ```
 
 > [!GUARANTEE id=provenance-lock-detects-change]
-> After `--lock`, a file whose bytes changed, an asset shipped since, a file missing or an entry whose claims (pattern,
-> licence, status) were edited is reported; `validate --release` fails on each, a plain `validate` only warns.
+> After `--lock`, a file whose bytes changed, an asset shipped since, a file missing or an entry whose licence was
+> edited is reported.
+
+`validate --release` fails on each of these, a plain `validate` only warns. An edited pattern or status is reported
+like an edited licence.
 
 > [!LIMIT id=claims-not-truth]
 > The checks say the claims are complete and allow the release (or the sale), not that they are true. A wrong licence

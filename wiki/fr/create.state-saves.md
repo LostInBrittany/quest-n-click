@@ -66,7 +66,9 @@ verrouillé) reçoit le stockage localStorage ([src/engine/dom/storage.ts](../..
 fois.
 
 > [!GUARANTEE id=save-read-back]
-> L’autosauvegarde est écrite dans IndexedDB, relue et vérifiée, et retrouvée après la réouverture de la base.
+> L’autosauvegarde est écrite dans IndexedDB sans erreur, et retrouvée, identique, après la réouverture de la base.
+
+Chaque écriture est relue et vérifiée avant de compter (`whenIdle()` rejette quand la copie ne correspond pas).
 
 **Chaque opération dit ce qu’elle a fait.** `save()` signale une écriture refusée par le rappel d’échec du stockage et
 `whenIdle()` rejette ; `clear()` et `clearSlot()` rendent `false` quand le navigateur a refusé la suppression (la

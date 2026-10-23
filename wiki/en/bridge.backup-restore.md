@@ -118,10 +118,11 @@ with the standalone package.
    ```
 
 > [!GUARANTEE id=bridge-restore-names-its-mode]
-> Without `--mode`, or with `--force` alone, nothing is restored, and the usage names both modes.
+> Without `--mode`, or with `--force` alone, `restore` stops with exit code 2, and its usage names both modes.
 
 > [!GUARANTEE id=bridge-restore-refused-while-serving]
-> A restore is refused at once while a Bridge serves the store, and restores once it stops.
+> While a Bridge serves the store, a restore is refused and says nothing was restored. Once the Bridge stops, it
+> restores.
 
 <a name="expected-result"></a>
 

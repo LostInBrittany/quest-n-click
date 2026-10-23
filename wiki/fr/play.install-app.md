@@ -68,8 +68,10 @@ Sur l’appareil où vous jouerez, dans son navigateur. Rien à taper dans un te
    **Continuer** reprend votre sauvegarde, et une salle jamais visitée montre ses images et ses sons.
 
 > [!GUARANTEE id=offline-complete-means-cached]
-> Le menu de pause n’annonce le jeu entier en cache que lorsque chaque fichier du plan hors ligne y est ; un fichier
-> en échec, un lot sauté ou un manque de place le laisse partiel, avec la raison.
+> Quand chaque fichier du plan hors ligne du jeu est en cache, l’état hors ligne est complet, et la ligne du menu de
+> pause le dit.
+
+Un fichier en échec, un lot sauté ou un manque de place le laisse partiel, avec la raison.
 
 > [!LIMIT id=safari-not-tried-on-device]
 > Personne n’a encore installé un jeu depuis Safari sur un vrai iPhone, joué hors ligne et fait sa mise à jour : la

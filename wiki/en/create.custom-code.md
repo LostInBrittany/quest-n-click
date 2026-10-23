@@ -33,8 +33,8 @@ not export, and a command that declares neither `effects` nor `pure`; it checks 
 other.
 
 > [!GUARANTEE id=custom-effects-everywhere]
-> A custom command's declared `effects` apply in the engine and in the solver alike; its `run` runs only in the
-> browser, when the engine is asked to run it.
+> A custom command's declared `effects` apply in the engine and in the solver alike; its `run` runs only when the engine
+> is asked to run it.
 
 > [!LIMIT id=run-must-not-change-state]
 > `run` must not touch the state. In dev mode (with the journal on) the engine compares the state before and after it,

@@ -84,7 +84,7 @@ offline, with no Bridge.
 > cursor.
 
 > [!GUARANTEE id=bridge-resume-from-durable]
-> A signal handed to the game and not acknowledged is asked for again from the acknowledged cursor.
+> In polling, a signal handed to the game and not acknowledged is asked for again from the acknowledged cursor.
 
 > [!GUARANTEE id=bridge-session-replays-offline]
 > A session with signals replays offline, with no Bridge, to the same state.
@@ -109,8 +109,8 @@ transaction is committed or not there (`tests/bridge-fanout.test.ts` kills one i
 proposals).
 
 > [!GUARANTEE id=bridge-busy-503]
-> A store busy longer than its wait answers 503 with `Retry-After: 1` within two seconds, and the next proposal, once
-> the lock is free, takes sequence 1: nothing of the refused one was written.
+> A SQLite store busy longer than its wait answers 503 with `Retry-After: 1` within two seconds. Once the lock is
+> free, the next proposal is accepted with sequence 1.
 
 > [!LIMIT id=bridge-no-queue-for-connectors]
 > The Bridge does not hold a refused proposal for later: a 503 or a 429 is the connector's to send again. A
@@ -202,8 +202,9 @@ signature with the Bridge's public keys, `--keys` or `GET /v1/keys`; no proof is
 without the keys the verifier cannot conclude, `no-keyring`). Details: [Speedrun for authors](create.speedrun.md).
 
 > [!GUARANTEE id=bridge-speedrun-reality-proof]
-> A run whose Reality proof is missing, altered or signed by another key is `missing-reality-proof`; without a
-> keyring the verifier says it cannot conclude.
+> A run whose Reality proof is missing gets the code `signal-missing`, an altered one `signal-signature`, and one
+> signed by another key the verdict `missing-reality-proof`. Without a keyring the verdict is `inconclusive`
+> (`no-keyring`).
 
 > [!LIMIT id=bridge-proof-scope]
 > The proof covers the signals the game declares, in any order and number. It says nothing of whether a connector

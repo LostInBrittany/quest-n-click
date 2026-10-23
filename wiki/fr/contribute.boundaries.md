@@ -25,9 +25,12 @@ les clés et le serveur restent hors de tout jeu), et **le Bridge n'atteint ni l
 seulement le protocole qu'il partage avec le joueur.
 
 > [!GUARANTEE id=core-imports-no-dom]
-> Le cœur n'importe que le cœur et des paquets simples : ni DOM, ni outils, ni code de dev, ni mini-jeux. Un import
-> statique qui enfreint cette règle fait échouer la suite unitaire. La vérification lit les instructions d'import des
-> fichiers ; elle ne voit pas un module atteint par une variable globale ou un `eval`.
+> Le cœur n'importe aucune autre couche du moteur : ni la couche DOM (`dom/`), ni les outils, ni le code de dev, ni les
+> mini-jeux, ni `ending/`, ni le Studio. Un import statique qui enfreint cette règle fait échouer la suite unitaire. La
+> vérification lit les instructions d'import des fichiers ; elle ne voit pas un module atteint par une variable globale
+> ou un `eval`.
+
+La vérification ne trie pas les paquets : garder simples ceux du cœur reste l'affaire de la relecture.
 
 ### Contraintes
 

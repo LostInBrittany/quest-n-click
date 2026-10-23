@@ -30,7 +30,7 @@ files without breaking them and without hiding what it changes. So:
   of history. It refuses (409) when the file changed since.
 
 > [!GUARANTEE id=dry-run-writes-nothing]
-> A preview writes nothing; an applied write is validated, recorded in the journal, and can be undone and redone.
+> A preview writes nothing; an applied write lands in the Undo history, and can be undone and redone.
 
 > [!GUARANTEE id=edit-taken-back]
 > An edit that would add a validation error is refused (422) with nothing written, and an undo refuses a file that

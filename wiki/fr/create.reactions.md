@@ -82,8 +82,10 @@ trois mêmes sous leurs noms de la 4.0 : tout jeu écrit avec eux continue de ma
 la limite à un objet utilisé ou donné.
 
 > [!GUARANTEE id=fallback-order]
-> Sans règle écrite, une réaction par sorte répond avant le refus d'un personnage, et le refus avant la réponse de repli
-> du verbe.
+> Sans règle écrite, une réaction par sorte répond quand l'une correspond. Un objet donné à un personnage qui refuse
+> reçoit son refus, pas la réponse de repli du verbe. Le reste reçoit la réponse de repli.
+
+Quand une réaction par sorte et un refus correspondent tous deux à un don, la réaction par sorte répond.
 
 **Écrire la couche de repli.** La plupart des clics ne tombent sur aucune règle écrite : ce qui leur répond, c'est la
 voix du jeu.

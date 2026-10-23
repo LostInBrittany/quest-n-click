@@ -38,8 +38,8 @@ stage: {
 Un ancien lieu est une scène d’un fond (`decor`) et d’une zone de marche (`walk`, nommée `main`) : rien à réécrire.
 
 > [!GUARANTEE id=stage-not-state]
-> Des calques, des lumières et des liens sur chaque lieu du jeu d’exemple ne changent rien à ce que voit le solveur :
-> la même preuve, état pour état.
+> Des calques, des lumières et une transition sur chaque lieu du jeu d’exemple ne changent rien à ce que rapporte le
+> solveur : le même verdict, le même nombre d’états, le même nombre de blocages.
 
 <a name="stage-content"></a>
 

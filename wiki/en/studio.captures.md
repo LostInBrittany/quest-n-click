@@ -18,8 +18,10 @@ For each room the diff names, two pictures (before, after) drawn by the real eng
 The local Studio only (`npm run studio`, engine repository or created project), from 4.4.0.
 
 > [!GUARANTEE id=captures-local-only]
-> A hosted Studio answers that captures need a local Studio (501 `{ unavailable, reason }`): its worker has no
-> browser. It never shows a half-made capture instead.
+> A hosted Studio (it runs the game in a worker, which has no browser) answers the diff's captures with `{ unavailable:
+> true }` instead of captures.
+
+Over HTTP this answer is a 501 `{ unavailable, reason }`; the test calls the Studio directly.
 
 <a name="prerequisites"></a>
 

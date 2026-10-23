@@ -35,7 +35,7 @@ toutes les autres.
 
 > [!GUARANTEE id=custom-effects-everywhere]
 > Les `effects` déclarés d'une commande sur mesure s'appliquent pareil dans le moteur et dans le solveur ; son `run` ne
-> tourne que dans le navigateur, quand on demande au moteur de l'exécuter.
+> tourne que quand on demande au moteur de l'exécuter.
 
 > [!LIMIT id=run-must-not-change-state]
 > `run` ne doit pas toucher à l'état. En mode développement (journal actif), le moteur compare l'état avant et après,

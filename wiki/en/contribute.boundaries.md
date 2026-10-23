@@ -25,9 +25,11 @@ and the server stay out of every game), and **the Bridge reaches neither the Stu
 protocol it shares with the player.
 
 > [!GUARANTEE id=core-imports-no-dom]
-> The core imports nothing but the core and plain packages: no DOM, no tools, no dev code, no minigames. A static
-> import that breaks this fails the unit suite. The check reads the import statements of the files; it cannot see a
-> module reached through a global or an `eval`.
+> The core imports none of the engine's other layers: no DOM layer (`dom/`), no tools, no dev code, no minigames, no
+> `ending/`, no Studio. A static import that breaks this fails the unit suite. The check reads the import statements of
+> the files; it cannot see a module reached through a global or an `eval`.
+
+The check does not sort packages: keeping the core's packages plain is left to review.
 
 ### Constraints
 

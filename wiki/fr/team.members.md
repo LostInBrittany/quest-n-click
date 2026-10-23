@@ -138,8 +138,10 @@ changement de mot de passe chez le fournisseur. Le journal d'audit note `session
 - Pour revenir, la personne a besoin d'une nouvelle invitation.
 
 > [!GUARANTEE id=owner-last-owner-and-removal]
-> Le dernier owner ne peut être ni rétrogradé ni retiré (409), et un membre retiré perd l'accès à sa requête suivante,
-> session comme jetons d'accès plus anciens.
+> Le dernier owner ne peut pas être rétrogradé (409), et un membre retiré perd l'accès à sa requête suivante, session
+> comme jetons d'accès plus anciens.
+
+Le dernier owner ne peut pas non plus être retiré : la même vérification répond 409.
 
 <a name="provider-side"></a>
 

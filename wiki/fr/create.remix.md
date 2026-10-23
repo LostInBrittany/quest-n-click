@@ -241,7 +241,10 @@ saisie pardonne la casse, `I` et `L` (lus `1`), `O` (lu `0`), les espaces et les
 erreur explicite, jamais un autre monde.
 
 > [!GUARANTEE id=seed-typo-caught]
-> Un code dont un symbole est mal tapé est refusé par son symbole de contrôle : il n'ouvre jamais un autre monde.
+> Un code dont l'un des quatre premiers symboles est mal tapé est refusé par son symbole de contrôle : il n'ouvre jamais
+> un autre monde.
+
+Les poids du symbole de contrôle sont impairs : un symbole faux n'importe où dans le code le change aussi.
 
 Le même jeu, le même manifeste, la même seed et la même version d'algorithme donnent le même `WorldVariant` : la seed,
 l'algorithme et sa version, l'empreinte du manifeste, le mode, une valeur par dimension, et un SHA-256 du tout. Les

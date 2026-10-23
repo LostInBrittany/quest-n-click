@@ -159,12 +159,12 @@ derrière doivent donc tester la même condition : `npm run lint` prévient (`wa
 cible derrière un lien fermé ne le fait pas. L'énigme, c'est la règle ; le lien ne fait qu'arrêter la marche.
 
 > [!GUARANTEE id=closed-link-stops-walk]
-> Un lien de marche dont la condition ne tient pas n'est jamais franchi : la marche s'arrête à son pied et nomme le
-> lien.
+> Un lien de marche fermé n'est jamais franchi : la marche s'arrête à son pied et nomme le lien.
 
 > [!GUARANTEE id=geometry-stage-not-state]
-> Rien sur la scène n'est un état du jeu : calques, lumières, particules et liens ne changent jamais ce que voit le
-> solveur. Le jeu d'exemple, avec une scène dans chaque salle, se prouve à l'identique, état pour état.
+> Les calques et les lumières de la scène ne sont pas un état du jeu : ils ne changent pas ce que voit le solveur. Le
+> jeu d'exemple, avec un calque de premier plan et une lumière dans chaque salle, se prouve à l'identique : même
+> verdict, même nombre d'états, mêmes softlocks.
 
 > [!LIMIT id=canvas-only-effects]
 > Les masques tirés d'images ou de calques, les lumières, les particules et les modes de fusion ne sont dessinés que

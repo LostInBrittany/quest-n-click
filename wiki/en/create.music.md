@@ -228,8 +228,8 @@ the same rate, channels and number of samples, the loop must end inside them, an
 to (1 % of slack for an encoder's padding).
 
 > [!GUARANTEE id=stems-consistent]
-> The release check refuses stems that would drift apart: a different rate, number of channels or length, each
-> mismatch named.
+> The stem check reports stems that would drift apart: a different rate, number of channels or length, each mismatch
+> named.
 
 <a name="audio-scores"></a>
 

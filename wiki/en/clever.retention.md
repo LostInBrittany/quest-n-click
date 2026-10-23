@@ -95,8 +95,10 @@ form. Copies you make elsewhere are yours to delete ([Backups](clever.backups.md
    still names.
 
 > [!GUARANTEE id=gc-keeps-referenced]
-> The collection keeps every blob a row names and every blob younger than a day (a write may be storing it now), and
-> deletes the rest only with `--delete`.
+> The collection keeps every blob a row names and every blob still in its grace period (a write may be storing it now),
+> and deletes the rest only with `--delete`.
+
+The grace period is a day by default.
 
 <a name="related"></a>
 

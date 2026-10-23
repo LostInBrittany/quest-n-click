@@ -40,8 +40,8 @@ Security fixes target the **latest release line**. An older line gets none: upgr
   require **same-origin writes** and print the authorised URL.
 
 > [!GUARANTEE id=lan-token-required]
-> On the LAN, the Studio refuses a write without the session's token or from another origin. The test covers the
-> Studio's request check; it does not cover what a browser on the same network can read.
+> On the LAN, the Studio refuses a request without the session's token, and a write from another origin. The test covers
+> the Studio's request check; it does not cover what a browser on the same network can read.
 
 ### Constraints
 
@@ -75,7 +75,7 @@ would run their program.
 - A provider call **never follows a redirect**, **times out after 60 s** and reads **at most 8 MB** of answer.
 
 > [!GUARANTEE id=policy-provider-no-redirect]
-> A provider that answers with a redirect is refused: the request never reaches the second address.
+> A provider that answers with a redirect is refused with an error.
 
 ### Constraints
 

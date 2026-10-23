@@ -61,7 +61,7 @@ manquant), le panneau **Storyboard coverage** de l’onglet Check, l’outil MCP
 `npm run page:storyboard`.
 
 > [!GUARANTEE id=storyboard-coverage-reports-missing]
-> Une case dont le lieu, un personnage, une réplique, un son ou l’action manque au jeu est signalée, pas marquée comme
+> Une case dont le lieu, un personnage, une réplique ou un son manque au jeu est signalée manquante, pas marquée comme
 > présente dans le jeu.
 
 > [!LIMIT id=coverage-is-textual]

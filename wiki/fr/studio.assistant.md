@@ -106,11 +106,11 @@ Pour Ollama, les commandes `ollama` se lancent sur votre machine.
 | Redirections | aucune suivie | `<url> answered with a redirect (…): refused, a provider must answer at its own address` |
 
 > [!GUARANTEE id=provider-no-redirect]
-> Un appel au fournisseur ne suit jamais une redirection : une redirection pourrait envoyer la requête, et la clé,
-> vers un autre hôte.
+> Un appel au fournisseur qui reçoit une redirection est refusé : une redirection pourrait envoyer la requête, et la
+> clé, vers un autre hôte.
 
 > [!GUARANTEE id=provider-answer-cap]
-> La réponse d'un fournisseur est lue jusqu'à 8 Mo, et refusée au-delà.
+> La réponse d'un fournisseur est lue jusqu'à un plafond, et refusée au-delà.
 
 <a name="custom-provider"></a>
 
@@ -131,8 +131,8 @@ Même alors, un fournisseur personnalisé doit être en HTTPS et ne peut pas vis
 [`WEB_SCUMM_ALLOW_CUSTOM_PROVIDER`](reference.environment-variables.md#web-scumm-allow-custom-provider).
 
 > [!GUARANTEE id=custom-provider-opt-in]
-> Les préréglages et Ollama sur cette machine sont permis ; toute autre adresse demande l'autorisation, et les
-> destinations privées ou locales restent bloquées même avec elle.
+> Les préréglages et Ollama sur cette machine sont permis ; toute autre adresse demande l'autorisation. Même avec elle,
+> une adresse link-local en HTTP simple (celle des métadonnées du cloud) reste bloquée.
 
 <a name="key-safety"></a>
 

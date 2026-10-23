@@ -124,10 +124,11 @@ mémoire (une restauration n’a besoin que d’atteindre le stockage). `npm run
    ```
 
 > [!GUARANTEE id=bridge-restore-names-its-mode]
-> Sans `--mode`, ou avec `--force` seul, rien n’est restauré, et l’usage nomme les deux modes.
+> Sans `--mode`, ou avec `--force` seul, `restore` s’arrête avec le code de sortie 2, et l’usage nomme les deux modes.
 
 > [!GUARANTEE id=bridge-restore-refused-while-serving]
-> Une restauration est refusée aussitôt tant qu’un Bridge sert le stockage, et restaure une fois qu’il s’arrête.
+> Tant qu’un Bridge sert le stockage, une restauration est refusée et dit que rien n’a été restauré. Une fois le Bridge
+> arrêté, elle restaure.
 
 <a name="expected-result"></a>
 

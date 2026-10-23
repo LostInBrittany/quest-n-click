@@ -90,7 +90,7 @@ Bridge.
 > contigu.
 
 > [!GUARANTEE id=bridge-resume-from-durable]
-> Un signal remis au jeu et non acquitté est redemandé depuis le curseur acquitté.
+> En polling, un signal remis au jeu et non acquitté est redemandé depuis le curseur acquitté.
 
 > [!GUARANTEE id=bridge-session-replays-offline]
 > Une session qui contient des signaux se rejoue hors ligne, sans Bridge, jusqu’au même état.
@@ -115,8 +115,8 @@ transaction est validée ou absente (`tests/bridge-fanout.test.ts` tue une insta
 propositions).
 
 > [!GUARANTEE id=bridge-busy-503]
-> Un stockage occupé plus longtemps que son attente répond 503 avec `Retry-After: 1` en moins de deux secondes, et la
-> proposition suivante, une fois le verrou libre, prend la séquence 1 : rien de la proposition refusée n’a été écrit.
+> Un stockage SQLite occupé plus longtemps que son attente répond 503 avec `Retry-After: 1` en moins de deux secondes.
+> Une fois le verrou libre, la proposition suivante est acceptée avec la séquence 1.
 
 > [!LIMIT id=bridge-no-queue-for-connectors]
 > Le Bridge ne garde pas une proposition refusée pour plus tard : après un 503 ou un 429, c’est au connecteur de
@@ -215,8 +215,9 @@ disponibilité d’un signal en direct ne se reproduisent pas ; sans les clés, 
 `no-keyring`). Le détail : [Speedrun pour les auteurs](create.speedrun.md).
 
 > [!GUARANTEE id=bridge-speedrun-reality-proof]
-> Un run dont la preuve Reality manque, a été modifiée ou est signée par une autre clé est `missing-reality-proof` ;
-> sans trousseau, le vérificateur dit qu’il ne peut pas conclure.
+> Un run dont la preuve Reality manque reçoit le code `signal-missing`, une preuve modifiée `signal-signature`, et une
+> preuve signée par une autre clé le verdict `missing-reality-proof`. Sans trousseau, le verdict est `inconclusive`
+> (`no-keyring`).
 
 > [!LIMIT id=bridge-proof-scope]
 > La preuve couvre les signaux que le jeu déclare, dans n’importe quel ordre et nombre. Elle ne dit rien de la

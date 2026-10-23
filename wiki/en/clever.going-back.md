@@ -14,9 +14,12 @@ runner can apply them, but **the Studio Server has no command to migrate down**:
 supported procedure.
 
 > [!GUARANTEE id=newer-schema-refused]
-> A server whose migrations stop below the database's schema refuses to open it ("the database is at schema N, newer
-> than this Bridge knows (M): upgrade the Bridge"), and changes nothing. The test proves it on the Bridge's store; the
-> Studio Server runs the same runner (`bridge/src/migrations.ts`), whose message still says "Bridge".
+> On the Bridge's SQLite store, migrating a database whose schema is newer than the Bridge's last migration is refused
+> with an error that says the database is newer than this Bridge knows.
+
+The full message is "the database is at schema N, newer than this Bridge knows (M): upgrade the Bridge". The code
+throws it before any step, so nothing changes; the test does not assert that. The Studio Server runs the same runner
+(`bridge/src/migrations.ts`), whose message still says "Bridge".
 
 So there are two cases.
 

@@ -21,8 +21,9 @@ The files live in `games/<id>/audio/voice/` in the engine repository, `game/audi
 `npm run assets` encodes them (64 kb/s, mono) into `public/assets/audio/voices/`.
 
 > [!GUARANTEE id=voice-keyed-then-plain]
-> A line with switches plays its keyed clip for the flags as they stand, else its plain id; with a flag still unset,
-> the plain id only.
+> A line with switches plays its keyed clip for the flags as they stand, else its plain id.
+
+With a flag still unset, it plays the plain id only.
 
 <a name="voice-lines"></a>
 

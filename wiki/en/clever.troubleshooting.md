@@ -116,8 +116,9 @@ Each section below says which line or answer tells its case apart.
    `worker-job-refused` line; a skew past 30 s is the platform's to fix.
 
 > [!GUARANTEE id=job-clock-skew]
-> The worker accepts a job signed by a Studio whose clock runs ahead of its own by up to 30 s, and still refuses a job
-> that has expired, to the millisecond, or that would live longer than a job plus the skew.
+> The worker accepts a job signed by a Studio whose clock runs ahead of its own by up to 30 s.
+
+It still refuses a job that has expired, to the millisecond, or that would live longer than a job plus the skew.
 
 <a name="silent-cron"></a>
 

@@ -53,8 +53,7 @@ Deux taps sur la même chose en moins de 400 ms agissent sans choisir de verbe (
 Un verbe que le jeu n’a pas n’est jamais choisi.
 
 > [!GUARANTEE id=double-tap-verb]
-> Un double tap franchit une sortie, parle à un personnage et regarde tout le reste, sauf si la chose nomme son propre
-> verbe ; un verbe que le jeu n’a pas n’est jamais choisi.
+> Sans objet pris dans le sac, un double tap franchit une sortie, parle à un personnage et regarde tout le reste.
 
 <a name="single-tap-exit"></a>
 

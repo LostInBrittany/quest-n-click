@@ -114,8 +114,10 @@ In the created project's folder, on your machine.
 
 > [!GUARANTEE id=migrate-check-says-due]
 > `migrate --check` on a game still at authoring schema 2 exits with code 1 and says `authoring schema 2: a migration
-> to 3 is due`. The test runs it on a schema-2 fixture; that nothing is written is read in the code (`--check` exits
-> before the ids are written), not asserted by the test.
+> to 3 is due`.
+
+The test runs it on a schema-2 fixture. That nothing is written is read in the code (`--check` exits before the ids
+are written); the test does not assert it.
 
 <a name="saves"></a>
 

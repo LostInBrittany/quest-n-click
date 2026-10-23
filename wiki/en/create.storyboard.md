@@ -58,7 +58,7 @@ everything is in the game", "~" partly, "✗" missing), the **Storyboard coverag
 `storyboard_coverage`, and `npm run page:storyboard`.
 
 > [!GUARANTEE id=storyboard-coverage-reports-missing]
-> A panel whose room, speaker, line, sound or action the game lacks is reported, not marked as in the game.
+> A panel whose room, speaker, line or sound the game lacks is reported missing, not marked as in the game.
 
 > [!LIMIT id=coverage-is-textual]
 > Coverage compares text and ids; it does not play the game. A panel's action is matched against the rules as prose

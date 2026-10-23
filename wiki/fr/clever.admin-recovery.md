@@ -21,8 +21,11 @@ ou retiré s’il le faut ; ou, pour Keycloak, son administration retrouvée.
   déploiement de référence (19 octobre 2026) pour créer le premier owner ; cette reprise n’a pas été exercée.
 
 > [!GUARANTEE id=last-owner-stays]
-> Le dernier owner ne peut être ni rétrogradé ni retiré (409 « the last owner stays an owner »), pas même en acceptant
-> une invitation d’un rôle inférieur pour son propre e-mail. Un projet garde toujours un owner du côté du Studio.
+> Le dernier owner ne peut pas être rétrogradé (409), pas même en acceptant une invitation d’un rôle inférieur pour
+> son propre e-mail.
+
+Retirer le dernier owner passe par la même vérification dans le code (409 « the last owner stays an owner ») : un
+projet garde donc un owner du côté du Studio.
 
 <a name="prerequisites"></a>
 

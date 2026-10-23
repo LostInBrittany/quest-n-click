@@ -82,9 +82,10 @@ The tab lists everything under `games/<id>/art/` and `audio/` against what the g
    prepared.
 
 > [!GUARANTEE id=no-silent-recut]
-> Nothing is ever deleted, and a cell that exists is never recut by accident: overwriting needs the cell named, and the
-> old file is kept as `<name>_v<N>` first. An upload that would recut cells without naming them is refused with 409
-> and the list of those cells.
+> An upload that would recut existing cells without naming them is refused with 409 and the list of those cells. An
+> upload that names a cell recuts only that cell, and the old file is kept as `<name>_v<N>` first.
+
+Nothing is deleted: a replaced sound or decor is kept as `<name>_v<N>` too.
 
 Backups are not cells: the listing and the prompts ignore them.
 

@@ -233,7 +233,9 @@ A seed is `story` or a code `WS-XXXX-XXXX`: seven Crockford base32 symbols and a
 world.
 
 > [!GUARANTEE id=seed-typo-caught]
-> A code with one symbol typed wrong is refused by its check symbol: it never opens another world.
+> A code with one of its first four symbols typed wrong is refused by its check symbol: it never opens another world.
+
+The check symbol's weights are odd, so a wrong symbol anywhere in the code changes it too.
 
 The same game, manifest, seed and algorithm version give the same `WorldVariant`: the seed, the algorithm and its
 version, the manifest's hash, the mode, one value per dimension, and a SHA-256 of it all. The draws come from the

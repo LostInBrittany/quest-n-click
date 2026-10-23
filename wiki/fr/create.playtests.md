@@ -80,8 +80,8 @@ minute, notez-le : c'est un Regarder qui manque, un indice vague, ou une sortie 
    vide à moins de 24 px d'une cible, par lieu et par cible. Le testeur l'envoie comme il veut.
 
 > [!GUARANTEE id=session-ids-only]
-> Une session de playtest partagée ne porte que des ids et des horodatages : pas de journal, et aucune ligne du texte
-> du jeu.
+> Une session de playtest partagée porte un horodatage à chaque étape et un journal vide, et une réplique dite par le
+> jeu pendant la partie n'est pas dans le fichier.
 
 <!-- step: drop-files -->
 3. **Déposez les fichiers dans le jeu** et commitez-les :

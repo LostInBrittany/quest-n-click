@@ -449,8 +449,8 @@ formés sont pris (le premier d'un id répété), les autres sont laissés de c�
 ce qu'il a écarté. Enregistrer depuis le Studio écrit alors les regroupements lisibles.
 
 > [!GUARANTEE id=groupings-unknown-refused]
-> La vérification des regroupements nomme chaque problème, y compris un champ inconnu d'un regroupement ou du
-> fichier, avec les phrases ci-dessus.
+> La vérification des regroupements nomme un champ inconnu du fichier ou d'un regroupement avec les phrases ci-dessus.
+> Elle nomme aussi, d'une phrase chacun, un problème de forme, de nombre, d'id, de titre ou de références.
 
 Sur un Studio hébergé, `groupings.json` est un pan à lui seul. Voir [La carte](studio.map.md).
 

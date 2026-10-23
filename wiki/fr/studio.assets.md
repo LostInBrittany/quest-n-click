@@ -86,9 +86,10 @@ L'onglet liste tout ce qui se trouve sous `games/<id>/art/` et `audio/` face à 
    dans le jeu une fois préparée.
 
 > [!GUARANTEE id=no-silent-recut]
-> Rien n'est jamais supprimé, et une case qui existe n'est jamais redécoupée par accident : écraser demande la case
-> nommée, et l'ancien fichier est d'abord gardé en `<nom>_v<N>`. Un envoi qui redécouperait des cases sans les nommer
-> est refusé avec 409 et la liste de ces cases.
+> Un envoi qui redécouperait des cases existantes sans les nommer est refusé avec 409 et la liste de ces cases. Un
+> envoi qui nomme une case ne redécoupe que cette case, et l'ancien fichier est d'abord gardé en `<nom>_v<N>`.
+
+Rien n'est supprimé : un son ou un décor remplacé est lui aussi gardé en `<nom>_v<N>`.
 
 Les sauvegardes ne sont pas des cases : la liste et les prompts les ignorent.
 

@@ -31,7 +31,7 @@ Le Studio doit changer ces fichiers sans les casser et sans cacher ce qu'il chan
   contenu d'avant), jamais une réécriture de l'historique. Elle refuse (409) quand le fichier a changé depuis.
 
 > [!GUARANTEE id=dry-run-writes-nothing]
-> Un aperçu n'écrit rien ; une écriture appliquée est validée, enregistrée dans le journal, et peut être annulée et
+> Un aperçu n'écrit rien ; une écriture appliquée entre dans l'historique d'annulation, et peut être annulée et
 > rétablie.
 
 > [!GUARANTEE id=edit-taken-back]

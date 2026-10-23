@@ -235,7 +235,7 @@ doit avoir la même fréquence, les mêmes canaux et le même nombre d’échant
 fichiers, et `pcmBytes` doit être leur poids décodé (1 % de marge pour le remplissage d’un encodeur).
 
 > [!GUARANTEE id=stems-consistent]
-> Le contrôle de release refuse des stems qui se décaleraient : une fréquence, un nombre de canaux ou une longueur
+> Le contrôle des stems signale des stems qui se décaleraient : une fréquence, un nombre de canaux ou une longueur
 > différents, chaque écart nommé.
 
 <a name="audio-scores"></a>

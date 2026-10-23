@@ -156,8 +156,8 @@ repository, `npx quest-n-click-connector email …` with the package `quest-n-cl
   quota) stays unseen and is read again at the next poll.
 
 > [!GUARANTEE id=bridge-email-unseen-when-away]
-> A message whose signal the Bridge refused for a reason that may pass (away, busy, a quota) stays unseen and is read
-> again at the next poll; one refused for good is flagged.
+> A message whose signal could not reach the Bridge (the Bridge away) stays unseen and is read again by a later poll;
+> one refused for good is flagged.
 
 <a name="recovery"></a>
 

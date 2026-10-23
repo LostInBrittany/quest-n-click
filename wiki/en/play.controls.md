@@ -51,8 +51,7 @@ Two taps on the same thing within 400 ms act on it without choosing a verb (sinc
 A verb the game does not have is never chosen.
 
 > [!GUARANTEE id=double-tap-verb]
-> A double tap goes through an exit, talks to a character and looks at anything else, unless the thing names its own
-> verb; a verb the game lacks is never chosen.
+> With nothing picked from the bag, a double tap goes through an exit, talks to a character and looks at anything else.
 
 <a name="single-tap-exit"></a>
 

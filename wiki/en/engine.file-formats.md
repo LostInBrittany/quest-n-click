@@ -432,8 +432,8 @@ merge) is not refused as a whole: the well-formed groupings are used (the first 
 left out with the reason, and the Map tab says what it skipped. Saving from the Studio then writes the readable ones.
 
 > [!GUARANTEE id=groupings-unknown-refused]
-> The groupings check names each problem, an unknown field of a grouping or of the file included, with the sentences
-> above.
+> The groupings check names an unknown field of the file or of a grouping with the sentences above. It also names, one
+> sentence each, a problem of shape, count, id, title or references.
 
 On a hosted Studio, `groupings.json` is a span of its own. See [The map](studio.map.md).
 

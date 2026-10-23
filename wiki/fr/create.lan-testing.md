@@ -109,7 +109,7 @@ Rien ne tourne sur le téléphone : il ouvre seulement une URL.
   avec un 403. Modifiez sur la machine elle-même.
 
 > [!GUARANTEE id=lan-writes-need-token]
-> En mode réseau local, une route d'écriture du Studio répond 401 sans le jeton, et 403 à une requête dont l'`Origin` est
+> En mode réseau local, le Studio répond 401 à une requête sans le jeton, et 403 à une écriture dont l'`Origin` est
 > un autre site même avec le jeton. Le test fait tourner la garde sur un serveur HTTP local ; il ne lance pas Vite.
 
 > [!LIMIT id=lan-trusted-network]

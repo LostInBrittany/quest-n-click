@@ -107,7 +107,8 @@ revision come from one snapshot of the database, and each file's content is chec
 - A content that does not match the head: an error naming the file (exit 1).
 
 > [!GUARANTEE id=export-same-files]
-> A game imported, then exported at its head, gives back the same files, with a manifest of their hashes.
+> A game imported, then exported at its head, comes out with a manifest of its files' hashes, and each exported file
+> matches its hash in the manifest.
 
 > [!LIMIT id=export-game-only]
 > An export holds the game's files at the head, nothing else: no history, no members, no comments, no published

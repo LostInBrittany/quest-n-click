@@ -63,8 +63,10 @@ On the device you will play on, in its browser. Nothing to type in a terminal.
    resumes your save, and a room you never visited shows its pictures and sounds.
 
 > [!GUARANTEE id=offline-complete-means-cached]
-> The pause menu says "complete" only when every file of the game's offline plan is in the cache; a failed file, a
-> skipped batch or a lack of space leaves it partial, with the reason.
+> When every file of the game's offline plan is in the cache, the offline status is complete, and the pause menu's line
+> says so.
+
+A failed file, a skipped batch or a lack of space leaves it partial, with the reason.
 
 > [!LIMIT id=safari-not-tried-on-device]
 > Nobody has yet installed a game from Safari on a real iPhone, played it offline and updated it: the pass

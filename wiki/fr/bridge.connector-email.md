@@ -158,8 +158,8 @@ dépôt du moteur, `npx quest-n-click-connector email …` avec le paquet `quest
   occupé, un quota) reste non lu et est relu au relevé suivant.
 
 > [!GUARANTEE id=bridge-email-unseen-when-away]
-> Un message dont le Bridge a refusé le signal pour une raison passagère (absent, occupé, un quota) reste non lu et
-> est relu au relevé suivant ; un message refusé pour de bon est signalé.
+> Un message dont le signal n’a pas pu atteindre le Bridge (Bridge absent) reste non lu et est relu par un relevé
+> suivant ; un message refusé pour de bon est signalé.
 
 <a name="recovery"></a>
 

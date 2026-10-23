@@ -40,7 +40,7 @@ state, every answer of a choice included ».
 > reachable from every one ».
 
 > [!GUARANTEE id=truncated-never-solved]
-> Une recherche arrêtée par son budget d'états, de temps ou de mémoire répond `truncated`, jamais `solved`.
+> Une preuve (`--prove`) arrêtée par son budget d'états, de temps ou de mémoire répond `truncated`, jamais `solved`.
 
 **Une preuve avec abstractions.** Par défaut, `--prove` replie les états qui ne diffèrent que par ce qui ne peut pas
 changer l'issue (voir [Les abstractions](#abstractions)). Son `solved` veut alors dire : le même verdict que

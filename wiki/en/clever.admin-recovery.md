@@ -21,8 +21,10 @@ if needed; or, for Keycloak, its administration back.
   (19 October 2026) to make the first owner; this recovery was not exercised.
 
 > [!GUARANTEE id=last-owner-stays]
-> The last owner can be neither demoted nor removed (409 "the last owner stays an owner"), not even by accepting an
-> invitation of a lower role for their own email. A project always keeps an owner on the Studio's side.
+> The last owner cannot be demoted (409), not even by accepting an invitation of a lower role for their own email.
+
+Removing the last owner goes through the same check in the code (409 "the last owner stays an owner"), so a project
+keeps an owner on the Studio's side.
 
 <a name="prerequisites"></a>
 

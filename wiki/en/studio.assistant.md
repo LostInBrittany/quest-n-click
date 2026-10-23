@@ -104,10 +104,10 @@ In the browser: the **Assistant** button in the top bar, or the `a` key when no 
 | Redirects | none followed | `<url> answered with a redirect (…): refused, a provider must answer at its own address` |
 
 > [!GUARANTEE id=provider-no-redirect]
-> A provider call never follows a redirect: a redirect could send the request, and the key, to another host.
+> A provider call that gets a redirect is refused: a redirect could send the request, and the key, to another host.
 
 > [!GUARANTEE id=provider-answer-cap]
-> A provider's answer is read up to 8 MB, and refused beyond.
+> A provider's answer is read up to a cap, and refused beyond it.
 
 <a name="custom-provider"></a>
 
@@ -127,8 +127,8 @@ credentials. See [Local and LAN security](studio.security.md) and
 [`WEB_SCUMM_ALLOW_CUSTOM_PROVIDER`](reference.environment-variables.md#web-scumm-allow-custom-provider).
 
 > [!GUARANTEE id=custom-provider-opt-in]
-> The presets and Ollama on this machine are allowed; any other address needs the opt-in, and private or local
-> destinations stay blocked even with it.
+> The presets and Ollama on this machine are allowed; any other address needs the opt-in. Even with it, a plain-HTTP
+> link-local address (the cloud metadata one) stays blocked.
 
 <a name="key-safety"></a>
 

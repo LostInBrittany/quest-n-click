@@ -99,8 +99,10 @@ suivant, car elle a la même forme de nom. Les copies que vous faites ailleurs s
    exercice : il supprimerait des blobs que la production nomme encore.
 
 > [!GUARANTEE id=gc-keeps-referenced]
-> Le ramassage garde chaque blob qu’une ligne nomme et chaque blob de moins d’un jour (une écriture peut être en train
-> de le stocker), et ne supprime le reste qu’avec `--delete`.
+> Le ramassage garde chaque blob qu’une ligne nomme et chaque blob encore dans son délai de grâce (une écriture peut
+> être en train de le stocker), et ne supprime le reste qu’avec `--delete`.
+
+Le délai de grâce est d’un jour par défaut.
 
 <a name="related"></a>
 

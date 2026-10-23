@@ -33,7 +33,8 @@ network ("SSRF"). The Studio closes each one by default and opens only what you 
   network, not a public server. To put a Studio online, use the hosted Studio ([What runs where](team.what-runs-where.md)).
 
 > [!GUARANTEE id=lan-token-same-origin]
-> In LAN mode the Studio's write routes require the session's token and a same-origin request.
+> In LAN mode the Studio answers 401 to a request without the session's token, and 403 to a write whose `Origin` is
+> another site, even with the token.
 
 > [!GUARANTEE id=own-names-only]
 > A `Host` that is not this machine (or an address `studio:lan` serves) is refused, even with a matching `Origin`.

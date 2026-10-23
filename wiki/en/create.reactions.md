@@ -76,8 +76,10 @@ one), `{name}` by the name of whatever is targeted. `{objet}`, `{cible}` and `{n
 names of 4.0: every game written with them keeps working. A kind rule's `item` restricts it to an item used or given.
 
 > [!GUARANTEE id=fallback-order]
-> With no written rule, a reaction by kind answers before a character's refusal, and the refusal before the verb's
-> fallback line.
+> With no written rule, a reaction by kind answers when one matches. An item given to a character who refuses gets
+> the refusal, not the verb's fallback line. Anything else gets the fallback line.
+
+When a reaction by kind and a refusal both match a gift, the reaction by kind answers.
 
 **Writing the fallback layer.** Most clicks hit no written rule: what answers them is the game's voice.
 

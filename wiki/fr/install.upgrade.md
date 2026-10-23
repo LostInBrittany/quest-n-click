@@ -114,8 +114,10 @@ Dans le dossier du projet créé, sur votre machine.
 
 > [!GUARANTEE id=migrate-check-says-due]
 > `migrate --check` sur un jeu encore au schéma d'écriture 2 sort avec le code 1 et dit `authoring schema 2: a
-> migration to 3 is due`. Le test le lance sur un jeu de test au schéma 2 ; que rien ne soit écrit se lit dans le code
-> (`--check` sort avant l'écriture des ids), le test ne l'affirme pas.
+> migration to 3 is due`.
+
+Le test le lance sur un jeu de test au schéma 2. Que rien ne soit écrit se lit dans le code (`--check` sort avant
+l'écriture des ids) ; le test ne l'affirme pas.
 
 <a name="saves"></a>
 

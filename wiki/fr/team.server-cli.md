@@ -111,7 +111,8 @@ serveur sert.
 - Un contenu qui ne correspond pas à la tête : une erreur qui nomme le fichier (code 1).
 
 > [!GUARANTEE id=export-same-files]
-> Un jeu importé, puis exporté à sa tête, redonne les mêmes fichiers, avec un manifeste de leurs empreintes.
+> Un jeu importé, puis exporté à sa tête, sort avec un manifeste des empreintes de ses fichiers, et chaque fichier
+> exporté correspond à son empreinte dans le manifeste.
 
 > [!LIMIT id=export-game-only]
 > Un export contient les fichiers du jeu à la tête, rien d'autre : ni l'historique, ni les membres, ni les

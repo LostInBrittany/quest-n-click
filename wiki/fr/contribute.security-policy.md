@@ -40,8 +40,9 @@ jour ([Mettre à jour](install.upgrade.md)).
   capacité valable une session**, exigent des **écritures de même origine** et affichent l'URL autorisée.
 
 > [!GUARANTEE id=lan-token-required]
-> Sur le réseau local, le Studio refuse une écriture sans le jeton de la session ou venant d'une autre origine. Le test
-> couvre la vérification des requêtes par le Studio ; il ne couvre pas ce qu'un navigateur du même réseau peut lire.
+> Sur le réseau local, le Studio refuse une requête sans le jeton de la session, et une écriture venant d'une autre
+> origine. Le test couvre la vérification des requêtes par le Studio ; il ne couvre pas ce qu'un navigateur du même
+> réseau peut lire.
 
 ### Contraintes
 
@@ -77,7 +78,7 @@ de quelqu'un en qui vous n'avez pas confiance comme vous lanceriez son programme
   réponse.
 
 > [!GUARANTEE id=policy-provider-no-redirect]
-> Un fournisseur qui répond par une redirection est refusé : la requête n'atteint jamais la seconde adresse.
+> Un fournisseur qui répond par une redirection est refusé avec une erreur.
 
 ### Contraintes
 

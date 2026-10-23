@@ -18,8 +18,10 @@ ou « no visible change » quand aucun pixel n'a bougé. Les PNG restent sur le 
 Le Studio local seulement (`npm run studio`, dépôt du moteur ou projet créé), depuis la 4.4.0.
 
 > [!GUARANTEE id=captures-local-only]
-> Un Studio hébergé répond que les captures demandent un Studio local (501 `{ unavailable, reason }`) : son worker n'a
-> pas de navigateur. Il ne montre jamais une capture à moitié faite à la place.
+> Un Studio hébergé (il fait tourner le jeu dans un worker, qui n'a pas de navigateur) répond aux captures du diff par
+> `{ unavailable: true }` au lieu de captures.
+
+En HTTP, cette réponse est un 501 `{ unavailable, reason }` ; le test appelle le Studio directement.
 
 <a name="prerequisites"></a>
 

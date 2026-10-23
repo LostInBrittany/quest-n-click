@@ -22,8 +22,9 @@ Les fichiers sont dans `games/<id>/audio/voice/` dans le dépôt du moteur, `gam
 `npm run assets` les encode (64 kb/s, mono) dans `public/assets/audio/voices/`.
 
 > [!GUARANTEE id=voice-keyed-then-plain]
-> Une réplique à aiguillages joue son clip par valeur pour les flags tels qu’ils sont, sinon son id seul ; avec un flag
-> pas encore posé, l’id seul.
+> Une réplique à aiguillages joue son clip par valeur pour les flags tels qu’ils sont, sinon son id seul.
+
+Avec un flag pas encore posé, elle joue l’id seul.
 
 <a name="voice-lines"></a>
 

@@ -77,7 +77,8 @@ minute, write it down: it is a missing Look line, a vague hint, or an exit nobod
    near misses: a tap on nothing within 24 px of a target, by room and target. The tester sends it the way they like.
 
 > [!GUARANTEE id=session-ids-only]
-> A shared playtest session carries ids and timestamps only: no journal, and no line of the game's text.
+> A shared playtest session has a timestamp on every step and an empty journal, and a line the game said during the
+> play is not in the file.
 
 <!-- step: drop-files -->
 3. **Drop the files into the game** and commit them:
