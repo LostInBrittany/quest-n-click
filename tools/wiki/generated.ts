@@ -7,7 +7,7 @@
 // rewrites the region (and the identifiers), and `check` fails when a written page's region, or its identifiers, are
 // not what the generator gives. The same shape as the environment variable register (tools/wiki/env.ts), which keeps
 // its own markers. This module holds what every generator shares; tools/wiki/generators.ts lists them.
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { z } from 'zod';
 import { issuesOf } from './manifest';
@@ -161,3 +161,36 @@ export function withPageIdentifiers(manifestText: string, pageId: string, names:
 }
 
 export const sortedUnique = (xs: readonly string[]) => [...new Set(xs)].sort();
+
+/**
+ * One generated page of a wiki brought up to date from its region in each language and its identifiers, or only
+ * checked with `check`: what is behind, or what stopped the writing (a page's markers). The commands of
+ * tools/dsl-doc.ts and tools/api-doc.ts (`create.dsl`, `engine.api`), whose generators `wiki -- generate` runs too.
+ */
+export function updateGeneratedPage(
+  wikiDir: string,
+  page: string,
+  sections: Record<Lang, string>,
+  identifiers: readonly string[],
+  check: boolean,
+): string[] {
+  const out: string[] = [];
+  for (const lang of LANGS) {
+    const file = resolve(wikiDir, lang, `${page}.md`);
+    if (!existsSync(file)) continue;
+    const text = readFileSync(file, 'utf8');
+    const w = withGenerated(text, sections[lang]);
+    if (w.problem) out.push(`${lang}/${page}.md: ${w.problem}`);
+    else if (w.text === text) continue;
+    else if (check) out.push(`${lang}/${page}.md: its generated part is not the code's`);
+    else writeFileSync(file, w.text!);
+  }
+  const mf = resolve(wikiDir, 'manifest.json');
+  const before = readFileSync(mf, 'utf8');
+  const after = withPageIdentifiers(before, page, sortedUnique(identifiers));
+  if (after !== before) {
+    if (check) out.push(`manifest.json: ${page}'s identifiers are not its generator's`);
+    else writeFileSync(mf, after);
+  }
+  return out;
+}

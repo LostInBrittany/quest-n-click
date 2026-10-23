@@ -1,14 +1,12 @@
 // The generators of the reference pages (4.5.0 "Wiki", lot B11; tools/wiki/generated.ts says how a page is generated):
 // one per page, run by `npm run wiki -- generate [<page>…]` (which writes the region and the identifiers) and by
 // `wiki -- check` (which fails when a written page differs from what its generator gives, or when the data and the
-// code disagree). The DSL and the API come from the generators of docs/en|fr (tools/dsl-doc.ts, tools/api-doc.ts),
-// their wiki target; the others from tools/wiki/ref-*.ts.
+// code disagree). The DSL and the API come from tools/dsl-doc.ts and tools/api-doc.ts (whose own commands write these
+// two pages too); the others from tools/wiki/ref-*.ts.
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
-import { CMD_KEYS } from '../../src/engine/core/cmds';
-import { COND_KINDS } from '../../src/studio/schema';
-import { apiRows, rowProblems, signaturesWiki } from '../api-doc';
-import { dslWikiBlock } from '../dsl-doc';
+import { apiIdentifiers, apiRows, rowProblems, signaturesWiki } from '../api-doc';
+import { dslIdentifiers, dslWikiBlock } from '../dsl-doc';
 import {
   type GenContext,
   type GenResult,
@@ -31,7 +29,7 @@ const dslGenerator: Generator = {
   build: (): GenResult => ({
     sections: { en: dslWikiBlock('en'), fr: dslWikiBlock('fr') },
     problems: [],
-    identifiers: sortedUnique([...CMD_KEYS, ...COND_KINDS]),
+    identifiers: dslIdentifiers(),
   }),
 };
 
@@ -42,10 +40,7 @@ const apiGenerator: Generator = {
     return {
       sections: { en: signaturesWiki(rows, 'en'), fr: signaturesWiki(rows, 'fr') },
       problems: rowProblems(rows).map((p) => `engine.api: ${p} (tools/api-doc.ts)`),
-      identifiers: sortedUnique([
-        ...[...new Set(rows.map((r) => r.entry))].map((e) => `quest-n-click/${e}`),
-        ...rows.map((r) => r.name),
-      ]),
+      identifiers: apiIdentifiers(rows),
     };
   },
 };

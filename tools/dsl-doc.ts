@@ -1,12 +1,11 @@
 // npx tsx tools/dsl-doc.ts [--check] (4.1.12): the DSL's reference, generated from its schemas and their sentences, as
-// the "Reference" section of docs/en/DSL.md and docs/fr/DSL.md (between `<!-- dsl-doc:begin -->` and
-// `<!-- dsl-doc:end -->`, each in its language): every condition (core/ir-schema.ts, tools/dsl-meta.ts), every
+// the generated part of the wiki's `create.dsl` (wiki/en/create.dsl.md and wiki/fr/create.dsl.md, each in its language,
+// and that page's identifiers in wiki/manifest.json; 4.5.0, docs/en|fr/DSL.md being transition pages): every condition (core/ir-schema.ts, tools/dsl-meta.ts), every
 // command with its shape (src/studio/schema.ts `CMD_SPECS`, the Studio's forms) and its sentence, the objectives'
 // fields (`objectiveSchema` and its metadata), and how each field of the game and of a room counts for the IR and the
-// fingerprint (core/ir-fields.ts), and the placeholders a text may hold (4.3.0: text switches, core/text-switch.ts). `--check` exits 1 when a page is behind; tests/dsl-doc.test.ts runs it.
-// 4.5.0: `dslWikiBlock` gives the same block to the wiki's `create.dsl` (`npm run wiki -- generate`); docs/en|fr/DSL.md
-// stay generated here until the switch-over (C2).
-import { readFileSync, writeFileSync } from 'node:fs';
+// fingerprint (core/ir-fields.ts), and the placeholders a text may hold (4.3.0: text switches, core/text-switch.ts).
+// `--check` exits 1 when the page is behind; tests/dsl-doc.test.ts and `npm run wiki -- check` say the same, and
+// `npm run wiki -- generate create.dsl` writes the same.
 import { resolve } from 'node:path';
 import type * as z from 'zod';
 import { CMD_KEYS } from '../src/engine/core/cmds';
@@ -14,10 +13,9 @@ import { FIELD_CLASSES, type FieldClass } from '../src/engine/core/ir-fields';
 import { type FieldMeta, objectiveSchema } from '../src/engine/core/ir-schema';
 import { CMD_SPECS, COND_KINDS, type Field } from '../src/studio/schema';
 import { CMD_DOCS, COND_DOCS } from './dsl-meta';
+import { sortedUnique, updateGeneratedPage } from './wiki/generated';
 
 const ROOT = resolve(import.meta.dirname, '..');
-const BEGIN = '<!-- dsl-doc:begin -->';
-const END = '<!-- dsl-doc:end -->';
 type Lang = 'en' | 'fr';
 
 /** A field of the Studio's schema, as it is written. */
@@ -208,30 +206,20 @@ export function dslWikiBlock(lang: Lang): string {
   return out.join('\n');
 }
 
-/** The page with its generated block replaced (added at the end when the page has none). */
-export function withDslBlock(page: string, block: string): string {
-  const body = `${BEGIN}\n${block}\n${END}`;
-  const i = page.indexOf(BEGIN);
-  const j = page.indexOf(END);
-  if (i >= 0 && j > i) return page.slice(0, i) + body + page.slice(j + END.length);
-  return `${page.trimEnd()}\n\n${body}\n`;
-}
+/** The identifiers the wiki's `create.dsl` names: every command key and condition kind. */
+export const dslIdentifiers = (): string[] => sortedUnique([...CMD_KEYS, ...COND_KINDS]);
 
 if (process.argv[1] && import.meta.url.endsWith(process.argv[1].split('/').pop()!)) {
-  let behind = 0;
-  for (const lang of ['en', 'fr'] as const) {
-    const p = `docs/${lang}/DSL.md`;
-    const file = resolve(ROOT, p);
-    const page = readFileSync(file, 'utf8');
-    const next = withDslBlock(page, dslBlock(lang));
-    if (next === page) continue;
-    if (process.argv.includes('--check')) {
-      console.error(`✖  ${p} is behind the schemas: npx tsx tools/dsl-doc.ts`);
-      behind++;
-    } else {
-      writeFileSync(file, next);
-      console.log(`✔  ${p}: the reference written`);
-    }
-  }
-  process.exit(behind ? 1 : 0);
+  const check = process.argv.includes('--check');
+  const problems = updateGeneratedPage(
+    resolve(ROOT, 'wiki'),
+    'create.dsl',
+    { en: dslWikiBlock('en'), fr: dslWikiBlock('fr') },
+    dslIdentifiers(),
+    check,
+  );
+  for (const p of problems) console.error(`✖  ${p}: npx tsx tools/dsl-doc.ts`);
+  if (!problems.length)
+    console.log(`✔  wiki/en|fr/create.dsl.md: the reference ${check ? 'is up to date' : 'written'}`);
+  process.exit(problems.length ? 1 : 0);
 }
