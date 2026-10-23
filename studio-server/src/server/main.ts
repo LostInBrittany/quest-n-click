@@ -23,7 +23,7 @@ import { GitSync } from './git';
 import { mcpEndpoint, type McpEndpoint } from './mcp';
 import { snapshotMemo } from './snapshot-memo';
 import { StudioError } from '../ops/errors';
-import { spansOf } from '../ops/spans';
+import { readOwnSpans, spansOf } from '../ops/spans';
 import { type BlobStore, fsBlobStore } from '../ops/blobs';
 import { sha256 } from '../ops/durable';
 import { Journal } from '../ops/journal';
@@ -275,7 +275,10 @@ async function main(argv: string[]): Promise<number> {
   if (restoring) throw new ConfigError('a restore is under way: end it with `replay` (see STUDIO-SERVER.md)');
 
   // A shared Studio (OIDC): every write claims the spans of its files, in the transaction of its intent (P2).
-  const leases = config.oidc ? new Leases(db) : undefined;
+  // A faulty spans.json leaves the game's own files without a span (422) but never blocks the write that repairs it.
+  const ownFault = (e: Error) =>
+    console.error(`studio: ${e.message}: the game's own files have no span until it is fixed`);
+  const leases = config.oidc ? new Leases(db, { own: () => readOwnSpans(gameDir, ownFault) }) : undefined;
   const journal = await Journal.open({
     db,
     blobs,
@@ -292,7 +295,7 @@ async function main(argv: string[]): Promise<number> {
     precheck: leases
       ? async (paths) => {
           const who = operationContext.getStore()?.claimant;
-          if (who) await leases.check(who, spansOf(paths));
+          if (who) await leases.check(who, spansOf(paths, leases.own()));
         }
       : undefined,
   });

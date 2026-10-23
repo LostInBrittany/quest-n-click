@@ -802,7 +802,7 @@ Lance `audit:assets`.
 
 #### `npm run audit:assets`
 
-Fait échouer le build si quelque chose du projet privé d’origine fuit dans le dépôt public (noms de vraies personnes, ids de planches privées, nom du projet privé), les mots bloqués gardés en préfixes SHA-1. `build:game` le lance. Les licences des fichiers de `dist/` relèvent de `verify:dist`.
+Fait échouer le build si quelque chose du projet privé d’origine fuit dans le dépôt public (noms de vraies personnes, ids de planches privées, nom du projet privé), les mots bloqués gardés en préfixes SHA-1. Un jeu peut autoriser certains de ces mots dans ses propres fichiers, par leur préfixe SHA-1 et une raison, dans `games/<id>/audit-allow.json` ([create.build-release](create.build-release.md#audit-allow)). `build:game` le lance. Les licences des fichiers de `dist/` relèvent de `verify:dist`.
 
 - Lance : `tsx tools/audit-assets.ts`
 

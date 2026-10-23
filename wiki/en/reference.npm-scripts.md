@@ -802,7 +802,7 @@ Runs `audit:assets`.
 
 #### `npm run audit:assets`
 
-Fails the build if anything from the private origin project leaks into the public repository (names of real people, private sheet ids, the private project name), the blocked words stored as SHA-1 prefixes. `build:game` runs it. The licences of `dist/`'s files are `verify:dist`'s job.
+Fails the build if anything from the private origin project leaks into the public repository (names of real people, private sheet ids, the private project name), the blocked words stored as SHA-1 prefixes. A game may allow some of these words in its own files, by their SHA-1 prefix and a reason, in `games/<id>/audit-allow.json` ([create.build-release](create.build-release.md#audit-allow)). `build:game` runs it. The licences of `dist/`'s files are `verify:dist`'s job.
 
 - Runs: `tsx tools/audit-assets.ts`
 
