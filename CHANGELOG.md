@@ -2,7 +2,7 @@
 
 ## 4.5.0 — 2026-10-23
 
-LOG #268–#287: "Wiki", the documentation moved. `wiki/en` and `wiki/fr` are now the documentation: 210 pages in
+LOG #268–#289: "Wiki", the documentation moved. `wiki/en` and `wiki/fr` are now the documentation: 210 pages in
 English and in French, each paired with its twin section by section, published as the GitHub wiki and as
 `/docs/<version>/` on Pages from the release's own documentation archive, never rebuilt from `main`. The old `docs/`
 pages are transition pages: every old heading and anchor stays and links to its new place and to the 4.4.0 text. An
@@ -43,6 +43,18 @@ key on their yes of 23 October for `v4.5.0` (D37, D50).
   Playwright's own image, the lockfile's version pinned by digest, where the browsers and their libraries are already
   installed; `--with-deps` fetched 52 MB from an apt mirror that sometimes served 50 kB/s. A test keeps the image's
   version equal to the lockfile's. ffmpeg likewise comes from a static build on GitHub first, apt only if it fails.
+
+- **The WebKit e2e run no longer fails at random on "Context is stopped" after its save check (4.5.0, #263)**: the
+  save round trip reloads the page; when the offline warm-up had a Cache API call in flight, WebKit logged "Cache API
+  operation failed: Context is stopped" and the run failed, every check passed (4 times in 5 days on CI). WebKit logs
+  it itself, even for a promise the page catches, so the run now tolerates it during that reload as it already did
+  during the teardown: reported, not counted, on WebKit only, in that exact form. Nothing changes in the engine.
+
+- **The hosted Studio's end-to-end run no longer waits on a Play frame that never answers after "Load the latest
+  preview" (4.5.0, #264)**: on the Firefox pass, the script took the frame as soon as its address showed the expected
+  revision and spent 30 s on it, and the second click still expected the revision the first one read. Both clicks now
+  go through one helper that reads the latest revision at each click, looks the frame up again at each try with each
+  evaluation bounded, and loads the page once more (said in the log) if it stays silent. Nothing changes in the Studio.
 
 ### Changes
 

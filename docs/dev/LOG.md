@@ -7774,3 +7774,50 @@ part now); captures on a hosted Studio; npm publishing.
 - Checked: `tests/ci-plan.test.ts`, the YAML parsed, `actionlint`; the jobs themselves only run on CI.
 
 → next: review.
+
+
+## #288 · 2026-10-23 · Claude · proposal · 4.5.0: e2e, WebKit's "Context is stopped" tolerated during the save round trip's reload (#263)
+
+- Cause: `e2e (webkit, keyboard, false)` failed 4 times in 5 days (run 39539641390, job 120463400276; 39967673186
+  and 39416255342 green on rerun) on `pageerror Cache API operation failed: Context is stopped`, after "a manual save
+  survived a reload" and "e2e: done". `harness.saveRoundTrip()` reloads the page while the offline warm-up
+  (`dom/assets.ts` `warm()`) may have a `caches.match` in flight; WebKit stops it with its document. The excuse in
+  `scripts/e2e.mjs` covered only errors collected after "done" (the teardown).
+- Not an unhandled rejection: WebCore logs the stopped call itself, a console message of source JS and level error
+  ("Cache API operation failed: <reason>"), and Playwright's WebKit backend reports those as `pageerror` (its name
+  "Cache API operation failed", its message "Context is stopped", no stack: the CI line's exact shape). A page that
+  catches every Cache API promise and is reloaded ten times got it twice. `warm()` already catches: there is nothing
+  to handle in the engine.
+- Fix: `scripts/e2e.mjs` records the stretches of `harness.errors` in which a document goes away, the save round trip
+  and the browser's close (`stopWindow`), and excuses the error only inside them, only once every check passed, only
+  on WebKit and in its seen form. An error outside them still fails the run.
+- Checked: WebKit keyboard e2e (`--prod --generic --keyboard --save --no-indexeddb --axe`, `vite preview`) 6/6 green;
+  Chromium 1/1. With a Cache API loop injected into the page and extra reloads before the walkthrough (a temporary
+  copy of the script), the error from those reloads counted and failed the run, one inside a window was reported and
+  not counted.
+
+→ next: review.
+
+
+## #289 · 2026-10-23 · Claude · proposal · 4.5.0: e2e studio-hosted, the Play frame after "Load the latest preview" waited for as in 4b (#264)
+
+- Cause: step 6b clicked "Load the latest preview" twice, each followed by a loop that took the Play frame as soon as
+  its URL held `/preview/${ready}/`, then one `waitForFunction` of 30 s on that `Frame`. In Firefox, the frame caught as
+  its navigation commits may never answer an evaluation (already seen in 4.2.2 PR 3b, which bounded step 4b's): the
+  wait timed out, and the failure dump's own `evaluate` on it hung until the run's 8 min deadline. The second click
+  also reused the `ready` read before the first: before #256 the first could read 2 while 3 was building, so the
+  second loaded 3, its loop never matched, and after 80 tries it went on silently. All four CI failures were on the
+  Firefox pass: runs 39601284222, 39402884553 (attempt 1), 39232599877 (second click), 39978416632 (first click, with
+  #256's check passing, ready 3, head 3).
+- Fix, in the script only: one `loadLatest()` for both clicks. At each click it waits for the head's preview and reads
+  `ready` again (#256's check), marks the page in the frame, clicks, then for up to 45 s looks the frame up again at
+  each try and bounds each evaluation to 2 s (`within`, as 4b), until the frame at `/preview/${ready}/` runs a game
+  that is not the marked page. Silent for 15 s at the right URL: clicked once more, with a `note:` line in the output.
+  At the deadline, an error that names the URL instead of a bare timeout. The failure dump bounds each frame's
+  evaluation to 5 s.
+- Checked: the CI failure was not reproduced locally (33 Firefox runs, some with the room editor's reload delayed onto
+  the click, some under CPU load, all green). The retry path was forced once (no answer for the first 17 s): both
+  clicks noted, then passed. Then Chromium and Firefox four times each, green; `npm run quality`, `tsc`,
+  `changes --check`.
+
+→ next: review.
