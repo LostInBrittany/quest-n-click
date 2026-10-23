@@ -79,7 +79,8 @@
         "Assets, fonts, manifest, service worker and the sealed ending all honour the base",
         "A custom domain at the root needs no BASE_PATH",
         "Check locally with BASE_PATH=/my-repo/ npm run build, and the live site with scripts/e2e.mjs"
-      ]
+      ],
+      "gaps": ["A stale service worker's cache under a sub-path is not covered"]
     },
     {
       "id": "upgrade-keep-saves",
@@ -185,9 +186,9 @@
       "expect": ["play.troubleshooting"],
       "facts": [
         "Sound unlocks at the first tap, click or key press (browser rule)",
-        "With settings on, the pause menu has separate music, sound and voice volumes, kept in the browser",
-        "The iPhone mute switch is not documented yet"
-      ]
+        "With settings on, the pause menu has separate music, sound and voice volumes, kept in the browser"
+      ],
+      "gaps": ["The iPhone's mute switch and the browsers' autoplay rules are not explained to players"]
     },
     {
       "id": "update-not-showing",
@@ -555,7 +556,8 @@
         "Use two subdomains of your own domain (studio., play.) so the game frame keeps its cookie",
         "Two *.cleverapps.io names are two sites: the cookie survives only partitioned (CHIPS)",
         "A real Safari is the unverified studio-hosted pass"
-      ]
+      ],
+      "gaps": ["A login loop on Safari is not described"]
     },
     {
       "id": "change-domain",
@@ -570,7 +572,8 @@
         "Change publicUrl and playUrl in STUDIO_CONFIG_JSON; add the domains with clever domain add",
         "Update the provider: <publicUrl>/auth/callback, /auth/backchannel, post-logout <publicUrl>",
         "Users are keyed by issuer and subject: a new OIDC provider means new identities"
-      ]
+      ],
+      "gaps": ["No step-by-step procedure for changing the OIDC provider"]
     },
     {
       "id": "backup-studio",
@@ -732,10 +735,8 @@
         "fr": "Un job de CI a échoué sans raison sur ma pull request"
       },
       "expect": ["contribute.ci"],
-      "facts": [
-        "npm run ship -- checks allows one re-run of a failed job",
-        "The known flaky jobs are listed on the CI page"
-      ]
+      "facts": ["npm run ship -- checks allows one re-run of a failed job"],
+      "gaps": ["No flaky-test policy is written for contributors in docs/en"]
     },
     {
       "id": "event-twice",
@@ -817,12 +818,12 @@
       "withContext": [
         {
           "context": "engine-repo",
-          "expect": ["contribute.dev-loop", "create.project-layout#engine-repository", "reference.npm-scripts"],
+          "expect": ["contribute.dev-loop", "create.project-layout#engine-repository"],
           "expectNotFirst": ["install.from-archive"]
         },
         {
           "context": "created-project",
-          "expect": ["create.working-loop", "create.project-layout#game-files", "reference.npm-scripts"],
+          "expect": ["create.working-loop", "create.project-layout#game-files"],
           "expectNotFirst": ["contribute.dev-loop"]
         }
       ],

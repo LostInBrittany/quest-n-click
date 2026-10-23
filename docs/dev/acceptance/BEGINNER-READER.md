@@ -1,8 +1,12 @@
 # Documentation acceptance, level 3: a beginner reader (`docs-beginner-reader`)
 
 Part of L6 (`docs/dev/PLAN-4.5-WIKI.md` §4.6), phase A6. This is a people's pass of the Field Kit, asked from 4.5.0 on
-(`tools/field/schema.ts`, `PASS_SINCE`), bound in `docs/dev/surfaces.json` (the engine's package, which carries the
-documentation bundle, and `wiki/**`), and waited for by the `archives-install` surface in `docs/dev/contracts.json`.
+(`tools/field/schema.ts`, `PASS_SINCE`), bound in `docs/dev/surfaces.json`, and waited for by the `documentation` surface in `docs/dev/contracts.json`. The
+binding names the engine's package, which carries the documentation bundle, and what a reader sees: `wiki/en/**`,
+`wiki/fr/**`, `wiki/manifest.json`, `wiki/images/**` and this file. It leaves out `wiki/translations.json`,
+`wiki/reviews.json` and the questions, so a translation or review ack does not void a pass carried to a later
+candidate. Until C2 moves the images into `wiki/images/` and phase B writes the pages, that binding matches no file in
+the checkout, so a 4.5.0 candidate's Field Kit cannot be made before then.
 Like every pass, it is an open `field-pass` issue that the maintainer closes after the test. C3 opens that issue on the
 public preview. It is reported, not blocking (D12).
 

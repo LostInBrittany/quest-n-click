@@ -36,7 +36,7 @@
       "audience": "author",
       "text": { "en": "How do I write my own minigame?", "fr": "Comment écrire mon propre mini-jeu ?" },
       "expect": ["create.custom-minigame"],
-      "facts": ["Not written yet: pending"]
+      "facts": ["Register it in minigames as {run(ctx)}"]
     },
     {
       "id": "no-sound",
@@ -44,7 +44,8 @@
       "audience": "player",
       "text": { "en": "The game is silent", "fr": "Le jeu est muet" },
       "expect": ["play.troubleshooting"],
-      "facts": ["The page says nothing of sound yet: a miss"]
+      "facts": ["Sound unlocks at the first tap"],
+      "gaps": ["The page says nothing of sound yet"]
     },
     {
       "id": "multiplayer",
@@ -67,7 +68,7 @@
       "text": { "en": "Does it support VR headsets?", "fr": "Est-ce compatible avec les casques VR ?" },
       "expect": ["index.not-supported"],
       "expectEmpty": true,
-      "facts": ["Not documented: no answer rather than a neighbour"]
+      "facts": ["quest'n'click has no VR support"]
     },
     {
       "id": "npm-run-studio",

@@ -310,7 +310,10 @@
     "pack/{proj}-{pkg}.tgz"
    ],
    "config": [
-    "wiki/**",
+    "wiki/en/**",
+    "wiki/fr/**",
+    "wiki/manifest.json",
+    "wiki/images/**",
     "docs/dev/acceptance/BEGINNER-READER.md"
    ],
    "exclusions": [],

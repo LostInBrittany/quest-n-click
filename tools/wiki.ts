@@ -365,6 +365,8 @@ function acceptance(args: readonly string[], wikiDir: string): number {
     return 1;
   }
   const out = option(args, 'export-prompts');
+  if (out && args.includes('--strict'))
+    throw new UsageError('--export-prompts writes prompts and runs nothing: --strict does not go with it');
   if (out) {
     const refused = outProblem(out);
     if (refused) {
@@ -375,7 +377,9 @@ function acceptance(args: readonly string[], wikiDir: string): number {
     if (channel !== 'mcp' && channel !== 'web') throw new UsageError('--channel is mcp or web');
     const url = option(args, 'url');
     const files = exportPrompts(q.questions, resolve(out), { langs, channel, ...(url ? { url } : {}) });
-    console.log(`✔  ${files.length - 1} prompt(s) and prompts.json written to ${resolve(out)} (no answer inside)`);
+    console.log(
+      `✔  ${files.length - 2} prompt(s) and prompts.json written to ${resolve(out, 'prompts')} (the answering agent's only input, no answer inside); the numbers' key to ${resolve(out, 'grading', 'key.json')} (the grader's only)`,
+    );
     return 0;
   }
   const report = runAcceptance(repositoryDocs(ROOT, { wikiDir }), q.questions, langs);

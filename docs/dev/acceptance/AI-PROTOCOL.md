@@ -7,10 +7,21 @@ answers each question with the documentation alone, and a grader compares the an
 requires. It is reported, not blocking (D12). It runs at C3 on the public preview, and again on each release candidate
 whose documentation changed.
 
+## How level 1 counts, which level 2 builds on
+
+- A destination `id#section` is found only at that section. A bare page id is found at any of its sections. A result
+  on the right page at another section is a miss, and the report says "the right page, another section".
+- A question is **pending** while none of its destinations is written in that language. Once one is written, even a
+  secondary one, a run that does not find what it expects is a miss. A counter-example is pending while any page it
+  needs is unwritten (each context's page, both neighbours). `npm run wiki -- acceptance` prints this rule under its
+  table.
+
 ## What is graded
 
 `wiki/acceptance/questions.json` holds about sixty questions. Each one has an English and a French text, written the
-way a reader would type it. Each one also has `facts`: short statements in English that a correct answer must contain.
+way a reader would type it. Each one also has `facts`: short statements in English that a correct answer must contain. They say what the product
+does. What the documentation does not say yet is in `gaps`, which is never graded, and validation refuses "not
+documented" in a fact.
 Counter-examples (`kind: "counter-example"`) are graded on their facts too. For an absent feature, the correct answer
 says the feature does not exist, and does not describe a neighbouring feature instead.
 
@@ -30,16 +41,22 @@ says the feature does not exist, and does not describe a neighbouring feature in
    # --lang en or --lang fr limits the run to one language
    ```
 
-   It writes one file per question and language, `<id>.<lang>.md`, and `prompts.json`, which lists them. A prompt holds
-   the question, the reader's situation (context, version) and the rules of the run. It never holds the expected
-   destinations or the facts: the agent must not see the answer.
+   It writes two folders.
+   - `prompts/` is all the answering agent gets. It holds one file per question and language, `q01.en.md`,
+     `q01.fr.md` and so on, and `prompts.json`, which lists them by number and language. A prompt holds the question,
+     the reader's situation (context, version) and the rules of the run.
+   - `grading/key.json` maps each number back to its question id. Only the grader reads it.
+
+   The questions are numbered in the order of their ids, so a number is stable while the set is. Nothing given to the
+   agent names the question's id, whether it is a counter-example, its destinations (each context's and the
+   neighbours' included) or its facts. `--strict` does not go with `--export-prompts`.
 3. **Run one fresh agent per prompt.** Each agent starts with an empty context: no memory of the project, no earlier
    prompt, no `CLAUDE.md` or `AGENTS.md`. Its only tools are the channel's (in Claude Code, a sub-agent whose tool list
    holds only the three `mcp__…__search_docs`, `list_docs` and `read_doc` tools, or only the web fetch restricted to
    the documentation host). Give it the prompt file's text and nothing else. Keep its whole answer and the tool calls
    it made.
-4. **Grade each answer** against the question's `facts`, in a second context that did not run the agent. For each
-   fact:
+4. **Grade each answer** in a second context that did not run the agent. Find the question id through
+   `grading/key.json`, then grade against that question's `facts` in `questions.json`. For each fact:
    - **found**: the answer states it, in substance;
    - **missing**: the answer does not state it;
    - **misread**: the answer states something that contradicts it, or attributes it to the wrong service, version or
@@ -60,7 +77,7 @@ says the feature does not exist, and does not describe a neighbouring feature in
 
    | Question | Language | Found | Missing | Misread | Cited an expected page | Notes |
    |---|---|---|---|---|---|---|
-   | error-423 | fr | 4 | 0 | 0 | yes | |
+   | error-423 (q07) | fr | 4 | 0 | 0 | yes | |
    ```
 
    Do not put a pass status word (`passed`, `failed`, `blocked`, `not-run`) in this table's second column: the status

@@ -5,7 +5,7 @@ import { spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { dirname, join } from 'node:path';
 import { afterAll, describe, expect, it } from 'vitest';
 import {
   type CarryAttestation,
@@ -18,7 +18,7 @@ import {
 import { FIELD_STATUSES, type FieldReport, FieldReportSchema, PASS_IDS, passesFor } from '../tools/field/schema';
 import { rangeProblems, trustedApproval } from '../tools/field/trust';
 // @ts-expect-error: a plain .mjs module without declarations
-import { globRe, surfacesOf } from '../tools/field/surfaces.mjs';
+import { configDigest, globRe, surfacesOf } from '../tools/field/surfaces.mjs';
 
 const temps: string[] = [];
 afterAll(() => {
@@ -78,6 +78,27 @@ const surfaces = (version: string, over: Record<string, string> = {}, config: Re
   });
 const all = (version: string, over: Record<string, string> = {}) => {
   const c = candidate(version, over);
+  return { ...c.files, ...Object.fromEntries(Object.entries(c.site).map(([p, d]) => [`site:${p}`, d])) };
+};
+
+/** A 4.5.0 candidate, its files under the names of 4.2.5 on (D47), the Studio Server's archive among them. */
+function candidate450() {
+  const c = candidate('4.5.0', { 'pack/web-scumm-studio-server-4.5.0.tgz': h('7') });
+  const files = Object.fromEntries(
+    Object.entries(c.files).map(([f, d]) => [f.replace('web-scumm', 'quest-n-click'), d]),
+  ) as Record<string, string>;
+  return { files, site: c.site };
+}
+const surfaces450 = (config: Record<string, string> = {}): Surfaces =>
+  surfacesOf({
+    ...candidate450(),
+    candidate: candidate450().files,
+    declared,
+    version: '4.5.0',
+    config: (globs: string[]) => config[globs.join(',')] ?? h('9'),
+  });
+const all450 = () => {
+  const c = candidate450();
   return { ...c.files, ...Object.fromEntries(Object.entries(c.site).map(([p, d]) => [`site:${p}`, d])) };
 };
 
@@ -233,6 +254,78 @@ describe('a pass carried, or not', () => {
       'archive-human-install',
     ] as const)
       expect(carries(id, bump, '4.1.21').ok, id).toBe(false);
+  });
+
+  it("binds the beginner reader from 4.5.0 on, to the engine's package and the pages a reader sees", () => {
+    const v450 = surfaces450();
+    expect(v450.surfaces.map((x) => x.id).sort()).toEqual([...passesFor('4.5.0')].sort());
+    const reader = v450.surfaces.find((x) => x.id === 'docs-beginner-reader')!;
+    expect(Object.keys(reader.artifactDigests)).toEqual(['pack/quest-n-click-4.5.0.tgz']);
+    expect(declared.surfaces['docs-beginner-reader'].config).toEqual([
+      'wiki/en/**',
+      'wiki/fr/**',
+      'wiki/manifest.json',
+      'wiki/images/**',
+      'docs/dev/acceptance/BEGINNER-READER.md',
+    ]);
+    // Not a surface of an earlier release.
+    const c440 = candidate('4.4.0', { 'pack/web-scumm-studio-server-4.4.0.tgz': h('7') });
+    const files440 = Object.fromEntries(
+      Object.entries(c440.files).map(([f, d]) => [f.replace('web-scumm', 'quest-n-click'), d]),
+    );
+    const v440: Surfaces = surfacesOf({
+      candidate: files440,
+      site: c440.site,
+      declared,
+      version: '4.4.0',
+      config: () => h('9'),
+    });
+    expect(v440.surfaces.map((x) => x.id)).not.toContain('docs-beginner-reader');
+  });
+
+  it('carries the beginner reader across a translation or review ack, never across a page that changed', () => {
+    const globs = declared.surfaces['docs-beginner-reader'].config as string[];
+    const root = tmp();
+    const files = [
+      'wiki/en/team.write-refused-423.md',
+      'wiki/fr/team.write-refused-423.md',
+      'wiki/manifest.json',
+      'wiki/images/team/lease.png',
+      'docs/dev/acceptance/BEGINNER-READER.md',
+      'wiki/translations.json',
+      'wiki/reviews.json',
+      'wiki/acceptance/questions.json',
+    ];
+    const write = (f: string, text: string) => {
+      mkdirSync(dirname(join(root, f)), { recursive: true });
+      writeFileSync(join(root, f), text);
+    };
+    for (const f of files) write(f, 'one');
+    const digest = () => configDigest(globs, root, files) as string;
+    const before = digest();
+    // What a reader never sees: the acks and the questions.
+    write('wiki/translations.json', 'two');
+    write('wiki/reviews.json', 'two');
+    write('wiki/acceptance/questions.json', 'two');
+    expect(digest()).toBe(before);
+    write('wiki/en/team.write-refused-423.md', 'two');
+    const after = digest();
+    expect(after).not.toBe(before);
+    const key = globs.join(',');
+    const report = passed('docs-beginner-reader');
+    const check = (target: string) =>
+      carryCheck({
+        report,
+        reportBytes: JSON.stringify(report),
+        from: FROM,
+        to: TO,
+        source: surfaces450({ [key]: before }),
+        target: surfaces450({ [key]: target }),
+        sourceFiles: all450(),
+        targetFiles: all450(),
+      });
+    expect(check(before).ok).toBe(true);
+    expect(check(after).ok).toBe(false);
   });
 
   it('refuses the archive pass when the README install section changed (its configuration)', () => {

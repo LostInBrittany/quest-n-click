@@ -490,19 +490,38 @@ reader on 10 questions, opened as a `field-pass` issue. Levels 2 and 3 are repor
 `docs/dev/passes/<version>.md`.
 
 *Amendment (A6):* `questions.json` is format `quest-n-click-docs-acceptance` v1. A destination is a manifest page,
-or a page and a section that the written page or the coverage matrix proposes, never a generated index. A
-counter-example names its row and gives its exact behaviour: `expectEmpty` (the explicit empty result is a right
-answer), `expectNotFirst`, `expectStatus` (with `includeArchived`, `notApplicable` or `archived`; without it, never
-shown at all), `withContext` (each context puts its page first) and `withoutContext` (every neighbour appears in the
-top 5, with `names`, the words its excerpt must contain). A question counts as a hit when its expected page is in the
-top 3. Hits on the exact section are counted apart. A run is **pending**, never a miss, while its destination pages
-are not written in that language. A justified empty result is an absent feature's, or an old procedure that the
-version filter leaves out. `wiki -- acceptance` exits 0 (reported); `--strict` (C1) also fails on pending runs,
-since every page is written by then. `wiki -- check` validates the file. Level 2:
-`docs/dev/acceptance/AI-PROTOCOL.md`, with `--export-prompts`. Level 3: the pass `docs-beginner-reader`, asked from
-4.5.0 (`docs/dev/acceptance/BEGINNER-READER.md`), bound to the engine package and `wiki/**`, waited for by the
-`archives-install` surface, because the documentation ships in that package. C3 opens its issue and adds it to
-`passIssues`.
+or a page and a section that the written page or the coverage matrix proposes, never a generated index.
+- **Matching.** A destination `id#section` is found at that section only; a bare page id at any of its sections. This
+  holds everywhere: questions, counter-examples, each context's destinations, and the neighbours. A question counts
+  as a hit when an expected destination is in the top 3.
+- **Counter-examples.** A counter-example names its row and gives its exact behaviour:
+  - `expectEmpty`: the explicit empty result is a right answer;
+  - `expectNotFirst`;
+  - `expectStatus`: with `includeArchived`, `notApplicable` or `archived`; without it, never shown at all;
+  - `withContext`: each context puts its own destination first; a destination listed under two contexts is refused;
+  - `withoutContext`: every neighbour appears in the top 5, and `names` gives the words its excerpt must contain.
+- **Facts and gaps.** `facts` say what the product does. What the documentation lacks goes in `gaps`, which is not
+  graded, and a fact saying "not documented" is refused.
+- **Pending.** A question is pending while none of its destinations is written in that language. Once one is written,
+  even a secondary one, a run that does not find what it expects is a miss. A counter-example is pending while any
+  page it needs is unwritten.
+- **Empty results.** A justified empty result is an absent feature's, or an old procedure that the version filter
+  leaves out.
+- **The command.** `wiki -- acceptance` exits 0 (reported); `--strict` (C1) also fails on pending runs, since every
+  page is written by then. `wiki -- check` validates the file.
+- **Level 2.** `docs/dev/acceptance/AI-PROTOCOL.md`. `--export-prompts` numbers the questions `q01`… in the order of
+  their ids. The answering agent gets `prompts/` only; the grader alone reads the key, `grading/key.json`.
+- **Level 3.** The pass `docs-beginner-reader`, asked from 4.5.0 (`docs/dev/acceptance/BEGINNER-READER.md`).
+  - It is waited for by a new `documentation` surface in `docs/dev/contracts.json`. That surface has no SUPPORT.md
+    quote and no matrix row yet: `support` and `matrixRows` are null, with the reason "SUPPORT.md gains its row at
+    C2; docs/ is frozen by the coverage matrix", and the registry accepts null only with a reason.
+  - It is bound to the engine package, `wiki/en/**`, `wiki/fr/**`, `wiki/manifest.json`, `wiki/images/**` and the
+    protocol. The translation and review records and the questions are left out, so an ack does not void a carried
+    pass.
+  - Before C2 that binding matches no page or image, so a 4.5.0 candidate's Field Kit waits for C2.
+  - C3 opens its issue and adds it to `passIssues`.
+  - A Field Kit folder that names no release (no report, no package) is now asked the passes of the checkout's
+    package version, not every pass.
 
 ### 4.7 Other contracts
 

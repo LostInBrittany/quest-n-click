@@ -53,6 +53,11 @@ const CONSUMERS: Record<string, { phase: Phase; reads: string }> = {
   'tests/scripts-documented.test.ts': { phase: 'C2 switch', reads: 'docs/en|fr/TOOLS.md' },
   'tests/support-truth.test.ts': { phase: 'C2 switch', reads: 'docs/en|fr/SUPPORT.md' },
   'tests/wiki-check.test.ts': { phase: 'A4 active', reads: 'the wiki fixtures and the build' },
+  'tests/field-carry.test.ts': {
+    phase: 'A4 active',
+    reads:
+      "the docs-beginner-reader pass's binding (wiki/en/** …), digested over a temporary copy, never the wiki itself",
+  },
   'tests/wiki-acceptance.test.ts': {
     phase: 'A4 active',
     reads: "wiki/acceptance/questions.json and wiki/'s pages through the loader, and the acceptance fixture",
