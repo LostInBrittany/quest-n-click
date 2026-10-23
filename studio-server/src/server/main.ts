@@ -23,7 +23,7 @@ import { GitSync } from './git';
 import { mcpEndpoint, type McpEndpoint } from './mcp';
 import { snapshotMemo } from './snapshot-memo';
 import { StudioError } from '../ops/errors';
-import { spansOf } from '../ops/spans';
+import { readOwnSpans, spansOf } from '../ops/spans';
 import { type BlobStore, fsBlobStore } from '../ops/blobs';
 import { sha256 } from '../ops/durable';
 import { Journal } from '../ops/journal';
@@ -275,7 +275,7 @@ async function main(argv: string[]): Promise<number> {
   if (restoring) throw new ConfigError('a restore is under way: end it with `replay` (see STUDIO-SERVER.md)');
 
   // A shared Studio (OIDC): every write claims the spans of its files, in the transaction of its intent (P2).
-  const leases = config.oidc ? new Leases(db) : undefined;
+  const leases = config.oidc ? new Leases(db, { own: () => readOwnSpans(gameDir) }) : undefined;
   const journal = await Journal.open({
     db,
     blobs,
@@ -292,7 +292,7 @@ async function main(argv: string[]): Promise<number> {
     precheck: leases
       ? async (paths) => {
           const who = operationContext.getStore()?.claimant;
-          if (who) await leases.check(who, spansOf(paths));
+          if (who) await leases.check(who, spansOf(paths, leases.own()));
         }
       : undefined,
   });

@@ -54,11 +54,20 @@ Every file of the game belongs to exactly one **span**, decided by its path
 | `assets` | `art/`, `audio/`, `assets.gen.json`, `talk-kits.json`, `provenance.json`, `provenance.lock.json` |
 | `notes` | `notes.json` |
 | `groupings` | `groupings.json` (the scenario map) |
-| `meta` | `index.ts`, `site.json`, `e2e.mjs`, `ending.config.example.ts`, `ids.paths.json`, `ids.migration.json`, `tests/` |
+| `meta` | `index.ts`, `site.json`, `e2e.mjs`, `ending.config.example.ts`, `ids.paths.json`, `ids.migration.json`, `spans.json`, `audit-allow.json`, `tests/` |
 | `playtests` | `playtests/`, `replays/` |
 | `reality` | `reality/` |
 
 A file no rule names is refused (422) on a shared Studio until the engine gives it a span.
+
+A game's own files (4.5.1), which the engine cannot know (the modules its `index.ts` imports, its notes, its scripts),
+get their span from the game's `spans.json`, `meta` itself: a path, a folder (`minigames/`) or a glob (`prompts-*.md`,
+`art-tools/**/*.py`), each with a span a client may take. The first that matches wins; the engine's rules above come
+first, so a game never moves an engine file. A file neither names is still refused.
+
+```json
+{ "minigames/": "meta", "commands/": "meta", "swag.ts": "items", "prompts-*.md": "story", "art-tools/": "assets" }
+```
 
 <a name="lease"></a>
 

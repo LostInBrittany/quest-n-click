@@ -2,16 +2,17 @@
 // none, without waiting; a span another member holds is a 423 naming them; leases run out, are renewed by the
 // heartbeat, taken over by an owner (fenced, audited) and made exclusive; the live stream tells every revision, lease
 // and presence, and closes when its user is revoked or its token ends. Three members and a reviewer, one provider.
-import { cpSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync } from 'node:fs';
+import { execFileSync } from 'node:child_process';
+import { cpSync, mkdirSync, mkdtempSync, readFileSync, rmSync, utimesSync, writeFileSync } from 'node:fs';
 import { createServer } from 'node:net';
-import { join, relative } from 'node:path';
+import { join } from 'node:path';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { openSqliteDb } from '../bridge/src/store-sqlite';
 import type { SqlDb } from '../bridge/src/store-sql';
 import { fsBlobStore } from '../studio-server/src/ops/blobs';
 import { createStudio, importInChild, operationContext } from '../studio-server/src/ops/core';
 import { Journal } from '../studio-server/src/ops/journal';
-import { isSpanName, NAMED_SPANS, spanOf, spansOf } from '../studio-server/src/ops/spans';
+import { isSpanName, NAMED_SPANS, parseOwnSpans, readOwnSpans, spanOf, spansOf } from '../studio-server/src/ops/spans';
 import { Gate } from '../studio-server/src/server/auth/gate';
 import { Oidc } from '../studio-server/src/server/auth/oidc';
 import { authRoutes } from '../studio-server/src/server/auth/routes';
@@ -159,19 +160,21 @@ afterAll(async () => {
   rmSync(tmp, { recursive: true, force: true });
 });
 
+/** The files of each game the repository tracks (a local, ignored private/ folder is no file of the repository). */
+const gameFiles = (): [string, string[]][] => {
+  const byGame = new Map<string, string[]>();
+  for (const f of execFileSync('git', ['ls-files', '-z', 'games'], { cwd: ROOT, encoding: 'utf8' }).split('\0')) {
+    const m = /^games\/([^/]+)\/(.+)$/.exec(f);
+    if (m) byGame.set(m[1]!, [...(byGame.get(m[1]!) ?? []), m[2]!]);
+  }
+  return [...byGame];
+};
+
 describe('the spans', () => {
   it('every file of every game in this repository has exactly one span', () => {
-    for (const g of readdirSync(join(ROOT, 'games'))) {
-      const root = join(ROOT, 'games', g);
-      const walk = (d: string) => {
-        for (const e of readdirSync(d, { withFileTypes: true })) {
-          if (e.name.startsWith('.')) continue;
-          const p = join(d, e.name);
-          if (e.isDirectory()) walk(p);
-          else expect(() => spanOf(relative(root, p).split('\\').join('/')), p).not.toThrow();
-        }
-      };
-      walk(root);
+    for (const [g, files] of gameFiles()) {
+      const own = readOwnSpans(join(ROOT, 'games', g));
+      for (const f of files) expect(() => spanOf(f, own), `games/${g}/${f}`).not.toThrow();
     }
     expect(spansOf(['layout/garden.json', 'rooms/garden.ts', 'locales/fr.json', 'game.ts'])).toEqual([
       'game',
@@ -183,17 +186,9 @@ describe('the spans', () => {
 
   it('a client may name every span the files can give, and only those (4.5.0: groupings was refused)', () => {
     const given = new Set<string>();
-    for (const g of readdirSync(join(ROOT, 'games'))) {
-      const root = join(ROOT, 'games', g);
-      const walk = (d: string) => {
-        for (const e of readdirSync(d, { withFileTypes: true })) {
-          if (e.name.startsWith('.')) continue;
-          const p = join(d, e.name);
-          if (e.isDirectory()) walk(p);
-          else given.add(spanOf(relative(root, p).split('\\').join('/')));
-        }
-      };
-      walk(root);
+    for (const [g, files] of gameFiles()) {
+      const own = readOwnSpans(join(ROOT, 'games', g));
+      for (const f of files) given.add(spanOf(f, own));
     }
     for (const s of [...given, ...NAMED_SPANS, spanOf('groupings.json')]) expect(isSpanName(s), s).toBe(true);
     expect(NAMED_SPANS).toContain('groupings');
@@ -211,6 +206,77 @@ describe('the spans', () => {
     const panel = readFileSync(join(ROOT, 'src', 'studio', 'spans.ts'), 'utf8');
     const listed = /GLOBAL_SPANS[^=]*=\s*\[([\s\S]*?)\];/.exec(panel)![1]!;
     expect([...listed.matchAll(/\['([\w-]+)',/g)].map((m) => m[1]).sort()).toEqual([...NAMED_SPANS]);
+  });
+});
+
+describe("a game's own spans (spans.json, 4.5.1)", () => {
+  it("names the spans of its own files; the engine's rules come first, and a file neither names is refused", () => {
+    const own = parseOwnSpans({
+      'minigames/': 'meta',
+      'prompts-*.md': 'story',
+      'art-tools/**/*.py': 'assets',
+      'swag.ts': 'items',
+      'cast.ts': 'meta',
+      'rooms/**': 'meta',
+      '*.ts': 'rules',
+    });
+    expect(spanOf('minigames/dance.ts', own)).toBe('meta');
+    expect(spanOf('minigames/rules/moves.ts', own)).toBe('meta');
+    expect(spanOf('prompts-danse.md', own)).toBe('story');
+    expect(spanOf('art-tools/cut.py', own)).toBe('assets');
+    expect(spanOf('art-tools/old/cut.py', own)).toBe('assets');
+    // The first pattern that matches wins: swag.ts is items, not the rules of '*.ts'.
+    expect(spanOf('swag.ts', own)).toBe('items');
+    expect(spanOf('judu.ts', own)).toBe('rules');
+    // An engine file keeps its span whatever the game says.
+    expect(spanOf('cast.ts', own)).toBe('cast');
+    expect(spanOf('rooms/garden.ts', own)).toBe('room:garden');
+    expect(spanOf('spans.json', own)).toBe('meta');
+    expect(spanOf('audit-allow.json', own)).toBe('meta');
+    // '*' stays in one folder; nothing else is guessed.
+    expect(() => spanOf('notes/prompts-danse.md', own)).toThrow(/no span.*spans\.json/);
+    expect(() => spanOf('ART_BRIEF.md', own)).toThrow(/no span/);
+    expect(() => spanOf('minigames/dance.ts')).toThrow(/no span/);
+    expect(spansOf(['minigames/dance.ts', 'swag.ts', 'cast.ts'], own)).toEqual(['cast', 'items', 'meta']);
+  });
+
+  it('refuses a declaration that leaves the game folder or names no span a client may take', () => {
+    for (const bad of [
+      [],
+      'meta',
+      null,
+      { '../x.ts': 'meta' },
+      { '/x.ts': 'meta' },
+      { 'a\\b.ts': 'meta' },
+      { '': 'meta' },
+    ])
+      expect(() => parseOwnSpans(bad), JSON.stringify(bad)).toThrow(/spans\.json/);
+    for (const span of ['*', 'room:', 'nope', 3, 'toString'])
+      expect(() => parseOwnSpans({ 'x.ts': span }), String(span)).toThrow(/names no span/);
+    expect(spanOf('x.ts', parseOwnSpans({ 'x.ts': 'room:hall' }))).toBe('room:hall');
+  });
+
+  it('is read from the game folder, again once it changed; no file is no own span', () => {
+    const game = mkdtempSync(join(tmp, 'own-'));
+    expect(readOwnSpans(game)).toEqual([]);
+    writeFileSync(join(game, 'spans.json'), JSON.stringify({ 'minigames/': 'meta' }));
+    expect(spanOf('minigames/dance.ts', readOwnSpans(game))).toBe('meta');
+    writeFileSync(join(game, 'spans.json'), JSON.stringify({ 'minigames/': 'story' }));
+    utimesSync(join(game, 'spans.json'), new Date(), new Date(Date.now() + 5_000));
+    expect(spanOf('minigames/dance.ts', readOwnSpans(game))).toBe('story');
+    writeFileSync(join(game, 'spans.json'), '{ "x.ts": "nope" }');
+    utimesSync(join(game, 'spans.json'), new Date(), new Date(Date.now() + 10_000));
+    expect(() => readOwnSpans(game)).toThrow(/names no span/);
+  });
+
+  it('a write on a shared Studio claims the span the game declared', async () => {
+    const own = new Leases(db, { ttlMs: 2_000, own: () => parseOwnSpans({ 'minigames/': 'room:own-hall' }) });
+    const fences = await db.tx('studio', (q) => own.claimPaths(q, { userId: 'o', name: 'o' }, ['minigames/dance.ts']));
+    expect(Object.keys(fences)).toEqual(['room:own-hall']);
+    await own.release('o');
+    await expect(
+      db.tx('studio', (q) => leases.claimPaths(q, { userId: 'o', name: 'o' }, ['minigames/dance.ts'])),
+    ).rejects.toThrow(/no span/);
   });
 });
 

@@ -849,8 +849,8 @@
       "name": "audit:assets",
       "group": "release",
       "description": {
-        "en": "Fails the build if anything from the private origin project leaks into the public repository (names of real people, private sheet ids, the private project name), the blocked words stored as SHA-1 prefixes. `build:game` runs it. The licences of `dist/`'s files are `verify:dist`'s job.",
-        "fr": "Fait échouer le build si quelque chose du projet privé d’origine fuit dans le dépôt public (noms de vraies personnes, ids de planches privées, nom du projet privé), les mots bloqués gardés en préfixes SHA-1. `build:game` le lance. Les licences des fichiers de `dist/` relèvent de `verify:dist`."
+        "en": "Fails the build if anything from the private origin project leaks into the public repository (names of real people, private sheet ids, the private project name), the blocked words stored as SHA-1 prefixes. A game may allow some of these words in its own files, by their SHA-1 prefix and a reason, in `games/<id>/audit-allow.json` ([create.build-release](create.build-release.md#audit-allow)). `build:game` runs it. The licences of `dist/`'s files are `verify:dist`'s job.",
+        "fr": "Fait échouer le build si quelque chose du projet privé d’origine fuit dans le dépôt public (noms de vraies personnes, ids de planches privées, nom du projet privé), les mots bloqués gardés en préfixes SHA-1. Un jeu peut autoriser certains de ces mots dans ses propres fichiers, par leur préfixe SHA-1 et une raison, dans `games/<id>/audit-allow.json` ([create.build-release](create.build-release.md#audit-allow)). `build:game` le lance. Les licences des fichiers de `dist/` relèvent de `verify:dist`."
       }
     },
     {

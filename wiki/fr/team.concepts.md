@@ -57,12 +57,22 @@ Chaque fichier du jeu appartient à exactement un **pan**, décidé par son chem
 | `assets` | `art/`, `audio/`, `assets.gen.json`, `talk-kits.json`, `provenance.json`, `provenance.lock.json` |
 | `notes` | `notes.json` |
 | `groupings` | `groupings.json` (la carte du scénario) |
-| `meta` | `index.ts`, `site.json`, `e2e.mjs`, `ending.config.example.ts`, `ids.paths.json`, `ids.migration.json`, `tests/` |
+| `meta` | `index.ts`, `site.json`, `e2e.mjs`, `ending.config.example.ts`, `ids.paths.json`, `ids.migration.json`, `spans.json`, `audit-allow.json`, `tests/` |
 | `playtests` | `playtests/`, `replays/` |
 | `reality` | `reality/` |
 
 Un fichier qu'aucune règle ne nomme est refusé (422) sur un Studio partagé, tant que le moteur ne lui a pas donné de
 pan.
+
+Les fichiers propres à un jeu (4.5.1), que le moteur ne peut pas connaître (les modules qu'importe son `index.ts`, ses
+notes, ses scripts), prennent leur pan dans le `spans.json` du jeu, lui-même `meta` : un chemin, un dossier
+(`minigames/`) ou un motif (`prompts-*.md`, `art-tools/**/*.py`), chacun avec un pan qu'un client peut prendre. Le
+premier qui correspond l'emporte ; les règles du moteur ci-dessus passent avant, si bien qu'un jeu ne déplace jamais un
+fichier du moteur. Un fichier que ni l'un ni l'autre ne nomme est toujours refusé.
+
+```json
+{ "minigames/": "meta", "commands/": "meta", "swag.ts": "items", "prompts-*.md": "story", "art-tools/": "assets" }
+```
 
 <a name="lease"></a>
 

@@ -267,6 +267,9 @@ Messages :
 - `the prepared assets are refused: …` ([`studio-server/src/server/remote-executor.ts`](../../studio-server/src/server/remote-executor.ts))
 - `… is a link or a submodule: not imported` ([`studio-server/src/server/git.ts`](../../studio-server/src/server/git.ts))
 - `… is not a folder of the repository (a file, a link or a submodule): not read` ([`studio-server/src/server/git.ts`](../../studio-server/src/server/git.ts))
+- `…: "…" is not a path relative to the game folder` ([`studio-server/src/ops/spans.ts`](../../studio-server/src/ops/spans.ts))
+- `…: "…" names no span a client may take (…)` ([`studio-server/src/ops/spans.ts`](../../studio-server/src/ops/spans.ts))
+- `…: an object { "<path>, <folder>/ or <glob>": "<span>" }` ([`studio-server/src/ops/spans.ts`](../../studio-server/src/ops/spans.ts))
 - et 2 message(s) construit(s) à l’exécution.
 
 <a name="studio-423"></a>

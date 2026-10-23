@@ -1,6 +1,9 @@
 // The spans of a game (4.2.1, plan P2): every file of `games/<id>/` belongs to exactly one span, decided by the file
 // itself (not the IR's provenance, which misses ids written by code). A file no rule names is an error: a new kind
 // of file gets its span here, on purpose, before anyone can write it on a shared Studio.
+// A game's own files (4.5.1, #269): what the engine cannot know (modules index.ts imports, notes, scripts) the game
+// declares in its own spans.json, { "<path>, <folder>/ or <glob>": "<span>" }. The engine's rules come first, so a
+// declaration never moves an engine file; a file that neither names is still refused.
 //   room:<id>  rooms/<id>.ts, layout/<id>.json
 //   game · items · cast · rules   game.ts · items.ts · cast.ts · rules.ts
 //   story      storyboard.json, storyboard.md, STORY.md, prompts.md
@@ -9,7 +12,8 @@
 //   assets     art/, audio/, assets.gen.json, talk-kits.json, provenance.json, provenance.lock.json
 //   notes      notes.json
 //   groupings  groupings.json (4.2.3: the scenario map's characters, puzzles and chapters)
-//   meta       index.ts, site.json, e2e.mjs, ending.config.example.ts, ids.paths.json, ids.migration.json, tests/
+//   meta       index.ts, site.json, e2e.mjs, ending.config.example.ts, ids.paths.json, ids.migration.json, spans.json,
+//              audit-allow.json, tests/
 //   playtests  playtests/, replays/
 //   reality    reality/ (the Reality Bridge's scenarios)
 // One span has no file: `*`, the project's exclusive lease (taken by an owner for a whole-game change).
@@ -36,6 +40,8 @@ const ONE: Record<string, string> = {
   'ending.config.example.ts': 'meta',
   'ids.paths.json': 'meta',
   'ids.migration.json': 'meta',
+  'spans.json': 'meta',
+  'audit-allow.json': 'meta',
 };
 
 /** The folders whose whole tree is one span. */
@@ -59,6 +65,8 @@ export function isSpanName(name: string): boolean {
   return NAMED.has(name) || ROOM_SPAN.test(name) || LANG_SPAN.test(name);
 }
 
+import { readFileSync, statSync } from 'node:fs';
+import { join } from 'node:path';
 import { StudioError } from './errors';
 
 export const EXCLUSIVE = '*';
@@ -70,8 +78,52 @@ export class UnknownSpanError extends StudioError {
   }
 }
 
-/** The span of a game file (a path relative to the game folder, with `/`). */
-export function spanOf(path: string): string {
+/** A game's own spans (its spans.json), in the order written: the first pattern that matches gives the span. */
+export type OwnSpans = readonly (readonly [pattern: RegExp, span: string])[];
+
+/** A spans.json key as a pattern: `dir/` is the whole folder, `*` any name in one folder, `**` any depth. */
+const GLOB: Record<string, string> = { '**/': '(?:.*/)?', '**': '.*', '*': '[^/]*' };
+const pattern = (key: string): RegExp => {
+  const body = key
+    .split(/(\*\*\/?|\*)/)
+    .map((part) => GLOB[part] ?? part.replace(/[.+?^${}()|[\]\\]/g, '\\$&'))
+    .join('');
+  return new RegExp(`^${body}${key.endsWith('/') ? '.*' : ''}$`);
+};
+
+/** Reads a game's spans.json: every key a relative path, every value a span a client may name. Throws on the first
+ *  fault, with what to change. */
+export function parseOwnSpans(json: unknown, where = 'spans.json'): OwnSpans {
+  if (!json || typeof json !== 'object' || Array.isArray(json))
+    throw new StudioError(`${where}: an object { "<path>, <folder>/ or <glob>": "<span>" }`, 422);
+  return Object.entries(json).map(([key, span]) => {
+    if (!key || key.startsWith('/') || key.split('/').includes('..') || key.includes('\\'))
+      throw new StudioError(`${where}: "${key}" is not a path relative to the game folder`, 422);
+    if (typeof span !== 'string' || !isSpanName(span))
+      throw new StudioError(`${where}: "${key}" names no span a client may take (${String(span)})`, 422);
+    return [pattern(key), span] as const;
+  });
+}
+
+const read = new Map<string, { mtimeMs: number; own: OwnSpans }>();
+/** The spans.json of the game in `gameDir` (none: no own span), read again only when it changed. */
+export function readOwnSpans(gameDir: string): OwnSpans {
+  const file = join(gameDir, 'spans.json');
+  let mtimeMs: number;
+  try {
+    mtimeMs = statSync(file).mtimeMs;
+  } catch {
+    return [];
+  }
+  const known = read.get(file);
+  if (known?.mtimeMs === mtimeMs) return known.own;
+  const own = parseOwnSpans(JSON.parse(readFileSync(file, 'utf8')));
+  read.set(file, { mtimeMs, own });
+  return own;
+}
+
+/** The span of a game file (a path relative to the game folder, with `/`), then the game's own spans. */
+export function spanOf(path: string, own: OwnSpans = []): string {
   if (ONE[path]) return ONE[path];
   const room = /^(?:rooms\/([\w-]+)\.ts|layout\/([\w-]+)\.json)$/.exec(path);
   if (room) return `room:${room[1] ?? room[2]}`;
@@ -79,10 +131,13 @@ export function spanOf(path: string): string {
   if (lang) return `lang:${lang[1]}`;
   const top = path.split('/')[0]!;
   if (Object.hasOwn(TREE, top)) return TREE[top]!;
-  throw new UnknownSpanError(`${path} belongs to no span: give it one in studio-server/src/ops/spans.ts`);
+  for (const [re, span] of own) if (re.test(path)) return span;
+  throw new UnknownSpanError(
+    `${path} belongs to no span: give it one in the game's spans.json (a file of its own) or in studio-server/src/ops/spans.ts`,
+  );
 }
 
 /** The spans an operation on these files claims, sorted (a fixed order: two claims never wait on each other). */
-export function spansOf(paths: string[]): string[] {
-  return [...new Set(paths.map(spanOf))].sort();
+export function spansOf(paths: string[], own: OwnSpans = []): string[] {
+  return [...new Set(paths.map((p) => spanOf(p, own)))].sort();
 }

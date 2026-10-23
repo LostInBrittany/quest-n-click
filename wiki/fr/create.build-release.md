@@ -220,6 +220,24 @@ ajoutez-les-y.
 | `audio.scores › ffprobe not found` | Une release mesure les stems | Installer ffmpeg, puis `npx quest-n-click doctor` |
 | Un fichier de `dist/` non recensé | Un fichier égaré dans `public/`, ou un asset d'un autre jeu | Le retirer, ou le déclarer (un fichier de données que le jeu nomme) |
 | Une page blanche une fois en ligne, sous `/<dépôt>/` | Construit sans `BASE_PATH` | [Sous-chemin](create.deploy-issues.md#sub-path) |
+| `audit: <n> leak(s) found` sur un mot de votre jeu | Un mot du projet privé d'origine du moteur est aussi, par hasard, un mot de votre jeu (le prénom d'une vraie personne) | [L'autoriser pour votre jeu](#audit-allow) |
+
+<a name="audit-allow"></a>
+
+### Un mot de votre jeu bloqué par l'audit des fuites
+
+`audit:assets` (lancé par `build:game`) bloque les mots du projet privé d'origine du moteur, gardés en préfixes SHA-1.
+Quand l'un d'eux est aussi un mot dont votre jeu a besoin, autorisez-le pour votre jeu seulement, dans
+`games/<id>/audit-allow.json`, par le préfixe que l'audit garde déjà et une raison qui n'écrit pas le mot :
+
+```json
+{ "allow": [{ "sha1": "<les 12 premiers chiffres hexadécimaux du SHA-1 du mot>", "why": "une collègue dans le jeu" }] }
+```
+
+Le préfixe d'un mot : `node -e "console.log(require('crypto').createHash('sha1').update('<mot>').digest('hex').slice(0, 12))"`,
+en minuscules. Le mot est alors autorisé dans `games/<id>/` et, quand `<id>` est le jeu construit, dans
+`public/assets/` ; partout ailleurs, c'est toujours une fuite. Un préfixe que l'audit ne bloque pas arrête l'audit :
+le fichier ne peut pas survivre au mot qu'il excuse.
 
 <a name="files-changed"></a>
 
