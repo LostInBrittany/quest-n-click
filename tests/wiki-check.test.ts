@@ -18,7 +18,7 @@ import { buildWiki } from '../tools/wiki/build';
 import { checkWiki, trackedFiles } from '../tools/wiki/check';
 import type { Identifier } from '../tools/wiki/identifiers';
 import type { Manifest } from '../tools/wiki/manifest';
-import { classifyTarget, parsePage } from '../tools/wiki/page';
+import { classifyTarget, mapPage, parsePage, renderLink } from '../tools/wiki/page';
 
 const BASE = resolve('tests/fixtures/wiki/base');
 const TRACKED = trackedFiles();
@@ -272,6 +272,43 @@ describe('reading a page: one scanner for check and build', () => {
     const p = parsePage(md, 'en');
     expect(p.links.map((l) => l.id)).toEqual(['real.link']);
     expect(p.problems).toEqual(['a code fence is never closed']);
+  });
+
+  it('reads a link whose label breaks across one line of its paragraph, never across a blank line', () => {
+    const md = [
+      'See [the',
+      'rooms](create.rooms.md#zones) and [the',
+      'exits](create.exits.md).',
+      '',
+      '> [!LIMIT id=wrapped]',
+      '> A limit naming [a',
+      '> door](create.doors.md) inside a quote.',
+      '',
+      'A label [left open',
+      '',
+      'here](not.a.link.md) is no link.',
+      '## A heading [cut',
+      'off](not.either.md)',
+      '- an item [cut',
+      '- off](nor.this.md)',
+    ].join('\n');
+    const p = parsePage(md, 'en');
+    expect(p.links.map((l) => [l.id, l.line])).toEqual([
+      ['create.rooms', 1],
+      ['create.exits', 1],
+      ['create.doors', 6],
+    ]);
+    expect(p.blocks[0]!.body).toEqual(['A limit naming [a', 'door](create.doors.md) inside a quote.']);
+    expect(p.problems).toEqual([]);
+    const rewritten = mapPage(
+      md,
+      (l) => renderLink({ ...l, target: l.target.toUpperCase() }),
+      (kind, id) => `[!${kind} id=${id}]`,
+    );
+    expect(rewritten.split('\n')).toHaveLength(md.split('\n').length);
+    expect(rewritten).toContain('See [the\nrooms](CREATE.ROOMS.MD#ZONES) and [the\nexits](CREATE.EXITS.MD).');
+    expect(rewritten).toContain('> A limit naming [a\n> door](CREATE.DOORS.MD) inside a quote.');
+    expect(rewritten).toContain('here](not.a.link.md)');
   });
 
   it('resolves targets from the page folder, as GitHub does', () => {
