@@ -160,7 +160,8 @@ function report(
   return join(dir, 'vitest.json');
 }
 
-describe('versions (§4.4.1)', () => {
+// Each case builds and checks a whole fixture wiki: slow under coverage's instrumentation.
+describe('versions (§4.4.1)', { timeout: 30_000 }, () => {
   it('reads an applies marker: from, until, both, since; a malformed one is null', () => {
     expect(appliesMarker('<!-- applies: 4.2.2.. -->')).toEqual({ appliesFrom: '4.2.2' });
     expect(appliesMarker('<!-- applies: 4.2.2..4.4.0 since 4.2.0 -->')).toEqual({
@@ -275,7 +276,7 @@ describe('versions (§4.4.1)', () => {
   });
 });
 
-describe('structured blocks (§4.4.3)', () => {
+describe('structured blocks (§4.4.3)', { timeout: 30_000 }, () => {
   it('requires the five fields of a measure, a day for its date and a source pinned to a full commit', () => {
     const errors = (lang: 'en' | 'fr', m: string) =>
       wiki((dir) => {
@@ -334,7 +335,7 @@ describe('structured blocks (§4.4.3)', () => {
   });
 });
 
-describe('claims, three states (§4.4.3)', () => {
+describe('claims, three states (§4.4.3)', { timeout: 30_000 }, () => {
   it('reads test names as Vitest joins them: nested describes, modifiers; never inside a string, a comment or a regex', () => {
     const source = `
 import { describe, it, test } from 'vitest';
@@ -517,7 +518,7 @@ it('top', () => {});
   });
 });
 
-describe('statuses in the header, and the claim on its block (§4.4.2, §4.4.3)', () => {
+describe('statuses in the header, and the claim on its block (§4.4.2, §4.4.3)', { timeout: 30_000 }, () => {
   it('shows the five statuses of the surface apart, and the claim states literally', () => {
     const { dir, report: r } = wiki(undefined, { testReports: [report()], productCommit: HEAD });
     const out = tmp('wiki-proofs-out-');
