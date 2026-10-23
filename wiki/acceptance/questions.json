@@ -947,6 +947,128 @@
         "On Clever Cloud: a redeploy, until the new instance holds the service lease (Retry-After)",
         "On the Bridge: the store does not answer (/readyz), a SQLite lock wait over 5 s, or a lost maintenance lease"
       ]
+    },
+    {
+      "id": "no-sound-short",
+      "kind": "question",
+      "audience": "player",
+      "top1": true,
+      "text": {
+        "en": "no sound",
+        "fr": "pas de son"
+      },
+      "expect": [
+        "play.troubleshooting#no-sound"
+      ],
+      "facts": [
+        "Browsers play a page's sound only after a first tap, click or key: the title screen is silent until then",
+        "The game's sound button, the pause menu's Music and Sound rows, and the volumes in the settings can mute it",
+        "A muted device, or an iPhone's silent switch, silences web pages"
+      ]
+    },
+    {
+      "id": "no-sound-player",
+      "kind": "question",
+      "audience": "player",
+      "top1": true,
+      "context": "player",
+      "text": {
+        "en": "no sound",
+        "fr": "pas de son"
+      },
+      "expect": [
+        "play.troubleshooting#no-sound"
+      ],
+      "facts": [
+        "Browsers play a page's sound only after a first tap, click or key: the title screen is silent until then",
+        "The game's sound button, the pause menu's Music and Sound rows, and the volumes in the settings can mute it",
+        "A muted device, or an iPhone's silent switch, silences web pages"
+      ]
+    },
+    {
+      "id": "no-sound-none",
+      "kind": "question",
+      "audience": "player",
+      "top1": true,
+      "text": {
+        "en": "the game has no sound",
+        "fr": "aucun son"
+      },
+      "expect": [
+        "play.troubleshooting#no-sound"
+      ],
+      "facts": [
+        "Browsers play a page's sound only after a first tap, click or key: the title screen is silent until then",
+        "The game's sound button, the pause menu's Music and Sound rows, and the volumes in the settings can mute it",
+        "A muted device, or an iPhone's silent switch, silences web pages"
+      ]
+    },
+    {
+      "id": "hear-nothing",
+      "kind": "question",
+      "audience": "player",
+      "top1": true,
+      "text": {
+        "en": "I hear nothing",
+        "fr": "je n'entends rien"
+      },
+      "expect": [
+        "play.troubleshooting#no-sound"
+      ],
+      "facts": [
+        "Browsers play a page's sound only after a first tap, click or key: the title screen is silent until then",
+        "The game's sound button, the pause menu's Music and Sound rows, and the volumes in the settings can mute it",
+        "A muted device, or an iPhone's silent switch, silences web pages"
+      ]
+    },
+    {
+      "id": "studio-token-required",
+      "kind": "question",
+      "audience": "author",
+      "top1": true,
+      "text": {
+        "en": "Studio token required",
+        "fr": "Le Studio dit « Studio token required »"
+      },
+      "expect": [
+        "studio.troubleshooting#symptom"
+      ],
+      "facts": [
+        "On the LAN (npm run studio:lan), the Studio refuses a request without the session's token",
+        "Open the authorised URL the command printed, which carries the token"
+      ]
+    },
+    {
+      "id": "check-before-sharing-possessive",
+      "kind": "question",
+      "audience": "author",
+      "text": {
+        "en": "check my game before sharing it",
+        "fr": "vérifier son jeu avant de le partager"
+      },
+      "expect": [
+        "create.checking"
+      ],
+      "facts": [
+        "validate, solve, lint and the playtests check a game; npm run verify runs them in a created project",
+        "solve --prove looks for dead ends within its budgets"
+      ]
+    },
+    {
+      "id": "inventory-lost-possessive",
+      "kind": "question",
+      "audience": "author",
+      "text": {
+        "en": "a player loses their inventory after an update",
+        "fr": "le joueur perd son inventaire après une mise à jour"
+      },
+      "expect": [
+        "create.state-saves"
+      ],
+      "facts": [
+        "An item the new version no longer has is dropped from the save, which loads with a warning",
+        "Renaming an item with a migration (renameItem) carries it over"
+      ]
     }
   ]
 }
