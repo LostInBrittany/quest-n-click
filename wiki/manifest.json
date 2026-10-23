@@ -3333,15 +3333,29 @@
       "type": "troubleshooting",
       "audience": ["author"],
       "context": ["studio-hosted"],
-      "title": { "en": "Write refused: stale base revision (409)", "fr": "Écriture refusée : révision de base périmée (409)" },
+      "title": {
+        "en": "Write refused on the hosted Studio: stale base revision (409)",
+        "fr": "Écriture refusée sur le Studio hébergé : révision de base périmée (409)"
+      },
       "url": { "en": "EN-Team-Write-Refused-409", "fr": "FR-Equipe-Ecriture-Refusee-409" },
-      "state": "planned",
-      "sources": [],
+      "state": "ready",
+      "versions": { "appliesFrom": "4.2.3" },
+      "surfaces": ["studio-server"],
+      "sources": ["studio-server/src/ops/journal.ts", "studio-server/src/server/http.ts", "src/studio/spans.ts"],
       "replaces": ["docs/en/STUDIO-SERVER.md#working-together", "docs/fr/STUDIO-SERVER.md#travailler-à-plusieurs"],
-      "questions": { "en": ["Why is my save refused with 409?"], "fr": ["Pourquoi mon enregistrement est refusé avec 409 ?"] },
-      "aliases": { "en": ["conflict", "stale revision"], "fr": ["conflit", "révision périmée"] },
-      "identifiers": ["409"],
-      "related": ["team.write-refused-423"],
+      "questions": {
+        "en": ["Why is my save refused with 409?", "The Studio says the file changed since I read it"],
+        "fr": [
+          "Pourquoi mon enregistrement est refusé avec 409 ?",
+          "Le Studio dit que le fichier a changé depuis que je l'ai lu"
+        ]
+      },
+      "aliases": {
+        "en": ["conflict", "stale revision", "x-studio-base"],
+        "fr": ["conflit", "révision périmée", "x-studio-base"]
+      },
+      "identifiers": ["409", "x-studio-base"],
+      "related": ["team.write-refused-423", "bridge.troubleshooting"],
       "prerequisites": [],
       "owner": "@wanoo"
     },
@@ -3351,13 +3365,24 @@
       "type": "troubleshooting",
       "audience": ["author"],
       "context": ["studio-hosted"],
-      "title": { "en": "Write refused: span locked (423)", "fr": "Écriture refusée : pan verrouillé (423)" },
+      "title": {
+        "en": "Write refused on the hosted Studio: span locked (423)",
+        "fr": "Écriture refusée sur le Studio hébergé : pan verrouillé (423)"
+      },
       "url": { "en": "EN-Team-Write-Refused-423", "fr": "FR-Equipe-Ecriture-Refusee-423" },
-      "state": "planned",
-      "sources": ["studio-server/src/server/leases.ts"],
+      "state": "ready",
+      "versions": { "appliesFrom": "4.2.1" },
+      "surfaces": ["studio-server"],
+      "sources": ["studio-server/src/server/leases.ts", "studio-server/src/server/http.ts", "src/studio/spans.ts"],
       "replaces": ["docs/en/STUDIO-SERVER.md#working-together", "docs/fr/STUDIO-SERVER.md#travailler-à-plusieurs"],
-      "questions": { "en": ["Why is my save refused with 423?"], "fr": ["Pourquoi mon enregistrement est refusé avec 423 ?"] },
-      "aliases": { "en": ["lock conflict", "lease"], "fr": ["conflit de verrou", "bail"] },
+      "questions": {
+        "en": ["Why is my save refused with 423?", "I get a 423 error in the hosted Studio"],
+        "fr": ["Pourquoi mon enregistrement est refusé avec 423 ?", "J'ai une erreur 423 dans le Studio hébergé"]
+      },
+      "aliases": {
+        "en": ["lock conflict", "lease", "span locked"],
+        "fr": ["conflit de verrou", "bail", "pan verrouillé"]
+      },
       "identifiers": ["423"],
       "related": ["team.write-refused-409"],
       "prerequisites": [],
@@ -3788,23 +3813,46 @@
       "type": "howto",
       "audience": ["admin"],
       "context": ["studio-hosted"],
-      "title": { "en": "Restore the Studio on a fresh installation", "fr": "Restaurer le Studio sur une installation neuve" },
+      "title": {
+        "en": "Restore the Studio on a fresh installation",
+        "fr": "Exercice de restauration sur une installation vierge"
+      },
       "url": { "en": "EN-Clever-Restore-Drill", "fr": "FR-Clever-Exercice-De-Restauration" },
-      "state": "planned",
+      "state": "ready",
       "versions": { "appliesFrom": "4.2.2" },
-      "sources": ["studio-server/src/ops/backup.ts"],
+      "surfaces": ["studio-server"],
+      "sources": [
+        "studio-server/src/ops/backup.ts",
+        "studio-server/src/ops/ship.ts",
+        "studio-server/src/server/main.ts",
+        "studio-server/src/server/config.ts",
+        "tests/studio-backup.test.ts",
+        "docs/dev/QUALIF-4.2.3-REFERENCE.md"
+      ],
       "replaces": [
         "docs/en/STUDIO-SERVER.md#backup-and-restore",
         "docs/fr/STUDIO-SERVER.md#sauvegarde-et-restauration"
       ],
       "questions": {
-        "en": ["How do I restore the Studio on an empty database?"],
-        "fr": ["Comment restaurer le Studio sur une base vide ?"]
+        "en": [
+          "How do I restore the Studio on an empty database?",
+          "How long does a restore of the hosted Studio take?"
+        ],
+        "fr": [
+          "Comment restaurer le Studio sur une base vide ?",
+          "Combien de temps prend une restauration du Studio hébergé ?"
+        ]
       },
-      "aliases": { "en": [], "fr": [] },
-      "identifiers": [],
-      "related": [],
+      "aliases": {
+        "en": ["restore drill", "disaster recovery", "RPO"],
+        "fr": ["exercice de restauration", "reprise après sinistre", "RPO"]
+      },
+      "identifiers": ["npm run studio-server -- restore", "npm run studio-server -- replay"],
+      "related": ["reference.environment-variables"],
       "prerequisites": [],
+      "claims": [
+        {"id": "restore-empty-db-only", "test": "tests/studio-backup.test.ts › the Studio Server's backup › refuses a backup altered, a project not empty, a blob missing, another schema"}
+      ],
       "owner": "@wanoo"
     },
     {
@@ -4447,8 +4495,16 @@
       "context": ["bridge"],
       "title": { "en": "Bridge and connector troubleshooting", "fr": "Dépannage du Bridge et des connecteurs" },
       "url": { "en": "EN-Bridge-Troubleshooting", "fr": "FR-Bridge-Depannage" },
-      "state": "planned",
-      "sources": [],
+      "state": "ready",
+      "versions": { "appliesFrom": "4.1.20" },
+      "surfaces": ["bridge-local", "bridge-distributed", "connectors"],
+      "sources": [
+        "bridge/src/bridge.ts",
+        "bridge/src/server.ts",
+        "bridge/src/runs.ts",
+        "connectors/src/run.ts",
+        "connectors/src/email/connector.ts"
+      ],
       "replaces": [
         "docs/en/REALITY-OPS.md#health-measures-backups",
         "docs/en/REALITY-OPS.md#procedures",
@@ -4456,12 +4512,20 @@
         "docs/fr/REALITY-OPS.md#procédures"
       ],
       "questions": {
-        "en": ["The Bridge received an event twice", "A connector is down"],
-        "fr": ["Le Bridge a reçu un événement deux fois", "Un connecteur est en panne"]
+        "en": [
+          "The Bridge received the same event twice",
+          "A connector is down: what happens to the game?",
+          "The Bridge answers 409"
+        ],
+        "fr": [
+          "Le Bridge a reçu deux fois le même événement",
+          "Un connecteur est en panne : que devient le jeu ?",
+          "Le Bridge répond 409"
+        ]
       },
-      "aliases": { "en": [], "fr": [] },
+      "aliases": { "en": ["Reality Bridge errors"], "fr": ["erreurs du Reality Bridge"] },
       "identifiers": [],
-      "related": [],
+      "related": ["team.write-refused-409"],
       "prerequisites": [],
       "owner": "@wanoo"
     },
@@ -5114,13 +5178,113 @@
       "context": ["engine-repo", "created-project", "studio-hosted", "bridge"],
       "title": { "en": "Environment variables", "fr": "Variables d'environnement" },
       "url": { "en": "EN-Reference-Environment-Variables", "fr": "FR-Reference-Variables-D-Environnement" },
-      "state": "planned",
-      "sources": [],
+      "state": "ready",
+      "versions": { "appliesFrom": "4.5.0" },
+      "sources": [
+        "wiki/data/env.json",
+        "tools/wiki/env.ts",
+        "studio-server/src/server/config.ts",
+        "ops/studio/backup-cron.sh"
+      ],
       "replaces": [],
       "questions": { "en": [], "fr": [] },
-      "aliases": { "en": ["env vars"], "fr": ["variables d'env"] },
-      "identifiers": ["STUDIO_SESSION_KEY"],
-      "related": [],
+      "aliases": { "en": ["env vars", "environment"], "fr": ["variables d'env", "environnement"] },
+      "identifiers": [
+        "APP_FOLDER",
+        "APP_HOME",
+        "ASSETS_DIR",
+        "BASE_PATH",
+        "BASE_URL",
+        "BRIDGE_PG_MODULE",
+        "BRIDGE_PG_URL",
+        "BRIDGE_STORE",
+        "BRIDGE_STORE_FILE",
+        "CC_HEALTH_CHECK_PATH",
+        "CC_NODE_DEV_DEPENDENCIES",
+        "CC_POST_BUILD_HOOK",
+        "CC_RUN_COMMAND",
+        "CELLAR_ADDON_KEY_ID",
+        "CELLAR_ADDON_KEY_SECRET",
+        "CONSUMER_PG_URL",
+        "DEV",
+        "DIST_DIR",
+        "E2E_BROWSER",
+        "E2E_CPU",
+        "E2E_DEBUG",
+        "E2E_INPUT",
+        "E2E_OUT",
+        "E2E_WEIGHT_DEBUG",
+        "FURNACE_BIN",
+        "GAME",
+        "GAME_DIR",
+        "GH_TOKEN",
+        "GITHUB_ACTIONS",
+        "GITHUB_API_URL",
+        "GITHUB_STEP_SUMMARY",
+        "GITHUB_TOKEN",
+        "GIT_DIR",
+        "INSTANCE_NUMBER",
+        "ImageOS",
+        "MUTATION_SET",
+        "NEEDS",
+        "OTEL_EXPORTER_OTLP_ENDPOINT",
+        "PATH",
+        "PORT",
+        "POSTGRESQL_ADDON_URI",
+        "PROOF_CACHE",
+        "PROOF_CACHE_DIR",
+        "PYTHON",
+        "QUALIFY_APP",
+        "QUALIFY_BUILD",
+        "QUALIFY_DATA",
+        "QUALIFY_GID",
+        "QUALIFY_MODULES",
+        "QUALIFY_PORT",
+        "QUALIFY_PORT_1",
+        "QUALIFY_PORT_2",
+        "QUALIFY_PORT_3",
+        "QUALIFY_SECRETS",
+        "QUALIFY_UID",
+        "ROOT",
+        "RUNNER_OS",
+        "SHIP_PIDS",
+        "SHIP_TRAILERS",
+        "STUDIO",
+        "STUDIO_BACKUP_CRON",
+        "STUDIO_BACKUP_KEEP",
+        "STUDIO_CLIENT",
+        "STUDIO_CONFIG",
+        "STUDIO_CONFIG_JSON",
+        "STUDIO_DATABASE_URL",
+        "STUDIO_GIT_KEY",
+        "STUDIO_METRICS_TOKEN",
+        "STUDIO_OIDC_CLIENT_SECRET",
+        "STUDIO_S3_KEY_ID",
+        "STUDIO_S3_KEY_SECRET",
+        "STUDIO_SESSION_KEY",
+        "STUDIO_TEST_S3",
+        "STUDIO_WORKER_KEY",
+        "SystemRoot",
+        "VITEST",
+        "VITE_STUDIO_DEMO",
+        "VITE_STUDIO_HOSTED",
+        "VITE_STUDIO_PREVIEW",
+        "WEB_SCUMM_ALLOW_CUSTOM_PROVIDER",
+        "WEB_SCUMM_DEV_URL",
+        "WEB_SCUMM_LAN",
+        "WEB_SCUMM_PROJECT",
+        "WEB_SCUMM_REPO",
+        "WEB_SCUMM_STUDIO_CLIENT",
+        "WEB_SCUMM_STUDIO_HOSTS",
+        "WEB_SCUMM_STUDIO_TOKEN",
+        "WIKI_DEPLOY_KEY",
+        "WORKER_INSTANCE",
+        "WORKER_PUBLIC_KEY",
+        "WORKER_PUBLIC_KEY_FILE",
+        "WORKER_PYTHON_PATH",
+        "npm_lifecycle_event"
+      ],
+      "related": ["clever.restore-drill"],
       "prerequisites": [],
       "owner": "@wanoo"
     },

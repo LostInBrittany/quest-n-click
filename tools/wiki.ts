@@ -8,7 +8,7 @@
 // | pages --out <dir> (--repo <owner/name> [--cache <dir>] | --releases <dir> (--repo <r> | --skip-attestations))
 // [--publication <file>] | next-revision --version <v> --repo <owner/name> | attest --repo <r> --tag <tag> --file <f>
 // | transition [--root <dir>] [--version <v>]
-// | acceptance [--lang en|fr] [--json] [--strict] [--export-prompts <dir> [--channel mcp|web] [--url <url>]]
+// | env | acceptance [--lang en|fr] [--json] [--strict] [--export-prompts <dir> [--channel mcp|web] [--url <url>]]
 // (4.5.0 "Wiki", docs/dev/PLAN-4.5-WIKI.md §5, phases A2 to A5; ADR 0030).
 // The documentation's source is `wiki/` (a manifest, then `wiki/<lang>/<id>.md`); every output is generated from it.
 // `check` is the work level of every pull request: it fails on errors only, and prints the warnings and what is still
@@ -31,6 +31,8 @@
 // (tools/wiki/transition.ts, run by C2). `--wiki=<dir>` reads another source folder (the tests' fixtures). The output
 // folder is outside the working tree (or under `.cache/`), so a build never lands among the sources, and only a previous
 // build is emptied.
+// `env` (A7, §4.7.4) regenerates the environment variable reference from `wiki/data/env.json` and the code
+// (tools/wiki/env.ts): its sections in both languages and its manifest identifiers; `check` fails when they drift.
 // `acceptance` runs the real questions of `wiki/acceptance/questions.json` through search_docs (§4.6, L6 level 1,
 // tools/wiki/acceptance.ts): reported, exit 0, unless `--strict` (C1), which fails on a miss, a failed
 // counter-example or a pending question; `--export-prompts` writes level 2's prompts instead.
@@ -69,6 +71,16 @@ import {
 } from './wiki/coverage';
 import { repositoryDocs } from './wiki/docs-load';
 import { readManifest } from './wiki/manifest';
+import {
+  ENV_PAGE,
+  envIdentifiers,
+  envProblems,
+  envSections,
+  readEnvRegister,
+  scanEnv,
+  withEnvIdentifiers,
+  withEnvSections,
+} from './wiki/env';
 import { assemblePages, downloadReleases, ghAttestation, ghRetry, writePages } from './wiki/pages';
 import {
   gitEnv,
@@ -132,7 +144,7 @@ export function bundleOutProblem(out: string, tracked: readonly string[], root =
 }
 
 const USAGE =
-  'usage: npm run wiki -- check [--test-report <file>]… | check --publish --product-ref <tag|sha> [--doc-ref <sha>] [--released] [--state preview|candidate|published] [--test-report <file>]… [--candidate <run id>] | review-claim <id> --by <name> | translations --ack <id#section> --by <name> | stats [--json] | coverage [--init [--force] | --ack <key>] | build --target wiki --out <dir> [--preview] [--product-version <v>] [--doc-revision <sha>] [--product-commit <sha>] | bundle --out <dir> [--build-id <id>] [--allow-dirty] [--product-version <v>] [--doc-revision <sha>] [--product-commit <sha>] | archive --out <quest-n-click-docs-<v>[-r<n>].tar.gz> [--revision r<n>] [--preview] [--build-id <id>] [--allow-dirty] [--product-version <v>] [--doc-revision <sha>] [--product-commit <sha>] | publish --target wiki --mode release|revision|rollback|promote|preview --ref <ref> --version <v> --revision r<n> --tag <tag> --archive <file> (--repo <owner/name> | --remote <url>) [--sha256 <hex>] [--rollback-to <v>[-r<n>]] [--dry-run] | pages --out <dir> (--repo <owner/name> [--cache <dir>] | --releases <dir> (--repo <owner/name> | --skip-attestations)) [--publication <file>] | next-revision --version <v> --repo <owner/name> | attest --repo <owner/name> --tag <tag> --file <archive> | transition [--root <dir>] [--version <v>] | acceptance [--lang en|fr] [--json] [--strict] [--export-prompts <dir> [--channel mcp|web] [--url <url>]]';
+  'usage: npm run wiki -- check [--test-report <file>]… | check --publish --product-ref <tag|sha> [--doc-ref <sha>] [--released] [--state preview|candidate|published] [--test-report <file>]… [--candidate <run id>] | review-claim <id> --by <name> | translations --ack <id#section> --by <name> | stats [--json] | coverage [--init [--force] | --ack <key>] | build --target wiki --out <dir> [--preview] [--product-version <v>] [--doc-revision <sha>] [--product-commit <sha>] | bundle --out <dir> [--build-id <id>] [--allow-dirty] [--product-version <v>] [--doc-revision <sha>] [--product-commit <sha>] | archive --out <quest-n-click-docs-<v>[-r<n>].tar.gz> [--revision r<n>] [--preview] [--build-id <id>] [--allow-dirty] [--product-version <v>] [--doc-revision <sha>] [--product-commit <sha>] | publish --target wiki --mode release|revision|rollback|promote|preview --ref <ref> --version <v> --revision r<n> --tag <tag> --archive <file> (--repo <owner/name> | --remote <url>) [--sha256 <hex>] [--rollback-to <v>[-r<n>]] [--dry-run] | pages --out <dir> (--repo <owner/name> [--cache <dir>] | --releases <dir> (--repo <owner/name> | --skip-attestations)) [--publication <file>] | next-revision --version <v> --repo <owner/name> | attest --repo <owner/name> --tag <tag> --file <archive> | transition [--root <dir>] [--version <v>] | env | acceptance [--lang en|fr] [--json] [--strict] [--export-prompts <dir> [--channel mcp|web] [--url <url>]]';
 
 /** Today, as a day (the date a review or an ack records). */
 const today = () => new Date().toISOString().slice(0, 10);
@@ -279,6 +291,7 @@ function run(args: readonly string[]): number {
   }
   if (command === 'coverage') return coverage(args, wikiDir);
   if (command === 'acceptance') return acceptance(args, wikiDir);
+  if (command === 'env') return env(wikiDir);
   if (command === 'build') {
     const target = option(args, 'target') ?? 'wiki';
     const out = option(args, 'out');
@@ -680,6 +693,45 @@ function transition(args: readonly string[], wikiDir: string): number {
     (JSON.parse(readFileSync(resolve(root, 'package.json'), 'utf8')) as { version: string }).version;
   const written = writeTransitionPages(root, transitionPages(read.coverage, manifest, version));
   console.log(`✔  ${written.length} transition page(s) for ${version}: ${written.join(', ')}`);
+  return 0;
+}
+
+/**
+ * `env`: the environment variable reference regenerated (§4.7.4): the generated part of both language files of
+ * `reference.environment-variables`, and its manifest identifiers. Refused while the register and the code disagree.
+ */
+function env(wikiDir: string): number {
+  const { register, errors } = readEnvRegister(wikiDir);
+  if (!register) {
+    for (const e of errors.length ? errors : ['data/env.json: no register in this wiki']) console.error(`✖  ${e}`);
+    return 1;
+  }
+  const scan = scanEnv(ROOT, trackedFiles());
+  const problems = envProblems(register, scan);
+  if (problems.length) {
+    for (const p of problems) console.error(`✖  ${p}`);
+    return 1;
+  }
+  const written: string[] = [];
+  for (const lang of ['en', 'fr'] as const) {
+    const file = resolve(wikiDir, lang, `${ENV_PAGE}.md`);
+    if (!existsSync(file)) continue;
+    const text = readFileSync(file, 'utf8');
+    const r = withEnvSections(text, envSections(register, scan, lang));
+    if (r.problem) {
+      console.error(`✖  ${lang}/${ENV_PAGE}.md: ${r.problem}`);
+      return 1;
+    }
+    if (r.text !== text) writeFileSync(file, r.text!);
+    written.push(`${lang}/${ENV_PAGE}.md`);
+  }
+  const manifestFile = resolve(wikiDir, 'manifest.json');
+  const before = readFileSync(manifestFile, 'utf8');
+  const after = withEnvIdentifiers(before, envIdentifiers(register));
+  if (after !== before) writeFileSync(manifestFile, after);
+  console.log(
+    `✔  ${register.variables.length} variable(s), ${register.dynamic.length} dynamic read(s) resolved: ${written.join(', ') || 'no page file yet'}; manifest identifiers ${after === before ? 'unchanged' : 'set'}`,
+  );
   return 0;
 }
 

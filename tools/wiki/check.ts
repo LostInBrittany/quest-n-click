@@ -16,6 +16,7 @@ import { type ClaimState, claimStates, claimsOf, readReviews, readTestReport, ty
 import { CONTRACTS_FILE, checkContracts, readContracts, type SurfaceStatus, surfaceStatuses } from './contracts';
 import { dirtySources } from './bundle';
 import { compareVersions } from './docs';
+import { ENV_PAGE, envPageProblems, envProblems, readEnvRegister, scanEnv } from './env';
 import { exampleProblems } from './examples';
 import { readGlossary } from './glossary';
 import { generatedIdentifiers, type Identifier } from './identifiers';
@@ -289,6 +290,7 @@ export function checkWiki({
 
   checkVersions(manifest, parsed, report);
   checkBlocks(manifest, parsed, report);
+  checkEnv(root, tracked, wikiDir, manifest, report);
   for (const [key, page] of parsed) report.errors.push(...exampleProblems(`${key}.md`, page.fences));
   // The product documented: the publication's product ref, otherwise the checkout (and the commit given, if any).
   const product = publish ? publishedProduct(root, candidate, wikiDir, manifest, publish, report) : undefined;
@@ -487,6 +489,27 @@ function checkBlocks(manifest: Manifest, parsed: ReadonlyMap<string, ParsedPage>
       if (owner && owner !== p.id) report.errors.push(`${p.id}: the claim id ${c.id} is already ${owner}'s`);
       owners.set(c.id, p.id);
     }
+}
+
+// ------------------------------------------------------------------------------------------------- A7: variables
+
+/**
+ * The environment variable register (§4.7.4), when the wiki has one: every variable the code reads is described, every
+ * described `code` one is still read, and the reference page's generated part and identifiers are the register's.
+ */
+function checkEnv(root: string, tracked: readonly string[], wikiDir: string, manifest: Manifest, report: CheckReport) {
+  const { register, errors } = readEnvRegister(wikiDir);
+  report.errors.push(...errors);
+  if (!register) return;
+  const scan = scanEnv(root, tracked);
+  report.errors.push(...envProblems(register, scan));
+  const page = manifest.pages.find((p) => p.id === ENV_PAGE);
+  const text = (lang: Lang) => {
+    const f = fileOf(wikiDir, lang, ENV_PAGE);
+    return page && isWritten(page) && existsSync(f) ? readFileSync(f, 'utf8') : undefined;
+  };
+  const pages = { en: text('en'), fr: text('fr') };
+  report.errors.push(...envPageProblems(register, scan, pages, page && isWritten(page) ? page.identifiers : undefined));
 }
 
 // ------------------------------------------------------------------------------------------------- A5: statuses
