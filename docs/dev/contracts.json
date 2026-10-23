@@ -1,7 +1,7 @@
 {
   "format": "quest-n-click-contracts",
   "version": 1,
-  "note": "The status registry's data (4.5.0 \"Wiki\", docs/dev/PLAN-4.5-WIKI.md §4.4.2, phase A5; read by tools/wiki/contracts.ts): per product surface, its contract status (experimental, stable, deprecated), quoted from docs/en|fr/SUPPORT.md (tests/contracts.test.ts checks the quotes are there and say that status); the environments the support matrix says CI verifies, as of `asOf`; the automated checks that cover it (ci:plan's gates, CI and candidate jobs, test files); and the rows of SUPPORT.md's support matrix that speak for it (`matrixRows`, each row named by a surface, tested); the people's passes it waits for (ids of tools/field/schema.ts and docs/dev/surfaces.json). The passes' states are never written here: they are read from docs/dev/passes/<version>.md, with the issue that tracks each for that version (`passIssues`, by pass then version: the sheets do not hold the numbers; a test requires one for every pass of the newest sheet). Known limits are the pages' own [!LIMIT] blocks. A wiki page names its surfaces in the manifest (`surfaces`); its header shows the five statuses separately.",
+  "note": "The status registry's data (4.5.0 \"Wiki\", docs/dev/PLAN-4.5-WIKI.md §4.4.2, phase A5; read by tools/wiki/contracts.ts): per product surface, its contract status (experimental, stable, deprecated), quoted from docs/en|fr/SUPPORT.md (tests/contracts.test.ts checks the quotes are there and say that status); the environments the support matrix says CI verifies, as of `asOf`; the automated checks that cover it (ci:plan's gates, CI and candidate jobs, test files); and the rows of SUPPORT.md's support matrix that speak for it (`matrixRows`, each row named by a surface, tested; a surface SUPPORT.md does not name yet has a null quote or rows, with its `reason`); the people's passes it waits for (ids of tools/field/schema.ts and docs/dev/surfaces.json). The passes' states are never written here: they are read from docs/dev/passes/<version>.md, with the issue that tracks each for that version (`passIssues`, by pass then version: the sheets do not hold the numbers; a test requires one for every pass of the newest sheet). Known limits are the pages' own [!LIMIT] blocks. A wiki page names its surfaces in the manifest (`surfaces`); its header shows the five statuses separately.",
   "asOf": { "version": "4.4.0", "date": "2026-10-23" },
   "passIssues": {
     "archive-human-install": { "4.4.0": 75 },
@@ -349,6 +349,30 @@
         "studio-mcp-remote",
         "studio-oidc-generic"
       ]
+    },
+    "documentation": {
+      "title": {
+        "en": "The documentation: the wiki, its bundle in the package and its search",
+        "fr": "La documentation : le wiki, son bundle dans le paquet et sa recherche"
+      },
+      "status": "experimental",
+      "support": null,
+      "matrixRows": null,
+      "reason": "SUPPORT.md gains its row at C2; docs/ is frozen by the coverage matrix",
+      "environments": [],
+      "checks": {
+        "gates": [],
+        "jobs": ["check", "external-consumer"],
+        "tests": [
+          "tests/wiki-manifest.test.ts",
+          "tests/wiki-check.test.ts",
+          "tests/wiki-access.test.ts",
+          "tests/wiki-proofs.test.ts",
+          "tests/wiki-acceptance.test.ts",
+          "tests/mcp-docs.test.ts"
+        ]
+      },
+      "passes": ["docs-beginner-reader"]
     }
   }
 }

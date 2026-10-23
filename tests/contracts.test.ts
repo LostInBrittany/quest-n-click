@@ -56,7 +56,7 @@ describe('the status registry, docs/dev/contracts.json', () => {
     for (const lang of ['en', 'fr'] as const) {
       const rows = matrixRows(RAW[lang]);
       expect(rows.length, lang).toBeGreaterThan(8);
-      const named = new Set(Object.values(contracts!.contracts).flatMap((c) => c.matrixRows[lang]));
+      const named = new Set(Object.values(contracts!.contracts).flatMap((c) => c.matrixRows?.[lang] ?? []));
       expect(
         rows.filter((r) => !named.has(r)),
         `${lang}: rows no surface names`,
@@ -71,6 +71,7 @@ describe('the status registry, docs/dev/contracts.json', () => {
   it('agrees with SUPPORT.md in both languages: each quote is there and says the status', () => {
     for (const [id, c] of Object.entries(contracts!.contracts))
       for (const lang of ['en', 'fr'] as const) {
+        if (c.support === null) continue;
         const quote = flat(c.support[lang]);
         expect(SUPPORT[lang].includes(quote), `${id} (${lang}): "${quote}" is not in SUPPORT.md`).toBe(true);
         if (c.status === 'experimental') expect(quote, `${id} (${lang})`).toMatch(WORD[lang].experimental);
@@ -85,9 +86,38 @@ describe('the status registry, docs/dev/contracts.json', () => {
       const experimental = matrixRows(RAW[lang]).filter((r) => WORD[lang].experimental.test(r));
       expect(experimental.length, lang).toBeGreaterThan(0);
       for (const [id, c] of Object.entries(contracts!.contracts))
-        if (c.matrixRows[lang].some((r) => experimental.includes(r)))
+        if (c.matrixRows?.[lang].some((r) => experimental.includes(r)))
           expect(c.status, `${id} (${lang})`).toBe('experimental');
     }
+  });
+
+  it('accepts a surface SUPPORT.md does not name yet only with its reason (the documentation, until C2)', () => {
+    const unnamed = Object.entries(contracts!.contracts).filter(([, c]) => c.support === null || c.matrixRows === null);
+    expect(unnamed.map(([id, c]) => [id, c.reason])).toEqual([
+      ['documentation', 'SUPPORT.md gains its row at C2; docs/ is frozen by the coverage matrix'],
+    ]);
+    expect(contracts!.contracts.documentation!.passes).toEqual(['docs-beginner-reader']);
+    const root = mkdtempSync(join(tmpdir(), 'contracts-'));
+    temps.push(root);
+    mkdirSync(join(root, 'docs/dev'), { recursive: true });
+    const write = (edit: (k: Record<string, unknown>) => void) => {
+      const raw = JSON.parse(readFileSync(join(ROOT, 'docs/dev/contracts.json'), 'utf8'));
+      edit(raw.contracts.documentation);
+      writeFileSync(join(root, 'docs/dev/contracts.json'), JSON.stringify(raw));
+      return readContracts(root).errors;
+    };
+    expect(write(() => {})).toEqual([]);
+    expect(write((k) => delete k.reason)).toEqual([
+      'docs/dev/contracts.json contracts.documentation: support or matrixRows is null without a reason',
+    ]);
+    expect(
+      write((k) => {
+        k.support = { en: 'x', fr: 'x' };
+        k.matrixRows = { en: [], fr: [] };
+      }),
+    ).toEqual([
+      'docs/dev/contracts.json contracts.documentation: a reason explains a null support or matrixRows; this surface has both',
+    ]);
   });
 
   it('refuses a job no workflow defines, a test glob that matches nothing, a pass surfaces.json does not bind', () => {
