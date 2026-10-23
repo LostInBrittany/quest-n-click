@@ -117,19 +117,19 @@ méthodes de renvoi, comme dans le cœur :
 
 | Module | Ce qu'il fait |
 |---|---|
-| `tools/solve/search.ts` | `solve()` : la frontière, les workers de preuve, l'arrêt et le verdict |
-| `tools/solve/expansion.ts` | `makeExpander` : chaque action qui vaut la peine depuis un état, jouée sur le vrai moteur ; la mémoire des no-ops |
-| `tools/solve/abstractions.ts` | ce dont un état est fait (dimensions), les formes canoniques (joueurs, mobilité, possession), la dominance |
-| `tools/solve/model.ts` | les options, `SearchNode`, `Expansion` et une transition (`TryRecord`), avec leurs invariants |
-| `tools/solve/scenarios.ts` | les signaux de l'extérieur dans une recherche : fermé, un scénario, adverse (4.1.1) |
-| `tools/solve/report.ts` | le résultat, son profil, le profil en texte |
-| `tools/solve/drive.ts` | une promesse du moteur attendue, les étapes du tutoriel guidé jouées pendant ce temps |
-| `tools/solve/explosion.ts` | le profil d'explosion (4.1.13) : les états attribués aux positions, inventaires, drapeaux, dialogues, scripts |
-| `tools/solve/search/compact.ts` | le stockage des états vus (4.1.13, ADR 0015) : par index, clés internées, parents, chemins et entrées de session |
-| `tools/solve/search/checkpoint.ts` | une recherche écrite puis reprise (4.1.13) : instantané, en-tête, empreinte |
-| `tools/solve/search/classify.ts` | le verdict d'une preuve sur les états stockés : atteignabilité inverse, blocages et leurs causes |
-| `tools/solve/search/dominance.ts` | la dominance, les objets symétriques, les sous-énigmes indépendantes (4.1.13) |
-| `tools/solve/search/partition.ts` | la table partagée des états vus des workers, le partage d'un lot et le vol de travail (4.1.13) |
+| `src/engine/tools/solve/search.ts` | `solve()` : la frontière, les workers de preuve, l'arrêt et le verdict |
+| `src/engine/tools/solve/expansion.ts` | `makeExpander` : chaque action qui vaut la peine depuis un état, jouée sur le vrai moteur ; la mémoire des no-ops |
+| `src/engine/tools/solve/abstractions.ts` | ce dont un état est fait (dimensions), les formes canoniques (joueurs, mobilité, possession), la dominance |
+| `src/engine/tools/solve/model.ts` | les options, `SearchNode`, `Expansion` et une transition (`TryRecord`), avec leurs invariants |
+| `src/engine/tools/solve/scenarios.ts` | les signaux de l'extérieur dans une recherche : fermé, un scénario, adverse (4.1.1) |
+| `src/engine/tools/solve/report.ts` | le résultat, son profil, le profil en texte |
+| `src/engine/tools/solve/drive.ts` | une promesse du moteur attendue, les étapes du tutoriel guidé jouées pendant ce temps |
+| `src/engine/tools/solve/explosion.ts` | le profil d'explosion (4.1.13) : les états attribués aux positions, inventaires, drapeaux, dialogues, scripts |
+| `src/engine/tools/solve/search/compact.ts` | le stockage des états vus (4.1.13, ADR 0015) : par index, clés internées, parents, chemins et entrées de session |
+| `src/engine/tools/solve/search/checkpoint.ts` | une recherche écrite puis reprise (4.1.13) : instantané, en-tête, empreinte |
+| `src/engine/tools/solve/search/classify.ts` | le verdict d'une preuve sur les états stockés : atteignabilité inverse, blocages et leurs causes |
+| `src/engine/tools/solve/search/dominance.ts` | la dominance, les objets symétriques, les sous-énigmes indépendantes (4.1.13) |
+| `src/engine/tools/solve/search/partition.ts` | la table partagée des états vus des workers, le partage d'un lot et le vol de travail (4.1.13) |
 
 Le chemin d'une preuve se lit `solve()` → `solveOnce()` (recherche) → `makeExpander()` (expansion) → le `act()` du
 moteur → un `TryRecord` fusionné dans le stockage et la frontière → le verdict.

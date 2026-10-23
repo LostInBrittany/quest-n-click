@@ -114,19 +114,19 @@ methods, as in the core:
 
 | Module | What it does |
 |---|---|
-| `tools/solve/search.ts` | `solve()`: the frontier, the proof workers, termination and the verdict |
-| `tools/solve/expansion.ts` | `makeExpander`: every action worth trying from a state, run on the real engine; the no-op memo |
-| `tools/solve/abstractions.ts` | what a state is made of (dimensions), the canonical forms (players, mobility, ownership), dominance |
-| `tools/solve/model.ts` | options, `SearchNode`, `Expansion` and a transition (`TryRecord`), with their invariants |
-| `tools/solve/scenarios.ts` | signals from outside in a search: closed, a scenario, adversarial (4.1.1) |
-| `tools/solve/report.ts` | the result, its profile, the profile as text |
-| `tools/solve/drive.ts` | an engine promise awaited, the guided tutorial's steps played meanwhile |
-| `tools/solve/explosion.ts` | the explosion profile (4.1.13): the states attributed to positions, inventories, flags, dialogues, scripts |
-| `tools/solve/search/compact.ts` | the store of the states seen (4.1.13, ADR 0015): by index, interned keys, parents, paths and session entries |
-| `tools/solve/search/checkpoint.ts` | a search written down and taken up again (4.1.13): snapshot, header, fingerprint |
-| `tools/solve/search/classify.ts` | the verdict of a proof over the stored states: reverse reachability, softlocks and their causes |
-| `tools/solve/search/dominance.ts` | dominance, symmetric items, independent sub-puzzles (4.1.13) |
-| `tools/solve/search/partition.ts` | the workers' shared visited table, the partition of a batch and work stealing (4.1.13) |
+| `src/engine/tools/solve/search.ts` | `solve()`: the frontier, the proof workers, termination and the verdict |
+| `src/engine/tools/solve/expansion.ts` | `makeExpander`: every action worth trying from a state, run on the real engine; the no-op memo |
+| `src/engine/tools/solve/abstractions.ts` | what a state is made of (dimensions), the canonical forms (players, mobility, ownership), dominance |
+| `src/engine/tools/solve/model.ts` | options, `SearchNode`, `Expansion` and a transition (`TryRecord`), with their invariants |
+| `src/engine/tools/solve/scenarios.ts` | signals from outside in a search: closed, a scenario, adversarial (4.1.1) |
+| `src/engine/tools/solve/report.ts` | the result, its profile, the profile as text |
+| `src/engine/tools/solve/drive.ts` | an engine promise awaited, the guided tutorial's steps played meanwhile |
+| `src/engine/tools/solve/explosion.ts` | the explosion profile (4.1.13): the states attributed to positions, inventories, flags, dialogues, scripts |
+| `src/engine/tools/solve/search/compact.ts` | the store of the states seen (4.1.13, ADR 0015): by index, interned keys, parents, paths and session entries |
+| `src/engine/tools/solve/search/checkpoint.ts` | a search written down and taken up again (4.1.13): snapshot, header, fingerprint |
+| `src/engine/tools/solve/search/classify.ts` | the verdict of a proof over the stored states: reverse reachability, softlocks and their causes |
+| `src/engine/tools/solve/search/dominance.ts` | dominance, symmetric items, independent sub-puzzles (4.1.13) |
+| `src/engine/tools/solve/search/partition.ts` | the workers' shared visited table, the partition of a batch and work stealing (4.1.13) |
 
 The path of a proof reads `solve()` → `solveOnce()` (search) → `makeExpander()` (expansion) → the engine's `act()` →
 a `TryRecord` merged into the store and the frontier → the verdict.

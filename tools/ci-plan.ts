@@ -221,8 +221,10 @@ export function globToRegExp(glob: string): RegExp {
 }
 
 /**
- * The paths the documentation's checks read besides the docs themselves: the wiki and its generators, and the root
- * pages the coverage matrix inventories with `docs/` (A3), so a change to them is checked against the freeze.
+ * The paths the documentation's checks read: the wiki (the documentation's source since 4.5.0) and its generators
+ * (tools/wiki, the DSL and API references, docs:truth, the package's bundle), `docs/` (its transition pages, which
+ * `wiki -- check` holds to the coverage matrix, and docs/dev's registries), and the root pages docs:truth and the link
+ * checks read. A code change reaches the family through the manifest's `sources` (`docsFor`).
  */
 const DOCS_PATHS =
   /^(docs\/|wiki\/|tools\/wiki(\.ts$|\/)|tools\/(dsl-doc|api-doc|docs-truth)\.ts$|scripts\/pack\.mjs$|(README(\.fr)?|CONTRIBUTING|SECURITY|CODE_OF_CONDUCT|CREDITS)\.md$)/;

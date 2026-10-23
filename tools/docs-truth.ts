@@ -9,20 +9,24 @@ import { join, resolve } from 'node:path';
 const ROOT = resolve(import.meta.dirname, '..');
 const read = (p: string) => readFileSync(resolve(ROOT, p), 'utf8');
 const pkg = JSON.parse(read('package.json')) as { version: string; scripts: Record<string, string> };
-/** The scripts of a game made with `quest-n-click create` (cli/create.mjs): what the READMEs tell its author to run. */
-const created = new Set(
-  [
-    ...(/scripts: \{([\s\S]*?)\n\s*\},/.exec(read('cli/create.mjs'))?.[1] ?? '').matchAll(
-      /(?:^|[\s,{])'?([\w:-]+)'?:\s*['`]/g,
-    ),
-  ].map((m) => m[1]!),
-);
+/**
+ * The scripts of a game made with `quest-n-click create` (cli/create.mjs): what the READMEs tell its author to run,
+ * the engine's own command (`[NAME]: NAME`) among them.
+ */
+const createdScripts = /scripts: \{([\s\S]*?)\n\s*\},/.exec(read('cli/create.mjs'))?.[1] ?? '';
+const created = new Set([
+  ...[...createdScripts.matchAll(/(?:^|[\s,{])'?([\w:-]+)'?:\s*['`]/g)].map((m) => m[1]!),
+  ...(/\[NAME\]:/.test(createdScripts) ? ['quest-n-click'] : []),
+]);
 
-/** The documents a reader is pointed to: the READMEs, docs/en, docs/fr (docs/dev is the project's own record). */
+/**
+ * The documents a reader is pointed to: the READMEs, CONTRIBUTING, SECURITY, and the wiki's pages, wiki/en and wiki/fr
+ * (since 4.5.0; docs/en and docs/fr are transition pages, docs/dev is the project's own record).
+ */
 export function documents(): string[] {
   const out = ['README.md', 'README.fr.md', 'CONTRIBUTING.md', 'SECURITY.md'];
-  for (const d of ['docs/en', 'docs/fr'])
-    for (const f of readdirSync(resolve(ROOT, d))) if (f.endsWith('.md')) out.push(join(d, f));
+  for (const d of ['wiki/en', 'wiki/fr'])
+    for (const f of readdirSync(resolve(ROOT, d)).sort()) if (f.endsWith('.md')) out.push(join(d, f));
   return out.filter((f) => existsSync(resolve(ROOT, f)));
 }
 
@@ -92,8 +96,10 @@ export function check(docs = documents()): Contradiction[] {
         if (Number(m[1]) !== f.saveSchema) at(`a save envelope is schema ${f.saveSchema}, the text says ${m[1]}`);
       for (const m of text.matchAll(/(?:Schema|Schéma) (\d+)(?: since| depuis) [\d.]+ \(`SpeedrunEnvelope/g))
         if (Number(m[1]) !== f.wsrunSchema) at(`a .wsrun is schema ${f.wsrunSchema}, the text says ${m[1]}`);
-      // Every script a reader is told to run.
-      for (const m of text.matchAll(/npm run (?:-s |--silent )?([\w:.-]+)/g)) {
+      // Every script a reader is told to run (a family, `npm run field:*`, and a placeholder, `npm run -s <script>`,
+      // name none).
+      for (const m of text.matchAll(/npm run (?:-s |--silent )?([\w:.-]+)(\*?)/g)) {
+        if (m[2] || m[1]!.startsWith('-')) continue;
         const name = m[1]!.replace(/[.:]+$/, '');
         if (!(name in pkg.scripts) && !created.has(name))
           at(`\`npm run ${name}\`: no such script in package.json nor in a created game's`);

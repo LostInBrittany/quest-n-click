@@ -69,7 +69,6 @@ const WRITERS: Record<string, string> = {
   'tools/audio/mdpipe/transcribe.py': 'adopted: npm run audio writes audio/',
   // Never a game folder.
   'cli/create.mjs': 'elsewhere: web-scumm create makes a new project folder',
-  'tools/api-doc.ts': 'elsewhere: docs/',
   'tools/audit-corpus.ts': 'elsewhere: .cache/',
   'tools/backup-memory.ts': 'elsewhere: .cache/ (measures)',
   'tools/bridge-cluster.ts': 'elsewhere: .cache/ (load reports)',
@@ -80,7 +79,6 @@ const WRITERS: Record<string, string> = {
   'tools/code-wheel.ts': 'elsewhere: printable pages in the folder named by --out',
   'tools/code-wheel-pdf.py': 'elsewhere: the PDF named on the command line',
   'tools/dist.ts': 'elsewhere: dist/',
-  'tools/dsl-doc.ts': 'elsewhere: docs/',
   'tools/wiki/acceptance.ts':
     "elsewhere: level 2's prompts (`wiki -- acceptance --export-prompts`), in the folder named on the command line (outside the working tree, or under .cache/)",
   'tools/wiki/build.ts':
@@ -92,6 +90,8 @@ const WRITERS: Record<string, string> = {
   'tools/wiki/coverage.ts':
     "elsewhere: the coverage matrix and what it generates, wiki/coverage.json, wiki/legacy.json and the manifest's replaces in wiki/manifest.json (of the folder --wiki names)",
   'tools/wiki.ts': 'elsewhere: the documentation archive, the file named by `wiki -- archive --out`',
+  'tools/wiki/generated.ts':
+    "elsewhere: a generated page's region in wiki/en|fr/<page>.md and its identifiers in wiki/manifest.json (`npx tsx tools/dsl-doc.ts`, `npx tsx tools/api-doc.ts`: create.dsl, engine.api)",
   'tools/wiki/generators.ts':
     "elsewhere: the generated reference pages' region in wiki/en|fr/<page>.md and their identifiers in wiki/manifest.json (`wiki -- generate`, of the folder --wiki names)",
   'tools/wiki/pages.ts':

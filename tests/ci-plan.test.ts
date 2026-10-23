@@ -25,7 +25,7 @@ const EVERYTHING = gates('all', ...GATES.filter((g) => g !== 'auditDeps'));
 
 describe('the plan of a change', () => {
   const table: [string, string[], string[]][] = [
-    ['docs only', ['docs/en/TOOLS.md', 'docs/fr/TOOLS.md', 'README.md', 'changes/x.md'], []],
+    ['docs only', ['docs/en/TOOLS.md', 'wiki/fr/reference.npm-scripts.md', 'README.md', 'changes/x.md'], []],
     ['the wiki sources', ['wiki/manifest.json', 'wiki/en/create.rooms.md', 'wiki/data/glossary.json'], []],
     ['a root markdown file', ['CHANGELOG.md', 'CONTRIBUTING.md'], []],
     ['another workflow', ['.github/workflows/nightly.yml'], []],
@@ -92,10 +92,19 @@ describe('the plan of a change', () => {
     ];
     expect(docsFor(['wiki/en/create.rooms.md'], pages)).toEqual({ docs: true, docsPages: [] });
     expect(docsFor(['tools/wiki/build.ts'], pages).docs).toBe(true);
+    // C2: the generators that write the wiki's references, and a transition page of docs/.
+    for (const f of [
+      'tools/dsl-doc.ts',
+      'tools/api-doc.ts',
+      'tools/docs-truth.ts',
+      'scripts/pack.mjs',
+      'docs/fr/DSL.md',
+    ])
+      expect(docsFor([f], pages).docs, f).toBe(true);
     // A5b: the publication's tools are the docs family's too.
     for (const f of ['tools/wiki/archive.ts', 'tools/wiki/html.ts', 'tools/wiki/pages.ts', 'tools/wiki/transition.ts'])
       expect(docsFor([f], pages).docs, f).toBe(true);
-    // The root pages the coverage matrix inventories are frozen with docs/ (A3); the CHANGELOG is not.
+    // The root pages docs:truth and the link checks read (the coverage matrix's too, A3); the CHANGELOG is not.
     expect(docsFor(['CONTRIBUTING.md'], pages).docs).toBe(true);
     expect(docsFor(['README.fr.md'], pages).docs).toBe(true);
     expect(docsFor(['CHANGELOG.md'], pages).docs).toBe(false);

@@ -2,9 +2,10 @@
 // surface, its contract status, the environments CI verifies, its automated checks and the people's passes it waits
 // for. Here: the registry is sound against the repository (each job defined, each test file tracked, each pass bound by
 // docs/dev/surfaces.json and tracked by an issue for the newest sheet's version, every pass waited for); it agrees
-// with docs/en|fr/SUPPORT.md (each quote is there, and says the status: an experimental surface's quote says
-// experimental, a stable one's never does; every row of the support matrix is named by a surface and every row a
-// surface names is in the matrix; a row the matrix calls experimental only speaks for experimental surfaces);
+// with the wiki's pages that replaced docs/en|fr/SUPPORT.md at 4.5.0 (each quote is a row of `start.stability`'s
+// surface table, and says the status: an experimental surface's quote says experimental, a stable one's never does;
+// every row of `reference.support-matrix`'s matrix is named by a surface and every row a surface names is in the matrix;
+// a row the matrix calls experimental only speaks for experimental surfaces; every surface has both since C2);
 // the passes' states are read from the version's sheet, never typed; and the five statuses stay apart.
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -18,15 +19,22 @@ import { checkContracts, passSheet, passStates, readContracts, surfaceStatuses }
 const TRACKED = trackedFiles();
 const { contracts, errors } = readContracts(ROOT);
 const flat = (s: string) => s.replace(/\s+/g, ' ');
-const RAW = { en: readFileSync('docs/en/SUPPORT.md', 'utf8'), fr: readFileSync('docs/fr/SUPPORT.md', 'utf8') };
-const SUPPORT = { en: flat(RAW.en), fr: flat(RAW.fr) };
+/** The stability page (the status quotes) and the support matrix (its rows), in both languages. */
+const page = (id: string) => ({
+  en: readFileSync(`wiki/en/${id}.md`, 'utf8'),
+  fr: readFileSync(`wiki/fr/${id}.md`, 'utf8'),
+});
+const RAW = page('reference.support-matrix');
+const STABILITY = page('start.stability');
+const SUPPORT = { en: flat(STABILITY.en), fr: flat(STABILITY.fr) };
 const WORD = {
   en: { experimental: /experimental/i, deprecated: /deprecated/i },
   fr: { experimental: /exp[ée]rimental/i, deprecated: /d[ée]pr[ée]ci[ée]|obsol[eè]te/i },
 } as const;
-/** The first cell of each row of the support matrix's table (the section `## Support matrix` / `## Matrice de support`). */
+/** The first cell of each row of the support matrix's table (the section `## The matrix` / `## La matrice`). */
 function matrixRows(markdown: string): string[] {
-  const at = markdown.search(/^## (Support matrix|Matrice de support)\s*$/m);
+  const at = markdown.search(/^## (The matrix|La matrice)\s*$/m);
+  expect(at).toBeGreaterThan(0);
   const lines = markdown.slice(at).split('\n').slice(1);
   const end = lines.findIndex((l) => l.startsWith('## '));
   return lines
@@ -52,7 +60,7 @@ describe('the status registry, docs/dev/contracts.json', () => {
     expect(passesFor(newest).filter((p) => !contracts!.passIssues[p]?.[newest])).toEqual([]);
   });
 
-  it("maps every row of SUPPORT.md's support matrix to a surface, and back, in both languages", () => {
+  it('maps every row of the support matrix to a surface, and back, in both languages', () => {
     for (const lang of ['en', 'fr'] as const) {
       const rows = matrixRows(RAW[lang]);
       expect(rows.length, lang).toBeGreaterThan(8);
@@ -68,12 +76,12 @@ describe('the status registry, docs/dev/contracts.json', () => {
     }
   });
 
-  it('agrees with SUPPORT.md in both languages: each quote is there and says the status', () => {
+  it('agrees with start.stability in both languages: each quote is there and says the status', () => {
     for (const [id, c] of Object.entries(contracts!.contracts))
       for (const lang of ['en', 'fr'] as const) {
         if (c.support === null) continue;
         const quote = flat(c.support[lang]);
-        expect(SUPPORT[lang].includes(quote), `${id} (${lang}): "${quote}" is not in SUPPORT.md`).toBe(true);
+        expect(SUPPORT[lang].includes(quote), `${id} (${lang}): "${quote}" is not in start.stability`).toBe(true);
         if (c.status === 'experimental') expect(quote, `${id} (${lang})`).toMatch(WORD[lang].experimental);
         else expect(quote, `${id} (${lang})`).not.toMatch(WORD[lang].experimental);
         if (c.status === 'deprecated') expect(quote, `${id} (${lang})`).toMatch(WORD[lang].deprecated);
@@ -81,7 +89,7 @@ describe('the status registry, docs/dev/contracts.json', () => {
   });
 
   it('keeps experimental every surface a row the matrix calls experimental speaks for', () => {
-    // Derived from SUPPORT.md, which tests/support-truth.test.ts keeps experimental until the passes.
+    // Derived from the support matrix, which tests/support-truth.test.ts keeps experimental until the passes.
     for (const lang of ['en', 'fr'] as const) {
       const experimental = matrixRows(RAW[lang]).filter((r) => WORD[lang].experimental.test(r));
       expect(experimental.length, lang).toBeGreaterThan(0);
@@ -91,12 +99,14 @@ describe('the status registry, docs/dev/contracts.json', () => {
     }
   });
 
-  it('accepts a surface SUPPORT.md does not name yet only with its reason (the documentation, until C2)', () => {
+  it('names every surface in the pages since C2, the documentation too; a surface not named needs its reason', () => {
     const unnamed = Object.entries(contracts!.contracts).filter(([, c]) => c.support === null || c.matrixRows === null);
-    expect(unnamed.map(([id, c]) => [id, c.reason])).toEqual([
-      ['documentation', 'SUPPORT.md gains its row at C2; docs/ is frozen by the coverage matrix'],
-    ]);
-    expect(contracts!.contracts.documentation!.passes).toEqual(['docs-beginner-reader']);
+    expect(unnamed.map(([id]) => id)).toEqual([]);
+    expect(contracts!.contracts.documentation).toMatchObject({
+      status: 'experimental',
+      matrixRows: { en: ['Documentation (4.5.0), **experimental**'], fr: ['Documentation (4.5.0), **expérimental**'] },
+      passes: ['docs-beginner-reader'],
+    });
     const root = mkdtempSync(join(tmpdir(), 'contracts-'));
     temps.push(root);
     mkdirSync(join(root, 'docs/dev'), { recursive: true });
@@ -107,13 +117,21 @@ describe('the status registry, docs/dev/contracts.json', () => {
       return readContracts(root).errors;
     };
     expect(write(() => {})).toEqual([]);
-    expect(write((k) => delete k.reason)).toEqual([
-      'docs/dev/contracts.json contracts.documentation: support or matrixRows is null without a reason',
-    ]);
+    const reason = 'the pages do not name it yet, for a reason';
     expect(
       write((k) => {
-        k.support = { en: 'x', fr: 'x' };
-        k.matrixRows = { en: [], fr: [] };
+        k.matrixRows = null;
+      }),
+    ).toEqual(['docs/dev/contracts.json contracts.documentation: support or matrixRows is null without a reason']);
+    expect(
+      write((k) => {
+        k.matrixRows = null;
+        k.reason = reason;
+      }),
+    ).toEqual([]);
+    expect(
+      write((k) => {
+        k.reason = reason;
       }),
     ).toEqual([
       'docs/dev/contracts.json contracts.documentation: a reason explains a null support or matrixRows; this surface has both',

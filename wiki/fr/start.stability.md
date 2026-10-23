@@ -64,7 +64,7 @@ de `docs/dev/passes/4.4.0.md`, où **aucune des 21 passes n’a été faite**.
 | Les archives des packages et leur installation | stable | Limité jusqu’à ce qu’une personne les installe | Installées hors du dépôt sous Ubuntu (Node 22 et 24), macOS et Windows | external-consumer, fresh-install | `archive-human-install` (#75) : pas faite |
 | Le Studio local | stable | Partiel sous Windows | Chromium de bout en bout (les vérifications du Studio) ; Windows : la suite unitaire seulement | e2e, windows | `studio-hero-matrix` (#238) : pas faite |
 | Le Studio Server (Studio d’équipe hébergé) | expérimental | Expérimental dans son ensemble | Postgres, S3 et Keycloak en CI ; Chromium et Firefox (job `studio-hosted`) ; WebKit sous macOS, à la main seulement | studio-hosted, studio-install-smoke | `studio-hosted` (#149), `studio-collab` (#150), `studio-preview` (#166), `studio-assets-hosted` (#167), `studio-mcp-remote` (#196), `studio-oidc-generic` (#197) : pas faites |
-| La documentation (ce wiki, son paquet, sa recherche) | expérimental | Pas encore dans SUPPORT (elle y entre à la bascule) | — | check, external-consumer | `docs-beginner-reader` : demandée à partir de la 4.5.0 |
+| La documentation (ce wiki, son paquet, sa recherche) | expérimental | Expérimental, depuis la 4.5.0 | `npm run wiki -- check` et les questions d’acceptation ; le paquet lu par MCP depuis un projet installé hors du dépôt | check, external-consumer | `docs-beginner-reader` : demandée à partir de la 4.5.0 |
 
 Les lignes de la matrice de support derrière la colonne « Vérifiée par la CI », avec ce que des personnes vérifient
 pour chacune : [Matrice de support](reference.support-matrix.md). Chaque passe est un ticket ouvert avec l’étiquette

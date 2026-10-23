@@ -102,7 +102,8 @@ server {
 
 - The game opens at its address; the browser's developer tools show `sw.js` active, under the address's path.
 - The pause menu's "Offline" row ends at "complete" (the engine's default text; a game may change it).
-- After a new deploy, the "A new version is ready." banner appears on the next visit; "Save and update" loads it.
+- After a new deploy, the "A new version is ready." banner (in the game's own words when it is translated) appears on
+  the next visit; "Save and update" (translated the same way) loads it.
 - In the engine repository: `node scripts/e2e.mjs https://<your-site>/` plays the deployed game to its ending.
 
 <a name="common-errors"></a>

@@ -108,7 +108,8 @@ and pushes its Git history. The build itself runs on Clever Cloud.
 ## Expected result, and how to check it
 
 - `clever logs` shows the hook's build, then sirv listening on port 8080.
-- The game opens at the application's domain; the pause menu's "Offline" row ends at "complete".
+- The game opens at the application's domain; the pause menu's "Offline" row (or its translation) ends at "complete"
+  (the engine's default text; a game translates it).
 - In the engine repository, `node scripts/e2e.mjs https://<your-domain>/` plays it to the end.
 
 <a name="common-errors"></a>

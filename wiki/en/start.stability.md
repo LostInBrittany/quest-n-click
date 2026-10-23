@@ -61,7 +61,7 @@ Contract status and checks from `docs/dev/contracts.json` (as of 4.4.0, 23 Octob
 | The package archives and their install | stable | Limited until a person installs them | Installed outside the repository on Ubuntu (Node 22 and 24), macOS and Windows | external-consumer, fresh-install | `archive-human-install` (#75): not run |
 | The local Studio | stable | Partial on Windows | Chromium end to end (the Studio's checks); Windows: the unit suite only | e2e, windows | `studio-hero-matrix` (#238): not run |
 | The Studio Server (hosted team Studio) | experimental | Experimental as a whole | Postgres, S3 and Keycloak in CI; Chromium and Firefox (job `studio-hosted`); WebKit on macOS, by hand only | studio-hosted, studio-install-smoke | `studio-hosted` (#149), `studio-collab` (#150), `studio-preview` (#166), `studio-assets-hosted` (#167), `studio-mcp-remote` (#196), `studio-oidc-generic` (#197): not run |
-| The documentation (this wiki, its bundle, its search) | experimental | Not in SUPPORT yet (it gains its row at the switch-over) | — | check, external-consumer | `docs-beginner-reader`: asked from 4.5.0 |
+| The documentation (this wiki, its bundle, its search) | experimental | Experimental, from 4.5.0 | `npm run wiki -- check` and the acceptance questions; the bundle read through MCP from a project installed outside the repository | check, external-consumer | `docs-beginner-reader`: asked from 4.5.0 |
 
 The rows of the support matrix behind the "Verified by CI" column, with what people check on each:
 [Support matrix](reference.support-matrix.md). Each pass is an open issue labelled
