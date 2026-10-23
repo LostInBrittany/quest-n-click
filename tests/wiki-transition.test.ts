@@ -2,14 +2,25 @@
 // coverage fixture (tests/fixtures/wiki/coverage: a guide with a repeated heading, an explicit anchor, a heading full
 // of punctuation and an emoji): every old anchor of the L2 inventory is still an anchor of the page GitHub renders
 // (the inventory read again from the generated page), each section links to the permalinks of its version's own
-// documentation and to the complete 4.4.0 page, a dropped section says why; and in the repository, a transition page's
-// version is package.json's.
+// documentation and to the complete 4.4.0 page, a dropped section says why. Once written (C2), the matrix is final:
+// `wiki -- check` requires each old page to be the transition page the matrix makes, with every old anchor, and
+// `coverage` no longer merges. In the repository: every old page of docs/en|fr is a transition page, at package.json's
+// version, holding every anchor of the L2 inventory (§4.5.7, step 4).
 import { cpSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { afterAll, describe, expect, it, vi } from 'vitest';
 import { main } from '../tools/wiki';
-import { initCoverage, inventory, inventoryOf } from '../tools/wiki/coverage';
+import {
+  checkCoverage,
+  initCoverage,
+  inventory,
+  inventoryOf,
+  readCoverage,
+  switchedOver,
+  transitionProblems,
+  writeCoverage,
+} from '../tools/wiki/coverage';
 import { readManifest } from '../tools/wiki/manifest';
 import { TRANSITION_LINE, transitionPages } from '../tools/wiki/transition';
 import { formatJson } from '../tools/wiki/json';
@@ -97,9 +108,82 @@ describe('a transition page', () => {
     expect(TRANSITION_LINE.exec(page)?.[1]).toBe('4.7.1');
     expect(page).toContain('/docs/4.7.1/en/');
   });
+
+  it('keeps a heading that ended on an HTML tag with its trailing `-`', () => {
+    const coverage = initCoverage([inventoryOf('docs/en/T.md', '# T\n\n## 3. State on <date>\n\nText.\n')]);
+    for (const r of coverage.rows) Object.assign(r, { destinations: ['create.exits'], decision: 'keep', planned: true });
+    const page = transitionPages(coverage, manifest, '4.5.0').get('docs/en/T.md')!;
+    expect(inventoryOf('docs/en/T.md', page).anchors).toContain('3-state-on-');
+  });
+});
+
+describe('after the switch-over, the matrix is final', () => {
+  /** A copy of the fixture whose old pages were replaced by their transition pages, and its wiki. */
+  function switched() {
+    const root = tmp('switched-root-');
+    const wikiDir = tmp('switched-wiki-');
+    cpSync(FIXTURE, root, { recursive: true });
+    cpSync(BASE_WIKI, wikiDir, { recursive: true });
+    writeFileSync(join(root, 'package.json'), JSON.stringify({ version: '4.5.0' }));
+    const m = readManifest(wikiDir).manifest!;
+    writeCoverage(wikiDir, matrix(), m);
+    const log = vi.spyOn(console, 'log').mockImplementation(() => {});
+    try {
+      expect(main(['transition', `--wiki=${wikiDir}`, '--root', root])).toBe(0);
+    } finally {
+      log.mockRestore();
+    }
+    const check = () =>
+      checkCoverage({ wikiDir, root, manifest: readManifest(wikiDir).manifest!, tracked: [] }).errors;
+    return { root, wikiDir, check };
+  }
+
+  it('passes with the transition pages, with no freeze on their text', () => {
+    const { root, check } = switched();
+    expect(switchedOver(root)).toBe(true);
+    expect(switchedOver(FIXTURE)).toBe(false);
+    expect(check()).toEqual([]);
+  });
+
+  it('refuses a transition page edited by hand, or one that lost an old anchor', () => {
+    const { root, check } = switched();
+    const file = join(root, 'docs/en/GUIDE.md');
+    writeFileSync(file, readFileSync(file, 'utf8').replace('<a id="custom-anchor"></a>', ''));
+    expect(check()).toEqual([
+      'docs/en/GUIDE.md: not the transition page the matrix makes: run `npm run wiki -- transition`',
+      'docs/en/GUIDE.md: the old anchor #custom-anchor is gone (docs/en/GUIDE.md#setup-1)',
+    ]);
+  });
+
+  it('refuses an old page that is no longer a transition page', () => {
+    const { root, check } = switched();
+    cpSync(join(FIXTURE, 'docs/fr/GUIDE.md'), join(root, 'docs/fr/GUIDE.md'));
+    expect(check()).toContain(
+      'docs/fr/GUIDE.md: not a transition page (docs/ moved to wiki/ at 4.5.0): run `npm run wiki -- transition`',
+    );
+  });
+
+  it('no longer merges an inventory (`wiki -- coverage`)', () => {
+    const { root, wikiDir } = switched();
+    const err = vi.spyOn(console, 'error').mockImplementation(() => {});
+    try {
+      expect(main(['coverage', `--wiki=${wikiDir}`, `--root=${root}`])).toBe(1);
+      expect(err.mock.calls.flat().join('\n')).toContain('the matrix is final since the switch-over');
+    } finally {
+      err.mockRestore();
+    }
+  });
 });
 
 describe("the repository's transition pages", () => {
+  it('replace every old page of docs/en and docs/fr, each keeping every old anchor of the L2 inventory', () => {
+    const coverage = readCoverage(resolve('wiki')).coverage!;
+    const files = new Set(coverage.rows.filter((r) => /^docs\/(en|fr)\//.test(r.file)).map((r) => r.file));
+    expect(files.size).toBe(64);
+    for (const f of files) expect(readFileSync(f, 'utf8'), f).toMatch(TRANSITION_LINE);
+    expect(transitionProblems(coverage, readManifest(resolve('wiki')).manifest!)).toEqual([]);
+  });
+
   it("name package.json's version (the release pull request regenerates them)", () => {
     const version = (JSON.parse(readFileSync('package.json', 'utf8')) as { version: string }).version;
     const transition = ['en', 'fr'].flatMap((lang) =>
@@ -111,7 +195,8 @@ describe("the repository's transition pages", () => {
         }))
         .filter((x) => x.line),
     );
-    // None before C2; each one after it, at the version being released.
+    // Each one since C2, at the version being released.
+    expect(transition.length).toBe(64);
     for (const t of transition) expect(t.line![1], t.file).toBe(version);
   });
 });

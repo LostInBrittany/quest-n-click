@@ -67,6 +67,7 @@ import {
   counterLines,
   coverageCounters,
   coveragePath,
+  switchedOver,
   incomingLinks,
   initCoverage,
   inventory,
@@ -851,6 +852,12 @@ function coverage(args: readonly string[], wikiDir: string): number {
   const { manifest, errors } = readManifest(wikiDir);
   if (!manifest) {
     for (const e of errors) console.error(`✖  ${e}`);
+    return 1;
+  }
+  if (switchedOver(root)) {
+    console.error(
+      '✖  the matrix is final since the switch-over (4.5.0, C2): docs/en and docs/fr are transition pages, written by `npm run wiki -- transition`',
+    );
     return 1;
   }
   const files = inventory(root);

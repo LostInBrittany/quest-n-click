@@ -5,9 +5,10 @@
 // line, the limit candidates (a review aid), the incoming anchored links that resolve to nothing listed; `--init`
 // refusing to replace a matrix; a merge keeping what a person wrote and flagging what changed or left; the matrix out
 // of step, a drop without a reason, an unknown destination or a code block in no row refused by the check; the legacy
-// order (the old sections' order, each destination once); the two counters. On the repository itself: the freeze —
-// `docs/en|fr` cannot change without the matrix being brought back in step — every old `##` of the eight `read_doc`
-// pages covered by `wiki/legacy.json`, and every section planned.
+// order (the old sections' order, each destination once); the two counters. On the repository itself: the matrix is
+// final since the switch-over (C2; the freeze of `docs/en|fr` it replaced is tested on the fixture, and the transition
+// pages by tests/wiki-transition.test.ts), every old `##` of the eight `read_doc` pages covered by `wiki/legacy.json`,
+// every section planned, and every anchored link the repository gives into the old pages still resolving.
 import { cpSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
@@ -37,6 +38,7 @@ import {
   readCoverage,
   slugger,
   staleRows,
+  switchedOver,
   unresolvedLinks,
   withReplaces,
   writeCoverage,
@@ -564,12 +566,8 @@ describe("the repository's matrix", () => {
     expect(read.errors).toEqual([]);
   });
 
-  it('is in step with docs/en and docs/fr: the freeze', () => {
-    const stale = staleRows(coverage, files);
-    expect(
-      stale,
-      `docs/ is frozen (docs/dev/PLAN-4.5-WIKI.md §4.2): re-run \`npm run wiki -- coverage\` and report the change into the wiki/ pages per the plan.\n${stale.join('\n')}`,
-    ).toEqual([]);
+  it('is final: docs/en and docs/fr are the transition pages (C2), no longer frozen by the matrix', () => {
+    expect(switchedOver(ROOT)).toBe(true);
   });
 
   it('inventories the 32 pages of each language, the root pages, and passes its check', () => {
@@ -614,10 +612,9 @@ describe("the repository's matrix", () => {
     }
   });
 
-  it('resolves the anchored links the READMEs give into docs/', () => {
-    const links = incomingLinks(ROOT, ['README.md', 'README.fr.md'], new Set(files.map((f) => f.file)));
-    expect(links.length).toBeGreaterThanOrEqual(4);
-    expect(unresolvedLinks(files, links)).toEqual([]);
+  it('resolves every anchored link the repository gives into the old pages, now their transition pages', () => {
+    const links = incomingLinks(ROOT, trackedFiles(), new Set(files.map((f) => f.file)));
+    expect(unresolvedLinks(files, links).map((l) => `${l.from}:${l.line} ${l.target}#${l.anchor}`)).toEqual([]);
   });
 
   it('sets a long replaces list on several lines, and back to an empty one', () => {
