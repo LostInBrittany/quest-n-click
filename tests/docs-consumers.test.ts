@@ -144,7 +144,8 @@ const HISTORICAL = [
   /^docs\/dev\/passes\/(?!TEMPLATE\.md$)/,
   /^docs\/dev\/(PLAN|QUALIF|SPIKE|GO-NO-GO)-/,
   /^docs\/dev\/acceptance\/A7-DEMONSTRATORS\.md$/,
-  /^changes\/450-a4-access\.log\.md$/,
+  // The 4.5.0 fragments, folded into the CHANGELOG and the LOG at the release: records of what each step did.
+  /^changes\/450-[a-z0-9-]+(\.log)?\.md$/,
 ];
 const CITE = /docs\/(?:en|fr)\/[A-Za-z_.-]+\.md/;
 const COMMENT = /^\s*(\/\/|\*|\/\*|#)/;

@@ -17,7 +17,8 @@
 // wiki` writes the folder a publication pushes to the GitHub wiki; it publishes the `ready` pages, and the `draft`
 // ones too with `--preview`. `coverage --init` takes the anchor inventory of the old documentation into
 // `wiki/coverage.json`; `coverage` merges a new inventory into it, keeping what a person wrote, and regenerates
-// `wiki/legacy.json` and the manifest's `replaces` (§4.2). `bundle` writes the documentation an installed engine
+// `wiki/legacy.json` and the manifest's `replaces` (§4.2); since the switch-over (C2) the matrix is final and
+// `coverage` refuses to merge. `bundle` writes the documentation an installed engine
 // carries (tools/wiki/bundle.ts, §4.3.4), into the package scripts/pack.mjs prepares: never under a folder the
 // repository tracks. `check --publish` is the publication level (§4.1.4): the published pages reach ready pages only,
 // no translation is to review, every claim was executed on the product (`--test-report`, a Vitest JSON report with
@@ -29,7 +30,7 @@
 // --target wiki` pushes an archive's wiki to the GitHub wiki and records it in `publication.json`
 // (tools/wiki/publication.ts), by `GITHUB_TOKEN` or the deploy key `WIKI_DEPLOY_KEY`; `pages` assembles Pages' `/docs/`
 // from the released archives only (tools/wiki/pages.ts); `transition` writes the transition pages of `docs/en|fr`
-// (tools/wiki/transition.ts, run by C2). `--wiki=<dir>` reads another source folder (the tests' fixtures). The output
+// (tools/wiki/transition.ts; written at C2, again by each release pull request). `--wiki=<dir>` reads another source folder (the tests' fixtures). The output
 // folder is outside the working tree (or under `.cache/`), so a build never lands among the sources, and only a previous
 // build is emptied.
 // `env` (A7, §4.7.4) regenerates the environment variable reference from `wiki/data/env.json` and the code
