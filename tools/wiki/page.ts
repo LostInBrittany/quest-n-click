@@ -119,7 +119,7 @@ export function classifyTarget(target: string, lang: string): Target {
  * run is never closed (its backticks are then plain text). The closing run has exactly the same length: a longer or
  * shorter run inside the span is part of it (CommonMark).
  */
-export function codeSpanEnd(s: string, i: number): number {
+function codeSpanEnd(s: string, i: number): number {
   let run = 0;
   while (s[i + run] === '`') run++;
   for (let j = i + run; j < s.length; ) {

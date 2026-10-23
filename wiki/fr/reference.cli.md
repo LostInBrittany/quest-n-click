@@ -6,6 +6,22 @@ celle du Studio Server. Dans le dépôt du moteur, les mêmes outils se lancent 
 ([scripts npm](reference.npm-scripts.md)) ; les variables qu'ils lisent sont dans
 [Variables d'environnement](reference.environment-variables.md).
 
+<a name="quick-entry"></a>
+
+## Accès rapide, par tâche
+
+- **Commencer un projet de jeu** : [`create-quest-n-click`](#create), ou [`quest-n-click create`](#quest-n-click-create)
+  depuis une archive de release ([installer depuis l'archive de release](install.from-archive.md)).
+- **Y jouer, le modifier, le vérifier** dans un projet créé : [`dev`](#quest-n-click-dev),
+  [`studio`](#quest-n-click-studio), [`verify`](#quest-n-click-verify) (ou [`validate`](#quest-n-click-validate) et
+  [`solve`](#quest-n-click-solve) un par un).
+- **Le construire et le publier** : [`build`](#quest-n-click-build), [`release`](#quest-n-click-release).
+- **Quelque chose cloche dans l'installation** : [`doctor`](#quest-n-click-doctor).
+- **Faire tourner un Reality Bridge** : [`quest-n-click-bridge`](#bridge), en commençant par [`init`](#bridge-init) et
+  [`serve`](#bridge-serve).
+- **Faire tourner un Studio hébergé** : [`quest-n-click-studio-server`](#studio-server), et
+  [`invite`](#studio-server-invite) pour le premier owner ([les commandes du serveur](team.server-cli.md)).
+
 <a name="overview"></a>
 
 ## Les six commandes

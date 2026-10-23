@@ -91,7 +91,8 @@ input (it can add owners). The full list: [Configuration](clever.configuration.m
 ## The game's cookie and the domains
 
 With `publicUrl` and `playUrl` on two subdomains of one domain, the Studio and the game are one site and the game's
-frame keeps its cookie in every browser. Two `*.cleverapps.io` names are two sites, where the cookie survives only as a
+frame keeps its cookie in Chromium, Firefox and WebKit on macOS, where the hosted e2e checks it (not WebKit on Linux;
+a real Safari is not checked yet). Two `*.cleverapps.io` names are two sites, where the cookie survives only as a
 partitioned one (CHIPS), which WebKit on Linux does not keep: [Domains and TLS](clever.domains-tls.md#why-one-domain).
 
 <a name="alternatives"></a>

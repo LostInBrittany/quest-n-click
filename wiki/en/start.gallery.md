@@ -68,6 +68,23 @@ sounds**. The sheet **hero** (Pixel, a 6 × 4 grid, 24 cells, 19 used): each cel
 critical, 47 out of the solver's state**; nodes such as **tank_drained**, **shell phone**, **use pipe + tank**,
 **pantry key**.
 
+<a name="not-shown"></a>
+
+## Not shown yet
+
+No capture here shows these screens, each one the decisive step of a recent flow:
+
+| Screen | Since | Where to see it today |
+|---|---|---|
+| Choosing the hero at New Game, in two languages (`games/heroes`) | 4.3.0 | [Choosing the hero](create.heroes.md) |
+| The Studio's Voices tab, "Heroes × languages" matrix | 4.4.0 | [The hero × language matrix](studio.voices-matrix.md) |
+| Before/after captures in the semantic diff (local Studio) | 4.4.0 | the local Studio |
+| A hosted Studio: a member's edit refused with 423, the hosted preview, the Check tab after a save | 4.2.x | [423 on the hosted Studio](team.write-refused-423.md) |
+
+`npm run docs:screenshots` cannot take them as it stands: it plays the sample game, *The Pantry Key*, and opens four
+tabs of the local Studio on it; it has no step for `games/heroes`, for the Voices tab or for a hosted Studio. Taking
+them means adding those steps to the script, then placing each capture in the page of its flow.
+
 <a name="regenerate"></a>
 
 ## Taking them again

@@ -81,6 +81,10 @@ const CONSUMERS: Record<string, { phase: Reads; reads: string }> = {
   },
   'tests/wiki-coverage.test.ts': { phase: 'transition', reads: 'docs/en|fr: the inventory, now the transition pages' },
   'tests/wiki-access.test.ts': { phase: 'wiki', reads: "the bundle's legacy pages and the repository's wiki/" },
+  'tests/wiki-output-links.test.ts': {
+    phase: 'wiki',
+    reads: "the repository's wiki/, built into an archive whose every output's links are read back",
+  },
   'tests/mcp-docs.test.ts': { phase: 'wiki', reads: "wiki/'s matrix, against read_doc {name}'s concatenation" },
   'tests/wiki-publication.test.ts': {
     phase: 'wiki',

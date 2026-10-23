@@ -28,7 +28,8 @@ from the release archive under `node_modules/quest-n-click`, playing in your bro
 - Node.js 22.12 or newer; 22.13 if you will use the local Studio ([Requirements](install.requirements.md#node)).
 - Python 3, to prepare the art with `npm run assets` ([Requirements](install.requirements.md#python)).
 - ffmpeg is optional: it converts sounds and videos ([Requirements](install.requirements.md#ffmpeg)).
-- A release version. The latest is on <https://github.com/wanoo/quest-n-click/releases/latest>; this page uses 4.4.0.
+- A release version: take the latest, on <https://github.com/wanoo/quest-n-click/releases/latest>. This page's commands
+  and outputs were run with 4.4.0, a past release: put the latest version in their place.
 
 <a name="where-to-run"></a>
 

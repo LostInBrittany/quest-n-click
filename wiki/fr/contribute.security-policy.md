@@ -26,8 +26,20 @@ N'y mettez ni clés de fournisseur ni assets de jeu privés.
 
 ## Versions prises en charge
 
-Les correctifs de sécurité visent la **dernière ligne de releases**. Une ligne plus ancienne n'en reçoit pas : mettez à
-jour ([Mettre à jour](install.upgrade.md)).
+La dernière mineure de la majeure en cours reçoit tous les correctifs, ceux de sécurité compris. Chaque mineure plus
+ancienne reçoit les correctifs de sécurité pendant trois mois après la mineure qui l'a suivie ; ensuite, mettez à jour
+([Mettre à jour](install.upgrade.md)). À la 4.5.0 (23 octobre 2026), le même tableau que
+[Stabilité et support](start.stability.md#versions) :
+
+| Ligne | Correctifs de sécurité jusqu'au |
+| --- | --- |
+| 4.5 | la mineure suivante, puis trois mois de plus |
+| 4.4 | 23 janvier 2027 |
+| 4.3 | 22 janvier 2027 |
+| 4.2.5 | 21 janvier 2027, sur une branche partie de `v4.2.5` |
+
+Le correctif d'une ligne plus ancienne se fait sur une branche partie de son dernier tag, et sort comme un correctif de
+cette ligne.
 
 <a name="dev-studio"></a>
 

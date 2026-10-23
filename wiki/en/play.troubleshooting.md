@@ -18,6 +18,8 @@ copy that is incomplete, and an update that does not show. Each section starts f
 
 ## No sound
 
+The game stays silent: you hear nothing, no music, no sound effects, no voices.
+
 **Possible causes**, the most frequent first:
 
 1. **The page has not been touched yet.** Browsers let a page play sound only after you interact with it: the game
@@ -41,10 +43,10 @@ volumes. Check the device's volume and silent switch. Reload the page if the sou
 | "Save failed" (with the browser's reason) | The browser refused to write: storage full, a private window, a blocked site storage | Free some space, leave private browsing, then play on; export a save you care about |
 | "save belongs to game "x", not "y"" | You imported another game's file | Import it into the game it came from |
 | "save version 5 cannot be migrated to 4" | The save is newer than this copy of the game (made after an update, imported into an older copy) | Update the game ([below](#update-not-showing)), then import again |
-| "state.room: unknown current room …", "state.active: unknown active player …", or a format error | The file is damaged, or the game no longer has the room you saved in | Load an earlier slot or an exported file; the game you are playing is not touched |
+| "state.room: unknown current room …", "state.active: unknown active player …", or a format error | The file is damaged, or the game no longer has the room you saved in (or the hero you played): such a save is refused, while a room the author renamed with a migration still loads | Load an earlier slot or an exported file; the game you are playing is not touched; tell the game's author if a new version removed the room |
 | "this save was played in another world (seed …)" | A Remix save, made in another world | Let the game open that world, or keep the current one |
 | "this save belongs to another link" (a Reality game) | The save was linked to another player on the Bridge: nothing is applied | Pause menu › the link's row › **Use this link with this save**, or keep playing unlinked |
-| "Save adjusted for this version: …" | Not an error: a newer version of the game no longer has something the save named; the save loaded without it | Play on |
+| "Save adjusted for this version: …" | Not an error: a newer version of the game no longer has something the save named (an item, a place, a visited room), not the room you are in; the save loaded without it | Play on |
 | Continue starts a new game | The game's author changed the save version without a way to carry old saves over | Ask the game's author; an exported file can wait for a fixed version |
 
 <!-- step: fix-save -->
@@ -68,7 +70,8 @@ row means the game caches only the rooms near you (`offline: 'nearby'`), by its 
 3. **Less than 64 MB free**: the download does not start. Free some space, then tap the row.
 4. **The game's service worker had not taken control** of the page at the first visit: reload the page once online,
    then tap the row.
-5. **Safari cleared the site** after seven days without a visit: open the game online again and let it download.
+5. **Safari cleared the site**: in a Safari tab (not a game added to the Home Screen), after seven days of Safari use
+   without a visit ([WebKit](https://webkit.org/tracking-prevention/)), or the device ran short of space. Open the game online again and let it download.
 
 See also [Install the game as an app](play.install-app.md#common-errors).
 

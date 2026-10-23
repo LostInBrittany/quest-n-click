@@ -67,7 +67,10 @@ enregistrements DNS : chez votre fournisseur DNS.
 
 Le jeu tourne dans un cadre du Studio, sur `playUrl`, derrière son propre cookie de session
 (`Secure; HttpOnly; SameSite=None; Partitioned`). Avec deux sous-domaines de votre domaine, le Studio et le jeu sont un
-seul **site**, et le cadre garde son cookie dans tous les navigateurs.
+seul **site**. Là où cela a été vérifié, le cadre garde son cookie : l’e2e hébergé le montre dans Chromium, Firefox et
+WebKit sous macOS. Pas partout : WebKit sous Linux (GNOME Web) ne garde aucun cookie posé par un cadre d’un autre hôte,
+même sur un seul site, et un vrai Safari sous macOS et iOS n’a pas encore été vérifié (la passe `studio-hosted`). Un
+seul domaine est l’architecture à choisir ; ce n’est pas une preuve sur chaque navigateur.
 
 `cleverapps.io` figure dans la Public Suffix List (une entrée privée, celle de Clever Cloud) : `studio-x.cleverapps.io`
 et `play-x.cleverapps.io` sont **deux sites**. Le cookie du jeu ne vit alors dans un cadre d’un autre site que parce

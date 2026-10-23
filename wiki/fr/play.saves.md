@@ -91,17 +91,28 @@ restent à part dans le navigateur) ni vos records de speedrun.
 
 Une sauvegarde écrite par n’importe quelle version 3.x ou 4.x du moteur se charge dans toute 4.x suivante : quand
 l’auteur change le jeu d’une façon qu’une ancienne sauvegarde ne peut pas suivre, le jeu la convertit lui-même. Quand
-une version plus récente d’un jeu n’a plus quelque chose que votre sauvegarde nomme (un objet, un lieu), la sauvegarde
-se charge quand même, sans cela, et le jeu affiche « Sauvegarde adaptée à cette version » avec ce qu’il a laissé de
-côté. Voir [Stabilité et support](start.stability.md#saves).
+une version plus récente d’un jeu n’a plus quelque chose que votre sauvegarde nomme, deux cas :
+
+- **la salle où vous avez sauvegardé, ou le héros que vous jouiez, n’existe plus** : la sauvegarde est **refusée**
+  (« state.room: unknown current room … »), et la partie en cours reste telle quelle. Chargez un emplacement plus ancien
+  ou un fichier exporté ailleurs, ou prévenez l’auteur du jeu : une salle renommée avec une migration fait suivre la
+  sauvegarde, qui se charge ;
+- **autre chose a disparu** (un objet du sac, un lieu de la carte, une salle visitée, la position d’un personnage) : la
+  sauvegarde se charge sans cela, et le jeu affiche « Sauvegarde adaptée à cette version » avec ce qu’il a laissé de
+  côté.
+
+Voir [Stabilité et support](start.stability.md#saves), et pour un auteur [État et sauvegardes](create.state-saves.md).
 
 > [!GUARANTEE id=play-save-refused-untouched]
 > La sauvegarde d’un autre jeu, une sauvegarde abîmée, ou une sauvegarde dont la salle courante n’existe plus est
 > refusée, et la partie en cours reste telle quelle.
 
 > [!LIMIT id=saves-device-only]
-> Les sauvegardes vivent dans ce navigateur, sur cet appareil. Effacer les données du site, ou Safari qui efface un
-> site pas ouvert depuis sept jours, les supprime : exportez celles qui comptent.
+> Les sauvegardes vivent dans ce navigateur, sur cet appareil. Effacer les données du site les supprime. Dans un
+> onglet Safari, Safari peut aussi les effacer après sept jours d’utilisation de Safari sans visite du jeu ; un jeu
+> ajouté à l’écran d’accueil échappe à cette règle ([WebKit](https://webkit.org/tracking-prevention/)). Tout navigateur peut aussi évincer les données d’un site
+> quand l’appareil manque de place. Le projet n’a pas testé ces règles sur un vrai appareil : exportez les sauvegardes
+> qui comptent.
 
 <a name="expected-result"></a>
 

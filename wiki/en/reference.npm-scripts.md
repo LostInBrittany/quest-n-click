@@ -4,6 +4,20 @@ Every `npm run` script of the engine repository, and every script a project made
 Each script has its own section: link to it as `reference.npm-scripts.md#verify-game` (the name in lowercase, `:`
 written `-`; a created project's script is `#project-<name>`).
 
+<a name="quick-entry"></a>
+
+## Quick entry, by task
+
+| I want to… | In the engine repository | In a created project |
+|---|---|---|
+| play the game while I write it | [`npm run dev`](#dev) | [`npm run dev`](#project-dev) |
+| edit it with the mouse | [`npm run studio`](#studio) | [`npm run studio`](#project-studio) |
+| prepare the art | [`npm run assets`](#assets) | [`npm run assets`](#project-assets) |
+| check it after a change | [`npm run validate`](#validate), [`npm run solve`](#solve) | [`npm run verify`](#project-verify) |
+| prove that nobody gets stuck | [`npm run solve -- --prove`](#solve), [`npm run prove:game`](#prove-game) | `npx quest-n-click solve --prove` |
+| build it to publish | [`npm run build`](#build) | [`npm run build`](#project-build) |
+| contribute to the engine | [`npm run check`](#check), [`npm run quality`](#quality) | — |
+
 <a name="overview"></a>
 
 ## Where to run them

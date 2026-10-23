@@ -26,8 +26,18 @@ Do not include provider keys or private game assets.
 
 ## Supported versions
 
-Security fixes target the **latest release line**. An older line gets none: upgrade
-([Upgrade](install.upgrade.md)).
+The current major's last minor gets every fix, security fixes included. Each earlier minor gets security fixes for
+three months after the minor that followed it; after that, upgrade ([Upgrade](install.upgrade.md)). At 4.5.0
+(23 October 2026), the same table as [Stability and support](start.stability.md#versions):
+
+| Line | Security fixes until |
+| --- | --- |
+| 4.5 | the next minor, then three more months |
+| 4.4 | 23 January 2027 |
+| 4.3 | 22 January 2027 |
+| 4.2.5 | 21 January 2027, on a branch from `v4.2.5` |
+
+A fix for an older line is made on a branch from its last tag and released as a patch of that line.
 
 <a name="dev-studio"></a>
 

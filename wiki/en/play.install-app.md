@@ -71,8 +71,9 @@ A failed file, a skipped batch or a lack of space leaves it partial, with the re
 > [!LIMIT id=safari-not-tried-on-device]
 > Nobody has yet installed a game from Safari on a real iPhone, played it offline and updated it: the pass
 > `safari-ios-offline-update` is open ([#86](https://github.com/wanoo/quest-n-click/issues/86)) as of 4.4.0. CI cannot
-> navigate WebKit offline, so on Safari the offline game is only checked in its installed and updated parts. Safari
-> may also clear the storage of a site you have not opened for seven days: open the game now and then.
+> navigate WebKit offline, so on Safari the offline game is only checked in its installed and updated parts. Safari's
+> rule that erases a site's storage after seven days of use without a visit applies to a Safari tab, not to a game
+> added to the Home Screen ([WebKit](https://webkit.org/tracking-prevention/)); an iPhone short of space may still evict it. Export the saves you care about.
 
 <a name="expected-result"></a>
 

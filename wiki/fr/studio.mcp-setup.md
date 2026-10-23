@@ -178,8 +178,8 @@ Depuis la 4.5.0, trois outils lisent ce wiki ([`tools/studio/tools.ts`](../../to
   suite.
 
 `read_doc { name }` répond toujours comme en 4.4.0 : une des huit pages historiques (`CONTENT_GUIDE`, `ENGINE`,
-`TOOLS`, `STUDIO`, `WORKFLOW`, `AUDIO`, `UPGRADING`, `CLASSICS`), entière, en un seul bloc de texte ; les autres
-arguments sont alors ignorés. Depuis la 4.5.0, cette page est reconstruite à partir des sections du wiki dans l'ordre
+`TOOLS`, `STUDIO`, `WORKFLOW`, `AUDIO`, `UPGRADING`, `CLASSICS`), en un seul bloc de texte, peut-être abrégée
+(ci-dessous) ; les autres arguments sont alors ignorés. Depuis la 4.5.0, cette page est reconstruite à partir des sections du wiki dans l'ordre
 de l'ancienne page (`wiki/legacy.json`), dans la limite de 1,5 fois sa taille en 4.4.0 : quand les sections en disent
 plus, les plus longues donnent leur titre, leur premier paragraphe et le `read_doc { id, section }` qui renvoie la
 suite. Donner à la fois `name` et `id`, ou aucun des deux, est une erreur d'outil :

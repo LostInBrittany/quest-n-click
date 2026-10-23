@@ -790,7 +790,7 @@
         ]
       },
       "aliases": {
-        "en": ["no sound", "save failed", "old version", "offline", "bug report", "don't hear any sound", "muted game"],
+        "en": ["no sound", "save failed", "old version", "offline", "bug report", "don't hear any sound", "I hear nothing", "muted game"],
         "fr": [
           "pas de son",
           "échec de la sauvegarde",

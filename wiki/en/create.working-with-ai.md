@@ -141,7 +141,8 @@ It still works. The AI edits the files; the Studio reloads (it watches them); th
 ## A typical session
 
 1. Learn the game and the format: `list_rooms`, `get_storyboard`, `get_notes`, and the documentation (below:
-   `search_docs` then `read_doc { id, section }`; or, whole, `read_doc { name: "CONTENT_GUIDE" }`).
+   `search_docs` then `read_doc { id, section }`; or the historical page `read_doc { name: "CONTENT_GUIDE" }`, which may
+   shorten long sections to a pointer to `read_doc { id, section }`).
 2. Edit: `set_storyboard` first, then `set_text` / `add_entity` in the rooms.
 3. Check: `validate`, `solve`, `lint`, `run_tests`; `screenshot` if the human runs the Studio.
 4. Ask: `add_note` for anything the human must decide or place; read their answer with `get_notes`. Notes with
@@ -162,8 +163,10 @@ the rest). `version` leaves out what does not apply to that version. `list_docs`
 context, type, language or state. With no confident match, `search_docs` gives an empty list and the index pages to
 try.
 
-`read_doc { name }` still returns one of the eight historical pages whole: `CONTENT_GUIDE`, `ENGINE`, `TOOLS`,
-`STUDIO`, `WORKFLOW`, `AUDIO`, `UPGRADING`, `CLASSICS`. Give `name` or `id`, not both.
+`read_doc { name }` still returns one of the eight historical pages: `CONTENT_GUIDE`, `ENGINE`, `TOOLS`, `STUDIO`,
+`WORKFLOW`, `AUDIO`, `UPGRADING`, `CLASSICS`. It is not always the whole text: rebuilt from the wiki within 1.5 times
+its 4.4.0 size, it shortens its longest sections to their heading, first paragraph and the `read_doc { id, section }`
+that gives the rest; read those too before relying on a section. Give `name` or `id`, not both.
 
 <a name="publish-read-back"></a>
 

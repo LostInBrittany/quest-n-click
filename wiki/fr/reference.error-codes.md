@@ -5,6 +5,20 @@ dev local et le Studio Server hébergé), les codes du Reality Bridge, les statu
 commandes qui vérifient un jeu. Cherchez dans cette page le code exact ou le début du message reçu : un message dont une
 partie est remplie à l'exécution s'écrit avec `…` à cet endroit.
 
+<a name="quick-entry"></a>
+
+## Accès rapide, par ce que vous voyez
+
+| Vous voyez… | Ce que cela veut dire | Que faire |
+|---|---|---|
+| `409` du Studio hébergé | [quelqu'un a changé la même chose avant vous](#studio-409) | [409 sur le Studio hébergé](team.write-refused-409.md) |
+| `423` du Studio hébergé | [un autre membre tient cette partie du jeu](#studio-423) | [423 sur le Studio hébergé](team.write-refused-423.md) |
+| `401` ou `403` du Studio | [pas connecté, ou pas autorisé](#studio-401) | [dépannage du Studio hébergé](clever.troubleshooting.md), [dépannage du Studio local](studio.troubleshooting.md) |
+| `422` après un enregistrement dans le Studio | [le changement ajouterait une erreur de validation](#studio-422) | lisez ses `errors`, corrigez-les, enregistrez à nouveau |
+| une erreur du Reality Bridge | [son statut et son code](#bridge) | [dépannage du Bridge](bridge.troubleshooting.md) |
+| `npm run solve` sort avec 1 ou 2 | [aucun chemin jusqu’à la fin, ou une recherche tronquée](#exit-solve) | [vérifier son jeu](create.checking.md) |
+| une autre commande sort en erreur | [ses codes de sortie](#exits) | la ligne de cette commande |
+
 <a name="how-to-read"></a>
 
 ## Lire cette page

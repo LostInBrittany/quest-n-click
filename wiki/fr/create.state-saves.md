@@ -199,6 +199,13 @@ dépôt du moteur.
    GAME=<id> npm run i18n -- status
    ```
 
+Les trois cas que rencontre un joueur, dits de la même façon dans [Sauvegardes](play.saves.md#what-is-kept) et
+[Dépannage](play.troubleshooting.md) : un objet disparu se charge, ajusté ; la salle courante disparue est refusée ; la
+salle courante renommée avec une migration (`{ from: 2, renameRoom: { entree: 'hall' } }`, [Migrations](#migrations))
+se charge, dans `hall`, car la migration passe avant le contrôle de la salle. Avant de supprimer ou de renommer une
+salle, gardez donc la salle courante et le joueur actif valides après migration : renommez avec `renameRoom`, jamais en
+supprimant l’ancienne salle.
+
 <a name="migrations"></a>
 
 ## Emplacements de sauvegarde et migrations

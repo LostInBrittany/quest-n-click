@@ -18,7 +18,8 @@ référence). Le moteur s'installe depuis `releases/download/v4.5.0/…`. Ce qui
   lien arrive encore, et le texte complet de la 4.4.0 reste lisible au tag `v4.4.0`.
 - **`read_doc {name}` marche toujours** : les huit noms (`CONTENT_GUIDE`, `ENGINE`, `TOOLS`, `STUDIO`, `WORKFLOW`,
   `AUDIO`, `UPGRADING`, `CLASSICS`) répondent un seul bloc de texte, avec les arguments de la 4.4.0 ; la page est
-  reconstruite à partir des sections du wiki.
+  reconstruite à partir des sections du wiki, et une section trop longue pour sa borne est réduite à son titre, son
+  premier paragraphe et le `read_doc { id, section }` qui donne la suite.
 - **Deux nouveaux outils MCP** : `search_docs` (par mots ou par une question, en français ou en anglais) et
   `list_docs` ; et `read_doc {id, section, lang}` lit une section d'une page par son id. Un agent cherche d'abord, puis
   lit par id.

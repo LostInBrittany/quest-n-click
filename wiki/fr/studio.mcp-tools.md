@@ -431,7 +431,7 @@ Entrée :
 
 ### `read_doc`
 
-**Lire une page de la documentation.** Lit la documentation. Conseillé : search_docs, puis read_doc { id, section } pour la section trouvée (`lang` en ou fr, en par défaut ; `maxChars` 20000 par défaut, 100000 au plus, et un `cursor` pour la suite), avec en tête d’où vient le texte (version, commit, révision de la doc). `name` renvoie à la place une grande page historique entière d’un seul bloc, reconstruite à partir des sections de la documentation : CONTENT_GUIDE (le format du jeu, le DSL des salles, des conditions et des commandes), ENGINE, TOOLS, STUDIO, WORKFLOW, AUDIO (musique et effets), UPGRADING (de v2 à v3), CLASSICS (les mécaniques célèbres du genre, chacune avec son DSL : à lire avant de demander une nouvelle commande) ; avec `name`, les autres arguments sont ignorés. Donnez `name` ou `id`, pas les deux. Lecture seule.
+**Lire une page de la documentation.** Lit la documentation. Conseillé : search_docs, puis read_doc { id, section } pour la section trouvée (`lang` en ou fr, en par défaut ; `maxChars` 20000 par défaut, 100000 au plus, et un `cursor` pour la suite), avec en tête d’où vient le texte (version, commit, révision de la doc). `name` renvoie à la place une grande page historique d’un seul bloc, reconstruite à partir des sections de la documentation et peut-être abrégée : une section trop longue pour la borne de la page donne son titre, son premier paragraphe et le read_doc { id, section } qui renvoie la suite. Les noms : CONTENT_GUIDE (le format du jeu, le DSL des salles, des conditions et des commandes), ENGINE, TOOLS, STUDIO, WORKFLOW, AUDIO (musique et effets), UPGRADING (de v2 à v3), CLASSICS (les mécaniques célèbres du genre, chacune avec son DSL : à lire avant de demander une nouvelle commande) ; avec `name`, les autres arguments sont ignorés. Donnez `name` ou `id`, pas les deux. Lecture seule.
 
 - Écrit : non (lecture seule).
 - Requiert : la capacité `readDoc` du backend : un backend qui ne l’a pas (la démo, un Studio hébergé sans cette route) ne propose pas l’outil.
@@ -441,7 +441,7 @@ Entrée :
 
 | Champ | Type | Requis | Signifie |
 |---|---|---|---|
-| `name` | `"CONTENT_GUIDE" \| "ENGINE" \| "TOOLS" \| "STUDIO" \| "WORKFLOW" \| "AUDIO" \| "UPGRADING" \| "CLASSICS"` | non | Une des huit pages historiques, entière (les autres arguments sont alors ignorés). |
+| `name` | `"CONTENT_GUIDE" \| "ENGINE" \| "TOOLS" \| "STUDIO" \| "WORKFLOW" \| "AUDIO" \| "UPGRADING" \| "CLASSICS"` | non | Une des huit pages historiques, reconstruite et peut-être abrégée : une section longue renvoie à read_doc { id, section } pour la suite (les autres arguments sont alors ignorés). |
 | `id` | `string` | non | Un id de page venu de search_docs ou de list_docs, par exemple "create.rooms". |
 | `section` | `string` | non | Un id de section de cette page (son `<a name>`), par exemple "walkable-zones". |
 | `lang` | `"en" \| "fr"` | non | La langue de la page (en par défaut). |

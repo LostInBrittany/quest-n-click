@@ -5,6 +5,22 @@ command says where it runs: a created project's folder, the engine repository, t
 Server's. In the engine repository the same tools run as npm scripts ([npm scripts](reference.npm-scripts.md)); the
 variables they read are in [Environment variables](reference.environment-variables.md).
 
+<a name="quick-entry"></a>
+
+## Quick entry, by task
+
+- **Start a game project**: [`create-quest-n-click`](#create), or [`quest-n-click create`](#quest-n-click-create)
+  from a release archive ([install from the release archive](install.from-archive.md)).
+- **Play it, edit it, check it** in a created project: [`dev`](#quest-n-click-dev),
+  [`studio`](#quest-n-click-studio), [`verify`](#quest-n-click-verify) (or [`validate`](#quest-n-click-validate) and
+  [`solve`](#quest-n-click-solve) one by one).
+- **Build and publish it**: [`build`](#quest-n-click-build), [`release`](#quest-n-click-release).
+- **Something is wrong with the setup**: [`doctor`](#quest-n-click-doctor).
+- **Run a Reality Bridge**: [`quest-n-click-bridge`](#bridge), starting with [`init`](#bridge-init) and
+  [`serve`](#bridge-serve).
+- **Run a hosted Studio**: [`quest-n-click-studio-server`](#studio-server), and [`invite`](#studio-server-invite) for
+  the first owner ([the server's commands](team.server-cli.md)).
+
 <a name="overview"></a>
 
 ## The six commands

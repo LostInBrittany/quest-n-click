@@ -21,13 +21,15 @@ Disagreement is welcome when it is about the code, the content or the decision, 
 
 ## Reporting a breach
 
-Report it privately through GitHub's security advisories on `wanoo/quest-n-click`, or to the maintainer, @wanoo.
-Reports are read, answered, and kept private.
+One channel, private: the repository's report form, the **Security** tab, **Report a vulnerability**
+(<https://github.com/wanoo/quest-n-click/security/advisories/new>). It is meant for vulnerabilities, but only the
+maintainer sees what you write there, so it takes a conduct report too: say in its title that it is one. Any GitHub
+account can use it, a collaborator or not. Reports are read, answered, and kept private.
 
 > [!LIMIT id=no-report-address]
-> `CODE_OF_CONDUCT.md` sends reports to "the address in `package.json`'s `author`, or the one on the GitHub profile";
-> `package.json` has no `author` field, and the project publishes no dedicated email address for reports. Until the
-> maintainer gives one, use the two private channels above.
+> The project publishes no email address for reports, and GitHub has no private messages between accounts. If the
+> Security tab offers no "Report a vulnerability" button, open an issue that says only "I need a private channel for a
+> conduct report", with no detail: the maintainer opens a private advisory and adds you to it.
 
 <a name="consequences"></a>
 

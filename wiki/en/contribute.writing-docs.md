@@ -104,8 +104,11 @@ reads another folder, as the tests do).
 ## Expected result, and how to check it
 
 `npm run wiki -- check` ends with `✔` and 0 error. `npm run wiki -- stats` shows the page in its state. When the page
-answers a real question, `npm run wiki -- acceptance` finds it in the top three for that question
-([the commands](#commands)).
+answers a real question, `npm run wiki -- acceptance` finds it in the top three for that question, and first for a
+question marked `top1` (a clear symptom such as "no sound", a message typed whole); the report gives the top 3 and
+the top 1 apart ([the commands](#commands)). Neither says a reader understands the answer or can follow it: that is the
+AI reader's test and the people's passes. Add a new wording to `questions.json` rather than to the page's aliases, so
+the test keeps measuring wordings the page was not written for.
 
 <a name="common-errors"></a>
 

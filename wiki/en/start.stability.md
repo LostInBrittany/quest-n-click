@@ -83,9 +83,18 @@ Semantic versioning on the public API:
 - a **major** (5.0) may remove what a minor deprecated, and says how to move in the upgrade notes
   ([Upgrade](install.upgrade.md)).
 
-**Support window.** The current major's last minor gets fixes; the previous minor gets security fixes for three months
-after the next one. By that rule, at 4.4.0 (22 October 2026) the 4.3 line gets security fixes until 22 January 2027;
-4.2.5 gets them until 21 January 2027, on a branch from `v4.2.5` (SUPPORT, written at 4.3.0). The 3.x line ended with
+**Support window.** The current major's last minor gets every fix; each earlier minor gets security fixes for three
+months after the minor that followed it. What that gives at 4.5.0 (23 October 2026), the same table as the
+[security policy](contribute.security-policy.md#supported-versions):
+
+| Line | Fixes | Until |
+| --- | --- | --- |
+| 4.5 | every fix | the next minor, then three months of security fixes |
+| 4.4 | security fixes | 23 January 2027 |
+| 4.3 | security fixes | 22 January 2027 |
+| 4.2.5 | security fixes, on a branch from `v4.2.5` (SUPPORT, written at 4.3.0) | 21 January 2027 |
+
+The 3.x line ended with
 3.9; its games move to 4.0 with `quest-n-click migrate` (nothing to rewrite for a game already on schema 3).
 
 **History of the policy.** Each line below said what it changed; the newest first.
@@ -256,7 +265,7 @@ never replaced once published. What only people and real devices can check is re
 made: [Releasing](contribute.releasing.md).
 
 > [!LIMIT id=not-on-npm]
-> As of 4.4.0 the packages are not published on npm: the engine installs from a release's archive
+> No release has published the packages on npm so far: the engine installs from a release's archive
 > ([Install from the release archive](install.from-archive.md)).
 
 <a name="references"></a>

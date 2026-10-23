@@ -4,6 +4,24 @@ Toutes les variables d’environnement que lit quest-n-click, et celles que Clev
 hébergé. Chacune a sa propre section : liez-la sous la forme
 `reference.environment-variables.md#studio-session-key` (le nom en minuscules, `_` écrit `-`).
 
+<a name="quick-entry"></a>
+
+## Accès rapide, par tâche
+
+- **Déployer un Studio hébergé chez Clever Cloud** : vous posez [`STUDIO_SESSION_KEY`](#studio-session-key) et
+  [`STUDIO_WORKER_KEY`](#studio-worker-key) ; la base et le bucket viennent des add-ons liés, laissez donc
+  [`STUDIO_DATABASE_URL`](#studio-database-url) et [`STUDIO_S3_KEY_ID`](#studio-s3-key-id) vides là-bas
+  ([le premier déploiement](clever.first-deployment.md)).
+- **Changer une clé** : [`STUDIO_SESSION_KEY`](#studio-session-key), puis [la rotation des clés](clever.key-rotation.md).
+- **Lire les métriques** : [`STUDIO_METRICS_TOKEN`](#studio-metrics-token), puis [la surveillance](clever.monitoring.md).
+- **Choisir le jeu sur lequel vous travaillez dans le dépôt du moteur** : [`GAME`](#game).
+- **Ouvrir le Studio ou le serveur de développement à votre réseau** : `npm run studio:lan` ou `npm run dev:lan`, qui
+  posent [`WEB_SCUMM_LAN`](#web-scumm-lan) pour vous ([tester sur un téléphone par le réseau local](create.lan-testing.md)).
+- **Stocker un Reality Bridge dans SQLite ou Postgres** : [`BRIDGE_STORE`](#bridge-store).
+- **Une variable croisée dans un message d'erreur** : cherchez son nom dans cette page (chacune a sa section), puis la
+  page de dépannage de son lieu : [Studio hébergé](clever.troubleshooting.md), [Studio local](studio.troubleshooting.md),
+  [Bridge](bridge.troubleshooting.md).
+
 <a name="how-to-read"></a>
 
 ## Comment lire cette page

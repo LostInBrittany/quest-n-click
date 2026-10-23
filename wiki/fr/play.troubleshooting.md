@@ -19,6 +19,8 @@ ce que vous voyez.
 
 ## Pas de son
 
+Le jeu reste muet : vous n’entendez rien, ni musique, ni bruitages, ni voix.
+
 **Causes possibles**, de la plus fréquente à la plus rare :
 
 1. **La page n’a pas encore été touchée.** Les navigateurs ne laissent une page jouer du son qu’après une interaction :
@@ -45,10 +47,10 @@ son ne vient toujours pas.
 | « Échec de la sauvegarde » (avec la raison du navigateur) | Le navigateur a refusé d’écrire : stockage plein, navigation privée, stockage du site bloqué | Libérez de la place, quittez la navigation privée, puis continuez ; exportez une sauvegarde qui compte |
 | « save belongs to game "x", not "y" » | Vous avez importé le fichier d’un autre jeu | Importez-le dans le jeu d’où il vient |
 | « save version 5 cannot be migrated to 4 » | La sauvegarde est plus récente que cette copie du jeu (faite après une mise à jour, importée dans une copie plus ancienne) | Mettez le jeu à jour ([plus bas](#update-not-showing)), puis importez de nouveau |
-| « state.room: unknown current room … », « state.active: unknown active player … », ou une erreur de format | Le fichier est abîmé, ou le jeu n’a plus la salle où vous aviez sauvegardé | Chargez un emplacement plus ancien ou un fichier exporté ; la partie en cours n’est pas touchée |
+| « state.room: unknown current room … », « state.active: unknown active player … », ou une erreur de format | Le fichier est abîmé, ou le jeu n’a plus la salle où vous aviez sauvegardé (ou le héros que vous jouiez) : une telle sauvegarde est refusée, alors qu’une salle que l’auteur a renommée avec une migration se charge toujours | Chargez un emplacement plus ancien ou un fichier exporté ; la partie en cours n’est pas touchée ; prévenez l’auteur du jeu si une nouvelle version a supprimé la salle |
 | « this save was played in another world (seed …) » | Une sauvegarde Remix, faite dans un autre monde | Laissez le jeu ouvrir ce monde, ou gardez celui en cours |
 | « this save belongs to another link » (un jeu Reality) | La sauvegarde était liée à un autre joueur sur le Bridge : rien n’est appliqué | Menu de pause › la ligne du lien › **Use this link with this save**, ou continuez sans lien |
-| « Sauvegarde adaptée à cette version : … » | Pas une erreur : une version plus récente du jeu n’a plus quelque chose que la sauvegarde nommait ; elle s’est chargée sans | Continuez |
+| « Sauvegarde adaptée à cette version : … » | Pas une erreur : une version plus récente du jeu n’a plus quelque chose que la sauvegarde nommait (un objet, un lieu, une salle visitée), pas la salle où vous êtes ; elle s’est chargée sans | Continuez |
 | Continuer commence une nouvelle partie | L’auteur du jeu a changé la version des sauvegardes sans moyen de reprendre les anciennes | Demandez à l’auteur du jeu ; un fichier exporté peut attendre une version corrigée |
 
 <!-- step: fix-save -->
@@ -75,7 +77,9 @@ jeu pour réessayer) quand il en manque. Pas de ligne Hors ligne : le jeu ne gar
 3. **Moins de 64 Mo libres** : le téléchargement ne démarre pas. Libérez de la place, puis touchez la ligne.
 4. **Le service worker du jeu n’avait pas pris la main** sur la page à la première visite : rechargez la page en
    ligne, puis touchez la ligne.
-5. **Safari a effacé le site** après sept jours sans visite : rouvrez le jeu en ligne et laissez-le télécharger.
+5. **Safari a effacé le site** : dans un onglet Safari (pas un jeu ajouté à l’écran d’accueil), après sept jours
+   d’utilisation de Safari sans visite ([WebKit](https://webkit.org/tracking-prevention/)), ou l’appareil a manqué de place. Rouvrez le jeu en ligne et laissez-le
+   télécharger.
 
 Voir aussi [Installer le jeu comme une application](play.install-app.md#common-errors).
 
