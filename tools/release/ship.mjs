@@ -353,6 +353,9 @@ async function watch(versionArg) {
   return verify(version);
 }
 
+/** The first release that carries its documentation archive. */
+const DOCS_SINCE = '4.5.0';
+
 async function verify(versionArg) {
   const version = versionOf(versionArg);
   const name = `v${version}`;
@@ -406,6 +409,10 @@ async function verify(versionArg) {
   const packed = version.replace(/-.*$/, '');
   const engine = `${projectOf(version)}-${packed}.tgz`;
   if (!existsSync(join(dir, engine))) throw new Error(`${name}: ${engine} missing`);
+  // The documentation archive (4.5.0, docs/dev/PLAN-4.5-WIKI.md §4.5.4): summed, attested and listed above like every
+  // file; named here because docs-publish promotes it once this verification passed.
+  const docs = `quest-n-click-docs-${version}.tar.gz`;
+  if (atLeast(version, DOCS_SINCE) && !existsSync(join(dir, docs))) throw new Error(`${name}: ${docs} missing`);
   return { files, attested };
 }
 

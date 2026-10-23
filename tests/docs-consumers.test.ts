@@ -73,6 +73,14 @@ const CONSUMERS: Record<string, { phase: Phase; reads: string }> = {
   'tests/wiki-coverage.test.ts': { phase: 'C2 switch', reads: 'docs/en|fr, the frozen inventory' },
   'tests/wiki-access.test.ts': { phase: 'C2 switch', reads: "docs/en's eight pages, against the bundle's copies" },
   'tests/mcp-docs.test.ts': { phase: 'C2 switch', reads: "docs/en's eight pages, against read_doc {name}" },
+  'tests/wiki-publication.test.ts': {
+    phase: 'A4 active',
+    reads: 'the wiki fixture, built into archives whose wiki is pushed to throwaway repositories',
+  },
+  'tests/wiki-transition.test.ts': {
+    phase: 'C2 switch',
+    reads: "docs/en|fr: a transition page's version against package.json's (none before C2)",
+  },
 };
 
 const PATH =

@@ -408,6 +408,24 @@ jobs:
       # Their SBOMs (4.1.19, plan §6.3), from what the archives hold: the Bridge's and the connectors' own locks, the
       # engine's dependencies as the root lock resolves them, the creator's one dependency by its archive's SHA-256.
       - run: node scripts/sbom.mjs --pack=candidate-pack --out=candidate-sbom
+      # The documentation archive (4.5.0, docs/dev/PLAN-4.5-WIKI.md §4.5.4): the bundle, the rendered site and the wiki
+      # of this commit, revision r1, built twice and compared byte for byte; the release attaches this very file and
+      # docs-publish promotes it without building anything again. Named by package.json's version (an rc's tag adds
+      # its suffix when release.yml publishes it).
+      - name: The documentation archive, built twice
+        shell: bash
+        run: |
+          v=$(node -p "require('./package.json').version")
+          mkdir -p candidate-docs .cache/docs-again
+          npm run -s wiki -- archive --out "candidate-docs/quest-n-click-docs-$v.tar.gz" --build-id ${{ github.run_id }} --revision r1
+          npm run -s wiki -- archive --out ".cache/docs-again/quest-n-click-docs-$v.tar.gz" --build-id ${{ github.run_id }} --revision r1
+          cmp "candidate-docs/quest-n-click-docs-$v.tar.gz" ".cache/docs-again/quest-n-click-docs-$v.tar.gz" || { echo "::error::the documentation archive is not reproducible: two builds differ"; exit 1; }
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: candidate-docs
+          path: candidate-docs
+          if-no-files-found: error
+          overwrite: true
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: candidate-pack
@@ -731,6 +749,8 @@ jobs:
           if [ -d artifacts/candidate-sbom ]; then mkdir -p artifacts/candidate-release/sbom && cp artifacts/candidate-sbom/* artifacts/candidate-release/sbom/; fi
           # The site (4.1.20): its archive, assets manifest and file digests, made once by release-core.
           if [ -d artifacts/candidate-site ]; then mkdir -p artifacts/candidate-release/site && cp artifacts/candidate-site/* artifacts/candidate-release/site/; fi
+          # The documentation archive (4.5.0): in the manifest, so the release's sums and attestations cover it.
+          if [ -d artifacts/candidate-docs ]; then mkdir -p artifacts/candidate-release/docs && cp artifacts/candidate-docs/* artifacts/candidate-release/docs/; fi
           # The signing rehearsal's report (4.1.20 PR 3b).
           if [ -d artifacts/candidate-signing ]; then mkdir -p artifacts/candidate-release/signing && cp artifacts/candidate-signing/* artifacts/candidate-release/signing/; fi
           # The surfaces of the people's passes (4.1.20 PR 4, ADR 0024), from the files above and the checkout's

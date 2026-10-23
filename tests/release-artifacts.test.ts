@@ -109,6 +109,24 @@ describe('the manifest of a release', () => {
     ).toEqual([]);
   });
 
+  it('lists the documentation archive from 4.5.0 on (§4.5.4): the candidate under package.json, the release under the tag', () => {
+    expect(candidateFiles('4.5.0', [])).toContain('docs/quest-n-click-docs-4.5.0.tar.gz');
+    expect(candidateFiles('4.5.0-rc.1', [])).toContain('docs/quest-n-click-docs-4.5.0.tar.gz');
+    expect(candidateFiles('4.4.0', []).filter((f: string) => f.startsWith('docs/'))).toEqual([]);
+    expect(releaseFiles('v4.5.0', candidateFiles('4.5.0', []))).toContain('quest-n-click-docs-4.5.0.tar.gz');
+    expect(releaseFiles('v4.5.0-rc.1', candidateFiles('4.5.0-rc.1', []))).toContain(
+      'quest-n-click-docs-4.5.0-rc.1.tar.gz',
+    );
+    expect(releaseFiles('v4.4.0', candidateFiles('4.4.0', [])).filter((f: string) => f.includes('-docs-'))).toEqual([]);
+    const entry = ALL.find((a) => a.id === 'docs:archive')!;
+    expect(entry).toMatchObject({ artifact: 'candidate-docs', job: 'pack', since: '4.5.0' });
+    // The candidate's surfaces classify it (tools/field/surfaces.mjs fails on a file in no surface and no status).
+    const surfaces = JSON.parse(readFileSync('docs/dev/surfaces.json', 'utf8')) as { status: { path: string }[] };
+    expect(surfaces.status.map((x) => x.path)).toContain('docs/*');
+    // ship verify names it, once the sums and attestations have covered it.
+    expect(readFileSync('tools/release/ship.mjs', 'utf8')).toMatch(/quest-n-click-docs-\$\{version\}\.tar\.gz/);
+  });
+
   it('names packages without the pre-release suffix, every other file with the tag', () => {
     const rc = releaseFiles('v4.1.20-rc.1', candidateFiles('4.1.20-rc.1', ['run-daily']));
     expect(rc).toContain('web-scumm-bridge-4.1.20.tgz');

@@ -87,8 +87,11 @@ function clearOutput(outDir: string): void {
   for (const name of entries) rmSync(resolve(outDir, name), { recursive: true, force: true });
 }
 
-/** Writes the bundle; returns its manifest (the files written, `bundle-manifest.json` aside, with their hashes). */
-export function writeBundle(o: BundleOptions): BundleManifest {
+/** The bundle's files in memory (`bundle-manifest.json` aside) and its manifest: what `writeBundle` writes. */
+export function bundleContents(o: Omit<BundleOptions, 'outDir'>): {
+  files: Map<string, Buffer>;
+  manifest: BundleManifest;
+} {
   const { manifest, errors } = readManifest(o.wikiDir);
   if (!manifest) throw new Error(`the wiki's manifest is not valid: ${errors.join('; ')}`);
   const bundled = new Set(manifest.pages.filter((p) => p.state === 'ready' && !p.generated).map((p) => p.id));
@@ -133,6 +136,13 @@ export function writeBundle(o: BundleOptions): BundleManifest {
     wikiTree: o.dirty ? 'dirty' : wikiTree(o.root, o.wikiDir, o.docRevision),
     files: paths.map((path) => ({ path, sha256: sha256(files.get(path)!), bytes: files.get(path)!.length })),
   };
+  return { files, manifest: bundle };
+}
+
+/** Writes the bundle; returns its manifest (the files written, `bundle-manifest.json` aside, with their hashes). */
+export function writeBundle(o: BundleOptions): BundleManifest {
+  const { files, manifest: bundle } = bundleContents(o);
+  const paths = bundle.files.map((f) => f.path);
   clearOutput(o.outDir);
   for (const path of paths) {
     const file = resolve(o.outDir, path);

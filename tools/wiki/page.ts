@@ -113,7 +113,7 @@ export function classifyTarget(target: string, lang: string): Target {
 }
 
 /** The end of a bracketed label starting at `open` (`[`), nested brackets counted, or -1. */
-function closeBracket(s: string, open: number): number {
+export function closeBracket(s: string, open: number): number {
   let depth = 0;
   for (let i = open; i < s.length; i++) {
     if (s[i] === '\\') i++;
@@ -124,7 +124,7 @@ function closeBracket(s: string, open: number): number {
 }
 
 /** `(target "title")` from `open` (`(`): the target, its title and the index of the closing `)`, or undefined. */
-function destination(s: string, open: number): { target: string; title?: string; end: number } | undefined {
+export function destination(s: string, open: number): { target: string; title?: string; end: number } | undefined {
   let i = open + 1;
   while (s[i] === ' ') i++;
   let target = '';
