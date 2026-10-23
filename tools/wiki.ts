@@ -9,7 +9,7 @@
 // working tree (or under `.cache/`), so a build never lands among the sources, and only a previous build is emptied.
 import { execFileSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
-import { isAbsolute, relative, resolve } from 'node:path';
+import { isAbsolute, relative, resolve, sep } from 'node:path';
 import { ROOT } from './game';
 import { buildWiki } from './wiki/build';
 import { checkWiki, trackedFiles, wikiStats } from './wiki/check';
@@ -29,7 +29,8 @@ function option(args: readonly string[], name: string): string | undefined {
 
 /** Why an output folder is refused: inside the working tree, except under `.cache/`. */
 export function outProblem(out: string, root = ROOT): string | undefined {
-  const rel = relative(root, resolve(out));
+  // Forward slashes on every system: Windows' relative() answers `.cache\wiki`.
+  const rel = relative(root, resolve(out)).split(sep).join('/');
   const inside = rel === '' || (!rel.startsWith('..') && !isAbsolute(rel));
   if (inside && rel !== '.cache' && !rel.startsWith('.cache/'))
     return `${out} is inside the repository's working tree: build outside it, or under .cache/`;
