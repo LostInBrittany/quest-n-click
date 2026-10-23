@@ -417,7 +417,7 @@ added, and checks the `/docs/` tree is **byte-identical** to the one rebuilt fro
 | Pages HTML | `/docs/<v>/r<n>/<lang>/<id>.html#<anchor>` | `blob/<productCommit>/…` |
 | Proofs (QUALIF, measures, ADRs cited) | — | always `blob/<sha of the measure>/…` |
 
-The `<a name>` anchor is the same id in every output, subject to the A1 spike. If the wiki drops `<a name>`, the wiki output falls back to GitHub's slug of each translated heading, which the build resolves per language; the source files and the HTML keep the id. The spike's result is recorded in this plan. The acceptance clicks a section link for
+The `<a name>` anchor is the same id in every output: the A1 spike showed the wiki keeps it (§4.5, the wiki's push). The acceptance clicks a section link for
 real in the GitHub file view, in the wiki and in the HTML; a resolution table alone is not enough.
 
 **4.5.7 The switch-over, with no broken link.**
@@ -517,9 +517,23 @@ artifact.
   marker, writes the archive's `wiki/` and the record, and pushes one commit, never forced (a wiki that moved since the
   clone refuses the push: nothing is published, a rerun decides again). Credentials: **the deploy key
   `WIKI_DEPLOY_KEY` over SSH is the expected default** (GitHub's host key pinned), as `GITHUB_TOKEN` is not expected to
-  push to a wiki; without it, `GITHUB_TOKEN` as an HTTP header, never in a URL. **Open, for the A1 spike:** confirm
-  that `GITHUB_TOKEN` cannot push to the wiki, whether a ruleset lets the workflow create the `docs-v*` tags, the
-  wiki's handling of the `en/` and `fr/` folders; and the sandbox replay of the chain (A7).
+  push to a wiki; without it, `GITHUB_TOKEN` as an HTTP header, never in a URL. **The A1 spike (23 Oct 2026, on the real
+  wiki, test pages removed afterwards)** settled the wiki's side:
+  - A repository deploy key with write access pushes to `<repo>.wiki.git` (the maintainer's test: `PUSH OK`).
+    `WIKI_DEPLOY_KEY` is the credential; `GITHUB_TOKEN` was not tried and is not relied on.
+  - The `docs-publish` environment exists: the maintainer is its required reviewer, self-review allowed, and its
+    deployment branches are `main` and `docs/*`. `WIKI_DEPLOY_KEY` is an environment secret.
+  - `en/_Sidebar.md` and `fr/_Sidebar.md` are honoured per folder: an EN page shows the EN sidebar, a FR page the FR
+    one. Page URLs stay flat (`/wiki/<page>`), whatever the folder.
+  - `<a name="walkable-zones">` renders as `name="user-content-walkable-zones"`, the same id in both languages, and a
+    link to `#walkable-zones` scrolls to it (clicked by the maintainer on an EN and a FR page). The fallback to
+    GitHub's heading slugs is not needed.
+  - Images under `images/` are served from the wiki root (200, `image/png`) for pages in any folder.
+  - An accented page name works (`FR-Spike-Été`); the manifest's ASCII URLs stay the rule.
+  - The wiki's branch is `master`; the publisher pushes the branch it cloned.
+
+  Still open: whether a tag ruleset lets the workflow create `docs-v*` tags (none exists yet), and the sandbox replay
+  of the chain.
 
 ### 4.6 L6 — Acceptance by real questions, with counter-examples
 
