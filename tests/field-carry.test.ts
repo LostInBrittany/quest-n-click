@@ -128,9 +128,12 @@ describe('the surfaces of a candidate', () => {
     // 4.2.3's two, from 4.2.3 on.
     const v423 = surfaces('4.2.3', { 'pack/web-scumm-studio-server-4.2.3.tgz': h('7') });
     expect(v423.surfaces.map((x) => x.id).sort()).toEqual([...passesFor('4.2.3')].sort());
-    // 4.4.0's two (the heroes example in two languages, the Studio's hero × language matrix): every pass. (This fake
+    // 4.4.0's two (the heroes example in two languages, the Studio's hero × language matrix). (This fake
     // candidate's files bear the names before 4.2.5; the candidate run checks 4.4.0's own surfaces.)
-    expect(passesFor('4.4.0')).toEqual([...PASS_IDS]);
+    expect(passesFor('4.4.0')).toEqual(PASS_IDS.filter((p) => p !== 'docs-beginner-reader'));
+    // 4.5.0's one (a beginner reader on ten real questions, PLAN-4.5-WIKI §4.6 level 3): every pass.
+    expect(passesFor('4.5.0')).toEqual([...PASS_IDS]);
+    expect(passesFor('4.5.0-rc.1')).toContain('docs-beginner-reader');
     expect(passesFor('4.3.1')).not.toContain('heroes-two-languages');
     expect(passesFor('4.3.1')).not.toContain('studio-hero-matrix');
     expect(Object.keys(v421.surfaces.find((x) => x.id === 'studio-hosted')!.artifactDigests)).toContain(

@@ -81,6 +81,8 @@ const WRITERS: Record<string, string> = {
   'tools/code-wheel-pdf.py': 'elsewhere: the PDF named on the command line',
   'tools/dist.ts': 'elsewhere: dist/',
   'tools/dsl-doc.ts': 'elsewhere: docs/',
+  'tools/wiki/acceptance.ts':
+    "elsewhere: level 2's prompts (`wiki -- acceptance --export-prompts`), in the folder named on the command line (outside the working tree, or under .cache/)",
   'tools/wiki/build.ts':
     'elsewhere: the wiki build, in the folder named by --out (outside the working tree, or under .cache/)',
   'tools/wiki/bundle.ts':

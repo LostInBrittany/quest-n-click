@@ -303,6 +303,18 @@
    ],
    "exclusions": [],
    "dependencies": []
+  },
+  "docs-beginner-reader": {
+   "since": "4.5.0",
+   "artifacts": [
+    "pack/{proj}-{pkg}.tgz"
+   ],
+   "config": [
+    "wiki/**",
+    "docs/dev/acceptance/BEGINNER-READER.md"
+   ],
+   "exclusions": [],
+   "dependencies": []
   }
  },
  "status": [

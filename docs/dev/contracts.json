@@ -294,7 +294,7 @@
         "jobs": ["external-consumer", "fresh-install"],
         "tests": ["tests/pack-locks.test.ts"]
       },
-      "passes": ["archive-human-install"]
+      "passes": ["archive-human-install", "docs-beginner-reader"]
     },
     "studio-local": {
       "title": { "en": "The local Studio", "fr": "Le Studio local" },

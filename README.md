@@ -145,7 +145,7 @@ mistakes before a person does. Every result stays reviewable, in the Studio and 
 ## In numbers
 
 Measured on this commit of `main` by the automated gates (`npm run quality:baseline` writes these figures):
-<!-- metric:tests -->3138<!-- /metric --> unit test declarations, on Node 22 and 24, with coverage floors and gated
+<!-- metric:tests -->3152<!-- /metric --> unit test declarations, on Node 22 and 24, with coverage floors and gated
 mutation testing; the reference game proved in <!-- metric:referenceStates -->288<!-- /metric --> states; the player's
 first visit <!-- metric:initialJsKB -->136<!-- /metric --> KB of JavaScript, gzipped. Each release is built from the
 commit its candidate tested. The candidate makes the four package archives, the Bridge's image, the SBOMs, the runs and
