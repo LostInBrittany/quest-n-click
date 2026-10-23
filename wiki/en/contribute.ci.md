@@ -46,7 +46,7 @@ plan: it runs its real work, or one step that says "not needed by the plan" and 
 | `windows` | `windows` | the doctor, the type checks, the unit suite without the files that assume POSIX, `build:game`, the production server answering |
 | `e2e` (six rows) | `e2e` | the production build played by touch: Chromium full, WebKit generic, Chromium and WebKit at the keyboard, Chromium in French, Chromium with the Canvas painter; with weight, music, visual, perf, Studio, accessibility and PWA steps on some rows |
 | `pwa-firefox` | `pwaFirefox` | the PWA scenario in Firefox (install, update, interrupted update, reinstall, offline) |
-| `reference` (Chromium, WebKit) | `reference` | the reference chapter built, proved, played at the keyboard, in French, against its visual references, at 30 fps or more with the CPU slowed 4×; and the `heroes` example |
+| `reference` (Chromium, WebKit), `reference-fr`, `heroes` | `reference` | the reference chapter built, proved, played at the keyboard, against its visual references, at 30 fps or more with the CPU slowed 4×; `reference-fr` plays it in French and with the generic verbs; `heroes` builds, proves and plays the `heroes` example |
 | `second-game` | `secondGame` | a game made by `npm run new-game`, through every gate the sample passes |
 | `fresh-install` | `freshInstall` | the engine packed, a game created outside the repository, installed, built and played |
 | `external-consumer` (Ubuntu, macOS, Windows) | `freshInstall` | the archives installed outside the repository on three systems |

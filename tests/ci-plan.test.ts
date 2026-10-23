@@ -239,6 +239,32 @@ describe('ci.yml and the plan', () => {
     expect(job('reality')).toContain('browser: [chromium, webkit]');
   });
 
+  it("splits the reference chapter's Chromium work over three jobs on its gate (#265), each check run once", () => {
+    const runs = (id: string, cmd: string) => job(id).split(cmd).length - 1;
+    for (const id of ['reference-fr', 'heroes'])
+      expect(job(id), id).toMatch(/RUN: \$\{\{ fromJSON\(needs\.plan\.outputs\.plan\)\.reference \}\}/);
+    expect(job('reference-fr')).toMatch(/GAME: reference\n/);
+    expect(job('heroes')).toMatch(/GAME: heroes\n/);
+    // The keyboard run, the proofs, visual, perf, weight, music and taps stay in `reference`.
+    for (const cmd of [
+      '--keyboard',
+      'npm run prove:game',
+      'e2e:visual',
+      'e2e:perf',
+      'e2e:weight',
+      'e2e:music',
+      'e2e:taps',
+    ])
+      expect(runs('reference', cmd), cmd).toBe(1);
+    for (const cmd of ['--lang fr', '--generic --axe --save']) {
+      expect(runs('reference-fr', cmd), cmd).toBe(1);
+      expect(runs('reference', cmd), cmd).toBe(0);
+    }
+    expect(runs('heroes', 'npm run solve -- --prove')).toBe(1);
+    expect(runs('heroes', '--game heroes --prod')).toBe(1);
+    expect(job('reference')).not.toContain('heroes');
+  });
+
   it('gates the work of a spared job inside it: no job-level `if` on a gated job, a step that succeeds instead', () => {
     for (const id of [
       'node-24',
@@ -248,6 +274,8 @@ describe('ci.yml and the plan', () => {
       'reality',
       'e2e',
       'reference',
+      'reference-fr',
+      'heroes',
       'pwa-firefox',
       'windows',
     ].concat(['second-game', 'fresh-install', 'upgrade'])) {
@@ -301,7 +329,7 @@ describe("Playwright's image (#261)", () => {
   const jobs = [...yml.matchAll(/^ {2}([\w-]+):\n[\s\S]*?(?=^ {2}[\w-]+:\n|$(?![\s\S]))/gm)].map((m) => m[0]);
 
   it("is the lockfile's Playwright, pinned by digest, in every Linux browser job but studio-hosted", () => {
-    expect(images.length).toBe(7);
+    expect(images.length).toBe(9);
     for (const m of images) expect(m[1]).toBe(lock.packages['node_modules/playwright']?.version);
     // Every mention of the image is one of those pinned ones.
     expect(yml.match(/mcr\.microsoft\.com\/playwright/g)?.length).toBe(images.length);
@@ -309,7 +337,7 @@ describe("Playwright's image (#261)", () => {
 
   it('a job in the image installs no browser and no system package', () => {
     const inImage = jobs.filter((j) => j.includes('mcr.microsoft.com/playwright'));
-    expect(inImage.length).toBe(7);
+    expect(inImage.length).toBe(9);
     for (const j of inImage) {
       expect(j).not.toMatch(/playwright install/);
       expect(j).toMatch(/HOME: \/root/);

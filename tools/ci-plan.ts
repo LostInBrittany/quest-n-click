@@ -42,7 +42,7 @@ export const JOB_OF: Record<Gate, string> = {
   auditDeps: 'check (the `audit:deps` step)',
   node24: 'node-24',
   e2e: 'e2e (the six rows)',
-  reference: 'reference (chromium, webkit)',
+  reference: 'reference (chromium, webkit), reference-fr, heroes',
   reality: 'reality-xcheck, connectors, reality (chromium, webkit)',
   pwaFirefox: 'pwa-firefox',
   windows: 'windows',
@@ -129,10 +129,11 @@ export const RULES: readonly Rule[] = [
   },
 
   // The games.
-  // The reference job also builds and plays games/heroes (4.4.0), which reads the sample game's cast, verbs and ui.
+  // The reference gate also opens the heroes job (games/heroes, 4.4.0; its own job since #265), which reads the sample
+  // game's cast, verbs and ui.
   { re: /^games\/demo\//, gates: ['e2e', 'reference', ...UNIT], why: 'the sample game' },
   { re: /^games\/reference\//, gates: ['reference', 'node24'], why: 'the reference chapter' },
-  { re: /^games\/heroes\//, gates: ['reference', 'node24'], why: 'the hero choice example (in the reference job)' },
+  { re: /^games\/heroes\//, gates: ['reference', 'node24'], why: 'the hero choice example (its own job)' },
   // The Bridge's qualification profile (4.1.18): brought up by its own workflow (qualify.yml) and the candidate's
   // `deployment-smoke`; here its static test only.
   {
