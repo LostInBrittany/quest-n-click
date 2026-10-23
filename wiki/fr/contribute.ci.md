@@ -48,7 +48,7 @@ réussit.
 | `windows` | `windows` | le docteur, les vérifications de types, la suite unitaire sans les fichiers qui supposent POSIX, `build:game`, le serveur de production qui répond |
 | `e2e` (six lignes) | `e2e` | le build de production joué au toucher : Chromium complet, WebKit générique, Chromium et WebKit au clavier, Chromium en français, Chromium avec le peintre Canvas ; avec des étapes de poids, musique, visuel, performance, Studio, accessibilité et PWA sur certaines lignes |
 | `pwa-firefox` | `pwaFirefox` | le scénario PWA sous Firefox (installation, mise à jour, mise à jour interrompue, réinstallation, hors ligne) |
-| `reference` (Chromium, WebKit) | `reference` | le chapitre de référence construit, prouvé, joué au clavier, en français, contre ses références visuelles, à 30 i/s ou plus avec le processeur ralenti 4× ; et l'exemple `heroes` |
+| `reference` (Chromium, WebKit), `reference-fr`, `heroes` | `reference` | le chapitre de référence construit, prouvé, joué au clavier, contre ses références visuelles, à 30 i/s ou plus avec le processeur ralenti 4× ; `reference-fr` le joue en français et avec les verbes génériques ; `heroes` construit, prouve et joue l'exemple `heroes` |
 | `second-game` | `secondGame` | un jeu fait par `npm run new-game`, à travers toutes les barrières que passe le jeu d'exemple |
 | `fresh-install` | `freshInstall` | le moteur empaqueté, un jeu créé hors du dépôt, installé, construit et joué |
 | `external-consumer` (Ubuntu, macOS, Windows) | `freshInstall` | les archives installées hors du dépôt sur trois systèmes |
