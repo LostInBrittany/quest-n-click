@@ -140,7 +140,9 @@ is refused, and leaves it as it was. Still, never put production's URI in that s
 > What a restore can lose is the operations confirmed but not yet shipped to the bucket when the database was lost:
 > that is the RPO. `/readyz` gives its current value as `rpoMs`; the target is one minute, watched, never promised. In
 > the measure above it was 0: both writes made after the backup were replayed, and `rpoMs` went back to 0 within 2 s
-> of each write. If the bucket is lost too, the backups and the journal go with it: copy backups elsewhere yourself.
+> of each write. If the bucket is lost too, the backups and the journal go with it. A copy elsewhere must hold the
+> bucket's `backups/`, `sha256/` and `journal/` together: a backup names its blobs by hash without holding them, so
+> `backups/` alone restores nothing ([Backups](clever.backups.md#steps)).
 
 <a name="expected-result"></a>
 

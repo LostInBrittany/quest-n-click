@@ -38,6 +38,27 @@ const ONE: Record<string, string> = {
   'ids.migration.json': 'meta',
 };
 
+/** The folders whose whole tree is one span. */
+const TREE: Record<string, string> = {
+  art: 'assets',
+  audio: 'assets',
+  playtests: 'playtests',
+  replays: 'playtests',
+  reality: 'reality',
+  tests: 'meta',
+};
+
+/** The spans with a fixed name (every one `spanOf` can give, besides room:<id> and lang:<code>), sorted. */
+export const NAMED_SPANS: readonly string[] = [...new Set([...Object.values(ONE), ...Object.values(TREE)])].sort();
+const NAMED = new Set(NAMED_SPANS);
+const ROOM_SPAN = /^room:[\w-]{1,64}$/;
+const LANG_SPAN = /^lang:[\w-]{1,16}$/;
+
+/** Whether a client may name this span (a lease's own name; `*` only through /exclusive, so not here). */
+export function isSpanName(name: string): boolean {
+  return NAMED.has(name) || ROOM_SPAN.test(name) || LANG_SPAN.test(name);
+}
+
 import { StudioError } from './errors';
 
 export const EXCLUSIVE = '*';
@@ -56,11 +77,8 @@ export function spanOf(path: string): string {
   if (room) return `room:${room[1] ?? room[2]}`;
   const lang = /^locales\/([\w-]+)\.json$/.exec(path);
   if (lang) return `lang:${lang[1]}`;
-  const top = path.split('/')[0];
-  if (top === 'art' || top === 'audio') return 'assets';
-  if (top === 'playtests' || top === 'replays') return 'playtests';
-  if (top === 'reality') return 'reality';
-  if (top === 'tests') return 'meta';
+  const top = path.split('/')[0]!;
+  if (Object.hasOwn(TREE, top)) return TREE[top]!;
   throw new UnknownSpanError(`${path} belongs to no span: give it one in studio-server/src/ops/spans.ts`);
 }
 

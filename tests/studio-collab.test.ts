@@ -11,7 +11,7 @@ import type { SqlDb } from '../bridge/src/store-sql';
 import { fsBlobStore } from '../studio-server/src/ops/blobs';
 import { createStudio, importInChild, operationContext } from '../studio-server/src/ops/core';
 import { Journal } from '../studio-server/src/ops/journal';
-import { spanOf, spansOf } from '../studio-server/src/ops/spans';
+import { isSpanName, NAMED_SPANS, spanOf, spansOf } from '../studio-server/src/ops/spans';
 import { Gate } from '../studio-server/src/server/auth/gate';
 import { Oidc } from '../studio-server/src/server/auth/oidc';
 import { authRoutes } from '../studio-server/src/server/auth/routes';
@@ -180,6 +180,38 @@ describe('the spans', () => {
     ]);
     expect(() => spanOf('mystery.bin')).toThrow(/no span/);
   });
+
+  it('a client may name every span the files can give, and only those (4.5.0: groupings was refused)', () => {
+    const given = new Set<string>();
+    for (const g of readdirSync(join(ROOT, 'games'))) {
+      const root = join(ROOT, 'games', g);
+      const walk = (d: string) => {
+        for (const e of readdirSync(d, { withFileTypes: true })) {
+          if (e.name.startsWith('.')) continue;
+          const p = join(d, e.name);
+          if (e.isDirectory()) walk(p);
+          else given.add(spanOf(relative(root, p).split('\\').join('/')));
+        }
+      };
+      walk(root);
+    }
+    for (const s of [...given, ...NAMED_SPANS, spanOf('groupings.json')]) expect(isSpanName(s), s).toBe(true);
+    expect(NAMED_SPANS).toContain('groupings');
+    for (const bad of [
+      '*',
+      'room:',
+      'lang:',
+      'groupings ',
+      'toString',
+      `room:${'x'.repeat(65)}`,
+      `lang:${'x'.repeat(17)}`,
+    ])
+      expect(isSpanName(bad), bad).toBe(false);
+    // The Studio's Spans panel lists exactly the named spans (src/studio/spans.ts, which cannot import the server's).
+    const panel = readFileSync(join(ROOT, 'src', 'studio', 'spans.ts'), 'utf8');
+    const listed = /GLOBAL_SPANS[^=]*=\s*\[([\s\S]*?)\];/.exec(panel)![1]!;
+    expect([...listed.matchAll(/\['([\w-]+)',/g)].map((m) => m[1]).sort()).toEqual([...NAMED_SPANS]);
+  });
 });
 
 describe('leases, one database', () => {
@@ -244,6 +276,15 @@ describe('a shared Studio', () => {
     const audit = (await (await as('lea', 'GET', '/audit')).json()) as { entries: { event: string }[] };
     expect(audit.entries.map((e) => e.event)).toContain('lease-takeover');
     await as('lea', 'POST', '/leases/release', {});
+  }, 60_000);
+
+  it('the scenario map’s span is leased, taken over and released like any other (4.5.0)', async () => {
+    const t = await as('tom', 'POST', '/leases', { spans: ['groupings'] });
+    expect(t.status).toBe(200);
+    expect(((await t.json()) as { fences: Record<string, number> }).fences.groupings).toBeTypeOf('number');
+    expect((await as('lea', 'POST', '/leases/takeover', { span: 'groupings' })).status).toBe(200);
+    expect((await as('lea', 'POST', '/leases/release', { spans: ['groupings'] })).status).toBe(200);
+    expect((await as('tom', 'POST', '/leases', { spans: ['nothing'] })).status).toBe(400);
   }, 60_000);
 
   it('the exclusive lease waits for no one and blocks everyone', async () => {

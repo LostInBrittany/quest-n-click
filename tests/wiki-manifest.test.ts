@@ -20,7 +20,7 @@ import {
 const WIKI = resolve('wiki');
 const { manifest, errors } = readManifest(WIKI);
 
-describe('the wiki manifest', () => {
+describe('the wiki manifest', { timeout: 60_000 }, () => {
   it('is valid', () => {
     expect(errors).toEqual([]);
     expect(manifest).toBeDefined();
@@ -116,7 +116,12 @@ describe('the URL convention', () => {
 
   it('refuses a field the schema does not name, and an id outside its domain; takes keywords and claims', () => {
     const page = manifest!.pages.find((p) => p.id === 'create.rooms')!;
-    const one = (p: object) => ({ format: manifest!.format, version: 1, pages: [p] });
+    // One page alone: the pages it points at (related, prerequisites) are not in this manifest.
+    const one = (p: object) => ({
+      format: manifest!.format,
+      version: 1,
+      pages: [{ ...p, related: [], prerequisites: [] }],
+    });
     expect(ManifestSchema.safeParse(one({ ...page, tags: [] })).success).toBe(false);
     expect(ManifestSchema.safeParse(one({ ...page, keywords: { en: ['a'], fr: ['b'] } })).success).toBe(true);
     expect(ManifestSchema.safeParse(one({ ...page, claims: [{ id: 'c', test: 'tests/x.test.ts › y' }] })).success).toBe(

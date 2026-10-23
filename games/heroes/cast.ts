@@ -1,7 +1,7 @@
 import type { CharacterDef } from '@engine/core/types';
 import { cat, human } from '../demo/cast';
 
-// One hero character, three heroes (4.3.0 "Hero Choice", docs/en/CONTENT_GUIDE.md "Choosing the hero"): its written
+// One hero character, three heroes (4.3.0 "Hero Choice", wiki/en/create.heroes.md#hero-choice): its written
 // look and name are Pixel's; two variants, read from the flag `form`, make it Biscuit or Gaby the gull, each with its
 // own name, sprites and portrait. The sample game's art (games/demo/art, D13).
 export const characters: Record<string, CharacterDef> = {

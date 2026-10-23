@@ -1,6 +1,6 @@
 // The engine's upgrade of a hosted game on the processing worker (4.2.3 PR 8, H6): `quest-n-click migrate` on the game in
 // `dir` (a snapshot), run in the worker's child, its result given back rather than written. The authoring schema is
-// `schemaVersion` (docs/en/UPGRADING.md): 3 is this engine's; a game on 2 (a 4.1.x import that never migrated) gets its
+// `schemaVersion` (wiki/en/install.upgrade.md): 3 is this engine's; a game on 2 (a 4.1.x import that never migrated) gets its
 // stable ids written as `npm run ids -- --write --map` writes them (tools/ids/plan.ts), then the three lines UPGRADING
 // leaves to the author in `game.ts` (`schemaVersion: 3`, `saveVersion` + 1, the ids' migration step). Nothing is
 // decided here: the Studio judges the migrated game (validate, then solve) before it writes anything (engine-upgrade.ts).

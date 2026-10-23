@@ -1,6 +1,6 @@
 // The game's bootstrap, so a game that embeds the engine does not copy `src/main.ts` by hand: language, fonts, the
 // verified save store (errors reported once the App exists), the App, the dev tools, the title screen, the service
-// worker. Each step is also exported on its own. `src/main.ts` is the reference caller (docs/en/UPGRADING.md §8).
+// worker. Each step is also exported on its own. `src/main.ts` is the reference caller (wiki/en/install.upgrade-notes-v3.md#embedded-engine).
 import { App } from './dom/app';
 import type { SaveStore } from './core/ports';
 import type { BuildRevision } from './dom/revision';

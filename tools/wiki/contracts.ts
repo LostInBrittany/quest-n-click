@@ -1,7 +1,8 @@
 // The status registry (4.5.0 "Wiki", docs/dev/PLAN-4.5-WIKI.md §4.4.2, phase A5): for each product surface, five
 // statuses kept apart, never merged into one "experimental" banner. The contract status (experimental, stable,
 // deprecated) and the environments the support matrix says CI verifies come from docs/dev/contracts.json, whose quotes
-// of docs/en|fr/SUPPORT.md tests/contracts.test.ts checks; the automated checks are ci:plan's gates, CI and candidate
+// of the wiki's `start.stability` and `reference.support-matrix` (docs/en|fr/SUPPORT.md until 4.5.0)
+// tests/contracts.test.ts checks; the automated checks are ci:plan's gates, CI and candidate
 // jobs and test files, each checked to exist; the people's passes are read from the pass sheet of the version
 // (docs/dev/passes/<v>.md, the table `npm run field:report` writes), with the issue that tracks each; the known limits
 // are the page's own `[!LIMIT]` blocks. A wiki page names its surfaces in the manifest (`surfaces`), and the build's
@@ -41,19 +42,19 @@ const ContractsSchema = z
           title: bilingual,
           status: z.enum(CONTRACT_STATUSES),
           /**
-           * The sentence of docs/en|fr/SUPPORT.md that states the status, quoted (spaces aside); null, with `reason`,
-           * for a surface SUPPORT.md does not name yet.
+           * The row of `start.stability`'s surface table (wiki/en|fr/start.stability.md) that states the status, its
+           * first three cells quoted (spaces aside); null, with `reason`, for a surface the pages do not name yet.
            */
           support: z
             .object({ en: z.string().min(1), fr: z.string().min(1) })
             .strict()
             .nullable(),
-          /** The rows of SUPPORT.md's support matrix that speak for it, by their first cell; null, with `reason`. */
+          /** The rows of the support matrix (`reference.support-matrix#matrix`) that speak for it, by their first cell; null, with `reason`. */
           matrixRows: z
             .object({ en: z.array(z.string().min(1)), fr: z.array(z.string().min(1)) })
             .strict()
             .nullable(),
-          /** Why `support` or `matrixRows` is null (the documentation's surface: SUPPORT.md gains its row at C2). */
+          /** Why `support` or `matrixRows` is null (none since C2, when the documentation's surface gained its rows). */
           reason: z.string().trim().min(20).optional(),
           environments: z.array(bilingual),
           checks: z

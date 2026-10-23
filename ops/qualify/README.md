@@ -1,6 +1,6 @@
 # The Bridge's qualification profile (4.1.18)
 
-A reproducible deployment of the reference Bridge in the topology `docs/en/REALITY-OPS.md` calls distributed: an
+A reproducible deployment of the reference Bridge in the topology `wiki/en/bridge.install-run.md` calls distributed: an
 HTTPS proxy, three Bridge instances, one Postgres, two tenants. It is the profile `npm run ops:qualify` drives in CI
 and the one the human pass `bridge-postgres-https` runs behind a real domain for 24 to 48 hours. It is an example an
 operator can carry elsewhere, not a promise that Docker Compose is secure everywhere, and not a hosted service.

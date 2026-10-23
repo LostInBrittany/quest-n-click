@@ -389,5 +389,6 @@ describe("the repository's questions, wiki/acceptance/questions.json", () => {
       expect(o.why[0], `${o.id}/${o.lang}`).toMatch(/^not written in (en|fr) yet: /);
     // While nothing is written, everything is pending: said, not counted as failures.
     if (!written.size) expect(r.outcomes.every((o) => o.status === 'pending')).toBe(true);
-  });
+    // The whole wiki indexed and searched: a few seconds alone, more under a full parallel run.
+  }, 30000);
 });

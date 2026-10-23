@@ -555,7 +555,7 @@ export class Bridge {
     }
   }
 
-  /** Deletes everything the Bridge holds about a player (docs/en/REALITY-OPS.md, "Deleting a player's data"). */
+  /** Deletes everything the Bridge holds about a player (wiki/en/bridge.install-run.md#retention). */
   async forgetPlayer(adminToken: string | undefined, playerId: string): Promise<void> {
     this.admin(adminToken);
     if (!(await this.store.player(this.tenantId, playerId))) throw new BridgeError(404, 'player', 'unknown player');

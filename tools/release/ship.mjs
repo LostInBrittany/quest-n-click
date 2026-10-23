@@ -284,7 +284,7 @@ async function tag(versionArg, sha) {
       }
       if (imm.enabled !== true)
         throw new Error(
-          `immutable releases are off on ${REPO} (Settings → General → Releases): ${name} is not tagged (docs/en/RELEASING.md)`,
+          `immutable releases are off on ${REPO} (Settings → General → Releases): ${name} is not tagged (https://github.com/wanoo/quest-n-click/wiki/EN-Contribute-Releasing)`,
         );
       say(`${REPO}: immutable releases on`);
     }

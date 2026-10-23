@@ -55,12 +55,16 @@ export function readTranslations(wikiDir: string): { translations: Translations;
 function sectionHash(text: string, wikiDir: string, lang: string): string {
   const h = createHash('sha256').update(text.replace(/\r\n/g, '\n').trim());
   const images: string[] = [];
-  mapLines(text, (line, n) =>
-    mapLine(line, n, (l) => {
-      const t = classifyTarget(l.target, lang);
-      if (t.kind === 'wiki-image') images.push(t.path);
-      return undefined;
-    }),
+  mapLines(
+    text,
+    (line, n) =>
+      mapLine(line, n, (l) => {
+        const t = classifyTarget(l.target, lang);
+        if (t.kind === 'wiki-image') images.push(t.path);
+        return undefined;
+      }),
+    undefined,
+    { joinLinks: true },
   );
   for (const image of images) {
     const file = resolve(wikiDir, 'images', image);
