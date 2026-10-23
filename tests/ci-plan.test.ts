@@ -291,3 +291,29 @@ describe('the workflow, lot 0 details', () => {
     expect(yml).toMatch(/--all/);
   });
 });
+
+describe("Playwright's image (#261)", () => {
+  const yml = readFileSync('.github/workflows/ci.yml', 'utf8');
+  const lock = JSON.parse(readFileSync('package-lock.json', 'utf8')) as {
+    packages: Record<string, { version?: string }>;
+  };
+  const images = [...yml.matchAll(/'mcr\.microsoft\.com\/playwright:v([\d.]+)-noble@sha256:[0-9a-f]{64}'/g)];
+  const jobs = [...yml.matchAll(/^ {2}([\w-]+):\n[\s\S]*?(?=^ {2}[\w-]+:\n|$(?![\s\S]))/gm)].map((m) => m[0]);
+
+  it("is the lockfile's Playwright, pinned by digest, in every Linux browser job but studio-hosted", () => {
+    expect(images.length).toBe(7);
+    for (const m of images) expect(m[1]).toBe(lock.packages['node_modules/playwright']?.version);
+    // Every mention of the image is one of those pinned ones.
+    expect(yml.match(/mcr\.microsoft\.com\/playwright/g)?.length).toBe(images.length);
+  });
+
+  it('a job in the image installs no browser and no system package', () => {
+    const inImage = jobs.filter((j) => j.includes('mcr.microsoft.com/playwright'));
+    expect(inImage.length).toBe(7);
+    for (const j of inImage) {
+      expect(j).not.toMatch(/playwright install/);
+      expect(j).toMatch(/HOME: \/root/);
+      expect(j).toMatch(/safe\.directory "\$GITHUB_WORKSPACE"/);
+    }
+  });
+});
