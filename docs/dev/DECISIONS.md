@@ -67,6 +67,21 @@ may write in French; the assistant adds the English next to it.
 
 - **D49 · 2026-10-20** · 4.3 is **"Hero Choice"** (`docs/dev/PLAN-4.3-HERO-CHOICE.md`, ADR 0022, the first DSL extension since the freeze, through D33's gate): the player chooses the hero at New Game, among **any number** of heroes a game declares. The maintainer's answers of 20 October: the switch syntax `{form?m=him|f=her}` is kept; the choice shows portraits **and** text; one name per hero; voices "eventually", so their lookup (`<id>~<flag>=<value>`) is designed now. Additive and presentation-only (no new condition, command or state, no save migration, `schemaVersion` 3): a minor release under strict SemVer. Numbered D47 on its branch; renumbered D49 at the merge into 4.3.0, after the rename (D47) and D48.
 
+- **D50 · 2026-10-23** · **The documentation moves to a bilingual wiki generated from `wiki/` (4.5.0, ADR 0030, `docs/dev/PLAN-4.5-WIKI.md`).** The maintainer, on 23 October, in French: they enabled the GitHub wiki and asked for an exhaustive plan in French and in English, covering installation, first use, contributing, the Studio, and a Studio for a team hosted on Clever Cloud. Their answers to the first questions:
+  - the source lives in a `wiki/` folder of the repository, reviewed in pull requests and published by a workflow (« Dossier wiki/ + sync »);
+  - all of `docs/en` and `docs/fr` moves into it (« Tout dans le wiki »);
+  - Clever Cloud is the only host documented for the team Studio.
+
+  Three plan revisions followed, each written after the maintainer's review. The maintainer's bar: « un humain ou une IA trouve une réponse exacte, applicable à sa version et reliée à ses sources » (a person or an AI finds an exact answer, applicable to their version, linked to its sources). Revision 3.1 was approved: « La rev3 est suffisamment aboutie pour commencer les fondations » (rev 3 is mature enough to start the foundations). Its choices:
+  - publication starts after `ship verify`, never from `main`;
+  - a correction to a version's documentation is a new immutable documentation revision;
+  - the active `read_doc` reader is unchanged until the switch;
+  - three end-to-end demonstrators come before the bulk of the writing, then a stop for the maintainer.
+
+  **Bootstrap exception, once:** after the switch merges, the 4.5.0 documentation is published as a preview, with a banner pointing to 4.4.0's documentation, until 4.5.0 ships.
+
+  **Signature:** « tu peux signer la 4.5 » is the D37 yes for **v4.5.0 only**.
+
 ## Pending (asked, not decided)
 
 - (none)

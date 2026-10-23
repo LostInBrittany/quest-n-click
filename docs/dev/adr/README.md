@@ -34,3 +34,4 @@ what it costs, what would change it. The maintainer's decisions themselves are d
 | [0027](0027-studio-oidc-sessions-tokens.md) | The Studio Server's identity: OIDC for who, the Studio for what (4.2.1) |
 | [0028](0028-studio-content-execution.md) | Where a hosted Studio runs the game's code: a worker without secrets (4.2.1) |
 | [0029](0029-remote-mcp.md) | The remote MCP: the same checks as the API, by going through it (4.2.3) |
+| [0030](0030-documentation-from-wiki-sources.md) | The documentation is generated from one source in the repository, and published per release (4.5.0) |
