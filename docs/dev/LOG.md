@@ -7742,8 +7742,12 @@ part now); captures on a hosted Studio; npm publishing.
   `cross-runtime`, `fresh-install`, `second-game`, `reference`; their install step removed. The image only when the
   plan runs the job (`${{ gate && image || '' }}`: a spared job stays on the runner, no 2 GB pull to print a notice).
   `--init --ipc=host` (Playwright's advice for Chromium); `HOME: /root` (Firefox under root); `safe.directory` after
-  the checkout (owned by the runner's user). `scripts/ci-ffmpeg.sh` runs as root without sudo, and unpacks its static
-  fallback with Python when `xz` is missing (the image has none).
+  the checkout (owned by the runner's user).
+- ffmpeg had the same mirror under it: 8.5 min in `coverage` and in `reference` on run 39958590812, and in the image
+  apt would first need a whole `apt-get update` (the image ships no package lists). `scripts/ci-ffmpeg.sh` now takes
+  the static build from GitHub first (BtbN's n8.1 release branch, not master: 150 MB, about 20 s), apt only if that
+  fails; as root without sudo, and unpacked with Python when `xz` is missing (the image has none). No test depends on
+  ffmpeg's version (`tests/tooling.test.ts` mocks it).
 - `tests/ci-plan.test.ts`: the image's version is the lockfile's `playwright`, pinned by digest, in those seven jobs,
   none of which installs a browser.
 - Left out: `studio-hosted` starts its own containers (SeaweedFS, Keycloak) with `docker run` on the runner, so it keeps

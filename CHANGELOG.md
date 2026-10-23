@@ -42,7 +42,7 @@ key on their yes of 23 October for `v4.5.0` (D37, D50).
   jobs (`e2e`, `reality`, `pwa-firefox`, `cross-runtime`, `fresh-install`, `second-game`, `reference`) run in
   Playwright's own image, the lockfile's version pinned by digest, where the browsers and their libraries are already
   installed; `--with-deps` fetched 52 MB from an apt mirror that sometimes served 50 kB/s. A test keeps the image's
-  version equal to the lockfile's.
+  version equal to the lockfile's. ffmpeg likewise comes from a static build on GitHub first, apt only if it fails.
 
 ### Changes
 
