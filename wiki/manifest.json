@@ -558,13 +558,28 @@
       "context": ["engine-repo", "created-project"],
       "title": { "en": "Requirements", "fr": "Prérequis" },
       "url": { "en": "EN-Install-Requirements", "fr": "FR-Installer-Prerequis" },
-      "state": "planned",
-      "sources": [".nvmrc", "requirements.txt"],
+      "state": "ready",
+      "versions": { "appliesFrom": "4.2.1" },
+      "sources": [
+        ".nvmrc",
+        "requirements.txt",
+        "package.json",
+        "tools/doctor-checks.ts",
+        "tools/audio/mdpipe/render.py",
+        "bridge/src/store-sqlite.ts"
+      ],
       "replaces": [],
       "questions": { "en": [], "fr": [] },
-      "aliases": { "en": [], "fr": [] },
-      "identifiers": ["Node.js 22.12", "Python 3", "ffmpeg", "Playwright"],
-      "related": [],
+      "aliases": {
+        "en": ["prerequisites", "system requirements", "supported Node version"],
+        "fr": ["prérequis", "configuration requise", "version de Node"]
+      },
+      "keywords": {
+        "en": ["Node 22.12", "Node 22.13", "node:sqlite", "Pillow", "Windows", "macOS", "Linux"],
+        "fr": ["Node 22.12", "Node 22.13", "node:sqlite", "Pillow", "Windows", "macOS", "Linux"]
+      },
+      "identifiers": ["Node.js 22.12", "Node.js 22.13", "Python 3", "requirements.txt", "ffmpeg", "Playwright"],
+      "related": ["install.doctor", "install.from-archive", "install.from-repository", "reference.support-matrix"],
       "prerequisites": [],
       "owner": "@wanoo"
     },
@@ -576,8 +591,14 @@
       "context": ["created-project"],
       "title": { "en": "Install from the release archive", "fr": "Installer depuis l'archive de la release" },
       "url": { "en": "EN-Install-From-Archive", "fr": "FR-Installer-Depuis-Archive" },
-      "state": "planned",
-      "sources": ["cli/create.mjs"],
+      "state": "ready",
+      "versions": { "appliesFrom": "4.2.5" },
+      "sources": [
+        "cli/create.mjs",
+        "cli/quest-n-click.mjs",
+        "scripts/readme-quickstart.mjs",
+        "scripts/studio-install-smoke.mjs"
+      ],
       "replaces": [
         "docs/en/PACKAGE.md#a-new-game",
         "docs/en/STUDIO-SERVER.md#from-the-release-archives",
@@ -586,11 +607,29 @@
         "README.md#start",
         "README.fr.md#commencer"
       ],
-      "questions": { "en": [], "fr": [] },
-      "aliases": { "en": [], "fr": [] },
-      "identifiers": [],
-      "related": [],
-      "prerequisites": [],
+      "questions": {
+        "en": [
+          "How do I create a game from the release archive?",
+          "How do I install quest'n'click without npm?",
+          "How do I check the archive I downloaded?"
+        ],
+        "fr": [
+          "Comment créer un jeu depuis l'archive de la release ?",
+          "Comment installer quest'n'click sans npm ?",
+          "Comment vérifier l'archive téléchargée ?"
+        ]
+      },
+      "aliases": {
+        "en": ["quick start", "tarball install", "PACKAGE"],
+        "fr": ["démarrage rapide", "installer l'archive", "PACKAGE"]
+      },
+      "keywords": {
+        "en": ["--engine", "npx --package", "SHA256SUMS", "create"],
+        "fr": ["--engine", "npx --package", "SHA256SUMS", "create"]
+      },
+      "identifiers": ["quest-n-click create", "npx --package=$T quest-n-click create", "npm run readme-quickstart"],
+      "related": ["install.requirements", "install.package", "create.first-game", "install.upgrade"],
+      "prerequisites": ["install.requirements"],
       "owner": "@wanoo"
     },
     {
@@ -601,17 +640,25 @@
       "context": ["created-project"],
       "title": { "en": "Install from npm, once published", "fr": "Installer depuis npm, une fois publié" },
       "url": { "en": "EN-Install-From-NPM", "fr": "FR-Installer-Depuis-NPM" },
-      "state": "planned",
-      "sources": ["cli/create.mjs"],
+      "state": "ready",
+      "versions": { "appliesFrom": "4.2.5" },
+      "sources": ["cli/create.mjs", ".github/workflows/nightly.yml", ".github/workflows/release.yml"],
       "replaces": [
         "docs/en/RELEASING.md#npm-written-in-4120-played-in-a-later-42x",
         "docs/fr/RELEASING.md#npm-écrit-en-4120-joué-dans-une-42x-ultérieure"
       ],
-      "questions": { "en": [], "fr": [] },
-      "aliases": { "en": [], "fr": [] },
-      "identifiers": [],
-      "related": [],
-      "prerequisites": [],
+      "questions": {
+        "en": ["Is quest'n'click on npm?", "Why does npm install quest-n-click answer 404?"],
+        "fr": ["quest'n'click est-il sur npm ?", "Pourquoi npm install quest-n-click répond 404 ?"]
+      },
+      "aliases": { "en": ["npm publish", "create-quest-n-click"], "fr": ["publication npm", "create-quest-n-click"] },
+      "keywords": {
+        "en": ["404", "staged publishing", "squatting"],
+        "fr": ["404", "publication en étapes", "squatting"]
+      },
+      "identifiers": ["create-quest-n-click", "NPM_PUBLISH_NODE", "NPM_PUBLISH_NPM"],
+      "related": ["install.from-archive", "contribute.npm-packages"],
+      "prerequisites": ["install.requirements"],
       "owner": "@wanoo"
     },
     {
@@ -625,14 +672,28 @@
         "fr": "Installer depuis le dépôt pour travailler sur le moteur"
       },
       "url": { "en": "EN-Install-From-Repository", "fr": "FR-Installer-Depuis-Depot" },
-      "state": "planned",
-      "sources": [],
+      "state": "ready",
+      "versions": { "appliesFrom": "4.2.5" },
+      "sources": [".nvmrc", "package.json", "requirements.txt", "tools/select-game.ts", "CONTRIBUTING.md"],
       "replaces": [],
-      "questions": { "en": [], "fr": [] },
-      "aliases": { "en": [], "fr": [] },
-      "identifiers": [],
-      "related": ["contribute.setup"],
-      "prerequisites": [],
+      "questions": {
+        "en": ["How do I set up my machine to work on the engine?", "How do I run the sample game from source?"],
+        "fr": [
+          "Comment préparer ma machine pour travailler sur le moteur ?",
+          "Comment lancer le jeu d'exemple depuis les sources ?"
+        ]
+      },
+      "aliases": {
+        "en": ["clone the repository", "developer install"],
+        "fr": ["cloner le dépôt", "installation développeur"]
+      },
+      "keywords": {
+        "en": ["git clone", "nvm use", "npm ci", "npx playwright install chromium", "GAME"],
+        "fr": ["git clone", "nvm use", "npm ci", "npx playwright install chromium", "GAME"]
+      },
+      "identifiers": ["npm ci", "npx playwright install chromium", "npm run game"],
+      "related": ["contribute.setup", "install.requirements", "install.doctor"],
+      "prerequisites": ["install.requirements"],
       "owner": "@wanoo"
     },
     {
@@ -644,14 +705,36 @@
       "context": ["engine-repo", "created-project"],
       "title": { "en": "doctor: checking your machine", "fr": "doctor : vérifier sa machine" },
       "url": { "en": "EN-Install-Doctor", "fr": "FR-Installer-Doctor" },
-      "state": "planned",
-      "sources": ["tools/doctor.ts", "tools/doctor-checks.ts"],
+      "state": "ready",
+      "versions": { "appliesFrom": "4.1.8" },
+      "sources": ["tools/doctor.ts", "tools/doctor-checks.ts", "tests/tooling.test.ts", "scripts/pack.mjs"],
       "replaces": [],
-      "questions": { "en": ["npm run doctor reports a missing tool"], "fr": ["npm run doctor signale un outil manquant"] },
-      "aliases": { "en": [], "fr": [] },
-      "identifiers": ["npm run doctor"],
-      "related": [],
+      "questions": {
+        "en": [
+          "npm run doctor reports a missing tool",
+          "doctor says something is missing on my machine",
+          "What does doctor check?"
+        ],
+        "fr": [
+          "npm run doctor signale un outil manquant",
+          "doctor dit qu'il manque quelque chose sur ma machine",
+          "Que vérifie doctor ?"
+        ]
+      },
+      "aliases": { "en": ["prerequisites check", "doctor"], "fr": ["vérification des prérequis", "doctor"] },
+      "keywords": {
+        "en": ["--release", "Chromium", "optional", "ERR_MODULE_NOT_FOUND"],
+        "fr": ["--release", "Chromium", "optionnel", "ERR_MODULE_NOT_FOUND"]
+      },
+      "identifiers": ["npm run doctor", "quest-n-click doctor", "npm run doctor -- --release"],
+      "related": ["install.requirements", "install.troubleshooting"],
       "prerequisites": [],
+      "claims": [
+        {
+          "id": "doctor-optional-not-fatal",
+          "test": "tests/tooling.test.ts › doctor › reports every prerequisite with a fix when missing"
+        }
+      ],
       "owner": "@wanoo"
     },
     {
@@ -662,14 +745,36 @@
       "context": ["engine-repo", "created-project"],
       "title": { "en": "Image toolchain", "fr": "Outils pour les images" },
       "url": { "en": "EN-Install-Image-Toolchain", "fr": "FR-Installer-Outils-Images" },
-      "state": "planned",
-      "sources": ["tools/cut-sheet.py"],
+      "state": "ready",
+      "versions": { "appliesFrom": "4.3.0" },
+      "sources": [
+        "tools/cut-sheet.py",
+        "tools/assets.py",
+        "tools/check-alpha.py",
+        "tools/pick-bg.py",
+        "tools/talk-*.py",
+        "tools/prompts.ts",
+        "requirements.txt"
+      ],
       "replaces": ["docs/en/TOOLS.md#preparing-images-and-sounds", "docs/fr/TOOLS.md#préparer-les-images-et-les-sons"],
-      "questions": { "en": [], "fr": [] },
-      "aliases": { "en": [], "fr": [] },
-      "identifiers": [],
-      "related": [],
-      "prerequisites": [],
+      "questions": {
+        "en": ["How do I install the image tools?", "How do I cut a sprite sheet in a created project?"],
+        "fr": [
+          "Comment installer les outils d'images ?",
+          "Comment découper une planche de sprites dans un projet créé ?"
+        ]
+      },
+      "aliases": {
+        "en": ["cut-sheet", "sprite sheet cutter", "TOOLS"],
+        "fr": ["cut-sheet", "découpe de planche", "TOOLS"]
+      },
+      "keywords": {
+        "en": ["Pillow", "NumPy", "SciPy", "OpenCV", "sheetBackground", "artStyle pixel"],
+        "fr": ["Pillow", "NumPy", "SciPy", "OpenCV", "sheetBackground", "artStyle pixel"]
+      },
+      "identifiers": ["tools/cut-sheet.py", "tools/check-alpha.py", "tools/pick-bg.py", "quest-n-click prompts"],
+      "related": ["create.images", "install.requirements", "install.audio-toolchain"],
+      "prerequisites": ["install.requirements"],
       "owner": "@wanoo"
     },
     {
@@ -683,19 +788,33 @@
         "fr": "Outils audio : ffmpeg, fluidsynth, Furnace, uv"
       },
       "url": { "en": "EN-Install-Audio-Toolchain", "fr": "FR-Installer-Outils-Audio" },
-      "state": "planned",
-      "sources": ["tools/audio/requirements-audio.txt"],
+      "state": "ready",
+      "versions": { "appliesFrom": "3.7.0" },
+      "sources": [
+        "tools/audio.py",
+        "tools/audio/mdpipe/render.py",
+        "tools/audio/mdpipe/transcribe.py",
+        "tools/audio/requirements-audio.txt",
+        "tools/audio/README.md"
+      ],
       "replaces": [
         "docs/en/AUDIO.md#audio-music-and-sound-effects-that-sound-like-one-game",
         "docs/en/AUDIO.md#hardware-and-furnace-facts-handled-in-code",
         "docs/fr/AUDIO.md#audio--musique-et-bruitages-qui-sonnent-comme-un-seul-jeu",
         "docs/fr/AUDIO.md#matériel-et-furnace-géré-dans-le-code"
       ],
-      "questions": { "en": [], "fr": [] },
-      "aliases": { "en": [], "fr": [] },
-      "identifiers": [],
-      "related": [],
-      "prerequisites": [],
+      "questions": {
+        "en": ["How do I install Furnace for the audio pipeline?", "npm run audio says Furnace not found"],
+        "fr": ["Comment installer Furnace pour le pipeline audio ?", "npm run audio dit Furnace not found"]
+      },
+      "aliases": { "en": ["Mega Drive pipeline", "mdpipe", "AUDIO"], "fr": ["pipeline Mega Drive", "mdpipe", "AUDIO"] },
+      "keywords": {
+        "en": ["Furnace 0.6.8.3", "fluidsynth", "SoundFont", "uv", "basic-pitch", "FURNACE_BIN"],
+        "fr": ["Furnace 0.6.8.3", "fluidsynth", "SoundFont", "uv", "basic-pitch", "FURNACE_BIN"]
+      },
+      "identifiers": ["npm run audio", "npm run audio -- setup"],
+      "related": ["create.music", "create.sound-effects", "install.requirements"],
+      "prerequisites": ["install.requirements"],
       "owner": "@wanoo"
     },
     {
@@ -706,8 +825,17 @@
       "context": ["created-project"],
       "title": { "en": "Upgrade", "fr": "Mettre à jour" },
       "url": { "en": "EN-Install-Upgrade", "fr": "FR-Installer-Mise-A-Jour" },
-      "state": "planned",
-      "sources": ["tools/migrate.ts"],
+      "state": "ready",
+      "versions": { "appliesFrom": "4.3.0" },
+      "sources": [
+        "tools/migrate.ts",
+        "tools/migrate-tsconfig.ts",
+        "src/engine/core/migrate.ts",
+        "src/engine/core/save.ts",
+        "scripts/upgrade-check.mjs",
+        "tests/migrate-official.test.ts",
+        "tests/save-v3.test.ts"
+      ],
       "replaces": [
         "docs/en/PACKAGE.md#upgrading",
         "docs/en/UPGRADING.md#upgrading-a-game-from-v2-to-v3",
@@ -715,13 +843,45 @@
         "docs/fr/UPGRADING.md#migrer-un-jeu-de-v2-vers-v3"
       ],
       "questions": {
-        "en": ["Can I upgrade without losing my saves?"],
-        "fr": ["Puis-je mettre à jour sans perdre mes sauvegardes ?"]
+        "en": [
+          "Can I upgrade without losing my saves?",
+          "How do I update the engine of my game?",
+          "Can I update the engine without losing the players' saves?"
+        ],
+        "fr": [
+          "Puis-je mettre à jour sans perdre mes sauvegardes ?",
+          "Comment mettre à jour le moteur de mon jeu ?",
+          "Puis-je mettre à jour le moteur sans perdre les sauvegardes des joueurs ?"
+        ]
       },
-      "aliases": { "en": [], "fr": [] },
-      "identifiers": ["npm run migrate"],
-      "related": [],
-      "prerequisites": [],
+      "aliases": {
+        "en": ["UPGRADING", "update the engine", "migrate"],
+        "fr": ["UPGRADING", "mettre à jour le moteur", "migrer"]
+      },
+      "keywords": {
+        "en": ["migrate --check", "saveVersion", "golden saves", "downgrade"],
+        "fr": ["migrate --check", "saveVersion", "sauvegardes de référence", "retour arrière"]
+      },
+      "identifiers": [
+        "npm run migrate",
+        "quest-n-click migrate",
+        "quest-n-click migrate --check",
+        "npm run upgrade-check"
+      ],
+      "related": [
+        "install.upgrade-notes-4-4",
+        "install.from-web-scumm",
+        "create.state-saves",
+        "team.upgrade-engine",
+        "start.stability"
+      ],
+      "prerequisites": ["install.from-archive"],
+      "claims": [
+        {
+          "id": "migrate-check-says-due",
+          "test": "tests/migrate-official.test.ts › the official contents need no migration › a game still on schema 2 is said due, and nothing is written"
+        }
+      ],
       "owner": "@wanoo"
     },
     {
@@ -732,16 +892,18 @@
       "context": ["created-project"],
       "title": { "en": "Upgrade notes: 4.4", "fr": "Notes de mise à jour : 4.4" },
       "url": { "en": "EN-Install-Upgrade-Notes-4-4", "fr": "FR-Installer-Notes-Mise-A-Jour-4-4" },
-      "state": "planned",
-      "sources": [],
+      "state": "ready",
+      "versions": { "appliesFrom": "4.4.0" },
+      "sources": ["CHANGELOG.md", "tests/fixtures/saves/demo-4.4.0.json"],
       "replaces": [
         "docs/en/UPGRADING.md#41-from-431-to-440-authors-desk",
         "docs/fr/UPGRADING.md#41-de-la-431-à-la-440--authors-desk-"
       ],
       "questions": { "en": [], "fr": [] },
-      "aliases": { "en": [], "fr": [] },
+      "aliases": { "en": ["Author's Desk", "UPGRADING 41"], "fr": ["Author's Desk", "UPGRADING 41"] },
+      "keywords": { "en": ["4.4.0"], "fr": ["4.4.0"] },
       "identifiers": [],
-      "related": ["install.upgrade"],
+      "related": ["install.upgrade", "install.upgrade-notes-4-3"],
       "prerequisites": [],
       "owner": "@wanoo"
     },
@@ -753,8 +915,9 @@
       "context": ["created-project"],
       "title": { "en": "Upgrade notes: 4.3", "fr": "Notes de mise à jour : 4.3" },
       "url": { "en": "EN-Install-Upgrade-Notes-4-3", "fr": "FR-Installer-Notes-Mise-A-Jour-4-3" },
-      "state": "planned",
-      "sources": [],
+      "state": "ready",
+      "versions": { "appliesFrom": "4.3.0" },
+      "sources": ["CHANGELOG.md", "tools/migrate-name.ts", "bridge/src/config.ts"],
       "replaces": [
         "docs/en/UPGRADING.md#39-from-425-to-430-hero-choice",
         "docs/en/UPGRADING.md#40-from-430-to-431",
@@ -762,9 +925,13 @@
         "docs/fr/UPGRADING.md#40-de-la-430-à-la-431"
       ],
       "questions": { "en": [], "fr": [] },
-      "aliases": { "en": [], "fr": [] },
+      "aliases": {
+        "en": ["Hero Choice", "UPGRADING 39", "UPGRADING 40"],
+        "fr": ["Hero Choice", "UPGRADING 39", "UPGRADING 40"]
+      },
+      "keywords": { "en": ["4.3.0", "4.3.1", "Galmuri11", "{hero}"], "fr": ["4.3.0", "4.3.1", "Galmuri11", "{hero}"] },
       "identifiers": [],
-      "related": ["install.upgrade"],
+      "related": ["install.upgrade", "install.from-web-scumm", "install.upgrade-notes-4-4"],
       "prerequisites": [],
       "owner": "@wanoo"
     },
@@ -776,8 +943,9 @@
       "context": ["created-project"],
       "title": { "en": "Upgrade notes: 4.2", "fr": "Notes de mise à jour : 4.2" },
       "url": { "en": "EN-Install-Upgrade-Notes-4-2", "fr": "FR-Installer-Notes-Mise-A-Jour-4-2" },
-      "state": "planned",
-      "sources": [],
+      "state": "ready",
+      "versions": { "appliesFrom": "4.2.0" },
+      "sources": ["CHANGELOG.md", "studio-server/migrations/*.up.sql"],
       "replaces": [
         "docs/en/UPGRADING.md#33-from-4120-to-420-stable-world",
         "docs/en/UPGRADING.md#34-from-420-to-421-shared-floor",
@@ -793,9 +961,13 @@
         "docs/fr/UPGRADING.md#38-de-la-424-à-la-425"
       ],
       "questions": { "en": [], "fr": [] },
-      "aliases": { "en": [], "fr": [] },
+      "aliases": {
+        "en": ["Stable World", "Shared Floor", "Playable Workshop", "Coordination", "UPGRADING 33-38"],
+        "fr": ["Stable World", "Shared Floor", "Playable Workshop", "Coordination", "UPGRADING 33-38"]
+      },
+      "keywords": { "en": ["4.2.0", "4.2.5", "rename"], "fr": ["4.2.0", "4.2.5", "changement de nom"] },
       "identifiers": [],
-      "related": ["install.upgrade"],
+      "related": ["install.upgrade", "install.from-web-scumm"],
       "prerequisites": [],
       "owner": "@wanoo"
     },
@@ -807,8 +979,10 @@
       "context": ["created-project"],
       "title": { "en": "Upgrade notes: 4.1", "fr": "Notes de mise à jour : 4.1" },
       "url": { "en": "EN-Install-Upgrade-Notes-4-1", "fr": "FR-Installer-Notes-Mise-A-Jour-4-1" },
-      "state": "planned",
-      "sources": [],
+      "state": "ready",
+      "versions": { "appliesFrom": "4.1.0", "appliesUntil": "4.1.20" },
+      "lifecycle": "deprecated",
+      "sources": ["CHANGELOG.md", "tools/migrate-tsconfig.ts", "tests/save-v3.test.ts"],
       "replaces": [
         "docs/en/UPGRADING.md#12-from-40-to-41-clarity",
         "docs/en/UPGRADING.md#13-from-410-to-411-reality-bridge",
@@ -854,7 +1028,14 @@
         "docs/fr/UPGRADING.md#32-de-la-4119-à-la-4120--last-mile-"
       ],
       "questions": { "en": [], "fr": [] },
-      "aliases": { "en": [], "fr": [] },
+      "aliases": {
+        "en": ["Clarity", "Reality Bridge", "Remix", "Convergence", "UPGRADING 12-32"],
+        "fr": ["Clarity", "Reality Bridge", "Remix", "Convergence", "UPGRADING 12-32"]
+      },
+      "keywords": {
+        "en": ["save envelope v4", "wsrun schema 2", "4.1.x"],
+        "fr": ["enveloppe de sauvegarde v4", "wsrun schéma 2", "4.1.x"]
+      },
       "identifiers": [],
       "related": ["install.upgrade"],
       "prerequisites": [],
@@ -868,8 +1049,10 @@
       "context": ["created-project"],
       "title": { "en": "Upgrade notes: v3", "fr": "Notes de mise à jour : v3" },
       "url": { "en": "EN-Install-Upgrade-Notes-V3", "fr": "FR-Installer-Notes-Mise-A-Jour-V3" },
-      "state": "planned",
-      "sources": [],
+      "state": "ready",
+      "versions": { "appliesFrom": "3.1.0", "appliesUntil": "4.0.0" },
+      "lifecycle": "archived",
+      "sources": ["CHANGELOG.md", "src/engine/boot.ts", "src/engine/core/stage.ts"],
       "replaces": [
         "docs/en/UPGRADING.md#8-a-game-that-embeds-the-engine-a-copy-of-srcengine",
         "docs/en/UPGRADING.md#9-line-ids-32-translations-and-voices-that-survive-an-insertion",
@@ -883,9 +1066,13 @@
         "docs/fr/UPGRADING.md#10-de-la-3x-à-la-40"
       ],
       "questions": { "en": [], "fr": [] },
-      "aliases": { "en": [], "fr": [] },
+      "aliases": {
+        "en": ["bootGame", "line ids", "UPGRADING 8-11"],
+        "fr": ["bootGame", "ids de lignes", "UPGRADING 8-11"]
+      },
+      "keywords": { "en": ["3.x", "4.0"], "fr": ["3.x", "4.0"] },
       "identifiers": [],
-      "related": ["install.upgrade"],
+      "related": ["install.upgrade", "install.upgrade-notes-v2-to-v3"],
       "prerequisites": [],
       "owner": "@wanoo"
     },
@@ -897,8 +1084,10 @@
       "context": ["created-project"],
       "title": { "en": "Upgrade notes: v2 to v3", "fr": "Notes de mise à jour : v2 vers v3" },
       "url": { "en": "EN-Install-Upgrade-Notes-V2-To-V3", "fr": "FR-Installer-Notes-Mise-A-Jour-V2-Vers-V3" },
-      "state": "planned",
-      "sources": [],
+      "state": "ready",
+      "versions": { "appliesFrom": "3.0.0", "appliesUntil": "4.4.0" },
+      "lifecycle": "archived",
+      "sources": ["tools/ids.ts", "tools/migrate.ts", "src/engine/core/migrate.ts", "tests/save-v3.test.ts"],
       "replaces": [
         "docs/en/UPGRADING.md#upgrading-a-game-from-v2-to-v3",
         "docs/en/UPGRADING.md#1-establish-the-baseline",
@@ -918,9 +1107,16 @@
         "docs/fr/UPGRADING.md#7-en-un-coup-dœil"
       ],
       "questions": { "en": [], "fr": [] },
-      "aliases": { "en": [], "fr": [] },
+      "aliases": {
+        "en": ["v2 to v3", "schema 2", "stable ids migration"],
+        "fr": ["v2 vers v3", "schéma 2", "migration des ids stables"]
+      },
+      "keywords": {
+        "en": ["schemaVersion 3", "npm run ids", "idsMigration", "saveVersion"],
+        "fr": ["schemaVersion 3", "npm run ids", "idsMigration", "saveVersion"]
+      },
       "identifiers": [],
-      "related": ["install.upgrade"],
+      "related": ["install.upgrade", "install.upgrade-notes-v3"],
       "prerequisites": [],
       "owner": "@wanoo"
     },
@@ -932,14 +1128,28 @@
       "context": ["created-project"],
       "title": { "en": "Coming from web-scumm", "fr": "Venir de web-scumm" },
       "url": { "en": "EN-Install-From-Web-Scumm", "fr": "FR-Installer-Depuis-Web-Scumm" },
-      "state": "planned",
-      "sources": ["tools/migrate-name.ts"],
+      "state": "ready",
+      "versions": { "appliesFrom": "4.3.0" },
+      "sources": ["tools/migrate-name.ts", "tools/migrate.ts", "tests/former-name.test.ts"],
       "replaces": [],
-      "questions": { "en": [], "fr": [] },
-      "aliases": { "en": ["web-scumm"], "fr": ["web-scumm"] },
-      "identifiers": [],
-      "related": [],
-      "prerequisites": [],
+      "questions": {
+        "en": ["How do I move a web-scumm game to quest'n'click?", "My imports of web-scumm/content no longer resolve"],
+        "fr": [
+          "Comment passer un jeu web-scumm à quest'n'click ?",
+          "Mes imports de web-scumm/content ne se résolvent plus"
+        ]
+      },
+      "aliases": { "en": ["web-scumm", "rename", "former name"], "fr": ["web-scumm", "renommage", "ancien nom"] },
+      "keywords": { "en": ["D47", "web-scumm-save", "WEB_SCUMM_"], "fr": ["D47", "web-scumm-save", "WEB_SCUMM_"] },
+      "identifiers": ["create-web-scumm", "web-scumm/content"],
+      "related": ["install.upgrade", "install.upgrade-notes-4-3", "team.upgrade-engine"],
+      "prerequisites": ["install.requirements"],
+      "claims": [
+        {
+          "id": "former-name-imports",
+          "test": "tests/former-name.test.ts › quest-n-click migrate and the former name › renames the imports in either quote style, and nothing that only starts like them"
+        }
+      ],
       "owner": "@wanoo"
     },
     {
@@ -950,8 +1160,15 @@
       "context": ["engine-repo", "created-project"],
       "title": { "en": "Package reference", "fr": "Référence du paquet" },
       "url": { "en": "EN-Install-Package", "fr": "FR-Installer-Paquet" },
-      "state": "planned",
-      "sources": ["scripts/pack.mjs"],
+      "state": "ready",
+      "versions": { "appliesFrom": "4.3.0" },
+      "sources": [
+        "scripts/pack.mjs",
+        "scripts/pack-manifests.mjs",
+        "cli/quest-n-click.mjs",
+        "scripts/fresh-install.mjs",
+        "scripts/external-consumer.mjs"
+      ],
       "replaces": [
         "docs/en/PACKAGE.md#the-engine-as-a-package",
         "docs/en/PACKAGE.md#commands",
@@ -961,9 +1178,19 @@
         "docs/fr/PACKAGE.md#comment-cest-vérifié"
       ],
       "questions": { "en": [], "fr": [] },
-      "aliases": { "en": [], "fr": [] },
-      "identifiers": [],
-      "related": [],
+      "aliases": { "en": ["PACKAGE", "npm packages", "tarballs"], "fr": ["PACKAGE", "paquets npm", "archives"] },
+      "keywords": {
+        "en": ["quest-n-click-bridge", "quest-n-click-connectors", "quest-n-click-studio-server", "docs-bundle"],
+        "fr": ["quest-n-click-bridge", "quest-n-click-connectors", "quest-n-click-studio-server", "docs-bundle"]
+      },
+      "identifiers": [
+        "npm run pack",
+        "npm run fresh-install",
+        "npm run external-consumer",
+        "npm run readme-quickstart",
+        "npx quest-n-click help"
+      ],
+      "related": ["install.from-archive", "reference.cli", "contribute.npm-packages"],
       "prerequisites": [],
       "owner": "@wanoo"
     },
@@ -975,13 +1202,29 @@
       "context": ["engine-repo", "created-project"],
       "title": { "en": "Install troubleshooting", "fr": "Dépannage de l'installation" },
       "url": { "en": "EN-Install-Troubleshooting", "fr": "FR-Installer-Depannage" },
-      "state": "planned",
-      "sources": [],
+      "state": "ready",
+      "versions": { "appliesFrom": "4.3.0" },
+      "sources": ["tools/doctor.ts", "tools/doctor-checks.ts", "cli/create.mjs", "scripts/pack.mjs"],
       "replaces": [],
-      "questions": { "en": ["doctor fails in a created project"], "fr": ["doctor échoue dans un projet créé"] },
-      "aliases": { "en": [], "fr": [] },
+      "questions": {
+        "en": [
+          "doctor fails in a created project",
+          "npm install answers 404 for quest-n-click",
+          "Cannot find package 'playwright' when I run doctor"
+        ],
+        "fr": [
+          "doctor échoue dans un projet créé",
+          "npm install répond 404 pour quest-n-click",
+          "Cannot find package 'playwright' quand je lance doctor"
+        ]
+      },
+      "aliases": { "en": ["installation problems"], "fr": ["problèmes d'installation"] },
+      "keywords": {
+        "en": ["ERR_MODULE_NOT_FOUND", "EBADENGINE", "externally-managed-environment", "404"],
+        "fr": ["ERR_MODULE_NOT_FOUND", "EBADENGINE", "externally-managed-environment", "404"]
+      },
       "identifiers": [],
-      "related": [],
+      "related": ["install.doctor", "install.from-archive", "bridge.troubleshooting"],
       "prerequisites": [],
       "owner": "@wanoo"
     },
