@@ -313,7 +313,7 @@ describe("Playwright's image (#261)", () => {
     for (const j of inImage) {
       expect(j).not.toMatch(/playwright install/);
       expect(j).toMatch(/HOME: \/root/);
-      expect(j).toMatch(/safe\.directory "\$GITHUB_WORKSPACE"/);
+      expect(j).toMatch(/safe\.directory "\$\{\{ github\.workspace \}\}"/);
     }
   });
 });
