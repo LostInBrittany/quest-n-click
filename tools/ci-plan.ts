@@ -71,7 +71,7 @@ export const RULES: readonly Rule[] = [
   { re: /^tools\/vite\//, gates: 'all', why: 'the build plugins' },
 
   // Prose and agent configuration: the fast tier (its unit tests read the docs: links, parity, figures).
-  { re: /^(docs|changes)\//, gates: [], why: 'documentation' },
+  { re: /^(docs|changes|wiki)\//, gates: [], why: 'documentation' },
   { re: /\.md$/, gates: [], why: 'documentation' },
   { re: /^(LICENSE[^/]*|\.gitignore|\.git-blame-ignore-revs|\.mcp\.json)$/, gates: [], why: 'repository metadata' },
   { re: /^\.(claude|cursor)\//, gates: [], why: 'agent configuration' },
