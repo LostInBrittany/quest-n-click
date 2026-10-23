@@ -34,8 +34,8 @@ saves still loading.
 - This procedure is the one for a target of 4.3.0 or later, where `quest-n-click migrate` also renames a project still
   under the former name `web-scumm`. Coming from before 4.2.5, read [Coming from web-scumm](install.from-web-scumm.md)
   too.
-- What each version changes is in the upgrade notes: [4.4](install.upgrade-notes-4-4.md),
-  [4.3](install.upgrade-notes-4-3.md), [4.2](install.upgrade-notes-4-2.md), [4.1](install.upgrade-notes-4-1.md),
+- What each version changes is in the upgrade notes: [4.5](install.upgrade-notes-4-5.md),
+  [4.4](install.upgrade-notes-4-4.md), [4.3](install.upgrade-notes-4-3.md), [4.2](install.upgrade-notes-4-2.md), [4.1](install.upgrade-notes-4-1.md),
   [v3](install.upgrade-notes-v3.md), [v2 to v3](install.upgrade-notes-v2-to-v3.md). Which versions are supported, and
   how long a deprecation lasts, is on [Stability](start.stability.md).
 - Every upgrade is checked before a release: the candidate creates a game with an older release, makes a save in it,
@@ -199,7 +199,7 @@ worker, is judged like a revision, and is written as one undoable operation, or 
 
 ## References
 
-- The upgrade notes: [4.4](install.upgrade-notes-4-4.md), [4.3](install.upgrade-notes-4-3.md),
+- The upgrade notes: [4.5](install.upgrade-notes-4-5.md), [4.4](install.upgrade-notes-4-4.md), [4.3](install.upgrade-notes-4-3.md),
   [4.2](install.upgrade-notes-4-2.md), [4.1](install.upgrade-notes-4-1.md), [v3](install.upgrade-notes-v3.md),
   [v2 to v3](install.upgrade-notes-v2-to-v3.md)
 - [Stability](start.stability.md), [State and saves](create.state-saves.md), [Changelog](reference.changelog.md)

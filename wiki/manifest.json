@@ -1125,6 +1125,7 @@
         "npm run upgrade-check"
       ],
       "related": [
+        "install.upgrade-notes-4-5",
         "install.upgrade-notes-4-4",
         "install.from-web-scumm",
         "create.state-saves",
@@ -1138,6 +1139,26 @@
           "test": "tests/migrate-official.test.ts › the official contents need no migration › a game still on schema 2 is said due, and nothing is written"
         }
       ],
+      "owner": "@wanoo"
+    },
+    {
+      "id": "install.upgrade-notes-4-5",
+      "domain": "install",
+      "type": "reference",
+      "audience": ["author"],
+      "context": ["created-project"],
+      "title": { "en": "Upgrade notes: 4.5", "fr": "Notes de mise à jour : 4.5" },
+      "url": { "en": "EN-Install-Upgrade-Notes-4-5", "fr": "FR-Installer-Notes-Mise-A-Jour-4-5" },
+      "state": "ready",
+      "versions": { "appliesFrom": "4.5.0" },
+      "sources": ["CHANGELOG.md", "tests/fixtures/saves/demo-4.5.0.json"],
+      "replaces": [],
+      "questions": { "en": [], "fr": [] },
+      "aliases": { "en": ["Wiki"], "fr": ["Wiki"] },
+      "keywords": { "en": ["4.5.0", "docs-bundle"], "fr": ["4.5.0", "docs-bundle"] },
+      "identifiers": [],
+      "related": ["install.upgrade", "install.upgrade-notes-4-4"],
+      "prerequisites": [],
       "owner": "@wanoo"
     },
     {

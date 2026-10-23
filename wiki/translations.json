@@ -10923,10 +10923,10 @@
       ]
     },
     "install.upgrade#context-and-versions": {
-      "enHash": "7d35db2c79dfe67a440b3abd3d49b6bb146baf9e8cd195a0a8b27d52539d132b",
-      "frHash": "e987cdc31b96b8951f1333979e2f00dfc623ddd929e988aff477c64abd6bad88",
+      "enHash": "e46a55726fde5b1dbdde8784bbc43342d182dc517f0581f942dbade47fde16f9",
+      "frHash": "c7b2d0a6105297b59a494f4384f47057860476d6cf9f32e74054ac2e33027ffb",
       "reviewers": [
-        { "name": "claude-4.5-writers", "kind": "ai", "relation": "author", "date": "2026-10-23" }
+        { "name": "claude-4.5-release", "kind": "ai", "relation": "author", "date": "2026-10-23" }
       ]
     },
     "install.upgrade#engine-repository": {
@@ -10979,10 +10979,10 @@
       ]
     },
     "install.upgrade#references": {
-      "enHash": "423cbbc4cd253fe7e14554c61a93bf0425c8d697a76867d7d7cc18386734523c",
-      "frHash": "aa6fb8a6f0ec3b493c7ab278b4a9abf2486cecc1367c3f25123f41ed2c646a99",
+      "enHash": "2ba8129c201515c0442aefca22f353dcb3d24a61030bc059c439893e0dded515",
+      "frHash": "2b50c2ef669a8a604dba69d70f348aed694639fd13aa781f759b2f9de95cc76c",
       "reviewers": [
-        { "name": "claude-4.5-writers", "kind": "ai", "relation": "author", "date": "2026-10-23" }
+        { "name": "claude-4.5-release", "kind": "ai", "relation": "author", "date": "2026-10-23" }
       ]
     },
     "install.upgrade#saves": {
@@ -11249,6 +11249,20 @@
       "frHash": "5cc1c48969dbcb6289f14885cdfaa4a2a93e68ee38e7e9a855dfb48769068fe7",
       "reviewers": [
         { "name": "claude-4.5-writers", "kind": "ai", "relation": "author", "date": "2026-10-23" }
+      ]
+    },
+    "install.upgrade-notes-4-5#_lead": {
+      "enHash": "6f76ea415c0c6885bdabb260b5e444a424e254512ab880929c17483ff22d8500",
+      "frHash": "e948f94094915a2a62f311ad71e4dac0e252bbeadb2885c9fbbcc43d21917b4f",
+      "reviewers": [
+        { "name": "claude-4.5-release", "kind": "ai", "relation": "author", "date": "2026-10-23" }
+      ]
+    },
+    "install.upgrade-notes-4-5#from-4-4-0-to-4-5-0": {
+      "enHash": "5cdc9547776c506436d969086af0d9e97607a92c874ed82cb6537f1d7c79af28",
+      "frHash": "01c11c748a361f41686c1bb53df7a87e99c434fdc3947647e4c26509191ce661",
+      "reviewers": [
+        { "name": "claude-4.5-release", "kind": "ai", "relation": "author", "date": "2026-10-23" }
       ]
     },
     "install.upgrade-notes-v2-to-v3#_lead": {

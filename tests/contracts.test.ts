@@ -157,7 +157,8 @@ describe('the status registry, docs/dev/contracts.json', () => {
 describe('the five statuses, derived', () => {
   it("reads the passes' states from the version's sheet, with their issues; a pass not asked yet says so", () => {
     expect(passSheet(ROOT, '4.4.0')).toBe('4.4.0');
-    expect(passSheet(ROOT, '4.5.0-rc.1')).toBe('4.4.0');
+    expect(passSheet(ROOT, '4.5.0-rc.1')).toBe('4.5.0');
+    expect(passSheet(ROOT, '4.4.1')).toBe('4.4.0');
     expect(passSheet(ROOT, '4.2.4')).toBe('4.2.4');
     const s = surfaceStatuses(ROOT, contracts!, '4.4.0').get('studio-server')!;
     expect(s.contract).toBe('experimental');
