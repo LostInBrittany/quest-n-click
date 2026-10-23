@@ -26675,9 +26675,9 @@
       "decision": "rewrite",
       "reason": "split across several pages of the catalogue",
       "examples": [],
-      "verification": null,
+      "verification": "C2: the README section now points to the wiki (its home, the first pages); the list it gave is the indexes",
       "planned": true,
-      "migrated": false,
+      "migrated": true,
       "limits": [
         {
           "text": "4.2.0 shipped before the people's passes: of the surfaces above, only the Stable column is promised; the passes are made on a 4.2.x, which promotes what they prove ([GO / NO-GO 4.2](docs/dev/GO-NO-GO-4.2.md), D38).",
@@ -26929,9 +26929,9 @@
       "decision": "rewrite",
       "reason": "split across several pages of the catalogue",
       "examples": [],
-      "verification": null,
+      "verification": "C2: the README section now points to the wiki (its home, the first pages); the list it gave is the indexes",
       "planned": true,
-      "migrated": false,
+      "migrated": true,
       "limits": []
     },
     {

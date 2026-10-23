@@ -3118,10 +3118,10 @@
       ]
     },
     "contribute.ai-agents#how-it-is-made": {
-      "enHash": "f7f302d0f7c456434599267c159df5970d3ecdbafa513e2b287ff6ed40e5c680",
-      "frHash": "5a611cf2da2caa1d965dd5318d226a37c63b2eb456f62022c5069ec48d2bf297",
+      "enHash": "691fd5b03dafd913c1c460f703b888d134df01a12868b349bf17edc40eb631e1",
+      "frHash": "a86b96a0580c211af2440204a93d050833708b7493aa55438a30f78162fa2b8e",
       "reviewers": [
-        { "name": "claude-4.5-writers", "kind": "ai", "relation": "author", "date": "2026-10-23" }
+        { "name": "claude-4.5-c2", "kind": "ai", "relation": "author", "date": "2026-10-23" }
       ]
     },
     "contribute.ai-agents#prerequisites": {
@@ -3622,10 +3622,10 @@
       ]
     },
     "contribute.boundaries#inside-the-solver": {
-      "enHash": "3269beb9e574eac09ebac8cac2928bcaae12f918c7e67cae8442428d6734e90e",
-      "frHash": "0f72cf448526bf4521784509cf3ab8c64eb1394c81ec3caf3ddff2f1cafd5d59",
+      "enHash": "5086f60ba91d7c73d035f833daf6a9480e1339ff787cc2d5d21c7e697a760049",
+      "frHash": "ceee27e10c25cab45b9bad7f85e97bba0e43a18ef7b8455e399adba6caeabe70",
       "reviewers": [
-        { "name": "claude-4.5-writers", "kind": "ai", "relation": "author", "date": "2026-10-23" }
+        { "name": "claude-4.5-c2", "kind": "ai", "relation": "author", "date": "2026-10-23" }
       ]
     },
     "contribute.boundaries#layers": {
@@ -3860,10 +3860,10 @@
       ]
     },
     "contribute.conventions#docs-languages": {
-      "enHash": "da8792a1cbb3fbcec04e5a5d51233edb989cb19d05f3f32c156f9b7285d9c4a3",
-      "frHash": "ab4746af5d81de52808b9dfcd22ee81b87211b6a64fe07790a8f38113367bc54",
+      "enHash": "a9b3ccbd59fce65c9be14e2b34d7eec11c2192f506062377478284011adf6dfa",
+      "frHash": "caa93ddfc4266ac607c31636cc61079b808d2768c2e213f0800b5fd890ac850e",
       "reviewers": [
-        { "name": "claude-4.5-writers", "kind": "ai", "relation": "author", "date": "2026-10-23" }
+        { "name": "claude-4.5-c2", "kind": "ai", "relation": "author", "date": "2026-10-23" }
       ]
     },
     "contribute.conventions#formatting-commits": {
@@ -4826,17 +4826,17 @@
       ]
     },
     "contribute.writing-docs#context-and-versions": {
-      "enHash": "a3bfe652c2a61027a8c1af1c4ab8b7e3f0e39e7f4cb58fbd72ff584a06a8db55",
-      "frHash": "100293aa9b7303276baba97a033742b8abcd914ead72933cb811850fc5cb79cb",
+      "enHash": "03880987da37300c7bf3d0afb61a1c699c5b314ae3df615c1c81b320fe7075d1",
+      "frHash": "dbb1eede0fafe6925e5fce1c79e0b8d345e0158d3e1de4f9922ef10369a653b7",
       "reviewers": [
-        { "name": "claude-4.5-writers", "kind": "ai", "relation": "author", "date": "2026-10-23" }
+        { "name": "claude-4.5-c2", "kind": "ai", "relation": "author", "date": "2026-10-23" }
       ]
     },
     "contribute.writing-docs#coverage-freeze": {
-      "enHash": "58734b94469e7b59c8857777801301b1cf0932834dfd55398ae42aa8db34a706",
-      "frHash": "4e1a7141408386a9fa4879d50e20253e571d956642198df20875d5bfb235d01a",
+      "enHash": "fdfb1404b20145cf17a87a68d5eeebcb782fc484e9abefa42f248d5d37fd0f09",
+      "frHash": "af43d67167160b16bada69e5462fa5d1af369fcdecc7e764837a2ca5d3fbbb97",
       "reviewers": [
-        { "name": "claude-4.5-writers", "kind": "ai", "relation": "author", "date": "2026-10-23" }
+        { "name": "claude-4.5-c2", "kind": "ai", "relation": "author", "date": "2026-10-23" }
       ]
     },
     "contribute.writing-docs#decisions": {
@@ -5205,9 +5205,9 @@
     },
     "create.characters#characters": {
       "enHash": "268451a75ded1adc07a5c76662441ba321a12b06145c1a50b472b6ed4700c734",
-      "frHash": "862b6c965ed1ebe0e210554f48d2d57325479e8676f0eab86789817ace15d819",
+      "frHash": "97cdec42aabf4c5ab42167a7de0d0d9c376600c4e36d5c1837574ec7cdbd2075",
       "reviewers": [
-        { "name": "claude-4.5-writers", "kind": "ai", "relation": "author", "date": "2026-10-23" }
+        { "name": "claude-4.5-c2", "kind": "ai", "relation": "author", "date": "2026-10-23" }
       ]
     },
     "create.characters#multiple-states": {
@@ -5610,10 +5610,10 @@
       ]
     },
     "create.clever-static#expected-result": {
-      "enHash": "fe0705b2361438fa5ad621c931760364e550a2668b4eadfd830cc4fd1d2d4765",
+      "enHash": "f86d2f50b1e0b052757b2bf9b0b7a2205247a009ce752322e348aa53f403137f",
       "frHash": "228c67a0acd0e3524832042f242ef57ef9c41bb28ef6e750775795f80513485f",
       "reviewers": [
-        { "name": "claude-4.5-writers", "kind": "ai", "relation": "author", "date": "2026-10-23" }
+        { "name": "claude-4.5-c2", "kind": "ai", "relation": "author", "date": "2026-10-23" }
       ]
     },
     "create.clever-static#files-changed": {
@@ -6010,16 +6010,16 @@
     },
     "create.dialogues#overview": {
       "enHash": "04ab41c1359074810fac953915afe2db61e76ae1cdecba2b95414c9607c33bb9",
-      "frHash": "28357d0e70a4865a3cb40a45bd09a7389fad425484072a7d0e5dc43f136edd24",
+      "frHash": "980669ca851f4282ce6f41da7004f48ee779f88ddea367a2da0b6717e66ae9f8",
       "reviewers": [
-        { "name": "claude-4.5-writers", "kind": "ai", "relation": "author", "date": "2026-10-23" }
+        { "name": "claude-4.5-c2", "kind": "ai", "relation": "author", "date": "2026-10-23" }
       ]
     },
     "create.dialogues#steps": {
       "enHash": "73bbed9190188e14cd9a57d873e2426c3aca62cd7d1887dfe1c7f8f30cdd4d6a",
-      "frHash": "169b52e00e371d24fac1761942257ae67d3847ab21917cc1509ccfc144f99612",
+      "frHash": "83fbeb6c7269240b5667ee3640c0983bc74ecbb34a4769237d93a440da57037b",
       "reviewers": [
-        { "name": "claude-4.5-writers", "kind": "ai", "relation": "author", "date": "2026-10-23" }
+        { "name": "claude-4.5-c2", "kind": "ai", "relation": "author", "date": "2026-10-23" }
       ]
     },
     "create.dialogues#talk-command": {
@@ -6052,9 +6052,9 @@
     },
     "create.dialogues#writing": {
       "enHash": "de9a1c09fac4ee996a7c55d21aa552911f7d4ac0e56ce04404f1d32c2a7de72c",
-      "frHash": "8a48945ac67fc854b42c7d6e471270470f1641bee8b5bf40662e551f9f02ebca",
+      "frHash": "effea7b52fa256d6a22083dec88c4e99da4f6e15c27f049a433354d7fa488f7a",
       "reviewers": [
-        { "name": "claude-4.5-writers", "kind": "ai", "relation": "author", "date": "2026-10-23" }
+        { "name": "claude-4.5-c2", "kind": "ai", "relation": "author", "date": "2026-10-23" }
       ]
     },
     "create.dsl#_lead": {
@@ -6100,10 +6100,10 @@
       ]
     },
     "create.dsl#overview": {
-      "enHash": "053ec0c96d0e4dcf38da212b9c7152cfbb7ee9eab966dc060b5f9daeb0498c28",
-      "frHash": "19a30dfe97779db673191937af7f1ac118d35c80572bd9fa44c6d675451798d5",
+      "enHash": "16fba9b2d9342cf597801c0beb2733dd4b3f3f08241a24a1945870c2b5a7c296",
+      "frHash": "76efac07d1e4c5ccf44848267ed5859e80ccac379de8d0c086f946a620200767",
       "reviewers": [
-        { "name": "claude-4.5-writers", "kind": "ai", "relation": "author", "date": "2026-10-23" }
+        { "name": "claude-4.5-c2", "kind": "ai", "relation": "author", "date": "2026-10-23" }
       ]
     },
     "create.dsl#placeholders": {
@@ -6136,9 +6136,9 @@
     },
     "create.example-games#demo": {
       "enHash": "bc8e658a21199e23410d5ab94f0cf337000d8991939905e279b0d9175830b93e",
-      "frHash": "5acaf99d5eccb4f5cd559f2e20bdd8f92a910e853616e6a87ccc466aabc0a3a6",
+      "frHash": "289d2012920a330db7f09a8117d0cffac2f58a254aac4c9f35db4ef62eb91622",
       "reviewers": [
-        { "name": "claude-4.5-writers", "kind": "ai", "relation": "author", "date": "2026-10-23" }
+        { "name": "claude-4.5-c2", "kind": "ai", "relation": "author", "date": "2026-10-23" }
       ]
     },
     "create.example-games#heroes": {
@@ -6409,9 +6409,9 @@
     },
     "create.geometry#walk-area": {
       "enHash": "555c1a85113bfb5f7bd34e2caf977fe4c0c43d471665acd8326f0629b463c56f",
-      "frHash": "c45288ee41951440249a7406b6b68de593f2e5f128e021a488a3e5416db1658c",
+      "frHash": "c2a8560dcde537e1fa6bdfebc591d4da43aaf0f201d60ca302007807cf868dda",
       "reviewers": [
-        { "name": "claude-4.5-writers", "kind": "ai", "relation": "author", "date": "2026-10-23" }
+        { "name": "claude-4.5-c2", "kind": "ai", "relation": "author", "date": "2026-10-23" }
       ]
     },
     "create.geometry#why": {
@@ -6654,9 +6654,9 @@
     },
     "create.images#common-rules": {
       "enHash": "38ec13a76792e99db1c0c82e4112707e73ff9ea33c0e96ba72ccb5617775e22c",
-      "frHash": "6164dcea1c33f8d4cdb121ff30a0ce996f6d9ac017f9fe547a8b221387e96dcd",
+      "frHash": "4418e22a47bbcb98d502bb1422e4e93b4bdcadd8576ab675803afc5d626bb895",
       "reviewers": [
-        { "name": "claude-4.5-writers", "kind": "ai", "relation": "author", "date": "2026-10-23" }
+        { "name": "claude-4.5-c2", "kind": "ai", "relation": "author", "date": "2026-10-23" }
       ]
     },
     "create.images#context-and-versions": {
@@ -7095,9 +7095,9 @@
     },
     "create.moving-characters#patrols": {
       "enHash": "99df3faf5ecbaefe9d4f19d4f6e90fb03cecf84c1892b7773f97c1caa783edc6",
-      "frHash": "1566134749d32c46962ff94812a538189394777234f5eeb69dde5cbcdc651d60",
+      "frHash": "f0519e1161846935b321b000a3570d0b41b8eb068f254a0b8979de6b3a425258",
       "reviewers": [
-        { "name": "claude-4.5-writers", "kind": "ai", "relation": "author", "date": "2026-10-23" }
+        { "name": "claude-4.5-c2", "kind": "ai", "relation": "author", "date": "2026-10-23" }
       ]
     },
     "create.moving-characters#prerequisites": {
@@ -7304,10 +7304,10 @@
       ]
     },
     "create.other-hosts#expected-result": {
-      "enHash": "d5dc28cf6f6a64114ae375f5f5b087250f0efb6b02fd0f4bf6375e661535ce77",
+      "enHash": "5bdab3d73c4b443ecbeeed2d7ac8e1277e5f91e287f6dea3d436caa76cbef9a5",
       "frHash": "8d6d004c82d07cd86c4edd3c092ff1942afdaeb092d13c9e468e4c33116326a2",
       "reviewers": [
-        { "name": "claude-4.5-writers", "kind": "ai", "relation": "author", "date": "2026-10-23" }
+        { "name": "claude-4.5-c2", "kind": "ai", "relation": "author", "date": "2026-10-23" }
       ]
     },
     "create.other-hosts#files-changed": {
@@ -7479,10 +7479,10 @@
       ]
     },
     "create.principles#overview": {
-      "enHash": "ebb1638aa2c4ca493097cf6502ba8cb6afdb802907f2d6aaadf96addc888af02",
-      "frHash": "79241781784a0c5887cfe6c303843923e6b514851dadf1b00ee5f15f59635dba",
+      "enHash": "03ca94ef1b11856a1634446338a83e0248be7eb3bbf90aa2f27d78e38bfbf2ab",
+      "frHash": "a960f4c039554aa146ea75a12846476cad973c5d94fea9090fb1e81c00d10098",
       "reviewers": [
-        { "name": "claude-4.5-writers", "kind": "ai", "relation": "author", "date": "2026-10-23" }
+        { "name": "claude-4.5-c2", "kind": "ai", "relation": "author", "date": "2026-10-23" }
       ]
     },
     "create.principles#principles": {
@@ -7809,9 +7809,9 @@
     },
     "create.reactions#fallbacks": {
       "enHash": "62c3fd1419504d5afefc54d7967318284579102e1debce3d36c2abed49333ac8",
-      "frHash": "8518bc8eb05d0254767c17d2eb70fdefb1494aa6693e5569b913553f4f16116a",
+      "frHash": "9afc133608c3eb9f86ed7278a8842281fd183fe967e170853f9e4015c7ba19ca",
       "reviewers": [
-        { "name": "claude-4.5-writers", "kind": "ai", "relation": "author", "date": "2026-10-23" }
+        { "name": "claude-4.5-c2", "kind": "ai", "relation": "author", "date": "2026-10-23" }
       ]
     },
     "create.reactions#hotspot-on-tap": {
@@ -8138,16 +8138,16 @@
     },
     "create.rooms#rules-of-thumb": {
       "enHash": "0d8f4a9145defe06b73416fc79c18e7f191526d27b90f149313b9869e7f773d5",
-      "frHash": "6731e8c59845566d25b21ab3d7aa5d6bfafe0d6d0c89f6b40caf34417951a508",
+      "frHash": "83c3f19011f860fb3b51ea2e6ecd17940e0d123b0a7f88ede7b8ed36c49384dd",
       "reviewers": [
-        { "name": "claude-4.5-writers", "kind": "ai", "relation": "author", "date": "2026-10-23" }
+        { "name": "claude-4.5-c2", "kind": "ai", "relation": "author", "date": "2026-10-23" }
       ]
     },
     "create.rooms#step-by-step": {
       "enHash": "ffbd0dd269e2041448c1f6144efe34effa258389ae365451cbabc0a13f64d394",
-      "frHash": "d3643059e234179ff72c452b09a6f15115f84caa74a176088597a4e203696ae9",
+      "frHash": "6eefed1ee6a7dc05967baa7ef44b014faf7f1791b35638777d4d45f010e1dd6f",
       "reviewers": [
-        { "name": "claude-4.5-writers", "kind": "ai", "relation": "author", "date": "2026-10-23" }
+        { "name": "claude-4.5-c2", "kind": "ai", "relation": "author", "date": "2026-10-23" }
       ]
     },
     "create.rooms#write-the-rooms": {
@@ -9656,10 +9656,10 @@
       ]
     },
     "engine.api#signatures": {
-      "enHash": "90f6c1621ba0f96de0afec344a0f36aed9ca1225dd0efcc7d36fcf9e95e641ae",
-      "frHash": "7154e18ab99800001e0f857e017c4cc6eac705081cb946a2b6d46748c22f1e96",
+      "enHash": "a8320c88e525481997b4cfc4e7c56d95b8a82e8c69908d749e16f790c0150936",
+      "frHash": "13d67db30058bb4f4b8a819fb90c8c6b1cd3bd7eb931b51198ddc94160e0e3da",
       "reviewers": [
-        { "name": "claude-4.5-writers", "kind": "ai", "relation": "author", "date": "2026-10-23" }
+        { "name": "claude-4.5-c2", "kind": "ai", "relation": "author", "date": "2026-10-23" }
       ]
     },
     "engine.api#testing": {
@@ -9985,10 +9985,10 @@
       ]
     },
     "index.faq#old-links": {
-      "enHash": "18f49784cb5c9a3a49cfdaa888a87974fe60c04499ff7f3813d7fe082666a19a",
-      "frHash": "e29bc1cbe17524cd1a311e735ca852e48519884d57340152c8d1b98a7e93fc85",
+      "enHash": "75036873b15a27a5a7d1abe46cee8c486f2320459aab6f14734d9c97925155f3",
+      "frHash": "b223175955ee9c2860ad18e6f7f78d66f6f71e89b64ba7d065d7af7863a1471e",
       "reviewers": [
-        { "name": "claude-4.5-writers", "kind": "ai", "relation": "author", "date": "2026-10-23" }
+        { "name": "claude-4.5-c2", "kind": "ai", "relation": "author", "date": "2026-10-23" }
       ]
     },
     "index.faq#players": {
@@ -11014,10 +11014,10 @@
       ]
     },
     "install.upgrade-notes-4-1#_lead": {
-      "enHash": "7d558ec0824256faf55af6800564dc8af6e7e7eebd199f0ce7d1db01ab1269a9",
-      "frHash": "2d33224525797db9cd02f9edbb3930d3619914c7e9679999201854539cefba00",
+      "enHash": "667ee5324dc9dea81dfda9ca6a31636e0d307552a121c72a8090d7105041be89",
+      "frHash": "4e468c91c9ab086cb1cdfe6fa958af6dcb6cbc6c9b5d9d771a6e75e8680226d3",
       "reviewers": [
-        { "name": "claude-4.5-writers", "kind": "ai", "relation": "author", "date": "2026-10-23" }
+        { "name": "claude-4.5-c2", "kind": "ai", "relation": "author", "date": "2026-10-23" }
       ]
     },
     "install.upgrade-notes-4-1#from-4-0-to-4-1": {
@@ -11028,10 +11028,10 @@
       ]
     },
     "install.upgrade-notes-4-1#from-4-1-0-to-4-1-1": {
-      "enHash": "9094140c3acd4bde38f1971bf71a00d7b002834d465024f4aadf80151fded4a0",
-      "frHash": "06415e9cab548f390d3d3fb81f6f97b27e1a3e5b06d58c7968ba12b7851e053b",
+      "enHash": "9136fad6304049fb3b19111960dfef592f05a4c3aec9c5afa87a827261262042",
+      "frHash": "e9fb0ca98569d79837ded81d13a20de20c6d5832cc28d3eca019ec6001c0e7ac",
       "reviewers": [
-        { "name": "claude-4.5-writers", "kind": "ai", "relation": "author", "date": "2026-10-23" }
+        { "name": "claude-4.5-c2", "kind": "ai", "relation": "author", "date": "2026-10-23" }
       ]
     },
     "install.upgrade-notes-4-1#from-4-1-1-to-4-1-2": {
@@ -11063,17 +11063,17 @@
       ]
     },
     "install.upgrade-notes-4-1#from-4-1-13-to-4-1-14": {
-      "enHash": "31fe1c5e62e8a7961395c50a2a8100754f5eef447a1516a822baa2e58011b904",
-      "frHash": "40a54bdd08532d2bc9205c5e8c82660e63a6b3b311219b23666588c9d2187b96",
+      "enHash": "1b48c1354c0e26eec40de0a77d3486f4f96431b77d291ab74db7804dd2b57c66",
+      "frHash": "02dfd11ea002c6642ef15b117bd669beb9ed11893e7880c813b1b128a389dd45",
       "reviewers": [
-        { "name": "claude-4.5-writers", "kind": "ai", "relation": "author", "date": "2026-10-23" }
+        { "name": "claude-4.5-c2", "kind": "ai", "relation": "author", "date": "2026-10-23" }
       ]
     },
     "install.upgrade-notes-4-1#from-4-1-14-to-4-1-15": {
-      "enHash": "633783cb7ff7e8ded9d087e524ac192285b3e355cb6f608b1e52bf1e9204b7c8",
-      "frHash": "6127d8331e132b64473b8d1536e26da1fcb42e7861e40d6c2691a5c662e7f32b",
+      "enHash": "4dd200c3d068dcda624c0b1c43c6fcc8b8871788074b7ab1871b80207d68e1e1",
+      "frHash": "15245654e6b47a1bd52fb90df5eeebb67fb6d761434a818642b4a55e1bc711ee",
       "reviewers": [
-        { "name": "claude-4.5-writers", "kind": "ai", "relation": "author", "date": "2026-10-23" }
+        { "name": "claude-4.5-c2", "kind": "ai", "relation": "author", "date": "2026-10-23" }
       ]
     },
     "install.upgrade-notes-4-1#from-4-1-15-to-4-1-16": {
@@ -11091,10 +11091,10 @@
       ]
     },
     "install.upgrade-notes-4-1#from-4-1-17-to-4-1-18": {
-      "enHash": "e3fbb6324d3d189d8c56ed73fb066d974c60ffddc19877fdda49a87f1f639a17",
-      "frHash": "00d905361419ce3a7fd6d0d7a4c6eec286d2370dd978f0e97277442b8b0091d5",
+      "enHash": "4a352674ef0dad04278b0391ec2ce6eb917fb3af1fbaf8249e26599d8756071d",
+      "frHash": "a0f8719dae1c2426edc2cc109340031c281f72187813d088d29bf212b49a77fe",
       "reviewers": [
-        { "name": "claude-4.5-writers", "kind": "ai", "relation": "author", "date": "2026-10-23" }
+        { "name": "claude-4.5-c2", "kind": "ai", "relation": "author", "date": "2026-10-23" }
       ]
     },
     "install.upgrade-notes-4-1#from-4-1-18-to-4-1-19": {
@@ -11105,10 +11105,10 @@
       ]
     },
     "install.upgrade-notes-4-1#from-4-1-19-to-4-1-20": {
-      "enHash": "78a9b1e2c40227c777cf908ed52380ab613240b67c00299139306635d4253e6c",
-      "frHash": "77dd7619f0815d292920c48689bb6bb665c0c462be504fa8e126a3380ff00c02",
+      "enHash": "d43db8c33d53a85a7c7a892ac107238283756f709d7b1f94de08874f72dba7ab",
+      "frHash": "aec7afcd84fedabff4ca113011860b5db22c51095f9473dc74f9ba6c5bf6b096",
       "reviewers": [
-        { "name": "claude-4.5-writers", "kind": "ai", "relation": "author", "date": "2026-10-23" }
+        { "name": "claude-4.5-c2", "kind": "ai", "relation": "author", "date": "2026-10-23" }
       ]
     },
     "install.upgrade-notes-4-1#from-4-1-2-to-4-1-3": {
@@ -11140,31 +11140,31 @@
       ]
     },
     "install.upgrade-notes-4-1#from-4-1-6-to-4-1-7": {
-      "enHash": "c4b3dfac905d90b1537390162a3b4f34adff9854ce5282375476076cde71ecc9",
-      "frHash": "8ee67e5a8235a7c1523614dbd461a8b04745775a5fc70a30ec483cd7db817406",
+      "enHash": "4dd9e8f1a7204eff2ccbe3961695d6ec4ae20af04879d05d25dc3e7b5c8eedde",
+      "frHash": "bbae9f8f46d0041315cc233ae2f995e16342add9237f50768ef1de7529514da4",
       "reviewers": [
-        { "name": "claude-4.5-writers", "kind": "ai", "relation": "author", "date": "2026-10-23" }
+        { "name": "claude-4.5-c2", "kind": "ai", "relation": "author", "date": "2026-10-23" }
       ]
     },
     "install.upgrade-notes-4-1#from-4-1-7-to-4-1-8": {
-      "enHash": "aad8e5849d8cbf452eeb1d6a78bf5d01c7b6b7f25fab4fc35fe61d15247f091e",
-      "frHash": "b9853915e2632fe87d1db3ccb1b7e5d43c6a9501754507234f1d884ead4d8cd5",
+      "enHash": "2ff0362fabe796669448571903e76a174b398ec55623a3ea2fc4ecc860dc0130",
+      "frHash": "e280f49ec1d98f60946cec2fd8e22348a334f505f189074deae8555b7632dae0",
       "reviewers": [
-        { "name": "claude-4.5-writers", "kind": "ai", "relation": "author", "date": "2026-10-23" }
+        { "name": "claude-4.5-c2", "kind": "ai", "relation": "author", "date": "2026-10-23" }
       ]
     },
     "install.upgrade-notes-4-1#from-4-1-8-to-4-1-9": {
-      "enHash": "cfb95384848c5bf6729dc8a5662d27757dced3024a702dc14d9d95ab8db90f5b",
-      "frHash": "58ded5870e0f0ba7ea9f9b8f604bec58809be86c4634a92099440a0c8604187d",
+      "enHash": "18357553b19f659072d9ff3785f97db66468bdef208036c029090324970e472b",
+      "frHash": "938e0b02aef415074bc807a2ab048d78f1b243f27c5a2ead8d6ab408cc443f3a",
       "reviewers": [
-        { "name": "claude-4.5-writers", "kind": "ai", "relation": "author", "date": "2026-10-23" }
+        { "name": "claude-4.5-c2", "kind": "ai", "relation": "author", "date": "2026-10-23" }
       ]
     },
     "install.upgrade-notes-4-1#from-4-1-9-to-4-1-10": {
-      "enHash": "ff106edd841e032db8760a7cf8b8ab4a0989d77106d11584d8631c65bbc8ce70",
-      "frHash": "132f6d17c56e3a20379b20be1adf0519e1a014a53acd603b985f3dcd4fbd3650",
+      "enHash": "3a6a9898d21d2704a04dad31090eed7fff30bf98cb5cab80a98012d23bbed58e",
+      "frHash": "302910aa36bad09d656b2a56335e88dd344a39dee05f62c747276f4426d9856e",
       "reviewers": [
-        { "name": "claude-4.5-writers", "kind": "ai", "relation": "author", "date": "2026-10-23" }
+        { "name": "claude-4.5-c2", "kind": "ai", "relation": "author", "date": "2026-10-23" }
       ]
     },
     "install.upgrade-notes-4-2#_lead": {
@@ -11175,24 +11175,24 @@
       ]
     },
     "install.upgrade-notes-4-2#from-4-1-20-to-4-2-0": {
-      "enHash": "8ed53c4e5d34884b8128a538f5e2990cae139dea5953c0f2c60e35bbd7803eb9",
-      "frHash": "74458a84deea8870d0fe21ca9ef09b7bb51413f687f35b9250591554ac60f6e1",
+      "enHash": "b31888b63665085957a9773530a2bef4dd5549457a04160c5b060df29276c942",
+      "frHash": "e2a3446546782bc0a4cf715cb5cf3f09bd93970ccc9f5cfd2d79cda5838ce9ba",
       "reviewers": [
-        { "name": "claude-4.5-writers", "kind": "ai", "relation": "author", "date": "2026-10-23" }
+        { "name": "claude-4.5-c2", "kind": "ai", "relation": "author", "date": "2026-10-23" }
       ]
     },
     "install.upgrade-notes-4-2#from-4-2-0-to-4-2-1": {
-      "enHash": "e50c492c511dc18c6a12b2480aa026ce1b892b4e0b7c71008e53a39acccf9826",
-      "frHash": "bcd2b3a1416240c56fa60bffa19016434b5d5820645dda5aeffbe7d24dcc63ec",
+      "enHash": "737516b4331d4e39e7e49f359ac11e6b9c978685fe984834ef48704f04d53109",
+      "frHash": "4a57b0117671abf31f05a53f37f579c214f7672357913a46a634b218f79378ff",
       "reviewers": [
-        { "name": "claude-4.5-writers", "kind": "ai", "relation": "author", "date": "2026-10-23" }
+        { "name": "claude-4.5-c2", "kind": "ai", "relation": "author", "date": "2026-10-23" }
       ]
     },
     "install.upgrade-notes-4-2#from-4-2-1-to-4-2-2": {
-      "enHash": "2d6284b8c285539d2a85c413c63b8912582b9418daad3c88bcd8b4d6bcbfeb87",
-      "frHash": "ee5e2d11f777c54f39a8378e0c64f4b245a62cb4b64530461d2d34d223a43c8a",
+      "enHash": "1758644660bcc8927c83b873be70187213f4e96beac22e4acc5d42d81b57be7d",
+      "frHash": "ddbf26b464c1c38456f8f8818b0f8fc371173f9fb68356b050803eb98226b9fa",
       "reviewers": [
-        { "name": "claude-4.5-writers", "kind": "ai", "relation": "author", "date": "2026-10-23" }
+        { "name": "claude-4.5-c2", "kind": "ai", "relation": "author", "date": "2026-10-23" }
       ]
     },
     "install.upgrade-notes-4-2#from-4-2-2-to-4-2-3": {
@@ -11322,10 +11322,10 @@
       ]
     },
     "install.upgrade-notes-v3#from-3-x-to-4-0": {
-      "enHash": "7c3b100e736ad28c5b19ca5a06f1f5bb4f9e4314617b11c410653dac7ca87cae",
-      "frHash": "713ed78a925b418b8e9969190d710289c884ac2dec3252c3efc0df2674d9da5a",
+      "enHash": "1a9560f035ddbba8e26a4a0dbddfd4d0bd20fe8873ce1add392d5f475553f949",
+      "frHash": "bfd1225d85ae300341f05e1247346ec2972ea4d3b4f9ac95b18735b4a7f2054f",
       "reviewers": [
-        { "name": "claude-4.5-writers", "kind": "ai", "relation": "author", "date": "2026-10-23" }
+        { "name": "claude-4.5-c2", "kind": "ai", "relation": "author", "date": "2026-10-23" }
       ]
     },
     "install.upgrade-notes-v3#line-ids": {
@@ -15130,10 +15130,10 @@
       ]
     },
     "reference.support-matrix#matrix": {
-      "enHash": "13ecc38e49c92e9aa28f035f8f2315c5560f38aa864277234900bbcee8ce744d",
-      "frHash": "eee1ec7e9f3646bb7d42332a52fcf03857ebb7b62d12324d7149985be4f5ab5d",
+      "enHash": "918f9aa9dbbe3b1509c8e2abd77221ff46587be185f7a8923118741691187ac0",
+      "frHash": "fe308911a2477d25ef5192d3fa9f75f93ff2b8ccfc4de84e1983f9fab95a0902",
       "reviewers": [
-        { "name": "claude-4.5-writers", "kind": "ai", "relation": "author", "date": "2026-10-23" }
+        { "name": "claude-4.5-c2", "kind": "ai", "relation": "author", "date": "2026-10-23" }
       ]
     },
     "reference.support-matrix#player-canvas": {
@@ -15417,10 +15417,10 @@
       ]
     },
     "start.roadmap#references": {
-      "enHash": "b74fea34aa3836deec2ac2ec7fdba6d64cd952d48d39b8588a2f3937cd4d02ca",
-      "frHash": "457623381b4b1300be5d9fa701196729fcd46d4601e0bb553e4ad7ea22706bc6",
+      "enHash": "a78321c215ba5758e68080ba1cb7add88f2c909ae5548f279d3bb854408ac7c8",
+      "frHash": "1841d1f7edb1208a0bcc0ad197f2e3b28bfafff1601e693f860a7063fa78440f",
       "reviewers": [
-        { "name": "claude-4.5-writers", "kind": "ai", "relation": "author", "date": "2026-10-23" }
+        { "name": "claude-4.5-c2", "kind": "ai", "relation": "author", "date": "2026-10-23" }
       ]
     },
     "start.roadmap#unplanned": {
@@ -15438,10 +15438,10 @@
       ]
     },
     "start.stability#_lead": {
-      "enHash": "d0404c2a107021d1fc9c14ebee6b0f10499edd905f22f29d5f234b793cf6796c",
-      "frHash": "729ef3bdf77973f7df96f6778c65f5613e36825f41d8ad58cab253ff0728ac45",
+      "enHash": "c7a4b716e32c9f67d2d357ef20d3819ef9b818191f59cb5195940f9e5f1f65b5",
+      "frHash": "c67b9a33ff0bf8198d41fae4d69d6660af5ef69940703a913b96873c4d45a176",
       "reviewers": [
-        { "name": "claude-4.5-writers", "kind": "ai", "relation": "author", "date": "2026-10-23" }
+        { "name": "claude-4.5-c2", "kind": "ai", "relation": "author", "date": "2026-10-23" }
       ]
     },
     "start.stability#deprecation": {
@@ -15480,10 +15480,10 @@
       ]
     },
     "start.stability#surfaces": {
-      "enHash": "cef0ac347418d906aa31d4489964000fd2ce074dbd6b686206d2758606508db3",
-      "frHash": "5d9d686b7d5a2066be0dbf3535a4ede7a51a1559442dcf168e3ebf83ed7fcafd",
+      "enHash": "a954a58ee805dbcec2c5dbbf22686e868528f660235d949ba49ee79b3dc0babf",
+      "frHash": "37695262f4aac7bb20d669e0a35b5031edd3b4e280765aafb2f10446e2fa5c12",
       "reviewers": [
-        { "name": "claude-4.5-writers", "kind": "ai", "relation": "author", "date": "2026-10-23" }
+        { "name": "claude-4.5-c2", "kind": "ai", "relation": "author", "date": "2026-10-23" }
       ]
     },
     "start.stability#v41x": {
@@ -16845,10 +16845,10 @@
       ]
     },
     "studio.mcp-setup#docs-tools": {
-      "enHash": "ecbbe63768d9f27ebef2526397994ec688236e00f58edfc402d7828bd67aba83",
-      "frHash": "ecc2faf5cd8181bc8e4b82e1460815acc0eb580911c93f2212402b952117debe",
+      "enHash": "379f8ba003e473c1664ac499a31759ee05d3d5e6cdd916de6056231a8204dce5",
+      "frHash": "6cbfd4f096d15adbfd2f8313d255f5af5232b9dd42764083619e77bc10af380f",
       "reviewers": [
-        { "name": "claude-4.5-writers", "kind": "ai", "relation": "author", "date": "2026-10-23" }
+        { "name": "claude-4.5-c2", "kind": "ai", "relation": "author", "date": "2026-10-23" }
       ]
     },
     "studio.mcp-setup#expected-result": {
@@ -17048,10 +17048,10 @@
       ]
     },
     "studio.mcp-tools#read-doc": {
-      "enHash": "1f8ac6d7831c8abb0a81c03e0ab2c34b768fb752823aaf0f692e0278a25aaa0f",
-      "frHash": "e95e9e9f48b001c7352626923ce9ec2aba63fde09aefb98ad33e4fa6edbd1d8a",
+      "enHash": "a48d1252c9b7568ec7e88388aa0c2924157c7e5e1a3588a8222d237379f5b287",
+      "frHash": "161056687f8b8b3378324c8d86a6b941cd980f981049d953f71954c92228f84a",
       "reviewers": [
-        { "name": "claude-4.5-writers", "kind": "ai", "relation": "author", "date": "2026-10-23" }
+        { "name": "claude-4.5-c2", "kind": "ai", "relation": "author", "date": "2026-10-23" }
       ]
     },
     "studio.mcp-tools#related": {
@@ -19610,10 +19610,10 @@
       ]
     },
     "team.upgrade-engine#references": {
-      "enHash": "57178ed36521c03080d7d9906b69c78a42f2b4b2b41e5094e3457deaa8978d55",
-      "frHash": "77335094ec541028dda82bab10d9c46a40df65072f3820679f6bd1fa177ca714",
+      "enHash": "4fd0a92c17b7e4e8aafb25b4583039176f2de9329dc4e549a2a2eb345ac647cc",
+      "frHash": "0ce0eccc6741fb1f8eb3abe8663336ee30bff0d51f0deb1c310b50c28a58be10",
       "reviewers": [
-        { "name": "claude-4.5-writers", "kind": "ai", "relation": "author", "date": "2026-10-23" }
+        { "name": "claude-4.5-c2", "kind": "ai", "relation": "author", "date": "2026-10-23" }
       ]
     },
     "team.upgrade-engine#steps": {

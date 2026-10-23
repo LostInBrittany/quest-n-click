@@ -39,9 +39,9 @@
     },
     "bridge-bad-token-before-player": {
       "claimTextHash": "ca4d05733dd6e4943c1ea1dd02b2edc3e2a2e8f7a65bdc2ce95048cad898d07f",
-      "testFileHash": "147636c0bc1dc083ee295a456ec2655625a849ceddfaf3a14e8826c95ddd6a10",
+      "testFileHash": "f8274c21f59b9c8d80e5b6e87755e58be130b2e0f8e1e8ffaeb42cd210b07f57",
       "reviewers": [
-        { "name": "claude-4.5-writers", "kind": "ai", "relation": "author", "date": "2026-10-23" }
+        { "name": "claude-4.5-c2", "kind": "ai", "relation": "author", "date": "2026-10-23" }
       ]
     },
     "bridge-badge-network-policy": {
@@ -60,16 +60,16 @@
     },
     "bridge-dedupe-concurrent": {
       "claimTextHash": "6e8fe51f1ac0d6fdb8001ffef46489b88de6a60fc60f75a5734cc428e95a3442",
-      "testFileHash": "147636c0bc1dc083ee295a456ec2655625a849ceddfaf3a14e8826c95ddd6a10",
+      "testFileHash": "f8274c21f59b9c8d80e5b6e87755e58be130b2e0f8e1e8ffaeb42cd210b07f57",
       "reviewers": [
-        { "name": "claude-4.5-writers", "kind": "ai", "relation": "author", "date": "2026-10-23" }
+        { "name": "claude-4.5-c2", "kind": "ai", "relation": "author", "date": "2026-10-23" }
       ]
     },
     "bridge-duplicate-200": {
       "claimTextHash": "f59732398397f0844be63cc68716e592b2c47f5c179bb1bfa11f2f86b742aef9",
-      "testFileHash": "147636c0bc1dc083ee295a456ec2655625a849ceddfaf3a14e8826c95ddd6a10",
+      "testFileHash": "f8274c21f59b9c8d80e5b6e87755e58be130b2e0f8e1e8ffaeb42cd210b07f57",
       "reviewers": [
-        { "name": "claude-4.5-writers", "kind": "ai", "relation": "author", "date": "2026-10-23" }
+        { "name": "claude-4.5-c2", "kind": "ai", "relation": "author", "date": "2026-10-23" }
       ]
     },
     "bridge-email-unseen-when-away": {
@@ -130,9 +130,9 @@
     },
     "bridge-sequences-contiguous": {
       "claimTextHash": "dd3cb12205d9443de02f61270144123ce5ddebf553dbe2a66e8e27d076b71057",
-      "testFileHash": "147636c0bc1dc083ee295a456ec2655625a849ceddfaf3a14e8826c95ddd6a10",
+      "testFileHash": "f8274c21f59b9c8d80e5b6e87755e58be130b2e0f8e1e8ffaeb42cd210b07f57",
       "reviewers": [
-        { "name": "claude-4.5-writers", "kind": "ai", "relation": "author", "date": "2026-10-23" }
+        { "name": "claude-4.5-c2", "kind": "ai", "relation": "author", "date": "2026-10-23" }
       ]
     },
     "bridge-session-replays-offline": {
@@ -200,9 +200,9 @@
     },
     "classics-insult-duel": {
       "claimTextHash": "94276af92ba7771951dee4e2b8fc088398b70fe876edf6e68a470bda044ab885",
-      "testFileHash": "d7886a515783d43e306e7adba3fedb024e0acd8a8adfae2372bc5e54ecdf0aa5",
+      "testFileHash": "af8cad910ef77d37fb25004bc9ced91569ae07c40e91454b8e8d9e1220426d98",
       "reviewers": [
-        { "name": "claude-4.5-writers", "kind": "ai", "relation": "author", "date": "2026-10-23" }
+        { "name": "claude-4.5-c2", "kind": "ai", "relation": "author", "date": "2026-10-23" }
       ]
     },
     "closed-link-stops-walk": {
@@ -438,9 +438,9 @@
     },
     "newer-schema-refused": {
       "claimTextHash": "a1ec3318524c6f481690916a531fbd7565126fa1cc879ab0e865f979a97ec950",
-      "testFileHash": "7366a2db5b0d14224ed55f842f7aaccf707d4e86e4f46fa99aaebb6dc8005ad0",
+      "testFileHash": "947631cc49a86edda1aece09b821204663153f98b4a93708c21a6ebd1a275f41",
       "reviewers": [
-        { "name": "claude-4.5-writers", "kind": "ai", "relation": "author", "date": "2026-10-23" }
+        { "name": "claude-4.5-c2", "kind": "ai", "relation": "author", "date": "2026-10-23" }
       ]
     },
     "no-silent-recut": {
@@ -473,16 +473,16 @@
     },
     "patrol-solved": {
       "claimTextHash": "237aa513408b9834ef583e75f91c5220447731390851fe17e7265918e7ff6ea6",
-      "testFileHash": "d7886a515783d43e306e7adba3fedb024e0acd8a8adfae2372bc5e54ecdf0aa5",
+      "testFileHash": "af8cad910ef77d37fb25004bc9ced91569ae07c40e91454b8e8d9e1220426d98",
       "reviewers": [
-        { "name": "claude-4.5-writers", "kind": "ai", "relation": "author", "date": "2026-10-23" }
+        { "name": "claude-4.5-c2", "kind": "ai", "relation": "author", "date": "2026-10-23" }
       ]
     },
     "patrol-turn-by-turn": {
       "claimTextHash": "9f276776c22ae4a9fec976deb571acf6c5894c6569a9b1de4be3960f73a736de",
-      "testFileHash": "d7886a515783d43e306e7adba3fedb024e0acd8a8adfae2372bc5e54ecdf0aa5",
+      "testFileHash": "af8cad910ef77d37fb25004bc9ced91569ae07c40e91454b8e8d9e1220426d98",
       "reviewers": [
-        { "name": "claude-4.5-writers", "kind": "ai", "relation": "author", "date": "2026-10-23" }
+        { "name": "claude-4.5-c2", "kind": "ai", "relation": "author", "date": "2026-10-23" }
       ]
     },
     "play-save-refused-untouched": {
