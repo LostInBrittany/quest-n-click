@@ -1,8 +1,9 @@
 // npm run wiki -- check | stats [--json] | coverage [--init [--force] | --ack <key>] | build --target wiki --out <dir> [--preview]
 // [--product-version <v>] [--doc-revision <sha>] [--product-commit <sha>] | bundle --out <dir> [--build-id <id>] [--allow-dirty]
 // [the same three] | check --publish --product-ref <tag|sha> [--doc-ref <sha>] [--released] [--state preview|candidate|published]
-// [--test-report <vitest.json>]… [--candidate <run id>] | review-claim <id> --by <name> | translations --ack <id#section> --by <name>
-// | archive --out <file.tar.gz> [--revision r<n>] [--preview] [--build-id <id>] [--allow-dirty] [the same three]
+// [--test-report <vitest.json>]… [--candidate <run id>] | review-claim <id> --by <name> --kind human|ai --relation author|independent | translations --ack <id#section> --by <name> --kind human|ai --relation author|independent
+// | archive --out <file.tar.gz> [--revision r<n>] [--preview] [--build-id <id>] [--test-report <f>… --candidate <run>]
+// [--allow-dirty] [the same three]
 // | publish --target wiki --mode release|revision|rollback|promote|preview --ref <ref> --version <v> --revision r<n>
 // --tag <tag> --repo <owner/name> --archive <file> [--sha256 <hex>] [--rollback-to <v>[-r<n>]] [--dry-run] [--remote <url>]
 // | pages --out <dir> (--repo <owner/name> [--cache <dir>] | --releases <dir> (--repo <r> | --skip-attestations))
@@ -95,6 +96,7 @@ import {
   wikiRemote,
 } from './wiki/publication';
 import { transitionPages, writeTransitionPages } from './wiki/transition';
+import { reviewerOf } from './wiki/reviewer';
 import { ackTranslation } from './wiki/translations';
 
 class UsageError extends Error {}
@@ -144,7 +146,7 @@ export function bundleOutProblem(out: string, tracked: readonly string[], root =
 }
 
 const USAGE =
-  'usage: npm run wiki -- check [--test-report <file>]… | check --publish --product-ref <tag|sha> [--doc-ref <sha>] [--released] [--state preview|candidate|published] [--test-report <file>]… [--candidate <run id>] | review-claim <id> --by <name> | translations --ack <id#section> --by <name> | stats [--json] | coverage [--init [--force] | --ack <key>] | build --target wiki --out <dir> [--preview] [--product-version <v>] [--doc-revision <sha>] [--product-commit <sha>] | bundle --out <dir> [--build-id <id>] [--allow-dirty] [--product-version <v>] [--doc-revision <sha>] [--product-commit <sha>] | archive --out <quest-n-click-docs-<v>[-r<n>].tar.gz> [--revision r<n>] [--preview] [--build-id <id>] [--allow-dirty] [--product-version <v>] [--doc-revision <sha>] [--product-commit <sha>] | publish --target wiki --mode release|revision|rollback|promote|preview --ref <ref> --version <v> --revision r<n> --tag <tag> --archive <file> (--repo <owner/name> | --remote <url>) [--sha256 <hex>] [--rollback-to <v>[-r<n>]] [--dry-run] | pages --out <dir> (--repo <owner/name> [--cache <dir>] | --releases <dir> (--repo <owner/name> | --skip-attestations)) [--publication <file>] | next-revision --version <v> --repo <owner/name> | attest --repo <owner/name> --tag <tag> --file <archive> | transition [--root <dir>] [--version <v>] | env | acceptance [--lang en|fr] [--json] [--strict] [--export-prompts <dir> [--channel mcp|web] [--url <url>]]';
+  'usage: npm run wiki -- check [--test-report <file>]… | check --publish --product-ref <tag|sha> [--doc-ref <sha>] [--released] [--state preview|candidate|published] [--test-report <file>]… [--candidate <run id>] | review-claim <id> --by <name> --kind human|ai --relation author|independent | translations --ack <id#section> --by <name> --kind human|ai --relation author|independent | stats [--json] | coverage [--init [--force] | --ack <key>] | build --target wiki --out <dir> [--preview] [--product-version <v>] [--doc-revision <sha>] [--product-commit <sha>] | bundle --out <dir> [--build-id <id>] [--allow-dirty] [--product-version <v>] [--doc-revision <sha>] [--product-commit <sha>] | archive --out <quest-n-click-docs-<v>[-r<n>].tar.gz> [--revision r<n>] [--preview] [--build-id <id>] [--test-report <file>… --candidate <run id>] [--allow-dirty] [--product-version <v>] [--doc-revision <sha>] [--product-commit <sha>] | publish --target wiki --mode release|revision|rollback|promote|preview --ref <ref> --version <v> --revision r<n> --tag <tag> --archive <file> (--repo <owner/name> | --remote <url>) [--sha256 <hex>] [--rollback-to <v>[-r<n>]] [--dry-run] | pages --out <dir> (--repo <owner/name> [--cache <dir>] | --releases <dir> (--repo <owner/name> | --skip-attestations)) [--publication <file>] | next-revision --version <v> --repo <owner/name> | attest --repo <owner/name> --tag <tag> --file <archive> | transition [--root <dir>] [--version <v>] | env | acceptance [--lang en|fr] [--json] [--strict] [--export-prompts <dir> [--channel mcp|web] [--url <url>]]';
 
 /** Today, as a day (the date a review or an ack records). */
 const today = () => new Date().toISOString().slice(0, 10);
@@ -229,37 +231,53 @@ function run(args: readonly string[]): number {
   }
   if (command === 'review-claim') {
     const id = args[1];
-    const by = option(args, 'by');
-    if (!id || id.startsWith('--') || !by) throw new UsageError('review-claim needs <id> and --by <name>');
+    const { reviewer, problem: who } = reviewerOf(
+      { by: option(args, 'by'), kind: option(args, 'kind'), relation: option(args, 'relation') },
+      today(),
+    );
+    if (!id || id.startsWith('--') || !reviewer)
+      throw new UsageError(
+        `review-claim needs <id>, --by <name>, --kind human|ai and --relation author|independent${who ? ` (${who})` : ''}`,
+      );
     const r = checkWiki({ wikiDir, tracked: trackedFiles() });
     const state = r.claims.find((c) => c.id === id);
     if (!state) {
       console.error(`✖  ${id} is no claim of the manifest (${r.claims.map((c) => c.id).join(', ') || 'none'})`);
       return 1;
     }
-    const problem = reviewClaim({ wikiDir, state, by, date: today() });
+    const problem = reviewClaim({ wikiDir, state, reviewer });
     if (problem) {
       console.error(`✖  ${problem}`);
       return 1;
     }
-    console.log(`✔  ${id}: scope reviewed by ${by} (${state.test}); a change to the claim or its test file resets it`);
+    console.log(
+      `✔  ${id}: scope read by ${reviewer.name} (${reviewer.kind}, ${reviewer.relation}; ${state.test}); a change to the claim or its test file resets it`,
+    );
     return 0;
   }
   if (command === 'translations') {
     const key = option(args, 'ack');
-    const by = option(args, 'by');
-    if (!key || !by) throw new UsageError('translations needs --ack <id#section> and --by <name>');
+    const { reviewer, problem: who } = reviewerOf(
+      { by: option(args, 'by'), kind: option(args, 'kind'), relation: option(args, 'relation') },
+      today(),
+    );
+    if (!key || !reviewer)
+      throw new UsageError(
+        `translations needs --ack <id#section>, --by <name>, --kind human|ai and --relation author|independent${who ? ` (${who})` : ''}`,
+      );
     const { manifest, errors } = readManifest(wikiDir);
     if (!manifest) {
       for (const e of errors) console.error(`✖  ${e}`);
       return 1;
     }
-    const problem = ackTranslation({ wikiDir, manifest, key, by, date: today() });
+    const problem = ackTranslation({ wikiDir, manifest, key, reviewer });
     if (problem) {
       console.error(`✖  ${problem}`);
       return 1;
     }
-    console.log(`✔  ${key}: the two languages recorded as read against each other by ${by}`);
+    console.log(
+      `✔  ${key}: the two languages recorded as read against each other by ${reviewer.name} (${reviewer.kind}, ${reviewer.relation})`,
+    );
     return 0;
   }
   if (command === 'stats') {
@@ -417,7 +435,20 @@ function archive(args: readonly string[], wikiDir: string): number {
   if (!REVISION.test(revision)) throw new UsageError('--revision is r1, r2…');
   const preview = args.includes('--preview');
   const tracked = trackedFiles();
-  const r = checkWiki({ wikiDir, tracked });
+  // The candidate's test report (§4.4.3), read under the rules of `check --publish`: its commit.json names the product
+  // commit and the candidate run, and only then is a guarantee rendered "executed on <sha>". An input, not a clock.
+  const testReports = options(args, 'test-report');
+  const candidate = option(args, 'candidate');
+  if (testReports.length && !candidate)
+    throw new UsageError('archive --test-report needs --candidate <run id>, the run the report must come from');
+  const docRevisionEarly = option(args, 'doc-revision') ?? head();
+  const r = checkWiki({
+    wikiDir,
+    tracked,
+    testReports,
+    ...(candidate ? { candidate } : {}),
+    productCommit: option(args, 'product-commit') ?? docRevisionEarly,
+  });
   if (!r.manifest || r.errors.length) {
     for (const e of r.errors) console.error(`✖  ${e}`);
     console.error('✖  the sources do not pass `npm run wiki -- check`: no archive');
@@ -439,7 +470,7 @@ function archive(args: readonly string[], wikiDir: string): number {
     );
     return 1;
   }
-  const docRevision = option(args, 'doc-revision') ?? head();
+  const docRevision = docRevisionEarly;
   const buildId = option(args, 'build-id');
   let built: ReturnType<typeof buildArchive>;
   try {

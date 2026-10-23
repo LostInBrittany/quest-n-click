@@ -90,7 +90,7 @@ get a timing, to write in your own records, and the proof that your backups can 
    # on your machine, in the engine repository, same version as the studio app
    export STUDIO_DATABASE_URL='<the drill add-on URI from step 2>'
    export STUDIO_S3_KEY_ID='<Cellar key id>' STUDIO_S3_KEY_SECRET='<Cellar secret>'
-   time npm run studio-server -- restore backups-latest.json --replay --config drill.config.json
+   time npm run -s studio-server -- restore backups-latest.json --replay --config drill.config.json
    ```
 
    It checks the backup's digest, its tables and columns, and that every blob the backup and the journal name is in
@@ -104,6 +104,12 @@ get a timing, to write in your own records, and the proof that your backups can 
 The check runs inside the restore's transaction, before the first row is written
 ([`studio-server/src/ops/backup.ts`](../../studio-server/src/ops/backup.ts)): pointing step 4 at production by mistake
 is refused, and leaves it as it was. Still, never put production's URI in that shell.
+
+> [!LIMIT id=same-engine-version]
+> Run the restore with the same engine version as the backup, which is production's when the backup is recent.
+> `restore` first migrates the target database to the engine it runs on, then compares the backup's schema with it.
+> With a newer engine than production, the drill database is migrated past the backup and the restore is refused
+> ("the backup is of schema …"): delete that add-on and start again with the right version.
 
 <!-- step: compare -->
 5. Compare, read-only, on both databases (`psql <URI>`): `SELECT value FROM studio_meta WHERE key = 'revision'` gives
@@ -120,8 +126,10 @@ is refused, and leaves it as it was. Still, never put production's URI in that s
    ```
 
 > [!MEASURE id=restore-time]
-> Measured on the reference deployment: a restore with replay took 28.7 s, then 59.7 s on a larger backup. About half a
-> minute to a minute: an observation on one small game, not a promise for yours.
+> Measured twice on the reference deployment, one sample each: 28.7 s in its phase A (a backup at revision 1, 508 rows,
+> nothing to replay, engine at commit 52e68932) and 59.7 s in its phase B (a backup at revision 63, 593 rows, 2
+> operations replayed, engine at commit c66fbf56). The report does not say what the difference comes from. Read it as
+> about half a minute to a minute on one small game: an observation, not a promise for yours.
 > - date: 2026-10-19
 > - version: 4.2.2
 > - volume: 508 rows (backup at revision 1); then 593 rows and 2 operations replayed (backup at revision 63, head 65)
@@ -138,7 +146,7 @@ is refused, and leaves it as it was. Still, never put production's URI in that s
 
 ## Expected result, and how to check it
 
-`restore` exits 0 and prints one JSON line, for example
+`npm run -s studio-server -- restore …` exits 0 and prints one JSON line (`-s` keeps npm's own lines out), for example
 `{"event":"restored","rows":593,"dropped":0,"backup":63,"revision":65}`, with no `stopped`. The revision reached is
 the head you noted in step 1, or later. Step 5 shows the same files at the same revision in both databases.
 
@@ -169,8 +177,11 @@ the head you noted in step 1, or later. Step 5 shows the same files at the same 
 
 ## Recovery or going back
 
-- If the restore stops midway (a lost connection), the drill database is marked "restore under way": the server will
-  not start on it. Resume with `npm run studio-server -- replay --config drill.config.json`, or delete the add-on and
+- The rows are written in one transaction. If the restore fails there (a lost connection, a missing blob, another
+  schema), nothing of the backup is written: the drill database is left empty but migrated, since `restore` migrates
+  it first. Run `restore` again into it; `replay` would only answer "no restore is under way".
+- If the replay fails after the rows were written, the database is marked as being restored and the server will not
+  start on it. Resume with `npm run -s studio-server -- replay --config drill.config.json`, or delete the add-on and
   start again.
 - Never run `gc --delete` against the drill database: it would delete blobs production still names.
 - A restore logs everyone out: sessions and leases are not in a backup. That matters on a real restore, not on a drill.

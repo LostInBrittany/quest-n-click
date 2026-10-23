@@ -180,14 +180,15 @@ export const ARTIFACTS = [
     published: '{proj}-{tag}-surfaces.json',
   },
   // The documentation archive (4.5.0, docs/dev/PLAN-4.5-WIKI.md §4.5.4): the bundle, the rendered site and the wiki of
-  // the release's commit, revision r1, built twice by the candidate; docs-publish promotes this very file after `ship
-  // verify`. In the candidate under package.json's version; published under the tag's (an rc's suffix included).
+  // the release's commit, revision r1, built twice by the candidate (its job docs-archive, after release-core, from the
+  // candidate's test report); docs-publish promotes this very file after `ship verify`. In the candidate under
+  // package.json's version; published under the tag's (an rc's suffix included).
   {
     id: 'docs:archive',
     kind: 'documentation',
     candidate: 'docs/{proj}-docs-{pkg}.tar.gz',
     artifact: 'candidate-docs',
-    job: 'pack',
+    job: 'docs-archive',
     published: '{proj}-docs-{v}.tar.gz',
     since: '4.5.0',
   },

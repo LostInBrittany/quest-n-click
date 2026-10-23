@@ -119,7 +119,7 @@ describe('the manifest of a release', () => {
     );
     expect(releaseFiles('v4.4.0', candidateFiles('4.4.0', [])).filter((f: string) => f.includes('-docs-'))).toEqual([]);
     const entry = ALL.find((a) => a.id === 'docs:archive')!;
-    expect(entry).toMatchObject({ artifact: 'candidate-docs', job: 'pack', since: '4.5.0' });
+    expect(entry).toMatchObject({ artifact: 'candidate-docs', job: 'docs-archive', since: '4.5.0' });
     // The candidate's surfaces classify it (tools/field/surfaces.mjs fails on a file in no surface and no status).
     const surfaces = JSON.parse(readFileSync('docs/dev/surfaces.json', 'utf8')) as { status: { path: string }[] };
     expect(surfaces.status.map((x) => x.path)).toContain('docs/*');

@@ -24,10 +24,13 @@ for **120 seconds**, a *lease*. Your Studio renews your leases every 30 seconds 
 
 1. **Another member holds that span's lease**: they saved in that room, or took it ahead, and their Studio is still
    open (or was closed less than two minutes ago). The most common case.
-2. **An owner holds the exclusive lease** (`*`): the whole game is theirs for a change that touches everything (an
-   engine upgrade, preparing the assets, a pull from Git). Nobody else writes meanwhile.
-3. **Your own lease ended or was taken over** while you kept a draft open (your tab slept, or an owner took the span
-   over): the server refuses a write that still carries the old lease's number.
+2. **A member holds the exclusive lease** (`*`): the whole game is theirs while a job that touches everything runs.
+   Prepare and the cutting of the Assets tab take it for the dev who starts them; an engine upgrade and a Git import
+   take it for the owner who starts them; each gives it back when its job ends. An owner can also take it by hand.
+   Nobody else writes meanwhile.
+3. **A script's lease ended or was taken over.** A client that sends the fences it was given (`x-studio-fences`) is
+   refused when its lease ran out or an owner took the span over since. Only API clients that choose to send them get
+   this; the Studio and the MCP do not. Your own lease never refuses you, from any of your tabs.
 
 > [!LIMIT id=hosted-only]
 > Spans and leases exist on a hosted Studio (the Studio Server) only. The local Studio (`npm run studio`) has one
@@ -37,13 +40,13 @@ for **120 seconds**, a *lease*. Your Studio renews your leases every 30 seconds 
 
 ## Diagnosis
 
-- The dialog names the holder. The Studio's spans panel lists who holds what, and until when; it follows the server's
+- The dialog names the holder. The Studio's Spans panel lists who holds what, and until when; it follows the server's
   live events.
 - As a member, `GET /api/leases` gives every lease: `span`, `holderName` and `until` (a time on the server's clock,
   in milliseconds).
-- A span `*` in the list is an owner's exclusive lease.
-- If the holder is you, in another tab, or the span is free and the message says "ended or was taken again", it is
-  cause 3.
+- A span `*` in the list is an exclusive lease: its `holderName` is the member whose job (or whose hand) holds it.
+- The message "your lease on … ended or was taken again" is cause 3, and only a script sending `x-studio-fences`
+  sees it.
 
 <a name="fix"></a>
 
@@ -56,7 +59,7 @@ for **120 seconds**, a *lease*. Your Studio renews your leases every 30 seconds 
    it is.
 
 <!-- step: ask -->
-2. **Ask.** Tell the holder you need that room. When they release the span in their spans panel, it is free at once.
+2. **Ask.** Tell the holder you need that room. When they release the span in their Spans panel, it is free at once.
 
 <!-- step: owner-takeover -->
 3. **Take it over (owner only).** An owner can click "Take over and save (owner)": the span becomes theirs and the
@@ -65,18 +68,19 @@ for **120 seconds**, a *lease*. Your Studio renews your leases every 30 seconds 
    `{"span": "room:kitchen"}`.
 
 <!-- step: exclusive-lease -->
-4. **The exclusive lease.** When the holder is an owner with the whole game (`*`), wait for the end of their change;
-   they give it back with `POST /api/exclusive/release`, or it runs out. An owner who needs the whole game takes it
-   with `POST /api/exclusive`, granted only when nobody else holds a span.
+4. **The exclusive lease.** When someone holds the whole game (`*`) for a job (Prepare, a cutting, an engine upgrade,
+   a Git import), wait for the job to end: the lease is given back with it. An owner who took it by hand gives it back
+   with `POST /api/exclusive/release`, or it runs out. Taking it by hand (`POST /api/exclusive`) and releasing it by
+   hand are an owner's; it is granted only when nobody else holds a span.
 
-For cause 3, take the span again (the spans panel, or `POST /api/leases` with `{"spans": ["room:kitchen"]}`), then
-try again.
+For cause 3, the script takes the span again (`POST /api/leases` with `{"spans": ["room:kitchen"]}`), keeps the new
+fences it gets, then sends its write again.
 
 <a name="check-fixed"></a>
 
 ## Check it is fixed
 
-The save goes through: the Studio shows the new revision, and the spans panel shows the span as yours. Through the
+The save goes through: the Studio shows the new revision, and the Spans panel shows the span as yours. Through the
 API, the write answers 200 with the revision it made.
 
 <a name="neighbours"></a>

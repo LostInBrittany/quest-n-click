@@ -26,11 +26,14 @@ renouvelle vos baux toutes les 30 secondes tant qu’il reste ouvert. Alors :
 
 1. **Un autre membre tient le bail de ce pan** : il a enregistré dans cette salle, ou l’a prise d’avance, et son Studio
    est encore ouvert (ou a été fermé il y a moins de deux minutes). C’est le cas le plus courant.
-2. **Un propriétaire tient le bail exclusif** (`*`) : tout le jeu est à lui le temps d’un changement qui touche à tout
-   (une mise à jour du moteur, la préparation des images, une récupération depuis Git). Personne d’autre n’écrit
-   pendant ce temps.
-3. **Votre propre bail a expiré ou a été repris** pendant que vous gardiez un brouillon ouvert (votre onglet dormait,
-   ou un propriétaire a repris le pan) : le serveur refuse une écriture qui porte encore le numéro de l’ancien bail.
+2. **Un membre tient le bail exclusif** (`*`) : tout le jeu est à lui le temps d’un job qui touche à tout. Prepare et
+   le découpage de l’onglet Assets le prennent pour le dev qui les lance ; une mise à jour du moteur et un import depuis
+   Git le prennent pour le propriétaire qui les lance ; chacun le rend à la fin de son job. Un propriétaire peut aussi
+   le prendre à la main. Personne d’autre n’écrit pendant ce temps.
+3. **Le bail d’un script a expiré ou a été repris.** Un client qui renvoie les jetons de bail reçus (`x-studio-fences`)
+   est refusé quand son bail a expiré ou qu’un propriétaire a repris le pan entre-temps. Seuls les clients de l’API qui
+   choisissent de les envoyer le voient ; le Studio et le MCP ne les envoient pas. Votre propre bail ne vous refuse
+   jamais, quel que soit votre onglet.
 
 > [!LIMIT id=hosted-only]
 > Les pans et les baux n’existent que sur un Studio hébergé (le Studio Server). Le Studio local (`npm run studio`) n’a
@@ -40,13 +43,13 @@ renouvelle vos baux toutes les 30 secondes tant qu’il reste ouvert. Alors :
 
 ## Diagnostic
 
-- La fenêtre nomme le détenteur. Le panneau des pans du Studio liste qui tient quoi, et jusqu’à quand ; il suit les
+- La fenêtre nomme le détenteur. Le panneau *Spans* du Studio liste qui tient quoi, et jusqu’à quand ; il suit les
   événements en direct du serveur.
 - En membre, `GET /api/leases` donne chaque bail : `span`, `holderName` et `until` (une heure de l’horloge du serveur,
   en millisecondes).
-- Un pan `*` dans la liste est le bail exclusif d’un propriétaire.
-- Si le détenteur est vous, dans un autre onglet, ou si le pan est libre et que le message dit « ended or was taken
-  again », c’est la cause 3.
+- Un pan `*` dans la liste est un bail exclusif : son `holderName` est le membre dont le job (ou la main) le tient.
+- Le message « your lease on … ended or was taken again » est la cause 3, et seul un script qui envoie
+  `x-studio-fences` le voit.
 
 <a name="fix"></a>
 
@@ -59,8 +62,8 @@ renouvelle vos baux toutes les 30 secondes tant qu’il reste ouvert. Alors :
    « Try again » : votre brouillon part tel quel.
 
 <!-- step: ask -->
-2. **Demander.** Dites au détenteur que vous avez besoin de cette salle. Dès qu’il libère le pan dans son panneau des
-   pans, il est libre.
+2. **Demander.** Dites au détenteur que vous avez besoin de cette salle. Dès qu’il libère le pan dans son panneau
+   *Spans*, il est libre.
 
 <!-- step: owner-takeover -->
 3. **Reprendre le pan (propriétaire seulement).** Un propriétaire peut cliquer sur « Take over and save (owner) » : le
@@ -69,18 +72,19 @@ renouvelle vos baux toutes les 30 secondes tant qu’il reste ouvert. Alors :
    l’API : `POST /api/leases/takeover` avec `{"span": "room:kitchen"}`.
 
 <!-- step: exclusive-lease -->
-4. **Le bail exclusif.** Quand le détenteur est un propriétaire qui tient tout le jeu (`*`), attendez la fin de son
-   changement ; il le rend avec `POST /api/exclusive/release`, ou le bail expire. Un propriétaire qui a besoin de tout
-   le jeu le prend avec `POST /api/exclusive`, accordé seulement quand personne d’autre ne tient de pan.
+4. **Le bail exclusif.** Quand quelqu’un tient tout le jeu (`*`) pour un job (Prepare, un découpage, une mise à jour
+   du moteur, un import depuis Git), attendez la fin du job : le bail est rendu avec lui. Un propriétaire qui l’a pris à
+   la main le rend avec `POST /api/exclusive/release`, ou le bail expire. Le prendre à la main (`POST /api/exclusive`)
+   et le rendre à la main reviennent à un propriétaire ; il n’est accordé que si personne d’autre ne tient de pan.
 
-Pour la cause 3, reprenez le pan (le panneau des pans, ou `POST /api/leases` avec `{"spans": ["room:kitchen"]}`),
-puis réessayez.
+Pour la cause 3, le script reprend le pan (`POST /api/leases` avec `{"spans": ["room:kitchen"]}`), garde les nouveaux
+jetons reçus, puis renvoie son écriture.
 
 <a name="check-fixed"></a>
 
 ## Vérifier que c’est corrigé
 
-L’enregistrement passe : le Studio affiche la nouvelle révision, et le panneau des pans montre le pan comme le vôtre.
+L’enregistrement passe : le Studio affiche la nouvelle révision, et le panneau *Spans* montre le pan comme le vôtre.
 Par l’API, l’écriture répond 200 avec la révision qu’elle a créée.
 
 <a name="neighbours"></a>

@@ -62,6 +62,10 @@ const CONSUMERS: Record<string, { phase: Phase; reads: string }> = {
     phase: 'A4 active',
     reads: "wiki/acceptance/questions.json and wiki/'s pages through the loader, and the acceptance fixture",
   },
+  'tests/wiki-archive.test.ts': {
+    phase: 'A4 active',
+    reads: "the wiki fixture's archive in memory, and the repository wiki's archive built with a test report (A7)",
+  },
   'tests/wiki-env.test.ts': {
     phase: 'A4 active',
     reads:

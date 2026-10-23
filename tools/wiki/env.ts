@@ -58,9 +58,10 @@ const EnvSchema = z
           /**
            * Where its value comes from: `code`, you set it and the code reads it at run time; `build`, read when the
            * page or package is built (Vite); `platform`, set by the platform the program runs on (Clever Cloud, GitHub
-           * Actions, npm, the system); `add-on`, injected by a Clever Cloud add-on linked to the app.
+           * Actions, npm, the system); `add-on`, injected by a Clever Cloud add-on linked to the app; `ci`, set and read
+           * by the workflows of `.github/workflows/` (their `env:` blocks, `${{ env.X }}`, their shell).
            */
-          origin: z.enum(['code', 'build', 'platform', 'add-on']),
+          origin: z.enum(['code', 'build', 'platform', 'add-on', 'ci']),
           /**
            * Who sets it: required for `platform` and `add-on` (Clever Cloud, the PostgreSQL add-on, GitHub Actions…);
            * for `code` or `build`, a script or a command of the product that sets it, so a reader knows not to.
@@ -131,6 +132,7 @@ export interface DynamicUse {
 const CODE = /\.(ts|tsx|mts|js|mjs|cjs)$/;
 const PYTHON = /\.py$/;
 const SHELL = [/\.sh$/, globToRegExp('ops/**/*.yml'), globToRegExp('clevercloud/**')];
+const WORKFLOW = globToRegExp('.github/workflows/*.yml');
 const LEFT_OUT = [globToRegExp('tests/**'), globToRegExp('**/vendor/**')];
 
 /** The reads of one code file: named ones, and computed ones. */
@@ -143,8 +145,9 @@ export function scanCode(file: string, text: string): { uses: EnvUse[]; dynamic:
     // A comment line names variables without reading them (this file's own comments do).
     if (/^\s*(\/\/|\/?\*)/.test(l)) return;
     const add = (name: string, index: number, length: number) => {
-      // `env.X = …` sets a child's variable; `==`, `??=` and `||=` read it.
+      // `env.X = …` sets a child's variable and `delete env.X` clears it; `==`, `??=` and `||=` read it.
       if (/^\s*=(?!=)/.test(l.slice(index + length))) return;
+      if (/\bdelete\s+$/.test(l.slice(0, index))) return;
       uses.push({ name, file, line });
     };
     for (const m of l.matchAll(/\bprocess\.env\.([A-Za-z_][A-Za-z0-9_]*)/g)) add(m[1]!, m.index, m[0].length);
@@ -156,6 +159,20 @@ export function scanCode(file: string, text: string): { uses: EnvUse[]; dynamic:
     for (const m of l.matchAll(/(?<![\w])(?:process\.env|env)\[\s*([^\]'"\s][^\]]*)\]/g))
       dynamic.push({ file, line, expression: m[0] });
   });
+  // Destructuring: `const { A, B: b, C = 'x', ...rest } = process.env` reads A, B and C (a rest is a dynamic read).
+  const code = lines.map((l) => (/^\s*(\/\/|\/?\*)/.test(l) ? '' : l)).join('\n');
+  for (const m of code.matchAll(/\{([^{}]*)\}\s*=\s*process\.env\b/g)) {
+    const line = code.slice(0, m.index).split('\n').length;
+    for (const part of m[1]!.split(',')) {
+      const t = part.trim();
+      if (!t) continue;
+      if (t.startsWith('...')) dynamic.push({ file, line, expression: `{ ${t} } = process.env` });
+      else {
+        const name = /^([A-Za-z_][A-Za-z0-9_]*)/.exec(t)?.[1];
+        if (name) uses.push({ name, file, line });
+      }
+    }
+  }
   return { uses, dynamic };
 }
 
@@ -185,6 +202,36 @@ export function scanShell(file: string, text: string): EnvUse[] {
   return uses;
 }
 
+/**
+ * The variables a GitHub workflow names: the keys of its `env:` blocks, `${{ env.X }}`, the `X=…` it appends to
+ * `$GITHUB_ENV`, and what its shell reads (`$X`, `${X}` in capitals, minus what it assigns). All are the CI's.
+ */
+export function scanWorkflow(file: string, text: string): EnvUse[] {
+  const uses: EnvUse[] = [];
+  const lines = text.split('\n');
+  lines.forEach((l, i) => {
+    const block = /^(\s*)env:\s*$/.exec(l);
+    if (!block) return;
+    const indent = block[1]!.length;
+    for (let j = i + 1; j < lines.length; j++) {
+      const k = lines[j]!;
+      if (!k.trim() || /^\s*#/.test(k)) continue;
+      const at = k.length - k.trimStart().length;
+      if (at <= indent) break;
+      const key = /^\s*([A-Za-z_][A-Za-z0-9_]*):\s*\S/.exec(k);
+      if (key && at === indent + 2) uses.push({ name: key[1]!, file, line: j + 1 });
+    }
+  });
+  lines.forEach((l, i) => {
+    for (const m of l.matchAll(/\$\{\{\s*env\.([A-Za-z_][A-Za-z0-9_]*)/g))
+      uses.push({ name: m[1]!, file, line: i + 1 });
+    for (const m of l.matchAll(/\b([A-Z_][A-Z0-9_]*)=[^\n]*>>\s*"?\$GITHUB_ENV/g))
+      uses.push({ name: m[1]!, file, line: i + 1 });
+  });
+  // `${{ … }}` is the workflow's own expression language, not the shell's: left out before the shell is read.
+  return [...uses, ...scanShell(file, text.replace(/\$\{\{[^}]*\}\}/g, ''))];
+}
+
 /** Every read of the tracked files under `root`. */
 export function scanEnv(root: string, tracked: readonly string[]): { uses: EnvUse[]; dynamic: DynamicUse[] } {
   const uses: EnvUse[] = [];
@@ -195,9 +242,11 @@ export function scanEnv(root: string, tracked: readonly string[]): { uses: EnvUs
       ? 'code'
       : PYTHON.test(file)
         ? 'python'
-        : SHELL.some((re) => re.test(file))
-          ? 'shell'
-          : '';
+        : WORKFLOW.test(file)
+          ? 'workflow'
+          : SHELL.some((re) => re.test(file))
+            ? 'shell'
+            : '';
     if (!kind) continue;
     let text: string;
     try {
@@ -210,6 +259,7 @@ export function scanEnv(root: string, tracked: readonly string[]): { uses: EnvUs
       uses.push(...r.uses);
       dynamic.push(...r.dynamic);
     } else if (kind === 'python') uses.push(...scanPython(file, text));
+    else if (kind === 'workflow') uses.push(...scanWorkflow(file, text));
     else uses.push(...scanShell(file, text));
   }
   return { uses, dynamic };
@@ -248,7 +298,11 @@ export function envProblems(register: EnvRegister, scan: ReturnType<typeof scanE
         `${ENV_FILE}: ${name} is read by ${at[0]!.file}:${at[0]!.line} and has no description: add it to the register (npm run wiki -- env)`,
       );
   for (const v of register.variables)
-    if ((v.origin === 'code' || v.origin === 'build') && !read.has(v.name) && !resolved.has(v.name))
+    if (
+      (v.origin === 'code' || v.origin === 'build' || v.origin === 'ci') &&
+      !read.has(v.name) &&
+      !resolved.has(v.name)
+    )
       out.push(
         `${ENV_FILE}: ${v.name} (${v.origin}) is read nowhere in the code any more: remove it, or say who sets it (platform, add-on)`,
       );
@@ -287,12 +341,14 @@ const ORIGIN = {
     build: 'read when the page or the package is built',
     platform: (by: string) => `set by ${by}`,
     'add-on': (by: string) => `injected by ${by}`,
+    ci: 'set by a workflow of `.github/workflows/` (CI and releases)',
   },
   fr: {
     code: 'vous la posez ; le code la lit',
     build: 'lue à la construction de la page ou du paquet',
     platform: (by: string) => `posée par ${by}`,
     'add-on': (by: string) => `injectée par ${by}`,
+    ci: 'posée par un workflow de `.github/workflows/` (CI et publications)',
   },
 } as const;
 const WORDS = {
@@ -343,11 +399,13 @@ export function envSections(register: EnvRegister, scan: ReturnType<typeof scanE
     const vars = register.variables.filter((v) => v.group === g.id).sort((a, b) => (a.name < b.name ? -1 : 1));
     for (const v of vars) {
       const origin =
-        v.origin === 'code' || v.origin === 'build'
-          ? v.setBy
-            ? `${ORIGIN[lang].platform(v.setBy[lang])}${v.origin === 'build' ? ` (${ORIGIN[lang].build})` : ''}`
-            : ORIGIN[lang][v.origin]
-          : ORIGIN[lang][v.origin](v.setBy?.[lang] ?? '?');
+        v.origin === 'ci'
+          ? ORIGIN[lang].ci
+          : v.origin === 'code' || v.origin === 'build'
+            ? v.setBy
+              ? `${ORIGIN[lang].platform(v.setBy[lang])}${v.origin === 'build' ? ` (${ORIGIN[lang].build})` : ''}`
+              : ORIGIN[lang][v.origin]
+            : ORIGIN[lang][v.origin](v.setBy?.[lang] ?? '?');
       const where = (files.get(v.name) ?? []).sort();
       const shown = where
         .slice(0, 3)

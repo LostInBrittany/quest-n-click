@@ -93,7 +93,7 @@ obtenez aussi une durée, à noter dans vos propres relevés, et la preuve que v
    # sur votre machine, dans le dépôt du moteur, même version que l'application studio
    export STUDIO_DATABASE_URL='<the drill add-on URI from step 2>'
    export STUDIO_S3_KEY_ID='<Cellar key id>' STUDIO_S3_KEY_SECRET='<Cellar secret>'
-   time npm run studio-server -- restore backups-latest.json --replay --config drill.config.json
+   time npm run -s studio-server -- restore backups-latest.json --replay --config drill.config.json
    ```
 
    La commande vérifie l’empreinte de la sauvegarde, ses tables et ses colonnes, et la présence dans le bucket de
@@ -108,6 +108,12 @@ obtenez aussi une durée, à noter dans vos propres relevés, et la preuve que v
 La vérification a lieu dans la transaction de la restauration, avant l’écriture de la première ligne
 ([`studio-server/src/ops/backup.ts`](../../studio-server/src/ops/backup.ts)) : viser la production par erreur à
 l’étape 4 est refusé, et la laisse telle qu’elle était. N’ayez quand même jamais l’URI de la production dans ce shell.
+
+> [!LIMIT id=same-engine-version]
+> Lancez la restauration avec la même version du moteur que la sauvegarde, celle de la production quand la sauvegarde
+> est récente. `restore` migre d’abord la base cible vers le moteur qui tourne, puis compare le schéma de la sauvegarde
+> au sien. Avec un moteur plus récent que la production, la base de l’exercice est migrée au-delà de la sauvegarde et la
+> restauration est refusée (« the backup is of schema … ») : supprimez cet add-on et recommencez avec la bonne version.
 
 <!-- step: compare -->
 5. Comparez, en lecture seule, sur les deux bases (`psql <URI>`) : `SELECT value FROM studio_meta WHERE key =
@@ -125,8 +131,10 @@ l’étape 4 est refusé, et la laisse telle qu’elle était. N’ayez quand m�
    ```
 
 > [!MEASURE id=restore-time]
-> Mesuré sur le déploiement de référence : une restauration avec rejeu a pris 28,7 s, puis 59,7 s sur une sauvegarde
-> plus grosse. Entre une demi-minute et une minute : une observation sur un petit jeu, pas une promesse pour le vôtre.
+> Mesuré deux fois sur le déploiement de référence, un échantillon chacun : 28,7 s dans sa phase A (une sauvegarde à
+> la révision 1, 508 lignes, rien à rejouer, moteur au commit 52e68932) et 59,7 s dans sa phase B (une sauvegarde à la
+> révision 63, 593 lignes, 2 opérations rejouées, moteur au commit c66fbf56). Le rapport ne dit pas d’où vient l’écart.
+> Retenez entre une demi-minute et une minute sur un petit jeu : une observation, pas une promesse pour le vôtre.
 > - date: 2026-10-19
 > - version: 4.2.2
 > - volume: 508 lignes (sauvegarde à la révision 1) ; puis 593 lignes et 2 opérations rejouées (sauvegarde à la révision 63, tête à 65)
@@ -144,7 +152,8 @@ l’étape 4 est refusé, et la laisse telle qu’elle était. N’ayez quand m�
 
 ## Résultat attendu, et comment le vérifier
 
-`restore` sort avec le code 0 et affiche une ligne JSON, par exemple
+`npm run -s studio-server -- restore …` sort avec le code 0 et affiche une ligne JSON (`-s` écarte les lignes de npm),
+par exemple
 `{"event":"restored","rows":593,"dropped":0,"backup":63,"revision":65}`, sans `stopped`. La révision atteinte est la
 tête notée à l’étape 1, ou une plus récente. L’étape 5 montre les mêmes fichiers à la même révision dans les deux bases.
 
@@ -175,9 +184,12 @@ tête notée à l’étape 1, ou une plus récente. L’étape 5 montre les mêm
 
 ## Reprise ou retour arrière
 
-- Si la restauration s’arrête en route (une connexion perdue), la base de l’exercice est marquée « restauration en
-  cours » : le serveur refuse d’y démarrer. Reprenez avec `npm run studio-server -- replay --config drill.config.json`,
-  ou supprimez l’add-on et recommencez.
+- Les lignes sont écrites en une seule transaction. Si la restauration échoue à ce moment (une connexion perdue, un blob
+  manquant, un autre schéma), rien de la sauvegarde n’est écrit : la base de l’exercice reste vide mais migrée, puisque
+  `restore` la migre d’abord. Relancez `restore` dessus ; `replay` répondrait seulement « no restore is under way ».
+- Si le rejeu échoue après l’écriture des lignes, la base est marquée « restauration en cours » et le serveur refuse
+  d’y démarrer. Reprenez avec `npm run -s studio-server -- replay --config drill.config.json`, ou supprimez l’add-on et
+  recommencez.
 - Ne lancez jamais `gc --delete` sur la base de l’exercice : elle supprimerait des blobs que la production nomme encore.
 - Une restauration déconnecte tout le monde : les sessions et les baux ne sont pas dans une sauvegarde. Cela compte
   pour une vraie restauration, pas pour un exercice.

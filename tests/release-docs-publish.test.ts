@@ -210,13 +210,35 @@ describe('release.yml', () => {
 });
 
 describe('candidate.yml and ci.yml', () => {
-  it('the candidate builds the archive twice, compares the bytes, uploads it, and the gate puts it in the manifest', () => {
+  it('the candidate builds the archive twice from its own test report, compares the bytes, uploads it, and the gate puts it in the manifest', () => {
     const yml = read('candidate');
-    const pack = job(yml, 'pack');
-    expect(pack.match(/npm run -s wiki -- archive --out/g)?.length).toBe(2);
-    expect(pack).toMatch(/--build-id \$\{\{ github\.run_id \}\} --revision r1/);
-    expect(pack).toMatch(/cmp "candidate-docs\/quest-n-click-docs-\$v\.tar\.gz"/);
+    const docs = job(yml, 'docs-archive');
+    // After release-core, whose candidate-test-report it downloads before archiving (§4.4.3: "executed on <sha>").
+    expect(docs).toMatch(/needs: \[target, release-core\]/);
+    const download = docs.indexOf('name: candidate-test-report');
+    expect(download).toBeGreaterThan(-1);
+    expect(download).toBeLessThan(docs.indexOf('npm run -s wiki -- archive --out'));
+    expect(docs.match(/npm run -s wiki -- archive --out/g)?.length).toBe(2);
+    expect(
+      docs.match(
+        /--build-id \$\{\{ github\.run_id \}\} --revision r1 --candidate \$\{\{ github\.run_id \}\} --test-report \.cache\/candidate-test-report\/vitest\.json/g,
+      )?.length,
+    ).toBe(2);
+    expect(docs).toMatch(/cmp "candidate-docs\/quest-n-click-docs-\$v\.tar\.gz"/);
+    expect(job(yml, 'pack')).not.toMatch(/wiki -- archive/);
+    expect(job(yml, 'candidate-gate')).toMatch(/needs: \[[^\]]*\bdocs-archive\b/);
     expect(job(yml, 'candidate-gate')).toMatch(/cp artifacts\/candidate-docs\/\* artifacts\/candidate-release\/docs\//);
+  });
+
+  it("a doc revision's archive reads the product's candidate report too, so its guarantees render as the release's", () => {
+    const yml = read('docs-publish');
+    expect(yml).toMatch(
+      /flags=\(--revision "\$REVISION" .*--candidate "\$CANDIDATE" --test-report \.test-report\/vitest\.json\)/,
+    );
+    // The report is downloaded for a revision before the archive is built.
+    expect(yml.indexOf('-n candidate-test-report')).toBeLessThan(
+      yml.indexOf('The archive of this revision, built twice'),
+    );
   });
 
   it("Pages' /docs/ is assembled from the releases on main, before the artifact is uploaded, never built from the branch", () => {

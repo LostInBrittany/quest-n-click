@@ -218,7 +218,8 @@ jobs:
             { echo "RELEASE_TAG=docs-v$VERSION-preview-$(git rev-parse HEAD | cut -c1-12)"; echo "REVISION=r1"; } >> "$GITHUB_ENV"
           else
             a="quest-n-click-docs-$VERSION-$REVISION.tar.gz"
-            flags=(--revision "$REVISION" --product-version "$VERSION" --product-commit "$(git rev-parse "$PRODUCT_TAG^{commit}")")
+            # The product's candidate report: the revision's guarantees are rendered "executed" as the release's were.
+            flags=(--revision "$REVISION" --product-version "$VERSION" --product-commit "$(git rev-parse "$PRODUCT_TAG^{commit}")" --candidate "$CANDIDATE" --test-report .test-report/vitest.json)
           fi
           npm run -s wiki -- archive --out ".archive/$a" --build-id "$RUN_ID" "${flags[@]}"
           npm run -s wiki -- archive --out ".cache/docs-again/$a" --build-id "$RUN_ID" "${flags[@]}"

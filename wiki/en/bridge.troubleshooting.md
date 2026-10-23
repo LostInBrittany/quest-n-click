@@ -14,12 +14,16 @@ A Bridge's 409 means "this was already done", never "your copy is stale":
   confirmed already, by this connector or another one. Two connectors confirming one code at once: one wins, the other
   gets this 409. The player is paired; nothing to redo.
 - `{"error": "duplicate", …"this run was submitted already (the first submitter keeps it)"}` on `POST /v1/runs`: the
-  same speedrun run was sent twice. The first submission stays on the leaderboard.
+  same speedrun run was sent twice, and the second is refused as it would join the queue. The first submission keeps
+  its place in the queue; it is ranked only once the speedrun worker finds it valid.
 - `{"error": "trust", …"only a run the worker found valid can be moderated"}`: a moderator tried to verify a run the
   speedrun worker did not find valid.
 
-None of them loses data: the first action stands. Check with `GET /v1/pairings/<code>` (the pairing is `paired`), or
-the run's page on the leaderboard.
+None of them loses data: the first action stands. To check it, read the Bridge's log (JSON lines on its standard
+output): `"event":"pairing.confirmed"` with the `playerId` for the pairing, `"event":"run.submitted"` (then
+`run.verified`) for the run. The Bridge has no operator route that reads a pairing's state. Never call
+`GET /v1/pairings/<code>` to check one: that is the player's one-time claim, and calling it hands out, and uses up, the
+player's capability.
 
 <a name="unavailable-503"></a>
 

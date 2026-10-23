@@ -19,6 +19,7 @@ import {
   scanEnv,
   scanPython,
   scanShell,
+  scanWorkflow,
   withEnvIdentifiers,
   withEnvSections,
 } from '../tools/wiki/env';
@@ -66,6 +67,48 @@ describe('the scan of the code', () => {
     expect(names(r.uses)).toEqual(['ALPHA', 'BETA', 'COMPARED', 'DELTA', 'EPSILON', 'KEPT', 'VITE_GAMMA']);
     expect(r.dynamic.map((d) => d.expression)).toEqual(['process.env[name]', 'env[`${n}_FILE`]']);
     expect(r.dynamic[0]!.line).toBe(10);
+  });
+
+  it('reads a destructuring of process.env, never a delete, and flags a rest as dynamic', () => {
+    const src = [
+      'const { STUDIO_CONFIG, PORT: port, PROOF_CACHE = "1" } = process.env;',
+      'const {',
+      '  MULTI_LINE,',
+      '  ...others',
+      '} = process.env;',
+      'if (!env.GIT_DIR) delete env.GIT_DIR;',
+      'delete process.env.CLEARED;',
+    ].join('\n');
+    const r = scanCode('x.ts', src);
+    expect(names(r.uses)).toEqual(['GIT_DIR', 'MULTI_LINE', 'PORT', 'PROOF_CACHE', 'STUDIO_CONFIG']);
+    expect(r.uses.filter((u) => u.name === 'GIT_DIR')).toHaveLength(1);
+    expect(r.dynamic.map((d) => [d.expression, d.line])).toEqual([['{ ...others } = process.env', 2]]);
+  });
+
+  it("reads a workflow's env: keys, ${{ env.X }}, $GITHUB_ENV lines and its shell, never its expressions", () => {
+    const yml = [
+      'env:',
+      '  TOP_LEVEL: x',
+      'jobs:',
+      '  a:',
+      '    env:',
+      '      JOB_LEVEL: ${{ inputs.x }}',
+      '      nested:',
+      '        NOT_A_KEY: y',
+      '    steps:',
+      "      - if: ${{ env.MODE == 'release' }}",
+      '        run: |',
+      '          echo "LEFT=$x" >> "$GITHUB_ENV"',
+      '          OWN=1; echo "$OWN $READ ${{ github.SHA_IN_EXPR }}"',
+    ].join('\n');
+    expect(names(scanWorkflow('.github/workflows/w.yml', yml))).toEqual([
+      'GITHUB_ENV',
+      'JOB_LEVEL',
+      'LEFT',
+      'MODE',
+      'READ',
+      'TOP_LEVEL',
+    ]);
   });
 
   it("reads Python's os.environ and a shell script's variables, minus those the script assigns", () => {

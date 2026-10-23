@@ -9,7 +9,7 @@ hébergé. Chacune a sa propre section : liez-la sous la forme
 ## Comment lire cette page
 
 - **Origine** dit qui pose la variable : vous (le code la lit), la construction, la plateforme (Clever Cloud, GitHub
-  Actions, npm, le système), ou un add-on Clever Cloud. Une variable qu’une commande de quest-n-click pose elle-même le
+  Actions, npm, le système), un add-on Clever Cloud, ou un workflow de CI. Une variable qu’une commande de quest-n-click pose elle-même le
   dit : vous ne la posez pas.
 - **Secret** : lue une fois au démarrage du Studio Server, puis retirée de son environnement, pour qu’aucun processus
   enfant n’en hérite ; jamais écrite dans un journal. Chaque secret peut aussi venir d’un fichier :
@@ -21,9 +21,9 @@ hébergé. Chacune a sa propre section : liez-la sous la forme
 
 > [!LIMIT id=generated-scope]
 > Les sections qui suivent sont générées depuis `wiki/data/env.json` et depuis le code : ce que lisent `process.env`,
-> `import.meta.env`, `os.environ` en Python et les scripts shell de `ops/` et `clevercloud/`. Une variable lue
-> seulement par une bibliothèque tierce (les `OTEL_*` standard, `NODE_OPTIONS`, `PG*`) ou seulement par un fichier de
-> workflow de CI n’y figure pas.
+> `import.meta.env`, `os.environ` en Python, les scripts shell de `ops/` et `clevercloud/`, et les workflows de
+> `.github/workflows/` (leurs blocs `env:`, `${{ env.X }}`, `$GITHUB_ENV` et leur shell). Une variable lue seulement
+> par une bibliothèque tierce (les `OTEL_*` standard, `NODE_OPTIONS`, `PG*`) n’y figure pas.
 
 <!-- env:begin -->
 
@@ -37,7 +37,7 @@ Ce que lit l’application `studio-server` : sur Clever Cloud, posez-les avec `c
 
 ### `GIT_DIR`
 
-Pas lue dans votre environnement : le Studio Server la pose pour ses propres commandes `git` sur le dépôt du jeu, et la retire pour `git init`.
+Pas prise dans votre environnement : le Studio Server construit l’environnement de ses propres commandes `git`, y pose `GIT_DIR` sur le dépôt du jeu, et la retire pour `git init`. Une `GIT_DIR` à vous ne leur parvient jamais.
 
 - Origine : posée par le Studio Server lui-même.
 - Lue par : [`studio-server/src/server/git.ts`](../../studio-server/src/server/git.ts).
@@ -377,13 +377,13 @@ Le chemin de l’exécutable Furnace avec lequel la chaîne audio fait son rendu
 Le jeu de `games/` sur lequel travaillent les commandes du dépôt du moteur (`GAME=reference npm run validate`). Sans elle, le dernier jeu choisi (`npm run game -- <id>`), puis `config.game` de `package.json`, puis `demo`.
 
 - Origine : vous la posez ; le code la lit.
-- Lue par : [`scripts/e2e-studio.mjs`](../../scripts/e2e-studio.mjs), [`scripts/e2e-visual.mjs`](../../scripts/e2e-visual.mjs), [`scripts/e2e.mjs`](../../scripts/e2e.mjs), et 7 de plus.
+- Lue par : [`.github/workflows/ci.yml`](../../.github/workflows/ci.yml), [`.github/workflows/prove.yml`](../../.github/workflows/prove.yml), [`scripts/e2e-studio.mjs`](../../scripts/e2e-studio.mjs), et 9 de plus.
 
 <a name="game-dir"></a>
 
 ### `GAME_DIR`
 
-Un dossier de jeu n’importe où sur le disque, à la place de `games/<GAME>` ; ignorée quand `GAME` est posée.
+Le dossier de jeu sur lequel travaillent les outils, n’importe où sur le disque. Posée, c’est toujours le dossier lu, quoi que dise `GAME`, à la place de `games/<GAME>` ou du `game/` d’un projet créé ; sans `GAME`, l’identifiant du jeu est le nom du dossier.
 
 - Origine : vous la posez ; le code la lit.
 - Lue par : [`scripts/e2e-worker-container.ts`](../../scripts/e2e-worker-container.ts), [`scripts/ops-qualify/setup.mjs`](../../scripts/ops-qualify/setup.mjs), [`tools/assets.py`](../../tools/assets.py), et 3 de plus.
@@ -482,7 +482,7 @@ Lues quand Vite construit le jeu, le Studio ou une prévisualisation. Les script
 Le sous-chemin sous lequel le jeu est servi (`/<dépôt>/` sur GitHub Pages) ; `/` quand elle n’est pas posée.
 
 - Origine : lue à la construction de la page ou du paquet.
-- Lue par : [`tools/vite/plugins.ts`](../../tools/vite/plugins.ts).
+- Lue par : [`.github/workflows/ci.yml`](../../.github/workflows/ci.yml), [`tools/vite/plugins.ts`](../../tools/vite/plugins.ts).
 
 <a name="base-url"></a>
 
@@ -509,7 +509,7 @@ Vrai sous le serveur de développement (`npm run dev`), faux dans une version co
 `1` construit ou sert les pages du Studio à côté du jeu (`npm run studio`, le Studio de démonstration).
 
 - Origine : posée par les scripts npm (lue à la construction de la page ou du paquet).
-- Lue par : [`tools/vite/plugins.ts`](../../tools/vite/plugins.ts), [`vite.config.ts`](../../vite.config.ts).
+- Lue par : [`.github/workflows/ci.yml`](../../.github/workflows/ci.yml), [`tools/vite/plugins.ts`](../../tools/vite/plugins.ts), [`vite.config.ts`](../../vite.config.ts).
 
 <a name="studio-client"></a>
 
@@ -527,7 +527,7 @@ Vrai sous le serveur de développement (`npm run dev`), faux dans une version co
 `1` construit le Studio de démonstration, qui tourne dans le navigateur sans serveur (`npm run build:studio-demo`).
 
 - Origine : posée par `npm run build:studio-demo` (lue à la construction de la page ou du paquet).
-- Lue par : [`src/engine/dev/editor.ts`](../../src/engine/dev/editor.ts), [`src/main.ts`](../../src/main.ts), [`src/studio/main.ts`](../../src/studio/main.ts).
+- Lue par : [`.github/workflows/ci.yml`](../../.github/workflows/ci.yml), [`src/engine/dev/editor.ts`](../../src/engine/dev/editor.ts), [`src/main.ts`](../../src/main.ts), et 1 de plus.
 
 <a name="vite-studio-hosted"></a>
 
@@ -602,7 +602,7 @@ Le module `pg` qu’importe `tools/backup-memory.ts`, quand ce n’est pas celui
 Une URL PostgreSQL sur laquelle les tests font tourner le stockage du Bridge et les mutations ; ces tests sont sautés sans elle.
 
 - Origine : vous la posez ; le code la lit.
-- Lue par : [`tools/mutate.ts`](../../tools/mutate.ts).
+- Lue par : [`.github/workflows/candidate.yml`](../../.github/workflows/candidate.yml), [`.github/workflows/ci.yml`](../../.github/workflows/ci.yml), [`.github/workflows/mutation.yml`](../../.github/workflows/mutation.yml), et 3 de plus.
 
 <a name="consumer-pg-url"></a>
 
@@ -611,7 +611,7 @@ Une URL PostgreSQL sur laquelle les tests font tourner le stockage du Bridge et 
 Une URL PostgreSQL sur laquelle `npm run external-consumer` fait aussi tourner le Bridge installé.
 
 - Origine : vous la posez ; le code la lit.
-- Lue par : [`scripts/external-consumer.mjs`](../../scripts/external-consumer.mjs).
+- Lue par : [`.github/workflows/candidate.yml`](../../.github/workflows/candidate.yml), [`scripts/external-consumer.mjs`](../../scripts/external-consumer.mjs).
 
 <a name="e2e-browser"></a>
 
@@ -620,7 +620,7 @@ Une URL PostgreSQL sur laquelle `npm run external-consumer` fait aussi tourner l
 Le navigateur dans lequel tourne un test de bout en bout (`chromium`, `firefox`, `webkit`) ; Chromium quand elle n’est pas posée.
 
 - Origine : vous la posez ; le code la lit.
-- Lue par : [`scripts/e2e-a11y.mjs`](../../scripts/e2e-a11y.mjs), [`scripts/e2e-pwa.mjs`](../../scripts/e2e-pwa.mjs), [`scripts/e2e.mjs`](../../scripts/e2e.mjs), et 1 de plus.
+- Lue par : [`.github/workflows/ci.yml`](../../.github/workflows/ci.yml), [`scripts/e2e-a11y.mjs`](../../scripts/e2e-a11y.mjs), [`scripts/e2e-pwa.mjs`](../../scripts/e2e-pwa.mjs), et 2 de plus.
 
 <a name="e2e-cpu"></a>
 
@@ -656,7 +656,7 @@ Toute valeur fait afficher au test de bout en bout du Studio hébergé ce qu’i
 L’endroit où un test de bout en bout écrit ses captures et ses rapports.
 
 - Origine : vous la posez ; le code la lit.
-- Lue par : [`scripts/e2e-a11y.mjs`](../../scripts/e2e-a11y.mjs), [`scripts/e2e/lib.mjs`](../../scripts/e2e/lib.mjs).
+- Lue par : [`.github/workflows/ci.yml`](../../.github/workflows/ci.yml), [`scripts/e2e-a11y.mjs`](../../scripts/e2e-a11y.mjs), [`scripts/e2e/lib.mjs`](../../scripts/e2e/lib.mjs).
 
 <a name="e2e-weight-debug"></a>
 
@@ -671,19 +671,19 @@ Toute valeur fait afficher à `e2e:weight` les requêtes qu’il a comptées.
 
 ### `GH_TOKEN`
 
-Le jeton GitHub de la commande `gh`, lu quand `GITHUB_TOKEN` n’est pas posée.
+Le jeton GitHub de la commande `gh`. `tools/release/run-jobs.mjs` la lit avant `GITHUB_TOKEN` ; `npm run wiki -- publish` ne la lit que si `GITHUB_TOKEN` n’est pas posée.
 
 - Origine : vous la posez ; le code la lit.
-- Lue par : [`tools/release/run-jobs.mjs`](../../tools/release/run-jobs.mjs), [`tools/wiki.ts`](../../tools/wiki.ts).
+- Lue par : [`.github/workflows/candidate.yml`](../../.github/workflows/candidate.yml), [`.github/workflows/ci.yml`](../../.github/workflows/ci.yml), [`.github/workflows/docs-publish.yml`](../../.github/workflows/docs-publish.yml), et 3 de plus.
 
 <a name="github-token"></a>
 
 ### `GITHUB_TOKEN`
 
-Un jeton GitHub pour les outils de publication et de documentation. Sur un runner, GitHub Actions le donne ; sur votre machine, `gh` fournit plutôt `GH_TOKEN`.
+Un jeton GitHub pour les outils de publication et de documentation. `npm run wiki -- publish` la lit avant `GH_TOKEN` (après la clé de déploiement `WIKI_DEPLOY_KEY`) ; `tools/release/run-jobs.mjs` ne la lit que si `GH_TOKEN` n’est pas posée. Sur un runner, GitHub Actions la donne.
 
 - Origine : vous la posez ; le code la lit.
-- Lue par : [`tools/release/run-jobs.mjs`](../../tools/release/run-jobs.mjs), [`tools/wiki.ts`](../../tools/wiki.ts).
+- Lue par : [`.github/workflows/docs-publish.yml`](../../.github/workflows/docs-publish.yml), [`tools/release/run-jobs.mjs`](../../tools/release/run-jobs.mjs), [`tools/wiki.ts`](../../tools/wiki.ts).
 
 <a name="mutation-set"></a>
 
@@ -701,7 +701,7 @@ L’ensemble de tests qui juge un mutant (`core`, `reality`…) ; `core` quand e
 Les résultats des jobs d’un workflow, en JSON, que lit le verdict du candidat. Le workflow la pose.
 
 - Origine : vous la posez ; le code la lit.
-- Lue par : [`tools/release/candidate.mjs`](../../tools/release/candidate.mjs).
+- Lue par : [`.github/workflows/candidate.yml`](../../.github/workflows/candidate.yml), [`.github/workflows/ci.yml`](../../.github/workflows/ci.yml), [`tools/release/candidate.mjs`](../../tools/release/candidate.mjs).
 
 <a name="qualify-app"></a>
 
@@ -827,7 +827,7 @@ Des lignes de pied supplémentaires que `npm run ship` ajoute à un commit de fu
 Le point d’accès S3, les identifiants et le bucket du stockage objet de la CI, en une URL, pour les tests du Studio hébergé.
 
 - Origine : vous la posez ; le code la lit.
-- Lue par : [`ops/studio/ci/s3-ready.ts`](../../ops/studio/ci/s3-ready.ts).
+- Lue par : [`.github/workflows/ci.yml`](../../.github/workflows/ci.yml), [`ops/studio/ci/s3-ready.ts`](../../ops/studio/ci/s3-ready.ts).
 
 <a name="web-scumm-repo"></a>
 
@@ -845,7 +845,7 @@ Le dépôt GitHub sur lequel travaillent les outils de publication ; `wanoo/ques
 La clé de déploiement SSH qui pousse la documentation vers le wiki GitHub (`npm run wiki -- publish`) ; `GITHUB_TOKEN` sert sans elle.
 
 - Origine : vous la posez ; le code la lit.
-- Lue par : [`tools/wiki.ts`](../../tools/wiki.ts).
+- Lue par : [`.github/workflows/docs-publish.yml`](../../.github/workflows/docs-publish.yml), [`tools/wiki.ts`](../../tools/wiki.ts).
 
 <a name="system"></a>
 
@@ -871,6 +871,24 @@ L’adresse de l’API GitHub sur un runner.
 - Origine : posée par GitHub Actions.
 - Lue par : [`tools/release/run-jobs.mjs`](../../tools/release/run-jobs.mjs).
 
+<a name="github-env"></a>
+
+### `GITHUB_ENV`
+
+Le fichier auquel une étape ajoute des lignes `NOM=valeur`, pour les étapes suivantes de son job.
+
+- Origine : posée par GitHub Actions.
+- Lue par : [`.github/workflows/candidate.yml`](../../.github/workflows/candidate.yml), [`.github/workflows/docs-publish.yml`](../../.github/workflows/docs-publish.yml), [`.github/workflows/release.yml`](../../.github/workflows/release.yml).
+
+<a name="github-output"></a>
+
+### `GITHUB_OUTPUT`
+
+Le fichier où une étape écrit ses sorties.
+
+- Origine : posée par GitHub Actions.
+- Lue par : [`.github/workflows/candidate.yml`](../../.github/workflows/candidate.yml), [`.github/workflows/ci.yml`](../../.github/workflows/ci.yml), [`.github/workflows/nightly.yml`](../../.github/workflows/nightly.yml), et 1 de plus.
+
 <a name="github-step-summary"></a>
 
 ### `GITHUB_STEP_SUMMARY`
@@ -878,7 +896,16 @@ L’adresse de l’API GitHub sur un runner.
 Le fichier où un job écrit son résumé ; `npm run ci:plan` y écrit le plan.
 
 - Origine : posée par GitHub Actions.
-- Lue par : [`tools/ci-plan.ts`](../../tools/ci-plan.ts).
+- Lue par : [`.github/workflows/candidate.yml`](../../.github/workflows/candidate.yml), [`.github/workflows/nightly.yml`](../../.github/workflows/nightly.yml), [`tools/ci-plan.ts`](../../tools/ci-plan.ts).
+
+<a name="home"></a>
+
+### `HOME`
+
+Le dossier personnel de l’utilisateur. Le script de la chaîne A7 le refuse comme dossier de sortie ; le Studio Server donne à ses propres commandes `git` un `HOME` dans son dossier de travail, jamais le vôtre.
+
+- Origine : posée par le système d’exploitation.
+- Lue par : [`docs/dev/acceptance/a7-chain.sh`](../../docs/dev/acceptance/a7-chain.sh).
 
 <a name="imageos"></a>
 
@@ -897,6 +924,15 @@ Le chemin de recherche du système. Le Studio Server et le worker la passent à 
 
 - Origine : posée par le système d’exploitation.
 - Lue par : [`bridge/src/runs.ts`](../../bridge/src/runs.ts), [`scripts/e2e-worker-container.ts`](../../scripts/e2e-worker-container.ts), [`scripts/studio-install-smoke.mjs`](../../scripts/studio-install-smoke.mjs), et 3 de plus.
+
+<a name="pwd"></a>
+
+### `PWD`
+
+Le dossier courant du shell.
+
+- Origine : posée par le shell.
+- Lue par : [`.github/workflows/ci.yml`](../../.github/workflows/ci.yml).
 
 <a name="runner-os"></a>
 
@@ -933,5 +969,416 @@ Le script npm en cours ; un outil qui écrit le jeu l’enregistre comme auteur 
 
 - Origine : posée par npm.
 - Lue par : [`tools/game-write.ts`](../../tools/game-write.ts).
+
+<a name="workflows"></a>
+
+## Dans les workflows de CI
+
+Posées et lues seulement par les workflows de `.github/workflows/` : une entrée passée au shell d’une étape par `env:`, ou une valeur qu’une étape laisse à la suivante dans `$GITHUB_ENV`. Rien à poser à la main.
+
+<a name="all"></a>
+
+### `ALL`
+
+ci : `true` quand tous les contrôles tournent (un push, ou une pull request étiquetée `full-ci`).
+
+- Origine : posée par un workflow de `.github/workflows/` (CI et publications).
+- Lue par : [`.github/workflows/ci.yml`](../../.github/workflows/ci.yml).
+
+<a name="archive"></a>
+
+### `ARCHIVE`
+
+docs-publish : le chemin de l’archive à publier.
+
+- Origine : posée par un workflow de `.github/workflows/` (CI et publications).
+- Lue par : [`.github/workflows/docs-publish.yml`](../../.github/workflows/docs-publish.yml).
+
+<a name="archive-sha"></a>
+
+### `ARCHIVE_SHA`
+
+docs-publish : le sha256 de cette archive.
+
+- Origine : posée par un workflow de `.github/workflows/` (CI et publications).
+- Lue par : [`.github/workflows/docs-publish.yml`](../../.github/workflows/docs-publish.yml).
+
+<a name="called"></a>
+
+### `CALLED`
+
+docs-publish : `true` quand release.yml l’appelle, avec une archive vérifiée.
+
+- Origine : posée par un workflow de `.github/workflows/` (CI et publications).
+- Lue par : [`.github/workflows/docs-publish.yml`](../../.github/workflows/docs-publish.yml).
+
+<a name="candidate"></a>
+
+### `CANDIDATE`
+
+docs-publish : le lancement candidat dont le rapport de tests est lu.
+
+- Origine : posée par un workflow de `.github/workflows/` (CI et publications).
+- Lue par : [`.github/workflows/docs-publish.yml`](../../.github/workflows/docs-publish.yml), [`.github/workflows/release.yml`](../../.github/workflows/release.yml).
+
+<a name="dispatched-mode"></a>
+
+### `DISPATCHED_MODE`
+
+docs-publish : le mode choisi à la main (`revision`, `rollback`, `promote`, `preview`).
+
+- Origine : posée par un workflow de `.github/workflows/` (CI et publications).
+- Lue par : [`.github/workflows/docs-publish.yml`](../../.github/workflows/docs-publish.yml).
+
+<a name="docs-archive"></a>
+
+### `DOCS_ARCHIVE`
+
+release : l’archive de documentation de la version, quand elle en a une.
+
+- Origine : posée par un workflow de `.github/workflows/` (CI et publications).
+- Lue par : [`.github/workflows/release.yml`](../../.github/workflows/release.yml).
+
+<a name="extra-assets"></a>
+
+### `EXTRA_ASSETS`
+
+release : les autres fichiers déposés avec la version.
+
+- Origine : posée par un workflow de `.github/workflows/` (CI et publications).
+- Lue par : [`.github/workflows/release.yml`](../../.github/workflows/release.yml).
+
+<a name="file"></a>
+
+### `FILE`
+
+mutation : un seul fichier à muter, choisi à la main.
+
+- Origine : posée par un workflow de `.github/workflows/` (CI et publications).
+- Lue par : [`.github/workflows/mutation.yml`](../../.github/workflows/mutation.yml).
+
+<a name="full"></a>
+
+### `FULL`
+
+ci : `false` dans un lancement Pages seulement, qui saute alors ses autres étapes.
+
+- Origine : posée par un workflow de `.github/workflows/` (CI et publications).
+- Lue par : [`.github/workflows/ci.yml`](../../.github/workflows/ci.yml).
+
+<a name="in-candidate"></a>
+
+### `IN_CANDIDATE`
+
+docs-publish : le lancement candidat que passe release.yml.
+
+- Origine : posée par un workflow de `.github/workflows/` (CI et publications).
+- Lue par : [`.github/workflows/docs-publish.yml`](../../.github/workflows/docs-publish.yml).
+
+<a name="in-revision"></a>
+
+### `IN_REVISION`
+
+docs-publish : la révision de documentation que passe release.yml (`r1`).
+
+- Origine : posée par un workflow de `.github/workflows/` (CI et publications).
+- Lue par : [`.github/workflows/docs-publish.yml`](../../.github/workflows/docs-publish.yml).
+
+<a name="in-sha"></a>
+
+### `IN_SHA`
+
+docs-publish : le commit du tag que passe release.yml.
+
+- Origine : posée par un workflow de `.github/workflows/` (CI et publications).
+- Lue par : [`.github/workflows/docs-publish.yml`](../../.github/workflows/docs-publish.yml).
+
+<a name="in-sha256"></a>
+
+### `IN_SHA256`
+
+docs-publish : le sha256 de l’archive vérifiée par `ship verify`.
+
+- Origine : posée par un workflow de `.github/workflows/` (CI et publications).
+- Lue par : [`.github/workflows/docs-publish.yml`](../../.github/workflows/docs-publish.yml).
+
+<a name="in-tag"></a>
+
+### `IN_TAG`
+
+docs-publish : le tag de version que passe release.yml.
+
+- Origine : posée par un workflow de `.github/workflows/` (CI et publications).
+- Lue par : [`.github/workflows/docs-publish.yml`](../../.github/workflows/docs-publish.yml).
+
+<a name="mode"></a>
+
+### `MODE`
+
+docs-publish : le mode décidé pour le lancement, laissé aux étapes suivantes.
+
+- Origine : posée par un workflow de `.github/workflows/` (CI et publications).
+- Lue par : [`.github/workflows/docs-publish.yml`](../../.github/workflows/docs-publish.yml).
+
+<a name="mutation"></a>
+
+### `MUTATION`
+
+ci : `true` quand une pull request étiquetée `full-ci` lance aussi les tests de mutation.
+
+- Origine : posée par un workflow de `.github/workflows/` (CI et publications).
+- Lue par : [`.github/workflows/ci.yml`](../../.github/workflows/ci.yml).
+
+<a name="npm-publish-node"></a>
+
+### `NPM_PUBLISH_NODE`
+
+release : la version de Node.js sur laquelle tourne la publication npm.
+
+- Origine : posée par un workflow de `.github/workflows/` (CI et publications).
+- Lue par : [`.github/workflows/release.yml`](../../.github/workflows/release.yml).
+
+<a name="npm-publish-npm"></a>
+
+### `NPM_PUBLISH_NPM`
+
+release : la version de npm qui publie.
+
+- Origine : posée par un workflow de `.github/workflows/` (CI et publications).
+- Lue par : [`.github/workflows/release.yml`](../../.github/workflows/release.yml).
+
+<a name="p"></a>
+
+### `P`
+
+release : le préfixe des noms de fichiers de la version (`quest-n-click`).
+
+- Origine : posée par un workflow de `.github/workflows/` (CI et publications).
+- Lue par : [`.github/workflows/release.yml`](../../.github/workflows/release.yml).
+
+<a name="pages-only"></a>
+
+### `PAGES_ONLY`
+
+ci : `true` pour un lancement Pages seulement, qui reconstruit le site et `/docs/` et rien d’autre.
+
+- Origine : posée par un workflow de `.github/workflows/` (CI et publications).
+- Lue par : [`.github/workflows/ci.yml`](../../.github/workflows/ci.yml).
+
+<a name="postgres-db"></a>
+
+### `POSTGRES_DB`
+
+La base du conteneur de service PostgreSQL.
+
+- Origine : posée par un workflow de `.github/workflows/` (CI et publications).
+- Lue par : [`.github/workflows/candidate.yml`](../../.github/workflows/candidate.yml), [`.github/workflows/ci.yml`](../../.github/workflows/ci.yml), [`.github/workflows/mutation.yml`](../../.github/workflows/mutation.yml), et 2 de plus.
+
+<a name="postgres-password"></a>
+
+### `POSTGRES_PASSWORD`
+
+Le mot de passe du conteneur de service PostgreSQL, pour la CI seulement.
+
+- Origine : posée par un workflow de `.github/workflows/` (CI et publications).
+- Lue par : [`.github/workflows/candidate.yml`](../../.github/workflows/candidate.yml), [`.github/workflows/ci.yml`](../../.github/workflows/ci.yml), [`.github/workflows/mutation.yml`](../../.github/workflows/mutation.yml), et 2 de plus.
+
+<a name="postgres-user"></a>
+
+### `POSTGRES_USER`
+
+L’utilisateur du conteneur de service PostgreSQL, lu par son image.
+
+- Origine : posée par un workflow de `.github/workflows/` (CI et publications).
+- Lue par : [`.github/workflows/candidate.yml`](../../.github/workflows/candidate.yml), [`.github/workflows/ci.yml`](../../.github/workflows/ci.yml), [`.github/workflows/mutation.yml`](../../.github/workflows/mutation.yml), et 2 de plus.
+
+<a name="product-tag"></a>
+
+### `PRODUCT_TAG`
+
+docs-publish : le tag du produit que décrit la documentation.
+
+- Origine : posée par un workflow de `.github/workflows/` (CI et publications).
+- Lue par : [`.github/workflows/docs-publish.yml`](../../.github/workflows/docs-publish.yml).
+
+<a name="profile"></a>
+
+### `PROFILE`
+
+candidate : le profil du test de déploiement, `full` lancé à la main, `short` sinon.
+
+- Origine : posée par un workflow de `.github/workflows/` (CI et publications).
+- Lue par : [`.github/workflows/candidate.yml`](../../.github/workflows/candidate.yml).
+
+<a name="release-tag"></a>
+
+### `RELEASE_TAG`
+
+docs-publish : la version GitHub qui porte l’archive (`v<v>` ou `docs-v<v>-r<n>`).
+
+- Origine : posée par un workflow de `.github/workflows/` (CI et publications).
+- Lue par : [`.github/workflows/docs-publish.yml`](../../.github/workflows/docs-publish.yml).
+
+<a name="remix-assets"></a>
+
+### `REMIX_ASSETS`
+
+release : les fichiers de remix ajoutés à la version, quand il y en a.
+
+- Origine : posée par un workflow de `.github/workflows/` (CI et publications).
+- Lue par : [`.github/workflows/release.yml`](../../.github/workflows/release.yml).
+
+<a name="repo"></a>
+
+### `REPO`
+
+Le dépôt où tourne le workflow (`propriétaire/nom`), pour ses appels à `gh`.
+
+- Origine : posée par un workflow de `.github/workflows/` (CI et publications).
+- Lue par : [`.github/workflows/ci.yml`](../../.github/workflows/ci.yml), [`.github/workflows/docs-publish.yml`](../../.github/workflows/docs-publish.yml).
+
+<a name="reused"></a>
+
+### `REUSED`
+
+docs-publish : `true` quand une version déjà créée par un lancement précédent est réutilisée.
+
+- Origine : posée par un workflow de `.github/workflows/` (CI et publications).
+- Lue par : [`.github/workflows/docs-publish.yml`](../../.github/workflows/docs-publish.yml).
+
+<a name="revision"></a>
+
+### `REVISION`
+
+docs-publish : la révision de documentation publiée (`r1`, `r2`…).
+
+- Origine : posée par un workflow de `.github/workflows/` (CI et publications).
+- Lue par : [`.github/workflows/docs-publish.yml`](../../.github/workflows/docs-publish.yml).
+
+<a name="run"></a>
+
+### `RUN`
+
+ci : si le plan demande les jobs Reality.
+
+- Origine : posée par un workflow de `.github/workflows/` (CI et publications).
+- Lue par : [`.github/workflows/ci.yml`](../../.github/workflows/ci.yml).
+
+<a name="run-id"></a>
+
+### `RUN_ID`
+
+docs-publish : l’identifiant de ce lancement, l’identifiant de construction de l’archive.
+
+- Origine : posée par un workflow de `.github/workflows/` (CI et publications).
+- Lue par : [`.github/workflows/docs-publish.yml`](../../.github/workflows/docs-publish.yml).
+
+<a name="run-ref"></a>
+
+### `RUN_REF`
+
+docs-publish : la ref sur laquelle tourne le lancement, vérifiée selon son mode.
+
+- Origine : posée par un workflow de `.github/workflows/` (CI et publications).
+- Lue par : [`.github/workflows/docs-publish.yml`](../../.github/workflows/docs-publish.yml).
+
+<a name="set"></a>
+
+### `SET`
+
+mutation : l’ensemble de mutation choisi à la main.
+
+- Origine : posée par un workflow de `.github/workflows/` (CI et publications).
+- Lue par : [`.github/workflows/mutation.yml`](../../.github/workflows/mutation.yml).
+
+<a name="sha"></a>
+
+### `SHA`
+
+release : le commit qu’a testé le lancement candidat.
+
+- Origine : posée par un workflow de `.github/workflows/` (CI et publications).
+- Lue par : [`.github/workflows/release.yml`](../../.github/workflows/release.yml).
+
+<a name="store"></a>
+
+### `STORE`
+
+candidate : le stockage que mesure `tools/backup-memory.ts`, `sqlite` ou une URL PostgreSQL.
+
+- Origine : posée par un workflow de `.github/workflows/` (CI et publications).
+- Lue par : [`.github/workflows/candidate.yml`](../../.github/workflows/candidate.yml).
+
+<a name="studio-test-captures"></a>
+
+### `STUDIO_TEST_CAPTURES`
+
+ci : `1` garde les captures du test du Studio hébergé.
+
+- Origine : posée par un workflow de `.github/workflows/` (CI et publications).
+- Lue par : [`.github/workflows/ci.yml`](../../.github/workflows/ci.yml).
+
+<a name="studio-test-keycloak"></a>
+
+### `STUDIO_TEST_KEYCLOAK`
+
+ci : le service Keycloak avec lequel se connecte le test de bout en bout du Studio hébergé.
+
+- Origine : posée par un workflow de `.github/workflows/` (CI et publications).
+- Lue par : [`.github/workflows/ci.yml`](../../.github/workflows/ci.yml).
+
+<a name="studio-test-keycloak-admin"></a>
+
+### `STUDIO_TEST_KEYCLOAK_ADMIN`
+
+ci : l’administrateur de ce Keycloak, pour la CI seulement.
+
+- Origine : posée par un workflow de `.github/workflows/` (CI et publications).
+- Lue par : [`.github/workflows/ci.yml`](../../.github/workflows/ci.yml).
+
+<a name="studio-test-pg-url"></a>
+
+### `STUDIO_TEST_PG_URL`
+
+ci : le service PostgreSQL qu’utilisent les tests du Studio hébergé.
+
+- Origine : posée par un workflow de `.github/workflows/` (CI et publications).
+- Lue par : [`.github/workflows/ci.yml`](../../.github/workflows/ci.yml).
+
+<a name="tag"></a>
+
+### `TAG`
+
+release : le tag publié.
+
+- Origine : posée par un workflow de `.github/workflows/` (CI et publications).
+- Lue par : [`.github/workflows/release.yml`](../../.github/workflows/release.yml).
+
+<a name="target"></a>
+
+### `TARGET`
+
+docs-publish : le `<version>[-r<n>]` que vise un retour arrière ou une promotion.
+
+- Origine : posée par un workflow de `.github/workflows/` (CI et publications).
+- Lue par : [`.github/workflows/docs-publish.yml`](../../.github/workflows/docs-publish.yml).
+
+<a name="version"></a>
+
+### `VERSION`
+
+docs-publish : la version du produit à publier (son entrée `version`).
+
+- Origine : posée par un workflow de `.github/workflows/` (CI et publications).
+- Lue par : [`.github/workflows/docs-publish.yml`](../../.github/workflows/docs-publish.yml).
+
+<a name="want"></a>
+
+### `WANT`
+
+candidate : le SHA complet qu’un lancement à la main doit tester (son entrée `sha`).
+
+- Origine : posée par un workflow de `.github/workflows/` (CI et publications).
+- Lue par : [`.github/workflows/candidate.yml`](../../.github/workflows/candidate.yml).
 
 <!-- env:end -->

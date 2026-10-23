@@ -15,12 +15,16 @@ Une 409 du Bridge veut dire « c’est déjà fait », jamais « votre copie est
   a déjà été confirmé, par ce connecteur ou par un autre. Deux connecteurs qui confirment le même code en même temps :
   l’un gagne, l’autre reçoit cette 409. Le joueur est appairé ; rien à refaire.
 - `{"error": "duplicate", …"this run was submitted already (the first submitter keeps it)"}` sur `POST /v1/runs` : le
-  même run de speedrun a été envoyé deux fois. Le premier envoi reste au classement.
+  même run de speedrun a été envoyé deux fois, et le second est refusé au moment d’entrer dans la file. Le premier
+  envoi garde sa place dans la file ; il n’est classé qu’une fois que le worker des speedruns l’a trouvé valide.
 - `{"error": "trust", …"only a run the worker found valid can be moderated"}` : un modérateur a voulu valider un run
   que le worker des speedruns n’a pas trouvé valide.
 
-Aucune ne perd de données : la première action tient. Vérifiez avec `GET /v1/pairings/<code>` (l’appairage est
-`paired`), ou la page du run au classement.
+Aucune ne perd de données : la première action tient. Pour le vérifier, lisez le journal du Bridge (des lignes JSON
+sur sa sortie standard) : `"event":"pairing.confirmed"` avec le `playerId` pour l’appairage, `"event":"run.submitted"`
+(puis `run.verified`) pour le run. Le Bridge n’a pas de route d’opérateur qui lise l’état d’un appairage. N’appelez
+jamais `GET /v1/pairings/<code>` pour vérifier : c’est la récupération unique du joueur, et l’appeler remet, et
+consomme, la capacité du joueur.
 
 <a name="unavailable-503"></a>
 

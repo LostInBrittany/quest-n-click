@@ -80,20 +80,33 @@ const PAGES_DOCS = 'https://wanoo.github.io/quest-n-click/docs';
 const WIKI_URL = 'https://github.com/wanoo/quest-n-click/wiki';
 
 /**
- * Where a page read from a bundle lives online (§4.5.4): `versioned`, its permalink on Pages for this very version and
- * doc revision, which never changes; `current`, the wiki's page, labelled current, which follows the latest release.
- * A repository preview is not published: it has none.
+ * Where a page read from a bundle lives online (§4.5.4). `versioned` is the Pages permalink of this version and doc
+ * revision, given only for a release build: not dirty, with a candidate run's numeric build id. Even then it is the
+ * permalink this build has once it is the one published; whether it was is read at `publication.json`, never here.
+ * Any other build (local, dirty, no build id) gets `versioned: null` and the reason. `current` is the wiki's page,
+ * labelled as the current documentation (the latest release), not this version's. A repository preview has neither.
  */
 function onlineUrls(
   p: Provenance,
   page: { id: string; url: Bilingual<string> },
   lang: DocsLang,
   section?: string,
-): { versioned: string; current: string; currentLabel: string } | undefined {
+): { versioned: string | null; versionedNote: string; current: string; currentLabel: string } | undefined {
   if (p.source !== 'bundle') return undefined;
   const at = section ? `#${section}` : '';
+  const why = p.docRevision.endsWith('-dirty')
+    ? 'a dirty build (sources not committed): it has no published permalink'
+    : !p.buildId
+      ? 'a build without a build id (not a candidate run): it has no published permalink'
+      : !/^\d+$/.test(p.buildId)
+        ? `a local build (build id "${p.buildId}", not a candidate run): it has no published permalink`
+        : undefined;
+  const revision = p.docRevisionNumber ?? 'r1';
   return {
-    versioned: `${PAGES_DOCS}/${p.productVersion}/${p.docRevisionNumber ?? 'r1'}/${lang}/${page.id}.html${at}`,
+    versioned: why ? null : `${PAGES_DOCS}/${p.productVersion}/${revision}/${lang}/${page.id}.html${at}`,
+    versionedNote:
+      why ??
+      `the permalink of ${p.productVersion} ${revision} if this build is the one published; check ${PAGES_DOCS}/publication.json`,
     current: `${WIKI_URL}/${page.url[lang]}${at}`,
     currentLabel: 'current documentation (the latest release), not necessarily this version',
   };
@@ -409,11 +422,17 @@ function snippetOf(text: string, found: ReadonlySet<string>): string {
     .replace(/<a (?:name|id)="[^"]*"><\/a>/g, '')
     .replace(/!?\[([^\]]*)\]\([^)]*\)/g, '$1')
     .replace(/^#{1,6}\s+/gm, '')
-    // The page's own emphasis: the excerpt marks the words found, and a bold inside a bold would read `****x**`.
-    .replace(/\*\*/g, '')
+    // The page's own emphasis around words (the excerpt marks the words found, and a bold inside a bold would read
+    // `****x**`); never inside inline code, nor a `**` that is not emphasis (`ops/**/*.yml`).
+    .split(/(`[^`]*`)/)
+    .map((part, i) => (i % 2 ? part : part.replace(/\*\*(?=[^\s*])([^*]*?[^\s*])\*\*/g, '$1')))
+    .join('')
     .replace(/\s+/g, ' ')
     .trim();
+  // Inline code is shown as written: no word inside it is marked.
+  const code = [...flat.matchAll(/`[^`]*`/g)].map((m) => [m.index, m.index + m[0].length] as const);
   const spans = [...flat.matchAll(/[\p{L}\p{N}]+/gu)].filter((m) => {
+    if (code.some(([a, b]) => m.index >= a && m.index < b)) return false;
     const w = words(m[0], true)[0];
     return w !== undefined && found.has(w);
   });
@@ -454,6 +473,16 @@ const typedExactly = (query: string, id: string) => {
   }
   return false;
 };
+/**
+ * Whether the query names `id`: typed exactly as a token, or, for a query of one token shaped like an identifier (with
+ * an underscore), typed in another case (`studio_session_key` names `STUDIO_SESSION_KEY`; the word `studio` alone does
+ * not name `STUDIO`).
+ */
+const typedIdentifier = (query: string, id: string) => {
+  if (typedExactly(query, id)) return true;
+  const q = query.trim();
+  return /^[A-Za-z][A-Za-z0-9_]*$/.test(q) && q.includes('_') && q.toUpperCase() === id.toUpperCase();
+};
 
 /** The best section of one page in one language, and its score; undefined when nothing of the query is in it. */
 function scorePage(
@@ -470,7 +499,9 @@ function scorePage(
   // Page-level fields: the best one each word is found in. An identifier in capitals (an environment variable,
   // `STUDIO`, `PATH`) counts only when the query holds it exactly, as a token: otherwise every query with the word
   // "studio" would be read as naming the variable `STUDIO` (A7, D2).
-  const identifiers = p.identifiers.filter((id) => !SCREAMING.test(id) || typedExactly(query, id));
+  const identifiers = p.identifiers.filter((id) => !SCREAMING.test(id) || typedIdentifier(query, id));
+  // The identifiers the query names whole: a section headed by one of them is that identifier's own section.
+  const named = new Set(identifiers.filter((id) => typedIdentifier(query, id)).map((id) => id.toLowerCase()));
   const fields: { reason: MatchReason; texts: string[] }[] = [
     { reason: 'title', texts: [p.title[lang]] },
     { reason: 'question', texts: p.questions[lang] },
@@ -494,7 +525,7 @@ function scorePage(
       const ph = phrase(t);
       const whole =
         f.reason === 'identifier'
-          ? ph.trim() !== '' && q.includes(ph)
+          ? (ph.trim() !== '' && q.includes(ph)) || named.has(t.toLowerCase())
           : words(query).length > 1 && ph.includes(phrase(query));
       if (whole && WEIGHT[f.reason] > bonus) {
         bonus = WEIGHT[f.reason];
@@ -510,7 +541,8 @@ function scorePage(
     const heading = lines.findIndex((l) => /^#{1,6}\s/.test(l));
     const counts = new Map<string, number>();
     for (const w of words(lines.filter((_, i) => i !== heading).join('\n'))) counts.set(w, (counts.get(w) ?? 0) + 1);
-    let score = bonus;
+    // The section headed by the identifier typed, exactly (`PATH`, not `WORKER_PYTHON_PATH`), ranks first.
+    let score = bonus + (named.has(s.title.replace(/`/g, '').trim().toLowerCase()) ? WEIGHT.identifier : 0);
     const found = new Set<string>();
     const covered = new Set<string>();
     let top: { reason: MatchReason; score: number; text: string } | undefined = bonusHit
@@ -533,7 +565,9 @@ function scorePage(
     const coverage = typed.size ? [...typed].filter((w) => covered.has(w)).length / typed.size : 0;
     const final = Math.round(score * (0.4 + 0.6 * coverage) * 100) / 100;
     if (final < THRESHOLD || coverage < MIN_COVERAGE) continue;
-    if (!best || final > best.score) best = { section: s, score: final, reason: top.reason, text: top.text, found };
+    // An identifier's excerpt is its section, the description after the name, not the name alone.
+    const text = top.reason === 'identifier' ? s.text : top.text;
+    if (!best || final > best.score) best = { section: s, score: final, reason: top.reason, text, found };
   }
   return best;
 }
