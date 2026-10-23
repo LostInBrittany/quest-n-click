@@ -213,6 +213,24 @@ sent: `.gitignore` excludes it, and nothing in it is copied into `dist/`. A crea
 | `audio.scores › ffprobe not found` | A release measures the stems | Install ffmpeg, then `npx quest-n-click doctor` |
 | A file of `dist/` not accounted for | A stray file in `public/`, or an asset not this game's | Remove it, or declare it (a data file the game names) |
 | A blank page once online, under `/<repo>/` | Built without `BASE_PATH` | [Sub-path](create.deploy-issues.md#sub-path) |
+| `audit: <n> leak(s) found` on a word of your own game | A word of the engine's private origin is also, by chance, a word of your game (a real person's first name) | [Allow it for your game](#audit-allow) |
+
+<a name="audit-allow"></a>
+
+### A word of your game blocked by the leak audit
+
+`audit:assets` (run by `build:game`) blocks the words of the engine's private origin project, stored as SHA-1 prefixes.
+When one of them is also a word your game needs, allow it for your game only, in `games/<id>/audit-allow.json`, by the
+prefix the audit already holds and a reason that does not spell the word:
+
+```json
+{ "allow": [{ "sha1": "<the first 12 hex digits of the word's SHA-1>", "why": "a colleague in the game" }] }
+```
+
+The prefix of a word: `node -e "console.log(require('crypto').createHash('sha1').update('<word>').digest('hex').slice(0, 12))"`,
+in lowercase. The word is then allowed in `games/<id>/` (except in `audit-allow.json` itself) and, when `<id>` is
+the game being built, in `public/assets/`; everywhere else it is still a leak. A prefix the audit does not block stops
+the audit, so the file cannot outlive the word it excuses.
 
 <a name="files-changed"></a>
 

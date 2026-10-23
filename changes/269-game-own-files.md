@@ -1,0 +1,4 @@
+### Changes
+
+- **A game names the spans of its own files** (4.5.1, #269). The modules a game's `index.ts` imports (`minigames/`, `commands/`, data shared by rooms), its notes and its scripts belonged to no span: the hosted Studio refused a write to them (422), and `tests/studio-collab.test.ts` failed on any game that had one. `games/<id>/spans.json` now maps a path, a folder or a glob to a span a client may take; the engine's rules come first, a file neither names is still refused, and the hosted Studio reads the file of the game it serves.
+- **A game may allow a word of the leak audit** (4.5.1, #269). `audit:assets` blocks the words of the engine's private origin; when one is also, by chance, a word of a game (a real person's first name), `games/<id>/audit-allow.json` allows it by its SHA-1 prefix and a reason, in that game's folder and in `public/assets/` built from it, and nowhere else. A prefix the audit does not block stops the audit.
