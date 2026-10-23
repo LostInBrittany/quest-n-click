@@ -67,6 +67,14 @@ export interface CandidateManifest {
   artifacts: { name: string; sha256: string }[];
 }
 export const MANIFEST = 'candidate-manifest.json';
+
+/**
+ * The checkout's package version: what a folder is judged as when nothing in it names a release (no report, no
+ * package in the candidate's manifest). Its passes are asked, never every pass of `PASS_IDS`: a pass added in a later
+ * version (`PASS_SINCE`, docs-beginner-reader from 4.5.0) is not asked of the version this checkout is.
+ */
+export const checkoutVersion = (): string =>
+  (JSON.parse(readFileSync(new URL('../../package.json', import.meta.url), 'utf8')) as { version: string }).version;
 /** Archives are refused as evidence: what is inside cannot be read for a leak. Text is told from binary by content. */
 export const ARCHIVE = /\.(gz|tgz|zip|tar|7z|br|zst|xz|bz2|rar)$/i;
 export const isText = (b: Buffer) => !b.subarray(0, 8192).includes(0);
@@ -351,10 +359,10 @@ export function checkDir(
   for (const rel of releases)
     if (packed && rel.replace(/-rc\.\d+$/, '') !== packed)
       problems.push(`release ${rel}: the candidate packed ${packed}`);
-  const asked = releases.size === 1 ? passesFor([...releases][0]!) : packed ? passesFor(packed) : [...PASS_IDS];
+  const asked = releases.size === 1 ? passesFor([...releases][0]!) : passesFor(packed ?? checkoutVersion());
   for (const id of asked) if (!seen.has(id)) problems.push(`${id}: no report`);
   // A pass this release is not asked (added later): its report is not judged here, and is said so.
-  const release = [...releases][0] ?? packed ?? '';
+  const release = [...releases][0] ?? packed ?? checkoutVersion();
   for (const id of seen.keys()) if (!(asked as string[]).includes(id)) problems.push(`${id}: not a pass of ${release}`);
   for (const id of require) {
     if (!(PASS_IDS as readonly string[]).includes(id)) problems.push(`--require=${id}: not a pass`);
@@ -392,7 +400,7 @@ export function renderPasses(
   const by = new Map(reports.map((r) => [r.passId, r]));
   const count = Object.fromEntries(FIELD_STATUSES.map((s) => [s, 0])) as Record<string, number>;
   // The passes asked of the reports' release (a pass added later is not a row of an older sheet).
-  const asked = reports[0] ? passesFor(reports[0].release) : [...PASS_IDS];
+  const asked = passesFor(reports[0]?.release ?? checkoutVersion());
   const rows = asked.map((id) => {
     const r = by.get(id);
     // A pass carried here by an approved, signed attestation counts as passed; its report stays the person's (ADR 0024).
