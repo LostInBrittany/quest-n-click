@@ -4,7 +4,8 @@
 // state inside; its HTML links by output (§4.5.6: pages relative, so `/docs/<v>/r<n>/<lang>/<id>.html#<anchor>`
 // once copied; code at `blob/<productCommit>/`), its anchors the source's `<a name>` ids, every character escaped, an
 // unsafe link without its target; a tampered archive refused.
-import { mkdtempSync, rmSync } from 'node:fs';
+import { execFileSync } from 'node:child_process';
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { gunzipSync } from 'node:zlib';
@@ -173,6 +174,74 @@ describe('the archive', () => {
     missing.delete('wiki/Home.md');
     expect(() => readArchive(writeTarGz(missing))).toThrow(/wiki\/Home\.md: listed/);
   });
+
+  it('`wiki -- archive --test-report --candidate` renders a guarantee "executed on <sha>" under the rules of check --publish (A7)', () => {
+    const out = mkdtempSync(join(tmpdir(), 'archive-report-'));
+    temps.push(out);
+    const root = resolve('.');
+    const commit = execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim();
+    const report = (dir: string, run: string, status = 'passed') => {
+      mkdirSync(dir, { recursive: true });
+      writeFileSync(
+        join(dir, 'vitest.json'),
+        JSON.stringify({
+          testResults: [
+            {
+              name: join(root, 'tests/studio-backup.test.ts'),
+              assertionResults: [
+                {
+                  ancestorTitles: ["the Studio Server's backup"],
+                  title: 'refuses a backup altered, a project not empty, a blob missing, another schema',
+                  status,
+                },
+              ],
+            },
+          ],
+        }),
+      );
+      writeFileSync(
+        join(dir, 'commit.json'),
+        JSON.stringify({ format: 'quest-n-click-test-report', version: 1, commit, root, run }),
+      );
+      return join(dir, 'vitest.json');
+    };
+    const err = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const log = vi.spyOn(console, 'log').mockImplementation(() => {});
+    const drill = (file: string) => {
+      const html = readArchive(readFileSync(file)).files.get('html/en/clever.restore-drill.html')!.toString('utf8');
+      return /<code>restore-empty-db-only<\/code> · ([^\n]*)/.exec(html)?.[1]?.replace(/<[^>]+>/g, '');
+    };
+    try {
+      const name = 'quest-n-click-docs-4.5.0.tar.gz';
+      const args = (dir: string, more: string[]) => [
+        'archive',
+        '--out',
+        join(out, dir, name),
+        '--allow-dirty',
+        '--product-version',
+        '4.5.0',
+        '--build-id',
+        '7',
+        ...more,
+      ];
+      expect(main(args('a', ['--candidate', '7', '--test-report', report(join(out, 'r7'), '7')]))).toBe(0);
+      expect(drill(join(out, 'a', name))).toMatch(new RegExp(`^referenced · executed on ${commit.slice(0, 12)}`));
+      // The same inputs, the same bytes: the report is an input, not a clock.
+      expect(main(args('b', ['--candidate', '7', '--test-report', report(join(out, 'r7'), '7')]))).toBe(0);
+      expect(readFileSync(join(out, 'a', name)).equals(readFileSync(join(out, 'b', name)))).toBe(true);
+      // Without a report, referenced only; a report of another run, or a test not passed, executes nothing.
+      expect(main(args('c', []))).toBe(0);
+      expect(drill(join(out, 'c', name))).toMatch(/^referenced(?! · executed)/);
+      expect(main(args('d', ['--candidate', '8', '--test-report', report(join(out, 'r7b'), '7')]))).toBe(1);
+      expect(err.mock.calls.flat().join('\n')).toMatch(/names the run 7, not the candidate 8/);
+      expect(main(args('e', ['--candidate', '7', '--test-report', report(join(out, 'rs'), '7', 'skipped')]))).toBe(0);
+      expect(drill(join(out, 'e', name))).toMatch(/^referenced(?! · executed)/);
+      expect(main(args('f', ['--test-report', report(join(out, 'r7c'), '7')]))).toBe(2);
+    } finally {
+      err.mockRestore();
+      log.mockRestore();
+    }
+  }, 120_000);
 
   it('`wiki -- archive` refuses a file name its identity does not give', () => {
     const out = mkdtempSync(join(tmpdir(), 'archive-cli-'));

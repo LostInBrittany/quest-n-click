@@ -12,6 +12,7 @@ import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { afterAll, describe, expect, it, vi } from 'vitest';
 import { main } from '../tools/wiki';
+import { reviewClaim } from '../tools/wiki/claims';
 import { checkWiki, type PublishOptions, trackedFiles } from '../tools/wiki/check';
 import type { Manifest } from '../tools/wiki/manifest';
 import { ackTranslation, readTranslations, translationStates } from '../tools/wiki/translations';
@@ -84,7 +85,23 @@ function repo(o: { paired?: boolean } = {}) {
   git(root, 'tag', 'v4.5.0-rc.1');
   if (o.paired) {
     for (const p of translationStates(wikiDir, m, readTranslations(wikiDir).translations).pairs)
-      expect(ackTranslation({ wikiDir, manifest: m, key: p.key, by: 'a reader', date: '2026-10-23' })).toBeUndefined();
+      expect(
+        ackTranslation({
+          wikiDir,
+          manifest: m,
+          key: p.key,
+          reviewer: { name: 'a reader', kind: 'human' as const, relation: 'independent' as const, date: '2026-10-23' },
+        }),
+      ).toBeUndefined();
+    // And the claim's scope, read by a person (amendment A7: a publication needs a person's review).
+    const claim = checkWiki({ wikiDir, tracked: trackedFiles(root), root }).claims.find((c) => c.id === 'zones-hold')!;
+    expect(
+      reviewClaim({
+        wikiDir,
+        state: claim,
+        reviewer: { name: 'a reader', kind: 'human', relation: 'independent', date: '2026-10-23' },
+      }),
+    ).toBeUndefined();
     commit(root, 'the translations read');
   }
   return { root, wikiDir, product, manifest: m };
@@ -159,21 +176,62 @@ describe('wiki -- check --publish', () => {
     const work = check(r);
     expect(work.errors).toEqual([]);
     const line =
-      'translations: create.exits#doors is to review (the French changed since 2026-10-23): read both sides, then npm run wiki -- translations --ack create.exits#doors --by <name>';
+      'translations: create.exits#doors is to review (the French changed since 2026-10-23): read both sides, then npm run wiki -- translations --ack create.exits#doors --by <name> --kind human|ai --relation author|independent';
     expect(work.warnings).toContain(line);
     expect(check(r, { productRef: r.product }, [report(r.product)]).errors).toEqual([line]);
     vi.spyOn(console, 'log').mockImplementation(() => {});
-    expect(main(['translations', '--ack', 'create.exits#doors', '--by', 'a reader', `--wiki=${r.wikiDir}`])).toBe(0);
+    expect(
+      main([
+        'translations',
+        '--ack',
+        'create.exits#doors',
+        '--by',
+        'a reader',
+        '--kind',
+        'human',
+        '--relation',
+        'independent',
+        `--wiki=${r.wikiDir}`,
+      ]),
+    ).toBe(0);
     vi.restoreAllMocks();
-    expect(readTranslations(r.wikiDir).translations.pairs['create.exits#doors']!.by).toBe('a reader');
+    expect(readTranslations(r.wikiDir).translations.pairs['create.exits#doors']!.reviewers.map((x) => x.name)).toEqual([
+      'a reader',
+    ]);
     commit(r.root, 'read again');
     expect(check(r, { productRef: r.product }, [report(r.product)]).errors).toEqual([]);
+  });
+
+  it("says an AI's own check as such, never as a review, and wants a person's for a publication (amendment A7)", () => {
+    const r = repo({ paired: true });
+    const ai = { name: 'claude-a7', kind: 'ai' as const, relation: 'author' as const, date: '2026-10-23' };
+    // The pairs read again by the AI that wrote them: a person's review is kept beside it, not replaced.
+    const key = 'create.exits#doors';
+    expect(ackTranslation({ wikiDir: r.wikiDir, manifest: r.manifest, key, reviewer: ai })).toBeUndefined();
+    expect(readTranslations(r.wikiDir).translations.pairs[key]!.reviewers.map((x) => x.kind)).toEqual(['human', 'ai']);
+    // A French edit, then only the AI reads the pair again: the person's review is gone with the old text.
+    edit(join(r.wikiDir, 'fr', 'create.exits.md'), 'mène à une autre salle', 'ouvre sur une autre salle');
+    expect(ackTranslation({ wikiDir: r.wikiDir, manifest: r.manifest, key, reviewer: ai })).toBeUndefined();
+    commit(r.root, 'an edit the AI checked');
+    const unread =
+      'translations: 1 pair(s) of ready pages is self-checked by the author (AI), not reviewed, not read by a person (create.exits#doors): npm run wiki -- translations --ack <key> --by <name> --kind human --relation independent';
+    expect(check(r).gaps).toContain(unread);
+    expect(check(r, { productRef: r.product }, [report(r.product)]).errors).toEqual([unread]);
+    const err = vi.spyOn(console, 'error').mockImplementation(() => {});
+    expect(main(['translations', '--ack', key, '--by', 'x', `--wiki=${r.wikiDir}`])).toBe(2);
+    expect(err.mock.calls.flat().join('\n')).toMatch(/--kind is human or ai/);
+    vi.restoreAllMocks();
   });
 
   it('records a pair only for a section both languages hold, and says what was never reviewed', () => {
     const r = repo();
     const ack = (key: string) =>
-      ackTranslation({ wikiDir: r.wikiDir, manifest: r.manifest, key, by: 'x', date: '2026-10-23' });
+      ackTranslation({
+        wikiDir: r.wikiDir,
+        manifest: r.manifest,
+        key,
+        reviewer: { name: 'x', kind: 'human', relation: 'independent', date: '2026-10-23' },
+      });
     expect(ack('create.rooms#nowhere')).toBe('en/create.rooms.md has no section "nowhere"');
     expect(ack('create.rooms')).toBe(
       '"create.rooms" is not <id>#<section> (_lead for the text before the first section)',
@@ -182,7 +240,7 @@ describe('wiki -- check --publish', () => {
     expect(ack('create.rooms#_lead')).toBeUndefined();
     const warnings = check(r).warnings;
     expect(warnings).toContain(
-      'translations: create.rooms#walkable-zones is to review (never reviewed as a pair): read both sides, then npm run wiki -- translations --ack create.rooms#walkable-zones --by <name>',
+      'translations: create.rooms#walkable-zones is to review (never reviewed as a pair): read both sides, then npm run wiki -- translations --ack create.rooms#walkable-zones --by <name> --kind human|ai --relation author|independent',
     );
     expect(warnings.some((w) => w.startsWith('translations: create.rooms#_lead'))).toBe(false);
   });
@@ -209,6 +267,8 @@ describe('wiki -- check --publish', () => {
     commit(r.root, 'code and a generator input');
     expect(check(r, { productRef: r.product }, [report(r.product)]).errors).toEqual([
       'the doc revision changes 2 file(s) outside the documentation since the product commit (only wiki/<lang>/*.md, wiki/manifest.json, wiki/translations.json, wiki/reviews.json and images under wiki/images/ may change): tests/sample.test.ts, wiki/coverage.json',
+      // The test file changed: the person's review of the claim no longer holds either.
+      "create.rooms: the claim zones-hold's scope is not reviewed: a person reads it, then npm run wiki -- review-claim zones-hold --by <name> --kind human --relation independent",
     ]);
     const later = git(r.root, 'rev-parse', 'HEAD');
     // The product is after the doc revision: the doc does not descend from it.

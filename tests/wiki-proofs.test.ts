@@ -17,7 +17,8 @@ import { ROOT } from '../tools/game';
 import { main } from '../tools/wiki';
 import { buildWiki } from '../tools/wiki/build';
 import { checkWiki, trackedFiles } from '../tools/wiki/check';
-import { claimStates, readReviews, testNames } from '../tools/wiki/claims';
+import { claimLabel, claimStates, readReviews, testNames } from '../tools/wiki/claims';
+import { reviewWords } from '../tools/wiki/reviewer';
 import { searchDocs } from '../tools/wiki/docs';
 import { repositoryDocs } from '../tools/wiki/docs-load';
 import type { Identifier } from '../tools/wiki/identifiers';
@@ -470,13 +471,32 @@ it('top', () => {});
   it('is scope reviewed once recorded, and the record resets when the claim or the test file changes', () => {
     const { dir, report: before } = wiki();
     vi.spyOn(console, 'log').mockImplementation(() => {});
-    expect(main(['review-claim', CLAIM.id, '--by', 'a reviewer', `--wiki=${dir}`])).toBe(0);
+    expect(
+      main([
+        'review-claim',
+        CLAIM.id,
+        '--by',
+        'a reviewer',
+        '--kind',
+        'human',
+        '--relation',
+        'independent',
+        `--wiki=${dir}`,
+      ]),
+    ).toBe(0);
     vi.restoreAllMocks();
     const record = readReviews(dir).reviews.claims[CLAIM.id]!;
-    expect(record).toMatchObject({ by: 'a reviewer', claimTextHash: before.claims[0]!.claimTextHash });
-    expect(record.date).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+    expect(record).toMatchObject({ claimTextHash: before.claims[0]!.claimTextHash });
+    expect(record.reviewers).toEqual([
+      {
+        name: 'a reviewer',
+        kind: 'human',
+        relation: 'independent',
+        date: expect.stringMatching(/^\d{4}-\d{2}-\d{2}$/),
+      },
+    ]);
     const after = checkWiki({ wikiDir: dir, tracked: TRACKED, identifiers: IDENTIFIERS });
-    expect(after.claims[0]!.reviewed).toEqual({ by: 'a reviewer', date: record.date });
+    expect(after.claims[0]!.reviewed).toEqual(record.reviewers);
     // The guarantee's French text changes: the review no longer holds.
     write(dir, 'fr', drill('fr').replace('que dans une base vide', 'que dans une base neuve'));
     const changed = checkWiki({ wikiDir: dir, tracked: TRACKED, identifiers: IDENTIFIERS });
@@ -507,12 +527,34 @@ it('top', () => {});
     expect(moved!.reviewStale).toBe('the test file changed since its review');
   });
 
+  it("words a review by who made it: a person's is a review, an AI's own check is not (amendment A7)", () => {
+    const base = { id: 'x', page: 'p', test: 't', claimTextHash: 'h' };
+    const r = (kind: 'human' | 'ai', relation: 'author' | 'independent') => ({
+      name: 'n',
+      kind,
+      relation,
+      date: '2026-10-23',
+    });
+    expect(claimLabel({ ...base, reviewed: [r('ai', 'author')] })).toBe(
+      'referenced · scope self-checked by the author (AI), not reviewed',
+    );
+    expect(claimLabel({ ...base, reviewed: [r('ai', 'independent')] })).toBe(
+      'referenced · scope checked by an independent AI, not reviewed by a person',
+    );
+    expect(claimLabel({ ...base, reviewed: [r('ai', 'author'), r('human', 'independent')] })).toBe(
+      'referenced · scope reviewed',
+    );
+    expect(reviewWords([r('ai', 'author')], 'fr')).toBe('vérifiée par son auteur (IA), pas relue');
+  });
+
   it('refuses to review a claim that is not referenced', () => {
     const { dir } = wiki((_, m) => {
       drillOf(m).claims = [{ id: CLAIM.id, test: `${TEST_FILE} › nothing` }];
     });
     const err = vi.spyOn(console, 'error').mockImplementation(() => {});
-    expect(main(['review-claim', CLAIM.id, '--by', 'x', `--wiki=${dir}`])).toBe(1);
+    expect(
+      main(['review-claim', CLAIM.id, '--by', 'x', '--kind', 'human', '--relation', 'independent', `--wiki=${dir}`]),
+    ).toBe(1);
     expect(err.mock.calls.flat().join('\n')).toMatch(/is not referenced .*: nothing to review/);
     vi.restoreAllMocks();
   });

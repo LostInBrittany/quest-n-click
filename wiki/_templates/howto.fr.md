@@ -8,7 +8,9 @@ Une section vraie pour moins de versions que sa page le dit dans un commentaire 
 comme « Reprise » ci-dessous : `applies: 4.2.2..` (depuis), `applies: 4.2.2..4.4.0` (bornes incluses) ou
 `applies: ..4.4.0`, avec `since 4.2.0` après l'intervalle pour la version où la fonction est apparue ; elle reste dans
 les versions de sa page, la même dans les deux langues. Un `[!GUARANTEE id]` a son affirmation dans le manifeste,
-`{"id", "test": "fichier.test.ts › son nom"}`. Un `[!MEASURE id]` donne cinq lignes `- clé: valeur`, les mêmes clés
+`{"id", "test": "fichier.test.ts › son nom"}`. Une relecture se note avec qui l'a faite : `npm run wiki -- review-claim <id>
+--by <nom> --kind human|ai --relation author|independent` (de même `translations --ack`) ; une page publiée veut la
+relecture d'une personne, la vérification d'une IA sur ce qu'elle a écrit n'en est pas une. Un `[!MEASURE id]` donne cinq lignes `- clé: valeur`, les mêmes clés
 dans les deux langues : date, version, volume, conditions, source (un lien GitHub à un commit complet de 40
 caractères, `blob/<sha>/…`). Un bloc de code marqué `room-example` (le JSON d'une salle, ou
 `{"room", "layout", "items", "characters", "verbs", "hero"}` quand elle a besoin de sa géométrie, de ses objets, de

@@ -408,24 +408,6 @@ jobs:
       # Their SBOMs (4.1.19, plan §6.3), from what the archives hold: the Bridge's and the connectors' own locks, the
       # engine's dependencies as the root lock resolves them, the creator's one dependency by its archive's SHA-256.
       - run: node scripts/sbom.mjs --pack=candidate-pack --out=candidate-sbom
-      # The documentation archive (4.5.0, docs/dev/PLAN-4.5-WIKI.md §4.5.4): the bundle, the rendered site and the wiki
-      # of this commit, revision r1, built twice and compared byte for byte; the release attaches this very file and
-      # docs-publish promotes it without building anything again. Named by package.json's version (an rc's tag adds
-      # its suffix when release.yml publishes it).
-      - name: The documentation archive, built twice
-        shell: bash
-        run: |
-          v=$(node -p "require('./package.json').version")
-          mkdir -p candidate-docs .cache/docs-again
-          npm run -s wiki -- archive --out "candidate-docs/quest-n-click-docs-$v.tar.gz" --build-id ${{ github.run_id }} --revision r1
-          npm run -s wiki -- archive --out ".cache/docs-again/quest-n-click-docs-$v.tar.gz" --build-id ${{ github.run_id }} --revision r1
-          cmp "candidate-docs/quest-n-click-docs-$v.tar.gz" ".cache/docs-again/quest-n-click-docs-$v.tar.gz" || { echo "::error::the documentation archive is not reproducible: two builds differ"; exit 1; }
-      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
-        with:
-          name: candidate-docs
-          path: candidate-docs
-          if-no-files-found: error
-          overwrite: true
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: candidate-pack
@@ -441,6 +423,44 @@ jobs:
   # The Bridge's qualification image, built once from the candidate's archive and the image's versioned lock (4.1.19,
   # plan §6.2): saved with its three identities (config digest, OCI manifest digest, the archive's SHA-256) and its SBOM.
   # deployment-smoke loads it and checks them; the release publishes these very files.
+  # The documentation archive (4.5.0, docs/dev/PLAN-4.5-WIKI.md §4.5.4): the bundle, the rendered site and the wiki
+  # of this commit, revision r1, built twice and compared byte for byte; the release attaches this very file and
+  # docs-publish promotes it without building anything again. Named by package.json's version (an rc's tag adds its
+  # suffix when release.yml publishes it). Built after release-core, from its test report (§4.4.3): a guarantee whose
+  # test passed in this run is rendered "executed on <sha>". The report is an input of the archive, not a clock: the
+  # two builds read the same files and give the same bytes.
+  docs-archive:
+    needs: [target, release-core]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ needs.target.outputs.sha }}
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 22
+          cache: npm
+      - run: for i in 1 2 3; do (npm ci) && break; [ "$i" = 3 ] && exit 1; echo "retry $i"; sleep 15; done
+        timeout-minutes: 15
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: candidate-test-report
+          path: .cache/candidate-test-report
+      - name: The documentation archive, built twice
+        shell: bash
+        run: |
+          v=$(node -p "require('./package.json').version")
+          mkdir -p candidate-docs .cache/docs-again
+          npm run -s wiki -- archive --out "candidate-docs/quest-n-click-docs-$v.tar.gz" --build-id ${{ github.run_id }} --revision r1 --candidate ${{ github.run_id }} --test-report .cache/candidate-test-report/vitest.json
+          npm run -s wiki -- archive --out ".cache/docs-again/quest-n-click-docs-$v.tar.gz" --build-id ${{ github.run_id }} --revision r1 --candidate ${{ github.run_id }} --test-report .cache/candidate-test-report/vitest.json
+          cmp "candidate-docs/quest-n-click-docs-$v.tar.gz" ".cache/docs-again/quest-n-click-docs-$v.tar.gz" || { echo "::error::the documentation archive is not reproducible: two builds differ"; exit 1; }
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: candidate-docs
+          path: candidate-docs
+          if-no-files-found: error
+          overwrite: true
   image:
     needs: [target, pack]
     runs-on: ubuntu-24.04
@@ -695,7 +715,7 @@ jobs:
         timeout-minutes: 15
   # The terminal gate: every job above `success` (a skipped or cancelled job is red), then the manifest of this run.
   candidate-gate:
-    needs: [target, release-core, heavy, bridge-load-sqlite, bridge-load-postgres, cross-runtime, worker-container, mutation-plan, mutation, mutation-merge, pack, image, external-consumer, connector-archive-e2e, deployment-smoke, backup-memory, signing-rehearsal, readme-quickstart, studio-install-smoke]
+    needs: [target, release-core, heavy, bridge-load-sqlite, bridge-load-postgres, cross-runtime, worker-container, mutation-plan, mutation, mutation-merge, pack, docs-archive, image, external-consumer, connector-archive-e2e, deployment-smoke, backup-memory, signing-rehearsal, readme-quickstart, studio-install-smoke]
     # A pull request without `full-ci` skips `target`: then there is no candidate to judge, and no red check either.
     if: always() && needs.target.result != 'skipped'
     # The manifest's provenance attestation (4.1.19, plan §6.5): only this job may sign, and only the manifest.

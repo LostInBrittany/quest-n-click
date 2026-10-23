@@ -15,6 +15,7 @@ import { dirname, resolve } from 'node:path';
 import { type ClaimState } from './claims';
 import type { SurfaceStatus } from './contracts';
 import { type Glossary, readGlossary } from './glossary';
+import { reviewWords } from './reviewer';
 import { generatedIdentifiers, type Identifier } from './identifiers';
 import {
   type Audience,
@@ -168,7 +169,7 @@ const L = {
       referenced: 'referenced',
       unreferenced: 'not referenced',
       executed: 'executed on',
-      reviewed: 'scope reviewed',
+      reviewed: 'scope',
     },
     applies: (v: SectionVersions) =>
       [
@@ -267,7 +268,7 @@ const L = {
       referenced: 'référencée',
       unreferenced: 'non référencée',
       executed: 'exécutée sur',
-      reviewed: 'portée relue',
+      reviewed: 'portée',
     },
     applies: (v: SectionVersions) =>
       [
@@ -345,7 +346,7 @@ function rewritePage(
       : ` · ${[
           c.unreferenced ? t.claim.unreferenced : t.claim.referenced,
           ...(c.executedOn ? [`${t.claim.executed} \`${c.executedOn.slice(0, 12)}\``] : []),
-          ...(c.reviewed ? [t.claim.reviewed] : []),
+          ...(reviewWords(c.reviewed, lang) ? [`${t.claim.reviewed} ${reviewWords(c.reviewed, lang)}`] : []),
         ].join(' · ')}`;
   return mapPage(
     showVersions(markdown, lang),

@@ -8,9 +8,11 @@
 //      product commit, the checkout's root (so a report's file is matched by its exact repository path) and the run.
 //      The local file alone proves nothing about who made it: `--candidate <run>` requires the run, and A5b's
 //      publication workflow downloads `candidate-test-report` from that attested candidate run itself;
-//   3. scope reviewed: `wiki/reviews.json` holds a person's record that the test covers the claim, with the hash of
-//      the claim's text (the test's name and the block in both languages) and of the test file: any change to either
-//      resets it, and `npm run wiki -- review-claim <id> --by <name>` records it again.
+//   3. scope reviewed: `wiki/reviews.json` holds a record that the test covers the claim, with the hash of the
+//      claim's text (the test's name and the block in both languages) and of the test file: any change to either
+//      resets it, and `npm run wiki -- review-claim <id> --by <name> --kind human|ai --relation author|independent`
+//      records it again. Its reviewers say who read it (reviewer.ts): only a person's review makes it "scope
+//      reviewed"; an AI's own check of what it wrote is said as such, and `check --publish` wants a person's.
 // A claim naming a test written `.skip`, `.todo`, `.only`, `.fails` (or `.skipIf`, `.runIf`, on it or a describe
 // around it) is refused at the first state: such a test does not run as it reads, or proves the opposite.
 import { createHash } from 'node:crypto';
@@ -21,6 +23,7 @@ import { z } from 'zod';
 import { formatJson } from './json';
 import { issuesOf, type Manifest, type Page } from './manifest';
 import type { Block } from './page';
+import { type Reviewer, ReviewerSchema, reviewWords, withReviewer } from './reviewer';
 
 const sha256 = (s: string) => createHash('sha256').update(s).digest('hex');
 /** A text file's hash, its line ends made LF first, so a Windows checkout hashes as a Linux one. */
@@ -307,8 +310,7 @@ const ReviewsSchema = z
         .object({
           claimTextHash: z.string().regex(/^[0-9a-f]{64}$/),
           testFileHash: z.string().regex(/^[0-9a-f]{64}$/),
-          by: z.string().trim().min(1).max(80),
-          date: z.iso.date(),
+          reviewers: z.array(ReviewerSchema).min(1),
         })
         .strict(),
     ),
@@ -361,7 +363,8 @@ export interface ClaimState {
   notExecuted?: string;
   /** Why the run that makes the candidate's report never runs its file, when it does not. */
   excluded?: string;
-  reviewed?: { by: string; date: string };
+  /** The reviewers of a record that still holds; "scope reviewed" only when a person is among them. */
+  reviewed?: Reviewer[];
   /** Why a recorded review no longer holds (the claim's text or the test file changed). */
   reviewStale?: string;
   testFileHash?: string;
@@ -372,7 +375,8 @@ export interface ClaimState {
 export function claimLabel(s: ClaimState): string {
   const parts = [s.unreferenced ? 'not referenced' : 'referenced'];
   if (s.executedOn) parts.push(`executed on ${s.executedOn.slice(0, 12)}`);
-  if (s.reviewed) parts.push('scope reviewed');
+  const words = reviewWords(s.reviewed);
+  if (words) parts.push(`scope ${words}`);
   return parts.join(' · ');
 }
 
@@ -423,7 +427,7 @@ export function claimStates(o: {
     if (review) {
       if (review.claimTextHash !== state.claimTextHash) state.reviewStale = "the claim's text changed since its review";
       else if (review.testFileHash !== state.testFileHash) state.reviewStale = 'the test file changed since its review';
-      else state.reviewed = { by: review.by, date: review.date };
+      else state.reviewed = review.reviewers;
     }
     return state;
   });
@@ -433,16 +437,17 @@ export function claimStates(o: {
  * `wiki -- review-claim <id> --by <name>`: records that a person read the claim and its test, and found the test
  * covers it. Refused for a claim that is not referenced (no test to review). Returns the problem, or undefined.
  */
-export function reviewClaim(o: { wikiDir: string; state: ClaimState; by: string; date: string }): string | undefined {
+export function reviewClaim(o: { wikiDir: string; state: ClaimState; reviewer: Reviewer }): string | undefined {
   if (o.state.unreferenced) return `${o.state.id} is not referenced (${o.state.unreferenced}): nothing to review`;
-  if (!o.by.trim()) return '--by names who reviewed it';
   const { reviews, errors } = readReviews(o.wikiDir);
   if (errors.length) return errors.join('; ');
+  // The same claim and test file read again add a reviewer (a person after the AI that wrote it); a change starts over.
+  const old = reviews.claims[o.state.id];
+  const same = old && old.claimTextHash === o.state.claimTextHash && old.testFileHash === o.state.testFileHash;
   reviews.claims[o.state.id] = {
     claimTextHash: o.state.claimTextHash,
     testFileHash: o.state.testFileHash!,
-    by: o.by.trim(),
-    date: o.date,
+    reviewers: same ? withReviewer(old.reviewers, o.reviewer) : [o.reviewer],
   };
   reviews.claims = Object.fromEntries(Object.entries(reviews.claims).sort(([a], [b]) => (a < b ? -1 : 1)));
   writeFileSync(resolve(o.wikiDir, REVIEWS_FILE), formatJson(reviews));

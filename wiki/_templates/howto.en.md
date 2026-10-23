@@ -8,6 +8,9 @@ A section true for fewer versions than its page says so in an HTML comment on th
 "Recovery" below: `applies: 4.2.2..` (from), `applies: 4.2.2..4.4.0` (both inclusive) or `applies: ..4.4.0`, with
 `since 4.2.0` after the range for the version the feature appeared in; it stays inside the page's versions, the same
 in both languages. A `[!GUARANTEE id]` has its claim in the manifest, `{"id", "test": "file.test.ts › its name"}`.
+A review is recorded with who made it: `npm run wiki -- review-claim <id> --by <name> --kind human|ai --relation
+author|independent` (and `translations --ack` alike); a published page needs a person's review, and an AI's check of
+what it wrote is not one.
 A `[!MEASURE id]` gives five `- key: value` lines, the same keys in both languages: date, version, volume, conditions,
 source (a GitHub link at a full 40-character commit, `blob/<sha>/…`). A fenced block tagged `room-example` (a room's
 JSON, or `{"room", "layout", "items", "characters", "verbs", "hero"}` when it needs its geometry, its items, its

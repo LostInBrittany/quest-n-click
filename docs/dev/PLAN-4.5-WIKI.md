@@ -611,6 +611,15 @@ or a page and a section that the written page or the coverage matrix proposes, n
   `wiki -- translations --ack` records the new pair after both sides were read.
   *Amendment (A5):* the text before a page's first section pairs as `<id>#_lead`; pairs are judged on `ready` pages;
   a section's hash covers the bytes of the `wiki/images/` files it shows.
+- *Amendment (A7, who reviewed):* a record of `wiki/translations.json` and of `wiki/reviews.json` holds its reviewers,
+  each `{name, kind: human|ai, relation: author|independent, date}`; `--ack` and `review-claim` require `--by`,
+  `--kind` and `--relation`. The same text read again adds a reviewer, a changed text starts over. `check --publish`
+  requires a review by a person (`kind: human`) for every translation pair and every claim's scope of a published
+  page; before that the rendered state says "self-checked by the author (AI), not reviewed" (or "checked by an
+  independent AI, not reviewed by a person"), never "reviewed". `ready` stays possible without it: it says the work is
+  complete, not that it was reviewed. The guarantee's executed state is rendered from the candidate's test report:
+  `wiki -- archive --test-report <file> --candidate <run>` reads it under `check --publish`'s rules, and the
+  candidate's `docs-archive` job runs after `release-core` with `candidate-test-report`.
 - The word count stays as a mere warning.
 - The glossary is bilingual, with synonyms (lease / bail / verrou; span / pan; candidate / candidat…).
 

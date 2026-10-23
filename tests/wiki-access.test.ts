@@ -246,6 +246,29 @@ describe('read_doc by id', () => {
     expect(readDocById(set, { id: 'studio.notes' }).text).toMatch(/\(en, draft: not reviewed yet\)/);
   });
 
+  it("gives a release build's page its permalink, a local or dirty build none with its reason, and the wiki's current page (§4.5.4)", () => {
+    expect(readDocById(set, { id: 'team.write-refused-423', section: 'symptom' }).structured).not.toHaveProperty('url');
+    // bundleOpts: a candidate's numeric build id, not dirty.
+    const r = readDocById(resolveDocs(packageRoot()), { id: 'team.write-refused-423', section: 'symptom', lang: 'fr' });
+    expect(r.structured.url).toEqual({
+      versioned: 'https://wanoo.github.io/quest-n-click/docs/4.5.0/r1/fr/team.write-refused-423.html#symptom',
+      versionedNote:
+        'the permalink of 4.5.0 r1 if this build is the one published; check https://wanoo.github.io/quest-n-click/docs/publication.json',
+      current: 'https://github.com/wanoo/quest-n-click/wiki/FR-Equipe-Ecriture-Refusee-423#symptom',
+      currentLabel: 'current documentation (the latest release), not necessarily this version',
+    });
+    const local = tmp('docs-package-local-');
+    writeFileSync(join(local, 'package.json'), JSON.stringify({ name: 'quest-n-click', version: '4.5.0' }));
+    writeBundle({ ...bundleOpts(join(local, 'docs-bundle')), buildId: 'local-a7' });
+    const l = readDocById(resolveDocs(local), { id: 'team.write-refused-423' }).structured.url!;
+    expect(l.versioned).toBeNull();
+    expect(l.versionedNote).toMatch(/a local build \(build id "local-a7", not a candidate run\)/);
+    const dirty = tmp('docs-package-dirty-');
+    writeFileSync(join(dirty, 'package.json'), JSON.stringify({ name: 'quest-n-click', version: '4.5.0' }));
+    writeBundle({ ...bundleOpts(join(dirty, 'docs-bundle')), dirty: true });
+    expect(readDocById(resolveDocs(dirty), { id: 'team.write-refused-423' }).structured.url!.versioned).toBeNull();
+  });
+
   it('gives maxChars at a time and a cursor for the rest; a cursor of another request is stale', () => {
     const whole = readDocById(set, { id: 'create.rooms' }).structured.range.total;
     let cursor: string | undefined;
@@ -562,6 +585,59 @@ describe('plan §13 D3, a neighbour and a counter-example', () => {
 });
 
 describe('the search, at its edges', () => {
+  it('counts an identifier in capitals only when typed exactly, its own section first, its description in the excerpt (A7, D2)', () => {
+    const dir = tmp('wiki-screaming-');
+    cpSync(BASE, dir, { recursive: true });
+    const file = join(dir, 'manifest.json');
+    const m = JSON.parse(readFileSync(file, 'utf8')) as { pages: { id: string; identifiers: string[] }[] };
+    m.pages.find((p) => p.id === 'studio.notes')!.identifiers = [
+      'STUDIO',
+      'STUDIO_SESSION_KEY',
+      'PATH',
+      'WORKER_PYTHON_PATH',
+    ];
+    writeFileSync(file, JSON.stringify(m));
+    const page = join(dir, 'en', 'studio.notes.md');
+    writeFileSync(
+      page,
+      `${readFileSync(page, 'utf8').replace('Write in the Notes tab.', 'Write in the Notes **tab**, never in `ops/**/*.yml`.')}
+<a name="worker-python-path"></a>
+
+### \`WORKER_PYTHON_PATH\`
+
+Where the build hook installed the Python packages.
+
+<a name="path"></a>
+
+### \`PATH\`
+
+The system's search path, passed to the children.
+
+<a name="studio-session-key"></a>
+
+### \`STUDIO_SESSION_KEY\`
+
+The keys that seal the session cookies.
+`,
+    );
+    const set = preview(dir);
+    const exact = results(set, 'STUDIO_SESSION_KEY')[0]!;
+    expect(exact).toMatchObject({ ref: 'studio.notes#studio-session-key', reason: 'identifier' });
+    // The excerpt is the identifier's section: its name, then its description.
+    expect(exact.snippet).toMatch(/that seal the .*cookies/);
+    // One token shaped like an identifier names it in any case; the plain word does not.
+    expect(results(set, 'studio_session_key')[0]).toMatchObject({ ref: 'studio.notes#studio-session-key' });
+    expect(results(set, 'the studio').filter((r) => r.reason === 'identifier')).toEqual([]);
+    // The section headed by exactly the identifier typed wins over one whose name contains it.
+    expect(results(set, 'PATH')[0]).toMatchObject({ ref: 'studio.notes#path', reason: 'identifier' });
+    expect(results(set, 'WORKER_PYTHON_PATH')[0]).toMatchObject({ ref: 'studio.notes#worker-python-path' });
+    // Emphasis around words is dropped before marking; a glob in code keeps its stars.
+    const bold = results(set, 'tab yml', { lang: 'en' }).find((r) => r.id === 'studio.notes')!;
+    expect(bold.snippet).toContain('the Notes **tab**');
+    expect(bold.snippet).not.toContain('****');
+    expect(bold.snippet).toContain('`ops/**/*.yml`');
+  });
+
   const set = preview();
 
   it('a rare word met once in a body only is not a confident match (score 2 under 3): a heading, a title or a repeat is needed', () => {

@@ -1,9 +1,11 @@
 // The translation state (4.5.0 "Wiki", docs/dev/PLAN-4.5-WIKI.md §4.7.1, phase A5): no language is the source. For
 // each section of a `ready` page, `wiki/translations.json` records which revision of each language a person read
-// against the other, `{enHash, frHash, reviewedAt, by}` under `<id>#<section>` (`<id>#_lead` for the text before the
-// first section). When either side's text, or an image a section shows, changes, the pair is "to review": a warning at
-// the work level, an error for `check --publish`. `npm run wiki -- translations --ack <id#section> --by <name>`
-// records the pair again, once both sides were read.
+// against the other, `{enHash, frHash, reviewers}` under `<id>#<section>` (`<id>#_lead` for the text before the first
+// section), each reviewer `{name, kind: human|ai, relation: author|independent, date}` (reviewer.ts). When either
+// side's text, or an image a section shows, changes, the pair is "to review": a warning at the work level, an error for
+// `check --publish`, which also wants a review by a person on every pair of a published page (an AI's own check of
+// what it wrote is said as such, never as a review). `npm run wiki -- translations --ack <id#section> --by <name>
+// --kind human|ai --relation author|independent` records the pair, once both sides were read.
 import { createHash } from 'node:crypto';
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
@@ -12,6 +14,7 @@ import { splitSections } from './docs';
 import { formatJson } from './json';
 import { issuesOf, type Manifest } from './manifest';
 import { classifyTarget, mapLine, mapLines } from './page';
+import { humanReviewed, type Reviewer, ReviewerSchema, withReviewer } from './reviewer';
 
 const TRANSLATIONS_FILE = 'translations.json';
 /** The key of the text before a page's first section: `_` is never in a section id. */
@@ -24,7 +27,7 @@ const TranslationsSchema = z
     version: z.literal(1),
     pairs: z.record(
       z.string().regex(/^[a-z]+\.[a-z0-9]+(?:-[a-z0-9]+)*#(?:_lead|[a-z0-9]+(?:-[a-z0-9]+)*)$/, 'a key <id>#<section>'),
-      z.object({ enHash: hash, frHash: hash, reviewedAt: z.iso.date(), by: z.string().trim().min(1).max(80) }).strict(),
+      z.object({ enHash: hash, frHash: hash, reviewers: z.array(ReviewerSchema).min(1) }).strict(),
     ),
   })
   .strict();
@@ -79,6 +82,9 @@ export interface PairState {
   /** `paired`: both hashes as recorded; `to review`: no record, or a side changed since. */
   state: 'paired' | 'to review';
   why?: string;
+  /** A paired pair's reviewers, and whether a person is among them (a publication needs one). */
+  reviewers?: Reviewer[];
+  human?: boolean;
 }
 
 /**
@@ -105,14 +111,13 @@ export function translationStates(
       keys.add(key);
       if (p.state !== 'ready') continue;
       const r = translations.pairs[key];
+      const since = r?.reviewers.at(-1)?.date;
       if (!r) pairs.push({ key, state: 'to review', why: 'never reviewed as a pair' });
       else if (r.enHash !== enHash && r.frHash !== frHash)
-        pairs.push({ key, state: 'to review', why: `both sides changed since ${r.reviewedAt}` });
-      else if (r.enHash !== enHash)
-        pairs.push({ key, state: 'to review', why: `the English changed since ${r.reviewedAt}` });
-      else if (r.frHash !== frHash)
-        pairs.push({ key, state: 'to review', why: `the French changed since ${r.reviewedAt}` });
-      else pairs.push({ key, state: 'paired' });
+        pairs.push({ key, state: 'to review', why: `both sides changed since ${since}` });
+      else if (r.enHash !== enHash) pairs.push({ key, state: 'to review', why: `the English changed since ${since}` });
+      else if (r.frHash !== frHash) pairs.push({ key, state: 'to review', why: `the French changed since ${since}` });
+      else pairs.push({ key, state: 'paired', reviewers: r.reviewers, human: humanReviewed(r.reviewers) });
     }
   }
   return { pairs, stale: Object.keys(translations.pairs).filter((k) => !keys.has(k)) };
@@ -127,15 +132,13 @@ export function ackTranslation(o: {
   wikiDir: string;
   manifest: Manifest;
   key: string;
-  by: string;
-  date: string;
+  reviewer: Reviewer;
 }): string | undefined {
   const at = o.key.indexOf('#');
   if (at < 0) return `"${o.key}" is not <id>#<section> (${LEAD} for the text before the first section)`;
   const [id, section] = [o.key.slice(0, at), o.key.slice(at + 1)];
   const page = o.manifest.pages.find((p) => p.id === id);
   if (!page || page.generated || page.state === 'planned') return `${id} is not a written page of the manifest`;
-  if (!o.by.trim()) return '--by names who read both sides';
   const sides: Record<'en' | 'fr', string | undefined> = { en: undefined, fr: undefined };
   for (const lang of ['en', 'fr'] as const) {
     const file = resolve(o.wikiDir, lang, `${id}.md`);
@@ -145,7 +148,14 @@ export function ackTranslation(o: {
   }
   const { translations, errors } = readTranslations(o.wikiDir);
   if (errors.length) return errors.join('; ');
-  translations.pairs[o.key] = { enHash: sides.en!, frHash: sides.fr!, reviewedAt: o.date, by: o.by.trim() };
+  // The same texts read again add a reviewer (a person after the AI that wrote them); changed texts start over.
+  const old = translations.pairs[o.key];
+  const same = old && old.enHash === sides.en && old.frHash === sides.fr;
+  translations.pairs[o.key] = {
+    enHash: sides.en!,
+    frHash: sides.fr!,
+    reviewers: same ? withReviewer(old.reviewers, o.reviewer) : [o.reviewer],
+  };
   const { stale } = translationStates(o.wikiDir, o.manifest, translations);
   for (const k of stale) if (k !== o.key) delete translations.pairs[k];
   translations.pairs = Object.fromEntries(Object.entries(translations.pairs).sort(([a], [b]) => (a < b ? -1 : 1)));

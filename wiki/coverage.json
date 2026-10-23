@@ -10421,7 +10421,7 @@
       "limits": [
         {
           "text": "`/readyz` gives `rpoMs`, the age of the oldest operation not shipped yet (0 when everything is): the target is 1 min (D42), measured, never claimed.",
-          "status": "pending"
+          "status": "reported"
         },
         {
           "text": "The line is `0`, then new after each restore: the revisions a restored instance writes again never overwrite the segments of the timeline it left.",
@@ -10439,14 +10439,14 @@
           "text": "**To the bucket** (4.2.3): `npm run studio-server -- backup --to-bucket --keep 14 --config <file>` writes it to the instance's bucket as `backups/<date>-r<revision>.json` (UTC, `2026-10-19T03-17-00Z`), then deletes the backups it wrote past the 14 most recent (never another object).",
           "status": "pending"
         },
-        { "text": "It survives the database, not the bucket: a copy elsewhere is yours to make.", "status": "pending" },
+        { "text": "It survives the database, not the bucket: a copy elsewhere is yours to make.", "status": "reported" },
         {
           "text": "**A restore**: a hosted instance only, into an empty database (a new Postgres add-on, the same bucket): `npm run studio-server -- restore <file> --replay --config <file>` checks the digest, the tables and columns, and that every blob of the head and of the journal is in the bucket (a preview, build or prepared set whose blobs were collected since is left out, and counted as `dropped`), writes the rows, then replays the journal shipped since the backup.",
-          "status": "pending"
+          "status": "reported"
         },
         {
           "text": "Each replayed operation must continue the head (its revision, each file's previous content, its blobs); the replay stops at the first that does not (`stopped`: `gap`, `not-the-head`, `blob-missing`…).",
-          "status": "pending"
+          "status": "reported"
         },
         {
           "text": "The head's and the journal's blobs are never collected (the journal keeps every operation); an older backup restored after a collection only loses the previews, builds and prepared sets the collection took.",
@@ -10565,11 +10565,11 @@
       "limits": [
         {
           "text": "If someone else wrote one of its files since, the write is refused (409) with that file as you read it and as it is now (the writes since of the same tab, CLI or MCP session never refuse it; your other tab's, or an agent's of yours, do).",
-          "status": "pending"
+          "status": "reported"
         },
         {
           "text": "Limits: the check is per file (two notes edited at once are one file); the room view's placement is checked against what the Rooms tab read, while the view may still show an older preview for a moment; a script that sends no `x-studio-base` is not checked this way.",
-          "status": "pending"
+          "status": "reported"
         },
         {
           "text": "**Undo is yours** (4.2.2): Undo and Redo (and Ctrl/Cmd+Z, Shift for redo) undo your own last operation, whatever the others wrote meanwhile, as a new revision (history is never rewritten).",
@@ -23495,7 +23495,7 @@
       "limits": [
         {
           "text": "`/readyz` donne `rpoMs`, l'âge de la plus ancienne opération pas encore expédiée (0 quand tout l'est) : la cible est 1 min (D42), mesurée, jamais affirmée.",
-          "status": "pending"
+          "status": "reported"
         },
         {
           "text": "La ligne vaut `0`, puis une nouvelle après chaque restauration : les révisions qu'une instance restaurée réécrit n'écrasent jamais les segments de la chronologie qu'elle a quittée.",
@@ -23511,11 +23511,11 @@
         },
         {
           "text": "**Une restauration** : une instance hébergée seulement, dans une base vide (un nouvel add-on Postgres, le même bucket) : `npm run studio-server -- restore <fichier> --replay --config <fichier>` vérifie le condensé, les tables et les colonnes, et que chaque blob de la tête et du journal est dans le bucket (une prévisualisation, un build ou un ensemble préparé dont les blobs ont été ramassés depuis est laissé de côté, et compté dans `dropped`), écrit les lignes, puis rejoue le journal expédié depuis la sauvegarde.",
-          "status": "pending"
+          "status": "reported"
         },
         {
           "text": "Chaque opération rejouée doit continuer la tête (sa révision, le contenu précédent de chaque fichier, ses blobs) ; le rejeu s'arrête à la première qui ne le fait pas (`stopped` : `gap`, `not-the-head`, `blob-missing`…).",
-          "status": "pending"
+          "status": "reported"
         },
         {
           "text": "Les opérations rejouées ne gardent pas leur réponse : un client qui en retente une reçoit `null`.",
@@ -23637,12 +23637,12 @@
       "limits": [
         {
           "text": "Si quelqu'un d'autre a écrit l'un de ses fichiers depuis, l'écriture est refusée (409) avec ce fichier tel que vous l'avez lu et tel qu'il est (les écritures depuis du même onglet, de la même session CLI ou MCP ne le refusent jamais ; celles de votre autre onglet, ou d'un agent à vous, si).",
-          "status": "pending"
+          "status": "reported"
         },
-        { "text": "Rien n'est renvoyé sans que vous le demandiez.", "status": "pending" },
+        { "text": "Rien n'est renvoyé sans que vous le demandiez.", "status": "reported" },
         {
           "text": "Limites : la vérification se fait par fichier (deux notes modifiées en même temps sont un seul fichier) ; le placement de la vue de salle est vérifié par rapport à ce que l'onglet Rooms a lu, alors que la vue peut encore montrer une prévisualisation plus ancienne un instant ; un script qui n'envoie pas `x-studio-base` n'est pas vérifié ainsi.",
-          "status": "pending"
+          "status": "reported"
         },
         {
           "text": "**L'annulation est la vôtre** (4.2.2) : Undo et Redo (et Ctrl/Cmd+Z, Maj pour rétablir) annulent votre propre dernière opération, quoi que les autres aient écrit entre-temps, par une nouvelle révision (l'historique n'est jamais réécrit).",
