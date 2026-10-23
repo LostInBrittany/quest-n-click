@@ -157,7 +157,7 @@ function mapText(text: string, line: number, replace: (l: Link) => string | unde
 }
 
 /** A line split into inline code spans (kept as written) and text, backtick runs paired as CommonMark pairs them. */
-function mapLine(line: string, n: number, replace: (l: Link) => string | undefined): string {
+export function mapLine(line: string, n: number, replace: (l: Link) => string | undefined): string {
   let out = '';
   let text = '';
   let i = 0;
@@ -196,30 +196,49 @@ function mapLine(line: string, n: number, replace: (l: Link) => string | undefin
   return out + mapText(text, n, replace);
 }
 
+/** A fenced code block: the first word of its info string, its opening line, the lines between its fences. */
+export interface Fence {
+  lang: string;
+  line: number;
+  /** The block's last line, its closing fence (or the page's last line when it is never closed). */
+  endLine: number;
+  content: string;
+}
+
 /**
  * Walks a page line by line, outside fenced code, calling `onLine` with each line, its number and a way to read the
- * next non-blank line; the line it returns replaces it. Returns the page rewritten, and whether a fence was left open.
+ * next non-blank line; the line it returns replaces it. Each fenced block is handed to `onFence` once closed (or at the
+ * end of a page that leaves it open). Returns the page rewritten, and whether a fence was left open.
  */
-function mapLines(
+export function mapLines(
   markdown: string,
   onLine: (line: string, n: number, next: () => string | undefined) => string,
+  onFence?: (fence: Fence) => void,
 ): { text: string; openFence: boolean } {
   const lines = markdown.split('\n');
-  let fence: { char: string; length: number } | undefined;
+  let fence: { char: string; length: number; lang: string; line: number; body: string[] } | undefined;
+  const close = (endLine: number) => {
+    if (fence) onFence?.({ lang: fence.lang, line: fence.line, endLine, content: fence.body.join('\n') });
+    fence = undefined;
+  };
   const out = lines.map((raw, i) => {
     const mark = /^\s*(`{3,}|~{3,})(.*)$/.exec(raw);
     if (fence) {
-      if (mark && mark[1]![0] === fence.char && mark[1]!.length >= fence.length && !mark[2]!.trim()) fence = undefined;
+      if (mark && mark[1]![0] === fence.char && mark[1]!.length >= fence.length && !mark[2]!.trim()) close(i + 1);
+      else fence.body.push(raw);
       return raw;
     }
     // A backtick fence's info string holds no backtick (otherwise the line is inline code).
     if (mark && !(mark[1]![0] === '`' && mark[2]!.includes('`'))) {
-      fence = { char: mark[1]![0]!, length: mark[1]!.length };
+      const lang = mark[2]!.trim().split(/\s+/)[0] ?? '';
+      fence = { char: mark[1]![0]!, length: mark[1]!.length, lang, line: i + 1, body: [] };
       return raw;
     }
     return onLine(raw, i + 1, () => lines.slice(i + 1).find((l) => l.trim() !== ''));
   });
-  return { text: out.join('\n'), openFence: fence !== undefined };
+  const openFence = fence !== undefined;
+  close(lines.length);
+  return { text: out.join('\n'), openFence };
 }
 
 /**

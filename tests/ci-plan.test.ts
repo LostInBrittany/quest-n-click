@@ -76,6 +76,10 @@ describe('the plan of a change', () => {
     ];
     expect(docsFor(['wiki/en/create.rooms.md'], pages)).toEqual({ docs: true, docsPages: [] });
     expect(docsFor(['tools/wiki/build.ts'], pages).docs).toBe(true);
+    // The root pages the coverage matrix inventories are frozen with docs/ (A3); the CHANGELOG is not.
+    expect(docsFor(['CONTRIBUTING.md'], pages).docs).toBe(true);
+    expect(docsFor(['README.fr.md'], pages).docs).toBe(true);
+    expect(docsFor(['CHANGELOG.md'], pages).docs).toBe(false);
     expect(docsFor(['studio-server/src/ops/backup-bucket.ts', 'src/engine/core/save.ts'], pages)).toEqual({
       docs: true,
       docsPages: ['clever.backups', 'create.rooms'],
