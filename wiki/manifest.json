@@ -2103,8 +2103,22 @@
       "context": ["engine-repo", "created-project"],
       "title": { "en": "Checking your game", "fr": "Vérifier son jeu" },
       "url": { "en": "EN-Create-Checking-Your-Game", "fr": "FR-Creer-Verifier-Son-Jeu" },
-      "state": "planned",
-      "sources": ["tools/validate.ts", "tools/solve.ts"],
+      "state": "ready",
+      "versions": { "appliesFrom": "4.3.0" },
+      "sources": [
+        "tools/validate.ts",
+        "tools/solve.ts",
+        "tools/lint.ts",
+        "tools/proof-cache.ts",
+        "cli/quest-n-click.mjs",
+        "src/engine/tools/validate.ts",
+        "src/engine/tools/lint.ts",
+        "src/engine/tools/status.ts",
+        "scripts/e2e.mjs",
+        "games/demo/e2e.mjs",
+        ".github/workflows/ci.yml",
+        ".github/workflows/prove.yml"
+      ],
       "replaces": [
         "docs/en/CONTENT_GUIDE.md#checking-your-work",
         "docs/en/DESIGN.md#12-before-you-share-the-link",
@@ -2117,11 +2131,83 @@
         "README.md#prove-and-ship-it",
         "README.fr.md#le-prouver-et-le-livrer"
       ],
-      "questions": { "en": [], "fr": [] },
-      "aliases": { "en": [], "fr": [] },
-      "identifiers": ["npm run validate", "npm run solve", "npm run lint"],
-      "related": [],
-      "prerequisites": [],
+      "questions": {
+        "en": [
+          "How do I check that my game has no errors before I share it?",
+          "What is the difference between npm run validate, solve and lint?",
+          "Which checks can I run in a created project?"
+        ],
+        "fr": [
+          "Comment vérifier que mon jeu n'a pas d'erreur avant de le partager ?",
+          "Quelle différence entre npm run validate, solve et lint ?",
+          "Quelles vérifications puis-je lancer dans un projet créé ?"
+        ]
+      },
+      "aliases": {
+        "en": ["validator", "content lint", "verify", "TOOLS", "checklist before sharing"],
+        "fr": ["validateur", "lint du contenu", "verify", "TOOLS", "liste avant de partager"]
+      },
+      "identifiers": [
+        "npm run validate",
+        "npm run lint",
+        "npm run lint:content",
+        "npm run verify:game",
+        "npm run prove:game",
+        "npm run build:game",
+        "npm run verify:release",
+        "npm run verify:commercial",
+        "npm run verify:dist",
+        "npm run page:world",
+        "npm run page:puzzles",
+        "npm run e2e",
+        "npm run e2e:visual",
+        "npm run e2e:a11y",
+        "npm run e2e:perf",
+        "npm run e2e:music",
+        "npm run check",
+        "npm run tsc",
+        "npm run test",
+        "npm run test:assets",
+        "npm run quality",
+        "npm run docs:screenshots",
+        "npm run docs:truth",
+        "npm run docs:links",
+        "npx quest-n-click validate",
+        "npx quest-n-click lint",
+        "npm run verify",
+        "lint.ignore",
+        "E2E_OUT"
+      ],
+      "related": [
+        "create.solver-proofs",
+        "create.solver-options",
+        "create.playtests",
+        "create.build-release",
+        "studio.check"
+      ],
+      "prerequisites": ["create.first-game"],
+      "keywords": {
+        "en": [
+          "cond-never-true",
+          "rule-shadowed",
+          "item-red-herring",
+          "hint-stuck",
+          "walk-link-gate",
+          "hero-looks-default",
+          "e2e",
+          "walkthrough"
+        ],
+        "fr": [
+          "cond-never-true",
+          "rule-shadowed",
+          "item-red-herring",
+          "hint-stuck",
+          "walk-link-gate",
+          "hero-looks-default",
+          "e2e",
+          "parcours"
+        ]
+      },
       "owner": "@wanoo"
     },
     {
@@ -2132,8 +2218,22 @@
       "context": ["engine-repo", "created-project"],
       "title": { "en": "What the solver proves", "fr": "Ce que prouve le solveur" },
       "url": { "en": "EN-Create-What-The-Solver-Proves", "fr": "FR-Creer-Ce-Que-Prouve-Le-Solveur" },
-      "state": "planned",
-      "sources": ["src/engine/tools/solve.ts"],
+      "state": "ready",
+      "versions": { "appliesFrom": "4.1.13" },
+      "sources": [
+        "src/engine/tools/solve/*.ts",
+        "src/engine/tools/solve/search/*.ts",
+        "src/engine/tools/status.ts",
+        "src/engine/tools/audit.ts",
+        "src/engine/tools/chapters.ts",
+        "tools/solve.ts",
+        "tools/solve-reality.ts",
+        "docs/dev/adr/0003-solver-runs-the-engine.md",
+        "docs/dev/adr/0015-compact-state.md",
+        "docs/dev/PROOF-MATRIX.md",
+        "tests/status.test.ts",
+        "tests/checkpoint.test.ts"
+      ],
       "replaces": [
         "docs/en/ARCHITECTURE.md#the-solver-runs-the-real-engine",
         "docs/en/BENCH.md#what-the-solver-does-with-a-big-game",
@@ -2155,13 +2255,70 @@
         "docs/fr/SOLVER.md#la-matrice-de-preuve"
       ],
       "questions": {
-        "en": ["The solver finds an ending: have I ruled out every softlock?"],
-        "fr": ["Le solveur trouve une fin : ai-je exclu tous les blocages ?"]
+        "en": [
+          "The solver finds an ending: have I ruled out every softlock?",
+          "What does a truncated solver result mean?",
+          "Is a proof with abstractions as good as an exhaustive search?"
+        ],
+        "fr": [
+          "Le solveur trouve une fin : ai-je exclu tous les blocages ?",
+          "Que veut dire un résultat truncated du solveur ?",
+          "Une preuve avec abstractions vaut-elle une recherche exhaustive ?"
+        ]
       },
-      "aliases": { "en": ["softlock", "dead end"], "fr": ["blocage", "impasse"] },
-      "identifiers": [],
-      "related": [],
+      "aliases": {
+        "en": ["softlock", "dead end", "witness", "exhaustive proof", "SOLVER"],
+        "fr": ["blocage", "impasse", "témoin", "preuve exhaustive", "SOLVER"]
+      },
+      "identifiers": [
+        "npm run solve",
+        "npm run solve:reality",
+        "npm run prove:matrix",
+        "npx quest-n-click solve",
+        "npx quest-n-click solve-reality",
+        "solved",
+        "softlocks",
+        "unsolved",
+        "truncated",
+        "broken",
+        "checkpoint_mismatch"
+      ],
+      "related": ["create.solver-options", "create.checking", "bridge.guarantees", "contribute.benchmarks"],
       "prerequisites": [],
+      "keywords": {
+        "en": [
+          "truncated",
+          "solved",
+          "softlocks",
+          "checkpoint_mismatch",
+          "abstractions",
+          "liveness",
+          "proof matrix",
+          "canonical character",
+          "mobility regions"
+        ],
+        "fr": [
+          "truncated",
+          "solved",
+          "softlocks",
+          "checkpoint_mismatch",
+          "abstractions",
+          "vivacité",
+          "matrice de preuve",
+          "personnage canonique",
+          "régions de mobilité"
+        ]
+      },
+      "claims": [
+        {
+          "id": "witness-not-proof",
+          "test": "tests/status.test.ts › the one status › one winning path is not a proof: only the robot can finish, witness says solved, --prove says softlocks"
+        },
+        {
+          "id": "truncated-never-solved",
+          "test": "tests/checkpoint.test.ts › checkpoint and resume › a budget that cuts gives truncated, never solved: states, time, memory"
+        }
+      ],
       "owner": "@wanoo"
     },
     {
@@ -2172,8 +2329,23 @@
       "context": ["engine-repo", "created-project"],
       "title": { "en": "Solver options", "fr": "Options du solveur" },
       "url": { "en": "EN-Create-Solver-Options", "fr": "FR-Creer-Options-Du-Solveur" },
-      "state": "planned",
-      "sources": ["tools/solve.ts"],
+      "state": "ready",
+      "versions": { "appliesFrom": "4.1.13" },
+      "sources": [
+        "tools/solve.ts",
+        "tools/proof-cache.ts",
+        "tools/checkpoint.ts",
+        "tools/prove-matrix.ts",
+        "tools/audit-corpus.ts",
+        "tools/bench.ts",
+        "src/engine/tools/solve/model.ts",
+        "src/engine/tools/solve/explosion.ts",
+        "src/engine/tools/solve/search.ts",
+        "src/engine/tools/solve-pool.ts",
+        "src/engine/tools/chapters.ts",
+        "tests/checkpoint.test.ts",
+        "tests/workers.test.ts"
+      ],
       "replaces": [
         "docs/en/BENCH.md#when-it-gets-slow-the-profile",
         "docs/en/SOLVER.md#reading-the-profile",
@@ -2186,11 +2358,67 @@
         "docs/fr/SOLVER.md#les-workers",
         "docs/fr/TOOLS.md#vérifier-le-contenu"
       ],
-      "questions": { "en": [], "fr": [] },
-      "aliases": { "en": [], "fr": [] },
-      "identifiers": [],
-      "related": [],
+      "questions": {
+        "en": [
+          "How do I make a long solver proof finish?",
+          "Why is my solver proof slow?",
+          "How do I resume a proof that was stopped?"
+        ],
+        "fr": [
+          "Comment faire aboutir une longue preuve du solveur ?",
+          "Pourquoi ma preuve du solveur est-elle lente ?",
+          "Comment reprendre une preuve interrompue ?"
+        ]
+      },
+      "aliases": {
+        "en": ["solver profile", "proof workers", "proof cache", "SOLVER", "BENCH"],
+        "fr": ["profil du solveur", "workers de preuve", "cache de preuves", "SOLVER", "BENCH"]
+      },
+      "identifiers": [
+        "npm run solve",
+        "npm run audit:corpus",
+        "npm run prove:matrix",
+        "npm run bench",
+        "npm run test:heavy",
+        "PROOF_CACHE",
+        "PROOF_CACHE_DIR"
+      ],
+      "related": ["create.solver-proofs", "create.checking", "contribute.benchmarks"],
       "prerequisites": [],
+      "keywords": {
+        "en": [
+          "--prove",
+          "--max",
+          "--time",
+          "--mem",
+          "--checkpoint",
+          "--resume",
+          "--workers",
+          "--profile",
+          "--chapters",
+          "--goal=100%",
+          "--audit-abstractions"
+        ],
+        "fr": [
+          "--prove",
+          "--max",
+          "--time",
+          "--mem",
+          "--checkpoint",
+          "--resume",
+          "--workers",
+          "--profile",
+          "--chapters",
+          "--goal=100%",
+          "--audit-abstractions"
+        ]
+      },
+      "claims": [
+        {
+          "id": "checkpoint-resume-same-proof",
+          "test": "tests/checkpoint.test.ts › checkpoint and resume › a search cut by its budget is written down, and a bigger budget takes it up to the same proof"
+        }
+      ],
       "owner": "@wanoo"
     },
     {
@@ -2201,8 +2429,16 @@
       "context": ["engine-repo", "created-project"],
       "title": { "en": "Playtests", "fr": "Playtests" },
       "url": { "en": "EN-Create-Playtests", "fr": "FR-Creer-Playtests" },
-      "state": "planned",
-      "sources": ["tools/playtests.ts"],
+      "state": "ready",
+      "versions": { "appliesFrom": "3.9.0" },
+      "sources": [
+        "tools/playtests.ts",
+        "src/engine/tools/playtests.ts",
+        "tools/replay.ts",
+        "src/engine/tools/replay.ts",
+        "src/engine/dom/menus.ts",
+        "tests/playtests.test.ts"
+      ],
       "replaces": [
         "docs/en/DESIGN.md#11-testing-like-a-player",
         "docs/en/FIELD.md#playtesters-pass-4",
@@ -2211,11 +2447,41 @@
         "docs/fr/FIELD.md#testeurs-passe-4",
         "docs/fr/TOOLS.md#vérifier-le-contenu"
       ],
-      "questions": { "en": [], "fr": [] },
-      "aliases": { "en": [], "fr": [] },
-      "identifiers": [],
-      "related": [],
+      "questions": {
+        "en": [
+          "How do I collect playtest sessions from players' phones?",
+          "Where do players get stuck in my game?",
+          "A playtest session no longer replays: what do I do?"
+        ],
+        "fr": [
+          "Comment récupérer les sessions de playtest depuis les téléphones des joueurs ?",
+          "Où les joueurs bloquent-ils dans mon jeu ?",
+          "Une session de playtest ne se rejoue plus : que faire ?"
+        ]
+      },
+      "aliases": {
+        "en": ["Share session", "playtester", "session file", "field quotas"],
+        "fr": ["Partager la session", "testeur", "fichier de session", "quotas de terrain"]
+      },
+      "identifiers": [
+        "npm run playtests",
+        "npm run verify:field",
+        "npm run replay",
+        "npx quest-n-click playtests",
+        "ui.shareSession"
+      ],
+      "related": ["create.checking", "contribute.field-passes", "studio.sessions", "engine.file-formats"],
       "prerequisites": [],
+      "keywords": {
+        "en": ["stall", "near miss", "heat map", ".session.json", "replay"],
+        "fr": ["blocage", "tap manqué", "carte de chaleur", ".session.json", "rejeu"]
+      },
+      "claims": [
+        {
+          "id": "session-ids-only",
+          "test": "tests/playtests.test.ts › playtests › a shared session carries timestamps and ids only; the analysis finds the stall, the hint, the abort"
+        }
+      ],
       "owner": "@wanoo"
     },
     {
@@ -2227,8 +2493,24 @@
       "context": ["engine-repo", "created-project"],
       "title": { "en": "Remix", "fr": "Remix" },
       "url": { "en": "EN-Create-Remix", "fr": "FR-Creer-Remix" },
-      "state": "planned",
-      "sources": ["tools/remix.ts"],
+      "state": "ready",
+      "versions": { "appliesFrom": "4.1.17" },
+      "sources": [
+        "src/engine/core/remix/*.ts",
+        "src/engine/minigames/code-wheel.ts",
+        "src/engine/tools/remix.ts",
+        "src/engine/tools/validate/remix.ts",
+        "tools/remix.ts",
+        "tools/verify-variants.ts",
+        "tools/code-wheel.ts",
+        "scripts/e2e-remix.mjs",
+        "games/demo/game.ts",
+        "games/demo/rooms/market.ts",
+        "bridge/src/daily.ts",
+        "tests/remix-compile.test.ts",
+        "tests/remix-saves.test.ts",
+        "docs/dev/adr/0018-variation-manifest-and-world-variant.md"
+      ],
       "replaces": [
         "docs/en/REMIX.md#remix-several-worlds-of-one-game-4115",
         "docs/en/REMIX.md#what-varies-and-what-never-does",
@@ -2257,11 +2539,51 @@
         "docs/fr/REMIX.md#la-roue-de-code",
         "docs/fr/REMIX.md#le-joueur-et-le-studio"
       ],
-      "questions": { "en": [], "fr": [] },
-      "aliases": { "en": [], "fr": [] },
-      "identifiers": [],
-      "related": [],
-      "prerequisites": [],
+      "questions": {
+        "en": [
+          "How do I hide an item in a different place in each playthrough?",
+          "How do I make several worlds of the same game?"
+        ],
+        "fr": [
+          "Comment cacher un objet à un endroit différent à chaque partie ?",
+          "Comment faire plusieurs mondes d'un même jeu ?"
+        ]
+      },
+      "aliases": {
+        "en": ["REMIX", "variants", "seed", "world variant", "code wheel", "daily challenge"],
+        "fr": ["REMIX", "variantes", "seed", "graine", "roue de code", "défi du jour"]
+      },
+      "identifiers": [
+        "npm run remix",
+        "npm run verify:variants",
+        "npm run code-wheel",
+        "npm run e2e:remix",
+        "remix",
+        "code-wheel",
+        "minigame.code-wheel"
+      ],
+      "related": [
+        "create.speedrun",
+        "studio.remix",
+        "create.solver-proofs",
+        "engine.file-formats",
+        "bridge.install-run"
+      ],
+      "prerequisites": ["create.checking"],
+      "keywords": {
+        "en": ["item-placement", "anchors", "catalogue", "generator", "WS-XXXX-XXXX", "Mystery"],
+        "fr": ["item-placement", "ancres", "catalogue", "générateur", "WS-XXXX-XXXX", "Mystery"]
+      },
+      "claims": [
+        {
+          "id": "seed-typo-caught",
+          "test": "tests/remix-compile.test.ts › seed codes › a one-symbol typo is always caught by the check symbol"
+        },
+        {
+          "id": "save-other-world-refused",
+          "test": "tests/remix-saves.test.ts › the save envelope v4 › a save of a Remix world carries it; loading it into another world names the world to rebuild"
+        }
+      ],
       "owner": "@wanoo"
     },
     {
@@ -2272,8 +2594,27 @@
       "context": ["engine-repo", "created-project"],
       "title": { "en": "Speedrun for authors", "fr": "Speedrun pour les auteurs" },
       "url": { "en": "EN-Create-Speedrun", "fr": "FR-Creer-Speedrun" },
-      "state": "planned",
-      "sources": [],
+      "state": "ready",
+      "versions": { "appliesFrom": "4.1.17" },
+      "sources": [
+        "src/engine/core/types/speedrun.ts",
+        "src/engine/core/timing.ts",
+        "src/engine/core/run-clock.ts",
+        "src/engine/tools/speedrun/*.ts",
+        "tools/speedrun/verify.ts",
+        "tools/speedrun/worker.ts",
+        "tools/speedrun/reference-run.ts",
+        "bridge/src/runs.ts",
+        "bridge/src/daily.ts",
+        "src/engine/dom/speedrun-ui.ts",
+        "games/reference/game.ts",
+        "tests/speedrun-reference.test.ts",
+        "tests/speedrun-manifest.test.ts",
+        "docs/dev/adr/0016-run-clock-and-envelope.md",
+        "docs/dev/adr/0017-speedrun-verdicts-and-trust.md",
+        "docs/dev/adr/0019-run-world-binding.md",
+        "docs/dev/adr/0020-minigame-transcripts.md"
+      ],
       "replaces": [
         "docs/en/REALITY-OPS.md#leaderboards-and-the-daily-challenge-4116",
         "docs/en/REMIX.md#saves-replays-and-speedruns",
@@ -2304,11 +2645,58 @@
         "docs/fr/SPEEDRUN.md#accessibilité-et-équité",
         "docs/fr/SPEEDRUN.md#limites"
       ],
-      "questions": { "en": [], "fr": [] },
-      "aliases": { "en": [], "fr": [] },
-      "identifiers": [],
-      "related": [],
-      "prerequisites": [],
+      "questions": {
+        "en": [
+          "How do I add speedrun categories to my game?",
+          "How do I verify a .wsrun file?",
+          "Why is a speedrun valid-unranked?"
+        ],
+        "fr": [
+          "Comment ajouter des catégories de speedrun à mon jeu ?",
+          "Comment vérifier un fichier .wsrun ?",
+          "Pourquoi un speedrun est-il valid-unranked ?"
+        ]
+      },
+      "aliases": {
+        "en": ["SPEEDRUN", "Time Attack", "time attack", "leaderboard", "splits", "IGT"],
+        "fr": ["SPEEDRUN", "Time Attack", "contre-la-montre", "classement", "splits", "IGT"]
+      },
+      "identifiers": [
+        "npm run speedrun:verify",
+        "quest-n-click speedrun verify",
+        "speedrun_verify",
+        "npm run e2e:speedrun",
+        "npm run e2e:remix-speedrun",
+        "/v1/runs",
+        "/v1/daily",
+        "/v1/commit",
+        "/v1/reveal",
+        "speedrun",
+        "rulesVersion"
+      ],
+      "related": [
+        "play.speedrun",
+        "create.remix",
+        "engine.file-formats",
+        "bridge.install-run",
+        "bridge.guarantees",
+        "engine.execution-model"
+      ],
+      "prerequisites": ["create.checking"],
+      "keywords": {
+        "en": ["wsrun", "verdict", "trust level", "replay-valid", "Daily", "Mystery", "Any%"],
+        "fr": ["wsrun", "verdict", "niveau de confiance", "replay-valid", "Daily", "Mystery", "Any%"]
+      },
+      "claims": [
+        {
+          "id": "altered-run-refused",
+          "test": "tests/speedrun-reference.test.ts › the reference run › an altered copy is refused, with its reason and exit code 1"
+        },
+        {
+          "id": "schema1-not-requalified",
+          "test": "tests/speedrun-reference.test.ts › the schema 1 reference run of 4.1.15 (golden) › is refused, never requalified, when offered to a Remix category"
+        }
+      ],
       "owner": "@wanoo"
     },
     {
@@ -2319,19 +2707,45 @@
       "context": ["engine-repo", "created-project"],
       "title": { "en": "The sealed ending", "fr": "La fin scellée" },
       "url": { "en": "EN-Create-Sealed-Ending", "fr": "FR-Creer-Fin-Scellee" },
-      "state": "planned",
-      "sources": ["scripts/seal.ts"],
+      "state": "ready",
+      "versions": { "appliesFrom": "4.1.2" },
+      "sources": [
+        "scripts/seal.ts",
+        "scripts/seal-types.ts",
+        "scripts/check-spoilers.ts",
+        "scripts/spoiler-path.ts",
+        "src/engine/ending/*.ts",
+        "src/engine/core/types/game.ts",
+        "games/demo/ending.config.example.ts",
+        "tests/spoiler-path.test.ts"
+      ],
       "replaces": [
         "docs/en/CONTENT_GUIDE.md#the-sealed-ending-ending",
         "docs/en/TOOLS.md#the-sealed-ending",
         "docs/fr/CONTENT_GUIDE.md#la-fin-scellée-ending",
         "docs/fr/TOOLS.md#la-fin-scellée"
       ],
-      "questions": { "en": [], "fr": [] },
-      "aliases": { "en": [], "fr": [] },
-      "identifiers": [],
-      "related": [],
-      "prerequisites": [],
+      "questions": {
+        "en": [
+          "How do I hide my game's ending so nobody can read it in the code?",
+          "How do I seal the ending with a password?"
+        ],
+        "fr": [
+          "Comment cacher la fin de mon jeu pour que personne ne la lise dans le code ?",
+          "Comment sceller la fin avec un mot de passe ?"
+        ]
+      },
+      "aliases": {
+        "en": ["reveal", "dossier.bin", "scratch ticket", "spoilers"],
+        "fr": ["reveal", "dossier.bin", "ticket à gratter", "spoilers"]
+      },
+      "identifiers": ["npm run seal", "npm run check:spoilers", "ending"],
+      "related": ["create.minigames", "create.skin-fonts", "create.build-release"],
+      "prerequisites": ["install.from-repository"],
+      "keywords": {
+        "en": ["EndingDef", "RevealDef", "ending.config.ts", "outcome"],
+        "fr": ["EndingDef", "RevealDef", "ending.config.ts", "issue"]
+      },
       "owner": "@wanoo"
     },
     {
@@ -2342,8 +2756,13 @@
       "context": ["engine-repo", "created-project"],
       "title": { "en": "Production template", "fr": "Modèle de production" },
       "url": { "en": "EN-Create-Production-Template", "fr": "FR-Creer-Modele-De-Production" },
-      "state": "planned",
-      "sources": [],
+      "state": "ready",
+      "versions": { "appliesFrom": "4.0.0" },
+      "sources": [
+        "docs/en/PRODUCTION.template.md",
+        "docs/fr/PRODUCTION.template.md",
+        ".claude/skills/production-plan/SKILL.md"
+      ],
       "replaces": [
         "docs/en/PRODUCTION.template.md#production-plan----",
         "docs/en/PRODUCTION.template.md#0-how-the-orchestrator-runs-this",
@@ -2374,11 +2793,21 @@
         "docs/fr/PRODUCTION.template.md#6-checklist-finale-avant-denvoyer-le-lien",
         "docs/fr/PRODUCTION.template.md#7-gabarit-de-prompt-pour-un-sous-agent"
       ],
-      "questions": { "en": [], "fr": [] },
-      "aliases": { "en": [], "fr": [] },
-      "identifiers": [],
-      "related": [],
+      "questions": {
+        "en": [],
+        "fr": []
+      },
+      "aliases": {
+        "en": ["PRODUCTION.template", "production plan", "work packages"],
+        "fr": ["PRODUCTION.template", "plan de production", "lots de travail"]
+      },
+      "identifiers": ["/production-plan"],
+      "related": ["create.working-with-ai", "create.storyboard", "create.checking", "contribute.ai-agents"],
       "prerequisites": [],
+      "keywords": {
+        "en": ["orchestrator", "sub-agent", "WP", "wave"],
+        "fr": ["orchestrateur", "sous-agent", "WP", "vague"]
+      },
       "owner": "@wanoo"
     },
     {
@@ -2389,14 +2818,40 @@
       "context": ["engine-repo", "created-project"],
       "title": { "en": "Example games", "fr": "Jeux d'exemple" },
       "url": { "en": "EN-Create-Example-Games", "fr": "FR-Creer-Jeux-D-Exemple" },
-      "state": "planned",
-      "sources": [],
+      "state": "ready",
+      "versions": { "appliesFrom": "4.4.0" },
+      "sources": [
+        "games/*/game.ts",
+        "games/demo/STORY.md",
+        "games/reference/STORY.md",
+        "scripts/new-game.mjs",
+        "cli/create.mjs",
+        "scripts/pack.mjs",
+        "tools/game.ts"
+      ],
       "replaces": [],
-      "questions": { "en": [], "fr": [] },
-      "aliases": { "en": [], "fr": [] },
-      "identifiers": ["_template", "demo", "heroes", "reference", "signals"],
-      "related": [],
+      "questions": {
+        "en": [],
+        "fr": []
+      },
+      "aliases": {
+        "en": ["sample game", "The Pantry Key", "The Night Market", "Who Am I Today?", "template"],
+        "fr": ["jeu d'exemple", "The Pantry Key", "The Night Market", "Who Am I Today?", "modèle"]
+      },
+      "identifiers": ["_template", "demo", "heroes", "reference", "signals", "npm run game", "npm run new-game"],
+      "related": [
+        "create.first-game",
+        "create.project-layout",
+        "create.classics",
+        "create.heroes",
+        "create.remix",
+        "bridge.what-it-is"
+      ],
       "prerequisites": [],
+      "keywords": {
+        "en": ["GAME", "games/", "reference chapter", "hero choice", "Reality Bridge"],
+        "fr": ["GAME", "games/", "chapitre de référence", "choix du héros", "Reality Bridge"]
+      },
       "owner": "@wanoo"
     },
     {
@@ -2407,8 +2862,17 @@
       "context": ["engine-repo", "created-project"],
       "title": { "en": "Working with an AI", "fr": "Travailler avec une IA" },
       "url": { "en": "EN-Create-Working-With-An-AI", "fr": "FR-Creer-Travailler-Avec-Une-IA" },
-      "state": "planned",
-      "sources": ["tools/studio/tools.ts"],
+      "state": "ready",
+      "versions": { "appliesFrom": "4.2.5" },
+      "sources": [
+        "tools/mcp/server.ts",
+        "tools/studio/tools.ts",
+        "AGENTS.md",
+        ".mcp.json",
+        ".cursor/mcp.json",
+        "cli/quest-n-click.mjs",
+        ".claude/skills/production-plan/SKILL.md"
+      ],
       "replaces": [
         "docs/en/MCP.md#mcp-the-studio-for-any-ai-assistant",
         "docs/en/MCP.md#a-typical-session",
@@ -2423,11 +2887,37 @@
         "docs/fr/WORKFLOW.md#fabriquer-un-jeu-avec-un-assistant-ia--la-méthode",
         "docs/fr/WORKFLOW.md#travailler-avec-des-sous-agents"
       ],
-      "questions": { "en": [], "fr": [] },
-      "aliases": { "en": ["MCP", "agent"], "fr": ["MCP", "agent"] },
-      "identifiers": [],
-      "related": [],
-      "prerequisites": [],
+      "questions": {
+        "en": [
+          "How do I make a game with an AI assistant?",
+          "How do I connect Claude Code or Cursor to my game?",
+          "How does an agent search the documentation?"
+        ],
+        "fr": [
+          "Comment faire un jeu avec un assistant IA ?",
+          "Comment brancher Claude Code ou Cursor sur mon jeu ?",
+          "Comment un agent cherche-t-il dans la documentation ?"
+        ]
+      },
+      "aliases": {
+        "en": ["MCP", "agent", "Claude Code", "WORKFLOW", "sub-agents", "AI assistant"],
+        "fr": ["MCP", "agent", "Claude Code", "WORKFLOW", "sous-agents", "assistant IA"]
+      },
+      "identifiers": ["npm run mcp", "search_docs", "list_docs", "read_doc", "get_notes", "add_note"],
+      "related": [
+        "studio.mcp-setup",
+        "studio.mcp-tools",
+        "team.remote-mcp",
+        "studio.assistant",
+        "create.production-template",
+        "create.review-pages",
+        "contribute.ai-agents"
+      ],
+      "prerequisites": ["create.checking"],
+      "keywords": {
+        "en": ["Model Context Protocol", "stdio", "notes.json", "ArtifactData", "orchestrator"],
+        "fr": ["Model Context Protocol", "stdio", "notes.json", "ArtifactData", "orchestrateur"]
+      },
       "owner": "@wanoo"
     },
     {
@@ -2438,8 +2928,18 @@
       "context": ["engine-repo", "created-project"],
       "title": { "en": "Build and release a game", "fr": "Construire et publier un jeu" },
       "url": { "en": "EN-Create-Build-And-Release", "fr": "FR-Creer-Construire-Et-Publier" },
-      "state": "planned",
-      "sources": [],
+      "state": "ready",
+      "versions": { "appliesFrom": "4.2.5" },
+      "sources": [
+        "cli/quest-n-click.mjs",
+        "cli/create.mjs",
+        "package.json",
+        "scripts/start.mjs",
+        "tools/dist.ts",
+        "tools/validate.ts",
+        "vite.config.ts",
+        "tools/vite/plugins.ts"
+      ],
       "replaces": [
         "docs/en/DESIGN.md#12-before-you-share-the-link",
         "docs/en/TOOLS.md#deploying",
@@ -2450,11 +2950,49 @@
         "README.md#prove-and-ship-it",
         "README.fr.md#le-prouver-et-le-livrer"
       ],
-      "questions": { "en": [], "fr": [] },
-      "aliases": { "en": [], "fr": [] },
-      "identifiers": ["npm run build", "npm run release"],
-      "related": [],
-      "prerequisites": [],
+      "questions": {
+        "en": [
+          "How do I build my game for release?",
+          "What does npm run release check?",
+          "How do I put my game online?"
+        ],
+        "fr": [
+          "Comment construire mon jeu pour le publier ?",
+          "Que vérifie npm run release ?",
+          "Comment mettre mon jeu en ligne ?"
+        ]
+      },
+      "aliases": {
+        "en": ["ship", "deploy", "dist", "production build", "TOOLS"],
+        "fr": ["livrer", "déployer", "dist", "construction de production", "TOOLS"]
+      },
+      "identifiers": [
+        "npm run build",
+        "npm run release",
+        "npm run build:web",
+        "npm run build:game",
+        "npm run verify:release",
+        "npm run verify:commercial",
+        "npm run start",
+        "npm run preview",
+        "quest-n-click build",
+        "quest-n-click release"
+      ],
+      "related": [
+        "create.checking",
+        "create.github-pages",
+        "create.clever-static",
+        "create.other-hosts",
+        "create.deploy-issues",
+        "create.sealed-ending",
+        "create.asset-provenance",
+        "create.solver-proofs"
+      ],
+      "prerequisites": ["install.requirements", "create.checking"],
+      "keywords": {
+        "en": ["release gates", "commercial", "provenance lock", "licences"],
+        "fr": ["contrôles de release", "commercial", "verrou de provenance", "licences"]
+      },
       "owner": "@wanoo"
     },
     {
@@ -2465,14 +3003,31 @@
       "context": ["created-project"],
       "title": { "en": "Publish on GitHub Pages", "fr": "Publier sur GitHub Pages" },
       "url": { "en": "EN-Create-GitHub-Pages", "fr": "FR-Creer-GitHub-Pages" },
-      "state": "planned",
-      "sources": [],
+      "state": "ready",
+      "versions": { "appliesFrom": "4.2.5" },
+      "sources": [".github/workflows/ci.yml", "tools/vite/plugins.ts", "cli/quest-n-click.mjs", "cli/create.mjs"],
       "replaces": ["docs/en/TOOLS.md#deploying", "docs/fr/TOOLS.md#déployer"],
-      "questions": { "en": [], "fr": [] },
-      "aliases": { "en": [], "fr": [] },
-      "identifiers": [],
-      "related": [],
-      "prerequisites": [],
+      "questions": {
+        "en": [
+          "How do I publish my game on GitHub Pages?",
+          "Is there a GitHub Actions workflow for a created project?"
+        ],
+        "fr": [
+          "Comment publier mon jeu sur GitHub Pages ?",
+          "Y a-t-il un workflow GitHub Actions pour un projet créé ?"
+        ]
+      },
+      "aliases": {
+        "en": ["GitHub Actions", "Pages workflow", "gh-pages"],
+        "fr": ["GitHub Actions", "workflow Pages", "gh-pages"]
+      },
+      "identifiers": ["BASE_PATH"],
+      "related": ["create.build-release", "create.deploy-issues", "create.other-hosts"],
+      "prerequisites": ["create.build-release"],
+      "keywords": {
+        "en": ["BASE_PATH", "deploy-pages", "upload-pages-artifact"],
+        "fr": ["BASE_PATH", "deploy-pages", "upload-pages-artifact"]
+      },
       "owner": "@wanoo"
     },
     {
@@ -2483,14 +3038,28 @@
       "context": ["engine-repo", "created-project"],
       "title": { "en": "The static game on Clever Cloud", "fr": "Le jeu statique sur Clever Cloud" },
       "url": { "en": "EN-Create-Static-Game-On-Clever", "fr": "FR-Creer-Jeu-Statique-Sur-Clever" },
-      "state": "planned",
-      "sources": [],
+      "state": "ready",
+      "versions": { "appliesFrom": "4.2.5" },
+      "sources": ["scripts/start.mjs", "package.json", "tools/game.ts", "cli/quest-n-click.mjs", "scripts/pack.mjs"],
       "replaces": [],
-      "questions": { "en": [], "fr": [] },
-      "aliases": { "en": [], "fr": [] },
-      "identifiers": [],
-      "related": [],
-      "prerequisites": [],
+      "questions": {
+        "en": ["How do I host my game on Clever Cloud?", "Which variables does the static game need on Clever Cloud?"],
+        "fr": [
+          "Comment héberger mon jeu sur Clever Cloud ?",
+          "Quelles variables faut-il au jeu statique sur Clever Cloud ?"
+        ]
+      },
+      "aliases": {
+        "en": ["Clever Cloud", "Node host", "sirv"],
+        "fr": ["Clever Cloud", "hébergeur Node", "sirv"]
+      },
+      "identifiers": ["npm run start", "CC_POST_BUILD_HOOK", "CC_NODE_DEV_DEPENDENCIES"],
+      "related": ["create.build-release", "create.deploy-issues", "create.other-hosts", "clever.overview"],
+      "prerequisites": ["create.build-release"],
+      "keywords": {
+        "en": ["clever deploy", "CC_POST_BUILD_HOOK", "npm start"],
+        "fr": ["clever deploy", "CC_POST_BUILD_HOOK", "npm start"]
+      },
       "owner": "@wanoo"
     },
     {
@@ -2501,14 +3070,31 @@
       "context": ["engine-repo", "created-project"],
       "title": { "en": "Other static hosts", "fr": "Autres hébergeurs statiques" },
       "url": { "en": "EN-Create-Other-Static-Hosts", "fr": "FR-Creer-Autres-Hebergeurs-Statiques" },
-      "state": "planned",
-      "sources": [],
+      "state": "ready",
+      "versions": { "appliesFrom": "4.2.5" },
+      "sources": ["vite.config.ts", "src/engine/dom/assets.ts", "tools/vite/plugins.ts"],
       "replaces": [],
-      "questions": { "en": [], "fr": [] },
-      "aliases": { "en": [], "fr": [] },
+      "questions": {
+        "en": [
+          "Can I host my game on Netlify or my own server?",
+          "Which cache headers should my host send for the game?"
+        ],
+        "fr": [
+          "Puis-je héberger mon jeu sur Netlify ou sur mon propre serveur ?",
+          "Quels en-têtes de cache mon hébergeur doit-il envoyer pour le jeu ?"
+        ]
+      },
+      "aliases": {
+        "en": ["Netlify", "Cloudflare Pages", "nginx", "static hosting"],
+        "fr": ["Netlify", "Cloudflare Pages", "nginx", "hébergement statique"]
+      },
       "identifiers": [],
-      "related": [],
-      "prerequisites": [],
+      "related": ["create.build-release", "create.github-pages", "create.clever-static", "create.deploy-issues"],
+      "prerequisites": ["create.build-release"],
+      "keywords": {
+        "en": ["Cache-Control", "HTTPS", "upload"],
+        "fr": ["Cache-Control", "HTTPS", "téléversement"]
+      },
       "owner": "@wanoo"
     },
     {
@@ -2523,17 +3109,56 @@
         "fr": "Sous-chemin, cache et service worker, déploiement incomplet, retour arrière"
       },
       "url": { "en": "EN-Create-Sub-Path-And-Cache", "fr": "FR-Creer-Sous-Chemin-Et-Cache" },
-      "state": "planned",
-      "sources": [],
+      "state": "ready",
+      "versions": { "appliesFrom": "4.2.5" },
+      "sources": [
+        "vite.config.ts",
+        "tools/vite/plugins.ts",
+        "src/engine/dom/update.ts",
+        "src/engine/dom/offline.ts",
+        "src/engine/boot.ts",
+        "src/engine/core/save.ts",
+        "scripts/start.mjs",
+        "scripts/e2e-pwa.mjs",
+        "tests/wiki-pages.test.ts"
+      ],
       "replaces": ["docs/en/ENGINE.md#cache-and-responsiveness", "docs/fr/ENGINE.md#cache-et-fluidité"],
       "questions": {
-        "en": ["My game works locally but not under a sub-path"],
-        "fr": ["Mon jeu marche en local mais pas sous un sous-chemin"]
+        "en": [
+          "My game works locally but not under a sub-path",
+          "Players still see the old version after I deployed",
+          "Can I roll back my game to an earlier version?"
+        ],
+        "fr": [
+          "Mon jeu marche en local mais pas sous un sous-chemin",
+          "Les joueurs voient encore l'ancienne version après mon déploiement",
+          "Puis-je revenir à une version précédente de mon jeu ?"
+        ]
       },
-      "aliases": { "en": ["base path", "service worker"], "fr": ["chemin de base", "service worker"] },
-      "identifiers": [],
-      "related": [],
-      "prerequisites": [],
+      "aliases": {
+        "en": ["base path", "service worker", "rollback", "blank page", "PWA update"],
+        "fr": ["chemin de base", "service worker", "retour arrière", "page blanche", "mise à jour PWA"]
+      },
+      "identifiers": ["BASE_PATH", "navigateFallbackDenylist"],
+      "related": [
+        "create.build-release",
+        "create.github-pages",
+        "create.other-hosts",
+        "engine.how-it-works",
+        "play.install-app",
+        "create.state-saves"
+      ],
+      "prerequisites": ["create.build-release"],
+      "keywords": {
+        "en": ["navigateFallback", "offlineStatus", "Workbox", "precache"],
+        "fr": ["navigateFallback", "offlineStatus", "Workbox", "précache"]
+      },
+      "claims": [
+        {
+          "id": "sw-skips-docs",
+          "test": "tests/wiki-pages.test.ts › beside the game › the game's service worker never answers a /docs/ page with the game (its navigation fallback skips /docs/)"
+        }
+      ],
       "owner": "@wanoo"
     },
     {
@@ -2544,17 +3169,55 @@
       "context": ["engine-repo", "created-project"],
       "title": { "en": "Testing on a phone over the LAN", "fr": "Tester sur un téléphone en réseau local" },
       "url": { "en": "EN-Create-Phone-On-The-Lan", "fr": "FR-Creer-Telephone-En-Reseau-Local" },
-      "state": "planned",
-      "sources": ["tools/serve.ts"],
+      "state": "ready",
+      "versions": { "appliesFrom": "4.1.2" },
+      "sources": [
+        "tools/serve.ts",
+        "tools/serve-args.ts",
+        "tools/studio/security.ts",
+        "vite.config.ts",
+        "cli/quest-n-click.mjs",
+        "tests/studio-security.test.ts"
+      ],
       "replaces": [
         "docs/en/TUTORIAL.md#6-play-it-on-your-phone-two-minutes",
         "docs/fr/TUTORIAL.md#6-y-jouer-sur-votre-téléphone-deux-minutes"
       ],
-      "questions": { "en": [], "fr": [] },
-      "aliases": { "en": [], "fr": [] },
-      "identifiers": ["npm run dev:lan"],
-      "related": [],
-      "prerequisites": [],
+      "questions": {
+        "en": [
+          "How do I test my game on my phone?",
+          "My phone cannot open the dev server",
+          "Why is my Studio save refused with 401 on the LAN?"
+        ],
+        "fr": [
+          "Comment tester mon jeu sur mon téléphone ?",
+          "Mon téléphone n'arrive pas à ouvrir le serveur de dev",
+          "Pourquoi l'enregistrement du Studio est refusé avec 401 en réseau local ?"
+        ]
+      },
+      "aliases": {
+        "en": ["phone", "LAN", "local network", "dev:lan", "studio:lan", "TUTORIAL"],
+        "fr": ["téléphone", "réseau local", "LAN", "dev:lan", "studio:lan", "TUTORIAL"]
+      },
+      "identifiers": ["npm run dev:lan", "npm run studio:lan", "x-web-scumm-token"],
+      "related": [
+        "create.first-game",
+        "create.working-loop",
+        "studio.security",
+        "create.build-release",
+        "create.deploy-issues"
+      ],
+      "prerequisites": ["create.working-loop"],
+      "keywords": {
+        "en": ["token", "host", "Wi-Fi", "firewall", "401", "403"],
+        "fr": ["jeton", "hôte", "Wi-Fi", "pare-feu", "401", "403"]
+      },
+      "claims": [
+        {
+          "id": "lan-writes-need-token",
+          "test": "tests/studio-security.test.ts › LAN Studio capability › requires a token and same-origin writes"
+        }
+      ],
       "owner": "@wanoo"
     },
     {
@@ -2566,8 +3229,34 @@
       "context": ["engine-repo", "created-project"],
       "title": { "en": "Execution model", "fr": "Modèle d'exécution" },
       "url": { "en": "EN-Engine-Execution-Model", "fr": "FR-Moteur-Modele-D-Execution" },
-      "state": "planned",
-      "sources": ["src/engine/core/command-runtime.ts", "src/engine/core/scheduler.ts", "src/engine/core/prng.ts"],
+      "state": "ready",
+      "versions": { "appliesFrom": "4.3.0" },
+      "sources": [
+        "src/engine/core/engine.ts",
+        "src/engine/core/interactions.ts",
+        "src/engine/core/command-runtime.ts",
+        "src/engine/core/command-handlers.ts",
+        "src/engine/core/cmds.ts",
+        "src/engine/core/event-runtime.ts",
+        "src/engine/core/script-runtime.ts",
+        "src/engine/core/scheduler.ts",
+        "src/engine/core/session-runtime.ts",
+        "src/engine/core/movement.ts",
+        "src/engine/core/busy.ts",
+        "src/engine/core/define.ts",
+        "src/engine/core/diff.ts",
+        "src/engine/core/run-clock.ts",
+        "src/engine/core/timing.ts",
+        "src/engine/core/prng.ts",
+        "src/engine/core/run-tape.ts",
+        "src/engine/core/journal-chunks.ts",
+        "src/engine/core/types/session.ts",
+        "src/engine/tools/replay.ts",
+        "src/engine/tools/solve/expansion.ts",
+        "tests/prng.test.ts",
+        "tests/run-clock.test.ts",
+        "docs/dev/adr/0016-run-clock-and-envelope.md"
+      ],
       "replaces": [
         "docs/en/ARCHITECTURE.md#the-life-of-an-action",
         "docs/en/ENGINE.md#the-run-clock-the-seeded-generator-and-the-runs-journal-4114",
@@ -2576,11 +3265,83 @@
         "docs/fr/ENGINE.md#lhorloge-du-run-le-générateur-à-graine-et-le-journal-du-run-4114",
         "docs/fr/ENGINE.md#cycle-dune-action"
       ],
-      "questions": { "en": [], "fr": [] },
-      "aliases": { "en": [], "fr": [] },
-      "identifiers": [],
-      "related": [],
+      "questions": {
+        "en": [],
+        "fr": []
+      },
+      "aliases": {
+        "en": [
+          "action cycle",
+          "life of an action",
+          "rule priority",
+          "rule order",
+          "seed",
+          "run clock",
+          "determinism",
+          "ENGINE"
+        ],
+        "fr": [
+          "cycle d'une action",
+          "vie d'une action",
+          "priorité des règles",
+          "ordre des règles",
+          "graine",
+          "horloge du run",
+          "déterminisme",
+          "ENGINE"
+        ]
+      },
+      "identifiers": ["SESSION_MAX", "TIMING_VERSION", "PRNG_VERSION", "SAY_LOGICAL_MS", "WALK_SPEED"],
+      "related": [
+        "engine.how-it-works",
+        "engine.file-formats",
+        "create.reactions",
+        "create.commands",
+        "create.conditions",
+        "create.scripts-events",
+        "create.state-saves",
+        "create.solver-proofs",
+        "create.speedrun"
+      ],
       "prerequisites": [],
+      "keywords": {
+        "en": [
+          "resolve",
+          "findRule",
+          "exec",
+          "emit",
+          "advance",
+          "xoshiro128**",
+          "IGT",
+          "Active IGT",
+          "rnd",
+          "replay",
+          "autosave"
+        ],
+        "fr": [
+          "resolve",
+          "findRule",
+          "exec",
+          "emit",
+          "advance",
+          "xoshiro128**",
+          "IGT",
+          "IGT actif",
+          "rnd",
+          "replay",
+          "sauvegarde automatique"
+        ]
+      },
+      "claims": [
+        {
+          "id": "prng-same-seed-same-draws",
+          "test": "tests/prng.test.ts › the engine draws from the run’s logic stream › the same seed, the same draws; the session names the seed it was given"
+        },
+        {
+          "id": "run-clock-never-writes",
+          "test": "tests/run-clock.test.ts › the logical durations › observes and never writes: the state is the same with the clock’s readings taken or not"
+        }
+      ],
       "owner": "@wanoo"
     },
     {
@@ -2591,8 +3352,33 @@
       "context": ["engine-repo", "created-project"],
       "title": { "en": "How the engine works", "fr": "Comment fonctionne le moteur" },
       "url": { "en": "EN-Engine-How-It-Works", "fr": "FR-Moteur-Fonctionnement" },
-      "state": "planned",
-      "sources": [],
+      "state": "ready",
+      "versions": { "appliesFrom": "4.3.0" },
+      "sources": [
+        "tools/game.ts",
+        "src/engine/boot.ts",
+        "src/engine/core/define.ts",
+        "src/engine/core/journal.ts",
+        "src/engine/core/objectives.ts",
+        "src/engine/core/motion.ts",
+        "src/engine/core/asset-graph.ts",
+        "src/engine/core/score.ts",
+        "src/engine/scene/*.ts",
+        "src/engine/dom/shell.ts",
+        "src/engine/dom/side-fit.ts",
+        "src/engine/dom/room.ts",
+        "src/engine/dom/renderer.ts",
+        "src/engine/dom/render-dom.ts",
+        "src/engine/dom/render-canvas.ts",
+        "src/engine/dom/frame-renderer.ts",
+        "src/engine/dom/walk.ts",
+        "src/engine/dom/fonts.ts",
+        "src/engine/dom/director.ts",
+        "src/engine/dom/audio.ts",
+        "src/engine/dom/offline.ts",
+        "vite.config.ts",
+        "tests/dom/intent-equivalence.test.ts"
+      ],
       "replaces": [
         "docs/en/ARCHITECTURE.md#a-game-is-data",
         "docs/en/ENGINE.md#the-engine",
@@ -2617,11 +3403,79 @@
         "docs/fr/ENGINE.md#cache-et-fluidité",
         "docs/fr/ENGINE.md#pourquoi-ces-choix"
       ],
-      "questions": { "en": [], "fr": [] },
-      "aliases": { "en": [], "fr": [] },
-      "identifiers": [],
-      "related": [],
+      "questions": {
+        "en": [],
+        "fr": []
+      },
+      "aliases": {
+        "en": [
+          "engine architecture",
+          "renderer",
+          "Canvas renderer",
+          "scene frame",
+          "semantic journal",
+          "offline",
+          "service worker",
+          "ENGINE"
+        ],
+        "fr": [
+          "architecture du moteur",
+          "renderer",
+          "peintre Canvas",
+          "trame de scène",
+          "journal sémantique",
+          "hors ligne",
+          "service worker",
+          "ENGINE"
+        ]
+      },
+      "identifiers": ["bootGame", "GameDef.offline", "GameDef.assetBudgets", "audio.maxDecodedMB"],
+      "related": [
+        "engine.execution-model",
+        "engine.api",
+        "engine.file-formats",
+        "create.geometry",
+        "create.stage",
+        "create.music",
+        "create.skin-fonts",
+        "create.deploy-issues",
+        "play.install-app"
+      ],
       "prerequisites": [],
+      "keywords": {
+        "en": [
+          "bootGame",
+          "RoomView",
+          "SceneFrame",
+          "Intent",
+          "walkZones",
+          "walkLinks",
+          "asset graph",
+          "director",
+          "stems",
+          "Galmuri11",
+          "offlineStatus"
+        ],
+        "fr": [
+          "bootGame",
+          "RoomView",
+          "SceneFrame",
+          "Intent",
+          "walkZones",
+          "walkLinks",
+          "graphe des assets",
+          "directeur",
+          "stems",
+          "Galmuri11",
+          "offlineStatus"
+        ]
+      },
+      "claims": [
+        {
+          "id": "same-clicks-same-session",
+          "test": "tests/dom/intent-equivalence.test.ts › the same input, painted by the DOM or by the Canvas painter › records the same session and the same semantic journal, on every screen"
+        }
+      ],
       "owner": "@wanoo"
     },
     {
@@ -2677,8 +3531,30 @@
       "context": ["engine-repo", "created-project"],
       "title": { "en": "File formats", "fr": "Formats de fichiers" },
       "url": { "en": "EN-Engine-File-Formats", "fr": "FR-Moteur-Formats-De-Fichiers" },
-      "state": "planned",
-      "sources": [],
+      "state": "ready",
+      "versions": { "appliesFrom": "4.4.0" },
+      "sources": [
+        "src/engine/core/save.ts",
+        "src/engine/core/migrate.ts",
+        "src/engine/dom/save-store.ts",
+        "src/engine/tools/replay.ts",
+        "src/engine/core/types/session.ts",
+        "src/engine/tools/speedrun/envelope.ts",
+        "src/engine/tools/speedrun/verify.ts",
+        "tools/pages/storyboard-data.ts",
+        "tools/studio/scenario-map.ts",
+        "tools/studio/types.ts",
+        "studio-server/src/ops/core.ts",
+        "tools/vite/plugins.ts",
+        "tools/dist.ts",
+        "src/engine/reality/manifest.ts",
+        "src/engine/core/ir.ts",
+        "src/engine/core/ir-fields.ts",
+        "src/engine/core/fingerprint.ts",
+        "src/engine/core/canonical.ts",
+        "tests/formats.test.ts",
+        "tests/save-v3.test.ts"
+      ],
       "replaces": [
         "docs/en/ARCHITECTURE.md#storage-sessions-and-replay",
         "docs/en/DSL.md#how-each-field-counts-ir-and-fingerprint",
@@ -2693,11 +3569,105 @@
         "docs/fr/REALITY.md#ce-que-la-session-et-la-sauvegarde-gardent",
         "docs/fr/SPEEDRUN.md#la-preuve--wsrun"
       ],
-      "questions": { "en": [], "fr": [] },
-      "aliases": { "en": [".wsrun", "save file"], "fr": [".wsrun", "fichier de sauvegarde"] },
-      "identifiers": [],
-      "related": [],
+      "questions": {
+        "en": [],
+        "fr": []
+      },
+      "aliases": {
+        "en": [
+          ".wsrun",
+          "save file",
+          "save envelope",
+          "session file",
+          "web-scumm-save",
+          "web-scumm-session",
+          "speedrun proof",
+          "reality manifest",
+          "assets manifest",
+          "IR",
+          "fingerprint"
+        ],
+        "fr": [
+          ".wsrun",
+          "fichier de sauvegarde",
+          "enveloppe de sauvegarde",
+          "fichier de session",
+          "web-scumm-save",
+          "web-scumm-session",
+          "preuve de speedrun",
+          "manifeste Reality",
+          "manifeste des assets",
+          "IR",
+          "empreinte"
+        ]
+      },
+      "identifiers": [
+        "npm run ir",
+        "npm run replay",
+        "web-scumm-save",
+        "web-scumm-session",
+        "web-scumm-speedrun",
+        "web-scumm-reality-manifest"
+      ],
+      "related": [
+        "create.state-saves",
+        "create.speedrun",
+        "bridge.guarantees",
+        "create.dsl",
+        "create.storyboard",
+        "studio.map",
+        "create.build-release",
+        "bridge.signals-manifest",
+        "engine.execution-model",
+        "contribute.architecture"
+      ],
       "prerequisites": [],
+      "keywords": {
+        "en": [
+          "storyboard.json",
+          "groupings.json",
+          "notes.json",
+          "site.json",
+          "reality-manifest.json",
+          "assets-manifest.json",
+          "migration",
+          "unknown field",
+          "schema",
+          "ENGINE",
+          "ARCHITECTURE"
+        ],
+        "fr": [
+          "storyboard.json",
+          "groupings.json",
+          "notes.json",
+          "site.json",
+          "reality-manifest.json",
+          "assets-manifest.json",
+          "migration",
+          "champ inconnu",
+          "schéma",
+          "ENGINE",
+          "ARCHITECTURE"
+        ]
+      },
+      "claims": [
+        {
+          "id": "save-foreign-game-refused",
+          "test": "tests/save-v3.test.ts › save envelope v3 › rejects a foreign game, corrupt shape and missing current room without touching current state"
+        },
+        {
+          "id": "session-replays",
+          "test": "tests/formats.test.ts › the formats of 4.1.7, frozen › a session file: kind, game, v, at, session {v, start, base, log}, trace; it replays to its digest"
+        },
+        {
+          "id": "wsrun-unknown-field-refused",
+          "test": "tests/speedrun-envelope-shape.test.ts › the envelope, read as data › names a field it does not know"
+        },
+        {
+          "id": "groupings-unknown-refused",
+          "test": "tests/studio-scenario-map.test.ts › the groupings, checked › says each problem"
+        }
+      ],
       "owner": "@wanoo"
     },
     {
