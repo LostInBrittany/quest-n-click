@@ -1,30 +1,44 @@
 // `wiki -- check` and `wiki -- build --target wiki` (4.5.0 "Wiki", docs/dev/PLAN-4.5-WIKI.md §4.1 and §4.5.6, phase
 // A2) on a small fixture wiki (tests/fixtures/wiki/base: two ready pages, a ready troubleshooting page, a draft, a
-// planned page linked from a ready one). Each case copies it and breaks one thing: a planned page with a file, a ready
-// page without its twin, a URL off the convention, a ready how-to without questions, a broken anchor, twins whose
-// sections differ are errors; a link to a planned page is listed, not an error. The build publishes the ready pages
-// only (the drafts too with --preview, under a banner), rewrites the links for the wiki and heads each page with the
-// switch to its twin.
-import { cpSync, existsSync, mkdtempSync, readFileSync, rmSync, unlinkSync, writeFileSync } from 'node:fs';
+// planned page linked from a ready one, the four generated indexes, an image). Each case copies it and breaks one
+// thing: a planned or generated page with a file, a ready page without its twin, a URL off the convention, a ready
+// how-to without questions, a broken anchor, a bare repository path, twins whose sections, links or blocks differ, a
+// template without its twin, a glossary term naming an unknown page are errors; a link to a planned page is listed,
+// not an error. One scanner reads the links for both sides: titled links, images, a linked image's outer link, never
+// inside fenced or inline code. The build publishes the ready pages only (the drafts too with --preview, under a
+// banner), rewrites the links for the wiki, heads each page with its twin and its status, copies the wiki's images,
+// and empties only a folder it built itself.
+import { cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, unlinkSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
-import { afterAll, describe, expect, it } from 'vitest';
-import { buildWiki, FOOTER_TEMPLATE } from '../tools/wiki/build';
-import { checkWiki, globToRegExp, trackedFiles } from '../tools/wiki/check';
+import { afterAll, describe, expect, it, vi } from 'vitest';
+import { globToRegExp } from '../tools/ci-plan';
+import { main, outProblem } from '../tools/wiki';
+import { buildWiki } from '../tools/wiki/build';
+import { checkWiki, trackedFiles } from '../tools/wiki/check';
+import type { Identifier } from '../tools/wiki/identifiers';
 import type { Manifest } from '../tools/wiki/manifest';
-import { parsePage, repoPathOf } from '../tools/wiki/page';
+import { classifyTarget, parsePage } from '../tools/wiki/page';
 
 const BASE = resolve('tests/fixtures/wiki/base');
 const TRACKED = trackedFiles();
+const IDENTIFIERS: Identifier[] = [
+  { id: 'npm run validate', source: 'npm-script' },
+  { id: 'read_doc', source: 'mcp-tool' },
+];
 const temps: string[] = [];
 afterAll(() => {
   for (const t of temps) rmSync(t, { recursive: true, force: true });
 });
+const tmp = (prefix: string) => {
+  const dir = mkdtempSync(join(tmpdir(), prefix));
+  temps.push(dir);
+  return dir;
+};
 
 /** A copy of the fixture wiki, changed by `edit`, and its check report. */
 function wiki(edit?: (dir: string, manifest: Manifest) => void) {
-  const dir = mkdtempSync(join(tmpdir(), 'wiki-check-'));
-  temps.push(dir);
+  const dir = tmp('wiki-check-');
   cpSync(BASE, dir, { recursive: true });
   if (edit) {
     const file = join(dir, 'manifest.json');
@@ -32,25 +46,56 @@ function wiki(edit?: (dir: string, manifest: Manifest) => void) {
     edit(dir, manifest);
     writeFileSync(file, JSON.stringify(manifest, null, 2));
   }
-  return { dir, report: checkWiki({ wikiDir: dir, tracked: TRACKED }) };
+  return { dir, report: checkWiki({ wikiDir: dir, tracked: TRACKED, identifiers: IDENTIFIERS }) };
 }
 const page = (m: Manifest, id: string) => m.pages.find((p) => p.id === id)!;
 const errorsOf = (edit: (dir: string, manifest: Manifest) => void) => wiki(edit).report.errors;
+const append = (dir: string, rel: string, text: string) =>
+  writeFileSync(join(dir, rel), `${readFileSync(join(dir, rel), 'utf8')}${text}`);
 
 describe('wiki -- check, the work level', () => {
   it('passes the fixture, listing its link to a planned page without failing on it', () => {
     const { report } = wiki();
     expect(report.errors).toEqual([]);
     expect(report.plannedLinks).toEqual([
-      { from: 'create.rooms', lang: 'en', to: 'create.dsl', line: 7 },
-      { from: 'create.rooms', lang: 'fr', to: 'create.dsl', line: 7 },
+      { from: 'create.rooms', lang: 'en', to: 'create.dsl', anchor: undefined, line: 7 },
+      { from: 'create.rooms', lang: 'fr', to: 'create.dsl', anchor: undefined, line: 7 },
     ]);
     expect(report.gaps).toContain('en/create.rooms.md line 7 links to create.dsl, planned');
+  });
+
+  it('lists a link to a planned page with its anchor, without checking the anchor', () => {
+    const { report } = wiki((dir) => {
+      append(dir, 'en/create.exits.md', '\nSee [the walk command](create.dsl.md#walk).\n');
+      append(dir, 'fr/create.exits.md', '\nVoir [la commande walk](create.dsl.md#walk).\n');
+    });
+    expect(report.errors).toEqual([]);
+    expect(report.gaps).toContain('fr/create.exits.md line 9 links to create.dsl#walk, planned');
+  });
+
+  it('lists the generated identifiers no page claims as gaps, not errors', () => {
+    const { report } = wiki((_, m) => {
+      page(m, 'create.rooms').identifiers.push('npm run validate');
+    });
+    expect(report.errors).toEqual([]);
+    expect(report.gaps).toContain('1 MCP tools no page claims in its identifiers yet: read_doc');
+    expect(report.gaps.some((g) => g.includes('npm scripts'))).toBe(false);
   });
 
   it('refuses a planned page that has a file', () => {
     const errors = errorsOf((dir) => writeFileSync(join(dir, 'en', 'create.dsl.md'), '# DSL\n'));
     expect(errors).toContain('create.dsl (planned): planned, yet en/create.dsl.md exists');
+  });
+
+  it('refuses a source file for a generated page, and a generated page no generator builds', () => {
+    const errors = errorsOf((dir, m) => {
+      writeFileSync(join(dir, 'fr', 'index.by-task.md'), '# Index\n');
+      page(m, 'create.dsl').generated = true;
+    });
+    expect(errors).toContain(
+      'index.by-task (generated): generated, yet fr/index.by-task.md exists (its source is the data)',
+    );
+    expect(errors.some((e) => e.startsWith('create.dsl (generated): no generator builds it'))).toBe(true);
   });
 
   it('refuses a ready page whose twin is missing', () => {
@@ -97,13 +142,13 @@ describe('wiki -- check, the work level', () => {
   });
 
   it('refuses a broken anchor, an unknown page and an anchor not before a heading', () => {
-    const errors = errorsOf((dir) => {
-      const file = join(dir, 'en', 'create.exits.md');
-      writeFileSync(
-        file,
-        `${readFileSync(file, 'utf8')}\nSee [nothing](create.rooms.md#no-such-section), [a ghost](create.ghost.md) and [here](#nowhere).\n\n<a name="loose"></a>\nNo heading.\n`,
-      );
-    });
+    const errors = errorsOf((dir) =>
+      append(
+        dir,
+        'en/create.exits.md',
+        '\nSee [nothing](create.rooms.md#no-such-section), [a ghost](create.ghost.md) and [here](#nowhere).\n\n<a name="loose"></a>\nNo heading.\n',
+      ),
+    );
     expect(errors).toContain(
       'en/create.exits.md line 9: create.rooms.md#no-such-section is not a section of en/create.rooms.md',
     );
@@ -112,12 +157,40 @@ describe('wiki -- check, the work level', () => {
     expect(errors).toContain('en/create.exits.md line 11: the anchor "loose" is not followed by a heading');
   });
 
+  it('checks the links of a French page against the French twin', () => {
+    const errors = errorsOf((dir) => {
+      const rooms = join(dir, 'fr', 'create.rooms.md');
+      writeFileSync(rooms, readFileSync(rooms, 'utf8').replace('create.exits.md#doors', 'create.exits.md#portes'));
+    });
+    expect(errors).toContain(
+      'fr/create.rooms.md line 7: create.exits.md#portes is not a section of fr/create.exits.md',
+    );
+  });
+
+  it('refuses a bare repository path, naming the form that works, and a file git does not track', () => {
+    const errors = errorsOf((dir) => {
+      append(dir, 'fr/create.exits.md', '\nVoir [le code](src/engine/core/save.ts) et [rien](../../src/no-such.ts).\n');
+      append(dir, 'en/create.exits.md', '\nSee [the code](./src/engine/core/save.ts) and [far](../../../up.md).\n');
+    });
+    expect(errors).toContain(
+      'fr/create.exits.md line 9: the link "src/engine/core/save.ts" resolves to wiki/fr/src/engine/core/save.ts: a repository file is written from the page\'s folder, ../../src/engine/core/save.ts',
+    );
+    expect(errors).toContain('fr/create.exits.md line 9: links to src/no-such.ts, which git does not track');
+    expect(errors.some((e) => e.includes('"./src/engine/core/save.ts" resolves to wiki/en/src/'))).toBe(true);
+    expect(errors).toContain('en/create.exits.md line 9: the link "../../../up.md" leaves the repository');
+  });
+
+  it('refuses an image of the wiki that does not exist', () => {
+    const errors = errorsOf((dir) => unlinkSync(join(dir, 'images', 'room.png')));
+    expect(errors).toContain('en/create.rooms.md line 19: the image images/room.png does not exist');
+  });
+
   it('refuses ready twins whose section ids or link destinations differ', () => {
     const errors = errorsOf((dir) => {
       const file = join(dir, 'fr', 'create.exits.md');
       writeFileSync(file, readFileSync(file, 'utf8').replace('name="doors"', 'name="portes"'));
       const rooms = join(dir, 'fr', 'create.rooms.md');
-      writeFileSync(rooms, readFileSync(rooms, 'utf8').replace('create.exits.md#doors', 'create.exits.md#portes'));
+      writeFileSync(rooms, readFileSync(rooms, 'utf8').replaceAll('create.exits.md#doors', 'create.exits.md#portes'));
     });
     expect(errors).toContain(
       'create.exits: the section ids differ between en and fr (only in en: doors; only in fr: portes)',
@@ -127,60 +200,111 @@ describe('wiki -- check, the work level', () => {
     );
   });
 
-  it('refuses a link to a repository file git does not track', () => {
+  it('refuses ready twins whose structured blocks differ', () => {
     const errors = errorsOf((dir) => {
-      const file = join(dir, 'fr', 'create.exits.md');
-      writeFileSync(file, `${readFileSync(file, 'utf8')}\nVoir [le code](../../src/engine/core/no-such-file.ts).\n`);
+      const rooms = join(dir, 'fr', 'create.rooms.md');
+      writeFileSync(
+        rooms,
+        readFileSync(rooms, 'utf8').replace('[!LIMIT id=no-diagonal]', '[!LIMIT id=sans-diagonale]'),
+      );
     });
     expect(errors).toContain(
-      'fr/create.exits.md line 9: links to src/engine/core/no-such-file.ts, which git does not track',
+      'create.rooms: the structured blocks differ between en and fr (only in en: LIMIT:no-diagonal; only in fr: LIMIT:sans-diagonale)',
     );
+  });
+
+  it('refuses a template without its twin, and twins whose sections differ', () => {
+    const errors = errorsOf((dir) => {
+      mkdirSync(join(dir, '_templates'));
+      writeFileSync(join(dir, '_templates', 'howto.en.md'), '# T\n\n<a name="steps"></a>\n\n## Steps\n');
+      writeFileSync(join(dir, '_templates', 'howto.fr.md'), '# T\n\n<a name="etapes"></a>\n\n## Étapes\n');
+      writeFileSync(join(dir, '_templates', 'reference.en.md'), '# T\n');
+    });
+    expect(errors).toContain('_templates/howto.en.md and howto.fr.md: the section ids differ');
+    expect(errors).toContain('_templates/reference.en.md: its French twin reference.fr.md is missing');
+  });
+
+  it('refuses a glossary term naming a page the manifest does not hold', () => {
+    const errors = errorsOf((dir) => {
+      const file = join(dir, 'data', 'glossary.json');
+      writeFileSync(file, readFileSync(file, 'utf8').replace('"create.dsl"', '"create.ghost"'));
+    });
+    expect(errors).toContain('data/glossary.json: the term lease names create.ghost, not a manifest page');
   });
 });
 
-describe('reading a page', () => {
-  it('finds section ids, page links, repository links and blocks, and skips fenced code', () => {
-    const p = parsePage(readFileSync(join(BASE, 'en', 'create.rooms.md'), 'utf8'));
+describe('reading a page: one scanner for check and build', () => {
+  it('finds section ids, page links (titled, ./, inside a linked image), images and blocks, never inside code', () => {
+    const p = parsePage(readFileSync(join(BASE, 'en', 'create.rooms.md'), 'utf8'), 'en');
     expect(p.problems).toEqual([]);
     expect(p.sections).toEqual(['walkable-zones', 'checking']);
-    expect(p.links.map((l) => [l.id, l.anchor])).toEqual([
-      ['create.exits', 'doors'],
-      ['create.dsl', undefined],
-      ['studio.notes', undefined],
+    expect(p.links.map((l) => [l.id, l.anchor, l.line])).toEqual([
+      ['create.exits', 'doors', 7],
+      ['create.dsl', undefined, 7],
+      ['studio.notes', undefined, 17],
+      ['create.exits', 'doors', 19],
+      ['create.exits', undefined, 20],
     ]);
-    expect(p.repoLinks.map((l) => l.path)).toEqual(['src/engine/core/save.ts']);
+    expect(p.repoLinks.map((l) => l.path)).toEqual(['src/engine/core/save.ts', 'src/engine/core/save.ts']);
+    expect(p.images.map((i) => i.path)).toEqual(['room.png', 'room.png']);
     expect(p.blocks).toEqual([{ kind: 'LIMIT', id: 'no-diagonal', line: 10 }]);
   });
 
-  it('resolves repository paths from the page folder or from the root, never above it', () => {
-    expect(repoPathOf('../../src/engine/core/save.ts')).toBe('src/engine/core/save.ts');
-    expect(repoPathOf('src/engine/core/save.ts')).toBe('src/engine/core/save.ts');
-    expect(repoPathOf('../../../outside.ts')).toBeUndefined();
+  it('closes a fence only on the same character, at least as long; and skips inline code of any length', () => {
+    const md = [
+      '~~~',
+      '```',
+      '[a](x.y.md)',
+      '~~~~',
+      '`` [b](inline.code.md) `` and `[c](also.code.md)` but [d](real.link.md)',
+      '````',
+      '```',
+      '[e](fenced.code.md)',
+    ].join('\n');
+    const p = parsePage(md, 'en');
+    expect(p.links.map((l) => l.id)).toEqual(['real.link']);
+    expect(p.problems).toEqual(['a code fence is never closed']);
   });
 
-  it('matches source globs the way the manifest writes them', () => {
+  it('resolves targets from the page folder, as GitHub does', () => {
+    expect(classifyTarget('create.rooms.md#zones', 'fr')).toEqual({
+      kind: 'page',
+      id: 'create.rooms',
+      anchor: 'zones',
+    });
+    expect(classifyTarget('./create.rooms.md', 'en')).toEqual({ kind: 'page', id: 'create.rooms', anchor: undefined });
+    expect(classifyTarget('../../src/x.ts#L3', 'en')).toEqual({ kind: 'repo', path: 'src/x.ts', anchor: 'L3' });
+    expect(classifyTarget('../images/a/b.png', 'fr')).toEqual({ kind: 'wiki-image', path: 'a/b.png' });
+    expect(classifyTarget('../fr/create.rooms.md', 'en').kind).toBe('invalid');
+    expect(classifyTarget('src/x.ts', 'en').kind).toBe('invalid');
+    expect(classifyTarget('/src/x.ts', 'en').kind).toBe('invalid');
+    expect(classifyTarget('https://example.org/a.md', 'en').kind).toBe('external');
+  });
+
+  it('matches source globs the way the manifest writes them, braces holding stars', () => {
     expect(globToRegExp('src/**/*.ts').test('src/engine/core/save.ts')).toBe(true);
     expect(globToRegExp('src/*.ts').test('src/engine/core/save.ts')).toBe(false);
     expect(globToRegExp('tools/**').test('tools/wiki/check.ts')).toBe(true);
     expect(globToRegExp('LICENSE*').test('LICENSE-ASSETS')).toBe(true);
-    expect(globToRegExp('src/studio/{notes,map-tab}.ts').test('src/studio/map-tab.ts')).toBe(true);
+    expect(globToRegExp('src/studio/{notes,map-*}.ts').test('src/studio/map-tab.ts')).toBe(true);
+    expect(globToRegExp('src/studio/{notes,map-*}.ts').test('src/studio/maps/x.ts')).toBe(false);
   });
 });
 
 describe('wiki -- build --target wiki', () => {
+  const options = (outDir: string, preview: boolean, wikiDir = BASE) => ({
+    wikiDir,
+    outDir,
+    manifest: wiki().report.manifest!,
+    preview,
+    productVersion: '4.5.0',
+    docRevision: 'd0c',
+    productCommit: 'c0ffee',
+    identifiers: IDENTIFIERS,
+  });
   const build = (preview: boolean) => {
-    const out = mkdtempSync(join(tmpdir(), 'wiki-build-'));
-    temps.push(out);
-    const { report } = wiki();
-    const files = buildWiki({
-      wikiDir: BASE,
-      outDir: out,
-      manifest: report.manifest!,
-      preview,
-      productVersion: '4.5.0',
-      docRevision: 'd0c',
-      productCommit: 'c0ffee',
-    });
+    const out = tmp('wiki-build-');
+    const files = buildWiki(options(out, preview));
     return { out, files, read: (f: string) => readFileSync(join(out, f), 'utf8') };
   };
 
@@ -189,59 +313,110 @@ describe('wiki -- build --target wiki', () => {
     expect(files).toContain('en/EN-Create-Rooms.md');
     expect(files).toContain('fr/FR-Equipe-Ecriture-Refusee-423.md');
     expect(files.some((f) => f.includes('Studio-Notes'))).toBe(false);
-    expect(files.some((f) => f.includes('Dsl'))).toBe(false);
+    expect(files.some((f) => f.includes('DSL'))).toBe(false);
     for (const lang of ['en', 'fr']) {
       const sidebar = read(`${lang}/_Sidebar.md`);
-      expect(sidebar).not.toMatch(/Studio-Notes|Dsl/);
+      expect(sidebar).not.toMatch(/Studio-Notes|DSL/);
       expect(sidebar).toMatch(lang === 'en' ? /\[Rooms\]\(EN-Create-Rooms\)/ : /\[Salles\]\(FR-Creer-Salles\)/);
     }
     expect(files).toEqual(expect.arrayContaining(['Home.md', '_Footer.md', 'en/_Sidebar.md', 'fr/_Sidebar.md']));
   });
 
-  it('rewrites links: a page to its URL in the same language, the code to the product commit, an unpublished page to text, inline code never', () => {
-    const { read } = build(false);
+  it('rewrites links: pages to their URL, code to the product commit, images to the output, unpublished pages to text', () => {
+    const { read, files } = build(false);
     const en = read('en/EN-Create-Rooms.md');
     expect(en).toContain('[a door](EN-Create-Exits#doors)');
     expect(en).toContain('[save.ts](https://github.com/wanoo/quest-n-click/blob/c0ffee/src/engine/core/save.ts#L1)');
+    expect(en).toContain(
+      '[the code](https://github.com/wanoo/quest-n-click/blob/c0ffee/src/engine/core/save.ts "save")',
+    );
+    expect(en).toContain('[the exits](EN-Create-Exits)');
     expect(en).toContain('every command is in the DSL (coming)');
     expect(en).toContain('Leave a note from the Studio (coming)');
     expect(en).toContain('[the zones](#walkable-zones)');
+    expect(en).toContain('![A room](images/room.png "The hall")');
+    expect(en).toContain('[![a badge](images/room.png)](EN-Create-Exits#doors "Exits")');
+    expect(en).toContain('[still code](nowhere.md)');
     expect(en).toContain('[not a link](nowhere.md)');
     expect(en).toContain('> **Limit** · `no-diagonal`');
     expect(read('en/EN-Create-Exits.md')).toContain('a link written `[its zone](create.rooms.md#walkable-zones)` in');
     expect(read('fr/FR-Creer-Sorties.md')).toContain('[sa zone](FR-Creer-Salles#walkable-zones)');
+    expect(files).toContain('images/room.png');
   });
 
-  it('heads each page with the switch to its twin, its type, audience, context and versions, and ends with its source', () => {
+  it('points a repository image at raw.githubusercontent.com at the product commit', () => {
+    const { dir } = wiki((d) => {
+      append(d, 'en/create.exits.md', '\n![the logo](../../public/og.png)\n');
+      append(d, 'fr/create.exits.md', '\n![le logo](../../public/og.png)\n');
+    });
+    const out = tmp('wiki-build-');
+    buildWiki(options(out, false, dir));
+    expect(readFileSync(join(out, 'fr', 'FR-Creer-Sorties.md'), 'utf8')).toContain(
+      '![le logo](https://raw.githubusercontent.com/wanoo/quest-n-click/c0ffee/public/og.png)',
+    );
+  });
+
+  it('heads each page with its twin, type, audience, context, status and versions, and ends with its source', () => {
     const { read } = build(false);
     expect(read('en/EN-Create-Rooms.md')).toContain(
-      '# Rooms\n\n> [Français](FR-Creer-Salles) · Type: how-to · Audience: author · Context: created project · Applies from: 4.5.0\n',
+      '# Rooms\n\n> [Français](FR-Creer-Salles) · Type: how-to · Audience: author · Context: created project · Status: ready · Applies from: 4.5.0\n',
     );
     const fr = read('fr/FR-Creer-Salles.md');
     expect(fr).toContain(
-      "> [English](EN-Create-Rooms) · Type : procédure · Public : auteur · Contexte : projet créé · S'applique depuis : 4.5.0",
+      "> [English](EN-Create-Rooms) · Type : procédure · Public : auteur · Contexte : projet créé · Statut : prête · S'applique depuis : 4.5.0",
     );
-    expect(fr).toContain('(https://github.com/wanoo/quest-n-click/blob/main/wiki/fr/create.rooms.md)');
+    expect(fr).toContain('(https://github.com/wanoo/quest-n-click/edit/main/wiki/fr/create.rooms.md)');
   });
 
-  it('builds the four indexes from the published pages and the glossary', () => {
+  it('builds the four indexes from the published pages, their aliases, the identifiers and the glossary', () => {
     const { read } = build(false);
-    expect(read('en/EN-Index-By-Task.md')).toContain('- How do I add a room? → [Rooms](EN-Create-Rooms)');
-    expect(read('en/EN-Index-By-Task.md')).not.toContain('note');
+    const task = read('en/EN-Index-By-Task.md');
+    expect(task).toContain('- How do I add a room? → [Rooms](EN-Create-Rooms)');
+    expect(task).toContain('- scene → [Rooms](EN-Create-Rooms)');
+    expect(task).not.toContain('note');
+    expect(task).toContain('Status: generated');
     expect(read('fr/FR-Index-Par-Symptome.md')).toContain(
       '- Pourquoi mon enregistrement est refusé avec 423 ? → [Écriture refusée : pan verrouillé (423)](FR-Equipe-Ecriture-Refusee-423)',
     );
-    expect(read('en/EN-Index-Identifiers.md')).toContain('- `walkTo` → [Rooms](EN-Create-Rooms)');
+    const ids = read('en/EN-Index-Identifiers.md');
+    expect(ids).toContain('- `walkTo` → [Rooms](EN-Create-Rooms)');
+    expect(ids).not.toContain('read_doc');
     const glossary = read('fr/FR-Index-Glossaire.md');
     expect(glossary).toContain('**bail** (aussi : verrou ; anglais : lease)');
     expect(glossary).toContain('→ [Écriture refusée : pan verrouillé (423)](FR-Equipe-Ecriture-Refusee-423)');
-    expect(glossary).not.toContain('Dsl');
+    expect(glossary).not.toContain('DSL');
+  });
+
+  it('lists a generated identifier under the published pages that claim it', () => {
+    const { dir, report } = wiki((_, m) => {
+      page(m, 'create.exits').identifiers.push('read_doc');
+    });
+    const out = tmp('wiki-build-');
+    buildWiki({ ...options(out, false, dir), manifest: report.manifest! });
+    expect(readFileSync(join(out, 'en', 'EN-Index-Identifiers.md'), 'utf8')).toContain(
+      '- `read_doc` → [Exits](EN-Create-Exits)',
+    );
+  });
+
+  it('builds no generated page while nothing is published', () => {
+    const { report } = wiki((_, m) => {
+      for (const p of m.pages) if (p.state === 'ready') p.state = 'draft';
+    });
+    const out = tmp('wiki-build-');
+    const files = buildWiki({ ...options(out, false), manifest: report.manifest! });
+    expect(files.filter((f) => f.endsWith('.md')).sort()).toEqual([
+      'Home.md',
+      '_Footer.md',
+      'en/_Sidebar.md',
+      'fr/_Sidebar.md',
+    ]);
   });
 
   it('includes the drafts under a banner with --preview', () => {
     const { files, read } = build(true);
     expect(files).toContain('fr/FR-Studio-Notes.md');
     expect(read('fr/FR-Studio-Notes.md')).toMatch(/^# Notes\n\n> \*\*Brouillon\*\* :/);
+    expect(read('fr/FR-Studio-Notes.md')).toContain('Statut : brouillon');
     expect(read('en/_Sidebar.md')).toContain('[Notes](EN-Studio-Notes)');
     expect(read('en/EN-Create-Rooms.md')).toContain('[the Studio](EN-Studio-Notes)');
     expect(read('en/EN-Create-Rooms.md')).not.toContain('**Draft**');
@@ -249,31 +424,74 @@ describe('wiki -- build --target wiki', () => {
 
   it('fills the footer from the product version and the doc revision, and says edits are overwritten', () => {
     const { read } = build(false);
-    expect(FOOTER_TEMPLATE).toContain('{{productVersion}}');
     const footer = read('_Footer.md');
     expect(footer).toContain("quest'n'click 4.5.0");
     expect(footer).toContain('`d0c`');
     expect(footer).toContain('overwritten at the next publication');
-    expect(footer).not.toContain('{{');
     expect(read('Home.md')).toMatch(/\| Français \| English \|/);
   });
 
-  it('refuses to empty a folder that holds something other than a previous build', () => {
-    const out = mkdtempSync(join(tmpdir(), 'wiki-build-'));
-    temps.push(out);
-    writeFileSync(join(out, 'precious.txt'), 'keep me');
-    const { report } = wiki();
-    expect(() =>
-      buildWiki({
-        wikiDir: BASE,
-        outDir: out,
-        manifest: report.manifest!,
-        preview: false,
-        productVersion: '4.5.0',
-        docRevision: 'd0c',
-        productCommit: 'c0ffee',
-      }),
-    ).toThrow(/holds no previous build/);
-    expect(existsSync(join(out, 'precious.txt'))).toBe(true);
+  it('empties its own previous build on a rebuild, keeping .git and removing a withdrawn page', () => {
+    const { out } = build(true);
+    mkdirSync(join(out, '.git'));
+    writeFileSync(join(out, '.git', 'HEAD'), 'ref: refs/heads/master\n');
+    expect(existsSync(join(out, 'en', 'EN-Studio-Notes.md'))).toBe(true);
+    buildWiki(options(out, false));
+    expect(existsSync(join(out, 'en', 'EN-Studio-Notes.md'))).toBe(false);
+    expect(existsSync(join(out, '.git', 'HEAD'))).toBe(true);
+    expect(existsSync(join(out, '.quest-n-click-wiki-build'))).toBe(true);
+  });
+
+  it('refuses to empty a folder that holds no build marker', () => {
+    const out = tmp('wiki-build-');
+    writeFileSync(join(out, 'Home.md'), 'not ours');
+    expect(() => buildWiki(options(out, false))).toThrow(/holds no previous build/);
+    expect(readFileSync(join(out, 'Home.md'), 'utf8')).toBe('not ours');
+  });
+});
+
+describe('npm run wiki, the command line', () => {
+  const quiet = () => {
+    const err = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const log = vi.spyOn(console, 'log').mockImplementation(() => {});
+    return () => {
+      const said = err.mock.calls.map((c) => String(c[0])).join('\n');
+      err.mockRestore();
+      log.mockRestore();
+      return said;
+    };
+  };
+
+  it('refuses an option without its value, an unknown command and a build without --out', () => {
+    for (const [args, message] of [
+      [['build', '--target', 'wiki', '--out'], '--out needs a value'],
+      [['build', '--target', 'wiki', '--out', '--preview'], '--out needs a value'],
+      [['build', '--target=wiki', '--out='], '--out needs a value'],
+      [['build', '--target', 'html', '--out', '/tmp/x'], 'build needs --target wiki'],
+      [['publish'], 'unknown command "publish"'],
+    ] as const) {
+      const done = quiet();
+      expect(main(args), args.join(' ')).toBe(2);
+      expect(done()).toContain(message);
+    }
+  });
+
+  it('refuses an output folder inside the working tree, except under .cache/', () => {
+    expect(outProblem(resolve('wiki-out'))).toMatch(/inside the repository's working tree/);
+    expect(outProblem(resolve('.'))).toMatch(/inside/);
+    expect(outProblem(resolve('.cache/wiki'))).toBeUndefined();
+    expect(outProblem(join(tmpdir(), 'wiki'))).toBeUndefined();
+    const done = quiet();
+    expect(main(['build', '--target', 'wiki', '--out', 'wiki-out', `--wiki=${BASE}`])).toBe(1);
+    expect(done()).toContain('inside the repository');
+    expect(existsSync(resolve('wiki-out'))).toBe(false);
+  });
+
+  it('builds the fixture into a fresh folder', () => {
+    const out = join(tmp('wiki-cli-'), 'out');
+    const done = quiet();
+    expect(main(['build', '--target', 'wiki', '--out', out, `--wiki=${BASE}`, '--product-commit', 'c0ffee'])).toBe(0);
+    done();
+    expect(readFileSync(join(out, 'en', 'EN-Create-Rooms.md'), 'utf8')).toContain('/blob/c0ffee/src/');
   });
 });

@@ -5,7 +5,7 @@
 import { execFileSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
-import { type CiPlan, classify, explain, fullPlan, GATES, type Gate, planFor } from '../tools/ci-plan';
+import { type CiPlan, classify, docsFor, explain, fullPlan, GATES, type Gate, planFor } from '../tools/ci-plan';
 
 /** The gates a plan opens, sorted, `all` first when set. */
 const on = (p: CiPlan) => [...(p.all ? ['all'] : []), ...GATES.filter((g) => p[g])].sort();
@@ -16,6 +16,7 @@ const EVERYTHING = gates('all', ...GATES.filter((g) => g !== 'auditDeps'));
 describe('the plan of a change', () => {
   const table: [string, string[], string[]][] = [
     ['docs only', ['docs/en/TOOLS.md', 'docs/fr/TOOLS.md', 'README.md', 'changes/x.md'], []],
+    ['the wiki sources', ['wiki/manifest.json', 'wiki/en/create.rooms.md', 'wiki/data/glossary.json'], []],
     ['a root markdown file', ['CHANGELOG.md', 'CONTRIBUTING.md'], []],
     ['another workflow', ['.github/workflows/nightly.yml'], []],
     ['the Bridge', ['bridge/src/store.ts'], gates('reality', 'freshInstall', 'node24', 'windows')],
@@ -67,6 +68,24 @@ describe('the plan of a change', () => {
     it(name, () => {
       expect(on(planFor(files))).toEqual(want);
     });
+
+  it('runs the docs family on the docs, the wiki and its generators, and on a file a wiki page rests on (4.5.0)', () => {
+    const pages = [
+      { id: 'clever.backups', sources: ['studio-server/src/ops/backup*.ts'] },
+      { id: 'create.rooms', sources: ['src/engine/core/{save,stage}.ts'] },
+    ];
+    expect(docsFor(['wiki/en/create.rooms.md'], pages)).toEqual({ docs: true, docsPages: [] });
+    expect(docsFor(['tools/wiki/build.ts'], pages).docs).toBe(true);
+    expect(docsFor(['studio-server/src/ops/backup-bucket.ts', 'src/engine/core/save.ts'], pages)).toEqual({
+      docs: true,
+      docsPages: ['clever.backups', 'create.rooms'],
+    });
+    expect(docsFor(['bridge/src/store.ts'], pages)).toEqual({ docs: false, docsPages: [] });
+    expect(planFor(['studio-server/src/ops/backup.ts'], pages)).toMatchObject({ docsPages: ['clever.backups'] });
+    // The real manifest is read when no pages are given: its clever.restore-drill rests on the backup operation.
+    expect(planFor(['studio-server/src/ops/backup.ts']).docsPages).toContain('clever.restore-drill');
+    expect(fullPlan().docs).toBe(true);
+  });
 
   it('runs everything for the lockfile, and audits the dependencies only then', () => {
     const lock = planFor(['package-lock.json']);

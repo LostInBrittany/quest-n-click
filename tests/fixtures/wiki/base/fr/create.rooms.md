@@ -15,3 +15,6 @@ La sauvegarde est écrite par [save.ts](../../src/engine/core/save.ts#L1).
 ## Vérifier
 
 Retour aux [zones](#walkable-zones). Laissez une note depuis [le Studio](studio.notes.md).
+
+![Une salle](../images/room.png "Le hall") et [![un badge](../images/room.png)](create.exits.md#doors "Sorties").
+Voir [le code](./../../src/engine/core/save.ts "save") et [les sorties](./create.exits.md).

@@ -9,7 +9,7 @@
 // checked. A git error runs everything too. Self-contained (no import but Node's): the `plan` job runs it without
 // `npm ci`.
 import { execFileSync } from 'node:child_process';
-import { appendFileSync } from 'node:fs';
+import { appendFileSync, readFileSync } from 'node:fs';
 
 /** The jobs the plan can spare, by their key in the JSON (ci.yml reads `fromJSON(needs.plan.outputs.plan).<key>`). */
 export const GATES = [
@@ -26,8 +26,13 @@ export const GATES = [
   'studioHosted',
 ] as const;
 export type Gate = (typeof GATES)[number];
-/** Every gate, plus `all` when one file (or `--all`) asked for everything. */
-export type CiPlan = Record<Gate, boolean> & { all: boolean };
+/**
+ * Every gate, plus `all` when one file (or `--all`) asked for everything; `docs` when the documentation's checks have
+ * something to read (4.5.0, docs/dev/PLAN-4.5-WIKI.md §5): the docs, `wiki/`, its generators, or a file a wiki page
+ * rests on (a `sources` glob of `wiki/manifest.json`), whose pages `docsPages` names for review. `docs` is not a gate:
+ * the fast tier runs the doc tests on every change; it tells the job and the reader what a change asks to reread.
+ */
+export type CiPlan = Record<Gate, boolean> & { all: boolean; docs: boolean; docsPages: string[] };
 
 /** The job (or matrix) each gate opens, as ci.yml names it. */
 export const JOB_OF: Record<Gate, string> = {
@@ -177,6 +182,70 @@ export const RULES: readonly Rule[] = [
   { re: /^tests\//, gates: [...UNIT], why: 'the unit tests' },
 ];
 
+/** A glob as a regular expression over a whole path: `**` any folders, `*` and `?` inside one name, `{a,b*}`. */
+export function globToRegExp(glob: string): RegExp {
+  const part = (g: string): string => {
+    let re = '';
+    for (let i = 0; i < g.length; i++) {
+      const c = g[i]!;
+      if (c === '*') {
+        if (g[i + 1] === '*') {
+          const slash = g[i + 2] === '/';
+          re += slash ? '(?:.*/)?' : '.*';
+          i += slash ? 2 : 1;
+        } else re += '[^/]*';
+      } else if (c === '?') re += '[^/]';
+      else if (c === '{' && g.indexOf('}', i) > 0) {
+        const end = g.indexOf('}', i);
+        re += `(?:${g
+          .slice(i + 1, end)
+          .split(',')
+          .map(part)
+          .join('|')})`;
+        i = end;
+      } else re += c.replace(/[.+^${}()|[\]\\]/g, '\\$&');
+    }
+    return re;
+  };
+  return new RegExp(`^${part(glob)}$`);
+}
+
+/** The paths the documentation's checks read besides the docs themselves: the wiki and its generators. */
+const DOCS_PATHS =
+  /^(docs\/|wiki\/|tools\/wiki(\.ts$|\/)|tools\/(dsl-doc|api-doc|docs-truth)\.ts$|scripts\/pack\.mjs$)/;
+
+interface WikiPage {
+  id: string;
+  sources: string[];
+}
+/** The pages of `wiki/manifest.json` and their sources; none when it is missing or unreadable (plain JSON, no zod). */
+function wikiPages(): WikiPage[] {
+  try {
+    const m = JSON.parse(readFileSync(new URL('../wiki/manifest.json', import.meta.url), 'utf8')) as {
+      pages?: { id?: unknown; sources?: unknown }[];
+    };
+    return (m.pages ?? []).flatMap((p) =>
+      typeof p.id === 'string' && Array.isArray(p.sources)
+        ? [{ id: p.id, sources: p.sources.filter((g): g is string => typeof g === 'string') }]
+        : [],
+    );
+  } catch {
+    return [];
+  }
+}
+
+/** Whether the docs family runs, and the pages whose sources the change touched (§5, §9's drift notice). */
+export function docsFor(
+  changed: readonly string[],
+  pages: readonly WikiPage[] = wikiPages(),
+): Pick<CiPlan, 'docs' | 'docsPages'> {
+  const globs = pages.map((p) => ({ id: p.id, res: p.sources.map(globToRegExp) }));
+  const docsPages = [
+    ...new Set(changed.flatMap((f) => globs.filter((g) => g.res.some((re) => re.test(f))).map((g) => g.id))),
+  ].sort();
+  return { docs: docsPages.length > 0 || changed.some((f) => DOCS_PATHS.test(f)), docsPages };
+}
+
 /** The first rule a path matches, or everything for a path no rule knows. */
 export function classify(path: string): { gates: readonly Gate[] | 'all'; why: string } {
   const rule = RULES.find((r) => r.re.test(path));
@@ -185,24 +254,34 @@ export function classify(path: string): { gates: readonly Gate[] | 'all'; why: s
 
 const none = (): CiPlan => ({
   all: false,
+  docs: false,
+  docsPages: [],
   ...(Object.fromEntries(GATES.map((g) => [g, false])) as Record<Gate, boolean>),
 });
 
 /** Everything: `main`, a tag, a `full-ci` pull request, a git error. */
 export const fullPlan = (): CiPlan => ({
   all: true,
+  docs: true,
+  docsPages: [],
   ...(Object.fromEntries(GATES.map((g) => [g, true])) as Record<Gate, boolean>),
 });
 
 /** The union of what each changed file asks. `audit:deps` follows the lockfile (and package.json) only. */
-export function planFor(changed: readonly string[]): CiPlan {
+export function planFor(changed: readonly string[], pages?: readonly WikiPage[]): CiPlan {
   const plan = none();
+  const docs = docsFor(changed, pages);
   for (const path of changed) {
     const { gates } = classify(path);
-    if (gates === 'all') return { ...fullPlan(), auditDeps: changed.some((p) => /^package(-lock)?\.json$/.test(p)) };
+    if (gates === 'all')
+      return {
+        ...fullPlan(),
+        docsPages: docs.docsPages,
+        auditDeps: changed.some((p) => /^package(-lock)?\.json$/.test(p)),
+      };
     for (const g of gates) plan[g] = true;
   }
-  return plan;
+  return { ...plan, ...docs };
 }
 
 /** One line per file and the gates it opened, for the job's log and summary. */
@@ -240,6 +319,7 @@ if (process.argv[1]?.endsWith('ci-plan.ts')) {
   }
   const on = GATES.filter((g) => plan[g]);
   for (const l of lines) console.error(`  ${l}`);
+  if (plan.docsPages.length) console.error(`  wiki pages to reread: ${plan.docsPages.join(', ')}`);
   console.error(
     `✔  plan: ${plan.all ? 'everything' : on.length ? on.map((g) => JOB_OF[g]).join('; ') : 'the fast tier only (check, coverage)'}`,
   );

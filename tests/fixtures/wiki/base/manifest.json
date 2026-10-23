@@ -19,7 +19,7 @@
       "related": [],
       "prerequisites": [],
       "owner": "@wanoo",
-      "reviewed": null
+      "generated": true
     },
     {
       "id": "index.by-symptom",
@@ -38,7 +38,7 @@
       "related": [],
       "prerequisites": [],
       "owner": "@wanoo",
-      "reviewed": null
+      "generated": true
     },
     {
       "id": "index.identifiers",
@@ -57,7 +57,7 @@
       "related": [],
       "prerequisites": [],
       "owner": "@wanoo",
-      "reviewed": null
+      "generated": true
     },
     {
       "id": "index.glossary",
@@ -76,7 +76,7 @@
       "related": [],
       "prerequisites": [],
       "owner": "@wanoo",
-      "reviewed": null
+      "generated": true
     },
     {
       "id": "create.rooms",
@@ -95,8 +95,7 @@
       "identifiers": ["walkTo"],
       "related": [],
       "prerequisites": [],
-      "owner": "@wanoo",
-      "reviewed": null
+      "owner": "@wanoo"
     },
     {
       "id": "create.exits",
@@ -115,8 +114,7 @@
       "identifiers": ["exit"],
       "related": [],
       "prerequisites": [],
-      "owner": "@wanoo",
-      "reviewed": null
+      "owner": "@wanoo"
     },
     {
       "id": "create.dsl",
@@ -125,7 +123,7 @@
       "audience": ["author"],
       "context": ["created-project"],
       "title": { "en": "DSL reference", "fr": "Référence du DSL" },
-      "url": { "en": "EN-Create-Dsl-Reference", "fr": "FR-Creer-Reference-Dsl" },
+      "url": { "en": "EN-Create-DSL-Reference", "fr": "FR-Creer-Reference-DSL" },
       "state": "planned",
       "sources": [],
       "replaces": [],
@@ -134,8 +132,7 @@
       "identifiers": [],
       "related": [],
       "prerequisites": [],
-      "owner": "@wanoo",
-      "reviewed": null
+      "owner": "@wanoo"
     },
     {
       "id": "studio.notes",
@@ -154,8 +151,7 @@
       "identifiers": [],
       "related": [],
       "prerequisites": [],
-      "owner": "@wanoo",
-      "reviewed": null
+      "owner": "@wanoo"
     },
     {
       "id": "team.write-refused-423",
@@ -174,8 +170,7 @@
       "identifiers": ["423"],
       "related": [],
       "prerequisites": [],
-      "owner": "@wanoo",
-      "reviewed": null
+      "owner": "@wanoo"
     }
   ]
 }

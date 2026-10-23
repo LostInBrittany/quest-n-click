@@ -34,12 +34,12 @@
       "id": "revision",
       "en": {
         "term": "revision",
-        "synonyms": ["version of the game"],
+        "synonyms": [],
         "definition": "On a team Studio, one state of the game in the server's journal. A write names the revision it started from; if the files changed since, it is refused with a 409."
       },
       "fr": {
         "term": "révision",
-        "synonyms": ["revision", "version du jeu"],
+        "synonyms": ["revision"],
         "definition": "Sur un Studio d'équipe, un état du jeu dans le journal du serveur. Une écriture nomme la révision dont elle part ; si les fichiers ont changé depuis, elle est refusée avec une 409."
       },
       "pages": ["team.concepts", "team.write-refused-409"]

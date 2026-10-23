@@ -5,22 +5,39 @@
 // to write. `stats` counts the pages by state, domain, type and language: the workload estimate. `build --target
 // wiki` writes the folder a publication pushes to the GitHub wiki; it publishes the `ready` pages, and the `draft`
 // ones too with `--preview`. The other commands of §5 (`check --publish`, `coverage`, `bundle`, `publish`…) come with
-// their phases. `--wiki=<dir>` reads another source folder (the tests' fixtures).
+// their phases. `--wiki=<dir>` reads another source folder (the tests' fixtures). The output folder is outside the
+// working tree (or under `.cache/`), so a build never lands among the sources, and only a previous build is emptied.
 import { execFileSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
-import { resolve } from 'node:path';
+import { isAbsolute, relative, resolve } from 'node:path';
 import { ROOT } from './game';
 import { buildWiki } from './wiki/build';
 import { checkWiki, trackedFiles, wikiStats } from './wiki/check';
 import { readManifest } from './wiki/manifest';
 
-/** `--name value` or `--name=value`. */
+class UsageError extends Error {}
+
+/** `--name value` or `--name=value`; a value missing, empty or starting with `--` is a usage error. */
 function option(args: readonly string[], name: string): string | undefined {
   const i = args.findIndex((a) => a === `--${name}` || a.startsWith(`--${name}=`));
   if (i < 0) return undefined;
   const a = args[i]!;
-  return a.includes('=') ? a.slice(a.indexOf('=') + 1) : args[i + 1];
+  const value = a.includes('=') ? a.slice(a.indexOf('=') + 1) : args[i + 1];
+  if (!value || value.startsWith('--')) throw new UsageError(`--${name} needs a value`);
+  return value;
 }
+
+/** Why an output folder is refused: inside the working tree, except under `.cache/`. */
+export function outProblem(out: string, root = ROOT): string | undefined {
+  const rel = relative(root, resolve(out));
+  const inside = rel === '' || (!rel.startsWith('..') && !isAbsolute(rel));
+  if (inside && rel !== '.cache' && !rel.startsWith('.cache/'))
+    return `${out} is inside the repository's working tree: build outside it, or under .cache/`;
+  return undefined;
+}
+
+const USAGE =
+  'usage: npm run wiki -- check | stats [--json] | build --target wiki --out <dir> [--preview] [--product-version <v>] [--doc-revision <sha>] [--product-commit <sha>]';
 
 const head = () => {
   try {
@@ -30,7 +47,17 @@ const head = () => {
   }
 };
 
-function main(args: readonly string[]): number {
+export function main(args: readonly string[]): number {
+  try {
+    return run(args);
+  } catch (e) {
+    if (!(e instanceof UsageError)) throw e;
+    console.error(`✖  ${e.message}\n${USAGE}`);
+    return 2;
+  }
+}
+
+function run(args: readonly string[]): number {
   const [command] = args;
   const wikiDir = resolve(option(args, 'wiki') ?? resolve(ROOT, 'wiki'));
   if (command === 'check') {
@@ -74,11 +101,12 @@ function main(args: readonly string[]): number {
   if (command === 'build') {
     const target = option(args, 'target') ?? 'wiki';
     const out = option(args, 'out');
-    if (target !== 'wiki' || !out) {
-      console.error(
-        'usage: npm run wiki -- build --target wiki --out <dir> [--preview] (html and bundle come in A4–A5)',
-      );
-      return 2;
+    if (target !== 'wiki' || !out)
+      throw new UsageError('build needs --target wiki and --out <dir> (html and bundle come in A4–A5)');
+    const refused = outProblem(out);
+    if (refused) {
+      console.error(`✖  ${refused}`);
+      return 1;
     }
     const r = checkWiki({ wikiDir, tracked: trackedFiles() });
     if (!r.manifest || r.errors.length) {
@@ -108,10 +136,7 @@ function main(args: readonly string[]): number {
     );
     return 0;
   }
-  console.error(
-    'usage: npm run wiki -- check | stats [--json] | build --target wiki --out <dir> [--preview] [--product-version <v>] [--doc-revision <sha>] [--product-commit <sha>]',
-  );
-  return 2;
+  throw new UsageError(command ? `unknown command "${command}"` : 'a command is needed');
 }
 
 if (process.argv[1]?.endsWith('wiki.ts')) process.exit(main(process.argv.slice(2)));

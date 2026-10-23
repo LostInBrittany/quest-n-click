@@ -48,11 +48,32 @@ export const LANGS = ['en', 'fr'] as const;
 export type Lang = (typeof LANGS)[number];
 
 const MANIFEST_FORMAT = 'quest-n-click-docs-manifest';
+/** The pages `wiki -- build` makes from data (§4.1, the four indexes): marked `generated: true`, with no source file. */
+export const GENERATED_INDEXES = ['index.by-task', 'index.by-symptom', 'index.identifiers', 'index.glossary'] as const;
 
 /** A page id: `<domain>.<slug>`, the slug in lowercase kebab case. It names the source file and never moves. */
 export const PAGE_ID = /^([a-z]+)\.([a-z0-9]+(?:-[a-z0-9]+)*)$/;
 /** The words of a URL after its domain: ASCII, each starting with a capital or a digit, joined by hyphens. */
 const URL_WORDS = /^[A-Z0-9][A-Za-z0-9]*(?:-[A-Z0-9][A-Za-z0-9]*)*$/;
+/** Acronyms are written in capitals in a URL, always the same way (`EN-Reference-NPM-Scripts`, never `Npm`). */
+export const URL_ACRONYMS = [
+  'DSL',
+  'FAQ',
+  'NPM',
+  'API',
+  'MCP',
+  'CLI',
+  'TLS',
+  'RPO',
+  'RTO',
+  'OIDC',
+  'SDK',
+  'SSH',
+  'URL',
+  'CI',
+  'AI',
+  'IA',
+];
 
 /** Why a public URL breaks the convention for this domain and language, or undefined when it follows it. */
 export function urlProblem(lang: Lang, domain: Domain, url: string): string | undefined {
@@ -60,6 +81,11 @@ export function urlProblem(lang: Lang, domain: Domain, url: string): string | un
   if (!url.startsWith(prefix)) return `starts with "${prefix}" (domain ${domain}, ${lang})`;
   if (!URL_WORDS.test(url.slice(prefix.length)))
     return 'continues with ASCII words, each capitalised, joined by hyphens (EN-Studio-Conflicts)';
+  const acronyms = url
+    .slice(prefix.length)
+    .split('-')
+    .filter((w) => URL_ACRONYMS.includes(w.toUpperCase()) && w !== w.toUpperCase());
+  if (acronyms.length) return `writes its acronyms in capitals (${acronyms.map((w) => w.toUpperCase()).join(', ')})`;
   return undefined;
 }
 
@@ -81,12 +107,20 @@ const PageSchema = z
     title: bilingual(text(140)),
     url: bilingual(text(100)),
     state: z.enum(STATES),
-    /** The product versions for which what the page describes is true (§4.4.1); required once a file exists. */
+    /**
+     * Built from data by `wiki -- build` (the four indexes): no source file, never one; published with the first
+     * published page.
+     */
+    generated: z.literal(true).optional(),
+    /** The product versions for which what the page describes is true (§4.4.1); required from `draft` on. */
     versions: z
       .object({ appliesFrom: version, appliesUntil: version.optional(), featureSince: version.optional() })
       .strict()
       .optional(),
-    /** Globs of the tracked files the page rests on (code, schemas, tests, qualifications): its drift sources (§9). */
+    /**
+     * Globs of the tracked files the page rests on (code, schemas, tests, qualifications): its drift sources (§9).
+     * Required non-empty from `draft` on; a glob given earlier must already match.
+     */
     sources: unique(text(200)),
     /** The old destinations this page takes over, `docs/en/X.md#anchor` (the coverage matrix of A3 fills them). */
     replaces: unique(z.string().regex(/^docs\/(en|fr)\/[A-Za-z0-9_.-]+\.md(#[A-Za-z0-9_-]+)?$/)),
@@ -94,13 +128,31 @@ const PageSchema = z
     questions: bilingual(unique(text(200))),
     /** Other names a reader may use: an old name, a common word, a synonym. */
     aliases: bilingual(unique(text(80))),
+    /** Search words that are neither a name of the page nor a question (A4's search indexes them). */
+    keywords: bilingual(unique(text(80))).optional(),
     /** Exact identifiers the page documents: a DSL command, an npm script, a variable, a route, a code. */
     identifiers: unique(text(120)),
     related: unique(z.string().regex(PAGE_ID)),
     prerequisites: unique(z.string().regex(PAGE_ID)),
-    owner: z.string().regex(/^@[A-Za-z0-9-]+$/, 'a GitHub handle, @wanoo'),
-    /** The day the page was last reviewed against its sources, or null when it never was. */
-    reviewed: z.iso.date().nullable(),
+    /** The page's guarantees tied to a named test (§4.4.3), `file › name`; A5 adds their states. */
+    claims: z
+      .array(
+        z
+          .object({
+            id: z.string().regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/),
+            test: z.string().regex(/^\S+\.test\.ts › .+$/, 'a test as "file.test.ts › its name"'),
+          })
+          .strict(),
+      )
+      .refine((a) => new Set(a.map((c) => c.id)).size === a.length, { message: 'no claim id twice' })
+      .optional(),
+    /** Who answers for the page; @wanoo when absent (§9). */
+    owner: z
+      .string()
+      .regex(/^@[A-Za-z0-9-]+$/, 'a GitHub handle, @wanoo')
+      .optional(),
+    /** The day the page was last reviewed against its sources; absent or null when it never was. */
+    reviewed: z.iso.date().nullable().optional(),
   })
   .strict()
   .superRefine((p, ctx) => {

@@ -5,10 +5,17 @@
 // domain, type and language are printed: they are the workload estimate the plan asks for.
 import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { GENERATED_INDEXES } from '../tools/wiki/build';
 import { checkWiki, trackedFiles, wikiStats } from '../tools/wiki/check';
 import { readGlossary } from '../tools/wiki/glossary';
-import { DOMAIN_IDS, LANGS, ManifestSchema, readManifest, urlProblem } from '../tools/wiki/manifest';
+import {
+  DOMAIN_IDS,
+  GENERATED_INDEXES,
+  LANGS,
+  ManifestSchema,
+  readManifest,
+  URL_ACRONYMS,
+  urlProblem,
+} from '../tools/wiki/manifest';
 
 const WIKI = resolve('wiki');
 const { manifest, errors } = readManifest(WIKI);
@@ -41,9 +48,14 @@ describe('the wiki manifest', () => {
 
   it('holds the generated indexes, the counter-example page and the demonstrators of §13', () => {
     const byId = new Map(manifest!.pages.map((p) => [p.id, p]));
-    for (const id of GENERATED_INDEXES) expect(byId.get(id)?.type, id).toBe('index');
+    for (const id of GENERATED_INDEXES) expect(byId.get(id), id).toMatchObject({ type: 'index', generated: true });
+    expect(manifest!.pages.filter((p) => p.generated).map((p) => p.id)).toEqual([...GENERATED_INDEXES]);
     expect(byId.get('index.not-supported')?.type).toBe('explanation');
-    expect(byId.get('clever.restore-drill')).toMatchObject({ type: 'howto', versions: { appliesFrom: '4.2.2' } });
+    expect(byId.get('clever.restore-drill')).toMatchObject({
+      type: 'howto',
+      versions: { appliesFrom: '4.2.2' },
+      url: { en: 'EN-Clever-Restore-Drill', fr: 'FR-Clever-Exercice-De-Restauration' },
+    });
     expect(byId.get('reference.environment-variables')?.type).toBe('reference');
     for (const id of ['team.write-refused-423', 'team.write-refused-409'])
       expect(byId.get(id)?.questions.fr.length, id).toBeGreaterThan(0);
@@ -77,6 +89,19 @@ describe('the URL convention', () => {
     expect(urlProblem('fr', 'team', 'FR-Equipe-Écriture')).toMatch(/ASCII words/);
     expect(urlProblem('en', 'create', 'EN-Create-game-commands')).toMatch(/capitalised/);
     expect(urlProblem('en', 'create', 'EN-Create-')).toMatch(/ASCII words/);
+    expect(urlProblem('en', 'reference', 'EN-Reference-Npm-Scripts')).toMatch(/acronyms in capitals \(NPM\)/);
+    expect(urlProblem('en', 'reference', 'EN-Reference-NPM-Scripts')).toBeUndefined();
+  });
+
+  it('writes every acronym of the manifest in capitals', () => {
+    for (const p of manifest!.pages)
+      for (const lang of LANGS)
+        for (const word of p.url[lang].split('-'))
+          if (URL_ACRONYMS.includes(word.toUpperCase())) expect(word, `${p.id} ${lang}`).toBe(word.toUpperCase());
+    expect(manifest!.pages.find((p) => p.id === 'create.dsl')?.url).toEqual({
+      en: 'EN-Create-DSL-Reference',
+      fr: 'FR-Creer-Reference-DSL',
+    });
   });
 
   it('refuses a manifest with a duplicate id or a duplicate URL', () => {
@@ -89,10 +114,14 @@ describe('the URL convention', () => {
     expect(urlIssues.some((m) => m.includes('is already create.rooms'))).toBe(true);
   });
 
-  it('refuses a field the schema does not name, and an id outside its domain', () => {
+  it('refuses a field the schema does not name, and an id outside its domain; takes keywords and claims', () => {
     const page = manifest!.pages.find((p) => p.id === 'create.rooms')!;
     const one = (p: object) => ({ format: manifest!.format, version: 1, pages: [p] });
-    expect(ManifestSchema.safeParse(one({ ...page, keywords: [] })).success).toBe(false);
+    expect(ManifestSchema.safeParse(one({ ...page, tags: [] })).success).toBe(false);
+    expect(ManifestSchema.safeParse(one({ ...page, keywords: { en: ['a'], fr: ['b'] } })).success).toBe(true);
+    expect(ManifestSchema.safeParse(one({ ...page, claims: [{ id: 'c', test: 'tests/x.test.ts › y' }] })).success).toBe(
+      true,
+    );
     const wrong = ManifestSchema.safeParse(one({ ...page, id: 'studio.rooms' }));
     expect(wrong.error?.issues.map((i) => i.message)).toContain('the id starts with its domain ("create.")');
   });

@@ -11,6 +11,7 @@
       "title": { "en": "Index by task", "fr": "Index par tâche" },
       "url": { "en": "EN-Index-By-Task", "fr": "FR-Index-Par-Tache" },
       "state": "planned",
+      "generated": true,
       "sources": [],
       "replaces": [],
       "questions": { "en": [], "fr": [] },
@@ -18,8 +19,7 @@
       "identifiers": [],
       "related": [],
       "prerequisites": [],
-      "owner": "@wanoo",
-      "reviewed": null
+      "owner": "@wanoo"
     },
     {
       "id": "index.by-symptom",
@@ -30,6 +30,7 @@
       "title": { "en": "Index by symptom or error", "fr": "Index par symptôme ou erreur" },
       "url": { "en": "EN-Index-By-Symptom", "fr": "FR-Index-Par-Symptome" },
       "state": "planned",
+      "generated": true,
       "sources": [],
       "replaces": [],
       "questions": { "en": [], "fr": [] },
@@ -37,8 +38,7 @@
       "identifiers": [],
       "related": [],
       "prerequisites": [],
-      "owner": "@wanoo",
-      "reviewed": null
+      "owner": "@wanoo"
     },
     {
       "id": "index.identifiers",
@@ -49,6 +49,7 @@
       "title": { "en": "Index of identifiers", "fr": "Index des identifiants" },
       "url": { "en": "EN-Index-Identifiers", "fr": "FR-Index-Identifiants" },
       "state": "planned",
+      "generated": true,
       "sources": [],
       "replaces": [],
       "questions": { "en": [], "fr": [] },
@@ -56,8 +57,7 @@
       "identifiers": [],
       "related": [],
       "prerequisites": [],
-      "owner": "@wanoo",
-      "reviewed": null
+      "owner": "@wanoo"
     },
     {
       "id": "index.glossary",
@@ -68,6 +68,7 @@
       "title": { "en": "Bilingual glossary", "fr": "Glossaire bilingue" },
       "url": { "en": "EN-Index-Glossary", "fr": "FR-Index-Glossaire" },
       "state": "planned",
+      "generated": true,
       "sources": [],
       "replaces": [],
       "questions": { "en": [], "fr": [] },
@@ -75,8 +76,7 @@
       "identifiers": [],
       "related": [],
       "prerequisites": [],
-      "owner": "@wanoo",
-      "reviewed": null
+      "owner": "@wanoo"
     },
     {
       "id": "index.faq",
@@ -85,7 +85,7 @@
       "audience": ["player", "admin", "author", "contributor"],
       "context": ["player", "engine-repo", "created-project", "studio-local", "studio-hosted", "bridge"],
       "title": { "en": "FAQ by audience", "fr": "FAQ par public" },
-      "url": { "en": "EN-Index-Faq", "fr": "FR-Index-Faq" },
+      "url": { "en": "EN-Index-FAQ", "fr": "FR-Index-FAQ" },
       "state": "planned",
       "sources": [],
       "replaces": [],
@@ -94,8 +94,7 @@
       "identifiers": [],
       "related": [],
       "prerequisites": [],
-      "owner": "@wanoo",
-      "reviewed": null
+      "owner": "@wanoo"
     },
     {
       "id": "index.not-supported",
@@ -119,8 +118,7 @@
       "identifiers": [],
       "related": [],
       "prerequisites": [],
-      "owner": "@wanoo",
-      "reviewed": null
+      "owner": "@wanoo"
     },
     {
       "id": "start.what-it-is",
@@ -141,8 +139,7 @@
       "identifiers": [],
       "related": [],
       "prerequisites": [],
-      "owner": "@wanoo",
-      "reviewed": null
+      "owner": "@wanoo"
     },
     {
       "id": "start.features",
@@ -160,8 +157,7 @@
       "identifiers": [],
       "related": [],
       "prerequisites": [],
-      "owner": "@wanoo",
-      "reviewed": null
+      "owner": "@wanoo"
     },
     {
       "id": "start.gallery",
@@ -179,8 +175,7 @@
       "identifiers": [],
       "related": [],
       "prerequisites": [],
-      "owner": "@wanoo",
-      "reviewed": null
+      "owner": "@wanoo"
     },
     {
       "id": "start.play-online",
@@ -198,8 +193,7 @@
       "identifiers": [],
       "related": ["studio.demo-mode"],
       "prerequisites": [],
-      "owner": "@wanoo",
-      "reviewed": null
+      "owner": "@wanoo"
     },
     {
       "id": "start.stability",
@@ -217,8 +211,7 @@
       "identifiers": [],
       "related": ["reference.support-matrix"],
       "prerequisites": [],
-      "owner": "@wanoo",
-      "reviewed": null
+      "owner": "@wanoo"
     },
     {
       "id": "start.roadmap",
@@ -236,8 +229,7 @@
       "identifiers": [],
       "related": [],
       "prerequisites": [],
-      "owner": "@wanoo",
-      "reviewed": null
+      "owner": "@wanoo"
     },
     {
       "id": "play.controls",
@@ -255,8 +247,7 @@
       "identifiers": [],
       "related": [],
       "prerequisites": [],
-      "owner": "@wanoo",
-      "reviewed": null
+      "owner": "@wanoo"
     },
     {
       "id": "play.install-app",
@@ -277,8 +268,7 @@
       "identifiers": [],
       "related": [],
       "prerequisites": [],
-      "owner": "@wanoo",
-      "reviewed": null
+      "owner": "@wanoo"
     },
     {
       "id": "play.saves",
@@ -297,8 +287,7 @@
       "identifiers": [],
       "related": [],
       "prerequisites": [],
-      "owner": "@wanoo",
-      "reviewed": null
+      "owner": "@wanoo"
     },
     {
       "id": "play.settings",
@@ -316,8 +305,7 @@
       "identifiers": [],
       "related": [],
       "prerequisites": [],
-      "owner": "@wanoo",
-      "reviewed": null
+      "owner": "@wanoo"
     },
     {
       "id": "play.accessibility",
@@ -336,8 +324,7 @@
       "identifiers": [],
       "related": [],
       "prerequisites": [],
-      "owner": "@wanoo",
-      "reviewed": null
+      "owner": "@wanoo"
     },
     {
       "id": "play.languages",
@@ -355,8 +342,7 @@
       "identifiers": [],
       "related": [],
       "prerequisites": [],
-      "owner": "@wanoo",
-      "reviewed": null
+      "owner": "@wanoo"
     },
     {
       "id": "play.speedrun",
@@ -374,8 +360,7 @@
       "identifiers": [],
       "related": [],
       "prerequisites": [],
-      "owner": "@wanoo",
-      "reviewed": null
+      "owner": "@wanoo"
     },
     {
       "id": "play.privacy",
@@ -393,8 +378,7 @@
       "identifiers": [],
       "related": [],
       "prerequisites": [],
-      "owner": "@wanoo",
-      "reviewed": null
+      "owner": "@wanoo"
     },
     {
       "id": "play.troubleshooting",
@@ -415,8 +399,7 @@
       "identifiers": [],
       "related": [],
       "prerequisites": [],
-      "owner": "@wanoo",
-      "reviewed": null
+      "owner": "@wanoo"
     },
     {
       "id": "install.requirements",
@@ -434,8 +417,7 @@
       "identifiers": ["Node.js 22.12", "Python 3", "ffmpeg", "Playwright"],
       "related": [],
       "prerequisites": [],
-      "owner": "@wanoo",
-      "reviewed": null
+      "owner": "@wanoo"
     },
     {
       "id": "install.from-archive",
@@ -453,8 +435,7 @@
       "identifiers": [],
       "related": [],
       "prerequisites": [],
-      "owner": "@wanoo",
-      "reviewed": null
+      "owner": "@wanoo"
     },
     {
       "id": "install.from-npm",
@@ -463,7 +444,7 @@
       "audience": ["author"],
       "context": ["created-project"],
       "title": { "en": "Install from npm, once published", "fr": "Installer depuis npm, une fois publié" },
-      "url": { "en": "EN-Install-From-Npm", "fr": "FR-Installer-Depuis-Npm" },
+      "url": { "en": "EN-Install-From-NPM", "fr": "FR-Installer-Depuis-NPM" },
       "state": "planned",
       "sources": ["cli/create.mjs"],
       "replaces": [],
@@ -472,8 +453,7 @@
       "identifiers": [],
       "related": [],
       "prerequisites": [],
-      "owner": "@wanoo",
-      "reviewed": null
+      "owner": "@wanoo"
     },
     {
       "id": "install.from-repository",
@@ -494,8 +474,7 @@
       "identifiers": [],
       "related": ["contribute.setup"],
       "prerequisites": [],
-      "owner": "@wanoo",
-      "reviewed": null
+      "owner": "@wanoo"
     },
     {
       "id": "install.doctor",
@@ -514,8 +493,7 @@
       "identifiers": ["npm run doctor"],
       "related": [],
       "prerequisites": [],
-      "owner": "@wanoo",
-      "reviewed": null
+      "owner": "@wanoo"
     },
     {
       "id": "install.image-toolchain",
@@ -533,8 +511,7 @@
       "identifiers": [],
       "related": [],
       "prerequisites": [],
-      "owner": "@wanoo",
-      "reviewed": null
+      "owner": "@wanoo"
     },
     {
       "id": "install.audio-toolchain",
@@ -555,8 +532,7 @@
       "identifiers": [],
       "related": [],
       "prerequisites": [],
-      "owner": "@wanoo",
-      "reviewed": null
+      "owner": "@wanoo"
     },
     {
       "id": "install.upgrade",
@@ -577,8 +553,7 @@
       "identifiers": ["npm run migrate"],
       "related": [],
       "prerequisites": [],
-      "owner": "@wanoo",
-      "reviewed": null
+      "owner": "@wanoo"
     },
     {
       "id": "install.upgrade-notes-4-4",
@@ -596,8 +571,7 @@
       "identifiers": [],
       "related": ["install.upgrade"],
       "prerequisites": [],
-      "owner": "@wanoo",
-      "reviewed": null
+      "owner": "@wanoo"
     },
     {
       "id": "install.upgrade-notes-4-3",
@@ -615,8 +589,7 @@
       "identifiers": [],
       "related": ["install.upgrade"],
       "prerequisites": [],
-      "owner": "@wanoo",
-      "reviewed": null
+      "owner": "@wanoo"
     },
     {
       "id": "install.upgrade-notes-4-2",
@@ -634,8 +607,7 @@
       "identifiers": [],
       "related": ["install.upgrade"],
       "prerequisites": [],
-      "owner": "@wanoo",
-      "reviewed": null
+      "owner": "@wanoo"
     },
     {
       "id": "install.upgrade-notes-4-1",
@@ -653,8 +625,7 @@
       "identifiers": [],
       "related": ["install.upgrade"],
       "prerequisites": [],
-      "owner": "@wanoo",
-      "reviewed": null
+      "owner": "@wanoo"
     },
     {
       "id": "install.upgrade-notes-v3",
@@ -672,8 +643,7 @@
       "identifiers": [],
       "related": ["install.upgrade"],
       "prerequisites": [],
-      "owner": "@wanoo",
-      "reviewed": null
+      "owner": "@wanoo"
     },
     {
       "id": "install.upgrade-notes-v2-to-v3",
@@ -691,8 +661,7 @@
       "identifiers": [],
       "related": ["install.upgrade"],
       "prerequisites": [],
-      "owner": "@wanoo",
-      "reviewed": null
+      "owner": "@wanoo"
     },
     {
       "id": "install.from-web-scumm",
@@ -710,8 +679,7 @@
       "identifiers": [],
       "related": [],
       "prerequisites": [],
-      "owner": "@wanoo",
-      "reviewed": null
+      "owner": "@wanoo"
     },
     {
       "id": "install.package",
@@ -729,8 +697,7 @@
       "identifiers": [],
       "related": [],
       "prerequisites": [],
-      "owner": "@wanoo",
-      "reviewed": null
+      "owner": "@wanoo"
     },
     {
       "id": "install.troubleshooting",
@@ -748,8 +715,7 @@
       "identifiers": [],
       "related": [],
       "prerequisites": [],
-      "owner": "@wanoo",
-      "reviewed": null
+      "owner": "@wanoo"
     },
     {
       "id": "create.first-game",
@@ -767,8 +733,7 @@
       "identifiers": [],
       "related": [],
       "prerequisites": [],
-      "owner": "@wanoo",
-      "reviewed": null
+      "owner": "@wanoo"
     },
     {
       "id": "create.project-layout",
@@ -789,8 +754,7 @@
       "identifiers": [],
       "related": [],
       "prerequisites": [],
-      "owner": "@wanoo",
-      "reviewed": null
+      "owner": "@wanoo"
     },
     {
       "id": "create.working-loop",
@@ -808,8 +772,7 @@
       "identifiers": [],
       "related": [],
       "prerequisites": [],
-      "owner": "@wanoo",
-      "reviewed": null
+      "owner": "@wanoo"
     },
     {
       "id": "create.principles",
@@ -827,8 +790,7 @@
       "identifiers": [],
       "related": [],
       "prerequisites": [],
-      "owner": "@wanoo",
-      "reviewed": null
+      "owner": "@wanoo"
     },
     {
       "id": "create.rooms",
@@ -847,8 +809,7 @@
       "identifiers": [],
       "related": [],
       "prerequisites": [],
-      "owner": "@wanoo",
-      "reviewed": null
+      "owner": "@wanoo"
     },
     {
       "id": "create.geometry",
@@ -870,8 +831,7 @@
       "identifiers": [],
       "related": [],
       "prerequisites": [],
-      "owner": "@wanoo",
-      "reviewed": null
+      "owner": "@wanoo"
     },
     {
       "id": "create.unreachable",
@@ -892,8 +852,7 @@
       "identifiers": [],
       "related": ["create.geometry"],
       "prerequisites": [],
-      "owner": "@wanoo",
-      "reviewed": null
+      "owner": "@wanoo"
     },
     {
       "id": "create.reactions",
@@ -911,8 +870,7 @@
       "identifiers": [],
       "related": [],
       "prerequisites": [],
-      "owner": "@wanoo",
-      "reviewed": null
+      "owner": "@wanoo"
     },
     {
       "id": "create.commands",
@@ -930,8 +888,7 @@
       "identifiers": [],
       "related": ["create.dsl"],
       "prerequisites": [],
-      "owner": "@wanoo",
-      "reviewed": null
+      "owner": "@wanoo"
     },
     {
       "id": "create.conditions",
@@ -949,8 +906,7 @@
       "identifiers": [],
       "related": [],
       "prerequisites": [],
-      "owner": "@wanoo",
-      "reviewed": null
+      "owner": "@wanoo"
     },
     {
       "id": "create.flags-variables-events",
@@ -974,8 +930,7 @@
       "identifiers": [],
       "related": [],
       "prerequisites": [],
-      "owner": "@wanoo",
-      "reviewed": null
+      "owner": "@wanoo"
     },
     {
       "id": "create.custom-code",
@@ -994,8 +949,7 @@
       "identifiers": [],
       "related": [],
       "prerequisites": [],
-      "owner": "@wanoo",
-      "reviewed": null
+      "owner": "@wanoo"
     },
     {
       "id": "create.characters",
@@ -1013,8 +967,7 @@
       "identifiers": [],
       "related": [],
       "prerequisites": [],
-      "owner": "@wanoo",
-      "reviewed": null
+      "owner": "@wanoo"
     },
     {
       "id": "create.items",
@@ -1032,8 +985,7 @@
       "identifiers": [],
       "related": [],
       "prerequisites": [],
-      "owner": "@wanoo",
-      "reviewed": null
+      "owner": "@wanoo"
     },
     {
       "id": "create.world-map",
@@ -1051,8 +1003,7 @@
       "identifiers": [],
       "related": [],
       "prerequisites": [],
-      "owner": "@wanoo",
-      "reviewed": null
+      "owner": "@wanoo"
     },
     {
       "id": "create.dialogues",
@@ -1071,8 +1022,7 @@
       "identifiers": [],
       "related": [],
       "prerequisites": [],
-      "owner": "@wanoo",
-      "reviewed": null
+      "owner": "@wanoo"
     },
     {
       "id": "create.scripts-events",
@@ -1090,8 +1040,7 @@
       "identifiers": [],
       "related": [],
       "prerequisites": [],
-      "owner": "@wanoo",
-      "reviewed": null
+      "owner": "@wanoo"
     },
     {
       "id": "create.moving-characters",
@@ -1109,8 +1058,7 @@
       "identifiers": [],
       "related": [],
       "prerequisites": [],
-      "owner": "@wanoo",
-      "reviewed": null
+      "owner": "@wanoo"
     },
     {
       "id": "create.exits",
@@ -1128,8 +1076,7 @@
       "identifiers": [],
       "related": [],
       "prerequisites": [],
-      "owner": "@wanoo",
-      "reviewed": null
+      "owner": "@wanoo"
     },
     {
       "id": "create.chapters",
@@ -1148,8 +1095,7 @@
       "identifiers": [],
       "related": [],
       "prerequisites": [],
-      "owner": "@wanoo",
-      "reviewed": null
+      "owner": "@wanoo"
     },
     {
       "id": "create.state-saves",
@@ -1171,8 +1117,7 @@
       "identifiers": [],
       "related": [],
       "prerequisites": [],
-      "owner": "@wanoo",
-      "reviewed": null
+      "owner": "@wanoo"
     },
     {
       "id": "create.staging",
@@ -1190,8 +1135,7 @@
       "identifiers": [],
       "related": [],
       "prerequisites": [],
-      "owner": "@wanoo",
-      "reviewed": null
+      "owner": "@wanoo"
     },
     {
       "id": "create.stage",
@@ -1209,8 +1153,7 @@
       "identifiers": [],
       "related": [],
       "prerequisites": [],
-      "owner": "@wanoo",
-      "reviewed": null
+      "owner": "@wanoo"
     },
     {
       "id": "create.skin-fonts",
@@ -1228,8 +1171,7 @@
       "identifiers": [],
       "related": [],
       "prerequisites": [],
-      "owner": "@wanoo",
-      "reviewed": null
+      "owner": "@wanoo"
     },
     {
       "id": "create.title-credits",
@@ -1247,8 +1189,7 @@
       "identifiers": [],
       "related": [],
       "prerequisites": [],
-      "owner": "@wanoo",
-      "reviewed": null
+      "owner": "@wanoo"
     },
     {
       "id": "create.heroes",
@@ -1267,8 +1208,7 @@
       "identifiers": [],
       "related": [],
       "prerequisites": [],
-      "owner": "@wanoo",
-      "reviewed": null
+      "owner": "@wanoo"
     },
     {
       "id": "create.minigames",
@@ -1286,8 +1226,7 @@
       "identifiers": [],
       "related": [],
       "prerequisites": [],
-      "owner": "@wanoo",
-      "reviewed": null
+      "owner": "@wanoo"
     },
     {
       "id": "create.custom-minigame",
@@ -1305,8 +1244,7 @@
       "identifiers": [],
       "related": [],
       "prerequisites": [],
-      "owner": "@wanoo",
-      "reviewed": null
+      "owner": "@wanoo"
     },
     {
       "id": "create.translations",
@@ -1325,8 +1263,7 @@
       "identifiers": ["npm run i18n"],
       "related": [],
       "prerequisites": [],
-      "owner": "@wanoo",
-      "reviewed": null
+      "owner": "@wanoo"
     },
     {
       "id": "create.music",
@@ -1345,8 +1282,7 @@
       "identifiers": [],
       "related": [],
       "prerequisites": [],
-      "owner": "@wanoo",
-      "reviewed": null
+      "owner": "@wanoo"
     },
     {
       "id": "create.sound-effects",
@@ -1364,8 +1300,7 @@
       "identifiers": [],
       "related": [],
       "prerequisites": [],
-      "owner": "@wanoo",
-      "reviewed": null
+      "owner": "@wanoo"
     },
     {
       "id": "create.voices",
@@ -1387,8 +1322,7 @@
       "identifiers": [],
       "related": [],
       "prerequisites": [],
-      "owner": "@wanoo",
-      "reviewed": null
+      "owner": "@wanoo"
     },
     {
       "id": "create.images",
@@ -1410,8 +1344,7 @@
       "identifiers": ["npm run prompts", "npm run assets"],
       "related": [],
       "prerequisites": [],
-      "owner": "@wanoo",
-      "reviewed": null
+      "owner": "@wanoo"
     },
     {
       "id": "create.asset-provenance",
@@ -1430,8 +1363,7 @@
       "identifiers": [],
       "related": [],
       "prerequisites": [],
-      "owner": "@wanoo",
-      "reviewed": null
+      "owner": "@wanoo"
     },
     {
       "id": "create.storyboard",
@@ -1450,8 +1382,7 @@
       "identifiers": [],
       "related": [],
       "prerequisites": [],
-      "owner": "@wanoo",
-      "reviewed": null
+      "owner": "@wanoo"
     },
     {
       "id": "create.puzzle-design",
@@ -1469,8 +1400,7 @@
       "identifiers": [],
       "related": [],
       "prerequisites": [],
-      "owner": "@wanoo",
-      "reviewed": null
+      "owner": "@wanoo"
     },
     {
       "id": "create.classics",
@@ -1488,8 +1418,7 @@
       "identifiers": [],
       "related": [],
       "prerequisites": [],
-      "owner": "@wanoo",
-      "reviewed": null
+      "owner": "@wanoo"
     },
     {
       "id": "create.review-pages",
@@ -1507,8 +1436,7 @@
       "identifiers": [],
       "related": [],
       "prerequisites": [],
-      "owner": "@wanoo",
-      "reviewed": null
+      "owner": "@wanoo"
     },
     {
       "id": "create.dsl",
@@ -1517,7 +1445,7 @@
       "audience": ["author"],
       "context": ["engine-repo", "created-project"],
       "title": { "en": "DSL reference", "fr": "Référence du DSL" },
-      "url": { "en": "EN-Create-Dsl-Reference", "fr": "FR-Creer-Reference-Dsl" },
+      "url": { "en": "EN-Create-DSL-Reference", "fr": "FR-Creer-Reference-DSL" },
       "state": "planned",
       "sources": ["tools/dsl-doc.ts", "src/engine/core/types/content.ts"],
       "replaces": [],
@@ -1526,8 +1454,7 @@
       "identifiers": [],
       "related": [],
       "prerequisites": [],
-      "owner": "@wanoo",
-      "reviewed": null
+      "owner": "@wanoo"
     },
     {
       "id": "create.checking",
@@ -1545,8 +1472,7 @@
       "identifiers": ["npm run validate", "npm run solve", "npm run lint"],
       "related": [],
       "prerequisites": [],
-      "owner": "@wanoo",
-      "reviewed": null
+      "owner": "@wanoo"
     },
     {
       "id": "create.solver-proofs",
@@ -1567,8 +1493,7 @@
       "identifiers": [],
       "related": [],
       "prerequisites": [],
-      "owner": "@wanoo",
-      "reviewed": null
+      "owner": "@wanoo"
     },
     {
       "id": "create.solver-options",
@@ -1586,8 +1511,7 @@
       "identifiers": [],
       "related": [],
       "prerequisites": [],
-      "owner": "@wanoo",
-      "reviewed": null
+      "owner": "@wanoo"
     },
     {
       "id": "create.playtests",
@@ -1605,8 +1529,7 @@
       "identifiers": [],
       "related": [],
       "prerequisites": [],
-      "owner": "@wanoo",
-      "reviewed": null
+      "owner": "@wanoo"
     },
     {
       "id": "create.remix",
@@ -1625,8 +1548,7 @@
       "identifiers": [],
       "related": [],
       "prerequisites": [],
-      "owner": "@wanoo",
-      "reviewed": null
+      "owner": "@wanoo"
     },
     {
       "id": "create.speedrun",
@@ -1644,8 +1566,7 @@
       "identifiers": [],
       "related": [],
       "prerequisites": [],
-      "owner": "@wanoo",
-      "reviewed": null
+      "owner": "@wanoo"
     },
     {
       "id": "create.sealed-ending",
@@ -1663,8 +1584,7 @@
       "identifiers": [],
       "related": [],
       "prerequisites": [],
-      "owner": "@wanoo",
-      "reviewed": null
+      "owner": "@wanoo"
     },
     {
       "id": "create.production-template",
@@ -1682,8 +1602,7 @@
       "identifiers": [],
       "related": [],
       "prerequisites": [],
-      "owner": "@wanoo",
-      "reviewed": null
+      "owner": "@wanoo"
     },
     {
       "id": "create.example-games",
@@ -1701,8 +1620,7 @@
       "identifiers": ["_template", "demo", "heroes", "reference", "signals"],
       "related": [],
       "prerequisites": [],
-      "owner": "@wanoo",
-      "reviewed": null
+      "owner": "@wanoo"
     },
     {
       "id": "create.working-with-ai",
@@ -1720,8 +1638,7 @@
       "identifiers": [],
       "related": [],
       "prerequisites": [],
-      "owner": "@wanoo",
-      "reviewed": null
+      "owner": "@wanoo"
     },
     {
       "id": "create.build-release",
@@ -1739,8 +1656,7 @@
       "identifiers": ["npm run build", "npm run release"],
       "related": [],
       "prerequisites": [],
-      "owner": "@wanoo",
-      "reviewed": null
+      "owner": "@wanoo"
     },
     {
       "id": "create.github-pages",
@@ -1758,8 +1674,7 @@
       "identifiers": [],
       "related": [],
       "prerequisites": [],
-      "owner": "@wanoo",
-      "reviewed": null
+      "owner": "@wanoo"
     },
     {
       "id": "create.clever-static",
@@ -1777,8 +1692,7 @@
       "identifiers": [],
       "related": [],
       "prerequisites": [],
-      "owner": "@wanoo",
-      "reviewed": null
+      "owner": "@wanoo"
     },
     {
       "id": "create.other-hosts",
@@ -1796,8 +1710,7 @@
       "identifiers": [],
       "related": [],
       "prerequisites": [],
-      "owner": "@wanoo",
-      "reviewed": null
+      "owner": "@wanoo"
     },
     {
       "id": "create.deploy-issues",
@@ -1822,8 +1735,7 @@
       "identifiers": [],
       "related": [],
       "prerequisites": [],
-      "owner": "@wanoo",
-      "reviewed": null
+      "owner": "@wanoo"
     },
     {
       "id": "create.lan-testing",
@@ -1841,8 +1753,7 @@
       "identifiers": ["npm run dev:lan"],
       "related": [],
       "prerequisites": [],
-      "owner": "@wanoo",
-      "reviewed": null
+      "owner": "@wanoo"
     },
     {
       "id": "engine.execution-model",
@@ -1861,8 +1772,7 @@
       "identifiers": [],
       "related": [],
       "prerequisites": [],
-      "owner": "@wanoo",
-      "reviewed": null
+      "owner": "@wanoo"
     },
     {
       "id": "engine.how-it-works",
@@ -1880,8 +1790,7 @@
       "identifiers": [],
       "related": [],
       "prerequisites": [],
-      "owner": "@wanoo",
-      "reviewed": null
+      "owner": "@wanoo"
     },
     {
       "id": "engine.api",
@@ -1899,8 +1808,7 @@
       "identifiers": [],
       "related": [],
       "prerequisites": [],
-      "owner": "@wanoo",
-      "reviewed": null
+      "owner": "@wanoo"
     },
     {
       "id": "engine.file-formats",
@@ -1918,8 +1826,7 @@
       "identifiers": [],
       "related": [],
       "prerequisites": [],
-      "owner": "@wanoo",
-      "reviewed": null
+      "owner": "@wanoo"
     },
     {
       "id": "studio.overview",
@@ -1938,8 +1845,7 @@
       "identifiers": ["npm run studio", "npm run studio:lan"],
       "related": [],
       "prerequisites": [],
-      "owner": "@wanoo",
-      "reviewed": null
+      "owner": "@wanoo"
     },
     {
       "id": "studio.edit-room",
@@ -1957,8 +1863,7 @@
       "identifiers": [],
       "related": [],
       "prerequisites": [],
-      "owner": "@wanoo",
-      "reviewed": null
+      "owner": "@wanoo"
     },
     {
       "id": "studio.placement",
@@ -1976,8 +1881,7 @@
       "identifiers": [],
       "related": [],
       "prerequisites": [],
-      "owner": "@wanoo",
-      "reviewed": null
+      "owner": "@wanoo"
     },
     {
       "id": "studio.preview-apply",
@@ -1995,8 +1899,7 @@
       "identifiers": [],
       "related": [],
       "prerequisites": [],
-      "owner": "@wanoo",
-      "reviewed": null
+      "owner": "@wanoo"
     },
     {
       "id": "studio.storyboard",
@@ -2014,8 +1917,7 @@
       "identifiers": [],
       "related": [],
       "prerequisites": [],
-      "owner": "@wanoo",
-      "reviewed": null
+      "owner": "@wanoo"
     },
     {
       "id": "studio.assets",
@@ -2033,8 +1935,7 @@
       "identifiers": [],
       "related": [],
       "prerequisites": [],
-      "owner": "@wanoo",
-      "reviewed": null
+      "owner": "@wanoo"
     },
     {
       "id": "studio.check",
@@ -2056,8 +1957,7 @@
       "identifiers": [],
       "related": [],
       "prerequisites": [],
-      "owner": "@wanoo",
-      "reviewed": null
+      "owner": "@wanoo"
     },
     {
       "id": "studio.captures",
@@ -2075,8 +1975,7 @@
       "identifiers": [],
       "related": [],
       "prerequisites": [],
-      "owner": "@wanoo",
-      "reviewed": null
+      "owner": "@wanoo"
     },
     {
       "id": "studio.semantic-diff",
@@ -2094,8 +1993,7 @@
       "identifiers": [],
       "related": [],
       "prerequisites": [],
-      "owner": "@wanoo",
-      "reviewed": null
+      "owner": "@wanoo"
     },
     {
       "id": "studio.sessions",
@@ -2113,8 +2011,7 @@
       "identifiers": [],
       "related": [],
       "prerequisites": [],
-      "owner": "@wanoo",
-      "reviewed": null
+      "owner": "@wanoo"
     },
     {
       "id": "studio.rule-explainer",
@@ -2132,8 +2029,7 @@
       "identifiers": [],
       "related": [],
       "prerequisites": [],
-      "owner": "@wanoo",
-      "reviewed": null
+      "owner": "@wanoo"
     },
     {
       "id": "studio.language-objectives",
@@ -2151,8 +2047,7 @@
       "identifiers": [],
       "related": [],
       "prerequisites": [],
-      "owner": "@wanoo",
-      "reviewed": null
+      "owner": "@wanoo"
     },
     {
       "id": "studio.voices-matrix",
@@ -2170,8 +2065,7 @@
       "identifiers": [],
       "related": [],
       "prerequisites": [],
-      "owner": "@wanoo",
-      "reviewed": null
+      "owner": "@wanoo"
     },
     {
       "id": "studio.map",
@@ -2189,8 +2083,7 @@
       "identifiers": [],
       "related": [],
       "prerequisites": [],
-      "owner": "@wanoo",
-      "reviewed": null
+      "owner": "@wanoo"
     },
     {
       "id": "studio.notes",
@@ -2208,8 +2101,7 @@
       "identifiers": [],
       "related": [],
       "prerequisites": [],
-      "owner": "@wanoo",
-      "reviewed": null
+      "owner": "@wanoo"
     },
     {
       "id": "studio.remix",
@@ -2227,8 +2119,7 @@
       "identifiers": [],
       "related": [],
       "prerequisites": [],
-      "owner": "@wanoo",
-      "reviewed": null
+      "owner": "@wanoo"
     },
     {
       "id": "studio.music",
@@ -2246,8 +2137,7 @@
       "identifiers": [],
       "related": [],
       "prerequisites": [],
-      "owner": "@wanoo",
-      "reviewed": null
+      "owner": "@wanoo"
     },
     {
       "id": "studio.assistant",
@@ -2266,8 +2156,7 @@
       "identifiers": [],
       "related": [],
       "prerequisites": [],
-      "owner": "@wanoo",
-      "reviewed": null
+      "owner": "@wanoo"
     },
     {
       "id": "studio.demo-mode",
@@ -2285,8 +2174,7 @@
       "identifiers": ["npm run studio-apply"],
       "related": [],
       "prerequisites": [],
-      "owner": "@wanoo",
-      "reviewed": null
+      "owner": "@wanoo"
     },
     {
       "id": "studio.security",
@@ -2305,8 +2193,7 @@
       "identifiers": [],
       "related": [],
       "prerequisites": [],
-      "owner": "@wanoo",
-      "reviewed": null
+      "owner": "@wanoo"
     },
     {
       "id": "studio.api",
@@ -2324,8 +2211,7 @@
       "identifiers": [],
       "related": [],
       "prerequisites": [],
-      "owner": "@wanoo",
-      "reviewed": null
+      "owner": "@wanoo"
     },
     {
       "id": "studio.mcp-setup",
@@ -2343,8 +2229,7 @@
       "identifiers": ["npm run mcp"],
       "related": [],
       "prerequisites": [],
-      "owner": "@wanoo",
-      "reviewed": null
+      "owner": "@wanoo"
     },
     {
       "id": "studio.mcp-tools",
@@ -2362,8 +2247,7 @@
       "identifiers": ["read_doc"],
       "related": [],
       "prerequisites": [],
-      "owner": "@wanoo",
-      "reviewed": null
+      "owner": "@wanoo"
     },
     {
       "id": "studio.troubleshooting",
@@ -2381,8 +2265,7 @@
       "identifiers": [],
       "related": [],
       "prerequisites": [],
-      "owner": "@wanoo",
-      "reviewed": null
+      "owner": "@wanoo"
     },
     {
       "id": "team.what-runs-where",
@@ -2400,8 +2283,7 @@
       "identifiers": [],
       "related": [],
       "prerequisites": [],
-      "owner": "@wanoo",
-      "reviewed": null
+      "owner": "@wanoo"
     },
     {
       "id": "team.concepts",
@@ -2422,8 +2304,7 @@
       "identifiers": [],
       "related": [],
       "prerequisites": [],
-      "owner": "@wanoo",
-      "reviewed": null
+      "owner": "@wanoo"
     },
     {
       "id": "team.first-day",
@@ -2441,8 +2322,7 @@
       "identifiers": [],
       "related": [],
       "prerequisites": [],
-      "owner": "@wanoo",
-      "reviewed": null
+      "owner": "@wanoo"
     },
     {
       "id": "team.day-to-day",
@@ -2460,8 +2340,7 @@
       "identifiers": [],
       "related": [],
       "prerequisites": [],
-      "owner": "@wanoo",
-      "reviewed": null
+      "owner": "@wanoo"
     },
     {
       "id": "team.roles",
@@ -2479,8 +2358,7 @@
       "identifiers": [],
       "related": [],
       "prerequisites": [],
-      "owner": "@wanoo",
-      "reviewed": null
+      "owner": "@wanoo"
     },
     {
       "id": "team.invitations",
@@ -2498,8 +2376,7 @@
       "identifiers": [],
       "related": [],
       "prerequisites": [],
-      "owner": "@wanoo",
-      "reviewed": null
+      "owner": "@wanoo"
     },
     {
       "id": "team.members",
@@ -2518,8 +2395,7 @@
       "identifiers": [],
       "related": [],
       "prerequisites": [],
-      "owner": "@wanoo",
-      "reviewed": null
+      "owner": "@wanoo"
     },
     {
       "id": "team.write-refused-409",
@@ -2537,8 +2413,7 @@
       "identifiers": ["409"],
       "related": ["team.write-refused-423"],
       "prerequisites": [],
-      "owner": "@wanoo",
-      "reviewed": null
+      "owner": "@wanoo"
     },
     {
       "id": "team.write-refused-423",
@@ -2556,8 +2431,7 @@
       "identifiers": ["423"],
       "related": ["team.write-refused-409"],
       "prerequisites": [],
-      "owner": "@wanoo",
-      "reviewed": null
+      "owner": "@wanoo"
     },
     {
       "id": "team.recovery",
@@ -2578,8 +2452,7 @@
       "identifiers": [],
       "related": [],
       "prerequisites": [],
-      "owner": "@wanoo",
-      "reviewed": null
+      "owner": "@wanoo"
     },
     {
       "id": "team.comments",
@@ -2597,8 +2470,7 @@
       "identifiers": [],
       "related": [],
       "prerequisites": [],
-      "owner": "@wanoo",
-      "reviewed": null
+      "owner": "@wanoo"
     },
     {
       "id": "team.map-diff",
@@ -2616,8 +2488,7 @@
       "identifiers": [],
       "related": [],
       "prerequisites": [],
-      "owner": "@wanoo",
-      "reviewed": null
+      "owner": "@wanoo"
     },
     {
       "id": "team.builds",
@@ -2635,8 +2506,7 @@
       "identifiers": [],
       "related": [],
       "prerequisites": [],
-      "owner": "@wanoo",
-      "reviewed": null
+      "owner": "@wanoo"
     },
     {
       "id": "team.remote-mcp",
@@ -2655,8 +2525,7 @@
       "identifiers": [],
       "related": [],
       "prerequisites": [],
-      "owner": "@wanoo",
-      "reviewed": null
+      "owner": "@wanoo"
     },
     {
       "id": "team.game-in-git",
@@ -2675,8 +2544,7 @@
       "identifiers": [],
       "related": [],
       "prerequisites": [],
-      "owner": "@wanoo",
-      "reviewed": null
+      "owner": "@wanoo"
     },
     {
       "id": "team.upgrade-engine",
@@ -2694,8 +2562,7 @@
       "identifiers": [],
       "related": [],
       "prerequisites": [],
-      "owner": "@wanoo",
-      "reviewed": null
+      "owner": "@wanoo"
     },
     {
       "id": "team.hosted-assets",
@@ -2714,8 +2581,7 @@
       "identifiers": [],
       "related": [],
       "prerequisites": [],
-      "owner": "@wanoo",
-      "reviewed": null
+      "owner": "@wanoo"
     },
     {
       "id": "team.server-cli",
@@ -2733,8 +2599,7 @@
       "identifiers": ["npm run studio-server"],
       "related": [],
       "prerequisites": [],
-      "owner": "@wanoo",
-      "reviewed": null
+      "owner": "@wanoo"
     },
     {
       "id": "team.health-metrics",
@@ -2752,8 +2617,7 @@
       "identifiers": ["/readyz"],
       "related": [],
       "prerequisites": [],
-      "owner": "@wanoo",
-      "reviewed": null
+      "owner": "@wanoo"
     },
     {
       "id": "team.try-locally",
@@ -2771,8 +2635,7 @@
       "identifiers": [],
       "related": [],
       "prerequisites": [],
-      "owner": "@wanoo",
-      "reviewed": null
+      "owner": "@wanoo"
     },
     {
       "id": "team.limits",
@@ -2790,8 +2653,7 @@
       "identifiers": [],
       "related": [],
       "prerequisites": [],
-      "owner": "@wanoo",
-      "reviewed": null
+      "owner": "@wanoo"
     },
     {
       "id": "clever.overview",
@@ -2812,8 +2674,7 @@
       "identifiers": [],
       "related": [],
       "prerequisites": [],
-      "owner": "@wanoo",
-      "reviewed": null
+      "owner": "@wanoo"
     },
     {
       "id": "clever.apps-addons",
@@ -2831,8 +2692,7 @@
       "identifiers": [],
       "related": [],
       "prerequisites": [],
-      "owner": "@wanoo",
-      "reviewed": null
+      "owner": "@wanoo"
     },
     {
       "id": "clever.domains-tls",
@@ -2850,8 +2710,7 @@
       "identifiers": [],
       "related": [],
       "prerequisites": [],
-      "owner": "@wanoo",
-      "reviewed": null
+      "owner": "@wanoo"
     },
     {
       "id": "clever.keycloak",
@@ -2869,8 +2728,7 @@
       "identifiers": [],
       "related": [],
       "prerequisites": [],
-      "owner": "@wanoo",
-      "reviewed": null
+      "owner": "@wanoo"
     },
     {
       "id": "clever.generic-oidc",
@@ -2889,8 +2747,7 @@
       "identifiers": [],
       "related": [],
       "prerequisites": [],
-      "owner": "@wanoo",
-      "reviewed": null
+      "owner": "@wanoo"
     },
     {
       "id": "clever.configuration",
@@ -2909,8 +2766,7 @@
       "identifiers": ["STUDIO_CONFIG_JSON"],
       "related": [],
       "prerequisites": [],
-      "owner": "@wanoo",
-      "reviewed": null
+      "owner": "@wanoo"
     },
     {
       "id": "clever.first-deployment",
@@ -2928,8 +2784,7 @@
       "identifiers": [],
       "related": [],
       "prerequisites": [],
-      "owner": "@wanoo",
-      "reviewed": null
+      "owner": "@wanoo"
     },
     {
       "id": "clever.backups",
@@ -2948,8 +2803,7 @@
       "identifiers": [],
       "related": [],
       "prerequisites": [],
-      "owner": "@wanoo",
-      "reviewed": null
+      "owner": "@wanoo"
     },
     {
       "id": "clever.rpo-rto",
@@ -2967,8 +2821,7 @@
       "identifiers": [],
       "related": [],
       "prerequisites": [],
-      "owner": "@wanoo",
-      "reviewed": null
+      "owner": "@wanoo"
     },
     {
       "id": "clever.restore-drill",
@@ -2977,7 +2830,7 @@
       "audience": ["admin"],
       "context": ["studio-hosted"],
       "title": { "en": "Restore the Studio on a fresh installation", "fr": "Restaurer le Studio sur une installation neuve" },
-      "url": { "en": "EN-Clever-Restore-Drill", "fr": "FR-Clever-Restauration" },
+      "url": { "en": "EN-Clever-Restore-Drill", "fr": "FR-Clever-Exercice-De-Restauration" },
       "state": "planned",
       "versions": { "appliesFrom": "4.2.2" },
       "sources": ["studio-server/src/ops/backup.ts"],
@@ -2990,8 +2843,7 @@
       "identifiers": [],
       "related": [],
       "prerequisites": [],
-      "owner": "@wanoo",
-      "reviewed": null
+      "owner": "@wanoo"
     },
     {
       "id": "clever.redeploys",
@@ -3010,8 +2862,7 @@
       "identifiers": [],
       "related": [],
       "prerequisites": [],
-      "owner": "@wanoo",
-      "reviewed": null
+      "owner": "@wanoo"
     },
     {
       "id": "clever.upgrade-server",
@@ -3032,8 +2883,7 @@
       "identifiers": [],
       "related": [],
       "prerequisites": [],
-      "owner": "@wanoo",
-      "reviewed": null
+      "owner": "@wanoo"
     },
     {
       "id": "clever.going-back",
@@ -3052,8 +2902,7 @@
       "identifiers": [],
       "related": [],
       "prerequisites": [],
-      "owner": "@wanoo",
-      "reviewed": null
+      "owner": "@wanoo"
     },
     {
       "id": "clever.monitoring",
@@ -3072,8 +2921,7 @@
       "identifiers": [],
       "related": [],
       "prerequisites": [],
-      "owner": "@wanoo",
-      "reviewed": null
+      "owner": "@wanoo"
     },
     {
       "id": "clever.security",
@@ -3092,8 +2940,7 @@
       "identifiers": [],
       "related": [],
       "prerequisites": [],
-      "owner": "@wanoo",
-      "reviewed": null
+      "owner": "@wanoo"
     },
     {
       "id": "clever.key-rotation",
@@ -3111,8 +2958,7 @@
       "identifiers": ["STUDIO_SESSION_KEY", "STUDIO_WORKER_KEY", "STUDIO_GIT_KEY"],
       "related": [],
       "prerequisites": [],
-      "owner": "@wanoo",
-      "reviewed": null
+      "owner": "@wanoo"
     },
     {
       "id": "clever.admin-recovery",
@@ -3130,8 +2976,7 @@
       "identifiers": [],
       "related": [],
       "prerequisites": [],
-      "owner": "@wanoo",
-      "reviewed": null
+      "owner": "@wanoo"
     },
     {
       "id": "clever.change-domain",
@@ -3152,8 +2997,7 @@
       "identifiers": [],
       "related": [],
       "prerequisites": [],
-      "owner": "@wanoo",
-      "reviewed": null
+      "owner": "@wanoo"
     },
     {
       "id": "clever.dependency-down",
@@ -3171,8 +3015,7 @@
       "identifiers": [],
       "related": [],
       "prerequisites": [],
-      "owner": "@wanoo",
-      "reviewed": null
+      "owner": "@wanoo"
     },
     {
       "id": "clever.export-leave",
@@ -3190,8 +3033,7 @@
       "identifiers": [],
       "related": [],
       "prerequisites": [],
-      "owner": "@wanoo",
-      "reviewed": null
+      "owner": "@wanoo"
     },
     {
       "id": "clever.retention",
@@ -3210,8 +3052,7 @@
       "identifiers": [],
       "related": [],
       "prerequisites": [],
-      "owner": "@wanoo",
-      "reviewed": null
+      "owner": "@wanoo"
     },
     {
       "id": "clever.troubleshooting",
@@ -3232,8 +3073,7 @@
       "identifiers": ["503"],
       "related": [],
       "prerequisites": [],
-      "owner": "@wanoo",
-      "reviewed": null
+      "owner": "@wanoo"
     },
     {
       "id": "clever.costs-teardown",
@@ -3251,8 +3091,7 @@
       "identifiers": [],
       "related": [],
       "prerequisites": [],
-      "owner": "@wanoo",
-      "reviewed": null
+      "owner": "@wanoo"
     },
     {
       "id": "bridge.what-it-is",
@@ -3270,8 +3109,7 @@
       "identifiers": [],
       "related": [],
       "prerequisites": [],
-      "owner": "@wanoo",
-      "reviewed": null
+      "owner": "@wanoo"
     },
     {
       "id": "bridge.quick-start",
@@ -3289,8 +3127,7 @@
       "identifiers": [],
       "related": [],
       "prerequisites": [],
-      "owner": "@wanoo",
-      "reviewed": null
+      "owner": "@wanoo"
     },
     {
       "id": "bridge.guarantees",
@@ -3309,8 +3146,7 @@
       "identifiers": [],
       "related": [],
       "prerequisites": [],
-      "owner": "@wanoo",
-      "reviewed": null
+      "owner": "@wanoo"
     },
     {
       "id": "bridge.install-run",
@@ -3328,8 +3164,7 @@
       "identifiers": [],
       "related": [],
       "prerequisites": [],
-      "owner": "@wanoo",
-      "reviewed": null
+      "owner": "@wanoo"
     },
     {
       "id": "bridge.backup-restore",
@@ -3347,8 +3182,7 @@
       "identifiers": [],
       "related": [],
       "prerequisites": [],
-      "owner": "@wanoo",
-      "reviewed": null
+      "owner": "@wanoo"
     },
     {
       "id": "bridge.multi-tenant",
@@ -3366,8 +3200,7 @@
       "identifiers": [],
       "related": [],
       "prerequisites": [],
-      "owner": "@wanoo",
-      "reviewed": null
+      "owner": "@wanoo"
     },
     {
       "id": "bridge.signals-manifest",
@@ -3385,8 +3218,7 @@
       "identifiers": [],
       "related": [],
       "prerequisites": [],
-      "owner": "@wanoo",
-      "reviewed": null
+      "owner": "@wanoo"
     },
     {
       "id": "bridge.cli",
@@ -3404,8 +3236,7 @@
       "identifiers": ["npm run bridge"],
       "related": [],
       "prerequisites": [],
-      "owner": "@wanoo",
-      "reviewed": null
+      "owner": "@wanoo"
     },
     {
       "id": "bridge.connectors",
@@ -3423,8 +3254,7 @@
       "identifiers": [],
       "related": [],
       "prerequisites": [],
-      "owner": "@wanoo",
-      "reviewed": null
+      "owner": "@wanoo"
     },
     {
       "id": "bridge.connector-email",
@@ -3443,8 +3273,7 @@
       "identifiers": [],
       "related": [],
       "prerequisites": [],
-      "owner": "@wanoo",
-      "reviewed": null
+      "owner": "@wanoo"
     },
     {
       "id": "bridge.connector-telnet",
@@ -3463,8 +3292,7 @@
       "identifiers": [],
       "related": [],
       "prerequisites": [],
-      "owner": "@wanoo",
-      "reviewed": null
+      "owner": "@wanoo"
     },
     {
       "id": "bridge.connector-ssh",
@@ -3483,8 +3311,7 @@
       "identifiers": [],
       "related": [],
       "prerequisites": [],
-      "owner": "@wanoo",
-      "reviewed": null
+      "owner": "@wanoo"
     },
     {
       "id": "bridge.connector-open-badges",
@@ -3503,8 +3330,7 @@
       "identifiers": [],
       "related": [],
       "prerequisites": [],
-      "owner": "@wanoo",
-      "reviewed": null
+      "owner": "@wanoo"
     },
     {
       "id": "bridge.connector-sdk",
@@ -3522,8 +3348,7 @@
       "identifiers": [],
       "related": [],
       "prerequisites": [],
-      "owner": "@wanoo",
-      "reviewed": null
+      "owner": "@wanoo"
     },
     {
       "id": "bridge.security",
@@ -3541,8 +3366,7 @@
       "identifiers": [],
       "related": [],
       "prerequisites": [],
-      "owner": "@wanoo",
-      "reviewed": null
+      "owner": "@wanoo"
     },
     {
       "id": "bridge.troubleshooting",
@@ -3563,8 +3387,7 @@
       "identifiers": [],
       "related": [],
       "prerequisites": [],
-      "owner": "@wanoo",
-      "reviewed": null
+      "owner": "@wanoo"
     },
     {
       "id": "contribute.welcome",
@@ -3582,8 +3405,7 @@
       "identifiers": [],
       "related": [],
       "prerequisites": [],
-      "owner": "@wanoo",
-      "reviewed": null
+      "owner": "@wanoo"
     },
     {
       "id": "contribute.setup",
@@ -3601,8 +3423,7 @@
       "identifiers": [],
       "related": [],
       "prerequisites": [],
-      "owner": "@wanoo",
-      "reviewed": null
+      "owner": "@wanoo"
     },
     {
       "id": "contribute.dev-loop",
@@ -3620,8 +3441,7 @@
       "identifiers": [],
       "related": [],
       "prerequisites": [],
-      "owner": "@wanoo",
-      "reviewed": null
+      "owner": "@wanoo"
     },
     {
       "id": "contribute.before-a-pr",
@@ -3642,8 +3462,7 @@
       "identifiers": ["npm run quality", "npm run check"],
       "related": [],
       "prerequisites": [],
-      "owner": "@wanoo",
-      "reviewed": null
+      "owner": "@wanoo"
     },
     {
       "id": "contribute.conventions",
@@ -3661,8 +3480,7 @@
       "identifiers": [],
       "related": [],
       "prerequisites": [],
-      "owner": "@wanoo",
-      "reviewed": null
+      "owner": "@wanoo"
     },
     {
       "id": "contribute.writing-docs",
@@ -3681,8 +3499,7 @@
       "identifiers": ["npm run wiki"],
       "related": [],
       "prerequisites": [],
-      "owner": "@wanoo",
-      "reviewed": null
+      "owner": "@wanoo"
     },
     {
       "id": "contribute.architecture",
@@ -3700,8 +3517,7 @@
       "identifiers": [],
       "related": [],
       "prerequisites": [],
-      "owner": "@wanoo",
-      "reviewed": null
+      "owner": "@wanoo"
     },
     {
       "id": "contribute.code-tour",
@@ -3719,8 +3535,7 @@
       "identifiers": [],
       "related": [],
       "prerequisites": [],
-      "owner": "@wanoo",
-      "reviewed": null
+      "owner": "@wanoo"
     },
     {
       "id": "contribute.boundaries",
@@ -3738,8 +3553,7 @@
       "identifiers": [],
       "related": [],
       "prerequisites": [],
-      "owner": "@wanoo",
-      "reviewed": null
+      "owner": "@wanoo"
     },
     {
       "id": "contribute.which-tests",
@@ -3757,8 +3571,7 @@
       "identifiers": [],
       "related": [],
       "prerequisites": [],
-      "owner": "@wanoo",
-      "reviewed": null
+      "owner": "@wanoo"
     },
     {
       "id": "contribute.mutation-testing",
@@ -3777,8 +3590,7 @@
       "identifiers": [],
       "related": [],
       "prerequisites": [],
-      "owner": "@wanoo",
-      "reviewed": null
+      "owner": "@wanoo"
     },
     {
       "id": "contribute.coverage-ratchet",
@@ -3796,8 +3608,7 @@
       "identifiers": [],
       "related": [],
       "prerequisites": [],
-      "owner": "@wanoo",
-      "reviewed": null
+      "owner": "@wanoo"
     },
     {
       "id": "contribute.quality-baseline",
@@ -3815,8 +3626,7 @@
       "identifiers": ["npm run quality:baseline"],
       "related": [],
       "prerequisites": [],
-      "owner": "@wanoo",
-      "reviewed": null
+      "owner": "@wanoo"
     },
     {
       "id": "contribute.ci",
@@ -3835,8 +3645,7 @@
       "identifiers": [],
       "related": [],
       "prerequisites": [],
-      "owner": "@wanoo",
-      "reviewed": null
+      "owner": "@wanoo"
     },
     {
       "id": "contribute.field-passes",
@@ -3854,8 +3663,7 @@
       "identifiers": [],
       "related": [],
       "prerequisites": [],
-      "owner": "@wanoo",
-      "reviewed": null
+      "owner": "@wanoo"
     },
     {
       "id": "contribute.benchmarks",
@@ -3873,8 +3681,7 @@
       "identifiers": [],
       "related": [],
       "prerequisites": [],
-      "owner": "@wanoo",
-      "reviewed": null
+      "owner": "@wanoo"
     },
     {
       "id": "contribute.releasing",
@@ -3892,8 +3699,7 @@
       "identifiers": [],
       "related": [],
       "prerequisites": [],
-      "owner": "@wanoo",
-      "reviewed": null
+      "owner": "@wanoo"
     },
     {
       "id": "contribute.npm-packages",
@@ -3902,7 +3708,7 @@
       "audience": ["contributor"],
       "context": ["engine-repo"],
       "title": { "en": "npm packages", "fr": "Paquets npm" },
-      "url": { "en": "EN-Contribute-Npm-Packages", "fr": "FR-Contribuer-Paquets-Npm" },
+      "url": { "en": "EN-Contribute-NPM-Packages", "fr": "FR-Contribuer-Paquets-NPM" },
       "state": "planned",
       "sources": ["scripts/pack.mjs"],
       "replaces": [],
@@ -3911,8 +3717,7 @@
       "identifiers": [],
       "related": [],
       "prerequisites": [],
-      "owner": "@wanoo",
-      "reviewed": null
+      "owner": "@wanoo"
     },
     {
       "id": "contribute.decisions",
@@ -3930,8 +3735,7 @@
       "identifiers": [],
       "related": [],
       "prerequisites": [],
-      "owner": "@wanoo",
-      "reviewed": null
+      "owner": "@wanoo"
     },
     {
       "id": "contribute.governance",
@@ -3949,8 +3753,7 @@
       "identifiers": [],
       "related": [],
       "prerequisites": [],
-      "owner": "@wanoo",
-      "reviewed": null
+      "owner": "@wanoo"
     },
     {
       "id": "contribute.bot-prs",
@@ -3968,8 +3771,7 @@
       "identifiers": [],
       "related": [],
       "prerequisites": [],
-      "owner": "@wanoo",
-      "reviewed": null
+      "owner": "@wanoo"
     },
     {
       "id": "contribute.ai-agents",
@@ -3987,8 +3789,7 @@
       "identifiers": [],
       "related": [],
       "prerequisites": [],
-      "owner": "@wanoo",
-      "reviewed": null
+      "owner": "@wanoo"
     },
     {
       "id": "contribute.security-policy",
@@ -4006,8 +3807,7 @@
       "identifiers": [],
       "related": [],
       "prerequisites": [],
-      "owner": "@wanoo",
-      "reviewed": null
+      "owner": "@wanoo"
     },
     {
       "id": "contribute.code-of-conduct",
@@ -4025,8 +3825,7 @@
       "identifiers": [],
       "related": [],
       "prerequisites": [],
-      "owner": "@wanoo",
-      "reviewed": null
+      "owner": "@wanoo"
     },
     {
       "id": "contribute.licences",
@@ -4044,8 +3843,7 @@
       "identifiers": [],
       "related": [],
       "prerequisites": [],
-      "owner": "@wanoo",
-      "reviewed": null
+      "owner": "@wanoo"
     },
     {
       "id": "reference.npm-scripts",
@@ -4054,7 +3852,7 @@
       "audience": ["author", "contributor"],
       "context": ["engine-repo", "created-project"],
       "title": { "en": "npm scripts", "fr": "Scripts npm" },
-      "url": { "en": "EN-Reference-Npm-Scripts", "fr": "FR-Reference-Scripts-Npm" },
+      "url": { "en": "EN-Reference-NPM-Scripts", "fr": "FR-Reference-Scripts-NPM" },
       "state": "planned",
       "sources": ["package.json"],
       "replaces": [],
@@ -4063,8 +3861,7 @@
       "identifiers": [],
       "related": [],
       "prerequisites": [],
-      "owner": "@wanoo",
-      "reviewed": null
+      "owner": "@wanoo"
     },
     {
       "id": "reference.cli",
@@ -4082,8 +3879,7 @@
       "identifiers": ["quest-n-click", "create-quest-n-click", "quest-n-click-bridge", "quest-n-click-connector", "quest-n-click-studio-server", "quest-n-click-studio-worker"],
       "related": [],
       "prerequisites": [],
-      "owner": "@wanoo",
-      "reviewed": null
+      "owner": "@wanoo"
     },
     {
       "id": "reference.environment-variables",
@@ -4101,8 +3897,7 @@
       "identifiers": ["STUDIO_SESSION_KEY"],
       "related": [],
       "prerequisites": [],
-      "owner": "@wanoo",
-      "reviewed": null
+      "owner": "@wanoo"
     },
     {
       "id": "reference.dev-url-parameters",
@@ -4120,8 +3915,7 @@
       "identifiers": ["?dev", "?edit"],
       "related": [],
       "prerequisites": [],
-      "owner": "@wanoo",
-      "reviewed": null
+      "owner": "@wanoo"
     },
     {
       "id": "reference.error-codes",
@@ -4139,8 +3933,7 @@
       "identifiers": ["409", "423", "503"],
       "related": [],
       "prerequisites": [],
-      "owner": "@wanoo",
-      "reviewed": null
+      "owner": "@wanoo"
     },
     {
       "id": "reference.support-matrix",
@@ -4158,8 +3951,7 @@
       "identifiers": [],
       "related": [],
       "prerequisites": [],
-      "owner": "@wanoo",
-      "reviewed": null
+      "owner": "@wanoo"
     },
     {
       "id": "reference.changelog",
@@ -4177,8 +3969,7 @@
       "identifiers": [],
       "related": [],
       "prerequisites": [],
-      "owner": "@wanoo",
-      "reviewed": null
+      "owner": "@wanoo"
     }
   ]
 }
