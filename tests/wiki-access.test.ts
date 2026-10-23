@@ -584,6 +584,111 @@ describe('plan §13 D3, a neighbour and a counter-example', () => {
   });
 });
 
+/**
+ * wiki409() and two pages that span several contexts: an error register (a reference page listing 409 for the Studio
+ * and the Bridge) and a layout page with a section per place, "A created project" and "The engine repository".
+ */
+function wikiContexts(): string {
+  const dir = wiki409();
+  const file = join(dir, 'manifest.json');
+  const m = JSON.parse(readFileSync(file, 'utf8')) as { pages: Record<string, unknown>[] };
+  const page = (
+    id: string,
+    type: string,
+    context: string[],
+    titles: [string, string],
+    urls: [string, string],
+    extra = {},
+  ) => ({
+    id,
+    domain: id.split('.')[0],
+    type,
+    audience: ['author'],
+    context,
+    title: { en: titles[0], fr: titles[1] },
+    url: { en: urls[0], fr: urls[1] },
+    state: 'ready',
+    versions: { appliesFrom: '4.5.0' },
+    sources: ['package.json'],
+    replaces: [],
+    questions: { en: [], fr: [] },
+    aliases: { en: [], fr: [] },
+    identifiers: [],
+    related: [],
+    prerequisites: [],
+    ...extra,
+  });
+  m.pages.push(
+    page(
+      'reference.error-codes',
+      'reference',
+      ['studio-hosted', 'bridge'],
+      ['Error codes', "Codes d'erreur"],
+      ['EN-Reference-Error-Codes', 'FR-Reference-Codes-Erreur'],
+      {
+        identifiers: ['409'],
+      },
+    ),
+    page(
+      'create.project-layout',
+      'reference',
+      ['engine-repo', 'created-project'],
+      ['Layout', 'Organisation'],
+      ['EN-Create-Layout', 'FR-Creer-Organisation'],
+      {
+        aliases: { en: ['Hosted backup', 'backup'], fr: ['sauvegarde', 'sauvegarde hébergée'] },
+      },
+    ),
+  );
+  writeFileSync(file, JSON.stringify(m));
+  // A symptom page says "error" as a reader does.
+  for (const id of ['team.write-refused-409', 'bridge.signal-duplicate-409'])
+    writeFileSync(
+      join(dir, 'en', `${id}.md`),
+      `${readFileSync(join(dir, 'en', `${id}.md`), 'utf8')}\nThis error is a 409.\n`,
+    );
+  const register = '# Error codes\n\n<a name="codes"></a>\n\n## 409\n\nThe Studio and the Bridge answer 409.\n';
+  writeFileSync(join(dir, 'en', 'reference.error-codes.md'), register);
+  writeFileSync(join(dir, 'fr', 'reference.error-codes.md'), register.replace('Error codes', "Codes d'erreur"));
+  const layout = (a: string, b: string) =>
+    `# Layout\n\n<a name="created-project"></a>\n\n## ${a}\n\nThe widget opens the game.\n\n<a name="engine-repository"></a>\n\n## ${b}\n\nThe widget opens the current game.\n`;
+  writeFileSync(join(dir, 'en', 'create.project-layout.md'), layout('A created project', 'The engine repository'));
+  writeFileSync(join(dir, 'fr', 'create.project-layout.md'), layout('Un projet créé', 'Le dépôt du moteur'));
+  return dir;
+}
+
+describe('the search with a context: the page or the section of that context first', () => {
+  const set = preview(wikiContexts());
+
+  it('puts a troubleshooting page above the error register for a status code asked within a context', () => {
+    expect(results(set, 'Error 409', { context: 'studio-hosted', lang: 'en' })[0]!.id).toBe('team.write-refused-409');
+    expect(results(set, 'Error 409', { context: 'bridge', lang: 'en' })[0]!.id).toBe('bridge.signal-duplicate-409');
+    // Without a context the register keeps its score: it names every service the code belongs to.
+    expect(results(set, 'Error 409', { lang: 'en' }).map((r) => r.id)).toContain('reference.error-codes');
+  });
+
+  it("answers with the section headed by the context's name, in both languages", () => {
+    for (const lang of ['en', 'fr'] as const) {
+      expect(results(set, 'widget', { lang, context: 'engine-repo' })[0]!.ref).toBe(
+        'create.project-layout#engine-repository',
+      );
+      expect(results(set, 'widget', { lang, context: 'created-project' })[0]!.ref).toBe(
+        'create.project-layout#created-project',
+      );
+    }
+  });
+
+  it('shows, for a page-level match, the field that holds the most words found', () => {
+    const r = results(set, 'hosted backup', { lang: 'en' }).find((x) => x.id === 'create.project-layout')!;
+    expect(r).toMatchObject({ reason: 'alias' });
+    expect(r.snippet).toContain('**Hosted** **backup**');
+  });
+
+  it('sets contractions and possessives aside: "don\'t" and "their" weigh nothing', () => {
+    expect(results(set, "Why don't their widgets open?", { lang: 'en' })[0]?.id).toBe('create.project-layout');
+  });
+});
+
 describe('the search, at its edges', () => {
   it('counts an identifier in capitals only when typed exactly, its own section first, its description in the excerpt (A7, D2)', () => {
     const dir = tmp('wiki-screaming-');
