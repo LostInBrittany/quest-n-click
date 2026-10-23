@@ -86,13 +86,21 @@
       "context": ["player", "engine-repo", "created-project", "studio-local", "studio-hosted", "bridge"],
       "title": { "en": "FAQ by audience", "fr": "FAQ par public" },
       "url": { "en": "EN-Index-FAQ", "fr": "FR-Index-FAQ" },
-      "state": "planned",
-      "sources": [],
+      "state": "ready",
+      "versions": { "appliesFrom": "4.4.0" },
+      "sources": ["README.md", "README.fr.md", "CHANGELOG.md"],
       "replaces": ["README.md#documentation", "README.fr.md#documentation"],
       "questions": { "en": [], "fr": [] },
-      "aliases": { "en": [], "fr": [] },
+      "aliases": {
+        "en": ["FAQ", "frequently asked questions", "documentation", "where do I start"],
+        "fr": ["FAQ", "questions fréquentes", "documentation", "par où commencer"]
+      },
+      "keywords": {
+        "en": ["player", "author", "admin", "contributor", "CONTENT_GUIDE", "old link"],
+        "fr": ["joueur", "auteur", "administrateur", "contributeur", "CONTENT_GUIDE", "ancien lien"]
+      },
       "identifiers": [],
-      "related": [],
+      "related": ["index.not-supported", "start.what-it-is", "start.stability"],
       "prerequisites": [],
       "owner": "@wanoo"
     },
@@ -104,8 +112,14 @@
       "context": ["player", "engine-repo", "created-project"],
       "title": { "en": "What quest'n'click does not do", "fr": "Ce que quest'n'click ne fait pas" },
       "url": { "en": "EN-Index-Not-Supported", "fr": "FR-Index-Non-Pris-En-Charge" },
-      "state": "planned",
-      "sources": [],
+      "state": "ready",
+      "versions": { "appliesFrom": "4.4.0" },
+      "sources": [
+        "docs/dev/DECISIONS.md",
+        "docs/dev/adr/0012-canvas-backend.md",
+        "src/engine/dom/camera.ts",
+        "bridge/src/cli-store.ts"
+      ],
       "replaces": [
         "docs/en/CLASSICS.md#what-stays-out-of-scope",
         "docs/en/REALITY-OPS.md#what-is-not-here-4110",
@@ -117,15 +131,44 @@
         "docs/fr/ROADMAP.md#hors-plan-décisions-explicites"
       ],
       "questions": {
-        "en": ["Can quest'n'click export a game to Steam?"],
-        "fr": ["quest'n'click peut-il exporter un jeu vers Steam ?"]
+        "en": ["Can quest'n'click export a game to Steam?", "Can I make a real-time multiplayer game?"],
+        "fr": ["quest'n'click peut-il exporter un jeu vers Steam ?", "Puis-je faire un jeu multijoueur en temps réel ?"]
       },
       "aliases": {
-        "en": ["real-time multiplayer", "Steam export", "out of scope"],
-        "fr": ["multijoueur en temps réel", "export Steam", "hors périmètre"]
+        "en": [
+          "real-time multiplayer",
+          "multiplayer",
+          "Steam export",
+          "console export",
+          "native app",
+          "3D",
+          "physics engine",
+          "Phaser",
+          "WebGL",
+          "gamepad",
+          "cloud save",
+          "out of scope",
+          "not supported"
+        ],
+        "fr": [
+          "multijoueur en temps réel",
+          "multijoueur",
+          "export Steam",
+          "export console",
+          "application native",
+          "3D",
+          "moteur physique",
+          "Phaser",
+          "WebGL",
+          "manette",
+          "sauvegarde dans le nuage",
+          "hors périmètre",
+          "non pris en charge"
+        ]
       },
+      "keywords": { "en": ["limits", "unsupported", "absent feature"], "fr": ["limites", "fonction absente"] },
       "identifiers": [],
-      "related": [],
+      "related": ["start.roadmap", "start.stability", "start.features"],
       "prerequisites": [],
       "owner": "@wanoo"
     },
@@ -140,8 +183,9 @@
         "fr": "Ce qu'est quest'n'click, et son histoire depuis web-scumm"
       },
       "url": { "en": "EN-Start-What-It-Is", "fr": "FR-Demarrer-Presentation" },
-      "state": "planned",
-      "sources": [],
+      "state": "ready",
+      "versions": { "appliesFrom": "4.3.0" },
+      "sources": ["README.md", "README.fr.md", "docs/dev/DECISIONS.md"],
       "replaces": [
         "README.md",
         "README.md#questnclick",
@@ -151,9 +195,16 @@
         "README.fr.md#comment-cest-fait"
       ],
       "questions": { "en": [], "fr": [] },
-      "aliases": { "en": ["web-scumm"], "fr": ["web-scumm"] },
+      "aliases": {
+        "en": ["web-scumm", "WebSCUMM", "pocket-scumm", "quest n click", "about", "README"],
+        "fr": ["web-scumm", "WebSCUMM", "pocket-scumm", "quest n click", "présentation", "README"]
+      },
+      "keywords": {
+        "en": ["point-and-click", "SCUMM", "LucasArts", "PWA", "history", "rename"],
+        "fr": ["point-and-click", "SCUMM", "LucasArts", "PWA", "histoire", "renommage"]
+      },
       "identifiers": [],
-      "related": [],
+      "related": ["start.features", "start.gallery", "start.play-online", "index.not-supported"],
       "prerequisites": [],
       "owner": "@wanoo"
     },
@@ -165,13 +216,21 @@
       "context": ["player", "engine-repo", "created-project"],
       "title": { "en": "Features", "fr": "Fonctionnalités" },
       "url": { "en": "EN-Start-Features", "fr": "FR-Demarrer-Fonctionnalites" },
-      "state": "planned",
-      "sources": [],
+      "state": "ready",
+      "versions": { "appliesFrom": "4.4.0" },
+      "sources": ["README.md", "README.fr.md", "tools/quality-baseline.ts"],
       "replaces": ["README.md#further", "README.md#in-numbers", "README.fr.md#plus-loin", "README.fr.md#en-chiffres"],
       "questions": { "en": [], "fr": [] },
-      "aliases": { "en": [], "fr": [] },
+      "aliases": {
+        "en": ["features", "in numbers", "what it can do"],
+        "fr": ["fonctionnalités", "en chiffres", "ce qu'il sait faire"]
+      },
+      "keywords": {
+        "en": ["Remix", "speedrun", "Reality", "several characters", "minigames", "world map"],
+        "fr": ["Remix", "speedrun", "Reality", "plusieurs personnages", "mini-jeux", "carte du monde"]
+      },
       "identifiers": [],
-      "related": [],
+      "related": ["start.gallery", "start.stability", "index.not-supported"],
       "prerequisites": [],
       "owner": "@wanoo"
     },
@@ -183,13 +242,14 @@
       "context": ["player"],
       "title": { "en": "Gallery", "fr": "Galerie" },
       "url": { "en": "EN-Start-Gallery", "fr": "FR-Demarrer-Galerie" },
-      "state": "planned",
-      "sources": [],
+      "state": "ready",
+      "versions": { "appliesFrom": "4.1.19" },
+      "sources": ["scripts/docs-screenshots.mjs", "docs/img/readme/4119-*.webp"],
       "replaces": [],
       "questions": { "en": [], "fr": [] },
-      "aliases": { "en": [], "fr": [] },
-      "identifiers": [],
-      "related": [],
+      "aliases": { "en": ["screenshots", "captures", "pictures"], "fr": ["captures d'écran", "images"] },
+      "identifiers": ["npm run docs:screenshots"],
+      "related": ["start.features", "start.play-online"],
       "prerequisites": [],
       "owner": "@wanoo"
     },
@@ -201,13 +261,20 @@
       "context": ["player", "studio-demo"],
       "title": { "en": "Play online and try the demo Studio", "fr": "Jouer en ligne et essayer le Studio de démo" },
       "url": { "en": "EN-Start-Play-Online", "fr": "FR-Demarrer-Jouer-En-Ligne" },
-      "state": "planned",
-      "sources": [],
+      "state": "ready",
+      "versions": { "appliesFrom": "4.2.5" },
+      "sources": ["README.md", "README.fr.md", "src/studio/api-browser.ts"],
       "replaces": ["README.md#start", "README.fr.md#commencer"],
-      "questions": { "en": [], "fr": [] },
-      "aliases": { "en": [], "fr": [] },
+      "questions": {
+        "en": ["Where can I play the sample game?", "How do I try the Studio without installing anything?"],
+        "fr": ["Où jouer au jeu d'exemple ?", "Comment essayer le Studio sans rien installer ?"]
+      },
+      "aliases": {
+        "en": ["demo", "The Pantry Key", "demo Studio", "play online", "try it"],
+        "fr": ["démo", "La Clé du garde-manger", "Studio de démo", "jouer en ligne", "essayer"]
+      },
       "identifiers": [],
-      "related": ["studio.demo-mode"],
+      "related": ["studio.demo-mode", "install.from-archive", "create.first-game"],
       "prerequisites": [],
       "owner": "@wanoo"
     },
@@ -219,8 +286,16 @@
       "context": ["engine-repo", "created-project", "studio-hosted", "bridge"],
       "title": { "en": "Stability and support", "fr": "Stabilité et support" },
       "url": { "en": "EN-Start-Stability", "fr": "FR-Demarrer-Stabilite" },
-      "state": "planned",
-      "sources": ["docs/dev/surfaces.json"],
+      "state": "ready",
+      "versions": { "appliesFrom": "4.4.0" },
+      "sources": [
+        "docs/dev/contracts.json",
+        "docs/dev/surfaces.json",
+        "docs/en/SUPPORT.md",
+        "docs/fr/SUPPORT.md",
+        "docs/dev/passes/4.4.0.md",
+        "docs/dev/DSL-STABILITY.md"
+      ],
       "replaces": [
         "docs/en/DSL.md#stability",
         "docs/en/SUPPORT.md#support-and-stability",
@@ -254,9 +329,32 @@
         "README.fr.md#ce-qui-est-stable"
       ],
       "questions": { "en": [], "fr": [] },
-      "aliases": { "en": [], "fr": [] },
+      "aliases": {
+        "en": [
+          "SUPPORT",
+          "support policy",
+          "SemVer",
+          "experimental",
+          "deprecation",
+          "what is stable",
+          "support window"
+        ],
+        "fr": [
+          "SUPPORT",
+          "politique de support",
+          "SemVer",
+          "expérimental",
+          "dépréciation",
+          "ce qui est stable",
+          "durée de support"
+        ]
+      },
+      "keywords": {
+        "en": ["stable", "limited", "experimental", "deprecated", "passes", "contract status"],
+        "fr": ["stable", "limité", "expérimental", "déprécié", "passes", "statut du contrat"]
+      },
       "identifiers": [],
-      "related": ["reference.support-matrix"],
+      "related": ["reference.support-matrix", "contribute.field-passes", "install.upgrade", "start.roadmap"],
       "prerequisites": [],
       "owner": "@wanoo"
     },
@@ -268,8 +366,9 @@
       "context": ["engine-repo"],
       "title": { "en": "Roadmap", "fr": "Feuille de route" },
       "url": { "en": "EN-Start-Roadmap", "fr": "FR-Demarrer-Feuille-De-Route" },
-      "state": "planned",
-      "sources": [],
+      "state": "ready",
+      "versions": { "appliesFrom": "4.4.0" },
+      "sources": ["docs/en/ROADMAP.md", "docs/fr/ROADMAP.md", "docs/dev/DECISIONS.md", "docs/dev/PLAN-4.5-WIKI.md"],
       "replaces": [
         "docs/en/ROADMAP.md#roadmap-from-v13-to-the-41x-line-and-42",
         "docs/en/ROADMAP.md#context",
@@ -335,9 +434,16 @@
         "docs/fr/ROADMAP.md#vérification-à-chaque-jalon"
       ],
       "questions": { "en": [], "fr": [] },
-      "aliases": { "en": [], "fr": [] },
+      "aliases": {
+        "en": ["ROADMAP", "what's next", "open items", "left for later", "history"],
+        "fr": ["ROADMAP", "feuille de route", "la suite", "points ouverts", "reste à faire", "historique"]
+      },
+      "keywords": {
+        "en": ["4.5", "npm publishing", "people's passes", "solver at scale"],
+        "fr": ["4.5", "publication npm", "passes humaines", "solveur à l'échelle"]
+      },
       "identifiers": [],
-      "related": [],
+      "related": ["start.stability", "index.not-supported", "reference.changelog"],
       "prerequisites": [],
       "owner": "@wanoo"
     },
@@ -349,17 +455,32 @@
       "context": ["player"],
       "title": { "en": "Controls on phone and desktop", "fr": "Commandes sur téléphone et ordinateur" },
       "url": { "en": "EN-Play-Controls", "fr": "FR-Jouer-Commandes" },
-      "state": "planned",
-      "sources": ["src/engine/dom/input.ts", "src/engine/core/default-verb.ts"],
+      "state": "ready",
+      "versions": { "appliesFrom": "4.4.0" },
+      "surfaces": ["player-dom"],
+      "sources": ["src/engine/dom/input.ts", "src/engine/core/default-verb.ts", "src/engine/dom/shell.ts"],
       "replaces": [
         "docs/en/CONTENT_GUIDE.md#a-double-tap-the-verb-a-player-means-40",
         "docs/fr/CONTENT_GUIDE.md#un-double-tap--le-verbe-que-le-joueur-veut-dire-40"
       ],
       "questions": { "en": [], "fr": [] },
-      "aliases": { "en": ["verbs", "double tap", "verb keys"], "fr": ["verbes", "double tap", "touches des verbes"] },
+      "aliases": {
+        "en": ["verbs", "double tap", "verb keys", "keyboard", "touch", "mouse", "how to play"],
+        "fr": ["verbes", "double tap", "touches des verbes", "clavier", "toucher", "souris", "comment jouer"]
+      },
+      "keywords": {
+        "en": ["sentence line", "Walk to", "Escape", "Tab", "landscape"],
+        "fr": ["ligne de phrase", "Aller vers", "Échap", "Tab", "paysage"]
+      },
       "identifiers": [],
-      "related": [],
+      "related": ["play.accessibility", "play.settings", "create.reactions"],
       "prerequisites": [],
+      "claims": [
+        {
+          "id": "double-tap-verb",
+          "test": "tests/default-verb.test.ts › the default verb of a double tap › an exit is gone through, a character talked to, anything else looked at"
+        }
+      ],
       "owner": "@wanoo"
     },
     {
@@ -370,17 +491,36 @@
       "context": ["player"],
       "title": { "en": "Install the game as an app", "fr": "Installer le jeu comme une application" },
       "url": { "en": "EN-Play-Install-App", "fr": "FR-Jouer-Installer-Application" },
-      "state": "planned",
-      "sources": ["src/engine/dom/offline.ts"],
+      "state": "ready",
+      "versions": { "appliesFrom": "4.1.8" },
+      "surfaces": ["pwa"],
+      "sources": ["src/engine/dom/offline.ts", "src/engine/dom/update.ts", "docs/dev/SAFARI-OFFLINE.md"],
       "replaces": [],
       "questions": {
-        "en": ["How do I install the game to play offline on an iPhone?"],
-        "fr": ["Comment installer le jeu pour y jouer hors ligne sur un iPhone ?"]
+        "en": [
+          "How do I install the game to play offline on an iPhone?",
+          "How do I install the game on Android or a computer?",
+          "How do I know the whole game is available offline?"
+        ],
+        "fr": [
+          "Comment installer le jeu pour y jouer hors ligne sur un iPhone ?",
+          "Comment installer le jeu sur Android ou sur un ordinateur ?",
+          "Comment savoir si le jeu entier est disponible hors ligne ?"
+        ]
       },
-      "aliases": { "en": ["PWA", "offline"], "fr": ["PWA", "hors ligne"] },
+      "aliases": {
+        "en": ["PWA", "offline", "Add to Home Screen", "install app", "airplane mode"],
+        "fr": ["PWA", "hors ligne", "Sur l'écran d'accueil", "installer l'application", "mode avion"]
+      },
       "identifiers": [],
-      "related": [],
+      "related": ["play.troubleshooting", "play.saves", "create.deploy-issues"],
       "prerequisites": [],
+      "claims": [
+        {
+          "id": "offline-complete-means-cached",
+          "test": "tests/offline.test.ts › the offline status › is complete only when every file is in the cache"
+        }
+      ],
       "owner": "@wanoo"
     },
     {
@@ -392,17 +532,41 @@
       "context": ["player"],
       "title": { "en": "Saves: slots, export and import", "fr": "Sauvegardes : emplacements, export et import" },
       "url": { "en": "EN-Play-Saves", "fr": "FR-Jouer-Sauvegardes" },
-      "state": "planned",
-      "sources": ["src/engine/core/save.ts", "src/engine/dom/save-store.ts"],
+      "state": "ready",
+      "versions": { "appliesFrom": "4.1.15" },
+      "surfaces": ["player-dom"],
+      "sources": ["src/engine/core/save.ts", "src/engine/dom/save-store.ts", "src/engine/dom/menus.ts"],
       "replaces": [
         "docs/en/CONTENT_GUIDE.md#save-slots-and-migrations",
         "docs/fr/CONTENT_GUIDE.md#emplacements-de-sauvegarde-et-migrations"
       ],
-      "questions": { "en": [], "fr": [] },
-      "aliases": { "en": [], "fr": [] },
-      "identifiers": [],
-      "related": [],
+      "questions": {
+        "en": ["How do I move my save to another device?", "Where are my saves kept?", "How do I save in a slot?"],
+        "fr": [
+          "Comment passer ma sauvegarde sur un autre appareil ?",
+          "Où sont gardées mes sauvegardes ?",
+          "Comment sauvegarder dans un emplacement ?"
+        ]
+      },
+      "aliases": {
+        "en": ["save slots", "export save", "import save", "autosave", "Continue"],
+        "fr": [
+          "emplacements de sauvegarde",
+          "exporter une sauvegarde",
+          "importer une sauvegarde",
+          "sauvegarde automatique",
+          "Continuer"
+        ]
+      },
+      "identifiers": ["saves.slots"],
+      "related": ["play.troubleshooting", "create.state-saves", "start.stability"],
       "prerequisites": [],
+      "claims": [
+        {
+          "id": "save-refused-untouched",
+          "test": "tests/save-v3.test.ts › save envelope v3 › rejects a foreign game, corrupt shape and missing current room without touching current state"
+        }
+      ],
       "owner": "@wanoo"
     },
     {
@@ -413,13 +577,25 @@
       "context": ["player"],
       "title": { "en": "Settings", "fr": "Réglages" },
       "url": { "en": "EN-Play-Settings", "fr": "FR-Jouer-Reglages" },
-      "state": "planned",
-      "sources": [],
+      "state": "ready",
+      "versions": { "appliesFrom": "4.3.0" },
+      "sources": ["src/engine/dom/settings.ts", "src/engine/dom/ui-defaults.ts"],
       "replaces": ["docs/en/CONTENT_GUIDE.md#settings", "docs/fr/CONTENT_GUIDE.md#réglages"],
       "questions": { "en": [], "fr": [] },
-      "aliases": { "en": [], "fr": [] },
+      "aliases": {
+        "en": ["preferences", "text speed", "text size", "reduce motion", "readable font", "volume", "captions"],
+        "fr": [
+          "préférences",
+          "vitesse du texte",
+          "taille du texte",
+          "réduire les animations",
+          "police lisible",
+          "volume",
+          "sous-titres"
+        ]
+      },
       "identifiers": [],
-      "related": [],
+      "related": ["play.accessibility", "play.languages", "create.staging"],
       "prerequisites": [],
       "owner": "@wanoo"
     },
@@ -432,8 +608,15 @@
       "context": ["player"],
       "title": { "en": "Accessibility", "fr": "Accessibilité" },
       "url": { "en": "EN-Play-Accessibility", "fr": "FR-Jouer-Accessibilite" },
-      "state": "planned",
-      "sources": ["src/engine/dom/a11y.ts"],
+      "state": "ready",
+      "versions": { "appliesFrom": "4.3.0" },
+      "surfaces": ["player-dom"],
+      "sources": [
+        "src/engine/dom/a11y.ts",
+        "src/engine/dom/input.ts",
+        "docs/dev/SCREEN-READER.md",
+        "tests/dom/minigames-keyboard.test.ts"
+      ],
       "replaces": [
         "docs/en/ENGINE.md#accessibility",
         "docs/en/SPEEDRUN.md#accessibility-and-fairness",
@@ -441,9 +624,12 @@
         "docs/fr/SPEEDRUN.md#accessibilité-et-équité"
       ],
       "questions": { "en": [], "fr": [] },
-      "aliases": { "en": ["screen reader", "keyboard", "contrast"], "fr": ["lecteur d'écran", "clavier", "contraste"] },
+      "aliases": {
+        "en": ["screen reader", "keyboard", "contrast", "WCAG", "axe", "VoiceOver", "TalkBack", "a11y"],
+        "fr": ["lecteur d'écran", "clavier", "contraste", "WCAG", "axe", "VoiceOver", "TalkBack", "a11y"]
+      },
       "identifiers": [],
-      "related": [],
+      "related": ["play.controls", "play.settings", "start.stability"],
       "prerequisites": [],
       "owner": "@wanoo"
     },
@@ -455,13 +641,17 @@
       "context": ["player"],
       "title": { "en": "Languages", "fr": "Langues" },
       "url": { "en": "EN-Play-Languages", "fr": "FR-Jouer-Langues" },
-      "state": "planned",
-      "sources": [],
+      "state": "ready",
+      "versions": { "appliesFrom": "4.4.0" },
+      "sources": ["src/engine/boot.ts", "src/engine/core/voice-key.ts"],
       "replaces": [],
       "questions": { "en": [], "fr": [] },
-      "aliases": { "en": [], "fr": [] },
-      "identifiers": [],
-      "related": [],
+      "aliases": {
+        "en": ["language", "translation", "French", "?lang"],
+        "fr": ["langue", "traduction", "anglais", "?lang"]
+      },
+      "identifiers": ["?lang"],
+      "related": ["play.settings", "create.translations", "create.voices"],
       "prerequisites": [],
       "owner": "@wanoo"
     },
@@ -471,10 +661,20 @@
       "type": "howto",
       "audience": ["player"],
       "context": ["player"],
-      "title": { "en": "Speedrun for players: LiveSplit and OBS", "fr": "Speedrun pour les joueurs : LiveSplit et OBS" },
+      "title": {
+        "en": "Speedrun for players: LiveSplit and OBS",
+        "fr": "Speedrun pour les joueurs : LiveSplit et OBS"
+      },
       "url": { "en": "EN-Play-Speedrun", "fr": "FR-Jouer-Speedrun" },
-      "state": "planned",
-      "sources": ["tools/speedrun/*.ts"],
+      "state": "ready",
+      "versions": { "appliesFrom": "4.1.14" },
+      "surfaces": ["speedrun-remix"],
+      "sources": [
+        "tools/speedrun/overlay.mjs",
+        "tools/speedrun/livesplit.mjs",
+        "tools/speedrun/local.mjs",
+        "src/engine/dom/speedrun-ui.ts"
+      ],
       "replaces": [
         "docs/en/SPEEDRUN.md#speedrun-4114-time-attack",
         "docs/en/SPEEDRUN.md#for-players",
@@ -483,10 +683,24 @@
         "docs/fr/SPEEDRUN.md#pour-les-joueurs",
         "docs/fr/SPEEDRUN.md#streaming--obs-et-livesplit"
       ],
-      "questions": { "en": [], "fr": [] },
-      "aliases": { "en": ["LiveSplit", "OBS"], "fr": ["LiveSplit", "OBS"] },
-      "identifiers": [],
-      "related": [],
+      "questions": {
+        "en": [
+          "How do I show my speedrun timer in OBS?",
+          "How do I connect the game to LiveSplit?",
+          "How do I export my speedrun?"
+        ],
+        "fr": [
+          "Comment afficher mon chrono de speedrun dans OBS ?",
+          "Comment relier le jeu à LiveSplit ?",
+          "Comment exporter mon speedrun ?"
+        ]
+      },
+      "aliases": {
+        "en": ["LiveSplit", "OBS", "autosplitter", "wsrun", "ghost", "personal best"],
+        "fr": ["LiveSplit", "OBS", "autosplitter", "wsrun", "fantôme", "record personnel"]
+      },
+      "identifiers": ["npm run speedrun:overlay", "npm run speedrun:livesplit", "?speedrunTool"],
+      "related": ["create.speedrun", "play.accessibility", "play.privacy"],
       "prerequisites": [],
       "owner": "@wanoo"
     },
@@ -498,8 +712,15 @@
       "context": ["player"],
       "title": { "en": "Privacy", "fr": "Confidentialité" },
       "url": { "en": "EN-Play-Privacy", "fr": "FR-Jouer-Confidentialite" },
-      "state": "planned",
-      "sources": [],
+      "state": "ready",
+      "versions": { "appliesFrom": "4.1.16" },
+      "sources": [
+        "bridge/src/server.ts",
+        "bridge/src/cli-store.ts",
+        "src/engine/dom/reality-ui.ts",
+        "docs/en/PRIVACY.md",
+        "docs/fr/PRIVACY.md"
+      ],
       "replaces": [
         "docs/en/CONNECTORS.md#what-leaves-a-connector",
         "docs/en/PRIVACY.md#personal-data-what-is-kept-where-for-how-long",
@@ -523,9 +744,12 @@
         "docs/fr/REALITY-OPS.md#conservation-export-suppression"
       ],
       "questions": { "en": [], "fr": [] },
-      "aliases": { "en": [], "fr": [] },
-      "identifiers": [],
-      "related": [],
+      "aliases": {
+        "en": ["PRIVACY", "personal data", "GDPR", "delete my data", "tracking", "retention"],
+        "fr": ["PRIVACY", "données personnelles", "RGPD", "effacer mes données", "pistage", "conservation"]
+      },
+      "identifiers": ["DELETE /v1/admin/players/<id>", "GET /v1/admin/players/<id>"],
+      "related": ["bridge.guarantees", "bridge.install-run", "play.saves"],
       "prerequisites": [],
       "owner": "@wanoo"
     },
@@ -537,16 +761,37 @@
       "context": ["player"],
       "title": { "en": "Player troubleshooting", "fr": "Dépannage pour les joueurs" },
       "url": { "en": "EN-Play-Troubleshooting", "fr": "FR-Jouer-Depannage" },
-      "state": "planned",
-      "sources": [],
+      "state": "ready",
+      "versions": { "appliesFrom": "4.4.0" },
+      "sources": [
+        "src/engine/dom/update.ts",
+        "src/engine/dom/audio.ts",
+        "src/engine/core/save.ts",
+        "src/engine/dom/offline.ts"
+      ],
       "replaces": [],
       "questions": {
-        "en": ["There is no sound in the game", "My save will not load", "The game is incomplete offline", "An update does not show"],
-        "fr": ["Il n'y a pas de son dans le jeu", "Ma sauvegarde ne se charge pas", "Le jeu est incomplet hors ligne", "Une mise à jour n'apparaît pas"]
+        "en": [
+          "There is no sound in the game",
+          "My save will not load",
+          "The game is incomplete offline",
+          "An update does not show",
+          "The game was updated but I still see the old version"
+        ],
+        "fr": [
+          "Il n'y a pas de son dans le jeu",
+          "Ma sauvegarde ne se charge pas",
+          "Le jeu est incomplet hors ligne",
+          "Une mise à jour n'apparaît pas",
+          "Le jeu a été mis à jour mais je vois toujours l'ancienne version"
+        ]
       },
-      "aliases": { "en": [], "fr": [] },
+      "aliases": {
+        "en": ["no sound", "save failed", "old version", "offline", "bug report"],
+        "fr": ["pas de son", "échec de la sauvegarde", "ancienne version", "hors ligne", "signaler un bug"]
+      },
       "identifiers": [],
-      "related": [],
+      "related": ["play.saves", "play.install-app", "create.deploy-issues"],
       "prerequisites": [],
       "owner": "@wanoo"
     },
