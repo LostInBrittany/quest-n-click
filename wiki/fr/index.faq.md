@@ -84,9 +84,9 @@ qui dit le reste. Les réponses valent pour la 4.4.0. Vous ne trouvez pas la vô
 
 ## Anciens liens et anciens noms
 
-- **J’ai un ancien lien vers `docs/fr/CONTENT_GUIDE.md` (ou une autre page de `docs/`).** Jusqu’à la bascule vers ce
-  wiki, `docs/en` et `docs/fr` restent tels quels. À la bascule, chaque ancienne page devient une page de transition qui
-  garde toutes ses anciennes ancres et renvoie vers ses nouvelles pages, avec un repli vers le texte de la 4.4.0 :
+- **J’ai un ancien lien vers `docs/fr/CONTENT_GUIDE.md` (ou une autre page de `docs/`).** Depuis la bascule vers ce
+  wiki (4.5.0), chaque ancienne page est une page de transition qui garde toutes ses anciennes ancres et renvoie vers
+  ses nouvelles pages, avec un repli vers le texte de la 4.4.0 :
   [`blob/v4.4.0/docs/fr/CONTENT_GUIDE.md`](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/fr/CONTENT_GUIDE.md).
   L’appel MCP `read_doc {name: "CONTENT_GUIDE"}` continue de marcher.
 - **Qu’était web-scumm ?** L’ancien nom de ce projet, jusqu’à la 4.2.5

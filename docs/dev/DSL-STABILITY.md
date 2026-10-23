@@ -3,7 +3,7 @@
 What a game's sources may count on. Since 4.1.15 everything below is **frozen**: 4.1.15 is the release candidate of
 4.2, and a change to a name or a meaning waits for 4.2.0's strict SemVer, with its migration. The decision is D22
 (`docs/dev/DECISIONS.md`); the representation the tools read is ADR 0013 (`docs/dev/adr/0013-game-ir-and-fingerprint.md`).
-The reference of every condition and command, generated from the schema, is `docs/en/DSL.md`.
+The reference of every condition and command, generated from the schema, is `wiki/en/create.dsl.md`.
 
 ## Calendar
 
@@ -22,7 +22,7 @@ The reference of every condition and command, generated from the schema, is `doc
 - **Conditions** (`Cond`): a flag (`'flag'`, `'!flag'`), `has`, `flag` with `eq` / `gte` / `lt`, `not`, `all`, `any`,
   `visited`, `room`, `prop`, `unlocked`, `seen`, `actorIn`, `player`. Their evaluation (`core/cond.ts`) is the one the
   runtime, the solver and the validator share.
-- **Commands** (`Cmd`): every key of `CMD_KEYS` (`core/cmds.ts`), with the meaning `docs/en/DSL.md` gives it. A plain
+- **Commands** (`Cmd`): every key of `CMD_KEYS` (`core/cmds.ts`), with the meaning `wiki/en/create.dsl.md` gives it. A plain
   string is the hero's line. `reveal` stays the old name of `ending` until 5.0.
 - **The game** (`GameDef`): `schemaVersion: 3`, stable ids on rules, topics, listeners, choices, blocks and script
   steps (`core/content-ids.ts`), `rooms`, `rules`, `scripts`, `events`, `start`, `checkpoints` with `goals`,
@@ -80,7 +80,7 @@ none of them keeps its logic fingerprint, its saves and its replays.
   exactly, `*=` then the first text as the fallback, no nesting, no escaping, a malformed switch left as written);
   `hero` joins `item`, `target`, `name`, `code:` and `hint:` as a reserved placeholder word. Text is presentation.
 - **Voice keys by value**: a line with switches looks up `<id>~<flag>=<value>` (flags sorted, joined by `~`) before its
-  plain id, in `audio.voices` and `audio.voicesByLang` (`docs/en/AUDIO.md`).
+  plain id, in `audio.voices` and `audio.voicesByLang` (`wiki/en/create.voices.md`).
 
 ## The candidate primitives (programme §8.3)
 
@@ -91,7 +91,7 @@ express it (programme §3, D22). The candidates, each with its verdict and its p
 |---|---|---|---|
 | Narration | objectives and sub-objectives | **admitted** (ADR 0014) | 4.1.14's splits need a named, ordered "done" per step; checkpoints' `goals` are chapter ends the solver reads, not a player's journal (no title, no parent, no event). `demo` and `reference` declare 4 each. |
 | Narration | quest journal | **admitted** with objectives | the pause menu's list reads `objectives`; no second primitive. |
-| Narration | named dialogue states | refused, the existing ones suffice | a topic's `if` over a flag, an `nth` block inside it, and `{ seen: 'topic.<id>' }` (`games/demo/rooms/garden.ts`: Grandpa's two topics about the key, switched by `tank_drained`; `docs/en/CLASSICS.md`, the insult fight). |
+| Narration | named dialogue states | refused, the existing ones suffice | a topic's `if` over a flag, an `nth` block inside it, and `{ seen: 'topic.<id>' }` (`games/demo/rooms/garden.ts`: Grandpa's two topics about the key, switched by `tank_drained`; `wiki/en/create.classics.md`, the insult fight). |
 | Narration | parallel sequences | refused, the existing ones suffice | `{ parallel: [[…], […]] }` and world scripts (`scripts`, `tests/fixtures/world.ts`). |
 | Narration | rendezvous in time | refused without proof (sheet) | no game asks for it; a script's `{ wait }` then `waitUntil` covers a timed scene. |
 | Narration | real-world events | refused, the existing ones suffice | a Reality signal is an event (`reality.signals`, `events: [{ on }]`, `games/signals`). |

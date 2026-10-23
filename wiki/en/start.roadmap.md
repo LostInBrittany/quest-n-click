@@ -224,5 +224,5 @@ Today's list for a change: [Before a pull request](contribute.before-a-pr.md).
   [Decisions and ADRs](contribute.decisions.md).
 - The roadmap as written up to 4.4.0:
   [`blob/v4.4.0/docs/en/ROADMAP.md`](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/en/ROADMAP.md).
-- [`docs/en/BENCH.md`](../../docs/en/BENCH.md) for the solver's measures,
+- [Benchmarks](contribute.benchmarks.md) for the solver's measures,
   [`docs/dev/PROOF-MATRIX.md`](../../docs/dev/PROOF-MATRIX.md) for the matrix of three-character games.

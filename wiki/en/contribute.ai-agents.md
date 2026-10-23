@@ -47,7 +47,7 @@ connectors/      the connectors of the world outside (the package quest-n-click-
 wiki/            the documentation, in English and French (4.5.0); docs/dev: the work log, the decisions, each release's passes
 ```
 
-Until 4.5.0 the documentation lived in `docs/en` and `docs/fr`; they become transition pages pointing to the wiki. The
+Until 4.5.0 the documentation lived in `docs/en` and `docs/fr`; they are now transition pages pointing to the wiki. The
 engine, the solver and the replay share one code path ([Architecture](contribute.architecture.md),
 [Code tour](contribute.code-tour.md)).
 

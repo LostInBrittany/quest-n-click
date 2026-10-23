@@ -41,6 +41,7 @@ const ROOTS = [
   'games',
   'public',
   'docs',
+  'wiki',
   'src',
   'tools',
   'scripts',

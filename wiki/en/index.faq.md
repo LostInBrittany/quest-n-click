@@ -79,9 +79,9 @@ answers hold for 4.4.0. Can't find yours? Search this wiki, or see [What quest'n
 
 ## Old links and old names
 
-- **I have an old link to `docs/en/CONTENT_GUIDE.md` (or another `docs/` page).** Until the switch-over to this wiki,
-  `docs/en` and `docs/fr` stay as they are. At the switch-over, each old page becomes a transition page that keeps
-  every old anchor and links to its new pages, with a fallback to the 4.4.0 text:
+- **I have an old link to `docs/en/CONTENT_GUIDE.md` (or another `docs/` page).** Since the switch-over to this wiki
+  (4.5.0), each old page is a transition page that keeps every old anchor and links to its new pages, with a fallback
+  to the 4.4.0 text:
   [`blob/v4.4.0/docs/en/CONTENT_GUIDE.md`](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/en/CONTENT_GUIDE.md).
   The MCP call `read_doc {name: "CONTENT_GUIDE"}` keeps working.
 - **What was web-scumm?** This project's former name, until 4.2.5 ([What quest'n'click is](start.what-it-is.md#history),

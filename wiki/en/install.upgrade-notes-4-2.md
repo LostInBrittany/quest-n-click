@@ -16,7 +16,7 @@ same content is now in the Team, Clever and Create pages of this wiki.
 Nothing to change: 4.2.0 is 4.1.20's code with the version changed and one Field Kit fix. From 4.2.0 on, strict
 SemVer: a 4.2.x only fixes, a 4.x minor only adds. The engine still installs from the release's archive
 (`releases/download/v4.2.0/…`); npm publishing comes in a later 4.2.x. What 4.2.0 calls stable, limited or
-experimental is in `docs/en/SUPPORT.md` (D38).
+experimental is in [Stability and support](start.stability.md) (D38).
 
 <a name="from-4-2-0-to-4-2-1"></a>
 <!-- applies: 4.2.1.. -->
@@ -37,7 +37,7 @@ author may notice:
   names it still loads.
 
 The engine installs from `releases/download/v4.2.1/…`. To put a Studio online for a team, see
-`docs/en/STUDIO-SERVER.md` (experimental in 4.2.1).
+[What runs where](team.what-runs-where.md) (experimental in 4.2.1).
 
 <a name="from-4-2-1-to-4-2-2"></a>
 <!-- applies: 4.2.2.. -->
@@ -50,7 +50,7 @@ installs from `releases/download/v4.2.2/…`. For a hosted Studio:
 - **Vite has left the server**: the game's origin serves the previews the processing worker builds, one per revision.
   The worker needs the engine's Vite to build (its install has it).
 - **The database migrates at start** (migrations 0006 to 0010: previews, health, undo, builds, prepared sets).
-- **The asset tools on the worker**: set the worker's `CC_POST_BUILD_HOOK` as `docs/en/STUDIO-SERVER.md` says (their
+- **The asset tools on the worker**: set the worker's `CC_POST_BUILD_HOOK` as [What runs where](team.what-runs-where.md) says (their
   Python packages, locked with hashes); without it, "Prepare assets" (the Play tab's
   button) fails and shows the worker's error. Deploy this worker from the repository: installed from the archives, it
   cannot run `prepare` in 4.2.2 (4.2.3 ships the lock).

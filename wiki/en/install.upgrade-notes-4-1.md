@@ -1,7 +1,7 @@
 # Upgrade notes: 4.1
 
 What each release of the 4.1 line changed, from 4.0 to 4.1.20, kept unchanged. The 4.1 line could still break, each break with its
-migration (`docs/en/SUPPORT.md`); strict SemVer starts at 4.2.0. Two breaks matter to a game upgraded across it: the
+migration ([Stability and support](start.stability.md)); strict SemVer starts at 4.2.0. Two breaks matter to a game upgraded across it: the
 save envelope v4 (4.1.15, §27; every older save still loads) and the `.wsrun` schema 2 (4.1.16, §28). Others concern
 a host that wrote its own `RunStore` (§28, §29) and a Bridge operator (§31, §32).
 
@@ -26,7 +26,7 @@ those of 4.0.0 (`tests/api-surface.json` is the same); `npm install` of the new 
 ## 13. From 4.1.0 to 4.1.1 "Reality Bridge"
 
 Nothing to change: every addition is optional. A game that wants signals from outside declares `reality`
-(`docs/en/REALITY.md`), adds scenarios under `reality/scenarios/`, and runs a Bridge (`web-scumm bridge`, or the
+([The Reality Bridge: what it is](bridge.what-it-is.md)), adds scenarios under `reality/scenarios/`, and runs a Bridge (`web-scumm bridge`, or the
 package `web-scumm-bridge`). A 4.1.0 save loads; it gets a `reality` state only when a signal is applied.
 
 <a name="from-4-1-1-to-4-1-2"></a>
@@ -88,7 +88,7 @@ do). `npm run doctor` exits 0 when only Python, ffmpeg or WebKit are missing. `r
 
 Nothing to change in a game or a host: 4.1.7 changes documentation, tests and the repository's templates, no code a
 game runs. A 4.1.6 save loads unchanged. If you keep a fork of `AGENTS.md`, its rule 14 and the "Working in pairs"
-section are gone; `docs/en/TUTORIAL.md` is the page to hand a newcomer.
+section are gone; [Your first game](create.first-game.md) is the page to hand a newcomer.
 
 <a name="from-4-1-7-to-4-1-8"></a>
 <!-- applies: 4.1.8.. -->
@@ -102,13 +102,13 @@ configuration, said relative to the file; a comment the file had is not kept), `
 `typescript@7` and imports `@typescript/typescript6` instead until 7.1 (docs/dev/MIGRATION-4.1.8.md). Vite 8 and
 Vitest 5 need Node 22.12 or newer. The service worker claims the page at its first activation (`clientsClaim`), so a
 first visit's warm-up fills the caches; an update still waits for the banner, after a durable save. Every name of
-`web-scumm/{content,player,minigames,testing,reality}` carries `@public` or `@extension` in `docs/en/API.md`: what
+`web-scumm/{content,player,minigames,testing,reality}` carries `@public` or `@extension` in [Public API](engine.api.md): what
 `src/engine` exports without an entry re-exporting it is internal, and about eighty such exports were un-exported or
 removed (none of the five entries changed; `tests/api-surface.json` is identical). `npm run doctor -- --release`
 requires Python, its modules and ffmpeg; `npm run quality:baseline` writes the READMEs' three figures with the JSON,
 so a new test is followed by that command. A signal delivered and not acknowledged is delivered again from the
 durable cursor: a custom transport implementing `WorldSignalPort` keeps the acknowledged sequence, not the received
-one (`docs/en/REALITY.md`).
+one ([The Reality Bridge: what it is](bridge.what-it-is.md)).
 
 <a name="from-4-1-8-to-4-1-9"></a>
 <!-- applies: 4.1.9.. -->
@@ -120,7 +120,7 @@ may declare `reality.connectors` (the words its connectors may propose: optional
 fourth package, `web-scumm-connectors`, installed beside the Bridge on a server, never in the player: `npm run build`
 now refuses a game's JavaScript that carries server code (`verify:dist`). `ssh2`'s install script attempts a native
 build and fails for lack of headers: no `.node` file results, and `--ignore-scripts` is the documented install
-(`docs/en/CONNECTORS.md`). A contributor writes `changes/<slug>.md` instead of editing the CHANGELOG (`changes/README.md`).
+([Connectors overview](bridge.connectors.md)). A contributor writes `changes/<slug>.md` instead of editing the CHANGELOG (`changes/README.md`).
 
 <a name="from-4-1-9-to-4-1-10"></a>
 <!-- applies: 4.1.10.. -->
@@ -146,7 +146,7 @@ returns the link's `sessionId`). A 4.1.9 `config.json` serves from its journal a
 `--trust-proxy` alone now trusts the loopback only; name other proxies with `--trust-proxy=<addresses or networks>`. **Behind a proxy that is not on the loopback (a PaaS's router, a load balancer on another host), every client now
 falls into the proxy's one rate bucket** (60 anonymous requests a minute for everyone) until `--trust-proxy=<its
 network>` names it.
-Several tenants and several instances: `docs/en/REALITY-OPS.md`.
+Several tenants and several instances: [Install and run the Bridge](bridge.install-run.md).
 
 <a name="from-4-1-10-to-4-1-11"></a>
 <!-- applies: 4.1.11.. -->
@@ -202,7 +202,7 @@ softlock cause in `npm run solve -- --json` now carries its session entries, whi
 ## 26. From 4.1.13 to 4.1.14 "Time Attack"
 
 No authoring format changes: a 4.1.13 game and its saves load unchanged, and `speedrun` is an optional field
-(`docs/en/SPEEDRUN.md`). What a host or a tool may see differently:
+([Speedrun for authors](create.speedrun.md)). What a host or a tool may see differently:
 
 - **`SESSION_MAX` is 500, not 5,000.** The 501st input of a session starts a new session from the current state (kind
   `load`), as the 5,001st did. A host that reads `Engine.session` (or `Engine.sessions`) to export a bug report gets at
@@ -238,7 +238,7 @@ Remix world refuses to load into another world (`SaveWorldMismatch`, which names
 `applyVariant`). A 4.1.15 save does not load on 4.1.14 (its schema is unknown there): downgrades are not supported.
 
 **Everything else is additive.** A game may declare `remix` (a variation manifest) and its rooms `anchors`
-(`docs/en/REMIX.md`); without them nothing changes: one world, the story, the same IR and the same fingerprint. The
+([Remix](create.remix.md)); without them nothing changes: one world, the story, the same IR and the same fingerprint. The
 reserved flags `remix.*` are written by the engine: a game that already used a flag named `remix.<something>` renames
 it (the validator refuses a command that sets one; none in the bundled games). A game with a manifest shows a **Remix** button on its
 title screen and a world row in its pause menu: a game whose release language is not English adds the `ui.remix*`
@@ -321,7 +321,7 @@ Postgres) to carry elsewhere; `npm run ops:qualify` rehearses it. The release no
 `web-scumm-connectors-<version>.tgz`.
 
 **For maintainers.** The people's passes are Field Kit reports (`npm run field:init|check|report|bundle`,
-`docs/en/FIELD.md`) and open `field-pass` issues; the release notes count only `passed` as done. Every mutation set is
+[Field passes](contribute.field-passes.md)) and open `field-pass` issues; the release notes count only `passed` as done. Every mutation set is
 gated (`connectors` and `reality-store` too); `release.yml` asks the tag's own `GATED`. `npm run external-consumer`
 installs the four archives outside the repository. The golden save of 4.1.18 joins `tests/save-v3.test.ts`.
 
@@ -387,7 +387,7 @@ instead.
   nothing. A script of 4.1.19 adds `--mode=merge`: 4.1.19's restore unchanged for a file of schema 1 to 3 (`--force`
   included); a schema 4 file also speaks for its tenants' speedrun quotas, unless it is a journal's (`tenants-only`).
   `--mode=replace-store --yes-replace-store --safety-out=<new file>` is new: it makes the store the backup
-  (`docs/en/REALITY-OPS.md`).
+  ([Install and run the Bridge](bridge.install-run.md)).
 - **A backup is schema 4.** It carries the speedrun quota, says what it holds (`completeness`) and has a digest of the
   whole envelope. Files of schemas 1 to 3 are still read, for `--mode=merge` only: nothing under their digest says that
   they hold every family, so `replace-store` refuses them. Two backups of the same store no longer share a digest,

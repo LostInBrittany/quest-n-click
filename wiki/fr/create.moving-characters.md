@@ -111,7 +111,7 @@ le garde s'arrête est gardé dans la sauvegarde.
 
 <!-- step: starting-room -->
 5. **Donnez au personnage une salle de départ.** Un personnage déclaré comme acteur dans plusieurs salles se montre
-   normalement dans toutes (Mamie dans la cuisine *et* dans le jardin). Donnez-lui une `room`, et seul son acteur de
+   normalement dans toutes (Grand-mère dans la cuisine *et* dans le jardin). Donnez-lui une `room`, et seul son acteur de
    cette salle se montre ; `moveActor` l'envoie ailleurs :
 
    ```ts

@@ -16,7 +16,7 @@ The full types, with their comments, are in [`src/engine/core/types.ts`](../../s
 re-exports the files of `src/engine/core/types/` (split by subject in 4.1.0). Your editor offers them as autocomplete.
 The generated [DSL reference](create.dsl.md) lists every command and condition.
 
-These pages replace the old `docs/en/CONTENT_GUIDE.md`, split by question. From the 4.5 switch-over, that old file is
+These pages replace the old `docs/en/CONTENT_GUIDE.md`, split by question. Since the 4.5 switch-over, that old file is
 a transition page: it keeps every old anchor, each old heading links to its new destinations here, and a fallback link
 to `blob/v4.4.0/docs/en/CONTENT_GUIDE.md` always works.
 

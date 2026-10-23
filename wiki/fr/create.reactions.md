@@ -66,7 +66,7 @@ export const rules = {
   },
   kinds: [
     { verb: 'pull', kind: 'cat', say: 'Non ! On ne tire jamais la queue d’un chat.' },
-    { verb: 'take', target: 'grandma', say: 'Mamie a déjà bien assez à porter.' },   // cible précise : passe en premier
+    { verb: 'take', target: 'grandma', say: 'Grand-mère a déjà bien assez à porter.' },   // cible précise : passe en premier
     { verb: 'take', kind: 'person', say: 'Je ne peux pas porter {name}. Mais {name} pourrait me porter.' },
     { verb: 'use', item: 'stinky_cheese', kind: 'person', say: 'Non. Même moi, je ne suis pas si méchant.' },
   ],

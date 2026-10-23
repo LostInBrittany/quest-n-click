@@ -158,7 +158,7 @@ Biome formats and lints the code (`biome.json`: two spaces, 120 columns, single 
 ### Constraints
 
 A pull request that changes what a user sees updates the pages in both languages (the template's second checkbox).
-`docs/en` and `docs/fr` are frozen while the wiki is written (4.5.0): a change there must be carried into `wiki/`.
+`docs/en` and `docs/fr` are transition pages since 4.5.0: never edit them, write in `wiki/`.
 
 <a name="review-owners"></a>
 

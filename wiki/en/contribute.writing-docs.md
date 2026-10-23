@@ -17,9 +17,9 @@ generated, and its next publication overwrites it.
 
 ## Context and versions
 
-The engine repository. The wiki's tooling is new in 4.5.0 (ADR 0030, D50, `docs/dev/PLAN-4.5-WIKI.md`). During the
-4.5.0 migration `docs/en` and `docs/fr` are frozen: they stay the readers' source until the switch-over, and a change
-there must be carried into `wiki/` too. Publication happens only from a release, after `ship verify`, never from
+The engine repository. The wiki's tooling is new in 4.5.0 (ADR 0030, D50, `docs/dev/PLAN-4.5-WIKI.md`). Since the
+4.5.0 switch-over `docs/en` and `docs/fr` are transition pages that `npm run wiki -- transition` writes from the
+coverage matrix: never edit them, write in `wiki/`. Publication happens only from a release, after `ship verify`, never from
 `main` ([Releasing](contribute.releasing.md)).
 
 <a name="prerequisites"></a>
@@ -336,8 +336,9 @@ never in CI.
 `wiki/coverage.json` lists every section of the old documentation (`docs/en`, `docs/fr`, `CONTRIBUTING`, `SECURITY`,
 `CODE_OF_CONDUCT`, `CREDITS`, both READMEs) with its destinations `id#section` and two counters, "destinations
 planned" and "content migrated and reviewed". No content may be lost: every fact, command, example, limit and warning
-of a replaced section lands in one of its destination pages. `wiki -- check` refuses a matrix out of step with `docs/`
-(`docs/ is frozen`): a change to the old pages runs `npm run wiki -- coverage`, then is carried into the wiki pages.
+of a replaced section lands in one of its destination pages. Until the switch-over, `wiki -- check` refused a matrix out
+of step with `docs/` (the freeze). Since it (4.5.0) the matrix is final: the old pages are the transition pages it makes
+(`npm run wiki -- transition`), and `wiki -- check` refuses one edited by hand or one that lost an old anchor.
 
 <a name="drift"></a>
 

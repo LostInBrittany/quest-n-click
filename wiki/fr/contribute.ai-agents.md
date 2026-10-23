@@ -50,7 +50,7 @@ connectors/      les connecteurs du monde extérieur (le package quest-n-click-c
 wiki/            la documentation, en anglais et en français (4.5.0) ; docs/dev : le journal de travail, les décisions, les passes de chaque release
 ```
 
-Jusqu'à la 4.5.0, la documentation vivait dans `docs/en` et `docs/fr` ; ils deviennent des pages de transition vers le
+Jusqu'à la 4.5.0, la documentation vivait dans `docs/en` et `docs/fr` ; ce sont désormais des pages de transition vers le
 wiki. Le moteur, le solveur et le rejeu partagent un seul chemin de code ([Architecture](contribute.architecture.md),
 [Visite du code](contribute.code-tour.md)).
 

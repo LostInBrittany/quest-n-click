@@ -17,9 +17,9 @@ wiki GitHub n'est pas conservée : le wiki est généré, et sa publication suiv
 
 ## Contexte et versions
 
-Le dépôt du moteur. L'outillage du wiki est nouveau en 4.5.0 (ADR 0030, D50, `docs/dev/PLAN-4.5-WIKI.md`). Pendant la
-migration de la 4.5.0, `docs/en` et `docs/fr` sont gelés : ils restent la source des lecteurs jusqu'à la bascule, et un
-changement là doit aussi être reporté dans `wiki/`. La publication ne part que d'une release, après `ship verify`,
+Le dépôt du moteur. L'outillage du wiki est nouveau en 4.5.0 (ADR 0030, D50, `docs/dev/PLAN-4.5-WIKI.md`). Depuis la
+bascule de la 4.5.0, `docs/en` et `docs/fr` sont des pages de transition que `npm run wiki -- transition` écrit depuis
+la matrice de couverture : ne les modifiez jamais, écrivez dans `wiki/`. La publication ne part que d'une release, après `ship verify`,
 jamais de `main` ([Publier une release](contribute.releasing.md)).
 
 <a name="prerequisites"></a>
@@ -340,9 +340,10 @@ avant une release, jamais en CI.
 `wiki/coverage.json` liste chaque section de l'ancienne documentation (`docs/en`, `docs/fr`, `CONTRIBUTING`,
 `SECURITY`, `CODE_OF_CONDUCT`, `CREDITS`, les deux README) avec ses destinations `id#section` et deux compteurs,
 « destinations prévues » et « contenu migré et relu ». Aucun contenu ne doit se perdre : chaque fait, commande, exemple,
-limite et avertissement d'une section remplacée arrive dans une de ses pages de destination. `wiki -- check` refuse une
-matrice décalée par rapport à `docs/` (`docs/ is frozen`) : un changement des anciennes pages lance
-`npm run wiki -- coverage`, puis est reporté dans les pages du wiki.
+limite et avertissement d'une section remplacée arrive dans une de ses pages de destination. Jusqu'à la bascule,
+`wiki -- check` refusait une matrice décalée par rapport à `docs/` (le gel). Depuis (4.5.0), la matrice est définitive :
+les anciennes pages sont les pages de transition qu'elle fait (`npm run wiki -- transition`), et `wiki -- check` refuse
+une page modifiée à la main ou qui a perdu une ancienne ancre.
 
 <a name="drift"></a>
 

@@ -174,7 +174,9 @@ From 4.5.0, three tools read this wiki ([`tools/studio/tools.ts`](../../tools/st
 
 `read_doc { name }` still answers as in 4.4.0: one of the eight historical pages (`CONTENT_GUIDE`, `ENGINE`, `TOOLS`,
 `STUDIO`, `WORKFLOW`, `AUDIO`, `UPGRADING`, `CLASSICS`), whole, in one text block; the other arguments are then
-ignored. Giving both `name` and `id`, or neither, is a tool error: `give either name (one of the 8 legacy pages) or id,
+ignored. Since 4.5.0 that page is rebuilt from the wiki's sections in the old page's order (`wiki/legacy.json`), within
+1.5 times its 4.4.0 size: when the sections say more, the longest give their heading, their first paragraph and the
+`read_doc { id, section }` that returns the rest. Giving both `name` and `id`, or neither, is a tool error: `give either name (one of the 8 legacy pages) or id,
 not both`. In the engine repository the tools read `wiki/` as it is (draft pages included, said so in the
 provenance); in an installed package they read its documentation bundle (ready pages only).
 

@@ -24,10 +24,9 @@ To regenerate it, in a clone of the engine repository, from its root folder:
 npm run wiki -- generate create.dsl
 ```
 
-`npm run wiki -- check` fails when this page is behind the schemas. Until the switch-over to the wiki, the same
-reference is also written into `docs/en/DSL.md` and `docs/fr/DSL.md` by `npx tsx tools/dsl-doc.ts` (run in the
-engine repository; `--check` exits 1 when a page is behind), and
-[`tests/dsl-doc.test.ts`](../../tests/dsl-doc.test.ts) fails when those pages are behind. A created project reads the
+`npm run wiki -- check` fails when this page is behind the schemas. `npx tsx tools/dsl-doc.ts` writes it again (run in
+the engine repository; `--check` exits 1 when the page is behind), as `npm run wiki -- generate create.dsl` does, and
+[`tests/dsl-doc.test.ts`](../../tests/dsl-doc.test.ts) fails when it is behind. A created project reads the
 same vocabulary from its installed engine: there is nothing to generate there.
 
 <a name="stability"></a>

@@ -11,7 +11,7 @@ son état, les changements de palette, et les personnages que l'on voit sans pou
 ```ts
 characters: {
   grandma: {
-    name: 'Mamie', color: '#f0c040', height: 124, kind: ['person'],
+    name: 'Grand-mère', color: '#f0c040', height: 124, kind: ['person'],
     portrait: 'grandma/r1c2',
     sprites: { idle: ['grandma/r3c3'], talk: ['grandma/r3c4', 'grandma/r3c3'], walk: ['grandma/r2c1', 'grandma/r2c2', …] },
     refuse: 'C’est gentil, mon chat. Mais garde-le, tu en auras besoin pour ta course.',

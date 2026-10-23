@@ -1,4 +1,4 @@
-// Playwright playthrough of "Who Am I Today?" (games/heroes, 4.4.0; scripts/e2e.mjs loads it, docs/en/TOOLS.md).
+// Playwright playthrough of "Who Am I Today?" (games/heroes, 4.4.0; scripts/e2e.mjs loads it, wiki/en/reference.npm-scripts.md).
 // For each language (English, then French with `?lang=`) and each of the three heroes, from the real title screen:
 //   - New game; the intro's three portrait cards (Choice.img), each with its image loaded and its label; the hero's card
 //     is tapped;

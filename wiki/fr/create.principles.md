@@ -16,8 +16,8 @@ Les types complets, commentés, sont dans [`src/engine/core/types.ts`](../../src
 les fichiers de `src/engine/core/types/` (découpés par sujet en 4.1.0). Votre éditeur les propose en autocomplétion.
 La [référence du DSL](create.dsl.md), générée, liste chaque commande et chaque condition.
 
-Ces pages remplacent l'ancien `docs/fr/CONTENT_GUIDE.md`, découpé par question. À partir de la bascule de la 4.5, cet
-ancien fichier devient une page de transition : il garde toutes ses anciennes ancres, chaque ancien titre renvoie à
+Ces pages remplacent l'ancien `docs/fr/CONTENT_GUIDE.md`, découpé par question. Depuis la bascule de la 4.5, cet
+ancien fichier est une page de transition : il garde toutes ses anciennes ancres, chaque ancien titre renvoie à
 ses nouvelles destinations ici, et un lien de secours vers `blob/v4.4.0/docs/fr/CONTENT_GUIDE.md` marche toujours.
 
 <a name="principles"></a>

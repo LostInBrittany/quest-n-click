@@ -67,7 +67,7 @@ que chaque fichier n'est pas remplacé et sa provenance relue (`quest-n-click pr
 ### Ce que c'est
 
 Un point-and-click de 15 minutes qui montre chaque fonctionnalité du moteur une fois. Pixel le chat veut les sardines ;
-Mamie les a enfermées dans le garde-manger et a perdu la clé. Trois lieux : la maison de Mamie, le jardin, le marché.
+Grand-mère les a enfermées dans le garde-manger et a perdu la clé. Trois lieux : la maison de Grand-mère, le jardin, le marché.
 Conception : `games/demo/STORY.md` ; chaque réplique : `games/demo/storyboard.json`.
 
 ### Ce qu'on y lit

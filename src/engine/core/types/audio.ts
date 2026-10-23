@@ -6,7 +6,7 @@ export interface AudioDef {
   music?: Record<Id, string>;
   sfx?: Record<Id, string>;
   /** Voice clips (`games/<id>/audio/voice/<file>`), played by `say` with `voice`. A line whose text has switches looks
-   *  up `<id>~<flag>=<value>` (flags sorted, `~` between them) before its plain id (4.3.0, docs/en/AUDIO.md). */
+   *  up `<id>~<flag>=<value>` (flags sorted, `~` between them) before its plain id (4.3.0, wiki/en/create.voices.md#text-switches). */
   voices?: Record<Id, string>;
   /** The clips of the other languages (3.4), by language: a translated game plays these instead (`npm run voices`). */
   voicesByLang?: Record<string, Record<Id, string>>;

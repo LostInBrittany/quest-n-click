@@ -8,7 +8,7 @@ pas à pas ; la seconde liste les champs.
 
 ## Ce que vous allez construire
 
-Mamie, dans la cuisine, avec quatre sujets : un qui fait avancer l'histoire, un gag récurrent qui change à chaque
+Grand-mère, dans la cuisine, avec quatre sujets : un qui fait avancer l'histoire, un gag récurrent qui change à chaque
 fois, un qui n'apparaît qu'une fois la citerne vidée, et un pari que le joueur choisit entre deux réponses. Lui parler
 ouvre le menu des sujets ; « Au revoir » le ferme.
 
@@ -54,7 +54,7 @@ La salle entière, vérifiée par le validateur :
     "name": "La cuisine",
     "decor": "decor/kitchen",
     "actors": { "grandma": { "char": "grandma", "facing": "left" } },
-    "look": { "grandma": "Mamie, qui touille une marmite." },
+    "look": { "grandma": "Grand-mère, qui touille une marmite." },
     "talk": {
       "grandma": [
         { "id": "ask.key", "topic": "Où est la clé ?",
@@ -74,7 +74,7 @@ La salle entière, vérifiée par le validateur :
           ] }] }
       ]
     },
-    "hints": [{ "id": "kitchen.hint", "until": "key_hint", "lines": ["Demande la clé à Mamie."] }]
+    "hints": [{ "id": "kitchen.hint", "until": "key_hint", "lines": ["Demande la clé à Grand-mère."] }]
   },
   "layout": {
     "walk": { "area": [[20, 300], [620, 300], [630, 395], [10, 395]] },
@@ -82,7 +82,7 @@ La salle entière, vérifiée par le validateur :
     "actors": { "grandma": { "x": 420, "y": 350 } }
   },
   "characters": {
-    "grandma": { "name": "Mamie", "color": "#ff9ec4", "kind": ["person"], "sprites": { "idle": ["grandma/idle"] },
+    "grandma": { "name": "Grand-mère", "color": "#ff9ec4", "kind": ["person"], "sprites": { "idle": ["grandma/idle"] },
       "hug": "Toujours.", "refuse": "Garde-le, mon chat." }
   }
 }
@@ -137,15 +137,15 @@ Parler ([réactions](create.reactions.md#fallbacks)).
 
 ## Bien écrire les dialogues
 
-- **2 à 4 sujets par personnage, dont un qui fait avancer l'histoire.** Mamie : « Où est la clé ? » (l'intrigue),
+- **2 à 4 sujets par personnage, dont un qui fait avancer l'histoire.** Grand-mère : « Où est la clé ? » (l'intrigue),
   « Qu'est-ce qu'on mange ? » (un gag avec `nth`), « Pourquoi enfermer les sardines ? » (le personnage). Le sujet de
   l'intrigue vient en premier.
 - **Les sujets peuvent apparaître et changer** avec `if`.
 - **`choice` avec parcimonie.** Servez-vous-en quand la réponse du joueur est amusante à choisir, pas pour faire
   bifurquer l'histoire. La démo en a deux : le pari d'ouverture (il pose `guess`, jugé à la fin) et le « discuter ou
   accepter » de Lou, où les deux réponses font avancer.
-- **Les couleurs de parole** viennent du `color` de chaque personnage. Faites-les distinctes : Mamie `#ff9ec4`, Papi
-  `#8fd3ff`, Lou `#b8ff8f`, la marchande `#ffb36b`. La voix des indices de la démo reprend exprès la couleur de Mamie.
+- **Les couleurs de parole** viennent du `color` de chaque personnage. Faites-les distinctes : Grand-mère `#ff9ec4`, Papi
+  `#8fd3ff`, Lou `#b8ff8f`, la marchande `#ffb36b`. La voix des indices de la démo reprend exprès la couleur de Grand-mère.
 - **La transcription garde chaque réplique.** Les joueurs remontent : ne cachez pas le seul indice dans une réplique
   dite pendant une cinématique, sans autre trace.
 - **Longueur d'une réplique sur téléphone : moins de 90 caractères**, deux lignes à l'écran. `validate` prévient

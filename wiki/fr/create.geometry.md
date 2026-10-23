@@ -81,7 +81,7 @@ cible hors de la zone est remplacée par **le point le plus proche à l'intérie
 possible, puis l'action continue de là. Une salle sans `walk` se parcourt en ligne droite, partout.
 
 `scale` règle la taille d'un personnage selon la profondeur de ses pieds : dans le modèle, 0,8 à y 250 et 1 à y 396.
-Les tailles des personnages sont en unités logiques (dans la démo, Pixel mesure 36, Mamie 120).
+Les tailles des personnages sont en unités logiques (dans la démo, Pixel mesure 36, Grand-mère 120).
 
 <a name="hit-test"></a>
 

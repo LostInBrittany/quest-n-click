@@ -1,7 +1,7 @@
 # Notes de mise à jour : 4.1
 
 Ce que chaque release de la ligne 4.1 a changé, de la 4.0 à la 4.1.20, conservé tel quel. La ligne 4.1 pouvait encore
-casser, chaque rupture avec sa migration (`docs/fr/SUPPORT.md`) ; le SemVer strict commence à la 4.2.0. Deux ruptures
+casser, chaque rupture avec sa migration ([Stabilité et support](start.stability.md)) ; le SemVer strict commence à la 4.2.0. Deux ruptures
 comptent pour un jeu qui la traverse : l'enveloppe de sauvegarde v4 (4.1.15, §27 ; toute sauvegarde plus ancienne se
 charge encore) et le schéma 2 des `.wsrun` (4.1.16, §28). Les autres visent un hôte qui a écrit son propre `RunStore`
 (§28, §29) et l'opérateur d'un Bridge (§31, §32).
@@ -27,7 +27,7 @@ reste pendant toute la 4.x), et `npm run quality` ajoute Biome et le TypeScript 
 ## 13. De la 4.1.0 à la 4.1.1 « Reality Bridge »
 
 Rien à changer : chaque ajout est optionnel. Un jeu qui veut des signaux de l'extérieur déclare `reality`
-(`docs/fr/REALITY.md`), ajoute des scénarios sous `reality/scenarios/`, et fait tourner un Bridge (`web-scumm bridge`, ou
+([Le Reality Bridge : ce que c'est](bridge.what-it-is.md)), ajoute des scénarios sous `reality/scenarios/`, et fait tourner un Bridge (`web-scumm bridge`, ou
 le paquet `web-scumm-bridge`). Une sauvegarde 4.1.0 se charge ; elle reçoit un état `reality` seulement quand un signal
 est appliqué.
 
@@ -92,7 +92,7 @@ nouveau si les vôtres sont plus anciens. Une sauvegarde 4.1.5 se charge telle q
 
 Rien à changer dans un jeu ni dans un hôte : la 4.1.7 change la documentation, les tests et les modèles du dépôt,
 aucun code qu'un jeu exécute. Une sauvegarde 4.1.6 se charge telle quelle. Si vous gardez une copie d'`AGENTS.md`, sa
-règle 14 et la section « Working in pairs » ont disparu ; `docs/fr/TUTORIAL.md` est la page à donner à un nouveau
+règle 14 et la section « Working in pairs » ont disparu ; [Votre premier jeu](create.first-game.md) est la page à donner à un nouveau
 venu.
 
 <a name="from-4-1-7-to-4-1-8"></a>
@@ -108,13 +108,13 @@ du moteur tournent sur TypeScript 7 (`npm run tsc`) ; un outil à vous qui impor
 (docs/dev/MIGRATION-4.1.8.md). Vite 8 et Vitest 5 demandent Node 22.12 ou plus. Le service worker prend le contrôle
 de la page à sa première activation (`clientsClaim`), donc le préchargement d'une première visite remplit les caches ;
 une mise à jour attend toujours la bannière, après une sauvegarde durable. Chaque nom de
-`web-scumm/{content,player,minigames,testing,reality}` porte `@public` ou `@extension` dans `docs/fr/API.md` : ce que
+`web-scumm/{content,player,minigames,testing,reality}` porte `@public` ou `@extension` dans [API publique](engine.api.md) : ce que
 `src/engine` exporte sans qu'une entrée le réexporte est interne, et environ quatre-vingts exports de ce genre ont
 été dé-exportés ou retirés (aucune des cinq entrées n'a changé ; `tests/api-surface.json` est identique).
 `npm run doctor -- --release` exige Python, ses modules et ffmpeg ; `npm run quality:baseline` écrit les trois chiffres
 des README avec le JSON, donc un test de plus est suivi de cette commande. Un signal livré et non acquitté est livré
 de nouveau depuis le curseur durable : un transport maison qui implémente `WorldSignalPort` garde la séquence
-acquittée, pas la séquence reçue (`docs/fr/REALITY.md`).
+acquittée, pas la séquence reçue ([Le Reality Bridge : ce que c'est](bridge.what-it-is.md)).
 
 <a name="from-4-1-8-to-4-1-9"></a>
 <!-- applies: 4.1.9.. -->
@@ -126,7 +126,7 @@ identique). Un jeu peut déclarer `reality.connectors` (les mots que ses connect
 validé). Les connecteurs sont un quatrième paquet, `web-scumm-connectors`, installé à côté du Bridge sur un serveur,
 jamais dans le joueur : `npm run build` refuse désormais le JavaScript d'un jeu qui porte du code serveur
 (`verify:dist`). Le script d'installation de `ssh2` tente une compilation native et échoue faute d'en-têtes : aucun
-fichier `.node` n'en résulte, et `--ignore-scripts` est l'installation documentée (`docs/fr/CONNECTORS.md`). Un
+fichier `.node` n'en résulte, et `--ignore-scripts` est l'installation documentée ([Vue d'ensemble des connecteurs](bridge.connectors.md)). Un
 contributeur écrit `changes/<slug>.md` au lieu de modifier le CHANGELOG (`changes/README.md`).
 
 <a name="from-4-1-9-to-4-1-10"></a>
@@ -154,7 +154,7 @@ comme avant ; `npm run bridge -- migrate --from=jsonl --to=sqlite` (Bridge arrê
 Node 22.13 (`node:sqlite`). `--trust-proxy` seul ne fait plus confiance qu'à la boucle locale ; nommer les autres
 proxies avec `--trust-proxy=<adresses ou réseaux>`. **Derrière un proxy qui n'est pas sur la boucle locale (le routeur d'un PaaS, un
 répartiteur sur un autre hôte), tous les clients tombent désormais dans l'unique compartiment du proxy** (60 requêtes
-anonymes par minute pour tout le monde) tant que `--trust-proxy=<son réseau>` ne le nomme pas. Plusieurs tenants et plusieurs instances : `docs/fr/REALITY-OPS.md`.
+anonymes par minute pour tout le monde) tant que `--trust-proxy=<son réseau>` ne le nomme pas. Plusieurs tenants et plusieurs instances : [Installer et lancer le Bridge](bridge.install-run.md).
 
 <a name="from-4-1-10-to-4-1-11"></a>
 <!-- applies: 4.1.11.. -->
@@ -213,7 +213,7 @@ porte désormais ses entrées de session, que `npm run replay` rejoue.
 ## 26. De la 4.1.13 à la 4.1.14 « Time Attack »
 
 Pas de changement du format d'écriture : un jeu 4.1.13 et ses sauvegardes se chargent tels quels, et `speedrun` est un
-champ facultatif (`docs/fr/SPEEDRUN.md`). Ce qu'un hôte ou un outil peut voir changer :
+champ facultatif ([Speedrun pour les auteurs](create.speedrun.md)). Ce qu'un hôte ou un outil peut voir changer :
 
 - **`SESSION_MAX` vaut 500, plus 5 000.** La 501e entrée d'une session ouvre une nouvelle session depuis l'état courant
   (de genre `load`), comme la 5 001e le faisait. Un hôte qui lit `Engine.session` (ou `Engine.sessions`) pour exporter
@@ -254,7 +254,7 @@ monde à reconstruire avec `applyVariant`). Une sauvegarde 4.1.15 ne se charge p
 inconnu) : revenir en arrière n'est pas pris en charge.
 
 **Tout le reste est additif.** Un jeu peut déclarer `remix` (un manifeste de variance) et ses salles `anchors`
-(`docs/fr/REMIX.md`) ; sans eux rien ne change : un seul monde, l'histoire, la même IR et la même empreinte. Les
+([Remix](create.remix.md)) ; sans eux rien ne change : un seul monde, l'histoire, la même IR et la même empreinte. Les
 drapeaux réservés `remix.*` sont écrits par le moteur : un jeu qui utilisait déjà un drapeau nommé
 `remix.<quelque chose>` le renomme (le validateur refuse une commande qui en pose un ; aucun dans les jeux livrés). Un jeu avec un
 manifeste montre un bouton **Remix** sur son écran titre et une ligne de monde dans son menu pause : un jeu dont la
@@ -343,7 +343,7 @@ référence (HTTPS, trois instances, Postgres) à porter ailleurs ; `npm run ops
 aussi `web-scumm-connectors-<version>.tgz`.
 
 **Pour les mainteneurs.** Les passes humaines sont des rapports du Field Kit (`npm run field:init|check|report|bundle`,
-`docs/fr/FIELD.md`) et des issues `field-pass` ouvertes ; les notes de release ne comptent comme fait que `passed`.
+[Passes de terrain](contribute.field-passes.md)) et des issues `field-pass` ouvertes ; les notes de release ne comptent comme fait que `passed`.
 Chaque ensemble de mutation est bloquant (`connectors` et `reality-store` aussi) ; `release.yml` lit le `GATED` du tag.
 `npm run external-consumer` installe les quatre archives hors du dépôt. La sauvegarde de référence de la 4.1.18
 rejoint `tests/save-v3.test.ts`.
@@ -413,7 +413,7 @@ la racine.
   rien. Un script de la 4.1.19 ajoute `--mode=merge` : la restauration de la 4.1.19 inchangée pour un fichier de
   schéma 1 à 3 (`--force` compris) ; un fichier de schéma 4 parle aussi des quotas de speedrun de ses tenants, sauf
   s'il vient d'un journal (`tenants-only`). `--mode=replace-store --yes-replace-store --safety-out=<nouveau fichier>` est nouveau : il fait du store la
-  sauvegarde (`docs/fr/REALITY-OPS.md`).
+  sauvegarde ([Installer et lancer le Bridge](bridge.install-run.md)).
 - **Une sauvegarde est de schéma 4.** Elle porte le quota des speedruns, dit ce qu'elle contient (`completeness`) et a
   une empreinte de toute l'enveloppe. Les fichiers des schémas 1 à 3 sont toujours lus, pour `--mode=merge` seulement :
   rien sous leur empreinte ne dit qu'ils contiennent chaque famille, donc `replace-store` les refuse. Deux sauvegardes

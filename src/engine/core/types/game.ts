@@ -38,7 +38,7 @@ export interface RoomDef {
   decor: Id;
   /**
    * What the background shows, left to right, with its light and mood: the LOCATION line of the background prompt
-   * (`npm run prompts`, docs/en/PROMPTS.md). Not shown in the game.
+   * (`npm run prompts`, wiki/en/create.images.md). Not shown in the game.
    */
   description?: string;
   /**
@@ -152,7 +152,7 @@ export interface EndingDef {
   card?: { accent?: string };
 }
 
-/** The old name of `EndingDef`. @deprecated since 4.0, removed in 5.0 (docs/en/SUPPORT.md). @public */
+/** The old name of `EndingDef`. @deprecated since 4.0, removed in 5.0 (wiki/en/start.stability.md). @public */
 export type RevealDef = EndingDef;
 
 /**
@@ -245,7 +245,7 @@ export interface GameDef {
   skin: SkinDef;
   /** Sealed ending, optional. */
   ending?: EndingDef;
-  /** Signals from the world outside, through a Reality Bridge (4.1.1, docs/en/REALITY.md). Absent: none, no code loaded. */
+  /** Signals from the world outside, through a Reality Bridge (4.1.1, wiki/en/bridge.what-it-is.md). Absent: none, no code loaded. */
   reality?: RealityDef;
   /**
    * Ready-to-use states for testing a specific moment (teleport in dev mode, solver). A checkpoint with `goals` is the
@@ -290,7 +290,7 @@ export interface GameDef {
    * speedrun envelope (schema 2, since 4.1.16) record so that a load, a replay and a verifier rebuild the same world.
    */
   variant?: WorldVariant;
-  /** Speedrun categories, splits and the rules' version (4.1.14, `docs/en/SPEEDRUN.md`). */
+  /** Speedrun categories, splits and the rules' version (4.1.14, `wiki/en/create.speedrun.md`). */
   speedrun?: SpeedrunManifest;
   /** Manual save slots (pause menu: save, load, export, import). Absent or 0: autosave only. */
   saves?: { slots: number };

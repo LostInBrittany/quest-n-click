@@ -17,7 +17,7 @@ même contenu se trouve désormais dans les pages Équipe, Clever et Créer de c
 Rien à changer : la 4.2.0 est le code de la 4.1.20 avec la version changée et un correctif du Field Kit. À partir de
 la 4.2.0, le SemVer strict : une 4.2.x ne fait que corriger, une mineure 4.x ne fait qu'ajouter. Le moteur s'installe
 toujours depuis l'archive de la release (`releases/download/v4.2.0/…`) ; la publication npm arrive dans une 4.2.x
-ultérieure. Ce que la 4.2.0 dit stable, limité ou expérimental est dans `docs/fr/SUPPORT.md` (D38).
+ultérieure. Ce que la 4.2.0 dit stable, limité ou expérimental est dans [Stabilité et support](start.stability.md) (D38).
 
 <a name="from-4-2-0-to-4-2-1"></a>
 <!-- applies: 4.2.1.. -->
@@ -38,7 +38,7 @@ Rien à changer dans un jeu : l'API publique, le format du contenu et l'envelopp
   configuration qui le nomme se charge encore.
 
 Le moteur s'installe depuis `releases/download/v4.2.1/…`. Pour mettre un Studio en ligne pour une équipe, voir
-`docs/fr/STUDIO-SERVER.md` (expérimental en 4.2.1).
+[Ce qui tourne où](team.what-runs-where.md) (expérimental en 4.2.1).
 
 <a name="from-4-2-1-to-4-2-2"></a>
 <!-- applies: 4.2.2.. -->
@@ -53,7 +53,7 @@ Rien à changer dans un jeu : l'API publique, le format du contenu et l'envelopp
 - **La base migre au démarrage** (migrations 0006 à 0010 : prévisualisations, santé, annulation, builds, ensembles
   préparés).
 - **Les outils d'assets sur l'application de traitement** : réglez son `CC_POST_BUILD_HOOK` comme le dit
-  `docs/fr/STUDIO-SERVER.md` (leurs paquets Python, verrouillés par empreintes) ; sans lui, « Prepare assets » (le
+  [Ce qui tourne où](team.what-runs-where.md) (leurs paquets Python, verrouillés par empreintes) ; sans lui, « Prepare assets » (le
   bouton de l'onglet Play) échoue et montre l'erreur de l'application de traitement. Ce worker se déploie depuis le
   dépôt : installé depuis les archives, il ne peut pas lancer `prepare` en 4.2.2 (la 4.2.3 livre le verrou).
 - **Les builds** : `/play/<n>/` demande une session, sauf si `publicBuilds` est activé (désactivé par défaut).

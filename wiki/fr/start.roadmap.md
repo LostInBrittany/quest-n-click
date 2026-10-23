@@ -240,5 +240,5 @@ La liste d’aujourd’hui pour un changement : [Avant une pull request](contrib
   [Décisions et ADR](contribute.decisions.md).
 - La feuille de route telle qu’écrite jusqu’à la 4.4.0 :
   [`blob/v4.4.0/docs/fr/ROADMAP.md`](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/fr/ROADMAP.md).
-- [`docs/en/BENCH.md`](../../docs/en/BENCH.md) pour les mesures du solveur,
+- [Mesures de performance](contribute.benchmarks.md) pour les mesures du solveur,
   [`docs/dev/PROOF-MATRIX.md`](../../docs/dev/PROOF-MATRIX.md) pour la matrice des jeux à trois personnages.

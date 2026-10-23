@@ -163,8 +163,8 @@ dans `npm run quality`).
 ### Contraintes
 
 Une pull request qui change ce que voit un utilisateur met à jour les pages dans les deux langues (la deuxième case du
-modèle). `docs/en` et `docs/fr` sont gelés pendant l'écriture du wiki (4.5.0) : un changement là doit être reporté dans
-`wiki/`.
+modèle). `docs/en` et `docs/fr` sont des pages de transition depuis la 4.5.0 : ne les modifiez
+jamais, écrivez dans `wiki/`.
 
 <a name="review-owners"></a>
 

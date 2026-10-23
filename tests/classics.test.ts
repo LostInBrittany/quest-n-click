@@ -1,5 +1,5 @@
-// The classic mechanics (the wiki's `create.classics`, wiki/en|fr/create.classics.md since 4.5.0; docs/en/CLASSICS.md
-// before) written with the DSL as is: the engine plays them, the solver proves them, and the page describes each one in
+// The classic mechanics (the wiki's `create.classics`, wiki/en|fr/create.classics.md, since 4.5.0) written with the
+// DSL as is: the engine plays them, the solver proves them, and the page describes each one in
 // both languages.
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';

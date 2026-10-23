@@ -24,10 +24,10 @@ Pour la régénérer, dans un clone du dépôt du moteur, depuis son dossier rac
 npm run wiki -- generate create.dsl
 ```
 
-`npm run wiki -- check` échoue quand cette page est en retard sur les schémas. Jusqu'à la bascule vers le wiki, la même
-référence est aussi écrite dans `docs/en/DSL.md` et `docs/fr/DSL.md` par `npx tsx tools/dsl-doc.ts` (lancé dans le
-dépôt du moteur ; `--check` sort en 1 quand une page est en retard), et
-[`tests/dsl-doc.test.ts`](../../tests/dsl-doc.test.ts) échoue quand ces pages sont en retard. Un projet créé lit le même
+`npm run wiki -- check` échoue quand cette page est en retard sur les schémas. `npx tsx tools/dsl-doc.ts` la réécrit
+(lancé dans le dépôt du moteur ; `--check` sort en 1 quand la page est en retard), comme
+`npm run wiki -- generate create.dsl`, et [`tests/dsl-doc.test.ts`](../../tests/dsl-doc.test.ts) échoue quand elle est
+en retard. Un projet créé lit le même
 vocabulaire dans son moteur installé : il n'y a rien à générer de son côté.
 
 <a name="stability"></a>

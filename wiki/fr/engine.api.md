@@ -174,9 +174,8 @@ npm run wiki -- generate engine.api
 ```
 
 `npm run wiki -- check` échoue quand elle est en retard sur le code, ou quand un export n'a ni description ni
-stabilité. Jusqu'à la bascule vers le wiki, `npx tsx tools/api-doc.ts` (`--check` pour seulement vérifier) écrit les
-mêmes tables dans `docs/en/API.md` et `docs/fr/API.md`, et [`tests/api-doc.test.ts`](../../tests/api-doc.test.ts) les
-vérifie.
+stabilité. `npx tsx tools/api-doc.ts` (`--check` pour seulement vérifier) la réécrit, comme
+`npm run wiki -- generate engine.api`, et [`tests/api-doc.test.ts`](../../tests/api-doc.test.ts) la vérifie.
 
 <!-- generated:begin -->
 

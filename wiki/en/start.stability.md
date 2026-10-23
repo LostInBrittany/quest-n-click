@@ -3,7 +3,7 @@
 What quest'n'click promises, surface by surface, how far each promise is proven, how versions change it, and how long a
 version is supported. As of 4.4.0 (22 October 2026). The single sources are
 [`docs/dev/contracts.json`](../../docs/dev/contracts.json) (the registry of statuses),
-[`docs/en/SUPPORT.md`](../../docs/en/SUPPORT.md) (the policy, quoted by the registry and tested against it) and the
+this page (the policy: the registry quotes its surface table, and `tests/contracts.test.ts` checks the quotes) and the
 release's sheet of people's passes, [`docs/dev/passes/4.4.0.md`](../../docs/dev/passes/4.4.0.md).
 
 <a name="overview"></a>

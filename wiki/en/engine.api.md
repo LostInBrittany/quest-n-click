@@ -171,9 +171,9 @@ English as the source writes it. To regenerate it, in the engine repository, fro
 npm run wiki -- generate engine.api
 ```
 
-`npm run wiki -- check` fails when it is behind the code, or when an export has no description or no stability. Until
-the switch-over to the wiki, `npx tsx tools/api-doc.ts` (`--check` to only check) writes the same tables into
-`docs/en/API.md` and `docs/fr/API.md`, and [`tests/api-doc.test.ts`](../../tests/api-doc.test.ts) checks them.
+`npm run wiki -- check` fails when it is behind the code, or when an export has no description or no stability.
+`npx tsx tools/api-doc.ts` (`--check` to only check) writes it again, as `npm run wiki -- generate engine.api` does, and
+[`tests/api-doc.test.ts`](../../tests/api-doc.test.ts) checks it.
 
 <!-- generated:begin -->
 

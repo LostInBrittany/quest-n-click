@@ -158,5 +158,5 @@ pour l'ancien nom, chaque source TypeScript qui importait `web-scumm/…`.
 
 ## Références
 
-- [`docs/fr/UPGRADING.md`](../../docs/fr/UPGRADING.md), [Notes de mise à jour : 4.3](install.upgrade-notes-4-3.md).
+- [Mettre à jour](install.upgrade.md), [Notes de mise à jour : 4.3](install.upgrade-notes-4-3.md).
 - [`tests/studio-engine-upgrade.test.ts`](../../tests/studio-engine-upgrade.test.ts).

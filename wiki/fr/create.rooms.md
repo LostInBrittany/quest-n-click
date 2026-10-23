@@ -23,7 +23,7 @@ import { defineRoom } from 'quest-n-click/content';
 
 export default defineRoom({
   id: 'house',
-  name: 'Chez Mamie',
+  name: 'Chez Grand-mère',
   decor: 'decor/house',          // image de fond (voir « Images »)
   music: 'house',
 
@@ -70,7 +70,7 @@ export default defineRoom({
   // Sujets de conversation (2 à 4). « Au revoir » s'ajoute à chaque menu, « Un câlin ? » aussi quand le jeu pose globalTalk.hug.
   talk: {
     grandma: [
-      { id: 'ask.basket', topic: "Mamie, qu'y a-t-il dans le panier ?", do: [{ say: ['grandma', 'Une surprise pour tout le monde.'] }] },
+      { id: 'ask.basket', topic: "Grand-mère, qu'y a-t-il dans le panier ?", do: [{ say: ['grandma', 'Une surprise pour tout le monde.'] }] },
       { id: 'ask.market', topic: 'Je peux aller au marché tout seul ?', do: [
         { say: ['grandma', "Tout seul ?! Avec ton écharpe, ton bonnet, ta gourde…"] },
         { say: ['grandma', '… Bon. Retour avant dix heures.'] },
@@ -96,14 +96,14 @@ sont déclarés ailleurs. Dans le dépôt du moteur, les fichiers de salle impor
 `@engine/core/define` ou depuis `quest-n-click/content` ; les deux mènent à la même fonction, qui ne fait que typer
 l'objet.
 
-Le même genre de salle, complète et vérifiée par le validateur : une lampe, un tabouret à tirer, Mamie avec un sujet,
+Le même genre de salle, complète et vérifiée par le validateur : une lampe, un tabouret à tirer, Grand-mère avec un sujet,
 un indice, et son layout.
 
 ```room-example
 {
   "room": {
     "id": "house",
-    "name": "Chez Mamie",
+    "name": "Chez Grand-mère",
     "decor": "decor/house",
     "props": {
       "lamp": { "name": "lampe", "states": { "off": "house/r1c1", "on": "house/r1c2" } },
@@ -115,7 +115,7 @@ un indice, et son layout.
     "look": {
       "lamp": "Une vieille lampe.",
       "stool": "Un tabouret, sous l'étagère.",
-      "grandma": "Mamie, qui tricote.",
+      "grandma": "Grand-mère, qui tricote.",
       "shelf": "L'étagère. Trop haute sans marchepied.",
       "door": ["La porte du jardin.", "Toujours la porte du jardin."]
     },
@@ -127,7 +127,7 @@ un indice, et son layout.
     ],
     "talk": {
       "grandma": [
-        { "id": "ask.basket", "topic": "Mamie, qu'y a-t-il dans le panier ?",
+        { "id": "ask.basket", "topic": "Grand-mère, qu'y a-t-il dans le panier ?",
           "do": [{ "say": ["grandma", "Une surprise pour tout le monde."] }] }
       ]
     },
@@ -143,7 +143,7 @@ un indice, et son layout.
     "actors": { "grandma": { "x": 420, "y": 350 } }
   },
   "characters": {
-    "grandma": { "name": "Mamie", "color": "#f0c040", "height": 120, "kind": ["person"], "sprites": { "idle": ["grandma/idle"] } }
+    "grandma": { "name": "Grand-mère", "color": "#f0c040", "height": 120, "kind": ["person"], "sprites": { "idle": ["grandma/idle"] } }
   }
 }
 ```
@@ -245,17 +245,17 @@ réagir à ce qui s'est passé ailleurs ([drapeaux, variables et événements](c
 | Zones + accessoires nommés + acteurs | **8 à 15** par salle. Moins, la salle paraît vide ; plus, on cherche le pixel. La maison de la démo a 11 choses nommées. |
 | Accessoires à états | Seulement pour ce que l'histoire change (`armchair`, `tank`, `pantry`). |
 | Accessoires de décor | Sans `name`, pas cliquables (`table`, `chair`, `stall_left`). |
-| Sorties | Une sortie évidente, au bord de l'écran, nommée d'après sa destination (`back_door` : « Retour chez Mamie. »). |
+| Sorties | Une sortie évidente, au bord de l'écran, nommée d'après sa destination (`back_door` : « Retour chez Grand-mère. »). |
 
 - **Espace logique : 640 × 400**, origine en haut à gauche, personnages placés par les pieds.
 - **La bande du sol.** La zone de marche occupe le bas du fond ; `floor` (395 par défaut) en est le bas. Gardez-la
   libre de meubles peints, pour que accessoires et acteurs s'y tiennent.
-- **Les tailles des personnages** sont en unités de cet espace : dans la démo, Pixel mesure 36, Mamie 120, Papi (assis)
+- **Les tailles des personnages** sont en unités de cet espace : dans la démo, Pixel mesure 36, Grand-mère 120, Papi (assis)
   100. Un humain de 110 à 125 dans une salle de 640 de large se lit bien sur un téléphone.
 - **Points d'approche** : posez-les dans l'éditeur (`?edit=<salle>`), pour que le héros marche à côté d'une chose, pas
   dessus. `validate` signale une cible de `walk` sans géométrie.
 - **Les sorties sont des choses cliquables**, pas des bords invisibles. Une sortie fermée répond quand même : la
-  `window` de la maison de la démo dit « Pas encore. D'abord, la clé. Mamie sait des choses. » tant que le jardin
+  `window` de la maison de la démo dit « Pas encore. D'abord, la clé. Grand-mère sait des choses. » tant que le jardin
   n'est pas débloqué.
 - **Un point de reprise par salle** dans `game.checkpoints`, avec l'inventaire, les drapeaux et les accessoires
   qu'aurait le joueur. La démo a `house`, `garden`, `market`, `finale`. Ouvrez `?dev&at=market` pour tester cette salle

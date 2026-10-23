@@ -403,7 +403,7 @@ Ce que lit `npm run prompts`, dans le module du jeu et le dossier d’art :
 - **Fond** : `#2B2E45` uni par défaut, sans dégradé, sans sol, sans ombre portée, sans grille, sans texte ni logo. Le
   découpeur retire ce bleu. `sheetBackground` dans `site.json` le change ([plus bas](#sheet-background)).
 - **Lumière** : venant d’en haut à gauche.
-- **Marques** : ne jamais écrire un nom de marque dans un prompt, comme « Dark Vador » : le filtre de contenu le
+- **Marques** : ne jamais écrire un nom de marque dans un prompt, comme « Darth Vader » : le filtre de contenu le
   bloque. Décrivez l’objet : « a small pink knight plush with a round helmet ».
 - **Grille** : 1536 × 1024. 6 × 4 cases de 256 px pour les personnages et les objets, 3 × 3 ou 2 × 2 pour les gros
   objets.

@@ -3,7 +3,7 @@
 Ce que quest'n'click promet, surface par surface, jusqu’où chaque promesse est prouvée, comment les versions la font
 évoluer, et combien de temps une version est suivie. À la 4.4.0 (22 octobre 2026). Les sources uniques sont
 [`docs/dev/contracts.json`](../../docs/dev/contracts.json) (le registre des statuts),
-[`docs/fr/SUPPORT.md`](../../docs/fr/SUPPORT.md) (la politique, citée par le registre et testée contre lui) et la fiche
+cette page (la politique : le registre cite son tableau des surfaces, et `tests/contracts.test.ts` vérifie les citations) et la fiche
 des passes humaines de la release, [`docs/dev/passes/4.4.0.md`](../../docs/dev/passes/4.4.0.md).
 
 <a name="overview"></a>
