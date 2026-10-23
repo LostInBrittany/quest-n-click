@@ -95,7 +95,11 @@ Le panneau de l'éditeur :
   recharge ensuite avec le fichier enregistré.
 - **Reload (undo)** : abandonne les changements non enregistrés.
 - **hidden zones** : montre aussi les zones et accessoires dont la condition de visibilité est fausse (en pointillés).
-- **Selection** : l'élément touché et ses valeurs.
+- **Selection** : l'élément touché et ses valeurs. Pour un accessoire ou un personnage, **mirror ↔** le retourne (le
+  `flip` du layout) et, pour un accessoire, **mirror ↕** le met à l'envers (`flipV`), comme la page de placement ; le
+  lieu est redessiné aussitôt et le changement est enregistré avec le layout. Un accessoire est retourné dans l'état
+  affiché quand cet état fixe son propre miroir, sinon sur l'accessoire lui-même. Un personnage dont le lieu fixe
+  `facing` le garde : le `facing` du lieu l'emporte sur le `flip` du layout, et le panneau le dit sous la case.
 - **To place** : un bouton par zone cliquable, accessoire ou acteur défini dans le lieu mais absent du layout ; il le
   crée au centre, prêt à être déplacé.
 - **Walkable zone** : créer la zone, ajouter un trou.
@@ -146,8 +150,8 @@ zones de marche (vertes) et les liens entre zones.
 Champs lus par le moteur : sur un accessoire (et dans chacun de ses `states`) `rot` (degrés, sens horaire, pivot aux
 pieds), `flip` (miroir horizontal), `flipV` (miroir vertical : l'image passe sous la ligne des pieds, comme sur la page
 de placement), `z` (calque forcé) ; un champ absent d'un état reprend celui de l'accessoire. Sur un acteur, `z` force
-son calque (sinon, il suit ses pieds). Sur le lieu, `floor` (395 par défaut) est le bas du sol : un point d'approche
-calculé ne descend jamais plus bas.
+son calque (sinon, il suit ses pieds) et `flip` le tourne vers la gauche, sauf si le lieu fixe son `facing`. Sur le
+lieu, `floor` (395 par défaut) est le bas du sol : un point d'approche calculé ne descend jamais plus bas.
 
 Un acteur sans point `approach` dans le layout est abordé du côté qui fait face au milieu du lieu, à 44 unités quelle
 que soit la taille des personnages. Le format complet du layout : [Géométrie](create.geometry.md#layout-file).

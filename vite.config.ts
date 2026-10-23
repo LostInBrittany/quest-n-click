@@ -33,6 +33,26 @@ const isToolModule = (id: string) => {
   );
 };
 
+/**
+ * The image route's last resort (#257): Firefox's worker now and then fails a cached image offline ("A ServiceWorker
+ * intercepted the request and encountered an unexpected error"), the file in the cache. When the strategy throws, the
+ * worker looks the request up in every cache before giving up, and tells the open pages why it failed (a
+ * `qnc-sw-error` message: the e2e test prints it, the game ignores it). Copied into the worker as text by workbox:
+ * nothing from this file's scope.
+ */
+const imageLastResort = {
+  handlerDidError: async ({ request, error }: { request: Request; error?: unknown }) => {
+    const reason = error instanceof Error ? `${error.name}: ${error.message}` : String(error);
+    const hit = await caches.match(request).catch(() => undefined);
+    const sw = self as unknown as {
+      clients: { matchAll(o: object): Promise<{ postMessage(m: unknown): void }[]> };
+    };
+    const pages = await sw.clients.matchAll({ includeUncontrolled: true }).catch(() => []);
+    for (const p of pages) p.postMessage({ type: 'qnc-sw-error', url: request.url, reason, recovered: !!hit });
+    return hit;
+  },
+};
+
 /** The Reality Bridge's player code (4.1.1): its own chunk, under assets/reality/. */
 const isRealityModule = (id: string) =>
   /[\\/]src[\\/]engine[\\/](reality[\\/]|dom[\\/]reality-ui\.ts|core[\\/]reality-runtime\.ts)/.test(id);
@@ -117,6 +137,7 @@ export default defineConfig({
                   cacheName: 'jeu-images',
                   expiration: { maxEntries: 2000, maxAgeSeconds: 90 * 86400 },
                   cacheableResponse: { statuses: [0, 200] },
+                  plugins: [imageLastResort],
                 },
               },
               {

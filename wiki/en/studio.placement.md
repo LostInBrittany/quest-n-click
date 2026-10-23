@@ -92,7 +92,11 @@ The editor's panel:
   reloads with the saved file.
 - **Reload (undo)**: discards unsaved changes.
 - **hidden zones**: also shows zones and props whose visibility condition is false (dashed).
-- **Selection**: the touched element and its values.
+- **Selection**: the touched element and its values. For a prop or a character, **mirror ↔** turns it around (the
+  layout's `flip`) and, for a prop, **mirror ↕** turns it upside down (`flipV`), as the placement page does; the room
+  is redrawn at once and the change is saved with the layout. A prop is mirrored in the state shown when that state
+  sets its own mirror, otherwise on the prop itself. A character whose room sets `facing` keeps it: the room's
+  `facing` wins over the layout's `flip`, and the panel says so under the checkbox.
 - **To place**: one button per hotspot, prop or actor defined in the room but missing from the layout; it creates it
   at the centre, ready to be moved.
 - **Walkable zone**: create the zone, add a hole.
@@ -142,8 +146,8 @@ zones (green) and the links between zones.
 Fields the engine reads: on a prop (and in each of its `states`) `rot` (degrees, clockwise, pivot at the feet), `flip`
 (horizontal mirror), `flipV` (vertical mirror: the image sits below the feet line, as on the placement page), `z`
 (forced layer); a field missing from a state falls back to the prop's own. On an actor, `z` forces their layer
-(otherwise it follows their feet). On the room, `floor` (default 395) is the bottom of the floor: a computed approach
-point never goes lower.
+(otherwise it follows their feet) and `flip` turns them to face left, unless the room sets their `facing`. On the
+room, `floor` (default 395) is the bottom of the floor: a computed approach point never goes lower.
 
 An actor with no `approach` point in the layout is reached from the side facing the middle of the room, 44 units away
 whatever the characters' size. The whole layout format: [Geometry](create.geometry.md#layout-file).
