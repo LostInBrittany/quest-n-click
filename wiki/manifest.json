@@ -4636,7 +4636,7 @@
       "title": { "en": "Writing documentation", "fr": "Écrire la documentation" },
       "url": { "en": "EN-Contribute-Writing-Documentation", "fr": "FR-Contribuer-Ecrire-La-Documentation" },
       "state": "planned",
-      "sources": ["tools/wiki.ts", "tools/wiki/*.ts"],
+      "sources": ["tools/wiki.ts", "tools/wiki/{manifest,page,check,coverage,translations,reviewer,claims,examples}.ts", "wiki/_templates/*.md"],
       "replaces": [],
       "questions": { "en": [], "fr": [] },
       "aliases": { "en": [], "fr": [] },
