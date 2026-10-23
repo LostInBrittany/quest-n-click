@@ -5,7 +5,7 @@
 Give it what you have of the characters: their current sheets, their cut sprites (games/<id>/art/<sheet>/), or the
 reference they are drawn after. A sheet's own flat background is left out (the colour of its border). Prints the
 candidates from the farthest to the closest: use the first one as "sheetBackground" in the game's site.json
-(docs/en/PROMPTS.md, "Choosing the sheet background").
+(wiki/en/create.images.md#sheet-background).
 
 The distance that matters is to the closest colour of the drawing: shadows are hue-shifted toward purple by the
 prompts' COLOR RULES, so an orange character has pinkish shadows, and a magenta background eats them.

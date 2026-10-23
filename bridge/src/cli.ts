@@ -1,5 +1,5 @@
 // npm run bridge -- <init|serve|grant|revoke> (quest-n-click bridge …, 4.1.1): a reference Reality Bridge for a game, for
-// development and self-hosting (docs/en/REALITY-OPS.md).
+// development and self-hosting (wiki/en/bridge.install-run.md).
 //   init [--dir=.cache/bridge] [--audience=bridge.local] [--origin=…] [--manifest=dist/reality-manifest.json]
 //        [--no-demo-webhooks] [--demo-days=30]                                                 keys, a config
 //   serve [--dir=…] [--port=8787] [--host=127.0.0.1] [--trust-proxy]                         the Bridge over HTTP
@@ -465,7 +465,7 @@ export async function main(args: string[], game?: { manifest: RealityManifest | 
     if (done !== undefined) return done;
   }
   if (cmd === 'compact') {
-    // Rewrites the journal without what nobody needs any more (docs/en/REALITY-OPS.md): the Bridge must be stopped,
+    // Rewrites the journal without what nobody needs any more (wiki/en/bridge.install-run.md): the Bridge must be stopped,
     // as a running one appends to the file this command replaces.
     const file = read();
     // `compact` rewrites the journal: it takes the journal's lock (4.1.8) and refuses while a Bridge holds it.

@@ -29,11 +29,11 @@ import { mkdirSync, readdirSync, rmSync } from 'node:fs';
 import { AxeBuilder } from '@axe-core/playwright';
 
 const VIEWPORT = { width: 844, height: 390 };
-// Logical scene coordinates (640 x 400): the same system as the placement editor (docs/en/TOOLS.md).
+// Logical scene coordinates (640 x 400): the same system as the placement editor (wiki/en/studio.placement.md#placement-editor).
 const LOGICAL = { width: 640, height: 400 };
 
 /**
- * axe rules the engine accepts, each for a stated reason (docs/en/ENGINE.md "Accessibility"); everything else that axe
+ * axe rules the engine accepts, each for a stated reason (wiki/en/play.accessibility.md#engine); everything else that axe
  * rates serious or critical fails `npm run e2e -- --axe`.
  */
 const AXE_ACCEPTED = [];
@@ -108,7 +108,7 @@ export async function launch(url, opts = {}) {
   });
 
   const dest = new URL(url);
-  // ?dev&at=<checkpoint> : dev-server only (ignored in a production build, see docs/en/TOOLS.md), skips the title screen.
+  // ?dev&at=<checkpoint> : dev-server only (ignored in a production build, see wiki/en/reference.dev-url-parameters.md), skips the title screen.
   if (opts.dev !== false) dest.searchParams.set('dev', '');
   if (opts.at) dest.searchParams.set('at', opts.at);
   // opts.lang: the game's language (`?lang=`), for the release-language check (`leaks()`).
@@ -709,7 +709,7 @@ export async function launch(url, opts = {}) {
 
   /**
    * axe-core on the page as it is now: the `serious` and `critical` violations, minus the rules the engine documents as
-   * accepted (`AXE_ACCEPTED`, docs/en/ENGINE.md "Accessibility"). Returns `[]` when the screen passes.
+   * accepted (`AXE_ACCEPTED`, wiki/en/play.accessibility.md#engine). Returns `[]` when the screen passes.
    */
   async function axe(name) {
     const r = await new AxeBuilder({ page }).include('#app').analyze();

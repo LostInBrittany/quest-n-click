@@ -1,7 +1,7 @@
 """Cut an AI-generated sprite sheet (figures on a flat background, or on a transparent one) into keyed PNG cells.
 
 Default mode (grid): detects one figure per cell of an invisible grid, like the sheets produced by the prompts in
-docs/en/PROMPTS.md. Detection is per figure, not per fixed box, so a figure that overflows its cell a little is
+wiki/en/create.images.md. Detection is per figure, not per fixed box, so a figure that overflows its cell a little is
 still captured whole; a cell where detection finds nothing falls back to its fixed rectangle, keyed the same way,
 so every requested cell is always written.
 
@@ -19,7 +19,7 @@ Useful for a sheet whose figures are not laid out on a regular grid.
     -> <out>/<sheet-id>/sprite_<row>_<col>.png + index.json (boxes, 0-indexed row/col by visual row)
 
 Pixel art (--pixel, or "artStyle": "pixel" in the game's site.json when neither --pixel nor --cel is given): the
-sheet is drawn 4x up (each art pixel a 4 x 4 block, see docs/en/PROMPTS.md). Each cut figure is scaled down by
+sheet is drawn 4x up (each art pixel a 4 x 4 block, see wiki/en/create.images.md). Each cut figure is scaled down by
 --scale (default 4) with nearest neighbour, keyed to fully opaque / fully transparent pixels, quantized to at most
 --colors colours (default 32, median cut, no dithering), and near-identical colours (RGB distance < 8) are merged into
 one exact value, shared across the cells of the sheet. Written as an indexed PNG (mode P, index 0 transparent).

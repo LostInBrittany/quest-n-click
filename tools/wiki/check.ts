@@ -17,6 +17,7 @@ import { CONTRACTS_FILE, checkContracts, readContracts, type SurfaceStatus, surf
 import { dirtySources } from './bundle';
 import { compareVersions } from './docs';
 import { ENV_PAGE, envPageProblems, envProblems, readEnvRegister, scanEnv } from './env';
+import { generatedProblems } from './generators';
 import { exampleProblems } from './examples';
 import { readGlossary } from './glossary';
 import { generatedIdentifiers, type Identifier } from './identifiers';
@@ -292,6 +293,7 @@ export function checkWiki({
   checkVersions(manifest, parsed, report);
   checkBlocks(manifest, parsed, report);
   checkEnv(root, tracked, wikiDir, manifest, report);
+  report.errors.push(...generatedProblems({ root, wikiDir, tracked }, manifest));
   for (const [key, page] of parsed) report.errors.push(...exampleProblems(`${key}.md`, page.fences));
   // The product documented: the publication's product ref, otherwise the checkout (and the commit given, if any).
   const product = publish ? publishedProduct(root, candidate, wikiDir, manifest, publish, report) : undefined;

@@ -9,8 +9,12 @@
 //     another revision refused as stale_cursor; the provenance in the text and in the structured content;
 //   - read_doc's rule "exactly one of name and id", and name's answer as before: one text block, no truncation, the
 //     provenance in the structured content only;
+//   - read_doc {name} since the switch-over (C2): the concatenation `legacy.json` orders, each section once (a whole
+//     page only for its parts not given yet), a page the set lacks named as coming, within 1.5 × the 4.4.0 page (the
+//     longest sections then given by their heading, first paragraph and the section read for the rest), built from
+//     wiki/ in the repository and written into the bundle as legacy/<NAME>.md;
 //   - the bundle: reproducible (two builds, the same bytes), its files hashed in its manifest, the eight legacy pages
-//     exact copies of docs/en, written only where the repository tracks nothing.
+//     with their links made for their folder, written only where the repository tracks nothing.
 import { cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
@@ -24,12 +28,21 @@ import {
   compareVersions,
   type DocsSet,
   formatProblem,
+  legacyBudget,
+  legacyConcatenation,
   listDocs,
   readDocById,
   searchDocs,
   splitSections,
 } from '../tools/wiki/docs';
-import { bundleDocs, legacyDoc, PUBLICATION_URL, repositoryDocs, resolveDocs } from '../tools/wiki/docs-load';
+import {
+  bundleDocs,
+  legacyDoc,
+  legacyOfSet,
+  PUBLICATION_URL,
+  repositoryDocs,
+  resolveDocs,
+} from '../tools/wiki/docs-load';
 import { trackedFiles } from '../tools/wiki/check';
 import { AUDIENCES, CONTEXTS, PAGE_TYPES } from '../tools/wiki/manifest';
 
@@ -73,6 +86,21 @@ function packageRoot(wikiDir = BASE): string {
   writeFileSync(join(root, 'package.json'), JSON.stringify({ name: 'quest-n-click', version: '4.5.0' }));
   writeBundle(bundleOpts(join(root, 'docs-bundle'), wikiDir));
   return root;
+}
+/** A copy of the fixture wiki with a legacy order: ENGINE a section, a whole page, then the rest of the first page. */
+function legacyWiki(): string {
+  const dir = tmp('docs-legacy-wiki-');
+  cpSync(BASE, dir, { recursive: true });
+  writeFileSync(
+    join(dir, 'legacy.json'),
+    JSON.stringify({
+      format: 'quest-n-click-docs-legacy',
+      version: 1,
+      dedup: 'page-covers-sections',
+      pages: { ENGINE: ['create.rooms#checking', 'create.exits', 'create.rooms', 'studio.notes'] },
+    }),
+  );
+  return dir;
 }
 const backendOf = (root: string): ToolBackend =>
   ({
@@ -324,22 +352,24 @@ describe('read_doc, the tool', () => {
   });
 
   it("name: the other arguments ignored, as 4.4.0's schema stripped them; the page whole", async () => {
-    const b = backendOf(packageRoot());
-    const engine = readFileSync(join(ROOT, 'docs', 'en', 'ENGINE.md'), 'utf8');
+    const root = packageRoot(legacyWiki());
+    const b = backendOf(root);
+    const engine = legacyDoc(root, 'ENGINE');
+    expect(engine).toContain('## Doors');
     for (const extra of [{ lang: 'fr' }, { maxChars: 10 }, { section: 'x' }, { cursor: 'c1.x' }]) {
       const r = await callTool('read_doc', { name: 'ENGINE', ...extra }, b);
       expect(r, JSON.stringify(extra)).toEqual({ content: [{ type: 'text', text: engine }] });
     }
   });
 
-  it('name: one text block, the whole page (the bundle copy in a package), and no structured content', async () => {
-    const root = packageRoot();
+  it("name: one text block, the whole page (the bundle's legacy page in a package), and no structured content", async () => {
+    const root = packageRoot(legacyWiki());
     for (const name of DOCS) {
       const r = await callTool('read_doc', { name }, backendOf(root));
       expect(r.isError).toBeFalsy();
       expect(r.content).toHaveLength(1);
       expect(r.content[0]!.type).toBe('text');
-      expect(r.content[0]!.text).toBe(readFileSync(join(ROOT, 'docs', 'en', `${name}.md`), 'utf8'));
+      expect(r.content[0]!.text).toBe(readFileSync(join(root, 'docs-bundle', 'legacy', `${name}.md`), 'utf8'));
       expect(r.structuredContent).toBeUndefined();
     }
   });
@@ -381,9 +411,53 @@ describe('read_doc, the tool', () => {
     expect(byId.structuredContent).toMatchObject({ provenance: { source: 'bundle' }, ref: 'create.rooms#checking' });
   });
 
-  it('in the repository, name still reads docs/en/<NAME>.md, unchanged', () => {
-    for (const name of DOCS)
-      expect(legacyDoc(ROOT, name)).toBe(readFileSync(join(ROOT, 'docs', 'en', `${name}.md`), 'utf8'));
+  it("in the repository, name reads the concatenation of wiki/'s pages, never docs/en's transition pages", () => {
+    const set = repositoryDocs(ROOT);
+    for (const name of DOCS) {
+      const text = legacyDoc(ROOT, name);
+      expect(text).toBe(legacyOfSet(set, name));
+      expect(text, name).not.toContain('quest-n-click transition page');
+      expect(Buffer.byteLength(text), name).toBeLessThanOrEqual(legacyBudget(name)!);
+      expect(text.length, name).toBeGreaterThan(1000);
+    }
+  });
+});
+
+describe('the legacy concatenation (C2)', () => {
+  const pages: Record<string, string> = {
+    'p.a':
+      '# A\n\nLead of A.\n\n<a name="one"></a>\n\n## One\n\nFirst of A.\n\n<a name="two"></a>\n\n## Two\n\nSecond of A.\n',
+    'p.b': '# B\n\n<a name="x"></a>\n\n## X\n\nOf B.\n',
+  };
+  const pageOf = (id: string) => pages[id];
+
+  it('gives each section once, in the legacy order, a whole page only for its parts not given yet', () => {
+    expect(legacyConcatenation(['p.a#two', 'p.b', 'p.a', 'p.a#one'], pageOf)).toBe(
+      '## Two\n\nSecond of A.\n\n# B\n\n## X\n\nOf B.\n\n# A\n\nLead of A.\n\n## One\n\nFirst of A.\n',
+    );
+  });
+
+  it('names a page the set does not hold as coming, once', () => {
+    expect(legacyConcatenation(['p.none#x', 'p.none', 'p.b#x'], pageOf)).toBe(
+      '(p.none: coming in a later documentation)\n\n## X\n\nOf B.\n',
+    );
+  });
+
+  it('keeps within its bound: the longest sections by heading, first paragraph and the read for the rest', () => {
+    const long = { 'p.l': `# L\n\n<a name="big"></a>\n\n## Big\n\nFirst.\n\n${'More. '.repeat(100)}\n` };
+    const of = (id: string) => ({ ...pages, ...long })[id];
+    const whole = legacyConcatenation(['p.b', 'p.l'], of);
+    const bounded = legacyConcatenation(['p.b', 'p.l'], of, 200);
+    expect(Buffer.byteLength(whole)).toBeGreaterThan(200);
+    expect(bounded).toBe(
+      '# B\n\n## X\n\nOf B.\n\n# L\n\n## Big\n\nFirst.\n\n(The rest of this section: `read_doc {"id":"p.l","section":"big"}`.)\n',
+    );
+    // Tighter still: its heading and the read alone.
+    expect(legacyConcatenation(['p.b', 'p.l'], of, 100)).toBe(
+      '# B\n\n## X\n\nOf B.\n\n# L\n\n## Big\n\n(This section: `read_doc {"id":"p.l","section":"big"}`.)\n',
+    );
+    // Within its bound, nothing changes.
+    expect(legacyConcatenation(['p.b', 'p.l'], of, 100000)).toBe(whole);
   });
 });
 
@@ -399,9 +473,9 @@ describe('the bundle', () => {
     );
   });
 
-  it('holds the index, the ready pages in md/<lang>/, the legacy copies, the images, each hashed', () => {
+  it('holds the index, the ready pages in md/<lang>/, the legacy pages, the images, each hashed', () => {
     const out = tmp('bundle-');
-    const m = writeBundle(bundleOpts(out));
+    const m = writeBundle(bundleOpts(out, legacyWiki()));
     expect(m.files.map((f) => f.path)).toEqual([
       'assets/room.png',
       'index.json',
@@ -415,10 +489,16 @@ describe('the bundle', () => {
     ]);
     expect(JSON.stringify(m)).not.toMatch(/published|preview|\d{4}-\d\d-\d\dT/);
     expect(bundleProblems(out)).toEqual([]);
-    for (const n of DOCS)
-      expect(
-        readFileSync(join(out, 'legacy', `${n}.md`)).equals(readFileSync(join(ROOT, 'docs', 'en', `${n}.md`))),
-      ).toBe(true);
+    // A legacy page: the bundled English pages in the legacy order, a draft named as coming, links made for legacy/.
+    const engine = readFileSync(join(out, 'legacy', 'ENGINE.md'), 'utf8');
+    expect(engine.indexOf('## Checking')).toBeLessThan(engine.indexOf('# Exits'));
+    expect(engine.indexOf('# Exits')).toBeLessThan(engine.indexOf('## Walkable zones'));
+    expect(engine.match(/## Checking/g)).toHaveLength(1);
+    expect(engine).toContain('(studio.notes: coming in a later documentation)');
+    expect(engine).toContain('[a door](../md/en/create.exits.md#doors)');
+    expect(engine).toContain('![A room](../assets/room.png "The hall")');
+    expect(engine).not.toContain('<a name=');
+    expect(readFileSync(join(out, 'legacy', 'TOOLS.md'), 'utf8')).toBe('\n');
     // Links rewritten for a local reading: pages beside it, the code at its commit, an unbundled page as text.
     const rooms = readFileSync(join(out, 'md', 'en', 'create.rooms.md'), 'utf8');
     expect(rooms).toContain('[a door](../en/create.exits.md#doors)');
@@ -450,13 +530,24 @@ describe('the bundle', () => {
     expect(bundleOutProblem('.', tracked)).toMatch(/repository itself/);
   });
 
-  it("of the repository's own wiki: the legacy copies, its index, no page while none is ready", () => {
+  it("of the repository's own wiki: its ready pages, its index, the eight legacy pages within their bound", () => {
     const out = tmp('bundle-repo-');
     const m = writeBundle({ ...bundleOpts(out, join(ROOT, 'wiki')), docRevision: 'HEAD' });
     expect(m.wikiTree).toMatch(/^[0-9a-f]{40}$/);
     const set = bundleDocs(out);
     expect(set.index.pages.every((p) => p.state === 'ready')).toBe(true);
     expect(Object.keys(set.index.legacy).sort()).toEqual([...DOCS].sort());
+    const root = tmp('bundle-repo-package-');
+    writeFileSync(join(root, 'package.json'), '{}');
+    cpSync(out, join(root, 'docs-bundle'), { recursive: true });
+    for (const name of DOCS) {
+      const text = legacyDoc(root, name);
+      expect(Buffer.byteLength(text), name).toBeLessThanOrEqual(legacyBudget(name)!);
+      // The same sections as the repository's, only the links differ (made for the bundle), so the bound may give
+      // other sections by their first paragraph: their `#` and `##` headings stay.
+      const headings = (t: string) => t.split('\n').filter((l) => /^##?\s/.test(l));
+      expect(headings(text), name).toEqual(headings(legacyDoc(ROOT, name)));
+    }
   });
 });
 
@@ -584,6 +675,111 @@ describe('plan §13 D3, a neighbour and a counter-example', () => {
   });
 });
 
+/**
+ * wiki409() and two pages that span several contexts: an error register (a reference page listing 409 for the Studio
+ * and the Bridge) and a layout page with a section per place, "A created project" and "The engine repository".
+ */
+function wikiContexts(): string {
+  const dir = wiki409();
+  const file = join(dir, 'manifest.json');
+  const m = JSON.parse(readFileSync(file, 'utf8')) as { pages: Record<string, unknown>[] };
+  const page = (
+    id: string,
+    type: string,
+    context: string[],
+    titles: [string, string],
+    urls: [string, string],
+    extra = {},
+  ) => ({
+    id,
+    domain: id.split('.')[0],
+    type,
+    audience: ['author'],
+    context,
+    title: { en: titles[0], fr: titles[1] },
+    url: { en: urls[0], fr: urls[1] },
+    state: 'ready',
+    versions: { appliesFrom: '4.5.0' },
+    sources: ['package.json'],
+    replaces: [],
+    questions: { en: [], fr: [] },
+    aliases: { en: [], fr: [] },
+    identifiers: [],
+    related: [],
+    prerequisites: [],
+    ...extra,
+  });
+  m.pages.push(
+    page(
+      'reference.error-codes',
+      'reference',
+      ['studio-hosted', 'bridge'],
+      ['Error codes', "Codes d'erreur"],
+      ['EN-Reference-Error-Codes', 'FR-Reference-Codes-Erreur'],
+      {
+        identifiers: ['409'],
+      },
+    ),
+    page(
+      'create.project-layout',
+      'reference',
+      ['engine-repo', 'created-project'],
+      ['Layout', 'Organisation'],
+      ['EN-Create-Layout', 'FR-Creer-Organisation'],
+      {
+        aliases: { en: ['Hosted backup', 'backup'], fr: ['sauvegarde', 'sauvegarde hébergée'] },
+      },
+    ),
+  );
+  writeFileSync(file, JSON.stringify(m));
+  // A symptom page says "error" as a reader does.
+  for (const id of ['team.write-refused-409', 'bridge.signal-duplicate-409'])
+    writeFileSync(
+      join(dir, 'en', `${id}.md`),
+      `${readFileSync(join(dir, 'en', `${id}.md`), 'utf8')}\nThis error is a 409.\n`,
+    );
+  const register = '# Error codes\n\n<a name="codes"></a>\n\n## 409\n\nThe Studio and the Bridge answer 409.\n';
+  writeFileSync(join(dir, 'en', 'reference.error-codes.md'), register);
+  writeFileSync(join(dir, 'fr', 'reference.error-codes.md'), register.replace('Error codes', "Codes d'erreur"));
+  const layout = (a: string, b: string) =>
+    `# Layout\n\n<a name="created-project"></a>\n\n## ${a}\n\nThe widget opens the game.\n\n<a name="engine-repository"></a>\n\n## ${b}\n\nThe widget opens the current game.\n`;
+  writeFileSync(join(dir, 'en', 'create.project-layout.md'), layout('A created project', 'The engine repository'));
+  writeFileSync(join(dir, 'fr', 'create.project-layout.md'), layout('Un projet créé', 'Le dépôt du moteur'));
+  return dir;
+}
+
+describe('the search with a context: the page or the section of that context first', () => {
+  const set = preview(wikiContexts());
+
+  it('puts a troubleshooting page above the error register for a status code asked within a context', () => {
+    expect(results(set, 'Error 409', { context: 'studio-hosted', lang: 'en' })[0]!.id).toBe('team.write-refused-409');
+    expect(results(set, 'Error 409', { context: 'bridge', lang: 'en' })[0]!.id).toBe('bridge.signal-duplicate-409');
+    // Without a context the register keeps its score: it names every service the code belongs to.
+    expect(results(set, 'Error 409', { lang: 'en' }).map((r) => r.id)).toContain('reference.error-codes');
+  });
+
+  it("answers with the section headed by the context's name, in both languages", () => {
+    for (const lang of ['en', 'fr'] as const) {
+      expect(results(set, 'widget', { lang, context: 'engine-repo' })[0]!.ref).toBe(
+        'create.project-layout#engine-repository',
+      );
+      expect(results(set, 'widget', { lang, context: 'created-project' })[0]!.ref).toBe(
+        'create.project-layout#created-project',
+      );
+    }
+  });
+
+  it('shows, for a page-level match, the field that holds the most words found', () => {
+    const r = results(set, 'hosted backup', { lang: 'en' }).find((x) => x.id === 'create.project-layout')!;
+    expect(r).toMatchObject({ reason: 'alias' });
+    expect(r.snippet).toContain('**Hosted** **backup**');
+  });
+
+  it('sets contractions and possessives aside: "don\'t" and "their" weigh nothing', () => {
+    expect(results(set, "Why don't their widgets open?", { lang: 'en' })[0]?.id).toBe('create.project-layout');
+  });
+});
+
 describe('the search, at its edges', () => {
   it('counts an identifier in capitals only when typed exactly, its own section first, its description in the excerpt (A7, D2)', () => {
     const dir = tmp('wiki-screaming-');
@@ -695,7 +891,7 @@ The keys that seal the session cookies.
 
 describe('the bundle of a changed checkout', () => {
   const git = (cwd: string, ...a: string[]) => execFileSync('git', a, { cwd, encoding: 'utf8', stdio: 'pipe' });
-  /** A checkout with a committed wiki and docs/en, and a commit. */
+  /** A checkout with a committed wiki and docs/en (no longer a source of the bundle), and a commit. */
   function checkout(): { root: string; head: string } {
     const root = tmp('bundle-git-');
     cpSync(BASE, join(root, 'wiki'), { recursive: true });
@@ -707,12 +903,12 @@ describe('the bundle of a changed checkout', () => {
     return { root, head: git(root, 'rev-parse', 'HEAD').trim() };
   }
 
-  it('lists what changed under wiki/ and docs/en, nothing on a clean checkout', () => {
+  it('lists what changed under wiki/, never docs/en, nothing on a clean checkout', () => {
     const { root } = checkout();
     expect(dirtySources(root, join(root, 'wiki'))).toEqual([]);
     writeFileSync(join(root, 'wiki', 'en', 'create.rooms.md'), 'changed\n');
     writeFileSync(join(root, 'docs', 'en', 'NEW.md'), 'new\n');
-    expect(dirtySources(root, join(root, 'wiki'))).toEqual([' M wiki/en/create.rooms.md', '?? docs/en/NEW.md']);
+    expect(dirtySources(root, join(root, 'wiki'))).toEqual([' M wiki/en/create.rooms.md']);
   });
 
   it('says so in its identity when allowed: docRevision <sha>-dirty, wikiTree dirty', () => {
@@ -725,6 +921,7 @@ describe('the bundle of a changed checkout', () => {
   });
 
   it('`wiki -- bundle` refuses a changed checkout without --allow-dirty', () => {
+    // Two bundles of the repository's wiki, each after its check: seconds alone, more under a full parallel run.
     // The repository's own wiki: refused when its sources differ from HEAD, unless --allow-dirty.
     const dirty = dirtySources(ROOT, join(ROOT, 'wiki')).length > 0;
     const out = join(tmp('bundle-cli-'), 'docs-bundle');
@@ -742,5 +939,5 @@ describe('the bundle of a changed checkout', () => {
       log.mockRestore();
     }
     expect(existsSync(out)).toBe(true);
-  });
+  }, 60000);
 });

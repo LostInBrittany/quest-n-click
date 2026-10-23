@@ -9,7 +9,7 @@
 // | pages --out <dir> (--repo <owner/name> [--cache <dir>] | --releases <dir> (--repo <r> | --skip-attestations))
 // [--publication <file>] | next-revision --version <v> --repo <owner/name> | attest --repo <r> --tag <tag> --file <f>
 // | transition [--root <dir>] [--version <v>]
-// | env | acceptance [--lang en|fr] [--json] [--strict] [--export-prompts <dir> [--channel mcp|web] [--url <url>]]
+// | env | generate [<page>…] [--no-manifest] | acceptance [--lang en|fr] [--json] [--strict] [--export-prompts <dir> [--channel mcp|web] [--url <url>]]
 // (4.5.0 "Wiki", docs/dev/PLAN-4.5-WIKI.md §5, phases A2 to A5; ADR 0030).
 // The documentation's source is `wiki/` (a manifest, then `wiki/<lang>/<id>.md`); every output is generated from it.
 // `check` is the work level of every pull request: it fails on errors only, and prints the warnings and what is still
@@ -17,7 +17,8 @@
 // wiki` writes the folder a publication pushes to the GitHub wiki; it publishes the `ready` pages, and the `draft`
 // ones too with `--preview`. `coverage --init` takes the anchor inventory of the old documentation into
 // `wiki/coverage.json`; `coverage` merges a new inventory into it, keeping what a person wrote, and regenerates
-// `wiki/legacy.json` and the manifest's `replaces` (§4.2). `bundle` writes the documentation an installed engine
+// `wiki/legacy.json` and the manifest's `replaces` (§4.2); since the switch-over (C2) the matrix is final and
+// `coverage` refuses to merge. `bundle` writes the documentation an installed engine
 // carries (tools/wiki/bundle.ts, §4.3.4), into the package scripts/pack.mjs prepares: never under a folder the
 // repository tracks. `check --publish` is the publication level (§4.1.4): the published pages reach ready pages only,
 // no translation is to review, every claim was executed on the product (`--test-report`, a Vitest JSON report with
@@ -29,11 +30,16 @@
 // --target wiki` pushes an archive's wiki to the GitHub wiki and records it in `publication.json`
 // (tools/wiki/publication.ts), by `GITHUB_TOKEN` or the deploy key `WIKI_DEPLOY_KEY`; `pages` assembles Pages' `/docs/`
 // from the released archives only (tools/wiki/pages.ts); `transition` writes the transition pages of `docs/en|fr`
-// (tools/wiki/transition.ts, run by C2). `--wiki=<dir>` reads another source folder (the tests' fixtures). The output
+// (tools/wiki/transition.ts; written at C2, again by each release pull request). `--wiki=<dir>` reads another source folder (the tests' fixtures). The output
 // folder is outside the working tree (or under `.cache/`), so a build never lands among the sources, and only a previous
 // build is emptied.
 // `env` (A7, §4.7.4) regenerates the environment variable reference from `wiki/data/env.json` and the code
 // (tools/wiki/env.ts): its sections in both languages and its manifest identifiers; `check` fails when they drift.
+// `generate` (B11) regenerates the reference pages that come from the code (tools/wiki/generators.ts: the npm scripts,
+// the CLIs, the error register, the support matrix, the DSL, the public API, the Studio API, the MCP tools), each from
+// the code and its data file of `wiki/data/`: the region between `<!-- generated:begin -->` and `<!-- generated:end -->`
+// of both language files, and the page's manifest identifiers (`--no-manifest`: the pages only); `check` fails when
+// they drift.
 // `acceptance` runs the real questions of `wiki/acceptance/questions.json` through search_docs (§4.6, L6 level 1,
 // tools/wiki/acceptance.ts): reported, exit 0, unless `--strict` (C1), which fails on a miss, a failed
 // counter-example or a pending question; `--export-prompts` writes level 2's prompts instead.
@@ -62,6 +68,7 @@ import {
   counterLines,
   coverageCounters,
   coveragePath,
+  switchedOver,
   incomingLinks,
   initCoverage,
   inventory,
@@ -82,6 +89,7 @@ import {
   withEnvIdentifiers,
   withEnvSections,
 } from './wiki/env';
+import { writeGenerated } from './wiki/generators';
 import { assemblePages, downloadReleases, ghAttestation, ghRetry, writePages } from './wiki/pages';
 import {
   gitEnv,
@@ -146,7 +154,7 @@ export function bundleOutProblem(out: string, tracked: readonly string[], root =
 }
 
 const USAGE =
-  'usage: npm run wiki -- check [--test-report <file>]… | check --publish --product-ref <tag|sha> [--doc-ref <sha>] [--released] [--state preview|candidate|published] [--test-report <file>]… [--candidate <run id>] | review-claim <id> --by <name> --kind human|ai --relation author|independent | translations --ack <id#section> --by <name> --kind human|ai --relation author|independent | stats [--json] | coverage [--init [--force] | --ack <key>] | build --target wiki --out <dir> [--preview] [--product-version <v>] [--doc-revision <sha>] [--product-commit <sha>] | bundle --out <dir> [--build-id <id>] [--allow-dirty] [--product-version <v>] [--doc-revision <sha>] [--product-commit <sha>] | archive --out <quest-n-click-docs-<v>[-r<n>].tar.gz> [--revision r<n>] [--preview] [--build-id <id>] [--test-report <file>… --candidate <run id>] [--allow-dirty] [--product-version <v>] [--doc-revision <sha>] [--product-commit <sha>] | publish --target wiki --mode release|revision|rollback|promote|preview --ref <ref> --version <v> --revision r<n> --tag <tag> --archive <file> (--repo <owner/name> | --remote <url>) [--sha256 <hex>] [--rollback-to <v>[-r<n>]] [--dry-run] | pages --out <dir> (--repo <owner/name> [--cache <dir>] | --releases <dir> (--repo <owner/name> | --skip-attestations)) [--publication <file>] | next-revision --version <v> --repo <owner/name> | attest --repo <owner/name> --tag <tag> --file <archive> | transition [--root <dir>] [--version <v>] | env | acceptance [--lang en|fr] [--json] [--strict] [--export-prompts <dir> [--channel mcp|web] [--url <url>]]';
+  'usage: npm run wiki -- check [--test-report <file>]… | check --publish --product-ref <tag|sha> [--doc-ref <sha>] [--released] [--state preview|candidate|published] [--test-report <file>]… [--candidate <run id>] | review-claim <id> --by <name> --kind human|ai --relation author|independent | translations --ack <id#section> --by <name> --kind human|ai --relation author|independent | stats [--json] | coverage [--init [--force] | --ack <key>] | build --target wiki --out <dir> [--preview] [--product-version <v>] [--doc-revision <sha>] [--product-commit <sha>] | bundle --out <dir> [--build-id <id>] [--allow-dirty] [--product-version <v>] [--doc-revision <sha>] [--product-commit <sha>] | archive --out <quest-n-click-docs-<v>[-r<n>].tar.gz> [--revision r<n>] [--preview] [--build-id <id>] [--test-report <file>… --candidate <run id>] [--allow-dirty] [--product-version <v>] [--doc-revision <sha>] [--product-commit <sha>] | publish --target wiki --mode release|revision|rollback|promote|preview --ref <ref> --version <v> --revision r<n> --tag <tag> --archive <file> (--repo <owner/name> | --remote <url>) [--sha256 <hex>] [--rollback-to <v>[-r<n>]] [--dry-run] | pages --out <dir> (--repo <owner/name> [--cache <dir>] | --releases <dir> (--repo <owner/name> | --skip-attestations)) [--publication <file>] | next-revision --version <v> --repo <owner/name> | attest --repo <owner/name> --tag <tag> --file <archive> | transition [--root <dir>] [--version <v>] | env | generate [<page>…] [--no-manifest] | acceptance [--lang en|fr] [--json] [--strict] [--export-prompts <dir> [--channel mcp|web] [--url <url>]]';
 
 /** Today, as a day (the date a review or an ack records). */
 const today = () => new Date().toISOString().slice(0, 10);
@@ -310,6 +318,7 @@ function run(args: readonly string[]): number {
   if (command === 'coverage') return coverage(args, wikiDir);
   if (command === 'acceptance') return acceptance(args, wikiDir);
   if (command === 'env') return env(wikiDir);
+  if (command === 'generate') return generate(args, wikiDir);
   if (command === 'build') {
     const target = option(args, 'target') ?? 'wiki';
     const out = option(args, 'out');
@@ -767,6 +776,22 @@ function env(wikiDir: string): number {
 }
 
 /**
+ * `generate [<page>…]`: the generated reference pages (B11) written again from the code and their data, every one or
+ * those named. Refused for a page whose data and code disagree: the problems are printed, that page is left as it is.
+ */
+function generate(args: readonly string[], wikiDir: string): number {
+  const only = args.slice(1).filter((a, i, xs) => !a.startsWith('--') && xs[i - 1] !== '--wiki');
+  const { written, problems } = writeGenerated({ root: ROOT, wikiDir, tracked: trackedFiles() }, only, {
+    manifest: !args.includes('--no-manifest'),
+  });
+  for (const p of problems) console.error(`✖  ${p}`);
+  console.log(
+    `${problems.length ? '✖' : '✔'}  ${written.length} page file(s) generated: ${written.join(', ') || 'none'}`,
+  );
+  return problems.length ? 1 : 0;
+}
+
+/**
  * `acceptance`: level 1 of §4.6 over the documentation the loader reads in the repository (`wiki/`, draft and ready
  * pages), reported and exit 0; `--strict` exits 1 on a miss, a failed counter-example or a pending question (C1:
  * every page is written by then). `--export-prompts <dir>` writes level 2's prompts (outside the working tree, or
@@ -828,6 +853,12 @@ function coverage(args: readonly string[], wikiDir: string): number {
   const { manifest, errors } = readManifest(wikiDir);
   if (!manifest) {
     for (const e of errors) console.error(`✖  ${e}`);
+    return 1;
+  }
+  if (switchedOver(root)) {
+    console.error(
+      '✖  the matrix is final since the switch-over (4.5.0, C2): docs/en and docs/fr are transition pages, written by `npm run wiki -- transition`',
+    );
     return 1;
   }
   const files = inventory(root);

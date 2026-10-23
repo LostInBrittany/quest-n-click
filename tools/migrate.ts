@@ -1,5 +1,5 @@
 // quest-n-click migrate (3.9): brings the game's sources to the authoring schema of the installed engine. The schema is
-// `schemaVersion` in defineGame (docs/en/UPGRADING.md, docs/en/SUPPORT.md): 3 is the current one. A game on 3 has
+// `schemaVersion` in defineGame (wiki/en/install.upgrade.md, wiki/en/start.stability.md): 3 is the current one. A game on 3 has
 // nothing to do; an older game gets its stable ids written (`npm run ids -- --write --map`) and the steps left to do
 // by hand are printed. 4.3.0: first, a project still under the former name (D47) has its `web-scumm/…` imports, its
 // tsconfig.json and its package.json's commands renamed (tools/migrate-name.ts). `--check`: exit 1 when a migration
@@ -68,7 +68,9 @@ if (process.argv.includes('--check')) {
   console.error(`✖  [${GAME}] authoring schema ${at}: a migration to ${CURRENT_SCHEMA} is due (quest-n-click migrate)`);
   process.exit(1);
 }
-console.log(`[${GAME}] authoring schema ${at} → ${CURRENT_SCHEMA}: writing stable ids (docs/en/UPGRADING.md)`);
+console.log(
+  `[${GAME}] authoring schema ${at} → ${CURRENT_SCHEMA}: writing stable ids (https://github.com/wanoo/quest-n-click/wiki/EN-Install-Upgrade)`,
+);
 const r = spawnSync(
   process.execPath,
   [...process.execArgv, resolve(import.meta.dirname, 'ids.ts'), '--write', '--map'],

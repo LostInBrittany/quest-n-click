@@ -6,7 +6,8 @@
 // is `../../src/engine/core/save.ts`, an image of the wiki is `../images/x.png`. A bare `src/x.ts` would resolve to
 // `wiki/<lang>/src/x.ts` on GitHub: it is refused with the right form. One scanner finds the links for the check and
 // rewrites them for the build, so both read the same links: titled links, images, a linked image's outer link; and
-// neither reads inside fenced code (closed only by a fence of the same character, at least as long) or inline code.
+// neither reads inside fenced code (closed only by a fence of the same character, at least as long) or inline code. A
+// link whose label breaks across a line of its paragraph (CommonMark allows it, never across a blank line) is read whole.
 
 /** A section anchor line: `<a name="id"></a>` (or `<a id="id"></a>`), nothing else on the line. */
 const ANCHOR = /^<a (?:name|id)="([a-z0-9]+(?:-[a-z0-9]+)*)"><\/a>\s*$/;
@@ -244,15 +245,57 @@ export interface Fence {
   content: string;
 }
 
+/** A fence's opening or closing line. */
+const FENCE_MARK = /^\s*(`{3,}|~{3,})(.*)$/;
+
+/**
+ * Whether a line may continue the paragraph of the line before it, so a link label opened on one may close on it
+ * (CommonMark): not blank, not a fence, a heading, an anchor, a marker comment, a list item or a table row, and inside a
+ * block quote when (and only when) the line before is.
+ */
+function continues(prev: string, next: string | undefined): boolean {
+  if (next === undefined || !next.trim() || !prev.trim()) return false;
+  const quoted = (l: string) => l.trimStart().startsWith('>');
+  if (quoted(prev) !== quoted(next)) return false;
+  const body = (l: string) => (quoted(l) ? l.trimStart().replace(/^>\s?/, '') : l).trim();
+  const a = body(prev);
+  const b = body(next);
+  if (!a || !b) return false;
+  if (/^#{1,6}(\s|$)/.test(a) || a.startsWith('|')) return false;
+  return !(
+    FENCE_MARK.test(b) ||
+    /^#{1,6}(\s|$)/.test(b) ||
+    /^(<a\s|<!--)/.test(b) ||
+    /^([-*+]|\d+[.)])\s/.test(b) ||
+    b.startsWith('|') ||
+    /^\[!/.test(b)
+  );
+}
+
+/** Whether a link (or image) opened on `line` has its label closed on `next`, the line after it. */
+function linkCrosses(line: string, next: string): boolean {
+  let crosses = false;
+  mapLine(`${line}\n${next}`, 0, (l) => {
+    if (l.label.includes('\n')) crosses = true;
+    return undefined;
+  });
+  return crosses;
+}
+
 /**
  * Walks a page line by line, outside fenced code, calling `onLine` with each line, its number and a way to read the
  * next non-blank line; the line it returns replaces it. Each fenced block is handed to `onFence` once closed (or at the
  * end of a page that leaves it open). Returns the page rewritten, and whether a fence was left open.
+ *
+ * With `joinLinks`, a link whose label breaks across a line (`[the\npage](x.md)`, as CommonMark allows inside a
+ * paragraph, never across a blank line) is handed whole: `onLine` receives the lines it spans joined by `\n`, with
+ * the first one's number, and what it returns replaces all of them.
  */
 export function mapLines(
   markdown: string,
   onLine: (line: string, n: number, next: () => string | undefined) => string,
   onFence?: (fence: Fence) => void,
+  options: { joinLinks?: boolean } = {},
 ): { text: string; openFence: boolean } {
   const lines = markdown.split('\n');
   let fence: { char: string; length: number; lang: string; line: number; body: string[] } | undefined;
@@ -260,21 +303,32 @@ export function mapLines(
     if (fence) onFence?.({ lang: fence.lang, line: fence.line, endLine, content: fence.body.join('\n') });
     fence = undefined;
   };
-  const out = lines.map((raw, i) => {
-    const mark = /^\s*(`{3,}|~{3,})(.*)$/.exec(raw);
+  const out: string[] = [];
+  for (let i = 0; i < lines.length; i++) {
+    const raw = lines[i]!;
+    const mark = FENCE_MARK.exec(raw);
     if (fence) {
       if (mark && mark[1]![0] === fence.char && mark[1]!.length >= fence.length && !mark[2]!.trim()) close(i + 1);
       else fence.body.push(raw);
-      return raw;
+      out.push(raw);
+      continue;
     }
     // A backtick fence's info string holds no backtick (otherwise the line is inline code).
     if (mark && !(mark[1]![0] === '`' && mark[2]!.includes('`'))) {
       const lang = mark[2]!.trim().split(/\s+/)[0] ?? '';
       fence = { char: mark[1]![0]!, length: mark[1]!.length, lang, line: i + 1, body: [] };
-      return raw;
+      out.push(raw);
+      continue;
     }
-    return onLine(raw, i + 1, () => lines.slice(i + 1).find((l) => l.trim() !== ''));
-  });
+    let text = raw;
+    let last = i;
+    if (options.joinLinks)
+      while (continues(lines[last]!, lines[last + 1]) && linkCrosses(lines[last]!, lines[last + 1]!))
+        text += `\n${lines[++last]!}`;
+    const start = i;
+    i = last;
+    out.push(onLine(text, start + 1, () => lines.slice(last + 1).find((l) => l.trim() !== '')));
+  }
   const openFence = fence !== undefined;
   close(lines.length);
   return { text: out.join('\n'), openFence };
@@ -289,10 +343,15 @@ export const mapPage = (
   replace: (l: Link) => string | undefined,
   block: (kind: 'LIMIT' | 'GUARANTEE' | 'MEASURE', id: string) => string,
 ): string =>
-  mapLines(markdown, (line, n) => {
-    const b = BLOCK.exec(line.trim());
-    return b ? block(b[1] as 'LIMIT', b[2]!) : mapLine(line, n, replace);
-  }).text;
+  mapLines(
+    markdown,
+    (line, n) => {
+      const b = BLOCK.exec(line.trim());
+      return b ? block(b[1] as 'LIMIT', b[2]!) : mapLine(line, n, replace);
+    },
+    undefined,
+    { joinLinks: true },
+  ).text;
 
 type BlockKind = 'LIMIT' | 'GUARANTEE' | 'MEASURE';
 /** A structured block: its kind and id, its opening line, its text (the quoted lines after the opening one). */
@@ -354,12 +413,15 @@ export function parsePage(markdown: string, lang: string): ParsedPage {
     (raw, line) => {
       const t = raw.trim();
       const opening = BLOCK.exec(t);
-      if (block && !opening && t.startsWith('>')) {
-        const text = t.replace(/^>\s?/, '');
-        block.body.push(text);
-        const field = /^[-*]\s+([a-z]+)\s*:\s*(.*)$/.exec(text.trim());
-        if (field && !(field[1]! in block.fields)) block.fields[field[1]!] = field[2]!.trim();
-      } else block = undefined;
+      if (block && !opening && t.startsWith('>'))
+        // A link breaking across a line hands several lines at once: each is a line of the block.
+        for (const sub of t.split('\n')) {
+          const text = sub.trim().replace(/^>\s?/, '');
+          block.body.push(text);
+          const field = /^[-*]\s+([a-z]+)\s*:\s*(.*)$/.exec(text.trim());
+          if (field && !(field[1]! in block.fields)) block.fields[field[1]!] = field[2]!.trim();
+        }
+      else block = undefined;
       const anchor = ANCHOR.exec(t)?.[1];
       if (anchor) {
         if (page.sections.includes(anchor))
@@ -411,6 +473,7 @@ export function parsePage(markdown: string, lang: string): ParsedPage {
       block = undefined;
       page.fences.push(fence);
     },
+    { joinLinks: true },
   );
   if (openFence) page.problems.push('a code fence is never closed');
   return page;

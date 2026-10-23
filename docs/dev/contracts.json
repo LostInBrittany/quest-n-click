@@ -1,7 +1,7 @@
 {
   "format": "quest-n-click-contracts",
   "version": 1,
-  "note": "The status registry's data (4.5.0 \"Wiki\", docs/dev/PLAN-4.5-WIKI.md §4.4.2, phase A5; read by tools/wiki/contracts.ts): per product surface, its contract status (experimental, stable, deprecated), quoted from docs/en|fr/SUPPORT.md (tests/contracts.test.ts checks the quotes are there and say that status); the environments the support matrix says CI verifies, as of `asOf`; the automated checks that cover it (ci:plan's gates, CI and candidate jobs, test files); and the rows of SUPPORT.md's support matrix that speak for it (`matrixRows`, each row named by a surface, tested; a surface SUPPORT.md does not name yet has a null quote or rows, with its `reason`); the people's passes it waits for (ids of tools/field/schema.ts and docs/dev/surfaces.json). The passes' states are never written here: they are read from docs/dev/passes/<version>.md, with the issue that tracks each for that version (`passIssues`, by pass then version: the sheets do not hold the numbers; a test requires one for every pass of the newest sheet). Known limits are the pages' own [!LIMIT] blocks. A wiki page names its surfaces in the manifest (`surfaces`); its header shows the five statuses separately.",
+  "note": "The status registry's data (4.5.0 \"Wiki\", docs/dev/PLAN-4.5-WIKI.md §4.4.2, phase A5; read by tools/wiki/contracts.ts): per product surface, its contract status (experimental, stable, deprecated), quoted from the surface table of the wiki's `start.stability` (wiki/en|fr/start.stability.md, since 4.5.0: the row's surface, contract and promise; tests/contracts.test.ts checks the quotes are there and say that status); the environments the support matrix says CI verifies, as of `asOf`; the automated checks that cover it (ci:plan's gates, CI and candidate jobs, test files); and the rows of the support matrix that speak for it (`matrixRows`: the first cells of the table of `reference.support-matrix#matrix`, each row named by a surface, tested; a surface the pages do not name yet has a null quote or rows, with its `reason`); the people's passes it waits for (ids of tools/field/schema.ts and docs/dev/surfaces.json). The passes' states are never written here: they are read from docs/dev/passes/<version>.md, with the issue that tracks each for that version (`passIssues`, by pass then version: the sheets do not hold the numbers; a test requires one for every pass of the newest sheet). Known limits are the pages' own [!LIMIT] blocks. A wiki page names its surfaces in the manifest (`surfaces`); its header shows the five statuses separately.",
   "asOf": { "version": "4.4.0", "date": "2026-10-23" },
   "passIssues": {
     "archive-human-install": { "4.4.0": 75 },
@@ -31,8 +31,8 @@
       "title": { "en": "The content format and its tools", "fr": "Le format du contenu et ses outils" },
       "status": "stable",
       "support": {
-        "en": "**Stable**: the content format and its tools",
-        "fr": "**Stable** : le format du contenu et ses outils"
+        "en": "| The content format and its tools | stable | Stable |",
+        "fr": "| Le format du contenu et ses outils | stable | Stable |"
       },
       "matrixRows": {
         "en": ["Node", "Windows", "Python"],
@@ -61,8 +61,8 @@
       "title": { "en": "The public API", "fr": "L'API publique" },
       "status": "stable",
       "support": {
-        "en": "**Stable**: the content format and its tools, the player on desktop Chromium and its PWA, the Bridge's `local` profile (4.2.0's list, unchanged), and the public API under SemVer",
-        "fr": "**Stable** : le format du contenu et ses outils, le joueur sous Chromium de bureau et sa PWA, le profil `local` du Bridge (la liste de la 4.2.0, inchangée), et l'API publique sous SemVer"
+        "en": "| The public API | stable | Stable, under SemVer |",
+        "fr": "| L’API publique | stable | Stable, en SemVer |"
       },
       "matrixRows": {
         "en": ["Node"],
@@ -82,8 +82,8 @@
       "title": { "en": "The player (DOM painter)", "fr": "Le joueur (peintre DOM)" },
       "status": "stable",
       "support": {
-        "en": "**Limited, until their 4.2.0 passes (#75–#87)**: the DOM player on phones and screen readers",
-        "fr": "**Limité, jusqu'à leurs passes de la 4.2.0 (#75–#87)** : le joueur DOM sur téléphone et au lecteur d'écran"
+        "en": "| The player (DOM painter) | stable | Limited until its passes: phones and screen readers |",
+        "fr": "| Le lecteur de jeu (peintre DOM) | stable | Limité jusqu’à ses passes : téléphones et lecteurs d’écran |"
       },
       "matrixRows": {
         "en": ["Player, phone", "Player, desktop", "Player, screen reader"],
@@ -110,7 +110,10 @@
     "player-canvas": {
       "title": { "en": "The Canvas painter", "fr": "Le peintre Canvas" },
       "status": "experimental",
-      "support": { "en": "**Experimental**: the Canvas painter", "fr": "**Expérimental** : le peintre Canvas" },
+      "support": {
+        "en": "| The Canvas painter | experimental | Experimental |",
+        "fr": "| Le peintre Canvas | expérimental | Expérimental |"
+      },
       "matrixRows": {
         "en": [],
         "fr": []
@@ -129,8 +132,8 @@
       "title": { "en": "The installed game (PWA) and offline play", "fr": "Le jeu installé (PWA) et hors ligne" },
       "status": "stable",
       "support": {
-        "en": "**Stable**: the content format and its tools, the player on desktop Chromium and its PWA",
-        "fr": "**Stable** : le format du contenu et ses outils, le joueur sous Chromium de bureau et sa PWA"
+        "en": "| The installed game (PWA) and offline play | stable | Stable on desktop Chromium; limited on Safari and Firefox (the PWA only) |",
+        "fr": "| Le jeu installé (PWA) et le jeu hors ligne | stable | Stable sur Chromium d’ordinateur ; limité sur Safari et Firefox (la PWA seulement) |"
       },
       "matrixRows": {
         "en": ["Player, phone", "Firefox"],
@@ -157,8 +160,8 @@
       },
       "status": "stable",
       "support": {
-        "en": "**Stable**: the content format and its tools, the player on desktop Chromium and its PWA, the Bridge's `local` profile",
-        "fr": "**Stable** : le format du contenu et ses outils, le joueur sous Chromium de bureau et sa PWA, le profil `local` du Bridge"
+        "en": "| The Reality Bridge, `local` profile (SQLite) | stable | Stable |",
+        "fr": "| Le Bridge Reality, profil `local` (SQLite) | stable | Stable |"
       },
       "matrixRows": {
         "en": ["Reality Bridge", "Bridge, `local` profile (4.1.10)"],
@@ -182,8 +185,8 @@
       },
       "status": "experimental",
       "support": {
-        "en": "Bridge, `distributed` profile (4.1.10, `experimental`)",
-        "fr": "Bridge, profil `distributed` (4.1.10, `experimental`)"
+        "en": "| The Reality Bridge, `distributed` profile (Postgres) | experimental | Experimental |",
+        "fr": "| Le Bridge Reality, profil `distributed` (Postgres) | expérimental | Expérimental |"
       },
       "matrixRows": {
         "en": ["Bridge, `distributed` profile (4.1.10, `experimental`)"],
@@ -209,7 +212,10 @@
         "fr": "Les connecteurs (email, Telnet, SSH, Open Badges)"
       },
       "status": "experimental",
-      "support": { "en": "Connectors (4.1.9), **experimental**", "fr": "Connecteurs (4.1.9), **expérimental**" },
+      "support": {
+        "en": "| The connectors (email, Telnet, SSH, Open Badges) | experimental | Experimental |",
+        "fr": "| Les connecteurs (email, Telnet, SSH, Open Badges) | expérimental | Expérimental |"
+      },
       "matrixRows": {
         "en": ["Connectors (4.1.9), **experimental** (D19)"],
         "fr": ["Connecteurs (4.1.9), **expérimental** (D19)"]
@@ -231,8 +237,8 @@
       "title": { "en": "Speedrun and Remix", "fr": "Speedrun et Remix" },
       "status": "stable",
       "support": {
-        "en": "**Limited, until their 4.2.0 passes (#75–#87)**: the DOM player on phones and screen readers, the Safari PWA, Firefox (the PWA only), speedrun and Remix",
-        "fr": "**Limité, jusqu'à leurs passes de la 4.2.0 (#75–#87)** : le joueur DOM sur téléphone et au lecteur d'écran, la PWA Safari, Firefox (la PWA seulement), speedrun et Remix"
+        "en": "| Speedrun and Remix | stable | Limited until their passes |",
+        "fr": "| Speedrun et Remix | stable | Limité jusqu’à leurs passes |"
       },
       "matrixRows": {
         "en": [],
@@ -255,8 +261,8 @@
       "title": { "en": "Voices and music", "fr": "Voix et musique" },
       "status": "stable",
       "support": {
-        "en": "**Limited, until their 4.2.0 passes (#75–#87)**: the DOM player on phones and screen readers, the Safari PWA, Firefox (the PWA only), speedrun and Remix, voices and music",
-        "fr": "**Limité, jusqu'à leurs passes de la 4.2.0 (#75–#87)** : le joueur DOM sur téléphone et au lecteur d'écran, la PWA Safari, Firefox (la PWA seulement), speedrun et Remix, voix et musique"
+        "en": "| Voices and music | stable | Limited until their pass |",
+        "fr": "| Voix et musique | stable | Limité jusqu’à sa passe |"
       },
       "matrixRows": {
         "en": [],
@@ -276,8 +282,8 @@
       "title": { "en": "The package archives and their install", "fr": "Les archives des paquets et leur installation" },
       "status": "stable",
       "support": {
-        "en": "**Limited, until their 4.2.0 passes (#75–#87)**: the DOM player on phones and screen readers, the Safari PWA, Firefox (the PWA only), speedrun and Remix, voices and music, the four package archives installed by a person",
-        "fr": "**Limité, jusqu'à leurs passes de la 4.2.0 (#75–#87)** : le joueur DOM sur téléphone et au lecteur d'écran, la PWA Safari, Firefox (la PWA seulement), speedrun et Remix, voix et musique, les quatre archives de paquets installées par une personne"
+        "en": "| The package archives and their install | stable | Limited until a person installs them |",
+        "fr": "| Les archives des packages et leur installation | stable | Limité jusqu’à ce qu’une personne les installe |"
       },
       "matrixRows": {
         "en": [],
@@ -299,7 +305,10 @@
     "studio-local": {
       "title": { "en": "The local Studio", "fr": "Le Studio local" },
       "status": "stable",
-      "support": { "en": "**Partial**: the Studio on Windows", "fr": "**Partiel** : le Studio sous Windows" },
+      "support": {
+        "en": "| The local Studio | stable | Partial on Windows |",
+        "fr": "| Le Studio local | stable | Partiel sous Windows |"
+      },
       "matrixRows": {
         "en": ["Windows"],
         "fr": ["Windows"]
@@ -322,8 +331,8 @@
       "title": { "en": "The Studio Server (hosted team Studio)", "fr": "Le Studio Server (Studio d'équipe hébergé)" },
       "status": "experimental",
       "support": {
-        "en": "**The Studio Server, experimental as a whole**",
-        "fr": "**Le Studio Server, expérimental en entier**"
+        "en": "| The Studio Server (hosted team Studio) | experimental | Experimental as a whole |",
+        "fr": "| Le Studio Server (Studio d’équipe hébergé) | expérimental | Expérimental dans son ensemble |"
       },
       "matrixRows": {
         "en": [],
@@ -356,9 +365,14 @@
         "fr": "La documentation : le wiki, son bundle dans le paquet et sa recherche"
       },
       "status": "experimental",
-      "support": null,
-      "matrixRows": null,
-      "reason": "SUPPORT.md gains its row at C2; docs/ is frozen by the coverage matrix",
+      "support": {
+        "en": "| The documentation (this wiki, its bundle, its search) | experimental | Experimental, from 4.5.0 |",
+        "fr": "| La documentation (ce wiki, son paquet, sa recherche) | expérimental | Expérimental, depuis la 4.5.0 |"
+      },
+      "matrixRows": {
+        "en": ["Documentation (4.5.0), **experimental**"],
+        "fr": ["Documentation (4.5.0), **expérimental**"]
+      },
       "environments": [],
       "checks": {
         "gates": [],

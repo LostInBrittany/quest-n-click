@@ -1,4 +1,4 @@
-// Dev server only: the Studio API (/__studio/api/*, docs/en/STUDIO.md), its change feed (server-sent events) and the
+// Dev server only: the Studio API (/__studio/api/*, wiki/en/studio.api.md), its change feed (server-sent events) and the
 // Studio page itself (/__studio/ → studio.html, entry src/studio/main.ts). Every operation is a call into core.ts.
 import { createReadStream, watch, type FSWatcher } from 'node:fs';
 import type { IncomingMessage, ServerResponse } from 'node:http';

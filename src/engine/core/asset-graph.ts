@@ -1,6 +1,6 @@
 // The asset graph: which files each part of the game needs, from the content, in one place. The renderer's room
 // preload, the background warm-up, the full offline plan, the provenance keys and the weight budgets all read it, so
-// a file one of them knows about cannot escape the others (docs/en/ENGINE.md "Assets").
+// a file one of them knows about cannot escape the others (wiki/en/engine.how-it-works.md#assets).
 //
 // Keys: `img:<manifest image id>`, `sfx:<file>`, `music:<file>` (a score's stem files too), `voice:<file>`, `video:<file>`. Scopes:
 // - `title`: the title screen (backdrop, logo, music, video), the column's and the map button's icons, the bag at the

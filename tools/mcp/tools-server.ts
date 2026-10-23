@@ -78,6 +78,7 @@ export const instructionsFor = (game: string, where: string, hosted = false) =>
   (hosted
     ? 'this is a shared Studio: you write as your member, a part another member holds refuses your write (423), ' +
       'say what you need in a note. After any change run validate, then solve. '
-    : 'learn the format with read_doc CONTENT_GUIDE. After any change run validate, then solve, then run_tests. ') +
+    : 'find what you need with search_docs, then read_doc by id and section; read_doc CONTENT_GUIDE still works. ' +
+      'After any change run validate, then solve, then run_tests. ') +
   'Never invent coordinates: ask the human (add_note) to place things in the Studio.' +
   (hosted ? '' : ' Read AGENTS.md for the rules.');
