@@ -31,6 +31,11 @@ folder that exists and is not empty, then writes:
 
 Later, `npm run build` writes `dist/` (with `licenses/`), and the tools write `.cache/`.
 
+In the created project, `npm run dev` and `npm run studio` call `quest-n-click dev` or `quest-n-click studio`, which
+run the package's own Vite configuration with the project as working folder and `game/` as the game: the game on
+`http://127.0.0.1:5173/`, the Studio at `/__studio/`, opened in the browser. Neither is the hosted Studio Server
+([team Studio](team.what-runs-where.md)).
+
 The project's id is the folder's name in lowercase, letters, digits and dashes; the title defaults to that id in title
 case.
 
@@ -131,10 +136,9 @@ Clone it to work on the engine, or to keep several games beside it (`games/demo`
 (`engines` in `package.json`); `npm run doctor` says what is missing ([requirements](install.requirements.md)).
 
 `npm run dev` and `npm run studio` work in both places. In the engine repository they first point `.cache/game` at the
-current game, then start Vite on `http://127.0.0.1:5173/` (loopback only; the Studio at `/__studio/`). In a created
-project the script calls `quest-n-click dev` or `quest-n-click studio`, which run the package's own Vite configuration
-with the project as working folder and `game/` as the game. Neither is the hosted Studio Server
-([team Studio](team.what-runs-where.md)).
+current game ([choosing the game](create.working-loop.md#choosing-the-game)), then start Vite on
+`http://127.0.0.1:5173/` (loopback only; the Studio at `/__studio/`). In a created project they open the project's one
+game ([above](#created-project)). Neither is the hosted Studio Server ([team Studio](team.what-runs-where.md)).
 
 <a name="engine-code"></a>
 

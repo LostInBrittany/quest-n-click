@@ -89,7 +89,7 @@ mouette reçoit, et une sauvegarde qui garde le héros.
 <a name="hero-choice"></a>
 <!-- applies: .. since 4.3.0 -->
 
-## Référence : choisir le héros
+## Référence : laisser le joueur choisir le héros
 
 Le joueur choisit le héros à la Nouvelle partie : un chevalier, une sorcière ou un robot, un garçon ou une fille,
 autant de héros que le jeu en déclare. Le héros garde les mêmes énigmes et les mêmes lieux ; ce qui change, c’est son

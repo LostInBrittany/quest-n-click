@@ -86,7 +86,7 @@ voiced per hero in both languages, one rule only the gull gets, and a save that 
 <a name="hero-choice"></a>
 <!-- applies: .. since 4.3.0 -->
 
-## Reference: choosing the hero
+## Reference: letting the player choose the hero
 
 The player picks the hero at New Game: a knight, a witch or a robot, a boy or a girl, as many heroes as the game
 declares. The hero keeps the same puzzles and rooms; what changes is the look, the name, and the words the others use

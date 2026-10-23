@@ -743,7 +743,10 @@
         "docs/fr/PRIVACY.md#supprimer-les-données-dun-joueur-partout",
         "docs/fr/REALITY-OPS.md#conservation-export-suppression"
       ],
-      "questions": { "en": [], "fr": [] },
+      "questions": {
+        "en": ["What does the game keep about me, and where?"],
+        "fr": ["Que garde le jeu sur moi, et où ?"]
+      },
       "aliases": {
         "en": ["PRIVACY", "personal data", "GDPR", "delete my data", "tracking", "retention"],
         "fr": ["PRIVACY", "données personnelles", "RGPD", "effacer mes données", "pistage", "conservation"]
@@ -787,8 +790,17 @@
         ]
       },
       "aliases": {
-        "en": ["no sound", "save failed", "old version", "offline", "bug report"],
-        "fr": ["pas de son", "échec de la sauvegarde", "ancienne version", "hors ligne", "signaler un bug"]
+        "en": ["no sound", "save failed", "old version", "offline", "bug report", "don't hear any sound", "muted game"],
+        "fr": [
+          "pas de son",
+          "échec de la sauvegarde",
+          "ancienne version",
+          "hors ligne",
+          "signaler un bug",
+          "aucun son",
+          "je n'entends rien",
+          "jeu muet"
+        ]
       },
       "identifiers": [],
       "related": ["play.saves", "play.install-app", "create.deploy-issues"],
@@ -1554,7 +1566,16 @@
         "docs/fr/CONTENT_GUIDE.md#les-fichiers",
         "docs/fr/ENGINE.md#découpage"
       ],
-      "questions": { "en": ["Where do I run this command?"], "fr": ["Cette commande se lance où ?"] },
+      "questions": {
+        "en": [
+          "Where do I run this command?",
+          "What do npm run dev and npm run studio open, in a created project and in the engine repository?"
+        ],
+        "fr": [
+          "Cette commande se lance où ?",
+          "Que lancent npm run dev et npm run studio, dans un projet créé et dans le dépôt du moteur ?"
+        ]
+      },
       "aliases": {
         "en": ["project structure", "folder layout", "created project", "engine repository", "ENGINE"],
         "fr": ["structure du projet", "arborescence", "projet créé", "dépôt du moteur", "ENGINE"]
@@ -1601,13 +1622,11 @@
       "questions": {
         "en": [
           "How do I play and check my game while I write it?",
-          "Which game does npm run dev play?",
-          "What does npm run studio open?"
+          "Which game does npm run dev play, in a created project or in the engine repository?"
         ],
         "fr": [
           "Comment jouer à mon jeu et le vérifier pendant que je l'écris ?",
-          "Quel jeu lance npm run dev ?",
-          "Que lance npm run studio ?"
+          "Quel jeu lance npm run dev, dans un projet créé ou dans le dépôt du moteur ?"
         ]
       },
       "aliases": {
@@ -1656,7 +1675,10 @@
         "docs/fr/CONTENT_GUIDE.md#les-principes",
         "docs/fr/CONTENT_GUIDE.md#le-contrat-didentité-v3"
       ],
-      "questions": { "en": [], "fr": [] },
+      "questions": {
+        "en": ["Where did the old CONTENT_GUIDE page go?"],
+        "fr": ["Où est passé l'ancien CONTENT_GUIDE ?"]
+      },
       "aliases": {
         "en": ["CONTENT_GUIDE", "content guide", "schema 3", "stable ids", "identity contract"],
         "fr": ["CONTENT_GUIDE", "guide du contenu", "schéma 3", "ids stables", "contrat d'identité"]
@@ -2902,8 +2924,8 @@
         ]
       },
       "aliases": {
-        "en": ["i18n", "localisation", "locales", "CONTENT_GUIDE"],
-        "fr": ["i18n", "localisation", "locales", "CONTENT_GUIDE"]
+        "en": ["i18n", "localisation", "locales", "CONTENT_GUIDE", "text still in English", "untranslated text"],
+        "fr": ["i18n", "localisation", "locales", "CONTENT_GUIDE", "texte resté en anglais", "texte non traduit"]
       },
       "keywords": {
         "en": ["_stale", "i18n.same", "?lang=", "locales/<lang>.json"],
@@ -7937,12 +7959,26 @@
         "docs/fr/STUDIO-SERVER.md#sauvegarde-et-restauration"
       ],
       "questions": {
-        "en": ["How do I back up the hosted Studio every day?", "What does a Studio backup contain?"],
-        "fr": ["Comment sauvegarder le Studio hébergé chaque jour ?", "Que contient une sauvegarde du Studio ?"]
+        "en": [
+          "How do I back up the hosted Studio every day?",
+          "What does a Studio backup contain?",
+          "How do I make a backup of the hosted Studio?"
+        ],
+        "fr": [
+          "Comment sauvegarder le Studio hébergé chaque jour ?",
+          "Que contient une sauvegarde du Studio ?",
+          "Comment faire une sauvegarde du Studio hébergé ?"
+        ]
       },
       "aliases": {
-        "en": ["daily backup", "cron", "backup --to-bucket", "garbage collection"],
-        "fr": ["sauvegarde quotidienne", "tâche planifiée", "backup --to-bucket", "ramassage"]
+        "en": ["daily backup", "cron", "backup --to-bucket", "garbage collection", "hosted Studio backup"],
+        "fr": [
+          "sauvegarde quotidienne",
+          "tâche planifiée",
+          "backup --to-bucket",
+          "ramassage",
+          "sauvegarde de secours du Studio"
+        ]
       },
       "keywords": {
         "en": ["journal shipped", "rpoMs", "--keep", "gc --delete", "bucket copy"],
@@ -8368,8 +8404,15 @@
         ]
       },
       "aliases": {
-        "en": ["lost owner", "last owner", "locked out", "admin access"],
-        "fr": ["owner perdu", "dernier owner", "plus d'accès", "accès administrateur"]
+        "en": ["lost owner", "last owner", "locked out", "admin access", "no owner left"],
+        "fr": [
+          "owner perdu",
+          "dernier owner",
+          "plus d'accès",
+          "accès administrateur",
+          "plus de propriétaire",
+          "propriétaire perdu"
+        ]
       },
       "keywords": {
         "en": ["invite --role owner", "clever ssh", "Keycloak admin", "CC_KEYCLOAK_ADMIN_DEFAULT_PASSWORD"],
@@ -9070,13 +9113,15 @@
           "How do I back up the Reality Bridge?",
           "How do I restore the Bridge’s store?",
           "Why is my Bridge restore refused?",
-          "How much memory does a Bridge restore need?"
+          "How much memory does a Bridge restore need?",
+          "How do I make a backup of the Bridge?"
         ],
         "fr": [
           "Comment sauvegarder le Reality Bridge ?",
           "Comment restaurer le stockage du Bridge ?",
           "Pourquoi la restauration de mon Bridge est-elle refusée ?",
-          "Combien de mémoire faut-il pour restaurer un Bridge ?"
+          "Combien de mémoire faut-il pour restaurer un Bridge ?",
+          "Comment faire une sauvegarde du Bridge ?"
         ]
       },
       "aliases": {
@@ -9086,7 +9131,8 @@
           "restauration du Bridge",
           "replace-store",
           "restauration merge",
-          "bail de maintenance"
+          "bail de maintenance",
+          "sauvegarde de secours du Bridge"
         ]
       },
       "keywords": {
@@ -9689,12 +9735,14 @@
         "en": [
           "The Bridge received the same event twice",
           "A connector is down: what happens to the game?",
-          "The Bridge answers 409"
+          "The Bridge answers 409",
+          "The Bridge answers 503"
         ],
         "fr": [
           "Le Bridge a reçu deux fois le même événement",
           "Un connecteur est en panne : que devient le jeu ?",
-          "Le Bridge répond 409"
+          "Le Bridge répond 409",
+          "Le Bridge répond 503"
         ]
       },
       "aliases": { "en": ["Reality Bridge errors"], "fr": ["erreurs du Reality Bridge"] },

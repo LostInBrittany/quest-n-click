@@ -31,6 +31,11 @@ dossier qui existe et n'est pas vide, puis écrit :
 
 Ensuite, `npm run build` écrit `dist/` (avec `licenses/`), et les outils écrivent `.cache/`.
 
+Dans le projet créé, `npm run dev` et `npm run studio` appellent `quest-n-click dev` ou `quest-n-click studio`, qui
+lancent la configuration Vite du paquet avec le projet comme dossier de travail et `game/` comme jeu : le jeu sur
+`http://127.0.0.1:5173/`, le Studio sur `/__studio/`, ouvert dans le navigateur. Ni l'un ni l'autre n'est le Studio
+Server hébergé ([Studio d'équipe](team.what-runs-where.md)).
+
 L'id du projet est le nom du dossier en minuscules, lettres, chiffres et tirets ; le titre vaut par défaut cet id avec
 des majuscules aux mots.
 
@@ -137,10 +142,10 @@ On le clone pour travailler sur le moteur, ou pour garder plusieurs jeux à côt
 plus récent (`engines` dans `package.json`) ; `npm run doctor` dit ce qui manque ([prérequis](install.requirements.md)).
 
 `npm run dev` et `npm run studio` marchent aux deux endroits. Dans le dépôt du moteur, ils font d'abord pointer
-`.cache/game` vers le jeu courant, puis lancent Vite sur `http://127.0.0.1:5173/` (boucle locale seulement ; le Studio
-sur `/__studio/`). Dans un projet créé, le script appelle `quest-n-click dev` ou `quest-n-click studio`, qui lancent la
-configuration Vite du paquet avec le projet comme dossier de travail et `game/` comme jeu. Ni l'un ni l'autre n'est le
-Studio Server hébergé ([Studio d'équipe](team.what-runs-where.md)).
+`.cache/game` vers le jeu courant ([choisir le jeu](create.working-loop.md#choosing-the-game)), puis lancent Vite sur
+`http://127.0.0.1:5173/` (boucle locale seulement ; le Studio sur `/__studio/`). Dans un projet créé, ils ouvrent
+l'unique jeu du projet ([plus haut](#created-project)). Ni l'un ni l'autre n'est le Studio Server hébergé
+([Studio d'équipe](team.what-runs-where.md)).
 
 <a name="engine-code"></a>
 

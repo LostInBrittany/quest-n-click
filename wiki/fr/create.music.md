@@ -208,8 +208,9 @@ tempo (`--bpm`), réécrivez la batterie en motif. Préférez un MIDI quand il e
 
 ## Les stems et le directeur musical
 
-Un morceau de `audio.music` peut aussi avoir une **partition** : ses stems, joués ensemble par le directeur musical,
-le mix suivant le jeu.
+Un morceau de `audio.music` peut aussi avoir une **partition** : ses stems (des pistes séparées), joués ensemble par
+le directeur musical, le mix suivant le jeu : il change selon la salle, un drapeau ou le personnage actif
+([`audio.scores`](#audio-scores)).
 
 ```sh
 # dans le dépôt du moteur

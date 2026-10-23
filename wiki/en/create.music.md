@@ -203,7 +203,7 @@ Prefer a MIDI when one exists.
 ## Stems and the music director
 
 A track of `audio.music` can also have a **score**: its stems, played together by the music director, the mix
-following the game.
+following the game: it changes with the room, a flag or the active character ([`audio.scores`](#audio-scores)).
 
 ```sh
 # in the engine repository

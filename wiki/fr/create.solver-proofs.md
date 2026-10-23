@@ -19,7 +19,7 @@ sont dans [Options du solveur](create.solver-options.md) ; la place du solveur p
 
 <a name="what-it-proves"></a>
 
-## Ce que chaque réponse permet de conclure
+## Une fin trouvée, un blocage exclu : ce que chaque réponse permet de conclure
 
 | Vous avez lancé | Il répond | Vous pouvez conclure | Vous ne pouvez **pas** conclure |
 |---|---|---|---|

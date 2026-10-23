@@ -18,7 +18,7 @@ in [Solver options](create.solver-options.md); how to fit the solver into your c
 
 <a name="what-it-proves"></a>
 
-## What each answer lets you conclude
+## An ending found, a softlock ruled out: what each answer lets you conclude
 
 | You ran | It answers | You may conclude | You may **not** conclude |
 |---|---|---|---|
