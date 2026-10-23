@@ -9,7 +9,7 @@
   "category": "equivalent",
   "proof": "argument",
   "owner": "@wanoo",
-  "revisit": "4.5.0"
+  "revisit": "4.6.0"
  },
  {
   "file": "src/engine/core/session-runtime.ts",
@@ -17,11 +17,11 @@
   "from": "false",
   "to": "true",
   "context": "private chosen = false;",
-  "why": "`chosen`'s initial value is never read: the first `newSession` (or a first `draw`) always reseeds, and `reseed` sets `chosen` from `nextSeed` before anything writes the session (4.1.14)",
+  "why": "`chosen`'s initial value is never read: its only reader is `newSession`, and only once `logic` is set (newSession reseeds whenever `logic` is null); `logic` is set only by `reseed` (from `draw`, `restoreDraws` or `newSession`), which sets `chosen` from `nextSeed` first (4.1.14)",
   "category": "equivalent",
   "proof": "argument",
   "owner": "@wanoo",
-  "revisit": "4.5.0"
+  "revisit": "4.6.0"
  },
  {
   "file": "bridge/src/store.ts",
@@ -33,7 +33,7 @@
   "category": "equivalent",
   "proof": "argument",
   "owner": "@wanoo",
-  "revisit": "4.5.0"
+  "revisit": "4.6.0"
  },
  {
   "file": "bridge/src/store.ts",
@@ -45,7 +45,7 @@
   "category": "equivalent",
   "proof": "argument",
   "owner": "@wanoo",
-  "revisit": "4.5.0"
+  "revisit": "4.6.0"
  },
  {
   "file": "bridge/src/store.ts",
@@ -57,7 +57,7 @@
   "category": "equivalent",
   "proof": "argument",
   "owner": "@wanoo",
-  "revisit": "4.5.0"
+  "revisit": "4.6.0"
  },
  {
   "file": "bridge/src/store.ts",
@@ -69,7 +69,7 @@
   "category": "equivalent",
   "proof": "argument",
   "owner": "@wanoo",
-  "revisit": "4.5.0"
+  "revisit": "4.6.0"
  },
  {
   "file": "bridge/src/bridge.ts",
@@ -81,7 +81,7 @@
   "category": "unreachable",
   "proof": "tests/bridge.test.ts",
   "owner": "@wanoo",
-  "revisit": "4.5.0"
+  "revisit": "4.6.0"
  },
  {
   "file": "bridge/src/bridge.ts",
@@ -93,7 +93,7 @@
   "category": "equivalent",
   "proof": "argument",
   "owner": "@wanoo",
-  "revisit": "4.5.0"
+  "revisit": "4.6.0"
  },
  {
   "file": "src/engine/reality/http-port.ts",
@@ -105,7 +105,7 @@
   "category": "equivalent",
   "proof": "argument",
   "owner": "@wanoo",
-  "revisit": "4.5.0"
+  "revisit": "4.6.0"
  },
  {
   "file": "src/engine/reality/http-port.ts",
@@ -113,11 +113,11 @@
   "from": "true",
   "to": "false",
   "context": "signal.addEventListener('abort', onAbort, { once: true });",
-  "why": "the stream's abort relay: the signal aborts at most once and the finally removes the listener anyway, so `once` changes nothing",
+  "why": "the stream's abort relay: the signal aborts at most once, and the finally removes the listener whenever the generator ends; a reader that leaves it suspended at a yield keeps a dead listener on the port's own signal (or the AbortSignal.any over it), which no caller can reach and which never fires again, so `once` changes nothing observable",
   "category": "equivalent",
   "proof": "argument",
   "owner": "@wanoo",
-  "revisit": "4.5.0"
+  "revisit": "4.6.0"
  },
  {
   "file": "src/engine/reality/http-port.ts",
@@ -129,7 +129,7 @@
   "category": "equivalent",
   "proof": "argument",
   "owner": "@wanoo",
-  "revisit": "4.5.0"
+  "revisit": "4.6.0"
  },
  {
   "file": "src/engine/reality/http-port.ts",
@@ -141,7 +141,7 @@
   "category": "equivalent",
   "proof": "argument",
   "owner": "@wanoo",
-  "revisit": "4.5.0"
+  "revisit": "4.6.0"
  },
  {
   "file": "src/engine/reality/http-port.ts",
@@ -153,7 +153,7 @@
   "category": "equivalent",
   "proof": "argument",
   "owner": "@wanoo",
-  "revisit": "4.5.0"
+  "revisit": "4.6.0"
  },
  {
   "file": "src/engine/reality/http-port.ts",
@@ -165,7 +165,7 @@
   "category": "equivalent",
   "proof": "argument",
   "owner": "@wanoo",
-  "revisit": "4.5.0"
+  "revisit": "4.6.0"
  },
  {
   "file": "src/engine/reality/http-port.ts",
@@ -177,7 +177,7 @@
   "category": "equivalent",
   "proof": "argument",
   "owner": "@wanoo",
-  "revisit": "4.5.0"
+  "revisit": "4.6.0"
  },
  {
   "file": "bridge/src/store.ts",
@@ -189,7 +189,7 @@
   "category": "equivalent",
   "proof": "argument",
   "owner": "@wanoo",
-  "revisit": "4.5.0"
+  "revisit": "4.6.0"
  },
  {
   "file": "bridge/src/store.ts",
@@ -201,7 +201,7 @@
   "category": "equivalent",
   "proof": "argument",
   "owner": "@wanoo",
-  "revisit": "4.5.0"
+  "revisit": "4.6.0"
  },
  {
   "file": "src/engine/core/save.ts",
@@ -213,7 +213,7 @@
   "category": "equivalent",
   "proof": "argument",
   "owner": "@wanoo",
-  "revisit": "4.5.0"
+  "revisit": "4.6.0"
  },
  {
   "file": "bridge/src/runs.ts",
@@ -221,11 +221,11 @@
   "from": "out.seedKind",
   "to": "true",
   "context": "...(out.seedKind ? { seedKind: out.seedKind } : {}),",
-  "why": "complete: the run never had a seed kind (submit sets none); the memory store's Object.assign leaves an own `seedKind: undefined`, SQL writes NULL; every reader (publicView's `r.seedKind ?`, the board's `r.seedKind === q.seedKind`) reads both as no seed kind",
+  "why": "complete: a run the queue submitted has no seed kind before its verdict (submit sets none), so the memory store's Object.assign only adds an own `seedKind: undefined` and SQL writes NULL as it already does; every reader (publicView's `r.seedKind ?`, the memory board's `!q.seedKind || r.seedKind === q.seedKind`) reads both as no seed kind. Only a run written straight into the memory store with a seed kind would differ, and SQL already writes NULL for it: a test would pin a difference between the two stores, not a behaviour",
   "category": "equivalent",
   "proof": "argument",
   "owner": "@wanoo",
-  "revisit": "4.5.0"
+  "revisit": "4.6.0"
  },
  {
   "file": "bridge/src/runs.ts",
@@ -237,7 +237,7 @@
   "category": "equivalent",
   "proof": "argument",
   "owner": "@wanoo",
-  "revisit": "4.5.0"
+  "revisit": "4.6.0"
  },
  {
   "file": "bridge/src/runs.ts",
@@ -249,7 +249,7 @@
   "category": "equivalent",
   "proof": "argument",
   "owner": "@wanoo",
-  "revisit": "4.5.0"
+  "revisit": "4.6.0"
  },
  {
   "file": "bridge/src/runs.ts",
@@ -261,7 +261,7 @@
   "category": "equivalent",
   "proof": "argument",
   "owner": "@wanoo",
-  "revisit": "4.5.0"
+  "revisit": "4.6.0"
  },
  {
   "file": "bridge/src/runs.ts",
@@ -273,7 +273,7 @@
   "category": "equivalent",
   "proof": "argument",
   "owner": "@wanoo",
-  "revisit": "4.5.0"
+  "revisit": "4.6.0"
  },
  {
   "file": "bridge/src/runs.ts",
@@ -285,7 +285,7 @@
   "category": "equivalent",
   "proof": "argument",
   "owner": "@wanoo",
-  "revisit": "4.5.0"
+  "revisit": "4.6.0"
  },
  {
   "file": "bridge/src/runs-store.ts",
@@ -297,7 +297,7 @@
   "category": "equivalent",
   "proof": "argument",
   "owner": "@wanoo",
-  "revisit": "4.5.0"
+  "revisit": "4.6.0"
  },
  {
   "file": "bridge/src/runs-store.ts",
@@ -309,7 +309,7 @@
   "category": "equivalent",
   "proof": "argument",
   "owner": "@wanoo",
-  "revisit": "4.5.0"
+  "revisit": "4.6.0"
  },
  {
   "file": "bridge/src/runs-store.ts",
@@ -321,7 +321,7 @@
   "category": "equivalent",
   "proof": "argument",
   "owner": "@wanoo",
-  "revisit": "4.5.0"
+  "revisit": "4.6.0"
  },
  {
   "file": "bridge/src/runs.ts",
@@ -333,7 +333,7 @@
   "category": "equivalent",
   "proof": "argument",
   "owner": "@wanoo",
-  "revisit": "4.5.0"
+  "revisit": "4.6.0"
  },
  {
   "file": "bridge/src/runs.ts",
@@ -341,11 +341,11 @@
   "from": "r.verdict",
   "to": "true",
   "context": "...(r.verdict ? { verdict: r.verdict, code: r.code, reason: r.reason } : {}),",
-  "why": "`r.verdict` is falsy only before a verdict, when code and reason are absent too: `{ verdict: undefined, code: undefined, reason: undefined }` in the public view is dropped by JSON.stringify, the answer's bytes are the same",
+  "why": "`r.verdict` is falsy only before a verdict, when code and reason are absent too: every verdict the queue stores names itself (each worker answer, runWorker's own `inconclusive`, `failed`'s), so `{ verdict: undefined, code: undefined, reason: undefined }` in the public view is dropped by JSON.stringify and the answer's bytes are the same. Only a record written straight into a store with a code and no verdict would differ, and nothing in the Bridge writes one",
   "category": "equivalent",
   "proof": "argument",
   "owner": "@wanoo",
-  "revisit": "4.5.0"
+  "revisit": "4.6.0"
  },
  {
   "file": "bridge/src/runs.ts",
@@ -357,7 +357,7 @@
   "category": "equivalent",
   "proof": "argument",
   "owner": "@wanoo",
-  "revisit": "4.5.0"
+  "revisit": "4.6.0"
  },
  {
   "file": "bridge/src/runs.ts",
@@ -369,7 +369,7 @@
   "category": "equivalent",
   "proof": "argument",
   "owner": "@wanoo",
-  "revisit": "4.5.0"
+  "revisit": "4.6.0"
  },
  {
   "file": "bridge/src/runs.ts",
@@ -381,7 +381,7 @@
   "category": "equivalent",
   "proof": "argument",
   "owner": "@wanoo",
-  "revisit": "4.5.0"
+  "revisit": "4.6.0"
  },
  {
   "file": "bridge/src/runs-store.ts",
@@ -393,7 +393,7 @@
   "category": "equivalent",
   "proof": "argument",
   "owner": "@wanoo",
-  "revisit": "4.5.0"
+  "revisit": "4.6.0"
  },
  {
   "file": "bridge/src/runs-store.ts",
@@ -405,7 +405,7 @@
   "category": "equivalent",
   "proof": "argument",
   "owner": "@wanoo",
-  "revisit": "4.5.0"
+  "revisit": "4.6.0"
  },
  {
   "file": "bridge/src/runs-store.ts",
@@ -417,7 +417,7 @@
   "category": "equivalent",
   "proof": "argument",
   "owner": "@wanoo",
-  "revisit": "4.5.0"
+  "revisit": "4.6.0"
  },
  {
   "file": "bridge/src/runs-store.ts",
@@ -429,7 +429,7 @@
   "category": "equivalent",
   "proof": "argument",
   "owner": "@wanoo",
-  "revisit": "4.5.0"
+  "revisit": "4.6.0"
  },
  {
   "file": "bridge/src/runs-store.ts",
@@ -437,11 +437,11 @@
   "from": "<",
   "to": "<=",
   "context": ".sort((a, b) => a.submittedAt - b.submittedAt || (a.id < b.id ? -1 : 1))[0];",
-  "why": "claimNext's tie on submittedAt: within a tenant ids are the store's key, and across tenants (a queue without `tenant`) two runs share an id only by a collision of the queue's 72-bit random ids, so `a.id <= b.id` and `a.id < b.id` agree on every pair the sort compares",
+  "why": "claimNext's tie on submittedAt: within a tenant ids are the store's key, and across tenants (a queue without `tenant`) two runs the queue submitted share an id only by a collision of its 72-bit random ids, so `a.id <= b.id` and `a.id < b.id` agree on every pair the sort compares. Two runs written straight into the store with one id in two tenants and one submittedAt would be claimed in the other order, but that order is no contract: SQL's `ORDER BY submitted_at, id` leaves the same tie to the database",
   "category": "equivalent",
   "proof": "argument",
   "owner": "@wanoo",
-  "revisit": "4.5.0"
+  "revisit": "4.6.0"
  },
  {
   "file": "bridge/src/runs-store.ts",
@@ -453,7 +453,7 @@
   "category": "equivalent",
   "proof": "argument",
   "owner": "@wanoo",
-  "revisit": "4.5.0"
+  "revisit": "4.6.0"
  },
  {
   "file": "src/engine/tools/speedrun/recorder.ts",
@@ -465,7 +465,7 @@
   "category": "equivalent",
   "proof": "argument",
   "owner": "@wanoo",
-  "revisit": "4.5.0"
+  "revisit": "4.6.0"
  },
  {
   "file": "src/engine/tools/speedrun/recorder.ts",
@@ -473,23 +473,11 @@
   "from": "l.entry.digest",
   "to": "true",
   "context": "if (l.entry.digest) this.digests.set(l.entry.digest, l.index);",
-  "why": "attach() sets digestOn before the tape sees an entry, so every entry sessions.end() closes has a digest; only entries force-closed by tape.seal() lack one, and after them the digests are never read (a sealed head keeps no resume point); an `undefined` key would never be looked up anyway, the only `get` is by `stateDigest`, a string",
+  "why": "attach() sets digestOn before the tape sees an entry, and sessions.end() writes the digest before the tape hears the end, so every entry its session closes has a digest; only entries force-closed by tape.seal() (abandon, the finish) lack one. A chunk filled during that seal may write an in-between head whose resume digests hold an `undefined` key, but journal.seal() replaces it at once with a sealed head that keeps no resume point; and the key is never looked up anyway, the only `get` is by stateDigest(), a string",
   "category": "equivalent",
   "proof": "argument",
   "owner": "@wanoo",
-  "revisit": "4.5.0"
- },
- {
-  "file": "src/engine/tools/speedrun/envelope.ts",
-  "operator": "condition true",
-  "from": "o.world.evidence",
-  "to": "true",
-  "context": "...(o.world.evidence ? { worldEvidence: o.world.evidence } : {}),",
-  "why": "sealEnvelope: `worldEvidence: undefined` is dropped by canonicalJson (exportEnvelope), and every reader tests it by truthiness or `!== undefined` (the shape check, checkEvidence, runWorld's head); only a key-presence check on the in-memory envelope tells them apart",
-  "category": "equivalent",
-  "proof": "argument",
-  "owner": "@wanoo",
-  "revisit": "4.5.0"
+  "revisit": "4.6.0"
  },
  {
   "file": "src/engine/tools/speedrun/verify.ts",
@@ -501,7 +489,7 @@
   "category": "equivalent",
   "proof": "argument",
   "owner": "@wanoo",
-  "revisit": "4.5.0"
+  "revisit": "4.6.0"
  },
  {
   "file": "src/engine/tools/speedrun/verify.ts",
@@ -513,7 +501,7 @@
   "category": "equivalent",
   "proof": "argument",
   "owner": "@wanoo",
-  "revisit": "4.5.0"
+  "revisit": "4.6.0"
  },
  {
   "file": "src/engine/tools/speedrun/verify.ts",
@@ -525,7 +513,7 @@
   "category": "equivalent",
   "proof": "argument",
   "owner": "@wanoo",
-  "revisit": "4.5.0"
+  "revisit": "4.6.0"
  },
  {
   "file": "src/engine/tools/speedrun/verify.ts",
@@ -537,7 +525,7 @@
   "category": "equivalent",
   "proof": "argument",
   "owner": "@wanoo",
-  "revisit": "4.5.0"
+  "revisit": "4.6.0"
  },
  {
   "file": "src/engine/tools/speedrun/verify.ts",
@@ -549,7 +537,7 @@
   "category": "equivalent",
   "proof": "argument",
   "owner": "@wanoo",
-  "revisit": "4.5.0"
+  "revisit": "4.6.0"
  },
  {
   "file": "src/engine/core/remix/apply.ts",
@@ -557,11 +545,11 @@
   "from": "Array.isArray(x)",
   "to": "false",
   "context": "if (Array.isArray(x)) {",
-  "why": "an array then takes the plain-object branch: Object.keys gives its indexes and rewriteStrings rewrites every element in place, the same result",
+  "why": "an array then takes the plain-object branch: Object.keys gives its indexes and rewriteStrings rewrites every element in place, the same result. Only a hole differs (the loop fills it with undefined, Object.keys skips it), which a game written as data or JSON never has, and canonicalJson writes both as null",
   "category": "equivalent",
   "proof": "argument",
   "owner": "@wanoo",
-  "revisit": "4.5.0"
+  "revisit": "4.6.0"
  },
  {
   "file": "src/engine/core/remix/apply.ts",
@@ -573,7 +561,7 @@
   "category": "equivalent",
   "proof": "argument",
   "owner": "@wanoo",
-  "revisit": "4.5.0"
+  "revisit": "4.6.0"
  },
  {
   "file": "src/engine/core/remix/apply.ts",
@@ -581,11 +569,11 @@
   "from": "c && typeof c === 'object'",
   "to": "true",
   "context": "if (c && typeof c === 'object')",
-  "why": "top-level items are Cmds (objects or strings, never null) and nested lists are filtered to objects at the call below; Object.values of a string gives characters, never arrays",
+  "why": "top-level items are Cmds (objects or strings, never null) and nested lists are filtered to objects at the call below; Object.values of a string gives characters and of a number nothing, never arrays. Only a top-level null command would differ (the mutant throws on Object.values(null)), which the Cmd type forbids and the engine could not run",
   "category": "equivalent",
   "proof": "argument",
   "owner": "@wanoo",
-  "revisit": "4.5.0"
+  "revisit": "4.6.0"
  },
  {
   "file": "src/engine/core/remix/apply.ts",
@@ -597,7 +585,7 @@
   "category": "equivalent",
   "proof": "argument",
   "owner": "@wanoo",
-  "revisit": "4.5.0"
+  "revisit": "4.6.0"
  },
  {
   "file": "src/engine/core/remix/apply.ts",
@@ -609,7 +597,7 @@
   "category": "equivalent",
   "proof": "argument",
   "owner": "@wanoo",
-  "revisit": "4.5.0"
+  "revisit": "4.6.0"
  },
  {
   "file": "src/engine/core/remix/apply.ts",
@@ -621,7 +609,7 @@
   "category": "equivalent",
   "proof": "argument",
   "owner": "@wanoo",
-  "revisit": "4.5.0"
+  "revisit": "4.6.0"
  },
  {
   "file": "src/engine/core/remix/apply.ts",
@@ -633,7 +621,7 @@
   "category": "equivalent",
   "proof": "argument",
   "owner": "@wanoo",
-  "revisit": "4.5.0"
+  "revisit": "4.6.0"
  },
  {
   "file": "src/engine/core/remix/compile.ts",
@@ -641,11 +629,11 @@
   "from": "c && typeof c === 'object' && 'set' in c",
   "to": "true",
   "context": "if (c && typeof c === 'object' && 'set' in c) {",
-  "why": "for a string command or an object without `set`, `.set` is undefined and neither branch below adds undefined (a null command throws in eachCmd's subLists either way)",
+  "why": "for a string command or an object without `set`, `.set` is undefined and neither branch below adds it. A null or undefined command throws either way, one step apart (the mutant at `.set`, the original in eachCmd's subLists): a TypeError worded differently, on a command the Cmd type forbids",
   "category": "equivalent",
   "proof": "argument",
   "owner": "@wanoo",
-  "revisit": "4.5.0"
+  "revisit": "4.6.0"
  },
  {
   "file": "src/engine/core/remix/compile.ts",
@@ -653,11 +641,11 @@
   "from": "Array.isArray(s) && typeof s[0] === 'string'",
   "to": "true",
   "context": "else if (Array.isArray(s) && typeof s[0] === 'string') out.add(s[0]);",
-  "why": "`set` is typed `Id | [Id, Value]`; a string is taken just above, so only well-formed pairs reach here",
+  "why": "`set` is typed `Id | [Id, Value]`; a string is taken just above, so only well-formed pairs reach here. Even an ill-typed empty tuple would only add `undefined`, which matches no flag: the set is read only by `behind.has()` with the flags condFlags gives, all strings",
   "category": "equivalent",
   "proof": "argument",
   "owner": "@wanoo",
-  "revisit": "4.5.0"
+  "revisit": "4.6.0"
  },
  {
   "file": "src/engine/core/remix/compile.ts",
@@ -669,7 +657,7 @@
   "category": "equivalent",
   "proof": "argument",
   "owner": "@wanoo",
-  "revisit": "4.5.0"
+  "revisit": "4.6.0"
  },
  {
   "file": "src/engine/core/remix/compile.ts",
@@ -681,7 +669,7 @@
   "category": "equivalent",
   "proof": "argument",
   "owner": "@wanoo",
-  "revisit": "4.5.0"
+  "revisit": "4.6.0"
  },
  {
   "file": "src/engine/core/remix/compile.ts",
@@ -689,11 +677,11 @@
   "from": "<",
   "to": "<=",
   "context": "return i < 0 ? [t, undefined] : [t.slice(0, i), t.slice(i + 1)];",
-  "why": "only differs for a term starting with `=`: the original looks up dimension '' (no dimension id is empty), the mutant the whole term; both refuse the manifest with the same message, which differs only if a dimension id itself starts with `=` (still refused)",
+  "why": "splitTerm: only differs for a term starting with `=`: the original looks up dimension '', the mutant the whole term. The manifest schema refuses an empty dimension id (manifest.ts, applied by the validator before compiling), so both refuse the manifest with the same message, which differs only if a dimension id itself starts with `=` (still refused, as naming no value)",
   "category": "equivalent",
   "proof": "argument",
   "owner": "@wanoo",
-  "revisit": "4.5.0"
+  "revisit": "4.6.0"
  },
  {
   "file": "src/engine/core/remix/compile.ts",
@@ -705,7 +693,7 @@
   "category": "equivalent",
   "proof": "argument",
   "owner": "@wanoo",
-  "revisit": "4.5.0"
+  "revisit": "4.6.0"
  },
  {
   "file": "src/engine/core/remix/compile.ts",
@@ -717,7 +705,7 @@
   "category": "equivalent",
   "proof": "argument",
   "owner": "@wanoo",
-  "revisit": "4.5.0"
+  "revisit": "4.6.0"
  },
  {
   "file": "src/engine/core/remix/compile.ts",
@@ -725,11 +713,11 @@
   "from": "&&",
   "to": "||",
   "context": "if (c && typeof c === 'object' && 'set' in c) {",
-  "why": "the first `&&`: a truthy string command then enters, its `.set` is undefined and neither branch below adds it (the second `&&` made `||` throws on `'set' in` a string, and is killed) (a null command throws in eachCmd's subLists either way)",
+  "why": "the first `&&`: a truthy string or number command then enters, its `.set` is undefined and neither branch below adds it (the second `&&` made `||` throws on `'set' in` a string, and is killed). A null command throws either way, at `'set' in` here or at `'if' in` in eachCmd's subLists, a TypeError worded differently",
   "category": "equivalent",
   "proof": "argument",
   "owner": "@wanoo",
-  "revisit": "4.5.0"
+  "revisit": "4.6.0"
  },
  {
   "file": "src/engine/tools/speedrun/recorder.ts",
@@ -741,7 +729,7 @@
   "category": "equivalent",
   "proof": "argument",
   "owner": "@wanoo",
-  "revisit": "4.5.0"
+  "revisit": "4.6.0"
  },
  {
   "file": "connectors/src/badges/crypto.ts",
@@ -749,11 +737,11 @@
   "from": "raw.length !== 32",
   "to": "false",
   "context": "if (raw.length !== 32) return null;",
-  "why": "ed25519Key: its one caller, multikey, passes `b.subarray(2)` of a `b` it has just checked is 34 bytes long, so `raw` is always 32 bytes; a key of another length would also fail createPublicKey's DER parse, caught as null",
+  "why": "ed25519Key: not exported, and its one caller, multikey, passes `b.subarray(2)` of a `b` it has just checked is 34 bytes long, so `raw` is always 32 bytes. The guard is not redundant with the DER parse (until 4.5.0 this said it was): createPublicKey accepts the SPKI header followed by 33 or 64 bytes and reads the first 32, so it is multikey's length check that keeps another length out",
   "category": "equivalent",
   "proof": "argument",
   "owner": "@wanoo",
-  "revisit": "4.5.0"
+  "revisit": "4.6.0"
  },
  {
   "file": "connectors/src/badges/crypto.ts",
@@ -765,7 +753,7 @@
   "category": "equivalent",
   "proof": "argument",
   "owner": "@wanoo",
-  "revisit": "4.5.0"
+  "revisit": "4.6.0"
  },
  {
   "file": "connectors/src/badges/fetch.ts",
@@ -777,7 +765,7 @@
   "category": "equivalent",
   "proof": "argument",
   "owner": "@wanoo",
-  "revisit": "4.5.0"
+  "revisit": "4.6.0"
  },
  {
   "file": "connectors/src/run.ts",
@@ -789,7 +777,7 @@
   "category": "unreachable",
   "proof": "tests/connectors-rest-edge-mutants.test.ts",
   "owner": "@wanoo",
-  "revisit": "4.5.0"
+  "revisit": "4.6.0"
  },
  {
   "file": "connectors/src/run.ts",
@@ -801,7 +789,7 @@
   "category": "equivalent",
   "proof": "argument",
   "owner": "@wanoo",
-  "revisit": "4.5.0"
+  "revisit": "4.6.0"
  },
  {
   "file": "connectors/src/email/mime.ts",
@@ -813,7 +801,7 @@
   "category": "equivalent",
   "proof": "argument",
   "owner": "@wanoo",
-  "revisit": "4.5.0"
+  "revisit": "4.6.0"
  },
  {
   "file": "connectors/src/email/mime.ts",
@@ -825,7 +813,7 @@
   "category": "equivalent",
   "proof": "argument",
   "owner": "@wanoo",
-  "revisit": "4.5.0"
+  "revisit": "4.6.0"
  },
  {
   "file": "connectors/src/email/mime.ts",
@@ -837,7 +825,7 @@
   "category": "equivalent",
   "proof": "argument",
   "owner": "@wanoo",
-  "revisit": "4.5.0"
+  "revisit": "4.6.0"
  },
  {
   "file": "connectors/src/email/mime.ts",
@@ -849,7 +837,7 @@
   "category": "equivalent",
   "proof": "argument",
   "owner": "@wanoo",
-  "revisit": "4.5.0"
+  "revisit": "4.6.0"
  },
  {
   "file": "connectors/src/email/mime.ts",
@@ -861,7 +849,7 @@
   "category": "equivalent",
   "proof": "argument",
   "owner": "@wanoo",
-  "revisit": "4.5.0"
+  "revisit": "4.6.0"
  },
  {
   "file": "connectors/src/terminal/line.ts",
@@ -873,7 +861,7 @@
   "category": "equivalent",
   "proof": "argument",
   "owner": "@wanoo",
-  "revisit": "4.5.0"
+  "revisit": "4.6.0"
  },
  {
   "file": "connectors/src/terminal/line.ts",
@@ -885,7 +873,7 @@
   "category": "equivalent",
   "proof": "argument",
   "owner": "@wanoo",
-  "revisit": "4.5.0"
+  "revisit": "4.6.0"
  },
  {
   "file": "connectors/src/terminal/line.ts",
@@ -897,7 +885,7 @@
   "category": "equivalent",
   "proof": "argument",
   "owner": "@wanoo",
-  "revisit": "4.5.0"
+  "revisit": "4.6.0"
  },
  {
   "file": "bridge/src/store-postgres.ts",
@@ -909,7 +897,7 @@
   "category": "equivalent",
   "proof": "argument",
   "owner": "@wanoo",
-  "revisit": "4.5.0"
+  "revisit": "4.6.0"
  },
  {
   "file": "bridge/src/backup/canonical.ts",
@@ -921,7 +909,7 @@
   "category": "equivalent",
   "proof": "argument",
   "owner": "@wanoo",
-  "revisit": "4.5.0"
+  "revisit": "4.6.0"
  },
  {
   "file": "bridge/src/backup/canonical.ts",
@@ -933,7 +921,7 @@
   "category": "equivalent",
   "proof": "argument",
   "owner": "@wanoo",
-  "revisit": "4.5.0"
+  "revisit": "4.6.0"
  },
  {
   "file": "bridge/src/backup/canonical.ts",
@@ -945,7 +933,7 @@
   "category": "equivalent",
   "proof": "argument",
   "owner": "@wanoo",
-  "revisit": "4.5.0"
+  "revisit": "4.6.0"
  },
  {
   "file": "bridge/src/backup/canonical.ts",
@@ -957,7 +945,7 @@
   "category": "equivalent",
   "proof": "argument",
   "owner": "@wanoo",
-  "revisit": "4.5.0"
+  "revisit": "4.6.0"
  },
  {
   "file": "bridge/src/backup/files.ts",
@@ -969,7 +957,7 @@
   "category": "equivalent",
   "proof": "argument",
   "owner": "@wanoo",
-  "revisit": "4.5.0"
+  "revisit": "4.6.0"
  },
  {
   "file": "bridge/src/backup/files.ts",
@@ -981,7 +969,7 @@
   "category": "equivalent",
   "proof": "argument",
   "owner": "@wanoo",
-  "revisit": "4.5.0"
+  "revisit": "4.6.0"
  },
  {
   "file": "bridge/src/backup/restore.ts",
@@ -993,7 +981,7 @@
   "category": "equivalent",
   "proof": "argument",
   "owner": "@wanoo",
-  "revisit": "4.5.0"
+  "revisit": "4.6.0"
  },
  {
   "file": "connectors/src/badges/verify.ts",
@@ -1005,7 +993,7 @@
   "category": "equivalent",
   "proof": "argument",
   "owner": "@wanoo",
-  "revisit": "4.5.0"
+  "revisit": "4.6.0"
  },
  {
   "file": "connectors/src/badges/verify.ts",
@@ -1017,7 +1005,7 @@
   "category": "equivalent",
   "proof": "argument",
   "owner": "@wanoo",
-  "revisit": "4.5.0"
+  "revisit": "4.6.0"
  },
  {
   "file": "connectors/src/badges/connector.ts",
@@ -1029,7 +1017,7 @@
   "category": "equivalent",
   "proof": "argument",
   "owner": "@wanoo",
-  "revisit": "4.5.0"
+  "revisit": "4.6.0"
  },
  {
   "file": "connectors/src/badges/connector.ts",
@@ -1041,7 +1029,7 @@
   "category": "equivalent",
   "proof": "argument",
   "owner": "@wanoo",
-  "revisit": "4.5.0"
+  "revisit": "4.6.0"
  },
  {
   "file": "connectors/src/email/connector.ts",
@@ -1053,7 +1041,7 @@
   "category": "equivalent",
   "proof": "argument",
   "owner": "@wanoo",
-  "revisit": "4.5.0"
+  "revisit": "4.6.0"
  },
  {
   "file": "connectors/src/email/imap.ts",
@@ -1061,11 +1049,11 @@
   "from": "this.dead",
   "to": "false",
   "context": "if (this.dead) return;",
-  "why": "`onData` after death: every path that sets `dead` goes through `die`, which destroys the socket in the same call, and a destroyed socket emits no more `data`. Within the chunk being read, a bound's `return this.die(...)` stops the loop; a `die` from `onLine` (too many responses) lets the loop read on, but `die` has already set `pending` and `greeted` to null, so what it reads resolves nothing. The guard is defence in depth. This line's text is also `die`'s own first line (imap.ts, `die`): the same edit there is killed by tests/connectors-email-edge-mutants.test.ts (a dead client keeps its first reason and sends nothing); the entry matches both lines, since entries carry no line number (4.2: say which occurrence)",
+  "why": "`onData` after death: `dead` is set only in `die`, which destroys the socket in the same call, and a destroyed socket emits no more `data` (the in-memory peer of tests/connectors-email-edge-mutants.test.ts checks `destroyed` before each push, as a real socket does), so the guard acts only at the start of a later chunk, which never comes. Within the chunk being read, a bound's `return this.die(...)` stops the loop, and a `die` from `onLine` (a refused greeting, too many responses) lets it read on, but `pending` and `greeted` are already null, so what it reads resolves nothing. The guard is defence in depth. This line's text is also `die`'s own first line: the same edit there is killed by tests/connectors-email-edge-mutants.test.ts (a dead client keeps its first reason and sends nothing); entries carry no line number, so this one matches both lines",
   "category": "unreachable",
   "proof": "tests/connectors-email-edge-mutants.test.ts",
   "owner": "@wanoo",
-  "revisit": "4.5.0"
+  "revisit": "4.6.0"
  },
  {
   "file": "connectors/src/email/imap.ts",
@@ -1077,7 +1065,7 @@
   "category": "equivalent",
   "proof": "argument",
   "owner": "@wanoo",
-  "revisit": "4.5.0"
+  "revisit": "4.6.0"
  },
  {
   "file": "connectors/src/email/imap.ts",
@@ -1089,7 +1077,7 @@
   "category": "equivalent",
   "proof": "argument",
   "owner": "@wanoo",
-  "revisit": "4.5.0"
+  "revisit": "4.6.0"
  },
  {
   "file": "connectors/src/email/imap.ts",
@@ -1101,7 +1089,7 @@
   "category": "equivalent",
   "proof": "argument",
   "owner": "@wanoo",
-  "revisit": "4.5.0"
+  "revisit": "4.6.0"
  },
  {
   "file": "connectors/src/email/parse.ts",
@@ -1113,7 +1101,7 @@
   "category": "unreachable",
   "proof": "tests/connectors-email.test.ts",
   "owner": "@wanoo",
-  "revisit": "4.5.0"
+  "revisit": "4.6.0"
  },
  {
   "file": "connectors/src/ssh/connector.ts",
@@ -1125,7 +1113,7 @@
   "category": "equivalent",
   "proof": "argument",
   "owner": "@wanoo",
-  "revisit": "4.5.0"
+  "revisit": "4.6.0"
  },
  {
   "file": "connectors/src/ssh/connector.ts",
@@ -1133,11 +1121,11 @@
   "from": "Array.isArray(k)",
   "to": "false",
   "context": "return Array.isArray(k) ? (k[0] ?? null) : k;",
-  "why": "parseOne: ssh2 1.17's `utils.parseKey` returns one parsed key, an Error, or (an OpenSSH private file declaring 0 keys: `OpenSSH_Private.parse` returns `[][0]`) undefined, never an array; a declared key that is not a string or a Buffer is an Error: the array branch is never taken (tests/connectors-terminal-edge-mutants.test.ts pins it for public, private, garbage and non-string keys, and pins parseKey itself, so a bump that returns an array fails there)",
+  "why": "parseOne: ssh2 1.17's `utils.parseKey` returns one parsed key, an Error, or (an OpenSSH private file declaring 0 keys: `OpenSSH_Private.parse` returns `[][0]`) undefined, never an array; a declared key that is not a string or a Buffer is an Error, and it hands back unchanged only a value that is already a parsed key (ssh2's private `decrypted` symbol), which no configuration read from JSON carries. The array branch is never taken (tests/connectors-terminal-edge-mutants.test.ts pins parseKey for public, private, garbage, empty, numeric and null keys, so a bump that returns an array fails there)",
   "category": "unreachable",
   "proof": "tests/connectors-terminal-edge-mutants.test.ts",
   "owner": "@wanoo",
-  "revisit": "4.5.0"
+  "revisit": "4.6.0"
  },
  {
   "file": "studio-server/src/ops/journal.ts",
@@ -1149,7 +1137,7 @@
   "category": "equivalent",
   "proof": "argument",
   "owner": "@wanoo",
-  "revisit": "4.5.0"
+  "revisit": "4.6.0"
  },
  {
   "file": "studio-server/src/ops/journal.ts",
@@ -1161,7 +1149,7 @@
   "category": "equivalent",
   "proof": "argument",
   "owner": "@wanoo",
-  "revisit": "4.5.0"
+  "revisit": "4.6.0"
  },
  {
   "file": "studio-server/src/ops/journal.ts",
@@ -1173,19 +1161,7 @@
   "category": "unreachable",
   "proof": "tests/studio-journal-mutants.test.ts",
   "owner": "@wanoo",
-  "revisit": "4.5.0"
- },
- {
-  "file": "studio-server/src/ops/journal.ts",
-  "operator": "operator",
-  "from": ">",
-  "to": ">=",
-  "context": "if (cur && String(cur.holder) !== this.holder && Number(cur.until_ms) > t) return 0;",
-  "why": "withLease: the mutant differs only when another holder's lease ends in the very millisecond of the attempt (until_ms equal to the database clock's `t`): it then waits one more 50 ms turn before taking the lease (or, if the deadline has just passed, answers 503 where the original took it). The database's clock cannot be staged from a test, and no outcome other than that one retry's delay follows",
-  "category": "equivalent",
-  "proof": "argument",
-  "owner": "@wanoo",
-  "revisit": "4.5.0"
+  "revisit": "4.6.0"
  },
  {
   "file": "studio-server/src/ops/journal.ts",
@@ -1197,7 +1173,7 @@
   "category": "equivalent",
   "proof": "argument",
   "owner": "@wanoo",
-  "revisit": "4.5.0"
+  "revisit": "4.6.0"
  },
  {
   "file": "studio-server/src/ops/journal.ts",
@@ -1209,7 +1185,7 @@
   "category": "equivalent",
   "proof": "argument",
   "owner": "@wanoo",
-  "revisit": "4.5.0"
+  "revisit": "4.6.0"
  },
  {
   "file": "studio-server/src/ops/journal.ts",
@@ -1221,7 +1197,7 @@
   "category": "equivalent",
   "proof": "argument",
   "owner": "@wanoo",
-  "revisit": "4.5.0"
+  "revisit": "4.6.0"
  },
  {
   "file": "studio-server/src/ops/durable.ts",
@@ -1233,31 +1209,7 @@
   "category": "equivalent",
   "proof": "argument",
   "owner": "@wanoo",
-  "revisit": "4.5.0"
- },
- {
-  "file": "studio-server/src/ops/durable.ts",
-  "operator": "condition false",
-  "from": "typeof bytes === 'string'",
-  "to": "false",
-  "context": "const buf = typeof bytes === 'string' ? Buffer.from(bytes) : bytes;",
-  "why": "writeDurable: a string given to writeSync as is takes its string form (the position is 0, the stray number is no encoding Node rejects): the same UTF-8 bytes are written in one call, and the loop ends since the bytes written are never fewer than the string's length (tests/studio-durable-mutants.test.ts writes text with accents and reads it back)",
-  "category": "equivalent",
-  "proof": "argument",
-  "owner": "@wanoo",
-  "revisit": "4.5.0"
- },
- {
-  "file": "studio-server/src/ops/durable.ts",
-  "operator": "operator",
-  "from": "===",
-  "to": "!==",
-  "context": "const buf = typeof bytes === 'string' ? Buffer.from(bytes) : bytes;",
-  "why": "writeDurable: a string given to writeSync as is takes its string form (the position is 0, the stray number is no encoding Node rejects): the same UTF-8 bytes are written in one call, and the loop ends since the bytes written are never fewer than the string's length (tests/studio-durable-mutants.test.ts writes text with accents and reads it back)",
-  "category": "equivalent",
-  "proof": "argument",
-  "owner": "@wanoo",
-  "revisit": "4.5.0"
+  "revisit": "4.6.0"
  },
  {
   "file": "studio-server/src/ops/durable.ts",
@@ -1269,7 +1221,7 @@
   "category": "equivalent",
   "proof": "argument",
   "owner": "@wanoo",
-  "revisit": "4.5.0"
+  "revisit": "4.6.0"
  },
  {
   "file": "studio-server/src/server/auth/gate.ts",
@@ -1281,7 +1233,7 @@
   "category": "equivalent",
   "proof": "argument",
   "owner": "@wanoo",
-  "revisit": "4.5.0"
+  "revisit": "4.6.0"
  },
  {
   "file": "studio-server/src/server/auth/oidc.ts",
@@ -1293,7 +1245,7 @@
   "category": "equivalent",
   "proof": "argument",
   "owner": "@wanoo",
-  "revisit": "4.5.0"
+  "revisit": "4.6.0"
  },
  {
   "file": "studio-server/src/server/auth/oidc.ts",
@@ -1305,7 +1257,7 @@
   "category": "unreachable",
   "proof": "tests/studio-oidc-mutants.test.ts",
   "owner": "@wanoo",
-  "revisit": "4.5.0"
+  "revisit": "4.6.0"
  },
  {
   "file": "studio-server/src/server/auth/store.ts",
@@ -1317,7 +1269,7 @@
   "category": "equivalent",
   "proof": "argument",
   "owner": "@wanoo",
-  "revisit": "4.5.0"
+  "revisit": "4.6.0"
  },
  {
   "file": "studio-server/src/server/auth/store.ts",
@@ -1325,11 +1277,11 @@
   "from": "!k || !iv || !tag || data === undefined",
   "to": "false",
   "context": "if (!k || !iv || !tag || data === undefined) return undefined;",
-  "why": "Sealer.open: a sealed value missing a part, or naming a key not in the ring, also fails inside the try that follows (an undefined key or part makes createDecipheriv, setAuthTag or Buffer.from throw), and the catch returns undefined: the same answer as the guard (tests/studio-store-mutants.test.ts tries each missing part and an unknown kid)",
+  "why": "Sealer.open: a sealed value missing a part, with an empty iv or tag, or naming a key not in the ring, also fails inside the try that follows: `k.key` of an undefined key throws, createDecipheriv refuses an empty iv, setAuthTag an empty tag, Buffer.from an undefined data; the catch returns undefined, the same answer as the guard (tests/studio-store-mutants.test.ts tries each missing part and an unknown kid)",
   "category": "equivalent",
   "proof": "argument",
   "owner": "@wanoo",
-  "revisit": "4.5.0"
+  "revisit": "4.6.0"
  },
  {
   "file": "studio-server/src/server/auth/store.ts",
@@ -1337,11 +1289,11 @@
   "from": "||",
   "to": "&&",
   "context": "if (!k || !iv || !tag || data === undefined) return undefined;",
-  "why": "Sealer.open: a sealed value missing a part, or naming a key not in the ring, also fails inside the try that follows (an undefined key or part makes createDecipheriv, setAuthTag or Buffer.from throw), and the catch returns undefined: the same answer as the guard (tests/studio-store-mutants.test.ts tries each missing part and an unknown kid)",
+  "why": "Sealer.open: `&&` only narrows the guard, and every value it lets through (a missing or empty part, a key not in the ring) fails inside the try that follows: `k.key` of an undefined key throws, createDecipheriv refuses an empty iv, setAuthTag an empty tag, Buffer.from an undefined data; the catch returns undefined, the same answer as the guard (tests/studio-store-mutants.test.ts tries each missing part and an unknown kid)",
   "category": "equivalent",
   "proof": "argument",
   "owner": "@wanoo",
-  "revisit": "4.5.0"
+  "revisit": "4.6.0"
  },
  {
   "file": "studio-server/src/server/auth/store.ts",
@@ -1349,11 +1301,11 @@
   "from": "||",
   "to": "&&",
   "context": "if (!k || !iv || !tag || data === undefined) return undefined;",
-  "why": "Sealer.open: a sealed value missing a part, or naming a key not in the ring, also fails inside the try that follows (an undefined key or part makes createDecipheriv, setAuthTag or Buffer.from throw), and the catch returns undefined: the same answer as the guard (tests/studio-store-mutants.test.ts tries each missing part and an unknown kid)",
+  "why": "Sealer.open: `&&` only narrows the guard, and every value it lets through (a missing or empty part, a key not in the ring) fails inside the try that follows: `k.key` of an undefined key throws, createDecipheriv refuses an empty iv, setAuthTag an empty tag, Buffer.from an undefined data; the catch returns undefined, the same answer as the guard (tests/studio-store-mutants.test.ts tries each missing part and an unknown kid)",
   "category": "equivalent",
   "proof": "argument",
   "owner": "@wanoo",
-  "revisit": "4.5.0"
+  "revisit": "4.6.0"
  },
  {
   "file": "studio-server/src/server/auth/store.ts",
@@ -1361,11 +1313,11 @@
   "from": "||",
   "to": "&&",
   "context": "if (!k || !iv || !tag || data === undefined) return undefined;",
-  "why": "Sealer.open: a sealed value missing a part, or naming a key not in the ring, also fails inside the try that follows (an undefined key or part makes createDecipheriv, setAuthTag or Buffer.from throw), and the catch returns undefined: the same answer as the guard (tests/studio-store-mutants.test.ts tries each missing part and an unknown kid)",
+  "why": "Sealer.open: `&&` only narrows the guard, and every value it lets through (a missing or empty part, a key not in the ring) fails inside the try that follows: `k.key` of an undefined key throws, createDecipheriv refuses an empty iv, setAuthTag an empty tag, Buffer.from an undefined data; the catch returns undefined, the same answer as the guard (tests/studio-store-mutants.test.ts tries each missing part and an unknown kid)",
   "category": "equivalent",
   "proof": "argument",
   "owner": "@wanoo",
-  "revisit": "4.5.0"
+  "revisit": "4.6.0"
  },
  {
   "file": "studio-server/src/server/play.ts",
@@ -1377,7 +1329,7 @@
   "category": "equivalent",
   "proof": "argument",
   "owner": "@wanoo",
-  "revisit": "4.5.0"
+  "revisit": "4.6.0"
  },
  {
   "file": "studio-server/src/ops/backup.ts",
@@ -1389,7 +1341,7 @@
   "category": "equivalent",
   "proof": "argument",
   "owner": "@wanoo",
-  "revisit": "4.5.0"
+  "revisit": "4.6.0"
  },
  {
   "file": "studio-server/src/ops/ship.ts",
@@ -1401,7 +1353,7 @@
   "category": "equivalent",
   "proof": "argument",
   "owner": "@wanoo",
-  "revisit": "4.5.0"
+  "revisit": "4.6.0"
  },
  {
   "file": "studio-server/src/ops/ship.ts",
@@ -1413,7 +1365,7 @@
   "category": "equivalent",
   "proof": "argument",
   "owner": "@wanoo",
-  "revisit": "4.5.0"
+  "revisit": "4.6.0"
  },
  {
   "file": "studio-server/src/server/health.ts",
@@ -1425,19 +1377,7 @@
   "category": "equivalent",
   "proof": "argument",
   "owner": "@wanoo",
-  "revisit": "4.5.0"
- },
- {
-  "file": "studio-server/src/server/health.ts",
-  "operator": "condition false",
-  "from": "rev > head",
-  "to": "false",
-  "context": "if (rev > head) throw new Error(`revision ${rev} is past the head (${head})`);",
-  "why": "Health.judge's guard: its two callers never pass a revision past the head: the loop bisects below its snapshot's revision, which is the head, and bisectOn refuses `bad > head` and `good >= bad` before judging (its refusal is pinned by tests/studio-health.test.ts); the guard is a defence for a future caller",
-  "category": "unreachable",
-  "proof": "tests/studio-health.test.ts",
-  "owner": "@wanoo",
-  "revisit": "4.5.0"
+  "revisit": "4.6.0"
  },
  {
   "file": "studio-server/src/server/previews.ts",
@@ -1449,7 +1389,7 @@
   "category": "equivalent",
   "proof": "argument",
   "owner": "@wanoo",
-  "revisit": "4.5.0"
+  "revisit": "4.6.0"
  },
  {
   "file": "studio-server/src/server/previews.ts",
@@ -1461,7 +1401,7 @@
   "category": "equivalent",
   "proof": "argument",
   "owner": "@wanoo",
-  "revisit": "4.5.0"
+  "revisit": "4.6.0"
  },
  {
   "file": "studio-server/src/server/builds.ts",
@@ -1469,11 +1409,11 @@
   "from": "r.rebuilt",
   "to": "true",
   "context": "rebuilt: r.rebuilt ? (JSON.parse(String(r.rebuilt)) as BuildInfo['rebuilt']) : null,",
-  "why": "Builds.list: `rebuilt` is NULL or the JSON object rebuild() wrote, never an empty string; for NULL the parse of `String(null)`, `'null'`, is null, what the guard returned",
+  "why": "Builds.list: `rebuilt` is NULL or the JSON object rebuild() wrote, never an empty string (the column has no default, the build's INSERT leaves it NULL, a restore writes back the rows a backup kept); node:sqlite and pg both read NULL as null, and the parse of `String(null)`, `'null'`, is null, what the guard returned. Only a hand-made backup holding '' would tell them apart",
   "category": "equivalent",
   "proof": "argument",
   "owner": "@wanoo",
-  "revisit": "4.5.0"
+  "revisit": "4.6.0"
  },
  {
   "file": "studio-server/src/server/builds.ts",
@@ -1485,7 +1425,7 @@
   "category": "equivalent",
   "proof": "argument",
   "owner": "@wanoo",
-  "revisit": "4.5.0"
+  "revisit": "4.6.0"
  },
  {
   "file": "studio-server/src/ops/ship.ts",
@@ -1497,7 +1437,7 @@
   "category": "equivalent",
   "proof": "argument",
   "owner": "@wanoo",
-  "revisit": "4.5.0"
+  "revisit": "4.6.0"
  },
  {
   "file": "src/engine/tools/voices.ts",
@@ -1509,7 +1449,7 @@
   "category": "equivalent",
   "proof": "argument",
   "owner": "@wanoo",
-  "revisit": "4.5.0"
+  "revisit": "4.6.0"
  },
  {
   "file": "src/engine/tools/voices.ts",
@@ -1521,7 +1461,7 @@
   "category": "equivalent",
   "proof": "argument",
   "owner": "@wanoo",
-  "revisit": "4.5.0"
+  "revisit": "4.6.0"
  },
  {
   "file": "src/engine/tools/voices.ts",
@@ -1533,7 +1473,7 @@
   "category": "equivalent",
   "proof": "argument",
   "owner": "@wanoo",
-  "revisit": "4.5.0"
+  "revisit": "4.6.0"
  },
  {
   "file": "src/engine/tools/voices.ts",
@@ -1545,7 +1485,7 @@
   "category": "equivalent",
   "proof": "argument",
   "owner": "@wanoo",
-  "revisit": "4.5.0"
+  "revisit": "4.6.0"
  },
  {
   "file": "src/engine/tools/validate/voices.ts",
@@ -1557,7 +1497,7 @@
   "category": "equivalent",
   "proof": "argument",
   "owner": "@wanoo",
-  "revisit": "4.5.0"
+  "revisit": "4.6.0"
  },
  {
   "file": "src/engine/tools/validate/voices.ts",
@@ -1569,7 +1509,7 @@
   "category": "equivalent",
   "proof": "argument",
   "owner": "@wanoo",
-  "revisit": "4.5.0"
+  "revisit": "4.6.0"
  },
  {
   "file": "src/engine/tools/status.ts",
@@ -1581,6 +1521,6 @@
   "category": "equivalent",
   "proof": "argument",
   "owner": "@wanoo",
-  "revisit": "4.5.0"
+  "revisit": "4.6.0"
  }
 ]
