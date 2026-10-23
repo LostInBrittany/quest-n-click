@@ -146,7 +146,9 @@ l’étape 4 est refusé, et la laisse telle qu’elle était. N’ayez quand m�
 > moment où la base a été perdue : c’est le RPO. `/readyz` en donne la valeur courante, `rpoMs` ; l’objectif est d’une
 > minute, surveillé, jamais promis. Dans la mesure ci-dessus il valait 0 : les deux écritures faites après la
 > sauvegarde ont été rejouées, et `rpoMs` est revenu à 0 moins de 2 s après chacune. Si le bucket est perdu aussi, les
-> sauvegardes et le journal partent avec lui : copiez vous-même des sauvegardes ailleurs.
+> sauvegardes et le journal partent avec lui. Une copie ailleurs doit contenir ensemble les `backups/`, `sha256/` et
+> `journal/` du bucket : une sauvegarde nomme ses blobs par leur empreinte sans les contenir, donc `backups/` seul ne
+> restaure rien ([Sauvegardes](clever.backups.md#steps)).
 
 <a name="expected-result"></a>
 
