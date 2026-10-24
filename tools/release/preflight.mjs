@@ -25,10 +25,10 @@ export const POINTERS = NAMED.map((p) => p.name).filter((n) => n !== RELAY);
 /**
  * The npm users who own the organisation `quest-n-click` (D53): a name one of them publishes is ours. Exact user
  * names, never a prefix. A list kept here because npm does not show an organisation's members without a token
- * (`GET /-/org/quest-n-click/user` answers `{}` anonymously, 24 Oct 2026), and CI has none. Erwan's npm user is to be
- * added once he joins the organisation; the nightly's `OWNERS` (.github/workflows/nightly.yml) follows this list.
+ * (`GET /-/org/quest-n-click/user` answers `{}` anonymously, 24 Oct 2026), and CI has none. Both co-maintainers own it
+ * (wanoo since 25 Oct 2026); the nightly's `OWNERS` (.github/workflows/nightly.yml) follows this list.
  */
-export const OWNERS = ['lostinbrittany'];
+export const OWNERS = ['lostinbrittany', 'wanoo'];
 /**
  * The packages of a release (`4.2.1`, `4.2.1-rc.1`), each from the first release it is part of (an older candidate is
  * judged without it), under the name that release packed it: quest-n-click… from 4.2.5, web-scumm… before.

@@ -89,8 +89,8 @@ The five scoped names (`@quest-n-click/engine`, `@quest-n-click/create`, `@quest
 `.github/workflows/nightly.yml`, which never gates: each is "still free" (a 404), "ours" (published by an owner of the
 organisation, exactly), or a warning "taken" in the run summary for the maintainers to act. The owners are a list,
 `OWNERS` in `tools/release/preflight.mjs` and its copy in the job: npm shows an organisation's members only to its
-members, and CI has no token. Today it holds `lostinbrittany`; Erwan's npm user joins it once he joins the
-organisation. The unscoped names of 4.2.5 to 4.5.1 (`quest-n-click`, `create-quest-n-click`, `quest-n-click-bridge`,
+members, and CI has no token. It holds the two co-maintainers' npm users,
+`lostinbrittany` and `wanoo`. The unscoped names of 4.2.5 to 4.5.1 (`quest-n-click`, `create-quest-n-click`, `quest-n-click-bridge`,
 `quest-n-click-connectors`, `quest-n-click-studio-server`) are pointers: the job expects each to be an owner's and
 deprecated, warns when one is not deprecated or is someone else's, and notes one still free (to reserve).
 `create-quest-n-click` is the exception, a **relay**: published on an owner's account, its command does

@@ -469,7 +469,7 @@ describe('ship preflight-stable', () => {
       'npm trust list @quest-n-click/bridge --json',
     ]);
     // The one owner whose npm user is known (Erwan's to be added once he joins the organisation).
-    expect(OWNERS).toEqual(['lostinbrittany']);
+    expect(OWNERS).toEqual(['lostinbrittany', 'wanoo']);
     expect(POINTERS).not.toContain(RELAY);
     expect([...POINTERS, RELAY].sort()).toEqual([...PACKAGES].sort());
   });
@@ -584,8 +584,8 @@ describe('the nightly', () => {
     // The relay: checked on its own, an owner's and never deprecated.
     expect(job).toContain(`p=${RELAY}\n`);
     expect(job).toContain('::warning title=npm relay deprecated::');
-    expect(job).not.toMatch(/wanoo/);
-    // Each owner exactly, never a prefix, nobody else.
+    // Each owner exactly, never a prefix, nobody else: the users of OWNERS appear only in that one line.
+    expect(job.match(/lostinbrittany|wanoo/g)).toHaveLength(OWNERS.length);
     expect(job).toContain(`OWNERS='"(${OWNERS.join('|')})( <|")'`);
   });
 });

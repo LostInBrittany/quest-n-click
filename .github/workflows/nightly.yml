@@ -28,8 +28,8 @@ jobs:
         run: |
           # The organisation's owners' npm users exactly (`lostinbrittany <mail>`), never a prefix: OWNERS in
           # tools/release/preflight.mjs (npm shows an organisation's members to its members only, and CI has no
-          # token). Erwan's npm user is to be added once he joins the organisation.
-          OWNERS='"(lostinbrittany)( <|")'
+          # token).
+          OWNERS='"(lostinbrittany|wanoo)( <|")'
           for p in @quest-n-click/engine @quest-n-click/create @quest-n-click/bridge @quest-n-click/connectors @quest-n-click/studio-server web-scumm create-web-scumm web-scumm-bridge web-scumm-connectors web-scumm-studio-server; do
             # A 404 is free, any other error said.
             if who=$(npm view "$p" maintainers --json 2>/tmp/npm-err); then
