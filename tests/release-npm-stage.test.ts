@@ -243,7 +243,7 @@ describe('the summary', () => {
       ['npm stage publish ' + p.items[2].file]: { status: 1, stderr: 'npm error code E409\nnpm error 409 Conflict' },
     });
     const results = stageAll({ exec, plan: p, repo: REPO });
-    const md = summary({ tag: 'v4.5.2', plan: p, results, runSha: 'a'.repeat(40), tagSha: 'b'.repeat(40) });
+    const md: string = summary({ tag: 'v4.5.2', plan: p, results, runSha: 'a'.repeat(40), tagSha: 'b'.repeat(40) });
     expect(md).toContain('## npm: v4.5.2');
     expect(md).toContain('| `@quest-n-click/engine` | 4.5.2 | latest | staged, id `');
     const approvals = md.split('\n').filter((l) => /^npm stage (approve|list) /.test(l));
@@ -260,7 +260,7 @@ describe('the summary', () => {
     const { dir, read } = folder('4.5.2');
     const p = plan({ tag: 'v4.5.2-rc.1', dir, repo: REPO, read });
     const results = stageAll({ exec: fakeNpm().exec, plan: p, repo: REPO });
-    const md = summary({ tag: 'v4.5.2-rc.1', plan: p, results });
+    const md: string = summary({ tag: 'v4.5.2-rc.1', plan: p, results });
     expect(md).toMatch(/rehearsed: OIDC accepted, nothing sent/);
     expect(md).not.toMatch(/npm stage approve/);
     const old = plan({ tag: 'v4.5.1', dir, repo: REPO, read });

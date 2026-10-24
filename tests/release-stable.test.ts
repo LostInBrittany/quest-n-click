@@ -2,6 +2,7 @@
 // read back; a tag signed with an SSH key (`ship tag --sign`, inactive for 4.1.x), rehearsed by the candidate with an
 // ephemeral key; and `ship preflight-stable`, which says what 4.2 still needs without changing anything.
 import { spawnSync } from 'node:child_process';
+import { createHash } from 'node:crypto';
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -636,6 +637,7 @@ describe('the npm packages, staged for an owner (4.5.2, #283, D34)', () => {
     expect(job).toMatch(/--dir=\.npm-stage --repo="\$GITHUB_REPOSITORY"/);
   });
 
+  const sha = (c: string) => createHash('sha256').update(c).digest('hex');
   // The download step, run by bash against a fake gh writing the release's files.
   function downloaded(files: Record<string, string>, sums?: string) {
     const start = job.indexOf("- name: The release's archives, as published");
@@ -650,7 +652,9 @@ describe('the npm packages, staged for an owner (4.5.2, #283, D34)', () => {
     const src = join(dir, 'src');
     mkdirSync(src);
     for (const [f, c] of Object.entries(files)) writeFileSync(join(src, f), c);
-    const sum = spawnSync('bash', ['-c', `cd "${src}" && sha256sum *.tgz`], { encoding: 'utf8' }).stdout;
+    const sum = Object.entries(files)
+      .map(([f, c]) => `${sha(c)}  ${f}\n`)
+      .join('');
     writeFileSync(join(src, 'quest-n-click-v9.9.9-SHA256SUMS'), sums ?? sum);
     const bin = join(dir, 'bin');
     mkdirSync(bin);
@@ -664,10 +668,9 @@ describe('the npm packages, staged for an owner (4.5.2, #283, D34)', () => {
   }
 
   it('refuses an archive whose bytes or whose line in the sums are not the release’s', () => {
-    if (spawnSync('sha256sum', ['--version']).status !== 0) return; // GNU coreutils, as on the runner
     const files = { 'quest-n-click-9.9.9.tgz': 'a', 'create-quest-n-click-9.9.9.tgz': 'b' };
     expect(downloaded(files).status).toBe(0);
-    const sum = spawnSync('bash', ['-c', `printf a | sha256sum`], { encoding: 'utf8' }).stdout.split(' ')[0];
+    const sum = sha('a');
     expect(downloaded(files, `${sum}  quest-n-click-9.9.9.tgz\n`).status).not.toBe(0);
     expect(
       downloaded(files, `${sum}  quest-n-click-9.9.9.tgz\n${sum}  create-quest-n-click-9.9.9.tgz\n`).status,
