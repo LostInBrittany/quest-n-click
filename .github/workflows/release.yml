@@ -18,6 +18,9 @@ on:
   workflow_run:
     workflows: [ci]
     types: [completed]
+    # Only a ci run of a v* ref starts this workflow: for a tag push, workflow_run's head_branch is the tag's name. Without
+    # it, every ci run of main and of each pull request left a skipped release run. The jobs' `if:` stay the real gate.
+    branches: ['v*']
 # One release run per tag at a time (second reading of #122): a rerun of the tag's `ci` fires this workflow again, and
 # two runs that both saw no release would both make a draft (GitHub lets two drafts share a tag). Queued, never
 # cancelled: the second run then finds the first's release and stops.
