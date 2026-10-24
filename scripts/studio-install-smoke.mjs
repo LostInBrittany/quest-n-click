@@ -104,7 +104,10 @@ try {
       env: { PATH: process.env.PATH, PYTHONPATH: join(home, '.python') },
       stdio: ['ignore', 'ignore', 'inherit'],
     });
-    check("requirements.txt installs, hashes checked, and the asset tools' packages import from the worker's folder", true);
+    check(
+      "requirements.txt installs, hashes checked, and the asset tools' packages import from the worker's folder",
+      true,
+    );
   }
   const bin = (name) => binIn(home, name);
   const run = (name, args, env = {}) =>
