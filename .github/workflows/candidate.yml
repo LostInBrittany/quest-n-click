@@ -92,6 +92,17 @@ jobs:
           tar -czf candidate-site/dist.tar.gz -C dist .
           cp dist/licenses/assets-manifest.json candidate-site/assets-manifest.json
           node tools/release/site-files.mjs --dir=dist --out=candidate-site/site-files.json
+      # The game and the Studio's demo for the project's website (4.5.2, D52): built again under /demo/, the shape the
+      # engine's Pages job built up to 4.5.1; the website downloads it from the latest release and serves it at /demo/.
+      # From 4.5.2 only (tools/release/artifacts.mjs `game:web`); after the site above, which it rebuilds dist over.
+      - name: The website's demo of this candidate
+        run: |
+          if node -e 'import("./tools/release/candidate.mjs").then((m) => process.exit(m.atLeast(require("./package.json").version, "4.5.2") ? 0 : 1))'; then
+            BASE_PATH=/demo/ STUDIO=1 VITE_STUDIO_DEMO=1 npm run build:web
+            tar -czf candidate-site/web.tar.gz -C dist .
+          else
+            echo "::notice::no web.tar.gz before 4.5.2"
+          fi
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: candidate-site

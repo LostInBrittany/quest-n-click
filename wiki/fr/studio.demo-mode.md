@@ -1,7 +1,7 @@
 # Mode démo et studio-apply
 
 Le Studio tourne aussi sans aucun serveur, sur un hébergement statique : le Studio du jeu de démo est en ligne à
-<https://quest-n-click.github.io/play/studio.html>, construit par le dépôt du site de l'organisation. Vos modifications
+<https://quest-n-click.cleverapps.io/demo/studio.html>, servi par le site web du projet depuis la dernière release. Vos modifications
 restent dans votre navigateur ; téléchargez-les en patch et `npm run studio-apply` les écrit dans votre copie du jeu.
 
 <a name="what-you-get"></a>

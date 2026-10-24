@@ -7,7 +7,7 @@ answers hold for the release this documentation belongs to, named at the foot of
 
 ## Players
 
-- **Where can I play?** The sample game is at [quest-n-click.github.io/play](https://quest-n-click.github.io/play/),
+- **Where can I play?** The sample game is at [quest-n-click.cleverapps.io/demo](https://quest-n-click.cleverapps.io/demo/),
   on a phone in landscape or a computer ([Play online](start.play-online.md)).
 - **How do I play?** Tap a verb, then a thing; a double tap acts without a verb; the whole game plays at the keyboard
   too ([Controls](play.controls.md)).

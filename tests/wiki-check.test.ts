@@ -508,7 +508,7 @@ describe('wiki -- build --target wiki', () => {
     const { read } = build(false);
     const footer = read('_Footer.md');
     expect(footer).toContain("current documentation · documentation courante: quest'n'click 4.5.0 r1");
-    expect(footer).toContain('https://quest-n-click.github.io/docs/');
+    expect(footer).toContain('https://quest-n-click.cleverapps.io/en/docs');
     expect(footer).toContain('`d0c`');
     expect(footer).toContain('overwritten at the next publication');
     expect(read('Home.md')).toMatch(/## Français[\s\S]*## English/);

@@ -15,7 +15,7 @@ Reality, le tout libre (le code sous licence MIT).
 
 | | |
 |---|---|
-| **Jouer** | *La Clé du garde-manger*, le jeu d’exemple, sur téléphone en paysage ou sur ordinateur : [quest-n-click.github.io/play](https://quest-n-click.github.io/play/) |
+| **Jouer** | *La Clé du garde-manger*, le jeu d’exemple, sur téléphone en paysage ou sur ordinateur : [quest-n-click.cleverapps.io/demo](https://quest-n-click.cleverapps.io/demo/) |
 | **Essayer le Studio** | Le Studio en mode démo : modifiez le jeu d’exemple, vos modifications restent dans votre navigateur ([Jouer en ligne et essayer le Studio de démo](start.play-online.md)) |
 | **Faire son jeu** | Dans son propre dossier, depuis l’archive d’une release ([Installer depuis l’archive de la release](install.from-archive.md)), puis une première salle en quinze minutes ([Votre premier jeu](create.first-game.md)) |
 
@@ -50,8 +50,8 @@ débat inutile. Ce que cela veut dire aujourd’hui :
 
 - Le dépôt est `Quest-n-Click/quest-n-click` depuis la 4.5.2, dans l’organisation Quest-n-Click ; les liens vers les
   précédents (`wanoo/quest-n-click`, `wanoo/web-scumm`) y sont redirigés. Les anciennes adresses de la démo,
-  `wanoo.github.io/web-scumm` et `wanoo.github.io/quest-n-click`, redirigent vers
-  [quest-n-click.github.io/play](https://quest-n-click.github.io/play/).
+  `wanoo.github.io/web-scumm` et `wanoo.github.io/quest-n-click`, étaient sur GitHub Pages, abandonné en 4.5.2 : la
+  démo est sur le site web du projet, [quest-n-click.cleverapps.io/demo](https://quest-n-click.cleverapps.io/demo/).
 - À partir de la 4.2.5, les packages et les commandes s’appellent `quest-n-click`. Les anciens noms `web-scumm` ont
   marché pendant toute la 4.2.x et disparaissent en 4.3.0, où `npx quest-n-click migrate` renomme les imports et les
   commandes d’un jeu ([Venir de web-scumm](install.from-web-scumm.md)).

@@ -357,6 +357,8 @@ async function watch(versionArg) {
 
 /** The first release that carries its documentation archive. */
 const DOCS_SINCE = '4.5.0';
+/** The first release that carries the website's demo, `<proj>-<tag>-web.tar.gz` (D52); 4.5.1 and before verify without it. */
+const WEB_SINCE = '4.5.2';
 
 async function verify(versionArg) {
   const version = versionOf(versionArg);
@@ -425,6 +427,10 @@ async function verify(versionArg) {
   // file; named here because docs-publish promotes it once this verification passed.
   const docs = `quest-n-click-docs-${version}.tar.gz`;
   if (atLeast(version, DOCS_SINCE) && !existsSync(join(dir, docs))) throw new Error(`${name}: ${docs} missing`);
+  // The website's demo (4.5.2, D52): the game and the Studio demo under /demo/, summed and attested above; the website
+  // downloads it from the latest release.
+  const web = `${projectOf(version)}-${name}-web.tar.gz`;
+  if (atLeast(version, WEB_SINCE) && !existsSync(join(dir, web))) throw new Error(`${name}: ${web} missing`);
   return { files, attested };
 }
 

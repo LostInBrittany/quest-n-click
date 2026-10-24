@@ -1390,4 +1390,13 @@ candidate : le SHA complet qu’un lancement à la main doit tester (son entrée
 - Origine : posée par un workflow de `.github/workflows/` (CI et publications).
 - Lue par : [`.github/workflows/candidate.yml`](../../.github/workflows/candidate.yml).
 
+<a name="web"></a>
+
+### `WEB`
+
+release : la démo du site web, `<P>-<tag>-web.tar.gz`, quand le candidat en a fait une (depuis la 4.5.2) ; vide avant.
+
+- Origine : posée par un workflow de `.github/workflows/` (CI et publications).
+- Lue par : [`.github/workflows/release.yml`](../../.github/workflows/release.yml).
+
 <!-- env:end -->

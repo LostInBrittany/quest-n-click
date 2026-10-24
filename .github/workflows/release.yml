@@ -312,10 +312,13 @@ jobs:
           cp .candidate/site/dist.tar.gz "$P-$TAG-dist.tar.gz"
           cp .candidate/site/assets-manifest.json "$P-$TAG-assets-manifest.json"
           cp .candidate/site/site-files.json "$P-$TAG-site-files.json"
+          # The website's demo (4.5.2, D52), from the candidates that made it; check-release below says whether the tag
+          # must have it (tools/release/artifacts.mjs `game:web`, since 4.5.2).
+          if [ -f .candidate/site/web.tar.gz ]; then cp .candidate/site/web.tar.gz "$P-$TAG-web.tar.gz"; WEB="$P-$TAG-web.tar.gz"; else WEB=""; fi
           cp .candidate/surfaces/qualification-surfaces.json "$P-$TAG-surfaces.json"
           # The signing rehearsal's report (4.1.20 PR 3b), as the candidate's manifest lists it.
           cp .candidate/signing/signing-rehearsal.json "$P-$TAG-signing-rehearsal.json"
-          extra="$P-$TAG-site-files.json $P-$TAG-surfaces.json $P-$TAG-signing-rehearsal.json"
+          extra="$P-$TAG-site-files.json $P-$TAG-surfaces.json $P-$TAG-signing-rehearsal.json${WEB:+ $WEB}"
           # Since 4.1.20 (plan §8.4) this job makes nothing the candidate made: the archives (packed once, installed
           # outside the repository on three systems), their SBOMs, the Bridge's image (its archive, identities and SBOM)
           # are the candidate's, checked against its manifest above, copied under the names tools/release/artifacts.mjs

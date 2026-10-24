@@ -128,8 +128,8 @@ toward the hero. If a scene relied on the old facing, write `{ face: 'right', wh
 **web-scumm becomes quest'n'click** (D47). Nothing to change: a game made for 4.2.4 installs, builds, plays and saves
 as before, under its old names. The engine installs from `releases/download/v4.2.5/…`, where the repository is now
 `github.com/Quest-n-Click/quest-n-click` (the old `github.com/wanoo/web-scumm` links redirect, release downloads included).
-The sample game and the Studio's demo moved to `https://quest-n-click.github.io/play/`: the old address redirects
-there, but update a bookmark or a link to `quest-n-click.github.io/play`.
+The sample game and the Studio's demo are now at `https://quest-n-click.cleverapps.io/demo/` (since 4.5.2, D52; the
+GitHub Pages addresses they had before are abandoned): update a bookmark or a link to it.
 
 **The new names**, from 4.2.5:
 

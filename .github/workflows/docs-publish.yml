@@ -22,8 +22,8 @@ name: docs-publish
 #                 cancelled job works too while its run can be re-run;
 #       preview   from main: the bootstrap's preview (§4.5.3), refused once a release ≥ 4.5.0 exists; a rerun on the
 #                 same commit reuses its release when the bytes are the same.
-# The site's /docs/ is the organization's (4.5.2, D51): Quest-n-Click/quest-n-click.github.io assembles it from the
-# releases, rebuilt by hand there after a publication for now (a dispatch from here needs a GitHub App, a later step).
+# No GitHub Pages any more (4.5.2, D52): the project's website, https://quest-n-click.cleverapps.io, shows the latest
+# documentation and picks a release up by itself (its POST /api/revalidate, hourly otherwise).
 on:
   workflow_call:
     inputs:
@@ -280,7 +280,8 @@ jobs:
         if: contains(inputs.version, '-')
         run: |
           echo "::notice::$VERSION is a pre-release: /docs/$VERSION/ only; the wiki and latest are unchanged (§4.5.2)"
-      # The engine deploys no Pages (4.5.2, D51): the organization's site assembles /docs/ from the releases.
-      - name: The organization's site, to rebuild
+      # The website picks the publication up by itself (4.5.2, D52): its `POST /api/revalidate`, hourly otherwise.
+      # Nothing here calls it yet (no SITE_REVALIDATE_SECRET in release.yml): said, not done.
+      - name: The website, revalidated by itself
         run: |
-          echo "::notice::rebuild https://quest-n-click.github.io by hand (Quest-n-Click/quest-n-click.github.io, its workflow run by hand): its /docs/ is assembled from the releases"
+          echo "::notice::https://quest-n-click.cleverapps.io takes this publication at its next revalidation (hourly); no call from here (no SITE_REVALIDATE_SECRET yet)"

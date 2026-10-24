@@ -22,8 +22,9 @@ se construit et se joue comme avant, les sauvegardes de ses joueurs retrouvées 
   (« web-scumm is now quest-n-click; the old name works until 4.3 »). Depuis la 4.3.0, il n'y a plus d'archive, de
   commande ni d'import `web-scumm`.
 - Le dépôt est `github.com/Quest-n-Click/quest-n-click` ; les anciens liens `github.com/wanoo/web-scumm` redirigent, y compris
-  les téléchargements de release. Le jeu d'exemple et la démo du Studio sont passés à
-  `https://quest-n-click.github.io/play/` ; l'ancienne adresse y redirige, mais mettez à jour vos favoris et vos liens.
+  les téléchargements de release. Le jeu d'exemple et la démo du Studio sont maintenant sur
+  `https://quest-n-click.cleverapps.io/demo/` (depuis la 4.5.2 ; les adresses GitHub Pages d'avant sont abandonnées) :
+  mettez à jour vos favoris et vos liens.
 
 <a name="names"></a>
 

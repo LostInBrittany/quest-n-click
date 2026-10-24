@@ -1390,4 +1390,13 @@ candidate: the full SHA a run started by hand must test (its `sha` input).
 - Origin: set by a workflow of `.github/workflows/` (CI and releases).
 - Read by: [`.github/workflows/candidate.yml`](../../.github/workflows/candidate.yml).
 
+<a name="web"></a>
+
+### `WEB`
+
+release: the website's demo, `<P>-<tag>-web.tar.gz`, when the candidate made one (from 4.5.2); empty before.
+
+- Origin: set by a workflow of `.github/workflows/` (CI and releases).
+- Read by: [`.github/workflows/release.yml`](../../.github/workflows/release.yml).
+
 <!-- env:end -->

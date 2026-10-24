@@ -20,8 +20,8 @@ builds and plays as before, with its players' saves found where they were.
   archives under the old names, whose commands ran after a one-line notice ("web-scumm is now quest-n-click; the old
   name works until 4.3"). From 4.3.0 there is no `web-scumm` archive, command or import any more.
 - The repository is `github.com/Quest-n-Click/quest-n-click`; the old `github.com/wanoo/web-scumm` links redirect, release
-  downloads included. The sample game and the Studio's demo moved to `https://quest-n-click.github.io/play/`; the old
-  address redirects there, but update your bookmarks and links.
+  downloads included. The sample game and the Studio's demo are now at `https://quest-n-click.cleverapps.io/demo/`
+  (since 4.5.2; the GitHub Pages addresses before are abandoned): update your bookmarks and links.
 
 <a name="names"></a>
 

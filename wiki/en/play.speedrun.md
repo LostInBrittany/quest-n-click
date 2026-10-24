@@ -20,7 +20,7 @@ only a server's or a person's observation raises the trust further (see [the lim
 
 The player of a game that declares speedrun categories (`speedrun` in its content). The engine has had speedruns since
 4.1.14 "Time Attack"; this page holds from that version. The sample game at
-[quest-n-click.github.io/play](https://quest-n-click.github.io/play/) declares no category, so its pause menu has no
+[quest-n-click.cleverapps.io/demo](https://quest-n-click.cleverapps.io/demo/) declares no category, so its pause menu has no
 Speedrun row; the reference game in the engine repository (`games/reference`) declares several.
 
 <a name="prerequisites"></a>
@@ -83,12 +83,12 @@ browser cannot post fake splits.
 
    ```sh
    # in the engine repository, on your machine
-   npm run speedrun:overlay -- --port=7777 --origin=https://wanoo.github.io
+   npm run speedrun:overlay -- --port=7777 --origin=https://quest-n-click.cleverapps.io
    ```
 
    ```sh
    # in a created project, on your machine
-   node node_modules/quest-n-click/tools/speedrun/overlay.mjs --port=7777 --origin=https://wanoo.github.io
+   node node_modules/quest-n-click/tools/speedrun/overlay.mjs --port=7777 --origin=https://quest-n-click.cleverapps.io
    ```
 
    Then open the game at `https://…/?speedrunTool=7777`. Use your game's own address in `--origin`.
@@ -100,7 +100,7 @@ browser cannot post fake splits.
 
    ```sh
    # in the engine repository, on your machine
-   npm run speedrun:livesplit -- serve --port=7778 --origin=https://wanoo.github.io
+   npm run speedrun:livesplit -- serve --port=7778 --origin=https://quest-n-click.cleverapps.io
    ```
 
    `--livesplit=ws://…` points to another LiveSplit address.

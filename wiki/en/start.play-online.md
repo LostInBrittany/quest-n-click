@@ -13,11 +13,11 @@ your browser only.
 
 ## Context and versions
 
-The public site of the project, `quest-n-click.github.io`, served by GitHub Pages and built by the organization's site
-repository (`Quest-n-Click/quest-n-click.github.io`) from the signed release tags: the game at `/play/`, the Studio's
-demo at `/play/studio.html`, the documentation at `/docs/`. That is its address since 4.5.2; the earlier ones,
-`wanoo.github.io/quest-n-click` (4.2.5 to 4.5.1) and `wanoo.github.io/web-scumm`, redirect there. The site shows a
-released version, not `main`.
+The project's website, `https://quest-n-click.cleverapps.io` (the repository `Quest-n-Click/quest-n-click-site`, hosted on Clever Cloud):
+the game at `/demo/`, the Studio's demo at `/demo/studio.html`, the latest documentation at `/<lang>/docs`. The demo
+is the latest release's `quest-n-click-v<version>-web.tar.gz`, checked against the release's sums: a released version,
+not `main`. Since 4.5.2; before, the demo was on GitHub Pages, at `wanoo.github.io/quest-n-click` (4.2.5 to 4.5.1) and
+`wanoo.github.io/web-scumm`, which is abandoned.
 
 <a name="prerequisites"></a>
 
@@ -37,7 +37,7 @@ In your browser. No command.
 ## Steps
 
 <!-- step: play -->
-1. **Play**: open [quest-n-click.github.io/play](https://quest-n-click.github.io/play/). On a phone, turn it to
+1. **Play**: open [quest-n-click.cleverapps.io/demo](https://quest-n-click.cleverapps.io/demo/). On a phone, turn it to
    landscape. Tap **New game**. The game is in English; `?lang=fr` in the address, or the settings, switch it to
    French ([Languages](play.languages.md)). How to play: [Controls](play.controls.md).
 
@@ -45,7 +45,7 @@ In your browser. No command.
 2. **Keep it** (optional): install it as an app and play it offline ([Install the game as an app](play.install-app.md)).
 
 <!-- step: studio -->
-3. **Open the Studio**: [quest-n-click.github.io/play/studio.html](https://quest-n-click.github.io/play/studio.html).
+3. **Open the Studio**: [quest-n-click.cleverapps.io/demo/studio.html](https://quest-n-click.cleverapps.io/demo/studio.html).
    It is the demo mode: the same Studio, the same engine view and placement editor as on your machine, running without
    any server. A banner says "Demo: your edits stay in this browser".
 

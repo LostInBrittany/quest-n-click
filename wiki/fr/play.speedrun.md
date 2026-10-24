@@ -22,7 +22,7 @@ seule l’observation d’un serveur ou d’une personne élève la confiance au
 
 Le joueur d’un jeu qui déclare des catégories de speedrun (`speedrun` dans son contenu). Le moteur a le speedrun depuis
 la 4.1.14 « Time Attack » ; cette page vaut depuis cette version. Le jeu d’exemple sur
-[quest-n-click.github.io/play](https://quest-n-click.github.io/play/) ne déclare aucune catégorie : son menu de pause
+[quest-n-click.cleverapps.io/demo](https://quest-n-click.cleverapps.io/demo/) ne déclare aucune catégorie : son menu de pause
 n’a pas de ligne Speedrun ; le jeu de référence du dépôt du moteur (`games/reference`) en déclare plusieurs.
 
 <a name="prerequisites"></a>
@@ -90,12 +90,12 @@ peut pas envoyer de faux temps.
 
    ```sh
    # dans le dépôt du moteur, sur votre machine
-   npm run speedrun:overlay -- --port=7777 --origin=https://wanoo.github.io
+   npm run speedrun:overlay -- --port=7777 --origin=https://quest-n-click.cleverapps.io
    ```
 
    ```sh
    # dans un projet créé, sur votre machine
-   node node_modules/quest-n-click/tools/speedrun/overlay.mjs --port=7777 --origin=https://wanoo.github.io
+   node node_modules/quest-n-click/tools/speedrun/overlay.mjs --port=7777 --origin=https://quest-n-click.cleverapps.io
    ```
 
    Puis ouvrez le jeu à `https://…/?speedrunTool=7777`. Mettez l’adresse de votre jeu dans `--origin`.
@@ -107,7 +107,7 @@ peut pas envoyer de faux temps.
 
    ```sh
    # dans le dépôt du moteur, sur votre machine
-   npm run speedrun:livesplit -- serve --port=7778 --origin=https://wanoo.github.io
+   npm run speedrun:livesplit -- serve --port=7778 --origin=https://quest-n-click.cleverapps.io
    ```
 
    `--livesplit=ws://…` désigne une autre adresse de LiveSplit.

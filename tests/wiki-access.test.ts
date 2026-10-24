@@ -181,7 +181,7 @@ describe('the loader', () => {
   });
 
   it("names the place a bundle's promotion is checked, never a state of its own", () => {
-    expect(PUBLICATION_URL).toBe('https://quest-n-click.github.io/docs/publication.json');
+    expect(PUBLICATION_URL).toBe('https://raw.githubusercontent.com/wiki/Quest-n-Click/quest-n-click/publication.json');
     expect(resolveDocs(packageRoot()).provenance.label).toContain(PUBLICATION_URL);
   });
 });
@@ -274,27 +274,23 @@ describe('read_doc by id', () => {
     expect(readDocById(set, { id: 'studio.notes' }).text).toMatch(/\(en, draft: not reviewed yet\)/);
   });
 
-  it("gives a release build's page its permalink, a local or dirty build none with its reason, and the wiki's current page (§4.5.4)", () => {
+  it("gives a bundle's page the website's latest page and its release's archive, no versioned page (§4.5.4, D52)", () => {
     expect(readDocById(set, { id: 'team.write-refused-423', section: 'symptom' }).structured).not.toHaveProperty('url');
-    // bundleOpts: a candidate's numeric build id, not dirty.
     const r = readDocById(resolveDocs(packageRoot()), { id: 'team.write-refused-423', section: 'symptom', lang: 'fr' });
     expect(r.structured.url).toEqual({
-      versioned: 'https://quest-n-click.github.io/docs/4.5.0/r1/fr/team.write-refused-423.html#symptom',
+      versioned: null,
       versionedNote:
-        'the permalink of 4.5.0 r1 if this build is the one published; check https://quest-n-click.github.io/docs/publication.json',
-      current: 'https://github.com/Quest-n-Click/quest-n-click/wiki/FR-Equipe-Ecriture-Refusee-423#symptom',
-      currentLabel: 'current documentation (the latest release), not necessarily this version',
+        "no versioned page online: the documentation of 4.5.0 is its release's archive, quest-n-click-docs-4.5.0.tar.gz (https://github.com/Quest-n-Click/quest-n-click/releases/tag/v4.5.0)",
+      current: 'https://quest-n-click.cleverapps.io/fr/docs/team.write-refused-423#symptom',
+      currentLabel: 'latest documentation on the project website, not necessarily this version',
     });
+    // A local or dirty build: the same, nothing online is this build's.
     const local = tmp('docs-package-local-');
     writeFileSync(join(local, 'package.json'), JSON.stringify({ name: 'quest-n-click', version: '4.5.0' }));
     writeBundle({ ...bundleOpts(join(local, 'docs-bundle')), buildId: 'local-a7' });
     const l = readDocById(resolveDocs(local), { id: 'team.write-refused-423' }).structured.url!;
     expect(l.versioned).toBeNull();
-    expect(l.versionedNote).toMatch(/a local build \(build id "local-a7", not a candidate run\)/);
-    const dirty = tmp('docs-package-dirty-');
-    writeFileSync(join(dirty, 'package.json'), JSON.stringify({ name: 'quest-n-click', version: '4.5.0' }));
-    writeBundle({ ...bundleOpts(join(dirty, 'docs-bundle')), dirty: true });
-    expect(readDocById(resolveDocs(dirty), { id: 'team.write-refused-423' }).structured.url!.versioned).toBeNull();
+    expect(l.current).toBe('https://quest-n-click.cleverapps.io/en/docs/team.write-refused-423');
   });
 
   it('gives maxChars at a time and a cursor for the rest; a cursor of another request is stale', () => {

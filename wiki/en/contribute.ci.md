@@ -115,16 +115,17 @@ the next run).
 
 ## The site, outside `ci`
 
-Since 4.5.2 the engine's `ci` deploys no GitHub Pages: the project's site, `https://quest-n-click.github.io`, is built
-by the organization's site repository, `Quest-n-Click/quest-n-click.github.io`, from the signed release tags (the game
-under `/play/`, the Studio's demo at `/play/studio.html`, the documentation under `/docs/`). The `pages` job and the
-`pages-only` runs that `docs-publish` started (4.5.0 to 4.5.1) are gone; `docs-publish` ends with a notice that the
-site is to rebuild, by hand there for now.
+Since 4.5.2 the engine's `ci` deploys no GitHub Pages (D52). The project's website, `https://quest-n-click.cleverapps.io` (the repository
+`Quest-n-Click/quest-n-click-site`), serves the demo at `/demo/` from the latest release's
+`quest-n-click-v<version>-web.tar.gz` (built by the candidate under `BASE_PATH=/demo/`, summed and attested by the
+release) and the latest documentation at `/<lang>/docs/<page id>`; there is no versioned documentation online, a
+version's documentation is its release's `quest-n-click-docs-<version>.tar.gz`. The website picks a release up by
+itself (its `POST /api/revalidate`, hourly otherwise). The `pages` job and the `pages-only` runs that `docs-publish`
+started (4.5.0 to 4.5.1) are gone.
 
 > [!LIMIT id=pages-fail-closed]
-> `npm run wiki -- pages` assembles `/docs/` from the released archives only, and fails when one cannot be downloaded
-> or verified: the site it builds is then not deployed, never without `/docs/` nor with an unchecked one. A rerun is
-> the recovery.
+> `npm run wiki -- pages`, which assembled the versioned `/docs/` for GitHub Pages up to 4.5.1, still takes the
+> released archives only and fails when one cannot be downloaded or verified; no site deploys its output since 4.5.2.
 
 <a name="job-failed"></a>
 

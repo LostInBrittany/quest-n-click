@@ -135,9 +135,9 @@ que soit le héros ; X se tourne maintenant vers le héros. Si une scène compta
 **web-scumm devient quest'n'click** (D47). Rien à changer : un jeu fait pour la 4.2.4 s'installe, se construit, se joue
 et se sauvegarde comme avant, sous ses anciens noms. Le moteur s'installe depuis `releases/download/v4.2.5/…`, où le
 dépôt est maintenant `github.com/Quest-n-Click/quest-n-click` (les anciens liens `github.com/wanoo/web-scumm` sont redirigés,
-téléchargements des releases compris). Le jeu d'exemple et la démo du Studio sont passés à
-`https://quest-n-click.github.io/play/` : l'ancienne adresse y redirige, mais mettez à jour un favori ou un lien
-vers `quest-n-click.github.io/play`.
+téléchargements des releases compris). Le jeu d'exemple et la démo du Studio sont
+maintenant sur `https://quest-n-click.cleverapps.io/demo/` (depuis la 4.5.2, D52 ; les adresses GitHub Pages qu'ils
+avaient avant sont abandonnées) : mettez à jour un favori ou un lien.
 
 **Les nouveaux noms**, à partir de la 4.2.5 :
 

@@ -16,7 +16,7 @@ restent sur l’appareil.
 ## Contexte et versions
 
 Tout jeu construit avec quest'n'click et servi en HTTPS (le jeu d’exemple est sur
-[quest-n-click.github.io/play](https://quest-n-click.github.io/play/)). Ce que dit cette page vaut depuis la 4.1.8,
+[quest-n-click.cleverapps.io/demo](https://quest-n-click.cleverapps.io/demo/)). Ce que dit cette page vaut depuis la 4.1.8,
 quand l’installation, la mise à jour et la réinstallation ont été prouvées dans Chromium, WebKit et Firefox en CI ; la
 copie hors ligne du jeu entier existe depuis la 3.1. L’auteur d’un jeu peut choisir de ne garder en cache que les
 salles proches (`offline: 'nearby'`) : le menu de pause n’a alors pas de ligne hors ligne, et une salle jamais visitée

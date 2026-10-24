@@ -3,8 +3,8 @@ on:
   push:
     # main runs everything; a tag releases. A topic branch runs through its pull request (4.1.4; the ruleset on main
     # requires these checks on the pull request's head), so a push runs once, not twice. The engine deploys no Pages
-    # (4.5.2, D51): the organization's site, Quest-n-Click/quest-n-click.github.io, builds /play/ and /docs/ from the
-    # signed release tags.
+    # (4.5.2, D52): the project's website, quest-n-click.cleverapps.io, serves the release's web.tar.gz at /demo/ and
+    # the latest documentation.
     branches: [main]
     tags: ['v*']
   pull_request:

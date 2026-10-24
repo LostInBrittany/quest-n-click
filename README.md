@@ -10,15 +10,15 @@ be finished, and ship it as a web game that installs on a phone and plays offlin
 > **Formerly web-scumm.** This project was called WebSCUMM, then web-scumm, in homage to SCUMM, the LucasArts engine
 > whose spirit it follows. It was renamed quest'n'click so its name would spark no needless debate. Links to the old
 > repository redirect here, and the old demo address, `wanoo.github.io/web-scumm`, redirects to the new one: the game
-> and the Studio now live at [quest-n-click.github.io/play](https://quest-n-click.github.io/play/). From 4.2.5 the packages and commands
+> and the Studio now live at [quest-n-click.cleverapps.io/demo](https://quest-n-click.cleverapps.io/demo/). From 4.2.5 the packages and commands
 > are named `quest-n-click`; the old `web-scumm` names kept working through 4.2.x and are gone in 4.3.0, where
 > `npx quest-n-click migrate` renames a game's imports and commands
 > ([upgrade notes](https://github.com/Quest-n-Click/quest-n-click/wiki/EN-Install-Upgrade-Notes-4-3#from-4-2-5-to-4-3-0)). Saves, runs and sessions keep their formats and load as before.
 
 | | |
 |---|---|
-| 🎮 **Play** | [The Pantry Key](https://quest-n-click.github.io/play/), the sample game, on a phone in landscape or on a desktop |
-| 🛠 **Studio** | [Open the Studio](https://quest-n-click.github.io/play/studio.html) in demo mode: edit the sample game, your edits stay in your browser |
+| 🎮 **Play** | [The Pantry Key](https://quest-n-click.cleverapps.io/demo/), the sample game, on a phone in landscape or on a desktop |
+| 🛠 **Studio** | [Open the Studio](https://quest-n-click.cleverapps.io/demo/studio.html) in demo mode: edit the sample game, your edits stay in your browser |
 | ⏱ **Start** | [Your own game in its own folder](#start), then [a first room in fifteen minutes](https://github.com/Quest-n-Click/quest-n-click/wiki/EN-Create-First-Game) |
 
 ![The Pantry Key: Grandma's living room, nine verbs, the bag](docs/img/readme/4119-hero.webp)
@@ -145,7 +145,7 @@ mistakes before a person does. Every result stays reviewable, in the Studio and 
 ## In numbers
 
 Measured on this commit of `main` by the automated gates (`npm run quality:baseline` writes these figures):
-<!-- metric:tests -->3358<!-- /metric --> unit test declarations, on Node 22 and 24, with coverage floors and gated
+<!-- metric:tests -->3359<!-- /metric --> unit test declarations, on Node 22 and 24, with coverage floors and gated
 mutation testing; the reference game proved in <!-- metric:referenceStates -->288<!-- /metric --> states; the player's
 first visit <!-- metric:initialJsKB -->136<!-- /metric --> KB of JavaScript, gzipped. Each release is built from the
 commit its candidate tested. The candidate makes the four package archives, the Bridge's image, the SBOMs, the runs and

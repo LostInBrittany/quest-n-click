@@ -15,7 +15,7 @@ An icon on your home screen or in your applications that opens the game full scr
 ## Context and versions
 
 Any game built with quest'n'click and served over HTTPS (the sample game is at
-[quest-n-click.github.io/play](https://quest-n-click.github.io/play/)). What this page says holds from 4.1.8, when
+[quest-n-click.cleverapps.io/demo](https://quest-n-click.cleverapps.io/demo/)). What this page says holds from 4.1.8, when
 install, update and reinstall were proven in Chromium, WebKit and Firefox in CI; the offline copy of the whole game
 exists since 3.1. A game's author can choose to cache only the rooms near you (`offline: 'nearby'`): the pause menu
 then shows no offline row, and a room never visited may need the network.

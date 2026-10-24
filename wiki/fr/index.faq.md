@@ -9,7 +9,7 @@ chaque page. Vous ne trouvez pas la vôtre ? Cherchez dans ce wiki, ou voyez
 
 ## Joueurs
 
-- **Où jouer ?** Le jeu d’exemple est sur [quest-n-click.github.io/play](https://quest-n-click.github.io/play/), sur
+- **Où jouer ?** Le jeu d’exemple est sur [quest-n-click.cleverapps.io/demo](https://quest-n-click.cleverapps.io/demo/), sur
   un téléphone en paysage ou un ordinateur ([Jouer en ligne](start.play-online.md)).
 - **Comment on joue ?** Touchez un verbe, puis une chose ; un double tap agit sans verbe ; tout le jeu se joue aussi au
   clavier ([Commandes](play.controls.md)).

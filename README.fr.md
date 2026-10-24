@@ -10,7 +10,7 @@ vérifier qu'on peut le finir, et le livrer comme un jeu web qui s'installe sur 
 > **Anciennement web-scumm.** Ce projet s'appelait WebSCUMM, puis web-scumm, en hommage à SCUMM, le moteur de
 > LucasArts dont il suit l'esprit. Il a été renommé quest'n'click pour que son nom ne suscite aucun débat inutile. Les
 > liens vers l'ancien dépôt sont redirigés ici, et l'ancienne adresse de la démo, `wanoo.github.io/web-scumm`, redirige
-> vers la nouvelle : le jeu et le Studio sont maintenant sur [quest-n-click.github.io/play](https://quest-n-click.github.io/play/).
+> vers la nouvelle : le jeu et le Studio sont maintenant sur [quest-n-click.cleverapps.io/demo](https://quest-n-click.cleverapps.io/demo/).
 > À partir de la 4.2.5, les packages et les commandes s'appellent `quest-n-click` ; les anciens noms `web-scumm` ont
 > marché pendant toute la 4.2.x et disparaissent en 4.3.0, où `npx quest-n-click migrate` renomme les imports et les
 > commandes d'un jeu ([notes de mise à jour](https://github.com/Quest-n-Click/quest-n-click/wiki/FR-Installer-Notes-Mise-A-Jour-4-3#from-4-2-5-to-4-3-0)). Les
@@ -18,8 +18,8 @@ vérifier qu'on peut le finir, et le livrer comme un jeu web qui s'installe sur 
 
 | | |
 |---|---|
-| 🎮 **Jouer** | [La Clé du garde-manger](https://quest-n-click.github.io/play/), le jeu d'exemple, sur téléphone en paysage ou sur ordinateur |
-| 🛠 **Studio** | [Ouvrir le Studio](https://quest-n-click.github.io/play/studio.html) en mode démo : modifiez le jeu d'exemple, vos modifications restent dans votre navigateur |
+| 🎮 **Jouer** | [La Clé du garde-manger](https://quest-n-click.cleverapps.io/demo/), le jeu d'exemple, sur téléphone en paysage ou sur ordinateur |
+| 🛠 **Studio** | [Ouvrir le Studio](https://quest-n-click.cleverapps.io/demo/studio.html) en mode démo : modifiez le jeu d'exemple, vos modifications restent dans votre navigateur |
 | ⏱ **Commencer** | [Votre jeu dans son propre dossier](#commencer), puis [une première pièce en quinze minutes](https://github.com/Quest-n-Click/quest-n-click/wiki/FR-Creer-Premier-Jeu) |
 
 ![La Clé du garde-manger : le salon de Grand-mère, neuf verbes, le sac](docs/img/readme/4119-hero.webp)
@@ -151,7 +151,7 @@ erreurs avant qu'une personne les voie. Chaque résultat reste relisible, dans l
 ## En chiffres
 
 Mesuré sur ce commit de `main` par les vérifications automatiques (`npm run quality:baseline` écrit ces chiffres) :
-<!-- metric:tests -->3358<!-- /metric --> déclarations de tests unitaires, sous Node 22 et 24, avec des planchers de
+<!-- metric:tests -->3359<!-- /metric --> déclarations de tests unitaires, sous Node 22 et 24, avec des planchers de
 couverture et des tests de mutation bloquants ; le jeu de référence prouvé en <!-- metric:referenceStates -->288<!-- /metric -->
 états ; la première visite du joueur, <!-- metric:initialJsKB -->136<!-- /metric --> Ko de JavaScript compressé. Chaque
 release est construite depuis le commit que son candidat a testé. Le candidat produit les quatre archives de packages,

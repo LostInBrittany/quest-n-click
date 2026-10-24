@@ -6,7 +6,7 @@ import { describe, expect, it } from 'vitest';
 // @ts-expect-error: a plain .mjs module without declarations
 import { EXCLUDED, KEEP, OLD, pending, renameText } from '../tools/rename-org.mjs';
 
-describe('the addresses after the transfer to the organization', () => {
+describe('the addresses after the transfer to the organization and the move to the website (D51, D52)', () => {
   it('renames the repository, the documentation, the Studio demo and the game, each once', () => {
     const cases: [string, string][] = [
       [
@@ -19,17 +19,34 @@ describe('the addresses after the transfer to the organization', () => {
         'https://raw.githubusercontent.com/wanoo/quest-n-click/c0ffee/x',
         'https://raw.githubusercontent.com/Quest-n-Click/quest-n-click/c0ffee/x',
       ],
+      // A page of a version's documentation, on either Pages address: the same page of the website's latest docs.
       [
-        'https://wanoo.github.io/quest-n-click/docs/4.5.1/r1/en/a.html',
-        'https://quest-n-click.github.io/docs/4.5.1/r1/en/a.html',
+        'https://wanoo.github.io/quest-n-click/docs/4.5.1/r1/en/create.rooms.html',
+        'https://quest-n-click.cleverapps.io/en/docs/create.rooms',
       ],
-      ["'https://wanoo.github.io/quest-n-click/docs'", "'https://quest-n-click.github.io/docs'"],
-      ['https://wanoo.github.io/quest-n-click/studio.html', 'https://quest-n-click.github.io/play/studio.html'],
-      ['(https://wanoo.github.io/quest-n-click/)', '(https://quest-n-click.github.io/play/)'],
-      ['(https://wanoo.github.io/quest-n-click)', '(https://quest-n-click.github.io/play/)'],
-      ['https://wanoo.github.io/quest-n-click/?lang=fr', 'https://quest-n-click.github.io/play/?lang=fr'],
-      ['[wanoo.github.io/quest-n-click](x)', '[quest-n-click.github.io/play](x)'],
-      ['`wanoo.github.io/quest-n-click/studio.html`', '`quest-n-click.github.io/play/studio.html`'],
+      [
+        '(https://quest-n-click.github.io/docs/4.5.0/fr/create.exits.html#walkable-zones)',
+        '(https://quest-n-click.cleverapps.io/fr/docs/create.exits#walkable-zones)',
+      ],
+      // No page named: the docs' index, in the address's language, else the file's.
+      ["'https://wanoo.github.io/quest-n-click/docs'", "'https://quest-n-click.cleverapps.io/en/docs'"],
+      ['https://quest-n-click.github.io/docs/4.5.1/fr/.', 'https://quest-n-click.cleverapps.io/fr/docs.'],
+      [
+        'https://quest-n-click.github.io/docs/publication.json',
+        'https://raw.githubusercontent.com/wiki/Quest-n-Click/quest-n-click/publication.json',
+      ],
+      // The game and the Studio demo, under /demo/.
+      ['https://wanoo.github.io/quest-n-click/studio.html', 'https://quest-n-click.cleverapps.io/demo/studio.html'],
+      ['https://quest-n-click.github.io/play/studio.html', 'https://quest-n-click.cleverapps.io/demo/studio.html'],
+      ['(https://wanoo.github.io/quest-n-click/)', '(https://quest-n-click.cleverapps.io/demo/)'],
+      ['(https://wanoo.github.io/quest-n-click)', '(https://quest-n-click.cleverapps.io/demo/)'],
+      ['(https://quest-n-click.github.io/play/)', '(https://quest-n-click.cleverapps.io/demo/)'],
+      ['https://wanoo.github.io/quest-n-click/?lang=fr', 'https://quest-n-click.cleverapps.io/demo/?lang=fr'],
+      ['[wanoo.github.io/quest-n-click](x)', '[quest-n-click.cleverapps.io/demo](x)'],
+      ['`quest-n-click.github.io/play`', '`quest-n-click.cleverapps.io/demo`'],
+      ['`wanoo.github.io/quest-n-click/studio.html`', '`quest-n-click.cleverapps.io/demo/studio.html`'],
+      // The organization's Pages site itself: the website.
+      ['`https://quest-n-click.github.io`,', '`https://quest-n-click.cleverapps.io`,'],
       ['?q=repo%3Awanoo%2Fquest-n-click%20path', '?q=repo%3AQuest-n-Click%2Fquest-n-click%20path'],
     ];
     for (const [before, after] of cases) {
@@ -43,8 +60,13 @@ describe('the addresses after the transfer to the organization', () => {
       'wanoo/wanoo.github.io',
       'wanoo/quest-n-click-private',
       'xwanoo/quest-n-click',
+      // The organization's Pages repository, by its name (archived): not an address of the site.
+      'Quest-n-Click/quest-n-click.github.io',
     ])
       expect(renameText(kept), kept).toBe(kept);
+    expect(renameText('see https://wanoo.github.io/quest-n-click/docs/', [], 'fr')).toBe(
+      'see https://quest-n-click.cleverapps.io/fr/docs',
+    );
     expect(renameText('a wanoo/quest-n-click b wanoo/quest-n-click', ['b wanoo/quest-n-click'])).toBe(
       'a Quest-n-Click/quest-n-click b wanoo/quest-n-click',
     );
@@ -64,9 +86,13 @@ describe('the addresses after the transfer to the organization', () => {
 
   it('the addresses before the transfer remain only in the exception list', () => {
     // The candidates by a plain pattern, then each file read with the script's own (git grep -P is not everywhere).
-    const hits = execFileSync('git', ['grep', '-l', '-E', '-e', 'wanoo(\\.github\\.io/|/|%2F)quest-n-click'], {
-      encoding: 'utf8',
-    })
+    const hits = execFileSync(
+      'git',
+      ['grep', '-l', '-E', '-e', 'wanoo(\\.github\\.io/|/|%2F)quest-n-click|quest-n-click\\.github\\.io'],
+      {
+        encoding: 'utf8',
+      },
+    )
       .split('\n')
       .filter((f) => f && OLD.test(readFileSync(f, 'utf8')));
     expect(hits.length).toBeGreaterThan(0);

@@ -168,8 +168,8 @@ describe('docs-publish.yml', () => {
     expect(step(/A pre-release leaves the wiki alone/)).toMatch(/if: contains\(inputs\.version, '-'\)/);
   });
 
-  it("ends by saying the organization's site is to rebuild: the engine starts no Pages run (4.5.2, D51)", () => {
-    expect(all.at(-1)).toMatch(/::notice::rebuild https:\/\/quest-n-click\.github\.io by hand/);
+  it('ends by saying the website takes the publication by itself: the engine starts no Pages run (4.5.2, D52)', () => {
+    expect(all.at(-1)).toMatch(/::notice::https:\/\/quest-n-click\.cleverapps\.io takes this publication/);
     expect(read('docs-publish')).not.toMatch(/gh workflow run|pages-only/);
     expect(read('docs-publish')).toMatch(/^ {2}actions: read$/m);
   });

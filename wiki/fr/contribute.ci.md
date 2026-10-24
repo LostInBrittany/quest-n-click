@@ -117,16 +117,18 @@ l'étiquette, puis poussez (elle s'applique au run suivant).
 
 ## Le site, hors de `ci`
 
-Depuis la 4.5.2, la `ci` du moteur ne déploie plus GitHub Pages : le site du projet, `https://quest-n-click.github.io`,
-est construit par le dépôt du site de l'organisation, `Quest-n-Click/quest-n-click.github.io`, depuis les tags signés
-des releases (le jeu sous `/play/`, la démo du Studio sous `/play/studio.html`, la documentation sous `/docs/`). Le
-job `pages` et les runs `pages-only` que lançait `docs-publish` (de la 4.5.0 à la 4.5.1) ont disparu ; `docs-publish`
-se termine par un avis disant que le site est à reconstruire, à la main là-bas pour l'instant.
+Depuis la 4.5.2, la `ci` du moteur ne déploie plus GitHub Pages (D52). Le site web du projet, `https://quest-n-click.cleverapps.io` (le dépôt
+`Quest-n-Click/quest-n-click-site`), sert la démo sous `/demo/` depuis le `quest-n-click-v<version>-web.tar.gz` de la
+dernière release (construit par le candidat sous `BASE_PATH=/demo/`, sommé et attesté par la release) et la dernière
+documentation sous `/<lang>/docs/<id de page>` ; il n'y a plus de documentation versionnée en ligne, la documentation
+d'une version est le `quest-n-click-docs-<version>.tar.gz` de sa release. Le site prend une release de lui-même (son
+`POST /api/revalidate`, sinon toutes les heures). Le job `pages` et les runs `pages-only` que lançait `docs-publish`
+(de la 4.5.0 à la 4.5.1) ont disparu.
 
 > [!LIMIT id=pages-fail-closed]
-> `npm run wiki -- pages` assemble `/docs/` depuis les seules archives publiées, et échoue quand l'une ne peut pas être
-> téléchargée ou vérifiée : le site qu'il construit n'est alors pas déployé, jamais sans `/docs/` ni avec un `/docs/`
-> non vérifié. Relancer est la reprise.
+> `npm run wiki -- pages`, qui assemblait le `/docs/` versionné pour GitHub Pages jusqu'à la 4.5.1, ne prend toujours
+> que les archives publiées et échoue quand l'une ne peut pas être téléchargée ou vérifiée ; aucun site ne déploie
+> plus sa sortie depuis la 4.5.2.
 
 <a name="job-failed"></a>
 

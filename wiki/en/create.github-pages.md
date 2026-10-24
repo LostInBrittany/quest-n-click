@@ -16,8 +16,9 @@ and build, and deploys the result to Pages only when they pass.
 
 - A created project (`quest-n-click create`), pushed to a GitHub repository. The engine repository had its own Pages
   job in `.github/workflows/ci.yml` up to 4.5.1; this workflow is its game part, without what the engine added there
-  (the Studio demo and the documentation under `/docs/`). Since 4.5.2 the project's site is built by the organization's
-  site repository, `Quest-n-Click/quest-n-click.github.io`.
+  (the Studio demo and the documentation under `/docs/`). Since 4.5.2 the engine deploys no Pages: its demo is on the
+  project's website, `https://quest-n-click.cleverapps.io/demo/`, served from each release's `quest-n-click-v<version>-web.tar.gz` (the same build
+  under `BASE_PATH=/demo/`).
 - From 4.2.5 (the `quest-n-click` command). `BASE_PATH` is read by the engine's Vite configuration
   ([`tools/vite/plugins.ts`](../../tools/vite/plugins.ts)).
 - **Verified on: not run as written on a created project.** The steps are the engine repository's Pages job of 4.5.1

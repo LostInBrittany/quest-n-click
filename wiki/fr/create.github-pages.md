@@ -16,8 +16,9 @@ vérifications et la construction du jeu, et ne déploie le résultat sur Pages 
 
 - Un projet créé (`quest-n-click create`), poussé sur un dépôt GitHub. Le dépôt du moteur avait son propre job Pages
   dans `.github/workflows/ci.yml` jusqu'à la 4.5.1 ; ce workflow en reprend la partie jeu, sans ce que le moteur y
-  ajoutait (la démo du Studio et la documentation sous `/docs/`). Depuis la 4.5.2, le site du projet est construit par
-  le dépôt du site de l'organisation, `Quest-n-Click/quest-n-click.github.io`.
+  ajoutait (la démo du Studio et la documentation sous `/docs/`). Depuis la 4.5.2, le moteur ne déploie plus Pages : sa
+  démo est sur le site web du projet, `https://quest-n-click.cleverapps.io/demo/`, servie depuis le `quest-n-click-v<version>-web.tar.gz` de chaque
+  release (le même build sous `BASE_PATH=/demo/`).
 - À partir de la 4.2.5 (la commande `quest-n-click`). `BASE_PATH` est lu par la configuration Vite du moteur
   ([`tools/vite/plugins.ts`](../../tools/vite/plugins.ts)).
 - **Vérifié sur : pas exécuté tel quel sur un projet créé.** Les étapes sont celles du job Pages du dépôt du moteur
