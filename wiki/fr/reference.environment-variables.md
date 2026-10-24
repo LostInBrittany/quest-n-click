@@ -916,6 +916,24 @@ Le fichier où une étape écrit ses sorties.
 - Origine : posée par GitHub Actions.
 - Lue par : [`.github/workflows/candidate.yml`](../../.github/workflows/candidate.yml), [`.github/workflows/ci.yml`](../../.github/workflows/ci.yml), [`.github/workflows/nightly.yml`](../../.github/workflows/nightly.yml), et 1 de plus.
 
+<a name="github-repository"></a>
+
+### `GITHUB_REPOSITORY`
+
+Le dépôt où tourne un workflow (`owner/name`) ; le job `npm-stage` de release.yml y compare le `repository` de chaque paquet, comme le fait la provenance de npm.
+
+- Origine : posée par GitHub Actions.
+- Lue par : [`.github/workflows/release.yml`](../../.github/workflows/release.yml), [`tools/release/npm-stage.mjs`](../../tools/release/npm-stage.mjs).
+
+<a name="github-sha"></a>
+
+### `GITHUB_SHA`
+
+Le commit d’un lancement ; sous `workflow_run`, la tête de main, que nomme la provenance de npm : `npm-stage` l’écrit dans son résumé à côté du commit du tag.
+
+- Origine : posée par GitHub Actions.
+- Lue par : [`tools/release/npm-stage.mjs`](../../tools/release/npm-stage.mjs).
+
 <a name="github-step-summary"></a>
 
 ### `GITHUB_STEP_SUMMARY`
@@ -923,7 +941,7 @@ Le fichier où une étape écrit ses sorties.
 Le fichier où un job écrit son résumé ; `npm run ci:plan` y écrit le plan.
 
 - Origine : posée par GitHub Actions.
-- Lue par : [`.github/workflows/candidate.yml`](../../.github/workflows/candidate.yml), [`.github/workflows/nightly.yml`](../../.github/workflows/nightly.yml), [`tools/ci-plan.ts`](../../tools/ci-plan.ts).
+- Lue par : [`.github/workflows/candidate.yml`](../../.github/workflows/candidate.yml), [`.github/workflows/nightly.yml`](../../.github/workflows/nightly.yml), [`tools/ci-plan.ts`](../../tools/ci-plan.ts), et 1 de plus.
 
 <a name="home"></a>
 
@@ -942,6 +960,15 @@ L’image du runner, notée à côté d’une mesure.
 
 - Origine : posée par GitHub Actions.
 - Lue par : [`tools/backup-memory.ts`](../../tools/backup-memory.ts), [`tools/load-median.ts`](../../tools/load-median.ts), [`tools/release/baseline.mjs`](../../tools/release/baseline.mjs).
+
+<a name="npm-config-userconfig"></a>
+
+### `NPM_CONFIG_USERCONFIG`
+
+Le fichier de configuration utilisateur de npm ; `npm-stage` refuse celui qui contient un jeton d’authentification (OIDC seulement).
+
+- Origine : posée par npm, ou qui le lance.
+- Lue par : [`tools/release/npm-stage.mjs`](../../tools/release/npm-stage.mjs).
 
 <a name="path"></a>
 

@@ -916,6 +916,24 @@ The file a step writes its outputs to.
 - Origin: set by GitHub Actions.
 - Read by: [`.github/workflows/candidate.yml`](../../.github/workflows/candidate.yml), [`.github/workflows/ci.yml`](../../.github/workflows/ci.yml), [`.github/workflows/nightly.yml`](../../.github/workflows/nightly.yml), and 1 more.
 
+<a name="github-repository"></a>
+
+### `GITHUB_REPOSITORY`
+
+The repository a workflow runs in (`owner/name`); release.yml's `npm-stage` checks each package's `repository` against it, as npm's provenance does.
+
+- Origin: set by GitHub Actions.
+- Read by: [`.github/workflows/release.yml`](../../.github/workflows/release.yml), [`tools/release/npm-stage.mjs`](../../tools/release/npm-stage.mjs).
+
+<a name="github-sha"></a>
+
+### `GITHUB_SHA`
+
+The commit a run is of; under `workflow_run`, main's head, which npm's provenance names: `npm-stage` writes it in its summary beside the tag's commit.
+
+- Origin: set by GitHub Actions.
+- Read by: [`tools/release/npm-stage.mjs`](../../tools/release/npm-stage.mjs).
+
 <a name="github-step-summary"></a>
 
 ### `GITHUB_STEP_SUMMARY`
@@ -923,7 +941,7 @@ The file a step writes its outputs to.
 The file a job writes its summary to; `npm run ci:plan` writes the plan there.
 
 - Origin: set by GitHub Actions.
-- Read by: [`.github/workflows/candidate.yml`](../../.github/workflows/candidate.yml), [`.github/workflows/nightly.yml`](../../.github/workflows/nightly.yml), [`tools/ci-plan.ts`](../../tools/ci-plan.ts).
+- Read by: [`.github/workflows/candidate.yml`](../../.github/workflows/candidate.yml), [`.github/workflows/nightly.yml`](../../.github/workflows/nightly.yml), [`tools/ci-plan.ts`](../../tools/ci-plan.ts), and 1 more.
 
 <a name="home"></a>
 
@@ -942,6 +960,15 @@ The runner's image, recorded beside a measurement.
 
 - Origin: set by GitHub Actions.
 - Read by: [`tools/backup-memory.ts`](../../tools/backup-memory.ts), [`tools/load-median.ts`](../../tools/load-median.ts), [`tools/release/baseline.mjs`](../../tools/release/baseline.mjs).
+
+<a name="npm-config-userconfig"></a>
+
+### `NPM_CONFIG_USERCONFIG`
+
+npm's user configuration file; `npm-stage` refuses one holding an auth token (OIDC only).
+
+- Origin: set by npm, or whoever runs it.
+- Read by: [`tools/release/npm-stage.mjs`](../../tools/release/npm-stage.mjs).
 
 <a name="path"></a>
 

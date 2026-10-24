@@ -156,7 +156,7 @@ They run with the project as their working folder
 - `scripts/studio-install-smoke.mjs`: the engine and Studio Server archives installed together, a game served.
 
 Each release attaches the five archives with their SBOMs and sums. Publishing them to npm is the maintainers' (the
-organisation `quest-n-click` owns the five scoped names; a later step of #283 publishes from CI):
+organisation `quest-n-click` owns the five scoped names; from 4.5.2 CI stages them, an owner approves with 2FA):
 [npm packages](contribute.npm-packages.md).
 
 <a name="related"></a>

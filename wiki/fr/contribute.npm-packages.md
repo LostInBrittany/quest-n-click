@@ -67,14 +67,14 @@ node scripts/pack.mjs --out=.cache/pack --publish-dry-run   # et ce que `npm pub
 
 <a name="npm-publishing"></a>
 
-## La publication sur npm : pas encore faite
+## La publication sur npm : mise en scène par la CI, approuvée par un propriétaire
 
-Chaque release joint les cinq archives ; **aucune n'est publiée sur le registre npm** à la 4.5.1. On installe depuis
-l'archive de la release ([Installer depuis l'archive de la release](install.from-archive.md)). Les étapes ci-dessous
-ont été écrites en 4.1.20 pour une 4.2.x ; la 4.2.0 n'a été publiée que sur GitHub Releases (D38), parce que chaque
-étape demandait la 2FA du mainteneur, et aucune version suivante ne les a encore jouées. La 4.5.2 nomme les paquets
-sous l'organisation (D53), dont les deux propriétaires peuvent chacun approuver ; l'étape de publication de
-`release.yml` et un canal `next` suivent dans une pull request ultérieure de #283.
+Chaque release joint les cinq archives. **Aucune n'est encore publiée sur le registre npm** (la 4.5.1 est la dernière
+release sans l'étape). À partir de la 4.5.2, le job `npm-stage` de release.yml les **met en scène** sur npm une fois la
+release publiée et relue, et un propriétaire de l'organisation **approuve** chacune avec sa 2FA (D34, D53). La CI ne
+publie jamais et ne détient aucun jeton npm. Jusqu'à la première approbation, on installe depuis l'archive de la
+release ([Installer depuis l'archive de la release](install.from-archive.md)). Le canal `next` depuis `main` suit dans
+une pull request ultérieure de #283.
 
 > [!LIMIT id=not-on-npm]
 > À la 4.5.1, `npm install @quest-n-click/engine` depuis le registre n'installe pas ce projet : les noms à scope ne
@@ -104,13 +104,12 @@ déprécié. Il faut pour cela que `@quest-n-click/create` garde `index.mjs` à 
 
 <a name="publishing-steps"></a>
 
-### Les étapes de publication (écrites en 4.1.20, pour une 4.2.x ultérieure)
+### Les étapes de publication
 
-1. **Versions.** La publication en étapes demande au moins npm 11.15.0 et Node 22.14.0 ([doc npm][staged]). release.yml
-   épingle l'étape de publication à des versions **exactes** dans son env, `NPM_PUBLISH_NODE: 22.23.3` et
-   `NPM_PUBLISH_NPM: 11.21.0` ; `tests/release-stable.test.ts` et `ship preflight-stable` refusent une plage. Node
-   22.23.3 livre npm 10.9.9 : l'étape de publication, quand elle sera écrite, installera elle-même npm 11.21.0
-   (`npm install -g npm@11.21.0`). Seuls les épinglages existent aujourd'hui.
+1. **Versions.** La publication en étapes demande au moins npm 11.15.0 et Node 22.14.0 ([doc npm][staged]). Le job
+   `npm-stage` épingle des versions **exactes** dans son env, `NPM_PUBLISH_NODE: 22.23.3` et `NPM_PUBLISH_NPM: 11.21.0` :
+   il installe ce Node, puis ce npm (`npm install -g npm@11.21.0` ; Node 22.23.3 livre npm 10.9.9), et vérifie les deux
+   avant que rien n'atteigne npm. `tests/release-stable.test.ts` et `ship preflight-stable` refusent une plage.
 2. **Les comptes.** L'organisation `quest-n-click` exige la 2FA de ses membres ; le compte de chaque propriétaire l'a
    activée.
 3. **Bootstrap, une fois par paquet** (fait le 24 octobre 2026 pour les cinq noms à scope, tag `bootstrap`). Un paquet
@@ -122,23 +121,38 @@ déprécié. Il faut pour cela que `@quest-n-click/create` garde `index.mjs` à 
    ```
 
    - Mettre en scène un paquet qui n'existe pas publie un placeholder `0.0.0-stage` jusqu'à son approbation
-     ([doc npm][staged]). Vérifier avec `npm view <nom>` si cela suffit à configurer le paquet. Sinon, approuver le
-     bootstrap (`npm stage approve <id>`, avec la 2FA).
+     ([doc npm][staged]) ; `latest` le désigne jusqu'à l'approbation de la première release.
    - Une publication locale ne porte pas de provenance OIDC. C'est pourquoi elle ne porte jamais une version du
      produit.
-4. **Trusted publishing, en stage-only.** Sur chaque paquet :
+4. **Trusted publishing, en stage-only, une fois par paquet**, juste avant la première release qui s'en sert :
 
    ```sh
-   # n'importe où, connecté à npm en tant que propriétaire de l'organisation
-   npm trust github @quest-n-click/<name> --repo Quest-n-Click/quest-n-click --file release.yml --allow-stage-publish
+   # n'importe où, connecté à npm en tant que propriétaire de l'organisation (2FA)
+   npm trust github @quest-n-click/engine --repo Quest-n-Click/quest-n-click --file release.yml --allow-stage-publish
+   npm trust github @quest-n-click/create --repo Quest-n-Click/quest-n-click --file release.yml --allow-stage-publish
+   npm trust github @quest-n-click/bridge --repo Quest-n-Click/quest-n-click --file release.yml --allow-stage-publish
+   npm trust github @quest-n-click/connectors --repo Quest-n-Click/quest-n-click --file release.yml --allow-stage-publish
+   npm trust github @quest-n-click/studio-server --repo Quest-n-Click/quest-n-click --file release.yml --allow-stage-publish
    ```
 
-   - La CI peut alors mettre en scène, jamais publier.
-   - La configuration doit réussir sa première publication en moins de **deux jours**, sinon elle expire : la
-     configurer juste avant le run de release qui s'en servira.
-5. **Promotion.** Le run de release met chaque paquet en scène par OIDC. Un propriétaire de l'organisation promeut
-   chacun avec sa 2FA (`npm stage approve <id>`, ou sur npmjs.com).
-6. **Classement dual-use de `@quest-n-click/connectors`** (décidé en 4.1.20, PR 3b) :
+   - La CI peut alors mettre en scène, jamais publier (pas de `--allow-publish`).
+   - npm vérifie le **nom de fichier** du workflow, `release.yml`, celui qui lance le job `npm-stage`.
+   - Une configuration neuve doit réussir sa première mise en scène en moins de **deux jours**, sinon elle expire : les
+     lancer juste avant le tag.
+5. **La mise en scène, à chaque release** ([plus bas](#staging-job)) : le job `npm-stage` met en scène les cinq
+   archives, le moteur d'abord, et écrit dans le résumé du run les ids et les commandes qui les approuvent.
+6. **La promotion, par un propriétaire.** Un propriétaire de l'organisation (l'un ou l'autre) approuve chaque paquet mis
+   en scène avec sa 2FA, **le moteur d'abord** (`@quest-n-click/create` dépend de sa version exacte) :
+
+   ```sh
+   # n'importe où, connecté à npm en tant que propriétaire (npm 11.15.0 ou plus) ; les ids sont dans le résumé du run
+   npm stage view <id>       # ce qui a été mis en scène, avant d'approuver
+   npm stage approve <id>    # une fois par paquet, dans l'ordre du résumé
+   ```
+
+7. **Après la première approbation**, sur npmjs.com, chaque paquet → Settings → Publishing access : **Require
+   two-factor authentication and disallow tokens**. Le trusted publishing continue de marcher ; un jeton, non.
+8. **Classement dual-use de `@quest-n-click/connectors`** (décidé en 4.1.20, PR 3b) :
    - la [politique dual-use][dual] de npm vise les « capacités sensibles pour la sécurité, qui peuvent ressembler à un
      logiciel malveillant » : outils de test d'intrusion, utilitaires de recherche en sécurité, obfuscation ;
    - les connecteurs sont des serveurs qu'un jeu fait tourner (une façade SSH et Telnet pour son terminal, un webhook
@@ -151,9 +165,63 @@ déprécié. Il faut pour cela que `@quest-n-click/create` garde `index.mjs` à 
      version à l'autre.
 
 `npm run ship -- preflight-stable --candidate=<run>` vérifie, pour chaque paquet, l'archive, le nom (à nous quand un
-propriétaire de l'organisation le publie), le bootstrap, le trusted publisher, une publication OIDC prouvée, la version
-pas encore publiée, et à partir de la 4.5.2 son pointeur sans scope (à un propriétaire, déprécié)
+propriétaire de l'organisation le publie), le bootstrap, le trusted publisher (sur `release.yml`, en stage-only), une
+publication OIDC prouvée, la version pas encore publiée, et à partir de la 4.5.2 son pointeur sans scope (à un
+propriétaire, déprécié) ; et que release.yml met en scène par `npm-stage` sans jamais publier
 ([Publier une release](contribute.releasing.md#preflight)).
+
+<a name="staging-job"></a>
+
+### Le job `npm-stage`
+
+Il tourne après la réussite du job `release` (`ship verify` sa dernière vérification), à côté de `docs-publish`, qui ne
+l'attend pas : une panne de npm ou un trusted publisher absent ne retient jamais la documentation d'une release déjà
+publiée, et le job se relance seul. Ses permissions sont `contents: read` et `id-token: write`, rien d'autre.
+
+1. Il extrait le commit du tag (un tag d'avant la 4.5.2 n'a pas `tools/release/npm-stage.mjs` : un avis, rien de
+   fait), installe le Node et le npm épinglés et vérifie leurs versions.
+2. Il télécharge les fichiers `.tgz` et le `SHA256SUMS` de la release elle-même (`gh release download`) et vérifie
+   chaque archive contre les sommes : les octets mis en scène sont ceux que porte la release.
+3. `node tools/release/npm-stage.mjs` refuse un jeton dans l'environnement ou dans un `.npmrc`, lit le manifeste de
+   chaque archive (son nom à scope, la version du tag, un `repository` qui nomme ce dépôt, `@quest-n-click/create` sur
+   le moteur exact), puis, pour chaque paquet, le moteur d'abord :
+   - `npm view <nom>@<version> version` : déjà publiée, passée ;
+   - `npm stage publish <archive> --provenance --access public --tag latest` : mise en scène, son id gardé ;
+   - le `409 Conflict` de npm, la version n'étant pas publiée : mise en scène par un run précédent, passée (une
+     version en scène ne se voit pas sans jeton : `npm stage list` refuse le jeton OIDC de courte durée, c'est donc le
+     conflit qui répond) ;
+   - `ENEEDAUTH` (« requires you to be logged in ») : OIDC n'a donné aucun identifiant, aucun trusted publisher
+     n'accepte donc ce workflow (absent, ou expiré faute d'usage). Le job échoue avec la commande `npm trust github …`
+     de ce paquet.
+   Il s'arrête au premier échec, si bien que `@quest-n-click/create` n'est jamais mis en scène sans son moteur.
+4. Le résumé du run donne l'état de chaque paquet et les lignes `npm stage approve <id>`, dans l'ordre.
+
+**Un tag de pré-version ne met rien en scène.** Ses archives portent la version stable (`v4.5.2-rc.1` emballe
+`4.5.2`), que le tag stable doit mettre en scène : la mettre en scène prendrait ce numéro pour de bon (une version en
+scène le garde, et son dist-tag ne change plus). Le job **répète** à la place : `npm stage publish --dry-run` par OIDC,
+qui prouve que le trusted publisher répond à ce workflow, et n'envoie rien. Un essai à blanc sans identifiant ne fait
+qu'avertir, ce que le job lit comme un échec. Un essai à blanc ne fait pas de provenance : on la voit donc d'abord à la
+mise en scène du tag stable, avant l'approbation.
+
+> [!LIMIT id=npm-provenance-commit]
+> release.yml tourne sur `workflow_run`, depuis la copie de main, tout en extrayant le commit du tag. npm fait la
+> provenance à partir du run (`GITHUB_SHA`, `GITHUB_REF`) : elle nomme donc `release.yml` sur `refs/heads/main` à la
+> tête de main quand le `ci` du tag s'est terminé, pas le commit du tag, et le jeton OIDC qui la signe dit la même
+> chose. Le résumé écrit les deux commits. À vérifier à la première mise en scène avec `npm stage view <id>` avant
+> d'approuver, puis une fois publiée avec `npm view @quest-n-click/engine@<v> dist.attestations`. Les attestations de
+> la release elle-même viennent du même run.
+
+<a name="first-release"></a>
+
+### La première release par npm
+
+1. Les cinq trusted publishers (étape 4), juste avant de taguer.
+2. Un tag `-rc` d'abord : son job `npm-stage` répète les cinq ; vert, OIDC est accepté pour chacun.
+3. Le tag stable, dans les deux jours : le job met en scène les cinq ; lire le résumé du run.
+4. `npm stage view <id>` pour le moteur (provenance, contenu), puis approuver les cinq dans l'ordre du résumé.
+5. `npm view @quest-n-click/engine version` répond la version ; `npm install @quest-n-click/engine` dans un dossier vide.
+6. Étape 7 : exiger la 2FA et refuser les jetons sur chaque paquet. [Installer depuis npm](install.from-npm.md) perd
+   alors sa limite « pas encore publié ».
 
 [staged]: https://docs.npmjs.com/staged-publishing
 [dual]: https://docs.npmjs.com/policies/dual-use/

@@ -95,6 +95,21 @@ Actions (`.github/workflows/release.yml`), started by the tag's `ci` run.
    manifest; from 4.1.20 it also runs `gh release verify` and `gh release verify-asset` for each file. release.yml runs
    it as its last check.
 
+<!-- step: npm-stage -->
+5. **npm, staged then approved** (from 4.5.2). Once the release job succeeded, release.yml's `npm-stage` job stages
+   the release's five archives on npm by trusted publishing (OIDC, no token), engine first, and its run summary lists
+   the ids. An owner of the npm organisation approves each with 2FA, in the summary's order:
+
+   ```sh
+   # anywhere, signed in to npm as an owner of quest-n-click
+   npm stage approve <id>
+   ```
+
+   A pre-release tag stages nothing (its archives carry the stable version): the job rehearses the OIDC exchange. A
+   failed `npm-stage` makes the release run fail (`ship watch` exits 1) without touching the published release or the
+   documentation; once fixed (often a trusted publisher missing), re-run the job alone. The procedure, and the first
+   release through npm: [npm packages](contribute.npm-packages.md#staging-job).
+
 > [!LIMIT id=published-never-changed]
 > A published release is never changed. A run on a release already published stops before it makes anything. A draft
 > left by a run that failed before publishing was never public: it is deleted (its tag stays) and made again from the
@@ -181,8 +196,9 @@ It says, one check at a time, `ok`, `missing` (a step still to take) or `blocked
 - immutability and the tag ruleset;
 - the candidate's provenance;
 - for each npm package: the archive (`npm publish --dry-run`), the name, the bootstrap, the trusted publisher
-  (stage-only), an OIDC publication proven, and the version not already published;
-- the publishing step's exact Node and npm;
+  (on `release.yml`, stage-only), an OIDC publication proven, and the version not already published;
+- release.yml's `npm-stage` job: it stages through `tools/release/npm-stage.mjs`, never `npm publish`, never a token;
+- the staging step's exact Node and npm;
 - GO / NO-GO against the people's reports ("GO for 4.2 on a reduced scope" is read with D38 written).
 
 It exits 1 only on a `blocked`.

@@ -2,6 +2,7 @@
 // read back; a tag signed with an SSH key (`ship tag --sign`, inactive for 4.1.x), rehearsed by the candidate with an
 // ephemeral key; and `ship preflight-stable`, which says what 4.2 still needs without changing anything.
 import { spawnSync } from 'node:child_process';
+import { createHash } from 'node:crypto';
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -21,6 +22,7 @@ import {
   pinProblems,
   pinsOf,
   preflight,
+  stepProblems,
   // @ts-expect-error: a plain .mjs module without declarations
 } from '../tools/release/preflight.mjs';
 // @ts-expect-error: a plain .mjs module without declarations
@@ -147,6 +149,22 @@ esac
   });
 });
 
+describe('the staging step, as the preflight reads it', () => {
+  it('stages through npm-stage.mjs, never publishes, never with a token', () => {
+    expect(stepProblems(release)).toEqual([]);
+    expect(stepProblems('jobs:\n  release:\n    steps: []\n')).toEqual([
+      'no npm-stage job running tools/release/npm-stage.mjs',
+    ]);
+    const direct = `${release}\n  next:\n    steps:\n      - run: npm publish x.tgz --tag next\n        env:\n          NODE_AUTH_TOKEN: x\n`;
+    expect(stepProblems(direct)).toEqual([
+      'npm publish: CI stages, an owner publishes (D34)',
+      'a token: npm authenticates by OIDC only',
+    ]);
+    // A comment that names them is no step.
+    expect(stepProblems(`${release}\n# never npm publish, never NODE_AUTH_TOKEN\n`)).toEqual([]);
+  });
+});
+
 describe('a tag signed with an SSH key', () => {
   it('is annotated by default, signed with --sign', () => {
     expect(tagArgs({ name: 'v4.2.0', sha: 'abc', message: 'm' })).toEqual(['tag', '-a', 'v4.2.0', 'abc', '-m', 'm']);
@@ -254,6 +272,7 @@ describe('ship preflight-stable', () => {
     }
     expect(state(rows, 'candidate')).toBe('ok');
     expect(state(rows, 'publish-pins')).toBe('ok');
+    expect(state(rows, 'publish-step')).toBe('ok');
     expect(state(rows, 'go-no-go')).toBe('ok');
     expect(rows.filter((r: { state: string }) => r.state === 'blocked')).toEqual([]);
     // Nothing that writes: no publish but its dry run, no gh call but reads, no git but config reads.
@@ -335,6 +354,11 @@ describe('ship preflight-stable', () => {
         stdout: `${cfg('a', ['createStagedPackage'])}\n${cfg('b', ['createPackage', 'createStagedPackage'])}\n`,
       },
       'npm trust list web-scumm-bridge': { stdout: `${cfg('c', ['createStagedPackage'])}\n` },
+      // Trusted on another workflow: npm checks the file name, so release.yml cannot stage.
+      'npm trust list web-scumm-connectors': {
+        stdout: `${JSON.stringify({ id: 'd', type: 'github', repository: 'o/r', file: 'ci.yml', permissions: ['createStagedPackage'] })}\n`,
+      },
+      'npm view web-scumm-connectors name': { stdout: '{"maintainers":["me <me@x>"]}' },
     });
     const at = (o: Record<string, unknown>) =>
       preflight({
@@ -354,6 +378,10 @@ describe('ship preflight-stable', () => {
     expect(state(rows, 'create-web-scumm:name')).toBe('ok');
     expect(state(rows, 'create-web-scumm:trusted-publisher')).toBe('blocked');
     expect(state(rows, 'web-scumm-bridge:trusted-publisher')).toBe('ok');
+    expect(state(rows, 'web-scumm-connectors:trusted-publisher')).toBe('missing');
+    expect(rows.find((r: { id: string }) => r.id === 'web-scumm-connectors:trusted-publisher').say).toMatch(
+      /none on release\.yml \(npm trust github web-scumm-connectors --repo o\/r --file release\.yml --allow-stage-publish; .*two days/,
+    );
     // Not logged in to npm: whose a taken name is cannot be told, said, not guessed.
     expect(state(at({}), 'create-web-scumm:name')).toBe('missing');
   });
@@ -559,5 +587,93 @@ describe('the nightly', () => {
     expect(job).not.toMatch(/wanoo/);
     // Each owner exactly, never a prefix, nobody else.
     expect(job).toContain(`OWNERS='"(${OWNERS.join('|')})( <|")'`);
+  });
+});
+
+describe('the npm packages, staged for an owner (4.5.2, #283, D34)', () => {
+  const top = release.slice(release.indexOf('\njobs:\n'));
+  const jobOf = (name: string) => {
+    const m = new RegExp(`\\n  ${name}:\\n((?:(?:    |  #).*\\n|\\n)*)`).exec(top);
+    return m ? m[1]! : '';
+  };
+  const job = jobOf('npm-stage');
+  const code = (s: string) =>
+    s
+      .split('\n')
+      .filter((l) => !l.trimStart().startsWith('#'))
+      .join('\n');
+
+  it('is its own job after the release job, beside docs-publish, with OIDC and nothing else', () => {
+    expect(job).toMatch(/^ {4}needs: \[release\]$/m);
+    expect(job).toMatch(/^ {4}if: needs\.release\.result == 'success'$/m);
+    expect(job).toMatch(/^ {4}permissions:\n {6}contents: read\n {6}id-token: write\n {4}env:/m);
+    // docs-publish does not wait for npm: a registry down holds nothing of a release already published.
+    expect(jobOf('docs-publish')).toMatch(/^ {4}needs: \[release\]$/m);
+    expect(jobOf('site-revalidate')).not.toMatch(/npm-stage/);
+  });
+
+  it('pins Node and npm to exact versions and checks them before anything reaches npm', () => {
+    expect(pinsOf(job)).toEqual(pinsOf(release));
+    expect(pinProblems(pinsOf(job))).toEqual([]);
+    expect(job).toMatch(/node-version: \$\{\{ env\.NPM_PUBLISH_NODE \}\}/);
+    expect(job).toMatch(/npm install -g "npm@\$NPM_PUBLISH_NPM"/);
+    expect(job).toMatch(/test "\$\(node --version\)" = "v\$NPM_PUBLISH_NODE"/);
+    expect(job).toMatch(/test "\$\(npm --version\)" = "\$NPM_PUBLISH_NPM"/);
+    expect(job.indexOf('npm --version')).toBeLessThan(job.indexOf('npm-stage.mjs --tag'));
+  });
+
+  it('uses no token: no secret, no NODE_AUTH_TOKEN, no registry-url, never npm publish', () => {
+    expect(code(job)).not.toMatch(/secrets\.|NODE_AUTH_TOKEN|NPM_TOKEN|registry-url|_authToken/);
+    expect(code(release)).not.toMatch(/npm publish(?! --dry-run)/);
+    expect(code(release)).not.toMatch(/npm stage approve|npm dist-tag|npm trust/);
+  });
+
+  it("stages the release's own files, checked against its SHA256SUMS", () => {
+    const download = job.indexOf('gh release download "$TAG" -D .npm-stage');
+    const check = job.indexOf('sha256sum --check --strict tgz.sums');
+    const stage = job.indexOf('node tools/release/npm-stage.mjs');
+    expect(download).toBeGreaterThan(0);
+    expect(download < check && check < stage).toBe(true);
+    expect(job).toMatch(/--dir=\.npm-stage --repo="\$GITHUB_REPOSITORY"/);
+  });
+
+  const sha = (c: string) => createHash('sha256').update(c).digest('hex');
+  // The download step, run by bash against a fake gh writing the release's files.
+  function downloaded(files: Record<string, string>, sums?: string) {
+    const start = job.indexOf("- name: The release's archives, as published");
+    const body = job.slice(job.indexOf('run: |', start) + 'run: |'.length, job.indexOf('\n        env:', start));
+    const script = body
+      .split('\n')
+      .map((l) => l.replace(/^ {10}/, ''))
+      .join('\n');
+    const dir = tmp();
+    mkdirSync(join(dir, 'tools', 'release'), { recursive: true });
+    writeFileSync(join(dir, 'tools', 'release', 'npm-stage.mjs'), '');
+    const src = join(dir, 'src');
+    mkdirSync(src);
+    for (const [f, c] of Object.entries(files)) writeFileSync(join(src, f), c);
+    const sum = Object.entries(files)
+      .map(([f, c]) => `${sha(c)}  ${f}\n`)
+      .join('');
+    writeFileSync(join(src, 'quest-n-click-v9.9.9-SHA256SUMS'), sums ?? sum);
+    const bin = join(dir, 'bin');
+    mkdirSync(bin);
+    writeFileSync(join(bin, 'gh'), `#!/bin/bash\ncp "${src}"/* "$5"/\n`, { mode: 0o755 });
+    const r = spawnSync('bash', ['-e', '-c', script], {
+      cwd: dir,
+      encoding: 'utf8',
+      env: { PATH: `${bin}:${process.env.PATH}`, TAG: 'v9.9.9' },
+    });
+    return { status: r.status, out: `${r.stdout}${r.stderr}` };
+  }
+
+  it('refuses an archive whose bytes or whose line in the sums are not the release’s', () => {
+    const files = { 'quest-n-click-9.9.9.tgz': 'a', 'create-quest-n-click-9.9.9.tgz': 'b' };
+    expect(downloaded(files).status).toBe(0);
+    const sum = sha('a');
+    expect(downloaded(files, `${sum}  quest-n-click-9.9.9.tgz\n`).status).not.toBe(0);
+    expect(
+      downloaded(files, `${sum}  quest-n-click-9.9.9.tgz\n${sum}  create-quest-n-click-9.9.9.tgz\n`).status,
+    ).not.toBe(0);
   });
 });

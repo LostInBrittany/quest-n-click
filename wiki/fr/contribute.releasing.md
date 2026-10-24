@@ -99,6 +99,22 @@ Actions (`.github/workflows/release.yml`), lancée par le run `ci` du tag.
    contre le manifeste ; depuis la 4.1.20, elle lance aussi `gh release verify` et `gh release verify-asset` pour chaque
    fichier. release.yml la lance comme dernière vérification.
 
+<!-- step: npm-stage -->
+5. **npm, mis en scène puis approuvé** (à partir de la 4.5.2). Une fois le job de release réussi, le job `npm-stage`
+   de release.yml met en scène les cinq archives de la release sur npm par trusted publishing (OIDC, sans jeton), le
+   moteur d'abord, et le résumé de son run donne les ids. Un propriétaire de l'organisation npm approuve chacune avec
+   sa 2FA, dans l'ordre du résumé :
+
+   ```sh
+   # n'importe où, connecté à npm en tant que propriétaire de quest-n-click
+   npm stage approve <id>
+   ```
+
+   Un tag de pré-version ne met rien en scène (ses archives portent la version stable) : le job répète l'échange OIDC.
+   Un `npm-stage` en échec fait échouer le run de release (`ship watch` sort en 1) sans toucher à la release publiée
+   ni à la documentation ; une fois la cause réglée (souvent un trusted publisher absent), on relance le job seul. La
+   procédure, et la première release par npm : [Paquets npm](contribute.npm-packages.md#staging-job).
+
 > [!LIMIT id=published-never-changed]
 > Une release publiée ne change jamais. Un run sur une release déjà publiée s'arrête avant de rien faire. Un brouillon
 > laissé par un run qui a échoué avant la publication n'a jamais été public : il est supprimé (son tag reste) et refait
@@ -186,9 +202,11 @@ Il ne signe rien, ne publie rien et ne change aucun réglage
 - `allowed_signers` ;
 - l'immuabilité et le ruleset de tags ;
 - la provenance du candidat ;
-- pour chaque paquet npm : l'archive (`npm publish --dry-run`), le nom, le bootstrap, le trusted publisher (en
-  stage-only), une publication OIDC prouvée, et la version pas encore publiée ;
-- le Node et le npm exacts de l'étape de publication ;
+- pour chaque paquet npm : l'archive (`npm publish --dry-run`), le nom, le bootstrap, le trusted publisher (sur
+  `release.yml`, en stage-only), une publication OIDC prouvée, et la version pas encore publiée ;
+- le job `npm-stage` de release.yml : il met en scène par `tools/release/npm-stage.mjs`, jamais par `npm publish`,
+  jamais avec un jeton ;
+- le Node et le npm exacts de l'étape de mise en scène ;
 - le GO / NO-GO face aux rapports des personnes (« GO for 4.2 on a reduced scope » se lit avec D38 écrite).
 
 Il ne sort en 1 que sur un `blocked`.
