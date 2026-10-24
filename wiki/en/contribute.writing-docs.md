@@ -299,10 +299,12 @@ an image the section shows, changes, the pair is "to review": a warning at the w
 test file).
 
 Each reviewer is `{ name, kind: human|ai, relation: author|independent, date }`, and both commands require `--by`,
-`--kind` and `--relation`. The same text read again adds a reviewer; a changed text starts over. A published page needs
-a review by a person (`kind: human`) for every translation pair and every claim; until then the page says
-"self-checked by the author (AI), not reviewed" (or "checked by an independent AI, not reviewed by a person"), never
-"reviewed".
+`--kind` and `--relation`. The same text read again adds a reviewer; a changed text starts over. A published claim
+needs a review by a person (`kind: human`); until then it says "self-checked by the author (AI), not reviewed" (or
+"checked by an independent AI, not reviewed by a person"), never "reviewed". A published translation pair needs a
+record, an AI's included: a pair checked by an AI only does not stop `check --publish`, which lists how many there are
+among its gaps, and the page's header says who read it ("written and self-checked by an AI, not reviewed by a person",
+"partly reviewed by a person"…). Only a pair "to review" stops it.
 
 > [!LIMIT id=ai-review-is-not-review]
 > An AI's check of what it wrote is recorded as `--kind ai --relation author` and is never shown as a review. Only a

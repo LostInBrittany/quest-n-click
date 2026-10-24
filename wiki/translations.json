@@ -5573,11 +5573,10 @@
       ]
     },
     "contribute.writing-docs#reviews": {
-      "enHash": "137202f0d501d6c0c1f23dac3817a4038a882f2333ae7d54cd7dff3182f3ed34",
-      "frHash": "06c233d2dc17388440cf45e478be6fb27043f2206a02a47758d86827c5225e4f",
+      "enHash": "8e7ff444f64a95204b8cce9e95fbdbc353546e24795dd2057f2cb7beaacffc01",
+      "frHash": "8230dfe3675356139abb20eb907563078f06b7e548f38d5cab0a437377f85eb3",
       "reviewers": [
-        { "name": "claude-4.5-writers", "kind": "ai", "relation": "author", "date": "2026-10-23" },
-        { "name": "wanoo", "kind": "human", "relation": "independent", "date": "2026-10-24" }
+        { "name": "claude-wiki-review-rule", "kind": "ai", "relation": "author", "date": "2026-10-24" }
       ]
     },
     "contribute.writing-docs#steps": {

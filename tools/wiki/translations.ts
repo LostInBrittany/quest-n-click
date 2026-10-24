@@ -1,10 +1,10 @@
 // The translation state (4.5.0 "Wiki", docs/dev/PLAN-4.5-WIKI.md §4.7.1, phase A5): no language is the source. For
-// each section of a `ready` page, `wiki/translations.json` records which revision of each language a person read
-// against the other, `{enHash, frHash, reviewers}` under `<id>#<section>` (`<id>#_lead` for the text before the first
+// each section of a `ready` page, `wiki/translations.json` records which revision of each language someone (a person
+// or an AI) read against the other, `{enHash, frHash, reviewers}` under `<id>#<section>` (`<id>#_lead` for the text before the first
 // section), each reviewer `{name, kind: human|ai, relation: author|independent, date}` (reviewer.ts). When either
 // side's text, or an image a section shows, changes, the pair is "to review": a warning at the work level, an error for
-// `check --publish`, which also wants a review by a person on every pair of a published page (an AI's own check of
-// what it wrote is said as such, never as a review). `npm run wiki -- translations --ack <id#section> --by <name>
+// `check --publish`. A pair read by an AI only is said as such at both levels, never as a review, and no longer fails
+// a publication (D56 amends A7, which wanted a person on every pair). `npm run wiki -- translations --ack <id#section> --by <name>
 // --kind human|ai --relation author|independent` records the pair, once both sides were read.
 import { createHash } from 'node:crypto';
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
