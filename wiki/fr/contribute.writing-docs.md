@@ -304,10 +304,13 @@ erreur pour `check --publish`. `wiki/reviews.json` consigne la même chose pour 
 du texte de la garantie et de son fichier de test).
 
 Chaque relecteur est `{ name, kind: human|ai, relation: author|independent, date }`, et les deux commandes exigent
-`--by`, `--kind` et `--relation`. Le même texte relu ajoute un relecteur ; un texte changé repart de zéro. Une page
-publiée demande une relecture par une personne (`kind: human`) pour chaque paire de traduction et chaque garantie ;
-d'ici là la page dit « vérifiée par son auteur (IA), non relue » (ou « vérifiée par une IA indépendante, non relue par
-une personne »), jamais « relue ».
+`--by`, `--kind` et `--relation`. Le même texte relu ajoute un relecteur ; un texte changé repart de zéro. Une garantie
+publiée demande une relecture par une personne (`kind: human`) ; d'ici là elle dit « vérifiée par son auteur (IA), pas
+relue » (ou « vérifiée par une IA indépendante, pas relue par une personne »), jamais « relue ». Une paire de
+traduction publiée demande un enregistrement, celui d'une IA compris : une paire vérifiée par une IA seulement
+n'arrête pas `check --publish`, qui dit combien il y en a parmi ses manques, et l'en-tête de la page dit qui l'a lue
+(« écrite et vérifiée par une IA, pas relue par une personne », « relue en partie par une personne »…). Seule une
+paire « à relire » l'arrête.
 
 > [!LIMIT id=ai-review-is-not-review]
 > La vérification par une IA de ce qu'elle a écrit se consigne en `--kind ai --relation author` et n'est jamais montrée

@@ -17,7 +17,7 @@ import { ROOT } from '../tools/game';
 import { main } from '../tools/wiki';
 import { buildWiki } from '../tools/wiki/build';
 import { checkWiki, trackedFiles } from '../tools/wiki/check';
-import { claimLabel, claimStates, readReviews, testNames } from '../tools/wiki/claims';
+import { claimLabel, claimStates, readReviews, sameTest, testNames } from '../tools/wiki/claims';
 import { reviewWords } from '../tools/wiki/reviewer';
 import { searchDocs } from '../tools/wiki/docs';
 import { repositoryDocs } from '../tools/wiki/docs-load';
@@ -411,6 +411,47 @@ it('top', () => {});
       undefined,
       '"s › under" is written .skip: it does not run as it reads, so it backs no claim',
     ]);
+  });
+
+  it('executes a claim on a .each test from the names the run filled in, every variant counted', () => {
+    const root = tmp('wiki-claim-each-');
+    mkdirSync(join(root, 'tests'));
+    writeFileSync(
+      join(root, 'tests/each.test.ts'),
+      "describe.each(KINDS)('leases on $name', (kind) => {\n  it('restore refuses', () => {});\n});\n",
+    );
+    const { manifest } = wiki().report;
+    const page = manifest!.pages.find((p) => p.id === 'clever.restore-drill')!;
+    const states = (tests: { name: string; status: string }[]) =>
+      claimStates({
+        root,
+        tracked: new Set(['tests/each.test.ts']),
+        claims: [
+          { page, claim: { id: 'c', test: 'tests/each.test.ts › leases on $name › restore refuses' }, blocks: {} },
+        ],
+        reports: [{ file: 'r.json', commit: HEAD, tests: tests.map((x) => ({ file: 'tests/each.test.ts', ...x })) }],
+        reviews: { format: 'quest-n-click-docs-reviews', version: 1, claims: {} },
+        commit: HEAD,
+      })[0]!;
+    const both = states([
+      { name: 'leases on sqlite › restore refuses', status: 'passed' },
+      { name: 'leases on postgres › restore refuses', status: 'passed' },
+    ]);
+    expect(both.unreferenced).toBeUndefined();
+    expect(both.executedOn).toBe(HEAD);
+    expect(
+      states([
+        { name: 'leases on sqlite › restore refuses', status: 'passed' },
+        { name: 'leases on postgres › restore refuses', status: 'skipped' },
+      ]).notExecuted,
+    ).toBe(
+      `"tests/each.test.ts › leases on $name › restore refuses" did not pass on ${HEAD.slice(0, 12)} (passed, skipped)`,
+    );
+    expect(states([{ name: 'leases on sqlite › another', status: 'passed' }]).executedOn).toBeUndefined();
+    expect(sameTest('a › b')('a › b')).toBe(true);
+    expect(sameTest('a.b › c')('aXb › c')).toBe(false);
+    expect(sameTest('row %s, %d')('row x, 3')).toBe(true);
+    expect(sameTest('on $name')('on ')).toBe(false);
   });
 
   it('counts only a passed test as executed: skipped, todo and pending ran nothing', () => {
