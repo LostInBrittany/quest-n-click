@@ -318,7 +318,8 @@
       "claimTextHash": "dc87e7681b6ea05cb33be30a5bd783fee189911059a866f31d605d8faba04bd7",
       "testFileHash": "43abbae8747daa4638f691f89961f8129700d226ffca88065f27413bbb26ae62",
       "reviewers": [
-        { "name": "claude-283-scoped", "kind": "ai", "relation": "author", "date": "2026-10-24" }
+        { "name": "claude-283-scoped", "kind": "ai", "relation": "author", "date": "2026-10-24" },
+        { "name": "LostInBrittany", "kind": "human", "relation": "independent", "date": "2026-10-24" }
       ]
     },
     "export-same-files": {
@@ -341,7 +342,8 @@
       "claimTextHash": "647911006b60392689b9097f2077194154e3f85075e483a48ed11aede51fca01",
       "testFileHash": "4ec74bc4b3aa10a0413cbbad0b7a1774096003e31ef289c1bb140df809e58842",
       "reviewers": [
-        { "name": "claude-283-scoped", "kind": "ai", "relation": "author", "date": "2026-10-24" }
+        { "name": "claude-283-scoped", "kind": "ai", "relation": "author", "date": "2026-10-24" },
+        { "name": "LostInBrittany", "kind": "human", "relation": "independent", "date": "2026-10-24" }
       ]
     },
     "gc-keeps-referenced": {
@@ -556,7 +558,8 @@
       "claimTextHash": "9d0ce6b9d3c4d60846f49040fbe56700ea3ad9630ce0a4fdbf0718b5824bd188",
       "testFileHash": "93dadc020093f626f98c9974cf0b042f2118038aad32bcb431b7b5d795e20fb9",
       "reviewers": [
-        { "name": "claude-452-release", "kind": "ai", "relation": "author", "date": "2026-10-24" }
+        { "name": "claude-452-release", "kind": "ai", "relation": "author", "date": "2026-10-24" },
+        { "name": "LostInBrittany", "kind": "human", "relation": "independent", "date": "2026-10-24" }
       ]
     },
     "policy-provider-no-redirect": {
@@ -644,7 +647,8 @@
       "claimTextHash": "b5ba4a1d7beca60983eec666b84e960d7c8bc7b87c2839945476834d83059a71",
       "testFileHash": "93dadc020093f626f98c9974cf0b042f2118038aad32bcb431b7b5d795e20fb9",
       "reviewers": [
-        { "name": "claude-452-release", "kind": "ai", "relation": "author", "date": "2026-10-24" }
+        { "name": "claude-452-release", "kind": "ai", "relation": "author", "date": "2026-10-24" },
+        { "name": "LostInBrittany", "kind": "human", "relation": "independent", "date": "2026-10-24" }
       ]
     },
     "save-other-world-refused": {
@@ -667,7 +671,8 @@
       "claimTextHash": "e27f6a71540979a7e98eb76252a99bbd67a41e6cf8983ab93a992cf80ffe9ea6",
       "testFileHash": "93dadc020093f626f98c9974cf0b042f2118038aad32bcb431b7b5d795e20fb9",
       "reviewers": [
-        { "name": "claude-452-release", "kind": "ai", "relation": "author", "date": "2026-10-24" }
+        { "name": "claude-452-release", "kind": "ai", "relation": "author", "date": "2026-10-24" },
+        { "name": "LostInBrittany", "kind": "human", "relation": "independent", "date": "2026-10-24" }
       ]
     },
     "save-refused-write-reported": {
@@ -682,7 +687,8 @@
       "claimTextHash": "88a6d3ad9ceced53ef1fa24d6c6e224bc3fb450655d8c62d455316e6e4399769",
       "testFileHash": "93dadc020093f626f98c9974cf0b042f2118038aad32bcb431b7b5d795e20fb9",
       "reviewers": [
-        { "name": "claude-452-release", "kind": "ai", "relation": "author", "date": "2026-10-24" }
+        { "name": "claude-452-release", "kind": "ai", "relation": "author", "date": "2026-10-24" },
+        { "name": "LostInBrittany", "kind": "human", "relation": "independent", "date": "2026-10-24" }
       ]
     },
     "schema1-not-requalified": {
@@ -761,7 +767,8 @@
       "claimTextHash": "734e3bbcf4074da50de740cabf8529998df9ae5544d64726fdac336c95e26ef2",
       "testFileHash": "ce829e53a4795050aa0d28e91f63f470d9c31b28800521a6bb4767d0b42de1be",
       "reviewers": [
-        { "name": "claude-452-org", "kind": "ai", "relation": "author", "date": "2026-10-24" }
+        { "name": "claude-452-org", "kind": "ai", "relation": "author", "date": "2026-10-24" },
+        { "name": "LostInBrittany", "kind": "human", "relation": "independent", "date": "2026-10-24" }
       ]
     },
     "truncated-never-solved": {
