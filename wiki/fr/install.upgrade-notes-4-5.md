@@ -1,8 +1,7 @@
 # Notes de mise à jour : 4.5
 
-Ce que la 4.5.0 « Wiki », la 4.5.1 et la 4.5.2 ont changé. Rien à changer dans un jeu jusqu'à la 4.5.1 (la
-documentation a déménagé) ; à partir de la 4.5.2, `npx quest-n-click migrate` passe ses imports aux noms de paquets à
-scope.
+Ce que la 4.5.0 « Wiki », la 4.5.1 et la 4.5.2 ont changé. Rien à changer jusqu'à la 4.5.1 (la doc a déménagé) ;
+en 4.5.2, `npx quest-n-click migrate` passe les imports aux paquets à scope.
 
 La mise à jour elle-même est [Mettre à jour](install.upgrade.md).
 

@@ -12712,7 +12712,7 @@
     },
     "install.upgrade-notes-4-5#_lead": {
       "enHash": "0cbf8429a826c038223a01df75637100f7839cc894883e9406b36b1e71ea360f",
-      "frHash": "a6cc5347e3099e7e2e243d5012ecca7f4e51c5ebccdb187e147cab0b3719002b",
+      "frHash": "5a10abe9f7af0de4b9eb2593f5cbf6b0e07d30820dea98fdb4d9fd2f425a5e9a",
       "reviewers": [
         { "name": "claude-283-scoped", "kind": "ai", "relation": "author", "date": "2026-10-24" }
       ]
