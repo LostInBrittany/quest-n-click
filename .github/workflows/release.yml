@@ -9,7 +9,7 @@ name: release
 # (dist, its licences inside), its assets manifest, the engine's npm packages (quest-n-click, create-quest-n-click, 3.9;
 # quest-n-click-bridge, 4.1.1; from 4.2.5 to 4.2.x their web-scumm names too, D47), a complete speedrun of the reference chapter verified by `speedrun:verify` (4.1.14),
 # SHA-256 sums, an SBOM of the shipped dependencies (CycloneDX) and
-# a build provenance attestation (`gh attestation verify <file> -R wanoo/quest-n-click`), and reads it all back once published
+# a build provenance attestation (`gh attestation verify <file> -R Quest-n-Click/quest-n-click`), and reads it all back once published
 # (`ship verify`, 4.1.8). A release that already has
 # files is never overwritten (3.7.1): a new version is a new tag.
 on:
@@ -411,7 +411,7 @@ jobs:
     uses: ./.github/workflows/docs-publish.yml
     permissions:
       contents: write
-      actions: write
+      actions: read
       id-token: write
       attestations: write
     # Only the wiki's deploy key, never every secret of the repository; it may also live in the `docs-publish`

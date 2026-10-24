@@ -1,7 +1,7 @@
 # Demo mode and studio-apply
 
 The Studio also runs without any server, on a static host: the demo game's Studio is online at
-<https://wanoo.github.io/quest-n-click/studio.html>, built by the CI. Your edits stay in your browser; download them as
+<https://quest-n-click.github.io/play/studio.html>, built by the CI. Your edits stay in your browser; download them as
 a patch and `npm run studio-apply` writes them into your copy of the game.
 
 <a name="what-you-get"></a>

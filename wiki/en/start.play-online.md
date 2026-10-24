@@ -13,9 +13,11 @@ your browser only.
 
 ## Context and versions
 
-The public site of the project, built by CI from the `main` branch of the engine repository and served by GitHub Pages.
-Its address since 4.2.5 is `wanoo.github.io/quest-n-click`; the old `wanoo.github.io/web-scumm` redirects there. The
-site shows the engine as it is on `main`, which may be ahead of the latest release.
+The public site of the project, `quest-n-click.github.io`, served by GitHub Pages and built by the organization's site
+repository (`Quest-n-Click/quest-n-click.github.io`) from the signed release tags: the game at `/play/`, the Studio's
+demo at `/play/studio.html`, the documentation at `/docs/`. That is its address since 4.5.2; the earlier ones,
+`wanoo.github.io/quest-n-click` (4.2.5 to 4.5.1) and `wanoo.github.io/web-scumm`, redirect there. The site shows a
+released version, not `main`.
 
 <a name="prerequisites"></a>
 
@@ -35,7 +37,7 @@ In your browser. No command.
 ## Steps
 
 <!-- step: play -->
-1. **Play**: open [wanoo.github.io/quest-n-click](https://wanoo.github.io/quest-n-click/). On a phone, turn it to
+1. **Play**: open [quest-n-click.github.io/play](https://quest-n-click.github.io/play/). On a phone, turn it to
    landscape. Tap **New game**. The game is in English; `?lang=fr` in the address, or the settings, switch it to
    French ([Languages](play.languages.md)). How to play: [Controls](play.controls.md).
 
@@ -43,7 +45,7 @@ In your browser. No command.
 2. **Keep it** (optional): install it as an app and play it offline ([Install the game as an app](play.install-app.md)).
 
 <!-- step: studio -->
-3. **Open the Studio**: [wanoo.github.io/quest-n-click/studio.html](https://wanoo.github.io/quest-n-click/studio.html).
+3. **Open the Studio**: [quest-n-click.github.io/play/studio.html](https://quest-n-click.github.io/play/studio.html).
    It is the demo mode: the same Studio, the same engine view and placement editor as on your machine, running without
    any server. A banner says "Demo: your edits stay in this browser".
 

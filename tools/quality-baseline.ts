@@ -168,7 +168,7 @@ export function withInstall(page: string, version: string): string {
         // version's, published under the rc's release until the stable one exists. Any other tag becomes this version's.
         // The repository's name since 4.2.5 (D47), the engine's archive named as that version's release names it.
         (_url, tag: string) =>
-          `https://github.com/wanoo/quest-n-click/releases/download/${tag.startsWith(`v${version}-rc.`) && /^v[\d.]+-rc\.[1-9]\d*$/.test(tag) ? tag : `v${version}`}/${engineArchive(version)}-${version}.tgz`,
+          `https://github.com/Quest-n-Click/quest-n-click/releases/download/${tag.startsWith(`v${version}-rc.`) && /^v[\d.]+-rc\.[1-9]\d*$/.test(tag) ? tag : `v${version}`}/${engineArchive(version)}-${version}.tgz`,
       )}${close}`,
   );
 }

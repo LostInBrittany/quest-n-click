@@ -111,7 +111,7 @@ one CycloneDX SBOM per package and one for the Bridge's image (five SBOMs in 4.1
 package in 4.2.1), the Bridge's image, the Remix catalogues' proofs, a complete speedrun of the reference chapter
 verified by `speedrun:verify`, the candidate's runs, baseline, site files, surfaces and signing rehearsal, the
 candidate's manifest, SHA-256 sums, and a build provenance attestation
-(`gh attestation verify <file> -R wanoo/quest-n-click`); from 4.5.0, the documentation archive. It is never replaced
+(`gh attestation verify <file> -R Quest-n-Click/quest-n-click`); from 4.5.0, the documentation archive. It is never replaced
 once published. What only people and real devices can check is reported in its notes ([Field passes](contribute.field-passes.md)).
 
 A pre-release version (`4.1.8-rc.1`) is tagged the same way; release.yml marks it a pre-release on GitHub.
@@ -208,7 +208,7 @@ Each command is idempotent and says what it waits for.
 ## Expected result, and how to check it
 
 `ship watch` exits 0 with the release run's success; `ship verify <version>` prints every file checked and exits 0;
-the release page shows the files and "Immutable"; `gh attestation verify <file> -R wanoo/quest-n-click` passes for any
+the release page shows the files and "Immutable"; `gh attestation verify <file> -R Quest-n-Click/quest-n-click` passes for any
 of its files.
 
 <a name="common-errors"></a>

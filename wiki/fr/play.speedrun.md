@@ -22,7 +22,7 @@ seule l’observation d’un serveur ou d’une personne élève la confiance au
 
 Le joueur d’un jeu qui déclare des catégories de speedrun (`speedrun` dans son contenu). Le moteur a le speedrun depuis
 la 4.1.14 « Time Attack » ; cette page vaut depuis cette version. Le jeu d’exemple sur
-[wanoo.github.io/quest-n-click](https://wanoo.github.io/quest-n-click/) ne déclare aucune catégorie : son menu de pause
+[quest-n-click.github.io/play](https://quest-n-click.github.io/play/) ne déclare aucune catégorie : son menu de pause
 n’a pas de ligne Speedrun ; le jeu de référence du dépôt du moteur (`games/reference`) en déclare plusieurs.
 
 <a name="prerequisites"></a>
@@ -172,7 +172,7 @@ classement sur un Bridge se supprime avec le jeton donné par le Bridge à l’e
 
 > [!LIMIT id=livesplit-obs-not-tried]
 > OBS et LiveSplit ne sont testés que par des machines. Une vraie session par une personne, c’est la passe
-> `livesplit-obs`, ouverte ([#81](https://github.com/wanoo/quest-n-click/issues/81)) à la 4.4.0.
+> `livesplit-obs`, ouverte ([#81](https://github.com/Quest-n-Click/quest-n-click/issues/81)) à la 4.4.0.
 
 <a name="references"></a>
 

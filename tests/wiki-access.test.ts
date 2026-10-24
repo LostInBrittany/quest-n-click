@@ -181,7 +181,7 @@ describe('the loader', () => {
   });
 
   it("names the place a bundle's promotion is checked, never a state of its own", () => {
-    expect(PUBLICATION_URL).toBe('https://wanoo.github.io/quest-n-click/docs/publication.json');
+    expect(PUBLICATION_URL).toBe('https://quest-n-click.github.io/docs/publication.json');
     expect(resolveDocs(packageRoot()).provenance.label).toContain(PUBLICATION_URL);
   });
 });
@@ -279,10 +279,10 @@ describe('read_doc by id', () => {
     // bundleOpts: a candidate's numeric build id, not dirty.
     const r = readDocById(resolveDocs(packageRoot()), { id: 'team.write-refused-423', section: 'symptom', lang: 'fr' });
     expect(r.structured.url).toEqual({
-      versioned: 'https://wanoo.github.io/quest-n-click/docs/4.5.0/r1/fr/team.write-refused-423.html#symptom',
+      versioned: 'https://quest-n-click.github.io/docs/4.5.0/r1/fr/team.write-refused-423.html#symptom',
       versionedNote:
-        'the permalink of 4.5.0 r1 if this build is the one published; check https://wanoo.github.io/quest-n-click/docs/publication.json',
-      current: 'https://github.com/wanoo/quest-n-click/wiki/FR-Equipe-Ecriture-Refusee-423#symptom',
+        'the permalink of 4.5.0 r1 if this build is the one published; check https://quest-n-click.github.io/docs/publication.json',
+      current: 'https://github.com/Quest-n-Click/quest-n-click/wiki/FR-Equipe-Ecriture-Refusee-423#symptom',
       currentLabel: 'current documentation (the latest release), not necessarily this version',
     });
     const local = tmp('docs-package-local-');
@@ -503,7 +503,7 @@ describe('the bundle', () => {
     const rooms = readFileSync(join(out, 'md', 'en', 'create.rooms.md'), 'utf8');
     expect(rooms).toContain('[a door](../en/create.exits.md#doors)');
     expect(rooms).toContain(
-      `(https://github.com/wanoo/quest-n-click/blob/${'a'.repeat(40)}/src/engine/core/save.ts#L1)`,
+      `(https://github.com/Quest-n-Click/quest-n-click/blob/${'a'.repeat(40)}/src/engine/core/save.ts#L1)`,
     );
     expect(rooms).toContain('the DSL (coming)');
     expect(rooms).toContain('![A room](../../assets/room.png "The hall")');

@@ -500,7 +500,7 @@ Read when Vite builds the game, the Studio or a preview. The npm scripts set mos
 The sub-path the game is served under (`/<repo>/` on GitHub Pages); `/` when unset.
 
 - Origin: read when the page or the package is built.
-- Read by: [`.github/workflows/ci.yml`](../../.github/workflows/ci.yml), [`tools/vite/plugins.ts`](../../tools/vite/plugins.ts).
+- Read by: [`tools/vite/plugins.ts`](../../tools/vite/plugins.ts).
 
 <a name="base-url"></a>
 
@@ -851,7 +851,7 @@ The S3 endpoint, credentials and bucket of the CI's object store, as one URL, fo
 
 ### `WEB_SCUMM_REPO`
 
-The GitHub repository the release tools work on; `wanoo/quest-n-click` when unset.
+The GitHub repository the release tools work on; `Quest-n-Click/quest-n-click` when unset.
 
 - Origin: you set it; the code reads it.
 - Read by: [`tools/release/lib.mjs`](../../tools/release/lib.mjs), [`tools/release/provenance.mjs`](../../tools/release/provenance.mjs).
@@ -1075,15 +1075,6 @@ mutation: one file to mutate, chosen by hand.
 - Origin: set by a workflow of `.github/workflows/` (CI and releases).
 - Read by: [`.github/workflows/mutation.yml`](../../.github/workflows/mutation.yml).
 
-<a name="full"></a>
-
-### `FULL`
-
-ci: `false` in a Pages-only run, which then skips its other steps.
-
-- Origin: set by a workflow of `.github/workflows/` (CI and releases).
-- Read by: [`.github/workflows/ci.yml`](../../.github/workflows/ci.yml).
-
 <a name="in-candidate"></a>
 
 ### `IN_CANDIDATE`
@@ -1174,15 +1165,6 @@ release: the release's file name prefix (`quest-n-click`).
 - Origin: set by a workflow of `.github/workflows/` (CI and releases).
 - Read by: [`.github/workflows/release.yml`](../../.github/workflows/release.yml).
 
-<a name="pages-only"></a>
-
-### `PAGES_ONLY`
-
-ci: `true` for a dispatched Pages-only run, which rebuilds the site and `/docs/` and nothing else.
-
-- Origin: set by a workflow of `.github/workflows/` (CI and releases).
-- Read by: [`.github/workflows/ci.yml`](../../.github/workflows/ci.yml).
-
 <a name="postgres-db"></a>
 
 ### `POSTGRES_DB`
@@ -1253,7 +1235,7 @@ release: the remix files added to the release, when there are some.
 The repository the workflow runs in (`owner/name`), for its `gh` calls.
 
 - Origin: set by a workflow of `.github/workflows/` (CI and releases).
-- Read by: [`.github/workflows/ci.yml`](../../.github/workflows/ci.yml), [`.github/workflows/docs-publish.yml`](../../.github/workflows/docs-publish.yml).
+- Read by: [`.github/workflows/docs-publish.yml`](../../.github/workflows/docs-publish.yml).
 
 <a name="reused"></a>
 

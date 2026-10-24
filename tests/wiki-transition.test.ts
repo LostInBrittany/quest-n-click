@@ -77,16 +77,18 @@ describe('a transition page', () => {
     const en = pages.get('docs/en/GUIDE.md')!;
     expect(en.split('\n')[0]).toMatch(TRANSITION_LINE);
     expect(en).toContain(
-      '[Rooms › walkable-zones](https://wanoo.github.io/quest-n-click/docs/4.5.0/en/create.rooms.html#walkable-zones)',
+      '[Rooms › walkable-zones](https://quest-n-click.github.io/docs/4.5.0/en/create.rooms.html#walkable-zones)',
     );
-    expect(en).toContain('[Exits](https://wanoo.github.io/quest-n-click/docs/4.5.0/en/create.exits.html)');
+    expect(en).toContain('[Exits](https://quest-n-click.github.io/docs/4.5.0/en/create.exits.html)');
     expect(en).toContain(
-      '[The 4.4.0 text](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/en/GUIDE.md#setup-1)',
+      '[The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/GUIDE.md#setup-1)',
     );
     expect(en).toContain('Removed: said again in each page’s [!LIMIT] blocks');
     const fr = pages.get('docs/fr/GUIDE.md')!;
-    expect(fr).toContain('https://wanoo.github.io/quest-n-click/docs/4.5.0/fr/create.rooms.html#walkable-zones');
-    expect(fr).toContain('[Le texte de la 4.4.0](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/fr/GUIDE.md');
+    expect(fr).toContain('https://quest-n-click.github.io/docs/4.5.0/fr/create.rooms.html#walkable-zones');
+    expect(fr).toContain(
+      '[Le texte de la 4.4.0](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/fr/GUIDE.md',
+    );
     // Never the wiki nor latest: the version's alias, which follows its later doc revisions.
     expect(`${en}${fr}`).not.toMatch(/\/docs\/latest\/|\/wiki\//);
   });

@@ -78,8 +78,8 @@ export interface Provenance {
 }
 
 /** Pages' documentation (§4.5.4) and the GitHub wiki: where a page of a bundle is published (§4.5.6). */
-const PAGES_DOCS = 'https://wanoo.github.io/quest-n-click/docs';
-const WIKI_URL = 'https://github.com/wanoo/quest-n-click/wiki';
+const PAGES_DOCS = 'https://quest-n-click.github.io/docs';
+const WIKI_URL = 'https://github.com/Quest-n-Click/quest-n-click/wiki';
 
 /**
  * Where a page read from a bundle lives online (§4.5.4). `versioned` is the Pages permalink of this version and doc

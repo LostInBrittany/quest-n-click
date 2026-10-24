@@ -168,8 +168,10 @@ describe('docs-publish.yml', () => {
     expect(step(/A pre-release leaves the wiki alone/)).toMatch(/if: contains\(inputs\.version, '-'\)/);
   });
 
-  it('ends by starting a pages-only ci run on main, whose Pages job assembles /docs/ again', () => {
-    expect(all.at(-1)).toMatch(/gh workflow run ci\.yml -R "\$REPO" --ref main -f pages-only=true/);
+  it("ends by saying the organization's site is to rebuild: the engine starts no Pages run (4.5.2, D51)", () => {
+    expect(all.at(-1)).toMatch(/::notice::rebuild https:\/\/quest-n-click\.github\.io by hand/);
+    expect(read('docs-publish')).not.toMatch(/gh workflow run|pages-only/);
+    expect(read('docs-publish')).toMatch(/^ {2}actions: read$/m);
   });
 });
 
@@ -241,20 +243,11 @@ describe('candidate.yml and ci.yml', () => {
     );
   });
 
-  it("Pages' /docs/ is assembled from the releases on main, before the artifact is uploaded, never built from the branch", () => {
+  it("ci builds no /docs/ and deploys no Pages: the organization's site assembles it from the releases (4.5.2, D51)", () => {
     const yml = read('ci');
-    const check = job(yml, 'check');
-    const pages = check.indexOf('npm run -s wiki -- pages --repo');
-    expect(pages).toBeGreaterThan(0);
-    expect(pages).toBeLessThan(check.indexOf('upload-pages-artifact'));
-    expect(check.slice(pages - 300, pages)).toMatch(/if: github\.ref == 'refs\/heads\/main'/);
-    expect(yml).not.toMatch(/wiki -- (build|archive|bundle)/);
-    // The archives kept by the release list, downloads retried; a failure fails the job: no Pages without /docs/.
-    expect(check).toMatch(/key: docs-releases-\$\{\{ hashFiles\('\.cache\/docs-releases\.txt'\) \}\}/);
-    expect(check).toMatch(/--cache \.cache\/docs-releases --out dist\/docs/);
-    expect(check).toMatch(/this step fails and Pages is not\n\s+# deployed/);
-    expect(check.slice(pages)).not.toMatch(/continue-on-error/);
-    // docs-publish starts it by hand; a dispatched run cancels no push's run.
+    expect(yml).not.toMatch(/wiki -- (build|archive|bundle|pages)/);
+    expect(yml).not.toMatch(/upload-pages-artifact|deploy-pages/);
+    // A run started by hand still runs everything, and cancels no push's run.
     expect(keys(top(yml, 'on'), 2)).toContain('workflow_dispatch');
     expect(top(yml, 'concurrency')).toMatch(
       /cancel-in-progress: \$\{\{ github\.event_name != 'workflow_dispatch' \}\}/,

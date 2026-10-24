@@ -13,9 +13,11 @@ modifications gardées dans votre navigateur seulement.
 
 ## Contexte et versions
 
-Le site public du projet, construit par la CI depuis la branche `main` du dépôt du moteur et servi par GitHub Pages.
-Son adresse depuis la 4.2.5 est `wanoo.github.io/quest-n-click` ; l’ancienne `wanoo.github.io/web-scumm` y redirige. Le
-site montre le moteur tel qu’il est sur `main`, qui peut être en avance sur la dernière release.
+Le site public du projet, `quest-n-click.github.io`, servi par GitHub Pages et construit par le dépôt du site de
+l’organisation (`Quest-n-Click/quest-n-click.github.io`) depuis les tags signés des releases : le jeu sous `/play/`, la
+démo du Studio sous `/play/studio.html`, la documentation sous `/docs/`. C’est son adresse depuis la 4.5.2 ; les
+précédentes, `wanoo.github.io/quest-n-click` (de la 4.2.5 à la 4.5.1) et `wanoo.github.io/web-scumm`, y redirigent. Le
+site montre une version publiée, pas `main`.
 
 <a name="prerequisites"></a>
 
@@ -36,7 +38,7 @@ Dans votre navigateur. Aucune commande.
 ## Étapes
 
 <!-- step: play -->
-1. **Jouer** : ouvrez [wanoo.github.io/quest-n-click](https://wanoo.github.io/quest-n-click/). Sur un téléphone,
+1. **Jouer** : ouvrez [quest-n-click.github.io/play](https://quest-n-click.github.io/play/). Sur un téléphone,
    tournez-le en paysage. Touchez **New game**. Le jeu est en anglais ; `?lang=fr` dans l’adresse, ou les réglages, le
    passent en français ([Langues](play.languages.md)). Comment jouer : [Commandes](play.controls.md).
 
@@ -45,7 +47,7 @@ Dans votre navigateur. Aucune commande.
    ([Installer le jeu comme une application](play.install-app.md)).
 
 <!-- step: studio -->
-3. **Ouvrir le Studio** : [wanoo.github.io/quest-n-click/studio.html](https://wanoo.github.io/quest-n-click/studio.html).
+3. **Ouvrir le Studio** : [quest-n-click.github.io/play/studio.html](https://quest-n-click.github.io/play/studio.html).
    C’est le mode démo : le même Studio, la même vue du moteur et le même éditeur de placement que sur votre machine,
    sans aucun serveur. Un bandeau dit « Demo: your edits stay in this browser ».
 

@@ -2,42 +2,42 @@
 
 # Connectors of the world outside
 
-> This page moved to the quest'n'click documentation. Each section below links to its new place in the documentation of version 4.5.1; the complete 4.4.0 page stays readable at [https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/en/CONNECTORS.md](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/en/CONNECTORS.md).
+> This page moved to the quest'n'click documentation. Each section below links to its new place in the documentation of version 4.5.1; the complete 4.4.0 page stays readable at [https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/CONNECTORS.md](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/CONNECTORS.md).
 
-Now in: [Connectors overview › overview](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/bridge.connectors.html#overview) · [The 4.4.0 text](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/en/CONNECTORS.md#connectors-of-the-world-outside)
+Now in: [Connectors overview › overview](https://quest-n-click.github.io/docs/4.5.1/en/bridge.connectors.html#overview) · [The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/CONNECTORS.md#connectors-of-the-world-outside)
 
 ## Run one
 
-Now in: [Connectors overview › run-one](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/bridge.connectors.html#run-one) · [Command-line tools](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/reference.cli.html) · [The 4.4.0 text](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/en/CONNECTORS.md#run-one)
+Now in: [Connectors overview › run-one](https://quest-n-click.github.io/docs/4.5.1/en/bridge.connectors.html#run-one) · [Command-line tools](https://quest-n-click.github.io/docs/4.5.1/en/reference.cli.html) · [The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/CONNECTORS.md#run-one)
 
 ## Declare what the connectors may do
 
-Now in: [Connectors overview › permissions](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/bridge.connectors.html#permissions) · [Security: Biscuit and signatures](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/bridge.security.html) · [The 4.4.0 text](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/en/CONNECTORS.md#declare-what-the-connectors-may-do)
+Now in: [Connectors overview › permissions](https://quest-n-click.github.io/docs/4.5.1/en/bridge.connectors.html#permissions) · [Security: Biscuit and signatures](https://quest-n-click.github.io/docs/4.5.1/en/bridge.security.html) · [The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/CONNECTORS.md#declare-what-the-connectors-may-do)
 
 ## Email
 
-Now in: [Email connector](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/bridge.connector-email.html) · [The 4.4.0 text](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/en/CONNECTORS.md#email)
+Now in: [Email connector](https://quest-n-click.github.io/docs/4.5.1/en/bridge.connector-email.html) · [The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/CONNECTORS.md#email)
 
 ## Telnet
 
-Now in: [Telnet connector](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/bridge.connector-telnet.html) · [The 4.4.0 text](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/en/CONNECTORS.md#telnet)
+Now in: [Telnet connector](https://quest-n-click.github.io/docs/4.5.1/en/bridge.connector-telnet.html) · [The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/CONNECTORS.md#telnet)
 
 ## SSH
 
-Now in: [SSH connector](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/bridge.connector-ssh.html) · [The 4.4.0 text](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/en/CONNECTORS.md#ssh)
+Now in: [SSH connector](https://quest-n-click.github.io/docs/4.5.1/en/bridge.connector-ssh.html) · [The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/CONNECTORS.md#ssh)
 
 ## Open Badges
 
-Now in: [Open Badges connector](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/bridge.connector-open-badges.html) · [The 4.4.0 text](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/en/CONNECTORS.md#open-badges)
+Now in: [Open Badges connector](https://quest-n-click.github.io/docs/4.5.1/en/bridge.connector-open-badges.html) · [The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/CONNECTORS.md#open-badges)
 
 ## What leaves a connector
 
-Now in: [Connectors overview › what-leaves](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/bridge.connectors.html#what-leaves) · [Privacy](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/play.privacy.html) · [The 4.4.0 text](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/en/CONNECTORS.md#what-leaves-a-connector)
+Now in: [Connectors overview › what-leaves](https://quest-n-click.github.io/docs/4.5.1/en/bridge.connectors.html#what-leaves) · [Privacy](https://quest-n-click.github.io/docs/4.5.1/en/play.privacy.html) · [The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/CONNECTORS.md#what-leaves-a-connector)
 
 ## Testing without a network
 
-Now in: [The connector SDK › testing](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/bridge.connector-sdk.html#testing) · [The 4.4.0 text](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/en/CONNECTORS.md#testing-without-a-network)
+Now in: [The connector SDK › testing](https://quest-n-click.github.io/docs/4.5.1/en/bridge.connector-sdk.html#testing) · [The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/CONNECTORS.md#testing-without-a-network)
 
 ## Playing the sample chapter
 
-Now in: [Quick start › sample-chapter](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/bridge.quick-start.html#sample-chapter) · [The 4.4.0 text](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/en/CONNECTORS.md#playing-the-sample-chapter)
+Now in: [Quick start › sample-chapter](https://quest-n-click.github.io/docs/4.5.1/en/bridge.quick-start.html#sample-chapter) · [The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/CONNECTORS.md#playing-the-sample-chapter)

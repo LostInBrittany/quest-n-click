@@ -500,7 +500,7 @@ Lues quand Vite construit le jeu, le Studio ou une prévisualisation. Les script
 Le sous-chemin sous lequel le jeu est servi (`/<dépôt>/` sur GitHub Pages) ; `/` quand elle n’est pas posée.
 
 - Origine : lue à la construction de la page ou du paquet.
-- Lue par : [`.github/workflows/ci.yml`](../../.github/workflows/ci.yml), [`tools/vite/plugins.ts`](../../tools/vite/plugins.ts).
+- Lue par : [`tools/vite/plugins.ts`](../../tools/vite/plugins.ts).
 
 <a name="base-url"></a>
 
@@ -851,7 +851,7 @@ Le point d’accès S3, les identifiants et le bucket du stockage objet de la CI
 
 ### `WEB_SCUMM_REPO`
 
-Le dépôt GitHub sur lequel travaillent les outils de publication ; `wanoo/quest-n-click` quand elle n’est pas posée.
+Le dépôt GitHub sur lequel travaillent les outils de publication ; `Quest-n-Click/quest-n-click` quand elle n’est pas posée.
 
 - Origine : vous la posez ; le code la lit.
 - Lue par : [`tools/release/lib.mjs`](../../tools/release/lib.mjs), [`tools/release/provenance.mjs`](../../tools/release/provenance.mjs).
@@ -1075,15 +1075,6 @@ mutation : un seul fichier à muter, choisi à la main.
 - Origine : posée par un workflow de `.github/workflows/` (CI et publications).
 - Lue par : [`.github/workflows/mutation.yml`](../../.github/workflows/mutation.yml).
 
-<a name="full"></a>
-
-### `FULL`
-
-ci : `false` dans un lancement Pages seulement, qui saute alors ses autres étapes.
-
-- Origine : posée par un workflow de `.github/workflows/` (CI et publications).
-- Lue par : [`.github/workflows/ci.yml`](../../.github/workflows/ci.yml).
-
 <a name="in-candidate"></a>
 
 ### `IN_CANDIDATE`
@@ -1174,15 +1165,6 @@ release : le préfixe des noms de fichiers de la version (`quest-n-click`).
 - Origine : posée par un workflow de `.github/workflows/` (CI et publications).
 - Lue par : [`.github/workflows/release.yml`](../../.github/workflows/release.yml).
 
-<a name="pages-only"></a>
-
-### `PAGES_ONLY`
-
-ci : `true` pour un lancement Pages seulement, qui reconstruit le site et `/docs/` et rien d’autre.
-
-- Origine : posée par un workflow de `.github/workflows/` (CI et publications).
-- Lue par : [`.github/workflows/ci.yml`](../../.github/workflows/ci.yml).
-
 <a name="postgres-db"></a>
 
 ### `POSTGRES_DB`
@@ -1253,7 +1235,7 @@ release : les fichiers de remix ajoutés à la version, quand il y en a.
 Le dépôt où tourne le workflow (`propriétaire/nom`), pour ses appels à `gh`.
 
 - Origine : posée par un workflow de `.github/workflows/` (CI et publications).
-- Lue par : [`.github/workflows/ci.yml`](../../.github/workflows/ci.yml), [`.github/workflows/docs-publish.yml`](../../.github/workflows/docs-publish.yml).
+- Lue par : [`.github/workflows/docs-publish.yml`](../../.github/workflows/docs-publish.yml).
 
 <a name="reused"></a>
 

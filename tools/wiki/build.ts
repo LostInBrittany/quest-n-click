@@ -43,8 +43,8 @@ import {
   type SectionVersions,
 } from './page';
 
-const REPO_URL = 'https://github.com/wanoo/quest-n-click';
-const RAW_URL = 'https://raw.githubusercontent.com/wanoo/quest-n-click';
+const REPO_URL = 'https://github.com/Quest-n-Click/quest-n-click';
+const RAW_URL = 'https://raw.githubusercontent.com/Quest-n-Click/quest-n-click';
 /** Written into every output folder: a folder without it is not a build, and is never emptied. */
 const BUILD_MARKER = '.quest-n-click-wiki-build';
 
@@ -312,7 +312,7 @@ const BLOCK_NAMES = {
 } as const;
 
 /** The versioned site on GitHub Pages: `/docs/<v>/r<n>/` permalinks, `/docs/<v>/` and `/docs/latest/` aliases. */
-export const PAGES_DOCS_URL = 'https://wanoo.github.io/quest-n-click/docs';
+export const PAGES_DOCS_URL = 'https://quest-n-click.github.io/docs';
 
 /**
  * The footer of every page: what the publication is (the wiki shows the current version only, §4.5.4: a preview says
@@ -660,7 +660,7 @@ const HELP: readonly string[] = [
 
 /** GitHub's code search over one language's page sources: a search of the pages' text, which the wiki's box is not. */
 const textSearch = (lang: Lang) =>
-  `https://github.com/search?q=${encodeURIComponent(`repo:wanoo/quest-n-click path:wiki/${lang}/`)}&type=code`;
+  `https://github.com/search?q=${encodeURIComponent(`repo:Quest-n-Click/quest-n-click path:wiki/${lang}/`)}&type=code`;
 
 /**
  * What Home says about searching (the 4.5.1 audit, F09): the box at the top right of a GitHub wiki, "Find a page or
