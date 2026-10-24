@@ -6,9 +6,9 @@ le dépôt du moteur », c'est de cette différence qu'il s'agit.
 
 | | Un projet créé | Le dépôt du moteur |
 |---|---|---|
-| Fait par | `npx create-quest-n-click my-game "My Game"` ou `npx quest-n-click create …` | `git clone` de `Quest-n-Click/quest-n-click` |
+| Fait par | `npm init @quest-n-click my-game "My Game"` ou `npx quest-n-click create …` | `git clone` de `Quest-n-Click/quest-n-click` |
 | Dossier du jeu | `game/` | `games/<id>/` (plusieurs jeux côte à côte) |
-| Le moteur | `node_modules/quest-n-click/` (installé, jamais modifié) | `src/engine/` (vous pouvez le modifier) |
+| Le moteur | `node_modules/@quest-n-click/engine/` (installé, jamais modifié) | `src/engine/` (vous pouvez le modifier) |
 | Quel jeu | toujours `game/` | `GAME`, sinon `.cache/game`, sinon `config.game` dans `package.json`, sinon `demo` ([choisir le jeu](create.working-loop.md#choosing-the-game)) |
 | Scripts `npm run` | huit (ci-dessous) | environ 150, toute la boîte à outils |
 
@@ -25,7 +25,7 @@ dossier qui existe et n'est pas vide, puis écrit :
 | `game/provenance.json` | une entrée qui déclare chaque image comme provisoire, dessinée à partir de formes : une release la refuse tant que chaque fichier n'est pas remplacé et relu (`npx quest-n-click provenance --lock`) |
 | `public/` | les icônes de la page, son image d'aperçu (`og.png`) et la police complète sur laquelle le moteur se replie ; `public/assets/` est écrit par `npm run assets`, jamais commité |
 | `package.json` | `"config": { "game": "<id>" }`, la dépendance au moteur (`^<version>`, ou `--engine`), et les scripts ci-dessous |
-| `tsconfig.json` | `@engine/*` pointe dans `node_modules/quest-n-click/src/engine`, `quest-n-click/*` dans son API publique, `@game` vers `game/index.ts` |
+| `tsconfig.json` | `@engine/*` pointe dans `node_modules/@quest-n-click/engine/src/engine`, `@quest-n-click/engine/*` dans son API publique, `@game` vers `game/index.ts` |
 | `.gitignore` | `node_modules`, `dist`, `.cache`, `public/assets` |
 | `README.md` | les cinq commandes ci-dessous, en aide-mémoire |
 
@@ -194,6 +194,6 @@ Les ids de verbes sont libres (les `verbs` du jeu) ; quatre ont un sens pour le 
 
 ## Identifiants liés
 
-- `quest-n-click create`, `create-quest-n-click`, `npm run new-game` ([votre premier jeu](create.first-game.md)).
+- `quest-n-click create`, `npm init @quest-n-click`, `npm run new-game` ([votre premier jeu](create.first-game.md)).
 - `GAME`, `GAME_DIR`, `config.game` ([la boucle de travail](create.working-loop.md#choosing-the-game)).
 - Les CLI, avec chaque sous-commande : [référence des CLI](reference.cli.md).

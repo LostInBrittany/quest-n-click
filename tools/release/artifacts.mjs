@@ -22,13 +22,24 @@ export const ALIASES_UNTIL = '4.3.0';
 /** The name a release's own files start with (`{proj}`): `quest-n-click` from 4.2.5, `web-scumm` before. */
 export const projectOf = (version) => (atLeast(version.replace(/-.*$/, ''), RENAMED) ? 'quest-n-click' : 'web-scumm');
 
-/** Each package by its name, the name it had before 4.2.5, and the release that first shipped it. */
+/** The first release whose packages are named under the npm organisation's scope (D53); the archives keep their names. */
+export const SCOPED = '4.5.2';
+
+/**
+ * Each package by its archive's name (its npm name from 4.2.5 to 4.5.1, a pointer to `npm` on npm since), its npm
+ * name since 4.5.2 (D53, the organisation's scope), the name it had before 4.2.5, and the release that first shipped it.
+ */
 export const PACKAGES = [
-  { name: 'quest-n-click', old: 'web-scumm' },
-  { name: 'create-quest-n-click', old: 'create-web-scumm' },
-  { name: 'quest-n-click-bridge', old: 'web-scumm-bridge' },
-  { name: 'quest-n-click-connectors', old: 'web-scumm-connectors' },
-  { name: 'quest-n-click-studio-server', old: 'web-scumm-studio-server', since: '4.2.1' },
+  { name: 'quest-n-click', npm: '@quest-n-click/engine', old: 'web-scumm' },
+  { name: 'create-quest-n-click', npm: '@quest-n-click/create', old: 'create-web-scumm' },
+  { name: 'quest-n-click-bridge', npm: '@quest-n-click/bridge', old: 'web-scumm-bridge' },
+  { name: 'quest-n-click-connectors', npm: '@quest-n-click/connectors', old: 'web-scumm-connectors' },
+  {
+    name: 'quest-n-click-studio-server',
+    npm: '@quest-n-click/studio-server',
+    old: 'web-scumm-studio-server',
+    since: '4.2.1',
+  },
 ];
 
 /** A package's archive and its SBOM, published under its own name, for the releases `since` (and before `until`). */

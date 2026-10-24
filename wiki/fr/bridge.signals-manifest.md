@@ -302,7 +302,7 @@ V1 en 4.1.1 ; V2 en 4.1.10 (ADR 0010).
 
 ## Identifiants liés
 
-- Le module `quest-n-click/reality` (`verifySignal`, `RealityClient`, `httpPort`, `SignalSimulator`,
+- Le module `@quest-n-click/engine/reality` (`verifySignal`, `RealityClient`, `httpPort`, `SignalSimulator`,
   `realityManifest`, `manifestHash`, `verifyDayToken`…), pour un jeu qui a son propre transport (`WorldSignalPort`) :
   [API publique](engine.api.md#reality).
 - Les textes d’interface du lien au monde (`realityLink`…) : [Démarrage rapide](bridge.quick-start.md#player).

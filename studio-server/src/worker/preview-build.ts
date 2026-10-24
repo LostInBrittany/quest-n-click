@@ -157,8 +157,9 @@ export async function buildPreview(dir: string, p: PreviewParams, cacheDir: stri
     ],
     resolve: {
       alias: [
+        // The scoped name since 4.5.2 (D53), and the unscoped one a game of 4.5.1 or before still imports.
         {
-          find: /^quest-n-click\/(content|player|minigames|testing)$/,
+          find: /^(?:@quest-n-click\/engine|quest-n-click)\/(content|player|minigames|testing)$/,
           replacement: r('./src/engine/api/$1.ts'),
         },
         { find: '@engine', replacement: r('./src/engine') },

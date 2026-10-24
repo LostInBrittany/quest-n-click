@@ -179,9 +179,9 @@ port (`WorldSignalPort`), et un jeu sans `reality` ne charge rien de ce code.
 
 ## Public et interne
 
-Public : `quest-n-click/content` (les types et `defineGame`), `quest-n-click/player` (le démarrage),
-`quest-n-click/minigames`, `quest-n-click/testing` (`Engine`, les doublures, l'enveloppe de sauvegarde, `solve`),
-`quest-n-click/reality` (depuis la 4.1.1), le format du contenu, l'enveloppe de sauvegarde et les outils MCP, tenus par
+Public : `@quest-n-click/engine/content` (les types et `defineGame`), `@quest-n-click/engine/player` (le démarrage),
+`@quest-n-click/engine/minigames`, `@quest-n-click/engine/testing` (`Engine`, les doublures, l'enveloppe de sauvegarde, `solve`),
+`@quest-n-click/engine/reality` (depuis la 4.1.1), le format du contenu, l'enveloppe de sauvegarde et les outils MCP, tenus par
 `tests/api-surface.json` et la politique de support ([Stabilité et support](start.stability.md),
 [API publique](engine.api.md)). Interne : les modules derrière les façades `Engine` et `App` (leurs membres marqués
 `@internal`), les modules du solveur, le code des outils. Le code interne peut bouger d'une version mineure à l'autre.

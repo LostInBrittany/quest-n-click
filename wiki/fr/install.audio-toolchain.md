@@ -25,7 +25,7 @@ Python 3.11 qui transcrit des sources audio en MIDI.
 
 > [!LIMIT id=audio-repository-only]
 > La chaîne n'est proposée que dans le dépôt du moteur. Ses fichiers sont dans le paquet du moteur
-> (`node_modules/quest-n-click/tools/audio/`), mais aucune commande d'un projet créé ne la lance, et la lancer de là n'a
+> (`node_modules/@quest-n-click/engine/tools/audio/`), mais aucune commande d'un projet créé ne la lance, et la lancer de là n'a
 > pas été vérifié.
 
 <a name="prerequisites"></a>

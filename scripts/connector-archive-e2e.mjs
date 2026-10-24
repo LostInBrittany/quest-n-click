@@ -178,7 +178,7 @@ h.run(
   ['install', '--omit=optional', '--ignore-scripts', '--no-audit', '--no-fund', tgz('quest-n-click-connectors')],
   operator,
 );
-const CBIN = join(operator, 'node_modules', 'quest-n-click-connectors', 'bin.mjs');
+const CBIN = join(operator, 'node_modules', '@quest-n-click', 'connectors', 'bin.mjs');
 const grant = (name, source, signals) => {
   const f = join(base, `${name}.token`);
   writeFileSync(

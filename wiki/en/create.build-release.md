@@ -38,7 +38,7 @@ its `build` and `release` commands exist since 3.9.0; `npm start` is a Node laun
   See [Requirements](install.requirements.md).
 - Python 3 with the packages of `requirements.txt` (Pillow first): `npm run assets` turns `art/` and `audio/` into
   `public/assets`, and a created project's `build` runs it every time. In a created project the file is
-  `node_modules/quest-n-click/requirements.txt`.
+  `node_modules/@quest-n-click/engine/requirements.txt`.
 - ffmpeg when the game has sounds, music or video to encode, and for a release when the game declares music in stems
   (`validate --release` measures them with ffprobe).
 - A game that passes its checks: [Checking your game](create.checking.md). Building runs them again and stops on the
@@ -207,7 +207,7 @@ sent: `.gitignore` excludes it, and nothing in it is copied into `dist/`. A crea
 
 | Symptom | Cause | Fix |
 |---|---|---|
-| `python3` not found, or `No module named 'PIL'` | The asset step needs Python 3 and Pillow | `pip install -r node_modules/quest-n-click/requirements.txt` (created project) or `pip install -r requirements.txt` (engine repository) |
+| `python3` not found, or `No module named 'PIL'` | The asset step needs Python 3 and Pillow | `pip install -r node_modules/@quest-n-click/engine/requirements.txt` (created project) or `pip install -r requirements.txt` (engine repository) |
 | `provenance.lock.json › missing: a release ships the files that were reviewed` | No lock yet | Review the assets, then lock them (step 3) |
 | A placeholder refused by `validate --release` | The template's art is still there | Replace it, or name it in `releaseExceptions` with a reason (refused by `--commercial`) |
 | `audio.scores › ffprobe not found` | A release measures the stems | Install ffmpeg, then `npx quest-n-click doctor` |
@@ -240,7 +240,7 @@ the audit, so the file cannot outlive the word it excuses.
 - `public/assets/` and `.cache/refs.json`: written by `assets` (committed in the engine repository, not in a created
   project).
 - `games/<id>/data/` (engine repository): the sealed ending's file, written by `seal`.
-- Nothing in `node_modules/quest-n-click`: the engine is read, never written.
+- Nothing in `node_modules/@quest-n-click/engine`: the engine is read, never written.
 
 <a name="recovery"></a>
 

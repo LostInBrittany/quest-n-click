@@ -55,11 +55,12 @@ export function repositoryScripts(root: string): Record<string, string> {
 
 /**
  * The scripts `quest-n-click create` writes, name → command, read from cli/create.mjs's `scripts: { … }` block: a
- * `key: \`${NAME} cmd\`` entry, and `[NAME]: NAME` (the engine's own command, under the package's name).
+ * `key: \`${NAME} cmd\`` entry, and `[NAME]: NAME` (the engine's own command, under its own name).
  */
 export function projectScripts(root: string): Record<string, string> {
   const text = source(root, 'cli/create.mjs');
-  const name = (JSON.parse(source(root, 'package.json') || '{}') as { name?: string }).name ?? 'quest-n-click';
+  // The engine's command (cli/create.mjs `NAME`), not its package's name (`@quest-n-click/engine` since 4.5.2, D53).
+  const name = /\nconst NAME = '([^']+)';/.exec(text)?.[1] ?? 'quest-n-click';
   const block = /\n(\s*)scripts: \{\n([\s\S]*?)\n\1\},/.exec(text)?.[2] ?? '';
   const out: Record<string, string> = {};
   for (const l of block.split('\n')) {
@@ -77,7 +78,7 @@ const W = {
       'Run in a clone of the engine repository, from its root folder (the one that holds `package.json`), after `npm ci`.',
     project: 'Scripts of a created project',
     projectIntro:
-      "Written by `quest-n-click create` (or `npx create-quest-n-click`) into the new project's `package.json`. Run them from the project's folder, after `npm install`: each calls the `quest-n-click` command of the installed engine.",
+      "Written by `quest-n-click create` (or `npm init @quest-n-click`) into the new project's `package.json`. Run them from the project's folder, after `npm install`: each calls the `quest-n-click` command of the installed engine.",
     runs: 'Runs',
     usage: 'Usage',
   },
@@ -87,7 +88,7 @@ const W = {
       'À lancer dans un clone du dépôt du moteur, depuis son dossier racine (celui qui contient `package.json`), après `npm ci`.',
     project: 'Scripts d’un projet créé',
     projectIntro:
-      'Écrits par `quest-n-click create` (ou `npx create-quest-n-click`) dans le `package.json` du nouveau projet. À lancer depuis le dossier du projet, après `npm install` : chacun appelle la commande `quest-n-click` du moteur installé.',
+      'Écrits par `quest-n-click create` (ou `npm init @quest-n-click`) dans le `package.json` du nouveau projet. À lancer depuis le dossier du projet, après `npm install` : chacun appelle la commande `quest-n-click` du moteur installé.',
     runs: 'Lance',
     usage: 'Utilisation',
   },

@@ -36,7 +36,7 @@ Howler, earcut, navmesh, Tweakpane, Playwright et zod.
 
 - Les vecteurs de test Biscuit de `bridge/test-vectors/biscuit/` viennent du projet Biscuit (Apache-2.0, leur `LICENSE`
   à côté).
-- Le connecteur SSH (`quest-n-click-connectors`, 4.1.9) tourne sur ssh2 (MIT, Brian White) et ses dépendances asn1
+- Le connecteur SSH (`@quest-n-click/connectors`, 4.1.9) tourne sur ssh2 (MIT, Brian White) et ses dépendances asn1
   (MIT), bcrypt-pbkdf (BSD-3-Clause), safer-buffer (MIT) et tweetnacl (Unlicense).
 
 ### Images du jeu d'exemple (`games/demo/art`)

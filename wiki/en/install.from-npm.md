@@ -1,15 +1,20 @@
 # Install from npm, once published
 
-**The engine is not published on npm.** On 23 Oct 2026, `npm view` answers `404 Not Found` for `quest-n-click`,
-`create-quest-n-click`, `quest-n-click-bridge`, `quest-n-click-connectors` and `quest-n-click-studio-server`. Until a
-release's notes say otherwise, install from the release archive: [Install from the release archive](install.from-archive.md).
-This page says how to tell when npm is ready, and what the commands will be then.
+**The engine is not published on npm.** Its packages are named under the organisation `quest-n-click` (D53):
+`@quest-n-click/engine`, `@quest-n-click/create`, `@quest-n-click/bridge`, `@quest-n-click/connectors` and
+`@quest-n-click/studio-server`. On 24 Oct 2026 each holds only a reservation version, `0.0.0-bootstrap.0`, never a
+version of the product. The unscoped names of 4.5.1 and before (`quest-n-click`, `quest-n-click-bridge`, …) are kept
+by the maintainers as deprecated pointers to the scoped ones, except `create-quest-n-click`, which stays a relay to
+`@quest-n-click/create`. Until a release's notes say otherwise, install from the
+release archive: [Install from the release archive](install.from-archive.md). This page says how to tell when npm is
+ready, and what the commands will be then.
 
 <a name="what-you-get"></a>
 
 ## What you get
 
-Today: a way to check, in one command, whether a `quest-n-click` package on npm is the project's. Once the packages are
+Today: a way to check, in one command, whether an `@quest-n-click/engine` package on npm is the project's. Once the
+packages are
 published: a game project created and upgraded with npm's usual commands, without an archive URL.
 
 <a name="context-and-versions"></a>
@@ -17,17 +22,20 @@ published: a game project created and upgraded with npm's usual commands, withou
 ## Context and versions
 
 - A **created project**, on your machine.
-- Nothing has ever been published to npm, up to and including 4.4.0. 4.2.0 went to GitHub Releases only (D38):
-  publishing needs the maintainer's two-factor authentication at each step, and 4.2.0 did not wait for it. The README
-  says npm publishing comes in a later release; no version is promised.
+- No version of the product has ever been published to npm, up to and including 4.5.1. 4.2.0 went to GitHub Releases
+  only (D38): publishing needs a maintainer's two-factor authentication at each step, and 4.2.0 did not wait for it.
+  The npm organisation `quest-n-click` (two owners, so two people can approve) and the scoped names come with 4.5.2
+  (D53); the publication itself follows in a later release, and no version is promised.
 - Until the first publication, the names are only watched: a job of the nightly workflow (`npm-names`, never gating)
-  checks that each name, the current ones and the former `web-scumm…` ones, is still free or published by the
-  maintainer's npm user, and warns otherwise. Someone else taking a name first is a risk the project accepted (D34).
+  checks that each scoped name, and each former `web-scumm…` one, is still free or published by an owner of the
+  organisation, that each unscoped name is an owner's deprecated pointer (`create-quest-n-click`: an owner's relay,
+  not deprecated), and warns otherwise.
 
 > [!LIMIT id=npm-not-published]
-> No `npm install quest-n-click`, `npx create-quest-n-click` or `npm install quest-n-click@<version>` works today: npm
-> answers 404. A package under one of these names that appears on npm before a release announces it is not the
-> project's: do not install it.
+> No `npm install @quest-n-click/engine`, `npm init @quest-n-click` or `npm install @quest-n-click/engine@<version>`
+> installs the engine today: the scoped names hold a reservation version only. The unscoped `quest-n-click` names are
+> deprecated pointers or, for `create-quest-n-click`, a relay; never the engine itself. A package under one of these names published by someone other than the
+> organisation's owners is not the project's: do not install it.
 
 <a name="prerequisites"></a>
 
@@ -47,27 +55,32 @@ On your machine, from the folder that will contain the project; then inside the 
 ## Steps
 
 <!-- step: check-owner -->
-1. Check that the package exists and is the project's. Its maintainer must be `wanoo` and its repository
-   `github.com/Quest-n-Click/quest-n-click`:
+1. Check that the package is published and is the project's. Its maintainers must be owners of the organisation
+   `quest-n-click` (`lostinbrittany` today), its repository `github.com/Quest-n-Click/quest-n-click`, and its `latest`
+   a version of the product:
 
    ```bash
    # anywhere
-   npm view quest-n-click maintainers repository.url
+   npm view @quest-n-click/engine maintainers repository.url dist-tags
    ```
 
-   Today this prints `npm error 404 Not Found`: stop here and use the [release archive](install.from-archive.md).
+   Today `dist-tags` names no product version (only `bootstrap`, the reservation): stop here and use the
+   [release archive](install.from-archive.md).
 
 <!-- step: create-from-npm -->
-2. Create the project. Either command does the same thing (`create-quest-n-click` runs `quest-n-click create` from the
+2. Create the project. Either command does the same thing (`@quest-n-click/create` runs `quest-n-click create` from the
    engine it depends on):
 
    ```bash
    # in the folder that will contain the project
-   npx create-quest-n-click my-game "My Game"     # or: npx quest-n-click create my-game "My Game"
+   npm init @quest-n-click my-game "My Game"     # or: npx quest-n-click create my-game "My Game"
    ```
 
-   Without `--engine`, `create` writes the dependency `"quest-n-click": "^<version>"`, which npm resolves from the
-   registry.
+   `npx create-quest-n-click my-game "My Game"` still works too: the unscoped `create-quest-n-click` is a relay that
+   runs `@quest-n-click/create`, the same thing.
+
+   Without `--engine`, `create` writes the dependency `"@quest-n-click/engine": "^<version>"`, which npm resolves from
+   the registry.
 
 <!-- step: install-and-play -->
 3. Install, prepare the art and play, as from the archive:
@@ -76,7 +89,7 @@ On your machine, from the folder that will contain the project; then inside the 
    # from the folder that contains the project, then inside it
    cd my-game
    npm install
-   python3 -m pip install -r node_modules/quest-n-click/requirements.txt
+   python3 -m pip install -r node_modules/@quest-n-click/engine/requirements.txt
    npm run assets && npm run dev
    ```
 
@@ -85,8 +98,8 @@ On your machine, from the folder that will contain the project; then inside the 
 ## Expected result, and how to check it
 
 Once published, step 1 prints the maintainer and the repository; step 2 ends with
-`my-game: "My Game" created (quest-n-click ^<version>).` A project made from an archive moves to the registry with
-`npm install quest-n-click@<version>`, which replaces the archive's URL in its `package.json` by a version range.
+`my-game: "My Game" created (@quest-n-click/engine ^<version>).` A project made from an archive moves to the registry with
+`npm install @quest-n-click/engine@<version>`, which replaces the archive's URL in its `package.json` by a version range.
 
 <a name="common-errors"></a>
 
@@ -94,8 +107,9 @@ Once published, step 1 prints the maintainer and the repository; step 2 ends wit
 
 | Symptom | Cause | Fix |
 |---|---|---|
-| `npm error 404 Not Found - GET https://registry.npmjs.org/quest-n-click` | Not published yet | [Install from the release archive](install.from-archive.md) |
-| `npm view` shows a maintainer other than `wanoo` | A name taken by someone else | Do not install it; report it on the project's issues |
+| `npm view @quest-n-click/engine dist-tags` names only `bootstrap` (and npm's `0.0.0-stage` placeholder) | Not published yet | [Install from the release archive](install.from-archive.md) |
+| `npm view` shows a maintainer who is not an owner of the organisation | A name taken by someone else | Do not install it; report it on the project's issues |
+| `npm warn deprecated quest-n-click@0.0.1: …` | An unscoped name of 4.5.1 and before, now a pointer | Install `@quest-n-click/engine` instead |
 
 <a name="files-changed"></a>
 
@@ -120,7 +134,8 @@ The procedure was written in 4.1.20 and is played by the maintainer in a later r
 
 - **Staged publishing with a person's approval.** The release run stages each package through GitHub's OIDC (trusted
   publishing, configured stage-only: CI may stage, never publish), and the maintainer promotes each one with
-  two-factor authentication (`npm stage approve <id>`, or on npmjs.com). A version of the product never comes from a
+  two-factor authentication (`npm stage approve <id>`, or on npmjs.com); either owner of the organisation can approve.
+  A version of the product never comes from a
   local publication, which would carry no OIDC provenance; only a reservation version `0.0.0-bootstrap.0` may, once per
   package, to create it.
 - **Exact tools.** Staged publishing needs npm 11.15.0 and Node 22.14.0 at least. `release.yml` pins the publishing

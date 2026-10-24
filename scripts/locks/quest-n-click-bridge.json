@@ -1,11 +1,11 @@
 {
-  "name": "quest-n-click-bridge",
+  "name": "@quest-n-click/bridge",
   "version": "0.0.0",
   "lockfileVersion": 3,
   "requires": true,
   "packages": {
     "": {
-      "name": "quest-n-click-bridge",
+      "name": "@quest-n-click/bridge",
       "version": "0.0.0",
       "license": "MIT",
       "dependencies": {

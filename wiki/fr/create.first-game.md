@@ -48,7 +48,7 @@ réplique traduisible, une traduction manquante repérée avant la release ([tra
 
 - Node 22.13 ou plus récent : le Studio local (étape 5) et les outils qui écrivent un jeu en ont besoin ; 22.12 ne
   sert qu'à jouer et construire un jeu ([prérequis](install.requirements.md#node)). Python 3 avec Pillow pour
-  `npm run assets` (`python3 -m pip install -r node_modules/quest-n-click/requirements.txt` dans un projet créé,
+  `npm run assets` (`python3 -m pip install -r node_modules/@quest-n-click/engine/requirements.txt` dans un projet créé,
   `python3 -m pip install -r requirements.txt` dans le dépôt du moteur).
 - Un téléphone sur le même réseau, pour la dernière étape (facultatif).
 - Un des deux endroits où travailler, avec les mêmes étapes ([lequel est lequel](create.project-layout.md)) :
@@ -75,12 +75,12 @@ T=https://github.com/Quest-n-Click/quest-n-click/releases/download/v$V/quest-n-c
 npx --package=$T quest-n-click create my-game "My Game" --engine=$T
 cd my-game
 npm install
-python3 -m pip install -r node_modules/quest-n-click/requirements.txt
+python3 -m pip install -r node_modules/@quest-n-click/engine/requirements.txt
 npm run assets      # les images provisoires dans public/assets
 npm run dev         # http://127.0.0.1:5173/ : un jardin, un seau, un portail
 ```
 
-Une fois les paquets publiés sur npm, `npx create-quest-n-click my-game "My Game"` fera les trois premières lignes
+Une fois les paquets publiés sur npm, `npm init @quest-n-click my-game "My Game"` fera les trois premières lignes
 ([installer depuis npm, une fois publié](install.from-npm.md)) ; d'ici là, cette commande échoue, car rien de ce nom
 n'est sur le registre.
 

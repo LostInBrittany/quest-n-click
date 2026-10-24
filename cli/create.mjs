@@ -1,16 +1,19 @@
 #!/usr/bin/env node
-// quest-n-click create <folder> ["Title"] [--engine=<npm spec>] (3.9), also `npx create-quest-n-click <folder>`: a
+// quest-n-click create <folder> ["Title"] [--engine=<npm spec>] (3.9), also `npm init @quest-n-click <folder>`: a
 // game project from the engine's template. The folder gets game/ (the template: one room, a hero, placeholder art drawn
 // from shapes), a package.json whose scripts call the engine's command, a tsconfig.json whose `@engine` points into the
 // installed package, and a .gitignore. Then: cd <folder> && npm install && npm run dev.
-// The engine's name is the package's own (4.2.5, D47): `quest-n-click` (its former name's alias, `web-scumm`, made
-// projects under the old names through 4.2.x; `quest-n-click migrate` moves them, 4.3.0).
+// The engine's name is the package's own (4.2.5, D47): `@quest-n-click/engine` since 4.5.2 (D53), `quest-n-click`
+// before (its former name's alias, `web-scumm`, made projects under the old names through 4.2.x); `quest-n-click
+// migrate` moves a project off either. The command keeps its name, `quest-n-click`, whatever the package's.
 import { cpSync, existsSync, readFileSync, readdirSync, statSync, writeFileSync } from 'node:fs';
 import { basename, dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const PKG = resolve(dirname(fileURLToPath(import.meta.url)), '..');
-const { name: NAME, version } = JSON.parse(readFileSync(join(PKG, 'package.json'), 'utf8'));
+const { name: PACKAGE, version } = JSON.parse(readFileSync(join(PKG, 'package.json'), 'utf8'));
+/** The engine's command (its package's `bin`), which the project's scripts call. */
+const NAME = 'quest-n-click';
 const args = process.argv.slice(2);
 const opt = (k) => args.find((a) => a.startsWith(`--${k}=`))?.slice(k.length + 3);
 const [folder, ...words] = args.filter((a) => !a.startsWith('--'));
@@ -45,7 +48,7 @@ const walk = (d) => {
         readFileSync(p, 'utf8')
           .replace(/__ID__/g, id)
           .replace(/__TITLE__/g, title)
-          .replace(/(['"])quest-n-click\//g, `$1${NAME}/`),
+          .replace(/(['"])@quest-n-click\/engine\//g, `$1${PACKAGE}/`),
       );
   }
 };
@@ -97,7 +100,7 @@ writeFileSync(
         preview: `${NAME} preview`,
         [NAME]: NAME,
       },
-      dependencies: { [NAME]: engine },
+      dependencies: { [PACKAGE]: engine },
     },
     null,
     2,
@@ -119,14 +122,14 @@ writeFileSync(
         resolveJsonModule: true,
         // Relative to this file, no `baseUrl` (removed by TypeScript 7, 4.1.8).
         paths: {
-          '@engine/*': [`./node_modules/${NAME}/src/engine/*`],
-          [`${NAME}/*`]: [`./node_modules/${NAME}/src/engine/api/*`],
+          '@engine/*': [`./node_modules/${PACKAGE}/src/engine/*`],
+          [`${PACKAGE}/*`]: [`./node_modules/${PACKAGE}/src/engine/api/*`],
           '@game': ['./game/index.ts'],
           '@game/*': ['./game/*'],
         },
         types: ['vite/client', 'node'],
       },
-      include: ['game', `node_modules/${NAME}/src/env.d.ts`],
+      include: ['game', `node_modules/${PACKAGE}/src/env.d.ts`],
     },
     null,
     2,
@@ -138,5 +141,5 @@ writeFileSync(
   `# ${title}\n\nA point-and-click game made with [quest'n'click](https://github.com/Quest-n-Click/quest-n-click).\n\n\`\`\`bash\nnpm install\nnpm run assets   # art and audio into public/assets (Python 3 with Pillow)\nnpm run dev      # open the URL, landscape; ?edit=start places things\nnpm run verify   # the content checked, the solver finds the end\nnpm run build    # dist/, every file accounted for, licences inside\n\`\`\`\n\nThe game is in \`game/\`: rooms, characters, items, rules. The art in \`game/art\` is a placeholder; a release refuses it\nuntil it is replaced and reviewed (\`npx ${NAME} provenance --lock\`).\n\nThe documentation is the wiki, in English and in French, https://github.com/Quest-n-Click/quest-n-click/wiki: start with\nhttps://github.com/Quest-n-Click/quest-n-click/wiki/EN-Create-Project-Layout for this project's files, and\nhttps://github.com/Quest-n-Click/quest-n-click/wiki/EN-Create-Working-Loop for the commands above.\n`,
 );
 console.log(
-  `${folder}: "${title}" created (${NAME} ${engine}).\nNext:\n  cd ${folder}\n  npm install\n  npm run assets && npm run dev`,
+  `${folder}: "${title}" created (${PACKAGE} ${engine}).\nNext:\n  cd ${folder}\n  npm install\n  npm run assets && npm run dev`,
 );

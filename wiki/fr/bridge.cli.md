@@ -14,7 +14,7 @@ de sortie, lus dans `bridge/src/cli.ts` et `bridge/src/cli-store.ts`. Comment le
 | Où | Commande |
 |---|---|
 | Le dépôt du moteur | `npm run bridge -- <sous-commande> [options]` (le jeu courant, ou `GAME=<id>`) |
-| Un projet créé | `npx quest-n-click bridge <sous-commande> [options]` (il faut `quest-n-click-bridge` installé à côté du moteur) |
+| Un projet créé | `npx quest-n-click bridge <sous-commande> [options]` (il faut `@quest-n-click/bridge` installé à côté du moteur) |
 | Le paquet autonome | `npx quest-n-click-bridge <sous-commande> [options]` |
 
 Une option s’écrit `--nom=valeur` ou `--nom valeur`. Chaque sous-commande prend `--dir=<dossier>`, le dossier du
@@ -32,7 +32,7 @@ dossier du Bridge) ou `postgres://…`.
 
 Une autre sous-commande affiche `usage: quest-n-click-bridge <init|serve|grant|rotate|revoke|doctor|compact|migrate|tenant|backup|restore>`
 et sort avec le code 2. Hors du dépôt du moteur, sans le paquet : `✖  the Reality Bridge is a separate package: npm
-install quest-n-click-bridge`, code 1.
+install @quest-n-click/bridge`, code 1.
 
 ### Exemple minimal
 

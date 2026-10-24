@@ -80,8 +80,9 @@ if (source.kind === 'release')
     base,
   );
 show('create the game with the older engine', 'tar', ['-xzf', oldTgz, '-C', base], base);
-// The engine's name as the older release packed it (D47): `web-scumm` up to 4.2.4, `quest-n-click` since. The new
-// engine has no alias of the former name (4.3.0): the project moves as its author would, `migrate` renaming the rest.
+// The engine's name as the older release packed it (D47): `web-scumm` up to 4.2.4, `quest-n-click` up to 4.5.1,
+// `@quest-n-click/engine` since (D53). The new engine has no alias of a former name: the project moves as its author
+// would, `migrate` renaming the rest.
 const { version: oldVersion, name: E } = JSON.parse(readFileSync(join(base, 'package', 'package.json'), 'utf8'));
 show(
   'create',
@@ -116,7 +117,7 @@ show(`a save made by ${oldVersion}`, 'npx', ['tsx', '--tsconfig', 'tsconfig.json
 const pack = join(base, 'pack');
 run('pack this engine', process.execPath, [join(ROOT, 'scripts', 'pack.mjs'), `--out=${pack}`], ROOT);
 const newVersion = JSON.parse(readFileSync(join(ROOT, 'package.json'), 'utf8')).version;
-if (E !== 'quest-n-click') show(`uninstall ${E}`, 'npm', ['uninstall', '--no-audit', '--no-fund', E], game);
+if (E !== '@quest-n-click/engine') show(`uninstall ${E}`, 'npm', ['uninstall', '--no-audit', '--no-fund', E], game);
 show(
   `upgrade to ${newVersion}`,
   'npm',
@@ -125,7 +126,7 @@ show(
 );
 // A project of the previous release has what the new one migrates (4.1.8: a tsconfig with `baseUrl`): `migrate`
 // first, then `--check` says nothing is left; `--check` before a migration exits 1 on purpose. 4.3.0: `migrate` also
-// renames the former name's imports and commands (make-save.ts's among them).
+// renames the former name's imports and commands (make-save.ts's among them); 4.5.2, the unscoped imports (D53).
 show('migrate', 'npx', ['quest-n-click', 'migrate'], game);
 show('migrate --check', 'npx', ['quest-n-click', 'migrate', '--check'], game);
 show(`assets on ${newVersion}`, 'npx', ['quest-n-click', 'assets'], game);
@@ -134,7 +135,7 @@ show(`build on ${newVersion}`, 'npx', ['quest-n-click', 'build'], game);
 
 writeFileSync(
   join(game, 'load-save.ts'),
-  `import { Engine, FakePresenter, MemoryStore, parseSave, solve } from 'quest-n-click/testing';
+  `import { Engine, FakePresenter, MemoryStore, parseSave, solve } from '@quest-n-click/engine/testing';
 import { readdirSync, readFileSync } from 'node:fs';
 import { game } from './game/game';
 const layouts = Object.fromEntries(readdirSync('game/layout').map((f) => [f.replace('.json', ''), JSON.parse(readFileSync('game/layout/' + f, 'utf8'))]));

@@ -66,8 +66,9 @@ export function migratedShape(v: unknown, existing: ReadonlyMap<string, string>)
 }
 
 /**
- * The former name's imports (`web-scumm/…`, D47) renamed `quest-n-click/…` in the game's sources in `dir`, the child's
- * own copy of the snapshot, before its code is loaded: the renamed files by their path in the game, their new text.
+ * The former names' imports (`web-scumm/…`, D47; `quest-n-click/…`, D53) renamed `@quest-n-click/engine/…` in the
+ * game's sources in `dir`, the child's own copy of the snapshot, before its code is loaded: the renamed files by their
+ * path in the game, their new text.
  */
 export function renameImportsIn(dir: string): Record<string, string> {
   const out: Record<string, string> = {};

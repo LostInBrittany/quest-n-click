@@ -18,7 +18,7 @@ seulement avec un jeton valable pour la session, que la commande affiche.
 
 - **Dépôt du moteur** : `npm run dev:lan` (et `npm run studio:lan` pour le Studio). La commande existe depuis 3.0.0 ;
   depuis 4.1.2, les routes d'écriture du Studio vérifient aussi le `Host` envoyé par le navigateur (plus bas).
-- **Projet créé** (avec `npx create-quest-n-click <dossier>` ou `quest-n-click create <dossier>`) : pas de script
+- **Projet créé** (avec `npm init @quest-n-click <dossier>` ou `quest-n-click create <dossier>`) : pas de script
   `dev:lan`. Son `dev` transmet les options supplémentaires à Vite, donc `npm run dev -- --host` sert le jeu sur le
   réseau. Ce mode ne donne pas de jeton : le téléphone joue, mais le Studio et l'éditeur de placement refusent toute
   écriture qui ne vient pas de cette machine (voir [Ce qui reste protégé](#limits)).

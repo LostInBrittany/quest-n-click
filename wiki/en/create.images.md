@@ -23,7 +23,7 @@ Both contexts, with different command names:
   and the Python tools under `tools/`.
 - **Created project** (made with `quest-n-click create`): the game is `game/`; the commands go through the engine's
   command, `npx quest-n-click prompts` and `npm run assets`; the Python tools are in
-  `node_modules/quest-n-click/tools/`.
+  `node_modules/@quest-n-click/engine/tools/`.
 
 What this page says is true from 4.2.5 (the `quest-n-click` command name; the choice of sheet background came in 4.2.4).
 The Studio's **Assets** tab does the same cutting from the browser: see [Assets and cutting in the Studio](studio.assets.md).
@@ -99,7 +99,7 @@ On your machine, at the root of the engine repository or of the created project.
 
    ```bash
    # in the created project
-   python3 node_modules/quest-n-click/tools/cut-sheet.py <sheet.png> <sheet-id> --out game/art
+   python3 node_modules/@quest-n-click/engine/tools/cut-sheet.py <sheet.png> <sheet-id> --out game/art
    ```
 
    Cut only the new sheet. The cutter writes over a cell that already exists without asking: give `--cells` with the

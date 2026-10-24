@@ -1,7 +1,7 @@
 # Requirements
 
 What a machine needs to make a game with quest'n'click, or to work on the engine. Two contexts recur on this page: a
-**created project** (a game made with `quest-n-click create`, the engine installed under `node_modules/quest-n-click`)
+**created project** (a game made with `quest-n-click create`, the engine installed under `node_modules/@quest-n-click/engine`)
 and the **engine repository** (a clone of `Quest-n-Click/quest-n-click`). Only Node.js is needed for everything; the rest
 depends on what you do.
 
@@ -23,7 +23,7 @@ depends on what you do.
 
 ### Version
 
-**22.12 or newer.** The engine's `package.json` says `"engines": { "node": ">=22.12" }`, and the `quest-n-click`
+**22.12 or newer.** The engine's `package.json` says `"engines": { "node": ">=22.12" }`, and the `@quest-n-click/engine`
 package carries the same field: Vite 8 and Vitest 5 need it (4.1.8). The repository's `.nvmrc` says `22`, so
 `nvm use` takes the newest 22 you have installed.
 
@@ -68,7 +68,7 @@ python3 -m pip install -r requirements.txt
 
 ```sh
 # in a created project: the file comes with the engine package
-python3 -m pip install -r node_modules/quest-n-click/requirements.txt
+python3 -m pip install -r node_modules/@quest-n-click/engine/requirements.txt
 ```
 
 In a created project, `npx quest-n-click assets` runs `python3`, or the interpreter the variable
@@ -132,7 +132,7 @@ with a Python 3.11 virtual environment. They serve the engine repository's `npm 
 - **Windows**: CI runs a `windows-latest` job (since 4.1.8): `doctor`, the type checks, the unit suite except six test
   files that assume POSIX (file modes, `/` in paths; named in `ci.yml`), without the Telnet and SSH tests and the
   Studio Server's worker, then `build` and the production server answering. Each release candidate installs the archives on Windows, creates and builds a game,
-  and plays it to its ending through `quest-n-click/testing` (no browser). Nobody has
+  and plays it to its ending through `@quest-n-click/engine/testing` (no browser). Nobody has
   checked `npm run dev` and the Studio on Windows yet. Run the shell blocks of these pages in Git Bash, the shell CI
   uses there.
 - The audio pipeline does not download Furnace on Windows: install it yourself

@@ -31,7 +31,7 @@ answers hold for the release this documentation belongs to, named at the foot of
 
 - **How do I start my own game?** Install the engine from a release's archive into its own folder, then follow the
   first-game tutorial ([Install from the release archive](install.from-archive.md), [Your first game](create.first-game.md)).
-- **Can I `npm install quest-n-click`?** Not yet: no release has published the packages on npm; each release attaches
+- **Can I `npm install @quest-n-click/engine`?** Not yet: no release has published the packages on npm; each release attaches
   them as archives ([Stability and support](start.stability.md#releases)).
 - **Where do I run this command?** Each command in this wiki says first its folder and context: the engine repository
   or a created project, with different scripts ([Project layout](create.project-layout.md),

@@ -101,6 +101,10 @@ if it loaded before, gain no error. The solver does not judge it, so a game that
 stuck. The schema's migration follows, judged as above; when it is refused, the answer's `body.renamed` says the
 rename was kept.
 
+From 4.5.2 the same rename also moves the unscoped imports of 4.5.1 and before, `quest-n-click/…`, to the scoped
+package, `@quest-n-click/engine/…` (D53). Those still load on a 4.5.x Studio meanwhile, so such a game is not refused
+before its upgrade.
+
 The rename is written **without an undo** (an undo would bring back imports that no longer resolve), so the owner's
 earlier history stays reachable; a backup taken before is the way back. A worker that refuses, times out or leaves no
 result while the guard asks never counts as the game not loading: the write fails (503) and the next one asks again.
@@ -139,7 +143,7 @@ A second call answers `{ "changed": 0 }`.
 ## Files or data changed
 
 `rooms/*.ts`, `rules.ts`, `items.ts`, `game.ts`, the translation tables, `ids.migration.json`, `ids.paths.json`; for
-the former name, every TypeScript source that imported `web-scumm/…`.
+the former name, every TypeScript source that imported `web-scumm/…` (from 4.5.2, or `quest-n-click/…`).
 
 <a name="recovery"></a>
 

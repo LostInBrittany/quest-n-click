@@ -17,7 +17,7 @@ prepared into `public/assets/` by `npm run assets`.
 ## Context and versions
 
 - The **engine repository** (a game under `games/<id>/`) or a **created project** (the game under `game/`, the tools
-  under `node_modules/quest-n-click/tools/`). The commands differ only by the path of the tool and its output.
+  under `node_modules/@quest-n-click/engine/tools/`). The commands differ only by the path of the tool and its output.
 - From 4.3.0 the modules are Pillow 13.0.0, NumPy 2.4.6 and SciPy 1.18.1 (`requirements.txt`); with that upgrade the
   sample game's images came out byte for byte the same ([4.3 notes](install.upgrade-notes-4-3.md)).
 
@@ -49,7 +49,7 @@ At the root of the engine repository, or at the root of the created project. Eac
 
    ```sh
    # in a created project
-   python3 -m pip install -r node_modules/quest-n-click/requirements.txt
+   python3 -m pip install -r node_modules/@quest-n-click/engine/requirements.txt
    ```
 
 <!-- step: prompts -->
@@ -77,7 +77,7 @@ At the root of the engine repository, or at the root of the created project. Eac
 
    ```sh
    # in a created project: name the output folder, the tool's default is the repository's games/<GAME>/art
-   python3 node_modules/quest-n-click/tools/cut-sheet.py hero_sheet.png hero --out game/art
+   python3 node_modules/@quest-n-click/engine/tools/cut-sheet.py hero_sheet.png hero --out game/art
    ```
 
    With `"artStyle": "pixel"` in `site.json` (or `--pixel`), the cutter also scales each cell down 4× (`--scale`),
@@ -88,7 +88,7 @@ At the root of the engine repository, or at the root of the created project. Eac
 4. Choose the sheets' background, once per image tool:
 
    ```sh
-   # in the engine repository (in a created project, prefix the tool with node_modules/quest-n-click/)
+   # in the engine repository (in a created project, prefix the tool with node_modules/@quest-n-click/engine/)
    python3 tools/check-alpha.py test_image.png
    python3 tools/pick-bg.py games/<id>/art/hero/
    ```

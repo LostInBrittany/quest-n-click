@@ -12,7 +12,7 @@
 //      engine; then moved to the candidate as its author would (4.3.0, D47: the former name's aliases are gone): the
 //      old package uninstalled, `quest-n-click` installed from its archive, `npx quest-n-click migrate` (which renames
 //      the `web-scumm/…` imports, the tsconfig's paths and the scripts' commands), migrate --check, assets, verify,
-//      build, the old save loaded and played to the ending through `quest-n-click/testing`, a new game played to the
+//      build, the old save loaded and played to the ending through `@quest-n-click/engine/testing`, a new game played to the
 //      ending the same way; then (4.5.0) a real MCP client over stdio against that project's `quest-n-click mcp`:
 //      read_doc {name} one text block, the bundle's copy, nothing beside it; list_docs and search_docs offered, the
 //      bundle naming this version;
@@ -116,8 +116,15 @@ function bundleRead(dir) {
 }
 
 // ---------------------------------------------------------------- the archives
-// The packages under their names since 4.2.5 (D47); their former names' aliases went in 4.3.0.
+// The packages' archives under their names since 4.2.5 (D47); their former names' aliases went in 4.3.0. Since 4.5.2
+// (D53) each archive holds the package of the organisation's scope that NPM names; the archive keeps its file name.
 const NAMES = ['quest-n-click', 'create-quest-n-click', 'quest-n-click-bridge', 'quest-n-click-connectors'];
+const NPM = {
+  'quest-n-click': '@quest-n-click/engine',
+  'create-quest-n-click': '@quest-n-click/create',
+  'quest-n-click-bridge': '@quest-n-click/bridge',
+  'quest-n-click-connectors': '@quest-n-click/connectors',
+};
 const FORMER = ['web-scumm', 'create-web-scumm', 'web-scumm-bridge', 'web-scumm-connectors', 'web-scumm-studio-server'];
 let tarballs = flag('tarballs');
 if (!tarballs) {
@@ -146,7 +153,10 @@ console.log('\n▶ the archives, read');
 for (const [n, f] of Object.entries(tgz)) {
   const dir = unpack(f, join(base, `inspect-${n}`));
   const pkg = json(join(dir, 'package.json'));
-  if (pkg.name !== n) fail(`${n}: its package.json says ${pkg.name}`);
+  if (pkg.name !== NPM[n]) fail(`${n}: its package.json says ${pkg.name}, not ${NPM[n]}`);
+  if (pkg.publishConfig?.access !== 'public') fail(`${n}: no publishConfig.access public (a scoped package, D53)`);
+  if (!pkg.repository?.url || !pkg.engines?.node)
+    fail(`${n}: no repository or no engines (a provenance publish needs them)`);
   if (pkg.version !== version) fail(`${n}: version ${pkg.version}, not ${version}`);
   if (!pkg.license) fail(`${n}: no licence`);
   for (const [bin, target] of Object.entries(typeof pkg.bin === 'string' ? { [n]: pkg.bin } : (pkg.bin ?? {}))) {
@@ -219,24 +229,26 @@ console.log('saved after', half.length, 'of', r.steps.length, 'steps in', e.stat
 );
 run(`a save made by ${oldVersion}`, 'npx', ['tsx', '--tsconfig', 'tsconfig.json', 'make-save.ts'], game);
 
-// The engine's name as the older release packed it (D47): `web-scumm` up to 4.2.4. The candidate has no alias of that
-// name (4.3.0): its author uninstalls the old package, installs the new one, and `migrate` renames the rest.
-if (oldName !== 'quest-n-click') run(`uninstall ${oldName}`, 'npm', ['uninstall', oldName], game);
+// The engine's name as the older release packed it (D47): `web-scumm` up to 4.2.4, `quest-n-click` up to 4.5.1 (D53).
+// The candidate has no alias of either: its author uninstalls the old package, installs the new one, and `migrate`
+// renames the rest.
+if (oldName !== NPM['quest-n-click']) run(`uninstall ${oldName}`, 'npm', ['uninstall', oldName], game);
 run(`the candidate over it (${version})`, 'npm', ['install', tgz['quest-n-click']], game);
-const dep = json(join(game, 'package.json')).dependencies?.['quest-n-click'] ?? '';
+const dep = json(join(game, 'package.json')).dependencies?.[NPM['quest-n-click']] ?? '';
 if (!dep.includes(`quest-n-click-${version}.tgz`))
-  fail(`the project depends on quest-n-click through ${dep}, not the candidate's archive`);
+  fail(`the project depends on ${NPM['quest-n-click']} through ${dep}, not the candidate's archive`);
 run('migrate', 'npx', ['quest-n-click', 'migrate'], game);
 run('migrate --check', 'npx', ['quest-n-click', 'migrate', '--check'], game);
 for (const f of ['package.json', 'tsconfig.json', 'make-save.ts', 'game/game.ts', 'game/index.ts'])
-  if (/web-scumm(?=[/ "])/.test(readFileSync(join(game, f), 'utf8'))) fail(`${f}: still names web-scumm after migrate`);
+  if (/web-scumm(?=[/ "])|(['"]|node_modules\/)quest-n-click\//.test(readFileSync(join(game, f), 'utf8')))
+    fail(`${f}: still names web-scumm or the unscoped quest-n-click after migrate`);
 run(`assets on ${version}`, 'npx', ['quest-n-click', 'assets'], game);
 run(`verify on ${version}`, 'npx', ['quest-n-click', 'verify'], game);
 run(`build on ${version}`, 'npx', ['quest-n-click', 'build'], game);
 if (!existsSync(join(game, 'dist', 'index.html'))) fail('the build has no index.html');
 writeFileSync(
   join(game, 'play.ts'),
-  `import { Engine, FakePresenter, MemoryStore, parseSave, solve } from 'quest-n-click/testing';
+  `import { Engine, FakePresenter, MemoryStore, parseSave, solve } from '@quest-n-click/engine/testing';
 import { readdirSync, readFileSync } from 'node:fs';
 import { game } from './game/game';
 ${LAYOUTS}
@@ -269,7 +281,7 @@ writeFileSync(
   `import { readFileSync } from 'node:fs';
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js';
-const engine = 'node_modules/quest-n-click';
+const engine = 'node_modules/@quest-n-click/engine';
 const version = JSON.parse(readFileSync(engine + '/package.json', 'utf8')).version;
 const problems = [];
 const c = new Client({ name: 'external-consumer', version: '0' });
@@ -297,12 +309,18 @@ node('the documentation through MCP, from the installed engine', [join(game, 'mc
 for (const leak of leaksIn(game)) fail(leak);
 
 // ---------------------------------------------------------------- create-quest-n-click
-for (const [creatorName, engineName] of [['create-quest-n-click', 'quest-n-click']]) {
+for (const [creatorName, engineArchive] of [['create-quest-n-click', 'quest-n-click']]) {
+  const engineName = NPM[engineArchive];
   const creator = join(base, creatorName);
   mkdirSync(creator, { recursive: true });
   writeFileSync(join(creator, 'package.json'), '{ "name": "creator", "private": true }\n');
-  run(`${creatorName}: install`, 'npm', ['install', tgz[creatorName], tgz[engineName]], creator);
-  run(`${creatorName}: run`, 'npx', [creatorName, 'beacon', 'The Beacon', `--engine=file:${tgz[engineName]}`], creator);
+  run(`${creatorName}: install`, 'npm', ['install', tgz[creatorName], tgz[engineArchive]], creator);
+  run(
+    `${creatorName}: run`,
+    'npx',
+    [creatorName, 'beacon', 'The Beacon', `--engine=file:${tgz[engineArchive]}`],
+    creator,
+  );
   if (!existsSync(join(creator, 'beacon', 'game', 'game.ts'))) fail(`${creatorName} made no game`);
   else if (!json(join(creator, 'beacon', 'package.json')).dependencies?.[engineName])
     fail(`${creatorName}: the project does not depend on ${engineName}`);
@@ -411,7 +429,7 @@ try {
   // Its bin by node, not through npx: a signal then reaches the connector itself, not npm.
   const connector = serve(
     process.execPath,
-    [join(operator, 'node_modules', 'quest-n-click-connectors', 'bin.mjs'), 'email', '--config', 'email.json'],
+    [join(operator, 'node_modules', '@quest-n-click', 'connectors', 'bin.mjs'), 'email', '--config', 'email.json'],
     operator,
   );
   try {

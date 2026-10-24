@@ -2,8 +2,9 @@
 // `schemaVersion` in defineGame (wiki/en/install.upgrade.md, wiki/en/start.stability.md): 3 is the current one. A game on 3 has
 // nothing to do; an older game gets its stable ids written (`npm run ids -- --write --map`) and the steps left to do
 // by hand are printed. 4.3.0: first, a project still under the former name (D47) has its `web-scumm/…` imports, its
-// tsconfig.json and its package.json's commands renamed (tools/migrate-name.ts). `--check`: exit 1 when a migration
-// is due, write nothing.
+// tsconfig.json and its package.json's commands renamed (tools/migrate-name.ts); 4.5.2 (D53): so are the unscoped
+// `quest-n-click/…` imports and dependencies, to `@quest-n-click/engine`. `--check`: exit 1 when a migration is due,
+// write nothing.
 import { spawnSync } from 'node:child_process';
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
@@ -30,20 +31,20 @@ if (tsconfig && existsSync(tsconfig)) {
     );
   }
 }
-// The former name (4.3.0, D47): the aliases are gone, so a project of 4.2.x or before has its imports and commands
-// renamed before its game is loaded; then this runs again in a new process, which reads the renamed tsconfig.json.
+// The former names (4.3.0, D47; 4.5.2, D53): a project of 4.2.x or before has its imports and commands renamed, one of
+// 4.5.1 or before its imports and dependencies, before its game is loaded; then this runs again in a new process, which reads the renamed tsconfig.json.
 if (PROJECT) {
   const check = process.argv.includes('--check');
   const r = renameProject(PROJECT, { write: !check });
   for (const t of r.todo) console.error(`✖  ${t}`);
   if (r.files.length && check) {
     console.error(
-      `✖  still under the former name web-scumm: ${r.files.join(', ')} (quest-n-click migrate renames them)`,
+      `✖  still under a former name (web-scumm, or the unscoped quest-n-click): ${r.files.join(', ')} (quest-n-click migrate renames them)`,
     );
     process.exit(1);
   }
   if (r.files.length) {
-    console.log(`✔  the former name web-scumm renamed quest-n-click in ${r.files.join(', ')} (then: npm install)`);
+    console.log(`✔  the former names renamed @quest-n-click/… in ${r.files.join(', ')} (then: npm install)`);
     const again = spawnSync(process.execPath, [...process.execArgv, ...process.argv.slice(1)], {
       stdio: 'inherit',
       env: process.env,

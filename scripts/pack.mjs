@@ -9,11 +9,23 @@
 // `npm install <tarball>` or `npm publish`.
 // 4.2.5 (D47): the project was web-scumm. Through 4.2.x each package was also packed under its old name, an alias with
 // the same files and version; 4.3.0 packs the new names only (`quest-n-click migrate` moves a game off the old ones).
+// 4.5.2 (D53): the packages are named under the npm organisation's scope, which owns them: `@quest-n-click/engine`,
+// `@quest-n-click/create` (`npm init @quest-n-click <folder>`), `@quest-n-click/bridge`, `@quest-n-click/connectors`,
+// `@quest-n-click/studio-server`. The commands keep their names (`quest-n-click`, `create-quest-n-click`, …), and so do
+// the archives (`quest-n-click-<v>.tgz`, `create-quest-n-click-<v>.tgz`, …): what a release publishes, sums and attests
+// does not move (tools/release/artifacts.mjs). `quest-n-click migrate` moves a game's imports and dependencies.
 import { execFileSync } from 'node:child_process';
-import { cpSync, mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
-import { dirname, join, resolve } from 'node:path';
+import { cpSync, mkdirSync, readFileSync, readdirSync, renameSync, rmSync, writeFileSync } from 'node:fs';
+import { basename, dirname, join, resolve } from 'node:path';
 import { buildSync } from 'esbuild';
-import { bridgeManifest, connectorsManifest, lockFor, lockProblems, studioServerManifest } from './pack-manifests.mjs';
+import {
+  bridgeManifest,
+  connectorsManifest,
+  createManifest,
+  lockFor,
+  lockProblems,
+  studioServerManifest,
+} from './pack-manifests.mjs';
 
 const ROOT = resolve(import.meta.dirname, '..');
 const out = resolve(ROOT, process.argv.find((a) => a.startsWith('--out='))?.slice(6) ?? '.cache/pack');
@@ -108,7 +120,7 @@ writeFileSync(
   join(engine, 'package.json'),
   JSON.stringify(
     {
-      name: 'quest-n-click',
+      name: '@quest-n-click/engine',
       version: root.version,
       description:
         'An engine for point-and-click adventure games in the browser: content as typed data, a solver that proves the game can be finished, a Studio.',
@@ -131,6 +143,7 @@ writeFileSync(
         ...Object.fromEntries(Object.entries(root.dependencies).filter(([n]) => n !== 'sirv-cli')),
         ...pick(RUNTIME_DEV),
       },
+      publishConfig: { access: 'public' },
     },
     null,
     2,
@@ -138,7 +151,7 @@ writeFileSync(
 );
 writeFileSync(
   join(engine, 'README.md'),
-  `# quest'n'click\n\nAn engine for point-and-click adventure games in the browser (formerly web-scumm). Start a game:\n\n\`\`\`bash\nnpx create-quest-n-click my-game\ncd my-game && npm install\nnpm run assets && npm run dev\n\`\`\`\n\nThen \`npx quest-n-click help\`. Documentation: https://github.com/Quest-n-Click/quest-n-click/wiki, starting from https://github.com/Quest-n-Click/quest-n-click/wiki/EN-Install-Package.\n`,
+  `# quest'n'click\n\nAn engine for point-and-click adventure games in the browser (formerly web-scumm). Start a game:\n\n\`\`\`bash\nnpm init @quest-n-click my-game\ncd my-game && npm install\nnpm run assets && npm run dev\n\`\`\`\n\nThen \`npx quest-n-click help\`. Documentation: https://github.com/Quest-n-Click/quest-n-click/wiki, starting from https://github.com/Quest-n-Click/quest-n-click/wiki/EN-Install-Package.\n`,
 );
 
 // npm is `npm.cmd` on Windows: run through the shell there (4.1.18), the arguments being this script's own.
@@ -171,29 +184,15 @@ npm(
   },
 );
 
-// `create-quest-n-click`: `npx create-quest-n-click <folder>` runs `quest-n-click create` from the engine it depends on.
+// `@quest-n-click/create`: `npm init @quest-n-click <folder>` (or `npx @quest-n-click/create <folder>`) runs
+// `quest-n-click create` from the engine it depends on, exactly its version.
 const create = join(out, 'create-quest-n-click');
 mkdirSync(create, { recursive: true });
 writeFileSync(
   join(create, 'index.mjs'),
-  `#!/usr/bin/env node\n// npx create-quest-n-click <folder> ["Title"]: runs \`quest-n-click create\` from the engine this package depends on.\nawait import('quest-n-click/cli/create.mjs');\n`,
+  `#!/usr/bin/env node\n// npm init @quest-n-click <folder> ["Title"]: runs \`quest-n-click create\` from the engine this package depends on.\nawait import('@quest-n-click/engine/cli/create.mjs');\n`,
 );
-writeFileSync(
-  join(create, 'package.json'),
-  JSON.stringify(
-    {
-      name: 'create-quest-n-click',
-      version: root.version,
-      description: "Creates a quest'n'click game project: npx create-quest-n-click my-game",
-      license: 'MIT',
-      type: 'module',
-      bin: { 'create-quest-n-click': 'index.mjs' },
-      dependencies: { 'quest-n-click': root.version },
-    },
-    null,
-    2,
-  ) + '\n',
-);
+writeFileSync(join(create, 'package.json'), `${JSON.stringify(createManifest(root), null, 2)}\n`);
 cpSync(join(ROOT, 'LICENSE'), join(create, 'LICENSE'));
 
 // The Reality Bridge (4.1.1; compiled since 4.1.2): bridge/src and the protocol it shares with the player, bundled
@@ -240,7 +239,7 @@ writeLocked(bridge, bridgeManifest(root), 'scripts/locks/quest-n-click-bridge.js
 cpSync(join(ROOT, 'LICENSE'), join(bridge, 'LICENSE'));
 writeFileSync(
   join(bridge, 'README.md'),
-  `# quest-n-click-bridge\n\nThe reference Reality Bridge for a quest'n'click game (formerly web-scumm-bridge). \`npx quest-n-click-bridge init --manifest=dist/reality-manifest.json\`, then \`npx quest-n-click-bridge serve\`; \`doctor\` and \`compact\` for the journal. Documentation: https://github.com/Quest-n-Click/quest-n-click/wiki, starting from https://github.com/Quest-n-Click/quest-n-click/wiki/EN-Bridge-Install-And-Run.\n`,
+  `# @quest-n-click/bridge\n\nThe reference Reality Bridge for a quest'n'click game (formerly quest-n-click-bridge, and web-scumm-bridge before it). Its command is \`quest-n-click-bridge\`: \`npx quest-n-click-bridge init --manifest=dist/reality-manifest.json\`, then \`npx quest-n-click-bridge serve\`; \`doctor\` and \`compact\` for the journal. Documentation: https://github.com/Quest-n-Click/quest-n-click/wiki, starting from https://github.com/Quest-n-Click/quest-n-click/wiki/EN-Bridge-Install-And-Run.\n`,
 );
 
 // The connectors (4.1.9, wiki/en/bridge.connectors.md): the SDK, `quest-n-click-connector` and the four connectors bundled into
@@ -261,7 +260,7 @@ writeLocked(connectors, connectorsManifest(root), 'scripts/locks/quest-n-click-c
 cpSync(join(ROOT, 'LICENSE'), join(connectors, 'LICENSE'));
 writeFileSync(
   join(connectors, 'README.md'),
-  `# quest-n-click-connectors\n\nConnectors of the world outside for a quest'n'click game (formerly web-scumm-connectors): email, Telnet, SSH and Open Badges, each its own process, each proposing the signals its game declares to a \`quest-n-click-bridge\` under its own Biscuit. Experimental (4.1.9). Install without native code: \`npm install --omit=optional --ignore-scripts quest-n-click-connectors\`. Then \`npx quest-n-click-connector <email|telnet|ssh|open-badge> --config connector.json\`. Documentation: https://github.com/Quest-n-Click/quest-n-click/wiki, starting from https://github.com/Quest-n-Click/quest-n-click/wiki/EN-Bridge-Connectors.\n`,
+  `# @quest-n-click/connectors\n\nConnectors of the world outside for a quest'n'click game (formerly quest-n-click-connectors, and web-scumm-connectors before it): email, Telnet, SSH and Open Badges, each its own process, each proposing the signals its game declares to a \`quest-n-click-bridge\` under its own Biscuit. Experimental (4.1.9). Install without native code: \`npm install --omit=optional --ignore-scripts @quest-n-click/connectors\`. Then \`npx quest-n-click-connector <email|telnet|ssh|open-badge> --config connector.json\`. Documentation: https://github.com/Quest-n-Click/quest-n-click/wiki, starting from https://github.com/Quest-n-Click/quest-n-click/wiki/EN-Bridge-Connectors.\n`,
 );
 
 // The Studio Server (4.2.1, wiki/en/team.what-runs-where.md): two commands that run the server and the processing worker of
@@ -276,8 +275,8 @@ writeFileSync(
   `// Runs one of the engine's Studio Server commands with the engine installed beside this package, of the same version:
 // node itself, with tsx's loader (no second process between the command and the server: a signal reaches it once) and
 // a resolve hook (resolve.mjs) that finds this package's own dependencies from here, wherever npm put them; the Studio's
-// page built in this package unless WEB_SCUMM_STUDIO_CLIENT names another. The engine is \`quest-n-click\` (its former
-// name's alias, \`web-scumm\`, went in 4.3.0, D47).
+// page built in this package unless WEB_SCUMM_STUDIO_CLIENT names another. The engine is \`@quest-n-click/engine\`
+// (\`quest-n-click\` before 4.5.2, D53; its former name's alias, \`web-scumm\`, went in 4.3.0, D47).
 import { spawn } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
@@ -289,15 +288,15 @@ export function launch(entry) {
   const own = JSON.parse(readFileSync(join(here, '..', 'package.json'), 'utf8'));
   let engine;
   try {
-    engine = dirname(createRequire(import.meta.url).resolve('quest-n-click/package.json'));
+    engine = dirname(createRequire(import.meta.url).resolve('@quest-n-click/engine/package.json'));
   } catch {}
   if (!engine) {
-    console.error(\`\${own.name}: the engine is not installed: npm install quest-n-click-\${own.version}.tgz beside it\`);
+    console.error(\`\${own.name}: the engine is not installed: npm install quest-n-click-\${own.version}.tgz (@quest-n-click/engine) beside it\`);
     process.exit(2);
   }
   const version = JSON.parse(readFileSync(join(engine, 'package.json'), 'utf8')).version;
   if (version !== own.version) {
-    console.error(\`\${own.name} \${own.version} runs with quest-n-click \${own.version}, not \${version}\`);
+    console.error(\`\${own.name} \${own.version} runs with @quest-n-click/engine \${own.version}, not \${version}\`);
     process.exit(2);
   }
   const tsx = pathToFileURL(createRequire(join(engine, 'package.json')).resolve('tsx/esm')).href;
@@ -358,15 +357,22 @@ writeLocked(studio, studioServerManifest(root), 'scripts/locks/quest-n-click-stu
 cpSync(join(ROOT, 'LICENSE'), join(studio, 'LICENSE'));
 writeFileSync(
   join(studio, 'README.md'),
-  `# quest-n-click-studio-server\n\nThe quest'n'click Studio Server (formerly web-scumm-studio-server): one game, several people, online, with OpenID Connect, PostgreSQL and S3; and its processing worker. Install it beside the engine of the same version: \`npm install quest-n-click-${root.version}.tgz quest-n-click-studio-server-${root.version}.tgz\`. Then \`npx quest-n-click-studio-server serve --config studio.config.json\` and \`npx quest-n-click-studio-worker\`. Documentation: https://github.com/Quest-n-Click/quest-n-click/wiki, starting from https://github.com/Quest-n-Click/quest-n-click/wiki/EN-Team-What-Runs-Where.\n`,
+  `# @quest-n-click/studio-server\n\nThe quest'n'click Studio Server (formerly quest-n-click-studio-server, and web-scumm-studio-server before it): one game, several people, online, with OpenID Connect, PostgreSQL and S3; and its processing worker. Install it beside the engine of the same version: \`npm install quest-n-click-${root.version}.tgz quest-n-click-studio-server-${root.version}.tgz\`. Then \`npx quest-n-click-studio-server serve --config studio.config.json\` and \`npx quest-n-click-studio-worker\`. Documentation: https://github.com/Quest-n-Click/quest-n-click/wiki, starting from https://github.com/Quest-n-Click/quest-n-click/wiki/EN-Team-What-Runs-Where.\n`,
 );
 
 const ALL = [engine, create, bridge, connectors, studio];
 
-for (const d of ALL)
+// npm names a scoped package's archive after its scope and name (`@quest-n-click/engine` → quest-n-click-engine-<v>.tgz):
+// each archive is renamed to its folder's name, the file name releases have always published (D53).
+for (const d of ALL) {
   npm(['pack', '--pack-destination', out, '--silent'], { cwd: d, stdio: ['ignore', 'inherit', 'inherit'] });
+  const { name } = JSON.parse(readFileSync(join(d, 'package.json'), 'utf8'));
+  const made = `${name.replace(/^@/, '').replace('/', '-')}-${root.version}.tgz`;
+  const want = `${basename(d)}-${root.version}.tgz`;
+  if (made !== want) renameSync(join(out, made), join(out, want));
+}
 console.log(
-  `packed into ${out}: quest-n-click ${root.version} (${files.length} files and its docs-bundle/), create-quest-n-click, quest-n-click-bridge (one module, its policies), quest-n-click-connectors (one module, its MIME worker), quest-n-click-studio-server (two commands, the Studio's page)`,
+  `packed into ${out}: @quest-n-click/engine ${root.version} (${files.length} files and its docs-bundle/), @quest-n-click/create, @quest-n-click/bridge (one module, its policies), @quest-n-click/connectors (one module, its MIME worker), @quest-n-click/studio-server (two commands, the Studio's page); archives under their former names`,
 );
 // --publish-dry-run (4.1.8): what `npm publish` would send, for each package, without sending it (release-check).
 if (process.argv.includes('--publish-dry-run'))

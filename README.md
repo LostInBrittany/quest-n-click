@@ -13,7 +13,10 @@ be finished, and ship it as a web game that installs on a phone and plays offlin
 > and the Studio now live at [quest-n-click.cleverapps.io/demo](https://quest-n-click.cleverapps.io/demo/). From 4.2.5 the packages and commands
 > are named `quest-n-click`; the old `web-scumm` names kept working through 4.2.x and are gone in 4.3.0, where
 > `npx quest-n-click migrate` renames a game's imports and commands
-> ([upgrade notes](https://github.com/Quest-n-Click/quest-n-click/wiki/EN-Install-Upgrade-Notes-4-3#from-4-2-5-to-4-3-0)). Saves, runs and sessions keep their formats and load as before.
+> ([upgrade notes](https://github.com/Quest-n-Click/quest-n-click/wiki/EN-Install-Upgrade-Notes-4-3#from-4-2-5-to-4-3-0)). From 4.5.2 the packages
+> are named under the npm organisation's scope, `@quest-n-click/engine`, `@quest-n-click/create`… (the commands keep
+> their names), and `npx quest-n-click migrate` moves a game's `quest-n-click/…` imports to `@quest-n-click/engine/…`.
+> Saves, runs and sessions keep their formats and load as before.
 
 | | |
 |---|---|
@@ -37,6 +40,9 @@ cd my-game && npm install
 npm run assets && npm run dev        # play it; then npm run verify, npm run build
 ```
 <!-- install:end -->
+
+Once the packages are on npm, `npm init @quest-n-click my-game` creates the project in one command
+(`npx create-quest-n-click my-game` still works and runs the same thing).
 
 `npm run build` writes `dist/`, a static site any host serves. ffmpeg serves the sound pipeline and is optional;
 `npx quest-n-click doctor` says what is missing. [Package reference](https://github.com/Quest-n-Click/quest-n-click/wiki/EN-Install-Package) is the whole guide;
@@ -128,8 +134,8 @@ src/engine/      core (the DSL, the engine), tools (validate, solve, lint, i18n�
 games/demo/      the sample game: rooms, layouts, art, audio, locales, storyboard
 games/_template/ copied by npm run new-game
 tools/           the commands, the Studio, the MCP server, the art and audio pipelines, the Vite plugins
-bridge/          the Reality Bridge (the package quest-n-click-bridge)
-connectors/      the connectors of the world outside (the package quest-n-click-connectors)
+bridge/          the Reality Bridge (the package @quest-n-click/bridge)
+connectors/      the connectors of the world outside (the package @quest-n-click/connectors)
 wiki/            the documentation (en, fr), published as the wiki; docs/dev: the work log, the decisions, the passes
 ```
 
@@ -145,7 +151,7 @@ mistakes before a person does. Every result stays reviewable, in the Studio and 
 ## In numbers
 
 Measured on this commit of `main` by the automated gates (`npm run quality:baseline` writes these figures):
-<!-- metric:tests -->3360<!-- /metric --> unit test declarations, on Node 22 and 24, with coverage floors and gated
+<!-- metric:tests -->3366<!-- /metric --> unit test declarations, on Node 22 and 24, with coverage floors and gated
 mutation testing; the reference game proved in <!-- metric:referenceStates -->288<!-- /metric --> states; the player's
 first visit <!-- metric:initialJsKB -->136<!-- /metric --> KB of JavaScript, gzipped. Each release is built from the
 commit its candidate tested. The candidate makes the four package archives, the Bridge's image, the SBOMs, the runs and

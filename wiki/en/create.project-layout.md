@@ -6,9 +6,9 @@ repository", this is the difference it means.
 
 | | A created project | The engine repository |
 |---|---|---|
-| Made by | `npx create-quest-n-click my-game "My Game"` or `npx quest-n-click create …` | `git clone` of `Quest-n-Click/quest-n-click` |
+| Made by | `npm init @quest-n-click my-game "My Game"` or `npx quest-n-click create …` | `git clone` of `Quest-n-Click/quest-n-click` |
 | The game's folder | `game/` | `games/<id>/` (several games side by side) |
-| The engine | `node_modules/quest-n-click/` (installed, never written) | `src/engine/` (you may change it) |
+| The engine | `node_modules/@quest-n-click/engine/` (installed, never written) | `src/engine/` (you may change it) |
 | Which game | always `game/` | `GAME`, else `.cache/game`, else `config.game` in `package.json`, else `demo` ([choosing the game](create.working-loop.md#choosing-the-game)) |
 | `npm run` scripts | eight (below) | about 150, the whole toolbox |
 
@@ -25,7 +25,7 @@ folder that exists and is not empty, then writes:
 | `game/provenance.json` | one entry saying every image is a placeholder drawn from shapes: a release refuses it until each file is replaced and reviewed (`npx quest-n-click provenance --lock`) |
 | `public/` | the page's icons, its preview image (`og.png`) and the full font the engine falls back to; `public/assets/` is written by `npm run assets`, not committed |
 | `package.json` | `"config": { "game": "<id>" }`, the dependency on the engine (`^<version>`, or `--engine`), and the scripts below |
-| `tsconfig.json` | `@engine/*` points into `node_modules/quest-n-click/src/engine`, `quest-n-click/*` into its public API, `@game` into `game/index.ts` |
+| `tsconfig.json` | `@engine/*` points into `node_modules/@quest-n-click/engine/src/engine`, `@quest-n-click/engine/*` into its public API, `@game` into `game/index.ts` |
 | `.gitignore` | `node_modules`, `dist`, `.cache`, `public/assets` |
 | `README.md` | the five commands below, as a reminder |
 
@@ -181,6 +181,6 @@ game. Verb ids are free (the game's `verbs`); four have a meaning for the engine
 
 ## Related identifiers
 
-- `quest-n-click create`, `create-quest-n-click`, `npm run new-game` ([your first game](create.first-game.md)).
+- `quest-n-click create`, `npm init @quest-n-click`, `npm run new-game` ([your first game](create.first-game.md)).
 - `GAME`, `GAME_DIR`, `config.game` ([the working loop](create.working-loop.md#choosing-the-game)).
 - The CLIs, with every subcommand: [CLI reference](reference.cli.md).
