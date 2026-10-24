@@ -78,7 +78,7 @@ même construction se lance dans le projet créé, sur votre machine.
              python-version: '3.12'
          - run: npm ci
          # L'étape des assets (npm run assets, dans build) demande Pillow ; la liste est livrée avec le moteur.
-         - run: pip install -r node_modules/@quest-n-click/engine/requirements.txt
+         - run: pip install --require-hashes -r node_modules/@quest-n-click/engine/requirements.txt
          # Seulement quand game/audio ou une vidéo contient des fichiers à encoder : le runner n'a pas ffmpeg.
          - run: command -v ffmpeg || (sudo apt-get update && sudo apt-get install -y ffmpeg)
          # Assets, verify (validation, solveur, traductions, lint, playtests), la construction, dist/ recensé.

@@ -48,8 +48,8 @@ réplique traduisible, une traduction manquante repérée avant la release ([tra
 
 - Node 22.13 ou plus récent : le Studio local (étape 5) et les outils qui écrivent un jeu en ont besoin ; 22.12 ne
   sert qu'à jouer et construire un jeu ([prérequis](install.requirements.md#node)). Python 3 avec Pillow pour
-  `npm run assets` (`python3 -m pip install -r node_modules/@quest-n-click/engine/requirements.txt` dans un projet créé,
-  `python3 -m pip install -r requirements.txt` dans le dépôt du moteur).
+  `npm run assets` (`python3 -m pip install --require-hashes -r node_modules/@quest-n-click/engine/requirements.txt`
+  dans un projet créé, `python3 -m pip install --require-hashes -r requirements.txt` dans le dépôt du moteur).
 - Un téléphone sur le même réseau, pour la dernière étape (facultatif).
 - Un des deux endroits où travailler, avec les mêmes étapes ([lequel est lequel](create.project-layout.md)) :
   - **un projet créé**, où le jeu est `game/` ; les chemins de cette page disent `game/` ;
@@ -75,7 +75,7 @@ T=https://github.com/Quest-n-Click/quest-n-click/releases/download/v$V/quest-n-c
 npx --package=$T quest-n-click create my-game "My Game" --engine=$T
 cd my-game
 npm install
-python3 -m pip install -r node_modules/@quest-n-click/engine/requirements.txt
+python3 -m pip install --require-hashes -r node_modules/@quest-n-click/engine/requirements.txt
 npm run assets      # les images provisoires dans public/assets
 npm run dev         # http://127.0.0.1:5173/ : un jardin, un seau, un portail
 ```

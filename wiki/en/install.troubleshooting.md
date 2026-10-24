@@ -96,8 +96,8 @@ without a flag. `doctor` does not catch this: it checks only the major version.
 
 **Cause.** The modules are not installed for the `python3` the tools run.
 
-**Fix.** In the engine repository, `python3 -m pip install -r requirements.txt`; in a created project,
-`python3 -m pip install -r node_modules/@quest-n-click/engine/requirements.txt`. If pip answers
+**Fix.** In the engine repository, `python3 -m pip install --require-hashes -r requirements.txt`; in a created project,
+`python3 -m pip install --require-hashes -r node_modules/@quest-n-click/engine/requirements.txt`. If pip answers
 `error: externally-managed-environment` (a system Python, PEP 668), create a virtual environment first
 (`python3 -m venv .venv && . .venv/bin/activate`); in a created project, `PYTHON=.venv/bin/python npm run assets` then
 uses it.

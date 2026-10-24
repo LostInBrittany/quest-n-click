@@ -42,7 +42,7 @@ L'archive `quest-n-click-<version>.tgz`.
 Les fichiers suivis sous `src/`, `tools/`, `studio-server/`, `cli/`, `games/_template/`, `public/icons/`,
 `public/fonts/`, `public/og.png`, les fichiers de stockage et de migrations que le journal du Studio partage avec le
 Bridge (`bridge/src/store*.ts`, `migrations.ts`, `allowlist.ts`), `index.html`, `studio.html`, `vite.config.ts`,
-`tsconfig.json`, `requirements.txt`, `ops/studio/worker-requirements.lock` et `LICENSE`. Jamais un jeu du dépôt, un
+`tsconfig.json`, `requirements.txt` et `LICENSE`. Jamais un jeu du dépôt, un
 test, une page de documentation source ni un build. Laissés aussi hors de `tools/` : l'audit des assets, la
 vérification croisée et les jeux de données du Bridge, le harnais de fuzz des connecteurs.
 

@@ -281,7 +281,7 @@ Le chemin que Clever Cloud sonde avant d’envoyer du trafic à une nouvelle ins
 
 ### `CC_POST_BUILD_HOOK`
 
-Une commande que Clever Cloud lance après la construction : `npm run studio-client` sur l’application studio ; celle du worker installe les paquets Python de `ops/studio/worker-requirements.lock`.
+Une commande que Clever Cloud lance après la construction : `npm run studio-client` sur l’application studio ; celle du worker installe les paquets Python de `requirements.txt`, empreintes vérifiées.
 
 - Origine : posée par vous ; Clever Cloud la lit.
 - Lue par : aucun fichier du code ; la plateforme la lit.

@@ -124,12 +124,13 @@ On your machine, in the engine repository where both apps are linked under their
    # on your machine, in the engine repository
    clever env set --alias my-game-worker CC_NODE_DEV_DEPENDENCIES install
    clever env set --alias my-game-worker CC_RUN_COMMAND "npm run studio-worker"
-   clever env set --alias my-game-worker CC_POST_BUILD_HOOK "python3 -m pip install --target .python --require-hashes --only-binary=:all: -r ops/studio/worker-requirements.lock"
+   clever env set --alias my-game-worker CC_POST_BUILD_HOOK "python3 -m pip install --target .python --require-hashes --only-binary=:all: -r requirements.txt"
    clever env set --alias my-game-worker WORKER_INSTANCE my-game-studio
    clever env set --alias my-game-worker -- WORKER_PUBLIC_KEY "$(cat ~/secrets/my-game/studio-worker.pub)"
    ```
 
-   The hook installs the asset tools' Python packages (Pillow, NumPy, SciPy), every hash checked, wheels only.
+   The hook installs the asset tools' Python packages (Pillow, NumPy, SciPy) from `requirements.txt`, every hash
+   checked, wheels only. Before 4.5.2 it named `ops/studio/worker-requirements.lock`, which is gone: change the hook.
 
 > [!MEASURE id=worker-hook]
 > The worker's install, run by hand on the worker app: 7.0 s, 226 MB installed, no compilation. Not measured during a

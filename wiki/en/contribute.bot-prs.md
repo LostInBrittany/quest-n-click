@@ -8,8 +8,7 @@ each one, and what to do with a red one.
 ## What you get
 
 No bot pull request left open without a reason: each one merged on green, fixed and taken, or closed with its reason
-written, and the dependency it moves checked across the places that copy it (package locks, the worker's Python lock,
-action pins).
+written, and the dependency it moves checked across the places that copy it (package locks, action pins).
 
 <a name="context-and-versions"></a>
 
@@ -70,8 +69,8 @@ and patch updates grouped as `minor-and-patch`), GitHub Actions every week, pip 
    - the packages' own locks under `scripts/locks/` (the Bridge, the connectors, the Studio Server, the Bridge image):
      run `npm run locks` when a dependency of those packages changes, review the diff, commit it;
      `npm run locks -- --check` says whether each lock still fits;
-   - the Studio worker's Python lock, which follows `requirements.txt` with its hashes (Pillow 13.0.0, #213:
-     `tests/worker-python-lock.test.ts`);
+   - nothing for Python: `requirements.txt` carries the sha256 of every file of each version and Dependabot rewrites
+     them with the version (D54, #285); `tests/python-requirements.test.ts` checks each line pins `==` with a hash;
    - an action's pin: check the new SHA against the official tag (`gh api repos/<owner>/<action>/git/ref/tags/<tag>`).
 
 <!-- step: release-path -->
@@ -104,8 +103,8 @@ release. `main` is green after the merges.
 
 ## Files or data changed
 
-`package.json`, `package-lock.json`, `requirements.txt`, `.github/workflows/*.yml` (action pins), `scripts/locks/*.json`,
-the worker's Python lock. A code change that follows an update carries its `changes/` fragment
+`package.json`, `package-lock.json`, `requirements.txt`, `.github/workflows/*.yml` (action pins),
+`scripts/locks/*.json`. A code change that follows an update carries its `changes/` fragment
 ([Conventions](contribute.conventions.md#changes-fragments)).
 
 <a name="recovery"></a>
