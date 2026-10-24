@@ -34,7 +34,7 @@ Python 3.11 qui transcrit des sources audio en MIDI.
 
 | Outil | Sert à | Installer |
 |---|---|---|
-| Python 3 avec NumPy | chaque commande | `python3 -m pip install -r requirements.txt` ([Prérequis](install.requirements.md#python)) |
+| Python 3 avec NumPy | chaque commande | `python3 -m pip install --require-hashes -r requirements.txt` ([Prérequis](install.requirements.md#python)) |
 | ffmpeg | encoder les `.mp3`, la loudness | `brew install ffmpeg`, ou le paquet de votre système |
 | fluidsynth | le rendu de référence General MIDI, pour comparer avec l'arrangement | `brew install fluid-synth`, ou le paquet de votre système |
 | curl | les téléchargements de `setup` | en général déjà là |

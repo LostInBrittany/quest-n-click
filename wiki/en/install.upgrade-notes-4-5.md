@@ -93,5 +93,9 @@ project changes:
   `web-scumm/…` ones ([Upgrade the hosted engine](team.upgrade-engine.md)).
 - **The Bridge, the connectors and the Studio Server** install from their archives as before; in `node_modules`
   they are now under `@quest-n-click/` (`node_modules/@quest-n-click/bridge`, …).
+- **A Studio worker's build hook** installs `requirements.txt`, which now carries every hash (D54):
+  `python3 -m pip install --target .python --require-hashes --only-binary=:all: -r
+  node_modules/@quest-n-click/engine/requirements.txt`. `ops/studio/worker-requirements.lock` is gone: a hook that
+  names it fails until it is changed ([First deployment](clever.first-deployment.md)).
 - **npm** still has no version of the product: the scoped names hold a reservation, the unscoped ones become
   deprecated pointers ([Install from npm, once published](install.from-npm.md)).

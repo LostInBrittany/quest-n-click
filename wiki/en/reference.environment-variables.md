@@ -281,7 +281,7 @@ Set it to `install` on both apps: the server runs from the repository with `tsx`
 
 ### `CC_POST_BUILD_HOOK`
 
-A command Clever Cloud runs after the build: `npm run studio-client` on the studio app; the worker's installs the Python packages from `ops/studio/worker-requirements.lock`.
+A command Clever Cloud runs after the build: `npm run studio-client` on the studio app; the worker's installs the Python packages from `requirements.txt`, hashes checked.
 
 - Origin: set by you; Clever Cloud reads it.
 - Read by: no file of the code; the platform reads it.

@@ -23,7 +23,7 @@ This page is for working **on the engine**. To make a game with a released engin
 - **Node.js 22.12 or newer** (`package.json` `engines`: `>=22.12`). The repository's `.nvmrc` says `22`, so `nvm use`
   takes the newest 22 you have installed: make sure it is at least 22.12. The Studio, the tools that write a game and
   the Reality Bridge on SQLite need **22.13 or newer** (`node:sqlite`).
-- **Python 3** with the modules of `requirements.txt` (Pillow 13.0.0, NumPy 2.4.6, SciPy 1.18.1): the asset tests and
+- **Python 3** with the modules of `requirements.txt` (Pillow 13.0.0, NumPy 2.5.4, SciPy 1.18.1): the asset tests and
   `npm run assets` use them. CI uses Python 3.12.
 - **ffmpeg** (optional): audio authoring, and `validate --release`, which measures the music stems with `ffprobe`.
 - About 2 GB of disk for `node_modules` and the browsers.
@@ -74,7 +74,7 @@ Every command below runs in a terminal, in the engine repository once it is clon
 
    ```sh
    # in the engine repository
-   python3 -m pip install -r requirements.txt
+   python3 -m pip install --require-hashes -r requirements.txt
    ```
 
    A virtual environment works too; the tools call `python3`, so activate it before running them.
@@ -99,7 +99,8 @@ Every command below runs in a terminal, in the engine repository once it is clon
    ```
 
    Each line is `✔` (present), `○` (optional and missing) or `✖` (required and missing), with the command that fixes
-   it, for instance `Run: python3 -m pip install -r requirements.txt` or `Run: npx playwright install chromium`. It
+   it, for instance `Run: python3 -m pip install --require-hashes -r requirements.txt` or
+   `Run: npx playwright install chromium`. It
    checks Node (major version 22 or more), Python 3, the image modules, ffmpeg, the three Playwright browsers, and
    Ed25519 and Biscuit for the Reality Bridge. Only a required item fails the report: Python, ffmpeg, WebKit and
    Firefox are optional for daily work. `npm run doctor -- --release` makes Python, its modules and ffmpeg required, as

@@ -93,7 +93,7 @@ Sur votre machine, depuis le dossier qui contiendra le projet ; puis dans le pro
    # depuis le dossier qui contient le projet, puis dedans
    cd my-game
    npm install
-   python3 -m pip install -r node_modules/@quest-n-click/engine/requirements.txt
+   python3 -m pip install --require-hashes -r node_modules/@quest-n-click/engine/requirements.txt
    npm run assets && npm run dev
    ```
 

@@ -98,5 +98,9 @@ construit, se joue et se sauvegarde comme en 4.5.1. Ce qu'un projet créé chang
   fait pour les `web-scumm/…` ([Mettre à jour le moteur hébergé](team.upgrade-engine.md)).
 - **Le Bridge, les connecteurs et le Studio Server** s'installent depuis leurs archives comme avant ; dans
   `node_modules`, ils sont maintenant sous `@quest-n-click/` (`node_modules/@quest-n-click/bridge`, …).
+- **Le hook de build d'un worker du Studio** installe `requirements.txt`, qui porte maintenant toutes les empreintes
+  (D54) : `python3 -m pip install --target .python --require-hashes --only-binary=:all: -r
+  node_modules/@quest-n-click/engine/requirements.txt`. `ops/studio/worker-requirements.lock` n'existe plus : un hook
+  qui le nomme échoue tant qu'il n'est pas changé ([Premier déploiement](clever.first-deployment.md)).
 - **npm** n'a toujours aucune version du produit : les noms à scope portent une réservation, les noms sans scope
   deviennent des pointeurs dépréciés ([Installer depuis npm, une fois publié](install.from-npm.md)).

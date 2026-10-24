@@ -23,7 +23,7 @@ Cette page sert à travailler **sur le moteur**. Pour faire un jeu avec un moteu
 - **Node.js 22.12 ou plus récent** (`engines` de `package.json` : `>=22.12`). Le `.nvmrc` du dépôt dit `22` : `nvm use`
   prend donc la 22 la plus récente que vous avez installée ; vérifiez qu'elle est au moins en 22.12. Le Studio, les
   outils qui écrivent un jeu et le Reality Bridge sur SQLite demandent **22.13 ou plus** (`node:sqlite`).
-- **Python 3** avec les modules de `requirements.txt` (Pillow 13.0.0, NumPy 2.4.6, SciPy 1.18.1) : les tests d'assets
+- **Python 3** avec les modules de `requirements.txt` (Pillow 13.0.0, NumPy 2.5.4, SciPy 1.18.1) : les tests d'assets
   et `npm run assets` s'en servent. La CI utilise Python 3.12.
 - **ffmpeg** (facultatif) : la création audio, et `validate --release`, qui mesure les stems de musique avec `ffprobe`.
 - Environ 2 Go de disque pour `node_modules` et les navigateurs.
@@ -74,7 +74,7 @@ Chaque commande ci-dessous se lance dans un terminal, dans le dépôt du moteur 
 
    ```sh
    # dans le dépôt du moteur
-   python3 -m pip install -r requirements.txt
+   python3 -m pip install --require-hashes -r requirements.txt
    ```
 
    Un environnement virtuel convient aussi ; les outils appellent `python3`, activez-le donc avant de les lancer.
@@ -99,7 +99,8 @@ Chaque commande ci-dessous se lance dans un terminal, dans le dépôt du moteur 
    ```
 
    Chaque ligne est `✔` (présent), `○` (facultatif et absent) ou `✖` (obligatoire et absent), avec la commande qui
-   corrige, par exemple `Run: python3 -m pip install -r requirements.txt` ou `Run: npx playwright install chromium`. Il
+   corrige, par exemple `Run: python3 -m pip install --require-hashes -r requirements.txt` ou
+   `Run: npx playwright install chromium`. Il
    vérifie Node (version majeure 22 ou plus), Python 3, les modules d'image, ffmpeg, les trois navigateurs de
    Playwright, et Ed25519 et Biscuit pour le Reality Bridge. Seul un élément obligatoire fait échouer le rapport :
    Python, ffmpeg, WebKit et Firefox sont facultatifs au quotidien. `npm run doctor -- --release` rend obligatoires

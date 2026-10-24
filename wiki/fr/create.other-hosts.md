@@ -48,7 +48,7 @@ de construction de l'hébergeur. Le téléversement (ou les réglages) passe par
 
    | Réglage | Valeur |
    |---|---|
-   | Commande de construction (projet créé) | `pip install -r node_modules/@quest-n-click/engine/requirements.txt && npm run build` |
+   | Commande de construction (projet créé) | `pip install --require-hashes -r node_modules/@quest-n-click/engine/requirements.txt && npm run build` |
    | Commande de construction (dépôt du moteur, `public/assets` commité) | `npm run build:web` après les vérifications, ou `npm run build` |
    | Dossier de sortie | `dist` |
    | Node | 22.12 ou plus récent |

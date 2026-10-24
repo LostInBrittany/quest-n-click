@@ -27,8 +27,8 @@ Sur un Studio local, voir [Assets et découpe](studio.assets.md).
 
 - `reviewer` pour lire, `dev` pour téléverser, découper et préparer (voir
   [Rôles et actions](team.roles.md#matrix-assets)).
-- Le worker déployé avec ses paquets Python (son hook de build installe `ops/studio/worker-requirements.lock` ; voir
-  [Configuration](clever.configuration.md)).
+- Le worker déployé avec ses paquets Python (son hook de build installe `requirements.txt`, empreintes vérifiées ;
+  voir [Configuration](clever.configuration.md)).
 
 <a name="where-to-run"></a>
 

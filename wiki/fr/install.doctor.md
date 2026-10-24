@@ -29,7 +29,7 @@ Les deux lancent le même fichier, `tools/doctor.ts`, dont les vérifications so
 |---|---|---|---|
 | `Node.js` | la version majeure du Node qui tourne vaut 22 ou plus | oui | `Install Node.js 22 or newer.` |
 | `Python` | `python3 -c …` affiche sa version | optionnel (requis avec `--release`) | `Install Python 3 to prepare the assets (npm run assets).` |
-| `Python image modules` | `python3` importe Pillow, NumPy et SciPy | optionnel (requis avec `--release`) | `Run: python3 -m pip install -r requirements.txt` |
+| `Python image modules` | `python3` importe Pillow, NumPy et SciPy | optionnel (requis avec `--release`) | `Run: python3 -m pip install --require-hashes -r requirements.txt` |
 | `ffmpeg` | `ffmpeg -version` réussit | optionnel (requis avec `--release`) | `Install ffmpeg to build audio.` |
 | `Playwright Chromium` | l'exécutable Chromium de Playwright existe | oui | `Run: npx playwright install chromium` |
 | `Playwright Firefox` | son exécutable existe | optionnel | `Run: npx playwright install firefox` |

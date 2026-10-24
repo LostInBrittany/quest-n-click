@@ -69,7 +69,7 @@ export function collectChecks(p: Probes, o: { release?: boolean } = {}): Check[]
     name: 'Python image modules',
     ok: mods.ok,
     detail: mods.ok ? mods.stdout.trim() : 'Pillow, NumPy and/or SciPy missing',
-    fix: 'Run: python3 -m pip install -r requirements.txt',
+    fix: 'Run: python3 -m pip install --require-hashes -r requirements.txt',
     ...optional,
   });
   const ffmpeg = p.command('ffmpeg', ['-version']);

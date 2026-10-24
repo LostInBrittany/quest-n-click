@@ -41,7 +41,7 @@ The archive `quest-n-click-<version>.tgz`.
 The tracked files under `src/`, `tools/`, `studio-server/`, `cli/`, `games/_template/`, `public/icons/`,
 `public/fonts/`, `public/og.png`, the store and migration files the Studio's journal shares with the Bridge
 (`bridge/src/store*.ts`, `migrations.ts`, `allowlist.ts`), `index.html`, `studio.html`, `vite.config.ts`,
-`tsconfig.json`, `requirements.txt`, `ops/studio/worker-requirements.lock` and `LICENSE`. Never a game of the
+`tsconfig.json`, `requirements.txt` and `LICENSE`. Never a game of the
 repository, a test, a source documentation page or a build. Left out of `tools/` as well: the asset audit, the Bridge's
 cross-check and fixtures, the connectors' fuzz harness.
 

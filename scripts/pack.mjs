@@ -66,9 +66,8 @@ const SHIP = [
   /^(index|studio)\.html$/,
   /^vite\.config\.ts$/,
   /^tsconfig\.json$/,
+  // The hashed Python requirements (D54): the processing worker's build hook installs them from the engine's package.
   /^requirements\.txt$/,
-  // The processing worker's Python lock (4.2.3 PR 0, H7): its build hook installs it from the engine's package.
-  /^ops\/studio\/worker-requirements\.lock$/,
   /^LICENSE$/,
 ];
 // The Bridge's development tools (Biscuit's samples, the Rust cross-check) stay in the repository.

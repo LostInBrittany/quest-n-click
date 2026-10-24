@@ -76,7 +76,7 @@ folder itself). Every command after `cd my-game` runs inside the created project
 
    ```bash
    # in the created project
-   python3 -m pip install -r node_modules/@quest-n-click/engine/requirements.txt
+   python3 -m pip install --require-hashes -r node_modules/@quest-n-click/engine/requirements.txt
    ```
 
 <!-- step: assets-and-dev -->
@@ -205,13 +205,13 @@ npx quest-n-click-studio-server serve --config studio.config.json
 npx quest-n-click-studio-worker          # on the worker's machine, with WORKER_PUBLIC_KEY and WORKER_INSTANCE
 ```
 
-A worker installed from the archives prepares assets too (since 4.2.3): its build hook installs the lock the engine's
-package carries, from the worker's folder, where the worker looks for the packages
+A worker installed from the archives prepares assets too (since 4.2.3): its build hook installs the hashed
+`requirements.txt` the engine's package carries, from the worker's folder, where the worker looks for the packages
 ([`WORKER_PYTHON_PATH`](reference.environment-variables.md#worker-python-path) to put them elsewhere):
 `CC_POST_BUILD_HOOK=python3 -m pip install --target .python --require-hashes --only-binary=:all: -r
-node_modules/@quest-n-click/engine/ops/studio/worker-requirements.lock`. The lock is for CPython 3.13 on Linux x86_64 with
-glibc 2.28 or newer (Clever Cloud's native runtime); another platform makes it again (its header says how). In 4.2.2
-this needed a worker deployed from the repository.
+node_modules/@quest-n-click/engine/requirements.txt`. Its hashes cover the wheels of every platform PyPI
+publishes, Clever Cloud's native runtime (CPython 3.13, Linux x86_64) among them; before 4.5.2 the hook named
+`ops/studio/worker-requirements.lock`, which is gone. In 4.2.2 this needed a worker deployed from the repository.
 
 The engine's archive brings Vite and tsx, which the worker needs to run the game's code and build its previews (the
 Studio itself no longer runs Vite, since 4.2.2). Set `publicDir` to your game's prepared assets (`public/` of your

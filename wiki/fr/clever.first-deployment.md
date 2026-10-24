@@ -151,11 +151,13 @@ npx quest-n-click-studio-worker          # sur la machine du worker, avec WORKER
 ```
 
 - Un worker installé depuis les archives prépare aussi les assets (depuis la 4.2.3 ; en 4.2.2, il fallait un worker
-  déployé depuis le dépôt). Son hook de build installe le verrou que porte le paquet du moteur, depuis le dossier du
-  worker, où le worker cherche les paquets (`WORKER_PYTHON_PATH` pour les mettre ailleurs) :
-  `CC_POST_BUILD_HOOK=python3 -m pip install --target .python --require-hashes --only-binary=:all: -r node_modules/@quest-n-click/engine/ops/studio/worker-requirements.lock`.
-  Le verrou vaut pour CPython 3.13 sous Linux x86_64, glibc 2.28 ou plus récente (le runtime natif de Clever Cloud) ;
-  sur une autre plateforme, refaites-le (son en-tête dit comment).
+  déployé depuis le dépôt). Son hook de build installe le `requirements.txt` à empreintes que porte le paquet du
+  moteur, depuis le dossier du worker, où le worker cherche les paquets (`WORKER_PYTHON_PATH` pour les mettre
+  ailleurs) :
+  `CC_POST_BUILD_HOOK=python3 -m pip install --target .python --require-hashes --only-binary=:all: -r node_modules/@quest-n-click/engine/requirements.txt`.
+  Ses empreintes couvrent les roues de toutes les plateformes que publie PyPI, dont le runtime natif de Clever Cloud
+  (CPython 3.13, Linux x86_64). Avant la 4.5.2, le hook nommait `ops/studio/worker-requirements.lock`, qui
+  n’existe plus.
 - L’archive du moteur apporte Vite et tsx, dont le worker a besoin pour exécuter le code du jeu et construire ses
   prévisualisations (le Studio lui-même ne fait plus tourner Vite, depuis la 4.2.2).
 - Mettez dans `publicDir` les assets préparés de votre jeu (`public/` de son dépôt) : le `public/` du moteur ne contient
