@@ -26,8 +26,9 @@ d'archive.
 - Aucune version du produit n'a jamais été publiée sur npm, jusqu'à la 4.5.1 incluse. La 4.2.0 n'est partie que sur
   GitHub Releases (D38) : la publication demande la double authentification d'un mainteneur à chaque étape, et la
   4.2.0 ne l'a pas attendue. L'organisation npm `quest-n-click` (deux propriétaires, donc deux personnes peuvent
-  approuver) et les noms à scope arrivent avec la 4.5.2 (D53) ; la publication elle-même suit dans une release
-  ultérieure, et aucune version n'est promise.
+  approuver) et les noms à scope arrivent avec la 4.5.2 (D53). La 4.5.2 est aussi la première release que release.yml
+  met en attente sur npm : ses paquets sont publiés une fois qu'un propriétaire les approuve, pas avant, et
+  `npm view @quest-n-click/engine version` dit quand.
 - D'ici la première publication, les noms sont seulement surveillés : un job du workflow de nuit (`npm-names`, jamais
   bloquant) vérifie que chaque nom à scope, et chaque ancien nom `web-scumm…`, est encore libre ou publié par un
   propriétaire de l'organisation, que chaque nom sans scope est un pointeur déprécié d'un propriétaire

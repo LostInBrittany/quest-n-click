@@ -102,5 +102,17 @@ construit, se joue et se sauvegarde comme en 4.5.1. Ce qu'un projet créé chang
   (D54) : `python3 -m pip install --target .python --require-hashes --only-binary=:all: -r
   node_modules/@quest-n-click/engine/requirements.txt`. `ops/studio/worker-requirements.lock` n'existe plus : un hook
   qui le nomme échoue tant qu'il n'est pas changé ([Premier déploiement](clever.first-deployment.md)).
-- **npm** n'a toujours aucune version du produit : les noms à scope portent une réservation, les noms sans scope
-  deviennent des pointeurs dépréciés ([Installer depuis npm, une fois publié](install.from-npm.md)).
+- **Un nouveau projet** se crée comme avant depuis l'archive (`npx --package=<URL de l'archive> quest-n-click create …`).
+  Une fois les paquets sur npm, `npm init @quest-n-click mon-jeu` le crée en une commande, et
+  `npx create-quest-n-click mon-jeu` marche toujours : ce nom sans scope relaie vers `@quest-n-click/create`.
+- **L'adresse du dépôt** est `github.com/Quest-n-Click/quest-n-click` (D51). Les anciennes adresses y redirigent,
+  téléchargements des releases compris, si bien qu'une URL d'archive déjà dans un `package.json` installe encore ;
+  écrivez la nouvelle la prochaine fois que vous la changez. Un fichier de la 4.5.2 se vérifie avec `gh attestation verify <file> -R Quest-n-Click/quest-n-click` ;
+  une release faite avant le déménagement garde ses attestations sous l'utilisateur `wanoo`
+  ([Publier une release](contribute.releasing.md#expected-result)). La démo et la documentation la plus récente sont
+  sur le site du projet, `quest-n-click.cleverapps.io`, et non plus sur GitHub Pages ([Jouer en ligne](start.play-online.md)).
+- **npm** : la 4.5.2 est la première release dont release.yml met les paquets en attente sur npm ; ils sont publiés
+  une fois qu'un propriétaire de l'organisation les approuve avec la 2FA, pas avant. Tant que
+  `npm view @quest-n-click/engine version` ne répond pas 4.5.2, installez depuis l'archive
+  ([Installer depuis npm, une fois publié](install.from-npm.md)). Les noms sans scope deviennent des pointeurs
+  dépréciés vers les noms à scope.

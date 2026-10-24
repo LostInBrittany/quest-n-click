@@ -77,9 +77,9 @@ release ([Installer depuis l'archive de la release](install.from-archive.md)). L
 une pull request ultérieure de #283.
 
 > [!LIMIT id=not-on-npm]
-> À la 4.5.1, `npm install @quest-n-click/engine` depuis le registre n'installe pas ce projet : les noms à scope ne
-> portent qu'une version de réservation (`0.0.0-bootstrap.0`), pas le produit. Utilisez les fichiers `.tgz` de la
-> release.
+> Tant qu'un propriétaire n'a pas approuvé les paquets que la 4.5.2 met en attente, `npm install @quest-n-click/engine`
+> depuis le registre n'installe pas ce projet : les noms à scope ne portent qu'une version de réservation
+> (`0.0.0-bootstrap.0`), pas le produit. Utilisez les fichiers `.tgz` de la release.
 
 <a name="npm-names"></a>
 

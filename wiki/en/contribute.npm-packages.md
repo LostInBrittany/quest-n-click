@@ -75,8 +75,9 @@ npm token. Until the first approval, install from the release archive
 request of #283.
 
 > [!LIMIT id=not-on-npm]
-> As of 4.5.1, `npm install @quest-n-click/engine` from the registry does not install this project: the scoped names
-> hold a reservation version only (`0.0.0-bootstrap.0`), not the product. Use the release's `.tgz` files.
+> Until an owner approves the packages 4.5.2 stages, `npm install @quest-n-click/engine` from the registry does not
+> install this project: the scoped names hold a reservation version only (`0.0.0-bootstrap.0`), not the product. Use
+> the release's `.tgz` files.
 
 <a name="npm-names"></a>
 

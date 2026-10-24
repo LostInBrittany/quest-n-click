@@ -4995,10 +4995,10 @@
       ]
     },
     "contribute.npm-packages#npm-publishing": {
-      "enHash": "783ad5a1b01dee6a62d49202e7f631d5fec328ede7347d659862ccb1a6666454",
-      "frHash": "38e59664dcdf5fd78d6ca53284671aa3b62d7849045decd703695bbcd09dc8f1",
+      "enHash": "3b0b3ee12de94c1bc8e354e7a6bbbe98c063db25d76cdb3a4a4be4de17a46f6e",
+      "frHash": "4113d044b5fbb47129978d91fa15d7a46cfbeace59b06158cb4a2b6fa2ae2c29",
       "reviewers": [
-        { "name": "claude-283-npm-stage", "kind": "ai", "relation": "author", "date": "2026-10-24" }
+        { "name": "claude-452-release", "kind": "ai", "relation": "author", "date": "2026-10-24" }
       ]
     },
     "contribute.npm-packages#packages": {
@@ -11742,10 +11742,10 @@
       ]
     },
     "install.from-npm#context-and-versions": {
-      "enHash": "45b02e74d1b055956e3fcee4d9524c726b7fb19c2a451f617b4bb5ead298f233",
-      "frHash": "4e05b1b510d79b81e256a4490113605554859b6626e859f4e8662a605a47929b",
+      "enHash": "32aacb60df5cf7330c8cd6e1438808f2b50db844088d0438a57e1ee4ae76abc5",
+      "frHash": "e28fcf329a20788af62f2d1594a5598410d771c3a0e5da89c2a0a0c41f526932",
       "reviewers": [
-        { "name": "claude-283-scoped", "kind": "ai", "relation": "author", "date": "2026-10-24" }
+        { "name": "claude-452-release", "kind": "ai", "relation": "author", "date": "2026-10-24" }
       ]
     },
     "install.from-npm#expected-result": {
@@ -12738,10 +12738,10 @@
       ]
     },
     "install.upgrade-notes-4-5#from-4-5-1-to-4-5-2": {
-      "enHash": "86f757d2d24b9a047f6e7cc3ff48c684aef7964032fe585560a01d4c6fcdb444",
-      "frHash": "8e5a75685cbf92d3b43308a13cd007ee07a3074de71f3865872622bc3ef56221",
+      "enHash": "f43571a038b442c4bdc2bd02f0c286e48f214281ab14e0ddcd9097c39eea9fb6",
+      "frHash": "8724f173fa388e0307fcd5c6b36dd34ec8031ad85c461016443ecfb4b9123a13",
       "reviewers": [
-        { "name": "claude-285-hashed-requirements", "kind": "ai", "relation": "author", "date": "2026-10-24" }
+        { "name": "claude-452-release", "kind": "ai", "relation": "author", "date": "2026-10-24" }
       ]
     },
     "install.upgrade-notes-v2-to-v3#_lead": {
@@ -17687,11 +17687,10 @@
       ]
     },
     "start.what-it-is#_lead": {
-      "enHash": "70e1c8e2618b06d611d968b08947a3d4e9818d0c3d3fc09531fa071638924024",
-      "frHash": "d5f1dccc81a55943f93cd44ab21dd6d254878467c329502436b768f4047286da",
+      "enHash": "f6fd8bd5ff13b32e77ec02189c5e56de8e644fdfac81265e72f4828d1e9b1d35",
+      "frHash": "b5f559abe414304301f4d74cde55bae381ce31d1a0e9893368a6ea0a7c3cc143",
       "reviewers": [
-        { "name": "claude-4.5-writers", "kind": "ai", "relation": "author", "date": "2026-10-23" },
-        { "name": "wanoo", "kind": "human", "relation": "independent", "date": "2026-10-24" }
+        { "name": "claude-452-release", "kind": "ai", "relation": "independent", "date": "2026-10-24" }
       ]
     },
     "start.what-it-is#affiliation": {
