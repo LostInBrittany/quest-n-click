@@ -97,5 +97,17 @@ project changes:
   `python3 -m pip install --target .python --require-hashes --only-binary=:all: -r
   node_modules/@quest-n-click/engine/requirements.txt`. `ops/studio/worker-requirements.lock` is gone: a hook that
   names it fails until it is changed ([First deployment](clever.first-deployment.md)).
-- **npm** still has no version of the product: the scoped names hold a reservation, the unscoped ones become
-  deprecated pointers ([Install from npm, once published](install.from-npm.md)).
+- **A new project** is created as before from the archive (`npx --package=<archive URL> quest-n-click create …`).
+  Once the packages are on npm, `npm init @quest-n-click my-game` creates it in one command, and
+  `npx create-quest-n-click my-game` still works: that unscoped name is a relay to `@quest-n-click/create`.
+- **The repository's address** is `github.com/Quest-n-Click/quest-n-click` (D51). The old addresses redirect to it,
+  release downloads included, so an archive URL already in a `package.json` still installs; write the new one when you
+  next change it. A 4.5.2 file
+  verifies with `gh attestation verify <file> -R Quest-n-Click/quest-n-click`; a release made before the move keeps
+  its attestations under the user `wanoo` ([Releasing](contribute.releasing.md#expected-result)). The demo and the
+  latest documentation are on the project's website, `quest-n-click.cleverapps.io`, not on GitHub Pages
+  ([Play online](start.play-online.md)).
+- **npm**: 4.5.2 is the first release whose packages release.yml stages on npm; they are published once an owner of
+  the organisation approves them with 2FA, not before. Until `npm view @quest-n-click/engine version` answers 4.5.2,
+  install from the archive ([Install from npm, once published](install.from-npm.md)). The unscoped names become
+  deprecated pointers to the scoped ones.

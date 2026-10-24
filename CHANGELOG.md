@@ -1,5 +1,103 @@
 # Changelog
 
+## 4.5.2 — 2026-10-24
+
+LOG #295–#299: "Org", a patch on 4.5.1 and the first release staged on npm. The repository moved to the Quest-n-Click
+organization (`github.com/Quest-n-Click/quest-n-click`, the old addresses redirect), and the releases made before the
+move verify under the identity that signed them; the project's website, `quest-n-click.cleverapps.io`, replaces GitHub
+Pages and serves the demo from the release's new `web.tar.gz`. The packages are named under the `@quest-n-click` scope
+(`@quest-n-click/engine`, `@quest-n-click/create`, …), and release.yml stages them on npm for an owner of the
+organisation to approve with 2FA: they are on npm once approved, not before. `requirements.txt` pins every Python
+download by its hash, and the worker's lock is gone. What changes (Upgrade notes: 4.5, from 4.5.1 to 4.5.2): a created
+project installs `@quest-n-click/engine` and runs `npx quest-n-click migrate` (the unscoped imports still resolve
+through 4.5.x); a Studio worker's build hook names `requirements.txt`. A game builds, plays and saves as on 4.5.1: no
+content field, save, schema or game fingerprint moves.
+
+### Breaking
+
+- **The packages are named under the `@quest-n-click` scope** (4.5.2, D53, #283). `quest-n-click` is
+  `@quest-n-click/engine`, `create-quest-n-click` is `@quest-n-click/create` (`npm init @quest-n-click my-game` once on
+  npm; `npx create-quest-n-click my-game` stays, a relay to it), and the Bridge, the connectors and the Studio Server are `@quest-n-click/bridge`, `@quest-n-click/connectors`
+  and `@quest-n-click/studio-server`: the npm organisation `quest-n-click` owns them. A game imports
+  `@quest-n-click/engine/content` (`/player`, `/minigames`, `/testing`, `/reality`); `npx quest-n-click migrate` rewrites
+  its `quest-n-click/…` imports, its `tsconfig.json` and its dependencies, and through 4.5.x the unscoped imports still
+  resolve (Vite, the engine's `tsconfig.json`, a hosted Studio). The commands keep their names (`quest-n-click dev`,
+  `npx quest-n-click-bridge serve`), and so do the release's archives (`quest-n-click-4.5.2.tgz`, …). Installed, the
+  packages sit under `node_modules/@quest-n-click/`. Nothing is on npm until an owner approves the
+  packages 4.5.2 stages (below).
+
+- **The Studio worker installs `requirements.txt`, the lock is gone** (4.5.2, D54, #285). `requirements.txt` now pins
+  each Python package with the sha256 of every file PyPI publishes for that version, and
+  `ops/studio/worker-requirements.lock` is removed. A worker's build hook that names the lock must name
+  `requirements.txt` instead: `python3 -m pip install --target .python --require-hashes --only-binary=:all: -r
+  node_modules/@quest-n-click/engine/requirements.txt` (from the archives) or `-r requirements.txt` (from the repository).
+
+### Changes
+
+- **The logo writes Quest'n'Click** (4.5.2): the READMEs and the wiki's first page show the logo with its capital Q
+  and C, the project's name as the maintainer writes it.
+
+- **The repository moved to the Quest-n-Click organization** (4.5.2, D51). It is `github.com/Quest-n-Click/quest-n-click`
+  now; the links to `github.com/wanoo/quest-n-click` (and to `wanoo/web-scumm`) redirect, release downloads included.
+  Every address the repository writes says the new one: the READMEs, the wiki, the issue templates, the packages'
+  `repository` field, the created project's README, the tools' `-R` (`node tools/rename-org.mjs`, idempotent; `--check`
+  is a test). History keeps the old addresses: the CHANGELOG, the LOG, the decisions, the ADRs, the plans and the pass
+  sheets of past releases.
+- **Pre-transfer releases verify under owner wanoo** (4.5.2, D51). GitHub keeps the attestations of the releases made
+  before the transfer under the user `wanoo`, not under the repository it moved, so `--repo Quest-n-Click/quest-n-click`
+  finds none of them. `ship verify`, the Field Kit and `wiki -- pages` now ask each release under the identity that
+  signed it: `wanoo/web-scumm` up to 4.2.4, `wanoo/quest-n-click` from 4.2.5 to 4.5.1 (both looked up with `--owner
+  wanoo`, the signer pinned by `--signer-workflow` or `--signer-repo`, never the owner alone), the organization's
+  repository from 4.5.2. A field bundle of unknown version tries the repository, then the two pre-transfer identities,
+  nothing else. Whatever the name, every certificate must name the repository's numeric id, `1402166796`, which the
+  three names share and a repository created again under a former name would not (`WEB_SCUMM_REPO_ID` for a fork).
+  GitHub's own release attestation of a pre-transfer release cannot be reached by `gh release verify`
+  any more: `ship verify` says so and skips it, the files' attestations being verified.
+- **The project's website replaces GitHub Pages** (4.5.2, D52). The demo and the Studio's demo are played on
+  `https://quest-n-click.cleverapps.io/demo/` (and `/demo/studio.html`), the latest documentation is read at
+  `https://quest-n-click.cleverapps.io/docs/<page id>` (`/fr/docs/<page id>` in French). The engine's `ci` deploys no GitHub Pages: the `pages`
+  job, the Pages build and the `pages-only` runs are gone, and the release ends by asking the website to take it: a
+  last job, after `ship verify` and the documentation's publication, calls its `POST /api/revalidate` with the
+  `SITE_REVALIDATE_SECRET` secret (three tries, a warning when it fails, never failing the release; `SITE_URL` for a
+  fork). There is no versioned documentation online any more: a version's documentation is
+  its release's `quest-n-click-docs-<version>.tar.gz`, and every link to a versioned page now names the same page of
+  the latest documentation.
+- **`read_doc` names the website, not a versioned page** (4.5.2, D52): on a page read from a bundle, `url.versioned` is
+  always `null` and `url.versionedNote` names the release's documentation archive (`quest-n-click-docs-<version>.tar.gz`
+  and its release page); `url.current` is the page on the website, `https://quest-n-click.cleverapps.io/docs/<id>` (`/fr/docs/<id>`),
+  no longer the GitHub wiki. The documentation surface is experimental since 4.5.0.
+- **A new release file, `quest-n-click-v<version>-web.tar.gz`** (4.5.2, D52): the game and the Studio's demo built for
+  the base path `/demo/` (its service worker scoped there), built by the candidate beside `dist.tar.gz`, summed,
+  attested and published by the release. The website downloads it from the latest release, checks it against the
+  release's sums and serves it at `/demo/`. `ship verify` expects it from 4.5.2 only.
+
+- **`quest-n-click create` writes the scoped engine** (4.5.2, D53): the dependency `"@quest-n-click/engine"`, the
+  `@engine/*` and `@quest-n-click/engine/*` paths into `node_modules/@quest-n-click/engine`; the template imports
+  `@quest-n-click/engine/…`. `@quest-n-click/create` carries `repository` and `engines`, which a provenance publish
+  needs, and every manifest `publishConfig.access: public`.
+- **The npm names watched as the organisation's** (4.5.2, D53): `ship preflight-stable` and the nightly `npm-names` job
+  ask the scoped names, ours when an owner of the organisation publishes them (`OWNERS`, `lostinbrittany` for now: npm
+  shows an organisation's members only to its members), and check each unscoped name as a pointer (an owner's,
+  deprecated; someone else's blocks the preflight, a free or undeprecated one is a step still to take), except
+  `create-quest-n-click`, a relay (an owner's, never deprecated). The trust hints name `@quest-n-click/<name>`.
+
+- **pip checks every Python download against its hash** (4.5.2, D54, #285). `pip install -r requirements.txt` is a
+  hash-checked install now, on every platform (the hashes cover the wheels of each); the docs, `doctor` and CI say
+  `--require-hashes`. The versions are those of `main` (Pillow 13.0.0, NumPy 2.5.4, SciPy 1.18.1). Dependabot's monthly pip
+  bumps rewrite the hashes with the version, so they no longer fail CI.
+
+- **The npm packages are staged by each release, for an owner to approve** (4.5.2, D34, #283). Once a release is
+  published and read back, release.yml's new `npm-stage` job takes the five archives the release carries (checked
+  against its `SHA256SUMS`) and stages them on npm by trusted publishing: OIDC, no token, a provenance, engine first,
+  `latest` for a stable tag. A version already published or already staged is skipped, so the job can be re-run alone;
+  a missing trusted publisher fails it with the `npm trust github … --file release.yml --allow-stage-publish` command.
+  The run summary lists the ids and the `npm stage approve <id>` an owner of the organisation runs with 2FA, in order.
+  Nothing is ever published by CI. A pre-release tag stages nothing (its archives carry the stable version): it
+  rehearses the OIDC exchange by a dry run. `docs-publish` does not wait for it.
+- **`ship preflight-stable` reads the staging step** (4.5.2, #283): a trusted publisher counts only on `release.yml`,
+  its hint says the configuration expires unless it stages within two days, and a new `publish-step` row checks that
+  release.yml stages through `tools/release/npm-stage.mjs`, never `npm publish`, never a token.
+
 ## 4.5.1 — 2026-10-24
 
 LOG #290–#294: a patch on 4.5.0. The maintainer's audit of the published wiki (24 October, 24 findings) is fixed: every

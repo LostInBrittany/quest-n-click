@@ -32,8 +32,6 @@ export const EXCLUDED = [
   'docs/dev/passes/',
   'docs/dev/plans/',
   'docs/dev/PLAN-4.5-WIKI.md',
-  'changes/452-org.md',
-  'changes/452-org.log.md',
   'tools/rename-org.mjs',
   'tests/rename-org.test.ts',
   'tools/release/provenance.mjs',

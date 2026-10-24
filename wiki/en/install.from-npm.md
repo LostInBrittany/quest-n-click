@@ -25,7 +25,8 @@ published: a game project created and upgraded with npm's usual commands, withou
 - No version of the product has ever been published to npm, up to and including 4.5.1. 4.2.0 went to GitHub Releases
   only (D38): publishing needs a maintainer's two-factor authentication at each step, and 4.2.0 did not wait for it.
   The npm organisation `quest-n-click` (two owners, so two people can approve) and the scoped names come with 4.5.2
-  (D53); the publication itself follows in a later release, and no version is promised.
+  (D53). 4.5.2 is also the first release that release.yml stages on npm: its packages are published once an owner
+  approves them, not before, and `npm view @quest-n-click/engine version` says when.
 - Until the first publication, the names are only watched: a job of the nightly workflow (`npm-names`, never gating)
   checks that each scoped name, and each former `web-scumm…` one, is still free or published by an owner of the
   organisation, that each unscoped name is an owner's deprecated pointer (`create-quest-n-click`: an owner's relay,

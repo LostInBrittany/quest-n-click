@@ -30,11 +30,11 @@ be finished, and ship it as a web game that installs on a phone and plays offlin
 
 <!-- install:begin -->
 Node 22.12 or newer and Python 3 with Pillow (`npm run assets` prepares the art with them), on Windows, macOS or
-Linux. The engine installs from a release's archive (npm publishing comes
-in a later release):
+Linux. The engine installs from a release's archive (from 4.5.2 each release is staged on npm and is there once an
+owner approves it; until then, the archive):
 
 ```bash
-T=https://github.com/Quest-n-Click/quest-n-click/releases/download/v4.5.1/quest-n-click-4.5.1.tgz
+T=https://github.com/Quest-n-Click/quest-n-click/releases/download/v4.5.2/quest-n-click-4.5.2.tgz
 npx --package=$T quest-n-click create my-game "My Game" --engine=$T
 cd my-game && npm install
 npm run assets && npm run dev        # play it; then npm run verify, npm run build
@@ -169,7 +169,10 @@ the first idea to the release, every command in [npm scripts](https://github.com
 [Roadmap](https://github.com/Quest-n-Click/quest-n-click/wiki/EN-Start-Roadmap). An assistant reads the same pages through the MCP server (`search_docs`, `read_doc`);
 the old `docs/` pages are transition pages, each section linked to its new place and to its 4.4.0 text.
 
-Current release: [v4.5.1 (Wiki)](https://github.com/Quest-n-Click/quest-n-click/releases/tag/v4.5.1): the maintainer's audit of the
+Current release: [v4.5.2 (Org)](https://github.com/Quest-n-Click/quest-n-click/releases/tag/v4.5.2): the repository in the
+Quest-n-Click organization (the old addresses redirect), the project's website in place of GitHub Pages, the packages
+under the `@quest-n-click` scope (`npx quest-n-click migrate` moves a game's imports), the first release staged on npm
+for an owner's approval, and one hash-checked `requirements.txt` (Horacio). Over 4.5.1: the maintainer's audit of the
 wiki fixed (links whose label is code, the first tutorial, saves, the support window, search), a game's own spans
 (`spans.json`) and leak-audit allowances (`audit-allow.json`), and `site.json`'s `url` for an absolute `og:image`
 (Horacio). Over 4.5.0 "Wiki": the documentation
