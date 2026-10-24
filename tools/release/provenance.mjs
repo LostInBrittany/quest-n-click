@@ -29,6 +29,38 @@ export const RENAMED = '4.2.5';
 export const PRE_TRANSFER_REPO = 'wanoo/quest-n-click';
 /** The first release attested by the repository in the organization. */
 export const TRANSFERRED = '4.5.2';
+/**
+ * The repository's numeric id (D51): wanoo/web-scumm, wanoo/quest-n-click and Quest-n-Click/quest-n-click are one
+ * repository, renamed then transferred, and every certificate they signed names it as `sourceRepositoryIdentifier`.
+ * A repository created again under a former name would have another id: an attestation is accepted only when it names
+ * this one. A fork sets WEB_SCUMM_REPO and, to keep the check, its own WEB_SCUMM_REPO_ID; with WEB_SCUMM_REPO alone the
+ * id is not checked (`PINNED_ID` null), the name and the workflow still are.
+ */
+export const REPO_ID = process.env.WEB_SCUMM_REPO_ID ?? '1402166796';
+export const PINNED_ID = process.env.WEB_SCUMM_REPO && !process.env.WEB_SCUMM_REPO_ID ? null : REPO_ID;
+
+/**
+ * Why `gh attestation verify --format json`'s output does not stand for the repository `id`; null when every
+ * attestation it returns names it (`verificationResult.signature.certificate.sourceRepositoryIdentifier`). No id to
+ * pin (a fork without its own): null.
+ */
+export function repoIdProblem(json, id = PINNED_ID) {
+  if (id === null) return null;
+  let list;
+  try {
+    list = JSON.parse(json);
+  } catch {
+    return 'the verification output is not JSON';
+  }
+  if (!Array.isArray(list) || list.length === 0) return 'the verification returned no attestation';
+  for (const a of list) {
+    const got = a?.verificationResult?.signature?.certificate?.sourceRepositoryIdentifier;
+    if (got === undefined || got === null || got === '') return `an attestation names no repository id (want ${id})`;
+    if (String(got) !== String(id)) return `an attestation names repository id ${got}, not ${id}`;
+  }
+  return null;
+}
+
 /** The identities attested before the transfer, the most recent first: their attestations live under their owner. */
 export const PRE_TRANSFER = [PRE_TRANSFER_REPO, FORMER_REPO];
 /**
@@ -155,6 +187,9 @@ function verifyOnce(file, { repo = REPO, bundle, trustedRoot, signerWorkflow, so
       .join(' ');
     throw new Error(`${file}: its attestation does not verify (${why})`);
   }
+  // The name and the workflow verified, the repository itself: the id every certificate names (D51).
+  const wrong = repoIdProblem(out);
+  if (wrong) throw new Error(`${file}: its attestation does not verify (${wrong})`);
   return { runId: runOfStatement(out) };
 }
 

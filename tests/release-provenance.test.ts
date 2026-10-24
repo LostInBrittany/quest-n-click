@@ -13,6 +13,8 @@ import {
   lookupArgs,
   PRE_TRANSFER_REPO,
   REPO,
+  REPO_ID,
+  repoIdProblem,
   readCandidateManifest,
   repoOfRelease,
   runOfStatement,
@@ -124,7 +126,7 @@ describe("the repository's former names (4.2.5, D47) and its transfer to the org
       // A `gh` whose attestations are under the user wanoo, signed by wanoo/web-scumm only (a candidate before 4.2.5).
       writeFileSync(
         gh,
-        `#!/bin/sh\necho "$@" >> "${d}/calls"\ncase "$*" in\n  *"--owner wanoo --signer-workflow wanoo/web-scumm/"*) echo '[{"x":"/actions/runs/7/attempts/1"}]' ;;\n  *) echo "no attestation" >&2; exit 1 ;;\nesac\n`,
+        `#!/bin/sh\necho "$@" >> "${d}/calls"\ncase "$*" in\n  *"--owner wanoo --signer-workflow wanoo/web-scumm/"*) echo '[{"x":"/actions/runs/7/attempts/1","verificationResult":{"signature":{"certificate":{"sourceRepositoryIdentifier":"1402166796"}}}}]' ;;\n  *) echo "no attestation" >&2; exit 1 ;;\nesac\n`,
         { mode: 0o755 },
       );
       const file = join(d, 'candidate-manifest.json');
@@ -147,7 +149,11 @@ describe("the repository's former names (4.2.5, D47) and its transfer to the org
     () => {
       const d = mkdtempSync(join(tmpdir(), 'pre-transfer-'));
       const gh = join(d, 'gh');
-      writeFileSync(gh, `#!/bin/sh\necho "$@" >> "${d}/calls"\necho '[]'\n`, { mode: 0o755 });
+      writeFileSync(
+        gh,
+        `#!/bin/sh\necho "$@" >> "${d}/calls"\necho '[{"verificationResult":{"signature":{"certificate":{"sourceRepositoryIdentifier":"1402166796"}}}}]'\n`,
+        { mode: 0o755 },
+      );
       const file = join(d, 'quest-n-click-4.5.1.tgz');
       writeFileSync(file, 'x');
       verifyAttestation(file, { gh, repo: repoOfRelease('4.5.1') });
@@ -156,4 +162,37 @@ describe("the repository's former names (4.2.5, D47) and its transfer to the org
       );
     },
   );
+
+  it("accepts an attestation only when every certificate names the repository's id, 1402166796 (D51)", () => {
+    const att = (id?: unknown) => ({
+      verificationResult: { signature: { certificate: id === undefined ? {} : { sourceRepositoryIdentifier: id } } },
+    });
+    expect(REPO_ID).toBe('1402166796');
+    expect(repoIdProblem(JSON.stringify([att('1402166796')]))).toBeNull();
+    expect(repoIdProblem(JSON.stringify([att(1402166796)]))).toBeNull();
+    // A repository created again under a former name: another id, refused, even beside the right one.
+    expect(repoIdProblem(JSON.stringify([att('1402166796'), att('77')]))).toBe(
+      'an attestation names repository id 77, not 1402166796',
+    );
+    expect(repoIdProblem(JSON.stringify([att()]))).toBe('an attestation names no repository id (want 1402166796)');
+    expect(repoIdProblem('[]')).toBe('the verification returned no attestation');
+    expect(repoIdProblem('nope')).toBe('the verification output is not JSON');
+    // A fork with no id of its own: not checked.
+    expect(repoIdProblem(JSON.stringify([att('77')]), null)).toBeNull();
+  });
+
+  it.skipIf(process.platform === 'win32')('refuses a verified attestation of another repository id', () => {
+    const d = mkdtempSync(join(tmpdir(), 'repo-id-'));
+    const gh = join(d, 'gh');
+    writeFileSync(
+      gh,
+      `#!/bin/sh\necho '[{"verificationResult":{"signature":{"certificate":{"sourceRepositoryIdentifier":"77"}}}}]'\n`,
+      { mode: 0o755 },
+    );
+    const file = join(d, 'quest-n-click-4.5.1.tgz');
+    writeFileSync(file, 'x');
+    expect(() => verifyAttestation(file, { gh, repo: repoOfRelease('4.5.1') })).toThrow(
+      /does not verify \(an attestation names repository id 77, not 1402166796\)/,
+    );
+  });
 });

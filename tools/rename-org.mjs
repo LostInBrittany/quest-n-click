@@ -45,6 +45,13 @@ export const KEEP = {
   'wiki/en/start.play-online.md': ['`wanoo.github.io/quest-n-click` (4.2.5 to 4.5.1)'],
   'wiki/fr/start.play-online.md': ['`wanoo.github.io/quest-n-click` (de la 4.2.5 à la 4.5.1)'],
   'wiki/en/start.what-it-is.md': ['(`wanoo/quest-n-click`, `wanoo/web-scumm`)', 'and `wanoo.github.io/quest-n-click`'],
+  'wiki/en/contribute.releasing.md': [
+    '`gh attestation verify <file> --owner wanoo --signer-workflow wanoo/quest-n-click/.github/workflows/release.yml`',
+  ],
+  'wiki/fr/contribute.releasing.md': [
+    '`gh attestation verify <file> --owner wanoo --signer-workflow wanoo/quest-n-click/.github/workflows/release.yml`',
+  ],
+  'tools/wiki/pages.ts': ['were attested by wanoo/quest-n-click, before the transfer', 'then wanoo/quest-n-click.'],
   'tools/release/ship.mjs': ['wanoo/quest-n-click\n    // up to 4.5.1'],
   'tools/field/bundle.ts': ['was attested by wanoo/quest-n-click'],
   'wiki/fr/start.what-it-is.md': ['(`wanoo/quest-n-click`, `wanoo/web-scumm`)', 'et `wanoo.github.io/quest-n-click`'],

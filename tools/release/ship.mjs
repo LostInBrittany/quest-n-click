@@ -56,6 +56,7 @@ import {
   spawn,
   until,
   versionOf,
+  warn,
   writePid,
 } from './lib.mjs';
 
@@ -398,8 +399,9 @@ async function verify(versionArg) {
   // GitHub's own release attestation (4.1.20 PR 3b, immutable releases): the release, then each of its files. One made
   // before the transfer (up to 4.5.1, D51) is kept under the user wanoo, and `gh release verify` looks only under the
   // repository, which has none: said and skipped, the files' provenance attestations above being verified under wanoo.
-  if (atLeast(version, FIRST_LISTED) && !atLeast(version, TRANSFERRED))
-    say(
+  const preTransfer = atLeast(version, FIRST_LISTED) && !atLeast(version, TRANSFERRED);
+  if (preTransfer)
+    warn(
       `${name}: GitHub's release attestation was made before the transfer (kept under wanoo, out of gh release verify's reach): not checked`,
     );
   else if (atLeast(version, FIRST_LISTED)) {
@@ -411,7 +413,9 @@ async function verify(versionArg) {
   const listed = publishedProblems(name, files, dir);
   if (listed.length)
     throw new Error(`${name}: not the files tools/release/artifacts.mjs lists:\n  ${listed.join('\n  ')}`);
-  say(`${name}: ${files.length} files, sums ok, ${attested} attestations verified, as the manifest lists them`);
+  say(
+    `${name}: ${files.length} files, sums ok, ${attested} attestations verified, as the manifest lists them${preTransfer ? "; GitHub's release attestation not checked (pre-transfer)" : ''}`,
+  );
   // The tarballs carry package.json's version, never a tag's pre-release suffix (v4.1.8-rc.1 ships web-scumm-4.1.8.tgz;
   // from 4.2.5, quest-n-click-4.2.5.tgz).
   const packed = version.replace(/-.*$/, '');

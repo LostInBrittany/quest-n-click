@@ -46,6 +46,7 @@ const P = provenance as {
   TRANSFERRED: string;
   repoOfRelease(version: string): string;
   lookupArgs(identity: string, signerWorkflow?: string): string[];
+  repoIdProblem(json: string): string | null;
 };
 const sha256 = (b: Buffer) => createHash('sha256').update(b).digest('hex');
 const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
@@ -92,8 +93,8 @@ export function ghRetry(args: string[]): string {
 /**
  * The identities that may have attested a tag's archive, in the order they are tried. For the repository itself (a
  * fork names its own, and only it): a product release's identity is its version's (`repoOfRelease`: 4.5.0 and 4.5.1
- * were attested by Quest-n-Click/quest-n-click, before the transfer, D51); a doc revision or a preview of a version before
- * 4.5.2 may have been published on either side of the transfer, so the repository is tried, then Quest-n-Click/quest-n-click.
+ * were attested by wanoo/quest-n-click, before the transfer, D51); a doc revision or a preview of a version before
+ * 4.5.2 may have been published on either side of the transfer, so the repository is tried, then wanoo/quest-n-click.
  */
 export function identitiesOf(repo: string, tag: string): string[] {
   const t = docsTag(tag);
@@ -114,20 +115,29 @@ export function attestationTries(repo: string, tag: string, file: string): strin
   return identitiesOf(repo, tag).map((identity) => {
     const workflow = `${identity}/.github/workflows/${t.kind === 'release' ? 'release' : 'docs-publish'}.yml`;
     const base = ['attestation', 'verify', file, ...P.lookupArgs(identity, workflow)];
-    if (t.kind === 'release') return base;
-    return [...base, '--source-ref', t.kind === 'revision' ? `refs/heads/docs/${t.version}` : 'refs/heads/main'];
+    const ref =
+      t.kind === 'release'
+        ? []
+        : ['--source-ref', t.kind === 'revision' ? `refs/heads/docs/${t.version}` : 'refs/heads/main'];
+    // JSON: the certificates' repository id is read from it (ghAttestation).
+    return [...base, ...ref, '--format', 'json'];
   });
 }
 
-/** The verifier `pages` uses: GitHub's attestation of the archive, by its signer workflow and ref. */
+/**
+ * The verifier `pages` uses: GitHub's attestation of the archive, by its signer workflow and ref, and the repository's
+ * numeric id every certificate must name (provenance.mjs `repoIdProblem`, D51). `run` is `ghRetry`; the tests give
+ * their own.
+ */
 export const ghAttestation =
-  (repo: string): Verify =>
+  (repo: string, run: (args: string[]) => string = ghRetry): Verify =>
   (file, tag) => {
     let why = '';
     for (const args of attestationTries(repo, tag, file)) {
       try {
-        ghRetry(args);
-        return;
+        const wrong = P.repoIdProblem(run(args));
+        if (!wrong) return;
+        why = wrong;
       } catch (e) {
         why = String((e as { stderr?: unknown }).stderr ?? (e as Error).message)
           .trim()

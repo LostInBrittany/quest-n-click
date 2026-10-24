@@ -856,6 +856,15 @@ Le dépôt GitHub sur lequel travaillent les outils de publication ; `Quest-n-Cl
 - Origine : vous la posez ; le code la lit.
 - Lue par : [`tools/release/lib.mjs`](../../tools/release/lib.mjs), [`tools/release/provenance.mjs`](../../tools/release/provenance.mjs).
 
+<a name="web-scumm-repo-id"></a>
+
+### `WEB_SCUMM_REPO_ID`
+
+L’id numérique que doit nommer le certificat de chaque attestation ; `1402166796` (ce dépôt, sous chacun de ses noms) quand elle n’est pas posée. Un fork qui ne pose que `WEB_SCUMM_REPO` n’est pas vérifié par id.
+
+- Origine : vous la posez ; le code la lit.
+- Lue par : [`tools/release/provenance.mjs`](../../tools/release/provenance.mjs).
+
 <a name="wiki-deploy-key"></a>
 
 ### `WIKI_DEPLOY_KEY`
@@ -878,7 +887,7 @@ Personne ne les pose à la main : le système, npm, Vitest ou un runner GitHub s
 `true` sur un runner GitHub : les tests et les cliquets adaptent leur sortie et leurs limites.
 
 - Origine : posée par GitHub Actions.
-- Lue par : [`scripts/e2e-pwa.mjs`](../../scripts/e2e-pwa.mjs), [`scripts/e2e.mjs`](../../scripts/e2e.mjs), [`tools/coverage-ratchet.ts`](../../tools/coverage-ratchet.ts).
+- Lue par : [`scripts/e2e-pwa.mjs`](../../scripts/e2e-pwa.mjs), [`scripts/e2e.mjs`](../../scripts/e2e.mjs), [`tools/coverage-ratchet.ts`](../../tools/coverage-ratchet.ts), et 1 de plus.
 
 <a name="github-api-url"></a>
 

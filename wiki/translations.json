@@ -5159,8 +5159,8 @@
       ]
     },
     "contribute.releasing#expected-result": {
-      "enHash": "bd5c92d73b323ea56fa869580b1a38d4b59414a78332ff4f3c89b25f4ea9aa52",
-      "frHash": "74650a9c54b77d527850f42fdb66eef703c5ba72ca2d81da4b3f648d0ada6caf",
+      "enHash": "2723bd1d37b5dccebed311b9cc46fbf5afc1a2e088572df4a602964a98c0d3dd",
+      "frHash": "7b02792362e7f3ef2a31345f12bda88b4341525c727bfc51ebe15b90c8798806",
       "reviewers": [
         { "name": "claude-452-org", "kind": "ai", "relation": "author", "date": "2026-10-24" }
       ]
@@ -5246,8 +5246,8 @@
       ]
     },
     "contribute.releasing#what-a-release-carries": {
-      "enHash": "91cab018bf721db1a3e5972cea74c0b705d7b2b8736119b5d6951593ebd4686e",
-      "frHash": "426b08dbaa988de4520b440cc447b37772eb3e5442a2ab3ac7c9dd73f3198de0",
+      "enHash": "cb66c80cd9669ba8e743b39e859b57a72a917a50aa2a0f90a566a8e5b7985cbb",
+      "frHash": "039e623bf63a32c7d09b4ff1d2c5b7a724c3aea54f2d9e6249f143e2d10ed0c9",
       "reviewers": [
         { "name": "claude-452-org", "kind": "ai", "relation": "author", "date": "2026-10-24" }
       ]
@@ -14631,11 +14631,10 @@
       ]
     },
     "reference.environment-variables#github-actions": {
-      "enHash": "badd5e8512046bc740c01393ce768a5915912441ab8ff50e103ee59b3151c244",
-      "frHash": "bb421b2654b33e94dfb2498275a52f5bd2d8fb484c9a48e82dd7ab79c5db6862",
+      "enHash": "eed9345c2a4550731f54d12b79b24b3a47cc260f31605086598192bf6d5a9cc8",
+      "frHash": "f9d1e1694426ba2719a4be9942a7fd92f8b003bc138fa40de4c7b4bdbd7ebe6f",
       "reviewers": [
-        { "name": "claude-a7", "kind": "ai", "relation": "author", "date": "2026-10-23" },
-        { "name": "wanoo", "kind": "human", "relation": "independent", "date": "2026-10-24" }
+        { "name": "claude-452-org", "kind": "ai", "relation": "author", "date": "2026-10-24" }
       ]
     },
     "reference.environment-variables#github-api-url": {
@@ -15423,6 +15422,13 @@
     "reference.environment-variables#web-scumm-repo": {
       "enHash": "41164d3f1350dddf1d034e00c360c2dde4a291ffec33794de2b933afdc57026f",
       "frHash": "e45b7bee03855997de08da8598850dea3fd38017c5ee122407685405481eec02",
+      "reviewers": [
+        { "name": "claude-452-org", "kind": "ai", "relation": "author", "date": "2026-10-24" }
+      ]
+    },
+    "reference.environment-variables#web-scumm-repo-id": {
+      "enHash": "e3eda03749451d6567f33ae2472659cb04c89de10274ed1dfccf96bce1751f0b",
+      "frHash": "fa9131aeb93e8de302c28776810f841e4c0fb3022e30e3c866c5aadd2649ee15",
       "reviewers": [
         { "name": "claude-452-org", "kind": "ai", "relation": "author", "date": "2026-10-24" }
       ]
@@ -18705,8 +18711,8 @@
       ]
     },
     "studio.demo-mode#_lead": {
-      "enHash": "6ccaf4648c164500c13cebe6b8b98a4854f7dbd920b1140abff611f8877bf31f",
-      "frHash": "1a10fba289f45c28a34dc2dec82f7c7d92441b3d07297df9b311405c35e59095",
+      "enHash": "68a8fe4090a591d41da219fa2341314ad214cf31c652d16b655a58f71f9f4630",
+      "frHash": "d4d461b438b391ce3404f2587a26a855eccfb036a4827323bc59579ca9449354",
       "reviewers": [
         { "name": "claude-452-org", "kind": "ai", "relation": "author", "date": "2026-10-24" }
       ]

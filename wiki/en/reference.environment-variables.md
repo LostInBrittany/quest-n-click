@@ -856,6 +856,15 @@ The GitHub repository the release tools work on; `Quest-n-Click/quest-n-click` w
 - Origin: you set it; the code reads it.
 - Read by: [`tools/release/lib.mjs`](../../tools/release/lib.mjs), [`tools/release/provenance.mjs`](../../tools/release/provenance.mjs).
 
+<a name="web-scumm-repo-id"></a>
+
+### `WEB_SCUMM_REPO_ID`
+
+The numeric id every attestation's certificate must name; `1402166796` (this repository, under each of its names) when unset. A fork that sets only `WEB_SCUMM_REPO` is not checked by id.
+
+- Origin: you set it; the code reads it.
+- Read by: [`tools/release/provenance.mjs`](../../tools/release/provenance.mjs).
+
 <a name="wiki-deploy-key"></a>
 
 ### `WIKI_DEPLOY_KEY`
@@ -878,7 +887,7 @@ Nobody sets these by hand: the operating system, npm, Vitest or a GitHub runner 
 `true` on a GitHub runner: the tests and ratchets adapt their output and their limits.
 
 - Origin: set by GitHub Actions.
-- Read by: [`scripts/e2e-pwa.mjs`](../../scripts/e2e-pwa.mjs), [`scripts/e2e.mjs`](../../scripts/e2e.mjs), [`tools/coverage-ratchet.ts`](../../tools/coverage-ratchet.ts).
+- Read by: [`scripts/e2e-pwa.mjs`](../../scripts/e2e-pwa.mjs), [`scripts/e2e.mjs`](../../scripts/e2e.mjs), [`tools/coverage-ratchet.ts`](../../tools/coverage-ratchet.ts), and 1 more.
 
 <a name="github-api-url"></a>
 

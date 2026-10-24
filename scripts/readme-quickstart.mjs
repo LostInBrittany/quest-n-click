@@ -31,7 +31,7 @@ export function quickStart(readme) {
 
 /** The URL the README names for `version`: under its own release, or under a release candidate of it (`tag`,
  * `v<version>-rc.N`: the 4.2.0-rc campaign installs from the rc's release until the stable one exists). The repository
- * is Quest-n-Click/quest-n-click since 4.2.5 (D47; GitHub redirects the former name's downloads), the archive the version's
+ * is Quest-n-Click/quest-n-click since 4.5.2 (D51; GitHub redirects the former names' downloads), the archive the version's
  * engine: `quest-n-click-<v>.tgz` from 4.2.5, `web-scumm-<v>.tgz` before. */
 export const archiveUrl = (version, tag = `v${version}`) =>
   `https://github.com/Quest-n-Click/quest-n-click/releases/download/${tag}/${projectOf(version)}-${version}.tgz`;

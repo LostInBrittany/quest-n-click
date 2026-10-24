@@ -58,6 +58,11 @@ export const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 /** The time, for the log lines. */
 export const now = () => new Date().toISOString().slice(11, 19);
 export const say = (s) => console.log(`${now()}  ${s}`);
+/** A warning that must be seen: `⚠` on the terminal, and an annotation of the run in GitHub Actions. */
+export const warn = (s) => {
+  console.log(`${now()}  ⚠  ${s}`);
+  if (process.env.GITHUB_ACTIONS === 'true') console.log(`::warning::${s}`);
+};
 
 /**
  * Polls `probe` every `everyMs` until it returns a value other than `undefined`, or the deadline passes (then throws).
