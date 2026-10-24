@@ -1,4 +1,4 @@
-<p align="center"><img src="docs/img/logo.png" width="480" height="320" alt="The quest'n'click logo: a pixel-art editor window with a harbour scene, a dialogue graph and a pointer, among picture cards, a treasure map, an AI panel, a notebook of puzzle diagrams and a coffee mug, under the words quest'n'click, Open source point &amp; click engine"></p>
+<p align="center"><img src="docs/img/logo.png" width="480" height="320" alt="The Quest'n'Click logo: a pixel-art editor window with a harbour scene, a dialogue graph and a pointer, among picture cards, a treasure map, an AI panel, a notebook of puzzle diagrams and a coffee mug, under the words Quest'n'Click, Open source point &amp; click engine"></p>
 
 # quest'n'click
 

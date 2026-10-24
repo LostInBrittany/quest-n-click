@@ -1,6 +1,6 @@
 # What quest'n'click is, and its web-scumm history
 
-![The quest'n'click logo: a pixel-art editor window with a harbour scene, a dialogue graph and a pointer, among picture cards, a treasure map, an AI panel, a notebook of puzzle diagrams and a coffee mug, under the words quest'n'click, Open source point & click engine](../images/start/logo.png)
+![The Quest'n'Click logo: a pixel-art editor window with a harbour scene, a dialogue graph and a pointer, among picture cards, a treasure map, an AI panel, a notebook of puzzle diagrams and a coffee mug, under the words Quest'n'Click, Open source point & click engine](../images/start/logo.png)
 
 *The logo: the words "quest'n'click, Open source point & click engine" under a pixel-art editor window.*
 
