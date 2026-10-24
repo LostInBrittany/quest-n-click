@@ -14,13 +14,21 @@ export const MINIMUM = { node: '22.14.0', npm: '11.15.0' };
 export const PACKAGES = NAMED.map((p) => p.name);
 /** The names npm carries the packages under since 4.5.2 (D53): the organisation's scope, which owns them. */
 export const NPM_NAMES = NAMED.map((p) => p.npm);
-/** The unscoped names (4.2.5 to 4.5.1): reserved by an owner, deprecated, pointing to the scoped ones (D53). */
-export const POINTERS = NAMED.map((p) => p.name);
+/**
+ * The unscoped name that stays a live package (D53): `create-quest-n-click`, published on an owner's account as a relay
+ * whose command imports `@quest-n-click/create/index.mjs`, so `npx create-quest-n-click my-game` keeps working. Never
+ * deprecated.
+ */
+export const RELAY = 'create-quest-n-click';
+/** The other unscoped names (4.2.5 to 4.5.1): reserved by an owner, deprecated, pointing to the scoped ones (D53). */
+export const POINTERS = NAMED.map((p) => p.name).filter((n) => n !== RELAY);
 /**
  * The npm users who own the organisation `quest-n-click` (D53): a name one of them publishes is ours. Exact user
- * names, never a prefix.
+ * names, never a prefix. A list kept here because npm does not show an organisation's members without a token
+ * (`GET /-/org/quest-n-click/user` answers `{}` anonymously, 24 Oct 2026), and CI has none. Erwan's npm user is to be
+ * added once he joins the organisation; the nightly's `OWNERS` (.github/workflows/nightly.yml) follows this list.
  */
-export const OWNERS = ['lostinbrittany', 'wanoo'];
+export const OWNERS = ['lostinbrittany'];
 /**
  * The packages of a release (`4.2.1`, `4.2.1-rc.1`), each from the first release it is part of (an older candidate is
  * judged without it), under the name that release packed it: quest-n-click… from 4.2.5, web-scumm… before.
@@ -279,7 +287,27 @@ export function preflight({ exec, repo, login, npmUser, version, root = '.', can
     );
     // The unscoped name it had (D53): reserved by an owner, deprecated toward the scoped package, so nobody else
     // publishes under it. Taken by someone else blocks; free, not deprecated, or unknown is a step still to take.
-    if (n !== p) {
+    // `create-quest-n-click` is the exception: a relay, an owner's and never deprecated.
+    if (n !== p && p === RELAY) {
+      const pv = exec('npm', ['view', p, 'name', 'maintainers', 'deprecated', '--json']);
+      if (!ok(pv)) {
+        const free = /E404|404 Not Found/.test(`${pv.stdout}\n${pv.stderr}`);
+        const why = `${pv.stderr || pv.stdout || ''}`.trim().split('\n').at(-1) || `exit ${pv.status}`;
+        add(
+          `${p}:relay`,
+          'missing',
+          free
+            ? `not published: the relay to ${n} (its command imports ${n}/index.mjs) from an owner's account (D53)`
+            : `npm view ${p} failed, the registry said nothing of the name: ${why}`,
+        );
+      } else {
+        const names = list(json(pv)?.maintainers).map(npmName);
+        if (!oursOf(names).length) add(`${p}:relay`, 'blocked', `taken by someone else: ${names.join(', ')}`);
+        else if (json(pv)?.deprecated)
+          add(`${p}:relay`, 'missing', `deprecated, but it is the relay to ${n}: npm deprecate ${p} "" (D53)`);
+        else add(`${p}:relay`, 'ok', `ours, the relay to ${n}`);
+      }
+    } else if (n !== p) {
       const pv = exec('npm', ['view', p, 'name', 'maintainers', 'deprecated', '--json']);
       if (!ok(pv)) {
         const free = /E404|404 Not Found/.test(`${pv.stdout}\n${pv.stderr}`);

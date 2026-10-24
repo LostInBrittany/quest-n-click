@@ -11,6 +11,25 @@
  */
 const PUBLIC = { access: 'public' };
 
+/**
+ * @quest-n-click/create's package.json (create-quest-n-click before 4.5.2, D53): `npm init @quest-n-click <folder>`.
+ * The unscoped `create-quest-n-click` lives on as a relay published on an owner's account, whose command does
+ * `await import('@quest-n-click/create/index.mjs')`: so this package keeps `index.mjs` at its root as its command, and
+ * no `exports` map, which would close that subpath (tests/pack-manifests.test.ts holds both).
+ */
+export const createManifest = (root) => ({
+  name: '@quest-n-click/create',
+  version: root.version,
+  description: "Creates a quest'n'click game project: npm init @quest-n-click my-game",
+  license: 'MIT',
+  type: 'module',
+  engines: root.engines,
+  repository: { type: 'git', url: 'git+https://github.com/Quest-n-Click/quest-n-click.git' },
+  bin: { 'create-quest-n-click': 'index.mjs' },
+  dependencies: { '@quest-n-click/engine': root.version },
+  publishConfig: PUBLIC,
+});
+
 /** @quest-n-click/bridge's package.json (quest-n-click-bridge before 4.5.2, D53; web-scumm-bridge before 4.2.5, D47). */
 export const bridgeManifest = (root) => ({
   name: '@quest-n-click/bridge',

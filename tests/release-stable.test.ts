@@ -16,6 +16,7 @@ import {
   PACKAGES,
   POINTERS,
   packagesFor,
+  RELAY,
   passesAsked,
   pinProblems,
   pinsOf,
@@ -371,28 +372,42 @@ describe('ship preflight-stable', () => {
     expect(npmNameFor('quest-n-click', '4.5.2')).toBe('@quest-n-click/engine');
     expect(npmNameFor('create-quest-n-click', '4.5.2-rc.1')).toBe('@quest-n-click/create');
     expect(npmNameFor('quest-n-click', '4.5.1')).toBe('quest-n-click');
-    const { exec, calls } = fakes({
-      // An owner who is not the one logged in: ours all the same.
-      'npm view @quest-n-click/engine name': { stdout: '{"maintainers":["wanoo <w@x>"]}' },
+    const answers = {
+      // The npm user logged in, who is not in OWNERS: ours all the same.
+      'npm view @quest-n-click/engine name': { stdout: '{"maintainers":["me <m@x>"]}' },
+      // An owner who is not the one logged in: ours.
       'npm view @quest-n-click/create name': { stdout: '{"maintainers":["lostinbrittany <h@x>"]}' },
       // A prefix of an owner is not an owner.
-      'npm view @quest-n-click/bridge name': { stdout: '{"maintainers":["wanoo2 <s@x>"]}' },
+      'npm view @quest-n-click/bridge name': { stdout: '{"maintainers":["lostinbrittany2 <s@x>"]}' },
       // The pointers: deprecated and an owner's; ours, not deprecated; someone else's; free (the default 404).
       'npm view quest-n-click name maintainers deprecated': {
         stdout: '{"maintainers":["lostinbrittany <h@x>"],"deprecated":"moved to @quest-n-click/engine"}',
       },
-      'npm view create-quest-n-click name maintainers deprecated': { stdout: '{"maintainers":["wanoo <w@x>"]}' },
+      'npm view quest-n-click-connectors name maintainers deprecated': {
+        stdout: '{"maintainers":["lostinbrittany <h@x>"]}',
+      },
       'npm view quest-n-click-bridge name maintainers deprecated': { stdout: '{"maintainers":["squat <s@x>"]}' },
-    });
-    const rows = preflight({
-      exec,
-      repo: 'Quest-n-Click/quest-n-click',
-      login: 'me',
-      npmUser: 'me',
-      version: '4.5.2',
-      root: d,
-      candidate: { run: '1', problems: [], pack },
-    });
+      // The relay: an owner's, not deprecated.
+      'npm view create-quest-n-click name maintainers deprecated': {
+        stdout: '{"maintainers":["lostinbrittany <h@x>"]}',
+      },
+    };
+    const run = (over: Record<string, { stdout: string }>) => {
+      const f = fakes({ ...answers, ...over });
+      return {
+        calls: f.calls,
+        rows: preflight({
+          exec: f.exec,
+          repo: 'Quest-n-Click/quest-n-click',
+          login: 'me',
+          npmUser: 'me',
+          version: '4.5.2',
+          root: d,
+          candidate: { run: '1', problems: [], pack },
+        }),
+      };
+    };
+    const { rows, calls } = run({});
     for (const p of PACKAGES) expect(state(rows, `${p}:archive`), p).toBe('ok');
     expect(state(rows, '@quest-n-click/engine:name')).toBe('ok');
     expect(state(rows, '@quest-n-click/create:name')).toBe('ok');
@@ -401,13 +416,23 @@ describe('ship preflight-stable', () => {
     expect(state(rows, '@quest-n-click/connectors:bootstrap')).toBe('missing');
     expect(state(rows, 'quest-n-click:name')).toBeUndefined();
     expect(state(rows, 'quest-n-click:pointer')).toBe('ok');
-    expect(state(rows, 'create-quest-n-click:pointer')).toBe('missing');
+    expect(state(rows, 'quest-n-click-connectors:pointer')).toBe('missing');
     expect(state(rows, 'quest-n-click-bridge:pointer')).toBe('blocked');
     expect(state(rows, 'quest-n-click-studio-server:pointer')).toBe('missing');
     expect(rows.find((r: { id: string }) => r.id === 'quest-n-click-studio-server:pointer').say).toContain(
       'npm deprecate quest-n-click-studio-server',
     );
     expect(rows.find((r: { id: string }) => r.id === '@quest-n-click/connectors:name').say).toMatch(/available/);
+    // create-quest-n-click is the relay (D53): an owner's and never deprecated; never judged as a pointer.
+    expect(state(rows, 'create-quest-n-click:pointer')).toBeUndefined();
+    expect(state(rows, 'create-quest-n-click:relay')).toBe('ok');
+    const relay = (stdout?: string) =>
+      state(
+        run(stdout ? { 'npm view create-quest-n-click name maintainers deprecated': { stdout } } : {}).rows,
+        'create-quest-n-click:relay',
+      );
+    expect(relay('{"maintainers":["lostinbrittany <h@x>"],"deprecated":"moved"}')).toBe('missing');
+    expect(relay('{"maintainers":["squat <s@x>"]}')).toBe('blocked');
     // The npm checks ask the scoped names; the archives keep theirs.
     expect(calls).toContain('npm publish --dry-run --ignore-scripts ' + join(pack, 'quest-n-click-4.5.2.tgz'));
     expect(calls.filter((c) => c.startsWith('npm trust list'))).toEqual([
@@ -415,7 +440,10 @@ describe('ship preflight-stable', () => {
       'npm trust list @quest-n-click/create --json',
       'npm trust list @quest-n-click/bridge --json',
     ]);
-    expect(OWNERS).toEqual(['lostinbrittany', 'wanoo']);
+    // The one owner whose npm user is known (Erwan's to be added once he joins the organisation).
+    expect(OWNERS).toEqual(['lostinbrittany']);
+    expect(POINTERS).not.toContain(RELAY);
+    expect([...POINTERS, RELAY].sort()).toEqual([...PACKAGES].sort());
   });
 
   it('sees a ruleset on the release tags, immutability, and a GO the reports contradict', () => {
@@ -525,6 +553,10 @@ describe('the nightly', () => {
     for (const p of ['web-scumm', 'create-web-scumm', 'web-scumm-bridge']) expect(loops[0], p).toContain(p);
     expect(job).toContain('::warning title=npm name taken::');
     expect(job).toContain('::warning title=npm pointer not deprecated::');
+    // The relay: checked on its own, an owner's and never deprecated.
+    expect(job).toContain(`p=${RELAY}\n`);
+    expect(job).toContain('::warning title=npm relay deprecated::');
+    expect(job).not.toMatch(/wanoo/);
     // Each owner exactly, never a prefix, nobody else.
     expect(job).toContain(`OWNERS='"(${OWNERS.join('|')})( <|")'`);
   });

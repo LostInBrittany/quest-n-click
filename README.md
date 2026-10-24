@@ -41,6 +41,9 @@ npm run assets && npm run dev        # play it; then npm run verify, npm run bui
 ```
 <!-- install:end -->
 
+Once the packages are on npm, `npm init @quest-n-click my-game` creates the project in one command
+(`npx create-quest-n-click my-game` still works and runs the same thing).
+
 `npm run build` writes `dist/`, a static site any host serves. ffmpeg serves the sound pipeline and is optional;
 `npx quest-n-click doctor` says what is missing. [Package reference](https://github.com/Quest-n-Click/quest-n-click/wiki/EN-Install-Package) is the whole guide;
 [Your first game](https://github.com/Quest-n-Click/quest-n-click/wiki/EN-Create-First-Game) walks the first room.
@@ -148,7 +151,7 @@ mistakes before a person does. Every result stays reviewable, in the Studio and 
 ## In numbers
 
 Measured on this commit of `main` by the automated gates (`npm run quality:baseline` writes these figures):
-<!-- metric:tests -->3364<!-- /metric --> unit test declarations, on Node 22 and 24, with coverage floors and gated
+<!-- metric:tests -->3366<!-- /metric --> unit test declarations, on Node 22 and 24, with coverage floors and gated
 mutation testing; the reference game proved in <!-- metric:referenceStates -->288<!-- /metric --> states; the player's
 first visit <!-- metric:initialJsKB -->136<!-- /metric --> KB of JavaScript, gzipped. Each release is built from the
 commit its candidate tested. The candidate makes the four package archives, the Bridge's image, the SBOMs, the runs and

@@ -2,7 +2,7 @@
 
 - **The packages are named under the `@quest-n-click` scope** (4.5.2, D53, #283). `quest-n-click` is
   `@quest-n-click/engine`, `create-quest-n-click` is `@quest-n-click/create` (`npm init @quest-n-click my-game` once on
-  npm), and the Bridge, the connectors and the Studio Server are `@quest-n-click/bridge`, `@quest-n-click/connectors`
+  npm; `npx create-quest-n-click my-game` stays, a relay to it), and the Bridge, the connectors and the Studio Server are `@quest-n-click/bridge`, `@quest-n-click/connectors`
   and `@quest-n-click/studio-server`: the npm organisation `quest-n-click` owns them. A game imports
   `@quest-n-click/engine/content` (`/player`, `/minigames`, `/testing`, `/reality`); `npx quest-n-click migrate` rewrites
   its `quest-n-click/…` imports, its `tsconfig.json` and its dependencies, and through 4.5.x the unscoped imports still
@@ -17,6 +17,7 @@
   `@quest-n-click/engine/…`. `@quest-n-click/create` carries `repository` and `engines`, which a provenance publish
   needs, and every manifest `publishConfig.access: public`.
 - **The npm names watched as the organisation's** (4.5.2, D53): `ship preflight-stable` and the nightly `npm-names` job
-  ask the scoped names, ours when an owner of the organisation (`lostinbrittany`, `wanoo`) publishes them, and check
-  each unscoped name as a pointer (an owner's, deprecated; someone else's blocks the preflight, a free or undeprecated
-  one is a step still to take). The trust hints name `@quest-n-click/<name>`.
+  ask the scoped names, ours when an owner of the organisation publishes them (`OWNERS`, `lostinbrittany` for now: npm
+  shows an organisation's members only to its members), and check each unscoped name as a pointer (an owner's,
+  deprecated; someone else's blocks the preflight, a free or undeprecated one is a step still to take), except
+  `create-quest-n-click`, a relay (an owner's, never deprecated). The trust hints name `@quest-n-click/<name>`.

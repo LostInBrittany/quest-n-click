@@ -29,7 +29,7 @@ From 4.2.5 to 4.2.x each package was also packed under its former web-scumm name
 version (D47). 4.3.0 packs the new names only; `npx quest-n-click migrate` moves a game off the old ones.
 
 From 4.5.2 the packages are named under the npm organisation's scope (D53): an organisation owns only scoped packages,
-so the five names belong to `quest-n-click`, whose owners (`lostinbrittany`, `wanoo`) can each approve a publication.
+so the five names belong to `quest-n-click`, whose owners can each approve a publication.
 From 4.2.5 to 4.5.1 they were `quest-n-click`, `create-quest-n-click`, `quest-n-click-bridge`,
 `quest-n-click-connectors` and `quest-n-click-studio-server`: those names are kept as deprecated pointers to the scoped
 ones. The commands keep their names (`quest-n-click`, `create-quest-n-click`, `quest-n-click-bridge`…), and so do the
@@ -85,10 +85,16 @@ The five scoped names (`@quest-n-click/engine`, `@quest-n-click/create`, `@quest
 `@quest-n-click/connectors`, `@quest-n-click/studio-server`) and the former ones (`web-scumm`, `create-web-scumm`,
 `web-scumm-bridge`, `web-scumm-connectors`, `web-scumm-studio-server`) are checked each night by the `npm-names` job of
 `.github/workflows/nightly.yml`, which never gates: each is "still free" (a 404), "ours" (published by an owner of the
-organisation, `lostinbrittany` or `wanoo`, exactly), or a warning "taken" in the run summary for the maintainers to
-act. The unscoped names of 4.2.5 to 4.5.1 (`quest-n-click`, `create-quest-n-click`, `quest-n-click-bridge`,
+organisation, exactly), or a warning "taken" in the run summary for the maintainers to act. The owners are a list,
+`OWNERS` in `tools/release/preflight.mjs` and its copy in the job: npm shows an organisation's members only to its
+members, and CI has no token. Today it holds `lostinbrittany`; Erwan's npm user joins it once he joins the
+organisation. The unscoped names of 4.2.5 to 4.5.1 (`quest-n-click`, `create-quest-n-click`, `quest-n-click-bridge`,
 `quest-n-click-connectors`, `quest-n-click-studio-server`) are pointers: the job expects each to be an owner's and
 deprecated, warns when one is not deprecated or is someone else's, and notes one still free (to reserve).
+`create-quest-n-click` is the exception, a **relay**: published on an owner's account, its command does
+`await import('@quest-n-click/create/index.mjs')`, so `npx create-quest-n-click my-game` keeps working and runs the
+same thing as `npm init @quest-n-click my-game`. The job expects it to be an owner's and **not** deprecated. It needs
+`@quest-n-click/create` to keep `index.mjs` at its root and no `exports` map (`tests/pack-manifests.test.ts`).
 
 <a name="publishing-steps"></a>
 

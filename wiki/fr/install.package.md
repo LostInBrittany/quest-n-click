@@ -77,6 +77,9 @@ Le serveur MCP d'un projet créé la lit (`read_doc`, `search_docs`, `list_docs`
 L'archive `create-quest-n-click-<version>.tgz`. Un seul fichier, `index.mjs`, la commande `create-quest-n-click`, qui
 lance `quest-n-click create` depuis le moteur dont il dépend (`@quest-n-click/engine` à la même version) :
 `npm init @quest-n-click my-game "Mon jeu"` une fois sur npm (ou `npx @quest-n-click/create my-game "Mon jeu"`).
+`npx create-quest-n-click my-game` marche toujours et lance la même chose : le `create-quest-n-click` sans scope est un
+relais, publié sur le compte d'un mainteneur, dont la commande importe `@quest-n-click/create/index.mjs`. Ce paquet
+garde donc `index.mjs` à sa racine et aucune carte `exports`.
 
 <a name="quest-n-click-bridge"></a>
 

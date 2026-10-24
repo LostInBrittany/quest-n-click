@@ -76,6 +76,9 @@ created project reads it (`read_doc`, `search_docs`, `list_docs`).
 The archive `create-quest-n-click-<version>.tgz`. One file, `index.mjs`, the command `create-quest-n-click`, which runs
 `quest-n-click create` from the engine it depends on (`@quest-n-click/engine` at the same version):
 `npm init @quest-n-click my-game "My Game"` once on npm (or `npx @quest-n-click/create my-game "My Game"`).
+`npx create-quest-n-click my-game` still works and runs the same thing: the unscoped `create-quest-n-click` is a relay,
+published on a maintainer's account, whose command imports `@quest-n-click/create/index.mjs`. So this package keeps
+`index.mjs` at its root and no `exports` map.
 
 <a name="quest-n-click-bridge"></a>
 

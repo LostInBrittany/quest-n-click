@@ -4984,8 +4984,8 @@
       ]
     },
     "contribute.npm-packages#npm-names": {
-      "enHash": "e6060b3ea3cd78714fa4d7be080bbcc93dc8f1ddf5edb8d4329fc668338b3119",
-      "frHash": "500b78cdbe660bb597fff73059b7ab023f86447ccb1b9e90511d0f66a3ce7172",
+      "enHash": "76c0ed3bb3e71b89501119be0feae6be4a9dad422cb486ce4578b96d0c758814",
+      "frHash": "fee6ea9266345ab6b570d7eda0e4b58787a0ce2b377a2401343c842649a82e05",
       "reviewers": [
         { "name": "claude-283-scoped", "kind": "ai", "relation": "author", "date": "2026-10-24" }
       ]
@@ -4998,8 +4998,8 @@
       ]
     },
     "contribute.npm-packages#packages": {
-      "enHash": "60ee5fb357ba1577c4dc79abdcd1f8083aa848b15675fd53cb4ca71a514767b9",
-      "frHash": "3a07ce838b9c64cb5b8a178c0cee65ef85c37081fc7202b2c3f6403db3982518",
+      "enHash": "bbb4fdcb40a703d1ab0aef9ecc37f295df5779b9e6298bf1b9ec113c54219f8f",
+      "frHash": "71b7078d8d20899f4ded7409bbc512a4be8937b74f378d34f2fe0d6258f99ace",
       "reviewers": [
         { "name": "claude-283-scoped", "kind": "ai", "relation": "author", "date": "2026-10-24" }
       ]
@@ -11721,22 +11721,22 @@
       ]
     },
     "install.from-npm#_lead": {
-      "enHash": "3cb8e3ad499493f22e80d237bba130370d3ca2311e424fae07213a0188ebec5f",
-      "frHash": "23760b8f262e422ab86d8f326d62f57bb550a1970be67f5d2ddf98f42b979872",
+      "enHash": "1e56f6ea37c942ba72a0948589e7f056d5396df5b5a8d522d889fa21c0b5defe",
+      "frHash": "81c8de8c6faf0495473c35edfd4a768905833d03ca908be701bde6b83089c2fa",
       "reviewers": [
         { "name": "claude-283-scoped", "kind": "ai", "relation": "author", "date": "2026-10-24" }
       ]
     },
     "install.from-npm#common-errors": {
-      "enHash": "0e78e9d5410904d41d67954fd371b4697419d76b7b8c00468b4cc214f5479407",
-      "frHash": "725aa78887bc36c07afde04245eb35c0701baf4c193a5dfeaca7e20d5116a8d7",
+      "enHash": "e0b9a33d0fca821d99908d35c63bb01ebc2fcc55b6adc49df536f00d8afbd4e2",
+      "frHash": "29143c62cde754918876fb2f9924dea758cefe98e20a72fd14ec87ce9f993080",
       "reviewers": [
         { "name": "claude-283-scoped", "kind": "ai", "relation": "author", "date": "2026-10-24" }
       ]
     },
     "install.from-npm#context-and-versions": {
-      "enHash": "3279a707c83cb4e1aed8472b2ac440480e78064af826fc923202e65056ea43f9",
-      "frHash": "17b00d9377bb6f45c25952d110673ec9c4a4639eaa9f75b9c0df5c45b14d16a6",
+      "enHash": "45b02e74d1b055956e3fcee4d9524c726b7fb19c2a451f617b4bb5ead298f233",
+      "frHash": "4e05b1b510d79b81e256a4490113605554859b6626e859f4e8662a605a47929b",
       "reviewers": [
         { "name": "claude-283-scoped", "kind": "ai", "relation": "author", "date": "2026-10-24" }
       ]
@@ -11788,8 +11788,8 @@
       ]
     },
     "install.from-npm#steps": {
-      "enHash": "b8437fe24c0438443421453f088e38779a874440bb48e9109985dd19ab4099dc",
-      "frHash": "9903ded60a74c965ea349f230eb3a969dd4a33bd413a14df6c4fc26235206552",
+      "enHash": "f7288647f23f1be9120e713df8ff4c5ecd19f174e5a31246b7e5e0005f7135ca",
+      "frHash": "897dce6062bf5cf99f3900f0307598d74943aa40af508f59e29df512ecfa82a7",
       "reviewers": [
         { "name": "claude-283-scoped", "kind": "ai", "relation": "author", "date": "2026-10-24" }
       ]
@@ -12115,8 +12115,8 @@
       ]
     },
     "install.package#create-quest-n-click": {
-      "enHash": "6ea7b020ed804bbf1688bb01d8c8a04d01f08c4da324aee33dc5d815078835f2",
-      "frHash": "ac7f35c799c42e5ab97d0b1e1992da7f309676d634d05a2a8f177fafc4af65b4",
+      "enHash": "971c7230e577c5dde51c7456649b53bed8c7c991840fd247a83cfd9ca662de94",
+      "frHash": "1d2f04e823529202434ad83aca5b4d6757ac3aeede4fa7c3b84754db9d474c76",
       "reviewers": [
         { "name": "claude-283-scoped", "kind": "ai", "relation": "author", "date": "2026-10-24" }
       ]

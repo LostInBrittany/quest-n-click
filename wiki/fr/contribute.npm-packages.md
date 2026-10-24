@@ -30,8 +30,8 @@ et à la même version (D47). La 4.3.0 n'empaquette plus que les nouveaux noms ;
 les anciens à un jeu.
 
 À partir de la 4.5.2, les paquets sont nommés sous le scope de l'organisation npm (D53) : une organisation ne possède
-que des paquets à scope, donc les cinq noms appartiennent à `quest-n-click`, dont les propriétaires (`lostinbrittany`,
-`wanoo`) peuvent chacun approuver une publication. De la 4.2.5 à la 4.5.1, ils s'appelaient `quest-n-click`,
+que des paquets à scope, donc les cinq noms appartiennent à `quest-n-click`, dont les propriétaires peuvent chacun
+approuver une publication. De la 4.2.5 à la 4.5.1, ils s'appelaient `quest-n-click`,
 `create-quest-n-click`, `quest-n-click-bridge`, `quest-n-click-connectors` et `quest-n-click-studio-server` : ces noms
 sont gardés comme pointeurs dépréciés vers les noms à scope. Les commandes gardent leur nom (`quest-n-click`,
 `create-quest-n-click`, `quest-n-click-bridge`…), et les archives jointes à une release aussi : `scripts/pack.mjs`
@@ -89,11 +89,18 @@ Les cinq noms à scope (`@quest-n-click/engine`, `@quest-n-click/create`, `@ques
 `@quest-n-click/connectors`, `@quest-n-click/studio-server`) et les anciens (`web-scumm`, `create-web-scumm`,
 `web-scumm-bridge`, `web-scumm-connectors`, `web-scumm-studio-server`) sont vérifiés chaque nuit par le job
 `npm-names` de `.github/workflows/nightly.yml`, qui ne bloque jamais : chacun est « still free » (un 404), « ours »
-(publié par exactement un propriétaire de l'organisation, `lostinbrittany` ou `wanoo`), ou un avertissement « taken »
-dans le résumé du run, pour que les mainteneurs agissent. Les noms sans scope de la 4.2.5 à la 4.5.1 (`quest-n-click`,
+(publié par exactement un propriétaire de l'organisation), ou un avertissement « taken » dans le résumé du run, pour
+que les mainteneurs agissent. Les propriétaires sont une liste, `OWNERS` dans `tools/release/preflight.mjs` et sa
+copie dans le job : npm ne montre les membres d'une organisation qu'à ses membres, et la CI n'a pas de jeton.
+Aujourd'hui elle contient `lostinbrittany` ; l'utilisateur npm d'Erwan s'y ajoute quand il rejoint l'organisation. Les noms sans scope de la 4.2.5 à la 4.5.1 (`quest-n-click`,
 `create-quest-n-click`, `quest-n-click-bridge`, `quest-n-click-connectors`, `quest-n-click-studio-server`) sont des
 pointeurs : le job attend de chacun qu'il soit à un propriétaire et déprécié, prévient quand l'un n'est pas déprécié
-ou appartient à un tiers, et note celui qui est encore libre (à réserver).
+ou appartient à un tiers, et note celui qui est encore libre (à réserver). `create-quest-n-click` fait exception, c'est
+un **relais** : publié sur le compte d'un propriétaire, sa commande fait
+`await import('@quest-n-click/create/index.mjs')`, si bien que `npx create-quest-n-click my-game` marche toujours et
+lance la même chose que `npm init @quest-n-click my-game`. Le job attend de lui qu'il soit à un propriétaire et **non**
+déprécié. Il faut pour cela que `@quest-n-click/create` garde `index.mjs` à sa racine et aucune carte `exports`
+(`tests/pack-manifests.test.ts`).
 
 <a name="publishing-steps"></a>
 

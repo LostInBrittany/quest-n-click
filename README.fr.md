@@ -42,6 +42,9 @@ npm run assets && npm run dev        # y jouer ; puis npm run verify, npm run bu
 ```
 <!-- install:end -->
 
+Une fois les paquets sur npm, `npm init @quest-n-click my-game` crée le projet en une commande
+(`npx create-quest-n-click my-game` marche toujours et lance la même chose).
+
 `npm run build` écrit `dist/`, un site statique que n'importe quel hébergement sert. ffmpeg sert au pipeline sonore
 et reste optionnel ; `npx quest-n-click doctor` dit ce qui manque. [Référence du paquet](https://github.com/Quest-n-Click/quest-n-click/wiki/FR-Installer-Paquet)
 est le guide complet ; le [Votre premier jeu](https://github.com/Quest-n-Click/quest-n-click/wiki/FR-Creer-Premier-Jeu) accompagne la première pièce.
@@ -154,7 +157,7 @@ erreurs avant qu'une personne les voie. Chaque résultat reste relisible, dans l
 ## En chiffres
 
 Mesuré sur ce commit de `main` par les vérifications automatiques (`npm run quality:baseline` écrit ces chiffres) :
-<!-- metric:tests -->3364<!-- /metric --> déclarations de tests unitaires, sous Node 22 et 24, avec des planchers de
+<!-- metric:tests -->3366<!-- /metric --> déclarations de tests unitaires, sous Node 22 et 24, avec des planchers de
 couverture et des tests de mutation bloquants ; le jeu de référence prouvé en <!-- metric:referenceStates -->288<!-- /metric -->
 états ; la première visite du joueur, <!-- metric:initialJsKB -->136<!-- /metric --> Ko de JavaScript compressé. Chaque
 release est construite depuis le commit que son candidat a testé. Le candidat produit les quatre archives de packages,

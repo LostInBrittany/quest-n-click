@@ -18,7 +18,14 @@ import { execFileSync } from 'node:child_process';
 import { cpSync, mkdirSync, readFileSync, readdirSync, renameSync, rmSync, writeFileSync } from 'node:fs';
 import { basename, dirname, join, resolve } from 'node:path';
 import { buildSync } from 'esbuild';
-import { bridgeManifest, connectorsManifest, lockFor, lockProblems, studioServerManifest } from './pack-manifests.mjs';
+import {
+  bridgeManifest,
+  connectorsManifest,
+  createManifest,
+  lockFor,
+  lockProblems,
+  studioServerManifest,
+} from './pack-manifests.mjs';
 
 const ROOT = resolve(import.meta.dirname, '..');
 const out = resolve(ROOT, process.argv.find((a) => a.startsWith('--out='))?.slice(6) ?? '.cache/pack');
@@ -185,25 +192,7 @@ writeFileSync(
   join(create, 'index.mjs'),
   `#!/usr/bin/env node\n// npm init @quest-n-click <folder> ["Title"]: runs \`quest-n-click create\` from the engine this package depends on.\nawait import('@quest-n-click/engine/cli/create.mjs');\n`,
 );
-writeFileSync(
-  join(create, 'package.json'),
-  JSON.stringify(
-    {
-      name: '@quest-n-click/create',
-      version: root.version,
-      description: "Creates a quest'n'click game project: npm init @quest-n-click my-game",
-      license: 'MIT',
-      type: 'module',
-      engines: root.engines,
-      repository: { type: 'git', url: 'git+https://github.com/Quest-n-Click/quest-n-click.git' },
-      bin: { 'create-quest-n-click': 'index.mjs' },
-      dependencies: { '@quest-n-click/engine': root.version },
-      publishConfig: { access: 'public' },
-    },
-    null,
-    2,
-  ) + '\n',
-);
+writeFileSync(join(create, 'package.json'), `${JSON.stringify(createManifest(root), null, 2)}\n`);
 cpSync(join(ROOT, 'LICENSE'), join(create, 'LICENSE'));
 
 // The Reality Bridge (4.1.1; compiled since 4.1.2): bridge/src and the protocol it shares with the player, bundled
