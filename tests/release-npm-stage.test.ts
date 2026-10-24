@@ -122,7 +122,7 @@ describe('the plan', () => {
   it('refuses an archive missing, misnamed, of another version, of another repository, or create on another engine', () => {
     const { dir, read } = folder('4.5.2', {
       '@quest-n-click/bridge': { name: 'quest-n-click-bridge' },
-      '@quest-n-click/connectors': { repository: { url: 'git+https://github.com/wanoo/quest-n-click.git' } },
+      '@quest-n-click/connectors': { repository: { url: 'git+https://github.com/someone/fork.git' } },
       '@quest-n-click/create': { dependencies: { '@quest-n-click/engine': '^4.5.2' } },
       '@quest-n-click/studio-server': { version: '4.5.1' },
     });
@@ -130,7 +130,7 @@ describe('the plan', () => {
     const { problems } = plan({ tag: 'v4.5.2', dir, repo: REPO, read });
     expect(problems.join('\n')).toMatch(/quest-n-click-4\.5\.2\.tgz: not among the release's files/);
     expect(problems.join('\n')).toMatch(/names quest-n-click-bridge, not @quest-n-click\/bridge/);
-    expect(problems.join('\n')).toMatch(/repository git\+https:\/\/github\.com\/wanoo\/quest-n-click\.git, not/);
+    expect(problems.join('\n')).toMatch(/repository git\+https:\/\/github\.com\/someone\/fork\.git, not/);
     expect(problems.join('\n')).toMatch(/depends on @quest-n-click\/engine \^4\.5\.2, not exactly 4\.5\.2/);
     expect(problems.join('\n')).toMatch(/version 4\.5\.1, not 4\.5\.2/);
   });
