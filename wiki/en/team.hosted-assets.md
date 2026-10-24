@@ -25,7 +25,7 @@ On a local Studio, see [Assets and cutting](studio.assets.md).
 ## Prerequisites
 
 - `reviewer` to read, `dev` to upload, cut and prepare (see [Roles and actions](team.roles.md#matrix-assets)).
-- The worker deployed with its Python packages (its build hook installs `ops/studio/worker-requirements.lock`; see
+- The worker deployed with its Python packages (its build hook installs `requirements.txt`, hashes checked; see
   [Configuration](clever.configuration.md)).
 
 <a name="where-to-run"></a>

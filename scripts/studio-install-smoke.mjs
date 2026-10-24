@@ -6,9 +6,10 @@
 // the API reading the game; `worker-keys`, then `quest-n-click-studio-worker` answering its probe. And its own dependencies
 // (OpenID Connect, JWT, Postgres: `deps` imports each) found from the engine's sources whether npm hoists them (an
 // install from the archive file) or nests them under the package (`--install-strategy=nested`, as an install from the
-// registry with its shrinkwrap does). From 4.2.3 (PR 0, H7): the worker's Python lock in the engine's package, the very
-// file of the repository; with `--python`, installed as the worker's build hook installs it (`--require-hashes`, wheels
-// only) and its packages imported from that folder (CI's job has CPython 3.13, the lock's). Exit 0 / 1.
+// registry with its shrinkwrap does). From 4.2.3 (PR 0, H7): the worker's Python requirements in the engine's package, the
+// very file of the repository (`requirements.txt`, hashed since D54); with `--python`, installed as the worker's build
+// hook installs it (`--require-hashes`, wheels only) and its packages imported from that folder (CI's job has CPython
+// 3.13, Clever Cloud's). Exit 0 / 1.
 import { execFileSync, spawn } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { cpSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
@@ -71,10 +72,10 @@ try {
   install(home);
   check('the engine and the Studio Server install from their archives', true);
   const sha = (f) => createHash('sha256').update(readFileSync(f)).digest('hex');
-  const LOCK = join('ops', 'studio', 'worker-requirements.lock');
+  const LOCK = 'requirements.txt';
   const shipped = join(home, 'node_modules', 'quest-n-click', LOCK);
   check(
-    "the worker's Python lock is in the engine's package, as in the repository",
+    "the hashed requirements.txt is in the engine's package, as in the repository",
     sha(shipped) === sha(resolve(import.meta.dirname, '..', LOCK)),
   );
   if (process.argv.includes('--python')) {
@@ -103,7 +104,7 @@ try {
       env: { PATH: process.env.PATH, PYTHONPATH: join(home, '.python') },
       stdio: ['ignore', 'ignore', 'inherit'],
     });
-    check("the lock installs, hashes checked, and the asset tools' packages import from the worker's folder", true);
+    check("requirements.txt installs, hashes checked, and the asset tools' packages import from the worker's folder", true);
   }
   const bin = (name) => binIn(home, name);
   const run = (name, args, env = {}) =>

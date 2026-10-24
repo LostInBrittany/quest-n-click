@@ -19,7 +19,7 @@ user is in [Package reference](install.package.md).
 
 The engine's package takes only tracked paths under its roots (`src/`, `tools/`, `studio-server/`, part of
 `bridge/src/`, `cli/`, `games/_template/`, the icons and fonts, `index.html`, `studio.html`, `vite.config.ts`,
-`tsconfig.json`, `requirements.txt`, the worker's Python lock, `LICENSE`). An untracked file under one of those roots
+`tsconfig.json`, `requirements.txt`, `LICENSE`). An untracked file under one of those roots
 stops the pack ("git add or commit them, or add them to .gitignore") rather than being left out silently. The Bridge,
 the connectors and the Studio Server carry their versioned lock as `npm-shrinkwrap.json`; a lock that no longer fits
 its manifest stops the pack: `npm run locks` makes it again (review the diff, commit it), and `npm run locks -- --check`

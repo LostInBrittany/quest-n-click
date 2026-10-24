@@ -44,8 +44,8 @@ found before release ([translations](create.translations.md)).
 
 - Node 22.13 or later: the local Studio (step 5) and the tools that write a game need it; 22.12 only plays and
   builds a game ([requirements](install.requirements.md#node)). Python 3 with Pillow for `npm run assets`
-  (`python3 -m pip install -r node_modules/quest-n-click/requirements.txt` in a created project,
-  `python3 -m pip install -r requirements.txt` in the engine repository).
+  (`python3 -m pip install --require-hashes -r node_modules/quest-n-click/requirements.txt` in a created project,
+  `python3 -m pip install --require-hashes -r requirements.txt` in the engine repository).
 - A phone on the same network, for the last step (optional).
 - One of two places to work, the same steps in both ([which is which](create.project-layout.md)):
   - **a created project**, where the game is `game/`; this page's paths say `game/`;
@@ -71,7 +71,7 @@ T=https://github.com/Quest-n-Click/quest-n-click/releases/download/v$V/quest-n-c
 npx --package=$T quest-n-click create my-game "My Game" --engine=$T
 cd my-game
 npm install
-python3 -m pip install -r node_modules/quest-n-click/requirements.txt
+python3 -m pip install --require-hashes -r node_modules/quest-n-click/requirements.txt
 npm run assets      # the placeholder art into public/assets
 npm run dev         # http://127.0.0.1:5173/: a garden, a bucket, a gate
 ```

@@ -71,7 +71,7 @@ On your machine, in the folder that will hold the clone, then at the clone's roo
 
    ```bash
    # at the root of the clone
-   python3 -m pip install -r requirements.txt
+   python3 -m pip install --require-hashes -r requirements.txt
    ```
 
 <!-- step: chromium -->

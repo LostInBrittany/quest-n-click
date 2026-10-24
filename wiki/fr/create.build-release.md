@@ -214,7 +214,7 @@ ajoutez-les-y.
 
 | Symptôme | Cause | Correction |
 |---|---|---|
-| `python3` introuvable, ou `No module named 'PIL'` | L'étape des assets demande Python 3 et Pillow | `pip install -r node_modules/quest-n-click/requirements.txt` (projet créé) ou `pip install -r requirements.txt` (dépôt du moteur) |
+| `python3` introuvable, ou `No module named 'PIL'` | L'étape des assets demande Python 3 et Pillow | `pip install --require-hashes -r node_modules/quest-n-click/requirements.txt` (projet créé) ou `pip install --require-hashes -r requirements.txt` (dépôt du moteur) |
 | `provenance.lock.json › missing: a release ships the files that were reviewed` | Pas encore de verrou | Relire les assets, puis les verrouiller (étape 3) |
 | Un placeholder refusé par `validate --release` | Les images du modèle sont toujours là | Les remplacer, ou les nommer dans `releaseExceptions` avec une raison (refusé par `--commercial`) |
 | `audio.scores › ffprobe not found` | Une release mesure les stems | Installer ffmpeg, puis `npx quest-n-click doctor` |

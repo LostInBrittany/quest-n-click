@@ -56,19 +56,20 @@ prepared, and `doctor` calls Python optional.
 
 ### Version
 
-`requirements.txt` pins the modules: Pillow 13.0.0, NumPy 2.4.6, SciPy 1.18.1 (Pillow moved to 13.0.0 in 4.3.0). CI
-uses Python 3.12. No other Python version is checked.
+`requirements.txt` pins the modules: Pillow 13.0.0, NumPy 2.4.6, SciPy 1.18.1 (Pillow moved to 13.0.0 in 4.3.0),
+each with the sha256 of every file PyPI publishes for it, so pip checks what it downloads (since 4.5.2). CI uses
+Python 3.12. No other Python version is checked.
 
 ### Install
 
 ```sh
 # in the engine repository
-python3 -m pip install -r requirements.txt
+python3 -m pip install --require-hashes -r requirements.txt
 ```
 
 ```sh
 # in a created project: the file comes with the engine package
-python3 -m pip install -r node_modules/quest-n-click/requirements.txt
+python3 -m pip install --require-hashes -r node_modules/quest-n-click/requirements.txt
 ```
 
 In a created project, `npx quest-n-click assets` runs `python3`, or the interpreter the variable

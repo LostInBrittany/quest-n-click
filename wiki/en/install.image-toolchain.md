@@ -44,12 +44,12 @@ At the root of the engine repository, or at the root of the created project. Eac
 
    ```sh
    # in the engine repository
-   python3 -m pip install -r requirements.txt
+   python3 -m pip install --require-hashes -r requirements.txt
    ```
 
    ```sh
    # in a created project
-   python3 -m pip install -r node_modules/quest-n-click/requirements.txt
+   python3 -m pip install --require-hashes -r node_modules/quest-n-click/requirements.txt
    ```
 
 <!-- step: prompts -->

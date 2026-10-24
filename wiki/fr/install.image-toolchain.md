@@ -44,12 +44,12 @@ et ces sprites préparés dans `public/assets/` par `npm run assets`.
 
    ```sh
    # dans le dépôt du moteur
-   python3 -m pip install -r requirements.txt
+   python3 -m pip install --require-hashes -r requirements.txt
    ```
 
    ```sh
    # dans un projet créé
-   python3 -m pip install -r node_modules/quest-n-click/requirements.txt
+   python3 -m pip install --require-hashes -r node_modules/quest-n-click/requirements.txt
    ```
 
 <!-- step: prompts -->

@@ -207,7 +207,7 @@ sent: `.gitignore` excludes it, and nothing in it is copied into `dist/`. A crea
 
 | Symptom | Cause | Fix |
 |---|---|---|
-| `python3` not found, or `No module named 'PIL'` | The asset step needs Python 3 and Pillow | `pip install -r node_modules/quest-n-click/requirements.txt` (created project) or `pip install -r requirements.txt` (engine repository) |
+| `python3` not found, or `No module named 'PIL'` | The asset step needs Python 3 and Pillow | `pip install --require-hashes -r node_modules/quest-n-click/requirements.txt` (created project) or `pip install --require-hashes -r requirements.txt` (engine repository) |
 | `provenance.lock.json › missing: a release ships the files that were reviewed` | No lock yet | Review the assets, then lock them (step 3) |
 | A placeholder refused by `validate --release` | The template's art is still there | Replace it, or name it in `releaseExceptions` with a reason (refused by `--commercial`) |
 | `audio.scores › ffprobe not found` | A release measures the stems | Install ffmpeg, then `npx quest-n-click doctor` |

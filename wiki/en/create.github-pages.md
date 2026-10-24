@@ -77,7 +77,7 @@ runs in the created project, on your machine.
              python-version: '3.12'
          - run: npm ci
          # The asset step (npm run assets, inside build) needs Pillow; the list ships with the engine.
-         - run: pip install -r node_modules/quest-n-click/requirements.txt
+         - run: pip install --require-hashes -r node_modules/quest-n-click/requirements.txt
          # Only when game/audio or a video holds files to encode: the runner has no ffmpeg.
          - run: command -v ffmpeg || (sudo apt-get update && sudo apt-get install -y ffmpeg)
          # Assets, verify (validate, solve, translations, lint, playtests), the build, dist/ accounted for.

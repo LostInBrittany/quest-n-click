@@ -97,8 +97,9 @@ disponible sans option. `doctor` ne le voit pas : il ne vérifie que la version 
 
 **Cause.** Les modules ne sont pas installés pour le `python3` que lancent les outils.
 
-**Correction.** Dans le dépôt du moteur, `python3 -m pip install -r requirements.txt` ; dans un projet créé,
-`python3 -m pip install -r node_modules/quest-n-click/requirements.txt`. Si pip répond
+**Correction.** Dans le dépôt du moteur, `python3 -m pip install --require-hashes -r requirements.txt` ;
+dans un projet créé,
+`python3 -m pip install --require-hashes -r node_modules/quest-n-click/requirements.txt`. Si pip répond
 `error: externally-managed-environment` (un Python du système, PEP 668), créez d'abord un environnement virtuel
 (`python3 -m venv .venv && . .venv/bin/activate`) ; dans un projet créé, `PYTHON=.venv/bin/python npm run assets`
 l'utilise ensuite.

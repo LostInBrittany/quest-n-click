@@ -7867,7 +7867,7 @@
         "ops/studio/studio.config.example.json",
         "studio-server/src/server/main.ts",
         "studio-server/src/worker/main.ts",
-        "ops/studio/worker-requirements.lock",
+        "requirements.txt",
         "docs/dev/QUALIF-4.2.2-ASSETS.md"
       ],
       "replaces": [

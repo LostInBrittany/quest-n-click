@@ -74,7 +74,7 @@ Every command below runs in a terminal, in the engine repository once it is clon
 
    ```sh
    # in the engine repository
-   python3 -m pip install -r requirements.txt
+   python3 -m pip install --require-hashes -r requirements.txt
    ```
 
    A virtual environment works too; the tools call `python3`, so activate it before running them.
@@ -99,7 +99,8 @@ Every command below runs in a terminal, in the engine repository once it is clon
    ```
 
    Each line is `✔` (present), `○` (optional and missing) or `✖` (required and missing), with the command that fixes
-   it, for instance `Run: python3 -m pip install -r requirements.txt` or `Run: npx playwright install chromium`. It
+   it, for instance `Run: python3 -m pip install --require-hashes -r requirements.txt` or
+   `Run: npx playwright install chromium`. It
    checks Node (major version 22 or more), Python 3, the image modules, ffmpeg, the three Playwright browsers, and
    Ed25519 and Biscuit for the Reality Bridge. Only a required item fails the report: Python, ffmpeg, WebKit and
    Firefox are optional for daily work. `npm run doctor -- --release` makes Python, its modules and ffmpeg required, as

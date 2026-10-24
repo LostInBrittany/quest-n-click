@@ -65,7 +65,7 @@ jobs:
       - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7
         with:
           python-version: '3.12'
-      - run: for i in 1 2 3; do (pip install -r requirements.txt) && break; [ "$i" = 3 ] && exit 1; echo "retry $i"; sleep 15; done
+      - run: for i in 1 2 3; do (pip install --require-hashes -r requirements.txt) && break; [ "$i" = 3 ] && exit 1; echo "retry $i"; sleep 15; done
         timeout-minutes: 20
       - run: for i in 1 2 3; do (npm ci) && break; [ "$i" = 3 ] && exit 1; echo "retry $i"; sleep 15; done
         timeout-minutes: 20
@@ -125,7 +125,7 @@ jobs:
       - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7
         with:
           python-version: '3.12'
-      - run: for i in 1 2 3; do (pip install -r requirements.txt) && break; [ "$i" = 3 ] && exit 1; echo "retry $i"; sleep 15; done
+      - run: for i in 1 2 3; do (pip install --require-hashes -r requirements.txt) && break; [ "$i" = 3 ] && exit 1; echo "retry $i"; sleep 15; done
         timeout-minutes: 20
       - run: for i in 1 2 3; do (npm ci) && break; [ "$i" = 3 ] && exit 1; echo "retry $i"; sleep 15; done
         timeout-minutes: 20
@@ -358,7 +358,7 @@ jobs:
         with:
           python-version: '3.12'
       - if: env.RUN == 'true'
-        run: for i in 1 2 3; do (pip install -r requirements.txt) && break; [ "$i" = 3 ] && exit 1; echo "retry $i"; sleep 15; done
+        run: for i in 1 2 3; do (pip install --require-hashes -r requirements.txt) && break; [ "$i" = 3 ] && exit 1; echo "retry $i"; sleep 15; done
         timeout-minutes: 20
       - if: env.RUN == 'true'
         run: bash scripts/ci-ffmpeg.sh
@@ -495,7 +495,7 @@ jobs:
         with:
           python-version: '3.12'
       - if: env.RUN == 'true'
-        run: for i in 1 2 3; do (python -m pip install -r requirements.txt) && break; [ "$i" = 3 ] && exit 1; echo "retry $i"; sleep 15; done
+        run: for i in 1 2 3; do (python -m pip install --require-hashes -r requirements.txt) && break; [ "$i" = 3 ] && exit 1; echo "retry $i"; sleep 15; done
         timeout-minutes: 20
       - if: env.RUN == 'true'
         run: for i in 1 2 3; do (npm ci) && break; [ "$i" = 3 ] && exit 1; echo "retry $i"; sleep 15; done
@@ -544,7 +544,7 @@ jobs:
         with:
           python-version: '3.12'
       - if: env.RUN == 'true'
-        run: for i in 1 2 3; do (pip install -r requirements.txt) && break; [ "$i" = 3 ] && exit 1; echo "retry $i"; sleep 15; done
+        run: for i in 1 2 3; do (pip install --require-hashes -r requirements.txt) && break; [ "$i" = 3 ] && exit 1; echo "retry $i"; sleep 15; done
         timeout-minutes: 20
       - if: env.RUN == 'true'
         run: for i in 1 2 3; do (npm ci) && break; [ "$i" = 3 ] && exit 1; echo "retry $i"; sleep 15; done
@@ -640,7 +640,7 @@ jobs:
         with:
           python-version: '3.12'
       - if: env.RUN == 'true'
-        run: for i in 1 2 3; do (python -m pip install -r requirements.txt) && break; [ "$i" = 3 ] && exit 1; echo "retry $i"; sleep 15; done
+        run: for i in 1 2 3; do (python -m pip install --require-hashes -r requirements.txt) && break; [ "$i" = 3 ] && exit 1; echo "retry $i"; sleep 15; done
         timeout-minutes: 20
       - if: env.RUN == 'true'
         run: for i in 1 2 3; do (npm ci) && break; [ "$i" = 3 ] && exit 1; echo "retry $i"; sleep 15; done
@@ -910,7 +910,7 @@ jobs:
         with:
           python-version: '3.12'
       - if: env.RUN == 'true'
-        run: for i in 1 2 3; do (python -m pip install -r requirements.txt) && break; [ "$i" = 3 ] && exit 1; echo "retry $i"; sleep 15; done
+        run: for i in 1 2 3; do (python -m pip install --require-hashes -r requirements.txt) && break; [ "$i" = 3 ] && exit 1; echo "retry $i"; sleep 15; done
         timeout-minutes: 20
       - if: env.RUN == 'true'
         run: for i in 1 2 3; do (npm ci) && break; [ "$i" = 3 ] && exit 1; echo "retry $i"; sleep 15; done
@@ -948,7 +948,7 @@ jobs:
         with:
           python-version: '3.12'
       - if: env.RUN == 'true'
-        run: for i in 1 2 3; do (pip install -r requirements.txt) && break; [ "$i" = 3 ] && exit 1; echo "retry $i"; sleep 15; done
+        run: for i in 1 2 3; do (pip install --require-hashes -r requirements.txt) && break; [ "$i" = 3 ] && exit 1; echo "retry $i"; sleep 15; done
         timeout-minutes: 15
       - if: env.RUN == 'true'
         run: for i in 1 2 3; do (npm ci) && break; [ "$i" = 3 ] && exit 1; echo "retry $i"; sleep 15; done
@@ -981,7 +981,7 @@ jobs:
         with:
           python-version: '3.12'
       - if: env.RUN == 'true'
-        run: for i in 1 2 3; do (pip install -r requirements.txt) && break; [ "$i" = 3 ] && exit 1; echo "retry $i"; sleep 15; done
+        run: for i in 1 2 3; do (pip install --require-hashes -r requirements.txt) && break; [ "$i" = 3 ] && exit 1; echo "retry $i"; sleep 15; done
         timeout-minutes: 20
       - if: env.RUN == 'true'
         run: for i in 1 2 3; do (npm ci) && break; [ "$i" = 3 ] && exit 1; echo "retry $i"; sleep 15; done
@@ -1032,7 +1032,7 @@ jobs:
         with:
           python-version: '3.12'
       - if: env.RUN == 'true'
-        run: for i in 1 2 3; do (python -m pip install -r requirements.txt) && break; [ "$i" = 3 ] && exit 1; echo "retry $i"; sleep 15; done
+        run: for i in 1 2 3; do (python -m pip install --require-hashes -r requirements.txt) && break; [ "$i" = 3 ] && exit 1; echo "retry $i"; sleep 15; done
         timeout-minutes: 20
       - if: env.RUN == 'true'
         run: for i in 1 2 3; do (npm ci) && break; [ "$i" = 3 ] && exit 1; echo "retry $i"; sleep 15; done
@@ -1104,7 +1104,7 @@ jobs:
         with:
           python-version: '3.12'
       - if: env.RUN == 'true'
-        run: for i in 1 2 3; do (python -m pip install -r requirements.txt) && break; [ "$i" = 3 ] && exit 1; echo "retry $i"; sleep 15; done
+        run: for i in 1 2 3; do (python -m pip install --require-hashes -r requirements.txt) && break; [ "$i" = 3 ] && exit 1; echo "retry $i"; sleep 15; done
         timeout-minutes: 20
       - if: env.RUN == 'true'
         run: for i in 1 2 3; do (npm ci) && break; [ "$i" = 3 ] && exit 1; echo "retry $i"; sleep 15; done
@@ -1164,7 +1164,7 @@ jobs:
         with:
           python-version: '3.12'
       - if: env.RUN == 'true'
-        run: for i in 1 2 3; do (python -m pip install -r requirements.txt) && break; [ "$i" = 3 ] && exit 1; echo "retry $i"; sleep 15; done
+        run: for i in 1 2 3; do (python -m pip install --require-hashes -r requirements.txt) && break; [ "$i" = 3 ] && exit 1; echo "retry $i"; sleep 15; done
         timeout-minutes: 20
       - if: env.RUN == 'true'
         run: for i in 1 2 3; do (npm ci) && break; [ "$i" = 3 ] && exit 1; echo "retry $i"; sleep 15; done

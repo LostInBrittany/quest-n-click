@@ -19,7 +19,7 @@ tant qu'utilisateur : [Référence du paquet](install.package.md).
 
 Le paquet du moteur ne prend que des chemins suivis sous ses racines (`src/`, `tools/`, `studio-server/`, une partie de
 `bridge/src/`, `cli/`, `games/_template/`, les icônes et polices, `index.html`, `studio.html`, `vite.config.ts`,
-`tsconfig.json`, `requirements.txt`, le verrou Python du worker, `LICENSE`). Un fichier non suivi sous l'une de ces
+`tsconfig.json`, `requirements.txt`, `LICENSE`). Un fichier non suivi sous l'une de ces
 racines arrête l'empaquetage (« git add or commit them, or add them to .gitignore ») au lieu d'être oublié en silence.
 Le Bridge, les connecteurs et le Studio Server portent leur verrou versionné en `npm-shrinkwrap.json` ; un verrou qui ne
 correspond plus à son manifeste arrête l'empaquetage : `npm run locks` le refait (relire le diff, le commiter), et

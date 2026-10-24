@@ -74,7 +74,7 @@ Chaque commande ci-dessous se lance dans un terminal, dans le dépôt du moteur 
 
    ```sh
    # dans le dépôt du moteur
-   python3 -m pip install -r requirements.txt
+   python3 -m pip install --require-hashes -r requirements.txt
    ```
 
    Un environnement virtuel convient aussi ; les outils appellent `python3`, activez-le donc avant de les lancer.
@@ -99,7 +99,8 @@ Chaque commande ci-dessous se lance dans un terminal, dans le dépôt du moteur 
    ```
 
    Chaque ligne est `✔` (présent), `○` (facultatif et absent) ou `✖` (obligatoire et absent), avec la commande qui
-   corrige, par exemple `Run: python3 -m pip install -r requirements.txt` ou `Run: npx playwright install chromium`. Il
+   corrige, par exemple `Run: python3 -m pip install --require-hashes -r requirements.txt` ou
+   `Run: npx playwright install chromium`. Il
    vérifie Node (version majeure 22 ou plus), Python 3, les modules d'image, ffmpeg, les trois navigateurs de
    Playwright, et Ed25519 et Biscuit pour le Reality Bridge. Seul un élément obligatoire fait échouer le rapport :
    Python, ffmpeg, WebKit et Firefox sont facultatifs au quotidien. `npm run doctor -- --release` rend obligatoires

@@ -193,7 +193,7 @@ Every command above ends green. On the pull request, `pr-gate` is green once eve
 | `knip` names an unused export or file | Dead code left by the change | Remove it, or use it |
 | `✖ this branch changes the code and carries no fragment` | No `changes/<slug>.md` | Write it ([Conventions](contribute.conventions.md#changes-fragments)) |
 | `✖ behaviour moved from tests/quality-baseline.json` | A digest, a verdict, a golden save or the API surface moved, or a README figure lags | [The quality baseline](contribute.quality-baseline.md) |
-| `test:assets` fails at import | Python modules missing | `python3 -m pip install -r requirements.txt` |
+| `test:assets` fails at import | Python modules missing | `python3 -m pip install --require-hashes -r requirements.txt` |
 | CI's coverage job warns "coverage ratchet" | A floor is three points or more below what the tests reach | Not blocking on a pull request; raise it ([The coverage ratchet](contribute.coverage-ratchet.md)) |
 
 <a name="files-changed"></a>

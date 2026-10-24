@@ -199,7 +199,7 @@ a réussi ([La CI expliquée](contribute.ci.md)) ; un job que le plan épargne d
 | `knip` nomme un export ou un fichier inutilisé | Du code mort laissé par le changement | Supprimez-le, ou utilisez-le |
 | `✖ this branch changes the code and carries no fragment` | Pas de `changes/<slug>.md` | Écrivez-le ([Conventions](contribute.conventions.md#changes-fragments)) |
 | `✖ behaviour moved from tests/quality-baseline.json` | Une empreinte, un verdict, une sauvegarde de référence ou la surface d'API a bougé, ou un chiffre du README est en retard | [La référence de qualité](contribute.quality-baseline.md) |
-| `test:assets` échoue à l'import | Modules Python absents | `python3 -m pip install -r requirements.txt` |
+| `test:assets` échoue à l'import | Modules Python absents | `python3 -m pip install --require-hashes -r requirements.txt` |
 | Le job de couverture de la CI avertit « coverage ratchet » | Un seuil est à trois points ou plus sous ce que les tests atteignent | Pas bloquant sur une pull request ; relevez-le ([Le cliquet de couverture](contribute.coverage-ratchet.md)) |
 
 <a name="files-changed"></a>

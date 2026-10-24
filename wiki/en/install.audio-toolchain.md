@@ -33,7 +33,7 @@ that transcribes audio sources to MIDI.
 
 | Tool | Used for | Install |
 |---|---|---|
-| Python 3 with NumPy | every command | `python3 -m pip install -r requirements.txt` ([Requirements](install.requirements.md#python)) |
+| Python 3 with NumPy | every command | `python3 -m pip install --require-hashes -r requirements.txt` ([Requirements](install.requirements.md#python)) |
 | ffmpeg | encoding the `.mp3`, loudness | `brew install ffmpeg`, or your system's package |
 | fluidsynth | the General MIDI reference render, to compare with the arrangement | `brew install fluid-synth`, or your system's package |
 | curl | `setup`'s downloads | usually present |

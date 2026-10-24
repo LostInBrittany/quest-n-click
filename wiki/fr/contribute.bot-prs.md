@@ -8,8 +8,8 @@ comment juger chacune, et que faire d'une rouge.
 ## Ce que vous obtenez
 
 Aucune pull request de bot laissée ouverte sans raison : chacune fusionnée au vert, corrigée et prise, ou fermée avec sa
-raison écrite, et la dépendance qu'elle fait bouger vérifiée partout où elle est recopiée (verrous des paquets, verrou
-Python du worker, épinglage des actions).
+raison écrite, et la dépendance qu'elle fait bouger vérifiée partout où elle est recopiée (verrous des paquets,
+épinglage des actions).
 
 <a name="context-and-versions"></a>
 
@@ -74,8 +74,9 @@ des bots.
    - les verrous propres des paquets sous `scripts/locks/` (le Bridge, les connecteurs, le Studio Server, l'image du
      Bridge) : lancez `npm run locks` quand une dépendance de ces paquets change, relisez le diff, committez-le ;
      `npm run locks -- --check` dit si chaque verrou convient encore ;
-   - le verrou Python du worker du Studio, qui suit `requirements.txt` avec ses empreintes (Pillow 13.0.0, #213 :
-     `tests/worker-python-lock.test.ts`) ;
+   - rien pour Python : `requirements.txt` porte le sha256 de chaque fichier de chaque version, et Dependabot les
+     réécrit avec la version (D54, #285) ; `tests/python-requirements.test.ts` vérifie que chaque ligne épingle `==`
+     avec une empreinte ;
    - l'épinglage d'une action : vérifiez le nouveau SHA contre le tag officiel
      (`gh api repos/<owner>/<action>/git/ref/tags/<tag>`).
 
@@ -110,7 +111,7 @@ depuis la dernière release. `main` est vert après les fusions.
 ## Fichiers ou données modifiés
 
 `package.json`, `package-lock.json`, `requirements.txt`, `.github/workflows/*.yml` (épinglage des actions),
-`scripts/locks/*.json`, le verrou Python du worker. Un changement de code qui suit une mise à jour porte son fragment
+`scripts/locks/*.json`. Un changement de code qui suit une mise à jour porte son fragment
 `changes/` ([Conventions](contribute.conventions.md#changes-fragments)).
 
 <a name="recovery"></a>

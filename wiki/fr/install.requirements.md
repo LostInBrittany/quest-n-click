@@ -57,18 +57,19 @@ se joue encore avec des assets déjà préparés, et `doctor` dit Python optionn
 ### Version
 
 `requirements.txt` épingle les modules : Pillow 13.0.0, NumPy 2.4.6, SciPy 1.18.1 (Pillow est passé en 13.0.0 avec la
-4.3.0). La CI utilise Python 3.12. Aucune autre version de Python n'est vérifiée.
+4.3.0), chacun avec le sha256 de chaque fichier que PyPI publie pour lui : pip vérifie ce qu'il télécharge (depuis
+la 4.5.2). La CI utilise Python 3.12. Aucune autre version de Python n'est vérifiée.
 
 ### Installer
 
 ```sh
 # dans le dépôt du moteur
-python3 -m pip install -r requirements.txt
+python3 -m pip install --require-hashes -r requirements.txt
 ```
 
 ```sh
 # dans un projet créé : le fichier vient avec le paquet du moteur
-python3 -m pip install -r node_modules/quest-n-click/requirements.txt
+python3 -m pip install --require-hashes -r node_modules/quest-n-click/requirements.txt
 ```
 
 Dans un projet créé, `npx quest-n-click assets` lance `python3`, ou l'interpréteur que nomme la variable
