@@ -1522,5 +1522,53 @@
   "proof": "argument",
   "owner": "@wanoo",
   "revisit": "4.6.0"
+ },
+ {
+  "file": "studio-server/src/ops/spans.ts",
+  "operator": "operator",
+  "from": "-",
+  "to": "+",
+  "context": "for (let j = n - 1; j >= 0; j--) cur[j] = next[j] || (t === ANY || path[j] !== '/' ? cur[j + 1]! : 0) ? 1 : 0;",
+  "why": "globMatch, a `*` or `**` token: starting at j = n + 1 only adds two steps past the path's end. The write to cur[n + 1] falls outside the Uint8Array and is dropped; at j = n, path[n] is undefined and cur[n + 1] reads undefined, so cur[n] is set to next[n], which the line above already wrote. The table is the same from j = n - 1 down",
+  "category": "equivalent",
+  "proof": "argument",
+  "owner": "@wanoo",
+  "revisit": "4.6.0"
+ },
+ {
+  "file": "studio-server/src/ops/spans.ts",
+  "operator": "operator",
+  "from": "-",
+  "to": "+",
+  "context": "for (let j = n - 1; j >= 0; j--) {",
+  "why": "globMatch, a `**/` token: starting at j = n + 1 only adds two steps past the path's end. path[n + 1] and path[n] are undefined, never '/', so slashThen stays 0; the write to cur[n + 1] is dropped (outside the Uint8Array) and cur[n] gets next[n] again, as the line above set it. The table is the same from j = n - 1 down",
+  "category": "equivalent",
+  "proof": "argument",
+  "owner": "@wanoo",
+  "revisit": "4.6.0"
+ },
+ {
+  "file": "studio-server/src/ops/spans.ts",
+  "operator": "operator",
+  "from": "<",
+  "to": "<=",
+  "context": "} else for (let j = 0; j < n; j++) cur[j] = path[j] === t && next[j + 1] ? 1 : 0;",
+  "why": "globMatch, a literal character: the extra step j = n compares path[n], undefined, with a one-character string, so it writes 0 into cur[n], which a new Uint8Array already holds (a literal never matches the empty rest of a path)",
+  "category": "equivalent",
+  "proof": "argument",
+  "owner": "@wanoo",
+  "revisit": "4.6.0"
+ },
+ {
+  "file": "studio-server/src/ops/spans.ts",
+  "operator": "condition false",
+  "from": "key.endsWith('/')",
+  "to": "false",
+  "context": "if (!key.includes('*') && engineSpan(key.endsWith('/') ? `${key}x` : key) !== undefined)",
+  "why": "parseOwnSpans: for a key ending in '/', engineSpan gives the same answer for `key` and `${key}x`. No name in ONE holds a '/', the room and language rules need a `.ts` or `.json` name after the last '/' (neither an empty one nor `x`), and the TREE rule reads only the first segment, which both share (a key starting with '/' is refused above). tests/studio-spans-mutants.test.ts pins both answers: `art/` refused, `rooms/` taken",
+  "category": "equivalent",
+  "proof": "argument",
+  "owner": "@wanoo",
+  "revisit": "4.6.0"
  }
 ]

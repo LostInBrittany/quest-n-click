@@ -206,6 +206,7 @@ export const TESTS: Record<MutationSet, string[]> = {
   'studio-ops': [
     'tests/studio-journal*.test.ts',
     'tests/studio-durable-mutants.test.ts',
+    'tests/studio-spans-mutants.test.ts',
     'tests/studio-server.test.ts',
     'tests/studio-collab.test.ts',
   ],
