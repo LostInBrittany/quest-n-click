@@ -413,7 +413,7 @@ it('top', () => {});
     ]);
   });
 
-  it("executes a claim on a .each test from the names the run filled in, every variant counted", () => {
+  it('executes a claim on a .each test from the names the run filled in, every variant counted', () => {
     const root = tmp('wiki-claim-each-');
     mkdirSync(join(root, 'tests'));
     writeFileSync(
@@ -426,7 +426,9 @@ it('top', () => {});
       claimStates({
         root,
         tracked: new Set(['tests/each.test.ts']),
-        claims: [{ page, claim: { id: 'c', test: 'tests/each.test.ts › leases on $name › restore refuses' }, blocks: {} }],
+        claims: [
+          { page, claim: { id: 'c', test: 'tests/each.test.ts › leases on $name › restore refuses' }, blocks: {} },
+        ],
         reports: [{ file: 'r.json', commit: HEAD, tests: tests.map((x) => ({ file: 'tests/each.test.ts', ...x })) }],
         reviews: { format: 'quest-n-click-docs-reviews', version: 1, claims: {} },
         commit: HEAD,
@@ -442,7 +444,9 @@ it('top', () => {});
         { name: 'leases on sqlite › restore refuses', status: 'passed' },
         { name: 'leases on postgres › restore refuses', status: 'skipped' },
       ]).notExecuted,
-    ).toBe(`"tests/each.test.ts › leases on $name › restore refuses" did not pass on ${HEAD.slice(0, 12)} (passed, skipped)`);
+    ).toBe(
+      `"tests/each.test.ts › leases on $name › restore refuses" did not pass on ${HEAD.slice(0, 12)} (passed, skipped)`,
+    );
     expect(states([{ name: 'leases on sqlite › another', status: 'passed' }]).executedOn).toBeUndefined();
     expect(sameTest('a › b')('a › b')).toBe(true);
     expect(sameTest('a.b › c')('aXb › c')).toBe(false);
