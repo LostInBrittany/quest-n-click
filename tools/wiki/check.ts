@@ -584,7 +584,7 @@ function checkClaims(o: {
     if (s.excluded) o.report.warnings.push(`${s.page}: the claim ${s.id} cannot be executed: ${s.excluded}`);
     if (s.reviewStale)
       o.report.warnings.push(`${s.page}: the claim ${s.id}'s review no longer holds: ${s.reviewStale}`);
-    // A published claim's scope was reviewed by a person (amendment A7): an AI's own check is said, never enough.
+    // A published claim's scope was reviewed by a person (amendment A7, kept by D56): an AI's own check is said, never enough.
     if (!s.unreferenced && page.state === 'ready' && !humanReviewed(s.reviewed))
       (o.publish ? o.report.errors : o.report.gaps).push(
         `${s.page}: the claim ${s.id}'s scope is ${reviewWords(s.reviewed) ?? 'not reviewed'}: a person reads it, then npm run wiki -- review-claim ${s.id} --by <name> --kind human --relation independent`,
@@ -609,17 +609,27 @@ function checkTranslations(wikiDir: string, manifest: Manifest, report: CheckRep
       `translations: ${p.key} is to review (${p.why}): read both sides, then npm run wiki -- translations --ack ${p.key} --by <name> --kind human|ai --relation author|independent`,
     );
   for (const k of stale) report.warnings.push(`translations.json: ${k} names no section of a written page (remove it)`);
-  // A published pair was read by a person (amendment A7); until then an AI's own reading is said as what it is.
+  // A pair recorded by an AI only is said at both levels as what it is, never as a person's reading, and no longer
+  // fails a publication: D56 amends A7, whose per-pair reading by a person was the bootstrap's and does not scale. A
+  // pair to review still fails one (above); a published claim still needs a person's review (checkClaims).
   const unread = pairs.filter((p) => p.state === 'paired' && !p.human);
-  if (unread.length)
-    (publish ? report.errors : report.gaps).push(
-      `translations: ${unread.length} pair(s) of ready pages ${unread.length === 1 ? 'is' : 'are'} ${reviewWords(unread[0]!.reviewers) ?? 'not reviewed'}, not read by a person (${unread
+  if (unread.length) {
+    const independent = unread.filter((p) => p.reviewers?.some((r) => r.relation === 'independent')).length;
+    const by =
+      independent === unread.length
+        ? 'by an independent AI only'
+        : independent
+          ? `by an AI only (${unread.length - independent} by their author, ${independent} by an independent AI)`
+          : 'by their AI author only';
+    report.gaps.push(
+      `translations: ${unread.length} pair(s) of ready pages ${unread.length === 1 ? 'is' : 'are'} checked ${by}, not read by a person (${unread
         .slice(0, 5)
         .map((p) => p.key)
         .join(
           ', ',
-        )}${unread.length > 5 ? '…' : ''}): npm run wiki -- translations --ack <key> --by <name> --kind human --relation independent`,
+        )}${unread.length > 5 ? '…' : ''}); their pages' headers say so. A person who reads one: npm run wiki -- translations --ack <key> --by <name> --kind human --relation independent`,
     );
+  }
 }
 
 // ------------------------------------------------------------------------------------------------- A5: publication

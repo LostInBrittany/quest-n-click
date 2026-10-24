@@ -634,6 +634,9 @@ or a page and a section that the written page or the coverage matrix proposes, n
   complete, not that it was reviewed. The guarantee's executed state is rendered from the candidate's test report:
   `wiki -- archive --test-report <file> --candidate <run>` reads it under `check --publish`'s rules, and the
   candidate's `docs-archive` job runs after `release-core` with `candidate-test-report`.
+- *Amendment (D56, 2026-10-24, translation pairs):* `check --publish` no longer requires a person's review of every
+  translation pair: a pair recorded by an AI only is a gap at both levels, its count said, and the page's header keeps
+  saying who read it. A pair "to review" still blocks. A claim's scope still needs a person's review (A7 unchanged).
 - The word count stays as a mere warning.
 - The glossary is bilingual, with synonyms (lease / bail / verrou; span / pan; candidate / candidat…).
 

@@ -202,7 +202,7 @@ describe('wiki -- check --publish', () => {
     expect(check(r, { productRef: r.product }, [report(r.product)]).errors).toEqual([]);
   });
 
-  it("says an AI's own check as such, never as a review, and wants a person's for a publication (amendment A7)", () => {
+  it("says an AI's own check as such, never as a review, at both levels; it no longer fails a publication (D56)", () => {
     const r = repo({ paired: true });
     const ai = { name: 'claude-a7', kind: 'ai' as const, relation: 'author' as const, date: '2026-10-23' };
     // The pairs read again by the AI that wrote them: a person's review is kept beside it, not replaced.
@@ -214,9 +214,19 @@ describe('wiki -- check --publish', () => {
     expect(ackTranslation({ wikiDir: r.wikiDir, manifest: r.manifest, key, reviewer: ai })).toBeUndefined();
     commit(r.root, 'an edit the AI checked');
     const unread =
-      'translations: 1 pair(s) of ready pages is self-checked by the author (AI), not reviewed, not read by a person (create.exits#doors): npm run wiki -- translations --ack <key> --by <name> --kind human --relation independent';
+      "translations: 1 pair(s) of ready pages is checked by their AI author only, not read by a person (create.exits#doors); their pages' headers say so. A person who reads one: npm run wiki -- translations --ack <key> --by <name> --kind human --relation independent";
     expect(check(r).gaps).toContain(unread);
-    expect(check(r, { productRef: r.product }, [report(r.product)]).errors).toEqual([unread]);
+    // D56 amends A7: the publication passes, and says the pair's state where its output is read.
+    const published = check(r, { productRef: r.product }, [report(r.product)]);
+    expect(published.errors).toEqual([]);
+    expect(published.gaps).toContain(unread);
+    expect(published.pairs.find((p) => p.key === key)).toMatchObject({ state: 'paired', human: false });
+    // A pair to review still fails it, whoever read it last: one side changed since the AI's record.
+    edit(join(r.wikiDir, 'fr', 'create.exits.md'), 'ouvre sur une autre salle', 'donne sur une autre salle');
+    commit(r.root, 'an edit nobody checked');
+    expect(check(r, { productRef: r.product }, [report(r.product)]).errors).toEqual([
+      'translations: create.exits#doors is to review (the French changed since 2026-10-23): read both sides, then npm run wiki -- translations --ack create.exits#doors --by <name> --kind human|ai --relation author|independent',
+    ]);
     const err = vi.spyOn(console, 'error').mockImplementation(() => {});
     expect(main(['translations', '--ack', key, '--by', 'x', `--wiki=${r.wikiDir}`])).toBe(2);
     expect(err.mock.calls.flat().join('\n')).toMatch(/--kind is human or ai/);

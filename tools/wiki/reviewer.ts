@@ -1,8 +1,9 @@
 // Who reviewed a translation pair or a claim's scope (4.5.0 "Wiki", A7 review; docs/dev/PLAN-4.5-WIKI.md §4.4.3 and
 // §4.7.1, amendment A7). A record says the reviewer's name, whether a person or an AI read it (`kind`), and whether
 // the reviewer wrote what they read (`relation: author`) or not (`independent`). An AI that checks its own pages is
-// self-checking, not reviewing: a published page needs at least one review by a person (`kind: human`) for each of its
-// translation pairs and claims. `ready` still means the work is complete; it never meant it was reviewed.
+// self-checking, not reviewing, and is said as such wherever a reader sees it. A published claim needs at least one
+// review by a person (`kind: human`); a translation pair needs a record, an AI's included, said as what it is (D56
+// amends A7, which wanted a person for every pair). `ready` still means the work is complete; it never meant reviewed.
 import { z } from 'zod';
 
 export const ReviewerSchema = z
