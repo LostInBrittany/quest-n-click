@@ -109,8 +109,10 @@ rapide lance les tests de documentation à chaque changement.
 ## Tout sur une pull request : l'étiquette `full-ci`
 
 Sur `main`, sur un tag et sur une pull request étiquetée **`full-ci`**, le plan est `--all` : toutes les barrières
-s'ouvrent. L'étiquette lance aussi les jobs de mutation de `ci` et un run de `candidate` pour information. Ajoutez
-l'étiquette, puis poussez (elle s'applique au run suivant).
+s'ouvrent. L'étiquette lance aussi les jobs de mutation de `ci`. Ajoutez
+l'étiquette, puis poussez (elle s'applique au run suivant de `ci`). Ajouter l'étiquette lance aussi un run de
+`candidate` pour information, une fois, sur la tête de la pull request à ce moment ; un push ultérieur n'en lance aucun :
+retirez l'étiquette et remettez-la pour le relancer sur la nouvelle tête.
 
 <a name="pages-only"></a>
 <!-- applies: 4.5.2.. since 4.5.2 -->

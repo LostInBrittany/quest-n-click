@@ -181,4 +181,11 @@ describe('the workflows that judge a candidate', () => {
   it('stay quiet on a pull request without full-ci (no target, no gate, no red check)', () => {
     expect(wf('candidate')).toContain("if: always() && needs.target.result != 'skipped'");
   });
+
+  it('starts on a pull request only when full-ci is added, never on its pushes (4.5.3)', () => {
+    const w = wf('candidate');
+    expect(w).toMatch(/^ {2}pull_request:\n {4}types: \[labeled\]\n/m);
+    expect(w).not.toMatch(/synchronize/);
+    expect(w).toContain("if: github.event_name == 'workflow_dispatch' || github.event.label.name == 'full-ci'");
+  });
 });

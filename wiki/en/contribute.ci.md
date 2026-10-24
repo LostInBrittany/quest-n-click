@@ -107,8 +107,9 @@ every change.
 ## Everything on a pull request: the `full-ci` label
 
 On `main`, on a tag and on a pull request labelled **`full-ci`**, the plan is `--all`: every gate opens. The label also
-starts the mutation jobs of `ci` and a `candidate` run for information. Add the label, then push (the label applies to
-the next run).
+starts the mutation jobs of `ci`. Add the label, then push (it applies to `ci`'s next run). Adding the label also
+starts a `candidate` run for information, once, on the pull request's head at that moment; a later push starts none:
+remove the label and add it again to run it on the new head.
 
 <a name="pages-only"></a>
 <!-- applies: 4.5.2.. since 4.5.2 -->
