@@ -364,7 +364,11 @@ describe('the push to the wiki', () => {
     );
     expect(refProblem('promote', 'refs/heads/feature/x', '4.5.0')).toMatch(/from refs\/heads\/main/);
     expect(refProblem('preview', 'refs/heads/main', '4.5.0')).toBeUndefined();
-    expect(refProblem('release', 'refs/heads/main', '4.5.0')).toBeUndefined();
+    // A release from its own tag's push (4.5.3, #291): release.yml no longer runs on main's workflow_run.
+    expect(refProblem('release', 'refs/tags/v4.5.0', '4.5.0')).toBeUndefined();
+    expect(refProblem('release', 'refs/tags/v4.5.0-rc.1', '4.5.0-rc.1')).toBeUndefined();
+    expect(refProblem('release', 'refs/heads/main', '4.5.0')).toMatch(/release publishes from refs\/tags\/v4\.5\.0/);
+    expect(refProblem('release', 'refs/tags/v4.4.0', '4.5.0')).toMatch(/not from refs\/tags\/v4\.4\.0/);
     expect(refProblem('revision', 'refs/heads/docs/4.5.0', '4.5.0')).toBeUndefined();
     expect(refProblem('revision', 'refs/heads/main', '4.5.0')).toMatch(/refs\/heads\/docs\/4\.5\.0/);
     const dir = tmp('wiki-publish-ref-');
@@ -379,7 +383,7 @@ describe('the push to the wiki', () => {
         main([...args, ...v, '--mode', 'rollback', '--ref', 'refs/heads/docs/4.5.0', '--rollback-to', '4.5.0']),
       ).toBe(1);
       expect(main([...args, ...v, '--mode', 'rollback', '--ref', 'refs/heads/main'])).toBe(1);
-      expect(main([...args, ...v, '--mode', 'release', '--ref', 'refs/heads/main', '--rollback-to', '4.5.0'])).toBe(1);
+      expect(main([...args, ...v, '--mode', 'release', '--ref', 'refs/tags/v4.5.0', '--rollback-to', '4.5.0'])).toBe(1);
       expect(main([...args, ...v, '--ref', 'refs/heads/main'])).toBe(2);
       const said = err.mock.calls.flat().join('\n');
       expect(said).toMatch(/a rollback publishes from refs\/heads\/main, not from refs\/heads\/docs\/4\.5\.0/);
@@ -400,7 +404,7 @@ describe('the push to the wiki', () => {
     const log = vi.spyOn(console, 'log').mockImplementation(() => {});
     try {
       const at = ['publish', '--target', 'wiki', '--tag', 'v4.5.0', '--archive', file, '--remote', bare];
-      const base = [...at, '--mode', 'release', '--ref', 'refs/heads/main'];
+      const base = [...at, '--mode', 'release', '--ref', 'refs/tags/v4.5.0'];
       expect(main([...base, '--version', '4.5.0', '--revision', 'r1', '--sha256', sha('0')])).toBe(1);
       expect(main([...base, '--version', '4.6.0', '--revision', 'r1'])).toBe(1);
       expect(

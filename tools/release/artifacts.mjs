@@ -25,6 +25,9 @@ export const projectOf = (version) => (atLeast(version.replace(/-.*$/, ''), RENA
 /** The first release whose packages are named under the npm organisation's scope (D53); the archives keep their names. */
 export const SCOPED = '4.5.2';
 
+/** The first release whose Remix reports the candidate proves (#291, D55); the release job proved them before. */
+export const REMIX_IN_CANDIDATE = '4.5.3';
+
 /**
  * Each package by its archive's name (its npm name from 4.2.5 to 4.5.1, a pointer to `npm` on npm since), its npm
  * name since 4.5.2 (D53, the organisation's scope), the name it had before 4.2.5, and the release that first shipped it.
@@ -225,14 +228,28 @@ export const ARTIFACTS = [
     job: 'signing-rehearsal',
     published: '{proj}-{tag}-signing-rehearsal.json',
   },
-  // What the release job makes from the tag's commit: the Remix catalogues proved, the reference speedrun, the sums.
-  ...['demo', 'reference'].map((g) => ({
-    id: `remix:${g}`,
-    kind: 'report',
-    candidate: null,
-    job: 'release',
-    published: `{proj}-{tag}-remix-${g}.json`,
-  })),
+  // The Remix catalogues proved (4.1.15, D25): by the release job up to 4.5.2, by the candidate since 4.5.3 (#291, its
+  // job remix-proof), the same name on the release either way.
+  ...['demo', 'reference'].flatMap((g) => [
+    {
+      id: `remix:${g}`,
+      kind: 'report',
+      candidate: `remix/remix-${g}.json`,
+      artifact: 'candidate-remix',
+      job: 'remix-proof',
+      published: `{proj}-{tag}-remix-${g}.json`,
+      since: REMIX_IN_CANDIDATE,
+    },
+    {
+      id: `remix:${g}:release`,
+      kind: 'report',
+      candidate: null,
+      job: 'release',
+      published: `{proj}-{tag}-remix-${g}.json`,
+      until: REMIX_IN_CANDIDATE,
+    },
+  ]),
+  // What the release job makes from the tag's commit: the reference speedrun, verified, and the sums.
   {
     id: 'speedrun:reference',
     kind: 'run',

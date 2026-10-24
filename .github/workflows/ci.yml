@@ -1,12 +1,12 @@
 name: ci
 on:
   push:
-    # main runs everything; a tag releases. A topic branch runs through its pull request (4.1.4; the ruleset on main
-    # requires these checks on the pull request's head), so a push runs once, not twice. The engine deploys no Pages
-    # (4.5.2, D52): the project's website, quest-n-click.cleverapps.io, serves the release's web.tar.gz at /demo/ and
-    # the latest documentation.
+    # main runs everything. A topic branch runs through its pull request (4.1.4; the ruleset on main requires these
+    # checks on the pull request's head), so a push runs once, not twice. A tag runs no ci (4.5.3, #291, D55): its
+    # commit is one of main's, already tested here, and release.yml checks that main's run on that SHA is green. The
+    # engine deploys no Pages (4.5.2, D52): the project's website, quest-n-click.cleverapps.io, serves the release's
+    # web.tar.gz at /demo/ and the latest documentation.
     branches: [main]
-    tags: ['v*']
   pull_request:
   # By hand: everything, on the branch it is started from.
   workflow_dispatch:
@@ -22,7 +22,7 @@ concurrency:
 # gates, the build, the baseline) and `coverage` (the unit suite, once). The second tier needs `check` and runs only
 # what the change can break, as `plan` (tools/ci-plan.ts) classifies the diff: a job it spares still runs, says "not
 # needed by the plan" and succeeds, because the ruleset requires each job by name and a skipped job is not a success.
-# On main, on a tag and on a pull request labelled `full-ci`: everything. The third tier (mutation on a `full-ci`
+# On main and on a pull request labelled `full-ci`: everything. The third tier (mutation on a `full-ci`
 # pull request, the nightly corpus and heavy proofs, release-check) runs off the pull request path. `pr-gate` reads every job's result: the
 # candidate single required check, once a few runs have been green.
 jobs:
@@ -91,7 +91,7 @@ jobs:
       - run: npm run quality:baseline -- --check --dist
       # The exhaustive proof of the sample game (seconds); a big game proves on the weekly prove workflow instead.
       - run: npm run prove:game
-      # The shipped dependencies' advisories: when the lockfile or package.json moved, and always on main and tags.
+      # The shipped dependencies' advisories: when the lockfile or package.json moved, and always on main.
       - if: fromJSON(needs.plan.outputs.plan).auditDeps
         run: npm run audit:deps
       # The two-entry build the e2e rows play (game + Studio demo): a chunk the game needs but the worker does not
@@ -109,7 +109,7 @@ jobs:
           retention-days: 3
   # The unit suite under V8 coverage, once (4.1.9: `node-24` no longer runs `quality`, `check` no longer runs the suite).
   # The floors of vite.config.ts fail here; the ratchet (a floor three points or more under what is measured) warns on
-  # a pull request and fails on main and on a tag (`--strict`, as the nightly and release-check).
+  # a pull request and fails on main (`--strict`, as the nightly and release-check).
   coverage:
     needs: plan
     runs-on: ubuntu-24.04

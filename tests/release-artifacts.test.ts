@@ -6,6 +6,8 @@ import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 // @ts-expect-error: a plain .mjs module without declarations
 import { ARTIFACTS, PACKAGES, candidateFiles, checkRelease, releaseFiles } from '../tools/release/artifacts.mjs';
+// @ts-expect-error: a plain .mjs module without declarations
+import { atLeast } from '../tools/release/candidate.mjs';
 
 interface Artifact {
   id: string;
@@ -179,6 +181,56 @@ describe('the manifest of a release', () => {
     expect(ship).toMatch(/if \(atLeast\(version, WEB_SINCE\) && !existsSync\(join\(dir, web\)\)\)/);
   });
 
+  it('takes the Remix reports from the candidate from 4.5.3 (#291), under the names the releases before had', () => {
+    // Before 4.5.3 the release job proved them: no candidate file, the same two published names.
+    expect(candidateFiles('4.5.2', []).filter((f: string) => f.startsWith('remix/'))).toEqual([]);
+    for (const v of ['4.5.3', '4.5.3-rc.1', '4.6.0'])
+      expect(
+        candidateFiles(v, []).filter((f: string) => f.startsWith('remix/')),
+        v,
+      ).toEqual(['remix/remix-demo.json', 'remix/remix-reference.json']);
+    for (const [tag, v] of [
+      ['v4.5.2', '4.5.2'],
+      ['v4.5.3-rc.1', '4.5.3-rc.1'],
+      ['v4.5.3', '4.5.3'],
+    ])
+      expect(
+        releaseFiles(tag, candidateFiles(v, [])).filter((f: string) => f.includes('-remix-') && f.endsWith('.json')),
+        tag,
+      ).toEqual([`quest-n-click-${tag}-remix-demo.json`, `quest-n-click-${tag}-remix-reference.json`]);
+    for (const g of ['demo', 'reference']) {
+      expect(ALL.find((a) => a.id === `remix:${g}`)).toMatchObject({
+        candidate: `remix/remix-${g}.json`,
+        artifact: 'candidate-remix',
+        job: 'remix-proof',
+        since: '4.5.3',
+      });
+      expect(ALL.find((a) => a.id === `remix:${g}:release`)).toMatchObject({ candidate: null, until: '4.5.3' });
+    }
+    // The candidate proves them in a job of its own, which the gate needs, and puts them in the manifest's folder.
+    const candidate = readFileSync('.github/workflows/candidate.yml', 'utf8');
+    const job = candidate.slice(candidate.indexOf('\n  remix-proof:'), candidate.indexOf('\n  worker-container:'));
+    for (const g of ['demo', 'reference'])
+      expect(job).toContain(
+        `GAME=${g} npx tsx tools/verify-variants.ts --prove --max=200000 --out=candidate-remix/remix-${g}.json`,
+      );
+    expect(candidate).toMatch(/\n {2}candidate-gate:\n {4}needs: \[[^\]]*\bremix-proof\b/);
+    expect(candidate).toContain('cp artifacts/candidate-remix/* artifacts/candidate-release/remix/');
+    expect(candidate.indexOf('candidate-release/remix/')).toBeLessThan(
+      candidate.indexOf('node tools/release/candidate.mjs manifest'),
+    );
+    // release.yml proves nothing: it downloads them, refuses a candidate without them, copies them under the tag.
+    const release = readFileSync('.github/workflows/release.yml', 'utf8');
+    expect(release).not.toMatch(/verify-variants/);
+    expect(release).toContain('gh run download "$run" -n candidate-remix -D .candidate/remix');
+    expect(release).toMatch(
+      /for d in site surfaces signing remix; do test -d "\.candidate\/\$d" \|\| \{ echo "::error::[^"]*start a new candidate\)"; exit 1; \}; done/,
+    );
+    expect(release).toContain('cp ".candidate/remix/remix-$g.json" "$P-$TAG-remix-$g.json"');
+    const surfaces = JSON.parse(readFileSync('docs/dev/surfaces.json', 'utf8')) as { status: { path: string }[] };
+    expect(surfaces.status.map((x) => x.path)).toContain('remix/*');
+  });
+
   it('names packages without the pre-release suffix, every other file with the tag', () => {
     const rc = releaseFiles('v4.1.20-rc.1', candidateFiles('4.1.20-rc.1', ['run-daily']));
     expect(rc).toContain('web-scumm-bridge-4.1.20.tgz');
@@ -199,8 +251,13 @@ describe('the manifest of a release', () => {
   it('gives every entry one id, one published name, and an SBOM that is itself published', () => {
     const ids = ALL.map((a) => a.id);
     expect(new Set(ids).size).toBe(ids.length);
-    const names = ALL.map((a) => a.published);
-    expect(new Set(names).size).toBe(names.length);
+    // One entry per published name in any one release (the Remix reports changed maker in 4.5.3, not name).
+    const live = (a: (typeof ALL)[number], v: string) =>
+      (!a.since || atLeast(v, a.since)) && (!a.until || !atLeast(v, a.until));
+    for (const v of ['4.1.19', '4.2.4', '4.2.5', '4.5.2', '4.5.3-rc.1', '4.5.3', '4.6.0']) {
+      const names = ALL.filter((a) => live(a, v)).map((a) => a.published);
+      expect(new Set(names).size, v).toBe(names.length);
+    }
     // Each release's SBOMs are among its own files, before the rename and after it (D47).
     for (const [tag, version] of [
       ['v4.2.4', '4.2.4'],

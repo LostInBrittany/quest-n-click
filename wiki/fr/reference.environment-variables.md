@@ -620,7 +620,7 @@ Le module `pg` qu’importe `tools/backup-memory.ts`, quand ce n’est pas celui
 Une URL PostgreSQL sur laquelle les tests font tourner le stockage du Bridge et les mutations ; ces tests sont sautés sans elle.
 
 - Origine : vous la posez ; le code la lit.
-- Lue par : [`.github/workflows/candidate.yml`](../../.github/workflows/candidate.yml), [`.github/workflows/ci.yml`](../../.github/workflows/ci.yml), [`.github/workflows/mutation.yml`](../../.github/workflows/mutation.yml), et 3 de plus.
+- Lue par : [`.github/workflows/candidate.yml`](../../.github/workflows/candidate.yml), [`.github/workflows/ci.yml`](../../.github/workflows/ci.yml), [`.github/workflows/mutation.yml`](../../.github/workflows/mutation.yml), et 2 de plus.
 
 <a name="consumer-pg-url"></a>
 
@@ -920,16 +920,16 @@ Le fichier où une étape écrit ses sorties.
 
 ### `GITHUB_REPOSITORY`
 
-Le dépôt où tourne un workflow (`owner/name`) ; le job `npm-stage` de release.yml y compare le `repository` de chaque paquet, comme le fait la provenance de npm.
+Le dépôt où tourne un workflow (`owner/name`) ; le job `npm-stage` de release.yml y compare le `repository` de chaque paquet, comme le fait la provenance de npm, et `tools/release/main-ci.mjs` y liste les runs `ci` de main (4.5.3).
 
 - Origine : posée par GitHub Actions.
-- Lue par : [`.github/workflows/release.yml`](../../.github/workflows/release.yml), [`tools/release/npm-stage.mjs`](../../tools/release/npm-stage.mjs).
+- Lue par : [`.github/workflows/release.yml`](../../.github/workflows/release.yml), [`tools/release/main-ci.mjs`](../../tools/release/main-ci.mjs), [`tools/release/npm-stage.mjs`](../../tools/release/npm-stage.mjs).
 
 <a name="github-sha"></a>
 
 ### `GITHUB_SHA`
 
-Le commit d’un lancement ; sous `workflow_run`, la tête de main, que nomme la provenance de npm : `npm-stage` l’écrit dans son résumé à côté du commit du tag.
+Le commit d’un lancement ; pour release.yml, lancé par le push du tag depuis la 4.5.3, le commit du tag, que nomme la provenance de npm : `npm-stage` l’écrit dans son résumé et le signale s’il n’est pas celui du tag.
 
 - Origine : posée par GitHub Actions.
 - Lue par : [`tools/release/npm-stage.mjs`](../../tools/release/npm-stage.mjs).
@@ -1217,7 +1217,7 @@ release : le préfixe des noms de fichiers de la version (`quest-n-click`).
 La base du conteneur de service PostgreSQL.
 
 - Origine : posée par un workflow de `.github/workflows/` (CI et publications).
-- Lue par : [`.github/workflows/candidate.yml`](../../.github/workflows/candidate.yml), [`.github/workflows/ci.yml`](../../.github/workflows/ci.yml), [`.github/workflows/mutation.yml`](../../.github/workflows/mutation.yml), et 2 de plus.
+- Lue par : [`.github/workflows/candidate.yml`](../../.github/workflows/candidate.yml), [`.github/workflows/ci.yml`](../../.github/workflows/ci.yml), [`.github/workflows/mutation.yml`](../../.github/workflows/mutation.yml), et 1 de plus.
 
 <a name="postgres-password"></a>
 
@@ -1226,7 +1226,7 @@ La base du conteneur de service PostgreSQL.
 Le mot de passe du conteneur de service PostgreSQL, pour la CI seulement.
 
 - Origine : posée par un workflow de `.github/workflows/` (CI et publications).
-- Lue par : [`.github/workflows/candidate.yml`](../../.github/workflows/candidate.yml), [`.github/workflows/ci.yml`](../../.github/workflows/ci.yml), [`.github/workflows/mutation.yml`](../../.github/workflows/mutation.yml), et 2 de plus.
+- Lue par : [`.github/workflows/candidate.yml`](../../.github/workflows/candidate.yml), [`.github/workflows/ci.yml`](../../.github/workflows/ci.yml), [`.github/workflows/mutation.yml`](../../.github/workflows/mutation.yml), et 1 de plus.
 
 <a name="postgres-user"></a>
 
@@ -1235,7 +1235,7 @@ Le mot de passe du conteneur de service PostgreSQL, pour la CI seulement.
 L’utilisateur du conteneur de service PostgreSQL, lu par son image.
 
 - Origine : posée par un workflow de `.github/workflows/` (CI et publications).
-- Lue par : [`.github/workflows/candidate.yml`](../../.github/workflows/candidate.yml), [`.github/workflows/ci.yml`](../../.github/workflows/ci.yml), [`.github/workflows/mutation.yml`](../../.github/workflows/mutation.yml), et 2 de plus.
+- Lue par : [`.github/workflows/candidate.yml`](../../.github/workflows/candidate.yml), [`.github/workflows/ci.yml`](../../.github/workflows/ci.yml), [`.github/workflows/mutation.yml`](../../.github/workflows/mutation.yml), et 1 de plus.
 
 <a name="product-tag"></a>
 
@@ -1263,15 +1263,6 @@ docs-publish : la version GitHub qui porte l’archive (`v<v>` ou `docs-v<v>-r<n
 
 - Origine : posée par un workflow de `.github/workflows/` (CI et publications).
 - Lue par : [`.github/workflows/docs-publish.yml`](../../.github/workflows/docs-publish.yml).
-
-<a name="remix-assets"></a>
-
-### `REMIX_ASSETS`
-
-release : les fichiers de remix ajoutés à la version, quand il y en a.
-
-- Origine : posée par un workflow de `.github/workflows/` (CI et publications).
-- Lue par : [`.github/workflows/release.yml`](../../.github/workflows/release.yml).
 
 <a name="repo"></a>
 

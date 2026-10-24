@@ -86,14 +86,15 @@ jobs:
       group: docs-publish
       cancel-in-progress: false
     # The job that holds the wiki's deploy key and writes: the maintainer gives this environment its required
-    # reviewers and its branch policy (main and docs/*), and may keep WIKI_DEPLOY_KEY there.
+    # reviewers and its branch policy (main, docs/* and, since 4.5.3, the tags v*: release.yml runs on a tag's push,
+    # #291), and may keep WIKI_DEPLOY_KEY there.
     environment: docs-publish
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     env:
       REPO: ${{ github.repository }}
       VERSION: ${{ inputs.version }}
-      # Called from release.yml, the `github` context is the caller's (event `workflow_run`, ref main): the call is
+      # Called from release.yml, the `github` context is the caller's (event `push`, ref the tag, since 4.5.3): the call is
       # known by its inputs, which a dispatch does not have.
       CALLED: ${{ inputs.archive-sha256 != '' && inputs.sha != '' }}
       DISPATCHED_MODE: ${{ inputs.mode }}
@@ -112,7 +113,11 @@ jobs:
           if [ "$CALLED" = true ]; then mode=release; else mode="$DISPATCHED_MODE"; fi
           case "$mode" in
             revision) want="refs/heads/docs/$VERSION" ;;
-            release|rollback|promote|preview) want=refs/heads/main ;;
+            # A release from its tag's push (4.5.3, #291): release.yml runs there, no longer on main's workflow_run.
+            release)
+              [ "$IN_TAG" = "v$VERSION" ] || { echo "::error::tag $IN_TAG is not v$VERSION"; exit 1; }
+              want="refs/tags/$IN_TAG" ;;
+            rollback|promote|preview) want=refs/heads/main ;;
             *) echo "::error::unknown mode: $mode"; exit 1 ;;
           esac
           [ "$RUN_REF" = "$want" ] || { echo "::error::a $mode publishes from $want, not from $RUN_REF"; exit 1; }

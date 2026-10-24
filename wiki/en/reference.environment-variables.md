@@ -620,7 +620,7 @@ The `pg` module `tools/backup-memory.ts` imports, when it is not the repository'
 A PostgreSQL URL the tests run the Bridge's store and the mutation runs against; those tests are skipped without it.
 
 - Origin: you set it; the code reads it.
-- Read by: [`.github/workflows/candidate.yml`](../../.github/workflows/candidate.yml), [`.github/workflows/ci.yml`](../../.github/workflows/ci.yml), [`.github/workflows/mutation.yml`](../../.github/workflows/mutation.yml), and 3 more.
+- Read by: [`.github/workflows/candidate.yml`](../../.github/workflows/candidate.yml), [`.github/workflows/ci.yml`](../../.github/workflows/ci.yml), [`.github/workflows/mutation.yml`](../../.github/workflows/mutation.yml), and 2 more.
 
 <a name="consumer-pg-url"></a>
 
@@ -920,16 +920,16 @@ The file a step writes its outputs to.
 
 ### `GITHUB_REPOSITORY`
 
-The repository a workflow runs in (`owner/name`); release.yml's `npm-stage` checks each package's `repository` against it, as npm's provenance does.
+The repository a workflow runs in (`owner/name`); release.yml's `npm-stage` checks each package's `repository` against it, as npm's provenance does, and `tools/release/main-ci.mjs` lists main's `ci` runs there (4.5.3).
 
 - Origin: set by GitHub Actions.
-- Read by: [`.github/workflows/release.yml`](../../.github/workflows/release.yml), [`tools/release/npm-stage.mjs`](../../tools/release/npm-stage.mjs).
+- Read by: [`.github/workflows/release.yml`](../../.github/workflows/release.yml), [`tools/release/main-ci.mjs`](../../tools/release/main-ci.mjs), [`tools/release/npm-stage.mjs`](../../tools/release/npm-stage.mjs).
 
 <a name="github-sha"></a>
 
 ### `GITHUB_SHA`
 
-The commit a run is of; under `workflow_run`, main's head, which npm's provenance names: `npm-stage` writes it in its summary beside the tag's commit.
+The commit a run is of; for release.yml, started by the tag's push since 4.5.3, the tag's commit, which npm's provenance names: `npm-stage` writes it in its summary and says so if it is not the tag's.
 
 - Origin: set by GitHub Actions.
 - Read by: [`tools/release/npm-stage.mjs`](../../tools/release/npm-stage.mjs).
@@ -1217,7 +1217,7 @@ release: the release's file name prefix (`quest-n-click`).
 The PostgreSQL service container's database.
 
 - Origin: set by a workflow of `.github/workflows/` (CI and releases).
-- Read by: [`.github/workflows/candidate.yml`](../../.github/workflows/candidate.yml), [`.github/workflows/ci.yml`](../../.github/workflows/ci.yml), [`.github/workflows/mutation.yml`](../../.github/workflows/mutation.yml), and 2 more.
+- Read by: [`.github/workflows/candidate.yml`](../../.github/workflows/candidate.yml), [`.github/workflows/ci.yml`](../../.github/workflows/ci.yml), [`.github/workflows/mutation.yml`](../../.github/workflows/mutation.yml), and 1 more.
 
 <a name="postgres-password"></a>
 
@@ -1226,7 +1226,7 @@ The PostgreSQL service container's database.
 The PostgreSQL service container's password, CI only.
 
 - Origin: set by a workflow of `.github/workflows/` (CI and releases).
-- Read by: [`.github/workflows/candidate.yml`](../../.github/workflows/candidate.yml), [`.github/workflows/ci.yml`](../../.github/workflows/ci.yml), [`.github/workflows/mutation.yml`](../../.github/workflows/mutation.yml), and 2 more.
+- Read by: [`.github/workflows/candidate.yml`](../../.github/workflows/candidate.yml), [`.github/workflows/ci.yml`](../../.github/workflows/ci.yml), [`.github/workflows/mutation.yml`](../../.github/workflows/mutation.yml), and 1 more.
 
 <a name="postgres-user"></a>
 
@@ -1235,7 +1235,7 @@ The PostgreSQL service container's password, CI only.
 The PostgreSQL service container's user, read by its image.
 
 - Origin: set by a workflow of `.github/workflows/` (CI and releases).
-- Read by: [`.github/workflows/candidate.yml`](../../.github/workflows/candidate.yml), [`.github/workflows/ci.yml`](../../.github/workflows/ci.yml), [`.github/workflows/mutation.yml`](../../.github/workflows/mutation.yml), and 2 more.
+- Read by: [`.github/workflows/candidate.yml`](../../.github/workflows/candidate.yml), [`.github/workflows/ci.yml`](../../.github/workflows/ci.yml), [`.github/workflows/mutation.yml`](../../.github/workflows/mutation.yml), and 1 more.
 
 <a name="product-tag"></a>
 
@@ -1263,15 +1263,6 @@ docs-publish: the release that carries the archive (`v<v>` or `docs-v<v>-r<n>`).
 
 - Origin: set by a workflow of `.github/workflows/` (CI and releases).
 - Read by: [`.github/workflows/docs-publish.yml`](../../.github/workflows/docs-publish.yml).
-
-<a name="remix-assets"></a>
-
-### `REMIX_ASSETS`
-
-release: the remix files added to the release, when there are some.
-
-- Origin: set by a workflow of `.github/workflows/` (CI and releases).
-- Read by: [`.github/workflows/release.yml`](../../.github/workflows/release.yml).
 
 <a name="repo"></a>
 

@@ -122,11 +122,17 @@ const builtOf = (p: Promotion) => ({ docRevision: p.docRevision, ...(p.buildId ?
 export const MODES = ['release', 'revision', 'rollback', 'promote', 'preview'] as const;
 export type Mode = (typeof MODES)[number];
 /**
- * Why a mode may not write from this ref: a doc revision from `refs/heads/docs/<v>` only; everything else (a release,
- * called from release.yml on main, a rollback, a promotion, the preview) from `refs/heads/main` only.
+ * Why a mode may not write from this ref: a doc revision from `refs/heads/docs/<v>` only; a release from its own tag,
+ * `refs/tags/v<v>` (release.yml runs on the tag's push since 4.5.3, #291; on main's `workflow_run` before); everything
+ * else (a rollback, a promotion, the preview) from `refs/heads/main` only.
  */
 export function refProblem(mode: Mode, ref: string, version: string): string | undefined {
-  const want = mode === 'revision' ? `refs/heads/docs/${version}` : 'refs/heads/main';
+  const want =
+    mode === 'revision'
+      ? `refs/heads/docs/${version}`
+      : mode === 'release'
+        ? `refs/tags/v${version}`
+        : 'refs/heads/main';
   return ref === want ? undefined : `a ${mode} publishes from ${want}, not from ${ref}`;
 }
 
