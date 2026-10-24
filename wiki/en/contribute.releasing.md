@@ -35,7 +35,9 @@ The chain is the one of 4.1.20 "Last Mile" (plan §11); tags are signed from 4.2
 ## Where to run the commands
 
 In the engine repository, on the maintainer's machine, on `main` up to date. The release itself runs on GitHub
-Actions (`.github/workflows/release.yml`), started by the tag's `ci` run.
+Actions (`.github/workflows/release.yml`), started by the tag's push (from 4.5.3; by the tag's `ci` run before). The
+tag runs no `ci` of its own: the candidate is the release's only test pass, and main's `ci` on the same SHA is the
+other thing release.yml checks.
 
 <a name="steps"></a>
 
@@ -64,24 +66,29 @@ Actions (`.github/workflows/release.yml`), started by the tag's `ci` run.
 
    ```sh
    # in the engine repository
-   npm run ship -- tag <version> <sha> --candidate=<run> --sign --now
+   npm run ship -- tag <version> <sha> --candidate=<run> --sign
    ```
 
    The previous stable tag must be an ancestor of the SHA. `--candidate=<run id>` is required from 4.1.17: the run must
    be green and its manifest must name this SHA and this run; the tag's annotation names it, and release.yml
-   publishes that run's files. `--now` does not wait for main's own `ci` run (the tag's `ci` run, the same suite on the
-   same commit, is what release.yml checks). `--sign` signs the tag with the SSH key ([below](#signing)). `ship tag`
+   publishes that run's files. `ship tag` waits for main's `ci` run on the SHA to be green before it pushes the tag
+   (re-run once): that run is what release.yml checks, since a tag runs no `ci` of its own (4.5.3). `--now`, which
+   skipped that wait, is refused since 4.5.3. `--sign` signs the tag with the SSH key ([below](#signing)). `ship tag`
    refuses to tag while immutable releases are off. It then waits as `ship watch` does.
 
 <!-- step: release -->
-3. **The release, from that run.** The tag's `ci` run, once green, starts `release.yml`. It checks that the tag is the
-   commit ci tested, that the previous stable tag is an ancestor, and that the candidate named is a green run of
-   `candidate` started by hand on main. It downloads the run's files and checks every SHA-256 against the manifest. It
-   re-runs the release checks (`npm run release-check:ci`), proves the Remix catalogues, and copies what the candidate
-   made: it builds nothing the candidate made (archives, image, SBOMs, the site, the surfaces). It then makes the
-   release a **draft**, uploads every file, publishes it and reads it back (`ship verify`). From 4.1.20 it also needs
-   the run's signing rehearsal, so a candidate made before that release's PR 3b cannot be released: start a new one.
-   One release run per tag at a time: a second one waits, then finds the first's release.
+3. **The release, from that run.** The tag's push starts `release.yml` (from 4.5.3, #291). It checks that the tag
+   still points to the commit the run was started for, that this commit is on main's first-parent line and that
+   main's `ci` succeeded on a push at this very SHA (`tools/release/main-ci.mjs`), that the previous stable tag is an
+   ancestor, and that the candidate named is a green run of `candidate` started by hand on main. It downloads the
+   run's files and checks every SHA-256 against the manifest. It tests nothing again: no `release-check`, no mutation
+   set, the candidate ran them on this SHA. It copies what the candidate made and builds nothing (archives, image,
+   SBOMs, the site, the surfaces, the Remix catalogues' proofs). It then makes the release a **draft**, uploads every
+   file, publishes it and reads it back (`ship verify`): minutes, not hours. A candidate that lacks one of its files
+   cannot be released: from 4.1.20 the signing rehearsal, from 4.5.3 the Remix proofs (a candidate made before that
+   change has none). Start a new one. If main's `ci` on the SHA is still running or red, the run stops with an error
+   that says so: wait for it, then re-run the job. One release run per tag at a time: a second one waits, then finds
+   the first's release.
 
 <!-- step: verify -->
 4. **Read back.**
@@ -119,7 +126,8 @@ Actions (`.github/workflows/release.yml`), started by the tag's `ci` run.
 
 ### What a release carries
 
-Each release is built from the commit CI tested, carries its licences inside the archive, and attaches: the built
+Each release is made from the files its candidate made on the tagged commit, carries its licences inside the archive,
+and attaches: the built
 game (`dist`), its assets manifest, the five npm package archives (`quest-n-click`, `create-quest-n-click`,
 `quest-n-click-bridge`, `quest-n-click-connectors`, `quest-n-click-studio-server`; [npm packages](contribute.npm-packages.md)),
 one CycloneDX SBOM per package and one for the Bridge's image (five SBOMs in 4.1.19, six since the Studio Server's
@@ -151,7 +159,11 @@ an rc publishes `/docs/<v-rc>/` only. It is never started by `release: published
 - **Immutable releases**: Settings → General → Releases. A published release then keeps its files and its tag.
 - **A ruleset on the release tags**: target `tag`, `refs/tags/v*`, active. It restricts creation, refuses deletion and
   forbids force-push.
-- `npm run ship -- preflight-stable --candidate=<run>` must then see both. **Before the first 4.1.20 tag**, `ship tag`
+- **The `docs-publish` environment's deployment policy** (from 4.5.3): Settings → Environments → docs-publish →
+  Deployment branches and tags, a **tag** rule `v*` beside `main` and `docs/*`. release.yml runs on the tag's push,
+  so the documentation job it calls runs on the tag's ref; without the rule, that job is refused (the release itself
+  is published; `mode=promote` from main recovers the documentation).
+- `npm run ship -- preflight-stable --candidate=<run>` must then see the first two. **Before the first 4.1.20 tag**, `ship tag`
   refuses to tag while immutable releases are off: release.yml's token cannot read that setting (it needs admin read),
   so `ship tag` checks it with the maintainer's own access.
 
@@ -165,7 +177,7 @@ an rc publishes `/docs/<v-rc>/` only. It is never started by `release: published
 # in the engine repository
 git config gpg.format ssh
 git config user.signingkey ~/.ssh/id_ed25519.pub
-npm run ship -- tag 4.2.0-rc.2 <sha> --candidate=<run> --sign --now
+npm run ship -- tag 4.2.0-rc.2 <sha> --candidate=<run> --sign
 ```
 
 - The key must also be registered on GitHub as a **signing** key (Settings → SSH and GPG keys).
@@ -212,8 +224,8 @@ It exits 1 only on a `blocked`.
 | `ship checks <pr>` | Waits for the pull request's checks; re-runs a failed job once; exit 1 if it fails again |
 | `ship merge <pr>` | `checks`, then merges (a merge commit, the only method the ruleset allows); prints the SHA |
 | `ship main <sha>` | Waits for main's `ci` run on that SHA to be green (re-run once) |
-| `ship tag <version> <sha> --candidate=<run> [--now] [--sign [--key=<file>]]` | Tags (above), pushes, then `watch` |
-| `ship watch <version>` | Waits for the tag's `ci` run, then the `release` run; exits by its conclusion |
+| `ship tag <version> <sha> --candidate=<run> [--sign [--key=<file>]]` | Waits for main's `ci` on the SHA, tags (above), pushes, then `watch` |
+| `ship watch <version>` | Waits for the `release` run of the tag's push; exits by its conclusion |
 | `ship verify <version>` | The read-back (above) |
 | `ship preflight-stable --candidate=<run> [--version=<x.y.z>]` | The stable preflight (above) |
 | `ship chain <pr> <version>` | merge → tag → watch → verify; refused from 4.1.17, whose tags need a candidate run of the merge commit (merge, candidate, then tag) |
@@ -239,7 +251,10 @@ verify` asks each release that way, and says that GitHub's own release attestati
 |---|---|---|
 | release.yml: "names no candidate run" | The tag was made without `--candidate` | Tag the next version (or `rc.N+1`) with `--candidate`: the tag ruleset refuses deleting a tag |
 | release.yml: "run … is not a green candidate started on main" | The run is a pull request's, another branch's, or red | Start `candidate` by hand on main for that SHA |
-| release.yml: "has no candidate-site" (or `-surfaces`, `-signing`, `-pack`, `-sbom`, `-image`) | A candidate made before the step existed | Start a new candidate |
+| release.yml: "has no candidate-site" (or `-surfaces`, `-signing`, `-remix`, `-pack`, `-sbom`, `-image`) | A candidate made before the step existed | Start a new candidate |
+| release.yml: "main's ci has not succeeded on …" | Main's `ci` run on that SHA is still running, red or cancelled | Wait for it (or re-run it) on main, then re-run the release job |
+| release.yml: "is not on main's first-parent line" | The tag is on a topic branch's commit, not on a merge into main | Tag the next version on main's merge commit |
+| `ship tag` refuses `--now` | `--now` is gone since 4.5.3 | Tag without it: `ship tag` waits for main's `ci` |
 | "is published: a published release is never changed" | A rerun on a published tag | Nothing to do; a new version is a new tag |
 | `ship tag` refuses: immutable releases off | The setting is not on | Turn it on (above), then tag |
 | A failed RC | — | Tag `rc.N+1` from a new candidate |
@@ -265,7 +280,7 @@ release run. A tag not yet released can be left alone and a new candidate tagged
 
 - [`tools/release/ship.mjs`](../../tools/release/ship.mjs), [`tools/release/candidate.mjs`](../../tools/release/candidate.mjs),
   [`tools/release/artifacts.mjs`](../../tools/release/artifacts.mjs), [`tools/release/preflight.mjs`](../../tools/release/preflight.mjs),
-  [`tools/release/signing.mjs`](../../tools/release/signing.mjs).
+  [`tools/release/signing.mjs`](../../tools/release/signing.mjs), [`tools/release/main-ci.mjs`](../../tools/release/main-ci.mjs).
 - [`.github/workflows/release.yml`](../../.github/workflows/release.yml), [`.github/workflows/candidate.yml`](../../.github/workflows/candidate.yml).
-- D30, D37, D38; ADR 0024. [Field passes](contribute.field-passes.md), [npm packages](contribute.npm-packages.md),
+- D30, D37, D38, D55; ADR 0024. [Field passes](contribute.field-passes.md), [npm packages](contribute.npm-packages.md),
   [Stability and support](start.stability.md#releases).

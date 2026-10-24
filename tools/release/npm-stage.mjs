@@ -242,7 +242,8 @@ export function summary({ tag, plan: p, results, problems = [], runSha, tagSha }
       );
     lines.push('```', '');
     lines.push(
-      `Before approving, \`npm stage view <id>\` shows each one. Provenance names \`release.yml\` on main at this run's commit${runSha ? ` (\`${runSha.slice(0, 12)}\`)` : ''}, not the tag's${tagSha ? ` (\`${tagSha.slice(0, 12)}\`)` : ''}: release.yml runs on \`workflow_run\`, from main.`,
+      // Since 4.5.3 (#291) release.yml runs on the tag's push: the provenance names the tag and its commit.
+      `Before approving, \`npm stage view <id>\` shows each one. Provenance names \`release.yml\` at \`refs/tags/${tag}\`${runSha ? `, commit \`${runSha.slice(0, 12)}\`` : ''}${tagSha && runSha && tagSha !== runSha ? ` (**not the tag's \`${tagSha.slice(0, 12)}\`**: do not approve)` : ''}: release.yml runs on the tag's push.`,
       '',
     );
   }

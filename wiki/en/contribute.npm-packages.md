@@ -192,11 +192,12 @@ answers this workflow, and sends nothing. A dry run without a credential only wa
 Provenance is not made by a dry run, so it is first seen on the stable tag's staging, before approval.
 
 > [!LIMIT id=npm-provenance-commit]
-> release.yml runs on `workflow_run`, from main's copy, while it checks out the tag's commit. npm builds the
-> provenance from the run (`GITHUB_SHA`, `GITHUB_REF`), so it names `release.yml` on `refs/heads/main` at main's head
-> when the tag's `ci` finished, not the tag's commit, and the OIDC token it is signed with says the same. The summary
-> writes both commits. To check on the first staging with `npm stage view <id>` before approving, and once published
-> with `npm view @quest-n-click/engine@<v> dist.attestations`. The release's own attestations come from the same run.
+> npm builds the provenance from the run (`GITHUB_SHA`, `GITHUB_REF`). Since 4.5.3 (#291) release.yml runs on the
+> tag's push, so it names `release.yml` at `refs/tags/v<version>` and the tag's commit, and the OIDC token it is signed
+> with says the same; up to 4.5.2 it ran on `workflow_run`, from main's copy, and named `refs/heads/main` at main's
+> head instead. The summary writes the commit, and says so (do not approve) if it is not the tag's. To check on the
+> first staging with `npm stage view <id>` before approving, and once published with
+> `npm view @quest-n-click/engine@<v> dist.attestations`. The release's own attestations come from the same run.
 
 <a name="first-release"></a>
 

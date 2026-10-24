@@ -254,6 +254,14 @@ describe('the summary', () => {
     expect(md).toMatch(/in this order/);
     expect(md).toContain('`aaaaaaaaaaaa`');
     expect(md).toContain('`bbbbbbbbbbbb`');
+    // Since 4.5.3 (#291) release.yml runs on the tag's push: the provenance names the tag and its commit, and a run
+    // whose commit is not the tag's is said, never approved.
+    expect(md).toContain('Provenance names `release.yml` at `refs/tags/v4.5.2`');
+    expect(md).toMatch(/not the tag's `bbbbbbbbbbbb`\*\*: do not approve/);
+    expect(md).not.toMatch(/workflow_run|from main/);
+    const same: string = summary({ tag: 'v4.5.2', plan: p, results, runSha: 'a'.repeat(40), tagSha: 'a'.repeat(40) });
+    expect(same).toContain("at `refs/tags/v4.5.2`, commit `aaaaaaaaaaaa`: release.yml runs on the tag's push.");
+    expect(same).not.toMatch(/do not approve/);
   });
 
   it('asks nothing of an owner after a rehearsal or a skip', () => {

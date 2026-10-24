@@ -131,8 +131,17 @@ esac
 
   it('runs one release per tag at a time, never cancelling the first', () => {
     expect(release).toMatch(
-      /concurrency:\n {2}group: release-\$\{\{ github\.event\.workflow_run\.head_branch \}\}\n {2}cancel-in-progress: false/,
+      /concurrency:\n {2}group: release-\$\{\{ github\.ref_name \}\}\n {2}cancel-in-progress: false/,
     );
+  });
+
+  it("starts on a v* tag's push (4.5.3, #291), never on another workflow's run", () => {
+    expect(release).toMatch(/^on:\n {2}push:\n {4}tags: \['v\*'\]\n(?=\S)/m);
+    expect(release).not.toMatch(/workflow_run/);
+    const job = release.slice(release.indexOf('\n  release:'), release.indexOf('\n    steps:'));
+    expect(job).toMatch(/^ {6}TAG: \$\{\{ github\.ref_name \}\}$/m);
+    expect(job).toMatch(/^ {6}SHA: \$\{\{ github\.sha \}\}$/m);
+    expect(job).toContain("if: github.ref_type == 'tag'");
   });
 
   it('pins the future publishing step to exact versions, never a range', () => {

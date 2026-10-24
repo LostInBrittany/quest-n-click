@@ -107,7 +107,11 @@ describe('docs-publish.yml', () => {
   it('writes from one ref per mode: a rollback or a promotion off main, a revision off docs/<v>, are refused', () => {
     const s = step(/The inputs, and the ref each mode may write from/);
     expect(s).toMatch(/revision\) want="refs\/heads\/docs\/\$VERSION" ;;/);
-    expect(s).toMatch(/release\|rollback\|promote\|preview\) want=refs\/heads\/main ;;/);
+    // A release from its tag's push (4.5.3, #291), the tag the version names; the others from main.
+    expect(s).toMatch(
+      /release\)\n\s+\[ "\$IN_TAG" = "v\$VERSION" \] \|\| \{[^}]+\}\n\s+want="refs\/tags\/\$IN_TAG" ;;/,
+    );
+    expect(s).toMatch(/rollback\|promote\|preview\) want=refs\/heads\/main ;;/);
     expect(s).toMatch(/\[ "\$RUN_REF" = "\$want" \] \|\| \{ echo "::error::a \$mode publishes from \$want/);
     // And the tool checks it again.
     expect(step(/The wiki and publication\.json/)).toMatch(/--mode "\$MODE" --ref "\$RUN_REF"/);

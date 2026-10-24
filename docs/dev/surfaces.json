@@ -370,6 +370,10 @@
   {
    "path": "docs/*",
    "reason": "the documentation archive (4.5.0): published by docs-publish and read by the wiki's own acceptance (PLAN-4.5-WIKI §4.6), not yet a pass surface"
+  },
+  {
+   "path": "remix/*",
+   "reason": "the Remix catalogues the candidate proved (4.5.3, #291; the release job proved them before): evidence of the proof, not a surface a person tries"
   }
  ]
 }

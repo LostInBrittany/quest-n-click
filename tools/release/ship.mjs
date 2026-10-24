@@ -6,12 +6,12 @@
 //   ship merge <pr>              `checks`, then merge (merge commit, the only method the ruleset allows); prints the SHA
 //   ship main <sha>              wait for the `ci` run of main on that SHA to be green (re-run once)
 //   ship tag <version> <sha>     the previous stable tag an ancestor of the SHA (4.1.16), `main`, then an annotated tag v<version> on the SHA, pushed; then `watch`
-//                                (`--now`, 4.1.10: without waiting for main's run; the tag's own `ci` run, the same
-//                                suite on the same commit, is what release.yml checks)
+//                                (main's green ci on the SHA is what release.yml checks since 4.5.3, #291: the tag runs
+//                                no ci of its own, and 4.1.10's `--now` is refused)
 //                                `--candidate=<run id>` (4.1.17, required from 4.1.17 on): the `candidate` run that tested
 //                                this SHA, green, its manifest naming this SHA and this run; the tag's annotation names it
 //                                and release.yml publishes that run's files (tools/release/candidate.mjs)
-//   ship watch <version>         wait for the tag's `ci` run, then for the `release` run; exit by its conclusion
+//   ship watch <version>         wait for the `release` run of the tag's push; exit by its conclusion
 //   ship verify <version>        download the release, check the SHA-256 sums and every provenance attestation; from 4.1.20
 //                                also `gh release verify` and `gh release verify-asset` of each file (immutable releases)
 //   ship preflight-stable --candidate=<run id> [--version=<x.y.z>]
@@ -19,7 +19,7 @@
 //                                signing key, allowed_signers, immutability, the tag ruleset, the candidate, npm per
 //                                package, the publishing pins, GO / NO-GO; signs, publishes and changes nothing
 //   ship tag … --sign [--key=<file>] (4.1.20) the tag signed with an SSH key (`git tag -s`); inactive for 4.1.x (D30)
-//   ship chain <pr> <version>    merge → tag → watch → verify (`--now` passes to tag); refused from 4.1.17, whose tags
+//   ship chain <pr> <version>    merge → tag → watch → verify; refused from 4.1.17, whose tags
 //                                need a candidate run of the merge commit (merge, candidate, then tag)
 //
 // A pre-release version (`4.1.8-rc.1`) is tagged the same way; release.yml marks it a pre-release on GitHub.
@@ -254,6 +254,12 @@ async function tag(versionArg, sha) {
   const version = versionOf(versionArg);
   const name = `v${version}`;
   const candidate = candidateFlag();
+  // `--now` (4.1.10) tagged without waiting for main's run, the tag's own ci being the gate: that run is gone (4.5.3,
+  // #291) and release.yml requires main's ci green on the SHA, so it is refused before anything is done.
+  if (process.argv.includes('--now'))
+    throw new Error(
+      `--now is gone (4.5.3, #291): release.yml requires main's ci green on the SHA, ship tag waits for it`,
+    );
   git(['fetch', '--quiet', 'origin']); // the merge commit `chain` just made is on origin, not here yet (seen on 4.1.9, 4.1.10)
   const full = localCommit(sha);
   if (!full) throw new Error(`${sha}: not a commit on origin either`);
@@ -290,9 +296,9 @@ async function tag(versionArg, sha) {
         );
       say(`${REPO}: immutable releases on`);
     }
-    if (process.argv.includes('--now'))
-      say(`tagging without waiting for main's run (--now): the tag's run is the gate`);
-    else await main(full);
+    // Main's green ci on this SHA is the gate release.yml checks (4.5.3, #291): the tag runs no ci of its own, so the
+    // tag waits for main's run, always.
+    await main(full);
     const local = localCommit(name);
     if (local && local !== full)
       throw new Error(
@@ -327,7 +333,7 @@ async function watch(versionArg) {
   const name = `v${version}`;
   const sha = localCommit(name) ?? originTagCommit(name);
   if (!sha) throw new Error(`${name}: not a tag here nor on origin`);
-  await waitRun('ci', sha, name, `ci on ${name}`);
+  // No ci run of the tag to wait for since 4.5.3 (#291): release.yml starts on the tag's push and checks main's.
   const rel = await until(
     () => {
       const r = ghJson([
@@ -339,8 +345,8 @@ async function watch(versionArg) {
         '40',
         '--json',
         'databaseId,headSha,status,conclusion,headBranch',
-        // A `workflow_run` run reports `main` as its branch, not the tag: the SHA is the key; `skipped` is the
-        // release workflow declining a main push, not the tag's run.
+        // The SHA is the key (up to 4.5.2 a `workflow_run` run reported `main` as its branch, not the tag); a
+        // `skipped` run is never the tag's.
       ]).find((x) => x.headSha === sha && x.conclusion !== 'skipped');
       if (!r || r.status !== 'completed') return undefined;
       return r;

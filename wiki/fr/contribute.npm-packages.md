@@ -204,12 +204,13 @@ qu'avertir, ce que le job lit comme un échec. Un essai à blanc ne fait pas de 
 mise en scène du tag stable, avant l'approbation.
 
 > [!LIMIT id=npm-provenance-commit]
-> release.yml tourne sur `workflow_run`, depuis la copie de main, tout en extrayant le commit du tag. npm fait la
-> provenance à partir du run (`GITHUB_SHA`, `GITHUB_REF`) : elle nomme donc `release.yml` sur `refs/heads/main` à la
-> tête de main quand le `ci` du tag s'est terminé, pas le commit du tag, et le jeton OIDC qui la signe dit la même
-> chose. Le résumé écrit les deux commits. À vérifier à la première mise en scène avec `npm stage view <id>` avant
-> d'approuver, puis une fois publiée avec `npm view @quest-n-click/engine@<v> dist.attestations`. Les attestations de
-> la release elle-même viennent du même run.
+> npm fait la provenance à partir du run (`GITHUB_SHA`, `GITHUB_REF`). Depuis la 4.5.3 (#291), release.yml tourne
+> sur le push du tag : elle nomme donc `release.yml` sur `refs/tags/v<version>` et le commit du tag, et le jeton OIDC
+> qui la signe dit la même chose ; jusqu'à la 4.5.2, il tournait sur `workflow_run`, depuis la copie de main, et elle
+> nommait `refs/heads/main` à la tête de main. Le résumé écrit le commit, et le signale (ne pas approuver) s'il n'est
+> pas celui du tag. À vérifier à la première mise en attente avec `npm stage view <id>` avant d'approuver, puis une
+> fois publiée avec `npm view @quest-n-click/engine@<v> dist.attestations`. Les attestations de la release elle-même
+> viennent du même run.
 
 <a name="first-release"></a>
 

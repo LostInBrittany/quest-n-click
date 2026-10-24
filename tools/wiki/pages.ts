@@ -107,7 +107,7 @@ export function identitiesOf(repo: string, tag: string): string[] {
 /**
  * The `gh attestation verify` arguments, one list per identity `identitiesOf` gives, that bind an archive to the
  * workflow that must have signed it: a product release's files are attested by release.yml (started by
- * `workflow_run` on main); a doc revision's and the preview's by docs-publish.yml, dispatched from `docs/<v>` and from
+ * `workflow_run` on main up to 4.5.2, by the tag's push since 4.5.3: no ref is pinned); a doc revision's and the preview's by docs-publish.yml, dispatched from `docs/<v>` and from
  * main. A pre-transfer identity is looked up under its owner, its workflow pinned (provenance.mjs `lookupArgs`).
  */
 export function attestationTries(repo: string, tag: string, file: string): string[][] {

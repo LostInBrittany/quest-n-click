@@ -4,6 +4,8 @@ name: candidate
 # `candidate-manifest.json` (the SHA tested, this run's id, the SHA-256 of each file the release publishes). A stable
 # or pre-release tag names one green run of this workflow (`ship tag <v> <sha> --candidate=<run id>`); release.yml
 # publishes that run's files after checking every sum. 4.1.16 was tagged before its first heavy run, which went red.
+# Since 4.5.3 (#291, D55) this is the release's only test pass: release.yml, started by the tag's push, runs no test of
+# its own and checks only that main's `ci` is green on the SHA and that this run is.
 #
 # Started by hand on main for a SHA (`gh workflow run candidate --ref main -f sha=<full sha>`): the only run a tag may
 # name (ship.mjs and release.yml check `workflow_dispatch` from main, so the workflow file judged is main's). A pull
@@ -42,8 +44,9 @@ jobs:
           # A SHA given by hand is a full one: a short or wrong value is refused here, not by a later checkout.
           if [ -n "$WANT" ] && ! echo "$WANT" | grep -Eq '^[0-9a-f]{40}$'; then echo "::error::not a full SHA: $WANT"; exit 1; fi
           echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
-  # release-check as release.yml runs it (doctor --release, quality, build, coverage and its strict ratchet, the
-  # release gates, the proofs, the Rust cross-check, the packages' dry run, the audits), without the mutation sets.
+  # release-check (doctor --release, quality, build, coverage and its strict ratchet, the release gates, the proofs, the
+  # Rust cross-check, the packages' dry run, the audits), without the mutation sets, which run as jobs below. Run here
+  # only: release.yml ran it again up to 4.5.2, and since 4.5.3 (#291) trusts this run.
   release-core:
     needs: target
     runs-on: ubuntu-24.04
@@ -273,6 +276,34 @@ jobs:
         with:
           name: candidate-release
           path: candidate-release
+          if-no-files-found: error
+          overwrite: true
+  # The Remix worlds of the bundled games (4.1.15, D25): each catalogue's every logical world proved (no softlock), the
+  # two reports published with the release (a generator mode would publish its sample, never "all seeds"). release.yml
+  # proved them itself up to 4.5.2; since 4.5.3 (#291, D55) the candidate does, once, and the release copies its files.
+  remix-proof:
+    needs: target
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ needs.target.outputs.sha }}
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 22
+          cache: npm
+      - run: for i in 1 2 3; do (npm ci) && break; [ "$i" = 3 ] && exit 1; echo "retry $i"; sleep 15; done
+        timeout-minutes: 15
+      - name: Remix catalogues, proved
+        run: |
+          mkdir -p candidate-remix
+          GAME=demo npx tsx tools/verify-variants.ts --prove --max=200000 --out=candidate-remix/remix-demo.json
+          GAME=reference npx tsx tools/verify-variants.ts --prove --max=200000 --out=candidate-remix/remix-reference.json
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: candidate-remix
+          path: candidate-remix
           if-no-files-found: error
           overwrite: true
   # The speedrun worker in its container profile (4.1.17, plan §10.3): the reference run verified inside, a hostile
@@ -732,7 +763,7 @@ jobs:
         timeout-minutes: 15
   # The terminal gate: every job above `success` (a skipped or cancelled job is red), then the manifest of this run.
   candidate-gate:
-    needs: [target, release-core, heavy, bridge-load-sqlite, bridge-load-postgres, cross-runtime, worker-container, mutation-plan, mutation, mutation-merge, pack, docs-archive, image, external-consumer, connector-archive-e2e, deployment-smoke, backup-memory, signing-rehearsal, readme-quickstart, studio-install-smoke]
+    needs: [target, release-core, heavy, bridge-load-sqlite, bridge-load-postgres, cross-runtime, remix-proof, worker-container, mutation-plan, mutation, mutation-merge, pack, docs-archive, image, external-consumer, connector-archive-e2e, deployment-smoke, backup-memory, signing-rehearsal, readme-quickstart, studio-install-smoke]
     # A pull request without `full-ci` skips `target`: then there is no candidate to judge, and no red check either.
     if: always() && needs.target.result != 'skipped'
     # The manifest's provenance attestation (4.1.19, plan §6.5): only this job may sign, and only the manifest.
@@ -790,6 +821,8 @@ jobs:
           if [ -d artifacts/candidate-docs ]; then mkdir -p artifacts/candidate-release/docs && cp artifacts/candidate-docs/* artifacts/candidate-release/docs/; fi
           # The signing rehearsal's report (4.1.20 PR 3b).
           if [ -d artifacts/candidate-signing ]; then mkdir -p artifacts/candidate-release/signing && cp artifacts/candidate-signing/* artifacts/candidate-release/signing/; fi
+          # The Remix catalogues proved (4.5.3, #291): the release publishes these two reports, proved nowhere else.
+          if [ -d artifacts/candidate-remix ]; then mkdir -p artifacts/candidate-release/remix && cp artifacts/candidate-remix/* artifacts/candidate-release/remix/; fi
           # The surfaces of the people's passes (4.1.20 PR 4, ADR 0024), from the files above and the checkout's
           # docs/dev/surfaces.json, before the manifest: attested with it. A file in no surface fails here.
           # No site, no surfaces: refused here, before anything is attested (second reading of PR 4).
@@ -838,7 +871,7 @@ jobs:
             for f in artifacts/bridge-load-*/load-median-*.json; do
               [ -f "$f" ] && node -e "const r=require('./$f'); for (const k of ['proposals','leaderboard']) console.log('- ' + r.store + ' ' + k + ', three loads: median p95 ' + r[k].medianMs + ' ms (' + r[k].minMs + '–' + r[k].maxMs + ')' + (r[k].baseline && r[k].baseline.ratio ? ', ×' + r[k].baseline.ratio + ' the baseline' : '') + (r[k].alert ? ' ⚠' : ''))"
             done
-            for a in candidate-release candidate-pack candidate-sbom candidate-image heavy-1 heavy-2 heavy-3 bridge-load-sqlite bridge-load-postgres backup-memory-sqlite backup-memory-postgres deployment-smoke; do [ -d "artifacts/$a" ] || echo "- $a"; done
+            for a in candidate-release candidate-pack candidate-sbom candidate-image candidate-remix heavy-1 heavy-2 heavy-3 bridge-load-sqlite bridge-load-postgres backup-memory-sqlite backup-memory-postgres deployment-smoke; do [ -d "artifacts/$a" ] || echo "- $a"; done
           } >> "$GITHUB_STEP_SUMMARY"
       # Who wrote the manifest (4.1.19, plan §6.5): signed by this run, after every job succeeded. A Field Kit bundle
       # carries the attestation, so anyone can check it offline (npm run field:verify-bundle).
