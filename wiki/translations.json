@@ -15098,6 +15098,13 @@
         { "name": "wanoo", "kind": "human", "relation": "independent", "date": "2026-10-24" }
       ]
     },
+    "reference.environment-variables#runner-temp": {
+      "enHash": "654e8333ae8857b37dde61d73170728f60319a7c7dd0e0887d120d90f167ad77",
+      "frHash": "75ebba30954381026384b82ee5a99c9e809ed0ef6bc36479411551a8b32fa6ec",
+      "reviewers": [
+        { "name": "claude-452-org", "kind": "ai", "relation": "author", "date": "2026-10-24" }
+      ]
+    },
     "reference.environment-variables#set": {
       "enHash": "ae589ca1424db4d66f47fd7e48f88d636570084cc2a999f04274e8553d8bb76a",
       "frHash": "83c5e4ac6f96219a8b0340dd1a92ed22106cc0464998938f5d14125c40d03e59",

@@ -203,18 +203,32 @@ describe('release.yml', () => {
     expect(site).toMatch(/SITE_URL: \$\{\{ vars\.SITE_URL \|\| 'https:\/\/quest-n-click\.cleverapps\.io' \}\}/);
     expect(site).toMatch(/SITE_REVALIDATE_SECRET: \$\{\{ secrets\.SITE_REVALIDATE_SECRET \}\}/);
     const [run] = steps(site);
-    // No secret: a notice, nothing called.
-    expect(run).toMatch(/if \[ -z "\$SITE_REVALIDATE_SECRET" \]; then\n\s+echo "::notice::[^"]*"\n\s+exit 0/);
-    // The call: POST, the Bearer secret, a timeout, three tries; the answer printed; a warning when ok is not true or
-    // every try failed.
+    // No secret: a notice, nothing called. An address that is not https://: a warning, the token not sent.
+    expect(run).toMatch(/if \[ -z "\$SITE_REVALIDATE_SECRET" \]; then\n\s+echo "::notice::[^"$]*"\n\s+exit 0/);
+    expect(run).toMatch(/case "\$SITE_URL" in\n\s+https:\/\/\*\) ;;\n\s+\*\) echo "::warning::[^"$]*"; exit 0 ;;/);
+    expect(run.indexOf('case "$SITE_URL" in')).toBeLessThan(run.indexOf('curl '));
+    // The call: POST, the Bearer secret, a timeout; tried again on a network failure or a 5xx only, three times.
     expect(run).toMatch(/for i in 1 2 3; do/);
     expect(run).toMatch(
-      /curl -sS --fail-with-body --max-time \d+ -X POST -H "Authorization: Bearer \$SITE_REVALIDATE_SECRET" "\$url"/,
+      /code=\$\(curl -sS -o "\$out" -w '%\{http_code\}' --max-time \d+ -X POST -H "Authorization: Bearer \$SITE_REVALIDATE_SECRET" "\$url"\) \|\| code=000/,
     );
+    expect(run).toMatch(/if \[ "\$code" = 000 \] \|\| \[ "\$code" -ge 500 \]; then/);
     expect(run).toMatch(/url="\$\{SITE_URL%\/\}\/api\/revalidate"/);
-    expect(run).toMatch(/echo "\$body"/);
-    expect(run).toMatch(/jq -r '\.ok'/);
-    expect(run.match(/::warning::/g)?.length).toBe(2);
+    // The answer is shown between a fresh stop-commands token and its end, compacted by jq when it is JSON.
+    expect(run).toMatch(
+      /token=\$\(openssl rand -hex \d+\)\n\s+echo "::stop-commands::\$token"\n\s+jq -c \. "\$out" 2>\/dev\/null \|\| cat "\$out"\n\s+echo\n\s+echo "::\$token::"/,
+    );
+    // Nothing of the body in a workflow command: the warnings name the HTTP code and `.ok` / `.changed` only, read by
+    // jq and stripped of newlines and `::`; no other line prints the answer.
+    expect(run).toMatch(
+      /field\(\) \{ \{ jq -r "\.\$1" "\$out" 2>\/dev\/null \|\| true; \} \| tr -d '\\r\\n:' \| head -c \d+ \|\| true; \}/,
+    );
+    const commands = run.split('\n').filter((l) => /echo "::(warning|error|notice)/.test(l));
+    expect(commands.length).toBe(4);
+    for (const l of commands) expect(l, l).not.toMatch(/\$out|\$body|cat |jq /);
+    expect(run).toMatch(/ok=\$\(field ok\)/);
+    expect(run).toMatch(/changed=\$\(field changed\)/);
+    expect(run.match(/cat "\$out"/g)?.length).toBe(1);
     // The secret is named once in the workflow: this job's environment.
     expect(yml.match(/secrets\.SITE_REVALIDATE_SECRET/g)?.length).toBe(1);
   });

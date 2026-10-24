@@ -157,6 +157,13 @@ describe('the manifest of a release', () => {
     expect(candidate).toMatch(
       /BASE_PATH=\/demo\/ STUDIO=1 VITE_STUDIO_DEMO=1 npm run build:web\n\s+tar -czf candidate-site\/web\.tar\.gz -C dist \./,
     );
+    // The version probe: 0 builds, 10 skips (before 4.5.2), anything else fails the step (never a silent skip).
+    expect(candidate).toMatch(
+      /process\.exit\(m\.atLeast\(require\("\.\/package\.json"\)\.version, "4\.5\.2"\) \? 0 : 10\)\)' \|\| probe=\$\?/,
+    );
+    expect(candidate).toMatch(/case "\$probe" in\n\s+0\)\n/);
+    expect(candidate).toMatch(/\n\s+10\) echo "::notice::no web\.tar\.gz before 4\.5\.2" ;;\n/);
+    expect(candidate).toMatch(/\n\s+\*\) echo "::error::[^"]*"; exit 1 ;;\n/);
     expect(candidate.indexOf('candidate-site/web.tar.gz')).toBeGreaterThan(
       candidate.indexOf('candidate-site/dist.tar.gz'),
     );

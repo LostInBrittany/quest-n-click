@@ -445,20 +445,41 @@ jobs:
       SITE_REVALIDATE_SECRET: ${{ secrets.SITE_REVALIDATE_SECRET }}
     steps:
       - name: The website, revalidated
+        # The website's answer is not trusted as runner output: it is printed between a fresh ::stop-commands:: token
+        # and its end (a body holding `::add-mask::` or `::error::` is shown, never acted on), and the warning carries
+        # only `.ok` and `.changed`, stripped of newlines and `::`. The token is sent to an https:// address only.
+        # Only a network failure or a 5xx is tried again; a 401, 403 or 404 will not change by retrying.
         run: |
           if [ -z "$SITE_REVALIDATE_SECRET" ]; then
-            echo "::notice::no SITE_REVALIDATE_SECRET: $SITE_URL takes the release at its next hourly revalidation"
+            echo "::notice::no SITE_REVALIDATE_SECRET: the website takes the release at its next hourly revalidation"
             exit 0
           fi
+          case "$SITE_URL" in
+            https://*) ;;
+            *) echo "::warning::SITE_URL is not an https:// address: the revalidation token is not sent"; exit 0 ;;
+          esac
           url="${SITE_URL%/}/api/revalidate"
+          out="$RUNNER_TEMP/revalidate.json"
+          field() { { jq -r ".$1" "$out" 2>/dev/null || true; } | tr -d '\r\n:' | head -c 40 || true; }
           for i in 1 2 3; do
-            if body=$(curl -sS --fail-with-body --max-time 60 -X POST -H "Authorization: Bearer $SITE_REVALIDATE_SECRET" "$url"); then
-              echo "$body"
-              if [ "$(echo "$body" | jq -r '.ok' 2>/dev/null)" = true ]; then exit 0; fi
-              echo "::warning::$url answered ok != true: $body"
-              exit 0
+            code=$(curl -sS -o "$out" -w '%{http_code}' --max-time 60 -X POST -H "Authorization: Bearer $SITE_REVALIDATE_SECRET" "$url") || code=000
+            if [ "$code" = 000 ] || [ "$code" -ge 500 ]; then
+              echo "try $i: HTTP $code"
+              if [ "$i" = 3 ]; then
+                echo "::warning::the website's revalidation failed after 3 tries (HTTP $code): it takes the release at its next hourly revalidation"
+                exit 0
+              fi
+              sleep 20
+              continue
             fi
-            echo "try $i failed: ${body:-no answer}"
-            [ "$i" = 3 ] || sleep 20
+            token=$(openssl rand -hex 16)
+            echo "::stop-commands::$token"
+            jq -c . "$out" 2>/dev/null || cat "$out"
+            echo
+            echo "::$token::"
+            ok=$(field ok)
+            if [ "$code" = 200 ] && [ "$ok" = true ]; then exit 0; fi
+            changed=$(field changed)
+            echo "::warning::the website's revalidation answered HTTP $code, ok=${ok:-none}, changed=${changed:-none}"
+            exit 0
           done
-          echo "::warning::$url could not be called after 3 tries: the website takes the release at its next hourly revalidation"

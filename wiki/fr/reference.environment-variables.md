@@ -970,6 +970,15 @@ Le système du runner, noté à côté d’une mesure.
 - Origine : posée par GitHub Actions.
 - Lue par : [`tools/backup-memory.ts`](../../tools/backup-memory.ts), [`tools/load-median.ts`](../../tools/load-median.ts), [`tools/release/baseline.mjs`](../../tools/release/baseline.mjs).
 
+<a name="runner-temp"></a>
+
+### `RUNNER_TEMP`
+
+Le dossier temporaire du runner : la release y garde la réponse de la revalidation du site web.
+
+- Origine : posée par GitHub Actions.
+- Lue par : [`.github/workflows/release.yml`](../../.github/workflows/release.yml).
+
 <a name="systemroot"></a>
 
 ### `SystemRoot`

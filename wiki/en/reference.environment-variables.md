@@ -970,6 +970,15 @@ The runner's system, recorded beside a measurement.
 - Origin: set by GitHub Actions.
 - Read by: [`tools/backup-memory.ts`](../../tools/backup-memory.ts), [`tools/load-median.ts`](../../tools/load-median.ts), [`tools/release/baseline.mjs`](../../tools/release/baseline.mjs).
 
+<a name="runner-temp"></a>
+
+### `RUNNER_TEMP`
+
+The runner's temporary folder: the release keeps the website's revalidation answer there.
+
+- Origin: set by GitHub Actions.
+- Read by: [`.github/workflows/release.yml`](../../.github/workflows/release.yml).
+
 <a name="systemroot"></a>
 
 ### `SystemRoot`
