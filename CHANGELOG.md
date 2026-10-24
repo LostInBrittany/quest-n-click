@@ -2,7 +2,7 @@
 
 ## 4.5.1 — 2026-10-24
 
-LOG #290–#293: a patch on 4.5.0. The maintainer's audit of the published wiki (24 October, 24 findings) is fixed: every
+LOG #290–#294: a patch on 4.5.0. The maintainer's audit of the published wiki (24 October, 24 findings) is fixed: every
 link whose label is written as code now reaches its target in the wiki, the HTML and the bundle; the first tutorial
 starts with a command that works; the saves pages and the support window say one thing; search finds « pas de son »;
 a page's header is one short line that says who read it. A game may name the spans of its own files (`spans.json`) and
@@ -21,6 +21,8 @@ optional, and no content field, save, schema or fingerprint moves.
 - **Search finds « pas de son »** (4.5.1, F10, F11): « son » is no longer a stop word where it is the noun, a symptom typed as a troubleshooting section names it ranks that section first, and the acceptance reports the top 1 apart from the top 3, with ten questions that must come first.
 - **A page's header is one short line** (4.5.1, F17, F18): its twin, its type, "published" with who read it (an AI or a person) and its versions; the audience, the context and the surfaces' statuses follow the page's first paragraph, folded.
 - **Smaller corrections** (4.5.1, F16, F19–F22, F24): the gallery names the recent screens it does not show yet; `read_doc {name}` is said to shorten long sections; the code of conduct names one private channel; Safari's seven-day rule is said not to apply to a game added to the Home Screen; Domains and TLS says which browsers were checked; the four big references open with a quick entry by task.
+- **The release's dependency audit is clean again** (4.5.1, the candidate). Five advisories published after #275 stopped the candidate's `npm audit --audit-level=high`: `serialize-javascript` 7.1.2 (XSS through `</script` at the end of a serialized function, the PWA build's terser), `happy-dom` 21.0.1 (the test DOM), `body-parser` 2.3.0, `ip-address` 10.7.3 and `fast-uri` 3.1.8 (the MCP server's Express, rate limiter and JSON Schema). Each moves to its patched release within the range already declared (7.1.4, 21.0.4, 2.4.0, 10.7.4, 3.1.9, with `qs` 6.16.1): `npm audit fix`, no direct dependency or override changed, the versioned locks untouched.
+- **A game's own spans are pinned at their edges** (4.5.1, the candidate). The mutation set `studio-ops` found eight survivors in `spans.json`'s reader (#270): `tests/studio-spans-mutants.test.ts` now pins a literal key that names its file only, the 256 entries, the 256-character key and the 64 KiB file taken at the limit and refused one past it; four loop bounds and a guard no input can tell apart are explained in `docs/dev/mutants.json`.
 
 ### Changes
 

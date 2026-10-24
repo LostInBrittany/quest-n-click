@@ -7878,3 +7878,21 @@ part now); captures on a hosted Studio; npm publishing.
 - **Signature**: the tag's signature awaits the maintainer's yes for v4.5.1 (D37).
 → next: the candidate on the merge commit, the signed tag `v4.5.1`, `ship verify`, then `docs-publish`; a person's
 review of the 47 changed pairs; the people's passes, `docs-beginner-reader` first.
+
+## #294 · 2026-10-24 · Claude · fix · 4.5.1: the candidate's audit and spans mutants
+Branch: fix/451-candidate
+
+- **The candidate** (run 40042235755 on `69c8a7b5`) failed twice: `npm audit --audit-level=high` on five advisories
+  published after #275, and the mutation set `studio-ops` on eight unexplained survivors in
+  `studio-server/src/ops/spans.ts` (#270).
+- **Audit**: `npm audit fix` (no `--force`): `serialize-javascript` 7.1.2 → 7.1.4 (GHSA-m5mm-p8h7-m29v),
+  `happy-dom` 21.0.1 → 21.0.4, `body-parser` 2.3.0 → 2.4.0 (with `qs` 6.16.1), `ip-address` 10.7.3 → 10.7.4,
+  `fast-uri` 3.1.8 → 3.1.9; all inside the declared ranges, only `package-lock.json` moves; `npm run locks -- --check`
+  holds (none of them is in a versioned lock).
+- **Mutants**: `tests/studio-spans-mutants.test.ts` (in the set's tests) kills four: a literal key gets no `**`
+  (line 101), the entries, key length and file size taken at their limit (148, 151, 184). Four are equivalent and
+  explained (revisit 4.6.0): the two loops of `globMatch` started at `n + 1` instead of `n - 1` (a write past a
+  Uint8Array is dropped, cur[n] rewritten with the value it has), the literal loop run to `j <= n` (writes the 0 a new
+  array holds), and `key.endsWith('/') → false` in `parseOwnSpans` (for a key ending in '/', no engine rule tells `key`
+  from `${key}x`).
+→ next: the candidate again on the merge commit.
