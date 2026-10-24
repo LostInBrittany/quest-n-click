@@ -1,6 +1,6 @@
 # Ce qu’est quest'n'click, et son histoire depuis web-scumm
 
-![Le logo de quest'n'click : une fenêtre d’éditeur en pixel art avec une scène de port, un graphe de dialogue et un curseur, entourée de cartes illustrées, d’une carte au trésor, d’un panneau IA, d’un carnet de schémas d’énigmes et d’une tasse de café, sous les mots quest'n'click, Open source point & click engine](../images/start/logo.png)
+![Le logo de Quest'n'Click : une fenêtre d’éditeur en pixel art avec une scène de port, un graphe de dialogue et un curseur, entourée de cartes illustrées, d’une carte au trésor, d’un panneau IA, d’un carnet de schémas d’énigmes et d’une tasse de café, sous les mots Quest'n'Click, Open source point & click engine](../images/start/logo.png)
 
 *Le logo : les mots « quest'n'click, Open source point & click engine » sous une fenêtre d’éditeur en pixel art.*
 
