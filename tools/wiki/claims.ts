@@ -381,6 +381,20 @@ export function claimLabel(s: ClaimState): string {
 }
 
 /**
+ * Whether a report's test name is the source's `name`. A title of `.each` or `.for` is written with placeholders
+ * (`$name`, `$a.b`, `%s`, `%d`, `%i`, `%f`, `%j`, `%o`, `%#`) that the run fills in: there each placeholder matches any
+ * text, so `leases on $name › restore` is run as `leases on sqlite › restore` and `leases on postgres › restore`, and
+ * every such variant of the report counts. A name without a placeholder matches only itself.
+ */
+export function sameTest(name: string): (ran: string) => boolean {
+  const placeholder = /\$[A-Za-z_][\w.]*|%[sdifjo#]/g;
+  if (!placeholder.test(name)) return (ran) => ran === name;
+  const parts = name.split(placeholder).map((p) => p.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
+  const re = new RegExp(`^${parts.join('.+?')}$`);
+  return (ran) => re.test(ran);
+}
+
+/**
  * Each claim's state: referenced when its test file is tracked and names the test; executed when a report of the
  * documented commit says it passed; scope reviewed when a record holds the current hashes of its text and test file.
  */
@@ -410,7 +424,8 @@ export function claimStates(o: {
         state.unreferenced = `"${name}" is written .${odd.join(', .')}: it does not run as it reads, so it backs no claim`;
     }
     const own = o.reports.filter((r) => r.commit === o.commit);
-    const hits = own.flatMap((r) => r.tests.filter((t) => t.file === file && t.name === name));
+    const ran = sameTest(name);
+    const hits = own.flatMap((r) => r.tests.filter((t) => t.file === file && ran(t.name)));
     const out = excluded(file);
     if (out) state.excluded = `${file} is not in the candidate's report: excluded by ${out}`;
     if (!o.reports.length) state.notExecuted = 'no test report given (--test-report)';
