@@ -15,7 +15,7 @@ Three hands carry a fact to the player, each one checking the one before:
 | Piece | Runs where | Does | Holds |
 |---|---|---|---|
 | A **connector** (email, Telnet, SSH, Open Badges, or the Bridge's demonstration webhook) | its own process, beside the Bridge | reads the outside input as hostile, binds it to a player, proposes a declared signal with a deduplication key | its own Biscuit token, its own secrets (a mailbox password, a host key) |
-| The **Bridge** (`bridge/src/`, the package `quest-n-click-bridge`) | a small Node service | authorises the connector (Biscuit), checks the signal against the game's manifest, deduplicates, numbers it per player, signs it (Ed25519), keeps it until the player acknowledges | the event-signing key, the hashes of the players' capabilities, the signals |
+| The **Bridge** (`bridge/src/`, the package `@quest-n-click/bridge`) | a small Node service | authorises the connector (Biscuit), checks the signal against the game's manifest, deduplicates, numbers it per player, signs it (Ed25519), keeps it until the player acknowledges | the event-signing key, the hashes of the players' capabilities, the signals |
 | The **player** (the game in the browser) | the player's device | verifies the signature before reading anything, applies the signal as an event, saves, then acknowledges | a capability that reads and acknowledges its own signals, nothing else |
 
 A signal is only an identifier from a finite list the game declares (`mail.answer.correct`): no text, address or

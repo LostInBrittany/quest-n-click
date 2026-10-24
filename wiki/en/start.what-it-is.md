@@ -52,6 +52,10 @@ debate. What that means today:
 - From 4.2.5 the packages and commands are named `quest-n-click`. The old `web-scumm` names kept working through 4.2.x
   and are gone in 4.3.0, where `npx quest-n-click migrate` renames a game's imports and commands
   ([Coming from web-scumm](install.from-web-scumm.md)).
+- From 4.5.2 the packages are named under the npm organisation's scope: `@quest-n-click/engine`,
+  `@quest-n-click/create`, `@quest-n-click/bridge`, `@quest-n-click/connectors`, `@quest-n-click/studio-server`
+  ([Package reference](install.package.md)). The commands keep their names (`quest-n-click`, `quest-n-click-bridge`…);
+  `npx quest-n-click migrate` moves a game's `quest-n-click/…` imports to `@quest-n-click/engine/…`.
 - Saves, runs and sessions keep their formats and load as before: identifiers such as `web-scumm-save` or the
   `web-scumm-saves` database are parts of the formats, not names of the project, and they stay.
 
@@ -72,9 +76,9 @@ games/demo/       the sample game: rooms, layouts, art, audio, locales, storyboa
 games/            also _template (copied for a new game), heroes, reference, signals
 tools/            the commands, the Studio's server side, the MCP server, the art and audio pipelines, the Vite plugins
 cli/              the quest-n-click and create commands of the package
-studio-server/    the hosted team Studio (the package quest-n-click-studio-server)
-bridge/           the Reality Bridge (the package quest-n-click-bridge)
-connectors/       the connectors of the world outside (the package quest-n-click-connectors)
+studio-server/    the hosted team Studio (the package @quest-n-click/studio-server)
+bridge/           the Reality Bridge (the package @quest-n-click/bridge)
+connectors/       the connectors of the world outside (the package @quest-n-click/connectors)
 ops/, clevercloud/ deployment and qualification scripts
 scripts/          build, end-to-end, packaging and release scripts
 tests/            the unit and property tests

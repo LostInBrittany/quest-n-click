@@ -55,6 +55,11 @@ débat inutile. Ce que cela veut dire aujourd’hui :
 - À partir de la 4.2.5, les packages et les commandes s’appellent `quest-n-click`. Les anciens noms `web-scumm` ont
   marché pendant toute la 4.2.x et disparaissent en 4.3.0, où `npx quest-n-click migrate` renomme les imports et les
   commandes d’un jeu ([Venir de web-scumm](install.from-web-scumm.md)).
+- À partir de la 4.5.2, les paquets sont nommés sous le scope de l’organisation npm : `@quest-n-click/engine`,
+  `@quest-n-click/create`, `@quest-n-click/bridge`, `@quest-n-click/connectors`, `@quest-n-click/studio-server`
+  ([Référence du paquet](install.package.md)). Les commandes gardent leur nom (`quest-n-click`,
+  `quest-n-click-bridge`…) ; `npx quest-n-click migrate` passe les imports `quest-n-click/…` d’un jeu à
+  `@quest-n-click/engine/…`.
 - Les sauvegardes, les runs et les sessions gardent leurs formats et se chargent comme avant : des identifiants comme
   `web-scumm-save` ou la base `web-scumm-saves` font partie des formats, ce ne sont pas des noms du projet, et ils
   restent.
@@ -75,9 +80,9 @@ games/demo/       le jeu d'exemple : salles, mises en page, images, son, langues
 games/            aussi _template (copié pour un nouveau jeu), heroes, reference, signals
 tools/            les commandes, le côté serveur du Studio, le serveur MCP, les chaînes d'images et de son, les plugins Vite
 cli/              les commandes quest-n-click et create du package
-studio-server/    le Studio d'équipe hébergé (le package quest-n-click-studio-server)
-bridge/           le Bridge Reality (le package quest-n-click-bridge)
-connectors/       les connecteurs du monde extérieur (le package quest-n-click-connectors)
+studio-server/    le Studio d'équipe hébergé (le package @quest-n-click/studio-server)
+bridge/           le Bridge Reality (le package @quest-n-click/bridge)
+connectors/       les connecteurs du monde extérieur (le package @quest-n-click/connectors)
 ops/, clevercloud/ les scripts de déploiement et de qualification
 scripts/          les scripts de build, de bout en bout, d'empaquetage et de release
 tests/            les tests unitaires et de propriétés

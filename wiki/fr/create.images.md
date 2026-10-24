@@ -22,7 +22,7 @@ Les deux contextes, avec des noms de commande différents :
 - **Dépôt du moteur** : le jeu est `games/<id>/` ; les commandes sont des scripts npm (`npm run prompts`,
   `npm run assets`) et les outils Python de `tools/`.
 - **Projet créé** (avec `quest-n-click create`) : le jeu est `game/` ; les commandes passent par la commande du moteur,
-  `npx quest-n-click prompts` et `npm run assets` ; les outils Python sont dans `node_modules/quest-n-click/tools/`.
+  `npx quest-n-click prompts` et `npm run assets` ; les outils Python sont dans `node_modules/@quest-n-click/engine/tools/`.
 
 Ce que dit cette page est vrai à partir de 4.2.5 (le nom de commande `quest-n-click` ; le choix du fond des planches
 date de 4.2.4). L’onglet **Assets** du Studio fait la même découpe depuis le navigateur : voir
@@ -103,7 +103,7 @@ Sur votre machine, à la racine du dépôt du moteur ou du projet créé. Chaque
 
    ```bash
    # dans le projet créé
-   python3 node_modules/quest-n-click/tools/cut-sheet.py <sheet.png> <sheet-id> --out game/art
+   python3 node_modules/@quest-n-click/engine/tools/cut-sheet.py <sheet.png> <sheet-id> --out game/art
    ```
 
    Ne découpez que la nouvelle planche. Le découpeur écrase sans demander une case qui existe déjà : donnez `--cells`

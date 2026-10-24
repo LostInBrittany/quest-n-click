@@ -9,7 +9,7 @@ fait tourner un jeu aujourd'hui.
 ## Ce que vous obtenez
 
 Un projet de jeu à vous, hors du dépôt du moteur : un lieu, un héros et des images provisoires, le moteur installé
-depuis l'archive de la release sous `node_modules/quest-n-click`, jouable dans votre navigateur avec `npm run dev`.
+depuis l'archive de la release sous `node_modules/@quest-n-click/engine`, jouable dans votre navigateur avec `npm run dev`.
 
 <a name="context-and-versions"></a>
 
@@ -79,7 +79,7 @@ Bash.
 
    ```bash
    # dans le projet créé
-   python3 -m pip install -r node_modules/quest-n-click/requirements.txt
+   python3 -m pip install -r node_modules/@quest-n-click/engine/requirements.txt
    ```
 
 <!-- step: assets-and-dev -->
@@ -167,7 +167,7 @@ sans erreur (validation, solveur, état des traductions, lint, playtests).
 | `public/` | les icônes de la page, son image d'aperçu, la police complète ; `public/assets` est écrit par `npm run assets` (pas commité) |
 | `dist/` | le build, avec `licenses/` (`npm run build`) |
 | `package.json` | les scripts `dev`, `studio`, `assets`, `verify`, `build`, `release`, `preview`, qui appellent chacun `quest-n-click`, et le moteur comme seule dépendance |
-| `tsconfig.json` | `@engine/*` pointe dans `node_modules/quest-n-click/src/engine`, `quest-n-click/*` dans son API publique |
+| `tsconfig.json` | `@engine/*` pointe dans `node_modules/@quest-n-click/engine/src/engine`, `@quest-n-click/engine/*` dans son API publique |
 | `.gitignore`, `README.md` | `node_modules`, `dist`, `.cache`, `public/assets` ignorés ; les commandes ci-dessus |
 
 Les images du modèle sont provisoires, dessinées à partir de formes (`tools/placeholder-art.py`) : `game/provenance.json`
@@ -178,7 +178,7 @@ le dit, et `npm run release` les refuse tant que chaque fichier n'est pas rempla
 `npm install` ajoute `node_modules/` et `package-lock.json` ; `npm run assets` écrit `public/assets/` et `.cache/`, et
 met à jour `game/assets.gen.json` (les tailles en pixels des images préparées). Les commandes tournent avec le projet
 comme dossier de travail ([`WEB_SCUMM_PROJECT`](reference.environment-variables.md#web-scumm-project)) : le moteur dans
-`node_modules/quest-n-click` est lu, jamais écrit. Hors du projet, seuls le cache de npm et les modules Python de
+`node_modules/@quest-n-click/engine` est lu, jamais écrit. Hors du projet, seuls le cache de npm et les modules Python de
 l'étape 4 changent.
 
 <a name="recovery"></a>
@@ -194,7 +194,7 @@ voir [Mettre à jour](install.upgrade.md).
 ## Les autres archives d'une release
 
 Une release joint cinq archives npm, toutes à la même version (la liste de la v4.4.0, lue le 23 octobre 2026) :
-`quest-n-click-<version>.tgz` (le moteur), `create-quest-n-click-<version>.tgz` (`npx create-quest-n-click`, une fois
+`quest-n-click-<version>.tgz` (le moteur), `create-quest-n-click-<version>.tgz` (`npm init @quest-n-click`, une fois
 sur npm), `quest-n-click-bridge-<version>.tgz` (le Reality Bridge de référence, [Installer et lancer le Bridge](bridge.install-run.md)), `quest-n-click-connectors-<version>.tgz` (les connecteurs, ceux d'un opérateur,
 jamais d'un jeu) et, depuis la 4.2.1, `quest-n-click-studio-server-<version>.tgz`. Le contenu de chacune est dans la
 [Référence du paquet](install.package.md).
@@ -217,7 +217,7 @@ Un worker installé depuis les archives prépare aussi les assets (depuis la 4.2
 verrou que porte le paquet du moteur, depuis le dossier du worker, où le worker cherche les paquets
 ([`WORKER_PYTHON_PATH`](reference.environment-variables.md#worker-python-path) pour les mettre ailleurs) :
 `CC_POST_BUILD_HOOK=python3 -m pip install --target .python --require-hashes --only-binary=:all: -r
-node_modules/quest-n-click/ops/studio/worker-requirements.lock`. Le verrou vaut pour CPython 3.13 sous Linux x86_64,
+node_modules/@quest-n-click/engine/ops/studio/worker-requirements.lock`. Le verrou vaut pour CPython 3.13 sous Linux x86_64,
 glibc 2.28 ou plus récente (le runtime natif de Clever Cloud) ; une autre plateforme le refait (son en-tête dit
 comment). En 4.2.2, il fallait un worker déployé depuis le dépôt.
 

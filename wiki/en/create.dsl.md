@@ -1,7 +1,7 @@
 # DSL reference
 
 A game is data: conditions and commands inside rooms, rules, topics, listeners and scripts, typed by
-`quest-n-click/content` ([create.rooms.md](create.rooms.md) shows how to write them). This page is the reference of
+`@quest-n-click/engine/content` ([create.rooms.md](create.rooms.md) shows how to write them). This page is the reference of
 that vocabulary. Its [Reference](#reference) part is generated from the schemas the tools themselves read, so what you
 read there is what the validator, the solver and the Studio accept.
 

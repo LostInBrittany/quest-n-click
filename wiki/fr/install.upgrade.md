@@ -15,7 +15,7 @@ npx quest-n-click migrate
 npm run verify
 ```
 
-Une fois le moteur sur npm, la première ligne devient `npm install quest-n-click@<version>`. Lisez d'abord les notes de
+Une fois le moteur sur npm, la première ligne devient `npm install @quest-n-click/engine@<version>`. Lisez d'abord les notes de
 mise à jour de chaque version franchie ; le reste de cette page est la même procédure avec ses vérifications.
 
 <a name="what-you-get"></a>
@@ -29,7 +29,7 @@ et les sauvegardes de ses joueurs qui se chargent toujours.
 
 ## Contexte et versions
 
-- Un **projet créé** (le moteur sous `node_modules/quest-n-click`). Un jeu à l'intérieur du dépôt du moteur et un jeu
+- Un **projet créé** (le moteur sous `node_modules/@quest-n-click/engine`). Un jeu à l'intérieur du dépôt du moteur et un jeu
   sur un Studio hébergé ont leur propre section plus bas.
 - Cette procédure vaut pour une cible en 4.3.0 ou après, où `quest-n-click migrate` renomme aussi un projet encore sous
   l'ancien nom `web-scumm`. Si vous venez d'avant la 4.2.5, lisez aussi [Venir de web-scumm](install.from-web-scumm.md).
@@ -76,7 +76,7 @@ Dans le dossier du projet créé, sur votre machine.
    npm install https://github.com/Quest-n-Click/quest-n-click/releases/download/v4.4.0/quest-n-click-4.4.0.tgz
    ```
 
-   Une fois le moteur sur npm, cette étape devient `npm install quest-n-click@<version>`.
+   Une fois le moteur sur npm, cette étape devient `npm install @quest-n-click/engine@<version>`.
 
 <!-- step: migrate -->
 3. Amenez les sources au format du moteur installé. `--check` dit d'abord ce qui est dû et n'écrit rien :
@@ -148,7 +148,7 @@ avec 0. `npm run verify` passe. Une ancienne sauvegarde se charge et se joue.
 
 | Symptôme | Cause | Correction |
 |---|---|---|
-| `npm error 404 Not Found - GET https://registry.npmjs.org/quest-n-click` | `npm install quest-n-click@<version>` : pas sur npm | Installez l'URL de l'archive (étape 2) |
+| `npm error 404 Not Found - GET https://registry.npmjs.org/quest-n-click` | `npm install @quest-n-click/engine@<version>` : pas sur npm | Installez l'URL de l'archive (étape 2) |
 | ✖ tsconfig.json has baseUrl, which TypeScript 7 refuses: a migration is due | Un projet fait avant la 4.1.8 | `npx quest-n-click migrate` |
 | `✖  still under the former name web-scumm: …` | Un projet fait avant la 4.2.5 | `npx quest-n-click migrate`, puis `npm install` ([Venir de web-scumm](install.from-web-scumm.md)) |
 | `✖  [<id>] authoring schema <n> is newer than this engine's (3): install a newer quest-n-click` | Le jeu a été écrit pour un moteur plus récent | Installez ce moteur-là, pas un plus ancien |

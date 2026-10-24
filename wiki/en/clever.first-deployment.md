@@ -14,7 +14,8 @@ logged in as its first owner, and `/readyz` answering 200.
 (package.json 4.2.2, the 4.2.3 work before its tag), Clever Cloud test organisation, region `par`, two XS apps,
 PostgreSQL DEV, Cellar S, managed Keycloak, on three `*.cleverapps.io` names. Not verified on a live installation:
 this page's exact text, a custom domain, and the release-archive variant ([below](#from-release-archives)). Applies
-from 4.3.0, the version whose packages carry the `quest-n-click` names used below.
+from 4.3.0, the version whose commands carry the `quest-n-click` names used below (the packages are
+`@quest-n-click/…` from 4.5.2; the archives keep their names).
 
 <a name="what-you-need"></a>
 
@@ -149,7 +150,7 @@ npx quest-n-click-studio-worker          # on the worker's machine, with WORKER_
 - A worker installed from the archives prepares assets too (since 4.2.3; in 4.2.2 this needed a worker deployed from
   the repository). Its build hook installs the lock the engine's package carries, from the worker's folder, where the
   worker looks for the packages (`WORKER_PYTHON_PATH` to put them elsewhere):
-  `CC_POST_BUILD_HOOK=python3 -m pip install --target .python --require-hashes --only-binary=:all: -r node_modules/quest-n-click/ops/studio/worker-requirements.lock`.
+  `CC_POST_BUILD_HOOK=python3 -m pip install --target .python --require-hashes --only-binary=:all: -r node_modules/@quest-n-click/engine/ops/studio/worker-requirements.lock`.
   The lock is for CPython 3.13 on Linux x86_64 with glibc 2.28 or newer (Clever Cloud's native runtime); on another
   platform, make it again (its header says how).
 - The engine's archive brings Vite and tsx, which the worker needs to run the game's code and build its previews (the

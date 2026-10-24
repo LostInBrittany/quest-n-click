@@ -316,10 +316,9 @@
     },
     "engine-upgrade-judged-first": {
       "claimTextHash": "dc87e7681b6ea05cb33be30a5bd783fee189911059a866f31d605d8faba04bd7",
-      "testFileHash": "2b485030a752213bd519ce9edce19691a25c528d006f786f2d272c623da876ae",
+      "testFileHash": "43abbae8747daa4638f691f89961f8129700d226ffca88065f27413bbb26ae62",
       "reviewers": [
-        { "name": "claude-4.5-writers", "kind": "ai", "relation": "author", "date": "2026-10-23" },
-        { "name": "wanoo", "kind": "human", "relation": "independent", "date": "2026-10-24" }
+        { "name": "claude-283-scoped", "kind": "ai", "relation": "author", "date": "2026-10-24" }
       ]
     },
     "export-same-files": {
@@ -340,10 +339,9 @@
     },
     "former-name-imports": {
       "claimTextHash": "647911006b60392689b9097f2077194154e3f85075e483a48ed11aede51fca01",
-      "testFileHash": "282c2ac8b09a067c8e641d98938b01601f811d0787d0818d52b506fe2fcb9465",
+      "testFileHash": "4ec74bc4b3aa10a0413cbbad0b7a1774096003e31ef289c1bb140df809e58842",
       "reviewers": [
-        { "name": "claude-4.5-writers", "kind": "ai", "relation": "author", "date": "2026-10-23" },
-        { "name": "wanoo", "kind": "human", "relation": "independent", "date": "2026-10-24" }
+        { "name": "claude-283-scoped", "kind": "ai", "relation": "author", "date": "2026-10-24" }
       ]
     },
     "gc-keeps-referenced": {

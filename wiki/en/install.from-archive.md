@@ -8,7 +8,7 @@ it as an archive, `quest-n-click-<version>.tgz`, and that archive is how you cre
 ## What you get
 
 A game project of your own, outside the engine repository: one room, a hero and placeholder art, the engine installed
-from the release archive under `node_modules/quest-n-click`, playing in your browser with `npm run dev`.
+from the release archive under `node_modules/@quest-n-click/engine`, playing in your browser with `npm run dev`.
 
 <a name="context-and-versions"></a>
 
@@ -76,7 +76,7 @@ folder itself). Every command after `cd my-game` runs inside the created project
 
    ```bash
    # in the created project
-   python3 -m pip install -r node_modules/quest-n-click/requirements.txt
+   python3 -m pip install -r node_modules/@quest-n-click/engine/requirements.txt
    ```
 
 <!-- step: assets-and-dev -->
@@ -161,7 +161,7 @@ without an error (validate, solve, translations status, lint, playtests).
 | `public/` | the page's icons, its preview image, the full font; `public/assets` is written by `npm run assets` (not committed) |
 | `dist/` | the build, with `licenses/` (`npm run build`) |
 | `package.json` | the scripts `dev`, `studio`, `assets`, `verify`, `build`, `release`, `preview`, each calling `quest-n-click`, and the engine as its one dependency |
-| `tsconfig.json` | `@engine/*` points into `node_modules/quest-n-click/src/engine`, `quest-n-click/*` into its public API |
+| `tsconfig.json` | `@engine/*` points into `node_modules/@quest-n-click/engine/src/engine`, `@quest-n-click/engine/*` into its public API |
 | `.gitignore`, `README.md` | `node_modules`, `dist`, `.cache`, `public/assets` ignored; the commands above |
 
 The template's art is a placeholder drawn from shapes (`tools/placeholder-art.py`): `game/provenance.json` says so, and
@@ -170,7 +170,7 @@ whole layout of a project is on [Project layout](create.project-layout.md).
 
 `npm install` adds `node_modules/` and `package-lock.json`; `npm run assets` writes `public/assets/` and `.cache/`,
 and updates `game/assets.gen.json` (the pixel sizes of the prepared images). The commands run with the project as their working folder
-([`WEB_SCUMM_PROJECT`](reference.environment-variables.md#web-scumm-project)): the engine in `node_modules/quest-n-click`
+([`WEB_SCUMM_PROJECT`](reference.environment-variables.md#web-scumm-project)): the engine in `node_modules/@quest-n-click/engine`
 is read, never written. Outside the project, only npm's cache and the Python modules of step 4 change.
 
 <a name="recovery"></a>
@@ -186,7 +186,7 @@ Delete the project's folder: nothing else was written for it. To change the engi
 ## The other archives of a release
 
 A release attaches five npm archives, all at the same version (v4.4.0's list, read on 23 Oct 2026):
-`quest-n-click-<version>.tgz` (the engine), `create-quest-n-click-<version>.tgz` (`npx create-quest-n-click`, once
+`quest-n-click-<version>.tgz` (the engine), `create-quest-n-click-<version>.tgz` (`npm init @quest-n-click`, once
 on npm), `quest-n-click-bridge-<version>.tgz` (the reference Reality Bridge, [Install and run the Bridge](bridge.install-run.md)), `quest-n-click-connectors-<version>.tgz` (the connectors, an operator's, never a
 game's) and, from 4.2.1, `quest-n-click-studio-server-<version>.tgz`. What each holds is on
 [Package reference](install.package.md).
@@ -209,7 +209,7 @@ A worker installed from the archives prepares assets too (since 4.2.3): its buil
 package carries, from the worker's folder, where the worker looks for the packages
 ([`WORKER_PYTHON_PATH`](reference.environment-variables.md#worker-python-path) to put them elsewhere):
 `CC_POST_BUILD_HOOK=python3 -m pip install --target .python --require-hashes --only-binary=:all: -r
-node_modules/quest-n-click/ops/studio/worker-requirements.lock`. The lock is for CPython 3.13 on Linux x86_64 with
+node_modules/@quest-n-click/engine/ops/studio/worker-requirements.lock`. The lock is for CPython 3.13 on Linux x86_64 with
 glibc 2.28 or newer (Clever Cloud's native runtime); another platform makes it again (its header says how). In 4.2.2
 this needed a worker deployed from the repository.
 

@@ -10,7 +10,7 @@ jusqu'à la correction. Chaque section dit où cela arrive : dans un **projet cr
 **Symptôme.** Dans un projet créé, `npx quest-n-click doctor` n'affiche aucun rapport et s'arrête sur :
 
 ```text
-Error [ERR_MODULE_NOT_FOUND]: Cannot find package 'playwright' imported from …/node_modules/quest-n-click/tools/doctor.ts
+Error [ERR_MODULE_NOT_FOUND]: Cannot find package 'playwright' imported from …/node_modules/@quest-n-click/engine/tools/doctor.ts
 ```
 
 **Cause.** `doctor` importe Playwright pour trouver les navigateurs. Le paquet du moteur laisse Playwright hors de ses
@@ -66,7 +66,7 @@ n'est pas cassé : rien d'autre dedans ne se sert de Playwright.
 ## `npm install` répond 404
 
 **Symptôme.** `npm error 404 Not Found - GET https://registry.npmjs.org/quest-n-click - Not found`, à `npm install`
-dans un projet créé, ou à `npx create-quest-n-click`.
+dans un projet créé, ou à `npm init @quest-n-click`.
 
 **Cause.** Le moteur n'est pas sur npm (vérifié le 23 octobre 2026). Un projet créé sans `--engine=<URL de l'archive>`
 dépend de `^<version>`, que npm cherche dans le registre.
@@ -98,7 +98,7 @@ disponible sans option. `doctor` ne le voit pas : il ne vérifie que la version 
 **Cause.** Les modules ne sont pas installés pour le `python3` que lancent les outils.
 
 **Correction.** Dans le dépôt du moteur, `python3 -m pip install -r requirements.txt` ; dans un projet créé,
-`python3 -m pip install -r node_modules/quest-n-click/requirements.txt`. Si pip répond
+`python3 -m pip install -r node_modules/@quest-n-click/engine/requirements.txt`. Si pip répond
 `error: externally-managed-environment` (un Python du système, PEP 668), créez d'abord un environnement virtuel
 (`python3 -m venv .venv && . .venv/bin/activate`) ; dans un projet créé, `PYTHON=.venv/bin/python npm run assets`
 l'utilise ensuite.

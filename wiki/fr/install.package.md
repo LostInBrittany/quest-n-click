@@ -1,6 +1,6 @@
 # Référence du paquet
 
-Ce que contiennent les paquets npm du moteur, les commandes que le paquet `quest-n-click` donne à un projet de jeu, et
+Ce que contiennent les paquets npm du moteur, les commandes que le paquet `@quest-n-click/engine` donne à un projet de jeu, et
 comment chaque release les vérifie. `scripts/pack.mjs` les fabrique depuis les fichiers que git suit ; leur
 installation est décrite dans [Installer depuis l'archive de la release](install.from-archive.md).
 
@@ -8,11 +8,19 @@ installation est décrite dans [Installer depuis l'archive de la release](instal
 
 ## Le moteur en paquet
 
-Depuis la 3.9, un jeu n'a plus à vivre dans le dépôt du moteur. Le moteur est empaqueté en `quest-n-click` (le moteur,
-ses pages, ses outils et la commande `quest-n-click`, le modèle de jeu), `create-quest-n-click`
-(`npx create-quest-n-click`) et, depuis la 4.1.1, `quest-n-click-bridge` (le Reality Bridge de référence). Depuis la
-4.1.9, les connecteurs forment un quatrième paquet, `quest-n-click-connectors`, et depuis la 4.2.1 le Studio hébergé
-un cinquième, `quest-n-click-studio-server`.
+Depuis la 3.9, un jeu n'a plus à vivre dans le dépôt du moteur. Le moteur est empaqueté en `@quest-n-click/engine`
+(le moteur, ses pages, ses outils et la commande `quest-n-click`, le modèle de jeu), `@quest-n-click/create`
+(`npm init @quest-n-click`) et, depuis la 4.1.1, `@quest-n-click/bridge` (le Reality Bridge de référence). Depuis la
+4.1.9, les connecteurs forment un quatrième paquet, `@quest-n-click/connectors`, et depuis la 4.2.1 le Studio hébergé
+un cinquième, `@quest-n-click/studio-server`.
+
+À partir de la 4.5.2, les paquets sont nommés sous le scope de l'organisation npm, `@quest-n-click/…`, pour que
+l'organisation les possède (D53). De la 4.2.5 à la 4.5.1, ils s'appelaient `quest-n-click`, `create-quest-n-click`,
+`quest-n-click-bridge`, `quest-n-click-connectors` et `quest-n-click-studio-server`. Les commandes gardent ces noms
+(`quest-n-click dev`, `npx quest-n-click-bridge serve`), et les archives jointes à une release aussi
+(`quest-n-click-<version>.tgz`, `create-quest-n-click-<version>.tgz`, …). `npx quest-n-click migrate` déplace les
+imports d'un jeu (`quest-n-click/content` devient `@quest-n-click/engine/content`), son `tsconfig.json` et ses
+dépendances ([Notes de mise à jour : 4.5](install.upgrade-notes-4-5.md#from-4-5-1-to-4-5-2)).
 
 Jusqu'à la 4.2.4, ils s'appelaient `web-scumm`, `create-web-scumm`, `web-scumm-bridge`, `web-scumm-connectors` et
 `web-scumm-studio-server` (le projet s'appelait web-scumm, D47). Pendant toute la 4.2.x, chaque release les livrait
@@ -25,7 +33,9 @@ Aucun n'est encore sur npm : chaque release les joint sous forme d'archives
 
 <a name="quest-n-click"></a>
 
-## `quest-n-click`
+## `@quest-n-click/engine`
+
+L'archive `quest-n-click-<version>.tgz`.
 
 ### Contenu
 
@@ -38,8 +48,8 @@ vérification croisée et les jeux de données du Bridge, le harnais de fuzz des
 
 ### Points d'entrée
 
-La commande `quest-n-click` (`cli/quest-n-click.mjs`), et cinq entrées publiques : `quest-n-click/content`, `/player`,
-`/minigames`, `/testing`, `/reality` ([API publique](engine.api.md)), plus `quest-n-click/cli/*`. Tout le reste est
+La commande `quest-n-click` (`cli/quest-n-click.mjs`), et cinq entrées publiques : `@quest-n-click/engine/content`, `/player`,
+`/minigames`, `/testing`, `/reality` ([API publique](engine.api.md)), plus `@quest-n-click/engine/cli/*`. Tout le reste est
 interne.
 
 ### Dépendances
@@ -62,16 +72,17 @@ Le serveur MCP d'un projet créé la lit (`read_doc`, `search_docs`, `list_docs`
 
 <a name="create-quest-n-click"></a>
 
-## `create-quest-n-click`
+## `@quest-n-click/create`
 
-Un seul fichier, `index.mjs`, qui lance `quest-n-click create` depuis le moteur dont il dépend (`quest-n-click` à la
-même version) : `npx create-quest-n-click my-game "Mon jeu"` une fois sur npm.
+L'archive `create-quest-n-click-<version>.tgz`. Un seul fichier, `index.mjs`, la commande `create-quest-n-click`, qui
+lance `quest-n-click create` depuis le moteur dont il dépend (`@quest-n-click/engine` à la même version) :
+`npm init @quest-n-click my-game "Mon jeu"` une fois sur npm (ou `npx @quest-n-click/create my-game "Mon jeu"`).
 
 <a name="quest-n-click-bridge"></a>
 
-## `quest-n-click-bridge`
+## `@quest-n-click/bridge`
 
-Le Reality Bridge de référence, seul : `bridge/src` regroupé par esbuild en un seul module (`src/cli.mjs`, compilé
+L'archive `quest-n-click-bridge-<version>.tgz`. Le Reality Bridge de référence, seul : `bridge/src` regroupé par esbuild en un seul module (`src/cli.mjs`, compilé
 depuis la 4.1.2, il tourne donc avec Node seul), ses politiques Datalog et ses migrations SQL, la commande
 `quest-n-click-bridge` (`init`, `serve`, `grant`, `rotate`, `revoke`, `doctor`, `compact`, `migrate`, `tenant`,
 `backup`, `restore`). Le WebAssembly de Biscuit et zod sont des dépendances ; `pg` et OpenTelemetry ne sont chargés par
@@ -80,9 +91,9 @@ leur nom que s'ils servent. Il porte son `npm-shrinkwrap.json` (depuis la 4.1.19
 
 <a name="quest-n-click-connectors"></a>
 
-## `quest-n-click-connectors`
+## `@quest-n-click/connectors`
 
-Le SDK des connecteurs, la commande `quest-n-click-connector <email|telnet|ssh|open-badge> --config <fichier.json>` et
+L'archive `quest-n-click-connectors-<version>.tgz`. Le SDK des connecteurs, la commande `quest-n-click-connector <email|telnet|ssh|open-badge> --config <fichier.json>` et
 les quatre connecteurs regroupés en un module, avec le worker du lecteur MIME à côté ; `ssh2` est une dépendance. Un
 paquet d'opérateur, qui tourne à côté d'un Bridge, jamais celui d'un jeu. Installez-le sans code natif :
 `npm install --omit=optional --ignore-scripts quest-n-click-connectors-<version>.tgz`. Il porte son
@@ -90,11 +101,12 @@ paquet d'opérateur, qui tourne à côté d'un Bridge, jamais celui d'un jeu. In
 
 <a name="quest-n-click-studio-server"></a>
 
-## `quest-n-click-studio-server`
+## `@quest-n-click/studio-server`
 
-Les commandes `quest-n-click-studio-server` et `quest-n-click-studio-worker`, qui font tourner le serveur et
-l'application de traitement du moteur installé à côté (la même version, sinon elles s'arrêtent sur
-`… runs with quest-n-click <v>, not <w>`), et la page du Studio construite une fois. Ses propres dépendances sont
+L'archive `quest-n-click-studio-server-<version>.tgz`. Les commandes `quest-n-click-studio-server` et
+`quest-n-click-studio-worker`, qui font tourner le serveur et l'application de traitement du moteur installé à côté
+(`@quest-n-click/engine`, un pair optionnel : la même version, sinon elles s'arrêtent sur
+`… runs with @quest-n-click/engine <v>, not <w>`), et la page du Studio construite une fois. Ses propres dépendances sont
 verrouillées dans son `npm-shrinkwrap.json` ; installé depuis le fichier d'archive plutôt que depuis le registre, npm
 les résout depuis leurs plages (`quest-n-click-studio-server deps` dit lesquelles).
 [Installer depuis l'archive de la release](install.from-archive.md#other-archives).
@@ -124,7 +136,7 @@ les résout depuis leurs plages (`quest-n-click-studio-server deps` dit lesquell
 
 Elles tournent avec le projet comme dossier de travail
 ([`WEB_SCUMM_PROJECT`](reference.environment-variables.md#web-scumm-project)) : le moteur dans
-`node_modules/quest-n-click` est lu, jamais écrit. Toutes les options sont dans [Ligne de commande](reference.cli.md).
+`node_modules/@quest-n-click/engine` est lu, jamais écrit. Toutes les options sont dans [Ligne de commande](reference.cli.md).
 
 <a name="how-it-is-checked"></a>
 
@@ -137,13 +149,14 @@ Elles tournent avec le projet comme dossier de travail
 - `npm run external-consumer` (chaque candidat de release, sous Ubuntu, macOS et Windows) : les archives du candidat
   lui-même, jamais réempaquetées, installées hors du dépôt : un jeu créé sur une release plus ancienne et passé à
   elles, une ancienne sauvegarde jouée jusqu'à la fin, le bundle de documentation vérifié contre son manifeste et lu
-  par un vrai client MCP, `create-quest-n-click`, le Bridge et les connecteurs depuis leurs archives.
+  par un vrai client MCP, `@quest-n-click/create`, le Bridge et les connecteurs depuis leurs archives.
 - `npm run readme-quickstart` : le démarrage rapide du README, lancé comme un lecteur le copie.
 - `npm run upgrade-check -- --from=<version>` : un jeu passé d'une release plus ancienne à celle-ci.
 - `scripts/studio-install-smoke.mjs` : les archives du moteur et du Studio Server installées ensemble, un jeu servi.
 
-Chaque release joint les cinq archives avec leurs SBOM et leurs sommes. Les publier sur npm revient au mainteneur (un
-jeton, les noms des paquets) : [Paquets npm](contribute.npm-packages.md).
+Chaque release joint les cinq archives avec leurs SBOM et leurs sommes. Les publier sur npm revient aux mainteneurs
+(l'organisation `quest-n-click` possède les cinq noms à scope ; une étape ultérieure de #283 publie depuis la CI) :
+[Paquets npm](contribute.npm-packages.md).
 
 <a name="related"></a>
 

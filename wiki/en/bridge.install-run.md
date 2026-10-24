@@ -8,7 +8,7 @@ stores, retention, the reference deployment and the speedrun leaderboards it can
 
 ## Overview
 
-The reference Reality Bridge (`bridge/src/`, the package `quest-n-click-bridge`) serves one game. It is a small Node
+The reference Reality Bridge (`bridge/src/`, the package `@quest-n-click/bridge`) serves one game. It is a small Node
 service: pairing, connectors under Biscuit capabilities, a demonstration webhook, signed events, Server-Sent Events.
 Since 4.1.10 it keeps its state in a store (the 4.1.9 JSON-lines journal, SQLite, or Postgres), and one deployment
 may run several instances and serve several tenants. What a Bridge is, for authors:
@@ -57,10 +57,10 @@ On the machine that runs the Bridge, in one of three places:
 | Where | The command | The game's manifest comes from |
 |---|---|---|
 | The engine repository | `npm run bridge -- <command>` (with `GAME=<id>` for a game other than the current one) | the game's content |
-| A created project | `npx quest-n-click bridge <command>`, once `quest-n-click-bridge` is installed beside the engine | the game's content |
+| A created project | `npx quest-n-click bridge <command>`, once `@quest-n-click/bridge` is installed beside the engine | the game's content |
 | The standalone package, on a server | `npx quest-n-click-bridge <command>` | `init --manifest=<game>/dist/reality-manifest.json` |
 
-The package `quest-n-click-bridge` is the `quest-n-click-bridge-<version>.tgz` archive a release attaches: one
+The package `@quest-n-click/bridge` is the `quest-n-click-bridge-<version>.tgz` archive a release attaches: one
 JavaScript module, its Datalog policies and its SQL schema. It needs Biscuit's WebAssembly and zod; `pg` only for
 Postgres, `@opentelemetry/api` only for the measures. The examples below use the engine repository's form.
 
@@ -172,7 +172,7 @@ it hands out, and uses up, the player's capability.
 | `journal in use by process <pid> (…lock): one Bridge per journal` | Another Bridge (or `compact`) holds the journal | Stop it; if that process id now belongs to an unrelated process after a crash, look, then delete the lock |
 | `✖  … : not serving` | A restore or a migration down holds the store (a maintenance lease) | Wait for it to end |
 | `✖  the leaderboards and the daily challenge keep their records in SQL: …` | A `runs` or `daily` section on the journal | Move to SQLite ([Stores](#stores)) |
-| `✖  the Reality Bridge is a separate package: npm install quest-n-click-bridge` | In a created project, the package is missing | Install it beside the engine |
+| `✖  the Reality Bridge is a separate package: npm install @quest-n-click/bridge` | In a created project, the package is missing | Install it beside the engine |
 
 <a name="files-changed"></a>
 

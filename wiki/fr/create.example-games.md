@@ -47,7 +47,7 @@ C'est la copie dont part tout nouveau jeu :
 
 - `npm run new-game <id> ["Titre"]` (dépôt du moteur) le copie dans `games/<id>/`, dessine des images provisoires et en
   fait le jeu courant ;
-- `quest-n-click create <dossier> ["Titre"]`, ou `npx create-quest-n-click <dossier>`, le copie dans `<dossier>/game/`
+- `quest-n-click create <dossier> ["Titre"]`, ou `npm init @quest-n-click <dossier>`, le copie dans `<dossier>/game/`
   sans son `tests/` (un projet créé vérifie son jeu avec `npm run verify`), et écrit un `provenance.json` qui marque les
   images comme provisoires.
 

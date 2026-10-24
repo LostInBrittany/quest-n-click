@@ -11,7 +11,7 @@ Un jeu exporte ses propres commandes depuis son `index.ts` (`game/index.ts` dans
 `games/<id>/index.ts` dans le dépôt du moteur) ; une règle ou un script en appelle une par son nom :
 
 ```ts
-import type { CustomCommands } from 'quest-n-click/content';
+import type { CustomCommands } from '@quest-n-click/engine/content';
 
 export const commands: CustomCommands = {
   sparkle: { pure: true, run: async ({ scene, args }) => { /* dessiner des étoiles sur `scene` pendant args.ms */ } },

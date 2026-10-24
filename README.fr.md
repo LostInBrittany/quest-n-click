@@ -13,8 +13,11 @@ vérifier qu'on peut le finir, et le livrer comme un jeu web qui s'installe sur 
 > vers la nouvelle : le jeu et le Studio sont maintenant sur [quest-n-click.cleverapps.io/demo](https://quest-n-click.cleverapps.io/demo/).
 > À partir de la 4.2.5, les packages et les commandes s'appellent `quest-n-click` ; les anciens noms `web-scumm` ont
 > marché pendant toute la 4.2.x et disparaissent en 4.3.0, où `npx quest-n-click migrate` renomme les imports et les
-> commandes d'un jeu ([notes de mise à jour](https://github.com/Quest-n-Click/quest-n-click/wiki/FR-Installer-Notes-Mise-A-Jour-4-3#from-4-2-5-to-4-3-0)). Les
-> sauvegardes, les runs et les sessions gardent leurs formats et se chargent comme avant.
+> commandes d'un jeu ([notes de mise à jour](https://github.com/Quest-n-Click/quest-n-click/wiki/FR-Installer-Notes-Mise-A-Jour-4-3#from-4-2-5-to-4-3-0)).
+> À partir de la 4.5.2, les packages sont nommés sous le scope de l'organisation npm, `@quest-n-click/engine`,
+> `@quest-n-click/create`… (les commandes gardent leur nom), et `npx quest-n-click migrate` passe les imports
+> `quest-n-click/…` d'un jeu à `@quest-n-click/engine/…`. Les sauvegardes, les runs et les sessions gardent leurs
+> formats et se chargent comme avant.
 
 | | |
 |---|---|
@@ -134,8 +137,8 @@ src/engine/      core (le DSL, le moteur), tools (validate, solve, lint, i18n…
 games/demo/      le jeu d'exemple : pièces, mises en page, images, son, langues, storyboard
 games/_template/ copié par npm run new-game
 tools/           les commandes, le Studio, le serveur MCP, les pipelines d'image et de son, les plugins Vite
-bridge/          le Bridge Reality (le package quest-n-click-bridge)
-connectors/      les connecteurs du monde extérieur (le package quest-n-click-connectors)
+bridge/          le Bridge Reality (le package @quest-n-click/bridge)
+connectors/      les connecteurs du monde extérieur (le package @quest-n-click/connectors)
 wiki/            la documentation (en, fr), publiée en wiki ; docs/dev : le journal de travail, les décisions, les passes
 ```
 

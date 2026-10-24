@@ -2,7 +2,7 @@
 
 Ce qu'il faut sur une machine pour faire un jeu avec quest'n'click, ou pour travailler sur le moteur. Deux contextes
 reviennent sur cette page : un **projet créé** (un jeu fait avec `quest-n-click create`, le moteur installé sous
-`node_modules/quest-n-click`) et le **dépôt du moteur** (un clone de `Quest-n-Click/quest-n-click`). Seul Node.js sert à tout ;
+`node_modules/@quest-n-click/engine`) et le **dépôt du moteur** (un clone de `Quest-n-Click/quest-n-click`). Seul Node.js sert à tout ;
 le reste dépend de ce que vous faites.
 
 | Outil | Sert à | Projet créé | Dépôt du moteur |
@@ -24,7 +24,7 @@ le reste dépend de ce que vous faites.
 ### Version
 
 **22.12 ou plus récent.** Le `package.json` du moteur dit `"engines": { "node": ">=22.12" }`, et le paquet
-`quest-n-click` porte le même champ : Vite 8 et Vitest 5 l'exigent (4.1.8). Le `.nvmrc` du dépôt dit `22` : `nvm use`
+`@quest-n-click/engine` porte le même champ : Vite 8 et Vitest 5 l'exigent (4.1.8). Le `.nvmrc` du dépôt dit `22` : `nvm use`
 prend donc la 22 la plus récente que vous avez installée.
 
 ### Node 22.13 pour le Studio, les outils d'écriture et SQLite
@@ -68,7 +68,7 @@ python3 -m pip install -r requirements.txt
 
 ```sh
 # dans un projet créé : le fichier vient avec le paquet du moteur
-python3 -m pip install -r node_modules/quest-n-click/requirements.txt
+python3 -m pip install -r node_modules/@quest-n-click/engine/requirements.txt
 ```
 
 Dans un projet créé, `npx quest-n-click assets` lance `python3`, ou l'interpréteur que nomme la variable
@@ -134,7 +134,7 @@ fluidsynth, Furnace 0.6.8.3 (téléchargé par `npm run audio -- setup` sous mac
   unitaire sauf six fichiers de tests qui supposent POSIX (droits de fichiers, `/` dans les chemins ; nommés dans
   `ci.yml`), sans les tests Telnet et SSH ni l'application de traitement du Studio Server, puis `build` et le serveur de
   production qui répond. Chaque candidat de release
-  installe les archives sous Windows, crée et construit un jeu, et le joue jusqu'à sa fin via `quest-n-click/testing`
+  installe les archives sous Windows, crée et construit un jeu, et le joue jusqu'à sa fin via `@quest-n-click/engine/testing`
   (sans navigateur). Personne n'a encore vérifié `npm run dev` ni le Studio sous Windows. Lancez les blocs shell de
   ces pages dans Git Bash, le shell qu'utilise la CI là-bas.
 - Le pipeline audio ne télécharge pas Furnace sous Windows : installez-le vous-même

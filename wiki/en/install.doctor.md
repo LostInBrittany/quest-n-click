@@ -40,7 +40,7 @@ The `Reality Bridge` line fails only when Node's WebCrypto has no Ed25519. When 
 says `Biscuit not installed (only a Bridge needs it)`: a game that runs no Bridge never needs it.
 
 The Python fix names `requirements.txt` at the current folder: in a created project the file is
-`node_modules/quest-n-click/requirements.txt`.
+`node_modules/@quest-n-click/engine/requirements.txt`.
 
 <a name="output"></a>
 
@@ -106,7 +106,7 @@ the browsers' executables. The engine package does not depend on Playwright (`sc
 other test tools), so in a fresh project the command stops before printing anything:
 
 ```text
-Error [ERR_MODULE_NOT_FOUND]: Cannot find package 'playwright' imported from …/my-game/node_modules/quest-n-click/tools/doctor.ts
+Error [ERR_MODULE_NOT_FOUND]: Cannot find package 'playwright' imported from …/my-game/node_modules/@quest-n-click/engine/tools/doctor.ts
 ```
 
 Observed on 23 Oct 2026 in a project created from the v4.4.0 archive; the code of `main` is the same. Nothing in a

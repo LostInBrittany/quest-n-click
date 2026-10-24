@@ -13,7 +13,10 @@ be finished, and ship it as a web game that installs on a phone and plays offlin
 > and the Studio now live at [quest-n-click.cleverapps.io/demo](https://quest-n-click.cleverapps.io/demo/). From 4.2.5 the packages and commands
 > are named `quest-n-click`; the old `web-scumm` names kept working through 4.2.x and are gone in 4.3.0, where
 > `npx quest-n-click migrate` renames a game's imports and commands
-> ([upgrade notes](https://github.com/Quest-n-Click/quest-n-click/wiki/EN-Install-Upgrade-Notes-4-3#from-4-2-5-to-4-3-0)). Saves, runs and sessions keep their formats and load as before.
+> ([upgrade notes](https://github.com/Quest-n-Click/quest-n-click/wiki/EN-Install-Upgrade-Notes-4-3#from-4-2-5-to-4-3-0)). From 4.5.2 the packages
+> are named under the npm organisation's scope, `@quest-n-click/engine`, `@quest-n-click/create`… (the commands keep
+> their names), and `npx quest-n-click migrate` moves a game's `quest-n-click/…` imports to `@quest-n-click/engine/…`.
+> Saves, runs and sessions keep their formats and load as before.
 
 | | |
 |---|---|
@@ -128,8 +131,8 @@ src/engine/      core (the DSL, the engine), tools (validate, solve, lint, i18n�
 games/demo/      the sample game: rooms, layouts, art, audio, locales, storyboard
 games/_template/ copied by npm run new-game
 tools/           the commands, the Studio, the MCP server, the art and audio pipelines, the Vite plugins
-bridge/          the Reality Bridge (the package quest-n-click-bridge)
-connectors/      the connectors of the world outside (the package quest-n-click-connectors)
+bridge/          the Reality Bridge (the package @quest-n-click/bridge)
+connectors/      the connectors of the world outside (the package @quest-n-click/connectors)
 wiki/            the documentation (en, fr), published as the wiki; docs/dev: the work log, the decisions, the passes
 ```
 

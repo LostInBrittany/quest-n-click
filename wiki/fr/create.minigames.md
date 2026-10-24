@@ -177,5 +177,5 @@ l’imprime. Tout le reste, sa preuve et les règles de speedrun : [Remix](creat
 - La commande : `{ minigame: '<id>', params: { … }, then: [ … ] }` ([Commandes du jeu](create.commands.md)).
 - Le drapeau `minigame.<id>` ; `ending.scratch` ; `audio.sfx` pour les liaisons.
 - `npm run validate`, `npm run i18n` (les `textParams` sont extraits pour la traduction).
-- L’API : `minigames`, `Minigame`, `MinigameCtx`, `MINIGAME_CSS` de `quest-n-click/minigames`
+- L’API : `minigames`, `Minigame`, `MinigameCtx`, `MINIGAME_CSS` de `@quest-n-click/engine/minigames`
   ([API publique](engine.api.md#minigames)).

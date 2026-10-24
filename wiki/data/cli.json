@@ -5,14 +5,14 @@
     {
       "id": "quest-n-click",
       "anchor": "quest-n-click",
-      "package": "quest-n-click",
+      "package": "@quest-n-click/engine",
       "files": [
         "cli/quest-n-click.mjs",
         "tools/speedrun/verify.ts"
       ],
       "where": {
-        "en": "in a created project's folder (`npx quest-n-click <command>`, or through the project's npm scripts). The project is the working folder (`WEB_SCUMM_PROJECT` is set to it for every tool): it holds `game/`, `public/`, `dist/` and `.cache/`; the engine in `node_modules/quest-n-click` is read, never written.",
-        "fr": "dans le dossier d'un projet créé (`npx quest-n-click <commande>`, ou par les scripts npm du projet). Le projet est le dossier de travail (`WEB_SCUMM_PROJECT` le désigne à chaque outil) : il contient `game/`, `public/`, `dist/` et `.cache/` ; le moteur dans `node_modules/quest-n-click` est lu, jamais écrit."
+        "en": "in a created project's folder (`npx quest-n-click <command>`, or through the project's npm scripts). The project is the working folder (`WEB_SCUMM_PROJECT` is set to it for every tool): it holds `game/`, `public/`, `dist/` and `.cache/`; the engine in `node_modules/@quest-n-click/engine` is read, never written.",
+        "fr": "dans le dossier d'un projet créé (`npx quest-n-click <commande>`, ou par les scripts npm du projet). Le projet est le dossier de travail (`WEB_SCUMM_PROJECT` le désigne à chaque outil) : il contient `game/`, `public/`, `dist/` et `.cache/` ; le moteur dans `node_modules/@quest-n-click/engine` est lu, jamais écrit."
       },
       "intro": {
         "en": "The engine's tools for a game project that installed the package (3.9; called `web-scumm` before 4.2.5, an alias through 4.2.x, gone in 4.3.0). `npx quest-n-click help` lists the commands. Each command runs a tool of the package (with `tsx` and the project's `tsconfig.json`, else the package's), Vite with the package's `vite.config.ts`, or Python for the assets; its exit code is the tool's, and a chain of steps stops at the first that fails, with that step's code.",
@@ -47,8 +47,8 @@
           "name": "create",
           "usage": "quest-n-click create <folder> [\"Title\"] [--engine=<npm spec>]",
           "description": {
-            "en": "A new game project from the template: runs `cli/create.mjs`, the same as `npx create-quest-n-click` (its section below).",
-            "fr": "Un nouveau projet de jeu depuis le modèle : lance `cli/create.mjs`, comme `npx create-quest-n-click` (sa section plus bas)."
+            "en": "A new game project from the template: runs `cli/create.mjs`, the same as `npm init @quest-n-click` (its section below).",
+            "fr": "Un nouveau projet de jeu depuis le modèle : lance `cli/create.mjs`, comme `npm init @quest-n-click` (sa section plus bas)."
           },
           "options": [
             {
@@ -120,8 +120,8 @@
           "name": "bridge",
           "usage": "quest-n-click bridge <init|serve|grant|rotate|revoke|doctor|compact|migrate|tenant|backup|restore> …",
           "description": {
-            "en": "A reference Reality Bridge for the game (`tools/bridge.ts`): the same command line as `quest-n-click-bridge` (below), the game's manifest taken from its content. In a project, the Bridge is the separate package `quest-n-click-bridge`; without it: `the Reality Bridge is a separate package: npm install quest-n-click-bridge`, exit 1.",
-            "fr": "Un Reality Bridge de référence pour le jeu (`tools/bridge.ts`) : la même ligne de commande que `quest-n-click-bridge` (plus bas), le manifeste du jeu pris dans son contenu. Dans un projet, le Bridge est le paquet séparé `quest-n-click-bridge` ; sans lui : `the Reality Bridge is a separate package: npm install quest-n-click-bridge`, sortie 1."
+            "en": "A reference Reality Bridge for the game (`tools/bridge.ts`): the same command line as `quest-n-click-bridge` (below), the game's manifest taken from its content. In a project, the Bridge is the separate package `@quest-n-click/bridge`; without it: `the Reality Bridge is a separate package: npm install @quest-n-click/bridge`, exit 1.",
+            "fr": "Un Reality Bridge de référence pour le jeu (`tools/bridge.ts`) : la même ligne de commande que `quest-n-click-bridge` (plus bas), le manifeste du jeu pris dans son contenu. Dans un projet, le Bridge est le paquet séparé `quest-n-click-bridge` ; sans lui : `the Reality Bridge is a separate package: npm install @quest-n-click/bridge`, sortie 1."
           }
         },
         {
@@ -297,22 +297,22 @@
     {
       "id": "create-quest-n-click",
       "anchor": "create",
-      "package": "create-quest-n-click",
+      "package": "@quest-n-click/create",
       "files": [
         "cli/create.mjs"
       ],
       "where": {
-        "en": "anywhere: the new project's folder is created where you run it (`npx create-quest-n-click my-game`).",
-        "fr": "n'importe où : le dossier du nouveau projet est créé là où vous la lancez (`npx create-quest-n-click my-game`)."
+        "en": "anywhere: the new project's folder is created where you run it (`npm init @quest-n-click my-game`).",
+        "fr": "n'importe où : le dossier du nouveau projet est créé là où vous la lancez (`npm init @quest-n-click my-game`)."
       },
       "intro": {
-        "en": "The package `create-quest-n-click` depends on the engine of the same version and runs its `cli/create.mjs`: the same as `quest-n-click create`.",
-        "fr": "Le paquet `create-quest-n-click` dépend du moteur de la même version et lance son `cli/create.mjs` : comme `quest-n-click create`."
+        "en": "The package `@quest-n-click/create` depends on the engine of the same version and runs its `cli/create.mjs`: the same as `quest-n-click create`.",
+        "fr": "Le paquet `@quest-n-click/create` dépend du moteur de la même version et lance son `cli/create.mjs` : comme `quest-n-click create`."
       },
       "commands": [
         {
           "name": "",
-          "usage": "npx create-quest-n-click <folder> [\"Title\"] [--engine=<npm spec>]",
+          "usage": "npx @quest-n-click/create <folder> [\"Title\"] [--engine=<npm spec>]",
           "description": {
             "en": "Writes a game project into `<folder>`: `game/` from the template (one room, a hero, placeholder art drawn from shapes; `__ID__` and `__TITLE__` filled in), `game/provenance.json` (the placeholder art marked as such, CC0, to replace before a release), the engine's `public/` icons, `og.png` and fonts, a `package.json` whose scripts call the engine's command, a `tsconfig.json` whose paths point into the installed package, a `.gitignore` and a `README.md`. The id is the folder's name in lowercase; the title is the remaining words, else the id capitalised. Then: `cd <folder> && npm install && npm run assets && npm run dev`.",
             "fr": "Écrit un projet de jeu dans `<dossier>` : `game/` depuis le modèle (un lieu, un héros, de l'art provisoire dessiné à partir de formes ; `__ID__` et `__TITLE__` remplis), `game/provenance.json` (l'art provisoire marqué comme tel, CC0, à remplacer avant une release), les icônes, `og.png` et polices de `public/` du moteur, un `package.json` dont les scripts appellent la commande du moteur, un `tsconfig.json` dont les chemins pointent dans le paquet installé, un `.gitignore` et un `README.md`. L'id est le nom du dossier en minuscules ; le titre, les mots suivants, sinon l'id en capitales. Ensuite : `cd <dossier> && npm install && npm run assets && npm run dev`."
@@ -355,7 +355,7 @@
     {
       "id": "quest-n-click-bridge",
       "anchor": "bridge",
-      "package": "quest-n-click-bridge",
+      "package": "@quest-n-click/bridge",
       "files": [
         "bridge/src/cli.ts",
         "bridge/src/cli-store.ts"
@@ -851,7 +851,7 @@
     {
       "id": "quest-n-click-connector",
       "anchor": "connector",
-      "package": "quest-n-click-connectors",
+      "package": "@quest-n-click/connectors",
       "files": [
         "connectors/src/run.ts",
         "connectors/src/registry.ts"
@@ -861,8 +861,8 @@
         "fr": "sur une machine à côté du Bridge, dans le dossier de son fichier de configuration (ses chemins sont relatifs à ce fichier). Depuis le dépôt du moteur : `npm run connector -- <id> --config <fichier.json>`."
       },
       "intro": {
-        "en": "One connector of the world outside, as its own process (4.1.9, experimental). Install the package without native code: `npm install --omit=optional --ignore-scripts quest-n-click-connectors`. The options and exit codes below hold for every connector.",
-        "fr": "Un connecteur du monde extérieur, dans son propre processus (4.1.9, expérimental). Installer le paquet sans code natif : `npm install --omit=optional --ignore-scripts quest-n-click-connectors`. Les options et codes de sortie ci-dessous valent pour chaque connecteur."
+        "en": "One connector of the world outside, as its own process (4.1.9, experimental). Install the package without native code: `npm install --omit=optional --ignore-scripts @quest-n-click/connectors`. The options and exit codes below hold for every connector.",
+        "fr": "Un connecteur du monde extérieur, dans son propre processus (4.1.9, expérimental). Installer le paquet sans code natif : `npm install --omit=optional --ignore-scripts @quest-n-click/connectors`. Les options et codes de sortie ci-dessous valent pour chaque connecteur."
       },
       "options": [
         {
@@ -941,7 +941,7 @@
     {
       "id": "quest-n-click-studio-server",
       "anchor": "studio-server",
-      "package": "quest-n-click-studio-server",
+      "package": "@quest-n-click/studio-server",
       "files": [
         "studio-server/src/server/main.ts",
         "studio-server/src/ops/backup-bucket.ts"
@@ -1196,7 +1196,7 @@
     {
       "id": "quest-n-click-studio-worker",
       "anchor": "studio-worker",
-      "package": "quest-n-click-studio-server",
+      "package": "@quest-n-click/studio-server",
       "files": [
         "studio-server/src/worker/main.ts"
       ],

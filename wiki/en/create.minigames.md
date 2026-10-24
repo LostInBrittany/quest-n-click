@@ -172,5 +172,5 @@ prints it. Everything about it, its proof and the speedrun rules: [Remix](create
 - The command: `{ minigame: '<id>', params: { … }, then: [ … ] }` ([Game commands](create.commands.md)).
 - The flag `minigame.<id>`; `ending.scratch`; `audio.sfx` for the bindings.
 - `npm run validate`, `npm run i18n` (the `textParams` are extracted for translation).
-- The API: `minigames`, `Minigame`, `MinigameCtx`, `MINIGAME_CSS` from `quest-n-click/minigames`
+- The API: `minigames`, `Minigame`, `MinigameCtx`, `MINIGAME_CSS` from `@quest-n-click/engine/minigames`
   ([Public API](engine.api.md#minigames)).

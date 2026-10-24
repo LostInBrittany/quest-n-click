@@ -15,8 +15,8 @@ Depuis la 4.0, un jeu, une page hôte et les tests d'un jeu utilisent les module
 version majeure suivante). Tout le reste de `src/engine` est interne et peut changer à chaque release ; l'alias
 `@engine/*` y mène toujours, sans cette promesse.
 
-- **Dans un projet créé**, les entrées sont `quest-n-click/content`, `quest-n-click/player`,
-  `quest-n-click/minigames`, `quest-n-click/testing` et, depuis la 4.1.1, `quest-n-click/reality` (les `exports` du
+- **Dans un projet créé**, les entrées sont `@quest-n-click/engine/content`, `@quest-n-click/engine/player`,
+  `@quest-n-click/engine/minigames`, `@quest-n-click/engine/testing` et, depuis la 4.1.1, `@quest-n-click/engine/reality` (les `exports` du
   paquet).
 - **Dans le dépôt du moteur**, les mêmes noms mènent à [`src/engine/api/`](../../src/engine/api/).
 - Les anciens noms `web-scumm/content` et les autres (avant la 4.2.5, décision D47) se résolvaient pendant toute la
@@ -33,7 +33,7 @@ transcriptions des mini-jeux, `WorldSignalV2`).
 
 <a name="content"></a>
 
-## `quest-n-click/content` : écrire un jeu
+## `@quest-n-click/engine/content` : écrire un jeu
 
 | Nom | Quoi |
 |---|---|
@@ -78,7 +78,7 @@ transcriptions des mini-jeux, `WorldSignalV2`).
 
 <a name="player"></a>
 
-## `quest-n-click/player` : lancer le jeu dans une page
+## `@quest-n-click/engine/player` : lancer le jeu dans une page
 
 | Nom | Quoi |
 |---|---|
@@ -95,7 +95,7 @@ transcriptions des mini-jeux, `WorldSignalV2`).
 
 <a name="minigames"></a>
 
-## `quest-n-click/minigames` : les mini-jeux comme greffons
+## `@quest-n-click/engine/minigames` : les mini-jeux comme greffons
 
 | Nom | Quoi |
 |---|---|
@@ -110,7 +110,7 @@ Comment en écrire un : [create.custom-minigame.md](create.custom-minigame.md).
 
 <a name="testing"></a>
 
-## `quest-n-click/testing` : les tests d'un jeu
+## `@quest-n-click/engine/testing` : les tests d'un jeu
 
 | Nom | Quoi |
 |---|---|
@@ -127,7 +127,7 @@ Comment en écrire un : [create.custom-minigame.md](create.custom-minigame.md).
 
 <a name="reality"></a>
 
-## `quest-n-click/reality` : les signaux du monde extérieur (4.1.1)
+## `@quest-n-click/engine/reality` : les signaux du monde extérieur (4.1.1)
 
 Le signal signé et sa vérification, le client et son transport HTTP, le simulateur, le manifeste. Un jeu avec son
 propre transport implémente `WorldSignalPort`. Ce qu'un jeu déclare et comment un Bridge le vérifie :
@@ -181,7 +181,7 @@ stabilité. `npx tsx tools/api-doc.ts` (`--check` pour seulement vérifier) la r
 
 <a name="content-reference"></a>
 
-### quest-n-click/content
+### @quest-n-click/engine/content
 
 | Nom | Signature | Stabilité | Doc |
 |---|---|---|---|
@@ -324,7 +324,7 @@ stabilité. `npx tsx tools/api-doc.ts` (`--check` pour seulement vérifier) la r
 
 <a name="player-reference"></a>
 
-### quest-n-click/player
+### @quest-n-click/engine/player
 
 | Nom | Signature | Stabilité | Doc |
 |---|---|---|---|
@@ -352,7 +352,7 @@ stabilité. `npx tsx tools/api-doc.ts` (`--check` pour seulement vérifier) la r
 
 <a name="minigames-reference"></a>
 
-### quest-n-click/minigames
+### @quest-n-click/engine/minigames
 
 | Nom | Signature | Stabilité | Doc |
 |---|---|---|---|
@@ -363,7 +363,7 @@ stabilité. `npx tsx tools/api-doc.ts` (`--check` pour seulement vérifier) la r
 
 <a name="testing-reference"></a>
 
-### quest-n-click/testing
+### @quest-n-click/engine/testing
 
 | Nom | Signature | Stabilité | Doc |
 |---|---|---|---|
@@ -414,7 +414,7 @@ stabilité. `npx tsx tools/api-doc.ts` (`--check` pour seulement vérifier) la r
 
 <a name="reality-reference"></a>
 
-### quest-n-click/reality
+### @quest-n-click/engine/reality
 
 | Nom | Signature | Stabilité | Doc |
 |---|---|---|---|

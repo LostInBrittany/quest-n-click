@@ -24,7 +24,7 @@ that transcribes audio sources to MIDI.
 
 > [!LIMIT id=audio-repository-only]
 > The pipeline is offered in the engine repository only. Its files are inside the engine package
-> (`node_modules/quest-n-click/tools/audio/`), but no command of a created project runs it, and running it from there
+> (`node_modules/@quest-n-click/engine/tools/audio/`), but no command of a created project runs it, and running it from there
 > has not been checked.
 
 <a name="prerequisites"></a>

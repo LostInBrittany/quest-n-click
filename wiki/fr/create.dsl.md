@@ -1,7 +1,7 @@
 # Référence du DSL
 
 Un jeu est une donnée : des conditions et des commandes dans les salles, les règles, les sujets, les écouteurs et les
-scripts, typées par `quest-n-click/content` ([create.rooms.md](create.rooms.md) montre comment les écrire). Cette page
+scripts, typées par `@quest-n-click/engine/content` ([create.rooms.md](create.rooms.md) montre comment les écrire). Cette page
 est la référence de ce vocabulaire. Sa partie [Référence](#reference) est générée depuis les schémas que lisent les
 outils eux-mêmes : ce que vous y lisez est ce qu'acceptent le validateur, le solveur et le Studio.
 

@@ -6,7 +6,7 @@ connecteurs sont testés sans réseau. Pour les contributeurs qui modifient un c
 opérateurs lisent la [Vue d’ensemble des connecteurs](bridge.connectors.md).
 
 > [!LIMIT id=bridge-sdk-not-a-package-api]
-> Le SDK n’est pas l’API publique d’un paquet : `quest-n-click-connectors` n’exporte que sa commande (`./run`), et les
+> Le SDK n’est pas l’API publique d’un paquet : `@quest-n-click/connectors` n’exporte que sa commande (`./run`), et les
 > quatre connecteurs sont listés par identifiant dans `connectors/src/registry.ts`. Un nouveau connecteur est une
 > modification du dépôt du moteur, avec son modèle de menace et ses tests, pas une extension chargée de l’extérieur.
 

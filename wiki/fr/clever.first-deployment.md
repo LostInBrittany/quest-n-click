@@ -14,8 +14,9 @@ bucket, vous connecté comme son premier owner, et `/readyz` qui répond 200.
 (package.json 4.2.2, le travail de la 4.2.3 avant son tag), organisation Clever Cloud de test, région `par`, deux
 applications XS, PostgreSQL DEV, Cellar S, Keycloak managé, sur trois noms en `*.cleverapps.io`. Non vérifiés sur une
 installation réelle : le texte exact de cette page, un domaine à soi, et la variante par les archives de la release
-([plus bas](#from-release-archives)). S’applique à partir de la 4.3.0, la version dont les paquets portent les noms
-`quest-n-click` utilisés ici.
+([plus bas](#from-release-archives)). S’applique à partir de la 4.3.0, la version dont les commandes portent les noms
+`quest-n-click` utilisés ici (les paquets sont des `@quest-n-click/…` à partir de la 4.5.2 ; les archives gardent leur
+nom).
 
 <a name="what-you-need"></a>
 
@@ -152,7 +153,7 @@ npx quest-n-click-studio-worker          # sur la machine du worker, avec WORKER
 - Un worker installé depuis les archives prépare aussi les assets (depuis la 4.2.3 ; en 4.2.2, il fallait un worker
   déployé depuis le dépôt). Son hook de build installe le verrou que porte le paquet du moteur, depuis le dossier du
   worker, où le worker cherche les paquets (`WORKER_PYTHON_PATH` pour les mettre ailleurs) :
-  `CC_POST_BUILD_HOOK=python3 -m pip install --target .python --require-hashes --only-binary=:all: -r node_modules/quest-n-click/ops/studio/worker-requirements.lock`.
+  `CC_POST_BUILD_HOOK=python3 -m pip install --target .python --require-hashes --only-binary=:all: -r node_modules/@quest-n-click/engine/ops/studio/worker-requirements.lock`.
   Le verrou vaut pour CPython 3.13 sous Linux x86_64, glibc 2.28 ou plus récente (le runtime natif de Clever Cloud) ;
   sur une autre plateforme, refaites-le (son en-tête dit comment).
 - L’archive du moteur apporte Vite et tsx, dont le worker a besoin pour exécuter le code du jeu et construire ses
