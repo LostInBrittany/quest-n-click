@@ -266,6 +266,9 @@ describe('a backup file is written whole', () => {
     expect(bridgeVersion()).toBe('unknown');
     hook.pkg = '{"name":"quest-n-click-bridge","version":"1.2.3"}';
     expect(bridgeVersion()).toBe('1.2.3');
+    // The scoped name since 4.5.2 (D53).
+    hook.pkg = '{"name":"@quest-n-click/bridge","version":"1.2.4"}';
+    expect(bridgeVersion()).toBe('1.2.4');
     // The former name's alias went in 4.3.0 (D47): not this Bridge's package any more.
     hook.pkg = '{"name":"web-scumm-bridge","version":"1.2.3"}';
     expect(bridgeVersion()).toBe('unknown');

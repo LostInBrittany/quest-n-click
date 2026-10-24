@@ -23,7 +23,7 @@ import { previewFiles } from './preview-build';
 import { unpackSnapshot } from './snapshot';
 
 const CHILD = fileURLToPath(new URL('./child.ts', import.meta.url));
-// A game imports `quest-n-click/content` by the package's
+// A game imports `@quest-n-click/engine/content` by the package's
 // self-reference: its folder must sit inside the package.
 export const JOBS = fileURLToPath(new URL('../../../.cache/jobs/', import.meta.url));
 const MAX_OUT = 16 * 1024 * 1024;

@@ -1,34 +1,60 @@
-// The project's former name in a game project (4.3.0, D47): `quest-n-click migrate` rewrites what still says
-// `web-scumm`, now that the aliases are gone. A module of its own, so a test reads it (tools/migrate.ts runs at
-// import), and the Studio Server's engine upgrade renames a hosted game's imports with it (studio-server/src/worker).
-// Only the names of the package, its imports and its commands move: a format identifier (`web-scumm-save`, the
-// `WEB_SCUMM_*` variables, the storage keys) has no `/` after it and is not a command, so it stays as it is.
+// The project's former names in a game project: `quest-n-click migrate` rewrites what still says `web-scumm` (4.3.0,
+// D47, now that its aliases are gone) or the unscoped `quest-n-click` of the packages (4.5.2, D53: the packages are
+// `@quest-n-click/engine`, `@quest-n-click/bridge`… under the npm organisation's scope). A module of its own, so a
+// test reads it (tools/migrate.ts runs at import), and the Studio Server's engine upgrade renames a hosted game's
+// imports with it (studio-server/src/worker). Only the names of the packages, their imports and the former commands
+// move: a format identifier (`web-scumm-save`, the `WEB_SCUMM_*` variables, the storage keys) has no `/` after it and
+// is not a command, so it stays as it is; the commands of 4.2.5 and after (`quest-n-click`, `quest-n-click-bridge`…)
+// keep their names (D53), and so does a bare `'quest-n-click'` (a command in a script, never an import).
 import { existsSync, lstatSync, readdirSync, readFileSync, realpathSync, statSync, writeFileSync } from 'node:fs';
 import { join, relative, sep } from 'node:path';
 
-/** `'web-scumm/content'` and `"web-scumm/…"` → `quest-n-click/…`, in either quote style. */
-const IMPORT = /(['"])web-scumm\//g;
-
-/** A source file's text with its `web-scumm/…` imports renamed, or null when it has none. */
-export function renameImports(text: string): string | null {
-  const next = text.replace(IMPORT, '$1quest-n-click/');
-  return next === text ? null : next;
-}
-
-/** tsconfig.json: the `web-scumm/*` path and the `node_modules/web-scumm/…` targets and includes. */
-export function renameTsconfig(text: string): string | null {
-  const next = text.replace(/(['"/])web-scumm\//g, '$1quest-n-click/');
-  return next === text ? null : next;
-}
-
-/** Each package by its former name (through 4.2.x) and its name since 4.2.5. */
-export const FORMER_PACKAGES: Record<string, string> = {
-  'web-scumm': 'quest-n-click',
-  'create-web-scumm': 'create-quest-n-click',
-  'web-scumm-bridge': 'quest-n-click-bridge',
-  'web-scumm-connectors': 'quest-n-click-connectors',
-  'web-scumm-studio-server': 'quest-n-click-studio-server',
+/** Each package of the engine by its unscoped name (4.2.5 to 4.5.1) and its name since 4.5.2 (D53). */
+export const UNSCOPED_PACKAGES: Record<string, string> = {
+  'quest-n-click': '@quest-n-click/engine',
+  'create-quest-n-click': '@quest-n-click/create',
+  'quest-n-click-bridge': '@quest-n-click/bridge',
+  'quest-n-click-connectors': '@quest-n-click/connectors',
+  'quest-n-click-studio-server': '@quest-n-click/studio-server',
 };
+
+/** Each package by its former name (through 4.2.x) and its name now (D47, then D53). */
+export const FORMER_PACKAGES: Record<string, string> = {
+  'web-scumm': '@quest-n-click/engine',
+  'create-web-scumm': '@quest-n-click/create',
+  'web-scumm-bridge': '@quest-n-click/bridge',
+  'web-scumm-connectors': '@quest-n-click/connectors',
+  'web-scumm-studio-server': '@quest-n-click/studio-server',
+};
+
+/** Every former name of a package (web-scumm's, then the unscoped ones) and its name now. */
+const RENAMED: Record<string, string> = { ...FORMER_PACKAGES, ...UNSCOPED_PACKAGES };
+
+/**
+ * An import of a package that can be imported by a path (`web-scumm/content`, `quest-n-click/testing`,
+ * `quest-n-click-bridge/cli`), in either quote style: the quote, the former name, the `/` after it. `create-…` has
+ * nothing to import. `@quest-n-click/engine/…` never matches: a quote comes before the name, never a `@`.
+ */
+const IMPORT = /(['"])(web-scumm|quest-n-click)(-bridge|-connectors|-studio-server)?\//g;
+const now = (base: string, suffix = '') => RENAMED[`${base}${suffix}`] ?? `${base}${suffix}`;
+
+/** A source file's text with its former imports (`web-scumm/…`, `quest-n-click/…`) renamed, or null when it has none. */
+export function renameImports(text: string): string | null {
+  const next = text.replace(IMPORT, (_, q: string, base: string, suffix?: string) => `${q}${now(base, suffix)}/`);
+  return next === text ? null : next;
+}
+
+/**
+ * tsconfig.json: the `web-scumm/*` and `quest-n-click/*` paths and the `node_modules/web-scumm/…` and
+ * `node_modules/quest-n-click/…` targets and includes (`./node_modules/…` or `node_modules/…`), to the scoped engine.
+ */
+export function renameTsconfig(text: string): string | null {
+  const next = text.replace(
+    /(['"]|node_modules\/)(web-scumm|quest-n-click)(-bridge|-connectors|-studio-server)?\//g,
+    (_, before: string, base: string, suffix?: string) => `${before}${now(base, suffix)}/`,
+  );
+  return next === text ? null : next;
+}
 
 /** The former commands in a script line: `web-scumm dev`, `web-scumm-bridge serve`, `npx create-web-scumm`. */
 const COMMAND = /(?<![\w./@-])(create-)?web-scumm(-bridge|-connectors?|-studio-server|-studio-worker)?(?![\w.@/-])/g;
@@ -41,10 +67,11 @@ export interface RenamedPackage {
 }
 
 /**
- * package.json: the scripts' commands and a script named after the command; a dependency on a former package dropped
- * when the new one is there too (`npm install` then prunes it), otherwise said, never guessed (its spec names an
- * archive or a version of the old package). A `web-scumm` script beside a `quest-n-click` one is left as it is and
- * said. The file keeps its indentation (tabs or spaces) and its byte order mark.
+ * package.json: the former commands (`web-scumm …`) and a script named after the command; a dependency on a former
+ * package (`web-scumm…`, or the unscoped `quest-n-click…` of 4.5.1 and before) dropped when its scoped name is there too
+ * (`npm install` then prunes it), otherwise said, never guessed (its spec names an archive or a version of the old
+ * package). A `web-scumm` script beside a `quest-n-click` one is left as it is and said. The file keeps its indentation
+ * (tabs or spaces) and its byte order mark.
  */
 export function renamePackageJson(text: string): RenamedPackage {
   const bom = text.startsWith('\uFEFF') ? '\uFEFF' : '';
@@ -72,10 +99,10 @@ export function renamePackageJson(text: string): RenamedPackage {
   for (const field of ['dependencies', 'devDependencies'] as const) {
     const deps = pkg[field];
     if (!deps) continue;
-    for (const [old, now] of Object.entries(FORMER_PACKAGES))
+    for (const [old, scoped] of Object.entries(RENAMED))
       if (old in deps) {
-        if (now in all) delete deps[old];
-        else todo.push(`package.json depends on ${old}: npm uninstall ${old} && npm install ${now}`);
+        if (scoped in all) delete deps[old];
+        else todo.push(`package.json depends on ${old}: npm uninstall ${old} && npm install ${scoped}`);
       }
   }
   const next = `${bom}${JSON.stringify(pkg, null, indent)}\n`;

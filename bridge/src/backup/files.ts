@@ -151,7 +151,7 @@ export function writeNew(path: string, content: string): void {
 }
 
 /**
- * This Bridge's version: its package's (the packed quest-n-click-bridge is one bundle, `src/cli.mjs`), else the
+ * This Bridge's version: its package's (the packed @quest-n-click/bridge is one bundle, `src/cli.mjs`), else the
  * repository's, three folders up from this file (the former name's alias, web-scumm-bridge, went in 4.3.0, D47).
  */
 export function bridgeVersion(): string {
@@ -160,7 +160,8 @@ export function bridgeVersion(): string {
     if (!existsSync(f)) continue;
     try {
       const pkg = JSON.parse(readFileSync(f, 'utf8')) as { name?: string; version?: string };
-      const ours = ['quest-n-click-bridge', 'quest-n-click'];
+      // The scoped names since 4.5.2 (D53), the unscoped ones before.
+      const ours = ['@quest-n-click/bridge', '@quest-n-click/engine', 'quest-n-click-bridge', 'quest-n-click'];
       if (ours.includes(pkg.name ?? '') && pkg.version) return pkg.version;
     } catch {
       /* not this one */

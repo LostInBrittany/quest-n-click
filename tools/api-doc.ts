@@ -155,7 +155,7 @@ function block(rows: ApiRow[], lang: 'en' | 'fr'): string {
   const out: string[] = [];
   for (const entry of ENTRIES) {
     out.push(`<a name="${entry}-reference"></a>`, '');
-    out.push(`### quest-n-click/${entry}`, '', LABELS[lang].head, '|---|---|---|---|');
+    out.push(`### @quest-n-click/engine/${entry}`, '', LABELS[lang].head, '|---|---|---|---|');
     for (const r of rows.filter((r) => r.entry === entry))
       out.push(
         `| \`${r.name}\` | \`${cell(r.signature)}\` | ${r.stability}${r.deprecated ? ` (${LABELS[lang].deprecated})` : ''} | ${cell(r.doc).slice(0, 140)} |`,
@@ -186,7 +186,7 @@ export function rowProblems(rows: ApiRow[]): string[] {
 /** The identifiers the wiki's `engine.api` names: each entry, and each export. */
 export const apiIdentifiers = (rows: ApiRow[]): string[] =>
   sortedUnique([
-    ...[...new Set(rows.map((r) => r.entry))].map((e) => `quest-n-click/${e}`),
+    ...[...new Set(rows.map((r) => r.entry))].map((e) => `@quest-n-click/engine/${e}`),
     ...rows.map((r) => r.name),
   ]);
 

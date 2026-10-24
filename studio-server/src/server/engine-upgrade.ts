@@ -51,7 +51,8 @@ export type UpgradeResult =
   | { changed: 0; schema: { from: number; to: number }; renamed?: Renamed }
   | { changed: number; revision: number; paths: string[]; schema: { from: number; to: number }; renamed?: Renamed };
 
-export const RENAMED_WHAT = "engine upgrade: the former name's imports renamed (web-scumm/… → quest-n-click/…)";
+export const RENAMED_WHAT =
+  "engine upgrade: the former names' imports renamed (web-scumm/…, quest-n-click/… → @quest-n-click/engine/…)";
 
 export class EngineUpgrade {
   private busy = false;

@@ -6,12 +6,21 @@
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { join } from 'node:path';
-import { PACKAGES as NAMED, RENAMED } from './artifacts.mjs';
+import { PACKAGES as NAMED, RENAMED, SCOPED } from './artifacts.mjs';
 
 /** The exact Node and npm of the future publishing step (release.yml's env): npm 11.15.0 at least for `npm stage`. */
 export const MINIMUM = { node: '22.14.0', npm: '11.15.0' };
-/** The packages npm will carry, by their names since 4.2.5 (D47); their former names are only aliases, never published. */
+/** The packages' archives, by their names since 4.2.5 (D47); their former names are only aliases, never published. */
 export const PACKAGES = NAMED.map((p) => p.name);
+/** The names npm carries the packages under since 4.5.2 (D53): the organisation's scope, which owns them. */
+export const NPM_NAMES = NAMED.map((p) => p.npm);
+/** The unscoped names (4.2.5 to 4.5.1): reserved by an owner, deprecated, pointing to the scoped ones (D53). */
+export const POINTERS = NAMED.map((p) => p.name);
+/**
+ * The npm users who own the organisation `quest-n-click` (D53): a name one of them publishes is ours. Exact user
+ * names, never a prefix.
+ */
+export const OWNERS = ['lostinbrittany', 'wanoo'];
 /**
  * The packages of a release (`4.2.1`, `4.2.1-rc.1`), each from the first release it is part of (an older candidate is
  * judged without it), under the name that release packed it: quest-n-click… from 4.2.5, web-scumm… before.
@@ -20,6 +29,10 @@ export const packagesFor = (version) => {
   const v = version.replace(/-.*$/, '');
   return NAMED.filter((p) => !p.since || atLeast(v, p.since)).map((p) => (atLeast(v, RENAMED) ? p.name : p.old));
 };
+
+/** The name npm carries an archive's package under for a release: the scoped one from 4.5.2 (D53), else the archive's. */
+export const npmNameFor = (archive, version) =>
+  atLeast(version.replace(/-.*$/, ''), SCOPED) ? (NAMED.find((p) => p.name === archive)?.npm ?? archive) : archive;
 
 /**
  * The passes asked of a release, from docs/dev/surfaces.json (one surface per pass, with the release it came in): a
@@ -180,9 +193,13 @@ export function preflight({ exec, repo, login, npmUser, version, root = '.', can
     candidate.problems.length ? candidate.problems.join('; ') : `run ${candidate.run}: verified`,
   );
 
-  // npm, per package: the archive, the name, the bootstrap, the trusted publisher, the OIDC proof, the version.
+  // npm, per package: the archive, the name, the bootstrap, the trusted publisher, the OIDC proof, the version. The
+  // archive by its file name; the rest by the name npm carries it under (the organisation's scope from 4.5.2, D53).
   const pkgVersion = version.replace(/-.*$/, '');
+  /** A name is ours when one of the organisation's owners publishes it, or the npm user logged in here. */
+  const oursOf = (names) => names.filter((n) => OWNERS.includes(n) || (npmUser && n === npmUser));
   for (const p of packagesFor(pkgVersion)) {
+    const n = npmNameFor(p, pkgVersion);
     const tgz = candidate.pack ? join(candidate.pack, `${p}-${pkgVersion}.tgz`) : '';
     if (!tgz || !existsSync(tgz)) add(`${p}:archive`, 'blocked', `the candidate has no ${p}-${pkgVersion}.tgz`);
     else {
@@ -191,70 +208,98 @@ export function preflight({ exec, repo, login, npmUser, version, root = '.', can
         `${p}:archive`,
         ok(dry) ? 'ok' : 'blocked',
         ok(dry)
-          ? 'npm publish --dry-run accepts it'
+          ? `npm publish --dry-run accepts it${n === p ? '' : ` (${n})`}`
           : `npm publish --dry-run: ${(dry.stderr || '').trim().split('\n').at(-1)}`,
       );
     }
-    const view = exec('npm', ['view', p, 'name', 'maintainers', '--json']);
+    const view = exec('npm', ['view', n, 'name', 'maintainers', '--json']);
     const exists = ok(view);
     // Only npm's 404 says the package does not exist; any other failure (network, registry, auth) says nothing about
     // the name (second reading of #122), and nothing else of this package is judged on it.
     if (!exists && !/E404|404 Not Found/.test(`${view.stdout}\n${view.stderr}`)) {
       const why = `${view.stderr || view.stdout || ''}`.trim().split('\n').at(-1) || `exit ${view.status}`;
-      add(`${p}:name`, 'blocked', `npm view ${p} failed, the registry said nothing of the name: ${why}`);
+      add(`${n}:name`, 'blocked', `npm view ${n} failed, the registry said nothing of the name: ${why}`);
       continue;
     }
     if (!exists) {
       add(
-        `${p}:name`,
+        `${n}:name`,
         'ok',
         'available (still watched each night: squatting accepted until npm publishing, a 4.2.x, D34, D38)',
       );
       add(
-        `${p}:bootstrap`,
+        `${n}:bootstrap`,
         'missing',
         'the package does not exist: bootstrap by `npm stage publish` of 0.0.0-bootstrap.0 (RELEASING)',
       );
-      add(`${p}:trusted-publisher`, 'missing', 'configurable once the package exists');
+      add(`${n}:trusted-publisher`, 'missing', 'configurable once the package exists');
     } else {
       const names = list(json(view)?.maintainers).map(npmName);
-      if (!npmUser)
-        add(`${p}:name`, 'missing', `taken by ${names.join(', ')}: whose cannot be told (npm whoami: not logged in)`);
-      else if (names.includes(npmUser)) add(`${p}:name`, 'ok', `ours (${npmUser})`);
-      else add(`${p}:name`, 'blocked', `taken by someone else: ${names.join(', ')}`);
-      add(`${p}:bootstrap`, 'ok', 'the package exists');
-      const trust = exec('npm', ['trust', 'list', p, '--json']);
+      const ours = oursOf(names);
+      if (ours.length) add(`${n}:name`, 'ok', `ours (${ours.join(', ')})`);
+      else if (!npmUser)
+        add(
+          `${n}:name`,
+          'missing',
+          `taken by ${names.join(', ')}, none of the owners (${OWNERS.join(', ')}): whose cannot be told (npm whoami: not logged in)`,
+        );
+      else add(`${n}:name`, 'blocked', `taken by someone else: ${names.join(', ')}`);
+      add(`${n}:bootstrap`, 'ok', 'the package exists');
+      const trust = exec('npm', ['trust', 'list', n, '--json']);
       // One object per configuration; `permissions`: createPackage (may publish), createStagedPackage (may stage).
       const entries = ok(trust) ? jsonObjects(trust.stdout) : [];
-      const ours = entries.filter((e) => e.type === 'github' && Object.values(e).includes(repo));
-      if (!ours.length)
+      const mine = entries.filter((e) => e.type === 'github' && Object.values(e).includes(repo));
+      if (!mine.length)
         add(
-          `${p}:trusted-publisher`,
+          `${n}:trusted-publisher`,
           'missing',
-          `no trusted publisher for ${repo} (npm trust github ${p} --repo ${repo} --file release.yml --allow-stage-publish)`,
+          `no trusted publisher for ${repo} (npm trust github ${n} --repo ${repo} --file release.yml --allow-stage-publish)`,
         );
       else if (entries.some((e) => list(e.permissions).includes('createPackage')))
         add(
-          `${p}:trusted-publisher`,
+          `${n}:trusted-publisher`,
           'blocked',
           'a configuration may publish directly: stage-only is the rule (the maintainer promotes with 2FA)',
         );
-      else if (ours.every((e) => list(e.permissions).includes('createStagedPackage')))
-        add(`${p}:trusted-publisher`, 'ok', 'configured, stage-only');
-      else add(`${p}:trusted-publisher`, 'missing', 'configured, but npm names no permission for it');
+      else if (mine.every((e) => list(e.permissions).includes('createStagedPackage')))
+        add(`${n}:trusted-publisher`, 'ok', 'configured, stage-only');
+      else add(`${n}:trusted-publisher`, 'missing', 'configured, but npm names no permission for it');
     }
-    const published = exists && ok(exec('npm', ['view', `${p}@${pkgVersion}`, 'version']));
+    const published = exists && ok(exec('npm', ['view', `${n}@${pkgVersion}`, 'version']));
     add(
-      `${p}:version`,
+      `${n}:version`,
       published ? 'blocked' : 'ok',
-      published ? `${p}@${pkgVersion} is already published` : `${pkgVersion} not published yet`,
+      published ? `${n}@${pkgVersion} is already published` : `${pkgVersion} not published yet`,
     );
-    const proven = exists && /"provenance"|"attestations"/.test(exec('npm', ['view', p, 'dist', '--json']).stdout);
+    const proven = exists && /"provenance"|"attestations"/.test(exec('npm', ['view', n, 'dist', '--json']).stdout);
     add(
-      `${p}:oidc`,
+      `${n}:oidc`,
       proven ? 'ok' : 'missing',
       proven ? 'a version carries an OIDC provenance' : 'no publication by OIDC proven yet',
     );
+    // The unscoped name it had (D53): reserved by an owner, deprecated toward the scoped package, so nobody else
+    // publishes under it. Taken by someone else blocks; free, not deprecated, or unknown is a step still to take.
+    if (n !== p) {
+      const pv = exec('npm', ['view', p, 'name', 'maintainers', 'deprecated', '--json']);
+      if (!ok(pv)) {
+        const free = /E404|404 Not Found/.test(`${pv.stdout}\n${pv.stderr}`);
+        const why = `${pv.stderr || pv.stdout || ''}`.trim().split('\n').at(-1) || `exit ${pv.status}`;
+        add(
+          `${p}:pointer`,
+          'missing',
+          free
+            ? `not reserved: publish 0.0.1 from an owner's account, then npm deprecate ${p} "moved to ${n}" (D53)`
+            : `npm view ${p} failed, the registry said nothing of the name: ${why}`,
+        );
+      } else {
+        const names = list(json(pv)?.maintainers).map(npmName);
+        const deprecated = json(pv)?.deprecated;
+        if (!oursOf(names).length) add(`${p}:pointer`, 'blocked', `taken by someone else: ${names.join(', ')}`);
+        else if (!deprecated)
+          add(`${p}:pointer`, 'missing', `ours, not deprecated: npm deprecate ${p} "moved to ${n}" (D53)`);
+        else add(`${p}:pointer`, 'ok', `ours, deprecated: ${String(deprecated).slice(0, 120)}`);
+      }
+    }
   }
 
   // The publishing step's exact Node and npm.

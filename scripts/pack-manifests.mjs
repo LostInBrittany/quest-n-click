@@ -5,9 +5,15 @@
 // install of an archive resolves nothing. The qualification image installs from a lock of its own (`image`), the
 // Bridge's dependencies and the optional peers it runs with (pg, OpenTelemetry's API), at exact versions.
 
-/** quest-n-click-bridge's package.json (web-scumm-bridge before 4.2.5, D47). */
+/**
+ * Published under the organisation's scope (4.5.2, D53): an npm organisation owns only scoped packages. Each archive
+ * keeps its file name (`quest-n-click-bridge-<v>.tgz`); the commands keep theirs.
+ */
+const PUBLIC = { access: 'public' };
+
+/** @quest-n-click/bridge's package.json (quest-n-click-bridge before 4.5.2, D53; web-scumm-bridge before 4.2.5, D47). */
 export const bridgeManifest = (root) => ({
-  name: 'quest-n-click-bridge',
+  name: '@quest-n-click/bridge',
   version: root.version,
   description:
     "The reference Reality Bridge for quest'n'click games: signals from the world outside, signed, delivered at least once.",
@@ -25,14 +31,15 @@ export const bridgeManifest = (root) => ({
   // install an optional peer: the `local` profile (SQLite, node:sqlite) needs neither.
   peerDependencies: { pg: root.devDependencies.pg, '@opentelemetry/api': OTEL_API },
   peerDependenciesMeta: { pg: { optional: true }, '@opentelemetry/api': { optional: true } },
+  publishConfig: PUBLIC,
 });
 
-/** quest-n-click-connectors' package.json (web-scumm-connectors before 4.2.5, D47). */
+/** @quest-n-click/connectors' package.json (quest-n-click-connectors before 4.5.2, D53; web-scumm-connectors before 4.2.5). */
 export const connectorsManifest = (root) => ({
-  name: 'quest-n-click-connectors',
+  name: '@quest-n-click/connectors',
   version: root.version,
   description:
-    "Connectors of the world outside for quest'n'click games (email, Telnet, SSH, Open Badges): each its own process, proposing signals to a quest-n-click-bridge. Experimental.",
+    "Connectors of the world outside for quest'n'click games (email, Telnet, SSH, Open Badges): each its own process, proposing signals to a quest-n-click-bridge (@quest-n-click/bridge). Experimental.",
   license: 'MIT',
   type: 'module',
   engines: root.engines,
@@ -40,17 +47,19 @@ export const connectorsManifest = (root) => ({
   bin: { 'quest-n-click-connector': 'bin.mjs' },
   exports: { './run': './src/run.mjs', './package.json': './package.json' },
   dependencies: { ssh2: root.devDependencies.ssh2 },
+  publishConfig: PUBLIC,
 });
 
 /**
- * quest-n-click-studio-server's package.json (4.2.1, plan §7 row 8; web-scumm-studio-server before 4.2.5, D47): the
- * Studio Server and its processing worker, two commands that run the server of the engine installed beside it
- * (`quest-n-click`, the same version: its sources, Vite and tsx), with the Studio's page built in. Its own dependencies (OpenID Connect, JWT, Postgres) are locked; the engine is
+ * @quest-n-click/studio-server's package.json (4.2.1, plan §7 row 8; quest-n-click-studio-server before 4.5.2, D53;
+ * web-scumm-studio-server before 4.2.5, D47): the Studio Server and its processing worker, two commands that run the
+ * server of the engine installed beside it (`@quest-n-click/engine`, the same version: its sources, Vite and tsx), with
+ * the Studio's page built in. Its own dependencies (OpenID Connect, JWT, Postgres) are locked; the engine is
  * an optional peer, installed from the same release's archive (it is not on npm, so no lock can name it); the commands
  * check that its version is theirs.
  */
 export const studioServerManifest = (root) => ({
-  name: 'quest-n-click-studio-server',
+  name: '@quest-n-click/studio-server',
   version: root.version,
   description:
     "The quest'n'click Studio Server: one game, several people, online (OpenID Connect, PostgreSQL, S3), and its processing worker.",
@@ -69,8 +78,9 @@ export const studioServerManifest = (root) => ({
     pg: root.devDependencies.pg,
   },
   // The engine's line (`4.2.x`): the commands refuse to start on another version than their own.
-  peerDependencies: { 'quest-n-click': root.version.replace(/^(\d+)\.(\d+)\..*$/, '$1.$2.x') },
-  peerDependenciesMeta: { 'quest-n-click': { optional: true } },
+  peerDependencies: { '@quest-n-click/engine': root.version.replace(/^(\d+)\.(\d+)\..*$/, '$1.$2.x') },
+  peerDependenciesMeta: { '@quest-n-click/engine': { optional: true } },
+  publishConfig: PUBLIC,
 });
 
 /** The range the Bridge accepts for OpenTelemetry's API; the image locks one version of it. */
@@ -95,9 +105,9 @@ export const imageManifest = (root) => ({
 
 /** Each locked package: its manifest and the file of its lock. */
 export const LOCKED = [
-  { name: 'quest-n-click-bridge', manifest: bridgeManifest, lock: 'scripts/locks/quest-n-click-bridge.json' },
+  { name: '@quest-n-click/bridge', manifest: bridgeManifest, lock: 'scripts/locks/quest-n-click-bridge.json' },
   {
-    name: 'quest-n-click-connectors',
+    name: '@quest-n-click/connectors',
     manifest: connectorsManifest,
     lock: 'scripts/locks/quest-n-click-connectors.json',
   },
@@ -107,7 +117,7 @@ export const LOCKED = [
     lock: 'scripts/locks/quest-n-click-bridge-image.json',
   },
   {
-    name: 'quest-n-click-studio-server',
+    name: '@quest-n-click/studio-server',
     manifest: studioServerManifest,
     lock: 'scripts/locks/quest-n-click-studio-server.json',
   },
