@@ -182,8 +182,8 @@ règles de [Retour arrière](create.deploy-issues.md#going-back). Désactiver Pa
 
 ## Références
 
-- Le job Pages du dépôt du moteur, jusqu'à la 4.5.1 : [`.github/workflows/ci.yml` en v4.5.1](https://github.com/Quest-n-Click/quest-n-click/blob/v4.5.1/.github/workflows/ci.yml) (`check`, la
-  construction avec `BASE_PATH`, et `pages`).
+- Le job Pages du dépôt du moteur, jusqu'à la 4.5.1 : [`.github/workflows/ci.yml`](../../.github/workflows/ci.yml), qui
+  n'en a plus depuis la 4.5.2 ; [sa version de la 4.5.1](https://github.com/Quest-n-Click/quest-n-click/blob/v4.5.1/.github/workflows/ci.yml) (`check`, la construction avec `BASE_PATH`, et `pages`).
 - `BASE_PATH` et le manifeste : [`tools/vite/plugins.ts`](../../tools/vite/plugins.ts) ;
   [`BASE_PATH`](reference.environment-variables.md#base-path).
 - Ce que lancent `npm run build` et `release` dans un projet créé : [`cli/quest-n-click.mjs`](../../cli/quest-n-click.mjs) ;

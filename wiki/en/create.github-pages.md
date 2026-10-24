@@ -178,8 +178,8 @@ get the older one through the update banner, and saves follow the rules in
 
 ## References
 
-- The engine repository's Pages job, up to 4.5.1: [`.github/workflows/ci.yml` at v4.5.1](https://github.com/Quest-n-Click/quest-n-click/blob/v4.5.1/.github/workflows/ci.yml) (`check`, the
-  build with `BASE_PATH`, and `pages`).
+- The engine repository's Pages job, up to 4.5.1: [`.github/workflows/ci.yml`](../../.github/workflows/ci.yml), which has
+  none since 4.5.2; [its version of 4.5.1](https://github.com/Quest-n-Click/quest-n-click/blob/v4.5.1/.github/workflows/ci.yml) (`check`, the build with `BASE_PATH`, and `pages`).
 - `BASE_PATH` and the manifest: [`tools/vite/plugins.ts`](../../tools/vite/plugins.ts);
   [`BASE_PATH`](reference.environment-variables.md#base-path).
 - What `npm run build` and `release` run in a created project: [`cli/quest-n-click.mjs`](../../cli/quest-n-click.mjs);

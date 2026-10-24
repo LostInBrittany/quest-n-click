@@ -36,11 +36,11 @@ export function quickStart(readme) {
 export const archiveUrl = (version, tag = `v${version}`) =>
   `https://github.com/Quest-n-Click/quest-n-click/releases/download/${tag}/${projectOf(version)}-${version}.tgz`;
 
-/** The release tag a README's archive URL names, when it is `v<version>` or `v<version>-rc.N`; null otherwise. Either
- * name of the repository (the former one redirects), the archive name of that version. */
+/** The release tag a README's archive URL names, when it is `v<version>` or `v<version>-rc.N`; null otherwise. Any
+ * name of the repository (the former ones redirect), the archive name of that version. */
 export function installTag(url, version) {
   const m =
-    /^https:\/\/github\.com\/wanoo\/(?:quest-n-click|web-scumm)\/releases\/download\/(v[^/]+)\/(quest-n-click|web-scumm)-([^/]+)\.tgz$/.exec(
+    /^https:\/\/github\.com\/(?:Quest-n-Click\/quest-n-click|wanoo\/(?:quest-n-click|web-scumm))\/releases\/download\/(v[^/]+)\/(quest-n-click|web-scumm)-([^/]+)\.tgz$/.exec(
       url,
     );
   if (!m || m[3] !== version || m[2] !== projectOf(version)) return null;

@@ -30,6 +30,7 @@ describe('the addresses after the transfer to the organization', () => {
       ['https://wanoo.github.io/quest-n-click/?lang=fr', 'https://quest-n-click.github.io/play/?lang=fr'],
       ['[wanoo.github.io/quest-n-click](x)', '[quest-n-click.github.io/play](x)'],
       ['`wanoo.github.io/quest-n-click/studio.html`', '`quest-n-click.github.io/play/studio.html`'],
+      ['?q=repo%3Awanoo%2Fquest-n-click%20path', '?q=repo%3AQuest-n-Click%2Fquest-n-click%20path'],
     ];
     for (const [before, after] of cases) {
       expect(renameText(before), before).toBe(after);
@@ -63,7 +64,7 @@ describe('the addresses after the transfer to the organization', () => {
 
   it('the addresses before the transfer remain only in the exception list', () => {
     // The candidates by a plain pattern, then each file read with the script's own (git grep -P is not everywhere).
-    const hits = execFileSync('git', ['grep', '-l', '-E', '-e', 'wanoo(\\.github\\.io)?/quest-n-click'], {
+    const hits = execFileSync('git', ['grep', '-l', '-E', '-e', 'wanoo(\\.github\\.io/|/|%2F)quest-n-click'], {
       encoding: 'utf8',
     })
       .split('\n')

@@ -7361,8 +7361,8 @@
       ]
     },
     "create.github-pages#references": {
-      "enHash": "a67a0deb377f39e3424fcbcd1380a1c902390e3c399f5037ce22c0df08981e03",
-      "frHash": "b08e739e9e74a38c303c0a0bf10c5469a05291a2a614a7a46299f1411dc7415e",
+      "enHash": "07744d415f0a3156ed074904c35426ef367d1ba3ee9c82740a4a710aa5819cd4",
+      "frHash": "4ca15649adeae076322da8d1fe70d48d55ecc2168d15996b61528e3f20c6b538",
       "reviewers": [
         { "name": "claude-452-org", "kind": "ai", "relation": "author", "date": "2026-10-24" }
       ]

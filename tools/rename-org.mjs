@@ -4,7 +4,8 @@
 // documentation under /docs/). This script rewrites the addresses in every tracked text file, the same way each time:
 //   - https://wanoo.github.io/quest-n-click/docs/… → https://quest-n-click.github.io/docs/…
 //   - https://wanoo.github.io/quest-n-click/studio.html, and any other page of the old site → …/play/…
-//   - github.com/wanoo/quest-n-click, and `wanoo/quest-n-click` in a `-R` or a repository string → Quest-n-Click/…
+//   - github.com/wanoo/quest-n-click, and `wanoo/quest-n-click` in a `-R` or a repository string (or URL-encoded,
+//     `wanoo%2Fquest-n-click`) → Quest-n-Click/…
 // It is idempotent: a second run changes nothing. `--check` writes nothing and exits 1 naming each file that still
 // holds an old address outside the exceptions (tests/rename-org.test.ts runs it).
 // The exceptions keep history true: what was written of a released version (the CHANGELOG, the LOG, the decisions, the
@@ -50,10 +51,11 @@ export const KEEP = {
 };
 
 /** What an old address looks like; `renameText` leaves none outside what it keeps. */
-export const OLD = /wanoo\.github\.io\/quest-n-click(?![\w-])|(?<![\w.-])wanoo\/quest-n-click(?![\w-])/;
+export const OLD =
+  /wanoo\.github\.io\/quest-n-click(?![\w-])|(?:(?<![\w.-])|(?<=%3A))wanoo(?:\/|%2F)quest-n-click(?![\w-])/;
 
 const SITE = /(https?:\/\/)?wanoo\.github\.io\/quest-n-click(?![\w-])(\/)?/g;
-const REPO = /(?<![\w.-])wanoo\/quest-n-click(?![\w-])/g;
+const REPO = /(?:(?<![\w.-])|(?<=%3A))wanoo(\/|%2F)quest-n-click(?![\w-])/g;
 
 /** One text renamed (the parts of it `keep` lists left as they are). */
 export function renameText(text, keep = []) {
@@ -72,7 +74,7 @@ export function renameText(text, keep = []) {
       if (slash && /^docs(?![\w-])/.test(rest)) return `${scheme}quest-n-click.github.io/`;
       return `${scheme}quest-n-click.github.io/play${slash || scheme ? '/' : ''}`;
     })
-    .replace(REPO, 'Quest-n-Click/quest-n-click');
+    .replace(REPO, (_m, sep) => `Quest-n-Click${sep}quest-n-click`);
 }
 
 const excluded = (f) => EXCLUDED.some((e) => (e.endsWith('/') ? f.startsWith(e) : f === e));

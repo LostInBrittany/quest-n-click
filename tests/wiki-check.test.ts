@@ -524,7 +524,9 @@ describe('wiki -- build --target wiki', () => {
     expect(home).not.toMatch(/dans la recherche du wiki|in the wiki search/);
     expect(home).toContain('filters page and section titles only, not their text');
     expect(home).toContain('ne filtre que les titres des pages et des sections, pas leur texte');
-    expect(home).toContain('https://github.com/search?q=repo%3Awanoo%2Fquest-n-click%20path%3Awiki%2Fen%2F&type=code');
+    expect(home).toContain(
+      'https://github.com/search?q=repo%3AQuest-n-Click%2Fquest-n-click%20path%3Awiki%2Fen%2F&type=code',
+    );
   });
 
   it('empties its own previous build on a rebuild, keeping .git and removing a withdrawn page', () => {
