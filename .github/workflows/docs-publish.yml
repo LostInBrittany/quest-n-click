@@ -23,7 +23,7 @@ name: docs-publish
 #       preview   from main: the bootstrap's preview (§4.5.3), refused once a release ≥ 4.5.0 exists; a rerun on the
 #                 same commit reuses its release when the bytes are the same.
 # No GitHub Pages any more (4.5.2, D52): the project's website, https://quest-n-click.cleverapps.io, shows the latest
-# documentation and picks a release up by itself (its POST /api/revalidate, hourly otherwise).
+# documentation; release.yml's site-revalidate job calls its POST /api/revalidate after this workflow (hourly otherwise).
 on:
   workflow_call:
     inputs:
@@ -280,8 +280,8 @@ jobs:
         if: contains(inputs.version, '-')
         run: |
           echo "::notice::$VERSION is a pre-release: /docs/$VERSION/ only; the wiki and latest are unchanged (§4.5.2)"
-      # The website picks the publication up by itself (4.5.2, D52): its `POST /api/revalidate`, hourly otherwise.
-      # Nothing here calls it yet (no SITE_REVALIDATE_SECRET in release.yml): said, not done.
-      - name: The website, revalidated by itself
+      # The website takes the publication (4.5.2, D52): release.yml calls its `POST /api/revalidate` once this workflow
+      # ends (its site-revalidate job); a run started by hand here is taken at the website's hourly revalidation.
+      - name: The website, revalidated by the release
         run: |
-          echo "::notice::https://quest-n-click.cleverapps.io takes this publication at its next revalidation (hourly); no call from here (no SITE_REVALIDATE_SECRET yet)"
+          echo "::notice::https://quest-n-click.cleverapps.io takes this publication: release.yml's site-revalidate calls its /api/revalidate after this run (a run by hand: within the hour)"

@@ -1309,6 +1309,24 @@ release: the commit the candidate run tested.
 - Origin: set by a workflow of `.github/workflows/` (CI and releases).
 - Read by: [`.github/workflows/release.yml`](../../.github/workflows/release.yml).
 
+<a name="site-revalidate-secret"></a>
+
+### `SITE_REVALIDATE_SECRET`
+
+release: the repository secret sent as `Authorization: Bearer` to the website's `/api/revalidate`; empty, the call is skipped with a notice.
+
+- Origin: set by a workflow of `.github/workflows/` (CI and releases).
+- Read by: [`.github/workflows/release.yml`](../../.github/workflows/release.yml).
+
+<a name="site-url"></a>
+
+### `SITE_URL`
+
+release: the project's website the release asks to revalidate (`<SITE_URL>/api/revalidate`); the repository variable `SITE_URL`, else `https://quest-n-click.cleverapps.io`.
+
+- Origin: set by a workflow of `.github/workflows/` (CI and releases).
+- Read by: [`.github/workflows/release.yml`](../../.github/workflows/release.yml).
+
 <a name="store"></a>
 
 ### `STORE`

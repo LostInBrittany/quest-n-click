@@ -11265,6 +11265,8 @@
         "SHA",
         "SHIP_PIDS",
         "SHIP_TRAILERS",
+        "SITE_REVALIDATE_SECRET",
+        "SITE_URL",
         "STORE",
         "STUDIO",
         "STUDIO_BACKUP_CRON",

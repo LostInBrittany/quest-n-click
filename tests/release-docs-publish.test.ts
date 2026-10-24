@@ -191,6 +191,34 @@ describe('release.yml', () => {
     expect(docs).toMatch(/secrets:\n {6}WIKI_DEPLOY_KEY: \$\{\{ secrets\.WIKI_DEPLOY_KEY \}\}/);
   });
 
+  it('ends by asking the website to revalidate, after the release and docs-publish, never failing the release (D52)', () => {
+    const site = job(yml, 'site-revalidate');
+    expect(site).toMatch(/^ {4}needs: \[release, docs-publish\]$/m);
+    // After docs-publish whatever it did (a release without an archive skips it), only once the release (ship verify
+    // its last check) succeeded.
+    expect(site).toMatch(/^ {4}if: always\(\) && needs\.release\.result == 'success'$/m);
+    expect(site).toMatch(/^ {4}continue-on-error: true$/m);
+    expect(site).toMatch(/^ {4}timeout-minutes: \d+$/m);
+    expect(site).toMatch(/^ {4}permissions: \{\}$/m);
+    expect(site).toMatch(/SITE_URL: \$\{\{ vars\.SITE_URL \|\| 'https:\/\/quest-n-click\.cleverapps\.io' \}\}/);
+    expect(site).toMatch(/SITE_REVALIDATE_SECRET: \$\{\{ secrets\.SITE_REVALIDATE_SECRET \}\}/);
+    const [run] = steps(site);
+    // No secret: a notice, nothing called.
+    expect(run).toMatch(/if \[ -z "\$SITE_REVALIDATE_SECRET" \]; then\n\s+echo "::notice::[^"]*"\n\s+exit 0/);
+    // The call: POST, the Bearer secret, a timeout, three tries; the answer printed; a warning when ok is not true or
+    // every try failed.
+    expect(run).toMatch(/for i in 1 2 3; do/);
+    expect(run).toMatch(
+      /curl -sS --fail-with-body --max-time \d+ -X POST -H "Authorization: Bearer \$SITE_REVALIDATE_SECRET" "\$url"/,
+    );
+    expect(run).toMatch(/url="\$\{SITE_URL%\/\}\/api\/revalidate"/);
+    expect(run).toMatch(/echo "\$body"/);
+    expect(run).toMatch(/jq -r '\.ok'/);
+    expect(run.match(/::warning::/g)?.length).toBe(2);
+    // The secret is named once in the workflow: this job's environment.
+    expect(yml.match(/secrets\.SITE_REVALIDATE_SECRET/g)?.length).toBe(1);
+  });
+
   it('hands the archive on from its last step, after ship verify: an output is read only from a job that succeeded', () => {
     const s = steps(release);
     const verify = s.findIndex((x) => /tools\/release\/ship\.mjs verify/.test(x));

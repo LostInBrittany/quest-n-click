@@ -428,3 +428,37 @@ jobs:
       candidate: ${{ needs.release.outputs.candidate }}
       archive-sha256: ${{ needs.release.outputs.docs-sha256 }}
       revision: r1
+  # The project's website takes the release (4.5.2, D52): its `POST /api/revalidate` (Bearer SITE_REVALIDATE_SECRET)
+  # reloads the latest release's docs archive and demo (web.tar.gz) and answers `{ok, changed, source, demo}`. After
+  # `ship verify` (the release job) and after docs-publish, whatever docs-publish did (a release without an archive
+  # skips it). Never a failure of the release: the website revalidates by itself hourly otherwise. SITE_URL (a
+  # repository variable) points a fork elsewhere.
+  site-revalidate:
+    needs: [release, docs-publish]
+    if: always() && needs.release.result == 'success'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    continue-on-error: true
+    permissions: {}
+    env:
+      SITE_URL: ${{ vars.SITE_URL || 'https://quest-n-click.cleverapps.io' }}
+      SITE_REVALIDATE_SECRET: ${{ secrets.SITE_REVALIDATE_SECRET }}
+    steps:
+      - name: The website, revalidated
+        run: |
+          if [ -z "$SITE_REVALIDATE_SECRET" ]; then
+            echo "::notice::no SITE_REVALIDATE_SECRET: $SITE_URL takes the release at its next hourly revalidation"
+            exit 0
+          fi
+          url="${SITE_URL%/}/api/revalidate"
+          for i in 1 2 3; do
+            if body=$(curl -sS --fail-with-body --max-time 60 -X POST -H "Authorization: Bearer $SITE_REVALIDATE_SECRET" "$url"); then
+              echo "$body"
+              if [ "$(echo "$body" | jq -r '.ok' 2>/dev/null)" = true ]; then exit 0; fi
+              echo "::warning::$url answered ok != true: $body"
+              exit 0
+            fi
+            echo "try $i failed: ${body:-no answer}"
+            [ "$i" = 3 ] || sleep 20
+          done
+          echo "::warning::$url could not be called after 3 tries: the website takes the release at its next hourly revalidation"

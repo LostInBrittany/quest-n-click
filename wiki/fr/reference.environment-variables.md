@@ -1309,6 +1309,24 @@ release : le commit qu’a testé le lancement candidat.
 - Origine : posée par un workflow de `.github/workflows/` (CI et publications).
 - Lue par : [`.github/workflows/release.yml`](../../.github/workflows/release.yml).
 
+<a name="site-revalidate-secret"></a>
+
+### `SITE_REVALIDATE_SECRET`
+
+release : le secret du dépôt envoyé en `Authorization: Bearer` à `/api/revalidate` du site web ; vide, l'appel est sauté avec un avis.
+
+- Origine : posée par un workflow de `.github/workflows/` (CI et publications).
+- Lue par : [`.github/workflows/release.yml`](../../.github/workflows/release.yml).
+
+<a name="site-url"></a>
+
+### `SITE_URL`
+
+release : le site web du projet que la release fait revalider (`<SITE_URL>/api/revalidate`) ; la variable de dépôt `SITE_URL`, sinon `https://quest-n-click.cleverapps.io`.
+
+- Origine : posée par un workflow de `.github/workflows/` (CI et publications).
+- Lue par : [`.github/workflows/release.yml`](../../.github/workflows/release.yml).
+
 <a name="store"></a>
 
 ### `STORE`

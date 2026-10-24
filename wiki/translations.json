@@ -15130,6 +15130,20 @@
         { "name": "wanoo", "kind": "human", "relation": "independent", "date": "2026-10-24" }
       ]
     },
+    "reference.environment-variables#site-revalidate-secret": {
+      "enHash": "1a71b86491137510ca4104d6b2732d2a448b0792d6eb29f2c52ed323350411ed",
+      "frHash": "0046f65f9f81833b310ca1e13318f0f410e269e6ec8f9c152b69bafb0d409b03",
+      "reviewers": [
+        { "name": "claude-452-org", "kind": "ai", "relation": "author", "date": "2026-10-24" }
+      ]
+    },
+    "reference.environment-variables#site-url": {
+      "enHash": "3992a3c5846639fd8737716966eb2baa086b753ebf4ab78f89b87f47b0e1dc8b",
+      "frHash": "40cfe900a9df2dfc56a76d14b6b38d27c0264c108bbacbd11234c19c871ff281",
+      "reviewers": [
+        { "name": "claude-452-org", "kind": "ai", "relation": "author", "date": "2026-10-24" }
+      ]
+    },
     "reference.environment-variables#store": {
       "enHash": "b12e2a93c40ef8792e4b958441ed74acc16422ba2829c2c75d73296c403c14d5",
       "frHash": "474d894bc5b5b23e21663c498dcfb5369fe5e6efeb8fa31c37d676e0affed4c5",
