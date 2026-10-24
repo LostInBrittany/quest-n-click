@@ -13,7 +13,7 @@ les `minigames` qu’exporte son module (`index.ts`) : un objet `{ run(ctx): Pro
 d’annulation ; `required` nomme les params que le validateur vérifie. `{ minigame: 'duel', params: { … }, then: [ … ] }`
 le joue ensuite comme un mini-jeu intégré. C’est le format des greffons : le même contrat que les mini-jeux intégrés.
 
-Le module public `quest-n-click/minigames` donne ce qu’il faut à un greffon :
+Le module public `@quest-n-click/engine/minigames` donne ce qu’il faut à un greffon :
 
 | Nom | Quoi |
 |---|---|
@@ -38,7 +38,7 @@ comme ceux d’un mini-jeu intégré, et le lecteur l’affiche par-dessus la sc
 ## Contexte et versions
 
 Un projet créé (le module est `game/index.ts`) ou un jeu du dépôt du moteur (`games/<id>/index.ts`). Le contrat est
-public depuis la 4.0 ; le module s’appelle `quest-n-click/minigames` depuis la 4.2.5 (`web-scumm/minigames` avant,
+public depuis la 4.0 ; le module s’appelle `@quest-n-click/engine/minigames` depuis la 4.2.5 (`web-scumm/minigames` avant,
 retiré en 4.3.0 : `quest-n-click migrate` le renomme). `MinigameCtx.random` existe depuis la 4.1.15, le résultat
 qu’un mini-jeu peut signaler depuis la 4.1.16.
 
@@ -73,7 +73,7 @@ dans le dépôt du moteur.
 
    ```ts
    // game/index.ts dans un projet créé (games/<id>/index.ts dans le dépôt du moteur)
-   import type { Minigame } from 'quest-n-click/minigames';
+   import type { Minigame } from '@quest-n-click/engine/minigames';
 
    const swordFight: Minigame = {
      required: ['foe'],

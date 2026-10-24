@@ -17,7 +17,7 @@ command prints.
 
 - **Engine repository**: `npm run dev:lan` (and `npm run studio:lan` for the Studio). It exists since 3.0.0; since
   4.1.2 the Studio's write routes also check the `Host` the browser sends (below).
-- **Created project** (made by `npx create-quest-n-click <folder>` or `quest-n-click create <folder>`): there is no `dev:lan` script. Its `dev`
+- **Created project** (made by `npx @quest-n-click/create <folder>` or `quest-n-click create <folder>`): there is no `dev:lan` script. Its `dev`
   passes extra options to Vite, so `npm run dev -- --host` serves the game on the network. That mode gives no token:
   the phone plays, but the Studio and the placement editor refuse every write that does not come from this machine
   (see [Limits](#limits)).

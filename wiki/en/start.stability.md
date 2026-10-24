@@ -27,7 +27,7 @@ and a person has not confirmed it on real devices yet.
 
 ## What is stable
 
-**The public API** ([Public API](engine.api.md)): the entries `quest-n-click/content`, `/player`, `/minigames`,
+**The public API** ([Public API](engine.api.md)): the entries `@quest-n-click/engine/content`, `/player`, `/minigames`,
 `/testing` and, since 4.1.1, `/reality`; the authoring schema (`schemaVersion: 3`); the save envelope; the Studio and
 MCP tools' schemas; and the `quest-n-click` command. Everything else under `src/engine` is internal: it may change in
 any release, and a game that reaches it through the `@engine/*` alias takes that risk.
@@ -223,7 +223,7 @@ connectors. **Partial**: the Studio on Windows. Each changes only with its pass 
 ### The 4.1.x line (D14, D18)
 
 From 4.1.1 the project stayed on 4.1.x until 4.2. Through **4.1.7**, a 4.1.x release could *add* an optional entry,
-field, route, command, hook or sub-object (4.1.1's `quest-n-click/reality`, 4.1.2's Bridge options, 4.1.4's `destroy`
+field, route, command, hook or sub-object (4.1.1's `@quest-n-click/engine/reality`, 4.1.2's Bridge options, 4.1.4's `destroy`
 and hooks, 4.1.5's `sessions`, `camera` and `walker`, 4.1.6's two commands), never change or remove a public name or a
 format: a game written against any of them runs on every later one up to 4.1.7. **From 4.1.8 to 4.1.15 the line was
 an incubation line** (D18, 7 October 2026): no production game depended on the engine (the maintainer's own game stays
@@ -259,7 +259,7 @@ author: [State and saves](create.state-saves.md).
 ## Releases
 
 Each release is built from the commit its candidate tested, carries its licences inside the archive, and attaches an
-assets manifest, five CycloneDX SBOMs (the engine, `create-quest-n-click`, the Bridge, the connectors and the Bridge's
+assets manifest, five CycloneDX SBOMs (the engine, `@quest-n-click/create`, the Bridge, the connectors and the Bridge's
 image, since 4.1.19), SHA-256 sums and a provenance attestation. Since 4.2.0 tags are signed and releases immutable:
 never replaced once published. What only people and real devices can check is reported in its notes. How a release is
 made: [Releasing](contribute.releasing.md).

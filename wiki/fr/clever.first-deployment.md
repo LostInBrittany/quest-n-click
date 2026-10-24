@@ -14,8 +14,9 @@ bucket, vous connecté comme son premier owner, et `/readyz` qui répond 200.
 (package.json 4.2.2, le travail de la 4.2.3 avant son tag), organisation Clever Cloud de test, région `par`, deux
 applications XS, PostgreSQL DEV, Cellar S, Keycloak managé, sur trois noms en `*.cleverapps.io`. Non vérifiés sur une
 installation réelle : le texte exact de cette page, un domaine à soi, et la variante par les archives de la release
-([plus bas](#from-release-archives)). S’applique à partir de la 4.3.0, la version dont les paquets portent les noms
-`quest-n-click` utilisés ici.
+([plus bas](#from-release-archives)). S’applique à partir de la 4.3.0, la version dont les commandes portent les noms
+`quest-n-click` utilisés ici (les paquets sont des `@quest-n-click/…` à partir de la 4.5.2 ; les archives gardent leur
+nom).
 
 <a name="what-you-need"></a>
 
@@ -153,7 +154,7 @@ npx quest-n-click-studio-worker          # sur la machine du worker, avec WORKER
   déployé depuis le dépôt). Son hook de build installe le `requirements.txt` à empreintes que porte le paquet du
   moteur, depuis le dossier du worker, où le worker cherche les paquets (`WORKER_PYTHON_PATH` pour les mettre
   ailleurs) :
-  `CC_POST_BUILD_HOOK=python3 -m pip install --target .python --require-hashes --only-binary=:all: -r node_modules/quest-n-click/requirements.txt`.
+  `CC_POST_BUILD_HOOK=python3 -m pip install --target .python --require-hashes --only-binary=:all: -r node_modules/@quest-n-click/engine/requirements.txt`.
   Ses empreintes couvrent les roues de toutes les plateformes que publie PyPI, dont le runtime natif de Clever Cloud
   (CPython 3.13, Linux x86_64). Avant la 4.5.2, le hook nommait `ops/studio/worker-requirements.lock`, qui
   n’existe plus.

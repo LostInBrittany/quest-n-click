@@ -28,7 +28,7 @@ Toutes les commandes se lancent depuis le dossier racine de leur projet, celui q
   [du dépôt du moteur](#repository) ci-dessous. Ils travaillent sur le jeu courant, `games/<id>/` : la variable
   `GAME` (`GAME=demo npm run dev`), sinon `package.json` → `"config": { "game": "demo" }`, sinon `demo`. Comment le
   choisir, et comment `npm run game` garde l’éditeur à jour : [create.working-loop](create.working-loop.md#choosing-the-game) ;
-- dans un **projet créé** (par `npx create-quest-n-click <dossier>`), après `npm install` : seulement les huit
+- dans un **projet créé** (par `npm init @quest-n-click <dossier>`), après `npm install` : seulement les huit
   scripts [d’un projet créé](#project). Chacun appelle la commande `quest-n-click` du moteur installé ; ses autres
   commandes sont dans [reference.cli](reference.cli.md#quest-n-click).
 
@@ -859,7 +859,7 @@ Les quatre connecteurs joués de bout en bout depuis leur archive face à un Bri
 
 #### `npm run external-consumer`
 
-Les quatre archives utilisées comme un tiers les utilise, sous Linux, macOS et Windows (4.1.18) : lues (noms, versions, licences, exécutables, exports, dépendances), un jeu fait sur l’ancienne version amené à elles (depuis 4.3.0 comme son auteur le ferait : l’ancien paquet `web-scumm` désinstallé, `quest-n-click` installé, migrate, verify, build, sa sauvegarde et une nouvelle partie jouées jusqu’au bout via `quest-n-click/testing`), `create-quest-n-click`, le Bridge (SQLite, Postgres avec `CONSUMER_PG_URL`) et un scénario de connecteur (un code d’appairage, une lettre signée acceptée, son doublon, une contrefaçon refusée) ; aucun module du dépôt. Le candidat le lance sur ses propres archives.
+Les quatre archives utilisées comme un tiers les utilise, sous Linux, macOS et Windows (4.1.18) : lues (noms, versions, licences, exécutables, exports, dépendances), un jeu fait sur l’ancienne version amené à elles (depuis 4.3.0 comme son auteur le ferait : l’ancien paquet `web-scumm` désinstallé, `quest-n-click` installé, migrate, verify, build, sa sauvegarde et une nouvelle partie jouées jusqu’au bout via `@quest-n-click/engine/testing`), `create-quest-n-click`, le Bridge (SQLite, Postgres avec `CONSUMER_PG_URL`) et un scénario de connecteur (un code d’appairage, une lettre signée acceptée, son doublon, une contrefaçon refusée) ; aucun module du dépôt. Le candidat le lance sur ses propres archives.
 
 - Lance : `node scripts/external-consumer.mjs`
 - Utilisation : `npm run external-consumer -- [--tarballs=<dir>] [--from=4.1.17] [--dir=<folder>] [--keep]`
@@ -1229,7 +1229,7 @@ La source de la documentation dans `wiki/` (4.5.0, `tools/wiki.ts`) : `check` va
 
 ## Scripts d’un projet créé
 
-Écrits par `quest-n-click create` (ou `npx create-quest-n-click`) dans le `package.json` du nouveau projet. À lancer depuis le dossier du projet, après `npm install` : chacun appelle la commande `quest-n-click` du moteur installé.
+Écrits par `quest-n-click create` (ou `npm init @quest-n-click`) dans le `package.json` du nouveau projet. À lancer depuis le dossier du projet, après `npm install` : chacun appelle la commande `quest-n-click` du moteur installé.
 
 <a name="project-dev"></a>
 

@@ -13,8 +13,11 @@ vérifier qu'on peut le finir, et le livrer comme un jeu web qui s'installe sur 
 > vers la nouvelle : le jeu et le Studio sont maintenant sur [quest-n-click.cleverapps.io/demo](https://quest-n-click.cleverapps.io/demo/).
 > À partir de la 4.2.5, les packages et les commandes s'appellent `quest-n-click` ; les anciens noms `web-scumm` ont
 > marché pendant toute la 4.2.x et disparaissent en 4.3.0, où `npx quest-n-click migrate` renomme les imports et les
-> commandes d'un jeu ([notes de mise à jour](https://github.com/Quest-n-Click/quest-n-click/wiki/FR-Installer-Notes-Mise-A-Jour-4-3#from-4-2-5-to-4-3-0)). Les
-> sauvegardes, les runs et les sessions gardent leurs formats et se chargent comme avant.
+> commandes d'un jeu ([notes de mise à jour](https://github.com/Quest-n-Click/quest-n-click/wiki/FR-Installer-Notes-Mise-A-Jour-4-3#from-4-2-5-to-4-3-0)).
+> À partir de la 4.5.2, les packages sont nommés sous le scope de l'organisation npm, `@quest-n-click/engine`,
+> `@quest-n-click/create`… (les commandes gardent leur nom), et `npx quest-n-click migrate` passe les imports
+> `quest-n-click/…` d'un jeu à `@quest-n-click/engine/…`. Les sauvegardes, les runs et les sessions gardent leurs
+> formats et se chargent comme avant.
 
 | | |
 |---|---|
@@ -38,6 +41,9 @@ cd mon-jeu && npm install
 npm run assets && npm run dev        # y jouer ; puis npm run verify, npm run build
 ```
 <!-- install:end -->
+
+Une fois les paquets sur npm, `npm init @quest-n-click my-game` crée le projet en une commande
+(`npx create-quest-n-click my-game` marche toujours et lance la même chose).
 
 `npm run build` écrit `dist/`, un site statique que n'importe quel hébergement sert. ffmpeg sert au pipeline sonore
 et reste optionnel ; `npx quest-n-click doctor` dit ce qui manque. [Référence du paquet](https://github.com/Quest-n-Click/quest-n-click/wiki/FR-Installer-Paquet)
@@ -134,8 +140,8 @@ src/engine/      core (le DSL, le moteur), tools (validate, solve, lint, i18n…
 games/demo/      le jeu d'exemple : pièces, mises en page, images, son, langues, storyboard
 games/_template/ copié par npm run new-game
 tools/           les commandes, le Studio, le serveur MCP, les pipelines d'image et de son, les plugins Vite
-bridge/          le Bridge Reality (le package quest-n-click-bridge)
-connectors/      les connecteurs du monde extérieur (le package quest-n-click-connectors)
+bridge/          le Bridge Reality (le package @quest-n-click/bridge)
+connectors/      les connecteurs du monde extérieur (le package @quest-n-click/connectors)
 wiki/            la documentation (en, fr), publiée en wiki ; docs/dev : le journal de travail, les décisions, les passes
 ```
 
@@ -151,7 +157,7 @@ erreurs avant qu'une personne les voie. Chaque résultat reste relisible, dans l
 ## En chiffres
 
 Mesuré sur ce commit de `main` par les vérifications automatiques (`npm run quality:baseline` écrit ces chiffres) :
-<!-- metric:tests -->3360<!-- /metric --> déclarations de tests unitaires, sous Node 22 et 24, avec des planchers de
+<!-- metric:tests -->3366<!-- /metric --> déclarations de tests unitaires, sous Node 22 et 24, avec des planchers de
 couverture et des tests de mutation bloquants ; le jeu de référence prouvé en <!-- metric:referenceStates -->288<!-- /metric -->
 états ; la première visite du joueur, <!-- metric:initialJsKB -->136<!-- /metric --> Ko de JavaScript compressé. Chaque
 release est construite depuis le commit que son candidat a testé. Le candidat produit les quatre archives de packages,

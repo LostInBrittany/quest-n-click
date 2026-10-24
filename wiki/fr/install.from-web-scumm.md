@@ -9,7 +9,7 @@ touchées : les formats ont gardé leur nom.
 
 ## Ce que vous obtenez
 
-Un projet de jeu qui dépend de `quest-n-click`, importe `quest-n-click/…`, appelle `quest-n-click` dans ses scripts, et
+Un projet de jeu qui dépend de `@quest-n-click/engine`, importe `@quest-n-click/engine/…`, appelle `quest-n-click` dans ses scripts, et
 se construit et se joue comme avant, les sauvegardes de ses joueurs retrouvées là où elles étaient.
 
 <a name="context-and-versions"></a>
@@ -39,6 +39,11 @@ se construit et se joue comme avant, les sauvegardes de ses joueurs retrouvées 
 | `web-scumm-connectors`, commande `web-scumm-connector` | `quest-n-click-connectors`, commande `quest-n-click-connector` |
 | `web-scumm-studio-server`, `web-scumm-studio-worker` | `quest-n-click-studio-server`, `quest-n-click-studio-worker` |
 | fichiers de release `web-scumm-<version>.tgz`, `web-scumm-<tag>-…` | `quest-n-click-<version>.tgz`, `quest-n-click-<tag>-…` |
+
+À partir de la 4.5.2, les paquets portent le scope de l'organisation npm (D53) : `@quest-n-click/engine`,
+`@quest-n-click/create`, `@quest-n-click/bridge`, `@quest-n-click/connectors`, `@quest-n-click/studio-server`, et les
+imports sont `@quest-n-click/engine/content`, … ; les commandes et les fichiers de release gardent les noms ci-dessus.
+En 4.5.2 ou après, `migrate` amène un projet `web-scumm` directement aux noms à scope.
 
 <a name="kept-names"></a>
 
@@ -106,7 +111,7 @@ Dans le dossier du projet créé, sur votre machine.
 
    `migrate` renomme, dans chaque fichier source du projet (`.ts`, `.tsx`, `.mts`, `.cts`, `.js`, `.jsx`, `.mjs`,
    `.cjs` ; `node_modules`, `dist`, `public` et les dossiers cachés laissés de côté), les imports `web-scumm/…` en
-   `quest-n-click/…`, quel que soit le style de guillemets ; dans `tsconfig.json`, le chemin `web-scumm/*` et les cibles
+   `@quest-n-click/engine/…` (`quest-n-click/…` avant la 4.5.2), quel que soit le style de guillemets ; dans `tsconfig.json`, le chemin `web-scumm/*` et les cibles
    `node_modules/web-scumm/…` ; dans `package.json`, les commandes des scripts (`web-scumm dev` devient
    `quest-n-click dev`, `web-scumm-bridge serve` devient `quest-n-click-bridge serve`), et il retire la dépendance à un
    ancien paquet quand le nouveau est installé. Toute chaîne qui commence par `web-scumm/` entre guillemets est
@@ -141,23 +146,25 @@ GNU comme BSD), puis `tsconfig.json` et `package.json` comme ci-dessous :
 grep -rl --null -E --include='*.ts' --include='*.tsx' --include='*.mts' --include='*.cts' --include='*.js' \
   --include='*.jsx' --include='*.mjs' --include='*.cjs' --exclude-dir=node_modules --exclude-dir=dist \
   --exclude-dir=public --exclude-dir='.*' "['\"]web-scumm/" * \
-  | xargs -0 sed -i.bak -e "s#'web-scumm/#'quest-n-click/#g" -e 's#"web-scumm/#"quest-n-click/#g'
+  | xargs -0 sed -i.bak -e "s#'web-scumm/#'@quest-n-click/engine/#g" -e 's#"web-scumm/#"@quest-n-click/engine/#g'
 find . -name '*.bak' -not -path './node_modules/*' -delete
 ```
 
-- `package.json` : la dépendance `"web-scumm": "<spec>"` devient `"quest-n-click": "<spec>"`, son archive
+- `package.json` : la dépendance `"web-scumm": "<spec>"` devient `"@quest-n-click/engine": "<spec>"`, son archive
   `quest-n-click-<version>.tgz` ; les scripts `web-scumm dev`, `web-scumm build`… deviennent `quest-n-click dev`,
   `quest-n-click build`….
-- `tsconfig.json` : le chemin `web-scumm/*` devient `quest-n-click/*`, qui pointe sur
-  `./node_modules/quest-n-click/src/engine/api/*` ; `@engine/*` pointe sur `./node_modules/quest-n-click/src/engine/*` ;
-  `include` nomme `node_modules/quest-n-click/src/env.d.ts`.
+- `tsconfig.json` : le chemin `web-scumm/*` devient `@quest-n-click/engine/*`, qui pointe sur
+  `./node_modules/@quest-n-click/engine/src/engine/api/*` ; `@engine/*` pointe sur
+  `./node_modules/@quest-n-click/engine/src/engine/*` ; `include` nomme
+  `node_modules/@quest-n-click/engine/src/env.d.ts`.
 
 <a name="expected-result"></a>
 
 ## Résultat attendu, et comment le vérifier
 
-`migrate` affiche `✔  the former name web-scumm renamed quest-n-click in <fichiers> (then: npm install)`, puis la ligne
-du schéma. `npx quest-n-click migrate --check` sort avec 0 ; `grep -rn "web-scumm/" game` ne trouve rien ;
+`migrate` affiche `✔  the former names renamed @quest-n-click/… in <fichiers> (then: npm install)` (de la 4.3.0 à la
+4.5.1, `✔  the former name web-scumm renamed quest-n-click in <fichiers> (then: npm install)`), puis la ligne du
+schéma. `npx quest-n-click migrate --check` sort avec 0 ; `grep -rn "web-scumm/" game` ne trouve rien ;
 `npm run verify` passe.
 
 <a name="common-errors"></a>
@@ -169,7 +176,7 @@ propre :
 
 | Ce qu'il dit | Que faire |
 |---|---|
-| `package.json depends on web-scumm: npm uninstall web-scumm && npm install quest-n-click` | Étapes 1 et 2 : le nouveau paquet n'était pas installé |
+| `package.json depends on web-scumm: npm uninstall web-scumm && npm install @quest-n-click/engine` | Étapes 1 et 2 : le nouveau paquet n'était pas installé |
 | `package.json has both a web-scumm and a quest-n-click script: the web-scumm one is left as it is` | Supprimez ou renommez vous-même le script `web-scumm` |
 | `<chemin>: a symbolic link out of the project, not renamed (rename what it leads to by hand)` | Renommez les fichiers liés là où ils sont |
 | `<chemin>: a symbolic link that leads nowhere, not renamed` | Supprimez ou réparez le lien |

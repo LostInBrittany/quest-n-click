@@ -43,8 +43,8 @@ src/engine/      core (the DSL, the engine), tools (validate, solve, lint, i18nâ
 games/demo/      the sample game: rooms, layouts, art, audio, locales, storyboard
 games/_template/ copied by npm run new-game
 tools/           the commands, the Studio, the MCP server, the art and audio pipelines, the Vite plugins
-bridge/          the Reality Bridge (the package quest-n-click-bridge)
-connectors/      the connectors of the world outside (the package quest-n-click-connectors)
+bridge/          the Reality Bridge (the package @quest-n-click/bridge)
+connectors/      the connectors of the world outside (the package @quest-n-click/connectors)
 wiki/            the documentation, in English and French (4.5.0); docs/dev: the work log, the decisions, each release's passes
 ```
 

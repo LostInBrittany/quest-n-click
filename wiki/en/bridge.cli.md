@@ -14,7 +14,7 @@ Every subcommand of the reference Reality Bridge, with its options, defaults, ou
 | Where | Command |
 |---|---|
 | The engine repository | `npm run bridge -- <subcommand> [options]` (the current game, or `GAME=<id>`) |
-| A created project | `npx quest-n-click bridge <subcommand> [options]` (needs `quest-n-click-bridge` installed beside the engine) |
+| A created project | `npx quest-n-click bridge <subcommand> [options]` (needs `@quest-n-click/bridge` installed beside the engine) |
 | The standalone package | `npx quest-n-click-bridge <subcommand> [options]` |
 
 An option is `--name=value` or `--name value`. Every subcommand takes `--dir=<folder>`, the Bridge's folder holding
@@ -31,7 +31,7 @@ Subcommands: `init`, `serve`, `grant`, `rotate`, `revoke`, `doctor`, `compact`, 
 
 Another subcommand prints `usage: quest-n-click-bridge <init|serve|grant|rotate|revoke|doctor|compact|migrate|tenant|backup|restore>`
 and exits 2. Outside the engine repository, without the package: `✖  the Reality Bridge is a separate package: npm
-install quest-n-click-bridge`, exit 1.
+install @quest-n-click/bridge`, exit 1.
 
 ### Minimal example
 

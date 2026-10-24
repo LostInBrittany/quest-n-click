@@ -34,7 +34,7 @@ chaque page. Vous ne trouvez pas la vôtre ? Cherchez dans ce wiki, ou voyez
 - **Comment commencer mon propre jeu ?** Installez le moteur depuis l’archive d’une release, dans son propre dossier,
   puis suivez le tutoriel du premier jeu ([Installer depuis l’archive de la release](install.from-archive.md),
   [Votre premier jeu](create.first-game.md)).
-- **Puis-je faire `npm install quest-n-click` ?** Pas encore : aucune release n'a publié les packages sur npm ; chaque
+- **Puis-je faire `npm install @quest-n-click/engine` ?** Pas encore : aucune release n'a publié les packages sur npm ; chaque
   release les joint sous forme d'archives ([Stabilité et support](start.stability.md#releases)).
 - **Cette commande se lance où ?** Chaque commande de ce wiki dit d’abord son dossier et son contexte : le dépôt du
   moteur ou un projet créé, qui n’ont pas les mêmes scripts ([Organisation d’un projet](create.project-layout.md),

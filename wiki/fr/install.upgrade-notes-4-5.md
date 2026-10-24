@@ -1,6 +1,7 @@
 # Notes de mise à jour : 4.5
 
-Ce que la 4.5.0 « Wiki » et la 4.5.1 ont changé. Rien à changer dans un jeu ; la documentation a déménagé.
+Ce que la 4.5.0 « Wiki », la 4.5.1 et la 4.5.2 ont changé. Rien à changer jusqu'à la 4.5.1 (la doc a déménagé) ;
+en 4.5.2, `npx quest-n-click migrate` passe les imports aux paquets à scope.
 
 La mise à jour elle-même est [Mettre à jour](install.upgrade.md).
 
@@ -49,3 +50,57 @@ référence). Le moteur s'installe depuis `releases/download/v4.5.1/…`. Ce qu'
 - **La documentation** : les corrections de l'audit du wiki par le mainteneur (liens dont le libellé est du code, le
   premier tutoriel, les sauvegardes, la fenêtre de support, la recherche). Un lien vers une page ou une section de la
   4.5.0 arrive toujours.
+
+<a name="from-4-5-1-to-4-5-2"></a>
+<!-- applies: 4.5.2.. -->
+
+## De la 4.5.1 à la 4.5.2
+
+Les paquets du moteur sont nommés sous le scope de l'organisation npm (D53) : `quest-n-click` est
+`@quest-n-click/engine`, et `create-quest-n-click`, `quest-n-click-bridge`, `quest-n-click-connectors` et
+`quest-n-click-studio-server` sont `@quest-n-click/create`, `@quest-n-click/bridge`, `@quest-n-click/connectors` et
+`@quest-n-click/studio-server`. Les commandes gardent leur nom (`quest-n-click dev`, `npx quest-n-click migrate`,
+`npx quest-n-click-bridge serve`), et les fichiers de la release aussi (`quest-n-click-4.5.2.tgz`, …). Un jeu se
+construit, se joue et se sauvegarde comme en 4.5.1. Ce qu'un projet créé change :
+
+1. Installez le nouveau moteur à la place de l'ancien paquet (le paquet de l'archive est maintenant
+   `@quest-n-click/engine`) :
+
+   ```bash
+   # dans le projet créé
+   npm uninstall quest-n-click
+   npm install https://github.com/Quest-n-Click/quest-n-click/releases/download/v4.5.2/quest-n-click-4.5.2.tgz
+   ```
+
+2. Laissez `migrate` déplacer le reste, puis vérifiez :
+
+   ```bash
+   # dans le projet créé
+   npx quest-n-click migrate
+   npx quest-n-click migrate --check
+   npm install
+   npm run verify
+   ```
+
+   `migrate` renomme les imports `quest-n-click/content`, `/player`, `/minigames`, `/testing`, `/reality` (et
+   `quest-n-click-bridge/cli`) en `@quest-n-click/engine/…` (`@quest-n-click/bridge/cli`) dans chaque fichier source ;
+   dans `tsconfig.json`, le chemin `quest-n-click/*` et les cibles `node_modules/quest-n-click/…` vers
+   `@quest-n-click/engine` ; dans `package.json`, il retire la dépendance à un paquet sans scope une fois son nom à
+   scope installé, et dit celles qui restent (`package.json depends on quest-n-click-bridge: npm uninstall
+   quest-n-click-bridge && npm install @quest-n-click/bridge`). Il ne renomme aucune commande : les scripts restent
+   tels quels.
+
+- **Pas encore migré ?** Pendant toute la 4.5.x, les imports sans scope `quest-n-click/…` se résolvent encore, dans un
+  build (Vite) et dans le `tsconfig.json` du moteur lui-même, si bien qu'un jeu qui n'a pas lancé `migrate` se
+  construit encore ; son propre `tsconfig.json` pointe encore dans `node_modules/quest-n-click`, que la nouvelle
+  installation a retiré, jusqu'à ce que `migrate` le renomme.
+- **Un Studio hébergé** renomme lui-même les imports sans scope d'un jeu, à la mise à jour du moteur, comme il l'a
+  fait pour les `web-scumm/…` ([Mettre à jour le moteur hébergé](team.upgrade-engine.md)).
+- **Le Bridge, les connecteurs et le Studio Server** s'installent depuis leurs archives comme avant ; dans
+  `node_modules`, ils sont maintenant sous `@quest-n-click/` (`node_modules/@quest-n-click/bridge`, …).
+- **Le hook de build d'un worker du Studio** installe `requirements.txt`, qui porte maintenant toutes les empreintes
+  (D54) : `python3 -m pip install --target .python --require-hashes --only-binary=:all: -r
+  node_modules/@quest-n-click/engine/requirements.txt`. `ops/studio/worker-requirements.lock` n'existe plus : un hook
+  qui le nomme échoue tant qu'il n'est pas changé ([Premier déploiement](clever.first-deployment.md)).
+- **npm** n'a toujours aucune version du produit : les noms à scope portent une réservation, les noms sans scope
+  deviennent des pointeurs dépréciés ([Installer depuis npm, une fois publié](install.from-npm.md)).

@@ -77,7 +77,7 @@ pousse son historique Git. La construction elle-même tourne sur Clever Cloud.
    # dans le projet créé
    npm install sirv-cli@3
    npm pkg set scripts.start="sirv dist --host 0.0.0.0 --port \$PORT --maxage 3600"
-   clever env set CC_POST_BUILD_HOOK "python3 -m pip install --target .python --require-hashes -r node_modules/quest-n-click/requirements.txt && PYTHONPATH=.python npm run build"
+   clever env set CC_POST_BUILD_HOOK "python3 -m pip install --target .python --require-hashes -r node_modules/@quest-n-click/engine/requirements.txt && PYTHONPATH=.python npm run build"
    git add package.json package-lock.json && git commit -m "Serve dist/ on Clever Cloud"
    ```
 

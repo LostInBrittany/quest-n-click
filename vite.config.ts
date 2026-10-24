@@ -185,10 +185,12 @@ export default defineConfig({
   // The current game (GAME, otherwise package.json → config.game, otherwise demo): `@game` → games/<GAME>/index.ts.
   resolve: {
     alias: [
-      // The public API (4.0, src/engine/api): `quest-n-click/content`, `/player`, `/minigames`, `/testing` (the
-      // former name's `web-scumm/…` went in 4.3.0, D47: `quest-n-click migrate` rewrites a game's imports).
+      // The public API (4.0, src/engine/api): `@quest-n-click/engine/content`, `/player`, `/minigames`, `/testing`.
+      // The unscoped `quest-n-click/…` of 4.5.1 and before still resolves through 4.5.x (D53; tsconfig.json's paths
+      // too, for a game loaded by tsx, a hosted one among them, until its upgrade renames it); the former name's
+      // `web-scumm/…` went in 4.3.0 (D47). `quest-n-click migrate` rewrites a game's imports.
       {
-        find: /^quest-n-click\/(content|player|minigames|testing)$/,
+        find: /^(?:@quest-n-click\/engine|quest-n-click)\/(content|player|minigames|testing)$/,
         replacement: r('./src/engine/api/$1.ts'),
       },
       { find: '@engine', replacement: r('./src/engine') },

@@ -17,7 +17,7 @@ et ces sprites préparés dans `public/assets/` par `npm run assets`.
 ## Contexte et versions
 
 - Le **dépôt du moteur** (un jeu sous `games/<id>/`) ou un **projet créé** (le jeu sous `game/`, les outils sous
-  `node_modules/quest-n-click/tools/`). Les commandes ne diffèrent que par le chemin de l'outil et de sa sortie.
+  `node_modules/@quest-n-click/engine/tools/`). Les commandes ne diffèrent que par le chemin de l'outil et de sa sortie.
 - Depuis la 4.3.0, les modules sont Pillow 13.0.0, NumPy 2.4.6 et SciPy 1.18.1 (`requirements.txt`) ; avec ce passage,
   les images du jeu d'exemple sont sorties identiques octet pour octet ([notes 4.3](install.upgrade-notes-4-3.md)).
 
@@ -49,7 +49,7 @@ et ces sprites préparés dans `public/assets/` par `npm run assets`.
 
    ```sh
    # dans un projet créé
-   python3 -m pip install --require-hashes -r node_modules/quest-n-click/requirements.txt
+   python3 -m pip install --require-hashes -r node_modules/@quest-n-click/engine/requirements.txt
    ```
 
 <!-- step: prompts -->
@@ -77,7 +77,7 @@ et ces sprites préparés dans `public/assets/` par `npm run assets`.
 
    ```sh
    # dans un projet créé : nommez le dossier de sortie, celui par défaut est games/<GAME>/art du dépôt
-   python3 node_modules/quest-n-click/tools/cut-sheet.py hero_sheet.png hero --out game/art
+   python3 node_modules/@quest-n-click/engine/tools/cut-sheet.py hero_sheet.png hero --out game/art
    ```
 
    Avec `"artStyle": "pixel"` dans `site.json` (ou `--pixel`), l'outil réduit aussi chaque case par 4 (`--scale`), la
@@ -89,7 +89,7 @@ et ces sprites préparés dans `public/assets/` par `npm run assets`.
 4. Choisissez le fond des planches, une fois par outil de génération d'images :
 
    ```sh
-   # dans le dépôt du moteur (dans un projet créé, préfixez l'outil par node_modules/quest-n-click/)
+   # dans le dépôt du moteur (dans un projet créé, préfixez l'outil par node_modules/@quest-n-click/engine/)
    python3 tools/check-alpha.py test_image.png
    python3 tools/pick-bg.py games/<id>/art/hero/
    ```

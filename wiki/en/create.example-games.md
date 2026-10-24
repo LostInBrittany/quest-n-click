@@ -46,7 +46,7 @@ The copy every new game starts from:
 
 - `npm run new-game <id> ["Title"]` (engine repository) copies it to `games/<id>/`, draws placeholder art, and makes
   it the current game;
-- `quest-n-click create <folder> ["Title"]`, or `npx create-quest-n-click <folder>`, copies it to `<folder>/game/`
+- `quest-n-click create <folder> ["Title"]`, or `npx @quest-n-click/create <folder>`, copies it to `<folder>/game/`
   without its `tests/` (a created project checks its game with `npm run verify`), and writes a `provenance.json` that
   marks the art as a placeholder.
 

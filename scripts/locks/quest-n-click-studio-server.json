@@ -1,11 +1,11 @@
 {
-  "name": "quest-n-click-studio-server",
+  "name": "@quest-n-click/studio-server",
   "version": "0.0.0",
   "lockfileVersion": 3,
   "requires": true,
   "packages": {
     "": {
-      "name": "quest-n-click-studio-server",
+      "name": "@quest-n-click/studio-server",
       "version": "0.0.0",
       "license": "MIT",
       "dependencies": {
@@ -21,10 +21,10 @@
         "node": ">=22.12"
       },
       "peerDependencies": {
-        "quest-n-click": "4.5.x"
+        "@quest-n-click/engine": "4.5.x"
       },
       "peerDependenciesMeta": {
-        "quest-n-click": {
+        "@quest-n-click/engine": {
           "optional": true
         }
       }

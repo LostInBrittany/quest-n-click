@@ -146,8 +146,8 @@ raison, chacune plafonnée à sa taille : une exception ne grossit jamais, et qu
 ## Public et interne
 
 Public, et tenu au versionnage sémantique : les cinq entrées de `src/engine/api/`, publiées comme
-`quest-n-click/content` (les types et `defineGame`), `quest-n-click/player` (le démarrage), `quest-n-click/minigames`,
-`quest-n-click/testing` (`Engine`, les doublures, l'enveloppe de sauvegarde, `solve`) et `quest-n-click/reality`
+`@quest-n-click/engine/content` (les types et `defineGame`), `@quest-n-click/engine/player` (le démarrage), `@quest-n-click/engine/minigames`,
+`@quest-n-click/engine/testing` (`Engine`, les doublures, l'enveloppe de sauvegarde, `solve`) et `@quest-n-click/engine/reality`
 (depuis la 4.1.1) ; le format du contenu, l'enveloppe de sauvegarde et les outils MCP. Ils sont tenus par
 `tests/api-surface.json` et la politique de support ([Stabilité et support](start.stability.md),
 [API publique](engine.api.md)).

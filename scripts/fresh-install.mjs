@@ -44,8 +44,9 @@ rmSync(join(base, 'package'), { recursive: true, force: true });
 const game = join(base, 'lantern');
 step('install', 'npm', ['install', '--no-audit', '--no-fund'], game);
 
-// The `create-quest-n-click` archive too (4.1.8): installed next to the engine's (its dependency on `quest-n-click` is
-// satisfied by the tarball given in the same command), then run as `npx create-quest-n-click`.
+// The `@quest-n-click/create` archive too (4.1.8): installed next to the engine's (its dependency on
+// `@quest-n-click/engine` is satisfied by the tarball given in the same command), then run by its command,
+// `npx create-quest-n-click` (`npm init @quest-n-click` once it is on npm, D53).
 const createTgz = join(base, 'pack', `create-quest-n-click-${version}.tgz`);
 const creator = join(base, 'creator');
 mkdirSync(creator, { recursive: true });
@@ -58,7 +59,7 @@ step(
   creator,
 );
 const beacon = JSON.parse(readFileSync(join(creator, 'beacon', 'package.json'), 'utf8'));
-if (beacon.dependencies?.['quest-n-click'] !== `file:${tgz}` || !existsSync(join(creator, 'beacon', 'game'))) {
+if (beacon.dependencies?.['@quest-n-click/engine'] !== `file:${tgz}` || !existsSync(join(creator, 'beacon', 'game'))) {
   console.error('✖ create-quest-n-click made no project on this engine');
   process.exit(1);
 }
@@ -193,7 +194,7 @@ step(
   operator,
 );
 const help = execFileSync('npx', ['quest-n-click-connector', '--help'], { cwd: operator, encoding: 'utf8' });
-const runMjs = readFileSync(join(operator, 'node_modules', 'quest-n-click-connectors', 'src', 'run.mjs'), 'utf8');
+const runMjs = readFileSync(join(operator, 'node_modules', '@quest-n-click', 'connectors', 'src', 'run.mjs'), 'utf8');
 if (!help.includes('usage: quest-n-click-connector') || runMjs.includes('tsx/esm/api')) {
   console.error('✖ quest-n-click-connector did not run from its installed package');
   process.exit(1);

@@ -16,7 +16,7 @@ Trois mains portent un fait jusqu’au joueur, chacune vérifiant la précédent
 | Pièce | Tourne où | Fait | Détient |
 |---|---|---|---|
 | Un **connecteur** (e-mail, Telnet, SSH, Open Badges, ou le webhook de démonstration du Bridge) | son propre processus, à côté du Bridge | lit l’entrée extérieure comme hostile, la rattache à un joueur, propose un signal déclaré avec une clé de déduplication | son propre jeton Biscuit, ses propres secrets (un mot de passe de boîte mail, une clé d’hôte) |
-| Le **Bridge** (`bridge/src/`, le paquet `quest-n-click-bridge`) | un petit service Node | autorise le connecteur (Biscuit), vérifie le signal contre le manifeste du jeu, déduplique, le numérote par joueur, le signe (Ed25519), le garde jusqu’à l’accusé de réception du joueur | la clé qui signe les événements, les empreintes des capacités des joueurs, les signaux |
+| Le **Bridge** (`bridge/src/`, le paquet `@quest-n-click/bridge`) | un petit service Node | autorise le connecteur (Biscuit), vérifie le signal contre le manifeste du jeu, déduplique, le numérote par joueur, le signe (Ed25519), le garde jusqu’à l’accusé de réception du joueur | la clé qui signe les événements, les empreintes des capacités des joueurs, les signaux |
 | Le **joueur** (le jeu dans le navigateur) | l’appareil du joueur | vérifie la signature avant de lire quoi que ce soit, applique le signal comme un événement, sauvegarde, puis accuse réception | une capacité qui lit et acquitte ses propres signaux, rien d’autre |
 
 Un signal n’est qu’un identifiant pris dans une liste finie que le jeu déclare (`mail.answer.correct`) : aucun texte,

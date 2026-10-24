@@ -13,7 +13,7 @@ gives the overlay element, the scale, images, sounds, the `params` of the comman
 names the params the validator checks. `{ minigame: 'sword_fight', params: { … }, then: [ … ] }` then plays it like a
 built-in one. That is the plugin format: the same contract as the built-in ones.
 
-The public module `quest-n-click/minigames` gives what a plugin needs:
+The public module `@quest-n-click/engine/minigames` gives what a plugin needs:
 
 | Name | What |
 |---|---|
@@ -38,7 +38,7 @@ built-in one's, and the player shows it over the scene with the hint voice's fra
 ## Context and versions
 
 A created project (the module is `game/index.ts`) or a game of the engine repository (`games/<id>/index.ts`). The
-contract has been public since 4.0; the module is named `quest-n-click/minigames` since 4.2.5 (`web-scumm/minigames`
+contract has been public since 4.0; the module is named `@quest-n-click/engine/minigames` since 4.2.5 (`web-scumm/minigames`
 before, removed in 4.3.0: `quest-n-click migrate` renames it). `MinigameCtx.random` exists since 4.1.15, the
 result a minigame can report since 4.1.16.
 
@@ -72,7 +72,7 @@ On your machine, in the created project's folder (`npx quest-n-click …`) or in
 
    ```ts
    // game/index.ts in a created project (games/<id>/index.ts in the engine repository)
-   import type { Minigame } from 'quest-n-click/minigames';
+   import type { Minigame } from '@quest-n-click/engine/minigames';
 
    const swordFight: Minigame = {
      required: ['foe'],

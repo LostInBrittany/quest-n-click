@@ -56,7 +56,7 @@ const install = (dir, extra = []) => {
     { cwd: dir, stdio: ['ignore', 'ignore', 'inherit'], shell: WIN },
   );
 };
-const binIn = (dir, name) => join(dir, 'node_modules', 'quest-n-click-studio-server', 'bin', `${name}.mjs`);
+const binIn = (dir, name) => join(dir, 'node_modules', '@quest-n-click', 'studio-server', 'bin', `${name}.mjs`);
 /** `deps` in an install: each of the server's own dependencies found and imported, with its version and folder. */
 const deps = (dir) =>
   JSON.parse(
@@ -73,7 +73,7 @@ try {
   check('the engine and the Studio Server install from their archives', true);
   const sha = (f) => createHash('sha256').update(readFileSync(f)).digest('hex');
   const LOCK = 'requirements.txt';
-  const shipped = join(home, 'node_modules', 'quest-n-click', LOCK);
+  const shipped = join(home, 'node_modules', '@quest-n-click', 'engine', LOCK);
   check(
     "the hashed requirements.txt is in the engine's package, as in the repository",
     sha(shipped) === sha(resolve(import.meta.dirname, '..', LOCK)),
@@ -124,7 +124,7 @@ try {
   );
   // The former commands (D47) went in 4.3.0: the package names only its own.
   const commands = Object.keys(
-    JSON.parse(readFileSync(join(home, 'node_modules', 'quest-n-click-studio-server', 'package.json'), 'utf8')).bin,
+    JSON.parse(readFileSync(join(home, 'node_modules', '@quest-n-click', 'studio-server', 'package.json'), 'utf8')).bin,
   );
   check(
     'its commands are quest-n-click-studio-server and quest-n-click-studio-worker, no former name',
@@ -135,7 +135,7 @@ try {
   try {
     install(nestedHome, ['--install-strategy=nested']);
     const nested = deps(nestedHome);
-    const under = join('node_modules', 'quest-n-click-studio-server', 'node_modules');
+    const under = join('node_modules', '@quest-n-click', 'studio-server', 'node_modules');
     check(
       'and when npm nests them under the package',
       OWN.every((n) => nested[n]?.from.includes(under)),
@@ -146,7 +146,7 @@ try {
   }
 
   // The game: the engine's own template, imported as the instance's project.
-  cpSync(join(home, 'node_modules', 'quest-n-click', 'games', '_template'), join(home, 'game-src'), {
+  cpSync(join(home, 'node_modules', '@quest-n-click', 'engine', 'games', '_template'), join(home, 'game-src'), {
     recursive: true,
   });
   const port = await freePort();

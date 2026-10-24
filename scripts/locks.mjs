@@ -21,9 +21,9 @@ const rootLock = JSON.parse(readFileSync(join(ROOT, 'package-lock.json'), 'utf8'
  * not install. Each is pinned here: `npm run locks` that moves one fails its check until this list is changed too.
  */
 const OUTSIDE_ROOT = {
-  'quest-n-click-connectors:node_modules/buildcheck': '0.0.7',
-  'quest-n-click-connectors:node_modules/ssh2/node_modules/cpu-features': '0.0.10',
-  'quest-n-click-connectors:node_modules/ssh2/node_modules/nan': '2.29.0',
+  '@quest-n-click/connectors:node_modules/buildcheck': '0.0.7',
+  '@quest-n-click/connectors:node_modules/ssh2/node_modules/cpu-features': '0.0.10',
+  '@quest-n-click/connectors:node_modules/ssh2/node_modules/nan': '2.29.0',
   'quest-n-click-bridge-image:node_modules/@opentelemetry/api': '1.9.1',
 };
 

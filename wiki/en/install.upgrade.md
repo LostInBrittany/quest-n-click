@@ -15,7 +15,7 @@ npx quest-n-click migrate
 npm run verify
 ```
 
-Once the engine is on npm, the first line is `npm install quest-n-click@<version>`. Read the upgrade notes of each
+Once the engine is on npm, the first line is `npm install @quest-n-click/engine@<version>`. Read the upgrade notes of each
 version you cross first; the rest of this page is the same procedure with its checks.
 
 <a name="what-you-get"></a>
@@ -29,7 +29,7 @@ saves still loading.
 
 ## Context and versions
 
-- A **created project** (the engine under `node_modules/quest-n-click`). A game inside the engine repository and a
+- A **created project** (the engine under `node_modules/@quest-n-click/engine`). A game inside the engine repository and a
   game on a hosted Studio have their own section below.
 - This procedure is the one for a target of 4.3.0 or later, where `quest-n-click migrate` also renames a project still
   under the former name `web-scumm`. Coming from before 4.2.5, read [Coming from web-scumm](install.from-web-scumm.md)
@@ -77,7 +77,7 @@ In the created project's folder, on your machine.
    npm install https://github.com/Quest-n-Click/quest-n-click/releases/download/v4.4.0/quest-n-click-4.4.0.tgz
    ```
 
-   Once the engine is on npm, this step is `npm install quest-n-click@<version>`.
+   Once the engine is on npm, this step is `npm install @quest-n-click/engine@<version>`.
 
 <!-- step: migrate -->
 3. Bring the sources to the installed engine's format. `--check` first says what is due and writes nothing:
@@ -148,7 +148,7 @@ are written); the test does not assert it.
 
 | Symptom | Cause | Fix |
 |---|---|---|
-| `npm error 404 Not Found - GET https://registry.npmjs.org/quest-n-click` | `npm install quest-n-click@<version>`: not on npm | Install the archive's URL (step 2) |
+| `npm error 404 Not Found - GET https://registry.npmjs.org/quest-n-click` | `npm install @quest-n-click/engine@<version>`: not on npm | Install the archive's URL (step 2) |
 | ✖ tsconfig.json has baseUrl, which TypeScript 7 refuses: a migration is due | A project made before 4.1.8 | `npx quest-n-click migrate` |
 | `✖  still under the former name web-scumm: …` | A project made before 4.2.5 | `npx quest-n-click migrate`, then `npm install` ([Coming from web-scumm](install.from-web-scumm.md)) |
 | `✖  [<id>] authoring schema <n> is newer than this engine's (3): install a newer quest-n-click` | The game was written for a newer engine | Install that engine, not an older one |

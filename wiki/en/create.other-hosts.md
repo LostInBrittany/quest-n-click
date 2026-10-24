@@ -47,7 +47,7 @@ step. The upload (or the host's settings) is the host's own tool.
 
    | Setting | Value |
    |---|---|
-   | Build command (created project) | `pip install --require-hashes -r node_modules/quest-n-click/requirements.txt && npm run build` |
+   | Build command (created project) | `pip install --require-hashes -r node_modules/@quest-n-click/engine/requirements.txt && npm run build` |
    | Build command (engine repository, `public/assets` committed) | `npm run build:web` after the checks, or `npm run build` |
    | Output folder | `dist` |
    | Node | 22.12 or later |

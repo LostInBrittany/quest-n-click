@@ -11,7 +11,7 @@ A game exports its own commands from its `index.ts` (`game/index.ts` in a create
 the engine repository); a rule or a script then calls one by name:
 
 ```ts
-import type { CustomCommands } from 'quest-n-click/content';
+import type { CustomCommands } from '@quest-n-click/engine/content';
 
 export const commands: CustomCommands = {
   sparkle: { pure: true, run: async ({ scene, args }) => { /* draw stars over `scene` for args.ms */ } },

@@ -104,6 +104,10 @@ jeu doit se charger après et, s'il se chargeait avant, ne gagner aucune erreur.
 qu'un jeu qu'on ne peut pas encore finir n'est jamais bloqué. La migration du schéma suit, jugée comme ci-dessus ; si
 elle est refusée, le `body.renamed` de la réponse dit que le renommage est gardé.
 
+À partir de la 4.5.2, le même renommage passe aussi les imports sans scope de la 4.5.1 et avant, `quest-n-click/…`, au
+paquet à scope, `@quest-n-click/engine/…` (D53). Ceux-là se chargent encore sur un Studio 4.5.x d'ici là, si bien
+qu'un tel jeu n'est pas refusé avant sa mise à jour.
+
 Le renommage est écrit **sans annulation** (elle ramènerait des imports qui ne se résolvent plus), si bien que
 l'historique antérieur de l'owner reste accessible ; une sauvegarde faite avant est le chemin du retour. Un worker qui
 refuse, dépasse son délai ou ne laisse aucun résultat pendant que la garde l'interroge ne compte jamais comme un jeu
@@ -143,7 +147,7 @@ la nouvelle tête. Un second appel répond `{ "changed": 0 }`.
 ## Fichiers ou données modifiés
 
 `rooms/*.ts`, `rules.ts`, `items.ts`, `game.ts`, les tables de traduction, `ids.migration.json`, `ids.paths.json` ;
-pour l'ancien nom, chaque source TypeScript qui importait `web-scumm/…`.
+pour l'ancien nom, chaque source TypeScript qui importait `web-scumm/…` (à partir de la 4.5.2, ou `quest-n-click/…`).
 
 <a name="recovery"></a>
 

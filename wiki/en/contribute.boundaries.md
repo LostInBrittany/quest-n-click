@@ -142,9 +142,9 @@ at its size: an exception never grows, and leaves the list once under the limit.
 
 ## Public and internal
 
-Public, and held to semantic versioning: the five entries of `src/engine/api/`, published as `quest-n-click/content`
-(the types and `defineGame`), `quest-n-click/player` (boot), `quest-n-click/minigames`, `quest-n-click/testing`
-(`Engine`, the fakes, the save envelope, `solve`) and `quest-n-click/reality` (since 4.1.1); the content format, the
+Public, and held to semantic versioning: the five entries of `src/engine/api/`, published as `@quest-n-click/engine/content`
+(the types and `defineGame`), `@quest-n-click/engine/player` (boot), `@quest-n-click/engine/minigames`, `@quest-n-click/engine/testing`
+(`Engine`, the fakes, the save envelope, `solve`) and `@quest-n-click/engine/reality` (since 4.1.1); the content format, the
 save envelope and the MCP tools. They are held by `tests/api-surface.json` and the support policy
 ([Stability and support](start.stability.md), [Public API](engine.api.md)).
 

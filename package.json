@@ -1,5 +1,5 @@
 {
-  "name": "quest-n-click",
+  "name": "@quest-n-click/engine",
   "private": true,
   "version": "4.5.1",
   "type": "module",

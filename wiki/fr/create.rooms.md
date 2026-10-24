@@ -19,7 +19,7 @@ Claude Code, le skill `/new-room` du dépôt en prépare une.
 ## Une salle, pas à pas
 
 ```ts
-import { defineRoom } from 'quest-n-click/content';
+import { defineRoom } from '@quest-n-click/engine/content';
 
 export default defineRoom({
   id: 'house',
@@ -93,7 +93,7 @@ export default defineRoom({
 
 C'est un extrait d'un jeu plus grand : le crochet `hook`, le seau `bucket`, l'objet `rope` et le personnage `cat`
 sont déclarés ailleurs. Dans le dépôt du moteur, les fichiers de salle importent `defineRoom` depuis
-`@engine/core/define` ou depuis `quest-n-click/content` ; les deux mènent à la même fonction, qui ne fait que typer
+`@engine/core/define` ou depuis `@quest-n-click/engine/content` ; les deux mènent à la même fonction, qui ne fait que typer
 l'objet.
 
 Le même genre de salle, complète et vérifiée par le validateur : une lampe, un tabouret à tirer, Grand-mère avec un sujet,

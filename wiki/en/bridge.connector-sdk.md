@@ -5,7 +5,7 @@ it is given, the vocabulary of refusals, the limits, the helpers, and how the co
 For contributors who change a connector or add one; operators read [Connectors overview](bridge.connectors.md).
 
 > [!LIMIT id=bridge-sdk-not-a-package-api]
-> The SDK is not a public API of a package: `quest-n-click-connectors` exports its command only (`./run`), and the
+> The SDK is not a public API of a package: `@quest-n-click/connectors` exports its command only (`./run`), and the
 > four connectors are listed by id in `connectors/src/registry.ts`. A new connector is a change to the engine
 > repository, with its threat model and its tests, not a plugin loaded from outside.
 

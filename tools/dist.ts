@@ -88,8 +88,9 @@ function bundlePackages(): string[] {
     ))
       add(d);
   };
-  // The engine itself (an installed quest-n-click) is LICENSE; its tools' dependencies never reach the bundle.
-  for (const p of [...listed, ...workbox]) if (p !== 'quest-n-click') add(p);
+  // The engine itself (an installed @quest-n-click/engine, `quest-n-click` before 4.5.2) is LICENSE; its tools'
+  // dependencies never reach the bundle.
+  for (const p of [...listed, ...workbox]) if (p !== '@quest-n-click/engine' && p !== 'quest-n-click') add(p);
   return [...all].sort();
 }
 

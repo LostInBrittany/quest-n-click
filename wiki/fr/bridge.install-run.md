@@ -8,7 +8,7 @@ commande et option : [La ligne de commande du Bridge](bridge.cli.md).
 
 ## Vue d’ensemble
 
-Le Reality Bridge de référence (`bridge/src/`, le paquet `quest-n-click-bridge`) sert un jeu. C’est un petit service
+Le Reality Bridge de référence (`bridge/src/`, le paquet `@quest-n-click/bridge`) sert un jeu. C’est un petit service
 Node : appairage, connecteurs sous capacités Biscuit, un webhook de démonstration, des événements signés, des
 Server-Sent Events. Depuis la 4.1.10 il garde son état dans un stockage (le journal JSON-lines de la 4.1.9, SQLite ou
 Postgres), et un déploiement peut faire tourner plusieurs instances et servir plusieurs tenants. Ce qu’est un Bridge,
@@ -58,10 +58,10 @@ Sur la machine qui fait tourner le Bridge, à l’un de ces trois endroits :
 | Où | La commande | Le manifeste du jeu vient de |
 |---|---|---|
 | Le dépôt du moteur | `npm run bridge -- <commande>` (avec `GAME=<id>` pour un autre jeu que le jeu courant) | le contenu du jeu |
-| Un projet créé | `npx quest-n-click bridge <commande>`, une fois `quest-n-click-bridge` installé à côté du moteur | le contenu du jeu |
+| Un projet créé | `npx quest-n-click bridge <commande>`, une fois `@quest-n-click/bridge` installé à côté du moteur | le contenu du jeu |
 | Le paquet autonome, sur un serveur | `npx quest-n-click-bridge <commande>` | `init --manifest=<jeu>/dist/reality-manifest.json` |
 
-Le paquet `quest-n-click-bridge` est l’archive `quest-n-click-bridge-<version>.tgz` jointe à une release : un module
+Le paquet `@quest-n-click/bridge` est l’archive `quest-n-click-bridge-<version>.tgz` jointe à une release : un module
 JavaScript, ses politiques Datalog et son schéma SQL. Il lui faut le WebAssembly de Biscuit et zod ; `pg` seulement
 pour Postgres, `@opentelemetry/api` seulement pour les mesures. Les exemples ci-dessous utilisent la forme du dépôt du
 moteur.
@@ -175,7 +175,7 @@ unique du joueur, et l’appeler remet, et consomme, la capacité du joueur.
 | `journal in use by process <pid> (…lock): one Bridge per journal` | Un autre Bridge (ou `compact`) tient le journal | L’arrêter ; si ce numéro de processus appartient désormais à un processus sans rapport après un plantage, regarder, puis supprimer le verrou |
 | `✖  … : not serving` | Une restauration ou une migration descendante tient le stockage (un bail de maintenance) | Attendre qu’elle se termine |
 | `✖  the leaderboards and the daily challenge keep their records in SQL: …` | Une section `runs` ou `daily` sur le journal | Passer à SQLite ([Stockages](#stores)) |
-| `✖  the Reality Bridge is a separate package: npm install quest-n-click-bridge` | Dans un projet créé, le paquet manque | L’installer à côté du moteur |
+| `✖  the Reality Bridge is a separate package: npm install @quest-n-click/bridge` | Dans un projet créé, le paquet manque | L’installer à côté du moteur |
 
 <a name="files-changed"></a>
 

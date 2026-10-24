@@ -19,7 +19,7 @@ describe('the versioned locks', () => {
   });
 
   it('a package the root lock does not resolve is pinned here, and moves only with a reviewed change', () => {
-    const connectors = (LOCKED as Entry[]).find((e) => e.name === 'quest-n-click-connectors')!;
+    const connectors = (LOCKED as Entry[]).find((e) => e.name === '@quest-n-click/connectors')!;
     const lock = read(connectors);
     lock.packages['node_modules/ssh2/node_modules/nan'].version = '2.30.0';
     expect(problems(connectors, lock).join()).toMatch(/nan: 2\.30\.0 is not in the root lock and not pinned/);
@@ -35,7 +35,7 @@ describe('the versioned locks', () => {
   });
 
   it('refuses a range changed without its lock, a package from elsewhere, a link', () => {
-    const bridge = (LOCKED as Entry[]).find((e) => e.name === 'quest-n-click-bridge')!;
+    const bridge = (LOCKED as Entry[]).find((e) => e.name === '@quest-n-click/bridge')!;
     const manifest = bridge.manifest(root);
     const lock = read(bridge);
     expect(lockProblems(lock, manifest)).toEqual([]);
@@ -51,7 +51,7 @@ describe('the versioned locks', () => {
   });
 
   it('a lock takes the release’s name and version only, nothing resolved again', () => {
-    const bridge = (LOCKED as Entry[]).find((e) => e.name === 'quest-n-click-bridge')!;
+    const bridge = (LOCKED as Entry[]).find((e) => e.name === '@quest-n-click/bridge')!;
     const manifest = bridge.manifest(root);
     const lock = read(bridge);
     const out = lockFor(lock, manifest);

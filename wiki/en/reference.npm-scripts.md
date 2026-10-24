@@ -28,7 +28,7 @@ All the commands run from the root folder of their project, the one that holds `
   [the engine repository](#repository) below. They work on the current game, `games/<id>/`: the `GAME` variable
   (`GAME=demo npm run dev`), else `package.json` → `"config": { "game": "demo" }`, else `demo`. How to choose it,
   and how `npm run game` keeps the editor in step: [create.working-loop](create.working-loop.md#choosing-the-game);
-- in a **created project** (made by `npx create-quest-n-click <folder>`), after `npm install`: only the eight scripts
+- in a **created project** (made by `npx @quest-n-click/create <folder>`), after `npm install`: only the eight scripts
   of [a created project](#project). Each calls the `quest-n-click` command of the installed engine; its other commands
   are in [reference.cli](reference.cli.md#quest-n-click).
 
@@ -859,7 +859,7 @@ The four connectors played end to end from their archive against a Bridge from i
 
 #### `npm run external-consumer`
 
-The four archives used as a third party uses them, on Linux, macOS and Windows (4.1.18): read (names, versions, licences, binaries, exports, dependencies), a game made on the older release moved to them (since 4.3.0 as its author would: the old `web-scumm` package uninstalled, `quest-n-click` installed, migrate, verify, build, its save and a new game played to the end through `quest-n-click/testing`), `create-quest-n-click`, the Bridge (SQLite, Postgres with `CONSUMER_PG_URL`) and a connector scenario (a pairing code, a signed letter accepted, its duplicate, a forged one refused); no module of the checkout. The candidate runs it on its own archives.
+The four archives used as a third party uses them, on Linux, macOS and Windows (4.1.18): read (names, versions, licences, binaries, exports, dependencies), a game made on the older release moved to them (since 4.3.0 as its author would: the old `web-scumm` package uninstalled, `quest-n-click` installed, migrate, verify, build, its save and a new game played to the end through `@quest-n-click/engine/testing`), `create-quest-n-click`, the Bridge (SQLite, Postgres with `CONSUMER_PG_URL`) and a connector scenario (a pairing code, a signed letter accepted, its duplicate, a forged one refused); no module of the checkout. The candidate runs it on its own archives.
 
 - Runs: `node scripts/external-consumer.mjs`
 - Usage: `npm run external-consumer -- [--tarballs=<dir>] [--from=4.1.17] [--dir=<folder>] [--keep]`
@@ -1229,7 +1229,7 @@ The documentation's source in `wiki/` (4.5.0, `tools/wiki.ts`): `check` validate
 
 ## Scripts of a created project
 
-Written by `quest-n-click create` (or `npx create-quest-n-click`) into the new project's `package.json`. Run them from the project's folder, after `npm install`: each calls the `quest-n-click` command of the installed engine.
+Written by `quest-n-click create` (or `npm init @quest-n-click`) into the new project's `package.json`. Run them from the project's folder, after `npm install`: each calls the `quest-n-click` command of the installed engine.
 
 <a name="project-dev"></a>
 

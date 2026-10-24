@@ -41,7 +41,7 @@ passe et dit `Biscuit not installed (only a Bridge needs it)` : un jeu qui ne fa
 besoin.
 
 La correction Python cite `requirements.txt` dans le dossier courant : dans un projet créé, le fichier est
-`node_modules/quest-n-click/requirements.txt`.
+`node_modules/@quest-n-click/engine/requirements.txt`.
 
 <a name="output"></a>
 
@@ -109,7 +109,7 @@ de côté avec les autres outils de test) : dans un projet neuf, la commande s'a
 soit :
 
 ```text
-Error [ERR_MODULE_NOT_FOUND]: Cannot find package 'playwright' imported from …/my-game/node_modules/quest-n-click/tools/doctor.ts
+Error [ERR_MODULE_NOT_FOUND]: Cannot find package 'playwright' imported from …/my-game/node_modules/@quest-n-click/engine/tools/doctor.ts
 ```
 
 Constaté le 23 octobre 2026 dans un projet créé depuis l'archive de la v4.4.0 ; le code de `main` est le même. Rien

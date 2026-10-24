@@ -38,7 +38,7 @@ ses commandes `build` et `release` existent depuis la 3.9.0 ; `npm start` est un
   Voir [Prérequis](install.requirements.md).
 - Python 3 avec les paquets de `requirements.txt` (Pillow d'abord) : `npm run assets` transforme `art/` et `audio/` en
   `public/assets`, et le `build` d'un projet créé le lance à chaque fois. Dans un projet créé, le fichier est
-  `node_modules/quest-n-click/requirements.txt`.
+  `node_modules/@quest-n-click/engine/requirements.txt`.
 - ffmpeg quand le jeu a des sons, des musiques ou des vidéos à encoder, et pour une release quand le jeu déclare une
   musique en stems (`validate --release` les mesure avec ffprobe).
 - Un jeu qui passe ses vérifications : [Vérifier son jeu](create.checking.md). La construction les relance et s'arrête
@@ -214,7 +214,7 @@ ajoutez-les-y.
 
 | Symptôme | Cause | Correction |
 |---|---|---|
-| `python3` introuvable, ou `No module named 'PIL'` | L'étape des assets demande Python 3 et Pillow | `pip install --require-hashes -r node_modules/quest-n-click/requirements.txt` (projet créé) ou `pip install --require-hashes -r requirements.txt` (dépôt du moteur) |
+| `python3` introuvable, ou `No module named 'PIL'` | L'étape des assets demande Python 3 et Pillow | `pip install --require-hashes -r node_modules/@quest-n-click/engine/requirements.txt` (projet créé) ou `pip install --require-hashes -r requirements.txt` (dépôt du moteur) |
 | `provenance.lock.json › missing: a release ships the files that were reviewed` | Pas encore de verrou | Relire les assets, puis les verrouiller (étape 3) |
 | Un placeholder refusé par `validate --release` | Les images du modèle sont toujours là | Les remplacer, ou les nommer dans `releaseExceptions` avec une raison (refusé par `--commercial`) |
 | `audio.scores › ffprobe not found` | Une release mesure les stems | Installer ffmpeg, puis `npx quest-n-click doctor` |
@@ -247,7 +247,7 @@ bloque pas arrête l'audit : le fichier ne peut pas survivre au mot qu'il excuse
 - `public/assets/` et `.cache/refs.json` : écrits par `assets` (commités dans le dépôt du moteur, pas dans un projet
   créé).
 - `games/<id>/data/` (dépôt du moteur) : le fichier de la fin scellée, écrit par `seal`.
-- Rien dans `node_modules/quest-n-click` : le moteur est lu, jamais écrit.
+- Rien dans `node_modules/@quest-n-click/engine` : le moteur est lu, jamais écrit.
 
 <a name="recovery"></a>
 

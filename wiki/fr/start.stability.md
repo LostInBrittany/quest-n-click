@@ -29,7 +29,7 @@ la promesse est faite, et une personne ne l’a pas encore confirmée sur de vra
 
 ## Ce qui est stable
 
-**L’API publique** ([API publique](engine.api.md)) : les entrées `quest-n-click/content`, `/player`, `/minigames`,
+**L’API publique** ([API publique](engine.api.md)) : les entrées `@quest-n-click/engine/content`, `/player`, `/minigames`,
 `/testing` et, depuis la 4.1.1, `/reality` ; le schéma d’écriture (`schemaVersion: 3`) ; l’enveloppe de sauvegarde ;
 les schémas des outils du Studio et du MCP ; et la commande `quest-n-click`. Tout le reste sous `src/engine` est
 interne : cela peut changer à n’importe quelle release, et un jeu qui y accède par l’alias `@engine/*` en prend le
@@ -237,7 +237,7 @@ mineure ajoute et une majeure retire.
 ### La ligne 4.1.x (D14, D18)
 
 À partir de la 4.1.1, le projet est resté sur la 4.1.x jusqu’à la 4.2. Jusqu’à la **4.1.7**, une release 4.1.x pouvait
-*ajouter* une entrée, un champ, une route, une commande, un hook ou un sous-objet facultatif (le `quest-n-click/reality`
+*ajouter* une entrée, un champ, une route, une commande, un hook ou un sous-objet facultatif (le `@quest-n-click/engine/reality`
 de la 4.1.1, les options du Bridge de la 4.1.2, `destroy` et les hooks de la 4.1.4, `sessions`, `camera` et `walker` de
 la 4.1.5, les deux commandes de la 4.1.6), jamais changer ni retirer un nom public ou un format : un jeu écrit pour
 l’une d’elles tourne sur toutes les suivantes jusqu’à la 4.1.7. **De la 4.1.8 à la 4.1.15, la ligne a été une ligne
@@ -275,7 +275,7 @@ pour un auteur : [État et sauvegardes](create.state-saves.md).
 ## Releases
 
 Chaque release est construite depuis le commit que son candidat a testé, porte ses licences dans l’archive, et joint
-un manifeste des assets, cinq SBOM CycloneDX (le moteur, `create-quest-n-click`, le Bridge, les connecteurs et l’image
+un manifeste des assets, cinq SBOM CycloneDX (le moteur, `@quest-n-click/create`, le Bridge, les connecteurs et l’image
 du Bridge, depuis la 4.1.19), les sommes SHA-256 et une attestation de provenance. Depuis la 4.2.0, les tags sont signés
 et les releases immuables : jamais remplacées une fois publiées. Ce que seules des personnes et de vrais appareils
 peuvent vérifier est indiqué dans ses notes. Comment on fait une release : [Publier une release](contribute.releasing.md).

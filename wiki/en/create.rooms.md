@@ -18,7 +18,7 @@ commands), talk topics, hints, an arrival script, the room's own scripts and lis
 ## A room, step by step
 
 ```ts
-import { defineRoom } from 'quest-n-click/content';
+import { defineRoom } from '@quest-n-click/engine/content';
 
 export default defineRoom({
   id: 'house',
@@ -92,7 +92,7 @@ export default defineRoom({
 
 This is an excerpt of a larger game: the `hook`, the `bucket`, the `rope` item and the `cat` character are declared
 elsewhere. In the engine repository, room files import `defineRoom` from `@engine/core/define` or from
-`quest-n-click/content`; both resolve to the same function, which only types the object.
+`@quest-n-click/engine/content`; both resolve to the same function, which only types the object.
 
 The same kind of room, complete and checked by the validator: a lamp, a stool to pull, Grandma with one topic, a hint,
 and its layout.

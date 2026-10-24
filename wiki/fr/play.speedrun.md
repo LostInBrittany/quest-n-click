@@ -40,7 +40,7 @@ n’a pas de ligne Speedrun ; le jeu de référence du dépôt du moteur (`games
 
 Le run lui-même ne demande aucune commande : il se passe dans le jeu. Les outils de diffusion sont de petits processus
 Node sur **votre propre machine**, jamais sur un serveur et jamais dans le jeu : dans le dépôt du moteur par `npm run`,
-ou dans un projet créé depuis le package du moteur qu’il a installé (`node_modules/quest-n-click/tools/speedrun/`).
+ou dans un projet créé depuis le package du moteur qu’il a installé (`node_modules/@quest-n-click/engine/tools/speedrun/`).
 
 <a name="steps"></a>
 
@@ -95,7 +95,7 @@ peut pas envoyer de faux temps.
 
    ```sh
    # dans un projet créé, sur votre machine
-   node node_modules/quest-n-click/tools/speedrun/overlay.mjs --port=7777 --origin=https://quest-n-click.cleverapps.io
+   node node_modules/@quest-n-click/engine/tools/speedrun/overlay.mjs --port=7777 --origin=https://quest-n-click.cleverapps.io
    ```
 
    Puis ouvrez le jeu à `https://…/?speedrunTool=7777`. Mettez l’adresse de votre jeu dans `--origin`.

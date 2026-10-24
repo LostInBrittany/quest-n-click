@@ -29,7 +29,7 @@ celle du Studio Server. Dans le dépôt du moteur, les mêmes outils se lancent 
 | Commande | Paquet | Ce que c'est |
 |---|---|---|
 | `quest-n-click` | `quest-n-click` | les outils du moteur pour un projet de jeu : `dev`, `studio`, `verify`, `build`, `release`… |
-| `create-quest-n-click` | `create-quest-n-click` | un nouveau projet de jeu (`npx create-quest-n-click my-game`) |
+| `create-quest-n-click` | `create-quest-n-click` | un nouveau projet de jeu (`npm init @quest-n-click my-game`) |
 | `quest-n-click-bridge` | `quest-n-click-bridge` | le Reality Bridge de référence seul, pour un jeu construit |
 | `quest-n-click-connector` | `quest-n-click-connectors` | un connecteur du monde extérieur (email, Telnet, SSH, Open Badges) |
 | `quest-n-click-studio-server` | `quest-n-click-studio-server` | le Studio en ligne pour une équipe, et ses commandes d'exploitation |
@@ -62,7 +62,7 @@ Pour en lancer un, donnez-lui d'abord un jeton du Bridge, puis démarrez-le :
 # dans le dépôt du moteur
 npm run bridge -- grant --connector=shed-telnet --source=terminal --signals=terminal.lamp --pair > telnet.token
 npm run connector -- telnet --config telnet.json
-# avec le paquet quest-n-click-connectors installé
+# avec le paquet @quest-n-click/connectors installé
 npx quest-n-click-connector telnet --config telnet.json
 ```
 
@@ -91,8 +91,8 @@ La section propre à chaque connecteur : [bridge.connectors](bridge.connectors.m
 
 Les outils du moteur pour un projet de jeu qui a installé le paquet (3.9 ; appelé `web-scumm` avant la 4.2.5, un alias pendant la 4.2.x, retiré en 4.3.0). `npx quest-n-click help` liste les commandes. Chaque commande lance un outil du paquet (avec `tsx` et le `tsconfig.json` du projet, sinon celui du paquet), Vite avec le `vite.config.ts` du paquet, ou Python pour les assets ; son code de sortie est celui de l'outil, et une suite d'étapes s'arrête à la première qui échoue, avec le code de cette étape.
 
-- Paquet : `quest-n-click`.
-- Où : dans le dossier d'un projet créé (`npx quest-n-click <commande>`, ou par les scripts npm du projet). Le projet est le dossier de travail (`WEB_SCUMM_PROJECT` le désigne à chaque outil) : il contient `game/`, `public/`, `dist/` et `.cache/` ; le moteur dans `node_modules/quest-n-click` est lu, jamais écrit.
+- Paquet : `@quest-n-click/engine`.
+- Où : dans le dossier d'un projet créé (`npx quest-n-click <commande>`, ou par les scripts npm du projet). Le projet est le dossier de travail (`WEB_SCUMM_PROJECT` le désigne à chaque outil) : il contient `game/`, `public/`, `dist/` et `.cache/` ; le moteur dans `node_modules/@quest-n-click/engine` est lu, jamais écrit.
 - Source : [`cli/quest-n-click.mjs`](../../cli/quest-n-click.mjs), [`tools/speedrun/verify.ts`](../../tools/speedrun/verify.ts).
 
 <a name="quest-n-click-help"></a>
@@ -112,7 +112,7 @@ Utilisation : `quest-n-click help`
 
 ### `quest-n-click create`
 
-Un nouveau projet de jeu depuis le modèle : lance `cli/create.mjs`, comme `npx create-quest-n-click` (sa section plus bas).
+Un nouveau projet de jeu depuis le modèle : lance `cli/create.mjs`, comme `npm init @quest-n-click` (sa section plus bas).
 
 Utilisation : `quest-n-click create <folder> ["Title"] [--engine=<npm spec>]`
 
@@ -180,7 +180,7 @@ Utilisation : `quest-n-click solve [--prove] [--from=<checkpoint>] [--chapters] 
 
 ### `quest-n-click bridge`
 
-Un Reality Bridge de référence pour le jeu (`tools/bridge.ts`) : la même ligne de commande que `quest-n-click-bridge` (plus bas), le manifeste du jeu pris dans son contenu. Dans un projet, le Bridge est le paquet séparé `quest-n-click-bridge` ; sans lui : `the Reality Bridge is a separate package: npm install quest-n-click-bridge`, sortie 1.
+Un Reality Bridge de référence pour le jeu (`tools/bridge.ts`) : la même ligne de commande que `quest-n-click-bridge` (plus bas), le manifeste du jeu pris dans son contenu. Dans un projet, le Bridge est le paquet séparé `quest-n-click-bridge` ; sans lui : `the Reality Bridge is a separate package: npm install @quest-n-click/bridge`, sortie 1.
 
 Utilisation : `quest-n-click bridge <init|serve|grant|rotate|revoke|doctor|compact|migrate|tenant|backup|restore> …`
 
@@ -323,10 +323,10 @@ Utilisation : `quest-n-click migrate [--check]`
 
 ## `create-quest-n-click`
 
-Le paquet `create-quest-n-click` dépend du moteur de la même version et lance son `cli/create.mjs` : comme `quest-n-click create`.
+Le paquet `@quest-n-click/create` dépend du moteur de la même version et lance son `cli/create.mjs` : comme `quest-n-click create`.
 
-- Paquet : `create-quest-n-click`.
-- Où : n'importe où : le dossier du nouveau projet est créé là où vous la lancez (`npx create-quest-n-click my-game`).
+- Paquet : `@quest-n-click/create`.
+- Où : n'importe où : le dossier du nouveau projet est créé là où vous la lancez (`npm init @quest-n-click my-game`).
 - Source : [`cli/create.mjs`](../../cli/create.mjs).
 
 <a name="create-usage"></a>
@@ -335,7 +335,7 @@ Le paquet `create-quest-n-click` dépend du moteur de la même version et lance 
 
 Écrit un projet de jeu dans `<dossier>` : `game/` depuis le modèle (un lieu, un héros, de l'art provisoire dessiné à partir de formes ; `__ID__` et `__TITLE__` remplis), `game/provenance.json` (l'art provisoire marqué comme tel, CC0, à remplacer avant une release), les icônes, `og.png` et polices de `public/` du moteur, un `package.json` dont les scripts appellent la commande du moteur, un `tsconfig.json` dont les chemins pointent dans le paquet installé, un `.gitignore` et un `README.md`. L'id est le nom du dossier en minuscules ; le titre, les mots suivants, sinon l'id en capitales. Ensuite : `cd <dossier> && npm install && npm run assets && npm run dev`.
 
-Utilisation : `npx create-quest-n-click <folder> ["Title"] [--engine=<npm spec>]`
+Utilisation : `npx @quest-n-click/create <folder> ["Title"] [--engine=<npm spec>]`
 
 | Option | Signifie |
 |---|---|
@@ -353,7 +353,7 @@ Utilisation : `npx create-quest-n-click <folder> ["Title"] [--engine=<npm spec>]
 
 Le Reality Bridge de référence seul (4.1.1 ; ses commandes de store en 4.1.10), pour un jeu déjà construit : `init --manifest=<jeu>/dist/reality-manifest.json`, puis `serve`. Un store se nomme `jsonl` (le journal à côté de `config.json`), `sqlite:<fichier>` (relatif au répertoire du Bridge ; `sqlite` seul vaut `bridge.sqlite`) ou `postgres://…` ; `--store=`, puis `BRIDGE_STORE`, puis `BRIDGE_STORE_FILE` (un fichier qui contient l'URL) remplacent celui de la configuration. Chaque secret créé par `init` est écrit sous `--dir`, jamais affiché. Les options s'écrivent `--clé=valeur` (les commandes du store acceptent aussi `--clé valeur`). Toute autre commande affiche la ligne d'utilisation, sortie 2.
 
-- Paquet : `quest-n-click-bridge`.
+- Paquet : `@quest-n-click/bridge`.
 - Où : sur la machine qui fait tourner le Bridge, dans le dossier qui contient son répertoire (`--dir`, par défaut `.cache/bridge`). Dans le dépôt du moteur, `npm run bridge -- <commande>` ; dans un projet, `npx quest-n-click bridge <commande>`, ou le paquet autonome pour un jeu construit.
 - Source : [`bridge/src/cli.ts`](../../bridge/src/cli.ts), [`bridge/src/cli-store.ts`](../../bridge/src/cli-store.ts).
 
@@ -548,9 +548,9 @@ Utilisation : `quest-n-click-bridge restore --from=<file> --mode=merge [--force]
 
 ## `quest-n-click-connector`
 
-Un connecteur du monde extérieur, dans son propre processus (4.1.9, expérimental). Installer le paquet sans code natif : `npm install --omit=optional --ignore-scripts quest-n-click-connectors`. Les options et codes de sortie ci-dessous valent pour chaque connecteur.
+Un connecteur du monde extérieur, dans son propre processus (4.1.9, expérimental). Installer le paquet sans code natif : `npm install --omit=optional --ignore-scripts @quest-n-click/connectors`. Les options et codes de sortie ci-dessous valent pour chaque connecteur.
 
-- Paquet : `quest-n-click-connectors`.
+- Paquet : `@quest-n-click/connectors`.
 - Où : sur une machine à côté du Bridge, dans le dossier de son fichier de configuration (ses chemins sont relatifs à ce fichier). Depuis le dépôt du moteur : `npm run connector -- <id> --config <fichier.json>`.
 - Source : [`connectors/src/run.ts`](../../connectors/src/run.ts), [`connectors/src/registry.ts`](../../connectors/src/registry.ts).
 
@@ -603,7 +603,7 @@ Utilisation : `quest-n-click-connector open-badge --config <file.json>`
 
 Le Studio Server (4.2.1) : un jeu, plusieurs personnes, en ligne. La commande lance `studio-server/src/server/main.ts` du moteur avec tsx, refusée (sortie 2) si le moteur manque ou n'est pas de la même version. Chaque commande sauf `login`, `token`, `deps` et `worker-keys` lit une configuration : `--config <fichier>`, sinon `STUDIO_CONFIG`, sinon `STUDIO_CONFIG_JSON` ; ses secrets viennent de `<NOM>_FILE` ou de l'environnement et le quittent avant toute exécution. Une erreur de configuration affiche `configuration: …`, sortie 1.
 
-- Paquet : `quest-n-click-studio-server`.
+- Paquet : `@quest-n-click/studio-server`.
 - Où : sur la machine du Studio Server (une application Clever Cloud, ou la vôtre), à côté du moteur de la même version (`npm install quest-n-click-<v>.tgz quest-n-click-studio-server-<v>.tgz`) ; dans le dépôt du moteur, `npm run studio-server -- <commande>`. `login` et `token` se lancent sur votre propre machine.
 - Source : [`studio-server/src/server/main.ts`](../../studio-server/src/server/main.ts), [`studio-server/src/ops/backup-bucket.ts`](../../studio-server/src/ops/backup-bucket.ts).
 
@@ -767,7 +767,7 @@ Utilisation : `quest-n-click-studio-server gc [--delete] --config <file>`
 
 L'application de traitement du Studio Server (4.2.1, ADR 0028) : elle exécute le code du jeu pour le Studio, un job à la fois par file, chacun dans un processus et un dossier neufs. Elle ne prend aucun argument : `WORKER_PUBLIC_KEY` (ou `WORKER_PUBLIC_KEY_FILE`), `WORKER_INSTANCE` et `PORT` (8080 par défaut, sur 0.0.0.0) la configurent.
 
-- Paquet : `quest-n-click-studio-server`.
+- Paquet : `@quest-n-click/studio-server`.
 - Où : sur sa propre machine (une application Clever Cloud à part), sans aucun secret de la plateforme ; dans le dépôt du moteur, `npm run studio-worker`.
 - Source : [`studio-server/src/worker/main.ts`](../../studio-server/src/worker/main.ts).
 

@@ -13,7 +13,7 @@ describe('the API pages carry the signatures of the code', () => {
   const block = signaturesWiki(rows, 'en');
   it('names every entry and more than a hundred exports', () => {
     for (const e of ['content', 'player', 'minigames', 'testing', 'reality'])
-      expect(block).toContain(`### quest-n-click/${e}`);
+      expect(block).toContain(`### @quest-n-click/engine/${e}`);
     expect(rows.length).toBeGreaterThan(100);
     expect(block.split('\n').filter((l) => l.startsWith('| `')).length).toBe(rows.length);
   });

@@ -76,7 +76,7 @@ and pushes its Git history. The build itself runs on Clever Cloud.
    # in the created project
    npm install sirv-cli@3
    npm pkg set scripts.start="sirv dist --host 0.0.0.0 --port \$PORT --maxage 3600"
-   clever env set CC_POST_BUILD_HOOK "python3 -m pip install --target .python --require-hashes -r node_modules/quest-n-click/requirements.txt && PYTHONPATH=.python npm run build"
+   clever env set CC_POST_BUILD_HOOK "python3 -m pip install --target .python --require-hashes -r node_modules/@quest-n-click/engine/requirements.txt && PYTHONPATH=.python npm run build"
    git add package.json package-lock.json && git commit -m "Serve dist/ on Clever Cloud"
    ```
 

@@ -174,8 +174,8 @@ entry, saved before it is acknowledged. The engine never touches the network: th
 
 ## Public and internal
 
-Public: `quest-n-click/content` (the types and `defineGame`), `quest-n-click/player` (boot), `quest-n-click/minigames`,
-`quest-n-click/testing` (`Engine`, the fakes, the save envelope, `solve`), `quest-n-click/reality` (since 4.1.1), the
+Public: `@quest-n-click/engine/content` (the types and `defineGame`), `@quest-n-click/engine/player` (boot), `@quest-n-click/engine/minigames`,
+`@quest-n-click/engine/testing` (`Engine`, the fakes, the save envelope, `solve`), `@quest-n-click/engine/reality` (since 4.1.1), the
 content format, the save envelope and the MCP tools, held by `tests/api-surface.json` and the support policy
 ([Stability and support](start.stability.md), [Public API](engine.api.md)). Internal: the modules behind the `Engine`
 and `App` facades (their members marked `@internal`), the solver's modules, the tools' code. Internal code may move

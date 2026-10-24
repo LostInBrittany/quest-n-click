@@ -23,7 +23,7 @@ Cette page sert à travailler **sur le moteur**. Pour faire un jeu avec un moteu
 - **Node.js 22.12 ou plus récent** (`engines` de `package.json` : `>=22.12`). Le `.nvmrc` du dépôt dit `22` : `nvm use`
   prend donc la 22 la plus récente que vous avez installée ; vérifiez qu'elle est au moins en 22.12. Le Studio, les
   outils qui écrivent un jeu et le Reality Bridge sur SQLite demandent **22.13 ou plus** (`node:sqlite`).
-- **Python 3** avec les modules de `requirements.txt` (Pillow 13.0.0, NumPy 2.4.6, SciPy 1.18.1) : les tests d'assets
+- **Python 3** avec les modules de `requirements.txt` (Pillow 13.0.0, NumPy 2.5.4, SciPy 1.18.1) : les tests d'assets
   et `npm run assets` s'en servent. La CI utilise Python 3.12.
 - **ffmpeg** (facultatif) : la création audio, et `validate --release`, qui mesure les stems de musique avec `ffprobe`.
 - Environ 2 Go de disque pour `node_modules` et les navigateurs.

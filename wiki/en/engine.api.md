@@ -15,8 +15,8 @@ the contract: [`tests/api-surface.json`](../../tests/api-surface.json) lists the
 major version). Everything else under `src/engine` is internal and may change in any release; the `@engine/*` alias
 still reaches it, without that promise.
 
-- **In a created project** the entries are `quest-n-click/content`, `quest-n-click/player`,
-  `quest-n-click/minigames`, `quest-n-click/testing` and, since 4.1.1, `quest-n-click/reality` (the package's
+- **In a created project** the entries are `@quest-n-click/engine/content`, `@quest-n-click/engine/player`,
+  `@quest-n-click/engine/minigames`, `@quest-n-click/engine/testing` and, since 4.1.1, `@quest-n-click/engine/reality` (the package's
   `exports`).
 - **In the engine repository** the same names resolve to [`src/engine/api/`](../../src/engine/api/).
 - The old names `web-scumm/content` and the others (before 4.2.5, decision D47) resolved through 4.2.x and are removed
@@ -32,7 +32,7 @@ below group the main names by what they are for, and leave some out (the IR and 
 
 <a name="content"></a>
 
-## `quest-n-click/content`: writing a game
+## `@quest-n-click/engine/content`: writing a game
 
 | Name | What |
 |---|---|
@@ -77,7 +77,7 @@ below group the main names by what they are for, and leave some out (the IR and 
 
 <a name="player"></a>
 
-## `quest-n-click/player`: starting the game in a page
+## `@quest-n-click/engine/player`: starting the game in a page
 
 | Name | What |
 |---|---|
@@ -94,7 +94,7 @@ below group the main names by what they are for, and leave some out (the IR and 
 
 <a name="minigames"></a>
 
-## `quest-n-click/minigames`: minigames as plugins
+## `@quest-n-click/engine/minigames`: minigames as plugins
 
 | Name | What |
 |---|---|
@@ -109,7 +109,7 @@ How to write one: [create.custom-minigame.md](create.custom-minigame.md).
 
 <a name="testing"></a>
 
-## `quest-n-click/testing`: a game's own tests
+## `@quest-n-click/engine/testing`: a game's own tests
 
 | Name | What |
 |---|---|
@@ -126,7 +126,7 @@ How to write one: [create.custom-minigame.md](create.custom-minigame.md).
 
 <a name="reality"></a>
 
-## `quest-n-click/reality`: signals from the world outside (4.1.1)
+## `@quest-n-click/engine/reality`: signals from the world outside (4.1.1)
 
 The signed signal and its verification, the client and its HTTP transport, the simulator, the manifest. A game with its
 own transport implements `WorldSignalPort`. What a game declares and how a Bridge checks it:
@@ -179,7 +179,7 @@ npm run wiki -- generate engine.api
 
 <a name="content-reference"></a>
 
-### quest-n-click/content
+### @quest-n-click/engine/content
 
 | Name | Signature | Stability | Doc |
 |---|---|---|---|
@@ -322,7 +322,7 @@ npm run wiki -- generate engine.api
 
 <a name="player-reference"></a>
 
-### quest-n-click/player
+### @quest-n-click/engine/player
 
 | Name | Signature | Stability | Doc |
 |---|---|---|---|
@@ -350,7 +350,7 @@ npm run wiki -- generate engine.api
 
 <a name="minigames-reference"></a>
 
-### quest-n-click/minigames
+### @quest-n-click/engine/minigames
 
 | Name | Signature | Stability | Doc |
 |---|---|---|---|
@@ -361,7 +361,7 @@ npm run wiki -- generate engine.api
 
 <a name="testing-reference"></a>
 
-### quest-n-click/testing
+### @quest-n-click/engine/testing
 
 | Name | Signature | Stability | Doc |
 |---|---|---|---|
@@ -412,7 +412,7 @@ npm run wiki -- generate engine.api
 
 <a name="reality-reference"></a>
 
-### quest-n-click/reality
+### @quest-n-click/engine/reality
 
 | Name | Signature | Stability | Doc |
 |---|---|---|---|

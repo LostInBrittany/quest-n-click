@@ -19,6 +19,9 @@
     "allowImportingTsExtensions": true,
     "resolveJsonModule": true,
     "paths": {
+      "@quest-n-click/engine/*": [
+        "./src/engine/api/*"
+      ],
       "quest-n-click/*": [
         "./src/engine/api/*"
       ],

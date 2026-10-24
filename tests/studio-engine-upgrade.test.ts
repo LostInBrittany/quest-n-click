@@ -317,7 +317,7 @@ describe("the engine's upgrade of a game still under the former name (4.3.0, D47
       what: expect.stringMatching(/schema 2 → 3/),
     });
     expect(await p.as('owner', () => p.studio.undo())).toEqual({ ok: false, reason: 'nothing to undo' });
-    expect(readFileSync(join(p.game, 'game.ts'), 'utf8')).toContain("from 'quest-n-click/content'");
+    expect(readFileSync(join(p.game, 'game.ts'), 'utf8')).toContain("from '@quest-n-click/engine/content'");
     expect(await judge(packSnapshot(p.game), { epoch: '', rev: rev + 3 })).toMatchObject({ ok: true });
   }, 120_000);
 
@@ -330,7 +330,10 @@ describe("the engine's upgrade of a game still under the former name (4.3.0, D47
       judge: unfinished,
       edit: (dir) => {
         for (const f of sourcesIn(dir))
-          writeFileSync(join(dir, f), readFileSync(join(dir, f), 'utf8').replaceAll("'quest-n-click/", "'web-scumm/"));
+          writeFileSync(
+            join(dir, f),
+            readFileSync(join(dir, f), 'utf8').replaceAll("'@quest-n-click/engine/", "'web-scumm/"),
+          );
       },
     });
     const rev3 = await three.journal.revision();
@@ -358,7 +361,7 @@ describe("the engine's upgrade of a game still under the former name (4.3.0, D47
     await expect(
       p.as('owner', () =>
         p.studio.writeFiles('back to the old name', [
-          { path: 'game.ts', after: gameTs.replaceAll("'quest-n-click/", "'web-scumm/") },
+          { path: 'game.ts', after: gameTs.replaceAll("'@quest-n-click/engine/", "'web-scumm/") },
         ]),
       ),
     ).rejects.toMatchObject({ status: 422, message: expect.stringMatching(/would no longer load/) });
@@ -398,7 +401,7 @@ describe("the engine's upgrade of a game still under the former name (4.3.0, D47
   it('renames the imports alone of a game already at schema 3', async () => {
     const dir = join(tmp, 'former-3');
     cpSync(join(ROOT, 'games', '_template'), dir, { recursive: true });
-    const index = readFileSync(join(dir, 'index.ts'), 'utf8').replaceAll("'quest-n-click/", "'web-scumm/");
+    const index = readFileSync(join(dir, 'index.ts'), 'utf8').replaceAll("'@quest-n-click/engine/", "'web-scumm/");
     writeFileSync(join(dir, 'index.ts'), index);
     const m = await localMigrate(packSnapshot(dir));
     expect(m).toEqual({ schema: { from: 3, to: 3 }, files: { 'index.ts': renameImports(index) }, skipped: [] });

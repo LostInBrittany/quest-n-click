@@ -2,7 +2,7 @@
 
 A connector turns something that happens outside the game (an email arrives, a command is typed on a terminal, a
 badge is shown) into one of the signals the game declares, and proposes it to the Reality Bridge. Four ship since
-4.1.9, in the package `quest-n-click-connectors`: **email**, **Telnet**, **SSH** and **Open Badges**. This page says
+4.1.9, in the package `@quest-n-click/connectors`: **email**, **Telnet**, **SSH** and **Open Badges**. This page says
 how they are built and run; each has its own page.
 
 <a name="overview"></a>
@@ -36,12 +36,12 @@ npm run connector -- telnet --config telnet.json
 ```
 
 ```sh
-# on a server, with the package quest-n-click-connectors installed
+# on a server, with the package @quest-n-click/connectors installed
 npx quest-n-click-connector telnet --config telnet.json
 ```
 
 The command is `quest-n-click-connector <email|telnet|ssh|open-badge> --config <file.json>`. Install the package
-without native code: `npm install --omit=optional --ignore-scripts quest-n-click-connectors`. The configuration names
+without native code: `npm install --omit=optional --ignore-scripts @quest-n-click/connectors`. The configuration names
 the Bridge and the file of the connector's token (never the token on the command line), the game, its limits, an
 optional health port, and a section named after the connector:
 

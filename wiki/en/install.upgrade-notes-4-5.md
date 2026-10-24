@@ -1,6 +1,7 @@
 # Upgrade notes: 4.5
 
-What 4.5.0 "Wiki" and 4.5.1 changed. Nothing to change in a game; the documentation moved.
+What 4.5.0 "Wiki", 4.5.1 and 4.5.2 changed. Nothing to change in a game up to 4.5.1 (the documentation moved); from
+4.5.2, `npx quest-n-click migrate` moves its imports to the scoped package names.
 
 The upgrade itself is [Upgrade](install.upgrade.md).
 
@@ -47,3 +48,54 @@ runs). The engine installs from `releases/download/v4.5.1/…`. What a game may 
   ([site.json](create.project-layout.md#site-json)).
 - **The documentation**: the fixes of the maintainer's wiki audit (links whose label is code, the first tutorial,
   saves, the support window, search). A link to a page or a section of 4.5.0 still lands.
+
+<a name="from-4-5-1-to-4-5-2"></a>
+<!-- applies: 4.5.2.. -->
+
+## From 4.5.1 to 4.5.2
+
+The engine's packages are named under the npm organisation's scope (D53): `quest-n-click` is `@quest-n-click/engine`,
+and `create-quest-n-click`, `quest-n-click-bridge`, `quest-n-click-connectors` and `quest-n-click-studio-server` are
+`@quest-n-click/create`, `@quest-n-click/bridge`, `@quest-n-click/connectors` and `@quest-n-click/studio-server`. The
+commands keep their names (`quest-n-click dev`, `npx quest-n-click migrate`, `npx quest-n-click-bridge serve`), and so
+do the release's files (`quest-n-click-4.5.2.tgz`, …). A game builds, plays and saves as on 4.5.1. What a created
+project changes:
+
+1. Install the new engine in place of the old package (the archive's package is now `@quest-n-click/engine`):
+
+   ```bash
+   # in the created project
+   npm uninstall quest-n-click
+   npm install https://github.com/Quest-n-Click/quest-n-click/releases/download/v4.5.2/quest-n-click-4.5.2.tgz
+   ```
+
+2. Let `migrate` move the rest, then check:
+
+   ```bash
+   # in the created project
+   npx quest-n-click migrate
+   npx quest-n-click migrate --check
+   npm install
+   npm run verify
+   ```
+
+   `migrate` renames the imports `quest-n-click/content`, `/player`, `/minigames`, `/testing`, `/reality` (and
+   `quest-n-click-bridge/cli`) to `@quest-n-click/engine/…` (`@quest-n-click/bridge/cli`) in every source file;
+   in `tsconfig.json`, the path `quest-n-click/*` and the `node_modules/quest-n-click/…` targets to
+   `@quest-n-click/engine`; in `package.json`, it drops a dependency on an unscoped package once its scoped name is
+   installed, and says which ones are left (`package.json depends on quest-n-click-bridge: npm uninstall
+   quest-n-click-bridge && npm install @quest-n-click/bridge`). It renames no command: the scripts stay as they are.
+
+- **Not migrated yet?** Through 4.5.x the unscoped imports `quest-n-click/…` still resolve, in a build (Vite) and in
+  the engine's own `tsconfig.json`, so a game that has not run `migrate` still builds; its own `tsconfig.json` still
+  points into `node_modules/quest-n-click`, which the new install removed, until `migrate` renames it.
+- **A hosted Studio** renames a game's unscoped imports itself, at the engine's upgrade, as it did for the
+  `web-scumm/…` ones ([Upgrade the hosted engine](team.upgrade-engine.md)).
+- **The Bridge, the connectors and the Studio Server** install from their archives as before; in `node_modules`
+  they are now under `@quest-n-click/` (`node_modules/@quest-n-click/bridge`, …).
+- **A Studio worker's build hook** installs `requirements.txt`, which now carries every hash (D54):
+  `python3 -m pip install --target .python --require-hashes --only-binary=:all: -r
+  node_modules/@quest-n-click/engine/requirements.txt`. `ops/studio/worker-requirements.lock` is gone: a hook that
+  names it fails until it is changed ([First deployment](clever.first-deployment.md)).
+- **npm** still has no version of the product: the scoped names hold a reservation, the unscoped ones become
+  deprecated pointers ([Install from npm, once published](install.from-npm.md)).

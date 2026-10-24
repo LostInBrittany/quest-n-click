@@ -37,7 +37,7 @@ Speedrun row; the reference game in the engine repository (`games/reference`) de
 
 The run itself needs no command: it happens in the game. The streaming tools are small Node processes on **your own
 machine**, never on a server and never in the game: in the engine repository through `npm run`, or in a created
-project from the engine package it installed (`node_modules/quest-n-click/tools/speedrun/`).
+project from the engine package it installed (`node_modules/@quest-n-click/engine/tools/speedrun/`).
 
 <a name="steps"></a>
 
@@ -88,7 +88,7 @@ browser cannot post fake splits.
 
    ```sh
    # in a created project, on your machine
-   node node_modules/quest-n-click/tools/speedrun/overlay.mjs --port=7777 --origin=https://quest-n-click.cleverapps.io
+   node node_modules/@quest-n-click/engine/tools/speedrun/overlay.mjs --port=7777 --origin=https://quest-n-click.cleverapps.io
    ```
 
    Then open the game at `https://…/?speedrunTool=7777`. Use your game's own address in `--origin`.
