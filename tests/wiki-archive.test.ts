@@ -118,7 +118,7 @@ describe('the archive', () => {
       `href="https://github.com/Quest-n-Click/quest-n-click/blob/${'c'.repeat(40)}/src/engine/core/save.ts#L1"`,
     );
     expect(html).toContain('<img src="../assets/room.png" alt="A room" title="The hall" loading="lazy">');
-    expect(html).toContain('<link rel="canonical" href="https://quest-n-click.cleverapps.io/en/docs/create.rooms">');
+    expect(html).toContain('<link rel="canonical" href="https://quest-n-click.cleverapps.io/docs/create.rooms">');
     // A page not published keeps its text and says it is coming.
     expect(html).toContain('the DSL (coming)');
     // The anchors are the source's ids, in every output.
@@ -127,7 +127,7 @@ describe('the archive', () => {
     expect(text(files, 'html/sitemap.xml')).toContain(
       '<loc>https://quest-n-click.cleverapps.io/fr/docs/create.exits</loc>',
     );
-    expect(text(files, 'html/llms.txt')).toContain('https://quest-n-click.cleverapps.io/en/docs/create.rooms');
+    expect(text(files, 'html/llms.txt')).toContain('https://quest-n-click.cleverapps.io/docs/create.rooms');
     // The wiki's own links: public URLs, the footer says current and where the permalinks are.
     expect(text(files, 'wiki/en/EN-Create-Rooms.md')).toContain('[a door](EN-Create-Exits#doors)');
     expect(text(files, 'wiki/_Footer.md')).toContain("quest'n'click 4.5.0 r1");
@@ -137,7 +137,7 @@ describe('the archive', () => {
     const r2 = readArchive(buildArchive(options({ revision: 'r2' })).bytes);
     expect(r2.manifest.docRevisionNumber).toBe('r2');
     expect(text(r2.files, 'html/sitemap.xml')).toContain(
-      '<loc>https://quest-n-click.cleverapps.io/en/docs/create.rooms</loc>',
+      '<loc>https://quest-n-click.cleverapps.io/docs/create.rooms</loc>',
     );
     expect(text(r2.files, 'html/sitemap.xml')).not.toMatch(/\/docs\/4\.5\.0\//);
     expect(text(r2.files, 'html/en/create.rooms.html')).toContain("quest'n'click 4.5.0 · r2");

@@ -120,7 +120,7 @@ l'étiquette, puis poussez (elle s'applique au run suivant).
 Depuis la 4.5.2, la `ci` du moteur ne déploie plus GitHub Pages (D52). Le site web du projet, `https://quest-n-click.cleverapps.io` (le dépôt
 `Quest-n-Click/quest-n-click-site`), sert la démo sous `/demo/` depuis le `quest-n-click-v<version>-web.tar.gz` de la
 dernière release (construit par le candidat sous `BASE_PATH=/demo/`, sommé et attesté par la release) et la dernière
-documentation sous `/<lang>/docs/<id de page>` ; il n'y a plus de documentation versionnée en ligne, la documentation
+documentation sous `/docs/<id de page>` (`/fr/docs/<id de page>` en français) ; il n'y a plus de documentation versionnée en ligne, la documentation
 d'une version est le `quest-n-click-docs-<version>.tar.gz` de sa release. Le site prend une release de lui-même (son
 `POST /api/revalidate`, sinon toutes les heures). Le job `pages` et les runs `pages-only` que lançait `docs-publish`
 (de la 4.5.0 à la 4.5.1) ont disparu.

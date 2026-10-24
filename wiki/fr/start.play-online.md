@@ -14,7 +14,7 @@ modifications gardées dans votre navigateur seulement.
 ## Contexte et versions
 
 Le site web du projet, `https://quest-n-click.cleverapps.io` (le dépôt `Quest-n-Click/quest-n-click-site`, hébergé chez Clever Cloud) : le
-jeu sous `/demo/`, la démo du Studio sous `/demo/studio.html`, la dernière documentation sous `/<lang>/docs`. La démo
+jeu sous `/demo/`, la démo du Studio sous `/demo/studio.html`, la dernière documentation sous `/fr/docs` (`/docs` en anglais). La démo
 est le `quest-n-click-v<version>-web.tar.gz` de la dernière release, vérifié contre les sommes de la release : une
 version publiée, pas `main`. Depuis la 4.5.2 ; avant, la démo était sur GitHub Pages, à `wanoo.github.io/quest-n-click`
 (de la 4.2.5 à la 4.5.1) et `wanoo.github.io/web-scumm`, abandonné.

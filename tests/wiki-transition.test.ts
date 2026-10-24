@@ -77,9 +77,9 @@ describe('a transition page', () => {
     const en = pages.get('docs/en/GUIDE.md')!;
     expect(en.split('\n')[0]).toMatch(TRANSITION_LINE);
     expect(en).toContain(
-      '[Rooms › walkable-zones](https://quest-n-click.cleverapps.io/en/docs/create.rooms#walkable-zones)',
+      '[Rooms › walkable-zones](https://quest-n-click.cleverapps.io/docs/create.rooms#walkable-zones)',
     );
-    expect(en).toContain('[Exits](https://quest-n-click.cleverapps.io/en/docs/create.exits)');
+    expect(en).toContain('[Exits](https://quest-n-click.cleverapps.io/docs/create.exits)');
     expect(en).toContain(
       '[The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/GUIDE.md#setup-1)',
     );
@@ -109,7 +109,7 @@ describe('a transition page', () => {
     const page = readFileSync(join(root, 'docs', 'en', 'GUIDE.md'), 'utf8');
     expect(TRANSITION_LINE.exec(page)?.[1]).toBe('4.7.1');
     expect(page).toContain('(written for version 4.7.1)');
-    expect(page).toContain('https://quest-n-click.cleverapps.io/en/docs/');
+    expect(page).toContain('https://quest-n-click.cleverapps.io/docs/');
   });
 
   it('keeps a heading that ended on an HTML tag with its trailing `-`', () => {

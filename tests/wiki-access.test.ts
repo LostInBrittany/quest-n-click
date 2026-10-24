@@ -290,7 +290,7 @@ describe('read_doc by id', () => {
     writeBundle({ ...bundleOpts(join(local, 'docs-bundle')), buildId: 'local-a7' });
     const l = readDocById(resolveDocs(local), { id: 'team.write-refused-423' }).structured.url!;
     expect(l.versioned).toBeNull();
-    expect(l.current).toBe('https://quest-n-click.cleverapps.io/en/docs/team.write-refused-423');
+    expect(l.current).toBe('https://quest-n-click.cleverapps.io/docs/team.write-refused-423');
   });
 
   it('gives maxChars at a time and a cursor for the rest; a cursor of another request is stale', () => {

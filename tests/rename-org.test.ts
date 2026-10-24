@@ -22,14 +22,24 @@ describe('the addresses after the transfer to the organization and the move to t
       // A page of a version's documentation, on either Pages address: the same page of the website's latest docs.
       [
         'https://wanoo.github.io/quest-n-click/docs/4.5.1/r1/en/create.rooms.html',
-        'https://quest-n-click.cleverapps.io/en/docs/create.rooms',
+        'https://quest-n-click.cleverapps.io/docs/create.rooms',
       ],
       [
         '(https://quest-n-click.github.io/docs/4.5.0/fr/create.exits.html#walkable-zones)',
         '(https://quest-n-click.cleverapps.io/fr/docs/create.exits#walkable-zones)',
       ],
       // No page named: the docs' index, in the address's language, else the file's.
-      ["'https://wanoo.github.io/quest-n-click/docs'", "'https://quest-n-click.cleverapps.io/en/docs'"],
+      ["'https://wanoo.github.io/quest-n-click/docs'", "'https://quest-n-click.cleverapps.io/docs'"],
+      // English is the website's unprefixed form: a link written with /en/ loses it, French keeps /fr/.
+      [
+        'https://quest-n-click.cleverapps.io/en/docs/create.rooms#walkable-zones',
+        'https://quest-n-click.cleverapps.io/docs/create.rooms#walkable-zones',
+      ],
+      ['(https://quest-n-click.cleverapps.io/en/docs)', '(https://quest-n-click.cleverapps.io/docs)'],
+      [
+        'https://quest-n-click.cleverapps.io/fr/docs/create.rooms',
+        'https://quest-n-click.cleverapps.io/fr/docs/create.rooms',
+      ],
       ['https://quest-n-click.github.io/docs/4.5.1/fr/.', 'https://quest-n-click.cleverapps.io/fr/docs.'],
       [
         'https://quest-n-click.github.io/docs/publication.json',
@@ -88,7 +98,13 @@ describe('the addresses after the transfer to the organization and the move to t
     // The candidates by a plain pattern, then each file read with the script's own (git grep -P is not everywhere).
     const hits = execFileSync(
       'git',
-      ['grep', '-l', '-E', '-e', 'wanoo(\\.github\\.io/|/|%2F)quest-n-click|quest-n-click\\.github\\.io'],
+      [
+        'grep',
+        '-l',
+        '-E',
+        '-e',
+        'wanoo(\\.github\\.io/|/|%2F)quest-n-click|quest-n-click\\.github\\.io|cleverapps\\.io/en/',
+      ],
       {
         encoding: 'utf8',
       },

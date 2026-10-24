@@ -118,7 +118,7 @@ the next run).
 Since 4.5.2 the engine's `ci` deploys no GitHub Pages (D52). The project's website, `https://quest-n-click.cleverapps.io` (the repository
 `Quest-n-Click/quest-n-click-site`), serves the demo at `/demo/` from the latest release's
 `quest-n-click-v<version>-web.tar.gz` (built by the candidate under `BASE_PATH=/demo/`, summed and attested by the
-release) and the latest documentation at `/<lang>/docs/<page id>`; there is no versioned documentation online, a
+release) and the latest documentation at `/docs/<page id>` (`/fr/docs/<page id>` in French); there is no versioned documentation online, a
 version's documentation is its release's `quest-n-click-docs-<version>.tar.gz`. The website picks a release up by
 itself (its `POST /api/revalidate`, hourly otherwise). The `pages` job and the `pages-only` runs that `docs-publish`
 started (4.5.0 to 4.5.1) are gone.

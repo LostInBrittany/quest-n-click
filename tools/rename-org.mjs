@@ -2,11 +2,13 @@
 // node tools/rename-org.mjs [--check] (4.5.2 "Org", D51, D52): the repository moved from the user wanoo to the
 // Quest-n-Click organization, and the project's site from GitHub Pages (wanoo.github.io/quest-n-click, then briefly
 // quest-n-click.github.io, abandoned) to its website, https://quest-n-click.cleverapps.io (the demo under /demo/, the
-// latest documentation under /<lang>/docs/<page id>). This script rewrites the addresses in every tracked text file,
+// latest documentation under /docs/<page id>, /fr/docs/<page id> in French). This script rewrites the addresses in every tracked text file,
 // the same way each time:
 //   - a page of a version's documentation, …/docs/<v>/[r<n>/]<lang>/<id>.html#<section> (either Pages address) →
-//     https://quest-n-click.cleverapps.io/<lang>/docs/<id>#<section>; any other …/docs/… → /<lang>/docs (the file's
-//     language when the address names none); …/docs/publication.json → the record in the wiki's repository;
+//     https://quest-n-click.cleverapps.io/docs/<id>#<section> in English, …/fr/docs/<id>#<section> in French (the
+//     site's canonical forms; a link to the website's `/en/docs` loses that prefix too); any other
+//     …/docs/… → the docs' index in the address's language, else the file's; …/docs/publication.json → the record
+//     in the wiki's repository;
 //   - …/studio.html → https://quest-n-click.cleverapps.io/demo/studio.html, and any other page of the old site, the
 //     game, → …/demo/…; quest-n-click.github.io alone → the website;
 //   - github.com/wanoo/quest-n-click, and `wanoo/quest-n-click` in a `-R` or a repository string (or URL-encoded,
@@ -62,20 +64,26 @@ export const KEEP = {
   'wiki/fr/start.what-it-is.md': ['(`wanoo/quest-n-click`, `wanoo/web-scumm`)', 'et `wanoo.github.io/quest-n-click`'],
 };
 
-/** The project's website (D52): the demo at /demo/, the latest documentation at /<lang>/docs/<page id>. */
+/** The project's website (D52): the demo at /demo/, the latest documentation at /docs/<page id> (English, unprefixed) and /fr/docs/<page id>. */
 export const SITE_URL = 'https://quest-n-click.cleverapps.io';
 /** Where docs-publish keeps the publication record now that GitHub Pages is abandoned: the wiki's repository. */
 const PUBLICATION_URL = 'https://raw.githubusercontent.com/wiki/Quest-n-Click/quest-n-click/publication.json';
 
 /** What an old address looks like; `renameText` leaves none outside what it keeps. */
 export const OLD =
-  /wanoo\.github\.io\/quest-n-click(?![\w-])|(?<![\w.-])(?<!\w\/)quest-n-click\.github\.io(?![\w-])|(?:(?<![\w.-])|(?<=%3A))wanoo(?:\/|%2F)quest-n-click(?![\w-])/;
+  /quest-n-click\.cleverapps\.io\/en\/docs(?![\w-])|wanoo\.github\.io\/quest-n-click(?![\w-])|(?<![\w.-])(?<!\w\/)quest-n-click\.github\.io(?![\w-])|(?:(?<![\w.-])|(?<=%3A))wanoo(?:\/|%2F)quest-n-click(?![\w-])/;
 
 // Either Pages address: the user's (4.2.5 to 4.5.1) and the organization's (abandoned, 4.5.2, D52); its path to the
 // first character a link or a sentence ends with.
 const SITE =
   /(https?:\/\/)?(?:(wanoo\.github\.io\/quest-n-click)|(?<![\w.-])(?<!\w\/)(quest-n-click\.github\.io)(\/play)?)(?![\w-])(\/[^\s)"'`<>\]|]*)?/g;
 const REPO = /(?:(?<![\w.-])|(?<=%3A))wanoo(\/|%2F)quest-n-click(?![\w-])/g;
+
+/** The website's language prefix: none for English (its canonical form, D52), `/fr` for French. */
+const prefix = (lang) => (lang === 'en' ? '' : `/${lang}`);
+
+/** An address of the website that names English with a prefix: `/en/docs` redirects to `/docs`, never written. */
+const SITE_EN = /((?:https?:\/\/)?quest-n-click\.cleverapps\.io)\/en\/docs(?![\w-])/g;
 
 /** An old site's address on the website: `scheme` kept or not, `path` after the host (and after /play). */
 function onSite(scheme, path, lang, root) {
@@ -86,8 +94,8 @@ function onSite(scheme, path, lang, root) {
     if (/^\/docs\/publication\.json$/.test(p)) return PUBLICATION_URL + trail;
     // A page of a version's documentation is the same page of the latest one; anything else, the docs' index.
     const page = /^\/docs\/(?:[^/#]+\/)*?(en|fr)\/([\w.-]+?)\.html(#[\w.-]*)?$/.exec(p);
-    if (page) return `${host}/${page[1]}/docs/${page[2]}${page[3] ?? ''}${trail}`;
-    return `${host}/${/\/(en|fr)(?:\/|$)/.exec(p)?.[1] ?? lang}/docs${trail}`;
+    if (page) return `${host}${prefix(page[1])}/docs/${page[2]}${page[3] ?? ''}${trail}`;
+    return `${host}${prefix(/\/(en|fr)(?:\/|$)/.exec(p)?.[1] ?? lang)}/docs${trail}`;
   }
   if (root && !p) return host + trail;
   const rest = p.replace(/^\//, '');
@@ -109,7 +117,8 @@ export function renameText(text, keep = [], lang = 'en') {
   }
   return text
     .replace(SITE, (_m, scheme = '', _user, org, play, path = '') => onSite(scheme, path, lang, Boolean(org) && !play))
-    .replace(REPO, (_m, sep) => `Quest-n-Click${sep}quest-n-click`);
+    .replace(REPO, (_m, sep) => `Quest-n-Click${sep}quest-n-click`)
+    .replace(SITE_EN, '$1/docs');
 }
 
 /** The language of a file's documentation links: French under a `fr/` folder or in a `.fr.md`. */

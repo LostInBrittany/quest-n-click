@@ -4,19 +4,19 @@
 
 > This page moved to the quest'n'click documentation. Each section below links to its new place in the latest documentation, on the project's website (written for version 4.5.1); the complete 4.4.0 page stays readable at [https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/ROADMAP.md](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/ROADMAP.md).
 
-Now in: [Roadmap › overview](https://quest-n-click.cleverapps.io/en/docs/start.roadmap#overview) · [The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/ROADMAP.md#roadmap-from-v13-to-the-41x-line-and-42)
+Now in: [Roadmap › overview](https://quest-n-click.cleverapps.io/docs/start.roadmap#overview) · [The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/ROADMAP.md#roadmap-from-v13-to-the-41x-line-and-42)
 
 ## Context
 
-Now in: [Roadmap › context](https://quest-n-click.cleverapps.io/en/docs/start.roadmap#context) · [The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/ROADMAP.md#context)
+Now in: [Roadmap › context](https://quest-n-click.cleverapps.io/docs/start.roadmap#context) · [The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/ROADMAP.md#context)
 
 ## Our take on the audit \(kept, changed\)
 
-Now in: [Roadmap › audit](https://quest-n-click.cleverapps.io/en/docs/start.roadmap#audit) · [The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/ROADMAP.md#our-take-on-the-audit-kept-changed)
+Now in: [Roadmap › audit](https://quest-n-click.cleverapps.io/docs/start.roadmap#audit) · [The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/ROADMAP.md#our-take-on-the-audit-kept-changed)
 
 ## Design principles \(every milestone\)
 
-Now in: [Roadmap › principles](https://quest-n-click.cleverapps.io/en/docs/start.roadmap#principles) · [The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/ROADMAP.md#design-principles-every-milestone)
+Now in: [Roadmap › principles](https://quest-n-click.cleverapps.io/docs/start.roadmap#principles) · [The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/ROADMAP.md#design-principles-every-milestone)
 
 ## Milestones
 
@@ -56,11 +56,11 @@ Removed: shipped; its history is the git tag v2.3.0 (CHANGELOG.md starts at 3.0.
 
 ## v2.4 "Author" \(shipped\): the story against the game, the cutscene against the clock
 
-Now in: [Roadmap › open-items](https://quest-n-click.cleverapps.io/en/docs/start.roadmap#open-items) · [The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/ROADMAP.md#v24-author-shipped-the-story-against-the-game-the-cutscene-against-the-clock)
+Now in: [Roadmap › open-items](https://quest-n-click.cleverapps.io/docs/start.roadmap#open-items) · [The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/ROADMAP.md#v24-author-shipped-the-story-against-the-game-the-cutscene-against-the-clock)
 
 ## v2.5 "Sound" \(shipped\): music and effects from one palette
 
-Now in: [Roadmap › open-items](https://quest-n-click.cleverapps.io/en/docs/start.roadmap#open-items) · [What quest'n'click does not do](https://quest-n-click.cleverapps.io/en/docs/index.not-supported) · [The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/ROADMAP.md#v25-sound-shipped-music-and-effects-from-one-palette)
+Now in: [Roadmap › open-items](https://quest-n-click.cleverapps.io/docs/start.roadmap#open-items) · [What quest'n'click does not do](https://quest-n-click.cleverapps.io/docs/index.not-supported) · [The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/ROADMAP.md#v25-sound-shipped-music-and-effects-from-one-palette)
 
 ## v3 "Trust" \(shipped 4 October 2026\): the engine you can trust a long game to
 
@@ -80,7 +80,7 @@ Removed: shipped; its history is CHANGELOG.md § 3.2.0 (and 3.2.1, 3.2.2); the f
 
 ## v3.3 "Scale" \(5 October 2026\): prove multi-character games, close the production contracts
 
-Now in: [Roadmap › open-items](https://quest-n-click.cleverapps.io/en/docs/start.roadmap#open-items) · [The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/ROADMAP.md#v33-scale-5-october-2026-prove-multi-character-games-close-the-production-contracts)
+Now in: [Roadmap › open-items](https://quest-n-click.cleverapps.io/docs/start.roadmap#open-items) · [The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/ROADMAP.md#v33-scale-5-october-2026-prove-multi-character-games-close-the-production-contracts)
 
 ## v3.3.1 "Truth" \(5 October 2026\): what 3.3.0 promised, made exact
 
@@ -88,11 +88,11 @@ Removed: shipped; its history is CHANGELOG.md § 3.3.1, LOG #55; the full text s
 
 ## v3.4 "Stagecraft" \(5 October 2026\): picture, scene and Studio
 
-Now in: [Roadmap › open-items](https://quest-n-click.cleverapps.io/en/docs/start.roadmap#open-items) · [The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/ROADMAP.md#v34-stagecraft-5-october-2026-picture-scene-and-studio)
+Now in: [Roadmap › open-items](https://quest-n-click.cleverapps.io/docs/start.roadmap#open-items) · [The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/ROADMAP.md#v34-stagecraft-5-october-2026-picture-scene-and-studio)
 
 ## v3.5 "Score" \(5 October 2026\): music, workers, inventories
 
-Now in: [Roadmap › open-items](https://quest-n-click.cleverapps.io/en/docs/start.roadmap#open-items) · [The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/ROADMAP.md#v35-score-5-october-2026-music-workers-inventories)
+Now in: [Roadmap › open-items](https://quest-n-click.cleverapps.io/docs/start.roadmap#open-items) · [The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/ROADMAP.md#v35-score-5-october-2026-music-workers-inventories)
 
 ## v3.5.1 "Cue" \(5 October 2026\): the review's fixes
 
@@ -100,7 +100,7 @@ Removed: shipped; its history is CHANGELOG.md § 3.5.1, LOG #75–#78; the full 
 
 ## v3.6 "Production" \(5 October 2026\): the rest of the 3.5.0 review
 
-Now in: [Roadmap › open-items](https://quest-n-click.cleverapps.io/en/docs/start.roadmap#open-items) · [The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/ROADMAP.md#v36-production-5-october-2026-the-rest-of-the-350-review)
+Now in: [Roadmap › open-items](https://quest-n-click.cleverapps.io/docs/start.roadmap#open-items) · [The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/ROADMAP.md#v36-production-5-october-2026-the-rest-of-the-350-review)
 
 ## v3.6.1 "Audio truth" \(5 October 2026\): the 3.6.0 review's fixes
 
@@ -108,7 +108,7 @@ Removed: shipped; its history is CHANGELOG.md § 3.6.1, LOG #86–#87; the full 
 
 ## v3.7 "Field Proof" \(5 October 2026\): what can be proved without a person
 
-Now in: [Roadmap › open-items](https://quest-n-click.cleverapps.io/en/docs/start.roadmap#open-items) · [The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/ROADMAP.md#v37-field-proof-5-october-2026-what-can-be-proved-without-a-person)
+Now in: [Roadmap › open-items](https://quest-n-click.cleverapps.io/docs/start.roadmap#open-items) · [The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/ROADMAP.md#v37-field-proof-5-october-2026-what-can-be-proved-without-a-person)
 
 ## v3.7.1 "Artifact Truth" \(5 October 2026\): the review of 3.7.0
 
@@ -120,7 +120,7 @@ Removed: shipped; its history is CHANGELOG.md § 3.8.0, § 3.9.0 and § 4.0.0, L
 
 ## v4.0 "Stable Platform" \(5 October 2026\)
 
-Now in: [Roadmap › open-items](https://quest-n-click.cleverapps.io/en/docs/start.roadmap#open-items) · [The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/ROADMAP.md#v40-stable-platform-5-october-2026)
+Now in: [Roadmap › open-items](https://quest-n-click.cleverapps.io/docs/start.roadmap#open-items) · [The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/ROADMAP.md#v40-stable-platform-5-october-2026)
 
 ## v4.1.0 "Clarity" \(shipped 6 October 2026, D14\): easier to read, review and contribute to
 
@@ -144,23 +144,23 @@ Removed: shipped; its history is CHANGELOG.md § 4.1.4, LOG #100; the full text 
 
 ## v4.1.5 "Real Core" \(shipped 6 October 2026\): the split that 4.1.0 announced
 
-Now in: [Roadmap › open-items](https://quest-n-click.cleverapps.io/en/docs/start.roadmap#open-items) · [The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/ROADMAP.md#v415-real-core-shipped-6-october-2026-the-split-that-410-announced)
+Now in: [Roadmap › open-items](https://quest-n-click.cleverapps.io/docs/start.roadmap#open-items) · [The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/ROADMAP.md#v415-real-core-shipped-6-october-2026-the-split-that-410-announced)
 
 ## v4.1.6 "Studio Tool" \(shipped 6 October 2026\): what a studio touches every day
 
-Now in: [Roadmap › open-items](https://quest-n-click.cleverapps.io/en/docs/start.roadmap#open-items) · [The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/ROADMAP.md#v416-studio-tool-shipped-6-october-2026-what-a-studio-touches-every-day)
+Now in: [Roadmap › open-items](https://quest-n-click.cleverapps.io/docs/start.roadmap#open-items) · [The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/ROADMAP.md#v416-studio-tool-shipped-6-october-2026-what-a-studio-touches-every-day)
 
 ## v4.1.7 "Docs for a Studio" \(shipped 6 October 2026\): the documentation a studio reads first
 
-Now in: [Roadmap › open-items](https://quest-n-click.cleverapps.io/en/docs/start.roadmap#open-items) · [The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/ROADMAP.md#v417-docs-for-a-studio-shipped-6-october-2026-the-documentation-a-studio-reads-first)
+Now in: [Roadmap › open-items](https://quest-n-click.cleverapps.io/docs/start.roadmap#open-items) · [The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/ROADMAP.md#v417-docs-for-a-studio-shipped-6-october-2026-the-documentation-a-studio-reads-first)
 
 ## v4.1.8 "Foundation Reset" \(shipped 7 October 2026\): the foundation modernised, the gates made to block
 
-Now in: [Roadmap › open-items](https://quest-n-click.cleverapps.io/en/docs/start.roadmap#open-items) · [The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/ROADMAP.md#v418-foundation-reset-shipped-7-october-2026-the-foundation-modernised-the-gates-made-to-block)
+Now in: [Roadmap › open-items](https://quest-n-click.cleverapps.io/docs/start.roadmap#open-items) · [The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/ROADMAP.md#v418-foundation-reset-shipped-7-october-2026-the-foundation-modernised-the-gates-made-to-block)
 
 ## v4.4.0 "Author's Desk" \(shipped October 2026\): making a whole game simpler
 
-Now in: [Roadmap › open-items](https://quest-n-click.cleverapps.io/en/docs/start.roadmap#open-items) · [The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/ROADMAP.md#v440-authors-desk-shipped-october-2026-making-a-whole-game-simpler)
+Now in: [Roadmap › open-items](https://quest-n-click.cleverapps.io/docs/start.roadmap#open-items) · [The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/ROADMAP.md#v440-authors-desk-shipped-october-2026-making-a-whole-game-simpler)
 
 ## v4.3.1 "Voices by Language" \(shipped October 2026\): a patch after an outside reading
 
@@ -168,7 +168,7 @@ Removed: shipped; its history is CHANGELOG.md § 4.3.1, LOG #254–#255; the ful
 
 ## v4.3.0 "Hero Choice" \(shipped October 2026\): the player chooses the hero
 
-Now in: [Roadmap › open-items](https://quest-n-click.cleverapps.io/en/docs/start.roadmap#open-items) · [The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/ROADMAP.md#v430-hero-choice-shipped-october-2026-the-player-chooses-the-hero)
+Now in: [Roadmap › open-items](https://quest-n-click.cleverapps.io/docs/start.roadmap#open-items) · [The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/ROADMAP.md#v430-hero-choice-shipped-october-2026-the-player-chooses-the-hero)
 
 ## v4.2.5 "quest'n'click" \(shipped October 2026\): the new name
 
@@ -192,7 +192,7 @@ Removed: shipped; its history is CHANGELOG.md § 4.2.1, LOG #188–#205; the ful
 
 ## v4.2.0 "Stable World" \(shipped October 2026\): strict SemVer, a reduced stable scope
 
-Now in: [Roadmap › open-items](https://quest-n-click.cleverapps.io/en/docs/start.roadmap#open-items) · [The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/ROADMAP.md#v420-stable-world-shipped-october-2026-strict-semver-a-reduced-stable-scope)
+Now in: [Roadmap › open-items](https://quest-n-click.cleverapps.io/docs/start.roadmap#open-items) · [The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/ROADMAP.md#v420-stable-world-shipped-october-2026-strict-semver-a-reduced-stable-scope)
 
 ## v4.1.20 "Last Mile" \(shipped October 2026\): the last code before 4.2
 
@@ -208,39 +208,39 @@ Removed: shipped; its history is CHANGELOG.md § 4.1.18, LOG #160; the full text
 
 ## v4.1.17 "Stabilization" \(shipped 9 October 2026\): the truth made green before the tag
 
-Now in: [Roadmap › open-items](https://quest-n-click.cleverapps.io/en/docs/start.roadmap#open-items) · [The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/ROADMAP.md#v4117-stabilization-shipped-9-october-2026-the-truth-made-green-before-the-tag)
+Now in: [Roadmap › open-items](https://quest-n-click.cleverapps.io/docs/start.roadmap#open-items) · [The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/ROADMAP.md#v4117-stabilization-shipped-9-october-2026-the-truth-made-green-before-the-tag)
 
 ## v4.1.16 "Convergence" \(shipped 8 October 2026\): the published capabilities made to work together
 
-Now in: [Roadmap › open-items](https://quest-n-click.cleverapps.io/en/docs/start.roadmap#open-items) · [The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/ROADMAP.md#v4116-convergence-shipped-8-october-2026-the-published-capabilities-made-to-work-together)
+Now in: [Roadmap › open-items](https://quest-n-click.cleverapps.io/docs/start.roadmap#open-items) · [The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/ROADMAP.md#v4116-convergence-shipped-8-october-2026-the-published-capabilities-made-to-work-together)
 
 ## v4.1.15 "Remix" \(shipped 7 October 2026\): one game, several worlds; the release candidate of 4.2
 
-Now in: [Roadmap › open-items](https://quest-n-click.cleverapps.io/en/docs/start.roadmap#open-items) · [The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/ROADMAP.md#v4115-remix-shipped-7-october-2026-one-game-several-worlds-the-release-candidate-of-42)
+Now in: [Roadmap › open-items](https://quest-n-click.cleverapps.io/docs/start.roadmap#open-items) · [The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/ROADMAP.md#v4115-remix-shipped-7-october-2026-one-game-several-worlds-the-release-candidate-of-42)
 
 ## v4.1.14 "Time Attack" \(shipped 7 October 2026\): a run, its clock, its proof, its verifier
 
-Now in: [Roadmap › open-items](https://quest-n-click.cleverapps.io/en/docs/start.roadmap#open-items) · [The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/ROADMAP.md#v4114-time-attack-shipped-7-october-2026-a-run-its-clock-its-proof-its-verifier)
+Now in: [Roadmap › open-items](https://quest-n-click.cleverapps.io/docs/start.roadmap#open-items) · [The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/ROADMAP.md#v4114-time-attack-shipped-7-october-2026-a-run-its-clock-its-proof-its-verifier)
 
 ## v4.1.13 "Solver Research" \(shipped 7 October 2026\): the solver measured, lighter, resumable; not yet at scale
 
-Now in: [Roadmap › open-items](https://quest-n-click.cleverapps.io/en/docs/start.roadmap#open-items) · [The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/ROADMAP.md#v4113-solver-research-shipped-7-october-2026-the-solver-measured-lighter-resumable-not-yet-at-scale)
+Now in: [Roadmap › open-items](https://quest-n-click.cleverapps.io/docs/start.roadmap#open-items) · [The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/ROADMAP.md#v4113-solver-research-shipped-7-october-2026-the-solver-measured-lighter-resumable-not-yet-at-scale)
 
 ## v4.1.12 "Language" \(shipped 7 October 2026\): the game as data, its fingerprint, its objectives
 
-Now in: [Roadmap › open-items](https://quest-n-click.cleverapps.io/en/docs/start.roadmap#open-items) · [The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/ROADMAP.md#v4112-language-shipped-7-october-2026-the-game-as-data-its-fingerprint-its-objectives)
+Now in: [Roadmap › open-items](https://quest-n-click.cleverapps.io/docs/start.roadmap#open-items) · [The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/ROADMAP.md#v4112-language-shipped-7-october-2026-the-game-as-data-its-fingerprint-its-objectives)
 
 ## v4.1.11 "Viewport" \(shipped 7 October 2026\): the rendering behind a scene frame, the journal in the core
 
-Now in: [Roadmap › open-items](https://quest-n-click.cleverapps.io/en/docs/start.roadmap#open-items) · [The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/ROADMAP.md#v4111-viewport-shipped-7-october-2026-the-rendering-behind-a-scene-frame-the-journal-in-the-core)
+Now in: [Roadmap › open-items](https://quest-n-click.cleverapps.io/docs/start.roadmap#open-items) · [The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/ROADMAP.md#v4111-viewport-shipped-7-october-2026-the-rendering-behind-a-scene-frame-the-journal-in-the-core)
 
 ## v4.1.10 "Constellation" \(shipped 7 October 2026\): a durable Bridge, several instances, several tenants
 
-Now in: [Roadmap › open-items](https://quest-n-click.cleverapps.io/en/docs/start.roadmap#open-items) · [The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/ROADMAP.md#v4110-constellation-shipped-7-october-2026-a-durable-bridge-several-instances-several-tenants)
+Now in: [Roadmap › open-items](https://quest-n-click.cleverapps.io/docs/start.roadmap#open-items) · [The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/ROADMAP.md#v4110-constellation-shipped-7-october-2026-a-durable-bridge-several-instances-several-tenants)
 
 ## v4.1.9 "Gateways" \(shipped 7 October 2026\): the world outside, through four connectors
 
-Now in: [Roadmap › open-items](https://quest-n-click.cleverapps.io/en/docs/start.roadmap#open-items) · [The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/ROADMAP.md#v419-gateways-shipped-7-october-2026-the-world-outside-through-four-connectors)
+Now in: [Roadmap › open-items](https://quest-n-click.cleverapps.io/docs/start.roadmap#open-items) · [The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/ROADMAP.md#v419-gateways-shipped-7-october-2026-the-world-outside-through-four-connectors)
 
 ## The 4.1.8 → 4.1.15 programme \(decided 7 October 2026, D18\): finish the breaks before the contracts freeze
 
@@ -248,12 +248,12 @@ Removed: a programme carried out: CHANGELOG.md § 4.1.8 to § 4.1.15, decision D
 
 ## After 4.0: where each item went, and what is still unplanned
 
-Now in: [Roadmap › unplanned](https://quest-n-click.cleverapps.io/en/docs/start.roadmap#unplanned) · [The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/ROADMAP.md#after-40-where-each-item-went-and-what-is-still-unplanned)
+Now in: [Roadmap › unplanned](https://quest-n-click.cleverapps.io/docs/start.roadmap#unplanned) · [The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/ROADMAP.md#after-40-where-each-item-went-and-what-is-still-unplanned)
 
 ## Out of scope \(explicit decisions\)
 
-Now in: [Roadmap › out-of-scope](https://quest-n-click.cleverapps.io/en/docs/start.roadmap#out-of-scope) · [What quest'n'click does not do](https://quest-n-click.cleverapps.io/en/docs/index.not-supported) · [The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/ROADMAP.md#out-of-scope-explicit-decisions)
+Now in: [Roadmap › out-of-scope](https://quest-n-click.cleverapps.io/docs/start.roadmap#out-of-scope) · [What quest'n'click does not do](https://quest-n-click.cleverapps.io/docs/index.not-supported) · [The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/ROADMAP.md#out-of-scope-explicit-decisions)
 
 ## Verification \(every milestone\)
 
-Now in: [Roadmap › verification](https://quest-n-click.cleverapps.io/en/docs/start.roadmap#verification) · [Before a pull request](https://quest-n-click.cleverapps.io/en/docs/contribute.before-a-pr) · [The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/ROADMAP.md#verification-every-milestone)
+Now in: [Roadmap › verification](https://quest-n-click.cleverapps.io/docs/start.roadmap#verification) · [Before a pull request](https://quest-n-click.cleverapps.io/docs/contribute.before-a-pr) · [The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/ROADMAP.md#verification-every-milestone)
