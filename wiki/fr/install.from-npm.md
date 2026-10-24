@@ -134,8 +134,8 @@ Un projet créé depuis npm revient à une archive avec `npm install <URL de l'a
 
 ## Comment la publication se prépare
 
-La procédure a été écrite en 4.1.20 et sera jouée par le mainteneur dans une release ultérieure ; le détail est dans
-[Paquets npm](contribute.npm-packages.md). Ce sur quoi un utilisateur peut compter :
+La procédure a été écrite en 4.1.20 ; à partir de la 4.5.2, release.yml met les paquets en scène, et la première
+release qu'un propriétaire approuve est la première sur npm. Le détail est dans [Paquets npm](contribute.npm-packages.md). Ce sur quoi un utilisateur peut compter :
 
 - **Une publication en étapes, approuvée par une personne.** Le run de release met chaque paquet en scène via l'OIDC
   de GitHub (trusted publishing, configuré en stage-only : la CI peut mettre en scène, jamais publier), et le
@@ -143,10 +143,9 @@ La procédure a été écrite en 4.1.20 et sera jouée par le mainteneur dans un
   l'autre propriétaire de l'organisation peut approuver. Une version
   du produit ne vient jamais d'une publication locale, qui ne porterait pas de provenance OIDC ; seule une version de
   réservation `0.0.0-bootstrap.0` le peut, une fois par paquet, pour le créer.
-- **Des outils exacts.** La publication en étapes demande au moins npm 11.15.0 et Node 22.14.0. `release.yml` épingle
-  les versions de l'étape de publication à l'identique, `NPM_PUBLISH_NODE: 22.23.3` et `NPM_PUBLISH_NPM: 11.21.0`, et un
-  test refuse une plage. Node 22.23.3 livre npm 10.9.9 : l'étape installera donc elle-même npm 11.21.0. En 4.4.0,
-  seuls les épinglages existent : l'étape de publication elle-même n'est pas encore écrite.
+- **Des outils exacts.** La publication en étapes demande au moins npm 11.15.0 et Node 22.14.0. Le job `npm-stage` de
+  release.yml les épingle à l'identique, `NPM_PUBLISH_NODE: 22.23.3` et `NPM_PUBLISH_NPM: 11.21.0`, installe lui-même
+  npm 11.21.0 (Node 22.23.3 livre npm 10.9.9) et vérifie les deux ; un test refuse une plage.
 - **Les connecteurs ne sont pas déclarés dual-use.** La politique dual-use de npm vise les outils qui peuvent
   ressembler à un logiciel malveillant (test d'intrusion, recherche en sécurité, obfuscation) ; les connecteurs sont
   des serveurs qu'un jeu fait tourner (une façade SSH et Telnet, un webhook et un lecteur IMAP pour l'email, un
@@ -163,4 +162,4 @@ La procédure a été écrite en 4.1.20 et sera jouée par le mainteneur dans un
 - La documentation de npm : [staged publishing](https://docs.npmjs.com/staged-publishing),
   [politique dual-use](https://docs.npmjs.com/policies/dual-use/)
 - [`.github/workflows/nightly.yml`](../../.github/workflows/nightly.yml) (le job `npm-names`),
-  [`.github/workflows/release.yml`](../../.github/workflows/release.yml) (les épinglages)
+  [`.github/workflows/release.yml`](../../.github/workflows/release.yml) (le job `npm-stage`)

@@ -4976,6 +4976,13 @@
         { "name": "wanoo", "kind": "human", "relation": "independent", "date": "2026-10-24" }
       ]
     },
+    "contribute.npm-packages#first-release": {
+      "enHash": "ff8536e8d61587c1dc0f20b428ccb469544754568c199ffb0db76b527320aaa9",
+      "frHash": "ad8dcd412b7423594965a3f21ef80effbde7eadf6753c05cca75a811502e4b7d",
+      "reviewers": [
+        { "name": "claude-283-npm-stage", "kind": "ai", "relation": "author", "date": "2026-10-24" }
+      ]
+    },
     "contribute.npm-packages#how-it-is-checked": {
       "enHash": "a62ffbea213d33746bed83416d24d8704d7a8b20bb699d598644fa3ac2bcfd59",
       "frHash": "d9ca2f6de6d386c0b5c72a764c4bef076c31105831afce7a54bdaa53ca519cf1",
@@ -4991,10 +4998,10 @@
       ]
     },
     "contribute.npm-packages#npm-publishing": {
-      "enHash": "ab4e783b857bc304aa932a4b99d457976847073014d7188691ff89bbbff73dd9",
-      "frHash": "67385a0535b349785da1cfd4af78d4ccb08657bda2ebd65596a6f3f697651138",
+      "enHash": "783ad5a1b01dee6a62d49202e7f631d5fec328ede7347d659862ccb1a6666454",
+      "frHash": "38e59664dcdf5fd78d6ca53284671aa3b62d7849045decd703695bbcd09dc8f1",
       "reviewers": [
-        { "name": "claude-283-scoped", "kind": "ai", "relation": "author", "date": "2026-10-24" }
+        { "name": "claude-283-npm-stage", "kind": "ai", "relation": "author", "date": "2026-10-24" }
       ]
     },
     "contribute.npm-packages#packages": {
@@ -5005,10 +5012,10 @@
       ]
     },
     "contribute.npm-packages#publishing-steps": {
-      "enHash": "17e15de7aa1c77959b979f85a1abf88207ffe5d549d3211f5c8c30f18794d2d0",
-      "frHash": "8b26a9ff1e3f54429d6c5a41705e9dfd6d934bbc6670cb23b046fa2d1c0fb958",
+      "enHash": "a015943dee52a3b8a5b51ff5535d48957287da505caf10240749c567d548568f",
+      "frHash": "29e56a4d03f73b6c556ca5c8d2d0296de0da64834bd0f53a6138a2ca3484d812",
       "reviewers": [
-        { "name": "claude-283-scoped", "kind": "ai", "relation": "author", "date": "2026-10-24" }
+        { "name": "claude-283-npm-stage", "kind": "ai", "relation": "author", "date": "2026-10-24" }
       ]
     },
     "contribute.npm-packages#related": {
@@ -5017,6 +5024,13 @@
       "reviewers": [
         { "name": "claude-4.5-writers", "kind": "ai", "relation": "author", "date": "2026-10-23" },
         { "name": "wanoo", "kind": "human", "relation": "independent", "date": "2026-10-24" }
+      ]
+    },
+    "contribute.npm-packages#staging-job": {
+      "enHash": "b998130013631bcd53902fa855e0fe49b67cfdcfcfd7b945740e079090803fa8",
+      "frHash": "97632aa67fe09d56b02d0a5672d4ae21563c38be0c8545c814153fcbb50a1f4f",
+      "reviewers": [
+        { "name": "claude-283-npm-stage", "kind": "ai", "relation": "author", "date": "2026-10-24" }
       ]
     },
     "contribute.quality-baseline#_lead": {
@@ -5163,11 +5177,10 @@
       ]
     },
     "contribute.releasing#preflight": {
-      "enHash": "84787907622524b5d48eebb4b415a7ea86143fdfbcb785ff2ed5139521866cb2",
-      "frHash": "f42560b0f202c8f94436102c8763670d417c5b50936cb5d3b845257ea594818d",
+      "enHash": "51d91ee129f175c9f39e97ac96de3a5747a2e5af0c2b806580e6c032871be358",
+      "frHash": "f21ee6e81410f76ee4b98d022e44ecf2752455186b1d351245f6ee7595a4deff",
       "reviewers": [
-        { "name": "claude-4.5-writers", "kind": "ai", "relation": "author", "date": "2026-10-23" },
-        { "name": "wanoo", "kind": "human", "relation": "independent", "date": "2026-10-24" }
+        { "name": "claude-283-npm-stage", "kind": "ai", "relation": "author", "date": "2026-10-24" }
       ]
     },
     "contribute.releasing#prerequisites": {
@@ -5219,11 +5232,10 @@
       ]
     },
     "contribute.releasing#the-chain": {
-      "enHash": "3080d66d0747a9d8d4c4d4073108cd29180f23efbe746a960392fa5648bbf6ee",
-      "frHash": "809503cb2bbf8f888034a53b16e195b1fff4f9ac254e7395a6f05d54bd6a18fc",
+      "enHash": "2a0336f401bc21f8ad84e67f2eaa69ccbc57b9ea67a9635d7401757ae7e8b0be",
+      "frHash": "aa526dffd1d2c06476d7bd1af9be0c17095cc1accedd15dfe754102c135eabe0",
       "reviewers": [
-        { "name": "claude-4.5-writers", "kind": "ai", "relation": "author", "date": "2026-10-23" },
-        { "name": "wanoo", "kind": "human", "relation": "independent", "date": "2026-10-24" }
+        { "name": "claude-283-npm-stage", "kind": "ai", "relation": "author", "date": "2026-10-24" }
       ]
     },
     "contribute.releasing#what-a-release-carries": {
@@ -11757,10 +11769,10 @@
       ]
     },
     "install.from-npm#how-it-will-be-published": {
-      "enHash": "4a41f903fc6b25f7e398e0731838a48bedc8f1eb9abaca3d0df67604c843b5a3",
-      "frHash": "1fbcfe9ac97d0b5867bfe1fb545f5b8a1f7514b968d3d8e9c9ca7e5c2ad33b23",
+      "enHash": "fbec4d8368d52677965087807d2e249c32f2e859f61c6aebe91d88a6f3b6eeb0",
+      "frHash": "4f91229392a3b789397fa6051016a457c75357d90fd2f939ab789b10c23cf7ae",
       "reviewers": [
-        { "name": "claude-283-scoped", "kind": "ai", "relation": "author", "date": "2026-10-24" }
+        { "name": "claude-283-npm-stage", "kind": "ai", "relation": "author", "date": "2026-10-24" }
       ]
     },
     "install.from-npm#prerequisites": {
@@ -11780,11 +11792,10 @@
       ]
     },
     "install.from-npm#references": {
-      "enHash": "155d630fd082d1bd3e65343e29b9466938840fffbc3287c413ba9577576dc181",
-      "frHash": "8bceafc69a2afa3ad4ae552f541469ba809ea4a5f42d795243e70edf1f5cf72d",
+      "enHash": "a72c5605b49f2fe6c674bcae1dbc55c3b299e39e25f8eec4b7a79438832e49ed",
+      "frHash": "685012ffc3b7b512727791b8a3182efd57c37e43c342c64feb06aa8639f1e5aa",
       "reviewers": [
-        { "name": "claude-4.5-writers", "kind": "ai", "relation": "author", "date": "2026-10-23" },
-        { "name": "wanoo", "kind": "human", "relation": "independent", "date": "2026-10-24" }
+        { "name": "claude-283-npm-stage", "kind": "ai", "relation": "author", "date": "2026-10-24" }
       ]
     },
     "install.from-npm#steps": {
@@ -12130,10 +12141,10 @@
       ]
     },
     "install.package#how-it-is-checked": {
-      "enHash": "5ef38b90f60b4809a7dd00abcdf4fea8074029afa61b6fe471a9905667dd4f14",
-      "frHash": "8a8c768844ca64ec7d5bef022aac1cbac1febb8a951bb7856a960f376cc33d41",
+      "enHash": "c15906a4434f0ef8ffd5d49532d23b51960acef624207d816c319f727d946780",
+      "frHash": "180f487c22654a1419c06776b3af4c08b0003e72b724b63f6176a0e8e948e9fb",
       "reviewers": [
-        { "name": "claude-283-scoped", "kind": "ai", "relation": "author", "date": "2026-10-24" }
+        { "name": "claude-283-npm-stage", "kind": "ai", "relation": "author", "date": "2026-10-24" }
       ]
     },
     "install.package#overview": {
@@ -14572,12 +14583,25 @@
         { "name": "wanoo", "kind": "human", "relation": "independent", "date": "2026-10-24" }
       ]
     },
-    "reference.environment-variables#github-step-summary": {
-      "enHash": "3cd046a2ceb1cad0b51ece22ea1c05a86c6c794b0c0119c6b7233cc27df63a73",
-      "frHash": "a66349027fd8d1f22334eaab062d54055fc3d1365c4d5004ceb7907f75c6adaf",
+    "reference.environment-variables#github-repository": {
+      "enHash": "afb1e21fce3c5fd9a0079d368cc0c2750f51a70295b0b343b22581c55a52799a",
+      "frHash": "1515fe2db94bc89f4bd9d7562acd6262081bb74a7402a9c0da50b4e9bdaae07e",
       "reviewers": [
-        { "name": "claude-a7", "kind": "ai", "relation": "author", "date": "2026-10-23" },
-        { "name": "wanoo", "kind": "human", "relation": "independent", "date": "2026-10-24" }
+        { "name": "claude-283-npm-stage", "kind": "ai", "relation": "author", "date": "2026-10-24" }
+      ]
+    },
+    "reference.environment-variables#github-sha": {
+      "enHash": "acfd6e70fa9501d98ca9d1e04da27ea6ca3385205ca673676ce3f5e063409921",
+      "frHash": "9468555cb936c2a7f5ed6fa9feb91cdc8846fe5bd2dcf4a5975efeb6d9c34ccf",
+      "reviewers": [
+        { "name": "claude-283-npm-stage", "kind": "ai", "relation": "author", "date": "2026-10-24" }
+      ]
+    },
+    "reference.environment-variables#github-step-summary": {
+      "enHash": "c0c9a4888980bbfcd23ad2349f10a3a2f34ff463e69fc85b44226052d065e462",
+      "frHash": "583940aad457a22cbb352127674f0de2dcfcb1eb652f45d474db83bce43792f9",
+      "reviewers": [
+        { "name": "claude-283-npm-stage", "kind": "ai", "relation": "author", "date": "2026-10-24" }
       ]
     },
     "reference.environment-variables#github-token": {
@@ -14698,6 +14722,13 @@
       "reviewers": [
         { "name": "claude-a7", "kind": "ai", "relation": "author", "date": "2026-10-23" },
         { "name": "wanoo", "kind": "human", "relation": "independent", "date": "2026-10-24" }
+      ]
+    },
+    "reference.environment-variables#npm-config-userconfig": {
+      "enHash": "2e0729c216e2d667b1d7d503588642bb9309556525c92b8bdfb9cde2aa395f71",
+      "frHash": "56c0d3652dc03c3e2d4716ef0d12000cc70e3e02ffd78220ef36ff3abe2f7dcc",
+      "reviewers": [
+        { "name": "claude-283-npm-stage", "kind": "ai", "relation": "author", "date": "2026-10-24" }
       ]
     },
     "reference.environment-variables#npm-lifecycle-event": {

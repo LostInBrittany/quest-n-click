@@ -129,8 +129,8 @@ A project created from npm goes back to an archive with `npm install <archive UR
 
 ## How the publication is prepared
 
-The procedure was written in 4.1.20 and is played by the maintainer in a later release; the details are on
-[npm packages](contribute.npm-packages.md). What a user can rely on:
+The procedure was written in 4.1.20; from 4.5.2 release.yml stages the packages, and the first release an owner
+approves is the first one on npm. The details are on [npm packages](contribute.npm-packages.md). What a user can rely on:
 
 - **Staged publishing with a person's approval.** The release run stages each package through GitHub's OIDC (trusted
   publishing, configured stage-only: CI may stage, never publish), and the maintainer promotes each one with
@@ -138,10 +138,9 @@ The procedure was written in 4.1.20 and is played by the maintainer in a later r
   A version of the product never comes from a
   local publication, which would carry no OIDC provenance; only a reservation version `0.0.0-bootstrap.0` may, once per
   package, to create it.
-- **Exact tools.** Staged publishing needs npm 11.15.0 and Node 22.14.0 at least. `release.yml` pins the publishing
-  step's versions exactly, `NPM_PUBLISH_NODE: 22.23.3` and `NPM_PUBLISH_NPM: 11.21.0`, and a test refuses a range. Node
-  22.23.3 ships npm 10.9.9, so the step will install npm 11.21.0 itself. At 4.4.0 only the pins exist: the publishing
-  step itself is not written yet.
+- **Exact tools.** Staged publishing needs npm 11.15.0 and Node 22.14.0 at least. release.yml's `npm-stage` job pins
+  them exactly, `NPM_PUBLISH_NODE: 22.23.3` and `NPM_PUBLISH_NPM: 11.21.0`, installs npm 11.21.0 itself (Node 22.23.3
+  ships npm 10.9.9) and checks both; a test refuses a range.
 - **The connectors are not declared dual-use.** npm's dual-use policy covers tools that can resemble malicious
   software (penetration testing, security research, obfuscation); the connectors are servers a game runs (an SSH and a
   Telnet front, an email webhook and IMAP reader, an Open Badge verifier), scanning, attacking and hiding nothing.
@@ -157,4 +156,4 @@ The procedure was written in 4.1.20 and is played by the maintainer in a later r
 - npm's documentation: [staged publishing](https://docs.npmjs.com/staged-publishing),
   [dual-use policy](https://docs.npmjs.com/policies/dual-use/)
 - [`.github/workflows/nightly.yml`](../../.github/workflows/nightly.yml) (the `npm-names` job),
-  [`.github/workflows/release.yml`](../../.github/workflows/release.yml) (the pins)
+  [`.github/workflows/release.yml`](../../.github/workflows/release.yml) (the `npm-stage` job)

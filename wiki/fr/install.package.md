@@ -158,7 +158,8 @@ Elles tournent avec le projet comme dossier de travail
 - `scripts/studio-install-smoke.mjs` : les archives du moteur et du Studio Server installées ensemble, un jeu servi.
 
 Chaque release joint les cinq archives avec leurs SBOM et leurs sommes. Les publier sur npm revient aux mainteneurs
-(l'organisation `quest-n-click` possède les cinq noms à scope ; une étape ultérieure de #283 publie depuis la CI) :
+(l'organisation `quest-n-click` possède les cinq noms à scope ; à partir de la 4.5.2 la CI les met en scène, un
+propriétaire approuve avec sa 2FA) :
 [Paquets npm](contribute.npm-packages.md).
 
 <a name="related"></a>

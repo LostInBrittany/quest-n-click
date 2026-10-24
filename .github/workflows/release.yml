@@ -11,7 +11,9 @@ name: release
 # SHA-256 sums, an SBOM of the shipped dependencies (CycloneDX) and
 # a build provenance attestation (`gh attestation verify <file> -R Quest-n-Click/quest-n-click`), and reads it all back once published
 # (`ship verify`, 4.1.8). A release that already has
-# files is never overwritten (3.7.1): a new version is a new tag.
+# files is never overwritten (3.7.1): a new version is a new tag. From 4.5.2 (#283, D34) the `npm-stage` job then stages
+# the release's npm packages by trusted publishing, for an owner of the organisation to approve with 2FA; nothing is
+# published on npm by this workflow.
 on:
   workflow_run:
     workflows: [ci]
@@ -162,11 +164,6 @@ jobs:
     env:
       TAG: ${{ github.event.workflow_run.head_branch }}
       SHA: ${{ github.event.workflow_run.head_sha }}
-      # The future npm publishing step's exact Node and npm (4.1.20 PR 3b, plan §11.2): npm 11.15.0 at least for
-      # `npm stage`, Node 22.14.0 at least; never a range (tests/release-stable.test.ts, ship preflight-stable). Nothing
-      # is published to npm in 4.1.x.
-      NPM_PUBLISH_NODE: '22.23.3'
-      NPM_PUBLISH_NPM: '11.21.0'
     steps:
       - name: A SemVer tag
         run: |
@@ -404,6 +401,60 @@ jobs:
           echo "version=${TAG#v}" >> "$GITHUB_OUTPUT"
           echo "candidate=${CANDIDATE:-}" >> "$GITHUB_OUTPUT"
           if [ -n "${DOCS_ARCHIVE:-}" ]; then echo "sha256=$(sha256sum "$DOCS_ARCHIVE" | cut -d' ' -f1)" >> "$GITHUB_OUTPUT"; fi
+  # The npm packages, staged (4.5.2, #283, D34): after the release job succeeded (`ship verify` its last check), the
+  # very archives the release carries, read back from it and checked against its SHA256SUMS, are staged on npm by
+  # trusted publishing (OIDC: no token, a provenance), engine first, for an owner of the organisation to promote with
+  # 2FA (`npm stage approve <id>`, the commands in the run summary). Never `npm publish`. Its own job, beside
+  # docs-publish rather than before it: npm being down or a trusted publisher missing must not hold the documentation of
+  # a release already published, and this job alone can be re-run (a version already published or staged is skipped).
+  # A pre-release tag stages nothing (its archives carry the stable version) and rehearses the OIDC exchange instead.
+  npm-stage:
+    needs: [release]
+    if: needs.release.result == 'success'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    # Only what staging needs: read the repository and the release, ask GitHub for an OIDC token.
+    permissions:
+      contents: read
+      id-token: write
+    env:
+      TAG: ${{ github.event.workflow_run.head_branch }}
+      SHA: ${{ github.event.workflow_run.head_sha }}
+      # The exact Node and npm that stage (4.1.20 PR 3b, plan §11.2): npm 11.15.0 at least for `npm stage`, Node
+      # 22.14.0 at least; never a range (tests/release-stable.test.ts, ship preflight-stable).
+      NPM_PUBLISH_NODE: '22.23.3'
+      NPM_PUBLISH_NPM: '11.21.0'
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+      # No registry-url: setup-node would write an .npmrc reading NODE_AUTH_TOKEN, and no token is used here.
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: ${{ env.NPM_PUBLISH_NODE }}
+      - name: The pinned npm
+        run: |
+          for i in 1 2 3; do npm install -g "npm@$NPM_PUBLISH_NPM" && break; [ "$i" = 3 ] && exit 1; echo "retry $i"; sleep 15; done
+          test "$(node --version)" = "v$NPM_PUBLISH_NODE" || { echo "::error::node $(node --version), not v$NPM_PUBLISH_NODE"; exit 1; }
+          test "$(npm --version)" = "$NPM_PUBLISH_NPM" || { echo "::error::npm $(npm --version), not $NPM_PUBLISH_NPM"; exit 1; }
+        timeout-minutes: 10
+      - name: The release's archives, as published
+        # The files the release carries, the bytes `ship verify` read back, each against the release's SHA256SUMS.
+        run: |
+          if [ ! -f tools/release/npm-stage.mjs ]; then echo "::notice::$TAG predates npm staging (4.5.2)"; exit 0; fi
+          mkdir -p .npm-stage
+          gh release download "$TAG" -D .npm-stage -p '*.tgz' -p '*-SHA256SUMS'
+          cd .npm-stage
+          ls ./*.tgz >/dev/null
+          grep -E '  [^ /]+\.tgz$' ./*-SHA256SUMS > tgz.sums
+          sha256sum --check --strict tgz.sums
+          for f in ./*.tgz; do grep -q "  ${f#./}\$" tgz.sums || { echo "::error::$f is not in the release's SHA256SUMS"; exit 1; }; done
+        env:
+          GH_TOKEN: ${{ github.token }}
+      - name: Staged on npm, for an owner's approval
+        run: |
+          if [ ! -f tools/release/npm-stage.mjs ]; then echo "::notice::$TAG predates npm staging (4.5.2)"; exit 0; fi
+          node tools/release/npm-stage.mjs --tag="$TAG" --sha="$SHA" --dir=.npm-stage --repo="$GITHUB_REPOSITORY"
   # The documentation's publication (4.5.0, docs/dev/PLAN-4.5-WIKI.md §4.5.2, ADR 0030): started by `needs`, so only
   # after the release job succeeded, `ship verify` its last check; never by `release: published`, which a release
   # published with GITHUB_TOKEN does not fire. It promotes the archive the release carries (the candidate's, checked

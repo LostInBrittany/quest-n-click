@@ -8,7 +8,7 @@ import { homedir } from 'node:os';
 import { join } from 'node:path';
 import { PACKAGES as NAMED, RENAMED, SCOPED } from './artifacts.mjs';
 
-/** The exact Node and npm of the future publishing step (release.yml's env): npm 11.15.0 at least for `npm stage`. */
+/** The exact Node and npm of the staging step (release.yml's `npm-stage` env): npm 11.15.0 at least for `npm stage`. */
 export const MINIMUM = { node: '22.14.0', npm: '11.15.0' };
 /** The packages' archives, by their names since 4.2.5 (D47); their former names are only aliases, never published. */
 export const PACKAGES = NAMED.map((p) => p.name);
@@ -65,6 +65,23 @@ const atLeast = (a, b) => {
 export function pinsOf(releaseYml) {
   const at = (k) => new RegExp(`^\\s+${k}: '?([^'\\s]+)'?\\s*$`, 'm').exec(releaseYml)?.[1];
   return { node: at('NPM_PUBLISH_NODE'), npm: at('NPM_PUBLISH_NPM') };
+}
+
+/** The workflow npm trusts to stage (D34): release.yml, its `npm-stage` job. */
+export const WORKFLOW = 'release.yml';
+
+/** What is wrong with release.yml's npm step: absent, a direct `npm publish`, or a token. */
+export function stepProblems(releaseYml) {
+  const code = releaseYml
+    .split('\n')
+    .filter((l) => !l.trimStart().startsWith('#'))
+    .join('\n');
+  const bad = [];
+  if (!/^ {2}npm-stage:$/m.test(code) || !code.includes('node tools/release/npm-stage.mjs'))
+    bad.push('no npm-stage job running tools/release/npm-stage.mjs');
+  if (/npm publish(?! --dry-run)/.test(code)) bad.push('npm publish: CI stages, an owner publishes (D34)');
+  if (/NODE_AUTH_TOKEN|NPM_TOKEN|_authToken/.test(code)) bad.push('a token: npm authenticates by OIDC only');
+  return bad;
 }
 
 /** What is wrong with the pins: absent, a range, or below the minimum. */
@@ -233,7 +250,7 @@ export function preflight({ exec, repo, login, npmUser, version, root = '.', can
       add(
         `${n}:name`,
         'ok',
-        'available (still watched each night: squatting accepted until npm publishing, a 4.2.x, D34, D38)',
+        'available (still watched each night; a scoped name exists once an owner bootstraps it, D53)',
       );
       add(
         `${n}:bootstrap`,
@@ -257,19 +274,19 @@ export function preflight({ exec, repo, login, npmUser, version, root = '.', can
       // One object per configuration; `permissions`: createPackage (may publish), createStagedPackage (may stage).
       const entries = ok(trust) ? jsonObjects(trust.stdout) : [];
       const mine = entries.filter((e) => e.type === 'github' && Object.values(e).includes(repo));
-      if (!mine.length)
-        add(
-          `${n}:trusted-publisher`,
-          'missing',
-          `no trusted publisher for ${repo} (npm trust github ${n} --repo ${repo} --file release.yml --allow-stage-publish)`,
-        );
+      // The workflow that stages is release.yml (its `npm-stage` job): npm checks the workflow's file name.
+      const staging = mine.filter((e) => e.file === WORKFLOW || Object.values(e).includes(WORKFLOW));
+      const hint = `npm trust github ${n} --repo ${repo} --file ${WORKFLOW} --allow-stage-publish; a new configuration expires unless it stages within two days: just before the tag`;
+      if (!mine.length) add(`${n}:trusted-publisher`, 'missing', `no trusted publisher for ${repo} (${hint})`);
+      else if (!staging.length)
+        add(`${n}:trusted-publisher`, 'missing', `a trusted publisher for ${repo}, none on ${WORKFLOW} (${hint})`);
       else if (entries.some((e) => list(e.permissions).includes('createPackage')))
         add(
           `${n}:trusted-publisher`,
           'blocked',
           'a configuration may publish directly: stage-only is the rule (the maintainer promotes with 2FA)',
         );
-      else if (mine.every((e) => list(e.permissions).includes('createStagedPackage')))
+      else if (staging.every((e) => list(e.permissions).includes('createStagedPackage')))
         add(`${n}:trusted-publisher`, 'ok', 'configured, stage-only');
       else add(`${n}:trusted-publisher`, 'missing', 'configured, but npm names no permission for it');
     }
@@ -330,8 +347,15 @@ export function preflight({ exec, repo, login, npmUser, version, root = '.', can
     }
   }
 
-  // The publishing step's exact Node and npm.
-  const pins = pinsOf(readFileSync(join(root, '.github', 'workflows', 'release.yml'), 'utf8'));
+  // The publishing step: release.yml stages through tools/release/npm-stage.mjs, never publishes; its exact Node and npm.
+  const yml = readFileSync(join(root, '.github', 'workflows', WORKFLOW), 'utf8');
+  const step = stepProblems(yml);
+  add(
+    'publish-step',
+    step.length ? 'blocked' : 'ok',
+    step.length ? step.join('; ') : 'release.yml stages each package (npm stage publish, OIDC), never publishes',
+  );
+  const pins = pinsOf(yml);
   const bad = pinProblems(pins);
   add(
     'publish-pins',
