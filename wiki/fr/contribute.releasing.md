@@ -95,6 +95,14 @@ repartir de `main`. Pour voir les relectures plus tôt, lancez `npm run release 
 point sur les relectures humaines des docs liste les claims et les paires encore à relire (les points sur la release
 elle-même y échouent, comme il se doit avant `prepare`).
 
+Quand elle pousse (depuis la 4.5.5), elle lance aussi le préchauffage du cache de mutation de `main`,
+`gh workflow run nightly --repo <le dépôt de l'organisation> --ref main -f jobs=mutation`, et en donne le lien (le corps
+de la pull request le dit aussi) : le commit de release ne change que des champs de version, que les empreintes
+d'entrée des ensembles de mutation laissent de côté, donc le cache rempli pendant la relecture de la pull request est
+celui que lit le candidat lancé par son merge. Un lancement refusé (droits, `gh`) est un avertissement avec cette
+commande à lancer à la main, jamais un échec. `--no-pr` ne pousse rien et ne lance rien ; elle donne la commande pour
+le moment où vous ouvrez la pull request.
+
 Pour vérifier la branche à tout moment :
 
 ```sh
@@ -159,10 +167,10 @@ faire à la main.
 
    Ses morceaux de mutation reprennent les rapports que la nightly a enregistrés sur `main` (4.5.5, #329) : seuls les
    ensembles dont les entrées ont bougé depuis tournent à nouveau, les autres prennent une ou deux minutes chacun. Un
-   changement que lisent tous les ensembles (le lockfile, `vite.config.ts`) les fait tous bouger : après le dernier
-   merge de la release, pendant la relecture de sa pull request, préchauffez le cache avec
-   `gh workflow run nightly --ref main -f jobs=mutation` (les jobs de mutation seulement, qui reprennent ce qui est
-   déjà en cache).
+   changement que lisent tous les ensembles (le lockfile, `vite.config.ts`) les fait tous bouger : `prepare` lance le
+   préchauffage quand elle pousse la pull request de release ([plus haut](#prepare)) ; pour un autre candidat,
+   préchauffez le cache à la main après le dernier merge avec `gh workflow run nightly --ref main -f jobs=mutation`
+   (les jobs de mutation seulement, qui reprennent ce qui est déjà en cache).
 
 <!-- step: tag -->
 2. **Un tag qui le nomme.**

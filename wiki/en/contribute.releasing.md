@@ -90,6 +90,13 @@ the pull request, so its CI runs once. Any other state of that branch is refused
 To see the reviews earlier, run `npm run release -- check <version>` on `main`: its docs' human gates item lists the
 claims and pairs still to review (the items about the release itself fail there, as they should before `prepare`).
 
+When it pushes (from 4.5.5), it also starts the warm-up of `main`'s mutation cache,
+`gh workflow run nightly --repo <the organisation's repository> --ref main -f jobs=mutation`, and prints the run's link
+(the pull request's body says it too): the release commit moves only version fields, which the mutation sets' input
+hashes leave out, so the cache filled while the pull request is in review is the one the candidate its merge starts
+reads. A dispatch refused (rights, `gh`) is a warning with that command to run by hand, never a failure. `--no-pr`
+pushes nothing and starts nothing; it prints the command for when you open the pull request.
+
 To check the branch at any point:
 
 ```sh
@@ -148,7 +155,8 @@ tagged by hand (`ship tag`, below). The chain below is what it runs, for when a 
 
    Its mutation shards reuse the reports the nightly saved on `main` (4.5.5, #329): only the sets whose inputs moved
    since run again, the others take a minute or two each. A change every set reads (the lockfile, `vite.config.ts`)
-   moves them all: after the release's last merge, while its pull request is in review, warm the cache with
+   moves them all: `prepare` starts the warm-up when it pushes the release pull request ([above](#prepare)); for
+   another candidate, warm the cache by hand after the last merge with
    `gh workflow run nightly --ref main -f jobs=mutation` (the mutation jobs only, reusing what is already cached).
 
 <!-- step: tag -->
