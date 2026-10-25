@@ -721,6 +721,15 @@ The results of a workflow's jobs, as JSON, that the candidate's verdict reads. T
 - Origin: you set it; the code reads it.
 - Read by: [`.github/workflows/candidate.yml`](../../.github/workflows/candidate.yml), [`.github/workflows/ci.yml`](../../.github/workflows/ci.yml), [`tools/release/candidate.mjs`](../../tools/release/candidate.mjs).
 
+<a name="qnc-release-clock"></a>
+
+### `QNC_RELEASE_CLOCK`
+
+`virtual` runs the release tooling's waits on a virtual clock, a sleep advancing it at once: the end-to-end test of `npm run release` sets it. Unset, the clock is the real one.
+
+- Origin: you set it; the code reads it.
+- Read by: [`tools/release/lib.mjs`](../../tools/release/lib.mjs).
+
 <a name="qualify-app"></a>
 
 ### `QUALIFY_APP`

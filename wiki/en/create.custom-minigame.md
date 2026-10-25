@@ -115,7 +115,8 @@ On your machine, in the created project's folder (`npx quest-n-click …`) or in
 <!-- step: declare-contract -->
 2. **Declare what the tools read.** `required`: the params a `{ minigame }` must give, or the validator refuses it.
    `textParams`: dot paths of the player-visible strings in `params` (`*` visits every item of an array or value of
-   an object, as in `rounds.*.prompt`). `bindings`: the params that name an image (`images`) or a sound of
+   an object, as in `rounds.*.prompt`); `npm run i18n -- extract` writes them to the locale files, as it does the
+   built-in minigames' (4.5.5). `bindings`: the params that name an image (`images`) or a sound of
    `audio.sfx` (`sfx`), which the validator checks exist. Any string param shaped like an image id
    (`folder/name`) is checked as an image too.
 
@@ -163,12 +164,6 @@ On your machine, in the created project's folder (`npx quest-n-click …`) or in
 > The solver does not run `run`: it counts the minigame as won and runs `then`, and records no `minigame.<id>` flag.
 > Put the minigame's effect on the game in `then` (or in the commands after it), never inside `run`: the save, the
 > solver and the replay only know the commands.
-
-> [!LIMIT id=custom-minigame-i18n-extract]
-> `npm run i18n -- extract` (`npx quest-n-click i18n extract`) writes the texts of the built-in minigames' params, not
-> those of a game's own minigame: as of 4.4.0 it reads the game without its module's `minigames`. Its `textParams`
-> are applied when the player loads a translation, but you add their paths to the locale file yourself, and a later
-> extract may park them as `_stale`.
 
 > [!LIMIT id=custom-minigame-random]
 > `ctx.random` (a draw from the run's `minigame:<id>` stream, the same for the same seed) is given by the engine's

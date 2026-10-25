@@ -436,8 +436,17 @@ export function switchesKept(source: string, translation: string): boolean {
  * (4.3.0) the translations that drop a choice their source's text switches make (`switches`: path, source's,
  * translation's; see `switchesKept`).
  */
-export function localeStatus(game: GameDef, table: Record<string, string>, maxText = 140) {
-  const paths = textPaths(game);
+/**
+ * The coverage of a translation table. `minigames`: the game's own minigames (its module's `minigames`), whose
+ * `textParams` are texts too; without them, their paths in the table would be counted as stale.
+ */
+export function localeStatus(
+  game: GameDef,
+  table: Record<string, string>,
+  maxText = 140,
+  minigames: MinigameTexts = {},
+) {
+  const paths = textPaths(game, minigames);
   const keys = new Set(paths.map((p) => p.path));
   const missing = paths.filter((p) => !(p.path in table)).map((p) => p.path);
   const stale = Object.keys(table).filter((k) =>

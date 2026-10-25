@@ -1,7 +1,7 @@
 ## the flakes, by cause
 
 Every failure of 11 to 25 October (400 runs, 80 failed, 16 re-run) read from its job log; #356 lists them with their run
-ids. Already fixed and left alone: the apt stalls under `playwright install --with-deps` (#261, #340/#342), the Firefox
+ids. Already fixed and left alone: the apt stalls under `playwright install --with-deps` (#261, #340/#342, #353), the Firefox
 frame waits of the latest preview (#255, #264), #210's step 6d, the wiki suites' limits of 23 October. Windows: 12 of
 its 13 failed jobs were real failures of their branch, one was load; nothing Windows-specific to change. Fixed here:
 `studio-scenario-map` (a child per `ir()`/`map()`: three of six loaded local runs failed, none since; the game folder's
@@ -19,6 +19,3 @@ button or a room before it decides (`launch` waits for `window.__game` only). Fo
 trimmed), and dropped that describe's title; it reads the scanner's own last significant character now, and
 `wiki-proofs`' fixture has such a comment. The two claims on `studio-scenario-map.test.ts` (`groupings-only`,
 `groupings-unknown-refused`) lost wanoo's review with the file's hash: recorded again as an AI's, a person's to redo.
-
-→ next: `studio-hosted` and `cross-runtime` still install their browsers with `--with-deps` on the runner (bounded per
-attempt since #340, not avoided).

@@ -721,6 +721,15 @@ Les résultats des jobs d’un workflow, en JSON, que lit le verdict du candidat
 - Origine : vous la posez ; le code la lit.
 - Lue par : [`.github/workflows/candidate.yml`](../../.github/workflows/candidate.yml), [`.github/workflows/ci.yml`](../../.github/workflows/ci.yml), [`tools/release/candidate.mjs`](../../tools/release/candidate.mjs).
 
+<a name="qnc-release-clock"></a>
+
+### `QNC_RELEASE_CLOCK`
+
+`virtual` fait tourner les attentes des outils de release sur une horloge virtuelle, qu’une pause avance aussitôt : le test de bout en bout de `npm run release` la pose. Sans elle, l’horloge est la vraie.
+
+- Origine : vous la posez ; le code la lit.
+- Lue par : [`tools/release/lib.mjs`](../../tools/release/lib.mjs).
+
 <a name="qualify-app"></a>
 
 ### `QUALIFY_APP`
