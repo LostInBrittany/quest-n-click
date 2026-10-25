@@ -169,7 +169,7 @@ the first idea to the release, every command in [npm scripts](https://github.com
 [Roadmap](https://github.com/Quest-n-Click/quest-n-click/wiki/EN-Start-Roadmap). An assistant reads the same pages through the MCP server (`search_docs`, `read_doc`);
 the old `docs/` pages are transition pages, each section linked to its new place and to its 4.4.0 text.
 
-Current release: [v4.5.4 (Simple release)](https://github.com/Quest-n-Click/quest-n-click/releases/tag/v4.5.4): TODO(release)
+Current release: [v4.5.4 (Simple release)](https://github.com/Quest-n-Click/quest-n-click/releases/tag/v4.5.4): a release in three human actions (the release pull request by one command, its merge starting the candidate, `npm run release -- 4.5.4`), pull requests that wait less, and the tools of a project made from npm that find its `game/` (Horacio).
 Over 4.5.3 "One pass": the candidate
 is the release's only test pass, so a release takes minutes after its signed tag; either co-maintainer signs a tag;
 a translation pair checked by its AI author no longer stops the documentation's publication (Horacio).

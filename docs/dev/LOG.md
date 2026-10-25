@@ -8192,7 +8192,7 @@ demo's `prompts.md` is byte-identical.
 runs those tools in its order and writes the rest from helpers checked against that commit (the passes sheet and
 `passIssues`, the CHANGELOG heading and intro, the LOG's release entry, the upgrade notes' section and lead, the README's
 line, the releases' history kept under "Over …"). Run end to end on a throwaway clone (`prepare 4.5.4 --name="Simple
-release" --no-pr`): 84 files, then `check 4.5.4` listed the 16 `TODO(release)` and the pairs to record; that run found
+release" --no-pr`): 84 files, then `check 4.5.4` listed the 16 markers left and the pairs to record; that run found
 two defects the unit tests then pinned (the README's history wiped, the CHANGELOG's blank line eaten). `changes --assemble`
 now makes `## Unreleased` and folds a lone `.log.md`. The golden-save list moved to `tests/fixtures/saves/index.json`:
 `tests/save-v3.test.ts` changes once more here, so its four claims need a person's `review-claim` again, then never at a
@@ -8244,15 +8244,26 @@ records the three human actions. A dry run on a feature branch refused for the f
 
 → next: release 4.5.4 itself with the new commands, the first real run of parts B to E.
 
-## #318 · 2026-10-25 · Claude · release · 4.5.4 "Simple release": TODO(release)
+## #318 · 2026-10-25 · Claude · release · 4.5.4 "Simple release": a release in three human actions
 
-- **The request**: TODO(release)
-- **What ships**: TODO(release)
-- **Fragments**: TODO(release)
-- **Upgrade notes**: TODO(release)
-- **Reviews**: TODO(release)
-- **Fixtures**: TODO(release)
-- **Passes**: TODO(release)
-- **Signature**: TODO(release)
+- **The request**: after 4.5.2 and 4.5.3 cost the maintainer hours (« I can't stand those silly process anymore »),
+  Horacio asked that 4.5.4 really simplify the release: fewer manual steps, fewer surprises, and #302's CI improvements.
+  The plan: docs/dev/PLAN-4.5.4-SIMPLE-RELEASE.md (parts A to E), one PR per part.
+- **What ships**: #305 and #306, a docs, tooling or release PR waits less (coverage, Windows and Node 24 only where
+  product code moved; the unit suite in four shards; `pwa-firefox` warns); #311, `npm run release -- prepare` and
+  `-- check`; #312, no more conflicts on the test count; #315, the candidate starts on the release PR's merge, the
+  docs' human gates fail the release PR and not the release, the docs publish without a click; #321, `npm run release
+  -- <version>` (D57). For projects made from npm, found while moving "Jack cherche un taf" and "Clever Cloud
+  Onboarding" out of the engine's repository: #304 `cables`, #309 the art tools, #310 the mouth-kit tools, #314 a
+  church organ, #319 a variant shown the moment its flag changes. #299, Dependabot's bump with the Studio Server's lock.
+- **Fragments**: assembled by `npm run release -- prepare 4.5.4`, the first release prepared by the command (#310–#317).
+- **Upgrade notes**: "From 4.5.3 to 4.5.4" in `install.upgrade-notes-4-5`, both languages: nothing in a game; for a
+  project, the tools that now find `game/`; for maintainers, the three actions and the two docs environments.
+- **Reviews**: the four save claims, reset once by moving the golden-save list into `tests/fixtures/saves/index.json`,
+  are reviewed again by a person before the merge; the pairs this release changes keep an AI author's record (D56).
+- **Fixtures**: golden save demo-4.5.4, reference run, quality baseline, written by `prepare`.
+- **Passes**: sheet 4.5.4, the twenty-two of 4.5.3, none new.
+- **Signature**: the tag is signed with LostInBrittany's SSH key (`npm run release -- 4.5.4`).
 
-→ next: TODO(release)
+→ next: 4.5.5 with the remaining patches of the two games (the read-only storyboard, the prompts' dog, the Telnet
+stress test) and `prepare`'s upgrade-notes bullets, which kept only each entry's first line.

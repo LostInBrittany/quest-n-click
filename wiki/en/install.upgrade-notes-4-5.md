@@ -149,21 +149,19 @@ is how a release is made, for the maintainers ([Releasing](contribute.releasing.
 
 ## From 4.5.3 to 4.5.4 "Simple release"
 
-TODO(release): what changes in a game ("Nothing to change in a game: it builds, plays and saves as on 4.5.3" when nothing does), then for a host or a maintainer. The release's CHANGELOG bullets, to rewrite for a reader upgrading:
+Nothing to change in a game: it builds, plays and saves as on 4.5.3 (no content field, save, schema or game
+fingerprint moves). Install `@quest-n-click/engine@4.5.4` ([Install from npm](install.from-npm.md)).
 
-- **The mouth-kit tools work in a created project** (#307): `tools/talk-kit.py` and `tools/talk-apply.py` read and
-- **The art prompts name a created project's own paths**: in a project (`game/`, the engine in `node_modules`),
-- **`cut-sheet.py` cuts into a project's `game/art` by default**: run from a project's folder (or through the
-- **A character's variant shows the moment its flag changes (4.5.4, #316)**: a `{ set }` in the middle of a
-- **The Studio Server's lock follows jose 6.2.13** (#299): Dependabot's `minor-and-patch` group moved `jose` from 6.2.12 to 6.2.13 (a refactor that keeps the cause of an error) in the root lock, and `scripts/locks/quest-n-click-studio-server.json` still pinned 6.2.12, so `pack` refused it and the `connectors` and `smoke` jobs failed. `npm run locks` brings that one lock in step; the other three locks are unchanged, and so is every version an install of the Studio Server takes, apart from jose.
-- **A docs, tooling or release pull request waits less for its CI** (4.5.4, #302): the unit suite runs under coverage only when product code changes (the plan's new `coverage` gate), `windows` and `node-24` no longer run for the release and wiki tools nor for tests alone, `pwa-firefox` warns instead of failing `pr-gate` until #257 is fixed, and the candidate runs its mutation sets 8 at a time so pull requests are not queued behind it. `main`, a tag and `full-ci` still run everything.
-- **`cables` fits a game's own plug and board art**: the plug's tip direction (120°), the sockets' place on the board
-- **The unit suite runs in four shards at once** (4.5.4): CI's new `unit` job splits the suite and the asset tests in four (`--shard=<i>/4`), under coverage when product code changed; `coverage`, still the check the ruleset requires, merges the four reports (`npm run test:merge`, the floors of `vite.config.ts` on the whole suite), runs the ratchet, and is red when a shard is not. New scripts `test:unit` (the files of `test:coverage`, no instrumentation) and `test:merge`.
-- **A new project's `.gitignore` lists `game/private`**: the raw sheets the art prompts save there stay out of git. In
-- **The release pull request by one command** (4.5.4): `npm run release -- prepare <x.y.z> --name="<name>"` makes the branch `release/<version>` with every file a release branch wrote (version, CHANGELOG and LOG from the fragments, the LOG's release entry, the upgrade notes' section in both languages, transition pages, golden save, reference run, passes sheet and `passIssues`, the README's current-release line, quality baseline), `TODO(release)` where prose is needed, one commit and the pull request; `npm run release -- check <x.y.z>` says what is left before merging. `npm run changes -- --assemble` makes its own `## Unreleased` and folds a `.log.md` alone; the golden saves are listed in `tests/fixtures/saves/index.json`, so a release no longer changes the test file the save claims are reviewed on.
-- **Two pull requests no longer conflict on the test count** (4.5.4): `npm run quality:baseline -- --check` compares the READMEs' figures with the committed `tests/quality-baseline.json`, not with what the checkout measures, so a pull request that adds tests passes without rewriting the READMEs and the baseline (it says the gain as `⚠ better than the baseline`); the figures move at the release (`npm run release -- prepare` runs `quality:baseline`) or whenever someone rewrites them. A changed behaviour still fails until it is rewritten on purpose.
-- **The candidate of a release starts itself** (4.5.4): the release pull request's merge (a push to `main` that moves `package.json`'s version) starts `candidate` on the merge commit; `ship tag`, `release.yml` and the provenance check accept that run as they accept one started by hand on main, and it is qualified, fully profiled and attested the same way. A dependency bump starts none.
-- **A docs problem shows on the release pull request, never after the tag** (4.5.4): its CI runs `npm run release -- check`, which now includes `npm run wiki -- check --publish --reviews-only` (every publication gate but "executed", which needs the candidate's report): a claim or a pair a person must read fails the pull request. The candidate then checks its docs against its own report, as a warning.
-- **A release's docs publish without a click** (4.5.4): `docs-publish` runs a release's call under the environment `docs-publish` (no reviewer: the signed tag is the approval) and the runs by hand under `docs-publish-manual` (its reviewers approve each).
-- **A `church_organ` FM patch in the audio palette**: a full pipe organ that carries a lead (a Toccata), beside the soft
-- **A release is one command after the release pull request's merge** (4.5.4, D57): `npm run release -- <x.y.z>` refuses first what would fail later (not the merged release, uncommitted changes, no CHANGELOG section, no SSH signing, `gh` or `npm` not signed in, an npm user who is not an owner), finds the candidate the merge started and waits for it with its progress (its failed jobs re-run once), signs and pushes the tag (`ship tag`), follows the release and verifies it, then approves the staged npm packages with the maintainer's 2FA, the engine first. Run again after a stop, it goes on where it stopped.
+- **In a project made from npm**, the tools find its `game/`: the art prompts (`npx quest-n-click prompts`, the MCP's
+  `asset_prompts`) name the project's paths, `cut-sheet.py` cuts into `game/art` by default, and the mouth kits run as
+  `npx quest-n-click talk-kit`, `talk-apply`, `talk-normalize`. A new project's `.gitignore` lists `game/private`.
+- **`cables`** takes `tipDeg`, `socketX`, `socketY` and `plugInset` to fit a game's own plug and board art.
+- **A character's variant** (a costume, a prop) shows the moment its flag changes, in the middle of a conversation too.
+- **The audio palette** gains `church_organ`, a full pipe organ that carries a lead.
+- **For the maintainers**, a release is three actions (D57, [Releasing](contribute.releasing.md#release-command)):
+  `npm run release -- prepare <version> --name="<name>"` makes the release pull request (its CI runs
+  `npm run release -- check`, the docs' human gates included); its merge starts the candidate; `npm run release --
+  <version>` signs the tag, follows the release and approves npm. The documentation publishes without a click under
+  the `docs-publish` environment; the runs by hand wait for a reviewer under `docs-publish-manual`.
+- **For contributors**, a pull request that touches no product code waits less, and a new test no longer means
+  rewriting the READMEs' figures and the baseline.

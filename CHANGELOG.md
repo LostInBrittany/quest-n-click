@@ -2,7 +2,14 @@
 
 ## 4.5.4 — 2026-10-25
 
-LOG #310–#318: "Simple release", a patch on 4.5.3. TODO(release): what it changes, for whom, and what a game has to do (Upgrade notes).
+LOG #310–#318: "Simple release", a patch on 4.5.3 that makes a release three human actions (D57): `npm run release --
+prepare` writes the release pull request, whose CI checks the docs' human gates; its merge starts the candidate; `npm
+run release -- <version>` waits for it, signs and pushes the tag, follows the release and approves the npm packages;
+the documentation publishes without a click. A pull request waits less (coverage, Windows and Node 24 only where
+product code moved, the unit suite in four shards) and no longer conflicts on the test count. For a project made from
+npm: the art and mouth-kit tools and `cut-sheet.py` find its `game/`, `cables` fits a game's own plug and board, a
+character's variant shows the moment its flag changes, and the audio palette gains a church organ. Nothing to change in
+a game: it builds, plays and saves as on 4.5.3.
 
 ### Fixed
 
@@ -49,7 +56,7 @@ LOG #310–#318: "Simple release", a patch on 4.5.3. TODO(release): what it chan
 - **A new project's `.gitignore` lists `game/private`**: the raw sheets the art prompts save there stay out of git. In
   a project whose `.gitignore` lacks the line, `prompts.md` says to add it instead of calling the folder gitignored.
 
-- **The release pull request by one command** (4.5.4): `npm run release -- prepare <x.y.z> --name="<name>"` makes the branch `release/<version>` with every file a release branch wrote (version, CHANGELOG and LOG from the fragments, the LOG's release entry, the upgrade notes' section in both languages, transition pages, golden save, reference run, passes sheet and `passIssues`, the README's current-release line, quality baseline), `TODO(release)` where prose is needed, one commit and the pull request; `npm run release -- check <x.y.z>` says what is left before merging. `npm run changes -- --assemble` makes its own `## Unreleased` and folds a `.log.md` alone; the golden saves are listed in `tests/fixtures/saves/index.json`, so a release no longer changes the test file the save claims are reviewed on.
+- **The release pull request by one command** (4.5.4): `npm run release -- prepare <x.y.z> --name="<name>"` makes the branch `release/<version>` with every file a release branch wrote (version, CHANGELOG and LOG from the fragments, the LOG's release entry, the upgrade notes' section in both languages, transition pages, golden save, reference run, passes sheet and `passIssues`, the README's current-release line, quality baseline), a marker where prose is needed, one commit and the pull request; `npm run release -- check <x.y.z>` says what is left before merging. `npm run changes -- --assemble` makes its own `## Unreleased` and folds a `.log.md` alone; the golden saves are listed in `tests/fixtures/saves/index.json`, so a release no longer changes the test file the save claims are reviewed on.
 
 - **Two pull requests no longer conflict on the test count** (4.5.4): `npm run quality:baseline -- --check` compares the READMEs' figures with the committed `tests/quality-baseline.json`, not with what the checkout measures, so a pull request that adds tests passes without rewriting the READMEs and the baseline (it says the gain as `⚠ better than the baseline`); the figures move at the release (`npm run release -- prepare` runs `quality:baseline`) or whenever someone rewrites them. A changed behaviour still fails until it is rewritten on purpose.
 
