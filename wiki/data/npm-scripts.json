@@ -530,6 +530,22 @@
       }
     },
     {
+      "name": "test:unit",
+      "group": "tests",
+      "description": {
+        "en": "The files of `test:coverage` (the unit suite and the asset tests, heavy tests excluded) without the instrumentation: CI's `unit` job when the plan's `coverage` gate is off, one shard each (`-- --shard=<i>/4`, 4.5.4).",
+        "fr": "Les fichiers de `test:coverage` (la suite unitaire et les tests d’assets, sans les tests lourds) sans l’instrumentation : le job `unit` de la CI quand la barrière `coverage` du plan est fermée, un fragment chacun (`-- --shard=<i>/4`, 4.5.4)."
+      }
+    },
+    {
+      "name": "test:merge",
+      "group": "tests",
+      "description": {
+        "en": "Merges the blob reports of the shards (`.vitest/blob`) under coverage: one report, the floors of `vite.config.ts` applied to the whole suite, the summary the ratchet reads (CI's `coverage` job, 4.5.4).",
+        "fr": "Fusionne les rapports blob des fragments (`.vitest/blob`) sous couverture : un rapport, les planchers de `vite.config.ts` appliqués à toute la suite, le résumé que lit le cliquet (le job `coverage` de la CI, 4.5.4)."
+      }
+    },
+    {
       "name": "test:assets",
       "group": "tests",
       "description": {

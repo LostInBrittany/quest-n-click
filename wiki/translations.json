@@ -15368,6 +15368,13 @@
         { "name": "wanoo", "kind": "human", "relation": "independent", "date": "2026-10-24" }
       ]
     },
+    "reference.environment-variables#vitest-shard": {
+      "enHash": "62a49248d6143419900328d703d6323d5900349bcd84d3888d0147bea09a6c4e",
+      "frHash": "0c237abdce908532262ec5a7d38b74956dabbe487318d35dd426937d4c8802ca",
+      "reviewers": [
+        { "name": "claude-454-shards", "kind": "ai", "relation": "author", "date": "2026-10-25" }
+      ]
+    },
     "reference.environment-variables#want": {
       "enHash": "10f891d933757303ddc3ba0468305537989fdef90548139b42ab0f483eb770d9",
       "frHash": "ea8b2c51516c97c2a1a14312faaed67643bd9a19e3cd2bd3b778f51131659bc0",
@@ -17040,6 +17047,13 @@
         { "name": "wanoo", "kind": "human", "relation": "independent", "date": "2026-10-24" }
       ]
     },
+    "reference.npm-scripts#test-merge": {
+      "enHash": "63385e81296b814efaee087ab6f50e00e9aaeea75281cf7ee2556e40115f950e",
+      "frHash": "2578839d8a08fdc60c8a6da4d30b35be70330055b84b381f4ede6b701d021ba0",
+      "reviewers": [
+        { "name": "claude-454-shards", "kind": "ai", "relation": "author", "date": "2026-10-25" }
+      ]
+    },
     "reference.npm-scripts#test-mutation-core": {
       "enHash": "92fa52d94e94fb4f353bfe033581bd29f6b59be97e4d726197fcddbf44899df6",
       "frHash": "d359c89d2f170b1d00738d2c36aa3b894b7c2aea1922dc9995eb8e5a4c3a9311",
@@ -17086,6 +17100,13 @@
       "reviewers": [
         { "name": "claude-4.5-writers", "kind": "ai", "relation": "author", "date": "2026-10-23" },
         { "name": "wanoo", "kind": "human", "relation": "independent", "date": "2026-10-24" }
+      ]
+    },
+    "reference.npm-scripts#test-unit": {
+      "enHash": "2025bce8537b6e6c684a8499c8443782e171b51fdbe48f3556b55f226877abab",
+      "frHash": "5f903d62dd1a76ae9bc11cc992a8f81edfa274c557d6aa1e42b5aa40b45d6694",
+      "reviewers": [
+        { "name": "claude-454-shards", "kind": "ai", "relation": "author", "date": "2026-10-25" }
       ]
     },
     "reference.npm-scripts#tests": {

@@ -1024,6 +1024,15 @@ Set while Vitest runs: the local Studio's plugin then starts nothing.
 - Origin: set by Vitest.
 - Read by: [`tools/studio/plugin.ts`](../../tools/studio/plugin.ts).
 
+<a name="vitest-shard"></a>
+
+### `VITEST_SHARD`
+
+Set on a shard of the unit suite (`<i>/4`, 4.5.4): `vite.config.ts` then applies no coverage floor, which `npm run test:merge` applies to the merged suite.
+
+- Origin: set by ci.yml's `unit` job.
+- Read by: [`vite.config.ts`](../../vite.config.ts).
+
 <a name="npm-lifecycle-event"></a>
 
 ### `npm_lifecycle_event`

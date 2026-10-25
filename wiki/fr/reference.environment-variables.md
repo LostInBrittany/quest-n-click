@@ -1024,6 +1024,15 @@ Posée pendant que Vitest tourne : le plugin du Studio local ne lance alors rien
 - Origine : posée par Vitest.
 - Lue par : [`tools/studio/plugin.ts`](../../tools/studio/plugin.ts).
 
+<a name="vitest-shard"></a>
+
+### `VITEST_SHARD`
+
+Posée sur un fragment de la suite unitaire (`<i>/4`, 4.5.4) : `vite.config.ts` n’applique alors aucun plancher de couverture, que `npm run test:merge` applique à la suite fusionnée.
+
+- Origine : posée par le job `unit` de ci.yml.
+- Lue par : [`vite.config.ts`](../../vite.config.ts).
+
 <a name="npm-lifecycle-event"></a>
 
 ### `npm_lifecycle_event`

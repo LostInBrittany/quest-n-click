@@ -341,6 +341,19 @@ describe('the workflow, lot 0 details', () => {
   });
 });
 
+describe('the unit suite in shards (4.5.4)', () => {
+  const scripts = JSON.parse(readFileSync('package.json', 'utf8')).scripts as Record<string, string>;
+  it('test:unit is test:coverage without the instrumentation: the same files', () => {
+    expect(scripts['test:coverage']).toBe(scripts['test:unit']!.replace(/^vitest run /, 'vitest run --coverage '));
+  });
+  it('test:merge merges the shards under coverage', () => {
+    expect(scripts['test:merge']).toBe('vitest --merge-reports --coverage');
+  });
+  it('applies the coverage floors to the merged suite, never to one shard', () => {
+    expect(readFileSync('vite.config.ts', 'utf8')).toContain('thresholds: process.env.VITEST_SHARD ? undefined : {');
+  });
+});
+
 describe("Playwright's image (#261)", () => {
   const yml = readFileSync('.github/workflows/ci.yml', 'utf8');
   const lock = JSON.parse(readFileSync('package-lock.json', 'utf8')) as {

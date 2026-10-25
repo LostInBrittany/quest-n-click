@@ -12,6 +12,8 @@
     "preview": "vite preview --host 127.0.0.1",
     "start": "node scripts/start.mjs",
     "test": "npm run test:node",
+    "test:unit": "vitest run --exclude tests/ownership.test.ts --exclude tests/audit.test.ts --exclude tests/canonical.test.ts --exclude tests/memo.test.ts --exclude tests/reference-proof.test.ts --exclude tests/solver-oracle.test.ts --exclude tests/dominance.test.ts --exclude tests/partition.test.ts --exclude tests/checkpoint-matrix.test.ts",
+    "test:merge": "vitest --merge-reports --coverage",
     "test:coverage": "vitest run --coverage --exclude tests/ownership.test.ts --exclude tests/audit.test.ts --exclude tests/canonical.test.ts --exclude tests/memo.test.ts --exclude tests/reference-proof.test.ts --exclude tests/solver-oracle.test.ts --exclude tests/dominance.test.ts --exclude tests/partition.test.ts --exclude tests/checkpoint-matrix.test.ts",
     "test:mutation:core": "tsx tools/mutate.ts",
     "test:mutation:reality": "tsx tools/mutate.ts --set=reality",
