@@ -348,6 +348,10 @@ export class App {
     this.engine.autoScripts = true;
     this.engine.clock = () => performance.now();
     this.engine.onChange = () => this.refresh();
+    // A flag can switch a character's variant (a costume, a prop): redraw at once, not after the conversation (#316).
+    this.engine.journal.subscribe((e) => {
+      if (e.kind === 'flagChanged' && this.view.room) this.view.redraw();
+    });
     this.engine.digestOn = true;
     try {
       const raw = localStorage.getItem(`${o.game.id}.settings`);
