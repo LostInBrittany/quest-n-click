@@ -5,6 +5,9 @@ import { execFileSync } from 'node:child_process';
 import { describe, expect, it } from 'vitest';
 import {
   changelogIntro,
+  checkRelease,
+  PREPARE_STEPS,
+  prepareRefusals,
   currentReleaseLine,
   logReleaseEntry,
   nextVersionProblem,
@@ -131,5 +134,66 @@ describe('what is left to write', () => {
         { path: 'b.md', text: 'nothing' },
       ]),
     ).toEqual(['a.md:2']);
+  });
+});
+
+describe('the command', () => {
+  const ok = {
+    current: '4.5.3',
+    version: '4.5.4',
+    dirty: false,
+    branch: 'main',
+    shallow: false,
+    upToDate: true,
+    upgradeNotes: true,
+  };
+  it('refuses, before writing anything, what would make a wrong release branch', () => {
+    expect(prepareRefusals(ok)).toEqual([]);
+    expect(prepareRefusals({ ...ok, version: '4.5.3' })).toEqual([expect.stringMatching(/not greater/)]);
+    expect(prepareRefusals({ ...ok, dirty: true })).toEqual([expect.stringMatching(/uncommitted/)]);
+    expect(prepareRefusals({ ...ok, branch: 'feature/x' })).toEqual([expect.stringMatching(/on main/)]);
+    expect(prepareRefusals({ ...ok, shallow: true })).toEqual([expect.stringMatching(/unshallow/)]);
+    expect(prepareRefusals({ ...ok, upToDate: false })).toEqual([expect.stringMatching(/up to date/)]);
+    expect(prepareRefusals({ ...ok, version: '4.6.0', upgradeNotes: false })).toEqual([
+      expect.stringMatching(/install\.upgrade-notes-4-6/),
+    ]);
+  });
+  it("runs 4.5.3's steps in 4.5.3's order, the quality baseline last before the commit", () => {
+    expect(PREPARE_STEPS).toEqual([
+      'branch',
+      'version',
+      'changelog',
+      'upgrade notes',
+      'transition pages',
+      'golden save',
+      'reference run',
+      'passes',
+      'readme',
+      'quality baseline',
+      'commit',
+      'pull request',
+    ]);
+  });
+  it('checks a prepared release: its section, no TODO(release) left, the wiki and the baseline', async () => {
+    const files: Record<string, string> = {
+      'package.json': '{"version":"4.5.4"}',
+      'CHANGELOG.md': '# Changelog\n\n## 4.5.4 — 2026-10-26\n\nLOG #1–#2: TODO(release): …\n\n## 4.5.3 — 2026-10-25\n',
+    };
+    const deps = {
+      read: (f: string) => files[f] ?? '',
+      todoFiles: () => ['CHANGELOG.md'],
+      run: () => ({ code: 0, out: '✔  wiki (work level): 214 pages consistent, 0 warning(s)' }),
+    };
+    const items = await checkRelease('4.5.4', deps);
+    expect(items.map((i) => [i.what, i.ok])).toEqual([
+      ['package.json is at 4.5.4', true],
+      ['CHANGELOG.md has a 4.5.4 section', true],
+      ['no TODO(release) left', false],
+      ['npm run wiki -- check: no warning', true],
+      ['npm run quality:baseline -- --check', true],
+    ]);
+    expect(items[2]!.detail).toBe('CHANGELOG.md:5');
+    const none = await checkRelease('4.5.5', deps);
+    expect(none.slice(0, 2).map((i) => i.ok)).toEqual([false, false]);
   });
 });

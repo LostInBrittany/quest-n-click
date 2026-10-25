@@ -7,8 +7,14 @@
 // release), and the pull request. It never invents prose: every part that needs a sentence carries `TODO(release)`,
 // and `check` fails while one is left. The helpers below are pure and tested against 4.5.3's release commit
 // (tests/release-prepare.test.ts); the commands they run are the ones 4.5.3's release ran by hand, in its order.
+import { execFileSync, spawnSync } from 'node:child_process';
+import { existsSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
+import { join } from 'node:path';
+import { releaseNotes } from '../../scripts/release-notes.mjs';
+import { lastLogNumber } from '../changes';
+import { formatJson } from '../wiki/json';
 // @ts-expect-error: a plain .mjs module without declarations
-import { REPO } from './lib.mjs';
+import { REPO, releaseRemote } from './lib.mjs';
 
 const TODO = 'TODO(release)';
 
@@ -160,4 +166,301 @@ export function todoMarkers(files: readonly { path: string; text: string }[]) {
   return files.flatMap(({ path, text }) =>
     text.split('\n').flatMap((l, i) => (l.includes(TODO) ? [`${path}:${i + 1}`] : [])),
   );
+}
+
+/** What `prepare` refuses before it writes anything, each with what to do. */
+export function prepareRefusals(o: {
+  current: string;
+  version: string;
+  dirty: boolean;
+  branch: string;
+  shallow: boolean;
+  upToDate: boolean;
+  upgradeNotes: boolean;
+}): string[] {
+  const out: string[] = [];
+  const v = nextVersionProblem(o.current, o.version);
+  if (v) out.push(v);
+  if (o.dirty) out.push('the checkout has uncommitted changes: commit or set them aside first');
+  if (o.branch !== 'main') out.push(`the checkout is on ${o.branch}: prepare runs on main (git switch main)`);
+  if (o.shallow) out.push('a shallow clone dates every fragment at its boundary: git fetch --unshallow');
+  if (!o.upToDate) out.push("main is not up to date with the organisation's: git pull first");
+  if (!v && !o.upgradeNotes)
+    out.push(
+      `${upgradeNotesPage(o.version)} does not exist: a new minor needs its upgrade-notes page first (wiki/en and wiki/fr, wiki/manifest.json)`,
+    );
+  return out;
+}
+
+/** The steps of `prepare`, in 4.5.3's order. */
+export const PREPARE_STEPS = [
+  'branch',
+  'version',
+  'changelog',
+  'upgrade notes',
+  'transition pages',
+  'golden save',
+  'reference run',
+  'passes',
+  'readme',
+  'quality baseline',
+  'commit',
+  'pull request',
+] as const;
+
+interface CheckDeps {
+  read: (file: string) => string;
+  /** The files a release writes prose into. */
+  todoFiles: () => string[];
+  /** Runs a command: its exit code and what it printed. */
+  run: (cmd: string, args: string[]) => { code: number; out: string };
+}
+
+/** What `check` says of a prepared release, item by item. */
+export async function checkRelease(version: string, deps: CheckDeps) {
+  const pkg = JSON.parse(deps.read('package.json') || '{}') as { version?: string };
+  const todos = todoMarkers(deps.todoFiles().map((path) => ({ path, text: deps.read(path) })));
+  const wiki = deps.run('npm', ['run', '-s', 'wiki', '--', 'check']);
+  return [
+    { what: `package.json is at ${version}`, ok: pkg.version === version, detail: `it is at ${pkg.version}` },
+    {
+      what: `CHANGELOG.md has a ${version} section`,
+      ok: releaseNotes(deps.read('CHANGELOG.md'), `v${version}`) !== null,
+      detail: `no "## ${version}" heading`,
+    },
+    { what: `no ${TODO} left`, ok: todos.length === 0, detail: todos.join(', ') },
+    {
+      what: 'npm run wiki -- check: no warning',
+      ok: wiki.code === 0 && /\b0 warning\(s\)/.test(wiki.out),
+      detail: 'see npm run wiki -- check',
+    },
+    {
+      what: 'npm run quality:baseline -- --check',
+      ok: deps.run('npm', ['run', '-s', 'quality:baseline', '--', '--check']).code === 0,
+      detail: 'see npm run quality:baseline -- --check',
+    },
+  ];
+}
+
+// ——— The command line. Everything below runs in the repository's root, the commands 4.5.3's release ran by hand.
+
+const ROOT = execFileSync('git', ['rev-parse', '--show-toplevel'], { encoding: 'utf8' }).trim();
+const sh = (cmd: string, args: string[], env: Record<string, string> = {}) =>
+  execFileSync(cmd, args, {
+    cwd: ROOT,
+    encoding: 'utf8',
+    env: { ...process.env, ...env },
+    stdio: ['ignore', 'pipe', 'inherit'],
+  }).trim();
+const capture = (cmd: string, args: string[]) => {
+  const r = spawnSync(cmd, args, { cwd: ROOT, encoding: 'utf8' });
+  return { code: r.status ?? 1, out: `${r.stdout ?? ''}${r.stderr ?? ''}` };
+};
+const file = (f: string) => join(ROOT, f);
+const read = (f: string) => (existsSync(file(f)) ? readFileSync(file(f), 'utf8') : '');
+const say = (s: string) => console.log(`${new Date().toISOString().slice(11, 19)}  ${s}`);
+const today = () => new Date().toISOString().slice(0, 10);
+
+function todoFiles(version: string) {
+  return [
+    'CHANGELOG.md',
+    'docs/dev/LOG.md',
+    'README.md',
+    'README.fr.md',
+    `docs/dev/passes/${version}.md`,
+    `wiki/en/${upgradeNotesPage(version)}.md`,
+    `wiki/fr/${upgradeNotesPage(version)}.md`,
+  ];
+}
+
+/** The newest passes sheet's version (docs/dev/passes/<x.y.z>.md). */
+function newestSheet() {
+  return readdirSync(file('docs/dev/passes'))
+    .map((f) => /^(\d+\.\d+\.\d+)\.md$/.exec(f)?.[1])
+    .filter((v): v is string => !!v)
+    .sort((a, b) => {
+      const [x, y] = [parts(a), parts(b)];
+      return x[0] - y[0] || x[1] - y[1] || x[2] - y[2];
+    })
+    .at(-1)!;
+}
+
+/** The section of `version` in the CHANGELOG: its bullets, to start the upgrade notes from. */
+function sectionBullets(changelog: string, version: string) {
+  const notes = releaseNotes(changelog, `v${version}`) ?? '';
+  return notes.split('\n').filter((l) => l.startsWith('- '));
+}
+
+function prepare(version: string, opts: { name: string; date: string; pr: boolean; dryRun: boolean }) {
+  const current = JSON.parse(read('package.json')).version as string;
+  let remote: string | undefined;
+  try {
+    remote = releaseRemote();
+  } catch {
+    remote = undefined;
+  }
+  if (remote) spawnSync('git', ['fetch', '--quiet', remote, 'main'], { cwd: ROOT });
+  const head = sh('git', ['rev-parse', 'HEAD']);
+  const theirs = remote
+    ? spawnSync('git', ['rev-parse', `${remote}/main`], { cwd: ROOT, encoding: 'utf8' }).stdout.trim()
+    : '';
+  const refusals = prepareRefusals({
+    current,
+    version,
+    dirty: sh('git', ['status', '--porcelain']) !== '',
+    branch: sh('git', ['rev-parse', '--abbrev-ref', 'HEAD']),
+    shallow: sh('git', ['rev-parse', '--is-shallow-repository']) === 'true',
+    upToDate: !!remote && head === theirs,
+    upgradeNotes: existsSync(file(`wiki/en/${upgradeNotesPage(version)}.md`)),
+  });
+  if (refusals.length) {
+    for (const r of refusals) console.error(`✖  ${r}`);
+    if (!opts.dryRun) process.exit(1);
+  }
+  if (!opts.name) {
+    console.error('✖  --name="<the release\'s name>" is required (4.5.3 was "One pass")');
+    process.exit(1);
+  }
+  const previous = current;
+  const branch = `release/${version}`;
+  const steps: Record<(typeof PREPARE_STEPS)[number], () => void> = {
+    branch: () => sh('git', ['switch', '-c', branch]),
+    version: () => sh('npm', ['version', version, '--no-git-tag-version']),
+    changelog: () => {
+      const first = lastLogNumber(read('docs/dev/LOG.md')) + 1;
+      sh('npm', ['run', '-s', 'changes', '--', '--assemble', `--date=${opts.date}`]);
+      const last = lastLogNumber(read('docs/dev/LOG.md')) + 1;
+      const intro = changelogIntro({ version, name: opts.name, previous, first, last });
+      const changelog = read('CHANGELOG.md').replace(
+        /^## Unreleased\s*$/m,
+        `${releaseHeading(version, opts.date)}\n\n${intro}`,
+      );
+      writeFileSync(file('CHANGELOG.md'), changelog);
+      const log = read('docs/dev/LOG.md').replace(/\n*$/, '\n\n');
+      writeFileSync(
+        file('docs/dev/LOG.md'),
+        log + logReleaseEntry({ n: last, date: opts.date, version, name: opts.name }),
+      );
+    },
+    'upgrade notes': () => {
+      const bullets = sectionBullets(read('CHANGELOG.md'), version);
+      for (const lang of ['en', 'fr'] as const) {
+        const page = `wiki/${lang}/${upgradeNotesPage(version)}.md`;
+        const text = upgradeNotesLead(read(page), previous, version, lang).replace(/\n*$/, '\n\n');
+        writeFileSync(file(page), text + upgradeNotesSection({ previous, version, name: opts.name, lang, bullets }));
+      }
+    },
+    'transition pages': () => sh('npm', ['run', '-s', 'wiki', '--', 'transition']),
+    'golden save': () => {
+      sh('npx', ['tsx', 'tools/golden-save.ts', version]);
+      const index = JSON.parse(read('tests/fixtures/saves/index.json')) as { demo: string[] };
+      writeFileSync(
+        file('tests/fixtures/saves/index.json'),
+        `${JSON.stringify({ demo: [...index.demo, version] }, null, 2)}\n`,
+      );
+    },
+    'reference run': () => sh('npx', ['tsx', 'tools/speedrun/reference-run.ts'], { GAME: 'reference' }),
+    passes: () => {
+      const sheet = newestSheet();
+      writeFileSync(
+        file(`docs/dev/passes/${version}.md`),
+        passesSheet(read(`docs/dev/passes/${sheet}.md`), sheet, version),
+      );
+      const contracts = JSON.parse(read('docs/dev/contracts.json'));
+      writeFileSync(file('docs/dev/contracts.json'), formatJson(withPassIssues(contracts, sheet, version)));
+    },
+    readme: () => {
+      for (const [lang, f] of [
+        ['en', 'README.md'],
+        ['fr', 'README.fr.md'],
+      ] as const)
+        writeFileSync(file(f), withCurrentRelease(read(f), lang, version, opts.name));
+    },
+    'quality baseline': () => sh('npm', ['run', '-s', 'quality:baseline']),
+    commit: () => {
+      sh('git', ['add', '-A']);
+      sh('git', ['commit', '-q', '-m', `${version}: the release (prepared by npm run release -- prepare)`]);
+    },
+    'pull request': () => {
+      if (!opts.pr) return say('--no-pr: nothing pushed');
+      const remotes = sh('git', ['remote', '-v']);
+      const fork = remotes
+        .split('\n')
+        .map((l) => l.split(/\s+/))
+        .find(([n, , kind]) => kind === '(fetch)' && n !== remote)?.[0];
+      const pushTo = fork ?? remote;
+      if (!pushTo) throw new Error('no git remote to push the release branch to');
+      sh('git', ['push', '-q', '-u', pushTo, branch]);
+      const url =
+        remotes
+          .split('\n')
+          .find((l) => l.startsWith(`${pushTo}\t`))
+          ?.split(/\s+/)[1] ?? '';
+      const owner = /github\.com[:/]([^/]+)\//.exec(url)?.[1];
+      const left = todoMarkers(todoFiles(version).map((path) => ({ path, text: read(path) })));
+      const body = [
+        `## What changes`,
+        '',
+        `Release ${version} "${opts.name}", prepared by \`npm run release -- prepare\`: version, CHANGELOG and LOG from the fragments, transition pages, golden save, reference run, passes sheet and passIssues, README, quality baseline.`,
+        '',
+        `## Left to write (\`npm run release -- check ${version}\` lists them)`,
+        '',
+        ...left.map((l) => `- [ ] \`${l}\``),
+        '',
+        'Then record the changed translation pairs (`npm run wiki -- check` prints each command, `--kind ai --relation author` for an assistant).',
+      ].join('\n');
+      const head = owner && fork && owner !== REPO.split('/')[0] ? `${owner}:${branch}` : branch;
+      say(
+        sh('gh', [
+          'pr',
+          'create',
+          '--repo',
+          REPO,
+          '--base',
+          'main',
+          '--head',
+          head,
+          '--title',
+          `${version}: the release`,
+          '--body',
+          body,
+        ]),
+      );
+    },
+  };
+  for (const name of PREPARE_STEPS) {
+    if (opts.dryRun) {
+      say(`would run: ${name}`);
+      continue;
+    }
+    say(`${name}…`);
+    steps[name]();
+  }
+  if (opts.dryRun) process.exit(refusals.length ? 1 : 0);
+  say(`✔  ${branch} prepared: npm run release -- check ${version} says what is left`);
+}
+
+async function check(version: string) {
+  const items = await checkRelease(version, { read, todoFiles: () => todoFiles(version), run: capture });
+  for (const i of items) console.log(`${i.ok ? '✔' : '✖'}  ${i.what}${i.ok ? '' : `: ${i.detail}`}`);
+  process.exit(items.every((i) => i.ok) ? 0 : 1);
+}
+
+if (process.argv[1]?.endsWith('prepare.ts')) {
+  const [verb, version, ...rest] = process.argv.slice(2);
+  const opt = (k: string) => rest.find((a) => a.startsWith(`--${k}=`))?.slice(k.length + 3);
+  if (verb === 'prepare' && version)
+    prepare(version, {
+      name: opt('name') ?? '',
+      date: opt('date') ?? today(),
+      pr: !rest.includes('--no-pr'),
+      dryRun: rest.includes('--dry-run'),
+    });
+  else if (verb === 'check' && version) await check(version);
+  else {
+    console.error(
+      'usage: npm run release -- prepare <x.y.z> --name="<name>" [--date=YYYY-MM-DD] [--no-pr] [--dry-run] | check <x.y.z>',
+    );
+    process.exit(2);
+  }
 }
