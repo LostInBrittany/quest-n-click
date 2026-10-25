@@ -25,7 +25,8 @@ export type Point = [number, number];
  * - `{ visited: 'room' }`: this room has already been entered; `{ room: 'room' }`: we're in it.
  * - `{ prop: ['amp', 'on'] }`: the prop is in that state (in the current room, or `'room.prop'`).
  * - `{ unlocked: 'place' }`: the place is unlocked on the map.
- * - `{ seen: 'room.actor.0' }`: the conversation topic has already been heard.
+ * - `{ seen: 'topic.ask.key' }`: the topic, `once` listener or `once` choice option was already seen (`topic.<id>`,
+ *   `event.<id>`, `choice.<id>`; by place without an id: `room.actor.0`). `npm run validate` refuses a key never recorded.
  * - `{ actorIn: ['grandpa', 'garden'] }`: the character is in that room (one that moves: `CharacterDef.room`, `moveActor`).
  * - `{ player: 'laverne' }`: this character is the one the player controls now (`GameDef.players`).
  * @public
