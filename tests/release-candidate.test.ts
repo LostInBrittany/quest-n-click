@@ -40,6 +40,14 @@ describe('the candidate of a release', () => {
       "if: always() && (github.event_name == 'workflow_dispatch' || github.event.label.name == 'full-ci' || needs.release-merge.outputs.release == 'true')",
     );
   });
+  it('qualifies, profiles and attests a candidate started by a release merge as one started by hand (4.5.4)', () => {
+    const yml = readFileSync('.github/workflows/candidate.yml', 'utf8');
+    // Only the target job names the events; a step tells a pull request's run (information only) from the others.
+    const body = yml.slice(yml.indexOf('\n  release-core:\n'));
+    expect(body).not.toContain("github.event_name == 'workflow_dispatch'");
+    expect(body).toContain("PROFILE: ${{ github.event_name != 'pull_request' && 'full' || 'short' }}");
+    expect(body.split("if: github.event_name != 'pull_request'").length - 1).toBeGreaterThanOrEqual(2);
+  });
   it("is named by release.yml only when started by hand on main or by a release's merge on main", () => {
     const rel = readFileSync('.github/workflows/release.yml', 'utf8');
     expect(rel).toContain(

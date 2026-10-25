@@ -8,7 +8,7 @@ name: candidate
 # its own and checks only that main's `ci` is green on the SHA and that this run is.
 #
 # Started by hand on main for a SHA (`gh workflow run candidate --ref main -f sha=<full sha>`): the only run a tag may
-# name (ship.mjs and release.yml check `workflow_dispatch` from main, so the workflow file judged is main's). A pull
+# name (ship.mjs and release.yml check a run started on main, by hand or, from 4.5.4, by a release's merge, so the workflow file judged is main's). A pull
 # request runs it too, as information only, when the label `full-ci` is added to it (not on its later pushes). Never on a tag: a tag stands on a candidate already run.
 # "Cold": a new runner, a fresh checkout; the solver keeps nothing between runs and no cache but npm's is restored.
 on:
@@ -655,7 +655,7 @@ jobs:
       # 4.1.17 store).
       - shell: bash
         env:
-          PROFILE: ${{ github.event_name == 'workflow_dispatch' && 'full' || 'short' }}
+          PROFILE: ${{ github.event_name != 'pull_request' && 'full' || 'short' }}
         run: npm run ops:qualify -- --tarballs=candidate-pack --image-from=candidate-image --candidate-run=${{ github.run_id }} $([ "$PROFILE" = short ] && echo --short) --out=deployment-smoke
       - if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
@@ -823,7 +823,7 @@ jobs:
       # The qualification a tag may stand on (4.1.20, plan §8.1): the full profile, of this SHA, for this run, every step
       # passed, on this candidate's archives and image. A pull request's run is information only and is not judged here.
       - name: The full qualification of this candidate
-        if: github.event_name == 'workflow_dispatch'
+        if: github.event_name != 'pull_request'
         run: node tools/release/candidate.mjs qualification artifacts/deployment-smoke/ops-qualify.json --sha=${{ needs.target.outputs.sha }} --run=${{ github.run_id }} --pack=artifacts/candidate-pack --image=artifacts/candidate-image
       # The release's exact baseline (4.1.19, plan §12.2): read from this run's artifacts and jobs, nothing measured
       # again; under candidate-release/baseline it enters the manifest, is attested with it and published by release.yml.
@@ -904,7 +904,7 @@ jobs:
       # Who wrote the manifest (4.1.19, plan §6.5): signed by this run, after every job succeeded. A Field Kit bundle
       # carries the attestation, so anyone can check it offline (npm run field:verify-bundle).
       # A pull request's run (full-ci) is information only: never attested, so no bundle can stand on it.
-      - if: github.event_name == 'workflow_dispatch'
+      - if: github.event_name != 'pull_request'
         uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
         with:
           subject-path: candidate-manifest.json
