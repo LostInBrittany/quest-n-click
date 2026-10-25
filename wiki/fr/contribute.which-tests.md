@@ -15,8 +15,8 @@ qui dit ce qu'est chaque workflow et chaque job.
 | Suite | Commande | Ce qu'elle lance | PR | `main` | Candidat | Release | Nightly | Hebdo |
 |---|---|---|---|---|---|---|---|---|
 | Unitaire (Node) | `npm test` (`test:node`) | chaque `tests/**/*.test.ts` et les `games/<GAME>/tests/` du jeu, sauf les 9 fichiers lourds et les 2 fichiers d'assets | via la couverture ; sous Node 24 (barrière `node24`) ; sous Windows sans les fichiers POSIX (barrière `windows`) | oui | oui (`release-check:ci`) | oui (`release-check:ci`) | — | — |
-| Couverture | `npm run test:coverage` | la suite unitaire et les tests d'assets sous couverture V8, puis les seuils de `vite.config.ts` et le cliquet | oui (job `coverage` ; le cliquet avertit) | oui (cliquet strict) | oui | oui | — | — |
-| Assets | `npm run test:assets` | `tests/pixel.test.ts`, `tests/studio-assets.test.ts` (Python nécessaire) | dans la couverture | dans la couverture | dans la couverture | dans la couverture | — | — |
+| Couverture | `npm run test:coverage` | la suite unitaire et les tests d'assets sous couverture V8, puis les seuils de `vite.config.ts` et le cliquet | quand le code du produit change (job `coverage`, barrière `coverage` ; le cliquet avertit) ; sinon la suite unitaire sans couverture (4.5.4) | oui (cliquet strict) | oui | oui | — | — |
+| Assets | `npm run test:assets` | `tests/pixel.test.ts`, `tests/studio-assets.test.ts` (Python nécessaire) | dans le job `coverage`, avec ou sans couverture (4.5.4) | dans la couverture | dans la couverture | dans la couverture | — | — |
 | Solveur lourd | `npm run test:heavy` | 9 fichiers l'un après l'autre : `ownership`, `audit`, `canonical`, `memo`, `reference-proof`, `solver-oracle`, `dominance`, `partition`, `checkpoint-matrix` | — | — | trois fois, chacune sur un runner neuf (`heavy` ×3) | — | oui (`heavy`) | — |
 | Qualité | `npm run quality` | formatage, lint du code, knip, les deux configurations TypeScript, lint de contenu | oui (`check`) | oui | oui | oui | — | — |
 | Vérité des docs | `npm run docs:truth` | ce que disent les docs, comparé au code | oui (`check`) | oui | — | — | — | — |

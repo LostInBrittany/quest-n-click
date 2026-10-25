@@ -34,8 +34,12 @@ tourne dans quel job, c'est [Quels tests tournent quand](contribute.which-tests.
   `weight -- --release`, `quality:baseline -- --check --dist`, `prove:game`, `audit:deps` quand `package.json` ou le
   fichier de verrouillage a bougé, puis le build à deux entrées (jeu et démo du Studio) que jouent les lignes e2e,
   gardé comme artefact `dist`.
-- `coverage` : la suite unitaire une fois, sous couverture V8 (`test:coverage`), puis le cliquet de couverture : un
-  avertissement sur une pull request, un échec sur `main` et sur un tag ([Le cliquet de couverture](contribute.coverage-ratchet.md)).
+- `coverage` : la suite unitaire une fois, à chaque changement. Quand le changement touche le code du produit (la
+  barrière `coverage` du plan : le moteur, un jeu, le Bridge, le Studio et son serveur, la CLI et les paquets, les
+  sauvegardes de référence, les outils d'écriture), sous couverture V8 (`test:coverage`), puis le cliquet de
+  couverture : un avertissement sur une pull request, un échec sur `main` et sur un tag
+  ([Le cliquet de couverture](contribute.coverage-ratchet.md)). Sinon (la doc, un workflow, les outils de release et du
+  wiki, des tests seuls), la même suite sans couverture (`test:node`), quelques minutes de moins (4.5.4).
 
 **Le deuxième palier, ce que le changement peut casser.** Chaque job a besoin de `plan` (la plupart aussi de `check`)
 et lit sa barrière dans le plan : il fait son vrai travail, ou une seule étape qui dit « not needed by the plan » et
@@ -43,6 +47,7 @@ réussit.
 
 | Job | Barrière | Lance |
 |---|---|---|
+| `coverage` | `coverage` | la suite unitaire sous couverture et le cliquet (épargné : la même suite sans couverture) |
 | `node-24` | `node24` | la suite unitaire sous Node 24 |
 | `windows` | `windows` | le docteur, les vérifications de types, la suite unitaire sans les fichiers qui supposent POSIX, `build:game`, le serveur de production qui répond |
 | `e2e` (six lignes) | `e2e` | le build de production joué au toucher : Chromium complet, WebKit générique, Chromium et WebKit au clavier, Chromium en français, Chromium avec le peintre Canvas ; avec des étapes de poids, musique, visuel, performance, Studio, accessibilité et PWA sur certaines lignes |
@@ -60,7 +65,8 @@ réussit.
 `full-ci`, la nightly, le candidat et la release.
 
 **`pr-gate`** lit le résultat de chaque job : chacun doit être `success` ; les jobs de mutation peuvent être `skipped`
-là où ils ne tournent pas. C'est la seule vérification qui résume une pull request.
+là où ils ne tournent pas ; `pwa-firefox`, instable jusqu'à la correction de #257, est signalé par un avertissement et
+ne le fait pas échouer (4.5.4). C'est la seule vérification qui résume une pull request.
 
 Plus aucun job ne déploie GitHub Pages (4.5.2, voir [le site](#pages-only)).
 
@@ -84,19 +90,21 @@ l'union de ce que demandent ses fichiers :
 | Un changement de | Ouvre |
 |---|---|
 | `.github/workflows/ci.yml`, `tools/ci-plan.ts`, `package.json`, le fichier de verrouillage, une configuration partagée (`tsconfig*.json`, `vite.config.ts`, `vitest*.ts`, `biome.json`, `knip.json`, `requirements.txt`, `.nvmrc`, `.gitattributes`), la coquille de l'app, `tools/vite/` | tout |
-| `docs/`, `changes/`, `wiki/`, tout `.md`, `LICENSE*`, `.claude/`, `.cursor/`, `clevercloud/`, un autre fichier de `.github/` | le palier rapide seulement |
-| l'exécution Reality | `reality`, `e2e`, `node24`, `windows` |
-| les peintres, le directeur musical | `e2e`, `reference`, `node24`, `windows` |
-| la PWA et le stockage (`boot.ts`, `dom/update`, `offline`, `save-store`, `storage`) | `e2e`, `pwaFirefox`, `upgrade`, `node24`, `windows` |
+| `docs/`, `changes/`, `wiki/`, tout `.md`, `LICENSE*`, `.claude/`, `.cursor/`, `clevercloud/`, un autre fichier de `.github/` | le palier rapide seulement (`check`, et la suite unitaire sans couverture) |
+| l'exécution Reality | `coverage`, `reality`, `e2e`, `node24`, `windows` |
+| les peintres, le directeur musical | `coverage`, `e2e`, `reference`, `node24`, `windows` |
+| la PWA et le stockage (`boot.ts`, `dom/update`, `offline`, `save-store`, `storage`) | `coverage`, `e2e`, `pwaFirefox`, `upgrade`, `node24`, `windows` |
 | tout autre fichier de `src/engine/` (le cœur) | tout |
-| `src/studio/` | `e2e`, `studioHosted`, `node24`, `windows` |
-| `bridge/` | `reality`, `freshInstall`, `node24`, `windows` (et `studioHosted` pour sa couche SQL) |
-| `games/demo/` | `e2e`, `reference`, `node24`, `windows` |
-| `games/reference/`, `games/heroes/` | `reference`, `node24` |
-| `games/_template/`, `cli/`, `scripts/{pack,fresh-install,external-consumer,new-game}.mjs` | `secondGame`, `freshInstall`, `upgrade`, `node24`, `windows` |
+| `src/studio/` | `coverage`, `e2e`, `studioHosted`, `node24`, `windows` |
+| `bridge/` | `coverage`, `reality`, `freshInstall`, `node24`, `windows` (et `studioHosted` pour sa couche SQL) |
+| `games/demo/` | `coverage`, `e2e`, `reference`, `node24`, `windows` |
+| `games/reference/`, `games/heroes/` | `coverage`, `reference`, `node24` |
+| `games/_template/`, `cli/`, `scripts/{pack,fresh-install,external-consumer,new-game}.mjs` | `coverage`, `secondGame`, `freshInstall`, `upgrade`, `node24`, `windows` |
 | `studio-server/` | les barrières de création et `studioHosted` |
-| les autres `tools/` et `scripts/` | les barrières de création (`node24`, `windows`, `secondGame`, `freshInstall`, `upgrade`, `reference`) |
-| `tests/` | `node24`, `windows` |
+| `tools/wiki.ts` et `tools/wiki/` (sauf `docs`, `docs-load`, `glossary`, `manifest`, `page` et `site`, que le Studio et le serveur MCP lisent), `tools/release/`, les outils du dépôt (`tools/mutate.ts`, `tools/changes.ts`, `tools/quality-baseline.ts`…, `scripts/release-notes.mjs`) | le palier rapide seulement (4.5.4) |
+| les autres `tools/` et `scripts/` | les barrières de création (`coverage`, `node24`, `windows`, `secondGame`, `freshInstall`, `upgrade`, `reference`) |
+| les tests du Studio hébergé et ses fichiers de CI (`tests/studio-{server,worker,collab,keycloak,client,diff-captures}.test.ts`, `ops/studio/{ci,keycloak}/`) | `studioHosted` |
+| les autres `tests/` | le palier rapide seulement (4.5.4) |
 | un chemin qu'aucune règle ne connaît | tout |
 
 Une erreur de git lance tout aussi : le plan ne décide jamais qu'il n'a pas besoin d'être vérifié. **`docs`** est vrai
