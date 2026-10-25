@@ -51,12 +51,21 @@ export function say(
   return new Promise((res) => {
     app.speechDone = res;
     const mine = box;
-    // With a voice clip, the line lasts as long as the clip (a tap still skips it); otherwise a reading time.
-    if (o.voice && app.audio.hasVoice(o.voice))
-      void app.audio.voice(o.voice).then(() => {
-        if (app.speechEl === mine) app.endSpeech();
+    // With a voice clip, the line lasts as long as the clip (a tap still skips it); otherwise a reading time. A clip
+    // that cannot play (no gesture yet, sound off, voice volume 0, a file that fails) leaves what remains of the
+    // reading time, as if the line had no clip (#249).
+    const reading = sayMs(text, app.settings.textSpeed);
+    if (o.voice && app.audio.hasVoice(o.voice)) {
+      const t0 = performance.now();
+      void app.audio.voice(o.voice).then((played) => {
+        if (app.speechEl !== mine) return;
+        if (played) app.endSpeech();
+        else {
+          const left = Math.max(0, reading - (performance.now() - t0));
+          app.speechTimer = window.setTimeout(() => app.endSpeech(), left);
+        }
       });
-    else app.speechTimer = window.setTimeout(() => app.endSpeech(), sayMs(text, app.settings.textSpeed));
+    } else app.speechTimer = window.setTimeout(() => app.endSpeech(), reading);
   });
 }
 

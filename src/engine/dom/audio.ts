@@ -125,13 +125,17 @@ export class Audio {
     return !!this.files.voice?.[id];
   }
 
-  /** Plays a voice clip; resolves when it ends (right away if sound is off or the clip is missing). */
-  voice(id: string): Promise<void> {
+  /**
+   * Plays a voice clip; resolves when it ends, with `true` when the clip played to its end and `false` when it could not
+   * play (sound off, voice volume 0, before the first gesture, a missing file, a load or play error), so the line can
+   * fall back to its reading time (#249).
+   */
+  voice(id: string): Promise<boolean> {
     this.speaking?.stop();
     this.speaking = null;
-    if (!this.sfxOn || !this.unlocked || this.vol.voice <= 0) return Promise.resolve();
+    if (!this.sfxOn || !this.unlocked || this.vol.voice <= 0) return Promise.resolve(false);
     const h = this.howl('voice', id, false);
-    if (!h) return Promise.resolve();
+    if (!h) return Promise.resolve(false);
     this.speaking = h;
     // The music steps back while someone speaks, and comes back after (3.4).
     const m = this.current?.howl;
@@ -149,17 +153,17 @@ export class Audio {
       h.once('end', () => {
         if (this.speaking === h) this.speaking = null;
         back();
-        res();
+        res(true);
       });
       h.once('playerror', () => {
         if (this.speaking === h) this.speaking = null;
         back();
-        res();
+        res(false);
       });
       h.once('loaderror', () => {
         if (this.speaking === h) this.speaking = null;
         back();
-        res();
+        res(false);
       });
       h.volume(0.9 * this.vol.voice);
       h.seek(0);
