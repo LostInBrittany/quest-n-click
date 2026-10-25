@@ -5165,10 +5165,10 @@
       ]
     },
     "contribute.releasing#maintainer-settings": {
-      "enHash": "c533fec8dd881b65897010b2e24837e7414af69fd9b895f042eee3b8ec5ccdb3",
-      "frHash": "b5f50f57431c322c0556371a2ba7eab7f4f790a21dc925225c1f634e4b32051f",
+      "enHash": "c186940cbe29dc6319ec3b6b83605ee4da134ba99e41f01c987659ad7d95ba4f",
+      "frHash": "4b8c760900a49f249b366bc1cc4ddbc30cf1606810846b72577e10eae1719ef0",
       "reviewers": [
-        { "name": "claude-291-release-one-pass", "kind": "ai", "relation": "author", "date": "2026-10-24" }
+        { "name": "claude-454-candidate-docs", "kind": "ai", "relation": "author", "date": "2026-10-25" }
       ]
     },
     "contribute.releasing#preflight": {
@@ -5179,10 +5179,10 @@
       ]
     },
     "contribute.releasing#prepare": {
-      "enHash": "328a990a10a8b263d96fb695003697ad5b608f7c6c4caab7874e983b740989ba",
-      "frHash": "6992637d52f2e71bbd627c2aaaffcd7fe754259c4a0cccf32b60758e8725fde8",
+      "enHash": "6455da21459a4aa97d2c6da5dc4116a65fe290cde95866440470cedd53da1f55",
+      "frHash": "a6bdfe896850cfcbab7a103952ebb234f9289ea78b3bb7c9e3056f79b5574437",
       "reviewers": [
-        { "name": "claude-454-prepare", "kind": "ai", "relation": "author", "date": "2026-10-25" }
+        { "name": "claude-454-candidate-docs", "kind": "ai", "relation": "author", "date": "2026-10-25" }
       ]
     },
     "contribute.releasing#prerequisites": {
@@ -5205,6 +5205,13 @@
       "frHash": "67d5b33d0ffa93481ee7ae0594efeef4d8b8debc44f0abec7fb3fda9edffe096",
       "reviewers": [
         { "name": "claude-291-release-one-pass", "kind": "ai", "relation": "author", "date": "2026-10-24" }
+      ]
+    },
+    "contribute.releasing#release-command": {
+      "enHash": "1934bd67de81de13a0ae894fc17a0ffcb9cdd63659d9af98fbfeed2574ace009",
+      "frHash": "1d15451cc96c1e48f48390ad33b7120c1e878ba46263848cc666da01cb3168f5",
+      "reviewers": [
+        { "name": "claude-454-release", "kind": "ai", "relation": "author", "date": "2026-10-25" }
       ]
     },
     "contribute.releasing#ship-commands": {
@@ -5230,10 +5237,10 @@
       ]
     },
     "contribute.releasing#the-chain": {
-      "enHash": "275e0f3c6c3d983d203a49a8e8367d2c03a6ef71a6e4f6fe5add604bb0435be9",
-      "frHash": "8a30365f1ab3407fdd1788c072470c6fae2be007e548e85cb8dfa7bb29051d97",
+      "enHash": "861c7e8d81e5c7c2e5c1df7fc564d59aee6a10cb85949a5ef68dfa0562c81bf3",
+      "frHash": "7bcdccca054c3a8d66902dceffe07c7fe8eff108e3b02151b7cec85cf3e14ffb",
       "reviewers": [
-        { "name": "claude-291-release-one-pass", "kind": "ai", "relation": "author", "date": "2026-10-24" }
+        { "name": "claude-454-candidate-docs", "kind": "ai", "relation": "author", "date": "2026-10-25" }
       ]
     },
     "contribute.releasing#what-a-release-carries": {
@@ -14330,6 +14337,20 @@
         { "name": "wanoo", "kind": "human", "relation": "independent", "date": "2026-10-24" }
       ]
     },
+    "reference.environment-variables#before": {
+      "enHash": "8417101fcdd46531e0edfd4ed8e099c9cd47a2d5a1b523690a0a35f9bca8c380",
+      "frHash": "7ce10669ae7055a17214e4f970b5b00ea615afa3b76cea84b3fd4d7df4abb6b0",
+      "reviewers": [
+        { "name": "claude-454-candidate-docs", "kind": "ai", "relation": "author", "date": "2026-10-25" }
+      ]
+    },
+    "reference.environment-variables#branch": {
+      "enHash": "251b5ea538b67799c80d115614c23db04b3605a8be7573f8a0298e19747bf0a6",
+      "frHash": "2a0166e517b5f106a9f2673347876ad7c72fced249ccb65df6c5bdc0d74ae920",
+      "reviewers": [
+        { "name": "claude-454-candidate-docs", "kind": "ai", "relation": "author", "date": "2026-10-25" }
+      ]
+    },
     "reference.environment-variables#bridge": {
       "enHash": "55d5c0808042913018b56b1bc86d411663b88f397b0f4b93f19903a8d8258bb9",
       "frHash": "f242dd98719ce917c2f7f4fc5866f189fcfe4272da48ead236a3c66c048c3bc3",
@@ -14545,6 +14566,13 @@
         { "name": "wanoo", "kind": "human", "relation": "independent", "date": "2026-10-24" }
       ]
     },
+    "reference.environment-variables#event": {
+      "enHash": "ce5d6c6dae0bfa2ae8b45e12ef7fe7e90f71e25e08260842171139c13f32cb37",
+      "frHash": "626be1b72be247650be9797e5304d23df4331fc98e812118fbfad1a9e3696354",
+      "reviewers": [
+        { "name": "claude-454-candidate-docs", "kind": "ai", "relation": "author", "date": "2026-10-25" }
+      ]
+    },
     "reference.environment-variables#extra-assets": {
       "enHash": "d2342ecd09322c49fcc52e79e5833b5be29316fa08a6a26a0b8d3afc5e28ca3a",
       "frHash": "0a48b54c33f288285b884cea80be0cd24664404f02fe04906afb223fec5ee741",
@@ -14662,11 +14690,10 @@
       ]
     },
     "reference.environment-variables#home": {
-      "enHash": "ae862536ade9e66af3fea4877290bfc7d6cc131e606edf264c2570891f19e9eb",
-      "frHash": "bf2aecdf7dc3ab1b833e32e219aa2fe196115736b5b8e9736b88116505ec54c1",
+      "enHash": "f934a1ef75d803d5b30a5b73243de2aeecf419d15838b70e26cb0f65c37f0b5d",
+      "frHash": "2b043eca7d28e269547a5d554e7687003c842e3e64de360f620d207f85b4ebaf",
       "reviewers": [
-        { "name": "claude-pr266", "kind": "ai", "relation": "author", "date": "2026-10-23" },
-        { "name": "wanoo", "kind": "human", "relation": "independent", "date": "2026-10-24" }
+        { "name": "claude-454-release", "kind": "ai", "relation": "author", "date": "2026-10-25" }
       ]
     },
     "reference.environment-variables#how-to-read": {
@@ -16904,10 +16931,10 @@
       ]
     },
     "reference.npm-scripts#script-release": {
-      "enHash": "0f09df37352b7f1e9e6f96a1b476d53ac46a54abe27c94bec5bc871377547905",
-      "frHash": "578a0182cdbf7004a36b3f16ea4d5c60dc5781f7509573128a1dd7069fdfb34f",
+      "enHash": "b6ed22bd201570ed5e59f2fde22973b6b4920ddb04da1518b9a1355823fbdb00",
+      "frHash": "41af2fab47d7a54754095edbb28886c7d03e1ca4f8ed58a838ae19a7121d0bec",
       "reviewers": [
-        { "name": "claude-454-prepare", "kind": "ai", "relation": "author", "date": "2026-10-25" }
+        { "name": "claude-454-release", "kind": "ai", "relation": "author", "date": "2026-10-25" }
       ]
     },
     "reference.npm-scripts#seal": {

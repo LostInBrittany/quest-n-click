@@ -1,0 +1,3 @@
+### Changes
+
+- **A release is one command after the release pull request's merge** (4.5.4, D57): `npm run release -- <x.y.z>` refuses first what would fail later (not the merged release, uncommitted changes, no CHANGELOG section, no SSH signing, `gh` or `npm` not signed in, an npm user who is not an owner), finds the candidate the merge started and waits for it with its progress (its failed jobs re-run once), signs and pushes the tag (`ship tag`), follows the release and verifies it, then approves the staged npm packages with the maintainer's 2FA, the engine first. Run again after a stop, it goes on where it stopped.
