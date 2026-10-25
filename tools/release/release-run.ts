@@ -206,11 +206,20 @@ function namedSigner(key: string | undefined) {
   return !!pub && existsSync(file) && readFileSync(file, 'utf8').includes(pub);
 }
 
-/** The release commit: the tag's commit once it is pushed, else where package.json became the version on main. */
+/** The release commit: the tag's commit once it is pushed, else where package.json became the version on main (first parents only: the merged release branch's own commits are not main's). */
 function findReleaseCommit(remote: string, version: string): string | undefined {
   const tagged = quiet('git', ['ls-remote', '--tags', remote, `refs/tags/v${version}^{}`]).out.split(/\s/)[0];
   if (tagged) return tagged;
-  const shas = quiet('git', ['log', '--format=%H', '-n', '50', `${remote}/main`, '--', 'package.json'])
+  const shas = quiet('git', [
+    'log',
+    '--first-parent',
+    '--format=%H',
+    '-n',
+    '50',
+    `${remote}/main`,
+    '--',
+    'package.json',
+  ])
     .out.split('\n')
     .filter(Boolean);
   const history: { sha: string; version: string }[] = [];
