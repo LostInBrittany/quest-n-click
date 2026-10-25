@@ -38,6 +38,7 @@ describe('the plan of a change', () => {
     ],
     ['the Studio', ['src/studio/main.ts'], gates('coverage', 'e2e', 'node24', 'studioHosted', 'windows')],
     ['the hosted Studio in a browser', ['scripts/e2e-studio-hosted.ts'], gates('studioHosted')],
+    ["the runner's Playwright packages (#353)", ['scripts/ci-playwright-deps.sh'], gates('studioHosted')],
     [
       'the Studio Server',
       ['studio-server/migrations/0005.up.sql'],
