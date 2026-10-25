@@ -64,7 +64,7 @@ Dans le dépôt du moteur, sur votre machine. Le job `check` de la CI lance
    Elle résout et rejoue chaque jeu (`quality baseline: solving and replaying…`), puis affiche `✔ same behaviour…`, ou
    une ligne `✖` par différence, par exemple `demo witness.digests: … → …` (un état après une entrée diffère :
    `npm run replay` sur le témoin nomme l'entrée), `golden save demo-3.4.0.json last: … → …`,
-   `tests/api-surface.json: the public API or the MCP tools changed`, ou `README.md: a figure is behind the baseline`.
+   `tests/api-surface.json: the public API or the MCP tools changed`, ou `README.md: a figure is not the baseline's`.
 
 <!-- step: decide -->
 2. **Décidez ce qu'est une différence.**
@@ -110,8 +110,8 @@ n golden saves, n test declarations, first visit n KB` et le code de sortie 0.
 
 | Symptôme | Cause | Correction |
 |---|---|---|
-| `README.md: a figure is behind the baseline (npm run quality:baseline writes it)` | Vous avez ajouté un test (le nombre de tests a bougé) sans réécrire | `npm run quality:baseline`, committez les README |
-| `⚠ better than the baseline, ratchet it` | Plus de tests, ou une première visite plus légère : pas un échec en soi | Réécrivez-la pour garder le gain |
+| `README.md: a figure is not the baseline's (npm run quality:baseline writes it)` | Les chiffres des README et `tests/quality-baseline.json` ne s'accordent pas (l'un modifié sans l'autre) | `npm run quality:baseline`, committez les deux |
+| `⚠ better than the baseline, ratchet it` | Plus de tests, ou une première visite plus légère : pas un échec (4.5.4 : les README sont vérifiés contre la référence commitée) | Rien dans une pull request ; la release la réécrit |
 | `tests: n declarations → m (a test was removed)` | Un test a été supprimé ou fusionné | Remettez-le, ou assumez le retrait dans la pull request et réécrivez |
 | `first visit's JavaScript: n KB → m KB gzipped` | Le premier morceau du joueur a grossi | Chargez le nouveau code à la demande ([Frontières d'import](contribute.boundaries.md#layers)), ou assumez la hausse |
 | `<jeu>: new game, not in the baseline` | Un jeu a été ajouté à la liste | Réécrivez-la |

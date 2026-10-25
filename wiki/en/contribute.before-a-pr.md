@@ -96,8 +96,9 @@ compete for the same cores and leave orphan workers behind when interrupted.
    npm run quality:baseline -- --check
    ```
 
-   A change that alters behaviour on purpose, or adds a test, rewrites it with `npm run quality:baseline` (which also
-   writes the READMEs' figures) and commits the result. See [The quality baseline](contribute.quality-baseline.md).
+   A change that alters behaviour on purpose rewrites it with `npm run quality:baseline` and commits the result. A
+   test added alone needs nothing: `--check` says it as a gain, and the figures move at the release (4.5.4), so two
+   open pull requests never conflict on them. See [The quality baseline](contribute.quality-baseline.md).
 
 <!-- step: docs -->
 7. **The documentation**, when you touched it or the code a page rests on:

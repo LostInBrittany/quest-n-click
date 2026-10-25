@@ -97,8 +97,9 @@ Dans le dépôt du moteur, sur votre machine, sur votre branche. Lancez une suit
    npm run quality:baseline -- --check
    ```
 
-   Un changement qui modifie volontairement le comportement, ou qui ajoute un test, la réécrit avec
-   `npm run quality:baseline` (qui écrit aussi les chiffres des README) et committe le résultat. Voir
+   Un changement qui modifie volontairement le comportement la réécrit avec `npm run quality:baseline` et committe le
+   résultat. Un test ajouté seul ne demande rien : `--check` le signale comme un gain, et les chiffres bougent à la
+   release (4.5.4), si bien que deux pull requests ouvertes ne sont jamais en conflit dessus. Voir
    [La référence de qualité](contribute.quality-baseline.md).
 
 <!-- step: docs -->
