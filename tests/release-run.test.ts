@@ -169,3 +169,13 @@ describe('ship tag for the release command (4.5.4)', () => {
     );
   });
 });
+
+describe('the release commit is looked for on main itself (4.5.5)', () => {
+  it("follows main's first parents: the release branch's own commits never count", () => {
+    // 4.5.4: without --first-parent the walk went down the merged release branch and named the prepare commit, not the
+    // merge the candidate ran on ("no candidate of 1d3d98c on main").
+    expect(readFileSync('tools/release/release-run.ts', 'utf8')).toMatch(
+      /quiet\('git',\s*\[\s*'log',\s*'--first-parent',\s*'--format=%H',[^\]]*'package\.json',?\s*\]/,
+    );
+  });
+});
