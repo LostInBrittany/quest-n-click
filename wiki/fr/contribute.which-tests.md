@@ -58,6 +58,11 @@ de mutation, sur le commit du tag ([Publier une release](contribute.releasing.md
 `npm run test:assets`, `npm run verify:game`, `npm run quality:baseline -- --check` ; `npm run release-check:local`
 enchaîne l'essentiel. Lancez une suite à la fois.
 
+Un test ne tourne que sur la CI : le test de charge du connecteur Telnet dans `tests/connectors-terminal.test.ts`
+(mille connexions à la fois), que les limites par défaut de macOS font échouer sur la machine d'un développeur. Il est
+sauté sauf si `CI` est posée, ce que fait GitHub Actions sur chaque job ; `TELNET_STRESS=1 npx vitest run
+tests/connectors-terminal.test.ts` le lance en local.
+
 <a name="find-the-test-of-a-thing"></a>
 
 ## Trouver le test d'une chose
