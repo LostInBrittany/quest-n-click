@@ -90,6 +90,33 @@ Elle dit, point par point, si `package.json` est à la version, si le CHANGELOG 
 commande), et si la ligne de base de qualité tient. La CI de la pull request de release la lance aussi, avec la
 version que nomme sa branche : fusionnez quand chaque point est ✔, et le merge lance le candidat.
 
+<a name="release-command"></a>
+
+### La release : une commande
+
+Une fois la pull request de release fusionnée, sur un `main` à jour :
+
+```sh
+npm run release -- 4.5.4          # --dry-run dit ce qu'elle refuserait ; --key=<clé.pub> si git signe autrement
+```
+
+Elle refuse d'abord ce qui échouerait plus tard (`package.json` pas à la version, une autre branche, des changements
+non commités, un `main` qui n'est pas celui de l'organisation, pas de section dans le CHANGELOG, pas de clé de
+signature SSH, `gh` ou `npm` non connectés, un utilisateur npm qui n'est pas propriétaire). Puis elle trouve le
+candidat que le merge a lancé sur ce commit (`--start-candidate` en lance un s'il n'y en a pas) et l'attend (environ
+90 minutes), en disant combien de jobs sont faits et lesquels tournent à chaque changement et toutes les cinq minutes,
+en relançant une fois ses jobs en échec ; puis `ship tag … --sign` : la `ci` de main, le tag signé poussé sur le dépôt
+de l'organisation ; puis elle suit l'exécution de release job par job jusqu'à ce que `release` et `npm-stage`
+réussissent (les jobs de la documentation sont signalés, jamais attendus : un problème de doc ne retient jamais npm),
+vérifie les fichiers de la release, et approuve les paquets npm que la release a mis en attente, chacun avec votre 2FA
+dans votre terminal, l'engine d'abord ; puis un résumé. Le commit de release est celui où `package.json` est passé à la
+version sur main (ou celui du tag, une fois poussé), si bien que ce qui est fusionné entre-temps ne le déplace pas. Si
+elle s'arrête, relancez-la : un candidat vert n'est pas attendu de nouveau, un tag déjà poussé est suivi, un paquet
+déjà sur npm n'est pas approuvé de nouveau ; une exécution de release en échec (son job `release` ou `npm-stage`) se
+relance d'abord (`gh run rerun <id> --failed`, la commande l'affiche). Une pré-release (`-rc.N`) se tague à la main
+(`ship tag`, plus bas). La chaîne ci-dessous est ce qu'elle lance, pour quand une étape doit se
+faire à la main.
+
 <a name="the-chain"></a>
 
 ### La chaîne

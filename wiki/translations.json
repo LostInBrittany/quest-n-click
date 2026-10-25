@@ -5207,6 +5207,13 @@
         { "name": "claude-291-release-one-pass", "kind": "ai", "relation": "author", "date": "2026-10-24" }
       ]
     },
+    "contribute.releasing#release-command": {
+      "enHash": "1934bd67de81de13a0ae894fc17a0ffcb9cdd63659d9af98fbfeed2574ace009",
+      "frHash": "1d15451cc96c1e48f48390ad33b7120c1e878ba46263848cc666da01cb3168f5",
+      "reviewers": [
+        { "name": "claude-454-release", "kind": "ai", "relation": "author", "date": "2026-10-25" }
+      ]
+    },
     "contribute.releasing#ship-commands": {
       "enHash": "a7a3d7ad77c33651db1c33889f9a726f8b3a81f077d785913a9283fbf30b1e7e",
       "frHash": "0ead457376858a20ec80e921f6a90de204bac33938ff056978b485f59eb60d91",
@@ -14678,11 +14685,10 @@
       ]
     },
     "reference.environment-variables#home": {
-      "enHash": "ae862536ade9e66af3fea4877290bfc7d6cc131e606edf264c2570891f19e9eb",
-      "frHash": "bf2aecdf7dc3ab1b833e32e219aa2fe196115736b5b8e9736b88116505ec54c1",
+      "enHash": "f934a1ef75d803d5b30a5b73243de2aeecf419d15838b70e26cb0f65c37f0b5d",
+      "frHash": "2b043eca7d28e269547a5d554e7687003c842e3e64de360f620d207f85b4ebaf",
       "reviewers": [
-        { "name": "claude-pr266", "kind": "ai", "relation": "author", "date": "2026-10-23" },
-        { "name": "wanoo", "kind": "human", "relation": "independent", "date": "2026-10-24" }
+        { "name": "claude-454-release", "kind": "ai", "relation": "author", "date": "2026-10-25" }
       ]
     },
     "reference.environment-variables#how-to-read": {
@@ -16921,10 +16927,10 @@
       ]
     },
     "reference.npm-scripts#script-release": {
-      "enHash": "0f09df37352b7f1e9e6f96a1b476d53ac46a54abe27c94bec5bc871377547905",
-      "frHash": "578a0182cdbf7004a36b3f16ea4d5c60dc5781f7509573128a1dd7069fdfb34f",
+      "enHash": "b6ed22bd201570ed5e59f2fde22973b6b4920ddb04da1518b9a1355823fbdb00",
+      "frHash": "41af2fab47d7a54754095edbb28886c7d03e1ca4f8ed58a838ae19a7121d0bec",
       "reviewers": [
-        { "name": "claude-454-prepare", "kind": "ai", "relation": "author", "date": "2026-10-25" }
+        { "name": "claude-454-release", "kind": "ai", "relation": "author", "date": "2026-10-25" }
       ]
     },
     "reference.npm-scripts#seal": {

@@ -950,7 +950,7 @@ The file a job writes its summary to; `npm run ci:plan` writes the plan there.
 The user's home folder. The A7 chain script refuses it as its output folder; the Studio Server gives its own `git` commands a `HOME` of its working folder, never yours.
 
 - Origin: set by the operating system.
-- Read by: [`.github/workflows/ci.yml`](../../.github/workflows/ci.yml), [`docs/dev/acceptance/a7-chain.sh`](../../docs/dev/acceptance/a7-chain.sh).
+- Read by: [`.github/workflows/ci.yml`](../../.github/workflows/ci.yml), [`docs/dev/acceptance/a7-chain.sh`](../../docs/dev/acceptance/a7-chain.sh), [`tools/release/release-run.ts`](../../tools/release/release-run.ts).
 
 <a name="imageos"></a>
 

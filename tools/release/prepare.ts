@@ -568,9 +568,24 @@ if (process.argv[1]?.endsWith('prepare.ts')) {
       dryRun: rest.includes('--dry-run'),
     });
   else if (verb === 'check' && version) await check(version);
-  else {
+  else if (verb && /^\d+\.\d+\.\d+$/.test(verb)) {
+    // The release itself, after the release pull request's merge (4.5.4, part D): tools/release/release-run.ts.
+    const { runRelease } = await import('./release-run');
+    const all = process.argv.slice(3);
+    const key = all.find((a) => a.startsWith('--key='))?.slice(6);
+    try {
+      await runRelease(verb, {
+        ...(key ? { key } : {}),
+        startCandidate: all.includes('--start-candidate'),
+        dryRun: all.includes('--dry-run'),
+      });
+    } catch (e) {
+      console.error(`✖  ${(e as Error).message}`);
+      process.exit(1);
+    }
+  } else {
     console.error(
-      'usage: npm run release -- prepare <x.y.z> --name="<name>" [--date=YYYY-MM-DD] [--no-pr] [--dry-run] | check <x.y.z>',
+      'usage: npm run release -- <x.y.z> [--key=<key.pub>] [--start-candidate] [--dry-run] | prepare <x.y.z> --name="<name>" [--date=YYYY-MM-DD] [--no-pr] [--dry-run] | check <x.y.z>',
     );
     process.exit(2);
   }
