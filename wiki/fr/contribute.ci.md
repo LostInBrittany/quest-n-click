@@ -34,12 +34,15 @@ tourne dans quel job, c'est [Quels tests tournent quand](contribute.which-tests.
   `weight -- --release`, `quality:baseline -- --check --dist`, `prove:game`, `audit:deps` quand `package.json` ou le
   fichier de verrouillage a bougé, puis le build à deux entrées (jeu et démo du Studio) que jouent les lignes e2e,
   gardé comme artefact `dist`.
-- `coverage` : la suite unitaire une fois, à chaque changement. Quand le changement touche le code du produit (la
-  barrière `coverage` du plan : le moteur, un jeu, le Bridge, le Studio et son serveur, la CLI et les paquets, les
-  sauvegardes de référence, les outils d'écriture), sous couverture V8 (`test:coverage`), puis le cliquet de
-  couverture : un avertissement sur une pull request, un échec sur `main` et sur un tag
+- `unit` (quatre fragments en même temps) et `coverage` : la suite unitaire et les tests d'assets, à chaque
+  changement, partagés en quatre (`--shard=<i>/4`, 4.5.4). Quand le changement touche le code du produit (la barrière
+  `coverage` du plan : le moteur, un jeu, le Bridge, le Studio et son serveur, la CLI et les paquets, les sauvegardes
+  de référence, les outils d'écriture), chaque fragment tourne sous couverture V8 et garde un rapport blob ;
+  `coverage` fusionne les quatre (`test:merge` : les planchers de `vite.config.ts` sur toute la suite), puis lance le
+  cliquet : un avertissement sur une pull request, un échec sur `main` et sur un tag
   ([Le cliquet de couverture](contribute.coverage-ratchet.md)). Sinon (la doc, un workflow, les outils de release et du
-  wiki, des tests seuls), la même suite sans couverture (`test:node`), quelques minutes de moins (4.5.4).
+  wiki, des tests seuls), les fragments passent les mêmes fichiers sans couverture (`test:unit`). Dans les deux cas,
+  `coverage`, la vérification que le ruleset exige, est rouge quand un fragment n'est pas vert.
 
 **Le deuxième palier, ce que le changement peut casser.** Chaque job a besoin de `plan` (la plupart aussi de `check`)
 et lit sa barrière dans le plan : il fait son vrai travail, ou une seule étape qui dit « not needed by the plan » et
@@ -47,7 +50,7 @@ réussit.
 
 | Job | Barrière | Lance |
 |---|---|---|
-| `coverage` | `coverage` | la suite unitaire sous couverture et le cliquet (épargné : la même suite sans couverture) |
+| `unit` (quatre fragments), `coverage` | `coverage` | les fragments sous couverture, fusionnés, puis le cliquet (épargné : les mêmes fragments sans couverture) |
 | `node-24` | `node24` | la suite unitaire sous Node 24 |
 | `windows` | `windows` | le docteur, les vérifications de types, la suite unitaire sans les fichiers qui supposent POSIX, `build:game`, le serveur de production qui répond |
 | `e2e` (six lignes) | `e2e` | le build de production joué au toucher : Chromium complet, WebKit générique, Chromium et WebKit au clavier, Chromium en français, Chromium avec le peintre Canvas ; avec des étapes de poids, musique, visuel, performance, Studio, accessibilité et PWA sur certaines lignes |

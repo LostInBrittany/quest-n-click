@@ -48,7 +48,7 @@ under coverage too.
 
 ## Where to run the commands
 
-In the engine repository, on your machine. CI runs the same in its `coverage` job.
+In the engine repository, on your machine. CI runs the same in four shards (`unit`) merged by its `coverage` job.
 
 <a name="steps"></a>
 
