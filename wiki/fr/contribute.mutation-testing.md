@@ -164,7 +164,9 @@ L'outil réécrit le fichier source qu'il mute : ne le modifiez pas pendant une 
 ## Résultat attendu, et comment le vérifier
 
 `✔ n/m mutants killed, k survivors explained, 0 not; report in .cache/mutation/…`, et le code de sortie 0. Dans la CI,
-les jobs `mutation (<ensemble>)` de l'ensemble et `mutation-merge` sont verts.
+les jobs `mutation (<ensemble>)` de l'ensemble et `mutation-merge` sont verts. Sur `main`, le rapport d'un morceau est
+mis en cache sous l'empreinte des entrées de son ensemble : la nightly enregistre chaque morceau qu'elle a mesuré de
+zéro et qui a réussi, le candidat le reprend et ne rejoue que les morceaux dont les entrées ont bougé depuis (4.5.5).
 
 <a name="common-errors"></a>
 

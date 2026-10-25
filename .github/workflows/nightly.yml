@@ -10,6 +10,13 @@ on:
       seeds:
         description: 'How many seeds'
         default: '500'
+      # The mutation jobs only (4.5.5, #329): `gh workflow run nightly --ref main -f jobs=mutation` after a release's
+      # last merge fills the cache the release's candidate reads, without the corpus, the proofs and the loads.
+      jobs:
+        description: 'all, or mutation (the mutation jobs only: a warm-up of the cache before a release)'
+        type: choice
+        options: [all, mutation]
+        default: all
 permissions:
   contents: read
 jobs:
@@ -20,6 +27,8 @@ jobs:
   # create-quest-n-click, a relay (an owner's, never deprecated: `npx create-quest-n-click` runs @quest-n-click/create);
   # the former names (D47) are watched as before, since a reader may still look for them.
   npm-names:
+    # Not in a warm-up of the mutation cache (#329); a scheduled run has no inputs, so it runs.
+    if: inputs.jobs != 'mutation'
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     continue-on-error: true
@@ -68,6 +77,8 @@ jobs:
   # 4.1.17: one file after the other (`--no-file-parallelism`), so the four partition workers have the cores and the
   # durations measured mean something; 150 minutes (about 13 on a laptop, the runner is several times slower).
   heavy:
+    # Not in a warm-up of the mutation cache (#329); a scheduled run has no inputs, so it runs.
+    if: inputs.jobs != 'mutation'
     runs-on: ubuntu-24.04
     timeout-minutes: 150
     steps:
@@ -83,6 +94,8 @@ jobs:
   # connector, a new seed each night (the run number). Reported, not gating, until it has been green two nights in a
   # row (plan 4.1.9 §4 branch 6); then `continue-on-error` goes.
   fuzz-connectors:
+    # Not in a warm-up of the mutation cache (#329); a scheduled run has no inputs, so it runs.
+    if: inputs.jobs != 'mutation'
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     continue-on-error: true
@@ -97,6 +110,8 @@ jobs:
       - run: node --expose-gc --import tsx tools/fuzz-connectors.ts --cases=1000000 --seconds=60 --seed=${{ github.run_number }}
   # Four shards of the seeds, one per job (3.7): the corpus is parallel by seed, the jobs run side by side.
   corpus:
+    # Not in a warm-up of the mutation cache (#329); a scheduled run has no inputs, so it runs.
+    if: inputs.jobs != 'mutation'
     runs-on: ubuntu-24.04
     timeout-minutes: 120
     strategy:
@@ -126,7 +141,7 @@ jobs:
   # missing shard, or seeds run twice, fails it (3.7.1).
   merge:
     needs: corpus
-    if: always()
+    if: always() && inputs.jobs != 'mutation'
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     steps:
@@ -183,8 +198,10 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 120
     continue-on-error: ${{ !matrix.gated }}
+    # 8 at a time, as the candidate (#302): a warm-up started by day leaves the runners to pull requests (#329).
     strategy:
       fail-fast: false
+      max-parallel: 8
       matrix: ${{ fromJSON(needs.mutation-plan.outputs.matrix) }}
     services:
       postgres:
@@ -203,10 +220,29 @@ jobs:
           cache: npm
       - run: for i in 1 2 3; do (npm ci) && break; [ "$i" = 3 ] && exit 1; echo "retry $i"; sleep 15; done
         timeout-minutes: 20
-      - run: npm run test:mutation:core -- --set=${{ matrix.set }} --shard=${{ matrix.shard }}/${{ matrix.shards }} --fresh | tee mutation-${{ matrix.name }}.txt
+      # The candidate's cache key (4.5.5, #329): the shard's name and its set's input hash, read before any mutant.
+      - id: inputs
+        run: echo "hash=$(npx tsx tools/mutate.ts --set=${{ matrix.set }} --hash)" >> "$GITHUB_OUTPUT"
+      # A warm-up reuses what the cache already holds; the night measures from scratch (`--fresh`, 4.1.8: under load a
+      # timeout counts as a kill, so a fresh measure each night).
+      - id: restore
+        if: inputs.jobs == 'mutation' && matrix.gated
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: .cache/mutation
+          key: mutation-${{ matrix.name }}-${{ steps.inputs.outputs.hash }}
+      - run: npm run test:mutation:core -- --set=${{ matrix.set }} --shard=${{ matrix.shard }}/${{ matrix.shards }} ${{ inputs.jobs != 'mutation' && '--fresh' || '' }} | tee mutation-${{ matrix.name }}.txt
         shell: bash
         env:
           BRIDGE_PG_URL: ${{ matrix.pg && 'postgres://bridge:bridge@127.0.0.1:5432/bridge' || '' }}
+      # The shard's report saved under the very key the candidate restores (4.5.5, #329), on main: the release's
+      # candidate then reruns only the sets whose inputs moved since. Only a passed shard (this step's implicit
+      # success()); a key already saved (caches are immutable) is a warning, its entry a passed report of these inputs.
+      - if: matrix.gated && steps.restore.outputs.cache-hit != 'true'
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: .cache/mutation
+          key: mutation-${{ matrix.name }}-${{ steps.inputs.outputs.hash }}
       - if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
@@ -261,6 +297,8 @@ jobs:
   # nothing. Now each names its store; tools/load-report.ts refuses a report that is missing, incomplete, or of another
   # backend or commit. A lost or doubled signal, a gap in a sequence or an incomplete stream fails the run.
   bridge-load-sqlite:
+    # Not in a warm-up of the mutation cache (#329); a scheduled run has no inputs, so it runs.
+    if: inputs.jobs != 'mutation'
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     steps:
@@ -285,6 +323,8 @@ jobs:
             runs-load-sqlite.json
           if-no-files-found: error
   bridge-load-postgres:
+    # Not in a warm-up of the mutation cache (#329); a scheduled run has no inputs, so it runs.
+    if: inputs.jobs != 'mutation'
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     services:
@@ -323,6 +363,8 @@ jobs:
   # in its own job under the runner's budget (20 min, 10 000 000 states, 4 GB of heap). A false verdict fails the job;
   # an instance out of budget is `unknown`, the gap report, not a failure. Never on a pull request.
   matrix:
+    # Not in a warm-up of the mutation cache (#329); a scheduled run has no inputs, so it runs.
+    if: inputs.jobs != 'mutation'
     runs-on: ubuntu-24.04
     timeout-minutes: 40
     strategy:
@@ -354,6 +396,8 @@ jobs:
   # The cross-runtime checks at more seeds than a pull request runs (4.1.16, plan §10): 500 seeds of every Remix mode
   # and wheel, the speedrun's checks, and Remix and Time Attack together, in Node, Chromium, WebKit and Firefox.
   cross-runtime:
+    # Not in a warm-up of the mutation cache (#329); a scheduled run has no inputs, so it runs.
+    if: inputs.jobs != 'mutation'
     runs-on: ubuntu-24.04
     timeout-minutes: 45
     steps:
@@ -373,6 +417,8 @@ jobs:
   # The speedrun worker in its container profile (4.1.17, plan §10.3): the reference run verified inside, a hostile
   # script refused the network and the host's files and secrets and killed by its own timeout, then a run again.
   worker-container:
+    # Not in a warm-up of the mutation cache (#329); a scheduled run has no inputs, so it runs.
+    if: inputs.jobs != 'mutation'
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     steps:

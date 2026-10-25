@@ -157,6 +157,13 @@ faire à la main.
    avertissement : un problème de doc ne retient jamais la release (la CI de la pull request de release a déjà vérifié
    ses relectures humaines, `npm run release -- check`).
 
+   Ses morceaux de mutation reprennent les rapports que la nightly a enregistrés sur `main` (4.5.5, #329) : seuls les
+   ensembles dont les entrées ont bougé depuis tournent à nouveau, les autres prennent une ou deux minutes chacun. Un
+   changement que lisent tous les ensembles (le lockfile, `vite.config.ts`) les fait tous bouger : après le dernier
+   merge de la release, pendant la relecture de sa pull request, préchauffez le cache avec
+   `gh workflow run nightly --ref main -f jobs=mutation` (les jobs de mutation seulement, qui reprennent ce qui est
+   déjà en cache).
+
 <!-- step: tag -->
 2. **Un tag qui le nomme.**
 

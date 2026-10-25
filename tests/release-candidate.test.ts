@@ -163,6 +163,50 @@ describe('the workflows that judge a candidate', () => {
       expect(wf(name), name).not.toContain('continue-on-error: ${{ !matrix.gated }}');
   });
 
+  it('the nightly saves each passed gated shard under the very key the candidate restores, on main (4.5.5, #329)', () => {
+    // A job's text: from its key to the next job's.
+    const job = (text: string, name: string) => {
+      const from = text.indexOf(`\n  ${name}:\n`);
+      const rest = text.slice(from + 1);
+      const next = rest.slice(1).search(/\n {2}[a-z][a-z0-9-]*:\n/);
+      return next < 0 ? rest : rest.slice(0, next + 1);
+    };
+    const KEY = 'key: mutation-${{ matrix.name }}-${{ steps.inputs.outputs.hash }}';
+    const HASH = 'run: echo "hash=$(npx tsx tools/mutate.ts --set=${{ matrix.set }} --hash)" >> "$GITHUB_OUTPUT"';
+    const candidate = job(wf('candidate'), 'mutation');
+    const nightly = job(wf('nightly'), 'mutation');
+    for (const [name, text] of [
+      ['candidate', candidate],
+      ['nightly', nightly],
+    ] as const) {
+      expect(text, name).toContain(HASH);
+      expect(text, name).toContain(`path: .cache/mutation\n          ${KEY}`);
+    }
+    // The save: only a gated shard, only when it passed (no always(), so success() is implied), not on a warm-up's hit.
+    const at = nightly.lastIndexOf('\n      - ', nightly.indexOf('uses: actions/cache/save@'));
+    const save = nightly.slice(at, nightly.indexOf('\n      - ', at + 1));
+    expect(save).toMatch(/- if: matrix\.gated && steps\.restore\.outputs\.cache-hit != 'true'\n/);
+    expect(save).not.toMatch(/always\(\)|failure\(\)/);
+    expect(save).toMatch(/actions\/cache\/save@[0-9a-f]{40} # v/);
+    // It saves after the run, and the hash is read before any mutant.
+    expect(nightly.indexOf(HASH)).toBeLessThan(nightly.indexOf('npm run test:mutation:core'));
+    expect(nightly.indexOf('npm run test:mutation:core')).toBeLessThan(nightly.indexOf('actions/cache/save@'));
+    // The night measures fresh; a warm-up reuses what the cache holds. 8 at a time, as the candidate (#302).
+    expect(nightly).toContain("${{ inputs.jobs != 'mutation' && '--fresh' || '' }}");
+    expect(nightly).toMatch(/- id: restore\n {8}if: inputs\.jobs == 'mutation' && matrix\.gated\n/);
+    expect(nightly).toMatch(/strategy:\n {6}fail-fast: false\n {6}max-parallel: 8\n {6}matrix:/);
+  });
+
+  it('the nightly by hand with jobs=mutation runs the mutation jobs only: a warm-up of the cache (#329)', () => {
+    const text = wf('nightly');
+    expect(text).toMatch(/ {6}jobs:\n(?: {8}.*\n)*? {8}options: \[all, mutation\]\n {8}default: all\n/);
+    for (const name of jobs(text)) {
+      const body = text.slice(text.indexOf(`\n  ${name}:\n`) + 1).split(/\n {2}[a-z][a-z0-9-]*:\n/)[0]!;
+      const guarded = /\n {4}if: (?:always\(\) && )?inputs\.jobs != 'mutation'\n/.test(body);
+      expect(guarded, name).toBe(!name.startsWith('mutation'));
+    }
+  });
+
   it('release.yml runs no mutation set (4.5.3, #291): the candidate the tag names ran them on the same SHA', () => {
     const release = wf('release');
     expect(jobs(release.slice(release.indexOf('\njobs:\n')))).toEqual([
