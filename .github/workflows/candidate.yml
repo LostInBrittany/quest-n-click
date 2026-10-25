@@ -9,7 +9,7 @@ name: candidate
 #
 # Started by hand on main for a SHA (`gh workflow run candidate --ref main -f sha=<full sha>`): the only run a tag may
 # name (ship.mjs and release.yml check `workflow_dispatch` from main, so the workflow file judged is main's). A pull
-# request labelled `full-ci` runs it too, as information only. Never on a tag: a tag stands on a candidate already run.
+# request runs it too, as information only, when the label `full-ci` is added to it (not on its later pushes). Never on a tag: a tag stands on a candidate already run.
 # "Cold": a new runner, a fresh checkout; the solver keeps nothing between runs and no cache but npm's is restored.
 on:
   workflow_dispatch:
@@ -18,8 +18,10 @@ on:
         description: 'The full SHA to test (empty: the head of the branch it is started on)'
         required: false
         default: ''
+  # Only when the `full-ci` label is added (the pull request's head at that moment): a push to the pull request starts
+  # no run, which every push did until 4.5.3 (an empty run, every job skipped). Remove and add the label again to rerun.
   pull_request:
-    types: [labeled, synchronize]
+    types: [labeled]
 permissions:
   contents: read
 concurrency:
@@ -28,7 +30,7 @@ concurrency:
 jobs:
   # The SHA every job checks out: the input, the pull request's head, or the branch's head; always written in full.
   target:
-    if: github.event_name == 'workflow_dispatch' || contains(github.event.pull_request.labels.*.name, 'full-ci')
+    if: github.event_name == 'workflow_dispatch' || github.event.label.name == 'full-ci'
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     outputs:
