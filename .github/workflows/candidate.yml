@@ -360,6 +360,8 @@ jobs:
     timeout-minutes: 120
     strategy:
       fail-fast: false
+      # 8 at a time (4.5.4, #302): the organisation's runners stay free for pull requests while a candidate runs.
+      max-parallel: 8
       matrix: ${{ fromJSON(needs.mutation-plan.outputs.matrix) }}
     services:
       postgres:

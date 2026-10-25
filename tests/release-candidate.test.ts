@@ -23,6 +23,12 @@ writeFileSync(join(dir, 'wsrun', 'run-story.wsrun'), '{"schema":2}');
 writeFileSync(join(dir, 'e2e.json'), '{"ok":true}');
 
 describe('the candidate of a release', () => {
+  it('caps its mutation matrix at 8 jobs at once, so a pull request is not queued behind it (#302)', () => {
+    const yml = readFileSync('.github/workflows/candidate.yml', 'utf8');
+    const job = yml.slice(yml.indexOf('\n  mutation:\n'), yml.indexOf('\n  mutation-merge:\n'));
+    expect(job).toMatch(/strategy:\n {6}fail-fast: false\n {6}max-parallel: 8\n {6}matrix:/);
+  });
+
   it('is required from 4.1.17 on, pre-releases included', () => {
     expect(requiresCandidate('4.1.16')).toBe(false);
     expect(requiresCandidate('v4.1.16-rc.2')).toBe(false);
