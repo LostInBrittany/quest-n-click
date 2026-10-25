@@ -1,5 +1,8 @@
 // npm run release -- prepare <x.y.z> --name="<name>" [--date=YYYY-MM-DD] [--no-pr] [--dry-run]
 // npm run release -- check <x.y.z>
+// (4.5.5) Before it pushes, `prepare` runs the docs' human gates the pull request's CI would fail on: a claim or a pair
+// still to review stops it there, nothing pushed, each with its command for a person to type (the tool never records a
+// review); the same command, run again on `release/<x.y.z>` once they are committed, resumes at the gates.
 // (4.5.4, part B of docs/dev/PLAN-4.5.4-SIMPLE-RELEASE.md.) `prepare` makes the release pull request: the branch
 // `release/<x.y.z>`, every file the tools already generate (version, CHANGELOG and LOG from the fragments, transition
 // pages, golden save, reference run, quality baseline), the files a release branch used to write by hand (the passes
@@ -250,36 +253,47 @@ export function prepareRefusals(o: {
   return out;
 }
 
-/** The steps of `prepare`, in 4.5.3's order. */
-export const PREPARE_STEPS = [
-  'branch',
-  'version',
-  'changelog',
-  'upgrade notes',
-  'transition pages',
-  'golden save',
-  'reference run',
-  'passes',
-  'readme',
-  'quality baseline',
-  'commit',
-  'pull request',
-] as const;
-
-interface CheckDeps {
-  read: (file: string) => string;
-  /** The files a release writes prose into. */
-  todoFiles: () => string[];
-  /** Runs a command: its exit code and what it printed. */
-  run: (cmd: string, args: string[]) => { code: number; out: string };
+/**
+ * Why a run on `release/<version>` cannot resume the release `prepare` made there (the reviews committed since), or
+ * undefined on any other branch: a first run, whose refusals are `prepareRefusals`'.
+ */
+export function resumeRefusals(o: {
+  current: string;
+  version: string;
+  branch: string;
+  dirty: boolean;
+  /** The branch holds the prepared commit (`preparedSubject`) over main. */
+  prepared: boolean;
+  shallow: boolean;
+  pr: string | undefined;
+}): string[] | undefined {
+  if (o.branch !== `release/${o.version}`) return undefined;
+  const out: string[] = [];
+  const back = `start again from main (git switch main && git branch -D ${o.branch})`;
+  if (!o.prepared) out.push(`${o.branch} holds no prepared commit of ${o.version} over main: ${back}`);
+  else if (o.current !== o.version) out.push(`package.json is at ${o.current}, not ${o.version}: ${back}`);
+  if (o.dirty)
+    out.push(`${o.branch} has uncommitted changes: commit the reviews (git add, git commit), then run again`);
+  if (o.shallow) out.push('a shallow clone dates every fragment at its boundary: git fetch --unshallow');
+  if (o.pr) out.push(o.pr);
+  return out;
 }
 
-/** What `check` says of a prepared release, item by item. */
-export async function checkRelease(version: string, deps: CheckDeps) {
-  const pkg = JSON.parse(deps.read('package.json') || '{}') as { version?: string };
-  const todos = todoMarkers(deps.todoFiles().map((path) => ({ path, text: deps.read(path) })));
-  const wiki = deps.run('npm', ['run', '-s', 'wiki', '--', 'check']);
-  const gates = deps.run('npm', [
+/** The subject of the commit `prepare` makes. */
+export const preparedSubject = (version: string) => `${version}: the release (prepared by npm run release -- prepare)`;
+
+/** Whether the commit subjects (`git log --format=%s main..HEAD`, one per line) hold the prepared commit. */
+export const isPrepared = (subjects: string, version: string) =>
+  subjects.split('\n').some((l) => l.trim() === preparedSubject(version));
+
+type Run = (cmd: string, args: string[]) => { code: number; out: string };
+
+/**
+ * The docs' human gates, as the release pull request's CI checks them (`wiki -- check --publish --reviews-only`): what
+ * docs-publish would refuse but "executed". What to do is the wiki's own ✖ lines (each claim or pair, with the command).
+ */
+export function humanGates(run: Run) {
+  const r = run('npm', [
     'run',
     '-s',
     'wiki',
@@ -294,6 +308,65 @@ export async function checkRelease(version: string, deps: CheckDeps) {
     'candidate',
     '--reviews-only',
   ]);
+  return {
+    ok: r.code === 0,
+    detail: r.out
+      .split('\n')
+      .filter((l) => l.startsWith('✖'))
+      .join('\n'),
+  };
+}
+
+/** What `prepare` says when the human gates hold it before the push: what to review, then the same command again. */
+export function gatesStop(o: { version: string; name: string; branch: string; detail: string; pr: boolean }) {
+  return [
+    `✖  the docs' human gates would fail the release pull request's CI: nothing is pushed, ${o.branch} is committed here.`,
+    o.detail.replace(/^/gm, '     '),
+    '',
+    'A person reads each one and types its command (prepare never records a review). While the branch is here, the',
+    `${TODO} prose can be written too (npm run release -- check ${o.version} lists it). Commit, then run the same command:`,
+    `  npm run release -- prepare ${o.version} --name="${o.name}"${o.pr ? '' : ' --no-pr'}`,
+    `It resumes at the gates, then ${o.pr ? 'pushes and opens the pull request' : 'stops (--no-pr)'}.`,
+  ].join('\n');
+}
+
+/** The steps of `prepare`, in 4.5.3's order; the human gates before the push (4.5.5). */
+export const PREPARE_STEPS = [
+  'branch',
+  'version',
+  'changelog',
+  'upgrade notes',
+  'transition pages',
+  'golden save',
+  'reference run',
+  'passes',
+  'readme',
+  'quality baseline',
+  'commit',
+  'human gates',
+  'pull request',
+] as const;
+
+/** The steps of a run again on a prepared branch. */
+export const RESUME_STEPS = [
+  'human gates',
+  'pull request',
+] as const satisfies readonly (typeof PREPARE_STEPS)[number][];
+
+interface CheckDeps {
+  read: (file: string) => string;
+  /** The files a release writes prose into. */
+  todoFiles: () => string[];
+  /** Runs a command: its exit code and what it printed. */
+  run: Run;
+}
+
+/** What `check` says of a prepared release, item by item. */
+export async function checkRelease(version: string, deps: CheckDeps) {
+  const pkg = JSON.parse(deps.read('package.json') || '{}') as { version?: string };
+  const todos = todoMarkers(deps.todoFiles().map((path) => ({ path, text: deps.read(path) })));
+  const wiki = deps.run('npm', ['run', '-s', 'wiki', '--', 'check']);
+  const gates = humanGates(deps.run);
   return [
     { what: `package.json is at ${version}`, ok: pkg.version === version, detail: `it is at ${pkg.version}` },
     {
@@ -311,12 +384,7 @@ export async function checkRelease(version: string, deps: CheckDeps) {
       // What docs-publish would refuse but "executed" (the candidate's report checks it): a claim or a pair a person
       // must read fails the release pull request, never the release (4.5.4).
       what: "the docs' human gates (wiki -- check --publish --reviews-only)",
-      ok: gates.code === 0,
-      // What to do, as the wiki says it: its ✖ lines (each claim or pair, with the command).
-      detail: gates.out
-        .split('\n')
-        .filter((l) => l.startsWith('✖'))
-        .join('\n'),
+      ...gates,
     },
     {
       what: 'npm run quality:baseline -- --check',
@@ -421,17 +489,38 @@ function prepare(version: string, opts: { name: string; date: string; pr: boolea
     else if (spawnSync('gh', ['auth', 'status'], { cwd: ROOT_(), stdio: 'ignore' }).status !== 0)
       pr = 'gh is not signed in (gh auth login), or pass --no-pr and open the pull request by hand';
   }
-  const refusals = prepareRefusals({
+  const dirty = sh('git', ['status', '--porcelain']) !== '';
+  const onBranch = sh('git', ['rev-parse', '--abbrev-ref', 'HEAD']);
+  const shallow = sh('git', ['rev-parse', '--is-shallow-repository']) === 'true';
+  // Run again on its branch (the human gates held it), prepare resumes at the gates: the commits over main say whether
+  // it is the branch prepare made.
+  const subjects = () => {
+    const r = spawnSync('git', ['log', '--format=%s', `${theirs || 'main'}..HEAD`], { cwd: ROOT_(), encoding: 'utf8' });
+    return r.status === 0 ? r.stdout : '';
+  };
+  const resuming = resumeRefusals({
     current,
     version,
-    dirty: sh('git', ['status', '--porcelain']) !== '',
-    branch: sh('git', ['rev-parse', '--abbrev-ref', 'HEAD']),
-    shallow: sh('git', ['rev-parse', '--is-shallow-repository']) === 'true',
-    upToDate: fetched && head === theirs,
-    upgradeNotes: existsSync(file(`wiki/en/${upgradeNotesPage(version)}.md`)),
-    fragments: fragmentFiles(readdirSync(file('changes'))).length,
+    branch: onBranch,
+    dirty,
+    prepared: onBranch === `release/${version}` && isPrepared(subjects(), version),
+    shallow,
     pr,
   });
+  const resume = resuming !== undefined;
+  const refusals =
+    resuming ??
+    prepareRefusals({
+      current,
+      version,
+      dirty,
+      branch: onBranch,
+      shallow,
+      upToDate: fetched && head === theirs,
+      upgradeNotes: existsSync(file(`wiki/en/${upgradeNotesPage(version)}.md`)),
+      fragments: fragmentFiles(readdirSync(file('changes'))).length,
+      pr,
+    });
   if (refusals.length) {
     for (const r of refusals) console.error(`✖  ${r}`);
     if (!opts.dryRun) process.exit(1);
@@ -440,6 +529,7 @@ function prepare(version: string, opts: { name: string; date: string; pr: boolea
     console.error('✖  --name="<the release\'s name>" is required (4.5.3 was "One pass")');
     process.exit(1);
   }
+  // On a resume package.json is at the version already; the previous one is only used by the steps it skips.
   const previous = current;
   const branch = `release/${version}`;
   const steps: Record<(typeof PREPARE_STEPS)[number], () => void> = {
@@ -495,7 +585,13 @@ function prepare(version: string, opts: { name: string; date: string; pr: boolea
     'quality baseline': () => sh('npm', ['run', '-s', 'quality:baseline']),
     commit: () => {
       sh('git', ['add', '-A']);
-      sh('git', ['commit', '-q', '-m', `${version}: the release (prepared by npm run release -- prepare)`]);
+      sh('git', ['commit', '-q', '-m', preparedSubject(version)]);
+    },
+    'human gates': () => {
+      const gates = humanGates(capture);
+      if (gates.ok) return;
+      console.error(gatesStop({ version, name: opts.name, branch, detail: gates.detail, pr: opts.pr }));
+      process.exit(1);
     },
     'pull request': () => {
       if (!opts.pr) return say('--no-pr: nothing pushed');
@@ -532,7 +628,8 @@ function prepare(version: string, opts: { name: string; date: string; pr: boolea
       );
     },
   };
-  for (const name of PREPARE_STEPS) {
+  if (resume) say(`${branch} is prepared: resuming at the human gates`);
+  for (const name of resume ? RESUME_STEPS : PREPARE_STEPS) {
     if (opts.dryRun) {
       say(`would run: ${name}`);
       continue;
