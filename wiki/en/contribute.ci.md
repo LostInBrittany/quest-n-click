@@ -11,10 +11,10 @@ pull request runs is [`tools/ci-plan.ts`](../../tools/ci-plan.ts). Which test su
 
 | Workflow | Starts on | Does | Gates |
 |---|---|---|---|
-| `ci` | a pull request; a push to `main`; a `v*` tag; by hand | the three tiers below | the pull request (`pr-gate`); a release (the tag's run) |
-| `candidate` | by hand on `main` for a SHA (`gh workflow run candidate --ref main -f sha=<full sha>`); a pull request labelled `full-ci` (information only) | every heavy family on one exact SHA, then `candidate-gate`, which writes and attests `candidate-manifest.json` | a tag must name one green run of it ([Releasing](contribute.releasing.md)) |
-| `release` | the completion of `ci` on a `v*` tag | the mutation sets, `release-check:ci`, the release made from the candidate's files, `ship verify`; then `docs-publish` (4.5.0) | publication |
-| `nightly` | every day at 03:17 UTC; by hand (`-f jobs=mutation`: the mutation jobs only, a warm-up of the cache below) | npm names, the heavy suite, the connectors' fuzz (a minute each), the abstraction corpus (500 seeds, four shards), every mutation set from scratch (each passed shard saved in the cache the candidate reads, 4.5.5), the Bridge's loads on SQLite and Postgres, the proof matrix, cross-runtime with 500 Remix seeds, the worker in a container | nothing directly; a red night is a bug to fix before the next release |
+| `ci` | a pull request; a push to `main`; by hand. A tag runs none (4.5.3, #291): its commit is one of `main`'s, already run | the three tiers below | the pull request (`pr-gate`); a release (`main`'s run on the tag's SHA must be green) |
+| `candidate` | the release pull request's merge: a push to `main` that moves `package.json`'s version (4.5.4); by hand on `main` for a SHA (`gh workflow run candidate --ref main -f sha=<full sha>`); a pull request labelled `full-ci` (information only) | the release's only test pass since 4.5.3: `release-check:ci` and every heavy family on one exact SHA (the mutation sets read the cache the nightly fills), then `candidate-gate`, which writes and attests `candidate-manifest.json` | a tag must name one green run of it, started on `main` ([Releasing](contribute.releasing.md)) |
+| `release` | the push of a `v*` tag (4.5.3, #291) | no test of its own: the commit on `main`'s first parents, `main`'s `ci` green on that SHA, the previous stable tag an ancestor, the candidate the tag names green on that SHA with every file of its manifest; then the release made from those files, `ship verify`, `npm-stage` (the npm packages staged for an owner to approve), `docs-publish` (4.5.0) and the website's revalidation | publication |
+| `nightly` | every day at 03:17 UTC; by hand (`-f jobs=mutation`: the mutation jobs only, a warm-up of the cache below, which `release -- prepare` starts when it pushes the release pull request, 4.5.5, #331) | npm names, the heavy suite, the connectors' fuzz (a minute each), the abstraction corpus (500 seeds, four shards), every mutation set from scratch (each passed shard saved in the cache the candidate reads, 4.5.5), the Bridge's loads on SQLite and Postgres, the proof matrix, cross-runtime with 500 Remix seeds, the worker in a container | nothing directly; a red night is a bug to fix before the next release |
 | `prove` | every Monday at 04:00 UTC; by hand (`game`, `rooms`) | `prove:game`, the committed playtests (`--strict`), and the bench on a 100-room generated game (uploaded as `bench`) | never a gate |
 | `mutation` | by hand: `gh workflow run mutation --ref main -f set=<set> -f ref=<branch or SHA> [-f file=<path>]` | one mutation set, measured on a runner, its report kept as an artifact | nothing |
 | `qualify` | a pull request or a push to `main` touching `ops/`, `scripts/ops-qualify*`, `scripts/pack.mjs`, `bridge/`, `package.json` or the lockfile; by hand | `npm run ops:qualify`: the Bridge's qualification profile on Docker | the profile does not rot between candidates |
@@ -44,10 +44,11 @@ nothing; `candidate`, `release` and `docs-publish` never cancel a run either.
   --dist`, `prove:game`, `audit:deps` when `package.json` or the lockfile moved, then the two-entry build (game and
   Studio demo) that the e2e rows play, kept as the `dist` artifact.
 - `unit` (four shards at once) and `coverage`: the unit suite and the asset tests, on every change, split in four
-  (`--shard=<i>/4`, 4.5.4). When the change touches product code (the plan's `coverage` gate: the engine, a game, the
+  (`--shard=<i>/4`, 4.5.4). The split follows each file's recorded duration, not the number of files (4.5.5, #349,
+  [below](#shards)). When the change touches product code (the plan's `coverage` gate: the engine, a game, the
   Bridge, the Studio and its server, the CLI and packages, the golden saves, the authoring tools), each shard runs
   under V8 coverage and keeps a blob report; `coverage` merges the four (`test:merge`: the floors of `vite.config.ts`
-  on the whole suite), then runs the ratchet: a warning on a pull request, a failure on `main` and on a tag
+  on the whole suite), then runs the ratchet: a warning on a pull request, a failure on `main`
   ([The coverage ratchet](contribute.coverage-ratchet.md)). Otherwise (the docs, a workflow, the release and wiki
   tools, tests alone) the shards run the same files without coverage (`test:unit`). Either way `coverage`, the check
   the ruleset requires, is red when a shard is not green.
@@ -71,14 +72,41 @@ plan: it runs its real work, or one step that says "not needed by the plan" and 
 | `studio-hosted` | `studioHosted` | the Studio Server on Postgres and S3 (SeaweedFS) with a real Keycloak, then the hosted Studio in Chromium and Firefox |
 | `cross-runtime` | none (every change) | the same canonical text, speedrun proofs and Remix worlds in Node, Chromium, WebKit and Firefox |
 
-**The third tier, off the pull request path**: the mutation sets on a pull request labelled `full-ci`, the nightly,
-the candidate and the release.
+**The third tier, off the pull request path**: the mutation sets on a pull request labelled `full-ci` (`ci` runs
+them nowhere else), the nightly, and the candidate, the release's only test pass. `release` tests nothing again: it
+checks that `main`'s `ci` and the candidate were green on the tag's SHA.
 
 **`pr-gate`** reads every job's result: each must be `success`; the mutation jobs may be `skipped` where they do not
 run; `pwa-firefox`, flaky until #257 is fixed, is said as a warning and does not fail it (4.5.4). It is the one check
 that sums a pull request up.
 
 No job deploys GitHub Pages any more (4.5.2, see [the site](#pages-only)).
+
+<a name="shards"></a>
+<!-- applies: 4.5.5.. since 4.5.5 -->
+
+## The unit shards by duration
+
+Vitest's own `--shard` gives each shard the same number of files, in the order of a hash of their paths, whatever
+they cost: in 4.5.4 the fourth shard ran its tests in a minute and a half and the three others in three to four.
+Since 4.5.5 the sequencer of `vite.config.ts` ([`tools/unit-shards.ts`](../../tools/unit-shards.ts)) splits by each
+file's duration, recorded in [`tools/unit-durations.json`](../../tools/unit-durations.json). A shard's time is
+counted as the larger of its longest file and its files' total over two (a runner works on about two and a half at
+once): the longest file first, each to the shard it leaves the shortest. A shard that holds a file of three minutes
+gets less beside it, since it cannot end before that file; inside a shard the longest file starts first. A file the
+table does not know counts as the median, so a new test needs no update. Every shard computes the whole split from the same files and the same table: the four agree, and a shard run
+on a laptop runs the same files as the job.
+
+When the shards drift apart, refresh the table:
+
+```sh
+# in the engine repository
+npm run test:unit -- --reporter=json --outputFile=.cache/unit.json
+npx tsx tools/unit-shards.ts --record .cache/unit.json   # several reports: each file's median
+```
+
+`tests/unit-shards.test.ts` checks that the table splits the suite into four shards within a tenth of each other's
+time. The floor is the longest file: `checkpoint` and `compact` take two to three and a half minutes each.
 
 <a name="the-plan"></a>
 <!-- applies: .. since 4.1.9 -->
@@ -112,6 +140,8 @@ files ask:
 | `games/_template/`, `cli/`, `scripts/{pack,fresh-install,external-consumer,new-game}.mjs` | `coverage`, `secondGame`, `freshInstall`, `upgrade`, `node24`, `windows` |
 | `studio-server/` | the authoring gates and `studioHosted` |
 | `tools/wiki.ts` and `tools/wiki/` (but `docs`, `docs-load`, `glossary`, `manifest`, `page` and `site`, which the Studio and the MCP server read), `tools/release/`, the repository tools (`tools/mutate.ts`, `tools/changes.ts`, `tools/quality-baseline.ts`…, `scripts/release-notes.mjs`) | the fast tier only (4.5.4) |
+| `scripts/ci-playwright-deps.sh` (Playwright's system packages on the runner, 4.5.5, #353) | `studioHosted` |
+| `tools/studio/diff-rooms.ts` (the rooms the semantic diff draws, which the hosted Studio's captures use) | the authoring gates and `studioHosted` (4.5.5, #349: the rule below took it first until then) |
 | other `tools/` and `scripts/` | the authoring gates (`coverage`, `node24`, `windows`, `secondGame`, `freshInstall`, `upgrade`, `reference`) |
 | the hosted Studio's tests and its CI files (`tests/studio-{server,worker,collab,keycloak,client,diff-captures}.test.ts`, `ops/studio/{ci,keycloak}/`) | `studioHosted` |
 | other `tests/` | the fast tier only (4.5.4) |
@@ -126,7 +156,7 @@ every change.
 
 ## Everything on a pull request: the `full-ci` label
 
-On `main`, on a tag and on a pull request labelled **`full-ci`**, the plan is `--all`: every gate opens. The label also
+On `main`, on a run started by hand and on a pull request labelled **`full-ci`**, the plan is `--all`: every gate opens. The label also
 starts the mutation jobs of `ci`. Add the label, then push (it applies to `ci`'s next run). Adding the label also
 starts a `candidate` run for information, once, on the pull request's head at that moment; a later push starts none:
 remove the label and add it again to run it on the new head.
@@ -161,6 +191,7 @@ started (4.5.0 to 4.5.1) are gone.
    | Red job | Run locally |
    |---|---|
    | `check` | the failing step: `npm run quality`, `npm run docs:truth`, `npm run build:game`, `npm run quality:baseline -- --check --dist` (after `npm run build:web`), `npm run prove:game`, `npm run changes -- --check` |
+   | `unit (<i>)` | `npm run test:unit -- --shard=<i>/4` (the same files as the job: the split is the same on every machine) |
    | `coverage` | `npm run test:coverage` (a test, or a floor of `vite.config.ts` not met) |
    | `node-24` | `npm run test:node` under Node 24 |
    | `e2e`, `reference`, `second-game` | `npm run build:game`, `npm run preview -- --port 5173 &`, then the row's `npm run e2e -- http://127.0.0.1:5173/ --game demo --prod …` (`E2E_BROWSER=webkit` for a WebKit row) |
