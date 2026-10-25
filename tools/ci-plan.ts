@@ -184,13 +184,13 @@ export const RULES: readonly Rule[] = [
   // the transition pages. No game is built through them; their tests are unit tests, and the docs family runs too.
   {
     re: /^tools\/wiki\/(archive|html|html-search|pages|publication|transition)\.ts$/,
-    gates: [...UNIT],
+    gates: [],
     why: "the documentation's publication",
   },
-  // Tools that ship nothing and build nothing: the unit tier.
+  // Tools that ship nothing and build nothing: `check` runs their tests; Windows and Node 24 on `main` (4.5.4, #302).
   {
     re: /^(tools\/(mutate|mutation-sets|coverage-ratchet|quality-baseline|api-doc|audit-corpus|bench|changes)\.ts$|tools\/release\/|scripts\/(release-notes\.(mjs|d\.mts)|check-links\.mjs|docs-screenshots\.mjs)$)/,
-    gates: [...UNIT],
+    gates: [],
     why: 'a repository tool',
   },
   { re: /^tools\/audio(\/|\.py$)/, gates: [...COVERAGE, 'e2e', 'reference', 'node24'], why: 'the audio pipeline' },
@@ -202,10 +202,10 @@ export const RULES: readonly Rule[] = [
   { re: /^(tools|scripts)\//, gates: [...AUTHORING], why: 'the authoring pipeline' },
   {
     re: /^(tests\/studio-(server|worker|collab|keycloak|client|diff-captures)\.test\.ts|tools\/studio\/diff-rooms\.ts$|ops\/studio\/(ci|keycloak)\/)/,
-    gates: [...UNIT, 'studioHosted'],
+    gates: ['studioHosted'],
     why: 'the hosted Studio against Postgres and S3 (4.2.1)',
   },
-  { re: /^tests\//, gates: [...UNIT], why: 'the unit tests' },
+  { re: /^tests\//, gates: [], why: 'the unit tests' },
 ];
 
 /** A glob as a regular expression over a whole path: `**` any folders, `*` and `?` inside one name, `{a,b*}`. */

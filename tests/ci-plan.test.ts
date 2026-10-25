@@ -23,7 +23,7 @@ describe('the plan of a change', () => {
     [
       "the documentation's publication tools",
       ['tools/wiki/archive.ts', 'tools/wiki/pages.ts', 'tools/wiki/publication.ts', 'tools/wiki/transition.ts'],
-      gates('node24', 'windows'),
+      [],
     ],
     ['the Bridge', ['bridge/src/store.ts'], gates('coverage', 'reality', 'freshInstall', 'node24', 'windows')],
     ['the signals game', ['games/signals/index.ts'], gates('coverage', 'reality', 'node24', 'windows')],
@@ -43,9 +43,9 @@ describe('the plan of a change', () => {
       ['studio-server/migrations/0005.up.sql'],
       gates('coverage', 'secondGame', 'freshInstall', 'upgrade', 'reference', 'node24', 'windows', 'studioHosted'),
     ],
-    ['its hosted tests', ['tests/studio-server.test.ts'], gates('node24', 'windows', 'studioHosted')],
-    ['its CI S3 identity', ['ops/studio/ci/seaweedfs-s3.json'], gates('node24', 'windows', 'studioHosted')],
-    ['its Keycloak realm', ['ops/studio/keycloak/realm.json'], gates('node24', 'windows', 'studioHosted')],
+    ['its hosted tests', ['tests/studio-server.test.ts'], gates('studioHosted')],
+    ['its CI S3 identity', ['ops/studio/ci/seaweedfs-s3.json'], gates('studioHosted')],
+    ['its Keycloak realm', ['ops/studio/keycloak/realm.json'], gates('studioHosted')],
     [
       "the journal's SQL layer",
       ['bridge/src/migrations.ts'],
@@ -73,9 +73,9 @@ describe('the plan of a change', () => {
       ['tests/fixtures/saves/demo-4.5.3.json'],
       gates('coverage', 'upgrade', 'node24', 'windows'),
     ],
-    ['a unit test', ['tests/core.test.ts'], gates('node24', 'windows')],
+    ['a unit test', ['tests/core.test.ts'], []],
     ['the Windows launcher', ['scripts/start.mjs'], gates('coverage', 'node24', 'windows')],
-    ['a release tool', ['tools/release/ship.mjs', 'tools/mutate.ts'], gates('node24', 'windows')],
+    ['a release tool', ['tools/release/ship.mjs', 'tools/mutate.ts'], []],
     [
       'an authoring tool',
       ['tools/validate.ts'],
