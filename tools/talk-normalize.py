@@ -4,11 +4,15 @@
 - cell 1 (mouth closed) also serves as the "idle" pose: rest and talk come from the same drawing, so there is no jump.
 
 python3 tools/talk-normalize.py <talk_sheet.png> <row 1-4> <validated_sprite.png> <output_folder>
+npx quest-n-click talk-normalize <talk_sheet.png> <row 1-4> <validated_sprite.png> <output_folder>   (in a project)
+Every path is an argument, relative to the current folder: it works the same in the engine repository and in a project.
 """
 import sys, os, numpy as np, cv2
 from PIL import Image
 from scipy import ndimage
 
+if len(sys.argv) != 5:
+    sys.exit('usage: talk-normalize <talk_sheet.png> <row 1-4> <validated_sprite.png> <output_folder>')
 src, row, base_p, out = sys.argv[1], int(sys.argv[2]), sys.argv[3], sys.argv[4]
 
 

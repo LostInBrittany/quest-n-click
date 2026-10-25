@@ -122,10 +122,8 @@ On your machine, at the root of the engine repository or of the created project.
 
    It prepares only the images the content references, writes `assets.gen.json`, and reprocesses only what changed.
 
-> [!LIMIT id=talk-tools-repo]
-> The mouth-kit tools (`tools/talk-kit.py`, `tools/talk-apply.py`, `tools/talk-normalize.py`) write to
-> `games/<id>/private/` and `games/<id>/art/`: they are written for the engine repository's layout. In a created
-> project, cut and place the talking frames by hand, or use the Studio's Assets tab.
+The mouth-kit tools ([talking](#character-talking)) work in both layouts: `python3 tools/talk-kit.py` in the engine
+repository writes under `games/<id>/`, `npx quest-n-click talk-kit` in a created project under `game/`.
 
 <a name="expected-result"></a>
 
@@ -576,19 +574,22 @@ seated_poses.png row N". For two characters in one cell, say "one single figure 
 The body must never change while a character talks: only the mouth moves. Otherwise the character seems to jump from
 pose to pose.
 
-**Recommended method: the mouth kit** (engine repository). The generator is never asked to redraw the character. It
-only supplies mouths, which a script pastes back onto the validated sprite.
+**Recommended method: the mouth kit.** The generator is never asked to redraw the character. It only supplies mouths,
+which a script pastes back onto the validated sprite. Below, `<game>` is the game's folder: `games/<id>/` in the engine
+repository (`python3 tools/talk-kit.py`, `python3 tools/talk-apply.py`), `game/` in a created project (`npx
+quest-n-click talk-kit`, `npx quest-n-click talk-apply`, same arguments).
 
-1. **Prepare the kits:** `python3 tools/talk-kit.py`. It writes the validated sprite's head, enlarged and copied 6 times
-   into a 3 × 2 grid (1536 × 1024), to `games/<id>/private/talk_kits/<character>_<pose>.png`, and a `.json` file that
-   keeps the head's exact position. The characters and poses are set at the top of the script (`POSES`): `profile`
-   (`r3c3`), `front` (`r3c1`), and `seated` (`seated_poses`) for characters who talk while seated.
+1. **Prepare the kits:** `python3 tools/talk-kit.py [<character> …]`. It writes the validated sprite's head, enlarged
+   and copied 6 times into a 3 × 2 grid (1536 × 1024), to `<game>/private/talk_kits/<character>_<pose>.png`, and a
+   `.json` file that keeps the head's exact position. The characters and poses are listed in `<game>/talk-kits.json`,
+   each pose naming its validated sprite, e.g. `{ "grandpa": { "profil": "grandpa/r3c3", "face": "grandpa/r3c1",
+   "assis": "grandpa_seated/r2c1" } }`; a pose named `assis` (seated) takes more of the silhouette as the head.
 2. **Send each kit to the generator**, one kit per message, with the prompt below.
 3. **Save the reply** next to the kit, as `<character>_<pose>_out.png` (or `_chatgpt.png`).
 4. **Paste the mouths back:** `python3 tools/talk-apply.py <character>_<pose>`. The script aligns the reply's 6 cells
    with each other, then cell 1 with the original head; it detects what changed (mouth, eyes), corrects the colour on
    the ring around it, and pastes only that area onto the validated sprite. Output:
-   `games/<id>/art/talk_<character>/<pose>/t1.png` … `t6.png`; `t1` is exactly the validated sprite.
+   `<game>/art/talk_<character>/<pose>/t1.png` … `t6.png`; `t1` is exactly the validated sprite.
 5. **Check**: only the mouth and eyes should move. The script prints the area it repainted for each image: a few
    thousand pixels is normal, tens of thousands means a cell is misaligned.
 

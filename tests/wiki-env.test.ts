@@ -257,7 +257,7 @@ describe("the repository's register", { timeout: 300_000 }, () => {
       writeFileSync(file, JSON.stringify(r));
       const report = checkWiki({ wikiDir: tmp, tracked, root: ROOT });
       expect(report.errors).toContainEqual(
-        'data/env.json: PYTHON is read by cli/quest-n-click.mjs:66 and has no description: add it to the register (npm run wiki -- env)',
+        'data/env.json: PYTHON is read by cli/quest-n-click.mjs:62 and has no description: add it to the register (npm run wiki -- env)',
       );
       expect(report.errors).toContainEqual(expect.stringMatching(/generated part is not the register's/));
     } finally {

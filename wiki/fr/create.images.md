@@ -127,10 +127,9 @@ Sur votre machine, à la racine du dépôt du moteur ou du projet créé. Chaque
    La commande ne prépare que les images citées par le contenu, écrit `assets.gen.json`, et ne retraite que ce qui a
    changé.
 
-> [!LIMIT id=talk-tools-repo]
-> Les outils du kit bouche (`tools/talk-kit.py`, `tools/talk-apply.py`, `tools/talk-normalize.py`) écrivent dans
-> `games/<id>/private/` et `games/<id>/art/` : ils sont faits pour l’arborescence du dépôt du moteur. Dans un projet
-> créé, découpez et placez les images de parole à la main, ou passez par l’onglet Assets du Studio.
+Les outils du kit bouche ([parole](#character-talking)) marchent dans les deux arborescences : `python3
+tools/talk-kit.py` dans le dépôt du moteur écrit sous `games/<id>/`, `npx quest-n-click talk-kit` dans un projet créé
+sous `game/`.
 
 <a name="expected-result"></a>
 
@@ -594,19 +593,23 @@ N ». Pour deux personnages dans une case, dites « one single figure group ».
 Le corps ne doit jamais changer pendant qu’un personnage parle : seule la bouche bouge. Sinon, il semble sauter d’une
 pose à l’autre.
 
-**Méthode conseillée : le kit bouche** (dépôt du moteur). On ne demande jamais au générateur de redessiner le
-personnage. Il fournit seulement des bouches, qu’un script recolle sur le sprite validé.
+**Méthode conseillée : le kit bouche.** On ne demande jamais au générateur de redessiner le personnage. Il fournit
+seulement des bouches, qu’un script recolle sur le sprite validé. Ci-dessous, `<game>` est le dossier du jeu :
+`games/<id>/` dans le dépôt du moteur (`python3 tools/talk-kit.py`, `python3 tools/talk-apply.py`), `game/` dans un
+projet créé (`npx quest-n-click talk-kit`, `npx quest-n-click talk-apply`, mêmes arguments).
 
-1. **Préparer les kits :** `python3 tools/talk-kit.py`. Il écrit la tête du sprite validé, agrandie et copiée 6 fois
-   dans une grille 3 × 2 (1536 × 1024), dans `games/<id>/private/talk_kits/<character>_<pose>.png`, et un fichier
-   `.json` qui garde la position exacte de la tête. Les personnages et les poses se règlent en haut du script
-   (`POSES`) : `profile` (`r3c3`), `front` (`r3c1`), et `seated` (`seated_poses`) pour ceux qui parlent assis.
+1. **Préparer les kits :** `python3 tools/talk-kit.py [<character> …]`. Il écrit la tête du sprite validé, agrandie et
+   copiée 6 fois dans une grille 3 × 2 (1536 × 1024), dans `<game>/private/talk_kits/<character>_<pose>.png`, et un
+   fichier `.json` qui garde la position exacte de la tête. Les personnages et les poses sont listés dans
+   `<game>/talk-kits.json`, chaque pose nommant son sprite validé, par exemple `{ "grandpa": { "profil":
+   "grandpa/r3c3", "face": "grandpa/r3c1", "assis": "grandpa_seated/r2c1" } }` ; une pose nommée `assis` prend une plus
+   grande part de la silhouette pour la tête.
 2. **Envoyer chaque kit au générateur**, un kit par message, avec le prompt ci-dessous.
 3. **Enregistrer la réponse** à côté du kit, sous le nom `<character>_<pose>_out.png` (ou `_chatgpt.png`).
 4. **Recoller les bouches :** `python3 tools/talk-apply.py <character>_<pose>`. Le script aligne les 6 cases de la
    réponse entre elles, puis la case 1 sur la tête d’origine ; il repère ce qui a changé (bouche, yeux), corrige la
    couleur sur l’anneau autour, et ne recolle que cette zone sur le sprite validé. Sortie :
-   `games/<id>/art/talk_<character>/<pose>/t1.png` … `t6.png` ; `t1` est exactement le sprite validé.
+   `<game>/art/talk_<character>/<pose>/t1.png` … `t6.png` ; `t1` est exactement le sprite validé.
 5. **Vérifier** : seuls la bouche et les yeux doivent bouger. Le script affiche la surface repeinte pour chaque image :
    quelques milliers de pixels, c’est normal ; des dizaines de milliers, une case est mal alignée.
 

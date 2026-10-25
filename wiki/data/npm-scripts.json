@@ -509,8 +509,8 @@
       "name": "test:node",
       "group": "tests",
       "description": {
-        "en": "The unit suite without the Python-bound tests (`tests/pixel.test.ts`, `tests/studio-assets.test.ts`) and the CPU-bound ones (`test:heavy`'s files); `npm run check` runs it, the heavy ones run nightly.",
-        "fr": "La suite unitaire sans les tests liés à Python (`tests/pixel.test.ts`, `tests/studio-assets.test.ts`) ni ceux qui saturent le processeur (les fichiers de `test:heavy`) ; `npm run check` la lance, les lourds tournent la nuit."
+        "en": "The unit suite without the Python-bound tests (`tests/pixel.test.ts`, `tests/studio-assets.test.ts`, `tests/talk-tools.test.ts`) and the CPU-bound ones (`test:heavy`'s files); `npm run check` runs it, the heavy ones run nightly.",
+        "fr": "La suite unitaire sans les tests liés à Python (`tests/pixel.test.ts`, `tests/studio-assets.test.ts`, `tests/talk-tools.test.ts`) ni ceux qui saturent le processeur (les fichiers de `test:heavy`) ; `npm run check` la lance, les lourds tournent la nuit."
       }
     },
     {
@@ -549,8 +549,8 @@
       "name": "test:assets",
       "group": "tests",
       "description": {
-        "en": "The Python-backed image and asset-pipeline tests (`tests/pixel.test.ts`, `tests/studio-assets.test.ts`).",
-        "fr": "Les tests d’images et de la chaîne d’assets qui passent par Python (`tests/pixel.test.ts`, `tests/studio-assets.test.ts`)."
+        "en": "The Python-backed image and asset-pipeline tests (`tests/pixel.test.ts`, `tests/studio-assets.test.ts`, `tests/talk-tools.test.ts`).",
+        "fr": "Les tests d’images et de la chaîne d’assets qui passent par Python (`tests/pixel.test.ts`, `tests/studio-assets.test.ts`, `tests/talk-tools.test.ts`)."
       }
     },
     {
