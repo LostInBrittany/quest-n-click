@@ -51,8 +51,8 @@ By convention: `idle`, `talk`, `walk` (profile, facing right; the engine flips t
 `walk_back`, `point`, `use`, plus any special pose you want (`sleep`, `sit`, `celebrate`…). A pose is a list of images
 played in a loop. A missing pose falls back to `idle` (`validate` warns about an actor whose `pose` is missing). The
 template's `cast.ts` has helpers for the standard sheets: `human(id)` and `cat(id)` map a 6 × 4 sheet to these poses
-([images](create.images.md)). `{ pose: ['cat', 'sleep'] }` sets a lasting pose; `{ anim: ['hero', 'use'], ms: 600 }`
-plays one for a while ([commands](create.commands.md#movement)).
+([images](create.images.md)); a dog takes `cat(id)` too, with `kind: ['dog']` so that `npm run prompts` describes it
+as a dog. `{ pose: ['cat', 'sleep'] }` sets a lasting pose; `{ anim: ['hero', 'use'], ms: 600 }` plays one for a while ([commands](create.commands.md#movement)).
 
 <a name="speech-animation"></a>
 

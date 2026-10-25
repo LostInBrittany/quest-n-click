@@ -128,6 +128,17 @@ describe('npm run prompts on games/demo', () => {
     expect(s).toContain("happy_dance: ['seller_poses/r1c1'], sit_down: ['seller_poses/r1c2'],");
     expect(r.missing).toEqual([]);
   });
+  it('draws a dog on the four-legged sheet, barking and panting instead of meowing and purring', () => {
+    const g = structuredClone(game) as GameDef;
+    g.characters.biscuit = { ...g.characters.biscuit, kind: ['dog'] };
+    const s = section(buildPrompts({ game: g }, opts).markdown, '#### Base sheet `cat`');
+    expect(s).toContain(
+      'ROW 1 — head-and-shoulders portraits, facing the viewer: neutral | smiling | barking (mouth open)',
+    );
+    expect(s).toContain('stretching in a play bow');
+    expect(s).toContain('the body about 200 pixels long in profile');
+    expect(s).not.toMatch(/meow|purr/);
+  });
 });
 
 describe('npm run prompts --missing', () => {

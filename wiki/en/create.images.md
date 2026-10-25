@@ -371,8 +371,9 @@ below are what it fills, the parts between angle brackets (`<...>`) being the ga
 
 What `npm run prompts` reads, from the game module and the art folder:
 
-- **characters** (`cast.ts`): the base 6 × 4 sheet with the engine's pose rows (`human()` or `cat()`), the special poses
-  the content uses (extra `sprites` keys, `{ pose: [who, p] }` and `{ anim: [who, p] }` in the rooms, actor poses,
+- **characters** (`cast.ts`): the base 6 × 4 sheet with the engine's pose rows (`human()` or `cat()`; a character
+  whose `kind` holds `'dog'` gets the `cat()` cells described with a dog's words: barking, panting, a play bow), the
+  special poses the content uses (extra `sprites` keys, `{ pose: [who, p] }` and `{ anim: [who, p] }` in the rooms, actor poses,
   `variants`) on their cells, a new `<sheet>_poses` sheet for poses no sprite provides yet (with the lines to add to
   `cast.ts`), the seat rule for seated poses, and the mouth kit for the poses listed in `mouths`;
 - **objects**: every image a prop, an item, a minigame or the interface uses, grouped by sheet folder, cell by cell;

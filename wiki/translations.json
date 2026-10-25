@@ -5931,11 +5931,10 @@
       ]
     },
     "create.characters#poses": {
-      "enHash": "a0dc56efacd75427cf5c6028e002cc51b109d082770636d0b34eadff0bd23a0a",
-      "frHash": "56c64e025dea09c638373edcbbce927a267803971741a292eecf52359bed77d5",
+      "enHash": "a70d1f80e6de48ae76d640694dac474c95677da2084e19b8d4cdd94937a2089b",
+      "frHash": "109b9e917f04ec94351feef32b05b83710a9b6eb7191accb3a362b6f32c4fc48",
       "reviewers": [
-        { "name": "claude-4.5-writers", "kind": "ai", "relation": "author", "date": "2026-10-23" },
-        { "name": "wanoo", "kind": "human", "relation": "independent", "date": "2026-10-24" }
+        { "name": "Claude", "kind": "ai", "relation": "author", "date": "2026-10-25" }
       ]
     },
     "create.characters#presence": {
@@ -7658,10 +7657,10 @@
       ]
     },
     "create.images#prompts": {
-      "enHash": "cfdde6aa128cd24f8006f8985e85f106874bca5c88ef99b2f71e1a817429fddb",
-      "frHash": "4e2450fab88fbe9f47a78b29c285505b0fae95af1b94e51b40ea7eb8ab90f03d",
+      "enHash": "968d846e5b2b5a83f496795d518e14c1eca8b953491806c9e2c81e18b7a98643",
+      "frHash": "e6813837c90b2bb0839141852bcce3103eb3f811b01ea1444f79b462046dbcb7",
       "reviewers": [
-        { "name": "claude-opus-5.5", "kind": "ai", "relation": "author", "date": "2026-10-25" }
+        { "name": "Claude", "kind": "ai", "relation": "author", "date": "2026-10-25" }
       ]
     },
     "create.images#recovery": {
@@ -16786,11 +16785,10 @@
       ]
     },
     "reference.npm-scripts#prompts": {
-      "enHash": "133630f82fb22721b09416e3b1d5b3185c098438e2729c4708ac7a41f7d85422",
-      "frHash": "b3d2d46f27f33959fa16920c5fa6baa5ecff6652487bc1e4a2011fa5805468eb",
+      "enHash": "8ef20e1ac419225069b812c62ca4d1d21f13476b79af37f127316cb0b740ffc9",
+      "frHash": "b41b5deba8ef780b32bc80e95ba14be7d5bf0ad8c958d8e7e358d52e6349a710",
       "reviewers": [
-        { "name": "claude-4.5-writers", "kind": "ai", "relation": "author", "date": "2026-10-23" },
-        { "name": "wanoo", "kind": "human", "relation": "independent", "date": "2026-10-24" }
+        { "name": "Claude", "kind": "ai", "relation": "author", "date": "2026-10-25" }
       ]
     },
     "reference.npm-scripts#prove-game": {
