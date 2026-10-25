@@ -93,7 +93,9 @@ point est ✔.
 ### La chaîne
 
 <!-- step: candidate -->
-1. **Un candidat sur main.** On le lance à la main sur main pour le SHA complet :
+1. **Un candidat sur main.** Depuis la 4.5.4, le merge de la pull request de release le lance, sur le commit de
+   merge (un push sur `main` qui change la version de `package.json` ; une mise à jour de dépendance n'en lance
+   aucun). Pour un autre SHA, on le lance à la main :
 
    ```sh
    # dans le dépôt du moteur
@@ -103,8 +105,11 @@ point est ✔.
    Il joue toutes les familles lourdes sur ce SHA, le profil de qualification complet sur ses propres archives et son
    image, les trois charges et la répétition de signature. Sa gate (`candidate-gate`) écrit et atteste
    `candidate-manifest.json`, avec chaque fichier que la release publiera (`tools/release/artifacts.mjs`). Lire la
-   gate **et** sa conclusion. Seul un run lancé à la main (`workflow_dispatch`) sur main peut être nommé par un tag ;
-   une pull request avec le label `full-ci` le lance aussi, pour information seulement.
+   gate **et** sa conclusion. Seul un run lancé sur main, à la main (`workflow_dispatch`) ou par le merge d'une release
+   (`push`), peut être nommé par un tag ; une pull request avec le label `full-ci` le lance aussi, pour information
+   seulement. Il finit par la vérification de publication de la documentation sur son propre rapport de tests, en
+   avertissement : un problème de doc ne retient jamais la release (la CI de la pull request de release a déjà vérifié
+   ses relectures humaines, `npm run release -- check`).
 
 <!-- step: tag -->
 2. **Un tag qui le nomme.**
@@ -207,10 +212,12 @@ le sha256 de l'archive de documentation, promeut cette archive (celle du candida
 - **Les releases immuables** : Settings → General → Releases. Une release publiée garde alors ses fichiers et son tag.
 - **Un ruleset sur les tags de release** : cible `tag`, `refs/tags/v*`, actif. Il réserve la création, refuse la
   suppression et interdit le force-push.
-- **La politique de déploiement de l'environnement `docs-publish`** (depuis la 4.5.3) : Settings → Environments →
-  docs-publish → Deployment branches and tags, une règle de **tag** `v*` à côté de `main` et `docs/*`. release.yml
-  tourne sur le push du tag, donc le job de documentation qu'il appelle tourne sur la ref du tag ; sans la règle, ce
-  job est refusé (la release elle-même est publiée ; `mode=promote` depuis main rattrape la documentation).
+- **Deux environnements pour la documentation** (depuis la 4.5.4). `docs-publish` : la doc d'une release, publiée
+  sans clic (le tag signé vaut approbation) : aucun relecteur requis, une règle de **tag** `v*` comme seule règle de
+  déploiement. `docs-publish-manual` : les lancements à la main (revision, rollback, promote, preview), ses relecteurs
+  requis approuvent chacun, règles `main` et `docs/*`. Chacun porte le secret `WIKI_DEPLOY_KEY`. Sans la règle `v*`,
+  le job de la release est refusé (la release elle-même est publiée ; `mode=promote` depuis main rattrape la
+  documentation).
 - `npm run ship -- preflight-stable --candidate=<run>` doit alors voir les deux premiers. **Avant le premier tag de la 4.1.20**,
   `ship tag` refuse de taguer tant que les releases immuables sont désactivées : le jeton de release.yml ne peut pas
   lire ce réglage (il faut un droit de lecture admin), donc `ship tag` le vérifie avec l'accès du mainteneur.

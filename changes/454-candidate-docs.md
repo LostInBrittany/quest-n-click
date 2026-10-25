@@ -1,0 +1,5 @@
+### Changes
+
+- **The candidate of a release starts itself** (4.5.4): the release pull request's merge (a push to `main` that moves `package.json`'s version) starts `candidate` on the merge commit; `ship tag`, `release.yml` and the provenance check accept that run as they accept one started by hand on main, and it is qualified, fully profiled and attested the same way. A dependency bump starts none.
+- **A docs problem shows on the release pull request, never after the tag** (4.5.4): its CI runs `npm run release -- check`, which now includes `npm run wiki -- check --publish --reviews-only` (every publication gate but "executed", which needs the candidate's report): a claim or a pair a person must read fails the pull request. The candidate then checks its docs against its own report, as a warning.
+- **A release's docs publish without a click** (4.5.4): `docs-publish` runs a release's call under the environment `docs-publish` (no reviewer: the signed tag is the approval) and the runs by hand under `docs-publish-manual` (its reviewers approve each).
