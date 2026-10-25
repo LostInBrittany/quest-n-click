@@ -5208,8 +5208,8 @@
       ]
     },
     "contribute.releasing#release-command": {
-      "enHash": "0da3ac1eeb47990236106f1244df495aea03ae3727f0452bd8ea38862419900e",
-      "frHash": "30bd51a705905aa3dbf2804148a2cdee1480b543fdd5da5e2bfad1fcab57e173",
+      "enHash": "1934bd67de81de13a0ae894fc17a0ffcb9cdd63659d9af98fbfeed2574ace009",
+      "frHash": "1d15451cc96c1e48f48390ad33b7120c1e878ba46263848cc666da01cb3168f5",
       "reviewers": [
         { "name": "claude-454-release", "kind": "ai", "relation": "author", "date": "2026-10-25" }
       ]
@@ -14685,11 +14685,10 @@
       ]
     },
     "reference.environment-variables#home": {
-      "enHash": "ae862536ade9e66af3fea4877290bfc7d6cc131e606edf264c2570891f19e9eb",
-      "frHash": "bf2aecdf7dc3ab1b833e32e219aa2fe196115736b5b8e9736b88116505ec54c1",
+      "enHash": "f934a1ef75d803d5b30a5b73243de2aeecf419d15838b70e26cb0f65c37f0b5d",
+      "frHash": "2b043eca7d28e269547a5d554e7687003c842e3e64de360f620d207f85b4ebaf",
       "reviewers": [
-        { "name": "claude-pr266", "kind": "ai", "relation": "author", "date": "2026-10-23" },
-        { "name": "wanoo", "kind": "human", "relation": "independent", "date": "2026-10-24" }
+        { "name": "claude-454-release", "kind": "ai", "relation": "author", "date": "2026-10-25" }
       ]
     },
     "reference.environment-variables#how-to-read": {

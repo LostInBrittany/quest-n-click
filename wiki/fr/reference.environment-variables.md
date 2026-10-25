@@ -950,7 +950,7 @@ Le fichier où un job écrit son résumé ; `npm run ci:plan` y écrit le plan.
 Le dossier personnel de l’utilisateur. Le script de la chaîne A7 le refuse comme dossier de sortie ; le Studio Server donne à ses propres commandes `git` un `HOME` dans son dossier de travail, jamais le vôtre.
 
 - Origine : posée par le système d’exploitation.
-- Lue par : [`.github/workflows/ci.yml`](../../.github/workflows/ci.yml), [`docs/dev/acceptance/a7-chain.sh`](../../docs/dev/acceptance/a7-chain.sh).
+- Lue par : [`.github/workflows/ci.yml`](../../.github/workflows/ci.yml), [`docs/dev/acceptance/a7-chain.sh`](../../docs/dev/acceptance/a7-chain.sh), [`tools/release/release-run.ts`](../../tools/release/release-run.ts).
 
 <a name="imageos"></a>
 

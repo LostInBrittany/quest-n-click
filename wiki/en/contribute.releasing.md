@@ -98,12 +98,16 @@ npm run release -- 4.5.4          # --dry-run says what it would refuse; --key=<
 It refuses first what would fail later (`package.json` not at the version, another branch, uncommitted changes, `main`
 not the organisation's, no CHANGELOG section, no SSH signing key, `gh` or `npm` not signed in, an npm user who is not
 an owner). Then it finds the candidate the merge started on that commit (`--start-candidate` starts one when there is
-none) and waits for it, saying every minute how many jobs are done and which run, re-running its failed jobs once;
-then `ship tag … --sign`: main's `ci`, the signed tag pushed to the organisation's repository, the release run
-followed and its files verified; then the npm packages the release staged, each approved with your 2FA in your
-terminal, the engine first; then one summary. The documentation publishes itself (`docs-publish`, no click). If it
-stops, run it again: a green candidate is not waited for again, a tag already pushed is followed, a package already on
-npm is not approved again. The chain below is what it runs, for when a step has to be done by hand.
+none) and waits for it (about 90 minutes), saying how many jobs are done and which run at each change and every five
+minutes, re-running its failed jobs once; then `ship tag … --sign`: main's `ci`, the signed tag pushed to the
+organisation's repository; then it follows the release run job by job until `release` and `npm-stage` succeed (the
+documentation's jobs are said, never waited on: a docs problem never holds back npm), verifies the release's files,
+and approves the npm packages the release staged, each with your 2FA in your terminal, the engine first; then one
+summary. The release commit is where `package.json` became the version on main (or the tag's, once pushed), so what is
+merged meanwhile does not move it. If it stops, run it again: a green candidate is not waited for again, a tag already
+pushed is followed, a package already on npm is not approved again; a release run that failed (its `release` or
+`npm-stage` job) is re-run first (`gh run rerun <id> --failed`, the command prints it). A pre-release (`-rc.N`) is
+tagged by hand (`ship tag`, below). The chain below is what it runs, for when a step has to be done by hand.
 
 <a name="the-chain"></a>
 
