@@ -1,6 +1,6 @@
 # Upgrade notes: 4.5
 
-What 4.5.0 "Wiki", 4.5.1, 4.5.2 and 4.5.3 changed. Nothing to change in a game up to 4.5.1 (the documentation moved);
+What 4.5.0 "Wiki", 4.5.1, 4.5.2, 4.5.3 and 4.5.4 changed. Nothing to change in a game up to 4.5.1 (the documentation moved);
 from 4.5.2, `npx quest-n-click migrate` moves its imports to the scoped package names; 4.5.3 changes how a release is
 made, not a game.
 
@@ -143,3 +143,25 @@ is how a release is made, for the maintainers ([Releasing](contribute.releasing.
   person's review. A page's header still says who read it ([Writing documentation](contribute.writing-docs.md#reviews)).
 - **A pull request's candidate** starts only when the `full-ci` label is added; remove the label and add it again to
   run it once more.
+
+<a name="from-4-5-3-to-4-5-4"></a>
+<!-- applies: 4.5.4.. -->
+
+## From 4.5.3 to 4.5.4 "Simple release"
+
+Nothing to change in a game: it builds, plays and saves as on 4.5.3 (no content field, save, schema or game
+fingerprint moves). Install `@quest-n-click/engine@4.5.4` ([Install from npm](install.from-npm.md)).
+
+- **In a project made from npm**, the tools find its `game/`: the art prompts (`npx quest-n-click prompts`, the MCP's
+  `asset_prompts`) name the project's paths, `cut-sheet.py` cuts into `game/art` by default, and the mouth kits run as
+  `npx quest-n-click talk-kit`, `talk-apply`, `talk-normalize`. A new project's `.gitignore` lists `game/private`.
+- **`cables`** takes `tipDeg`, `socketX`, `socketY` and `plugInset` to fit a game's own plug and board art.
+- **A character's variant** (a costume, a prop) shows the moment its flag changes, in the middle of a conversation too.
+- **The audio palette** gains `church_organ`, a full pipe organ that carries a lead.
+- **For the maintainers**, a release is three actions (D57, [Releasing](contribute.releasing.md#release-command)):
+  `npm run release -- prepare <version> --name="<name>"` makes the release pull request (its CI runs
+  `npm run release -- check`, the docs' human gates included); its merge starts the candidate; `npm run release --
+  <version>` signs the tag, follows the release and approves npm. The documentation publishes without a click under
+  the `docs-publish` environment; the runs by hand wait for a reviewer under `docs-publish-manual`.
+- **For contributors**, a pull request that touches no product code waits less, and a new test no longer means
+  rewriting the READMEs' figures and the baseline.

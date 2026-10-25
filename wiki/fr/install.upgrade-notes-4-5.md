@@ -1,6 +1,6 @@
 # Notes de mise à jour : 4.5
 
-Ce que la 4.5.0 « Wiki », la 4.5.1, la 4.5.2 et la 4.5.3 ont changé. Rien à changer jusqu'à la 4.5.1 (la doc a
+Ce que la 4.5.0 « Wiki », la 4.5.1, la 4.5.2, la 4.5.3 et la 4.5.4 ont changé. Rien à changer jusqu'à la 4.5.1 (la doc a
 déménagé) ; en 4.5.2, `npx quest-n-click migrate` passe les imports aux paquets à scope ; la 4.5.3 change la façon de
 faire une release, pas un jeu.
 
@@ -154,3 +154,29 @@ release, pour les mainteneurs ([Publier une release](contribute.releasing.md#the
   qui l'a lue ([Écrire la documentation](contribute.writing-docs.md#reviews)).
 - **Le candidat d'une pull request** ne démarre que quand on ajoute le label `full-ci` ; retirez le label et
   remettez-le pour le relancer.
+
+<a name="from-4-5-3-to-4-5-4"></a>
+<!-- applies: 4.5.4.. -->
+
+## De la 4.5.3 à la 4.5.4 « Simple release »
+
+Rien à changer dans un jeu : il se construit, se joue et se sauvegarde comme en 4.5.3 (aucun champ de contenu,
+aucune sauvegarde, aucun schéma ni aucune empreinte de jeu ne bouge). Installez `@quest-n-click/engine@4.5.4`
+([Installer depuis npm](install.from-npm.md)).
+
+- **Dans un projet créé depuis npm**, les outils trouvent son `game/` : les prompts d'images
+  (`npx quest-n-click prompts`, l'outil MCP `asset_prompts`) nomment les chemins du projet, `cut-sheet.py` découpe
+  dans `game/art` par défaut, et les kits de bouches se lancent avec `npx quest-n-click talk-kit`, `talk-apply`,
+  `talk-normalize`. Le `.gitignore` d'un nouveau projet liste `game/private`.
+- **`cables`** prend `tipDeg`, `socketX`, `socketY` et `plugInset` pour s'ajuster à la fiche et au tableau d'un jeu.
+- **La variante d'un personnage** (un costume, un accessoire) s'affiche dès que son drapeau change, au milieu d'une
+  conversation aussi.
+- **La palette audio** gagne `church_organ`, un grand orgue qui porte une mélodie.
+- **Pour les mainteneurs**, une release se fait en trois actions (D57,
+  [Publier une release](contribute.releasing.md#release-command)) : `npm run release -- prepare <version>
+  --name="<nom>"` fait la pull request de release (sa CI lance `npm run release -- check`, relectures humaines des
+  docs comprises) ; son merge lance le candidat ; `npm run release -- <version>` signe le tag, suit la release et
+  approuve npm. La documentation se publie sans clic sous l'environnement `docs-publish` ; les lancements à la main
+  attendent un relecteur sous `docs-publish-manual`.
+- **Pour les contributeurs**, une pull request qui ne touche pas au code du produit attend moins, et un nouveau test
+  n'oblige plus à réécrire les chiffres des README ni la référence.
