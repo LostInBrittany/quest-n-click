@@ -4,6 +4,11 @@
 // `timeout <n>m`, and the step leaves room for the three and the two pauses. macOS has no `timeout`, and on Windows
 // System32's timeout.exe may come first in the PATH: the jobs that run there keep their loops unbounded, said in a
 // comment, and are listed here so that a new one is a decision.
+// apt is never under `timeout` (#353): `timeout` killed `npx playwright install --with-deps`, not the apt-get it ran
+// through sudo, which went on holding the dpkg lock, and the two retries failed at once. Playwright's system packages
+// go through scripts/ci-playwright-deps.sh (apt fails by itself on a mirror that stops sending, and waits for its
+// lock); the browsers' download, no apt in it, keeps its limit an attempt.
+import { execFileSync } from 'node:child_process';
 import { readdirSync, readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 
@@ -85,5 +90,45 @@ describe('the retry loops of the workflows', () => {
         /# .*\(4\.5\.5, #340\): macOS has no\n\s+# `timeout`, and on Windows System32's timeout\.exe/,
       );
     }
+  });
+
+  it('run no apt under `timeout`: a killed attempt left apt-get holding the dpkg lock (#353)', () => {
+    for (const l of found) expect(l.body, l.where).not.toMatch(/--with-deps|install-deps|apt-get|\bapt\b|\bsudo\b/);
+  });
+
+  it("install Playwright's system packages through scripts/ci-playwright-deps.sh, for the browsers the job downloads", () => {
+    const { jobs } = loops();
+    const onRunner = found.filter((l) => /npx playwright install /.test(l.body) && /^ubuntu-/.test(l.runsOn));
+    expect([...new Set(onRunner.map((l) => l.where))].sort()).toEqual([
+      'candidate.yml cross-runtime',
+      'candidate.yml release-core',
+      'ci.yml studio-hosted',
+      'nightly.yml cross-runtime',
+    ]);
+    for (const l of onRunner) {
+      const browsers = /npx playwright install ([\w ]+)\)$/.exec(l.body)![1]!;
+      const job = jobs.get(l.where)!;
+      const deps = new RegExp(
+        `\\n( +)(?:- )?run: bash scripts/ci-playwright-deps\\.sh ${browsers}\\n\\1(?:  )?timeout-minutes: (\\d+)`,
+      );
+      const m = deps.exec(job);
+      expect(m, `${l.where}: no scripts/ci-playwright-deps.sh ${browsers} step with a timeout-minutes`).not.toBeNull();
+      expect(job.indexOf('ci-playwright-deps.sh'), l.where).toBeLessThan(job.indexOf(l.body));
+    }
+  });
+
+  it('let apt fail by itself on a stalled mirror and wait for its lock, never under `timeout`', () => {
+    const script = readFileSync('scripts/ci-playwright-deps.sh', 'utf8');
+    for (const option of [
+      'Acquire::http::Timeout',
+      'Acquire::https::Timeout',
+      'Acquire::Retries',
+      'DPkg::Lock::Timeout',
+    ])
+      expect(script, option).toMatch(new RegExp(`'${option} "\\d+";'`));
+    expect(script).toMatch(/tee \/etc\/apt\/apt\.conf\.d\/[\w-]+/);
+    expect(script).toMatch(/for i in 1 2 3; do\n\s+npx playwright install-deps "\$@" && exit 0/);
+    expect(script).not.toMatch(/^\s*[^#\n]*\btimeout \d/m);
+    execFileSync('bash', ['-n', 'scripts/ci-playwright-deps.sh']);
   });
 });

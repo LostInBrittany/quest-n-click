@@ -4162,10 +4162,10 @@
       ]
     },
     "contribute.ci#known-flakes": {
-      "enHash": "de5d9cef3233fc12221795182f2919d6a3ad2675087d039496bc1e30f55ee31e",
-      "frHash": "7b761d17ad18cbf410b66a090233771fc1c50029d021f10b79f5e05b0f2f758e",
+      "enHash": "71ffcfb53bfddbe97bd1c3d762e86f826dd0b8d2910433c027b9d5eeda8665c5",
+      "frHash": "c9c9a9f690826904cd7f94b421078ee8e7e839a166ac27d03a2686c339789153",
       "reviewers": [
-        { "name": "claude-ci-retry-timeouts", "kind": "ai", "relation": "author", "date": "2026-10-25" }
+        { "name": "claude-ci-retry-apt-lock", "kind": "ai", "relation": "author", "date": "2026-10-25" }
       ]
     },
     "contribute.ci#pages-only": {
