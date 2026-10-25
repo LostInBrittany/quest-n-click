@@ -81,14 +81,17 @@ npm run release -- check 4.5.4
 ```
 
 It says, item by item, whether `package.json` is at the version, the CHANGELOG has its section, a `TODO(release)` is
-left, `npm run wiki -- check` warns, and the quality baseline holds. Merge when every item is ✔.
+left, `npm run wiki -- check` warns, the docs' human gates hold (`wiki -- check --publish --reviews-only`: a claim or a
+pair a person must read, each printed with its command), and the quality baseline holds. The release pull request's
+CI runs it too, with the version its branch names: merge when every item is ✔, and the merge starts the candidate.
 
 <a name="the-chain"></a>
 
 ### The chain
 
 <!-- step: candidate -->
-1. **A candidate on main.** Start it by hand on main for the full SHA:
+1. **A candidate on main.** From 4.5.4 the release pull request's merge starts it, on the merge commit (a push to
+   `main` that moves `package.json`'s version; a dependency bump starts none). For another SHA, start it by hand:
 
    ```sh
    # in the engine repository
@@ -98,8 +101,10 @@ left, `npm run wiki -- check` warns, and the quality baseline holds. Merge when 
    It runs every heavy family on that SHA, the full qualification profile on its own archives and image, the three
    loads and the signing rehearsal. Its gate (`candidate-gate`) writes and attests `candidate-manifest.json`, with
    every file the release will publish (`tools/release/artifacts.mjs`). Read the gate **and** its conclusion. Only a
-   run started by hand (`workflow_dispatch`) on main may be named by a tag; a pull request labelled `full-ci` runs it
-   too, as information only.
+   run started on main, by hand (`workflow_dispatch`) or by a release's merge (`push`), may be named by a tag; a pull
+   request labelled `full-ci` runs it too, as information only. It ends with the documentation's publication check on
+   its own test report, as a warning: a docs problem never holds back the release (the release pull request's CI
+   already ran its human gates, `npm run release -- check`).
 
 <!-- step: tag -->
 2. **A tag that names it.**
@@ -199,10 +204,14 @@ an rc publishes `/docs/<v-rc>/` only. It is never started by `release: published
 - **Immutable releases**: Settings → General → Releases. A published release then keeps its files and its tag.
 - **A ruleset on the release tags**: target `tag`, `refs/tags/v*`, active. It restricts creation, refuses deletion and
   forbids force-push.
-- **The `docs-publish` environment's deployment policy** (from 4.5.3): Settings → Environments → docs-publish →
-  Deployment branches and tags, a **tag** rule `v*` beside `main` and `docs/*`. release.yml runs on the tag's push,
-  so the documentation job it calls runs on the tag's ref; without the rule, that job is refused (the release itself
-  is published; `mode=promote` from main recovers the documentation).
+- **Two environments for the documentation** (from 4.5.4). `docs-publish`: a release's docs, published without a
+  click (the signed tag is the approval): no required reviewer, a **tag** rule `v*` as its only deployment rule.
+  `docs-publish-manual`: the runs by hand (revision, rollback, promote, preview), its required reviewers approve each,
+  rules `main` and `docs/*`. Each holds the secret `WIKI_DEPLOY_KEY` (an environment's secret: its private key
+  is entered again for the second). In this order: create `docs-publish-manual` (reviewers, rules, secret), then merge
+  the change that names it, then strip `docs-publish` to the `v*` rule without reviewers; the other way round, a run by
+  hand would find `docs-publish-manual` missing and GitHub would make it, unprotected. Without the `v*` rule the
+  release's job is refused (the release itself is published; `mode=promote` from main recovers the documentation).
 - `npm run ship -- preflight-stable --candidate=<run>` must then see the first two. **Before the first 4.1.20 tag**, `ship tag`
   refuses to tag while immutable releases are off: release.yml's token cannot read that setting (it needs admin read),
   so `ship tag` checks it with the maintainer's own access.

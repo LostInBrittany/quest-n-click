@@ -85,9 +85,12 @@ jobs:
             fi
             echo "::error::$TAG names no candidate run: tag with ship tag … --candidate=<run id>"; exit 1
           fi
-          # Started by hand on main: a pull request's run or another branch's judges another copy of candidate.yml.
+          # Started on main, by hand or by a release's merge (4.5.4): a pull request's run or another branch's judges
+          # another copy of candidate.yml.
           got=$(gh run view "$run" --json workflowName,status,conclusion,event,headBranch --jq '[.workflowName, .status, .conclusion, .event, .headBranch] | join(" ")')
-          test "$got" = "candidate completed success workflow_dispatch main" || { echo "::error::run $run is \"$got\", not a green candidate started on main"; exit 1; }
+          case "$got" in "candidate completed success workflow_dispatch main"|"candidate completed success push main") ;;
+            *) echo "::error::run $run is \"$got\", not a green candidate started on main"; exit 1 ;;
+          esac
           gh run download "$run" -n candidate-manifest -D .candidate-manifest
           gh run download "$run" -n candidate-release -D .candidate
           # 4.1.18 (plan §7): the four packages the candidate packed and installed outside the repository on three

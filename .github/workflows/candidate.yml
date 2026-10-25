@@ -8,7 +8,7 @@ name: candidate
 # its own and checks only that main's `ci` is green on the SHA and that this run is.
 #
 # Started by hand on main for a SHA (`gh workflow run candidate --ref main -f sha=<full sha>`): the only run a tag may
-# name (ship.mjs and release.yml check `workflow_dispatch` from main, so the workflow file judged is main's). A pull
+# name (ship.mjs and release.yml check a run started on main, by hand or, from 4.5.4, by a release's merge, so the workflow file judged is main's). A pull
 # request runs it too, as information only, when the label `full-ci` is added to it (not on its later pushes). Never on a tag: a tag stands on a candidate already run.
 # "Cold": a new runner, a fresh checkout; the solver keeps nothing between runs and no cache but npm's is restored.
 on:
@@ -22,6 +22,11 @@ on:
   # no run, which every push did until 4.5.3 (an empty run, every job skipped). Remove and add the label again to rerun.
   pull_request:
     types: [labeled]
+  # A release pull request's merge (4.5.4): a push to main that changes package.json, run only when its version moved
+  # (the release-merge job below), so the maintainer never starts the candidate of a release by hand.
+  push:
+    branches: [main]
+    paths: [package.json]
 permissions:
   contents: read
 concurrency:
@@ -29,8 +34,38 @@ concurrency:
   cancel-in-progress: false
 jobs:
   # The SHA every job checks out: the input, the pull request's head, or the branch's head; always written in full.
+  # Whether this run is a release's merge (4.5.4): on a push to main, package.json's version against the commit main was
+  # at before the push (`github.event.before`: a rebase merge or several commits pushed at once put the change further
+  # back than HEAD^1); a dependency bump is no release. It always runs and succeeds, so the gate, which judges every
+  # job, passes a candidate started by hand or by a labelled pull request: there it says release=false at once.
+  release-merge:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    outputs:
+      release: ${{ steps.v.outputs.release }}
+    steps:
+      - if: github.event_name == 'push'
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - id: v
+        env:
+          EVENT: ${{ github.event_name }}
+          BEFORE: ${{ github.event.before }}
+        run: |
+          if [ "$EVENT" != push ]; then echo "release=false" >> "$GITHUB_OUTPUT"; exit 0; fi
+          release=false
+          if echo "$BEFORE" | grep -Eq '^0+$'; then
+            echo "::notice::no commit before this push (a new branch): no release"
+          else
+            git fetch --quiet --depth=1 origin "$BEFORE"
+            now=$(node -p "require('./package.json').version")
+            was=$(git show "$BEFORE":package.json | node -e "let s='';process.stdin.on('data',d=>s+=d).on('end',()=>console.log(JSON.parse(s).version))")
+            [ "$now" != "$was" ] && release=true
+            echo "package.json: $was → $now (release: $release)"
+          fi
+          echo "release=$release" >> "$GITHUB_OUTPUT"
   target:
-    if: github.event_name == 'workflow_dispatch' || github.event.label.name == 'full-ci'
+    needs: release-merge
+    if: github.event_name == 'workflow_dispatch' || github.event.label.name == 'full-ci' || needs.release-merge.outputs.release == 'true'
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     outputs:
@@ -88,6 +123,13 @@ jobs:
           include-hidden-files: true
           if-no-files-found: error
           overwrite: true
+      # The documentation's publication check on this very report (4.5.4): what docs-publish will check after the tag,
+      # said now. A warning, never a failure: a docs problem never holds back the release nor npm; it is fixed by a
+      # docs revision. Its human gates already ran on the release pull request (npm run release -- check).
+      - name: The docs of this candidate
+        run: |
+          npm run -s wiki -- check --publish --product-ref ${{ needs.target.outputs.sha }} --state candidate --candidate ${{ github.run_id }} --test-report .cache/test-report/vitest.json \
+            || echo "::warning title=docs::the documentation's publication check fails on this candidate: docs-publish will refuse it after the tag (fix with a docs revision)"
       # The site as the release publishes it (4.1.20 PR 4, plan §9.2): the very build release-check made, its archive,
       # its assets manifest and the SHA-256 of each file it serves (the surfaces of the people's passes read them).
       # release.yml publishes these files and builds no site of its own to publish.
@@ -631,7 +673,7 @@ jobs:
       # 4.1.17 store).
       - shell: bash
         env:
-          PROFILE: ${{ github.event_name == 'workflow_dispatch' && 'full' || 'short' }}
+          PROFILE: ${{ github.event_name != 'pull_request' && 'full' || 'short' }}
         run: npm run ops:qualify -- --tarballs=candidate-pack --image-from=candidate-image --candidate-run=${{ github.run_id }} $([ "$PROFILE" = short ] && echo --short) --out=deployment-smoke
       - if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
@@ -767,7 +809,7 @@ jobs:
         timeout-minutes: 15
   # The terminal gate: every job above `success` (a skipped or cancelled job is red), then the manifest of this run.
   candidate-gate:
-    needs: [target, release-core, heavy, bridge-load-sqlite, bridge-load-postgres, cross-runtime, remix-proof, worker-container, mutation-plan, mutation, mutation-merge, pack, docs-archive, image, external-consumer, connector-archive-e2e, deployment-smoke, backup-memory, signing-rehearsal, readme-quickstart, studio-install-smoke]
+    needs: [release-merge, target, release-core, heavy, bridge-load-sqlite, bridge-load-postgres, cross-runtime, remix-proof, worker-container, mutation-plan, mutation, mutation-merge, pack, docs-archive, image, external-consumer, connector-archive-e2e, deployment-smoke, backup-memory, signing-rehearsal, readme-quickstart, studio-install-smoke]
     # A pull request without `full-ci` skips `target`: then there is no candidate to judge, and no red check either.
     if: always() && needs.target.result != 'skipped'
     # The manifest's provenance attestation (4.1.19, plan §6.5): only this job may sign, and only the manifest.
@@ -799,7 +841,7 @@ jobs:
       # The qualification a tag may stand on (4.1.20, plan §8.1): the full profile, of this SHA, for this run, every step
       # passed, on this candidate's archives and image. A pull request's run is information only and is not judged here.
       - name: The full qualification of this candidate
-        if: github.event_name == 'workflow_dispatch'
+        if: github.event_name != 'pull_request'
         run: node tools/release/candidate.mjs qualification artifacts/deployment-smoke/ops-qualify.json --sha=${{ needs.target.outputs.sha }} --run=${{ github.run_id }} --pack=artifacts/candidate-pack --image=artifacts/candidate-image
       # The release's exact baseline (4.1.19, plan §12.2): read from this run's artifacts and jobs, nothing measured
       # again; under candidate-release/baseline it enters the manifest, is attested with it and published by release.yml.
@@ -880,7 +922,7 @@ jobs:
       # Who wrote the manifest (4.1.19, plan §6.5): signed by this run, after every job succeeded. A Field Kit bundle
       # carries the attestation, so anyone can check it offline (npm run field:verify-bundle).
       # A pull request's run (full-ci) is information only: never attested, so no bundle can stand on it.
-      - if: github.event_name == 'workflow_dispatch'
+      - if: github.event_name != 'pull_request'
         uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
         with:
           subject-path: candidate-manifest.json

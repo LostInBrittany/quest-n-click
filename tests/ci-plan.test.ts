@@ -360,6 +360,16 @@ describe('the workflow, lot 0 details', () => {
   });
 });
 
+describe("a release pull request's check (4.5.4)", () => {
+  it('runs npm run release -- check on a release/* branch: the docs’ human gates fail the pull request, not the release', () => {
+    const yml = readFileSync('.github/workflows/ci.yml', 'utf8');
+    const check = yml.slice(yml.indexOf('\n  check:\n'), yml.indexOf('\n  unit:\n'));
+    expect(check).toMatch(
+      /- name: A release pull request is ready to merge\n {8}if: startsWith\(github\.head_ref, 'release\/'\)\n {8}env:\n {10}BRANCH: \$\{\{ github\.head_ref \}\}\n {8}run: npm run release -- check "\$\{BRANCH#release\/\}"\n/,
+    );
+  });
+});
+
 describe('the unit suite in shards (4.5.4)', () => {
   const scripts = JSON.parse(readFileSync('package.json', 'utf8')).scripts as Record<string, string>;
   it('test:unit is test:coverage without the instrumentation: the same files', () => {

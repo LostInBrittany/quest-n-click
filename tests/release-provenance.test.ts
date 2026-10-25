@@ -77,6 +77,9 @@ describe('provenance', () => {
     expect(candidateRunProblem(ok, '1')).toBeNull();
     expect(candidateRunProblem({ ...ok, workflowName: 'ci' }, '1')).toMatch(/not a candidate run/);
     expect(candidateRunProblem({ ...ok, event: 'pull_request' }, '1')).toMatch(/started by hand on main/);
+    // 4.5.4: the candidate a release pull request's merge starts on main is one too; on another branch it is not.
+    expect(candidateRunProblem({ ...ok, event: 'push' }, '1')).toBeNull();
+    expect(candidateRunProblem({ ...ok, event: 'push', headBranch: 'feature/x' }, '1')).toMatch(/on main/);
     expect(candidateRunProblem({ ...ok, headBranch: 'feature' }, '1')).toMatch(/started by hand on main/);
     expect(candidateRunProblem({ ...ok, conclusion: 'failure' }, '1')).toMatch(/green candidate/);
   });

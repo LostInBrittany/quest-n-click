@@ -279,6 +279,21 @@ export async function checkRelease(version: string, deps: CheckDeps) {
   const pkg = JSON.parse(deps.read('package.json') || '{}') as { version?: string };
   const todos = todoMarkers(deps.todoFiles().map((path) => ({ path, text: deps.read(path) })));
   const wiki = deps.run('npm', ['run', '-s', 'wiki', '--', 'check']);
+  const gates = deps.run('npm', [
+    'run',
+    '-s',
+    'wiki',
+    '--',
+    'check',
+    '--publish',
+    '--product-ref',
+    'HEAD',
+    '--doc-ref',
+    'HEAD',
+    '--state',
+    'candidate',
+    '--reviews-only',
+  ]);
   return [
     { what: `package.json is at ${version}`, ok: pkg.version === version, detail: `it is at ${pkg.version}` },
     {
@@ -291,6 +306,17 @@ export async function checkRelease(version: string, deps: CheckDeps) {
       what: 'npm run wiki -- check: no warning',
       ok: wiki.code === 0 && /\b0 warning\(s\)/.test(wiki.out),
       detail: 'see npm run wiki -- check',
+    },
+    {
+      // What docs-publish would refuse but "executed" (the candidate's report checks it): a claim or a pair a person
+      // must read fails the release pull request, never the release (4.5.4).
+      what: "the docs' human gates (wiki -- check --publish --reviews-only)",
+      ok: gates.code === 0,
+      // What to do, as the wiki says it: its ✖ lines (each claim or pair, with the command).
+      detail: gates.out
+        .split('\n')
+        .filter((l) => l.startsWith('✖'))
+        .join('\n'),
     },
     {
       what: 'npm run quality:baseline -- --check',
@@ -526,7 +552,8 @@ function prepare(version: string, opts: { name: string; date: string; pr: boolea
 
 async function check(version: string) {
   const items = await checkRelease(version, { read, todoFiles: () => todoFiles(version), run: capture });
-  for (const i of items) console.log(`${i.ok ? '✔' : '✖'}  ${i.what}${i.ok ? '' : `: ${i.detail}`}`);
+  for (const i of items)
+    console.log(`${i.ok ? '✔' : '✖'}  ${i.what}${i.ok ? '' : `:\n${i.detail.replace(/^/gm, '     ')}`}`);
   process.exit(items.every((i) => i.ok) ? 0 : 1);
 }
 

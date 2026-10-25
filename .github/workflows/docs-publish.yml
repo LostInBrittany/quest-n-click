@@ -85,10 +85,11 @@ jobs:
     concurrency:
       group: docs-publish
       cancel-in-progress: false
-    # The job that holds the wiki's deploy key and writes: the maintainer gives this environment its required
-    # reviewers and its branch policy (main, docs/* and, since 4.5.3, the tags v*: release.yml runs on a tag's push,
-    # #291), and may keep WIKI_DEPLOY_KEY there.
-    environment: docs-publish
+    # The job that holds the wiki's deploy key and writes, under one of two environments (4.5.4): a release's call
+    # (release.yml, after the tag's checks: the signed tag is the approval) runs under `docs-publish`, no reviewer,
+    # its branch policy the tags v*; a run by hand (revision, rollback, promote, preview) under `docs-publish-manual`,
+    # whose required reviewers approve it, its branch policy main and docs/*. Each holds WIKI_DEPLOY_KEY.
+    environment: ${{ (inputs.archive-sha256 != '' && inputs.sha != '') && 'docs-publish' || 'docs-publish-manual' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     env:
