@@ -11252,6 +11252,7 @@
         "PROOF_CACHE_DIR",
         "PWD",
         "PYTHON",
+        "QNC_RELEASE_CLOCK",
         "QUALIFY_APP",
         "QUALIFY_BUILD",
         "QUALIFY_DATA",
