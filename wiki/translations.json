@@ -8247,11 +8247,10 @@
       ]
     },
     "create.music#workflow": {
-      "enHash": "f74df9ffb10af06cf7fe0cd4ff2ff478b66156b0a93198e73d6d8b31eac3fbfc",
-      "frHash": "634bde9c1ae5999825bc41614da2f078daf2d07593ff809dcec8574fed7a3776",
+      "enHash": "17608a50bf0082fcd66442e154734ece9d4b52c5d40b302559a8b4226598896e",
+      "frHash": "de0753b7a4686ce591d9b89d7fe2fb52adc8b93908391f140ded115ecc286ede",
       "reviewers": [
-        { "name": "claude-4.5-writers", "kind": "ai", "relation": "author", "date": "2026-10-23" },
-        { "name": "wanoo", "kind": "human", "relation": "independent", "date": "2026-10-24" }
+        { "name": "claude-opus-5.5", "kind": "ai", "relation": "author", "date": "2026-10-25" }
       ]
     },
     "create.other-hosts#_lead": {
