@@ -133,7 +133,7 @@ Les autres sous-commandes : `analyze <fichier.mid> [--dump N] [--drums N]`, `tra
    | NOISE | noise | charleys, charley ouvert, crash |
 
    Famille GM → palette : cuivres → `lead_brass` ; cor / trombone / tuba → `horn_section` ; cordes / nappes →
-   `bright_strings` ou `soft_pad` ; piano → `e_piano` ; mailloches / cloches → `bell` ; orgue → `organ` ; guitare
+   `bright_strings` ou `soft_pad` ; piano → `e_piano` ; mailloches / cloches → `bell` ; orgue → `organ` (un orgue à tirettes doux, pour les accords) ou `church_organ` (un grand orgue à tuyaux qui porte une mélodie) ; guitare
    saturée → `power_guitar` (lui donner l’octave basse : elle ajoute l’octave et la quinte) ; guitare claire →
    `muted_pluck` ; basse → `slap_bass` (chargée) ou `finger_bass` (tenue) ; lead synthé → `synth_lead` ; coups
    d’orchestre → `orch_hit`.

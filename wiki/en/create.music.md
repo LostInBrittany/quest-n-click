@@ -128,7 +128,7 @@ The other subcommands: `analyze <file.mid> [--dump N] [--drums N]`, `transcribe 
    | NOISE | noise | hats, open hat, crash |
 
    GM family → palette: brass → `lead_brass`; horn / trombone / tuba → `horn_section`; strings / pads →
-   `bright_strings` or `soft_pad`; piano → `e_piano`; mallets / bells → `bell`; organ → `organ`; distorted guitar →
+   `bright_strings` or `soft_pad`; piano → `e_piano`; mallets / bells → `bell`; organ → `organ` (a soft drawbar, for chords) or `church_organ` (a full pipe organ that carries a lead); distorted guitar →
    `power_guitar` (feed it the low octave: it adds the octave and the fifth); clean guitar → `muted_pluck`; bass →
    `slap_bass` (busy) or `finger_bass` (sustained); synth lead → `synth_lead`; orchestra hits → `orch_hit`.
 
