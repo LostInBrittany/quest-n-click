@@ -160,10 +160,12 @@ Commitez le dossier `art/` du jeu avant de redécouper une planche : l'outil éc
 grille 3 × 2), `tools/talk-apply.py` recolle les bouches générées sur le sprite, et `tools/talk-normalize.py` accorde une
 rangée d'une planche de parole au sprite validé. Les deux derniers importent OpenCV (`cv2`).
 
-> [!LIMIT id=talk-tools-repository-layout]
-> `talk-kit.py` et `talk-apply.py` lisent et écrivent `games/<GAME>/…` depuis le dossier courant
-> (`games/<id>/talk-kits.json`, `games/<id>/private/talk_kits/`) : ils ne marchent que dans l'organisation du dépôt du
-> moteur, pas dans un projet créé. `talk-normalize.py` prend tous ses chemins en arguments et marche partout.
+`talk-kit.py` et `talk-apply.py` lisent `<game>/talk-kits.json` et écrivent `<game>/private/talk_kits/` et
+`<game>/art/talk_<character>/`, où `<game>` est le dossier du jeu, trouvé comme les autres outils le trouvent :
+`$GAME_DIR` s'il est défini, `game/` dans un projet créé, `games/<id>/` dans le dépôt du moteur. Dans un projet
+créé, lancez-les avec `npx quest-n-click talk-kit`, `talk-apply` et `talk-normalize` (mêmes arguments), et ajoutez
+`game/private/` au `.gitignore` du projet : les kits sont des fichiers de travail. `talk-normalize.py` prend tous ses
+chemins en arguments.
 
 <a name="references"></a>
 

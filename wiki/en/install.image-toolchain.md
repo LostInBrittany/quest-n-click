@@ -159,10 +159,11 @@ rebuilt from the sources by `npm run assets` at any time.
 grid), `tools/talk-apply.py` pastes the generated mouths back onto the sprite, and `tools/talk-normalize.py` makes one
 row of a talking sheet match the validated sprite. The last two import OpenCV (`cv2`).
 
-> [!LIMIT id=talk-tools-repository-layout]
-> `talk-kit.py` and `talk-apply.py` read and write `games/<GAME>/…` from the current folder (`games/<id>/talk-kits.json`,
-> `games/<id>/private/talk_kits/`): they work in the engine repository's layout only, not in a created project.
-> `talk-normalize.py` takes every path as an argument and works anywhere.
+`talk-kit.py` and `talk-apply.py` read `<game>/talk-kits.json` and write `<game>/private/talk_kits/` and
+`<game>/art/talk_<character>/`, where `<game>` is the game's folder, found as the other tools find it: `$GAME_DIR` when
+set, `game/` in a created project, `games/<id>/` in the engine repository. In a created project, run them as
+`npx quest-n-click talk-kit`, `talk-apply` and `talk-normalize` (same arguments), and add `game/private/` to the
+project's `.gitignore`: the kits are working files. `talk-normalize.py` takes every path as an argument.
 
 <a name="references"></a>
 

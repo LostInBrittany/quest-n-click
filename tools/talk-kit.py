@@ -3,15 +3,23 @@ For each character and pose: the VALIDATED sprite's head, enlarged and copied 6 
 (1536 x 1024, background #2B2E45). The generator should only change the mouth (and the eyes, for a blink) in cells 2 to 6.
 A .json file keeps the head's exact position, to paste the mouth back later, pixel for pixel.
 
-python3 tools/talk-kit.py            -> games/<id>/private/talk_kits/<char>_<pose>.png + .json
+python3 tools/talk-kit.py [<char> ...]      -> <game>/private/talk_kits/<char>_<pose>.png + .json
+npx quest-n-click talk-kit [<char> ...]    (the same, in a created project: <game> is game/)
+
+<game> is the game's folder (tools/game_folder.py): games/<id>/ in the engine repository, game/ in a project, $GAME_DIR.
 """
 import os, sys, json, numpy as np
 from PIL import Image
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from game_folder import game_dir
 BG = (43, 46, 69)
-# Characters and poses to prepare: read from games/<id>/talk-kits.json, e.g. { "grandpa": { "profil": "grandpa/r3c3", "face": "grandpa/r3c1" } }
-GAME = os.environ.get('GAME') or json.load(open('package.json')).get('config', {}).get('game', 'demo')
-POSES = json.load(open(f'games/{GAME}/talk-kits.json'))
-X, OUT = f'games/{GAME}/art', f'games/{GAME}/private/talk_kits'
+# Characters and poses to prepare: read from <game>/talk-kits.json, e.g. { "grandpa": { "profil": "grandpa/r3c3", "face": "grandpa/r3c1" } }
+GAME_DIR = game_dir()
+KITS = os.path.join(GAME_DIR, 'talk-kits.json')
+if not os.path.isfile(KITS):
+    sys.exit(f'talk-kit: no {KITS} (characters and poses, e.g. {{ "grandpa": {{ "face": "grandpa/r3c1" }} }})')
+POSES = json.load(open(KITS))
+X, OUT = os.path.join(GAME_DIR, 'art'), os.path.join(GAME_DIR, 'private', 'talk_kits')
 # Only some characters: python3 tools/talk-kit.py grandpa seller
 ONLY = set(sys.argv[1:])
 CELL, HEAD = 512, 440          # grid cell size, max size of the enlarged head
@@ -36,4 +44,4 @@ for char, poses in POSES.items():
         sheet.save(f'{OUT}/{name}.png')
         json.dump({'sprite': sp, 'box': box, 'scale': s, 'offset': [ox, oy], 'cell': CELL, 'size': list(big.size)},
                   open(f'{OUT}/{name}.json', 'w'))
-        print(name)
+        print(f'{OUT}/{name}.png')
