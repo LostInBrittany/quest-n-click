@@ -4192,10 +4192,10 @@
       ]
     },
     "contribute.ci#tiers": {
-      "enHash": "c9f4c3075a235ab835e8cca887a4d23400b7d82e59ce892ac6644cc341bb2f29",
-      "frHash": "b8983e9ffd51d881d034967ca44c2be2c4b3a128100cf660e2f006cc5173c7f1",
+      "enHash": "857ae9ce2547b35c2659a3a4c6ab98c3e0145723a490ab0f9128b86da14e2494",
+      "frHash": "22390323351677600b4b7db6b82ce876d366b68ce9d4f1216a852715b8e9bc8c",
       "reviewers": [
-        { "name": "claude-452-org", "kind": "ai", "relation": "author", "date": "2026-10-24" }
+        { "name": "claude-454-ci", "kind": "ai", "relation": "author", "date": "2026-10-25" }
       ]
     },
     "contribute.ci#workflows": {
@@ -5435,11 +5435,10 @@
       ]
     },
     "contribute.which-tests#suites": {
-      "enHash": "0affb1f34266736e4327a2ec4f238f5fbe1ada4d97a96113828519db0570474d",
-      "frHash": "3ddbaaa07b4dcc817f06440c4f445f19cdc7f0defb9d09d7620b02bb9933c8ba",
+      "enHash": "0b77e3e843ed220d7543031fcbff5aeb96d8a97aea0255e925166409619ee284",
+      "frHash": "bd040fe29b7cbd4debc23f7efb693ddb11c4352443b10c9e057c39c64655a9a5",
       "reviewers": [
-        { "name": "claude-4.5-writers", "kind": "ai", "relation": "author", "date": "2026-10-23" },
-        { "name": "wanoo", "kind": "human", "relation": "independent", "date": "2026-10-24" }
+        { "name": "claude-454-ci", "kind": "ai", "relation": "author", "date": "2026-10-25" }
       ]
     },
     "contribute.writing-docs#_lead": {

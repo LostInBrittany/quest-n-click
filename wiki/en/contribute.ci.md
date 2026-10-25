@@ -33,8 +33,11 @@ pull request runs is [`tools/ci-plan.ts`](../../tools/ci-plan.ts). Which test su
   bundle, `verify:dist`, the spoiler check, the asset audit), `weight -- --release`, `quality:baseline -- --check
   --dist`, `prove:game`, `audit:deps` when `package.json` or the lockfile moved, then the two-entry build (game and
   Studio demo) that the e2e rows play, kept as the `dist` artifact.
-- `coverage`: the unit suite once, under V8 coverage (`test:coverage`), then the coverage ratchet: a warning on a pull
-  request, a failure on `main` and on a tag ([The coverage ratchet](contribute.coverage-ratchet.md)).
+- `coverage`: the unit suite once, on every change. When the change touches product code (the plan's `coverage` gate:
+  the engine, a game, the Bridge, the Studio and its server, the CLI and packages, the golden saves, the authoring
+  tools), under V8 coverage (`test:coverage`), then the coverage ratchet: a warning on a pull request, a failure on
+  `main` and on a tag ([The coverage ratchet](contribute.coverage-ratchet.md)). Otherwise (the docs, a workflow, the
+  release and wiki tools, tests alone) the same suite without coverage (`test:node`), a few minutes less (4.5.4).
 
 **The second tier, what the change can break.** Each job needs `plan` (most also `check`) and reads its gate in the
 plan: it runs its real work, or one step that says "not needed by the plan" and succeeds.
@@ -58,7 +61,8 @@ plan: it runs its real work, or one step that says "not needed by the plan" and 
 the candidate and the release.
 
 **`pr-gate`** reads every job's result: each must be `success`; the mutation jobs may be `skipped` where they do not
-run. It is the one check that sums a pull request up.
+run; `pwa-firefox`, flaky until #257 is fixed, is said as a warning and does not fail it (4.5.4). It is the one check
+that sums a pull request up.
 
 No job deploys GitHub Pages any more (4.5.2, see [the site](#pages-only)).
 

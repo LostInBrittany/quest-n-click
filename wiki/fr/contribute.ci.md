@@ -34,8 +34,12 @@ tourne dans quel job, c'est [Quels tests tournent quand](contribute.which-tests.
   `weight -- --release`, `quality:baseline -- --check --dist`, `prove:game`, `audit:deps` quand `package.json` ou le
   fichier de verrouillage a bougé, puis le build à deux entrées (jeu et démo du Studio) que jouent les lignes e2e,
   gardé comme artefact `dist`.
-- `coverage` : la suite unitaire une fois, sous couverture V8 (`test:coverage`), puis le cliquet de couverture : un
-  avertissement sur une pull request, un échec sur `main` et sur un tag ([Le cliquet de couverture](contribute.coverage-ratchet.md)).
+- `coverage` : la suite unitaire une fois, à chaque changement. Quand le changement touche le code du produit (la
+  barrière `coverage` du plan : le moteur, un jeu, le Bridge, le Studio et son serveur, la CLI et les paquets, les
+  sauvegardes de référence, les outils d'écriture), sous couverture V8 (`test:coverage`), puis le cliquet de
+  couverture : un avertissement sur une pull request, un échec sur `main` et sur un tag
+  ([Le cliquet de couverture](contribute.coverage-ratchet.md)). Sinon (la doc, un workflow, les outils de release et du
+  wiki, des tests seuls), la même suite sans couverture (`test:node`), quelques minutes de moins (4.5.4).
 
 **Le deuxième palier, ce que le changement peut casser.** Chaque job a besoin de `plan` (la plupart aussi de `check`)
 et lit sa barrière dans le plan : il fait son vrai travail, ou une seule étape qui dit « not needed by the plan » et
@@ -60,7 +64,8 @@ réussit.
 `full-ci`, la nightly, le candidat et la release.
 
 **`pr-gate`** lit le résultat de chaque job : chacun doit être `success` ; les jobs de mutation peuvent être `skipped`
-là où ils ne tournent pas. C'est la seule vérification qui résume une pull request.
+là où ils ne tournent pas ; `pwa-firefox`, instable jusqu'à la correction de #257, est signalé par un avertissement et
+ne le fait pas échouer (4.5.4). C'est la seule vérification qui résume une pull request.
 
 Plus aucun job ne déploie GitHub Pages (4.5.2, voir [le site](#pages-only)).
 
