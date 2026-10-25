@@ -9,8 +9,14 @@ import { describe, expect, it } from 'vitest';
 import {
   changelogIntro,
   checkRelease,
+  gatesStop,
+  humanGates,
+  isPrepared,
   PREPARE_STEPS,
+  preparedSubject,
   prepareRefusals,
+  RESUME_STEPS,
+  resumeRefusals,
   pushTarget,
   wayBack,
   currentReleaseLine,
@@ -196,8 +202,12 @@ describe('the command', () => {
       'readme',
       'quality baseline',
       'commit',
+      'human gates',
       'pull request',
     ]);
+  });
+  it('resumes a prepared branch with the human gates and the pull request only', () => {
+    expect(RESUME_STEPS).toEqual(['human gates', 'pull request']);
   });
   it('checks a prepared release: its section, no TODO(release) left, the wiki and the baseline', async () => {
     const files: Record<string, string> = {
@@ -236,6 +246,69 @@ describe('the command', () => {
     expect(gates.detail).not.toContain('claim x: referenced');
     const none = await checkRelease('4.5.5', deps);
     expect(none.slice(0, 2).map((i) => i.ok)).toEqual([false, false]);
+  });
+});
+
+describe('the human gates before the push (4.5.5)', () => {
+  const CLAIM =
+    '✖  play.saves: the claim c is self-checked by the author (AI), not reviewed: npm run wiki -- review-claim c --by <name> --kind human --relation independent';
+  it('are the wiki check’s ✖ lines, each with its command, nothing else', () => {
+    const run = (_cmd: string, args: string[]) => {
+      expect(args).toContain('--reviews-only');
+      return { code: 1, out: `·  claim x: referenced\n${CLAIM}\n✖  wiki (publication level): 1 error(s)\n` };
+    };
+    expect(humanGates(run)).toEqual({ ok: false, detail: `${CLAIM}\n✖  wiki (publication level): 1 error(s)` });
+    expect(humanGates(() => ({ code: 0, out: '✔  wiki (publication level): 0 error(s)' }))).toEqual({
+      ok: true,
+      detail: '',
+    });
+  });
+  it('stop prepare with what to review and the same command to run again, a person typing each review', () => {
+    const msg = gatesStop({ version: '4.5.5', name: 'Once', branch: 'release/4.5.5', detail: CLAIM, pr: true });
+    expect(msg).toContain(CLAIM);
+    expect(msg).toMatch(/nothing (was|is) pushed/i);
+    expect(msg).toContain('npm run release -- prepare 4.5.5 --name="Once"');
+    expect(msg).not.toContain('--no-pr');
+    expect(msg).toContain('release/4.5.5');
+    // The tool names the command; it never fills a reviewer in.
+    expect(msg).not.toMatch(/--by (?!<name>)\S/);
+    expect(gatesStop({ version: '4.5.5', name: 'Once', branch: 'release/4.5.5', detail: CLAIM, pr: false })).toContain(
+      'npm run release -- prepare 4.5.5 --name="Once" --no-pr',
+    );
+  });
+});
+
+describe('a prepare run again on its branch (4.5.5)', () => {
+  const ok = {
+    current: '4.5.5',
+    version: '4.5.5',
+    branch: 'release/4.5.5',
+    dirty: false,
+    prepared: true,
+    shallow: false,
+    pr: undefined as string | undefined,
+  };
+  it('is a resume only on release/<version>: elsewhere the first run’s refusals apply', () => {
+    expect(resumeRefusals({ ...ok, branch: 'main' })).toBeUndefined();
+    expect(resumeRefusals({ ...ok, branch: 'release/4.5.4' })).toBeUndefined();
+    expect(resumeRefusals({ ...ok, branch: 'feature/x' })).toBeUndefined();
+  });
+  it('resumes a clean branch at the version that holds the prepared commit', () => {
+    expect(resumeRefusals(ok)).toEqual([]);
+  });
+  it('refuses a branch it did not prepare, a version not bumped, uncommitted reviews, no place to push', () => {
+    expect(resumeRefusals({ ...ok, prepared: false })).toEqual([expect.stringMatching(/prepared commit/)]);
+    expect(resumeRefusals({ ...ok, current: '4.5.4' })).toEqual([expect.stringMatching(/package\.json is at 4\.5\.4/)]);
+    expect(resumeRefusals({ ...ok, dirty: true })).toEqual([expect.stringMatching(/uncommitted.*commit/)]);
+    expect(resumeRefusals({ ...ok, shallow: true })).toEqual([expect.stringMatching(/unshallow/)]);
+    expect(resumeRefusals({ ...ok, pr: 'gh is not signed in' })).toEqual(['gh is not signed in']);
+  });
+  it('knows its prepared commit among the branch’s commits by its subject', () => {
+    expect(preparedSubject('4.5.5')).toBe('4.5.5: the release (prepared by npm run release -- prepare)');
+    expect(isPrepared(`4.5.5: reviews\n${preparedSubject('4.5.5')}\n`, '4.5.5')).toBe(true);
+    expect(isPrepared(preparedSubject('4.5.4'), '4.5.5')).toBe(false);
+    expect(isPrepared(`x ${preparedSubject('4.5.5')}`, '4.5.5')).toBe(false);
+    expect(isPrepared('', '4.5.5')).toBe(false);
   });
 });
 
@@ -303,55 +376,59 @@ describe('when a step fails', () => {
 });
 
 describe('the command on a clone (4.5.4)', () => {
-  it('refuses a dirty main and leaves the clone exactly as it was: no branch, no file written', () => {
+  /** A clone of this checkout on main with the tools under test committed, `prepare` run in it with `args`. */
+  function onClone(setup: (git: (...a: string[]) => string, repo: string) => void, args: string[]) {
     const dir = mkdtempSync(join(tmpdir(), 'release-prepare-'));
     try {
       const repo = join(dir, 'repo');
-      const git = (...a: string[]) => execFileSync('git', ['-C', repo, ...a], { encoding: 'utf8' }).trim();
+      const git = (...a: string[]) =>
+        execFileSync(
+          'git',
+          ['-C', repo, '-c', 'user.email=t@t', '-c', 'user.name=t', '-c', 'commit.gpgsign=false', ...a],
+          {
+            encoding: 'utf8',
+          },
+        ).trim();
       execFileSync('git', ['clone', '-q', '--local', resolve('.'), repo]);
       git('checkout', '-q', '-B', 'main');
       // The clone holds the committed tools; the ones under test are copied over and committed.
       for (const f of ['tools/release/prepare.ts', 'tools/changes.ts', 'tools/release/lib.mjs'])
         cpSync(resolve(f), join(repo, f));
-      git(
-        '-c',
-        'user.email=t@t',
-        '-c',
-        'user.name=t',
-        '-c',
-        'commit.gpgsign=false',
-        'commit',
-        '-q',
-        '-am',
-        'tools',
-        '--allow-empty',
-      );
+      git('commit', '-q', '-am', 'tools', '--allow-empty');
       // A junction, which Windows makes without rights (a symlink elsewhere).
       symlinkSync(resolve('node_modules'), join(repo, 'node_modules'), 'junction');
-      writeFileSync(join(repo, 'stray.txt'), 'x');
-      const before = git('status', '--porcelain');
+      setup(git, repo);
+      const before = { status: git('status', '--porcelain'), head: git('rev-parse', 'HEAD') };
       const r = spawnSync(
         process.execPath,
-        [
-          resolve('node_modules/tsx/dist/cli.mjs'),
-          'tools/release/prepare.ts',
-          'prepare',
-          '4.5.4',
-          '--name=T',
-          '--no-pr',
-        ],
-        {
-          cwd: repo,
-          encoding: 'utf8',
-        },
+        [resolve('node_modules/tsx/dist/cli.mjs'), 'tools/release/prepare.ts', 'prepare', ...args],
+        { cwd: repo, encoding: 'utf8' },
       );
-      expect(r.status).toBe(1);
-      expect(r.stderr).toMatch(/uncommitted/);
-      expect(git('status', '--porcelain')).toBe(before);
-      expect(git('rev-parse', '--abbrev-ref', 'HEAD')).toBe('main');
-      expect(git('branch', '--list', 'release/*')).toBe('');
+      return {
+        r,
+        before,
+        after: { status: git('status', '--porcelain'), head: git('rev-parse', 'HEAD') },
+        branch: git('rev-parse', '--abbrev-ref', 'HEAD'),
+        releases: git('branch', '--list', 'release/*'),
+      };
     } finally {
       rmSync(dir, { recursive: true, force: true });
     }
+  }
+  it('refuses a dirty main and leaves the clone exactly as it was: no branch, no file written', () => {
+    const run = onClone((_git, repo) => writeFileSync(join(repo, 'stray.txt'), 'x'), ['4.5.4', '--name=T', '--no-pr']);
+    expect(run.r.status).toBe(1);
+    expect(run.r.stderr).toMatch(/uncommitted/);
+    expect(run.after).toEqual(run.before);
+    expect(run.branch).toBe('main');
+    expect(run.releases).toBe('');
+  }, 60_000);
+  it('run again on a release branch it did not prepare, refuses to resume and changes nothing (4.5.5)', () => {
+    const run = onClone((git) => git('switch', '-q', '-c', 'release/4.5.4'), ['4.5.4', '--name=T', '--no-pr']);
+    expect(run.r.status).toBe(1);
+    expect(run.r.stderr).toMatch(/release\/4\.5\.4 holds no prepared commit/);
+    expect(run.r.stdout).not.toMatch(/resuming/);
+    expect(run.after).toEqual(run.before);
+    expect(run.branch).toBe('release/4.5.4');
   }, 60_000);
 });

@@ -66,11 +66,22 @@ branch `release/<version>`, it runs what a release branch did by hand, in this o
 (`npm run changes -- --assemble`, which makes its own `## Unreleased` and folds a `.log.md` alone), the LOG's release
 entry, the upgrade notes' section (en and fr), the transition pages, the golden save (listed in
 `tests/fixtures/saves/index.json`), the reference run, the passes sheet and `passIssues`, the README's current-release
-line (the previous summary kept under "Over …"), the quality baseline; one commit, then the pull request.
+line (the previous summary kept under "Over …"), the quality baseline; one commit, the docs' human gates, then the pull
+request.
 
 If a step fails, it stops and says what to do: before the commit, nothing was pushed (`git reset --hard`, `git clean`,
 back to `main`, the branch deleted: it prints the commands); after it, it prints the `git push` and `gh pr create` to
 run by hand.
+
+Before it pushes (from 4.5.5), it runs the docs' human gates that the release pull request's CI runs
+(`wiki -- check --publish --reviews-only`). When a claim or a pair still needs a person, it stops there and exits 1:
+nothing pushed, no pull request, the branch committed in your checkout, each item printed with its command. A person
+reads each one and types the command (`prepare` never records a review), commits, then runs the same
+`npm run release -- prepare <version> --name="…"` again. On `release/<version>`, with `package.json` at the version,
+the prepared commit on the branch and nothing uncommitted, it resumes at the gates: when they hold, it pushes and opens
+the pull request, so its CI runs once. Any other state of that branch is refused, with how to start again from `main`.
+To see them earlier, run `npm run release -- check <version>` on `main`: its docs' human gates item lists the claims and
+pairs still to review (the items about the release itself fail there, as they should before `prepare`).
 
 It writes no prose: each place a sentence is needed carries `TODO(release)` (the CHANGELOG's intro, the LOG's release
 entry, the upgrade notes, the README, the passes sheet). Write them on the branch, record the translation pairs that

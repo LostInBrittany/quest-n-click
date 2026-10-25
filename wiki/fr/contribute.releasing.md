@@ -70,11 +70,22 @@ CHANGELOG et les entrées du LOG depuis les fragments (`npm run changes -- --ass
 replie un `.log.md` seul), l'entrée de release du LOG, la section des notes de mise à jour (en et fr), les pages de
 transition, la sauvegarde de référence (listée dans `tests/fixtures/saves/index.json`), le run de référence, la fiche
 des passes et `passIssues`, la ligne de release actuelle du README (le résumé précédent gardé sous « Sur la … »), la
-ligne de base de qualité ; un commit, puis la pull request.
+ligne de base de qualité ; un commit, les relectures humaines des docs, puis la pull request.
 
 Si une étape échoue, elle s'arrête et dit quoi faire : avant le commit, rien n'a été poussé (`git reset --hard`,
 `git clean`, retour sur `main`, la branche supprimée : elle affiche les commandes) ; après, elle affiche le
 `git push` et le `gh pr create` à lancer à la main.
+
+Avant de pousser (depuis la 4.5.5), elle lance les relectures humaines des docs que lance la CI de la pull request de
+release (`wiki -- check --publish --reviews-only`). Quand une claim ou une paire attend encore une personne, elle
+s'arrête là et sort avec 1 : rien de poussé, pas de pull request, la branche commitée dans votre checkout, chaque point
+affiché avec sa commande. Une personne lit chacun et tape la commande (`prepare` n'enregistre jamais une relecture),
+commite, puis relance la même `npm run release -- prepare <version> --name="…"`. Sur `release/<version>`, avec
+`package.json` à la version, le commit préparé sur la branche et rien de non commité, elle reprend aux relectures :
+quand elles tiennent, elle pousse et ouvre la pull request, et sa CI ne tourne qu'une fois. Tout autre état de cette
+branche est refusé, avec la façon de repartir de `main`. Pour les voir plus tôt, lancez
+`npm run release -- check <version>` sur `main` : son point sur les relectures humaines des docs liste les claims et
+les paires encore à relire (les points sur la release elle-même y échouent, comme il se doit avant `prepare`).
 
 Elle n'écrit aucune prose : chaque endroit qui demande une phrase porte `TODO(release)` (l'intro du CHANGELOG,
 l'entrée de release du LOG, les notes de mise à jour, le README, la fiche des passes). Écrivez-les sur la branche,
