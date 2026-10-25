@@ -112,6 +112,13 @@ jobs:
           include-hidden-files: true
           if-no-files-found: error
           overwrite: true
+      # The documentation's publication check on this very report (4.5.4): what docs-publish will check after the tag,
+      # said now. A warning, never a failure: a docs problem never holds back the release nor npm; it is fixed by a
+      # docs revision. Its human gates already ran on the release pull request (npm run release -- check).
+      - name: The docs of this candidate
+        run: |
+          npm run -s wiki -- check --publish --product-ref ${{ needs.target.outputs.sha }} --state candidate --candidate ${{ github.run_id }} --test-report .cache/test-report/vitest.json \
+            || echo "::warning title=docs::the documentation's publication check fails on this candidate: docs-publish will refuse it after the tag (fix with a docs revision)"
       # The site as the release publishes it (4.1.20 PR 4, plan §9.2): the very build release-check made, its archive,
       # its assets manifest and the SHA-256 of each file it serves (the surfaces of the people's passes read them).
       # release.yml publishes these files and builds no site of its own to publish.

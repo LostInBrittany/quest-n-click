@@ -48,6 +48,20 @@ describe('the candidate of a release', () => {
     expect(body).toContain("PROFILE: ${{ github.event_name != 'pull_request' && 'full' || 'short' }}");
     expect(body.split("if: github.event_name != 'pull_request'").length - 1).toBeGreaterThanOrEqual(2);
   });
+  it('checks its docs against its own test report, as a warning: a docs problem never holds back the release (4.5.4)', () => {
+    const yml = readFileSync('.github/workflows/candidate.yml', 'utf8');
+    // In release-core, which has the dependencies and writes the report just before.
+    const core = yml.slice(yml.indexOf('\n  release-core:\n'), yml.indexOf('\n  heavy:\n'));
+    const step = core.slice(core.indexOf('- name: The docs of this candidate'));
+    expect(core.indexOf('- name: The docs of this candidate')).toBeGreaterThan(
+      core.indexOf('- name: The test report of this candidate'),
+    );
+    expect(step).toContain(
+      'npm run -s wiki -- check --publish --product-ref ${{ needs.target.outputs.sha }} --state candidate --candidate ${{ github.run_id }} --test-report',
+    );
+    expect(step).toContain('::warning title=docs::');
+    expect(step.slice(0, step.indexOf('\n      - '))).toMatch(/continue-on-error: true|\|\| echo "::warning/);
+  });
   it("is named by release.yml only when started by hand on main or by a release's merge on main", () => {
     const rel = readFileSync('.github/workflows/release.yml', 'utf8');
     expect(rel).toContain(

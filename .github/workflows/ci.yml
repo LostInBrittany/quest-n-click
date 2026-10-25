@@ -89,6 +89,11 @@ jobs:
       # The behaviour of 4.0.0 frozen (4.1.0 "Clarity"): the same witnesses, proofs, golden saves, public surface, and a
       # first visit no bigger, whatever a refactoring moved (tools/quality-baseline.ts).
       - run: npm run quality:baseline -- --check --dist
+      # A release pull request (4.5.4): its section, no TODO(release) left, the wiki, the docs' human gates (a claim
+      # or a pair a person must read fails here, not at the release), the baseline.
+      - name: A release pull request is ready to merge
+        if: startsWith(github.head_ref, 'release/')
+        run: npm run release -- check "$(node -p "require('./package.json').version")"
       # The exhaustive proof of the sample game (seconds); a big game proves on the weekly prove workflow instead.
       - run: npm run prove:game
       # The shipped dependencies' advisories: when the lockfile or package.json moved, and always on main.
