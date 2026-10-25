@@ -116,18 +116,15 @@ Browsers refuse sound before the player's first gesture on the page. The engine 
 `touchend` or `keydown`; choosing New game or Continue on the title screen is one, so the first room's lines can be
 heard.
 
-A line the game has **no** clip for shows for its reading time. A line that **has** a clip which cannot play ends as
-soon as the clip gives up, without the reading time:
+A line the game has **no** clip for shows for its reading time. A line that **has** a clip which cannot play shows
+for its reading time too, as if it had no clip (since 4.5.5; before, its bubble closed at once):
 
 - before the first gesture;
 - with the sounds off in the pause menu, or the voice volume at 0 in Settings;
 - when the file fails to load or to play (missing from `public/assets/audio/voices/`, offline and not cached).
 
-> [!LIMIT id=voiced-line-without-sound]
-> In 4.4.0 a voiced line whose clip cannot play does not fall back to the reading time: the speech bubble closes at
-> once ([`src/engine/dom/speech.ts`](../../src/engine/dom/speech.ts)). A player who turns the sounds off in a voiced
-> game reads those lines only in a conversation's transcript and the screen reader's live region. Ship every clip you
-> declare.
+A clip that fails after a while leaves the rest of the reading time, not a whole one more. A clip that plays sets the
+line's length, and a tap still skips it ([`src/engine/dom/speech.ts`](../../src/engine/dom/speech.ts)).
 
 <a name="offline"></a>
 

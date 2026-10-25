@@ -20,12 +20,16 @@ tourne dans quel job, c'est [Quels tests tournent quand](contribute.which-tests.
 | `qualify` | une pull request ou un push sur `main` qui touche `ops/`, `scripts/ops-qualify*`, `scripts/pack.mjs`, `bridge/`, `package.json` ou le fichier de verrouillage ; à la main | `npm run ops:qualify` : le profil de qualification du Bridge sous Docker | le profil ne pourrit pas entre deux candidats |
 | `docs-publish` | appelé par `release` après `ship verify` ; à la main (`revision`, `rollback`, `promote`, `preview`) | le wiki et l'enregistrement de publication (4.5.0) | la publication de la documentation |
 
-**Quel run un push plus récent annule** (4.5.5, #337). Sur une pull request, `ci` et `qualify` tournent un à la fois :
-un push plus récent annule le run qu'il remplace. Un push sur `main` n'est jamais annulé : chacun tourne dans un groupe
-à son propre SHA, puisque tout commit de `main` peut devenir un commit de release et que son tag a besoin du run `ci`
-de `main` sur ce SHA exact. Avant, une fusion juste après celle de la pull request de release annulait le run du
-commit de release, et `ship tag` le relançait. Un run `ci` lancé à la main attend celui qui tourne sur sa branche et
-n'annule rien ; `candidate`, `release` et `docs-publish` n'annulent jamais de run non plus.
+**Quel run un push plus récent annule** (4.5.5, #337, #345). Sur une pull request et sur `main`, `ci` et `qualify`
+tournent un à la fois : un push plus récent annule le run qu'il remplace. Le run `ci` d'un commit de release sur
+`main` n'est jamais annulé : il tourne dans un groupe à son propre SHA, puisque son tag a besoin du run `ci` de `main`
+sur ce SHA exact (avant, une fusion juste après celle de la pull request de release l'annulait, et `ship tag` le
+relançait). Un commit de release se reconnaît à son message : la fusion de `release/<x.y.z>` (« Merge pull request #N
+from <owner>/release/<x.y.z> »), ou le sujet qu'écrit `prepare` (« <x.y.z>: the release (prepared by npm run release
+-- prepare) »), que le message d'un squash reprend et qu'un rebase garde. Tout autre commit de `main` partage un seul
+groupe : un temps chacun gardait son run, et quatre fusions d'affilée ont mis en file quatre runs complets qui ont
+privé les pull requests de runners. Un run lancé à la main a son propre groupe et n'annule rien ; `candidate`,
+`release` et `docs-publish` n'annulent jamais de run non plus.
 
 <a name="tiers"></a>
 <!-- applies: .. since 4.1.9 -->

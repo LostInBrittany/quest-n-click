@@ -123,18 +123,17 @@ Les navigateurs refusent le son avant le premier geste du joueur sur la page. Le
 répliques du premier lieu peuvent s’entendre.
 
 Une réplique pour laquelle le jeu n’a **pas** de clip s’affiche pour son temps de lecture. Une réplique qui **a** un
-clip qui ne peut pas jouer se termine dès que le clip renonce, sans temps de lecture :
+clip qui ne peut pas jouer s’affiche aussi pour son temps de lecture, comme si elle n’avait pas de clip (depuis 4.5.5 ;
+avant, sa bulle se fermait aussitôt) :
 
 - avant le premier geste ;
 - avec les sons coupés dans le menu pause, ou le volume des voix à 0 dans Réglages ;
 - quand le fichier ne se charge pas ou ne joue pas (absent de `public/assets/audio/voices/`, hors ligne et pas en
   cache).
 
-> [!LIMIT id=voiced-line-without-sound]
-> En 4.4.0, une réplique doublée dont le clip ne peut pas jouer ne retombe pas sur le temps de lecture : la bulle se
-> ferme aussitôt ([`src/engine/dom/speech.ts`](../../src/engine/dom/speech.ts)). Un joueur qui coupe les sons dans un
-> jeu doublé ne lit ces répliques que dans la transcription d’une conversation et la zone annoncée par le lecteur
-> d’écran. Livrez chaque clip que vous déclarez.
+Un clip qui échoue au bout d’un moment laisse le reste du temps de lecture, pas un temps entier de plus. Un clip qui
+joue donne sa durée à la réplique, et un toucher la passe toujours
+([`src/engine/dom/speech.ts`](../../src/engine/dom/speech.ts)).
 
 <a name="offline"></a>
 

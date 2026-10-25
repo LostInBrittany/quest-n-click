@@ -302,9 +302,14 @@ describe('candidate.yml and ci.yml', () => {
     const yml = read('ci');
     expect(yml).not.toMatch(/wiki -- (build|archive|bundle|pages)/);
     expect(yml).not.toMatch(/upload-pages-artifact|deploy-pages/);
-    // A run started by hand still runs everything, and cancels no push's run: only a pull request cancels (4.5.5,
-    // #337; tests/release-main-ci.test.ts evaluates the groups).
+    // A run started by hand still runs everything, in a group of its own, and cancels no push's run (4.5.5, #337,
+    // #345; tests/release-main-ci.test.ts evaluates the groups).
     expect(keys(top(yml, 'on'), 2)).toContain('workflow_dispatch');
-    expect(top(yml, 'concurrency')).toMatch(/cancel-in-progress: \$\{\{ github\.event_name == 'pull_request' \}\}/);
+    expect(top(yml, 'concurrency')).toMatch(
+      /\$\{\{ github\.event_name == 'workflow_dispatch' && '-by-hand' \|\| '' \}\}/,
+    );
+    expect(top(yml, 'concurrency')).toMatch(
+      /cancel-in-progress: \$\{\{ github\.event_name == 'pull_request' \|\| github\.event_name == 'push' && /,
+    );
   });
 });
