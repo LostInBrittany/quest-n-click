@@ -5178,6 +5178,13 @@
         { "name": "claude-283-npm-stage", "kind": "ai", "relation": "author", "date": "2026-10-24" }
       ]
     },
+    "contribute.releasing#prepare": {
+      "enHash": "328a990a10a8b263d96fb695003697ad5b608f7c6c4caab7874e983b740989ba",
+      "frHash": "6992637d52f2e71bbd627c2aaaffcd7fe754259c4a0cccf32b60758e8725fde8",
+      "reviewers": [
+        { "name": "claude-454-prepare", "kind": "ai", "relation": "author", "date": "2026-10-25" }
+      ]
+    },
     "contribute.releasing#prerequisites": {
       "enHash": "12739dec5ecba93614dce17d04e9bcb6ebc6ccb531042a000c13c00b973021a5",
       "frHash": "9d6a3ea3dec0d9425ce85e943001843a582bfca646b777c37056e8fcc3c3d167",
@@ -16891,6 +16898,13 @@
       "reviewers": [
         { "name": "claude-4.5-writers", "kind": "ai", "relation": "author", "date": "2026-10-23" },
         { "name": "wanoo", "kind": "human", "relation": "independent", "date": "2026-10-24" }
+      ]
+    },
+    "reference.npm-scripts#script-release": {
+      "enHash": "0f09df37352b7f1e9e6f96a1b476d53ac46a54abe27c94bec5bc871377547905",
+      "frHash": "578a0182cdbf7004a36b3f16ea4d5c60dc5781f7509573128a1dd7069fdfb34f",
+      "reviewers": [
+        { "name": "claude-454-prepare", "kind": "ai", "relation": "author", "date": "2026-10-25" }
       ]
     },
     "reference.npm-scripts#seal": {

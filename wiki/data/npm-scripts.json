@@ -974,6 +974,15 @@
       }
     },
     {
+      "name": "release",
+      "group": "release",
+      "usage": "npm run release -- prepare <x.y.z> --name=\"<name>\" [--date=YYYY-MM-DD] [--no-pr] [--dry-run] | check <x.y.z>",
+      "description": {
+        "en": "The release pull request by one command (4.5.4): `prepare` makes the branch `release/<version>` with every generated file (version, CHANGELOG and LOG from the fragments, upgrade notes' section, transition pages, golden save, reference run, passes sheet and passIssues, README line, quality baseline), `TODO(release)` where prose is needed, one commit and the pull request; `check` says what is left before merging ([contribute.releasing](contribute.releasing.md#prepare)).",
+        "fr": "La pull request de release en une commande (4.5.4) : `prepare` fait la branche `release/<version>` avec chaque fichier généré (version, CHANGELOG et LOG depuis les fragments, section des notes de mise à jour, pages de transition, sauvegarde de référence, run de référence, fiche des passes et passIssues, ligne du README, ligne de base de qualité), `TODO(release)` là où il faut de la prose, un commit et la pull request ; `check` dit ce qui reste avant de fusionner ([contribute.releasing](contribute.releasing.md#prepare))."
+      }
+    },
+    {
       "name": "ship",
       "group": "release",
       "usage": "npm run ship -- <checks|merge|main|tag|watch|verify|chain|preflight-stable> …",

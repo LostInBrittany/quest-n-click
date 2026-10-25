@@ -979,6 +979,15 @@ Le démarrage rapide du README tel qu’un lecteur le copie (4.1.19) : le bloc s
 - Lance : `node scripts/readme-quickstart.mjs`
 - Utilisation : `npm run readme-quickstart -- --tarballs=<dir> | --published`
 
+<a name="script-release"></a>
+
+#### `npm run release`
+
+La pull request de release en une commande (4.5.4) : `prepare` fait la branche `release/<version>` avec chaque fichier généré (version, CHANGELOG et LOG depuis les fragments, section des notes de mise à jour, pages de transition, sauvegarde de référence, run de référence, fiche des passes et passIssues, ligne du README, ligne de base de qualité), `TODO(release)` là où il faut de la prose, un commit et la pull request ; `check` dit ce qui reste avant de fusionner ([contribute.releasing](contribute.releasing.md#prepare)).
+
+- Lance : `tsx tools/release/prepare.ts`
+- Utilisation : `npm run release -- prepare <x.y.z> --name="<name>" [--date=YYYY-MM-DD] [--no-pr] [--dry-run] | check <x.y.z>`
+
 <a name="release-check"></a>
 
 #### `npm run release-check`

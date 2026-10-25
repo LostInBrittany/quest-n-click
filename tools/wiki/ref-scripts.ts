@@ -94,7 +94,11 @@ const W = {
   },
 } as const;
 
-const anchorOf = (e: Entry, project: boolean) => (project ? `project-${sectionId(e.name)}` : sectionId(e.name));
+/** A script's anchor: `project-` for a created project's; `script-` when a group has its name (`release`, 4.5.4). */
+const anchorOf = (e: Entry, project: boolean, groups: ReadonlySet<string> = new Set()) => {
+  const id = sectionId(e.name);
+  return project ? `project-${id}` : groups.has(id) ? `script-${id}` : id;
+};
 
 function problems(d: Scripts, repo: Record<string, string>, project: Record<string, string>): string[] {
   const out: string[] = [];
@@ -123,10 +127,16 @@ function problems(d: Scripts, repo: Record<string, string>, project: Record<stri
   return out;
 }
 
-function scriptSection(e: Entry, command: string | undefined, lang: Lang, project: boolean): string[] {
+function scriptSection(
+  e: Entry,
+  command: string | undefined,
+  lang: Lang,
+  project: boolean,
+  groups: ReadonlySet<string> = new Set(),
+): string[] {
   const w = W[lang];
   const out = [
-    `<a name="${anchorOf(e, project)}"></a>`,
+    `<a name="${anchorOf(e, project, groups)}"></a>`,
     '',
     `#### ${code(`npm run ${e.name}`)}`,
     '',
@@ -142,10 +152,11 @@ function scriptSection(e: Entry, command: string | undefined, lang: Lang, projec
 function sections(d: Scripts, repo: Record<string, string>, project: Record<string, string>, lang: Lang): string {
   const w = W[lang];
   const out: string[] = ['<a name="repository"></a>', '', `## ${w.repository}`, '', w.repositoryIntro, ''];
+  const groupIds = new Set(d.groups.map((g) => g.id));
   for (const g of d.groups) {
     out.push(`<a name="${g.id}"></a>`, '', `### ${prose(g.title[lang])}`, '', prose(g.intro[lang]), '');
     for (const e of d.repository.filter((x) => x.group === g.id).sort((a, b) => (a.name < b.name ? -1 : 1)))
-      out.push(...scriptSection(e, repo[e.name], lang, false));
+      out.push(...scriptSection(e, repo[e.name], lang, false, groupIds));
   }
   out.push('<a name="project"></a>', '', `## ${w.project}`, '', w.projectIntro, '');
   const order = Object.keys(project);

@@ -2,7 +2,15 @@
 // assembly on main folds them in order, under the right section, numbering the LOG entries after the last one. Only
 // the Unreleased block is rebuilt: the rest of the page is byte for byte the same.
 import { describe, expect, it } from 'vitest';
-import { appendLog, lastLogNumber, logEntryOf, mergeChangelog, needsFragment, sectionsOf } from '../tools/changes';
+import {
+  appendLog,
+  fragmentFiles,
+  lastLogNumber,
+  logEntryOf,
+  mergeChangelog,
+  needsFragment,
+  sectionsOf,
+} from '../tools/changes';
 
 const tail = '## 4.1.8 — 2026-10-07\n\n- older\n\n\n- a double blank line an old release keeps\n\n```\ncode\n```\n';
 const changelog = `# Changelog
@@ -77,8 +85,13 @@ ${tail}`);
       '# C\n\n## Unreleased\n\n### Fixed\n\n- x\n\n- x\n',
     );
   });
-  it('refuses a CHANGELOG without an Unreleased section', () => {
-    expect(() => mergeChangelog('# C\n\n## 4.1.8\n', [{ changelog: '### Fixed\n- x\n' }])).toThrow(/Unreleased/);
+  it('makes its own Unreleased section above the last release when there is none (4.5.4)', () => {
+    expect(mergeChangelog('# C\n\n## 4.1.8\n\n- old\n', [{ changelog: '### Fixed\n\n- x\n' }])).toBe(
+      '# C\n\n## Unreleased\n\n### Fixed\n\n- x\n\n## 4.1.8\n\n- old\n',
+    );
+  });
+  it('a LOG-only fragment adds nothing to the CHANGELOG', () => {
+    expect(mergeChangelog(changelog, [{ changelog: '' }])).toBe(changelog);
   });
 });
 
@@ -105,6 +118,16 @@ describe('fragments of the LOG', () => {
   it('reads a .log.md fragment: the title on the first line, the body after', () => {
     expect(logEntryOf('## t\n\n- a\n- b\n')).toEqual({ title: 't', body: '- a\n- b' });
     expect(() => logEntryOf('- no title\n')).toThrow(/## <title>/);
+  });
+});
+
+describe('the files of the fragments (4.5.4)', () => {
+  it('pairs each slug with its two files; a .log.md alone is a fragment too, README is none', () => {
+    expect(fragmentFiles(['b.log.md', 'a.md', 'README.md', 'a.log.md', 'c.md', 'notes.txt'])).toEqual([
+      { slug: 'a', md: true, log: true },
+      { slug: 'b', md: false, log: true },
+      { slug: 'c', md: true, log: false },
+    ]);
   });
 });
 

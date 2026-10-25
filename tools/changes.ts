@@ -25,6 +25,8 @@ export interface Fragment {
   log?: string;
   /** ISO date of the fragment's first commit (the order of assembly). */
   date: string;
+  /** Whether it has a `.md` (a `.log.md` alone has none, 4.5.4). */
+  md?: boolean;
 }
 
 const isSection = (s: string): s is Section => (SECTIONS as readonly string[]).includes(s);
@@ -70,8 +72,13 @@ export function sectionsOf(text: string): Partial<Record<Section, string>> {
  */
 export function mergeChangelog(changelog: string, fragments: readonly Pick<Fragment, 'changelog'>[]): string {
   const lines = changelog.split('\n');
-  const start = lines.findIndex((l) => /^## Unreleased\s*$/.test(l));
-  if (start < 0) throw new Error('CHANGELOG.md has no "## Unreleased" section');
+  let start = lines.findIndex((l) => /^## Unreleased\s*$/.test(l));
+  // A CHANGELOG just released has none (4.5.4): one is made above the last release, as a release branch did by hand.
+  if (start < 0) {
+    const first = lines.findIndex((l) => /^## /.test(l));
+    start = first < 0 ? lines.length : first;
+    lines.splice(start, 0, '## Unreleased', '');
+  }
   let end = lines.findIndex((l, i) => i > start && /^## /.test(l));
   if (end < 0) end = lines.length;
   const bySection: Record<Section, string[]> = { Breaking: [], Fixed: [], Changes: [] };
@@ -157,13 +164,29 @@ const localDay = (d = new Date()) =>
   `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 
 /** The fragments on disk, with the date of their first commit (or the file's local day when uncommitted), oldest first. */
+/**
+ * The fragments in `changes/`, by slug: its `.md` (the CHANGELOG part) and its `.log.md` (the LOG part). A `.log.md`
+ * alone is a fragment with a LOG entry and no bullet (4.5.4; 4.5.3's release folded two by hand).
+ */
+export function fragmentFiles(names: readonly string[]): { slug: string; md: boolean; log: boolean }[] {
+  const by = new Map<string, { slug: string; md: boolean; log: boolean }>();
+  for (const name of names) {
+    if (name === 'README.md' || !name.endsWith('.md')) continue;
+    const log = name.endsWith('.log.md');
+    const slug = name.slice(0, log ? -7 : -3);
+    const f = by.get(slug) ?? { slug, md: false, log: false };
+    f[log ? 'log' : 'md'] = true;
+    by.set(slug, f);
+  }
+  return [...by.values()].sort((a, b) => a.slug.localeCompare(b.slug));
+}
+
 export function readFragments(): Fragment[] {
   const dir = resolve(ROOT, 'changes');
   if (!existsSync(dir)) return [];
   const out: Fragment[] = [];
-  for (const name of readdirSync(dir).sort()) {
-    if (!name.endsWith('.md') || name.endsWith('.log.md') || name === 'README.md') continue;
-    const slug = name.slice(0, -3);
+  for (const { slug, md } of fragmentFiles(readdirSync(dir))) {
+    const name = md ? `${slug}.md` : `${slug}.log.md`;
     const file = resolve(dir, name);
     let date = '';
     try {
@@ -175,7 +198,8 @@ export function readFragments(): Fragment[] {
     const logFile = resolve(dir, `${slug}.log.md`);
     out.push({
       slug,
-      changelog: readFileSync(file, 'utf8'),
+      changelog: md ? readFileSync(file, 'utf8') : '',
+      md,
       log: existsSync(logFile) ? readFileSync(logFile, 'utf8') : undefined,
       date,
     });
@@ -233,7 +257,7 @@ if (process.argv[1]?.endsWith('changes.ts')) {
       );
     }
     for (const f of fragments) {
-      unlinkSync(resolve(ROOT, 'changes', `${f.slug}.md`));
+      if (f.md !== false) unlinkSync(resolve(ROOT, 'changes', `${f.slug}.md`));
       if (f.log) unlinkSync(resolve(ROOT, 'changes', `${f.slug}.log.md`));
     }
     const last = lastLogNumber(readFileSync(resolve(ROOT, 'docs/dev/LOG.md'), 'utf8'));

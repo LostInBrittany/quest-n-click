@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { parseSave, saveEnvelope, SaveEnvelopeV3Schema, SaveEnvelopeV4Schema } from '@engine/core/save';
 import { Engine } from '@engine/core/engine';
@@ -65,73 +66,48 @@ describe('save envelope v3', () => {
   });
 });
 
+/** The releases that left a golden save of the demo (tests/fixtures/saves/index.json, 4.5.4). */
+const GOLDEN = JSON.parse(readFileSync('tests/fixtures/saves/index.json', 'utf8')) as { demo: string[] };
+
 describe('golden saves', () => {
+  // The list lives in a fixture (4.5.4): a release adds its save there, never in this file, whose content the wiki's
+  // claims are reviewed on.
+  it('are listed in tests/fixtures/saves/index.json, exactly the demo saves there are, oldest first', async () => {
+    const { readFileSync, readdirSync } = await import('node:fs');
+    const index = JSON.parse(readFileSync('tests/fixtures/saves/index.json', 'utf8')) as { demo: string[] };
+    const files = readdirSync('tests/fixtures/saves')
+      .filter((f) => /^demo-\d+\.\d+\.\d+\.json$/.test(f))
+      .map((f) => f.slice(5, -5));
+    expect([...index.demo].sort()).toEqual(files.sort());
+    const key = (v: string) => v.split('.').map(Number);
+    const sorted = [...index.demo].sort((a, b) => {
+      const [x, y] = [key(a), key(b)];
+      return x[0]! - y[0]! || x[1]! - y[1]! || x[2]! - y[2]!;
+    });
+    expect(index.demo).toEqual(sorted);
+  });
+
   // One save per release, made by the demo of that release eight inputs into the witness: it must load on the
   // current engine (migrated when its save version is older) and still reach the ending with the remaining inputs.
-  it.each([
-    '3.0.0',
-    '3.1.0',
-    '3.2.0',
-    '3.3.0',
-    '3.4.0',
-    '3.5.0',
-    '3.6.0',
-    '3.6.1',
-    '3.7.0',
-    '3.7.1',
-    '3.8.0',
-    '3.9.0',
-    '4.0.0',
-    '4.1.0',
-    '4.1.1',
-    '4.1.2',
-    '4.1.3',
-    '4.1.4',
-    '4.1.5',
-    '4.1.6',
-    '4.1.7',
-    '4.1.8',
-    '4.1.9',
-    '4.1.10',
-    '4.1.11',
-    '4.1.12',
-    '4.1.13',
-    '4.1.14',
-    '4.1.15',
-    '4.1.16',
-    '4.1.17',
-    '4.1.18',
-    '4.1.19',
-    '4.1.20',
-    '4.2.0',
-    '4.2.1',
-    '4.2.2',
-    '4.2.3',
-    '4.2.4',
-    '4.2.5',
-    '4.3.0',
-    '4.3.1',
-    '4.4.0',
-    '4.5.0',
-    '4.5.1',
-    '4.5.2',
-    '4.5.3',
-  ])('a save made by the demo at %s loads on this engine and still reaches the ending', async (version) => {
-    const { readFileSync } = await import('node:fs');
-    const { replay } = await import('@engine/tools/replay');
-    const { game: demo, layouts: demoLayouts, commands } = await import('../games/demo');
-    const golden = JSON.parse(readFileSync(`tests/fixtures/saves/demo-${version}.json`, 'utf8'));
-    const warnings: string[] = [];
-    const state = parseSave(demo, golden.envelope, { warn: (m) => warnings.push(m) });
-    expect(warnings).toEqual([]); // nothing pruned: the content this save names still exists
-    expect(state.v).toBe(demo.saveVersion);
-    const p = await replay(
-      demo,
-      demoLayouts,
-      { start: { kind: 'load' }, base: state, log: golden.remaining },
-      { commands },
-    );
-    expect(p.divergedAt).toBeUndefined();
-    expect(p.ended).toBe(true);
-  });
+  it.each(GOLDEN.demo)(
+    'a save made by the demo at %s loads on this engine and still reaches the ending',
+    async (version) => {
+      const { readFileSync } = await import('node:fs');
+      const { replay } = await import('@engine/tools/replay');
+      const { game: demo, layouts: demoLayouts, commands } = await import('../games/demo');
+      const golden = JSON.parse(readFileSync(`tests/fixtures/saves/demo-${version}.json`, 'utf8'));
+      const warnings: string[] = [];
+      const state = parseSave(demo, golden.envelope, { warn: (m) => warnings.push(m) });
+      expect(warnings).toEqual([]); // nothing pruned: the content this save names still exists
+      expect(state.v).toBe(demo.saveVersion);
+      const p = await replay(
+        demo,
+        demoLayouts,
+        { start: { kind: 'load' }, base: state, log: golden.remaining },
+        { commands },
+      );
+      expect(p.divergedAt).toBeUndefined();
+      expect(p.ended).toBe(true);
+    },
+  );
 });
