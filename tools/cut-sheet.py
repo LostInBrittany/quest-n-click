@@ -36,12 +36,16 @@ is looked up next to the --out folder (<game>/art -> <game>/site.json), then in 
 import argparse
 import json
 import os
+import sys
 
 import numpy as np
 from PIL import Image
 from scipy import ndimage
 
-from game_folder import game_dir
+# game_folder.py sits beside this file. The Studio loads this file as a module from `python3 -c` (tools/studio/cut.ts),
+# where tools/ is not on the import path: put it there.
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from game_folder import game_dir  # noqa: E402
 
 CELL = 256
 PIXEL_SCALE = 4
