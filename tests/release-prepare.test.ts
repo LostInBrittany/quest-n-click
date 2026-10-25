@@ -2,7 +2,7 @@
 // write a release's files, each checked against what the 4.5.3 release commit (2afb9f51) wrote by hand, from the files
 // as they were before it (its parent). Prose is never invented: a helper leaves `TODO(release)` where it is needed.
 import { execFileSync, spawnSync } from 'node:child_process';
-import { cpSync, mkdtempSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
+import { cpSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
@@ -27,10 +27,13 @@ import {
   withPassIssues,
 } from '../tools/release/prepare';
 
-const RELEASE = '2afb9f51';
-const at = (ref: string, file: string) => execFileSync('git', ['show', `${ref}:${file}`], { encoding: 'utf8' });
-const before = (file: string) => at(`${RELEASE}^`, file);
-const after = (file: string) => at(RELEASE, file);
+// The files as 4.5.3's release commit (2afb9f51) found and left them, kept as fixtures (CI checks out without history):
+// tests/fixtures/release-4.5.3/before and after; the CHANGELOG's head and the LOG's release line only.
+const FIX = 'tests/fixtures/release-4.5.3';
+const at = (side: string, file: string) =>
+  readFileSync(join(FIX, side, file === 'docs/dev/LOG.md' ? 'LOG.md' : file), 'utf8');
+const before = (file: string) => at('before', file);
+const after = (file: string) => at('after', file);
 const firstSentence = (page: string) =>
   page
     .split('\n\n')[1]!
