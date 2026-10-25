@@ -49,6 +49,7 @@ import {
   isPrerelease,
   localCommit,
   originTagCommit,
+  releaseRemote,
   REPO,
   run,
   runIdOf,
@@ -260,10 +261,12 @@ async function tag(versionArg, sha) {
     throw new Error(
       `--now is gone (4.5.3, #291): release.yml requires main's ci green on the SHA, ship tag waits for it`,
     );
-  git(['fetch', '--quiet', 'origin']); // the merge commit `chain` just made is on origin, not here yet (seen on 4.1.9, 4.1.10)
+  // The organisation's repository, whatever its remote is called here (`upstream` when `origin` is a fork, 4.5.3).
+  const remote = releaseRemote();
+  git(['fetch', '--quiet', remote]); // the merge commit `chain` just made is on the remote, not here yet (seen on 4.1.9, 4.1.10)
   const full = localCommit(sha);
-  if (!full) throw new Error(`${sha}: not a commit on origin either`);
-  const onOrigin = originTagCommit(name);
+  if (!full) throw new Error(`${sha}: not a commit on ${remote} either`);
+  const onOrigin = originTagCommit(name, remote);
   if (onOrigin) {
     if (onOrigin !== full)
       throw new Error(
@@ -271,7 +274,16 @@ async function tag(versionArg, sha) {
       );
     say(`${name} already on origin at ${full.slice(0, 7)}`);
   } else {
-    git(['fetch', '--quiet', '--tags', 'origin']);
+    git(['fetch', '--quiet', '--tags', remote]);
+    // release.yml's notes are the CHANGELOG section of the version, on the tagged commit: without it the release run
+    // fails after the tag exists, and the tag is spent (v4.5.3-rc.1). Checked here, before anything is tagged.
+    // Loaded here, not at the top: tools/ ships in the package, scripts/ does not, and only the repository tags.
+    const { releaseNotes } = await import('../../scripts/release-notes.mjs');
+    const changelog = git(['show', `${full}:CHANGELOG.md`], { ok: [0, 128] });
+    if (!releaseNotes(changelog, name))
+      throw new Error(
+        `${name}: no "## ${version.replace(/-.*$/, '')}" section in CHANGELOG.md at ${full.slice(0, 7)}: merge the release pull request first, then tag its merge commit`,
+      );
     const line = checkAncestry(version, full);
     if (!line.ok)
       throw new Error(`${name} on ${full.slice(0, 7)}: ${line.reason} (merge that tag into the branch first, 4.1.16)`);
@@ -323,7 +335,7 @@ async function tag(versionArg, sha) {
       const key = process.argv.find((a) => a.startsWith('--key='))?.slice('--key='.length);
       git(tagArgs({ name, sha: full, message: candidate ? tagMessage(version, candidate) : version, sign, key }));
     }
-    git(['push', 'origin', `refs/tags/${name}`]);
+    git(['push', remote, `refs/tags/${name}`]);
   }
   return watch(version);
 }

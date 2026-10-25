@@ -29,6 +29,9 @@ The chain is the one of 4.1.20 "Last Mile" (plan §11); tags are signed from 4.2
 - The signing key set up ([below](#signing)).
 - The CHANGELOG section of the version assembled from the `changes/` fragments (the release branch's job,
   [Conventions](contribute.conventions.md)), and the people's passes sheet started ([Field passes](contribute.field-passes.md)).
+  `ship tag` refuses a commit without that section (4.5.3): merge the release pull request, then tag its merge commit.
+- A git remote for `Quest-n-Click/quest-n-click`: `ship tag` fetches from and pushes to the one whose URL names it,
+  `upstream` when `origin` is your fork (4.5.3).
 
 <a name="where-to-run"></a>
 
@@ -249,6 +252,8 @@ verify` asks each release that way, and says that GitHub's own release attestati
 
 | Symptom | Cause | Fix |
 |---|---|---|
+| ship tag: "no \"## x.y.z\" section in CHANGELOG.md at …" | The commit is not the release pull request's merge | Merge the release pull request, start a candidate on its merge commit, tag that |
+| ship tag: "no git remote here points to Quest-n-Click/quest-n-click" | Only a fork is a remote here | `git remote add upstream git@github.com:Quest-n-Click/quest-n-click.git` |
 | release.yml: "names no candidate run" | The tag was made without `--candidate` | Tag the next version (or `rc.N+1`) with `--candidate`: the tag ruleset refuses deleting a tag |
 | release.yml: "run … is not a green candidate started on main" | The run is a pull request's, another branch's, or red | Start `candidate` by hand on main for that SHA |
 | release.yml: "has no candidate-site" (or `-surfaces`, `-signing`, `-remix`, `-pack`, `-sbom`, `-image`) | A candidate made before the step existed | Start a new candidate |
