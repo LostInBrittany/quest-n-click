@@ -30,11 +30,12 @@ on:
   workflow_dispatch: {}
 permissions:
   contents: read
-# A pull request's newer push cancels the run it supersedes; a run of main (or by hand) is never cancelled, in a group
-# of its own SHA (4.5.5, #337): each main commit keeps its profile's result.
+# A newer push cancels the run it supersedes, on a pull request and on main (4.5.5, #345): no release step reads
+# qualify's main run (the release reads the candidate's qualification), and the latest main run is enough to keep the
+# profile from rotting. A run started by hand has a group of its own and cancels nothing.
 concurrency:
-  group: qualify-${{ github.event.pull_request.number || github.sha }}
-  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+  group: qualify-${{ github.event.pull_request.number || github.ref }}${{ github.event_name == 'workflow_dispatch' && '-by-hand' || '' }}
+  cancel-in-progress: ${{ github.event_name != 'workflow_dispatch' }}
 jobs:
   smoke:
     runs-on: ubuntu-24.04

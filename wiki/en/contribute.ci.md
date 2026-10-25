@@ -20,12 +20,15 @@ pull request runs is [`tools/ci-plan.ts`](../../tools/ci-plan.ts). Which test su
 | `qualify` | a pull request or a push to `main` touching `ops/`, `scripts/ops-qualify*`, `scripts/pack.mjs`, `bridge/`, `package.json` or the lockfile; by hand | `npm run ops:qualify`: the Bridge's qualification profile on Docker | the profile does not rot between candidates |
 | `docs-publish` | called by `release` after `ship verify`; by hand (`revision`, `rollback`, `promote`, `preview`) | the wiki and the publication record (4.5.0) | publication of the documentation |
 
-**Which run a newer push cancels** (4.5.5, #337). On a pull request, `ci` and `qualify` run one at a time: a newer
-push cancels the run it supersedes. A push to `main` is never cancelled: each runs in a group of its own SHA, since
-any `main` commit may become a release commit and its tag needs `main`'s `ci` run on that very SHA. Before, a merge
-right after the release pull request's cancelled the release commit's run, and `ship tag` re-ran it. A `ci` run
-started by hand waits for the one running on its branch and cancels nothing; `candidate`, `release` and
-`docs-publish` never cancel a run either.
+**Which run a newer push cancels** (4.5.5, #337, #345). On a pull request and on `main`, `ci` and `qualify` run one at
+a time: a newer push cancels the run it supersedes. A release commit's `ci` run on `main` is never cancelled: it runs
+in a group of its own SHA, since its tag needs `main`'s `ci` run on that very SHA (before, a merge right after the
+release pull request's cancelled it, and `ship tag` re-ran it). A release commit is told by its message: the merge of
+`release/<x.y.z>` ("Merge pull request #N from <owner>/release/<x.y.z>"), or the subject `prepare` writes
+("<x.y.z>: the release (prepared by npm run release -- prepare)"), which a squash's message lists and a rebase keeps.
+Every other `main` commit shares one group: for a while each kept its own run, and four merges in a row queued four
+full runs that starved the pull requests of runners. A run started by hand has a group of its own and cancels
+nothing; `candidate`, `release` and `docs-publish` never cancel a run either.
 
 <a name="tiers"></a>
 <!-- applies: .. since 4.1.9 -->
