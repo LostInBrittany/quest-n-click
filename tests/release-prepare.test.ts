@@ -310,12 +310,20 @@ describe('the command on a clone (4.5.4)', () => {
         'tools',
         '--allow-empty',
       );
-      symlinkSync(resolve('node_modules'), join(repo, 'node_modules'));
+      // A junction, which Windows makes without rights (a symlink elsewhere).
+      symlinkSync(resolve('node_modules'), join(repo, 'node_modules'), 'junction');
       writeFileSync(join(repo, 'stray.txt'), 'x');
       const before = git('status', '--porcelain');
       const r = spawnSync(
-        resolve('node_modules/.bin/tsx'),
-        ['tools/release/prepare.ts', 'prepare', '4.5.4', '--name=T', '--no-pr'],
+        process.execPath,
+        [
+          resolve('node_modules/tsx/dist/cli.mjs'),
+          'tools/release/prepare.ts',
+          'prepare',
+          '4.5.4',
+          '--name=T',
+          '--no-pr',
+        ],
         {
           cwd: repo,
           encoding: 'utf8',
