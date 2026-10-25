@@ -76,8 +76,8 @@ At the root of the engine repository, or at the root of the created project. Eac
    ```
 
    ```sh
-   # in a created project: name the output folder, the tool's default is the repository's games/<GAME>/art
-   python3 node_modules/@quest-n-click/engine/tools/cut-sheet.py hero_sheet.png hero --out game/art
+   # in a created project, from its folder: writes game/art/hero/
+   python3 node_modules/@quest-n-click/engine/tools/cut-sheet.py hero_sheet.png hero
    ```
 
    With `"artStyle": "pixel"` in `site.json` (or `--pixel`), the cutter also scales each cell down 4× (`--scale`),
@@ -132,7 +132,7 @@ prepared.
 |---|---|---|
 | `ModuleNotFoundError: No module named 'PIL'` (or `numpy`, `scipy`) | Step 1 not done, or done for another Python | Step 1 with the `python3` that runs the tools; in a created project, `PYTHON=<path>` makes `assets` use another interpreter |
 | `ModuleNotFoundError: No module named 'cv2'` | A talking-mouth tool needs OpenCV, not in `requirements.txt` | Install OpenCV's Python module yourself |
-| The sprites land in `games/<id>/art` of a folder that does not exist | `cut-sheet.py` run in a created project without `--out` | Add `--out game/art` |
+| The sprites land in `games/<id>/art` of a folder that does not exist | `cut-sheet.py` of an engine up to 4.5.3 run in a created project without `--out` | Add `--out game/art`, or update the engine |
 | `warning: missing images: …` | The content names an image with no file | Cut or add it, or fix the name in the content |
 
 <a name="files-changed"></a>

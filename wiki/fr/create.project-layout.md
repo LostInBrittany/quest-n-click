@@ -26,7 +26,7 @@ dossier qui existe et n'est pas vide, puis écrit :
 | `public/` | les icônes de la page, son image d'aperçu (`og.png`) et la police complète sur laquelle le moteur se replie ; `public/assets/` est écrit par `npm run assets`, jamais commité |
 | `package.json` | `"config": { "game": "<id>" }`, la dépendance au moteur (`^<version>`, ou `--engine`), et les scripts ci-dessous |
 | `tsconfig.json` | `@engine/*` pointe dans `node_modules/@quest-n-click/engine/src/engine`, `@quest-n-click/engine/*` dans son API publique, `@game` vers `game/index.ts` |
-| `.gitignore` | `node_modules`, `dist`, `.cache`, `public/assets` |
+| `.gitignore` | `node_modules`, `dist`, `.cache`, `public/assets`, `game/private` |
 | `README.md` | les cinq commandes ci-dessous, en aide-mémoire |
 
 Ensuite, `npm run build` écrit `dist/` (avec `licenses/`), et les outils écrivent `.cache/`.

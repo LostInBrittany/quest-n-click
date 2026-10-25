@@ -395,7 +395,7 @@ Le chemin de l’exécutable Furnace avec lequel la chaîne audio fait son rendu
 Le jeu de `games/` sur lequel travaillent les commandes du dépôt du moteur (`GAME=reference npm run validate`). Sans elle, le dernier jeu choisi (`npm run game -- <id>`), puis `config.game` de `package.json`, puis `demo`.
 
 - Origine : vous la posez ; le code la lit.
-- Lue par : [`.github/workflows/ci.yml`](../../.github/workflows/ci.yml), [`.github/workflows/prove.yml`](../../.github/workflows/prove.yml), [`scripts/e2e-studio.mjs`](../../scripts/e2e-studio.mjs), et 8 de plus.
+- Lue par : [`.github/workflows/ci.yml`](../../.github/workflows/ci.yml), [`.github/workflows/prove.yml`](../../.github/workflows/prove.yml), [`scripts/e2e-studio.mjs`](../../scripts/e2e-studio.mjs), et 7 de plus.
 
 <a name="game-dir"></a>
 
@@ -404,7 +404,7 @@ Le jeu de `games/` sur lequel travaillent les commandes du dépôt du moteur (`G
 Le dossier de jeu sur lequel travaillent les outils, n’importe où sur le disque. Posée, c’est toujours le dossier lu, quoi que dise `GAME`, à la place de `games/<GAME>` ou du `game/` d’un projet créé ; sans `GAME`, l’identifiant du jeu est le nom du dossier.
 
 - Origine : vous la posez ; le code la lit.
-- Lue par : [`scripts/e2e-worker-container.ts`](../../scripts/e2e-worker-container.ts), [`scripts/ops-qualify/setup.mjs`](../../scripts/ops-qualify/setup.mjs), [`tools/assets.py`](../../tools/assets.py), et 4 de plus.
+- Lue par : [`scripts/e2e-worker-container.ts`](../../scripts/e2e-worker-container.ts), [`scripts/ops-qualify/setup.mjs`](../../scripts/ops-qualify/setup.mjs), [`tools/assets.py`](../../tools/assets.py), et 3 de plus.
 
 <a name="proof-cache"></a>
 

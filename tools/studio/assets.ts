@@ -398,7 +398,8 @@ export function createAssets(studio: Studio, o: { publicAssets?: () => string; c
     });
 
     // Prompts: the whole document, and the missing-only one for the sheets that lack cells.
-    const opts = { gameId: studio.gameId, gameDir: dir, root };
+    // The paths shown start where the author works (prompts.ts workRoot), not at the engine's package.
+    const opts = { gameId: studio.gameId, gameDir: dir };
     const full = buildPrompts(mod, opts);
     const only = full.missing.length ? buildPrompts(mod, { ...opts, missing: true }) : null;
     const prompts = full.sheets
@@ -531,7 +532,7 @@ export function createAssets(studio: Studio, o: { publicAssets?: () => string; c
 
   async function prompts(missing: boolean): Promise<{ markdown: string }> {
     const mod = await studio.loadGame();
-    return { markdown: buildPrompts(mod, { gameId: studio.gameId, gameDir: dir, root, missing }).markdown };
+    return { markdown: buildPrompts(mod, { gameId: studio.gameId, gameDir: dir, missing }).markdown };
   }
 
   /** A source file of art/ or audio/ by its path relative to the game folder, or null. */

@@ -26,7 +26,7 @@ folder that exists and is not empty, then writes:
 | `public/` | the page's icons, its preview image (`og.png`) and the full font the engine falls back to; `public/assets/` is written by `npm run assets`, not committed |
 | `package.json` | `"config": { "game": "<id>" }`, the dependency on the engine (`^<version>`, or `--engine`), and the scripts below |
 | `tsconfig.json` | `@engine/*` points into `node_modules/@quest-n-click/engine/src/engine`, `@quest-n-click/engine/*` into its public API, `@game` into `game/index.ts` |
-| `.gitignore` | `node_modules`, `dist`, `.cache`, `public/assets` |
+| `.gitignore` | `node_modules`, `dist`, `.cache`, `public/assets`, `game/private` |
 | `README.md` | the five commands below, as a reminder |
 
 Later, `npm run build` writes `dist/` (with `licenses/`), and the tools write `.cache/`.

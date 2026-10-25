@@ -168,7 +168,7 @@ sans erreur (validation, solveur, état des traductions, lint, playtests).
 | `dist/` | le build, avec `licenses/` (`npm run build`) |
 | `package.json` | les scripts `dev`, `studio`, `assets`, `verify`, `build`, `release`, `preview`, qui appellent chacun `quest-n-click`, et le moteur comme seule dépendance |
 | `tsconfig.json` | `@engine/*` pointe dans `node_modules/@quest-n-click/engine/src/engine`, `@quest-n-click/engine/*` dans son API publique |
-| `.gitignore`, `README.md` | `node_modules`, `dist`, `.cache`, `public/assets` ignorés ; les commandes ci-dessus |
+| `.gitignore`, `README.md` | `node_modules`, `dist`, `.cache`, `public/assets`, `game/private` ignorés ; les commandes ci-dessus |
 
 Les images du modèle sont provisoires, dessinées à partir de formes (`tools/placeholder-art.py`) : `game/provenance.json`
 le dit, et `npm run release` les refuse tant que chaque fichier n'est pas remplacé et revu

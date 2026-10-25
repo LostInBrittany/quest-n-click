@@ -76,7 +76,9 @@ On your machine, at the root of the engine repository or of the created project.
 
    The file has one section per sheet to generate, all sharing one STYLE block and one reference sheet
    (`art/_reference.png`, or the hero's validated sheet while it does not exist), and ends with a checklist (see
-   [What `npm run prompts` reads](#prompts)). An assistant gets the same text through the MCP tool `asset_prompts`
+   [What `npm run prompts` reads](#prompts)). Its paths and commands start from the folder you work in: `games/<id>/`,
+   `tools/` and `npm run` in the engine repository; `game/`, `node_modules/@quest-n-click/engine/tools/` and
+   `npx quest-n-click` in a created project. An assistant gets the same text through the MCP tool `asset_prompts`
    (`{ missing?: boolean }`), which also returns the missing image ids as JSON. In the Studio, the **Assets** tab
    shows each sheet's prompt beside its cells, with a **Copy prompt** button.
 
@@ -98,8 +100,8 @@ On your machine, at the root of the engine repository or of the created project.
    ```
 
    ```bash
-   # in the created project
-   python3 node_modules/@quest-n-click/engine/tools/cut-sheet.py <sheet.png> <sheet-id> --out game/art
+   # in the created project, from its folder
+   python3 node_modules/@quest-n-click/engine/tools/cut-sheet.py <sheet.png> <sheet-id>   # → game/art/<sheet-id>/…
    ```
 
    Cut only the new sheet. The cutter writes over a cell that already exists without asking: give `--cells` with the
@@ -345,7 +347,7 @@ background wider than 640 px down 4× to its art pixels. Switching `artStyle` re
 |---|---|---|
 | `<sheet.png> <sheet-id>` | | The sheet, and the folder its cells go to (how images are referenced: `<sheet-id>/r<row>c<col>`) |
 | `--grid COLSxROWS` | `6x4` | The grid (`3x3`, `2x2` for larger objects) |
-| `--out <dir>` | `games/<GAME>/art` | The art root (a created project: `game/art`) |
+| `--out <dir>` | the game's `art/` | The art root: `games/<GAME>/art`, or `game/art` in a created project |
 | `--cells r1c2,r3c1` | all | Only (re)cut these cells |
 | `--auto` | | No grid: detect each sprite wherever it is; writes `sprite_<row>_<col>.png` and `index.json` |
 | `--tol`, `--min` | 40, 2500 | Auto mode: background colour tolerance, minimum sprite area in px |
@@ -353,9 +355,10 @@ background wider than 640 px down 4× to its art pixels. Switching `artStyle` re
 | `--scale`, `--colors` | 4, 32 | Pixel art: the sheet's scale-up, the colours per cell |
 
 Detection is per figure, not per fixed box: a figure that overflows its cell a little is still captured whole; a cell
-where nothing is found falls back to its fixed rectangle, so every requested cell is written. The game is `GAME`, else
-the game `.cache/game` links to, else `package.json`'s `config.game`; its `site.json` is looked up next to the `--out`
-folder first.
+where nothing is found falls back to its fixed rectangle, so every requested cell is written. The game's folder is
+`GAME_DIR`, else `game/` in a created project (the `quest-n-click` command's `WEB_SCUMM_PROJECT`, or a folder holding
+`game/index.ts`, even beside a stray `games/`; `tools/game_folder.py`), else `games/<GAME>` with `GAME`, else the game `.cache/game` links to, else
+`package.json`'s `config.game`; its `site.json` is looked up next to the `--out` folder first.
 
 <a name="prompts"></a>
 
@@ -378,7 +381,9 @@ What `npm run prompts` reads, from the game module and the art folder:
   furniture and characters (left / center / right from `layout/<room>.json`);
 - **furniture**: props whose image lives in a `furniture_*` folder, and the room's `furniture` list;
 - a **checklist**: reference → hero → other characters → objects → backgrounds → furniture, each with its
-  `python3 tools/cut-sheet.py` command (`--cells` for the missing ones only), then `npm run assets`.
+  cut command (`python3 tools/cut-sheet.py`, in a created project
+  `python3 node_modules/@quest-n-click/engine/tools/cut-sheet.py`; `--cells` for the missing ones only), then
+  `npm run assets`.
 
 <a name="common-rules"></a>
 

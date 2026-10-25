@@ -176,8 +176,10 @@ What goes wrong under a sub-path, with the cache or with a half-uploaded site:
 [Sub-path, cache and service worker, incomplete deploys, going back](create.deploy-issues.md).
 
 In the engine repository, `games/<id>/private/` (photos, raw sheets, the sealed ending's configuration) is never
-sent: `.gitignore` excludes it, and nothing in it is copied into `dist/`. A created project's `.gitignore` lists only
-`node_modules`, `dist`, `.cache` and `public/assets`: keep private files outside `game/`, or add them to it.
+sent: `.gitignore` excludes it, and nothing in it is copied into `dist/`. A created project's `.gitignore` lists
+`node_modules`, `dist`, `.cache`, `public/assets` and `game/private` (the raw sheets the art prompts save there); a
+project created by an engine up to 4.5.3 lacks that last line: add it, and keep other private files in
+`game/private/` or outside `game/`.
 
 > [!LIMIT id=release-proof-not-witness]
 > `npm run build` and `npm run verify` ask the solver for a witness: one way to an ending. Only the release

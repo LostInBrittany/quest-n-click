@@ -1,21 +1,46 @@
-// Art prompts for the current game: `npm run prompts [--missing] [--out games/<id>/prompts.md]`.
+// Art prompts for the current game: `npm run prompts [--missing] [--out games/<id>/prompts.md]` (in a game project:
+// `npx quest-n-click prompts`, game/prompts.md).
 // Reads the game module (characters, rooms, props, items, minigame params) and the art folder, and writes one
 // ready-to-paste image-model prompt per sheet to generate, all sharing one STYLE block and one reference sheet, with
 // the engine's pose rows (wiki/en/create.images.md). `--missing`: only the sheets with at least one image not cut yet.
 // Also used by the MCP tool `asset_prompts` (tools/mcp/server.ts).
 import { existsSync, readFileSync } from 'node:fs';
-import { join, relative, resolve } from 'node:path';
-import { pathToFileURL } from 'node:url';
+import { basename, dirname, join, relative, resolve } from 'node:path';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 import type { CharacterDef, GameDef, Layout, PropDef, RoomDef } from '../src/engine/core/types';
 import { normalizeExits } from '../src/engine/core/define';
 import type { GameModule } from './game';
 import { collectRefs } from './refs';
 
+/** The engine's folder (tools/ is in it): this repository, or the installed package in a game project. */
+const ENGINE = resolve(fileURLToPath(new URL('.', import.meta.url)), '..');
+
+/**
+ * The folder an author runs the commands from, for a game folder: the parent of `games/` (`games/<id>/` in this
+ * repository), else the folder holding the game folder (a project's `game/`, 3.9).
+ */
+export function workRoot(gameDir: string): string {
+  const parent = dirname(resolve(gameDir));
+  return basename(parent) === 'games' ? dirname(parent) : parent;
+}
+
+/** Whether `<root>/.gitignore` names the game's private folder (`game/private`, with or without slashes). */
+function privateIgnored(root: string, gameRel: string): boolean {
+  try {
+    const want = `${gameRel}/private`;
+    return readFileSync(join(root, '.gitignore'), 'utf8')
+      .split(/\r?\n/)
+      .some((l) => l.trim().replace(/^\/|\/$/g, '') === want);
+  } catch {
+    return false;
+  }
+}
+
 /** The default flat background of the sheets, when `site.json` has no valid `sheetBackground`. */
 export const BG = '#2B2E45';
 
 export interface PromptOptions {
-  /** Game id, used in paths (`games/<id>/…`). */
+  /** Game id. The paths shown come from `gameDir`, `root` and `engineDir` (a project's game is in `game/`). */
   gameId: string;
   /** Game folder (layout/*.json, talk-kits.json). */
   gameDir: string;
@@ -25,8 +50,13 @@ export interface PromptOptions {
   missing?: boolean;
   /** Room layouts (default: read from `<gameDir>/layout/<room>.json`), for "left / center / right" hints. */
   layouts?: Record<string, Layout>;
-  /** Repository root, for the paths shown in the text (default: the parent of `games/`). */
+  /**
+   * The folder the author runs the commands from, for the paths shown in the text (default {@link workRoot}: the
+   * parent of `games/` in this repository, the project's folder for a project's `game/`).
+   */
   root?: string;
+  /** The engine's folder, where `tools/` is (default: this file's repository or installed package). */
+  engineDir?: string;
   /** Art style preset (default: `artStyle` of `<gameDir>/site.json`, else `cel`). */
   artStyle?: ArtStyle;
   /** Background of the sprite sheets (default: `sheetBackground` of `<gameDir>/site.json`, else {@link BG}). */
@@ -351,7 +381,6 @@ function where(x: number, y?: number, onFurniture?: boolean): string {
 
 export function buildPrompts(mod: Pick<GameModule, 'game' | 'extraImages'>, opts: PromptOptions): PromptResult {
   const game: GameDef = normalizeExits(mod.game); // declared exits are hotspots the backgrounds must show
-  const gid = opts.gameId;
   const artStyle: ArtStyle = opts.artStyle ?? readArtStyle(opts.gameDir);
   const pixel = artStyle === 'pixel';
   const { char: STYLE_CHAR, obj: STYLE_OBJ, bg: STYLE_BG } = STYLES[artStyle];
@@ -365,9 +394,20 @@ export function buildPrompts(mod: Pick<GameModule, 'game' | 'extraImages'>, opts
     ...(pixel ? pixelRules(pixelGrid(w, h, cells)) : []),
   ];
   const artDir = opts.artDir ?? join(opts.gameDir, 'art');
-  const root = opts.root ?? resolve(opts.gameDir, '..', '..');
-  const rel = (p: string) => relative(root, p) || '.';
+  const root = resolve(opts.root ?? workRoot(opts.gameDir));
+  const engineDir = resolve(opts.engineDir ?? ENGINE);
+  const rel = (p: string) => (relative(root, p) || '.').split('\\').join('/');
   const artRel = rel(artDir);
+  const gameRel = rel(opts.gameDir);
+  // A game project runs the engine's tools from the installed package: its command, its Python tools' path (3.9).
+  const project = engineDir !== root;
+  const cmd = (c: string, args = '') =>
+    project ? `npx quest-n-click ${c}${args ? ` ${args}` : ''}` : `npm run ${c}${args ? ` -- ${args}` : ''}`;
+  const tool = (file: string) => rel(join(engineDir, 'tools', file));
+  const cutSheet = `python3 ${tool('cut-sheet.py')}`;
+  /** The mouth tools: the engine's commands in a project (`quest-n-click talk-kit`), the Python tools here. */
+  const talkTool = (name: 'talk-kit' | 'talk-apply') =>
+    project ? `npx quest-n-click ${name}` : `python3 ${tool(`${name}.py`)}`;
   const onlyMissing = !!opts.missing;
   const has = (id: string) => ['.png', '.jpg', '.jpeg', '.webp'].some((e) => existsSync(join(artDir, id + e)));
   const fileOf = (id: string) => {
@@ -389,7 +429,12 @@ export function buildPrompts(mod: Pick<GameModule, 'game' | 'extraImages'>, opts
   const sheets: PromptSheet[] = [];
   const steps: { order: number; text: string }[] = [];
   const out: string[] = [];
-  const privateDir = `games/${gid}/private/sheets`;
+  const privateDir = `${gameRel}/private/sheets`;
+  // This repository ignores games/*/private/; a project created by an earlier engine has no such line in its .gitignore.
+  const ignored =
+    !project || privateIgnored(root, gameRel)
+      ? '(gitignored)'
+      : `(not for git: add \`${gameRel}/private/\` to \`.gitignore\`)`;
 
   // ---------------------------------------------------------------- reference
   const heroId = game.hero;
@@ -423,11 +468,11 @@ export function buildPrompts(mod: Pick<GameModule, 'game' | 'extraImages'>, opts
   out.push(
     `# Art prompts — ${game.title}`,
     '',
-    `Generated by \`npm run prompts${onlyMissing ? ' -- --missing' : ''}\` from the game's content (\`games/${gid}/\`) and its art folder (\`${artRel}/\`). ` +
+    `Generated by \`${cmd('prompts', onlyMissing ? '--missing' : '')}\` from the game's content (\`${gameRel}/\`) and its art folder (\`${artRel}/\`). ` +
       'Do not edit by hand: change the game (`description` on characters and rooms, `furniture` on rooms) and run it again.',
     '',
     'Each section is one sheet to ask an image model for. Paste the fenced block as-is, attach the files it names, save ' +
-      `the image under \`${privateDir}/<sheet>.png\` (gitignored), then cut it with the command of the checklist at the end.`,
+      `the image under \`${privateDir}/<sheet>.png\` ${ignored}, then cut it with the command of the checklist at the end.`,
     '',
   );
 
@@ -446,11 +491,11 @@ export function buildPrompts(mod: Pick<GameModule, 'game' | 'extraImages'>, opts
       `${NO_TEXT} ${LIGHT}`,
     ]),
     '',
-    `- Art style: \`${artStyle}\` (\`artStyle\` in \`games/${gid}/site.json\`: \`cel\` or \`pixel\`).`,
+    `- Art style: \`${artStyle}\` (\`artStyle\` in \`${gameRel}/site.json\`: \`cel\` or \`pixel\`).`,
     ...(pixel
       ? [
-          `- Pixel art: the tools enforce the PIXEL RULES after generation. \`tools/cut-sheet.py\` (it reads \`artStyle\`) scales each cell down ${PIXEL_SCALE}× with nearest neighbour, ` +
-            'merges near-identical colours into one exact value and keeps at most 32 colours per cell (indexed PNG); `npm run assets` writes lossless WebP ' +
+          `- Pixel art: the tools enforce the PIXEL RULES after generation. \`${tool('cut-sheet.py')}\` (it reads \`artStyle\`) scales each cell down ${PIXEL_SCALE}× with nearest neighbour, ` +
+            `merges near-identical colours into one exact value and keeps at most 32 colours per cell (indexed PNG); \`${cmd('assets')}\` writes lossless WebP ` +
             `and scales full-size backgrounds down ${PIXEL_SCALE}× the same way; set \`skin: { pixelArt: true }\` in the game so the engine draws every image with hard edges.`,
         ]
       : []),
@@ -788,7 +833,7 @@ export function buildPrompts(mod: Pick<GameModule, 'game' | 'extraImages'>, opts
       steps.push({
         order,
         text: missingIds.length
-          ? `${c.name}: generate \`${sheet}\`, then \`python3 tools/cut-sheet.py ${privateDir}/${sheet}.png ${sheet}${maxRow > 4 ? ` --grid 6x${maxRow}` : ''}${cutCells}\`.`
+          ? `${c.name}: generate \`${sheet}\`, then \`${cutSheet} ${privateDir}/${sheet}.png ${sheet}${maxRow > 4 ? ` --grid 6x${maxRow}` : ''}${cutCells}\`.`
           : `${c.name}: \`${sheet}\` is already cut (keep it).`,
       });
       charIndex++;
@@ -842,10 +887,10 @@ export function buildPrompts(mod: Pick<GameModule, 'game' | 'extraImages'>, opts
               `- \`${x.pose}\` → kit \`${x.kitChar}_${x.dir}\`, from \`${x.src}\`, frames \`talk_${x.kitChar}/${x.dir}/t1..t6\`${x.missing.length ? ` (missing: ${x.missing.map((f) => splitId(f).name).join(', ')})` : ' (exists — keep)'}`,
           ),
           '',
-          `1. \`games/${gid}/talk-kits.json\` needs: \`"${kitChar}": ${JSON.stringify(Object.fromEntries(rowsM.map((x) => [x.dir, x.src])))}\`${rowsM.every((x) => x.inKits) ? ' (already there)' : ' (add it)'}.`,
-          `2. \`python3 tools/talk-kit.py ${kitChar}\` writes one kit per pose to \`games/${gid}/private/talk_kits/\`.`,
+          `1. \`${gameRel}/talk-kits.json\` needs: \`"${kitChar}": ${JSON.stringify(Object.fromEntries(rowsM.map((x) => [x.dir, x.src])))}\`${rowsM.every((x) => x.inKits) ? ' (already there)' : ' (add it)'}.`,
+          `2. \`${talkTool('talk-kit')} ${kitChar}\` writes one kit per pose to \`${gameRel}/private/talk_kits/\`.`,
           `3. Send each kit to the image model, one per message, with the prompt below; save the reply as \`${kitChar}_<pose>_out.png\` next to the kit.`,
-          `4. \`python3 tools/talk-apply.py ${kitChar}_<pose>\` for each pose (${rowsM.map((x) => `\`${kitChar}_${x.dir}\``).join(', ')}).`,
+          `4. \`${talkTool('talk-apply')} ${kitChar}_<pose>\` for each pose (${rowsM.map((x) => `\`${kitChar}_${x.dir}\``).join(', ')}).`,
           '',
           fence([
             'This image is a grid of 6 identical cartoon portraits (3 columns x 2 rows).',
@@ -865,7 +910,7 @@ export function buildPrompts(mod: Pick<GameModule, 'game' | 'extraImages'>, opts
         steps.push({
           order,
           text: missingM.length
-            ? `${c.name}: mouth kit — \`python3 tools/talk-kit.py ${kitChar}\`, one message per kit, then \`python3 tools/talk-apply.py ${kitChar}_<pose>\`.`
+            ? `${c.name}: mouth kit — \`${talkTool('talk-kit')} ${kitChar}\`, one message per kit, then \`${talkTool('talk-apply')} ${kitChar}_<pose>\`.`
             : `${c.name}: mouths \`talk_${kitChar}\` already done (keep them).`,
         });
       }
@@ -1088,7 +1133,7 @@ export function buildPrompts(mod: Pick<GameModule, 'game' | 'extraImages'>, opts
         steps.push({
           order: 3,
           text: missingIds.length
-            ? `Objects \`${sheet}\`: generate, then \`python3 tools/cut-sheet.py ${privateDir}/${sheet}.png ${sheet}${maxC !== 6 || maxR !== 4 ? ` --grid ${maxC}x${maxR}` : ''}${cutCells}\`.`
+            ? `Objects \`${sheet}\`: generate, then \`${cutSheet} ${privateDir}/${sheet}.png ${sheet}${maxC !== 6 || maxR !== 4 ? ` --grid ${maxC}x${maxR}` : ''}${cutCells}\`.`
             : `Objects \`${sheet}\`: every cell exists (keep them).`,
         });
       }
@@ -1142,7 +1187,7 @@ export function buildPrompts(mod: Pick<GameModule, 'game' | 'extraImages'>, opts
     steps.push({
       order: kind === 'furniture' ? 5 : 3,
       text: cut.length
-        ? `${kind === 'furniture' ? 'Furniture' : 'Objects'} \`${sheet}\`: generate, then \`python3 tools/cut-sheet.py ${privateDir}/${sheet}.png ${sheet} --grid ${cols}x${rowsN} --cells ${cut.map((p) => pos(list.indexOf(p))).join(',')}\` and rename: ${cut.map((p) => `${pos(list.indexOf(p))}.png → ${splitId(p.id).name}.png`).join(', ')}.`
+        ? `${kind === 'furniture' ? 'Furniture' : 'Objects'} \`${sheet}\`: generate, then \`${cutSheet} ${privateDir}/${sheet}.png ${sheet} --grid ${cols}x${rowsN} --cells ${cut.map((p) => pos(list.indexOf(p))).join(',')}\` and rename: ${cut.map((p) => `${pos(list.indexOf(p))}.png → ${splitId(p.id).name}.png`).join(', ')}.`
         : `${kind === 'furniture' ? 'Furniture' : 'Objects'} \`${sheet}\`: every piece exists (keep them).`,
     });
     return [
@@ -1303,7 +1348,7 @@ export function buildPrompts(mod: Pick<GameModule, 'game' | 'extraImages'>, opts
   out.push('In this order (reference → hero → other characters → objects → backgrounds → furniture):', '');
   steps.sort((a, b) => a.order - b.order).forEach((s, i) => out.push(`${i + 1}. ${s.text}`));
   out.push(
-    `${steps.length + 1}. \`npm run assets\` (prepares the cut art for the engine), then \`npm run audit\` and look at the rooms in \`npm run studio\`.`,
+    `${steps.length + 1}. \`${cmd('assets')}\` (prepares the cut art for the engine), then ${project ? '' : '`npm run audit` and '}look at the rooms in \`${cmd('studio')}\`.`,
     '',
   );
   if (missing.length) out.push(`Missing images (${missing.length}): ${missing.map((x) => `\`${x}\``).join(', ')}.`, '');
@@ -1318,18 +1363,19 @@ export function buildPrompts(mod: Pick<GameModule, 'game' | 'extraImages'>, opts
 // ------------------------------------------------------------------ CLI
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
-  const { loadGameModule, GAME, GAME_DIR, ROOT } = await import('./game');
+  // WORK: this repository, or the game project's folder (`quest-n-click prompts`), where the shown paths start.
+  const { loadGameModule, GAME, GAME_DIR, ROOT, WORK } = await import('./game');
   const args = process.argv.slice(2);
   const missing = args.includes('--missing');
   const oi = args.indexOf('--out');
-  const outFile = resolve(ROOT, oi >= 0 && args[oi + 1] ? args[oi + 1] : join(GAME_DIR, 'prompts.md'));
+  const outFile = resolve(WORK, oi >= 0 && args[oi + 1] ? args[oi + 1] : join(GAME_DIR, 'prompts.md'));
   const mod = await loadGameModule();
-  const r = buildPrompts(mod, { gameId: GAME, gameDir: GAME_DIR, missing, root: ROOT });
+  const r = buildPrompts(mod, { gameId: GAME, gameDir: GAME_DIR, missing, root: WORK, engineDir: ROOT });
   const { writeOutput } = await import('./game-write');
   await writeOutput('prompts.md', outFile, r.markdown);
   const toDo = r.sheets.filter((s) => s.missing.length);
   console.log(
-    `${relative(ROOT, outFile)}: ${r.sheets.length} sheet(s), ${toDo.length} with missing images, ${r.missing.length} missing image(s).`,
+    `${relative(WORK, outFile)}: ${r.sheets.length} sheet(s), ${toDo.length} with missing images, ${r.missing.length} missing image(s).`,
   );
   for (const s of toDo) console.log(`  ${s.kind.padEnd(10)} ${s.id}: ${s.missing.length} missing`);
 }

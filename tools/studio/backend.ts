@@ -59,7 +59,8 @@ export function coreBackend(studio: Studio, o: CoreBackendOptions): ToolBackend 
     docs: async () => resolveDocs(o.root),
     assetPrompts: async (missing) => {
       const mod = await studio.loadGame();
-      return buildPrompts(mod, { gameId: studio.gameId, gameDir: studio.gameDir, root: o.root, missing });
+      // The paths shown start where the author works (workRoot): this repository, or a project's folder (not the package).
+      return buildPrompts(mod, { gameId: studio.gameId, gameDir: studio.gameDir, missing });
     },
     screenshot: async (room, checkpoint) => {
       try {
