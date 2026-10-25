@@ -293,18 +293,37 @@ describe('ci.yml and the plan', () => {
     }
   });
 
-  it('runs the unit suite on every change, under coverage only when the plan asks (4.5.4, #302)', () => {
-    const body = job('coverage');
-    expect(body).not.toMatch(/^ {4}if:/m);
-    expect(body).toContain('RUN: ${{ fromJSON(needs.plan.outputs.plan).coverage }}');
-    // The plan spares the instrumentation, never the tests.
-    // test:node leaves out the two asset files; test:coverage has them: both runs cover the same files.
-    expect(body).toMatch(/- if: env\.RUN != 'true'\n {8}run: npm run test:node && npm run test:assets\n/);
-    expect(body).toMatch(/- if: env\.RUN == 'true'\n {8}run: npm run test:coverage/);
-    expect(body).toMatch(/- if: env\.RUN == 'true'\n {8}run: npx tsx tools\/coverage-ratchet\.ts/);
-    // The setup is the same either way: no step before the tests is gated.
-    const setup = body.slice(0, body.indexOf("- if: env.RUN != 'true'\n        run: npm run test:node"));
+  it('runs the unit suite on every change, in four shards, under coverage only when the plan asks (4.5.4, #302)', () => {
+    const unit = job('unit');
+    expect(unit).not.toMatch(/^ {4}if:/m);
+    expect(unit).toMatch(/strategy:\n {6}fail-fast: false\n {6}matrix:\n {8}shard: \[1, 2, 3, 4\]/);
+    expect(unit).toContain('RUN: ${{ fromJSON(needs.plan.outputs.plan).coverage }}');
+    expect(unit).toContain('VITEST_SHARD: ${{ matrix.shard }}/4');
+    // The plan spares the instrumentation, never the tests; the same files either way.
+    expect(unit).toMatch(
+      /- if: env\.RUN != 'true'\n {8}run: npm run test:unit -- --shard=\$\{\{ matrix\.shard \}\}\/4 --passWithNoTests\n/,
+    );
+    expect(unit).toMatch(
+      /- if: env\.RUN == 'true'\n {8}run: npm run test:coverage -- --shard=\$\{\{ matrix\.shard \}\}\/4 --passWithNoTests --reporter=blob --reporter=default\n/,
+    );
+    expect(unit).toContain('name: unit-blob-${{ matrix.shard }}');
+    const setup = unit.slice(0, unit.indexOf("- if: env.RUN != 'true'\n        run: npm run test:unit"));
     expect(setup).not.toContain('env.RUN');
+  });
+
+  it('keeps the required `coverage` check: it merges the shards, and is red when one is not green', () => {
+    const cov = job('coverage');
+    expect(cov).toMatch(/^ {4}needs: \[plan, unit\]$/m);
+    expect(cov).toMatch(/^ {4}if: always\(\)$/m);
+    expect(cov).toContain(
+      '[ "${{ needs.unit.result }}" = success ] || { echo "::error::unit: ${{ needs.unit.result }}"; exit 1; }',
+    );
+    expect(cov).toMatch(/- if: env\.RUN == 'true'\n {8}run: npm run test:merge\n/);
+    expect(cov).toMatch(
+      /- if: env\.RUN == 'true'\n {8}run: npx tsx tools\/coverage-ratchet\.ts \$\{\{ github\.event_name != 'pull_request' && '--strict' \|\| '' \}\}/,
+    );
+    expect(cov).toContain('pattern: unit-blob-*');
+    expect(cov).not.toContain('npm run test:coverage');
   });
 
   it('the gate job needs every other job and asks each for success', () => {
@@ -338,6 +357,21 @@ describe('the workflow, lot 0 details', () => {
     expect(yml).toMatch(/fetch-depth: 2/);
     expect(yml).toContain('--base=HEAD^1');
     expect(yml).toMatch(/--all/);
+  });
+});
+
+describe('the unit suite in shards (4.5.4)', () => {
+  const scripts = JSON.parse(readFileSync('package.json', 'utf8')).scripts as Record<string, string>;
+  it('test:unit is test:coverage without the instrumentation: the same files', () => {
+    expect(scripts['test:coverage']).toBe(scripts['test:unit']!.replace(/^vitest run /, 'vitest run --coverage '));
+  });
+  it('test:merge merges the shards under coverage', () => {
+    expect(scripts['test:merge']).toBe('vitest --merge-reports --coverage');
+  });
+  it('applies the coverage floors to the merged suite, never to one shard', () => {
+    expect(readFileSync('vite.config.ts', 'utf8')).toMatch(
+      /thresholds: process\.env\.VITEST_SHARD\s*\?\s*undefined\s*:\s*\{/,
+    );
   });
 });
 

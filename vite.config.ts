@@ -250,63 +250,67 @@ export default defineConfig({
       exclude: ['src/**/*.d.ts'],
       reporter: ['text-summary', 'json-summary', 'html'],
       reportsDirectory: '.cache/coverage',
-      thresholds: {
-        // The floor measured at 4.1.0 (the browser-only parts of src/, the player's UI and the Studio's, are covered
-        // by the e2e, not here).
-        lines: 75,
-        statements: 74,
-        functions: 71,
-        branches: 70,
-        // What a save, a session, a condition and a migration rest on: every branch.
-        'src/engine/core/cond.ts': { branches: 100 },
-        'src/engine/core/diff.ts': { branches: 100 },
-        'src/engine/core/migrate.ts': { branches: 100 },
-        'src/engine/core/save.ts': { branches: 100 },
-        // 93: v8 counts the presenter's side of `choose` / `pickPlace` as the calls that went to the presenter minus
-        // those fed by a replay, which the rest of the suite outnumbers; both sides are tested (critical-session).
-        'src/engine/core/session-runtime.ts': { branches: 94 },
-        // The one branch left is `?? 0` on a session that always exists by then.
-        'src/engine/tools/replay.ts': { branches: 99 },
-        // Eleven fallbacks for an old entry that `assignIds` always finds (critical-ids lists them).
-        'src/engine/core/content-ids.ts': { branches: 96 },
-        // What a signal from the world outside rests on (4.1.2; ratcheted in 4.1.3 by tools/coverage-ratchet.ts), may only rise. The player's menu
-        // (dom/reality-ui.ts), the Studio's simulator and panel are covered by e2e:reality, not here.
-        'src/engine/core/reality-runtime.ts': { lines: 100, branches: 100 },
-        'src/engine/reality/protocol.ts': { lines: 96, branches: 98 },
-        'src/engine/reality/client.ts': { lines: 98, branches: 90 },
-        'src/engine/reality/http-port.ts': { lines: 98, branches: 95 },
-        // The Studio Server's trust boundaries (4.2.1): the journal, the gate and its provider, the leases, the game's
-        // origin, the worker's jobs. Two points under what was measured when they arrived; they may only rise.
-        'studio-server/src/ops/backup.ts': { lines: 98, branches: 91 },
-        'studio-server/src/ops/gc.ts': { lines: 98, branches: 98 },
-        'studio-server/src/ops/ship.ts': { lines: 98, branches: 89 },
-        'studio-server/src/ops/journal.ts': { lines: 96, branches: 95 },
-        'studio-server/src/ops/spans.ts': { lines: 100, branches: 100 },
-        'studio-server/src/ops/undo.ts': { lines: 98, branches: 98 },
-        'studio-server/src/ops/validate-dir.ts': { lines: 100, branches: 90 },
-        'studio-server/src/server/auth/gate.ts': { lines: 96, branches: 96 },
-        'studio-server/src/server/auth/oidc.ts': { lines: 98, branches: 95 },
-        'studio-server/src/server/auth/routes.ts': { lines: 98, branches: 94 },
-        'studio-server/src/server/auth/store.ts': { lines: 93, branches: 97 },
-        'studio-server/src/server/config.ts': { lines: 84, branches: 83 },
-        'studio-server/src/server/http.ts': { lines: 91, branches: 81 },
-        'studio-server/src/server/leases.ts': { lines: 98, branches: 98 },
-        'studio-server/src/server/live.ts': { lines: 87, branches: 62 },
-        'studio-server/src/server/play.ts': { lines: 100, branches: 94 },
-        'studio-server/src/server/builds.ts': { lines: 98, branches: 98 },
-        'studio-server/src/server/health.ts': { lines: 98, branches: 95 },
-        'studio-server/src/server/prepared.ts': { lines: 98, branches: 92 },
-        'studio-server/src/server/previews.ts': { lines: 97, branches: 96 },
-        'studio-server/src/server/remote-executor.ts': { lines: 96, branches: 88 },
-        'studio-server/src/worker/job.ts': { lines: 100, branches: 100 },
-        'studio-server/src/worker/snapshot.ts': { lines: 95, branches: 88 },
-        'bridge/src/bridge.ts': { lines: 97, branches: 96 },
-        'bridge/src/store.ts': { lines: 96, branches: 92 },
-        'bridge/src/server.ts': { lines: 94, branches: 86 },
-        'bridge/src/policy.ts': { lines: 100, branches: 98 },
-        'bridge/src/lock.ts': { lines: 100, branches: 100 },
-        'bridge/src/cli.ts': { lines: 84, branches: 70 },
-      },
+      // A shard (`VITEST_SHARD`, ci.yml's `unit` matrix, 4.5.4) measures a part of the suite: the floors apply to the
+      // parts merged (`npm run test:merge`), never to one.
+      thresholds: process.env.VITEST_SHARD
+        ? undefined
+        : {
+            // The floor measured at 4.1.0 (the browser-only parts of src/, the player's UI and the Studio's, are covered
+            // by the e2e, not here).
+            lines: 75,
+            statements: 74,
+            functions: 71,
+            branches: 70,
+            // What a save, a session, a condition and a migration rest on: every branch.
+            'src/engine/core/cond.ts': { branches: 100 },
+            'src/engine/core/diff.ts': { branches: 100 },
+            'src/engine/core/migrate.ts': { branches: 100 },
+            'src/engine/core/save.ts': { branches: 100 },
+            // 93: v8 counts the presenter's side of `choose` / `pickPlace` as the calls that went to the presenter minus
+            // those fed by a replay, which the rest of the suite outnumbers; both sides are tested (critical-session).
+            'src/engine/core/session-runtime.ts': { branches: 94 },
+            // The one branch left is `?? 0` on a session that always exists by then.
+            'src/engine/tools/replay.ts': { branches: 99 },
+            // Eleven fallbacks for an old entry that `assignIds` always finds (critical-ids lists them).
+            'src/engine/core/content-ids.ts': { branches: 96 },
+            // What a signal from the world outside rests on (4.1.2; ratcheted in 4.1.3 by tools/coverage-ratchet.ts), may only rise. The player's menu
+            // (dom/reality-ui.ts), the Studio's simulator and panel are covered by e2e:reality, not here.
+            'src/engine/core/reality-runtime.ts': { lines: 100, branches: 100 },
+            'src/engine/reality/protocol.ts': { lines: 96, branches: 98 },
+            'src/engine/reality/client.ts': { lines: 98, branches: 90 },
+            'src/engine/reality/http-port.ts': { lines: 98, branches: 95 },
+            // The Studio Server's trust boundaries (4.2.1): the journal, the gate and its provider, the leases, the game's
+            // origin, the worker's jobs. Two points under what was measured when they arrived; they may only rise.
+            'studio-server/src/ops/backup.ts': { lines: 98, branches: 91 },
+            'studio-server/src/ops/gc.ts': { lines: 98, branches: 98 },
+            'studio-server/src/ops/ship.ts': { lines: 98, branches: 89 },
+            'studio-server/src/ops/journal.ts': { lines: 96, branches: 95 },
+            'studio-server/src/ops/spans.ts': { lines: 100, branches: 100 },
+            'studio-server/src/ops/undo.ts': { lines: 98, branches: 98 },
+            'studio-server/src/ops/validate-dir.ts': { lines: 100, branches: 90 },
+            'studio-server/src/server/auth/gate.ts': { lines: 96, branches: 96 },
+            'studio-server/src/server/auth/oidc.ts': { lines: 98, branches: 95 },
+            'studio-server/src/server/auth/routes.ts': { lines: 98, branches: 94 },
+            'studio-server/src/server/auth/store.ts': { lines: 93, branches: 97 },
+            'studio-server/src/server/config.ts': { lines: 84, branches: 83 },
+            'studio-server/src/server/http.ts': { lines: 91, branches: 81 },
+            'studio-server/src/server/leases.ts': { lines: 98, branches: 98 },
+            'studio-server/src/server/live.ts': { lines: 87, branches: 62 },
+            'studio-server/src/server/play.ts': { lines: 100, branches: 94 },
+            'studio-server/src/server/builds.ts': { lines: 98, branches: 98 },
+            'studio-server/src/server/health.ts': { lines: 98, branches: 95 },
+            'studio-server/src/server/prepared.ts': { lines: 98, branches: 92 },
+            'studio-server/src/server/previews.ts': { lines: 97, branches: 96 },
+            'studio-server/src/server/remote-executor.ts': { lines: 96, branches: 88 },
+            'studio-server/src/worker/job.ts': { lines: 100, branches: 100 },
+            'studio-server/src/worker/snapshot.ts': { lines: 95, branches: 88 },
+            'bridge/src/bridge.ts': { lines: 97, branches: 96 },
+            'bridge/src/store.ts': { lines: 96, branches: 92 },
+            'bridge/src/server.ts': { lines: 94, branches: 86 },
+            'bridge/src/policy.ts': { lines: 100, branches: 98 },
+            'bridge/src/lock.ts': { lines: 100, branches: 100 },
+            'bridge/src/cli.ts': { lines: 84, branches: 70 },
+          },
     },
   },
 });

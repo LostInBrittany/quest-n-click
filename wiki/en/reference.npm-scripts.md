@@ -560,6 +560,14 @@ The CPU-bound solver tests (abstraction audits, canonical owner, memo and owners
 
 - Runs: `vitest run --no-file-parallelism tests/ownership.test.ts tests/audit.test.ts tests/canonical.test.ts tests/memo.test.ts tests/reference-proof.test.ts tests/solver-oracle.test.ts tests/dominance.test.ts tests/partition.test.ts tests/checkpoint-matrix.test.ts`
 
+<a name="test-merge"></a>
+
+#### `npm run test:merge`
+
+Merges the blob reports of the shards (`.vitest/blob`) under coverage: one report, the floors of `vite.config.ts` applied to the whole suite, the summary the ratchet reads (CI's `coverage` job, 4.5.4). Locally, clear `.vitest/blob` before the shards: a blob left there is merged too.
+
+- Runs: `vitest --merge-reports --coverage`
+
 <a name="test-mutation-core"></a>
 
 #### `npm run test:mutation:core`
@@ -608,6 +616,14 @@ One mutation set (4.1.16): a run's envelope and `h0`, the recorder and the verif
 The unit suite without the Python-bound tests (`tests/pixel.test.ts`, `tests/studio-assets.test.ts`) and the CPU-bound ones (`test:heavy`'s files); `npm run check` runs it, the heavy ones run nightly.
 
 - Runs: `vitest run --exclude tests/pixel.test.ts --exclude tests/studio-assets.test.ts --exclude tests/ownership.test.ts --exclude tests/audit.test.ts --exclude tests/canonical.test.ts --exclude tests/memo.test.ts --exclude tests/reference-proof.test.ts --exclude tests/solver-oracle.test.ts --exclude tests/dominance.test.ts --exclude tests/partition.test.ts --exclude tests/checkpoint-matrix.test.ts`
+
+<a name="test-unit"></a>
+
+#### `npm run test:unit`
+
+The files of `test:coverage` (the unit suite and the asset tests, heavy tests excluded) without the instrumentation: CI's `unit` job when the plan's `coverage` gate is off, one shard each (`-- --shard=<i>/4`, 4.5.4).
+
+- Runs: `vitest run --exclude tests/ownership.test.ts --exclude tests/audit.test.ts --exclude tests/canonical.test.ts --exclude tests/memo.test.ts --exclude tests/reference-proof.test.ts --exclude tests/solver-oracle.test.ts --exclude tests/dominance.test.ts --exclude tests/partition.test.ts --exclude tests/checkpoint-matrix.test.ts`
 
 <a name="tsc"></a>
 
