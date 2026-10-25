@@ -130,4 +130,44 @@ describe('minigames at the keyboard', () => {
     }
     await within(done, 6000);
   });
+
+  it("cables: tipDeg, socketX, socketY and plugInset fit a game's own plug and board art", async () => {
+    vi.spyOn(Math, 'random').mockReturnValue(0.4);
+    // The board image is 100 × 100 here: the panel is 160 × 160, its top left corner at (468, 125).
+    const params = { board: 'board', knot: 'knot', plugs: { red: 'p/r', blue: 'p/b' }, gags: [] };
+    const sockets = (root: HTMLElement) =>
+      [...root.querySelectorAll('[role="button"]')].filter((x) => x.getAttribute('aria-label')?.startsWith('◎'));
+    const plugOf = (root: HTMLElement, c: string) =>
+      [...root.querySelectorAll('[role="button"]')].find(
+        (x) => x.getAttribute('aria-label') === `⏚ ${c}`,
+      ) as HTMLElement;
+
+    // Defaults: sockets on the left quarter of the board, a plug's tip drawn at 120 degrees.
+    const before = ctxFor(params);
+    void cables.run(before);
+    await flush();
+    expect((sockets(before.root)[0] as HTMLElement).style.left).toBe(`${(508 / 640) * 100}%`);
+    expect(plugOf(before.root, 'red').style.transform).toContain('rotate(60deg)');
+    document.body.innerHTML = '';
+
+    const ctx = ctxFor({ ...params, tipDeg: 0, socketX: 0.5, socketY: [0.1, 0.9], plugInset: 30 });
+    const done = cables.run(ctx);
+    await flush();
+    const [red, blue] = sockets(ctx.root) as HTMLElement[];
+    expect(red.style.left).toBe(`${(548 / 640) * 100}%`);
+    expect(red.style.top).toBe(`${(141 / 400) * 100}%`);
+    expect(blue.style.top).toBe(`${(269 / 400) * 100}%`);
+    // At rest a plug points left: its tip, drawn pointing right, turns half a turn.
+    const plug = plugOf(ctx.root, 'red');
+    expect(plug.style.transform).toContain('rotate(180deg)');
+    key('Enter', plug);
+    key('Enter', red);
+    await flush();
+    // Connected, it points right, its centre plugInset units left of the socket.
+    expect(plug.style.transform).toContain('rotate(0deg)');
+    expect(plug.style.left).toBe(`${(518 / 640) * 100}%`);
+    key('Enter', plugOf(ctx.root, 'blue'));
+    key('Enter', blue);
+    await within(done, 6000);
+  });
 });
