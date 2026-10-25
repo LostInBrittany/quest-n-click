@@ -65,9 +65,9 @@ jobs:
       - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7
         with:
           python-version: '3.12'
-      - run: for i in 1 2 3; do (pip install --require-hashes -r requirements.txt) && break; [ "$i" = 3 ] && exit 1; echo "retry $i"; sleep 15; done
+      - run: for i in 1 2 3; do (timeout 6m pip install --require-hashes -r requirements.txt) && break; [ "$i" = 3 ] && exit 1; echo "retry $i"; sleep 15; done
         timeout-minutes: 20
-      - run: for i in 1 2 3; do (npm ci) && break; [ "$i" = 3 ] && exit 1; echo "retry $i"; sleep 15; done
+      - run: for i in 1 2 3; do (timeout 6m npm ci) && break; [ "$i" = 3 ] && exit 1; echo "retry $i"; sleep 15; done
         timeout-minutes: 20
       # A pull request that changes the code carries its CHANGELOG and LOG fragment (changes/README.md, 4.1.9); the
       # step waits for the tool to be on the branch.
@@ -140,9 +140,9 @@ jobs:
       - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7
         with:
           python-version: '3.12'
-      - run: for i in 1 2 3; do (pip install --require-hashes -r requirements.txt) && break; [ "$i" = 3 ] && exit 1; echo "retry $i"; sleep 15; done
+      - run: for i in 1 2 3; do (timeout 6m pip install --require-hashes -r requirements.txt) && break; [ "$i" = 3 ] && exit 1; echo "retry $i"; sleep 15; done
         timeout-minutes: 20
-      - run: for i in 1 2 3; do (npm ci) && break; [ "$i" = 3 ] && exit 1; echo "retry $i"; sleep 15; done
+      - run: for i in 1 2 3; do (timeout 6m npm ci) && break; [ "$i" = 3 ] && exit 1; echo "retry $i"; sleep 15; done
         timeout-minutes: 20
       # validate --release measures the stems with ffprobe (tests/tooling.test.ts).
       - run: bash scripts/ci-ffmpeg.sh
@@ -179,7 +179,7 @@ jobs:
           node-version: 22
           cache: npm
       - if: env.RUN == 'true'
-        run: for i in 1 2 3; do (npm ci) && break; [ "$i" = 3 ] && exit 1; echo "retry $i"; sleep 15; done
+        run: for i in 1 2 3; do (timeout 6m npm ci) && break; [ "$i" = 3 ] && exit 1; echo "retry $i"; sleep 15; done
         timeout-minutes: 20
       - if: env.RUN == 'true'
         uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
@@ -211,7 +211,7 @@ jobs:
         with:
           node-version: 22
           cache: npm
-      - run: for i in 1 2 3; do (npm ci) && break; [ "$i" = 3 ] && exit 1; echo "retry $i"; sleep 15; done
+      - run: for i in 1 2 3; do (timeout 6m npm ci) && break; [ "$i" = 3 ] && exit 1; echo "retry $i"; sleep 15; done
         timeout-minutes: 20
       - id: m
         shell: bash
@@ -244,7 +244,7 @@ jobs:
         with:
           node-version: 22
           cache: npm
-      - run: for i in 1 2 3; do (npm ci) && break; [ "$i" = 3 ] && exit 1; echo "retry $i"; sleep 15; done
+      - run: for i in 1 2 3; do (timeout 6m npm ci) && break; [ "$i" = 3 ] && exit 1; echo "retry $i"; sleep 15; done
         timeout-minutes: 20
       - id: inputs
         run: echo "hash=$(npx tsx tools/mutate.ts --set=${{ matrix.set }} --hash)" >> "$GITHUB_OUTPUT"
@@ -278,7 +278,7 @@ jobs:
         with:
           node-version: 22
           cache: npm
-      - run: for i in 1 2 3; do (npm ci) && break; [ "$i" = 3 ] && exit 1; echo "retry $i"; sleep 15; done
+      - run: for i in 1 2 3; do (timeout 6m npm ci) && break; [ "$i" = 3 ] && exit 1; echo "retry $i"; sleep 15; done
         timeout-minutes: 20
       - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
@@ -319,7 +319,7 @@ jobs:
           node-version: 22
           cache: npm
       - if: env.RUN == 'true'
-        run: for i in 1 2 3; do (npm ci) && break; [ "$i" = 3 ] && exit 1; echo "retry $i"; sleep 15; done
+        run: for i in 1 2 3; do (timeout 6m npm ci) && break; [ "$i" = 3 ] && exit 1; echo "retry $i"; sleep 15; done
         timeout-minutes: 20
       - if: env.RUN == 'true'
         run: npm run reality:xcheck -- --require-rust
@@ -344,7 +344,7 @@ jobs:
           node-version: 22
           cache: npm
       - if: env.RUN == 'true'
-        run: for i in 1 2 3; do (npm ci) && break; [ "$i" = 3 ] && exit 1; echo "retry $i"; sleep 15; done
+        run: for i in 1 2 3; do (timeout 6m npm ci) && break; [ "$i" = 3 ] && exit 1; echo "retry $i"; sleep 15; done
         timeout-minutes: 20
       - if: env.RUN == 'true'
         run: npx vitest run tests/connectors-*.test.ts tests/dist-no-server-code.test.ts
@@ -407,7 +407,7 @@ jobs:
           node-version: 22
           cache: npm
       - if: env.RUN == 'true'
-        run: for i in 1 2 3; do (npm ci) && break; [ "$i" = 3 ] && exit 1; echo "retry $i"; sleep 15; done
+        run: for i in 1 2 3; do (timeout 6m npm ci) && break; [ "$i" = 3 ] && exit 1; echo "retry $i"; sleep 15; done
         timeout-minutes: 20
       # The asset tools (4.2.2 PR 6b): "Prepare assets" runs them in the worker's child of the e2e stack.
       - if: env.RUN == 'true'
@@ -415,7 +415,7 @@ jobs:
         with:
           python-version: '3.12'
       - if: env.RUN == 'true'
-        run: for i in 1 2 3; do (pip install --require-hashes -r requirements.txt) && break; [ "$i" = 3 ] && exit 1; echo "retry $i"; sleep 15; done
+        run: for i in 1 2 3; do (timeout 6m pip install --require-hashes -r requirements.txt) && break; [ "$i" = 3 ] && exit 1; echo "retry $i"; sleep 15; done
         timeout-minutes: 20
       - if: env.RUN == 'true'
         run: bash scripts/ci-ffmpeg.sh
@@ -460,8 +460,8 @@ jobs:
       # solicited save, the wall between the two; Chromium over http, Firefox over https. Not WebKit here: on Linux it
       # stores no cookie a frame of another host sets (even one site), unlike Safari; it is run on macOS.
       - if: env.RUN == 'true'
-        run: for i in 1 2 3; do (npx playwright install --with-deps chromium firefox) && break; [ "$i" = 3 ] && exit 1; echo "retry $i"; sleep 15; done
-        timeout-minutes: 10
+        run: for i in 1 2 3; do (timeout 6m npx playwright install --with-deps chromium firefox) && break; [ "$i" = 3 ] && exit 1; echo "retry $i"; sleep 15; done
+        timeout-minutes: 20
       - if: env.RUN == 'true'
         run: npm run studio-client && npm run e2e:studio-hosted && npm run e2e:studio-hosted -- --browser=firefox && npm run e2e:studio-collab && npm run e2e:studio-collab -- --browser=firefox
       # The diff's captures (4.4.0): two revisions really built and drawn in Chromium, which the unit jobs do not
@@ -502,7 +502,7 @@ jobs:
           node-version: 22
           cache: npm
       - if: env.RUN == 'true'
-        run: for i in 1 2 3; do (npm ci) && break; [ "$i" = 3 ] && exit 1; echo "retry $i"; sleep 15; done
+        run: for i in 1 2 3; do (timeout 6m npm ci) && break; [ "$i" = 3 ] && exit 1; echo "retry $i"; sleep 15; done
         timeout-minutes: 20
       - if: env.RUN == 'true'
         # Every file that judges the Postgres adapter (4.1.20 PR 2a: five of the eight were run here before), from the set's
@@ -552,10 +552,10 @@ jobs:
         with:
           python-version: '3.12'
       - if: env.RUN == 'true'
-        run: for i in 1 2 3; do (python -m pip install --require-hashes -r requirements.txt) && break; [ "$i" = 3 ] && exit 1; echo "retry $i"; sleep 15; done
+        run: for i in 1 2 3; do (timeout 6m python -m pip install --require-hashes -r requirements.txt) && break; [ "$i" = 3 ] && exit 1; echo "retry $i"; sleep 15; done
         timeout-minutes: 20
       - if: env.RUN == 'true'
-        run: for i in 1 2 3; do (npm ci) && break; [ "$i" = 3 ] && exit 1; echo "retry $i"; sleep 15; done
+        run: for i in 1 2 3; do (timeout 6m npm ci) && break; [ "$i" = 3 ] && exit 1; echo "retry $i"; sleep 15; done
         timeout-minutes: 20
       - if: env.RUN == 'true'
         run: npm run assets
@@ -601,10 +601,10 @@ jobs:
         with:
           python-version: '3.12'
       - if: env.RUN == 'true'
-        run: for i in 1 2 3; do (pip install --require-hashes -r requirements.txt) && break; [ "$i" = 3 ] && exit 1; echo "retry $i"; sleep 15; done
+        run: for i in 1 2 3; do (timeout 6m pip install --require-hashes -r requirements.txt) && break; [ "$i" = 3 ] && exit 1; echo "retry $i"; sleep 15; done
         timeout-minutes: 20
       - if: env.RUN == 'true'
-        run: for i in 1 2 3; do (npm ci) && break; [ "$i" = 3 ] && exit 1; echo "retry $i"; sleep 15; done
+        run: for i in 1 2 3; do (timeout 6m npm ci) && break; [ "$i" = 3 ] && exit 1; echo "retry $i"; sleep 15; done
         timeout-minutes: 20
       - if: env.RUN == 'true'
         run: bash scripts/ci-ffmpeg.sh
@@ -634,6 +634,8 @@ jobs:
         with:
           node-version: 22
           cache: npm
+      # The install loops here have no `timeout <n>m` an attempt, unlike the Linux jobs' (4.5.5, #340): macOS has no
+      # `timeout`, and on Windows System32's timeout.exe may come first in the PATH. The step's limit still holds.
       - if: env.RUN == 'true'
         run: for i in 1 2 3; do (npm ci) && break; [ "$i" = 3 ] && exit 1; echo "retry $i"; sleep 15; done
         timeout-minutes: 20
@@ -697,10 +699,10 @@ jobs:
         with:
           python-version: '3.12'
       - if: env.RUN == 'true'
-        run: for i in 1 2 3; do (python -m pip install --require-hashes -r requirements.txt) && break; [ "$i" = 3 ] && exit 1; echo "retry $i"; sleep 15; done
+        run: for i in 1 2 3; do (timeout 6m python -m pip install --require-hashes -r requirements.txt) && break; [ "$i" = 3 ] && exit 1; echo "retry $i"; sleep 15; done
         timeout-minutes: 20
       - if: env.RUN == 'true'
-        run: for i in 1 2 3; do (npm ci) && break; [ "$i" = 3 ] && exit 1; echo "retry $i"; sleep 15; done
+        run: for i in 1 2 3; do (timeout 6m npm ci) && break; [ "$i" = 3 ] && exit 1; echo "retry $i"; sleep 15; done
         timeout-minutes: 20
       - if: env.RUN == 'true'
         run: npm run new-game second "Second Game"
@@ -790,7 +792,7 @@ jobs:
           node-version: 22
           cache: npm
       - if: env.RUN == 'true'
-        run: for i in 1 2 3; do (npm ci) && break; [ "$i" = 3 ] && exit 1; echo "retry $i"; sleep 15; done
+        run: for i in 1 2 3; do (timeout 6m npm ci) && break; [ "$i" = 3 ] && exit 1; echo "retry $i"; sleep 15; done
         timeout-minutes: 20
       # The two-entry build (game + Studio demo) `check` made from this very commit.
       - if: env.RUN == 'true'
@@ -890,7 +892,7 @@ jobs:
           node-version: 22
           cache: npm
       - if: env.RUN == 'true'
-        run: for i in 1 2 3; do (npm ci) && break; [ "$i" = 3 ] && exit 1; echo "retry $i"; sleep 15; done
+        run: for i in 1 2 3; do (timeout 6m npm ci) && break; [ "$i" = 3 ] && exit 1; echo "retry $i"; sleep 15; done
         timeout-minutes: 20
       - if: env.RUN == 'true'
         uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
@@ -926,7 +928,7 @@ jobs:
         with:
           node-version: 22
           cache: npm
-      - run: for i in 1 2 3; do (npm ci) && break; [ "$i" = 3 ] && exit 1; echo "retry $i"; sleep 15; done
+      - run: for i in 1 2 3; do (timeout 6m npm ci) && break; [ "$i" = 3 ] && exit 1; echo "retry $i"; sleep 15; done
         timeout-minutes: 20
       - run: npm run e2e:canonical
       - run: npm run e2e:remix
@@ -967,10 +969,10 @@ jobs:
         with:
           python-version: '3.12'
       - if: env.RUN == 'true'
-        run: for i in 1 2 3; do (python -m pip install --require-hashes -r requirements.txt) && break; [ "$i" = 3 ] && exit 1; echo "retry $i"; sleep 15; done
+        run: for i in 1 2 3; do (timeout 6m python -m pip install --require-hashes -r requirements.txt) && break; [ "$i" = 3 ] && exit 1; echo "retry $i"; sleep 15; done
         timeout-minutes: 20
       - if: env.RUN == 'true'
-        run: for i in 1 2 3; do (npm ci) && break; [ "$i" = 3 ] && exit 1; echo "retry $i"; sleep 15; done
+        run: for i in 1 2 3; do (timeout 6m npm ci) && break; [ "$i" = 3 ] && exit 1; echo "retry $i"; sleep 15; done
         timeout-minutes: 20
       - if: env.RUN == 'true'
         run: npm run fresh-install
@@ -1004,6 +1006,8 @@ jobs:
         uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7
         with:
           python-version: '3.12'
+      # The install loops here have no `timeout <n>m` an attempt, unlike the Linux jobs' (4.5.5, #340): macOS has no
+      # `timeout`, and on Windows System32's timeout.exe may come first in the PATH. The step's limit still holds.
       - if: env.RUN == 'true'
         run: for i in 1 2 3; do (pip install --require-hashes -r requirements.txt) && break; [ "$i" = 3 ] && exit 1; echo "retry $i"; sleep 15; done
         timeout-minutes: 15
@@ -1038,10 +1042,10 @@ jobs:
         with:
           python-version: '3.12'
       - if: env.RUN == 'true'
-        run: for i in 1 2 3; do (pip install --require-hashes -r requirements.txt) && break; [ "$i" = 3 ] && exit 1; echo "retry $i"; sleep 15; done
+        run: for i in 1 2 3; do (timeout 6m pip install --require-hashes -r requirements.txt) && break; [ "$i" = 3 ] && exit 1; echo "retry $i"; sleep 15; done
         timeout-minutes: 20
       - if: env.RUN == 'true'
-        run: for i in 1 2 3; do (npm ci) && break; [ "$i" = 3 ] && exit 1; echo "retry $i"; sleep 15; done
+        run: for i in 1 2 3; do (timeout 6m npm ci) && break; [ "$i" = 3 ] && exit 1; echo "retry $i"; sleep 15; done
         timeout-minutes: 20
       - if: env.RUN == 'true'
         run: npm run upgrade-check -- --from=previous
@@ -1089,10 +1093,10 @@ jobs:
         with:
           python-version: '3.12'
       - if: env.RUN == 'true'
-        run: for i in 1 2 3; do (python -m pip install --require-hashes -r requirements.txt) && break; [ "$i" = 3 ] && exit 1; echo "retry $i"; sleep 15; done
+        run: for i in 1 2 3; do (timeout 6m python -m pip install --require-hashes -r requirements.txt) && break; [ "$i" = 3 ] && exit 1; echo "retry $i"; sleep 15; done
         timeout-minutes: 20
       - if: env.RUN == 'true'
-        run: for i in 1 2 3; do (npm ci) && break; [ "$i" = 3 ] && exit 1; echo "retry $i"; sleep 15; done
+        run: for i in 1 2 3; do (timeout 6m npm ci) && break; [ "$i" = 3 ] && exit 1; echo "retry $i"; sleep 15; done
         timeout-minutes: 20
       # validate --release measures the stems with ffprobe (3.6).
       - if: env.RUN == 'true'
@@ -1161,10 +1165,10 @@ jobs:
         with:
           python-version: '3.12'
       - if: env.RUN == 'true'
-        run: for i in 1 2 3; do (python -m pip install --require-hashes -r requirements.txt) && break; [ "$i" = 3 ] && exit 1; echo "retry $i"; sleep 15; done
+        run: for i in 1 2 3; do (timeout 6m python -m pip install --require-hashes -r requirements.txt) && break; [ "$i" = 3 ] && exit 1; echo "retry $i"; sleep 15; done
         timeout-minutes: 20
       - if: env.RUN == 'true'
-        run: for i in 1 2 3; do (npm ci) && break; [ "$i" = 3 ] && exit 1; echo "retry $i"; sleep 15; done
+        run: for i in 1 2 3; do (timeout 6m npm ci) && break; [ "$i" = 3 ] && exit 1; echo "retry $i"; sleep 15; done
         timeout-minutes: 20
       # validate --release measures the stems with ffprobe (3.6).
       - if: env.RUN == 'true'
@@ -1221,10 +1225,10 @@ jobs:
         with:
           python-version: '3.12'
       - if: env.RUN == 'true'
-        run: for i in 1 2 3; do (python -m pip install --require-hashes -r requirements.txt) && break; [ "$i" = 3 ] && exit 1; echo "retry $i"; sleep 15; done
+        run: for i in 1 2 3; do (timeout 6m python -m pip install --require-hashes -r requirements.txt) && break; [ "$i" = 3 ] && exit 1; echo "retry $i"; sleep 15; done
         timeout-minutes: 20
       - if: env.RUN == 'true'
-        run: for i in 1 2 3; do (npm ci) && break; [ "$i" = 3 ] && exit 1; echo "retry $i"; sleep 15; done
+        run: for i in 1 2 3; do (timeout 6m npm ci) && break; [ "$i" = 3 ] && exit 1; echo "retry $i"; sleep 15; done
         timeout-minutes: 20
       # validate --release measures the stems with ffprobe (3.6).
       - if: env.RUN == 'true'

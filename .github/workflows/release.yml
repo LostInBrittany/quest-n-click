@@ -154,7 +154,7 @@ jobs:
       # Node and the repository's dependencies only, for what still runs here: the release notes, speedrun:verify (tsx),
       # the manifest's checks and `ship verify`. No python, ffmpeg or browser (#291): release-check and the mutation
       # sets ran in the candidate this tag names, on this very SHA, and are not run again.
-      - run: for i in 1 2 3; do (npm ci) && break; [ "$i" = 3 ] && exit 1; echo "retry $i"; sleep 15; done
+      - run: for i in 1 2 3; do (timeout 6m npm ci) && break; [ "$i" = 3 ] && exit 1; echo "retry $i"; sleep 15; done
         timeout-minutes: 20
       - run: node scripts/release-notes.mjs "$TAG" > notes.md
       # The name this tag's files start with (4.2.5, D47): quest-n-click from v4.2.5, web-scumm before; a tag that
@@ -302,7 +302,7 @@ jobs:
           node-version: ${{ env.NPM_PUBLISH_NODE }}
       - name: The pinned npm
         run: |
-          for i in 1 2 3; do npm install -g "npm@$NPM_PUBLISH_NPM" && break; [ "$i" = 3 ] && exit 1; echo "retry $i"; sleep 15; done
+          for i in 1 2 3; do (timeout 3m npm install -g "npm@$NPM_PUBLISH_NPM") && break; [ "$i" = 3 ] && exit 1; echo "retry $i"; sleep 15; done
           test "$(node --version)" = "v$NPM_PUBLISH_NODE" || { echo "::error::node $(node --version), not v$NPM_PUBLISH_NODE"; exit 1; }
           test "$(npm --version)" = "$NPM_PUBLISH_NPM" || { echo "::error::npm $(npm --version), not $NPM_PUBLISH_NPM"; exit 1; }
         timeout-minutes: 10

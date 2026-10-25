@@ -4162,11 +4162,10 @@
       ]
     },
     "contribute.ci#known-flakes": {
-      "enHash": "53a0b72d1e7064395bd1a7b2b5bcadc179e90dfdd5df7dfe38fc8cd9f83c92ac",
-      "frHash": "f2546c2c0a48f5fffac6c90d755904880cb414e4c9ec184a63efe7c5566311b4",
+      "enHash": "de5d9cef3233fc12221795182f2919d6a3ad2675087d039496bc1e30f55ee31e",
+      "frHash": "7b761d17ad18cbf410b66a090233771fc1c50029d021f10b79f5e05b0f2f758e",
       "reviewers": [
-        { "name": "claude-4.5-writers", "kind": "ai", "relation": "author", "date": "2026-10-23" },
-        { "name": "wanoo", "kind": "human", "relation": "independent", "date": "2026-10-24" }
+        { "name": "claude-ci-retry-timeouts", "kind": "ai", "relation": "author", "date": "2026-10-25" }
       ]
     },
     "contribute.ci#pages-only": {
