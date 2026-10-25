@@ -150,14 +150,29 @@ export function currentReleaseLine(lang: 'en' | 'fr', version: string, name: str
   return lang === 'en' ? `${LABEL.en} ${link}: ${TODO}` : `${LABEL.fr} ${link} : ${TODO}`;
 }
 
-/** The README with its current-release paragraph replaced by the new line. */
+/**
+ * The README with the new release's line opening its current-release paragraph, the releases' history: the previous
+ * line's summary is kept below it, under its version ("Over 4.5.2 "Org": …", "Sur la 4.5.2 « Org » : …").
+ */
 export function withCurrentRelease(readme: string, lang: 'en' | 'fr', version: string, name: string) {
   const lines = readme.split('\n');
-  const start = lines.findIndex((l) => l.startsWith(LABEL[lang]));
-  if (start < 0) throw new Error(`no "${LABEL[lang]}" line`);
-  let end = start + 1;
-  while (end < lines.length && lines[end]!.trim() !== '') end++;
-  lines.splice(start, end - start, currentReleaseLine(lang, version, name));
+  const at = lines.findIndex((l) => l.startsWith(LABEL[lang]));
+  if (at < 0) throw new Error(`no "${LABEL[lang]}" line`);
+  const m = /\[v(\d+\.\d+\.\d+) \(([^)]+)\)\]\([^)]*\)\s*:\s*(.*)$/.exec(lines[at]!);
+  if (!m) throw new Error(`the "${LABEL[lang]}" line names no release`);
+  const [, previous, previousName, rest] = m;
+  const over =
+    lang === 'en' ? `Over ${previous} "${previousName}": ${rest}` : `Sur la ${previous} « ${previousName} » : ${rest}`;
+  lines.splice(at, 1, currentReleaseLine(lang, version, name), over);
+  return lines.join('\n');
+}
+
+/** The CHANGELOG with `## Unreleased` become the release's heading, then its intro; the lines around kept. */
+export function withReleaseSection(changelog: string, heading: string, intro: string) {
+  const lines = changelog.split('\n');
+  const at = lines.findIndex((l) => /^## Unreleased[ \t]*$/.test(l));
+  if (at < 0) throw new Error('CHANGELOG.md has no "## Unreleased" section (npm run changes -- --assemble makes it)');
+  lines.splice(at, 1, heading, '', intro);
   return lines.join('\n');
 }
 
@@ -331,11 +346,8 @@ function prepare(version: string, opts: { name: string; date: string; pr: boolea
       sh('npm', ['run', '-s', 'changes', '--', '--assemble', `--date=${opts.date}`]);
       const last = lastLogNumber(read('docs/dev/LOG.md')) + 1;
       const intro = changelogIntro({ version, name: opts.name, previous, first, last });
-      const changelog = read('CHANGELOG.md').replace(
-        /^## Unreleased\s*$/m,
-        `${releaseHeading(version, opts.date)}\n\n${intro}`,
-      );
-      writeFileSync(file('CHANGELOG.md'), changelog);
+      const changelog = read('CHANGELOG.md');
+      writeFileSync(file('CHANGELOG.md'), withReleaseSection(changelog, releaseHeading(version, opts.date), intro));
       const log = read('docs/dev/LOG.md').replace(/\n*$/, '\n\n');
       writeFileSync(
         file('docs/dev/LOG.md'),

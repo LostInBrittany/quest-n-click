@@ -18,6 +18,7 @@ import {
   upgradeNotesPage,
   upgradeNotesSection,
   withCurrentRelease,
+  withReleaseSection,
   withPassIssues,
 } from '../tools/release/prepare';
 
@@ -49,6 +50,11 @@ describe('the version a release prepares', () => {
 describe('the CHANGELOG and the LOG', () => {
   it('heads the section as 4.5.3’s', () => {
     expect(releaseHeading('4.5.3', '2026-10-25')).toBe(after('CHANGELOG.md').split('\n')[2]);
+  });
+  it('turns Unreleased into the release’s heading and intro, the blank lines kept', () => {
+    expect(withReleaseSection('# C\n\n## Unreleased\n\n### Changes\n\n- x\n', '## 4.5.4 — d', 'Intro.')).toBe(
+      '# C\n\n## 4.5.4 — d\n\nIntro.\n\n### Changes\n\n- x\n',
+    );
   });
   it('opens the section with the LOG range, the name and the previous version, the rest to write', () => {
     const intro = changelogIntro({ version: '4.5.3', name: 'One pass', previous: '4.5.2', first: 300, last: 308 });
@@ -119,9 +125,14 @@ describe('the README', () => {
         .split('\n')
         .find((l) => l.startsWith(lang === 'en' ? 'Current release:' : 'Release actuelle :'))!;
       expect(real.startsWith(line.replace(/ ?TODO\(release\)$/, ''))).toBe(true);
-      const replaced = withCurrentRelease(before(file), lang, '4.5.3', 'One pass');
-      expect(replaced).toContain(line);
-      expect(replaced.split('\n').length).toBeLessThanOrEqual(before(file).split('\n').length);
+      // The paragraph is the releases' history: the new line first, the previous summary kept under its version.
+      const old = before(file).split('\n');
+      const at = old.findIndex((l) => l.startsWith(lang === 'en' ? 'Current release:' : 'Release actuelle :'));
+      const rest = old[at]!.replace(/^.*?\]\([^)]*\)\s*:\s*/, '');
+      const replaced = withCurrentRelease(before(file), lang, '4.5.3', 'One pass').split('\n');
+      expect(replaced[at]).toBe(line);
+      expect(replaced[at + 1]).toBe(lang === 'en' ? `Over 4.5.2 "Org": ${rest}` : `Sur la 4.5.2 « Org » : ${rest}`);
+      expect(replaced.slice(at + 2)).toEqual(old.slice(at + 1));
     });
   }
 });
