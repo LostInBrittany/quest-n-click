@@ -3,7 +3,15 @@
 import { readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { assignShards, DURATIONS_FILE, readDurations, recordDurations } from '../tools/unit-shards';
+import {
+  assignShards,
+  byDuration,
+  DURATIONS_FILE,
+  PARALLEL,
+  readDurations,
+  recordDurations,
+  shardTime,
+} from '../tools/unit-shards';
 
 const load = (shards: string[][], d: Record<string, number>, fallback = 0) =>
   shards.map((s) => s.reduce((t, f) => t + (d[f] ?? fallback), 0));
@@ -37,6 +45,27 @@ describe('assignShards', () => {
     // a new file (median 2) goes with the lighter side, beside `a`, not with `c`.
     const shards = assignShards([...Object.keys(d), 'tests/new.test.ts'], d, 2);
     expect(shards.find((s) => s.includes('tests/new.test.ts'))).not.toContain('tests/c.test.ts');
+  });
+
+  it('counts that a shard cannot end before its longest file: the work goes where it is not waited for', () => {
+    // 100 on one shard; 7 × 25 = 175 elsewhere takes 87.5 at PARALLEL 2: the long file's shard gets none of them.
+    expect(PARALLEL).toBe(2);
+    const d: Record<string, number> = { 'tests/long.test.ts': 100 };
+    for (let i = 0; i < 7; i++) d[`tests/s${i}.test.ts`] = 25;
+    const shards = assignShards(Object.keys(d), d, 2);
+    expect(shards[0]).toEqual(['tests/long.test.ts']);
+    expect(shardTime(100, 100)).toBe(100);
+    expect(shardTime(25, 200)).toBe(100);
+  });
+
+  it('runs the longest recorded file first, an unknown one as the median, ties by path', () => {
+    const d = { 'tests/a.test.ts': 1, 'tests/b.test.ts': 50, 'tests/c.test.ts': 9 };
+    expect(byDuration(['tests/a.test.ts', 'tests/new.test.ts', 'tests/c.test.ts', 'tests/b.test.ts'], d)).toEqual([
+      'tests/b.test.ts',
+      'tests/c.test.ts',
+      'tests/new.test.ts',
+      'tests/a.test.ts',
+    ]);
   });
 
   it('works with an empty table and with more shards than files', () => {
@@ -78,13 +107,23 @@ describe("the repository's table and its wiring", () => {
     expect(config).toContain("from './tools/unit-shards.ts'");
   });
 
-  it('the recorded table splits the suite into four shards within a fifth of each other', () => {
+  it('the recorded table splits the suite into four shards of the same time, files spread', () => {
     const d = readDurations();
     expect(Object.keys(d).length, DURATIONS_FILE).toBeGreaterThan(100);
     const known = Object.values(d).sort((a, b) => a - b);
     const median = known[Math.floor(known.length / 2)]!;
-    const loads = load(assignShards(files, d, 4), d, median);
-    expect(Math.max(...loads) / Math.min(...loads)).toBeLessThan(1.2);
+    const shards = assignShards(files, d, 4);
+    const times = shards.map((s) => {
+      const v = s.map((f) => d[f] ?? median);
+      return shardTime(
+        Math.max(...v),
+        v.reduce((a, b) => a + b, 0),
+      );
+    });
+    expect(Math.max(...times) / Math.min(...times)).toBeLessThan(1.1);
+    // No shard holds twice another's files: each file's import costs too, which the table does not count.
+    const counts = shards.map((s) => s.length);
+    expect(Math.max(...counts) / Math.min(...counts)).toBeLessThan(2);
   });
 
   it('loads no vitest at import time: the module ships in the package beside vite.config.ts', () => {

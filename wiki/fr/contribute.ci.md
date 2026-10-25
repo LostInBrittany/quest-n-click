@@ -90,8 +90,11 @@ Plus aucun job ne déploie GitHub Pages (4.5.2, voir [le site](#pages-only)).
 Le `--shard` de Vitest donne à chaque fragment le même nombre de fichiers, dans l'ordre d'un hachage de leurs chemins,
 quel que soit leur coût : en 4.5.4 le quatrième fragment passait ses tests en une minute et demie et les trois autres
 en trois à quatre. Depuis 4.5.5 le séquenceur de `vite.config.ts` ([`tools/unit-shards.ts`](../../tools/unit-shards.ts))
-partage selon la durée de chaque fichier, enregistrée dans [`tools/unit-durations.json`](../../tools/unit-durations.json) :
-le fichier le plus long d'abord, chacun au fragment qui en a le moins jusque-là. Un fichier que la table ne connaît pas
+partage selon la durée de chaque fichier, enregistrée dans [`tools/unit-durations.json`](../../tools/unit-durations.json).
+Le temps d'un fragment est compté comme le plus grand de son fichier le plus long et du total de ses fichiers divisé
+par deux (un runner en traite à peu près deux et demi à la fois) : le fichier le plus long d'abord, chacun au fragment
+qu'il laisse le plus court. Un fragment qui contient un fichier de trois minutes reçoit moins à côté, puisqu'il ne peut
+finir avant lui ; dans un fragment, le fichier le plus long démarre le premier. Un fichier que la table ne connaît pas
 compte pour la médiane, si bien qu'un nouveau test ne demande aucune mise à jour. Chaque fragment calcule tout le
 partage à partir des mêmes fichiers et de la même table : les quatre s'accordent, et un fragment lancé sur un portable
 passe les mêmes fichiers que le job.
@@ -104,8 +107,9 @@ npm run test:unit -- --reporter=json --outputFile=.cache/unit.json
 npx tsx tools/unit-shards.ts --record .cache/unit.json   # plusieurs rapports : la médiane de chaque fichier
 ```
 
-`tests/unit-shards.test.ts` vérifie que la table partage la suite en quatre fragments à moins d'un cinquième l'un de
-l'autre.
+`tests/unit-shards.test.ts` vérifie que la table partage la suite en quatre fragments à moins d'un dixième l'un de
+l'autre en temps. Le plancher est le fichier le plus long : `checkpoint` et `compact` prennent chacun de deux à trois
+minutes et demie.
 
 <a name="the-plan"></a>
 <!-- applies: .. since 4.1.9 -->

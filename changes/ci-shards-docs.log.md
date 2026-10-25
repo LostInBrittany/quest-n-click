@@ -6,12 +6,20 @@ counts: in run 40237204928 the files' own durations summed to 450 / 410 / 292 / 
 three files of about two minutes (`checkpoint`, `compact`, `por`) and those of 70–80 s (`wiki-archive`,
 `studio-engine-upgrade`, `status`) all in shards 1–3. Options weighed: moving the heavy files by hand (rots with every
 new test), vitest's cache (empty on a fresh runner), a duration-aware sequencer from a committed table (chosen).
-`tools/unit-shards.ts` overrides `shard()` only (longest-processing-time greedy, ties by path, so every shard computes
-the same split from the same files) and delegates `sort()` to vitest's `BaseSequencer`, loaded lazily: the module
-ships in the package beside `vite.config.ts`, and vitest is a development dependency. The table is the median of four
-runs' logs (40237204928, 40236266866, 40236988562, 40231754186; one under coverage); locally, the four shards now get
-93/93/93/94 files and 399 s of recorded time each. `tests/unit-shards.test.ts` covers the split, the recording, the
-wiring and that the committed table keeps the four within a fifth of each other.
+`tools/unit-shards.ts` replaces `shard()` and `sort()`, with vitest's types only (the module ships in the package
+beside `vite.config.ts`, and vitest is a development dependency). A first version balanced the summed durations
+(longest-processing-time greedy): on this pull request's first run, under coverage, the test steps took 257 / 226 /
+129 / 143 s. The sums were even, but `checkpoint` (205 s) and `compact` (194 s) set their shards' floor, and with no
+cache vitest starts the largest file first, not the longest: `checkpoint` began 49 s in. The second version counts a
+shard's time as max(longest file, total / 2): a runner works on about 2.5 files at once (summed file time over wall
+time in these runs), and 2 leaves room for the imports and keeps the files spread (at 2.2 a third of the suite piled
+under `checkpoint`'s shard). Each file goes to the shard it leaves the shortest, ties to the least work; `sort()`
+starts the longest recorded file first. Replayed on that run's own file times, the slowest shard drops from 256 s
+to about 211 s of tests; the floor is the longest file. The table is the median of four
+runs' logs (40237204928, 40236266866, 40236988562, 40231754186; one under coverage); the four shards get 109 / 90 /
+87 / 86 files and 199 s each in the model. `tests/unit-shards.test.ts` covers the split, the recording, the
+wiring, and that the committed table keeps the four within a tenth of each other's time, with no shard holding twice
+another's files.
 
 The plan rule: rules are first-match, and `^(tools|scripts)\/` came before the hosted-Studio rule that named
 `tools/studio/diff-rooms.ts`, which `studio-server/src/ops/diff-captures.ts` imports and only `studio-hosted` tests.

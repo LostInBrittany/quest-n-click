@@ -87,9 +87,11 @@ No job deploys GitHub Pages any more (4.5.2, see [the site](#pages-only)).
 Vitest's own `--shard` gives each shard the same number of files, in the order of a hash of their paths, whatever
 they cost: in 4.5.4 the fourth shard ran its tests in a minute and a half and the three others in three to four.
 Since 4.5.5 the sequencer of `vite.config.ts` ([`tools/unit-shards.ts`](../../tools/unit-shards.ts)) splits by each
-file's duration, recorded in [`tools/unit-durations.json`](../../tools/unit-durations.json): the longest file first,
-each to the shard with the least so far. A file the table does not know counts as the median, so a new test needs no
-update. Every shard computes the whole split from the same files and the same table: the four agree, and a shard run
+file's duration, recorded in [`tools/unit-durations.json`](../../tools/unit-durations.json). A shard's time is
+counted as the larger of its longest file and its files' total over two (a runner works on about two and a half at
+once): the longest file first, each to the shard it leaves the shortest. A shard that holds a file of three minutes
+gets less beside it, since it cannot end before that file; inside a shard the longest file starts first. A file the
+table does not know counts as the median, so a new test needs no update. Every shard computes the whole split from the same files and the same table: the four agree, and a shard run
 on a laptop runs the same files as the job.
 
 When the shards drift apart, refresh the table:
@@ -100,7 +102,8 @@ npm run test:unit -- --reporter=json --outputFile=.cache/unit.json
 npx tsx tools/unit-shards.ts --record .cache/unit.json   # several reports: each file's median
 ```
 
-`tests/unit-shards.test.ts` checks that the table splits the suite into four shards within a fifth of each other.
+`tests/unit-shards.test.ts` checks that the table splits the suite into four shards within a tenth of each other's
+time. The floor is the longest file: `checkpoint` and `compact` take two to three and a half minutes each.
 
 <a name="the-plan"></a>
 <!-- applies: .. since 4.1.9 -->
