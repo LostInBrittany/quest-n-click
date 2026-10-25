@@ -55,7 +55,7 @@ Les notes vont dans la collection `notes` (id du document = id de la case ; auss
 La page refuse un storyboard invalide avec les mêmes phrases que le Studio et l’outil MCP `set_storyboard`. À quoi sert
 le storyboard : [Le storyboard, source de vérité](create.storyboard.md).
 
-`--readonly` (4.5.4) produit la même histoire pour des lecteurs qui ne doivent pas l’annoter : pas de zone de notes,
+`--readonly` (4.5.5) produit la même histoire pour des lecteurs qui ne doivent pas l’annoter : pas de zone de notes,
 pas de réécritures, rien d’enregistré, et une balise `noindex` pour que les moteurs de recherche l’ignorent. Publiez-la
 à côté du jeu, sous `pages/` (par exemple `dist/pages/storyboard-<secret>.html`, écrite après le build) : le service
 worker du jeu ne répond jamais `pages/` avec le jeu. La page raconte toute l’histoire : donnez-lui une adresse que

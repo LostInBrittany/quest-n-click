@@ -52,7 +52,7 @@ digits and `_ - . ~ : @ +`; other characters become `_`.
 The page refuses an invalid storyboard with the same sentences as the Studio and the MCP's `set_storyboard`. What the
 storyboard is for: [The storyboard, source of truth](create.storyboard.md).
 
-`--readonly` (4.5.4) renders the same story for readers who should not annotate it: no notes box, no rewrites, nothing
+`--readonly` (4.5.5) renders the same story for readers who should not annotate it: no notes box, no rewrites, nothing
 saved, and a `noindex` meta so search engines leave it alone. Publish it beside the game under `pages/` (for example
 `dist/pages/storyboard-<secret>.html`, written after the build): the game's service worker never answers `pages/` with
 the game. The page tells the whole story: give it an address nobody can guess, and never link it from the game.

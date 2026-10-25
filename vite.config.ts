@@ -122,7 +122,7 @@ export default defineConfig({
             ],
             navigateFallback: 'index.html',
             // The documentation beside the game (/docs/, 4.5.0) and the pages a game publishes beside itself (pages/:
-            // a read-only storyboard, 4.5.4): the worker never answers them with the game.
+            // a read-only storyboard, 4.5.5): the worker never answers them with the game.
             navigateFallbackDenylist: [/\/docs\//].concat([/\/pages\//]),
             cleanupOutdatedCaches: true,
             // The worker claims the page at its first activation (the warm-up's fetches must pass through it to be cached);
