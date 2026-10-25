@@ -7,6 +7,7 @@
 // release), and the pull request. It never invents prose: every part that needs a sentence carries `TODO(release)`,
 // and `check` fails while one is left. The helpers below are pure and tested against 4.5.3's release commit
 // (tests/release-prepare.test.ts); the commands they run are the ones 4.5.3's release ran by hand, in its order.
+// @ts-expect-error: a plain .mjs module without declarations
 import { REPO } from './lib.mjs';
 
 const TODO = 'TODO(release)';
