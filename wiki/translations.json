@@ -10462,11 +10462,10 @@
       ]
     },
     "create.voices#autoplay": {
-      "enHash": "2d93324fd13e0efcd2b958a423976a1a5c55cfc13e1d35df48976a309712748e",
-      "frHash": "70ef56483de4b5ecc58a30830f88d062c4da56229c99a8b5f2d27f1599be8353",
+      "enHash": "353a6616c5ba9f7fc335877c6ec2e19fbddaeae5060c915996b557c04c522e6f",
+      "frHash": "e94dee3f3f9a63acf5e6429b86d5f1a4fee00728bdddae5a70f23b8d7eb3d028",
       "reviewers": [
-        { "name": "claude-4.5-writers", "kind": "ai", "relation": "author", "date": "2026-10-23" },
-        { "name": "wanoo", "kind": "human", "relation": "independent", "date": "2026-10-24" }
+        { "name": "claude-249-voice-clip-fails", "kind": "ai", "relation": "author", "date": "2026-10-25" }
       ]
     },
     "create.voices#common-errors": {
