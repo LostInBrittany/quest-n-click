@@ -71,11 +71,12 @@ déclenché, une option `once` choisie. Dans un jeu en schéma 3, les clés sont
 | Un sujet de conversation | `topic.<id du sujet>` | `<salle>.<acteur>.<index>` (par exemple `house.grandma.0`) |
 | Un écouteur `once` | `event.<id de l'écouteur>` | `event.<salle ou game>.<index>` |
 | Une option `once` d'un `choice` | `choice.<id de l'option>` | `choice.<salle>.<texte>` |
+| Un signal Reality appliqué une fois | `reality.<id du signal>` | la même |
 
-> [!LIMIT id=seen-key-v3]
-> Dans un jeu en schéma 3, `{ seen: 'house.grandma.0' }` (la forme par position que montraient d'anciennes pages)
-> n'est jamais vraie : un sujet qui a un id est noté `topic.<id>`. Le validateur ne vérifie pas les clés de `seen` :
-> une clé fausse est fausse en silence.
+`npm run validate` refuse une clé `seen` que rien n'enregistre : une clé fausse n'est jamais fausse en silence. Quand
+la clé est l'ancienne place d'une chose qui a maintenant un id (dans un jeu en schéma 3, `{ seen: 'house.grandma.0' }`,
+la forme par position que montraient d'anciennes pages), l'erreur donne la clé à écrire (`topic.<id>`). Les clés
+qu'un checkpoint marque comme vues sont vérifiées de la même façon.
 
 <a name="flags"></a>
 
