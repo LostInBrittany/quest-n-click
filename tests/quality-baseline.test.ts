@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { readFileSync } from 'node:fs';
-import { differences, metricsOf, withMetrics } from '../tools/quality-baseline';
+import { differences, metricsOf, readmeDrift, withMetrics } from '../tools/quality-baseline';
 
 // The baseline of 4.1.0 "Clarity" (tools/quality-baseline.ts): what a behaviour-preserving change must not move.
 const base = () => JSON.parse(readFileSync('tests/quality-baseline.json', 'utf8'));
@@ -23,6 +23,19 @@ describe('quality baseline', () => {
       expect(page).toContain('<!-- metric:initialJsKB -->');
       expect(page).toContain('<!-- metric:referenceStates -->');
       expect(withMetrics(page, metricsOf(base()))).toBe(page); // the figures are the baseline's
+    }
+  });
+  it('checks the READMEs against the committed baseline, not the tests a pull request adds (4.5.4)', () => {
+    const want = base();
+    const version = JSON.parse(readFileSync('package.json', 'utf8')).version as string;
+    for (const r of ['README.md', 'README.fr.md']) {
+      const page = readFileSync(r, 'utf8');
+      // The committed pair agrees: nothing to rewrite in a pull request that only adds tests.
+      expect(readmeDrift(page, r, want, version)).toEqual([]);
+      const behind = withMetrics(page, metricsOf({ ...want, tests: { ...want.tests, declarations: 1 } }));
+      expect(readmeDrift(behind, r, want, version)).toEqual([
+        `${r}: a figure is not the baseline's (npm run quality:baseline writes it)`,
+      ]);
     }
   });
   it('names nothing when nothing moved', () => {

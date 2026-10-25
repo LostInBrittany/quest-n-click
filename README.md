@@ -150,7 +150,7 @@ mistakes before a person does. Every result stays reviewable, in the Studio and 
 
 ## In numbers
 
-Measured on this commit of `main` by the automated gates (`npm run quality:baseline` writes these figures):
+Measured by the automated gates at the last baseline, rewritten at each release (`npm run quality:baseline`):
 <!-- metric:tests -->3418<!-- /metric --> unit test declarations, on Node 22 and 24, with coverage floors and gated
 mutation testing; the reference game proved in <!-- metric:referenceStates -->288<!-- /metric --> states; the player's
 first visit <!-- metric:initialJsKB -->136<!-- /metric --> KB of JavaScript, gzipped. Each release is built from the

@@ -174,6 +174,21 @@ export function withInstall(page: string, version: string): string {
 }
 const VERSION = (JSON.parse(readFileSync(resolve(ROOT, 'package.json'), 'utf8')) as { version: string }).version;
 
+/**
+ * What a README says that the committed baseline does not (4.5.4): its figures are the baseline's, its install line the
+ * version's. Checked against the committed baseline, not against what this checkout measures, so a pull request that
+ * adds tests passes without rewriting the READMEs and the baseline, which every other open pull request rewrites too
+ * (a conflict at each merge). The figures move when someone runs `npm run quality:baseline`, and at each release.
+ */
+export function readmeDrift(page: string, file: string, want: Baseline, version: string): string[] {
+  const out: string[] = [];
+  if (withMetrics(page, metricsOf(want)) !== page)
+    out.push(`${file}: a figure is not the baseline's (npm run quality:baseline writes it)`);
+  if (withInstall(page, version) !== page)
+    out.push(`${file}: the install section names another version (npm run quality:baseline writes it)`);
+  return out;
+}
+
 /** The policy parts that got better than the baseline (4.1.3): said, so the baseline is ratcheted on purpose. */
 export function improvements(want: Baseline, got: Baseline): string[] {
   const out: string[] = [];
@@ -251,13 +266,7 @@ if (import.meta.url === `file://${process.argv[1]}` || process.argv[1]?.endsWith
   } else {
     const want = JSON.parse(readFileSync(OUT, 'utf8')) as Baseline;
     const diff = differences(want, got);
-    for (const r of READMES) {
-      const page = readFileSync(resolve(ROOT, r), 'utf8');
-      if (withMetrics(page, metricsOf({ ...got, bundle: got.bundle ?? want.bundle })) !== page)
-        diff.push(`${r}: a figure is behind the baseline (npm run quality:baseline writes it)`);
-      if (withInstall(page, VERSION) !== page)
-        diff.push(`${r}: the install section names another version (npm run quality:baseline writes it)`);
-    }
+    for (const r of READMES) diff.push(...readmeDrift(readFileSync(resolve(ROOT, r), 'utf8'), r, want, VERSION));
     for (const d of diff) console.log('  ✖ ' + d);
     for (const d of improvements(want, got))
       console.log(`  ⚠ better than the baseline, ratchet it (npm run quality:baseline): ${d}`);

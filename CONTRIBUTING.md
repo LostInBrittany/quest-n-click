@@ -36,8 +36,8 @@ Start with `wiki/en/contribute.architecture.md` (the layers, the life of an acti
 `wiki/en/contribute.code-tour.md` (half an hour). `src/engine/BOUNDARIES.md` says what each folder may import and where each
 responsibility of the engine, the player and the solver lives; `docs/dev/adr/` explains the decisions that look
 surprising. A behaviour-preserving change keeps `npm run quality:baseline -- --check` green: the same witnesses,
-proofs, golden saves and public surface. A new test or a lighter bundle is a ratchet: run `npm run quality:baseline`,
-which rewrites the JSON and the READMEs' figures with it, and commit them.
+proofs, golden saves and public surface. A new test is not a change to commit there: `--check` says it as a gain, and
+the figures move at the release (`npm run release -- prepare`), so two open pull requests never conflict on them.
 
 ## What CI runs
 
