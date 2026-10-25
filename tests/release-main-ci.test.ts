@@ -166,13 +166,20 @@ describe('the tag runs no ci; ship waits for main', () => {
   });
 });
 
-// Every commit of main keeps its own ci result (4.5.5, #337): any of them may become a release commit, whose tag needs
-// main's run on that SHA. 4.5.4's (47dccf1) was cancelled by the next merge and `ship tag` re-ran it. In one group
-// GitHub cancels a running run (cancel-in-progress) and also a pending one (always), so a main push needs a group of
-// its own. The workflow's top-level `concurrency:` is read and its two expressions evaluated for each event.
-describe("main's runs are never cancelled (#337)", () => {
+// A release commit keeps its own ci result (4.5.5, #337, #345): its tag needs main's run on that SHA, and 4.5.4's
+// (47dccf1) was cancelled by the next merge, so `ship tag` re-ran it. In one group GitHub cancels a running run
+// (cancel-in-progress) and also a pending one (always), so the release commit's push has a group of its own SHA. Every
+// other push of main shares one group and cancels the run it supersedes: a run per SHA for each of four merges in a
+// row queued them all and starved the pull requests of runners (#345). A release commit is told by its message: the
+// merge of `release/<x.y.z>` (`Merge pull request #N from <owner>/release/<x.y.z>`), or the subject `prepare` writes,
+// which a squash's message lists and a rebase keeps. The workflow's top-level `concurrency:` is read and its
+// expressions evaluated for each event.
+describe("main's release commit is never cancelled, its other pushes are (#337, #345)", () => {
   type Ctx = Record<string, string>;
-  /** A GitHub expression of the forms the workflows use: paths, 'literals', ==, !=, && and || (left to right). */
+  /**
+   * A GitHub expression of the forms the workflows use: paths, 'literals', ==, !=, !, contains(path, 'literal'), && and
+   * || (left to right, && binding tighter).
+   */
   const evaluate = (expr: string, ctx: Ctx): string | boolean => {
     const or = expr.split(' || ');
     if (or.length > 1) {
@@ -188,6 +195,9 @@ describe("main's runs are never cancelled (#337)", () => {
       for (const part of and) if (!(v = evaluate(part, ctx))) return v;
       return v;
     }
+    if (expr.startsWith('!')) return !evaluate(expr.slice(1), ctx);
+    const has = /^contains\(([\w.]+), '([^']*)'\)$/.exec(expr);
+    if (has) return String(evaluate(has[1]!, ctx)).includes(has[2]!);
     const cmp = /^(.+?) (==|!=) (.+)$/.exec(expr);
     if (cmp) return (evaluate(cmp[1]!, ctx) === evaluate(cmp[3]!, ctx)) === (cmp[2] === '==');
     const lit = /^'(.*)'$/.exec(expr);
@@ -203,10 +213,11 @@ describe("main's runs are never cancelled (#337)", () => {
     const render = (v: string) => v.replace(/\$\{\{ (.+?) \}\}/g, (_, e: string) => String(evaluate(e, ctx)));
     return { group: render(value('group')), cancel: render(value('cancel-in-progress')) === 'true' };
   };
-  const push = (sha: string): Ctx => ({
+  const push = (sha: string, message: string): Ctx => ({
     'github.event_name': 'push',
     'github.ref': 'refs/heads/main',
     'github.sha': sha,
+    'github.event.head_commit.message': message,
   });
   const pr = (sha: string): Ctx => ({
     'github.event_name': 'pull_request',
@@ -217,24 +228,61 @@ describe("main's runs are never cancelled (#337)", () => {
   const dispatch: Ctx = {
     'github.event_name': 'workflow_dispatch',
     'github.ref': 'refs/heads/main',
-    'github.sha': 'c',
+    'github.sha': 'c'.repeat(40),
   };
+  const [A, B, C] = ['a', 'b', 'c'].map((c) => c.repeat(40)) as [string, string, string];
+  /** Merges that are not a release, two of them about the release tools. */
+  const ordinary = [
+    'Merge pull request #341 from LostInBrittany/fix/release-docs-gates\n\nrelease: the docs gates',
+    "release: the release commit is looked for on main's first parents",
+    'Merge pull request #338 from LostInBrittany/fix/ci-main-no-cancel\n\nCI: a push of main is never cancelled',
+  ];
+  /** A release commit, merged (as 4.5.4 was), squashed (the commits' messages listed) or rebased. */
+  const release = [
+    'Merge pull request #322 from LostInBrittany/release/4.5.4\n\n4.5.4: the release',
+    '4.5.6: the release (#350)\n\n* 4.5.6: the release (prepared by npm run release -- prepare)\n\n* review',
+    '4.5.6: the release (prepared by npm run release -- prepare)',
+  ];
 
+  it('ci.yml: an ordinary push of main shares one group, and cancels the run it supersedes', () => {
+    for (const [m1, m2] of [
+      [ordinary[0]!, ordinary[1]!],
+      [ordinary[1]!, ordinary[2]!],
+    ]) {
+      const [a, b] = [concurrency('ci.yml', push(A, m1)), concurrency('ci.yml', push(B, m2))];
+      expect(a.group).toBe(b.group);
+      expect(b.cancel).toBe(true);
+    }
+  });
+  it("ci.yml: a release commit's push has a group of its own SHA and is never cancelled", () => {
+    for (const m of release) {
+      const run = concurrency('ci.yml', push(A, m));
+      expect(run.cancel, m).toBe(false);
+      for (const o of ordinary) expect(run.group, m).not.toBe(concurrency('ci.yml', push(B, o)).group);
+      expect(run.group, m).not.toBe(concurrency('ci.yml', push(B, m)).group);
+      expect(run.group, m).not.toBe(concurrency('ci.yml', dispatch).group);
+    }
+  });
+  it("ci.yml: a run started by hand cancels nothing, and shares no group with main's pushes", () => {
+    const run = concurrency('ci.yml', dispatch);
+    expect(run.cancel).toBe(false);
+    expect(run.group).not.toBe(concurrency('ci.yml', push(C, ordinary[0]!)).group);
+  });
+  it('qualify.yml: every push of main shares one group and cancels the run it supersedes (no release step reads it)', () => {
+    const runs = [...ordinary, ...release].map((m, i) => concurrency('qualify.yml', push(String(i).repeat(40), m)));
+    expect(new Set(runs.map((r) => r.group)).size).toBe(1);
+    expect(runs.every((r) => r.cancel)).toBe(true);
+  });
+  it('qualify.yml: a run started by hand cancels nothing, and shares no group with a push of main', () => {
+    const run = concurrency('qualify.yml', dispatch);
+    expect(run.cancel).toBe(false);
+    expect(run.group).not.toBe(concurrency('qualify.yml', push(C, ordinary[0]!)).group);
+  });
   for (const workflow of ['ci.yml', 'qualify.yml']) {
-    it(`${workflow}: two pushes of main never share a group, and none cancels`, () => {
-      const [a, b] = [concurrency(workflow, push('a'.repeat(40))), concurrency(workflow, push('b'.repeat(40)))];
-      expect(a.group).not.toBe(b.group);
-      expect(a.cancel || b.cancel).toBe(false);
-    });
     it(`${workflow}: a pull request's newer push still cancels the run it supersedes`, () => {
-      const [a, b] = [concurrency(workflow, pr('a'.repeat(40))), concurrency(workflow, pr('b'.repeat(40)))];
+      const [a, b] = [concurrency(workflow, pr(A)), concurrency(workflow, pr(B))];
       expect(a.group).toBe(b.group);
       expect(b.cancel).toBe(true);
     });
   }
-  it('ci.yml: a run started by hand cancels nothing, and shares no group with a push of main', () => {
-    const run = concurrency('ci.yml', dispatch);
-    expect(run.cancel).toBe(false);
-    expect(run.group).not.toBe(concurrency('ci.yml', push('c')).group);
-  });
 });

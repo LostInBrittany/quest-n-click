@@ -4197,10 +4197,10 @@
       ]
     },
     "contribute.ci#workflows": {
-      "enHash": "b69a1c07f4f5f839477de0871e0ee6721c6cd5923e38448dee59e4d0f6cb6a72",
-      "frHash": "3af4be52f350d079f91999e767b09f42c55896bf792c0369fe8bf9c6bffd1ee2",
+      "enHash": "28ec239b6802352152a2f47f33ef64d1ce76f2a7cf9d6fcb40f986e5b11dc055",
+      "frHash": "d674144afcfb96f8b3b751d666e4dee4402e4ad4f394f4691b18f14c742bd5d2",
       "reviewers": [
-        { "name": "claude-ci-main-no-cancel", "kind": "ai", "relation": "author", "date": "2026-10-25" }
+        { "name": "claude-ci-main-cancel-ordinary", "kind": "ai", "relation": "author", "date": "2026-10-25" }
       ]
     },
     "contribute.code-of-conduct#_lead": {
