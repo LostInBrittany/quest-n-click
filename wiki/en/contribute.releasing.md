@@ -134,6 +134,21 @@ release and asset digests, the release immutable, as recorded in `.cache/release
 `npm-stage` job) is re-run first (`gh run rerun <id> --failed`, the command prints it). A pre-release (`-rc.N`) is
 tagged by hand (`ship tag`, below). The chain below is what it runs, for when a step has to be done by hand.
 
+Its preflight also checks the docs' human gates on the release commit itself (4.5.5, #339), in a temporary worktree
+of that commit, since `main` may already be ahead of it. A claim or a pair merged after the release pull request's CI
+ran shows there, before anything is waited for, and no longer at `docs-publish` an hour after the tag (4.5.4's
+`import-layout-merges`). That commit's tree can no longer take a review, so the command stops with each pending item,
+its command, and the one way on: `npm run release -- <version> --docs-revision` releases as usual, npm included, and
+the docs follow as a revision once the release is out:
+
+```sh
+# in the engine repository
+git switch -c docs/<version> v<version>
+# record each review the stop listed, commit
+git push <the organisation's remote> docs/<version>
+gh workflow run docs-publish --ref docs/<version> -f mode=revision -f version=<version>
+```
+
 <a name="the-chain"></a>
 
 ### The chain
@@ -153,7 +168,8 @@ tagged by hand (`ship tag`, below). The chain below is what it runs, for when a 
    run started on main, by hand (`workflow_dispatch`) or by a release's merge (`push`), may be named by a tag; a pull
    request labelled `full-ci` runs it too, as information only. It ends with the documentation's publication check on
    its own test report, as a warning: a docs problem never holds back the release (the release pull request's CI
-   already ran its human gates, `npm run release -- check`).
+   already ran its human gates, `npm run release -- check`, and the release command runs them again on the release
+   commit, [above](#release-command)).
 
    Its mutation shards reuse the reports the nightly saved on `main` (4.5.5, #329): only the sets whose inputs moved
    since run again, the others take a minute or two each. A change every set reads (the lockfile, `vite.config.ts`)

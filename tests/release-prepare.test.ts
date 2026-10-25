@@ -7,6 +7,7 @@ import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import {
+  changelogBullets,
   changelogIntro,
   checkRelease,
   beforePushStop,
@@ -114,6 +115,68 @@ describe('the upgrade notes', () => {
       expect(section).toContain('- **A bullet** (4.5.3).');
     });
   }
+});
+
+describe('the CHANGELOG bullets the upgrade notes start from (#333)', () => {
+  const changelog = [
+    '# Changelog',
+    '',
+    '## 4.5.5 — 2026-10-26',
+    '',
+    'LOG #1–#2: "Name", a patch on 4.5.4. The intro,',
+    'over two lines.',
+    '',
+    '### Fixed',
+    '',
+    '- **A wrapped bullet** (#1): its first line, then',
+    '  its second line, and',
+    '  its third.',
+    '',
+    '- **A bullet with a list**:',
+    '  - a first point,',
+    '    wrapped;',
+    '  - a second point.',
+    '- **Right after, no blank line**.',
+    '',
+    '### Changes',
+    '',
+    '- **A bullet with a paragraph**: the first one.',
+    '',
+    '  A second paragraph of the same bullet.',
+    '',
+    '- **The last one** (D99).',
+    '',
+    '## 4.5.4 — 2026-10-25',
+    '',
+    '- **Not this release**.',
+    '',
+  ].join('\n');
+  it('gives every bullet whole, with its continuation lines and its list; no heading, intro or blank line between', () => {
+    expect(changelogBullets(changelog, '4.5.5')).toEqual([
+      '- **A wrapped bullet** (#1): its first line, then\n  its second line, and\n  its third.',
+      '- **A bullet with a list**:\n  - a first point,\n    wrapped;\n  - a second point.',
+      '- **Right after, no blank line**.',
+      '- **A bullet with a paragraph**: the first one.\n\n  A second paragraph of the same bullet.',
+      '- **The last one**.',
+    ]);
+  });
+  it('makes one tight list of the upgrade notes, each bullet whole', () => {
+    const section = upgradeNotesSection({
+      previous: '4.5.4',
+      version: '4.5.5',
+      name: 'Name',
+      lang: 'en',
+      bullets: changelogBullets(changelog, '4.5.5'),
+    });
+    expect(section).toContain(
+      '- **A wrapped bullet** (#1): its first line, then\n  its second line, and\n  its third.\n- **A bullet with a list**:',
+    );
+    expect(section).not.toContain('###');
+    expect(section).not.toContain('Not this release');
+  });
+  it('is empty for a version without a section', () => {
+    expect(changelogBullets(changelog, '4.5.6')).toEqual([]);
+  });
 });
 
 describe('the passes', () => {

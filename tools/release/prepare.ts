@@ -543,10 +543,23 @@ function newestSheet() {
     .at(-1)!;
 }
 
-/** The section of `version` in the CHANGELOG: its bullets, to start the upgrade notes from. */
-function sectionBullets(changelog: string, version: string) {
+/**
+ * The bullets of `version`'s CHANGELOG section, to start the upgrade notes from: each top-level bullet whole, with its
+ * continuation lines, a nested list and an indented paragraph as written (#333: 4.5.4's were cut to their first line).
+ * The headings, the intro and the blank lines between bullets are left out: the page gets one tight list.
+ */
+export function changelogBullets(changelog: string, version: string) {
   const notes = releaseNotes(changelog, `v${version}`) ?? '';
-  return notes.split('\n').filter((l) => l.startsWith('- '));
+  const bullets: string[][] = [];
+  let open = false;
+  for (const line of notes.split('\n')) {
+    if (/^[-*+] /.test(line)) {
+      bullets.push([line]);
+      open = true;
+    } else if (open && (line.trim() === '' || /^\s/.test(line))) bullets.at(-1)!.push(line);
+    else open = false;
+  }
+  return bullets.map((b) => b.join('\n').trimEnd());
 }
 
 /** What to do when a step failed: finish by hand after the commit, else undo the branch (nothing was pushed). */
@@ -650,7 +663,7 @@ function prepare(version: string, opts: { name: string; date: string; pr: boolea
       );
     },
     'upgrade notes': () => {
-      const bullets = sectionBullets(read('CHANGELOG.md'), version);
+      const bullets = changelogBullets(read('CHANGELOG.md'), version);
       for (const lang of ['en', 'fr'] as const) {
         const page = `wiki/${lang}/${upgradeNotesPage(version)}.md`;
         const text = upgradeNotesLead(read(page), previous, version, lang).replace(/\n*$/, '\n\n');
@@ -777,6 +790,7 @@ if (process.argv[1]?.endsWith('prepare.ts')) {
       await runRelease(verb, {
         ...(key ? { key } : {}),
         startCandidate: all.includes('--start-candidate'),
+        docsRevision: all.includes('--docs-revision'),
         dryRun: all.includes('--dry-run'),
       });
     } catch (e) {
@@ -785,7 +799,7 @@ if (process.argv[1]?.endsWith('prepare.ts')) {
     }
   } else {
     console.error(
-      'usage: npm run release -- <x.y.z> [--key=<key.pub>] [--start-candidate] [--dry-run] | prepare <x.y.z> --name="<name>" [--date=YYYY-MM-DD] [--no-pr] [--dry-run] | check <x.y.z>',
+      'usage: npm run release -- <x.y.z> [--key=<key.pub>] [--start-candidate] [--docs-revision] [--reverify] [--dry-run] | prepare <x.y.z> --name="<name>" [--date=YYYY-MM-DD] [--no-pr] [--dry-run] | check <x.y.z>',
     );
     process.exit(2);
   }

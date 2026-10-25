@@ -165,3 +165,76 @@ describe('the tag runs no ci; ship waits for main', () => {
     expect(watch).toContain("'release'");
   });
 });
+
+// Every commit of main keeps its own ci result (4.5.5, #337): any of them may become a release commit, whose tag needs
+// main's run on that SHA. 4.5.4's (47dccf1) was cancelled by the next merge and `ship tag` re-ran it. In one group
+// GitHub cancels a running run (cancel-in-progress) and also a pending one (always), so a main push needs a group of
+// its own. The workflow's top-level `concurrency:` is read and its two expressions evaluated for each event.
+describe("main's runs are never cancelled (#337)", () => {
+  type Ctx = Record<string, string>;
+  /** A GitHub expression of the forms the workflows use: paths, 'literals', ==, !=, && and || (left to right). */
+  const evaluate = (expr: string, ctx: Ctx): string | boolean => {
+    const or = expr.split(' || ');
+    if (or.length > 1) {
+      for (const part of or) {
+        const v = evaluate(part, ctx);
+        if (v) return v;
+      }
+      return evaluate(or.at(-1)!, ctx);
+    }
+    const and = expr.split(' && ');
+    if (and.length > 1) {
+      let v: string | boolean = true;
+      for (const part of and) if (!(v = evaluate(part, ctx))) return v;
+      return v;
+    }
+    const cmp = /^(.+?) (==|!=) (.+)$/.exec(expr);
+    if (cmp) return (evaluate(cmp[1]!, ctx) === evaluate(cmp[3]!, ctx)) === (cmp[2] === '==');
+    const lit = /^'(.*)'$/.exec(expr);
+    if (lit) return lit[1]!;
+    if (expr === 'true' || expr === 'false') return expr === 'true';
+    return ctx[expr] ?? '';
+  };
+  /** The top-level concurrency of a workflow, for one event: its group and whether it cancels the run in progress. */
+  const concurrency = (workflow: string, ctx: Ctx) => {
+    const text = readFileSync(`.github/workflows/${workflow}`, 'utf8');
+    const block = /^concurrency:\n((?: {2}.*\n)+)/m.exec(text)![1]!;
+    const value = (key: string) => new RegExp(`^ {2}${key}: (.+)$`, 'm').exec(block)![1]!.trim();
+    const render = (v: string) => v.replace(/\$\{\{ (.+?) \}\}/g, (_, e: string) => String(evaluate(e, ctx)));
+    return { group: render(value('group')), cancel: render(value('cancel-in-progress')) === 'true' };
+  };
+  const push = (sha: string): Ctx => ({
+    'github.event_name': 'push',
+    'github.ref': 'refs/heads/main',
+    'github.sha': sha,
+  });
+  const pr = (sha: string): Ctx => ({
+    'github.event_name': 'pull_request',
+    'github.ref': 'refs/pull/7/merge',
+    'github.sha': sha,
+    'github.event.pull_request.number': '7',
+  });
+  const dispatch: Ctx = {
+    'github.event_name': 'workflow_dispatch',
+    'github.ref': 'refs/heads/main',
+    'github.sha': 'c',
+  };
+
+  for (const workflow of ['ci.yml', 'qualify.yml']) {
+    it(`${workflow}: two pushes of main never share a group, and none cancels`, () => {
+      const [a, b] = [concurrency(workflow, push('a'.repeat(40))), concurrency(workflow, push('b'.repeat(40)))];
+      expect(a.group).not.toBe(b.group);
+      expect(a.cancel || b.cancel).toBe(false);
+    });
+    it(`${workflow}: a pull request's newer push still cancels the run it supersedes`, () => {
+      const [a, b] = [concurrency(workflow, pr('a'.repeat(40))), concurrency(workflow, pr('b'.repeat(40)))];
+      expect(a.group).toBe(b.group);
+      expect(b.cancel).toBe(true);
+    });
+  }
+  it('ci.yml: a run started by hand cancels nothing, and shares no group with a push of main', () => {
+    const run = concurrency('ci.yml', dispatch);
+    expect(run.cancel).toBe(false);
+    expect(run.group).not.toBe(concurrency('ci.yml', push('c')).group);
+  });
+});

@@ -14,4 +14,5 @@ fragments reached `main`, at the release (or whenever). Two open branches never 
 
 `npm run changes -- --check` (CI's `check` job, on pull requests) fails a branch that touches `src/`, `bridge/`,
 `tools/`, `scripts/`, `cli/`, `connectors/` or `games/` without a fragment and without a CHANGELOG edit (a release
-branch edits the CHANGELOG directly). This file is not a fragment.
+branch edits the CHANGELOG directly), and refuses any fragment here that `--assemble` would stop on, with its file
+and line (4.5.5, #335). This file is not a fragment.

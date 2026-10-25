@@ -145,6 +145,22 @@ relance d'abord (`gh run rerun <id> --failed`, la commande l'affiche). Une pré-
 (`ship tag`, plus bas). La chaîne ci-dessous est ce qu'elle lance, pour quand une étape doit se
 faire à la main.
 
+Ses vérifications préalables passent aussi les barrières humaines de la doc sur le commit de release lui-même (4.5.5,
+#339), dans un worktree temporaire de ce commit, puisque `main` peut déjà être en avance sur lui. Une affirmation ou
+une paire fusionnée après la CI de la pull request de release se voit là, avant toute attente, et non plus dans
+`docs-publish` une heure après le tag (l'`import-layout-merges` de la 4.5.4). L'arbre de ce commit ne peut plus
+recevoir de relecture, donc la commande s'arrête avec chaque point en attente, sa commande, et la seule suite possible :
+`npm run release -- <version> --docs-revision` publie comme d'habitude, npm compris, et la doc suit en révision une
+fois la release sortie :
+
+```sh
+# dans le dépôt du moteur
+git switch -c docs/<version> v<version>
+# enregistrer chaque relecture que l'arrêt a listée, commiter
+git push <le remote de l'organisation> docs/<version>
+gh workflow run docs-publish --ref docs/<version> -f mode=revision -f version=<version>
+```
+
 <a name="the-chain"></a>
 
 ### La chaîne
@@ -166,7 +182,8 @@ faire à la main.
    (`push`), peut être nommé par un tag ; une pull request avec le label `full-ci` le lance aussi, pour information
    seulement. Il finit par la vérification de publication de la documentation sur son propre rapport de tests, en
    avertissement : un problème de doc ne retient jamais la release (la CI de la pull request de release a déjà vérifié
-   ses relectures humaines, `npm run release -- check`).
+   ses relectures humaines, `npm run release -- check`, et la commande de release les repasse sur le commit de release,
+   [plus haut](#release-command)).
 
    Ses morceaux de mutation reprennent les rapports que la nightly a enregistrés sur `main` (4.5.5, #329) : seuls les
    ensembles dont les entrées ont bougé depuis tournent à nouveau, les autres prennent une ou deux minutes chacun. Un

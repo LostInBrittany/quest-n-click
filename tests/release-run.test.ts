@@ -8,6 +8,8 @@ import {
   isCandidateRun,
   pickCandidate,
   RELEASE_STEPS,
+  docsGatesStop,
+  docsRevisionSteps,
   releaseCommit,
   releaseRefusals,
   releaseRunVerdict,
@@ -52,6 +54,53 @@ describe('what npm run release -- <version> refuses first', () => {
       expect.stringMatching(/npm 10\.9\.0.*11\.15\.0/),
     ]);
     expect(releaseRefusals({ ...ok, signer: false })).toEqual([expect.stringMatching(/allowed_signers/)]);
+  });
+});
+
+describe("the docs' human gates on the release commit (#339)", () => {
+  const pending = {
+    ok: false,
+    detail:
+      "✖  create.review-pages: the claim import-layout-merges's scope is self-checked by the author (AI), not reviewed: a person reads it, then npm run wiki -- review-claim import-layout-merges --by <name> --kind human --relation independent",
+  };
+  it('says nothing when they pass', () => {
+    expect(docsGatesStop({ version: '4.5.4', sha: SHA, gates: { ok: true, detail: '' }, docsRevision: false })).toBe(
+      undefined,
+    );
+  });
+  it('stops before the tag with each pending item, its command, and the one way on', () => {
+    const stop = docsGatesStop({ version: '4.5.4', sha: SHA, gates: pending, docsRevision: false })!;
+    expect(stop).toMatch(/aaaaaaa/);
+    expect(stop).toContain('npm run wiki -- review-claim import-layout-merges');
+    expect(stop).toMatch(/nothing is tagged/);
+    expect(stop).toContain('npm run release -- 4.5.4 --docs-revision');
+    for (const step of docsRevisionSteps('4.5.4')) expect(stop).toContain(step);
+  });
+  it('lets the release go on with --docs-revision, the docs to follow as a revision', () => {
+    expect(docsGatesStop({ version: '4.5.4', sha: SHA, gates: pending, docsRevision: true })).toBe(undefined);
+  });
+  it('a revision is made from docs/<v>, cut from the tag, and published by docs-publish by hand', () => {
+    const steps = docsRevisionSteps('4.5.4');
+    expect(steps[0]).toBe('git switch -c docs/4.5.4 v4.5.4');
+    expect(steps.at(-1)).toBe('gh workflow run docs-publish --ref docs/4.5.4 -f mode=revision -f version=4.5.4');
+    // docs-publish.yml accepts a revision from refs/heads/docs/<v> only.
+    expect(readFileSync('.github/workflows/docs-publish.yml', 'utf8')).toContain(
+      'revision) want="refs/heads/docs/$VERSION" ;;',
+    );
+  });
+  it("runRelease judges the release commit's own tree, before the candidate is waited for, unless the tag is out", () => {
+    const src = readFileSync('tools/release/release-run.ts', 'utf8');
+    const run = src.slice(src.indexOf('export async function runRelease('));
+    expect(run.indexOf('gatesAt(sha)')).toBeGreaterThan(0);
+    expect(run.indexOf('gatesAt(sha)')).toBeLessThan(run.indexOf('await waitForCandidate('));
+    expect(run).toMatch(/tagged\s*\?\s*undefined\s*:\s*docsGatesStop\(/);
+    const gatesAt = src.slice(src.indexOf('function gatesAt('), src.indexOf('export async function runRelease('));
+    expect(gatesAt).toMatch(/'worktree', 'add', '--detach'/);
+    expect(gatesAt).toMatch(/humanGates\(/);
+    expect(gatesAt).toMatch(/finally/);
+    expect(readFileSync('tools/release/prepare.ts', 'utf8')).toMatch(
+      /docsRevision: all\.includes\('--docs-revision'\)/,
+    );
   });
 });
 

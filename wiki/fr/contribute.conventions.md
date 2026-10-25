@@ -97,9 +97,11 @@ npm run changes -- --check [--base=origin/main]
   sans fragment et sans modification du CHANGELOG : `✖ this branch changes the code and carries no fragment: write
   changes/<slug>.md (### Fixed | ### Changes | ### Breaking, then the bullets)…`. Le job `check` de la CI la lance
   sur les pull requests. Un changement qui ne touche que `docs/`, `wiki/` ou `tests/` n'a pas besoin de fragment.
-- Un titre autre que les trois (`### Added`, par exemple) est refusé : `a fragment's heading is one of ### Breaking |
-  ### Fixed | ### Changes`. Du texte avant le premier titre l'est aussi : `a fragment starts with its heading`. Rien
-  n'est rangé en silence.
+- Elle lit aussi chaque fragment de `changes/`, ceux de la branche et les autres, comme `--assemble` le fera (4.5.5,
+  #335) : un titre autre que les trois (`### Added`, par exemple), du texte avant le premier titre, ou un `.log.md`
+  qui ne s'ouvre pas sur `## <title>` est refusé avec son fichier et sa ligne : `✖ changes/<slug>.md:5: "### Fixes"
+  is not a fragment heading: ### Breaking | ### Fixed | ### Changes`. `--assemble` refuse les mêmes, donc un fragment
+  sur lequel la release s'arrêterait fait échouer la pull request qui l'ajoute. Rien n'est rangé en silence.
 - Une branche de release est l'exception : elle assemble les fragments et modifie le CHANGELOG elle-même.
 - `changes/README.md` n'est pas un fragment.
 
