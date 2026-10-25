@@ -213,8 +213,9 @@ export function queryRun(runId, { gh = 'gh', repo = REPO, timeoutMs } = {}) {
 export function candidateRunProblem(r, runId) {
   if (r.workflowName !== 'candidate') return `run ${runId} is a ${r.workflowName} run, not a candidate run`;
   // A pull request's run (full-ci) or a run started from another branch judges that branch's copy of candidate.yml.
-  if (r.event !== 'workflow_dispatch' || r.headBranch !== 'main')
-    return `candidate run ${runId} is a ${r.event} run on ${r.headBranch}: a tag names one started by hand on main`;
+  // 4.5.4: or started by a release pull request's merge, a push to main (candidate.yml's release-merge job).
+  if (!['workflow_dispatch', 'push'].includes(r.event) || r.headBranch !== 'main')
+    return `candidate run ${runId} is a ${r.event} run on ${r.headBranch}: a tag names one started by hand on main, or by a release's merge there`;
   if (r.status !== 'completed' || r.conclusion !== 'success')
     return `candidate run ${runId}: ${r.status} ${r.conclusion ?? ''}; a tag stands on a green candidate`;
   return null;

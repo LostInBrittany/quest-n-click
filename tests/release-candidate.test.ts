@@ -23,6 +23,30 @@ writeFileSync(join(dir, 'wsrun', 'run-story.wsrun'), '{"schema":2}');
 writeFileSync(join(dir, 'e2e.json'), '{"ok":true}');
 
 describe('the candidate of a release', () => {
+  it("starts itself on a release pull request's merge: a push to main that changes package.json's version (4.5.4)", () => {
+    const yml = readFileSync('.github/workflows/candidate.yml', 'utf8');
+    expect(yml).toMatch(/^ {2}push:\n {4}branches: \[main\]\n {4}paths: \[package\.json\]$/m);
+    const merge = yml.slice(yml.indexOf('\n  release-merge:\n'), yml.indexOf('\n  target:\n'));
+    expect(merge).toMatch(/^ {4}if: github\.event_name == 'push'$/m);
+    expect(merge).toContain('fetch-depth: 2');
+    expect(merge).toContain('git show HEAD^1:package.json');
+    expect(merge).toContain('echo "release=$release" >> "$GITHUB_OUTPUT"');
+    const target = yml.slice(
+      yml.indexOf('\n  target:\n'),
+      yml.indexOf('\n', yml.indexOf('    if:', yml.indexOf('\n  target:\n'))),
+    );
+    expect(target).toContain('needs: release-merge');
+    expect(target).toContain(
+      "if: always() && (github.event_name == 'workflow_dispatch' || github.event.label.name == 'full-ci' || needs.release-merge.outputs.release == 'true')",
+    );
+  });
+  it("is named by release.yml only when started by hand on main or by a release's merge on main", () => {
+    const rel = readFileSync('.github/workflows/release.yml', 'utf8');
+    expect(rel).toContain(
+      'case "$got" in "candidate completed success workflow_dispatch main"|"candidate completed success push main") ;;',
+    );
+  });
+
   it('caps its mutation matrix at 8 jobs at once, so a pull request is not queued behind it (#302)', () => {
     const yml = readFileSync('.github/workflows/candidate.yml', 'utf8');
     const job = yml.slice(yml.indexOf('\n  mutation:\n'), yml.indexOf('\n  mutation-merge:\n'));
@@ -83,7 +107,9 @@ describe('the candidate of a release', () => {
 
 describe('the workflows that judge a candidate', () => {
   const wf = (name: string) => readFileSync(`.github/workflows/${name}.yml`, 'utf8');
-  const jobs = (text: string) => [...text.matchAll(/^ {2}([a-z][a-z0-9-]*):$/gm)].map((m) => m[1]);
+  // The jobs: the 2-space keys after `jobs:` (`on:`'s triggers are 2-space keys too).
+  const jobs = (text: string) =>
+    [...text.slice(text.indexOf('\njobs:\n')).matchAll(/^ {2}([a-z][a-z0-9-]*):$/gm)].map((m) => m[1]);
 
   it('run every shard of every gated set from the one generated matrix, never a list of their own (4.1.20)', () => {
     for (const name of ['candidate', 'nightly', 'ci']) {
@@ -152,7 +178,6 @@ describe('the workflows that judge a candidate', () => {
     expect(needs).toEqual(jobs(text).filter((j) => j !== 'candidate-gate'));
     expect(text).toContain('node tools/release/candidate.mjs gate');
     expect(text).toContain('--run=${{ github.run_id }}');
-    expect(text).not.toMatch(/^ {2}push:/m);
   });
 
   it('measure each store in its own job, and refuse a report of another backend', () => {
@@ -180,7 +205,7 @@ describe('the workflows that judge a candidate', () => {
     // ship.mjs asks tools/release/provenance.mjs (4.1.19), the contract the Field Kit's bundles are verified with too.
     expect(readFileSync('tools/release/ship.mjs', 'utf8')).toMatch(/candidateRunProblem\(queryRun\(runId\), runId\)/);
     expect(readFileSync('tools/release/provenance.mjs', 'utf8')).toMatch(
-      /r\.event !== 'workflow_dispatch' \|\| r\.headBranch !== 'main'/,
+      /\['workflow_dispatch', 'push'\]\.includes\(r\.event\) \|\| r\.headBranch !== 'main'/,
     );
   });
 
@@ -192,6 +217,8 @@ describe('the workflows that judge a candidate', () => {
     const w = wf('candidate');
     expect(w).toMatch(/^ {2}pull_request:\n {4}types: \[labeled\]\n/m);
     expect(w).not.toMatch(/synchronize/);
-    expect(w).toContain("if: github.event_name == 'workflow_dispatch' || github.event.label.name == 'full-ci'");
+    expect(w).toContain(
+      "if: always() && (github.event_name == 'workflow_dispatch' || github.event.label.name == 'full-ci' || needs.release-merge.outputs.release == 'true')",
+    );
   });
 });
