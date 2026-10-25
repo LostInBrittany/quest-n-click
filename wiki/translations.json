@@ -7898,11 +7898,10 @@
       ]
     },
     "create.minigames#available": {
-      "enHash": "b5b1387ad5d4fe0bf99a47ee4832538a7542c2fd2f1b656df9bc7253582b2c78",
-      "frHash": "6b5ca01af179779471106b264018fa13d4df4908656194536b60e710170be358",
+      "enHash": "fcb411e75a5c7eb4795afc82a7b9362cb94848741d5f418d0910e009c7238a91",
+      "frHash": "5d36683ab644982168d3f4f1e99e5729b0ac940fdd5adc6f288843528440b0ee",
       "reviewers": [
-        { "name": "claude-4.5-writers", "kind": "ai", "relation": "author", "date": "2026-10-23" },
-        { "name": "wanoo", "kind": "human", "relation": "independent", "date": "2026-10-24" }
+        { "name": "claude-opus-5.5", "kind": "ai", "relation": "author", "date": "2026-10-25" }
       ]
     },
     "create.minigames#cables": {
