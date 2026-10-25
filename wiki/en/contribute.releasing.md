@@ -46,6 +46,36 @@ other thing release.yml checks.
 
 ## Steps
 
+<a name="prepare"></a>
+
+### Prepare the release pull request
+
+From 4.5.4, one command makes it, on an up-to-date `main`:
+
+```sh
+npm run release -- prepare 4.5.4 --name="Simple release"   # --dry-run lists the steps, --no-pr pushes nothing
+```
+
+It refuses a version that is not `x.y.z` greater than `package.json`'s, uncommitted changes, another branch, a shallow
+clone, a `main` behind the organisation's, and a new minor whose upgrade-notes page does not exist yet. Then, on the
+branch `release/<version>`, it runs what a release branch did by hand, in this order: the version
+(`npm version --no-git-tag-version`), the CHANGELOG section and the LOG entries from the fragments
+(`npm run changes -- --assemble`, which makes its own `## Unreleased` and folds a `.log.md` alone), the LOG's release
+entry, the upgrade notes' section (en and fr), the transition pages, the golden save (listed in
+`tests/fixtures/saves/index.json`), the reference run, the passes sheet and `passIssues`, the README's current-release
+line (the previous summary kept under "Over …"), the quality baseline; one commit, then the pull request.
+
+It writes no prose: each place a sentence is needed carries `TODO(release)` (the CHANGELOG's intro, the LOG's release
+entry, the upgrade notes, the README, the passes sheet). Write them on the branch, record the translation pairs that
+changed (`npm run wiki -- check` prints each command), then:
+
+```sh
+npm run release -- check 4.5.4
+```
+
+It says, item by item, whether `package.json` is at the version, the CHANGELOG has its section, a `TODO(release)` is
+left, `npm run wiki -- check` warns, and the quality baseline holds. Merge when every item is ✔.
+
 <a name="the-chain"></a>
 
 ### The chain

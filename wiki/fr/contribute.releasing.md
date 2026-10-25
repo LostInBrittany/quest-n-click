@@ -49,6 +49,38 @@ sur le même SHA est l'autre chose que release.yml vérifie.
 
 ## Étapes
 
+<a name="prepare"></a>
+
+### Préparer la pull request de release
+
+Depuis la 4.5.4, une commande la fait, sur un `main` à jour :
+
+```sh
+npm run release -- prepare 4.5.4 --name="Simple release"   # --dry-run liste les étapes, --no-pr ne pousse rien
+```
+
+Elle refuse une version qui n'est pas un `x.y.z` supérieur à celle de `package.json`, des changements non commités,
+une autre branche, un clone superficiel, un `main` en retard sur celui de l'organisation, et une nouvelle mineure dont
+la page de notes de mise à jour n'existe pas encore. Puis, sur la branche `release/<version>`, elle fait ce qu'une
+branche de release faisait à la main, dans cet ordre : la version (`npm version --no-git-tag-version`), la section du
+CHANGELOG et les entrées du LOG depuis les fragments (`npm run changes -- --assemble`, qui crée son `## Unreleased` et
+replie un `.log.md` seul), l'entrée de release du LOG, la section des notes de mise à jour (en et fr), les pages de
+transition, la sauvegarde de référence (listée dans `tests/fixtures/saves/index.json`), le run de référence, la fiche
+des passes et `passIssues`, la ligne de release actuelle du README (le résumé précédent gardé sous « Sur la … »), la
+ligne de base de qualité ; un commit, puis la pull request.
+
+Elle n'écrit aucune prose : chaque endroit qui demande une phrase porte `TODO(release)` (l'intro du CHANGELOG,
+l'entrée de release du LOG, les notes de mise à jour, le README, la fiche des passes). Écrivez-les sur la branche,
+enregistrez les paires de traduction qui ont changé (`npm run wiki -- check` donne chaque commande), puis :
+
+```sh
+npm run release -- check 4.5.4
+```
+
+Elle dit, point par point, si `package.json` est à la version, si le CHANGELOG a sa section, s'il reste un
+`TODO(release)`, si `npm run wiki -- check` avertit, et si la ligne de base de qualité tient. Fusionnez quand chaque
+point est ✔.
+
 <a name="the-chain"></a>
 
 ### La chaîne

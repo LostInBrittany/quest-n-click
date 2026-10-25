@@ -244,3 +244,13 @@ describe('the support matrix (reference.support-matrix)', () => {
     }
   });
 });
+
+describe('the npm scripts page (4.5.4)', () => {
+  it('gives a script named like a group its own anchor: the group keeps #release, the script is #script-release', () => {
+    for (const lang of ['en', 'fr']) {
+      const page = readFileSync(`wiki/${lang}/reference.npm-scripts.md`, 'utf8');
+      expect(page.split('<a name="release"></a>').length - 1, lang).toBe(1);
+      expect(page, lang).toContain('<a name="script-release"></a>\n\n#### `npm run release`');
+    }
+  });
+});

@@ -979,6 +979,15 @@ The README's quick start as a reader copies it (4.1.19): the block under "## Sta
 - Runs: `node scripts/readme-quickstart.mjs`
 - Usage: `npm run readme-quickstart -- --tarballs=<dir> | --published`
 
+<a name="script-release"></a>
+
+#### `npm run release`
+
+The release pull request by one command (4.5.4): `prepare` makes the branch `release/<version>` with every generated file (version, CHANGELOG and LOG from the fragments, upgrade notes' section, transition pages, golden save, reference run, passes sheet and passIssues, README line, quality baseline), `TODO(release)` where prose is needed, one commit and the pull request; `check` says what is left before merging ([contribute.releasing](contribute.releasing.md#prepare)).
+
+- Runs: `tsx tools/release/prepare.ts`
+- Usage: `npm run release -- prepare <x.y.z> --name="<name>" [--date=YYYY-MM-DD] [--no-pr] [--dry-run] | check <x.y.z>`
+
 <a name="release-check"></a>
 
 #### `npm run release-check`
