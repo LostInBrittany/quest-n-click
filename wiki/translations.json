@@ -5422,11 +5422,10 @@
       ]
     },
     "contribute.which-tests#locally": {
-      "enHash": "7bf516d1e274176c59fc8f0e24ffa32780bcb0ef0ec3fed2e1a91b29e685ba8d",
-      "frHash": "963f896420775987a1eed2fa980c671421af1afcef591147381a597d7b3d6677",
+      "enHash": "e22d625c6d0b7cba375627b9b67b306205b80add13bca55ff80d0493905273a2",
+      "frHash": "1c0590f4ef2903d46bbe64b70a5eaa6d5cecc29262e0a5d951426dc1cd61ac27",
       "reviewers": [
-        { "name": "claude-4.5-writers", "kind": "ai", "relation": "author", "date": "2026-10-23" },
-        { "name": "wanoo", "kind": "human", "relation": "independent", "date": "2026-10-24" }
+        { "name": "Claude", "kind": "ai", "relation": "author", "date": "2026-10-25" }
       ]
     },
     "contribute.which-tests#related": {

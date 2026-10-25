@@ -180,10 +180,9 @@
     },
     "bridge-telnet-address-limits": {
       "claimTextHash": "4590976e864bf8f79dc5118c7c0f7a2e7c5d8edd2ac485159408a9432cc0b08a",
-      "testFileHash": "5834d1987ab50a4671f0549e47b7be10f7c49c341bff14ce320c25f6f712dfb5",
+      "testFileHash": "bcfdde41d82ee3f7054811e38ec09537373aa4e0db7b5c4a7f947f05d864e21b",
       "reviewers": [
-        { "name": "claude-4.5-writers", "kind": "ai", "relation": "author", "date": "2026-10-23" },
-        { "name": "wanoo", "kind": "human", "relation": "independent", "date": "2026-10-24" }
+        { "name": "Claude", "kind": "ai", "relation": "author", "date": "2026-10-25" }
       ]
     },
     "bridge-tenant-routing": {

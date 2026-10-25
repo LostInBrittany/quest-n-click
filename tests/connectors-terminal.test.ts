@@ -189,31 +189,37 @@ describe('the Telnet connector', () => {
     await slow.until(/Closed \(idle\)/, 3000);
   }, 30_000);
 
-  it('holds 20 sessions and turns the rest away cleanly, a thousand attempts at once', async () => {
-    // One address here: its own limit lifted, so the server's limit of 20 is the one tested.
-    const { c } = await telnet(t, { perAddress: 1000 });
-    const sockets = await Promise.all(
-      Array.from(
-        { length: 1000 },
-        () =>
-          new Promise<Socket>((ok) => {
-            const s = connect(c.port, '127.0.0.1');
-            s.on('error', () => {});
-            s.on('connect', () => ok(s));
-            s.on('close', () => ok(s));
-          }),
-      ),
-    );
-    await new Promise((r) => setTimeout(r, 300));
-    expect(c.refusedConnections).toBeGreaterThanOrEqual(980);
-    for (const s of sockets) s.destroy();
-    // A session is freed when the server sees its socket close: wait for that before the next client.
-    for (let i = 0; i < 200 && c.sessionCount >= 20; i++) await new Promise((r) => setTimeout(r, 25));
-    expect(c.sessionCount).toBeLessThan(20);
-    const later = await client(c.port);
-    await later.until(/Pairing code: $/, 5000);
-    later.s.end();
-  }, 60_000);
+  // A thousand sockets at once: macOS's default limits make it fail on a developer's machine, where it adds nothing.
+  // It runs on CI, or locally with TELNET_STRESS=1.
+  it.skipIf(!process.env.CI && !process.env.TELNET_STRESS)(
+    'holds 20 sessions and turns the rest away cleanly, a thousand attempts at once',
+    async () => {
+      // One address here: its own limit lifted, so the server's limit of 20 is the one tested.
+      const { c } = await telnet(t, { perAddress: 1000 });
+      const sockets = await Promise.all(
+        Array.from(
+          { length: 1000 },
+          () =>
+            new Promise<Socket>((ok) => {
+              const s = connect(c.port, '127.0.0.1');
+              s.on('error', () => {});
+              s.on('connect', () => ok(s));
+              s.on('close', () => ok(s));
+            }),
+        ),
+      );
+      await new Promise((r) => setTimeout(r, 300));
+      expect(c.refusedConnections).toBeGreaterThanOrEqual(980);
+      for (const s of sockets) s.destroy();
+      // A session is freed when the server sees its socket close: wait for that before the next client.
+      for (let i = 0; i < 200 && c.sessionCount >= 20; i++) await new Promise((r) => setTimeout(r, 25));
+      expect(c.sessionCount).toBeLessThan(20);
+      const later = await client(c.port);
+      await later.until(/Pairing code: $/, 5000);
+      later.s.end();
+    },
+    60_000,
+  );
 
   it('holds three connections per address, counts wrong codes across reconnections, closes an unpaired one', async () => {
     const { c } = await telnet(t, { perAddress: 3, triesPerAddress: 4, pairMs: 400 });

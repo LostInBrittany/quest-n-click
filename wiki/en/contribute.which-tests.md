@@ -58,6 +58,11 @@ sets, on the tag's commit ([Releasing](contribute.releasing.md)).
 `npm run test:assets`, `npm run verify:game`, `npm run quality:baseline -- --check`; `npm run release-check:local`
 chains most of it. Run one suite at a time.
 
+One test runs on CI only: the Telnet connector's stress test in `tests/connectors-terminal.test.ts` (a thousand
+connections at once), which macOS's default limits fail on a developer's machine. It is skipped unless `CI` is set,
+as GitHub Actions does on every job; `TELNET_STRESS=1 npx vitest run tests/connectors-terminal.test.ts` runs it
+locally.
+
 <a name="find-the-test-of-a-thing"></a>
 
 ## Find the test of a thing
