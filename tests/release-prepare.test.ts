@@ -240,12 +240,12 @@ describe('where the release branch is pushed', () => {
     expect(
       pushTarget(
         r(
-          ['fork', 'https://github.com/wanoo/quest-n-click'],
+          ['fork', 'https://github.com/someone/quest-n-click'],
           ['origin', 'git@github.com:Quest-n-Click/quest-n-click.git'],
         ),
         ORG,
       ),
-    ).toEqual({ remote: 'fork', head: 'wanoo:' });
+    ).toEqual({ remote: 'fork', head: 'someone:' });
   });
   it("is the organisation's repository itself when no fork is a remote (a branch, never main)", () => {
     expect(pushTarget(r(['origin', 'git@github.com:Quest-n-Click/quest-n-click.git']), ORG)).toEqual({
