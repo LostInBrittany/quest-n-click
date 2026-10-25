@@ -37,7 +37,7 @@ pull request runs is [`tools/ci-plan.ts`](../../tools/ci-plan.ts). Which test su
   (`--shard=<i>/4`, 4.5.4). When the change touches product code (the plan's `coverage` gate: the engine, a game, the
   Bridge, the Studio and its server, the CLI and packages, the golden saves, the authoring tools), each shard runs
   under V8 coverage and keeps a blob report; `coverage` merges the four (`test:merge`: the floors of `vite.config.ts`
-  on the whole suite), then runs the ratchet: a warning on a pull request, a failure on `main`
+  on the whole suite), then runs the ratchet: a warning on a pull request, a failure on `main` and on a tag
   ([The coverage ratchet](contribute.coverage-ratchet.md)). Otherwise (the docs, a workflow, the release and wiki
   tools, tests alone) the shards run the same files without coverage (`test:unit`). Either way `coverage`, the check
   the ruleset requires, is red when a shard is not green.

@@ -564,7 +564,7 @@ The CPU-bound solver tests (abstraction audits, canonical owner, memo and owners
 
 #### `npm run test:merge`
 
-Merges the blob reports of the shards (`.vitest/blob`) under coverage: one report, the floors of `vite.config.ts` applied to the whole suite, the summary the ratchet reads (CI's `coverage` job, 4.5.4).
+Merges the blob reports of the shards (`.vitest/blob`) under coverage: one report, the floors of `vite.config.ts` applied to the whole suite, the summary the ratchet reads (CI's `coverage` job, 4.5.4). Locally, clear `.vitest/blob` before the shards: a blob left there is merged too.
 
 - Runs: `vitest --merge-reports --coverage`
 

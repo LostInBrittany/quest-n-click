@@ -564,7 +564,7 @@ Les tests du solveur qui saturent le processeur (audits d’abstraction, propri�
 
 #### `npm run test:merge`
 
-Fusionne les rapports blob des fragments (`.vitest/blob`) sous couverture : un rapport, les planchers de `vite.config.ts` appliqués à toute la suite, le résumé que lit le cliquet (le job `coverage` de la CI, 4.5.4).
+Fusionne les rapports blob des fragments (`.vitest/blob`) sous couverture : un rapport, les planchers de `vite.config.ts` appliqués à toute la suite, le résumé que lit le cliquet (le job `coverage` de la CI, 4.5.4). En local, videz `.vitest/blob` avant les fragments : un blob laissé là est fusionné aussi.
 
 - Lance : `vitest --merge-reports --coverage`
 

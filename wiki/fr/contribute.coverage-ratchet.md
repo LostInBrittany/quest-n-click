@@ -50,7 +50,7 @@ tests d'assets tournent eux aussi sous couverture.
 
 ## Où lancer les commandes
 
-Dans le dépôt du moteur, sur votre machine. La CI lance la même chose dans son job `coverage`.
+Dans le dépôt du moteur, sur votre machine. La CI lance la même chose en quatre fragments (`unit`) fusionnés par son job `coverage`.
 
 <a name="steps"></a>
 

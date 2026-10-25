@@ -39,7 +39,7 @@ tourne dans quel job, c'est [Quels tests tournent quand](contribute.which-tests.
   `coverage` du plan : le moteur, un jeu, le Bridge, le Studio et son serveur, la CLI et les paquets, les sauvegardes
   de référence, les outils d'écriture), chaque fragment tourne sous couverture V8 et garde un rapport blob ;
   `coverage` fusionne les quatre (`test:merge` : les planchers de `vite.config.ts` sur toute la suite), puis lance le
-  cliquet : un avertissement sur une pull request, un échec sur `main`
+  cliquet : un avertissement sur une pull request, un échec sur `main` et sur un tag
   ([Le cliquet de couverture](contribute.coverage-ratchet.md)). Sinon (la doc, un workflow, les outils de release et du
   wiki, des tests seuls), les fragments passent les mêmes fichiers sans couverture (`test:unit`). Dans les deux cas,
   `coverage`, la vérification que le ruleset exige, est rouge quand un fragment n'est pas vert.

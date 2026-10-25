@@ -4192,8 +4192,8 @@
       ]
     },
     "contribute.ci#tiers": {
-      "enHash": "8db3b00f7d1a0c5ec2d8bc465d610e8b6704eb6103ccc3ab50e32f3f8dc2552e",
-      "frHash": "12073583e4cb360f37a5bbee4daf735b24ef4f65dcaff308825ce07120e1a31b",
+      "enHash": "e60d31ed1773b5244aff33adf0dc0a2daeb12cc12e3477bc7e562b2fcc6aa3cf",
+      "frHash": "900d04d85f6aa983e9b7643529a8ddda5bb461f2ebcddfd99b9f7b14d748fbef",
       "reviewers": [
         { "name": "claude-454-shards", "kind": "ai", "relation": "author", "date": "2026-10-25" }
       ]
@@ -4493,11 +4493,10 @@
       ]
     },
     "contribute.coverage-ratchet#where-to-run": {
-      "enHash": "fd7072cf86dc82dc0fcf1b052ec3c2084e56b0082d3e6328fcf3a0f3f6df4e09",
-      "frHash": "94fcfd3febf7f25a7d04dacbf6c3de20d5ef4f6c382bdc1b89d2f5da08af0982",
+      "enHash": "be3eb0f831424ffe10a8751d4bb2a1eb1737a9736081a20aded34060c68176a5",
+      "frHash": "03aa9e5b1869752cb7486120f5fc98978017abf317b40d0e191713a118091f47",
       "reviewers": [
-        { "name": "claude-4.5-writers", "kind": "ai", "relation": "author", "date": "2026-10-23" },
-        { "name": "wanoo", "kind": "human", "relation": "independent", "date": "2026-10-24" }
+        { "name": "claude-454-shards", "kind": "ai", "relation": "author", "date": "2026-10-25" }
       ]
     },
     "contribute.decisions#_lead": {
@@ -17048,8 +17047,8 @@
       ]
     },
     "reference.npm-scripts#test-merge": {
-      "enHash": "63385e81296b814efaee087ab6f50e00e9aaeea75281cf7ee2556e40115f950e",
-      "frHash": "2578839d8a08fdc60c8a6da4d30b35be70330055b84b381f4ede6b701d021ba0",
+      "enHash": "17be214c3931e4a4a322f904e075fed5977a04475fcdd9684d8c323723275517",
+      "frHash": "4c35ffb3d77745dfc902a567057f2142a8945786e95078612ca8a9226709bd8c",
       "reviewers": [
         { "name": "claude-454-shards", "kind": "ai", "relation": "author", "date": "2026-10-25" }
       ]
