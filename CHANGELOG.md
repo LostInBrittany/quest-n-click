@@ -2,11 +2,12 @@
 
 ## 4.5.3 — 2026-10-25
 
-LOG #300–#308: "One pass", a patch on 4.5.2 that reworks the release chain. The candidate is now a release's only test
+LOG #300–#309: "One pass", a patch on 4.5.2 that reworks the release chain. The candidate is now a release's only test
 pass (D55): the push of a `v*` tag starts `release.yml`, which checks the tag, main's `ci` on its commit and the
 candidate it names, then publishes that candidate's files in minutes, testing nothing again; a tag runs no `ci` of its
 own, `ship tag` always waits for main's `ci` (`--now` is refused), and the Remix catalogues are proved by the candidate.
-Either co-maintainer can sign a tag, `wanoo` counts as an owner of the npm names, a wiki claim backed by a `.each` test
+`ship tag` tags the organisation's repository whatever its remote is called and refuses a commit without the version's
+CHANGELOG section. Either co-maintainer can sign a tag, `wanoo` counts as an owner of the npm names, a wiki claim backed by a `.each` test
 counts as run, and a translation pair checked by its AI author no longer stops a documentation publication (D56); the
 candidate starts on a pull request only when `full-ci` is added. 4.5.2's packages were published on npm on 24 October
 (`@quest-n-click/engine`, `/create`, `/bridge`, `/connectors`, `/studio-server`), and 4.5.3 is staged the same way.
@@ -17,6 +18,7 @@ cannot be released, and the `docs-publish` environment needs a `v*` tag rule. A 
 ### Fixed
 
 - **A claim backed by a `.each` test is executed again** (4.5.3): the wiki's publication check matched a claim's test name literally, so a test whose title is filled in by `describe.each` (`maintenance leases on $name`, run as `… on sqlite`) never counted as run, and 4.5.2's `docs-publish` refused `bridge-restore-refused-while-serving` as "not executed".
+- **`ship tag` tags the organisation's repository and checks the CHANGELOG first** (4.5.3): it fetches from and pushes to the git remote whose URL is `Quest-n-Click/quest-n-click` (`upstream` when `origin` is a fork), instead of `origin` always; and it refuses, before creating anything, a commit whose `CHANGELOG.md` has no section of the version, which release.yml needs for the notes (`v4.5.3-rc.1` was spent that way).
 
 ### Changes
 
