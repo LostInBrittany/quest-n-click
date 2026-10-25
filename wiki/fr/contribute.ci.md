@@ -20,6 +20,13 @@ tourne dans quel job, c'est [Quels tests tournent quand](contribute.which-tests.
 | `qualify` | une pull request ou un push sur `main` qui touche `ops/`, `scripts/ops-qualify*`, `scripts/pack.mjs`, `bridge/`, `package.json` ou le fichier de verrouillage ; à la main | `npm run ops:qualify` : le profil de qualification du Bridge sous Docker | le profil ne pourrit pas entre deux candidats |
 | `docs-publish` | appelé par `release` après `ship verify` ; à la main (`revision`, `rollback`, `promote`, `preview`) | le wiki et l'enregistrement de publication (4.5.0) | la publication de la documentation |
 
+**Quel run un push plus récent annule** (4.5.5, #337). Sur une pull request, `ci` et `qualify` tournent un à la fois :
+un push plus récent annule le run qu'il remplace. Un push sur `main` n'est jamais annulé : chacun tourne dans un groupe
+à son propre SHA, puisque tout commit de `main` peut devenir un commit de release et que son tag a besoin du run `ci`
+de `main` sur ce SHA exact. Avant, une fusion juste après celle de la pull request de release annulait le run du
+commit de release, et `ship tag` le relançait. Un run `ci` lancé à la main attend celui qui tourne sur sa branche et
+n'annule rien ; `candidate`, `release` et `docs-publish` n'annulent jamais de run non plus.
+
 <a name="tiers"></a>
 <!-- applies: .. since 4.1.9 -->
 

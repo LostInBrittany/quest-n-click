@@ -4198,10 +4198,10 @@
       ]
     },
     "contribute.ci#workflows": {
-      "enHash": "f0d4b250e8fbf05217a1a14f233c56f2ab2d34ce678823c3ee318a874ef9b377",
-      "frHash": "568abebeec2653a8c3d4b30531729d273026336f29623f9fda68ac3af45111f9",
+      "enHash": "b69a1c07f4f5f839477de0871e0ee6721c6cd5923e38448dee59e4d0f6cb6a72",
+      "frHash": "3af4be52f350d079f91999e767b09f42c55896bf792c0369fe8bf9c6bffd1ee2",
       "reviewers": [
-        { "name": "claude-329-nightly-mutation", "kind": "ai", "relation": "author", "date": "2026-10-25" }
+        { "name": "claude-ci-main-no-cancel", "kind": "ai", "relation": "author", "date": "2026-10-25" }
       ]
     },
     "contribute.code-of-conduct#_lead": {
