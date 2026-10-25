@@ -1031,7 +1031,7 @@ Posée pendant que Vitest tourne : le plugin du Studio local ne lance alors rien
 Posée sur un fragment de la suite unitaire (`<i>/4`, 4.5.4) : `vite.config.ts` n’applique alors aucun plancher de couverture, que `npm run test:merge` applique à la suite fusionnée.
 
 - Origine : posée par le job `unit` de ci.yml.
-- Lue par : [`vite.config.ts`](../../vite.config.ts).
+- Lue par : [`.github/workflows/ci.yml`](../../.github/workflows/ci.yml), [`vite.config.ts`](../../vite.config.ts).
 
 <a name="npm-lifecycle-event"></a>
 

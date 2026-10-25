@@ -33,18 +33,21 @@ pull request runs is [`tools/ci-plan.ts`](../../tools/ci-plan.ts). Which test su
   bundle, `verify:dist`, the spoiler check, the asset audit), `weight -- --release`, `quality:baseline -- --check
   --dist`, `prove:game`, `audit:deps` when `package.json` or the lockfile moved, then the two-entry build (game and
   Studio demo) that the e2e rows play, kept as the `dist` artifact.
-- `coverage`: the unit suite once, on every change. When the change touches product code (the plan's `coverage` gate:
-  the engine, a game, the Bridge, the Studio and its server, the CLI and packages, the golden saves, the authoring
-  tools), under V8 coverage (`test:coverage`), then the coverage ratchet: a warning on a pull request, a failure on
-  `main` and on a tag ([The coverage ratchet](contribute.coverage-ratchet.md)). Otherwise (the docs, a workflow, the
-  release and wiki tools, tests alone) the same suite without coverage (`test:node`), a few minutes less (4.5.4).
+- `unit` (four shards at once) and `coverage`: the unit suite and the asset tests, on every change, split in four
+  (`--shard=<i>/4`, 4.5.4). When the change touches product code (the plan's `coverage` gate: the engine, a game, the
+  Bridge, the Studio and its server, the CLI and packages, the golden saves, the authoring tools), each shard runs
+  under V8 coverage and keeps a blob report; `coverage` merges the four (`test:merge`: the floors of `vite.config.ts`
+  on the whole suite), then runs the ratchet: a warning on a pull request, a failure on `main`
+  ([The coverage ratchet](contribute.coverage-ratchet.md)). Otherwise (the docs, a workflow, the release and wiki
+  tools, tests alone) the shards run the same files without coverage (`test:unit`). Either way `coverage`, the check
+  the ruleset requires, is red when a shard is not green.
 
 **The second tier, what the change can break.** Each job needs `plan` (most also `check`) and reads its gate in the
 plan: it runs its real work, or one step that says "not needed by the plan" and succeeds.
 
 | Job | Gate | Runs |
 |---|---|---|
-| `coverage` | `coverage` | the unit suite under coverage and the ratchet (spared: the same suite without coverage) |
+| `unit` (four shards), `coverage` | `coverage` | the shards under coverage, merged, then the ratchet (spared: the same shards without coverage) |
 | `node-24` | `node24` | the unit suite on Node 24 |
 | `windows` | `windows` | the doctor, the type checks, the unit suite without the files that assume POSIX, `build:game`, the production server answering |
 | `e2e` (six rows) | `e2e` | the production build played by touch: Chromium full, WebKit generic, Chromium and WebKit at the keyboard, Chromium in French, Chromium with the Canvas painter; with weight, music, visual, perf, Studio, accessibility and PWA steps on some rows |

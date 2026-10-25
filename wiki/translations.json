@@ -4192,10 +4192,10 @@
       ]
     },
     "contribute.ci#tiers": {
-      "enHash": "4a099c982f6bbcd92e44807dedcf8435f43d11e9150a45cd89a025ca4cbbf5dd",
-      "frHash": "32ad4c5e21ff15ad6f5a88c786ac958095a7b33c39a2853195ae6a3eb2637222",
+      "enHash": "8db3b00f7d1a0c5ec2d8bc465d610e8b6704eb6103ccc3ab50e32f3f8dc2552e",
+      "frHash": "12073583e4cb360f37a5bbee4daf735b24ef4f65dcaff308825ce07120e1a31b",
       "reviewers": [
-        { "name": "claude-454-ci", "kind": "ai", "relation": "author", "date": "2026-10-25" }
+        { "name": "claude-454-shards", "kind": "ai", "relation": "author", "date": "2026-10-25" }
       ]
     },
     "contribute.ci#workflows": {
@@ -5435,10 +5435,10 @@
       ]
     },
     "contribute.which-tests#suites": {
-      "enHash": "9f1288edbff5f6a86ac5a8fb630e9e4dea89cbd2989bd667b0d6f82ccc913063",
-      "frHash": "37221b74a8fe4dda921608722d05d21d74fe1fcbf1a7dcecbf6412fb29ed61e5",
+      "enHash": "3e12407384418547449be8d54b0b8f41fa619d0a6888be4d65519a62efa44e33",
+      "frHash": "47cf2e67d9252570e9f202c034f19aa176224c3b5c319a768ce6d4a550532cf8",
       "reviewers": [
-        { "name": "claude-454-ci", "kind": "ai", "relation": "author", "date": "2026-10-25" }
+        { "name": "claude-454-shards", "kind": "ai", "relation": "author", "date": "2026-10-25" }
       ]
     },
     "contribute.writing-docs#_lead": {
@@ -15369,8 +15369,8 @@
       ]
     },
     "reference.environment-variables#vitest-shard": {
-      "enHash": "62a49248d6143419900328d703d6323d5900349bcd84d3888d0147bea09a6c4e",
-      "frHash": "0c237abdce908532262ec5a7d38b74956dabbe487318d35dd426937d4c8802ca",
+      "enHash": "d06ca93d49771b05f3086805cd2c8c257cd4f067e182a149b691b5b80ab4259a",
+      "frHash": "51ddb8de4852f158ec5d034b7ba32dcdd52d965424e3524e3e9a8c226a86b10d",
       "reviewers": [
         { "name": "claude-454-shards", "kind": "ai", "relation": "author", "date": "2026-10-25" }
       ]
