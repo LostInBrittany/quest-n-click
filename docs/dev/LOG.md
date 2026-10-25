@@ -8124,3 +8124,135 @@ tools/ ships in the package, scripts/ does not).
 → next: a person's `review-claim` of the four save claims; the `v*` tag rule on the `docs-publish` environment; the
 candidate started by hand on the merge commit; the signed tag `v4.5.3-rc.2` (or `v4.5.3`) naming it; `ship verify`;
 then `npm stage approve` engine first; the people's passes.
+
+## #310 · 2026-10-25 · Claude · proposal · CI in minutes, part A of "Simple release" (#302)
+
+Measured on #300's run (40177464627, `tools/release/` and tests, 36 min in all): `windows` 15.4 min, `coverage` 13.3
+(12.4 of it the tests), `node-24` 9.8, and each waited 15–21 min for a runner. `tools/ci-plan.ts` gains a `coverage`
+gate, opened by product code only; `ci.yml`'s `coverage` job then runs `test:coverage` and the ratchet, else the plain
+`test:node` (the plan spares the instrumentation, never the tests: `check` runs no unit test). `windows` and `node-24`
+leave the documentation's publication tools, the repository tools and `tests/`; the hosted-Studio rule keeps
+`studioHosted` alone. `pr-gate` says a red `pwa-firefox` as a warning (#257). The candidate's `mutation` matrix runs 8
+at a time. Spec: docs/dev/PLAN-4.5.4-SIMPLE-RELEASE.md (part A); plan: docs/dev/plans/4.5.4-a-ci-in-minutes.md.
+
+→ next: the unit suite is still ~9 min on every PR; sharding it over parallel jobs is what brings a tooling PR to a few
+minutes. Then part B (the release PR made by one command).
+
+
+## #311 · 2026-10-25 · Claude · proposal · The unit suite in four shards (part A2 of "Simple release")
+
+Part A (#305) kept the unit suite on every pull request (`check` runs none), ~9 min without coverage, ~13 with. The
+`unit` matrix now runs it in four shards at once, from `test:coverage`'s set of files; `coverage` needs it, merges the
+blob reports under coverage (`vitest --merge-reports --coverage`) and runs the ratchet. A shard applies no floor
+(`VITEST_SHARD`): a quarter of the suite measured 41–46 % of lines against a floor of 75 %, so the floors apply to the
+merge only. Locally the four shards took 20–52 s each and the merge 2 s, the summary the ratchet reads where it was.
+Plan: docs/dev/plans/4.5.4-a2-unit-shards.md.
+
+→ next: this PR's own run gives the shards' time on a runner; then part B (the release PR made by one command).
+
+
+## #312 · 2026-10-25 · Claude · proposal · The mouth-kit tools find the game folder in a project (#307)
+
+Moving "Jack cherche un taf" (https://github.com/LostInBrittany/web-scumm-jack-cherche-un-taf) out of the engine
+repository showed that `talk-kit.py` and `talk-apply.py` built every path as `games/{GAME}/…` from the current folder,
+with `GAME` from the environment or `config.game`, while `tools/game.ts` and `tools/assets.py` already honour
+`GAME_DIR` and `WEB_SCUMM_PROJECT`. A small module, `tools/game_folder.py` (`game_id()`, `game_dir()`), gives the
+Python side the same answer: `$GAME_DIR`; `$WEB_SCUMM_PROJECT/game` (the `quest-n-click` command sets it); `./game/`
+when `game/index.ts` is there (the tool run by hand from a project's folder); else `games/<id>/`, the id read like
+`tools/game.ts` reads it (the `.cache/game` link included, which the talk tools ignored before). The CLI gains
+`talk-kit`, `talk-apply` and `talk-normalize`, which run the package's scripts in the project's folder. `talk-apply.py`
+checks its kit and reply before importing OpenCV, so the path checks of `tests/talk-tools.test.ts` run in CI (whose
+requirements leave OpenCV out); pasting the mouths runs where `cv2` is installed. The wiki's two limits on the talk
+tools are gone. `tools/cut-sheet.py` has its own copy of `game_id()` and could import this module.
+
+→ next: `create-quest-n-click` could add `game/private/` to a new project's `.gitignore` (the wiki says to, by hand).
+
+
+## #313 · 2026-10-25 · Claude · proposal · The art tools in a created project: prompts.md and cut-sheet.py find game/ (#308)
+
+Found while moving "Jack cherche un taf" out of the engine repository into a project made by `@quest-n-click/create`:
+its `game/prompts.md` sent the author to `games/jack/private/sheets/`, attached `../../../game/art/_reference.png` and
+cut with `python3 tools/cut-sheet.py`, and the cutter, run as told, wrote into `games/jack/art/`.
+
+Root cause: `buildPrompts` made its paths relative to `root`, which the CLI, the MCP and the Studio all set to the
+engine's folder (`ROOT`, the installed package in a project), and hard-coded `games/${id}/` and `tools/`. The paths now
+come from `gameDir` and from the folder the author works in (`workRoot`: the parent of `games/`, or the folder holding
+`game/`; the CLI passes `WORK`), the tools' paths from the engine's folder relative to it, the commands from whether
+the two differ (`npm run …` or `npx quest-n-click …`, the mouth kits through #307's `talk-kit` / `talk-apply`).
+`cut-sheet.py` uses #307's `tools/game_folder.py`, one rule for the Python tools (`GAME_DIR`, `WEB_SCUMM_PROJECT`,
+`game/index.ts` in the current folder even beside a stray `games/`, then `games/<GAME>`). Built on #307's branch. The
+demo's `prompts.md` is byte-identical.
+
+→ next: nothing for the art tools; `assets.py` still has its own copy of the rule, which could use `game_folder.py`.
+
+
+## #314 · 2026-10-25 · Claude · proposal · The release pull request by one command (part B of "Simple release")
+
+4.5.3's release commit (2afb9f51, 108 files) was written by an agent, by hand around the existing tools. `tools/release/prepare.ts`
+runs those tools in its order and writes the rest from helpers checked against that commit (the passes sheet and
+`passIssues`, the CHANGELOG heading and intro, the LOG's release entry, the upgrade notes' section and lead, the README's
+line, the releases' history kept under "Over …"). Run end to end on a throwaway clone (`prepare 4.5.4 --name="Simple
+release" --no-pr`): 84 files, then `check 4.5.4` listed the 16 `TODO(release)` and the pairs to record; that run found
+two defects the unit tests then pinned (the README's history wiped, the CHANGELOG's blank line eaten). `changes --assemble`
+now makes `## Unreleased` and folds a lone `.log.md`. The golden-save list moved to `tests/fixtures/saves/index.json`:
+`tests/save-v3.test.ts` changes once more here, so its four claims need a person's `review-claim` again, then never at a
+release. The scripts page gives `npm run release` the anchor `script-release` (the group keeps `release`).
+Plan: docs/dev/plans/4.5.4-b-release-prepare.md.
+
+→ next: part C and E (the candidate on the release PR's merge, the docs' human gates in the PR's CI, docs-publish
+without a click), then D (`npm run release -- <version>`).
+
+
+## #315 · 2026-10-25 · Claude · proposal · The test count no longer conflicts between pull requests
+
+On 25 October, #305, #306, #309, #310 and #311 each conflicted with the others on `README.md`, `README.fr.md` and
+`tests/quality-baseline.json`: each added tests, so `quality:baseline -- --check` failed until the branch rewrote the
+three files, and every merge then put the next branch in conflict. `readmeDrift` (tools/quality-baseline.ts) now checks
+the READMEs against the committed baseline; the test count may only grow (`differences` already said so), and a gain is
+reported, not required. The README says its figures are the last baseline's, rewritten at each release; the PR
+template, CONTRIBUTING, contribute.before-a-pr and contribute.quality-baseline (en, fr) say a new test alone needs no
+rewrite.
+
+→ next: none.
+
+
+## #316 · 2026-10-25 · Claude · proposal · The candidate starts itself, the docs publish themselves (parts C and E of "Simple release")
+
+4.5.3 asked the maintainer to start the candidate by hand after the release PR's merge, then to approve docs-publish,
+whose human gates (a claim's review reset by a test file) were only checked after the tag. `candidate.yml` gains a
+`push: [main], paths: [package.json]` trigger and a `release-merge` job that reads both versions (a dependency bump
+starts nothing); `candidateRunProblem` and release.yml accept `push` on `main` beside `workflow_dispatch`; the three
+steps that held to `workflow_dispatch` (the deployment profile, the full qualification, the manifest's attestation)
+now hold to anything but a pull request. `wiki -- check --publish --reviews-only` keeps every gate but "executed" and
+needs no candidate run; `release -- check` runs it, and ci.yml runs `release -- check` on a `release/*` branch. The
+candidate's `release-core` checks its docs against its own report as a warning. docs-publish picks its environment
+by its call: `docs-publish` (release, no reviewer, `v*`) or `docs-publish-manual` (reviewers, `main`, `docs/*`).
+Plan: docs/dev/plans/4.5.4-ce-candidate-docs.md.
+
+→ next: the maintainer applies the two environments' settings; then part D (`npm run release -- <version>`).
+
+
+## #317 · 2026-10-25 · Claude · proposal · npm run release -- <version> (part D of "Simple release", D57)
+
+The last part of the plan: after the release pull request's merge, `tools/release/release-run.ts` (routed from
+`npm run release -- <x.y.z>` by prepare.ts) refuses first (`releaseRefusals`), names the newest candidate of the
+commit started on main (`pickCandidate`: the merge's push run, or one by hand; `--start-candidate` dispatches one),
+waits saying `candidateProgress` every minute and re-runs failed jobs once, runs `ship tag … --sign` (which waits for
+main's ci, pushes the signed tag to the organisation's repository, follows release.yml and verifies), then reads
+`npm stage list` (`stagedFor`, the engine first) and runs `npm stage approve` for each with the maintainer's 2FA. D57
+records the three human actions. A dry run on a feature branch refused for the four right reasons.
+
+→ next: release 4.5.4 itself with the new commands, the first real run of parts B to E.
+
+## #318 · 2026-10-25 · Claude · release · 4.5.4 "Simple release": TODO(release)
+
+- **The request**: TODO(release)
+- **What ships**: TODO(release)
+- **Fragments**: TODO(release)
+- **Upgrade notes**: TODO(release)
+- **Reviews**: TODO(release)
+- **Fixtures**: TODO(release)
+- **Passes**: TODO(release)
+- **Signature**: TODO(release)
+
+→ next: TODO(release)
