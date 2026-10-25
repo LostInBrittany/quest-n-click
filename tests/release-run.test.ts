@@ -1,13 +1,17 @@
 // `npm run release -- <x.y.z>` (4.5.4, part D of docs/dev/PLAN-4.5.4-SIMPLE-RELEASE.md): the maintainer's one command
 // after the release pull request's merge. Its pure parts: what it refuses before anything, which candidate run it
-// names, how it says a wait's progress, and which staged packages it approves, in which order.
+// names, how it says a wait's progress, how it judges the release run for npm, and which staged packages it approves.
+import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import {
   candidateProgress,
+  isCandidateRun,
   pickCandidate,
   RELEASE_STEPS,
+  releaseCommit,
   releaseRefusals,
-  stagedFor,
+  releaseRunVerdict,
+  stagedFromJson,
 } from '../tools/release/release-run';
 
 const SHA = 'a'.repeat(40);
@@ -24,6 +28,8 @@ describe('what npm run release -- <version> refuses first', () => {
     gh: true,
     npm: 'lostinbrittany',
     owners: ['lostinbrittany', 'wanoo'],
+    npmVersion: '11.19.1',
+    signer: true,
   };
   it('nothing when main is the merged release, signed, signed in to gh and to npm as an owner', () => {
     expect(releaseRefusals(ok)).toEqual([]);
@@ -40,6 +46,10 @@ describe('what npm run release -- <version> refuses first', () => {
     expect(releaseRefusals({ ...ok, gh: false })).toEqual([expect.stringMatching(/gh auth login/)]);
     expect(releaseRefusals({ ...ok, npm: undefined })).toEqual([expect.stringMatching(/npm login/)]);
     expect(releaseRefusals({ ...ok, npm: 'someone' })).toEqual([expect.stringMatching(/not an owner/)]);
+    expect(releaseRefusals({ ...ok, npmVersion: '10.9.0' })).toEqual([
+      expect.stringMatching(/npm 10\.9\.0.*11\.15\.0/),
+    ]);
+    expect(releaseRefusals({ ...ok, signer: false })).toEqual([expect.stringMatching(/allowed_signers/)]);
   });
 });
 
@@ -87,31 +97,75 @@ describe('a wait says where it is', () => {
   });
 });
 
-describe('the packages it approves', () => {
-  const list = [
-    'id: 11111111-0000-0000-0000-000000000001',
-    'package name: @quest-n-click/create',
-    'version: 4.5.4',
-    '',
-    'id: 22222222-0000-0000-0000-000000000002',
-    'package name: @quest-n-click/engine',
-    'version: 4.5.4',
-    '',
-    'id: 33333333-0000-0000-0000-000000000003',
-    'package name: @quest-n-click/bridge',
-    'version: 4.5.3',
-  ].join('\n');
-  it("are this version's, the engine first (create depends on its exact version)", () => {
-    expect(stagedFor(list, '4.5.4')).toEqual([
-      { id: '22222222-0000-0000-0000-000000000002', name: '@quest-n-click/engine' },
-      { id: '11111111-0000-0000-0000-000000000001', name: '@quest-n-click/create' },
-    ]);
-    expect(stagedFor('No staged packages found.', '4.5.4')).toEqual([]);
-  });
-});
-
 describe('the steps', () => {
   it('in the order a release takes', () => {
     expect(RELEASE_STEPS).toEqual(['preflight', 'candidate', 'tag and release', 'npm', 'summary']);
+  });
+});
+
+describe('the release commit (4.5.4)', () => {
+  it('is where package.json became the version on main, whatever was merged after it', () => {
+    const history = [
+      { sha: 'c', version: '4.5.4' },
+      { sha: 'b', version: '4.5.4' },
+      { sha: 'a', version: '4.5.3' },
+    ];
+    expect(releaseCommit(history, '4.5.4')).toBe('b');
+    expect(releaseCommit(history, '4.5.5')).toBeUndefined();
+    expect(releaseCommit([{ sha: 'x', version: '4.5.4' }], '4.5.4')).toBe('x');
+  });
+});
+
+describe('a candidate run (4.5.4)', () => {
+  it('is one whose target ran: a push that was no release skips it and is no candidate', () => {
+    expect(isCandidateRun([{ name: 'target', status: 'completed', conclusion: 'success' }])).toBe(true);
+    expect(isCandidateRun([{ name: 'target', status: 'in_progress', conclusion: '' }])).toBe(true);
+    expect(isCandidateRun([{ name: 'target', status: 'completed', conclusion: 'skipped' }])).toBe(false);
+    expect(isCandidateRun([{ name: 'release-merge', status: 'completed', conclusion: 'success' }])).toBe(false);
+  });
+});
+
+describe('the release run, judged for npm (4.5.4)', () => {
+  const job = (name: string, status: string, conclusion = '') => ({ name, status, conclusion });
+  it('is ready for npm when release and npm-stage succeeded, the docs said apart', () => {
+    expect(
+      releaseRunVerdict([
+        job('release', 'completed', 'success'),
+        job('npm-stage', 'completed', 'success'),
+        job('docs-publish / publish', 'completed', 'failure'),
+        job('site-revalidate', 'completed', 'skipped'),
+      ]),
+    ).toEqual({ state: 'ready', warnings: ['docs-publish / publish: failure', 'site-revalidate: skipped'] });
+    expect(releaseRunVerdict([job('release', 'in_progress'), job('npm-stage', 'queued')]).state).toBe('waiting');
+    expect(
+      releaseRunVerdict([job('release', 'completed', 'success'), job('npm-stage', 'completed', 'failure')]),
+    ).toEqual({
+      state: 'failed',
+      warnings: [],
+      failed: ['npm-stage: failure'],
+    });
+  });
+});
+
+describe('npm stage list --json (4.5.4)', () => {
+  it("reads npm 11's items, this version's only, the engine first", () => {
+    const json = JSON.stringify([
+      { id: 'c1', packageName: '@quest-n-click/create', version: '4.5.4' },
+      { id: 'e1', packageName: '@quest-n-click/engine', version: '4.5.4' },
+      { id: 'b0', packageName: '@quest-n-click/bridge', version: '4.5.3' },
+    ]);
+    expect(stagedFromJson(json, '4.5.4')).toEqual([
+      { id: 'e1', name: '@quest-n-click/engine' },
+      { id: 'c1', name: '@quest-n-click/create' },
+    ]);
+    expect(stagedFromJson('[]', '4.5.4')).toEqual([]);
+  });
+});
+
+describe('ship tag for the release command (4.5.4)', () => {
+  it('can stop after the push (--no-watch): the command follows the release run itself', () => {
+    expect(readFileSync('tools/release/ship.mjs', 'utf8')).toContain(
+      "if (process.argv.includes('--no-watch')) return;",
+    );
   });
 });
