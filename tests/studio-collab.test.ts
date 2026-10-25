@@ -432,6 +432,8 @@ describe('a shared Studio', () => {
     expect((await as('tom', 'POST', '/undo', {})).status).toBe(409);
   });
 
+  // Two members' writes and a third on request, each validated by the game imported in a child: the limit of its
+  // neighbours (3.9 s on CI, 4.5.5, #356).
   it('a write behind the revision it read is a 409 with what changed, then applied on the head on request (H10)', async () => {
     await as('lea', 'POST', '/leases/release', {});
     await as('tom', 'POST', '/leases/release', {});
@@ -462,7 +464,7 @@ describe('a shared Studio', () => {
     expect(after).toBeGreaterThan(Number(body.head));
     expect((await moveLayout('tom', 103, { 'x-studio-base': String(after) })).status).toBe(200);
     await as('tom', 'POST', '/leases/release', {});
-  });
+  }, 60_000);
 });
 
 /** Reads an SSE stream into `events` until it ends; `ended` resolves then. */

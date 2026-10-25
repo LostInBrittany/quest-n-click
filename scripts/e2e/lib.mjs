@@ -598,6 +598,17 @@ export async function launch(url, opts = {}) {
   async function walkthrough(steps) {
     for (const [i, en] of steps.entries()) {
       if ('start' in en) {
+        // `launch` waits for `window.__game`, not for its title screen: read the page once it shows one or the other
+        // (e2e:a11y, 25 October 2026: the title read before it was drawn, "neither" said of a page about to show it).
+        await page
+          .waitForFunction(
+            () => !!document.querySelector('.overlay .bigbtn') || !!window.__game?.engine?.state?.room,
+            null,
+            {
+              timeout: 15000,
+            },
+          )
+          .catch(() => {});
         const titleNewGame = page.locator('.overlay .bigbtn').first();
         if (await titleNewGame.count()) {
           await activate(titleNewGame);

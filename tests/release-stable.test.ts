@@ -38,8 +38,11 @@ const tmp = () => {
   return d;
 };
 const release = readFileSync('.github/workflows/release.yml', 'utf8');
+// Three blocks run a step for real (bash and a fake gh, git and ssh-keygen): a process per call, dozens per test, 0.4 s
+// alone, past 5 s in a loaded run of the whole suite (4.5.5, #356). Their own limit, not the default.
+const PROCESSES = { timeout: 30_000 };
 
-describe('release.yml', () => {
+describe('release.yml', PROCESSES, () => {
   it('makes a draft, uploads every file, publishes it, then reads it back', () => {
     const create = release.indexOf('gh release create "$TAG" --draft --verify-tag');
     const upload = release.indexOf('gh release upload "$TAG"');
@@ -174,7 +177,7 @@ describe('the staging step, as the preflight reads it', () => {
   });
 });
 
-describe('a tag signed with an SSH key', () => {
+describe('a tag signed with an SSH key', PROCESSES, () => {
   it('is annotated by default, signed with --sign', () => {
     expect(tagArgs({ name: 'v4.2.0', sha: 'abc', message: 'm' })).toEqual(['tag', '-a', 'v4.2.0', 'abc', '-m', 'm']);
     expect(tagArgs({ name: 'v4.2.0', sha: 'abc', message: 'm', sign: true, key: '/k' })).toEqual([
@@ -603,7 +606,7 @@ describe('the nightly', () => {
   });
 });
 
-describe('the npm packages, staged for an owner (4.5.2, #283, D34)', () => {
+describe('the npm packages, staged for an owner (4.5.2, #283, D34)', PROCESSES, () => {
   const top = release.slice(release.indexOf('\njobs:\n'));
   const jobOf = (name: string) => {
     const m = new RegExp(`\\n  ${name}:\\n((?:(?:    |  #).*\\n|\\n)*)`).exec(top);

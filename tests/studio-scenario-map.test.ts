@@ -17,7 +17,20 @@ cpSync(join(ROOT, 'games', 'demo'), dir, {
   filter: (src) => !/[\\/](art|audio|private)([\\/]|$)/.test(src.slice(join(ROOT, 'games', 'demo').length)),
 });
 afterAll(() => rmSync(dir, { recursive: true, force: true }));
-const studio = createStudio({ gameDir: dir, root: ROOT, importFresh: (f: string) => importInChild(f, ROOT) });
+// The game is imported in a child (tsx), as the Studio does, and every `ir()` and `map()` asks for one: the first test
+// spent most of its time starting them (2.8 s alone, past 5 s in a loaded run; 4.5.5, #356). Only groupings.json
+// changes here, and neither the game's code nor the engine reads it (the map reads it from disk): the game folder's
+// module is imported once per state of its other files, and each call gets its own copy, as from a child. Any other
+// file (the guard's staged copy, the engine's minigames) still has its own child.
+const imports = new Map<string, Promise<unknown>>();
+const importOnce = (file: string) => {
+  if (file !== join(dir, 'index.ts')) return importInChild(file, ROOT);
+  const key = JSON.stringify(contentHashes());
+  let module = imports.get(key);
+  if (!module) imports.set(key, (module = importInChild(file, ROOT)));
+  return module.then((m) => structuredClone(m));
+};
+const studio = createStudio({ gameDir: dir, root: ROOT, importFresh: importOnce });
 
 /** Every file of the game but the groupings, by its sha256. */
 function contentHashes(): Record<string, string> {
@@ -34,7 +47,8 @@ function contentHashes(): Record<string, string> {
   return out;
 }
 
-describe('the scenario map', () => {
+// What is left starts children all the same (the guard validates each write on a staged copy): its own limit.
+describe('the scenario map', { timeout: 30_000 }, () => {
   it('writes the groupings alone: adding then deleting one leaves every content file the same', async () => {
     const before = contentHashes();
     const ir = await studio.ir();

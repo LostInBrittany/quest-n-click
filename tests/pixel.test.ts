@@ -69,7 +69,11 @@ print(json.dumps(out))
   );
 }
 
-describe('tools/cut-sheet.py --pixel', () => {
+// Every test below runs Python (numpy, Pillow), a process or more each: up to 3.5 s on CI, past 5 s in a loaded run.
+// Their own limit, not the default (4.5.5, #356).
+const PYTHON = { timeout: 30_000 };
+
+describe('tools/cut-sheet.py --pixel', PYTHON, () => {
   const src = join(tmp, 'sheet.png');
   sheet(src);
 
@@ -197,7 +201,7 @@ print(json.dumps(out))
   );
 }
 
-describe('tools/cut-sheet.py on a transparent sheet (sheetBackground "transparent")', () => {
+describe('tools/cut-sheet.py on a transparent sheet (sheetBackground "transparent")', PYTHON, () => {
   const flat = join(tmp, 'flat.png');
   const clear = join(tmp, 'clear.png');
   sheet(flat);
@@ -260,7 +264,7 @@ Image.fromarray(np.dstack([a, np.where(bg, 200, 255).astype(np.uint8)]), 'RGBA')
   });
 });
 
-describe('tools/check-alpha.py and tools/pick-bg.py', () => {
+describe('tools/check-alpha.py and tools/pick-bg.py', PYTHON, () => {
   /** Writes `file`: a 512 x 512 image, an orange figure with a pinkish purple shadow and a dark outline on `bg`. */
   const figure = (file: string, bg: string) =>
     py(
