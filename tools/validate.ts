@@ -57,7 +57,11 @@ const minigameBindings = minigames
   : undefined;
 
 if (process.argv.includes('--report')) {
-  process.stdout.write(reportMarkdown(report(game, layouts, { locales: loadLocales(resolve(GAME_DIR, 'locales')) })));
+  process.stdout.write(
+    reportMarkdown(
+      report(game, layouts, { locales: loadLocales(resolve(GAME_DIR, 'locales')), minigames: mod.minigames }),
+    ),
+  );
   process.exit(0);
 }
 const locales = loadLocales(resolve(GAME_DIR, 'locales'));

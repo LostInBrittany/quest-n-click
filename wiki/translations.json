@@ -4161,10 +4161,10 @@
       ]
     },
     "contribute.ci#known-flakes": {
-      "enHash": "de5d9cef3233fc12221795182f2919d6a3ad2675087d039496bc1e30f55ee31e",
-      "frHash": "7b761d17ad18cbf410b66a090233771fc1c50029d021f10b79f5e05b0f2f758e",
+      "enHash": "71ffcfb53bfddbe97bd1c3d762e86f826dd0b8d2910433c027b9d5eeda8665c5",
+      "frHash": "c9c9a9f690826904cd7f94b421078ee8e7e839a166ac27d03a2686c339789153",
       "reviewers": [
-        { "name": "claude-ci-retry-timeouts", "kind": "ai", "relation": "author", "date": "2026-10-25" }
+        { "name": "claude-ci-retry-apt-lock", "kind": "ai", "relation": "author", "date": "2026-10-25" }
       ]
     },
     "contribute.ci#pages-only": {
@@ -4189,8 +4189,8 @@
       ]
     },
     "contribute.ci#the-plan": {
-      "enHash": "ab07be18be59b6eca33a24dae73a54d25f9397098a30c561324cf96c197e786a",
-      "frHash": "fce8582cb86e86e05afe6e0ec78271ff2e31759fb2bf88f95b88da2a3a0e143b",
+      "enHash": "f951db283b21312e34034209a80a1fade69e5febc5a9f6b74d2ac4574b3b4327",
+      "frHash": "3c3bdd898d98a2f8883a72a4f4baf475cddac4e4db95a5a813d07af57e768522",
       "reviewers": [
         { "name": "claude-349-ci-shards", "kind": "ai", "relation": "author", "date": "2026-10-25" }
       ]
@@ -5182,10 +5182,10 @@
       ]
     },
     "contribute.releasing#prepare": {
-      "enHash": "d9a23b601e801ea32beb3dc5120aee6af8b9c9a69b613f9934e5024dffe60bb2",
-      "frHash": "9355c8c3deded5dc7f6ed66644ab8a367f453c600c1afed6290ee063e85ac3e7",
+      "enHash": "f6a611309e3f1556f217d67db6920298b4d4709866a006fef8d9797bf8693367",
+      "frHash": "6c7ef44770b66c496f5759cc6eb9e2655312243e5af7aae7f76933671bdd2e9d",
       "reviewers": [
-        { "name": "claude-prepare-warmup", "kind": "ai", "relation": "author", "date": "2026-10-25" }
+        { "name": "claude-release-hardening", "kind": "ai", "relation": "author", "date": "2026-10-25" }
       ]
     },
     "contribute.releasing#prerequisites": {
@@ -5211,10 +5211,10 @@
       ]
     },
     "contribute.releasing#release-command": {
-      "enHash": "8d5fa6c242fda3b4fae576c369f5dbf63778d68e880139100b28a39deaf8db67",
-      "frHash": "79936dc9d4d0fe10cc10154de5e871126efc60e72a1505a2a4af38c9040c344b",
+      "enHash": "6a1ab028868b4906ccab7bcc422eae8f04982e68551aa0ece46b1c59c04e4e33",
+      "frHash": "ffc78ec777c2affe8a1a8f4914d2028fb09f6d378a7f9247d1f89311f57cbdab",
       "reviewers": [
-        { "name": "claude-release-verify-once", "kind": "ai", "relation": "author", "date": "2026-10-25" }
+        { "name": "claude-release-hardening", "kind": "ai", "relation": "author", "date": "2026-10-25" }
       ]
     },
     "contribute.releasing#ship-commands": {
@@ -6672,10 +6672,10 @@
       ]
     },
     "create.custom-minigame#steps": {
-      "enHash": "136a0a6d913cb735497b3f00477809cf44ff7735d7ea1afe93f1d9977a7e7b6d",
-      "frHash": "0bcf6b7b08e52c1ea39861b101f3f6daecec3fcd432407037045c82eddf8a67f",
+      "enHash": "ad5c83e5d35c9b2ea53fc8d16551fdb593547dab5cfc65f5e6af9765b5f750d1",
+      "frHash": "2fe321702103e63bd4a8526a67c8b79d910a76fdeb9331791b19bb1eae3cfc20",
       "reviewers": [
-        { "name": "claude-283-scoped", "kind": "ai", "relation": "author", "date": "2026-10-24" }
+        { "name": "claude-250-i18n-minigame-params", "kind": "ai", "relation": "author", "date": "2026-10-25" }
       ]
     },
     "create.custom-minigame#what-you-get": {
@@ -14946,6 +14946,13 @@
       "reviewers": [
         { "name": "claude-a7", "kind": "ai", "relation": "author", "date": "2026-10-23" },
         { "name": "wanoo", "kind": "human", "relation": "independent", "date": "2026-10-24" }
+      ]
+    },
+    "reference.environment-variables#qnc-release-clock": {
+      "enHash": "f0573f19c36b97527b3c88d3642ccc0f996e21b4cba58eb2998b441775bbd86d",
+      "frHash": "5ecf766e3fd082ddd9aefe6c630b94f0ca80335602965b273eb9ea2ab841ed0f",
+      "reviewers": [
+        { "name": "claude-release-hardening", "kind": "ai", "relation": "author", "date": "2026-10-25" }
       ]
     },
     "reference.environment-variables#qualify-app": {

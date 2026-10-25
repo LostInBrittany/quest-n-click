@@ -29,4 +29,13 @@ other rule a specific path of which is shadowed. The CI page (en, fr): the workf
 a tag gone, the third tier, `full-ci`'s "on a tag", a `unit (<i>)` row to reproduce a shard, and a section on the
 shards. #347 (main's non-release pushes cancelled again) is still open and is not described.
 
+The second version's run (40242277080, under coverage): tests 119 / 215 / 96 / 201 s against 257 / 226 / 129 /
+143 s before it and 241 / 262 / 268 / 95 s on main. Every long file now starts within 4 s of its shard. What is
+left is each file's own variation: `wiki-archive` took 159 s (79–138 s in the five other runs), `status` 110 s
+(38–80 s), `por` 92 s (72–186 s), `checkpoint` 117 s (117–214 s). The table is now the median of six runs, these
+two among them. Replayed on each of the six runs' real file times, the slowest shard is that run's longest file plus
+0 to 36 s; a split made before the run cannot do better while the files vary by half. Splitting `checkpoint` and
+`compact` into smaller files would lower the floor; it is not done here. The page's plan table also gets #353's
+`scripts/ci-playwright-deps.sh` row, merged meanwhile.
+
 → next: refresh `tools/unit-durations.json` when a shard drifts past a fifth of the others.

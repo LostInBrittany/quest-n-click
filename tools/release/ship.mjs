@@ -66,12 +66,22 @@ const [command, ...rest] = process.argv.slice(2).filter((a) => !a.startsWith('--
 const RERUN_ONCE = new Set();
 /** The check that judges every job of ci.yml (4.1.9 lot 0): a pull request is green when it is. */
 const GATE = 'pr-gate';
-/** Re-runs the failed jobs of a run once; false when it was already re-run (the second failure is final). */
+/**
+ * Re-runs the failed jobs of a run once; false when it was already re-run (the second failure is final). "Already" is
+ * the run's attempt number (#348), not only this process's memory: a relaunch of `npm run release` runs `ship tag`
+ * again, and a run re-run by hand counts the same.
+ */
 function rerunOnce(runId, why) {
-  if (RERUN_ONCE.has(runId)) return false;
+  const run = ghJson(['run', 'view', String(runId), '--json', 'status,attempt']);
+  const attempt = run.attempt ?? 1;
+  // Asked here: until GitHub shows the new attempt, the old failure is still what it lists (the caller polls again).
+  if (RERUN_ONCE.has(runId)) return attempt === 1;
+  if (attempt > 1) {
+    say(`${why}: run ${runId} was re-run already (attempt ${attempt}): not again`);
+    return false;
+  }
   // A job failed while its run still goes on (other jobs pending): GitHub re-runs nothing until the run is over.
   // Wait for it (the caller polls again), re-run once it is complete.
-  const run = ghJson(['run', 'view', String(runId), '--json', 'status']);
   if (run.status !== 'completed') {
     say(`${why}: run ${runId} still has jobs running; re-run once it is over`);
     return true;

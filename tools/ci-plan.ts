@@ -172,6 +172,9 @@ export const RULES: readonly Rule[] = [
     gates: ['studioHosted'],
     why: 'the hosted Studio in a browser',
   },
+  // Playwright's system packages where a job installs browsers on the runner (4.5.5, #353): of a pull request's jobs,
+  // only `studio-hosted` runs it (the others are in Playwright's container); the candidate and the nightly run it too.
+  { re: /^scripts\/ci-playwright-deps\.sh$/, gates: ['studioHosted'], why: "the runner's Playwright packages" },
   { re: /^scripts\/e2e(\/|[^/]*\.mjs$)/, gates: ['e2e', 'reference', 'secondGame'], why: 'the browser e2e' },
   { re: /^tests\/visual\//, gates: ['e2e', 'reference'], why: 'the visual references' },
   {

@@ -387,7 +387,7 @@ jobs:
   studio-hosted:
     needs: plan
     runs-on: ubuntu-24.04
-    timeout-minutes: 30
+    timeout-minutes: 40
     env:
       RUN: ${{ fromJSON(needs.plan.outputs.plan).studioHosted }}
       STUDIO_TEST_PG_URL: postgres://studio:studio@127.0.0.1:5432/studio
@@ -467,7 +467,10 @@ jobs:
       # solicited save, the wall between the two; Chromium over http, Firefox over https. Not WebKit here: on Linux it
       # stores no cookie a frame of another host sets (even one site), unlike Safari; it is run on macOS.
       - if: env.RUN == 'true'
-        run: for i in 1 2 3; do (timeout 6m npx playwright install --with-deps chromium firefox) && break; [ "$i" = 3 ] && exit 1; echo "retry $i"; sleep 15; done
+        run: bash scripts/ci-playwright-deps.sh chromium firefox
+        timeout-minutes: 20
+      - if: env.RUN == 'true'
+        run: for i in 1 2 3; do (timeout 6m npx playwright install chromium firefox) && break; [ "$i" = 3 ] && exit 1; echo "retry $i"; sleep 15; done
         timeout-minutes: 20
       - if: env.RUN == 'true'
         run: npm run studio-client && npm run e2e:studio-hosted && npm run e2e:studio-hosted -- --browser=firefox && npm run e2e:studio-collab && npm run e2e:studio-collab -- --browser=firefox

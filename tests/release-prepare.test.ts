@@ -29,6 +29,8 @@ import {
   logReleaseEntry,
   nextVersionProblem,
   passesSheet,
+  passesSheetProblem,
+  releaseNameProblem,
   releaseHeading,
   todoBrief,
   todoMarkers,
@@ -296,6 +298,9 @@ describe('the command', () => {
     const files: Record<string, string> = {
       'package.json': '{"version":"4.5.4"}',
       'CHANGELOG.md': '# Changelog\n\n## 4.5.4 — 2026-10-26\n\nLOG #1–#2: TODO(release): …\n\n## 4.5.3 — 2026-10-25\n',
+      'docs/dev/passes/4.5.4.md': '# Passes, 4.5.4\n',
+      'tests/fixtures/saves/index.json': '{"demo":["4.5.3","4.5.4"]}',
+      'tests/fixtures/saves/demo-4.5.4.json': '{}',
     };
     const deps = {
       read: (f: string) => files[f] ?? '',
@@ -306,12 +311,14 @@ describe('the command', () => {
     expect(items.map((i) => [i.what, i.ok])).toEqual([
       ['package.json is at 4.5.4', true],
       ['CHANGELOG.md has a 4.5.4 section', true],
+      ['the passes sheet docs/dev/passes/4.5.4.md', true],
+      ['the golden save of 4.5.4 (tests/fixtures/saves)', true],
       ['no TODO(release) left', false],
       ['npm run wiki -- check: no warning', true],
       ["the docs' human gates (wiki -- check --publish --reviews-only)", true],
       ['npm run quality:baseline -- --check', true],
     ]);
-    expect(items[2]!.detail).toBe('CHANGELOG.md:5');
+    expect(items[4]!.detail).toBe('CHANGELOG.md:5');
     // A red docs gate names what to do: the ✖ lines of the wiki's own output.
     const failing = await checkRelease('4.5.4', {
       ...deps,
@@ -328,7 +335,18 @@ describe('the command', () => {
     expect(gates.detail).toContain('npm run wiki -- review-claim c --by <name> --kind human --relation independent');
     expect(gates.detail).not.toContain('claim x: referenced');
     const none = await checkRelease('4.5.5', deps);
-    expect(none.slice(0, 2).map((i) => i.ok)).toEqual([false, false]);
+    expect(none.slice(0, 4).map((i) => i.ok)).toEqual([false, false, false, false]);
+    // #348: a release without its passes sheet or its golden save is no release.
+    expect(none[2]!.detail).toMatch(/no docs\/dev\/passes\/4\.5\.5\.md/);
+    expect(none[3]!.detail).toMatch(/4\.5\.5 is not in tests\/fixtures\/saves\/index\.json/);
+    const noFile = await checkRelease('4.5.4', {
+      ...deps,
+      read: (f: string) => (f.endsWith('demo-4.5.4.json') ? '' : (files[f] ?? '')),
+    });
+    expect(noFile[3]).toMatchObject({
+      ok: false,
+      detail: expect.stringMatching(/no tests\/fixtures\/saves\/demo-4\.5\.4\.json/),
+    });
   });
 });
 
@@ -584,7 +602,12 @@ describe('the command on a clone (4.5.4)', () => {
       execFileSync('git', ['clone', '-q', '--local', resolve('.'), repo]);
       git('checkout', '-q', '-B', 'main');
       // The clone holds the committed tools; the ones under test are copied over and committed.
-      for (const f of ['tools/release/prepare.ts', 'tools/changes.ts', 'tools/release/lib.mjs'])
+      for (const f of [
+        'tools/release/prepare.ts',
+        'tools/release/gates.ts',
+        'tools/changes.ts',
+        'tools/release/lib.mjs',
+      ])
         cpSync(resolve(f), join(repo, f));
       git('commit', '-q', '-am', 'tools', '--allow-empty');
       // A junction, which Windows makes without rights (a symlink elsewhere).
@@ -623,4 +646,59 @@ describe('the command on a clone (4.5.4)', () => {
     expect(run.after).toEqual(run.before);
     expect(run.branch).toBe('release/4.5.4');
   }, 60_000);
+});
+
+describe('the gaps the 4.5.4 release found in prepare (#348)', () => {
+  it('names a major release a major release, a minor a minor, a patch a patch', () => {
+    const o = { name: 'N', first: 1, last: 2 };
+    expect(changelogIntro({ ...o, version: '5.0.0', previous: '4.5.9' })).toMatch(
+      /", a major release after 4\.5\.9\. /,
+    );
+    expect(changelogIntro({ ...o, version: '4.6.0', previous: '4.5.9' })).toMatch(
+      /", a minor release after 4\.5\.9\. /,
+    );
+    expect(changelogIntro({ ...o, version: '4.5.10', previous: '4.5.9' })).toMatch(/", a patch on 4\.5\.9\. /);
+  });
+  it('says LOG #N, not LOG #N–#N, when the release has one LOG entry', () => {
+    const one = changelogIntro({ version: '4.5.5', name: 'N', previous: '4.5.4', first: 330, last: 330 });
+    expect(one.startsWith('LOG #330: "N"')).toBe(true);
+    expect(changelogIntro({ version: '4.5.5', name: 'N', previous: '4.5.4', first: 330, last: 331 })).toMatch(
+      /^LOG #330–#331: /,
+    );
+  });
+  it('refuses a release name the README, the CHANGELOG or the command line could not hold', () => {
+    expect(releaseNameProblem('One pass')).toBeUndefined();
+    expect(releaseNameProblem("L'été, déjà !")).toBeUndefined();
+    expect(releaseNameProblem('')).toMatch(/--name/);
+    expect(releaseNameProblem('   ')).toMatch(/--name/);
+    for (const bad of ['Fix (again)', 'a)b', 'say "hi"', '[x]', '« x »', 'back`tick', 'two\nlines', 'a\\b', '$HOME'])
+      expect(releaseNameProblem(bad), bad).toMatch(/cannot hold/);
+    // What the check guards: the README line a name with `)` makes cannot be read back by the next prepare.
+    const readme = withCurrentRelease('Current release: [v4.5.4 (Old)](u): s.\n', 'en', '4.5.5', 'a)b');
+    expect(() => withCurrentRelease(readme, 'en', '4.5.6', 'Next')).toThrow();
+  });
+  it('refuses a passes sheet without its field:begin marker instead of cutting it anywhere', () => {
+    expect(() => passesSheet('# Passes, 4.5.4\n\nno marker here\n', '4.5.4', '4.5.5')).toThrow(
+      /docs\/dev\/passes\/4\.5\.4\.md has no <!-- field:begin --> marker/,
+    );
+    expect(passesSheetProblem('# Passes\n\n<!-- field:begin -->\n|x|\n', '4.5.4')).toBeUndefined();
+    expect(passesSheetProblem('# Passes\n', '4.5.4')).toMatch(/field:begin/);
+  });
+  it('prepare refuses a bad name and a sheet it cannot copy before it writes anything', () => {
+    expect(
+      prepareRefusals({
+        current: '4.5.4',
+        version: '4.5.5',
+        dirty: false,
+        branch: 'main',
+        shallow: false,
+        upToDate: true,
+        upgradeNotes: true,
+        fragments: 3,
+        pr: undefined,
+        name: 'a)b',
+        passes: 'docs/dev/passes/4.5.4.md has no <!-- field:begin --> marker',
+      }),
+    ).toEqual([expect.stringMatching(/cannot hold/), expect.stringMatching(/field:begin/)]);
+  });
 });

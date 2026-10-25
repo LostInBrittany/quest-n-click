@@ -45,6 +45,7 @@ describe('the plan of a change', () => {
       ['tools/studio/diff-rooms.ts'],
       gates('coverage', 'freshInstall', 'node24', 'reference', 'secondGame', 'studioHosted', 'upgrade', 'windows'),
     ],
+    ["the runner's Playwright packages (#353)", ['scripts/ci-playwright-deps.sh'], gates('studioHosted')],
     [
       'the Studio Server',
       ['studio-server/migrations/0005.up.sql'],

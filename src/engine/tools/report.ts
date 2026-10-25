@@ -6,7 +6,7 @@ import type { Cmd, Cond, GameDef, Id, Layout, RoomDef } from '../core/types';
 import { eachCmd, someCmd } from '../core/cmds';
 import { normalizeExits } from '../core/define';
 import { worldGraph } from './graph';
-import { localeStatus } from './i18n';
+import { localeStatus, type MinigameTexts } from './i18n';
 
 interface RoomReport {
   id: Id;
@@ -88,7 +88,12 @@ function roomCmds(r: RoomDef): unknown[][] {
 export function report(
   gameIn: GameDef,
   _layouts: Record<string, Layout> = {},
-  opts: { maxText?: number; locales?: Record<string, Record<string, string>> } = {},
+  opts: {
+    maxText?: number;
+    locales?: Record<string, Record<string, string>>;
+    /** The game's own minigames, whose `textParams` the locales translate. */
+    minigames?: MinigameTexts;
+  } = {},
 ): ContentReport {
   const game = normalizeExits(structuredClone(gameIn));
   const maxText = opts.maxText ?? 140;
@@ -202,7 +207,7 @@ export function report(
     locales:
       opts.locales && Object.keys(opts.locales).length
         ? Object.entries(opts.locales).map(([lang, table]) => {
-            const st = localeStatus(gameIn, table, maxText);
+            const st = localeStatus(gameIn, table, maxText, opts.minigames);
             return {
               lang,
               total: st.total,

@@ -116,7 +116,8 @@ dans le dépôt du moteur.
 <!-- step: declare-contract -->
 2. **Déclarer ce que lisent les outils.** `required` : les params qu’un `{ minigame }` doit donner, sinon le
    validateur le refuse. `textParams` : les chemins pointés des chaînes visibles par le joueur dans `params` (`*`
-   parcourt chaque élément d’un tableau ou valeur d’un objet, comme dans `rounds.*.prompt`). `bindings` : les params
+   parcourt chaque élément d’un tableau ou valeur d’un objet, comme dans `rounds.*.prompt`) ; `npm run i18n -- extract`
+   les écrit dans les fichiers de langue, comme ceux des mini-jeux intégrés (4.5.5). `bindings` : les params
    qui nomment une image (`images`) ou un son de `audio.sfx` (`sfx`), dont le validateur vérifie l’existence. Tout
    param texte qui a la forme d’un id d’image (`dossier/nom`) est aussi vérifié comme image.
 
@@ -164,12 +165,6 @@ dans le dépôt du moteur.
 > Le solveur n’exécute pas `run` : il compte le mini-jeu gagné, exécute `then`, et n’enregistre aucun drapeau
 > `minigame.<id>`. Mettez l’effet du mini-jeu sur la partie dans `then` (ou dans les commandes qui suivent), jamais
 > dans `run` : la sauvegarde, le solveur et la rediffusion ne connaissent que les commandes.
-
-> [!LIMIT id=custom-minigame-i18n-extract]
-> `npm run i18n -- extract` (`npx quest-n-click i18n extract`) écrit les textes des params des mini-jeux intégrés, pas
-> ceux d’un mini-jeu propre au jeu : en 4.4.0 il lit le jeu sans les `minigames` de son module. Ses `textParams` sont
-> appliqués quand le lecteur charge une traduction, mais c’est à vous d’ajouter leurs chemins au fichier de langue, et
-> une extraction suivante peut les ranger en `_stale`.
 
 > [!LIMIT id=custom-minigame-random]
 > `ctx.random` (un tirage dans le flux `minigame:<id>` de la partie, le même pour la même graine) est fourni par le
