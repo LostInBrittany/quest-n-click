@@ -79,7 +79,9 @@ Sur votre machine, à la racine du dépôt du moteur ou du projet créé. Chaque
 
    Le fichier a une section par planche à générer, toutes partageant un même bloc STYLE et une même planche de
    référence (`art/_reference.png`, ou la planche validée du héros tant qu’elle n’existe pas), et se termine par une
-   liste de contrôle (voir [Ce que lit `npm run prompts`](#prompts)). Un assistant obtient le même texte par l’outil
+   liste de contrôle (voir [Ce que lit `npm run prompts`](#prompts)). Ses chemins et ses commandes partent du dossier
+   où vous travaillez : `games/<id>/`, `tools/` et `npm run` dans le dépôt du moteur ; `game/`,
+   `node_modules/@quest-n-click/engine/tools/` et `npx quest-n-click` dans un projet créé. Un assistant obtient le même texte par l’outil
    MCP `asset_prompts` (`{ missing?: boolean }`), qui renvoie aussi les ids d’images manquants en JSON. Dans le Studio,
    l’onglet **Assets** montre le prompt de chaque planche à côté de ses cases, avec un bouton **Copy prompt**.
 
@@ -102,8 +104,8 @@ Sur votre machine, à la racine du dépôt du moteur ou du projet créé. Chaque
    ```
 
    ```bash
-   # dans le projet créé
-   python3 node_modules/@quest-n-click/engine/tools/cut-sheet.py <sheet.png> <sheet-id> --out game/art
+   # dans le projet créé, depuis son dossier
+   python3 node_modules/@quest-n-click/engine/tools/cut-sheet.py <sheet.png> <sheet-id>   # → game/art/<sheet-id>/…
    ```
 
    Ne découpez que la nouvelle planche. Le découpeur écrase sans demander une case qui existe déjà : donnez `--cells`
@@ -357,7 +359,7 @@ réduit 4× un décor de plus de 640 px de large vers ses pixels d’art. Change
 |---|---|---|
 | `<sheet.png> <sheet-id>` | | La planche, et le dossier où vont ses cases (le nom des images : `<sheet-id>/r<row>c<col>`) |
 | `--grid COLSxROWS` | `6x4` | La grille (`3x3`, `2x2` pour de plus gros objets) |
-| `--out <dir>` | `games/<GAME>/art` | La racine des images (projet créé : `game/art`) |
+| `--out <dir>` | le `art/` du jeu | La racine des images : `games/<GAME>/art`, ou `game/art` dans un projet créé |
 | `--cells r1c2,r3c1` | toutes | Ne (re)découper que ces cases |
 | `--auto` | | Sans grille : chaque sprite détecté où qu’il soit ; écrit `sprite_<row>_<col>.png` et `index.json` |
 | `--tol`, `--min` | 40, 2500 | Mode auto : tolérance sur la couleur du fond, surface minimale d’un sprite en px |
@@ -365,9 +367,11 @@ réduit 4× un décor de plus de 640 px de large vers ses pixels d’art. Change
 | `--scale`, `--colors` | 4, 32 | Pixel art : l’agrandissement de la planche, les couleurs par case |
 
 La détection se fait par figure, pas par case fixe : une figure qui déborde un peu de sa case est quand même prise en
-entier ; une case où rien n’est trouvé retombe sur son rectangle fixe, donc chaque case demandée est écrite. Le jeu est
-`GAME`, sinon celui vers lequel pointe `.cache/game`, sinon `config.game` de `package.json` ; son `site.json` est
-cherché d’abord à côté du dossier `--out`.
+entier ; une case où rien n’est trouvé retombe sur son rectangle fixe, donc chaque case demandée est écrite. Le dossier
+du jeu est `GAME_DIR`, sinon `game/` dans un projet créé (le `WEB_SCUMM_PROJECT` de la commande `quest-n-click`, ou un
+dossier qui contient `game/index.ts` et pas de `games/`), sinon `games/<GAME>` avec `GAME`, sinon celui vers lequel
+pointe `.cache/game`, sinon `config.game` de `package.json` ; son `site.json` est cherché d’abord à côté du dossier
+`--out`.
 
 <a name="prompts"></a>
 
@@ -392,7 +396,9 @@ Ce que lit `npm run prompts`, dans le module du jeu et le dossier d’art :
   accessoires, meubles et personnages (gauche / centre / droite d’après `layout/<lieu>.json`) ;
 - **meubles** : les accessoires dont l’image vit dans un dossier `furniture_*`, et la liste `furniture` du lieu ;
 - une **liste de contrôle** : référence → héros → autres personnages → objets → décors → meubles, chacun avec sa
-  commande `python3 tools/cut-sheet.py` (`--cells` pour les seules cases manquantes), puis `npm run assets`.
+  commande de découpe (`python3 tools/cut-sheet.py`, dans un projet créé
+  `python3 node_modules/@quest-n-click/engine/tools/cut-sheet.py` ; `--cells` pour les seules cases manquantes), puis
+  `npm run assets`.
 
 <a name="common-rules"></a>
 

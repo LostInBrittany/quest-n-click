@@ -162,7 +162,7 @@ without an error (validate, solve, translations status, lint, playtests).
 | `dist/` | the build, with `licenses/` (`npm run build`) |
 | `package.json` | the scripts `dev`, `studio`, `assets`, `verify`, `build`, `release`, `preview`, each calling `quest-n-click`, and the engine as its one dependency |
 | `tsconfig.json` | `@engine/*` points into `node_modules/@quest-n-click/engine/src/engine`, `@quest-n-click/engine/*` into its public API |
-| `.gitignore`, `README.md` | `node_modules`, `dist`, `.cache`, `public/assets` ignored; the commands above |
+| `.gitignore`, `README.md` | `node_modules`, `dist`, `.cache`, `public/assets`, `game/private` ignored; the commands above |
 
 The template's art is a placeholder drawn from shapes (`tools/placeholder-art.py`): `game/provenance.json` says so, and
 `npm run release` refuses it until each file is replaced and reviewed (`npx quest-n-click provenance --lock`). The

@@ -135,7 +135,8 @@ writeFileSync(
     2,
   ) + '\n',
 );
-writeFileSync(join(dir, '.gitignore'), 'node_modules\ndist\n.cache\npublic/assets\n');
+// game/private: the raw sheets and photos the art prompts save there, never committed.
+writeFileSync(join(dir, '.gitignore'), 'node_modules\ndist\n.cache\npublic/assets\ngame/private\n');
 writeFileSync(
   join(dir, 'README.md'),
   `# ${title}\n\nA point-and-click game made with [quest'n'click](https://github.com/Quest-n-Click/quest-n-click).\n\n\`\`\`bash\nnpm install\nnpm run assets   # art and audio into public/assets (Python 3 with Pillow)\nnpm run dev      # open the URL, landscape; ?edit=start places things\nnpm run verify   # the content checked, the solver finds the end\nnpm run build    # dist/, every file accounted for, licences inside\n\`\`\`\n\nThe game is in \`game/\`: rooms, characters, items, rules. The art in \`game/art\` is a placeholder; a release refuses it\nuntil it is replaced and reviewed (\`npx ${NAME} provenance --lock\`).\n\nThe documentation is the wiki, in English and in French, https://github.com/Quest-n-Click/quest-n-click/wiki: start with\nhttps://github.com/Quest-n-Click/quest-n-click/wiki/EN-Create-Project-Layout for this project's files, and\nhttps://github.com/Quest-n-Click/quest-n-click/wiki/EN-Create-Working-Loop for the commands above.\n`,

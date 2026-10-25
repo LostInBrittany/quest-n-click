@@ -9,6 +9,9 @@ so every requested cell is always written.
     python3 tools/cut-sheet.py sheet.png hero --grid 6x4 --out games/demo/art
     python3 tools/cut-sheet.py sheet.png hero --cells r1c2,r3c1      # only (re)cut these cells
 
+    In a game project (its game in game/, the engine installed in node_modules), from the project's folder:
+    python3 node_modules/@quest-n-click/engine/tools/cut-sheet.py game/private/sheets/hero.png hero   # -> game/art/hero/
+
     -> <out>/<sheet-id>/r<row>c<col>.png (row 1..R, col 1..C, top to bottom, left to right)
 
 Auto mode (--auto): no grid assumption, detects each sprite wherever it falls on the sheet and writes an index.
@@ -26,8 +29,10 @@ one exact value, shared across the cells of the sheet. Written as an indexed PNG
 
     python3 tools/cut-sheet.py sheet.png hero --pixel [--scale 4] [--colors 32]
 
-The game: env GAME, else the game .cache/game links to (npm run game, 4.1.6), else package.json -> config.game, else 'demo' (tools/game.ts' rule). Its site.json is
-looked up next to the --out folder (<game>/art -> <game>/site.json), then in $GAME_DIR, then in games/<GAME>/.
+The game's folder (tools/game.ts' rule): $GAME_DIR, else game/ in a game project ($WEB_SCUMM_PROJECT, or a folder
+holding game/index.ts and no games/), else games/<GAME> with GAME from env GAME, else the game .cache/game links to
+(npm run game, 4.1.6), else package.json -> config.game, else 'demo'. --out defaults to its art/. Its site.json is
+looked up next to the --out folder (<game>/art -> <game>/site.json), then in the game's folder.
 """
 import argparse
 import json
@@ -62,15 +67,26 @@ def game_id():
     return 'demo'
 
 
+def game_dir():
+    """The game's folder: $GAME_DIR, else game/ in a game project (3.9), else games/<GAME> (this repository)."""
+    gd = os.environ.get('GAME_DIR', '').strip()
+    if gd:
+        return gd
+    project = os.environ.get('WEB_SCUMM_PROJECT', '').strip()
+    if project:
+        return os.path.join(project, 'game')
+    # Run by hand from a project's folder: its game is game/, there is no games/.
+    if os.path.isfile(os.path.join('game', 'index.ts')) and not os.path.isdir('games'):
+        return 'game'
+    return f'games/{game_id()}'
+
+
 def art_style(out_root=None):
-    """`artStyle` of the game's site.json ('cel' when absent): next to the art folder, then $GAME_DIR, then games/<GAME>."""
+    """`artStyle` of the game's site.json ('cel' when absent): next to the art folder, then in the game's folder."""
     cands = []
     if out_root:
         cands.append(os.path.join(os.path.dirname(os.path.abspath(out_root)), 'site.json'))
-    gd = os.environ.get('GAME_DIR', '').strip()
-    if gd:
-        cands.append(os.path.join(gd, 'site.json'))
-    cands.append(f'games/{game_id()}/site.json')
+    cands.append(os.path.join(game_dir(), 'site.json'))
     for c in cands:
         if os.path.exists(c):
             try:
@@ -301,7 +317,7 @@ def main():
     p.add_argument('sheet', help='source sheet image (.png)')
     p.add_argument('sheet_id', help='sheet id: output subfolder, and how images are referenced (<sheet-id>/r<row>c<col>)')
     p.add_argument('--grid', default='6x4', help='grid mode: COLSxROWS, e.g. 6x4 (default) or 3x3')
-    p.add_argument('--out', default=None, help='output root (default: games/<GAME>/art)')
+    p.add_argument('--out', default=None, help="output root (default: the game's art/: games/<GAME>/art, game/art in a project)")
     p.add_argument('--cells', default=None, help='grid mode: only (re)cut these cells, e.g. r1c2,r3c1')
     p.add_argument('--auto', action='store_true', help='auto mode: free layout detection + index.json, instead of a fixed grid')
     p.add_argument('--tol', type=float, default=40, help='auto mode: background color tolerance (default 40)')
@@ -312,7 +328,7 @@ def main():
     p.add_argument('--colors', type=int, default=PIXEL_COLORS, help=f'pixel art: at most this many colours per cell (default {PIXEL_COLORS})')
     args = p.parse_args()
 
-    out_root = args.out or f'games/{game_id()}/art'
+    out_root = args.out or os.path.join(game_dir(), 'art')
     out_dir = os.path.join(out_root, args.sheet_id)
     is_pixel = args.pixel or (not args.cel and art_style(out_root) == 'pixel')
     pixel = (max(1, args.scale), max(1, args.colors)) if is_pixel else None

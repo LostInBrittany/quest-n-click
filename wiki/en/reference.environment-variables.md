@@ -467,7 +467,7 @@ The dev server the MCP `screenshot` tool opens; `http://localhost:5173/` when un
 The created project the engine's tools work on. The `quest-n-click` command sets it to the folder it runs in; you do not set it yourself.
 
 - Origin: set by the `quest-n-click` command.
-- Read by: [`tools/assets.py`](../../tools/assets.py), [`tools/game.ts`](../../tools/game.ts).
+- Read by: [`tools/assets.py`](../../tools/assets.py), [`tools/cut-sheet.py`](../../tools/cut-sheet.py), [`tools/game.ts`](../../tools/game.ts).
 
 <a name="web-scumm-studio-hosts"></a>
 

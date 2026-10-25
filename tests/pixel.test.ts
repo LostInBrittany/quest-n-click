@@ -4,7 +4,7 @@
 // validator's warning on a palette that is not #rrggbb. Also the sheet background (#186): the grid cut of a sheet on a
 // transparent background, tools/check-alpha.py and tools/pick-bg.py.
 import { execFileSync } from 'node:child_process';
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { afterAll, describe, expect, it } from 'vitest';
 import type { GameDef } from '@engine/core/types';
@@ -119,6 +119,27 @@ describe('tools/cut-sheet.py --pixel', () => {
     expect(cel.mode).toBe('RGBA');
     expect(cel.size).toEqual([128, 192]);
     expect(cel.colors.length).toBeGreaterThan(4);
+  });
+
+  it("in a game project, cuts into the project's game/art by default, never games/<id>/art (#308)", () => {
+    // A project's folder: game/ (its game, artStyle pixel), package.json naming the game, no games/; the engine's
+    // cutter run by hand from there, as the generated prompts.md says.
+    const project = join(tmp, 'project');
+    mkdirSync(join(project, 'game'), { recursive: true });
+    writeFileSync(join(project, 'game', 'index.ts'), 'export {};\n');
+    writeFileSync(join(project, 'game', 'site.json'), JSON.stringify({ title: 'x', artStyle: 'pixel' }));
+    writeFileSync(join(project, 'package.json'), JSON.stringify({ name: 'jack', config: { game: 'jack' } }));
+    const env = { ...process.env, GAME: '', GAME_DIR: '', WEB_SCUMM_PROJECT: '' };
+    const cut = join(ROOT, 'tools', 'cut-sheet.py');
+    execFileSync('python3', [cut, src, 'px', '--cells', 'r1c1'], { cwd: project, env });
+    expect(inspect(join(project, 'game', 'art', 'px')).r1c1).toMatchObject({ mode: 'P', size: [32, 48] });
+    expect(existsSync(join(project, 'games'))).toBe(false);
+    // Through the engine's command (WEB_SCUMM_PROJECT), from any folder.
+    execFileSync('python3', [cut, src, 'px2', '--cells', 'r1c1'], {
+      cwd: tmp,
+      env: { ...env, WEB_SCUMM_PROJECT: project },
+    });
+    expect(existsSync(join(project, 'game', 'art', 'px2', 'r1c1.png'))).toBe(true);
   });
 
   it('gives exact colours a palette swap can replace', () => {

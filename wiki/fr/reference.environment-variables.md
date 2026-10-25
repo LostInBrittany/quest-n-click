@@ -467,7 +467,7 @@ Le serveur de développement qu’ouvre l’outil MCP `screenshot` ; `http://loc
 Le projet créé sur lequel travaillent les outils du moteur. La commande `quest-n-click` la pose sur le dossier où elle tourne ; vous ne la posez pas vous-même.
 
 - Origine : posée par la commande `quest-n-click`.
-- Lue par : [`tools/assets.py`](../../tools/assets.py), [`tools/game.ts`](../../tools/game.ts).
+- Lue par : [`tools/assets.py`](../../tools/assets.py), [`tools/cut-sheet.py`](../../tools/cut-sheet.py), [`tools/game.ts`](../../tools/game.ts).
 
 <a name="web-scumm-studio-hosts"></a>
 

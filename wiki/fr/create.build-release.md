@@ -182,9 +182,10 @@ Ce qui casse sous un sous-chemin, avec le cache ou avec un site à moitié tél�
 [Sous-chemin, cache et service worker, déploiement incomplet, retour arrière](create.deploy-issues.md).
 
 Dans le dépôt du moteur, `games/<id>/private/` (photos, planches brutes, configuration de la fin scellée) n'est jamais
-envoyé : `.gitignore` l'exclut, et rien de ce dossier n'est copié dans `dist/`. Le `.gitignore` d'un projet créé ne
-liste que `node_modules`, `dist`, `.cache` et `public/assets` : gardez les fichiers privés hors de `game/`, ou
-ajoutez-les-y.
+envoyé : `.gitignore` l'exclut, et rien de ce dossier n'est copié dans `dist/`. Le `.gitignore` d'un projet créé
+liste `node_modules`, `dist`, `.cache`, `public/assets` et `game/private` (les planches brutes que les prompts d'images y
+font ranger) ; un projet créé par un moteur jusqu'à 4.5.3 n'a pas cette dernière ligne : ajoutez-la, et gardez les
+autres fichiers privés dans `game/private/` ou hors de `game/`.
 
 > [!LIMIT id=release-proof-not-witness]
 > `npm run build` et `npm run verify` demandent au solveur un témoin : un chemin vers une fin. Seule la release

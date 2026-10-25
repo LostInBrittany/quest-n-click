@@ -76,8 +76,8 @@ et ces sprites préparés dans `public/assets/` par `npm run assets`.
    ```
 
    ```sh
-   # dans un projet créé : nommez le dossier de sortie, celui par défaut est games/<GAME>/art du dépôt
-   python3 node_modules/@quest-n-click/engine/tools/cut-sheet.py hero_sheet.png hero --out game/art
+   # dans un projet créé, depuis son dossier : écrit game/art/hero/
+   python3 node_modules/@quest-n-click/engine/tools/cut-sheet.py hero_sheet.png hero
    ```
 
    Avec `"artStyle": "pixel"` dans `site.json` (ou `--pixel`), l'outil réduit aussi chaque case par 4 (`--scale`), la
@@ -133,7 +133,7 @@ Aucun avertissement : chaque image citée a été préparée.
 |---|---|---|
 | `ModuleNotFoundError: No module named 'PIL'` (ou `numpy`, `scipy`) | Étape 1 pas faite, ou faite pour un autre Python | L'étape 1 avec le `python3` qui lance les outils ; dans un projet créé, `PYTHON=<chemin>` fait prendre un autre interpréteur à `assets` |
 | `ModuleNotFoundError: No module named 'cv2'` | Un outil de bouches qui parlent demande OpenCV, absent de `requirements.txt` | Installez vous-même le module Python d'OpenCV |
-| Les sprites arrivent dans un `games/<id>/art` d'un dossier qui n'existe pas | `cut-sheet.py` lancé dans un projet créé sans `--out` | Ajoutez `--out game/art` |
+| Les sprites arrivent dans un `games/<id>/art` d'un dossier qui n'existe pas | `cut-sheet.py` d'un moteur jusqu'à 4.5.3 lancé dans un projet créé sans `--out` | Ajoutez `--out game/art`, ou mettez le moteur à jour |
 | `warning: missing images: …` | Le contenu cite une image sans fichier | Découpez-la ou ajoutez-la, ou corrigez le nom dans le contenu |
 
 <a name="files-changed"></a>
