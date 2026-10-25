@@ -5179,10 +5179,10 @@
       ]
     },
     "contribute.releasing#prepare": {
-      "enHash": "6f5ce175e1d517a7ea5a0d09aa79f3f8af38e12979092717730ac3cbe9fbfb22",
-      "frHash": "c33d459eaac6bc29cc5848ece3c1c99b743d60bc6aeda88da3cd749512bb63da",
+      "enHash": "2fd2e3663d78a2a01f62b12c66556257df707e9a1d5c17baaabed29d3848b783",
+      "frHash": "863ce3dda23a8b238cbff4f80ad770ab561642c9402db44ae5310885a17be500",
       "reviewers": [
-        { "name": "claude-prepare-claims-gate", "kind": "ai", "relation": "author", "date": "2026-10-25" }
+        { "name": "claude-prepare-todo-gate", "kind": "ai", "relation": "author", "date": "2026-10-25" }
       ]
     },
     "contribute.releasing#prerequisites": {

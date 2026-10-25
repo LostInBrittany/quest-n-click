@@ -1,8 +1,9 @@
 // npm run release -- prepare <x.y.z> --name="<name>" [--date=YYYY-MM-DD] [--no-pr] [--dry-run]
 // npm run release -- check <x.y.z>
-// (4.5.5) Before it pushes, `prepare` runs the docs' human gates the pull request's CI would fail on: a claim or a pair
-// still to review stops it there, nothing pushed, each with its command for a person to type (the tool never records a
-// review); the same command, run again on `release/<x.y.z>` once they are committed, resumes at the gates.
+// (4.5.5) Before it pushes, `prepare` checks what the pull request's CI would fail on: a `TODO(release)` left (each with
+// its brief, for a person or their assistant to write) and the docs' human gates (a claim or a pair still to review,
+// each with its command for a person to type), in one stop, nothing pushed. The tool never writes prose nor records a
+// review; the same command, run again on `release/<x.y.z>` once they are committed, resumes there.
 // (4.5.4, part B of docs/dev/PLAN-4.5.4-SIMPLE-RELEASE.md.) `prepare` makes the release pull request: the branch
 // `release/<x.y.z>`, every file the tools already generate (version, CHANGELOG and LOG from the fragments, transition
 // pages, golden save, reference run, quality baseline), the files a release branch used to write by hand (the passes
@@ -189,11 +190,22 @@ export function withReleaseSection(changelog: string, heading: string, intro: st
   return lines.join('\n');
 }
 
-/** Every `TODO(release)` left, as `file:line`. */
-export function todoMarkers(files: readonly { path: string; text: string }[]) {
+const BRIEF = 200;
+
+/** Every `TODO(release)` left: its `file:line` and its line, the brief of what to write there (cut at 200 characters). */
+export function todoBrief(files: readonly { path: string; text: string }[]) {
   return files.flatMap(({ path, text }) =>
-    text.split('\n').flatMap((l, i) => (l.includes(TODO) ? [`${path}:${i + 1}`] : [])),
+    text.split('\n').flatMap((l, i) => {
+      if (!l.includes(TODO)) return [];
+      const what = l.trim();
+      return [{ at: `${path}:${i + 1}`, what: what.length > BRIEF ? `${what.slice(0, BRIEF - 1)}…` : what }];
+    }),
   );
+}
+
+/** Every `TODO(release)` left, as `file:line` (what `check` counts, and `prepare` before it pushes). */
+export function todoMarkers(files: readonly { path: string; text: string }[]) {
+  return todoBrief(files).map((t) => t.at);
 }
 
 /**
@@ -273,7 +285,9 @@ export function resumeRefusals(o: {
   if (!o.prepared) out.push(`${o.branch} holds no prepared commit of ${o.version} over main: ${back}`);
   else if (o.current !== o.version) out.push(`package.json is at ${o.current}, not ${o.version}: ${back}`);
   if (o.dirty)
-    out.push(`${o.branch} has uncommitted changes: commit the reviews (git add, git commit), then run again`);
+    out.push(
+      `${o.branch} has uncommitted changes: commit the prose and the reviews (git add, git commit), then run again`,
+    );
   if (o.shallow) out.push('a shallow clone dates every fragment at its boundary: git fetch --unshallow');
   if (o.pr) out.push(o.pr);
   return out;
@@ -317,20 +331,52 @@ export function humanGates(run: Run) {
   };
 }
 
-/** What `prepare` says when the human gates hold it before the push: what to review, then the same command again. */
-export function gatesStop(o: { version: string; name: string; branch: string; detail: string; pr: boolean }) {
-  return [
-    `✖  the docs' human gates would fail the release pull request's CI: nothing is pushed, ${o.branch} is committed here.`,
-    o.detail.replace(/^/gm, '     '),
+/**
+ * What `prepare` says when it cannot push yet, or undefined when it can: the `TODO(release)` prose left (each marker
+ * with its brief) and the docs' human gates still red, in one stop, then the same command to run again. It never
+ * writes the prose nor records a review: a person does, or their assistant writes the prose from these briefs.
+ */
+export function beforePushStop(o: {
+  version: string;
+  name: string;
+  branch: string;
+  todos: readonly { at: string; what: string }[];
+  gates: { ok: boolean; detail: string };
+  pr: boolean;
+}) {
+  if (!o.todos.length && o.gates.ok) return undefined;
+  const why = [
+    o.todos.length ? `${o.todos.length} ${TODO} left` : '',
+    o.gates.ok ? '' : "the docs' human gates",
+  ].filter(Boolean);
+  const out = [
+    `✖  ${why.join(' and ')} would fail the release pull request's CI: nothing is pushed, ${o.branch} is committed here.`,
+  ];
+  if (o.todos.length)
+    out.push(
+      '',
+      `The prose to write, one ${TODO} each (file:line, then the line, the brief):`,
+      ...o.todos.map((t) => `  ${t.at}\n      ${t.what}`),
+      'Write it yourself, or ask your AI assistant to write it with these markers as the brief; read the diff.',
+      'The upgrade notes (en, fr) are a translation pair: record it as npm run wiki -- check prints.',
+    );
+  if (!o.gates.ok)
+    out.push(
+      '',
+      'The reviews to record:',
+      o.gates.detail.replace(/^/gm, '  '),
+      'A person reads each one and types its command (prepare never records a review).',
+    );
+  out.push(
     '',
-    'A person reads each one and types its command (prepare never records a review). While the branch is here, the',
-    `${TODO} prose can be written too (npm run release -- check ${o.version} lists it). Commit, then run the same command:`,
+    `Commit on ${o.branch}, then run the same command:`,
     `  npm run release -- prepare ${o.version} --name="${o.name}"${o.pr ? '' : ' --no-pr'}`,
-    `It resumes at the gates, then ${o.pr ? 'pushes and opens the pull request' : 'stops (--no-pr)'}.`,
-  ].join('\n');
+    `It resumes here, then ${o.pr ? 'pushes and opens the pull request' : 'stops (--no-pr)'}, its CI run once.`,
+  );
+  return out.join('\n');
 }
 
-/** The steps of `prepare`, in 4.5.3's order; the human gates before the push (4.5.5). */
+/** The steps of `prepare`, in 4.5.3's order; before the push, the prose left and the human gates (4.5.5). */
 export const PREPARE_STEPS = [
   'branch',
   'version',
@@ -343,13 +389,13 @@ export const PREPARE_STEPS = [
   'readme',
   'quality baseline',
   'commit',
-  'human gates',
+  'before the push',
   'pull request',
 ] as const;
 
 /** The steps of a run again on a prepared branch. */
 export const RESUME_STEPS = [
-  'human gates',
+  'before the push',
   'pull request',
 ] as const satisfies readonly (typeof PREPARE_STEPS)[number][];
 
@@ -492,7 +538,7 @@ function prepare(version: string, opts: { name: string; date: string; pr: boolea
   const dirty = sh('git', ['status', '--porcelain']) !== '';
   const onBranch = sh('git', ['rev-parse', '--abbrev-ref', 'HEAD']);
   const shallow = sh('git', ['rev-parse', '--is-shallow-repository']) === 'true';
-  // Run again on its branch (the human gates held it), prepare resumes at the gates: the commits over main say whether
+  // Run again on its branch (the stop before the push held it), prepare resumes there: the commits over main say whether
   // it is the branch prepare made.
   const subjects = () => {
     const r = spawnSync('git', ['log', '--format=%s', `${theirs || 'main'}..HEAD`], { cwd: ROOT_(), encoding: 'utf8' });
@@ -587,27 +633,24 @@ function prepare(version: string, opts: { name: string; date: string; pr: boolea
       sh('git', ['add', '-A']);
       sh('git', ['commit', '-q', '-m', preparedSubject(version)]);
     },
-    'human gates': () => {
-      const gates = humanGates(capture);
-      if (gates.ok) return;
-      console.error(gatesStop({ version, name: opts.name, branch, detail: gates.detail, pr: opts.pr }));
+    'before the push': () => {
+      // The same markers and gates `check` (the pull request's CI) fails on: what is left, said in one stop.
+      const todos = todoBrief(todoFiles(version).map((path) => ({ path, text: read(path) })));
+      const stop = beforePushStop({ version, name: opts.name, branch, todos, gates: humanGates(capture), pr: opts.pr });
+      if (!stop) return;
+      console.error(stop);
       process.exit(1);
     },
     'pull request': () => {
       if (!opts.pr) return say('--no-pr: nothing pushed');
       if ('problem' in target) throw new Error(target.problem);
       sh('git', ['push', '-q', '-u', target.remote, branch]);
-      const left = todoMarkers(todoFiles(version).map((path) => ({ path, text: read(path) })));
       const body = [
         `## What changes`,
         '',
         `Release ${version} "${opts.name}", prepared by \`npm run release -- prepare\`: version, CHANGELOG and LOG from the fragments, transition pages, golden save, reference run, passes sheet and passIssues, README, quality baseline.`,
         '',
-        `## Left to write (\`npm run release -- check ${version}\` lists them)`,
-        '',
-        ...left.map((l) => `- [ ] \`${l}\``),
-        '',
-        'Then record the changed translation pairs (`npm run wiki -- check` prints each command, `--kind ai --relation author` for an assistant).',
+        `Its prose is written and its docs' human gates hold: \`prepare\` pushes only then. \`npm run release -- check ${version}\` is this pull request's CI.`,
       ].join('\n');
       const head = `${target.head}${branch}`;
       say(
@@ -628,7 +671,7 @@ function prepare(version: string, opts: { name: string; date: string; pr: boolea
       );
     },
   };
-  if (resume) say(`${branch} is prepared: resuming at the human gates`);
+  if (resume) say(`${branch} is prepared: resuming before the push (the prose left, the human gates)`);
   for (const name of resume ? RESUME_STEPS : PREPARE_STEPS) {
     if (opts.dryRun) {
       say(`would run: ${name}`);

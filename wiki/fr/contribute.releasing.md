@@ -76,20 +76,26 @@ Si une étape échoue, elle s'arrête et dit quoi faire : avant le commit, rien 
 `git clean`, retour sur `main`, la branche supprimée : elle affiche les commandes) ; après, elle affiche le
 `git push` et le `gh pr create` à lancer à la main.
 
-Avant de pousser (depuis la 4.5.5), elle lance les relectures humaines des docs que lance la CI de la pull request de
-release (`wiki -- check --publish --reviews-only`). Quand une claim ou une paire attend encore une personne, elle
-s'arrête là et sort avec 1 : rien de poussé, pas de pull request, la branche commitée dans votre checkout, chaque point
-affiché avec sa commande. Une personne lit chacun et tape la commande (`prepare` n'enregistre jamais une relecture),
-commite, puis relance la même `npm run release -- prepare <version> --name="…"`. Sur `release/<version>`, avec
-`package.json` à la version, le commit préparé sur la branche et rien de non commité, elle reprend aux relectures :
-quand elles tiennent, elle pousse et ouvre la pull request, et sa CI ne tourne qu'une fois. Tout autre état de cette
-branche est refusé, avec la façon de repartir de `main`. Pour les voir plus tôt, lancez
-`npm run release -- check <version>` sur `main` : son point sur les relectures humaines des docs liste les claims et
-les paires encore à relire (les points sur la release elle-même y échouent, comme il se doit avant `prepare`).
-
 Elle n'écrit aucune prose : chaque endroit qui demande une phrase porte `TODO(release)` (l'intro du CHANGELOG,
-l'entrée de release du LOG, les notes de mise à jour, le README, la fiche des passes). Écrivez-les sur la branche,
-enregistrez les paires de traduction qui ont changé (`npm run wiki -- check` donne chaque commande), puis :
+l'entrée de release du LOG, les notes de mise à jour, le README, la fiche des passes).
+
+Avant de pousser (depuis la 4.5.5), elle vérifie ce sur quoi la CI de la pull request de release échouerait : un
+`TODO(release)` restant (les mêmes marqueurs que compte `check`) et les relectures humaines des docs
+(`wiki -- check --publish --reviews-only`, une claim ou une paire qu'une personne doit encore lire). Quand il reste
+quelque chose, elle s'arrête là et sort avec 1 : rien de poussé, pas de pull request, la branche commitée dans votre
+checkout. Un seul arrêt liste tout : chaque `TODO(release)` avec son fichier, sa ligne et sa consigne, puis chaque
+relecture avec sa commande. Sur la branche locale, écrivez la prose vous-même ou demandez-la à votre assistant IA, avec
+ces marqueurs comme consigne, et relisez le diff ; enregistrez les paires de traduction qui ont changé
+(`npm run wiki -- check` donne chaque commande) ; une personne lit chaque claim ou paire et tape sa commande de
+relecture (`prepare` n'écrit jamais de prose, n'enregistre jamais une relecture et n'appelle aucune IA). Commitez, puis
+relancez la même `npm run release -- prepare <version> --name="…"`. Sur `release/<version>`, avec `package.json` à la
+version, le commit préparé sur la branche et rien de non commité, elle reprend là : quand il ne reste rien, elle pousse
+et ouvre la pull request, et sa CI ne tourne qu'une fois. Tout autre état de cette branche est refusé, avec la façon de
+repartir de `main`. Pour voir les relectures plus tôt, lancez `npm run release -- check <version>` sur `main` : son
+point sur les relectures humaines des docs liste les claims et les paires encore à relire (les points sur la release
+elle-même y échouent, comme il se doit avant `prepare`).
+
+Pour vérifier la branche à tout moment :
 
 ```sh
 npm run release -- check 4.5.4
