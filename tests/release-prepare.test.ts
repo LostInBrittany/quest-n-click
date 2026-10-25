@@ -215,6 +215,7 @@ describe('the command', () => {
       ['CHANGELOG.md has a 4.5.4 section', true],
       ['no TODO(release) left', false],
       ['npm run wiki -- check: no warning', true],
+      ["the docs' human gates (wiki -- check --publish --reviews-only)", true],
       ['npm run quality:baseline -- --check', true],
     ]);
     expect(items[2]!.detail).toBe('CHANGELOG.md:5');

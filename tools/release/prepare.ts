@@ -293,6 +293,28 @@ export async function checkRelease(version: string, deps: CheckDeps) {
       detail: 'see npm run wiki -- check',
     },
     {
+      // What docs-publish would refuse but "executed" (the candidate's report checks it): a claim or a pair a person
+      // must read fails the release pull request, never the release (4.5.4).
+      what: "the docs' human gates (wiki -- check --publish --reviews-only)",
+      ok:
+        deps.run('npm', [
+          'run',
+          '-s',
+          'wiki',
+          '--',
+          'check',
+          '--publish',
+          '--product-ref',
+          'HEAD',
+          '--doc-ref',
+          'HEAD',
+          '--state',
+          'candidate',
+          '--reviews-only',
+        ]).code === 0,
+      detail: 'see npm run wiki -- check --publish --product-ref HEAD --state candidate --reviews-only',
+    },
+    {
       what: 'npm run quality:baseline -- --check',
       ok: deps.run('npm', ['run', '-s', 'quality:baseline', '--', '--check']).code === 0,
       detail: 'see npm run quality:baseline -- --check',

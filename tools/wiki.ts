@@ -154,7 +154,7 @@ export function bundleOutProblem(out: string, tracked: readonly string[], root =
 }
 
 const USAGE =
-  'usage: npm run wiki -- check [--test-report <file>]… | check --publish --product-ref <tag|sha> [--doc-ref <sha>] [--released] [--state preview|candidate|published] [--test-report <file>]… [--candidate <run id>] | review-claim <id> --by <name> --kind human|ai --relation author|independent | translations --ack <id#section> --by <name> --kind human|ai --relation author|independent | stats [--json] | coverage [--init [--force] | --ack <key>] | build --target wiki --out <dir> [--preview] [--product-version <v>] [--doc-revision <sha>] [--product-commit <sha>] | bundle --out <dir> [--build-id <id>] [--allow-dirty] [--product-version <v>] [--doc-revision <sha>] [--product-commit <sha>] | archive --out <quest-n-click-docs-<v>[-r<n>].tar.gz> [--revision r<n>] [--preview] [--build-id <id>] [--test-report <file>… --candidate <run id>] [--allow-dirty] [--product-version <v>] [--doc-revision <sha>] [--product-commit <sha>] | publish --target wiki --mode release|revision|rollback|promote|preview --ref <ref> --version <v> --revision r<n> --tag <tag> --archive <file> (--repo <owner/name> | --remote <url>) [--sha256 <hex>] [--rollback-to <v>[-r<n>]] [--dry-run] | pages --out <dir> (--repo <owner/name> [--cache <dir>] | --releases <dir> (--repo <owner/name> | --skip-attestations)) [--publication <file>] | next-revision --version <v> --repo <owner/name> | attest --repo <owner/name> --tag <tag> --file <archive> | transition [--root <dir>] [--version <v>] | env | generate [<page>…] [--no-manifest] | acceptance [--lang en|fr] [--json] [--strict] [--export-prompts <dir> [--channel mcp|web] [--url <url>]]';
+  'usage: npm run wiki -- check [--test-report <file>]… | check --publish --product-ref <tag|sha> [--doc-ref <sha>] [--released] [--state preview|candidate|published] [--reviews-only] [--test-report <file>]… [--candidate <run id>] | review-claim <id> --by <name> --kind human|ai --relation author|independent | translations --ack <id#section> --by <name> --kind human|ai --relation author|independent | stats [--json] | coverage [--init [--force] | --ack <key>] | build --target wiki --out <dir> [--preview] [--product-version <v>] [--doc-revision <sha>] [--product-commit <sha>] | bundle --out <dir> [--build-id <id>] [--allow-dirty] [--product-version <v>] [--doc-revision <sha>] [--product-commit <sha>] | archive --out <quest-n-click-docs-<v>[-r<n>].tar.gz> [--revision r<n>] [--preview] [--build-id <id>] [--test-report <file>… --candidate <run id>] [--allow-dirty] [--product-version <v>] [--doc-revision <sha>] [--product-commit <sha>] | publish --target wiki --mode release|revision|rollback|promote|preview --ref <ref> --version <v> --revision r<n> --tag <tag> --archive <file> (--repo <owner/name> | --remote <url>) [--sha256 <hex>] [--rollback-to <v>[-r<n>]] [--dry-run] | pages --out <dir> (--repo <owner/name> [--cache <dir>] | --releases <dir> (--repo <owner/name> | --skip-attestations)) [--publication <file>] | next-revision --version <v> --repo <owner/name> | attest --repo <owner/name> --tag <tag> --file <archive> | transition [--root <dir>] [--version <v>] | env | generate [<page>…] [--no-manifest] | acceptance [--lang en|fr] [--json] [--strict] [--export-prompts <dir> [--channel mcp|web] [--url <url>]]';
 
 /** Today, as a day (the date a review or an ack records). */
 const today = () => new Date().toISOString().slice(0, 10);
@@ -186,6 +186,8 @@ function run(args: readonly string[]): number {
     const productRef = option(args, 'product-ref');
     if (publish && !productRef)
       throw new UsageError('check --publish needs --product-ref <tag|sha>, the product documented');
+    if (args.includes('--reviews-only') && !publish)
+      throw new UsageError("--reviews-only is a level of check --publish (the release pull request's)");
     const state = option(args, 'state') ?? 'published';
     if (!['preview', 'candidate', 'published'].includes(state))
       throw new UsageError('--state is preview, candidate or published');
@@ -202,6 +204,7 @@ function run(args: readonly string[]): number {
               ...(docRef ? { docRef } : {}),
               released: args.includes('--released'),
               state: state as 'preview' | 'candidate' | 'published',
+              reviewsOnly: args.includes('--reviews-only'),
             },
           }
         : {}),
