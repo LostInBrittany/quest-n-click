@@ -5182,8 +5182,8 @@
       ]
     },
     "contribute.releasing#prepare": {
-      "enHash": "edb9e5f5b918a16c38463f7206f230050714377d44340d78d44d15b1b27457a0",
-      "frHash": "cd7c177de976ad572026c24c3827ab1648071191322bacf2d6d1836eb7f04317",
+      "enHash": "328a990a10a8b263d96fb695003697ad5b608f7c6c4caab7874e983b740989ba",
+      "frHash": "6992637d52f2e71bbd627c2aaaffcd7fe754259c4a0cccf32b60758e8725fde8",
       "reviewers": [
         { "name": "claude-454-prepare", "kind": "ai", "relation": "author", "date": "2026-10-25" }
       ]

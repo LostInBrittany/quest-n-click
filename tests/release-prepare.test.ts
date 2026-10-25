@@ -1,13 +1,18 @@
 // `npm run release -- prepare <version>` (4.5.4, part B of docs/dev/PLAN-4.5.4-SIMPLE-RELEASE.md): the helpers that
 // write a release's files, each checked against what the 4.5.3 release commit (2afb9f51) wrote by hand, from the files
 // as they were before it (its parent). Prose is never invented: a helper leaves `TODO(release)` where it is needed.
-import { execFileSync } from 'node:child_process';
+import { execFileSync, spawnSync } from 'node:child_process';
+import { cpSync, mkdtempSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join, resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import {
   changelogIntro,
   checkRelease,
   PREPARE_STEPS,
   prepareRefusals,
+  pushTarget,
+  wayBack,
   currentReleaseLine,
   logReleaseEntry,
   nextVersionProblem,
@@ -157,6 +162,8 @@ describe('the command', () => {
     shallow: false,
     upToDate: true,
     upgradeNotes: true,
+    fragments: 3,
+    pr: undefined as string | undefined,
   };
   it('refuses, before writing anything, what would make a wrong release branch', () => {
     expect(prepareRefusals(ok)).toEqual([]);
@@ -165,6 +172,10 @@ describe('the command', () => {
     expect(prepareRefusals({ ...ok, branch: 'feature/x' })).toEqual([expect.stringMatching(/on main/)]);
     expect(prepareRefusals({ ...ok, shallow: true })).toEqual([expect.stringMatching(/unshallow/)]);
     expect(prepareRefusals({ ...ok, upToDate: false })).toEqual([expect.stringMatching(/up to date/)]);
+    expect(prepareRefusals({ ...ok, fragments: 0 })).toEqual([expect.stringMatching(/no fragment/)]);
+    expect(prepareRefusals({ ...ok, pr: 'gh is not signed in: gh auth login' })).toEqual([
+      'gh is not signed in: gh auth login',
+    ]);
     expect(prepareRefusals({ ...ok, version: '4.6.0', upgradeNotes: false })).toEqual([
       expect.stringMatching(/install\.upgrade-notes-4-6/),
     ]);
@@ -207,4 +218,113 @@ describe('the command', () => {
     const none = await checkRelease('4.5.5', deps);
     expect(none.slice(0, 2).map((i) => i.ok)).toEqual([false, false]);
   });
+});
+
+describe('where the release branch is pushed', () => {
+  const r = (...rows: [string, string][]) => rows.map(([n, u]) => `${n}\t${u} (fetch)\n${n}\t${u} (push)`).join('\n');
+  const ORG = 'Quest-n-Click/quest-n-click';
+  it('is the fork: origin when it is a GitHub fork, whatever other remotes sort before it', () => {
+    expect(
+      pushTarget(
+        r(
+          ['backup', 'git@gitlab.com:me/x.git'],
+          ['clever', 'git+ssh://git@push.clever-cloud.com/app.git'],
+          ['origin', 'git@github.com:LostInBrittany/quest-n-click.git'],
+          ['upstream', 'git@github.com:Quest-n-Click/quest-n-click.git'],
+        ),
+        ORG,
+      ),
+    ).toEqual({ remote: 'origin', head: 'LostInBrittany:' });
+  });
+  it('is the one GitHub fork of the repository when origin is not one', () => {
+    expect(
+      pushTarget(
+        r(
+          ['fork', 'https://github.com/wanoo/quest-n-click'],
+          ['origin', 'git@github.com:Quest-n-Click/quest-n-click.git'],
+        ),
+        ORG,
+      ),
+    ).toEqual({ remote: 'fork', head: 'wanoo:' });
+  });
+  it("is the organisation's repository itself when no fork is a remote (a branch, never main)", () => {
+    expect(pushTarget(r(['origin', 'git@github.com:Quest-n-Click/quest-n-click.git']), ORG)).toEqual({
+      remote: 'origin',
+      head: '',
+    });
+  });
+  it('is refused when two forks could be it, or when nothing is the repository', () => {
+    expect(
+      pushTarget(r(['a', 'git@github.com:x/quest-n-click.git'], ['b', 'git@github.com:y/quest-n-click.git']), ORG),
+    ).toEqual({ problem: expect.stringMatching(/two forks/) });
+    expect(pushTarget(r(['origin', 'git@gitlab.com:me/x.git']), ORG)).toEqual({
+      problem: expect.stringMatching(/no remote/),
+    });
+  });
+});
+
+describe('an upgrade-notes lead it cannot extend', () => {
+  it('gets a TODO(release) under its title rather than nothing', () => {
+    const page = '# Upgrade notes: 4.6\n\nWhat 4.6.0 changed.\n';
+    const out = upgradeNotesLead(page, '4.5.9', '4.6.1', 'en');
+    expect(out).toContain('TODO(release)');
+    expect(out.split('\n')[0]).toBe('# Upgrade notes: 4.6');
+  });
+});
+
+describe('when a step fails', () => {
+  it('says how to start again before the commit, and how to finish by hand after it', () => {
+    expect(wayBack('golden save', '4.5.4', 'release/4.5.4')).toContain(
+      'git switch main && git branch -D release/4.5.4',
+    );
+    const pr = wayBack('pull request', '4.5.4', 'release/4.5.4', { remote: 'origin', head: 'LostInBrittany:' });
+    expect(pr).toContain('git push -u origin release/4.5.4');
+    expect(pr).toContain('--head LostInBrittany:release/4.5.4');
+  });
+});
+
+describe('the command on a clone (4.5.4)', () => {
+  it('refuses a dirty main and leaves the clone exactly as it was: no branch, no file written', () => {
+    const dir = mkdtempSync(join(tmpdir(), 'release-prepare-'));
+    try {
+      const repo = join(dir, 'repo');
+      const git = (...a: string[]) => execFileSync('git', ['-C', repo, ...a], { encoding: 'utf8' }).trim();
+      execFileSync('git', ['clone', '-q', '--local', resolve('.'), repo]);
+      git('checkout', '-q', '-B', 'main');
+      // The clone holds the committed tools; the ones under test are copied over and committed.
+      for (const f of ['tools/release/prepare.ts', 'tools/changes.ts', 'tools/release/lib.mjs'])
+        cpSync(resolve(f), join(repo, f));
+      git(
+        '-c',
+        'user.email=t@t',
+        '-c',
+        'user.name=t',
+        '-c',
+        'commit.gpgsign=false',
+        'commit',
+        '-q',
+        '-am',
+        'tools',
+        '--allow-empty',
+      );
+      symlinkSync(resolve('node_modules'), join(repo, 'node_modules'));
+      writeFileSync(join(repo, 'stray.txt'), 'x');
+      const before = git('status', '--porcelain');
+      const r = spawnSync(
+        resolve('node_modules/.bin/tsx'),
+        ['tools/release/prepare.ts', 'prepare', '4.5.4', '--name=T', '--no-pr'],
+        {
+          cwd: repo,
+          encoding: 'utf8',
+        },
+      );
+      expect(r.status).toBe(1);
+      expect(r.stderr).toMatch(/uncommitted/);
+      expect(git('status', '--porcelain')).toBe(before);
+      expect(git('rev-parse', '--abbrev-ref', 'HEAD')).toBe('main');
+      expect(git('branch', '--list', 'release/*')).toBe('');
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  }, 60_000);
 });

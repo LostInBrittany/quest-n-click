@@ -25,6 +25,8 @@ export interface Fragment {
   log?: string;
   /** ISO date of the fragment's first commit (the order of assembly). */
   date: string;
+  /** Whether it has a `.md` (a `.log.md` alone has none, 4.5.4). */
+  md?: boolean;
 }
 
 const isSection = (s: string): s is Section => (SECTIONS as readonly string[]).includes(s);
@@ -197,6 +199,7 @@ export function readFragments(): Fragment[] {
     out.push({
       slug,
       changelog: md ? readFileSync(file, 'utf8') : '',
+      md,
       log: existsSync(logFile) ? readFileSync(logFile, 'utf8') : undefined,
       date,
     });
@@ -254,7 +257,7 @@ if (process.argv[1]?.endsWith('changes.ts')) {
       );
     }
     for (const f of fragments) {
-      if (f.changelog) unlinkSync(resolve(ROOT, 'changes', `${f.slug}.md`));
+      if (f.md !== false) unlinkSync(resolve(ROOT, 'changes', `${f.slug}.md`));
       if (f.log) unlinkSync(resolve(ROOT, 'changes', `${f.slug}.log.md`));
     }
     const last = lastLogNumber(readFileSync(resolve(ROOT, 'docs/dev/LOG.md'), 'utf8'));

@@ -11,7 +11,7 @@ import { execFileSync, spawnSync } from 'node:child_process';
 import { existsSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { releaseNotes } from '../../scripts/release-notes.mjs';
-import { lastLogNumber } from '../changes';
+import { fragmentFiles, lastLogNumber } from '../changes';
 import { formatJson } from '../wiki/json';
 // @ts-expect-error: a plain .mjs module without declarations
 import { REPO, releaseRemote } from './lib.mjs';
@@ -71,12 +71,22 @@ export function logReleaseEntry(o: { n: number; date: string; version: string; n
 /** The upgrade-notes page with `version` added to its lead's list of versions (`… 4.5.1 and 4.5.2 changed.`). */
 export function upgradeNotesLead(page: string, previous: string, version: string, lang: 'en' | 'fr') {
   const p = previous.replace(/\./g, '\\.');
-  if (lang === 'en')
-    return page.replace(new RegExp(`\\s+and\\s+${p}\\s+changed\\.`), `, ${previous} and ${version} changed.`);
-  return page.replace(
-    new RegExp(`\\s+et\\s+la\\s+${p}\\s+ont\\s+changé\\.`),
-    `, la ${previous} et la ${version} ont changé.`,
-  );
+  const out =
+    lang === 'en'
+      ? page.replace(new RegExp(`\\s+and\\s+${p}\\s+changed\\.`), `, ${previous} and ${version} changed.`)
+      : page.replace(
+          new RegExp(`\\s+et\\s+la\\s+${p}\\s+ont\\s+changé\\.`),
+          `, la ${previous} et la ${version} ont changé.`,
+        );
+  if (out !== page) return out;
+  // A lead worded otherwise (a new minor's page, a rewrite): said where it is, for a person to write.
+  const lines = page.split('\n');
+  const note =
+    lang === 'en'
+      ? `${TODO}: name ${version} in this lead.`
+      : `${TODO} : nommer la ${version} dans cette introduction.`;
+  lines.splice(1, 0, '', note);
+  return lines.join('\n');
 }
 
 /** A release's section of its upgrade notes: anchor, scope, heading, the text to write, the assembled bullets to start from. */
@@ -183,6 +193,33 @@ export function todoMarkers(files: readonly { path: string; text: string }[]) {
   );
 }
 
+/**
+ * Where the release branch is pushed, from `git remote -v`: the fork (`origin` when it is one, else the only one), or
+ * the organisation's repository when no fork is a remote (a branch, never main). `head` prefixes the branch for
+ * `gh pr create --head`.
+ */
+export function pushTarget(remotes: string, repo: string): { remote: string; head: string } | { problem: string } {
+  const [org, name] = repo.toLowerCase().split('/');
+  const github = remotes
+    .split('\n')
+    .map((l) => l.trim().split(/\s+/))
+    .filter(([, , kind]) => kind === '(fetch)')
+    .flatMap(([n, url]) => {
+      const m = /github\.com[:/]([^/]+)\/([^/\s]+?)(?:\.git)?\/?$/i.exec(url ?? '');
+      return m && m[2]!.toLowerCase() === name ? [{ remote: n!, owner: m[1]! }] : [];
+    });
+  const forks = github.filter((g) => g.owner.toLowerCase() !== org);
+  const fork = forks.find((g) => g.remote === 'origin') ?? (forks.length === 1 ? forks[0] : undefined);
+  if (fork) return { remote: fork.remote, head: `${fork.owner}:` };
+  if (forks.length > 1)
+    return {
+      problem: `two forks could take the release branch (${forks.map((f) => f.remote).join(', ')}): make one of them origin`,
+    };
+  const own = github.find((g) => g.remote === 'origin') ?? github[0];
+  if (own) return { remote: own.remote, head: '' };
+  return { problem: `no remote is ${repo} or a fork of it on GitHub (git remote -v)` };
+}
+
 /** What `prepare` refuses before it writes anything, each with what to do. */
 export function prepareRefusals(o: {
   current: string;
@@ -192,6 +229,10 @@ export function prepareRefusals(o: {
   shallow: boolean;
   upToDate: boolean;
   upgradeNotes: boolean;
+  /** The fragments in changes/: a release with none has nothing to say. */
+  fragments: number;
+  /** Why the pull request could not be opened at the end (no push target, gh not signed in), or nothing. */
+  pr: string | undefined;
 }): string[] {
   const out: string[] = [];
   const v = nextVersionProblem(o.current, o.version);
@@ -200,6 +241,8 @@ export function prepareRefusals(o: {
   if (o.branch !== 'main') out.push(`the checkout is on ${o.branch}: prepare runs on main (git switch main)`);
   if (o.shallow) out.push('a shallow clone dates every fragment at its boundary: git fetch --unshallow');
   if (!o.upToDate) out.push("main is not up to date with the organisation's: git pull first");
+  if (o.fragments === 0) out.push('changes/ holds no fragment: a release with nothing to say is not prepared');
+  if (o.pr) out.push(o.pr);
   if (!v && !o.upgradeNotes)
     out.push(
       `${upgradeNotesPage(o.version)} does not exist: a new minor needs its upgrade-notes page first (wiki/en and wiki/fr, wiki/manifest.json)`,
@@ -259,22 +302,27 @@ export async function checkRelease(version: string, deps: CheckDeps) {
 
 // ——— The command line. Everything below runs in the repository's root, the commands 4.5.3's release ran by hand.
 
-const ROOT = execFileSync('git', ['rev-parse', '--show-toplevel'], { encoding: 'utf8' }).trim();
+let root: string | undefined;
+const ROOT_ = () => (root ??= execFileSync('git', ['rev-parse', '--show-toplevel'], { encoding: 'utf8' }).trim());
 const sh = (cmd: string, args: string[], env: Record<string, string> = {}) =>
   execFileSync(cmd, args, {
-    cwd: ROOT,
+    cwd: ROOT_(),
     encoding: 'utf8',
     env: { ...process.env, ...env },
     stdio: ['ignore', 'pipe', 'inherit'],
   }).trim();
 const capture = (cmd: string, args: string[]) => {
-  const r = spawnSync(cmd, args, { cwd: ROOT, encoding: 'utf8' });
+  const r = spawnSync(cmd, args, { cwd: ROOT_(), encoding: 'utf8' });
   return { code: r.status ?? 1, out: `${r.stdout ?? ''}${r.stderr ?? ''}` };
 };
-const file = (f: string) => join(ROOT, f);
+const file = (f: string) => join(ROOT_(), f);
 const read = (f: string) => (existsSync(file(f)) ? readFileSync(file(f), 'utf8') : '');
 const say = (s: string) => console.log(`${new Date().toISOString().slice(11, 19)}  ${s}`);
-const today = () => new Date().toISOString().slice(0, 10);
+/** Today, the local day (as tools/changes.ts dates the fragments). */
+const today = () => {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+};
 
 function todoFiles(version: string) {
   return [
@@ -306,27 +354,57 @@ function sectionBullets(changelog: string, version: string) {
   return notes.split('\n').filter((l) => l.startsWith('- '));
 }
 
+/** What to do when a step failed: finish by hand after the commit, else undo the branch (nothing was pushed). */
+export function wayBack(step: string, version: string, branch: string, target?: { remote: string; head: string }) {
+  if (step === 'pull request')
+    return [
+      'The release commit is made; push it and open the pull request by hand:',
+      `  git push -u ${target?.remote ?? '<the fork>'} ${branch}`,
+      `  gh pr create --repo ${REPO} --base main --head ${target?.head ?? ''}${branch} --title "${version}: the release"`,
+    ].join('\n');
+  return [
+    'Nothing was pushed. To start again from main:',
+    '  git reset --hard && git clean -fd -- changes docs tests wiki',
+    `  git switch main && git branch -D ${branch}`,
+  ].join('\n');
+}
+
 function prepare(version: string, opts: { name: string; date: string; pr: boolean; dryRun: boolean }) {
   const current = JSON.parse(read('package.json')).version as string;
   let remote: string | undefined;
   try {
     remote = releaseRemote();
-  } catch {
-    remote = undefined;
+  } catch (e) {
+    console.error(`✖  ${(e as Error).message}`);
   }
-  if (remote) spawnSync('git', ['fetch', '--quiet', remote, 'main'], { cwd: ROOT });
+  const fetched = remote
+    ? spawnSync('git', ['fetch', '--quiet', remote, 'main'], { cwd: ROOT_() }).status === 0
+    : false;
+  if (remote && !fetched) console.error(`✖  git fetch ${remote} main failed: main's state there is not known`);
   const head = sh('git', ['rev-parse', 'HEAD']);
   const theirs = remote
-    ? spawnSync('git', ['rev-parse', `${remote}/main`], { cwd: ROOT, encoding: 'utf8' }).stdout.trim()
+    ? spawnSync('git', ['rev-parse', '-q', '--verify', `${remote}/main`], {
+        cwd: ROOT_(),
+        encoding: 'utf8',
+      }).stdout.trim()
     : '';
+  const target = pushTarget(sh('git', ['remote', '-v']), REPO);
+  let pr: string | undefined;
+  if (opts.pr) {
+    if ('problem' in target) pr = target.problem;
+    else if (spawnSync('gh', ['auth', 'status'], { cwd: ROOT_(), stdio: 'ignore' }).status !== 0)
+      pr = 'gh is not signed in (gh auth login), or pass --no-pr and open the pull request by hand';
+  }
   const refusals = prepareRefusals({
     current,
     version,
     dirty: sh('git', ['status', '--porcelain']) !== '',
     branch: sh('git', ['rev-parse', '--abbrev-ref', 'HEAD']),
     shallow: sh('git', ['rev-parse', '--is-shallow-repository']) === 'true',
-    upToDate: !!remote && head === theirs,
+    upToDate: fetched && head === theirs,
     upgradeNotes: existsSync(file(`wiki/en/${upgradeNotesPage(version)}.md`)),
+    fragments: fragmentFiles(readdirSync(file('changes'))).length,
+    pr,
   });
   if (refusals.length) {
     for (const r of refusals) console.error(`✖  ${r}`);
@@ -395,20 +473,8 @@ function prepare(version: string, opts: { name: string; date: string; pr: boolea
     },
     'pull request': () => {
       if (!opts.pr) return say('--no-pr: nothing pushed');
-      const remotes = sh('git', ['remote', '-v']);
-      const fork = remotes
-        .split('\n')
-        .map((l) => l.split(/\s+/))
-        .find(([n, , kind]) => kind === '(fetch)' && n !== remote)?.[0];
-      const pushTo = fork ?? remote;
-      if (!pushTo) throw new Error('no git remote to push the release branch to');
-      sh('git', ['push', '-q', '-u', pushTo, branch]);
-      const url =
-        remotes
-          .split('\n')
-          .find((l) => l.startsWith(`${pushTo}\t`))
-          ?.split(/\s+/)[1] ?? '';
-      const owner = /github\.com[:/]([^/]+)\//.exec(url)?.[1];
+      if ('problem' in target) throw new Error(target.problem);
+      sh('git', ['push', '-q', '-u', target.remote, branch]);
       const left = todoMarkers(todoFiles(version).map((path) => ({ path, text: read(path) })));
       const body = [
         `## What changes`,
@@ -421,7 +487,7 @@ function prepare(version: string, opts: { name: string; date: string; pr: boolea
         '',
         'Then record the changed translation pairs (`npm run wiki -- check` prints each command, `--kind ai --relation author` for an assistant).',
       ].join('\n');
-      const head = owner && fork && owner !== REPO.split('/')[0] ? `${owner}:${branch}` : branch;
+      const head = `${target.head}${branch}`;
       say(
         sh('gh', [
           'pr',
@@ -446,7 +512,13 @@ function prepare(version: string, opts: { name: string; date: string; pr: boolea
       continue;
     }
     say(`${name}…`);
-    steps[name]();
+    try {
+      steps[name]();
+    } catch (e) {
+      console.error(`✖  ${name}: ${(e as Error).message}`);
+      console.error(wayBack(name, version, branch, 'remote' in target ? target : undefined));
+      process.exit(1);
+    }
   }
   if (opts.dryRun) process.exit(refusals.length ? 1 : 0);
   say(`✔  ${branch} prepared: npm run release -- check ${version} says what is left`);
