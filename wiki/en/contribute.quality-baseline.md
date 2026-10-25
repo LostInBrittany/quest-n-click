@@ -64,7 +64,7 @@ change.
    It solves and replays every game (`quality baseline: solving and replaying…`), then prints `✔ same behaviour…`, or
    one `✖` line per difference, for instance `demo witness.digests: … → …` (a state after some input differs:
    `npm run replay` on the witness names the entry), `golden save demo-3.4.0.json last: … → …`,
-   `tests/api-surface.json: the public API or the MCP tools changed`, or `README.md: a figure is behind the baseline`.
+   `tests/api-surface.json: the public API or the MCP tools changed`, or `README.md: a figure is not the baseline's`.
 
 <!-- step: decide -->
 2. **Decide what a difference is.**
@@ -109,8 +109,8 @@ golden saves, n test declarations, first visit n KB` and exit code 0.
 
 | Symptom | Cause | Fix |
 |---|---|---|
-| `README.md: a figure is behind the baseline (npm run quality:baseline writes it)` | You added a test (the test count moved) without rewriting | `npm run quality:baseline`, commit the READMEs |
-| `⚠ better than the baseline, ratchet it` | More tests, or a smaller first visit: not a failure by itself | Rewrite it so the gain is kept |
+| `README.md: a figure is not the baseline's (npm run quality:baseline writes it)` | The READMEs' figures and `tests/quality-baseline.json` disagree (one was edited without the other) | `npm run quality:baseline`, commit both |
+| `⚠ better than the baseline, ratchet it` | More tests, or a smaller first visit: not a failure (4.5.4: the READMEs are checked against the committed baseline) | Nothing in a pull request; the release rewrites it |
 | `tests: n declarations → m (a test was removed)` | A test was deleted or merged | Restore it, or own the removal in the pull request and rewrite |
 | `first visit's JavaScript: n KB → m KB gzipped` | The player's first chunk grew | Load the new code on demand ([Import boundaries](contribute.boundaries.md#layers)), or own the growth |
 | `<game>: new game, not in the baseline` | A game was added to the list | Rewrite it |

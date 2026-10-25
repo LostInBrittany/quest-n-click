@@ -3763,11 +3763,10 @@
       ]
     },
     "contribute.before-a-pr#steps": {
-      "enHash": "f1eabe44d38c0d116aaa7534f8bf9f4ce6a9c4a14e04d41e7e85415085748448",
-      "frHash": "a04b85e3d282a7676d5e5c13c0242225855d90a5a54b6d66bed4f36041f6ae8b",
+      "enHash": "83bd89d5c16caaa1c132d2c4efdfffdc93f4e2606fd1d62fd5405e6b57bab03e",
+      "frHash": "e90a1a12b9b5a8c598d3888423be9b9824ded68a717668fa2dd3e3c8069dc2fe",
       "reviewers": [
-        { "name": "claude-4.5-writers", "kind": "ai", "relation": "author", "date": "2026-10-23" },
-        { "name": "wanoo", "kind": "human", "relation": "independent", "date": "2026-10-24" }
+        { "name": "claude-454-baseline", "kind": "ai", "relation": "author", "date": "2026-10-25" }
       ]
     },
     "contribute.before-a-pr#what-you-get": {
@@ -5042,11 +5041,10 @@
       ]
     },
     "contribute.quality-baseline#common-errors": {
-      "enHash": "a75107d3c09101c73721fe939f756376d21e569946ebfffe6d375df9517a8b27",
-      "frHash": "53b15f7500ef176e54d958f36c5996f351649cd978432766f9b874f0586fb89e",
+      "enHash": "3f1964a59e6121e3a479d91f736d02281498fdcb16c683d99987fe95ecccf238",
+      "frHash": "bd51f48131e1a5cc3d92b411aa3ced6ea3809e12f820d35af9be586937b5df74",
       "reviewers": [
-        { "name": "claude-4.5-writers", "kind": "ai", "relation": "author", "date": "2026-10-23" },
-        { "name": "wanoo", "kind": "human", "relation": "independent", "date": "2026-10-24" }
+        { "name": "claude-454-baseline", "kind": "ai", "relation": "author", "date": "2026-10-25" }
       ]
     },
     "contribute.quality-baseline#context-and-versions": {
@@ -5098,11 +5096,10 @@
       ]
     },
     "contribute.quality-baseline#steps": {
-      "enHash": "72733d4b7d32a0e915e6874bac3a231dfd4089eaffdc4caa869bcdee16277042",
-      "frHash": "280d42274479e02e8bfb25ff0aa93bc8ff2c35a1aae3202b190c194969f3c837",
+      "enHash": "5b6aebf64c3625e59048571df6e2df83e3a41050b96067807c773ae7d6fb3b9e",
+      "frHash": "902869aca82131cdbf5fb18653de6008ec95938b38c4a74c652291ea0ec491a6",
       "reviewers": [
-        { "name": "claude-4.5-writers", "kind": "ai", "relation": "author", "date": "2026-10-23" },
-        { "name": "wanoo", "kind": "human", "relation": "independent", "date": "2026-10-24" }
+        { "name": "claude-454-baseline", "kind": "ai", "relation": "author", "date": "2026-10-25" }
       ]
     },
     "contribute.quality-baseline#what-you-get": {
