@@ -104,7 +104,7 @@ describe('candidate.yml', () => {
 
   it('runs the full profile on a run started by hand, for this run, on its own archives and image', () => {
     const smoke = job('deployment-smoke');
-    expect(smoke).toContain("PROFILE: ${{ github.event_name == 'workflow_dispatch' && 'full' || 'short' }}");
+    expect(smoke).toContain("PROFILE: ${{ github.event_name != 'pull_request' && 'full' || 'short' }}");
     expect(smoke).toMatch(
       /ops:qualify -- --tarballs=candidate-pack --image-from=candidate-image --candidate-run=\$\{\{ github\.run_id \}\} \$\(\[ "\$PROFILE" = short \] && echo --short\)/,
     );
@@ -115,7 +115,7 @@ describe('candidate.yml', () => {
     const gate = job('candidate-gate');
     const i = gate.indexOf('candidate.mjs qualification artifacts/deployment-smoke/ops-qualify.json');
     expect(i).toBeGreaterThan(0);
-    expect(gate.slice(gate.lastIndexOf('- name:', i), i)).toContain("if: github.event_name == 'workflow_dispatch'");
+    expect(gate.slice(gate.lastIndexOf('- name:', i), i)).toContain("if: github.event_name != 'pull_request'");
     expect(gate.slice(i, gate.indexOf('\n', i))).toContain(
       '--pack=artifacts/candidate-pack --image=artifacts/candidate-image',
     );

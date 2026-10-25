@@ -337,6 +337,8 @@ async function tag(versionArg, sha) {
     }
     git(['push', remote, `refs/tags/${name}`]);
   }
+  // npm run release follows the release run itself, job by job (4.5.4): a docs failure never holds back npm.
+  if (process.argv.includes('--no-watch')) return;
   return watch(version);
 }
 

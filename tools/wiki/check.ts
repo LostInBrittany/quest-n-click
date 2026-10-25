@@ -84,6 +84,11 @@ export interface PublishOptions {
   released: boolean;
   /** What the publication will be shown as (§4.5.1); `preview` is the bootstrap's exception. */
   state: 'preview' | 'candidate' | 'published';
+  /**
+   * The release pull request's check (4.5.4): every gate but "executed", which needs the candidate's test report
+   * and is checked at the end of the candidate. Said as a gap instead.
+   */
+  reviewsOnly?: boolean;
 }
 
 export interface CheckOptions {
@@ -310,6 +315,7 @@ export function checkWiki({
     candidate,
     commit: product?.commit ?? productCommit ?? commitOf(root, 'HEAD'),
     publish: !!publish,
+    reviewsOnly: !!publish?.reviewsOnly,
   });
   checkTranslations(wikiDir, manifest, report, !!publish);
   if (publish && product) checkReleased(manifest, parsed, publish, product.version, report);
@@ -553,6 +559,7 @@ function checkClaims(o: {
   candidate?: string;
   commit?: string;
   publish: boolean;
+  reviewsOnly?: boolean;
 }): void {
   const reports: TestReport[] = [];
   for (const f of o.testReports) {
@@ -590,7 +597,7 @@ function checkClaims(o: {
         `${s.page}: the claim ${s.id}'s scope is ${reviewWords(s.reviewed) ?? 'not reviewed'}: a person reads it, then npm run wiki -- review-claim ${s.id} --by <name> --kind human --relation independent`,
       );
     // A published claim was executed on the documented product (§4.1.4); before that, its state is said.
-    if (o.publish && page.state === 'ready' && !s.executedOn)
+    if (o.publish && !o.reviewsOnly && page.state === 'ready' && !s.executedOn)
       o.report.errors.push(`${s.page}: the claim ${s.id} is not executed: ${s.notExecuted}`);
     else if (!s.executedOn && page.state !== 'planned')
       o.report.gaps.push(`${s.page}: the claim ${s.id} is referenced, not executed (${s.notExecuted})`);
@@ -651,7 +658,8 @@ function publishedProduct(
   if (o.state === 'preview') {
     const refused = previewProblem(root);
     if (refused) report.errors.push(refused);
-  } else if (!candidate)
+  } else if (!candidate && !o.reviewsOnly)
+    // The reviews-only level (the release pull request's) reads no test report: no candidate run to name yet.
     report.errors.push(
       `--state ${o.state} needs --candidate <run id>: the test reports must come from that candidate run (A5b's workflow downloads its candidate-test-report)`,
     );

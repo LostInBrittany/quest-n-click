@@ -51,8 +51,8 @@ Par convention : `idle`, `talk`, `walk` (de profil, tourné vers la droite ; le 
 gauche), `walk_front`, `walk_back`, `point`, `use`, plus toute pose spéciale voulue (`sleep`, `sit`, `celebrate`…). Une
 pose est une liste d'images jouées en boucle. Une pose manquante retombe sur `idle` (`validate` signale un acteur dont
 la `pose` manque). Le `cast.ts` du modèle a des aides pour les planches standard : `human(id)` et `cat(id)` font
-correspondre une planche de 6 × 4 à ces poses ([images](create.images.md)). `{ pose: ['cat', 'sleep'] }` pose une
-pose durable ; `{ anim: ['hero', 'use'], ms: 600 }` en joue une un moment ([commandes](create.commands.md#movement)).
+correspondre une planche de 6 × 4 à ces poses ([images](create.images.md)) ; un chien prend `cat(id)` lui aussi, avec
+`kind: ['dog']` pour que `npm run prompts` le décrive en chien. `{ pose: ['cat', 'sleep'] }` pose une pose durable ; `{ anim: ['hero', 'use'], ms: 600 }` en joue une un moment ([commandes](create.commands.md#movement)).
 
 <a name="speech-animation"></a>
 

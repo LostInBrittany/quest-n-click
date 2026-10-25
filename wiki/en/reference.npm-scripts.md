@@ -205,10 +205,10 @@ Writes the art review page: every cell of every sheet of `games/<id>/art/` as a 
 
 #### `npm run page:storyboard`
 
-Writes `games/<id>/storyboard.json` as a phone-friendly page with a notes box under every panel (`--md` also writes `games/<id>/storyboard.md`, the plain text sub-agents read, the same text as the Studio's Markdown export) ([create.review-pages](create.review-pages.md)).
+Writes `games/<id>/storyboard.json` as a phone-friendly page with a notes box under every panel (`--md` also writes `games/<id>/storyboard.md`, the plain text sub-agents read, the same text as the Studio's Markdown export; `--readonly` leaves out the notes and saving, to publish beside the game) ([create.review-pages](create.review-pages.md)).
 
 - Runs: `tsx --tsconfig tsconfig.json tools/pages/storyboard.ts`
-- Usage: `npm run page:storyboard [-- --out <dir|file.html>] [--md]`
+- Usage: `npm run page:storyboard [-- --out <dir|file.html>] [--md] [--readonly]`
 
 <a name="page-world"></a>
 
@@ -223,7 +223,7 @@ Writes the map of the world as a page: exits, gotos, unreachable rooms, the DOT 
 
 #### `npm run prompts`
 
-Writes `games/<id>/prompts.md`: every image-model prompt of the game ready to paste, one section per sheet, all sharing one STYLE block and one reference sheet (`games/<id>/art/_reference.png`, or the hero's validated sheet while it does not exist); cells already cut are marked "(exists — keep)". `--missing`: only the sheets with an image not cut yet, and only their missing cells; `--out <file>`: another output file. It reads the game module and the art folder: characters (`cast.ts`: the base 6 × 4 sheet with the engine's pose rows, `human()` or `cat()`; the special poses the content uses — extra `sprites` keys, `{ pose: [who, p] }` and `{ anim: [who, p] }` in rooms, actor poses, `variants` — a new `<sheet>_poses` sheet for poses no sprite provides yet with the lines to add to `cast.ts`, the seat rule, the mouth kit for the poses in `mouths`); objects (every image a prop, item, minigame or the interface uses, by sheet folder; a prop's states drawn as "the SAME object, state …"); backgrounds (`decor/<name>`: LOCATION, the hotspots to show, EMPTY SPOTS left / center / right from `layout/<room>.json`); furniture (props whose image is in a `furniture_*` folder, and a room's `furniture` list); and a checklist (reference → hero → other characters → objects → backgrounds → furniture, each with its `python3 tools/cut-sheet.py` command, `--cells` for the missing ones, then `npm run assets`). Three optional fields feed it without changing the game: `description` on a character (the CHARACTER line; missing, a `<describe: …>` placeholder stays), `description` on a room (the LOCATION line), `furniture` on a room (image ids drawn on their own sheet, e.g. `furniture_dining/table`). The MCP tool `asset_prompts` (`{ missing?: boolean }`) gives the same text and the missing image ids as JSON.
+Writes `games/<id>/prompts.md`: every image-model prompt of the game ready to paste, one section per sheet, all sharing one STYLE block and one reference sheet (`games/<id>/art/_reference.png`, or the hero's validated sheet while it does not exist); cells already cut are marked "(exists — keep)". `--missing`: only the sheets with an image not cut yet, and only their missing cells; `--out <file>`: another output file. It reads the game module and the art folder: characters (`cast.ts`: the base 6 × 4 sheet with the engine's pose rows, `human()` or `cat()`, a dog's words for a `kind` holding `'dog'`; the special poses the content uses — extra `sprites` keys, `{ pose: [who, p] }` and `{ anim: [who, p] }` in rooms, actor poses, `variants` — a new `<sheet>_poses` sheet for poses no sprite provides yet with the lines to add to `cast.ts`, the seat rule, the mouth kit for the poses in `mouths`); objects (every image a prop, item, minigame or the interface uses, by sheet folder; a prop's states drawn as "the SAME object, state …"); backgrounds (`decor/<name>`: LOCATION, the hotspots to show, EMPTY SPOTS left / center / right from `layout/<room>.json`); furniture (props whose image is in a `furniture_*` folder, and a room's `furniture` list); and a checklist (reference → hero → other characters → objects → backgrounds → furniture, each with its `python3 tools/cut-sheet.py` command, `--cells` for the missing ones, then `npm run assets`). Three optional fields feed it without changing the game: `description` on a character (the CHARACTER line; missing, a `<describe: …>` placeholder stays), `description` on a room (the LOCATION line), `furniture` on a room (image ids drawn on their own sheet, e.g. `furniture_dining/table`). The MCP tool `asset_prompts` (`{ missing?: boolean }`) gives the same text and the missing image ids as JSON.
 
 - Runs: `tsx --tsconfig tsconfig.json tools/prompts.ts`
 - Usage: `npm run prompts [-- --missing] [-- --out <file>]`
@@ -983,10 +983,10 @@ The README's quick start as a reader copies it (4.1.19): the block under "## Sta
 
 #### `npm run release`
 
-The release pull request by one command (4.5.4): `prepare` makes the branch `release/<version>` with every generated file (version, CHANGELOG and LOG from the fragments, upgrade notes' section, transition pages, golden save, reference run, passes sheet and passIssues, README line, quality baseline), `TODO(release)` where prose is needed, one commit and the pull request; `check` says what is left before merging ([contribute.releasing](contribute.releasing.md#prepare)).
+The release in two commands (4.5.4): `<x.y.z>` after the release pull request's merge waits for its candidate, signs and pushes the tag, follows the release and approves the npm packages with 2FA ([contribute.releasing](contribute.releasing.md#release-command)); `prepare` makes the branch `release/<version>` with every generated file (version, CHANGELOG and LOG from the fragments, upgrade notes' section, transition pages, golden save, reference run, passes sheet and passIssues, README line, quality baseline), `TODO(release)` where prose is needed, one commit and the pull request; `check` says what is left before merging ([contribute.releasing](contribute.releasing.md#prepare)).
 
 - Runs: `tsx tools/release/prepare.ts`
-- Usage: `npm run release -- prepare <x.y.z> --name="<name>" [--date=YYYY-MM-DD] [--no-pr] [--dry-run] | check <x.y.z>`
+- Usage: `npm run release -- <x.y.z> [--key=<key.pub>] [--start-candidate] [--dry-run] | prepare <x.y.z> --name="<name>" [--date=YYYY-MM-DD] [--no-pr] [--dry-run] | check <x.y.z>`
 
 <a name="release-check"></a>
 

@@ -215,9 +215,25 @@ describe('the command', () => {
       ['CHANGELOG.md has a 4.5.4 section', true],
       ['no TODO(release) left', false],
       ['npm run wiki -- check: no warning', true],
+      ["the docs' human gates (wiki -- check --publish --reviews-only)", true],
       ['npm run quality:baseline -- --check', true],
     ]);
     expect(items[2]!.detail).toBe('CHANGELOG.md:5');
+    // A red docs gate names what to do: the ✖ lines of the wiki's own output.
+    const failing = await checkRelease('4.5.4', {
+      ...deps,
+      run: (_cmd: string, args: string[]) =>
+        args.includes('--reviews-only')
+          ? {
+              code: 1,
+              out: '·  claim x: referenced\n✖  play.saves: the claim c is self-checked by the author (AI), not reviewed: npm run wiki -- review-claim c --by <name> --kind human --relation independent\n✖  wiki (publication level): 1 error(s)\n',
+            }
+          : { code: 0, out: '0 warning(s)' },
+    });
+    const gates = failing.find((i) => i.what.startsWith("the docs' human gates"))!;
+    expect(gates.ok).toBe(false);
+    expect(gates.detail).toContain('npm run wiki -- review-claim c --by <name> --kind human --relation independent');
+    expect(gates.detail).not.toContain('claim x: referenced');
     const none = await checkRelease('4.5.5', deps);
     expect(none.slice(0, 2).map((i) => i.ok)).toEqual([false, false]);
   });

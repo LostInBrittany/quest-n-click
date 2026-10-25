@@ -270,6 +270,28 @@ describe('wiki -- check --publish', () => {
     );
   });
 
+  it('with --reviews-only, leaves "executed" to the candidate and keeps every other gate (4.5.4)', () => {
+    const r = repo({ paired: true });
+    // No test report and no candidate run: what the release pull request's CI has. The execution is said, not an error.
+    const out = checkWiki({
+      wikiDir: r.wikiDir,
+      root: r.root,
+      tracked: [...TRACKED, TEST],
+      identifiers: [],
+      testReports: [],
+      publish: { productRef: r.product, released: false, state: 'candidate', reviewsOnly: true },
+    });
+    expect(out.errors).toEqual([]);
+    expect(out.gaps).toContain(
+      'create.rooms: the claim zones-hold is referenced, not executed (no test report given (--test-report))',
+    );
+    // A pair to review still fails it.
+    edit(join(r.wikiDir, 'fr', 'create.exits.md'), 'mène à une autre salle', 'ouvre sur une autre salle');
+    expect(check(r, { productRef: r.product, reviewsOnly: true }).errors.some((e) => e.includes('is to review'))).toBe(
+      true,
+    );
+  });
+
   it('refuses a doc revision that changes code, does not descend from the product, or is not the checkout', () => {
     const r = repo({ paired: true });
     writeFileSync(join(r.root, TEST), `${readFileSync(join(r.root, TEST), 'utf8')}// more\n`);

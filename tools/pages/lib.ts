@@ -381,6 +381,10 @@ export function pageShell(o: {
   css: string;
   body: string;
   script: string;
+  /** Extra tags for <head> (a robots meta, for instance). */
+  head?: string;
+  /** false: a page that saves nothing, without the artifact-storage script. */
+  persist?: boolean;
 }): string {
   return `<!doctype html>
 <html lang="en">
@@ -389,11 +393,12 @@ export function pageShell(o: {
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>${esc(o.title)}</title>
 ${o.description ? `<meta name="description" content="${esc(o.description)}">` : ''}
+${o.head ?? ''}
 <style>${BASE_CSS}${o.css}</style>
 </head>
 <body>
 ${o.body}
-<script>${PERSIST_JS}</script>
+${o.persist === false ? '' : `<script>${PERSIST_JS}</script>`}
 <script>${o.script}</script>
 </body>
 </html>

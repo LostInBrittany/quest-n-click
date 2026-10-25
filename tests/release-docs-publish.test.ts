@@ -28,6 +28,13 @@ const keys = (block: string, indent: number) =>
 const steps = (block: string) => block.split(/\n {6}- /).slice(1);
 
 describe('the YAML itself', () => {
+  it("publishes a release's docs without a click, under docs-publish; the manual modes wait under docs-publish-manual (4.5.4)", () => {
+    const yml = readFileSync('.github/workflows/docs-publish.yml', 'utf8');
+    expect(yml).toContain(
+      "environment: ${{ (inputs.archive-sha256 != '' && inputs.sha != '') && 'docs-publish' || 'docs-publish-manual' }}",
+    );
+    expect(yml).toContain("CALLED: ${{ inputs.archive-sha256 != '' && inputs.sha != '' }}");
+  });
   for (const name of ['docs-publish', 'release', 'candidate', 'ci'])
     it(`${name}.yml: spaces only, two by two, every job under jobs:`, () => {
       const yml = read(name);
@@ -89,8 +96,10 @@ describe('docs-publish.yml', () => {
     expect(publish).toMatch(/re-run the cancelled job, or dispatch `mode=promote`/);
   });
 
-  it('runs in the docs-publish environment, the one place holding the deploy key and writing', () => {
-    expect(publish).toMatch(/^ {4}environment: docs-publish$/m);
+  it('runs in one of the two docs-publish environments, the places holding the deploy key and writing (4.5.4)', () => {
+    expect(publish.match(/^ {4}environment: .*$/gm)).toEqual([
+      "    environment: ${{ (inputs.archive-sha256 != '' && inputs.sha != '') && 'docs-publish' || 'docs-publish-manual' }}",
+    ]);
   });
 
   it("knows a call by its inputs: in a called workflow the github context is the caller's", () => {

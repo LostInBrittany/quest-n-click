@@ -35,7 +35,7 @@ ou Linux. Le moteur s'installe depuis l'archive d'une release, ou depuis npm à 
 est une fois approuvée par un propriétaire) :
 
 ```bash
-T=https://github.com/Quest-n-Click/quest-n-click/releases/download/v4.5.3/quest-n-click-4.5.3.tgz
+T=https://github.com/Quest-n-Click/quest-n-click/releases/download/v4.5.4/quest-n-click-4.5.4.tgz
 npx --package=$T quest-n-click create mon-jeu "Mon jeu" --engine=$T
 cd mon-jeu && npm install
 npm run assets && npm run dev        # y jouer ; puis npm run verify, npm run build
@@ -157,7 +157,7 @@ erreurs avant qu'une personne les voie. Chaque résultat reste relisible, dans l
 ## En chiffres
 
 Mesuré par les vérifications automatiques à la dernière référence, réécrite à chaque release (`npm run quality:baseline`) :
-<!-- metric:tests -->3418<!-- /metric --> déclarations de tests unitaires, sous Node 22 et 24, avec des planchers de
+<!-- metric:tests -->3471<!-- /metric --> déclarations de tests unitaires, sous Node 22 et 24, avec des planchers de
 couverture et des tests de mutation bloquants ; le jeu de référence prouvé en <!-- metric:referenceStates -->288<!-- /metric -->
 états ; la première visite du joueur, <!-- metric:initialJsKB -->136<!-- /metric --> Ko de JavaScript compressé. Chaque
 release est construite depuis le commit que son candidat a testé. Le candidat produit les quatre archives de packages,
@@ -177,7 +177,8 @@ d'où vient le projet dans la [Feuille de route](https://github.com/Quest-n-Clic
 le serveur MCP (`search_docs`, `read_doc`) ; les anciennes pages de `docs/`
 sont des pages de transition, chaque section reliée à sa nouvelle place et à son texte de la 4.4.0.
 
-Release actuelle : [v4.5.3 (One pass)](https://github.com/Quest-n-Click/quest-n-click/releases/tag/v4.5.3) : le
+Release actuelle : [v4.5.4 (Simple release)](https://github.com/Quest-n-Click/quest-n-click/releases/tag/v4.5.4) : une release en trois actions humaines (la pull request de release en une commande, son merge qui lance le candidat, `npm run release -- 4.5.4`), des pull requests qui attendent moins, et les outils d'un projet créé depuis npm qui trouvent son `game/` (Horacio).
+Sur la 4.5.3 « One pass » : le
 candidat est la seule passe de tests de la release, si bien qu'une release prend quelques minutes après son tag signé ;
 l'un ou l'autre co-mainteneur signe un tag ; une paire de traduction vérifiée par son auteur IA n'arrête plus la
 publication de la documentation (Horacio). Sur la 4.5.2 « Org » : le dépôt dans

@@ -105,6 +105,21 @@ describe('storyboard page', () => {
     expect(md).toContain('- ACTION: Open drawer');
     expect(md).toContain('- STAGE: It shines.');
   });
+
+  it('renders a read-only version: the same story, no notes, no saving, not indexed', async () => {
+    const dir = tempGame();
+    const ctx = await ctxFor(dir);
+    const html = buildStoryboard(ctx, readStoryboard(dir), { readonly: true });
+    expect(html).toContain('id="b-house"');
+    expect(html).toContain('class="act">Open drawer');
+    expect(html).toContain('data:image/');
+    expect(html).toContain('<meta name="robots" content="noindex, nofollow">');
+    expect(html).not.toContain('class="answer"');
+    expect(html).not.toContain('data-rewrite=');
+    expect(html).not.toContain('id="ps-export"');
+    expect(html).not.toContain('PS.start(');
+    expect(html).not.toContain('<textarea');
+  });
 });
 
 describe('review page', () => {

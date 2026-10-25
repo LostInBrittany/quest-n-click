@@ -23,6 +23,60 @@ writeFileSync(join(dir, 'wsrun', 'run-story.wsrun'), '{"schema":2}');
 writeFileSync(join(dir, 'e2e.json'), '{"ok":true}');
 
 describe('the candidate of a release', () => {
+  it("starts itself on a release pull request's merge: a push to main that changes package.json's version (4.5.4)", () => {
+    const yml = readFileSync('.github/workflows/candidate.yml', 'utf8');
+    expect(yml).toMatch(/^ {2}push:\n {4}branches: \[main\]\n {4}paths: \[package\.json\]$/m);
+    const merge = yml.slice(yml.indexOf('\n  release-merge:\n'), yml.indexOf('\n  target:\n'));
+    // It always runs and succeeds (the gate judges it): on anything but a push it says release=false at once.
+    expect(merge).not.toMatch(/^ {4}if:/m);
+    // Against the commit main was at before the push, not HEAD^1: a rebase merge or several commits pushed at once
+    // put the version's change further back than one commit.
+    expect(merge).toContain('BEFORE: ${{ github.event.before }}');
+    expect(merge).toContain('git fetch --quiet --depth=1 origin "$BEFORE"');
+    expect(merge).toContain('git show "$BEFORE":package.json');
+    expect(merge).toContain('echo "release=$release" >> "$GITHUB_OUTPUT"');
+    const target = yml.slice(
+      yml.indexOf('\n  target:\n'),
+      yml.indexOf('\n', yml.indexOf('    if:', yml.indexOf('\n  target:\n'))),
+    );
+    expect(target).toContain('needs: release-merge');
+    expect(target).toContain(
+      "if: github.event_name == 'workflow_dispatch' || github.event.label.name == 'full-ci' || needs.release-merge.outputs.release == 'true'",
+    );
+  });
+  it('lets the gate pass a hand-started candidate: release-merge succeeds there, it is never skipped (4.5.4)', () => {
+    expect(judge({ 'release-merge': { result: 'success' }, target: { result: 'success' } }).ok).toBe(true);
+    expect(judge({ 'release-merge': { result: 'skipped' }, target: { result: 'success' } }).ok).toBe(false);
+  });
+  it('qualifies, profiles and attests a candidate started by a release merge as one started by hand (4.5.4)', () => {
+    const yml = readFileSync('.github/workflows/candidate.yml', 'utf8');
+    // Only the target job names the events; a step tells a pull request's run (information only) from the others.
+    const body = yml.slice(yml.indexOf('\n  release-core:\n'));
+    expect(body).not.toContain("github.event_name == 'workflow_dispatch'");
+    expect(body).toContain("PROFILE: ${{ github.event_name != 'pull_request' && 'full' || 'short' }}");
+    expect(body.split("if: github.event_name != 'pull_request'").length - 1).toBeGreaterThanOrEqual(2);
+  });
+  it('checks its docs against its own test report, as a warning: a docs problem never holds back the release (4.5.4)', () => {
+    const yml = readFileSync('.github/workflows/candidate.yml', 'utf8');
+    // In release-core, which has the dependencies and writes the report just before.
+    const core = yml.slice(yml.indexOf('\n  release-core:\n'), yml.indexOf('\n  heavy:\n'));
+    const step = core.slice(core.indexOf('- name: The docs of this candidate'));
+    expect(core.indexOf('- name: The docs of this candidate')).toBeGreaterThan(
+      core.indexOf('- name: The test report of this candidate'),
+    );
+    expect(step).toContain(
+      'npm run -s wiki -- check --publish --product-ref ${{ needs.target.outputs.sha }} --state candidate --candidate ${{ github.run_id }} --test-report',
+    );
+    expect(step).toContain('::warning title=docs::');
+    expect(step.slice(0, step.indexOf('\n      - '))).toMatch(/continue-on-error: true|\|\| echo "::warning/);
+  });
+  it("is named by release.yml only when started by hand on main or by a release's merge on main", () => {
+    const rel = readFileSync('.github/workflows/release.yml', 'utf8');
+    expect(rel).toContain(
+      'case "$got" in "candidate completed success workflow_dispatch main"|"candidate completed success push main") ;;',
+    );
+  });
+
   it('caps its mutation matrix at 8 jobs at once, so a pull request is not queued behind it (#302)', () => {
     const yml = readFileSync('.github/workflows/candidate.yml', 'utf8');
     const job = yml.slice(yml.indexOf('\n  mutation:\n'), yml.indexOf('\n  mutation-merge:\n'));
@@ -83,7 +137,9 @@ describe('the candidate of a release', () => {
 
 describe('the workflows that judge a candidate', () => {
   const wf = (name: string) => readFileSync(`.github/workflows/${name}.yml`, 'utf8');
-  const jobs = (text: string) => [...text.matchAll(/^ {2}([a-z][a-z0-9-]*):$/gm)].map((m) => m[1]);
+  // The jobs: the 2-space keys after `jobs:` (`on:`'s triggers are 2-space keys too).
+  const jobs = (text: string) =>
+    [...text.slice(text.indexOf('\njobs:\n')).matchAll(/^ {2}([a-z][a-z0-9-]*):$/gm)].map((m) => m[1]);
 
   it('run every shard of every gated set from the one generated matrix, never a list of their own (4.1.20)', () => {
     for (const name of ['candidate', 'nightly', 'ci']) {
@@ -152,7 +208,6 @@ describe('the workflows that judge a candidate', () => {
     expect(needs).toEqual(jobs(text).filter((j) => j !== 'candidate-gate'));
     expect(text).toContain('node tools/release/candidate.mjs gate');
     expect(text).toContain('--run=${{ github.run_id }}');
-    expect(text).not.toMatch(/^ {2}push:/m);
   });
 
   it('measure each store in its own job, and refuse a report of another backend', () => {
@@ -180,7 +235,7 @@ describe('the workflows that judge a candidate', () => {
     // ship.mjs asks tools/release/provenance.mjs (4.1.19), the contract the Field Kit's bundles are verified with too.
     expect(readFileSync('tools/release/ship.mjs', 'utf8')).toMatch(/candidateRunProblem\(queryRun\(runId\), runId\)/);
     expect(readFileSync('tools/release/provenance.mjs', 'utf8')).toMatch(
-      /r\.event !== 'workflow_dispatch' \|\| r\.headBranch !== 'main'/,
+      /\['workflow_dispatch', 'push'\]\.includes\(r\.event\) \|\| r\.headBranch !== 'main'/,
     );
   });
 
@@ -192,6 +247,8 @@ describe('the workflows that judge a candidate', () => {
     const w = wf('candidate');
     expect(w).toMatch(/^ {2}pull_request:\n {4}types: \[labeled\]\n/m);
     expect(w).not.toMatch(/synchronize/);
-    expect(w).toContain("if: github.event_name == 'workflow_dispatch' || github.event.label.name == 'full-ci'");
+    expect(w).toContain(
+      "if: github.event_name == 'workflow_dispatch' || github.event.label.name == 'full-ci' || needs.release-merge.outputs.release == 'true'",
+    );
   });
 });

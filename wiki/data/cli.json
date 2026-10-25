@@ -309,6 +309,14 @@
           }
         },
         {
+          "name": "page",
+          "usage": "quest-n-click page <storyboard|review|placement|world|puzzles> [--out <dir|file.html>] [--md] [--readonly]",
+          "description": {
+            "en": "One of the phone pages of [create.review-pages](create.review-pages.md), from the project's game: the storyboard (`--md` also writes `game/storyboard.md`; `--readonly`, the same story without notes, to publish beside the game), the sprite review, the placement page, the world or the puzzles. Written in `dist-pages/` unless `--out` says otherwise.",
+            "fr": "Une des pages pour téléphone de [create.review-pages](create.review-pages.md), à partir du jeu du projet : le storyboard (`--md` écrit aussi `game/storyboard.md` ; `--readonly`, la même histoire sans notes, à publier à côté du jeu), la revue des sprites, la page de placement, le monde ou les énigmes. Écrite dans `dist-pages/`, sauf si `--out` dit autre chose."
+          }
+        },
+        {
           "name": "migrate",
           "usage": "quest-n-click migrate [--check]",
           "description": {
