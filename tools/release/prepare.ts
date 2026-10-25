@@ -799,7 +799,7 @@ if (process.argv[1]?.endsWith('prepare.ts')) {
     }
   } else {
     console.error(
-      'usage: npm run release -- <x.y.z> [--key=<key.pub>] [--start-candidate] [--docs-revision] [--dry-run] | prepare <x.y.z> --name="<name>" [--date=YYYY-MM-DD] [--no-pr] [--dry-run] | check <x.y.z>',
+      'usage: npm run release -- <x.y.z> [--key=<key.pub>] [--start-candidate] [--docs-revision] [--reverify] [--dry-run] | prepare <x.y.z> --name="<name>" [--date=YYYY-MM-DD] [--no-pr] [--dry-run] | check <x.y.z>',
     );
     process.exit(2);
   }

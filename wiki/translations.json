@@ -5205,10 +5205,10 @@
       ]
     },
     "contribute.releasing#release-command": {
-      "enHash": "149db28d3e4c232357d837f85c8495550efaf1b605333d608b436007d645f974",
-      "frHash": "b0f9e2f0bb45558ea8ee361a6b0decf7592dba158a424e7191a3fcd979264d0a",
+      "enHash": "8d5fa6c242fda3b4fae576c369f5dbf63778d68e880139100b28a39deaf8db67",
+      "frHash": "79936dc9d4d0fe10cc10154de5e871126efc60e72a1505a2a4af38c9040c344b",
       "reviewers": [
-        { "name": "claude-release-docs-gates", "kind": "ai", "relation": "author", "date": "2026-10-25" }
+        { "name": "claude-release-verify-once", "kind": "ai", "relation": "author", "date": "2026-10-25" }
       ]
     },
     "contribute.releasing#ship-commands": {
