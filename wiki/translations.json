@@ -4162,10 +4162,10 @@
       ]
     },
     "contribute.ci#known-flakes": {
-      "enHash": "de5d9cef3233fc12221795182f2919d6a3ad2675087d039496bc1e30f55ee31e",
-      "frHash": "7b761d17ad18cbf410b66a090233771fc1c50029d021f10b79f5e05b0f2f758e",
+      "enHash": "d254b796148766eb11a9b4d30865c7137d471a04dffb1ef68abc5bb8cc689cc5",
+      "frHash": "1d7443dbc9649006d9cb39b8465d02124d4b95c72f9d909f4e082ad64bd315e3",
       "reviewers": [
-        { "name": "claude-ci-retry-timeouts", "kind": "ai", "relation": "author", "date": "2026-10-25" }
+        { "name": "claude-opus-5.5", "kind": "ai", "relation": "author", "date": "2026-10-25" }
       ]
     },
     "contribute.ci#pages-only": {

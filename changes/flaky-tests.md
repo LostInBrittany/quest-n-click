@@ -9,3 +9,7 @@
   its step 6b does since #264; `e2e:pwa` asks WebKit's "due to access control checks" loads again offline the same
   way and counts only those refused again; the walkthrough waits for the title screen before reading it. Nothing is
   skipped; the CI page's "Known flakes" table says each.
+- **A wiki claim's test is found under a comment that ends a sentence (4.5.5, #356)**: the claims' scanner of test
+  names read the character before `describe(` in the raw source, so a comment ending with a period right above a
+  describe made it a method call and dropped its title (`studio.map`'s `groupings-only` went "not referenced" when its
+  block got a comment). It reads the last significant character now, never a comment's.

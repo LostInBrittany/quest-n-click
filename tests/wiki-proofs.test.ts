@@ -345,6 +345,7 @@ describe('claims, three states (§4.4.3)', { timeout: 30_000 }, () => {
 import { describe, it, test } from 'vitest';
 // it('a comment', () => {});
 const re = /it\\('not a test'\\)/;
+// A comment that ends a sentence right above a describe (4.5.5, #356): the describe is still one.
 describe('outer', () => {
   it('first', () => { expect("it('in a string')").toBe(x); });
   describe.skip("inner", () => {
