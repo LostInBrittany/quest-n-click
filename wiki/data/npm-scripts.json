@@ -216,10 +216,10 @@
     {
       "name": "page:storyboard",
       "group": "media",
-      "usage": "npm run page:storyboard [-- --out <dir|file.html>] [--md]",
+      "usage": "npm run page:storyboard [-- --out <dir|file.html>] [--md] [--readonly]",
       "description": {
-        "en": "Writes `games/<id>/storyboard.json` as a phone-friendly page with a notes box under every panel (`--md` also writes `games/<id>/storyboard.md`, the plain text sub-agents read, the same text as the Studio's Markdown export) ([create.review-pages](create.review-pages.md)).",
-        "fr": "Écrit `games/<id>/storyboard.json` en page pour téléphone avec une zone de notes sous chaque case (`--md` écrit aussi `games/<id>/storyboard.md`, le texte brut que lisent les sous-agents, le même que l’export Markdown du Studio) ([create.review-pages](create.review-pages.md))."
+        "en": "Writes `games/<id>/storyboard.json` as a phone-friendly page with a notes box under every panel (`--md` also writes `games/<id>/storyboard.md`, the plain text sub-agents read, the same text as the Studio's Markdown export; `--readonly` leaves out the notes and saving, to publish beside the game) ([create.review-pages](create.review-pages.md)).",
+        "fr": "Écrit `games/<id>/storyboard.json` en page pour téléphone avec une zone de notes sous chaque case (`--md` écrit aussi `games/<id>/storyboard.md`, le texte brut que lisent les sous-agents, le même que l’export Markdown du Studio ; `--readonly` retire les notes et l’enregistrement, pour publier à côté du jeu) ([create.review-pages](create.review-pages.md))."
       }
     },
     {

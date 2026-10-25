@@ -1,7 +1,9 @@
-// npm run page:storyboard [-- --out <dir|file.html>] [--md]
+// npm run page:storyboard [-- --out <dir|file.html>] [--md] [--readonly]
 // Renders games/<id>/storyboard.json as a phone-friendly page with a notes box under every panel (artifact db
 // collection `notes`, doc id = panel id) and Claude's rewrites (collection `rewrites`). Schema: storyboard-schema.md.
 // --md also writes games/<id>/storyboard.md, the plain-text version sub-agents read.
+// --readonly renders the same story without the notes, the rewrites or any saving, and asks search engines not to
+// index it: a page to host anywhere (behind an unguessable link: it tells the whole game).
 import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import type { GameDef } from '../../src/engine/core/types';
@@ -115,7 +117,7 @@ ol.strip { list-style: none; margin: 0; padding: 0; display: grid; grid-template
 @media (max-width: 640px) { .bh { grid-template-columns: 1fr; } h1 { font-size: 22px; } }
 `;
 
-const SCRIPT = String.raw`
+const NOTES_SCRIPT = String.raw`
 (function () {
   var boxes = {};
   document.querySelectorAll('.answer').forEach(function (b) { boxes[b.dataset.key] = b; });
@@ -147,6 +149,11 @@ const SCRIPT = String.raw`
     var all = PS.all();
     PS.exportJson(PAGE_KEY.replace(/[^a-z0-9-]+/gi, '-') + '.json', { page: 'storyboard', game: GAME_ID, exportedAt: new Date().toISOString(), notes: all.notes || {} });
   });
+})();
+`;
+
+const SOUND_SCRIPT = String.raw`
+(function () {
   // Sound buttons: one at a time.
   var cur = null;
   document.addEventListener('click', function (e) {
@@ -161,7 +168,8 @@ const SCRIPT = String.raw`
 /** Embeds sound files up to this total; beyond, sfx chips are shown without playback. */
 const SOUND_BUDGET = 4 * 1024 * 1024;
 
-export function buildStoryboard(ctx: PageContext, sb: Storyboard): string {
+export function buildStoryboard(ctx: PageContext, sb: Storyboard, opts: { readonly?: boolean } = {}): string {
+  const ro = opts.readonly === true;
   const g = ctx.game;
   // Images: one decor per board, one avatar per speaker.
   const decorFiles = new Map<string, string>();
@@ -226,6 +234,7 @@ export function buildStoryboard(ctx: PageContext, sb: Storyboard): string {
     return `<div class="line">${avatar(l.who)}<p><b>${dot(s.color)}${esc(s.name)}</b>${esc(l.text)}</p></div>`;
   };
   const notes = (key: string, label = 'Your notes') => {
+    if (ro) return '';
     const k = docId(key);
     return (
       `<div class="answer" data-key="${esc(k)}"><label for="n-${esc(k)}">${esc(label)}</label>` +
@@ -324,20 +333,22 @@ export function buildStoryboard(ctx: PageContext, sb: Storyboard): string {
 <header class="top">
   <p class="kicker">Storyboard · ${esc(ctx.gameId)}</p>
   <h1>${esc(title)}</h1>
-  <p class="lede">${esc(sb.intro ?? 'The whole story, board by board. Write your notes under any panel: they are saved as you type, and the rewrites show up in green.')}</p>
-  ${persistBar()}
+  <p class="lede">${esc(sb.intro ?? (ro ? 'The whole story, board by board.' : 'The whole story, board by board. Write your notes under any panel: they are saved as you type, and the rewrites show up in green.'))}</p>
+  ${ro ? '' : persistBar()}
   <nav class="chips">${nav}</nav>
   ${notes('general', 'General notes: tone, rhythm, characters')}
 </header>
 ${boards}
 </main>`;
-  const script = `var PAGE_KEY = ${jsonForScript(`storyboard:${ctx.gameId}`)}; var GAME_ID = ${jsonForScript(ctx.gameId)}; var SOUNDS = ${jsonForScript(sounds)};\n${SCRIPT}`;
+  const script = `var PAGE_KEY = ${jsonForScript(`storyboard:${ctx.gameId}`)}; var GAME_ID = ${jsonForScript(ctx.gameId)}; var SOUNDS = ${jsonForScript(sounds)};\n${ro ? '' : NOTES_SCRIPT}${SOUND_SCRIPT}`;
   return pageShell({
     title: `${title} storyboard`.slice(0, 60),
-    description: `Storyboard of ${title} with notes per panel.`,
+    description: ro ? `Storyboard of ${title}.` : `Storyboard of ${title} with notes per panel.`,
     css: CSS,
     body,
     script,
+    head: ro ? '<meta name="robots" content="noindex, nofollow">' : undefined,
+    persist: !ro,
   });
 }
 
@@ -351,7 +362,7 @@ if (isMain(import.meta.url)) {
     console.error(String((e as Error).message ?? e));
     process.exit(1);
   }
-  writePage(outPath(out, 'storyboard.html'), buildStoryboard(ctx, sb));
+  writePage(outPath(out, 'storyboard.html'), buildStoryboard(ctx, sb, { readonly: flags.has('--readonly') }));
   if (flags.has('--md')) {
     const f = join(ctx.gameDir, 'storyboard.md');
     await writeGame('storyboard.md', [{ file: f, text: storyboardMarkdown(ctx, sb) }], { gameDir: ctx.gameDir });
