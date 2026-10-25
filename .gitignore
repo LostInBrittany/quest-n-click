@@ -1,6 +1,7 @@
 node_modules
 dist
 .cache
+.vitest
 .DS_Store
 # A game's private sources (photos, raw sheets, sealed-ending config) never enter the repo
 private/

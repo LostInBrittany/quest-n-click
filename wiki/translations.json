@@ -4192,10 +4192,10 @@
       ]
     },
     "contribute.ci#tiers": {
-      "enHash": "4a099c982f6bbcd92e44807dedcf8435f43d11e9150a45cd89a025ca4cbbf5dd",
-      "frHash": "32ad4c5e21ff15ad6f5a88c786ac958095a7b33c39a2853195ae6a3eb2637222",
+      "enHash": "e60d31ed1773b5244aff33adf0dc0a2daeb12cc12e3477bc7e562b2fcc6aa3cf",
+      "frHash": "900d04d85f6aa983e9b7643529a8ddda5bb461f2ebcddfd99b9f7b14d748fbef",
       "reviewers": [
-        { "name": "claude-454-ci", "kind": "ai", "relation": "author", "date": "2026-10-25" }
+        { "name": "claude-454-shards", "kind": "ai", "relation": "author", "date": "2026-10-25" }
       ]
     },
     "contribute.ci#workflows": {
@@ -4493,11 +4493,10 @@
       ]
     },
     "contribute.coverage-ratchet#where-to-run": {
-      "enHash": "fd7072cf86dc82dc0fcf1b052ec3c2084e56b0082d3e6328fcf3a0f3f6df4e09",
-      "frHash": "94fcfd3febf7f25a7d04dacbf6c3de20d5ef4f6c382bdc1b89d2f5da08af0982",
+      "enHash": "be3eb0f831424ffe10a8751d4bb2a1eb1737a9736081a20aded34060c68176a5",
+      "frHash": "03aa9e5b1869752cb7486120f5fc98978017abf317b40d0e191713a118091f47",
       "reviewers": [
-        { "name": "claude-4.5-writers", "kind": "ai", "relation": "author", "date": "2026-10-23" },
-        { "name": "wanoo", "kind": "human", "relation": "independent", "date": "2026-10-24" }
+        { "name": "claude-454-shards", "kind": "ai", "relation": "author", "date": "2026-10-25" }
       ]
     },
     "contribute.decisions#_lead": {
@@ -5435,10 +5434,10 @@
       ]
     },
     "contribute.which-tests#suites": {
-      "enHash": "9f1288edbff5f6a86ac5a8fb630e9e4dea89cbd2989bd667b0d6f82ccc913063",
-      "frHash": "37221b74a8fe4dda921608722d05d21d74fe1fcbf1a7dcecbf6412fb29ed61e5",
+      "enHash": "3e12407384418547449be8d54b0b8f41fa619d0a6888be4d65519a62efa44e33",
+      "frHash": "47cf2e67d9252570e9f202c034f19aa176224c3b5c319a768ce6d4a550532cf8",
       "reviewers": [
-        { "name": "claude-454-ci", "kind": "ai", "relation": "author", "date": "2026-10-25" }
+        { "name": "claude-454-shards", "kind": "ai", "relation": "author", "date": "2026-10-25" }
       ]
     },
     "contribute.writing-docs#_lead": {
@@ -15379,6 +15378,13 @@
         { "name": "wanoo", "kind": "human", "relation": "independent", "date": "2026-10-24" }
       ]
     },
+    "reference.environment-variables#vitest-shard": {
+      "enHash": "d06ca93d49771b05f3086805cd2c8c257cd4f067e182a149b691b5b80ab4259a",
+      "frHash": "51ddb8de4852f158ec5d034b7ba32dcdd52d965424e3524e3e9a8c226a86b10d",
+      "reviewers": [
+        { "name": "claude-454-shards", "kind": "ai", "relation": "author", "date": "2026-10-25" }
+      ]
+    },
     "reference.environment-variables#want": {
       "enHash": "10f891d933757303ddc3ba0468305537989fdef90548139b42ab0f483eb770d9",
       "frHash": "ea8b2c51516c97c2a1a14312faaed67643bd9a19e3cd2bd3b778f51131659bc0",
@@ -17049,6 +17055,13 @@
         { "name": "wanoo", "kind": "human", "relation": "independent", "date": "2026-10-24" }
       ]
     },
+    "reference.npm-scripts#test-merge": {
+      "enHash": "17be214c3931e4a4a322f904e075fed5977a04475fcdd9684d8c323723275517",
+      "frHash": "4c35ffb3d77745dfc902a567057f2142a8945786e95078612ca8a9226709bd8c",
+      "reviewers": [
+        { "name": "claude-454-shards", "kind": "ai", "relation": "author", "date": "2026-10-25" }
+      ]
+    },
     "reference.npm-scripts#test-mutation-core": {
       "enHash": "92fa52d94e94fb4f353bfe033581bd29f6b59be97e4d726197fcddbf44899df6",
       "frHash": "d359c89d2f170b1d00738d2c36aa3b894b7c2aea1922dc9995eb8e5a4c3a9311",
@@ -17094,6 +17107,13 @@
       "frHash": "8ca5b90dc6a5d8493fbd9012b8e01db59672f69bedc8ab4a75fd81dcf0edec8c",
       "reviewers": [
         { "name": "claude-opus-5.5", "kind": "ai", "relation": "author", "date": "2026-10-25" }
+      ]
+    },
+    "reference.npm-scripts#test-unit": {
+      "enHash": "2025bce8537b6e6c684a8499c8443782e171b51fdbe48f3556b55f226877abab",
+      "frHash": "5f903d62dd1a76ae9bc11cc992a8f81edfa274c557d6aa1e42b5aa40b45d6694",
+      "reviewers": [
+        { "name": "claude-454-shards", "kind": "ai", "relation": "author", "date": "2026-10-25" }
       ]
     },
     "reference.npm-scripts#tests": {
