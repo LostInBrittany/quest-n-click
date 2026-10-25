@@ -90,6 +90,28 @@ Elle dit, point par point, si `package.json` est à la version, si le CHANGELOG 
 commande), et si la ligne de base de qualité tient. La CI de la pull request de release la lance aussi, avec la
 version que nomme sa branche : fusionnez quand chaque point est ✔, et le merge lance le candidat.
 
+<a name="release-command"></a>
+
+### La release : une commande
+
+Une fois la pull request de release fusionnée, sur un `main` à jour :
+
+```sh
+npm run release -- 4.5.4          # --dry-run dit ce qu'elle refuserait ; --key=<clé.pub> si git signe autrement
+```
+
+Elle refuse d'abord ce qui échouerait plus tard (`package.json` pas à la version, une autre branche, des changements
+non commités, un `main` qui n'est pas celui de l'organisation, pas de section dans le CHANGELOG, pas de clé de
+signature SSH, `gh` ou `npm` non connectés, un utilisateur npm qui n'est pas propriétaire). Puis elle trouve le
+candidat que le merge a lancé sur ce commit (`--start-candidate` en lance un s'il n'y en a pas) et l'attend, en disant
+chaque minute combien de jobs sont faits et lesquels tournent, en relançant une fois ses jobs en échec ; puis
+`ship tag … --sign` : la `ci` de main, le tag signé poussé sur le dépôt de l'organisation, l'exécution de release
+suivie et ses fichiers vérifiés ; puis les paquets npm que la release a mis en attente, chacun approuvé avec votre 2FA
+dans votre terminal, l'engine d'abord ; puis un résumé. La documentation se publie seule (`docs-publish`, sans clic).
+Si elle s'arrête, relancez-la : un candidat vert n'est pas attendu de nouveau, un tag déjà poussé est suivi, un paquet
+déjà sur npm n'est pas approuvé de nouveau. La chaîne ci-dessous est ce qu'elle lance, pour quand une étape doit se
+faire à la main.
+
 <a name="the-chain"></a>
 
 ### La chaîne

@@ -85,6 +85,26 @@ left, `npm run wiki -- check` warns, the docs' human gates hold (`wiki -- check 
 pair a person must read, each printed with its command), and the quality baseline holds. The release pull request's
 CI runs it too, with the version its branch names: merge when every item is ✔, and the merge starts the candidate.
 
+<a name="release-command"></a>
+
+### The release: one command
+
+Once the release pull request is merged, on `main` up to date:
+
+```sh
+npm run release -- 4.5.4          # --dry-run says what it would refuse; --key=<key.pub> if git signs otherwise
+```
+
+It refuses first what would fail later (`package.json` not at the version, another branch, uncommitted changes, `main`
+not the organisation's, no CHANGELOG section, no SSH signing key, `gh` or `npm` not signed in, an npm user who is not
+an owner). Then it finds the candidate the merge started on that commit (`--start-candidate` starts one when there is
+none) and waits for it, saying every minute how many jobs are done and which run, re-running its failed jobs once;
+then `ship tag … --sign`: main's `ci`, the signed tag pushed to the organisation's repository, the release run
+followed and its files verified; then the npm packages the release staged, each approved with your 2FA in your
+terminal, the engine first; then one summary. The documentation publishes itself (`docs-publish`, no click). If it
+stops, run it again: a green candidate is not waited for again, a tag already pushed is followed, a package already on
+npm is not approved again. The chain below is what it runs, for when a step has to be done by hand.
+
 <a name="the-chain"></a>
 
 ### The chain

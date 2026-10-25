@@ -5207,6 +5207,13 @@
         { "name": "claude-291-release-one-pass", "kind": "ai", "relation": "author", "date": "2026-10-24" }
       ]
     },
+    "contribute.releasing#release-command": {
+      "enHash": "0da3ac1eeb47990236106f1244df495aea03ae3727f0452bd8ea38862419900e",
+      "frHash": "30bd51a705905aa3dbf2804148a2cdee1480b543fdd5da5e2bfad1fcab57e173",
+      "reviewers": [
+        { "name": "claude-454-release", "kind": "ai", "relation": "author", "date": "2026-10-25" }
+      ]
+    },
     "contribute.releasing#ship-commands": {
       "enHash": "a7a3d7ad77c33651db1c33889f9a726f8b3a81f077d785913a9283fbf30b1e7e",
       "frHash": "0ead457376858a20ec80e921f6a90de204bac33938ff056978b485f59eb60d91",
@@ -16921,10 +16928,10 @@
       ]
     },
     "reference.npm-scripts#script-release": {
-      "enHash": "0f09df37352b7f1e9e6f96a1b476d53ac46a54abe27c94bec5bc871377547905",
-      "frHash": "578a0182cdbf7004a36b3f16ea4d5c60dc5781f7509573128a1dd7069fdfb34f",
+      "enHash": "b6ed22bd201570ed5e59f2fde22973b6b4920ddb04da1518b9a1355823fbdb00",
+      "frHash": "41af2fab47d7a54754095edbb28886c7d03e1ca4f8ed58a838ae19a7121d0bec",
       "reviewers": [
-        { "name": "claude-454-prepare", "kind": "ai", "relation": "author", "date": "2026-10-25" }
+        { "name": "claude-454-release", "kind": "ai", "relation": "author", "date": "2026-10-25" }
       ]
     },
     "reference.npm-scripts#seal": {

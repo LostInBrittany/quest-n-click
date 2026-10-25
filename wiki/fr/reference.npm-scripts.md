@@ -983,10 +983,10 @@ Le démarrage rapide du README tel qu’un lecteur le copie (4.1.19) : le bloc s
 
 #### `npm run release`
 
-La pull request de release en une commande (4.5.4) : `prepare` fait la branche `release/<version>` avec chaque fichier généré (version, CHANGELOG et LOG depuis les fragments, section des notes de mise à jour, pages de transition, sauvegarde de référence, run de référence, fiche des passes et passIssues, ligne du README, ligne de base de qualité), `TODO(release)` là où il faut de la prose, un commit et la pull request ; `check` dit ce qui reste avant de fusionner ([contribute.releasing](contribute.releasing.md#prepare)).
+La release en deux commandes (4.5.4) : `<x.y.z>` après le merge de la pull request de release attend son candidat, signe et pousse le tag, suit la release et approuve les paquets npm avec la 2FA ([contribute.releasing](contribute.releasing.md#release-command)) ; `prepare` fait la branche `release/<version>` avec chaque fichier généré (version, CHANGELOG et LOG depuis les fragments, section des notes de mise à jour, pages de transition, sauvegarde de référence, run de référence, fiche des passes et passIssues, ligne du README, ligne de base de qualité), `TODO(release)` là où il faut de la prose, un commit et la pull request ; `check` dit ce qui reste avant de fusionner ([contribute.releasing](contribute.releasing.md#prepare)).
 
 - Lance : `tsx tools/release/prepare.ts`
-- Utilisation : `npm run release -- prepare <x.y.z> --name="<name>" [--date=YYYY-MM-DD] [--no-pr] [--dry-run] | check <x.y.z>`
+- Utilisation : `npm run release -- <x.y.z> [--key=<key.pub>] [--start-candidate] [--dry-run] | prepare <x.y.z> --name="<name>" [--date=YYYY-MM-DD] [--no-pr] [--dry-run] | check <x.y.z>`
 
 <a name="release-check"></a>
 
