@@ -31,19 +31,19 @@ vérifier qu'on peut le finir, et le livrer comme un jeu web qui s'installe sur 
 
 <!-- install:begin -->
 Node 22.12 ou plus récent et Python 3 avec Pillow (`npm run assets` prépare les images avec eux), sous Windows, macOS
-ou Linux. Le moteur s'installe depuis l'archive d'une release (depuis la 4.5.2, chaque release est mise en attente
-sur npm et n'y est publiée qu'une fois approuvée par un propriétaire ; d'ici là, l'archive) :
+ou Linux. Le moteur s'installe depuis l'archive d'une release, ou depuis npm à partir de la 4.5.2 (chaque release y
+est une fois approuvée par un propriétaire) :
 
 ```bash
-T=https://github.com/Quest-n-Click/quest-n-click/releases/download/v4.5.2/quest-n-click-4.5.2.tgz
+T=https://github.com/Quest-n-Click/quest-n-click/releases/download/v4.5.3/quest-n-click-4.5.3.tgz
 npx --package=$T quest-n-click create mon-jeu "Mon jeu" --engine=$T
 cd mon-jeu && npm install
 npm run assets && npm run dev        # y jouer ; puis npm run verify, npm run build
 ```
 <!-- install:end -->
 
-Une fois les paquets sur npm, `npm init @quest-n-click my-game` crée le projet en une commande
-(`npx create-quest-n-click my-game` marche toujours et lance la même chose).
+Depuis npm, `npm init @quest-n-click my-game` crée le projet en une commande
+([Installer depuis npm](https://github.com/Quest-n-Click/quest-n-click/wiki/FR-Installer-Depuis-NPM)).
 
 `npm run build` écrit `dist/`, un site statique que n'importe quel hébergement sert. ffmpeg sert au pipeline sonore
 et reste optionnel ; `npx quest-n-click doctor` dit ce qui manque. [Référence du paquet](https://github.com/Quest-n-Click/quest-n-click/wiki/FR-Installer-Paquet)
@@ -177,10 +177,13 @@ d'où vient le projet dans la [Feuille de route](https://github.com/Quest-n-Clic
 le serveur MCP (`search_docs`, `read_doc`) ; les anciennes pages de `docs/`
 sont des pages de transition, chaque section reliée à sa nouvelle place et à son texte de la 4.4.0.
 
-Release actuelle : [v4.5.2 (Org)](https://github.com/Quest-n-Click/quest-n-click/releases/tag/v4.5.2) : le dépôt dans
+Release actuelle : [v4.5.3 (One pass)](https://github.com/Quest-n-Click/quest-n-click/releases/tag/v4.5.3) : le
+candidat est la seule passe de tests de la release, si bien qu'une release prend quelques minutes après son tag signé ;
+l'un ou l'autre co-mainteneur signe un tag ; une paire de traduction vérifiée par son auteur IA n'arrête plus la
+publication de la documentation (Horacio). Sur la 4.5.2 « Org » : le dépôt dans
 l'organisation Quest-n-Click (les anciennes adresses redirigent), le site du projet à la place de GitHub Pages, les
 paquets sous le scope `@quest-n-click` (`npx quest-n-click migrate` déplace les imports d'un jeu), la première release
-mise en attente sur npm pour l'approbation d'un propriétaire, et un seul `requirements.txt` vérifié par empreintes (Horacio).
+sur npm, approuvée par un propriétaire, et un seul `requirements.txt` vérifié par empreintes (Horacio).
 Sur la 4.5.1 : l'audit du wiki par le mainteneur corrigé (liens dont le libellé est du code, le premier tutoriel, les sauvegardes, la fenêtre de support, la
 recherche), les pans propres à un jeu (`spans.json`) et ses exceptions à l'audit des fuites (`audit-allow.json`), et
 l'`url` de `site.json` pour une `og:image` absolue (Horacio). Sur la 4.5.0 « Wiki » : la documentation

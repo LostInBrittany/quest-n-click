@@ -69,17 +69,16 @@ node scripts/pack.mjs --out=.cache/pack --publish-dry-run   # et ce que `npm pub
 
 ## La publication sur npm : mise en scène par la CI, approuvée par un propriétaire
 
-Chaque release joint les cinq archives. **Aucune n'est encore publiée sur le registre npm** (la 4.5.1 est la dernière
-release sans l'étape). À partir de la 4.5.2, le job `npm-stage` de release.yml les **met en scène** sur npm une fois la
-release publiée et relue, et un propriétaire de l'organisation **approuve** chacune avec sa 2FA (D34, D53). La CI ne
-publie jamais et ne détient aucun jeton npm. Jusqu'à la première approbation, on installe depuis l'archive de la
-release ([Installer depuis l'archive de la release](install.from-archive.md)). Le canal `next` depuis `main` suit dans
-une pull request ultérieure de #283.
+Chaque release joint les cinq archives. À partir de la 4.5.2, le job `npm-stage` de release.yml les **met en scène**
+sur npm une fois la release publiée et relue, et un propriétaire de l'organisation **approuve** chacune avec sa 2FA
+(D34, D53). La CI ne publie jamais et ne détient aucun jeton npm. La 4.5.2 a été la première release publiée là, le
+24 octobre 2026 (la 4.5.1 est la dernière release sans l'étape). Le canal `next` depuis `main` suit dans une pull
+request ultérieure de #283.
 
 > [!LIMIT id=not-on-npm]
-> Tant qu'un propriétaire n'a pas approuvé les paquets que la 4.5.2 met en attente, `npm install @quest-n-click/engine`
-> depuis le registre n'installe pas ce projet : les noms à scope ne portent qu'une version de réservation
-> (`0.0.0-bootstrap.0`), pas le produit. Utilisez les fichiers `.tgz` de la release.
+> Une release n'est sur npm qu'une fois qu'un propriétaire a approuvé ce qu'elle met en attente : entre son tag et
+> cette approbation, `npm install @quest-n-click/engine` installe la précédente. Une pré-release n'est jamais sur npm ;
+> utilisez ses fichiers `.tgz`.
 
 <a name="npm-names"></a>
 

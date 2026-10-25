@@ -28,7 +28,7 @@ their old names, and the old commands and imports (`web-scumm dev`, `web-scumm/c
 notice. 4.3.0 removes them: `npx quest-n-click migrate` renames what a game still says
 ([Coming from web-scumm](install.from-web-scumm.md)).
 
-None is on npm yet: each release attaches them as archives ([Install from npm, once published](install.from-npm.md)).
+All five are on npm from 4.5.2, and each release also attaches them as archives ([Install from npm](install.from-npm.md)).
 
 <a name="quest-n-click"></a>
 
@@ -156,7 +156,8 @@ They run with the project as their working folder
 - `scripts/studio-install-smoke.mjs`: the engine and Studio Server archives installed together, a game served.
 
 Each release attaches the five archives with their SBOMs and sums. Publishing them to npm is the maintainers' (the
-organisation `quest-n-click` owns the five scoped names; from 4.5.2 CI stages them, an owner approves with 2FA):
+organisation `quest-n-click` owns the five scoped names; from 4.5.2 CI stages them, an owner approves with 2FA, and
+4.5.2 was the first published):
 [npm packages](contribute.npm-packages.md).
 
 <a name="related"></a>

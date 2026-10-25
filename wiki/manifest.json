@@ -894,7 +894,7 @@
       "type": "howto",
       "audience": ["author"],
       "context": ["created-project"],
-      "title": { "en": "Install from npm, once published", "fr": "Installer depuis npm, une fois publié" },
+      "title": { "en": "Install from npm", "fr": "Installer depuis npm" },
       "url": { "en": "EN-Install-From-NPM", "fr": "FR-Installer-Depuis-NPM" },
       "state": "ready",
       "versions": { "appliesFrom": "4.2.5" },
