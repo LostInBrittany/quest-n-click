@@ -9,7 +9,7 @@ import { describe, expect, it } from 'vitest';
 import {
   changelogIntro,
   checkRelease,
-  gatesStop,
+  beforePushStop,
   humanGates,
   isPrepared,
   PREPARE_STEPS,
@@ -24,6 +24,7 @@ import {
   nextVersionProblem,
   passesSheet,
   releaseHeading,
+  todoBrief,
   todoMarkers,
   upgradeNotesLead,
   upgradeNotesPage,
@@ -160,6 +161,20 @@ describe('what is left to write', () => {
       ]),
     ).toEqual(['a.md:2']);
   });
+  it('gives each one its line as the brief, the same markers check counts (4.5.5)', () => {
+    const files = [
+      { path: 'CHANGELOG.md', text: '# C\n\nLOG #1–#2: "N", a patch on 4.5.4. TODO(release): what it changes.\n' },
+      { path: 'LOG.md', text: '- **The request**: TODO(release)' },
+      { path: 'README.md', text: 'nothing' },
+    ];
+    expect(todoBrief(files)).toEqual([
+      { at: 'CHANGELOG.md:3', what: 'LOG #1–#2: "N", a patch on 4.5.4. TODO(release): what it changes.' },
+      { at: 'LOG.md:1', what: '- **The request**: TODO(release)' },
+    ]);
+    expect(todoBrief(files).map((t) => t.at)).toEqual(todoMarkers(files));
+    const long = `TODO(release): ${'x'.repeat(300)}`;
+    expect(todoBrief([{ path: 'a', text: long }])[0]!.what.length).toBeLessThanOrEqual(200);
+  });
 });
 
 describe('the command', () => {
@@ -202,12 +217,12 @@ describe('the command', () => {
       'readme',
       'quality baseline',
       'commit',
-      'human gates',
+      'before the push',
       'pull request',
     ]);
   });
-  it('resumes a prepared branch with the human gates and the pull request only', () => {
-    expect(RESUME_STEPS).toEqual(['human gates', 'pull request']);
+  it('resumes a prepared branch with the stop before the push (prose and human gates) and the pull request only', () => {
+    expect(RESUME_STEPS).toEqual(['before the push', 'pull request']);
   });
   it('checks a prepared release: its section, no TODO(release) left, the wiki and the baseline', async () => {
     const files: Record<string, string> = {
@@ -249,7 +264,7 @@ describe('the command', () => {
   });
 });
 
-describe('the human gates before the push (4.5.5)', () => {
+describe('the stop before the push: prose left and human gates (4.5.5)', () => {
   const CLAIM =
     '✖  play.saves: the claim c is self-checked by the author (AI), not reviewed: npm run wiki -- review-claim c --by <name> --kind human --relation independent';
   it('are the wiki check’s ✖ lines, each with its command, nothing else', () => {
@@ -263,8 +278,20 @@ describe('the human gates before the push (4.5.5)', () => {
       detail: '',
     });
   });
+  const TODOS = [
+    { at: 'CHANGELOG.md:5', what: 'LOG #1–#2: "Once", a patch on 4.5.4. TODO(release): what it changes' },
+    { at: 'README.md:12', what: 'Current release: [v4.5.5 (Once)](…): TODO(release)' },
+  ];
+  const base = { version: '4.5.5', name: 'Once', branch: 'release/4.5.5', pr: true };
+  const clean = { ok: true, detail: '' };
+  const red = { ok: false, detail: CLAIM };
+  it('let prepare push only when no TODO(release) is left and the gates hold', () => {
+    expect(beforePushStop({ ...base, todos: [], gates: clean })).toBeUndefined();
+    expect(beforePushStop({ ...base, todos: TODOS, gates: clean })).toBeDefined();
+    expect(beforePushStop({ ...base, todos: [], gates: red })).toBeDefined();
+  });
   it('stop prepare with what to review and the same command to run again, a person typing each review', () => {
-    const msg = gatesStop({ version: '4.5.5', name: 'Once', branch: 'release/4.5.5', detail: CLAIM, pr: true });
+    const msg = beforePushStop({ ...base, todos: [], gates: red })!;
     expect(msg).toContain(CLAIM);
     expect(msg).toMatch(/nothing (was|is) pushed/i);
     expect(msg).toContain('npm run release -- prepare 4.5.5 --name="Once"');
@@ -272,9 +299,29 @@ describe('the human gates before the push (4.5.5)', () => {
     expect(msg).toContain('release/4.5.5');
     // The tool names the command; it never fills a reviewer in.
     expect(msg).not.toMatch(/--by (?!<name>)\S/);
-    expect(gatesStop({ version: '4.5.5', name: 'Once', branch: 'release/4.5.5', detail: CLAIM, pr: false })).toContain(
+    expect(beforePushStop({ ...base, pr: false, todos: [], gates: red })).toContain(
       'npm run release -- prepare 4.5.5 --name="Once" --no-pr',
     );
+  });
+  it('list each TODO(release) with its file, line and brief, for a person or their assistant to write', () => {
+    const msg = beforePushStop({ ...base, todos: TODOS, gates: clean })!;
+    for (const t of TODOS) {
+      expect(msg).toContain(t.at);
+      expect(msg).toContain(t.what);
+    }
+    expect(msg).toMatch(/nothing (was|is) pushed/i);
+    expect(msg).toMatch(/AI assistant/);
+    expect(msg).toMatch(/diff/);
+    expect(msg).toMatch(/commit/i);
+    expect(msg).toContain('npm run release -- prepare 4.5.5 --name="Once"');
+    expect(msg).not.toContain(CLAIM);
+  });
+  it('say the prose and the reviews in one stop, so one run again covers both', () => {
+    const msg = beforePushStop({ ...base, todos: TODOS, gates: red })!;
+    expect(msg).toContain(TODOS[0]!.at);
+    expect(msg).toContain(CLAIM);
+    expect(msg.match(/npm run release -- prepare 4\.5\.5/g)).toHaveLength(1);
+    expect(msg.indexOf(TODOS[0]!.at)).toBeLessThan(msg.indexOf(CLAIM));
   });
 });
 
