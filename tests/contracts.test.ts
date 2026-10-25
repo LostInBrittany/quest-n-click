@@ -161,6 +161,9 @@ describe('the five statuses, derived', () => {
     expect(passSheet(ROOT, '4.5.1-rc.1')).toBe('4.5.1');
     expect(passSheet(ROOT, '4.5.2-rc.1')).toBe('4.5.2');
     expect(passSheet(ROOT, '4.5.3-rc.1')).toBe('4.5.3');
+    // The newest sheet, whatever the version (4.5.4: a release adds no line here).
+    const newest = passSheet(ROOT, '999.0.0')!;
+    expect(passSheet(ROOT, `${newest}-rc.1`)).toBe(newest);
     expect(passSheet(ROOT, '4.4.1')).toBe('4.4.0');
     expect(passSheet(ROOT, '4.2.4')).toBe('4.2.4');
     const s = surfaceStatuses(ROOT, contracts!, '4.4.0').get('studio-server')!;
