@@ -8,22 +8,22 @@
 //      product commit, the checkout's root (so a report's file is matched by its exact repository path) and the run.
 //      The local file alone proves nothing about who made it: `--candidate <run>` requires the run, and A5b's
 //      publication workflow downloads `candidate-test-report` from that attested candidate run itself;
-//   3. scope reviewed: `wiki/reviews.json` holds a record that the test covers the claim, with the hash of the
-//      claim's text (the test's name and the block in both languages) and of the test file: any change to either
+//   3. scope reviewed: `wiki/reviews/<claim>.<text8>.<test8>.json` (one file per record since 4.5.5, records.ts)
+//      holds a record that the test covers the claim, with the hash of the claim's text (the test's name and the block in both languages) and of the test file: any change to either
 //      resets it, and `npm run wiki -- review-claim <id> --by <name> --kind human|ai --relation author|independent`
 //      records it again. Its reviewers say who read it (reviewer.ts): only a person's review makes it "scope
 //      reviewed"; an AI's own check of what it wrote is said as such, and `check --publish` wants a person's.
 // A claim naming a test written `.skip`, `.todo`, `.only`, `.fails` (or `.skipIf`, `.runIf`, on it or a describe
 // around it) is refused at the first state: such a test does not run as it reads, or proves the opposite.
 import { createHash } from 'node:crypto';
-import { existsSync, readFileSync, writeFileSync } from 'node:fs';
-import { dirname, join, relative, resolve } from 'node:path';
+import { existsSync, readFileSync } from 'node:fs';
+import { dirname, join, relative } from 'node:path';
 import { globToRegExp } from '../ci-plan';
 import { z } from 'zod';
-import { formatJson } from './json';
 import { issuesOf, type Manifest, type Page } from './manifest';
 import type { Block } from './page';
-import { type Reviewer, ReviewerSchema, reviewWords, withReviewer } from './reviewer';
+import { addRecord, latest, migrateLegacy, readStore, removeRecords, type Store, type Stored } from './records';
+import { type Reviewer, ReviewerSchema, reviewWords } from './reviewer';
 
 const sha256 = (s: string) => createHash('sha256').update(s).digest('hex');
 /** A text file's hash, its line ends made LF first, so a Windows checkout hashes as a Linux one. */
@@ -299,37 +299,81 @@ export function readTestReport(file: string): { report?: TestReport; error?: str
 
 // ------------------------------------------------------------------------------------------------- reviews
 
-const REVIEWS_FILE = 'reviews.json';
-const ReviewsSchema = z
+const CLAIM_ID = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
+const ReviewSchema = z
+  .object({
+    claimTextHash: z.string().regex(/^[0-9a-f]{64}$/),
+    testFileHash: z.string().regex(/^[0-9a-f]{64}$/),
+    reviewers: z.array(ReviewerSchema).min(1),
+  })
+  .strict();
+type Review = z.infer<typeof ReviewSchema>;
+
+const STORE: Store<Review> = {
+  dir: 'reviews',
+  legacy: 'reviews.json',
+  schema: ReviewSchema,
+  stem: (id) => (CLAIM_ID.test(id) ? id : undefined),
+  key: (stem) => (CLAIM_ID.test(stem) ? stem : undefined),
+  hashes: (r) => [r.claimTextHash, r.testFileHash],
+};
+
+/** The single file of 4.5.0 to 4.5.4, read only to be migrated. */
+const LegacySchema = z
   .object({
     format: z.literal('quest-n-click-docs-reviews'),
     version: z.literal(1),
-    claims: z.record(
-      z.string(),
-      z
-        .object({
-          claimTextHash: z.string().regex(/^[0-9a-f]{64}$/),
-          testFileHash: z.string().regex(/^[0-9a-f]{64}$/),
-          reviewers: z.array(ReviewerSchema).min(1),
-        })
-        .strict(),
-    ),
+    claims: z.record(z.string().regex(CLAIM_ID), ReviewSchema),
   })
   .strict();
-type Reviews = z.infer<typeof ReviewsSchema>;
 
-/** `wiki/reviews.json`, or an empty record when there is none yet. */
+/** Every claim's review records (more than one after two branches reviewed it, until `records --prune`). */
+interface Reviews {
+  records: Map<string, Stored<Review>[]>;
+}
+
+/** `wiki/reviews/`, empty when there is none yet. */
 export function readReviews(wikiDir: string): { reviews: Reviews; errors: string[] } {
-  const empty: Reviews = { format: 'quest-n-click-docs-reviews', version: 1, claims: {} };
-  const file = resolve(wikiDir, REVIEWS_FILE);
-  if (!existsSync(file)) return { reviews: empty, errors: [] };
-  try {
-    const parsed = ReviewsSchema.safeParse(JSON.parse(readFileSync(file, 'utf8')));
-    if (!parsed.success) return { reviews: empty, errors: issuesOf(parsed.error).map((l) => `${REVIEWS_FILE} ${l}`) };
-    return { reviews: parsed.data, errors: [] };
-  } catch (e) {
-    return { reviews: empty, errors: [`${REVIEWS_FILE}: ${(e as Error).message}`] };
+  const { records, errors } = readStore(wikiDir, STORE);
+  return { reviews: { records }, errors };
+}
+
+/** `records --migrate`: `wiki/reviews.json` into `wiki/reviews/`, the file deleted (records.ts). */
+export const migrateReviews = (wikiDir: string) =>
+  migrateLegacy(wikiDir, STORE, (json) => {
+    const parsed = LegacySchema.safeParse(json);
+    return parsed.success
+      ? { entries: parsed.data.claims, errors: [] }
+      : { errors: issuesOf(parsed.error).map((l) => `${STORE.legacy} ${l}`) };
+  });
+
+/** The review a claim is judged by: the one of its current claim text and test file, else its most recent. */
+function judgedReview(list: readonly Stored<Review>[], s: ClaimState): Stored<Review> | undefined {
+  return (
+    list.find((r) => r.record.claimTextHash === s.claimTextHash && r.record.testFileHash === s.testFileHash) ??
+    latest(list)
+  );
+}
+
+/** The review files no claim needs: beside the one each claim is judged by, and every one of a claim gone. */
+export function supersededReviews(reviews: Reviews, states: readonly ClaimState[]): string[] {
+  const byId = new Map(states.map((s) => [s.id, s]));
+  const out: string[] = [];
+  for (const [id, list] of reviews.records) {
+    const s = byId.get(id);
+    const keep = s && judgedReview(list, s);
+    out.push(...list.filter((r) => r !== keep).map((r) => r.file));
   }
+  return out.sort();
+}
+
+/** `records --prune`: deletes the superseded reviews (deletions only, records.ts). Returns the files deleted. */
+export function pruneReviews(wikiDir: string, states: readonly ClaimState[]): { removed: string[]; errors: string[] } {
+  const { reviews, errors } = readReviews(wikiDir);
+  if (errors.length) return { removed: [], errors };
+  const removed = supersededReviews(reviews, states);
+  removeRecords(wikiDir, removed);
+  return { removed, errors: [] };
 }
 
 // ------------------------------------------------------------------------------------------------- states
@@ -438,7 +482,7 @@ export function claimStates(o: {
     else if (!hits.every((h) => h.status === 'passed'))
       state.notExecuted = `"${c.claim.test}" did not pass on ${o.commit.slice(0, 12)} (${hits.map((h) => h.status).join(', ')})`;
     else state.executedOn = o.commit;
-    const review = o.reviews.claims[c.claim.id];
+    const review = judgedReview(o.reviews.records.get(c.claim.id) ?? [], state)?.record;
     if (review) {
       if (review.claimTextHash !== state.claimTextHash) state.reviewStale = "the claim's text changed since its review";
       else if (review.testFileHash !== state.testFileHash) state.reviewStale = 'the test file changed since its review';
@@ -457,15 +501,14 @@ export function reviewClaim(o: { wikiDir: string; state: ClaimState; reviewer: R
   const { reviews, errors } = readReviews(o.wikiDir);
   if (errors.length) return errors.join('; ');
   // The same claim and test file read again add a reviewer (a person after the AI that wrote it); a change starts over.
-  const old = reviews.claims[o.state.id];
-  const same = old && old.claimTextHash === o.state.claimTextHash && old.testFileHash === o.state.testFileHash;
-  reviews.claims[o.state.id] = {
-    claimTextHash: o.state.claimTextHash,
-    testFileHash: o.state.testFileHash!,
-    reviewers: same ? withReviewer(old.reviewers, o.reviewer) : [o.reviewer],
-  };
-  reviews.claims = Object.fromEntries(Object.entries(reviews.claims).sort(([a], [b]) => (a < b ? -1 : 1)));
-  writeFileSync(resolve(o.wikiDir, REVIEWS_FILE), formatJson(reviews));
+  addRecord(
+    o.wikiDir,
+    STORE,
+    reviews.records.get(o.state.id) ?? [],
+    o.state.id,
+    { claimTextHash: o.state.claimTextHash, testFileHash: o.state.testFileHash! },
+    o.reviewer,
+  );
   return undefined;
 }
 

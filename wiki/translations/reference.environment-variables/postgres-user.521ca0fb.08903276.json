@@ -1,0 +1,7 @@
+{
+  "enHash": "521ca0fb729bdb04c5939486ba441e7a67446585a965607abb20d697799de086",
+  "frHash": "089032762630fcb3ab4e684c71449e18ee1e5d19a11745f2dc198fce917dba13",
+  "reviewers": [
+    { "name": "claude-291-release-one-pass", "kind": "ai", "relation": "author", "date": "2026-10-24" }
+  ]
+}

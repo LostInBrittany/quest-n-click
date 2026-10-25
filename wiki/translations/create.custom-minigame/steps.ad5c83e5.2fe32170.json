@@ -1,0 +1,7 @@
+{
+  "enHash": "ad5c83e5d35c9b2ea53fc8d16551fdb593547dab5cfc65f5e6af9765b5f750d1",
+  "frHash": "2fe321702103e63bd4a8526a67c8b79d910a76fdeb9331791b19bb1eae3cfc20",
+  "reviewers": [
+    { "name": "claude-250-i18n-minigame-params", "kind": "ai", "relation": "author", "date": "2026-10-25" }
+  ]
+}

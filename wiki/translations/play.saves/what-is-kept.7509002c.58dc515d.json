@@ -1,0 +1,8 @@
+{
+  "enHash": "7509002c238ed005a98e50f2372e23d1881f2223748d99be6872c4b8ebffda0c",
+  "frHash": "58dc515dc2d2e557f7262cc8a3a947a7c7cda9f70bc360cbf68f522e6dca171c",
+  "reviewers": [
+    { "name": "claude-451-audit", "kind": "ai", "relation": "author", "date": "2026-10-23" },
+    { "name": "LostInBrittany", "kind": "human", "relation": "independent", "date": "2026-10-24" }
+  ]
+}

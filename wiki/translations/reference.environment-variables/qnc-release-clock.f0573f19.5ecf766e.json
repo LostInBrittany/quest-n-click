@@ -1,0 +1,7 @@
+{
+  "enHash": "f0573f19c36b97527b3c88d3642ccc0f996e21b4cba58eb2998b441775bbd86d",
+  "frHash": "5ecf766e3fd082ddd9aefe6c630b94f0ca80335602965b273eb9ea2ab841ed0f",
+  "reviewers": [
+    { "name": "claude-release-hardening", "kind": "ai", "relation": "author", "date": "2026-10-25" }
+  ]
+}

@@ -444,6 +444,7 @@ export const PREPARE_STEPS = [
   'changelog',
   'upgrade notes',
   'transition pages',
+  'wiki records',
   'golden save',
   'reference run',
   'passes',
@@ -712,6 +713,8 @@ function prepare(version: string, opts: { name: string; date: string; pr: boolea
       }
     },
     'transition pages': () => sh('npm', ['run', '-s', 'wiki', '--', 'transition']),
+    // The records the release's pull requests superseded (#360: an ack only adds a file, so they merge cleanly).
+    'wiki records': () => sh('npm', ['run', '-s', 'wiki', '--', 'records', '--prune']),
     'golden save': () => {
       sh('npx', ['tsx', 'tools/golden-save.ts', version]);
       const index = JSON.parse(read('tests/fixtures/saves/index.json')) as { demo: string[] };

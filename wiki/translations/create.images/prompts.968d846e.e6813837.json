@@ -1,0 +1,7 @@
+{
+  "enHash": "968d846e5b2b5a83f496795d518e14c1eca8b953491806c9e2c81e18b7a98643",
+  "frHash": "e6813837c90b2bb0839141852bcce3103eb3f811b01ea1444f79b462046dbcb7",
+  "reviewers": [
+    { "name": "Claude", "kind": "ai", "relation": "author", "date": "2026-10-25" }
+  ]
+}

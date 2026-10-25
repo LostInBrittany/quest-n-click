@@ -1,0 +1,7 @@
+{
+  "enHash": "e60d31ed1773b5244aff33adf0dc0a2daeb12cc12e3477bc7e562b2fcc6aa3cf",
+  "frHash": "900d04d85f6aa983e9b7643529a8ddda5bb461f2ebcddfd99b9f7b14d748fbef",
+  "reviewers": [
+    { "name": "claude-454-shards", "kind": "ai", "relation": "author", "date": "2026-10-25" }
+  ]
+}

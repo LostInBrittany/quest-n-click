@@ -71,7 +71,7 @@ l'organisation quand aucun fork n'est un remote, une branche, jamais `main`) ou 
 branche de release faisait à la main, dans cet ordre : la version (`npm version --no-git-tag-version`), la section du
 CHANGELOG et les entrées du LOG depuis les fragments (`npm run changes -- --assemble`, qui crée son `## Unreleased` et
 replie un `.log.md` seul), l'entrée de release du LOG, la section des notes de mise à jour (en et fr), les pages de
-transition, la sauvegarde de référence (listée dans `tests/fixtures/saves/index.json`), le run de référence, la fiche
+transition, les fiches du wiki remplacées (`npm run wiki -- records --prune`), la sauvegarde de référence (listée dans `tests/fixtures/saves/index.json`), le run de référence, la fiche
 des passes et `passIssues`, la ligne de release actuelle du README (le résumé précédent gardé sous « Sur la … »), la
 ligne de base de qualité ; un commit, les relectures humaines des docs, puis la pull request.
 

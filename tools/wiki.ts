@@ -2,6 +2,7 @@
 // [--product-version <v>] [--doc-revision <sha>] [--product-commit <sha>] | bundle --out <dir> [--build-id <id>] [--allow-dirty]
 // [the same three] | check --publish --product-ref <tag|sha> [--doc-ref <sha>] [--released] [--state preview|candidate|published]
 // [--test-report <vitest.json>]… [--candidate <run id>] | review-claim <id> --by <name> --kind human|ai --relation author|independent | translations --ack <id#section> --by <name> --kind human|ai --relation author|independent
+// | records --migrate | records --prune
 // | archive --out <file.tar.gz> [--revision r<n>] [--preview] [--build-id <id>] [--test-report <f>… --candidate <run>]
 // [--allow-dirty] [the same three]
 // | publish --target wiki --mode release|revision|rollback|promote|preview --ref <ref> --version <v> --revision r<n>
@@ -24,8 +25,11 @@
 // no translation is to review, every claim was executed on the product (`--test-report`, a Vitest JSON report with
 // the `commit.json` the candidate writes beside it; `--candidate <run>` names the run they must come from, required for
 // `--state candidate|published`), and the source set is the product's plus documentation only
-// (§4.5.2). `review-claim` records that a person checked a claim's test covers it (`wiki/reviews.json`);
-// `translations --ack` that a section's two languages were read against each other (`wiki/translations.json`).
+// (§4.5.2). `review-claim` records that a person checked a claim's test covers it (`wiki/reviews/`);
+// `translations --ack` that a section's two languages were read against each other (`wiki/translations/`), one file
+// per record, added and never deleted, so two pull requests merge with no conflict (tools/wiki/records.ts, #360).
+// `records --prune` deletes the records a newer one superseded (the release's prepare runs it); `records --migrate`
+// folds the single files of 4.5.4 (`wiki/translations.json`, `wiki/reviews.json`) into those folders.
 // The publication (A5b, §4.5): `archive` writes the self-contained release archive (tools/wiki/archive.ts); `publish
 // --target wiki` pushes an archive's wiki to the GitHub wiki and records it in `publication.json`
 // (tools/wiki/publication.ts), by `GITHUB_TOKEN` or the deploy key `WIKI_DEPLOY_KEY`; `pages` assembles Pages' `/docs/`
@@ -61,7 +65,7 @@ import {
 import { buildWiki } from './wiki/build';
 import { dirtySources, writeBundle } from './wiki/bundle';
 import { checkWiki, trackedFiles, wikiStats } from './wiki/check';
-import { claimLabel, reviewClaim } from './wiki/claims';
+import { claimLabel, migrateReviews, pruneReviews, reviewClaim } from './wiki/claims';
 import {
   ackRow,
   checkCoverage,
@@ -105,7 +109,7 @@ import {
 } from './wiki/publication';
 import { transitionPages, writeTransitionPages } from './wiki/transition';
 import { reviewerOf } from './wiki/reviewer';
-import { ackTranslation } from './wiki/translations';
+import { ackTranslation, migrateTranslations, pruneTranslations } from './wiki/translations';
 
 class UsageError extends Error {}
 
@@ -154,7 +158,7 @@ export function bundleOutProblem(out: string, tracked: readonly string[], root =
 }
 
 const USAGE =
-  'usage: npm run wiki -- check [--test-report <file>]… | check --publish --product-ref <tag|sha> [--doc-ref <sha>] [--released] [--state preview|candidate|published] [--reviews-only] [--test-report <file>]… [--candidate <run id>] | review-claim <id> --by <name> --kind human|ai --relation author|independent | translations --ack <id#section> --by <name> --kind human|ai --relation author|independent | stats [--json] | coverage [--init [--force] | --ack <key>] | build --target wiki --out <dir> [--preview] [--product-version <v>] [--doc-revision <sha>] [--product-commit <sha>] | bundle --out <dir> [--build-id <id>] [--allow-dirty] [--product-version <v>] [--doc-revision <sha>] [--product-commit <sha>] | archive --out <quest-n-click-docs-<v>[-r<n>].tar.gz> [--revision r<n>] [--preview] [--build-id <id>] [--test-report <file>… --candidate <run id>] [--allow-dirty] [--product-version <v>] [--doc-revision <sha>] [--product-commit <sha>] | publish --target wiki --mode release|revision|rollback|promote|preview --ref <ref> --version <v> --revision r<n> --tag <tag> --archive <file> (--repo <owner/name> | --remote <url>) [--sha256 <hex>] [--rollback-to <v>[-r<n>]] [--dry-run] | pages --out <dir> (--repo <owner/name> [--cache <dir>] | --releases <dir> (--repo <owner/name> | --skip-attestations)) [--publication <file>] | next-revision --version <v> --repo <owner/name> | attest --repo <owner/name> --tag <tag> --file <archive> | transition [--root <dir>] [--version <v>] | env | generate [<page>…] [--no-manifest] | acceptance [--lang en|fr] [--json] [--strict] [--export-prompts <dir> [--channel mcp|web] [--url <url>]]';
+  'usage: npm run wiki -- check [--test-report <file>]… | check --publish --product-ref <tag|sha> [--doc-ref <sha>] [--released] [--state preview|candidate|published] [--reviews-only] [--test-report <file>]… [--candidate <run id>] | review-claim <id> --by <name> --kind human|ai --relation author|independent | translations --ack <id#section> --by <name> --kind human|ai --relation author|independent | records --migrate | records --prune | stats [--json] | coverage [--init [--force] | --ack <key>] | build --target wiki --out <dir> [--preview] [--product-version <v>] [--doc-revision <sha>] [--product-commit <sha>] | bundle --out <dir> [--build-id <id>] [--allow-dirty] [--product-version <v>] [--doc-revision <sha>] [--product-commit <sha>] | archive --out <quest-n-click-docs-<v>[-r<n>].tar.gz> [--revision r<n>] [--preview] [--build-id <id>] [--test-report <file>… --candidate <run id>] [--allow-dirty] [--product-version <v>] [--doc-revision <sha>] [--product-commit <sha>] | publish --target wiki --mode release|revision|rollback|promote|preview --ref <ref> --version <v> --revision r<n> --tag <tag> --archive <file> (--repo <owner/name> | --remote <url>) [--sha256 <hex>] [--rollback-to <v>[-r<n>]] [--dry-run] | pages --out <dir> (--repo <owner/name> [--cache <dir>] | --releases <dir> (--repo <owner/name> | --skip-attestations)) [--publication <file>] | next-revision --version <v> --repo <owner/name> | attest --repo <owner/name> --tag <tag> --file <archive> | transition [--root <dir>] [--version <v>] | env | generate [<page>…] [--no-manifest] | acceptance [--lang en|fr] [--json] [--strict] [--export-prompts <dir> [--channel mcp|web] [--url <url>]]';
 
 /** Today, as a day (the date a review or an ack records). */
 const today = () => new Date().toISOString().slice(0, 10);
@@ -288,6 +292,40 @@ function run(args: readonly string[]): number {
     }
     console.log(
       `✔  ${key}: the two languages recorded as read against each other by ${reviewer.name} (${reviewer.kind}, ${reviewer.relation})`,
+    );
+    return 0;
+  }
+  if (command === 'records') {
+    const migrate = args.includes('--migrate');
+    if (migrate === args.includes('--prune')) throw new UsageError('records needs --migrate or --prune');
+    if (migrate) {
+      // Re-runnable: on a branch that merged a main where the old file came back, it adds what the folder lacks.
+      for (const [name, run] of [
+        ['translations', migrateTranslations],
+        ['reviews', migrateReviews],
+      ] as const) {
+        const { migration, errors } = run(wikiDir);
+        if (!migration) {
+          for (const e of errors) console.error(`✖  ${e}`);
+          return 1;
+        }
+        console.log(
+          `✔  ${name}: ${migration.written} record(s) written, ${migration.merged} merged, ${migration.unchanged} already there, into wiki/${name}/`,
+        );
+      }
+      return 0;
+    }
+    const r = checkWiki({ wikiDir, tracked: trackedFiles() });
+    if (!r.manifest) {
+      for (const e of r.errors) console.error(`✖  ${e}`);
+      return 1;
+    }
+    const t = pruneTranslations(wikiDir, r.manifest);
+    const c = pruneReviews(wikiDir, r.claims);
+    for (const e of [...t.errors, ...c.errors]) console.error(`✖  ${e}`);
+    if (t.errors.length || c.errors.length) return 1;
+    console.log(
+      `✔  records: ${t.removed.length} translation record(s) and ${c.removed.length} review(s) superseded, removed`,
     );
     return 0;
   }

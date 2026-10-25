@@ -1,0 +1,7 @@
+{
+  "claimTextHash": "4590976e864bf8f79dc5118c7c0f7a2e7c5d8edd2ac485159408a9432cc0b08a",
+  "testFileHash": "bcfdde41d82ee3f7054811e38ec09537373aa4e0db7b5c4a7f947f05d864e21b",
+  "reviewers": [
+    { "name": "Claude", "kind": "ai", "relation": "author", "date": "2026-10-25" }
+  ]
+}

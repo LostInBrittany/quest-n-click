@@ -1,0 +1,8 @@
+{
+  "enHash": "cecc91d14f2f6709f4f7af34eb73e5bb55ea5a77ce5d3771c4fe4e5e9640ec7d",
+  "frHash": "89bdb28e7d7766a0a8a575ef0a4b486a03d7d75672b51b3e1f98093c6e319405",
+  "reviewers": [
+    { "name": "claude-285-hashed-requirements", "kind": "ai", "relation": "author", "date": "2026-10-24" },
+    { "name": "LostInBrittany", "kind": "human", "relation": "independent", "date": "2026-10-24" }
+  ]
+}

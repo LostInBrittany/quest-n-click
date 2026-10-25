@@ -1,0 +1,7 @@
+{
+  "enHash": "0d835cb9618d6880b2b19123f2be569986aff2c6d9258ed01e3abdc0ddc3cc66",
+  "frHash": "96f0b5ddeabee53d5e4cfa6db5a830f0ebb6536565a00a9a8c8e939fca2bf7df",
+  "reviewers": [
+    { "name": "claude-pr270", "kind": "ai", "relation": "author", "date": "2026-10-23" }
+  ]
+}

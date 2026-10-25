@@ -1,51 +1,77 @@
 // The translation state (4.5.0 "Wiki", docs/dev/PLAN-4.5-WIKI.md §4.7.1, phase A5): no language is the source. For
-// each section of a `ready` page, `wiki/translations.json` records which revision of each language someone (a person
-// or an AI) read against the other, `{enHash, frHash, reviewers}` under `<id>#<section>` (`<id>#_lead` for the text before the first
-// section), each reviewer `{name, kind: human|ai, relation: author|independent, date}` (reviewer.ts). When either
-// side's text, or an image a section shows, changes, the pair is "to review": a warning at the work level, an error for
-// `check --publish`. A pair read by an AI only is said as such at both levels, never as a review, and no longer fails
-// a publication (D56 amends A7, which wanted a person on every pair). `npm run wiki -- translations --ack <id#section> --by <name>
-// --kind human|ai --relation author|independent` records the pair, once both sides were read.
+// each section of a `ready` page, a record says which revision of each language someone (a person or an AI) read
+// against the other, `{enHash, frHash, reviewers}`, in `wiki/translations/<id>/<section>.<en8>.<fr8>.json` (`_lead` for
+// the text before the first section; one file per record since 4.5.5, records.ts), each reviewer `{name, kind:
+// human|ai, relation: author|independent, date}` (reviewer.ts). A section is judged by its record of the current texts;
+// when either side's text, or an image a section shows, changed since every record it has, the pair is "to review": a
+// warning at the work level, an error for `check --publish`. A pair read by an AI only is said as such at both levels,
+// never as a review, and no longer fails a publication (D56 amends A7, which wanted a person on every pair). `npm run
+// wiki -- translations --ack <id#section> --by <name> --kind human|ai --relation author|independent` records the pair,
+// once both sides were read.
 import { createHash } from 'node:crypto';
-import { existsSync, readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { z } from 'zod';
 import { splitSections } from './docs';
-import { formatJson } from './json';
 import { issuesOf, type Manifest } from './manifest';
 import { classifyTarget, mapLine, mapLines } from './page';
-import { humanReviewed, type Reviewer, ReviewerSchema, withReviewer } from './reviewer';
+import { addRecord, latest, migrateLegacy, readStore, removeRecords, type Store, type Stored } from './records';
+import { humanReviewed, type Reviewer, ReviewerSchema } from './reviewer';
 
-const TRANSLATIONS_FILE = 'translations.json';
 /** The key of the text before a page's first section: `_` is never in a section id. */
 const LEAD = '_lead';
+const PAGE = /^[a-z]+\.[a-z0-9]+(?:-[a-z0-9]+)*$/;
+const SECTION = /^(?:_lead|[a-z0-9]+(?:-[a-z0-9]+)*)$/;
 
 const hash = z.string().regex(/^[0-9a-f]{64}$/);
-const TranslationsSchema = z
+const PairSchema = z.object({ enHash: hash, frHash: hash, reviewers: z.array(ReviewerSchema).min(1) }).strict();
+export type Pair = z.infer<typeof PairSchema>;
+
+const STORE: Store<Pair> = {
+  dir: 'translations',
+  legacy: 'translations.json',
+  schema: PairSchema,
+  stem: (key) => {
+    const [id, section, more] = key.split('#');
+    return more === undefined && PAGE.test(id ?? '') && SECTION.test(section ?? '') ? `${id}/${section}` : undefined;
+  },
+  key: (stem) => {
+    const [id, section, more] = stem.split('/');
+    return more === undefined && PAGE.test(id ?? '') && SECTION.test(section ?? '') ? `${id}#${section}` : undefined;
+  },
+  hashes: (r) => [r.enHash, r.frHash],
+};
+
+/** The single file of 4.5.0 to 4.5.4, read only to be migrated. */
+const LegacySchema = z
   .object({
     format: z.literal('quest-n-click-docs-translations'),
     version: z.literal(1),
     pairs: z.record(
-      z.string().regex(/^[a-z]+\.[a-z0-9]+(?:-[a-z0-9]+)*#(?:_lead|[a-z0-9]+(?:-[a-z0-9]+)*)$/, 'a key <id>#<section>'),
-      z.object({ enHash: hash, frHash: hash, reviewers: z.array(ReviewerSchema).min(1) }).strict(),
+      z.string().refine((k) => !!STORE.stem(k), 'a key <id>#<section>'),
+      PairSchema,
     ),
   })
   .strict();
-type Translations = z.infer<typeof TranslationsSchema>;
+
+/** Every key's records (more than one after two branches recorded the same section, until `records --prune`). */
+export interface Translations {
+  records: Map<string, Stored<Pair>[]>;
+}
 
 export function readTranslations(wikiDir: string): { translations: Translations; errors: string[] } {
-  const empty: Translations = { format: 'quest-n-click-docs-translations', version: 1, pairs: {} };
-  const file = resolve(wikiDir, TRANSLATIONS_FILE);
-  if (!existsSync(file)) return { translations: empty, errors: [] };
-  try {
-    const parsed = TranslationsSchema.safeParse(JSON.parse(readFileSync(file, 'utf8')));
-    if (!parsed.success)
-      return { translations: empty, errors: issuesOf(parsed.error).map((l) => `${TRANSLATIONS_FILE} ${l}`) };
-    return { translations: parsed.data, errors: [] };
-  } catch (e) {
-    return { translations: empty, errors: [`${TRANSLATIONS_FILE}: ${(e as Error).message}`] };
-  }
+  const { records, errors } = readStore(wikiDir, STORE);
+  return { translations: { records }, errors };
 }
+
+/** `records --migrate`: `wiki/translations.json` into `wiki/translations/`, the file deleted (records.ts). */
+export const migrateTranslations = (wikiDir: string) =>
+  migrateLegacy(wikiDir, STORE, (json) => {
+    const parsed = LegacySchema.safeParse(json);
+    return parsed.success
+      ? { entries: parsed.data.pairs, errors: [] }
+      : { errors: issuesOf(parsed.error).map((l) => `${STORE.legacy} ${l}`) };
+  });
 
 /** A section's text as a pair compares it: line ends made LF, outer blank lines dropped. */
 /**
@@ -83,7 +109,7 @@ function sectionHashes(markdown: string, wikiDir: string, lang: string): Map<str
 
 export interface PairState {
   key: string;
-  /** `paired`: both hashes as recorded; `to review`: no record, or a side changed since. */
+  /** `paired`: a record holds both current hashes; `to review`: no record, or a side changed since every one. */
   state: 'paired' | 'to review';
   why?: string;
   /** A paired pair's reviewers, and whether a person is among them (a publication needs one). */
@@ -91,18 +117,12 @@ export interface PairState {
   human?: boolean;
 }
 
-/**
- * The pairs of every `ready` page: one per section present in both languages (a section in one language only is the
- * parity check's error, not a pair). Also the records that name no section of a written page (`stale`), to remove.
- */
-export function translationStates(
+/** The current hashes of every section both languages of a written (not planned, not generated) page hold. */
+function currentHashes(
   wikiDir: string,
   manifest: Manifest,
-  translations: Translations,
-): { pairs: PairState[]; stale: string[] } {
-  const pairs: PairState[] = [];
-  const keys = new Set<string>();
-  // A draft's records are kept (a pair may be read before the page is ready); only a ready page's pairs are judged.
+): Map<string, { enHash: string; frHash: string; ready: boolean }> {
+  const out = new Map<string, { enHash: string; frHash: string; ready: boolean }>();
   for (const p of manifest.pages.filter((x) => x.state !== 'planned' && !x.generated)) {
     const files = { en: resolve(wikiDir, 'en', `${p.id}.md`), fr: resolve(wikiDir, 'fr', `${p.id}.md`) };
     if (!existsSync(files.en) || !existsSync(files.fr)) continue;
@@ -110,27 +130,77 @@ export function translationStates(
     const fr = sectionHashes(readFileSync(files.fr, 'utf8'), wikiDir, 'fr');
     for (const [section, enHash] of en) {
       const frHash = fr.get(section);
-      if (frHash === undefined) continue;
-      const key = `${p.id}#${section}`;
-      keys.add(key);
-      if (p.state !== 'ready') continue;
-      const r = translations.pairs[key];
-      const since = r?.reviewers.at(-1)?.date;
-      if (!r) pairs.push({ key, state: 'to review', why: 'never reviewed as a pair' });
-      else if (r.enHash !== enHash && r.frHash !== frHash)
-        pairs.push({ key, state: 'to review', why: `both sides changed since ${since}` });
-      else if (r.enHash !== enHash) pairs.push({ key, state: 'to review', why: `the English changed since ${since}` });
-      else if (r.frHash !== frHash) pairs.push({ key, state: 'to review', why: `the French changed since ${since}` });
-      else pairs.push({ key, state: 'paired', reviewers: r.reviewers, human: humanReviewed(r.reviewers) });
+      if (frHash !== undefined) out.set(`${p.id}#${section}`, { enHash, frHash, ready: p.state === 'ready' });
     }
   }
-  return { pairs, stale: Object.keys(translations.pairs).filter((k) => !keys.has(k)) };
+  return out;
+}
+
+/** The record a section is judged by: the one of its current texts, else its most recent. */
+function judged(list: readonly Stored<Pair>[], now: { enHash: string; frHash: string }): Stored<Pair> | undefined {
+  return list.find((s) => s.record.enHash === now.enHash && s.record.frHash === now.frHash) ?? latest(list);
+}
+
+/**
+ * The pairs of every `ready` page: one per section present in both languages (a section in one language only is the
+ * parity check's error, not a pair). Also the record files no current pair needs (`superseded`: a key's records
+ * beside the one it is judged by, and every record of a key no written page holds), for `records --prune`.
+ */
+export function translationStates(
+  wikiDir: string,
+  manifest: Manifest,
+  translations: Translations,
+): { pairs: PairState[]; superseded: string[] } {
+  const pairs: PairState[] = [];
+  const current = currentHashes(wikiDir, manifest);
+  const superseded: string[] = [];
+  for (const [key, list] of translations.records) {
+    const now = current.get(key);
+    // A draft's records are kept (a pair may be read before the page is ready); only a ready page's pairs are judged.
+    const keep = now && judged(list, now);
+    superseded.push(...list.filter((s) => s !== keep).map((s) => s.file));
+  }
+  for (const [key, now] of current) {
+    if (!now.ready) continue;
+    const list = translations.records.get(key) ?? [];
+    const r = judged(list, now)?.record;
+    const since = r?.reviewers.at(-1)?.date;
+    if (!r) pairs.push({ key, state: 'to review', why: 'never reviewed as a pair' });
+    else if (r.enHash !== now.enHash && r.frHash !== now.frHash)
+      pairs.push({ key, state: 'to review', why: `both sides changed since ${since}` });
+    else if (r.enHash !== now.enHash)
+      pairs.push({ key, state: 'to review', why: `the English changed since ${since}` });
+    else if (r.frHash !== now.frHash) pairs.push({ key, state: 'to review', why: `the French changed since ${since}` });
+    else pairs.push({ key, state: 'paired', reviewers: r.reviewers, human: humanReviewed(r.reviewers) });
+  }
+  return { pairs, superseded: superseded.sort() };
+}
+
+/** Each recorded key's record as the check judges it (the build's page headers read who reviewed them). */
+export function judgedPairs(wikiDir: string, manifest: Manifest, translations: Translations): Record<string, Pair> {
+  const current = currentHashes(wikiDir, manifest);
+  const out: Record<string, Pair> = {};
+  for (const [key, list] of translations.records) {
+    const now = current.get(key);
+    const r = now ? judged(list, now) : latest(list);
+    if (r) out[key] = r.record;
+  }
+  return out;
+}
+
+/** `records --prune`: deletes the superseded records (deletions only, records.ts). Returns the files deleted. */
+export function pruneTranslations(wikiDir: string, manifest: Manifest): { removed: string[]; errors: string[] } {
+  const { translations, errors } = readTranslations(wikiDir);
+  if (errors.length) return { removed: [], errors };
+  const { superseded } = translationStates(wikiDir, manifest, translations);
+  removeRecords(wikiDir, superseded);
+  return { removed: superseded, errors: [] };
 }
 
 /**
  * `translations --ack <id#section> --by <name>`: records the pair as it is now. The page must be written in both
- * languages and hold that section in both; a record no current pair names is dropped at the same time. Returns the
- * problem, or undefined.
+ * languages and hold that section in both. Adds a file, or a reviewer to the record of the same texts; never deletes
+ * one (records.ts). Returns the problem, or undefined.
  */
 export function ackTranslation(o: {
   wikiDir: string;
@@ -153,16 +223,13 @@ export function ackTranslation(o: {
   const { translations, errors } = readTranslations(o.wikiDir);
   if (errors.length) return errors.join('; ');
   // The same texts read again add a reviewer (a person after the AI that wrote them); changed texts start over.
-  const old = translations.pairs[o.key];
-  const same = old && old.enHash === sides.en && old.frHash === sides.fr;
-  translations.pairs[o.key] = {
-    enHash: sides.en!,
-    frHash: sides.fr!,
-    reviewers: same ? withReviewer(old.reviewers, o.reviewer) : [o.reviewer],
-  };
-  const { stale } = translationStates(o.wikiDir, o.manifest, translations);
-  for (const k of stale) if (k !== o.key) delete translations.pairs[k];
-  translations.pairs = Object.fromEntries(Object.entries(translations.pairs).sort(([a], [b]) => (a < b ? -1 : 1)));
-  writeFileSync(resolve(o.wikiDir, TRANSLATIONS_FILE), formatJson(translations));
+  addRecord(
+    o.wikiDir,
+    STORE,
+    translations.records.get(o.key) ?? [],
+    o.key,
+    { enHash: sides.en!, frHash: sides.fr! },
+    o.reviewer,
+  );
   return undefined;
 }

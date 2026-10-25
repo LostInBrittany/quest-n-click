@@ -1,0 +1,7 @@
+{
+  "enHash": "d710d3b4a231c1c786bbc09c7b70511b8dbcb982c8d439891b2e2cee1abed597",
+  "frHash": "685716202331b250cf167ac015893018c3984371404432cdd0fec300aea9c3a5",
+  "reviewers": [
+    { "name": "claude-ship-tag-remote", "kind": "ai", "relation": "author", "date": "2026-10-25" }
+  ]
+}

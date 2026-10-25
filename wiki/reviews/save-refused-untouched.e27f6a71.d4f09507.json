@@ -1,0 +1,8 @@
+{
+  "claimTextHash": "e27f6a71540979a7e98eb76252a99bbd67a41e6cf8983ab93a992cf80ffe9ea6",
+  "testFileHash": "d4f09507eb0fd55b810cdee93b49c89d5b3c6e22fa386440ef4a4adf5546a029",
+  "reviewers": [
+    { "name": "claude-454-prepare", "kind": "ai", "relation": "author", "date": "2026-10-25" },
+    { "name": "LostInBrittany", "kind": "human", "relation": "independent", "date": "2026-10-25" }
+  ]
+}

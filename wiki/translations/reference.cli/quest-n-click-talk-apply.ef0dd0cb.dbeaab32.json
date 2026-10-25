@@ -1,0 +1,7 @@
+{
+  "enHash": "ef0dd0cbc79d3d17957c820d28db484b377f7dbfbaba2b6938429a44a5c19c1e",
+  "frHash": "dbeaab3291295d1bec63d433bbd15064189b30247fc0bc58de8b1a3991df18cb",
+  "reviewers": [
+    { "name": "claude-opus-5.5", "kind": "ai", "relation": "author", "date": "2026-10-25" }
+  ]
+}

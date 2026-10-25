@@ -1,0 +1,7 @@
+{
+  "enHash": "ce5d6c6dae0bfa2ae8b45e12ef7fe7e90f71e25e08260842171139c13f32cb37",
+  "frHash": "626be1b72be247650be9797e5304d23df4331fc98e812118fbfad1a9e3696354",
+  "reviewers": [
+    { "name": "claude-454-candidate-docs", "kind": "ai", "relation": "author", "date": "2026-10-25" }
+  ]
+}

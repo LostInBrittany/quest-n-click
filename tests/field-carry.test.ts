@@ -292,8 +292,8 @@ describe('a pass carried, or not', () => {
       'wiki/manifest.json',
       'wiki/images/team/lease.png',
       'docs/dev/acceptance/BEGINNER-READER.md',
-      'wiki/translations.json',
-      'wiki/reviews.json',
+      'wiki/translations/team.write-refused-423/_lead.0123abcd.4567ef01.json',
+      'wiki/reviews/lease-held.0123abcd.4567ef01.json',
       'wiki/acceptance/questions.json',
     ];
     const write = (f: string, text: string) => {
@@ -304,8 +304,8 @@ describe('a pass carried, or not', () => {
     const digest = () => configDigest(globs, root, files) as string;
     const before = digest();
     // What a reader never sees: the acks and the questions.
-    write('wiki/translations.json', 'two');
-    write('wiki/reviews.json', 'two');
+    write('wiki/translations/team.write-refused-423/_lead.0123abcd.4567ef01.json', 'two');
+    write('wiki/reviews/lease-held.0123abcd.4567ef01.json', 'two');
     write('wiki/acceptance/questions.json', 'two');
     expect(digest()).toBe(before);
     write('wiki/en/team.write-refused-423.md', 'two');

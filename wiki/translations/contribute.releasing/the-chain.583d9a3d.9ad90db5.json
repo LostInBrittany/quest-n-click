@@ -1,0 +1,7 @@
+{
+  "enHash": "583d9a3dd477a4b1258252d54c1b047b192d27be292320fff7a6205d98abd4c2",
+  "frHash": "9ad90db57dd088b886038c207654feb651a5e49b83d06bd891095b41b0e02d76",
+  "reviewers": [
+    { "name": "claude-release-docs-gates", "kind": "ai", "relation": "author", "date": "2026-10-25" }
+  ]
+}

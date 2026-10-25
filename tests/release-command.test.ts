@@ -205,7 +205,7 @@ function scratch() {
   write('README.md', 'the prose\n');
   git('add', '-A');
   git('commit', '-q', '-m', 'the prose');
-  write('wiki/reviews.json', '{}\n');
+  write('wiki/translations/install.upgrade-notes-4-5/_lead.0123abcd.4567ef01.json', '{}\n');
   git('add', '-A');
   git('commit', '-q', '-m', 'a review');
   git('switch', '-q', 'main');

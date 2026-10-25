@@ -1,0 +1,7 @@
+{
+  "enHash": "a0865ff540322b1108b09c16c204163638fba09cab70a9c2022961386b311d16",
+  "frHash": "e65a790dc8808da0c1acd72dbe5f958b64c83fbf157237666f1c691b8f813687",
+  "reviewers": [
+    { "name": "claude-453-release", "kind": "ai", "relation": "author", "date": "2026-10-25" }
+  ]
+}

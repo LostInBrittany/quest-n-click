@@ -1,0 +1,8 @@
+{
+  "claimTextHash": "bc0ad9cf1a7516d7bef49cf099f1d7927f386860cf6259c6e87a6b0412001ccb",
+  "testFileHash": "158cd61ba81a14971d1e7ac1cfd011287f8429fe6cce9bdbb23bb95f2c77091f",
+  "reviewers": [
+    { "name": "claude-4.5-writers", "kind": "ai", "relation": "author", "date": "2026-10-23" },
+    { "name": "wanoo", "kind": "human", "relation": "independent", "date": "2026-10-24" }
+  ]
+}

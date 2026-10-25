@@ -401,7 +401,7 @@ it('top', () => {});
         blocks: {},
       })),
       reports: [],
-      reviews: { format: 'quest-n-click-docs-reviews', version: 1, claims: {} },
+      reviews: { records: new Map() },
     });
     expect(states.map((x) => x.unreferenced)).toEqual([
       '"d › a" is written .skip: it does not run as it reads, so it backs no claim',
@@ -430,7 +430,7 @@ it('top', () => {});
           { page, claim: { id: 'c', test: 'tests/each.test.ts › leases on $name › restore refuses' }, blocks: {} },
         ],
         reports: [{ file: 'r.json', commit: HEAD, tests: tests.map((x) => ({ file: 'tests/each.test.ts', ...x })) }],
-        reviews: { format: 'quest-n-click-docs-reviews', version: 1, claims: {} },
+        reviews: { records: new Map() },
         commit: HEAD,
       })[0]!;
     const both = states([
@@ -529,7 +529,9 @@ it('top', () => {});
       ]),
     ).toBe(0);
     vi.restoreAllMocks();
-    const record = readReviews(dir).reviews.claims[CLAIM.id]!;
+    const [stored, ...more] = readReviews(dir).reviews.records.get(CLAIM.id)!;
+    expect(more).toEqual([]);
+    const record = stored!.record;
     expect(record).toMatchObject({ claimTextHash: before.claims[0]!.claimTextHash });
     expect(record.reviewers).toEqual([
       {

@@ -15,7 +15,7 @@ import { main } from '../tools/wiki';
 import { reviewClaim } from '../tools/wiki/claims';
 import { checkWiki, type PublishOptions, trackedFiles } from '../tools/wiki/check';
 import type { Manifest } from '../tools/wiki/manifest';
-import { ackTranslation, readTranslations, translationStates } from '../tools/wiki/translations';
+import { ackTranslation, judgedPairs, readTranslations, translationStates } from '../tools/wiki/translations';
 
 const BASE = resolve('tests/fixtures/wiki/base');
 const TRACKED = trackedFiles();
@@ -195,9 +195,11 @@ describe('wiki -- check --publish', () => {
       ]),
     ).toBe(0);
     vi.restoreAllMocks();
-    expect(readTranslations(r.wikiDir).translations.pairs['create.exits#doors']!.reviewers.map((x) => x.name)).toEqual([
-      'a reader',
-    ]);
+    expect(
+      judgedPairs(r.wikiDir, r.manifest, readTranslations(r.wikiDir).translations)['create.exits#doors']!.reviewers.map(
+        (x) => x.name,
+      ),
+    ).toEqual(['a reader']);
     commit(r.root, 'read again');
     expect(check(r, { productRef: r.product }, [report(r.product)]).errors).toEqual([]);
   });
@@ -208,7 +210,9 @@ describe('wiki -- check --publish', () => {
     // The pairs read again by the AI that wrote them: a person's review is kept beside it, not replaced.
     const key = 'create.exits#doors';
     expect(ackTranslation({ wikiDir: r.wikiDir, manifest: r.manifest, key, reviewer: ai })).toBeUndefined();
-    expect(readTranslations(r.wikiDir).translations.pairs[key]!.reviewers.map((x) => x.kind)).toEqual(['human', 'ai']);
+    expect(
+      judgedPairs(r.wikiDir, r.manifest, readTranslations(r.wikiDir).translations)[key]!.reviewers.map((x) => x.kind),
+    ).toEqual(['human', 'ai']);
     // A French edit, then only the AI reads the pair again: the person's review is gone with the old text.
     edit(join(r.wikiDir, 'fr', 'create.exits.md'), 'mène à une autre salle', 'ouvre sur une autre salle');
     expect(ackTranslation({ wikiDir: r.wikiDir, manifest: r.manifest, key, reviewer: ai })).toBeUndefined();
@@ -298,7 +302,7 @@ describe('wiki -- check --publish', () => {
     writeFileSync(join(r.root, 'wiki', 'coverage.json'), '{}\n');
     commit(r.root, 'code and a generator input');
     expect(check(r, { productRef: r.product }, [report(r.product)]).errors).toEqual([
-      'the doc revision changes 2 file(s) outside the documentation since the product commit (only wiki/<lang>/*.md, wiki/manifest.json, wiki/translations.json, wiki/reviews.json and images under wiki/images/ may change): tests/sample.test.ts, wiki/coverage.json',
+      'the doc revision changes 2 file(s) outside the documentation since the product commit (only wiki/<lang>/*.md, wiki/manifest.json, the records of wiki/translations/ and wiki/reviews/ and images under wiki/images/ may change): tests/sample.test.ts, wiki/coverage.json',
       // The test file changed: the person's review of the claim no longer holds either.
       "create.rooms: the claim zones-hold's scope is not reviewed: a person reads it, then npm run wiki -- review-claim zones-hold --by <name> --kind human --relation independent",
     ]);
@@ -372,7 +376,7 @@ describe('wiki -- check --publish', () => {
     commit(r.root, 'moved into the wiki');
     const errors = check(r, { productRef: product }, [report(product)]).errors;
     expect(errors.find((e) => e.startsWith('the doc revision changes'))).toBe(
-      'the doc revision changes 3 file(s) outside the documentation since the product commit (only wiki/<lang>/*.md, wiki/manifest.json, wiki/translations.json, wiki/reviews.json and images under wiki/images/ may change): src/code.ts, src/more.ts, wiki/images/notes.txt',
+      'the doc revision changes 3 file(s) outside the documentation since the product commit (only wiki/<lang>/*.md, wiki/manifest.json, the records of wiki/translations/ and wiki/reviews/ and images under wiki/images/ may change): src/code.ts, src/more.ts, wiki/images/notes.txt',
     );
   });
 

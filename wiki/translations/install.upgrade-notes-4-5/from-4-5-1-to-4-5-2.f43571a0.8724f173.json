@@ -1,0 +1,8 @@
+{
+  "enHash": "f43571a038b442c4bdc2bd02f0c286e48f214281ab14e0ddcd9097c39eea9fb6",
+  "frHash": "8724f173fa388e0307fcd5c6b36dd34ec8031ad85c461016443ecfb4b9123a13",
+  "reviewers": [
+    { "name": "claude-452-release", "kind": "ai", "relation": "author", "date": "2026-10-24" },
+    { "name": "LostInBrittany", "kind": "human", "relation": "independent", "date": "2026-10-24" }
+  ]
+}

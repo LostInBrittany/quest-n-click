@@ -12,7 +12,15 @@ import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { globToRegExp } from '../ci-plan';
 import { ROOT } from '../game';
-import { type ClaimState, claimStates, claimsOf, readReviews, readTestReport, type TestReport } from './claims';
+import {
+  type ClaimState,
+  claimStates,
+  claimsOf,
+  readReviews,
+  readTestReport,
+  supersededReviews,
+  type TestReport,
+} from './claims';
 import { CONTRACTS_FILE, checkContracts, readContracts, type SurfaceStatus, surfaceStatuses } from './contracts';
 import { dirtySources } from './bundle';
 import { compareVersions } from './docs';
@@ -582,9 +590,12 @@ function checkClaims(o: {
     reviews,
     commit: o.commit,
   });
-  const known = new Set(inputs.map((c) => c.claim.id));
-  for (const id of Object.keys(reviews.claims))
-    if (!known.has(id)) o.report.warnings.push(`reviews.json: ${id} is no claim of the manifest (remove the record)`);
+  // Records a newer one replaced, or of a claim gone: harmless, said, removed by records --prune (deletions only).
+  const superseded = supersededReviews(reviews, o.report.claims);
+  if (superseded.length)
+    o.report.gaps.push(
+      `reviews: ${superseded.length} record(s) superseded or of a claim gone (${superseded.slice(0, 3).join(', ')}${superseded.length > 3 ? '…' : ''}); npm run wiki -- records --prune removes them (the release's prepare runs it)`,
+    );
   for (const s of o.report.claims) {
     const page = o.manifest.pages.find((p) => p.id === s.page)!;
     if (s.unreferenced) o.report.errors.push(`${s.page}: the claim ${s.id} is not referenced: ${s.unreferenced}`);
@@ -609,13 +620,18 @@ function checkClaims(o: {
 function checkTranslations(wikiDir: string, manifest: Manifest, report: CheckReport, publish: boolean): void {
   const { translations, errors } = readTranslations(wikiDir);
   report.errors.push(...errors);
-  const { pairs, stale } = translationStates(wikiDir, manifest, translations);
+  const { pairs, superseded } = translationStates(wikiDir, manifest, translations);
   report.pairs = pairs;
   for (const p of pairs.filter((x) => x.state === 'to review'))
     (publish ? report.errors : report.warnings).push(
       `translations: ${p.key} is to review (${p.why}): read both sides, then npm run wiki -- translations --ack ${p.key} --by <name> --kind human|ai --relation author|independent`,
     );
-  for (const k of stale) report.warnings.push(`translations.json: ${k} names no section of a written page (remove it)`);
+  // Records a newer one replaced (two branches recorded the same section), or of a section gone: harmless, said,
+  // removed by records --prune, never by an ack (records.ts: an ack only adds, so git merges two of them cleanly).
+  if (superseded.length)
+    report.gaps.push(
+      `translations: ${superseded.length} record(s) superseded or of a section gone (${superseded.slice(0, 3).join(', ')}${superseded.length > 3 ? '…' : ''}); npm run wiki -- records --prune removes them (the release's prepare runs it)`,
+    );
   // A pair recorded by an AI only is said at both levels as what it is, never as a person's reading, and no longer
   // fails a publication: D56 amends A7, whose per-pair reading by a person was the bootstrap's and does not scale. A
   // pair to review still fails one (above); a published claim still needs a person's review (checkClaims).

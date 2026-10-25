@@ -1,0 +1,7 @@
+{
+  "enHash": "83bd89d5c16caaa1c132d2c4efdfffdc93f4e2606fd1d62fd5405e6b57bab03e",
+  "frHash": "e90a1a12b9b5a8c598d3888423be9b9824ded68a717668fa2dd3e3c8069dc2fe",
+  "reviewers": [
+    { "name": "claude-454-baseline", "kind": "ai", "relation": "author", "date": "2026-10-25" }
+  ]
+}

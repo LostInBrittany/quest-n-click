@@ -1,0 +1,8 @@
+{
+  "enHash": "0d1159ade90e21ccffc558b73d21a6d404f58c3b4b4a2389c5fcfa3131490029",
+  "frHash": "db2e8286ec0b8d36b97ccfb656efb244057b03a8c2f63a375e935afb67580fc6",
+  "reviewers": [
+    { "name": "claude-4.5-writers", "kind": "ai", "relation": "author", "date": "2026-10-23" },
+    { "name": "wanoo", "kind": "human", "relation": "independent", "date": "2026-10-24" }
+  ]
+}

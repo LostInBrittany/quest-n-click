@@ -1,0 +1,7 @@
+{
+  "enHash": "6a5a498d72ef2d2e7641853a3169bffc38a170b72ff432fa6daa9d18ca74ceff",
+  "frHash": "33b8c267c3c5dd9bf3f9053c1cb22814d2b919770ec5ac3505f5618bf499e357",
+  "reviewers": [
+    { "name": "claude-451-audit", "kind": "ai", "relation": "author", "date": "2026-10-23" }
+  ]
+}

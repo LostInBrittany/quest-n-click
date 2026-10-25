@@ -1,0 +1,7 @@
+{
+  "enHash": "ff8536e8d61587c1dc0f20b428ccb469544754568c199ffb0db76b527320aaa9",
+  "frHash": "ad8dcd412b7423594965a3f21ef80effbde7eadf6753c05cca75a811502e4b7d",
+  "reviewers": [
+    { "name": "claude-283-npm-stage", "kind": "ai", "relation": "author", "date": "2026-10-24" }
+  ]
+}

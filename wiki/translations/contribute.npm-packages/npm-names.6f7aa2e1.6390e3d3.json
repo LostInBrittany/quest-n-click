@@ -1,0 +1,7 @@
+{
+  "enHash": "6f7aa2e193cfa2b3d081a290a8192b1db79318ee6a32a57197f48f8569f779d7",
+  "frHash": "6390e3d30c4e7314a0ef6f1b675039ac044072374d99f345037dc3d164390612",
+  "reviewers": [
+    { "name": "claude-npm-owner-wanoo", "kind": "ai", "relation": "author", "date": "2026-10-24" }
+  ]
+}

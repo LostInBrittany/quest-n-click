@@ -1,0 +1,7 @@
+{
+  "enHash": "5ab92f2706a02857da09f81cbc2f34079cfc7787ffd6e7cdee045be64e0f406b",
+  "frHash": "68026b95974c4c348dfdb0b02868686edd62177527972b93051139b74fd9c0dc",
+  "reviewers": [
+    { "name": "claude-285-hashed-requirements", "kind": "ai", "relation": "author", "date": "2026-10-24" }
+  ]
+}

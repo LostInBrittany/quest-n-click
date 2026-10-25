@@ -1,0 +1,8 @@
+{
+  "enHash": "c0c9a4888980bbfcd23ad2349f10a3a2f34ff463e69fc85b44226052d065e462",
+  "frHash": "583940aad457a22cbb352127674f0de2dcfcb1eb652f45d474db83bce43792f9",
+  "reviewers": [
+    { "name": "claude-283-npm-stage", "kind": "ai", "relation": "author", "date": "2026-10-24" },
+    { "name": "LostInBrittany", "kind": "human", "relation": "independent", "date": "2026-10-24" }
+  ]
+}

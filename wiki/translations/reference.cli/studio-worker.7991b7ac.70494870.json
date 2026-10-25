@@ -1,0 +1,8 @@
+{
+  "enHash": "7991b7ac0570ee400187cfd9e7cc46823e188507ddf6977eb577565ddfba1b2d",
+  "frHash": "70494870441d71981de880ef6fd4a4aa445e2d0d6fab8136ffa103390b3d3ded",
+  "reviewers": [
+    { "name": "claude-283-scoped", "kind": "ai", "relation": "author", "date": "2026-10-24" },
+    { "name": "LostInBrittany", "kind": "human", "relation": "independent", "date": "2026-10-24" }
+  ]
+}

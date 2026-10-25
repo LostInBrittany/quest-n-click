@@ -1,0 +1,8 @@
+{
+  "enHash": "50cb200801908d3a0e5a975ececfb391dc09ea13559ccad591a592d9d38c07fa",
+  "frHash": "723c0be93007cf89938feb2e38a001dbe915d3a8f7874812895222867f74dab3",
+  "reviewers": [
+    { "name": "claude-452-org", "kind": "ai", "relation": "author", "date": "2026-10-24" },
+    { "name": "LostInBrittany", "kind": "human", "relation": "independent", "date": "2026-10-24" }
+  ]
+}

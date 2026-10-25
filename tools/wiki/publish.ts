@@ -1,8 +1,8 @@
 // What `wiki -- check --publish` adds about the source set (4.5.0 "Wiki", docs/dev/PLAN-4.5-WIKI.md §4.5.2 and
 // §4.5.3, phase A5): published documentation names exactly one published product. The documentation's revision
 // (`--doc-ref`, HEAD by default) descends from the product's (`--product-ref`, a tag or a SHA), and what it changed
-// since is documentation only: `wiki/<lang>/*.md`, `wiki/manifest.json`, `wiki/translations.json`,
-// `wiki/reviews.json` and images under `wiki/images/`, no code and no generator; both sides of a rename are judged.
+// since is documentation only: `wiki/<lang>/*.md`, `wiki/manifest.json`, the records of `wiki/translations/` and
+// `wiki/reviews/` (and the single files they replaced in 4.5.5) and images under `wiki/images/`, no code and no generator; both sides of a rename are judged.
 // The bootstrap's one exception, a `preview` publication of an unreleased 4.5.0, is refused once a release tag
 // `v4.5.0` or later exists, locally or on origin, and refused too when neither can be read: it fails closed.
 import { execFileSync } from 'node:child_process';
@@ -14,7 +14,7 @@ import { SEMVER } from './page';
  * translation and review records, and images (by their extension: an image folder is not a place for code).
  */
 const DOC_ONLY =
-  /^wiki\/((en|fr)\/[^/]+\.md|manifest\.json|translations\.json|reviews\.json|images\/.+\.(png|jpe?g|webp|gif|svg|avif))$/i;
+  /^wiki\/((en|fr)\/[^/]+\.md|manifest\.json|translations\.json|reviews\.json|translations\/[^/]+\/[^/]+\.json|reviews\/[^/]+\.json|images\/.+\.(png|jpe?g|webp|gif|svg|avif))$/i;
 /** The release from which a `preview` publication is refused (§4.5.3). */
 const BOOTSTRAP_UNTIL = '4.5.0';
 
@@ -66,7 +66,7 @@ export function sourceSetProblems(root: string, product: string, doc: string): s
   const outside = [...new Set(changed.filter((f) => !DOC_ONLY.test(f)))];
   return outside.length
     ? [
-        `the doc revision changes ${outside.length} file(s) outside the documentation since the product commit (only wiki/<lang>/*.md, wiki/manifest.json, wiki/translations.json, wiki/reviews.json and images under wiki/images/ may change): ${outside.slice(0, 10).join(', ')}${outside.length > 10 ? '…' : ''}`,
+        `the doc revision changes ${outside.length} file(s) outside the documentation since the product commit (only wiki/<lang>/*.md, wiki/manifest.json, the records of wiki/translations/ and wiki/reviews/ and images under wiki/images/ may change): ${outside.slice(0, 10).join(', ')}${outside.length > 10 ? '…' : ''}`,
       ]
     : [];
 }

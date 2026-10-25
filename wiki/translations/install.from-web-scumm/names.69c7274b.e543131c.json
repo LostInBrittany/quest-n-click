@@ -1,0 +1,7 @@
+{
+  "enHash": "69c7274b82ee953019d84fd4d24b5cf134db89d2e674815259845b620342530e",
+  "frHash": "e543131c8c928dff77dabbf115914d2893facda8decafb76df26c4533e38f88e",
+  "reviewers": [
+    { "name": "claude-283-scoped", "kind": "ai", "relation": "author", "date": "2026-10-24" }
+  ]
+}

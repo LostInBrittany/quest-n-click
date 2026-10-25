@@ -66,7 +66,8 @@ organisation's repository when no fork is a remote, a branch, never `main`) or a
 branch `release/<version>`, it runs what a release branch did by hand, in this order: the version
 (`npm version --no-git-tag-version`), the CHANGELOG section and the LOG entries from the fragments
 (`npm run changes -- --assemble`, which makes its own `## Unreleased` and folds a `.log.md` alone), the LOG's release
-entry, the upgrade notes' section (en and fr), the transition pages, the golden save (listed in
+entry, the upgrade notes' section (en and fr), the transition pages, the superseded wiki records
+(`npm run wiki -- records --prune`), the golden save (listed in
 `tests/fixtures/saves/index.json`), the reference run, the passes sheet and `passIssues`, the README's current-release
 line (the previous summary kept under "Over …"), the quality baseline; one commit, the docs' human gates, then the pull
 request.

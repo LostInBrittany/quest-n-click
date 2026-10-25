@@ -1,0 +1,7 @@
+{
+  "enHash": "04ed187b7aff54161ef97ae11725eea1f93ef3429b432b88ebae5d6feab98885",
+  "frHash": "c9fd017bcd126482e646c26267a821f2ce801fd7f38cc6b76e534839e733a842",
+  "reviewers": [
+    { "name": "claude-360-records", "kind": "ai", "relation": "author", "date": "2026-10-25" }
+  ]
+}

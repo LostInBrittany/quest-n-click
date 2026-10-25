@@ -132,8 +132,8 @@ lesquelles la page n'a pas été écrite.
 
 ## Fichiers ou données modifiés
 
-`wiki/en/<id>.md`, `wiki/fr/<id>.md`, l'entrée de la page dans `wiki/manifest.json` ; `wiki/translations.json` et
-`wiki/reviews.json` par leurs commandes ; des images sous `wiki/images/` seulement.
+`wiki/en/<id>.md`, `wiki/fr/<id>.md`, l'entrée de la page dans `wiki/manifest.json` ; les fiches de `wiki/translations/` et
+`wiki/reviews/` par leurs commandes ; des images sous `wiki/images/` seulement.
 
 <a name="recovery"></a>
 
@@ -155,8 +155,8 @@ version publiée est une nouvelle révision `r<n>` faite depuis une branche `doc
 | `wiki/images/` | Les seules images qu'une page peut montrer (`../images/<fichier>` depuis une page) |
 | `wiki/coverage.json` | La matrice de couverture : chaque section de l'ancienne documentation et ses destinations |
 | `wiki/legacy.json` | Pour chacune des huit pages de `read_doc { name }`, les sections ordonnées qui la reconstruisent |
-| `wiki/translations.json` | Quelle révision de chaque langue a été lue contre l'autre, et par qui |
-| `wiki/reviews.json` | Quelles garanties ont vu leur portée lue contre leur test, et par qui |
+| `wiki/translations/<id>/<section>.<en8>.<fr8>.json` | Quelle révision de chaque langue a été lue contre l'autre, et par qui : un fichier par fiche |
+| `wiki/reviews/<garantie>.<texte8>.<test8>.json` | Quelles garanties ont vu leur portée lue contre leur test, et par qui : un fichier par fiche |
 | `wiki/data/env.json`, `wiki/data/glossary.json` | Le registre des variables d'environnement et le glossaire bilingue |
 | `wiki/acceptance/questions.json` | Les vraies questions auxquelles la documentation doit répondre, avec des contre-exemples |
 
@@ -297,11 +297,24 @@ différer ; les commandes shell restent identiques, commentaires à part.
 
 ## Référence : traductions et relectures
 
-`wiki/translations.json` consigne, pour chaque section `<id>#<section>` d'une page `ready` (`<id>#_lead` pour le texte
+`wiki/translations/` consigne, pour chaque section `<id>#<section>` d'une page `ready` (`<id>#_lead` pour le texte
 avant la première section), l'empreinte de chaque langue lue contre l'autre et ses relecteurs. Quand l'un des textes,
 ou une image que montre la section, change, la paire est « à relire » : un avertissement au niveau de travail, une
-erreur pour `check --publish`. `wiki/reviews.json` consigne la même chose pour la portée d'une garantie (les empreintes
+erreur pour `check --publish`. `wiki/reviews/` consigne la même chose pour la portée d'une garantie (les empreintes
 du texte de la garantie et de son fichier de test).
+
+Chaque fiche est un fichier à part, nommé par sa clé et les 8 premiers caractères hexadécimaux de ses deux empreintes :
+`wiki/translations/create.rooms/walkable-zones.<en8>.<fr8>.json`, `wiki/reviews/<garantie>.<texte8>.<test8>.json`. Une
+commande ne fait qu'ajouter un fichier (ou un relecteur à la fiche des mêmes textes), elle n'en supprime jamais : deux
+pull requests qui modifient et consignent la même section écrivent deux fichiers, et git les fusionne sans conflit. Une
+section est jugée sur sa fiche des textes actuels ; après une telle fusion le texte est le plus souvent un troisième, et
+le contrôle dit que la paire est à relire, comme pour tout changement. Les fiches qu'une plus récente remplace sont
+listées parmi les manques du contrôle et retirées par `records --prune`, que lance le `prepare` de la release ; lancez-le
+dans une pull request à part, jamais à côté d'une consignation (une suppression voisine d'un ajout peut être fusionnée
+par git comme un renommage, donc un conflit). Jusqu'à 4.5.4 c'étaient deux fichiers, `wiki/translations.json` et
+`wiki/reviews.json` : tant que l'un d'eux est là, le contrôle échoue et dit de lancer `records --migrate`, qui déplace
+ses fiches dans les dossiers et le supprime. On peut le relancer après avoir fusionné une branche qui a encore l'ancien
+fichier : il ajoute ce qui manque au dossier et ne perd rien.
 
 Chaque relecteur est `{ name, kind: human|ai, relation: author|independent, date }`, et les deux commandes exigent
 `--by`, `--kind` et `--relation`. Le même texte relu ajoute un relecteur ; un texte changé repart de zéro. Une garantie
@@ -331,6 +344,7 @@ Toutes se lancent dans le dépôt du moteur, sous la forme `npm run wiki -- <com
 | `bundle --out <dossier> [--build-id <id>] [--allow-dirty]` | La documentation que porte un moteur installé (`scripts/pack.mjs` la lance) ; refuse des sources différentes de `HEAD` sauf avec `--allow-dirty`, qui la marque `-dirty` |
 | `translations --ack <id#section> --by <nom> --kind human\|ai --relation author\|independent` | Consigne qu'une paire a été lue |
 | `review-claim <id> --by … --kind … --relation …` | Consigne que la portée d'une garantie a été lue |
+| `records --prune`, `records --migrate` | Retire les fiches remplacées (des suppressions seulement, le `prepare` de la release le lance) ; verse les fichiers uniques de 4.5.4 dans `wiki/translations/` et `wiki/reviews/` |
 | `coverage [--ack <clé>]`, `coverage --init [--force]` | Fusionne un nouvel inventaire des anciennes docs dans la matrice, régénère `legacy.json` et les `replaces` du manifeste ; `--init` prend le premier inventaire (`--force` remplace une matrice existante, en perdant chaque décision) |
 | `acceptance [--lang en\|fr] [--json] [--strict]` | Passe les vraies questions dans `search_docs` ; sort en 0 (rapporté) sauf avec `--strict` ; `--export-prompts <dossier>` écrit à la place les consignes du test par une IA lectrice |
 | `env` | Régénère la référence des variables d'environnement depuis `wiki/data/env.json` et le code |

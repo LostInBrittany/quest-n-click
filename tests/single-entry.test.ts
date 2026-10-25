@@ -85,8 +85,6 @@ const WRITERS: Record<string, string> = {
     'elsewhere: the wiki build, in the folder named by --out (outside the working tree, or under .cache/)',
   'tools/wiki/bundle.ts':
     "elsewhere: the documentation bundle, in the folder named by --out (a package's docs-bundle/, never under a folder the repository tracks)",
-  'tools/wiki/claims.ts':
-    "elsewhere: wiki/reviews.json, the claims' scope reviews `wiki -- review-claim` records (of the folder --wiki names)",
   'tools/wiki/coverage.ts':
     "elsewhere: the coverage matrix and what it generates, wiki/coverage.json, wiki/legacy.json and the manifest's replaces in wiki/manifest.json (of the folder --wiki names)",
   'tools/wiki.ts': 'elsewhere: the documentation archive, the file named by `wiki -- archive --out`',
@@ -98,10 +96,10 @@ const WRITERS: Record<string, string> = {
     "elsewhere: the site's /docs/, into the empty folder named by `wiki -- pages --out` (the organization's site builds it)",
   'tools/wiki/publication.ts':
     "elsewhere: a clone of the wiki's repository in a temporary folder (its pages and publication.json, pushed), and the deploy key (0600) beside it",
+  'tools/wiki/records.ts':
+    "elsewhere: wiki/translations/ and wiki/reviews/, one file per record: the pairs `wiki -- translations --ack` and the claims' scope reviews `wiki -- review-claim` record, added only; `wiki -- records --prune` deletes the superseded ones, `--migrate` folds the single files of 4.5.4 in and deletes them (of the folder --wiki names)",
   'tools/wiki/transition.ts':
     'elsewhere: the transition pages docs/en|fr/*.md (C2), under the root `wiki -- transition --root` names',
-  'tools/wiki/translations.ts':
-    'elsewhere: wiki/translations.json, the pairs `wiki -- translations --ack` records (of the folder --wiki names)',
   'tools/field/bundle.ts': 'elsewhere: field bundles',
   'tools/field/field.ts': 'elsewhere: field reports',
   'tools/field/surfaces.mjs': 'elsewhere: qualification surfaces',

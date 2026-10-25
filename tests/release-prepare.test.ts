@@ -281,6 +281,7 @@ describe('the command', () => {
       'changelog',
       'upgrade notes',
       'transition pages',
+      'wiki records',
       'golden save',
       'reference run',
       'passes',

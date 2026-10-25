@@ -1,0 +1,7 @@
+{
+  "enHash": "888d150336c237329cda48e5a6780c32a9d72a983059146d053913f2465b8cff",
+  "frHash": "fa03536ed93736fc50ec4d7f349ebc43cc34565f533b9f99f59f5ecf6c7a5724",
+  "reviewers": [
+    { "name": "claude-452-org", "kind": "ai", "relation": "author", "date": "2026-10-24" }
+  ]
+}

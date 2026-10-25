@@ -1,0 +1,7 @@
+{
+  "enHash": "218341a99b2bbc9ad6076ffb5dac9e2ba36633c52bfbd8dd28f29f357e71d9c0",
+  "frHash": "c68c63aff65d93df4fcfcfb83e2069b505ee504533c1f7b3cc6419c040e75af0",
+  "reviewers": [
+    { "name": "claude-329-nightly-mutation", "kind": "ai", "relation": "author", "date": "2026-10-25" }
+  ]
+}

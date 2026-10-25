@@ -130,8 +130,8 @@ the test keeps measuring wordings the page was not written for.
 
 ## Files or data changed
 
-`wiki/en/<id>.md`, `wiki/fr/<id>.md`, the page's entry in `wiki/manifest.json`; `wiki/translations.json` and
-`wiki/reviews.json` through their commands; images under `wiki/images/` only.
+`wiki/en/<id>.md`, `wiki/fr/<id>.md`, the page's entry in `wiki/manifest.json`; the records of `wiki/translations/` and
+`wiki/reviews/` through their commands; images under `wiki/images/` only.
 
 <a name="recovery"></a>
 
@@ -153,8 +153,8 @@ workflow, never an edit of what was published.
 | `wiki/images/` | The only images a page may show (`../images/<file>` from a page) |
 | `wiki/coverage.json` | The coverage matrix: every section of the old documentation and its destinations |
 | `wiki/legacy.json` | For each of the eight `read_doc { name }` pages, the ordered sections that rebuild it |
-| `wiki/translations.json` | Which revision of each language was read against the other, and by whom |
-| `wiki/reviews.json` | Which claims' scope was read against their test, and by whom |
+| `wiki/translations/<id>/<section>.<en8>.<fr8>.json` | Which revision of each language was read against the other, and by whom: one file per record |
+| `wiki/reviews/<claim>.<text8>.<test8>.json` | Which claims' scope was read against their test, and by whom: one file per record |
 | `wiki/data/env.json`, `wiki/data/glossary.json` | The environment variable register and the bilingual glossary |
 | `wiki/acceptance/questions.json` | The real questions the documentation must answer, with counter-examples |
 
@@ -292,11 +292,23 @@ the same step ids, the same section versions, and a measure's same date, version
 
 ## Reference: translations and reviews
 
-`wiki/translations.json` records, for each section `<id>#<section>` of a `ready` page (`<id>#_lead` for the text before
+`wiki/translations/` records, for each section `<id>#<section>` of a `ready` page (`<id>#_lead` for the text before
 the first section), the hash of each language that was read against the other and its reviewers. When either text, or
 an image the section shows, changes, the pair is "to review": a warning at the work level, an error for
-`check --publish`. `wiki/reviews.json` records the same for a claim's scope (the hashes of the claim's text and of its
+`check --publish`. `wiki/reviews/` records the same for a claim's scope (the hashes of the claim's text and of its
 test file).
+
+Each record is a file of its own, named by its key and the first 8 hex of its two hashes:
+`wiki/translations/create.rooms/walkable-zones.<en8>.<fr8>.json`, `wiki/reviews/<claim>.<text8>.<test8>.json`. A command
+only adds a file (or a reviewer to the record of the same texts), never deletes one, so two pull requests that edit and
+record the same section write two files and git merges them with no conflict. A section is judged by its record of the
+current texts; after such a merge the text is usually a third one, and the check says the pair is to review, as for any
+change. The records a newer one superseded are listed among the check's gaps and removed by `records --prune`, which the
+release's `prepare` runs; run it in a pull request of its own, never beside an ack (a deletion next to an addition can be
+merged by git as a rename, a conflict again). Until 4.5.4 they were two files, `wiki/translations.json` and
+`wiki/reviews.json`: while one is present, the check fails and says to run `records --migrate`, which moves its records
+into the folders and deletes it. It can run again after merging a branch that still has the old file: it adds what the
+folder lacks and loses nothing.
 
 Each reviewer is `{ name, kind: human|ai, relation: author|independent, date }`, and both commands require `--by`,
 `--kind` and `--relation`. The same text read again adds a reviewer; a changed text starts over. A published claim
@@ -325,6 +337,7 @@ All run in the engine repository as `npm run wiki -- <command>`.
 | `bundle --out <dir> [--build-id <id>] [--allow-dirty]` | The documentation an installed engine carries (`scripts/pack.mjs` runs it); refuses sources that differ from `HEAD` unless `--allow-dirty`, which marks it `-dirty` |
 | `translations --ack <id#section> --by <name> --kind human\|ai --relation author\|independent` | Records that a pair was read |
 | `review-claim <id> --by … --kind … --relation …` | Records that a claim's scope was read |
+| `records --prune`, `records --migrate` | Removes the superseded records (deletions only, the release's `prepare` runs it); folds the single files of 4.5.4 into `wiki/translations/` and `wiki/reviews/` |
 | `coverage [--ack <key>]`, `coverage --init [--force]` | Merges a new inventory of the old docs into the matrix, regenerates `legacy.json` and the manifest's `replaces`; `--init` takes the first inventory (`--force` replaces an existing matrix, losing every decision) |
 | `acceptance [--lang en\|fr] [--json] [--strict]` | Runs the real questions through `search_docs`; exits 0 (reported) unless `--strict`; `--export-prompts <dir>` writes the prompts of an AI reader's test instead |
 | `env` | Regenerates the environment variable reference from `wiki/data/env.json` and the code |
