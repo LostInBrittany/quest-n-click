@@ -1,4 +1,7 @@
 // npm run release -- <x.y.z> [--key=<ssh public key>] [--start-candidate] [--docs-revision] [--reverify] [--dry-run]
+// (4.5.5, #348) The candidate wait re-runs once by the run's attempt number (a relaunch keeps the budget), re-runs a run
+// cancelled before any job failed whole, and stops after 3 h an attempt, saying how to resume (candidateStep). Run end to
+// end by tests/release-command.test.ts, its waits on lib.mjs's clock.
 // (4.5.5, #343) A resumed run skips `ship verify` when it passed for exactly this release (verifyOnce, below);
 // --reverify runs it anyway.
 // (4.5.5, #339) Its preflight also checks the docs' human gates on the release commit's own tree (a temporary
@@ -22,9 +25,9 @@ import { existsSync, mkdtempSync, readFileSync, rmSync, symlinkSync } from 'node
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { releaseNotes } from '../../scripts/release-notes.mjs';
-import { humanGates } from './prepare';
+import { humanGates } from './gates';
 // @ts-expect-error: a plain .mjs module without declarations
-import { REPO, releaseRemote } from './lib.mjs';
+import { clock, REPO, releaseRemote, sleep } from './lib.mjs';
 // @ts-expect-error: a plain .mjs module without declarations
 import { MINIMUM, NPM_NAMES, OWNERS } from './preflight.mjs';
 import { mkdirSync, writeFileSync } from 'node:fs';
@@ -173,6 +176,60 @@ export function candidateProgress(jobs: readonly Job[]): string {
   ].join(' · ');
 }
 
+/** How long the command waits for a candidate attempt before it stops (#348): about twice its 90 minutes. */
+export const CANDIDATE_DEADLINE_MS = 180 * 60_000;
+
+interface CandidateView {
+  status: string;
+  conclusion: string;
+  /** The run's attempt (`gh run view --json attempt`): 2 once it was re-run, by this command or anyone. */
+  attempt?: number;
+  jobs: readonly Job[];
+}
+
+/**
+ * What the wait does with a view of the candidate (#348). Green: done. Failed or cancelled on its first attempt: re-run
+ * once, its failed jobs, or the whole run when none failed (cancelled before any did). Failed on a later attempt: stop,
+ * whoever re-ran it, so a relaunch never spends a second re-run. Asked to re-run while GitHub still shows the old
+ * attempt: wait. Still going after the deadline: stop, saying where it is and how to resume.
+ */
+export function candidateStep(
+  view: CandidateView,
+  o: { id: number; version: string; rerunAsked: boolean; waitedMs: number },
+): { do: 'done' } | { do: 'wait' } | { do: 'rerun'; args: string[]; line: string } | { do: 'stop'; error: string } {
+  const url = `https://github.com/${REPO}/actions/runs/${o.id}`;
+  if (view.status !== 'completed') {
+    if (o.waitedMs < CANDIDATE_DEADLINE_MS) return { do: 'wait' };
+    return {
+      do: 'stop',
+      error: `candidate run ${o.id} not done after ${Math.round(o.waitedMs / 60_000)} min (${candidateProgress(view.jobs)}): it goes on on GitHub (${url}); run npm run release -- ${o.version} again to resume, it picks the run up where it is`,
+    };
+  }
+  if (view.conclusion === 'success') return { do: 'done' };
+  const failed = view.jobs
+    .filter((j) => j.status === 'completed' && !['success', 'skipped'].includes(j.conclusion))
+    .map((j) => `${j.name} ${j.conclusion}`);
+  const attempt = view.attempt ?? 1;
+  if (attempt > 1)
+    return {
+      do: 'stop',
+      error: `candidate run ${o.id} ${view.conclusion === 'failure' ? 'failed' : view.conclusion} again (attempt ${attempt}): ${failed.join(', ') || 'no job failed'} (${url}). It was re-run once already: fix what failed, then re-run it by hand (gh run rerun ${o.id} --repo ${REPO} --failed) and run npm run release -- ${o.version} again`,
+    };
+  if (o.rerunAsked) return { do: 'wait' };
+  const args = ['run', 'rerun', String(o.id), '--repo', REPO];
+  if (failed.length)
+    return {
+      do: 'rerun',
+      args: [...args, '--failed'],
+      line: `candidate ${view.conclusion} (${failed.join(', ')}): re-running its failed jobs once`,
+    };
+  return {
+    do: 'rerun',
+    args,
+    line: `candidate ${view.conclusion} before any job failed: re-running the whole run once`,
+  };
+}
+
 /**
  * The release run, as the command needs it: npm waits for `release` and `npm-stage`, nothing else. The documentation's
  * jobs are said apart: a docs problem never holds back npm (part E), a docs revision fixes it.
@@ -274,7 +331,6 @@ const quiet = (cmd: string, args: string[]) => {
 };
 const loud = (cmd: string, args: string[]) => spawnSync(cmd, args, { cwd: ROOT(), stdio: 'inherit' }).status ?? 1;
 const say = (s: string) => console.log(`${new Date().toISOString().slice(11, 19)}  ${s}`);
-const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 const MINUTE = 60_000;
 const home = (p: string) => p.replace(/^~(?=\/)/, process.env.HOME ?? '~');
 
@@ -331,7 +387,7 @@ function findReleaseCommit(remote: string, version: string): string | undefined 
   return releaseCommit(history, version);
 }
 
-async function waitForCandidate(sha: string, startIt: boolean): Promise<number> {
+async function waitForCandidate(sha: string, version: string, startIt: boolean): Promise<number> {
   const runsOf = () =>
     ghJson<Run[]>([
       'run',
@@ -346,14 +402,14 @@ async function waitForCandidate(sha: string, startIt: boolean): Promise<number> 
       'databaseId,event,headBranch,headSha,status,conclusion,createdAt',
     ]);
   const viewOf = (id: number) =>
-    ghJson<{ status: string; conclusion: string; jobs: Job[] }>([
+    ghJson<CandidateView & { jobs: Job[] }>([
       'run',
       'view',
       String(id),
       '--repo',
       REPO,
       '--json',
-      'status,conclusion,jobs',
+      'status,conclusion,jobs,attempt',
     ]);
   const find = async () => {
     for (const r of candidateRuns(await runsOf(), sha)) if (isCandidateRun((await viewOf(r.databaseId)).jobs)) return r;
@@ -373,30 +429,36 @@ async function waitForCandidate(sha: string, startIt: boolean): Promise<number> 
       `no candidate of ${sha.slice(0, 7)} on main: the release pull request's merge starts one; or run again with --start-candidate`,
     );
   say(
-    `candidate run ${run.databaseId} (${run.event}, about 90 min): https://github.com/${REPO}/actions/runs/${run.databaseId}`,
+    `candidate run ${run.databaseId} (${run.event}, about 90 min, given up after ${CANDIDATE_DEADLINE_MS / 60 / MINUTE} h an attempt): https://github.com/${REPO}/actions/runs/${run.databaseId}`,
   );
-  const started = Date.now();
-  let rerun = false;
+  // The re-run budget is the run's attempt number (candidateStep), never this process's memory: a relaunch keeps it.
+  let started = clock();
+  let rerunAsked = false;
   let last = '';
   let said = 0;
   for (;;) {
     const view = await viewOf(run.databaseId);
+    if ((view.attempt ?? 1) > 1) rerunAsked = false; // the attempt asked for is the one shown now
     const line = candidateProgress(view.jobs);
     // Each change said, and a line every five minutes anyway.
-    if (line !== last || Date.now() - said >= 5 * MINUTE) {
-      say(`candidate (${Math.round((Date.now() - started) / MINUTE)} min): ${line}`);
-      said = Date.now();
+    if (line !== last || clock() - said >= 5 * MINUTE) {
+      say(`candidate (${Math.round((clock() - started) / MINUTE)} min): ${line}`);
+      said = clock();
     }
     last = line;
-    if (view.status === 'completed') {
-      if (view.conclusion === 'success') return run.databaseId;
-      const failed = view.jobs
-        .filter((j) => j.status === 'completed' && !['success', 'skipped'].includes(j.conclusion))
-        .map((j) => `${j.name} (${j.conclusion})`);
-      if (rerun) throw new Error(`candidate run ${run.databaseId} failed again: ${failed.join(', ')}`);
-      say(`candidate ${view.conclusion} (${failed.join(', ')}): re-running its failed jobs once`);
-      sh('gh', ['run', 'rerun', String(run.databaseId), '--repo', REPO, '--failed']);
-      rerun = true;
+    const step = candidateStep(view, {
+      id: run.databaseId,
+      version,
+      rerunAsked,
+      waitedMs: clock() - started,
+    });
+    if (step.do === 'done') return run.databaseId;
+    if (step.do === 'stop') throw new Error(step.error);
+    if (step.do === 'rerun') {
+      say(step.line);
+      sh('gh', step.args);
+      rerunAsked = true;
+      started = clock(); // the new attempt has its own deadline
     }
     await sleep(MINUTE);
   }
@@ -586,7 +648,7 @@ export async function runRelease(
   }
   if (refusals.length || !sha) process.exit(1);
   say(`preflight: ✔  release commit ${sha.slice(0, 7)}, ${version}, signed, gh and npm (${npmUser.out}) ready`);
-  const candidate = await waitForCandidate(sha, opts.startCandidate);
+  const candidate = await waitForCandidate(sha, version, opts.startCandidate);
   say(`tag: ship tag ${version} ${sha.slice(0, 7)} --candidate=${candidate} --sign`);
   const tag = ['tools/release/ship.mjs', 'tag', version, sha, `--candidate=${candidate}`, '--sign', '--no-watch'];
   if (opts.key) tag.push(`--key=${home(opts.key)}`);

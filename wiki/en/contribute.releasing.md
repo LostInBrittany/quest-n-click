@@ -58,8 +58,10 @@ npm run release -- prepare 4.5.4 --name="Simple release"   # --dry-run lists the
 
 It refuses, before writing anything: a version that is not `x.y.z` greater than `package.json`'s, uncommitted changes,
 another branch, a shallow clone, a `main` that is not the organisation's (behind or ahead, or no remote names the
-organisation's repository), no fragment in `changes/`, a new minor whose upgrade-notes page does not exist yet, and,
-unless `--no-pr`, no place to push (your fork: `origin` when it is one, else the only fork among the remotes; the
+organisation's repository), no fragment in `changes/`, a new minor whose upgrade-notes page does not exist yet, a
+release name the files cannot hold as written (4.5.5, #348: one with `( ) [ ] " « » \` \ $ < > |`, which the README's
+release link, the CHANGELOG's quotes or the command it prints would break), a newest passes sheet without its
+`<!-- field:begin -->` marker (the table it copies starts there), and, unless `--no-pr`, no place to push (your fork: `origin` when it is one, else the only fork among the remotes; the
 organisation's repository when no fork is a remote, a branch, never `main`) or a `gh` that is not signed in. Then, on the
 branch `release/<version>`, it runs what a release branch did by hand, in this order: the version
 (`npm version --no-git-tag-version`), the CHANGELOG section and the LOG entries from the fragments
@@ -103,8 +105,9 @@ To check the branch at any point:
 npm run release -- check 4.5.4
 ```
 
-It says, item by item, whether `package.json` is at the version, the CHANGELOG has its section, a `TODO(release)` is
-left, `npm run wiki -- check` warns, the docs' human gates hold (`wiki -- check --publish --reviews-only`: a claim or a
+It says, item by item, whether `package.json` is at the version, the CHANGELOG has its section, the passes sheet
+`docs/dev/passes/<version>.md` and the golden save (its entry in `tests/fixtures/saves/index.json` and its file) are
+there (4.5.5, #348), a `TODO(release)` is left, `npm run wiki -- check` warns, the docs' human gates hold (`wiki -- check --publish --reviews-only`: a claim or a
 pair a person must read, each printed with its command), and the quality baseline holds. The release pull request's
 CI runs it too, with the version its branch names: merge when every item is ✔, and the merge starts the candidate.
 
@@ -122,7 +125,10 @@ It refuses first what would fail later (`package.json` not at the version, anoth
 not the organisation's, no CHANGELOG section, no SSH signing key, `gh` or `npm` not signed in, an npm user who is not
 an owner). Then it finds the candidate the merge started on that commit (`--start-candidate` starts one when there is
 none) and waits for it (about 90 minutes), saying how many jobs are done and which run at each change and every five
-minutes, re-running its failed jobs once; then `ship tag … --sign`: main's `ci`, the signed tag pushed to the
+minutes, re-running its failed jobs once (the whole run when it was cancelled before any job failed). Once is the
+run's: its attempt number says it was re-run, by the command or by hand, so a relaunch never re-runs it a second time
+(4.5.5, #348); the same holds for `ship`'s re-run of main's `ci`. An attempt still going after 3 hours stops the
+command, with the run's link and the same command to resume; then `ship tag … --sign`: main's `ci`, the signed tag pushed to the
 organisation's repository; then it follows the release run job by job until `release` and `npm-stage` succeed (the
 documentation's jobs are said, never waited on: a docs problem never holds back npm), verifies the release's files,
 and approves the npm packages the release staged, each with your 2FA in your terminal, the engine first; then one

@@ -79,7 +79,17 @@ export function writePid(name) {
   return file;
 }
 
-export const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+/**
+ * The release's waits run on this clock (#348). `QNC_RELEASE_CLOCK=virtual` (tests/release-command.test.ts, which runs
+ * the release command end to end against fake gh, npm and ship) makes a sleep advance it at once: three hours of
+ * polling take no time, and every deadline is judged on the same clock.
+ */
+let virtual = process.env.QNC_RELEASE_CLOCK === 'virtual' ? Date.now() : undefined;
+export const clock = () => virtual ?? Date.now();
+export const sleep = (ms) =>
+  virtual === undefined
+    ? new Promise((r) => setTimeout(r, ms))
+    : ((virtual += ms), new Promise((r) => setImmediate(r)));
 
 /** The time, for the log lines. */
 export const now = () => new Date().toISOString().slice(11, 19);
@@ -95,11 +105,11 @@ export const warn = (s) => {
  * `probe` may return a promise.
  */
 export async function until(probe, { everyMs = 60_000, deadlineMs = 90 * 60_000, what = 'the condition' } = {}) {
-  const end = Date.now() + deadlineMs;
+  const end = clock() + deadlineMs;
   for (;;) {
     const v = await probe();
     if (v !== undefined) return v;
-    if (Date.now() > end) throw new Error(`gave up waiting for ${what} after ${Math.round(deadlineMs / 60_000)} min`);
+    if (clock() > end) throw new Error(`gave up waiting for ${what} after ${Math.round(deadlineMs / 60_000)} min`);
     await sleep(everyMs);
   }
 }

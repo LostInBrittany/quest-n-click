@@ -4,7 +4,9 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import {
+  CANDIDATE_DEADLINE_MS,
   candidateProgress,
+  candidateStep,
   isCandidateRun,
   pickCandidate,
   RELEASE_STEPS,
@@ -311,5 +313,80 @@ describe('ship verify once per release, on a resumed run (#343)', () => {
     // Read before and after the verify: the record is written only when nothing moved in between.
     expect(once.indexOf('const before = ')).toBeLessThan(once.indexOf("'verify', version"));
     expect(once.indexOf("'verify', version")).toBeLessThan(once.indexOf('writeFileSync('));
+  });
+});
+
+describe('the candidate wait: a deadline, one re-run that a relaunch keeps, what a cancelled run says (#348)', () => {
+  const job = (name: string, status: string, conclusion = '') => ({ name, status, conclusion });
+  const view = (o: Record<string, unknown>) => ({
+    status: 'completed',
+    conclusion: 'failure',
+    attempt: 1,
+    jobs: [job('target', 'completed', 'success'), job('heavy (2)', 'completed', 'failure')],
+    ...o,
+  });
+  const at = { id: 42, version: '4.5.5', rerunAsked: false, waitedMs: 0 };
+  it('gives up after three hours, says where the run is and how to resume', () => {
+    expect(CANDIDATE_DEADLINE_MS).toBe(180 * 60_000);
+    const running = view({ status: 'in_progress', conclusion: '', jobs: [job('heavy (1)', 'in_progress')] });
+    expect(candidateStep(running, { ...at, waitedMs: CANDIDATE_DEADLINE_MS - 1 })).toEqual({ do: 'wait' });
+    const stop = candidateStep(running, { ...at, waitedMs: CANDIDATE_DEADLINE_MS });
+    expect(stop.do).toBe('stop');
+    if (stop.do !== 'stop') return;
+    expect(stop.error).toMatch(/candidate run 42 not done after 180 min \(0\/1 jobs done · running: heavy \(1\)\)/);
+    expect(stop.error).toContain('https://github.com/Quest-n-Click/quest-n-click/actions/runs/42');
+    expect(stop.error).toContain('npm run release -- 4.5.5');
+  });
+  it('is done on a green run', () => {
+    expect(candidateStep(view({ conclusion: 'success' }), at)).toEqual({ do: 'done' });
+  });
+  it("re-runs a first attempt's failed jobs once, naming them", () => {
+    expect(candidateStep(view({}), at)).toEqual({
+      do: 'rerun',
+      args: ['run', 'rerun', '42', '--repo', 'Quest-n-Click/quest-n-click', '--failed'],
+      line: 'candidate failure (heavy (2) failure): re-running its failed jobs once',
+    });
+  });
+  it('re-runs a run cancelled before any job failed whole, and never says an empty list', () => {
+    const cancelled = view({ conclusion: 'cancelled', jobs: [job('target', 'completed', 'success')] });
+    const step = candidateStep(cancelled, at);
+    expect(step).toEqual({
+      do: 'rerun',
+      args: ['run', 'rerun', '42', '--repo', 'Quest-n-Click/quest-n-click'],
+      line: 'candidate cancelled before any job failed: re-running the whole run once',
+    });
+    expect(JSON.stringify(step)).not.toContain('()');
+    expect(candidateStep(view({ conclusion: 'cancelled', jobs: [] }), at).do).toBe('rerun');
+  });
+  it('stops on a second attempt that failed, whoever re-ran it: the budget is the run’s, not the process’s', () => {
+    const again = candidateStep(view({ attempt: 2 }), at);
+    expect(again.do).toBe('stop');
+    if (again.do !== 'stop') return;
+    expect(again.error).toMatch(/candidate run 42 failed again \(attempt 2\): heavy \(2\) failure/);
+    const cancelled = candidateStep(view({ attempt: 2, conclusion: 'cancelled', jobs: [] }), at);
+    expect(cancelled.do === 'stop' && cancelled.error).toMatch(/cancelled again \(attempt 2\): no job failed/);
+  });
+  it('waits for the attempt it asked for while GitHub still shows the old one', () => {
+    expect(candidateStep(view({}), { ...at, rerunAsked: true })).toEqual({ do: 'wait' });
+  });
+  it('waitForCandidate asks gh for the attempt and decides through candidateStep', () => {
+    const src = readFileSync('tools/release/release-run.ts', 'utf8');
+    const wait = src.slice(
+      src.indexOf('async function waitForCandidate('),
+      src.indexOf('async function followRelease('),
+    );
+    expect(wait).toContain("'status,conclusion,jobs,attempt'");
+    expect(wait).toContain('candidateStep(');
+    expect(wait).not.toMatch(/let rerun = false/);
+  });
+});
+
+describe('the dispatch from prepare.ts (#348)', () => {
+  it("release-run never imports prepare: prepare's top-level await of release-run would never settle", () => {
+    // 4.5.5 (#341) imported humanGates from ./prepare: `npm run release -- <version>` exited at once, saying nothing but
+    // "Detected unsettled top-level await". The end-to-end test (tests/release-command.test.ts) runs the dispatch.
+    const src = readFileSync('tools/release/release-run.ts', 'utf8');
+    expect(src).not.toMatch(/from '\.\/prepare'/);
+    expect(readFileSync('tools/release/prepare.ts', 'utf8')).toContain("await import('./release-run')");
   });
 });

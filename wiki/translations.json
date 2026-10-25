@@ -5176,10 +5176,10 @@
       ]
     },
     "contribute.releasing#prepare": {
-      "enHash": "d9a23b601e801ea32beb3dc5120aee6af8b9c9a69b613f9934e5024dffe60bb2",
-      "frHash": "9355c8c3deded5dc7f6ed66644ab8a367f453c600c1afed6290ee063e85ac3e7",
+      "enHash": "f6a611309e3f1556f217d67db6920298b4d4709866a006fef8d9797bf8693367",
+      "frHash": "6c7ef44770b66c496f5759cc6eb9e2655312243e5af7aae7f76933671bdd2e9d",
       "reviewers": [
-        { "name": "claude-prepare-warmup", "kind": "ai", "relation": "author", "date": "2026-10-25" }
+        { "name": "claude-release-hardening", "kind": "ai", "relation": "author", "date": "2026-10-25" }
       ]
     },
     "contribute.releasing#prerequisites": {
@@ -5205,10 +5205,10 @@
       ]
     },
     "contribute.releasing#release-command": {
-      "enHash": "8d5fa6c242fda3b4fae576c369f5dbf63778d68e880139100b28a39deaf8db67",
-      "frHash": "79936dc9d4d0fe10cc10154de5e871126efc60e72a1505a2a4af38c9040c344b",
+      "enHash": "6a1ab028868b4906ccab7bcc422eae8f04982e68551aa0ece46b1c59c04e4e33",
+      "frHash": "ffc78ec777c2affe8a1a8f4914d2028fb09f6d378a7f9247d1f89311f57cbdab",
       "reviewers": [
-        { "name": "claude-release-verify-once", "kind": "ai", "relation": "author", "date": "2026-10-25" }
+        { "name": "claude-release-hardening", "kind": "ai", "relation": "author", "date": "2026-10-25" }
       ]
     },
     "contribute.releasing#ship-commands": {
@@ -14940,6 +14940,13 @@
       "reviewers": [
         { "name": "claude-a7", "kind": "ai", "relation": "author", "date": "2026-10-23" },
         { "name": "wanoo", "kind": "human", "relation": "independent", "date": "2026-10-24" }
+      ]
+    },
+    "reference.environment-variables#qnc-release-clock": {
+      "enHash": "f0573f19c36b97527b3c88d3642ccc0f996e21b4cba58eb2998b441775bbd86d",
+      "frHash": "5ecf766e3fd082ddd9aefe6c630b94f0ca80335602965b273eb9ea2ab841ed0f",
+      "reviewers": [
+        { "name": "claude-release-hardening", "kind": "ai", "relation": "author", "date": "2026-10-25" }
       ]
     },
     "reference.environment-variables#qualify-app": {

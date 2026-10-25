@@ -21,6 +21,7 @@ import { fragmentFiles, lastLogNumber } from '../changes';
 import { formatJson } from '../wiki/json';
 // @ts-expect-error: a plain .mjs module without declarations
 import { REPO, releaseRemote } from './lib.mjs';
+import { humanGates, type Run } from './gates';
 
 const TODO = 'TODO(release)';
 
@@ -48,8 +49,23 @@ export const releaseHeading = (version: string, date: string) => `## ${version} 
 
 /** The paragraph that opens a release's CHANGELOG section: the LOG range, the name, what it follows; the rest to write. */
 export function changelogIntro(o: { version: string; name: string; previous: string; first: number; last: number }) {
-  const kind = parts(o.version)[2] > 0 ? 'a patch on' : 'a minor release after';
-  return `LOG #${o.first}–#${o.last}: "${o.name}", ${kind} ${o.previous}. ${TODO}: what it changes, for whom, and what a game has to do (Upgrade notes).`;
+  const [, minor, patch] = parts(o.version);
+  const kind = patch > 0 ? 'a patch on' : minor > 0 ? 'a minor release after' : 'a major release after';
+  // One LOG entry (the release's own) is `LOG #N`, never `LOG #N–#N` (#348).
+  const range = o.first === o.last ? `#${o.first}` : `#${o.first}–#${o.last}`;
+  return `LOG ${range}: "${o.name}", ${kind} ${o.previous}. ${TODO}: what it changes, for whom, and what a game has to do (Upgrade notes).`;
+}
+
+/**
+ * Why `name` cannot name a release, or nothing (#348). It is written as is into the README's release link
+ * (`[v4.5.5 (name)](…)`, read back by the next prepare), the CHANGELOG's and the LOG's quotes, the French « », and the
+ * command `prepare` says to run again (`--name="…"`): a character any of them uses is refused, never escaped.
+ */
+export function releaseNameProblem(name: string): string | undefined {
+  if (!name.trim()) return '--name="<the release\'s name>" is required (4.5.3 was "One pass")';
+  const bad = [...new Set(name.match(/[()[\]"«»`\\$<>|\n\r\t]/g) ?? [])];
+  if (!bad.length) return undefined;
+  return `the release name ${JSON.stringify(name)} has ${bad.map((c) => JSON.stringify(c)).join(' ')}: the README's release link, the CHANGELOG's quotes and the command line cannot hold it; choose a name without ( ) [ ] " « » \` \\ $ < > |`;
 }
 
 /** The LOG's release entry: its heading and the bullets 4.5.3's had, each to fill. */
@@ -125,9 +141,19 @@ export function upgradeNotesSection(o: {
   ].join('\n');
 }
 
+const FIELD_BEGIN = '<!-- field:begin -->';
+
+/** Why the previous passes sheet cannot be copied, or nothing: its table starts at the field:begin marker (#348). */
+export const passesSheetProblem = (sheet: string, previous: string) =>
+  sheet.includes(FIELD_BEGIN)
+    ? undefined
+    : `docs/dev/passes/${previous}.md has no ${FIELD_BEGIN} marker: the table prepare copies starts there (docs/dev/passes/TEMPLATE.md has it); put it back above the table`;
+
 /** The passes sheet of `version`: the previous one's table and `field:` lines, its heading, the intro to write. */
 export function passesSheet(previousSheet: string, previous: string, version: string) {
-  const start = previousSheet.indexOf('<!-- field:begin -->');
+  const problem = passesSheetProblem(previousSheet, previous);
+  if (problem) throw new Error(problem);
+  const start = previousSheet.indexOf(FIELD_BEGIN);
   const intro = previousSheet.slice(0, start).split('\n').slice(1);
   const field = intro
     .filter((l) => l.startsWith('`npm run field:'))
@@ -250,6 +276,10 @@ export function prepareRefusals(o: {
   fragments: number;
   /** Why the pull request could not be opened at the end (no push target, gh not signed in), or nothing. */
   pr: string | undefined;
+  /** The release's name (`--name`): refused when a file or the command line could not hold it (#348). */
+  name?: string;
+  /** Why the newest passes sheet cannot be copied (`passesSheetProblem`), or nothing. */
+  passes?: string | undefined;
 }): string[] {
   const out: string[] = [];
   const v = nextVersionProblem(o.current, o.version);
@@ -264,6 +294,9 @@ export function prepareRefusals(o: {
     out.push(
       `${upgradeNotesPage(o.version)} does not exist: a new minor needs its upgrade-notes page first (wiki/en and wiki/fr, wiki/manifest.json)`,
     );
+  const name = o.name === undefined ? undefined : releaseNameProblem(o.name);
+  if (name) out.push(name);
+  if (o.passes) out.push(o.passes);
   return out;
 }
 
@@ -302,36 +335,9 @@ export const preparedSubject = (version: string) => `${version}: the release (pr
 export const isPrepared = (subjects: string, version: string) =>
   subjects.split('\n').some((l) => l.trim() === preparedSubject(version));
 
-type Run = (cmd: string, args: string[]) => { code: number; out: string };
-
-/**
- * The docs' human gates, as the release pull request's CI checks them (`wiki -- check --publish --reviews-only`): what
- * docs-publish would refuse but "executed". What to do is the wiki's own ✖ lines (each claim or pair, with the command).
- */
-export function humanGates(run: Run) {
-  const r = run('npm', [
-    'run',
-    '-s',
-    'wiki',
-    '--',
-    'check',
-    '--publish',
-    '--product-ref',
-    'HEAD',
-    '--doc-ref',
-    'HEAD',
-    '--state',
-    'candidate',
-    '--reviews-only',
-  ]);
-  return {
-    ok: r.code === 0,
-    detail: r.out
-      .split('\n')
-      .filter((l) => l.startsWith('✖'))
-      .join('\n'),
-  };
-}
+// humanGates lives in ./gates (#348): release-run.ts needs it too, and importing it from here made a cycle with the
+// dispatch's top-level `await import('./release-run')` below, which never settled.
+export { humanGates };
 
 /**
  * What `prepare` says when it cannot push yet, or undefined when it can: the `TODO(release)` prose left (each marker
@@ -462,6 +468,27 @@ interface CheckDeps {
   run: Run;
 }
 
+/** The reference golden save of `version`: its entry in tests/fixtures/saves/index.json and its file (#348). */
+function goldenSave(version: string, read: (file: string) => string) {
+  let demo: unknown;
+  try {
+    demo = (JSON.parse(read('tests/fixtures/saves/index.json') || '{}') as { demo?: unknown }).demo;
+  } catch {
+    return { ok: false, detail: 'tests/fixtures/saves/index.json is not JSON' };
+  }
+  if (!Array.isArray(demo) || !demo.includes(version))
+    return {
+      ok: false,
+      detail: `${version} is not in tests/fixtures/saves/index.json: npx tsx tools/golden-save.ts ${version}, then add it to "demo"`,
+    };
+  if (!read(`tests/fixtures/saves/demo-${version}.json`).trim())
+    return {
+      ok: false,
+      detail: `no tests/fixtures/saves/demo-${version}.json: npx tsx tools/golden-save.ts ${version}`,
+    };
+  return { ok: true, detail: '' };
+}
+
 /** What `check` says of a prepared release, item by item. */
 export async function checkRelease(version: string, deps: CheckDeps) {
   const pkg = JSON.parse(deps.read('package.json') || '{}') as { version?: string };
@@ -475,6 +502,13 @@ export async function checkRelease(version: string, deps: CheckDeps) {
       ok: releaseNotes(deps.read('CHANGELOG.md'), `v${version}`) !== null,
       detail: `no "## ${version}" heading`,
     },
+    {
+      // #348: prepare writes both; a release branch made or edited by hand could lose them.
+      what: `the passes sheet docs/dev/passes/${version}.md`,
+      ok: deps.read(`docs/dev/passes/${version}.md`).trim() !== '',
+      detail: `no docs/dev/passes/${version}.md: npm run release -- prepare writes it from the previous one`,
+    },
+    { what: `the golden save of ${version} (tests/fixtures/saves)`, ...goldenSave(version, deps.read) },
     { what: `no ${TODO} left`, ok: todos.length === 0, detail: todos.join(', ') },
     {
       what: 'npm run wiki -- check: no warning',
@@ -634,15 +668,22 @@ function prepare(version: string, opts: { name: string; date: string; pr: boolea
       upgradeNotes: existsSync(file(`wiki/en/${upgradeNotesPage(version)}.md`)),
       fragments: fragmentFiles(readdirSync(file('changes'))).length,
       pr,
+      name: opts.name,
+      passes: (() => {
+        const sheet = newestSheet();
+        return sheet
+          ? passesSheetProblem(read(`docs/dev/passes/${sheet}.md`), sheet)
+          : 'docs/dev/passes holds no sheet';
+      })(),
     });
+  // A resume says the name again in the command it prints: refused the same (#348).
+  const nameProblem = releaseNameProblem(opts.name);
+  if (resume && nameProblem) refusals.push(nameProblem);
   if (refusals.length) {
     for (const r of refusals) console.error(`✖  ${r}`);
     if (!opts.dryRun) process.exit(1);
   }
-  if (!opts.name) {
-    console.error('✖  --name="<the release\'s name>" is required (4.5.3 was "One pass")');
-    process.exit(1);
-  }
+  if (nameProblem) process.exit(1); // said above, even on a dry run
   // On a resume package.json is at the version already; the previous one is only used by the steps it skips.
   const previous = current;
   const branch = `release/${version}`;

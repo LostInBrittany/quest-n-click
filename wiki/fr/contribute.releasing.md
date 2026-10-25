@@ -62,7 +62,10 @@ npm run release -- prepare 4.5.4 --name="Simple release"   # --dry-run liste les
 Elle refuse, avant d'écrire quoi que ce soit : une version qui n'est pas un `x.y.z` supérieur à celle de
 `package.json`, des changements non commités, une autre branche, un clone superficiel, un `main` qui n'est pas celui de
 l'organisation (en retard ou en avance, ou aucun remote ne nomme le dépôt de l'organisation), aucun fragment dans
-`changes/`, une nouvelle mineure dont la page de notes de mise à jour n'existe pas encore, et, sauf `--no-pr`, nulle
+`changes/`, une nouvelle mineure dont la page de notes de mise à jour n'existe pas encore, un nom de release que les
+fichiers ne peuvent pas contenir tel quel (4.5.5, #348 : un nom avec `( ) [ ] " « » \` \ $ < > |`, que le lien de release
+du README, les guillemets du CHANGELOG ou la commande qu'elle affiche casseraient), une dernière fiche de passes sans
+son marqueur `<!-- field:begin -->` (le tableau qu'elle recopie commence là), et, sauf `--no-pr`, nulle
 part où pousser (votre fork : `origin` quand c'en est un, sinon le seul fork parmi les remotes ; le dépôt de
 l'organisation quand aucun fork n'est un remote, une branche, jamais `main`) ou un `gh` non connecté. Puis, sur la branche `release/<version>`, elle fait ce qu'une
 branche de release faisait à la main, dans cet ordre : la version (`npm version --no-git-tag-version`), la section du
@@ -109,7 +112,9 @@ Pour vérifier la branche à tout moment :
 npm run release -- check 4.5.4
 ```
 
-Elle dit, point par point, si `package.json` est à la version, si le CHANGELOG a sa section, s'il reste un
+Elle dit, point par point, si `package.json` est à la version, si le CHANGELOG a sa section, si la fiche de passes
+`docs/dev/passes/<version>.md` et la sauvegarde de référence (son entrée dans `tests/fixtures/saves/index.json` et son
+fichier) sont là (4.5.5, #348), s'il reste un
 `TODO(release)`, si `npm run wiki -- check` avertit, si les relectures humaines des docs tiennent
 (`wiki -- check --publish --reviews-only` : une claim ou une paire qu'une personne doit lire, chacune affichée avec sa
 commande), et si la ligne de base de qualité tient. La CI de la pull request de release la lance aussi, avec la
@@ -130,7 +135,11 @@ non commités, un `main` qui n'est pas celui de l'organisation, pas de section d
 signature SSH, `gh` ou `npm` non connectés, un utilisateur npm qui n'est pas propriétaire). Puis elle trouve le
 candidat que le merge a lancé sur ce commit (`--start-candidate` en lance un s'il n'y en a pas) et l'attend (environ
 90 minutes), en disant combien de jobs sont faits et lesquels tournent à chaque changement et toutes les cinq minutes,
-en relançant une fois ses jobs en échec ; puis `ship tag … --sign` : la `ci` de main, le tag signé poussé sur le dépôt
+en relançant une fois ses jobs en échec (le run entier s'il a été annulé avant qu'un job échoue). Cette fois est celle
+du run : son numéro de tentative dit qu'il a été relancé, par la commande ou à la main, si bien qu'une relance de la
+commande ne le relance jamais une seconde fois (4.5.5, #348) ; il en va de même pour la relance de la `ci` de main par
+`ship`. Une tentative qui tourne encore au bout de 3 heures arrête la commande, avec le lien du run et la même
+commande pour reprendre ; puis `ship tag … --sign` : la `ci` de main, le tag signé poussé sur le dépôt
 de l'organisation ; puis elle suit l'exécution de release job par job jusqu'à ce que `release` et `npm-stage`
 réussissent (les jobs de la documentation sont signalés, jamais attendus : un problème de doc ne retient jamais npm),
 vérifie les fichiers de la release, et approuve les paquets npm que la release a mis en attente, chacun avec votre 2FA
