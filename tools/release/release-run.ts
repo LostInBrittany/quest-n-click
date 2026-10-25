@@ -1,4 +1,8 @@
-// npm run release -- <x.y.z> [--key=<ssh public key>] [--start-candidate] [--dry-run]
+// npm run release -- <x.y.z> [--key=<ssh public key>] [--start-candidate] [--docs-revision] [--dry-run]
+// (4.5.5, #339) Its preflight also checks the docs' human gates on the release commit's own tree (a temporary
+// worktree of it: main may be ahead), before the candidate is waited for: a claim merged after the release pull
+// request's CI ran is caught there, not by docs-publish after the tag. That tree can no longer take a review, so the
+// stop says the one way on, --docs-revision: the release and npm as usual, the docs as a revision from docs/<v>.
 // (4.5.4, part D of docs/dev/PLAN-4.5.4-SIMPLE-RELEASE.md.) The maintainer's one command after the release pull
 // request's merge, on main: it refuses first what would fail later (not the merged release, uncommitted changes, no
 // CHANGELOG section, no SSH signing key or one not in allowed_signers, gh or npm not signed in, npm too old, an npm
@@ -12,9 +16,11 @@
 // where it stopped: a green candidate is not waited for again, a tag already pushed is followed, a package already
 // published is not approved again.
 import { execFileSync, spawnSync } from 'node:child_process';
-import { existsSync, readFileSync } from 'node:fs';
+import { existsSync, mkdtempSync, readFileSync, rmSync, symlinkSync } from 'node:fs';
+import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { releaseNotes } from '../../scripts/release-notes.mjs';
+import { humanGates } from './prepare';
 // @ts-expect-error: a plain .mjs module without declarations
 import { REPO, releaseRemote } from './lib.mjs';
 // @ts-expect-error: a plain .mjs module without declarations
@@ -118,6 +124,36 @@ export function releaseCommit(
     found = h.sha;
   }
   return found;
+}
+
+/** The steps of a docs revision of `version` (docs-publish.yml publishes one from `docs/<v>` only, cut from the tag). */
+export const docsRevisionSteps = (version: string) => [
+  `git switch -c docs/${version} v${version}`,
+  'record each review above (its command), commit',
+  `git push <the organisation's remote> docs/${version}`,
+  `gh workflow run docs-publish --ref docs/${version} -f mode=revision -f version=${version}`,
+];
+
+/**
+ * The stop when the docs' human gates fail on the release commit (#339), or nothing: they pass, or `--docs-revision`
+ * said to go on. The tag is pinned to that commit, whose tree can no longer take a review, so the docs follow as a
+ * revision; npm is never held back by the docs.
+ */
+export function docsGatesStop(o: {
+  version: string;
+  sha: string;
+  gates: { ok: boolean; detail: string };
+  docsRevision: boolean;
+}): string | undefined {
+  if (o.gates.ok || o.docsRevision) return undefined;
+  return [
+    `the docs' human gates fail on the release commit ${o.sha.slice(0, 7)} (merged after the release pull request's CI checked them): nothing is tagged.`,
+    o.gates.detail.replace(/^/gm, '    '),
+    `  The tag goes on ${o.sha.slice(0, 7)}, whose tree can no longer take a review, so the release's docs-publish would refuse its docs.`,
+    `  To release now, npm as usual and the docs as a revision after: npm run release -- ${o.version} --docs-revision`,
+    '  then, once the release is out:',
+    ...docsRevisionSteps(o.version).map((s) => `    ${s}`),
+  ].join('\n');
 }
 
 /** One line for a wait: jobs done out of all, those running, those waiting, those failed. */
@@ -382,7 +418,30 @@ async function approveNpm(version: string) {
   }
 }
 
-export async function runRelease(version: string, opts: { key?: string; startCandidate: boolean; dryRun: boolean }) {
+/**
+ * The docs' human gates on `sha`'s own tree (#339): a temporary detached worktree of it, the checkout's node_modules
+ * linked, `humanGates` run there (the release pull request's check), the worktree removed whatever happens.
+ */
+function gatesAt(sha: string) {
+  const dir = mkdtempSync(join(tmpdir(), 'qnc-release-gates-'));
+  const tree = join(dir, 'tree');
+  try {
+    sh('git', ['worktree', 'add', '--detach', tree, sha]);
+    symlinkSync(join(ROOT(), 'node_modules'), join(tree, 'node_modules'));
+    return humanGates((cmd, args) => {
+      const r = spawnSync(cmd, args, { cwd: tree, encoding: 'utf8' });
+      return { code: r.status ?? 1, out: `${r.stdout ?? ''}${r.stderr ?? ''}` };
+    });
+  } finally {
+    quiet('git', ['worktree', 'remove', '--force', tree]);
+    rmSync(dir, { recursive: true, force: true });
+  }
+}
+
+export async function runRelease(
+  version: string,
+  opts: { key?: string; startCandidate: boolean; docsRevision: boolean; dryRun: boolean },
+) {
   const current = JSON.parse(readFileSync(join(ROOT(), 'package.json'), 'utf8')).version as string;
   let remote: string | undefined;
   try {
@@ -412,6 +471,15 @@ export async function runRelease(version: string, opts: { key?: string; startCan
   const sha = remote && fetched ? findReleaseCommit(remote, version) : undefined;
   if (!refusals.length && !sha)
     refusals.push(`no commit of main sets package.json to ${version}: merge the release pull request first`);
+  // The docs' human gates on the release commit itself, before anything is waited for (#339); a tag already out is
+  // past them (its docs-publish has run or runs).
+  const tagged = !!remote && quiet('git', ['ls-remote', '--tags', remote, `refs/tags/v${version}`]).out.trim() !== '';
+  if (!refusals.length && sha) {
+    const stop = tagged
+      ? undefined
+      : docsGatesStop({ version, sha, gates: gatesAt(sha), docsRevision: opts.docsRevision });
+    if (stop) refusals.push(stop);
+  }
   for (const r of refusals) console.error(`✖  ${r}`);
   if (opts.dryRun) {
     if (sha) say(`release commit: ${sha.slice(0, 7)}`);
@@ -439,5 +507,6 @@ export async function runRelease(version: string, opts: { key?: string; startCan
   );
   if (warnings.length)
     say(`   ⚠  the documentation: ${warnings.join(', ')} (a docs revision republishes it; npm was not held back)`);
+  if (warnings.length || opts.docsRevision) for (const step of docsRevisionSteps(version)) say(`      ${step}`);
   else say('   the documentation published itself (docs-publish)');
 }
