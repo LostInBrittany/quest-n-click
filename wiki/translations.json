@@ -4161,10 +4161,10 @@
       ]
     },
     "contribute.ci#known-flakes": {
-      "enHash": "71ffcfb53bfddbe97bd1c3d762e86f826dd0b8d2910433c027b9d5eeda8665c5",
-      "frHash": "c9c9a9f690826904cd7f94b421078ee8e7e839a166ac27d03a2686c339789153",
+      "enHash": "e73945952ab606b0196d3c84e4d08b38b1423d91739019af8a75c94cd48b6eb6",
+      "frHash": "c96502d5a2f3fd35b1e7f81ff88d5d0bc6a7a62eea46bb5f097ff405ac91dde1",
       "reviewers": [
-        { "name": "claude-ci-retry-apt-lock", "kind": "ai", "relation": "author", "date": "2026-10-25" }
+        { "name": "claude-opus-5.5", "kind": "ai", "relation": "author", "date": "2026-10-25" }
       ]
     },
     "contribute.ci#pages-only": {

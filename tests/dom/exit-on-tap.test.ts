@@ -52,7 +52,9 @@ async function start(o: { exitOnTap?: boolean; onTap?: ExitDef['onTap'] } = {}) 
 const acts = (app: App) =>
   app.engine.session!.log.flatMap((e) => ('act' in (e as SessionEntry) ? [(e as { act: unknown }).act] : []));
 
-describe('a single tap on an exit (#188)', () => {
+// Each game starts and walks in real time: 1.8 s a start, 4 s for the look at the door, the same on CI. Their own
+// limit, so a loaded run is not a failure (4.5.5, #356).
+describe('a single tap on an exit (#188)', { timeout: 20_000 }, () => {
   afterEach(() => {
     vi.restoreAllMocks();
     document.body.innerHTML = '';
