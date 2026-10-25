@@ -110,14 +110,20 @@ jobs:
   # The unit suite under V8 coverage, once (4.1.9: `node-24` no longer runs `quality`, `check` no longer runs the suite).
   # The floors of vite.config.ts fail here; the ratchet (a floor three points or more under what is measured) warns on
   # a pull request and fails on main (`--strict`, as the nightly and release-check).
-  coverage:
+  # The unit suite in four shards at once (4.5.4): the same files as `test:coverage`, under coverage only when the plan's
+  # `coverage` gate asks (product code; `main` and `full-ci` always). The plan spares the instrumentation, never the
+  # tests. Each shard keeps its blob report; the `coverage` job below merges them.
+  unit:
     needs: plan
     runs-on: ubuntu-24.04
-    timeout-minutes: 45
-    # The unit suite on every change; under coverage and its ratchet only when the plan's `coverage` gate asks, product
-    # code (4.5.4, #302): `main` and `full-ci` always. The plan spares the instrumentation, never the tests.
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3, 4]
     env:
       RUN: ${{ fromJSON(needs.plan.outputs.plan).coverage }}
+      VITEST_SHARD: ${{ matrix.shard }}/4
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -137,9 +143,46 @@ jobs:
       - run: bash scripts/ci-ffmpeg.sh
         timeout-minutes: 20
       - if: env.RUN != 'true'
-        run: npm run test:node && npm run test:assets
+        run: npm run test:unit -- --shard=${{ matrix.shard }}/4 --passWithNoTests
       - if: env.RUN == 'true'
-        run: npm run test:coverage
+        run: npm run test:coverage -- --shard=${{ matrix.shard }}/4 --passWithNoTests --reporter=blob --reporter=default
+      - if: env.RUN == 'true'
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: unit-blob-${{ matrix.shard }}
+          path: .vitest/blob
+          include-hidden-files: true
+          if-no-files-found: error
+  # The check the ruleset requires by name: red when a shard is not green; under coverage, the four blob reports merged
+  # (`test:merge`: the floors of vite.config.ts on the whole suite), then the ratchet.
+  coverage:
+    needs: [plan, unit]
+    if: always()
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    env:
+      RUN: ${{ fromJSON(needs.plan.outputs.plan).coverage }}
+    steps:
+      - name: Every shard green
+        run: '[ "${{ needs.unit.result }}" = success ] || { echo "::error::unit: ${{ needs.unit.result }}"; exit 1; }'
+      - if: env.RUN == 'true'
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - if: env.RUN == 'true'
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 22
+          cache: npm
+      - if: env.RUN == 'true'
+        run: for i in 1 2 3; do (npm ci) && break; [ "$i" = 3 ] && exit 1; echo "retry $i"; sleep 15; done
+        timeout-minutes: 20
+      - if: env.RUN == 'true'
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          pattern: unit-blob-*
+          path: .vitest/blob
+          merge-multiple: true
+      - if: env.RUN == 'true'
+        run: npm run test:merge
       - if: env.RUN == 'true'
         run: npx tsx tools/coverage-ratchet.ts ${{ github.event_name != 'pull_request' && '--strict' || '' }}
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
@@ -1200,7 +1243,7 @@ jobs:
   # may be `skipped` where it does not run (an ordinary pull request). The candidate single required check: the
   # ruleset still requires the seventeen names until a few runs of this job have been green (the maintainer's move).
   pr-gate:
-    needs: [plan, check, coverage, mutation-plan, mutation, mutation-merge, reality-xcheck, connectors, bridge-postgres, studio-hosted, reality, node-24, windows, second-game, e2e, pwa-firefox, fresh-install, external-consumer, upgrade, reference, reference-fr, heroes, cross-runtime]
+    needs: [plan, check, unit, coverage, mutation-plan, mutation, mutation-merge, reality-xcheck, connectors, bridge-postgres, studio-hosted, reality, node-24, windows, second-game, e2e, pwa-firefox, fresh-install, external-consumer, upgrade, reference, reference-fr, heroes, cross-runtime]
     if: always()
     runs-on: ubuntu-24.04
     timeout-minutes: 5
