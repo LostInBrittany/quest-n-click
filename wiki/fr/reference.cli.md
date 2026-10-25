@@ -275,6 +275,30 @@ Les prompts d'images des planches que le jeu nomme.
 
 Utilisation : `quest-n-click prompts [--missing]`
 
+<a name="quest-n-click-talk-kit"></a>
+
+### `quest-n-click talk-kit`
+
+Les kits bouche à envoyer à un générateur d'images : pour chaque personnage et chaque pose de `game/talk-kits.json` (tous, ou les personnages nommés), la tête du sprite validé copiée 6 fois dans une grille 3 × 2, écrite dans `game/private/talk_kits/<character>_<pose>.png` avec un `.json` à côté. Lance `tools/talk-kit.py` avec `PYTHON` (par défaut `python3` ; Pillow et NumPy).
+
+Utilisation : `quest-n-click talk-kit [<character> …]`
+
+<a name="quest-n-click-talk-apply"></a>
+
+### `quest-n-click talk-apply`
+
+La réponse du générateur (`game/private/talk_kits/<character>_<pose>_out.png`, ou `_chatgpt.png`) recollée sur le sprite validé, seulement là où la bouche et les yeux ont changé : `game/art/talk_<character>/<pose>/t1.png` … `t6.png`, `t1` étant le sprite lui-même. Lance `tools/talk-apply.py` (OpenCV et SciPy en plus).
+
+Utilisation : `quest-n-click talk-apply <character>_<pose>`
+
+<a name="quest-n-click-talk-normalize"></a>
+
+### `quest-n-click talk-normalize`
+
+Une rangée (1 à 4) d'une planche de parole générée d'un bloc, ramenée à la hauteur et aux couleurs du sprite validé, écrite en `t1.png` … `t6.png` dans le dossier de sortie. Chaque chemin part du dossier du projet. Lance `tools/talk-normalize.py` (OpenCV et SciPy en plus).
+
+Utilisation : `quest-n-click talk-normalize <talk_sheet.png> <row> <validated_sprite.png> <output_folder>`
+
 <a name="quest-n-click-verify"></a>
 
 ### `quest-n-click verify`

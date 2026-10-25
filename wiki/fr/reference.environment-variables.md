@@ -395,7 +395,7 @@ Le chemin de l’exécutable Furnace avec lequel la chaîne audio fait son rendu
 Le jeu de `games/` sur lequel travaillent les commandes du dépôt du moteur (`GAME=reference npm run validate`). Sans elle, le dernier jeu choisi (`npm run game -- <id>`), puis `config.game` de `package.json`, puis `demo`.
 
 - Origine : vous la posez ; le code la lit.
-- Lue par : [`.github/workflows/ci.yml`](../../.github/workflows/ci.yml), [`.github/workflows/prove.yml`](../../.github/workflows/prove.yml), [`scripts/e2e-studio.mjs`](../../scripts/e2e-studio.mjs), et 9 de plus.
+- Lue par : [`.github/workflows/ci.yml`](../../.github/workflows/ci.yml), [`.github/workflows/prove.yml`](../../.github/workflows/prove.yml), [`scripts/e2e-studio.mjs`](../../scripts/e2e-studio.mjs), et 7 de plus.
 
 <a name="game-dir"></a>
 
@@ -467,7 +467,7 @@ Le serveur de développement qu’ouvre l’outil MCP `screenshot` ; `http://loc
 Le projet créé sur lequel travaillent les outils du moteur. La commande `quest-n-click` la pose sur le dossier où elle tourne ; vous ne la posez pas vous-même.
 
 - Origine : posée par la commande `quest-n-click`.
-- Lue par : [`tools/assets.py`](../../tools/assets.py), [`tools/cut-sheet.py`](../../tools/cut-sheet.py), [`tools/game.ts`](../../tools/game.ts).
+- Lue par : [`tools/assets.py`](../../tools/assets.py), [`tools/game.ts`](../../tools/game.ts), [`tools/game_folder.py`](../../tools/game_folder.py).
 
 <a name="web-scumm-studio-hosts"></a>
 

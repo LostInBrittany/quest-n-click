@@ -33,14 +33,18 @@ pull request runs is [`tools/ci-plan.ts`](../../tools/ci-plan.ts). Which test su
   bundle, `verify:dist`, the spoiler check, the asset audit), `weight -- --release`, `quality:baseline -- --check
   --dist`, `prove:game`, `audit:deps` when `package.json` or the lockfile moved, then the two-entry build (game and
   Studio demo) that the e2e rows play, kept as the `dist` artifact.
-- `coverage`: the unit suite once, under V8 coverage (`test:coverage`), then the coverage ratchet: a warning on a pull
-  request, a failure on `main` and on a tag ([The coverage ratchet](contribute.coverage-ratchet.md)).
+- `coverage`: the unit suite once, on every change. When the change touches product code (the plan's `coverage` gate:
+  the engine, a game, the Bridge, the Studio and its server, the CLI and packages, the golden saves, the authoring
+  tools), under V8 coverage (`test:coverage`), then the coverage ratchet: a warning on a pull request, a failure on
+  `main` and on a tag ([The coverage ratchet](contribute.coverage-ratchet.md)). Otherwise (the docs, a workflow, the
+  release and wiki tools, tests alone) the same suite without coverage (`test:node`), a few minutes less (4.5.4).
 
 **The second tier, what the change can break.** Each job needs `plan` (most also `check`) and reads its gate in the
 plan: it runs its real work, or one step that says "not needed by the plan" and succeeds.
 
 | Job | Gate | Runs |
 |---|---|---|
+| `coverage` | `coverage` | the unit suite under coverage and the ratchet (spared: the same suite without coverage) |
 | `node-24` | `node24` | the unit suite on Node 24 |
 | `windows` | `windows` | the doctor, the type checks, the unit suite without the files that assume POSIX, `build:game`, the production server answering |
 | `e2e` (six rows) | `e2e` | the production build played by touch: Chromium full, WebKit generic, Chromium and WebKit at the keyboard, Chromium in French, Chromium with the Canvas painter; with weight, music, visual, perf, Studio, accessibility and PWA steps on some rows |
@@ -58,7 +62,8 @@ plan: it runs its real work, or one step that says "not needed by the plan" and 
 the candidate and the release.
 
 **`pr-gate`** reads every job's result: each must be `success`; the mutation jobs may be `skipped` where they do not
-run. It is the one check that sums a pull request up.
+run; `pwa-firefox`, flaky until #257 is fixed, is said as a warning and does not fail it (4.5.4). It is the one check
+that sums a pull request up.
 
 No job deploys GitHub Pages any more (4.5.2, see [the site](#pages-only)).
 
@@ -82,19 +87,21 @@ files ask:
 | A change to | Opens |
 |---|---|
 | `.github/workflows/ci.yml`, `tools/ci-plan.ts`, `package.json`, the lockfile, a shared configuration (`tsconfig*.json`, `vite.config.ts`, `vitest*.ts`, `biome.json`, `knip.json`, `requirements.txt`, `.nvmrc`, `.gitattributes`), the app shell, `tools/vite/` | everything |
-| `docs/`, `changes/`, `wiki/`, any `.md`, `LICENSE*`, `.claude/`, `.cursor/`, `clevercloud/`, another `.github/` file | the fast tier only |
-| the Reality runtime | `reality`, `e2e`, `node24`, `windows` |
-| the painters, the music director | `e2e`, `reference`, `node24`, `windows` |
-| the PWA and the storage (`boot.ts`, `dom/update`, `offline`, `save-store`, `storage`) | `e2e`, `pwaFirefox`, `upgrade`, `node24`, `windows` |
+| `docs/`, `changes/`, `wiki/`, any `.md`, `LICENSE*`, `.claude/`, `.cursor/`, `clevercloud/`, another `.github/` file | the fast tier only (`check`, and the unit suite without coverage) |
+| the Reality runtime | `coverage`, `reality`, `e2e`, `node24`, `windows` |
+| the painters, the music director | `coverage`, `e2e`, `reference`, `node24`, `windows` |
+| the PWA and the storage (`boot.ts`, `dom/update`, `offline`, `save-store`, `storage`) | `coverage`, `e2e`, `pwaFirefox`, `upgrade`, `node24`, `windows` |
 | any other file of `src/engine/` (the core) | everything |
-| `src/studio/` | `e2e`, `studioHosted`, `node24`, `windows` |
-| `bridge/` | `reality`, `freshInstall`, `node24`, `windows` (and `studioHosted` for its SQL layer) |
-| `games/demo/` | `e2e`, `reference`, `node24`, `windows` |
-| `games/reference/`, `games/heroes/` | `reference`, `node24` |
-| `games/_template/`, `cli/`, `scripts/{pack,fresh-install,external-consumer,new-game}.mjs` | `secondGame`, `freshInstall`, `upgrade`, `node24`, `windows` |
+| `src/studio/` | `coverage`, `e2e`, `studioHosted`, `node24`, `windows` |
+| `bridge/` | `coverage`, `reality`, `freshInstall`, `node24`, `windows` (and `studioHosted` for its SQL layer) |
+| `games/demo/` | `coverage`, `e2e`, `reference`, `node24`, `windows` |
+| `games/reference/`, `games/heroes/` | `coverage`, `reference`, `node24` |
+| `games/_template/`, `cli/`, `scripts/{pack,fresh-install,external-consumer,new-game}.mjs` | `coverage`, `secondGame`, `freshInstall`, `upgrade`, `node24`, `windows` |
 | `studio-server/` | the authoring gates and `studioHosted` |
-| other `tools/` and `scripts/` | the authoring gates (`node24`, `windows`, `secondGame`, `freshInstall`, `upgrade`, `reference`) |
-| `tests/` | `node24`, `windows` |
+| `tools/wiki.ts` and `tools/wiki/` (but `docs`, `docs-load`, `glossary`, `manifest`, `page` and `site`, which the Studio and the MCP server read), `tools/release/`, the repository tools (`tools/mutate.ts`, `tools/changes.ts`, `tools/quality-baseline.ts`…, `scripts/release-notes.mjs`) | the fast tier only (4.5.4) |
+| other `tools/` and `scripts/` | the authoring gates (`coverage`, `node24`, `windows`, `secondGame`, `freshInstall`, `upgrade`, `reference`) |
+| the hosted Studio's tests and its CI files (`tests/studio-{server,worker,collab,keycloak,client,diff-captures}.test.ts`, `ops/studio/{ci,keycloak}/`) | `studioHosted` |
+| other `tests/` | the fast tier only (4.5.4) |
 | a path no rule knows | everything |
 
 A git error runs everything too: the plan never decides that it does not need to be checked. **`docs`** is true when

@@ -14,6 +14,7 @@ import { appendFileSync, readFileSync } from 'node:fs';
 /** The jobs the plan can spare, by their key in the JSON (ci.yml reads `fromJSON(needs.plan.outputs.plan).<key>`). */
 export const GATES = [
   'auditDeps',
+  'coverage',
   'node24',
   'e2e',
   'reference',
@@ -38,6 +39,7 @@ export type CiPlan = Record<Gate, boolean> & { all: boolean; docs: boolean; docs
 /** The job (or matrix) each gate opens, as ci.yml names it. */
 export const JOB_OF: Record<Gate, string> = {
   auditDeps: 'check (the `audit:deps` step)',
+  coverage: 'coverage',
   node24: 'node-24',
   e2e: 'e2e (the six rows)',
   reference: 'reference (chromium, webkit), reference-fr, heroes',
@@ -52,15 +54,18 @@ export const JOB_OF: Record<Gate, string> = {
 
 interface Rule {
   re: RegExp;
-  /** The gates this path opens; `all` runs everything; `[]` is the fast tier alone (check, coverage). */
+  /** The gates this path opens; `all` runs everything; `[]` is the fast tier alone (`check`, the unit suite). */
   gates: readonly Gate[] | 'all';
   why: string;
 }
 
 // What a unit test or a build of the sample game cannot see: Node 24, Windows. Every code path asks for both.
 const UNIT = ['node24', 'windows'] as const;
+// The unit suite under coverage and its ratchet (4.5.4, #302): product code only; a change to the docs, a workflow,
+// the repository's own tools or the tests alone runs the same suite without coverage, and `main` runs it with `--all`.
+const COVERAGE = ['coverage'] as const;
 // The authoring pipeline (validate, solve, lint, build:game, pack, the template): every game's build goes through it.
-const AUTHORING = [...UNIT, 'secondGame', 'freshInstall', 'upgrade', 'reference'] as const;
+const AUTHORING = [...UNIT, ...COVERAGE, 'secondGame', 'freshInstall', 'upgrade', 'reference'] as const;
 
 /** First match wins: the specific paths before the folders that hold them. */
 export const RULES: readonly Rule[] = [
@@ -91,24 +96,28 @@ export const RULES: readonly Rule[] = [
   // The engine, by the part a change can break; the rest of src/engine is the core: everything.
   {
     re: /^src\/engine\/(reality\/|core\/reality-runtime\.ts$|dom\/reality-ui\.ts$)/,
-    gates: ['reality', 'e2e', ...UNIT],
+    gates: [...COVERAGE, 'reality', 'e2e', ...UNIT],
     why: 'the Reality runtime',
   },
   {
     re: /^src\/engine\/dom\/(render-[^/]+|renderer|room|scene-entity|camera|palette)\.ts$|^src\/engine\/dom\/style\.css$/,
-    gates: ['e2e', 'reference', ...UNIT],
+    gates: [...COVERAGE, 'e2e', 'reference', ...UNIT],
     why: 'the painters',
   },
-  { re: /^src\/engine\/dom\/(audio|director)\.ts$/, gates: ['e2e', 'reference', ...UNIT], why: 'the music director' },
+  {
+    re: /^src\/engine\/dom\/(audio|director)\.ts$/,
+    gates: [...COVERAGE, 'e2e', 'reference', ...UNIT],
+    why: 'the music director',
+  },
   {
     re: /^src\/engine\/(boot\.ts|dom\/(update|offline|save-store|storage)\.ts)$/,
-    gates: ['e2e', 'pwaFirefox', 'upgrade', ...UNIT],
+    gates: [...COVERAGE, 'e2e', 'pwaFirefox', 'upgrade', ...UNIT],
     why: 'the PWA and the storage',
   },
   { re: /^src\/engine\//, gates: 'all', why: 'the engine core' },
   {
     re: /^src\/studio\//,
-    gates: ['e2e', 'studioHosted', ...UNIT],
+    gates: [...COVERAGE, 'e2e', 'studioHosted', ...UNIT],
     why: 'the Studio (the canvas row edits a stage; studio-hosted runs it on the Studio Server)',
   },
 
@@ -116,22 +125,26 @@ export const RULES: readonly Rule[] = [
   // The Studio Server's journal runs on these (4.2.1): its SQL store and its migrations runner.
   {
     re: /^bridge\/src\/(store-sql|store-sqlite|migrations)\.ts$/,
-    gates: ['reality', 'freshInstall', ...UNIT, 'studioHosted'],
+    gates: [...COVERAGE, 'reality', 'freshInstall', ...UNIT, 'studioHosted'],
     why: "the Bridge's SQL layer, also the Studio Server journal's",
   },
-  { re: /^bridge\//, gates: ['reality', 'freshInstall', ...UNIT], why: 'the Reality Bridge (also a package)' },
+  {
+    re: /^bridge\//,
+    gates: [...COVERAGE, 'reality', 'freshInstall', ...UNIT],
+    why: 'the Reality Bridge (also a package)',
+  },
   {
     re: /^(connectors\/|games\/signals\/|scripts\/(e2e-reality|reality-spike)\.mjs$|tools\/(reality-xcheck|solve-reality|reality-fixtures)\.ts$)/,
-    gates: ['reality', ...UNIT],
+    gates: [...COVERAGE, 'reality', ...UNIT],
     why: 'Reality',
   },
 
   // The games.
   // The reference gate also opens the heroes job (games/heroes, 4.4.0; its own job since #265), which reads the sample
   // game's cast, verbs and ui.
-  { re: /^games\/demo\//, gates: ['e2e', 'reference', ...UNIT], why: 'the sample game' },
-  { re: /^games\/reference\//, gates: ['reference', 'node24'], why: 'the reference chapter' },
-  { re: /^games\/heroes\//, gates: ['reference', 'node24'], why: 'the hero choice example (its own job)' },
+  { re: /^games\/demo\//, gates: [...COVERAGE, 'e2e', 'reference', ...UNIT], why: 'the sample game' },
+  { re: /^games\/reference\//, gates: [...COVERAGE, 'reference', 'node24'], why: 'the reference chapter' },
+  { re: /^games\/heroes\//, gates: [...COVERAGE, 'reference', 'node24'], why: 'the hero choice example (its own job)' },
   // The Bridge's qualification profile (4.1.18): brought up by its own workflow (qualify.yml) and the candidate's
   // `deployment-smoke`; here its static test only.
   {
@@ -141,14 +154,14 @@ export const RULES: readonly Rule[] = [
   },
   {
     re: /^(games\/_template\/|cli\/|scripts\/(pack|fresh-install|external-consumer|new-game)\.mjs$)/,
-    gates: ['secondGame', 'freshInstall', 'upgrade', ...UNIT],
+    gates: [...COVERAGE, 'secondGame', 'freshInstall', 'upgrade', ...UNIT],
     why: 'the packages and the template',
   },
 
   // The saves a release must keep reading.
   {
     re: /^(tests\/fixtures\/saves\/|tools\/golden-save\.ts$|scripts\/upgrade-check\.mjs$)/,
-    gates: ['upgrade', ...UNIT],
+    gates: [...COVERAGE, 'upgrade', ...UNIT],
     why: 'the golden saves and the upgrade',
   },
 
@@ -161,22 +174,27 @@ export const RULES: readonly Rule[] = [
   },
   { re: /^scripts\/e2e(\/|[^/]*\.mjs$)/, gates: ['e2e', 'reference', 'secondGame'], why: 'the browser e2e' },
   { re: /^tests\/visual\//, gates: ['e2e', 'reference'], why: 'the visual references' },
-  { re: /^(scripts\/start\.mjs|tests\/run-tool\.ts)$/, gates: [...UNIT], why: 'what Windows runs differently' },
-
-  // The documentation's publication (4.5.0, A5b): the archive, its HTML and search, Pages' /docs/, the wiki's push,
-  // the transition pages. No game is built through them; their tests are unit tests, and the docs family runs too.
   {
-    re: /^tools\/wiki\/(archive|html|html-search|pages|publication|transition)\.ts$/,
-    gates: [...UNIT],
-    why: "the documentation's publication",
+    re: /^(scripts\/start\.mjs|tests\/run-tool\.ts)$/,
+    gates: [...COVERAGE, ...UNIT],
+    why: 'what Windows runs differently',
   },
-  // Tools that ship nothing and build nothing: the unit tier.
+
+  // The wiki's own tools (4.5.0; 4.5.4, #302): the check, the claims, the translations, the publication, the archive.
+  // No game is built through them and the package does not run them: the unit suite checks them. The modules the Studio
+  // and the MCP server read the docs through (`read_doc`, the search) are product: they fall to the authoring rule.
+  {
+    re: /^tools\/wiki(\.ts$|\/(?!(docs|docs-load|glossary|manifest|page|site)\.ts$))/,
+    gates: [],
+    why: "the wiki's own tools",
+  },
+  // Tools that ship nothing and build nothing: the unit suite checks them; Windows and Node 24 on `main` (4.5.4, #302).
   {
     re: /^(tools\/(mutate|mutation-sets|coverage-ratchet|quality-baseline|api-doc|audit-corpus|bench|changes)\.ts$|tools\/release\/|scripts\/(release-notes\.(mjs|d\.mts)|check-links\.mjs|docs-screenshots\.mjs)$)/,
-    gates: [...UNIT],
+    gates: [],
     why: 'a repository tool',
   },
-  { re: /^tools\/audio(\/|\.py$)/, gates: ['e2e', 'reference', 'node24'], why: 'the audio pipeline' },
+  { re: /^tools\/audio(\/|\.py$)/, gates: [...COVERAGE, 'e2e', 'reference', 'node24'], why: 'the audio pipeline' },
   {
     re: /^studio-server\//,
     gates: [...AUTHORING, 'studioHosted'],
@@ -185,10 +203,10 @@ export const RULES: readonly Rule[] = [
   { re: /^(tools|scripts)\//, gates: [...AUTHORING], why: 'the authoring pipeline' },
   {
     re: /^(tests\/studio-(server|worker|collab|keycloak|client|diff-captures)\.test\.ts|tools\/studio\/diff-rooms\.ts$|ops\/studio\/(ci|keycloak)\/)/,
-    gates: [...UNIT, 'studioHosted'],
+    gates: ['studioHosted'],
     why: 'the hosted Studio against Postgres and S3 (4.2.1)',
   },
-  { re: /^tests\//, gates: [...UNIT], why: 'the unit tests' },
+  { re: /^tests\//, gates: [], why: 'the unit tests' },
 ];
 
 /** A glob as a regular expression over a whole path: `**` any folders, `*` and `?` inside one name, `{a,b*}`. */
@@ -335,7 +353,7 @@ if (process.argv[1]?.endsWith('ci-plan.ts')) {
   for (const l of lines) console.error(`  ${l}`);
   if (plan.docsPages.length) console.error(`  wiki pages to reread: ${plan.docsPages.join(', ')}`);
   console.error(
-    `✔  plan: ${plan.all ? 'everything' : on.length ? on.map((g) => JOB_OF[g]).join('; ') : 'the fast tier only (check, coverage)'}`,
+    `✔  plan: ${plan.all ? 'everything' : on.length ? on.map((g) => JOB_OF[g]).join('; ') : 'the fast tier only (check, the unit suite)'}`,
   );
   const summary = process.env.GITHUB_STEP_SUMMARY;
   if (summary)

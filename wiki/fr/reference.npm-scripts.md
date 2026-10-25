@@ -540,9 +540,9 @@ Lance `test:node` : les tests Node du moteur et des outils et ceux du jeu choisi
 
 #### `npm run test:assets`
 
-Les tests d’images et de la chaîne d’assets qui passent par Python (`tests/pixel.test.ts`, `tests/studio-assets.test.ts`).
+Les tests d’images et de la chaîne d’assets qui passent par Python (`tests/pixel.test.ts`, `tests/studio-assets.test.ts`, `tests/talk-tools.test.ts`).
 
-- Lance : `vitest run tests/pixel.test.ts tests/studio-assets.test.ts`
+- Lance : `vitest run tests/pixel.test.ts tests/studio-assets.test.ts tests/talk-tools.test.ts`
 
 <a name="test-coverage"></a>
 
@@ -605,9 +605,9 @@ Un ensemble de mutation (4.1.16) : l’enveloppe et le `h0` d’une course, l’
 
 #### `npm run test:node`
 
-La suite unitaire sans les tests liés à Python (`tests/pixel.test.ts`, `tests/studio-assets.test.ts`) ni ceux qui saturent le processeur (les fichiers de `test:heavy`) ; `npm run check` la lance, les lourds tournent la nuit.
+La suite unitaire sans les tests liés à Python (`tests/pixel.test.ts`, `tests/studio-assets.test.ts`, `tests/talk-tools.test.ts`) ni ceux qui saturent le processeur (les fichiers de `test:heavy`) ; `npm run check` la lance, les lourds tournent la nuit.
 
-- Lance : `vitest run --exclude tests/pixel.test.ts --exclude tests/studio-assets.test.ts --exclude tests/ownership.test.ts --exclude tests/audit.test.ts --exclude tests/canonical.test.ts --exclude tests/memo.test.ts --exclude tests/reference-proof.test.ts --exclude tests/solver-oracle.test.ts --exclude tests/dominance.test.ts --exclude tests/partition.test.ts --exclude tests/checkpoint-matrix.test.ts`
+- Lance : `vitest run --exclude tests/pixel.test.ts --exclude tests/studio-assets.test.ts --exclude tests/talk-tools.test.ts --exclude tests/ownership.test.ts --exclude tests/audit.test.ts --exclude tests/canonical.test.ts --exclude tests/memo.test.ts --exclude tests/reference-proof.test.ts --exclude tests/solver-oracle.test.ts --exclude tests/dominance.test.ts --exclude tests/partition.test.ts --exclude tests/checkpoint-matrix.test.ts`
 
 <a name="tsc"></a>
 

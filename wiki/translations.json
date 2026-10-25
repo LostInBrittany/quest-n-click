@@ -4185,17 +4185,17 @@
       ]
     },
     "contribute.ci#the-plan": {
-      "enHash": "8c8e99c1d32c8bde4157b014316b5e51b501b39f5719b546cf63eddfe0de98de",
-      "frHash": "67cbc145ea1751c432dbe1a15ec39055fbb2dce651107ae6001f66e69129694b",
+      "enHash": "35077b865d375a36b2f8b818fb76f48d12c7d68f594af419285ab7c695467a7a",
+      "frHash": "edf66526240be1f9cb058eeb8253d28154a0adc2f59a37de3ecb8d4780963af3",
       "reviewers": [
-        { "name": "claude-452-org", "kind": "ai", "relation": "author", "date": "2026-10-24" }
+        { "name": "claude-454-ci", "kind": "ai", "relation": "author", "date": "2026-10-25" }
       ]
     },
     "contribute.ci#tiers": {
-      "enHash": "c9f4c3075a235ab835e8cca887a4d23400b7d82e59ce892ac6644cc341bb2f29",
-      "frHash": "b8983e9ffd51d881d034967ca44c2be2c4b3a128100cf660e2f006cc5173c7f1",
+      "enHash": "4a099c982f6bbcd92e44807dedcf8435f43d11e9150a45cd89a025ca4cbbf5dd",
+      "frHash": "32ad4c5e21ff15ad6f5a88c786ac958095a7b33c39a2853195ae6a3eb2637222",
       "reviewers": [
-        { "name": "claude-452-org", "kind": "ai", "relation": "author", "date": "2026-10-24" }
+        { "name": "claude-454-ci", "kind": "ai", "relation": "author", "date": "2026-10-25" }
       ]
     },
     "contribute.ci#workflows": {
@@ -5435,11 +5435,10 @@
       ]
     },
     "contribute.which-tests#suites": {
-      "enHash": "0affb1f34266736e4327a2ec4f238f5fbe1ada4d97a96113828519db0570474d",
-      "frHash": "3ddbaaa07b4dcc817f06440c4f445f19cdc7f0defb9d09d7620b02bb9933c8ba",
+      "enHash": "9f1288edbff5f6a86ac5a8fb630e9e4dea89cbd2989bd667b0d6f82ccc913063",
+      "frHash": "37221b74a8fe4dda921608722d05d21d74fe1fcbf1a7dcecbf6412fb29ed61e5",
       "reviewers": [
-        { "name": "claude-4.5-writers", "kind": "ai", "relation": "author", "date": "2026-10-23" },
-        { "name": "wanoo", "kind": "human", "relation": "independent", "date": "2026-10-24" }
+        { "name": "claude-454-ci", "kind": "ai", "relation": "author", "date": "2026-10-25" }
       ]
     },
     "contribute.writing-docs#_lead": {
@@ -7526,11 +7525,10 @@
       ]
     },
     "create.images#character-talking": {
-      "enHash": "e68bec2480e501caedbd229efdea270067399bb673cf8591d6e0f0ffc2b04d12",
-      "frHash": "2b07a7e013e9d9fd83b69cab26748bc4a5cf3b5de8d8a777868eb80bca0fc456",
+      "enHash": "62a27c81cea3feabe7489c2b631987408094625d3ae05f4ab2c69166e11b0fa9",
+      "frHash": "e9e225a571a8a78dfb13efaf22fbdaea4b2674084e9df92863e85c8623930f03",
       "reviewers": [
-        { "name": "claude-4.5-writers", "kind": "ai", "relation": "author", "date": "2026-10-23" },
-        { "name": "wanoo", "kind": "human", "relation": "independent", "date": "2026-10-24" }
+        { "name": "claude-opus-5.5", "kind": "ai", "relation": "author", "date": "2026-10-25" }
       ]
     },
     "create.images#common-errors": {
@@ -7557,15 +7555,15 @@
       ]
     },
     "create.images#cut-and-key": {
-      "enHash": "6833e0bfe02623e1399b14a1f1db44ec9f23de626cb837ec712dacd5dac10afb",
-      "frHash": "a04dc0902f355a5fa9fa0a0c70905f2ad00351bb8744f7485b9d3d3daa3b0ade",
+      "enHash": "4458a7ee7a060d084f8893476b063b3f43c1ca8be16b05c09b3a061c250e39d3",
+      "frHash": "4e25ca193be91526913055112c3b9b187863b1217ab15017d56f190df05c6a39",
       "reviewers": [
         { "name": "claude-opus-5.5", "kind": "ai", "relation": "author", "date": "2026-10-25" }
       ]
     },
     "create.images#cutter": {
-      "enHash": "7decafd98e49085857b865df0111c9731e850fc2791ab982412792f72614ac2a",
-      "frHash": "03f6f121e34dba8fd4c110c627b8daa986168a5c6c6103de8f5dd1016d48cc43",
+      "enHash": "befe76fd91f4685541fc7fe38029b68b9f1223aa9670ca3a8d356f28ec497454",
+      "frHash": "d84ee5696d445838333ecdfd40788f61b9dc84c4409d9c0e9c4399b6f0c8370c",
       "reviewers": [
         { "name": "claude-opus-5.5", "kind": "ai", "relation": "author", "date": "2026-10-25" }
       ]
@@ -12073,11 +12071,10 @@
       ]
     },
     "install.image-toolchain#talking-mouths": {
-      "enHash": "f2b55938d7a4b2ea235df1e1964a4c7c7f542d0f6d6340933f9db4122b87645f",
-      "frHash": "c9055049bba1220186642cd2bd926aa6f721cf174f1d59105e82302df0223987",
+      "enHash": "dcaa6c2891af8c4839acd10a4a557edceccad1cb1851df57383b3447cf1aff88",
+      "frHash": "da41b8909256f337d7d2054277eba91bf9e729d5672dab65a09e4891ecc55a1c",
       "reviewers": [
-        { "name": "claude-4.5-writers", "kind": "ai", "relation": "author", "date": "2026-10-23" },
-        { "name": "wanoo", "kind": "human", "relation": "independent", "date": "2026-10-24" }
+        { "name": "claude-opus-5.5", "kind": "ai", "relation": "author", "date": "2026-10-25" }
       ]
     },
     "install.image-toolchain#what-you-get": {
@@ -13969,6 +13966,27 @@
         { "name": "wanoo", "kind": "human", "relation": "independent", "date": "2026-10-24" }
       ]
     },
+    "reference.cli#quest-n-click-talk-apply": {
+      "enHash": "ef0dd0cbc79d3d17957c820d28db484b377f7dbfbaba2b6938429a44a5c19c1e",
+      "frHash": "dbeaab3291295d1bec63d433bbd15064189b30247fc0bc58de8b1a3991df18cb",
+      "reviewers": [
+        { "name": "claude-opus-5.5", "kind": "ai", "relation": "author", "date": "2026-10-25" }
+      ]
+    },
+    "reference.cli#quest-n-click-talk-kit": {
+      "enHash": "383f572ab94ed4b9b714953fe2dd5d1c0da7dd7bce89b4bc2dce03ffb5d788ee",
+      "frHash": "09b580a2f75928a787a48cd25c41d0cd7b5d9c81f0f4c98c9d16470e546cd2aa",
+      "reviewers": [
+        { "name": "claude-opus-5.5", "kind": "ai", "relation": "author", "date": "2026-10-25" }
+      ]
+    },
+    "reference.cli#quest-n-click-talk-normalize": {
+      "enHash": "0ab0501cf1e1696e565acdaa6c2d62570205bd58d7bb2baf87624ec980e6c34a",
+      "frHash": "2cf7f9d4982da01de3e504a4b7e1a3311ed4be530b59d934028eb0e576f9d232",
+      "reviewers": [
+        { "name": "claude-opus-5.5", "kind": "ai", "relation": "author", "date": "2026-10-25" }
+      ]
+    },
     "reference.cli#quest-n-click-validate": {
       "enHash": "3256465272d81ee4ea2aafbade686e8bfa1b143d99a8ceae274cf5f2a77842ea",
       "frHash": "528b1b4547d1d8c296736ec3fb783d59ded7849accf53fa8dff203f4f44d435f",
@@ -14545,19 +14563,17 @@
       ]
     },
     "reference.environment-variables#game": {
-      "enHash": "2ca3e347257f826f8535ffe803bed85bac0656925aaf2eeeba30c1d525aa4ff5",
-      "frHash": "2c30ee205f2f66b691653519034c9cad4adb7b4230dea2d13c2c6762b3ab61d9",
+      "enHash": "31724b80f0ee26a7124fcdfc00894030aa448c4228764840749c960d5381955c",
+      "frHash": "9e40f5c758c695020c340be2b3e8bacba4cffa22418a05c6b37988642d6ef884",
       "reviewers": [
-        { "name": "claude-a7", "kind": "ai", "relation": "author", "date": "2026-10-23" },
-        { "name": "wanoo", "kind": "human", "relation": "independent", "date": "2026-10-24" }
+        { "name": "claude-opus-5.5", "kind": "ai", "relation": "author", "date": "2026-10-25" }
       ]
     },
     "reference.environment-variables#game-dir": {
       "enHash": "5be7ae2b5d62979cc6dc01e38aa2eadedb7e22aa914f62a03c2c5e57ea99664a",
       "frHash": "c741b8f5ba676dca624219b3f8e6b339b0a74393e76727ebe9f074fcd2f9e401",
       "reviewers": [
-        { "name": "claude-a7", "kind": "ai", "relation": "author", "date": "2026-10-23" },
-        { "name": "wanoo", "kind": "human", "relation": "independent", "date": "2026-10-24" }
+        { "name": "claude-opus-5.5", "kind": "ai", "relation": "author", "date": "2026-10-25" }
       ]
     },
     "reference.environment-variables#gh-token": {
@@ -15404,8 +15420,8 @@
       ]
     },
     "reference.environment-variables#web-scumm-project": {
-      "enHash": "b69e8d839d6e1b2a0e5767bf536f75d9cbc932b08e3e108153490efde15f512d",
-      "frHash": "bf927e30eb6e04c88a55542c3123d5898f0d3faa7f3cd20e5e27f75ce083e89b",
+      "enHash": "f3a592dc7f8b653c041cdfde0697a27cb845952b181c932879eb217c5a0024a8",
+      "frHash": "5c9e5e7610b4e895a414dd1cdbcbdabbe8cf7a904bd5215ba7a5c1daa7b3099b",
       "reviewers": [
         { "name": "claude-opus-5.5", "kind": "ai", "relation": "author", "date": "2026-10-25" }
       ]
@@ -17011,11 +17027,10 @@
       ]
     },
     "reference.npm-scripts#test-assets": {
-      "enHash": "24183ffdc91d0515495e6bf8da07e788cea1c95879f4f09f3b17ce7c539f9f11",
-      "frHash": "579696fcc46f63edd74b9acfb6f764e92358d9d73de84daac1de6176db581b88",
+      "enHash": "334608a290d5c9aa89a00cbf0642822955e501f961080165bf8239229e9fc85a",
+      "frHash": "832052558004b01cdb99fa826afdd927847c28d3531f98b2e997b711679acbb2",
       "reviewers": [
-        { "name": "claude-4.5-writers", "kind": "ai", "relation": "author", "date": "2026-10-23" },
-        { "name": "wanoo", "kind": "human", "relation": "independent", "date": "2026-10-24" }
+        { "name": "claude-opus-5.5", "kind": "ai", "relation": "author", "date": "2026-10-25" }
       ]
     },
     "reference.npm-scripts#test-coverage": {
@@ -17075,11 +17090,10 @@
       ]
     },
     "reference.npm-scripts#test-node": {
-      "enHash": "13eecfbdd4ca5986001208fd7035dc6586a170a52feda9539f5325bfbb60cc21",
-      "frHash": "43e5b3de285f0f01a4d043ae68fc5ce7a213fb9ed5a323976d6a36bc13ff62f9",
+      "enHash": "45e4422d3f8b6f3964e3ae8ec7b973eb4db929ba19a1b7f9631eed763a7173ea",
+      "frHash": "8ca5b90dc6a5d8493fbd9012b8e01db59672f69bedc8ab4a75fd81dcf0edec8c",
       "reviewers": [
-        { "name": "claude-4.5-writers", "kind": "ai", "relation": "author", "date": "2026-10-23" },
-        { "name": "wanoo", "kind": "human", "relation": "independent", "date": "2026-10-24" }
+        { "name": "claude-opus-5.5", "kind": "ai", "relation": "author", "date": "2026-10-25" }
       ]
     },
     "reference.npm-scripts#tests": {

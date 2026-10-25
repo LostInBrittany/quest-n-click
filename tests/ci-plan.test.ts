@@ -23,51 +23,79 @@ describe('the plan of a change', () => {
     [
       "the documentation's publication tools",
       ['tools/wiki/archive.ts', 'tools/wiki/pages.ts', 'tools/wiki/publication.ts', 'tools/wiki/transition.ts'],
-      gates('node24', 'windows'),
+      [],
     ],
-    ['the Bridge', ['bridge/src/store.ts'], gates('reality', 'freshInstall', 'node24', 'windows')],
-    ['the signals game', ['games/signals/index.ts'], gates('reality', 'node24', 'windows')],
+    ['the Bridge', ['bridge/src/store.ts'], gates('coverage', 'reality', 'freshInstall', 'node24', 'windows')],
+    ['the signals game', ['games/signals/index.ts'], gates('coverage', 'reality', 'node24', 'windows')],
     ['the engine core', ['src/engine/core/engine.ts'], EVERYTHING],
     ['a save module', ['src/engine/core/save.ts'], EVERYTHING],
-    ['a painter', ['src/engine/dom/render-canvas.ts'], gates('e2e', 'reference', 'node24', 'windows')],
-    ['the music', ['src/engine/dom/director.ts'], gates('e2e', 'reference', 'node24', 'windows')],
-    ['the worker update', ['src/engine/dom/update.ts'], gates('e2e', 'pwaFirefox', 'upgrade', 'node24', 'windows')],
-    ['the Studio', ['src/studio/main.ts'], gates('e2e', 'node24', 'studioHosted', 'windows')],
+    ['a painter', ['src/engine/dom/render-canvas.ts'], gates('coverage', 'e2e', 'reference', 'node24', 'windows')],
+    ['the music', ['src/engine/dom/director.ts'], gates('coverage', 'e2e', 'reference', 'node24', 'windows')],
+    [
+      'the worker update',
+      ['src/engine/dom/update.ts'],
+      gates('coverage', 'e2e', 'pwaFirefox', 'upgrade', 'node24', 'windows'),
+    ],
+    ['the Studio', ['src/studio/main.ts'], gates('coverage', 'e2e', 'node24', 'studioHosted', 'windows')],
     ['the hosted Studio in a browser', ['scripts/e2e-studio-hosted.ts'], gates('studioHosted')],
     [
       'the Studio Server',
       ['studio-server/migrations/0005.up.sql'],
-      gates('secondGame', 'freshInstall', 'upgrade', 'reference', 'node24', 'windows', 'studioHosted'),
+      gates('coverage', 'secondGame', 'freshInstall', 'upgrade', 'reference', 'node24', 'windows', 'studioHosted'),
     ],
-    ['its hosted tests', ['tests/studio-server.test.ts'], gates('node24', 'windows', 'studioHosted')],
-    ['its CI S3 identity', ['ops/studio/ci/seaweedfs-s3.json'], gates('node24', 'windows', 'studioHosted')],
-    ['its Keycloak realm', ['ops/studio/keycloak/realm.json'], gates('node24', 'windows', 'studioHosted')],
+    ['its hosted tests', ['tests/studio-server.test.ts'], gates('studioHosted')],
+    ['its CI S3 identity', ['ops/studio/ci/seaweedfs-s3.json'], gates('studioHosted')],
+    ['its Keycloak realm', ['ops/studio/keycloak/realm.json'], gates('studioHosted')],
     [
       "the journal's SQL layer",
       ['bridge/src/migrations.ts'],
-      gates('reality', 'freshInstall', 'node24', 'windows', 'studioHosted'),
+      gates('coverage', 'reality', 'freshInstall', 'node24', 'windows', 'studioHosted'),
     ],
-    ['the sample game', ['games/demo/rooms/x.ts'], gates('e2e', 'reference', 'node24', 'windows')],
-    ['the reference chapter', ['games/reference/index.ts'], gates('reference', 'node24')],
-    ['the hero choice example', ['games/heroes/e2e.mjs'], gates('reference', 'node24')],
-    ['the template', ['games/_template/index.ts'], gates('secondGame', 'freshInstall', 'upgrade', 'node24', 'windows')],
-    ['a golden save', ['tests/fixtures/saves/4.1.8.json'], gates('upgrade', 'node24', 'windows')],
+    ['the sample game', ['games/demo/rooms/x.ts'], gates('coverage', 'e2e', 'reference', 'node24', 'windows')],
+    ['the reference chapter', ['games/reference/index.ts'], gates('coverage', 'reference', 'node24')],
+    ['the hero choice example', ['games/heroes/e2e.mjs'], gates('coverage', 'reference', 'node24')],
+    [
+      'the template',
+      ['games/_template/index.ts'],
+      gates('coverage', 'secondGame', 'freshInstall', 'upgrade', 'node24', 'windows'),
+    ],
+    ['a golden save', ['tests/fixtures/saves/4.1.8.json'], gates('coverage', 'upgrade', 'node24', 'windows')],
     ['the PWA e2e', ['scripts/e2e-pwa.mjs'], gates('e2e', 'pwaFirefox')],
     ['the e2e driver', ['scripts/e2e.mjs'], gates('e2e', 'reference', 'secondGame')],
     ['a visual reference', ['tests/visual/demo/hall.png'], gates('e2e', 'reference')],
-    ['a unit test', ['tests/core.test.ts'], gates('node24', 'windows')],
-    ['the Windows launcher', ['scripts/start.mjs'], gates('node24', 'windows')],
-    ['a release tool', ['tools/release/ship.mjs', 'tools/mutate.ts'], gates('node24', 'windows')],
+    [
+      'the wiki tools',
+      ['tools/wiki.ts', 'tools/wiki/check.ts', 'tools/wiki/claims.ts', 'tools/wiki/translations.ts'],
+      [],
+    ],
+    [
+      'the docs the Studio and the MCP server read',
+      ['tools/wiki/docs-load.ts'],
+      gates('coverage', 'node24', 'windows', 'secondGame', 'freshInstall', 'upgrade', 'reference'),
+    ],
+    [
+      'a doc and the engine',
+      ['wiki/en/create.rooms.md', 'src/engine/dom/director.ts'],
+      gates('coverage', 'e2e', 'reference', 'node24', 'windows'),
+    ],
+    [
+      'a golden save opens coverage',
+      ['tests/fixtures/saves/demo-4.5.3.json'],
+      gates('coverage', 'upgrade', 'node24', 'windows'),
+    ],
+    ['a unit test', ['tests/core.test.ts'], []],
+    ['the Windows launcher', ['scripts/start.mjs'], gates('coverage', 'node24', 'windows')],
+    ['a release tool', ['tools/release/ship.mjs', 'tools/mutate.ts'], []],
     [
       'an authoring tool',
       ['tools/validate.ts'],
-      gates('node24', 'windows', 'secondGame', 'freshInstall', 'upgrade', 'reference'),
+      gates('coverage', 'node24', 'windows', 'secondGame', 'freshInstall', 'upgrade', 'reference'),
     ],
-    ['the audio pipeline', ['tools/audio/compose.py'], gates('e2e', 'reference', 'node24')],
+    ['the audio pipeline', ['tools/audio/compose.py'], gates('coverage', 'e2e', 'reference', 'node24')],
     [
       'two parts at once: the union',
       ['bridge/src/store.ts', 'tests/visual/demo/hall.png'],
-      gates('reality', 'freshInstall', 'node24', 'windows', 'e2e', 'reference'),
+      gates('coverage', 'reality', 'freshInstall', 'node24', 'windows', 'e2e', 'reference'),
     ],
   ];
   for (const [name, files, want] of table)
@@ -265,6 +293,20 @@ describe('ci.yml and the plan', () => {
     }
   });
 
+  it('runs the unit suite on every change, under coverage only when the plan asks (4.5.4, #302)', () => {
+    const body = job('coverage');
+    expect(body).not.toMatch(/^ {4}if:/m);
+    expect(body).toContain('RUN: ${{ fromJSON(needs.plan.outputs.plan).coverage }}');
+    // The plan spares the instrumentation, never the tests.
+    // test:node leaves out the two asset files; test:coverage has them: both runs cover the same files.
+    expect(body).toMatch(/- if: env\.RUN != 'true'\n {8}run: npm run test:node && npm run test:assets\n/);
+    expect(body).toMatch(/- if: env\.RUN == 'true'\n {8}run: npm run test:coverage/);
+    expect(body).toMatch(/- if: env\.RUN == 'true'\n {8}run: npx tsx tools\/coverage-ratchet\.ts/);
+    // The setup is the same either way: no step before the tests is gated.
+    const setup = body.slice(0, body.indexOf("- if: env.RUN != 'true'\n        run: npm run test:node"));
+    expect(setup).not.toContain('env.RUN');
+  });
+
   it('the gate job needs every other job and asks each for success', () => {
     const gate = job('pr-gate');
     expect(gate).toMatch(/^ {4}if: always\(\)/m);
@@ -283,6 +325,14 @@ describe('the workflow, lot 0 details', () => {
     const cond = "github.event_name == 'pull_request' && contains(github.event.pull_request.labels.*.name, 'full-ci')";
     expect(yml).toContain(`    if: ${cond}`);
     expect(yml).toContain(`MUTATION: \${{ ${cond} }}`);
+  });
+  it('pr-gate warns on pwa-firefox (#257) and fails on any other job', () => {
+    const gate = yml.slice(yml.indexOf('\n  pr-gate:\n'));
+    const warn = gate.indexOf('pwa-firefox) if [ "$result" != success ]; then echo "::warning::pwa-firefox: $result');
+    expect(warn).toBeGreaterThan(0);
+    expect(gate.slice(warn, warn + 200)).toContain('continue; fi ;;');
+    // The generic check comes after, unchanged: any other job that is not a success fails the gate.
+    expect(gate.indexOf('else echo "::error::$job: $result"; bad=1; fi')).toBeGreaterThan(warn);
   });
   it('the plan job reads two commits and diffs against HEAD^1, everything on main, a tag or a full-ci label', () => {
     expect(yml).toMatch(/fetch-depth: 2/);

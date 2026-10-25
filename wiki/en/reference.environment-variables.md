@@ -395,7 +395,7 @@ The path of the Furnace executable the audio pipeline renders with, when it is n
 Which game of `games/` the engine repository's commands work on (`GAME=reference npm run validate`). Without it, the game last selected (`npm run game -- <id>`), then `config.game` of `package.json`, then `demo`.
 
 - Origin: you set it; the code reads it.
-- Read by: [`.github/workflows/ci.yml`](../../.github/workflows/ci.yml), [`.github/workflows/prove.yml`](../../.github/workflows/prove.yml), [`scripts/e2e-studio.mjs`](../../scripts/e2e-studio.mjs), and 9 more.
+- Read by: [`.github/workflows/ci.yml`](../../.github/workflows/ci.yml), [`.github/workflows/prove.yml`](../../.github/workflows/prove.yml), [`scripts/e2e-studio.mjs`](../../scripts/e2e-studio.mjs), and 7 more.
 
 <a name="game-dir"></a>
 
@@ -467,7 +467,7 @@ The dev server the MCP `screenshot` tool opens; `http://localhost:5173/` when un
 The created project the engine's tools work on. The `quest-n-click` command sets it to the folder it runs in; you do not set it yourself.
 
 - Origin: set by the `quest-n-click` command.
-- Read by: [`tools/assets.py`](../../tools/assets.py), [`tools/cut-sheet.py`](../../tools/cut-sheet.py), [`tools/game.ts`](../../tools/game.ts).
+- Read by: [`tools/assets.py`](../../tools/assets.py), [`tools/game.ts`](../../tools/game.ts), [`tools/game_folder.py`](../../tools/game_folder.py).
 
 <a name="web-scumm-studio-hosts"></a>
 
