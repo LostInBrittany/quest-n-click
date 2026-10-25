@@ -31,6 +31,10 @@ const CONSUMERS: Record<string, { phase: Reads; reads: string }> = {
     reads: 'docs/en and docs/fr: the inventory frozen by L2, then the transition pages it checks',
   },
   'tools/ci-plan.ts': { phase: 'wiki', reads: "wiki/manifest.json, the docs family's pages" },
+  'tools/release/prepare.ts': {
+    phase: 'wiki',
+    reads: 'the upgrade notes of wiki/en and wiki/fr it extends; runs `wiki -- transition` and `wiki -- check`',
+  },
   // The generators and checks of the documentation.
   'tools/api-doc.ts': { phase: 'wiki', reads: 'the generated part of wiki/en|fr/engine.api.md' },
   'tools/docs-truth.ts': { phase: 'wiki', reads: 'every page of wiki/en and wiki/fr' },

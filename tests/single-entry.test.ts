@@ -119,6 +119,8 @@ const WRITERS: Record<string, string> = {
   'tools/release/baseline.mjs': 'elsewhere: release outputs',
   'tools/release/candidate.mjs': 'elsewhere: release outputs',
   'tools/release/lib.mjs': 'elsewhere: release outputs',
+  'tools/release/prepare.ts':
+    'elsewhere: a release branch (CHANGELOG.md, docs/dev/, README*.md, wiki/*/install.upgrade-notes-*, tests/fixtures/)',
   'tools/release/npm-stage.mjs': 'elsewhere: the run summary (GITHUB_STEP_SUMMARY)',
   'tools/release/run-jobs.mjs': 'elsewhere: release outputs',
   'tools/release/ship.mjs': 'elsewhere: release outputs',
