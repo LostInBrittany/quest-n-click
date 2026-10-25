@@ -3,7 +3,7 @@
 // in .cache with an index.ts exporting the game and its `minigames`, and the CLI runs on it through $GAME_DIR.
 import { spawnSync } from 'node:child_process';
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
-import { join, resolve } from 'node:path';
+import { join, relative, resolve, sep } from 'node:path';
 import { afterAll, describe, expect, it } from 'vitest';
 import { localeStatus } from '@engine/tools/i18n';
 import type { GameDef } from '@engine/core/types';
@@ -26,13 +26,20 @@ function duelGame(): GameDef {
 }
 const duel = { duel: { run: async () => 'won' as const, textParams: ['intro'] } };
 
-/** A game folder whose index.ts exports duelGame() and the `duel` minigame, as a game's own module does. */
+/**
+ * A game folder whose index.ts exports duelGame() and the `duel` minigame, as a game's own module does. It imports the
+ * fixture by a relative path: an absolute one is not an import specifier on Windows (`D:/…`).
+ */
 function gameFolder(name: string) {
   const dir = join(tmp, name);
   mkdirSync(dir, { recursive: true });
   writeFileSync(
     join(dir, 'index.ts'),
-    `import { mini } from ${JSON.stringify(join(ROOT, 'tests', 'fixtures', 'mini.ts').replace(/\\/g, '/'))};
+    `import { mini } from ${JSON.stringify(
+      `./${relative(dir, join(ROOT, 'tests', 'fixtures', 'mini.ts'))
+        .split(sep)
+        .join('/')}`,
+    )};
 const g = mini();
 g.rooms[0].on = [{ verb: 'use', a: 'badge', b: 'valise', do: [{ minigame: 'duel', params: { intro: 'En garde!', taps: 3 } }] }];
 export const game = g;
