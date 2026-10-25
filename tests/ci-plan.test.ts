@@ -303,6 +303,14 @@ describe('the workflow, lot 0 details', () => {
     expect(yml).toContain(`    if: ${cond}`);
     expect(yml).toContain(`MUTATION: \${{ ${cond} }}`);
   });
+  it('pr-gate warns on pwa-firefox (#257) and fails on any other job', () => {
+    const gate = yml.slice(yml.indexOf('\n  pr-gate:\n'));
+    const warn = gate.indexOf('pwa-firefox) if [ "$result" != success ]; then echo "::warning::pwa-firefox: $result');
+    expect(warn).toBeGreaterThan(0);
+    expect(gate.slice(warn, warn + 200)).toContain('continue; fi ;;');
+    // The generic check comes after, unchanged: any other job that is not a success fails the gate.
+    expect(gate.indexOf('else echo "::error::$job: $result"; bad=1; fi')).toBeGreaterThan(warn);
+  });
   it('the plan job reads two commits and diffs against HEAD^1, everything on main, a tag or a full-ci label', () => {
     expect(yml).toMatch(/fetch-depth: 2/);
     expect(yml).toContain('--base=HEAD^1');

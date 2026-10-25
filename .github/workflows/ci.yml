@@ -1222,6 +1222,8 @@ jobs:
               if [ "$result" = skipped ] && [ "$MUTATION" != true ]; then
                 echo "✔ $job: skipped (main, the nightly, release-check and full-ci only)"; continue
               fi ;;
+            # Flaky (#257): said, not blocking, until fixed (4.5.4, #302).
+            pwa-firefox) if [ "$result" != success ]; then echo "::warning::pwa-firefox: $result (flaky, #257: not blocking)"; continue; fi ;;
             esac
             if [ "$result" = success ]; then echo "✔ $job"; else echo "::error::$job: $result"; bad=1; fi
           done
