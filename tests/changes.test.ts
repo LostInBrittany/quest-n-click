@@ -5,6 +5,8 @@ import { describe, expect, it } from 'vitest';
 import {
   appendLog,
   fragmentFiles,
+  fragmentProblems,
+  fragmentTexts,
   lastLogNumber,
   logEntryOf,
   mergeChangelog,
@@ -128,6 +130,44 @@ describe('the files of the fragments (4.5.4)', () => {
       { slug: 'b', md: false, log: true },
       { slug: 'c', md: true, log: false },
     ]);
+  });
+});
+
+describe('the fragments the check reads (#335)', () => {
+  it('refuses a heading --assemble refuses, with the file, the line and the three headings', () => {
+    expect(fragmentProblems([{ name: 'a.md', text: '### Fixed\n\n- **x**.\n\n### Fixes\n\n- **y**.\n' }])).toEqual([
+      'changes/a.md:5: "### Fixes" is not a fragment heading: ### Breaking | ### Fixed | ### Changes',
+    ]);
+  });
+  it('refuses text before the first heading, at its line', () => {
+    expect(fragmentProblems([{ name: 'b.md', text: '\n- **no heading**.\n### Fixed\n' }])).toEqual([
+      'changes/b.md:2: a fragment starts with its heading (### Breaking | ### Fixed | ### Changes), not with "- **no heading**."',
+    ]);
+  });
+  it('refuses a LOG part that does not open on ## <title>', () => {
+    expect(fragmentProblems([{ name: 'c.log.md', text: '\n# a title\n\nbody\n' }])).toEqual([
+      'changes/c.log.md:2: a .log.md fragment starts with "## <title>", not with "# a title"',
+    ]);
+  });
+  it('says every problem of every file, and nothing for good fragments or the README', () => {
+    expect(
+      fragmentProblems([
+        { name: 'README.md', text: '# Fragments\n' },
+        { name: 'ok.md', text: '### Breaking\n- a\n### Changes\n- b\n' },
+        { name: 'ok.log.md', text: '## a title\n\nbody\n' },
+        { name: 'bad.md', text: '### Added\n- a\n### Security\n- b\n' },
+      ]),
+    ).toEqual([
+      'changes/bad.md:1: "### Added" is not a fragment heading: ### Breaking | ### Fixed | ### Changes',
+      'changes/bad.md:3: "### Security" is not a fragment heading: ### Breaking | ### Fixed | ### Changes',
+    ]);
+  });
+  it('accepts what --assemble accepts: the same list of headings', () => {
+    for (const s of ['Breaking', 'Fixed', 'Changes'])
+      expect(fragmentProblems([{ name: 'x.md', text: `### ${s}\n- a\n` }])).toEqual([]);
+  });
+  it('passes on every fragment of this branch', () => {
+    expect(fragmentProblems(fragmentTexts())).toEqual([]);
   });
 });
 

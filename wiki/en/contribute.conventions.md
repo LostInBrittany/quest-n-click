@@ -94,9 +94,11 @@ npm run changes -- --check [--base=origin/main]
   fragment and without a CHANGELOG edit: `✖ this branch changes the code and carries no fragment: write
   changes/<slug>.md (### Fixed | ### Changes | ### Breaking, then the bullets)…`. CI's `check` job runs it on pull
   requests. A change to `docs/`, `wiki/` or `tests/` alone needs no fragment.
-- A heading other than the three (`### Added`, for instance) is refused: `a fragment's heading is one of ### Breaking |
-  ### Fixed | ### Changes`. Text before the first heading is refused too: `a fragment starts with its heading`.
-  Nothing is filed silently.
+- It also reads every fragment in `changes/`, the branch's and the others, as `--assemble` will (4.5.5, #335): a
+  heading other than the three (`### Added`, for instance), text before the first heading, or a `.log.md` that does
+  not open on `## <title>` is refused with its file and line: `✖ changes/<slug>.md:5: "### Fixes" is not a fragment
+  heading: ### Breaking | ### Fixed | ### Changes`. `--assemble` refuses the same, so a fragment the release would
+  stop on fails the pull request that adds it. Nothing is filed silently.
 - A release branch is the exception: it assembles the fragments and edits the CHANGELOG itself.
 - `changes/README.md` is not a fragment.
 

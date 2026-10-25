@@ -31,31 +31,76 @@ export interface Fragment {
 
 const isSection = (s: string): s is Section => (SECTIONS as readonly string[]).includes(s);
 
+const HEADINGS = SECTIONS.map((s) => `### ${s}`).join(' | ');
+
+/**
+ * Why a fragment's CHANGELOG part cannot be filed, each at its 1-based line: a heading the CHANGELOG does not use
+ * (`### Added`), or text before the first heading. `sectionsOf` (so `--assemble`) and `fragmentProblems` (so
+ * `--check`, #335) both read it, with the one list SECTIONS: the two cannot disagree.
+ */
+function sectionProblems(text: string): { line: number; problem: string }[] {
+  const out: { line: number; problem: string }[] = [];
+  // `started`: a heading was seen; `stray`: text before it was already said (once, at its first line).
+  let started = false;
+  let stray = false;
+  text.split('\n').forEach((line, i) => {
+    const m = /^### (.+?)\s*$/.exec(line);
+    if (m) {
+      started = true;
+      if (!isSection(m[1]!)) out.push({ line: i + 1, problem: `"### ${m[1]}" is not a fragment heading: ${HEADINGS}` });
+    } else if (!started && !stray && line.trim()) {
+      stray = true;
+      out.push({
+        line: i + 1,
+        problem: `a fragment starts with its heading (${HEADINGS}), not with "${line.slice(0, 40)}"`,
+      });
+    }
+  });
+  return out;
+}
+
+/** Why a `.log.md` fragment cannot be filed (its first line is not `## <title>`), at its 1-based line. */
+function logProblem(text: string): { line: number; problem: string } | undefined {
+  const lines = text.split('\n');
+  const i = lines.findIndex((l) => l.trim());
+  const first = (lines[i] ?? '').trimStart();
+  if (/^## .+$/.test(first)) return undefined;
+  return { line: i + 1, problem: `a .log.md fragment starts with "## <title>", not with "${first.slice(0, 40)}"` };
+}
+
+/**
+ * Why `--assemble` would refuse these files of `changes/` (#335): every problem of every fragment, as
+ * `changes/<name>:<line>: <problem>`. `changes/README.md` is not a fragment. `--check` runs it on the whole folder,
+ * so a heading the release would stop on fails the pull request that adds it.
+ */
+export function fragmentProblems(files: readonly { name: string; text: string }[]): string[] {
+  const out: string[] = [];
+  for (const { name, text } of files) {
+    if (name === 'README.md' || !name.endsWith('.md')) continue;
+    const problems = name.endsWith('.log.md') ? [logProblem(text)].filter((p) => !!p) : sectionProblems(text);
+    for (const p of problems) out.push(`changes/${name}:${p.line}: ${p.problem}`);
+  }
+  return out;
+}
+
 /**
  * The sections of a fragment: `{ Fixed: '- …', Changes: '- …' }`, each the text under its heading, blank lines inside
  * kept, the ends trimmed. A heading the CHANGELOG does not use (`### Added`), or text before the first heading, is an
  * error: nothing is filed silently.
  */
 export function sectionsOf(text: string): Partial<Record<Section, string>> {
+  const problem = sectionProblems(text)[0];
+  if (problem) throw new Error(problem.problem);
   const out: Partial<Record<Section, string[]>> = {};
   let current: Section | undefined;
   for (const line of text.split('\n')) {
     const m = /^### (.+?)\s*$/.exec(line);
     if (m) {
-      if (!isSection(m[1]!))
-        throw new Error(`a fragment's heading is one of ### ${SECTIONS.join(' | ### ')}, not "### ${m[1]}"`);
-      current = m[1];
+      current = m[1] as Section;
       out[current] ??= [];
       continue;
     }
-    if (current === undefined) {
-      if (line.trim())
-        throw new Error(
-          `a fragment starts with its heading (### ${SECTIONS.join(' | ### ')}), not with "${line.slice(0, 40)}"`,
-        );
-      continue;
-    }
-    out[current]!.push(line);
+    if (current !== undefined) out[current]!.push(line);
   }
   const trimmed: Partial<Record<Section, string>> = {};
   for (const [s, lines] of Object.entries(out) as [Section, string[]][]) {
@@ -138,9 +183,10 @@ export function appendLog(log: string, entries: readonly { title: string; body: 
 
 /** The title and body of a `.log.md` fragment (first line `## <title>`). */
 export function logEntryOf(text: string): { title: string; body: string } {
+  const problem = logProblem(text);
+  if (problem) throw new Error(problem.problem);
   const [first = '', ...rest] = text.trimStart().split('\n');
-  const m = /^## (.+)$/.exec(first);
-  if (!m) throw new Error('a .log.md fragment starts with "## <title>"');
+  const m = /^## (.+)$/.exec(first)!;
   return { title: m[1]!, body: rest.join('\n').trim() };
 }
 
@@ -181,6 +227,15 @@ export function fragmentFiles(names: readonly string[]): { slug: string; md: boo
   return [...by.values()].sort((a, b) => a.slug.localeCompare(b.slug));
 }
 
+/** The `.md` files of `changes/` with their text, as `fragmentProblems` reads them (none without the folder). */
+export function fragmentTexts(): { name: string; text: string }[] {
+  const dir = resolve(ROOT, 'changes');
+  if (!existsSync(dir)) return [];
+  return readdirSync(dir)
+    .filter((name) => name.endsWith('.md'))
+    .map((name) => ({ name, text: readFileSync(resolve(dir, name), 'utf8') }));
+}
+
 export function readFragments(): Fragment[] {
   const dir = resolve(ROOT, 'changes');
   if (!existsSync(dir)) return [];
@@ -219,6 +274,13 @@ if (process.argv[1]?.endsWith('changes.ts')) {
       changed = git('diff', '--name-only', `${base}...HEAD`).split('\n').filter(Boolean);
     } catch {
       changed = git('diff', '--name-only', base, 'HEAD').split('\n').filter(Boolean);
+    }
+    // Every fragment on the branch, not only its own: the ones `--assemble` will fold at the release (#335).
+    const problems = fragmentProblems(fragmentTexts());
+    if (problems.length) {
+      for (const p of problems) console.error(`✖  ${p}`);
+      console.error(`✖  ${problems.length} fragment problem(s): --assemble would stop on them (changes/README.md)`);
+      process.exit(1);
     }
     if (needsFragment(changed)) {
       console.error(
