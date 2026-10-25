@@ -333,6 +333,14 @@ Serves `dist/` locally (`vite preview --host 127.0.0.1`).
 
 Usage: `quest-n-click preview [<Vite preview options>]`
 
+<a name="quest-n-click-page"></a>
+
+### `quest-n-click page`
+
+One of the phone pages of [create.review-pages](create.review-pages.md), from the project's game: the storyboard (`--md` also writes `game/storyboard.md`; `--readonly`, the same story without notes, to publish beside the game), the sprite review, the placement page, the world or the puzzles. Written in `dist-pages/` unless `--out` says otherwise.
+
+Usage: `quest-n-click page <storyboard|review|placement|world|puzzles> [--out <dir|file.html>] [--md] [--readonly]`
+
 <a name="quest-n-click-migrate"></a>
 
 ### `quest-n-click migrate`

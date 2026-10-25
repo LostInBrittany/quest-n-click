@@ -85,6 +85,8 @@ const verifyRelease = () =>
     () => tool('playtests', ['--strict']),
   );
 
+/** The review pages a project can write (tools/pages/<name>.ts). */
+const PAGES = ['storyboard', 'review', 'placement', 'world', 'puzzles'];
 const COMMANDS = {
   create: [
     'create <folder> ["Title"] [--engine=<npm spec>]: a new game project from the template',
@@ -164,6 +166,13 @@ const COMMANDS = {
       ),
   ],
   preview: ['serve dist/ locally', () => vite(['preview', '--host', '127.0.0.1', ...rest])],
+  page: [
+    'a page for a phone: storyboard (--md, --readonly), review, placement, world, puzzles',
+    () =>
+      PAGES.includes(rest[0])
+        ? tool(`pages/${rest[0]}`, rest.slice(1))
+        : (console.error(`quest-n-click page <${PAGES.join('|')}> [options]`), 1),
+  ],
   migrate: ["bring the game's sources to this engine version (ids, content format)", () => tool('migrate', rest)],
 };
 

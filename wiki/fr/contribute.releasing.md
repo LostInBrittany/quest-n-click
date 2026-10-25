@@ -85,15 +85,46 @@ npm run release -- check 4.5.4
 ```
 
 Elle dit, point par point, si `package.json` est à la version, si le CHANGELOG a sa section, s'il reste un
-`TODO(release)`, si `npm run wiki -- check` avertit, et si la ligne de base de qualité tient. Fusionnez quand chaque
-point est ✔.
+`TODO(release)`, si `npm run wiki -- check` avertit, si les relectures humaines des docs tiennent
+(`wiki -- check --publish --reviews-only` : une claim ou une paire qu'une personne doit lire, chacune affichée avec sa
+commande), et si la ligne de base de qualité tient. La CI de la pull request de release la lance aussi, avec la
+version que nomme sa branche : fusionnez quand chaque point est ✔, et le merge lance le candidat.
+
+<a name="release-command"></a>
+
+### La release : une commande
+
+Une fois la pull request de release fusionnée, sur un `main` à jour :
+
+```sh
+npm run release -- 4.5.4          # --dry-run dit ce qu'elle refuserait ; --key=<clé.pub> si git signe autrement
+```
+
+Elle refuse d'abord ce qui échouerait plus tard (`package.json` pas à la version, une autre branche, des changements
+non commités, un `main` qui n'est pas celui de l'organisation, pas de section dans le CHANGELOG, pas de clé de
+signature SSH, `gh` ou `npm` non connectés, un utilisateur npm qui n'est pas propriétaire). Puis elle trouve le
+candidat que le merge a lancé sur ce commit (`--start-candidate` en lance un s'il n'y en a pas) et l'attend (environ
+90 minutes), en disant combien de jobs sont faits et lesquels tournent à chaque changement et toutes les cinq minutes,
+en relançant une fois ses jobs en échec ; puis `ship tag … --sign` : la `ci` de main, le tag signé poussé sur le dépôt
+de l'organisation ; puis elle suit l'exécution de release job par job jusqu'à ce que `release` et `npm-stage`
+réussissent (les jobs de la documentation sont signalés, jamais attendus : un problème de doc ne retient jamais npm),
+vérifie les fichiers de la release, et approuve les paquets npm que la release a mis en attente, chacun avec votre 2FA
+dans votre terminal, l'engine d'abord ; puis un résumé. Le commit de release est celui où `package.json` est passé à la
+version sur main (ou celui du tag, une fois poussé), si bien que ce qui est fusionné entre-temps ne le déplace pas. Si
+elle s'arrête, relancez-la : un candidat vert n'est pas attendu de nouveau, un tag déjà poussé est suivi, un paquet
+déjà sur npm n'est pas approuvé de nouveau ; une exécution de release en échec (son job `release` ou `npm-stage`) se
+relance d'abord (`gh run rerun <id> --failed`, la commande l'affiche). Une pré-release (`-rc.N`) se tague à la main
+(`ship tag`, plus bas). La chaîne ci-dessous est ce qu'elle lance, pour quand une étape doit se
+faire à la main.
 
 <a name="the-chain"></a>
 
 ### La chaîne
 
 <!-- step: candidate -->
-1. **Un candidat sur main.** On le lance à la main sur main pour le SHA complet :
+1. **Un candidat sur main.** Depuis la 4.5.4, le merge de la pull request de release le lance, sur le commit de
+   merge (un push sur `main` qui change la version de `package.json` ; une mise à jour de dépendance n'en lance
+   aucun). Pour un autre SHA, on le lance à la main :
 
    ```sh
    # dans le dépôt du moteur
@@ -103,8 +134,11 @@ point est ✔.
    Il joue toutes les familles lourdes sur ce SHA, le profil de qualification complet sur ses propres archives et son
    image, les trois charges et la répétition de signature. Sa gate (`candidate-gate`) écrit et atteste
    `candidate-manifest.json`, avec chaque fichier que la release publiera (`tools/release/artifacts.mjs`). Lire la
-   gate **et** sa conclusion. Seul un run lancé à la main (`workflow_dispatch`) sur main peut être nommé par un tag ;
-   une pull request avec le label `full-ci` le lance aussi, pour information seulement.
+   gate **et** sa conclusion. Seul un run lancé sur main, à la main (`workflow_dispatch`) ou par le merge d'une release
+   (`push`), peut être nommé par un tag ; une pull request avec le label `full-ci` le lance aussi, pour information
+   seulement. Il finit par la vérification de publication de la documentation sur son propre rapport de tests, en
+   avertissement : un problème de doc ne retient jamais la release (la CI de la pull request de release a déjà vérifié
+   ses relectures humaines, `npm run release -- check`).
 
 <!-- step: tag -->
 2. **Un tag qui le nomme.**
@@ -207,10 +241,15 @@ le sha256 de l'archive de documentation, promeut cette archive (celle du candida
 - **Les releases immuables** : Settings → General → Releases. Une release publiée garde alors ses fichiers et son tag.
 - **Un ruleset sur les tags de release** : cible `tag`, `refs/tags/v*`, actif. Il réserve la création, refuse la
   suppression et interdit le force-push.
-- **La politique de déploiement de l'environnement `docs-publish`** (depuis la 4.5.3) : Settings → Environments →
-  docs-publish → Deployment branches and tags, une règle de **tag** `v*` à côté de `main` et `docs/*`. release.yml
-  tourne sur le push du tag, donc le job de documentation qu'il appelle tourne sur la ref du tag ; sans la règle, ce
-  job est refusé (la release elle-même est publiée ; `mode=promote` depuis main rattrape la documentation).
+- **Deux environnements pour la documentation** (depuis la 4.5.4). `docs-publish` : la doc d'une release, publiée
+  sans clic (le tag signé vaut approbation) : aucun relecteur requis, une règle de **tag** `v*` comme seule règle de
+  déploiement. `docs-publish-manual` : les lancements à la main (revision, rollback, promote, preview), ses relecteurs
+  requis approuvent chacun, règles `main` et `docs/*`. Chacun porte le secret `WIKI_DEPLOY_KEY` (un secret d'environnement : sa clé privée
+  est saisie à nouveau pour le second). Dans cet ordre : créer `docs-publish-manual` (relecteurs, règles, secret),
+  puis fusionner le changement qui le nomme, puis réduire `docs-publish` à la règle `v*` sans relecteur ; dans l'autre
+  sens, un lancement à la main trouverait `docs-publish-manual` absent et GitHub le créerait, sans protection. Sans la
+  règle `v*`, le job de la release est refusé (la release elle-même est publiée ; `mode=promote` depuis main rattrape
+  la documentation).
 - `npm run ship -- preflight-stable --candidate=<run>` doit alors voir les deux premiers. **Avant le premier tag de la 4.1.20**,
   `ship tag` refuse de taguer tant que les releases immuables sont désactivées : le jeton de release.yml ne peut pas
   lire ce réglage (il faut un droit de lecture admin), donc `ship tag` le vérifie avec l'accès du mainteneur.

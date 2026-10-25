@@ -205,10 +205,10 @@ Writes the art review page: every cell of every sheet of `games/<id>/art/` as a 
 
 #### `npm run page:storyboard`
 
-Writes `games/<id>/storyboard.json` as a phone-friendly page with a notes box under every panel (`--md` also writes `games/<id>/storyboard.md`, the plain text sub-agents read, the same text as the Studio's Markdown export) ([create.review-pages](create.review-pages.md)).
+Writes `games/<id>/storyboard.json` as a phone-friendly page with a notes box under every panel (`--md` also writes `games/<id>/storyboard.md`, the plain text sub-agents read, the same text as the Studio's Markdown export; `--readonly` leaves out the notes and saving, to publish beside the game) ([create.review-pages](create.review-pages.md)).
 
 - Runs: `tsx --tsconfig tsconfig.json tools/pages/storyboard.ts`
-- Usage: `npm run page:storyboard [-- --out <dir|file.html>] [--md]`
+- Usage: `npm run page:storyboard [-- --out <dir|file.html>] [--md] [--readonly]`
 
 <a name="page-world"></a>
 
@@ -983,10 +983,10 @@ The README's quick start as a reader copies it (4.1.19): the block under "## Sta
 
 #### `npm run release`
 
-The release pull request by one command (4.5.4): `prepare` makes the branch `release/<version>` with every generated file (version, CHANGELOG and LOG from the fragments, upgrade notes' section, transition pages, golden save, reference run, passes sheet and passIssues, README line, quality baseline), `TODO(release)` where prose is needed, one commit and the pull request; `check` says what is left before merging ([contribute.releasing](contribute.releasing.md#prepare)).
+The release in two commands (4.5.4): `<x.y.z>` after the release pull request's merge waits for its candidate, signs and pushes the tag, follows the release and approves the npm packages with 2FA ([contribute.releasing](contribute.releasing.md#release-command)); `prepare` makes the branch `release/<version>` with every generated file (version, CHANGELOG and LOG from the fragments, upgrade notes' section, transition pages, golden save, reference run, passes sheet and passIssues, README line, quality baseline), `TODO(release)` where prose is needed, one commit and the pull request; `check` says what is left before merging ([contribute.releasing](contribute.releasing.md#prepare)).
 
 - Runs: `tsx tools/release/prepare.ts`
-- Usage: `npm run release -- prepare <x.y.z> --name="<name>" [--date=YYYY-MM-DD] [--no-pr] [--dry-run] | check <x.y.z>`
+- Usage: `npm run release -- <x.y.z> [--key=<key.pub>] [--start-candidate] [--dry-run] | prepare <x.y.z> --name="<name>" [--date=YYYY-MM-DD] [--no-pr] [--dry-run] | check <x.y.z>`
 
 <a name="release-check"></a>
 

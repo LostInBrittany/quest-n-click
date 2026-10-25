@@ -950,7 +950,7 @@ The file a job writes its summary to; `npm run ci:plan` writes the plan there.
 The user's home folder. The A7 chain script refuses it as its output folder; the Studio Server gives its own `git` commands a `HOME` of its working folder, never yours.
 
 - Origin: set by the operating system.
-- Read by: [`.github/workflows/ci.yml`](../../.github/workflows/ci.yml), [`docs/dev/acceptance/a7-chain.sh`](../../docs/dev/acceptance/a7-chain.sh).
+- Read by: [`.github/workflows/ci.yml`](../../.github/workflows/ci.yml), [`docs/dev/acceptance/a7-chain.sh`](../../docs/dev/acceptance/a7-chain.sh), [`tools/release/release-run.ts`](../../tools/release/release-run.ts).
 
 <a name="imageos"></a>
 
@@ -1075,6 +1075,24 @@ docs-publish: that archive's sha256.
 - Origin: set by a workflow of `.github/workflows/` (CI and releases).
 - Read by: [`.github/workflows/docs-publish.yml`](../../.github/workflows/docs-publish.yml).
 
+<a name="before"></a>
+
+### `BEFORE`
+
+candidate: the commit main was at before the push, to tell a release's merge (the version moved) from a dependency bump (4.5.4).
+
+- Origin: set by a workflow of `.github/workflows/` (CI and releases).
+- Read by: [`.github/workflows/candidate.yml`](../../.github/workflows/candidate.yml).
+
+<a name="branch"></a>
+
+### `BRANCH`
+
+ci: a release pull request's branch, `release/<version>`, whose version `npm run release -- check` checks (4.5.4).
+
+- Origin: set by a workflow of `.github/workflows/` (CI and releases).
+- Read by: [`.github/workflows/ci.yml`](../../.github/workflows/ci.yml).
+
 <a name="called"></a>
 
 ### `CALLED`
@@ -1110,6 +1128,15 @@ release: the documentation archive of the release, when it has one.
 
 - Origin: set by a workflow of `.github/workflows/` (CI and releases).
 - Read by: [`.github/workflows/release.yml`](../../.github/workflows/release.yml).
+
+<a name="event"></a>
+
+### `EVENT`
+
+candidate: the event that started the run; only a push to main can be a release's merge (4.5.4).
+
+- Origin: set by a workflow of `.github/workflows/` (CI and releases).
+- Read by: [`.github/workflows/candidate.yml`](../../.github/workflows/candidate.yml).
 
 <a name="extra-assets"></a>
 
