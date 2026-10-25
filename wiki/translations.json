@@ -5207,10 +5207,10 @@
       ]
     },
     "contribute.releasing#release-command": {
-      "enHash": "1934bd67de81de13a0ae894fc17a0ffcb9cdd63659d9af98fbfeed2574ace009",
-      "frHash": "1d15451cc96c1e48f48390ad33b7120c1e878ba46263848cc666da01cb3168f5",
+      "enHash": "149db28d3e4c232357d837f85c8495550efaf1b605333d608b436007d645f974",
+      "frHash": "b0f9e2f0bb45558ea8ee361a6b0decf7592dba158a424e7191a3fcd979264d0a",
       "reviewers": [
-        { "name": "claude-454-release", "kind": "ai", "relation": "author", "date": "2026-10-25" }
+        { "name": "claude-release-docs-gates", "kind": "ai", "relation": "author", "date": "2026-10-25" }
       ]
     },
     "contribute.releasing#ship-commands": {
@@ -5236,10 +5236,10 @@
       ]
     },
     "contribute.releasing#the-chain": {
-      "enHash": "84f5b8394fcf6d435a1ab7635ba2fbec8275a24f1e2fcea8ebbc90772de21a27",
-      "frHash": "255a1c342a4f4167f1428202b763b496490b04f6fceea8d417afa8314a6f0f63",
+      "enHash": "583d9a3dd477a4b1258252d54c1b047b192d27be292320fff7a6205d98abd4c2",
+      "frHash": "9ad90db57dd088b886038c207654feb651a5e49b83d06bd891095b41b0e02d76",
       "reviewers": [
-        { "name": "claude-prepare-warmup", "kind": "ai", "relation": "author", "date": "2026-10-25" }
+        { "name": "claude-release-docs-gates", "kind": "ai", "relation": "author", "date": "2026-10-25" }
       ]
     },
     "contribute.releasing#what-a-release-carries": {
