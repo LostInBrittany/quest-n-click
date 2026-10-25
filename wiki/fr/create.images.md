@@ -384,8 +384,9 @@ anglais.
 
 Ce que lit `npm run prompts`, dans le module du jeu et le dossier d’art :
 
-- **personnages** (`cast.ts`) : la planche de base 6 × 4 avec les rangées de poses du moteur (`human()` ou `cat()`),
-  les poses spéciales que le contenu utilise (clés `sprites` en plus, `{ pose: [who, p] }` et `{ anim: [who, p] }` dans
+- **personnages** (`cast.ts`) : la planche de base 6 × 4 avec les rangées de poses du moteur (`human()` ou `cat()` ;
+  un personnage dont le `kind` contient `'dog'` reçoit les cases de `cat()` décrites avec les mots d’un chien : il
+  aboie, il halète, il s’étire en position de jeu), les poses spéciales que le contenu utilise (clés `sprites` en plus, `{ pose: [who, p] }` et `{ anim: [who, p] }` dans
   les lieux, poses d’acteurs, `variants`) sur leurs cases, une nouvelle planche `<sheet>_poses` pour les poses qu’aucun
   sprite ne fournit encore (avec les lignes à ajouter à `cast.ts`), la règle du siège pour les poses assises, et le kit
   bouche pour les poses listées dans `mouths` ;

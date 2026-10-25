@@ -198,7 +198,8 @@ const uniq = <T>(a: T[]) => [...new Set(a)];
 // ------------------------------------------------------------------ sheet layouts (the engine's pose rows)
 
 interface SheetLayout {
-  kind: 'human' | 'cat';
+  /** 'cat' and 'dog' share the four-legged cells (the cat() helper); only the words differ. */
+  kind: 'human' | 'cat' | 'dog';
   /** Engine pose that owns a cell in the standard layout. */
   owner(r: number, c: number): string;
   standard: string[];
@@ -294,6 +295,36 @@ const CAT: SheetLayout = {
   mapping:
     'portrait = r1c2; walk = r2c1–r2c6; front = r3c1; back = r3c2; idle = r3c3; curl = r3c4; stretch = r3c5; jump = r3c6; sleep = r4c1–r4c3; eat = r4c4–r4c6',
   helper: 'cat',
+};
+
+// A dog: the cat's cells (same helper, same pose keys), with a dog's words.
+const DOG_PORTRAITS = [
+  'neutral',
+  'smiling',
+  'barking (mouth open)',
+  'panting happily, tongue out',
+  'surprised, ears up',
+  'curious, head tilted',
+];
+const DOG_POSES = [
+  'sitting facing the viewer',
+  'sitting seen from the back',
+  'sitting at rest in profile facing right',
+  'curled up in a ball',
+  'stretching in a play bow, front legs down and rear up, tail wagging',
+  'jumping, body stretched in the air',
+];
+const DOG: SheetLayout = {
+  ...CAT,
+  kind: 'dog',
+  rows: [
+    `ROW 1 — head-and-shoulders portraits, facing the viewer: ${DOG_PORTRAITS.join(' | ')}`,
+    WALK_ROW,
+    `ROW 3 — full-body poses: ${DOG_POSES.join(' | ')}`,
+    'ROW 4 — full body, profile facing RIGHT: sleeping curled up, 3 frames of slow breathing | eating from a small bowl, 3 frames',
+  ],
+  cell: (r, c) =>
+    r === 1 ? `head portrait facing the viewer, ${DOG_PORTRAITS[c - 1]}` : r === 3 ? DOG_POSES[c - 1] : CAT.cell(r, c),
 };
 
 /** Words for common special poses; anything else falls back to its name in words. */
@@ -567,8 +598,11 @@ export function buildPrompts(mod: Pick<GameModule, 'game' | 'extraImages'>, opts
       continue;
     }
     ownedSheets.set(base, cid);
-    const layout =
-      (c.kind ?? []).includes('cat') || (c.sprites && 'sleep' in c.sprites && 'curl' in c.sprites) ? CAT : HUMAN;
+    const layout = (c.kind ?? []).includes('dog')
+      ? DOG
+      : (c.kind ?? []).includes('cat') || (c.sprites && 'sleep' in c.sprites && 'curl' in c.sprites)
+        ? CAT
+        : HUMAN;
     const isHero = cid === heroId;
     const order = isHero ? 1 : 2;
     const desc = c.description?.trim()
@@ -734,7 +768,7 @@ export function buildPrompts(mod: Pick<GameModule, 'game' | 'extraImages'>, opts
           'SHEET LAYOUT — follow it strictly:',
           '- Canvas 1536 x 1024 pixels, landscape.',
           '- An invisible grid of 6 columns x 4 rows, every cell exactly 256 x 256 pixels. One figure per cell, centered horizontally.',
-          layout.kind === 'cat'
+          layout.kind !== 'human'
             ? '- Full-body figures (rows 2 to 4) all at the SAME scale, the body about 200 pixels long in profile, paws resting on the same baseline 16 pixels above the bottom of each cell.'
             : '- Full-body figures (rows 2 to 4) all at the SAME scale, about 220 pixels tall, feet resting on the same baseline 16 pixels above the bottom of each cell.',
           '- Leave empty space around each figure: nothing may touch or cross a cell border.',
@@ -805,7 +839,7 @@ export function buildPrompts(mod: Pick<GameModule, 'game' | 'extraImages'>, opts
         const unused = layout.standard.filter(
           (p) =>
             !usedStd.has(p) &&
-            !(p === 'talk' && layout.kind === 'cat') &&
+            !(p === 'talk' && layout.kind !== 'human') &&
             p !== 'talk' &&
             !canonicalCells(p).some((k) => taken.has(k) && m.get(k)!.some((u) => !u.standard)),
         );
