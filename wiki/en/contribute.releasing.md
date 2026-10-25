@@ -146,6 +146,11 @@ tagged by hand (`ship tag`, below). The chain below is what it runs, for when a 
    its own test report, as a warning: a docs problem never holds back the release (the release pull request's CI
    already ran its human gates, `npm run release -- check`).
 
+   Its mutation shards reuse the reports the nightly saved on `main` (4.5.5, #329): only the sets whose inputs moved
+   since run again, the others take a minute or two each. A change every set reads (the lockfile, `vite.config.ts`)
+   moves them all: after the release's last merge, while its pull request is in review, warm the cache with
+   `gh workflow run nightly --ref main -f jobs=mutation` (the mutation jobs only, reusing what is already cached).
+
 <!-- step: tag -->
 2. **A tag that names it.**
 

@@ -4198,10 +4198,10 @@
       ]
     },
     "contribute.ci#workflows": {
-      "enHash": "aae16a5ae94e8b948998e49bb7977c9854e439bc2b1c99622426530c54b00ec9",
-      "frHash": "336874295a3d83ed1d808ea4ed5af41cee4c28e3607700daef83bbe8087f5702",
+      "enHash": "f0d4b250e8fbf05217a1a14f233c56f2ab2d34ce678823c3ee318a874ef9b377",
+      "frHash": "568abebeec2653a8c3d4b30531729d273026336f29623f9fda68ac3af45111f9",
       "reviewers": [
-        { "name": "claude-452-org", "kind": "ai", "relation": "author", "date": "2026-10-24" }
+        { "name": "claude-329-nightly-mutation", "kind": "ai", "relation": "author", "date": "2026-10-25" }
       ]
     },
     "contribute.code-of-conduct#_lead": {
@@ -4896,11 +4896,10 @@
       ]
     },
     "contribute.mutation-testing#expected-result": {
-      "enHash": "4a3204ef083b17d5acdaadd791126ba9ae71a669392c9b013d13a1fccc341cf8",
-      "frHash": "538f56ef7a272a0f33891405798aa6b55027ab7297bdfe365047b91d910e78be",
+      "enHash": "218341a99b2bbc9ad6076ffb5dac9e2ba36633c52bfbd8dd28f29f357e71d9c0",
+      "frHash": "c68c63aff65d93df4fcfcfb83e2069b505ee504533c1f7b3cc6419c040e75af0",
       "reviewers": [
-        { "name": "claude-4.5-writers", "kind": "ai", "relation": "author", "date": "2026-10-23" },
-        { "name": "wanoo", "kind": "human", "relation": "independent", "date": "2026-10-24" }
+        { "name": "claude-329-nightly-mutation", "kind": "ai", "relation": "author", "date": "2026-10-25" }
       ]
     },
     "contribute.mutation-testing#files-changed": {
@@ -5237,10 +5236,10 @@
       ]
     },
     "contribute.releasing#the-chain": {
-      "enHash": "861c7e8d81e5c7c2e5c1df7fc564d59aee6a10cb85949a5ef68dfa0562c81bf3",
-      "frHash": "7bcdccca054c3a8d66902dceffe07c7fe8eff108e3b02151b7cec85cf3e14ffb",
+      "enHash": "86eabff93caa87444c1dea04be337f5c5328bc2d7241e15927dec3d74925973a",
+      "frHash": "f2088d6e6f1e87344e3c81a67538d3fc926dc1001482140f43a152c07b1a44a7",
       "reviewers": [
-        { "name": "claude-454-candidate-docs", "kind": "ai", "relation": "author", "date": "2026-10-25" }
+        { "name": "claude-329-nightly-mutation", "kind": "ai", "relation": "author", "date": "2026-10-25" }
       ]
     },
     "contribute.releasing#what-a-release-carries": {

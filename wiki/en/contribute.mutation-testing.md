@@ -159,7 +159,9 @@ The tool writes the source file it mutates: do not edit it while a run is going.
 ## Expected result, and how to check it
 
 `✔ n/m mutants killed, k survivors explained, 0 not; report in .cache/mutation/…`, and exit code 0. In CI, the set's
-`mutation (<set>)` jobs and `mutation-merge` are green.
+`mutation (<set>)` jobs and `mutation-merge` are green. On `main`, a shard's report is cached under its set's input
+hash: the nightly saves each shard it measured fresh and passed, the candidate restores it and runs again only the
+shards whose inputs moved since (4.5.5).
 
 <a name="common-errors"></a>
 
