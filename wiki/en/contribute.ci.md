@@ -20,6 +20,13 @@ pull request runs is [`tools/ci-plan.ts`](../../tools/ci-plan.ts). Which test su
 | `qualify` | a pull request or a push to `main` touching `ops/`, `scripts/ops-qualify*`, `scripts/pack.mjs`, `bridge/`, `package.json` or the lockfile; by hand | `npm run ops:qualify`: the Bridge's qualification profile on Docker | the profile does not rot between candidates |
 | `docs-publish` | called by `release` after `ship verify`; by hand (`revision`, `rollback`, `promote`, `preview`) | the wiki and the publication record (4.5.0) | publication of the documentation |
 
+**Which run a newer push cancels** (4.5.5, #337). On a pull request, `ci` and `qualify` run one at a time: a newer
+push cancels the run it supersedes. A push to `main` is never cancelled: each runs in a group of its own SHA, since
+any `main` commit may become a release commit and its tag needs `main`'s `ci` run on that very SHA. Before, a merge
+right after the release pull request's cancelled the release commit's run, and `ship tag` re-ran it. A `ci` run
+started by hand waits for the one running on its branch and cancels nothing; `candidate`, `release` and
+`docs-publish` never cancel a run either.
+
 <a name="tiers"></a>
 <!-- applies: .. since 4.1.9 -->
 
