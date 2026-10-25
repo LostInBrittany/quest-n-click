@@ -200,9 +200,16 @@ export const RULES: readonly Rule[] = [
     gates: [...AUTHORING, 'studioHosted'],
     why: 'the Studio Server and its operation core (4.2.1)',
   },
+  // The rooms the semantic diff draws (4.4.0): the Studio's, and the hosted Studio's captures
+  // (studio-server/src/ops/diff-captures.ts, which studio-hosted tests). Before the folder that holds it (4.5.5, #349).
+  {
+    re: /^tools\/studio\/diff-rooms\.ts$/,
+    gates: [...AUTHORING, 'studioHosted'],
+    why: "the semantic diff's rooms",
+  },
   { re: /^(tools|scripts)\//, gates: [...AUTHORING], why: 'the authoring pipeline' },
   {
-    re: /^(tests\/studio-(server|worker|collab|keycloak|client|diff-captures)\.test\.ts|tools\/studio\/diff-rooms\.ts$|ops\/studio\/(ci|keycloak)\/)/,
+    re: /^(tests\/studio-(server|worker|collab|keycloak|client|diff-captures)\.test\.ts|ops\/studio\/(ci|keycloak)\/)/,
     gates: ['studioHosted'],
     why: 'the hosted Studio against Postgres and S3 (4.2.1)',
   },

@@ -11,10 +11,10 @@ tourne dans quel job, c'est [Quels tests tournent quand](contribute.which-tests.
 
 | Workflow | Démarre sur | Fait | Barrière de |
 |---|---|---|---|
-| `ci` | une pull request ; un push sur `main` ; un tag `v*` ; à la main | les trois paliers ci-dessous | la pull request (`pr-gate`) ; une release (le run du tag) |
-| `candidate` | à la main sur `main` pour un SHA (`gh workflow run candidate --ref main -f sha=<sha complet>`) ; une pull request étiquetée `full-ci` (pour information) | toutes les familles lourdes sur un SHA exact, puis `candidate-gate`, qui écrit et atteste `candidate-manifest.json` | un tag doit nommer un run vert de ce workflow ([Publier une release](contribute.releasing.md)) |
-| `release` | la fin de `ci` sur un tag `v*` | les ensembles de mutation, `release-check:ci`, la release faite avec les fichiers du candidat, `ship verify` ; puis `docs-publish` (4.5.0) | la publication |
-| `nightly` | chaque jour à 03:17 UTC ; à la main (`-f jobs=mutation` : les jobs de mutation seulement, pour préchauffer le cache ci-dessous) | noms npm, suite lourde, fuzz des connecteurs (une minute chacun), corpus des abstractions (500 graines, quatre morceaux), chaque ensemble de mutation repris de zéro (chaque morceau réussi enregistré dans le cache que lit le candidat, 4.5.5), charges du Bridge sur SQLite et Postgres, matrice de preuve, cross-runtime avec 500 graines Remix, le worker dans un conteneur | rien directement ; une nuit rouge est un bug à corriger avant la prochaine release |
+| `ci` | une pull request ; un push sur `main` ; à la main. Un tag n'en lance aucun (4.5.3, #291) : son commit est l'un de ceux de `main`, déjà passé | les trois paliers ci-dessous | la pull request (`pr-gate`) ; une release (le run de `main` sur le SHA du tag doit être vert) |
+| `candidate` | la fusion de la pull request de release : un push sur `main` qui change la version de `package.json` (4.5.4) ; à la main sur `main` pour un SHA (`gh workflow run candidate --ref main -f sha=<sha complet>`) ; une pull request étiquetée `full-ci` (pour information) | le seul passage de tests de la release depuis 4.5.3 : `release-check:ci` et toutes les familles lourdes sur un SHA exact (les ensembles de mutation lisent le cache que remplit la nightly), puis `candidate-gate`, qui écrit et atteste `candidate-manifest.json` | un tag doit nommer un run vert de ce workflow, lancé sur `main` ([Publier une release](contribute.releasing.md)) |
+| `release` | le push d'un tag `v*` (4.5.3, #291) | aucun test à lui : le commit sur les premiers parents de `main`, le `ci` de `main` vert sur ce SHA, le tag stable précédent pour ancêtre, le candidat que nomme le tag vert sur ce SHA avec chaque fichier de son manifeste ; puis la release faite avec ces fichiers, `ship verify`, `npm-stage` (les paquets npm préparés pour qu'un propriétaire les approuve), `docs-publish` (4.5.0) et la revalidation du site | la publication |
+| `nightly` | chaque jour à 03:17 UTC ; à la main (`-f jobs=mutation` : les jobs de mutation seulement, pour préchauffer le cache ci-dessous, ce que lance `release -- prepare` quand il pousse la pull request de release, 4.5.5, #331) | noms npm, suite lourde, fuzz des connecteurs (une minute chacun), corpus des abstractions (500 graines, quatre morceaux), chaque ensemble de mutation repris de zéro (chaque morceau réussi enregistré dans le cache que lit le candidat, 4.5.5), charges du Bridge sur SQLite et Postgres, matrice de preuve, cross-runtime avec 500 graines Remix, le worker dans un conteneur | rien directement ; une nuit rouge est un bug à corriger avant la prochaine release |
 | `prove` | chaque lundi à 04:00 UTC ; à la main (`game`, `rooms`) | `prove:game`, les playtests committés (`--strict`), et le banc d'essai sur un jeu généré de 100 lieux (téléversé sous `bench`) | jamais une barrière |
 | `mutation` | à la main : `gh workflow run mutation --ref main -f set=<ensemble> -f ref=<branche ou SHA> [-f file=<chemin>]` | un ensemble de mutation, mesuré sur un runner, son rapport gardé en artefact | rien |
 | `qualify` | une pull request ou un push sur `main` qui touche `ops/`, `scripts/ops-qualify*`, `scripts/pack.mjs`, `bridge/`, `package.json` ou le fichier de verrouillage ; à la main | `npm run ops:qualify` : le profil de qualification du Bridge sous Docker | le profil ne pourrit pas entre deux candidats |
@@ -42,11 +42,12 @@ n'annule rien ; `candidate`, `release` et `docs-publish` n'annulent jamais de ru
   fichier de verrouillage a bougé, puis le build à deux entrées (jeu et démo du Studio) que jouent les lignes e2e,
   gardé comme artefact `dist`.
 - `unit` (quatre fragments en même temps) et `coverage` : la suite unitaire et les tests d'assets, à chaque
-  changement, partagés en quatre (`--shard=<i>/4`, 4.5.4). Quand le changement touche le code du produit (la barrière
+  changement, partagés en quatre (`--shard=<i>/4`, 4.5.4). Le partage suit la durée enregistrée de chaque fichier, non
+  leur nombre (4.5.5, #349, [plus bas](#shards)). Quand le changement touche le code du produit (la barrière
   `coverage` du plan : le moteur, un jeu, le Bridge, le Studio et son serveur, la CLI et les paquets, les sauvegardes
   de référence, les outils d'écriture), chaque fragment tourne sous couverture V8 et garde un rapport blob ;
   `coverage` fusionne les quatre (`test:merge` : les planchers de `vite.config.ts` sur toute la suite), puis lance le
-  cliquet : un avertissement sur une pull request, un échec sur `main` et sur un tag
+  cliquet : un avertissement sur une pull request, un échec sur `main`
   ([Le cliquet de couverture](contribute.coverage-ratchet.md)). Sinon (la doc, un workflow, les outils de release et du
   wiki, des tests seuls), les fragments passent les mêmes fichiers sans couverture (`test:unit`). Dans les deux cas,
   `coverage`, la vérification que le ruleset exige, est rouge quand un fragment n'est pas vert.
@@ -72,13 +73,39 @@ réussit.
 | `cross-runtime` | aucune (chaque changement) | le même texte canonique, les mêmes preuves de speedrun et les mêmes mondes Remix sous Node, Chromium, WebKit et Firefox |
 
 **Le troisième palier, hors du chemin de la pull request** : les ensembles de mutation sur une pull request étiquetée
-`full-ci`, la nightly, le candidat et la release.
+`full-ci` (`ci` ne les lance nulle part ailleurs), la nightly, et le candidat, le seul passage de tests de la release.
+`release` ne reteste rien : il vérifie que le `ci` de `main` et le candidat étaient verts sur le SHA du tag.
 
 **`pr-gate`** lit le résultat de chaque job : chacun doit être `success` ; les jobs de mutation peuvent être `skipped`
 là où ils ne tournent pas ; `pwa-firefox`, instable jusqu'à la correction de #257, est signalé par un avertissement et
 ne le fait pas échouer (4.5.4). C'est la seule vérification qui résume une pull request.
 
 Plus aucun job ne déploie GitHub Pages (4.5.2, voir [le site](#pages-only)).
+
+<a name="shards"></a>
+<!-- applies: 4.5.5.. since 4.5.5 -->
+
+## Les fragments unitaires selon leur durée
+
+Le `--shard` de Vitest donne à chaque fragment le même nombre de fichiers, dans l'ordre d'un hachage de leurs chemins,
+quel que soit leur coût : en 4.5.4 le quatrième fragment passait ses tests en une minute et demie et les trois autres
+en trois à quatre. Depuis 4.5.5 le séquenceur de `vite.config.ts` ([`tools/unit-shards.ts`](../../tools/unit-shards.ts))
+partage selon la durée de chaque fichier, enregistrée dans [`tools/unit-durations.json`](../../tools/unit-durations.json) :
+le fichier le plus long d'abord, chacun au fragment qui en a le moins jusque-là. Un fichier que la table ne connaît pas
+compte pour la médiane, si bien qu'un nouveau test ne demande aucune mise à jour. Chaque fragment calcule tout le
+partage à partir des mêmes fichiers et de la même table : les quatre s'accordent, et un fragment lancé sur un portable
+passe les mêmes fichiers que le job.
+
+Quand les fragments s'écartent, rafraîchir la table :
+
+```sh
+# dans le dépôt du moteur
+npm run test:unit -- --reporter=json --outputFile=.cache/unit.json
+npx tsx tools/unit-shards.ts --record .cache/unit.json   # plusieurs rapports : la médiane de chaque fichier
+```
+
+`tests/unit-shards.test.ts` vérifie que la table partage la suite en quatre fragments à moins d'un cinquième l'un de
+l'autre.
 
 <a name="the-plan"></a>
 <!-- applies: .. since 4.1.9 -->
@@ -112,6 +139,7 @@ l'union de ce que demandent ses fichiers :
 | `games/_template/`, `cli/`, `scripts/{pack,fresh-install,external-consumer,new-game}.mjs` | `coverage`, `secondGame`, `freshInstall`, `upgrade`, `node24`, `windows` |
 | `studio-server/` | les barrières de création et `studioHosted` |
 | `tools/wiki.ts` et `tools/wiki/` (sauf `docs`, `docs-load`, `glossary`, `manifest`, `page` et `site`, que le Studio et le serveur MCP lisent), `tools/release/`, les outils du dépôt (`tools/mutate.ts`, `tools/changes.ts`, `tools/quality-baseline.ts`…, `scripts/release-notes.mjs`) | le palier rapide seulement (4.5.4) |
+| `tools/studio/diff-rooms.ts` (les lieux que dessine le diff sémantique, dont se servent les captures du Studio hébergé) | les barrières de création et `studioHosted` (4.5.5, #349 : la règle ci-dessous le prenait d'abord jusque-là) |
 | les autres `tools/` et `scripts/` | les barrières de création (`coverage`, `node24`, `windows`, `secondGame`, `freshInstall`, `upgrade`, `reference`) |
 | les tests du Studio hébergé et ses fichiers de CI (`tests/studio-{server,worker,collab,keycloak,client,diff-captures}.test.ts`, `ops/studio/{ci,keycloak}/`) | `studioHosted` |
 | les autres `tests/` | le palier rapide seulement (4.5.4) |
@@ -126,7 +154,7 @@ rapide lance les tests de documentation à chaque changement.
 
 ## Tout sur une pull request : l'étiquette `full-ci`
 
-Sur `main`, sur un tag et sur une pull request étiquetée **`full-ci`**, le plan est `--all` : toutes les barrières
+Sur `main`, sur un run lancé à la main et sur une pull request étiquetée **`full-ci`**, le plan est `--all` : toutes les barrières
 s'ouvrent. L'étiquette lance aussi les jobs de mutation de `ci`. Ajoutez
 l'étiquette, puis poussez (elle s'applique au run suivant de `ci`). Ajouter l'étiquette lance aussi un run de
 `candidate` pour information, une fois, sur la tête de la pull request à ce moment ; un push ultérieur n'en lance aucun :
@@ -164,6 +192,7 @@ d'une version est le `quest-n-click-docs-<version>.tar.gz` de sa release. Le sit
    | Job rouge | En local |
    |---|---|
    | `check` | l'étape qui échoue : `npm run quality`, `npm run docs:truth`, `npm run build:game`, `npm run quality:baseline -- --check --dist` (après `npm run build:web`), `npm run prove:game`, `npm run changes -- --check` |
+   | `unit (<i>)` | `npm run test:unit -- --shard=<i>/4` (les mêmes fichiers que le job : le partage est le même sur toute machine) |
    | `coverage` | `npm run test:coverage` (un test, ou un seuil de `vite.config.ts` non atteint) |
    | `node-24` | `npm run test:node` sous Node 24 |
    | `e2e`, `reference`, `second-game` | `npm run build:game`, `npm run preview -- --port 5173 &`, puis la commande de la ligne `npm run e2e -- http://127.0.0.1:5173/ --game demo --prod …` (`E2E_BROWSER=webkit` pour une ligne WebKit) |

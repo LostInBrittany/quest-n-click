@@ -38,6 +38,13 @@ describe('the plan of a change', () => {
     ],
     ['the Studio', ['src/studio/main.ts'], gates('coverage', 'e2e', 'node24', 'studioHosted', 'windows')],
     ['the hosted Studio in a browser', ['scripts/e2e-studio-hosted.ts'], gates('studioHosted')],
+    // The rooms the semantic diff draws: the authoring pipeline's, and the hosted Studio's captures (studio-hosted runs
+    // tests/studio-diff-captures.test.ts). The generic tools rule took it first until 4.5.5 (#349).
+    [
+      "the semantic diff's rooms",
+      ['tools/studio/diff-rooms.ts'],
+      gates('coverage', 'freshInstall', 'node24', 'reference', 'secondGame', 'studioHosted', 'upgrade', 'windows'),
+    ],
     [
       'the Studio Server',
       ['studio-server/migrations/0005.up.sql'],

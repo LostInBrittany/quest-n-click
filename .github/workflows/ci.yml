@@ -21,12 +21,15 @@ concurrency:
   # A run started by hand cancels no running run: it waits for it.
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 # Three tiers (4.1.9, lot 0). The fast tier, on every change: `plan`, `check` (format, lint, knip, types, the game's
-# gates, the build, the baseline) and `coverage` (the unit suite, once). The second tier needs `check` and runs only
-# what the change can break, as `plan` (tools/ci-plan.ts) classifies the diff: a job it spares still runs, says "not
-# needed by the plan" and succeeds, because the ruleset requires each job by name and a skipped job is not a success.
-# On main and on a pull request labelled `full-ci`: everything. The third tier (mutation on a `full-ci`
-# pull request, the nightly corpus and heavy proofs, release-check) runs off the pull request path. `pr-gate` reads every job's result: the
-# candidate single required check, once a few runs have been green.
+# gates, the build, the baseline), `unit` (the unit suite in four shards, 4.5.4, split by duration since 4.5.5) and
+# `coverage` (the shards merged, the floors, the ratchet). The second tier needs `plan` (most jobs `check` too) and
+# runs only what the change can break, as `plan` (tools/ci-plan.ts) classifies the diff: a job it spares still runs,
+# says "not needed by the plan" and succeeds, because the ruleset requires each job by name and a skipped job is not a
+# success. On main and on a pull request labelled `full-ci`: everything. The third tier runs off the pull request
+# path: the mutation sets here on a `full-ci` pull request only; the nightly (the corpus, the heavy suite, every
+# mutation set, which fills the cache the candidate reads); the candidate (release-check:ci and the heavy families,
+# the release's only test pass since 4.5.3). `pr-gate` reads every job's result: the candidate single required check,
+# once a few runs have been green.
 jobs:
   plan:
     runs-on: ubuntu-24.04
@@ -1270,7 +1273,7 @@ jobs:
             job=${row%%=*}; result=${row#*=}
             case "$job" in mutation|mutation-plan|mutation-merge)
               if [ "$result" = skipped ] && [ "$MUTATION" != true ]; then
-                echo "✔ $job: skipped (main, the nightly, release-check and full-ci only)"; continue
+                echo "✔ $job: skipped (here on a full-ci pull request only; the nightly and the candidate run every set)"; continue
               fi ;;
             # Flaky (#257): said, not blocking, until fixed (4.5.4, #302).
             pwa-firefox) if [ "$result" != success ]; then echo "::warning::pwa-firefox: $result (flaky, #257: not blocking)"; continue; fi ;;

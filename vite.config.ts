@@ -8,6 +8,7 @@ import { GAME, GAME_DIR, PROJECT } from './tools/game.ts';
 import { studioPlugin } from './tools/studio/plugin.ts';
 import { assetsVersion, BASE, sealBuild, sitePlugin, studioDemo } from './tools/vite/plugins.ts';
 import { engineVersion, trustedExtensionsHash } from './tools/extensions.ts';
+import { DurationSequencer } from './tools/unit-shards.ts';
 
 // The engine's own files by their real path (4.1.18): Windows' 8.3 short names would leave the page and its root apart.
 const r = (p: string) => {
@@ -241,6 +242,8 @@ export default defineConfig({
     // did one by one since 7 October 2026. Elsewhere the default stays, so a slow test on Linux is still seen.
     ...(process.platform === 'win32' ? { testTimeout: 30_000, hookTimeout: 30_000 } : {}),
     include: ['tests/**/*.test.ts', `games/${GAME}/tests/**/*.test.ts`],
+    // `--shard=i/n` (ci.yml's `unit` matrix) splits by each file's recorded duration, not by count (4.5.5, #349).
+    sequence: { sequencer: DurationSequencer },
     // npm run test:coverage (4.1.0 "Clarity"): what the tests run of src/; the floors below are the level measured at
     // 4.1.0 and may only rise. Lines run are not a proof: tests/properties.test.ts and npm run test:mutation:core say
     // whether the tests tell a right result from a wrong one.
