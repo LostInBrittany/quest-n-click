@@ -31,7 +31,10 @@ vaut à partir de la 4.2.0.
 - La clé de signature configurée ([plus bas](#signing)).
 - La section du CHANGELOG de la version assemblée depuis les fragments `changes/` (le travail de la branche de release,
   [Conventions](contribute.conventions.md)), et la fiche des passes des personnes commencée
-  ([Passes de terrain](contribute.field-passes.md)).
+  ([Passes de terrain](contribute.field-passes.md)). `ship tag` refuse un commit sans cette section (4.5.3) : fusionnez
+  la pull request de release, puis taguez son commit de fusion.
+- Un remote git pour `Quest-n-Click/quest-n-click` : `ship tag` récupère depuis celui dont l'URL le nomme et y pousse,
+  `upstream` quand `origin` est votre fork (4.5.3).
 
 <a name="where-to-run"></a>
 
@@ -259,6 +262,8 @@ vérifiée).
 
 | Symptôme | Cause | Correction |
 |---|---|---|
+| ship tag : « no "## x.y.z" section in CHANGELOG.md at … » | Le commit n'est pas la fusion de la pull request de release | Fusionner la pull request de release, lancer un candidat sur son commit de fusion, taguer celui-là |
+| ship tag : « no git remote here points to Quest-n-Click/quest-n-click » | Seul un fork est un remote ici | `git remote add upstream git@github.com:Quest-n-Click/quest-n-click.git` |
 | release.yml : « names no candidate run » | Le tag a été fait sans `--candidate` | Taguer la version suivante (ou `rc.N+1`) avec `--candidate` : le ruleset refuse de supprimer un tag |
 | release.yml : « run … is not a green candidate started on main » | Le run est celui d'une pull request, d'une autre branche, ou rouge | Lancer `candidate` à la main sur main pour ce SHA |
 | release.yml : « has no candidate-site » (ou `-surfaces`, `-signing`, `-remix`, `-pack`, `-sbom`, `-image`) | Un candidat antérieur à l'étape | Lancer un nouveau candidat |

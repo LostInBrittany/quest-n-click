@@ -5131,10 +5131,10 @@
       ]
     },
     "contribute.releasing#common-errors": {
-      "enHash": "20181e07af86a17447693a62afeda385b04909f04a0fc61d9e682423144f4ff0",
-      "frHash": "bf59b5bbcf0619b8c9198604a2fb3231f75dd93c068c1a328662bf11192d92ba",
+      "enHash": "d710d3b4a231c1c786bbc09c7b70511b8dbcb982c8d439891b2e2cee1abed597",
+      "frHash": "685716202331b250cf167ac015893018c3984371404432cdd0fec300aea9c3a5",
       "reviewers": [
-        { "name": "claude-291-release-one-pass", "kind": "ai", "relation": "author", "date": "2026-10-24" }
+        { "name": "claude-ship-tag-remote", "kind": "ai", "relation": "author", "date": "2026-10-25" }
       ]
     },
     "contribute.releasing#context-and-versions": {
@@ -5183,11 +5183,10 @@
       ]
     },
     "contribute.releasing#prerequisites": {
-      "enHash": "0765ecabf0e6a0f382ecaaeb8d61869915eb66ee184e825e7c7de0e289fa4320",
-      "frHash": "a4b665d6404a5142792605f69ebf14c1d98742e1442331f9bd8c8a07c977c1fd",
+      "enHash": "12739dec5ecba93614dce17d04e9bcb6ebc6ccb531042a000c13c00b973021a5",
+      "frHash": "9d6a3ea3dec0d9425ce85e943001843a582bfca646b777c37056e8fcc3c3d167",
       "reviewers": [
-        { "name": "claude-4.5-writers", "kind": "ai", "relation": "author", "date": "2026-10-23" },
-        { "name": "wanoo", "kind": "human", "relation": "independent", "date": "2026-10-24" }
+        { "name": "claude-ship-tag-remote", "kind": "ai", "relation": "author", "date": "2026-10-25" }
       ]
     },
     "contribute.releasing#recovery": {
