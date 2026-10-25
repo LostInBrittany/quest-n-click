@@ -1023,7 +1023,10 @@ export function createStudio(opts: StudioOptions = {}) {
   async function report(): Promise<ReportData> {
     const t0 = Date.now();
     const mod = await loadModule();
-    const r = reportGame(mod.game, loadLayouts(join(dir, 'layout')), { locales: loadLocales(join(dir, 'locales')) });
+    const r = reportGame(mod.game, loadLayouts(join(dir, 'layout')), {
+      locales: loadLocales(join(dir, 'locales')),
+      minigames: mod.minigames,
+    });
     return { report: r, markdown: reportMarkdown(r), ms: Date.now() - t0 };
   }
 
