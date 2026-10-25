@@ -92,7 +92,7 @@ Les cinq noms à scope (`@quest-n-click/engine`, `@quest-n-click/create`, `@ques
 (publié par exactement un propriétaire de l'organisation), ou un avertissement « taken » dans le résumé du run, pour
 que les mainteneurs agissent. Les propriétaires sont une liste, `OWNERS` dans `tools/release/preflight.mjs` et sa
 copie dans le job : npm ne montre les membres d'une organisation qu'à ses membres, et la CI n'a pas de jeton.
-Aujourd'hui elle contient `lostinbrittany` ; l'utilisateur npm d'Erwan s'y ajoute quand il rejoint l'organisation. Les noms sans scope de la 4.2.5 à la 4.5.1 (`quest-n-click`,
+Elle contient les utilisateurs npm des deux co-mainteneurs, `lostinbrittany` et `wanoo`. Les noms sans scope de la 4.2.5 à la 4.5.1 (`quest-n-click`,
 `create-quest-n-click`, `quest-n-click-bridge`, `quest-n-click-connectors`, `quest-n-click-studio-server`) sont des
 pointeurs : le job attend de chacun qu'il soit à un propriétaire et déprécié, prévient quand l'un n'est pas déprécié
 ou appartient à un tiers, et note celui qui est encore libre (à réserver). `create-quest-n-click` fait exception, c'est
