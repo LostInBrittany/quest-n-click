@@ -273,6 +273,30 @@ Image prompts for the sheets the game names.
 
 Usage: `quest-n-click prompts [--missing]`
 
+<a name="quest-n-click-talk-kit"></a>
+
+### `quest-n-click talk-kit`
+
+The mouth kits to send to an image generator: for each character and pose of `game/talk-kits.json` (all, or the characters named), the validated sprite's head copied 6 times into a 3 × 2 grid, written to `game/private/talk_kits/<character>_<pose>.png` with a `.json` beside it. Runs `tools/talk-kit.py` with `PYTHON` (default `python3`; Pillow and NumPy).
+
+Usage: `quest-n-click talk-kit [<character> …]`
+
+<a name="quest-n-click-talk-apply"></a>
+
+### `quest-n-click talk-apply`
+
+The generator's reply (`game/private/talk_kits/<character>_<pose>_out.png`, or `_chatgpt.png`) pasted back onto the validated sprite, only where the mouth and the eyes changed: `game/art/talk_<character>/<pose>/t1.png` … `t6.png`, `t1` the sprite itself. Runs `tools/talk-apply.py` (OpenCV and SciPy too).
+
+Usage: `quest-n-click talk-apply <character>_<pose>`
+
+<a name="quest-n-click-talk-normalize"></a>
+
+### `quest-n-click talk-normalize`
+
+One row (1 to 4) of a talking sheet generated as one block, brought to the validated sprite's height and colours, written as `t1.png` … `t6.png` in the output folder. Every path is relative to the project's folder. Runs `tools/talk-normalize.py` (OpenCV and SciPy too).
+
+Usage: `quest-n-click talk-normalize <talk_sheet.png> <row> <validated_sprite.png> <output_folder>`
+
 <a name="quest-n-click-verify"></a>
 
 ### `quest-n-click verify`

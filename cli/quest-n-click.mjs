@@ -58,12 +58,15 @@ const all = (...steps) => {
   return 0;
 };
 
+/** One of the package's Python tools (Python 3 from $PYTHON, else python3), run in the project's folder. */
+const py = (name, args = []) => run(process.env.PYTHON ?? 'python3', [resolve(PKG, 'tools', `${name}.py`), ...args]);
+
 function assets() {
   mkdirSync(resolve(project, '.cache'), { recursive: true });
   const out = openSync(resolve(project, '.cache', 'refs.json'), 'w');
   const c = tool('refs', [], { stdout: out });
   closeSync(out);
-  return c || run(process.env.PYTHON ?? 'python3', [resolve(PKG, 'tools', 'assets.py')]);
+  return c || py('assets');
 }
 const verifyGame = () =>
   all(
@@ -123,6 +126,18 @@ const COMMANDS = {
   voices: ['recorded lines: check, apply', () => tool('voices', rest)],
   ids: ['stable ids for rules, topics and lines (--write: into the sources)', () => tool('ids', rest)],
   prompts: ['image prompts for the sheets the game names', () => tool('prompts', rest)],
+  'talk-kit': [
+    'the mouth kits for an image generator: game/talk-kits.json into game/private/talk_kits/ (Python 3, Pillow)',
+    () => py('talk-kit', rest),
+  ],
+  'talk-apply': [
+    '<character>_<pose>: the generated mouths pasted onto the validated sprite, game/art/talk_<character>/<pose>/ (OpenCV)',
+    () => py('talk-apply', rest),
+  ],
+  'talk-normalize': [
+    '<sheet> <row> <sprite> <folder>: one row of a talking sheet matched to the validated sprite (OpenCV)',
+    () => py('talk-normalize', rest),
+  ],
   verify: ['validate, solve, i18n status, lint, playtests', verifyGame],
   build: [
     'assets, verify, the production build in dist/, every file of it accounted for',
@@ -157,7 +172,7 @@ if (cmd === 'help' || cmd === '--help' || !COMMANDS[cmd]) {
   console.log(
     `quest-n-click ${JSON.parse(readFileSync(resolve(PKG, 'package.json'), 'utf8')).version}: an engine for point-and-click games in the browser\n\nUsage: quest-n-click <command> [options]\n`,
   );
-  for (const [k, [d]] of Object.entries(COMMANDS)) console.log(`  ${k.padEnd(11)} ${d}`);
+  for (const [k, [d]] of Object.entries(COMMANDS)) console.log(`  ${k.padEnd(14)} ${d}`);
   process.exit(cmd === 'help' || cmd === '--help' ? 0 : 1);
 }
 process.exit(COMMANDS[cmd][1]());

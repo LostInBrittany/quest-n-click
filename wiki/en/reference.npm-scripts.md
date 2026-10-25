@@ -540,9 +540,9 @@ Runs `test:node`: the engine's and tools' Node tests and the selected game's, th
 
 #### `npm run test:assets`
 
-The Python-backed image and asset-pipeline tests (`tests/pixel.test.ts`, `tests/studio-assets.test.ts`).
+The Python-backed image and asset-pipeline tests (`tests/pixel.test.ts`, `tests/studio-assets.test.ts`, `tests/talk-tools.test.ts`).
 
-- Runs: `vitest run tests/pixel.test.ts tests/studio-assets.test.ts`
+- Runs: `vitest run tests/pixel.test.ts tests/studio-assets.test.ts tests/talk-tools.test.ts`
 
 <a name="test-coverage"></a>
 
@@ -613,9 +613,9 @@ One mutation set (4.1.16): a run's envelope and `h0`, the recorder and the verif
 
 #### `npm run test:node`
 
-The unit suite without the Python-bound tests (`tests/pixel.test.ts`, `tests/studio-assets.test.ts`) and the CPU-bound ones (`test:heavy`'s files); `npm run check` runs it, the heavy ones run nightly.
+The unit suite without the Python-bound tests (`tests/pixel.test.ts`, `tests/studio-assets.test.ts`, `tests/talk-tools.test.ts`) and the CPU-bound ones (`test:heavy`'s files); `npm run check` runs it, the heavy ones run nightly.
 
-- Runs: `vitest run --exclude tests/pixel.test.ts --exclude tests/studio-assets.test.ts --exclude tests/ownership.test.ts --exclude tests/audit.test.ts --exclude tests/canonical.test.ts --exclude tests/memo.test.ts --exclude tests/reference-proof.test.ts --exclude tests/solver-oracle.test.ts --exclude tests/dominance.test.ts --exclude tests/partition.test.ts --exclude tests/checkpoint-matrix.test.ts`
+- Runs: `vitest run --exclude tests/pixel.test.ts --exclude tests/studio-assets.test.ts --exclude tests/talk-tools.test.ts --exclude tests/ownership.test.ts --exclude tests/audit.test.ts --exclude tests/canonical.test.ts --exclude tests/memo.test.ts --exclude tests/reference-proof.test.ts --exclude tests/solver-oracle.test.ts --exclude tests/dominance.test.ts --exclude tests/partition.test.ts --exclude tests/checkpoint-matrix.test.ts`
 
 <a name="test-unit"></a>
 

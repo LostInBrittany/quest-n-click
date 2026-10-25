@@ -244,6 +244,30 @@
           }
         },
         {
+          "name": "talk-kit",
+          "usage": "quest-n-click talk-kit [<character> …]",
+          "description": {
+            "en": "The mouth kits to send to an image generator: for each character and pose of `game/talk-kits.json` (all, or the characters named), the validated sprite's head copied 6 times into a 3 × 2 grid, written to `game/private/talk_kits/<character>_<pose>.png` with a `.json` beside it. Runs `tools/talk-kit.py` with `PYTHON` (default `python3`; Pillow and NumPy).",
+            "fr": "Les kits bouche à envoyer à un générateur d'images : pour chaque personnage et chaque pose de `game/talk-kits.json` (tous, ou les personnages nommés), la tête du sprite validé copiée 6 fois dans une grille 3 × 2, écrite dans `game/private/talk_kits/<character>_<pose>.png` avec un `.json` à côté. Lance `tools/talk-kit.py` avec `PYTHON` (par défaut `python3` ; Pillow et NumPy)."
+          }
+        },
+        {
+          "name": "talk-apply",
+          "usage": "quest-n-click talk-apply <character>_<pose>",
+          "description": {
+            "en": "The generator's reply (`game/private/talk_kits/<character>_<pose>_out.png`, or `_chatgpt.png`) pasted back onto the validated sprite, only where the mouth and the eyes changed: `game/art/talk_<character>/<pose>/t1.png` … `t6.png`, `t1` the sprite itself. Runs `tools/talk-apply.py` (OpenCV and SciPy too).",
+            "fr": "La réponse du générateur (`game/private/talk_kits/<character>_<pose>_out.png`, ou `_chatgpt.png`) recollée sur le sprite validé, seulement là où la bouche et les yeux ont changé : `game/art/talk_<character>/<pose>/t1.png` … `t6.png`, `t1` étant le sprite lui-même. Lance `tools/talk-apply.py` (OpenCV et SciPy en plus)."
+          }
+        },
+        {
+          "name": "talk-normalize",
+          "usage": "quest-n-click talk-normalize <talk_sheet.png> <row> <validated_sprite.png> <output_folder>",
+          "description": {
+            "en": "One row (1 to 4) of a talking sheet generated as one block, brought to the validated sprite's height and colours, written as `t1.png` … `t6.png` in the output folder. Every path is relative to the project's folder. Runs `tools/talk-normalize.py` (OpenCV and SciPy too).",
+            "fr": "Une rangée (1 à 4) d'une planche de parole générée d'un bloc, ramenée à la hauteur et aux couleurs du sprite validé, écrite en `t1.png` … `t6.png` dans le dossier de sortie. Chaque chemin part du dossier du projet. Lance `tools/talk-normalize.py` (OpenCV et SciPy en plus)."
+          }
+        },
+        {
           "name": "verify",
           "usage": "quest-n-click verify",
           "description": {

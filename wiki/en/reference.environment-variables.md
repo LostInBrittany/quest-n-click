@@ -395,7 +395,7 @@ The path of the Furnace executable the audio pipeline renders with, when it is n
 Which game of `games/` the engine repository's commands work on (`GAME=reference npm run validate`). Without it, the game last selected (`npm run game -- <id>`), then `config.game` of `package.json`, then `demo`.
 
 - Origin: you set it; the code reads it.
-- Read by: [`.github/workflows/ci.yml`](../../.github/workflows/ci.yml), [`.github/workflows/prove.yml`](../../.github/workflows/prove.yml), [`scripts/e2e-studio.mjs`](../../scripts/e2e-studio.mjs), and 9 more.
+- Read by: [`.github/workflows/ci.yml`](../../.github/workflows/ci.yml), [`.github/workflows/prove.yml`](../../.github/workflows/prove.yml), [`scripts/e2e-studio.mjs`](../../scripts/e2e-studio.mjs), and 8 more.
 
 <a name="game-dir"></a>
 
@@ -404,7 +404,7 @@ Which game of `games/` the engine repository's commands work on (`GAME=reference
 The game folder the tools work on, anywhere on disk. When set, it is always the folder read, whatever `GAME` says, in place of `games/<GAME>` or a created project's `game/`; without `GAME`, the game's id is the folder's name.
 
 - Origin: you set it; the code reads it.
-- Read by: [`scripts/e2e-worker-container.ts`](../../scripts/e2e-worker-container.ts), [`scripts/ops-qualify/setup.mjs`](../../scripts/ops-qualify/setup.mjs), [`tools/assets.py`](../../tools/assets.py), and 3 more.
+- Read by: [`scripts/e2e-worker-container.ts`](../../scripts/e2e-worker-container.ts), [`scripts/ops-qualify/setup.mjs`](../../scripts/ops-qualify/setup.mjs), [`tools/assets.py`](../../tools/assets.py), and 4 more.
 
 <a name="proof-cache"></a>
 
@@ -467,7 +467,7 @@ The dev server the MCP `screenshot` tool opens; `http://localhost:5173/` when un
 The created project the engine's tools work on. The `quest-n-click` command sets it to the folder it runs in; you do not set it yourself.
 
 - Origin: set by the `quest-n-click` command.
-- Read by: [`tools/assets.py`](../../tools/assets.py), [`tools/game.ts`](../../tools/game.ts).
+- Read by: [`tools/assets.py`](../../tools/assets.py), [`tools/game.ts`](../../tools/game.ts), [`tools/game_folder.py`](../../tools/game_folder.py).
 
 <a name="web-scumm-studio-hosts"></a>
 
