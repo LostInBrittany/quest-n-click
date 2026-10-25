@@ -85,8 +85,10 @@ npm run release -- check 4.5.4
 ```
 
 Elle dit, point par point, si `package.json` est à la version, si le CHANGELOG a sa section, s'il reste un
-`TODO(release)`, si `npm run wiki -- check` avertit, et si la ligne de base de qualité tient. Fusionnez quand chaque
-point est ✔.
+`TODO(release)`, si `npm run wiki -- check` avertit, si les relectures humaines des docs tiennent
+(`wiki -- check --publish --reviews-only` : une claim ou une paire qu'une personne doit lire, chacune affichée avec sa
+commande), et si la ligne de base de qualité tient. La CI de la pull request de release la lance aussi, avec la
+version que nomme sa branche : fusionnez quand chaque point est ✔, et le merge lance le candidat.
 
 <a name="the-chain"></a>
 
@@ -215,9 +217,12 @@ le sha256 de l'archive de documentation, promeut cette archive (celle du candida
 - **Deux environnements pour la documentation** (depuis la 4.5.4). `docs-publish` : la doc d'une release, publiée
   sans clic (le tag signé vaut approbation) : aucun relecteur requis, une règle de **tag** `v*` comme seule règle de
   déploiement. `docs-publish-manual` : les lancements à la main (revision, rollback, promote, preview), ses relecteurs
-  requis approuvent chacun, règles `main` et `docs/*`. Chacun porte le secret `WIKI_DEPLOY_KEY`. Sans la règle `v*`,
-  le job de la release est refusé (la release elle-même est publiée ; `mode=promote` depuis main rattrape la
-  documentation).
+  requis approuvent chacun, règles `main` et `docs/*`. Chacun porte le secret `WIKI_DEPLOY_KEY` (un secret d'environnement : sa clé privée
+  est saisie à nouveau pour le second). Dans cet ordre : créer `docs-publish-manual` (relecteurs, règles, secret),
+  puis fusionner le changement qui le nomme, puis réduire `docs-publish` à la règle `v*` sans relecteur ; dans l'autre
+  sens, un lancement à la main trouverait `docs-publish-manual` absent et GitHub le créerait, sans protection. Sans la
+  règle `v*`, le job de la release est refusé (la release elle-même est publiée ; `mode=promote` depuis main rattrape
+  la documentation).
 - `npm run ship -- preflight-stable --candidate=<run>` doit alors voir les deux premiers. **Avant le premier tag de la 4.1.20**,
   `ship tag` refuse de taguer tant que les releases immuables sont désactivées : le jeton de release.yml ne peut pas
   lire ce réglage (il faut un droit de lecture admin), donc `ship tag` le vérifie avec l'accès du mainteneur.

@@ -5165,8 +5165,8 @@
       ]
     },
     "contribute.releasing#maintainer-settings": {
-      "enHash": "964fd83aec49f6d6ea51569c1620be89ee633a5b34de7827993c2308c0e0b77b",
-      "frHash": "00715cded1288cf5202569f63cd372ae864768e09011b086b19b78ef94fdb214",
+      "enHash": "c186940cbe29dc6319ec3b6b83605ee4da134ba99e41f01c987659ad7d95ba4f",
+      "frHash": "4b8c760900a49f249b366bc1cc4ddbc30cf1606810846b72577e10eae1719ef0",
       "reviewers": [
         { "name": "claude-454-candidate-docs", "kind": "ai", "relation": "author", "date": "2026-10-25" }
       ]
@@ -5179,10 +5179,10 @@
       ]
     },
     "contribute.releasing#prepare": {
-      "enHash": "328a990a10a8b263d96fb695003697ad5b608f7c6c4caab7874e983b740989ba",
-      "frHash": "6992637d52f2e71bbd627c2aaaffcd7fe754259c4a0cccf32b60758e8725fde8",
+      "enHash": "6455da21459a4aa97d2c6da5dc4116a65fe290cde95866440470cedd53da1f55",
+      "frHash": "a6bdfe896850cfcbab7a103952ebb234f9289ea78b3bb7c9e3056f79b5574437",
       "reviewers": [
-        { "name": "claude-454-prepare", "kind": "ai", "relation": "author", "date": "2026-10-25" }
+        { "name": "claude-454-candidate-docs", "kind": "ai", "relation": "author", "date": "2026-10-25" }
       ]
     },
     "contribute.releasing#prerequisites": {
@@ -14326,6 +14326,20 @@
         { "name": "wanoo", "kind": "human", "relation": "independent", "date": "2026-10-24" }
       ]
     },
+    "reference.environment-variables#before": {
+      "enHash": "8417101fcdd46531e0edfd4ed8e099c9cd47a2d5a1b523690a0a35f9bca8c380",
+      "frHash": "7ce10669ae7055a17214e4f970b5b00ea615afa3b76cea84b3fd4d7df4abb6b0",
+      "reviewers": [
+        { "name": "claude-454-candidate-docs", "kind": "ai", "relation": "author", "date": "2026-10-25" }
+      ]
+    },
+    "reference.environment-variables#branch": {
+      "enHash": "251b5ea538b67799c80d115614c23db04b3605a8be7573f8a0298e19747bf0a6",
+      "frHash": "2a0166e517b5f106a9f2673347876ad7c72fced249ccb65df6c5bdc0d74ae920",
+      "reviewers": [
+        { "name": "claude-454-candidate-docs", "kind": "ai", "relation": "author", "date": "2026-10-25" }
+      ]
+    },
     "reference.environment-variables#bridge": {
       "enHash": "55d5c0808042913018b56b1bc86d411663b88f397b0f4b93f19903a8d8258bb9",
       "frHash": "f242dd98719ce917c2f7f4fc5866f189fcfe4272da48ead236a3c66c048c3bc3",
@@ -14539,6 +14553,13 @@
       "reviewers": [
         { "name": "claude-a7", "kind": "ai", "relation": "author", "date": "2026-10-23" },
         { "name": "wanoo", "kind": "human", "relation": "independent", "date": "2026-10-24" }
+      ]
+    },
+    "reference.environment-variables#event": {
+      "enHash": "ce5d6c6dae0bfa2ae8b45e12ef7fe7e90f71e25e08260842171139c13f32cb37",
+      "frHash": "626be1b72be247650be9797e5304d23df4331fc98e812118fbfad1a9e3696354",
+      "reviewers": [
+        { "name": "claude-454-candidate-docs", "kind": "ai", "relation": "author", "date": "2026-10-25" }
       ]
     },
     "reference.environment-variables#extra-assets": {

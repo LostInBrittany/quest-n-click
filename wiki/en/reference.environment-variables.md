@@ -1075,6 +1075,24 @@ docs-publish: that archive's sha256.
 - Origin: set by a workflow of `.github/workflows/` (CI and releases).
 - Read by: [`.github/workflows/docs-publish.yml`](../../.github/workflows/docs-publish.yml).
 
+<a name="before"></a>
+
+### `BEFORE`
+
+candidate: the commit main was at before the push, to tell a release's merge (the version moved) from a dependency bump (4.5.4).
+
+- Origin: set by a workflow of `.github/workflows/` (CI and releases).
+- Read by: [`.github/workflows/candidate.yml`](../../.github/workflows/candidate.yml).
+
+<a name="branch"></a>
+
+### `BRANCH`
+
+ci: a release pull request's branch, `release/<version>`, whose version `npm run release -- check` checks (4.5.4).
+
+- Origin: set by a workflow of `.github/workflows/` (CI and releases).
+- Read by: [`.github/workflows/ci.yml`](../../.github/workflows/ci.yml).
+
 <a name="called"></a>
 
 ### `CALLED`
@@ -1110,6 +1128,15 @@ release: the documentation archive of the release, when it has one.
 
 - Origin: set by a workflow of `.github/workflows/` (CI and releases).
 - Read by: [`.github/workflows/release.yml`](../../.github/workflows/release.yml).
+
+<a name="event"></a>
+
+### `EVENT`
+
+candidate: the event that started the run; only a push to main can be a release's merge (4.5.4).
+
+- Origin: set by a workflow of `.github/workflows/` (CI and releases).
+- Read by: [`.github/workflows/candidate.yml`](../../.github/workflows/candidate.yml).
 
 <a name="extra-assets"></a>
 

@@ -27,9 +27,13 @@ describe('the candidate of a release', () => {
     const yml = readFileSync('.github/workflows/candidate.yml', 'utf8');
     expect(yml).toMatch(/^ {2}push:\n {4}branches: \[main\]\n {4}paths: \[package\.json\]$/m);
     const merge = yml.slice(yml.indexOf('\n  release-merge:\n'), yml.indexOf('\n  target:\n'));
-    expect(merge).toMatch(/^ {4}if: github\.event_name == 'push'$/m);
-    expect(merge).toContain('fetch-depth: 2');
-    expect(merge).toContain('git show HEAD^1:package.json');
+    // It always runs and succeeds (the gate judges it): on anything but a push it says release=false at once.
+    expect(merge).not.toMatch(/^ {4}if:/m);
+    // Against the commit main was at before the push, not HEAD^1: a rebase merge or several commits pushed at once
+    // put the version's change further back than one commit.
+    expect(merge).toContain('BEFORE: ${{ github.event.before }}');
+    expect(merge).toContain('git fetch --quiet --depth=1 origin "$BEFORE"');
+    expect(merge).toContain('git show "$BEFORE":package.json');
     expect(merge).toContain('echo "release=$release" >> "$GITHUB_OUTPUT"');
     const target = yml.slice(
       yml.indexOf('\n  target:\n'),
@@ -37,8 +41,12 @@ describe('the candidate of a release', () => {
     );
     expect(target).toContain('needs: release-merge');
     expect(target).toContain(
-      "if: always() && (github.event_name == 'workflow_dispatch' || github.event.label.name == 'full-ci' || needs.release-merge.outputs.release == 'true')",
+      "if: github.event_name == 'workflow_dispatch' || github.event.label.name == 'full-ci' || needs.release-merge.outputs.release == 'true'",
     );
+  });
+  it('lets the gate pass a hand-started candidate: release-merge succeeds there, it is never skipped (4.5.4)', () => {
+    expect(judge({ 'release-merge': { result: 'success' }, target: { result: 'success' } }).ok).toBe(true);
+    expect(judge({ 'release-merge': { result: 'skipped' }, target: { result: 'success' } }).ok).toBe(false);
   });
   it('qualifies, profiles and attests a candidate started by a release merge as one started by hand (4.5.4)', () => {
     const yml = readFileSync('.github/workflows/candidate.yml', 'utf8');
@@ -240,7 +248,7 @@ describe('the workflows that judge a candidate', () => {
     expect(w).toMatch(/^ {2}pull_request:\n {4}types: \[labeled\]\n/m);
     expect(w).not.toMatch(/synchronize/);
     expect(w).toContain(
-      "if: always() && (github.event_name == 'workflow_dispatch' || github.event.label.name == 'full-ci' || needs.release-merge.outputs.release == 'true')",
+      "if: github.event_name == 'workflow_dispatch' || github.event.label.name == 'full-ci' || needs.release-merge.outputs.release == 'true'",
     );
   });
 });

@@ -1075,6 +1075,24 @@ docs-publish : le sha256 de cette archive.
 - Origine : posée par un workflow de `.github/workflows/` (CI et publications).
 - Lue par : [`.github/workflows/docs-publish.yml`](../../.github/workflows/docs-publish.yml).
 
+<a name="before"></a>
+
+### `BEFORE`
+
+candidate : le commit où était main avant le push, pour distinguer le merge d’une release (la version a bougé) d’une mise à jour de dépendance (4.5.4).
+
+- Origine : posée par un workflow de `.github/workflows/` (CI et publications).
+- Lue par : [`.github/workflows/candidate.yml`](../../.github/workflows/candidate.yml).
+
+<a name="branch"></a>
+
+### `BRANCH`
+
+ci : la branche d’une pull request de release, `release/<version>`, dont `npm run release -- check` vérifie la version (4.5.4).
+
+- Origine : posée par un workflow de `.github/workflows/` (CI et publications).
+- Lue par : [`.github/workflows/ci.yml`](../../.github/workflows/ci.yml).
+
 <a name="called"></a>
 
 ### `CALLED`
@@ -1110,6 +1128,15 @@ release : l’archive de documentation de la version, quand elle en a une.
 
 - Origine : posée par un workflow de `.github/workflows/` (CI et publications).
 - Lue par : [`.github/workflows/release.yml`](../../.github/workflows/release.yml).
+
+<a name="event"></a>
+
+### `EVENT`
+
+candidate : l’événement qui a lancé l’exécution ; seul un push sur main peut être le merge d’une release (4.5.4).
+
+- Origine : posée par un workflow de `.github/workflows/` (CI et publications).
+- Lue par : [`.github/workflows/candidate.yml`](../../.github/workflows/candidate.yml).
 
 <a name="extra-assets"></a>
 

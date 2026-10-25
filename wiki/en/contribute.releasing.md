@@ -81,7 +81,9 @@ npm run release -- check 4.5.4
 ```
 
 It says, item by item, whether `package.json` is at the version, the CHANGELOG has its section, a `TODO(release)` is
-left, `npm run wiki -- check` warns, and the quality baseline holds. Merge when every item is ✔.
+left, `npm run wiki -- check` warns, the docs' human gates hold (`wiki -- check --publish --reviews-only`: a claim or a
+pair a person must read, each printed with its command), and the quality baseline holds. The release pull request's
+CI runs it too, with the version its branch names: merge when every item is ✔, and the merge starts the candidate.
 
 <a name="the-chain"></a>
 
@@ -205,8 +207,11 @@ an rc publishes `/docs/<v-rc>/` only. It is never started by `release: published
 - **Two environments for the documentation** (from 4.5.4). `docs-publish`: a release's docs, published without a
   click (the signed tag is the approval): no required reviewer, a **tag** rule `v*` as its only deployment rule.
   `docs-publish-manual`: the runs by hand (revision, rollback, promote, preview), its required reviewers approve each,
-  rules `main` and `docs/*`. Each holds the secret `WIKI_DEPLOY_KEY`. Without the `v*` rule the release's job is
-  refused (the release itself is published; `mode=promote` from main recovers the documentation).
+  rules `main` and `docs/*`. Each holds the secret `WIKI_DEPLOY_KEY` (an environment's secret: its private key
+  is entered again for the second). In this order: create `docs-publish-manual` (reviewers, rules, secret), then merge
+  the change that names it, then strip `docs-publish` to the `v*` rule without reviewers; the other way round, a run by
+  hand would find `docs-publish-manual` missing and GitHub would make it, unprotected. Without the `v*` rule the
+  release's job is refused (the release itself is published; `mode=promote` from main recovers the documentation).
 - `npm run ship -- preflight-stable --candidate=<run>` must then see the first two. **Before the first 4.1.20 tag**, `ship tag`
   refuses to tag while immutable releases are off: release.yml's token cannot read that setting (it needs admin read),
   so `ship tag` checks it with the maintainer's own access.

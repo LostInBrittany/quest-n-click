@@ -365,7 +365,7 @@ describe("a release pull request's check (4.5.4)", () => {
     const yml = readFileSync('.github/workflows/ci.yml', 'utf8');
     const check = yml.slice(yml.indexOf('\n  check:\n'), yml.indexOf('\n  unit:\n'));
     expect(check).toMatch(
-      /- name: A release pull request is ready to merge\n {8}if: startsWith\(github\.head_ref, 'release\/'\)\n {8}run: npm run release -- check "\$\(node -p "require\('\.\/package\.json'\)\.version"\)"\n/,
+      /- name: A release pull request is ready to merge\n {8}if: startsWith\(github\.head_ref, 'release\/'\)\n {8}env:\n {10}BRANCH: \$\{\{ github\.head_ref \}\}\n {8}run: npm run release -- check "\$\{BRANCH#release\/\}"\n/,
     );
   });
 });
