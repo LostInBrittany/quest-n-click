@@ -368,7 +368,7 @@ réduit 4× un décor de plus de 640 px de large vers ses pixels d’art. Change
 La détection se fait par figure, pas par case fixe : une figure qui déborde un peu de sa case est quand même prise en
 entier ; une case où rien n’est trouvé retombe sur son rectangle fixe, donc chaque case demandée est écrite. Le dossier
 du jeu est `GAME_DIR`, sinon `game/` dans un projet créé (le `WEB_SCUMM_PROJECT` de la commande `quest-n-click`, ou un
-dossier qui contient `game/index.ts` et pas de `games/`), sinon `games/<GAME>` avec `GAME`, sinon celui vers lequel
+dossier qui contient `game/index.ts`, même à côté d’un vieux `games/` ; `tools/game_folder.py`), sinon `games/<GAME>` avec `GAME`, sinon celui vers lequel
 pointe `.cache/game`, sinon `config.game` de `package.json` ; son `site.json` est cherché d’abord à côté du dossier
 `--out`.
 

@@ -134,6 +134,11 @@ describe('tools/cut-sheet.py --pixel', () => {
     execFileSync('python3', [cut, src, 'px', '--cells', 'r1c1'], { cwd: project, env });
     expect(inspect(join(project, 'game', 'art', 'px')).r1c1).toMatchObject({ mode: 'P', size: [32, 48] });
     expect(existsSync(join(project, 'games'))).toBe(false);
+    // A stray games/ left by a migration does not turn the project back into the repository's layout.
+    mkdirSync(join(project, 'games', 'jack', 'art'), { recursive: true });
+    execFileSync('python3', [cut, src, 'px3', '--cells', 'r1c1'], { cwd: project, env });
+    expect(existsSync(join(project, 'game', 'art', 'px3', 'r1c1.png'))).toBe(true);
+    expect(existsSync(join(project, 'games', 'jack', 'art', 'px3'))).toBe(false);
     // Through the engine's command (WEB_SCUMM_PROJECT), from any folder.
     execFileSync('python3', [cut, src, 'px2', '--cells', 'r1c1'], {
       cwd: tmp,

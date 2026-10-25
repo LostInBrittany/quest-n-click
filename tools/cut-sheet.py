@@ -29,10 +29,9 @@ one exact value, shared across the cells of the sheet. Written as an indexed PNG
 
     python3 tools/cut-sheet.py sheet.png hero --pixel [--scale 4] [--colors 32]
 
-The game's folder (tools/game.ts' rule): $GAME_DIR, else game/ in a game project ($WEB_SCUMM_PROJECT, or a folder
-holding game/index.ts and no games/), else games/<GAME> with GAME from env GAME, else the game .cache/game links to
-(npm run game, 4.1.6), else package.json -> config.game, else 'demo'. --out defaults to its art/. Its site.json is
-looked up next to the --out folder (<game>/art -> <game>/site.json), then in the game's folder.
+The game's folder is tools/game_folder.py's (tools/game.ts' rule): $GAME_DIR, else game/ in a game project
+($WEB_SCUMM_PROJECT, or a folder holding game/index.ts), else games/<GAME>. --out defaults to its art/. Its site.json
+is looked up next to the --out folder (<game>/art -> <game>/site.json), then in the game's folder.
 """
 import argparse
 import json
@@ -42,43 +41,12 @@ import numpy as np
 from PIL import Image
 from scipy import ndimage
 
+from game_folder import game_dir
+
 CELL = 256
 PIXEL_SCALE = 4
 PIXEL_COLORS = 32
 MERGE_DIST = 8
-
-
-def game_id():
-    g = os.environ.get('GAME', '').strip()
-    if g:
-        return g
-    try:
-        g = os.path.basename(os.readlink(os.path.join('.cache', 'game')).rstrip('/\\'))
-        if g:
-            return g
-    except OSError:
-        pass
-    try:
-        g = json.load(open('package.json')).get('config', {}).get('game')
-        if g:
-            return g
-    except Exception:
-        pass
-    return 'demo'
-
-
-def game_dir():
-    """The game's folder: $GAME_DIR, else game/ in a game project (3.9), else games/<GAME> (this repository)."""
-    gd = os.environ.get('GAME_DIR', '').strip()
-    if gd:
-        return gd
-    project = os.environ.get('WEB_SCUMM_PROJECT', '').strip()
-    if project:
-        return os.path.join(project, 'game')
-    # Run by hand from a project's folder: its game is game/, there is no games/.
-    if os.path.isfile(os.path.join('game', 'index.ts')) and not os.path.isdir('games'):
-        return 'game'
-    return f'games/{game_id()}'
 
 
 def art_style(out_root=None):

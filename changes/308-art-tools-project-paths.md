@@ -5,12 +5,13 @@
   paths (`games/<id>/private/sheets/`, `games/<id>/site.json`, `python3 tools/cut-sheet.py`, `npm run prompts`) and
   paths climbing out of the package (`../../../game/art/_reference.png`). Every path now starts from the project's
   folder: `game/art/_reference.png`, `game/private/sheets/<sheet>.png`,
-  `python3 node_modules/@quest-n-click/engine/tools/cut-sheet.py …`, `npx quest-n-click assets`. The repository's
+  `python3 node_modules/@quest-n-click/engine/tools/cut-sheet.py …`, `npx quest-n-click assets`, and the mouth kits'
+  `npx quest-n-click talk-kit` / `talk-apply` (#307). The repository's
   `games/<id>/prompts.md` is unchanged. Found while moving "Jack cherche un taf" to a standalone project.
 - **`cut-sheet.py` cuts into a project's `game/art` by default**: run from a project's folder (or through the
   `quest-n-click` command), it wrote into `games/<config.game>/art/`, where the game never reads, unless `--out
-  game/art` was given. Its default output is now the game's own `art/`: `GAME_DIR`, else a project's `game/`, else
-  `games/<GAME>/`.
+  game/art` was given. Its default output is now the game's own `art/`, found by the talk tools' rule
+  (`tools/game_folder.py`): `GAME_DIR`, else a project's `game/` (even beside a stray `games/`), else `games/<GAME>/`.
 
 ### Changes
 

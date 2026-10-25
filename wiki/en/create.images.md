@@ -357,7 +357,7 @@ background wider than 640 px down 4× to its art pixels. Switching `artStyle` re
 Detection is per figure, not per fixed box: a figure that overflows its cell a little is still captured whole; a cell
 where nothing is found falls back to its fixed rectangle, so every requested cell is written. The game's folder is
 `GAME_DIR`, else `game/` in a created project (the `quest-n-click` command's `WEB_SCUMM_PROJECT`, or a folder holding
-`game/index.ts` and no `games/`), else `games/<GAME>` with `GAME`, else the game `.cache/game` links to, else
+`game/index.ts`, even beside a stray `games/`; `tools/game_folder.py`), else `games/<GAME>` with `GAME`, else the game `.cache/game` links to, else
 `package.json`'s `config.game`; its `site.json` is looked up next to the `--out` folder first.
 
 <a name="prompts"></a>

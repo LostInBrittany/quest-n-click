@@ -8,9 +8,9 @@ Root cause: `buildPrompts` made its paths relative to `root`, which the CLI, the
 engine's folder (`ROOT`, the installed package in a project), and hard-coded `games/${id}/` and `tools/`. The paths now
 come from `gameDir` and from the folder the author works in (`workRoot`: the parent of `games/`, or the folder holding
 `game/`; the CLI passes `WORK`), the tools' paths from the engine's folder relative to it, the commands from whether
-the two differ (`npm run …` or `npx quest-n-click …`). `cut-sheet.py` gets `game_dir()`, the rule of `tools/game.ts`
-and `tools/assets.py` (`GAME_DIR`, `WEB_SCUMM_PROJECT`, then `games/<GAME>`), plus a project's folder recognised when
-run by hand (`game/index.ts`, no `games/`). The demo's `prompts.md` is byte-identical.
+the two differ (`npm run …` or `npx quest-n-click …`, the mouth kits through #307's `talk-kit` / `talk-apply`).
+`cut-sheet.py` uses #307's `tools/game_folder.py`, one rule for the Python tools (`GAME_DIR`, `WEB_SCUMM_PROJECT`,
+`game/index.ts` in the current folder even beside a stray `games/`, then `games/<GAME>`). Built on #307's branch. The
+demo's `prompts.md` is byte-identical.
 
-→ next: the talk tools (`talk-kit.py`, `talk-apply.py`, `talk-normalize.py`) have the same `games/<id>/` assumption,
-fixed on their own branch.
+→ next: nothing for the art tools; `assets.py` still has its own copy of the rule, which could use `game_folder.py`.

@@ -405,6 +405,9 @@ export function buildPrompts(mod: Pick<GameModule, 'game' | 'extraImages'>, opts
     project ? `npx quest-n-click ${c}${args ? ` ${args}` : ''}` : `npm run ${c}${args ? ` -- ${args}` : ''}`;
   const tool = (file: string) => rel(join(engineDir, 'tools', file));
   const cutSheet = `python3 ${tool('cut-sheet.py')}`;
+  /** The mouth tools: the engine's commands in a project (`quest-n-click talk-kit`), the Python tools here. */
+  const talkTool = (name: 'talk-kit' | 'talk-apply') =>
+    project ? `npx quest-n-click ${name}` : `python3 ${tool(`${name}.py`)}`;
   const onlyMissing = !!opts.missing;
   const has = (id: string) => ['.png', '.jpg', '.jpeg', '.webp'].some((e) => existsSync(join(artDir, id + e)));
   const fileOf = (id: string) => {
@@ -885,9 +888,9 @@ export function buildPrompts(mod: Pick<GameModule, 'game' | 'extraImages'>, opts
           ),
           '',
           `1. \`${gameRel}/talk-kits.json\` needs: \`"${kitChar}": ${JSON.stringify(Object.fromEntries(rowsM.map((x) => [x.dir, x.src])))}\`${rowsM.every((x) => x.inKits) ? ' (already there)' : ' (add it)'}.`,
-          `2. \`python3 ${tool('talk-kit.py')} ${kitChar}\` writes one kit per pose to \`${gameRel}/private/talk_kits/\`.`,
+          `2. \`${talkTool('talk-kit')} ${kitChar}\` writes one kit per pose to \`${gameRel}/private/talk_kits/\`.`,
           `3. Send each kit to the image model, one per message, with the prompt below; save the reply as \`${kitChar}_<pose>_out.png\` next to the kit.`,
-          `4. \`python3 ${tool('talk-apply.py')} ${kitChar}_<pose>\` for each pose (${rowsM.map((x) => `\`${kitChar}_${x.dir}\``).join(', ')}).`,
+          `4. \`${talkTool('talk-apply')} ${kitChar}_<pose>\` for each pose (${rowsM.map((x) => `\`${kitChar}_${x.dir}\``).join(', ')}).`,
           '',
           fence([
             'This image is a grid of 6 identical cartoon portraits (3 columns x 2 rows).',
@@ -907,7 +910,7 @@ export function buildPrompts(mod: Pick<GameModule, 'game' | 'extraImages'>, opts
         steps.push({
           order,
           text: missingM.length
-            ? `${c.name}: mouth kit — \`python3 ${tool('talk-kit.py')} ${kitChar}\`, one message per kit, then \`python3 ${tool('talk-apply.py')} ${kitChar}_<pose>\`.`
+            ? `${c.name}: mouth kit — \`${talkTool('talk-kit')} ${kitChar}\`, one message per kit, then \`${talkTool('talk-apply')} ${kitChar}_<pose>\`.`
             : `${c.name}: mouths \`talk_${kitChar}\` already done (keep them).`,
         });
       }
