@@ -64,6 +64,16 @@ describe('the plan of a change', () => {
     ['the e2e driver', ['scripts/e2e.mjs'], gates('e2e', 'reference', 'secondGame')],
     ['a visual reference', ['tests/visual/demo/hall.png'], gates('e2e', 'reference')],
     [
+      'the wiki tools',
+      ['tools/wiki.ts', 'tools/wiki/check.ts', 'tools/wiki/claims.ts', 'tools/wiki/translations.ts'],
+      [],
+    ],
+    [
+      'the docs the Studio and the MCP server read',
+      ['tools/wiki/docs-load.ts'],
+      gates('coverage', 'node24', 'windows', 'secondGame', 'freshInstall', 'upgrade', 'reference'),
+    ],
+    [
       'a doc and the engine',
       ['wiki/en/create.rooms.md', 'src/engine/dom/director.ts'],
       gates('coverage', 'e2e', 'reference', 'node24', 'windows'),
@@ -288,7 +298,8 @@ describe('ci.yml and the plan', () => {
     expect(body).not.toMatch(/^ {4}if:/m);
     expect(body).toContain('RUN: ${{ fromJSON(needs.plan.outputs.plan).coverage }}');
     // The plan spares the instrumentation, never the tests.
-    expect(body).toMatch(/- if: env\.RUN != 'true'\n {8}run: npm run test:node/);
+    // test:node leaves out the two asset files; test:coverage has them: both runs cover the same files.
+    expect(body).toMatch(/- if: env\.RUN != 'true'\n {8}run: npm run test:node && npm run test:assets\n/);
     expect(body).toMatch(/- if: env\.RUN == 'true'\n {8}run: npm run test:coverage/);
     expect(body).toMatch(/- if: env\.RUN == 'true'\n {8}run: npx tsx tools\/coverage-ratchet\.ts/);
     // The setup is the same either way: no step before the tests is gated.

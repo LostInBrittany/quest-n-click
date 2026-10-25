@@ -54,7 +54,7 @@ export const JOB_OF: Record<Gate, string> = {
 
 interface Rule {
   re: RegExp;
-  /** The gates this path opens; `all` runs everything; `[]` is the fast tier alone (`check`). */
+  /** The gates this path opens; `all` runs everything; `[]` is the fast tier alone (`check`, the unit suite). */
   gates: readonly Gate[] | 'all';
   why: string;
 }
@@ -62,7 +62,7 @@ interface Rule {
 // What a unit test or a build of the sample game cannot see: Node 24, Windows. Every code path asks for both.
 const UNIT = ['node24', 'windows'] as const;
 // The unit suite under coverage and its ratchet (4.5.4, #302): product code only; a change to the docs, a workflow,
-// the repository's own tools or the tests alone is checked by `check`, and `main` runs it with `--all`.
+// the repository's own tools or the tests alone runs the same suite without coverage, and `main` runs it with `--all`.
 const COVERAGE = ['coverage'] as const;
 // The authoring pipeline (validate, solve, lint, build:game, pack, the template): every game's build goes through it.
 const AUTHORING = [...UNIT, ...COVERAGE, 'secondGame', 'freshInstall', 'upgrade', 'reference'] as const;
@@ -180,14 +180,15 @@ export const RULES: readonly Rule[] = [
     why: 'what Windows runs differently',
   },
 
-  // The documentation's publication (4.5.0, A5b): the archive, its HTML and search, Pages' /docs/, the wiki's push,
-  // the transition pages. No game is built through them; their tests are unit tests, and the docs family runs too.
+  // The wiki's own tools (4.5.0; 4.5.4, #302): the check, the claims, the translations, the publication, the archive.
+  // No game is built through them and the package does not run them: the unit suite checks them. The modules the Studio
+  // and the MCP server read the docs through (`read_doc`, the search) are product: they fall to the authoring rule.
   {
-    re: /^tools\/wiki\/(archive|html|html-search|pages|publication|transition)\.ts$/,
+    re: /^tools\/wiki(\.ts$|\/(?!(docs|docs-load|glossary|manifest|page|site)\.ts$))/,
     gates: [],
-    why: "the documentation's publication",
+    why: "the wiki's own tools",
   },
-  // Tools that ship nothing and build nothing: `check` runs their tests; Windows and Node 24 on `main` (4.5.4, #302).
+  // Tools that ship nothing and build nothing: the unit suite checks them; Windows and Node 24 on `main` (4.5.4, #302).
   {
     re: /^(tools\/(mutate|mutation-sets|coverage-ratchet|quality-baseline|api-doc|audit-corpus|bench|changes)\.ts$|tools\/release\/|scripts\/(release-notes\.(mjs|d\.mts)|check-links\.mjs|docs-screenshots\.mjs)$)/,
     gates: [],
@@ -352,7 +353,7 @@ if (process.argv[1]?.endsWith('ci-plan.ts')) {
   for (const l of lines) console.error(`  ${l}`);
   if (plan.docsPages.length) console.error(`  wiki pages to reread: ${plan.docsPages.join(', ')}`);
   console.error(
-    `✔  plan: ${plan.all ? 'everything' : on.length ? on.map((g) => JOB_OF[g]).join('; ') : 'the fast tier only (check, coverage)'}`,
+    `✔  plan: ${plan.all ? 'everything' : on.length ? on.map((g) => JOB_OF[g]).join('; ') : 'the fast tier only (check, the unit suite)'}`,
   );
   const summary = process.env.GITHUB_STEP_SUMMARY;
   if (summary)

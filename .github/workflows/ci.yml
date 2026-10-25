@@ -115,7 +115,7 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 45
     # The unit suite on every change; under coverage and its ratchet only when the plan's `coverage` gate asks, product
-    # code (4.5.4, #302): `main`, a tag and `full-ci` always. The plan spares the instrumentation, never the tests.
+    # code (4.5.4, #302): `main` and `full-ci` always. The plan spares the instrumentation, never the tests.
     env:
       RUN: ${{ fromJSON(needs.plan.outputs.plan).coverage }}
     steps:
@@ -137,7 +137,7 @@ jobs:
       - run: bash scripts/ci-ffmpeg.sh
         timeout-minutes: 20
       - if: env.RUN != 'true'
-        run: npm run test:node
+        run: npm run test:node && npm run test:assets
       - if: env.RUN == 'true'
         run: npm run test:coverage
       - if: env.RUN == 'true'

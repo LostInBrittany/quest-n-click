@@ -4185,15 +4185,15 @@
       ]
     },
     "contribute.ci#the-plan": {
-      "enHash": "8c8e99c1d32c8bde4157b014316b5e51b501b39f5719b546cf63eddfe0de98de",
-      "frHash": "67cbc145ea1751c432dbe1a15ec39055fbb2dce651107ae6001f66e69129694b",
+      "enHash": "35077b865d375a36b2f8b818fb76f48d12c7d68f594af419285ab7c695467a7a",
+      "frHash": "edf66526240be1f9cb058eeb8253d28154a0adc2f59a37de3ecb8d4780963af3",
       "reviewers": [
-        { "name": "claude-452-org", "kind": "ai", "relation": "author", "date": "2026-10-24" }
+        { "name": "claude-454-ci", "kind": "ai", "relation": "author", "date": "2026-10-25" }
       ]
     },
     "contribute.ci#tiers": {
-      "enHash": "857ae9ce2547b35c2659a3a4c6ab98c3e0145723a490ab0f9128b86da14e2494",
-      "frHash": "22390323351677600b4b7db6b82ce876d366b68ce9d4f1216a852715b8e9bc8c",
+      "enHash": "4a099c982f6bbcd92e44807dedcf8435f43d11e9150a45cd89a025ca4cbbf5dd",
+      "frHash": "32ad4c5e21ff15ad6f5a88c786ac958095a7b33c39a2853195ae6a3eb2637222",
       "reviewers": [
         { "name": "claude-454-ci", "kind": "ai", "relation": "author", "date": "2026-10-25" }
       ]
@@ -5435,8 +5435,8 @@
       ]
     },
     "contribute.which-tests#suites": {
-      "enHash": "0b77e3e843ed220d7543031fcbff5aeb96d8a97aea0255e925166409619ee284",
-      "frHash": "bd040fe29b7cbd4debc23f7efb693ddb11c4352443b10c9e057c39c64655a9a5",
+      "enHash": "9f1288edbff5f6a86ac5a8fb630e9e4dea89cbd2989bd667b0d6f82ccc913063",
+      "frHash": "37221b74a8fe4dda921608722d05d21d74fe1fcbf1a7dcecbf6412fb29ed61e5",
       "reviewers": [
         { "name": "claude-454-ci", "kind": "ai", "relation": "author", "date": "2026-10-25" }
       ]

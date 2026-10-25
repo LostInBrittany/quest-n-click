@@ -16,7 +16,7 @@ says what each workflow and job is.
 |---|---|---|---|---|---|---|---|---|
 | Unit (Node) | `npm test` (`test:node`) | every `tests/**/*.test.ts` and the game's `games/<GAME>/tests/`, but the 9 heavy files and the 2 asset files | as coverage; on Node 24 (gate `node24`); on Windows without the POSIX files (gate `windows`) | yes | yes (`release-check:ci`) | yes (`release-check:ci`) | — | — |
 | Coverage | `npm run test:coverage` | the unit suite and the asset tests under V8 coverage, then the floors of `vite.config.ts` and the ratchet | when product code changed (`coverage` job, gate `coverage`; ratchet warns); otherwise the unit suite without coverage (4.5.4) | yes (ratchet strict) | yes | yes | — | — |
-| Assets | `npm run test:assets` | `tests/pixel.test.ts`, `tests/studio-assets.test.ts` (Python needed) | inside coverage | inside coverage | inside coverage | inside coverage | — | — |
+| Assets | `npm run test:assets` | `tests/pixel.test.ts`, `tests/studio-assets.test.ts` (Python needed) | in the `coverage` job, with or without coverage (4.5.4) | inside coverage | inside coverage | inside coverage | — | — |
 | Heavy solver | `npm run test:heavy` | 9 files one after the other: `ownership`, `audit`, `canonical`, `memo`, `reference-proof`, `solver-oracle`, `dominance`, `partition`, `checkpoint-matrix` | — | — | three times, each on a new runner (`heavy` ×3) | — | yes (`heavy`) | — |
 | Quality | `npm run quality` | format, code lint, knip, both TypeScript configurations, content lint | yes (`check`) | yes | yes | yes | — | — |
 | Docs truth | `npm run docs:truth` | what the docs claim against the code | yes (`check`) | yes | — | — | — | — |

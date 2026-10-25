@@ -44,6 +44,7 @@ plan: it runs its real work, or one step that says "not needed by the plan" and 
 
 | Job | Gate | Runs |
 |---|---|---|
+| `coverage` | `coverage` | the unit suite under coverage and the ratchet (spared: the same suite without coverage) |
 | `node-24` | `node24` | the unit suite on Node 24 |
 | `windows` | `windows` | the doctor, the type checks, the unit suite without the files that assume POSIX, `build:game`, the production server answering |
 | `e2e` (six rows) | `e2e` | the production build played by touch: Chromium full, WebKit generic, Chromium and WebKit at the keyboard, Chromium in French, Chromium with the Canvas painter; with weight, music, visual, perf, Studio, accessibility and PWA steps on some rows |
@@ -86,19 +87,21 @@ files ask:
 | A change to | Opens |
 |---|---|
 | `.github/workflows/ci.yml`, `tools/ci-plan.ts`, `package.json`, the lockfile, a shared configuration (`tsconfig*.json`, `vite.config.ts`, `vitest*.ts`, `biome.json`, `knip.json`, `requirements.txt`, `.nvmrc`, `.gitattributes`), the app shell, `tools/vite/` | everything |
-| `docs/`, `changes/`, `wiki/`, any `.md`, `LICENSE*`, `.claude/`, `.cursor/`, `clevercloud/`, another `.github/` file | the fast tier only |
-| the Reality runtime | `reality`, `e2e`, `node24`, `windows` |
-| the painters, the music director | `e2e`, `reference`, `node24`, `windows` |
-| the PWA and the storage (`boot.ts`, `dom/update`, `offline`, `save-store`, `storage`) | `e2e`, `pwaFirefox`, `upgrade`, `node24`, `windows` |
+| `docs/`, `changes/`, `wiki/`, any `.md`, `LICENSE*`, `.claude/`, `.cursor/`, `clevercloud/`, another `.github/` file | the fast tier only (`check`, and the unit suite without coverage) |
+| the Reality runtime | `coverage`, `reality`, `e2e`, `node24`, `windows` |
+| the painters, the music director | `coverage`, `e2e`, `reference`, `node24`, `windows` |
+| the PWA and the storage (`boot.ts`, `dom/update`, `offline`, `save-store`, `storage`) | `coverage`, `e2e`, `pwaFirefox`, `upgrade`, `node24`, `windows` |
 | any other file of `src/engine/` (the core) | everything |
-| `src/studio/` | `e2e`, `studioHosted`, `node24`, `windows` |
-| `bridge/` | `reality`, `freshInstall`, `node24`, `windows` (and `studioHosted` for its SQL layer) |
-| `games/demo/` | `e2e`, `reference`, `node24`, `windows` |
-| `games/reference/`, `games/heroes/` | `reference`, `node24` |
-| `games/_template/`, `cli/`, `scripts/{pack,fresh-install,external-consumer,new-game}.mjs` | `secondGame`, `freshInstall`, `upgrade`, `node24`, `windows` |
+| `src/studio/` | `coverage`, `e2e`, `studioHosted`, `node24`, `windows` |
+| `bridge/` | `coverage`, `reality`, `freshInstall`, `node24`, `windows` (and `studioHosted` for its SQL layer) |
+| `games/demo/` | `coverage`, `e2e`, `reference`, `node24`, `windows` |
+| `games/reference/`, `games/heroes/` | `coverage`, `reference`, `node24` |
+| `games/_template/`, `cli/`, `scripts/{pack,fresh-install,external-consumer,new-game}.mjs` | `coverage`, `secondGame`, `freshInstall`, `upgrade`, `node24`, `windows` |
 | `studio-server/` | the authoring gates and `studioHosted` |
-| other `tools/` and `scripts/` | the authoring gates (`node24`, `windows`, `secondGame`, `freshInstall`, `upgrade`, `reference`) |
-| `tests/` | `node24`, `windows` |
+| `tools/wiki.ts` and `tools/wiki/` (but `docs`, `docs-load`, `glossary`, `manifest`, `page` and `site`, which the Studio and the MCP server read), `tools/release/`, the repository tools (`tools/mutate.ts`, `tools/changes.ts`, `tools/quality-baseline.ts`…, `scripts/release-notes.mjs`) | the fast tier only (4.5.4) |
+| other `tools/` and `scripts/` | the authoring gates (`coverage`, `node24`, `windows`, `secondGame`, `freshInstall`, `upgrade`, `reference`) |
+| the hosted Studio's tests and its CI files (`tests/studio-{server,worker,collab,keycloak,client,diff-captures}.test.ts`, `ops/studio/{ci,keycloak}/`) | `studioHosted` |
+| other `tests/` | the fast tier only (4.5.4) |
 | a path no rule knows | everything |
 
 A git error runs everything too: the plan never decides that it does not need to be checked. **`docs`** is true when
