@@ -335,6 +335,14 @@ Sert `dist/` en local (`vite preview --host 127.0.0.1`).
 
 Utilisation : `quest-n-click preview [<Vite preview options>]`
 
+<a name="quest-n-click-page"></a>
+
+### `quest-n-click page`
+
+Une des pages pour téléphone de [create.review-pages](create.review-pages.md), à partir du jeu du projet : le storyboard (`--md` écrit aussi `game/storyboard.md` ; `--readonly`, la même histoire sans notes, à publier à côté du jeu), la revue des sprites, la page de placement, le monde ou les énigmes. Écrite dans `dist-pages/`, sauf si `--out` dit autre chose.
+
+Utilisation : `quest-n-click page <storyboard|review|placement|world|puzzles> [--out <dir|file.html>] [--md] [--readonly]`
+
 <a name="quest-n-click-migrate"></a>
 
 ### `quest-n-click migrate`

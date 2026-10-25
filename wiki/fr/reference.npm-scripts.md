@@ -205,10 +205,10 @@ Fusionne dans `games/<id>/layout/<room>.json` les placements exportés de la pag
 
 #### `npm run page:storyboard`
 
-Écrit `games/<id>/storyboard.json` en page pour téléphone avec une zone de notes sous chaque case (`--md` écrit aussi `games/<id>/storyboard.md`, le texte brut que lisent les sous-agents, le même que l’export Markdown du Studio) ([create.review-pages](create.review-pages.md)).
+Écrit `games/<id>/storyboard.json` en page pour téléphone avec une zone de notes sous chaque case (`--md` écrit aussi `games/<id>/storyboard.md`, le texte brut que lisent les sous-agents, le même que l’export Markdown du Studio ; `--readonly` retire les notes et l’enregistrement, pour publier à côté du jeu) ([create.review-pages](create.review-pages.md)).
 
 - Lance : `tsx --tsconfig tsconfig.json tools/pages/storyboard.ts`
-- Utilisation : `npm run page:storyboard [-- --out <dir|file.html>] [--md]`
+- Utilisation : `npm run page:storyboard [-- --out <dir|file.html>] [--md] [--readonly]`
 
 <a name="page-world"></a>
 

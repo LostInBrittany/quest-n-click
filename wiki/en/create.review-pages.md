@@ -12,6 +12,7 @@ claude.ai artifact: the author annotates on a phone, the AI reads the annotation
 ```
 npm run page:storyboard              # → dist-pages/storyboard.html   (needs games/<id>/storyboard.json)
 npm run page:storyboard -- --md      # also writes games/<id>/storyboard.md (plain text for agents)
+npm run page:storyboard -- --readonly --out <file.html>   # the same story, no notes, to publish beside the game
 npm run page:review                  # → dist-pages/review.html
 npm run page:placement               # → dist-pages/placement.html
 npm run page:world                   # → dist-pages/world   (no .html extension: --out world.html for one)
@@ -50,6 +51,11 @@ digits and `_ - . ~ : @ +`; other characters become `_`.
 
 The page refuses an invalid storyboard with the same sentences as the Studio and the MCP's `set_storyboard`. What the
 storyboard is for: [The storyboard, source of truth](create.storyboard.md).
+
+`--readonly` (4.5.4) renders the same story for readers who should not annotate it: no notes box, no rewrites, nothing
+saved, and a `noindex` meta so search engines leave it alone. Publish it beside the game under `pages/` (for example
+`dist/pages/storyboard-<secret>.html`, written after the build): the game's service worker never answers `pages/` with
+the game. The page tells the whole story: give it an address nobody can guess, and never link it from the game.
 
 <a name="review-page"></a>
 

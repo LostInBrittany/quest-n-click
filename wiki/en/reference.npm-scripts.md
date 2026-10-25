@@ -205,10 +205,10 @@ Writes the art review page: every cell of every sheet of `games/<id>/art/` as a 
 
 #### `npm run page:storyboard`
 
-Writes `games/<id>/storyboard.json` as a phone-friendly page with a notes box under every panel (`--md` also writes `games/<id>/storyboard.md`, the plain text sub-agents read, the same text as the Studio's Markdown export) ([create.review-pages](create.review-pages.md)).
+Writes `games/<id>/storyboard.json` as a phone-friendly page with a notes box under every panel (`--md` also writes `games/<id>/storyboard.md`, the plain text sub-agents read, the same text as the Studio's Markdown export; `--readonly` leaves out the notes and saving, to publish beside the game) ([create.review-pages](create.review-pages.md)).
 
 - Runs: `tsx --tsconfig tsconfig.json tools/pages/storyboard.ts`
-- Usage: `npm run page:storyboard [-- --out <dir|file.html>] [--md]`
+- Usage: `npm run page:storyboard [-- --out <dir|file.html>] [--md] [--readonly]`
 
 <a name="page-world"></a>
 

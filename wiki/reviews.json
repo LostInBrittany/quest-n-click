@@ -404,10 +404,9 @@
     },
     "import-layout-merges": {
       "claimTextHash": "ef0b9a44279ae51a688135931f4f373fe9cc58a40b4ab10117026f091400c575",
-      "testFileHash": "333f487700080488e0a69b65ed295705594bbd290c896f12eb54880db7ab3b38",
+      "testFileHash": "bd65c83ca390bc8bd82f319d15cdbb533898325b8af0c164354ca5a5486213a6",
       "reviewers": [
-        { "name": "claude-4.5-writers", "kind": "ai", "relation": "author", "date": "2026-10-23" },
-        { "name": "wanoo", "kind": "human", "relation": "independent", "date": "2026-10-24" }
+        { "name": "Claude", "kind": "ai", "relation": "author", "date": "2026-10-25" }
       ]
     },
     "invitation-once-verified-email": {
