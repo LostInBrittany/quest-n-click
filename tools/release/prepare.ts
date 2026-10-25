@@ -4,6 +4,8 @@
 // its brief, for a person or their assistant to write) and the docs' human gates (a claim or a pair still to review,
 // each with its command for a person to type), in one stop, nothing pushed. The tool never writes prose nor records a
 // review; the same command, run again on `release/<x.y.z>` once they are committed, resumes there.
+// (4.5.5, #331) When it pushes, it starts the warm-up of main's mutation cache (the nightly's mutation jobs, #330), so
+// the candidate the merge starts reuses it; a dispatch refused is a warning with the command, never a failure.
 // (4.5.4, part B of docs/dev/PLAN-4.5.4-SIMPLE-RELEASE.md.) `prepare` makes the release pull request: the branch
 // `release/<x.y.z>`, every file the tools already generate (version, CHANGELOG and LOG from the fragments, transition
 // pages, golden save, reference run, quality baseline), the files a release branch used to write by hand (the passes
@@ -376,6 +378,59 @@ export function beforePushStop(o: {
   return out.join('\n');
 }
 
+/**
+ * The warm-up of main's mutation cache (4.5.5): the nightly's mutation jobs only (#330, `-f jobs=mutation`), on the
+ * organisation's main. A release commit moves only version fields, which the input hashes leave out, so main's hashes
+ * are the release commit's: started when the pull request is pushed, it fills the cache while the pull request is in
+ * review, and the candidate its merge starts reuses it.
+ */
+export const warmupArgs = (repo: string) => [
+  'workflow',
+  'run',
+  'nightly',
+  '--repo',
+  repo,
+  '--ref',
+  'main',
+  '-f',
+  'jobs=mutation',
+];
+export const warmupCommand = (repo: string) => `gh ${warmupArgs(repo).join(' ')}`;
+
+/** Starts the warm-up through `run` (gh); never throws: a refusal is a warning with the command to run by hand. */
+export function startWarmup(run: Run, repo: string): { ok: boolean; url: string; say: string } {
+  const workflow = `https://github.com/${repo}/actions/workflows/nightly.yml`;
+  let r: { code: number; out: string };
+  try {
+    r = run('gh', warmupArgs(repo));
+  } catch (e) {
+    r = { code: 1, out: (e as Error).message };
+  }
+  if (r.code !== 0) {
+    const why = r.out.trim().split('\n').filter(Boolean).at(-1) ?? `gh exited ${r.code}`;
+    return {
+      ok: false,
+      url: workflow,
+      say: `⚠  the mutation cache's warm-up did not start (${why}); the candidate will measure every changed set. Run it by hand:\n  ${warmupCommand(repo)}`,
+    };
+  }
+  const url =
+    new RegExp(`https://github\\.com/${repo.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}/actions/runs/\\d+`).exec(
+      r.out,
+    )?.[0] ?? workflow;
+  return { ok: true, url, say: `✔  the mutation cache's warm-up started on main (nightly, jobs=mutation): ${url}` };
+}
+
+/** The pull request body's line about the warm-up. */
+export const warmupBodyLine = (w: { ok: boolean; url: string }, repo: string) =>
+  w.ok
+    ? `\`prepare\` started the warm-up of main's mutation cache (the nightly's mutation jobs, ${w.url}): the candidate this merge starts reuses it for every set whose inputs did not move.`
+    : `The warm-up of main's mutation cache did not start; run it while this pull request is in review, so the candidate its merge starts reuses it: \`${warmupCommand(repo)}\`.`;
+
+/** What `--no-pr` says: nothing pushed, nothing started, and the warm-up's command for when the pull request opens. */
+export const noPrNote = (repo: string) =>
+  `--no-pr: nothing pushed, no warm-up started. Once you open the pull request, warm main's mutation cache for its candidate:\n  ${warmupCommand(repo)}`;
+
 /** The steps of `prepare`, in 4.5.3's order; before the push, the prose left and the human gates (4.5.5). */
 export const PREPARE_STEPS = [
   'branch',
@@ -642,15 +697,20 @@ function prepare(version: string, opts: { name: string; date: string; pr: boolea
       process.exit(1);
     },
     'pull request': () => {
-      if (!opts.pr) return say('--no-pr: nothing pushed');
+      if (!opts.pr) return say(noPrNote(REPO));
       if ('problem' in target) throw new Error(target.problem);
       sh('git', ['push', '-q', '-u', target.remote, branch]);
+      // Pushed: the warm-up of main's mutation cache, while the pull request is in review (4.5.5). Never fatal.
+      const warmup = startWarmup(capture, REPO);
+      say(warmup.say);
       const body = [
         `## What changes`,
         '',
         `Release ${version} "${opts.name}", prepared by \`npm run release -- prepare\`: version, CHANGELOG and LOG from the fragments, transition pages, golden save, reference run, passes sheet and passIssues, README, quality baseline.`,
         '',
         `Its prose is written and its docs' human gates hold: \`prepare\` pushes only then. \`npm run release -- check ${version}\` is this pull request's CI.`,
+        '',
+        warmupBodyLine(warmup, REPO),
       ].join('\n');
       const head = `${target.head}${branch}`;
       say(
