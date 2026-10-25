@@ -136,7 +136,10 @@ réussissent (les jobs de la documentation sont signalés, jamais attendus : un 
 vérifie les fichiers de la release, et approuve les paquets npm que la release a mis en attente, chacun avec votre 2FA
 dans votre terminal, l'engine d'abord ; puis un résumé. Le commit de release est celui où `package.json` est passé à la
 version sur main (ou celui du tag, une fois poussé), si bien que ce qui est fusionné entre-temps ne le déplace pas. Si
-elle s'arrête, relancez-la : un candidat vert n'est pas attendu de nouveau, un tag déjà poussé est suivi, un paquet
+elle s'arrête, relancez-la : un candidat vert n'est pas attendu de nouveau, un tag déjà poussé est suivi, une
+release que `ship verify` a déjà validée n'est pas vérifiée de nouveau (4.5.5, #343 : même tag, même release, mêmes
+empreintes des fichiers, la release immuable, tel que noté dans `.cache/release/v<version>.verified.json` ;
+`--reverify` la vérifie quand même), un paquet
 déjà sur npm n'est pas approuvé de nouveau ; une exécution de release en échec (son job `release` ou `npm-stage`) se
 relance d'abord (`gh run rerun <id> --failed`, la commande l'affiche). Une pré-release (`-rc.N`) se tague à la main
 (`ship tag`, plus bas). La chaîne ci-dessous est ce qu'elle lance, pour quand une étape doit se

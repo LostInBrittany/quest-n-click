@@ -128,7 +128,9 @@ documentation's jobs are said, never waited on: a docs problem never holds back 
 and approves the npm packages the release staged, each with your 2FA in your terminal, the engine first; then one
 summary. The release commit is where `package.json` became the version on main (or the tag's, once pushed), so what is
 merged meanwhile does not move it. If it stops, run it again: a green candidate is not waited for again, a tag already
-pushed is followed, a package already on npm is not approved again; a release run that failed (its `release` or
+pushed is followed, a release `ship verify` already passed on is not verified again (4.5.5, #343: the same tag,
+release and asset digests, the release immutable, as recorded in `.cache/release/v<version>.verified.json`;
+`--reverify` verifies it anyway), a package already on npm is not approved again; a release run that failed (its `release` or
 `npm-stage` job) is re-run first (`gh run rerun <id> --failed`, the command prints it). A pre-release (`-rc.N`) is
 tagged by hand (`ship tag`, below). The chain below is what it runs, for when a step has to be done by hand.
 

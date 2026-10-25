@@ -19,6 +19,7 @@ import { releaseNotes } from '../../scripts/release-notes.mjs';
 import { REPO, releaseRemote } from './lib.mjs';
 // @ts-expect-error: a plain .mjs module without declarations
 import { MINIMUM, NPM_NAMES, OWNERS } from './preflight.mjs';
+import { mkdirSync, writeFileSync } from 'node:fs';
 
 /** The packages a release stages, the engine first (create depends on its exact version): preflight.mjs's list. */
 const PACKAGES: readonly string[] = NPM_NAMES;
@@ -160,6 +161,67 @@ export function stagedFromJson(json: string, version: string): { id: string; nam
     .filter((i) => i.version === version)
     .sort((a, b) => PACKAGES.indexOf(a.packageName) - PACKAGES.indexOf(b.packageName))
     .map((i) => ({ id: i.id, name: i.packageName }));
+}
+
+/** What a passed `ship verify` vouched for (#343): the tag object, its commit, the release and each asset's digest. */
+export interface VerifiedState {
+  tag: string;
+  commit: string;
+  release: number;
+  immutable: boolean;
+  assets: { name: string; digest: string | null }[];
+}
+
+/**
+ * The state of `v<version>` from `gh api repos/<repo>/releases/tags/v<version>` and `git ls-remote --tags <remote>
+ * refs/tags/v<version> refs/tags/v<version>^{}` (the tag object, then its commit), the assets sorted by name.
+ */
+export function verifiedState(releaseJson: string, lsRemote: string, version: string): VerifiedState {
+  const r = JSON.parse(releaseJson || '{}') as {
+    id?: number;
+    immutable?: boolean;
+    assets?: { name: string; digest?: string | null }[];
+  };
+  const ref = (name: string) =>
+    lsRemote
+      .split('\n')
+      .map((l) => l.split('\t'))
+      .find(([, n]) => n === name)?.[0] ?? '';
+  return {
+    tag: ref(`refs/tags/v${version}`),
+    commit: ref(`refs/tags/v${version}^{}`),
+    release: r.id ?? 0,
+    immutable: r.immutable === true,
+    assets: (r.assets ?? [])
+      .map((a) => ({ name: a.name, digest: a.digest ?? null }))
+      .sort((a, b) => a.name.localeCompare(b.name)),
+  };
+}
+
+/**
+ * Whether a resumed run may skip `ship verify` (#343), and the line that says so or why not. Only when a passed
+ * verify recorded exactly this state: the same tag object and commit, the same release, the same assets with the same
+ * digests, every one with a digest, the release immutable (its assets and tag can no longer change), and no --reverify.
+ */
+export function verifySkip(
+  record: (VerifiedState & { at: string }) | undefined,
+  now: VerifiedState,
+  force: boolean,
+): { skip: boolean; line: string } {
+  const again = (why: string) => ({ skip: false, line: `verify: ${why}: ship verify runs` });
+  if (force) return again('--reverify');
+  if (!record) return again('no record of a passed verify');
+  if (!now.tag || !now.commit) return again('the tag is not on the remote');
+  if (record.tag !== now.tag || record.commit !== now.commit) return again('the tag moved since it passed');
+  if (record.release !== now.release) return again('the release is not the one verified');
+  if (!now.immutable) return again('the release is not immutable');
+  if (!now.assets.length || now.assets.some((a) => !a.digest)) return again('an asset has no digest');
+  const key = (s: VerifiedState) => JSON.stringify(s.assets);
+  if (key(record) !== key(now)) return again('the assets changed since it passed');
+  return {
+    skip: true,
+    line: `verify: already passed at ${record.at} for tag ${now.tag.slice(0, 12)}, release ${now.release}, ${now.assets.length} assets unchanged – skipped (--reverify to run it again)`,
+  };
 }
 
 // ——— The command line. Everything below runs in the repository's root.
@@ -353,6 +415,40 @@ async function followRelease(sha: string, version: string): Promise<string[]> {
   }
 }
 
+/**
+ * `ship verify <version>`, once per release (#343): after it passes, the state it vouched for is recorded in
+ * `.cache/release/v<version>.verified.json` (beside the download folder: inside it, ship verify would refuse an
+ * unlisted file), read before and after the verify so nothing moved in between. A resumed run skips it only when
+ * `verifySkip` says everything is still exactly there; `--reverify` runs it anyway. ship verify itself is unchanged.
+ */
+async function verifyOnce(version: string, force: boolean) {
+  const file = join(ROOT(), '.cache', 'release', `v${version}.verified.json`);
+  const remote = releaseRemote() as string;
+  const state = () =>
+    verifiedState(
+      quiet('gh', ['api', `repos/${REPO}/releases/tags/v${version}`]).out,
+      quiet('git', ['ls-remote', '--tags', remote, `refs/tags/v${version}`, `refs/tags/v${version}^{}`]).out,
+      version,
+    );
+  let record: (VerifiedState & { at: string }) | undefined;
+  try {
+    record = JSON.parse(readFileSync(file, 'utf8'));
+  } catch {
+    record = undefined;
+  }
+  const before = state();
+  const verdict = verifySkip(record, before, force);
+  say(verdict.line);
+  if (verdict.skip) return;
+  if (loud('node', ['tools/release/ship.mjs', 'verify', version]) !== 0)
+    throw new Error(`ship verify ${version} failed: the release's files do not verify (see above)`);
+  const after = state();
+  if (JSON.stringify(after) !== JSON.stringify(before))
+    return say('verify: the release moved while it was verified: no record, the next run verifies again');
+  mkdirSync(join(ROOT(), '.cache', 'release'), { recursive: true });
+  writeFileSync(file, `${JSON.stringify({ ...after, at: new Date().toISOString() }, null, 2)}\n`);
+}
+
 async function approveNpm(version: string) {
   const published = (p: string) => quiet('npm', ['view', `${p}@${version}`, 'version']).out === version;
   if (PACKAGES.every(published)) return say(`npm: the ${PACKAGES.length} packages are at ${version} already`);
@@ -429,8 +525,8 @@ export async function runRelease(version: string, opts: { key?: string; startCan
       `ship tag failed: fix what it says and run npm run release -- ${version} again (a tag already pushed is followed, not made again)`,
     );
   const warnings = await followRelease(sha, version);
-  if (loud('node', ['tools/release/ship.mjs', 'verify', version]) !== 0)
-    throw new Error(`ship verify ${version} failed: the release's files do not verify (see above)`);
+  // Skipped on a resumed run when it already passed for exactly this release (#343); --reverify runs it anyway.
+  await verifyOnce(version, process.argv.includes('--reverify'));
   await approveNpm(version);
   const latest = quiet('npm', ['view', '@quest-n-click/engine', 'dist-tags.latest']).out;
   say(`✔  ${version} released: https://github.com/${REPO}/releases/tag/v${version}`);
