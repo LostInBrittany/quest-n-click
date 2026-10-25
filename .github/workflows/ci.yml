@@ -114,35 +114,30 @@ jobs:
     needs: plan
     runs-on: ubuntu-24.04
     timeout-minutes: 45
-    # Product code only (4.5.4, #302): the plan's `coverage` gate; `main`, a tag and `full-ci` run it always.
+    # The unit suite on every change; under coverage and its ratchet only when the plan's `coverage` gate asks, product
+    # code (4.5.4, #302): `main`, a tag and `full-ci` always. The plan spares the instrumentation, never the tests.
     env:
       RUN: ${{ fromJSON(needs.plan.outputs.plan).coverage }}
     steps:
-      - if: env.RUN != 'true'
-        run: echo "::notice::coverage not needed by the plan (no product code changed)"
-      - if: env.RUN == 'true'
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0 # the fragments' check diffs against main's merge base (tools/changes.ts, 4.1.9)
-      - if: env.RUN == 'true'
-        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 22
           cache: npm
-      - if: env.RUN == 'true'
-        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7
         with:
           python-version: '3.12'
-      - if: env.RUN == 'true'
-        run: for i in 1 2 3; do (pip install --require-hashes -r requirements.txt) && break; [ "$i" = 3 ] && exit 1; echo "retry $i"; sleep 15; done
+      - run: for i in 1 2 3; do (pip install --require-hashes -r requirements.txt) && break; [ "$i" = 3 ] && exit 1; echo "retry $i"; sleep 15; done
         timeout-minutes: 20
-      - if: env.RUN == 'true'
-        run: for i in 1 2 3; do (npm ci) && break; [ "$i" = 3 ] && exit 1; echo "retry $i"; sleep 15; done
+      - run: for i in 1 2 3; do (npm ci) && break; [ "$i" = 3 ] && exit 1; echo "retry $i"; sleep 15; done
         timeout-minutes: 20
       # validate --release measures the stems with ffprobe (tests/tooling.test.ts).
-      - if: env.RUN == 'true'
-        run: bash scripts/ci-ffmpeg.sh
+      - run: bash scripts/ci-ffmpeg.sh
         timeout-minutes: 20
+      - if: env.RUN != 'true'
+        run: npm run test:node
       - if: env.RUN == 'true'
         run: npm run test:coverage
       - if: env.RUN == 'true'

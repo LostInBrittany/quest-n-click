@@ -258,7 +258,6 @@ describe('ci.yml and the plan', () => {
 
   it('gates the work of a spared job inside it: no job-level `if` on a gated job, a step that succeeds instead', () => {
     for (const id of [
-      'coverage',
       'node-24',
       'reality-xcheck',
       'bridge-postgres',
@@ -282,6 +281,19 @@ describe('ci.yml and the plan', () => {
           true,
         );
     }
+  });
+
+  it('runs the unit suite on every change, under coverage only when the plan asks (4.5.4, #302)', () => {
+    const body = job('coverage');
+    expect(body).not.toMatch(/^ {4}if:/m);
+    expect(body).toContain('RUN: ${{ fromJSON(needs.plan.outputs.plan).coverage }}');
+    // The plan spares the instrumentation, never the tests.
+    expect(body).toMatch(/- if: env\.RUN != 'true'\n {8}run: npm run test:node/);
+    expect(body).toMatch(/- if: env\.RUN == 'true'\n {8}run: npm run test:coverage/);
+    expect(body).toMatch(/- if: env\.RUN == 'true'\n {8}run: npx tsx tools\/coverage-ratchet\.ts/);
+    // The setup is the same either way: no step before the tests is gated.
+    const setup = body.slice(0, body.indexOf("- if: env.RUN != 'true'\n        run: npm run test:node"));
+    expect(setup).not.toContain('env.RUN');
   });
 
   it('the gate job needs every other job and asks each for success', () => {
