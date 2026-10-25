@@ -7974,3 +7974,142 @@ Branch: fix/451-candidate
 → next: the five `npm trust github …` just before the tag, the candidate on the merge commit, an `-rc` to rehearse the
 staging, the signed tag `v4.5.2`, `ship verify`, then `npm stage approve` engine first; a person's review of the
 changed pairs; the people's passes.
+
+## #300 · 2026-10-25 · Claude · proposal · LostInBrittany as a second tag signer
+
+`ship tag 4.5.2 --sign` failed on LostInBrittany's machine: git's signing key there is a GPG one, and
+`.github/allowed_signers` named only wanoo. The new line is LostInBrittany's `id_ed25519` key, in a commit signed by that
+key over SSH (8ebe6f91). `tools/field/trust.ts` accepts a change to the file only from a key the previous version
+names, so wanoo approves it here. Until it merges, 4.5.2 is tagged by wanoo or waits.
+
+→ next: merge; LostInBrittany registers the key on GitHub as a signing key, runs `ship preflight-stable`, then tags 4.5.2 with `--key=$HOME/.ssh/id_ed25519.pub`.
+
+
+## #301 · 2026-10-25 · Claude · proposal · release.yml starts only for v* tags
+
+Every `ci` run (main, each pull request) fired `release.yml`, whose jobs all skipped unless the run was a tag's: the
+Actions list filled with skipped release runs. `workflow_run` takes a `branches:` filter, matched against the triggering
+run's `head_branch`, which is the tag's name for a tag push; `branches: ['v*']` keeps only those. The jobs' `if:` (a
+successful push of a SemVer-looking ref) stay as they were, the gate. Merged after 4.5.2's release run had started,
+since `workflow_run` reads the workflow from main.
+
+→ next: the next rc tag shows the filter lets a tag's run through; if it does not, revert the three lines.
+
+
+## #302 · 2026-10-25 · Claude · proposal · The candidate is the release's only test pass (#291, D55)
+
+A release commit was tested four times: main's `ci`, the candidate (about 85 minutes: release-check, heavy, mutation,
+pack, image, the signing rehearsal…), the tag's `ci` (the same SHA as main's), then `release.yml`, which ran
+`release-check:ci` and the whole mutation matrix again before publishing (up to two hours), although since 4.1.20 it
+builds nothing and copies every file from the candidate. Now `release.yml` starts on the tag's push (`push: tags:
+['v*']`, the `workflow_run` trigger and #290's `branches:` filter gone) and runs from the tag's own commit. Its gate:
+the SemVer tag, the tag still on the commit the run was started for, that commit on main's first-parent line and
+main's `ci` green on a push at that SHA (`tools/release/main-ci.mjs`, new), the previous stable tag an ancestor, the
+candidate the tag names (green, dispatched on main, its manifest this SHA's, every file matching), not published yet.
+The mutation jobs, `release-check:ci` and the python, ffmpeg and Chromium setup are gone; Node and `npm ci` stay for
+the release notes, `speedrun:verify`, the manifest's check and `ship verify`. The Remix proofs, the one check the
+candidate did not run, move to its new `remix-proof` job: `remix/remix-<game>.json` in the manifest from 4.5.3
+(`tools/release/artifacts.mjs`, the release-made entries kept up to 4.5.2 so older releases still verify), listed as
+evidence in `docs/dev/surfaces.json`, and a candidate without them is refused like one without its site. `ci.yml` no
+longer runs on tags; `ship tag` always waits for main's run (`--now` refused) and `ship watch` waits for the release
+run only. Found on the way: `docs-publish` in release mode required `refs/heads/main` (true under `workflow_run`), now
+`refs/tags/v<version>` (`tools/wiki/publication.ts` too), and the `docs-publish` environment's deployment policy
+(main, docs/*) needs a tag rule `v*`, a repository setting the maintainer adds. npm's provenance and the release's
+attestations now name the tag and its commit instead of main's head; `npm-stage`'s summary says so, and flags a run
+whose commit is not the tag's. 4.5.2 was released with the old workflow (candidate 40121513569 predates this).
+
+→ next: the maintainer adds the `v*` tag rule to the `docs-publish` environment, then the next rc tag (on a fresh
+candidate, npm-stage rehearsing) exercises the new trigger and gate end to end.
+
+
+## #303 · 2026-10-25 · Claude · proposal · The wiki's claims match .each test names
+
+4.5.2's `docs-publish` (run 40130164629) failed `check --publish` with 9 errors; one was `bridge-restore-refused-while-serving`
+"not executed", although the candidate's report has `maintenance leases on sqlite › restore refuses…` passed. The claim
+names the test as its source writes it (`… on $name …`), which the static check needs; the report holds the name the run
+filled in. `sameTest` (tools/wiki/claims.ts) now reads `$x`, `$a.b` and `%s %d %i %f %j %o %#` as any text, so every
+variant the report holds counts, and all of them must have passed. Checked against candidate 40121513569's report:
+the claim is "executed on 36049e12f06b". The other 8 errors are reviews only a person can record (7 claims, 263
+translation pairs).
+
+→ next: the human review of the 7 claims and the 263 pairs; then 4.5.2's docs as r2 or with 4.5.3 (a docs revision may only change wiki/ files, so it cannot carry this fix).
+
+
+## #304 · 2026-10-25 · Claude · proposal · 4.5.2's wiki: the claims and a first share of the pairs read by a person
+
+`docs-publish` of 4.5.2 refused 7 claims and 263 en/fr pairs that only their AI author had checked. LostInBrittany read
+them on a review page (each claim beside its test, each pair side by side) and marked all 7 claims and 82 pairs correct;
+they are recorded under that name (human, independent), each pair only if its text was still the one read. 181 pairs
+are still to read.
+
+→ next: the 181 remaining pairs; then 4.5.2's docs as r2 or with 4.5.3.
+
+
+## #305 · 2026-10-25 · Claude · proposal · Translation pairs no longer need a person's reading to publish (D56, amends A7)
+
+4.5.2's `docs-publish` failed: 181 pairs of ready pages were recorded by their AI author only, and A7 made
+`check --publish` want a person on every pair. Both maintainers agreed the rule was the bootstrap's and does not scale
+to a 214-page bilingual wiki. `checkTranslations` now puts those pairs among the gaps at both levels (printed by
+`check`, never silent), counted and worded as "checked by their AI author only, not read by a person". A pair "to review"
+still fails a publication; a published claim still needs `review-claim --kind human`. The page headers already say who
+read each page (`pageReview`: "written and self-checked by an AI, not reviewed by a person"), so nothing a reader sees
+turns an AI's check into a person's. `publication.json` records no review state.
+
+→ next: re-run 4.5.2's `docs-publish` once #293 and #294 are merged; a person's reading of a pair stays welcome and
+still shows as "reviewed by a person" in the header.
+
+
+## #306 · 2026-10-25 · Claude · proposal · wanoo in OWNERS
+
+Erwan's npm user `wanoo` is an owner of the `quest-n-click` organisation and a maintainer of the five scoped packages
+(`npm access list collaborators`: read-write). `OWNERS` (tools/release/preflight.mjs) and the nightly's copy name him, so
+a name he publishes is not reported "taken". D53's "until Erwan's npm user is known" is settled.
+
+→ next: after the unscoped pointers are republished, `npm owner add wanoo` on each of them.
+
+
+## #307 · 2026-10-25 · Claude · proposal · candidate starts only when full-ci is added
+
+Over two days, 28 of about 200 workflow runs were `candidate` on a pull request push, every job skipped (no `full-ci`
+label). `candidate.yml` now listens to `pull_request: [labeled]` only, and its `target` job runs when the label added is
+`full-ci` (`github.event.label.name`), so another label added to a labelled pull request starts nothing either. With
+#292, the skipped `release` runs (64 in two days) are already gone. `ci`'s own reading of `full-ci` is unchanged.
+
+→ next: none.
+
+## #308 · 2026-10-25 · Claude · release · 4.5.3 "One pass": the candidate as the release's only test pass
+
+- **The request**: Horacio (co-maintainer) asked for the 4.5.3 release pull request. `v4.5.3-rc.1`, tagged on e88ef808,
+  failed at `scripts/release-notes.mjs` ("no "## 4.5.3" section in the changelog"): the section must be on the commit
+  the tag names, so this branch carries it; rc.1 is spent (the tag ruleset refuses deleting it), the next tag is
+  `4.5.3-rc.2` or `4.5.3` on this branch's merge commit. It prepares the release only (no candidate, no tag, nothing on
+  npm). The name "One pass" is Claude's pick, for #292's rework of the chain.
+- **What ships**: #289, LostInBrittany's key as a second tag signer (LOG #300); #290, then #292, the candidate as the
+  release's only test pass, `release.yml` on the tag's push, `ship tag` without `--now`, the Remix proofs in the
+  candidate (#291, D55, LOG #301, #302); #293, a claim backed by a `.each` test counts as run (LOG #303); #294, 7 claims
+  and 82 pairs of 4.5.2 read by LostInBrittany (LOG #304); #295, translation pairs checked by their AI author no longer
+  stop a publication (D56, amends A7, LOG #305); #296, `wanoo` in `OWNERS` (LOG #306); #297, the candidate on a pull
+  request only when `full-ci` is added (LOG #307); Dependabot's bumps (actions/setup-python 7.1.0, #298). 4.5.2's five
+  packages were approved and published on npm on 24 October 2026 (`npm view @quest-n-click/engine dist-tags`:
+  `latest: '4.5.2'`, maintainers `lostinbrittany` and `wanoo`).
+- **Fragments**: `npm run changes -- --assemble` folds a `.log.md` only beside its `.md`, so the two LOG-only fragments
+  (`release-trigger-tags`, `review-452-lostinbrittany`) were folded by hand at their place in the order (#301, #304).
+- **Upgrade notes**: "From 4.5.2 to 4.5.3" in `install.upgrade-notes-4-5` (both languages): nothing in a game; for the
+  maintainers, the new chain (a candidate on main's commit, then the signed tag that names it, release.yml on the tag's
+  push), `--now` refused, a candidate made before 4.5.3 refused, the `docs-publish` environment's `v*` tag rule, npm's
+  provenance on the tag, the second signer, D56. npm is now live: `install.from-npm` (titled "Install from npm"),
+  `install.from-archive`, `install.package`, `install.upgrade`, `create.first-game`, `contribute.npm-packages` and the
+  READMEs say so, and that the unscoped names, unpublished on 24 October, are not republished yet as pointers.
+- **Reviews**: no person has read the 4.5.3 changes to the wiki. The 16 pairs this release changes are acknowledged by
+  `claude-453-release` (ai, author), enough to publish since D56. The four claims whose test file changes
+  (`tests/save-v3.test.ts`, the golden save 4.5.3: `play-save-refused-untouched`, `save-refused-untouched`,
+  `save-stale-pruned`, `save-foreign-game-refused`) lose LostInBrittany's review and keep an AI author's record: a
+  published claim still needs a person's, so `docs-publish` refuses them until a person records it.
+- **Fixtures**: golden save `demo-4.5.3.json`; reference run regenerated (engine version 4.5.3; the logic and
+  presentation fingerprints unchanged). Transition pages regenerated for 4.5.3. Quality baseline rewritten.
+- **Passes**: none added, none made for 4.5.3, the twenty-two open (`docs/dev/passes/4.5.3.md`), their issues recorded
+  for 4.5.3 in `docs/dev/contracts.json`.
+- **Signature**: the tag's signature awaits a maintainer's yes for v4.5.3 (D37).
+→ next: a person's `review-claim` of the four save claims; the `v*` tag rule on the `docs-publish` environment; the
+candidate started by hand on the merge commit; the signed tag `v4.5.3-rc.2` (or `v4.5.3`) naming it; `ship verify`;
+then `npm stage approve` engine first; the people's passes.

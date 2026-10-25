@@ -68,8 +68,8 @@ Dans le dossier du projet créé, sur votre machine.
    ```
 
 <!-- step: install-new-engine -->
-2. Installez le nouveau moteur. Aujourd'hui, depuis l'archive de la release (le moteur n'est pas sur npm :
-   [Installer depuis npm, une fois publié](install.from-npm.md)) :
+2. Installez le nouveau moteur, depuis npm à partir de la 4.5.2 (`npm install @quest-n-click/engine@<version>`,
+   [Installer depuis npm](install.from-npm.md)) ou depuis l'archive de la release :
 
    ```bash
    # dans le projet créé

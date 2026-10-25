@@ -76,9 +76,8 @@ npm run assets      # the placeholder art into public/assets
 npm run dev         # http://127.0.0.1:5173/: a garden, a bucket, a gate
 ```
 
-Once the packages are published on npm, `npm init @quest-n-click my-game "My Game"` will do the first three lines
-([install from npm, once published](install.from-npm.md)); until then that command fails, because nothing of that name
-is on the registry.
+The packages are on npm from 4.5.2: `npm init @quest-n-click my-game "My Game"` creates the same project from the
+registry, without an archive URL ([install from npm](install.from-npm.md)).
 
 Or, in the engine repository, the same template becomes `games/lamp`, set as the current game (`.cache/game`):
 

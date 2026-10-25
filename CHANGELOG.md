@@ -1,5 +1,37 @@
 # Changelog
 
+## 4.5.3 — 2026-10-25
+
+LOG #300–#308: "One pass", a patch on 4.5.2 that reworks the release chain. The candidate is now a release's only test
+pass (D55): the push of a `v*` tag starts `release.yml`, which checks the tag, main's `ci` on its commit and the
+candidate it names, then publishes that candidate's files in minutes, testing nothing again; a tag runs no `ci` of its
+own, `ship tag` always waits for main's `ci` (`--now` is refused), and the Remix catalogues are proved by the candidate.
+Either co-maintainer can sign a tag, `wanoo` counts as an owner of the npm names, a wiki claim backed by a `.each` test
+counts as run, and a translation pair checked by its AI author no longer stops a documentation publication (D56); the
+candidate starts on a pull request only when `full-ci` is added. 4.5.2's packages were published on npm on 24 October
+(`@quest-n-click/engine`, `/create`, `/bridge`, `/connectors`, `/studio-server`), and 4.5.3 is staged the same way.
+What changes (Upgrade notes: 4.5, from 4.5.2 to 4.5.3) is the maintainers' side: a candidate made before 4.5.3
+cannot be released, and the `docs-publish` environment needs a `v*` tag rule. A game builds, plays and saves as on
+4.5.2: no content field, save, schema or game fingerprint moves.
+
+### Fixed
+
+- **A claim backed by a `.each` test is executed again** (4.5.3): the wiki's publication check matched a claim's test name literally, so a test whose title is filled in by `describe.each` (`maintenance leases on $name`, run as `… on sqlite`) never counted as run, and 4.5.2's `docs-publish` refused `bridge-restore-refused-while-serving` as "not executed".
+
+### Changes
+
+- **A second tag signer** (4.5.3): `.github/allowed_signers` names LostInBrittany's SSH key next to wanoo's, so either co-maintainer can sign a release tag (`ship tag --sign`).
+
+- **A release takes minutes after its tag, the candidate being its only test pass** (4.5.3, #291): `release.yml` starts on the push of a `v*` tag, no longer after the tag's own `ci` run, and runs no test again (no `release-check`, no mutation matrix, no python, ffmpeg or browser setup): it checks the tag, that its commit is on main's first-parent line and that main's `ci` succeeded on that very SHA (`tools/release/main-ci.mjs`), the previous stable tag, the candidate the tag names, then publishes the candidate's files. A tag runs no `ci` any more, and no release run is left skipped in the Actions list.
+- **The Remix catalogues are proved by the candidate** (4.5.3, #291): a new `remix-proof` job of `candidate.yml` proves both catalogues, its two reports enter the candidate's manifest (`remix/remix-demo.json`, `remix/remix-reference.json`) and the release copies them under the same names as before. A candidate made before this change has none, and the release refuses it: start a new candidate.
+- **`ship tag` always waits for main's `ci`** (4.5.3, #291): `--now` is refused, and `ship watch` waits for the release run alone. The documentation's publication runs from the tag's ref (`docs-publish` in release mode wants `refs/tags/v<version>`), and npm's provenance now names the tag and its commit instead of main's head.
+
+- **A translation pair checked by an AI no longer stops a documentation publication** (4.5.3, D56): `npm run wiki -- check --publish` lists the pairs read by their AI author only, not by a person, among its gaps and passes; the page's header still says who read it. A pair "to review" (one side changed since its record) still fails it, and a published claim still needs a person's review of its scope.
+
+- **wanoo is an owner of the npm names** (4.5.3): `ship preflight-stable` and the nightly `npm-names` job count a name published by `wanoo` as the project's, next to `lostinbrittany`, now that Erwan owns the `quest-n-click` npm organisation.
+
+- **No more empty candidate runs on pull requests** (4.5.3): the `candidate` workflow starts on a pull request only when the `full-ci` label is added, on the head at that moment, instead of on every push to every pull request (where all its jobs skipped unless the label was there). Remove and add the label again to rerun it.
+
 ## 4.5.2 — 2026-10-24
 
 LOG #295–#299: "Org", a patch on 4.5.1 and the first release staged on npm. The repository moved to the Quest-n-Click

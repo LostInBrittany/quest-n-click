@@ -28,8 +28,8 @@ aussi sous leurs anciens noms, et les anciennes commandes et les anciens imports
 `web-scumm/content`) marchaient encore, après une ligne d'avertissement. La 4.3.0 les retire :
 `npx quest-n-click migrate` renomme ce qu'un jeu dit encore ([Venir de web-scumm](install.from-web-scumm.md)).
 
-Aucun n'est encore sur npm : chaque release les joint sous forme d'archives
-([Installer depuis npm, une fois publié](install.from-npm.md)).
+Les cinq sont sur npm depuis la 4.5.2, et chaque release les joint aussi sous forme d'archives
+([Installer depuis npm](install.from-npm.md)).
 
 <a name="quest-n-click"></a>
 
@@ -159,7 +159,7 @@ Elles tournent avec le projet comme dossier de travail
 
 Chaque release joint les cinq archives avec leurs SBOM et leurs sommes. Les publier sur npm revient aux mainteneurs
 (l'organisation `quest-n-click` possède les cinq noms à scope ; à partir de la 4.5.2 la CI les met en scène, un
-propriétaire approuve avec sa 2FA) :
+propriétaire approuve avec sa 2FA, et la 4.5.2 a été la première publiée) :
 [Paquets npm](contribute.npm-packages.md).
 
 <a name="related"></a>

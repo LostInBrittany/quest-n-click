@@ -1,8 +1,8 @@
 # Installer depuis l'archive de la release
 
-Le moteur n'est pas encore sur npm ([Installer depuis npm, une fois publié](install.from-npm.md)). Chaque release
-GitHub le joint sous forme d'archive, `quest-n-click-<version>.tgz`, et c'est avec cette archive qu'on crée et qu'on
-fait tourner un jeu aujourd'hui.
+Le moteur est sur npm depuis la 4.5.2 ([Installer depuis npm](install.from-npm.md)). Chaque release
+GitHub le joint aussi sous forme d'archive, `quest-n-click-<version>.tgz`, et cette archive crée et fait tourner un jeu
+de la même façon, sans le registre.
 
 <a name="what-you-get"></a>
 

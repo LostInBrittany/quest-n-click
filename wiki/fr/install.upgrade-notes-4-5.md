@@ -1,7 +1,8 @@
 # Notes de mise à jour : 4.5
 
-Ce que la 4.5.0 « Wiki », la 4.5.1 et la 4.5.2 ont changé. Rien à changer jusqu'à la 4.5.1 (la doc a déménagé) ;
-en 4.5.2, `npx quest-n-click migrate` passe les imports aux paquets à scope.
+Ce que la 4.5.0 « Wiki », la 4.5.1, la 4.5.2 et la 4.5.3 ont changé. Rien à changer jusqu'à la 4.5.1 (la doc a
+déménagé) ; en 4.5.2, `npx quest-n-click migrate` passe les imports aux paquets à scope ; la 4.5.3 change la façon de
+faire une release, pas un jeu.
 
 La mise à jour elle-même est [Mettre à jour](install.upgrade.md).
 
@@ -116,3 +117,40 @@ construit, se joue et se sauvegarde comme en 4.5.1. Ce qu'un projet créé chang
   `npm view @quest-n-click/engine version` ne répond pas 4.5.2, installez depuis l'archive
   ([Installer depuis npm, une fois publié](install.from-npm.md)). Les noms sans scope deviennent des pointeurs
   dépréciés vers les noms à scope.
+
+<a name="from-4-5-2-to-4-5-3"></a>
+<!-- applies: 4.5.3.. -->
+
+## De la 4.5.2 à la 4.5.3 « One pass »
+
+Rien à changer dans un jeu : il se construit, se joue et se sauvegarde comme en 4.5.2 (aucun champ de contenu, aucune
+sauvegarde, aucun schéma ni aucune empreinte de jeu ne bouge). Le moteur s'installe depuis npm,
+`npm install @quest-n-click/engine@4.5.3` dans un projet créé une fois qu'un propriétaire l'a approuvé, ou depuis
+`releases/download/v4.5.3/…` ([Installer depuis npm](install.from-npm.md)). Ce qui change, c'est la façon de faire une
+release, pour les mainteneurs ([Publier une release](contribute.releasing.md#the-chain)) :
+
+- **Le candidat est la seule passe de tests de la release** (D55). L'ordre reste le même : un candidat lancé à la main
+  sur le commit de main, puis un tag signé qui le nomme. Le push du tag lance `release.yml`, et non plus le run `ci`
+  du tag lui-même (un tag ne lance plus de `ci`). Il vérifie que le commit du tag est sur la ligne des premiers parents
+  de main et que le `ci` de main y a réussi, que le tag stable précédent est un ancêtre et que le candidat est un run
+  vert lancé à la main sur main, puis publie les fichiers de ce candidat sans rien retester : des minutes, plus des
+  heures.
+- **`ship tag` attend toujours le `ci` de main** : `--now` est refusé, et `ship watch` n'attend plus que le run de
+  release.
+- **Un candidat fait avant la 4.5.3 ne peut pas être publié** : les preuves des catalogues Remix sont maintenant faites
+  par le candidat (son job `remix-proof`) et un candidat qui ne les a pas est refusé. Lancez-en un nouveau sur le
+  commit à taguer.
+- **L'environnement `docs-publish` demande une règle de tag `v*`**, une fois : Settings → Environments → docs-publish →
+  Deployment branches and tags, à côté de `main` et `docs/*`. Le job de documentation tourne maintenant sur la ref du
+  tag ; sans la règle, il est refusé, la release elle-même étant publiée (`mode=promote` depuis main rattrape la
+  documentation) ([Publier une release](contribute.releasing.md#maintainer-settings)).
+- **La provenance npm nomme le tag et son commit**, et non plus la tête de main comme pour la 4.5.2.
+- **L'un ou l'autre co-mainteneur signe un tag** : `.github/allowed_signers` nomme la clé de LostInBrittany à côté de
+  celle de wanoo, et `ship preflight-stable` compte un nom publié par `lostinbrittany` ou `wanoo` comme celui du
+  projet.
+- **Une paire de traduction vérifiée par son auteur IA n'arrête plus une publication** (D56) :
+  `npm run wiki -- check --publish` range ces paires parmi ses lacunes, une paire « à relire » le fait toujours
+  échouer, et une affirmation publiée demande toujours la relecture d'une personne. L'en-tête d'une page dit toujours
+  qui l'a lue ([Écrire la documentation](contribute.writing-docs.md#reviews)).
+- **Le candidat d'une pull request** ne démarre que quand on ajoute le label `full-ci` ; retirez le label et
+  remettez-le pour le relancer.

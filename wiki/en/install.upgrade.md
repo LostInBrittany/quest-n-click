@@ -69,8 +69,8 @@ In the created project's folder, on your machine.
    ```
 
 <!-- step: install-new-engine -->
-2. Install the new engine. Today, from the release archive (the engine is not on npm:
-   [Install from npm, once published](install.from-npm.md)):
+2. Install the new engine, from npm from 4.5.2 (`npm install @quest-n-click/engine@<version>`,
+   [Install from npm](install.from-npm.md)) or from the release archive:
 
    ```bash
    # in the created project

@@ -1,7 +1,7 @@
 # Install from the release archive
 
-The engine is not on npm yet ([Install from npm, once published](install.from-npm.md)). Each GitHub release attaches
-it as an archive, `quest-n-click-<version>.tgz`, and that archive is how you create and run a game today.
+The engine is on npm from 4.5.2 ([Install from npm](install.from-npm.md)). Each GitHub release also attaches it as an
+archive, `quest-n-click-<version>.tgz`, and that archive creates and runs a game the same way, without the registry.
 
 <a name="what-you-get"></a>
 

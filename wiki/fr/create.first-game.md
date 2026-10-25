@@ -80,9 +80,8 @@ npm run assets      # les images provisoires dans public/assets
 npm run dev         # http://127.0.0.1:5173/ : un jardin, un seau, un portail
 ```
 
-Une fois les paquets publiés sur npm, `npm init @quest-n-click my-game "My Game"` fera les trois premières lignes
-([installer depuis npm, une fois publié](install.from-npm.md)) ; d'ici là, cette commande échoue, car rien de ce nom
-n'est sur le registre.
+Les paquets sont sur npm depuis la 4.5.2 : `npm init @quest-n-click my-game "My Game"` crée le même projet depuis le
+registre, sans URL d'archive ([installer depuis npm](install.from-npm.md)).
 
 Ou, dans le dépôt du moteur, le même modèle devient `games/lamp`, choisi comme jeu courant (`.cache/game`) :
 

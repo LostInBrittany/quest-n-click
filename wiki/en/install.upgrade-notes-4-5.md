@@ -1,7 +1,8 @@
 # Upgrade notes: 4.5
 
-What 4.5.0 "Wiki", 4.5.1 and 4.5.2 changed. Nothing to change in a game up to 4.5.1 (the documentation moved); from
-4.5.2, `npx quest-n-click migrate` moves its imports to the scoped package names.
+What 4.5.0 "Wiki", 4.5.1, 4.5.2 and 4.5.3 changed. Nothing to change in a game up to 4.5.1 (the documentation moved);
+from 4.5.2, `npx quest-n-click migrate` moves its imports to the scoped package names; 4.5.3 changes how a release is
+made, not a game.
 
 The upgrade itself is [Upgrade](install.upgrade.md).
 
@@ -111,3 +112,34 @@ project changes:
   the organisation approves them with 2FA, not before. Until `npm view @quest-n-click/engine version` answers 4.5.2,
   install from the archive ([Install from npm, once published](install.from-npm.md)). The unscoped names become
   deprecated pointers to the scoped ones.
+
+<a name="from-4-5-2-to-4-5-3"></a>
+<!-- applies: 4.5.3.. -->
+
+## From 4.5.2 to 4.5.3 "One pass"
+
+Nothing to change in a game: it builds, plays and saves as on 4.5.2 (no content field, save, schema or game
+fingerprint moves). The engine installs from npm, `npm install @quest-n-click/engine@4.5.3` in a created project once
+an owner has approved it, or from `releases/download/v4.5.3/…` ([Install from npm](install.from-npm.md)). What changes
+is how a release is made, for the maintainers ([Releasing](contribute.releasing.md#the-chain)):
+
+- **The candidate is the release's only test pass** (D55). The order stays: a candidate started by hand on main's
+  commit, then a signed tag that names it. The tag's push starts `release.yml`, no longer the tag's own `ci` run (a tag
+  runs no `ci` any more). It checks that the tag's commit is on main's first-parent line and that main's `ci` succeeded
+  on it, that the previous stable tag is an ancestor and that the candidate is a green run started by hand on main,
+  then publishes that candidate's files without testing anything again: minutes, not hours.
+- **`ship tag` always waits for main's `ci`**: `--now` is refused, and `ship watch` waits for the release run alone.
+- **A candidate made before 4.5.3 cannot be released**: the Remix catalogues' proofs are now made by the candidate (its
+  `remix-proof` job) and a candidate without them is refused. Start a new one on the commit to tag.
+- **The `docs-publish` environment needs a `v*` tag rule**, once: Settings → Environments → docs-publish → Deployment
+  branches and tags, beside `main` and `docs/*`. The documentation job now runs on the tag's ref; without the rule it
+  is refused, the release itself being published (`mode=promote` from main recovers the documentation)
+  ([Releasing](contribute.releasing.md#maintainer-settings)).
+- **npm's provenance names the tag and its commit**, no longer main's head as for 4.5.2.
+- **Either co-maintainer signs a tag**: `.github/allowed_signers` names LostInBrittany's key beside wanoo's, and
+  `ship preflight-stable` counts a name published by `lostinbrittany` or `wanoo` as the project's.
+- **A translation pair checked by its AI author no longer stops a publication** (D56): `npm run wiki -- check
+  --publish` lists such pairs among its gaps, a pair "to review" still fails it, and a published claim still needs a
+  person's review. A page's header still says who read it ([Writing documentation](contribute.writing-docs.md#reviews)).
+- **A pull request's candidate** starts only when the `full-ci` label is added; remove the label and add it again to
+  run it once more.

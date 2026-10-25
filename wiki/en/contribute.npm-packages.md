@@ -67,17 +67,14 @@ node scripts/pack.mjs --out=.cache/pack --publish-dry-run   # and what `npm publ
 
 ## Publishing to npm: staged by CI, approved by an owner
 
-Every release attaches the five archives. **None is published on the npm registry yet** (4.5.1 is the last release
-without the step). From 4.5.2, release.yml's `npm-stage` job **stages** them on npm once the release is published and
-read back, and an owner of the organisation **approves** each one with 2FA (D34, D53). CI never publishes and holds no
-npm token. Until the first approval, install from the release archive
-([Install from the release archive](install.from-archive.md)). The `next` channel from `main` follows in a later pull
-request of #283.
+Every release attaches the five archives. From 4.5.2, release.yml's `npm-stage` job **stages** them on npm once the
+release is published and read back, and an owner of the organisation **approves** each one with 2FA (D34, D53). CI
+never publishes and holds no npm token. 4.5.2 was the first release published there, on 24 October 2026 (4.5.1 is the
+last release without the step). The `next` channel from `main` follows in a later pull request of #283.
 
 > [!LIMIT id=not-on-npm]
-> Until an owner approves the packages 4.5.2 stages, `npm install @quest-n-click/engine` from the registry does not
-> install this project: the scoped names hold a reservation version only (`0.0.0-bootstrap.0`), not the product. Use
-> the release's `.tgz` files.
+> A release is on npm only once an owner approves what it stages: between its tag and that approval,
+> `npm install @quest-n-click/engine` installs the previous one. A pre-release is never on npm; use its `.tgz` files.
 
 <a name="npm-names"></a>
 
