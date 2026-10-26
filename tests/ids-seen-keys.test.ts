@@ -108,10 +108,11 @@ function gameDir(files: Record<string, string> = { 'rooms/a.ts': ROOM_A, 'rooms/
   return dir;
 }
 
-const codeOf = (plan: ReturnType<typeof planIds>, f: string) =>
-  plan.results.find((x) => x.file.endsWith(f))?.r.code ?? '';
+/** A result's file, written with `/` (the plan joins paths with the platform's separator: `\` on Windows). */
+const at = (file: string, f: string) => file.endsWith(join(...f.split('/')));
+const codeOf = (plan: ReturnType<typeof planIds>, f: string) => plan.results.find((x) => at(x.file, f))?.r.code ?? '';
 const seenOf = (plan: ReturnType<typeof planIds>, f: string) =>
-  (plan.results.find((x) => x.file.endsWith(f))?.seen ?? []).map((s) => `${s.from} → ${s.to}`);
+  (plan.results.find((x) => at(x.file, f))?.seen ?? []).map((s) => `${s.from} → ${s.to}`);
 
 describe('npm run ids rewrites the positional seen keys (#359)', () => {
   it('lists, in the dry run, each condition key the migration renames, the topic that already had an id included', () => {
@@ -126,7 +127,7 @@ describe('npm run ids rewrites the positional seen keys (#359)', () => {
       `event.a.0 → ${knock}`,
       `choice.a.Shake it → ${shake}`,
     ]);
-    expect(plan.results.find((x) => x.file.endsWith('rooms/b.ts'))!.seen.map((s) => s.line)).toEqual([8, 9, 10, 10]);
+    expect(plan.results.find((x) => at(x.file, 'rooms/b.ts'))!.seen.map((s) => s.line)).toEqual([8, 9, 10, 10]);
   });
 
   it("rewrites the condition keys with the file's quotes, and leaves texts, flags and unknown keys alone", () => {
