@@ -20,10 +20,11 @@ describe('the plan of a change', () => {
     ['a root markdown file', ['CHANGELOG.md', 'CONTRIBUTING.md'], []],
     ['another workflow', ['.github/workflows/nightly.yml'], []],
     ["the documentation's publication workflow", ['.github/workflows/docs-publish.yml'], []],
+    // The wiki's own tools read pages and paths a Windows checkout gives them differently (4.5.6, #367).
     [
       "the documentation's publication tools",
       ['tools/wiki/archive.ts', 'tools/wiki/pages.ts', 'tools/wiki/publication.ts', 'tools/wiki/transition.ts'],
-      [],
+      gates('windows'),
     ],
     ['the Bridge', ['bridge/src/store.ts'], gates('coverage', 'reality', 'freshInstall', 'node24', 'windows')],
     ['the signals game', ['games/signals/index.ts'], gates('coverage', 'reality', 'node24', 'windows')],
@@ -74,8 +75,10 @@ describe('the plan of a change', () => {
     [
       'the wiki tools',
       ['tools/wiki.ts', 'tools/wiki/check.ts', 'tools/wiki/claims.ts', 'tools/wiki/translations.ts'],
-      [],
+      gates('windows'),
     ],
+    // Their tests too: #363's tests/wiki-pending.test.ts failed on Windows only, first seen on a release PR (#367).
+    ['a wiki test', ['tests/wiki-pending.test.ts', 'tests/wiki-line-endings.test.ts'], gates('windows')],
     [
       'the docs the Studio and the MCP server read',
       ['tools/wiki/docs-load.ts'],

@@ -146,7 +146,8 @@ l'union de ce que demandent ses fichiers :
 | `games/reference/`, `games/heroes/` | `coverage`, `reference`, `node24` |
 | `games/_template/`, `cli/`, `scripts/{pack,fresh-install,external-consumer,new-game}.mjs` | `coverage`, `secondGame`, `freshInstall`, `upgrade`, `node24`, `windows` |
 | `studio-server/` | les barrières de création et `studioHosted` |
-| `tools/wiki.ts` et `tools/wiki/` (sauf `docs`, `docs-load`, `glossary`, `manifest`, `page` et `site`, que le Studio et le serveur MCP lisent), `tools/release/`, les outils du dépôt (`tools/mutate.ts`, `tools/changes.ts`, `tools/quality-baseline.ts`…, `scripts/release-notes.mjs`) | le palier rapide seulement (4.5.4) |
+| `tools/wiki.ts` et `tools/wiki/` (sauf `docs`, `docs-load`, `glossary`, `manifest`, `page` et `site`, que le Studio et le serveur MCP lisent), et les tests du wiki `tests/wiki-*.test.ts` | `windows` (4.5.6, #367 : ils lisent des pages, des chemins et des fins de ligne qu'une copie Windows donne autrement ; les tests de #363 n'échouaient que là, vus d'abord sur une pull request de release) |
+| `tools/release/`, les outils du dépôt (`tools/mutate.ts`, `tools/changes.ts`, `tools/quality-baseline.ts`…, `scripts/release-notes.mjs`) | le palier rapide seulement (4.5.4) |
 | `scripts/ci-playwright-deps.sh` (les paquets système de Playwright sur le runner, 4.5.5, #353) | `studioHosted` |
 | `tools/studio/diff-rooms.ts` (les lieux que dessine le diff sémantique, dont se servent les captures du Studio hébergé) | les barrières de création et `studioHosted` (4.5.5, #349 : la règle ci-dessous le prenait d'abord jusque-là) |
 | les autres `tools/` et `scripts/` | les barrières de création (`coverage`, `node24`, `windows`, `secondGame`, `freshInstall`, `upgrade`, `reference`) |

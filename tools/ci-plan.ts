@@ -184,11 +184,13 @@ export const RULES: readonly Rule[] = [
   },
 
   // The wiki's own tools (4.5.0; 4.5.4, #302): the check, the claims, the translations, the publication, the archive.
-  // No game is built through them and the package does not run them: the unit suite checks them. The modules the Studio
-  // and the MCP server read the docs through (`read_doc`, the search) are product: they fall to the authoring rule.
+  // No game is built through them and the package does not run them: the unit suite checks them, on Windows too
+  // (4.5.6, #367): they read pages, paths and line ends a Windows checkout gives them differently, and #363's tests
+  // failed there only, first seen on a release PR. The modules the Studio and the MCP server read the docs through
+  // (`read_doc`, the search) are product: they fall to the authoring rule.
   {
     re: /^tools\/wiki(\.ts$|\/(?!(docs|docs-load|glossary|manifest|page|site)\.ts$))/,
-    gates: [],
+    gates: ['windows'],
     why: "the wiki's own tools",
   },
   // Tools that ship nothing and build nothing: the unit suite checks them; Windows and Node 24 on `main` (4.5.4, #302).
@@ -216,6 +218,7 @@ export const RULES: readonly Rule[] = [
     gates: ['studioHosted'],
     why: 'the hosted Studio against Postgres and S3 (4.2.1)',
   },
+  { re: /^tests\/wiki-[^/]+\.test\.ts$/, gates: ['windows'], why: "the wiki tools' tests (on Windows too, #367)" },
   { re: /^tests\//, gates: [], why: 'the unit tests' },
 ];
 
