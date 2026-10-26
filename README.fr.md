@@ -177,7 +177,7 @@ d'où vient le projet dans la [Feuille de route](https://github.com/Quest-n-Clic
 le serveur MCP (`search_docs`, `read_doc`) ; les anciennes pages de `docs/`
 sont des pages de transition, chaque section reliée à sa nouvelle place et à son texte de la 4.4.0.
 
-Release actuelle : [v4.5.5 (Reworked CI)](https://github.com/Quest-n-Click/quest-n-click/releases/tag/v4.5.5) : TODO(release)
+Release actuelle : [v4.5.5 (Reworked CI)](https://github.com/Quest-n-Click/quest-n-click/releases/tag/v4.5.5) : une release dont la CI ne tourne qu'une fois (`prepare` s'arrête tant que la prose et les relectures ne sont pas faites, puis préchauffe le cache de mutation du candidat), une commande de release testée de bout en bout, plus de conflits sur les enregistrements du wiki ni de tests instables, et `validate` qui refuse une clé `seen` que rien n'enregistre (Horacio).
 Sur la 4.5.4 « Simple release » : une release en trois actions humaines (la pull request de release en une commande, son merge qui lance le candidat, `npm run release -- 4.5.4`), des pull requests qui attendent moins, et les outils d'un projet créé depuis npm qui trouvent son `game/` (Horacio).
 Sur la 4.5.3 « One pass » : le
 candidat est la seule passe de tests de la release, si bien qu'une release prend quelques minutes après son tag signé ;

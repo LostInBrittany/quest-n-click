@@ -8705,15 +8705,32 @@ exact bullet, a fenced block, double-backtick spans, a real marker beside a quot
 
 → next: 4.5.5's release, whose `prepare` stops only on markers it wrote.
 
-## #340 · 2026-10-26 · Claude · release · 4.5.5 "Reworked CI": TODO(release)
+## #340 · 2026-10-26 · Claude · release · 4.5.5 "Reworked CI": a release whose CI runs once
 
-- **The request**: TODO(release)
-- **What ships**: TODO(release)
-- **Fragments**: TODO(release)
-- **Upgrade notes**: TODO(release)
-- **Reviews**: TODO(release)
-- **Fixtures**: TODO(release)
-- **Passes**: TODO(release)
-- **Signature**: TODO(release)
+- **The request**: 4.5.4's release took the maintainer's Sunday (« I have lost my Sunday for this! »): the release
+  pull request's CI ran twice, the candidate took over an hour, the release command named the wrong commit, main's
+  CI was cancelled under the tag, `docs-publish` failed on a claim merged before the release, a relaunch verified the
+  release again. Horacio asked that each of these be fixed, one issue and one pull request each, before 4.5.5.
+- **What ships**: the release path, #326 and #327 (`prepare` stops before the push on the gates and the prose), #328
+  (the release commit on main's first parents), #330 and #332 (the nightly's mutation cache, warmed by `prepare`),
+  #334 (whole bullets in the upgrade notes), #336 (`changes -- --check` reads the headings), #341 (the docs' gates
+  before the tag), #344 (one verify across relaunches), #354 (the release command's end-to-end test, the import cycle
+  it found, the candidate wait), #365 (a quoted marker is not one); CI, #338 and #347 (only a release commit keeps its
+  own run on `main`), #342 and #355 (install retries that can retry, apt never killed), #352 (shards by duration, the
+  CI page), #357 (the flakes by cause); the wiki, #363 (a branch's acks in its own pending file); the engine, #350
+  (#250), #351 (#249), #358 (#248); for the two games, #323 (#318, the read-only storyboard, `quest-n-click page`),
+  #324 (#317, the prompts' dog), #325 (#320, the Telnet stress test on CI only).
+- **Fragments**: assembled by `npm run release -- prepare 4.5.5`, the first release whose `prepare` stopped before
+  the push until its prose and reviews were done.
+- **Upgrade notes**: "From 4.5.4 to 4.5.5" in `install.upgrade-notes-4-5`, both languages: for a game, the `seen`
+  keys `validate` now refuses; for a project, `quest-n-click page`; for maintainers and contributors, the one-run
+  release and the pending acks.
+- **Reviews**: the three claims whose scope only an AI had checked (`groupings-only`, `groupings-unknown-refused`,
+  `bridge-telnet-address-limits`) are reviewed by a person on the release branch, before the push; the pairs this
+  release changes keep an AI author's record (D56).
+- **Fixtures**: golden save demo-4.5.5, reference run, quality baseline, written by `prepare`.
+- **Passes**: sheet 4.5.5, the twenty-two of 4.5.4, none new.
+- **Signature**: the tag is signed with LostInBrittany's SSH key (`npm run release -- 4.5.5`).
 
-→ next: TODO(release)
+→ next: the first live runs of what 4.5.5 only tested (the warm-up, the release commit's protected run, the verify
+skipped on a relaunch, a slow apt mirror), then #359 (`ids --write` rewriting positional `seen` keys).

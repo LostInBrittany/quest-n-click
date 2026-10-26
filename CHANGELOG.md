@@ -2,7 +2,14 @@
 
 ## 4.5.5 — 2026-10-26
 
-LOG #319–#340: "Reworked CI", a patch on 4.5.4. TODO(release): what it changes, for whom, and what a game has to do (Upgrade notes).
+LOG #319–#340: "Reworked CI", a patch on 4.5.4 that fixes what 4.5.4's release ran into and makes a release run its CI
+once: `prepare` stops before the push until the prose and the reviews are done, then warms the mutation cache the
+candidate reads; the release command finds the merged release, checks the docs' gates before the tag and survives a
+relaunch; on `main` only the release commit keeps its own CI run; a branch records its acks in its own file, so two
+pull requests no longer conflict on the wiki's records; the flaky tests are fixed by cause. For a game, `validate`
+now refuses a `seen` key nothing records, which was always false (Upgrade notes); a voiced line that cannot play
+stays on screen; `i18n -- extract` writes a game's own minigames' texts; projects made from npm get
+`npx quest-n-click page`.
 
 ### Fixed
 
