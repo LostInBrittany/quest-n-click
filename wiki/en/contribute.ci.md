@@ -139,7 +139,8 @@ files ask:
 | `games/reference/`, `games/heroes/` | `coverage`, `reference`, `node24` |
 | `games/_template/`, `cli/`, `scripts/{pack,fresh-install,external-consumer,new-game}.mjs` | `coverage`, `secondGame`, `freshInstall`, `upgrade`, `node24`, `windows` |
 | `studio-server/` | the authoring gates and `studioHosted` |
-| `tools/wiki.ts` and `tools/wiki/` (but `docs`, `docs-load`, `glossary`, `manifest`, `page` and `site`, which the Studio and the MCP server read), `tools/release/`, the repository tools (`tools/mutate.ts`, `tools/changes.ts`, `tools/quality-baseline.ts`…, `scripts/release-notes.mjs`) | the fast tier only (4.5.4) |
+| `tools/wiki.ts` and `tools/wiki/` (but `docs`, `docs-load`, `glossary`, `manifest`, `page` and `site`, which the Studio and the MCP server read), and the wiki's tests `tests/wiki-*.test.ts` | `windows` (4.5.6, #367: they read pages, paths and line ends a Windows checkout gives differently; #363's tests failed there only, first seen on a release pull request) |
+| `tools/release/`, the repository tools (`tools/mutate.ts`, `tools/changes.ts`, `tools/quality-baseline.ts`…, `scripts/release-notes.mjs`) | the fast tier only (4.5.4) |
 | `scripts/ci-playwright-deps.sh` (Playwright's system packages on the runner, 4.5.5, #353) | `studioHosted` |
 | `tools/studio/diff-rooms.ts` (the rooms the semantic diff draws, which the hosted Studio's captures use) | the authoring gates and `studioHosted` (4.5.5, #349: the rule below took it first until then) |
 | other `tools/` and `scripts/` | the authoring gates (`coverage`, `node24`, `windows`, `secondGame`, `freshInstall`, `upgrade`, `reference`) |

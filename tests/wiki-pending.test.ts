@@ -77,6 +77,9 @@ function repo() {
   git(root, 'config', 'user.email', 'test@example.org');
   git(root, 'config', 'user.name', 'test');
   git(root, 'config', 'commit.gpgsign', 'false');
+  // What a Windows checkout does with no .gitattributes (this test's repository has none): CRLF in every file git writes.
+  // Here on every system, so the tests read what Windows reads (4.5.6: a CRLF page lost its code fences).
+  git(root, 'config', 'core.autocrlf', 'true');
   const wikiDir = join(root, 'wiki');
   cpSync(BASE, wikiDir, { recursive: true });
   mkdirSync(join(root, 'src/engine/core'), { recursive: true });

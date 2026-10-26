@@ -256,6 +256,8 @@ export interface Fence {
 
 /** A fence's opening or closing line. */
 const FENCE_MARK = /^\s*(`{3,}|~{3,})(.*)$/;
+/** CRLF line ends as LF; only `\r\n`, so a line keeps its number. */
+const lf = (text: string) => text.replace(/\r\n/g, '\n');
 
 /**
  * Whether a line may continue the paragraph of the line before it, so a link label opened on one may close on it
@@ -301,12 +303,14 @@ function linkCrosses(line: string, next: string): boolean {
  * the first one's number, and what it returns replaces all of them.
  */
 export function mapLines(
-  markdown: string,
+  source: string,
   onLine: (line: string, n: number, next: () => string | undefined) => string,
   onFence?: (fence: Fence) => void,
   options: { joinLinks?: boolean } = {},
 ): { text: string; openFence: boolean } {
-  const lines = markdown.split('\n');
+  // CRLF read as LF (#367): `.` never matches `\r`, so a fence written ` ````md\r` would never open, and the links in
+  // it would be checked as real ones (a Windows editor, or a copy of the wiki without the repository's .gitattributes).
+  const lines = lf(source).split('\n');
   let fence: { char: string; length: number; lang: string; line: number; body: string[] } | undefined;
   const close = (endLine: number) => {
     if (fence) onFence?.({ lang: fence.lang, line: fence.line, endLine, content: fence.body.join('\n') });
@@ -393,7 +397,9 @@ export interface ParsedPage {
 }
 
 /** Reads a page of `wiki/<lang>/` (a template is read as an English or French page too). */
-export function parsePage(markdown: string, lang: string): ParsedPage {
+export function parsePage(source: string, lang: string): ParsedPage {
+  // A CRLF page reads as the same page (#367): every line rule below ends at `$`, which `\r` would hide.
+  const markdown = lf(source);
   const page: ParsedPage = {
     sections: [],
     sectionVersions: {},
