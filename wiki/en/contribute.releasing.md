@@ -169,6 +169,9 @@ gh workflow run candidate.yml --repo Quest-n-Click/quest-n-click --ref main -f s
 npm run release -- 4.5.5 --commit=<sha>
 ```
 
+The command finds a candidate by its run's commit, and a run started by hand on `main` records main's head at that
+moment, whatever `sha` says: start it while `<sha>` is main's head (or name main's head as `<sha>`).
+
 It is refused, with what to do, when it is not a SHA the checkout knows, not on main's first-parent line, not at the
 version in `package.json`, not the release merge or a commit after it, or when the tag is already out on another
 commit. The command says which commit it uses and, when it is not the release merge, that it is not; each stop's

@@ -3,8 +3,8 @@
   "version": 1,
   "pairs": {
     "contribute.releasing#release-command": {
-      "enHash": "d74a17a5a15888621a29c9066d97daaa8a82c0ca166e0121f692554a1d4d67a3",
-      "frHash": "cc65a58cbd59b3c98894e4ce74f3a59cebb9326bebcbd3a539192131c8529fab",
+      "enHash": "f3da37de0c168368f09cc1d786cce0b75b3ef8fc0d154bc537215315a6584d79",
+      "frHash": "52be61ba8d34bba7b1771570b12660f9886d505f499aebddfae4f3202406f974",
       "reviewers": [
         { "name": "claude-opus-5-5", "kind": "ai", "relation": "author", "date": "2026-10-26" }
       ]

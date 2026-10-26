@@ -186,6 +186,10 @@ gh workflow run candidate.yml --repo Quest-n-Click/quest-n-click --ref main -f s
 npm run release -- 4.5.5 --commit=<sha>
 ```
 
+La commande trouve un candidat par le commit de son exécution, et une exécution lancée à la main sur `main` enregistre
+la tête de main à cet instant, quoi que dise `sha` : lancez-la pendant que `<sha>` est la tête de main (ou prenez la
+tête de main comme `<sha>`).
+
 Il est refusé, avec ce qu'il faut faire, quand ce n'est pas un SHA que le checkout connaît, quand il n'est pas sur la
 lignée des premiers parents de main, quand `package.json` n'y est pas à la version, quand ce n'est ni le merge de
 release ni un commit postérieur, ou quand le tag est déjà sorti sur un autre commit. La commande dit quel commit elle
