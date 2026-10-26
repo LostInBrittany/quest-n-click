@@ -526,6 +526,8 @@ describe('the bundle', () => {
     expect(bundleOutProblem('.', tracked)).toMatch(/repository itself/);
   });
 
+  // The bundle of the whole wiki, which grows with it: the repository-wide wiki suites' limit (4.3 s on CI; 4.5.5,
+  // #356).
   it("of the repository's own wiki: its ready pages, its index, the eight legacy pages within their bound", () => {
     const out = tmp('bundle-repo-');
     const m = writeBundle({ ...bundleOpts(out, join(ROOT, 'wiki')), docRevision: 'HEAD' });
@@ -552,7 +554,7 @@ describe('the bundle', () => {
       };
       expect(headings(text), name).toEqual(headings(legacyDoc(ROOT, name)));
     }
-  });
+  }, 300_000);
 });
 
 describe('a wiki copy with a page past its version', () => {

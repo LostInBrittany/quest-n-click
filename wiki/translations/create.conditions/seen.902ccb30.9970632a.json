@@ -1,0 +1,7 @@
+{
+  "enHash": "902ccb309bdcf0637bdcfd90e09b440046ed3111dffe510ea6f31bb48e9ba2f4",
+  "frHash": "9970632a828eee087aa244a0ea786e9b1898d60f9ac597a3cabd7e8b42b7744e",
+  "reviewers": [
+    { "name": "claude-248-seen-topic-id", "kind": "ai", "relation": "author", "date": "2026-10-25" }
+  ]
+}

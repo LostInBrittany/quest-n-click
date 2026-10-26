@@ -10,6 +10,8 @@ import { playerChecks } from './validate/player';
 import { remixChecks } from './validate/remix';
 import { speedrunChecks } from './validate/speedrun';
 import { textSwitchChecks } from './validate/text-switches';
+import { seenTracker } from './validate/seen';
+import { checkpointChecks } from './validate/checkpoints';
 import { type VoiceCheckOptions, voiceValueChecks } from './validate/voices';
 import { listId, listText } from '../core/list-lines';
 import { condFlags } from '../core/cond';
@@ -201,6 +203,7 @@ export function validate(gameIn: GameDef, layouts: Record<string, Layout>, opts:
   };
 
   // ------------------------------------------------------------ conditions
+  const seen = seenTracker(game); // `seen` keys: checked at the end, once every `once` choice is known (#248)
   const cond = (c: Cond | undefined, where: string, room?: RoomDef) => {
     if (c === undefined) return;
     read(c, where);
@@ -222,6 +225,7 @@ export function validate(gameIn: GameDef, layouts: Record<string, Layout>, opts:
       else if ('unlocked' in x) {
         if (!places[x.unlocked]) err(where, `unknown map place: "${x.unlocked}"`);
       } else if ('actorIn' in x) mover(x.actorIn[0], x.actorIn[1], where);
+      else if ('seen' in x) seen.read(x.seen, where);
       else if ('player' in x) {
         if (!playerIds.includes(x.player)) err(where, `"${x.player}" is not a playable character (players.ids)`);
       }
@@ -504,6 +508,7 @@ export function validate(gameIn: GameDef, layouts: Record<string, Layout>, opts:
     if ('cutscene' in c) return;
     if ('choice' in c) {
       if (!c.choice.length) err(where, 'choice with no option');
+      seen.choice(c.choice, room?.id);
       c.choice.forEach((o, j) => {
         const w = `${where}.choice[${j}]`;
         stable(o.id, w, 'choice');
@@ -1040,22 +1045,7 @@ export function validate(gameIn: GameDef, layouts: Record<string, Layout>, opts:
   (game.invariants ?? []).forEach((c, i) => cond(c, `invariants[${i}]`));
   playerChecks(game, { err, warn, locales: opts.locales });
   migrationChecks(game, { items, rooms, places, scriptIds, playerIds, chars, err, warn });
-  // Checkpoints
-  for (const [cid, c] of Object.entries(game.checkpoints ?? {})) {
-    const w = `checkpoints.${cid}`;
-    (c.goals ?? []).forEach((g, i) => cond(g, `${w}.goals[${i}]`, rooms.get(c.room)));
-    if (!rooms.has(c.room)) err(w, `unknown room: "${c.room}"`);
-    for (const i of c.inventory ?? []) if (!items[i]) err(w, `unknown item: "${i}"`);
-    for (const p of c.unlocked ?? []) if (!places[p]) err(w, `unknown map place: "${p}"`);
-    for (const [k, st] of Object.entries(c.props ?? {})) propRef(k, st, w);
-    for (const [ch, rid] of Object.entries(c.where ?? {})) mover(ch, rid, `${w}.where`);
-    if (c.active && !playerIds.includes(c.active)) err(w, `"${c.active}" is not a playable character`);
-    for (const [pid, p] of Object.entries(c.players ?? {})) {
-      if (!playerIds.includes(pid)) err(`${w}.players`, `"${pid}" is not a playable character`);
-      if (!rooms.has(p.room)) err(`${w}.players.${pid}`, `unknown room: "${p.room}"`);
-      for (const i of p.inventory ?? []) if (!items[i]) err(`${w}.players.${pid}`, `unknown item: "${i}"`);
-    }
-  }
+  checkpointChecks(game, { err, cond, rooms, places, playerIds, propRef, mover, seen: seen.read });
   // Events and scripts, objectives, Remix (4.1.15), the speedrun manifest (4.1.14), text switches (4.3.0); then the flags
   for (const [id, where] of scriptRefs) if (!scriptIds.has(id)) err(where, `unknown script: "${id}"`);
   eventChecks(game, { emitted, listened, waited }, err, warn);
@@ -1076,6 +1066,6 @@ export function validate(gameIn: GameDef, layouts: Record<string, Layout>, opts:
       flagsSet.get(n.label) ?? 'flags',
       `flag "${n.label}" is only set by actions that already require it: it can never become true`,
     );
-
+  seen.check(err);
   return { errors, warnings };
 }

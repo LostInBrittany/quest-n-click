@@ -108,7 +108,14 @@ const page = await context.newPage();
 const errors = [];
 let second = null; // the second build, published by the scenarios; removed in the finally
 const cachedNote = [];
+const againNote = []; // WebKit's "access control checks" loads, asked again offline (see the end of the file)
 const MAX_REFUSED = 2; // Firefox cache oddities tolerated per run (see the end of the file)
+// WebKit's message for a load in CORS mode that failed, and the path of this site's file it names.
+const accessChecked = (e) => name === 'webkit' && /due to access control checks/.test(e);
+const accessCheckedPath = (e) => {
+  const host = new URL(url).host.replace(/[.]/g, '\\.');
+  return new RegExp(`${host}(/\\S+?) due to access control checks`).exec(e)?.[1];
+};
 let closing = false; // the checks are over: what the teardown interrupts (a fetch the worker had in hand) is not a finding
 let checked = false; // every check of the scenario passed (set after the last one)
 // What the worker says when it fails an image (#257, `imageLastResort` in vite.config.ts): the page relays each
@@ -380,6 +387,29 @@ try {
       .evaluate(async (x) => ((await caches.match(x)) ? 'in the cache' : 'not in any cache'), u)
       .catch(() => 'cache unreadable');
   }
+  // Each of WebKit's "access control checks" loads, asked again the same way (crossOrigin), still offline: the worker's
+  // answer now (the end of the file says why).
+  // What the browser says of these loads is their outcome, recorded here: not a finding of its own.
+  const reported = errors.length;
+  if (checked)
+    for (const [i, e] of errors.slice(0, reported).entries()) {
+      if (!accessChecked(e)) continue;
+      const u = accessCheckedPath(e);
+      againNote[i] = u
+        ? await page
+            .evaluate(async (x) => {
+              const im = new Image();
+              im.crossOrigin = 'anonymous';
+              im.src = x;
+              return im.decode().then(
+                () => 'drawn when asked again offline',
+                () => 'refused again offline',
+              );
+            }, u)
+            .catch(() => 'not asked again (the page did not answer)')
+        : 'not asked again (no url of this site in the message)';
+    }
+  errors.length = reported;
   closing = true;
   await context.setOffline(false).catch(() => {});
   await browser.close();
@@ -400,6 +430,18 @@ if (swReports.length && process.env.GITHUB_ACTIONS)
   console.log(
     `::warning::pwa ${name}: the worker failed ${swReports.length} image(s): ${[...new Set(swReports.map((r) => r.reason))].join(' | ')}`,
   );
+// WebKit says "<url> due to access control checks" of any load in CORS mode that failed, a load cut short included: here
+// the cat's frames, which the palette swap loads with crossOrigin (src/engine/dom/palette.ts; on a failure it shows the
+// frame unswapped). Seen once on CI (PR #305, 25 October 2026: three frames, after every check of the offline game had
+// passed, and no failure from the worker). Asked again offline the same way: drawn, a load cut short, reported and not
+// counted; refused again, a failure, like anything else the browser reported.
+const recovered = (e, i) => accessChecked(e) && againNote[i] === 'drawn when asked again offline';
+const retried = errors.filter(recovered);
+if (retried.length) {
+  const text = `${retried.length} load(s) refused "due to access control checks", each drawn when asked again offline (a load cut short; reported, not counted)`;
+  console.log(`pwa: ${name}: ${text}:\n${retried.map((w) => `  ${w}`).join('\n')}`);
+  if (process.env.GITHUB_ACTIONS) console.log(`::warning::pwa ${name}: ${text}`);
+}
 const refusedCached = (e, i) =>
   name === 'firefox' && /ServiceWorker intercepted the request/.test(e) && cachedNote[i] === 'in the cache';
 const refused = errors.filter(refusedCached);
@@ -418,6 +460,7 @@ if (stopped) {
 }
 const failures = [...errors.entries()].filter(([i, e]) => {
   if (contextStopped(e)) return false;
+  if (recovered(e, i)) return false;
   if (tolerated && refusedCached(e, i)) return false;
   if (swExcused < swDeliberate500 && swMiss.test(e)) return !++swExcused;
   return true;
@@ -433,6 +476,7 @@ if (refused.length && tolerated) {
 }
 if (failures.length) {
   // A load the worker refused offline: say whether the file was in the cache (the worker's fault) or not (the plan's).
-  console.error(failures.map(([i, e]) => `browser: ${e}${cachedNote[i] ? ` (${cachedNote[i]})` : ''}`).join('\n'));
+  const note = (i) => cachedNote[i] ?? againNote[i];
+  console.error(failures.map(([i, e]) => `browser: ${e}${note(i) ? ` (${note(i)})` : ''}`).join('\n'));
   process.exit(1);
 }

@@ -5,7 +5,7 @@
 // wiki: the content replaced (redirect pages kept), the record written, one commit, and no commit when nothing changed.
 import { execFileSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs';
+import { cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { afterAll, describe, expect, it, vi } from 'vitest';
@@ -226,7 +226,7 @@ const git = (cwd: string, ...args: string[]) =>
   }).trim();
 
 /** A bare repository standing for the wiki, with the Home page the maintainer created (A1) and an old redirect page. */
-function wikiRemote(): string {
+function seededWiki(): string {
   const root = tmp('wiki-remote-');
   const bare = join(root, 'wiki.git');
   execFileSync('git', ['init', '--quiet', '--bare', '--initial-branch=master', bare]);
@@ -242,6 +242,14 @@ function wikiRemote(): string {
   git(seed, 'add', '-A');
   git(seed, 'commit', '--quiet', '-m', 'Home');
   git(seed, 'push', '--quiet', 'origin', 'HEAD:master');
+  return bare;
+}
+// Seeded once, then copied for each test (a copy of the files is the same repository): five git processes fewer a test.
+let seeded: string | undefined;
+function wikiRemote(): string {
+  seeded ??= seededWiki();
+  const bare = join(tmp('wiki-remote-'), 'wiki.git');
+  cpSync(seeded, bare, { recursive: true });
   return bare;
 }
 const archiveOf = (o: Partial<ArchiveOptions> = {}) =>
@@ -261,16 +269,13 @@ const wikiOf = (bytes: Buffer) =>
   new Map(
     [...readArchive(bytes).files].filter(([k]) => k.startsWith('wiki/')).map(([k, v]) => [k.slice('wiki/'.length), v]),
   );
-/** What the bare repository holds at its tip: files and the last commit's subject. */
+/** What the bare repository holds at its tip: files and the last commit's subject, read in it (no clone). */
 function tip(bare: string) {
-  const out = tmp('wiki-tip-');
-  execFileSync('git', ['clone', '--quiet', bare, join(out, 'c')], { stdio: 'ignore' });
-  const c = join(out, 'c');
   return {
-    files: git(c, 'ls-files').split('\n').filter(Boolean).sort(),
-    subject: git(c, 'log', '-1', '--format=%s'),
-    commits: Number(git(c, 'rev-list', '--count', 'HEAD')),
-    read: (f: string) => readFileSync(join(c, f), 'utf8'),
+    files: git(bare, 'ls-tree', '-r', '--name-only', 'HEAD').split('\n').filter(Boolean).sort(),
+    subject: git(bare, 'log', '-1', '--format=%s'),
+    commits: Number(git(bare, 'rev-list', '--count', 'HEAD')),
+    read: (f: string) => execFileSync('git', ['show', `HEAD:${f}`], { cwd: bare, encoding: 'utf8' }),
   };
 }
 const push = (bare: string, bytes: Buffer, p: Promotion, o: { rollbackTo?: string; beforePush?: () => void } = {}) =>
@@ -285,7 +290,10 @@ const push = (bare: string, bytes: Buffer, p: Promotion, o: { rollbackTo?: strin
   });
 const sumOf = (b: Buffer) => createHash('sha256').update(b).digest('hex');
 
-describe('the push to the wiki', () => {
+// Each test pushes to a throwaway repository for real: a clone, a commit and a push by pushWiki, several pushes a test,
+// dozens of git processes (up to 1.4 s alone, over 20 s for the file on Windows, past 5 s in a loaded run; 4.5.5,
+// #356).
+describe('the push to the wiki', { timeout: 30_000 }, () => {
   const r1 = archiveOf();
   const r1sum = sumOf(r1.bytes);
 

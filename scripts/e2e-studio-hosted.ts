@@ -375,23 +375,39 @@ try {
     });
     return w.status;
   });
-  await page.getByRole('button', { name: 'Reload view' }).click({ timeout: 30_000 });
+  const reloadView = page.getByRole('button', { name: 'Reload view' });
+  await reloadView.click({ timeout: 30_000 });
   let shown: unknown;
+  // In Firefox the frame caught as its navigation commits may never answer (#264, seen here on 24 October: four
+  // minutes of silence). Silent for 15 s: once, "Reload view" again (a new document, which answers), said in the log.
+  let silentSince = 0;
+  let again = false;
   for (let i = 0; i < 120; i++) {
     await page.waitForTimeout(250);
     const f = page.frames().find((x) => x.url().startsWith(playUrl) && x.url().includes('edit='));
-    shown = await within(
-      f?.evaluate(
-        () =>
-          (
-            window as unknown as {
-              __game?: { engine: { layouts: Record<string, { entries?: Record<string, number[]> }> } };
-            }
-          ).__game?.engine.layouts.garden?.entries?.default,
-      ),
+    const answer = await within(
+      f
+        ?.evaluate(
+          () =>
+            (
+              window as unknown as {
+                __game?: { engine: { layouts: Record<string, { entries?: Record<string, number[]> }> } };
+              }
+            ).__game?.engine.layouts.garden?.entries?.default,
+        )
+        .then((value) => ({ value })),
       2_000,
-    ).catch(() => undefined);
+    ).catch(() => ({ value: undefined }));
+    shown = answer?.value;
     if (JSON.stringify(shown) === '[123,321]') break;
+    if (!f || answer) silentSince = 0;
+    else if (!silentSince) silentSince = Date.now();
+    else if (!again && Date.now() - silentSince > 15_000) {
+      again = true;
+      silentSince = 0;
+      console.log(`  note: the room editor at ${f.url()} did not answer for 15 s, "Reload view" clicked again`);
+      await reloadView.click({ timeout: 30_000 });
+    }
   }
   check(
     "a layout written meanwhile is what the view shows once its revision's preview is ready",

@@ -71,10 +71,12 @@ of a condition fails, and why ([rule explainer](studio.rule-explainer.md)).
 | A talk topic | `topic.<topic id>` | `<room>.<actor>.<index>` (for example `house.grandma.0`) |
 | A `once` listener | `event.<listener id>` | `event.<room or game>.<index>` |
 | A `once` option of a `choice` | `choice.<option id>` | `choice.<room>.<text>` |
+| A Reality signal applied once | `reality.<signal id>` | the same |
 
-> [!LIMIT id=seen-key-v3]
-> In a schema 3 game, `{ seen: 'house.grandma.0' }` (the positional form older pages showed) is never true: a topic
-> with an id is recorded as `topic.<id>`. The validator does not check `seen` keys, so a wrong one is silently false.
+`npm run validate` refuses a `seen` key that nothing records, so a wrong one is never silently false. When the key is
+the old place of something that now has an id (in a schema 3 game, `{ seen: 'house.grandma.0' }`, the positional form
+older pages showed), the error names the key to write instead (`topic.<id>`). The keys a checkpoint marks as seen are
+checked the same way.
 
 <a name="flags"></a>
 

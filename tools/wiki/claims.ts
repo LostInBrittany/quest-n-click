@@ -130,8 +130,9 @@ export function testNames(source: string): TestName[] {
       const start = i;
       while (i < s.length && /[\w$]/.test(s[i]!)) i++;
       const word = s.slice(start, i);
-      const before = s.slice(0, start).trimEnd().at(-1);
-      if (TEST_FUNCS.has(word) && before !== '.') {
+      // `x.describe(` is a method, not a test: the last significant character, never a comment's (one that ends a
+      // sentence above a describe lost its title, 4.5.5, #356).
+      if (TEST_FUNCS.has(word) && prev !== '.') {
         // Its modifiers, `.skip`, `.only`, `.each(…)`: read past them to the call's parenthesis.
         let j = i;
         let call = -1;

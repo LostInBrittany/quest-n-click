@@ -1,0 +1,7 @@
+{
+  "claimTextHash": "e155a1f3ebfeadceabd3181969d722febfbc6f29507df30cf8b344852cbd4321",
+  "testFileHash": "748a564d1760d21e595cc952ca854ac1b62be5a291f2494ee1a3348a95b0f845",
+  "reviewers": [
+    { "name": "claude-opus-5.5", "kind": "ai", "relation": "author", "date": "2026-10-25" }
+  ]
+}
