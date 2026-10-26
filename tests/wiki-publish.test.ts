@@ -292,13 +292,28 @@ describe('wiki -- check --publish', () => {
     );
   });
 
+  it("reads a doc revision's reviews from its pending file (docs/<v>, 4.5.5, #360): documentation, published", () => {
+    const r = repo();
+    git(r.root, 'switch', '-q', '-c', 'docs/4.5.0');
+    const reader = { name: 'a reader', kind: 'human' as const, relation: 'independent' as const, date: '2026-10-23' };
+    for (const p of translationStates(r.wikiDir, r.manifest, readTranslations(r.wikiDir).translations).pairs)
+      expect(
+        ackTranslation({ wikiDir: r.wikiDir, manifest: r.manifest, key: p.key, reviewer: reader }),
+      ).toBeUndefined();
+    const claim = checkWiki({ wikiDir: r.wikiDir, tracked: trackedFiles(r.root), root: r.root }).claims[0]!;
+    expect(reviewClaim({ wikiDir: r.wikiDir, state: claim, reviewer: reader })).toBeUndefined();
+    commit(r.root, 'the reviews of the doc revision');
+    expect(git(r.root, 'diff', '--name-only', r.product, 'HEAD')).toBe('changes/4.5.0.acks.json');
+    expect(check(r, { productRef: r.product }, [report(r.product)]).errors).toEqual([]);
+  });
+
   it('refuses a doc revision that changes code, does not descend from the product, or is not the checkout', () => {
     const r = repo({ paired: true });
     writeFileSync(join(r.root, TEST), `${readFileSync(join(r.root, TEST), 'utf8')}// more\n`);
     writeFileSync(join(r.root, 'wiki', 'coverage.json'), '{}\n');
     commit(r.root, 'code and a generator input');
     expect(check(r, { productRef: r.product }, [report(r.product)]).errors).toEqual([
-      'the doc revision changes 2 file(s) outside the documentation since the product commit (only wiki/<lang>/*.md, wiki/manifest.json, wiki/translations.json, wiki/reviews.json and images under wiki/images/ may change): tests/sample.test.ts, wiki/coverage.json',
+      'the doc revision changes 2 file(s) outside the documentation since the product commit (only wiki/<lang>/*.md, wiki/manifest.json, wiki/translations.json, wiki/reviews.json, changes/*.acks.json and images under wiki/images/ may change): tests/sample.test.ts, wiki/coverage.json',
       // The test file changed: the person's review of the claim no longer holds either.
       "create.rooms: the claim zones-hold's scope is not reviewed: a person reads it, then npm run wiki -- review-claim zones-hold --by <name> --kind human --relation independent",
     ]);
@@ -372,7 +387,7 @@ describe('wiki -- check --publish', () => {
     commit(r.root, 'moved into the wiki');
     const errors = check(r, { productRef: product }, [report(product)]).errors;
     expect(errors.find((e) => e.startsWith('the doc revision changes'))).toBe(
-      'the doc revision changes 3 file(s) outside the documentation since the product commit (only wiki/<lang>/*.md, wiki/manifest.json, wiki/translations.json, wiki/reviews.json and images under wiki/images/ may change): src/code.ts, src/more.ts, wiki/images/notes.txt',
+      'the doc revision changes 3 file(s) outside the documentation since the product commit (only wiki/<lang>/*.md, wiki/manifest.json, wiki/translations.json, wiki/reviews.json, changes/*.acks.json and images under wiki/images/ may change): src/code.ts, src/more.ts, wiki/images/notes.txt',
     );
   });
 

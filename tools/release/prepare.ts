@@ -14,7 +14,7 @@
 // and `check` fails while one is left. The helpers below are pure and tested against 4.5.3's release commit
 // (tests/release-prepare.test.ts); the commands they run are the ones 4.5.3's release ran by hand, in its order.
 import { execFileSync, spawnSync } from 'node:child_process';
-import { existsSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { releaseNotes } from '../../scripts/release-notes.mjs';
 import { fragmentFiles, lastLogNumber } from '../changes';
@@ -328,6 +328,9 @@ export function resumeRefusals(o: {
   return out;
 }
 
+/** Where the step `wiki acks` keeps the fold's list for the stop before the push (gitignored, beside the ship records). */
+const foldedFile = (version: string) => `.cache/release/${version}.acks-folded.txt`;
+
 /** The subject of the commit `prepare` makes. */
 export const preparedSubject = (version: string) => `${version}: the release (prepared by npm run release -- prepare)`;
 
@@ -351,6 +354,8 @@ export function beforePushStop(o: {
   todos: readonly { at: string; what: string }[];
   gates: { ok: boolean; detail: string };
   pr: boolean;
+  /** The fold's ⚠ lines (step `wiki acks`): the pending acks it could not keep, said again when prepare stops. */
+  folded?: readonly string[];
 }) {
   if (!o.todos.length && o.gates.ok) return undefined;
   const why = [
@@ -374,6 +379,13 @@ export function beforePushStop(o: {
       'The reviews to record:',
       o.gates.detail.replace(/^/gm, '  '),
       'A person reads each one and types its command (prepare never records a review).',
+    );
+  if (o.folded?.length)
+    out.push(
+      '',
+      'The pending acks the fold could not keep (their text changed since they were read):',
+      ...o.folded.map((l) => `  ${l}`),
+      "A person's review among them is read again by a person before its command is typed.",
     );
   out.push(
     '',
@@ -442,6 +454,7 @@ export const PREPARE_STEPS = [
   'branch',
   'version',
   'changelog',
+  'wiki acks',
   'upgrade notes',
   'transition pages',
   'golden save',
@@ -703,6 +716,21 @@ function prepare(version: string, opts: { name: string; date: string; pr: boolea
         log + logReleaseEntry({ n: last, date: opts.date, version, name: opts.name }),
       );
     },
+    // The branches' pending acks into wiki/translations.json and wiki/reviews.json, as the fragments into the CHANGELOG
+    // (#360); what no longer holds its text is printed, and kept for the stop before the push.
+    'wiki acks': () => {
+      const r = capture('npm', ['run', '-s', 'wiki', '--', 'acks', '--fold']);
+      if (r.code !== 0) throw new Error(r.out.trim());
+      for (const line of r.out.trim().split('\n')) say(line);
+      mkdirSync(file('.cache/release'), { recursive: true });
+      writeFileSync(
+        file(foldedFile(version)),
+        r.out
+          .split('\n')
+          .filter((l) => l.startsWith('⚠'))
+          .join('\n'),
+      );
+    },
     'upgrade notes': () => {
       const bullets = changelogBullets(read('CHANGELOG.md'), version);
       for (const lang of ['en', 'fr'] as const) {
@@ -745,7 +773,16 @@ function prepare(version: string, opts: { name: string; date: string; pr: boolea
     'before the push': () => {
       // The same markers and gates `check` (the pull request's CI) fails on: what is left, said in one stop.
       const todos = todoBrief(todoFiles(version).map((path) => ({ path, text: read(path) })));
-      const stop = beforePushStop({ version, name: opts.name, branch, todos, gates: humanGates(capture), pr: opts.pr });
+      const folded = read(foldedFile(version)).split('\n').filter(Boolean);
+      const stop = beforePushStop({
+        version,
+        name: opts.name,
+        branch,
+        todos,
+        gates: humanGates(capture),
+        pr: opts.pr,
+        folded,
+      });
       if (!stop) return;
       console.error(stop);
       process.exit(1);
@@ -760,7 +797,7 @@ function prepare(version: string, opts: { name: string; date: string; pr: boolea
       const body = [
         `## What changes`,
         '',
-        `Release ${version} "${opts.name}", prepared by \`npm run release -- prepare\`: version, CHANGELOG and LOG from the fragments, transition pages, golden save, reference run, passes sheet and passIssues, README, quality baseline.`,
+        `Release ${version} "${opts.name}", prepared by \`npm run release -- prepare\`: version, CHANGELOG and LOG from the fragments, the pending acks folded, transition pages, golden save, reference run, passes sheet and passIssues, README, quality baseline.`,
         '',
         `Its prose is written and its docs' human gates hold: \`prepare\` pushes only then. \`npm run release -- check ${version}\` is this pull request's CI.`,
         '',

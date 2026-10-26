@@ -582,9 +582,16 @@ function checkClaims(o: {
     reviews,
     commit: o.commit,
   });
+  // A record of a claim gone, in the file or a pending one: the release's fold removes it (a branch never writes the file).
   const known = new Set(inputs.map((c) => c.claim.id));
-  for (const id of Object.keys(reviews.claims))
-    if (!known.has(id)) o.report.warnings.push(`reviews.json: ${id} is no claim of the manifest (remove the record)`);
+  const gone = [
+    ...Object.keys(reviews.claims).map((id) => `reviews.json: ${id}`),
+    ...reviews.pending.flatMap((p) => Object.keys(p.claims).map((id) => `${p.file}: ${id}`)),
+  ].filter((l) => !known.has(l.slice(l.indexOf(': ') + 2)));
+  if (gone.length)
+    o.report.gaps.push(
+      `reviews: ${gone.length} record(s) of a claim no longer in the manifest (${gone.slice(0, 3).join(', ')}${gone.length > 3 ? '…' : ''}); the release's fold removes them (npm run wiki -- acks --fold)`,
+    );
   for (const s of o.report.claims) {
     const page = o.manifest.pages.find((p) => p.id === s.page)!;
     if (s.unreferenced) o.report.errors.push(`${s.page}: the claim ${s.id} is not referenced: ${s.unreferenced}`);
@@ -615,7 +622,11 @@ function checkTranslations(wikiDir: string, manifest: Manifest, report: CheckRep
     (publish ? report.errors : report.warnings).push(
       `translations: ${p.key} is to review (${p.why}): read both sides, then npm run wiki -- translations --ack ${p.key} --by <name> --kind human|ai --relation author|independent`,
     );
-  for (const k of stale) report.warnings.push(`translations.json: ${k} names no section of a written page (remove it)`);
+  // A record of a section gone, in the file or a pending one: the release's fold removes it (a branch never writes the file).
+  if (stale.length)
+    report.gaps.push(
+      `translations: ${stale.length} record(s) name no section of a written page (${stale.slice(0, 3).join(', ')}${stale.length > 3 ? '…' : ''}); the release's fold removes them (npm run wiki -- acks --fold)`,
+    );
   // A pair recorded by an AI only is said at both levels as what it is, never as a person's reading, and no longer
   // fails a publication: D56 amends A7, whose per-pair reading by a person was the bootstrap's and does not scale. A
   // pair to review still fails one (above); a published claim still needs a person's review (checkClaims).

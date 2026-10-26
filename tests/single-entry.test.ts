@@ -87,7 +87,7 @@ const WRITERS: Record<string, string> = {
   'tools/wiki/bundle.ts':
     "elsewhere: the documentation bundle, in the folder named by --out (a package's docs-bundle/, never under a folder the repository tracks)",
   'tools/wiki/claims.ts':
-    "elsewhere: wiki/reviews.json, the claims' scope reviews `wiki -- review-claim` records (of the folder --wiki names)",
+    "elsewhere: wiki/reviews.json, the claims' scope reviews `wiki -- review-claim` records on main, master or a release branch, and the release's fold (of the folder --wiki names)",
   'tools/wiki/coverage.ts':
     "elsewhere: the coverage matrix and what it generates, wiki/coverage.json, wiki/legacy.json and the manifest's replaces in wiki/manifest.json (of the folder --wiki names)",
   'tools/wiki.ts': 'elsewhere: the documentation archive, the file named by `wiki -- archive --out`',
@@ -97,12 +97,14 @@ const WRITERS: Record<string, string> = {
     "elsewhere: the generated reference pages' region in wiki/en|fr/<page>.md and their identifiers in wiki/manifest.json (`wiki -- generate`, of the folder --wiki names)",
   'tools/wiki/pages.ts':
     "elsewhere: the site's /docs/, into the empty folder named by `wiki -- pages --out` (the organization's site builds it)",
+  'tools/wiki/pending.ts':
+    "elsewhere: changes/<slug>.acks.json, an open branch's pending pair acks and claim reviews (`wiki -- translations --ack`, `review-claim`), deleted by the release's fold (`wiki -- acks --fold`)",
   'tools/wiki/publication.ts':
     "elsewhere: a clone of the wiki's repository in a temporary folder (its pages and publication.json, pushed), and the deploy key (0600) beside it",
   'tools/wiki/transition.ts':
     'elsewhere: the transition pages docs/en|fr/*.md (C2), under the root `wiki -- transition --root` names',
   'tools/wiki/translations.ts':
-    'elsewhere: wiki/translations.json, the pairs `wiki -- translations --ack` records (of the folder --wiki names)',
+    "elsewhere: wiki/translations.json, the pairs `wiki -- translations --ack` records on main, master or a release branch, and the release's fold (of the folder --wiki names)",
   'tools/field/bundle.ts': 'elsewhere: field bundles',
   'tools/field/field.ts': 'elsewhere: field reports',
   'tools/field/surfaces.mjs': 'elsewhere: qualification surfaces',

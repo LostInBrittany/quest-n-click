@@ -66,7 +66,8 @@ organisation's repository when no fork is a remote, a branch, never `main`) or a
 branch `release/<version>`, it runs what a release branch did by hand, in this order: the version
 (`npm version --no-git-tag-version`), the CHANGELOG section and the LOG entries from the fragments
 (`npm run changes -- --assemble`, which makes its own `## Unreleased` and folds a `.log.md` alone), the LOG's release
-entry, the upgrade notes' section (en and fr), the transition pages, the golden save (listed in
+entry, the branches' pending acks folded into `wiki/translations.json` and `wiki/reviews.json` (`npm run wiki -- acks
+--fold`; what no longer holds its text is printed, and repeated in the stop), the upgrade notes' section (en and fr), the transition pages, the golden save (listed in
 `tests/fixtures/saves/index.json`), the reference run, the passes sheet and `passIssues`, the README's current-release
 line (the previous summary kept under "Over …"), the quality baseline; one commit, the docs' human gates, then the pull
 request.
@@ -150,7 +151,7 @@ the docs follow as a revision once the release is out:
 ```sh
 # in the engine repository
 git switch -c docs/<version> v<version>
-# record each review the stop listed, commit
+# record each review the stop listed (they land in changes/<version>.acks.json), commit
 git push <the organisation's remote> docs/<version>
 gh workflow run docs-publish --ref docs/<version> -f mode=revision -f version=<version>
 ```

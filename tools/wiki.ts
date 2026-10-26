@@ -2,6 +2,7 @@
 // [--product-version <v>] [--doc-revision <sha>] [--product-commit <sha>] | bundle --out <dir> [--build-id <id>] [--allow-dirty]
 // [the same three] | check --publish --product-ref <tag|sha> [--doc-ref <sha>] [--released] [--state preview|candidate|published]
 // [--test-report <vitest.json>]… [--candidate <run id>] | review-claim <id> --by <name> --kind human|ai --relation author|independent | translations --ack <id#section> --by <name> --kind human|ai --relation author|independent
+// [--pending <slug>] | acks --fold
 // | archive --out <file.tar.gz> [--revision r<n>] [--preview] [--build-id <id>] [--test-report <f>… --candidate <run>]
 // [--allow-dirty] [the same three]
 // | publish --target wiki --mode release|revision|rollback|promote|preview --ref <ref> --version <v> --revision r<n>
@@ -25,7 +26,9 @@
 // the `commit.json` the candidate writes beside it; `--candidate <run>` names the run they must come from, required for
 // `--state candidate|published`), and the source set is the product's plus documentation only
 // (§4.5.2). `review-claim` records that a person checked a claim's test covers it (`wiki/reviews.json`);
-// `translations --ack` that a section's two languages were read against each other (`wiki/translations.json`).
+// `translations --ack` that a section's two languages were read against each other (`wiki/translations.json`). On an
+// open branch both write its own pending file, `changes/<slug>.acks.json`, never those two files (tools/wiki/pending.ts,
+// #360); every reader adds the pending files, and `acks --fold` (a step of the release's prepare) folds them in.
 // The publication (A5b, §4.5): `archive` writes the self-contained release archive (tools/wiki/archive.ts); `publish
 // --target wiki` pushes an archive's wiki to the GitHub wiki and records it in `publication.json`
 // (tools/wiki/publication.ts), by `GITHUB_TOKEN` or the deploy key `WIKI_DEPLOY_KEY`; `pages` assembles Pages' `/docs/`
@@ -61,7 +64,7 @@ import {
 import { buildWiki } from './wiki/build';
 import { dirtySources, writeBundle } from './wiki/bundle';
 import { checkWiki, trackedFiles, wikiStats } from './wiki/check';
-import { claimLabel, reviewClaim } from './wiki/claims';
+import { claimLabel, foldReviews, readReviews, reviewClaim, writeReviews } from './wiki/claims';
 import {
   ackRow,
   checkCoverage,
@@ -104,8 +107,9 @@ import {
   wikiRemote,
 } from './wiki/publication';
 import { transitionPages, writeTransitionPages } from './wiki/transition';
-import { reviewerOf } from './wiki/reviewer';
-import { ackTranslation } from './wiki/translations';
+import { type Reviewer, reviewerOf } from './wiki/reviewer';
+import { pendingTarget, removePending } from './wiki/pending';
+import { ackTranslation, foldTranslations, readTranslations, writeTranslations } from './wiki/translations';
 
 class UsageError extends Error {}
 
@@ -154,10 +158,27 @@ export function bundleOutProblem(out: string, tracked: readonly string[], root =
 }
 
 const USAGE =
-  'usage: npm run wiki -- check [--test-report <file>]… | check --publish --product-ref <tag|sha> [--doc-ref <sha>] [--released] [--state preview|candidate|published] [--reviews-only] [--test-report <file>]… [--candidate <run id>] | review-claim <id> --by <name> --kind human|ai --relation author|independent | translations --ack <id#section> --by <name> --kind human|ai --relation author|independent | stats [--json] | coverage [--init [--force] | --ack <key>] | build --target wiki --out <dir> [--preview] [--product-version <v>] [--doc-revision <sha>] [--product-commit <sha>] | bundle --out <dir> [--build-id <id>] [--allow-dirty] [--product-version <v>] [--doc-revision <sha>] [--product-commit <sha>] | archive --out <quest-n-click-docs-<v>[-r<n>].tar.gz> [--revision r<n>] [--preview] [--build-id <id>] [--test-report <file>… --candidate <run id>] [--allow-dirty] [--product-version <v>] [--doc-revision <sha>] [--product-commit <sha>] | publish --target wiki --mode release|revision|rollback|promote|preview --ref <ref> --version <v> --revision r<n> --tag <tag> --archive <file> (--repo <owner/name> | --remote <url>) [--sha256 <hex>] [--rollback-to <v>[-r<n>]] [--dry-run] | pages --out <dir> (--repo <owner/name> [--cache <dir>] | --releases <dir> (--repo <owner/name> | --skip-attestations)) [--publication <file>] | next-revision --version <v> --repo <owner/name> | attest --repo <owner/name> --tag <tag> --file <archive> | transition [--root <dir>] [--version <v>] | env | generate [<page>…] [--no-manifest] | acceptance [--lang en|fr] [--json] [--strict] [--export-prompts <dir> [--channel mcp|web] [--url <url>]]';
+  'usage: npm run wiki -- check [--test-report <file>]… | check --publish --product-ref <tag|sha> [--doc-ref <sha>] [--released] [--state preview|candidate|published] [--reviews-only] [--test-report <file>]… [--candidate <run id>] | review-claim <id> --by <name> --kind human|ai --relation author|independent | translations --ack <id#section> --by <name> --kind human|ai --relation author|independent [--pending <slug>] | acks --fold | stats [--json] | coverage [--init [--force] | --ack <key>] | build --target wiki --out <dir> [--preview] [--product-version <v>] [--doc-revision <sha>] [--product-commit <sha>] | bundle --out <dir> [--build-id <id>] [--allow-dirty] [--product-version <v>] [--doc-revision <sha>] [--product-commit <sha>] | archive --out <quest-n-click-docs-<v>[-r<n>].tar.gz> [--revision r<n>] [--preview] [--build-id <id>] [--test-report <file>… --candidate <run id>] [--allow-dirty] [--product-version <v>] [--doc-revision <sha>] [--product-commit <sha>] | publish --target wiki --mode release|revision|rollback|promote|preview --ref <ref> --version <v> --revision r<n> --tag <tag> --archive <file> (--repo <owner/name> | --remote <url>) [--sha256 <hex>] [--rollback-to <v>[-r<n>]] [--dry-run] | pages --out <dir> (--repo <owner/name> [--cache <dir>] | --releases <dir> (--repo <owner/name> | --skip-attestations)) [--publication <file>] | next-revision --version <v> --repo <owner/name> | attest --repo <owner/name> --tag <tag> --file <archive> | transition [--root <dir>] [--version <v>] | env | generate [<page>…] [--no-manifest] | acceptance [--lang en|fr] [--json] [--strict] [--export-prompts <dir> [--channel mcp|web] [--url <url>]]';
 
 /** Today, as a day (the date a review or an ack records). */
 const today = () => new Date().toISOString().slice(0, 10);
+/** Where an ack went, for its ✔ line: the branch's pending file, or the record file (pending.ts). */
+const whereAcks = (wikiDir: string, pending: string | undefined, file: string) => {
+  const t = pendingTarget(wikiDir, pending);
+  return t.slug ? `changes/${t.slug}.acks.json (pending, folded in at the release)` : `wiki/${file}`;
+};
+/** The repository holding the wiki folder (the claims' test files are tracked there), or the working directory. */
+function gitRoot(wikiDir: string): string {
+  try {
+    return execFileSync('git', ['rev-parse', '--show-toplevel'], {
+      cwd: wikiDir,
+      encoding: 'utf8',
+      stdio: ['ignore', 'pipe', 'ignore'],
+    }).trim();
+  } catch {
+    return process.cwd();
+  }
+}
 
 const head = () => {
   try {
@@ -256,13 +277,13 @@ function run(args: readonly string[]): number {
       console.error(`✖  ${id} is no claim of the manifest (${r.claims.map((c) => c.id).join(', ') || 'none'})`);
       return 1;
     }
-    const problem = reviewClaim({ wikiDir, state, reviewer });
+    const problem = reviewClaim({ wikiDir, state, reviewer, pending: option(args, 'pending') });
     if (problem) {
       console.error(`✖  ${problem}`);
       return 1;
     }
     console.log(
-      `✔  ${id}: scope read by ${reviewer.name} (${reviewer.kind}, ${reviewer.relation}; ${state.test}); a change to the claim or its test file resets it`,
+      `✔  ${id}: scope read by ${reviewer.name} (${reviewer.kind}, ${reviewer.relation}; ${state.test}), in ${whereAcks(wikiDir, option(args, 'pending'), 'reviews.json')}; a change to the claim or its test file resets it`,
     );
     return 0;
   }
@@ -281,14 +302,55 @@ function run(args: readonly string[]): number {
       for (const e of errors) console.error(`✖  ${e}`);
       return 1;
     }
-    const problem = ackTranslation({ wikiDir, manifest, key, reviewer });
+    const problem = ackTranslation({ wikiDir, manifest, key, reviewer, pending: option(args, 'pending') });
     if (problem) {
       console.error(`✖  ${problem}`);
       return 1;
     }
     console.log(
-      `✔  ${key}: the two languages recorded as read against each other by ${reviewer.name} (${reviewer.kind}, ${reviewer.relation})`,
+      `✔  ${key}: the two languages recorded as read against each other by ${reviewer.name} (${reviewer.kind}, ${reviewer.relation}), in ${whereAcks(wikiDir, option(args, 'pending'), 'translations.json')}`,
     );
+    return 0;
+  }
+  if (command === 'acks') {
+    if (!args.includes('--fold')) throw new UsageError('acks needs --fold');
+    const root = gitRoot(wikiDir);
+    const r = checkWiki({ wikiDir, tracked: trackedFiles(root), root });
+    const { translations, errors } = readTranslations(wikiDir);
+    const { reviews, errors: reviewErrors } = readReviews(wikiDir);
+    for (const e of [...errors, ...reviewErrors]) console.error(`✖  ${e}`);
+    if (!r.manifest || errors.length || reviewErrors.length) return 1;
+    const files = translations.pending.map((p) => p.file);
+    if (!files.length) {
+      console.log('✔  acks: no pending file to fold');
+      return 0;
+    }
+    const t = foldTranslations(wikiDir, r.manifest, translations);
+    const c = foldReviews(reviews, r.claims);
+    writeTranslations(wikiDir, t.pairs);
+    writeReviews(wikiDir, c.claims);
+    removePending(wikiDir, files);
+    console.log(
+      `✔  acks: ${files.length} pending file(s) folded into wiki/translations.json and wiki/reviews.json: ${t.kept} pair(s) and ${c.kept} claim review(s) kept`,
+    );
+    const who = (list: readonly Reviewer[]) =>
+      list.map((x) => `${x.name} (${x.kind}, ${x.relation}, ${x.date})`).join(', ');
+    for (const d of t.dropped)
+      console.warn(
+        `⚠  ${d.key} (${d.file}): the record by ${who(d.record.reviewers)} no longer holds its text; it is not kept: npm run wiki -- translations --ack ${d.key} --by <name> --kind human|ai --relation author|independent`,
+      );
+    for (const d of c.dropped)
+      console.warn(
+        `⚠  ${d.key} (${d.file}): the review by ${who(d.record.reviewers)} no longer holds the claim's text or test; it is not kept: npm run wiki -- review-claim ${d.key} --by <name> --kind human|ai --relation author|independent`,
+      );
+    for (const [what, list] of [
+      ['pair', t.replaced],
+      ['claim', c.replaced],
+    ] as const)
+      for (const x of list)
+        console.warn(
+          `⚠  ${x.key}: the review by ${who([x.reviewer])} was of the text before; the ${what} now holds ${x.now.map((y) => `${y.name} (${y.kind}, ${y.relation})`).join(', ')}`,
+        );
     return 0;
   }
   if (command === 'stats') {

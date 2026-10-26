@@ -70,7 +70,9 @@ part où pousser (votre fork : `origin` quand c'en est un, sinon le seul fork pa
 l'organisation quand aucun fork n'est un remote, une branche, jamais `main`) ou un `gh` non connecté. Puis, sur la branche `release/<version>`, elle fait ce qu'une
 branche de release faisait à la main, dans cet ordre : la version (`npm version --no-git-tag-version`), la section du
 CHANGELOG et les entrées du LOG depuis les fragments (`npm run changes -- --assemble`, qui crée son `## Unreleased` et
-replie un `.log.md` seul), l'entrée de release du LOG, la section des notes de mise à jour (en et fr), les pages de
+replie un `.log.md` seul), l'entrée de release du LOG, les consignations en attente des branches versées dans
+`wiki/translations.json` et `wiki/reviews.json` (`npm run wiki -- acks --fold` ; ce qui ne tient plus à son texte est
+affiché, et repris dans l'arrêt), la section des notes de mise à jour (en et fr), les pages de
 transition, la sauvegarde de référence (listée dans `tests/fixtures/saves/index.json`), le run de référence, la fiche
 des passes et `passIssues`, la ligne de release actuelle du README (le résumé précédent gardé sous « Sur la … »), la
 ligne de base de qualité ; un commit, les relectures humaines des docs, puis la pull request.
@@ -165,7 +167,7 @@ fois la release sortie :
 ```sh
 # dans le dépôt du moteur
 git switch -c docs/<version> v<version>
-# enregistrer chaque relecture que l'arrêt a listée, commiter
+# enregistrer chaque relecture que l'arrêt a listée (elles vont dans changes/<version>.acks.json), commiter
 git push <le remote de l'organisation> docs/<version>
 gh workflow run docs-publish --ref docs/<version> -f mode=revision -f version=<version>
 ```

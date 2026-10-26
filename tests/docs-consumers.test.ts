@@ -83,6 +83,10 @@ const CONSUMERS: Record<string, { phase: Reads; reads: string }> = {
       "the generated reference pages, wiki/data/'s registers and the manifest's identifiers; a temporary copy of wiki/data",
   },
   'tests/wiki-publish.test.ts': { phase: 'wiki', reads: "a copy of the wiki fixture under a test repository's wiki/" },
+  'tests/wiki-pending.test.ts': {
+    phase: 'wiki',
+    reads: "a copy of the wiki fixture under a test repository's wiki/, with its branches' pending acks",
+  },
   'tests/contracts.test.ts': {
     phase: 'wiki',
     reads: "wiki/en|fr/start.stability.md and reference.support-matrix.md, which the registry's quotes agree with",

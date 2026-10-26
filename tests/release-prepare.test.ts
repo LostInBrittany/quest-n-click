@@ -279,6 +279,7 @@ describe('the command', () => {
       'branch',
       'version',
       'changelog',
+      'wiki acks',
       'upgrade notes',
       'transition pages',
       'golden save',
@@ -408,6 +409,17 @@ describe('the stop before the push: prose left and human gates (4.5.5)', () => {
     expect(msg).toContain(CLAIM);
     expect(msg.match(/npm run release -- prepare 4\.5\.5/g)).toHaveLength(1);
     expect(msg.indexOf(TODOS[0]!.at)).toBeLessThan(msg.indexOf(CLAIM));
+  });
+  it("repeats the fold's list in the stop: the pending acks it could not keep, a person's named (#360)", () => {
+    const folded = [
+      '⚠  create.rooms#doors (changes/a.acks.json): the record by wanoo (human, independent, 2026-10-26) no longer holds its text; it is not kept: npm run wiki -- translations --ack create.rooms#doors --by <name> --kind human|ai --relation author|independent',
+    ];
+    const msg = beforePushStop({ ...base, todos: [], gates: red, folded })!;
+    expect(msg).toContain('The pending acks the fold could not keep (their text changed since they were read):');
+    expect(msg).toContain(folded[0]);
+    expect(msg.indexOf(CLAIM)).toBeLessThan(msg.indexOf(folded[0]!));
+    // Alone, it stops nothing: what still matters is a pair to review, which the gates say.
+    expect(beforePushStop({ ...base, todos: [], gates: clean, folded })).toBeUndefined();
   });
 });
 
