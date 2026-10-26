@@ -1,111 +1,62 @@
-// node --experimental-strip-types tools/schedule-guard.ts --event=<event> --cron='<cron>' [--now=<ISO>] (4.5.6, #372):
-// whether a scheduled run of nightly.yml or prove.yml still runs its jobs. GitHub does not guarantee a schedule's start
-// time: on 2026-10-26 it started the nightly (03:17 UTC) at 09:05 and the weekly prove (04:00 UTC on Mondays) at
-// 09:44, in the working day, and their jobs took the runners from a release's candidate and its pull requests. The
-// workflows' first job, `guard`, runs this; every other job needs it and runs only on `run=true`, so a skipped run takes
-// one small runner for a few seconds and stays green. Only `schedule` is guarded: a run by hand (`workflow_dispatch`,
-// the release's warm-up of the mutation cache among them) always runs. A cron this file does not understand, or none,
-// runs too, with a warning: a guard that cannot judge never skips. Self-contained (no import but Node's): the job runs
-// it without `npm ci`.
+// node --experimental-strip-types tools/schedule-guard.ts --event=<event> [--now=<ISO>] (4.5.6, #372): whether a
+// scheduled run of nightly.yml or prove.yml still runs its jobs. GitHub starts their scheduled runs hours after their
+// cron times, every time: from 6 to 26 October 2026 the nightly (then 03:17 UTC) started 4 h 36 min to 7 h 44 min late
+// and the weekly prove (then 04:00 UTC on Mondays) 5 h 37 min to 7 h 40 min late, in the working day, where their jobs
+// took the runners from a release's candidate and its pull requests. Their crons now start the evening before (20:17
+// UTC, Sunday 20:00 UTC), so those delays land them in the night; this guard skips a scheduled run that still starts
+// in the Paris working day. The workflows' first job, `guard`, runs it; every other job needs it and runs only on
+// `run=true`, so a skipped run takes one small runner for a few seconds and stays green. Only `schedule` is guarded: a
+// run by hand (`workflow_dispatch`, the release's warm-up of the mutation cache among them) always runs.
+// Self-contained (no import but Node's): the job runs it without `npm ci`.
 import { appendFileSync } from 'node:fs';
 
-/**
- * How late a scheduled run may start (minutes after its cron time) and still run. GitHub's usual delay is minutes,
- * rarely past the hour; the late starts that hurt are hours. With two hours the nightly (03:17 UTC) starts by 05:17 UTC
- * and the weekly prove (04:00 UTC) by 06:00 UTC: 07:00 in Paris in winter (UTC+1), 08:00 in summer (UTC+2), before the
- * working day.
- */
-export const MAX_DELAY_MINUTES = 120;
+/** The Paris working day, in minutes after midnight, Paris time, every day of the week (a release runs on Sundays). */
+export const WORKDAY = { from: 7 * 60, to: 20 * 60 };
 
-/** A cron field of numbers: `*` (any), or a comma list within [lo, hi]; null for anything else (ranges, steps). */
-function field(text: string, lo: number, hi: number): number[] | '*' | null {
-  if (text === '*') return '*';
-  if (!/^\d+(,\d+)*$/.test(text)) return null;
-  const values = text.split(',').map(Number);
-  return values.every((v) => v >= lo && v <= hi) ? values : null;
-}
+/** The last Sunday of a month (0-based) at 01:00 UTC, when the European Union changes its clocks. */
+const lastSunday = (year: number, month: number) => {
+  const last = new Date(Date.UTC(year, month + 1, 0, 1));
+  return last.getTime() - last.getUTCDay() * 86_400_000;
+};
 
 /**
- * The last time at or before `now` that `cron` (five fields, UTC) fires, or null when this file does not understand it:
- * minutes and hours as numbers or lists, day of month and month `*`, day of week `*` or a list (0 and 7 both Sunday).
- * Enough for the crons the workflows use, and the test reads every one of them.
+ * The time in Paris, in minutes after midnight: UTC+2 from the last Sunday of March to the last Sunday of October at
+ * 01:00 UTC, UTC+1 otherwise. Computed, not read from Intl: the runner's Node needs no time zone data for it.
  */
-export function lastCronTime(cron: string, now: Date): Date | null {
-  const parts = cron.trim().split(/\s+/);
-  if (parts.length !== 5) return null;
-  const minutes = field(parts[0]!, 0, 59);
-  const hours = field(parts[1]!, 0, 23);
-  const dows = field(parts[4]!, 0, 7);
-  if (minutes === null || minutes === '*' || hours === null || hours === '*' || dows === null) return null;
-  if (parts[2] !== '*' || parts[3] !== '*') return null;
-  const days = dows === '*' ? null : new Set(dows.map((d) => d % 7));
-  let best: Date | null = null;
-  // Eight days back cover a weekly cron whose time of day is after `now`'s.
-  for (let back = 0; back <= 8; back++) {
-    const day = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() - back));
-    if (days && !days.has(day.getUTCDay())) continue;
-    for (const h of hours)
-      for (const m of minutes) {
-        const t = new Date(day.getTime() + (h * 60 + m) * 60_000);
-        if (t <= now && (!best || t > best)) best = t;
-      }
-    if (best) return best;
-  }
-  return best;
+export function parisMinutes(now: Date): number {
+  const y = now.getUTCFullYear();
+  const t = now.getTime();
+  const offset = t >= lastSunday(y, 2) && t < lastSunday(y, 9) ? 120 : 60;
+  return (now.getUTCHours() * 60 + now.getUTCMinutes() + offset) % 1440;
 }
 
 export interface Decision {
   run: boolean;
-  /** Minutes between the cron time and the start, when judged. */
-  delayMinutes?: number;
-  /** The guard could not judge (no cron, or one it does not understand): it runs, and says why. */
-  warn?: boolean;
   say: string;
 }
 
-const hm = (minutes: number) =>
-  minutes < 60 ? `${minutes} min` : `${Math.floor(minutes / 60)} h${minutes % 60 ? ` ${minutes % 60} min` : ''}`;
-const clock = (d: Date) => d.toISOString().slice(11, 16);
+const clock = (minutes: number) =>
+  `${String(Math.floor(minutes / 60)).padStart(2, '0')}:${String(minutes % 60).padStart(2, '0')}`;
 
-/** Whether the run goes on: always unless a `schedule` run started more than `maxDelay` minutes after its cron time. */
-export function decide({
-  event,
-  cron,
-  now,
-  maxDelay = MAX_DELAY_MINUTES,
-}: {
-  event: string;
-  cron?: string;
-  now: Date;
-  maxDelay?: number;
-}): Decision {
+/** Whether the run goes on: always, unless a `schedule` run starts in the Paris working day. */
+export function decide({ event, now }: { event: string; now: Date }): Decision {
   if (event !== 'schedule') return { run: true, say: `a ${event || 'non-scheduled'} run: never guarded` };
-  const due = cron ? lastCronTime(cron, now) : null;
-  if (!due)
-    return {
-      run: true,
-      warn: true,
-      say: `a scheduled run whose cron (${cron ? `'${cron}'` : 'none'}) the guard does not understand: it runs`,
-    };
-  const delayMinutes = Math.floor((now.getTime() - due.getTime()) / 60_000);
-  const late = `started ${hm(delayMinutes)} after its cron time (${clock(due)} UTC)`;
-  return delayMinutes > maxDelay
+  const paris = parisMinutes(now);
+  const day = `the Paris working day (${clock(WORKDAY.from)} to ${clock(WORKDAY.to)})`;
+  return paris >= WORKDAY.from && paris < WORKDAY.to
     ? {
         run: false,
-        delayMinutes,
-        say: `this scheduled run ${late}, more than the ${hm(maxDelay)} allowed: every job is skipped, so it takes no runner in the working day (#372). The next one runs as usual; run it by hand (workflow_dispatch) if it is needed now.`,
+        say: `this scheduled run started at ${clock(paris)} in Paris, in ${day}: every job is skipped, so it takes no runner from the day's pull requests and releases (#372). The next one runs as usual; run it by hand (workflow_dispatch) if it is needed now.`,
       }
-    : { run: true, delayMinutes, say: `this scheduled run ${late}: within the ${hm(maxDelay)} allowed, it runs` };
+    : { run: true, say: `this scheduled run started at ${clock(paris)} in Paris, outside ${day}: it runs` };
 }
 
 if (process.argv[1]?.endsWith('schedule-guard.ts')) {
   const args = process.argv.slice(2);
   const opt = (k: string) => args.find((a) => a.startsWith(`--${k}=`))?.slice(k.length + 3);
   const nowArg = opt('now');
-  const d = decide({ event: opt('event') ?? '', cron: opt('cron'), now: nowArg ? new Date(nowArg) : new Date() });
-  if (d.warn) console.log(`::warning title=schedule guard::${d.say}`);
-  else if (!d.run) console.log(`::notice title=Late scheduled run skipped::${d.say}`);
-  else console.log(`✔  ${d.say}`);
+  const d = decide({ event: opt('event') ?? '', now: nowArg ? new Date(nowArg) : new Date() });
+  console.log(d.run ? `✔  ${d.say}` : `::notice title=Scheduled run skipped in the working day::${d.say}`);
   if (process.env.GITHUB_OUTPUT) appendFileSync(process.env.GITHUB_OUTPUT, `run=${d.run}\n`);
   if (process.env.GITHUB_STEP_SUMMARY)
     appendFileSync(process.env.GITHUB_STEP_SUMMARY, `### Schedule guard\n\n${d.run ? '' : '**Skipped.** '}${d.say}\n`);

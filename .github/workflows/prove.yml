@@ -2,7 +2,8 @@ name: prove
 # The exhaustive proof and the bench, weekly and on demand: too slow for every push on a big game, never a gate.
 on:
   schedule:
-    - cron: '0 4 * * 1'
+    # Sunday evening (#372): GitHub starts it 5.5 to 8 hours late, in Monday's night; tools/schedule-guard.ts.
+    - cron: '0 20 * * 0'
   workflow_dispatch:
     inputs:
       game:
@@ -14,10 +15,10 @@ on:
 permissions:
   contents: read
 jobs:
-  # The late-start guard (4.5.6, #372): GitHub does not guarantee a schedule's start time, and on 2026-10-26 it started
-  # this run six hours late, in the working day, where its jobs took the runners from a release's candidate. A
-  # scheduled run that starts more than two hours after its cron time skips every other job and stays green; a run by
-  # hand always runs (tools/schedule-guard.ts, tests/schedule-guard.test.ts). Node alone, no `npm ci`.
+  # The working-day guard (4.5.6, #372): GitHub starts this schedule hours late (5 h 37 min to 7 h 40 min in October
+  # 2026), so the cron is Sunday evening (20:00 UTC) and lands it in Monday's night; a scheduled run that still starts
+  # in the Paris working day (07:00 to 20:00 Paris time) skips its job and stays green. A run by hand always runs
+  # (tools/schedule-guard.ts, tests/schedule-guard.test.ts). Node alone, no `npm ci`.
   guard:
     runs-on: ubuntu-24.04
     timeout-minutes: 5
@@ -31,8 +32,7 @@ jobs:
       - id: guard
         env:
           EVENT: ${{ github.event_name }}
-          CRON: ${{ github.event.schedule }}
-        run: node --experimental-strip-types --no-warnings tools/schedule-guard.ts --event="$EVENT" --cron="$CRON"
+        run: node --experimental-strip-types --no-warnings tools/schedule-guard.ts --event="$EVENT"
   prove:
     needs: guard
     if: needs.guard.outputs.run == 'true'

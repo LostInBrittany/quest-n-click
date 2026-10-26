@@ -1120,15 +1120,6 @@ docs-publish : le lancement candidat dont le rapport de tests est lu.
 - Origine : posée par un workflow de `.github/workflows/` (CI et publications).
 - Lue par : [`.github/workflows/docs-publish.yml`](../../.github/workflows/docs-publish.yml), [`.github/workflows/release.yml`](../../.github/workflows/release.yml).
 
-<a name="cron"></a>
-
-### `CRON`
-
-nightly et prove : le cron d’une exécution planifiée (`github.event.schedule`), dont le filtre des départs en retard compare l’heure au départ de l’exécution ; au-delà de deux heures, tous les autres jobs sont sautés (4.5.6, #372).
-
-- Origine : posée par un workflow de `.github/workflows/` (CI et publications).
-- Lue par : [`.github/workflows/nightly.yml`](../../.github/workflows/nightly.yml), [`.github/workflows/prove.yml`](../../.github/workflows/prove.yml).
-
 <a name="dispatched-mode"></a>
 
 ### `DISPATCHED_MODE`
@@ -1151,7 +1142,7 @@ release : l’archive de documentation de la version, quand elle en a une.
 
 ### `EVENT`
 
-candidate : l’événement qui a lancé l’exécution ; seul un push sur main peut être le merge d’une release (4.5.4). nightly et prove : seule une exécution `schedule` passe par le filtre des départs en retard (4.5.6, #372).
+candidate : l’événement qui a lancé l’exécution ; seul un push sur main peut être le merge d’une release (4.5.4). nightly et prove : une exécution `schedule` qui démarre pendant la journée de travail à Paris saute ses jobs (4.5.6, #372).
 
 - Origine : posée par un workflow de `.github/workflows/` (CI et publications).
 - Lue par : [`.github/workflows/candidate.yml`](../../.github/workflows/candidate.yml), [`.github/workflows/nightly.yml`](../../.github/workflows/nightly.yml), [`.github/workflows/prove.yml`](../../.github/workflows/prove.yml).

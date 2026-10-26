@@ -1120,15 +1120,6 @@ docs-publish: the candidate run whose test report is read.
 - Origin: set by a workflow of `.github/workflows/` (CI and releases).
 - Read by: [`.github/workflows/docs-publish.yml`](../../.github/workflows/docs-publish.yml), [`.github/workflows/release.yml`](../../.github/workflows/release.yml).
 
-<a name="cron"></a>
-
-### `CRON`
-
-nightly and prove: the cron of a scheduled run (`github.event.schedule`), whose time the late-start guard compares with the run's start; past two hours every other job is skipped (4.5.6, #372).
-
-- Origin: set by a workflow of `.github/workflows/` (CI and releases).
-- Read by: [`.github/workflows/nightly.yml`](../../.github/workflows/nightly.yml), [`.github/workflows/prove.yml`](../../.github/workflows/prove.yml).
-
 <a name="dispatched-mode"></a>
 
 ### `DISPATCHED_MODE`
@@ -1151,7 +1142,7 @@ release: the documentation archive of the release, when it has one.
 
 ### `EVENT`
 
-candidate: the event that started the run; only a push to main can be a release's merge (4.5.4). nightly and prove: only a `schedule` run is judged by the late-start guard (4.5.6, #372).
+candidate: the event that started the run; only a push to main can be a release's merge (4.5.4). nightly and prove: a `schedule` run that starts in the Paris working day skips its jobs (4.5.6, #372).
 
 - Origin: set by a workflow of `.github/workflows/` (CI and releases).
 - Read by: [`.github/workflows/candidate.yml`](../../.github/workflows/candidate.yml), [`.github/workflows/nightly.yml`](../../.github/workflows/nightly.yml), [`.github/workflows/prove.yml`](../../.github/workflows/prove.yml).

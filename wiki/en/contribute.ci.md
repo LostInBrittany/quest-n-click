@@ -14,8 +14,8 @@ pull request runs is [`tools/ci-plan.ts`](../../tools/ci-plan.ts). Which test su
 | `ci` | a pull request; a push to `main`; by hand. A tag runs none (4.5.3, #291): its commit is one of `main`'s, already run | the three tiers below | the pull request (`pr-gate`); a release (`main`'s run on the tag's SHA must be green) |
 | `candidate` | the release pull request's merge: a push to `main` that moves `package.json`'s version (4.5.4); by hand on `main` for a SHA (`gh workflow run candidate --ref main -f sha=<full sha>`); a pull request labelled `full-ci` (information only) | the release's only test pass since 4.5.3: `release-check:ci` and every heavy family on one exact SHA (the mutation sets read the cache the nightly fills), then `candidate-gate`, which writes and attests `candidate-manifest.json` | a tag must name one green run of it, started on `main` ([Releasing](contribute.releasing.md)) |
 | `release` | the push of a `v*` tag (4.5.3, #291) | no test of its own: the commit on `main`'s first parents, `main`'s `ci` green on that SHA, the previous stable tag an ancestor, the candidate the tag names green on that SHA with every file of its manifest; then the release made from those files, `ship verify`, `npm-stage` (the npm packages staged for an owner to approve), `docs-publish` (4.5.0) and the website's revalidation | publication |
-| `nightly` | every day at 03:17 UTC (a run that starts more than two hours late runs nothing, below); by hand (`-f jobs=mutation`: the mutation jobs only, a warm-up of the cache below, which `release -- prepare` starts when it pushes the release pull request, 4.5.5, #331) | npm names, the heavy suite, the connectors' fuzz (a minute each), the abstraction corpus (500 seeds, four shards), every mutation set from scratch (each passed shard saved in the cache the candidate reads, 4.5.5), the Bridge's loads on SQLite and Postgres, the proof matrix, cross-runtime with 500 Remix seeds, the worker in a container | nothing directly; a red night is a bug to fix before the next release |
-| `prove` | every Monday at 04:00 UTC (the same guard); by hand (`game`, `rooms`) | `prove:game`, the committed playtests (`--strict`), and the bench on a 100-room generated game (uploaded as `bench`) | never a gate |
+| `nightly` | every day at 20:17 UTC, which GitHub starts in the night (one that starts in the Paris working day runs nothing, below); by hand (`-f jobs=mutation`: the mutation jobs only, a warm-up of the cache below, which `release -- prepare` starts when it pushes the release pull request, 4.5.5, #331) | npm names, the heavy suite, the connectors' fuzz (a minute each), the abstraction corpus (500 seeds, four shards), every mutation set from scratch (each passed shard saved in the cache the candidate reads, 4.5.5), the Bridge's loads on SQLite and Postgres, the proof matrix, cross-runtime with 500 Remix seeds, the worker in a container | nothing directly; a red night is a bug to fix before the next release |
+| `prove` | every Sunday at 20:00 UTC, started in Monday's night (the same guard); by hand (`game`, `rooms`) | `prove:game`, the committed playtests (`--strict`), and the bench on a 100-room generated game (uploaded as `bench`) | never a gate |
 | `mutation` | by hand: `gh workflow run mutation --ref main -f set=<set> -f ref=<branch or SHA> [-f file=<path>]` | one mutation set, measured on a runner, its report kept as an artifact | nothing |
 | `qualify` | a pull request or a push to `main` touching `ops/`, `scripts/ops-qualify*`, `scripts/pack.mjs`, `bridge/`, `package.json` or the lockfile; by hand | `npm run ops:qualify`: the Bridge's qualification profile on Docker | the profile does not rot between candidates |
 | `docs-publish` | called by `release` after `ship verify`; by hand (`revision`, `rollback`, `promote`, `preview`) | the wiki and the publication record (4.5.0) | publication of the documentation |
@@ -30,16 +30,20 @@ Every other `main` commit shares one group: for a while each kept its own run, a
 full runs that starved the pull requests of runners. A run started by hand has a group of its own and cancels
 nothing; `candidate`, `release` and `docs-publish` never cancel a run either.
 
-**A scheduled run that starts late runs nothing** (4.5.6, #372). GitHub does not guarantee a schedule's start time: on
-2026-10-26 it started the nightly at 09:05 UTC and the weekly `prove` at 09:44 UTC, nearly six hours late, in the
-working day, and their jobs took the runners from a release's candidate and its pull requests. Both workflows now start
-with a `guard` job, a few seconds of Node without `npm ci` ([`tools/schedule-guard.ts`](../../tools/schedule-guard.ts)):
-a scheduled run that starts more than two hours after its cron time says so in a notice and in the run's summary, and
-every other job is skipped, so the run stays green and takes no other runner. Two hours let GitHub's usual delays
-through (minutes, rarely past the hour) and stop the late starts that hurt: the nightly then starts by 05:17 UTC at the
-latest and the `prove` by 06:00 UTC, 07:00 in Paris in winter (UTC+1) and 08:00 in summer (UTC+2), before the working
-day. A run by hand (`workflow_dispatch`) is never guarded, nor is the warm-up of the mutation cache that `release --
-prepare` starts; a skipped night is run by hand when it is needed, or waits for the next one.
+**The scheduled runs start in the night, never in the working day** (4.5.6, #372). GitHub starts a scheduled run when it
+has room, not at its cron time, and for this repository that is hours later every time: from 6 to 26 October 2026 the
+nightly, then due at 03:17 UTC, started 4 h 36 min to 7 h 44 min late (07:53 to 11:01 UTC), and the weekly `prove`, then
+due on Monday at 04:00 UTC, 5 h 37 min to 7 h 40 min late. Both ran in the working day and took the runners from a
+release's candidate and its pull requests. Their crons now start the evening before: the nightly at 20:17 UTC every day,
+the `prove` on Sunday at 20:00 UTC. With the delays measured, the nightly then starts between 00:53 and 04:01 UTC and
+the `prove` between 01:37 and 03:40 UTC, at the latest 06:01 in Paris in summer (UTC+2), 05:01 in winter (UTC+1). Should
+GitHub start one on time, it runs in the evening, at 21:00 in Paris or later. Both workflows also start with a `guard`
+job, a few seconds of Node without `npm ci` ([`tools/schedule-guard.ts`](../../tools/schedule-guard.ts)): a scheduled
+run that still starts in the Paris working day, 07:00 to 20:00 Paris time on any day (06:00 to 19:00 UTC in winter,
+05:00 to 18:00 UTC in summer), says so in a notice and in the run's summary, and every other job is skipped, so the run
+stays green and takes no other runner. A run by hand (`workflow_dispatch`) is never guarded, nor is the warm-up of the
+mutation cache that `release -- prepare` starts; a skipped night is run by hand when it is needed, or waits for the next
+one.
 
 <a name="tiers"></a>
 <!-- applies: .. since 4.1.9 -->
