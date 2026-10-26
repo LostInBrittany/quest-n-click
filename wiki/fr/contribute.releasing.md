@@ -82,7 +82,9 @@ Si une étape échoue, elle s'arrête et dit quoi faire : avant le commit, rien 
 `git push` et le `gh pr create` à lancer à la main.
 
 Elle n'écrit aucune prose : chaque endroit qui demande une phrase porte `TODO(release)` (l'intro du CHANGELOG,
-l'entrée de release du LOG, les notes de mise à jour, le README, la fiche des passes).
+l'entrée de release du LOG, les notes de mise à jour, le README, la fiche des passes). Un `TODO(release)` cité comme
+du code, entre accents graves ou dans un bloc délimité, est une citation et non un marqueur (4.5.5, #364) : une entrée
+du CHANGELOG qui parle des marqueurs, copiée dans les notes de mise à jour, n'est jamais comptée comme à écrire.
 
 Avant de pousser (depuis la 4.5.5), elle vérifie ce sur quoi la CI de la pull request de release échouerait : un
 `TODO(release)` restant (les mêmes marqueurs que compte `check`) et les relectures humaines des docs

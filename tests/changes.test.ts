@@ -166,6 +166,17 @@ describe('the fragments the check reads (#335)', () => {
     for (const s of ['Breaking', 'Fixed', 'Changes'])
       expect(fragmentProblems([{ name: 'x.md', text: `### ${s}\n- a\n` }])).toEqual([]);
   });
+  it('refuses a bare TODO(release), which the release could never write away; a quoted one is fine (#364)', () => {
+    expect(
+      fragmentProblems([
+        { name: 'a.md', text: '### Fixed\n\n- **Quoted** `TODO(release)` (4.5.5).\n- **Bare** TODO(release).\n' },
+        { name: 'a.log.md', text: '## the TODO(release) prose\n\nThe `TODO(release)` markers.\n' },
+      ]),
+    ).toEqual([
+      'changes/a.md:4: a bare TODO(release) would stay in the CHANGELOG as a marker to write: quote it in backticks',
+      'changes/a.log.md:1: a bare TODO(release) would stay in the LOG as a marker to write: quote it in backticks',
+    ]);
+  });
   it('passes on every fragment of this branch', () => {
     expect(fragmentProblems(fragmentTexts())).toEqual([]);
   });

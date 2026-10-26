@@ -77,7 +77,9 @@ back to `main`, the branch deleted: it prints the commands); after it, it prints
 run by hand.
 
 It writes no prose: each place a sentence is needed carries `TODO(release)` (the CHANGELOG's intro, the LOG's release
-entry, the upgrade notes, the README, the passes sheet).
+entry, the upgrade notes, the README, the passes sheet). A `TODO(release)` quoted as code, in backticks or a fenced
+block, is a quotation and not a marker (4.5.5, #364): a CHANGELOG bullet about the markers, copied into the upgrade
+notes, is never counted as one to write.
 
 Before it pushes (from 4.5.5), it checks what the release pull request's CI would fail on: a `TODO(release)` left (the
 same markers `check` counts) and the docs' human gates (`wiki -- check --publish --reviews-only`, a claim or a pair

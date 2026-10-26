@@ -99,6 +99,8 @@ npm run changes -- --check [--base=origin/main]
   not open on `## <title>` is refused with its file and line: `✖ changes/<slug>.md:5: "### Fixes" is not a fragment
   heading: ### Breaking | ### Fixed | ### Changes`. `--assemble` refuses the same, so a fragment the release would
   stop on fails the pull request that adds it. Nothing is filed silently.
+- A bare `TODO(release)` in a fragment is refused too (4.5.5, #364): it would land in the CHANGELOG or the LOG as a
+  marker the release must write, and never could. Quote it in backticks, as code.
 - A release branch is the exception: it assembles the fragments and edits the CHANGELOG itself.
 - `changes/README.md` is not a fragment.
 

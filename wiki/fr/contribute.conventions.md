@@ -102,6 +102,8 @@ npm run changes -- --check [--base=origin/main]
   qui ne s'ouvre pas sur `## <title>` est refusé avec son fichier et sa ligne : `✖ changes/<slug>.md:5: "### Fixes"
   is not a fragment heading: ### Breaking | ### Fixed | ### Changes`. `--assemble` refuse les mêmes, donc un fragment
   sur lequel la release s'arrêterait fait échouer la pull request qui l'ajoute. Rien n'est rangé en silence.
+- Un `TODO(release)` nu dans un fragment est refusé aussi (4.5.5, #364) : il arriverait dans le CHANGELOG ou le LOG
+  comme un marqueur que la release doit écrire, et ne le pourrait jamais. Citez-le entre accents graves, comme du code.
 - Une branche de release est l'exception : elle assemble les fragments et modifie le CHANGELOG elle-même.
 - `changes/README.md` n'est pas un fragment.
 

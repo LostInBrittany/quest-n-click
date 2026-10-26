@@ -17,7 +17,7 @@ import { execFileSync, spawnSync } from 'node:child_process';
 import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { releaseNotes } from '../../scripts/release-notes.mjs';
-import { fragmentFiles, lastLogNumber } from '../changes';
+import { fragmentFiles, lastLogNumber, proseLines } from '../changes';
 import { formatJson } from '../wiki/json';
 // @ts-expect-error: a plain .mjs module without declarations
 import { REPO, releaseRemote } from './lib.mjs';
@@ -220,15 +220,20 @@ export function withReleaseSection(changelog: string, heading: string, intro: st
 
 const BRIEF = 200;
 
-/** Every `TODO(release)` left: its `file:line` and its line, the brief of what to write there (cut at 200 characters). */
+/**
+ * Every `TODO(release)` left: its `file:line` and its line, the brief of what to write there (cut at 200 characters).
+ * One quoted in code (`` `TODO(release)` ``, a fenced block) is a quotation, not a marker (#364): a CHANGELOG bullet
+ * about the markers, copied into the upgrade notes, could never be written away.
+ */
 export function todoBrief(files: readonly { path: string; text: string }[]) {
-  return files.flatMap(({ path, text }) =>
-    text.split('\n').flatMap((l, i) => {
-      if (!l.includes(TODO)) return [];
-      const what = l.trim();
+  return files.flatMap(({ path, text }) => {
+    const lines = text.split('\n');
+    return proseLines(text).flatMap((prose, i) => {
+      if (!prose.includes(TODO)) return [];
+      const what = lines[i]!.trim();
       return [{ at: `${path}:${i + 1}`, what: what.length > BRIEF ? `${what.slice(0, BRIEF - 1)}…` : what }];
-    }),
-  );
+    });
+  });
 }
 
 /** Every `TODO(release)` left, as `file:line` (what `check` counts, and `prepare` before it pushes). */
