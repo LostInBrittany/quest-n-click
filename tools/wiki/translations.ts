@@ -21,7 +21,7 @@ const TRANSLATIONS_FILE = 'translations.json';
 const LEAD = '_lead';
 
 const hash = z.string().regex(/^[0-9a-f]{64}$/);
-const TranslationsSchema = z
+export const TranslationsSchema = z
   .object({
     format: z.literal('quest-n-click-docs-translations'),
     version: z.literal(1),
@@ -31,14 +31,16 @@ const TranslationsSchema = z
     ),
   })
   .strict();
-type Translations = z.infer<typeof TranslationsSchema>;
+export type Translations = z.infer<typeof TranslationsSchema>;
 
 export function readTranslations(wikiDir: string): { translations: Translations; errors: string[] } {
   const empty: Translations = { format: 'quest-n-click-docs-translations', version: 1, pairs: {} };
   const file = resolve(wikiDir, TRANSLATIONS_FILE);
   if (!existsSync(file)) return { translations: empty, errors: [] };
+  const text = readFileSync(file, 'utf8');
+  if (hasConflictMarkers(text)) return { translations: empty, errors: [conflictHint(TRANSLATIONS_FILE)] };
   try {
-    const parsed = TranslationsSchema.safeParse(JSON.parse(readFileSync(file, 'utf8')));
+    const parsed = TranslationsSchema.safeParse(JSON.parse(text));
     if (!parsed.success)
       return { translations: empty, errors: issuesOf(parsed.error).map((l) => `${TRANSLATIONS_FILE} ${l}`) };
     return { translations: parsed.data, errors: [] };
@@ -46,6 +48,12 @@ export function readTranslations(wikiDir: string): { translations: Translations;
     return { translations: empty, errors: [`${TRANSLATIONS_FILE}: ${(e as Error).message}`] };
   }
 }
+
+/** Whether a file holds git's conflict markers (a merge stopped on it). */
+export const hasConflictMarkers = (text: string) => /^(<{7}|>{7}) ?/m.test(text) && /^={7}$/m.test(text);
+/** What the check says of a records file a merge left in conflict (#360). */
+export const conflictHint = (file: string) =>
+  `${file} holds git conflict markers: npm run wiki -- records --resolve --by <name> resolves it (main's side, the records only the other side changed, an AI re-ack of the sections both changed whose text neither record holds, the people's reviews lost listed); then git add it and commit`;
 
 /** A section's text as a pair compares it: line ends made LF, outer blank lines dropped. */
 /**
@@ -92,6 +100,28 @@ export interface PairState {
 }
 
 /**
+ * The current hashes of every section both languages of a written page hold (a draft's included: its records are
+ * kept, a pair may be read before the page is ready), in the manifest's and the pages' order.
+ */
+export function currentPairHashes(
+  wikiDir: string,
+  manifest: Manifest,
+): Map<string, { enHash: string; frHash: string; ready: boolean }> {
+  const out = new Map<string, { enHash: string; frHash: string; ready: boolean }>();
+  for (const p of manifest.pages.filter((x) => x.state !== 'planned' && !x.generated)) {
+    const files = { en: resolve(wikiDir, 'en', `${p.id}.md`), fr: resolve(wikiDir, 'fr', `${p.id}.md`) };
+    if (!existsSync(files.en) || !existsSync(files.fr)) continue;
+    const en = sectionHashes(readFileSync(files.en, 'utf8'), wikiDir, 'en');
+    const fr = sectionHashes(readFileSync(files.fr, 'utf8'), wikiDir, 'fr');
+    for (const [section, enHash] of en) {
+      const frHash = fr.get(section);
+      if (frHash !== undefined) out.set(`${p.id}#${section}`, { enHash, frHash, ready: p.state === 'ready' });
+    }
+  }
+  return out;
+}
+
+/**
  * The pairs of every `ready` page: one per section present in both languages (a section in one language only is the
  * parity check's error, not a pair). Also the records that name no section of a written page (`stale`), to remove.
  */
@@ -101,28 +131,19 @@ export function translationStates(
   translations: Translations,
 ): { pairs: PairState[]; stale: string[] } {
   const pairs: PairState[] = [];
-  const keys = new Set<string>();
-  // A draft's records are kept (a pair may be read before the page is ready); only a ready page's pairs are judged.
-  for (const p of manifest.pages.filter((x) => x.state !== 'planned' && !x.generated)) {
-    const files = { en: resolve(wikiDir, 'en', `${p.id}.md`), fr: resolve(wikiDir, 'fr', `${p.id}.md`) };
-    if (!existsSync(files.en) || !existsSync(files.fr)) continue;
-    const en = sectionHashes(readFileSync(files.en, 'utf8'), wikiDir, 'en');
-    const fr = sectionHashes(readFileSync(files.fr, 'utf8'), wikiDir, 'fr');
-    for (const [section, enHash] of en) {
-      const frHash = fr.get(section);
-      if (frHash === undefined) continue;
-      const key = `${p.id}#${section}`;
-      keys.add(key);
-      if (p.state !== 'ready') continue;
-      const r = translations.pairs[key];
-      const since = r?.reviewers.at(-1)?.date;
-      if (!r) pairs.push({ key, state: 'to review', why: 'never reviewed as a pair' });
-      else if (r.enHash !== enHash && r.frHash !== frHash)
-        pairs.push({ key, state: 'to review', why: `both sides changed since ${since}` });
-      else if (r.enHash !== enHash) pairs.push({ key, state: 'to review', why: `the English changed since ${since}` });
-      else if (r.frHash !== frHash) pairs.push({ key, state: 'to review', why: `the French changed since ${since}` });
-      else pairs.push({ key, state: 'paired', reviewers: r.reviewers, human: humanReviewed(r.reviewers) });
-    }
+  const current = currentPairHashes(wikiDir, manifest);
+  const keys = new Set(current.keys());
+  for (const [key, now] of current) {
+    if (!now.ready) continue;
+    const { enHash, frHash } = now;
+    const r = translations.pairs[key];
+    const since = r?.reviewers.at(-1)?.date;
+    if (!r) pairs.push({ key, state: 'to review', why: 'never reviewed as a pair' });
+    else if (r.enHash !== enHash && r.frHash !== frHash)
+      pairs.push({ key, state: 'to review', why: `both sides changed since ${since}` });
+    else if (r.enHash !== enHash) pairs.push({ key, state: 'to review', why: `the English changed since ${since}` });
+    else if (r.frHash !== frHash) pairs.push({ key, state: 'to review', why: `the French changed since ${since}` });
+    else pairs.push({ key, state: 'paired', reviewers: r.reviewers, human: humanReviewed(r.reviewers) });
   }
   return { pairs, stale: Object.keys(translations.pairs).filter((k) => !keys.has(k)) };
 }

@@ -125,6 +125,7 @@ the test keeps measuring wordings the page was not written for.
 | `a howto page asks at least one question in en and fr` | `questions` empty | Add at least one natural question per language |
 | `coverage.json …: <id>#<section> is not a section of <id>` | The coverage matrix sends an old section to a section id the page lacks | Give the page that section id |
 | `⚠ the source "<glob>" covers <n> files (> 25)` | A glob too wide | Narrow it: an ordinary change must not ask to reread dozens of pages |
+| `translations.json holds git conflict markers` (or `reviews.json`) | A merge stopped on it: both branches recorded the same section or claim | `npm run wiki -- records --resolve --by <name>` (see [translations and reviews](#reviews)), then `git add` and commit |
 
 <a name="files-changed"></a>
 
@@ -306,6 +307,18 @@ record, an AI's included: a pair checked by an AI only does not stop `check --pu
 among its gaps, and the page's header says who read it ("written and self-checked by an AI, not reviewed by a person",
 "partly reviewed by a person"…). Only a pair "to review" stops it.
 
+**A merge conflict on either file.** Two pull requests that edit and record the same section (or claim) change the
+same lines, and git stops. Do not pick a side by hand: git often merges one side's hashes and stops on the reviewers,
+so a hand-picked side can credit a person with a text they never read. Run `npm run wiki -- records --resolve --by
+<name>` once the pages and tests themselves are merged. It reads the three versions from git's index and takes main's
+side: theirs when the commit merged in is in main (main merged into a branch), ours on `main` or when HEAD is in main
+(a branch merged into main, or a rebase onto it); otherwise it asks for `--main=ours|theirs`. A record only one side
+changed is that side's; one both changed is the record whose hashes are the current texts', else it is recorded again
+as `--kind ai --relation author` by `--by`, never as a person. It prints each person's review that could not be kept
+(the section or claim, the reviewer, the date), with the command to record it once they read it again. It writes a
+clean file and stages nothing: check it, then `git add` and commit. If the file was staged with its markers,
+`git checkout -m -- wiki/translations.json` brings the conflict back first.
+
 > [!LIMIT id=ai-review-is-not-review]
 > An AI's check of what it wrote is recorded as `--kind ai --relation author` and is never shown as a review. Only a
 > record with `--kind human` makes a pair or a claim "reviewed".
@@ -325,6 +338,7 @@ All run in the engine repository as `npm run wiki -- <command>`.
 | `bundle --out <dir> [--build-id <id>] [--allow-dirty]` | The documentation an installed engine carries (`scripts/pack.mjs` runs it); refuses sources that differ from `HEAD` unless `--allow-dirty`, which marks it `-dirty` |
 | `translations --ack <id#section> --by <name> --kind human\|ai --relation author\|independent` | Records that a pair was read |
 | `review-claim <id> --by … --kind … --relation …` | Records that a claim's scope was read |
+| `records --resolve --by <name> [--main=ours\|theirs]` | Resolves a merge stopped on `translations.json` or `reviews.json`: main's side, the other side's own records, an AI re-ack of what both changed; prints the people's reviews lost; stages nothing |
 | `coverage [--ack <key>]`, `coverage --init [--force]` | Merges a new inventory of the old docs into the matrix, regenerates `legacy.json` and the manifest's `replaces`; `--init` takes the first inventory (`--force` replaces an existing matrix, losing every decision) |
 | `acceptance [--lang en\|fr] [--json] [--strict]` | Runs the real questions through `search_docs`; exits 0 (reported) unless `--strict`; `--export-prompts <dir>` writes the prompts of an AI reader's test instead |
 | `env` | Regenerates the environment variable reference from `wiki/data/env.json` and the code |

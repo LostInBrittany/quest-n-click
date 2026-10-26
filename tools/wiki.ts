@@ -2,6 +2,7 @@
 // [--product-version <v>] [--doc-revision <sha>] [--product-commit <sha>] | bundle --out <dir> [--build-id <id>] [--allow-dirty]
 // [the same three] | check --publish --product-ref <tag|sha> [--doc-ref <sha>] [--released] [--state preview|candidate|published]
 // [--test-report <vitest.json>]… [--candidate <run id>] | review-claim <id> --by <name> --kind human|ai --relation author|independent | translations --ack <id#section> --by <name> --kind human|ai --relation author|independent
+// | records --resolve --by <name> [--main=ours|theirs]
 // | archive --out <file.tar.gz> [--revision r<n>] [--preview] [--build-id <id>] [--test-report <f>… --candidate <run>]
 // [--allow-dirty] [the same three]
 // | publish --target wiki --mode release|revision|rollback|promote|preview --ref <ref> --version <v> --revision r<n>
@@ -26,6 +27,8 @@
 // `--state candidate|published`), and the source set is the product's plus documentation only
 // (§4.5.2). `review-claim` records that a person checked a claim's test covers it (`wiki/reviews.json`);
 // `translations --ack` that a section's two languages were read against each other (`wiki/translations.json`).
+// `records --resolve` resolves a merge that stopped on either file (tools/wiki/resolve.ts, #360): main's side, the
+// records only the other side changed, an AI re-ack of what both changed and nobody read; it stages nothing.
 // The publication (A5b, §4.5): `archive` writes the self-contained release archive (tools/wiki/archive.ts); `publish
 // --target wiki` pushes an archive's wiki to the GitHub wiki and records it in `publication.json`
 // (tools/wiki/publication.ts), by `GITHUB_TOKEN` or the deploy key `WIKI_DEPLOY_KEY`; `pages` assembles Pages' `/docs/`
@@ -105,6 +108,7 @@ import {
 } from './wiki/publication';
 import { transitionPages, writeTransitionPages } from './wiki/transition';
 import { reviewerOf } from './wiki/reviewer';
+import { resolveRecords } from './wiki/resolve';
 import { ackTranslation } from './wiki/translations';
 
 class UsageError extends Error {}
@@ -154,7 +158,7 @@ export function bundleOutProblem(out: string, tracked: readonly string[], root =
 }
 
 const USAGE =
-  'usage: npm run wiki -- check [--test-report <file>]… | check --publish --product-ref <tag|sha> [--doc-ref <sha>] [--released] [--state preview|candidate|published] [--reviews-only] [--test-report <file>]… [--candidate <run id>] | review-claim <id> --by <name> --kind human|ai --relation author|independent | translations --ack <id#section> --by <name> --kind human|ai --relation author|independent | stats [--json] | coverage [--init [--force] | --ack <key>] | build --target wiki --out <dir> [--preview] [--product-version <v>] [--doc-revision <sha>] [--product-commit <sha>] | bundle --out <dir> [--build-id <id>] [--allow-dirty] [--product-version <v>] [--doc-revision <sha>] [--product-commit <sha>] | archive --out <quest-n-click-docs-<v>[-r<n>].tar.gz> [--revision r<n>] [--preview] [--build-id <id>] [--test-report <file>… --candidate <run id>] [--allow-dirty] [--product-version <v>] [--doc-revision <sha>] [--product-commit <sha>] | publish --target wiki --mode release|revision|rollback|promote|preview --ref <ref> --version <v> --revision r<n> --tag <tag> --archive <file> (--repo <owner/name> | --remote <url>) [--sha256 <hex>] [--rollback-to <v>[-r<n>]] [--dry-run] | pages --out <dir> (--repo <owner/name> [--cache <dir>] | --releases <dir> (--repo <owner/name> | --skip-attestations)) [--publication <file>] | next-revision --version <v> --repo <owner/name> | attest --repo <owner/name> --tag <tag> --file <archive> | transition [--root <dir>] [--version <v>] | env | generate [<page>…] [--no-manifest] | acceptance [--lang en|fr] [--json] [--strict] [--export-prompts <dir> [--channel mcp|web] [--url <url>]]';
+  'usage: npm run wiki -- check [--test-report <file>]… | check --publish --product-ref <tag|sha> [--doc-ref <sha>] [--released] [--state preview|candidate|published] [--reviews-only] [--test-report <file>]… [--candidate <run id>] | review-claim <id> --by <name> --kind human|ai --relation author|independent | translations --ack <id#section> --by <name> --kind human|ai --relation author|independent | records --resolve --by <name> [--main=ours|theirs] | stats [--json] | coverage [--init [--force] | --ack <key>] | build --target wiki --out <dir> [--preview] [--product-version <v>] [--doc-revision <sha>] [--product-commit <sha>] | bundle --out <dir> [--build-id <id>] [--allow-dirty] [--product-version <v>] [--doc-revision <sha>] [--product-commit <sha>] | archive --out <quest-n-click-docs-<v>[-r<n>].tar.gz> [--revision r<n>] [--preview] [--build-id <id>] [--test-report <file>… --candidate <run id>] [--allow-dirty] [--product-version <v>] [--doc-revision <sha>] [--product-commit <sha>] | publish --target wiki --mode release|revision|rollback|promote|preview --ref <ref> --version <v> --revision r<n> --tag <tag> --archive <file> (--repo <owner/name> | --remote <url>) [--sha256 <hex>] [--rollback-to <v>[-r<n>]] [--dry-run] | pages --out <dir> (--repo <owner/name> [--cache <dir>] | --releases <dir> (--repo <owner/name> | --skip-attestations)) [--publication <file>] | next-revision --version <v> --repo <owner/name> | attest --repo <owner/name> --tag <tag> --file <archive> | transition [--root <dir>] [--version <v>] | env | generate [<page>…] [--no-manifest] | acceptance [--lang en|fr] [--json] [--strict] [--export-prompts <dir> [--channel mcp|web] [--url <url>]]';
 
 /** Today, as a day (the date a review or an ack records). */
 const today = () => new Date().toISOString().slice(0, 10);
@@ -288,6 +292,35 @@ function run(args: readonly string[]): number {
     }
     console.log(
       `✔  ${key}: the two languages recorded as read against each other by ${reviewer.name} (${reviewer.kind}, ${reviewer.relation})`,
+    );
+    return 0;
+  }
+  if (command === 'records') {
+    const by = option(args, 'by');
+    if (!args.includes('--resolve') || !by?.trim())
+      throw new UsageError('records needs --resolve and --by <name> (the AI that records again what nobody read)');
+    const r = resolveRecords({ wikiDir, by: by.trim(), date: today(), main: option(args, 'main') });
+    if (r.errors.length) {
+      for (const e of r.errors) console.error(`✖  ${e}`);
+      return 1;
+    }
+    console.log(`·  main's side: ${r.side}`);
+    for (const f of r.resolutions) {
+      const n = (k: string) => f.both.filter((b) => b.kept === k).map((b) => b.key);
+      console.log(
+        `✔  ${f.file}: ${f.fromMain} record(s) only main changed, ${f.fromOther} only the other side changed; ${f.both.length} both changed: ${n('main').length} main's and ${n('other').length} the other's kept (their hashes are the current texts'), ${n('again').length} recorded again by ${by.trim()} (ai, author)${n('again').length ? ` (${n('again').join(', ')})` : ''}, ${n('none').length} dropped (no text holds them)`,
+      );
+      for (const l of f.lostHuman) {
+        const command = f.file.endsWith('reviews.json')
+          ? `npm run wiki -- review-claim ${l.key} --by ${l.reviewer.name} --kind human --relation ${l.reviewer.relation}`
+          : `npm run wiki -- translations --ack ${l.key} --by ${l.reviewer.name} --kind human --relation ${l.reviewer.relation}`;
+        console.warn(
+          `⚠  ${f.file}: ${l.key}: the review by ${l.reviewer.name} (human, ${l.reviewer.relation}, ${l.reviewer.date}) is lost with the text it read; once a person reads it again: ${command}`,
+        );
+      }
+    }
+    console.log(
+      `→  nothing staged: check it (npm run wiki -- check), then git add ${r.resolutions.map((f) => f.file).join(' ')} and commit`,
     );
     return 0;
   }

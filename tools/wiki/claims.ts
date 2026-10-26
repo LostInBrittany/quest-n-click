@@ -21,6 +21,7 @@ import { dirname, join, relative, resolve } from 'node:path';
 import { globToRegExp } from '../ci-plan';
 import { z } from 'zod';
 import { formatJson } from './json';
+import { conflictHint, hasConflictMarkers } from './translations';
 import { issuesOf, type Manifest, type Page } from './manifest';
 import type { Block } from './page';
 import { type Reviewer, ReviewerSchema, reviewWords, withReviewer } from './reviewer';
@@ -301,7 +302,7 @@ export function readTestReport(file: string): { report?: TestReport; error?: str
 // ------------------------------------------------------------------------------------------------- reviews
 
 const REVIEWS_FILE = 'reviews.json';
-const ReviewsSchema = z
+export const ReviewsSchema = z
   .object({
     format: z.literal('quest-n-click-docs-reviews'),
     version: z.literal(1),
@@ -317,15 +318,17 @@ const ReviewsSchema = z
     ),
   })
   .strict();
-type Reviews = z.infer<typeof ReviewsSchema>;
+export type Reviews = z.infer<typeof ReviewsSchema>;
 
 /** `wiki/reviews.json`, or an empty record when there is none yet. */
 export function readReviews(wikiDir: string): { reviews: Reviews; errors: string[] } {
   const empty: Reviews = { format: 'quest-n-click-docs-reviews', version: 1, claims: {} };
   const file = resolve(wikiDir, REVIEWS_FILE);
   if (!existsSync(file)) return { reviews: empty, errors: [] };
+  const text = readFileSync(file, 'utf8');
+  if (hasConflictMarkers(text)) return { reviews: empty, errors: [conflictHint(REVIEWS_FILE)] };
   try {
-    const parsed = ReviewsSchema.safeParse(JSON.parse(readFileSync(file, 'utf8')));
+    const parsed = ReviewsSchema.safeParse(JSON.parse(text));
     if (!parsed.success) return { reviews: empty, errors: issuesOf(parsed.error).map((l) => `${REVIEWS_FILE} ${l}`) };
     return { reviews: parsed.data, errors: [] };
   } catch (e) {

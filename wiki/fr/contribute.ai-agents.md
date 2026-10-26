@@ -147,6 +147,7 @@ request dit ce que la seconde lecture a trouvé.
 | L'assistant invente des coordonnées | Il a sauté la règle 2 d'`AGENTS.md` | Demandez à l'humain de placer les choses dans le Studio ou la page de placement, puis lisez le JSON |
 | La machine chauffe, les tests traînent | Plusieurs suites de tests en même temps, ou des workers Vitest orphelins | Une suite à la fois ; arrêtez les workers restants par leur numéro de processus |
 | Un rapport dit « tout est vert » sans sortie | La sortie des commandes de vérité a été résumée | Demandez la sortie elle-même (règle 5) |
+| Une fusion s'arrête sur `wiki/translations.json` ou `wiki/reviews.json` | Les deux branches ont consigné la même section ou la même garantie | Fusionnez d'abord les pages, puis `npm run wiki -- records --resolve --by <votre nom>` ; ne choisissez jamais un côté à la main. Transmettez les relectures de personnes qu'elle dit perdues, puis `git add` et commit ([traductions et relectures](contribute.writing-docs.md#reviews)) |
 
 <a name="files-changed"></a>
 

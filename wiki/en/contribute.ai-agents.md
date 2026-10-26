@@ -140,6 +140,7 @@ what the second reading found.
 | The assistant invents coordinates | It skipped `AGENTS.md` rule 2 | Ask the human to place things in the Studio or the placement page, then read the JSON |
 | The machine heats up, tests hang | Several test suites run at once, or orphan Vitest workers remain | One suite at a time; stop leftover workers by their process id |
 | A report says "all green" without output | The truth commands' output was summarised | Ask for the output itself (rule 5) |
+| A merge stops on `wiki/translations.json` or `wiki/reviews.json` | Both branches recorded the same section or claim | Merge the pages first, then `npm run wiki -- records --resolve --by <your name>`; never pick a side by hand. Pass on the people's reviews it says are lost, then `git add` and commit ([translations and reviews](contribute.writing-docs.md#reviews)) |
 
 <a name="files-changed"></a>
 

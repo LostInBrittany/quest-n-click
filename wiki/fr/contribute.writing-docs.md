@@ -127,6 +127,7 @@ lesquelles la page n'a pas été écrite.
 | `a howto page asks at least one question in en and fr` | `questions` vide | Ajoutez au moins une question naturelle par langue |
 | `coverage.json …: <id>#<section> is not a section of <id>` | La matrice de couverture envoie une ancienne section vers un id que la page n'a pas | Donnez cet id de section à la page |
 | `⚠ the source "<glob>" covers <n> files (> 25)` | Un motif trop large | Resserrez-le : un changement ordinaire ne doit pas faire relire des dizaines de pages |
+| `translations.json holds git conflict markers` (ou `reviews.json`) | Une fusion s'y est arrêtée : les deux branches ont consigné la même section ou la même garantie | `npm run wiki -- records --resolve --by <nom>` (voir [traductions et relectures](#reviews)), puis `git add` et commit |
 
 <a name="files-changed"></a>
 
@@ -312,6 +313,20 @@ n'arrête pas `check --publish`, qui dit combien il y en a parmi ses manques, et
 (« écrite et vérifiée par une IA, pas relue par une personne », « relue en partie par une personne »…). Seule une
 paire « à relire » l'arrête.
 
+**Un conflit de fusion sur l'un de ces fichiers.** Deux pull requests qui modifient et consignent la même section (ou
+la même garantie) changent les mêmes lignes, et git s'arrête. Ne choisissez pas un côté à la main : git fusionne
+souvent les empreintes d'un côté et s'arrête sur les relecteurs, si bien qu'un côté choisi à la main peut attribuer à
+une personne un texte qu'elle n'a jamais lu. Lancez `npm run wiki -- records --resolve --by <nom>` une fois les pages et
+les tests eux-mêmes fusionnés. La commande lit les trois versions dans l'index de git et prend le côté de main : theirs
+quand le commit fusionné est dans main (main fusionnée dans une branche), ours sur `main` ou quand HEAD est dans main
+(une branche fusionnée dans main, ou un rebase sur elle) ; sinon elle demande `--main=ours|theirs`. Une fiche qu'un
+seul côté a changée est celle de ce côté ; une fiche que les deux ont changée est celle dont les empreintes sont celles
+des textes actuels, sinon elle est consignée de nouveau en `--kind ai --relation author` par `--by`, jamais au nom d'une
+personne. Elle affiche chaque relecture d'une personne qui n'a pas pu être gardée (la section ou la garantie, le
+relecteur, la date), avec la commande pour la consigner une fois relue. Elle écrit un fichier propre et n'indexe
+rien : vérifiez, puis `git add` et commit. Si le fichier a été indexé avec ses marqueurs,
+`git checkout -m -- wiki/translations.json` ramène d'abord le conflit.
+
 > [!LIMIT id=ai-review-is-not-review]
 > La vérification par une IA de ce qu'elle a écrit se consigne en `--kind ai --relation author` et n'est jamais montrée
 > comme une relecture. Seul un enregistrement en `--kind human` rend une paire ou une garantie « relue ».
@@ -331,6 +346,7 @@ Toutes se lancent dans le dépôt du moteur, sous la forme `npm run wiki -- <com
 | `bundle --out <dossier> [--build-id <id>] [--allow-dirty]` | La documentation que porte un moteur installé (`scripts/pack.mjs` la lance) ; refuse des sources différentes de `HEAD` sauf avec `--allow-dirty`, qui la marque `-dirty` |
 | `translations --ack <id#section> --by <nom> --kind human\|ai --relation author\|independent` | Consigne qu'une paire a été lue |
 | `review-claim <id> --by … --kind … --relation …` | Consigne que la portée d'une garantie a été lue |
+| `records --resolve --by <nom> [--main=ours\|theirs]` | Résout une fusion arrêtée sur `translations.json` ou `reviews.json` : le côté de main, les fiches propres à l'autre côté, une reconsignation par IA de ce que les deux ont changé ; affiche les relectures de personnes perdues ; n'indexe rien |
 | `coverage [--ack <clé>]`, `coverage --init [--force]` | Fusionne un nouvel inventaire des anciennes docs dans la matrice, régénère `legacy.json` et les `replaces` du manifeste ; `--init` prend le premier inventaire (`--force` remplace une matrice existante, en perdant chaque décision) |
 | `acceptance [--lang en\|fr] [--json] [--strict]` | Passe les vraies questions dans `search_docs` ; sort en 0 (rapporté) sauf avec `--strict` ; `--export-prompts <dossier>` écrit à la place les consignes du test par une IA lectrice |
 | `env` | Régénère la référence des variables d'environnement depuis `wiki/data/env.json` et le code |

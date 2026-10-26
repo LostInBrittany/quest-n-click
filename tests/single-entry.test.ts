@@ -99,6 +99,8 @@ const WRITERS: Record<string, string> = {
     "elsewhere: the site's /docs/, into the empty folder named by `wiki -- pages --out` (the organization's site builds it)",
   'tools/wiki/publication.ts':
     "elsewhere: a clone of the wiki's repository in a temporary folder (its pages and publication.json, pushed), and the deploy key (0600) beside it",
+  'tools/wiki/resolve.ts':
+    'elsewhere: wiki/translations.json and wiki/reviews.json, rewritten resolved after a merge stopped on them (`wiki -- records --resolve`, of the folder --wiki names); nothing staged',
   'tools/wiki/transition.ts':
     'elsewhere: the transition pages docs/en|fr/*.md (C2), under the root `wiki -- transition --root` names',
   'tools/wiki/translations.ts':
