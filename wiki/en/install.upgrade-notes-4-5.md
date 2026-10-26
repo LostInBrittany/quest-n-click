@@ -1,6 +1,6 @@
 # Upgrade notes: 4.5
 
-What 4.5.0 "Wiki", 4.5.1, 4.5.2, 4.5.3 and 4.5.4 changed. Nothing to change in a game up to 4.5.1 (the documentation moved);
+What 4.5.0 "Wiki", 4.5.1, 4.5.2, 4.5.3, 4.5.4 and 4.5.5 changed. Nothing to change in a game up to 4.5.1 (the documentation moved);
 from 4.5.2, `npx quest-n-click migrate` moves its imports to the scoped package names; 4.5.3 changes how a release is
 made, not a game.
 
@@ -165,3 +165,36 @@ fingerprint moves). Install `@quest-n-click/engine@4.5.4` ([Install from npm](in
   the `docs-publish` environment; the runs by hand wait for a reviewer under `docs-publish-manual`.
 - **For contributors**, a pull request that touches no product code waits less, and a new test no longer means
   rewriting the READMEs' figures and the baseline.
+
+<a name="from-4-5-4-to-4-5-5"></a>
+<!-- applies: 4.5.5.. -->
+
+## From 4.5.4 to 4.5.5 "Reworked CI"
+
+Nothing to change in a game that validates: it builds, plays and saves as on 4.5.4 (no content field, save, schema
+or game fingerprint moves). Install `@quest-n-click/engine@4.5.5` ([Install from npm](install.from-npm.md)).
+
+- **`npm run validate` refuses a `seen` key that nothing records.** A `{ seen: 'room.npc.<n>' }` written for a topic
+  that has an id was always false in a schema 3 game; it is now an error that names the key to write
+  (`topic.<id>`, `event.<id>`, `choice.<id>`). If your game fails validation after the upgrade, that condition never
+  worked: write the key the error gives.
+- **A voiced line whose clip cannot play** (before the first tap, sound off, a missing file) stays on screen for its
+  reading time instead of closing at once.
+- **`npm run i18n -- extract`** writes the texts of a game's own minigames (`textParams`), so they no longer need to be
+  added by hand and come back as `_stale`.
+- **A dog in the image prompts:** a character whose `kind` holds `'dog'` gets the four-legged sheet with a dog's words.
+- **In a project made from npm**, `npx quest-n-click page <name>` writes the phone pages (`storyboard`, `review`,
+  `placement`, `world`, `puzzles`), and `page storyboard --readonly` a story to publish beside the game: the game's
+  service worker no longer answers `pages/`.
+- **For the maintainers**, a release is still three actions, now with one CI run each
+  ([Releasing](contribute.releasing.md#release-command)):
+  - `npm run release -- prepare` stops before the push until the prose is written and the claims are reviewed, then
+    pushes once and warms the mutation cache, so the candidate takes about half an hour;
+  - `npm run release -- <version>` finds the candidate of the merge, checks the docs' gates on the release commit
+    before the tag (or releases with `--docs-revision`), survives a relaunch without re-running or re-verifying, and
+    has an end-to-end test;
+  - on `main`, only the release commit keeps a CI run of its own, every other merge cancels the one before.
+- **For contributors**, a branch records its translation acks and claim reviews in its own `changes/<slug>.acks.json`,
+  so two pull requests no longer conflict on `wiki/translations.json`; `npm run changes -- --check` refuses a fragment
+  the release would stop on; the recurring flaky tests are fixed by cause, the unit shards take about the same time,
+  and a slow apt mirror no longer fails the browser installs.

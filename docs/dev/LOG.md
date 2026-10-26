@@ -8267,3 +8267,470 @@ records the three human actions. A dry run on a feature branch refused for the f
 
 → next: 4.5.5 with the remaining patches of the two games (the read-only storyboard, the prompts' dog, the Telnet
 stress test) and `prepare`'s upgrade-notes bullets, which kept only each entry's first line.
+
+## #319 · 2026-10-26 · Claude · proposal · the human gates before prepare pushes
+
+4.5.4's release pull request failed its `check` job on four claims only an AI had checked: the maintainer recorded
+each review by hand, pushed, and waited for CI a second time. `prepare` now runs those gates (`humanGates`, shared
+with `checkRelease`) after its commit and before the push; a red gate prints the wiki's ✖ lines and the same command
+to run again (`gatesStop`) and exits 1. Run again on `release/<version>`, `resumeRefusals` recognises the branch it
+prepared (package.json at the version, `preparedSubject` among the commits over main, a clean tree) and runs
+`RESUME_STEPS` only: the gates, then the pull request. Any other state of that branch is refused. The tool never
+writes a human review, not even behind a prompt: the person types `review-claim`. The releasing page (en, fr) says so,
+and that `npm run release -- check` on main lists the pending claims early.
+
+→ next: use it on 4.5.5's release, which should run the pull request's CI once.
+
+
+## #320 · 2026-10-26 · Claude · proposal · the `TODO(release)` prose before prepare pushes
+
+After #326 `prepare` held the push on the docs' human gates, but not on the `TODO(release)` prose it writes itself: the
+pull request opened with the markers in, `release -- check` failed on them, and the prose was pushed after, a second
+CI run. The step before the push (`before the push`, was `human gates`; `RESUME_STEPS` with it) now reads the same
+markers as `checkRelease` (`todoBrief`, of which `todoMarkers` is the `file:line` list) and the human gates, and
+`beforePushStop` (was `gatesStop`) says both in one stop: each marker with its line as the brief (cut at 200
+characters), each ✖ line of the gates, the translation pair the upgrade notes make, the same command to run again. It
+returns nothing when both are clean, and only then does `prepare` push. A first run always stops (it has just written
+the markers); the person or their assistant writes the prose on the local branch, and the run again pushes once. No AI
+call from the tool, no prose written, no review recorded. The pull request's body no longer lists prose left (there is
+none by then). The releasing page (en, fr) describes the flow.
+
+→ next: 4.5.5's release, the first to push its pull request once.
+
+
+## #321 · 2026-10-26 · Claude · proposal · the release command looks for its commit on main's first parents
+
+4.5.4's `npm run release -- 4.5.4` stopped at once: "no candidate of 1d3d98c on main". `findReleaseCommit` walked
+`git log -- package.json` on `upstream/main`, which goes down the merged release branch too: its newest 4.5.4 commit
+before a 4.5.3 one was the `prepare` commit (`1d3d98c`), not the merge of #322 (`47dccf1b`) that the release-merge
+candidate ran on. `--first-parent` keeps the walk on main's own line, where the merge is the commit that turned
+`package.json` into the version. A test pins the call (the walk's git call is not otherwise unit-tested).
+
+→ next: 4.5.4's release, then 4.5.5.
+
+
+## #322 · 2026-10-26 · Claude · proposal · the nightly fills the mutation cache the candidate reads
+
+The 4.5.4 candidate (run 40224466138) ran 18 mutation shards of 9 to 46 min at 8 at a time (#302): they started from
+19:09 to 19:55, past the hour, everything else done by 19:36. The shards already sat behind `actions/cache`, keyed
+`mutation-<shard>-<set's input hash>`, but every gated set changed hash between the morning's candidate (b061c4ae)
+and the release's (47dccf1b): `vite.config.ts` (070a3cd9) and the lockfile (a Dependabot merge, 0c872cc0) are inputs of
+every set. The release commit itself keeps every hash (its `package.json` and lockfile changes are the version fields
+the hash leaves out). And the nightly measured exactly these shards on `main` every morning, `--fresh`, and kept
+nothing.
+
+Now the nightly's `mutation` job reads the hash before any mutant (the candidate's step) and, after the run, saves the
+shard's report with `actions/cache/save` under the candidate's key: a gated shard, passed only (the step's implicit
+`success()`; `reusableReport` refuses a failed report anyway), never on a warm-up's hit. Checked before writing it:
+caches are scoped by ref, the nightly and the candidate both run on `refs/heads/main` (and a `full-ci` pull request's
+candidate reads the default branch's); reuse is whole-shard (`inputHash`, the shard's input hash, `passed`) and the
+merge accepts shards of one input measured on several commits (4.1.8); same matrix names, same path (so the same
+cache version); keys are immutable, so a key already saved is a warning, its entry a passed report of the same inputs;
+no `restore-keys`, a report of other inputs is never reused. Entries are 2 to 13 KB; the repository is over its 10 GB
+(npm caches of pull requests), so the least recently used go first, and a night's entry read the same day is among
+the newest. The night stays `--fresh` (4.1.8: under load a timeout counts as a kill). `-f jobs=mutation` (a choice,
+`all` by default) runs the mutation jobs only, every other job's `if` false, and reuses what the cache holds: a warm-up
+after a release's last merge, when a change shared by every set moved them all. The nightly's matrix at 8 at a time,
+so a warm-up by day leaves the runners to pull requests. Not a reusable workflow for the three mutation jobs:
+`tests/release-candidate.test.ts` and the candidate's gate read them by name in each workflow. Two tests pin the key
+shared with the candidate, the save's conditions and the warm-up's guards. The CI, mutation and releasing pages (en,
+fr) say it.
+
+→ next: the 4.5.5 candidate's mutation jobs, hits for the sets the night measured; a red night's shard is not saved.
+
+
+## #323 · 2026-10-26 · Claude · proposal · prepare starts the mutation warm-up when it pushes
+
+#330 made the nightly's mutation jobs fill the cache the candidate reads, and a warm-up on demand (`-f jobs=mutation`)
+for the day an input every set reads moved; the releasing page asked the maintainer to start it after the last merge.
+`prepare` now does it in its `pull request` step, after the push and before `gh pr create`, so the body can say it:
+`warmupArgs`/`warmupCommand` (the nightly, `--repo REPO`, `--ref main`, `-f jobs=mutation`), `startWarmup(run, repo)`
+(through the same `capture` runner as the human gates; never throws: a non-zero exit or a missing `gh` is a ⚠ with the
+last line gh printed and the command to run by hand; the run's URL when gh prints one, else the workflow's page),
+`warmupBodyLine` and `noPrNote`. Rulings: the dispatch needs the push (main's hashes equal the release commit's, the
+branch does not matter, but a prepare that stopped or a dry run touches nothing remote); on a resume it starts with
+the push of that run; `--no-pr` pushes nothing and so starts nothing, and prints the command for when the pull request
+is opened by hand; a fork's maintainer (`WEB_SCUMM_REPO`) warms their own repository's main. Six tests, a fake runner,
+no dispatch for real; one pins the call's place in the step (after the push, before the pull request, never in the
+stop). The releasing page (en, fr) says it; the manual command stays for a candidate on another SHA.
+
+→ next: 4.5.5's release, the first whose candidate finds the cache warm without anyone starting it.
+
+
+## #324 · 2026-10-26 · Claude · proposal · the upgrade notes start from whole CHANGELOG bullets
+
+`prepare`'s `upgrade notes` step read the release's CHANGELOG section with `sectionBullets`, which kept the lines that
+start with `- `: a bullet wrapped over several lines (nearly all of them, as `changes/*.md` writes them) lost every line
+but its first, and 4.5.4's section opened on sixteen half-sentences (#333). `changelogBullets` (exported, was
+`sectionBullets`) keeps each top-level bullet with what follows it while the lines are indented or blank: continuation
+lines, a nested list, a paragraph of the same bullet, as written. A heading, the intro or any line at the margin closes
+it; the blank lines between bullets are dropped, so `upgradeNotesSection` writes one tight list, the shape the final
+4.5.4 notes have. Tests: a wrapped bullet, a nested list, two bullets with no blank line between, a bullet with a
+second paragraph, the headings, another version's bullets. `tools/changes.ts` keeps a fragment's text whole and no
+other release tool filters bullets by line. `changes/release-first-parent.md` opened on `### Fixes`, a heading
+`--assemble` refuses: it is `### Fixed` now, or 4.5.5's `prepare` would have stopped at its changelog step.
+
+→ next: 4.5.5's release, whose upgrade notes start from whole bullets.
+
+
+## #325 · 2026-10-26 · Claude · proposal · changes --check reads the fragments as --assemble will
+
+#328's `changes/release-first-parent.md` opened on `### Fixes`: CI's `check` job ran `changes -- --check`, which only
+looks for a fragment (`needsFragment`), the pull request merged, and the heading would have stopped 4.5.5's `prepare`
+at `--assemble` (#335; found while fixing #333). `fragmentProblems` lists, as `changes/<name>:<line>: …`, what
+`--assemble` refuses in every file of `changes/` (the branch's and the others, since all are folded at the release):
+a heading outside `SECTIONS`, text before the first heading (once, at its first line), a `.log.md` not opening on
+`## <title>`. `sectionsOf` and `logEntryOf` throw the first problem of the same `sectionProblems` and `logProblem`,
+so the check and the assembly cannot disagree. `--check` says them all and exits 1 before the fragment question. CI
+needed no change: the `check` job runs `changes -- --check` on every pull request. This branch carries #334's
+one-line `### Fixed` in `release-first-parent.md` too (the same change, so either order merges), or its own CI would
+fail on main's fragment. A test runs the check on the branch's own `changes/`. The conventions page (en, fr) listed
+the refusal under `--check` already; it now says what the check reads and shows its message.
+
+→ next: 4.5.5's release.
+
+
+## #326 · 2026-10-26 · Claude · proposal · every main commit keeps its own ci run
+
+4.5.4's release: `ship tag` found `ci` run 40224466313 on `47dccf1` (the merge of #322) cancelled by the push of
+#324's merge and re-ran it ("ci cancelled: re-running the failed jobs of run 40224466313 once"), 10 to 15 minutes.
+`ci.yml` ran in `ci-${{ github.ref }}` with `cancel-in-progress` on for everything but a run by hand (#337). A push now
+runs in `ci-<sha>` and only a pull request cancels (`cancel-in-progress: github.event_name == 'pull_request'`): with
+`cancel-in-progress: false` alone, one group per ref would still lose a pending run when a third merge comes, which
+GitHub cancels in any group. A run by hand keeps its group per ref and waits. `qualify.yml` had the same pattern on its
+`main` runs (`cancel-in-progress: true`, one group per ref): no release step reads them, but they keep the profile from
+rotting between candidates, so they follow the same rule, `qualify-<pr number or sha>`. `candidate` (per SHA),
+`release` (per tag) and `docs-publish` (one group) never cancel; `nightly`, `prove` and `mutation` set no concurrency
+and run on no push. A test in `tests/release-main-ci.test.ts` reads each workflow's `concurrency:` and evaluates its
+two expressions for a push of `main`, a pull request and a run by hand. `tests/release-docs-publish.test.ts`, which pinned the
+old `cancel-in-progress` text, pins the new one. The CI page (en, fr) says which run a newer
+push cancels. actionlint is not installed here: the two files were checked as YAML only.
+
+→ next: 4.5.5's release, whose release commit keeps its run.
+
+
+## #327 · 2026-10-26 · Claude · proposal · the release command checks the docs' human gates on the release commit
+
+4.5.4's `docs-publish` (release run 40234535060) refused `create.review-pages`: the claim `import-layout-merges` (#318)
+was self-checked by its AI author, not reviewed. #318 reached `main` after the release pull request's (#322) CI had
+run `release -- check` on its branch, and before the merge; nothing checked the gates on `47dccf1` itself (#339).
+`runRelease` now runs `humanGates` (prepare's, the release pull request's check) in `gatesAt(sha)`, a temporary
+detached worktree of the release commit with the checkout's `node_modules` linked, removed in a `finally`: `main` can
+be ahead of the release commit, and `wiki -- check --publish` judges the checkout it runs in (`--doc-ref` must be its
+HEAD). It runs after the other refusals and before the candidate is waited for, and not once the tag is out (a
+resumed run). Run on `47dccf1`, it gives 4.5.4's refusal in seconds. The tag is pinned to the release commit, whose
+tree cannot take a review, so `docsGatesStop` names the one way on, `--docs-revision`: the release and npm as usual,
+then a revision from `docs/<v>` (`docsRevisionSteps`: the branch cut from the tag, the reviews, the push,
+`gh workflow run docs-publish -f mode=revision`), printed again in the summary. Not taken: "require branches to be up
+to date" on `main` (every pull request would re-run its CI whenever `main` moves, for a release-only trap), and a
+candidate that fails on the gates (a red candidate on the release commit could never turn green without a new
+version; it keeps its docs check as a warning). The releasing page (en, fr) says it.
+
+→ next: 4.5.4's docs revision for `import-layout-merges`; 4.5.5's release, the first to check its gates on its commit.
+
+
+## #328 · 2026-10-26 · Claude · proposal · the install retries get a limit per attempt
+
+#338's `studio-hosted` failed in its first attempt of `npx playwright install --with-deps chromium firefox`: apt pulled
+from `azure.archive.ubuntu.com` at a few kB/s and the step's `timeout-minutes: 10` cut the whole loop at 21:15:35, so
+`for i in 1 2 3` never reached its second attempt (34 s on main's run 40228643869). A step limit alone bounds a hang,
+it does not retry it. Every loop of the shape `for i in 1 2 3; do (…) && break; [ "$i" = 3 ] && exit 1; echo "retry
+$i"; sleep 15; done` (79 over eight workflows) is audited: on Linux (74) the attempt runs under `timeout <n>m`, with
+3 × n + 1 ≤ the step's minutes (20 → 6, 15 → 4, 12 and 10 → 3); the 8-minute steps go to 10 (2 minutes an attempt
+was too close to `npm ci`'s 59 s), `studio-hosted`'s Playwright step to 20 like the other `--with-deps` steps;
+`release.yml`'s pinned npm got the parentheses the others have. GNU `timeout` signals its process group, so npm's
+and apt's children go with it. The jobs that run on macOS or Windows (`windows`, both workflows' `external-consumer`)
+are left unbounded per attempt, a comment says why: macOS has no `timeout`, and Windows' System32 `timeout.exe` may
+come first in Git Bash's PATH. Out of scope: polling loops (`seq 1 60` with curl, `pg_isready`), the bridge-load
+measurement runs, the revalidation call (curl `--max-time`). `tests/ci-retry.test.ts` parses every workflow, checks
+it found every loop the text has, and pins both rules; actionlint 1.7.7 is clean on the eight files. The CI page's
+known-flakes row (en, fr) says it.
+
+→ next: a portable per-attempt limit for the macOS and Windows jobs, if one of them ever stalls the same way.
+
+
+## #329 · 2026-10-26 · Claude · proposal · a resumed release command verifies the release once
+
+4.5.4's `npm run release -- 4.5.4` was run again after the phone that held the npm 2FA died, and the rerun redid
+`ship verify 4.5.4` (the download, the sums, the attestations, `gh release verify-asset` on each of 35 files), about 5
+minutes for a release verified minutes before (#343). `verifyOnce` replaces the call: it reads `verifiedState` (the
+release from `gh api repos/<repo>/releases/tags/v<v>`: its id, `immutable`, each asset's `digest`; the tag object and
+its commit from `git ls-remote`), and `verifySkip` skips only when a record of a passed verify holds exactly that state,
+every asset has a digest and the release is immutable, and `--reverify` was not given; each other case runs the verify
+and says why. The state is read before and after the verify, and the record
+(`.cache/release/v<v>.verified.json`, beside the download folder, since `ship verify` refuses a file its manifest does
+not list) is written only when the two match. An immutable release's assets and tag cannot change once published, so
+the bytes verified are the bytes served; the digests are compared anyway. Run on v4.5.3's real API and ls-remote
+output, the state reads 35 assets with digests, immutable. `ship verify` and release.yml are unchanged. Not in scope:
+`npm stage approve` does not compare a staged package with the release's tarball (release.yml's `npm-stage` stages
+the very archives the release carries, checked against its SHA256SUMS). The releasing page (en, fr) says it.
+
+→ next: 4.5.5's release, whose resumed runs skip a verify already passed.
+
+
+## #330 · 2026-10-26 · Claude · proposal · main's ci: only the release commit is never cancelled
+
+#338 (#337) put every push of `main` in a group of its own SHA, never cancelled, so that the release commit's run
+survives the next merge. On 25 Oct the merges of #334, #336, #338 and #341 each kept a full run, the runners went to
+`main`, and #344's CI could not start until two superseded runs (40236252581, 40236266866) were cancelled by hand.
+Only the release commit's run is read (`release.yml`'s main-ci gate on the tag's SHA, D55), so only it needs the
+group of its own: `ci-${{ <release> && github.sha || github.ref }}` plus `-by-hand` for `workflow_dispatch`, and
+`cancel-in-progress` on a pull request or a push that is not a release. `<release>` is
+`contains(github.event.head_commit.message, '/release/')` (the merge of `release/<x.y.z>`, as 4.5.3 and 4.5.4 were
+merged) or `… '(prepared by npm run release -- prepare)'` (`preparedSubject`: the repository's squash message lists the
+commits, a rebase keeps it when it is the last one). Rulings: a loose `': the release'` was refused (it matches "release:
+the release commit is looked for…"); a false positive only spares a run its cancellation, a false negative is #337
+again; a rebase of a release pull request with commits after the prepared one never had a `ci` run on the release
+commit (ci runs on a push's head only), cancelled or not. `qualify` goes back to one group per ref, cancelled except by
+hand: the release reads the candidate's qualification, never `qualify`'s `main` run. The test's evaluator learnt
+`contains()` and `!`; it pins two ordinary pushes (one group, the newer cancels), a release merge, squash and rebase
+(own group, never cancelled, apart from ordinary pushes and runs by hand), pull requests (cancel) and a run by hand
+(cancels nothing). actionlint 1.7.7 clean. The CI page (en, fr) says it.
+
+→ next: 4.5.5's release, the first whose release commit's run is the only one on `main` kept from cancellation.
+
+
+## #331 · 2026-10-26 · Claude · proposal · i18n extract reads a custom minigame's textParams
+
+`tools/i18n.ts` loaded the game module and kept only its `game`: `textPaths(game)` and `localeStatus(game, table)`
+walked every `{ minigame }` with the built-in `textParams` table only, so a game's own minigame (`index.ts` exports
+`minigames`) had no paths in the locale files, while `applyLocale` in `boot.ts`, given `o.minigames`, did translate
+them (#250, stated as the LIMIT `custom-minigame-i18n-extract` in the 4.5.0 wiki). The CLI now passes the module's
+`minigames` to the extract and the status; `localeStatus` takes them as a fourth argument, and `report` as an option
+(`npm run validate -- --report`, the Studio's report), so a translated custom text is not counted as stale either.
+The test builds a game folder in `.cache` whose `index.ts` exports a `duel` minigame and runs the CLI on it through
+`$GAME_DIR`. The LIMIT is gone from create.custom-minigame (en, fr), whose contract step says the extract writes them.
+Not in scope: the tools that apply a locale outside the player (hero-matrix, the voice checks) still read the built-in
+`textParams` only; their checks are about hero lines and voices, not minigame params.
+
+→ next: 4.5.5's release.
+
+
+## #332 · 2026-10-26 · Claude · proposal · a voiced line whose clip cannot play keeps its reading time
+
+`say()` in `src/engine/dom/speech.ts` ended the line as soon as `audio.voice()` resolved, and `voice()` resolved at
+once when it could not play (sound off, no gesture yet, voice volume 0, no howl) or on `loaderror` / `playerror`, the
+same as at the clip's `end`. `voice()` now resolves `true` at the clip's end and `false` when it could not play; on
+`false` the line waits for what remains of `sayMs(text, textSpeed)` since it appeared (the unvoiced line's reading
+time, from `core/timing.ts`), unless a tap or a newer line ended it first. `tests/dom/voice-fallback.test.ts`: no
+gesture (the real `Audio`, happy-dom), a clip that fails late (the rest of the reading time, not a whole one), a clip
+that plays (it ends the line, however long). The wiki's LIMIT `voiced-line-without-sound` (`create.voices`, en and
+fr) became prose; the `#autoplay` pair acked as the author's.
+
+→ next: a GUARANTEE on `create.voices` backed by the new test, once a human reviews the claim.
+
+
+## #333 · 2026-10-26 · Claude · proposal · the unit shards by duration, the CI page brought up to date
+
+Over the last 20 runs of ci.yml (25 October 2026) the fourth `unit` shard ran its tests in 70–97 s, the three others
+in 105–273 s. Vitest's `BaseSequencer.shard` sorts the files by the SHA-1 of their path and cuts the list into equal
+counts: in run 40237204928 the files' own durations summed to 450 / 410 / 292 / 195 s over 92–93 files each, with the
+three files of about two minutes (`checkpoint`, `compact`, `por`) and those of 70–80 s (`wiki-archive`,
+`studio-engine-upgrade`, `status`) all in shards 1–3. Options weighed: moving the heavy files by hand (rots with every
+new test), vitest's cache (empty on a fresh runner), a duration-aware sequencer from a committed table (chosen).
+`tools/unit-shards.ts` replaces `shard()` and `sort()`, with vitest's types only (the module ships in the package
+beside `vite.config.ts`, and vitest is a development dependency). A first version balanced the summed durations
+(longest-processing-time greedy): on this pull request's first run, under coverage, the test steps took 257 / 226 /
+129 / 143 s. The sums were even, but `checkpoint` (205 s) and `compact` (194 s) set their shards' floor, and with no
+cache vitest starts the largest file first, not the longest: `checkpoint` began 49 s in. The second version counts a
+shard's time as max(longest file, total / 2): a runner works on about 2.5 files at once (summed file time over wall
+time in these runs), and 2 leaves room for the imports and keeps the files spread (at 2.2 a third of the suite piled
+under `checkpoint`'s shard). Each file goes to the shard it leaves the shortest, ties to the least work; `sort()`
+starts the longest recorded file first. Replayed on that run's own file times, the slowest shard drops from 256 s
+to about 211 s of tests; the floor is the longest file. The table is the median of four
+runs' logs (40237204928, 40236266866, 40236988562, 40231754186; one under coverage); the four shards get 109 / 90 /
+87 / 86 files and 199 s each in the model. `tests/unit-shards.test.ts` covers the split, the recording, the
+wiring, and that the committed table keeps the four within a tenth of each other's time, with no shard holding twice
+another's files.
+
+The plan rule: rules are first-match, and `^(tools|scripts)\/` came before the hosted-Studio rule that named
+`tools/studio/diff-rooms.ts`, which `studio-server/src/ops/diff-captures.ts` imports and only `studio-hosted` tests.
+A rule of its own before the generic one (authoring gates and `studioHosted`); a check over `git ls-files` finds no
+other rule a specific path of which is shadowed. The CI page (en, fr): the workflows table (`ci` on no tag,
+`release` on the tag's push, the candidate on the release merge, the nightly's warm-up by `prepare`), the ratchet on
+a tag gone, the third tier, `full-ci`'s "on a tag", a `unit (<i>)` row to reproduce a shard, and a section on the
+shards. #347 (main's non-release pushes cancelled again) is still open and is not described.
+
+The second version's run (40242277080, under coverage): tests 119 / 215 / 96 / 201 s against 257 / 226 / 129 /
+143 s before it and 241 / 262 / 268 / 95 s on main. Every long file now starts within 4 s of its shard. What is
+left is each file's own variation: `wiki-archive` took 159 s (79–138 s in the five other runs), `status` 110 s
+(38–80 s), `por` 92 s (72–186 s), `checkpoint` 117 s (117–214 s). The table is now the median of six runs, these
+two among them. Replayed on each of the six runs' real file times, the slowest shard is that run's longest file plus
+0 to 36 s; a split made before the run cannot do better while the files vary by half. Splitting `checkpoint` and
+`compact` into smaller files would lower the floor; it is not done here. The page's plan table also gets #353's
+`scripts/ci-playwright-deps.sh` row, merged meanwhile.
+
+→ next: refresh `tools/unit-durations.json` when a shard drifts past a fifth of the others.
+
+
+## #334 · 2026-10-26 · Claude · proposal · the release command, end to end
+
+4.5.4's `npm run release -- 4.5.4` ran end to end for the first time on the release itself, and each of its bugs was
+found there: the wrong release commit (#328), the docs gates late (#341), a second `ship verify` on a relaunch (#344).
+#348 adds the test that runs it before a release does. `tests/release-command.test.ts` builds a scratch repository
+(4.5.4's shape: the release branch's prepare, prose and review commits, the merge, then a merge touching
+`package.json` and one not), a local bare repository as its `upstream`, and puts first on the PATH a fake `gh` (runs
+and their attempts, release JSON), a fake `npm` (`whoami`, `view`, `stage list`, `stage approve`, the wiki's gates)
+and a `git` that is the real one but for `git remote -v`, which names the organisation's repository on GitHub. The
+`ship.mjs` the command runs is a fake committed in the scratch repository (it tags and pushes, as the real one, only
+when the tag is absent). The command runs as typed, `tsx tools/release/prepare.ts <version>`, its waits on a virtual
+clock: `QNC_RELEASE_CLOCK=virtual` makes `lib.mjs`'s `sleep` advance `clock()` at once, and `until` and the candidate's
+deadline read that clock (registered in `wiki/data/env.json`).
+
+Its first run found a bug on main: since #339 `release-run.ts` imported `humanGates` from `prepare.ts`, whose dispatch
+does `await import('./release-run')` at its top level, so the import cycle never settled and the command exited at once
+("Detected unsettled top-level await"), before saying anything. `humanGates` moved to `tools/release/gates.ts`
+(re-exported by `prepare.ts`); a source test pins that `release-run.ts` never imports `./prepare`. Run with
+`--first-parent` removed, the history scenario names the prepare commit, as 4.5.4 did.
+
+The candidate wait decides through `candidateStep` (pure, tested): green is done; a first attempt failed or cancelled
+is re-run once, `--failed` when a job failed, whole when none did (a run cancelled before any job failed said
+`candidate cancelled ():` and re-ran `--failed`, which had nothing to re-run); a later attempt failed stops, whoever
+re-ran it, the budget being the run's attempt number (`gh run view --json attempt`) instead of an in-memory flag that a
+relaunch reset; a re-run asked while GitHub still shows the old attempt waits; an attempt still going after
+`CANDIDATE_DEADLINE_MS` (3 h, said when the wait starts, counted again for the re-run's attempt) stops with the run's
+link and the same command to resume. `ship`'s `rerunOnce` (main's `ci` for `ship tag`, a pull request's checks) reads
+the attempt the same way: a run already at attempt 2 is not re-run, and a re-run it asked waits until GitHub shows it.
+
+`prepare` and `check`: `check` has two more items, the passes sheet and the golden save (its index entry and its
+file); `prepare` refuses a name with `( ) [ ] " « » \` \ $ < > |` (ruled: refused, never escaped; the README's link
+`[v<v> (<name>)](…)` is read back by the next prepare, whose pattern stops at the first `)`) and a newest passes sheet
+without `<!-- field:begin -->` (`passesSheet` cut at `indexOf` -1, now `passesSheetProblem`, checked before anything is
+written); `changelogIntro` says "a major release after" for `x.0.0` and `LOG #N` for a single entry. The releasing page
+(en, fr) says it.
+
+→ next: 4.5.5's release, the first one this test ran before.
+
+
+## #335 · 2026-10-26 · Claude · proposal · apt out of the per-attempt timeout
+
+#342 (#340) put `timeout 6m` around each attempt of the install loops. On #350 (run 40238669117, `studio-hosted`) the
+mirror was slow again: at 22:20:12 `timeout` killed npx and Playwright, but the apt-get Playwright ran through `sudo`
+(pid 6923) survived the signal and went on fetching (`Get:22` to `Get:26` after "retry 1") and held
+`/var/lib/dpkg/lock-frontend`; retries 2 and 3 failed in a second on "Could not get lock". Of the 74 bounded loops,
+only the four `playwright install --with-deps` run apt. Rulings: never kill apt (killing dpkg mid-install needs
+`dpkg --configure -a`, and the signal `timeout` sends to its group did not reach that apt-get); make it fail and wait by itself, an
+apt.conf.d file with `Acquire::http(s)::Timeout "60"` (a mirror that sends nothing), `Acquire::Retries "3"` and
+`DPkg::Lock::Timeout "300"` (unattended-upgrades, a leftover attempt); a slow mirror that still sends is waited for
+within the step's 20 minutes. `scripts/ci-playwright-deps.sh <browser>…` writes it and runs `npx playwright
+install-deps` three times; the browsers' loop (`npx playwright install <browser>…`, Playwright's CDN, no sudo) keeps
+`timeout 6m`. `studio-hosted`'s job goes from 30 to 40 minutes. `tests/ci-retry.test.ts`: no loop runs apt, sudo,
+`--with-deps` or `install-deps`; the four jobs (pinned) call the script for the same browsers before their download,
+in a step with `timeout-minutes`; the script sets the four options, runs nothing under `timeout`, and parses
+(`bash -n`). The CI plan sends a change of the script to `studio-hosted`. The CI page's known-flakes row (en, fr).
+
+→ next: watch the next slow-mirror day: the deps step should take longer, never fail on a lock.
+
+
+## #336 · 2026-10-26 · Claude · proposal · the flakes, by cause
+
+Every failure of 11 to 25 October (400 runs, 80 failed, 16 re-run) read from its job log; #356 lists them with their run
+ids. Already fixed and left alone: the apt stalls under `playwright install --with-deps` (#261, #340/#342, #353), the Firefox
+frame waits of the latest preview (#255, #264), #210's step 6d, the wiki suites' limits of 23 October. Windows: 12 of
+its 13 failed jobs were real failures of their branch, one was load; nothing Windows-specific to change. Fixed here:
+`studio-scenario-map` (a child per `ir()`/`map()`: three of six loaded local runs failed, none since; the game folder's
+module is imported once per state of its files, `groupings.json` aside, which nothing imports, and each call gets a
+copy), `wiki-publication` (one seeded bare repository copied per test, the tip read in it with `ls-tree` and `show`),
+the explicit limits (`release-stable`'s three blocks that run steps, the wiki push, `pixel`'s Python, `exit-on-tap`, the
+own-wiki bundle at 300 s like its neighbours, H10 at 60 s like its neighbours, what the scenario map still starts). Ten
+loaded copies of the seven files at once: 127 timeouts before, none after; what still fails there is `studio-collab`'s
+503 from the Studio's own limits, out of reach of a test limit. `e2e-studio-hosted.ts` 4b gets 6b's recovery (a silent
+frame for 15 s, one more click). `e2e-pwa.mjs`: WebKit's "access control checks" (any CORS-mode load that failed, the
+palette swap's `crossOrigin` frames) asked again offline as an image with `crossOrigin`, drawn → a warning, refused → a
+failure; both paths run locally with injected messages. `scripts/e2e/lib.mjs`'s walkthrough waits 15 s for a title
+button or a room before it decides (`launch` waits for `window.__game` only). Found on the way: `tools/wiki/claims.ts`'s
+`testNames` took `.` as the character before a `describe` when a comment ending a sentence sat above it (the raw source,
+trimmed), and dropped that describe's title; it reads the scanner's own last significant character now, and
+`wiki-proofs`' fixture has such a comment. The two claims on `studio-scenario-map.test.ts` (`groupings-only`,
+`groupings-unknown-refused`) lost wanoo's review with the file's hash: recorded again as an AI's, a person's to redo.
+
+
+## #337 · 2026-10-26 · Claude · proposal · the validator checks `seen` keys
+
+`check()` in `core/cond.ts` reads `s.seen[key]` as written, and nothing checked the key: a schema 3 topic is recorded
+as `topic.<id>` (`core/keys.ts`), so the positional `<room>.<actor>.<i>` was never true. The engine is unchanged (the
+id is the point of schema 3; matching the old place too would bring back the shift on insert). New
+`tools/validate/seen.ts`: the keys the game records (topics, `once` listeners of rooms and game, Reality signals
+with `once` not false, and the `once` choice options the command walk meets, those without an id at game level in
+any room), the old place → key of each that has an id, and a tracker the validator feeds from `cond` and the
+checkpoints' `seen`, checked last (after the objectives' conditions). The checkpoint checks moved to
+`tools/validate/checkpoints.ts` so `validate.ts` stays under its file-size cap (1071 lines, cap 1081 left as is).
+Saves are untouched: no key changes, the golden saves load as before. `tests/seen-key.test.ts`: every recorded kind
+accepted, the moved topic, listener and option named, typos and non-`once` refused, Reality `once: false` refused,
+a game-level option in any room, a checkpoint, and the engine records the key the validator accepts. The wiki's
+LIMIT `seen-key-v3` (`create.conditions`, en and fr) became prose; the `#seen` pair acked as the author's.
+
+→ next: `npm run ids -- --write` could rewrite positional `seen` keys in the sources when it gives the ids.
+
+
+## #338 · 2026-10-26 · Claude · proposal · Pending acks: a branch never writes translations.json, the release folds
+
+Every merge since 20 Oct whose two sides changed `wiki/translations.json`, replayed with `git merge-file`: 7 conflicted
+(#352's and #357's branches on 25 Oct among them), 23 hunks, each the same key recorded on both sides; neighbouring keys
+always merged cleanly. One file per record (#361, ~2,960 files) and a resolving command (#362) were set aside for the
+#312 pattern: a branch no longer writes the shared file. Rulings: the pending file is `changes/<slug>.acks.json`, one per
+branch, holding pairs and claims, `<slug>` the branch without its prefix as the fragments say (`docs/<v>` gives
+`<v>`); `main`, `master` and `release/*` write the two files (the release folds there, and no pull request writes them
+any more, so its acks there conflict with nothing); a detached HEAD is refused without `--pending`; outside a git
+repository, the two files. Readers: per section or claim, every record (the file's, then the pending files in name
+order) holding the current hashes wins, reviewers merged by name (the later date kept, never upgraded to a person);
+none holding, the file's record (else the latest pending) says what changed. Fold: a section's holding records become
+the file's record; one none holds keeps the file's record; a pending record holding nothing is dropped and printed,
+its reviewers named, with its re-ack command; a person's review on the file's record that a newer pending one replaces
+is printed too; records of a section or claim gone are removed (their warnings became gaps: a branch can no longer
+remove them). `prepare` runs it as `wiki acks` after the changelog and keeps its ⚠ lines in
+`.cache/release/<v>.acks-folded.txt` for the stop before the push (alone they stop nothing: a section that still
+matters is a pair to review, which the gates fail). The doc revision's source-set rule accepts `changes/*.acks.json`.
+`tests/wiki-pending.test.ts`: two branches ack the same section, neighbouring sections, an unchanged section, a person
+and a claim; merged into each other and into main in both orders with no conflict, the same states; then the fold
+(4 pairs kept, the rest listed, the replaced person named, no person invented, the check clean). This branch's own acks
+are its pending file. AGENTS.md says nothing of acks; CONTRIBUTING and the PR template neither.
+
+→ next: 4.5.5's prepare folds the pending files of the branches merged by then, this one's included.
+
+
+## #339 · 2026-10-26 · Claude · proposal · a quoted `TODO(release)` is not a marker left
+
+A rehearsal of `release -- prepare 4.5.5 --no-pr` on `upstream/main` (90dcb3ac) stopped on "markers" at
+`wiki/en/install.upgrade-notes-4-5.md:294-295` (fr: 309-310): `changes/prepare-todo-gate.md`'s bullet, which quotes
+`` `TODO(release)` `` and which `changelogBullets` copies whole since #334. `todoBrief` matched the text on any line,
+so it could never be written away, and neither `prepare` nor `release -- check` could pass (#364). `proseLines`
+(tools/changes.ts) blanks what is quoted as code, line by line: inline spans (a backtick run to the next run of the
+same length) and fenced blocks; `todoBrief`, so `todoMarkers` and `checkRelease`, reads the markers there and keeps
+the whole line as the brief. Every marker `prepare` writes is bare prose. A span wrapped over a line break is not
+seen as one, so its marker counts: the safe way. `prepare-todo-gate.log.md`'s title held a bare marker, which
+`--assemble` would have made a LOG heading: it is quoted now, and `fragmentProblems` refuses a bare marker in any
+fragment with its file and line. Checked on `upstream/main`: no other file `check` reads holds a bare one. Tests: the
+exact bullet, a fenced block, double-backtick spans, a real marker beside a quoted one and after a closed fence.
+
+→ next: 4.5.5's release, whose `prepare` stops only on markers it wrote.
+
+## #340 · 2026-10-26 · Claude · release · 4.5.5 "Reworked CI": a release whose CI runs once
+
+- **The request**: 4.5.4's release took the maintainer's Sunday (« I have lost my Sunday for this! »): the release
+  pull request's CI ran twice, the candidate took over an hour, the release command named the wrong commit, main's
+  CI was cancelled under the tag, `docs-publish` failed on a claim merged before the release, a relaunch verified the
+  release again. Horacio asked that each of these be fixed, one issue and one pull request each, before 4.5.5.
+- **What ships**: the release path, #326 and #327 (`prepare` stops before the push on the gates and the prose), #328
+  (the release commit on main's first parents), #330 and #332 (the nightly's mutation cache, warmed by `prepare`),
+  #334 (whole bullets in the upgrade notes), #336 (`changes -- --check` reads the headings), #341 (the docs' gates
+  before the tag), #344 (one verify across relaunches), #354 (the release command's end-to-end test, the import cycle
+  it found, the candidate wait), #365 (a quoted marker is not one); CI, #338 and #347 (only a release commit keeps its
+  own run on `main`), #342 and #355 (install retries that can retry, apt never killed), #352 (shards by duration, the
+  CI page), #357 (the flakes by cause); the wiki, #363 (a branch's acks in its own pending file); the engine, #350
+  (#250), #351 (#249), #358 (#248); for the two games, #323 (#318, the read-only storyboard, `quest-n-click page`),
+  #324 (#317, the prompts' dog), #325 (#320, the Telnet stress test on CI only).
+- **Fragments**: assembled by `npm run release -- prepare 4.5.5`, the first release whose `prepare` stopped before
+  the push until its prose and reviews were done.
+- **Upgrade notes**: "From 4.5.4 to 4.5.5" in `install.upgrade-notes-4-5`, both languages: for a game, the `seen`
+  keys `validate` now refuses; for a project, `quest-n-click page`; for maintainers and contributors, the one-run
+  release and the pending acks.
+- **Reviews**: the three claims whose scope only an AI had checked (`groupings-only`, `groupings-unknown-refused`,
+  `bridge-telnet-address-limits`) are reviewed by a person on the release branch, before the push; the pairs this
+  release changes keep an AI author's record (D56).
+- **Fixtures**: golden save demo-4.5.5, reference run, quality baseline, written by `prepare`.
+- **Passes**: sheet 4.5.5, the twenty-two of 4.5.4, none new.
+- **Signature**: the tag is signed with LostInBrittany's SSH key (`npm run release -- 4.5.5`).
+
+→ next: the first live runs of what 4.5.5 only tested (the warm-up, the release commit's protected run, the verify
+skipped on a relaunch, a slow apt mirror), then #359 (`ids --write` rewriting positional `seen` keys).

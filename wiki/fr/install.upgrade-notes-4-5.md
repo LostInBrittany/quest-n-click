@@ -1,6 +1,6 @@
 # Notes de mise à jour : 4.5
 
-Ce que la 4.5.0 « Wiki », la 4.5.1, la 4.5.2, la 4.5.3 et la 4.5.4 ont changé. Rien à changer jusqu'à la 4.5.1 (la doc a
+Ce que la 4.5.0 « Wiki », la 4.5.1, la 4.5.2, la 4.5.3, la 4.5.4 et la 4.5.5 ont changé. Rien à changer jusqu'à la 4.5.1 (la doc a
 déménagé) ; en 4.5.2, `npx quest-n-click migrate` passe les imports aux paquets à scope ; la 4.5.3 change la façon de
 faire une release, pas un jeu.
 
@@ -180,3 +180,40 @@ aucune sauvegarde, aucun schéma ni aucune empreinte de jeu ne bouge). Installez
   attendent un relecteur sous `docs-publish-manual`.
 - **Pour les contributeurs**, une pull request qui ne touche pas au code du produit attend moins, et un nouveau test
   n'oblige plus à réécrire les chiffres des README ni la référence.
+
+<a name="from-4-5-4-to-4-5-5"></a>
+<!-- applies: 4.5.5.. -->
+
+## De la 4.5.4 à la 4.5.5 « Reworked CI »
+
+Rien à changer dans un jeu qui se valide : il se construit, se joue et se sauvegarde comme en 4.5.4 (aucun champ
+de contenu, aucune sauvegarde, aucun schéma ni aucune empreinte de jeu ne bouge). Installez
+`@quest-n-click/engine@4.5.5` ([Installer depuis npm](install.from-npm.md)).
+
+- **`npm run validate` refuse une clé `seen` que rien n'enregistre.** Un `{ seen: 'room.npc.<n>' }` écrit pour un
+  sujet qui a un identifiant était toujours faux dans un jeu au schéma 3 ; c'est maintenant une erreur qui donne la clé
+  à écrire (`topic.<id>`, `event.<id>`, `choice.<id>`). Si votre jeu ne se valide plus après la mise à jour, cette
+  condition n'a jamais marché : écrivez la clé que donne l'erreur.
+- **Une réplique doublée dont le son ne peut pas jouer** (avant le premier toucher, son coupé, fichier absent) reste
+  affichée le temps de sa lecture au lieu de se fermer aussitôt.
+- **`npm run i18n -- extract`** écrit les textes des mini-jeux propres à un jeu (`textParams`) : plus besoin de les
+  ajouter à la main, et ils ne reviennent plus en `_stale`.
+- **Un chien dans les prompts d'images** : un personnage dont le `kind` contient `'dog'` a la planche à quatre pattes,
+  décrite avec des mots de chien.
+- **Dans un projet créé depuis npm**, `npx quest-n-click page <nom>` écrit les pages pour téléphone (`storyboard`,
+  `review`, `placement`, `world`, `puzzles`), et `page storyboard --readonly` une histoire à publier à côté du jeu :
+  le service worker du jeu ne répond plus à `pages/`.
+- **Pour les mainteneurs**, une release reste trois actions, avec maintenant une seule CI chacune
+  ([Publier une release](contribute.releasing.md#release-command)) :
+  - `npm run release -- prepare` s'arrête avant le push tant que la prose n'est pas écrite et les affirmations pas
+    relues, puis pousse une seule fois et préchauffe le cache de mutation, si bien que le candidat prend environ une
+    demi-heure ;
+  - `npm run release -- <version>` trouve le candidat de la fusion, vérifie les relectures des docs sur le commit de
+    release avant le tag (ou publie avec `--docs-revision`), supporte une relance sans relancer ni revérifier, et a un
+    test de bout en bout ;
+  - sur `main`, seul le commit de release garde sa propre CI, chaque autre fusion annule la précédente.
+- **Pour les contributeurs**, une branche enregistre ses traductions relues et ses relectures d'affirmations dans son
+  propre `changes/<slug>.acks.json`, si bien que deux pull requests n'entrent plus en conflit sur
+  `wiki/translations.json` ; `npm run changes -- --check` refuse un fragment sur lequel la release s'arrêterait ; les
+  tests instables récurrents sont corrigés à la cause, les shards unitaires prennent à peu près le même temps, et un
+  miroir apt lent ne fait plus échouer l'installation des navigateurs.
