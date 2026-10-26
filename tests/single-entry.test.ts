@@ -132,6 +132,7 @@ const WRITERS: Record<string, string> = {
   'tools/release/signing.mjs': 'elsewhere: release outputs',
   'tools/release/site-files.mjs': 'elsewhere: release outputs',
   'tools/runs-load.ts': 'elsewhere: .cache/ (load reports)',
+  'tools/nightly-report.ts': "elsewhere: the nightly's issue text in --out, and the run's summary (#379)",
   'tools/schedule-guard.ts': "elsewhere: the scheduled run's output and summary (#372)",
   'tools/select-game.ts': 'elsewhere: the link to the selected game',
   'tools/rename-org.mjs': "elsewhere: the repository's own tracked files, their addresses after the transfer (D51)",

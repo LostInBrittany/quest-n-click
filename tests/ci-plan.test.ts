@@ -99,6 +99,8 @@ describe('the plan of a change', () => {
     ['a release tool', ['tools/release/ship.mjs', 'tools/mutate.ts'], []],
     // The scheduled workflows' late-start guard (4.5.6, #372): read by nightly.yml and prove.yml only.
     ['the schedule guard', ['tools/schedule-guard.ts'], []],
+    // The nightly's report of a red night (4.5.6, #379): read by nightly.yml only.
+    ['the nightly report', ['tools/nightly-report.ts'], []],
     [
       'an authoring tool',
       ['tools/validate.ts'],

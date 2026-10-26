@@ -467,3 +467,49 @@ jobs:
       - run: for i in 1 2 3; do (timeout 3m docker pull mirror.gcr.io/library/node:22-bookworm-slim@sha256:c3de60bf2f9dd0ac6370e6117950ff62d6e339527e7472301c9c78a017978392) && break; [ "$i" = 3 ] && exit 1; echo "retry $i"; sleep 15; done
         timeout-minutes: 10
       - run: npm run e2e:worker-container -- --image=mirror.gcr.io/library/node:22-bookworm-slim@sha256:c3de60bf2f9dd0ac6370e6117950ff62d6e339527e7472301c9c78a017978392
+  # A red night opens an issue (4.5.6, #379, tools/nightly-report.ts): it told nobody but the cross on the Actions page,
+  # and on 2026-10-26 one was found at the next release's candidate. This last job needs every other one (a new job
+  # goes in its list, tests/nightly-report.test.ts) and runs whatever their results, when the run ran: not when the
+  # guard skipped it in the working day, but a failed guard is red too. A failed or cancelled job (a timeout is a
+  # failure) opens an issue labelled `nightly-red`, or comments on the open one: one issue per red streak. A green
+  # night comments "green again" and closes it. A warm-up of the mutation cache (`-f jobs=mutation`) reports a red gate
+  # (the candidate would fail on it) but never closes the issue: it skipped every other job. The only job with
+  # `issues: write`; Node alone, no `npm ci`.
+  report:
+    needs: [guard, npm-names, heavy, fuzz-connectors, corpus, merge, mutation-plan, mutation, mutation-merge, bridge-load-sqlite, bridge-load-postgres, matrix, cross-runtime, worker-container]
+    if: always() && (needs.guard.outputs.run == 'true' || needs.guard.result != 'success')
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      issues: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 22
+      # The merged reports of a failed gate: their survivors not named in docs/dev/mutants.json go in the text. None
+      # when the merge wrote nothing; the text then points to the jobs.
+      - if: needs.mutation-merge.result == 'failure'
+        continue-on-error: true
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: mutation-merged
+          path: merged
+      - shell: bash
+        env:
+          NIGHTLY_RESULTS: ${{ toJSON(needs) }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          repo=${{ github.repository }}
+          # No fallback: an unread list of open issues would open a second one.
+          gh issue list --repo "$repo" --label nightly-red --state open --json number --limit 50 > open.json
+          node --experimental-strip-types --no-warnings tools/nightly-report.ts --open=open.json --reports=merged --known=docs/dev/mutants.json --run=${{ github.run_number }} --url=${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }} --sha=${{ github.sha }} --event=${{ github.event_name }} --jobs=${{ inputs.jobs }} --out=report
+          issues=$(cat report/issues)
+          case "$(cat report/action)" in
+            open)
+              gh label create nightly-red --repo "$repo" --color B60205 --description 'The nightly is red (tools/nightly-report.ts, #379)' --force
+              gh issue create --repo "$repo" --label nightly-red --title "$(cat report/title)" --body-file report/body.md ;;
+            comment) gh issue comment "$issues" --repo "$repo" --body-file report/body.md ;;
+            close) for n in $issues; do gh issue close "$n" --repo "$repo" --comment "$(cat report/body.md)"; done ;;
+          esac
