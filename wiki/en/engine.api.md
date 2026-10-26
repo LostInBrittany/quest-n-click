@@ -111,6 +111,10 @@ How to write one: [create.custom-minigame.md](create.custom-minigame.md).
 
 ## `@quest-n-click/engine/testing`: a game's own tests
 
+A created project has one from the start (4.5.6): `game/tests/game.test.ts`, run by `npm test` (vitest), finishes
+the game with `solve` and reads a save back with `parseSave` and `saveEnvelope`
+([layout of a created project](create.project-layout.md#created-project)). Add your own tests next to it.
+
 | Name | What |
 |---|---|
 | `Engine` | the engine without a page (its members marked `@internal` are read by the modules of `core/` since 4.1.0: not part of the contract). Since 4.1.4: `destroy()` ends it (loops stopped, waiters released, nothing called back); `onError(error, where)` hears a script that threw (stopped, `scripts[id].off`) or a custom command that changed more than it declared; `beforeSave(state)` shapes what the store writes, `onLoad.before/after` frame a load; `clock` is the only time it knows (`started`, the trace, a session's date) |

@@ -186,6 +186,7 @@ npm test           # les tests du moteur et la soluce de votre jeu (games/lamp/t
 npx quest-n-click validate
 npx quest-n-click solve
 npm run verify     # validate, solve, i18n status, lint, playtests
+npm test           # game/tests/game.test.ts : le jeu se termine, une sauvegarde se relit telle qu'écrite
 ```
 
 `solve` s'arrête au premier chemin vers la fin qu'il trouve : un autre chemin peut encore mener le joueur dans une

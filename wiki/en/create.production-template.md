@@ -17,8 +17,8 @@ part by part, then the whole of it to copy. It is the plan used for the first ga
   packages with owned files, ordering, final checklist, sub-agent prompt, a model per package.
 - **Context.** The template is written for the engine repository: paths `games/<id>/…`, `src/engine/…`, and the
   scripts `npm test` and `npm run audit`. In a created project, the game is in `game/`, there is no engine package to
-  change (no WP-A), and the checks are `npm run verify` (validate, solve, translation status, lint, playtests) and
-  `npm run build`; see [Layout of a created project](create.project-layout.md).
+  change (no WP-A), and the checks are `npm run verify` (validate, solve, translation status, lint, playtests),
+  `npm test` (the game's own tests, `game/tests`) and `npm run build`; see [Layout of a created project](create.project-layout.md).
 
 <a name="header"></a>
 

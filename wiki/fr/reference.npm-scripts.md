@@ -1254,7 +1254,7 @@ La source de la documentation dans `wiki/` (4.5.0, `tools/wiki.ts`) : `check` va
 
 ## Scripts d’un projet créé
 
-Écrits par `quest-n-click create` (ou `npm init @quest-n-click`) dans le `package.json` du nouveau projet. À lancer depuis le dossier du projet, après `npm install` : chacun appelle la commande `quest-n-click` du moteur installé.
+Écrits par `quest-n-click create` (ou `npm init @quest-n-click`) dans le `package.json` du nouveau projet. À lancer depuis le dossier du projet, après `npm install` : chacun appelle la commande `quest-n-click` du moteur installé, sauf `test`, qui lance les tests du jeu avec vitest.
 
 <a name="project-dev"></a>
 
@@ -1312,6 +1312,15 @@ La source de la documentation dans `wiki/` (4.5.0, `tools/wiki.ts`) : `check` va
 `quest-n-click preview` : sert `dist/` sur 127.0.0.1.
 
 - Lance : `quest-n-click preview`
+
+<a name="project-test"></a>
+
+#### `npm run test`
+
+`vitest run` : les tests du jeu dans `game/tests` (`vitest.config.ts`). Celui qu’écrit `create` vérifie que le jeu se termine depuis une nouvelle partie et qu’une sauvegarde se relit telle qu’écrite ; ajoutez les vôtres à côté, avec `@quest-n-click/engine/testing` ([engine.api](engine.api.md)).
+
+- Lance : `vitest run`
+- Utilisation : `npm test`
 
 <a name="project-quest-n-click"></a>
 

@@ -17,8 +17,8 @@ avec ce moteur ([Travailler avec une IA](create.working-with-ai.md#sub-agents)).
   sujet, état, lots avec leurs fichiers, ordre, checklist finale, prompt de sous-agent, un modèle par lot.
 - **Contexte.** Le modèle est écrit pour le dépôt du moteur : chemins `games/<id>/…`, `src/engine/…`, et les scripts
   `npm test` et `npm run audit`. Dans un projet créé, le jeu est dans `game/`, il n'y a pas de paquet moteur à modifier
-  (pas de WP-A), et les vérifications sont `npm run verify` (validate, solve, état des traductions, lint, playtests)
-  et `npm run build` ; voir [Organisation d'un projet créé](create.project-layout.md).
+  (pas de WP-A), et les vérifications sont `npm run verify` (validate, solve, état des traductions, lint, playtests),
+  `npm test` (les tests du jeu, `game/tests`) et `npm run build` ; voir [Organisation d'un projet créé](create.project-layout.md).
 
 <a name="header"></a>
 

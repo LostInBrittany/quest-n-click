@@ -1254,7 +1254,7 @@ The documentation's source in `wiki/` (4.5.0, `tools/wiki.ts`): `check` validate
 
 ## Scripts of a created project
 
-Written by `quest-n-click create` (or `npm init @quest-n-click`) into the new project's `package.json`. Run them from the project's folder, after `npm install`: each calls the `quest-n-click` command of the installed engine.
+Written by `quest-n-click create` (or `npm init @quest-n-click`) into the new project's `package.json`. Run them from the project's folder, after `npm install`: each calls the `quest-n-click` command of the installed engine, except `test`, which runs the game's tests with vitest.
 
 <a name="project-dev"></a>
 
@@ -1312,6 +1312,15 @@ Written by `quest-n-click create` (or `npm init @quest-n-click`) into the new pr
 `quest-n-click preview`: serves `dist/` on 127.0.0.1.
 
 - Runs: `quest-n-click preview`
+
+<a name="project-test"></a>
+
+#### `npm run test`
+
+`vitest run`: the game's tests in `game/tests` (`vitest.config.ts`). The one `create` writes checks that the game can be finished from a new game and that a save reads back as written; add your own next to it, with `@quest-n-click/engine/testing` ([engine.api](engine.api.md)).
+
+- Runs: `vitest run`
+- Usage: `npm test`
 
 <a name="project-quest-n-click"></a>
 

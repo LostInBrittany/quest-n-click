@@ -207,6 +207,7 @@ l'équivalent dans un projet créé quand il existe ; « — » veut dire que le
 | Dépôt du moteur | Projet créé | Ce qu'elle fait |
 |---|---|---|
 | `npm run verify:game` | `npm run verify` | Dépôt du moteur : validate, le témoin, le témoin par chapitres, les variantes (`verify:variants`), l'état des traductions, le lint, les playtests. Projet créé : validate, solve, `i18n status`, lint, playtests. |
+| `npm test` | `npm test` | Projet créé : vitest sur `game/tests` ; le test qu'écrit `create` termine le jeu depuis une nouvelle partie et relit une sauvegarde telle qu'écrite ([organisation d'un projet créé](create.project-layout.md#created-project)). Dépôt du moteur : les tests Node, dont le `tests/` du jeu choisi. |
 | `npm run prove:game` | — (`npm run release` lance `solve --prove` et `solve-reality`) | La preuve globale, la preuve par chapitres et chaque monde Reality ; échoue sur un blocage ou une troncature. |
 | `npm run build:game` | `npm run build` | Les garde-fous du jeu, le bundle, `verify:dist`, puis (dépôt du moteur) le contrôle des spoilers et l'audit des assets. Pas de vérification de types, pas de suite unitaire. |
 | `npm run build` | `npm run build` | Dépôt du moteur : `check` (types et tests Node), puis `build:game`. |
