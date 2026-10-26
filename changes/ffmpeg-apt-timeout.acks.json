@@ -3,8 +3,8 @@
   "version": 1,
   "pairs": {
     "contribute.ci#known-flakes": {
-      "enHash": "cd2539aa460d00064dc567f5ebc759978ec39cff9be1addfa6105096509b6d6a",
-      "frHash": "f2168e67b88d9de97cf04cd290f195cf49f79f656c8dffb8fcf81faf58923a6f",
+      "enHash": "9466a18e4ddf5ad4ec98b3d86170a84db82779417cdf68b0d436cc8283f4ac67",
+      "frHash": "afd4dfaf740c9cdb2ccc202c6a52b6f912a344398c6bea210545c0ededa9447b",
       "reviewers": [
         { "name": "claude-opus-5-5", "kind": "ai", "relation": "author", "date": "2026-10-26" }
       ]
