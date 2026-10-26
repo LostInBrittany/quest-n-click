@@ -107,9 +107,14 @@ L'outil réécrit le fichier source qu'il mute : ne le modifiez pas pendant une 
    ```
 
    Un rapport dont les entrées n'ont pas changé (`inputHash` : les sources et les tests de l'ensemble, tout ce qu'ils
-   importent, les deux configurations, l'outil, les survivants nommés, le fichier de verrouillage sans ses champs de
-   version) est **réutilisé** : l'exécution le dit et s'arrête. `--fresh` relance quand même. Les rapports sont écrits
-   dans `.cache/mutation/report-<ensemble>.json`.
+   importent à l'exécution, les deux configurations, l'outil, les survivants nommés, le fichier de verrouillage sans
+   ses champs de version) est **réutilisé** : l'exécution le dit et s'arrête. `--fresh` relance quand même. Les
+   rapports sont écrits dans `.cache/mutation/report-<ensemble>.json`. Depuis la 4.5.6, un `import type` (ou un import
+   dont chaque nom est un type) n'est pas suivi, puisqu'il est effacé avant qu'un test ne tourne ; et les
+   configurations sont lues comme des fichiers, leurs imports suivis seulement vers ce qui peut changer l'exécution
+   d'un test (les réglages du jeu, les valeurs de `define`, les ensembles : `CONFIG_FOLLOWS` dans `tools/mutate.ts`),
+   pas vers le plugin Studio du serveur de développement. Un nouvel import dans `vite.config.ts` fait échouer
+   `tests/mutate-hash.test.ts` tant qu'il n'est pas rangé dans `CONFIG_FOLLOWS`, ou dans `CONFIG_SKIPS` avec sa raison.
 
 <!-- step: kill -->
 3. **Tuez le survivant avec un test**, la réponse habituelle : écrivez l'entrée qui distingue le mutant de l'original,

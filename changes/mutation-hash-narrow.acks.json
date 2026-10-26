@@ -1,0 +1,14 @@
+{
+  "format": "quest-n-click-docs-acks",
+  "version": 1,
+  "pairs": {
+    "contribute.mutation-testing#steps": {
+      "enHash": "51ac9f3b4bc2b85ba7bad3714d6cb01125b0d1820cdef21b50973616b3b3caee",
+      "frHash": "25db3419f3d1cfc7b8766c0a1f47df7c932167312583ed5e78559776d07a98bc",
+      "reviewers": [
+        { "name": "claude-opus-5-5", "kind": "ai", "relation": "author", "date": "2026-10-26" }
+      ]
+    }
+  },
+  "claims": {}
+}

@@ -104,9 +104,14 @@ The tool writes the source file it mutates: do not edit it while a run is going.
    npm run test:mutation:core -- --set=all           # every gated set, one after the other
    ```
 
-   A report whose inputs are unchanged (`inputHash`: the set's sources and tests, everything they import, the two
-   configurations, the tool, the named survivors, the lockfile without its version fields) is **reused**: the run says
-   so and stops. `--fresh` runs anyway. Reports are written to `.cache/mutation/report-<set>.json`.
+   A report whose inputs are unchanged (`inputHash`: the set's sources and tests, everything they import at runtime,
+   the two configurations, the tool, the named survivors, the lockfile without its version fields) is **reused**: the
+   run says so and stops. `--fresh` runs anyway. Reports are written to `.cache/mutation/report-<set>.json`. Since
+   4.5.6, an `import type` (or an import whose every name is a type) is not followed, since it is erased before a test
+   runs; and the configurations are read as files, their imports followed only into what can change a test's run (the
+   game's settings, the values of `define`, the sets: `CONFIG_FOLLOWS` in `tools/mutate.ts`), not into the dev
+   server's Studio plugin. A new import in `vite.config.ts` fails `tests/mutate-hash.test.ts` until it is placed in
+   `CONFIG_FOLLOWS` or in `CONFIG_SKIPS` with its reason.
 
 <!-- step: kill -->
 3. **Kill the survivor with a test**, the usual answer: write the input that tells the mutant from the original, in a

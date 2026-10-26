@@ -21,38 +21,51 @@ export { SETS, type MutationSet };
 export const TARGETS = SETS.core;
 
 /**
+ * The two configurations a run loads (4.5.6, #371): hashed as files, but their imports are followed only into
+ * CONFIG_FOLLOWS. vite.config.ts serves the dev server and the build as well as the tests, and following all of it put
+ * the Studio's plugin, its routes and, through them, the wiki tools into every set's inputs: a CRLF fix in the wiki
+ * checker re-ran every set of a release candidate (about three hours of CI).
+ */
+export const CONFIGS = ['vite.config.ts', 'vitest.mutation.config.ts'];
+/**
+ * What the configurations import that can change what a test runs, each followed with everything it imports: the
+ * game's settings and paths (`resolve.alias`, `include`, `define.__GAME__`), the values of `define` (the assets'
+ * version, the trusted extensions' hash, the engine's version), the order of the test files, the sets.
+ */
+export const CONFIG_FOLLOWS = [
+  'tools/game.ts',
+  'tools/vite/plugins.ts',
+  'tools/extensions.ts',
+  'tools/unit-shards.ts',
+  'tools/mutation-sets.ts',
+];
+/**
+ * What the configurations import that no test can see, with the reason. A plugin listed here must have no `transform`,
+ * `resolveId` or `load` hook: those change the modules a test runs (tests/mutate-hash.test.ts keeps the two lists
+ * complete, so a new import in a configuration is placed by a person).
+ */
+export const CONFIG_SKIPS: Record<string, string> = {
+  'tools/studio/plugin.ts':
+    "the Studio's routes on the dev server (`configureServer` only): a test imports modules, it never requests a route",
+};
+
+/**
  * The hash of everything a run's verdict depends on (4.1.8): the set's sources and tests, the two configurations,
  * this tool, the named survivors, the lockfile. A report whose `inputHash` is the current one says what a new run
  * would say: the release reuses it instead of running the set again (`--reuse`, the default; `--fresh` runs anyway).
  * A commit that changes none of these (docs, a release's version) keeps the hash, so the key is not the commit.
  */
-export function inputHash(set: MutationSet | 'all'): string {
-  const roots = new Set<string>([
-    'tools/mutate.ts',
-    'tools/mutation-sets.ts',
-    'vitest.mutation.config.ts',
-    'vite.config.ts',
-    'tsconfig.json',
-    'docs/dev/mutants.json',
-  ]);
-  for (const k of setsOf(set)) {
-    for (const f of SETS[k]) roots.add(f);
-    for (const g of TESTS[k]) for (const f of expand(g)) roots.add(f);
-  }
-  // Everything the tests and the sources import, statically, inside the repository (4.1.8, the second reading): a
-  // change in `engine.ts` or in the Bridge's server can turn a killed mutant of the set into a survivor, so it is an
-  // input of the verdict even though it is not mutated.
-  const files = importClosure([...roots]);
+export function inputHash(set: MutationSet | 'all', root = ROOT): string {
   const h = createHash('sha256');
-  for (const f of [...files].sort()) {
+  for (const f of inputFiles(set, root)) {
     h.update(f);
     h.update('\0');
-    h.update(existsSync(resolve(ROOT, f)) ? readFileSync(resolve(ROOT, f)) : 'missing');
+    h.update(existsSync(resolve(root, f)) ? readFileSync(resolve(root, f)) : 'missing');
     h.update('\0');
   }
   // The lockfile says which dependencies the tests ran with; its own `version` fields move with every release and
   // say nothing of the verdict, so they are left out (a version bump keeps the hash).
-  const lock = JSON.parse(readFileSync(resolve(ROOT, 'package-lock.json'), 'utf8')) as {
+  const lock = JSON.parse(readFileSync(resolve(root, 'package-lock.json'), 'utf8')) as {
     version?: string;
     packages?: Record<string, { version?: string }>;
   };
@@ -63,18 +76,45 @@ export function inputHash(set: MutationSet | 'all'): string {
   return h.digest('hex').slice(0, 16);
 }
 
-/** The repository files reachable from `files` through static imports (`from '…'`, `import('…')`), themselves included. */
-export function importClosure(files: string[]): Set<string> {
+/** The repository files `inputHash` reads, sorted (the lockfile apart). */
+export function inputFiles(set: MutationSet | 'all', root = ROOT): string[] {
+  const roots = new Set<string>([
+    'tools/mutate.ts',
+    'tools/mutation-sets.ts',
+    'tsconfig.json',
+    'docs/dev/mutants.json',
+  ]);
+  for (const k of setsOf(set)) {
+    for (const f of SETS[k]) roots.add(f);
+    for (const g of TESTS[k]) for (const f of expand(g, root)) roots.add(f);
+  }
+  // Everything the tests and the sources import at runtime, statically, inside the repository (4.1.8, the second
+  // reading): a change in `engine.ts` or in the Bridge's server can turn a killed mutant of the set into a survivor,
+  // so it is an input of the verdict even though it is not mutated. A type-only import is erased before a test runs
+  // and cannot (4.5.6, #371).
+  const files = importClosure([...roots, ...CONFIG_FOLLOWS], root);
+  for (const c of CONFIGS) if (existsSync(resolve(root, c))) files.add(c);
+  return [...files].sort();
+}
+
+/**
+ * The repository files reachable from `files` through the imports a module loads at runtime (`runtimeImports`),
+ * themselves included. `follow` says whose imports are read (all of them by default).
+ */
+export function importClosure(
+  files: string[],
+  root = ROOT,
+  follow: (file: string) => boolean = () => true,
+): Set<string> {
   const seen = new Set<string>();
   const queue = [...files];
   while (queue.length) {
     const f = queue.pop()!;
-    if (seen.has(f) || !existsSync(resolve(ROOT, f))) continue;
+    if (seen.has(f) || !existsSync(resolve(root, f))) continue;
     seen.add(f);
-    if (!/\.(ts|mts|mjs|js)$/.test(f)) continue;
-    const src = readFileSync(resolve(ROOT, f), 'utf8');
-    for (const m of src.matchAll(/(?:from|import)\s*\(?\s*['"]([^'"]+)['"]/g)) {
-      const target = resolveImport(f, m[1]!);
+    if (!/\.(ts|mts|mjs|js)$/.test(f) || !follow(f)) continue;
+    for (const spec of runtimeImports(f, readFileSync(resolve(root, f), 'utf8'))) {
+      const target = resolveImport(f, spec, root);
       if (target) queue.push(target);
     }
   }
@@ -82,20 +122,61 @@ export function importClosure(files: string[]): Set<string> {
 }
 
 /**
+ * The specifiers a module loads when it runs (4.5.6, #371): its imports and re-exports, `import('…')`, `require('…')`.
+ * What the compiler erases is left out: `import type`, `export type … from`, an import or a re-export whose every name
+ * is marked `type`, and `typeof import('…')` in a type. An import with one value in it is kept, and so is
+ * `import {} from` (whether it is erased depends on the compiler's options).
+ */
+export function runtimeImports(file: string, src: string): string[] {
+  const kind = /\.m?js$/.test(file) ? ts.ScriptKind.JS : ts.ScriptKind.TS;
+  const sf = ts.createSourceFile(file, src, ts.ScriptTarget.Latest, false, kind);
+  const out: string[] = [];
+  const typesOnly = (names: readonly { isTypeOnly: boolean }[]) => names.length > 0 && names.every((n) => n.isTypeOnly);
+  const visit = (n: ts.Node): void => {
+    if (ts.isImportDeclaration(n) && ts.isStringLiteral(n.moduleSpecifier)) {
+      const c = n.importClause;
+      const erased =
+        c !== undefined &&
+        (c.phaseModifier === ts.SyntaxKind.TypeKeyword ||
+          (!c.name &&
+            c.namedBindings !== undefined &&
+            ts.isNamedImports(c.namedBindings) &&
+            typesOnly(c.namedBindings.elements)));
+      if (!erased) out.push(n.moduleSpecifier.text);
+    } else if (ts.isExportDeclaration(n) && n.moduleSpecifier && ts.isStringLiteral(n.moduleSpecifier)) {
+      const erased =
+        n.isTypeOnly ||
+        (n.exportClause !== undefined && ts.isNamedExports(n.exportClause) && typesOnly(n.exportClause.elements));
+      if (!erased) out.push(n.moduleSpecifier.text);
+    } else if (ts.isImportEqualsDeclaration(n) && ts.isExternalModuleReference(n.moduleReference)) {
+      const e = n.moduleReference.expression;
+      if (!n.isTypeOnly && ts.isStringLiteral(e)) out.push(e.text);
+    } else if (ts.isCallExpression(n) && n.arguments.length > 0 && ts.isStringLiteralLike(n.arguments[0]!)) {
+      const callee = n.expression;
+      if (callee.kind === ts.SyntaxKind.ImportKeyword || (ts.isIdentifier(callee) && callee.text === 'require'))
+        out.push(n.arguments[0].text);
+    }
+    ts.forEachChild(n, visit);
+  };
+  visit(sf);
+  return out;
+}
+
+/**
  * A specifier of the repository (`@engine/*`, `@quest-n-click/engine/*`, a relative path) as a file, or null for a
  * package.
  */
-function resolveImport(from: string, spec: string): string | null {
+function resolveImport(from: string, spec: string, root: string): string | null {
   let base: string;
   const API = '@quest-n-click/engine/';
   if (spec.startsWith('@engine/')) base = `src/engine/${spec.slice('@engine/'.length)}`;
   else if (spec.startsWith(API)) base = `src/engine/api/${spec.slice(API.length)}`;
-  else if (spec.startsWith('.')) base = relative(ROOT, resolve(ROOT, dirname(from), spec)).replace(/\\/g, '/');
+  else if (spec.startsWith('.')) base = relative(root, resolve(root, dirname(from), spec)).replace(/\\/g, '/');
   else return null;
   for (const c of [base, `${base}.ts`, `${base}.mts`, `${base}.mjs`, `${base}.js`, `${base}/index.ts`])
-    if (existsSync(resolve(ROOT, c)) && !c.endsWith('/')) {
+    if (existsSync(resolve(root, c)) && !c.endsWith('/')) {
       try {
-        if (readFileSync(resolve(ROOT, c)).length >= 0 && !isDir(resolve(ROOT, c))) return c;
+        if (readFileSync(resolve(root, c)).length >= 0 && !isDir(resolve(root, c))) return c;
       } catch {
         /* a folder */
       }
@@ -111,7 +192,7 @@ const isDir = (p: string) => {
 };
 
 /** The files a vitest `include` glob of the form `dir/prefix-*.test.ts` names (one `*`, in the file name). */
-function expand(glob: string): string[] {
+function expand(glob: string, root = ROOT): string[] {
   if (!glob.includes('*')) return [glob];
   const dir = dirname(glob);
   const re = new RegExp(
@@ -120,7 +201,8 @@ function expand(glob: string): string[] {
       .replace(/[.+?^${}()|[\]\\]/g, '\\$&')
       .replace(/\*/g, '.*')}$`,
   );
-  return readdirSync(resolve(ROOT, dir))
+  if (!existsSync(resolve(root, dir))) return [];
+  return readdirSync(resolve(root, dir))
     .filter((f) => re.test(f))
     .map((f) => `${dir}/${f}`)
     .sort();
@@ -161,7 +243,10 @@ export function withSurvivorsTable(doc: string, known: KnownSurvivor[]): string 
 
 const commitSha = () => {
   try {
-    return execFileSync('git', ['rev-parse', 'HEAD'], { cwd: ROOT, encoding: 'utf8' }).trim();
+    return execFileSync('git', ['rev-parse', 'HEAD'], {
+      cwd: ROOT,
+      encoding: 'utf8',
+    }).trim();
   } catch {
     return 'unknown';
   }
@@ -416,7 +501,11 @@ if (process.argv[1]?.endsWith('mutate.ts')) {
     process.exit(0);
   }
   const known = JSON.parse(readFileSync(resolve(ROOT, 'docs/dev/mutants.json'), 'utf8')) as KnownSurvivor[];
-  const version = (JSON.parse(readFileSync(resolve(ROOT, 'package.json'), 'utf8')) as { version: string }).version;
+  const version = (
+    JSON.parse(readFileSync(resolve(ROOT, 'package.json'), 'utf8')) as {
+      version: string;
+    }
+  ).version;
   const incomplete = checkKnown(known, version);
   if (incomplete.length) {
     console.error(
