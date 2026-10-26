@@ -63,17 +63,20 @@ n'est pas cassé : rien d'autre dedans ne se sert de Playwright.
 
 <a name="npm-404"></a>
 
-## `npm install` répond 404
+## `npm install` ne trouve aucune version de `quest-n-click`
 
-**Symptôme.** `npm error 404 Not Found - GET https://registry.npmjs.org/quest-n-click - Not found`, à `npm install`
-dans un projet créé, ou à `npm init @quest-n-click`.
+**Symptôme.** `npm error notarget No matching version found for quest-n-click@^<version>`, à `npm install` dans un
+projet créé par un moteur de la 4.5.1 ou d'avant.
 
-**Cause.** Le moteur n'est pas sur npm (vérifié le 23 octobre 2026). Un projet créé sans `--engine=<URL de l'archive>`
-dépend de `^<version>`, que npm cherche dans le registre.
+**Cause.** Ce projet a été créé sans `--engine=<URL de l'archive>` : il dépend donc du `quest-n-click` sans scope, en
+`^<version>`. Le moteur est sur npm depuis la 4.5.2 sous son nom à scope, `@quest-n-click/engine` ; le nom sans scope
+ne porte qu'un pointeur déprécié vers lui (vérifié le 26 octobre 2026).
 
-**Correction.** Dans le projet créé, installez l'archive : `npm install
-https://github.com/Quest-n-Click/quest-n-click/releases/download/v<version>/quest-n-click-<version>.tgz`. Pour un nouveau
-projet, passez `--engine=$T` : [Installer depuis l'archive de la release](install.from-archive.md).
+**Correction.** Dans le projet, installez le moteur à scope à la place du nom sans scope, puis laissez `migrate`
+déplacer les imports : `npm uninstall quest-n-click`, `npm install @quest-n-click/engine@<version>`,
+`npx quest-n-click migrate` ([de la 4.5.1 à la 4.5.2](install.upgrade-notes-4-5.md#from-4-5-1-to-4-5-2)). Pour rester
+sur l'ancien moteur, installez plutôt son archive : `npm install
+https://github.com/Quest-n-Click/quest-n-click/releases/download/v<version>/quest-n-click-<version>.tgz`.
 
 <a name="node-version"></a>
 

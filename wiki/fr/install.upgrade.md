@@ -10,13 +10,13 @@ dépôt du moteur et pour un jeu sur un Studio hébergé.
 
 ```bash
 # dans le projet créé
-npm install https://github.com/Quest-n-Click/quest-n-click/releases/download/v<version>/quest-n-click-<version>.tgz
+npm install @quest-n-click/engine@<version>
 npx quest-n-click migrate
 npm run verify
 ```
 
-Une fois le moteur sur npm, la première ligne devient `npm install @quest-n-click/engine@<version>`. Lisez d'abord les notes de
-mise à jour de chaque version franchie ; le reste de cette page est la même procédure avec ses vérifications.
+Sans le registre, la première ligne installe plutôt l'archive de la release (étape 2). Lisez d'abord les notes de mise
+à jour de chaque version franchie ; le reste de cette page est la même procédure avec ses vérifications.
 
 <a name="what-you-get"></a>
 
@@ -68,15 +68,16 @@ Dans le dossier du projet créé, sur votre machine.
    ```
 
 <!-- step: install-new-engine -->
-2. Installez le nouveau moteur, depuis npm à partir de la 4.5.2 (`npm install @quest-n-click/engine@<version>`,
-   [Installer depuis npm](install.from-npm.md)) ou depuis l'archive de la release :
+2. Installez le nouveau moteur depuis npm ([Installer depuis npm](install.from-npm.md)) :
 
    ```bash
    # dans le projet créé
-   npm install https://github.com/Quest-n-Click/quest-n-click/releases/download/v4.4.0/quest-n-click-4.4.0.tgz
+   npm install @quest-n-click/engine@<version>
    ```
 
-   Une fois le moteur sur npm, cette étape devient `npm install @quest-n-click/engine@<version>`.
+   Ou depuis l'archive de sa release, pour une version d'avant la 4.5.2 ou sans le registre
+   ([Installer depuis l'archive de la release](install.from-archive.md)) :
+   `npm install https://github.com/Quest-n-Click/quest-n-click/releases/download/v<version>/quest-n-click-<version>.tgz`.
 
 <!-- step: migrate -->
 3. Amenez les sources au format du moteur installé. `--check` dit d'abord ce qui est dû et n'écrit rien :
@@ -148,7 +149,7 @@ avec 0. `npm run verify` passe. Une ancienne sauvegarde se charge et se joue.
 
 | Symptôme | Cause | Correction |
 |---|---|---|
-| `npm error 404 Not Found - GET https://registry.npmjs.org/quest-n-click` | `npm install @quest-n-click/engine@<version>` : pas sur npm | Installez l'URL de l'archive (étape 2) |
+| `npm error notarget No matching version found for quest-n-click@…` | Le nom sans scope, que npm ne garde que comme pointeur : le moteur est `@quest-n-click/engine` depuis la 4.5.2 | `npm uninstall quest-n-click`, puis l'étape 2 ([Dépannage de l'installation](install.troubleshooting.md#npm-404)) |
 | ✖ tsconfig.json has baseUrl, which TypeScript 7 refuses: a migration is due | Un projet fait avant la 4.1.8 | `npx quest-n-click migrate` |
 | `✖  still under the former name web-scumm: …` | Un projet fait avant la 4.2.5 | `npx quest-n-click migrate`, puis `npm install` ([Venir de web-scumm](install.from-web-scumm.md)) |
 | `✖  [<id>] authoring schema <n> is newer than this engine's (3): install a newer quest-n-click` | Le jeu a été écrit pour un moteur plus récent | Installez ce moteur-là, pas un plus ancien |

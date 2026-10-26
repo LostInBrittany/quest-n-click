@@ -61,18 +61,15 @@ réplique traduisible, une traduction manquante repérée avant la release ([tra
 
 <a name="from-the-template"></a>
 
-### 1. Un jeu à partir de l'archive de la release (deux minutes)
+### 1. Un jeu depuis npm (deux minutes)
 
 <!-- step: create -->
-Les paquets ne sont pas encore sur le registre npm : un jeu part donc de l'archive que chaque release GitHub joint
-([installer depuis l'archive de release](install.from-archive.md)). Prenez la dernière version sur
-<https://github.com/Quest-n-Click/quest-n-click/releases/latest> puis, dans un dossier vide de votre choix :
+Dans un dossier vide de votre choix, `npm init @quest-n-click` crée le projet à partir de la dernière release publiée
+sur npm ([installer depuis npm](install.from-npm.md)) :
 
 ```sh
 # dans le dossier qui contiendra le projet : crée le dossier my-game
-V=4.5.0             # la version de la release que vous prenez
-T=https://github.com/Quest-n-Click/quest-n-click/releases/download/v$V/quest-n-click-$V.tgz
-npx --package=$T quest-n-click create my-game "My Game" --engine=$T
+npm init @quest-n-click my-game "My Game"
 cd my-game
 npm install
 python3 -m pip install --require-hashes -r node_modules/@quest-n-click/engine/requirements.txt
@@ -80,8 +77,9 @@ npm run assets      # les images provisoires dans public/assets
 npm run dev         # http://127.0.0.1:5173/ : un jardin, un seau, un portail
 ```
 
-Les paquets sont sur npm depuis la 4.5.2 : `npm init @quest-n-click my-game "My Game"` crée le même projet depuis le
-registre, sans URL d'archive ([installer depuis npm](install.from-npm.md)).
+`npm init` écrit les fichiers du projet ; `npm install` y installe ensuite le moteur. Sans le registre (hors ligne, ou
+pour une construction figée sur le fichier d'une release), chaque release GitHub joint aussi le moteur sous forme
+d'archive, qui crée le même projet ([installer depuis l'archive de la release](install.from-archive.md)).
 
 Ou, dans le dépôt du moteur, le même modèle devient `games/lamp`, choisi comme jeu courant (`.cache/game`) :
 

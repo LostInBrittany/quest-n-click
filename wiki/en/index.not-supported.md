@@ -126,8 +126,6 @@ renders no audio (the files are committed). Lip-sync markers in the voice table 
 
 ## Not yet
 
-- **`npm install @quest-n-click/engine`**: the packages are not on npm; the engine installs from a release's archive
-  ([Install from the release archive](install.from-archive.md)).
 - The rest of what is planned or left for later: [Roadmap](start.roadmap.md#open-items).
 
 <a name="why"></a>

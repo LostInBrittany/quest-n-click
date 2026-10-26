@@ -32,9 +32,8 @@ one command are the project's.
 
 > [!LIMIT id=npm-owners-only]
 > A package under one of these names published by someone other than the organisation's owners is not the project's:
-> do not install it. The unscoped names were unpublished on 24 October 2026, to be republished as pointers (and
-> `create-quest-n-click` as a relay) by the maintainers: until then, `npx create-quest-n-click` finds nothing, and
-> `npm init @quest-n-click` is the command.
+> do not install it. The unscoped names were unpublished on 24 October 2026, then republished by the maintainers as
+> pointers, and `create-quest-n-click` as a relay.
 
 <a name="prerequisites"></a>
 
@@ -72,11 +71,11 @@ On your machine, from the folder that will contain the project; then inside the 
 
    ```bash
    # in the folder that will contain the project
-   npm init @quest-n-click my-game "My Game"     # or: npx quest-n-click create my-game "My Game"
+   npm init @quest-n-click my-game "My Game"     # or: npx @quest-n-click/create my-game "My Game"
    ```
 
-   Once the maintainers republish it, `npx create-quest-n-click my-game "My Game"` works too: the unscoped
-   `create-quest-n-click` is a relay that runs `@quest-n-click/create`, the same thing.
+   `npx create-quest-n-click my-game "My Game"` works too: the unscoped `create-quest-n-click` is a relay that runs
+   `@quest-n-click/create`, the same thing.
 
    Without `--engine`, `create` writes the dependency `"@quest-n-click/engine": "^<version>"`, which npm resolves from
    the registry.
@@ -107,7 +106,6 @@ Step 1 prints the maintainers and the repository; step 2 ends with
 | Symptom | Cause | Fix |
 |---|---|---|
 | `npm view @quest-n-click/engine dist-tags` names only `bootstrap` (and npm's `0.0.0-stage` placeholder) | Not the registry you expect, or a mirror behind it | Check `npm config get registry`, or [install from the release archive](install.from-archive.md) |
-| `npx create-quest-n-click` answers 404 | The relay is not republished yet | `npm init @quest-n-click my-game` |
 | `npm view` shows a maintainer who is not an owner of the organisation | A name taken by someone else | Do not install it; report it on the project's issues |
 | `npm warn deprecated quest-n-click@0.0.1: …` | An unscoped name of 4.5.1 and before, now a pointer | Install `@quest-n-click/engine` instead |
 

@@ -1,0 +1,84 @@
+{
+  "format": "quest-n-click-docs-acks",
+  "version": 1,
+  "pairs": {
+    "create.first-game#from-the-template": {
+      "enHash": "3d4feb516576fdd344635f79e75f8659020e75732d0fa6ecd76083b2b8654737",
+      "frHash": "23193941bff2ede779930f2c67a62a99bcaaab1cc2871d64ed61f6fb4b83bc56",
+      "reviewers": [
+        { "name": "claude-opus-5-5", "kind": "ai", "relation": "author", "date": "2026-10-26" }
+      ]
+    },
+    "index.not-supported#not-yet": {
+      "enHash": "28b8c0c650b6355e53931e6f612e89674c67db068882a37772be33ed0d781b4d",
+      "frHash": "915a7dc5586885fcf373fb726e0f05c04e6a3c23103eece4ae30bf7e8fcc19ab",
+      "reviewers": [
+        { "name": "claude-opus-5-5", "kind": "ai", "relation": "author", "date": "2026-10-26" }
+      ]
+    },
+    "install.from-archive#common-errors": {
+      "enHash": "c376f76afb6ecb02b31496a8cf631c3fc71fa830f496889fcee135fd09c95c8e",
+      "frHash": "0e137695d0b00d6cc133d92c54219b2ea4c1dbb23e7479a16063c6bb478a2092",
+      "reviewers": [
+        { "name": "claude-opus-5-5", "kind": "ai", "relation": "author", "date": "2026-10-26" }
+      ]
+    },
+    "install.from-npm#common-errors": {
+      "enHash": "b17d775b455c54143bd8603f63cea24f5494815a670ee0d7e32d1e056a4c64df",
+      "frHash": "60d5674ca309da2b840dacde476b1e3c570a15e584f71d6e7ffc7c33b400b4b2",
+      "reviewers": [
+        { "name": "claude-opus-5-5", "kind": "ai", "relation": "author", "date": "2026-10-26" }
+      ]
+    },
+    "install.from-npm#context-and-versions": {
+      "enHash": "bbb3632ff3058bbffe7b2ad397e4fc3a3fa6d63ea423c976c590fdf4b07fbdca",
+      "frHash": "852cec49568d482fde6a26580d02156ea61d112ff03c434a78f7155f6493dd59",
+      "reviewers": [
+        { "name": "claude-opus-5-5", "kind": "ai", "relation": "author", "date": "2026-10-26" }
+      ]
+    },
+    "install.from-npm#steps": {
+      "enHash": "e1c8c11113fb6138603a4848aae08cd21148771ce0dc8a2cf4dc1c764912993d",
+      "frHash": "65078495d9f023396f213704645570f42f11be63f7f38a6fdb6d80f14e5216df",
+      "reviewers": [
+        { "name": "claude-opus-5-5", "kind": "ai", "relation": "author", "date": "2026-10-26" }
+      ]
+    },
+    "install.package#create-quest-n-click": {
+      "enHash": "7571abc2b2d0427f69a3462690e0770698f38ed62cd6d3d11be4bc33d06fcb40",
+      "frHash": "6338e3ac61ede6055ce2bc5d12e11f2bf0ee4d02a2b8ac660e7c3095aeee16d9",
+      "reviewers": [
+        { "name": "claude-opus-5-5", "kind": "ai", "relation": "author", "date": "2026-10-26" }
+      ]
+    },
+    "install.troubleshooting#npm-404": {
+      "enHash": "28661bf2c5d813edb954af7772355624b73d448bdd965b5aec44ae884f3d796a",
+      "frHash": "440fd1bdd295709a0d2070f09b3da0b7233d53e65539becb65905ce6ec1a2b20",
+      "reviewers": [
+        { "name": "claude-opus-5-5", "kind": "ai", "relation": "author", "date": "2026-10-26" }
+      ]
+    },
+    "install.upgrade#common-errors": {
+      "enHash": "f2a1a946e21edca140a718bfede91586ea41a4f521d5270ef725f0806e6401fa",
+      "frHash": "c888e61c09f05091612e1d2a04bfe72dc377b97f42aa76266d884047b30df9b5",
+      "reviewers": [
+        { "name": "claude-opus-5-5", "kind": "ai", "relation": "author", "date": "2026-10-26" }
+      ]
+    },
+    "install.upgrade#overview": {
+      "enHash": "c5a548bf81b087a90273f62a6b16ac55112657712aad5f2d9275535abf463758",
+      "frHash": "dc8445eb843421fa2650443976efb224297dcdb4d828353a1ae2a3ec89563fef",
+      "reviewers": [
+        { "name": "claude-opus-5-5", "kind": "ai", "relation": "author", "date": "2026-10-26" }
+      ]
+    },
+    "install.upgrade#steps": {
+      "enHash": "9ed94e8de02a7d4239bbb076e3b16ba018d07ccc20823184ec5ef29fd5c2dcc9",
+      "frHash": "7230f000087421cb7a8d31df40a16a1eeca9293884bc5b466929412b0a728987",
+      "reviewers": [
+        { "name": "claude-opus-5-5", "kind": "ai", "relation": "author", "date": "2026-10-26" }
+      ]
+    }
+  },
+  "claims": {}
+}

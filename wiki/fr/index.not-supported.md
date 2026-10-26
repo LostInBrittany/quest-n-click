@@ -133,8 +133,6 @@ table des voix n’existent pas.
 
 ## Pas encore
 
-- **`npm install @quest-n-click/engine`** : les packages ne sont pas sur npm ; le moteur s’installe depuis l’archive d’une
-  release ([Installer depuis l’archive de la release](install.from-archive.md)).
 - Le reste de ce qui est prévu ou laissé pour plus tard : [Feuille de route](start.roadmap.md#open-items).
 
 <a name="why"></a>
