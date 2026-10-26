@@ -1,10 +1,12 @@
 // What `npm run ids` writes, computed without writing (4.2.3: shared by tools/ids.ts and the worker's `migrate`): the
 // ids `assignIds` gives the loaded game, inserted into the sources of `gameDir` (rooms/*.ts, rules.ts, items.ts,
-// game.ts), the translation tables' keys renamed, and (`map`) the save migration and the paths' map. Reads only.
+// game.ts), the positional `seen` keys of those sources renamed (#359), the translation tables' keys renamed, and
+// (`map`) the save migration and the paths' map. Reads only.
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { assignIds, renamePaths } from '../../src/engine/core/content-ids';
 import type { GameDef } from '../../src/engine/core/types';
+import { movedSeenKeys } from '../../src/engine/tools/validate/seen';
 import {
   addIdsToGameSource,
   addIdsToItemsSource,
@@ -13,10 +15,14 @@ import {
   type CodemodResult,
   roomIdOf,
 } from './codemod';
+import { renameSeenKeysInSource, type SeenRename } from './seen-keys';
 
 export interface IdsPlan {
-  /** Each source file the codemod read, and what it would do there. */
-  results: { file: string; r: CodemodResult }[];
+  /**
+   * Each source file the codemod read, and what it would do there; `r.code` has its `seen` keys renamed too, listed
+   * in `seen`: a `{ seen: key }` or a checkpoint's key naming the old place of something that has an id (#359).
+   */
+  results: { file: string; r: CodemodResult; seen: SeenRename[] }[];
   /** A room file whose `id` names no room of the game (left as it is). */
   unknownRooms: { file: string; id: string | undefined }[];
   /** The translation tables, keys renamed (`write`), and how many paths moved in each. */
@@ -33,7 +39,17 @@ export function planIds(
   o: { lines?: boolean | 'all'; write?: boolean; map?: boolean } = {},
 ): IdsPlan {
   const { game: assigned, map, added } = assignIds(game, { lines: o.lines ?? false });
+  // The save migration's renames, and the old place of what already had an id (an earlier run): the validator's pairs.
+  // Renamed before the ids are inserted, so that the lines listed are the lines of the file as it is.
+  const rename = new Map([...movedSeenKeys(assigned), ...Object.entries(map.seen)]);
+  const seen = new Map<string, SeenRename[]>();
+  const read = (file: string) => {
+    const s = renameSeenKeysInSource(readFileSync(file, 'utf8'), rename, file);
+    seen.set(file, s.renamed);
+    return s.code;
+  };
   const results: IdsPlan['results'] = [];
+  const add = (file: string, r: CodemodResult) => results.push({ file, r, seen: seen.get(file) ?? [] });
   const unknownRooms: IdsPlan['unknownRooms'] = [];
   const roomsDir = join(gameDir, 'rooms');
   for (const f of existsSync(roomsDir)
@@ -42,30 +58,21 @@ export function planIds(
         .sort()
     : []) {
     const file = join(roomsDir, f);
-    const code = readFileSync(file, 'utf8');
+    const code = read(file);
     const id = roomIdOf(code, f);
     const room = assigned.rooms.find((r) => r.id === id);
     if (!room) {
       unknownRooms.push({ file, id });
       continue;
     }
-    results.push({ file, r: addIdsToRoomSource(code, room, f) });
+    add(file, addIdsToRoomSource(code, room, f));
   }
   const rulesFile = join(gameDir, 'rules.ts');
-  if (existsSync(rulesFile))
-    results.push({
-      file: rulesFile,
-      r: addIdsToRulesSource(readFileSync(rulesFile, 'utf8'), assigned.rules, 'rules.ts'),
-    });
+  if (existsSync(rulesFile)) add(rulesFile, addIdsToRulesSource(read(rulesFile), assigned.rules, 'rules.ts'));
   const itemsFile = join(gameDir, 'items.ts');
-  if (existsSync(itemsFile))
-    results.push({
-      file: itemsFile,
-      r: addIdsToItemsSource(readFileSync(itemsFile, 'utf8'), assigned.items, 'items.ts'),
-    });
+  if (existsSync(itemsFile)) add(itemsFile, addIdsToItemsSource(read(itemsFile), assigned.items, 'items.ts'));
   const gameFile = join(gameDir, 'game.ts');
-  if (existsSync(gameFile))
-    results.push({ file: gameFile, r: addIdsToGameSource(readFileSync(gameFile, 'utf8'), assigned, 'game.ts') });
+  if (existsSync(gameFile)) add(gameFile, addIdsToGameSource(read(gameFile), assigned, 'game.ts'));
 
   const locales: IdsPlan['locales'] = [];
   const dir = join(gameDir, 'locales');

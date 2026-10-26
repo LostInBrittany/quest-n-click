@@ -52,7 +52,10 @@ It names things after their content (`house.open-pantry`, `house.grandma.where-i
 `house.open-pantry.once`, `clock.wait`), uniquely across the game, deterministically. What it needs on every room
 and game `Rule`, `TalkTopic`, `Choice`, `EventRule`, `once` / `nth` / `cycle` / `random` block: an `id`; on every
 script: one `stepIds` entry per top-level command. Lists built by code (a spread, a `.map(...)`) are skipped and
-reported with the id the engine expects: add it in the generator. Then the three lines by hand in `game.ts`:
+reported with the id the engine expects: add it in the generator. In the same sources, a `{ seen: key }` condition
+or a checkpoint's `seen` key that names the old place of one of them (`house.grandma.0`, `event.house.2`,
+`choice.house.<text>`) becomes the key the engine records once it has an id (`topic.<id>`, `event.<id>`,
+`choice.<id>`), the pair `renameSeen` gives the saves; the dry run lists each one. Then the three lines by hand in `game.ts`:
 `schemaVersion: 3`, `saveVersion` + 1, `migrations: [idsMigration]` with `import idsMigration from
 './ids.migration.json'`. `npm run validate` refuses a v3 game with a missing or duplicate id; `npm run ids` can run
 again at any time (it never renames twice). Generated exit rules receive deterministic ids automatically.
