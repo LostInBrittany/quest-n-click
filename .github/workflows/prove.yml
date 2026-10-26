@@ -2,7 +2,8 @@ name: prove
 # The exhaustive proof and the bench, weekly and on demand: too slow for every push on a big game, never a gate.
 on:
   schedule:
-    - cron: '0 4 * * 1'
+    # Sunday evening (#372): GitHub starts it 5.5 to 8 hours late, in Monday's night; tools/schedule-guard.ts.
+    - cron: '0 20 * * 0'
   workflow_dispatch:
     inputs:
       game:
@@ -14,7 +15,27 @@ on:
 permissions:
   contents: read
 jobs:
+  # The working-day guard (4.5.6, #372): GitHub starts this schedule hours late (5 h 37 min to 7 h 40 min in October
+  # 2026), so the cron is Sunday evening (20:00 UTC) and lands it in Monday's night; a scheduled run that still starts
+  # in the Paris working day (07:00 to 20:00 Paris time) skips its job and stays green. A run by hand always runs
+  # (tools/schedule-guard.ts, tests/schedule-guard.test.ts). Node alone, no `npm ci`.
+  guard:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    outputs:
+      run: ${{ steps.guard.outputs.run }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 22
+      - id: guard
+        env:
+          EVENT: ${{ github.event_name }}
+        run: node --experimental-strip-types --no-warnings tools/schedule-guard.ts --event="$EVENT"
   prove:
+    needs: guard
+    if: needs.guard.outputs.run == 'true'
     runs-on: ubuntu-24.04
     timeout-minutes: 60
     steps:

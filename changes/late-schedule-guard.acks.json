@@ -1,0 +1,35 @@
+{
+  "format": "quest-n-click-docs-acks",
+  "version": 1,
+  "pairs": {
+    "contribute.ci#workflows": {
+      "enHash": "3d5e78316a4caf4a6c1f5db90aadd7667805668525ffd955aac4285143bc0b6b",
+      "frHash": "e4f04f4794fa0f1342751b56847a806d130da844213080913195477b1da8e64c",
+      "reviewers": [
+        { "name": "claude-opus-5-5", "kind": "ai", "relation": "author", "date": "2026-10-26" }
+      ]
+    },
+    "reference.environment-variables#event": {
+      "enHash": "eaad348e6955c20d190d360c1272232eec3415aef09fdb486dac38b27d130e35",
+      "frHash": "a19dd92204d15c37fb8bae7e0641bcdc384f6bf57f48974670f57f498defa2f0",
+      "reviewers": [
+        { "name": "claude-opus-5-5", "kind": "ai", "relation": "author", "date": "2026-10-26" }
+      ]
+    },
+    "reference.environment-variables#github-output": {
+      "enHash": "ba73fd369edbd14ba4c984cf55d23c603101aecaa6968eb7c459f586f963c36b",
+      "frHash": "ba2b4a8f7d6c418f6080d1a33f5ea4dcbd396a32a05e8864abf8eddbae7978e5",
+      "reviewers": [
+        { "name": "claude-opus-5-5", "kind": "ai", "relation": "author", "date": "2026-10-26" }
+      ]
+    },
+    "reference.environment-variables#github-step-summary": {
+      "enHash": "c16e158c907127aec4dd844817d4bb64106468e74bb04a338ef553117c4449fa",
+      "frHash": "e2f7e7aaa65e42f27edf79b83a817cee273c301384539eaad311463c49019b6f",
+      "reviewers": [
+        { "name": "claude-opus-5-5", "kind": "ai", "relation": "author", "date": "2026-10-26" }
+      ]
+    }
+  },
+  "claims": {}
+}

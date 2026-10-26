@@ -14,8 +14,8 @@ tourne dans quel job, c'est [Quels tests tournent quand](contribute.which-tests.
 | `ci` | une pull request ; un push sur `main` ; à la main. Un tag n'en lance aucun (4.5.3, #291) : son commit est l'un de ceux de `main`, déjà passé | les trois paliers ci-dessous | la pull request (`pr-gate`) ; une release (le run de `main` sur le SHA du tag doit être vert) |
 | `candidate` | la fusion de la pull request de release : un push sur `main` qui change la version de `package.json` (4.5.4) ; à la main sur `main` pour un SHA (`gh workflow run candidate --ref main -f sha=<sha complet>`) ; une pull request étiquetée `full-ci` (pour information) | le seul passage de tests de la release depuis 4.5.3 : `release-check:ci` et toutes les familles lourdes sur un SHA exact (les ensembles de mutation lisent le cache que remplit la nightly), puis `candidate-gate`, qui écrit et atteste `candidate-manifest.json` | un tag doit nommer un run vert de ce workflow, lancé sur `main` ([Publier une release](contribute.releasing.md)) |
 | `release` | le push d'un tag `v*` (4.5.3, #291) | aucun test à lui : le commit sur les premiers parents de `main`, le `ci` de `main` vert sur ce SHA, le tag stable précédent pour ancêtre, le candidat que nomme le tag vert sur ce SHA avec chaque fichier de son manifeste ; puis la release faite avec ces fichiers, `ship verify`, `npm-stage` (les paquets npm préparés pour qu'un propriétaire les approuve), `docs-publish` (4.5.0) et la revalidation du site | la publication |
-| `nightly` | chaque jour à 03:17 UTC ; à la main (`-f jobs=mutation` : les jobs de mutation seulement, pour préchauffer le cache ci-dessous, ce que lance `release -- prepare` quand il pousse la pull request de release, 4.5.5, #331) | noms npm, suite lourde, fuzz des connecteurs (une minute chacun), corpus des abstractions (500 graines, quatre morceaux), chaque ensemble de mutation repris de zéro (chaque morceau réussi enregistré dans le cache que lit le candidat, 4.5.5), charges du Bridge sur SQLite et Postgres, matrice de preuve, cross-runtime avec 500 graines Remix, le worker dans un conteneur | rien directement ; une nuit rouge est un bug à corriger avant la prochaine release |
-| `prove` | chaque lundi à 04:00 UTC ; à la main (`game`, `rooms`) | `prove:game`, les playtests committés (`--strict`), et le banc d'essai sur un jeu généré de 100 lieux (téléversé sous `bench`) | jamais une barrière |
+| `nightly` | chaque jour à 20:17 UTC, que GitHub lance dans la nuit (un run qui démarre pendant la journée de travail à Paris ne lance rien, voir plus bas) ; à la main (`-f jobs=mutation` : les jobs de mutation seulement, pour préchauffer le cache ci-dessous, ce que lance `release -- prepare` quand il pousse la pull request de release, 4.5.5, #331) | noms npm, suite lourde, fuzz des connecteurs (une minute chacun), corpus des abstractions (500 graines, quatre morceaux), chaque ensemble de mutation repris de zéro (chaque morceau réussi enregistré dans le cache que lit le candidat, 4.5.5), charges du Bridge sur SQLite et Postgres, matrice de preuve, cross-runtime avec 500 graines Remix, le worker dans un conteneur | rien directement ; une nuit rouge est un bug à corriger avant la prochaine release |
+| `prove` | chaque dimanche à 20:00 UTC, lancé dans la nuit du lundi (avec le même filtre) ; à la main (`game`, `rooms`) | `prove:game`, les playtests committés (`--strict`), et le banc d'essai sur un jeu généré de 100 lieux (téléversé sous `bench`) | jamais une barrière |
 | `mutation` | à la main : `gh workflow run mutation --ref main -f set=<ensemble> -f ref=<branche ou SHA> [-f file=<chemin>]` | un ensemble de mutation, mesuré sur un runner, son rapport gardé en artefact | rien |
 | `qualify` | une pull request ou un push sur `main` qui touche `ops/`, `scripts/ops-qualify*`, `scripts/pack.mjs`, `bridge/`, `package.json` ou le fichier de verrouillage ; à la main | `npm run ops:qualify` : le profil de qualification du Bridge sous Docker | le profil ne pourrit pas entre deux candidats |
 | `docs-publish` | appelé par `release` après `ship verify` ; à la main (`revision`, `rollback`, `promote`, `preview`) | le wiki et l'enregistrement de publication (4.5.0) | la publication de la documentation |
@@ -30,6 +30,22 @@ from <owner>/release/<x.y.z> »), ou le sujet qu'écrit `prepare` (« <x.y.z>: t
 groupe : un temps chacun gardait son run, et quatre fusions d'affilée ont mis en file quatre runs complets qui ont
 privé les pull requests de runners. Un run lancé à la main a son propre groupe et n'annule rien ; `candidate`,
 `release` et `docs-publish` n'annulent jamais de run non plus.
+
+**Les runs planifiés démarrent la nuit, jamais pendant la journée de travail** (4.5.6, #372). GitHub lance un run
+planifié quand il a de la place, pas à l'heure de son cron, et pour ce dépôt c'est des heures plus tard à chaque fois :
+du 6 au 26 octobre 2026, la nightly, alors prévue à 03:17 UTC, a démarré avec 4 h 36 min à 7 h 44 min de retard (de
+07:53 à 11:01 UTC), et le `prove` hebdomadaire, alors prévu le lundi à 04:00 UTC, avec 5 h 37 min à 7 h 40 min de
+retard. Les deux tournaient en pleine journée de travail et prenaient les runners du candidat d'une release et de ses
+pull requests. Leurs crons démarrent désormais la veille au soir : la nightly à 20:17 UTC chaque jour, le `prove` le
+dimanche à 20:00 UTC. Avec les retards mesurés, la nightly démarre alors entre 00:53 et 04:01 UTC et le `prove` entre
+01:37 et 03:40 UTC, au plus tard à 06:01 à Paris en été (UTC+2), 05:01 en hiver (UTC+1). Si GitHub en lance un à
+l'heure, il tourne le soir, à 21:00 à Paris ou plus tard. Les deux workflows commencent aussi par un job `guard`,
+quelques secondes de Node sans `npm ci` ([`tools/schedule-guard.ts`](../../tools/schedule-guard.ts)) : un run planifié
+qui démarre malgré tout pendant la journée de travail à Paris, de 07:00 à 20:00 heure de Paris tous les jours (de 06:00
+à 19:00 UTC en hiver, de 05:00 à 18:00 UTC en été), le dit dans une notice et dans le résumé du run, et tous les autres
+jobs sont sautés ; le run reste vert et ne prend aucun autre runner. Un run lancé à la main (`workflow_dispatch`) n'est
+jamais filtré, pas plus que le préchauffage du cache de mutation que lance `release -- prepare` ; une nuit sautée se
+relance à la main si besoin, ou attend la suivante.
 
 <a name="tiers"></a>
 <!-- applies: .. since 4.1.9 -->
