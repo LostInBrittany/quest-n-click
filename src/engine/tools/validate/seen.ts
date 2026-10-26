@@ -2,6 +2,7 @@
 // with an id is recorded under its id (`topic.<id>`, `event.<id>`, `choice.<id>`), one without under its place
 // (src/engine/core/keys.ts). A key nothing records is never true; the old place of something that now has an id is
 // the usual mistake (the 3.x pages wrote `<room>.<actor>.<i>`), so the error names the key to write instead.
+import { cmdLists, eachCmd } from '../../core/cmds';
 import { seenKey } from '../../core/keys';
 import type { GameDef, Id } from '../../core/types';
 
@@ -75,4 +76,17 @@ export function seenTracker(game: GameDef) {
       }
     },
   };
+}
+
+/**
+ * The old place of each topic, `once` listener and `once` room choice option that has an id → the key the engine
+ * records for it: what `npm run ids -- --write` rewrites in the sources (#359), the same pairs the validator names.
+ */
+export function movedSeenKeys(game: GameDef): Map<string, string> {
+  const known = seenKeys(game);
+  for (const { list, room } of cmdLists(game))
+    eachCmd(list, (c) => {
+      if (typeof c !== 'string' && 'choice' in c) recordChoice(known, c.choice, room?.id);
+    });
+  return known.moved;
 }

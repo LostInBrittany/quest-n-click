@@ -76,7 +76,7 @@ of a condition fails, and why ([rule explainer](studio.rule-explainer.md)).
 `npm run validate` refuses a `seen` key that nothing records, so a wrong one is never silently false. When the key is
 the old place of something that now has an id (in a schema 3 game, `{ seen: 'house.grandma.0' }`, the positional form
 older pages showed), the error names the key to write instead (`topic.<id>`). The keys a checkpoint marks as seen are
-checked the same way.
+checked the same way. `npm run ids -- --write` rewrites those old keys itself, in the sources it writes.
 
 <a name="flags"></a>
 

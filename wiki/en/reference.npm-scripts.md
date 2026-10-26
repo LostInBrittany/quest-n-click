@@ -274,7 +274,7 @@ Translations: `extract` writes `games/<id>/locales/<lang>.json` (the base langua
 
 #### `npm run ids`
 
-Stable ids (schema 3) for rules, topics, listeners, choices, once/nth/cycle/random blocks and script steps. Without flags, a dry run. `--write`: into the sources (`rooms/*.ts`, `rules.ts`, `game.ts`), translation keys renamed; `--map`: `ids.migration.json` and `ids.paths.json`, and the manual steps printed; `--lines`: also every say / toast / guide object, list line, hint and kind reaction (translations and voices follow it); `--lines=all`: plain strings too, required for a translated or voiced release.
+Stable ids (schema 3) for rules, topics, listeners, choices, once/nth/cycle/random blocks and script steps. Without flags, a dry run. `--write`: into the sources (`rooms/*.ts`, `rules.ts`, `game.ts`), translation keys renamed, and a `{ seen: key }` condition or a checkpoint's `seen` key that names the old place of a topic, `once` listener or `once` choice option rewritten to its id-based key (the dry run lists each one); `--map`: `ids.migration.json` and `ids.paths.json`, and the manual steps printed; `--lines`: also every say / toast / guide object, list line, hint and kind reaction (translations and voices follow it); `--lines=all`: plain strings too, required for a translated or voiced release.
 
 - Runs: `tsx tools/ids.ts`
 - Usage: `npm run ids [-- --write] [--map] [--lines | --lines=all]`

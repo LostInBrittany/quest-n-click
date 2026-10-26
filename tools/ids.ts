@@ -2,7 +2,9 @@
 // Gives the current game's rules, topics, listeners, choices, once/nth/cycle/random blocks and script steps their
 // stable ids (schema v3). Without flags: a dry run that prints what would be written and what must be done by hand.
 // --write: edits games/<id>/rooms/*.ts, rules.ts and game.ts in place (quotes and indentation kept), and renames the
-//          keys of games/<id>/locales/*.json to the id-based paths.
+//          keys of games/<id>/locales/*.json to the id-based paths. In those sources, a `{ seen: key }` condition or
+//          a checkpoint's `seen` key that names the old place of a topic, `once` listener or `once` choice option
+//          becomes the key the engine records for its id (#359); the dry run lists each one.
 // --map:   writes games/<id>/ids.migration.json (the `renameSeen` / `renameCounter` step for `migrations`) and
 //          games/<id>/ids.paths.json (old translation path → new), and prints the three manual steps.
 // --lines: also give every `say` / `toast` / `guide` object, every `{ id, text }` line of a list (looks, hints,
@@ -29,25 +31,28 @@ for (const u of plan.unknownRooms) console.log(`  ${rel(u.file)}: no room of the
 const gameFile = join(GAME_DIR, 'game.ts');
 
 let inserted = 0,
-  skipped = 0;
-for (const { file, r } of results) {
-  if (!r.inserted.length && !r.skipped.length) continue;
+  skipped = 0,
+  seenKeys = 0;
+for (const { file, r, seen } of results) {
+  if (!r.inserted.length && !r.skipped.length && !seen.length) continue;
   console.log(
-    `${rel(file)}: ${r.inserted.length} id(s)${r.skipped.length ? `, ${r.skipped.length} to do by hand` : ''}`,
+    `${rel(file)}: ${r.inserted.length} id(s)${seen.length ? `, ${seen.length} seen key(s)` : ''}${r.skipped.length ? `, ${r.skipped.length} to do by hand` : ''}`,
   );
+  for (const s of seen) console.log(`  line ${s.line} seen: '${s.from}' → '${s.to}'`);
   for (const s of r.skipped)
     console.log(`  ✖ line ${s.line} ${s.path}: ${s.reason}${s.expected ? ` → write id: '${s.expected}'` : ''}`);
   inserted += r.inserted.length;
   skipped += r.skipped.length;
+  seenKeys += seen.length;
 }
 console.log(
-  `\n[${GAME}] ${added} id(s) assigned in memory, ${inserted} written to the sources${write ? '' : ' (dry run: add --write)'}, ${skipped} skipped${game.schemaVersion === 3 ? '' : '; the game is still schema 2'}`,
+  `\n[${GAME}] ${added} id(s) assigned in memory, ${inserted} written to the sources, ${seenKeys} seen key(s) renamed${write ? '' : ' (dry run: add --write)'}, ${skipped} skipped${game.schemaVersion === 3 ? '' : '; the game is still schema 2'}`,
 );
 
 // Every file of the run, written as one operation of the game's journal at the end (tools/game-write.ts).
 const out: { file: string; text: string }[] = [];
 if (write) {
-  for (const { file, r } of results) if (r.inserted.length) out.push({ file, text: r.code });
+  for (const { file, r, seen } of results) if (r.inserted.length || seen.length) out.push({ file, text: r.code });
   for (const l of plan.locales) {
     out.push({ file: l.file, text: l.text });
     console.log(`${rel(l.file)}: ${l.moved} path(s) renamed to ids`);

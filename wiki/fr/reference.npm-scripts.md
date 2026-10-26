@@ -274,7 +274,7 @@ Traductions : `extract` écrit `games/<id>/locales/<lang>.json` (le fichier de r
 
 #### `npm run ids`
 
-Des ids stables (schéma 3) pour les règles, sujets, écouteurs, choix, blocs once/nth/cycle/random et étapes de script. Sans option, un essai à blanc. `--write` : dans les sources (`rooms/*.ts`, `rules.ts`, `game.ts`), clés de traduction renommées ; `--map` : `ids.migration.json` et `ids.paths.json`, et les étapes manuelles affichées ; `--lines` : aussi chaque objet say / toast / guide, ligne de liste, indice et réaction par genre (traductions et voix s’y rattachent) ; `--lines=all` : les chaînes simples aussi, exigé pour une version traduite ou doublée.
+Des ids stables (schéma 3) pour les règles, sujets, écouteurs, choix, blocs once/nth/cycle/random et étapes de script. Sans option, un essai à blanc. `--write` : dans les sources (`rooms/*.ts`, `rules.ts`, `game.ts`), clés de traduction renommées, et une condition `{ seen: clé }` ou une clé `seen` de checkpoint qui nomme l'ancienne place d'un sujet, d'un écouteur `once` ou d'une option de choix `once` réécrite avec sa clé par id (l'essai à blanc les liste une à une) ; `--map` : `ids.migration.json` et `ids.paths.json`, et les étapes manuelles affichées ; `--lines` : aussi chaque objet say / toast / guide, ligne de liste, indice et réaction par genre (traductions et voix s’y rattachent) ; `--lines=all` : les chaînes simples aussi, exigé pour une version traduite ou doublée.
 
 - Lance : `tsx tools/ids.ts`
 - Utilisation : `npm run ids [-- --write] [--map] [--lines | --lines=all]`

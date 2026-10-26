@@ -76,7 +76,8 @@ déclenché, une option `once` choisie. Dans un jeu en schéma 3, les clés sont
 `npm run validate` refuse une clé `seen` que rien n'enregistre : une clé fausse n'est jamais fausse en silence. Quand
 la clé est l'ancienne place d'une chose qui a maintenant un id (dans un jeu en schéma 3, `{ seen: 'house.grandma.0' }`,
 la forme par position que montraient d'anciennes pages), l'erreur donne la clé à écrire (`topic.<id>`). Les clés
-qu'un checkpoint marque comme vues sont vérifiées de la même façon.
+qu'un checkpoint marque comme vues sont vérifiées de la même façon. `npm run ids -- --write` réécrit lui-même ces
+anciennes clés, dans les sources qu'il écrit.
 
 <a name="flags"></a>
 

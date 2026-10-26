@@ -54,7 +54,11 @@ Il nomme d'après le contenu (`house.open-pantry`, `house.grandma.where-is-the-k
 `clock.wait`), de façon unique dans le jeu et déterministe. Ce qu'il pose : un `id` sur chaque `Rule` de lieu ou
 globale, `TalkTopic`, `Choice`, `EventRule`, bloc `once` / `nth` / `cycle` / `random` ; sur chaque script, une entrée
 `stepIds` par commande de premier niveau. Les listes construites par du code (un spread, un `.map(...)`) sont sautées
-et rapportées avec l'id attendu par le moteur : ajoutez-le dans le générateur. Puis trois lignes à la main dans
+et rapportées avec l'id attendu par le moteur : ajoutez-le dans le générateur. Dans ces mêmes sources, une
+condition `{ seen: clé }` ou une clé `seen` de checkpoint qui nomme l'ancienne place de l'un d'eux (`house.grandma.0`,
+`event.house.2`, `choice.house.<texte>`) devient la clé que le moteur enregistre une fois l'id posé (`topic.<id>`,
+`event.<id>`, `choice.<id>`), la paire que `renameSeen` donne aux sauvegardes ; l'essai à blanc les liste une à une.
+Puis trois lignes à la main dans
 `game.ts` : `schemaVersion: 3`, `saveVersion` + 1, `migrations: [idsMigration]` avec `import idsMigration from
 './ids.migration.json'`. `npm run validate` refuse un jeu v3 avec un id manquant ou en double ; `npm run ids` se
 relance à volonté (rien n'est renommé deux fois). Les règles de sortie générées reçoivent des ids déterministes.

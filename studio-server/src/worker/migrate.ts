@@ -97,8 +97,8 @@ export function migrateIn(dir: string, game: GameDef, renamed: Record<string, st
   const plan = planIds(dir, game, { write: true, map: true });
   const next = new Map<string, string>();
   const skipped: string[] = [];
-  for (const { file, r } of plan.results) {
-    if (r.inserted.length) next.set(file, r.code);
+  for (const { file, r, seen } of plan.results) {
+    if (r.inserted.length || seen.length) next.set(file, r.code);
     for (const s of r.skipped)
       skipped.push(
         `${relative(dir, file)}:${s.line} ${s.path}: ${s.reason}${s.expected ? ` (expected: ${s.expected})` : ''}`,
