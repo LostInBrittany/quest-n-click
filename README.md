@@ -34,7 +34,7 @@ Linux. The engine installs from a release's archive, or from npm since 4.5.2 (ea
 approves it):
 
 ```bash
-T=https://github.com/Quest-n-Click/quest-n-click/releases/download/v4.5.4/quest-n-click-4.5.4.tgz
+T=https://github.com/Quest-n-Click/quest-n-click/releases/download/v4.5.5/quest-n-click-4.5.5.tgz
 npx --package=$T quest-n-click create my-game "My Game" --engine=$T
 cd my-game && npm install
 npm run assets && npm run dev        # play it; then npm run verify, npm run build
@@ -151,7 +151,7 @@ mistakes before a person does. Every result stays reviewable, in the Studio and 
 ## In numbers
 
 Measured by the automated gates at the last baseline, rewritten at each release (`npm run quality:baseline`):
-<!-- metric:tests -->3471<!-- /metric --> unit test declarations, on Node 22 and 24, with coverage floors and gated
+<!-- metric:tests -->3582<!-- /metric --> unit test declarations, on Node 22 and 24, with coverage floors and gated
 mutation testing; the reference game proved in <!-- metric:referenceStates -->288<!-- /metric --> states; the player's
 first visit <!-- metric:initialJsKB -->136<!-- /metric --> KB of JavaScript, gzipped. Each release is built from the
 commit its candidate tested. The candidate makes the four package archives, the Bridge's image, the SBOMs, the runs and
@@ -169,7 +169,8 @@ the first idea to the release, every command in [npm scripts](https://github.com
 [Roadmap](https://github.com/Quest-n-Click/quest-n-click/wiki/EN-Start-Roadmap). An assistant reads the same pages through the MCP server (`search_docs`, `read_doc`);
 the old `docs/` pages are transition pages, each section linked to its new place and to its 4.4.0 text.
 
-Current release: [v4.5.4 (Simple release)](https://github.com/Quest-n-Click/quest-n-click/releases/tag/v4.5.4): a release in three human actions (the release pull request by one command, its merge starting the candidate, `npm run release -- 4.5.4`), pull requests that wait less, and the tools of a project made from npm that find its `game/` (Horacio).
+Current release: [v4.5.5 (Reworked CI)](https://github.com/Quest-n-Click/quest-n-click/releases/tag/v4.5.5): TODO(release)
+Over 4.5.4 "Simple release": a release in three human actions (the release pull request by one command, its merge starting the candidate, `npm run release -- 4.5.4`), pull requests that wait less, and the tools of a project made from npm that find its `game/` (Horacio).
 Over 4.5.3 "One pass": the candidate
 is the release's only test pass, so a release takes minutes after its signed tag; either co-maintainer signs a tag;
 a translation pair checked by its AI author no longer stops the documentation's publication (Horacio).
