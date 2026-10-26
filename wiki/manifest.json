@@ -11197,6 +11197,7 @@
         "CELLAR_ADDON_KEY_ID",
         "CELLAR_ADDON_KEY_SECRET",
         "CONSUMER_PG_URL",
+        "CRON",
         "DEV",
         "DISPATCHED_MODE",
         "DIST_DIR",

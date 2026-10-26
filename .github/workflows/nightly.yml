@@ -20,6 +20,25 @@ on:
 permissions:
   contents: read
 jobs:
+  # The late-start guard (4.5.6, #372): GitHub does not guarantee a schedule's start time, and on 2026-10-26 it started
+  # this run six hours late, in the working day, where its jobs took the runners from a release's candidate. A
+  # scheduled run that starts more than two hours after its cron time skips every other job and stays green; a run by
+  # hand always runs (tools/schedule-guard.ts, tests/schedule-guard.test.ts). Node alone, no `npm ci`.
+  guard:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    outputs:
+      run: ${{ steps.guard.outputs.run }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 22
+      - id: guard
+        env:
+          EVENT: ${{ github.event_name }}
+          CRON: ${{ github.event.schedule }}
+        run: node --experimental-strip-types --no-warnings tools/schedule-guard.ts --event="$EVENT" --cron="$CRON"
   # The npm names (4.1.20 PR 3b, D34: squatting accepted until 4.2): still free, or ours. Never gating: a name
   # taken by someone else is said as a warning and in the summary, for the maintainers to act. Since 4.5.2 (D53) the
   # packages are the organisation's scoped ones, ours when an owner of the organisation publishes them; the unscoped
@@ -27,8 +46,9 @@ jobs:
   # create-quest-n-click, a relay (an owner's, never deprecated: `npx create-quest-n-click` runs @quest-n-click/create);
   # the former names (D47) are watched as before, since a reader may still look for them.
   npm-names:
-    # Not in a warm-up of the mutation cache (#329); a scheduled run has no inputs, so it runs.
-    if: inputs.jobs != 'mutation'
+    # Not in a warm-up of the mutation cache (#329); a scheduled run has no inputs, so it runs. Not late (#372).
+    needs: guard
+    if: needs.guard.outputs.run == 'true' && inputs.jobs != 'mutation'
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     continue-on-error: true
@@ -77,8 +97,9 @@ jobs:
   # 4.1.17: one file after the other (`--no-file-parallelism`), so the four partition workers have the cores and the
   # durations measured mean something; 150 minutes (about 13 on a laptop, the runner is several times slower).
   heavy:
-    # Not in a warm-up of the mutation cache (#329); a scheduled run has no inputs, so it runs.
-    if: inputs.jobs != 'mutation'
+    # Not in a warm-up of the mutation cache (#329); a scheduled run has no inputs, so it runs. Not late (#372).
+    needs: guard
+    if: needs.guard.outputs.run == 'true' && inputs.jobs != 'mutation'
     runs-on: ubuntu-24.04
     timeout-minutes: 150
     steps:
@@ -94,8 +115,9 @@ jobs:
   # connector, a new seed each night (the run number). Reported, not gating, until it has been green two nights in a
   # row (plan 4.1.9 §4 branch 6); then `continue-on-error` goes.
   fuzz-connectors:
-    # Not in a warm-up of the mutation cache (#329); a scheduled run has no inputs, so it runs.
-    if: inputs.jobs != 'mutation'
+    # Not in a warm-up of the mutation cache (#329); a scheduled run has no inputs, so it runs. Not late (#372).
+    needs: guard
+    if: needs.guard.outputs.run == 'true' && inputs.jobs != 'mutation'
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     continue-on-error: true
@@ -110,8 +132,9 @@ jobs:
       - run: node --expose-gc --import tsx tools/fuzz-connectors.ts --cases=1000000 --seconds=60 --seed=${{ github.run_number }}
   # Four shards of the seeds, one per job (3.7): the corpus is parallel by seed, the jobs run side by side.
   corpus:
-    # Not in a warm-up of the mutation cache (#329); a scheduled run has no inputs, so it runs.
-    if: inputs.jobs != 'mutation'
+    # Not in a warm-up of the mutation cache (#329); a scheduled run has no inputs, so it runs. Not late (#372).
+    needs: guard
+    if: needs.guard.outputs.run == 'true' && inputs.jobs != 'mutation'
     runs-on: ubuntu-24.04
     timeout-minutes: 120
     strategy:
@@ -140,8 +163,8 @@ jobs:
   # The shards added up: tried, compared, partial and diverged per kind, kept as an artifact and on the run's page. A
   # missing shard, or seeds run twice, fails it (3.7.1).
   merge:
-    needs: corpus
-    if: always() && inputs.jobs != 'mutation'
+    needs: [guard, corpus]
+    if: always() && needs.guard.outputs.run == 'true' && inputs.jobs != 'mutation'
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     steps:
@@ -173,6 +196,9 @@ jobs:
   # The mutation matrix (4.1.20 PR 2a, plan §7.3): every shard of every gated set, and the measured ones (gating nothing), from
   # tools/mutation-shards.ts — no workflow writes its list of sets by hand (tests/mutate-shards.test.ts).
   mutation-plan:
+    # Not late (#372); the mutation jobs and their merge wait for this one.
+    needs: guard
+    if: needs.guard.outputs.run == 'true'
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     outputs:
@@ -297,8 +323,9 @@ jobs:
   # nothing. Now each names its store; tools/load-report.ts refuses a report that is missing, incomplete, or of another
   # backend or commit. A lost or doubled signal, a gap in a sequence or an incomplete stream fails the run.
   bridge-load-sqlite:
-    # Not in a warm-up of the mutation cache (#329); a scheduled run has no inputs, so it runs.
-    if: inputs.jobs != 'mutation'
+    # Not in a warm-up of the mutation cache (#329); a scheduled run has no inputs, so it runs. Not late (#372).
+    needs: guard
+    if: needs.guard.outputs.run == 'true' && inputs.jobs != 'mutation'
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     steps:
@@ -323,8 +350,9 @@ jobs:
             runs-load-sqlite.json
           if-no-files-found: error
   bridge-load-postgres:
-    # Not in a warm-up of the mutation cache (#329); a scheduled run has no inputs, so it runs.
-    if: inputs.jobs != 'mutation'
+    # Not in a warm-up of the mutation cache (#329); a scheduled run has no inputs, so it runs. Not late (#372).
+    needs: guard
+    if: needs.guard.outputs.run == 'true' && inputs.jobs != 'mutation'
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     services:
@@ -363,8 +391,9 @@ jobs:
   # in its own job under the runner's budget (20 min, 10 000 000 states, 4 GB of heap). A false verdict fails the job;
   # an instance out of budget is `unknown`, the gap report, not a failure. Never on a pull request.
   matrix:
-    # Not in a warm-up of the mutation cache (#329); a scheduled run has no inputs, so it runs.
-    if: inputs.jobs != 'mutation'
+    # Not in a warm-up of the mutation cache (#329); a scheduled run has no inputs, so it runs. Not late (#372).
+    needs: guard
+    if: needs.guard.outputs.run == 'true' && inputs.jobs != 'mutation'
     runs-on: ubuntu-24.04
     timeout-minutes: 40
     strategy:
@@ -396,8 +425,9 @@ jobs:
   # The cross-runtime checks at more seeds than a pull request runs (4.1.16, plan §10): 500 seeds of every Remix mode
   # and wheel, the speedrun's checks, and Remix and Time Attack together, in Node, Chromium, WebKit and Firefox.
   cross-runtime:
-    # Not in a warm-up of the mutation cache (#329); a scheduled run has no inputs, so it runs.
-    if: inputs.jobs != 'mutation'
+    # Not in a warm-up of the mutation cache (#329); a scheduled run has no inputs, so it runs. Not late (#372).
+    needs: guard
+    if: needs.guard.outputs.run == 'true' && inputs.jobs != 'mutation'
     runs-on: ubuntu-24.04
     timeout-minutes: 45
     steps:
@@ -419,8 +449,9 @@ jobs:
   # The speedrun worker in its container profile (4.1.17, plan §10.3): the reference run verified inside, a hostile
   # script refused the network and the host's files and secrets and killed by its own timeout, then a run again.
   worker-container:
-    # Not in a warm-up of the mutation cache (#329); a scheduled run has no inputs, so it runs.
-    if: inputs.jobs != 'mutation'
+    # Not in a warm-up of the mutation cache (#329); a scheduled run has no inputs, so it runs. Not late (#372).
+    needs: guard
+    if: needs.guard.outputs.run == 'true' && inputs.jobs != 'mutation'
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     steps:

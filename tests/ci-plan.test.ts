@@ -97,6 +97,8 @@ describe('the plan of a change', () => {
     ['a unit test', ['tests/core.test.ts'], []],
     ['the Windows launcher', ['scripts/start.mjs'], gates('coverage', 'node24', 'windows')],
     ['a release tool', ['tools/release/ship.mjs', 'tools/mutate.ts'], []],
+    // The scheduled workflows' late-start guard (4.5.6, #372): read by nightly.yml and prove.yml only.
+    ['the schedule guard', ['tools/schedule-guard.ts'], []],
     [
       'an authoring tool',
       ['tools/validate.ts'],

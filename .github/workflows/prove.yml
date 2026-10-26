@@ -14,7 +14,28 @@ on:
 permissions:
   contents: read
 jobs:
+  # The late-start guard (4.5.6, #372): GitHub does not guarantee a schedule's start time, and on 2026-10-26 it started
+  # this run six hours late, in the working day, where its jobs took the runners from a release's candidate. A
+  # scheduled run that starts more than two hours after its cron time skips every other job and stays green; a run by
+  # hand always runs (tools/schedule-guard.ts, tests/schedule-guard.test.ts). Node alone, no `npm ci`.
+  guard:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    outputs:
+      run: ${{ steps.guard.outputs.run }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 22
+      - id: guard
+        env:
+          EVENT: ${{ github.event_name }}
+          CRON: ${{ github.event.schedule }}
+        run: node --experimental-strip-types --no-warnings tools/schedule-guard.ts --event="$EVENT" --cron="$CRON"
   prove:
+    needs: guard
+    if: needs.guard.outputs.run == 'true'
     runs-on: ubuntu-24.04
     timeout-minutes: 60
     steps:

@@ -923,7 +923,7 @@ The file a step appends `NAME=value` lines to, for the next steps of its job.
 The file a step writes its outputs to.
 
 - Origin: set by GitHub Actions.
-- Read by: [`.github/workflows/candidate.yml`](../../.github/workflows/candidate.yml), [`.github/workflows/ci.yml`](../../.github/workflows/ci.yml), [`.github/workflows/nightly.yml`](../../.github/workflows/nightly.yml), and 1 more.
+- Read by: [`.github/workflows/candidate.yml`](../../.github/workflows/candidate.yml), [`.github/workflows/ci.yml`](../../.github/workflows/ci.yml), [`.github/workflows/nightly.yml`](../../.github/workflows/nightly.yml), and 2 more.
 
 <a name="github-repository"></a>
 
@@ -950,7 +950,7 @@ The commit a run is of; for release.yml, started by the tag's push since 4.5.3, 
 The file a job writes its summary to; `npm run ci:plan` writes the plan there.
 
 - Origin: set by GitHub Actions.
-- Read by: [`.github/workflows/candidate.yml`](../../.github/workflows/candidate.yml), [`.github/workflows/nightly.yml`](../../.github/workflows/nightly.yml), [`tools/ci-plan.ts`](../../tools/ci-plan.ts), and 1 more.
+- Read by: [`.github/workflows/candidate.yml`](../../.github/workflows/candidate.yml), [`.github/workflows/nightly.yml`](../../.github/workflows/nightly.yml), [`tools/ci-plan.ts`](../../tools/ci-plan.ts), and 2 more.
 
 <a name="home"></a>
 
@@ -1120,6 +1120,15 @@ docs-publish: the candidate run whose test report is read.
 - Origin: set by a workflow of `.github/workflows/` (CI and releases).
 - Read by: [`.github/workflows/docs-publish.yml`](../../.github/workflows/docs-publish.yml), [`.github/workflows/release.yml`](../../.github/workflows/release.yml).
 
+<a name="cron"></a>
+
+### `CRON`
+
+nightly and prove: the cron of a scheduled run (`github.event.schedule`), whose time the late-start guard compares with the run's start; past two hours every other job is skipped (4.5.6, #372).
+
+- Origin: set by a workflow of `.github/workflows/` (CI and releases).
+- Read by: [`.github/workflows/nightly.yml`](../../.github/workflows/nightly.yml), [`.github/workflows/prove.yml`](../../.github/workflows/prove.yml).
+
 <a name="dispatched-mode"></a>
 
 ### `DISPATCHED_MODE`
@@ -1142,10 +1151,10 @@ release: the documentation archive of the release, when it has one.
 
 ### `EVENT`
 
-candidate: the event that started the run; only a push to main can be a release's merge (4.5.4).
+candidate: the event that started the run; only a push to main can be a release's merge (4.5.4). nightly and prove: only a `schedule` run is judged by the late-start guard (4.5.6, #372).
 
 - Origin: set by a workflow of `.github/workflows/` (CI and releases).
-- Read by: [`.github/workflows/candidate.yml`](../../.github/workflows/candidate.yml).
+- Read by: [`.github/workflows/candidate.yml`](../../.github/workflows/candidate.yml), [`.github/workflows/nightly.yml`](../../.github/workflows/nightly.yml), [`.github/workflows/prove.yml`](../../.github/workflows/prove.yml).
 
 <a name="extra-assets"></a>
 

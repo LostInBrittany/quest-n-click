@@ -923,7 +923,7 @@ Le fichier auquel une étape ajoute des lignes `NOM=valeur`, pour les étapes su
 Le fichier où une étape écrit ses sorties.
 
 - Origine : posée par GitHub Actions.
-- Lue par : [`.github/workflows/candidate.yml`](../../.github/workflows/candidate.yml), [`.github/workflows/ci.yml`](../../.github/workflows/ci.yml), [`.github/workflows/nightly.yml`](../../.github/workflows/nightly.yml), et 1 de plus.
+- Lue par : [`.github/workflows/candidate.yml`](../../.github/workflows/candidate.yml), [`.github/workflows/ci.yml`](../../.github/workflows/ci.yml), [`.github/workflows/nightly.yml`](../../.github/workflows/nightly.yml), et 2 de plus.
 
 <a name="github-repository"></a>
 
@@ -950,7 +950,7 @@ Le commit d’un lancement ; pour release.yml, lancé par le push du tag depuis 
 Le fichier où un job écrit son résumé ; `npm run ci:plan` y écrit le plan.
 
 - Origine : posée par GitHub Actions.
-- Lue par : [`.github/workflows/candidate.yml`](../../.github/workflows/candidate.yml), [`.github/workflows/nightly.yml`](../../.github/workflows/nightly.yml), [`tools/ci-plan.ts`](../../tools/ci-plan.ts), et 1 de plus.
+- Lue par : [`.github/workflows/candidate.yml`](../../.github/workflows/candidate.yml), [`.github/workflows/nightly.yml`](../../.github/workflows/nightly.yml), [`tools/ci-plan.ts`](../../tools/ci-plan.ts), et 2 de plus.
 
 <a name="home"></a>
 
@@ -1120,6 +1120,15 @@ docs-publish : le lancement candidat dont le rapport de tests est lu.
 - Origine : posée par un workflow de `.github/workflows/` (CI et publications).
 - Lue par : [`.github/workflows/docs-publish.yml`](../../.github/workflows/docs-publish.yml), [`.github/workflows/release.yml`](../../.github/workflows/release.yml).
 
+<a name="cron"></a>
+
+### `CRON`
+
+nightly et prove : le cron d’une exécution planifiée (`github.event.schedule`), dont le filtre des départs en retard compare l’heure au départ de l’exécution ; au-delà de deux heures, tous les autres jobs sont sautés (4.5.6, #372).
+
+- Origine : posée par un workflow de `.github/workflows/` (CI et publications).
+- Lue par : [`.github/workflows/nightly.yml`](../../.github/workflows/nightly.yml), [`.github/workflows/prove.yml`](../../.github/workflows/prove.yml).
+
 <a name="dispatched-mode"></a>
 
 ### `DISPATCHED_MODE`
@@ -1142,10 +1151,10 @@ release : l’archive de documentation de la version, quand elle en a une.
 
 ### `EVENT`
 
-candidate : l’événement qui a lancé l’exécution ; seul un push sur main peut être le merge d’une release (4.5.4).
+candidate : l’événement qui a lancé l’exécution ; seul un push sur main peut être le merge d’une release (4.5.4). nightly et prove : seule une exécution `schedule` passe par le filtre des départs en retard (4.5.6, #372).
 
 - Origine : posée par un workflow de `.github/workflows/` (CI et publications).
-- Lue par : [`.github/workflows/candidate.yml`](../../.github/workflows/candidate.yml).
+- Lue par : [`.github/workflows/candidate.yml`](../../.github/workflows/candidate.yml), [`.github/workflows/nightly.yml`](../../.github/workflows/nightly.yml), [`.github/workflows/prove.yml`](../../.github/workflows/prove.yml).
 
 <a name="extra-assets"></a>
 
