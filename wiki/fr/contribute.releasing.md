@@ -174,6 +174,28 @@ git push <le remote de l'organisation> docs/<version>
 gh workflow run docs-publish --ref docs/<version> -f mode=revision -f version=<version>
 ```
 
+Quand la `ci` de main est rouge sur le merge de release lui-même, pour une raison corrigée seulement après lui, la
+release ne peut pas reposer sur ce commit : `release.yml` exige une `ci` de main verte sur le commit tagué
+(`tools/release/main-ci.mjs`). C'était le cas de la 4.5.5 : le job `windows` de son merge échouait, corrigé par #368
+fusionné après lui (4.5.6, #369). `--commit=<sha>` désigne un commit ultérieur de main sur lequel publier à la place,
+utilisé partout où l'est le commit de release (les barrières de la doc, le candidat, `ship tag`, l'exécution de
+release) :
+
+```sh
+gh workflow run candidate.yml --repo Quest-n-Click/quest-n-click --ref main -f sha=<sha>   # si aucun n'a tourné dessus
+npm run release -- 4.5.5 --commit=<sha>
+```
+
+La commande trouve un candidat par le commit de son exécution, et une exécution lancée à la main sur `main` enregistre
+la tête de main à cet instant, quoi que dise `sha` : lancez-la pendant que `<sha>` est la tête de main (ou prenez la
+tête de main comme `<sha>`).
+
+Il est refusé, avec ce qu'il faut faire, quand ce n'est pas un SHA que le checkout connaît, quand il n'est pas sur la
+lignée des premiers parents de main, quand `package.json` n'y est pas à la version, quand ce n'est ni le merge de
+release ni un commit postérieur, ou quand le tag est déjà sorti sur un autre commit. La commande dit quel commit elle
+utilise et, quand ce n'est pas le merge de release, elle le signale ; la commande de reprise de chaque arrêt garde
+`--commit`. Sans lui, rien ne change.
+
 <a name="the-chain"></a>
 
 ### La chaîne

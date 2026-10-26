@@ -1,0 +1,21 @@
+{
+  "format": "quest-n-click-docs-acks",
+  "version": 1,
+  "pairs": {
+    "contribute.releasing#release-command": {
+      "enHash": "f3da37de0c168368f09cc1d786cce0b75b3ef8fc0d154bc537215315a6584d79",
+      "frHash": "52be61ba8d34bba7b1771570b12660f9886d505f499aebddfae4f3202406f974",
+      "reviewers": [
+        { "name": "claude-opus-5-5", "kind": "ai", "relation": "author", "date": "2026-10-26" }
+      ]
+    },
+    "reference.npm-scripts#script-release": {
+      "enHash": "22a882e24a41d4abf8e04d14950c6e0a0cc13983431449d3ddb39ecd9243f0ec",
+      "frHash": "acc7df3d5d7467637456c4c77c2fe8ce24eb49afe83b1f09ebed862ad5bfbb83",
+      "reviewers": [
+        { "name": "claude-opus-5-5", "kind": "ai", "relation": "author", "date": "2026-10-26" }
+      ]
+    }
+  },
+  "claims": {}
+}

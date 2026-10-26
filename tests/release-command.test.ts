@@ -414,6 +414,49 @@ describe.skipIf(!POSIX)('npm run release -- <version>, end to end (#348)', () =>
     expect(r.status).toBe(1);
   }, 120_000);
 
+  it("--commit=<sha> releases on a later commit of main, its candidate tagged: the merge's own ci was red (4.5.5)", () => {
+    const s = scratch();
+    const later = s.git('rev-parse', 'HEAD');
+    s.setState({
+      runs: {
+        '11': candidate(s.merge, [failed]),
+        '12': { ...candidate(later, [green]), event: 'workflow_dispatch' },
+        '20': releaseRun(later),
+      },
+      release: releaseJson,
+      npm: { published: [], staged: staged(...PACKAGES) },
+    });
+    // Refused first: a commit that is not main's, one before the release, one that is not a SHA.
+    const first4 = s.git('rev-list', '--max-parents=0', 'HEAD');
+    for (const [arg, why] of [
+      [s.prepared, "is not on main's first-parent line"],
+      [first4, 'package.json is at 4.5.4'],
+      ['main', 'is not a commit SHA'],
+    ] as const) {
+      const r = s.release(`--commit=${arg}`, '--dry-run');
+      expect(r.out).toContain(why);
+      expect(r.status).toBe(1);
+    }
+    const dry = s.release(`--commit=${later.slice(0, 10)}`, '--dry-run');
+    expect(dry.out).toContain(
+      `release commit: ${later.slice(0, 7)} (--commit: a later commit of main, not the release merge ${s.merge.slice(0, 7)})`,
+    );
+    expect(dry.status).toBe(0);
+
+    const r = s.release(`--commit=${later}`);
+    expect(r.out).toContain(`preflight: ✔  release commit ${later.slice(0, 7)} (--commit`);
+    expect(r.out).toContain('candidate run 12 (workflow_dispatch');
+    expect(of(r.calls, 'gh').filter((c) => c.startsWith('run rerun'))).toEqual([]);
+    expect(of(r.calls, 'ship')).toEqual([`tag ${V} ${later} --candidate=12 --sign --no-watch`, `verify ${V}`]);
+    expect(s.git('ls-remote', '--tags', 'upstream', `refs/tags/v${V}^{}`).split('\t')[0]).toBe(later);
+    expect(r.status).toBe(0);
+    // Once tagged, a relaunch without it follows the tag; another commit is refused.
+    expect(s.release(`--commit=${s.merge}`, '--dry-run').out).toContain(
+      `v${V} is tagged on ${later.slice(0, 7)} already`,
+    );
+    expect(s.release('--dry-run').out).toContain(`release commit: ${later.slice(0, 7)}`);
+  }, 180_000);
+
   it('a relaunch after the tag is pushed resumes: the same commit, no second tag, no gates, no second wait', () => {
     const s = scratch();
     const blocked = releaseRun(s.merge, [job('release'), job('npm-stage', 'completed', 'failure')]);

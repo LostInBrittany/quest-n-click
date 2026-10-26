@@ -986,7 +986,7 @@ The README's quick start as a reader copies it (4.1.19): the block under "## Sta
 The release in two commands (4.5.4): `<x.y.z>` after the release pull request's merge waits for its candidate, signs and pushes the tag, follows the release and approves the npm packages with 2FA ([contribute.releasing](contribute.releasing.md#release-command)); `prepare` makes the branch `release/<version>` with every generated file (version, CHANGELOG and LOG from the fragments, upgrade notes' section, transition pages, golden save, reference run, passes sheet and passIssues, README line, quality baseline), `TODO(release)` where prose is needed, one commit and the pull request; `check` says what is left before merging ([contribute.releasing](contribute.releasing.md#prepare)).
 
 - Runs: `tsx tools/release/prepare.ts`
-- Usage: `npm run release -- <x.y.z> [--key=<key.pub>] [--start-candidate] [--dry-run] | prepare <x.y.z> --name="<name>" [--date=YYYY-MM-DD] [--no-pr] [--dry-run] | check <x.y.z>`
+- Usage: `npm run release -- <x.y.z> [--key=<key.pub>] [--start-candidate] [--docs-revision] [--reverify] [--commit=<sha>] [--dry-run] | prepare <x.y.z> --name="<name>" [--date=YYYY-MM-DD] [--no-pr] [--dry-run] | check <x.y.z>`
 
 <a name="release-check"></a>
 

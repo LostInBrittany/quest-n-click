@@ -6,6 +6,9 @@ import { describe, expect, it } from 'vitest';
 import {
   CANDIDATE_DEADLINE_MS,
   candidateProgress,
+  commitLine,
+  commitRefusals,
+  releaseCommand,
   candidateStep,
   isCandidateRun,
   pickCandidate,
@@ -166,6 +169,79 @@ describe('the release commit (4.5.4)', () => {
     expect(releaseCommit(history, '4.5.4')).toBe('b');
     expect(releaseCommit(history, '4.5.5')).toBeUndefined();
     expect(releaseCommit([{ sha: 'x', version: '4.5.4' }], '4.5.4')).toBe('x');
+  });
+});
+
+describe('--commit=<sha>: a later commit of main in place of the release merge (4.5.6)', () => {
+  const MERGE = 'c'.repeat(40);
+  const LATER = 'b'.repeat(40);
+  const ok = {
+    version: '4.5.5',
+    given: LATER,
+    resolved: LATER,
+    firstParent: true,
+    versionAt: '4.5.5',
+    found: MERGE,
+    descends: true,
+    tagged: undefined,
+  };
+  it('nothing when it is the release merge or a later commit of main still at the version', () => {
+    expect(commitRefusals(ok)).toEqual([]);
+    expect(commitRefusals({ ...ok, given: MERGE, resolved: MERGE })).toEqual([]);
+    expect(commitRefusals({ ...ok, given: 'bbbbbbb' })).toEqual([]);
+  });
+  it('each thing to fix, with what to do', () => {
+    expect(commitRefusals({ ...ok, given: 'main', resolved: undefined })).toEqual([
+      expect.stringMatching(/--commit=main is not a commit SHA.*git fetch/),
+    ]);
+    expect(commitRefusals({ ...ok, resolved: undefined })).toEqual([
+      expect.stringMatching(/--commit=b{40} is not a commit SHA.*git fetch/),
+    ]);
+    expect(commitRefusals({ ...ok, firstParent: false })).toEqual([
+      expect.stringMatching(/bbbbbbb is not on main's first-parent line.*git log --first-parent/),
+    ]);
+    expect(commitRefusals({ ...ok, versionAt: '4.5.6' })).toEqual([
+      expect.stringMatching(/package\.json is at 4\.5\.6 on bbbbbbb, not 4\.5\.5/),
+    ]);
+    expect(commitRefusals({ ...ok, descends: false })).toEqual([
+      expect.stringMatching(/bbbbbbb does not come after the release merge ccccccc/),
+    ]);
+  });
+  it('once the tag is out, only its commit: a tag never moves', () => {
+    expect(commitRefusals({ ...ok, tagged: LATER })).toEqual([]);
+    expect(commitRefusals({ ...ok, tagged: MERGE })).toEqual([
+      expect.stringMatching(/v4\.5\.5 is tagged on ccccccc already.*without --commit/),
+    ]);
+  });
+  it('says which commit is used, and that it is not the release merge when it is not', () => {
+    expect(commitLine(MERGE, MERGE)).toBe('release commit ccccccc');
+    expect(commitLine(MERGE, LATER)).toBe(
+      'release commit bbbbbbb (--commit: a later commit of main, not the release merge ccccccc)',
+    );
+  });
+  it('a stop says the command to run again, --commit kept', () => {
+    expect(releaseCommand('4.5.5')).toBe('npm run release -- 4.5.5');
+    expect(releaseCommand('4.5.5', LATER)).toBe(`npm run release -- 4.5.5 --commit=${LATER}`);
+    const pending = { ok: false, detail: 'x' };
+    expect(
+      docsGatesStop({ version: '4.5.5', sha: LATER, gates: pending, docsRevision: false, commit: LATER }),
+    ).toContain(`npm run release -- 4.5.5 --commit=${LATER} --docs-revision`);
+    const view = { status: 'in_progress', conclusion: '', jobs: [] };
+    const stop = candidateStep(view, {
+      id: 1,
+      version: '4.5.5',
+      rerunAsked: false,
+      waitedMs: CANDIDATE_DEADLINE_MS,
+      commit: LATER,
+    });
+    expect(stop.do === 'stop' && stop.error).toContain(`npm run release -- 4.5.5 --commit=${LATER} again`);
+  });
+  it('the CLI passes --commit= on, and runRelease uses it in place of the found commit', () => {
+    expect(readFileSync('tools/release/prepare.ts', 'utf8')).toMatch(/startsWith\('--commit='\)/);
+    const src = readFileSync('tools/release/release-run.ts', 'utf8');
+    const run = src.slice(src.indexOf('export async function runRelease('));
+    expect(run.indexOf('commitRefusals(')).toBeGreaterThan(0);
+    expect(run.indexOf('commitRefusals(')).toBeLessThan(run.indexOf('gatesAt(sha)'));
   });
 });
 
