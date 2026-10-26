@@ -1,4 +1,4 @@
-## the TODO(release) prose before prepare pushes
+## the `TODO(release)` prose before prepare pushes
 
 After #326 `prepare` held the push on the docs' human gates, but not on the `TODO(release)` prose it writes itself: the
 pull request opened with the markers in, `release -- check` failed on them, and the prose was pushed after, a second

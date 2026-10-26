@@ -245,6 +245,26 @@ describe('what is left to write', () => {
     const long = `TODO(release): ${'x'.repeat(300)}`;
     expect(todoBrief([{ path: 'a', text: long }])[0]!.what.length).toBeLessThanOrEqual(200);
   });
+  it('counts no marker quoted in a code span or a fenced block, as a CHANGELOG bullet quotes it (#364)', () => {
+    // changes/prepare-todo-gate.md's bullet, copied whole into the upgrade notes by prepare (4.5.5's rehearsal).
+    const bullet = [
+      '- **`prepare` stops before the push on `TODO(release)` prose too (4.5.5)**: the stop before the push now covers the',
+      "  `TODO(release)` markers left in the release's files (the same ones `npm run release -- check` counts) as well as the",
+      "  docs' human gates, in one stop.",
+    ].join('\n');
+    const fenced = ['```sh', 'grep -rn "TODO(release)" .', '```'].join('\n');
+    const quoted = '``TODO(release)`` and `` `TODO(release)` `` quoted';
+    expect(todoMarkers([{ path: 'notes.md', text: [bullet, fenced, quoted].join('\n') }])).toEqual([]);
+    // A real marker beside a quoted one, or after a closed fence, still counts.
+    expect(
+      todoMarkers([
+        {
+          path: 'notes.md',
+          text: `${bullet}\nThe \`TODO(release)\` above. TODO(release): the lead.\n${fenced}\nTODO(release)`,
+        },
+      ]),
+    ).toEqual(['notes.md:4', 'notes.md:8']);
+  });
 });
 
 describe('the command', () => {

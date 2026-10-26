@@ -69,6 +69,25 @@ function logProblem(text: string): { line: number; problem: string } | undefined
 }
 
 /**
+ * The lines of a Markdown text with what is quoted as code blanked, one per line (#364): inline code spans (a run of
+ * backticks to the next run of the same length) and fenced blocks (``` or ~~~). What is left is prose: a
+ * `TODO(release)` there is a marker to write, one quoted in code is not. A span that wraps over a line break is not
+ * seen as one (its marker counts: the safe way).
+ */
+export function proseLines(text: string): string[] {
+  let fence = false;
+  return text.split('\n').map((line) => {
+    if (/^\s*(```|~~~)/.test(line)) {
+      fence = !fence;
+      return '';
+    }
+    return fence ? '' : line.replace(/(`+)[\s\S]*?(?<!`)\1(?!`)/g, '');
+  });
+}
+
+const MARKER = 'TODO(release)';
+
+/**
  * Why `--assemble` would refuse these files of `changes/` (#335): every problem of every fragment, as
  * `changes/<name>:<line>: <problem>`. `changes/README.md` is not a fragment. `--check` runs it on the whole folder,
  * so a heading the release would stop on fails the pull request that adds it.
@@ -77,7 +96,16 @@ export function fragmentProblems(files: readonly { name: string; text: string }[
   const out: string[] = [];
   for (const { name, text } of files) {
     if (name === 'README.md' || !name.endsWith('.md')) continue;
-    const problems = name.endsWith('.log.md') ? [logProblem(text)].filter((p) => !!p) : sectionProblems(text);
+    const log = name.endsWith('.log.md');
+    const problems = log ? [logProblem(text)].filter((p) => !!p) : sectionProblems(text);
+    // A bare marker would land in the CHANGELOG or the LOG, where `release -- check` counts it forever (#364).
+    proseLines(text).forEach((l, i) => {
+      if (l.includes(MARKER))
+        problems.push({
+          line: i + 1,
+          problem: `a bare ${MARKER} would stay in the ${log ? 'LOG' : 'CHANGELOG'} as a marker to write: quote it in backticks`,
+        });
+    });
     for (const p of problems) out.push(`changes/${name}:${p.line}: ${p.problem}`);
   }
   return out;
