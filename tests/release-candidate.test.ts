@@ -200,13 +200,15 @@ describe('the workflows that judge a candidate', () => {
   it('the nightly by hand with jobs=mutation runs the mutation jobs only: a warm-up of the cache (#329)', () => {
     const text = wf('nightly');
     expect(text).toMatch(/ {6}jobs:\n(?: {8}.*\n)*? {8}options: \[all, mutation\]\n {8}default: all\n/);
-    // The late-start guard (#372) runs in every run: a run by hand is never late (tests/schedule-guard.test.ts).
-    for (const name of jobs(text).filter((j) => j !== 'guard')) {
+    // The late-start guard (#372) runs in every run: a run by hand is never late (tests/schedule-guard.test.ts). So
+    // does the report (#379): a red warm-up is news the candidate would give a day late (tests/nightly-report.test.ts).
+    for (const name of jobs(text).filter((j) => j !== 'guard' && j !== 'report')) {
       const body = text.slice(text.indexOf(`\n  ${name}:\n`) + 1).split(/\n {2}[a-z][a-z0-9-]*:\n/)[0]!;
       const guarded =
         /\n {4}if: (?:always\(\) && )?needs\.guard\.outputs\.run == 'true' && inputs\.jobs != 'mutation'\n/.test(body);
       expect(guarded, name).toBe(!name.startsWith('mutation'));
     }
+    expect(text.slice(text.indexOf('\n  report:\n'))).not.toContain("inputs.jobs != 'mutation'");
   });
 
   it('release.yml runs no mutation set (4.5.3, #291): the candidate the tag names ran them on the same SHA', () => {

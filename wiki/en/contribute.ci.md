@@ -14,7 +14,7 @@ pull request runs is [`tools/ci-plan.ts`](../../tools/ci-plan.ts). Which test su
 | `ci` | a pull request; a push to `main`; by hand. A tag runs none (4.5.3, #291): its commit is one of `main`'s, already run | the three tiers below | the pull request (`pr-gate`); a release (`main`'s run on the tag's SHA must be green) |
 | `candidate` | the release pull request's merge: a push to `main` that moves `package.json`'s version (4.5.4); by hand on `main` for a SHA (`gh workflow run candidate --ref main -f sha=<full sha>`); a pull request labelled `full-ci` (information only) | the release's only test pass since 4.5.3: `release-check:ci` and every heavy family on one exact SHA (the mutation sets read the cache the nightly fills), then `candidate-gate`, which writes and attests `candidate-manifest.json` | a tag must name one green run of it, started on `main` ([Releasing](contribute.releasing.md)) |
 | `release` | the push of a `v*` tag (4.5.3, #291) | no test of its own: the commit on `main`'s first parents, `main`'s `ci` green on that SHA, the previous stable tag an ancestor, the candidate the tag names green on that SHA with every file of its manifest; then the release made from those files, `ship verify`, `npm-stage` (the npm packages staged for an owner to approve), `docs-publish` (4.5.0) and the website's revalidation | publication |
-| `nightly` | every day at 20:17 UTC, which GitHub starts in the night (one that starts in the Paris working day runs nothing, below); by hand (`-f jobs=mutation`: the mutation jobs only, a warm-up of the cache below, which `release -- prepare` starts when it pushes the release pull request, 4.5.5, #331) | npm names, the heavy suite, the connectors' fuzz (a minute each), the abstraction corpus (500 seeds, four shards), every mutation set from scratch (each passed shard saved in the cache the candidate reads, 4.5.5), the Bridge's loads on SQLite and Postgres, the proof matrix, cross-runtime with 500 Remix seeds, the worker in a container | nothing directly; a red night is a bug to fix before the next release |
+| `nightly` | every day at 20:17 UTC, which GitHub starts in the night (one that starts in the Paris working day runs nothing, below); by hand (`-f jobs=mutation`: the mutation jobs only, a warm-up of the cache below, which `release -- prepare` starts when it pushes the release pull request, 4.5.5, #331) | npm names, the heavy suite, the connectors' fuzz (a minute each), the abstraction corpus (500 seeds, four shards), every mutation set from scratch (each passed shard saved in the cache the candidate reads, 4.5.5), the Bridge's loads on SQLite and Postgres, the proof matrix, cross-runtime with 500 Remix seeds, the worker in a container | nothing directly; a red night is a bug to fix before the next release, and opens a `nightly-red` issue (below) |
 | `prove` | every Sunday at 20:00 UTC, started in Monday's night (the same guard); by hand (`game`, `rooms`) | `prove:game`, the committed playtests (`--strict`), and the bench on a 100-room generated game (uploaded as `bench`) | never a gate |
 | `mutation` | by hand: `gh workflow run mutation --ref main -f set=<set> -f ref=<branch or SHA> [-f file=<path>]` | one mutation set, measured on a runner, its report kept as an artifact | nothing |
 | `qualify` | a pull request or a push to `main` touching `ops/`, `scripts/ops-qualify*`, `scripts/pack.mjs`, `bridge/`, `package.json` or the lockfile; by hand | `npm run ops:qualify`: the Bridge's qualification profile on Docker | the profile does not rot between candidates |
@@ -44,6 +44,20 @@ run that still starts in the Paris working day, 07:00 to 20:00 Paris time on any
 stays green and takes no other runner. A run by hand (`workflow_dispatch`) is never guarded, nor is the warm-up of the
 mutation cache that `release -- prepare` starts; a skipped night is run by hand when it is needed, or waits for the next
 one.
+
+**A red night opens an issue** (4.5.6, #379). A red nightly used to tell nobody but the cross on the Actions page: on
+26 October 2026 one was found at the next release's candidate, a day late. The nightly's last job, `report`, needs
+every other job and runs whatever their results, when the run ran (not when the `guard` skipped it; a failed `guard` is
+red too). [`tools/nightly-report.ts`](../../tools/nightly-report.ts) reads their results: a job that failed, timed out
+or was cancelled opens an issue labelled `nightly-red` (the job creates the label if it is missing), or comments on the
+one already open, so a red streak is one issue, not one a night. Its text gives the date, the commit, the run's link,
+the red jobs, and for a failed mutation gate the surviving mutants that `docs/dev/mutants.json` does not name, read
+from the run's `mutation-merged` artefact (when no merged report names one, it points to the mutation jobs). A green
+night comments "Green again on <run>" and closes it. A warm-up of the mutation cache (`-f jobs=mutation`) reports a red
+gate like a night, since the release's candidate would fail on it, but a green warm-up never closes the issue: it
+skipped every other job. `report` is the workflow's only job with `issues: write`; every other job keeps the read-only
+token. Jobs marked `continue-on-error` (the npm names, the connectors' fuzz, the measured mutation sets) gate nothing
+and open nothing. Nothing is closed by hand: the fix lands on `main`, and the next green night closes the issue.
 
 <a name="tiers"></a>
 <!-- applies: .. since 4.1.9 -->

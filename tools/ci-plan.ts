@@ -194,9 +194,9 @@ export const RULES: readonly Rule[] = [
     why: "the wiki's own tools",
   },
   // Tools that ship nothing and build nothing: the unit suite checks them; Windows and Node 24 on `main` (4.5.4, #302).
-  // The schedule guard (4.5.6, #372) is the nightly's and the prove's.
+  // The schedule guard (4.5.6, #372) is the nightly's and the prove's; the nightly's report (4.5.6, #379) the nightly's.
   {
-    re: /^(tools\/(mutate|mutation-sets|coverage-ratchet|quality-baseline|api-doc|audit-corpus|bench|changes|schedule-guard)\.ts$|tools\/release\/|scripts\/(release-notes\.(mjs|d\.mts)|check-links\.mjs|docs-screenshots\.mjs)$)/,
+    re: /^(tools\/(mutate|mutation-sets|coverage-ratchet|quality-baseline|api-doc|audit-corpus|bench|changes|schedule-guard|nightly-report)\.ts$|tools\/release\/|scripts\/(release-notes\.(mjs|d\.mts)|check-links\.mjs|docs-screenshots\.mjs)$)/,
     gates: [],
     why: 'a repository tool',
   },

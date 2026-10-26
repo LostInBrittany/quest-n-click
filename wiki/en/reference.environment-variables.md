@@ -701,7 +701,7 @@ Any value makes `e2e:weight` print the requests it counted.
 The GitHub token of the `gh` command. `tools/release/run-jobs.mjs` reads it before `GITHUB_TOKEN`; `npm run wiki -- publish` reads it only when `GITHUB_TOKEN` is not set.
 
 - Origin: you set it; the code reads it.
-- Read by: [`.github/workflows/candidate.yml`](../../.github/workflows/candidate.yml), [`.github/workflows/ci.yml`](../../.github/workflows/ci.yml), [`.github/workflows/docs-publish.yml`](../../.github/workflows/docs-publish.yml), and 3 more.
+- Read by: [`.github/workflows/candidate.yml`](../../.github/workflows/candidate.yml), [`.github/workflows/ci.yml`](../../.github/workflows/ci.yml), [`.github/workflows/docs-publish.yml`](../../.github/workflows/docs-publish.yml), and 4 more.
 
 <a name="github-token"></a>
 
@@ -729,6 +729,15 @@ The results of a workflow's jobs, as JSON, that the candidate's verdict reads. T
 
 - Origin: you set it; the code reads it.
 - Read by: [`.github/workflows/candidate.yml`](../../.github/workflows/candidate.yml), [`.github/workflows/ci.yml`](../../.github/workflows/ci.yml), [`tools/release/candidate.mjs`](../../tools/release/candidate.mjs).
+
+<a name="nightly-results"></a>
+
+### `NIGHTLY_RESULTS`
+
+The results of the nightly's jobs, as JSON (`toJSON(needs)`), that `tools/nightly-report.ts` reads to open, update or close the `nightly-red` issue (4.5.6, #379). The workflow sets it.
+
+- Origin: you set it; the code reads it.
+- Read by: [`.github/workflows/nightly.yml`](../../.github/workflows/nightly.yml), [`tools/nightly-report.ts`](../../tools/nightly-report.ts).
 
 <a name="qnc-release-clock"></a>
 
@@ -959,7 +968,7 @@ The commit a run is of; for release.yml, started by the tag's push since 4.5.3, 
 The file a job writes its summary to; `npm run ci:plan` writes the plan there.
 
 - Origin: set by GitHub Actions.
-- Read by: [`.github/workflows/candidate.yml`](../../.github/workflows/candidate.yml), [`.github/workflows/nightly.yml`](../../.github/workflows/nightly.yml), [`tools/ci-plan.ts`](../../tools/ci-plan.ts), and 2 more.
+- Read by: [`.github/workflows/candidate.yml`](../../.github/workflows/candidate.yml), [`.github/workflows/nightly.yml`](../../.github/workflows/nightly.yml), [`tools/ci-plan.ts`](../../tools/ci-plan.ts), and 3 more.
 
 <a name="home"></a>
 

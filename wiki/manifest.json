@@ -11236,6 +11236,7 @@
         "MUTATION",
         "MUTATION_SET",
         "NEEDS",
+        "NIGHTLY_RESULTS",
         "NPM_CONFIG_USERCONFIG",
         "NPM_PUBLISH_NODE",
         "NPM_PUBLISH_NPM",
