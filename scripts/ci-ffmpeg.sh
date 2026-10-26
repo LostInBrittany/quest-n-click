@@ -19,8 +19,14 @@ if curl -fsSL --retry 3 --max-time 300 "$url" -o "$tmp/ffmpeg.tar.xz"; then
   fi
 fi
 echo "the static build failed: apt instead" >&2
+# Only the download is bounded (4.5.6, #374): sudo runs `timeout`, apt-get's own parent, which kills it before dpkg
+# starts. `timeout` above sudo killed sudo, not the apt-get under it, which went on holding the dpkg lock (#353); and
+# it cut dpkg too. The install, from apt's cache, is not bounded, and waits for a lock still held rather than failing.
+apt=(apt-get -o DPkg::Lock::Timeout=300)
 for i in 1 2; do
-  if timeout 240 $SUDO apt-get update -qq && timeout 240 $SUDO apt-get install -y -qq ffmpeg; then ffmpeg -version | head -1; exit 0; fi
+  if $SUDO timeout -k 10 240 "${apt[@]}" update -qq \
+    && $SUDO timeout -k 10 240 "${apt[@]}" install --download-only -y -qq ffmpeg \
+    && $SUDO "${apt[@]}" install -y -qq ffmpeg; then ffmpeg -version | head -1; exit 0; fi
   echo "apt attempt $i failed or hung; retrying" >&2; sleep 10
 done
 echo "no ffmpeg: the static build and apt both failed" >&2
