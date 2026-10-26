@@ -55,7 +55,8 @@ export function repositoryScripts(root: string): Record<string, string> {
 
 /**
  * The scripts `quest-n-click create` writes, name → command, read from cli/create.mjs's `scripts: { … }` block: a
- * `key: \`${NAME} cmd\`` entry, and `[NAME]: NAME` (the engine's own command, under its own name).
+ * `key: \`${NAME} cmd\`` entry, `[NAME]: NAME` (the engine's own command, under its own name), and a `key: 'cmd'` entry
+ * that calls another command (`test: 'vitest run'`, 4.5.6).
  */
 export function projectScripts(root: string): Record<string, string> {
   const text = source(root, 'cli/create.mjs');
@@ -64,9 +65,9 @@ export function projectScripts(root: string): Record<string, string> {
   const block = /\n(\s*)scripts: \{\n([\s\S]*?)\n\1\},/.exec(text)?.[2] ?? '';
   const out: Record<string, string> = {};
   for (const l of block.split('\n')) {
-    const m = /^\s*([A-Za-z][\w:-]*|\[NAME\]): (`\$\{NAME\}([^`]*)`|NAME),?$/.exec(l);
+    const m = /^\s*([A-Za-z][\w:-]*|\[NAME\]): (`\$\{NAME\}([^`]*)`|NAME|'([^']+)'),?$/.exec(l);
     if (!m) continue;
-    out[m[1] === '[NAME]' ? name : m[1]!] = m[2] === 'NAME' ? name : `${name}${m[3]}`;
+    out[m[1] === '[NAME]' ? name : m[1]!] = m[2] === 'NAME' ? name : (m[4] ?? `${name}${m[3]}`);
   }
   return out;
 }
@@ -78,7 +79,7 @@ const W = {
       'Run in a clone of the engine repository, from its root folder (the one that holds `package.json`), after `npm ci`.',
     project: 'Scripts of a created project',
     projectIntro:
-      "Written by `quest-n-click create` (or `npm init @quest-n-click`) into the new project's `package.json`. Run them from the project's folder, after `npm install`: each calls the `quest-n-click` command of the installed engine.",
+      "Written by `quest-n-click create` (or `npm init @quest-n-click`) into the new project's `package.json`. Run them from the project's folder, after `npm install`: each calls the `quest-n-click` command of the installed engine, except `test`, which runs the game's tests with vitest.",
     runs: 'Runs',
     usage: 'Usage',
   },
@@ -88,7 +89,7 @@ const W = {
       'À lancer dans un clone du dépôt du moteur, depuis son dossier racine (celui qui contient `package.json`), après `npm ci`.',
     project: 'Scripts d’un projet créé',
     projectIntro:
-      'Écrits par `quest-n-click create` (ou `npm init @quest-n-click`) dans le `package.json` du nouveau projet. À lancer depuis le dossier du projet, après `npm install` : chacun appelle la commande `quest-n-click` du moteur installé.',
+      'Écrits par `quest-n-click create` (ou `npm init @quest-n-click`) dans le `package.json` du nouveau projet. À lancer depuis le dossier du projet, après `npm install` : chacun appelle la commande `quest-n-click` du moteur installé, sauf `test`, qui lance les tests du jeu avec vitest.',
     runs: 'Lance',
     usage: 'Utilisation',
   },

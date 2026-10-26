@@ -10,7 +10,7 @@ repository", this is the difference it means.
 | The game's folder | `game/` | `games/<id>/` (several games side by side) |
 | The engine | `node_modules/@quest-n-click/engine/` (installed, never written) | `src/engine/` (you may change it) |
 | Which game | always `game/` | `GAME`, else `.cache/game`, else `config.game` in `package.json`, else `demo` ([choosing the game](create.working-loop.md#choosing-the-game)) |
-| `npm run` scripts | eight (below) | about 150, the whole toolbox |
+| `npm run` scripts | nine (below) | about 150, the whole toolbox |
 
 <a name="created-project"></a>
 
@@ -21,13 +21,14 @@ folder that exists and is not empty, then writes:
 
 | Path | What |
 |---|---|
-| `game/` | the template game ([`games/_template`](../../games/_template)), with `__ID__` and `__TITLE__` replaced; the template's own `tests/` is left out |
+| `game/` | the template game ([`games/_template`](../../games/_template)), with `__ID__` and `__TITLE__` replaced, its `tests/` included: `game/tests/game.test.ts` checks that the game can be finished from a new game and that a save reads back as written (`npm test`) |
 | `game/provenance.json` | one entry saying every image is a placeholder drawn from shapes: a release refuses it until each file is replaced and reviewed (`npx quest-n-click provenance --lock`) |
 | `public/` | the page's icons, its preview image (`og.png`) and the full font the engine falls back to; `public/assets/` is written by `npm run assets`, not committed |
-| `package.json` | `"config": { "game": "<id>" }`, the dependency on the engine (`^<version>`, or `--engine`), and the scripts below |
+| `package.json` | `"config": { "game": "<id>" }`, the dependency on the engine (`^<version>`, or `--engine`), `vitest` as a development dependency (the engine's own version), and the scripts below |
 | `tsconfig.json` | `@engine/*` points into `node_modules/@quest-n-click/engine/src/engine`, `@quest-n-click/engine/*` into its public API, `@game` into `game/index.ts` |
+| `vitest.config.ts` | the game's tests, `game/tests/**/*.test.ts`, with no alias: the package's `exports` resolve `@quest-n-click/engine/testing` |
 | `.gitignore` | `node_modules`, `dist`, `.cache`, `public/assets`, `game/private` |
-| `README.md` | the five commands below, as a reminder |
+| `README.md` | the six commands below, as a reminder |
 
 Later, `npm run build` writes `dist/` (with `licenses/`), and the tools write `.cache/`.
 
@@ -60,7 +61,7 @@ provenance.json   where each asset comes from and under which licence
 site.json         page title, description, theme colour, art style
 locales/<lang>.json translations (written by npm run i18n -- extract)
 art/, audio/      the sources of the images and sounds
-tests/            the game's own tests (engine repository only)
+tests/            the game's own tests (vitest, npm test; in the engine repository with GAME=<id>)
 ```
 
 `index.ts` is the template's and is kept as is: it gathers the layouts and the translations with Vite and exports the
@@ -91,8 +92,9 @@ game's `minigames`, `extraImages` (images to prepare even when no content refere
 
 ## Which scripts exist where
 
-A created project's `package.json` has eight scripts. Each calls the engine's command, `quest-n-click`, with the
-project's folder as the working folder ([`cli/quest-n-click.mjs`](../../cli/quest-n-click.mjs)):
+A created project's `package.json` has nine scripts. Each but `npm test` calls the engine's command, `quest-n-click`,
+with the project's folder as the working folder ([`cli/quest-n-click.mjs`](../../cli/quest-n-click.mjs)); `npm test`
+runs vitest on `game/tests`:
 
 | In the created project | Runs | In the engine repository |
 |---|---|---|
@@ -103,6 +105,7 @@ project's folder as the working folder ([`cli/quest-n-click.mjs`](../../cli/ques
 | `npm run build` | assets, verify, the production build in `dist/`, every file accounted for | `npm run build` (also type-checks and runs the engine's tests first) |
 | `npm run release` | build, then the release gates; `--commercial`: no exception, no placeholder | `npm run verify:release`, `npm run verify:commercial` |
 | `npm run preview` | serves `dist/` on 127.0.0.1 | `npm run preview` |
+| `npm test` | the game's tests in `game/tests` (vitest): it can be finished, a save reads back as written; add your own there with [`@quest-n-click/engine/testing`](engine.api.md#testing) | `npm test` (the engine's tests, and the current game's `tests/`) |
 | `npm run quest-n-click -- <command>` | any other command of the engine | (the scripts below) |
 
 Every other tool is a subcommand of `quest-n-click`, run with `npx` in the created project:
@@ -120,7 +123,7 @@ In the engine repository the same tools are scripts of their own: `npm run valid
 [npm scripts](reference.npm-scripts.md).
 
 Only in the engine repository: `npm run new-game`, `npm run game`, `npm run dev:lan`, `npm run studio:lan`,
-`npm test` and `npm run check` (the engine's tests), `npm run e2e*`, `npm run replay`, `npm run remix`,
+`npm run check` (the engine's tests), `npm run e2e*`, `npm run replay`, `npm run remix`,
 `npm run page:*`, `npm run seal`, and the release and qualification scripts.
 
 > [!LIMIT id=no-lan-in-project]

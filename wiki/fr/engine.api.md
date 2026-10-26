@@ -112,6 +112,10 @@ Comment en écrire un : [create.custom-minigame.md](create.custom-minigame.md).
 
 ## `@quest-n-click/engine/testing` : les tests d'un jeu
 
+Un projet créé en a un dès le départ (4.5.6) : `game/tests/game.test.ts`, lancé par `npm test` (vitest), termine le
+jeu avec `solve` et relit une sauvegarde avec `parseSave` et `saveEnvelope`
+([organisation d'un projet créé](create.project-layout.md#created-project)). Ajoutez vos propres tests à côté.
+
 | Nom | Quoi |
 |---|---|
 | `Engine` | le moteur sans page (ses membres marqués `@internal` sont lus par les modules de `core/` depuis la 4.1.0 : hors contrat). Depuis la 4.1.4 : `destroy()` le termine (boucles arrêtées, attentes libérées, plus aucun rappel) ; `onError(error, where)` entend un script qui a levé (arrêté, `scripts[id].off`) ou une commande custom qui a changé plus qu'elle ne déclarait ; `beforeSave(state)` façonne ce que le store écrit, `onLoad.before/after` encadrent un chargement ; `clock` est le seul temps qu'il connaît (`started`, la trace, la date d'une session) |

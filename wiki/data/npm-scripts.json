@@ -1300,6 +1300,14 @@
       }
     },
     {
+      "name": "test",
+      "usage": "npm test",
+      "description": {
+        "en": "`vitest run`: the game's tests in `game/tests` (`vitest.config.ts`). The one `create` writes checks that the game can be finished from a new game and that a save reads back as written; add your own next to it, with `@quest-n-click/engine/testing` ([engine.api](engine.api.md)).",
+        "fr": "`vitest run` : les tests du jeu dans `game/tests` (`vitest.config.ts`). Celui qu’écrit `create` vérifie que le jeu se termine depuis une nouvelle partie et qu’une sauvegarde se relit telle qu’écrite ; ajoutez les vôtres à côté, avec `@quest-n-click/engine/testing` ([engine.api](engine.api.md))."
+      }
+    },
+    {
       "name": "quest-n-click",
       "usage": "npm run quest-n-click -- <command> [options]",
       "description": {

@@ -87,6 +87,7 @@ and `npx quest-n-click solve` in a created project.
    npx quest-n-click validate
    npx quest-n-click solve
    npm run verify        # validate, solve, i18n status, lint, playtests
+   npm test              # game/tests (vitest): the game can be finished, a save reads back
    ```
 
 <!-- step: play -->

@@ -33,11 +33,9 @@ if (existsSync(dir) && readdirSync(dir).length) {
   process.exit(1);
 }
 
-// The template's tests/ is this repository's (vitest, `npm run check`); a project checks its game with `quest-n-click verify`.
-cpSync(join(PKG, 'games', '_template'), join(dir, 'game'), {
-  recursive: true,
-  filter: (src) => !src.includes(`${join('_template', 'tests')}`),
-});
+// The template's tests/ is the game's own test (4.5.6, #384): the engine repository runs it (`GAME=_template`), and so
+// does a project, `npm test` (vitest, from vitest.config.ts below). It names no room: `layouts` comes from game/index.ts.
+cpSync(join(PKG, 'games', '_template'), join(dir, 'game'), { recursive: true });
 const walk = (d) => {
   for (const e of readdirSync(d)) {
     const p = join(d, e);
@@ -81,6 +79,9 @@ for (const f of ['icons', 'og.png', 'fonts'])
   if (existsSync(join(PKG, 'public', f))) cpSync(join(PKG, 'public', f), join(dir, 'public', f), { recursive: true });
 
 const engine = opt('engine') ?? `^${version}`;
+// The engine's own vitest (its package.json's devDependencies, which the published package.json does not carry):
+// tests/create.test.ts keeps the two equal.
+const VITEST = '^5.0.3';
 writeFileSync(
   join(dir, 'package.json'),
   JSON.stringify(
@@ -98,9 +99,11 @@ writeFileSync(
         build: `${NAME} build`,
         release: `${NAME} release`,
         preview: `${NAME} preview`,
+        test: 'vitest run',
         [NAME]: NAME,
       },
       dependencies: { [PACKAGE]: engine },
+      devDependencies: { vitest: VITEST },
     },
     null,
     2,
@@ -135,11 +138,16 @@ writeFileSync(
     2,
   ) + '\n',
 );
+// The game's tests (game/tests), no alias: the package's `exports` resolve `@quest-n-click/engine/testing`.
+writeFileSync(
+  join(dir, 'vitest.config.ts'),
+  "import { defineConfig } from 'vitest/config';\n\nexport default defineConfig({ test: { include: ['game/tests/**/*.test.ts'] } });\n",
+);
 // game/private: the raw sheets and photos the art prompts save there, never committed.
 writeFileSync(join(dir, '.gitignore'), 'node_modules\ndist\n.cache\npublic/assets\ngame/private\n');
 writeFileSync(
   join(dir, 'README.md'),
-  `# ${title}\n\nA point-and-click game made with [quest'n'click](https://github.com/Quest-n-Click/quest-n-click).\n\n\`\`\`bash\nnpm install\nnpm run assets   # art and audio into public/assets (Python 3 with Pillow)\nnpm run dev      # open the URL, landscape; ?edit=start places things\nnpm run verify   # the content checked, the solver finds the end\nnpm run build    # dist/, every file accounted for, licences inside\n\`\`\`\n\nThe game is in \`game/\`: rooms, characters, items, rules. The art in \`game/art\` is a placeholder; a release refuses it\nuntil it is replaced and reviewed (\`npx ${NAME} provenance --lock\`).\n\nThe documentation is the wiki, in English and in French, https://github.com/Quest-n-Click/quest-n-click/wiki: start with\nhttps://github.com/Quest-n-Click/quest-n-click/wiki/EN-Create-Project-Layout for this project's files, and\nhttps://github.com/Quest-n-Click/quest-n-click/wiki/EN-Create-Working-Loop for the commands above.\n`,
+  `# ${title}\n\nA point-and-click game made with [quest'n'click](https://github.com/Quest-n-Click/quest-n-click).\n\n\`\`\`bash\nnpm install\nnpm run assets   # art and audio into public/assets (Python 3 with Pillow)\nnpm run dev      # open the URL, landscape; ?edit=start places things\nnpm run verify   # the content checked, the solver finds the end\nnpm test         # game/tests: the game can be finished, a save reads back\nnpm run build    # dist/, every file accounted for, licences inside\n\`\`\`\n\nThe game is in \`game/\`: rooms, characters, items, rules. The art in \`game/art\` is a placeholder; a release refuses it\nuntil it is replaced and reviewed (\`npx ${NAME} provenance --lock\`).\n\nThe documentation is the wiki, in English and in French, https://github.com/Quest-n-Click/quest-n-click/wiki: start with\nhttps://github.com/Quest-n-Click/quest-n-click/wiki/EN-Create-Project-Layout for this project's files, and\nhttps://github.com/Quest-n-Click/quest-n-click/wiki/EN-Create-Working-Loop for the commands above.\n`,
 );
 console.log(
   `${folder}: "${title}" created (${PACKAGE} ${engine}).\nNext:\n  cd ${folder}\n  npm install\n  npm run assets && npm run dev`,

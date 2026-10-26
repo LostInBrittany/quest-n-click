@@ -96,6 +96,7 @@ describe('npm scripts (reference.npm-scripts)', () => {
       build: 'quest-n-click build',
       release: 'quest-n-click release',
       preview: 'quest-n-click preview',
+      test: 'vitest run',
       'quest-n-click': 'quest-n-click',
     });
   });

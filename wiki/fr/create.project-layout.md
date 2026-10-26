@@ -10,7 +10,7 @@ le dépôt du moteur », c'est de cette différence qu'il s'agit.
 | Dossier du jeu | `game/` | `games/<id>/` (plusieurs jeux côte à côte) |
 | Le moteur | `node_modules/@quest-n-click/engine/` (installé, jamais modifié) | `src/engine/` (vous pouvez le modifier) |
 | Quel jeu | toujours `game/` | `GAME`, sinon `.cache/game`, sinon `config.game` dans `package.json`, sinon `demo` ([choisir le jeu](create.working-loop.md#choosing-the-game)) |
-| Scripts `npm run` | huit (ci-dessous) | environ 150, toute la boîte à outils |
+| Scripts `npm run` | neuf (ci-dessous) | environ 150, toute la boîte à outils |
 
 <a name="created-project"></a>
 
@@ -21,13 +21,14 @@ dossier qui existe et n'est pas vide, puis écrit :
 
 | Chemin | Contenu |
 |---|---|
-| `game/` | le jeu modèle ([`games/_template`](../../games/_template)), `__ID__` et `__TITLE__` remplacés ; le `tests/` du modèle n'est pas copié |
+| `game/` | le jeu modèle ([`games/_template`](../../games/_template)), `__ID__` et `__TITLE__` remplacés, son `tests/` compris : `game/tests/game.test.ts` vérifie que le jeu se termine depuis une nouvelle partie et qu'une sauvegarde se relit telle qu'écrite (`npm test`) |
 | `game/provenance.json` | une entrée qui déclare chaque image comme provisoire, dessinée à partir de formes : une release la refuse tant que chaque fichier n'est pas remplacé et relu (`npx quest-n-click provenance --lock`) |
 | `public/` | les icônes de la page, son image d'aperçu (`og.png`) et la police complète sur laquelle le moteur se replie ; `public/assets/` est écrit par `npm run assets`, jamais commité |
-| `package.json` | `"config": { "game": "<id>" }`, la dépendance au moteur (`^<version>`, ou `--engine`), et les scripts ci-dessous |
+| `package.json` | `"config": { "game": "<id>" }`, la dépendance au moteur (`^<version>`, ou `--engine`), `vitest` en dépendance de développement (la version du moteur), et les scripts ci-dessous |
 | `tsconfig.json` | `@engine/*` pointe dans `node_modules/@quest-n-click/engine/src/engine`, `@quest-n-click/engine/*` dans son API publique, `@game` vers `game/index.ts` |
+| `vitest.config.ts` | les tests du jeu, `game/tests/**/*.test.ts`, sans alias : les `exports` du paquet résolvent `@quest-n-click/engine/testing` |
 | `.gitignore` | `node_modules`, `dist`, `.cache`, `public/assets`, `game/private` |
-| `README.md` | les cinq commandes ci-dessous, en aide-mémoire |
+| `README.md` | les six commandes ci-dessous, en aide-mémoire |
 
 Ensuite, `npm run build` écrit `dist/` (avec `licenses/`), et les outils écrivent `.cache/`.
 
@@ -60,7 +61,7 @@ provenance.json   where each asset comes from and under which licence
 site.json         page title, description, theme colour, art style
 locales/<lang>.json translations (written by npm run i18n -- extract)
 art/, audio/      the sources of the images and sounds
-tests/            the game's own tests (engine repository only)
+tests/            the game's own tests (vitest, npm test; in the engine repository with GAME=<id>)
 ```
 
 En clair : `index.ts` est le point d'entrée ; `game.ts` le jeu (verbes, personnages, objets, carte, règles globales,
@@ -98,8 +99,9 @@ les `minigames` du jeu, ses `extraImages` (images à préparer même si aucun co
 
 ## Quels scripts existent où
 
-Le `package.json` d'un projet créé a huit scripts. Chacun appelle la commande du moteur, `quest-n-click`, avec le
-dossier du projet comme dossier de travail ([`cli/quest-n-click.mjs`](../../cli/quest-n-click.mjs)) :
+Le `package.json` d'un projet créé a neuf scripts. Chacun, sauf `npm test`, appelle la commande du moteur,
+`quest-n-click`, avec le dossier du projet comme dossier de travail
+([`cli/quest-n-click.mjs`](../../cli/quest-n-click.mjs)) ; `npm test` lance vitest sur `game/tests` :
 
 | Dans le projet créé | Lance | Dans le dépôt du moteur |
 |---|---|---|
@@ -110,6 +112,7 @@ dossier du projet comme dossier de travail ([`cli/quest-n-click.mjs`](../../cli/
 | `npm run build` | assets, verify, le build de production dans `dist/`, chaque fichier justifié | `npm run build` (vérifie aussi les types et lance d'abord les tests du moteur) |
 | `npm run release` | build, puis les portes de la release ; `--commercial` : aucune exception, aucun provisoire | `npm run verify:release`, `npm run verify:commercial` |
 | `npm run preview` | sert `dist/` sur 127.0.0.1 | `npm run preview` |
+| `npm test` | les tests du jeu dans `game/tests` (vitest) : il se termine, une sauvegarde se relit telle qu'écrite ; ajoutez-y les vôtres avec [`@quest-n-click/engine/testing`](engine.api.md#testing) | `npm test` (les tests du moteur, et le `tests/` du jeu courant) |
 | `npm run quest-n-click -- <commande>` | toute autre commande du moteur | (les scripts ci-dessous) |
 
 Tous les autres outils sont des sous-commandes de `quest-n-click`, lancées avec `npx` dans le projet créé :
@@ -127,7 +130,7 @@ Dans le dépôt du moteur, ces mêmes outils ont chacun leur script : `npm run v
 sur [scripts npm](reference.npm-scripts.md).
 
 Seulement dans le dépôt du moteur : `npm run new-game`, `npm run game`, `npm run dev:lan`, `npm run studio:lan`,
-`npm test` et `npm run check` (les tests du moteur), `npm run e2e*`, `npm run replay`, `npm run remix`,
+`npm run check` (les tests du moteur), `npm run e2e*`, `npm run replay`, `npm run remix`,
 `npm run page:*`, `npm run seal`, et les scripts de release et de qualification.
 
 > [!LIMIT id=no-lan-in-project]

@@ -83,6 +83,8 @@ if (leaks.length) {
 
 step('assets', 'npx', ['quest-n-click', 'assets'], game);
 step('verify', 'npx', ['quest-n-click', 'verify'], game);
+// The game's own test, the one `create` writes (4.5.6, #384): vitest from the project's devDependencies.
+step('test', 'npm', ['test'], game);
 // The tools that read the sources with the compiler API (4.1.8: `@typescript/typescript6` must be in the tarball).
 step('ids (read)', 'npx', ['quest-n-click', 'ids'], game);
 step('build', 'npx', ['quest-n-click', 'build'], game);

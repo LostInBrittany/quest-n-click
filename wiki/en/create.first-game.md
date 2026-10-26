@@ -181,6 +181,7 @@ npm test           # the engine's tests and your game's walkthrough (games/lamp/
 npx quest-n-click validate
 npx quest-n-click solve
 npm run verify     # validate, solve, i18n status, lint, playtests
+npm test           # game/tests/game.test.ts: the game can be finished, a save reads back as written
 ```
 
 `solve` stops at the first way to the end it finds: another path may still lead the player into a dead end.

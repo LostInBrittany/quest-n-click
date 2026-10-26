@@ -89,6 +89,7 @@ dossier du projet créé, ou le clone du dépôt du moteur). `npm run dev` et `n
    npx quest-n-click validate
    npx quest-n-click solve
    npm run verify        # validate, solve, i18n status, lint, playtests
+   npm test              # game/tests (vitest) : le jeu se termine, une sauvegarde se relit
    ```
 
 <!-- step: play -->

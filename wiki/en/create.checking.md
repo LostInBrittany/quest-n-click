@@ -200,6 +200,7 @@ equivalent when there is one; "—" means the created project has none.
 | Engine repository | Created project | What it does |
 |---|---|---|
 | `npm run verify:game` | `npm run verify` | Engine repository: validate, the witness, the witness by chapters, the variants (`verify:variants`), the translation status, the lint, the playtests. Created project: validate, solve, `i18n status`, lint, playtests. |
+| `npm test` | `npm test` | Created project: vitest on `game/tests`; the test `create` writes finishes the game from a new game and reads a save back as written ([layout of a created project](create.project-layout.md#created-project)). Engine repository: the Node tests, the selected game's `tests/` among them. |
 | `npm run prove:game` | — (`npm run release` runs `solve --prove` and `solve-reality`) | The global proof, the proof by chapters and every Reality world; fails on a softlock or a truncation. |
 | `npm run build:game` | `npm run build` | The game's gates, the bundle, `verify:dist`, then (engine repository) the spoiler check and the asset audit. No type-check, no unit suite. |
 | `npm run build` | `npm run build` | Engine repository: `check` (type-check and Node tests), then `build:game`. |
