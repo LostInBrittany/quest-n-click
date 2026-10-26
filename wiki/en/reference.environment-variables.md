@@ -622,6 +622,15 @@ A PostgreSQL URL the tests run the Bridge's store and the mutation runs against;
 - Origin: you set it; the code reads it.
 - Read by: [`.github/workflows/candidate.yml`](../../.github/workflows/candidate.yml), [`.github/workflows/ci.yml`](../../.github/workflows/ci.yml), [`.github/workflows/mutation.yml`](../../.github/workflows/mutation.yml), and 2 more.
 
+<a name="ci-apt-etc"></a>
+
+### `CI_APT_ETC`
+
+The apt configuration directory `scripts/ci-playwright-deps.sh` writes to and whose mirror list it reorders; `/etc/apt` when unset. Its test points it at a directory of its own.
+
+- Origin: you set it; the code reads it.
+- Read by: [`scripts/ci-playwright-deps.sh`](../../scripts/ci-playwright-deps.sh).
+
 <a name="consumer-pg-url"></a>
 
 ### `CONSUMER_PG_URL`

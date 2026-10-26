@@ -11196,6 +11196,7 @@
         "CC_RUN_COMMAND",
         "CELLAR_ADDON_KEY_ID",
         "CELLAR_ADDON_KEY_SECRET",
+        "CI_APT_ETC",
         "CONSUMER_PG_URL",
         "DEV",
         "DISPATCHED_MODE",

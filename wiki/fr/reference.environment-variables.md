@@ -622,6 +622,15 @@ Une URL PostgreSQL sur laquelle les tests font tourner le stockage du Bridge et 
 - Origine : vous la posez ; le code la lit.
 - Lue par : [`.github/workflows/candidate.yml`](../../.github/workflows/candidate.yml), [`.github/workflows/ci.yml`](../../.github/workflows/ci.yml), [`.github/workflows/mutation.yml`](../../.github/workflows/mutation.yml), et 2 de plus.
 
+<a name="ci-apt-etc"></a>
+
+### `CI_APT_ETC`
+
+Le dossier de configuration d’apt dans lequel `scripts/ci-playwright-deps.sh` écrit et dont il réordonne la liste de miroirs ; `/etc/apt` quand elle n’est pas posée. Son test la fait pointer vers un dossier à lui.
+
+- Origine : vous la posez ; le code la lit.
+- Lue par : [`scripts/ci-playwright-deps.sh`](../../scripts/ci-playwright-deps.sh).
+
 <a name="consumer-pg-url"></a>
 
 ### `CONSUMER_PG_URL`

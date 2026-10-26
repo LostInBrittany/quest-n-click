@@ -4,13 +4,16 @@
 // `timeout <n>m`, and the step leaves room for the three and the two pauses. macOS has no `timeout`, and on Windows
 // System32's timeout.exe may come first in the PATH: the jobs that run there keep their loops unbounded, said in a
 // comment, and are listed here so that a new one is a decision.
-// apt is never under `timeout` (#353): `timeout` killed `npx playwright install --with-deps`, not the apt-get it ran
-// through sudo, which went on holding the dpkg lock, and the two retries failed at once. Playwright's system packages
-// go through scripts/ci-playwright-deps.sh (apt fails by itself on a mirror that stops sending, and waits for its
-// lock); the browsers' download, no apt in it, keeps its limit an attempt.
+// No workflow loop runs apt under `timeout` (#353): `timeout` killed `npx playwright install --with-deps`, not the
+// apt-get it ran through sudo, which went on holding the dpkg lock, and the two retries failed at once. Playwright's
+// system packages go through scripts/ci-playwright-deps.sh; the browsers' download, no apt in it, keeps its limit an
+// attempt. In the script (#373), only the download is bounded, `timeout` being apt-get's own parent under sudo, and a
+// retry puts the runner's first apt mirror last: a mirror at 40 kB/s had spent the step on one attempt.
 import { execFileSync } from 'node:child_process';
-import { readdirSync, readFileSync } from 'node:fs';
-import { describe, expect, it } from 'vitest';
+import { chmodSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join, resolve } from 'node:path';
+import { afterAll, describe, expect, it } from 'vitest';
 
 const DIR = '.github/workflows';
 const LOOP = /for i in 1 2 3; do (.*?) && break; \[ "\$i" = 3 \] && exit 1; echo "retry \$i"; sleep 15; done/g;
@@ -117,7 +120,7 @@ describe('the retry loops of the workflows', () => {
     }
   });
 
-  it('let apt fail by itself on a stalled mirror and wait for its lock, never under `timeout`', () => {
+  it('let apt fail by itself on a stalled mirror and wait for its lock, and bound the download only (#373)', () => {
     const script = readFileSync('scripts/ci-playwright-deps.sh', 'utf8');
     for (const option of [
       'Acquire::http::Timeout',
@@ -126,9 +129,131 @@ describe('the retry loops of the workflows', () => {
       'DPkg::Lock::Timeout',
     ])
       expect(script, option).toMatch(new RegExp(`'${option} "\\d+";'`));
-    expect(script).toMatch(/tee \/etc\/apt\/apt\.conf\.d\/[\w-]+/);
-    expect(script).toMatch(/for i in 1 2 3; do\n\s+npx playwright install-deps "\$@" && exit 0/);
-    expect(script).not.toMatch(/^\s*[^#\n]*\btimeout \d/m);
+    expect(script).toMatch(/^APT_ETC=\$\{CI_APT_ETC:-\/etc\/apt\}$/m);
+    expect(script).toMatch(/tee "\$APT_ETC\/apt\.conf\.d\/[\w-]+"/);
+    // `timeout` only ever runs apt-get's update or its download, as apt-get's own parent (under sudo, never above it):
+    // killed there, apt-get releases its locks and dpkg has not started.
+    const bounded = script.split('\n').filter((line) => /^\s*[^#\s][^#]*\btimeout\b/.test(line));
+    expect(bounded.length).toBe(2);
+    for (const line of bounded)
+      expect(line).toMatch(
+        /^\s*\$SUDO timeout -k \d+ \d+m apt-get (update|install --download-only -y --no-install-recommends \$missing)\b/,
+      );
+    // The install itself, dpkg included, is never under `timeout`.
+    expect(script).toMatch(/^\s+npx playwright install-deps "\$@" && exit 0$/m);
     execFileSync('bash', ['-n', 'scripts/ci-playwright-deps.sh']);
+  });
+});
+
+// The script run for real against stand-ins for sudo, id, sleep, timeout, npx and apt-get, which log their arguments.
+describe.skipIf(process.platform === 'win32')('scripts/ci-playwright-deps.sh on a runner (#373)', () => {
+  const MIRRORS =
+    'http://azure.archive.ubuntu.com/ubuntu/\tpriority:1\n' +
+    'https://archive.ubuntu.com/ubuntu/\tpriority:2\n' +
+    'https://security.ubuntu.com/ubuntu/\tpriority:3\n';
+  const STUBS: Record<string, string> = {
+    sudo: 'echo "sudo $*" >> "$LOG"; exec "$@"',
+    id: 'echo 1001',
+    sleep: 'echo "sleep $*" >> "$LOG"',
+    timeout: 'echo "timeout $*" >> "$LOG"; shift 3; exec "$@"',
+    npx: [
+      'case "$*" in',
+      '  *--dry-run*) [ -n "${MISSING:-}" ] || { echo "All system dependencies are installed."; exit 0; }',
+      '    echo "Missing system dependencies (2):"; for p in $MISSING; do echo "  $p"; done; exit 1 ;;',
+      '  *) echo "npx $*" >> "$LOG"; n=$(cat "$DIR/installs" 2>/dev/null || echo 0); echo $((n + 1)) > "$DIR/installs"',
+      '    [ "$n" -ge "${INSTALL_FAILS:-0}" ] ;;',
+      'esac',
+    ].join('\n'),
+    'apt-get': [
+      'echo "apt-get $*" >> "$LOG"',
+      'case "$1" in install)',
+      '  n=$(cat "$DIR/downloads" 2>/dev/null || echo 0); echo $((n + 1)) > "$DIR/downloads"',
+      '  [ "$n" -ge "${DOWNLOAD_FAILS:-0}" ] || exit 124',
+      '  grep -q "^http://azure.*priority:1$" "$CI_APT_ETC/apt-mirrors.txt" && echo "azure first" >> "$LOG" || true ;;',
+      'esac',
+    ].join('\n'),
+  };
+  const dirs: string[] = [];
+
+  function run(env: Record<string, string>, mirrors = true): { code: number; log: string[]; mirrors?: string } {
+    const dir = mkdtempSync(join(tmpdir(), 'ci-playwright-deps-'));
+    dirs.push(dir);
+    mkdirSync(join(dir, 'bin'));
+    mkdirSync(join(dir, 'apt', 'apt.conf.d'), { recursive: true });
+    for (const [name, body] of Object.entries(STUBS)) {
+      writeFileSync(join(dir, 'bin', name), `#!/usr/bin/env bash\n${body}\n`);
+      chmodSync(join(dir, 'bin', name), 0o755);
+    }
+    if (mirrors) writeFileSync(join(dir, 'apt', 'apt-mirrors.txt'), MIRRORS);
+    let code = 0;
+    try {
+      execFileSync('bash', [resolve('scripts/ci-playwright-deps.sh'), 'chromium', 'firefox'], {
+        env: {
+          ...env,
+          PATH: `${join(dir, 'bin')}:${process.env.PATH}`,
+          LOG: join(dir, 'log'),
+          DIR: dir,
+          CI_APT_ETC: join(dir, 'apt'),
+        },
+        stdio: 'pipe',
+      });
+    } catch (e) {
+      code = (e as { status: number }).status;
+    }
+    const log = readFileSync(join(dir, 'log'), 'utf8').trim().split('\n');
+    const list = mirrors ? readFileSync(join(dir, 'apt', 'apt-mirrors.txt'), 'utf8') : undefined;
+    return { code, log, mirrors: list };
+  }
+
+  afterAll(() => {
+    for (const d of dirs) rmSync(d, { recursive: true, force: true });
+  });
+
+  it('downloads what Playwright reports missing under `timeout`, then installs with nothing bounded', () => {
+    const { code, log, mirrors } = run({ MISSING: 'libfoo1 libbar2' });
+    expect(code).toBe(0);
+    expect(log.filter((l) => !l.startsWith('sudo '))).toEqual([
+      'timeout -k 10 2m apt-get update',
+      'apt-get update',
+      'timeout -k 10 3m apt-get install --download-only -y --no-install-recommends libfoo1 libbar2',
+      'apt-get install --download-only -y --no-install-recommends libfoo1 libbar2',
+      'azure first',
+      'npx playwright install-deps chromium firefox',
+    ]);
+    // sudo runs `timeout`, not the reverse: `timeout` is apt-get's parent and kills apt-get itself.
+    expect(log).toContain('sudo timeout -k 10 2m apt-get update');
+    expect(mirrors).toBe(MIRRORS);
+    expect(readFileSync(join(dirs.at(-1)!, 'apt', 'apt.conf.d', '90-ci-playwright-deps'), 'utf8')).toContain(
+      'Acquire::http::Timeout "60";',
+    );
+  });
+
+  it('puts the first mirror last when a download runs out of time, and goes on from there', () => {
+    const { code, log, mirrors } = run({ MISSING: 'libfoo1 libbar2', DOWNLOAD_FAILS: '1' });
+    expect(code).toBe(0);
+    expect(mirrors).toBe(
+      'http://azure.archive.ubuntu.com/ubuntu/\tpriority:9\n' +
+        'https://archive.ubuntu.com/ubuntu/\tpriority:2\n' +
+        'https://security.ubuntu.com/ubuntu/\tpriority:3\n',
+    );
+    expect(log.filter((l) => l.startsWith('apt-get install')).length).toBe(2);
+    expect(log.filter((l) => l.startsWith('npx '))).toEqual(['npx playwright install-deps chromium firefox']);
+    expect(log).toContain('sleep 15');
+    expect(log).not.toContain('azure first');
+  });
+
+  it('skips the download when nothing is missing, and needs no mirror list (a container)', () => {
+    const { code, log } = run({}, false);
+    expect(code).toBe(0);
+    expect(log.some((l) => l.startsWith('apt-get install'))).toBe(false);
+    expect(log.filter((l) => l.startsWith('npx '))).toEqual(['npx playwright install-deps chromium firefox']);
+  });
+
+  it('fails after three attempts, the mirror list demoted once', () => {
+    const { code, log, mirrors } = run({ MISSING: 'libfoo1', INSTALL_FAILS: '9' });
+    expect(code).toBe(1);
+    expect(log.filter((l) => l.startsWith('npx ')).length).toBe(3);
+    expect(log.filter((l) => l === 'sleep 15').length).toBe(2);
+    expect(mirrors!.match(/priority:9/g)!.length).toBe(1);
   });
 });
