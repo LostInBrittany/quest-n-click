@@ -402,7 +402,7 @@ it('top', () => {});
         blocks: {},
       })),
       reports: [],
-      reviews: { format: 'quest-n-click-docs-reviews', version: 1, claims: {} },
+      reviews: { format: 'quest-n-click-docs-reviews', version: 1, claims: {}, pending: [] },
     });
     expect(states.map((x) => x.unreferenced)).toEqual([
       '"d › a" is written .skip: it does not run as it reads, so it backs no claim',
@@ -431,7 +431,7 @@ it('top', () => {});
           { page, claim: { id: 'c', test: 'tests/each.test.ts › leases on $name › restore refuses' }, blocks: {} },
         ],
         reports: [{ file: 'r.json', commit: HEAD, tests: tests.map((x) => ({ file: 'tests/each.test.ts', ...x })) }],
-        reviews: { format: 'quest-n-click-docs-reviews', version: 1, claims: {} },
+        reviews: { format: 'quest-n-click-docs-reviews', version: 1, claims: {}, pending: [] },
         commit: HEAD,
       })[0]!;
     const both = states([

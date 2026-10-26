@@ -47,7 +47,7 @@ assistant never writes an approved carry attestation on its own. « tu peux sign
 | `tests/quality-baseline.json`, `tests/api-surface.json`, `docs/dev/mutants.json`, `vite.config.ts`, `.github/` | The maintainer, through `.github/CODEOWNERS` (the frozen behaviour, the public surface, the named mutation survivors, the coverage floors, the workflows) |
 | A plan, a release, a non-trivial branch | A second context, then the maintainer |
 | A field pass | The person who made it, then the maintainer, who closes its issue |
-| A translation pair or a claim's scope in the wiki | Recorded in `wiki/translations.json` / `wiki/reviews.json` with who read it, a person or an AI ([Writing documentation](contribute.writing-docs.md#reviews)) |
+| A translation pair or a claim's scope in the wiki | Recorded in `wiki/translations.json` / `wiki/reviews.json` with who read it (on a branch, in its pending `changes/<slug>.acks.json`, folded in at the release), a person or an AI ([Writing documentation](contribute.writing-docs.md#reviews)) |
 
 <a name="charter"></a>
 

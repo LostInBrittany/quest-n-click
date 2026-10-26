@@ -132,8 +132,9 @@ lesquelles la page n'a pas été écrite.
 
 ## Fichiers ou données modifiés
 
-`wiki/en/<id>.md`, `wiki/fr/<id>.md`, l'entrée de la page dans `wiki/manifest.json` ; `wiki/translations.json` et
-`wiki/reviews.json` par leurs commandes ; des images sous `wiki/images/` seulement.
+`wiki/en/<id>.md`, `wiki/fr/<id>.md`, l'entrée de la page dans `wiki/manifest.json` ; les consignations en attente de
+votre branche, `changes/<slug>.acks.json`, par les commandes de consignation (`wiki/translations.json` et
+`wiki/reviews.json` sont ceux de la release) ; des images sous `wiki/images/` seulement.
 
 <a name="recovery"></a>
 
@@ -157,6 +158,7 @@ version publiée est une nouvelle révision `r<n>` faite depuis une branche `doc
 | `wiki/legacy.json` | Pour chacune des huit pages de `read_doc { name }`, les sections ordonnées qui la reconstruisent |
 | `wiki/translations.json` | Quelle révision de chaque langue a été lue contre l'autre, et par qui |
 | `wiki/reviews.json` | Quelles garanties ont vu leur portée lue contre leur test, et par qui |
+| `changes/<slug>.acks.json` | Les paires et les portées consignées par une branche ouverte, en attente, versées dans les deux fichiers ci-dessus à la release |
 | `wiki/data/env.json`, `wiki/data/glossary.json` | Le registre des variables d'environnement et le glossaire bilingue |
 | `wiki/acceptance/questions.json` | Les vraies questions auxquelles la documentation doit répondre, avec des contre-exemples |
 
@@ -303,6 +305,21 @@ ou une image que montre la section, change, la paire est « à relire » : un av
 erreur pour `check --publish`. `wiki/reviews.json` consigne la même chose pour la portée d'une garantie (les empreintes
 du texte de la garantie et de son fichier de test).
 
+**Sur une branche, les consignations sont en attente.** Deux pull requests ouvertes qui modifiaient et consignaient la
+même section entraient en conflit sur `wiki/translations.json`. Désormais une branche n'écrit jamais les deux fichiers :
+`translations --ack` et `review-claim` écrivent son propre `changes/<slug>.acks.json`, à côté de ses fragments,
+`<slug>` étant la branche sans son préfixe (`fix/302-ci` donne `changes/302-ci.acks.json`, la branche `docs/4.5.5`
+d'une révision de la documentation donne `changes/4.5.5.acks.json`). Commitez-le avec votre changement. Sur `main`,
+`master` ou une branche `release/*`, elles écrivent les deux fichiers, comme la release ; sur une HEAD détachée elles
+refusent, sauf si `--pending <slug>` nomme le fichier. Chaque lecteur (`check`, `check --publish`, les contrôles de la
+release, `docs-publish`, les en-têtes des pages) voit les deux fichiers plus chaque fichier en attente : pour chaque
+section ou garantie, les fiches dont les empreintes sont celles du texte actuel l'emportent, leurs relecteurs
+fusionnés ; s'il n'y en a aucune, la section est à relire. Le `prepare` de la release les verse (`npm run wiki -- acks
+--fold`) : ce qui tient encore à son texte va dans les deux fichiers, les fichiers en attente sont supprimés, et chaque
+fiche en attente qui ne tient plus à son texte est listée avec ses relecteurs (une personne nommée comme telle) et la
+commande pour la consigner de nouveau ; l'arrêt de `prepare` reprend cette liste. La relecture d'une personne n'est
+jamais perdue en silence, ni écrite par un outil.
+
 Chaque relecteur est `{ name, kind: human|ai, relation: author|independent, date }`, et les deux commandes exigent
 `--by`, `--kind` et `--relation`. Le même texte relu ajoute un relecteur ; un texte changé repart de zéro. Une garantie
 publiée demande une relecture par une personne (`kind: human`) ; d'ici là elle dit « vérifiée par son auteur (IA), pas
@@ -331,6 +348,8 @@ Toutes se lancent dans le dépôt du moteur, sous la forme `npm run wiki -- <com
 | `bundle --out <dossier> [--build-id <id>] [--allow-dirty]` | La documentation que porte un moteur installé (`scripts/pack.mjs` la lance) ; refuse des sources différentes de `HEAD` sauf avec `--allow-dirty`, qui la marque `-dirty` |
 | `translations --ack <id#section> --by <nom> --kind human\|ai --relation author\|independent` | Consigne qu'une paire a été lue |
 | `review-claim <id> --by … --kind … --relation …` | Consigne que la portée d'une garantie a été lue |
+| `… --pending <slug>` (les deux commandes) | Écrit `changes/<slug>.acks.json` quelle que soit la branche : pour une HEAD détachée |
+| `acks --fold` | Le versement des consignations en attente dans les deux fichiers à la release (`prepare` le lance) ; ce qui ne tient plus est listé |
 | `coverage [--ack <clé>]`, `coverage --init [--force]` | Fusionne un nouvel inventaire des anciennes docs dans la matrice, régénère `legacy.json` et les `replaces` du manifeste ; `--init` prend le premier inventaire (`--force` remplace une matrice existante, en perdant chaque décision) |
 | `acceptance [--lang en\|fr] [--json] [--strict]` | Passe les vraies questions dans `search_docs` ; sort en 0 (rapporté) sauf avec `--strict` ; `--export-prompts <dossier>` écrit à la place les consignes du test par une IA lectrice |
 | `env` | Régénère la référence des variables d'environnement depuis `wiki/data/env.json` et le code |

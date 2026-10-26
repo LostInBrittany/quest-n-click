@@ -5,7 +5,9 @@
 // side's text, or an image a section shows, changes, the pair is "to review": a warning at the work level, an error for
 // `check --publish`. A pair read by an AI only is said as such at both levels, never as a review, and no longer fails
 // a publication (D56 amends A7, which wanted a person on every pair). `npm run wiki -- translations --ack <id#section> --by <name>
-// --kind human|ai --relation author|independent` records the pair, once both sides were read.
+// --kind human|ai --relation author|independent` records the pair, once both sides were read: on an open branch into its
+// own pending file, `changes/<slug>.acks.json`, which every reader adds to this one and the release folds in
+// (pending.ts, 4.5.5, #360), so two branches never change this file's lines.
 import { createHash } from 'node:crypto';
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
@@ -14,6 +16,16 @@ import { splitSections } from './docs';
 import { formatJson } from './json';
 import { issuesOf, type Manifest } from './manifest';
 import { classifyTarget, mapLine, mapLines } from './page';
+import {
+  type Candidate,
+  judge,
+  loadPending,
+  type PairRecord,
+  type PendingFile,
+  pendingTarget,
+  readPending,
+  writePending,
+} from './pending';
 import { humanReviewed, type Reviewer, ReviewerSchema, withReviewer } from './reviewer';
 
 const TRANSLATIONS_FILE = 'translations.json';
@@ -31,21 +43,34 @@ const TranslationsSchema = z
     ),
   })
   .strict();
-type Translations = z.infer<typeof TranslationsSchema>;
+type TranslationsFile = z.infer<typeof TranslationsSchema>;
+/** wiki/translations.json, and the pending files of the branches (pending.ts) every reader adds to it. */
+export type Translations = TranslationsFile & { pending: PendingFile[] };
 
 export function readTranslations(wikiDir: string): { translations: Translations; errors: string[] } {
-  const empty: Translations = { format: 'quest-n-click-docs-translations', version: 1, pairs: {} };
+  const { files: pending, errors: pendingErrors } = readPending(wikiDir);
+  const { file, errors } = readTranslationsFile(wikiDir);
+  return { translations: { ...file, pending }, errors: [...errors, ...pendingErrors] };
+}
+
+function readTranslationsFile(wikiDir: string): { file: TranslationsFile; errors: string[] } {
+  const empty: TranslationsFile = { format: 'quest-n-click-docs-translations', version: 1, pairs: {} };
   const file = resolve(wikiDir, TRANSLATIONS_FILE);
-  if (!existsSync(file)) return { translations: empty, errors: [] };
+  if (!existsSync(file)) return { file: empty, errors: [] };
   try {
     const parsed = TranslationsSchema.safeParse(JSON.parse(readFileSync(file, 'utf8')));
-    if (!parsed.success)
-      return { translations: empty, errors: issuesOf(parsed.error).map((l) => `${TRANSLATIONS_FILE} ${l}`) };
-    return { translations: parsed.data, errors: [] };
+    if (!parsed.success) return { file: empty, errors: issuesOf(parsed.error).map((l) => `${TRANSLATIONS_FILE} ${l}`) };
+    return { file: parsed.data, errors: [] };
   } catch (e) {
-    return { translations: empty, errors: [`${TRANSLATIONS_FILE}: ${(e as Error).message}`] };
+    return { file: empty, errors: [`${TRANSLATIONS_FILE}: ${(e as Error).message}`] };
   }
 }
+
+/** A key's records: the file's first, then each pending file's, in name order. */
+const candidatesOf = (t: Translations, key: string): Candidate<PairRecord>[] => [
+  ...(t.pairs[key] ? [{ record: t.pairs[key] }] : []),
+  ...t.pending.flatMap((p) => (p.pairs[key] ? [{ record: p.pairs[key], file: p.file }] : [])),
+];
 
 /** A section's text as a pair compares it: line ends made LF, outer blank lines dropped. */
 /**
@@ -92,17 +117,14 @@ export interface PairState {
 }
 
 /**
- * The pairs of every `ready` page: one per section present in both languages (a section in one language only is the
- * parity check's error, not a pair). Also the records that name no section of a written page (`stale`), to remove.
+ * The current hashes of every section both languages of a written page hold (a draft's included: its records are
+ * kept, a pair may be read before the page is ready), in the manifest's and the pages' order.
  */
-export function translationStates(
+function currentPairHashes(
   wikiDir: string,
   manifest: Manifest,
-  translations: Translations,
-): { pairs: PairState[]; stale: string[] } {
-  const pairs: PairState[] = [];
-  const keys = new Set<string>();
-  // A draft's records are kept (a pair may be read before the page is ready); only a ready page's pairs are judged.
+): Map<string, { enHash: string; frHash: string; ready: boolean }> {
+  const out = new Map<string, { enHash: string; frHash: string; ready: boolean }>();
   for (const p of manifest.pages.filter((x) => x.state !== 'planned' && !x.generated)) {
     const files = { en: resolve(wikiDir, 'en', `${p.id}.md`), fr: resolve(wikiDir, 'fr', `${p.id}.md`) };
     if (!existsSync(files.en) || !existsSync(files.fr)) continue;
@@ -110,33 +132,134 @@ export function translationStates(
     const fr = sectionHashes(readFileSync(files.fr, 'utf8'), wikiDir, 'fr');
     for (const [section, enHash] of en) {
       const frHash = fr.get(section);
-      if (frHash === undefined) continue;
-      const key = `${p.id}#${section}`;
-      keys.add(key);
-      if (p.state !== 'ready') continue;
-      const r = translations.pairs[key];
-      const since = r?.reviewers.at(-1)?.date;
-      if (!r) pairs.push({ key, state: 'to review', why: 'never reviewed as a pair' });
-      else if (r.enHash !== enHash && r.frHash !== frHash)
-        pairs.push({ key, state: 'to review', why: `both sides changed since ${since}` });
-      else if (r.enHash !== enHash) pairs.push({ key, state: 'to review', why: `the English changed since ${since}` });
-      else if (r.frHash !== frHash) pairs.push({ key, state: 'to review', why: `the French changed since ${since}` });
-      else pairs.push({ key, state: 'paired', reviewers: r.reviewers, human: humanReviewed(r.reviewers) });
+      if (frHash !== undefined) out.set(`${p.id}#${section}`, { enHash, frHash, ready: p.state === 'ready' });
     }
   }
-  return { pairs, stale: Object.keys(translations.pairs).filter((k) => !keys.has(k)) };
+  return out;
+}
+
+const holdsPair = (now: { enHash: string; frHash: string } | undefined) => (r: PairRecord) =>
+  !!now && r.enHash === now.enHash && r.frHash === now.frHash;
+
+/**
+ * The pairs of every `ready` page: one per section present in both languages (a section in one language only is the
+ * parity check's error, not a pair), judged on the file's records and the pending ones (pending.ts). Also the records
+ * that name no section of a written page (`stale`, `<file>: <key>`), which the release's fold removes.
+ */
+export function translationStates(
+  wikiDir: string,
+  manifest: Manifest,
+  translations: Translations,
+): { pairs: PairState[]; stale: string[] } {
+  const pairs: PairState[] = [];
+  const current = currentPairHashes(wikiDir, manifest);
+  for (const [key, now] of current) {
+    if (!now.ready) continue;
+    const { record: r, holds } = judge(candidatesOf(translations, key), holdsPair(now));
+    const since = r?.reviewers.at(-1)?.date;
+    if (!r) pairs.push({ key, state: 'to review', why: 'never reviewed as a pair' });
+    else if (holds) pairs.push({ key, state: 'paired', reviewers: r.reviewers, human: humanReviewed(r.reviewers) });
+    else if (r.enHash !== now.enHash && r.frHash !== now.frHash)
+      pairs.push({ key, state: 'to review', why: `both sides changed since ${since}` });
+    else if (r.enHash !== now.enHash)
+      pairs.push({ key, state: 'to review', why: `the English changed since ${since}` });
+    else pairs.push({ key, state: 'to review', why: `the French changed since ${since}` });
+  }
+  const stale = [
+    ...Object.keys(translations.pairs)
+      .filter((k) => !current.has(k))
+      .map((k) => `${TRANSLATIONS_FILE}: ${k}`),
+    ...translations.pending.flatMap((p) =>
+      Object.keys(p.pairs)
+        .filter((k) => !current.has(k))
+        .map((k) => `${p.file}: ${k}`),
+    ),
+  ];
+  return { pairs, stale };
+}
+
+/** Each recorded key's record as the check judges it (the build's page headers read who reviewed it). */
+export function judgedPairs(
+  wikiDir: string,
+  manifest: Manifest,
+  translations: Translations,
+): Record<string, PairRecord> {
+  const current = currentPairHashes(wikiDir, manifest);
+  const keys = new Set([
+    ...Object.keys(translations.pairs),
+    ...translations.pending.flatMap((p) => Object.keys(p.pairs)),
+  ]);
+  const out: Record<string, PairRecord> = {};
+  for (const key of keys) {
+    const { record } = judge(candidatesOf(translations, key), holdsPair(current.get(key)));
+    if (record) out[key] = record;
+  }
+  return out;
+}
+
+/** What the release's fold did to the pairs: what it kept, what no longer held, the people whose old reading it replaced. */
+export interface PairFold {
+  pairs: Record<string, PairRecord>;
+  kept: number;
+  dropped: { key: string; file: string; record: PairRecord }[];
+  replaced: { key: string; reviewer: Reviewer; now: Reviewer[] }[];
+}
+
+/**
+ * `acks --fold`, the pairs: for each section of a written page, the records that hold its current text (the file's and
+ * the pending ones, reviewers merged) become the file's record; a section none holds keeps the file's record as it is.
+ * A pending record that holds no current text is dropped and listed; a person's review of the file's record that a
+ * pending one of a newer text replaces is listed too. The file's records of a section gone are removed.
+ */
+export function foldTranslations(wikiDir: string, manifest: Manifest, t: Translations): PairFold {
+  const current = currentPairHashes(wikiDir, manifest);
+  const fold: PairFold = { pairs: {}, kept: 0, dropped: [], replaced: [] };
+  for (const [key, now] of current) {
+    const candidates = candidatesOf(t, key);
+    const holds = holdsPair(now);
+    const { record, holds: held } = judge(candidates, holds);
+    for (const c of candidates)
+      if (c.file && !holds(c.record)) fold.dropped.push({ key, file: c.file, record: c.record });
+    if (held) {
+      fold.kept += candidates.some((c) => c.file && holds(c.record)) ? 1 : 0;
+      const old = t.pairs[key];
+      if (old && !holds(old))
+        for (const r of old.reviewers.filter((x) => x.kind === 'human'))
+          fold.replaced.push({ key, reviewer: r, now: record!.reviewers });
+      fold.pairs[key] = { enHash: now.enHash, frHash: now.frHash, reviewers: record!.reviewers };
+    } else if (t.pairs[key]) fold.pairs[key] = t.pairs[key];
+  }
+  for (const p of t.pending)
+    for (const [key, record] of Object.entries(p.pairs))
+      if (!current.has(key)) fold.dropped.push({ key, file: p.file, record });
+  return fold;
+}
+
+/** Writes wiki/translations.json as the fold left it, keys sorted. */
+export function writeTranslations(wikiDir: string, pairs: Record<string, PairRecord>): void {
+  writeFileSync(
+    resolve(wikiDir, TRANSLATIONS_FILE),
+    formatJson({
+      format: 'quest-n-click-docs-translations',
+      version: 1,
+      pairs: Object.fromEntries(Object.entries(pairs).sort(([a], [b]) => (a < b ? -1 : 1))),
+    }),
+  );
 }
 
 /**
  * `translations --ack <id#section> --by <name>`: records the pair as it is now. The page must be written in both
- * languages and hold that section in both; a record no current pair names is dropped at the same time. Returns the
- * problem, or undefined.
+ * languages and hold that section in both. On an open branch it goes into the branch's pending file (pending.ts),
+ * never into wiki/translations.json; on main, master or a release branch into the file, a record no current pair names
+ * dropped at the same time. Returns the problem, or undefined.
  */
 export function ackTranslation(o: {
   wikiDir: string;
   manifest: Manifest;
   key: string;
   reviewer: Reviewer;
+  /** `--pending <slug>`: the pending file to write, whatever the branch. */
+  pending?: string;
 }): string | undefined {
   const at = o.key.indexOf('#');
   if (at < 0) return `"${o.key}" is not <id>#<section> (${LEAD} for the text before the first section)`;
@@ -150,19 +273,29 @@ export function ackTranslation(o: {
     sides[lang] = sectionHashes(readFileSync(file, 'utf8'), o.wikiDir, lang).get(section);
     if (!sides[lang]) return `${lang}/${id}.md has no section "${section}"`;
   }
-  const { translations, errors } = readTranslations(o.wikiDir);
-  if (errors.length) return errors.join('; ');
+  const target = pendingTarget(o.wikiDir, o.pending);
+  if (target.error) return target.error;
   // The same texts read again add a reviewer (a person after the AI that wrote them); changed texts start over.
-  const old = translations.pairs[o.key];
-  const same = old && old.enHash === sides.en && old.frHash === sides.fr;
-  translations.pairs[o.key] = {
+  const next = (old: PairRecord | undefined): PairRecord => ({
     enHash: sides.en!,
     frHash: sides.fr!,
-    reviewers: same ? withReviewer(old.reviewers, o.reviewer) : [o.reviewer],
-  };
-  const { stale } = translationStates(o.wikiDir, o.manifest, translations);
-  for (const k of stale) if (k !== o.key) delete translations.pairs[k];
-  translations.pairs = Object.fromEntries(Object.entries(translations.pairs).sort(([a], [b]) => (a < b ? -1 : 1)));
-  writeFileSync(resolve(o.wikiDir, TRANSLATIONS_FILE), formatJson(translations));
+    reviewers:
+      old && old.enHash === sides.en && old.frHash === sides.fr
+        ? withReviewer(old.reviewers, o.reviewer)
+        : [o.reviewer],
+  });
+  if (target.file) {
+    const { pending, error } = loadPending(target.file);
+    if (!pending) return error;
+    pending.pairs[o.key] = next(pending.pairs[o.key]);
+    writePending(target.file, pending);
+    return undefined;
+  }
+  const { translations, errors } = readTranslations(o.wikiDir);
+  if (errors.length) return errors.join('; ');
+  translations.pairs[o.key] = next(translations.pairs[o.key]);
+  const current = currentPairHashes(o.wikiDir, o.manifest);
+  for (const k of Object.keys(translations.pairs)) if (!current.has(k)) delete translations.pairs[k];
+  writeTranslations(o.wikiDir, translations.pairs);
   return undefined;
 }

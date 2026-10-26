@@ -130,8 +130,9 @@ the test keeps measuring wordings the page was not written for.
 
 ## Files or data changed
 
-`wiki/en/<id>.md`, `wiki/fr/<id>.md`, the page's entry in `wiki/manifest.json`; `wiki/translations.json` and
-`wiki/reviews.json` through their commands; images under `wiki/images/` only.
+`wiki/en/<id>.md`, `wiki/fr/<id>.md`, the page's entry in `wiki/manifest.json`; your branch's pending acks
+`changes/<slug>.acks.json` through the ack commands (`wiki/translations.json` and `wiki/reviews.json` are the release's);
+images under `wiki/images/` only.
 
 <a name="recovery"></a>
 
@@ -155,6 +156,7 @@ workflow, never an edit of what was published.
 | `wiki/legacy.json` | For each of the eight `read_doc { name }` pages, the ordered sections that rebuild it |
 | `wiki/translations.json` | Which revision of each language was read against the other, and by whom |
 | `wiki/reviews.json` | Which claims' scope was read against their test, and by whom |
+| `changes/<slug>.acks.json` | An open branch's pending pair acks and claim reviews, folded into the two files above at the release |
 | `wiki/data/env.json`, `wiki/data/glossary.json` | The environment variable register and the bilingual glossary |
 | `wiki/acceptance/questions.json` | The real questions the documentation must answer, with counter-examples |
 
@@ -298,6 +300,19 @@ an image the section shows, changes, the pair is "to review": a warning at the w
 `check --publish`. `wiki/reviews.json` records the same for a claim's scope (the hashes of the claim's text and of its
 test file).
 
+**On a branch, the acks are pending.** Two open pull requests that edited and acked the same section used to conflict
+on `wiki/translations.json`. Now a branch never writes the two files: `translations --ack` and `review-claim` write
+its own `changes/<slug>.acks.json`, next to its fragments, `<slug>` being the branch without its prefix
+(`fix/302-ci` gives `changes/302-ci.acks.json`, a doc revision's `docs/4.5.5` gives `changes/4.5.5.acks.json`). Commit
+it with your change. On `main`, `master` or a `release/*` branch they write the two files, as the release does; on a
+detached HEAD they refuse unless `--pending <slug>` names the file. Every reader (`check`, `check --publish`, the
+release's gates, `docs-publish`, the page headers) sees the two files plus every pending file: per section or claim,
+the records whose hashes are the current text's win, their reviewers merged; with none, the section is to review. The
+release's `prepare` folds them (`npm run wiki -- acks --fold`): what still holds its text goes into the two files, the
+pending files are deleted, and every pending record that no longer holds its text is listed with its reviewers (a
+person's named) and the command to record it again; `prepare`'s stop repeats that list. A person's review is never
+dropped silently, and never written by a tool.
+
 Each reviewer is `{ name, kind: human|ai, relation: author|independent, date }`, and both commands require `--by`,
 `--kind` and `--relation`. The same text read again adds a reviewer; a changed text starts over. A published claim
 needs a review by a person (`kind: human`); until then it says "self-checked by the author (AI), not reviewed" (or
@@ -325,6 +340,8 @@ All run in the engine repository as `npm run wiki -- <command>`.
 | `bundle --out <dir> [--build-id <id>] [--allow-dirty]` | The documentation an installed engine carries (`scripts/pack.mjs` runs it); refuses sources that differ from `HEAD` unless `--allow-dirty`, which marks it `-dirty` |
 | `translations --ack <id#section> --by <name> --kind human\|ai --relation author\|independent` | Records that a pair was read |
 | `review-claim <id> --by … --kind … --relation …` | Records that a claim's scope was read |
+| `… --pending <slug>` (both commands) | Writes `changes/<slug>.acks.json` whatever the branch: for a detached HEAD |
+| `acks --fold` | The release's fold of the pending acks into the two files (`prepare` runs it): what no longer holds is listed |
 | `coverage [--ack <key>]`, `coverage --init [--force]` | Merges a new inventory of the old docs into the matrix, regenerates `legacy.json` and the manifest's `replaces`; `--init` takes the first inventory (`--force` replaces an existing matrix, losing every decision) |
 | `acceptance [--lang en\|fr] [--json] [--strict]` | Runs the real questions through `search_docs`; exits 0 (reported) unless `--strict`; `--export-prompts <dir>` writes the prompts of an AI reader's test instead |
 | `env` | Regenerates the environment variable reference from `wiki/data/env.json` and the code |

@@ -16,3 +16,8 @@ fragments reached `main`, at the release (or whenever). Two open branches never 
 `tools/`, `scripts/`, `cli/`, `connectors/` or `games/` without a fragment and without a CHANGELOG edit (a release
 branch edits the CHANGELOG directly), and refuses any fragment here that `--assemble` would stop on, with its file
 and line (4.5.5, #335). This file is not a fragment.
+
+`changes/<slug>.acks.json` is not a fragment either: the branch's pending translation acks and claim reviews, written by
+`npm run wiki -- translations --ack` and `review-claim` instead of `wiki/translations.json` and `wiki/reviews.json`, so
+two open branches never conflict on those two files (4.5.5, #360). Commit it with the branch; the release's `prepare`
+folds it (`npm run wiki -- acks --fold`) as it folds the fragments.

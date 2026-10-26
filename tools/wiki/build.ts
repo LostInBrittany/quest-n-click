@@ -16,7 +16,7 @@ import { type ClaimState } from './claims';
 import type { SurfaceStatus } from './contracts';
 import { type Glossary, readGlossary } from './glossary';
 import { humanReviewed, type Reviewer, reviewWords } from './reviewer';
-import { readTranslations } from './translations';
+import { judgedPairs, readTranslations } from './translations';
 import { generatedIdentifiers, type Identifier } from './identifiers';
 import { siteDocs } from './site';
 import {
@@ -756,7 +756,7 @@ export function composePages(o: Omit<BuildOptions, 'outDir'>, styleFor: (lang: L
   const identifiers = o.identifiers ?? generatedIdentifiers();
   const images = new Set<string>();
   const claims = new Map((o.claims ?? []).map((c) => [c.id, c]));
-  const pairs = readTranslations(o.wikiDir).translations.pairs;
+  const pairs = judgedPairs(o.wikiDir, o.manifest, readTranslations(o.wikiDir).translations);
   const pages: ComposedPage[] = [];
   const sidebars = {} as Record<Lang, string>;
   for (const lang of LANGS) {

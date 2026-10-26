@@ -11,7 +11,8 @@
 //   3. scope reviewed: `wiki/reviews.json` holds a record that the test covers the claim, with the hash of the
 //      claim's text (the test's name and the block in both languages) and of the test file: any change to either
 //      resets it, and `npm run wiki -- review-claim <id> --by <name> --kind human|ai --relation author|independent`
-//      records it again. Its reviewers say who read it (reviewer.ts): only a person's review makes it "scope
+//      records it again (on an open branch into its pending file `changes/<slug>.acks.json`, which every reader adds
+//      and the release folds in: pending.ts, 4.5.5, #360). Its reviewers say who read it (reviewer.ts): only a person's review makes it "scope
 //      reviewed"; an AI's own check of what it wrote is said as such, and `check --publish` wants a person's.
 // A claim naming a test written `.skip`, `.todo`, `.only`, `.fails` (or `.skipIf`, `.runIf`, on it or a describe
 // around it) is refused at the first state: such a test does not run as it reads, or proves the opposite.
@@ -23,6 +24,16 @@ import { z } from 'zod';
 import { formatJson } from './json';
 import { issuesOf, type Manifest, type Page } from './manifest';
 import type { Block } from './page';
+import {
+  type Candidate,
+  type ClaimRecord,
+  judge,
+  loadPending,
+  type PendingFile,
+  pendingTarget,
+  readPending,
+  writePending,
+} from './pending';
 import { type Reviewer, ReviewerSchema, reviewWords, withReviewer } from './reviewer';
 
 const sha256 = (s: string) => createHash('sha256').update(s).digest('hex');
@@ -317,20 +328,84 @@ const ReviewsSchema = z
     ),
   })
   .strict();
-type Reviews = z.infer<typeof ReviewsSchema>;
+type ReviewsFile = z.infer<typeof ReviewsSchema>;
+/** wiki/reviews.json, and the pending files of the branches (pending.ts) every reader adds to it. */
+export type Reviews = ReviewsFile & { pending: PendingFile[] };
 
-/** `wiki/reviews.json`, or an empty record when there is none yet. */
+/** `wiki/reviews.json` (an empty record when there is none yet) and the pending files. */
 export function readReviews(wikiDir: string): { reviews: Reviews; errors: string[] } {
-  const empty: Reviews = { format: 'quest-n-click-docs-reviews', version: 1, claims: {} };
+  const { files: pending, errors: pendingErrors } = readPending(wikiDir);
+  const empty: ReviewsFile = { format: 'quest-n-click-docs-reviews', version: 1, claims: {} };
   const file = resolve(wikiDir, REVIEWS_FILE);
-  if (!existsSync(file)) return { reviews: empty, errors: [] };
-  try {
-    const parsed = ReviewsSchema.safeParse(JSON.parse(readFileSync(file, 'utf8')));
-    if (!parsed.success) return { reviews: empty, errors: issuesOf(parsed.error).map((l) => `${REVIEWS_FILE} ${l}`) };
-    return { reviews: parsed.data, errors: [] };
-  } catch (e) {
-    return { reviews: empty, errors: [`${REVIEWS_FILE}: ${(e as Error).message}`] };
+  const read = (): { reviews: ReviewsFile; errors: string[] } => {
+    if (!existsSync(file)) return { reviews: empty, errors: [] };
+    try {
+      const parsed = ReviewsSchema.safeParse(JSON.parse(readFileSync(file, 'utf8')));
+      if (!parsed.success) return { reviews: empty, errors: issuesOf(parsed.error).map((l) => `${REVIEWS_FILE} ${l}`) };
+      return { reviews: parsed.data, errors: [] };
+    } catch (e) {
+      return { reviews: empty, errors: [`${REVIEWS_FILE}: ${(e as Error).message}`] };
+    }
+  };
+  const { reviews, errors } = read();
+  return { reviews: { ...reviews, pending }, errors: [...errors, ...pendingErrors] };
+}
+
+/** A claim's review records: the file's first, then each pending file's, in name order. */
+const reviewCandidates = (r: Reviews, id: string): Candidate<ClaimRecord>[] => [
+  ...(r.claims[id] ? [{ record: r.claims[id] }] : []),
+  ...r.pending.flatMap((p) => (p.claims[id] ? [{ record: p.claims[id], file: p.file }] : [])),
+];
+const holdsClaim = (s: { claimTextHash: string; testFileHash?: string }) => (r: ClaimRecord) =>
+  r.claimTextHash === s.claimTextHash && r.testFileHash === s.testFileHash;
+
+/** What the release's fold did to the reviews (see foldTranslations). */
+export interface ClaimFold {
+  claims: Record<string, ClaimRecord>;
+  kept: number;
+  dropped: { key: string; file: string; record: ClaimRecord }[];
+  replaced: { key: string; reviewer: Reviewer; now: Reviewer[] }[];
+}
+
+/**
+ * `acks --fold`, the reviews: for each claim of the manifest, the records that hold its current text and test file
+ * become the file's record (reviewers merged); a claim none holds keeps the file's record. A pending record that holds
+ * nothing current is dropped and listed, as a person's review a newer one replaces; a claim gone loses its record.
+ */
+export function foldReviews(r: Reviews, states: readonly ClaimState[]): ClaimFold {
+  const fold: ClaimFold = { claims: {}, kept: 0, dropped: [], replaced: [] };
+  const ids = new Set(states.map((s) => s.id));
+  for (const s of states) {
+    const candidates = reviewCandidates(r, s.id);
+    const holds = holdsClaim(s);
+    const { record, holds: held } = judge(candidates, holds);
+    for (const c of candidates)
+      if (c.file && !holds(c.record)) fold.dropped.push({ key: s.id, file: c.file, record: c.record });
+    if (held) {
+      fold.kept += candidates.some((c) => c.file && holds(c.record)) ? 1 : 0;
+      const old = r.claims[s.id];
+      if (old && !holds(old))
+        for (const x of old.reviewers.filter((y) => y.kind === 'human'))
+          fold.replaced.push({ key: s.id, reviewer: x, now: record!.reviewers });
+      fold.claims[s.id] = record!;
+    } else if (r.claims[s.id]) fold.claims[s.id] = r.claims[s.id];
   }
+  for (const p of r.pending)
+    for (const [id, record] of Object.entries(p.claims))
+      if (!ids.has(id)) fold.dropped.push({ key: id, file: p.file, record });
+  return fold;
+}
+
+/** Writes wiki/reviews.json as the fold left it, keys sorted. */
+export function writeReviews(wikiDir: string, claims: Record<string, ClaimRecord>): void {
+  writeFileSync(
+    resolve(wikiDir, REVIEWS_FILE),
+    formatJson({
+      format: 'quest-n-click-docs-reviews',
+      version: 1,
+      claims: Object.fromEntries(Object.entries(claims).sort(([a], [b]) => (a < b ? -1 : 1))),
+    }),
+  );
 }
 
 // ------------------------------------------------------------------------------------------------- states
@@ -439,8 +514,9 @@ export function claimStates(o: {
     else if (!hits.every((h) => h.status === 'passed'))
       state.notExecuted = `"${c.claim.test}" did not pass on ${o.commit.slice(0, 12)} (${hits.map((h) => h.status).join(', ')})`;
     else state.executedOn = o.commit;
-    const review = o.reviews.claims[c.claim.id];
-    if (review) {
+    const { record: review, holds } = judge(reviewCandidates(o.reviews, c.claim.id), holdsClaim(state));
+    if (review && holds) state.reviewed = review.reviewers;
+    else if (review) {
       if (review.claimTextHash !== state.claimTextHash) state.reviewStale = "the claim's text changed since its review";
       else if (review.testFileHash !== state.testFileHash) state.reviewStale = 'the test file changed since its review';
       else state.reviewed = review.reviewers;
@@ -453,20 +529,34 @@ export function claimStates(o: {
  * `wiki -- review-claim <id> --by <name>`: records that a person read the claim and its test, and found the test
  * covers it. Refused for a claim that is not referenced (no test to review). Returns the problem, or undefined.
  */
-export function reviewClaim(o: { wikiDir: string; state: ClaimState; reviewer: Reviewer }): string | undefined {
+export function reviewClaim(o: {
+  wikiDir: string;
+  state: ClaimState;
+  reviewer: Reviewer;
+  /** `--pending <slug>`: the pending file to write, whatever the branch. */
+  pending?: string;
+}): string | undefined {
   if (o.state.unreferenced) return `${o.state.id} is not referenced (${o.state.unreferenced}): nothing to review`;
-  const { reviews, errors } = readReviews(o.wikiDir);
-  if (errors.length) return errors.join('; ');
+  const target = pendingTarget(o.wikiDir, o.pending);
+  if (target.error) return target.error;
   // The same claim and test file read again add a reviewer (a person after the AI that wrote it); a change starts over.
-  const old = reviews.claims[o.state.id];
-  const same = old && old.claimTextHash === o.state.claimTextHash && old.testFileHash === o.state.testFileHash;
-  reviews.claims[o.state.id] = {
+  const next = (old: ClaimRecord | undefined): ClaimRecord => ({
     claimTextHash: o.state.claimTextHash,
     testFileHash: o.state.testFileHash!,
-    reviewers: same ? withReviewer(old.reviewers, o.reviewer) : [o.reviewer],
-  };
-  reviews.claims = Object.fromEntries(Object.entries(reviews.claims).sort(([a], [b]) => (a < b ? -1 : 1)));
-  writeFileSync(resolve(o.wikiDir, REVIEWS_FILE), formatJson(reviews));
+    reviewers: old && holdsClaim(o.state)(old) ? withReviewer(old.reviewers, o.reviewer) : [o.reviewer],
+  });
+  // On an open branch, its pending file (pending.ts); on main, master or a release branch, wiki/reviews.json.
+  if (target.file) {
+    const { pending, error } = loadPending(target.file);
+    if (!pending) return error;
+    pending.claims[o.state.id] = next(pending.claims[o.state.id]);
+    writePending(target.file, pending);
+    return undefined;
+  }
+  const { reviews, errors } = readReviews(o.wikiDir);
+  if (errors.length) return errors.join('; ');
+  reviews.claims[o.state.id] = next(reviews.claims[o.state.id]);
+  writeReviews(o.wikiDir, reviews.claims);
   return undefined;
 }
 
