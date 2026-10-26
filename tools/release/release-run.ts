@@ -1,4 +1,8 @@
-// npm run release -- <x.y.z> [--key=<ssh public key>] [--start-candidate] [--docs-revision] [--reverify] [--dry-run]
+// npm run release -- <x.y.z> [--key=<ssh public key>] [--start-candidate] [--docs-revision] [--reverify] [--commit=<sha>] [--dry-run]
+// (4.5.6) --commit=<sha> releases on a later commit of main than the release merge, when the merge's own ci is red for a
+// reason fixed after it (4.5.5: its windows job, fixed by #368): main-ci.mjs wants main's ci green on the tagged SHA.
+// That commit stands for the release commit everywhere (gates, candidate, tag, release run); commitRefusals says
+// which it may be: on main's first-parent line, package.json at the version, the release merge or after it.
 // (4.5.5, #348) The candidate wait re-runs once by the run's attempt number (a relaunch keeps the budget), re-runs a run
 // cancelled before any job failed whole, and stops after 3 h an attempt, saying how to resume (candidateStep). Run end to
 // end by tests/release-command.test.ts, its waits on lib.mjs's clock.
@@ -42,6 +46,54 @@ const atLeast = (v: string, min: string) => {
   const [a, b] = [v, min].map((x) => x.split('.').map(Number)) as [number[], number[]];
   return (a[0]! - b[0]! || a[1]! - b[1]! || a[2]! - b[2]!) >= 0;
 };
+
+/** The command to run again, `--commit` kept when it was given. */
+export const releaseCommand = (version: string, commit?: string) =>
+  `npm run release -- ${version}${commit ? ` --commit=${commit}` : ''}`;
+
+/**
+ * What `--commit=<sha>` refuses (4.5.6), each with what to do: it must name a commit this checkout knows (`resolved`,
+ * its full SHA), on main's first-parent line, where package.json is the version, the release merge `found` or one after
+ * it (`descends`); once the tag is out (`tagged`, its commit), only that commit.
+ */
+export function commitRefusals(o: {
+  version: string;
+  given: string;
+  resolved: string | undefined;
+  firstParent: boolean;
+  versionAt: string | undefined;
+  found: string | undefined;
+  descends: boolean;
+  tagged: string | undefined;
+}): string[] {
+  if (!/^[0-9a-f]{7,40}$/i.test(o.given) || !o.resolved)
+    return [
+      `--commit=${o.given} is not a commit SHA this checkout knows: give main's commit by its SHA (git fetch the organisation's remote first)`,
+    ];
+  const s = o.resolved.slice(0, 7);
+  if (o.tagged && o.tagged !== o.resolved)
+    return [
+      `v${o.version} is tagged on ${o.tagged.slice(0, 7)} already, not ${s}: a tag never moves; run ${releaseCommand(o.version)} without --commit, it follows the tag`,
+    ];
+  const out: string[] = [];
+  if (!o.firstParent)
+    out.push(
+      `${s} is not on main's first-parent line: --commit takes a merge into main (git log --first-parent --oneline <remote>/main)`,
+    );
+  if (o.versionAt !== o.version)
+    out.push(
+      `package.json is at ${o.versionAt || 'no version'} on ${s}, not ${o.version}: --commit takes the release merge or a later commit of main still at ${o.version}`,
+    );
+  if (o.found && !o.descends)
+    out.push(
+      `${s} does not come after the release merge ${o.found.slice(0, 7)}: --commit takes the release merge or a later commit of main`,
+    );
+  return out;
+}
+
+/** The line that names the commit released, and says so when `--commit` put another than the release merge. */
+export const commitLine = (found: string | undefined, used: string) =>
+  `release commit ${used.slice(0, 7)}${found && found !== used ? ` (--commit: a later commit of main, not the release merge ${found.slice(0, 7)})` : ''}`;
 
 /** What the command refuses before it does anything, each with what to do. */
 export function releaseRefusals(o: {
@@ -150,13 +202,15 @@ export function docsGatesStop(o: {
   sha: string;
   gates: { ok: boolean; detail: string };
   docsRevision: boolean;
+  /** `--commit`, kept in the command it says to run. */
+  commit?: string;
 }): string | undefined {
   if (o.gates.ok || o.docsRevision) return undefined;
   return [
     `the docs' human gates fail on the release commit ${o.sha.slice(0, 7)} (merged after the release pull request's CI checked them): nothing is tagged.`,
     o.gates.detail.replace(/^/gm, '    '),
     `  The tag goes on ${o.sha.slice(0, 7)}, whose tree can no longer take a review, so the release's docs-publish would refuse its docs.`,
-    `  To release now, npm as usual and the docs as a revision after: npm run release -- ${o.version} --docs-revision`,
+    `  To release now, npm as usual and the docs as a revision after: ${releaseCommand(o.version, o.commit)} --docs-revision`,
     '  then, once the release is out:',
     ...docsRevisionSteps(o.version).map((s) => `    ${s}`),
   ].join('\n');
@@ -195,14 +249,14 @@ interface CandidateView {
  */
 export function candidateStep(
   view: CandidateView,
-  o: { id: number; version: string; rerunAsked: boolean; waitedMs: number },
+  o: { id: number; version: string; rerunAsked: boolean; waitedMs: number; commit?: string },
 ): { do: 'done' } | { do: 'wait' } | { do: 'rerun'; args: string[]; line: string } | { do: 'stop'; error: string } {
   const url = `https://github.com/${REPO}/actions/runs/${o.id}`;
   if (view.status !== 'completed') {
     if (o.waitedMs < CANDIDATE_DEADLINE_MS) return { do: 'wait' };
     return {
       do: 'stop',
-      error: `candidate run ${o.id} not done after ${Math.round(o.waitedMs / 60_000)} min (${candidateProgress(view.jobs)}): it goes on on GitHub (${url}); run npm run release -- ${o.version} again to resume, it picks the run up where it is`,
+      error: `candidate run ${o.id} not done after ${Math.round(o.waitedMs / 60_000)} min (${candidateProgress(view.jobs)}): it goes on on GitHub (${url}); run ${releaseCommand(o.version, o.commit)} again to resume, it picks the run up where it is`,
     };
   }
   if (view.conclusion === 'success') return { do: 'done' };
@@ -213,7 +267,7 @@ export function candidateStep(
   if (attempt > 1)
     return {
       do: 'stop',
-      error: `candidate run ${o.id} ${view.conclusion === 'failure' ? 'failed' : view.conclusion} again (attempt ${attempt}): ${failed.join(', ') || 'no job failed'} (${url}). It was re-run once already: fix what failed, then re-run it by hand (gh run rerun ${o.id} --repo ${REPO} --failed) and run npm run release -- ${o.version} again`,
+      error: `candidate run ${o.id} ${view.conclusion === 'failure' ? 'failed' : view.conclusion} again (attempt ${attempt}): ${failed.join(', ') || 'no job failed'} (${url}). It was re-run once already: fix what failed, then re-run it by hand (gh run rerun ${o.id} --repo ${REPO} --failed) and run ${releaseCommand(o.version, o.commit)} again`,
     };
   if (o.rerunAsked) return { do: 'wait' };
   const args = ['run', 'rerun', String(o.id), '--repo', REPO];
@@ -387,7 +441,7 @@ function findReleaseCommit(remote: string, version: string): string | undefined 
   return releaseCommit(history, version);
 }
 
-async function waitForCandidate(sha: string, version: string, startIt: boolean): Promise<number> {
+async function waitForCandidate(sha: string, version: string, startIt: boolean, commit?: string): Promise<number> {
   const runsOf = () =>
     ghJson<Run[]>([
       'run',
@@ -451,6 +505,7 @@ async function waitForCandidate(sha: string, version: string, startIt: boolean):
       version,
       rerunAsked,
       waitedMs: clock() - started,
+      ...(commit ? { commit } : {}),
     });
     if (step.do === 'done') return run.databaseId;
     if (step.do === 'stop') throw new Error(step.error);
@@ -465,7 +520,7 @@ async function waitForCandidate(sha: string, version: string, startIt: boolean):
 }
 
 /** The release run of the tag, followed job by job until npm can go on; the docs' jobs said, never waited on. */
-async function followRelease(sha: string, version: string): Promise<string[]> {
+async function followRelease(sha: string, version: string, again: string): Promise<string[]> {
   const said = new Set<string>();
   for (let i = 0; ; i++) {
     const runs = await ghJson<{ databaseId: number; headSha: string; conclusion: string }[]>([
@@ -509,7 +564,7 @@ async function followRelease(sha: string, version: string): Promise<string[]> {
     if (v.state === 'ready') return v.warnings;
     if (v.state === 'failed')
       throw new Error(
-        `release run ${run.databaseId}: ${v.failed.join(', ')} (https://github.com/${REPO}/actions/runs/${run.databaseId}); re-run it (gh run rerun ${run.databaseId} --repo ${REPO} --failed), then npm run release -- ${version} again`,
+        `release run ${run.databaseId}: ${v.failed.join(', ')} (https://github.com/${REPO}/actions/runs/${run.databaseId}); re-run it (gh run rerun ${run.databaseId} --repo ${REPO} --failed), then ${again} again`,
       );
     await sleep(MINUTE);
   }
@@ -600,7 +655,7 @@ function gatesAt(sha: string) {
 
 export async function runRelease(
   version: string,
-  opts: { key?: string; startCandidate: boolean; docsRevision: boolean; dryRun: boolean },
+  opts: { key?: string; startCandidate: boolean; docsRevision: boolean; dryRun: boolean; commit?: string },
 ) {
   const current = JSON.parse(readFileSync(join(ROOT(), 'package.json'), 'utf8')).version as string;
   let remote: string | undefined;
@@ -628,35 +683,70 @@ export async function runRelease(
     npmVersion: quiet('npm', ['--version']).out || '0.0.0',
     signer: namedSigner(opts.key),
   });
-  const sha = remote && fetched ? findReleaseCommit(remote, version) : undefined;
-  if (!refusals.length && !sha)
+  const found = remote && fetched ? findReleaseCommit(remote, version) : undefined;
+  if (!refusals.length && !found)
     refusals.push(`no commit of main sets package.json to ${version}: merge the release pull request first`);
+  // --commit=<sha> (4.5.6): a later commit of main in place of the release merge, everywhere below.
+  let sha = found;
+  if (opts.commit !== undefined && remote && found) {
+    const given = opts.commit;
+    const resolved = /^[0-9a-f]{7,40}$/i.test(given)
+      ? quiet('git', ['rev-parse', '-q', '--verify', `${given}^{commit}`]).out || undefined
+      : undefined;
+    const versionAt = resolved
+      ? (JSON.parse(quiet('git', ['show', `${resolved}:package.json`]).out || '{}') as { version?: string }).version
+      : undefined;
+    const bad = commitRefusals({
+      version,
+      given,
+      resolved,
+      firstParent:
+        !!resolved &&
+        quiet('git', ['rev-list', '--first-parent', `${remote}/main`])
+          .out.split('\n')
+          .includes(resolved),
+      versionAt,
+      found,
+      descends: !!resolved && quiet('git', ['merge-base', '--is-ancestor', found, resolved]).code === 0,
+      tagged: quiet('git', ['ls-remote', '--tags', remote, `refs/tags/v${version}^{}`]).out.split(/\s/)[0] || undefined,
+    });
+    refusals.push(...bad);
+    if (!bad.length) sha = resolved;
+  }
+  const commit = opts.commit !== undefined ? sha : undefined;
   // The docs' human gates on the release commit itself, before anything is waited for (#339); a tag already out is
   // past them (its docs-publish has run or runs).
   const tagged = !!remote && quiet('git', ['ls-remote', '--tags', remote, `refs/tags/v${version}`]).out.trim() !== '';
   if (!refusals.length && sha) {
     const stop = tagged
       ? undefined
-      : docsGatesStop({ version, sha, gates: gatesAt(sha), docsRevision: opts.docsRevision });
+      : docsGatesStop({
+          version,
+          sha,
+          gates: gatesAt(sha),
+          docsRevision: opts.docsRevision,
+          ...(commit ? { commit } : {}),
+        });
     if (stop) refusals.push(stop);
   }
   for (const r of refusals) console.error(`✖  ${r}`);
   if (opts.dryRun) {
-    if (sha) say(`release commit: ${sha.slice(0, 7)}`);
+    if (sha) say(commitLine(found, sha).replace(/^release commit /, 'release commit: '));
     for (const s of RELEASE_STEPS) say(`would run: ${s}`);
     process.exit(refusals.length ? 1 : 0);
   }
   if (refusals.length || !sha) process.exit(1);
-  say(`preflight: ✔  release commit ${sha.slice(0, 7)}, ${version}, signed, gh and npm (${npmUser.out}) ready`);
-  const candidate = await waitForCandidate(sha, version, opts.startCandidate);
+  say(`preflight: ✔  ${commitLine(found, sha)}, ${version}, signed, gh and npm (${npmUser.out}) ready`);
+  const again = releaseCommand(version, commit);
+  const candidate = await waitForCandidate(sha, version, opts.startCandidate, commit);
   say(`tag: ship tag ${version} ${sha.slice(0, 7)} --candidate=${candidate} --sign`);
   const tag = ['tools/release/ship.mjs', 'tag', version, sha, `--candidate=${candidate}`, '--sign', '--no-watch'];
   if (opts.key) tag.push(`--key=${home(opts.key)}`);
   if (loud('node', tag) !== 0)
     throw new Error(
-      `ship tag failed: fix what it says and run npm run release -- ${version} again (a tag already pushed is followed, not made again)`,
+      `ship tag failed: fix what it says and run ${again} again (a tag already pushed is followed, not made again)`,
     );
-  const warnings = await followRelease(sha, version);
+  const warnings = await followRelease(sha, version, again);
   // Skipped on a resumed run when it already passed for exactly this release (#343); --reverify runs it anyway.
   await verifyOnce(version, process.argv.includes('--reverify'));
   await approveNpm(version);

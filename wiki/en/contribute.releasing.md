@@ -158,6 +158,22 @@ git push <the organisation's remote> docs/<version>
 gh workflow run docs-publish --ref docs/<version> -f mode=revision -f version=<version>
 ```
 
+When the release merge's own `ci` on main is red for a reason fixed only after it, the release cannot stand on it:
+`release.yml` wants main's `ci` green on the tagged commit (`tools/release/main-ci.mjs`). 4.5.5 was the case: its
+merge's `windows` job failed, fixed by #368 merged after it (4.5.6, #369). `--commit=<sha>` names a later commit of
+main to release on instead, used everywhere the release commit is (the docs' gates, the candidate, `ship tag`, the
+release run):
+
+```sh
+gh workflow run candidate.yml --repo Quest-n-Click/quest-n-click --ref main -f sha=<sha>   # if none ran on it
+npm run release -- 4.5.5 --commit=<sha>
+```
+
+It is refused, with what to do, when it is not a SHA the checkout knows, not on main's first-parent line, not at the
+version in `package.json`, not the release merge or a commit after it, or when the tag is already out on another
+commit. The command says which commit it uses and, when it is not the release merge, that it is not; each stop's
+command to run again keeps `--commit`. Without it, nothing changes.
+
 <a name="the-chain"></a>
 
 ### The chain
