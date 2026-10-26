@@ -1486,19 +1486,19 @@
       "questions": {
         "en": [
           "doctor fails in a created project",
-          "npm install answers 404 for quest-n-click",
+          "npm install finds no version of quest-n-click",
           "Cannot find package 'playwright' when I run doctor"
         ],
         "fr": [
           "doctor échoue dans un projet créé",
-          "npm install répond 404 pour quest-n-click",
+          "npm install ne trouve aucune version de quest-n-click",
           "Cannot find package 'playwright' quand je lance doctor"
         ]
       },
       "aliases": { "en": ["installation problems"], "fr": ["problèmes d'installation"] },
       "keywords": {
-        "en": ["ERR_MODULE_NOT_FOUND", "EBADENGINE", "externally-managed-environment", "404"],
-        "fr": ["ERR_MODULE_NOT_FOUND", "EBADENGINE", "externally-managed-environment", "404"]
+        "en": ["ERR_MODULE_NOT_FOUND", "EBADENGINE", "externally-managed-environment", "ETARGET"],
+        "fr": ["ERR_MODULE_NOT_FOUND", "EBADENGINE", "externally-managed-environment", "ETARGET"]
       },
       "identifiers": [],
       "related": ["install.doctor", "install.from-archive", "bridge.troubleshooting"],

@@ -57,18 +57,15 @@ found before release ([translations](create.translations.md)).
 
 <a name="from-the-template"></a>
 
-### 1. A game from the release archive (two minutes)
+### 1. A game from npm (two minutes)
 
 <!-- step: create -->
-The packages are not on the npm registry yet, so a game starts from the archive each GitHub release attaches
-([install from the release archive](install.from-archive.md)). Take the latest version from
-<https://github.com/Quest-n-Click/quest-n-click/releases/latest> and, in an empty folder of your choice:
+In an empty folder of your choice, `npm init @quest-n-click` creates the project from the latest release on npm
+([install from npm](install.from-npm.md)):
 
 ```sh
 # in the folder that will contain the project: makes the folder my-game
-V=4.5.0             # the version of the release you take
-T=https://github.com/Quest-n-Click/quest-n-click/releases/download/v$V/quest-n-click-$V.tgz
-npx --package=$T quest-n-click create my-game "My Game" --engine=$T
+npm init @quest-n-click my-game "My Game"
 cd my-game
 npm install
 python3 -m pip install --require-hashes -r node_modules/@quest-n-click/engine/requirements.txt
@@ -76,8 +73,9 @@ npm run assets      # the placeholder art into public/assets
 npm run dev         # http://127.0.0.1:5173/: a garden, a bucket, a gate
 ```
 
-The packages are on npm from 4.5.2: `npm init @quest-n-click my-game "My Game"` creates the same project from the
-registry, without an archive URL ([install from npm](install.from-npm.md)).
+`npm init` writes the project's files; `npm install` then installs the engine into it. Without the registry
+(offline, or a build pinned to a release's file), each GitHub release also attaches the engine as an archive that
+creates the same project ([install from the release archive](install.from-archive.md)).
 
 Or, in the engine repository, the same template becomes `games/lamp`, set as the current game (`.cache/game`):
 

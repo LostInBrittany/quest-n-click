@@ -10,12 +10,12 @@ hosted Studio.
 
 ```bash
 # in the created project
-npm install https://github.com/Quest-n-Click/quest-n-click/releases/download/v<version>/quest-n-click-<version>.tgz
+npm install @quest-n-click/engine@<version>
 npx quest-n-click migrate
 npm run verify
 ```
 
-Once the engine is on npm, the first line is `npm install @quest-n-click/engine@<version>`. Read the upgrade notes of each
+Without the registry, the first line installs the release archive instead (step 2). Read the upgrade notes of each
 version you cross first; the rest of this page is the same procedure with its checks.
 
 <a name="what-you-get"></a>
@@ -69,15 +69,16 @@ In the created project's folder, on your machine.
    ```
 
 <!-- step: install-new-engine -->
-2. Install the new engine, from npm from 4.5.2 (`npm install @quest-n-click/engine@<version>`,
-   [Install from npm](install.from-npm.md)) or from the release archive:
+2. Install the new engine from npm ([Install from npm](install.from-npm.md)):
 
    ```bash
    # in the created project
-   npm install https://github.com/Quest-n-Click/quest-n-click/releases/download/v4.4.0/quest-n-click-4.4.0.tgz
+   npm install @quest-n-click/engine@<version>
    ```
 
-   Once the engine is on npm, this step is `npm install @quest-n-click/engine@<version>`.
+   Or from its release archive, for a version before 4.5.2 or without the registry
+   ([Install from the release archive](install.from-archive.md)):
+   `npm install https://github.com/Quest-n-Click/quest-n-click/releases/download/v<version>/quest-n-click-<version>.tgz`.
 
 <!-- step: migrate -->
 3. Bring the sources to the installed engine's format. `--check` first says what is due and writes nothing:
@@ -148,7 +149,7 @@ are written); the test does not assert it.
 
 | Symptom | Cause | Fix |
 |---|---|---|
-| `npm error 404 Not Found - GET https://registry.npmjs.org/quest-n-click` | `npm install @quest-n-click/engine@<version>`: not on npm | Install the archive's URL (step 2) |
+| `npm error notarget No matching version found for quest-n-click@…` | The unscoped name, which npm holds only as a pointer: the engine is `@quest-n-click/engine` from 4.5.2 | `npm uninstall quest-n-click`, then step 2 ([Install troubleshooting](install.troubleshooting.md#npm-404)) |
 | ✖ tsconfig.json has baseUrl, which TypeScript 7 refuses: a migration is due | A project made before 4.1.8 | `npx quest-n-click migrate` |
 | `✖  still under the former name web-scumm: …` | A project made before 4.2.5 | `npx quest-n-click migrate`, then `npm install` ([Coming from web-scumm](install.from-web-scumm.md)) |
 | `✖  [<id>] authoring schema <n> is newer than this engine's (3): install a newer quest-n-click` | The game was written for a newer engine | Install that engine, not an older one |

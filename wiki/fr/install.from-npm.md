@@ -33,9 +33,8 @@ vous vérifiez en une commande qu'ils sont ceux du projet.
 
 > [!LIMIT id=npm-owners-only]
 > Un paquet sous l'un de ces noms publié par un autre que les propriétaires de l'organisation n'est pas celui du
-> projet : ne l'installez pas. Les noms sans scope ont été dépubliés le 24 octobre 2026, pour être republiés comme
-> pointeurs (et `create-quest-n-click` comme relais) par les mainteneurs : d'ici là, `npx create-quest-n-click` ne
-> trouve rien, et la commande est `npm init @quest-n-click`.
+> projet : ne l'installez pas. Les noms sans scope ont été dépubliés le 24 octobre 2026, puis republiés par les
+> mainteneurs comme pointeurs, et `create-quest-n-click` comme relais.
 
 <a name="prerequisites"></a>
 
@@ -75,11 +74,11 @@ Sur votre machine, depuis le dossier qui contiendra le projet ; puis dans le pro
 
    ```bash
    # dans le dossier qui contiendra le projet
-   npm init @quest-n-click my-game "Mon jeu"     # ou : npx quest-n-click create my-game "Mon jeu"
+   npm init @quest-n-click my-game "Mon jeu"     # ou : npx @quest-n-click/create my-game "Mon jeu"
    ```
 
-   Une fois que les mainteneurs l'ont republié, `npx create-quest-n-click my-game "Mon jeu"` marche aussi : le
-   `create-quest-n-click` sans scope est un relais qui lance `@quest-n-click/create`, la même chose.
+   `npx create-quest-n-click my-game "Mon jeu"` marche aussi : le `create-quest-n-click` sans scope est un relais qui
+   lance `@quest-n-click/create`, la même chose.
 
    Sans `--engine`, `create` écrit la dépendance `"@quest-n-click/engine": "^<version>"`, que npm résout depuis le
    registre.
@@ -111,7 +110,6 @@ versions.
 | Symptôme | Cause | Correction |
 |---|---|---|
 | `npm view @quest-n-click/engine dist-tags` ne nomme que `bootstrap` (et la version d’attente `0.0.0-stage` de npm) | Pas le registre attendu, ou un miroir derrière lui | Vérifiez `npm config get registry`, ou [installez depuis l'archive de la release](install.from-archive.md) |
-| `npx create-quest-n-click` répond 404 | Le relais n'est pas encore republié | `npm init @quest-n-click my-game` |
 | `npm view` montre un mainteneur qui n'est pas propriétaire de l'organisation | Un nom pris par un tiers | Ne l'installez pas ; signalez-le dans les issues du projet |
 | `npm warn deprecated quest-n-click@0.0.1: …` | Un nom sans scope de la 4.5.1 et avant, désormais un pointeur | Installez `@quest-n-click/engine` à la place |
 

@@ -148,7 +148,7 @@ sans erreur (validation, solveur, état des traductions, lint, playtests).
 
 | Symptôme | Cause | Correction |
 |---|---|---|
-| `npm error 404 Not Found - GET https://registry.npmjs.org/quest-n-click` à `npm install` | Le projet a été créé sans `--engine=$T` : sa dépendance vaut `^<version>`, cherchée sur npm, où le moteur n'est pas publié | Recréez-le avec `--engine=$T`, ou lancez `npm install $T` dans le projet |
+| `npm error notarget No matching version found for quest-n-click@^<version>` à `npm install` | Le projet a été créé par une archive de la 4.5.1 ou d'avant sans `--engine=$T` : sa dépendance, le `quest-n-click` sans scope, n'est qu'un pointeur sur npm | Recréez-le avec `--engine=$T`, ou lancez `npm install $T` dans le projet ([Dépannage de l'installation](install.troubleshooting.md#npm-404)) |
 | `my-game exists and is not empty` | `create` n'écrit jamais dans un dossier qui contient des fichiers | Choisissez un autre nom de dossier, ou videz-le |
 | `npm warn EBADENGINE Unsupported engine` | Node plus ancien que 22.12 | Installez Node 22.12 ou plus récent ([Prérequis](install.requirements.md#node)) |
 | `npm run assets` échoue sur `import PIL` | Les modules Python manquent | Étape 4 |
