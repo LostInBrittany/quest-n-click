@@ -1,5 +1,122 @@
 # Changelog
 
+## 4.5.6 — 2026-10-27
+
+LOG #341–#350: "A stable CI", a patch on 4.5.5. TODO(release): what it changes, for whom, and what a game has to do (Upgrade notes).
+
+### Fixed
+
+- **`npm run wiki -- check` reads a page with CRLF line ends as the same page with LF (4.5.6, #367)**: on a page saved
+  with CRLF (a Windows editor, or a copy of the wiki without the repository's `.gitattributes`), a code fence never
+  opened (a regex's `.` stops at `\r`), so every link written inside a code block was checked as a real link and
+  reported as an error. The page parser now reads `\r\n` as `\n`. A change to the wiki's own tools or to a
+  `tests/wiki-*.test.ts` now also runs the CI's `windows` job, where #363's tests had failed, first seen on the release
+  pull request.
+
+- **`npm run release -- <version> --commit=<sha>` releases on a later commit of main than the release merge (4.5.6,
+  #369)**: when main's `ci` is red on the release pull request's merge for a reason fixed only after it, as on 4.5.5
+  (its `windows` job, fixed by #368), the release could never be tagged, since `release.yml` wants main's `ci` green on
+  the tagged commit. The given commit stands for the release commit everywhere (the docs' gates, the candidate,
+  `ship tag`, the release run); it is refused, with what to do, when it is not on main's first-parent line, not at the
+  version, not the release merge or after it, or when the tag is already out on another commit. Without the flag,
+  nothing changes.
+
+- **The mutation cache's input hash follows only what a test runs (4.5.6, #371)**: a CRLF fix in the wiki checker
+  (#368) moved `core`'s hash and re-ran every mutation set of the release candidate (about three hours of CI), through
+  `vite.config.ts` → the Studio's dev-server plugin → `import type { DocsSet } from '../wiki/docs'`. The import closure
+  now reads each module with the TypeScript parser and skips what the compiler erases (`import type`,
+  `export type … from`, an import or re-export whose every name is a type, `typeof import('…')`); an import with one
+  value in it is still followed. `vite.config.ts` and `vitest.mutation.config.ts` are hashed as files, and their
+  imports followed only into what can change a test's run (`CONFIG_FOLLOWS`: the game's settings, the values of
+  `define`, the test order, the sets), not into the Studio plugin (`CONFIG_SKIPS`, with its reason);
+  `tests/mutate-hash.test.ts` fails on a new import in a configuration until it is placed. `core`'s inputs go from 260 files to 182, the largest set's
+  (`reality`) from 363 to 217. Every set's key changes once with this release: the first candidate or nightly after it
+  runs each set cold.
+
+- **A slow apt mirror no longer spends CI's whole Playwright packages step on one attempt (4.5.6, #373)**: on main's
+  run 40315817057, `studio-hosted`'s `scripts/ci-playwright-deps.sh` downloaded from `azure.archive.ubuntu.com` at
+  about 40 kB/s, never a minute without a byte, and the step's 20 minutes ran out before the second attempt. An attempt
+  now downloads first, `apt-get update` and the packages Playwright reports missing (`install-deps --dry-run`), bounded
+  to 2 and 3 minutes by a `timeout` that sudo runs, so it kills apt-get itself before dpkg starts; then it installs them
+  from apt's cache with nothing bounded, as #353 wants. A retry puts the runner's first mirror last
+  (`/etc/apt/apt-mirrors.txt`), since apt changes mirrors on a failed file, never on a slow one; what an attempt
+  fetched, partial files included, stays for the next.
+
+- **The scheduled `nightly` and `prove` run in the night, never in the working day (4.5.6, #372)**: GitHub starts
+  their scheduled runs hours after their cron times, every time: from 6 to 26 October 2026 the nightly (03:17 UTC)
+  started 4 h 36 min to 7 h 44 min late and the weekly prove (Monday 04:00 UTC) 5 h 37 min to 7 h 40 min late, in the
+  working day, where their jobs took the runners from a release's candidate and its pull requests. Their crons now
+  start the evening before (the nightly at 20:17 UTC, the prove on Sunday at 20:00 UTC), so those delays land them
+  between 00:53 and 04:01 UTC. A first `guard` job (`tools/schedule-guard.ts`, a few seconds of Node) skips every
+  other job of a scheduled run that still starts in the Paris working day (07:00 to 20:00 Paris time, summer or
+  winter), and the run stays green. A run by hand, the release's warm-up of the mutation cache among them, is never
+  guarded.
+
+- **CI's ffmpeg apt fallback no longer leaves an apt-get holding the dpkg lock, nor cuts dpkg (4.5.6, #374)**: when
+  the static ffmpeg cannot be fetched from GitHub, `scripts/ci-ffmpeg.sh` ran `timeout 240 $SUDO apt-get …`, `timeout`
+  above sudo, the shape #353 removed: it killed sudo, not apt-get, and its four minutes also covered dpkg. Now sudo runs
+  `timeout`, apt-get's own parent, around `apt-get update` and `apt-get install --download-only ffmpeg` only; the
+  install, from apt's cache, is not bounded and waits for a lock still held (`DPkg::Lock::Timeout`). The CI page no
+  longer says `release.yml` installs ffmpeg (it has not since #291).
+
+- **`npm run ids -- --write` rewrites the positional `seen` keys of the sources (4.5.6, #359)**: a `{ seen: key }`
+  condition or a checkpoint's `seen` key that names the old place of a topic, a `once` listener or a `once` choice
+  option (`house.grandma.0`, `event.house.2`, `choice.house.<text>`) becomes the key the engine records once that
+  thing has an id (`topic.<id>`, `event.<id>`, `choice.<id>`), in the files the tool writes (`rooms/*.ts`,
+  `rules.ts`, `items.ts`, `game.ts`); the dry run lists each one with its line. Before, the save migration renamed
+  them in the saves but the sources kept the old keys, which then named nothing (since 4.5.5 the validator said so,
+  one key at a time). The Studio's hosted migration writes them too. Texts, flags and keys nothing renames stay as
+  they are; a second run changes nothing.
+
+- **The lease renewal tests no longer depend on how fast the runner is (4.5.6, #388)**: main's `ci` went red on
+  Windows only, in `tests/studio-engine-upgrade.test.ts`: a run of 30 ms with a renewal every 5 ms was expected to
+  log two failed renewals, and Windows' coarse timers (about 15 ms a tick) fit only one. The operation under the lease
+  now lasts until the second renewal has been logged (and, without a log, until the first renewal has run), and the
+  owner's lease test waits for its two renewals the same way, so each proves what it did with no elapsed time to
+  guess. Tests only; the Studio's lease is unchanged.
+
+- **The mutation sets run at their old speed again, and `speedrun` in two shards (4.5.6, #387)**: since the unit
+  shards' duration sequencer (#349, 4.5.5), `vitest.mutation.config.ts` inherited it from `vite.config.ts`. Each mutant
+  runs its set's tests with `--bail 1`, and vitest's own order starts with the files that failed the run before, so the
+  file that killed a mutant judges its neighbour first and kills it in a second; the duration sequencer started the
+  longest files first instead. Every set ran two to five times longer, and `speedrun` (539 mutants in one job) went
+  from 38 minutes to past the job's 120: the 4.5.6 warm-up cancelled it, and its candidate would have been red. The
+  mutation config keeps vitest's own order (`BaseSequencer`), and `speedrun` runs in two shards: `verify.ts` (398
+  mutants) alone, the envelope and the recorder (141) in the other.
+
+### Changes
+
+- **A red nightly opens an issue, and the next green one closes it (4.5.6, #379)**: a red nightly told nobody but the
+  cross on the Actions page, and on 26 October 2026 one was found at the next release's candidate, a day late. The
+  nightly's last job, `report` (`tools/nightly-report.ts`, Node alone), reads every job's result: a job that failed,
+  timed out or was cancelled opens an issue labelled `nightly-red`, or comments on the open one (one issue per red
+  streak), with the date, the commit, the run's link, the red jobs and, for a failed mutation gate, the surviving
+  mutants `docs/dev/mutants.json` does not name. The first green night comments "Green again on <run>" and closes it.
+  A warm-up of the mutation cache reports a red gate too but never closes the issue; a run the `guard` skipped in the
+  working day reports nothing. Only that job may write issues; the rest of the workflow keeps its read-only token.
+
+- **"Your first game" starts from npm (4.5.6, #382)**: its first step said the packages were not on npm yet and walked
+  a newcomer through a release archive's URL, then said they were. The engine is on npm from 4.5.2, so the page now
+  starts with `npm init @quest-n-click my-game "My Game"`, `npm install`, the Python step, `npm run assets` and
+  `npm run dev`; the archive is a short fallback (offline, a build pinned to a release's file) and the engine
+  repository's path is unchanged. The other pages that still said so are fixed in both languages: "Not supported"
+  no longer lists npm as missing, the upgrade page installs `@quest-n-click/engine@<version>` first, and the
+  troubleshooting, archive and upgrade pages give the error a project made before 4.5.2 now meets
+  (`ETARGET No matching version found for quest-n-click@…`, not a 404) with its fix. `install.from-npm` and
+  `install.package` no longer wait for a relay that is republished, and name `npx @quest-n-click/create` as the
+  alternative to `npm init`, in place of an unscoped `npx quest-n-click create` that has no command on npm.
+
+- **A created project has a test from the start: `npm test` (4.5.6, #384)**: `npm init @quest-n-click` (`quest-n-click
+  create`) used to leave the template's `tests/` out, so a new project had no test, no vitest and no `npm test`,
+  although `@quest-n-click/engine/testing` is there for a game's own tests. It now writes `game/tests/game.test.ts`
+  (the game can be finished from a new game, and a save reads back as written), a `vitest.config.ts` with no alias
+  (the package's `exports` resolve `/testing`), and in `package.json` `"test": "vitest run"` with `vitest` as a
+  development dependency, at the engine's own version. The test names no room: it uses the `layouts` that
+  `game/index.ts` builds from `layout/*.json`, and it does not wait for a new game that ends on a guided action. It is
+  the template's own `tests/game.test.ts`, which the engine repository runs with `GAME=_template`: one file for both.
+  An existing project adds the same three files by hand ([layout of a created
+  project](https://github.com/Quest-n-Click/quest-n-click/wiki/EN-Create-Project-Layout)).
+
 ## 4.5.5 — 2026-10-26
 
 LOG #319–#340: "Reworked CI", a patch on 4.5.4 that fixes what 4.5.4's release ran into and makes a release run its CI
