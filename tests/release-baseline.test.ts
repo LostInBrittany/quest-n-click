@@ -37,11 +37,19 @@ describe('the candidate baseline', () => {
 
   it('reads every artifact it knows and the run jobs, without measuring again', () => {
     dir = mkdtempSync(join(tmpdir(), 'baseline-'));
-    put('heavy-1/heavy-1.json', {
+    // The heavy suite once in three shards (4.5.7, #392): shard 1's report, the others missing.
+    put('heavy-shard-1/heavy-shard-1.json', {
       numPassedTests: 9,
       numTotalTests: 9,
-      testResults: [{ assertionResults: [{ duration: 1500 }, { duration: 2500 }] }],
+      testResults: [
+        {
+          name: '/home/runner/work/q/q/tests/audit.test.ts',
+          assertionResults: [{ duration: 1500 }, { duration: 2500 }],
+        },
+      ],
     });
+    // A report of the old shape (three whole attempts, until 4.5.6) is not read as a shard.
+    put('heavy-2/heavy-2.json', { numPassedTests: 1, numTotalTests: 1, testResults: [] });
     put('bridge-load-sqlite/bridge-load-sqlite.json', {
       proposals: 50000,
       perSecond: 370,
@@ -134,8 +142,9 @@ describe('the candidate baseline', () => {
       version: '4.1.19',
       run: '42',
     });
-    expect(b.heavy[0]).toEqual({ attempt: 1, passed: 9, total: 9, skipped: 0, seconds: 4 });
-    expect(b.heavy[1]).toEqual({ attempt: 2, measured: false });
+    expect(b.heavy[0]).toEqual({ shard: 1, files: ['audit.test.ts'], passed: 9, total: 9, skipped: 0, seconds: 4 });
+    expect(b.heavy[1]).toEqual({ shard: 2, measured: false });
+    expect(b.heavy).toHaveLength(3);
     expect(b.load.sqlite.proposals.perSecond).toBe(370);
     expect(b.load.postgres.proposals).toBe(NOT_MEASURED);
     expect(b.load.postgres.medians).toBe(NOT_MEASURED);
@@ -190,6 +199,8 @@ describe('the candidate baseline', () => {
     expect(md).toContain('# Baseline 4.1.19 — candidate 42');
     expect(md).toContain(`*${NOT_MEASURED}*`);
     expect(md).toContain('| core | passed | 10/10 |');
+    expect(md).toContain('| Heavy suite, shard 1/3 | 9/9 passed, 0 skipped, 4 s of tests (audit.test.ts) |');
+    expect(md).toContain(`| Heavy suite, shard 2/3 | *${NOT_MEASURED}* |`);
   });
 
   it('refuses a qualification of another commit: never a figure of an earlier candidate (4.1.20, plan §8.5)', () => {

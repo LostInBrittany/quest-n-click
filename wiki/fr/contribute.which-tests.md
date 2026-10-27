@@ -17,7 +17,7 @@ qui dit ce qu'est chaque workflow et chaque job.
 | Unitaire (Node) | `npm test` (`test:node`) | chaque `tests/**/*.test.ts` et les `games/<GAME>/tests/` du jeu, sauf les 9 fichiers lourds et les 2 fichiers d'assets | via la couverture ; sous Node 24 (barrière `node24`) ; sous Windows sans les fichiers POSIX (barrière `windows`) | oui | oui (`release-check:ci`) | oui (`release-check:ci`) | — | — |
 | Couverture | `npm run test:coverage` | la suite unitaire et les tests d'assets sous couverture V8, puis les seuils de `vite.config.ts` et le cliquet | en quatre fragments (`unit`), fusionnés par `coverage`, sous couverture quand le code du produit change (barrière `coverage` ; le cliquet avertit) ; sinon les mêmes fragments sans couverture (4.5.4) | oui (cliquet strict) | oui | oui | — | — |
 | Assets | `npm run test:assets` | `tests/pixel.test.ts`, `tests/studio-assets.test.ts` (Python nécessaire) | dans les fragments `unit`, avec ou sans couverture (4.5.4) | dans la couverture | dans la couverture | dans la couverture | — | — |
-| Solveur lourd | `npm run test:heavy` | 9 fichiers l'un après l'autre : `ownership`, `audit`, `canonical`, `memo`, `reference-proof`, `solver-oracle`, `dominance`, `partition`, `checkpoint-matrix` | — | — | trois fois, chacune sur un runner neuf (`heavy` ×3) | — | oui (`heavy`) | — |
+| Solveur lourd | `npm run test:heavy` | 9 fichiers l'un après l'autre : `ownership`, `audit`, `canonical`, `memo`, `reference-proof`, `solver-oracle`, `dominance`, `partition`, `checkpoint-matrix` | — | — | une fois, en trois morceaux équilibrés par durée, un runner chacun (`heavy` ×3, `tools/heavy-shards.ts`, 4.5.7) | — | trois fois, chacune sur un runner neuf (`heavy` ×3 : les mesures de durée) | — |
 | Qualité | `npm run quality` | formatage, lint du code, knip, les deux configurations TypeScript, lint de contenu | oui (`check`) | oui | oui | oui | — | — |
 | Vérité des docs | `npm run docs:truth` | ce que disent les docs, comparé au code | oui (`check`) | oui | — | — | — | — |
 | Wiki | `npm run wiki -- check` | le manifeste, les pages, les liens, la parité, les exemples ; dans la suite unitaire sous forme de `tests/wiki-*.test.ts` | oui | oui | oui (suite unitaire) | `check --publish` (`docs-publish`) | — | — |
@@ -46,7 +46,7 @@ de mutation, sur le commit du tag ([Publier une release](contribute.releasing.md
 
 > [!LIMIT id=heavy-not-on-pr]
 > Les tests lourds du solveur ne tournent pas sur une pull request ordinaire. L'étiquette `full-ci` lance un run de
-> candidat, qui les passe trois fois ; sinon, un changement du solveur qui les casse se voit à la nightly suivante.
+> candidat, qui les passe une fois, en trois morceaux ; sinon, un changement du solveur qui les casse se voit à la nightly suivante.
 > Lancez `npm run test:heavy` en local (environ 13 minutes sur un portable, un fichier après l'autre) avant de demander
 > la relecture d'un tel changement.
 
