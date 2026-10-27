@@ -1,6 +1,6 @@
 # Upgrade notes: 4.5
 
-What 4.5.0 "Wiki", 4.5.1, 4.5.2, 4.5.3, 4.5.4 and 4.5.5 changed. Nothing to change in a game up to 4.5.1 (the documentation moved);
+What 4.5.0 "Wiki", 4.5.1, 4.5.2, 4.5.3, 4.5.4, 4.5.5 and 4.5.6 changed. Nothing to change in a game up to 4.5.1 (the documentation moved);
 from 4.5.2, `npx quest-n-click migrate` moves its imports to the scoped package names; 4.5.3 changes how a release is
 made, not a game.
 
@@ -198,3 +198,30 @@ or game fingerprint moves). Install `@quest-n-click/engine@4.5.5` ([Install from
   so two pull requests no longer conflict on `wiki/translations.json`; `npm run changes -- --check` refuses a fragment
   the release would stop on; the recurring flaky tests are fixed by cause, the unit shards take about the same time,
   and a slow apt mirror no longer fails the browser installs.
+
+<a name="from-4-5-5-to-4-5-6"></a>
+<!-- applies: 4.5.6.. -->
+
+## From 4.5.5 to 4.5.6 "A stable CI"
+
+Nothing to change in a game: it builds, plays and saves as on 4.5.5 (no content field, save, schema or game
+fingerprint moves). Install `@quest-n-click/engine@4.5.6` ([Install from npm](install.from-npm.md)).
+
+- **`npm run ids -- --write` rewrites the positional `seen` keys** of your sources (`house.grandma.0` becomes
+  `topic.<id>`, and so for a `once` listener or a `once` choice option), where 4.5.5's `validate` named them one at a
+  time. Run it once if `validate` lists such keys: the dry run gives each one with its line, and a second run changes
+  nothing.
+- **A project made by `npm init @quest-n-click`** has a test from the start: `game/tests/game.test.ts` (the game can
+  be finished, a save reads back), a `vitest.config.ts` and `npm test`. An existing project adds the same three files
+  by hand ([Project layout](create.project-layout.md)).
+- **"Your first game" starts from npm** (`npm init @quest-n-click my-game "My Game"`). A project made before 4.5.2
+  without `--engine` that fails with `ETARGET No matching version found for quest-n-click@…` finds its fix in
+  [Troubleshooting](install.troubleshooting.md#npm-404).
+- **For the maintainers**, `npm run release -- <version> --commit=<sha>` releases on a later commit of main when its
+  CI is red on the release merge for a reason fixed after it ([Releasing](contribute.releasing.md#release-command));
+  the nightly and the weekly prove start the evening before and skip a scheduled run that would start in the Paris
+  working day; a red nightly opens a `nightly-red` issue, and the next green one closes it.
+- **For contributors**, CI is steadier: the mutation runs are back to their speed (the 4.5.6 candidate recomputes
+  every set once), a change outside what the tests run no longer empties the mutation cache, a slow apt mirror fails
+  an attempt fast and the retry uses another, `wiki -- check` reads a page with CRLF line ends as with LF, and the
+  lease tests no longer depend on Windows' timers.

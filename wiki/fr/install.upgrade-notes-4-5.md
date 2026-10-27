@@ -1,6 +1,6 @@
 # Notes de mise à jour : 4.5
 
-Ce que la 4.5.0 « Wiki », la 4.5.1, la 4.5.2, la 4.5.3, la 4.5.4 et la 4.5.5 ont changé. Rien à changer jusqu'à la 4.5.1 (la doc a
+Ce que la 4.5.0 « Wiki », la 4.5.1, la 4.5.2, la 4.5.3, la 4.5.4, la 4.5.5 et la 4.5.6 ont changé. Rien à changer jusqu'à la 4.5.1 (la doc a
 déménagé) ; en 4.5.2, `npx quest-n-click migrate` passe les imports aux paquets à scope ; la 4.5.3 change la façon de
 faire une release, pas un jeu.
 
@@ -217,3 +217,32 @@ de contenu, aucune sauvegarde, aucun schéma ni aucune empreinte de jeu ne bouge
   `wiki/translations.json` ; `npm run changes -- --check` refuse un fragment sur lequel la release s'arrêterait ; les
   tests instables récurrents sont corrigés à la cause, les shards unitaires prennent à peu près le même temps, et un
   miroir apt lent ne fait plus échouer l'installation des navigateurs.
+
+<a name="from-4-5-5-to-4-5-6"></a>
+<!-- applies: 4.5.6.. -->
+
+## De la 4.5.5 à la 4.5.6 « A stable CI »
+
+Rien à changer dans un jeu : il se construit, se joue et se sauvegarde comme en 4.5.5 (aucun champ de contenu,
+aucune sauvegarde, aucun schéma ni aucune empreinte de jeu ne bouge). Installez `@quest-n-click/engine@4.5.6`
+([Installer depuis npm](install.from-npm.md)).
+
+- **`npm run ids -- --write` réécrit les clés `seen` positionnelles** de vos sources (`house.grandma.0` devient
+  `topic.<id>`, de même pour un écouteur `once` ou une option de choix `once`), là où le `validate` de la 4.5.5 les
+  signalait une par une. Lancez-le une fois si `validate` en liste : l'essai à blanc donne chacune avec sa ligne, et
+  un second passage ne change rien.
+- **Un projet créé par `npm init @quest-n-click`** a un test dès le départ : `game/tests/game.test.ts` (le jeu se
+  termine, une sauvegarde se relit), un `vitest.config.ts` et `npm test`. Un projet existant ajoute ces trois
+  fichiers à la main ([Organisation d'un projet](create.project-layout.md)).
+- **« Votre premier jeu » part de npm** (`npm init @quest-n-click my-game "My Game"`). Un projet créé avant la 4.5.2
+  sans `--engine` qui échoue sur `ETARGET No matching version found for quest-n-click@…` trouve sa correction dans
+  [Dépannage](install.troubleshooting.md#npm-404).
+- **Pour les mainteneurs**, `npm run release -- <version> --commit=<sha>` publie sur un commit de main postérieur à
+  la fusion de release quand sa CI y est rouge pour une raison corrigée ensuite
+  ([Publier une release](contribute.releasing.md#release-command)) ; la nightly et le prove hebdomadaire partent la
+  veille au soir et sautent un run planifié qui démarrerait pendant la journée de travail à Paris ; une nightly rouge
+  ouvre une issue `nightly-red`, et la suivante verte la ferme.
+- **Pour les contributeurs**, la CI est plus stable : les mutations retrouvent leur vitesse (le candidat de la 4.5.6
+  recalcule chaque jeu une fois), un changement hors de ce que les tests exécutent ne vide plus le cache de mutation,
+  un miroir apt lent fait vite échouer une tentative et la suivante en prend un autre, `wiki -- check` lit une page aux
+  fins de ligne CRLF comme en LF, et les tests du bail ne dépendent plus des timers de Windows.

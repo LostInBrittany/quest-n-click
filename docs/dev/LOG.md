@@ -8734,3 +8734,212 @@ exact bullet, a fenced block, double-backtick spans, a real marker beside a quot
 
 → next: the first live runs of what 4.5.5 only tested (the warm-up, the release commit's protected run, the verify
 skipped on a relaunch, a slow apt mirror), then #359 (`ids --write` rewriting positional `seen` keys).
+
+## #341 · 2026-10-27 · Claude · proposal · A CRLF page keeps its code fences; the wiki tools run on Windows
+
+Release PR #366's `windows` job failed two tests of #363's `tests/wiki-pending.test.ts`: three errors on
+`en/create.rooms.md` lines 24, 26 and 30, the fixture's links inside code fences, "resolves to wiki/en/nowhere.md". The
+test's temporary repository has no `.gitattributes`; on the Windows runner (`core.autocrlf=true`) every file git
+switches or merges is written CRLF, and only the two tests that switch and merge before checking failed, on the page
+both branches changed. `mapLines` and `parsePage` (`tools/wiki/page.ts`) split on `\n` and test each line against
+`FENCE_MARK = /^\s*(`{3,}|~{3,})(.*)$/`; `.` does not match `\r`, so ` ````md\r` never opened a fence. A checker bug,
+not the fixture's: the repository's own checkout is LF by its attributes, a page an editor saved CRLF is not. Ruling:
+both functions read `\r\n` as `\n` (only that pair, so a line keeps its number); the hashes were already LF-safe.
+Proof: `tests/wiki-line-endings.test.ts` (the fences, every fixture page parsed, and `wiki -- check` on a CRLF copy,
+each equal to LF; red before the fix on macOS), and `tests/wiki-pending.test.ts` sets `core.autocrlf=true` in its
+repository, which reproduced the Windows errors exactly on macOS. Why #363's CI missed it: `ci-plan` gave the wiki's own
+tools and `tests/` the fast tier only; they now open `windows` (`tools/wiki*` but the modules the Studio reads, which
+already did, and `tests/wiki-*.test.ts`), pinned in `tests/ci-plan.test.ts`; the CI page (en, fr) says it.
+
+→ next: the release PR's `windows` job, green with this merged.
+
+
+## #342 · 2026-10-27 · Claude · proposal · The mutation cache's input hash follows only what a test runs
+
+Measured on 2026-10-26: `core`'s `inputHash` moved between 16d86402 and 301f199d (297e687a1328a01b → 0d07622305297f16)
+and the only input that changed was `tools/wiki/page.ts` (#368's CRLF fix). The chain: `vite.config.ts` (a root of
+every set) → `tools/studio/plugin.ts` → `tools/studio/types.ts` → `tools/wiki/docs.ts` (by `import type`) →
+`tools/wiki/page.ts`. Two causes: the closure's regex followed type-only imports, which are erased before a test runs;
+and `vite.config.ts` was followed into everything the dev server and the build use. Ruling: `runtimeImports` reads a
+module with the TypeScript parser and keeps what loads at runtime (imports and re-exports with a value, side-effect
+imports, `import {}` to be safe, `import()`, `require()`); the configurations are hashed as files and followed only
+through an allow-list (`CONFIG_FOLLOWS`: `tools/game.ts`, `tools/vite/plugins.ts`, `tools/extensions.ts`,
+`tools/unit-shards.ts`, `tools/mutation-sets.ts`), the Studio plugin skipped with its reason (`configureServer` only,
+no `transform`, `resolveId` or `load`). An allow-list rather than a deny-list, and a test that both lists cover exactly
+the configurations' imports, so a new plugin is classified by a person instead of entering or leaving the hash silently.
+Closures before → after: core 260 → 182, reality 363 → 217, connectors-pure 247 → 94, remix 240 → 151, speedrun
+247 → 157, runs 248 → 81, voices 230 → 171, reality-store 230 → 106, connectors-edge 247 → 94, reality-store-postgres
+227 → 67, studio-ops 221 → 178, studio-auth 222 → 178, studio-workshop 232 → 185 (the studio sets keep the wiki tools:
+`tools/studio/backend.ts` imports `tools/wiki/docs-load` for a value). Proof on the repository: a line added to
+`tools/wiki/page.ts` keeps `core`'s and `reality`'s hashes, a line added to `src/engine/core/engine.ts` moves both;
+`tests/mutate-hash.test.ts` pins it on a temporary repository (a value import moves the hash, a type-only one does not;
+sources, tests, survivors, the lockfile's dependencies move it, its version does not).
+
+→ next: the first nightly after the merge runs every set cold once, then the cache holds across wiki and Studio fixes.
+
+
+## #343 · 2026-10-27 · Claude · proposal · A slow apt mirror fails an attempt fast, and the retry uses another mirror
+
+Main's run 40315817057 (26 Oct 2026), `studio-hosted` attempt 1: `bash scripts/ci-playwright-deps.sh chromium firefox`
+timed out at the step's 20 minutes. The log: `apt-get update` at 9.5 MB/s, then `Need to get 53.7 MB` from
+`azure.archive.ubuntu.com` at ~40 kB/s (`Get:2` 3513 kB in 86 s, `Get:18` 8998 kB in 236 s), still on `Get:41` of 48
+when the step was killed; two `Ign:` lines (a file left for another mirror). No lock wait, no dpkg: #355's
+`Acquire::http::Timeout "60"` fails a mirror that sends nothing, and this one always sent a little, so the first of
+three attempts never failed. The runner's apt has a failover (`mirror+file:/etc/apt/apt-mirrors.txt`, 144 B in the
+log: azure priority 1, archive.ubuntu.com 2, security.ubuntu.com 3, from actions/runner-images'
+`configure-apt-sources.sh`), but the mirror method moves on only when a file fails. apt has no low-speed limit, so the
+bound is a `timeout`, on the download alone: `$SUDO timeout -k 10 2m apt-get update`, then `$SUDO timeout -k 10 3m
+apt-get install --download-only -y --no-install-recommends` of the packages `npx playwright install-deps --dry-run`
+lists (Playwright 1.64 simulates with `apt-get install -s` and prints one `  <package>` a line). sudo runs `timeout`,
+which is apt-get's own parent and signals its process group: #353's orphan came from `timeout` above sudo. A killed
+download has not started dpkg, and an exiting apt-get frees its fcntl locks. Then `npx playwright install-deps`
+unbounded, from the cache. Before attempt 2, the priority-1 mirror goes to 9. Three attempts of at most 5 minutes, the
+pauses and the install fit the 20 minutes. Proof: `tests/ci-retry.test.ts` runs the script against stubs (sudo, id,
+sleep, timeout, npx, apt-get) in a directory of its own (`CI_APT_ETC`, now in the env register): the order of the
+phases, sudo above `timeout`, the mirror demoted once after a failed download, nothing downloaded when nothing is
+missing, no mirror list in a container, exit 1 after three attempts; the static test pins that `timeout` only precedes
+those two apt-get lines. Red on the old script. Not run on a real runner here: this PR's `studio-hosted` is its first.
+Seen in passing: `scripts/ci-ffmpeg.sh`'s apt fallback (after the static build) runs `timeout 240 $SUDO apt-get`,
+`timeout` above sudo, the shape #353 removed; left as is, it only runs when GitHub's download fails.
+
+→ next: the PR's `studio-hosted` run, the first real one of the two phases.
+
+
+## #344 · 2026-10-27 · Claude · proposal · ffmpeg's apt fallback bounds its download only, `timeout` under sudo
+
+Seen in passing while fixing #373: `scripts/ci-ffmpeg.sh`'s fallback, after the static build from GitHub fails (#261),
+ran `timeout 240 $SUDO apt-get update -qq && timeout 240 $SUDO apt-get install -y -qq ffmpeg`, twice. `timeout` above
+sudo is #353's shape (sudo runs apt-get in its own session, out of `timeout`'s process group; #350's retries then failed
+on "Could not get lock … held by process … (apt-get)"), and the second bound also covered dpkg, where a kill leaves
+packages half-configured. Never seen failing: the fallback only runs when GitHub's download does. Ruling, as #373:
+`$SUDO timeout -k 10 240` around `apt-get update` and `apt-get install --download-only -y -qq ffmpeg`, then `$SUDO
+apt-get install -y -qq ffmpeg` unbounded, each with `-o DPkg::Lock::Timeout=300` (on the command line, so nothing is
+written to `/etc/apt`). Proof: `tests/ci-ffmpeg.test.ts`, its own file so as not to meet #373's `tests/ci-retry.test.ts`:
+`timeout` precedes only those two lines and never `$SUDO`; the script run with only stand-ins on its PATH (curl fails,
+sudo, timeout and apt-get log, the install leaves an `ffmpeg`): the commands in order, a second download after a pause
+when the first runs out of time, no install after two failed downloads. All four red on the old script. The CI page's
+row (en, fr) also stops saying `release.yml` carries the same logic: it installs no ffmpeg since #291.
+
+→ next: nothing; the fallback is exercised for real only on a day GitHub's download fails.
+
+
+## #345 · 2026-10-27 · Claude · proposal · `npm run ids -- --write` rewrites the positional `seen` keys
+
+#359, follow-up of #248 / #358. The renames come from two sources: the save migration's `map.seen` (what this run
+names) and `movedSeenKeys` in `src/engine/tools/validate/seen.ts`, the validator's own "old place → key" pairs, so a
+game that got its ids from an earlier `ids` run (before this fix) is caught as well, and the key the tool writes is
+the one the validator would have named. `tools/ids/seen-keys.ts` reads the source with the TypeScript parser and
+touches only the value of a `seen: '…'` property and the keys of a `seen: { … }` object; a string keeps its quotes, an
+identifier key becomes a string in the file's quotes. The renames run before the id codemod, so the dry run's line
+numbers are those of the file as it is. `planIds` returns them per file (`seen`); `tools/ids.ts` and the Studio's
+`migrate` write a file that has renames even when it gets no id. On the repository's games (`demo`, `heroes`,
+`reference`, `signals`, `_template`) the dry run renames nothing: none uses a positional key. `tests/ids-seen-keys.test.ts`
+(5 of its 6 cases failed before the fix): topic, listener and choice keys in conditions and in a checkpoint, a topic
+that already had an id, the dry run's list and lines, quotes kept, texts, flags and unknown keys untouched, a second
+run that changes nothing.
+
+→ next: nothing planned.
+
+
+## #346 · 2026-10-27 · Claude · proposal · A red nightly opens an issue; the next green one closes it
+
+On 26 Oct 2026 a red nightly was found at the release's candidate, a day late: nothing tells anyone of a red night but
+the cross on the Actions page. `nightly.yml` gets a last job, `report`, that needs every other job (a test pins the list
+to the workflow's jobs, so a new job cannot be forgotten) and runs on `always() && (needs.guard.outputs.run == 'true' ||
+needs.guard.result != 'success')`: never on a night the guard skipped, but a failed guard is red. The decision is
+`tools/nightly-report.ts`, Node alone like the guard: the results come in `NIGHTLY_RESULTS` (`toJSON(needs)`; a variable
+of its own, since adding a reader to `NEEDS` truncated its "Read by" line in the env reference and dropped a link the
+24 Oct audit fixture expects), the open issues from `gh issue list --label nightly-red`, and for a failed
+`mutation-merge` the `mutation-merged` artefact, whose survivors not named in `docs/dev/mutants.json` it lists (20 at
+most; `sameMutant` copied, a test holds it equal to mutate.ts's). Red is `failure` or `cancelled` (a timeout is a
+failure); `continue-on-error` jobs report `success` in `needs` and open nothing. Red with no issue open: `gh label create
+--force`, then `gh issue create`; red with one open: a comment on the oldest; green with one open: "Green again on
+<run>" and `gh issue close` on each. Warm-ups (`-f jobs=mutation`) report a red gate, since the candidate would fail on
+it, and never close: a green warm-up says nothing of the jobs it skipped. `permissions: contents: read, issues: write`
+on `report` alone. Proof: tests/nightly-report.test.ts (the decisions, the text, the workflow's shape);
+tests/release-candidate.test.ts lets `report` run in a warm-up.
+
+→ next: the first night after the merge: a green night with no issue open does nothing; a red one opens #<n>.
+
+
+## #347 · 2026-10-27 · Claude · proposal · `create` writes a starting test, the template's own
+
+#384: `cli/create.mjs` filtered `games/_template/tests` out ("a project checks its game with `quest-n-click verify`"),
+so a project had to invent its vitest setup; "Jack cherche un taf" first did it with aliases into the package's
+`src/engine/`, which the package's `exports` make useless. Ruling: the template's test becomes the generic one
+(imports `game` and `layouts` from `'..'`, the template's `index.ts`, whose `import.meta.glob` runs under vitest in
+both places; `Promise.race` on `newGame()` with 300 ms, for an intro that ends on a guided action), and `create`
+copies the whole template. One file: `GAME=_template npx vitest run games/_template/tests` passes in the repository,
+`npm test` in a created project. `create` also writes `vitest.config.ts` (`include: ['game/tests/**/*.test.ts']`, no
+alias), `"test": "vitest run"` and `devDependencies: { vitest }`. The version is a constant in `create.mjs` (`^5.0.3`),
+since the published `package.json` carries no devDependencies (`scripts/pack.mjs`); `tests/create.test.ts` runs
+`create` into a temporary folder and holds it equal to the repository's. `projectScripts` (`tools/wiki/ref-scripts.ts`)
+read only `` `${NAME} …` `` entries: it now reads a plain `'…'` command too, and `reference.npm-scripts` describes
+`test`. `npm run fresh-install` runs the created project's `npm test` after `verify`. `games/signals/tests` keeps its
+own older test (it imports `layout/start.json` by name); not touched here.
+
+→ next: `quest-n-click migrate` or the Studio's engine upgrade could offer the three files to an existing project.
+
+
+## #348 · 2026-10-27 · Claude · proposal · The lease renewal tests wait for the renewals, not for a time
+
+#388: main's `ci` on `d19ec462` failed on `windows` only, "the exclusive lease, its edges > says a renewal that fails,
+and goes on": `exclusiveRunner` with `everyMs: 5` around `tick(30)` logged one `lease-renew-failed` where the test
+wants two. Windows' timer resolution (about 15.6 ms) lets a 5 ms interval fire once or twice in 30 ms; the PR's run
+(#385) was green by luck. Ruling: no fake timers (the runner's `setInterval` and its promise chain would need
+`advanceTimersByTimeAsync` and the `unref`); the operation under the lease is `until(() => lines.length >= 2)`, a
+1 ms poll at file level, and the second run without a log `until(() => n > 0)`. The same shape in "the owner's
+exclusive lease around a long operation" (`setTimeout(40)` then at least two renewals at `everyMs: 10`) now waits
+for the two renewals. Its 30 ms "nothing after the release" stays: it can only pass wrongly, never fail on a slow
+runner. A hang would end at vitest's test timeout. No production code touched. Not reproduced on macOS: the old file
+passed 15 runs out of 15 under load, as did the new; the new one also 30 runs out of 30 alone, and `npm test`.
+
+→ next: nothing.
+
+
+## #349 · 2026-10-27 · Claude · proposal · The mutation runs lost vitest's failed-first order; `speedrun` in two shards
+
+#387: `mutation (speedrun-1of1)` hit its 120-minute timeout in the 4.5.6 warm-up (run 40422427281). No speedrun test
+changed after 23 October. The cause is #349 (25 Oct 23:13): `vite.config.ts` got `sequence.sequencer:
+DurationSequencer` for ci.yml's unit shards, and `vitest.mutation.config.ts` spreads `base.test`, so every mutant's
+`vitest run --bail 1` took it too. vitest's `BaseSequencer` sorts the files that failed the previous run first (its
+results cache), and `tools/mutate.ts` mutates a file in source order: the file that killed one mutant kills the next
+before the others start. `DurationSequencer.sort` ignores the cache and starts `speedrun-daily` and the other long
+files first. Measured on 20 consecutive mutants of verify.ts, interleaved one by one, three workers: 132 s with the
+duration sequencer, 30 s with vitest's, the same verdicts. Every set slowed between the 4.5.4 candidate (25 Oct 19:06)
+and the warm-up: `speedrun` 38 → >120 min, `remix` 42 → 114, `connectors-pure` 46 → 96, `reality-2of2` 23 → 70,
+`connectors-edge-1of4` 10 → 50. `vitest.mutation.config.ts` now sets `sequencer: BaseSequencer`
+(`tests/unit-shards.test.ts` pins it). `SHARDS.speedrun = 2`: `verify.ts` alone (398 of 539 mutants), envelope and
+recorder in the other (`tests/mutate-shards.test.ts`). Expected: about 30 min for verify.ts and 10–15 min for the
+other shard, from the 38 minutes the whole set took before #349.
+
+→ next: if verify.ts alone ever nears the limit, the cut would need files below one file (a shard by mutant range in
+`tools/mutate.ts`), not a longer timeout.
+
+## #350 · 2026-10-27 · Claude · release · 4.5.6 "A stable CI": the CI fixed by cause, the last of 4.5
+
+- **The request**: 4.5.5's release and its first night ran into one CI problem after another: main's `windows` red
+  on the release merge (#367), a candidate that re-ran every mutation set for a wiki fix (#371), scheduled runs that
+  started in the working day (#372), apt mirrors that timed out (#373, #374), a red nightly nobody saw (#379).
+  Horacio asked for one issue and one pull request each, then 4.5.6 as the last release of the 4.5 line. Its first
+  `prepare` (on `d19ec462`, never pushed) was dropped when the warm-up found `speedrun` past its timeout (#387) and
+  main's `windows` red on a timer (#388), both fixed before this one.
+- **What ships**: CI and the release, #368 (#367, CRLF in the wiki checker, `windows` for the wiki's tools), #370
+  (#369, `--commit`), #375 (#371, the mutation hash follows what a test runs), #376 (#373) and #377 (#374) (apt: a
+  bounded download, an unbounded install), #378 (#372, the night schedule and its guard), #381 (#379, the
+  `nightly-red` issue), #389 (#388, the lease tests), #390 (#387, vitest's order under each mutant, `speedrun` in two
+  shards); for authors, #380 (#359, `ids --write` rewrites the positional `seen` keys), #383 (#382, "Your first game"
+  from npm), #385 (#384, a created project's starting test).
+- **Fragments**: assembled by `npm run release -- prepare 4.5.6`, on `222ac23f`.
+- **Upgrade notes**: "From 4.5.5 to 4.5.6" in `install.upgrade-notes-4-5`, both languages: nothing to change in a
+  game; `ids --write` and the `seen` keys; a created project's test and how an existing one adds it; for maintainers,
+  `--commit`, the night schedule and the `nightly-red` issue; for contributors, a steadier CI.
+- **Reviews**: the pairs this release changes keep an AI author's record (D56); no claim of a changed section waits
+  for a person.
+- **Fixtures**: golden save demo-4.5.6, reference run, quality baseline, written by `prepare`.
+- **Passes**: sheet 4.5.6, the twenty-two of 4.5.5, none new.
+- **Signature**: the tag is signed with LostInBrittany's SSH key (`npm run release -- 4.5.6`).
+
+→ next: the first nights on the new schedule and their `report`; the README's install blocks moved to npm; the field
+passes' rules settled (a campaign window without releases, or carried surfaces, and the passes to prune) before a
+campaign; then 4.6.
