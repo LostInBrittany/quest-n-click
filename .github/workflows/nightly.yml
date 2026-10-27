@@ -97,19 +97,15 @@ jobs:
   # reference chapter's proof. Minutes each on a shared runner, so they run here every night, not on every push.
   # 4.1.17: one file after the other (`--no-file-parallelism`), so the four partition workers have the cores and the
   # durations measured mean something; 150 minutes (about 13 on a laptop, the runner is several times slower).
-  # Three times, each on a new runner (4.5.7, #392): the duration measurements the candidate made until 4.5.6, where
-  # the suite now runs once in three shards. Each attempt's JSON report is kept (`heavy-<n>`): the files' medians are
-  # what tools/heavy-durations.json records for the candidate's cut (`npx tsx tools/heavy-shards.ts --record …`).
+  # Whole, on one runner: a night's duration. Its JSON report is kept (`heavy-nightly`, 4.5.7, #392): each file's
+  # seconds, from which tools/heavy-durations.json records the candidate's shards (`npx tsx tools/heavy-shards.ts
+  # --record …`).
   heavy:
     # Not in a warm-up of the mutation cache (#329); a scheduled run has no inputs, so it runs. Guarded (#372).
     needs: guard
     if: needs.guard.outputs.run == 'true' && inputs.jobs != 'mutation'
     runs-on: ubuntu-24.04
     timeout-minutes: 150
-    strategy:
-      fail-fast: false
-      matrix:
-        attempt: [1, 2, 3]
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
@@ -118,18 +114,12 @@ jobs:
           cache: npm
       - run: for i in 1 2 3; do (timeout 3m npm ci) && break; [ "$i" = 3 ] && exit 1; echo "retry $i"; sleep 15; done
         timeout-minutes: 10
-      - run: npm run test:heavy -- --reporter=default --reporter=json --outputFile.json=heavy-${{ matrix.attempt }}.json
-      - if: always()
-        name: Each file's duration
-        shell: bash
-        run: |
-          f=heavy-${{ matrix.attempt }}.json
-          [ -f "$f" ] && node -e "const r=require('./$f'); console.log('### Heavy, attempt ${{ matrix.attempt }}: ' + r.numPassedTests + '/' + r.numTotalTests + ' passed'); for (const t of r.testResults) console.log('- ' + t.name.split('/').pop() + ': ' + Math.round((t.endTime - t.startTime) / 1000) + ' s')" >> "$GITHUB_STEP_SUMMARY" || true
+      - run: npm run test:heavy -- --reporter=default --reporter=json --outputFile.json=heavy-nightly.json
       - if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
-          name: heavy-${{ matrix.attempt }}
-          path: heavy-${{ matrix.attempt }}.json
+          name: heavy-nightly
+          path: heavy-nightly.json
           if-no-files-found: warn
           overwrite: true
   # The connectors' fuzz harness (4.1.9, tools/fuzz-connectors.ts): seeded mutations for a minute per

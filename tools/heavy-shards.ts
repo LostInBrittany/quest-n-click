@@ -1,7 +1,6 @@
 // The heavy solver suite in shards by duration (4.5.7, #392). candidate.yml ran `npm run test:heavy` three times, each
-// on a new runner, to measure its duration: up to 44 minutes each, the candidate's critical path. Its verdicts are
-// deterministic, so the candidate now runs it once, cut in three shards on three runners; the three measuring runs are
-// the nightly's. The files are `test:heavy`'s own list (package.json, the one place it is written), cut by
+// attempt whole on one runner: up to 44 minutes each, the candidate's critical path. Each attempt is now cut in three
+// shards on three runners. The files are `test:heavy`'s own list (package.json, the one place it is written), cut by
 // tools/unit-shards.ts's `assignShards` at one file at a time (`--no-file-parallelism`: a shard's time is the sum of
 // its files), from the durations recorded in tools/heavy-durations.json. Every file runs in exactly one shard
 // (tests/heavy-shards.test.ts): a file added to `test:heavy` goes to a shard by itself, counted as the median.
@@ -10,7 +9,8 @@
 //   npx tsx tools/heavy-shards.ts --plan=<n>          the cut and each shard's recorded seconds
 //   npx tsx tools/heavy-shards.ts --record <vitest json report>...   refresh the table (the median of each file)
 //
-// The table is refreshed by hand when the shards drift, from the nightly's `heavy-1..3` artefacts (their JSON reports).
+// The table is refreshed by hand when the shards drift, from JSON reports of whole runs: the nightly's `heavy-nightly`
+// artefact, or a candidate's shard reports.
 import { readFileSync, writeFileSync } from 'node:fs';
 import { relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';

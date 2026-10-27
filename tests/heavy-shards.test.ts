@@ -1,5 +1,5 @@
-// The heavy suite once, in three shards (4.5.7, #392, tools/heavy-shards.ts): candidate.yml ran it whole three times
-// to measure its duration, up to 44 minutes each. Every file of `test:heavy` must run in exactly one shard: a file
+// Each heavy attempt in three shards (4.5.7, #392, tools/heavy-shards.ts): candidate.yml ran the whole suite on one
+// runner per attempt, up to 44 minutes each. Every file of `test:heavy` must run in exactly one shard: a file
 // missing is a proof the candidate no longer makes, a file doubled is a runner's time lost.
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
@@ -72,32 +72,32 @@ describe("the heavy suite's shards", () => {
 });
 
 describe('the workflows', () => {
-  it('the candidate runs the suite once, in three shards from tools/heavy-shards.ts', () => {
+  it('the candidate keeps three attempts, each in three shards from tools/heavy-shards.ts', () => {
     const heavy = job(yml('candidate.yml'), 'heavy');
-    expect(heavy).toMatch(/matrix:\s*\n\s*shard: \[1, 2, 3\]/);
+    expect(heavy).toMatch(/matrix:\s*\n\s*attempt: \[1, 2, 3\]\s*\n\s*shard: \[1, 2, 3\]/);
     expect(heavy).toContain('npx tsx tools/heavy-shards.ts --shard=${{ matrix.shard }}/3');
     expect(heavy).toContain('npx vitest run --no-file-parallelism $files');
     // The list on its own line, so a failed tool stops the step before any `vitest run`.
     expect(heavy).toMatch(/\n\s+files=\$\(npx tsx tools\/heavy-shards\.ts/);
     expect(heavy).toContain('shell: bash');
     expect(heavy).not.toContain('npm run test:heavy');
-    expect(heavy).not.toContain('attempt');
-    expect(heavy).toContain('name: heavy-shard-${{ matrix.shard }}');
+    expect(heavy).toContain('--outputFile.json=heavy-${{ matrix.attempt }}-shard-${{ matrix.shard }}.json');
+    expect(heavy).toContain('name: heavy-${{ matrix.attempt }}-shard-${{ matrix.shard }}');
   });
 
-  it("the gate's summary and the missing list name the shards' reports", () => {
+  it("the gate's summary rebuilds each attempt from its shards, and lists the nine reports when missing", () => {
     const gate = job(yml('candidate.yml'), 'candidate-gate');
-    expect(gate).toContain('artifacts/heavy-shard-*/heavy-shard-*.json');
-    expect(gate).toContain('heavy-shard-1 heavy-shard-2 heavy-shard-3');
-    expect(gate).not.toMatch(/heavy-[123]\b/);
+    expect(gate).toContain("'artifacts/heavy-$a-shard-'+s+'/heavy-$a-shard-'+s+'.json'");
+    expect(gate).toContain('$(for a in 1 2 3; do for s in 1 2 3; do echo heavy-$a-shard-$s; done; done)');
+    expect(gate).not.toMatch(/heavy-[123] /);
   });
 
-  it('the nightly measures the whole suite three times, each report kept', () => {
+  it('the nightly runs the whole suite once on one runner and keeps its report', () => {
     const heavy = job(yml('nightly.yml'), 'heavy');
-    expect(heavy).toMatch(/matrix:\s*\n\s*attempt: \[1, 2, 3\]/);
+    expect(heavy).not.toContain('matrix');
     expect(heavy).toContain(
-      'npm run test:heavy -- --reporter=default --reporter=json --outputFile.json=heavy-${{ matrix.attempt }}.json',
+      'npm run test:heavy -- --reporter=default --reporter=json --outputFile.json=heavy-nightly.json',
     );
-    expect(heavy).toContain('name: heavy-${{ matrix.attempt }}');
+    expect(heavy).toContain('name: heavy-nightly');
   });
 });
