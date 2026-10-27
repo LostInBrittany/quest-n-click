@@ -316,10 +316,9 @@
     },
     "engine-upgrade-judged-first": {
       "claimTextHash": "dc87e7681b6ea05cb33be30a5bd783fee189911059a866f31d605d8faba04bd7",
-      "testFileHash": "43abbae8747daa4638f691f89961f8129700d226ffca88065f27413bbb26ae62",
+      "testFileHash": "3276a19465aca18495a642212617384217c580a40dff51723d3145108315e683",
       "reviewers": [
-        { "name": "claude-283-scoped", "kind": "ai", "relation": "author", "date": "2026-10-24" },
-        { "name": "LostInBrittany", "kind": "human", "relation": "independent", "date": "2026-10-24" }
+        { "name": "LostInBrittany", "kind": "human", "relation": "independent", "date": "2026-10-27" }
       ]
     },
     "export-same-files": {

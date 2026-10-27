@@ -8916,15 +8916,30 @@ other shard, from the 38 minutes the whole set took before #349.
 → next: if verify.ts alone ever nears the limit, the cut would need files below one file (a shard by mutant range in
 `tools/mutate.ts`), not a longer timeout.
 
-## #350 · 2026-10-27 · Claude · release · 4.5.6 "A stable CI": TODO(release)
+## #350 · 2026-10-27 · Claude · release · 4.5.6 "A stable CI": the CI fixed by cause, the last of 4.5
 
-- **The request**: TODO(release)
-- **What ships**: TODO(release)
-- **Fragments**: TODO(release)
-- **Upgrade notes**: TODO(release)
-- **Reviews**: TODO(release)
-- **Fixtures**: TODO(release)
-- **Passes**: TODO(release)
-- **Signature**: TODO(release)
+- **The request**: 4.5.5's release and its first night ran into one CI problem after another: main's `windows` red
+  on the release merge (#367), a candidate that re-ran every mutation set for a wiki fix (#371), scheduled runs that
+  started in the working day (#372), apt mirrors that timed out (#373, #374), a red nightly nobody saw (#379).
+  Horacio asked for one issue and one pull request each, then 4.5.6 as the last release of the 4.5 line. Its first
+  `prepare` (on `d19ec462`, never pushed) was dropped when the warm-up found `speedrun` past its timeout (#387) and
+  main's `windows` red on a timer (#388), both fixed before this one.
+- **What ships**: CI and the release, #368 (#367, CRLF in the wiki checker, `windows` for the wiki's tools), #370
+  (#369, `--commit`), #375 (#371, the mutation hash follows what a test runs), #376 (#373) and #377 (#374) (apt: a
+  bounded download, an unbounded install), #378 (#372, the night schedule and its guard), #381 (#379, the
+  `nightly-red` issue), #389 (#388, the lease tests), #390 (#387, vitest's order under each mutant, `speedrun` in two
+  shards); for authors, #380 (#359, `ids --write` rewrites the positional `seen` keys), #383 (#382, "Your first game"
+  from npm), #385 (#384, a created project's starting test).
+- **Fragments**: assembled by `npm run release -- prepare 4.5.6`, on `222ac23f`.
+- **Upgrade notes**: "From 4.5.5 to 4.5.6" in `install.upgrade-notes-4-5`, both languages: nothing to change in a
+  game; `ids --write` and the `seen` keys; a created project's test and how an existing one adds it; for maintainers,
+  `--commit`, the night schedule and the `nightly-red` issue; for contributors, a steadier CI.
+- **Reviews**: the pairs this release changes keep an AI author's record (D56); no claim of a changed section waits
+  for a person.
+- **Fixtures**: golden save demo-4.5.6, reference run, quality baseline, written by `prepare`.
+- **Passes**: sheet 4.5.6, the twenty-two of 4.5.5, none new.
+- **Signature**: the tag is signed with LostInBrittany's SSH key (`npm run release -- 4.5.6`).
 
-→ next: TODO(release)
+→ next: the first nights on the new schedule and their `report`; the README's install blocks moved to npm; the field
+passes' rules settled (a campaign window without releases, or carried surfaces, and the passes to prune) before a
+campaign; then 4.6.

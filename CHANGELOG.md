@@ -2,7 +2,13 @@
 
 ## 4.5.6 — 2026-10-27
 
-LOG #341–#350: "A stable CI", a patch on 4.5.5. TODO(release): what it changes, for whom, and what a game has to do (Upgrade notes).
+LOG #341–#350: "A stable CI", a patch on 4.5.5 and the last of the 4.5 line, that fixes what 4.5.5's release and its
+first nights ran into: the mutation runs are back to their speed (they had lost vitest's failed-first order, and
+`speedrun` ran past its timeout, now in two shards), and a change outside what a test runs no longer empties the
+mutation cache; the nightly and the prove run in the night, and a red nightly opens an issue; a slow apt mirror and
+Windows' timers no longer fail CI; `npm run release -- <version> --commit=<sha>` releases past a main red on the
+release merge. Nothing to change in a game (Upgrade notes): `ids --write` now rewrites the positional `seen` keys, a
+project made from npm gets a starting test (`npm test`), and "Your first game" starts from npm.
 
 ### Fixed
 

@@ -169,7 +169,7 @@ the first idea to the release, every command in [npm scripts](https://github.com
 [Roadmap](https://github.com/Quest-n-Click/quest-n-click/wiki/EN-Start-Roadmap). An assistant reads the same pages through the MCP server (`search_docs`, `read_doc`);
 the old `docs/` pages are transition pages, each section linked to its new place and to its 4.4.0 text.
 
-Current release: [v4.5.6 (A stable CI)](https://github.com/Quest-n-Click/quest-n-click/releases/tag/v4.5.6): TODO(release)
+Current release: [v4.5.6 (A stable CI)](https://github.com/Quest-n-Click/quest-n-click/releases/tag/v4.5.6): a stable CI (the mutation runs back to their speed, a nightly that runs in the night and opens an issue when red, no more failures from slow apt mirrors or Windows' timers), `ids --write` that rewrites the positional `seen` keys, a created project with its starting test, and "Your first game" from npm (Horacio).
 Over 4.5.5 "Reworked CI": a release whose CI runs once (`prepare` stops until the prose and reviews are done, then warms the candidate's mutation cache), a release command tested end to end, no more conflicts on the wiki's records or flaky tests, and `validate` refusing a `seen` key that nothing records (Horacio).
 Over 4.5.4 "Simple release": a release in three human actions (the release pull request by one command, its merge starting the candidate, `npm run release -- 4.5.4`), pull requests that wait less, and the tools of a project made from npm that find its `game/` (Horacio).
 Over 4.5.3 "One pass": the candidate
