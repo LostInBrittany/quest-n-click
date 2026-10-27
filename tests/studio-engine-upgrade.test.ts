@@ -508,6 +508,11 @@ describe("the worker's migrate", () => {
   });
 });
 
+/** Waits until `ok()` holds, however slow the runner: a timer's count is never a matter of elapsed time (#388). */
+const until = async (ok: () => boolean) => {
+  while (!ok()) await new Promise((r) => setTimeout(r, 1));
+};
+
 describe("the owner's exclusive lease around a long operation", () => {
   it("is renewed while it runs, and given back by the last of the same member's operations only", async () => {
     const calls: string[] = [];
@@ -531,8 +536,7 @@ describe("the owner's exclusive lease around a long operation", () => {
     const one = run(() => new Promise<void>((ok) => (end1 = ok)));
     await new Promise((ok) => setTimeout(ok, 5));
     const two = run(() => new Promise<void>((ok) => (end2 = ok)));
-    await new Promise((ok) => setTimeout(ok, 40));
-    expect(calls.filter((c) => c === 'renew').length).toBeGreaterThanOrEqual(2);
+    await until(() => calls.filter((c) => c === 'renew').length >= 2);
     end1();
     await one;
     // The first out does not release the lease the second still runs under.
@@ -643,7 +647,6 @@ describe('the exclusive lease, its edges', () => {
     };
   };
   const owner = () => ({ userId: 'owner', name: 'owner' });
-  const tick = (ms: number) => new Promise((ok) => setTimeout(ok, ms));
 
   it('says a renewal that fails, and goes on; without a log, says nothing', async () => {
     const lines: Record<string, unknown>[] = [];
@@ -654,12 +657,15 @@ describe('the exclusive lease, its edges', () => {
         throw n === 1 ? new Error('the database is away') : 'a string';
       },
     });
-    await exclusiveRunner(f.leases, owner, { everyMs: 5, log: (l) => void lines.push(l) })(() => tick(30));
+    await exclusiveRunner(f.leases, owner, { everyMs: 5, log: (l) => void lines.push(l) })(() =>
+      until(() => lines.length >= 2),
+    );
     expect(lines[0]).toEqual({ event: 'lease-renew-failed', message: 'the database is away' });
     expect(lines[1]).toEqual({ event: 'lease-renew-failed', message: 'a string' });
     expect(f.calls).toEqual(['take', 'release']);
     n = 0;
-    await exclusiveRunner(f.leases, owner, { everyMs: 5 })(() => tick(20));
+    // The renewal fails with no log to say it: the run still ends, and nothing throws.
+    await exclusiveRunner(f.leases, owner, { everyMs: 5 })(() => until(() => n > 0));
     expect(n).toBeGreaterThan(0);
   });
 
