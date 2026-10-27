@@ -107,6 +107,14 @@ describe("the repository's table and its wiring", () => {
     expect(config).toContain("from './tools/unit-shards.ts'");
   });
 
+  // A mutant's run is `--bail 1`: vitest's own order starts with the files that failed the run before, so the file that
+  // killed a mutant judges its neighbour first. The duration sequencer made every set two to five times slower (#387).
+  it("the mutation config keeps vitest's own order, not the duration sequencer", () => {
+    const config = readFileSync('vitest.mutation.config.ts', 'utf8');
+    expect(config).toMatch(/sequence:\s*\{\s*\.\.\.base\.test\?\.sequence,\s*sequencer:\s*BaseSequencer\s*\}/);
+    expect(config).toContain("import { BaseSequencer } from 'vitest/node';");
+  });
+
   it('the recorded table splits the suite into four shards of the same time, files spread', () => {
     const d = readDurations();
     expect(Object.keys(d).length, DURATIONS_FILE).toBeGreaterThan(100);

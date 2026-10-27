@@ -3,7 +3,7 @@
 // tested step that refuses a shard missing, doubled, cancelled, of other inputs or of other files, so a gate never
 // passes on a part of its set. One generated matrix drives ci, candidate, nightly and release.
 import { describe, expect, it } from 'vitest';
-import type { MutationReport } from '../tools/mutate';
+import { cutOf, type MutationReport } from '../tools/mutate';
 import { mergeReports, mutationMatrix, type ShardReport, shardFiles } from '../tools/mutation-shards';
 import { MEASURED } from '../tools/mutation-sets';
 
@@ -158,5 +158,17 @@ describe('the matrix of the workflows', () => {
     const names = mutationMatrix('nightly').include.map((e) => e.name);
     expect(new Set(names).size).toBe(names.length);
     for (const e of mutationMatrix('nightly').include) expect(e.name).toBe(`${e.set}-${e.shard}of${e.shards}`);
+  });
+});
+
+describe('the speedrun set (4.5.6, #387)', () => {
+  // 539 mutants in one job ran past its 120 minutes. A shard holds whole files: verify.ts, two thirds of the set, alone.
+  it('runs in two shards, verify.ts alone in one', () => {
+    expect(
+      mutationMatrix('gated')
+        .include.filter((e) => e.set === 'speedrun')
+        .map((e) => e.name),
+    ).toEqual(['speedrun-1of2', 'speedrun-2of2']);
+    expect(cutOf('speedrun', 2)).toContainEqual(['src/engine/tools/speedrun/verify.ts']);
   });
 });
