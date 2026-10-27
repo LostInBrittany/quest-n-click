@@ -279,7 +279,14 @@ export const MEASURED: MutationSet[] = [];
  * The shards a set's mutation runs in (4.1.20 PR 2a, plan §7.3), one job each, merged into the set's report. A set not
  * named here is one shard. `connectors-edge` ran 2 h 02 in one job; `reality` was the candidate's longest (79 min).
  */
-export const SHARDS: Partial<Record<MutationSet, number>> = { 'connectors-edge': 4, reality: 2, 'reality-store': 2 };
+// `speedrun` (4.5.6, #387): 539 mutants in one job ran past its 120 minutes; verify.ts (398) is a shard alone, the
+// envelope and the recorder (141) the other.
+export const SHARDS: Partial<Record<MutationSet, number>> = {
+  'connectors-edge': 4,
+  reality: 2,
+  'reality-store': 2,
+  speedrun: 2,
+};
 
 /** The sets whose test files run one after the other: their tests share a real Postgres server (4.1.20 PR 2a). */
 export const SERIAL: (MutationSet | 'all')[] = ['reality-store-postgres'];
