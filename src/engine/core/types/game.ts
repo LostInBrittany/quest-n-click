@@ -192,6 +192,12 @@ export interface SkinDef {
    * (`image-rendering: pixelated` on the scene's images) instead of being smoothed. Default off.
    */
   pixelArt?: boolean;
+  /**
+   * The game plays on a phone held upright (4.6.0): on a screen taller than wide, the scene on top at full width and
+   * the verbs, the bag and the tools in a panel below it, instead of the "rotate your phone" overlay. Turning the
+   * phone switches layouts as it plays. Default off: the game asks to be turned to landscape. Presentation only.
+   */
+  portrait?: boolean;
 }
 
 /**

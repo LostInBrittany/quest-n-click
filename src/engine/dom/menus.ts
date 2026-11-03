@@ -376,11 +376,12 @@ export async function showTitle(app: App) {
     const lg = el('img') as HTMLImageElement;
     lg.src = app.bank.img(T.logo);
     lg.alt = app.game.title;
+    // In shares of the 640 x 400 scene (the same place as before in units), so a resize keeps it where it was.
     Object.assign(lg.style, {
       position: 'absolute',
-      left: `${(370 - 215) * app.u}px`,
-      top: `${8 * app.u}px`,
-      width: `${430 * app.u}px`,
+      left: `${((370 - 215) / 640) * 100}%`,
+      top: `${(8 / 400) * 100}%`,
+      width: `${(430 / 640) * 100}%`,
       animation: 'drop .9s ease-out both',
     });
     ov.append(lg);
@@ -394,8 +395,8 @@ export async function showTitle(app: App) {
     display: 'flex',
     justifyContent: 'center',
     gap: '4%',
-    fontSize: `${Math.max(9, Math.round(app.sw * 0.018))}px`,
   });
+  row.className = 'titlerow';
   const nb = el('button', 'bigbtn', '▶ ' + esc(app.game.ui.newGame.toUpperCase()));
   nb.style.color = '#ffd640';
   const cb = el('button', 'bigbtn', esc(app.game.ui.continue.toUpperCase()));
@@ -412,20 +413,30 @@ export async function showTitle(app: App) {
   }
   ov.append(row);
   queueMicrotask(() => nb.focus({ preventScroll: true }));
+  let footer: HTMLElement | null = null;
   if (T?.footer) {
-    const f = el('div', '', esc(T.footer));
-    Object.assign(f.style, {
+    footer = el('div', '', esc(T.footer));
+    Object.assign(footer.style, {
       position: 'absolute',
       bottom: '2.5%',
       left: '0',
       right: '0',
       textAlign: 'center',
-      font: `${Math.max(7, Math.round(app.sw * 0.011))}px var(--font-pixel)`,
+      fontFamily: 'var(--font-pixel)',
       color: '#c8bedc',
       textShadow: '2px 2px 0 #14081e',
     });
-    ov.append(f);
+    ov.append(footer);
   }
+  // The text sizes follow the scene's width, again after a resize or a turn of the phone (layoutTitle). Upright
+  // (`skin.portrait`), the buttons' text is larger: the scene is a phone's width, and they stay touch targets.
+  app.titleFit = () => {
+    row.style.fontSize = app.portrait
+      ? `${Math.max(13, Math.round(app.sw * 0.033))}px`
+      : `${Math.max(9, Math.round(app.sw * 0.018))}px`;
+    if (footer) footer.style.fontSize = `${Math.max(7, Math.round(app.sw * 0.011))}px`;
+  };
+  app.titleFit();
   let musicStarted = false;
   const startMusic = () => {
     if (!musicStarted && T?.music) {
@@ -526,11 +537,17 @@ export async function showTitle(app: App) {
 
 /** The title screen takes up the full width (no side column). */
 export function layoutTitle(app: App, full: boolean) {
+  app.onTitle = full;
+  app.g.classList.toggle('title', full);
   if (!full) {
+    app.titleFit = null;
     app.layout();
     return;
   }
   const r = app.root.getBoundingClientRect();
+  // Upright in a game that plays upright (4.6.0): the same full-width scene, with larger buttons (titleFit).
+  app.portrait = app.game.skin?.portrait === true && !app.desk && r.height > r.width;
+  app.g.classList.toggle('portrait', app.portrait);
   let sw = r.width,
     sh = Math.min(r.height, sw / 1.6);
   sw = Math.round(sh * 1.6);
@@ -539,4 +556,5 @@ export function layoutTitle(app: App, full: boolean) {
   Object.assign(app.scene.style, { width: `${sw}px`, height: `${Math.round(sh)}px` });
   app.u = sw / 640;
   app.sw = sw;
+  app.titleFit?.();
 }

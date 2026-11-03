@@ -9,11 +9,15 @@ autrement ses verbes et ses boutons, et en avoir plus ou moins.
 ## Deux mises en page
 
 - **Sur un téléphone**, le jeu se joue en paysage. Tenu en portrait, le téléphone affiche « Tourne ton téléphone »
-  (les mots du jeu) jusqu’à ce que vous le tourniez. La scène occupe la gauche ; une colonne à droite contient les
+  (les mots du jeu) jusqu’à ce que vous le tourniez, sauf si le jeu se joue aussi debout (ci-dessous). La scène occupe la gauche ; une colonne à droite contient les
   verbes, le sac (votre inventaire) et les outils : un portrait par personnage jouable quand le jeu en a plusieurs (un
   tap passe à ce personnage), la carte, le menu de pause, et un bouton de son qui coupe ou rétablit musique et
   bruitages ensemble. Sur un écran paysage bas (un téléphone sous les barres de son navigateur), la colonne réduit ses
   cases et ses verbes pour tenir, et défile au lieu de couper sous un plancher (4.4.0).
+- **Sur un téléphone tenu droit**, dans un jeu qui le permet (4.6.0) : la scène en haut, aussi large que l’écran ;
+  en dessous, la ligne de phrase, les verbes, le sac et les outils, les outils tout en bas. Les choix de conversation
+  et les lieux de la carte prennent la place des verbes et du sac ; le menu de pause prend tout l’écran. Tourner le
+  téléphone passe d’une mise en page à l’autre en cours de partie.
 - **Sur un ordinateur**, avec une souris et une fenêtre d’au moins 720 × 450 pixels, la mise en page classique : la
   scène en haut, la ligne de phrase, puis les verbes, le sac et les outils sur une rangée en dessous. Survoler une
   chose la nomme dans la ligne de phrase et change le pointeur en main.

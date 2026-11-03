@@ -36,6 +36,7 @@
     "e2e:studio": "node scripts/e2e-studio.mjs",
     "e2e:music": "node scripts/e2e-music.mjs",
     "e2e:taps": "node scripts/e2e-taps.mjs",
+    "e2e:portrait": "node scripts/e2e-portrait.mjs",
     "e2e:reality": "node scripts/e2e-reality.mjs",
     "e2e:speedrun": "node scripts/e2e-speedrun.mjs",
     "e2e:canonical": "node scripts/e2e-canonical.mjs",

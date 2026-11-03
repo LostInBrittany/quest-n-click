@@ -26,6 +26,7 @@ skin: {
   heights: { actor: 110, hero: 84 },                       // default height for a character with no `height`
   callPoses: ['phone', 'telephone', 'front', 'face', 'idle'],   // poses tried for a call's frame
   pixelArt: false,                                         // true: scaled-up images keep hard edges (artStyle "pixel")
+  portrait: false,                                         // true: plays on a phone held upright too (4.6.0)
 },
 ```
 
@@ -80,13 +81,18 @@ The "Readable font" setting is on [Staging](create.staging.md#settings).
 
 <a name="skin-other"></a>
 
-## `skin.heights`, `skin.callPoses`, `skin.pixelArt`
+## `skin.heights`, `skin.callPoses`, `skin.pixelArt`, `skin.portrait`
 
 | Key | What it is | Default |
 |---|---|---|
 | `heights.actor`, `heights.hero` | The height, in logical units, of a character with no `height` of its own. | actor 110, hero 84 |
 | `callPoses` | The poses tried, in order, for the frame of a phone call (`phone`). | `phone`, `front`, `face`, `idle` |
 | `pixelArt` | `true`: images scaled up by the browser keep hard edges (`image-rendering: pixelated` on the scene's images) instead of being smoothed. Set it for a game whose `site.json` says `artStyle: "pixel"`. | `false` |
+| `portrait` | `true`: the game plays on a phone held upright (4.6.0). On a screen taller than wide, the scene goes on top at full width and 16:10, and the verbs, the bag and the tools in a panel below it, instead of the "rotate your phone" overlay (`ui.rotate`, `ui.rotateSub`). Turning the phone switches layouts as the game plays. Presentation only: no rule, save or proof sees it. The validator wants `true` or `false`. | `false` |
+
+Before turning `portrait` on, look at your rooms at a phone's width: the scene is then about 360 to 430 pixels wide, so
+small hotspots and long lines get small too. The player's text size setting helps, and every room still plays in
+landscape.
 
 <a name="ui-defaults"></a>
 

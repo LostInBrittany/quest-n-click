@@ -5,7 +5,9 @@ import type { Id } from '../core/types';
 import { roving } from './a11y';
 import { el, esc, verbLabelHtml } from './app-shared';
 import type { App } from './app';
-import { fitSide } from './side-fit';
+import { layoutTitle } from './menus';
+import { fitPortrait, usePortrait } from './portrait-fit';
+import { fitSide, TOUCH } from './side-fit';
 
 // ================================================================== layout
 export function buildShell(app: App) {
@@ -16,6 +18,7 @@ export function buildShell(app: App) {
     `<div class="ph"></div><div style="font-size:22px;color:#ffd84d">${esc(app.game.ui.rotate)}</div><div style="max-width:260px;color:#a99fbd">${esc(app.game.ui.rotateSub)}</div>`,
   );
   document.body.append(rot);
+  app.rotateEl = rot;
   app.g = el('div', 'game');
   app.scol = el('div', 'scol');
   app.scene = el('div', 'scene');
@@ -144,10 +147,45 @@ export function layout(app: App) {
   const px = (v: string) => Number.parseFloat(v) || 0;
   const W = r.width - px(pad.paddingLeft) - px(pad.paddingRight),
     H = r.height - px(pad.paddingTop) - px(pad.paddingBottom);
+  // A game that plays upright (`skin.portrait`, 4.6.0) never shows the rotate overlay; read here, not when the shell is
+  // built, so a game definition changed in place (the Studio, the e2e) is followed on the next resize.
+  const optIn = app.game.skin?.portrait === true;
+  app.rotateEl?.classList.toggle('upright', optIn);
   app.desk = matchMedia('(pointer: fine)').matches && W >= 720 && H >= 450;
   app.g.classList.toggle('desk', app.desk);
+  // The title screen has its own layout (menus.ts), redone here when the screen turns or the window changes.
+  if (app.onTitle) {
+    layoutTitle(app, true);
+    return;
+  }
+  app.portrait = usePortrait({ optIn, desk: app.desk, width: W, height: H });
+  app.g.classList.toggle('portrait', app.portrait);
   let sw: number, sh: number;
-  if (app.desk) {
+  if (app.portrait) {
+    // Upright (portrait-fit.ts): the scene on top, as wide as the screen; the panel below takes the rest of the
+    // height, the sentence line first, then the verbs, the bag and the tools row, fitted by fitSideColumn.
+    Object.assign(app.side.style, {
+      width: `${W}px`,
+      height: '',
+      fontSize: `${Math.max(12, Math.min(16, Math.round(W / 24)))}px`,
+    });
+    const colW = (W - 16) / 3;
+    app.verbsEl.style.fontSize = `${Math.max(10, Math.min(16, Math.floor(colW / 4.1)))}px`;
+    if (app.sbar.parentElement !== app.side) app.side.prepend(app.sbar);
+    const m = measureSide(app, true);
+    // The panel's top border is not in its client height, which fitSideColumn shares out.
+    const cs = getComputedStyle(app.side);
+    const border = px(cs.borderTopWidth) + px(cs.borderBottomWidth);
+    const panelNeed = border + m.chrome + m.verbRows * TOUCH + m.slotRows * Math.min(TOUCH, m.slotSquare);
+    const fit = fitPortrait({ width: W, height: H, panelNeed });
+    sw = fit.sw;
+    sh = fit.sh;
+    Object.assign(app.g.style, { width: `${W}px`, height: `${H}px` });
+    Object.assign(app.scol.style, { width: `${W}px`, height: `${sh}px` });
+    app.side.style.height = `${fit.panelH}px`;
+    // The safe areas, for the menus that take the whole screen upright (style.css `.game.portrait .dim`).
+    app.g.style.setProperty('--safe', `${pad.paddingTop} ${pad.paddingRight} ${pad.paddingBottom} ${pad.paddingLeft}`);
+  } else if (app.desk) {
     // 16:10 scene on top, panel at the bottom (sentence line + verbs + inventory + menu), like LucasArts games.
     sh = Math.floor(Math.min(W / 1.6, H / 1.34));
     sw = Math.round(sh * 1.6);
@@ -165,6 +203,7 @@ export function layout(app: App) {
     app.invEl.style.removeProperty('--slot-max');
     if (app.sbar.parentElement !== app.side) app.side.prepend(app.sbar);
   } else {
+    if (app.sbar.parentElement !== app.scene) app.scene.append(app.sbar);
     const sideW = Math.max(176, Math.min(300, W - H * 1.6));
     sw = W - sideW;
     sh = Math.min(H, sw / 1.6);
@@ -179,7 +218,6 @@ export function layout(app: App) {
     });
     const colW = (sideW - 16) / 3;
     app.verbsEl.style.fontSize = `${Math.max(10, Math.min(16, Math.floor(colW / 4.1)))}px`;
-    if (app.sbar.parentElement !== app.scene) app.scene.append(app.sbar);
   }
   Object.assign(app.scene.style, {
     width: `${sw}px`,
@@ -203,12 +241,28 @@ export function layout(app: App) {
  */
 export function fitSideColumn(app: App) {
   if (app.desk || app.verbsEl.hidden) return;
-  const side = app.side;
-  const H = side.clientHeight;
+  const H = app.side.clientHeight;
   if (!H) return;
+  const { chrome, verbRows, slotRows, slotSquare } = measureSide(app, false);
+  const fit = fitSide({ height: H, chrome, verbRows, slotRows, slotSquare });
+  for (const b of app.verbsEl.children) (b as HTMLElement).style.height = `${fit.verbH}px`;
+  app.invEl.classList.toggle('fit', fit.slotMax !== null);
+  if (fit.slotMax === null) app.invEl.style.removeProperty('--slot-max');
+  else app.invEl.style.setProperty('--slot-max', `${fit.slotMax}px`);
+}
+
+/**
+ * What the column (or the portrait panel) holds besides its verb rows and slot rows: padding, gaps, the tools row, the
+ * bag's page buttons when they show, the sentence line when it sits in the panel (portrait). `playing`: count the
+ * verbs and the bag even while a conversation or the map hides them (what the panel needs once they come back).
+ */
+function measureSide(app: App, playing: boolean) {
+  const side = app.side;
   const cs = getComputedStyle(side);
   const px = (v: string) => Number.parseFloat(v) || 0;
-  const shown = [app.verbsEl, app.invEl, app.invNav, app.toolsEl].filter((e) => !e.hidden);
+  const always = (e: HTMLElement) => playing && (e === app.verbsEl || e === app.invEl);
+  const lead = app.sbar.parentElement === side && !app.desk ? [app.sbar] : [];
+  const shown = [...lead, app.verbsEl, app.invEl, app.invNav, app.toolsEl].filter((e) => !e.hidden || always(e));
   const box = (e: HTMLElement) => {
     const s = getComputedStyle(e);
     return px(s.paddingTop) + px(s.paddingBottom) + px(s.borderTopWidth) + px(s.borderBottomWidth);
@@ -226,13 +280,12 @@ export function fitSideColumn(app: App) {
   }
   const cols = app.invCols;
   const inv = getComputedStyle(app.invEl);
-  const slotSquare =
-    (app.invEl.clientWidth - px(inv.paddingLeft) - px(inv.paddingRight) - (cols - 1) * px(inv.columnGap)) / cols;
-  const fit = fitSide({ height: H, chrome, verbRows, slotRows, slotSquare });
-  for (const b of app.verbsEl.children) (b as HTMLElement).style.height = `${fit.verbH}px`;
-  app.invEl.classList.toggle('fit', fit.slotMax !== null);
-  if (fit.slotMax === null) app.invEl.style.removeProperty('--slot-max');
-  else app.invEl.style.setProperty('--slot-max', `${fit.slotMax}px`);
+  // While a conversation hides the bag, its width is the panel's (less the panel's padding and the bag's border).
+  const invW = app.invEl.hidden
+    ? side.clientWidth - px(cs.paddingLeft) - px(cs.paddingRight) - px(inv.borderLeftWidth) - px(inv.borderRightWidth)
+    : app.invEl.clientWidth;
+  const slotSquare = (invW - px(inv.paddingLeft) - px(inv.paddingRight) - (cols - 1) * px(inv.columnGap)) / cols;
+  return { chrome, verbRows, slotRows, slotSquare };
 }
 
 /** Keyboard and screen-reader representation of the visible coordinate-based scene hotspots. */

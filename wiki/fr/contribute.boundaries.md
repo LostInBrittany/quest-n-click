@@ -96,6 +96,7 @@ méthodes de renvoi, comme dans le cœur :
 | `dom/frame-renderer.ts` | un peintre (DOM ou Canvas) en `Renderer` : des trames entières, une trame inchangée sautée, une trame changée par ses différences |
 | `dom/shell.ts` | les éléments de l'interface, leur disposition à l'écran, les cibles accessibles (depuis les cibles de la trame) |
 | `dom/side-fit.ts` | l'ajustement de la colonne du téléphone (pur) : hauteurs des verbes et des cases qui gardent la rangée d'outils sur un écran court |
+| `dom/portrait-fit.ts` | l'ajustement de la disposition portrait (pur, `skin.portrait`) : quand elle s'applique, la largeur de la scène et la hauteur du panneau sur un téléphone tenu droit |
 | `dom/input.ts` | les verbes, la barre d'inventaire, les taps et doubles taps (`verbFor`, `nearMiss`), le clavier, la ligne d'action |
 | `dom/speech.ts` | les répliques avec leur voix, la transcription, les appels téléphoniques, le choix des réponses |
 | `dom/map-view.ts` | la carte et l'animation des trajets |

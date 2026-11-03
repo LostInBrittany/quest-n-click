@@ -741,6 +741,15 @@
       }
     },
     {
+      "name": "e2e:portrait",
+      "group": "browser-tests",
+      "usage": "npm run e2e:portrait -- <url> [--browser=chromium|webkit] [--json]",
+      "description": {
+        "en": "The portrait layout of a phone held upright (4.6.0, `skin.portrait`) on the sample game, switched on in the running page: the rotate overlay without the option; with it, at 360 x 640 to 430 x 932, with and without safe areas, the scene at full width and every verb, slot and tool inside the screen at 44 px or more, the title, the intro's speech and choice, the pause menu, the map, a full bag; a turn to landscape and back keeping the room and the bag; landscape and desktop identical with the option on and off. The production build must be served.",
+        "fr": "La disposition portrait d’un téléphone tenu droit (4.6.0, `skin.portrait`) sur le jeu d’exemple, activée dans la page en cours : le message « tournez le téléphone » sans l’option ; avec elle, de 360 x 640 à 430 x 932, avec et sans zones sûres, la scène sur toute la largeur et chaque verbe, case et outil dans l’écran à 44 px ou plus, l’écran titre, la réplique et le choix de l’intro, le menu pause, la carte, un sac plein ; un passage en paysage et retour qui garde le lieu et le sac ; paysage et ordinateur identiques avec et sans l’option. Le build de production doit être servi."
+      }
+    },
+    {
       "name": "e2e:reality",
       "group": "browser-tests",
       "usage": "npm run e2e:reality -- <url> [--browser=chromium|webkit]",

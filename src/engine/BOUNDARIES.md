@@ -62,6 +62,7 @@ methods, as in the core:
 | `dom/frame-renderer.ts` | a painter (DOM or Canvas) as a `Renderer`: whole frames, an unchanged one skipped, a changed one by its differences |
 | `dom/shell.ts` | the shell's elements, their layout for the screen, the accessible targets (from the frame's targets) |
 | `dom/side-fit.ts` | the phone column's fit (pure): verb and slot heights that keep the tools row on a short screen |
+| `dom/portrait-fit.ts` | the portrait layout's fit (pure, `skin.portrait`): when it applies, the scene's width and the panel's height on a phone held upright |
 | `dom/input.ts` | verbs, the inventory bar, taps and double taps (`verbFor`, `nearMiss`), the keyboard, the action line |
 | `dom/speech.ts` | lines with their voice, the transcript, phone calls, the choice of responses |
 | `dom/map-view.ts` | the map and the travel animation |

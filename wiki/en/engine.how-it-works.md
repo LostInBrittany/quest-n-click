@@ -55,14 +55,21 @@ game that embeds the engine calls it too ([Upgrade notes, v3: a game that embeds
   column fits the screen's height inside the safe areas ([`dom/side-fit.ts`](../../src/engine/dom/side-fit.ts)): on a
   short screen the inventory's slots stop being square first, then the verbs come down to 44 px, and the icons always
   stay in sight.
+- **Phone held upright, in a game that asks for it** (`skin.portrait: true`, 4.6.0): the scene on top, full width at
+  16:10; below it a panel with the sentence line, the verbs (3 columns), the inventory over 4 columns and the icons,
+  fitted to its height by the same rules as the column ([`dom/portrait-fit.ts`](../../src/engine/dom/portrait-fit.ts),
+  then `side-fit.ts`). Only a nearly square screen narrows the scene (down to 60% of the width) so the buttons keep
+  44 px. Menus and dialogs take the whole screen, inside the safe areas; the title screen puts its buttons under the
+  picture. A game without the field shows the "rotate your phone" overlay, as before.
 - **Desktop (a mouse, a screen of at least 720 × 450)**: the classic SCUMM layout. The scene takes the top; the
   sentence sits just below it; bottom left, the 9 verbs; on the right, the inventory (4 × 2, arrows on the left); far
   right, the 3 icons in a column. Conversation choices and the place list take the spot of the verbs and the
   inventory.
 
 The choice is made automatically (`App.layout`, [`dom/shell.ts`](../../src/engine/dom/shell.ts)): the desktop layout
-needs a fine pointer (`pointer: fine`) and a content box of at least 720 × 450 once the safe areas are taken out. It is
-made again whenever the window is resized.
+needs a fine pointer (`pointer: fine`) and a content box of at least 720 × 450 once the safe areas are taken out; the
+portrait one a game that asks for it and a content box taller than wide. It is made again whenever the window is
+resized or the phone turns, without touching the game's state.
 
 <a name="scene"></a>
 

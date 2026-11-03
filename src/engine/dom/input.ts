@@ -343,7 +343,14 @@ export function renderInv(app: App) {
     if (locked) b.setAttribute('aria-disabled', 'true');
     else b.removeAttribute('aria-disabled');
   }
+  const navWas = app.invNav.hidden;
   app.invNav.hidden = n <= per && !app.desk;
+  // Upright, the page buttons showing or hiding change what the panel needs: the scene may have to make room
+  // (portrait-fit.ts), so the whole layout runs again, and this with it.
+  if (app.portrait && navWas !== app.invNav.hidden) {
+    app.layout();
+    return;
+  }
   // The page buttons take or give back a row of the column, and the verbs come back here after a talk or the map.
   fitSideColumn(app);
   // The three buttons appended when the side panel was built.
