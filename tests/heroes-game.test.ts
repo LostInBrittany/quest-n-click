@@ -75,7 +75,7 @@ describe('the heroes example (games/heroes)', () => {
     const r = await solve(game, layouts, { mode: 'prove' });
     expect(r.finished).toBe(true);
     expect(r.softlockCount).toBe(0);
-    // A gate only one hero may open: still finished, so the search went down that hero's card.
+    // A gate only one hero may open: still finished, so the search went down that hero's answer.
     const gate = (g: GameDef) => g.rooms[0]!.on!.find((x) => x.id === 'garden.use-key-gate')!;
     for (const { form } of HEROES) {
       const g = structuredClone(game);
@@ -90,7 +90,7 @@ describe('the heroes example (games/heroes)', () => {
 
   for (const lang of ['en', 'fr'] as const)
     for (const h of HEROES)
-      it(`${lang}: ${h.name} is chosen on a card, named, greeted, voiced, and finishes`, async () => {
+      it(`${lang}: ${h.name} is chosen on the hero choice screen, named, greeted, voiced, and finishes`, async () => {
         const { e, ui } = await play(page(lang), h.pick);
         expect(ui.asked[0]!.texts).toEqual(['Pixel', 'Biscuit', 'Gaby']);
         expect(e.state.flags.form).toBe(h.form);

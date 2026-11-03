@@ -1,5 +1,5 @@
 import type { MotionSpec } from './motion';
-import type { GameState, Id, MinigameOutcome, MinigameResult, Point, RoomDef, VerbId } from './types';
+import type { ChoiceScreen, GameState, Id, MinigameOutcome, MinigameResult, Point, RoomDef, VerbId } from './types';
 
 /**
  * What the core asks the display for. The DOM renderer implements it for the browser,
@@ -42,8 +42,15 @@ export interface Presenter {
    * transcript too when it can prove it (4.1.17: `{ result, transcript }`).
    */
   minigame(id: Id, params: Record<string, unknown>): Promise<void | MinigameResult | MinigameOutcome>;
-  /** Choice of responses (dialogue tree or topic menu). Returns the chosen index. `img`: the option shows as a card. */
-  choose(options: { text: string; seen?: boolean; global?: boolean; img?: Id }[], who?: Id): Promise<number>;
+  /**
+   * Choice of responses (dialogue tree or topic menu). Returns the chosen index. `img`: the option shows as a card.
+   * `screen` (4.6.0): the choice full screen over its backdrop, its title already filled (ChoiceScreen).
+   */
+  choose(
+    options: { text: string; seen?: boolean; global?: boolean; img?: Id }[],
+    who?: Id,
+    screen?: ChoiceScreen,
+  ): Promise<number>;
   /** Call: `who` is a caller or a list (shown side by side). ringing=true: rings then Pick up; false: end of call. */
   phone(who: Id | Id[], ringing: boolean): Promise<void>;
   guide(g: { verb: VerbId; target: Id } | null): void;
@@ -175,7 +182,8 @@ export class FakePresenter implements Presenter {
   }
   /** Every choice asked so far: how many options, and whether it was a topic list (the solver enumerates the others). */
   asked: { n: number; topic: boolean; texts: string[] }[] = [];
-  async choose(options: { text: string }[], who?: Id) {
+  /** `screen` (a choice shown full screen) changes nothing here: the same options, the same answer. */
+  async choose(options: { text: string }[], who?: Id, _screen?: ChoiceScreen) {
     this.asked.push({ n: options.length, topic: who !== undefined, texts: options.map((o) => o.text) });
     const i = this.picks.length ? this.picks.shift()! : options.length - 1;
     this.log.push(`choose ${options[i]?.text}`);

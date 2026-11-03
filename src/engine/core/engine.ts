@@ -5,6 +5,7 @@ import type { Presenter, SaveStore } from './ports';
 import type {
   Action,
   CharacterDef,
+  ChoiceScreen,
   ListLine,
   Cmd,
   ExternalEntry,
@@ -214,10 +215,15 @@ export class Engine {
     this.sessions.feedSession(s);
   }
   /** A choice, recorded (and fed back when replaying). */
-  choose(options: { text: string; seen?: boolean; global?: boolean; img?: Id }[], who?: Id): Promise<number> {
+  choose(
+    options: { text: string; seen?: boolean; global?: boolean; img?: Id }[],
+    who?: Id,
+    screen?: ChoiceScreen,
+  ): Promise<number> {
     return this.sessions.choose(
       options.map((o) => ({ ...o, text: this.text(o.text) })),
       who,
+      screen && { ...screen, ...(screen.title !== undefined ? { title: this.text(screen.title) } : {}) },
     );
   }
   /** A text as shown now (4.3.0, core/text-switch.ts): its switches and `{hero}` filled, after `fill()` and translation. */

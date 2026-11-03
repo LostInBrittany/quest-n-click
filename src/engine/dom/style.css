@@ -134,7 +134,23 @@ body { -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
 .mapview .pin .news { position: absolute; right: -35%; top: -30%; width: 60%; animation: bob 1s ease-in-out infinite; }
 .credits { position: absolute; inset: 0; background: #0a0612; z-index: 1200; overflow: hidden; display: flex; justify-content: center; }
 .credits > div { z-index: 1; position: absolute; top: 100%; text-align: center; color: #efe7d6; line-height: 2; animation: roll 22s linear forwards; }
-@media (prefers-reduced-motion: reduce) { .speech.shout, .spark, .tapnext, .verb.blink, .slot.blink, .scene.shake, .hintbadge, .rotate .ph, .mapview .pin .news, .credits > div { animation: none; } .credits > div { top: auto; bottom: 10%; } }
+/* A choice shown full screen (4.6.0, dom/choice-screen.ts): the heroes standing on their backdrop, one tap picks. */
+.choicescreen { background: #07070d; overflow: hidden; }
+.choicescreen .back { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; pointer-events: none; }
+.choicescreen .group { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; padding: 3% 3% 4%; gap: 2%; }
+.choicescreen .title { font-family: var(--font-pixel); color: #fff; text-align: center; text-shadow: 2px 2px 0 #14081e; background: rgba(20, 12, 30, .72); border-radius: 8px; padding: .5em .9em; line-height: 1.4; max-width: 90%; }
+.choicescreen .heroes { flex: 1; min-height: 0; width: 100%; display: flex; justify-content: center; align-items: flex-end; gap: 3%; }
+.choice.hero { display: flex; flex-direction: column; align-items: center; justify-content: flex-end; gap: .4em; min-width: 0; max-width: calc(94% / var(--n, 1)); padding: .3em; text-align: center; color: #fff; animation: rise .5s ease-out both; animation-delay: calc(var(--i, 0) * 90ms); }
+.choice.hero img { display: block; height: var(--h, 45%); max-width: 100%; object-fit: contain; object-position: bottom; pointer-events: none; filter: drop-shadow(0 4px 3px rgba(0, 0, 0, .45)); transition: transform .15s; }
+.choice.hero span { font-family: var(--font-pixel); background: rgba(20, 12, 30, .85); border: 2px solid #6a5a8a; border-radius: 6px; padding: .35em .7em; max-width: 100%; overflow-wrap: anywhere; }
+.choice.hero:hover, .choice.hero:focus-visible { background: none; color: #ffd84d; outline: none; }
+.choice.hero:hover img, .choice.hero:focus-visible img { transform: translateY(-4%); filter: drop-shadow(0 0 6px #ffd84d) drop-shadow(0 4px 3px rgba(0, 0, 0, .45)); }
+.choice.hero:hover span, .choice.hero:focus-visible span { border-color: #ffd84d; }
+.choicescreen .lines { display: flex; flex-wrap: wrap; justify-content: center; gap: .5em; }
+.choicescreen .lines .choice { font-family: var(--font-pixel); background: rgba(20, 12, 30, .85); border: 2px solid #6a5a8a; padding: .4em .8em; }
+.choicescreen.still .choice.hero, .choicescreen.still .choice.hero img { animation: none; transition: none; }
+@keyframes rise { 0% { transform: translateY(12%); opacity: 0; } 100% { transform: translateY(0); opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .speech.shout, .spark, .tapnext, .verb.blink, .slot.blink, .scene.shake, .hintbadge, .rotate .ph, .mapview .pin .news, .credits > div, .choice.hero { animation: none; } .choice.hero img { transition: none; } .credits > div { top: auto; bottom: 10%; } }
 
 /* ---------- Desktop layout (mouse, large screen): classic SCUMM ---------- */
 .game.desk { flex-direction: column; }

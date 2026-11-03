@@ -243,7 +243,8 @@ function logicFields<T extends object>(o: T, table: Readonly<Record<string, Fiel
 }
 
 /**
- * A value of the IR without its choices' card images (`Choice.img`, presentation in core/ir-fields.ts): a portrait
+ * A value of the IR without its choices' card images (`Choice.img`, presentation in core/ir-fields.ts) and screens (4.6.0,
+ * `ChoiceScreen`): a portrait
  * changed on a choice moves no logic. The same value (not a copy) when nothing in it has one.
  */
 function withoutChoiceImages<T>(x: T): T {
@@ -254,7 +255,13 @@ function withoutChoiceImages<T>(x: T): T {
   if (!x || typeof x !== 'object') return x;
   let changed = false;
   const out: Record<string, unknown> = {};
+  // A choice's `screen` (4.6.0, ChoiceScreen) is presentation too: the same choice with or without it is one logic.
+  const isChoice = 'choice' in x && Array.isArray((x as { choice?: unknown }).choice);
   for (const [k, v] of Object.entries(x)) {
+    if (isChoice && k === 'screen') {
+      changed = true;
+      continue;
+    }
     let nv = withoutChoiceImages(v);
     if (k === 'choice' && Array.isArray(nv))
       nv = nv.map((o: unknown) => {

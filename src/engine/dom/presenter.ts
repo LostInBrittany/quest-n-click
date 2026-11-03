@@ -7,6 +7,7 @@ import { derive } from '../core/prng';
 import type { MotionSpec } from '../core/motion';
 import type { Presenter } from '../core/ports';
 import type {
+  ChoiceScreen,
   GameState,
   Id,
   MinigameOutcome,
@@ -18,6 +19,7 @@ import type {
 } from '../core/types';
 import { FONT_PIXEL, FONT_UI } from './fonts';
 import { el, esc, sleep } from './app-shared';
+import { chooseScreen } from './choice-screen';
 import { choose as chooseImpl, phone as phoneImpl, say as sayImpl } from './speech';
 import { openMap as openMapImpl } from './map-view';
 import { applyIntent } from '../scene/intent';
@@ -220,8 +222,12 @@ export class DomPresenter implements Presenter {
 
   // ---------------------------------------------------------------- choices, calls, the map
 
-  choose(options: { text: string; seen?: boolean; global?: boolean; img?: Id }[], who?: Id): Promise<number> {
-    return chooseImpl(this.app, options, who);
+  choose(
+    options: { text: string; seen?: boolean; global?: boolean; img?: Id }[],
+    who?: Id,
+    screen?: ChoiceScreen,
+  ): Promise<number> {
+    return screen ? chooseScreen(this.app, options, screen) : chooseImpl(this.app, options, who);
   }
   phone(whoIn: Id | Id[], ringing: boolean) {
     return phoneImpl(this.app, whoIn, ringing);

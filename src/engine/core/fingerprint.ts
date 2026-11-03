@@ -59,17 +59,29 @@ function choiceImages(x: unknown, out: string[] = []): string[] {
   return out;
 }
 
+/** The screens of every choice shown full screen (4.6.0, `ChoiceScreen`), in content order: decor and title. */
+function choiceScreens(x: unknown, out: unknown[] = []): unknown[] {
+  if (Array.isArray(x)) for (const v of x) choiceScreens(v, out);
+  else if (x && typeof x === 'object') {
+    const o = x as { choice?: unknown; screen?: unknown };
+    if (Array.isArray(o.choice) && o.screen !== undefined) out.push(o.screen);
+    for (const [k, v] of Object.entries(x)) if (k !== 'screen') choiceScreens(v, out);
+  }
+  return out;
+}
+
 /**
  * What the fingerprint's `presentation` hashes: the asset manifest, and every field core/ir-fields.ts classes as
  * presentation (whole) or both (its presentation part: a room's decor, music, stage layers and lights, its props'
  * images and animation frames, its actors' poses; the characters' looks; the items' icons; the verbs' colours and keys;
- * the map's images and pins; the choices' card images when there are some). No condition nor command of the content is
+ * the map's images and pins; the choices' card images and screens when there are some). No condition nor command of the content is
  * in it.
  * @public
  */
 export function presentationOf(game: CompiledGame | GameDef, manifest: unknown = null): unknown {
   const g = game as GameDef;
   const cards = choiceImages([g.rooms, g.rules, g.events, g.scripts, g.start]);
+  const screens = choiceScreens([g.rooms, g.rules, g.events, g.scripts, g.start]);
   return {
     manifest: manifest ?? null,
     game: {
@@ -126,6 +138,8 @@ export function presentationOf(game: CompiledGame | GameDef, manifest: unknown =
         : undefined,
       // Only when a choice has a card image: a game without one keeps the hash it had.
       ...(cards.length ? { choiceImages: cards } : {}),
+      // Only when a choice is shown full screen (4.6.0): the same for a game without one.
+      ...(screens.length ? { choiceScreens: screens } : {}),
     },
   };
 }
