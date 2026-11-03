@@ -414,7 +414,7 @@ const choice: Handler<'choice'> = async (eng, c, ctx) => {
   const pick = await eng.choose(
     opts.map(({ o }) => ({ text: o.text, ...(o.img ? { img: o.img } : {}) })),
     undefined,
-    c.screen,
+    c.screen && { ...c.screen, ...(c.screen.title !== undefined ? { title: eng.text(c.screen.title) } : {}) },
   );
   const { o } = must(opts[Math.max(0, Math.min(pick, opts.length - 1))], 'choice option');
   if (o.once) {

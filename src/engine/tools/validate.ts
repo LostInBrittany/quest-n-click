@@ -21,6 +21,7 @@ import { worldGraph } from './graph';
 import { transitionPeak } from './weight';
 import { puzzleGraph, puzzleIssues } from './puzzle';
 import { routeChecks } from './validate/routes';
+import { choiceScreenChecks } from './validate/choice-screen';
 import type {
   Cmd,
   Cond,
@@ -508,20 +509,7 @@ export function validate(gameIn: GameDef, layouts: Record<string, Layout>, opts:
     if ('choice' in c) {
       if (!c.choice.length) err(where, 'choice with no option');
       seen.choice(c.choice, room?.id);
-      // A choice shown full screen (4.6.0): its backdrop, its title; an option without an image is a plain button there.
-      if (c.screen !== undefined) {
-        const sw = `${where}.screen`;
-        if (!c.screen || typeof c.screen !== 'object' || typeof c.screen.decor !== 'string' || !c.screen.decor)
-          err(sw, 'a choice screen needs a "decor" (the backdrop image)');
-        else img(c.screen.decor, `${sw}.decor`);
-        if (c.screen?.title !== undefined && typeof c.screen.title !== 'string')
-          err(`${sw}.title`, 'the title is a text');
-        else text(c.screen?.title, `${sw}.title`);
-        c.choice.forEach((o, j) => {
-          if (!o.img)
-            warn(`${where}.choice[${j}]`, 'no "img" in a choice screen: it shows as a button under the pictures');
-        });
-      }
+      choiceScreenChecks(c.screen, c.choice, where, { err, warn, img, text }); // 4.6.0
       c.choice.forEach((o, j) => {
         const w = `${where}.choice[${j}]`;
         stable(o.id, w, 'choice');
