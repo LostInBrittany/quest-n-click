@@ -1,0 +1,14 @@
+{
+  "format": "quest-n-click-docs-acks",
+  "version": 1,
+  "pairs": {
+    "create.translations#i18n-images": {
+      "enHash": "9182e4ca3c3c56d0b62569754fdfb1d34e4459868c0071d1aadd16d7103fe7b0",
+      "frHash": "3000ab353e7462c0fc630b5474f79fa627c4f3d1d614c52ebb2b384efd6fd473",
+      "reviewers": [
+        { "name": "claude", "kind": "ai", "relation": "author", "date": "2026-11-04" }
+      ]
+    }
+  },
+  "claims": {}
+}

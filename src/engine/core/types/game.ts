@@ -343,9 +343,15 @@ export interface GameDef {
   actorGap?: number;
   /** Content lint (`npm run lint`): codes to silence, as `code`, `code:<stable id>` or `code:<room>/<path>`. */
   lint?: { ignore?: string[] };
-  /** Translation paths whose text stays the same in every language on purpose (a name, "OK", ▲): every other text
-   *  identical to the source is an untranslated line and fails `npm run i18n -- status`. */
-  i18n?: { same?: string[] };
+  /**
+   * Translations' extras. `same`: translation paths whose text stays the same in every language on purpose (a name,
+   * "OK", ▲): every other text identical to the source is an untranslated line and fails `npm run i18n -- status`.
+   * `images` (4.6.1): images drawn in another image's place in a language, `{ '<image id>': { '<lang>': '<image id>' } }`
+   * (a title logo lettered in each language, a sign): wherever the source id is drawn, the language being played
+   * draws its variant; the game's own language and a language without a variant draw the source. The validator checks
+   * every id; the offline cache keeps every variant. Presentation only: rules, saves and the solver never see it.
+   */
+  i18n?: { same?: string[]; images?: Record<Id, Record<string, Id>> };
   /**
    * Background-preload batch sizes (per step, not totals: `initialImages`, `neighboringRooms`, `audioFiles`), and the
    * weight budgets in KB that `npm run weight` holds the game to: before the first room is playable (`initialKB`), per

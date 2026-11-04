@@ -128,6 +128,30 @@ i18n: { same: ['char:hero/name', 'ui/ok'] },
 `status` liste aussi les clés `ui` que le jeu laisse aux textes anglais par défaut du moteur : le joueur les voit en
 anglais dans toutes les langues.
 
+<a name="i18n-images"></a>
+<!-- applies: 4.6.1.. since 4.6.1 -->
+
+## `i18n.images` : une image par langue
+
+Une image qui porte des mots (un logo de titre lettré sur un ruban, une enseigne) a une variante par langue.
+`i18n.images` dans `game.ts` nomme, pour un id d’image, l’image que chaque langue dessine à sa place :
+
+```ts
+titleScreen: { decor: 'title/back', logo: 'logo/r1c1' },
+i18n: { images: { 'logo/r1c1': { fr: 'logo/fr', es: 'logo/es' } } },
+```
+
+Le contenu garde l’id source partout. Partout où cet id est dessiné (l’écran titre, une salle, un objet, une icône, la
+carte), la langue jouée dessine sa variante ; la langue du jeu, et une langue sans variante, dessinent la source.
+Dessinez les variantes à la même taille et avec les mêmes marges que la source : le placement (`logoWidth`, les boîtes
+d’un layout) reste celui de la source. Changer de langue dans Réglages recharge la page, qui dessine les images de la
+nouvelle langue.
+
+Le validateur vérifie que chaque id existe dans le manifeste, et prévient d’une variante pour la langue du jeu ou pour
+une langue que le jeu ne livre pas (jamais dessinée). Partout où la source est nécessaire, le cache hors ligne garde
+aussi chaque variante, si bien qu’un joueur qui change de langue hors ligne les a encore. Présentation seulement : les
+règles, les sauvegardes et le solveur ne la voient jamais.
+
 <a name="coverage"></a>
 
 ## Où la couverture se voit aussi

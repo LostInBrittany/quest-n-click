@@ -29,11 +29,21 @@ export class AssetBank {
   private v(url: string) {
     return this.version ? `${url}?v=${this.version}` : url;
   }
+  /**
+   * The images drawn in others' place in the language being played (`GameDef.i18n.images`, core/lang-images.ts):
+   * `img` and `size` follow them, `file` does not.
+   */
+  swap: Readonly<Record<string, string>> = {};
+  /** The URL an image is drawn from: its variant in the language being played, else its own file. */
   img(id: string): string {
+    return this.file(this.swap[id] ?? id);
+  }
+  /** The URL of an image's own file, whatever the language (the offline warm-up caches every variant by it). */
+  file(id: string): string {
     return this.v(`${this.base}/img/${id}.webp`);
   }
   size(id: string): [number, number] {
-    return this.manifest.images[id] ?? [100, 100];
+    return this.manifest.images[this.swap[id] ?? id] ?? this.manifest.images[id] ?? [100, 100];
   }
   /** Width for a given height, based on the image's proportions. */
   widthFor(id: string, h: number): number {

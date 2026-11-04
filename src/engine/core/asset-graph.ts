@@ -19,6 +19,7 @@ import { eachCmd } from './cmds';
 import type { Cmd, GameDef, Id, Layout, RoomDef } from './types';
 import { stageImages } from './stage';
 import { voiceBase } from './voice-key';
+import { imageVariants } from './lang-images';
 
 export type AssetKind = 'img' | 'sfx' | 'music' | 'voice' | 'video';
 export interface AssetManifestLike {
@@ -312,7 +313,15 @@ export function assetGraph(
   for (const sc of Object.values(a.scores ?? {})) for (const f of Object.values(sc.stems)) offline.add(`music:${f}`);
   for (const f of Object.values(a.voices ?? {})) offline.add(`voice:${f}`);
   for (const m of Object.values(a.voicesByLang ?? {})) for (const f of Object.values(m)) offline.add(`voice:${f}`);
-  return { title: [...title].sort(), map: [...map].sort(), game: [...g].sort(), rooms, offline: [...offline].sort() };
+  // An image drawn in another's place in a language (`i18n.images`): each scope that needs the source caches every
+  // variant too, so a player who switches language (offline, even) finds them.
+  const variants = (keys: Iterable<string>) => {
+    const out = new Set(keys);
+    for (const k of out) if (k.startsWith('img:')) for (const v of imageVariants(game, k.slice(4))) out.add(`img:${v}`);
+    return [...out].sort();
+  };
+  for (const id of Object.keys(rooms)) rooms[id] = variants(rooms[id] ?? []);
+  return { title: variants(title), map: variants(map), game: variants(g), rooms, offline: variants(offline) };
 }
 
 /** What the first room needs before it is playable, with the title: the `initial` scope of the weight budgets. */

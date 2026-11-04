@@ -56,7 +56,7 @@ export async function warmAround(app: App, roomId: Id, initial = false) {
       const [kind, id] = splitKey(k);
       by[kind].push(
         kind === 'img'
-          ? b.img(id)
+          ? b.file(id)
           : kind === 'sfx'
             ? b.sfx(id)
             : kind === 'voice'
@@ -187,7 +187,7 @@ async function controlled(app: App): Promise<boolean> {
 export function offlineUrl(app: App, kind: string, id: string) {
   const b = app.bank;
   return kind === 'img'
-    ? b.img(id)
+    ? b.file(id)
     : kind === 'sfx'
       ? b.sfx(id)
       : kind === 'voice'
