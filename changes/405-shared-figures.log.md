@@ -27,8 +27,6 @@ that sat beside them in `vite.config.ts`. `tools/coverage-floors.ts` flattens th
 the file at run time, so `inputHash` never sees it, and the module is in `CONFIG_SKIPS` (a mutant run takes no
 coverage). `tools/coverage-ratchet.ts` reads the floors there and names the file. `tools/ci-plan.ts`: a change to the
 floors alone opens the `coverage` gate (it used to be a shared configuration, which ran everything). The file joins
-`CODEOWNERS` beside `vite.config.ts`. Once #400 merged, the global lines measure 78.00 for a floor of 75, which
-`coverage-ratchet --strict` refuses: the floor is 77, the first edit of the file, and `core`'s hash did not move
-(af4de5cb3f178d81 before and after).
+`CODEOWNERS` beside `vite.config.ts`.
 
 → next: E, the zod chunk out of the first visit, after 4.6.0; the 4.6.0 release writes the first `initialJsBytes`.
