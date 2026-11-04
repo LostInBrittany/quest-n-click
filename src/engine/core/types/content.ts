@@ -178,7 +178,8 @@ export type Cmd =
   | { random: Cmd[][] /** Stable persistence id (v3). */; id?: Id /** @deprecated v2 alias. */; key?: string }
   // --- sequences and screens
   | { cutscene: Cmd[] }
-  | { choice: Choice[] }
+  /** `screen` (4.6.0): the choice full screen over its own backdrop, the options with an `img` standing on it (ChoiceScreen). */
+  | { choice: Choice[]; screen?: ChoiceScreen }
   | { minigame: Id; params?: Record<string, unknown>; then?: Cmd[] }
   /** Incoming call. A list = several callers in the same call (shown side by side). */
   | { phone: Who | Who[]; do: Cmd[] }
@@ -192,6 +193,21 @@ export type Cmd =
   | { ending: true; after?: Cmd[] }
   | { reveal: true; after?: Cmd[] }
   | { end: true };
+
+/**
+ * A choice shown full screen (4.6.0, "hero choice screen"): its own backdrop instead of the side column over the
+ * room, a line on top, and each option with an `img` standing on the backdrop, side by side at one height, its `text`
+ * under it; the options without an `img` are buttons under them. One tap picks, and the pick is not said back as a
+ * hero line. Presentation only: the options, what they run and the recorded pick are those of the same choice without
+ * `screen`, so the solver, saves and replays do not see it (the IR leaves it out, like `img`).
+ * @public
+ */
+export interface ChoiceScreen {
+  /** The backdrop (manifest id), drawn over the whole scene, the side column hidden. */
+  decor: Id;
+  /** The line on top (the group's name for a screen reader too); switches and `{hero}` are filled as in a line. */
+  title?: string;
+}
 
 /** One answer the player may pick in a `{ choice }` command: its text, when it is offered, what it runs. @public */
 export interface Choice {

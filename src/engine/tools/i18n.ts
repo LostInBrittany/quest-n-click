@@ -90,6 +90,11 @@ function cmds(list: Cmd[] | undefined, path: string, fn: Fn, minigames: Minigame
       const r = fn(`${p}.guide`, c.guide.say);
       if (r !== undefined) c.guide.say = r;
     } else if ('choice' in c) {
+      // A choice shown full screen (4.6.0) has its title on top: a text like the options'.
+      if (c.screen?.title !== undefined) {
+        const r = fn(`${p}.screen.title`, c.screen.title);
+        if (r !== undefined) c.screen.title = r;
+      }
       c.choice.forEach((o, j) => {
         const r = fn(`${p}${choicePathSeg(j, o)}.text`, o.text);
         if (r !== undefined) o.text = r;

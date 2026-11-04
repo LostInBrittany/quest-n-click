@@ -33,15 +33,16 @@ export const game = defineGame({
   globalTalk: demo.globalTalk,
   start: {
     room: 'garden',
-    // The intro runs before the room's arrival: the hero is chosen before anyone talks. With `img`, each answer is a
-    // card with its portrait.
+    // The intro runs before the room's arrival: the hero is chosen before anyone talks. With `screen` (4.6.0), the
+    // choice is full screen over its own backdrop, each hero standing on it (`img`, a full-body frame), the title on
+    // top; a tap picks. Without `screen`, the options with `img` are portrait cards in the side column.
     intro: [
-      { id: 'game.intro.l-who', say: ['hero', 'Who am I this morning?'] },
       {
         id: 'game.intro.c',
+        screen: { decor: 'decor/backyard', title: 'Who am I this morning?' },
         choice: [
-          { id: 'game.intro.c-pixel', text: 'Pixel', img: 'hero/r1c1', do: [{ set: ['form', 'pixel'] }] },
-          { id: 'game.intro.c-biscuit', text: 'Biscuit', img: 'cat/r1c1', do: [{ set: ['form', 'biscuit'] }] },
+          { id: 'game.intro.c-pixel', text: 'Pixel', img: 'hero/r3c1', do: [{ set: ['form', 'pixel'] }] },
+          { id: 'game.intro.c-biscuit', text: 'Biscuit', img: 'cat/r3c1', do: [{ set: ['form', 'biscuit'] }] },
           { id: 'game.intro.c-gull', text: 'Gaby', img: 'extras/r2c4', do: [{ set: ['form', 'gull'] }] },
         ],
       },
@@ -84,7 +85,7 @@ export const game = defineGame({
       'char:hero/name',
       'char:hero/variants[0].name',
       'char:hero/variants[1].name',
-      ...['pixel', 'biscuit', 'gull'].map((h) => `start/intro[1].choice.game.intro.c-${h}.text`),
+      ...['pixel', 'biscuit', 'gull'].map((h) => `start/intro[0].choice.game.intro.c-${h}.text`),
     ],
   },
   ui: demo.ui,

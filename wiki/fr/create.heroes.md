@@ -10,13 +10,14 @@ deux et dit quand choisir l’un ou l’autre.
 
 ## Ce que vous allez construire
 
-Un jeu dont l’écran de Nouvelle partie demande « Qui suis-je ce matin ? » et montre une carte à portrait par héros.
+Un jeu dont l’écran de Nouvelle partie demande « Qui suis-je ce matin ? » et montre les héros debout côte à côte dans
+une scène à eux, en plein écran : le joueur en touche un.
 Une fois le héros choisi, le personnage à l’écran a son allure et son nom, les répliques des autres emploient ce nom
 (`{hero}`) et les mots qui lui conviennent (`{form?…}`), dans chaque langue, avec des voix enregistrées par héros. Une
 sauvegarde garde le héros.
 
 L’exemple terminé est dans le dépôt du moteur : `games/heroes`, « Qui suis-je aujourd’hui ? » (4.4.0). Un jardin, une
-énigme (la clé du portail sous l’arrosoir), trois héros sur des cartes à portrait (Pixel, Biscuit, Gaby la mouette),
+énigme (la clé du portail sous l’arrosoir), trois héros debout sur l’écran de choix du héros (Pixel, Biscuit, Gaby la mouette, 4.6.0),
 `{hero}` et des aiguillages dans les répliques de Grand-mère, une table française qui ajoute ses propres accords
 (`Prêt{form?gull=e|*=}`), les répliques de Grand-mère doublées par héros dans les deux langues, une règle que seule la
 mouette reçoit, et une sauvegarde qui garde le héros.
@@ -41,8 +42,8 @@ mouette reçoit, et une sauvegarde qui garde le héros.
    GAME=heroes npm run dev
    ```
 
-   Ouvrez l’URL affichée, appuyez sur Nouvelle partie : trois cartes, « Pixel », « Biscuit » et « Gaby ». Choisissez-en
-   une ; Grand-mère salue ce héros par son nom.
+   Ouvrez l’URL affichée, appuyez sur Nouvelle partie : le jardin, en plein écran, avec « Pixel », « Biscuit » et
+   « Gaby » debout dedans. Touchez-en un ; Grand-mère salue ce héros par son nom.
 
 <!-- step: flag-and-variants -->
 2. **Un personnage, une variante par héros.** Choisissez un nom de drapeau pour le héros (`form` ici ; n’importe quel
@@ -52,8 +53,9 @@ mouette reçoit, et une sauvegarde qui garde le héros.
 
 <!-- step: intro-choice -->
 3. **L’intro pose le drapeau.** Dans `start.intro`, un `choice` avec une option par héros, chacune avec `img` (son
-   portrait) et `{ set: ['form', '<valeur>'] }`. L’intro se joue avant l’arrivée dans le premier lieu : le héros est
-   choisi avant que quiconque parle. Rechargez : l’écran de Nouvelle partie montre les cartes.
+   image) et `{ set: ['form', '<valeur>'] }`, et `screen: { decor, title }` pour l’afficher en plein écran (4.6.0,
+   [l’écran de choix du héros](#hero-choice-screen)). L’intro se joue avant l’arrivée dans le premier lieu : le héros
+   est choisi avant que quiconque parle. Rechargez : l’écran de Nouvelle partie montre les héros.
 
 <!-- step: switches -->
 4. **Les mots des autres suivent le héros.** Dans les répliques, `{hero}` est le nom du héros, et
@@ -154,7 +156,8 @@ look: { grandma: 'Grand-mère. La poussière {form?knight=le|witch=la|robot=le} 
 - **L’intro se joue avant l’arrivée dans le premier lieu** : le héros est choisi avant que quiconque parle. Avec `img`,
   chaque option est une carte : le portrait, avec son `text` pour étiquette (et pour nom lu par le lecteur d’écran) ;
   les cartes passent à la ligne et défilent, si bien que tous les héros tiennent sur un téléphone. Sans `img`, les
-  options restent des lignes de texte.
+  options restent des lignes de texte. Avec `screen` (4.6.0), le choix occupe tout l’écran à la place :
+  [l’écran de choix du héros](#hero-choice-screen).
 - **La logique reste de la logique** : une règle qui doit changer selon le héros porte
   `if: { flag: 'form', eq: 'witch' }`. Le solveur explore chaque réponse du choix d’intro, mais `npm run solve`
   s’arrête au premier chemin gagnant ; `npm run solve -- --prove` vérifie chaque héros. Les sauvegardes gardent le
@@ -165,6 +168,42 @@ look: { grandma: 'Grand-mère. La poussière {form?knight=le|witch=la|robot=le} 
 > dans un nouveau moteur montre le même héros, avec son nom. Limite : le test charge une sauvegarde de la fixture des
 > héros (`tests/fixtures/heroes.ts`) dans la même version du moteur ; ce que devient une sauvegarde après une mise à
 > jour du moteur est dans [État et sauvegardes](create.state-saves.md).
+
+<a name="hero-choice-screen"></a>
+<!-- applies: .. since 4.6.0 -->
+
+### L’écran de choix du héros
+
+Le même `choice`, affiché en plein écran sur une scène faite pour lui : les héros debout côte à côte sur le décor, une
+ligne en haut, une touche choisit. Aucun lieu, acteur ni coordonnée à écrire.
+
+```ts
+start: { room: 'hall', intro: [
+  { id: 'intro.who', screen: { decor: 'decor/stage', title: 'Qui suis-je ce matin ?' }, choice: [
+    { id: 'intro.who.knight', text: 'Sir Lance', img: 'knight/r3c1', do: [{ set: ['form', 'knight'] }] },
+    { id: 'intro.who.witch', text: 'Morwen', img: 'witch/r3c1', do: [{ set: ['form', 'witch'] }] },
+    { id: 'intro.who.robot', text: 'Robo', img: 'robot/r3c1', do: [{ set: ['form', 'robot'] }] },
+  ] },
+] },
+```
+
+- **`screen.decor`** est le décor, dessiné sur toute la scène ; la colonne de côté (verbes, sac, boutons) est cachée
+  tant que l’écran s’affiche, comme sur l’écran titre. **`screen.title`** est la ligne du haut (facultative) : un texte
+  comme une réplique, donc les aiguillages, `{hero}` et les traductions s’y appliquent (`start/intro[0].screen.title`
+  dans une table).
+- **Chaque option avec `img`** se tient debout sur le décor, côte à côte, à environ la moitié de la hauteur de l’écran,
+  avec son `text` dessous : donnez-lui une image en pied (la pose de face d’une planche), pas un portrait. Les options
+  sans `img` sont des boutons sous les héros. L’écran choisit les tailles : rien à placer dans l’éditeur.
+- **Une touche choisit**, et le héros ne répète pas l’option choisie (sans `screen`, il la dit). Puis le lieu
+  s’affiche, le héros avec l’allure choisie ; une entrée en marchant est l’arrivée du premier lieu (`onEnter`), comme
+  d’habitude.
+- **Présentation seulement** : les options, leurs `if`, `once` et `do` et la réponse enregistrée sont celles du même
+  choix sans `screen`. Le solveur et `--prove` explorent chaque réponse comme pour tout choix d’intro ; les sauvegardes
+  et les rejeux ne le voient pas ; l’IR le laisse de côté, donc l’empreinte logique ne bouge pas.
+- **Pour tous** : un groupe nommé par le titre, un bouton par héros nommé par son texte, le premier qui a le focus, les
+  flèches passent de l’un à l’autre ; les héros montent en place, et restent immobiles avec le mouvement réduit. Sur un
+  téléphone en paysage comme sur un ordinateur, l’écran prend toute la largeur de la scène.
+- Sans `screen`, un choix reste ce qu’il était : la colonne de côté, les cartes pour les options avec `img`.
 
 <a name="hero-choice-translations"></a>
 
@@ -216,7 +255,9 @@ Plus : [Voix](create.voices.md).
   `… lists value "x" for "form", which no set writes` ;
   `… has no text for "form" = "robot" (written at …): list it or add "*="` ; `{hero} in a text shown as written` ;
   `start.intro[1].choice[0].img › image not found: "…"`. Un drapeau compté avec `inc` ne se liste pas : son
-  aiguillage demande `*=` (un avertissement).
+  aiguillage demande `*=` (un avertissement). Avec un écran (4.6.0) : `start.intro[0].screen.decor › image not found: "…"`,
+  `… › a choice screen needs a "decor" (the backdrop image)`, et l’avertissement
+  `start.intro[0].choice[3] › no "img" in a choice screen: it shows as a button under the pictures`.
 - `npm run validate` avertit aussi : `voiced line with text switches lacks 1 of 3 clip(s) by value: sneeze~form=robot`.
 - `npm run lint` : `hero-looks-default` (info) quand deux valeurs ou plus du drapeau du héros ne correspondent à
   aucune variante, si bien que ces héros ont l’air de celui écrit (une faute de frappe dans le `if` d’une variante, ou

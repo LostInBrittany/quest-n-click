@@ -5281,6 +5281,7 @@
         "CODE_WHEEL_VERSION",
         "CharacterDef",
         "Choice",
+        "ChoiceScreen",
         "Cmd",
         "CmdScriptDef",
         "CodeWheel",

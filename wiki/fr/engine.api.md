@@ -203,6 +203,7 @@ stabilité. `npx tsx tools/api-doc.ts` (`--check` pour seulement vérifier) la r
 | `CharacterDef` | `interface { name, description, color, height, sprites, portrait, … 11 more }` | public | A character: its name, dialogue colour, poses, mouths and portrait, its kinds, and the variants its state selects. |
 | `checkWheel` | `(w: CodeWheel): string[]` | public | The wheel's solution, checked the way a player reads it (turn, then read): a solution exists, it is unique (one rotation aligns the pair), a |
 | `Choice` | `interface { id, text, if, once, img, do }` | public | One answer the player may pick in a `{ choice }` command: its text, when it is offered, what it runs. |
+| `ChoiceScreen` | `interface { decor, title }` | public | A choice shown full screen (4.6.0, "hero choice screen"): its own backdrop instead of the side column over the room, a line on top, and each |
 | `Cmd` | `type Cmd = union of 58` | public | A command. A plain string = the hero says this line. Command lists run in order, each one waiting for the previous one to finish. |
 | `CmdScriptDef` | `interface { id, while, loop, do, stepIds, route, … 1 more }` | public | A script of commands (`do`), the only kind before 4.6.0. |
 | `CODE_WHEEL_VERSION` | `number` | public | The wheel's layout version: a stored record of another version is replayed as it is, never regenerated. |

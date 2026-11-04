@@ -213,12 +213,10 @@ export class Engine {
   feedSession(s: Session) {
     this.sessions.feedSession(s);
   }
-  /** A choice, recorded (and fed back when replaying). */
-  choose(options: { text: string; seen?: boolean; global?: boolean; img?: Id }[], who?: Id): Promise<number> {
-    return this.sessions.choose(
-      options.map((o) => ({ ...o, text: this.text(o.text) })),
-      who,
-    );
+  /** A choice, recorded (and fed back when replaying); a choice screen (4.6.0) comes with its title already filled. */
+  choose(...[options, who, screen]: Parameters<SessionLog['choose']>): Promise<number> {
+    const shown = options.map((o) => ({ ...o, text: this.text(o.text) }));
+    return this.sessions.choose(shown, who, screen);
   }
   /** A text as shown now (4.3.0, core/text-switch.ts): its switches and `{hero}` filled, after `fill()` and translation. */
   text(s: string): string {
