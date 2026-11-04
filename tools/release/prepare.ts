@@ -624,6 +624,17 @@ export function changelogBullets(changelog: string, version: string) {
   return bullets.map((b) => b.join('\n').trimEnd());
 }
 
+/**
+ * What prepare says last (#410): the release command runs on main, pulled from the organisation's remote after the
+ * merge; prepare stays on its branch, where the pull request's review fixes are committed.
+ */
+export const nextSteps = (version: string, remote: string | undefined) =>
+  [
+    'Next: merge the pull request, then, on this machine:',
+    `  git switch main && git pull --ff-only ${remote ?? "<the organisation's remote>"} main`,
+    `  npm run release -- ${version}`,
+  ].join('\n');
+
 /** What to do when a step failed: finish by hand after the commit, else undo the branch (nothing was pushed). */
 export function wayBack(step: string, version: string, branch: string, target?: { remote: string; head: string }) {
   if (step === 'pull request')
@@ -856,6 +867,7 @@ function prepare(version: string, opts: { name: string; date: string; pr: boolea
   }
   if (opts.dryRun) process.exit(refusals.length ? 1 : 0);
   say(`✔  ${branch} prepared: npm run release -- check ${version} says what is left`);
+  if (opts.pr) say(nextSteps(version, remote));
 }
 
 async function check(version: string) {

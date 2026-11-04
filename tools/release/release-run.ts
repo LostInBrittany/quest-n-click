@@ -111,15 +111,22 @@ export function releaseRefusals(o: {
   npmVersion: string;
   /** The signing key is named in .github/allowed_signers (the tag's signature is judged against it). */
   signer: boolean;
+  /** The organisation's remote here (`upstream` when `origin` is a fork), named in the git commands said. */
+  remote?: string | undefined;
 }): string[] {
   const out: string[] = [];
   if (o.current !== o.version)
     out.push(
       `package.json is at ${o.current}, not ${o.version}: merge the release pull request (npm run release -- prepare ${o.version}) first`,
     );
-  if (o.branch !== 'main') out.push(`the checkout is on ${o.branch}: a release is made on main (git switch main)`);
+  // prepare leaves the checkout on release/<v> (#410): the switch and the pull in one line, the remote named.
+  const pull = `git pull --ff-only ${o.remote ?? "<the organisation's remote>"} main`;
+  if (o.branch !== 'main')
+    out.push(
+      `the checkout is on ${o.branch}: a release is made on main, up to date with the organisation's: git switch main && ${pull}`,
+    );
   if (o.dirty) out.push('the checkout has uncommitted changes: commit or set them aside first');
-  if (!o.upToDate) out.push("main is not the organisation's: git pull first");
+  if (!o.upToDate && o.branch === 'main') out.push(`main is not the organisation's: ${pull}`);
   if (!o.section) out.push(`CHANGELOG.md has no "## ${o.version}" section: the release pull request writes it`);
   if (!o.signing)
     out.push(
@@ -695,6 +702,7 @@ export async function runRelease(
     owners: OWNERS,
     npmVersion: quiet('npm', ['--version']).out || '0.0.0',
     signer: namedSigner(opts.key),
+    remote,
   });
   const found = remote && fetched ? findReleaseCommit(remote, version) : undefined;
   if (!refusals.length && !found)

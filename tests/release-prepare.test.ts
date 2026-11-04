@@ -28,6 +28,7 @@ import {
   wayBack,
   currentReleaseLine,
   logReleaseEntry,
+  nextSteps,
   nextVersionProblem,
   passesSheet,
   passesSheetProblem,
@@ -741,5 +742,14 @@ describe('the gaps the 4.5.4 release found in prepare (#348)', () => {
         passes: 'docs/dev/passes/4.5.4.md has no <!-- field:begin --> marker',
       }),
     ).toEqual([expect.stringMatching(/cannot hold/), expect.stringMatching(/field:begin/)]);
+  });
+});
+
+describe('what prepare says last (#410)', () => {
+  it('the next two commands: merge, then main pulled from the organisation and the release command', () => {
+    const lines = nextSteps('4.6.1', 'upstream');
+    expect(lines).toContain('git switch main && git pull --ff-only upstream main');
+    expect(lines).toContain('npm run release -- 4.6.1');
+    expect(lines.indexOf('merge')).toBeLessThan(lines.indexOf('git switch main'));
   });
 });

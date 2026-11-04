@@ -527,3 +527,38 @@ describe('the way on from a red candidate (#410)', () => {
     expect(stop.do === 'stop' && stop.error).toMatch(/--commit=<[^>]+> --start-candidate/);
   });
 });
+
+describe('the checkout left on the release branch (#410)', () => {
+  const ok = {
+    version: '4.6.0',
+    current: '4.6.0',
+    branch: 'main',
+    dirty: false,
+    upToDate: true,
+    section: true,
+    signing: true,
+    gh: true,
+    npm: 'lostinbrittany',
+    owners: ['lostinbrittany'],
+    npmVersion: '11.19.1',
+    signer: true,
+    remote: 'upstream',
+  };
+  it("gives the two git commands, the organisation's remote named, in one line", () => {
+    // After prepare the checkout is on release/<v>, behind the organisation's main: one refusal, not two.
+    expect(releaseRefusals({ ...ok, branch: 'release/4.6.0', upToDate: false })).toEqual([
+      "the checkout is on release/4.6.0: a release is made on main, up to date with the organisation's: git switch main && git pull --ff-only upstream main",
+    ]);
+  });
+  it("says the pull with its remote when main is behind the organisation's", () => {
+    expect(releaseRefusals({ ...ok, upToDate: false })).toEqual([
+      "main is not the organisation's: git pull --ff-only upstream main",
+    ]);
+  });
+  it('names a placeholder when no remote is the organisation’s (its own refusal says how to add one)', () => {
+    const { remote: _r, ...none } = ok;
+    expect(releaseRefusals({ ...none, branch: 'release/4.6.0' })[0]).toMatch(
+      /git switch main && git pull --ff-only <the organisation's remote> main$/,
+    );
+  });
+});
