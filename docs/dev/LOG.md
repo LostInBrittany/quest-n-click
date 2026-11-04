@@ -9153,15 +9153,41 @@ run`, Chromium 1/1, and both with the 1.5 s delay that broke the old script; the
 → next: `dismissTranscript` (`scripts/e2e/lib.mjs`) could tap with a short timeout: every conversation costs a Chromium
 e2e 30 s today.
 
-## #360 · 2026-11-04 · Claude · release · 4.6.0 "Routes": TODO(release)
+## #360 · 2026-11-04 · Claude · release · 4.6.0 "Routes": a character's rounds through rooms on the world's clock
 
-- **The request**: TODO(release)
-- **What ships**: TODO(release)
-- **Fragments**: TODO(release)
-- **Upgrade notes**: TODO(release)
-- **Reviews**: TODO(release)
-- **Fixtures**: TODO(release)
-- **Passes**: TODO(release)
-- **Signature**: TODO(release)
+- **The request**: on 29 October, right after 4.5.6, Horacio asked for 4.6.0 with the routes plan (« la version 4.5.6
+  est release, j'aimerais apporter la 4.6.0 avec ce plan ») and approved it the same day (D58,
+  `docs/dev/PLAN-4.6-ROUTES.md`, ADR 0031). Then, for games of the label: a phone held upright (#397) and a hero
+  choice screen at New Game (#398), which found a reload during the intro that skipped it (#401). The routes left main
+  red (#403), two pull requests spent their CI on figures every pull request shares (#405), and the routes e2e failed
+  one WebKit run in five; each was fixed before this release.
+- **What ships**: the routes, #394 (D58, ADR 0031: `RouteScriptDef`, `Layout.points`, `suspendScript` and
+  `resumeScript`, the world's clock, saves and sessions that keep it, `validate`, the lint and the solver,
+  `games/routes`, the path finder in the core; and the 131 mutation exemptions read again, LOG #352–#353); for
+  authors and players, #399 (#397, the portrait layout, `skin.portrait`), #400 (#398, the hero choice screen,
+  `{ choice, screen }`), #402 (#401, the autosave once the New Game intro has ended); CI and the release, #393 (#392,
+  each heavy attempt of the candidate in three shards), #404 (#403, main green after the routes), #407 (#405, the
+  baseline's two writes, the first visit in bytes, the coverage floors as data), #408 (the routes e2e meets Lou at
+  his desk).
+- **Fragments**: assembled by `npm run release -- prepare 4.6.0`, on `main at `c934817b``.
+- **Upgrade notes**: "From 4.5.6 to 4.6.0" in `install.upgrade-notes-4-6`, both languages, the page #394 made and #399
+  extended: the lead names the one case a game must act on (a first visit within half a kilobyte over its
+  `initialJsKB`); the section adds the hero choice screen, the autosave after an intro, the budget in bytes, the two
+  fixes, and for maintainers and contributors the baseline's two writes, the floors' file and the heavy shards. The
+  section `prepare` appended under the same anchor was folded into the page's own.
+- **Reviews**: the pairs this release changes keep an AI author's record (D56): the upgrade notes' lead and section,
+  `play.saves#autosave`, `engine.api#content-reference` and `reference.environment-variables#vitest-shard`. Eight
+  claims of `create.routes` were checked again by their AI author, their test file (`tests/route-runtime.test.ts`)
+  having gained #404's two tests. Eleven claims read by a person (LostInBrittany): the nine of `create.routes`,
+  `closed-link-stops-walk` (`create.geometry`) and `apply-replays-demo` (`studio.demo-mode`).
+- **Fixtures**: golden save demo-4.6.0, reference run, quality baseline, written by `prepare`; the baseline by the
+  release's own write for the first time (`npx vite build`, then `quality:baseline -- --release --dist`, #407), so
+  the test counts and the first visit, with its first `initialJsBytes`, are measured by the release.
+- **Passes**: sheet 4.6.0, the twenty-two of 4.5.6, none new. The three the routes plan names (Safari on iOS, a PWA in
+  the background, route points in the Studio) are not passes yet.
+- **Signature**: the tag is signed with LostInBrittany's SSH key (`npm run release -- 4.6.0`).
 
-→ next: TODO(release)
+→ next: the routes' three field passes made passes (ids, issues, `passIssues`); the 41 survivors of the `routes`
+mutation set to read; the portrait layout in WebKit and on real phones (#397); E of #405, zod out of the first visit;
+`dismissTranscript`'s 30 s wait in the e2e harness; the revision dialog's Restart, which keeps the store during an
+intro (#401).

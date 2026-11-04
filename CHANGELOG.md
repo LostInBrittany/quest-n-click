@@ -2,7 +2,17 @@
 
 ## 4.6.0 — 2026-11-04
 
-LOG #351–#360: "Routes", a minor release after 4.5.6. TODO(release): what it changes, for whom, and what a game has to do (Upgrade notes).
+LOG #351–#360: "Routes", a minor release after 4.5.6. Any character can now walk its rounds through rooms on the
+world's clock, seen or not: a game script with `route` walks it to points of the layouts, waits, and takes it through
+exits; the player can cross it, follow it, talk to it (a tap holds it) or use its absence, and `suspendScript` and
+`resumeScript` let the story change its routine. Saves and replays keep the world; `validate`, the lint and the solver
+know routes; the example is `games/routes` ("Lou's Rounds"), played in Chromium and WebKit by its own CI job. A game
+can also play on a phone held upright (`skin.portrait`) and show its hero choice full screen (`{ choice, screen }`),
+and a game with a New Game intro autosaves once the intro has ended. Pull requests no longer rewrite the figures every
+other pull request rewrites: the release writes the test counts and the first visit, now gated in bytes. Nothing to
+change in a game (Upgrade notes), unless its first visit sat within half a kilobyte over its `initialJsKB`, which
+passed on 4.5.6 and fails now; a game that declares no route has no world clock, and its fingerprint, saves and
+sessions are those of 4.5.6.
 
 ### Fixed
 
