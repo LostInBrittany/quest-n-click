@@ -233,6 +233,8 @@ export const TESTS: Record<MutationSet, string[]> = {
     'tests/route-solve.test.ts',
     'tests/routes-game.test.ts',
     'tests/route-runtime-mutants.test.ts',
+    // #413: world.ts's guards, in a file that never imports the routes' engine statically.
+    'tests/world-mutants.test.ts',
   ],
   'studio-workshop': [
     'tests/studio-undo.test.ts',
@@ -280,6 +282,9 @@ export const GATED: MutationSet[] = [
   // 4.3.1: gated from the start, its survivors read before it joined (186 of 193 killed, 7 named in
   // docs/dev/mutants.json, each read again in a second context, which found one a bug: a `*=`-only line's sheet text).
   'voices',
+  // 4.6.1 (#413): its 53 survivors read (49 killed by tests/route-runtime-mutants and tests/world-mutants, which loads
+  // the engine without the routes' engine; 4 named in docs/dev/mutants.json).
+  'routes',
 ];
 /** Measured on demand (`gh workflow run mutation -f set=…`) and every night, gating nothing until their survivors are read. */
 // Empty in 4.1.20 (plan §7.5): every set was gated; a set added later is measured here until its survivors are read.
@@ -287,7 +292,8 @@ export const GATED: MutationSet[] = [
 // (PR 10) read its survivors.
 // 4.6.0: `routes` (the world's clock), 223 of its 264 mutants killed (tests/route-runtime-mutants.test.ts) before the
 // facade moved into world.ts; measured until its survivors are read, most of them guards for what validate refuses.
-export const MEASURED: MutationSet[] = ['routes'];
+// Empty again since 4.6.1 (#413): `routes` is gated.
+export const MEASURED: MutationSet[] = [];
 
 /**
  * The shards a set's mutation runs in (4.1.20 PR 2a, plan §7.3), one job each, merged into the set's report. A set not

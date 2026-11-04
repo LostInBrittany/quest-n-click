@@ -33,7 +33,7 @@ score est assez bon ».
 ## Contexte et versions
 
 Le dépôt du moteur. L'outil depuis la 4.1.0, les ensembles et la barrière par identité depuis la 4.1.2, le découpage en
-morceaux et les conditions d'exemption depuis la 4.1.20 ; treize ensembles barrières en 4.4.0.
+morceaux et les conditions d'exemption depuis la 4.1.20 ; quatorze ensembles barrières en 4.6.1.
 
 | Ensemble | Mute | Barrière depuis |
 |---|---|---|
@@ -50,9 +50,10 @@ morceaux et les conditions d'exemption depuis la 4.1.20 ; treize ensembles barri
 | `studio-auth` | la barrière du Studio Server, le fournisseur OpenID, les routes et le stockage d'authentification, les baux des pans, l'origine du jeu | 4.2.1 |
 | `studio-workshop` | l'annulation personnelle, la santé par révision, les aperçus, les builds, les assets préparés, la sauvegarde, le journal expédié et la collecte | 4.2.3 |
 | `voices` | les voix par valeur : les clés des clips d'une réplique, la table d'enregistrement et son CSV, la vérification du validateur ; les phrases du solveur | 4.3.1 |
+| `routes` | l'horloge du monde et ses routes : `src/engine/core/{world,route-runtime}.ts` | 4.6.1 |
 
 Les ensembles et les fichiers de test qui jugent chacun sont dans [`tools/mutation-sets.ts`](../../tools/mutation-sets.ts)
-(`SETS`, `TESTS`, `GATED`) ; `MEASURED` (les ensembles qui rapportent sans barrière) est vide depuis la 4.2.1. Où
+(`SETS`, `TESTS`, `GATED`) ; `MEASURED` (les ensembles qui rapportent sans barrière) est vide depuis la 4.2.1, sauf pour `routes` en 4.6.0. Où
 chacun tourne, c'est [Quels tests tournent quand](contribute.which-tests.md#suites) : une pull request étiquetée
 `full-ci`, chaque nuit (de zéro), le candidat et la release.
 
