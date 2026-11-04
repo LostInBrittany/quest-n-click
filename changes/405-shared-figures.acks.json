@@ -1,0 +1,168 @@
+{
+  "format": "quest-n-click-docs-acks",
+  "version": 1,
+  "pairs": {
+    "contribute.before-a-pr#files-changed": {
+      "enHash": "1df9ce6de2076b5efcafa6aa2f8c56ad1bc59e821ac63fd2e45bd84891cc4aa1",
+      "frHash": "5c0ace00f983c74e7e0748bb9ce8a199896a8adf1eacab8aa40ed3eaf7f3c171",
+      "reviewers": [
+        { "name": "claude-opus-5-5", "kind": "ai", "relation": "author", "date": "2026-11-04" }
+      ]
+    },
+    "contribute.before-a-pr#steps": {
+      "enHash": "f590e2663acd39c8e01becf2d8c50adc91c8f1da085d0d14424c2e134a34b53d",
+      "frHash": "d6c2148bd5fa3c888d0a1d36ed8585cdd739990de4ebde29a353fbc46917cae4",
+      "reviewers": [
+        { "name": "claude-opus-5-5", "kind": "ai", "relation": "author", "date": "2026-11-04" }
+      ]
+    },
+    "contribute.ci#job-failed": {
+      "enHash": "d4941cd146b44b71362aa3d3d41af833313f2a6469af40cca233a51cf39400be",
+      "frHash": "2f4abd9a8f19184d84700f67b3664af6183e955b07ad54e4aa48e2fedd4f55cd",
+      "reviewers": [
+        { "name": "claude-opus-5-5", "kind": "ai", "relation": "author", "date": "2026-11-04" }
+      ]
+    },
+    "contribute.ci#tiers": {
+      "enHash": "4f02fa7e7ad0d0dfa1d41fbbca8c9fd63dd1fca0525b2f957243eba98a250157",
+      "frHash": "0e464b9acfbd05961bc7cdd70ef32429bb3649d16afa8ead58b0b167c67d4b7a",
+      "reviewers": [
+        { "name": "claude-opus-5-5", "kind": "ai", "relation": "author", "date": "2026-11-04" }
+      ]
+    },
+    "contribute.conventions#review-owners": {
+      "enHash": "b0dbecf803795970ff94bd33acfbc62b0be6ef17d029f9db2c16c63bc32e75fb",
+      "frHash": "f17ca9e87db108920e718160afca4ee903a120cda5b2d351ab2d5e9f1e95b976",
+      "reviewers": [
+        { "name": "claude-opus-5-5", "kind": "ai", "relation": "author", "date": "2026-11-04" }
+      ]
+    },
+    "contribute.coverage-ratchet#_lead": {
+      "enHash": "498199aac9ca5d202c0cec1966035c6fa746f1096130adfc8826f32116210e69",
+      "frHash": "66390b1a2b25a277d7b4f6330536c773bd127903622e3ce4fc98b05360d474b2",
+      "reviewers": [
+        { "name": "claude-opus-5-5", "kind": "ai", "relation": "author", "date": "2026-11-04" }
+      ]
+    },
+    "contribute.coverage-ratchet#context-and-versions": {
+      "enHash": "0a6965eae08ac4b1720522c1819792b360447562a8300d1f75210856e05c8ea0",
+      "frHash": "d1ef09f18cfbf436f45d894f39dd82ced4ab16d393bd29fea1aab10f2bd7d97e",
+      "reviewers": [
+        { "name": "claude-opus-5-5", "kind": "ai", "relation": "author", "date": "2026-11-04" }
+      ]
+    },
+    "contribute.coverage-ratchet#files-changed": {
+      "enHash": "753df66a684d1e7bdbb6736b2e6914eb318b20472a7243501f7fa25f38850412",
+      "frHash": "60b9dcd423d6bdcd672fd644cdcbcabd216dc61c18fddd27c9e9ac195a1a6949",
+      "reviewers": [
+        { "name": "claude-opus-5-5", "kind": "ai", "relation": "author", "date": "2026-11-04" }
+      ]
+    },
+    "contribute.coverage-ratchet#references": {
+      "enHash": "d14868dc3102ff67be55332dd1c801158c2a95b04925c023851ddb46f97b9580",
+      "frHash": "114aa4c4a601410ce5c85c698d2372c8a6ebc3521f83eb30e571ea4ebc8acbcb",
+      "reviewers": [
+        { "name": "claude-opus-5-5", "kind": "ai", "relation": "author", "date": "2026-11-04" }
+      ]
+    },
+    "contribute.coverage-ratchet#steps": {
+      "enHash": "b76fe6d96c9e1eb1f6e1b549431f2b25ebdf63d3b39feb18547474f5ec84647c",
+      "frHash": "57bf14aadb754a2835808e13c3fe57b78a165af63c9d86ed57f3e4769f1603bd",
+      "reviewers": [
+        { "name": "claude-opus-5-5", "kind": "ai", "relation": "author", "date": "2026-11-04" }
+      ]
+    },
+    "contribute.governance#who-reviews-what": {
+      "enHash": "663e3d5d194454bc00e99793f56b0594e6ab313567e6d025d201b4eeefd0637b",
+      "frHash": "ba78ef74136411ac6b1c09942ecd5f78f99a34a7acaf453f36933a1b4d88a984",
+      "reviewers": [
+        { "name": "claude-opus-5-5", "kind": "ai", "relation": "author", "date": "2026-11-04" }
+      ]
+    },
+    "contribute.mutation-testing#steps": {
+      "enHash": "e8bbaf00d6c17ffe5e5b939dcf316b3b691b0f92c6da91e4d19f5b2393a4bedd",
+      "frHash": "921a170196811175cee22fb479adaeef26c761d1556cb70bb20f4d1e0f79b548",
+      "reviewers": [
+        { "name": "claude-opus-5-5", "kind": "ai", "relation": "author", "date": "2026-11-04" }
+      ]
+    },
+    "contribute.quality-baseline#common-errors": {
+      "enHash": "0dd8d4c1de576a709f5f9e4b5620eb54503ebf105df98181c31628b6d8cf0f1c",
+      "frHash": "0fb74f4dbfaf2204480f49a1aa62723c60ac0ed24b73e2de3c75666121dfae72",
+      "reviewers": [
+        { "name": "claude-opus-5-5", "kind": "ai", "relation": "author", "date": "2026-11-04" }
+      ]
+    },
+    "contribute.quality-baseline#context-and-versions": {
+      "enHash": "0379cee31ef31ceea316a13e8efcbd38a0c96018e0690dbb0f70e7d21485e52e",
+      "frHash": "22e4c46449b9a1dd6cc28c0b0206505c21b9bdbdaf9ecd3b288788355eeb10a1",
+      "reviewers": [
+        { "name": "claude-opus-5-5", "kind": "ai", "relation": "author", "date": "2026-11-04" }
+      ]
+    },
+    "contribute.quality-baseline#expected-result": {
+      "enHash": "d87caf8b29db3b6091cb596ae93228f4c56db7e4d21e2858db043782a2fd3fd1",
+      "frHash": "15141566a741b474a13eaf42ee5f96748872dafcfdd8c8221ebb616e94373f5d",
+      "reviewers": [
+        { "name": "claude-opus-5-5", "kind": "ai", "relation": "author", "date": "2026-11-04" }
+      ]
+    },
+    "contribute.quality-baseline#files-changed": {
+      "enHash": "7ebf05737dfc9aee184f9e3402c8099cedfa87ff94d29f77c717b19e442ecb33",
+      "frHash": "8609aa830889ae41bddfc02feecb877d43101b247c89bd8b4f3fd0ff68e4dca1",
+      "reviewers": [
+        { "name": "claude-opus-5-5", "kind": "ai", "relation": "author", "date": "2026-11-04" }
+      ]
+    },
+    "contribute.quality-baseline#steps": {
+      "enHash": "da5716158c4f91bc193981627aed994819a0ecd86e124370bf7f00e851713e32",
+      "frHash": "5a2396c92a486ce3ff9ef5b0dc9e0f4e4a411c59efb79d3858277c3733b47578",
+      "reviewers": [
+        { "name": "claude-opus-5-5", "kind": "ai", "relation": "author", "date": "2026-11-04" }
+      ]
+    },
+    "contribute.which-tests#suites": {
+      "enHash": "c5d01f5fe245dc1415470da7a49a66557889c4aa1b537381912b8d31b28b919c",
+      "frHash": "72dce4819d943991c6b7457cd78be76bea599890b8e25e70a70085b89bd93ef8",
+      "reviewers": [
+        { "name": "claude-opus-5-5", "kind": "ai", "relation": "author", "date": "2026-11-04" }
+      ]
+    },
+    "create.checking#commands": {
+      "enHash": "6cf4ad2c4d2d24805a7f1060e59687c46fe20f0536d98a8aa9455d6cb69c8129",
+      "frHash": "e230850ae05bb0aa4fa746fb75cabba4118522ea325ff811d81566d63ad218db",
+      "reviewers": [
+        { "name": "claude-opus-5-5", "kind": "ai", "relation": "author", "date": "2026-11-04" }
+      ]
+    },
+    "create.images#images": {
+      "enHash": "122e40b47d4a9f3e5a4b41292003c1148625d3d8dbf3099c519113318320c8a4",
+      "frHash": "a0c7fecf2a5806e4b8167ddd5a3f50f0d6862937cd06d420d94ee3b57c5c182f",
+      "reviewers": [
+        { "name": "claude-opus-5-5", "kind": "ai", "relation": "author", "date": "2026-11-04" }
+      ]
+    },
+    "reference.npm-scripts#quality-baseline": {
+      "enHash": "49ac9e56a5889df6e8703733eed970406c86e61690adf9ce6c1c3d24d0c402da",
+      "frHash": "e1913cb2bd08e1b9be4c3791786eb6f8cf68cd060baaac8a6f17f8bfd86c5a42",
+      "reviewers": [
+        { "name": "claude-opus-5-5", "kind": "ai", "relation": "author", "date": "2026-11-04" }
+      ]
+    },
+    "reference.npm-scripts#test-coverage": {
+      "enHash": "350f2cd722350b13e4f90b28d30dbd2bd4208a8819ecbc11d29f34ed94c2d00c",
+      "frHash": "d07b62a5417bd3f1ccbb1f9ca205c76a8bccc1b1d2dd6c7b523d5cf8942c3c28",
+      "reviewers": [
+        { "name": "claude-opus-5-5", "kind": "ai", "relation": "author", "date": "2026-11-04" }
+      ]
+    },
+    "reference.npm-scripts#test-merge": {
+      "enHash": "f0aa856e396ddb510dffbe96dbe9cc93f764317257836ba2ae4c21d12b2878b6",
+      "frHash": "e7dad590fc9c4b1e2100fb39596e2373bbf3f681239dce5f2929ee77c26877d9",
+      "reviewers": [
+        { "name": "claude-opus-5-5", "kind": "ai", "relation": "author", "date": "2026-11-04" }
+      ]
+    }
+  },
+  "claims": {}
+}

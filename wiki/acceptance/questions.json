@@ -722,8 +722,8 @@
       },
       "expect": ["contribute.quality-baseline"],
       "facts": [
-        "A new test means rerunning npm run quality:baseline without --check and committing the result",
-        "npm run quality:baseline -- --check must then stay green"
+        "A new test alone needs no rewrite: --check says it as a warning, and the release writes the test counts",
+        "Only a behaviour change is rewritten in a pull request, with npm run quality:baseline"
       ]
     },
     {

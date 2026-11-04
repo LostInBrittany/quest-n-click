@@ -1,6 +1,6 @@
 # The coverage ratchet
 
-The coverage floors of `vite.config.ts` only rise. Two checks hold them: Vitest fails when the tests reach less than a
+The coverage floors of `tests/coverage-floors.json` only rise. Two checks hold them: Vitest fails when the tests reach less than a
 floor, and the ratchet fails when a floor lags three points or more behind what the tests reach. This page says what
 to do when either is red.
 
@@ -15,7 +15,8 @@ A `coverage` job green again: every floor met, and every floor within three poin
 ## Context and versions
 
 The engine repository. The floors date from 4.1.0 "Clarity" (the level measured then); the ratchet,
-[`tools/coverage-ratchet.ts`](../../tools/coverage-ratchet.ts), from 4.1.3; its GitHub annotations from 4.1.9.
+[`tools/coverage-ratchet.ts`](../../tools/coverage-ratchet.ts), from 4.1.3; its GitHub annotations from 4.1.9; the floors in their own file, out of `vite.config.ts`, from 4.6.0 (#405),
+so raising one leaves every mutation set's cache key as it was ([Mutation testing](contribute.mutation-testing.md)).
 
 What is measured: V8 coverage of `src/**/*.ts` (not `*.d.ts`), `bridge/src/**/*.ts` and `studio-server/src/**/*.ts`,
 by the unit suite and the asset tests (`npm run test:coverage`). The floors as of 4.4.0:
@@ -29,8 +30,9 @@ by the unit suite and the asset tests (`npm run test:coverage`). The floors as o
 | 23 files of the Studio Server (the journal, the gate, OIDC, leases, previews, the worker's jobs…) | lines and branches, set two points under what was measured when each arrived |
 | 6 files of the Bridge (`bridge.ts`, `store.ts`, `server.ts`, `policy.ts`, `lock.ts`, `cli.ts`) | lines and branches |
 
-The exact values are in [`vite.config.ts`](../../vite.config.ts), `test.coverage.thresholds`, with the reason for each
-floor below 100 written beside it.
+The exact values are in [`tests/coverage-floors.json`](../../tests/coverage-floors.json): `total` for the global floors,
+then `groups`, each with its files and the reason (`why`) for the floors below 100. `vite.config.ts` reads them as
+`test.coverage.thresholds`.
 
 > [!LIMIT id=lines-not-proof]
 > Coverage counts lines and branches run, not results checked. The browser-only parts of `src/` (the player's UI and
@@ -84,9 +86,9 @@ In the engine repository, on your machine. CI runs the same in four shards (`uni
    The end says `✔ every coverage floor is within three points of what the tests reach`, or the count to raise.
 
 <!-- step: raise -->
-4. **Raise the floors it names** in `vite.config.ts` (`test.coverage.thresholds`), to a value at or a little under what
-   was measured, and commit them with the change that earned them. `vite.config.ts` is a file the maintainer reviews
-   (`CODEOWNERS`).
+4. **Raise the floors it names** in `tests/coverage-floors.json`, to a value at or a little under what was measured, and
+   commit them with the change that earned them. The file is one the maintainer reviews (`CODEOWNERS`). It is not an
+   input of the mutation cache: raising a floor re-runs no mutation set.
 
 > [!LIMIT id=ratchet-scope]
 > The ratchet reads only the floors that exist: a file without a floor of its own is held by the global floors alone.
@@ -114,7 +116,7 @@ green with no "coverage ratchet" annotation.
 
 ## Files or data changed
 
-`vite.config.ts` (the floors); the measure writes only `.cache/coverage/`.
+`tests/coverage-floors.json` (the floors); the measure writes only `.cache/coverage/`.
 
 <a name="recovery"></a>
 
@@ -127,6 +129,7 @@ request), since a floor above the measure is a red build, not a promise.
 
 ## References
 
-- [`tools/coverage-ratchet.ts`](../../tools/coverage-ratchet.ts), [`vite.config.ts`](../../vite.config.ts).
+- [`tools/coverage-ratchet.ts`](../../tools/coverage-ratchet.ts), [`tests/coverage-floors.json`](../../tests/coverage-floors.json),
+  [`vite.config.ts`](../../vite.config.ts).
 - [Which tests run when](contribute.which-tests.md), [CI explained](contribute.ci.md#tiers),
   [Mutation testing](contribute.mutation-testing.md).

@@ -525,8 +525,8 @@
       "name": "test:coverage",
       "group": "tests",
       "description": {
-        "en": "The suite under V8 coverage (heavy tests excluded), against the floors of `vite.config.ts`; then `npx tsx tools/coverage-ratchet.ts --strict` fails on a floor at least three points behind what the tests reach (CI on main and tags, release-check, 4.1.8; a warning on a pull request, 4.1.9).",
-        "fr": "La suite sous couverture V8 (sans les tests lourds), face aux planchers de `vite.config.ts` ; puis `npx tsx tools/coverage-ratchet.ts --strict` échoue sur un plancher en retard d’au moins trois points sur ce que les tests atteignent (CI sur main et les tags, release-check, 4.1.8 ; un avertissement sur une pull request, 4.1.9)."
+        "en": "The suite under V8 coverage (heavy tests excluded), against the floors of `tests/coverage-floors.json` (read by `vite.config.ts`, 4.6.0); then `npx tsx tools/coverage-ratchet.ts --strict` fails on a floor at least three points behind what the tests reach (CI on main and tags, release-check, 4.1.8; a warning on a pull request, 4.1.9).",
+        "fr": "La suite sous couverture V8 (sans les tests lourds), face aux planchers de `tests/coverage-floors.json` (lus par `vite.config.ts`, 4.6.0) ; puis `npx tsx tools/coverage-ratchet.ts --strict` échoue sur un plancher en retard d’au moins trois points sur ce que les tests atteignent (CI sur main et les tags, release-check, 4.1.8 ; un avertissement sur une pull request, 4.1.9)."
       }
     },
     {
@@ -541,8 +541,8 @@
       "name": "test:merge",
       "group": "tests",
       "description": {
-        "en": "Merges the blob reports of the shards (`.vitest/blob`) under coverage: one report, the floors of `vite.config.ts` applied to the whole suite, the summary the ratchet reads (CI's `coverage` job, 4.5.4). Locally, clear `.vitest/blob` before the shards: a blob left there is merged too.",
-        "fr": "Fusionne les rapports blob des fragments (`.vitest/blob`) sous couverture : un rapport, les planchers de `vite.config.ts` appliqués à toute la suite, le résumé que lit le cliquet (le job `coverage` de la CI, 4.5.4). En local, videz `.vitest/blob` avant les fragments : un blob laissé là est fusionné aussi."
+        "en": "Merges the blob reports of the shards (`.vitest/blob`) under coverage: one report, the floors of `tests/coverage-floors.json` applied to the whole suite, the summary the ratchet reads (CI's `coverage` job, 4.5.4). Locally, clear `.vitest/blob` before the shards: a blob left there is merged too.",
+        "fr": "Fusionne les rapports blob des fragments (`.vitest/blob`) sous couverture : un rapport, les planchers de `tests/coverage-floors.json` appliqués à toute la suite, le résumé que lit le cliquet (le job `coverage` de la CI, 4.5.4). En local, videz `.vitest/blob` avant les fragments : un blob laissé là est fusionné aussi."
       }
     },
     {
@@ -622,10 +622,10 @@
     {
       "name": "quality:baseline",
       "group": "tests",
-      "usage": "npm run quality:baseline [-- --check] [--dist=dist]",
+      "usage": "npm run quality:baseline [-- --check] [--release] [--dist=dist]",
       "description": {
-        "en": "The behaviour of 4.0.0 kept (4.1.0): for the demo, the reference game, the heroes example and the solver's fixtures, the witness and proof, every golden save played to its end, the public API and MCP surface, the first visit (`tests/quality-baseline.json`). `--check` compares; without it, it writes the file and the READMEs' three figures: a new test or a lighter bundle means running it (4.1.8).",
-        "fr": "Le comportement de 4.0.0 conservé (4.1.0) : pour la démo, le jeu de référence, l’exemple des héros et les jeux de test du solveur, le témoin et la preuve, chaque sauvegarde de référence jouée jusqu’au bout, la surface publique de l’API et du MCP, la première visite (`tests/quality-baseline.json`). `--check` compare ; sans lui, il écrit le fichier et les trois chiffres des README : un nouveau test ou un bundle plus léger impose de le lancer (4.1.8)."
+        "en": "The behaviour of 4.0.0 kept (4.1.0): for the demo, the reference game, the heroes example and the solver's fixtures, the witness and proof, every golden save played to its end, the public API and MCP surface, the first visit (`tests/quality-baseline.json`). `--check` compares; without it, it writes the behaviour into the file, and only that (4.6.0, #405): a new test or a first visit that moved needs no rewrite. `--release` (the release's `prepare`) also writes the test counts, the first visit in bytes and the READMEs' figures.",
+        "fr": "Le comportement de 4.0.0 conservé (4.1.0) : pour la démo, le jeu de référence, l’exemple des héros et les jeux de test du solveur, le témoin et la preuve, chaque sauvegarde de référence jouée jusqu’au bout, la surface publique de l’API et du MCP, la première visite (`tests/quality-baseline.json`). `--check` compare ; sans lui, il écrit le comportement dans le fichier, et seulement lui (4.6.0, #405) : un nouveau test ou une première visite qui a bougé ne demande aucune réécriture. `--release` (le `prepare` de la release) écrit aussi les nombres de tests, la première visite en octets et les chiffres des README."
       }
     },
     {

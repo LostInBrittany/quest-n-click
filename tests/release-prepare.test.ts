@@ -14,6 +14,7 @@ import {
   humanGates,
   isPrepared,
   PREPARE_STEPS,
+  QUALITY_BASELINE_COMMANDS,
   preparedSubject,
   prepareRefusals,
   RESUME_STEPS,
@@ -310,6 +311,14 @@ describe('the command', () => {
       'commit',
       'before the push',
       'pull request',
+    ]);
+  });
+  it("writes the release's figures: a build of the demo, then the baseline's release mode with it (4.6.0, #405)", () => {
+    // A pull request's `npm run quality:baseline` moves the behaviour only; the test counts, the first visit and the
+    // READMEs' figures are the release's, measured on a fresh build.
+    expect(QUALITY_BASELINE_COMMANDS).toEqual([
+      ['npx', ['vite', 'build', '--logLevel=warn']],
+      ['npm', ['run', '-s', 'quality:baseline', '--', '--release', '--dist']],
     ]);
   });
   it('resumes a prepared branch with the stop before the push (prose and human gates) and the pull request only', () => {

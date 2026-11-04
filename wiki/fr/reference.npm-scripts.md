@@ -522,10 +522,10 @@ Le gate du code du moteur (4.1.0) : formatage et lint Biome, knip (fichiers et e
 
 #### `npm run quality:baseline`
 
-Le comportement de 4.0.0 conservé (4.1.0) : pour la démo, le jeu de référence, l’exemple des héros et les jeux de test du solveur, le témoin et la preuve, chaque sauvegarde de référence jouée jusqu’au bout, la surface publique de l’API et du MCP, la première visite (`tests/quality-baseline.json`). `--check` compare ; sans lui, il écrit le fichier et les trois chiffres des README : un nouveau test ou un bundle plus léger impose de le lancer (4.1.8).
+Le comportement de 4.0.0 conservé (4.1.0) : pour la démo, le jeu de référence, l’exemple des héros et les jeux de test du solveur, le témoin et la preuve, chaque sauvegarde de référence jouée jusqu’au bout, la surface publique de l’API et du MCP, la première visite (`tests/quality-baseline.json`). `--check` compare ; sans lui, il écrit le comportement dans le fichier, et seulement lui (4.6.0, #405) : un nouveau test ou une première visite qui a bougé ne demande aucune réécriture. `--release` (le `prepare` de la release) écrit aussi les nombres de tests, la première visite en octets et les chiffres des README.
 
 - Lance : `tsx tools/quality-baseline.ts`
-- Utilisation : `npm run quality:baseline [-- --check] [--dist=dist]`
+- Utilisation : `npm run quality:baseline [-- --check] [--release] [--dist=dist]`
 
 <a name="test"></a>
 
@@ -548,7 +548,7 @@ Les tests d’images et de la chaîne d’assets qui passent par Python (`tests/
 
 #### `npm run test:coverage`
 
-La suite sous couverture V8 (sans les tests lourds), face aux planchers de `vite.config.ts` ; puis `npx tsx tools/coverage-ratchet.ts --strict` échoue sur un plancher en retard d’au moins trois points sur ce que les tests atteignent (CI sur main et les tags, release-check, 4.1.8 ; un avertissement sur une pull request, 4.1.9).
+La suite sous couverture V8 (sans les tests lourds), face aux planchers de `tests/coverage-floors.json` (lus par `vite.config.ts`, 4.6.0) ; puis `npx tsx tools/coverage-ratchet.ts --strict` échoue sur un plancher en retard d’au moins trois points sur ce que les tests atteignent (CI sur main et les tags, release-check, 4.1.8 ; un avertissement sur une pull request, 4.1.9).
 
 - Lance : `vitest run --coverage --exclude tests/ownership.test.ts --exclude tests/audit.test.ts --exclude tests/canonical.test.ts --exclude tests/memo.test.ts --exclude tests/reference-proof.test.ts --exclude tests/solver-oracle.test.ts --exclude tests/dominance.test.ts --exclude tests/partition.test.ts --exclude tests/checkpoint-matrix.test.ts`
 
@@ -564,7 +564,7 @@ Les tests du solveur qui saturent le processeur (audits d’abstraction, propri�
 
 #### `npm run test:merge`
 
-Fusionne les rapports blob des fragments (`.vitest/blob`) sous couverture : un rapport, les planchers de `vite.config.ts` appliqués à toute la suite, le résumé que lit le cliquet (le job `coverage` de la CI, 4.5.4). En local, videz `.vitest/blob` avant les fragments : un blob laissé là est fusionné aussi.
+Fusionne les rapports blob des fragments (`.vitest/blob`) sous couverture : un rapport, les planchers de `tests/coverage-floors.json` appliqués à toute la suite, le résumé que lit le cliquet (le job `coverage` de la CI, 4.5.4). En local, videz `.vitest/blob` avant les fragments : un blob laissé là est fusionné aussi.
 
 - Lance : `vitest --merge-reports --coverage`
 

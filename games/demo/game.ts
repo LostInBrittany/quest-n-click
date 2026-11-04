@@ -149,7 +149,9 @@ export const game = defineGame({
   // What a phone downloads (npm run weight, measured 4 Oct 2026: 2.0 MB before the first room, 2.4 MB for the market,
   // 3.7 MB for a chapter since the map opens every room), with about 20% of headroom. Since 3.6: the theme's stems
   // downloaded in the background (2.5 MB since 3.7's own theme), the full offline warm-up (6.9 MB), the theme decoded
-  // (79 MB).
+  // (79 MB). initialJsKB is compared in bytes since 4.6.0 (#405): 140 × 1024 for 141 373 bytes measured (138.1 KB,
+  // with #400), a margin of about 2 KB on purpose. Each release resets it (measured + about 2 KB): a pull request fails
+  // only when it eats the margin, and the release decides whether the growth was worth it.
   assetBudgets: { initialKB: 2500, roomKB: 3000, chapterKB: 4500, backgroundScoreKB: 3500, offlineTotalKB: 9000, decodedAudioMB: 128, initialJsKB: 140 },
   // Texts that stay the same in French on purpose: names, ▲ ▼, OK, words French borrowed (`npm run i18n -- status`).
   i18n: { same: ['room:market/props.oranges.name', 'room:market/props.bouquet.name', 'item:bouquet/name', 'char:hero/name', 'char:biscuit/name', 'char:neighbor/name', 'ui/pause', 'ui/remix', 'ui/zoomIn', 'ui/ok', 'ui/jump', 'ui/duck', 'ui/normal', 'ui/speedrun'] },

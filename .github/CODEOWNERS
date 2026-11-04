@@ -5,4 +5,5 @@ tests/quality-baseline.json @wanoo
 tests/api-surface.json @wanoo
 docs/dev/mutants.json @wanoo
 vite.config.ts @wanoo
+tests/coverage-floors.json @wanoo
 .github/ @wanoo

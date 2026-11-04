@@ -18,7 +18,8 @@ whose every moved line you know and own in the CHANGELOG fragment.
 
 The engine repository. The baseline dates from 4.1.0 "Clarity" (frozen before the engine was split into modules); the
 "ratcheted" report from 4.1.3; the READMEs' figures from 4.1.8; the README's install section from 4.1.20; `heroes` in
-the measured games from 4.4.0.
+the measured games from 4.4.0; the two writes (a pull request's, the release's) and the first visit in bytes from 4.6.0
+(#405).
 
 What it measures, as of 4.4.0 ([`tools/quality-baseline.ts`](../../tools/quality-baseline.ts)):
 
@@ -27,12 +28,19 @@ What it measures, as of 4.4.0 ([`tools/quality-baseline.ts`](../../tools/quality
 | `games` (16) | `demo`, `reference`, `heroes`, the five classics, three partial-order fixtures, and the `world`, `cast`, `scale`, `picture`, `mini` fixtures: the witness (status, finished, number of inputs, a hash of the digests after every input) and the proof (status, states, softlocks) | identical |
 | `saves` (43 as of 4.4.0) | each golden save of `tests/fixtures/saves/demo-*.json`, loaded and played to its end: ended, inputs, last digest | identical |
 | `surface.api` | a hash of `tests/api-surface.json` (the public API and the MCP tools) | identical |
-| `tests` | test files and test declarations (`it(`, `test(`, `.each`, `.skipIf`, `.runIf`) | may only grow |
-| `bundle.initialJsKB` | the first visit's JavaScript, gzipped, from `verify:dist` (with `--dist`) | may only shrink |
+| `tests` | test files and test declarations (`it(`, `test(`, `.each`, `.skipIf`, `.runIf`), written by the release | fewer declarations fail; more are a warning |
+| `bundle` | the first visit's JavaScript, gzipped, from `verify:dist` (with `--dist`): `initialJsBytes`, and `initialJsKB` rounded for the READMEs, written by the release | a warning, in bytes, either way: the game's `assetBudgets.initialJsKB` is the gate |
 
 It also keeps two places of the READMEs in step: the figures between `<!-- metric:tests -->`, `metric:initialJsKB` and
 `metric:referenceStates` markers (3257 declarations, 136 KB and 288 states at 4.4.0), and the archive URL between
 `<!-- install:begin -->` and `<!-- install:end -->`.
+
+Since 4.6.0 (#405) a pull request never rewrites a figure every other pull request rewrites too. `npm run
+quality:baseline` writes the behaviour only: the games, the golden saves, the surface, and the one README figure that is
+behaviour, `referenceStates`. The test counts, the first visit and the other README figures are written by the release,
+`npm run quality:baseline -- --release --dist` (the `quality baseline` step of `npm run release -- prepare`, after a
+build). The first visit is held by each game's budget, compared in bytes (`initialJsKB` × 1024): one byte over fails,
+with a margin of about 2 KB over the size measured, which each release resets on purpose.
 
 <a name="prerequisites"></a>
 
@@ -65,27 +73,30 @@ change.
    one `✖` line per difference, for instance `demo witness.digests: … → …` (a state after some input differs:
    `npm run replay` on the witness names the entry), `golden save demo-3.4.0.json last: … → …`,
    `tests/api-surface.json: the public API or the MCP tools changed`, or `README.md: a figure is not the baseline's`.
+   A `⚠` line (more tests, the first visit since the release in bytes) is not a failure.
 
 <!-- step: decide -->
 2. **Decide what a difference is.**
    - Your change was meant to keep behaviour (a refactoring, a rename, a speed-up): a difference is a regression. Find
      it; `npm run replay` on the witness names the first entry whose state differs.
-   - Your change alters behaviour on purpose (a rule, a command, a solver change, a new test, a smaller bundle): go to
-     step 3.
+   - Your change alters behaviour on purpose (a rule, a command, a solver change): go to step 3. A new test or a
+     bundle that moved needs no rewrite: the release writes those figures.
 
 <!-- step: rewrite -->
-3. **Rewrite it**, with the first visit if your change can move it:
+3. **Rewrite it:**
 
    ```sh
    # in the engine repository
    npm run quality:baseline
-   npm run build:game && npm run quality:baseline -- --dist
    ```
 
    A rewrite says what it moves, before writing: `⚠ behaviour moved: …` for a digest, a verdict, a save or the surface,
-   and `✔ ratcheted: …` for more tests or a smaller first visit. It writes `tests/quality-baseline.json`, then the
-   figures and the install URL of `README.md` and `README.fr.md` (`✔ README.md: the figures written`). Without
-   `--dist`, the previous `bundle` is kept.
+   and `⚠ kept for the release: …` for more tests or a first visit that moved. It writes the behaviour into
+   `tests/quality-baseline.json` and keeps the test counts and the `bundle` line as the release wrote them; it touches
+   the READMEs only when the reference proof's state count moved. The release runs
+   `npm run quality:baseline -- --release --dist` instead, which writes every figure, the READMEs' and their install
+   URL (`✔ README.md: the figures written`), and says `✔ ratcheted: …`; without `--dist`, the previous `bundle` is
+   kept.
 
 <!-- step: own -->
 4. **Own it.** Commit the JSON and the READMEs with the change; say in the CHANGELOG fragment what moved and why ("the
@@ -101,7 +112,8 @@ change.
 ## Expected result, and how to check it
 
 `npm run quality:baseline -- --check --dist` ends with `✔ same behaviour as tests/quality-baseline.json: 16 games, n
-golden saves, n test declarations, first visit n KB` and exit code 0.
+golden saves, n test declarations, first visit n KB gzipped (n bytes)` and exit code 0, with a `⚠` line for what
+moved since the release (more tests, the first visit in bytes) that is not a failure.
 
 <a name="common-errors"></a>
 
@@ -109,10 +121,11 @@ golden saves, n test declarations, first visit n KB` and exit code 0.
 
 | Symptom | Cause | Fix |
 |---|---|---|
-| `README.md: a figure is not the baseline's (npm run quality:baseline writes it)` | The READMEs' figures and `tests/quality-baseline.json` disagree (one was edited without the other) | `npm run quality:baseline`, commit both |
-| `⚠ better than the baseline, ratchet it` | More tests, or a smaller first visit: not a failure (4.5.4: the READMEs are checked against the committed baseline) | Nothing in a pull request; the release rewrites it |
+| `README.md: a figure is not the baseline's (npm run quality:baseline -- --release writes it)` | The READMEs' figures and `tests/quality-baseline.json` disagree (one was edited without the other) | `git restore README.md README.fr.md`; on a release branch, `npm run quality:baseline -- --release --dist` |
+| `⚠ tests: n → m declarations (the release ratchets it)` | More tests: not a failure (4.5.4: the READMEs are checked against the committed baseline) | Nothing in a pull request; the release rewrites it |
+| `⚠ first visit's JavaScript: +n bytes since the release` | The first visit moved since the release's figure: a warning (4.6.0) | Nothing in a pull request while the game's budget holds; the release reviews it |
 | `tests: n declarations → m (a test was removed)` | A test was deleted or merged | Restore it, or own the removal in the pull request and rewrite |
-| `first visit's JavaScript: n KB → m KB gzipped` | The player's first chunk grew | Load the new code on demand ([Import boundaries](contribute.boundaries.md#layers)), or own the growth |
+| `first visit's JavaScript: n KB gzipped (n bytes), n bytes over initialJsKB n` (`verify:dist`, `build:game`) | The first visit ate the game's margin | Load the new code on demand ([Import boundaries](contribute.boundaries.md#layers)), or raise the budget in the game's `assetBudgets` and own the growth |
 | `<game>: new game, not in the baseline` | A game was added to the list | Rewrite it |
 | `README.md: the install section names another version` | `package.json`'s version changed (a release) | Rewrite it: the release branch does |
 
@@ -120,7 +133,8 @@ golden saves, n test declarations, first visit n KB` and exit code 0.
 
 ## Files or data changed
 
-`tests/quality-baseline.json`, `README.md`, `README.fr.md`. `--check` writes nothing.
+`tests/quality-baseline.json`; `README.md` and `README.fr.md` when the reference proof moved, or with `--release`.
+`--check` writes nothing.
 
 <a name="recovery"></a>
 

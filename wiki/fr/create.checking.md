@@ -232,7 +232,7 @@ l'équivalent dans un projet créé quand il existe ; « — » veut dire que le
 |---|---|
 | `npm test` | Les tests Node du moteur, des outils et du jeu sélectionné, sans les tests lourds du solveur. |
 | `npm run test:heavy` | Les tests du solveur gourmands en CPU : chaque nuit, des minutes chacun ([Options du solveur](create.solver-options.md#tests)). |
-| `npm run test:coverage` | La suite sous couverture V8 contre les planchers de `vite.config.ts` ; puis `npx tsx tools/coverage-ratchet.ts --strict` échoue sur un plancher d'au moins trois points sous ce qu'atteignent les tests ([Le cliquet de couverture](contribute.coverage-ratchet.md)). |
+| `npm run test:coverage` | La suite sous couverture V8 contre les planchers de `tests/coverage-floors.json` ; puis `npx tsx tools/coverage-ratchet.ts --strict` échoue sur un plancher d'au moins trois points sous ce qu'atteignent les tests ([Le cliquet de couverture](contribute.coverage-ratchet.md)). |
 | `npm run test:assets` | Les tests des images et du pipeline d'assets, qui s'appuient sur Python. |
 | `npm run check` | Vérification des types et tests Node. |
 | `npm run tsc -- …` | Le compilateur TypeScript 7 lui-même ; `check` et `quality` l'appellent. |

@@ -176,7 +176,7 @@ jamais, écrivez dans `wiki/`.
 
 `.github/CODEOWNERS` nomme les fichiers qu'une pull request ne peut pas changer sans un regard du mainteneur : le
 comportement figé (`tests/quality-baseline.json`), la surface publique (`tests/api-surface.json`), les mutants
-survivants nommés (`docs/dev/mutants.json`), les seuils de couverture (`vite.config.ts`) et les workflows (`.github/`).
+survivants nommés (`docs/dev/mutants.json`), les seuils de couverture (`tests/coverage-floors.json`) et les workflows (`.github/`).
 Tout le reste est relu par les barrières.
 
 <a name="related"></a>

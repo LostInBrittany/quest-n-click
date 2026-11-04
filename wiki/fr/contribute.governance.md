@@ -47,7 +47,7 @@ approuvée. « tu peux signer la 4.5 » est le oui pour la v4.5.0 seulement (D50
 | Quoi | Relu par |
 |---|---|
 | Chaque pull request | Les barrières de la CI (`pr-gate`), voir [La CI expliquée](contribute.ci.md) |
-| `tests/quality-baseline.json`, `tests/api-surface.json`, `docs/dev/mutants.json`, `vite.config.ts`, `.github/` | Le mainteneur, par `.github/CODEOWNERS` (le comportement figé, la surface publique, les survivants de mutation nommés, les seuils de couverture, les workflows) |
+| `tests/quality-baseline.json`, `tests/api-surface.json`, `docs/dev/mutants.json`, `vite.config.ts`, `tests/coverage-floors.json`, `.github/` | Le mainteneur, par `.github/CODEOWNERS` (le comportement figé, la surface publique, les survivants de mutation nommés, les seuils de couverture, les workflows) |
 | Un plan, une release, une branche non triviale | Un second contexte, puis le mainteneur |
 | Une passe de terrain | La personne qui l'a faite, puis le mainteneur, qui ferme son issue |
 | Une paire de traductions ou la portée d'une garantie dans le wiki | Consignées dans `wiki/translations.json` / `wiki/reviews.json` (sur une branche, dans son `changes/<slug>.acks.json` en attente, versé à la release) avec qui l'a lue, une personne ou une IA ([Écrire la documentation](contribute.writing-docs.md#reviews)) |

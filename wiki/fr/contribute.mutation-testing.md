@@ -115,6 +115,8 @@ L'outil réécrit le fichier source qu'il mute : ne le modifiez pas pendant une 
    d'un test (les réglages du jeu, les valeurs de `define`, les ensembles : `CONFIG_FOLLOWS` dans `tools/mutate.ts`),
    pas vers le plugin Studio du serveur de développement. Un nouvel import dans `vite.config.ts` fait échouer
    `tests/mutate-hash.test.ts` tant qu'il n'est pas rangé dans `CONFIG_FOLLOWS`, ou dans `CONFIG_SKIPS` avec sa raison.
+   Les seuils de couverture sont des données que la configuration lit (`tests/coverage-floors.json`, 4.6.0, #405),
+   jamais hachées : en relever un ne relance aucun ensemble.
 
 <!-- step: kill -->
 3. **Tuez le survivant avec un test**, la réponse habituelle : écrivez l'entrée qui distingue le mutant de l'original,

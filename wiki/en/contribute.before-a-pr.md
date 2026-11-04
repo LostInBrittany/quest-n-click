@@ -96,9 +96,11 @@ compete for the same cores and leave orphan workers behind when interrupted.
    npm run quality:baseline -- --check
    ```
 
-   A change that alters behaviour on purpose rewrites it with `npm run quality:baseline` and commits the result. A
-   test added alone needs nothing: `--check` says it as a gain, and the figures move at the release (4.5.4), so two
-   open pull requests never conflict on them. See [The quality baseline](contribute.quality-baseline.md).
+   A change that alters behaviour on purpose rewrites it with `npm run quality:baseline` and commits the result: that
+   write moves the behaviour only. A test added alone, or a first visit that moved within the game's budget, needs
+   nothing: `--check` says it as a warning, and the counts, the first visit and the READMEs' figures move at the
+   release (4.5.4, 4.6.0), so two open pull requests never conflict on them. See
+   [The quality baseline](contribute.quality-baseline.md).
 
 <!-- step: docs -->
 7. **The documentation**, when you touched it or the code a page rests on:
@@ -201,8 +203,8 @@ Every command above ends green. On the pull request, `pr-gate` is green once eve
 
 ## Files or data changed
 
-`npm run format` rewrites source files; `npm run quality:baseline` rewrites `tests/quality-baseline.json` and the
-figures of `README.md` and `README.fr.md`; `npm run ids -- --write --map` writes ids into `games/<id>/`. The checks
+`npm run format` rewrites source files; `npm run quality:baseline` rewrites the behaviour in
+`tests/quality-baseline.json` (and the reference proof's figure in `README.md` and `README.fr.md` when it moved); `npm run ids -- --write --map` writes ids into `games/<id>/`. The checks
 themselves write only under `.cache/` and `/tmp/e2e`.
 
 <a name="recovery"></a>
