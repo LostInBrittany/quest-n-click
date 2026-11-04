@@ -19,7 +19,6 @@ import type {
 } from '../core/types';
 import { FONT_PIXEL, FONT_UI } from './fonts';
 import { el, esc, sleep } from './app-shared';
-import { chooseScreen } from './choice-screen';
 import { choose as chooseImpl, phone as phoneImpl, say as sayImpl } from './speech';
 import { openMap as openMapImpl } from './map-view';
 import { applyIntent } from '../scene/intent';
@@ -227,7 +226,10 @@ export class DomPresenter implements Presenter {
     who?: Id,
     screen?: ChoiceScreen,
   ): Promise<number> {
-    return screen ? chooseScreen(this.app, options, screen) : chooseImpl(this.app, options, who);
+    // The choice screen loads when a game shows one, so it stays out of the first visit (quality baseline).
+    return screen
+      ? import('./choice-screen').then((m) => m.chooseScreen(this.app, options, screen))
+      : chooseImpl(this.app, options, who);
   }
   phone(whoIn: Id | Id[], ringing: boolean) {
     return phoneImpl(this.app, whoIn, ringing);

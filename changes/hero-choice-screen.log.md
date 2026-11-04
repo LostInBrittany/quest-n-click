@@ -14,4 +14,8 @@ e2e checks the screen (title per language, the side column hidden, the heroes' i
 six runs. Seen at 844 × 390 and 1280 × 800. A side finding left for its own issue: a reload while the intro's choice is
 open, then Continue, lands in the first room with the flag unset (the autosave is written before the intro).
 
+CI said the first visit grew 137 → 138 KB gzipped (main sat at 137.33 KB, 177 bytes under the rounding; the
+screen added 484): `dom/choice-screen.ts` is now imported when a choice has a `screen`, and the first visit is back to
+137.44 KB.
+
 → next: the maintainer's look on a phone; the reload during the intro's choice as its own issue.
