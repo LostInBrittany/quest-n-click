@@ -398,9 +398,7 @@ describe('the unit suite in shards (4.5.4)', () => {
     expect(scripts['test:merge']).toBe('vitest --merge-reports --coverage');
   });
   it('applies the coverage floors to the merged suite, never to one shard', () => {
-    expect(readFileSync('vite.config.ts', 'utf8')).toMatch(
-      /thresholds: coverageThresholds\(\)/,
-    );
+    expect(readFileSync('vite.config.ts', 'utf8')).toMatch(/thresholds: coverageThresholds\(\)/);
   });
 });
 
