@@ -19,8 +19,8 @@ measured, where the step without `--dist` used to keep whatever a pull request h
 C: `tools/first-visit.ts` (pure): `overBudget(bytes, budgetKB)` fails above `budgetKB × 1024`, `sinceRelease` says the
 signed byte difference. `tools/dist.ts` gates on it and adds `initialJsBytes` to `--json`; the baseline's `bundle`
 gains `initialJsBytes` at the next release (this branch writes no shared figure, so the committed bundle has none yet
-and the warning stays silent until then). Measured on main 86be76ed: demo 141 252 bytes (137.9 KB, budget 140, margin
-2 108 bytes), reference 146 142 bytes once its budget reads 145 (142.7 KB, budget 143 → 145, margin 2 338 bytes).
+and the warning stays silent until then). Measured on main with #400 (fd8fdb5a): demo 141 373 bytes (138.1 KB, budget 140,
+margin 2 027 bytes), reference 146 260 bytes (142.8 KB, budget 143 → 145, margin 2 220 bytes).
 
 F: `tests/coverage-floors.json` holds the global floors and groups of files, each with its reason (`why`), the comments
 that sat beside them in `vite.config.ts`. `tools/coverage-floors.ts` flattens them into Vitest's thresholds; it reads
