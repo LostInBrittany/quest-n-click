@@ -10,6 +10,7 @@ import { langImages } from '@engine/core/lang-images';
 import { presentationOf } from '@engine/core/fingerprint';
 import type { GameDef } from '@engine/core/types';
 import { validate } from '@engine/tools/validate';
+import { collectRefs } from '../../tools/refs';
 import { game as demo } from '../../games/demo/game';
 import { mini, miniLayouts } from '../fixtures/mini';
 
@@ -67,6 +68,12 @@ describe('i18n.images', () => {
     const g = assetGraph(withLogo(mini()));
     expect(g.title).toEqual(expect.arrayContaining(['img:logo/en', 'img:logo/fr', 'img:logo/es']));
     expect(assetGraph(withLogo(mini(), null)).title).not.toContain('img:logo/fr');
+  });
+
+  it('npm run assets prepares every variant (tools/refs.ts)', () => {
+    expect(collectRefs({ game: withLogo(mini()) }).images).toEqual(
+      expect.arrayContaining(['logo/en', 'logo/fr', 'logo/es']),
+    );
   });
 
   it('the validator checks every id and warns of variants never drawn', () => {

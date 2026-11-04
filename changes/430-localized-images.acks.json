@@ -3,8 +3,8 @@
   "version": 1,
   "pairs": {
     "create.translations#i18n-images": {
-      "enHash": "9182e4ca3c3c56d0b62569754fdfb1d34e4459868c0071d1aadd16d7103fe7b0",
-      "frHash": "3000ab353e7462c0fc630b5474f79fa627c4f3d1d614c52ebb2b384efd6fd473",
+      "enHash": "e9bd82d85b550c88bed274cefc5e79025b21b631fe24c29b84d6d166a97cd0cf",
+      "frHash": "9f9e8ad2d3e00042f4ba010c57e6aab9a88d0aca763c831d66beb8ce3a7e38a8",
       "reviewers": [
         { "name": "claude", "kind": "ai", "relation": "author", "date": "2026-11-04" }
       ]

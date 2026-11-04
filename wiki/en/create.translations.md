@@ -145,10 +145,10 @@ the source. Draw the variants at the same size and with the same margins as the 
 a layout's boxes) stays the one of the source. Changing the language in Settings reloads the page, which draws the
 new language's images.
 
-The validator checks that every id exists in the manifest, and warns of a variant for the game's own language or for a
-language the game does not ship (never drawn). Wherever the source is needed, the offline cache keeps every variant
-too, so a player who switches language offline still has them. Presentation only: rules, saves and the solver never
-see it.
+`npm run assets` prepares every variant. The validator checks that every id exists in the manifest, and warns of a
+variant for the game's own language or for a language the game does not ship (never drawn). Wherever the source is
+needed, the offline cache keeps every variant too, so a player who switches language offline still has them.
+Presentation only: rules, saves and the solver never see it.
 
 <a name="coverage"></a>
 

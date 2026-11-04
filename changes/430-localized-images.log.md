@@ -5,7 +5,7 @@ a ribbon (`titleScreen.logo`), and the engine drew an image id the same in every
 `logo/fr` and `logo/es` at the same size.
 
 A general swap rather than a per-language `titleScreen.logo`: `GameDef.i18n.images` (`{ <id>: { <lang>: <id> } }`).
-`core/lang-images.ts`: `langImages(game, lang)` (the swaps of a translation, none for the game's own language) and
+`tools/refs.ts` lists every variant, so `npm run assets` prepares them. `core/lang-images.ts`: `langImages(game, lang)` (the swaps of a translation, none for the game's own language) and
 `imageVariants`. Every image URL goes through `AssetBank.img`, so the bank holds `swap` (set by the `App` from
 `languages.current`) and `img` and `size` follow it; `file(id)` is the file's own URL, which the warm-up
 (`dom/update.ts`) now caches by. The asset graph adds every variant wherever the source is (title, rooms, map, game,

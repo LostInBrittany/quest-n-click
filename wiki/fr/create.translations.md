@@ -147,10 +147,10 @@ Dessinez les variantes à la même taille et avec les mêmes marges que la sourc
 d’un layout) reste celui de la source. Changer de langue dans Réglages recharge la page, qui dessine les images de la
 nouvelle langue.
 
-Le validateur vérifie que chaque id existe dans le manifeste, et prévient d’une variante pour la langue du jeu ou pour
-une langue que le jeu ne livre pas (jamais dessinée). Partout où la source est nécessaire, le cache hors ligne garde
-aussi chaque variante, si bien qu’un joueur qui change de langue hors ligne les a encore. Présentation seulement : les
-règles, les sauvegardes et le solveur ne la voient jamais.
+`npm run assets` prépare chaque variante. Le validateur vérifie que chaque id existe dans le manifeste, et prévient
+d’une variante pour la langue du jeu ou pour une langue que le jeu ne livre pas (jamais dessinée). Partout où la
+source est nécessaire, le cache hors ligne garde aussi chaque variante, si bien qu’un joueur qui change de langue hors
+ligne les a encore. Présentation seulement : les règles, les sauvegardes et le solveur ne la voient jamais.
 
 <a name="coverage"></a>
 
