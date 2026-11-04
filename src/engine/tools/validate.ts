@@ -21,6 +21,7 @@ import { worldGraph } from './graph';
 import { transitionPeak } from './weight';
 import { puzzleGraph, puzzleIssues } from './puzzle';
 import { routeChecks } from './validate/routes';
+import { choiceScreenChecks } from './validate/choice-screen';
 import type {
   Cmd,
   Cond,
@@ -508,6 +509,7 @@ export function validate(gameIn: GameDef, layouts: Record<string, Layout>, opts:
     if ('choice' in c) {
       if (!c.choice.length) err(where, 'choice with no option');
       seen.choice(c.choice, room?.id);
+      choiceScreenChecks(c.screen, c.choice, where, { err, warn, img, text }); // 4.6.0
       c.choice.forEach((o, j) => {
         const w = `${where}.choice[${j}]`;
         stable(o.id, w, 'choice');

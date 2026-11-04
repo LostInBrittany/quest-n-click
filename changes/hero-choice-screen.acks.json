@@ -1,0 +1,56 @@
+{
+  "format": "quest-n-click-docs-acks",
+  "version": 1,
+  "pairs": {
+    "create.dsl#commands": {
+      "enHash": "bbc61fa6ce8056e234e5563881563904369e61c89b48e5d1ea3c9ad8cedf23b0",
+      "frHash": "439ba6ca8ca683bee82bd40df480009742d17b19ad354348e94f403fe287305d",
+      "reviewers": [
+        { "name": "claude", "kind": "ai", "relation": "author", "date": "2026-11-03" }
+      ]
+    },
+    "create.heroes#hero-choice": {
+      "enHash": "11eaccd110175b7d41a108789d1a1997a857c115c32c35b9197a8262daf67dd5",
+      "frHash": "d57242404752eadd20e7fa70c2a236e45840bac85cadb11c17f19ab6b0131427",
+      "reviewers": [
+        { "name": "claude", "kind": "ai", "relation": "author", "date": "2026-11-03" }
+      ]
+    },
+    "create.heroes#hero-choice-messages": {
+      "enHash": "c87b8970498d3a3446eed7d784b3232b6186b38f5c785eee7e58ddf45f770178",
+      "frHash": "a2d436e34f2582f509ecc79fba1ed35253f3b4a6c84c64736be77a7d59a4db3f",
+      "reviewers": [
+        { "name": "claude", "kind": "ai", "relation": "author", "date": "2026-11-03" }
+      ]
+    },
+    "create.heroes#hero-choice-screen": {
+      "enHash": "472427c35cb839c17765590208ace832d63d754e50e3c85924dc31e8c1cf855b",
+      "frHash": "6b87a001ee5c66bbef38f91e0045b9cdead805c6942e0771bfbf6e7d01028f91",
+      "reviewers": [
+        { "name": "claude", "kind": "ai", "relation": "author", "date": "2026-11-03" }
+      ]
+    },
+    "create.heroes#steps": {
+      "enHash": "9d750cad06c714c21842a6126ce95f3c3574c84fdb8047dc53ca7f7ea7102fb8",
+      "frHash": "497b733349a3e0f8b4491ee28c300ab0d170ce62ab3ea5786c48b0220e6ffea4",
+      "reviewers": [
+        { "name": "claude", "kind": "ai", "relation": "author", "date": "2026-11-03" }
+      ]
+    },
+    "create.heroes#what-you-will-build": {
+      "enHash": "3b2618aba5ba22b1c96fce8be6681a480eef01a2fdc21008a59047ee29157066",
+      "frHash": "bf411718d6bb43dcb8325ec5e6368cabb54aa6533dca6265f9eeefd42d6dafe2",
+      "reviewers": [
+        { "name": "claude", "kind": "ai", "relation": "author", "date": "2026-11-03" }
+      ]
+    },
+    "engine.api#content-reference": {
+      "enHash": "ced3b57a6b93c703e57557e991881c65478668d738866f305402098bc2c42d8b",
+      "frHash": "a2322c791584f63ee04613cc957b190a91d66a7db7654931c3ef4647d4bc17eb",
+      "reviewers": [
+        { "name": "claude", "kind": "ai", "relation": "author", "date": "2026-11-03" }
+      ]
+    }
+  },
+  "claims": {}
+}
