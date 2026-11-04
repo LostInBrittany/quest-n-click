@@ -242,7 +242,7 @@ autre sortie, alors on pose des tuyaux. Le vendeur veut des fleurs, alors on les
 ## La carte
 
 - **Ajoutez-en une à partir de trois lieux.** Avec deux, une porte suffit.
-- **Les véhicules** (`vehicle: 'car'`, `'plane'`) donnent à chaque trajet une petite animation et une distance.
+- **Les véhicules** (`vehicle: 'car'`, `'plane'`, `'walk'`) donnent à chaque trajet une petite animation et une distance.
 - **Le marqueur « nouveau »** montre où quelque chose attend. Le jeu d’exemple : le jardin en a un tant que
   `!tank_drained`, le marché tant que le héros n’a pas la clé, la maison quand il tient la clé et que le garde-manger
   est encore fermé.

@@ -40,6 +40,18 @@ bouton (`skin.icons.map`), ou une règle l'ouvre avec `{ map: true }` ; un tap s
 son lieu (son `onEnter` s'exécute). `vehicle: 'car'` ou `'plane'` dessine le véhicule le long du trajet : une petite
 animation et une impression de distance.
 
+`vehicle: 'walk'` fait voyager le héros à pied : le personnage que le joueur joue à ce moment marche le long du trajet,
+tel que la salle le dessine (la variante qui s'applique, donc le héros choisi au Nouveau jeu, et sa palette). Ses images
+`walk` défilent à son `fps`, retournées quand le chemin va vers la gauche ; sur un tronçon surtout vertical, `walk_back`
+en montant et `walk_front` en descendant quand la planche les a. Le marcheur fait 12 % de la hauteur de la carte (à peu
+près la taille d'une épingle), sa largeur suit l'image, ses pieds sur le trajet ; le voyage dure 1,6 s, comme en
+voiture, et ne fait aucun bruit. Un héros sans images `walk` voyage en voiture. Comme les autres véhicules, ce n'est
+que de la présentation : les règles, les sauvegardes et le solveur ne le voient pas.
+
+```ts
+lande: { name: 'La lande', room: 'lande', region: 'leon', pos: [40, 62], vehicle: 'walk' },
+```
+
 `news: COND` affiche un « ! » sur l'épingle tant que la condition est vraie : là où quelque chose de nouveau attend.
 Dans la démo, le jardin a une nouveauté tant que `!tank_drained`, la maison quand on tient la clé et que le
 garde-manger est encore fermé.

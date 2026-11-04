@@ -107,8 +107,11 @@ export interface PlaceDef {
    * a way to its own place. The face shows once this place is unlocked; its `pos` is not used (write the pin's).
    */
   joins?: Id;
-  /** Vehicle drawn along the route. */
-  vehicle?: 'car' | 'plane';
+  /**
+   * How the journey to this place is drawn along the route: a car (the default) or a plane image, or `walk` (4.6.1):
+   * the current hero walking, with their walk frames (the car when they have none).
+   */
+  vehicle?: 'car' | 'plane' | 'walk';
   /** "!" shown while this condition is true. */
   news?: Cond;
 }

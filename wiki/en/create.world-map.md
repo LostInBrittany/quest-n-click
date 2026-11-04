@@ -37,6 +37,17 @@ its own `unlocked`). `{ unlocked: 'market' }` tests it. The player opens the map
 a rule does with `{ map: true }`; a tap on a pin travels to its place's room (its `onEnter` runs). `vehicle: 'car'` or
 `'plane'` draws the vehicle along the route: a small animation and a sense of distance.
 
+`vehicle: 'walk'` sends the hero on foot: the character the player plays now walks along the route, as the room draws
+them (the variant that applies, so the hero chosen at New Game, and their palette). Their `walk` frames play at their
+`fps`, flipped when the way goes left; on a mostly vertical stretch, `walk_back` going up and `walk_front` going down
+when the sheet has them. The walker is 12% of the map's height (about a pin's size), its width following the frame,
+its feet on the route; the journey lasts 1.6 s, as by car, and makes no sound. A hero with no `walk` frames travels by
+car. Like the other vehicles, it is presentation only: rules, saves and the solver do not see it.
+
+```ts
+lande: { name: 'The heath', room: 'lande', region: 'leon', pos: [40, 62], vehicle: 'walk' },
+```
+
 `news: COND` shows a "!" on the pin while the condition is true: where something new is waiting. In the demo, the
 garden has news while `!tank_drained`, the house when you hold the key and the pantry is still closed.
 
