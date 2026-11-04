@@ -64,7 +64,9 @@ parallel format would duplicate the DSL and break the solver, the MCP and the pr
 
 ## Portrait mode, gamepad, key remapping
 
-- **Portrait on a phone**: not supported; the game plays in landscape and asks to rotate the phone.
+- **Portrait on a phone**: only in a game that asks for it (`skin.portrait: true`, 4.6.0): the scene on top, the verbs
+  and the bag below ([Skin and fonts](create.skin-fonts.md#skin-other)). Any other game plays in landscape and asks to
+  rotate the phone.
 - **A gamepad**: it does not play the game; only the Remix code wheel reads one.
 - **Remapping keys**: not supported; a game may give its verbs letters, and the player can turn them off.
 

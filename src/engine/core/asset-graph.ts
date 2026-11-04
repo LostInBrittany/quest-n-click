@@ -134,12 +134,13 @@ function cmdAssets(
         }
       } else if ('say' in c) voice(c.id, (c as { voice?: Id }).voice);
       else if ('toast' in c || 'guide' in c) voice(c.id);
-      else if ('choice' in c)
+      else if ('choice' in c) {
+        add(out, 'img', c.screen?.decor); // a choice screen's backdrop (4.6.0)
         c.choice.forEach((o) => {
           voice(o.id);
           add(out, 'img', o.img);
         });
-      else if ('gain' in c) add(out, 'img', game.items[c.gain]?.icon);
+      } else if ('gain' in c) add(out, 'img', game.items[c.gain]?.icon);
       else if ('transfer' in c) add(out, 'img', game.items[c.transfer[0]]?.icon);
       else if ('phone' in c) {
         for (const w of asList(c.phone))

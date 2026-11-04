@@ -411,13 +411,19 @@ const choice: Handler<'choice'> = async (eng, c, ctx) => {
       return eng.cond(o.if, room.id) && !(o.once && s.seen[k]);
     });
   if (!opts.length) return;
-  const pick = await eng.choose(opts.map(({ o }) => ({ text: o.text, ...(o.img ? { img: o.img } : {}) })));
+  const pick = await eng.choose(
+    opts.map(({ o }) => ({ text: o.text, ...(o.img ? { img: o.img } : {}) })),
+    undefined,
+    c.screen && { ...c.screen, ...(c.screen.title !== undefined ? { title: eng.text(c.screen.title) } : {}) },
+  );
   const { o } = must(opts[Math.max(0, Math.min(pick, opts.length - 1))], 'choice option');
   if (o.once) {
     s.seen[choiceKey(o)] = 1;
     eng.writes?.add(`seen:${choiceKey(o)}`);
   }
-  await eng.say(HERO, o.text, ctx);
+  // On a choice screen (4.6.0) the pick is not said back: the hero tapped is the answer, and the line would come
+  // before its `do` (the hero choice's flag), in the look the player did not choose.
+  if (!c.screen) await eng.say(HERO, o.text, ctx);
   return eng.exec(o.do, ctx);
 };
 

@@ -3,10 +3,10 @@
   "version": 1,
   "pairs": {
     "create.heroes#hero-choice": {
-      "enHash": "da9fa8289c86828657ebff4120b789783c2a724a68a8e28a3e067aca0f9add43",
-      "frHash": "70f1af32f8f13969eb210f6ad1bdbfa30b51bbdcd6bc2b2c1764a2b24afa4d36",
+      "enHash": "9751199977b74af1fd67ae1cad670e11727d43329b49363bc5a7e7e7f2d38263",
+      "frHash": "4427aff6b7aa2005a21eac29f33557cfbed81c2fb8a4d1186ad5c54f1777ee4b",
       "reviewers": [
-        { "name": "claude-opus-5.5", "kind": "ai", "relation": "author", "date": "2026-11-04" }
+        { "name": "claude-opus-5-5", "kind": "ai", "relation": "author", "date": "2026-11-04" }
       ]
     },
     "play.saves#autosave": {

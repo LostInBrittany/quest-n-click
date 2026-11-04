@@ -10,8 +10,8 @@ feature promises, and how far it is proven: [Stability and support](start.stabil
 
 - **A classic point-and-click interface**: verbs, a bag, a sentence line; a double tap acts with the verb you mean; a
   key per verb when the game gives one ([Controls](play.controls.md)).
-- **Phone and desktop**: landscape on a phone, the classic layout with a mouse; the whole game at the keyboard
-  ([Accessibility](play.accessibility.md)).
+- **Phone and desktop**: landscape on a phone, upright too in a game that allows it (4.6.0), the classic layout with a
+  mouse; the whole game at the keyboard ([Accessibility](play.accessibility.md)).
 - **Installs and plays offline**: a PWA that caches the whole game after the first visit and says when it is complete
   ([Install the game as an app](play.install-app.md)).
 - **Autosave and save slots**, with export and import as a file ([Saves](play.saves.md)).

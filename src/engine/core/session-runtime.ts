@@ -4,7 +4,16 @@
 // (ADR 0016) it also owns the run's seed and its `logic` stream (what `engine.random` draws), and the run clock it
 // tells of every entry; a listener (a speedrun's recorder, the verifier) hears each entry begin and end.
 import { stateDigest } from './diff';
-import type { GameDef, GameState, Id, MinigameResult, MinigameTranscript, Session, SessionEntry } from './types';
+import type {
+  ChoiceScreen,
+  GameDef,
+  GameState,
+  Id,
+  MinigameResult,
+  MinigameTranscript,
+  Session,
+  SessionEntry,
+} from './types';
 import type { Presenter } from './ports';
 import { SESSION_MAX } from './engine-shared';
 import { derive, newSeed, type Prng } from './prng';
@@ -157,10 +166,14 @@ export class SessionLog {
   }
 
   /** A choice, recorded (and fed back when replaying). */
-  async choose(options: { text: string; seen?: boolean; global?: boolean; img?: Id }[], who?: Id): Promise<number> {
+  async choose(
+    options: { text: string; seen?: boolean; global?: boolean; img?: Id }[],
+    who?: Id,
+    screen?: ChoiceScreen,
+  ): Promise<number> {
     const o = this.cur;
     const fed = o?.src?.picks?.[o.pi];
-    const i = fed !== undefined ? (o!.pi++, fed) : await this.host.ui.choose(options, who);
+    const i = fed !== undefined ? (o!.pi++, fed) : await this.host.ui.choose(options, who, screen);
     this.host.world?.sync();
     if (o) (o.entry.picks ??= []).push(i);
     return i;

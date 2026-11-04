@@ -185,6 +185,8 @@ export const CMD_SPECS: Record<CmdKey, CmdSpec> = {
         },
       },
     },
+    // 4.6.0: the choice full screen over its own backdrop (ChoiceScreen), the options with an image standing on it.
+    extra: { screen: opt({ k: 'object', fields: { decor: id('image'), title: opt({ k: 'text' }) } }) },
   },
   minigame: { label: 'Minigame', value: id('minigame'), extra: { params: opt({ k: 'json' }), then: opt(cmds) } },
   phone: { label: 'Phone call', value: id('char'), extra: { do: cmds } },

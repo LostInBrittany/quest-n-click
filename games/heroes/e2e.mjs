@@ -1,7 +1,9 @@
 // Playwright playthrough of "Who Am I Today?" (games/heroes, 4.4.0; scripts/e2e.mjs loads it, wiki/en/reference.npm-scripts.md).
 // For each language (English, then French with `?lang=`) and each of the three heroes, from the real title screen:
-//   - New game; the intro's three portrait cards (Choice.img), each with its image loaded and its label; the hero's card
-//     is tapped (the first time, the page is reloaded while the cards are open: no Continue, New game asks again, #401);
+//   - New game; the hero choice screen (4.6.0, `{ choice, screen }`): full screen, the side column hidden, its title
+//     in the player's language (the group's name), the three heroes standing on it, each with its image loaded and its
+//     label, the first one focused; the hero is tapped once (the first time, the page is reloaded while the screen is
+//     open: no Continue, New game asks again, #401), and the screen gives way to the garden;
 //   - the hero says who they are (a switch), the engine's hero now carries that hero's name;
 //   - Grandma greets the hero by name (`{hero}`) with the words for that hero, French agreeing them with the gull
 //     (`Prête`), and the dust line plays that hero's clip (`garden.dust~form=<hero>`, `audio.voices` or
@@ -35,6 +37,7 @@ const HEROES = [
 const TEXT = {
   en: {
     cards: ['Pixel', 'Biscuit', 'Gaby'],
+    title: 'Who am I this morning?',
     topicHello: 'Good morning, Grandma!',
     topicKey: 'Where is the gate key?',
     dust: 'Under the watering can.',
@@ -42,6 +45,7 @@ const TEXT = {
   },
   fr: {
     cards: ['Pixel', 'Biscuit', 'Gaby'],
+    title: 'Qui suis-je ce matin ?',
     topicHello: 'Bonjour, Grand-mère !',
     topicKey: 'Où est la clé du portail ?',
     dust: "Sous l'arrosoir.",
@@ -126,28 +130,49 @@ export async function run(h) {
         () => false,
       ))
         await erase.tap();
-      // The intro asks who the hero is with three portrait cards.
-      await page.locator('.side .choices .choice.card').first().waitFor({ timeout: 15000 });
-      const cards = await page.evaluate(() =>
-        [...document.querySelectorAll('.side .choices .choice.card')].map((b) => ({
-          label: b.textContent.trim(),
-          img: !!b.querySelector('img')?.complete && (b.querySelector('img')?.naturalWidth ?? 0) > 0,
-        })),
+      // The intro asks who the hero is on the hero choice screen: the three heroes standing on the backdrop.
+      await page.locator('.choicescreen .choice.hero').first().waitFor({ timeout: 15000 });
+      await page.waitForFunction(() => [...document.querySelectorAll('.choicescreen img')].every((i) => i.complete), null, { timeout: 8000 });
+      const shown = await page.evaluate(() => {
+        const g = document.querySelector('.choicescreen .group');
+        return {
+          title: document.getElementById(g?.getAttribute('aria-labelledby') ?? '')?.textContent ?? null,
+          side: getComputedStyle(document.querySelector('.side')).display,
+          focused: document.activeElement?.textContent?.trim() ?? null,
+          heroes: [...document.querySelectorAll('.choicescreen .choice.hero')].map((b) => ({
+            label: b.textContent.trim(),
+            img: (b.querySelector('img')?.naturalWidth ?? 0) > 0,
+          })),
+        };
+      });
+      if (
+        shown.title !== T.title ||
+        shown.side !== 'none' ||
+        shown.focused !== T.cards[0] ||
+        shown.heroes.map((c) => c.label).join('|') !== T.cards.join('|') ||
+        shown.heroes.some((c) => !c.img)
+      )
+        throw new Error(`heroes: ${tag}: the hero choice screen is ${JSON.stringify(shown)}`);
+      // The heroes rise into place (no animation with reduced motion): the screenshot waits for them.
+      await page.waitForFunction(
+        () => document.getAnimations().every((a) => a.playState !== 'running' || !a.effect?.target?.closest?.('.choicescreen')),
+        null,
+        { timeout: 5000 },
       );
-      if (cards.map((c) => c.label).join('|') !== T.cards.join('|') || cards.some((c) => !c.img))
-        throw new Error(`heroes: ${tag}: the portrait cards are ${JSON.stringify(cards)}`);
-      await h.screenshot(`${tag}-cards`);
+      await h.screenshot(`${tag}-screen`);
       if (lang === 'en' && hh === HEROES[0]) {
-        // A reload while the cards are open (#401): the autosave waits for the end of the intro, so there is nothing
+        // A reload while the screen is open (#401): the autosave waits for the end of the intro, so there is nothing
         // to continue, and New game asks again.
         await page.waitForTimeout(400);
         await open(lang, true);
         if (!(await page.locator('.overlay .bigbtn').nth(1).isDisabled()))
           throw new Error(`heroes: ${tag}: Continue is enabled after a reload during the hero choice`);
         await page.locator('.overlay .bigbtn').first().tap();
-        await page.locator('.side .choices .choice.card').first().waitFor({ timeout: 15000 });
+        await page.locator('.choicescreen .choice.hero').first().waitFor({ timeout: 15000 });
       }
-      await choose(hh.name, L.me);
+      await page.locator('.choicescreen .choice.hero', { hasText: hh.name }).first().tap();
+      await hear(L.me);
+      if (await page.locator('.choicescreen').count()) throw new Error(`heroes: ${tag}: the choice screen stayed`);
       await expectHero(hh, `${tag}: after the choice`);
       // Grandma: the hero's name and the words for that hero; the dust line, voiced for that hero.
       await h.verbById('talk');
@@ -185,7 +210,7 @@ export async function run(h) {
         const leaks = await h.leaks();
         if (leaks.length) throw new Error(`heroes: ${tag}: English defaults visible in French: ${leaks.join(' | ')}`);
       }
-      console.log(`e2e: heroes: ${tag}: ${hh.name} chosen on a card, named, greeted, voiced, kept by Continue, finished`);
+      console.log(`e2e: heroes: ${tag}: ${hh.name} chosen on the screen, named, greeted, voiced, kept by Continue, finished`);
     }
   }
 }

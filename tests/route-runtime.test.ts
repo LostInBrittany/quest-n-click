@@ -242,6 +242,38 @@ describe('saves and replays', () => {
     expect(stateDigest(r.state)).toBe(stateDigest(e.state));
   });
 
+  it('a save held at a closed exit reads back held (`route.blocked`, #403)', async () => {
+    const { e } = await make();
+    e.state.flags.door_locked = true;
+    e.world.tick(400);
+    expect(e.scriptState('rounds').route?.blocked).toBe(true);
+    const g = compileGame(routesGame());
+    const warns: string[] = [];
+    const read = parseSave(g, saveEnvelope(g, structuredClone(e.state)), { warn: (m) => warns.push(m) });
+    expect(warns).toEqual([]);
+    expect(read.scripts?.rounds?.route?.blocked).toBe(true);
+  });
+
+  it('a replayed entry ends at the last tick it recorded, whatever its sync points before (#403)', async () => {
+    const ui = new TickingPresenter();
+    const { e } = await make(ui);
+    e.digestOn = true;
+    e.world.tick(3);
+    await e.act({ verb: 'talk', a: 'guard' });
+    const log = structuredClone(e.session!.log);
+    const last = log[log.length - 1]!;
+    const w = last.wt!;
+    expect(w.length).toBeGreaterThan(1);
+    expect(w[w.length - 1]).toBeGreaterThan(w[0]!);
+    // The world moved only after the entry's sync points before its end, and one more of them was recorded than the
+    // replay meets: only the entry's end reaches its last tick. The route is held by the talk the whole time, so the
+    // state is the recorded one.
+    last.wt = [...w.slice(0, -1).map(() => w[0]!), w[0]!, w[w.length - 1]!];
+    const r = await replay(routesGame(), routesLayouts, { ...e.session!, log });
+    expect(r.state.world).toBe(e.state.world);
+    expect(stateDigest(r.state)).toBe(stateDigest(e.state));
+  });
+
   it('a save made before routes loads, and the routes begin from it; a step that disappeared is dropped (G8)', async () => {
     const { e } = await make();
     const old = structuredClone(e.state);

@@ -7,6 +7,7 @@ import { derive } from '../core/prng';
 import type { MotionSpec } from '../core/motion';
 import type { Presenter } from '../core/ports';
 import type {
+  ChoiceScreen,
   GameState,
   Id,
   MinigameOutcome,
@@ -220,8 +221,15 @@ export class DomPresenter implements Presenter {
 
   // ---------------------------------------------------------------- choices, calls, the map
 
-  choose(options: { text: string; seen?: boolean; global?: boolean; img?: Id }[], who?: Id): Promise<number> {
-    return chooseImpl(this.app, options, who);
+  choose(
+    options: { text: string; seen?: boolean; global?: boolean; img?: Id }[],
+    who?: Id,
+    screen?: ChoiceScreen,
+  ): Promise<number> {
+    // The choice screen loads when a game shows one, so it stays out of the first visit (quality baseline).
+    return screen
+      ? import('./choice-screen').then((m) => m.chooseScreen(this.app, options, screen))
+      : chooseImpl(this.app, options, who);
   }
   phone(whoIn: Id | Id[], ringing: boolean) {
     return phoneImpl(this.app, whoIn, ringing);

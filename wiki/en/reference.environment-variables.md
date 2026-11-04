@@ -683,7 +683,7 @@ Any value makes the hosted Studio's end-to-end test print what it does.
 Where an end-to-end test writes its screenshots and reports.
 
 - Origin: you set it; the code reads it.
-- Read by: [`.github/workflows/ci.yml`](../../.github/workflows/ci.yml), [`scripts/e2e-a11y.mjs`](../../scripts/e2e-a11y.mjs), [`scripts/e2e/lib.mjs`](../../scripts/e2e/lib.mjs).
+- Read by: [`.github/workflows/ci.yml`](../../.github/workflows/ci.yml), [`scripts/e2e-a11y.mjs`](../../scripts/e2e-a11y.mjs), [`scripts/e2e-portrait.mjs`](../../scripts/e2e-portrait.mjs), and 1 more.
 
 <a name="e2e-weight-debug"></a>
 

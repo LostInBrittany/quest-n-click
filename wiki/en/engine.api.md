@@ -201,6 +201,7 @@ npm run wiki -- generate engine.api
 | `CharacterDef` | `interface { name, description, color, height, sprites, portrait, … 11 more }` | public | A character: its name, dialogue colour, poses, mouths and portrait, its kinds, and the variants its state selects. |
 | `checkWheel` | `(w: CodeWheel): string[]` | public | The wheel's solution, checked the way a player reads it (turn, then read): a solution exists, it is unique (one rotation aligns the pair), a |
 | `Choice` | `interface { id, text, if, once, img, do }` | public | One answer the player may pick in a `{ choice }` command: its text, when it is offered, what it runs. |
+| `ChoiceScreen` | `interface { decor, title }` | public | A choice shown full screen (4.6.0, "hero choice screen"): its own backdrop instead of the side column over the room, a line on top, and each |
 | `Cmd` | `type Cmd = union of 58` | public | A command. A plain string = the hero says this line. Command lists run in order, each one waiting for the previous one to finish. |
 | `CmdScriptDef` | `interface { id, while, loop, do, stepIds, route, … 1 more }` | public | A script of commands (`do`), the only kind before 4.6.0. |
 | `CODE_WHEEL_VERSION` | `number` | public | The wheel's layout version: a stored record of another version is replayed as it is, never regenerated. |
@@ -299,7 +300,7 @@ npm run wiki -- generate engine.api
 | `Session` | `interface { v, start, base, log, at, seed, … 1 more }` | public | A player's inputs since the game started or a save was loaded, with the state they started from: enough to replay them. |
 | `SessionEntry` | `type SessionEntry = union of 11` | public | One input of a session (`Engine.session`). The answers given while it ran (`picks`, `maps`, `rnd`) are what makes it replayable; `ran` lists |
 | `SignalDef` | `interface { id, source, availability, replay, once, fallback }` | public | A signal the game may receive from the world outside: its id, source, availability, replay mode and fallback. |
-| `SkinDef` | `interface { icons, sounds, fonts, heights, callPoses, pixelArt }` | public | UI skin: everything the engine shows or plays without the content referencing it. Image ids come from the manifest; sounds are ids from `aud |
+| `SkinDef` | `interface { icons, sounds, fonts, heights, callPoses, pixelArt, … 1 more }` | public | UI skin: everything the engine shows or plays without the content referencing it. Image ids come from the manifest; sounds are ids from `aud |
 | `SpeedrunCategory` | `interface { id, name, timing, start, finish, allowSaves, … 8 more }` | public | A speedrun category: what counts as a run, how it is timed, what it may do. `timing` names the time it is ranked on: `rta` (the wall clock,  |
 | `SpeedrunManifest` | `interface { categories, splits, rulesVersion }` | public | The game's speedrun manifest (`GameDef.speedrun`): categories, splits, and the version of the rules (a change never silently requalifies an  |
 | `SpeedrunSplit` | `interface { id, name, at, parent }` | public | A split: a semantic trigger, a name, and the split it is a step of. |

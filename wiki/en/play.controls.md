@@ -9,11 +9,15 @@ otherwise, and it may have fewer or more verbs.
 ## Two layouts
 
 - **On a phone** the game plays in landscape. Held upright, a phone shows "Rotate your phone" (the game's own words)
-  until you turn it. The scene fills the left; a column on the right holds the verbs, the bag (your inventory) and
+  until you turn it, unless the game plays upright too (below). The scene fills the left; a column on the right holds the verbs, the bag (your inventory) and
   the tools: a portrait per playable character when the game has several (a tap switches to that character), the
   map, the pause menu, and a sound button that turns music and effects off or on together. On a short
   landscape screen (a phone under its browser's bars), the column shrinks its slots and verbs to fit, and scrolls
   instead of cutting below a floor (4.4.0).
+- **On a phone held upright**, in a game that allows it (4.6.0): the scene on top, as wide as the screen; below it the
+  sentence line, the verbs, the bag and the tools, the tools at the bottom. Conversation choices and the map's places
+  take the place of the verbs and the bag; the pause menu takes the whole screen. Turning the phone switches between
+  the two layouts as you play.
 - **On a computer** with a mouse and a window at least 720 × 450 pixels, the classic layout: the scene on top, the
   sentence line, then the verbs, the bag and the tools in a row below. Hovering a thing names it in the sentence line
   and turns the pointer into a hand.

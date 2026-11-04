@@ -10,12 +10,13 @@ which.
 
 ## What you will build
 
-A game whose New Game screen asks "Who am I this morning?" and shows one portrait card per hero. Once a hero is chosen,
+A game whose New Game screen asks "Who am I this morning?" and shows the heroes standing side by side in a scene of
+their own, full screen: the player taps one. Once a hero is chosen,
 the character on screen has that hero's look and name, the other characters' lines use that name (`{hero}`) and the
 words that fit that hero (`{form?…}`), in every language, with voices recorded per hero. A save keeps the hero.
 
 The finished example is in the engine repository: `games/heroes`, "Who Am I Today?" (4.4.0). One garden, one puzzle
-(the gate key under the watering can), three heroes on portrait cards (Pixel, Biscuit, Gaby the gull), `{hero}` and
+(the gate key under the watering can), three heroes standing on the hero choice screen (Pixel, Biscuit, Gaby the gull, 4.6.0), `{hero}` and
 switches in Grandma's lines, a French table that adds its own agreements (`Prêt{form?gull=e|*=}`), Grandma's lines
 voiced per hero in both languages, one rule only the gull gets, and a save that keeps the hero.
 
@@ -39,8 +40,8 @@ voiced per hero in both languages, one rule only the gull gets, and a save that 
    GAME=heroes npm run dev
    ```
 
-   Open the URL it prints, press New Game: three cards, "Pixel", "Biscuit" and "Gaby". Pick one; Grandma greets that
-   hero by name.
+   Open the URL it prints, press New Game: the garden, full screen, with "Pixel", "Biscuit" and "Gaby" standing in it.
+   Tap one; Grandma greets that hero by name.
 
 <!-- step: flag-and-variants -->
 2. **One character, one variant per hero.** Pick a flag name for the hero (`form` here; any name works). Write one
@@ -49,9 +50,10 @@ voiced per hero in both languages, one rule only the gull gets, and a save that 
    is that character.
 
 <!-- step: intro-choice -->
-3. **The intro sets the flag.** In `start.intro`, a `choice` with one option per hero, each with `img` (its portrait)
-   and `{ set: ['form', '<value>'] }`. The intro runs before the first room's arrival, so the hero is chosen before
-   anyone talks. Reload: the New Game screen shows the cards.
+3. **The intro sets the flag.** In `start.intro`, a `choice` with one option per hero, each with `img` (its picture)
+   and `{ set: ['form', '<value>'] }`, and `screen: { decor, title }` to show it full screen (4.6.0,
+   [the hero choice screen](#hero-choice-screen)). The intro runs before the first room's arrival, so the hero is
+   chosen before anyone talks. Reload: the New Game screen shows the heroes.
 
 <!-- step: switches -->
 4. **The others' words follow the hero.** In the lines, `{hero}` is the hero's name, and
@@ -146,8 +148,9 @@ look: { grandma: 'Grandma. Dust makes {form?knight=him|witch=her|robot=it} sneez
   is shown as written too: give each hero its own variant and name instead of a switch.
 - **The intro runs before the first room's arrival**, so the hero is chosen before anyone talks. With `img`, each
   option is a card: the portrait with its `text` as the label (and the screen reader's name); the cards wrap and
-  scroll, so any number of heroes fits on a phone. Without `img`, the options are text lines. The autosave is written
-  once the intro has ended (4.6.0, #401): a reload before the pick leaves no Continue, so no game starts without a hero.
+  scroll, so any number of heroes fits on a phone. Without `img`, the options are text lines. With `screen` (4.6.0),
+  the choice is full screen instead: [the hero choice screen](#hero-choice-screen). The autosave is written once the
+  intro has ended (4.6.0, #401): a reload before the pick leaves no Continue, so no game starts without a hero.
 - **Logic stays logic**: a rule that must differ by hero carries `if: { flag: 'form', eq: 'witch' }`. The solver
   branches over the intro's choice, but `npm run solve` stops at the first winning path; `npm run solve -- --prove`
   checks every hero. Saves keep the flag; checkpoints take it in `flags`.
@@ -156,6 +159,40 @@ look: { grandma: 'Grandma. Dust makes {form?knight=him|witch=her|robot=it} sneez
 > A save keeps the hero: the flag that chose it is in the saved state, so a game loaded in a new engine shows the same
 > hero, with its name. Limit: the test loads a save of the heroes fixture (`tests/fixtures/heroes.ts`) in the same
 > engine version; what a save does across an engine upgrade is in [State and saves](create.state-saves.md).
+
+<a name="hero-choice-screen"></a>
+<!-- applies: .. since 4.6.0 -->
+
+### The hero choice screen
+
+The same `choice`, shown full screen over a scene made for it: the heroes standing side by side on the backdrop, a
+line on top, one tap picks. No room, actor or coordinate to write.
+
+```ts
+start: { room: 'hall', intro: [
+  { id: 'intro.who', screen: { decor: 'decor/stage', title: 'Who am I this morning?' }, choice: [
+    { id: 'intro.who.knight', text: 'Sir Lance', img: 'knight/r3c1', do: [{ set: ['form', 'knight'] }] },
+    { id: 'intro.who.witch', text: 'Morwen', img: 'witch/r3c1', do: [{ set: ['form', 'witch'] }] },
+    { id: 'intro.who.robot', text: 'Robo', img: 'robot/r3c1', do: [{ set: ['form', 'robot'] }] },
+  ] },
+] },
+```
+
+- **`screen.decor`** is the backdrop, drawn over the whole scene; the side column (verbs, bag, buttons) is hidden while
+  the screen shows, as on the title screen. **`screen.title`** is the line on top (optional): a text like a line, so
+  switches, `{hero}` and translations apply (`start/intro[0].screen.title` in a table).
+- **Each option with an `img`** stands on the backdrop, side by side, at about half the screen's height, with its
+  `text` under it: give it a full-body frame (a sheet's front pose), not a portrait. The options without `img` are
+  buttons under the heroes. The screen picks the sizes: nothing to place in the editor.
+- **One tap picks**, and the pick is not said back by the hero (without `screen`, the hero says the option picked).
+  Then the room shows, the hero in the chosen look; a walk-in is the first room's arrival (`onEnter`), as usual.
+- **Presentation only**: the options, their `if`, `once` and `do` and the recorded pick are those of the same choice
+  without `screen`. The solver and `--prove` branch over it as over any intro choice; saves and replays do not see it;
+  the IR leaves it out, so the logic fingerprint does not move.
+- **For everyone**: a group named by the title, one button per hero named by its text, the first one focused, the
+  arrow keys move between them; the heroes rise into place, and stand still with reduced motion. On a phone in
+  landscape and on a desktop the screen takes the scene's full width.
+- Without `screen`, a choice is what it was: the side column, the cards for the options with `img`.
 
 <a name="hero-choice-translations"></a>
 
@@ -204,7 +241,9 @@ are only map keys: the file names stay yours. `{hero}` alone is not a switch: su
   `text switch "…" reads flag "form", which no command sets`; `… lists value "x" for "form", which no set writes`;
   `… has no text for "form" = "robot" (written at …): list it or add "*="`; `{hero} in a text shown as written`;
   `start.intro[1].choice[0].img › image not found: "…"`. A flag counted with `inc` cannot be listed: its switch needs
-  `*=` (a warning).
+  `*=` (a warning). With a screen (4.6.0): `start.intro[0].screen.decor › image not found: "…"`,
+  `… › a choice screen needs a "decor" (the backdrop image)`, and the warning
+  `start.intro[0].choice[3] › no "img" in a choice screen: it shows as a button under the pictures`.
 - `npm run validate` also warns: `voiced line with text switches lacks 1 of 3 clip(s) by value: sneeze~form=robot`.
 - `npm run lint`: `hero-looks-default` (info) when two or more values of the hero's flag match no variant, so those
   heroes look like the written one (a typo in a variant's `if`, or a variant not written yet).
