@@ -2,7 +2,8 @@
 // For each language (English, then French with `?lang=`) and each of the three heroes, from the real title screen:
 //   - New game; the hero choice screen (4.6.0, `{ choice, screen }`): full screen, the side column hidden, its title
 //     in the player's language (the group's name), the three heroes standing on it, each with its image loaded and its
-//     label, the first one focused; the hero is tapped once, and the screen gives way to the garden;
+//     label, the first one focused; the hero is tapped once (the first time, the page is reloaded while the screen is
+//     open: no Continue, New game asks again, #401), and the screen gives way to the garden;
 //   - the hero says who they are (a switch), the engine's hero now carries that hero's name;
 //   - Grandma greets the hero by name (`{hero}`) with the words for that hero, French agreeing them with the gull
 //     (`Prête`), and the dust line plays that hero's clip (`garden.dust~form=<hero>`, `audio.voices` or
@@ -159,6 +160,16 @@ export async function run(h) {
         { timeout: 5000 },
       );
       await h.screenshot(`${tag}-screen`);
+      if (lang === 'en' && hh === HEROES[0]) {
+        // A reload while the screen is open (#401): the autosave waits for the end of the intro, so there is nothing
+        // to continue, and New game asks again.
+        await page.waitForTimeout(400);
+        await open(lang, true);
+        if (!(await page.locator('.overlay .bigbtn').nth(1).isDisabled()))
+          throw new Error(`heroes: ${tag}: Continue is enabled after a reload during the hero choice`);
+        await page.locator('.overlay .bigbtn').first().tap();
+        await page.locator('.choicescreen .choice.hero').first().waitFor({ timeout: 15000 });
+      }
       await page.locator('.choicescreen .choice.hero', { hasText: hh.name }).first().tap();
       await hear(L.me);
       if (await page.locator('.choicescreen').count()) throw new Error(`heroes: ${tag}: the choice screen stayed`);

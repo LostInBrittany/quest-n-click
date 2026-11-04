@@ -170,7 +170,8 @@ try {
   await page.reload({ waitUntil: 'networkidle' });
 
   // A save to keep across the update: the game started, saved, durable (the banner's rule).
-  // `newGame()` resolves after the prologue, which waits for the player's taps: start it, wait for the state, save.
+  // `newGame()` resolves after the prologue, which waits for the player's taps: start it, wait for the state, get past
+  // the intro, save.
   const progress = async () => {
     await page.evaluate(() => {
       const app = window.__game;
@@ -179,6 +180,23 @@ try {
     await page.waitForFunction(() => !!window.__game.engine.state || window.__game.engine.hasSave(), null, {
       timeout: 20000,
     });
+    // The autosave waits for the intro to hand the player the game (#401): Skip its lines, answer its choice.
+    for (
+      let i = 0;
+      await page.evaluate(
+        () => !!window.__game.engine.state && !(window.__game.engine.hasSave() && !window.__game.engine.busy),
+      );
+      i++
+    ) {
+      if (i > 150) throw new Error('the New Game intro never ended');
+      // The choice's button may sit under the title screen (a game started from code): clicked in the page.
+      await page.evaluate(() => {
+        const choice = document.querySelector('.side .choices .choice');
+        if (choice) choice.click();
+        else window.__game.engine.skip();
+      });
+      await page.waitForTimeout(100);
+    }
     return page.evaluate(async () => {
       const app = window.__game;
       if (app.engine.state) app.engine.save();
