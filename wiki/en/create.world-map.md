@@ -20,7 +20,7 @@ map: {
 | Field | What |
 |---|---|
 | `start` | The region shown when the map opens. |
-| `regions.<id>` | `name`, `image` (the map picture), `parent` (the region it opens from: France from World), `frame: [x, y, w, h]` (its area on the parent's image, in %, for the zoom button). |
+| `regions.<id>` | `name`, `image` (the map picture), `parent` (the region it opens from: France from World), `frame: [x, y, w, h]` (its area on the parent's image, in %: drawn as an outline once the region is open). |
 | `places.<id>` | `name`, `room` (the room it opens), `region`, `pos: [x, y]` (in % of the region's image), `portrait`, `vehicle`, `news`, `joins`. |
 | `music` | The map's music. |
 | `vehicles` | `{ car, plane, pin, news }`: images that replace the skin's icons on the map. |
@@ -59,6 +59,30 @@ places: {
 
 The validator wants the pin's place to exist, in the same region, and not to join another itself (and refuses a place
 that joins itself). A pin with one place renders as before.
+
+<a name="regions"></a>
+<!-- applies: 4.6.1.. since 4.6.1 -->
+
+## Regions inside regions
+
+A region with a `parent` opens from it: the parent's map has a zoom button to it (`ui.zoomIn`) and, when the region
+has a `frame`, its area outlined on the parent's image. Both show only once the region is open: a place in it, or in a
+region below it, is unlocked. Until then the player sees nothing of it, so it spoils nothing and never leads to an empty
+map. A region can sit inside a region inside a region: the one in the middle has the way down above the way back up
+(`ui.world`), which is always there.
+
+The region the map opens on (the current room's place, else `start`) is always open, so the player can zoom back to
+where they stand. When several child regions are open, each has its frame and the button leads to the first one.
+
+```ts
+regions: {
+  land: { name: 'Land', image: 'decor/map' },
+  // Hidden from the land's map until the harbour (or a place of a region inside the coast) is unlocked.
+  coast: { name: 'Coast', image: 'decor/map_coast', parent: 'land', frame: [20, 10, 50, 30] },
+},
+```
+
+Paint no frame into the parent's image: the map draws it when the region opens.
 
 <a name="design"></a>
 
