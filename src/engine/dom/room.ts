@@ -412,6 +412,17 @@ export class RoomView {
     return e.charId ? this.engine.character(e.charId) : undefined;
   }
 
+  /**
+   * A character's frame as the room paints it: its image URL, recoloured when the sheet that applies has a palette and
+   * the room has the swap ready (the map's walker, 4.6.1, #422).
+   */
+  characterImage(charId: Id, img: Id): string {
+    const c = this.engine.character(charId);
+    const url = this.bank.img(img);
+    const pal = c?.palette && Object.keys(c.palette).length ? c.palette : undefined;
+    return (pal && this.palettes.get(url, pal, c?.paletteTolerance ?? 0)) || url;
+  }
+
   /** Current image of a character: pose (or walk), and mouth if the pose has one. */
   private frames(e: Ent): Id[] {
     const c = this.char(e);

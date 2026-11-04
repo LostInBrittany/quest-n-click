@@ -245,18 +245,26 @@ export async function openMap(app: App, state: GameState): Promise<Id | null> {
         path.style.strokeDashoffset = '0';
       });
       const veh = el('img') as HTMLImageElement;
+      // On foot (4.6.1, #422): the hero the player plays now (their variant, recoloured as the room paints them), with
+      // their walk frames. A hero with no walk frames travels by car.
+      const heroId = app.engine.heroId();
+      const hero = p.vehicle === 'walk' ? app.engine.character(heroId) : undefined;
+      const walking = !!hero?.sprites?.walk?.length;
       const vehImg = p.vehicle === 'plane' ? (map.vehicles?.plane ?? icons.plane) : (map.vehicles?.car ?? icons.car);
-      if (vehImg) veh.src = app.bank.img(vehImg);
+      if (!walking && vehImg) veh.src = app.bank.img(vehImg);
       Object.assign(veh.style, {
         position: 'absolute',
-        width: p.vehicle === 'plane' ? '6%' : '4%',
-        transform: 'translate(-50%,-50%)',
+        ...(walking
+          ? { height: `${MAP_WALKER_HEIGHT}%`, width: 'auto' }
+          : { width: p.vehicle === 'plane' ? '6%' : '4%' }),
+        transform: walking ? 'translate(-50%,-100%)' : 'translate(-50%,-50%)',
         zIndex: '15',
         pointerEvents: 'none',
       });
-      if (vehImg) layer.append(veh);
+      if (walking || vehImg) layer.append(veh);
       const planeSfx = app.game.skin.sounds?.plane;
       if (p.vehicle === 'plane' && planeSfx) app.audio.sfx(planeSfx);
+      let flip = to[0] < origin[0];
       const t0 = performance.now();
       await new Promise<void>((r) => {
         const f = (n: number) => {
@@ -264,6 +272,25 @@ export async function openMap(app: App, state: GameState): Promise<Id | null> {
           const pt = path.getPointAtLength(L * k);
           veh.style.left = `${pt.x}%`;
           veh.style.top = `${pt.y}%`;
+          if (walking) {
+            // The way of travel on screen: the route's tangent, in pixels of the map.
+            const a = path.getPointAtLength(Math.max(0, L * k - 1)),
+              b = path.getPointAtLength(Math.min(L, L * k + 1));
+            const s = mapWalkStep(
+              hero?.sprites ?? {},
+              ((b.x - a.x) * layer.clientWidth) / 100,
+              ((b.y - a.y) * layer.clientHeight) / 100,
+              n - t0,
+              hero?.fps ?? 8,
+              flip,
+            );
+            flip = s.flip;
+            if (s.img) {
+              const url = app.view.characterImage(heroId, s.img);
+              if (veh.getAttribute('src') !== url) veh.src = url;
+            }
+            veh.style.transform = `translate(-50%,-100%)${flip ? ' scaleX(-1)' : ''}`;
+          }
           if (k < 1) requestAnimationFrame(f);
           else r();
         };
@@ -275,4 +302,32 @@ export async function openMap(app: App, state: GameState): Promise<Id | null> {
     };
     draw();
   });
+}
+
+/** The walker's height on the map (4.6.1, #422), in % of the map's height: about a pin's size. */
+const MAP_WALKER_HEIGHT = 12;
+
+/**
+ * The hero's image at one moment of a walk on the map (4.6.1, #422), as the room's walker chooses it: `walk_back` going
+ * mostly up and `walk_front` going mostly down when the sheet has them, else `walk`, flipped when the way goes left (a
+ * nearly vertical way keeps the side it had). `dx`, `dy`: the way of travel in pixels; `ms`: time since the start.
+ */
+export function mapWalkStep(
+  sprites: Readonly<Record<string, Id[]>>,
+  dx: number,
+  dy: number,
+  ms: number,
+  fps: number,
+  flip: boolean,
+): { img: Id | undefined; flip: boolean } {
+  const vertical = Math.abs(dy) > Math.abs(dx) * 1.5;
+  const pose =
+    vertical && dy < 0 && sprites.walk_back?.length
+      ? 'walk_back'
+      : vertical && dy > 0 && sprites.walk_front?.length
+        ? 'walk_front'
+        : 'walk';
+  const frames = sprites[pose] ?? [];
+  const i = Math.floor((Math.max(0, ms) * (fps || 8)) / 1000) % Math.max(1, frames.length);
+  return { img: frames[i], flip: Math.abs(dx) > 0.5 ? dx < 0 : flip };
 }

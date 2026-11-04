@@ -234,7 +234,7 @@ lay pipes. The seller wants flowers, so you pick them.
 ## The map
 
 - **Add one from three places.** With two, a door is enough.
-- **Vehicles** (`vehicle: 'car'`, `'plane'`) give each trip a small animation and a sense of distance.
+- **Vehicles** (`vehicle: 'car'`, `'plane'`, `'walk'`) give each trip a small animation and a sense of distance.
 - **The "news" marker** shows where something new is waiting. The sample game: the garden has news while
   `!tank_drained`, the market while the hero does not hold the key, the house when the hero holds the key and the
   pantry is still closed.
