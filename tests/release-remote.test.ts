@@ -45,7 +45,8 @@ describe('the remote ship tag pushes to', () => {
     );
     expect(tag).toContain('const remote = releaseRemote();');
     expect(tag).not.toMatch(/'origin'/);
-    expect(tag).toContain("git(['push', remote, `refs/tags/${name}`]);");
+    // Tried again on a passing failure (#410): gitRetried is git's, a few times.
+    expect(tag).toContain("gitRetried(['push', remote, `refs/tags/${name}`]);");
   });
 });
 

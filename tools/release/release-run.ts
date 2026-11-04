@@ -31,7 +31,7 @@ import { join } from 'node:path';
 import { releaseNotes } from '../../scripts/release-notes.mjs';
 import { humanGates } from './gates';
 // @ts-expect-error: a plain .mjs module without declarations
-import { clock, REPO, releaseRemote, sleep } from './lib.mjs';
+import { clock, gitRetried, REPO, releaseRemote, sleep } from './lib.mjs';
 // @ts-expect-error: a plain .mjs module without declarations
 import { MINIMUM, NPM_NAMES, OWNERS } from './preflight.mjs';
 import { mkdirSync, writeFileSync } from 'node:fs';
@@ -111,15 +111,22 @@ export function releaseRefusals(o: {
   npmVersion: string;
   /** The signing key is named in .github/allowed_signers (the tag's signature is judged against it). */
   signer: boolean;
+  /** The organisation's remote here (`upstream` when `origin` is a fork), named in the git commands said. */
+  remote?: string | undefined;
 }): string[] {
   const out: string[] = [];
   if (o.current !== o.version)
     out.push(
       `package.json is at ${o.current}, not ${o.version}: merge the release pull request (npm run release -- prepare ${o.version}) first`,
     );
-  if (o.branch !== 'main') out.push(`the checkout is on ${o.branch}: a release is made on main (git switch main)`);
+  // prepare leaves the checkout on release/<v> (#410): the switch and the pull in one line, the remote named.
+  const pull = `git pull --ff-only ${o.remote ?? "<the organisation's remote>"} main`;
+  if (o.branch !== 'main')
+    out.push(
+      `the checkout is on ${o.branch}: a release is made on main, up to date with the organisation's: git switch main && ${pull}`,
+    );
   if (o.dirty) out.push('the checkout has uncommitted changes: commit or set them aside first');
-  if (!o.upToDate) out.push("main is not the organisation's: git pull first");
+  if (!o.upToDate && o.branch === 'main') out.push(`main is not the organisation's: ${pull}`);
   if (!o.section) out.push(`CHANGELOG.md has no "## ${o.version}" section: the release pull request writes it`);
   if (!o.signing)
     out.push(
@@ -216,6 +223,19 @@ export function docsGatesStop(o: {
   ].join('\n');
 }
 
+/**
+ * The re-run a stop says (#410): `--failed` when a job failed, was cancelled or timed out; every job when none did. Run
+ * 41819835975 (4.6.0, a GitHub incident) never created its `release` job and skipped its dependents: `--failed` would
+ * have re-run nothing.
+ */
+export function rerunArgs(id: number, jobs: readonly Job[]): string[] {
+  const failed = jobs.some(
+    (j) => j.status === 'completed' && ['failure', 'cancelled', 'timed_out'].includes(j.conclusion),
+  );
+  return ['run', 'rerun', String(id), '--repo', REPO, ...(failed ? ['--failed'] : [])];
+}
+export const rerunCommand = (id: number, jobs: readonly Job[]) => `gh ${rerunArgs(id, jobs).join(' ')}`;
+
 /** One line for a wait: jobs done out of all, those running, those waiting, those failed. */
 export function candidateProgress(jobs: readonly Job[]): string {
   const done = jobs.filter((j) => j.status === 'completed');
@@ -267,7 +287,7 @@ export function candidateStep(
   if (attempt > 1)
     return {
       do: 'stop',
-      error: `candidate run ${o.id} ${view.conclusion === 'failure' ? 'failed' : view.conclusion} again (attempt ${attempt}): ${failed.join(', ') || 'no job failed'} (${url}). It was re-run once already: fix what failed, then re-run it by hand (gh run rerun ${o.id} --repo ${REPO} --failed) and run ${releaseCommand(o.version, o.commit)} again`,
+      error: `candidate run ${o.id} ${view.conclusion === 'failure' ? 'failed' : view.conclusion} again (attempt ${attempt}): ${failed.join(', ') || 'no job failed'} (${url}). It was re-run once already. A passing failure: re-run it by hand (${rerunCommand(o.id, view.jobs)}) and run ${releaseCommand(o.version, o.commit)} again. A fix merged on main: release that commit, its own candidate started (git log --first-parent --oneline <remote>/main names it): npm run release -- ${o.version} --commit=<the fix's merge sha> --start-candidate`,
     };
   if (o.rerunAsked) return { do: 'wait' };
   const args = ['run', 'rerun', String(o.id), '--repo', REPO];
@@ -387,6 +407,23 @@ const loud = (cmd: string, args: string[]) => spawnSync(cmd, args, { cwd: ROOT()
 const say = (s: string) => console.log(`${new Date().toISOString().slice(11, 19)}  ${s}`);
 const MINUTE = 60_000;
 const home = (p: string) => p.replace(/^~(?=\/)/, process.env.HOME ?? '~');
+
+/** Whether a fetch went through (its tries spent, the last error said). */
+const fetchedMain = (fetch: () => unknown) => {
+  try {
+    fetch();
+    return true;
+  } catch (e) {
+    console.error(
+      `✖  ${
+        String((e as Error).message)
+          .split('\n')
+          .slice(-1)[0]
+      }`,
+    );
+    return false;
+  }
+};
 
 /** A gh call that a passing GitHub error (a 502, a reset) does not end: retried for about five minutes. */
 async function ghJson<T>(args: string[]): Promise<T> {
@@ -564,7 +601,7 @@ async function followRelease(sha: string, version: string, again: string): Promi
     if (v.state === 'ready') return v.warnings;
     if (v.state === 'failed')
       throw new Error(
-        `release run ${run.databaseId}: ${v.failed.join(', ')} (https://github.com/${REPO}/actions/runs/${run.databaseId}); re-run it (gh run rerun ${run.databaseId} --repo ${REPO} --failed), then ${again} again`,
+        `release run ${run.databaseId}: ${v.failed.join(', ')} (https://github.com/${REPO}/actions/runs/${run.databaseId}); re-run it (${rerunCommand(run.databaseId, view.jobs)}), then ${again} again`,
       );
     await sleep(MINUTE);
   }
@@ -664,7 +701,10 @@ export async function runRelease(
   } catch (e) {
     console.error(`✖  ${(e as Error).message}`);
   }
-  const fetched = remote ? quiet('git', ['fetch', '--quiet', '--tags', remote, 'main']).code === 0 : false;
+  // Tried again on a passing failure (#410): one refused fetch read as "main is not the organisation's".
+  const fetched = remote
+    ? fetchedMain(() => gitRetried(['fetch', '--quiet', '--tags', remote, 'main'], { cwd: ROOT() }))
+    : false;
   if (remote && !fetched) console.error(`✖  git fetch ${remote} failed: main's state there is not known`);
   const head = sh('git', ['rev-parse', 'HEAD']);
   const theirs = remote ? quiet('git', ['rev-parse', '-q', '--verify', `${remote}/main`]).out : '';
@@ -682,6 +722,7 @@ export async function runRelease(
     owners: OWNERS,
     npmVersion: quiet('npm', ['--version']).out || '0.0.0',
     signer: namedSigner(opts.key),
+    remote,
   });
   const found = remote && fetched ? findReleaseCommit(remote, version) : undefined;
   if (!refusals.length && !found)

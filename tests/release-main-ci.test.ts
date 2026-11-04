@@ -158,7 +158,7 @@ describe('the tag runs no ci; ship waits for main', () => {
     const ship = readFileSync('tools/release/ship.mjs', 'utf8');
     const tag = ship.slice(ship.indexOf('async function tag('), ship.indexOf('async function watch('));
     expect(tag).toMatch(/if \(process\.argv\.includes\('--now'\)\)\n\s+throw new Error\(\s*`--now is gone/);
-    expect(tag.indexOf("includes('--now')")).toBeLessThan(tag.indexOf("git(['fetch'"));
+    expect(tag.indexOf("includes('--now')")).toBeLessThan(tag.indexOf("gitRetried(['fetch'"));
     expect(tag).toMatch(/\n\s+await main\(full\);\n/);
     const watch = ship.slice(ship.indexOf('async function watch('), ship.indexOf('async function verify('));
     expect(watch).not.toMatch(/waitRun\('ci'/);

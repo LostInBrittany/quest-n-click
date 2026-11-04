@@ -91,6 +91,41 @@ export const sleep = (ms) =>
     ? new Promise((r) => setTimeout(r, ms))
     : ((virtual += ms), new Promise((r) => setImmediate(r)));
 
+/** A synchronous wait on the release clock: instant under the virtual clock, a blocked thread otherwise. */
+export const pause = (ms) => {
+  if (virtual !== undefined) virtual += ms;
+  else Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms);
+};
+
+/**
+ * `step()` tried again when it throws (#410), `tries` times in all, `waitMs` between, each failed try said; the last
+ * error thrown as it was. For Git's network steps only, reads and idempotent writes: during 4.6.0's release (GitHub's
+ * Git operations degraded) one failed fetch stopped the release command and one failed tag push stopped `ship tag`.
+ */
+export function retried(step, { tries = 4, waitMs = 15_000, what = 'a git step', wait = pause, tell } = {}) {
+  for (let i = 1; ; i++) {
+    try {
+      return step();
+    } catch (e) {
+      if (i >= tries) throw e;
+      const why =
+        String(e?.message ?? e)
+          .trim()
+          .split('\n')
+          .filter(Boolean)
+          .at(-1) ?? 'no message';
+      const line = `${what} failed (${why.trim()}), try ${i}/${tries}: again in ${Math.round(waitMs / 1000)} s`;
+      if (tell) tell(line);
+      else console.error(`${now()}  ⚠  ${line}`);
+      wait(waitMs);
+    }
+  }
+}
+
+/** `git <args>` (`git` above: stdout, throws on failure) tried again by `retried`: a fetch, a tag push. */
+export const gitRetried = (args, opts) =>
+  retried(() => git(args, opts), { what: `git ${args.filter((a) => !a.startsWith('-')).join(' ')}` });
+
 /** The time, for the log lines. */
 export const now = () => new Date().toISOString().slice(11, 19);
 export const say = (s) => console.log(`${now()}  ${s}`);

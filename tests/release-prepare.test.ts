@@ -28,6 +28,7 @@ import {
   wayBack,
   currentReleaseLine,
   logReleaseEntry,
+  nextSteps,
   nextVersionProblem,
   passesSheet,
   passesSheetProblem,
@@ -41,6 +42,7 @@ import {
   withCurrentRelease,
   withReleaseSection,
   withPassIssues,
+  withUpgradeNotes,
 } from '../tools/release/prepare';
 
 // The files as 4.5.3's release commit (2afb9f51) found and left them, kept as fixtures (CI checks out without history):
@@ -299,6 +301,7 @@ describe('the command', () => {
     expect(PREPARE_STEPS).toEqual([
       'branch',
       'version',
+      'locks',
       'changelog',
       'wiki acks',
       'upgrade notes',
@@ -648,6 +651,7 @@ describe('the command on a clone (4.5.4)', () => {
         'tools/release/gates.ts',
         'tools/changes.ts',
         'tools/release/lib.mjs',
+        'scripts/pack-manifests.mjs',
       ])
         cpSync(resolve(f), join(repo, f));
       git('commit', '-q', '-am', 'tools', '--allow-empty');
@@ -741,5 +745,70 @@ describe('the gaps the 4.5.4 release found in prepare (#348)', () => {
         passes: 'docs/dev/passes/4.5.4.md has no <!-- field:begin --> marker',
       }),
     ).toEqual([expect.stringMatching(/cannot hold/), expect.stringMatching(/field:begin/)]);
+  });
+});
+
+describe('what prepare says last (#410)', () => {
+  it('the next two commands: merge, then main pulled from the organisation and the release command', () => {
+    const lines = nextSteps('4.6.1', 'upstream');
+    expect(lines).toContain('git switch main && git pull --ff-only upstream main');
+    expect(lines).toContain('npm run release -- 4.6.1');
+    expect(lines.indexOf('merge')).toBeLessThan(lines.indexOf('git switch main'));
+  });
+});
+
+// 4.6.0 (e4df77a3): #394 and #399 had written the page's `from-4-5-6-to-4-6-0` section ahead; prepare appended a second
+// one under the same anchor and asked to "name 4.6.0" in a lead that did. The pages as they were before it are fixtures.
+describe('an upgrade-notes section written ahead (#410)', () => {
+  const page460 = (lang: string) =>
+    readFileSync(`tests/fixtures/release-4.6.0/before/wiki/${lang}/install.upgrade-notes-4-6.md`, 'utf8');
+  const o = { previous: '4.5.6', version: '4.6.0', name: 'Routes', bullets: ['- **Routes** (4.6.0, #394): a bullet.'] };
+  for (const lang of ['en', 'fr'] as const) {
+    it(`${lang}: keeps the section, one anchor, no TODO(release), the lead as it was`, () => {
+      const before = page460(lang);
+      const out = withUpgradeNotes(before, { ...o, lang });
+      expect(out.match(/<a name="from-4-5-6-to-4-6-0"><\/a>/g)).toHaveLength(1);
+      expect(todoMarkers([{ path: 'p', text: out }])).toEqual([]);
+      expect(out.startsWith(before.slice(0, before.indexOf('<a name=')))).toBe(true);
+      // Every line written ahead is still there, in its order (blank lines apart).
+      const lines = (t: string) => t.split('\n').filter((l) => l.trim());
+      expect(lines(out).filter((l) => lines(before).includes(l))).toEqual(lines(before));
+    });
+    it(`${lang}: gives the CHANGELOG bullets in a comment at the section's end, for its author`, () => {
+      const out = withUpgradeNotes(page460(lang), { ...o, lang });
+      const comment = out.slice(out.lastIndexOf('<!--'));
+      expect(comment).toContain('- **Routes** (4.6.0, #394): a bullet.');
+      expect(comment.trimEnd().endsWith('-->')).toBe(true);
+      expect(out.indexOf('<!--', out.indexOf('## '))).toBeGreaterThan(out.indexOf('`routes`'));
+    });
+  }
+  it('closes no comment early: a bullet holding --> is defused', () => {
+    const out = withUpgradeNotes(page460('en'), { ...o, lang: 'en', bullets: ['- a --> b'] });
+    const comment = out.slice(out.lastIndexOf('<!--'));
+    expect(comment.match(/-->/g)).toHaveLength(1);
+  });
+  it('puts the comment before the next section when the one written ahead is not the last', () => {
+    const page = `${page460('en')}\n<a name="later"></a>\n\n## Later\n\nText.\n`;
+    const out = withUpgradeNotes(page, { ...o, lang: 'en' });
+    expect(out.indexOf('a bullet.')).toBeLessThan(out.indexOf('<a name="later">'));
+    expect(out.endsWith('## Later\n\nText.\n')).toBe(true);
+  });
+  it('still appends a new section, the lead extended, when none was written ahead (4.5.3)', () => {
+    const page = before('wiki/en/install.upgrade-notes-4-5.md');
+    const out = withUpgradeNotes(page, {
+      previous: '4.5.2',
+      version: '4.5.3',
+      name: 'One pass',
+      lang: 'en',
+      bullets: [],
+    });
+    expect(out).toContain('<a name="from-4-5-2-to-4-5-3"></a>');
+    expect(firstSentence(out)).toBe(firstSentence(after('wiki/en/install.upgrade-notes-4-5.md')));
+    expect(out).toContain('TODO(release)');
+  });
+  it('leaves a lead that already names the version alone', () => {
+    const page = '# Upgrade notes: 4.6\n\nWhat 4.6.1 changed.\n';
+    expect(upgradeNotesLead(page, '4.6.0', '4.6.1', 'en')).toBe(page);
+    expect(upgradeNotesLead(page, '4.6.0', '4.6.10', 'en')).toContain('TODO(release)');
   });
 });

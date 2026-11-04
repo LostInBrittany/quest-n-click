@@ -18,6 +18,8 @@ import {
   releaseCommit,
   releaseRefusals,
   releaseRunVerdict,
+  rerunArgs,
+  rerunCommand,
   stagedFromJson,
   verifiedState,
   verifySkip,
@@ -464,5 +466,99 @@ describe('the dispatch from prepare.ts (#348)', () => {
     const src = readFileSync('tools/release/release-run.ts', 'utf8');
     expect(src).not.toMatch(/from '\.\/prepare'/);
     expect(readFileSync('tools/release/prepare.ts', 'utf8')).toContain("await import('./release-run')");
+  });
+});
+
+describe('the re-run a stop says (#410)', () => {
+  const job = (name: string, status: string, conclusion = '') => ({ name, status, conclusion });
+  const REPO_ = 'Quest-n-Click/quest-n-click';
+  it('re-runs the failed jobs when one failed, was cancelled or timed out', () => {
+    for (const c of ['failure', 'cancelled', 'timed_out'])
+      expect(rerunCommand(7, [job('release', 'completed', 'success'), job('npm-stage', 'completed', c)])).toBe(
+        `gh run rerun 7 --repo ${REPO_} --failed`,
+      );
+  });
+  it('re-runs every job when none ran: run 41819835975, its main job never created, its dependents skipped', () => {
+    const skipped = [
+      job('npm-stage', 'completed', 'skipped'),
+      job('docs-publish / publish', 'completed', 'skipped'),
+      job('site-revalidate', 'completed', 'skipped'),
+    ];
+    expect(rerunCommand(41819835975, skipped)).toBe(`gh run rerun 41819835975 --repo ${REPO_}`);
+    expect(rerunArgs(41819835975, [])).toEqual(['run', 'rerun', '41819835975', '--repo', REPO_]);
+  });
+  it('the release run and the candidate stops say it through rerunCommand, never a bare --failed', () => {
+    const src = readFileSync('tools/release/release-run.ts', 'utf8');
+    expect(src).not.toMatch(/gh run rerun \$\{[^}]+\} --repo \$\{REPO\} --failed/);
+    const follow = src.slice(src.indexOf('async function followRelease'), src.indexOf('async function verifyOnce'));
+    expect(follow).toMatch(/rerunCommand\(run\.databaseId, view\.jobs\)/);
+  });
+  it("a candidate's second failure says its re-run by the same rule", () => {
+    const view = {
+      status: 'completed',
+      conclusion: 'cancelled',
+      attempt: 2,
+      jobs: [job('heavy', 'completed', 'skipped')],
+    };
+    const stop = candidateStep(view, { id: 9, version: '4.6.1', rerunAsked: false, waitedMs: 0 });
+    expect(stop.do === 'stop' && stop.error).toContain(`gh run rerun 9 --repo ${REPO_})`);
+  });
+});
+
+describe('the way on from a red candidate (#410)', () => {
+  const job = (name: string, status: string, conclusion = '') => ({ name, status, conclusion });
+  const red = {
+    status: 'completed',
+    conclusion: 'failure',
+    attempt: 2,
+    jobs: [job('release-core', 'completed', 'failure')],
+  };
+  const at = { id: 41799735988, version: '4.6.0', rerunAsked: false, waitedMs: 0 };
+  it('names --commit and --start-candidate for a fix merged on main after the release merge (4.6.0, #411)', () => {
+    const stop = candidateStep(red, at);
+    expect(stop.do).toBe('stop');
+    if (stop.do !== 'stop') return;
+    expect(stop.error).toContain('npm run release -- 4.6.0 --commit=<the fix');
+    expect(stop.error).toMatch(/--commit=<[^>]+> --start-candidate/);
+    expect(stop.error).toContain('git log --first-parent');
+  });
+  it('keeps saying it on a run already given --commit', () => {
+    const stop = candidateStep(red, { ...at, commit: 'b'.repeat(40) });
+    expect(stop.do === 'stop' && stop.error).toMatch(/--commit=<[^>]+> --start-candidate/);
+  });
+});
+
+describe('the checkout left on the release branch (#410)', () => {
+  const ok = {
+    version: '4.6.0',
+    current: '4.6.0',
+    branch: 'main',
+    dirty: false,
+    upToDate: true,
+    section: true,
+    signing: true,
+    gh: true,
+    npm: 'lostinbrittany',
+    owners: ['lostinbrittany'],
+    npmVersion: '11.19.1',
+    signer: true,
+    remote: 'upstream',
+  };
+  it("gives the two git commands, the organisation's remote named, in one line", () => {
+    // After prepare the checkout is on release/<v>, behind the organisation's main: one refusal, not two.
+    expect(releaseRefusals({ ...ok, branch: 'release/4.6.0', upToDate: false })).toEqual([
+      "the checkout is on release/4.6.0: a release is made on main, up to date with the organisation's: git switch main && git pull --ff-only upstream main",
+    ]);
+  });
+  it("says the pull with its remote when main is behind the organisation's", () => {
+    expect(releaseRefusals({ ...ok, upToDate: false })).toEqual([
+      "main is not the organisation's: git pull --ff-only upstream main",
+    ]);
+  });
+  it('names a placeholder when no remote is the organisation’s (its own refusal says how to add one)', () => {
+    const { remote: _r, ...none } = ok;
+    expect(releaseRefusals({ ...none, branch: 'release/4.6.0' })[0]).toMatch(
+      /git switch main && git pull --ff-only <the organisation's remote> main$/,
+    );
   });
 });
