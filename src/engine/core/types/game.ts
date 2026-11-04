@@ -366,7 +366,7 @@ export interface GameDef {
   migrations?: Migration[];
   /** Engine texts (menus, confirmations). The engine never hardcodes any text. */
   ui: UiTexts;
-  /** Title screen: background image, logo, music, footer. */
+  /** Title screen: background image, logo, music, footer, and where the logo and the buttons go. */
   titleScreen?: {
     decor: Id;
     logo?: Id;
@@ -374,6 +374,18 @@ export interface GameDef {
     footer?: string;
     /** Silent looping video behind the title (file in public/assets/video/), the backdrop serves as a poster. */
     video?: string;
+    /**
+     * Where the logo and the buttons go (4.6.1, #418), in units of the 640 x 400 scene, so a logo image needs no
+     * transparent padding to be sized or placed. The logo keeps its proportions: `logoWidth` sets its width (default
+     * 430), `logoCenter` the x of its centre (default 370), `logoTop` the y of its top (default 8). `buttonsTop` is the
+     * y of the top of the New game and Continue row (default 292, 73% of the scene's height). Upright
+     * (`skin.portrait`) the logo is placed the same way in the picture, while the buttons stay below the picture in
+     * their column: `buttonsTop` applies only sideways.
+     */
+    logoWidth?: number;
+    logoCenter?: number;
+    logoTop?: number;
+    buttonsTop?: number;
   };
   /** Credits background: same video as the title by default. */
   creditsScreen?: { video?: string; decor?: Id };

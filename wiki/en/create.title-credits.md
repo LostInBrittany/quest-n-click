@@ -12,7 +12,8 @@ music, then New game and Continue; and the end credits, which scroll over the ti
 ## Context and versions
 
 `game.ts` in the engine repository (`games/<id>/game.ts`) or in a created project (`game/game.ts`). The fields below
-are those of 4.4.0; true from 4.2.5 (the `quest-n-click` command name used below).
+are those of 4.4.0, plus the logo's and the buttons' places from 4.6.1; true from 4.2.5 (the `quest-n-click` command
+name used below).
 
 <a name="prerequisites"></a>
 
@@ -40,6 +41,13 @@ Edit `game.ts`; run `npm run assets` at the root of the engine repository, or of
    ```
 
    `decor` is required; `logo`, `music`, `video` and `footer` are optional.
+
+   To move the logo or the buttons, give their places in units of the 640 x 400 scene (4.6.1). The logo keeps its
+   proportions, so the image needs no transparent padding around it:
+
+   ```ts
+   titleScreen: { decor: 'decor/dining', logo: 'logo', logoWidth: 300, logoCenter: 320, logoTop: 48, buttonsTop: 320 },
+   ```
 
 <!-- step: video -->
 2. **A video, if you want one.** Put the file in the game's decor folder, `art/decor/<name>.mp4`
@@ -80,6 +88,10 @@ Edit `game.ts`; run `npm run assets` at the root of the engine repository, or of
 | `titleScreen.music` | id of `audio.music` | the music, started at the player's first tap on the title screen |
 | `titleScreen.video` | file name in `public/assets/video/` | a silent, looping video behind the logo |
 | `titleScreen.footer` | text | a line at the bottom of the screen; translated (`titleScreen/footer`) |
+| `titleScreen.logoWidth` | scene units | the logo's width, its height in proportion; default 430 |
+| `titleScreen.logoCenter` | scene units | the x of the logo's centre; default 370 |
+| `titleScreen.logoTop` | scene units | the y of the logo's top; default 8 |
+| `titleScreen.buttonsTop` | scene units | the y of the top of the buttons' row, sideways; default 292 (73% of the height) |
 | `creditsScreen.video` | file name | the credits' background video, dimmed; default the title's video |
 | `creditsScreen.decor` | image id | the poster of that video; default the title's `decor` |
 | `credits` | text lines | the credits, one entry per line, `''` for a blank; translated (`credits[0]`, `credits[1]`…) |
@@ -94,6 +106,10 @@ What the player sees:
 > [!LIMIT id=video-autoplay-blocked]
 > A browser that refuses to start the video (data saving, low-power mode) leaves the poster, the `decor`, in its
 > place. With `creditsScreen` given a `decor` but no `video`, the credits have no background image.
+
+> [!LIMIT id=title-portrait-buttons]
+> Upright (`skin.portrait`), the logo takes the same place in the picture, but the buttons always go below the
+> picture, in a column: `buttonsTop` applies only sideways.
 
 > [!LIMIT id=title-plain-text]
 > The footer and the credits are shown as written: text switches and `{hero}` are refused there by the validator.

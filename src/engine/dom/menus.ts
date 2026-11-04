@@ -361,9 +361,28 @@ export async function restart(app: App) {
   await app.engine.newGame();
 }
 
+/** The title screen's fields that place the logo and the buttons (#418). */
+type TitlePlacement = { logoWidth?: number; logoCenter?: number; logoTop?: number; buttonsTop?: number };
+
+/**
+ * Where the title screen puts its logo and its buttons, in percent of the 640 x 400 scene (so a resize keeps them in
+ * place): the logo's left, top and width, the buttons row's top. Without fields, the places of every version before
+ * 4.6.1: the logo 430 units wide, centred on x = 370, its top at y = 8; the buttons at 73% (y = 292).
+ */
+export function titleLayout(T?: TitlePlacement) {
+  const width = T?.logoWidth ?? 430;
+  const center = T?.logoCenter ?? 370;
+  const pct = (v: number, of: number) => `${(v / of) * 100}%`;
+  return {
+    logo: { left: pct(center - width / 2, 640), top: pct(T?.logoTop ?? 8, 400), width: pct(width, 640) },
+    buttonsTop: pct(T?.buttonsTop ?? 292, 400),
+  };
+}
+
 /** Title screen, then launches the game. */
 export async function showTitle(app: App) {
   const T = app.game.titleScreen;
+  const place = titleLayout(T);
   app.side.style.display = 'none';
   app.layoutTitle(true);
   const ov = el('div', 'overlay');
@@ -376,14 +395,8 @@ export async function showTitle(app: App) {
     const lg = el('img') as HTMLImageElement;
     lg.src = app.bank.img(T.logo);
     lg.alt = app.game.title;
-    // In shares of the 640 x 400 scene (the same place as before in units), so a resize keeps it where it was.
-    Object.assign(lg.style, {
-      position: 'absolute',
-      left: `${((370 - 215) / 640) * 100}%`,
-      top: `${(8 / 400) * 100}%`,
-      width: `${(430 / 640) * 100}%`,
-      animation: 'drop .9s ease-out both',
-    });
+    // In shares of the 640 x 400 scene (`titleLayout`), so a resize keeps it where it was.
+    Object.assign(lg.style, { position: 'absolute', ...place.logo, animation: 'drop .9s ease-out both' });
     ov.append(lg);
   }
   const row = el('div');
@@ -391,7 +404,8 @@ export async function showTitle(app: App) {
     position: 'absolute',
     left: '0',
     right: '0',
-    top: '73%',
+    // Sideways only: upright, style.css puts the row below the picture (`.game.portrait .titlerow`).
+    top: place.buttonsTop,
     display: 'flex',
     justifyContent: 'center',
     gap: '4%',
