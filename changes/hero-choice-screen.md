@@ -1,6 +1,6 @@
 ### Changes
 
-- **The hero choice screen: a choice shown full screen, the heroes standing in a scene (4.6.0, #ISSUE)**: a
+- **The hero choice screen: a choice shown full screen, the heroes standing in a scene (4.6.0, #398)**: a
   `{ choice }` command takes `screen: { decor, title? }`. The choice then covers the whole scene, over its own
   backdrop, the side column hidden, the title on top; each option with an `img` stands on the backdrop, side by side
   at one height, its text under it, and the options without one are buttons under them. One tap picks, and the pick is
