@@ -118,6 +118,8 @@ body { -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
 .rotate .ph { width: 70px; height: 120px; border: 5px solid #ffd84d; border-radius: 14px; animation: rot 2.2s ease-in-out infinite; }
 @keyframes rot { 0%, 20% { transform: rotate(0); } 55%, 100% { transform: rotate(-90deg); } }
 @media (orientation: portrait) and (pointer: coarse) { .rotate { display: flex; } }
+/* A game that plays upright (`skin.portrait`, 4.6.0) never asks to rotate: the portrait layout below takes over. */
+.rotate.upright { display: none; }
 @keyframes drop { 0% { transform: translateY(-140%); } 60% { transform: translateY(6%); } 75% { transform: translateY(-3%); } 100% { transform: translateY(0); } }
 @keyframes burst { 0% { transform: translate(-50%, -50%) scale(.2); opacity: 1; } 100% { transform: translate(-50%, -50%) scale(1.6); opacity: 0; } }
 @keyframes flash { 0% { opacity: 1; } 100% { opacity: 0; } }
@@ -192,3 +194,21 @@ body { -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
 .caption { position: absolute; left: 50%; bottom: 14%; transform: translateX(-50%); z-index: 60; padding: .2em .6em; border-radius: 6px; background: rgba(10, 6, 20, .78); color: #ffe9a8; font-size: .8em; pointer-events: none; white-space: nowrap; }
 /* The speedrun timer (4.1.14, dom/speedrun-ui.ts): a corner of the scene, never over the verbs. */
 .speedrun-hud { position: absolute; top: .4em; left: 50%; transform: translateX(-50%); z-index: 30; pointer-events: none; padding: .15em .6em; border-radius: .4em; background: rgba(0,0,0,.55); color: #fff; font: 12px/1.3 var(--font-ui, monospace); font-variant-numeric: tabular-nums; white-space: nowrap; }
+
+/* ---------- Portrait layout (a phone held upright, `skin.portrait`, 4.6.0): the scene on top, the panel below ---------- */
+/* Sizes from dom/shell.ts (layout) and dom/portrait-fit.ts; the panel fits its height as the landscape column does. */
+.game.portrait { flex-direction: column; }
+.game.portrait .side { flex: none; border-left: 0; border-top: 2px solid #1e2a3a; }
+.game.portrait .sbar { position: static; flex: none; background: none; padding: 0 .2em; min-height: 1.25em; line-height: 1.25; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.game.portrait .tool, .game.portrait .invnav .tool { min-height: 44px; }
+/* Menus and dialogs (pause, settings, saves, confirmations) take the whole screen upright, inside the safe areas, with
+   rows a finger can hit; the scene alone is too short for them. */
+/* `--safe` is #app's padding (the safe areas), set by layout(). */
+.game.portrait .dim { position: fixed; font-size: 15px; padding: var(--safe, 0px); }
+.game.portrait .dim .menu { max-width: calc(100% - 24px); }
+.game.portrait .dim .menu button { min-height: 44px; align-items: center; }
+/* The title screen upright: the picture keeps its 16:10 at full width, and its buttons go below it, in a column, in
+   the room the screen has there (the scene lets them out while the title shows), each a touch target. */
+.game.portrait.title .scene { overflow: visible; }
+.game.portrait .titlerow { top: calc(100% + 24px) !important; flex-direction: column; align-items: center; gap: 12px !important; }
+.game.portrait .titlerow .bigbtn { min-height: 44px; min-width: 62%; }

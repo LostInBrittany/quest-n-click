@@ -1,6 +1,6 @@
 // The validator's checks of the player's side (out of tools/validate.ts, 4.2.4): the texts of the save and settings
 // menus, and how the player's taps read (#188): `input.exitOnTap` a boolean, an exit's `onTap` `go` or `walk`; the
-// hero's distance to a character (#198): `actorGap` a positive number; the verbs' keys (#203).
+// hero's distance to a character (#198): `actorGap` a positive number; the verbs' keys (#203); `skin.portrait` a boolean (4.6.0).
 import type { GameDef, VerbDef } from '../../core/types';
 import { applyLocale } from '../i18n';
 
@@ -43,6 +43,10 @@ export function playerChecks(
   if (input !== undefined && (!input || typeof input !== 'object' || Array.isArray(input)))
     err('input', 'input is an object: { exitOnTap?: boolean }');
   else if (tap !== undefined && typeof tap !== 'boolean') err('input.exitOnTap', 'exitOnTap is true or false');
+  // The portrait layout (4.6.0) is on for `true` only; anything else would silently keep the rotate overlay.
+  const portrait: unknown = game.skin?.portrait;
+  if (portrait !== undefined && typeof portrait !== 'boolean')
+    err('skin.portrait', 'portrait is true or false (true: the game plays on a phone held upright)');
   // The runtime keeps 44 for anything else; said here so an author learns it.
   const gap: unknown = game.actorGap;
   if (gap !== undefined && !(typeof gap === 'number' && Number.isFinite(gap) && gap > 0))

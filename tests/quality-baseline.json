@@ -465,10 +465,10 @@
   "api": "1a7a6080182ee0ac"
  },
  "tests": {
-  "files": 403,
-  "declarations": 3719
+  "files": 404,
+  "declarations": 3727
  },
  "bundle": {
-  "initialJsKB": 137
+  "initialJsKB": 138
  }
 }

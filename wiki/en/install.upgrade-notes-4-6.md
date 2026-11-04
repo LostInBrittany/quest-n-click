@@ -21,6 +21,9 @@ Install `@quest-n-click/engine@4.6.0` ([Install from npm](install.from-npm.md)).
 - **`validate`, the lint and the solver know routes**: four lint codes (`route-script-conflict`,
   `route-never-starts`, `route-blocked-forever`, `route-resume-misplaced`), and a "Route <id>" choice in the
   solver's paths.
+- **A portrait layout for a phone held upright** (`skin.portrait: true`, [Skin and fonts](create.skin-fonts.md#skin-other)):
+  the scene on top, the verbs, the bag and the tools below, instead of the "rotate your phone" overlay. Off by default:
+  a game that does not set it shows the overlay as before, and the landscape and desktop layouts are unchanged.
 - **The navigation moved into the core** (`@quest-n-click/engine` `core/nav/walk.ts`); the player re-exports it, so an
   import from `dom/walk` still works.
 

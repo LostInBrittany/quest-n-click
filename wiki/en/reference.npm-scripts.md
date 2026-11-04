@@ -685,6 +685,15 @@ Frames per second while the hero walks, the CPU slowed (default 4×, the phone s
 - Runs: `node scripts/e2e-perf.mjs`
 - Usage: `npm run e2e:perf -- <url> [--renderer=canvas|dom --cpu=4 --min=30 --room=<id> --seconds=5]`
 
+<a name="e2e-portrait"></a>
+
+#### `npm run e2e:portrait`
+
+The portrait layout of a phone held upright (4.6.0, `skin.portrait`) on the sample game, switched on in the running page: the rotate overlay without the option; with it, at 360 x 640 to 430 x 932, with and without safe areas, the scene at full width and every verb, slot and tool inside the screen at 44 px or more, the title, the intro's speech and choice, the pause menu, the map, a full bag; a turn to landscape and back keeping the room and the bag; landscape and desktop identical with the option on and off. The production build must be served.
+
+- Runs: `node scripts/e2e-portrait.mjs`
+- Usage: `npm run e2e:portrait -- <url> [--browser=chromium|webkit] [--json]`
+
 <a name="e2e-pwa"></a>
 
 #### `npm run e2e:pwa`

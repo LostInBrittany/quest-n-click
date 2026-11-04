@@ -23,6 +23,10 @@ chaque fois en option :
 - **`validate`, le lint et le solveur connaissent les routes** : quatre codes de lint (`route-script-conflict`,
   `route-never-starts`, `route-blocked-forever`, `route-resume-misplaced`), et un choix « Route <id> » dans les chemins
   du solveur.
+- **Une disposition portrait pour un téléphone tenu droit** (`skin.portrait: true`,
+  [Habillage et polices](create.skin-fonts.md#skin-other)) : la scène en haut, les verbes, le sac et les outils en
+  dessous, au lieu du message « tournez le téléphone ». Désactivée par défaut : un jeu qui ne la pose pas affiche le
+  message comme avant, et les dispositions paysage et ordinateur ne changent pas.
 - **La recherche de chemin est passée dans le cœur** (`core/nav/walk.ts` de `@quest-n-click/engine`) ; le lecteur la
   réexporte, donc un import depuis `dom/walk` fonctionne toujours.
 

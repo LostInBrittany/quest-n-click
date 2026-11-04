@@ -163,9 +163,22 @@ export class App {
   /** "Desktop" layout: scene on top, verbs / inventory / menu at the bottom (classic SCUMM). */
   /** @internal Read by the modules of dom/ (4.1.0). */
   desk = false;
+  /** Portrait layout (4.6.0, `skin.portrait`): scene on top, full width, the panel below it (dom/portrait-fit.ts). */
+  /** @internal Read by the modules of dom/ (4.1.0). */
+  portrait = false;
+  /** The title screen is showing (menus.ts `layoutTitle`): a resize lays it out again instead of the game's layout. */
+  /** @internal Read by the modules of dom/ (4.1.0). */
+  onTitle = false;
+  /** What the title screen sizes from the scene's width (its buttons' and footer's text), redone on a resize. */
+  /** @internal Read by the modules of dom/ (4.1.0). */
+  titleFit: (() => void) | null = null;
+  /** The "rotate your phone" overlay (shell.ts), hidden for good in a game that plays upright. */
+  /** @internal Read by the modules of dom/ (4.1.0). */
+  rotateEl: HTMLElement | null = null;
   /** @internal Read by the modules of dom/ (4.1.0). */
   get invCols() {
-    return this.desk ? 4 : 3;
+    // The desktop panel and the portrait panel are wide: four slots a row; the landscape column three.
+    return this.desk || this.portrait ? 4 : 3;
   }
   /** @internal Read by the modules of dom/ (4.1.0). */
   items: Id[] = [];
