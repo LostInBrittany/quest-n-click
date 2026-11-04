@@ -1,6 +1,6 @@
 // The validator's checks of the travel map: its regions and their images, each place's room, region, faces (one
 // portrait or several, 4.4.0), news condition and the pin it joins (4.4.0: an existing place of the same region that
-// joins no other pin), the vehicles' images and the map's music.
+// joins no other pin), the vehicles' images, the map's music and its `pins` (4.6.1, #428).
 import type { Cond, GameDef } from '../../core/types';
 
 export function mapChecks(
@@ -35,6 +35,8 @@ export function mapChecks(
     }
     cond(p.news, w);
   }
+  if (m.pins !== undefined && !['faces', 'hidden', 'dots'].includes(m.pins))
+    err('map', `unknown pins: "${String(m.pins)}" (faces, hidden or dots)`);
   for (const v of Object.values(m.vehicles ?? {})) img(v, 'map.vehicles');
   if (m.music && !music[m.music]) err('map', `unknown music: "${m.music}"`);
 }

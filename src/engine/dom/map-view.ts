@@ -58,6 +58,32 @@ export async function openMap(app: App, state: GameState): Promise<Id | null> {
   const icons = app.game.skin.icons;
   const pin = map.vehicles?.pin ?? icons.pin,
     newsImg = map.vehicles?.news ?? icons.news;
+  // How the places are marked (4.6.1, #428). `hidden` and `dots` are "bare": no face, no needle, each place's button
+  // centred on its `pos` (and the route ends there, not above a needle's tip). `dots` draws a small token in it and the
+  // hero standing on the current place.
+  const dots = map.pins === 'dots';
+  const bare = dots || map.pins === 'hidden';
+  const posOf = (q: PlaceDef) => (q.joins ? (map.places[q.joins]?.pos ?? q.pos) : q.pos);
+  // The hero standing on the current place (`dots` only): the character the player plays now, their first `idle`
+  // frame as the room paints it. Without an idle frame, the place keeps its dot.
+  const heroId = app.engine.heroId();
+  const idle = dots ? app.engine.character(heroId)?.sprites?.idle?.[0] : undefined;
+  let standing: HTMLElement | undefined;
+  const stand = (at: readonly [number, number], flip: boolean, news = false) => {
+    standing?.remove();
+    if (!idle) return;
+    const s = el('div', 'standing');
+    Object.assign(s.style, { left: `${at[0]}%`, top: `${at[1]}%`, height: `${MAP_WALKER_HEIGHT}%` });
+    const im = el('img') as HTMLImageElement;
+    im.src = app.view.characterImage(heroId, idle);
+    im.alt = '';
+    if (flip) im.style.transform = 'scaleX(-1)';
+    s.append(el('span', 'shadow'), im);
+    // The place's "!" moves from its button to beside the hero's head, which would cover it.
+    if (news && newsImg) s.insertAdjacentHTML('beforeend', `<img class="news" src="${app.bank.img(newsImg)}" alt="">`);
+    layer.append(s);
+    standing = s;
+  };
   const cleanup = () => {
     app.choosing = false;
     ov.remove();
@@ -68,8 +94,8 @@ export async function openMap(app: App, state: GameState): Promise<Id | null> {
     if (map.music) app.audio.pop();
   };
 
+  let layer: HTMLElement = ov;
   return new Promise<Id | null>((resolve) => {
-    let layer: HTMLElement = ov;
     let svg: SVGSVGElement;
     const draw = () => {
       ov.innerHTML = '';
@@ -140,44 +166,60 @@ export async function openMap(app: App, state: GameState): Promise<Id | null> {
       }
       for (const [host, members] of groups) {
         const at = (map.places[host] ?? members[0]![1]).pos;
-        const faces = members.flatMap(([id, p]) =>
-          (p.portrait === undefined ? (pin ? [pin] : []) : ([] as Id[]).concat(p.portrait)).map((img) => ({
-            id,
-            p,
-            img,
-          })),
-        );
+        // Bare pins: one empty spot per place (a joined place gets its own beside the host's).
+        const faces = bare
+          ? members.map(([id, p]) => ({ id, p, img: '' }))
+          : members.flatMap(([id, p]) =>
+              (p.portrait === undefined ? (pin ? [pin] : []) : ([] as Id[]).concat(p.portrait)).map((img) => ({
+                id,
+                p,
+                img,
+              })),
+            );
+        // A bare spot is an empty face; with `dots`, a token inside it (the `vehicles.dot` image, else drawn in CSS),
+        // except under the hero standing on the current place.
+        const dotImg = map.vehicles?.dot;
+        const mark = (pid: Id) =>
+          !dots || (pid === here && idle)
+            ? ''
+            : dotImg
+              ? `<img class="dot" src="${app.bank.img(dotImg)}" alt="">`
+              : '<span class="dot"></span>';
+        const face = (f: { id: Id; img: Id }, extra = '') =>
+          bare
+            ? `<span class="face"${extra}>${mark(f.id)}</span>`
+            : `<img class="face" src="${app.bank.img(f.img)}" alt=""${extra}>`;
         const n = Math.max(1, faces.length);
         const fw = 100 / (1 + 0.6 * (n - 1));
         const style = (i: number) =>
           n > 1
             ? ` style="width:${fw}%;${i ? `margin-left:${-0.4 * fw}%;` : ''}position:relative;z-index:${n - i}"`
             : '';
-        const needle = pin
-          ? `<img class="needle" src="${app.bank.img(pin)}" alt=""${n > 1 ? ` style="width:${0.4 * fw}%"` : ''}>`
-          : '';
+        const needle =
+          pin && !bare
+            ? `<img class="needle" src="${app.bank.img(pin)}" alt=""${n > 1 ? ` style="width:${0.4 * fw}%"` : ''}>`
+            : '';
         const isHere = members.some(([id]) => id === here);
         const news = members.some(([, p]) => (p.news ? check(p.news, state) : false));
+        const cls = 'pin' + (bare ? ' bare' : '') + (dots ? ' dots' : '') + (isHere ? ' here' : '');
         let b: HTMLElement;
         if (members.length === 1) {
           // One place: the pin is its button, as before.
           const [id, p] = members[0]!;
-          b = el('button', 'pin' + (isHere ? ' here' : ''));
+          b = el('button', cls);
           b.setAttribute('aria-label', p.name);
-          const faceHtml = faces
-            .map((f, i) => `<img class="face" src="${app.bank.img(f.img)}" alt=""${style(i)}>`)
-            .join('');
+          const faceHtml = faces.map((f, i) => face(f, style(i))).join('');
           b.innerHTML = (n > 1 ? `<span class="faces" style="display:flex">${faceHtml}</span>` : faceHtml) + needle;
           b.onclick = () => void go(id);
         } else {
           // Several places: one button per face, each named after its place.
-          b = el('div', 'pin' + (isHere ? ' here' : ''));
+          b = el('div', cls);
           const row = el('span', 'faces');
           row.style.display = 'flex';
           faces.forEach((f, i) => {
             const fb = el('button', 'facebtn' + (f.id === here ? ' here' : ''));
             fb.setAttribute('aria-label', f.p.name);
-            fb.innerHTML = `<img class="face" src="${app.bank.img(f.img)}" alt="">`;
+            fb.innerHTML = face(f);
             Object.assign(fb.style, {
               width: `${fw}%`,
               marginLeft: i ? `${-0.4 * fw}%` : '0',
@@ -191,7 +233,9 @@ export async function openMap(app: App, state: GameState): Promise<Id | null> {
           b.insertAdjacentHTML('beforeend', needle);
         }
         Object.assign(b.style, { left: `${at[0]}%`, top: `${at[1]}%`, width: `${size * 1.1 * (1 + 0.6 * (n - 1))}%` });
-        if (news && newsImg)
+        // Where the hero stands (`dots`), the spot's "!" goes beside their head.
+        if (dots && isHere) stand(at, false, news);
+        if (news && newsImg && !(dots && isHere && idle))
           b.insertAdjacentHTML('beforeend', `<img class="news" src="${app.bank.img(newsImg)}" alt="">`);
         layer.append(b);
       }
@@ -275,14 +319,15 @@ export async function openMap(app: App, state: GameState): Promise<Id | null> {
         resolve(id);
         return;
       }
-      const posOf = (q: PlaceDef) => (q.joins ? (map.places[q.joins]?.pos ?? q.pos) : q.pos);
       const to = posOf(p);
       const from = herePlace && herePlace.region === region ? posOf(herePlace) : null;
       const origin = from ?? [50, 50];
       const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
       const mx = (origin[0] + to[0]) / 2,
         my = Math.min(origin[1], to[1]) - 10;
-      path.setAttribute('d', `M${origin[0]} ${origin[1] - 2} Q${mx} ${my} ${to[0]} ${to[1] - 2}`);
+      // The route runs from pin tip to pin tip, 2% above the places; from spot to spot on bare pins.
+      const lift = bare ? 0 : 2;
+      path.setAttribute('d', `M${origin[0]} ${origin[1] - lift} Q${mx} ${my} ${to[0]} ${to[1] - lift}`);
       Object.assign(path.style, {
         fill: 'none',
         stroke: '#e02828',
@@ -297,19 +342,28 @@ export async function openMap(app: App, state: GameState): Promise<Id | null> {
       requestAnimationFrame(() => {
         path.style.strokeDashoffset = '0';
       });
+      // The hero leaves the place they stood on (`dots`): the walker (or the vehicle) takes over.
+      standing?.remove();
       const veh = el('img') as HTMLImageElement;
+      // On foot (4.6.1, #422): the hero the player plays now (their variant, recoloured as the room paints them), with
+      // their walk frames. A hero with no walk frames travels by car.
+      const hero = p.vehicle === 'walk' ? app.engine.character(heroId) : undefined;
+      const walking = !!hero?.sprites?.walk?.length;
       const vehImg = p.vehicle === 'plane' ? (map.vehicles?.plane ?? icons.plane) : (map.vehicles?.car ?? icons.car);
-      if (vehImg) veh.src = app.bank.img(vehImg);
+      if (!walking && vehImg) veh.src = app.bank.img(vehImg);
       Object.assign(veh.style, {
         position: 'absolute',
-        width: p.vehicle === 'plane' ? '6%' : '4%',
-        transform: 'translate(-50%,-50%)',
+        ...(walking
+          ? { height: `${MAP_WALKER_HEIGHT}%`, width: 'auto' }
+          : { width: p.vehicle === 'plane' ? '6%' : '4%' }),
+        transform: walking ? 'translate(-50%,-100%)' : 'translate(-50%,-50%)',
         zIndex: '15',
         pointerEvents: 'none',
       });
-      if (vehImg) layer.append(veh);
+      if (walking || vehImg) layer.append(veh);
       const planeSfx = app.game.skin.sounds?.plane;
       if (p.vehicle === 'plane' && planeSfx) app.audio.sfx(planeSfx);
+      let flip = to[0] < origin[0];
       const t0 = performance.now();
       await new Promise<void>((r) => {
         const f = (n: number) => {
@@ -317,15 +371,67 @@ export async function openMap(app: App, state: GameState): Promise<Id | null> {
           const pt = path.getPointAtLength(L * k);
           veh.style.left = `${pt.x}%`;
           veh.style.top = `${pt.y}%`;
+          if (walking) {
+            // The way of travel on screen: the route's tangent, in pixels of the map.
+            const a = path.getPointAtLength(Math.max(0, L * k - 1)),
+              b = path.getPointAtLength(Math.min(L, L * k + 1));
+            const s = mapWalkStep(
+              hero?.sprites ?? {},
+              ((b.x - a.x) * layer.clientWidth) / 100,
+              ((b.y - a.y) * layer.clientHeight) / 100,
+              n - t0,
+              hero?.fps ?? 8,
+              flip,
+            );
+            flip = s.flip;
+            if (s.img) {
+              const url = app.view.characterImage(heroId, s.img);
+              if (veh.getAttribute('src') !== url) veh.src = url;
+            }
+            veh.style.transform = `translate(-50%,-100%)${flip ? ' scaleX(-1)' : ''}`;
+          }
           if (k < 1) requestAnimationFrame(f);
           else r();
         };
         requestAnimationFrame(f);
       });
+      // On arrival (`dots`), the hero stands on the new place, facing the way they came.
+      if (idle) {
+        veh.remove();
+        stand(to, walking && flip);
+      }
       await sleep(300);
       cleanup();
       resolve(id);
     };
     draw();
   });
+}
+
+/** The walker's height on the map (4.6.1, #422), in % of the map's height: about a pin's size. */
+const MAP_WALKER_HEIGHT = 12;
+
+/**
+ * The hero's image at one moment of a walk on the map (4.6.1, #422), as the room's walker chooses it: `walk_back` going
+ * mostly up and `walk_front` going mostly down when the sheet has them, else `walk`, flipped when the way goes left (a
+ * nearly vertical way keeps the side it had). `dx`, `dy`: the way of travel in pixels; `ms`: time since the start.
+ */
+export function mapWalkStep(
+  sprites: Readonly<Record<string, Id[]>>,
+  dx: number,
+  dy: number,
+  ms: number,
+  fps: number,
+  flip: boolean,
+): { img: Id | undefined; flip: boolean } {
+  const vertical = Math.abs(dy) > Math.abs(dx) * 1.5;
+  const pose =
+    vertical && dy < 0 && sprites.walk_back?.length
+      ? 'walk_back'
+      : vertical && dy > 0 && sprites.walk_front?.length
+        ? 'walk_front'
+        : 'walk';
+  const frames = sprites[pose] ?? [];
+  const i = Math.floor((Math.max(0, ms) * (fps || 8)) / 1000) % Math.max(1, frames.length);
+  return { img: frames[i], flip: Math.abs(dx) > 0.5 ? dx < 0 : flip };
 }

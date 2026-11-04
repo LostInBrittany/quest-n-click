@@ -131,7 +131,7 @@ export function presentationOf(game: CompiledGame | GameDef, manifest: unknown =
       })),
       map: g.map
         ? {
-            ...pick(g.map, ['music', 'vehicles']),
+            ...pick(g.map, ['music', 'vehicles', 'pins']),
             regions: each(g.map.regions, (x) => pick(x, ['image', 'frame'])),
             places: each(g.map.places, (x) => pick(x, ['pos', 'portrait', 'vehicle'])),
           }
