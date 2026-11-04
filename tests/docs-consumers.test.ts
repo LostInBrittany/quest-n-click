@@ -56,6 +56,10 @@ const CONSUMERS: Record<string, { phase: Reads; reads: string }> = {
     reads: 'contribute.architecture, contribute.code-tour, the EN/FR pairs',
   },
   'tests/propagation.test.ts': { phase: 'wiki', reads: 'wiki/en|fr/create.dsl.md' },
+  'tests/release-prepare.test.ts': {
+    phase: 'wiki',
+    reads: "wiki/en|fr/install.upgrade-notes-4-5.md and -4-6.md as committed before a release, prepare's fixtures",
+  },
   'tests/scripts-documented.test.ts': { phase: 'wiki', reads: 'wiki/en|fr/reference.npm-scripts.md' },
   'tests/support-truth.test.ts': { phase: 'wiki', reads: 'wiki/en|fr/reference.support-matrix.md' },
   'tests/wiki-check.test.ts': { phase: 'wiki', reads: 'the wiki fixtures and the build' },
