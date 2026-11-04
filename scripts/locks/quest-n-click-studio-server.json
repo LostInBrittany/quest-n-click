@@ -21,7 +21,7 @@
         "node": ">=22.12"
       },
       "peerDependencies": {
-        "@quest-n-click/engine": "4.5.x"
+        "@quest-n-click/engine": "4.6.x"
       },
       "peerDependenciesMeta": {
         "@quest-n-click/engine": {
