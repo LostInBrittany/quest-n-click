@@ -12,10 +12,9 @@
     },
     "apply-replays-demo": {
       "claimTextHash": "dd227a7a5f952741f1373909c80c8f1c9d134c07920923ed115d4af48d2b84d7",
-      "testFileHash": "ac3dbd3f907747c9fbd63a1144af97db8ab8acab57d5cd710d654111e83066ae",
+      "testFileHash": "5ca619689b7909fd1af5ab93e72733c2247dc1b5c7f72cabbadee9840984d0a6",
       "reviewers": [
-        { "name": "claude-4.5-writers", "kind": "ai", "relation": "author", "date": "2026-10-23" },
-        { "name": "wanoo", "kind": "human", "relation": "independent", "date": "2026-10-24" }
+        { "name": "claude", "kind": "ai", "relation": "author", "date": "2026-10-29" }
       ]
     },
     "backup-keep-own-only": {
@@ -236,10 +235,9 @@
     },
     "closed-link-stops-walk": {
       "claimTextHash": "a373ea1ee815a3413600862fdfba7b2df8e1eae657ee2cbf85d744becac660ef",
-      "testFileHash": "fab4f210f0e5605968714d316cf1c2e3097764bd75ec4d817bd3f50ce544e710",
+      "testFileHash": "6fc418db385e68ea4889a88cf2e7e6409df1b66626f73b8c8ceec9997a8f7251",
       "reviewers": [
-        { "name": "claude-4.5-writers", "kind": "ai", "relation": "author", "date": "2026-10-23" },
-        { "name": "wanoo", "kind": "human", "relation": "independent", "date": "2026-10-24" }
+        { "name": "claude", "kind": "ai", "relation": "author", "date": "2026-10-29" }
       ]
     },
     "comment-author-edits": {
@@ -624,6 +622,13 @@
       "reviewers": [
         { "name": "claude-4.5-writers", "kind": "ai", "relation": "author", "date": "2026-10-23" },
         { "name": "wanoo", "kind": "human", "relation": "independent", "date": "2026-10-24" }
+      ]
+    },
+    "routes-solver": {
+      "claimTextHash": "17b44f322fa6158d82c719ca3d5b4c4d381a78b62a3a175337faeb805b3c5000",
+      "testFileHash": "46117026590bf800a9a5d04539b745a55ef2ad4fb8affcc01da32de8366caf66",
+      "reviewers": [
+        { "name": "claude", "kind": "ai", "relation": "author", "date": "2026-10-30" }
       ]
     },
     "run-clock-never-writes": {

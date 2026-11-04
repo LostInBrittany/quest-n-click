@@ -8943,3 +8943,225 @@ other shard, from the 38 minutes the whole set took before #349.
 → next: the first nights on the new schedule and their `report`; the README's install blocks moved to npm; the field
 passes' rules settled (a campaign window without releases, or carried surfaces, and the passes to prune) before a
 campaign; then 4.6.
+
+## #351 · 2026-11-04 · Claude · proposal · Each heavy attempt of the candidate in three shards
+
+#392: on 4.5.5's candidate (run 40324821053) the three `heavy` attempts took 44.4, 44.1 and 20.2 minutes, every other
+non-mutation job ended within 17. Per file, the median of the three reports: audit 837 s, partition 409, solver-oracle
+339, dominance 306, checkpoint-matrix 303, reference-proof 136, ownership 106, canonical 96, memo 79 (2611 s in all).
+`tools/heavy-shards.ts` reads `test:heavy`'s list from package.json and cuts it with unit-shards' `assignShards`, which
+takes a `parallel` argument now (1 here: `--no-file-parallelism`, a shard's time is its sum). The cut: audit alone
+(837 s); partition, checkpoint-matrix, ownership, memo (897 s); solver-oracle, dominance, reference-proof, canonical
+(877 s). The candidate keeps its three attempts (one red attempt is a red candidate): `heavy` is an attempt × shard
+matrix, nine jobs, each taking its files on a line of their own under `bash -e`, so a failed tool never leaves a
+`vitest run` with no filter. `baseline.mjs` and the gate's summary sum each attempt's three reports; an attempt with a
+shard missing is not measured, never counted on part of the suite. The nightly's `heavy` is unchanged but keeps its
+JSON report (`heavy-nightly`), from which `--record` can refresh the table.
+
+→ next: once this has run a few candidates, drop attempts 2 and 3 (#392's part B) and keep the duration series in the
+nightly; refresh `tools/heavy-durations.json` if a shard drifts past the others (audit alone is the floor).
+
+
+## #352 · 2026-11-04 · Claude · proposal · 4.6.0 "Routes": a character's rounds through rooms on the world's clock
+
+The maintainer asked for routes on 29 October, right after 4.5.6, and approved the plan the same day (D58,
+`docs/dev/PLAN-4.6-ROUTES.md`, ADR 0031). The DSL gains `RouteScriptDef`/`RouteStep` (a game script with `route`),
+`Layout.points` and two commands, `suspendScript` and `resumeScript`. The world's clock (`core/route-runtime.ts`)
+moves routes by whole 50 ms ticks; `advance(n)` equals `n` single ticks (a fast-check property). Replay stays exact
+without putting time in the entries: each entry records the tick at its sync points (`wt`: its beginning, each
+command, each answer, the end of the hero's approach, its end), and a replay runs the world there before going on;
+a route's position is an actor's position (`where`, `actors`), its path recomputed every tick from where it stands, so
+a reload walks the same path. The navigation moved into the core, so the view and the simulation share one path finder;
+the player's `dom/world-loop.ts` ticks the clock on its frames, freezes it (menu, cutscene, minigame, transition,
+hidden page) and glides routed characters. `games/routes` ("Lou's Rounds", three rooms of the reference chapter, two
+characters on routes, a detour and a mopped kitchen that shuts a door) validates, solves, is proved (601 states) and is
+audited (601 against 856 explicit states, same verdict); its e2e passes in Chromium and WebKit, screenshots read. 25
+route tests (runtime, validate, solve) and the 4.5 golden saves pass.
+
+→ next: the mutation set for `route-runtime.ts`, then the release (`npm run release -- prepare 4.6.0`); field passes
+for routes on Safari/iOS, in the background (PWA) and in the Studio.
+
+
+## #353 · 2026-11-04 · Claude · proposal · 4.6.0: the 131 mutation exemptions read again (0 killed, 131 to 4.7.0)
+
+- Every entry of `docs/dev/mutants.json` was due at 4.6.0. Six reviewers read them against integration/4.6.0 411d8a2a
+  (one context per group of sets, read-only), then each verdict was checked again here. Of the exempted files only
+  `ops/spans.ts` changed in its code since the 4.5.0 reread; `session-runtime.ts`, `save.ts` and `backup/files.ts`
+  gained code away from their mutated lines, `bridge.ts` and five connector files changed only in comments.
+- Killed: none. Every why still holds; none of the 131 mutants can be told from the original by an honest test.
+- Bug found beside them: `ops/spans.ts` glob split a key's literal by code point (`...part`) while globMatch reads the
+  path by UTF-16 unit, so a key with a character outside the BMP never matched its own file (`spanOf` threw
+  UnknownSpanError). The literal is now split by unit; tests/studio-spans-mutants.test.ts pins it (checked to fail
+  before the fix and pass after).
+- Sharpened (4): runs.ts `r.verdict` (runWorker does not check that a signed answer carries a verdict), badges
+  connector `resolve` (any falsy value that is not nullish would differ, not only `false`), play.ts's second expiry
+  boundary (`expires_at` is written only with `last_seen`), spans.ts globMatch's literal token (one UTF-16 unit since
+  the fix).
+- Per set, kept / killed: core 3/0, reality 15/0, reality-store 7/0, reality-store-postgres 1/0, runs 20/0, speedrun
+  8/0, remix 15/0, connectors-pure 11/0, connectors-edge 14/0, studio-ops 12/0, studio-auth 9/0, studio-workshop 9/0,
+  voices 7/0. `docs/dev/MUTANTS.md` records the reread; `tests/mutants-json.test.ts` checks the entries at 4.6.0 and its
+  pre-releases.
+
+→ next: the studio-ops set measured on the branch (spans.ts changed); the 131 are read again at 4.7.0.
+
+
+## #354 · 2026-11-04 · Claude · proposal · The hero choice screen: `{ choice, screen }`
+
+The maintainer asked for a hero choice screen at New Game: the heroes in a scene made for it, the player taps one. Two
+of his games need it (the korrigan or the korriganez, Adrien or Adrienne). First tried with content only on
+`games/heroes`: a "choose" room with `hero: false`, the heroes as actors, a rule per actor that sets `form` and goes to
+the garden. It validates and is proved, but a single tap only names a hero ("Walk to Biscuit"), the verbs, the bag and
+the buttons stay, "Look at" a hero picks it, the actors need typed coordinates and copies of the hero's looks, and the
+screen reader gets the scene's hotspots. So the screen became a presentation of the choice it already was:
+`screen: { decor, title? }` on the command (`ChoiceScreen`), passed to `Presenter.choose` as a third argument with its
+title filled; `dom/choice-screen.ts` draws it over the scene in the title screen's full-width layout; the handler does
+not say the pick back on a screen (the line came before the `do` that sets the hero, in the old look). The IR drops it
+like `Choice.img`, the presentation fingerprint carries it only when a game has one. `games/heroes` asks with it; its
+e2e checks the screen (title per language, the side column hidden, the heroes' images, the focus) and still plays the
+six runs. Seen at 844 × 390 and 1280 × 800. A side finding left for its own issue: a reload while the intro's choice is
+open, then Continue, lands in the first room with the flag unset (the autosave is written before the intro).
+
+CI said the first visit grew 137 → 138 KB gzipped (main sat at 137.33 KB, 177 bytes under the rounding; the
+screen added 484): `dom/choice-screen.ts` is now imported when a choice has a `screen`, and the first visit is back to
+137.44 KB.
+
+→ next: the maintainer's look on a phone; the reload during the intro's choice as its own issue.
+
+
+## #355 · 2026-11-04 · Claude · proposal · Portrait layout: a phone held upright, opt-in per game (`skin.portrait`)
+
+The maintainer plays the label's games on phones, often upright and tired, on planes, and asked for his adventure games
+to play upright. Until now an upright touch screen showed only the rotate overlay. A game now opts in with
+`skin.portrait: true` (the skin holds `pixelArt`, a similar presentation switch; `layout` would be confused with the
+rooms' layouts). `layout()` reads it live, so the overlay and the layout follow the game definition on every resize,
+which is also how the e2e switches it on in the running sample game, which keeps it off. Upright: the scene on top at
+full width, the panel below with the sentence line moved into it (as on the desktop), the verbs on 3 columns and the bag
+on 4 (`invCols`, as the desktop), the tools and page buttons 44 px tall. `fitPortrait` (pure, `dom/portrait-fit.ts`)
+gives the scene the full width when the panel keeps its touch targets, else narrows it down to 60% of the width; the
+panel's need is measured by the same `measureSide` that `fitSideColumn` uses (taken out of it, landscape arithmetic
+unchanged), with the panel's top border and without the bag's page buttons, so the scene's size depends on the screen
+alone and does not jump when the ninth item arrives (a full bag on a short screen shrinks the panel's buttons to 34 to
+36 px, as #227 accepted in landscape). Menus (`.dim`) are `position: fixed` upright, padded by `#app`'s padding
+(`--safe`); the title screen lets its buttons out under the picture, in a column. The title screen is now laid out again
+on a resize (`onTitle`, `titleFit`), a fix for landscape too. Measured in Chromium (touch, DPR 2) on the demo at 360×640
+to 430×932 with and without simulated safe areas (#397): full-width scene everywhere but 360×640 with a 47/34 px notch
+and indicator (352 px, verbs and slots 44); landscape 568×320 to 932×430 and desktop 1280×800 and 1440×900 identical to
+main, box for box. `tests/portrait-fit.test.ts` and a validator case; `npm run e2e:portrait`.
+
+→ next: WebKit and a real iPhone and Android phone upright (safe areas from `env()`, the browser bars), minigames at a
+phone's width (they run in the scene, at its `u`), and whether the sample game should turn the option on.
+
+
+## #356 · 2026-11-04 · Claude · proposal · 4.6.0: the autosave waits for the end of the New Game intro (#401)
+
+- Found while working on #398: on `games/heroes`, New game, reload while the hero cards are open, Continue: the garden
+  with `form` unset, the intro never asked again.
+- Cause: `Engine.newGame()` wrote the fresh state to the store before the intro, and `enter()` wrote it again on the
+  first room's arrival. `continueGame()` loads the room without the intro.
+- Fix: with a `start.intro`, `Engine.save()` keeps checking the objectives but writes nothing until the intro has
+  ended. The flag lives on the busy owner (`Busy.intro`, `opening()` at New game, `opened()` around the intro's
+  commands, cleared by `reset()` on any new session), which keeps `core/engine.ts` at its 800 lines. The end of the
+  intro's `run` saves once. The title screen and Restart already clear the store before New game, so a reload during
+  the intro finds no save. Without an intro, nothing changes. No save format change, no `saveVersion` bump.
+- games/heroes/e2e.mjs: the first round reloads the page while the cards are open, checks Continue is disabled, and
+  starts New game again.
+- tests/intro-reload.test.ts: no autosave while the choice is open and the pick saved after it; an intro without a
+  choice; a game without an intro saved at the start. The first two failed before the fix.
+- CI red on the pull request (e2e chromium full, e2e webkit generic, pwa-firefox): the sample game's intro ends in its
+  tutorial (three `guide` steps), so the whole tutorial was played with no autosave at all, and e2e-pwa and e2e-music
+  (game) saved from code while the intro's first line was on screen and found no save. Fix: `Busy.holding` (the
+  intro, and no tutorial step waited for) is what `save()` checks; a `guide` reached during the intro writes the
+  autosave, the player's guess in it. tests/intro-reload.test.ts: the demo's intro saved at its first tutorial step,
+  a save during the tutorial written (red before). The two scripts Skip the intro and answer its choice before they
+  save. routes (webkit): not this change (the same commit's run of routes (chromium) passed; see the report).
+- Left: the revision dialog's Restart (`dom/revision.ts`) calls `newGame()` without clearing the store, so a reload
+  during that intro would continue the previous game rather than none.
+→ next: nothing.
+
+
+## #357 · 2026-11-04 · Claude · proposal · main green again after the routes: four `core` mutants and the `world.ts` floor
+
+#403: main was red since #394 for two causes. The nightly's gated `core` set left four mutants unexplained, all on the
+routes' side of `save.ts` (`route.on`, `route.blocked`) and `session-runtime.ts` (`sync(true)` and `onEnd` at an
+entry's end): the set's tests never loaded a game with routes. `tests/route-runtime.test.ts` and
+`tests/routes-game.test.ts` join `TESTS.core`, which kills two; two tests kill the others, each checked against its
+mutant by hand: a save held at a closed exit reads back held, and a replayed entry whose world moved only after its
+last sync point before the end reaches its last recorded tick. `core`: 435/438, 3 survivors explained, 0 not. And
+main's `coverage` ratchet refused `world.ts`'s branch floor, 85 for 88 measured: 86 now, two points under, as the
+other routes floors.
+
+→ next: `vite.config.ts` is a mutation input, so this changes every set's cache key once; the coverage floors could
+live in a file of their own.
+
+
+## #358 · 2026-11-04 · Claude · proposal · Shared figures out of pull requests: the baseline's two writes, the first visit in bytes, the floors as data (#405)
+
+On 4 November 2026 two open pull requests (#399, #400) spent most of their CI on figures every pull request shares: the
+first visit crossed a rounding edge (137.9 → 138 KB) and failed `quality:baseline -- --check --dist`; the reference
+chapter's budget was raised to 143 with no margin; once #399 merged, #400 conflicted on `tests.files`,
+`tests.declarations` and the READMEs' figures only, and re-ran about 40 jobs. #404 raised one coverage floor in
+`vite.config.ts`, which moved every mutation set's cache key. Options A, B, C and F of #405; E (zod loaded on demand,
+8.4 KB of the first visit) follows after 4.6.0.
+
+A and B: `tools/quality-baseline.ts` has two writes. `toWrite(prev, got, 'pr')` takes the games, the saves and the
+surface from the measure and keeps `tests` and `bundle` as committed; `readmeFor(…, 'pr')` writes only
+`referenceStates` (behaviour: without it, a pull request that moves the reference proof would fail `readmeDrift`). The
+release's write (`--release`) takes everything, the install line included, and keeps the previous bundle without
+`--dist`. `readmeDrift` still compares the READMEs with the committed baseline. `tools/release/baseline.mjs` reads
+`tests.files` and `bundle.initialJsKB`, both still written by the release. `prepare`'s step runs
+`QUALITY_BASELINE_COMMANDS`: `npx vite build` then `quality:baseline -- --release --dist`, so the bundle figure is
+measured, where the step without `--dist` used to keep whatever a pull request had last written.
+
+C: `tools/first-visit.ts` (pure): `overBudget(bytes, budgetKB)` fails above `budgetKB × 1024`, `sinceRelease` says the
+signed byte difference. `tools/dist.ts` gates on it and adds `initialJsBytes` to `--json`; the baseline's `bundle`
+gains `initialJsBytes` at the next release (this branch writes no shared figure, so the committed bundle has none yet
+and the warning stays silent until then). Measured on main with #400 (fd8fdb5a): demo 141 373 bytes (138.1 KB, budget 140,
+margin 2 027 bytes), reference 146 260 bytes (142.8 KB, budget 143 → 145, margin 2 220 bytes).
+
+F: `tests/coverage-floors.json` holds the global floors and groups of files, each with its reason (`why`), the comments
+that sat beside them in `vite.config.ts`. `tools/coverage-floors.ts` flattens them into Vitest's thresholds; it reads
+the file at run time, so `inputHash` never sees it, and the module is in `CONFIG_SKIPS` (a mutant run takes no
+coverage). `tools/coverage-ratchet.ts` reads the floors there and names the file. `tools/ci-plan.ts`: a change to the
+floors alone opens the `coverage` gate (it used to be a shared configuration, which ran everything). The file joins
+`CODEOWNERS` beside `vite.config.ts`.
+
+→ next: E, the zod chunk out of the first visit, after 4.6.0; the 4.6.0 release writes the first `initialJsBytes`.
+
+
+## #359 · 2026-11-04 · Claude · proposal · the routes e2e red on WebKit: a tap on Lou as he walked out
+
+main went red on fd8fdb5a (#400's merge) with `routes (webkit)` alone: `locator.waitFor` timed out waiting for the
+conversation's choices, the engine idle, not choosing. The same failure on eea9d42d (#399's merge) and on #402's
+branch (8456ba56); since d4117b15, #394's last commit, 3 of the 15 `ci` runs that played `routes (webkit)` failed
+this way (a fourth before it, 449b30b0, was the "world stood still" one that d4117b15 fixed). None on Chromium, and not from #399 or #400:
+8456ba56 has neither.
+
+The cause is the e2e's timing. A world tick is 50 ms and Lou walks 150 px/s: he stands at his desk for 3 s (until tick
+~60), then walks the 390 px to the door in 2.6 s (out at tick ~113). Pixel comes into the office at tick ~49, takes the
+map, and talks to Lou at tick ~90–94 locally, with Lou at x 180–220 on his way out; CI's screenshot shows him at x ~123
+before the talk even starts. The harness reads his box, then taps: a second later he is no longer under the tap, or no
+longer in the room. Reproduced at will: 1.5 s of delay before the talk gives CI's exact failure. The engine holds a
+walking Lou whenever the tap meets him (every green run did just that).
+
+The fix waits for a real signal, twice: Lou in the office, step `paperwork`, at least 2500 of its 3000 ms left (polled
+every 50 ms, so caught at its start, else a full round later, ~18 s). The map is taken at one, the talk starts at the
+next, so neither depends on how long the other lasts. Talking first and taking the map after it was tried and refused:
+on Chromium the harness's `dismissTranscript` waits 30 s on a transcript that closes itself under its tap (Playwright's
+default timeout, the error swallowed), and Lou is gone by then. Checked: WebKit 5/5 and 2/2 under a parallel `vitest
+run`, Chromium 1/1, and both with the 1.5 s delay that broke the old script; the run takes ~79 s instead of ~40.
+
+→ next: `dismissTranscript` (`scripts/e2e/lib.mjs`) could tap with a short timeout: every conversation costs a Chromium
+e2e 30 s today.
+
+## #360 · 2026-11-04 · Claude · release · 4.6.0 "Routes": TODO(release)
+
+- **The request**: TODO(release)
+- **What ships**: TODO(release)
+- **Fragments**: TODO(release)
+- **Upgrade notes**: TODO(release)
+- **Reviews**: TODO(release)
+- **Fixtures**: TODO(release)
+- **Passes**: TODO(release)
+- **Signature**: TODO(release)
+
+→ next: TODO(release)
