@@ -2,7 +2,7 @@
  "about": "The coverage floors (4.1.0 \"Clarity\"; in this file since 4.6.0, #405): the level `npm run test:coverage` must reach, globally and per file. They may only rise: `npx tsx tools/coverage-ratchet.ts` says when one is three points or more below what the tests reach. vite.config.ts reads this file (tools/coverage-floors.ts) instead of holding the floors, so raising one moves no configuration a mutation set's cache is keyed on.",
  "total": {
   "why": "The floor measured at 4.1.0 (the browser-only parts of src/, the player's UI and the Studio's, are covered by the e2e, not here).",
-  "lines": 76,
+  "lines": 77,
   "statements": 74,
   "functions": 71,
   "branches": 70
