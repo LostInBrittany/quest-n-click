@@ -171,7 +171,8 @@ export const game = defineGame({
   // 3.7: two scores' stems (3.9 MB), the full warm-up (9.2 MB), the most decoded at once during a transition (128 MB:
   // both scores and a bridge).
   // initialJsKB 142 since 4.4.0: the engine's first visit grew by 1 KB (a hotspot's single tap, a map pin's several faces).
-  assetBudgets: { initialKB: 3000, roomKB: 3000, chapterKB: 6000, backgroundScoreKB: 4800, offlineTotalKB: 11000, decodedAudioMB: 128, transitionPeakMB: 150, initialJsKB: 142 },
+  // 143 since 4.6.0: the portrait layout (#397) runs with every resize, so it loads with the first visit (about 1 KB).
+  assetBudgets: { initialKB: 3000, roomKB: 3000, chapterKB: 6000, backgroundScoreKB: 4800, offlineTotalKB: 11000, decodedAudioMB: 128, transitionPeakMB: 150, initialJsKB: 143 },
   i18n: { same: demo.i18n?.same?.filter((p) => p.startsWith('ui/') || p === 'char:hero/name' || p === 'char:biscuit/name' || p === 'char:neighbor/name').concat(['room:kitchen/props.radio.name', ...[0, 1, 3].map((i) => `room:hall/on.hall.use-map.do[1].params.actors[${i}].label`), ...['317', '542', '868'].map((n) => `room:hall/talk.neighbor.hall.neighbor.i-know-the-password.do[1].choice.hall.neighbor.i-know-the-password.c-${n}.text`)]) },
   ui: demo.ui,
 });
