@@ -154,7 +154,8 @@ look: { grandma: 'Grand-mère. La poussière {form?knight=le|witch=la|robot=le} 
 - **L’intro se joue avant l’arrivée dans le premier lieu** : le héros est choisi avant que quiconque parle. Avec `img`,
   chaque option est une carte : le portrait, avec son `text` pour étiquette (et pour nom lu par le lecteur d’écran) ;
   les cartes passent à la ligne et défilent, si bien que tous les héros tiennent sur un téléphone. Sans `img`, les
-  options restent des lignes de texte.
+  options restent des lignes de texte. La sauvegarde automatique s’écrit une fois l’intro finie (4.6.0, #401) : un
+  rechargement avant le choix ne laisse pas de Continuer, donc aucune partie ne commence sans héros.
 - **La logique reste de la logique** : une règle qui doit changer selon le héros porte
   `if: { flag: 'form', eq: 'witch' }`. Le solveur explore chaque réponse du choix d’intro, mais `npm run solve`
   s’arrête au premier chemin gagnant ; `npm run solve -- --prove` vérifie chaque héros. Les sauvegardes gardent le

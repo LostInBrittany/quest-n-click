@@ -1,0 +1,21 @@
+{
+  "format": "quest-n-click-docs-acks",
+  "version": 1,
+  "pairs": {
+    "create.heroes#hero-choice": {
+      "enHash": "da9fa8289c86828657ebff4120b789783c2a724a68a8e28a3e067aca0f9add43",
+      "frHash": "70f1af32f8f13969eb210f6ad1bdbfa30b51bbdcd6bc2b2c1764a2b24afa4d36",
+      "reviewers": [
+        { "name": "claude-opus-5.5", "kind": "ai", "relation": "author", "date": "2026-11-04" }
+      ]
+    },
+    "play.saves#autosave": {
+      "enHash": "148b96304b12d0d95391d7d41a325870c3a682b6db00e25c713b6f88dc226244",
+      "frHash": "bcae59a2ab170bf7e54c8a5eb4e4bcb59232065852665a95617940346d491689",
+      "reviewers": [
+        { "name": "claude-opus-5.5", "kind": "ai", "relation": "author", "date": "2026-11-04" }
+      ]
+    }
+  },
+  "claims": {}
+}

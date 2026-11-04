@@ -18,6 +18,11 @@ export class Busy {
   guide: GuideWait | null = null;
   /** The current cutscene is being skipped: its commands finish at once. */
   skipping = false;
+  /**
+   * The New Game intro is running (#401): nothing is written to the autosave until it ends, so a reload during it (a
+   * hero choice still open) leaves no Continue that would skip it. The end of the intro's run writes it.
+   */
+  intro = false;
 
   /** Running something the player must wait for (a tutorial step waiting leaves the player free). */
   get busy() {
@@ -39,8 +44,22 @@ export class Busy {
     const g = this.guide;
     return !!g && g.verb === act.verb && (act.a === g.target || act.b === g.target);
   }
-  /** A new session: no step, no run, no skip. */
+  /** A new game starts: true when it opens with an intro, which holds the autosave back until `opened`. */
+  opening(intro: unknown): boolean {
+    this.intro = !!intro;
+    return this.intro;
+  }
+  /** Waits for the intro's commands; once they end (or fail), the autosave is written again. */
+  async opened(commands: Promise<void>): Promise<void> {
+    try {
+      await commands;
+    } finally {
+      this.intro = false;
+    }
+  }
+  /** A new session: no step, no run, no skip, no intro. */
   reset() {
+    this.intro = false;
     this.guide = null;
     this.count = 0;
     this.skipping = false;

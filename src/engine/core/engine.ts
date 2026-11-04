@@ -322,7 +322,7 @@ export class Engine {
   async newGame(): Promise<void> {
     this.dropGuide();
     this.state = this.ensureState(this.fresh());
-    this.store.save(this.state);
+    if (!this.busyState.opening(this.game.start.intro)) this.store.save(this.state);
     this.newSession({ kind: 'new' });
     this.startJournal('new');
     this.begin({ start: 'new' });
@@ -330,8 +330,8 @@ export class Engine {
     try {
       // The prologue runs before the first room's arrival script (otherwise the tutorial would wait for it).
       await this.enter(this.state.room, undefined, false);
-      if (this.game.start.intro)
-        await this.run(() => this.exec(this.game.start.intro, { room: this.room(), fast: false }));
+      const intro = this.game.start.intro;
+      if (intro) await this.run(() => this.busyState.opened(this.exec(intro, { room: this.room(), fast: false })));
       const first = this.room();
       if (first.onEnter) {
         this.ran(`rule:${first.id}/enter`);
@@ -420,7 +420,7 @@ export class Engine {
 
   save() {
     this.objectives.check();
-    this.store.save(this.beforeSave ? this.beforeSave(this.state) : this.state);
+    if (!this.busyState.intro) this.store.save(this.beforeSave ? this.beforeSave(this.state) : this.state);
   }
 
   /**

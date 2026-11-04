@@ -36,7 +36,8 @@ In the game, from the pause menu (the pause button in the tools, or Escape).
 ## The autosave
 
 The game saves by itself each time an action ends (the engine back to idle), when you change rooms, and when a script
-moves on. Each write is read back and checked. The pause menu's **Autosave** row shows ✓, or ⚠ when the last write
+moves on. A game that opens with an intro (a hero to choose, a few lines) is saved once the intro has ended: a
+reload during it leaves nothing to continue, and New game plays it again. Each write is read back and checked. The pause menu's **Autosave** row shows ✓, or ⚠ when the last write
 failed; a failed write also shows "Save failed" with the browser's reason. **Continue** on the title screen resumes
 the autosave. **Restart** erases it first, after a confirmation; if the browser refuses to erase it, you keep your
 game.

@@ -1,7 +1,7 @@
 // Playwright playthrough of "Who Am I Today?" (games/heroes, 4.4.0; scripts/e2e.mjs loads it, wiki/en/reference.npm-scripts.md).
 // For each language (English, then French with `?lang=`) and each of the three heroes, from the real title screen:
 //   - New game; the intro's three portrait cards (Choice.img), each with its image loaded and its label; the hero's card
-//     is tapped;
+//     is tapped (the first time, the page is reloaded while the cards are open: no Continue, New game asks again, #401);
 //   - the hero says who they are (a switch), the engine's hero now carries that hero's name;
 //   - Grandma greets the hero by name (`{hero}`) with the words for that hero, French agreeing them with the gull
 //     (`Prête`), and the dust line plays that hero's clip (`garden.dust~form=<hero>`, `audio.voices` or
@@ -137,6 +137,16 @@ export async function run(h) {
       if (cards.map((c) => c.label).join('|') !== T.cards.join('|') || cards.some((c) => !c.img))
         throw new Error(`heroes: ${tag}: the portrait cards are ${JSON.stringify(cards)}`);
       await h.screenshot(`${tag}-cards`);
+      if (lang === 'en' && hh === HEROES[0]) {
+        // A reload while the cards are open (#401): the autosave waits for the end of the intro, so there is nothing
+        // to continue, and New game asks again.
+        await page.waitForTimeout(400);
+        await open(lang, true);
+        if (!(await page.locator('.overlay .bigbtn').nth(1).isDisabled()))
+          throw new Error(`heroes: ${tag}: Continue is enabled after a reload during the hero choice`);
+        await page.locator('.overlay .bigbtn').first().tap();
+        await page.locator('.side .choices .choice.card').first().waitFor({ timeout: 15000 });
+      }
       await choose(hh.name, L.me);
       await expectHero(hh, `${tag}: after the choice`);
       // Grandma: the hero's name and the words for that hero; the dust line, voiced for that hero.

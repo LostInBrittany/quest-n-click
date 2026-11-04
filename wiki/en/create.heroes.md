@@ -146,7 +146,8 @@ look: { grandma: 'Grandma. Dust makes {form?knight=him|witch=her|robot=it} sneez
   is shown as written too: give each hero its own variant and name instead of a switch.
 - **The intro runs before the first room's arrival**, so the hero is chosen before anyone talks. With `img`, each
   option is a card: the portrait with its `text` as the label (and the screen reader's name); the cards wrap and
-  scroll, so any number of heroes fits on a phone. Without `img`, the options are text lines.
+  scroll, so any number of heroes fits on a phone. Without `img`, the options are text lines. The autosave is written
+  once the intro has ended (4.6.0, #401): a reload before the pick leaves no Continue, so no game starts without a hero.
 - **Logic stays logic**: a rule that must differ by hero carries `if: { flag: 'form', eq: 'witch' }`. The solver
   branches over the intro's choice, but `npm run solve` stops at the first winning path; `npm run solve -- --prove`
   checks every hero. Saves keep the flag; checkpoints take it in `flags`.
