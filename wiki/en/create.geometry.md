@@ -67,6 +67,13 @@ Tall characters who gesture as they talk end up with a hand in each other's head
 is for. An `approach` point in the layout still wins, for a character who needs the other side. `actorGap` is
 presentation only, like approach points: no rule nor the solver reads it.
 
+The character stays turned to the hero after the action. With `turnBack: true` on the room's actor (4.6.1), it turns
+back once the action is over: its rule, look line or fallback done, and for a conversation, once "Bye" closes it. It
+turns to the side it stands facing in the state, the side a reload draws: a `face` or `place` command's if a script
+left one (a topic that says `{ face: 'hero', who: X }` keeps X turned to the hero), else the room's `facing`, else
+the layout's mirror. Nothing happens when the action left the room or hid the character. Presentation only, like the
+turn itself: no rule, save nor the solver sees it.
+
 <a name="walk-area"></a>
 
 ## The walk area

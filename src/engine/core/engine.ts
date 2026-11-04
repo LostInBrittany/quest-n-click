@@ -63,6 +63,7 @@ import {
   openMap as openMapImpl,
   teleport as teleportImpl,
   faceEachOther as faceEachOtherImpl,
+  turnBack as turnBackImpl,
 } from './movement';
 import type { ReceiveResult } from './reality-runtime';
 import { SessionLog } from './session-runtime';
@@ -601,6 +602,7 @@ export class Engine {
         }
         if (inScene) faceEachOtherImpl(this, target, room);
         src = await this.resolve(act, { room, fast: false });
+        if (inScene) turnBackImpl(this, target, room);
         this.log('action', `${act.verb} ${act.a}${act.b ? ` → ${act.b}` : ''}: ${src ?? 'nothing'}`);
       });
     } finally {
