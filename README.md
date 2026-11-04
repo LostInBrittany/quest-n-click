@@ -34,7 +34,7 @@ Linux. The engine installs from a release's archive, or from npm since 4.5.2 (ea
 approves it):
 
 ```bash
-T=https://github.com/Quest-n-Click/quest-n-click/releases/download/v4.5.6/quest-n-click-4.5.6.tgz
+T=https://github.com/Quest-n-Click/quest-n-click/releases/download/v4.6.0/quest-n-click-4.6.0.tgz
 npx --package=$T quest-n-click create my-game "My Game" --engine=$T
 cd my-game && npm install
 npm run assets && npm run dev        # play it; then npm run verify, npm run build
@@ -151,7 +151,7 @@ mistakes before a person does. Every result stays reviewable, in the Studio and 
 ## In numbers
 
 Measured by the automated gates at the last baseline, rewritten at each release (`npm run quality:baseline`):
-<!-- metric:tests -->3727<!-- /metric --> unit test declarations, on Node 22 and 24, with coverage floors and gated
+<!-- metric:tests -->3747<!-- /metric --> unit test declarations, on Node 22 and 24, with coverage floors and gated
 mutation testing; the reference game proved in <!-- metric:referenceStates -->288<!-- /metric --> states; the player's
 first visit <!-- metric:initialJsKB -->138<!-- /metric --> KB of JavaScript, gzipped. Each release is built from the
 commit its candidate tested. The candidate makes the four package archives, the Bridge's image, the SBOMs, the runs and
@@ -169,7 +169,8 @@ the first idea to the release, every command in [npm scripts](https://github.com
 [Roadmap](https://github.com/Quest-n-Click/quest-n-click/wiki/EN-Start-Roadmap). An assistant reads the same pages through the MCP server (`search_docs`, `read_doc`);
 the old `docs/` pages are transition pages, each section linked to its new place and to its 4.4.0 text.
 
-Current release: [v4.5.6 (A stable CI)](https://github.com/Quest-n-Click/quest-n-click/releases/tag/v4.5.6): a stable CI (the mutation runs back to their speed, a nightly that runs in the night and opens an issue when red, no more failures from slow apt mirrors or Windows' timers), `ids --write` that rewrites the positional `seen` keys, a created project with its starting test, and "Your first game" from npm (Horacio).
+Current release: [v4.6.0 (Routes)](https://github.com/Quest-n-Click/quest-n-click/releases/tag/v4.6.0): routes, any character walking its rounds through rooms on the world's clock, seen or not (`suspendScript` and `resumeScript`, saves and replays that keep the world, `validate`, the lint and the solver taught routes, the example "Lou's Rounds"), a portrait layout for a phone held upright (`skin.portrait`), a hero choice screen (`{ choice, screen }`), the autosave written once the New Game intro has ended, and pull requests that no longer rewrite the shared figures, the first visit gated in bytes (Horacio).
+Over 4.5.6 "A stable CI": a stable CI (the mutation runs back to their speed, a nightly that runs in the night and opens an issue when red, no more failures from slow apt mirrors or Windows' timers), `ids --write` that rewrites the positional `seen` keys, a created project with its starting test, and "Your first game" from npm (Horacio).
 Over 4.5.5 "Reworked CI": a release whose CI runs once (`prepare` stops until the prose and reviews are done, then warms the candidate's mutation cache), a release command tested end to end, no more conflicts on the wiki's records or flaky tests, and `validate` refusing a `seen` key that nothing records (Horacio).
 Over 4.5.4 "Simple release": a release in three human actions (the release pull request by one command, its merge starting the candidate, `npm run release -- 4.5.4`), pull requests that wait less, and the tools of a project made from npm that find its `game/` (Horacio).
 Over 4.5.3 "One pass": the candidate

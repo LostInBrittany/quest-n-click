@@ -12,10 +12,10 @@
     },
     "apply-replays-demo": {
       "claimTextHash": "dd227a7a5f952741f1373909c80c8f1c9d134c07920923ed115d4af48d2b84d7",
-      "testFileHash": "ac3dbd3f907747c9fbd63a1144af97db8ab8acab57d5cd710d654111e83066ae",
+      "testFileHash": "5ca619689b7909fd1af5ab93e72733c2247dc1b5c7f72cabbadee9840984d0a6",
       "reviewers": [
-        { "name": "claude-4.5-writers", "kind": "ai", "relation": "author", "date": "2026-10-23" },
-        { "name": "wanoo", "kind": "human", "relation": "independent", "date": "2026-10-24" }
+        { "name": "claude", "kind": "ai", "relation": "author", "date": "2026-10-29" },
+        { "name": "LostInBrittany", "kind": "human", "relation": "independent", "date": "2026-11-04" }
       ]
     },
     "backup-keep-own-only": {
@@ -236,10 +236,10 @@
     },
     "closed-link-stops-walk": {
       "claimTextHash": "a373ea1ee815a3413600862fdfba7b2df8e1eae657ee2cbf85d744becac660ef",
-      "testFileHash": "fab4f210f0e5605968714d316cf1c2e3097764bd75ec4d817bd3f50ce544e710",
+      "testFileHash": "6fc418db385e68ea4889a88cf2e7e6409df1b66626f73b8c8ceec9997a8f7251",
       "reviewers": [
-        { "name": "claude-4.5-writers", "kind": "ai", "relation": "author", "date": "2026-10-23" },
-        { "name": "wanoo", "kind": "human", "relation": "independent", "date": "2026-10-24" }
+        { "name": "claude", "kind": "ai", "relation": "author", "date": "2026-10-29" },
+        { "name": "LostInBrittany", "kind": "human", "relation": "independent", "date": "2026-11-04" }
       ]
     },
     "comment-author-edits": {
@@ -624,6 +624,78 @@
       "reviewers": [
         { "name": "claude-4.5-writers", "kind": "ai", "relation": "author", "date": "2026-10-23" },
         { "name": "wanoo", "kind": "human", "relation": "independent", "date": "2026-10-24" }
+      ]
+    },
+    "routes-arrival": {
+      "claimTextHash": "cf4b24f396aa28c8733ed2c6b98ecbe71e4ca1637630732892de1d65c86efcd0",
+      "testFileHash": "f30375b3b0c4b8796e71fb9a390878a696898ceb614b36ad615a3b48a84daf0f",
+      "reviewers": [
+        { "name": "claude-opus-5-5", "kind": "ai", "relation": "author", "date": "2026-11-04" },
+        { "name": "LostInBrittany", "kind": "human", "relation": "independent", "date": "2026-11-04" }
+      ]
+    },
+    "routes-clock-steps": {
+      "claimTextHash": "adefc350eb2131279316316b0723c94bba9c13c14e60ba570763208d65a5b0b2",
+      "testFileHash": "f30375b3b0c4b8796e71fb9a390878a696898ceb614b36ad615a3b48a84daf0f",
+      "reviewers": [
+        { "name": "claude-opus-5-5", "kind": "ai", "relation": "author", "date": "2026-11-04" },
+        { "name": "LostInBrittany", "kind": "human", "relation": "independent", "date": "2026-11-04" }
+      ]
+    },
+    "routes-hold": {
+      "claimTextHash": "495c2fb7d51051b5405dcd15814d4e2f86e20775fbcceb5a8801db9fc04e9b2c",
+      "testFileHash": "f30375b3b0c4b8796e71fb9a390878a696898ceb614b36ad615a3b48a84daf0f",
+      "reviewers": [
+        { "name": "claude-opus-5-5", "kind": "ai", "relation": "author", "date": "2026-11-04" },
+        { "name": "LostInBrittany", "kind": "human", "relation": "independent", "date": "2026-11-04" }
+      ]
+    },
+    "routes-offscreen": {
+      "claimTextHash": "c84e8386ece8e31cd48d2391686ba7541637bbb779218c77f5cd5439af9cdeb2",
+      "testFileHash": "f30375b3b0c4b8796e71fb9a390878a696898ceb614b36ad615a3b48a84daf0f",
+      "reviewers": [
+        { "name": "claude-opus-5-5", "kind": "ai", "relation": "author", "date": "2026-11-04" },
+        { "name": "LostInBrittany", "kind": "human", "relation": "independent", "date": "2026-11-04" }
+      ]
+    },
+    "routes-replay": {
+      "claimTextHash": "17da4619b05cd47a2a21c796332ff23a4db253433beaef570ec27b130f978208",
+      "testFileHash": "f30375b3b0c4b8796e71fb9a390878a696898ceb614b36ad615a3b48a84daf0f",
+      "reviewers": [
+        { "name": "claude-opus-5-5", "kind": "ai", "relation": "author", "date": "2026-11-04" },
+        { "name": "LostInBrittany", "kind": "human", "relation": "independent", "date": "2026-11-04" }
+      ]
+    },
+    "routes-saves": {
+      "claimTextHash": "4ee620aa39493816ac71805cc19bb594f25e3b7542ea789d5f875cade488bccf",
+      "testFileHash": "f30375b3b0c4b8796e71fb9a390878a696898ceb614b36ad615a3b48a84daf0f",
+      "reviewers": [
+        { "name": "claude-opus-5-5", "kind": "ai", "relation": "author", "date": "2026-11-04" },
+        { "name": "LostInBrittany", "kind": "human", "relation": "independent", "date": "2026-11-04" }
+      ]
+    },
+    "routes-shut-door": {
+      "claimTextHash": "4c5663b557cf4c7fff3309ca22fe1083ddf474b7dc1368853a547e8fbd4b0d78",
+      "testFileHash": "f30375b3b0c4b8796e71fb9a390878a696898ceb614b36ad615a3b48a84daf0f",
+      "reviewers": [
+        { "name": "claude-opus-5-5", "kind": "ai", "relation": "author", "date": "2026-11-04" },
+        { "name": "LostInBrittany", "kind": "human", "relation": "independent", "date": "2026-11-04" }
+      ]
+    },
+    "routes-solver": {
+      "claimTextHash": "17b44f322fa6158d82c719ca3d5b4c4d381a78b62a3a175337faeb805b3c5000",
+      "testFileHash": "46117026590bf800a9a5d04539b745a55ef2ad4fb8affcc01da32de8366caf66",
+      "reviewers": [
+        { "name": "claude", "kind": "ai", "relation": "author", "date": "2026-10-30" },
+        { "name": "LostInBrittany", "kind": "human", "relation": "independent", "date": "2026-11-04" }
+      ]
+    },
+    "routes-suspend": {
+      "claimTextHash": "9570f84c2ee96e01b8cdfa66c7dca39076fe93390f64c2d8378f5d872fde02b0",
+      "testFileHash": "f30375b3b0c4b8796e71fb9a390878a696898ceb614b36ad615a3b48a84daf0f",
+      "reviewers": [
+        { "name": "claude-opus-5-5", "kind": "ai", "relation": "author", "date": "2026-11-04" },
+        { "name": "LostInBrittany", "kind": "human", "relation": "independent", "date": "2026-11-04" }
       ]
     },
     "run-clock-never-writes": {
