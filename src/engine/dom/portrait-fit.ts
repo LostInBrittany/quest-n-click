@@ -1,9 +1,9 @@
-// The portrait layout of a phone held upright (4.6.0, opt-in: `skin.portrait`). The scene takes the top, as wide as
-// the screen and at its own 16:10 ratio; the panel below holds what the landscape column holds (the sentence line, the
-// verbs, the bag, the tools row) and fits its height with the same rules (side-fit.ts). A phone upright is about twice
-// as tall as it is wide, so the panel has room to spare; only a nearly square screen (a foldable, a split screen) is
-// short of it, and there the scene gives up width first, down to a floor, before the panel's buttons go under a touch
-// target. Below that floor the panel shrinks its buttons as the landscape column does, then scrolls.
+// The portrait layout of a phone held upright (#397, 4.6.0, opt-in: `skin.portrait`). The scene takes the top, as wide
+// as the screen and at its own 16:10 ratio; the panel below holds what the landscape column holds (the sentence line,
+// the verbs, the bag, the tools row) and fits its height with the same rules (side-fit.ts). A phone upright is about
+// twice as tall as it is wide, so the panel has room to spare; only a nearly square screen (a foldable, a split screen)
+// is short of it, and there the scene gives up width first, down to a floor, before the panel's buttons go under a
+// touch target. Below that floor the panel shrinks its buttons as the landscape column does, then scrolls.
 
 /** The scene's ratio, as everywhere in the player (640 x 400 logical units). */
 export const RATIO = 1.6;

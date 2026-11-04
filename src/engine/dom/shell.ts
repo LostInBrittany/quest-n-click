@@ -253,8 +253,10 @@ export function fitSideColumn(app: App) {
 
 /**
  * What the column (or the portrait panel) holds besides its verb rows and slot rows: padding, gaps, the tools row, the
- * bag's page buttons when they show, the sentence line when it sits in the panel (portrait). `playing`: count the
- * verbs and the bag even while a conversation or the map hides them (what the panel needs once they come back).
+ * bag's page buttons when they show, the sentence line when it sits in the panel (portrait). `playing` (what the
+ * portrait panel needs, portrait-fit.ts): the verbs and the bag counted even while a conversation or the map hides
+ * them, the page buttons never, so the scene's size depends on the screen alone and does not jump when the bag fills
+ * up; a full bag on a short screen shrinks the panel's buttons instead, as the landscape column does.
  */
 function measureSide(app: App, playing: boolean) {
   const side = app.side;
@@ -262,7 +264,8 @@ function measureSide(app: App, playing: boolean) {
   const px = (v: string) => Number.parseFloat(v) || 0;
   const always = (e: HTMLElement) => playing && (e === app.verbsEl || e === app.invEl);
   const lead = app.sbar.parentElement === side && !app.desk ? [app.sbar] : [];
-  const shown = [...lead, app.verbsEl, app.invEl, app.invNav, app.toolsEl].filter((e) => !e.hidden || always(e));
+  const rows = playing ? [app.verbsEl, app.invEl, app.toolsEl] : [app.verbsEl, app.invEl, app.invNav, app.toolsEl];
+  const shown = [...lead, ...rows].filter((e) => !e.hidden || always(e));
   const box = (e: HTMLElement) => {
     const s = getComputedStyle(e);
     return px(s.paddingTop) + px(s.paddingBottom) + px(s.borderTopWidth) + px(s.borderBottomWidth);

@@ -254,8 +254,15 @@ for (const [w, h] of SIZES)
       g.presenter.inventory(ids);
     });
     const full = await measure(page);
-    rows.at(-1).fullBag = `scene ${full.scene.w}, verb ${full.verbs[0]?.h}, slot ${full.slots[0]?.h}`;
-    check(`${tag} full bag`, full);
+    rows.at(-1).fullBag = `verb ${full.verbs[0]?.h}, slot ${full.slots[0]?.h}`;
+    // The scene keeps its size (nothing jumps when the bag fills up); on a short screen the panel's buttons shrink
+    // instead, as the landscape column does (#227), never under the floor and never out of the screen.
+    check(`${tag} full bag`, full, { touch: false });
+    const floor = [...full.verbs, ...full.slots].every((b) => b.h >= 24);
+    say(
+      full.scene.w === m.scene.w && full.scene.h === m.scene.h && floor,
+      `${tag} full bag: the scene keeps its size, verbs and slots ${full.verbs[0]?.h} / ${full.slots[0]?.h} px`,
+    );
     say(full.nav.length === 2, `${tag} full bag: the page buttons show`);
     await page.evaluate(() => window.__game.presenter.inventory(window.__game.engine.state.inventory));
 
