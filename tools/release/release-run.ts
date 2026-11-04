@@ -31,7 +31,7 @@ import { join } from 'node:path';
 import { releaseNotes } from '../../scripts/release-notes.mjs';
 import { humanGates } from './gates';
 // @ts-expect-error: a plain .mjs module without declarations
-import { clock, REPO, releaseRemote, sleep } from './lib.mjs';
+import { clock, gitRetried, REPO, releaseRemote, sleep } from './lib.mjs';
 // @ts-expect-error: a plain .mjs module without declarations
 import { MINIMUM, NPM_NAMES, OWNERS } from './preflight.mjs';
 import { mkdirSync, writeFileSync } from 'node:fs';
@@ -408,6 +408,23 @@ const say = (s: string) => console.log(`${new Date().toISOString().slice(11, 19)
 const MINUTE = 60_000;
 const home = (p: string) => p.replace(/^~(?=\/)/, process.env.HOME ?? '~');
 
+/** Whether a fetch went through (its tries spent, the last error said). */
+const fetchedMain = (fetch: () => unknown) => {
+  try {
+    fetch();
+    return true;
+  } catch (e) {
+    console.error(
+      `✖  ${
+        String((e as Error).message)
+          .split('\n')
+          .slice(-1)[0]
+      }`,
+    );
+    return false;
+  }
+};
+
 /** A gh call that a passing GitHub error (a 502, a reset) does not end: retried for about five minutes. */
 async function ghJson<T>(args: string[]): Promise<T> {
   for (let i = 0; ; i++) {
@@ -684,7 +701,10 @@ export async function runRelease(
   } catch (e) {
     console.error(`✖  ${(e as Error).message}`);
   }
-  const fetched = remote ? quiet('git', ['fetch', '--quiet', '--tags', remote, 'main']).code === 0 : false;
+  // Tried again on a passing failure (#410): one refused fetch read as "main is not the organisation's".
+  const fetched = remote
+    ? fetchedMain(() => gitRetried(['fetch', '--quiet', '--tags', remote, 'main'], { cwd: ROOT() }))
+    : false;
   if (remote && !fetched) console.error(`✖  git fetch ${remote} failed: main's state there is not known`);
   const head = sh('git', ['rev-parse', 'HEAD']);
   const theirs = remote ? quiet('git', ['rev-parse', '-q', '--verify', `${remote}/main`]).out : '';

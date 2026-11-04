@@ -20,7 +20,7 @@ import { releaseNotes } from '../../scripts/release-notes.mjs';
 import { fragmentFiles, lastLogNumber, proseLines } from '../changes';
 import { formatJson } from '../wiki/json';
 // @ts-expect-error: a plain .mjs module without declarations
-import { REPO, releaseRemote } from './lib.mjs';
+import { gitRetried, REPO, releaseRemote } from './lib.mjs';
 import { humanGates, type Run } from './gates';
 
 const TODO = 'TODO(release)';
@@ -658,8 +658,16 @@ function prepare(version: string, opts: { name: string; date: string; pr: boolea
   } catch (e) {
     console.error(`✖  ${(e as Error).message}`);
   }
+  // Tried again on a passing failure (#410), as the release command's.
   const fetched = remote
-    ? spawnSync('git', ['fetch', '--quiet', remote, 'main'], { cwd: ROOT_() }).status === 0
+    ? (() => {
+        try {
+          gitRetried(['fetch', '--quiet', remote, 'main'], { cwd: ROOT_() });
+          return true;
+        } catch {
+          return false;
+        }
+      })()
     : false;
   if (remote && !fetched) console.error(`✖  git fetch ${remote} main failed: main's state there is not known`);
   const head = sh('git', ['rev-parse', 'HEAD']);

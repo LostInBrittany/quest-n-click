@@ -46,6 +46,7 @@ import {
   gh,
   ghJson,
   git,
+  gitRetried,
   isPrerelease,
   localCommit,
   originTagCommit,
@@ -273,7 +274,7 @@ async function tag(versionArg, sha) {
     );
   // The organisation's repository, whatever its remote is called here (`upstream` when `origin` is a fork, 4.5.3).
   const remote = releaseRemote();
-  git(['fetch', '--quiet', remote]); // the merge commit `chain` just made is on the remote, not here yet (seen on 4.1.9, 4.1.10)
+  gitRetried(['fetch', '--quiet', remote]); // the merge commit `chain` just made is on the remote, not here yet (seen on 4.1.9, 4.1.10)
   const full = localCommit(sha);
   if (!full) throw new Error(`${sha}: not a commit on ${remote} either`);
   const onOrigin = originTagCommit(name, remote);
@@ -284,7 +285,7 @@ async function tag(versionArg, sha) {
       );
     say(`${name} already on origin at ${full.slice(0, 7)}`);
   } else {
-    git(['fetch', '--quiet', '--tags', remote]);
+    gitRetried(['fetch', '--quiet', '--tags', remote]);
     // release.yml's notes are the CHANGELOG section of the version, on the tagged commit: without it the release run
     // fails after the tag exists, and the tag is spent (v4.5.3-rc.1). Checked here, before anything is tagged.
     // Loaded here, not at the top: tools/ ships in the package, scripts/ does not, and only the repository tags.
@@ -345,7 +346,7 @@ async function tag(versionArg, sha) {
       const key = process.argv.find((a) => a.startsWith('--key='))?.slice('--key='.length);
       git(tagArgs({ name, sha: full, message: candidate ? tagMessage(version, candidate) : version, sign, key }));
     }
-    git(['push', remote, `refs/tags/${name}`]);
+    gitRetried(['push', remote, `refs/tags/${name}`]);
   }
   // npm run release follows the release run itself, job by job (4.5.4): a docs failure never holds back npm.
   if (process.argv.includes('--no-watch')) return;
