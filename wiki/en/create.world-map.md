@@ -24,6 +24,7 @@ map: {
 | `places.<id>` | `name`, `room` (the room it opens), `region`, `pos: [x, y]` (in % of the region's image), `portrait`, `vehicle`, `news`, `joins`. |
 | `music` | The map's music. |
 | `vehicles` | `{ car, plane, pin, news }`: images that replace the skin's icons on the map. |
+| `pins` | `'faces'` (the default) or `'hidden'`: how the places are marked on the map ([below](#bare-pins)). |
 
 The validator wants the start region, each place's room and region, and each region's parent to exist.
 
@@ -83,6 +84,25 @@ regions: {
 ```
 
 Paint no frame into the parent's image: the map draws it when the region opens.
+
+<a name="bare-pins"></a>
+<!-- applies: 4.6.1.. since 4.6.1 -->
+
+## A map without pins
+
+When the map's picture already draws its places (a village, a chapel, a lighthouse, each where the place is),
+`pins: 'hidden'` takes the pins away: no face, no disc, no needle. Each place is still a button, named after it for
+screen readers, the size of a face and centred on its `pos`, but transparent: the player taps the landmark itself. Its
+"!" (`news`) still shows there, and the keyboard focus rings it. Places that join one pin get one such button each,
+side by side on the spot. The "Where to?" list beside the map is the same, and `portrait` is not drawn (it can be left
+out). Put each `pos` on the middle of its landmark, not under it as for a needle. The default, `pins: 'faces'`, draws
+the pins as before.
+
+```ts
+map: { start: 'leon', pins: 'hidden', regions: { leon: { name: 'The Léon', image: 'decor/map_leon' } }, places: { … } },
+```
+
+The validator refuses another value.
 
 <a name="design"></a>
 

@@ -129,6 +129,9 @@ export async function openMap(app: App, state: GameState): Promise<Id | null> {
       });
       layer.append(svg);
       const size = parent ? 7.5 : 6;
+      // `pins: 'hidden'` (4.6.1, #428): the map's own drawing shows the places. Each place keeps its button, the size of
+      // a face, centred on its `pos`, but draws nothing (no face, no needle); its "!" still shows there.
+      const bare = map.pins === 'hidden';
       list.append(el('div', 'who', `<img src="${app.bank.img(icons.map)}" alt="">${esc(app.game.ui.mapTitle)}`));
       // One pin per place, except the places that join another's pin (4.4.0): their faces sit on it, each face a way
       // to its own place. Several faces (a portrait list, or joined places) sit side by side, overlapping a little: the
@@ -140,44 +143,49 @@ export async function openMap(app: App, state: GameState): Promise<Id | null> {
       }
       for (const [host, members] of groups) {
         const at = (map.places[host] ?? members[0]![1]).pos;
-        const faces = members.flatMap(([id, p]) =>
-          (p.portrait === undefined ? (pin ? [pin] : []) : ([] as Id[]).concat(p.portrait)).map((img) => ({
-            id,
-            p,
-            img,
-          })),
-        );
+        // Bare pins: one empty spot per place (a joined place gets its own beside the host's).
+        const faces = bare
+          ? members.map(([id, p]) => ({ id, p, img: '' }))
+          : members.flatMap(([id, p]) =>
+              (p.portrait === undefined ? (pin ? [pin] : []) : ([] as Id[]).concat(p.portrait)).map((img) => ({
+                id,
+                p,
+                img,
+              })),
+            );
+        const face = (img: Id, extra = '') =>
+          bare ? `<span class="face"${extra}></span>` : `<img class="face" src="${app.bank.img(img)}" alt=""${extra}>`;
         const n = Math.max(1, faces.length);
         const fw = 100 / (1 + 0.6 * (n - 1));
         const style = (i: number) =>
           n > 1
             ? ` style="width:${fw}%;${i ? `margin-left:${-0.4 * fw}%;` : ''}position:relative;z-index:${n - i}"`
             : '';
-        const needle = pin
-          ? `<img class="needle" src="${app.bank.img(pin)}" alt=""${n > 1 ? ` style="width:${0.4 * fw}%"` : ''}>`
-          : '';
+        const needle =
+          pin && !bare
+            ? `<img class="needle" src="${app.bank.img(pin)}" alt=""${n > 1 ? ` style="width:${0.4 * fw}%"` : ''}>`
+            : '';
         const isHere = members.some(([id]) => id === here);
         const news = members.some(([, p]) => (p.news ? check(p.news, state) : false));
+        const cls = 'pin' + (bare ? ' bare' : '') + (isHere ? ' here' : '');
         let b: HTMLElement;
         if (members.length === 1) {
           // One place: the pin is its button, as before.
           const [id, p] = members[0]!;
-          b = el('button', 'pin' + (isHere ? ' here' : ''));
+          b = el('button', cls);
           b.setAttribute('aria-label', p.name);
-          const faceHtml = faces
-            .map((f, i) => `<img class="face" src="${app.bank.img(f.img)}" alt=""${style(i)}>`)
-            .join('');
+          const faceHtml = faces.map((f, i) => face(f.img, style(i))).join('');
           b.innerHTML = (n > 1 ? `<span class="faces" style="display:flex">${faceHtml}</span>` : faceHtml) + needle;
           b.onclick = () => void go(id);
         } else {
           // Several places: one button per face, each named after its place.
-          b = el('div', 'pin' + (isHere ? ' here' : ''));
+          b = el('div', cls);
           const row = el('span', 'faces');
           row.style.display = 'flex';
           faces.forEach((f, i) => {
             const fb = el('button', 'facebtn' + (f.id === here ? ' here' : ''));
             fb.setAttribute('aria-label', f.p.name);
-            fb.innerHTML = `<img class="face" src="${app.bank.img(f.img)}" alt="">`;
+            fb.innerHTML = face(f.img);
             Object.assign(fb.style, {
               width: `${fw}%`,
               marginLeft: i ? `${-0.4 * fw}%` : '0',

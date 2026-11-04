@@ -25,6 +25,7 @@ map: {
 | `places.<id>` | `name`, `room` (la salle qu'il ouvre), `region`, `pos: [x, y]` (en % de l'image de la région), `portrait`, `vehicle`, `news`, `joins`. |
 | `music` | La musique de la carte. |
 | `vehicles` | `{ car, plane, pin, news }` : des images qui remplacent, sur la carte, les icônes de l'habillage. |
+| `pins` | `'faces'` (par défaut) ou `'hidden'` : comment les lieux sont marqués sur la carte ([plus bas](#bare-pins)). |
 
 Le validateur veut que la région de départ, la salle et la région de chaque lieu, et le parent de chaque région
 existent.
@@ -89,6 +90,25 @@ regions: {
 ```
 
 Ne peignez pas de cadre dans l'image du parent : la carte le trace quand la région s'ouvre.
+
+<a name="bare-pins"></a>
+<!-- applies: 4.6.1.. since 4.6.1 -->
+
+## Une carte sans épingles
+
+Quand l'image de la carte dessine déjà ses lieux (un village, une chapelle, un phare, chacun là où est le lieu),
+`pins: 'hidden'` retire les épingles : ni visage, ni disque, ni aiguille. Chaque lieu reste un bouton, nommé d'après lui
+pour les lecteurs d'écran, de la taille d'un visage et centré sur sa `pos`, mais transparent : le joueur touche le
+repère lui-même. Son « ! » (`news`) s'affiche toujours là, et le focus clavier l'entoure. Les lieux qui rejoignent une
+même épingle ont chacun un tel bouton, côte à côte à cet endroit. La liste « Où aller ? » à côté de la carte est la
+même, et le `portrait` n'est pas dessiné (on peut l'omettre). Placez chaque `pos` au milieu de son repère, pas
+dessous comme pour une aiguille. Par défaut, `pins: 'faces'` dessine les épingles comme avant.
+
+```ts
+map: { start: 'leon', pins: 'hidden', regions: { leon: { name: 'Le Léon', image: 'decor/map_leon' } }, places: { … } },
+```
+
+Le validateur refuse toute autre valeur.
 
 <a name="design"></a>
 

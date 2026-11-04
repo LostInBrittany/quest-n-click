@@ -261,7 +261,7 @@ npm run wiki -- generate engine.api
 | `ListLine` | `type ListLine = string \| { id: Id; text: string; }` | public | One line of a list the engine draws from (a look list, a hint, the fallback answers): a plain string, keyed by its position in translations, |
 | `loadVariant` | `(c: CompiledManifest, input: unknown): { variant: WorldVariant; stale: boolean; }` | public | A stored variant (a save's, a session's, a speedrun's) checked and kept as it is: its hash must match its content; it is never regenerated,  |
 | `logicView` | `(ir: GameIR): Omit<GameIR, "engine" \| "provenance">` | public | The part of the IR the fingerprint's `logic` hashes: everything but the engine's version, the provenance (a line added above a rule moves no |
-| `MapDef` | `interface { regions, start, places, music, vehicles }` | public | The travel map: its regions, its places and the region shown first. |
+| `MapDef` | `interface { regions, start, places, music, vehicles, pins }` | public | The travel map: its regions, its places and the region shown first. |
 | `MapRegion` | `interface { name, image, parent, frame }` | public | A region of the travel map: its image, its parent region and its frame on it. |
 | `Migration` | `interface { from, renameFlag, renameItem, renameRoom, renameProp, renameActor, … 12 more }` | public | One step of save migration: from version `from` to `from + 1`. Keys are old ids, values new ones. |
 | `MinigameOutcome` | `interface { result, transcript }` | public | A minigame's result and, when it can prove it, its transcript (4.1.17). |

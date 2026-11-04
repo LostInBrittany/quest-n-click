@@ -1,0 +1,28 @@
+{
+  "format": "quest-n-click-docs-acks",
+  "version": 1,
+  "pairs": {
+    "create.world-map#bare-pins": {
+      "enHash": "83ea1127d9df5dd404c950d45f6a73e3272ec615694689beb80f994e575428f8",
+      "frHash": "8c62c846fa24840b01bdc27201dd6563ac43e46dacb4a5c974c3f95fc867a6f8",
+      "reviewers": [
+        { "name": "claude", "kind": "ai", "relation": "author", "date": "2026-11-04" }
+      ]
+    },
+    "create.world-map#map": {
+      "enHash": "51b9c3d77843417784e51ea2eb8b6687cf581239dac6a5ed71d51a1981d13d17",
+      "frHash": "0fc267b56763dab6bbb6dbd95ba6f8e02b1f18301e50571bba090f094101a876",
+      "reviewers": [
+        { "name": "claude", "kind": "ai", "relation": "author", "date": "2026-11-04" }
+      ]
+    },
+    "engine.api#content-reference": {
+      "enHash": "cb6f61eb28f30a751004f36c0426d5bd58a0a1a6fda9f6d13800c7bcf45b73e9",
+      "frHash": "258d7eb06e091589af8b812173adf9abb714365cfa6bc1da598b5c327f7394ef",
+      "reviewers": [
+        { "name": "claude", "kind": "ai", "relation": "author", "date": "2026-11-04" }
+      ]
+    }
+  },
+  "claims": {}
+}

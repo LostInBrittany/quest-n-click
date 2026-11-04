@@ -121,6 +121,13 @@ export interface MapDef {
   places: Record<Id, PlaceDef>;
   music?: Id;
   vehicles?: { car?: Id; plane?: Id; pin?: Id; news?: Id };
+  /**
+   * How the places are marked on the map (4.6.1, #428): `faces` (the default) draws a pin per place, its `portrait` (or
+   * the pin icon) in a disc above a needle; `hidden` draws nothing, for a map whose drawing shows the places: each place
+   * is a transparent button the size of a face, centred on its `pos`, with its "!" (`news`) still shown. Joined places
+   * get one such button each, side by side. The "Where to?" list is the same either way.
+   */
+  pins?: 'faces' | 'hidden';
 }
 
 // ---------------------------------------------------------------------------
