@@ -1570,5 +1570,53 @@
   "proof": "argument",
   "owner": "@wanoo",
   "revisit": "4.7.0"
+ },
+ {
+  "file": "src/engine/core/world.ts",
+  "operator": "operator",
+  "from": "-",
+  "to": "+",
+  "context": "const t = end ? w[w.length - 1] : w[Math.min(o.wi++, w.length - 1)];",
+  "why": "sync's clamp, the second `w.length - 1` (the first, the end's, is killed by tests/route-runtime-mutants.test.ts): with `+ 1`, a replay's sync point past the last one recorded reads `w[w.length]` or further, undefined, and runs nothing, where the clamp ran the clock to `w[w.length - 1]`. The sync point at that very index had already run it there, and the clock never goes back within an entry (only newGame, load and a checkpoint replace the state, each opening a session of its own): that `advanceTo` did nothing either (#413)",
+  "category": "equivalent",
+  "proof": "argument",
+  "owner": "@wanoo",
+  "revisit": "4.7.0"
+ },
+ {
+  "file": "src/engine/core/world.ts",
+  "operator": "condition true",
+  "from": "t !== undefined",
+  "to": "true",
+  "context": "if (t !== undefined) this.runtime.advanceTo(t);",
+  "why": "sync: `t` is an item of the recorded `wt` at an index clamped into it, so it is a number; and were it undefined, Routes.advanceTo runs `while (this.w.now() < undefined)`, false at once: nothing either way. The routes' engine is there to ask, the game having routes (the `enabled` guard above) and the sync point being inside an entry, after the first room's `ready` (#413)",
+  "category": "equivalent",
+  "proof": "argument",
+  "owner": "@wanoo",
+  "revisit": "4.7.0"
+ },
+ {
+  "file": "src/engine/core/route-runtime.ts",
+  "operator": "operator",
+  "from": "<",
+  "to": "<=",
+  "context": "if (dx) facing = dx < 0 ? 'left' : 'right';",
+  "why": "walk's facing: the comparison is read only when `dx` is truthy, neither 0 nor NaN, and `dx < 0` and `dx <= 0` agree on every other number (#413)",
+  "category": "equivalent",
+  "proof": "argument",
+  "owner": "@wanoo",
+  "revisit": "4.7.0"
+ },
+ {
+  "file": "src/engine/core/route-runtime.ts",
+  "operator": "condition true",
+  "from": "!t",
+  "to": "true",
+  "context": "if (!t) {",
+  "why": "topology's cache: forced, each tick builds `new WalkTopology(eng.layout(room), eng.room(room))` again from the same two objects, and that construction is pure: the same floor, only slower. Nothing a player, the solver or a replay does replaces a room's layout while an engine runs; the dev editor (`?edit`) does (`engine.layouts[room] = L`), and there the routes keep the floor they had until the page reloads, as dom/walker.ts's own topology is rebuilt only when a room is entered (#413)",
+  "category": "equivalent",
+  "proof": "argument",
+  "owner": "@wanoo",
+  "revisit": "4.7.0"
  }
 ]
