@@ -96,6 +96,8 @@ describe('the plan of a change', () => {
       gates('coverage', 'upgrade', 'node24', 'windows'),
     ],
     ['a unit test', ['tests/core.test.ts'], []],
+    // A floor out of vite.config.ts (4.6.0, #405): the run under coverage holds it, nothing else reads it.
+    ['a coverage floor', ['tests/coverage-floors.json'], gates('coverage')],
     ['the Windows launcher', ['scripts/start.mjs'], gates('coverage', 'node24', 'windows')],
     ['a release tool', ['tools/release/ship.mjs', 'tools/mutate.ts'], []],
     // The scheduled workflows' late-start guard (4.5.6, #372): read by nightly.yml and prove.yml only.
@@ -397,7 +399,7 @@ describe('the unit suite in shards (4.5.4)', () => {
   });
   it('applies the coverage floors to the merged suite, never to one shard', () => {
     expect(readFileSync('vite.config.ts', 'utf8')).toMatch(
-      /thresholds: process\.env\.VITEST_SHARD\s*\?\s*undefined\s*:\s*\{/,
+      /thresholds: process\.env\.VITEST_SHARD\s*\?\s*undefined\s*:\s*coverageFloors\(\)/,
     );
   });
 });

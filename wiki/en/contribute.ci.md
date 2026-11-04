@@ -76,8 +76,8 @@ and open nothing. Nothing is closed by hand: the fix lands on `main`, and the ne
   (`--shard=<i>/4`, 4.5.4). The split follows each file's recorded duration, not the number of files (4.5.5, #349,
   [below](#shards)). When the change touches product code (the plan's `coverage` gate: the engine, a game, the
   Bridge, the Studio and its server, the CLI and packages, the golden saves, the authoring tools), each shard runs
-  under V8 coverage and keeps a blob report; `coverage` merges the four (`test:merge`: the floors of `vite.config.ts`
-  on the whole suite), then runs the ratchet: a warning on a pull request, a failure on `main`
+  under V8 coverage and keeps a blob report; `coverage` merges the four (`test:merge`: the floors of
+  `tests/coverage-floors.json` on the whole suite), then runs the ratchet: a warning on a pull request, a failure on `main`
   ([The coverage ratchet](contribute.coverage-ratchet.md)). Otherwise (the docs, a workflow, the release and wiki
   tools, tests alone) the shards run the same files without coverage (`test:unit`). Either way `coverage`, the check
   the ruleset requires, is red when a shard is not green.
@@ -222,7 +222,7 @@ started (4.5.0 to 4.5.1) are gone.
    |---|---|
    | `check` | the failing step: `npm run quality`, `npm run docs:truth`, `npm run build:game`, `npm run quality:baseline -- --check --dist` (after `npm run build:web`), `npm run prove:game`, `npm run changes -- --check` |
    | `unit (<i>)` | `npm run test:unit -- --shard=<i>/4` (the same files as the job: the split is the same on every machine) |
-   | `coverage` | `npm run test:coverage` (a test, or a floor of `vite.config.ts` not met) |
+   | `coverage` | `npm run test:coverage` (a test, or a floor of `tests/coverage-floors.json` not met) |
    | `node-24` | `npm run test:node` under Node 24 |
    | `e2e`, `reference`, `second-game` | `npm run build:game`, `npm run preview -- --port 5173 &`, then the row's `npm run e2e -- http://127.0.0.1:5173/ --game demo --prod …` (`E2E_BROWSER=webkit` for a WebKit row) |
    | `fresh-install`, `external-consumer`, `upgrade` | `npm run fresh-install`, `npm run external-consumer`, `npm run upgrade-check -- --from=previous` |

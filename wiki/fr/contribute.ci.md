@@ -82,7 +82,7 @@ correctif arrive sur `main`, et la nuit verte suivante ferme l'issue.
   leur nombre (4.5.5, #349, [plus bas](#shards)). Quand le changement touche le code du produit (la barrière
   `coverage` du plan : le moteur, un jeu, le Bridge, le Studio et son serveur, la CLI et les paquets, les sauvegardes
   de référence, les outils d'écriture), chaque fragment tourne sous couverture V8 et garde un rapport blob ;
-  `coverage` fusionne les quatre (`test:merge` : les planchers de `vite.config.ts` sur toute la suite), puis lance le
+  `coverage` fusionne les quatre (`test:merge` : les planchers de `tests/coverage-floors.json` sur toute la suite), puis lance le
   cliquet : un avertissement sur une pull request, un échec sur `main`
   ([Le cliquet de couverture](contribute.coverage-ratchet.md)). Sinon (la doc, un workflow, les outils de release et du
   wiki, des tests seuls), les fragments passent les mêmes fichiers sans couverture (`test:unit`). Dans les deux cas,
@@ -235,7 +235,7 @@ d'une version est le `quest-n-click-docs-<version>.tar.gz` de sa release. Le sit
    |---|---|
    | `check` | l'étape qui échoue : `npm run quality`, `npm run docs:truth`, `npm run build:game`, `npm run quality:baseline -- --check --dist` (après `npm run build:web`), `npm run prove:game`, `npm run changes -- --check` |
    | `unit (<i>)` | `npm run test:unit -- --shard=<i>/4` (les mêmes fichiers que le job : le partage est le même sur toute machine) |
-   | `coverage` | `npm run test:coverage` (un test, ou un seuil de `vite.config.ts` non atteint) |
+   | `coverage` | `npm run test:coverage` (un test, ou un seuil de `tests/coverage-floors.json` non atteint) |
    | `node-24` | `npm run test:node` sous Node 24 |
    | `e2e`, `reference`, `second-game` | `npm run build:game`, `npm run preview -- --port 5173 &`, puis la commande de la ligne `npm run e2e -- http://127.0.0.1:5173/ --game demo --prod …` (`E2E_BROWSER=webkit` pour une ligne WebKit) |
    | `fresh-install`, `external-consumer`, `upgrade` | `npm run fresh-install`, `npm run external-consumer`, `npm run upgrade-check -- --from=previous` |

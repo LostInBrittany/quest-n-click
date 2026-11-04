@@ -1,6 +1,6 @@
 # Le cliquet de couverture
 
-Les seuils de couverture de `vite.config.ts` ne font que monter. Deux vérifications les tiennent : Vitest échoue quand
+Les seuils de couverture de `tests/coverage-floors.json` ne font que monter. Deux vérifications les tiennent : Vitest échoue quand
 les tests atteignent moins qu'un seuil, et le cliquet échoue quand un seuil traîne trois points ou plus derrière ce que
 les tests atteignent. Cette page dit quoi faire quand l'une ou l'autre est rouge.
 
@@ -16,7 +16,9 @@ les tests.
 ## Contexte et versions
 
 Le dépôt du moteur. Les seuils datent de la 4.1.0 « Clarity » (le niveau mesuré alors) ; le cliquet,
-[`tools/coverage-ratchet.ts`](../../tools/coverage-ratchet.ts), de la 4.1.3 ; ses annotations GitHub de la 4.1.9.
+[`tools/coverage-ratchet.ts`](../../tools/coverage-ratchet.ts), de la 4.1.3 ; ses annotations GitHub de la 4.1.9 ; les seuils dans leur propre fichier, hors de
+`vite.config.ts`, de la 4.6.0 (#405), si bien qu'en relever un laisse intacte la clé de cache de chaque ensemble de
+mutation ([Tests de mutation](contribute.mutation-testing.md)).
 
 Ce qui est mesuré : la couverture V8 de `src/**/*.ts` (pas les `*.d.ts`), `bridge/src/**/*.ts` et
 `studio-server/src/**/*.ts`, par la suite unitaire et les tests d'assets (`npm run test:coverage`). Les seuils en
@@ -31,8 +33,9 @@ Ce qui est mesuré : la couverture V8 de `src/**/*.ts` (pas les `*.d.ts`), `brid
 | 23 fichiers du Studio Server (le journal, la barrière, OIDC, les baux, les aperçus, les jobs du worker…) | lignes et branches, deux points sous ce qui était mesuré à l'arrivée de chacun |
 | 6 fichiers du Bridge (`bridge.ts`, `store.ts`, `server.ts`, `policy.ts`, `lock.ts`, `cli.ts`) | lignes et branches |
 
-Les valeurs exactes sont dans [`vite.config.ts`](../../vite.config.ts), `test.coverage.thresholds`, avec la raison de
-chaque seuil sous 100 écrite à côté.
+Les valeurs exactes sont dans [`tests/coverage-floors.json`](../../tests/coverage-floors.json) : `total` pour les
+seuils globaux, puis `groups`, chacun avec ses fichiers et la raison (`why`) des seuils sous 100. `vite.config.ts` les
+lit comme `test.coverage.thresholds`.
 
 > [!LIMIT id=lines-not-proof]
 > La couverture compte les lignes et les branches exécutées, pas les résultats vérifiés. Les parties de `src/` propres
@@ -87,9 +90,9 @@ Dans le dépôt du moteur, sur votre machine. La CI lance la même chose en quat
    seuils à relever.
 
 <!-- step: raise -->
-4. **Relevez les seuils qu'il nomme** dans `vite.config.ts` (`test.coverage.thresholds`), à une valeur égale ou un peu
-   inférieure à la mesure, et committez-les avec le changement qui les a mérités. `vite.config.ts` est un fichier que
-   relit le mainteneur (`CODEOWNERS`).
+4. **Relevez les seuils qu'il nomme** dans `tests/coverage-floors.json`, à une valeur égale ou un peu inférieure à la
+   mesure, et committez-les avec le changement qui les a mérités. Le fichier est relu par le mainteneur (`CODEOWNERS`).
+   Il n'entre pas dans le cache des mutations : relever un seuil ne relance aucun ensemble de mutation.
 
 > [!LIMIT id=ratchet-scope]
 > Le cliquet ne lit que les seuils qui existent : un fichier sans seuil propre n'est tenu que par les seuils globaux.
@@ -117,7 +120,7 @@ Dans le dépôt du moteur, sur votre machine. La CI lance la même chose en quat
 
 ## Fichiers ou données modifiés
 
-`vite.config.ts` (les seuils) ; la mesure n'écrit que dans `.cache/coverage/`.
+`tests/coverage-floors.json` (les seuils) ; la mesure n'écrit que dans `.cache/coverage/`.
 
 <a name="recovery"></a>
 
@@ -130,6 +133,7 @@ raison dans la pull request), car un seuil au-dessus de la mesure est un build r
 
 ## Références
 
-- [`tools/coverage-ratchet.ts`](../../tools/coverage-ratchet.ts), [`vite.config.ts`](../../vite.config.ts).
+- [`tools/coverage-ratchet.ts`](../../tools/coverage-ratchet.ts), [`tests/coverage-floors.json`](../../tests/coverage-floors.json),
+  [`vite.config.ts`](../../vite.config.ts).
 - [Quels tests tournent quand](contribute.which-tests.md), [La CI expliquée](contribute.ci.md#tiers),
   [Tests de mutation](contribute.mutation-testing.md).

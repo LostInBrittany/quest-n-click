@@ -47,6 +47,8 @@ export const CONFIG_FOLLOWS = [
 export const CONFIG_SKIPS: Record<string, string> = {
   'tools/studio/plugin.ts':
     "the Studio's routes on the dev server (`configureServer` only): a test imports modules, it never requests a route",
+  'tools/coverage-floors.ts':
+    'the coverage floors (tests/coverage-floors.json, 4.6.0, #405): a mutant run measures no coverage, and a floor raised must re-run no set',
 };
 
 /**

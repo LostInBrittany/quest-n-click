@@ -165,6 +165,8 @@ export const RULES: readonly Rule[] = [
     gates: [...COVERAGE, 'upgrade', ...UNIT],
     why: 'the golden saves and the upgrade',
   },
+  // The coverage floors (4.6.0, #405): data vite.config.ts reads, held by the run under coverage only.
+  { re: /^tests\/coverage-floors\.json$/, gates: [...COVERAGE], why: 'the coverage floors' },
 
   // The browser scripts.
   { re: /^scripts\/e2e-pwa\.mjs$/, gates: ['e2e', 'pwaFirefox'], why: 'the PWA e2e' },

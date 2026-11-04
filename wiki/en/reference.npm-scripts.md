@@ -522,10 +522,10 @@ The engine code's gate (4.1.0): Biome formatting check and lint, knip (unused fi
 
 #### `npm run quality:baseline`
 
-The behaviour of 4.0.0 kept (4.1.0): for the demo, the reference game, the heroes example and the solver's fixtures, the witness and proof, every golden save played to its end, the public API and MCP surface, the first visit (`tests/quality-baseline.json`). `--check` compares; without it, it writes the file and the READMEs' three figures: a new test or a lighter bundle means running it (4.1.8).
+The behaviour of 4.0.0 kept (4.1.0): for the demo, the reference game, the heroes example and the solver's fixtures, the witness and proof, every golden save played to its end, the public API and MCP surface, the first visit (`tests/quality-baseline.json`). `--check` compares; without it, it writes the behaviour into the file, and only that (4.6.0, #405): a new test or a first visit that moved needs no rewrite. `--release` (the release's `prepare`) also writes the test counts, the first visit in bytes and the READMEs' figures.
 
 - Runs: `tsx tools/quality-baseline.ts`
-- Usage: `npm run quality:baseline [-- --check] [--dist=dist]`
+- Usage: `npm run quality:baseline [-- --check] [--release] [--dist=dist]`
 
 <a name="test"></a>
 
@@ -548,7 +548,7 @@ The Python-backed image and asset-pipeline tests (`tests/pixel.test.ts`, `tests/
 
 #### `npm run test:coverage`
 
-The suite under V8 coverage (heavy tests excluded), against the floors of `vite.config.ts`; then `npx tsx tools/coverage-ratchet.ts --strict` fails on a floor at least three points behind what the tests reach (CI on main and tags, release-check, 4.1.8; a warning on a pull request, 4.1.9).
+The suite under V8 coverage (heavy tests excluded), against the floors of `tests/coverage-floors.json` (read by `vite.config.ts`, 4.6.0); then `npx tsx tools/coverage-ratchet.ts --strict` fails on a floor at least three points behind what the tests reach (CI on main and tags, release-check, 4.1.8; a warning on a pull request, 4.1.9).
 
 - Runs: `vitest run --coverage --exclude tests/ownership.test.ts --exclude tests/audit.test.ts --exclude tests/canonical.test.ts --exclude tests/memo.test.ts --exclude tests/reference-proof.test.ts --exclude tests/solver-oracle.test.ts --exclude tests/dominance.test.ts --exclude tests/partition.test.ts --exclude tests/checkpoint-matrix.test.ts`
 
@@ -564,7 +564,7 @@ The CPU-bound solver tests (abstraction audits, canonical owner, memo and owners
 
 #### `npm run test:merge`
 
-Merges the blob reports of the shards (`.vitest/blob`) under coverage: one report, the floors of `vite.config.ts` applied to the whole suite, the summary the ratchet reads (CI's `coverage` job, 4.5.4). Locally, clear `.vitest/blob` before the shards: a blob left there is merged too.
+Merges the blob reports of the shards (`.vitest/blob`) under coverage: one report, the floors of `tests/coverage-floors.json` applied to the whole suite, the summary the ratchet reads (CI's `coverage` job, 4.5.4). Locally, clear `.vitest/blob` before the shards: a blob left there is merged too.
 
 - Runs: `vitest --merge-reports --coverage`
 

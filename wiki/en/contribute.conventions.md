@@ -170,7 +170,7 @@ A pull request that changes what a user sees updates the pages in both languages
 
 `.github/CODEOWNERS` names the files a pull request cannot change without the maintainer's look: the frozen behaviour
 (`tests/quality-baseline.json`), the public surface (`tests/api-surface.json`), the named survivors of mutation
-testing (`docs/dev/mutants.json`), the coverage floors (`vite.config.ts`) and the workflows (`.github/`). Everything
+testing (`docs/dev/mutants.json`), the coverage floors (`tests/coverage-floors.json`) and the workflows (`.github/`). Everything
 else is reviewed by the gates.
 
 <a name="related"></a>

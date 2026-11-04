@@ -19,6 +19,7 @@ import { GAME, GAME_DIR, PROJECT, ROOT, WORK, loadGameModule } from './game';
 import { realityManifest } from '../src/engine/reality/manifest';
 import { LOCK, PROVENANCE, readJson, shippedKeys, type Provenance, type ProvenanceLock } from './provenance-files';
 import { serverMarkers } from './server-code';
+import { firstVisitSize, overBudget } from './first-visit';
 
 const args = process.argv.slice(2);
 const arg = (k: string) =>
@@ -198,15 +199,16 @@ const files: Record<string, { sha256: string }> = {};
 for (const p of walk(dir)) files[rel(p)] = { sha256: sha(p) };
 const r = inventory({ files, lock, data, studio: existsSync(resolve(dir, 'studio.html')) });
 const manifest = readJson<{ assets: ManifestEntry[] }>(resolve(dir, 'licenses/assets-manifest.json'));
-// The JavaScript of a first visit, gzipped (3.9): held to `assetBudgets.initialJsKB` when the game sets it.
+// The JavaScript of a first visit, gzipped (3.9): held to `assetBudgets.initialJsKB` when the game sets it, in bytes
+// since 4.6.0 (#405): one byte over the budget fails, wherever the rounding to the KB would have put it.
 const html = existsSync(resolve(dir, 'index.html')) ? readFileSync(resolve(dir, 'index.html'), 'utf8') : '';
 const initial = initialChunks(html, (p) =>
   existsSync(resolve(dir, p)) ? readFileSync(resolve(dir, p), 'utf8') : null,
 );
-const initialJsKB = Math.round(
-  initial.reduce((n, p) => n + gzipSync(readFileSync(resolve(dir, p)), { level: 9 }).length, 0) / 1024,
-);
+const initialJsBytes = initial.reduce((n, p) => n + gzipSync(readFileSync(resolve(dir, p)), { level: 9 }).length, 0);
+const initialJsKB = Math.round(initialJsBytes / 1024);
 const jsBudget = game.assetBudgets?.initialJsKB;
+const overJs = overBudget(initialJsBytes, jsBudget);
 // No server code in a game (4.1.9, D19): the connectors and the Bridge never ride along in a build.
 const serverCode = Object.keys(files)
   .filter((p) => /\.(m?js|html)$/.test(p))
@@ -215,9 +217,7 @@ const serverCode = Object.keys(files)
   );
 const problems = [
   ...serverCode,
-  ...(jsBudget !== undefined && initialJsKB > jsBudget
-    ? [`first visit's JavaScript: ${initialJsKB} KB gzipped, over initialJsKB ${jsBudget} (${initial.join(', ')})`]
-    : []),
+  ...(overJs ? [`${overJs} (${initial.join(', ')})`] : []),
   ...r.extra.map((p) => `${p}: not this game's (no lock entry, not code, not a notice)`),
   ...r.missing.map((p) => `${p}: missing`),
   ...r.changed.map((p) => `${p}: not the file reviewed (its hash differs from provenance.lock.json)`),
@@ -225,14 +225,14 @@ const problems = [
     ? ['licenses/assets-manifest.json: does not match provenance.lock.json']
     : []),
 ];
-if (args.includes('--json')) console.log(JSON.stringify({ ...r, initialJsKB, problems }));
+if (args.includes('--json')) console.log(JSON.stringify({ ...r, initialJsKB, initialJsBytes, problems }));
 else {
   console.log(
     `[${GAME}] ${relative(WORK, dir)}: ${Object.keys(files).length} files · ${Object.entries(r.kinds)
       .map(([k, n]) => `${n} ${k}`)
       .join(
         ', ',
-      )} · first visit's JavaScript ${initialJsKB} KB gzipped${jsBudget !== undefined ? ` (initialJsKB ${jsBudget})` : ''}`,
+      )} · first visit's JavaScript ${firstVisitSize(initialJsBytes)}${jsBudget !== undefined ? ` (initialJsKB ${jsBudget})` : ''}`,
   );
   for (const p of problems.slice(0, 40)) console.log('  ✖ ' + p);
   if (problems.length > 40) console.log(`  … and ${problems.length - 40} more`);

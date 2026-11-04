@@ -1,10 +1,17 @@
-// npm run quality:baseline [-- --check] [--dist=dist]: what the engine does, frozen before a refactoring (4.1.0
-// "Clarity", docs/dev/PLAN-4.1.1-CLARITY.md lot A). For the demo, the reference game, the heroes example (4.4.0) and
-// the solver's fixture games: the witness (status, length, the digest after every input), the proof (status, states,
+// npm run quality:baseline [-- --check] [--release] [--dist=dist]: what the engine does, frozen before a refactoring
+// (4.1.0 "Clarity", docs/dev/PLAN-4.1.1-CLARITY.md lot A). For the demo, the reference game, the heroes example
+// (4.4.0) and the solver's fixture games: the witness (status, length, the digest after every input), the proof (status, states,
 // softlocks); every golden save, loaded and played to its end (the last digest); the public API and MCP surface (its
 // hash); the test declarations. Written to tests/quality-baseline.json; --check compares and names each difference,
 // so a change meant to keep behaviour that moves a digest, a verdict or a name fails with what moved. --dist adds the
-// first visit's JavaScript (verify:dist), held to "no bigger": a refactoring may shrink it, never grow it.
+// first visit's JavaScript (verify:dist), in bytes: a warning against the release's figure (4.6.0, #405), the gate is
+// the game's `assetBudgets.initialJsKB`.
+//
+// Two writes (4.6.0, #405). A pull request's (`npm run quality:baseline`) moves the behaviour only: the games, the
+// golden saves, the API's hash, and the README figure that is behaviour (the reference proof's states). The figures
+// every pull request moves (the test files and declarations, the first visit, the READMEs' test count and KB, their
+// install line) are the release's (`--release`, run by `npm run release -- prepare`): written by a pull request, they
+// were a conflict with every other open one at each merge.
 import { createHash } from 'node:crypto';
 import { execFileSync } from 'node:child_process';
 import { existsSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
@@ -16,10 +23,12 @@ import { solve } from '../src/engine/tools/solve';
 import { replay } from '../src/engine/tools/replay';
 import { ROOT } from './game';
 import { flushExit } from './flush';
+import { firstVisitSize, sinceRelease } from './first-visit';
 
 const OUT = resolve(ROOT, 'tests/quality-baseline.json');
 const args = process.argv.slice(2);
 const check = args.includes('--check');
+const mode: Mode = args.includes('--release') ? 'release' : 'pr';
 const distArg =
   args.find((a) => a.startsWith('--dist'))?.split('=')[1] ?? (args.includes('--dist') ? 'dist' : undefined);
 const hash = (s: string) => createHash('sha256').update(s).digest('hex').slice(0, 16);
@@ -65,8 +74,10 @@ interface Baseline {
   saves: Record<string, { ended: boolean; inputs: number; last: string }>;
   surface: { api: string };
   tests: { files: number; declarations: number };
-  bundle?: { initialJsKB: number };
+  /** The first visit's JavaScript, gzipped: in bytes since 4.6.0 (#405), and rounded to the KB for the READMEs. */
+  bundle?: { initialJsKB: number; initialJsBytes?: number };
 }
+export type Mode = 'pr' | 'release';
 
 async function measure(): Promise<Baseline> {
   const b: Baseline = { games: {}, saves: {}, surface: { api: '' }, tests: { files: 0, declarations: 0 } };
@@ -122,7 +133,8 @@ async function measure(): Promise<Baseline> {
       cwd: ROOT,
       encoding: 'utf8',
     });
-    b.bundle = { initialJsKB: JSON.parse(out).initialJsKB };
+    const d = JSON.parse(out) as { initialJsKB: number; initialJsBytes: number };
+    b.bundle = { initialJsKB: d.initialJsKB, initialJsBytes: d.initialJsBytes };
   }
   return b;
 }
@@ -175,31 +187,63 @@ export function withInstall(page: string, version: string): string {
 const VERSION = (JSON.parse(readFileSync(resolve(ROOT, 'package.json'), 'utf8')) as { version: string }).version;
 
 /**
+ * What a write puts in tests/quality-baseline.json (4.6.0, #405). A pull request's keeps the committed counts and first
+ * visit, so it rewrites the file only when the behaviour moved; the release's writes everything it measured (the first
+ * visit kept when it was not measured, without --dist). With no baseline yet, everything.
+ */
+export function toWrite(prev: Baseline | undefined, got: Baseline, mode: Mode): Baseline {
+  if (!prev) return got;
+  if (mode === 'release') return got.bundle || !prev.bundle ? got : { ...got, bundle: prev.bundle };
+  const next: Baseline = { games: got.games, saves: got.saves, surface: got.surface, tests: prev.tests };
+  if (prev.bundle) next.bundle = prev.bundle;
+  return next;
+}
+
+/**
+ * A README as a write leaves it (4.6.0, #405): the release writes every figure and the install line; a pull request
+ * only the figure that is behaviour (the reference proof's states), so it keeps the README as the baseline it writes.
+ */
+export function readmeFor(page: string, b: Baseline, mode: Mode, version: string): string {
+  if (mode === 'release') return withInstall(withMetrics(page, metricsOf(b)), version);
+  const { referenceStates } = metricsOf(b);
+  return referenceStates === undefined ? page : withMetrics(page, { referenceStates });
+}
+
+/**
  * What a README says that the committed baseline does not (4.5.4): its figures are the baseline's, its install line the
  * version's. Checked against the committed baseline, not against what this checkout measures, so a pull request that
  * adds tests passes without rewriting the READMEs and the baseline, which every other open pull request rewrites too
- * (a conflict at each merge). The figures move when someone runs `npm run quality:baseline`, and at each release.
+ * (a conflict at each merge). The figures move at each release (`--release`, 4.6.0).
  */
 export function readmeDrift(page: string, file: string, want: Baseline, version: string): string[] {
   const out: string[] = [];
   if (withMetrics(page, metricsOf(want)) !== page)
-    out.push(`${file}: a figure is not the baseline's (npm run quality:baseline writes it)`);
+    out.push(`${file}: a figure is not the baseline's (npm run quality:baseline -- --release writes it)`);
   if (withInstall(page, version) !== page)
-    out.push(`${file}: the install section names another version (npm run quality:baseline writes it)`);
+    out.push(`${file}: the install section names another version (npm run quality:baseline -- --release writes it)`);
   return out;
 }
 
-/** The policy parts that got better than the baseline (4.1.3): said, so the baseline is ratcheted on purpose. */
+/**
+ * What moved from the release's figures without failing (4.1.3; 4.6.0, #405): more tests, and the first visit in bytes,
+ * either way. Said, so the release ratchets them on purpose.
+ */
 export function improvements(want: Baseline, got: Baseline): string[] {
   const out: string[] = [];
   if (got.tests.declarations > want.tests.declarations)
-    out.push(`tests: ${want.tests.declarations} → ${got.tests.declarations} declarations`);
-  if (want.bundle && got.bundle && got.bundle.initialJsKB < want.bundle.initialJsKB)
-    out.push(`first visit's JavaScript: ${want.bundle.initialJsKB} → ${got.bundle.initialJsKB} KB gzipped`);
+    out.push(`tests: ${want.tests.declarations} → ${got.tests.declarations} declarations (the release ratchets it)`);
+  const since =
+    want.bundle?.initialJsBytes !== undefined && got.bundle?.initialJsBytes !== undefined
+      ? sinceRelease(want.bundle.initialJsBytes, got.bundle.initialJsBytes)
+      : undefined;
+  if (since) out.push(since);
   return out;
 }
 
-/** What moved between two baselines, one line each. Tests may only grow; the first visit may only shrink. */
+/**
+ * What moved between two baselines, one line each. Tests may only grow. The first visit is not here since 4.6.0
+ * (#405): the game's budget holds it (verify:dist), `improvements` says how far it moved.
+ */
 export function differences(want: Baseline, got: Baseline): string[] {
   const out: string[] = [];
   for (const [id, g] of Object.entries(want.games)) {
@@ -230,8 +274,6 @@ export function differences(want: Baseline, got: Baseline): string[] {
   if (want.surface.api !== got.surface.api) out.push('tests/api-surface.json: the public API or the MCP tools changed');
   if (got.tests.declarations < want.tests.declarations)
     out.push(`tests: ${want.tests.declarations} declarations → ${got.tests.declarations} (a test was removed)`);
-  if (want.bundle && got.bundle && got.bundle.initialJsKB > want.bundle.initialJsKB)
-    out.push(`first visit's JavaScript: ${want.bundle.initialJsKB} KB → ${got.bundle.initialJsKB} KB gzipped`);
   return out;
 }
 
@@ -240,27 +282,31 @@ if (import.meta.url === `file://${process.argv[1]}` || process.argv[1]?.endsWith
   const got = await measure();
   if (!check) {
     const prev = existsSync(OUT) ? (JSON.parse(readFileSync(OUT, 'utf8')) as Baseline) : undefined;
-    if (!got.bundle && prev?.bundle) got.bundle = prev.bundle;
+    const next = toWrite(prev, got, mode);
     // A rewrite says what it moves (4.1.3): a digest or a verdict that changes here is a behaviour change to own in
     // the CHANGELOG, never a side effect of "refreshing the baseline".
     if (prev) {
       const moved = differences(prev, got).filter((d) => !d.startsWith('tests:'));
       for (const d of moved) console.log('  ⚠ behaviour moved: ' + d);
-      for (const d of improvements(prev, got)) console.log('  ✔ ratcheted: ' + d);
+      for (const d of improvements(prev, got))
+        console.log(mode === 'release' ? '  ✔ ratcheted: ' + d : '  ⚠ kept for the release: ' + d);
     }
-    writeFileSync(OUT, JSON.stringify(got, null, 1) + '\n');
-    // The READMEs say the same two figures (4.1.8, docs/418-truth): they moved with the code, not with a release.
+    const text = JSON.stringify(next, null, 1) + '\n';
+    const same = existsSync(OUT) && readFileSync(OUT, 'utf8') === text;
+    if (!same) writeFileSync(OUT, text);
+    // The READMEs say the baseline's figures (4.1.8, docs/418-truth); a pull request's write moves only the one that is
+    // behaviour (4.6.0, #405).
     for (const r of READMES) {
       const file = resolve(ROOT, r);
       const page = readFileSync(file, 'utf8');
-      const next = withInstall(withMetrics(page, metricsOf(got)), VERSION);
-      if (next !== page) {
-        writeFileSync(file, next);
+      const after = readmeFor(page, next, mode, VERSION);
+      if (after !== page) {
+        writeFileSync(file, after);
         console.log(`  ✔ ${r}: the figures written`);
       }
     }
     console.log(
-      `✔  tests/quality-baseline.json written: ${Object.keys(got.games).length} games, ${Object.keys(got.saves).length} golden saves, ${got.tests.declarations} test declarations`,
+      `✔  tests/quality-baseline.json ${same ? 'unchanged' : 'written'} (${mode === 'release' ? "the release's figures" : "the behaviour; the counts and the first visit are the release's"}): ${Object.keys(next.games).length} games, ${Object.keys(next.saves).length} golden saves, ${next.tests.declarations} test declarations`,
     );
     await flushExit(0);
   } else {
@@ -268,12 +314,11 @@ if (import.meta.url === `file://${process.argv[1]}` || process.argv[1]?.endsWith
     const diff = differences(want, got);
     for (const r of READMES) diff.push(...readmeDrift(readFileSync(resolve(ROOT, r), 'utf8'), r, want, VERSION));
     for (const d of diff) console.log('  ✖ ' + d);
-    for (const d of improvements(want, got))
-      console.log(`  ⚠ better than the baseline, ratchet it (npm run quality:baseline): ${d}`);
+    for (const d of improvements(want, got)) console.log(`  ⚠ ${d}`);
     console.log(
       diff.length
         ? `✖  behaviour moved from tests/quality-baseline.json (${diff.length})`
-        : `✔  same behaviour as tests/quality-baseline.json: ${Object.keys(got.games).length} games, ${Object.keys(got.saves).length} golden saves, ${got.tests.declarations} test declarations${got.bundle ? `, first visit ${got.bundle.initialJsKB} KB` : ''}`,
+        : `✔  same behaviour as tests/quality-baseline.json: ${Object.keys(got.games).length} games, ${Object.keys(got.saves).length} golden saves, ${got.tests.declarations} test declarations${got.bundle?.initialJsBytes !== undefined ? `, first visit ${firstVisitSize(got.bundle.initialJsBytes)}` : ''}`,
     );
     await flushExit(diff.length ? 1 : 0);
   }

@@ -224,7 +224,7 @@ equivalent when there is one; "—" means the created project has none.
 |---|---|
 | `npm test` | The Node tests of the engine, the tools and the selected game, without the heavy solver tests. |
 | `npm run test:heavy` | The CPU-bound solver tests: every night, minutes each ([Solver options](create.solver-options.md#tests)). |
-| `npm run test:coverage` | The suite under V8 coverage against the floors of `vite.config.ts`; then `npx tsx tools/coverage-ratchet.ts --strict` fails on a floor at least three points behind what the tests reach ([The coverage ratchet](contribute.coverage-ratchet.md)). |
+| `npm run test:coverage` | The suite under V8 coverage against the floors of `tests/coverage-floors.json`; then `npx tsx tools/coverage-ratchet.ts --strict` fails on a floor at least three points behind what the tests reach ([The coverage ratchet](contribute.coverage-ratchet.md)). |
 | `npm run test:assets` | The Python-backed image and asset-pipeline tests. |
 | `npm run check` | Type-check and Node tests. |
 | `npm run tsc -- …` | The TypeScript 7 compiler itself; `check` and `quality` call it. |

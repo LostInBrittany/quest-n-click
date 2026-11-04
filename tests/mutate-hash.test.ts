@@ -141,6 +141,14 @@ describe('the input hash', () => {
     put('vite.config.ts', `${readFileSync(join(root, 'vite.config.ts'), 'utf8')}// a change\n`);
     expect(inputHash('core', root)).not.toBe(game);
   });
+
+  it('stays when a coverage floor moves (4.6.0, #405): the floors are data vite.config.ts reads, not an input', () => {
+    const put = repo();
+    put('tests/coverage-floors.json', '{"total":{"lines":75},"groups":[]}\n');
+    const before = inputHash('core', root);
+    put('tests/coverage-floors.json', '{"total":{"lines":76},"groups":[]}\n');
+    expect(inputHash('core', root)).toBe(before);
+  });
 });
 
 describe('the input files of this repository', () => {
@@ -150,6 +158,14 @@ describe('the input files of this repository', () => {
     expect(files).not.toContain('tools/studio/plugin.ts');
     for (const f of ['src/engine/core/engine.ts', 'src/engine/core/cond.ts', 'tests/core.test.ts', 'vite.config.ts'])
       expect(files).toContain(f);
+  });
+
+  it('leave the coverage floors out of every set (4.6.0, #405): raising one re-runs no mutation set', () => {
+    // `all` is every set's inputs together.
+    const files = inputFiles('all');
+    expect(files).not.toContain('tests/coverage-floors.json');
+    expect(files).not.toContain('tools/coverage-floors.ts');
+    expect(files).toContain('vite.config.ts');
   });
 
   it('classify every module the two configurations import: followed for the tests, or skipped with a reason', () => {

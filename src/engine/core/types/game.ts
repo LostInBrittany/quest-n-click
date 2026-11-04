@@ -342,7 +342,8 @@ export interface GameDef {
    * (`offlineTotalKB`, app shell included), and the largest score decoded in memory (`decodedAudioMB`, its `pcmBytes`), and the most held at once
    * (`transitionPeakMB`, 3.6.1: a transition's two scores and its bridge, plus the largest stinger). `initialJsKB` (3.9):
    * the gzipped JavaScript a first visit runs before anything is asked for (the entry and its static imports; a
-   * minigame, the dev tools and the Studio load on demand), checked on the build by `npm run verify:dist`.
+   * minigame, the dev tools and the Studio load on demand), checked on the build by `npm run verify:dist`, in bytes
+   * (`initialJsKB` × 1024, unrounded, since 4.6.0).
    * The batch sizes never affect the assets required to render the current room.
    */
   assetBudgets?: {

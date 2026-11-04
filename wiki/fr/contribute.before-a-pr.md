@@ -98,9 +98,10 @@ Dans le dépôt du moteur, sur votre machine, sur votre branche. Lancez une suit
    ```
 
    Un changement qui modifie volontairement le comportement la réécrit avec `npm run quality:baseline` et committe le
-   résultat. Un test ajouté seul ne demande rien : `--check` le signale comme un gain, et les chiffres bougent à la
-   release (4.5.4), si bien que deux pull requests ouvertes ne sont jamais en conflit dessus. Voir
-   [La référence de qualité](contribute.quality-baseline.md).
+   résultat : cette écriture ne déplace que le comportement. Un test ajouté seul, ou une première visite qui a bougé
+   sans dépasser le budget du jeu, ne demande rien : `--check` le signale par un avertissement, et les nombres de tests,
+   la première visite et les chiffres des README bougent à la release (4.5.4, 4.6.0), si bien que deux pull requests
+   ouvertes ne sont jamais en conflit dessus. Voir [La référence de qualité](contribute.quality-baseline.md).
 
 <!-- step: docs -->
 7. **La documentation**, quand vous l'avez touchée, ou le code sur lequel repose une page :
@@ -207,8 +208,9 @@ a réussi ([La CI expliquée](contribute.ci.md)) ; un job que le plan épargne d
 
 ## Fichiers ou données modifiés
 
-`npm run format` réécrit des fichiers sources ; `npm run quality:baseline` réécrit `tests/quality-baseline.json` et les
-chiffres de `README.md` et `README.fr.md` ; `npm run ids -- --write --map` écrit des ids dans `games/<id>/`. Les
+`npm run format` réécrit des fichiers sources ; `npm run quality:baseline` réécrit le comportement dans
+`tests/quality-baseline.json` (et le chiffre de la preuve de référence dans `README.md` et `README.fr.md` s'il a
+bougé) ; `npm run ids -- --write --map` écrit des ids dans `games/<id>/`. Les
 vérifications elles-mêmes n'écrivent que sous `.cache/` et `/tmp/e2e`.
 
 <a name="recovery"></a>

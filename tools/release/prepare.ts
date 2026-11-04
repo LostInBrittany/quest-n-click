@@ -454,6 +454,16 @@ export const warmupBodyLine = (w: { ok: boolean; url: string }, repo: string) =>
 export const noPrNote = (repo: string) =>
   `--no-pr: nothing pushed, no warm-up started. Once you open the pull request, warm main's mutation cache for its candidate:\n  ${warmupCommand(repo)}`;
 
+/**
+ * The `quality baseline` step (4.6.0, #405): the figures only a release writes (the test files and declarations, the
+ * first visit in bytes, the READMEs' figures and install line), measured on a fresh build of the default game. A pull
+ * request's `npm run quality:baseline` moves the behaviour only, so open pull requests never conflict on these.
+ */
+export const QUALITY_BASELINE_COMMANDS: [string, string[]][] = [
+  ['npx', ['vite', 'build', '--logLevel=warn']],
+  ['npm', ['run', '-s', 'quality:baseline', '--', '--release', '--dist']],
+];
+
 /** The steps of `prepare`, in 4.5.3's order; before the push, the prose left and the human gates (4.5.5). */
 export const PREPARE_STEPS = [
   'branch',
@@ -770,7 +780,9 @@ function prepare(version: string, opts: { name: string; date: string; pr: boolea
       ] as const)
         writeFileSync(file(f), withCurrentRelease(read(f), lang, version, opts.name));
     },
-    'quality baseline': () => sh('npm', ['run', '-s', 'quality:baseline']),
+    'quality baseline': () => {
+      for (const [cmd, args] of QUALITY_BASELINE_COMMANDS) sh(cmd, args);
+    },
     commit: () => {
       sh('git', ['add', '-A']);
       sh('git', ['commit', '-q', '-m', preparedSubject(version)]);
