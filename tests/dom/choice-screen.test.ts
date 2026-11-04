@@ -3,7 +3,7 @@
 // column hidden; a group named by the title; the options with `img` standing as buttons named by their text, then the
 // others as plain buttons; the first one focused, the arrow keys walk them, Tab stays inside; the pick is the option's
 // own index, through the same `pick` intention; once picked, the screen goes and the side column is back.
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { App } from '@engine/dom/app';
 import { game as demo } from '../../games/demo/game';
 import { mini, miniLayouts } from '../fixtures/mini';
@@ -17,9 +17,13 @@ const build = () =>
   });
 const key = (k: string) =>
   document.activeElement!.dispatchEvent(new KeyboardEvent('keydown', { key: k, bubbles: true }));
-const settle = async () => {
-  for (let i = 0; i < 5; i++) await new Promise((r) => setTimeout(r, 0));
-};
+// The screen's module loads when a game shows one (presenter.ts): wait for the screen, not for a number of turns.
+const shown = () =>
+  vi.waitFor(() => {
+    const ov = document.querySelector<HTMLElement>('.overlay.choicescreen');
+    if (!ov) throw new Error('the choice screen is not shown');
+    return ov;
+  });
 
 describe('the hero choice screen (ChoiceScreen)', () => {
   afterEach(() => {
@@ -34,9 +38,7 @@ describe('the hero choice screen (ChoiceScreen)', () => {
       undefined,
       { decor: 'stage/back', title: 'Who am I?' },
     );
-    await settle();
-    const ov = document.querySelector<HTMLElement>('.overlay.choicescreen')!;
-    expect(ov).not.toBeNull();
+    const ov = await shown();
     expect(app.side.style.display).toBe('none');
     expect(document.querySelector('.side .choices')).toBeNull();
     expect(ov.querySelector('img.back')!.getAttribute('src')).toBe(app.bank.img('stage/back'));
@@ -68,8 +70,7 @@ describe('the hero choice screen (ChoiceScreen)', () => {
     app.settings.reduceMotion = true;
     await app.engine.newGame();
     const pick = app.presenter.choose([{ text: 'Yes', img: 'y' }], undefined, { decor: 'stage/back' });
-    await settle();
-    const ov = document.querySelector<HTMLElement>('.choicescreen')!;
+    const ov = await shown();
     expect(ov.classList.contains('still')).toBe(true);
     expect(ov.querySelector('.title')).toBeNull();
     expect(ov.querySelector('[role="group"]')!.getAttribute('aria-label')).toBe(app.game.title);
