@@ -67,7 +67,9 @@ arbre. Un format parallèle dupliquerait le DSL et casserait le solveur, le MCP 
 
 ## Mode portrait, manette, remappage des touches
 
-- **Le portrait sur un téléphone** : non pris en charge ; le jeu se joue en paysage et demande de tourner le téléphone.
+- **Le portrait sur un téléphone** : seulement dans un jeu qui le demande (`skin.portrait: true`, 4.6.0) : la scène en
+  haut, les verbes et le sac en dessous ([Habillage et polices](create.skin-fonts.md#skin-other)). Tout autre jeu se
+  joue en paysage et demande de tourner le téléphone.
 - **Une manette** : elle ne joue pas au jeu ; seule la roue à code de Remix en lit une.
 - **Remapper les touches** : non pris en charge ; un jeu peut donner une lettre à ses verbes, et le joueur peut couper
   ces touches.

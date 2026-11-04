@@ -58,6 +58,13 @@ complète est dans l'[API publique](engine.api.md).
   la hauteur de l'écran, zones sûres déduites ([`dom/side-fit.ts`](../../src/engine/dom/side-fit.ts)) : sur un écran
   bas, les cases du sac cessent d'abord d'être carrées, puis les verbes descendent à 44 px, et les icônes restent
   toujours visibles.
+- **Téléphone tenu droit, dans un jeu qui le demande** (`skin.portrait: true`, 4.6.0) : la scène en haut, sur toute
+  la largeur en 16:10 ; en dessous, un panneau avec la phrase, les verbes (3 colonnes), le sac sur 4 colonnes et les
+  icônes, ajusté à sa hauteur par les mêmes règles que la colonne
+  ([`dom/portrait-fit.ts`](../../src/engine/dom/portrait-fit.ts), puis `side-fit.ts`). Seul un écran presque carré
+  rétrécit la scène (jusqu'à 60 % de la largeur) pour que les boutons gardent 44 px. Les menus et les dialogues
+  prennent tout l'écran, dans les zones sûres ; l'écran titre met ses boutons sous l'image. Un jeu sans ce champ
+  affiche le message « tournez le téléphone », comme avant.
 - **Ordinateur (une souris, un écran d'au moins 720 × 450)** : la disposition SCUMM classique. La scène occupe le
   haut ; la phrase est juste en dessous ; en bas à gauche, les 9 verbes ; à droite, le sac (4 × 2, flèches à gauche) ;
   tout à droite, les 3 icônes en colonne. Les choix de conversation et la liste des lieux prennent la place des verbes
@@ -65,7 +72,8 @@ complète est dans l'[API publique](engine.api.md).
 
 Le choix se fait tout seul (`App.layout`, [`dom/shell.ts`](../../src/engine/dom/shell.ts)) : la disposition
 ordinateur demande un pointeur fin (`pointer: fine`) et une zone de contenu d'au moins 720 × 450 une fois les zones
-sûres retirées. Il se refait à chaque redimensionnement de la fenêtre.
+sûres retirées ; la disposition portrait, un jeu qui la demande et une zone de contenu plus haute que large. Il se
+refait à chaque redimensionnement de la fenêtre ou quand le téléphone tourne, sans toucher à l'état du jeu.
 
 <a name="scene"></a>
 

@@ -10,8 +10,8 @@ qu’il ne fait pas : [Ce que quest'n'click ne fait pas](index.not-supported.md)
 
 - **Une interface de point-and-click classique** : des verbes, un sac, une ligne de phrase ; un double tap agit avec le
   verbe que vous voulez dire ; une touche par verbe quand le jeu en donne une ([Commandes](play.controls.md)).
-- **Téléphone et ordinateur** : en paysage sur un téléphone, la mise en page classique à la souris ; le jeu entier au
-  clavier ([Accessibilité](play.accessibility.md)).
+- **Téléphone et ordinateur** : en paysage sur un téléphone, debout aussi dans un jeu qui le permet (4.6.0), la mise
+  en page classique à la souris ; le jeu entier au clavier ([Accessibilité](play.accessibility.md)).
 - **S’installe et se joue hors ligne** : une PWA qui met le jeu entier en cache après la première visite et dit quand
   c’est complet ([Installer le jeu comme une application](play.install-app.md)).
 - **Sauvegarde automatique et emplacements**, avec export et import en fichier ([Sauvegardes](play.saves.md)).

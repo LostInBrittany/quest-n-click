@@ -685,6 +685,15 @@ Images par seconde pendant que le héros marche, le processeur ralenti (4× par 
 - Lance : `node scripts/e2e-perf.mjs`
 - Utilisation : `npm run e2e:perf -- <url> [--renderer=canvas|dom --cpu=4 --min=30 --room=<id> --seconds=5]`
 
+<a name="e2e-portrait"></a>
+
+#### `npm run e2e:portrait`
+
+La disposition portrait d’un téléphone tenu droit (4.6.0, `skin.portrait`) sur le jeu d’exemple, activée dans la page en cours : le message « tournez le téléphone » sans l’option ; avec elle, de 360 x 640 à 430 x 932, avec et sans zones sûres, la scène sur toute la largeur et chaque verbe, case et outil dans l’écran à 44 px ou plus, l’écran titre, la réplique et le choix de l’intro, le menu pause, la carte, un sac plein ; un passage en paysage et retour qui garde le lieu et le sac ; paysage et ordinateur identiques avec et sans l’option. Le build de production doit être servi.
+
+- Lance : `node scripts/e2e-portrait.mjs`
+- Utilisation : `npm run e2e:portrait -- <url> [--browser=chromium|webkit] [--json]`
+
 <a name="e2e-pwa"></a>
 
 #### `npm run e2e:pwa`

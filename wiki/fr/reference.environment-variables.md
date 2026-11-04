@@ -683,7 +683,7 @@ Toute valeur fait afficher au test de bout en bout du Studio hébergé ce qu’i
 L’endroit où un test de bout en bout écrit ses captures et ses rapports.
 
 - Origine : vous la posez ; le code la lit.
-- Lue par : [`.github/workflows/ci.yml`](../../.github/workflows/ci.yml), [`scripts/e2e-a11y.mjs`](../../scripts/e2e-a11y.mjs), [`scripts/e2e/lib.mjs`](../../scripts/e2e/lib.mjs).
+- Lue par : [`.github/workflows/ci.yml`](../../.github/workflows/ci.yml), [`scripts/e2e-a11y.mjs`](../../scripts/e2e-a11y.mjs), [`scripts/e2e-portrait.mjs`](../../scripts/e2e-portrait.mjs), et 1 de plus.
 
 <a name="e2e-weight-debug"></a>
 

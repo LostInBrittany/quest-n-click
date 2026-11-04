@@ -188,6 +188,21 @@ describe("the validator on the player's side (validate/player.ts): the two field
     expect(errs(g)).toContain('input › input is an object: { exitOnTap?: boolean }');
   });
 
+  it('refuses a skin.portrait that is not a boolean (4.6.0)', () => {
+    const g = structuredClone(demo) as GameDef;
+    const portrait = () => validate(g, {}).errors.filter((e) => e.startsWith('skin.portrait'));
+    for (const ok of [true, false, undefined]) {
+      g.skin.portrait = ok;
+      expect(portrait()).toEqual([]);
+    }
+    for (const bad of ['yes', 1, {}]) {
+      g.skin.portrait = bad as never;
+      expect(portrait()).toEqual([
+        'skin.portrait › portrait is true or false (true: the game plays on a phone held upright)',
+      ]);
+    }
+  });
+
   it('refuses an actorGap that is not a positive number (#198)', () => {
     const g = structuredClone(demo) as GameDef;
     const gaps = () => validate(g, {}).errors.filter((e) => e.startsWith('actorGap'));

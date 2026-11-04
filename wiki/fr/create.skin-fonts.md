@@ -26,6 +26,7 @@ skin: {
   heights: { actor: 110, hero: 84 },                       // hauteur d'un personnage sans `height`
   callPoses: ['phone', 'telephone', 'front', 'face', 'idle'],   // poses essayées pour le cadre d'un appel
   pixelArt: false,                                         // true : les images agrandies gardent des bords nets (artStyle "pixel")
+  portrait: false,                                         // true : se joue aussi sur un téléphone tenu droit (4.6.0)
 },
 ```
 
@@ -81,13 +82,18 @@ Le réglage « Police lisible » est décrit dans [Mise en scène](create.stagin
 
 <a name="skin-other"></a>
 
-## `skin.heights`, `skin.callPoses`, `skin.pixelArt`
+## `skin.heights`, `skin.callPoses`, `skin.pixelArt`, `skin.portrait`
 
 | Clé | Ce que c’est | Défaut |
 |---|---|---|
 | `heights.actor`, `heights.hero` | La hauteur, en unités logiques, d’un personnage sans `height` propre. | acteur 110, héros 84 |
 | `callPoses` | Les poses essayées, dans l’ordre, pour le cadre d’un appel téléphonique (`phone`). | `phone`, `front`, `face`, `idle` |
 | `pixelArt` | `true` : les images agrandies par le navigateur gardent des bords nets (`image-rendering: pixelated` sur les images de la scène) au lieu d’être lissées. À poser pour un jeu dont le `site.json` dit `artStyle: "pixel"`. | `false` |
+| `portrait` | `true` : le jeu se joue sur un téléphone tenu droit (4.6.0). Sur un écran plus haut que large, la scène passe en haut, sur toute la largeur en 16:10, et les verbes, le sac et les outils dans un panneau en dessous, au lieu du message « tournez le téléphone » (`ui.rotate`, `ui.rotateSub`). Tourner le téléphone change de disposition en cours de partie. Présentation seulement : aucune règle, sauvegarde ni preuve ne le voit. Le validateur veut `true` ou `false`. | `false` |
+
+Avant d’activer `portrait`, regardez vos lieux à la largeur d’un téléphone : la scène fait alors 360 à 430 pixels de
+large, donc les petites zones et les longues répliques deviennent petites aussi. Le réglage de taille du texte du
+joueur aide, et chaque lieu se joue toujours en paysage.
 
 <a name="ui-defaults"></a>
 
