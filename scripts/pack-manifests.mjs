@@ -189,3 +189,20 @@ export function lockFor(lock, manifest) {
   };
   return out;
 }
+
+/**
+ * A lock's text with its root's peers made the manifest's, nothing else moved (#410): `prepare` runs it on every
+ * versioned lock after the version bump. The Studio Server's engine peer is the version's line (`4.6.x`), so a new
+ * minor changes it; a full `npm run locks` would also move other packages (797ba349). The text comes back as it was,
+ * byte for byte, when the peers already are the manifest's.
+ */
+export function lockWithPeers(text, manifest) {
+  const lock = JSON.parse(text);
+  const top = lock.packages?.[''];
+  const same = (a = {}, b = {}) =>
+    JSON.stringify(Object.entries(a).sort()) === JSON.stringify(Object.entries(b).sort());
+  if (!top || same(top.peerDependencies, manifest.peerDependencies)) return text;
+  if (manifest.peerDependencies) top.peerDependencies = manifest.peerDependencies;
+  else delete top.peerDependencies;
+  return `${JSON.stringify(lock, null, 2)}\n`;
+}

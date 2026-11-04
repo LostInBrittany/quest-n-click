@@ -16,6 +16,8 @@
 import { execFileSync, spawnSync } from 'node:child_process';
 import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
+// @ts-expect-error: a plain .mjs module without declarations
+import { LOCKED, lockWithPeers } from '../../scripts/pack-manifests.mjs';
 import { releaseNotes } from '../../scripts/release-notes.mjs';
 import { fragmentFiles, lastLogNumber, proseLines } from '../changes';
 import { formatJson } from '../wiki/json';
@@ -468,6 +470,7 @@ export const QUALITY_BASELINE_COMMANDS: [string, string[]][] = [
 export const PREPARE_STEPS = [
   'branch',
   'version',
+  'locks',
   'changelog',
   'wiki acks',
   'upgrade notes',
@@ -737,6 +740,19 @@ function prepare(version: string, opts: { name: string; date: string; pr: boolea
   const steps: Record<(typeof PREPARE_STEPS)[number], () => void> = {
     branch: () => sh('git', ['switch', '-c', branch]),
     version: () => sh('npm', ['version', version, '--no-git-tag-version']),
+    // The versioned locks' peers follow the version (#410): the Studio Server's engine peer is its line (`4.6.x`), so a
+    // new minor moves it; that field only, never a full `npm run locks` (797ba349).
+    locks: () => {
+      const pkg = JSON.parse(read('package.json'));
+      for (const e of LOCKED as { lock: string; manifest: (root: unknown) => unknown }[]) {
+        const text = read(e.lock);
+        const out = lockWithPeers(text, e.manifest(pkg));
+        if (out !== text) {
+          writeFileSync(file(e.lock), out);
+          say(`${e.lock}: its peers follow ${version}`);
+        }
+      }
+    },
     changelog: () => {
       const first = lastLogNumber(read('docs/dev/LOG.md')) + 1;
       sh('npm', ['run', '-s', 'changes', '--', '--assemble', `--date=${opts.date}`]);

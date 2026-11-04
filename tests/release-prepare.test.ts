@@ -300,6 +300,7 @@ describe('the command', () => {
     expect(PREPARE_STEPS).toEqual([
       'branch',
       'version',
+      'locks',
       'changelog',
       'wiki acks',
       'upgrade notes',
@@ -649,6 +650,7 @@ describe('the command on a clone (4.5.4)', () => {
         'tools/release/gates.ts',
         'tools/changes.ts',
         'tools/release/lib.mjs',
+        'scripts/pack-manifests.mjs',
       ])
         cpSync(resolve(f), join(repo, f));
       git('commit', '-q', '-am', 'tools', '--allow-empty');

@@ -5,7 +5,7 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 // @ts-expect-error: plain .mjs scripts without declarations
-import { LOCKED, lockFor, lockProblems } from '../scripts/pack-manifests.mjs';
+import { LOCKED, lockFor, lockProblems, lockWithPeers } from '../scripts/pack-manifests.mjs';
 // @ts-expect-error: plain .mjs scripts without declarations
 import { problems } from '../scripts/locks.mjs';
 
@@ -59,5 +59,38 @@ describe('the versioned locks', () => {
     const { '': _, ...deps } = out.packages;
     const { '': __, ...before } = lock.packages;
     expect(deps).toEqual(before);
+  });
+});
+
+// 4.6.0 (797ba349): the first minor since the Studio Server's engine peer exists; prepare bumped the version, and the
+// lock kept "@quest-n-click/engine": "4.5.x" while the manifest said 4.6.x, so qualify could not pack. prepare now
+// moves that field only: a full `npm run locks` would also move other packages (nan, @opentelemetry/api then).
+describe("the locks' peers follow a new minor (#410)", () => {
+  const studio = (LOCKED as Entry[]).find((e) => e.name === '@quest-n-click/studio-server')!;
+  const text = readFileSync(studio.lock, 'utf8');
+  const line = (v: string) => v.replace(/^(\d+)\.(\d+)\..*$/, '$1.$2');
+  const next = (() => {
+    const [a, b] = root.version.split('.').map(Number);
+    return `${a}.${b + 1}.0`;
+  })();
+  it('moves the engine peer to the next minor’s line, and the lock fits the manifest again', () => {
+    const manifest = studio.manifest({ ...root, version: next });
+    expect(lockProblems(JSON.parse(text), manifest).join()).toMatch(/peer dependencies/);
+    const out = lockWithPeers(text, manifest);
+    expect(lockProblems(JSON.parse(out), manifest)).toEqual([]);
+    expect(JSON.parse(out).packages[''].peerDependencies['@quest-n-click/engine']).toBe(`${line(next)}.x`);
+  });
+  it('changes that one line, nothing else in the lock', () => {
+    const out = lockWithPeers(text, studio.manifest({ ...root, version: next }));
+    const [a, b] = [text.split('\n'), out.split('\n')];
+    expect(b).toHaveLength(a.length);
+    expect(a.filter((l, i) => l !== b[i])).toEqual([expect.stringContaining('"@quest-n-click/engine"')]);
+  });
+  it('leaves a lock whose peers are the manifest’s as it is, byte for byte (a patch, or no engine peer)', () => {
+    expect(lockWithPeers(text, studio.manifest(root))).toBe(text);
+    for (const e of LOCKED as Entry[]) {
+      const t = readFileSync(e.lock, 'utf8');
+      if (e !== studio) expect(lockWithPeers(t, e.manifest({ ...root, version: next }))).toBe(t);
+    }
   });
 });
