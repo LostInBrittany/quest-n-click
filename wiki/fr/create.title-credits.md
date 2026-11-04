@@ -12,7 +12,8 @@ puis Nouvelle partie et Continuer ; et le générique de fin, qui défile sur la
 ## Contexte et versions
 
 `game.ts` dans le dépôt du moteur (`games/<id>/game.ts`) ou dans un projet créé (`game/game.ts`). Les champs
-ci-dessous sont ceux de la 4.4.0 ; vrai à partir de la 4.2.5 (le nom de commande `quest-n-click` utilisé plus bas).
+ci-dessous sont ceux de la 4.4.0, plus les places du logo et des boutons à partir de la 4.6.1 ; vrai à partir de la
+4.2.5 (le nom de commande `quest-n-click` utilisé plus bas).
 
 <a name="prerequisites"></a>
 
@@ -40,6 +41,13 @@ Modifiez `game.ts` ; lancez `npm run assets` à la racine du dépôt du moteur, 
    ```
 
    `decor` est obligatoire ; `logo`, `music`, `video` et `footer` sont optionnels.
+
+   Pour déplacer le logo ou les boutons, donnez leurs places en unités de la scène de 640 x 400 (4.6.1). Le logo garde
+   ses proportions : l’image n’a pas besoin de marges transparentes autour de lui.
+
+   ```ts
+   titleScreen: { decor: 'decor/dining', logo: 'logo', logoWidth: 300, logoCenter: 320, logoTop: 48, buttonsTop: 320 },
+   ```
 
 <!-- step: video -->
 2. **Une vidéo, si vous en voulez une.** Mettez le fichier dans le dossier des décors du jeu, `art/decor/<nom>.mp4`
@@ -80,6 +88,10 @@ Modifiez `game.ts` ; lancez `npm run assets` à la racine du dépôt du moteur, 
 | `titleScreen.music` | id de `audio.music` | la musique, lancée au premier tap du joueur sur l’écran titre |
 | `titleScreen.video` | nom de fichier dans `public/assets/video/` | une vidéo muette en boucle derrière le logo |
 | `titleScreen.footer` | texte | une ligne en bas de l’écran ; traduite (`titleScreen/footer`) |
+| `titleScreen.logoWidth` | unités de la scène | la largeur du logo, sa hauteur en proportion ; 430 par défaut |
+| `titleScreen.logoCenter` | unités de la scène | le x du centre du logo ; 370 par défaut |
+| `titleScreen.logoTop` | unités de la scène | le y du haut du logo ; 8 par défaut |
+| `titleScreen.buttonsTop` | unités de la scène | le y du haut de la rangée de boutons, à l’horizontale ; 292 par défaut (73 % de la hauteur) |
 | `creditsScreen.video` | nom de fichier | la vidéo de fond du générique, assombrie ; par défaut celle du titre |
 | `creditsScreen.decor` | id d’image | l’affiche de cette vidéo ; par défaut le `decor` du titre |
 | `credits` | lignes de texte | le générique, une entrée par ligne, `''` pour une ligne blanche ; traduit (`credits[0]`, `credits[1]`…) |
@@ -95,6 +107,10 @@ Ce que voit le joueur :
 > Un navigateur qui refuse de lancer la vidéo (économie de données, mode basse consommation) laisse l’affiche, le
 > `decor`, à sa place. Avec un `creditsScreen` qui a un `decor` mais pas de `video`, le générique n’a pas d’image de
 > fond.
+
+> [!LIMIT id=title-portrait-buttons]
+> Debout (`skin.portrait`), le logo prend la même place dans l’image, mais les boutons vont toujours sous l’image, en
+> colonne : `buttonsTop` ne vaut qu’à l’horizontale.
 
 > [!LIMIT id=title-plain-text]
 > Le pied de page et le générique s’affichent tels qu’écrits : le validateur y refuse les aiguillages de texte et
