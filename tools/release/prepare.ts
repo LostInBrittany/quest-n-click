@@ -94,6 +94,9 @@ export function logReleaseEntry(o: { n: number; date: string; version: string; n
 
 /** The upgrade-notes page with `version` added to its lead's list of versions (`… 4.5.1 and 4.5.2 changed.`). */
 export function upgradeNotesLead(page: string, previous: string, version: string, lang: 'en' | 'fr') {
+  // A lead that names the version already (a new minor's page, written ahead as #394 did) is left alone (#410).
+  const lead = page.split(/^<a name=|^## /m)[0]!;
+  if (new RegExp(`(?<![\\d.])${version.replace(/\./g, '\\.')}(?![\\d])`).test(lead)) return page;
   const p = previous.replace(/\./g, '\\.');
   const out =
     lang === 'en'
@@ -121,7 +124,7 @@ export function upgradeNotesSection(o: {
   lang: 'en' | 'fr';
   bullets: readonly string[];
 }) {
-  const anchor = `from-${o.previous.replace(/\./g, '-')}-to-${o.version.replace(/\./g, '-')}`;
+  const anchor = upgradeNotesAnchor(o.previous, o.version);
   const heading =
     o.lang === 'en'
       ? `## From ${o.previous} to ${o.version} "${o.name}"`
@@ -141,6 +144,43 @@ export function upgradeNotesSection(o: {
     ...o.bullets,
     '',
   ].join('\n');
+}
+
+/** The anchor of a release's section of its upgrade notes. */
+const upgradeNotesAnchor = (previous: string, version: string) =>
+  `from-${previous.replace(/\./g, '-')}-to-${version.replace(/\./g, '-')}`;
+
+/** The comment that gives a section written ahead the release's CHANGELOG bullets, for its author (#410). */
+function aheadComment(lang: 'en' | 'fr', bullets: readonly string[]) {
+  const opener =
+    lang === 'en'
+      ? "<!-- prepare (#410): this section was written before the release. The release's CHANGELOG bullets, to check it against; delete this comment once read:"
+      : '<!-- prepare (#410) : cette section a été écrite avant la release. Les entrées du CHANGELOG de la release, pour la relire ; supprimer ce commentaire une fois lu :';
+  // `-->` in a bullet would close the comment early.
+  return [opener, '', ...bullets.map((b) => b.replaceAll('-->', '-- >')), '-->'].join('\n');
+}
+
+/**
+ * The upgrade-notes page with the release's section (#410): appended when the page has none (`upgradeNotesSection`, its
+ * lead extended); kept as written when the page has its anchor already (written ahead, as #394 and #399 did for 4.6.0),
+ * the CHANGELOG bullets then in a comment at that section's end, before the next `##` section and its anchor.
+ */
+export function withUpgradeNotes(
+  page: string,
+  o: { previous: string; version: string; name: string; lang: 'en' | 'fr'; bullets: readonly string[] },
+) {
+  const text = upgradeNotesLead(page, o.previous, o.version, o.lang);
+  const lines = text.split('\n');
+  const at = lines.indexOf(`<a name="${upgradeNotesAnchor(o.previous, o.version)}"></a>`);
+  if (at < 0) return text.replace(/\n*$/, '\n\n') + upgradeNotesSection(o);
+  const heading = lines.findIndex((l, i) => i > at && l.startsWith('## '));
+  let end = lines.findIndex((l, i) => i > heading && heading >= 0 && l.startsWith('## '));
+  if (end < 0) end = lines.length;
+  // The next section's anchor, scope comment and blank lines belong to it.
+  while (end > heading + 1 && /^(\s*$|<a name=|<!-- applies:)/.test(lines[end - 1]!)) end--;
+  const head = lines.slice(0, end).join('\n');
+  const tail = lines.slice(end).join('\n').replace(/^\n*/, '');
+  return `${head}\n\n${aheadComment(o.lang, o.bullets)}\n${tail ? `\n${tail}` : ''}`;
 }
 
 const FIELD_BEGIN = '<!-- field:begin -->';
@@ -785,8 +825,7 @@ function prepare(version: string, opts: { name: string; date: string; pr: boolea
       const bullets = changelogBullets(read('CHANGELOG.md'), version);
       for (const lang of ['en', 'fr'] as const) {
         const page = `wiki/${lang}/${upgradeNotesPage(version)}.md`;
-        const text = upgradeNotesLead(read(page), previous, version, lang).replace(/\n*$/, '\n\n');
-        writeFileSync(file(page), text + upgradeNotesSection({ previous, version, name: opts.name, lang, bullets }));
+        writeFileSync(file(page), withUpgradeNotes(read(page), { previous, version, name: opts.name, lang, bullets }));
       }
     },
     'transition pages': () => sh('npm', ['run', '-s', 'wiki', '--', 'transition']),
