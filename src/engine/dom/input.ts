@@ -275,10 +275,18 @@ export function showLabel(app: App, id: Id | null) {
   if (!b) return;
   const l = el('div', 'label', esc(app.engine.nameOf(id)));
   const [lx, ly] = app.view.camera.toScreen([b[0] + b[2] / 2, b[1] - 2]);
-  l.style.left = `${lx}px`;
   l.style.top = `${Math.max(14 * app.u, ly)}px`;
   app.scene.append(l);
+  // Measured once in the scene: a thing near an edge moves its name inward, whole (#414).
+  l.style.left = `${labelLeft(lx, l.offsetWidth, 640 * app.u, 4 * app.u)}px`;
   app.labelEl = l;
+}
+
+/** Where a label centred on `x` goes so all its `width` stays inside a scene `sceneWidth` wide, `margin` from each
+ * edge (pixels of the scene, its centre, as `.label` is translated by -50%): `x` itself when there is room. A label
+ * wider than the scene starts at the left margin. */
+export function labelLeft(x: number, width: number, sceneWidth: number, margin: number): number {
+  return Math.max(margin + width / 2, Math.min(sceneWidth - margin - width / 2, x));
 }
 
 export function renderVerbs(app: App) {
