@@ -9,6 +9,7 @@ import { createRequire } from 'node:module';
 import { join, resolve } from 'node:path';
 import { GAME, GAME_DIR, PROJECT, WORK } from '../game.ts';
 import { engineVersion, trustedExtensionsHash } from '../extensions.ts';
+import type { SiteText } from '../../src/engine/dom/site-lang.ts';
 
 /** A path next to the engine's pages (index.html, studio.html), wherever it is installed. */
 const r = (p: string) => fileURLToPath(new URL('../../' + p.replace(/^\.\//, ''), import.meta.url));
@@ -164,6 +165,28 @@ function siteUrl(v: unknown): string | undefined {
 }
 
 /**
+ * site.json's `i18n` (4.6.1): the title, short name and description in other languages, `{ <lang>: { title?,
+ * shortName?, description? } }`. Only strings are kept, and only languages whose code can name a file
+ * (`manifest.<lang>.webmanifest`); the game's own language is the file's top level.
+ */
+export function siteLangs(s: Record<string, unknown>): Record<string, SiteText> {
+  const out: Record<string, SiteText> = {};
+  const all = s.i18n;
+  if (!all || typeof all !== 'object') return out;
+  for (const [lang, t] of Object.entries(all as Record<string, unknown>)) {
+    if (!/^[A-Za-z]{2,3}(-[A-Za-z0-9]{1,8})*$/.test(lang) || lang === (s.lang ?? 'en') || !t || typeof t !== 'object')
+      continue;
+    const keep: SiteText = {};
+    for (const k of ['title', 'shortName', 'description'] as const) {
+      const v = (t as Record<string, unknown>)[k];
+      if (typeof v === 'string' && v) keep[k] = v;
+    }
+    if (Object.keys(keep).length) out[lang] = keep;
+  }
+  return out;
+}
+
+/**
  * games/<id>/site.json: game title, description and color, injected into index.html and the PWA manifest. With `url`
  * (the game's public address, #271), the share image is absolute and the page gets its og:url: link previews need
  * both. `o`: another game folder and name (the Studio Server's previews, built by its worker, 4.2.2).
@@ -178,8 +201,9 @@ export function sitePlugin(o: { gameDir?: string; game?: string } = {}): Plugin 
       return {};
     }
   };
-  const manifest = () => {
-    const s = site();
+  const manifest = (lang?: string) => {
+    const s0 = site();
+    const s = { ...s0, ...(lang ? siteLangs(s0)[lang] : {}) };
     return JSON.stringify(
       {
         name: s.title ?? name,
@@ -220,7 +244,16 @@ export function sitePlugin(o: { gameDir?: string; game?: string } = {}): Plugin 
                 () => `<meta property="og:url" content="${esc(url)}" />\n    <meta property="og:type"`,
               )
           : html;
-        return page
+        // The other languages' texts (`i18n`), read by boot.ts when the page plays one of them (`applySiteLang`).
+        const langs = siteLangs(s);
+        const withLangs = Object.keys(langs).length
+          ? page.replace(
+              '</head>',
+              () =>
+                `  <script type="application/json" id="qnc-site-i18n">${JSON.stringify(langs).replace(/</g, '\\u003c')}</script>\n  </head>`,
+            )
+          : page;
+        return withLangs
           .replace(/%LANG%/g, () => esc(s.lang ?? 'en'))
           .replace(/%TITLE%/g, () => esc(s.title ?? name))
           .replace(/%DESCRIPTION%/g, () => esc(s.description))
@@ -233,9 +266,18 @@ export function sitePlugin(o: { gameDir?: string; game?: string } = {}): Plugin 
         res.setHeader('content-type', 'application/manifest+json');
         res.end(manifest());
       });
+      // A language's manifest (`manifest.<lang>.webmanifest`), for a language site.json translates.
+      server.middlewares.use((req, res, next) => {
+        const lang = /^\/manifest\.([A-Za-z0-9-]+)\.webmanifest(\?|$)/.exec(req.url ?? '')?.[1];
+        if (!lang || !siteLangs(site())[lang]) return next();
+        res.setHeader('content-type', 'application/manifest+json');
+        res.end(manifest(lang));
+      });
     },
     generateBundle() {
       this.emitFile({ type: 'asset', fileName: 'manifest.webmanifest', source: manifest() });
+      for (const lang of Object.keys(siteLangs(site())))
+        this.emitFile({ type: 'asset', fileName: `manifest.${lang}.webmanifest`, source: manifest(lang) });
     },
   };
 }

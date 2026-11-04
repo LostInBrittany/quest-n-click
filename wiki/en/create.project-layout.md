@@ -81,6 +81,12 @@ game's `minigames`, `extraImages` (images to prepare even when no content refere
   an absolute share image (`og:image`, `<url>og.png`) and its own address (`og:url`): LinkedIn, Facebook and X need
   both, where a relative `og.png` often shows no image. An address that is not an absolute `http(s)` URL, or that has a query, a fragment
   or credentials, is ignored.
+- `i18n` (optional, 4.6.1) gives `title`, `shortName` and `description` in the game's other languages:
+  `"i18n": { "fr": { "title": "Le Grand Raffut", "description": "…" } }`. When the page plays one of them (`?lang=`,
+  Settings, the browser's language), the tab's title, the description and the install name (a
+  `manifest.<lang>.webmanifest` per language, the missing fields taken from the top level) are that language's. The
+  Language row of Settings reloads the page, so they follow it. The HTML as served, which link previews read, stays
+  in the game's own language.
 - `artStyle` is `"cel"` (default: painted cartoon) or `"pixel"` (retro pixel art). It changes the art prompts
   (`npm run prompts`), the cutter (`tools/cut-sheet.py`) and `npm run assets` (lossless WebP, nearest-neighbour
   resizing). For `pixel`, also set `skin: { pixelArt: true }` in `game.ts`.

@@ -163,6 +163,8 @@
   "SaveStore",
   "SceneFrame",
   "SceneRenderer",
+  "SiteText",
+  "SiteTexts",
   "SlotStore",
   "SpriteSpec",
   "StageSpec",

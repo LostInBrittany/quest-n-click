@@ -5404,6 +5404,8 @@
         "SignalSimulator",
         "SignedWorldSignalV1",
         "SimulatedDelivery",
+        "SiteText",
+        "SiteTexts",
         "SkinDef",
         "SlotStore",
         "SolveOptions",
