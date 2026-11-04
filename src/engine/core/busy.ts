@@ -19,10 +19,19 @@ export class Busy {
   /** The current cutscene is being skipped: its commands finish at once. */
   skipping = false;
   /**
-   * The New Game intro is running (#401): nothing is written to the autosave until it ends, so a reload during it (a
-   * hero choice still open) leaves no Continue that would skip it. The end of the intro's run writes it.
+   * The New Game intro is running (#401): nothing is written to the autosave until it ends or waits for a tutorial step
+   * (`holding`), so a reload during it (a hero choice still open) leaves no Continue that would skip it. The end of the
+   * intro's run writes it.
    */
   intro = false;
+
+  /**
+   * The autosave is held back: the intro holds the player. A tutorial step it waits for gives the player the hand
+   * (games/demo plays its whole tutorial inside the intro), so the autosave is written again while it waits.
+   */
+  get holding() {
+    return this.intro && !this.guide;
+  }
 
   /** Running something the player must wait for (a tutorial step waiting leaves the player free). */
   get busy() {

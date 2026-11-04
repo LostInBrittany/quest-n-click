@@ -39,7 +39,8 @@ Dans le jeu, depuis le menu de pause (le bouton pause parmi les outils, ou Écha
 
 Le jeu sauvegarde tout seul à la fin de chaque action (quand le moteur redevient libre), quand vous changez de salle
 et quand un script avance. Un jeu qui s’ouvre sur une intro (un héros à choisir, quelques répliques) est sauvegardé
-une fois l’intro finie : un rechargement pendant l’intro ne laisse rien à continuer, et Nouvelle partie la rejoue.
+une fois l’intro finie, ou dès qu’elle rend la main au joueur avec une étape du tutoriel : un rechargement avant ne
+laisse rien à continuer, et Nouvelle partie la rejoue.
 Chaque écriture est relue et vérifiée. La ligne **Sauvegarde auto** du menu de pause
 affiche ✓, ou ⚠ quand la dernière écriture a échoué ; un échec affiche aussi « Échec de la sauvegarde » avec la raison
 du navigateur. **Continuer** sur l’écran titre reprend la sauvegarde automatique. **Recommencer** l’efface d’abord,

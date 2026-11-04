@@ -444,6 +444,8 @@ const guide: Handler<'guide'> = async (eng, c, ctx) => {
   await new Promise<void>((resolve) => {
     eng.busyState.guide = { ...g, resolve };
     eng.ui.guide({ verb: g.verb, target: g.target });
+    // The intro hands the player the game here (#401): what it decided so far is kept for Continue.
+    if (eng.busyState.intro) eng.save();
     eng.onChange();
   });
 };

@@ -6,6 +6,7 @@ import { Engine } from '@engine/core/engine';
 import { FakePresenter, MemoryStore } from '@engine/core/ports';
 import type { GameDef } from '@engine/core/types';
 import { game, layouts } from '../games/heroes';
+import { game as demo, layouts as demoLayouts } from '../games/demo';
 
 /** A presenter whose choice stays open until the test answers it: the moment a player could reload the page. */
 class OpenChoice extends FakePresenter {
@@ -64,6 +65,30 @@ describe('a reload during the New Game intro (games/heroes)', () => {
     await new Engine(g, layouts, ui, store).newGame();
     expect(seen[0]).toBeNull();
     expect(store.load()?.room).toBe('garden');
+  });
+
+  it('an intro that ends in a tutorial (games/demo): saved once the player has the hand, the guess kept', async () => {
+    const store = new MemoryStore();
+    const ui = new FakePresenter();
+    ui.picks = [0];
+    const e = new Engine(structuredClone(demo), demoLayouts, ui, store);
+    const started = e.newGame();
+    await expect.poll(() => e.guiding).toEqual({ verb: 'look', target: 'pantry' });
+    // The tutorial waits for the player, who plays: the autosave was written at the hand-off and is written again.
+    expect(store.load()?.flags.guess).toBe('sardines');
+    e.state.flags.seen_pantry_hint = true;
+    e.save();
+    expect(store.load()?.flags.seen_pantry_hint).toBe(true);
+    for (const [verb, a] of [
+      ['look', 'pantry'],
+      ['talk', 'grandma'],
+      ['take', 'shell'],
+    ] as const) {
+      await expect.poll(() => e.guiding).toEqual({ verb, target: a });
+      await e.act({ verb, a });
+    }
+    await started;
+    expect(store.load()?.inventory).toContain('shell_phone');
   });
 
   it('a game without an intro writes its autosave at the start, as before', async () => {

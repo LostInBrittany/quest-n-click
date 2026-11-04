@@ -13,6 +13,13 @@
   starts New game again.
 - tests/intro-reload.test.ts: no autosave while the choice is open and the pick saved after it; an intro without a
   choice; a game without an intro saved at the start. The first two failed before the fix.
+- CI red on the pull request (e2e chromium full, e2e webkit generic, pwa-firefox): the sample game's intro ends in its
+  tutorial (three `guide` steps), so the whole tutorial was played with no autosave at all, and e2e-pwa and e2e-music
+  (game) saved from code while the intro's first line was on screen and found no save. Fix: `Busy.holding` (the
+  intro, and no tutorial step waited for) is what `save()` checks; a `guide` reached during the intro writes the
+  autosave, the player's guess in it. tests/intro-reload.test.ts: the demo's intro saved at its first tutorial step,
+  a save during the tutorial written (red before). The two scripts Skip the intro and answer its choice before they
+  save. routes (webkit): not this change (the same commit's run of routes (chromium) passed; see the report).
 - Left: the revision dialog's Restart (`dom/revision.ts`) calls `newGame()` without clearing the store, so a reload
   during that intro would continue the previous game rather than none.
 → next: nothing.

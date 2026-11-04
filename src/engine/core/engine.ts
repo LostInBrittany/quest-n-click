@@ -420,7 +420,7 @@ export class Engine {
 
   save() {
     this.objectives.check();
-    if (!this.busyState.intro) this.store.save(this.beforeSave ? this.beforeSave(this.state) : this.state);
+    if (!this.busyState.holding) this.store.save(this.beforeSave ? this.beforeSave(this.state) : this.state);
   }
 
   /**

@@ -323,6 +323,18 @@ if ((!only || only === 'game') && !process.argv.includes('--no-game')) {
     await p.waitForFunction(() => !!window.__game?.engine, null, { timeout: 20000 });
     await p.locator('.overlay .bigbtn').first().click();
     await p.waitForFunction(() => !!window.__game.engine.state, null, { timeout: 20000 });
+    // The autosave waits for the intro to hand the player the game (#401), and the scenario saves: Skip its lines,
+    // answer its choice.
+    for (let i = 0; await p.evaluate(() => !(window.__game.engine.hasSave() && !window.__game.engine.busy)); i++) {
+      if (i > 150) throw new Error('the New Game intro never ended');
+      // The choice's button may sit under the title screen (a game started from code): clicked in the page.
+      await p.evaluate(() => {
+        const choice = document.querySelector('.side .choices .choice');
+        if (choice) choice.click();
+        else window.__game.engine.skip();
+      });
+      await p.waitForTimeout(100);
+    }
   };
   await play('./?music=stems');
   const g = await p.evaluate(async () => {
