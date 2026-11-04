@@ -73,6 +73,14 @@ De grands personnages qui gesticulent en parlant finissent, à 44 unités, avec 
 à ça que sert `actorGap`. Un `approach` du layout l'emporte toujours, pour un personnage qu'il faut aborder de l'autre
 côté. `actorGap` n'est que de la présentation, comme les points d'approche : aucune règle ni le solveur ne le lisent.
 
+Le personnage reste tourné vers le héros après l'action. Avec `turnBack: true` sur l'acteur de la salle (4.6.1), il se
+retourne une fois l'action finie : sa règle, sa ligne de regard ou sa réponse par défaut jouée, et pour une
+conversation, une fois qu'« Au revoir » la ferme. Il se tourne du côté qu'il a dans l'état, celui qu'un rechargement
+dessine : celui d'une commande `face` ou `place` si un script en a laissé un (un sujet qui dit
+`{ face: 'hero', who: X }` laisse X tourné vers le héros), sinon le `facing` de la salle, sinon le miroir du layout.
+Rien ne se passe quand l'action a quitté la salle ou caché le personnage. De la présentation seulement, comme le
+demi-tour lui-même : ni règle, ni sauvegarde, ni le solveur ne le voient.
+
 <a name="walk-area"></a>
 
 ## La zone de marche

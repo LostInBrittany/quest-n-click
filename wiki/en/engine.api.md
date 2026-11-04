@@ -188,7 +188,7 @@ npm run wiki -- generate engine.api
 | Name | Signature | Stability | Doc |
 |---|---|---|---|
 | `Action` | `interface { verb, a, b }` | public | A player action: VERB a (with/to b). `a` can be an inventory item, `b` is always a target. |
-| `ActorDef` | `interface { defaultVerb, char, interactive, pose, facing, visible, … 1 more }` | public | A character standing in a room: which one, its pose and facing, and when it shows. |
+| `ActorDef` | `interface { defaultVerb, char, interactive, pose, facing, turnBack, … 2 more }` | public | A character standing in a room: which one, its pose and facing, and when it shows. |
 | `AnchorDef` | `interface { at, visible, reachableBy, capacity, phase }` | public | A tagged spot of a room where an item can be placed (`RoomDef.anchors`): the prop or hotspot it stands on (`at`), when it shows, what it tak |
 | `AnchorRef` | `interface { room, anchor }` | public | An anchor named from anywhere: its room and its id in `RoomDef.anchors`. |
 | `ApplyOptions` | `interface { lang }` | public | Options of `applyVariant`: the language the texts are in. |

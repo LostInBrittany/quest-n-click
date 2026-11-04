@@ -196,7 +196,9 @@ dans une condition. `'salle.accessoire'` atteint un accessoire d'une autre salle
 `actors: { grandma: { char: 'grandma', facing: 'left' } }` met un personnage du jeu dans la salle. `pose` est une pose
 durable de sa planche (`sleep`), `facing` son côté, `visible` une condition, `name` un nom affiché autre que celui du
 personnage, `interactive: false` en fait un décor vivant, ni cliquable ni nommé
-([personnages](create.characters.md#presence)). Le validateur veut chaque acteur placé dans le layout, et signale une
+([personnages](create.characters.md#presence)). Un personnage sur qui le héros agit se tourne vers lui ; avec
+`turnBack: true` (4.6.1), il se retourne de son côté une fois l'action finie (une conversation à « Au revoir »), par
+exemple deux joueurs face à face au-dessus de leur partie ([points d'approche](create.geometry.md#approach)). Le validateur veut chaque acteur placé dans le layout, et signale une
 `person` sans sujet de conversation.
 
 <a name="hotspots"></a>
