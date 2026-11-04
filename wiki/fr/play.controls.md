@@ -34,7 +34,8 @@ d’exemple. Ensuite :
 - **Utiliser et Donner prennent deux choses** : le verbe, la première chose (un objet du sac), puis la seconde
   (« Utiliser tuyau avec cuve », « Donner jeton au vendeur »).
 - **Touchez une chose sans verbe choisi** : le héros y marche. Sur un téléphone, son nom s’affiche un instant
-  au-dessus.
+  au-dessus, décalé vers l’intérieur quand la chose est près du bord de la scène, pour qu’il s’affiche toujours en
+  entier (4.6.1).
 - **Touchez un endroit vide** : le héros y va, dans les limites du sol.
 - **Touchez un objet du sac sans verbe** : il est pris pour Utiliser (ou Donner, sur un personnage) ; le tap suivant
   sur une cible dit ce qui se passe.
