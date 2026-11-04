@@ -145,6 +145,9 @@ export const TESTS: Record<MutationSet, string[]> = {
     'tests/critical-*.test.ts',
     'tests/engine-honesty.test.ts',
     'tests/scheduler.test.ts',
+    // The routes' side of save.ts and session-runtime.ts (4.6.0, #403): only a game with routes reaches it.
+    'tests/route-runtime.test.ts',
+    'tests/routes-game.test.ts',
   ],
   reality: ['tests/reality-*.test.ts', 'tests/bridge*.test.ts'],
   // Short unit tests only: the load tools and the Postgres races are integration tests, never under each mutant.
