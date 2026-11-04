@@ -1,8 +1,8 @@
 // The coverage floors (4.6.0, #405): data in tests/coverage-floors.json, read by vite.config.ts and the ratchet, so a
 // floor raised moves no configuration a mutation set is keyed on.
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
-import { coverageFloors, FLOORS } from '../tools/coverage-floors';
+import { coverageFloors, coverageThresholds, FLOORS } from '../tools/coverage-floors';
 
 describe('the coverage floors', () => {
   it("are the global floors and each group's files, flattened as Vitest's thresholds, without the reasons", () => {
@@ -25,6 +25,13 @@ describe('the coverage floors', () => {
       seen.push(...Object.keys(g.files));
     }
     expect(new Set(seen).size).toBe(seen.length);
+  });
+  it('apply to the whole suite only: none for one shard, none where the file is not shipped (a created project)', () => {
+    expect(existsSync(FLOORS)).toBe(true);
+    expect(coverageThresholds({})).toEqual(coverageFloors());
+    expect(coverageThresholds({ VITEST_SHARD: '2/4' })).toBeUndefined();
+    // The npm package ships tools/ but not tests/: a created project's `quest-n-click build` loads vite.config.ts.
+    expect(coverageThresholds({}, 'tests/no-such-floors.json')).toBeUndefined();
   });
   it('are what vite.config.ts holds the coverage run to', async () => {
     const shard = process.env.VITEST_SHARD;

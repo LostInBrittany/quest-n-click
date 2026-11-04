@@ -166,7 +166,8 @@ describe('the input files of this repository', () => {
     expect(files).not.toContain('tests/coverage-floors.json');
     expect(files).not.toContain('tools/coverage-floors.ts');
     expect(files).toContain('vite.config.ts');
-  });
+    // Every set's import closure: over 5 s on a loaded CI runner (unit 4 on #407).
+  }, 30_000);
 
   it('classify every module the two configurations import: followed for the tests, or skipped with a reason', () => {
     // A new import in vite.config.ts fails here until it is placed in one list or the other: a plugin that transforms

@@ -9,7 +9,7 @@ import { studioPlugin } from './tools/studio/plugin.ts';
 import { assetsVersion, BASE, sealBuild, sitePlugin, studioDemo } from './tools/vite/plugins.ts';
 import { engineVersion, trustedExtensionsHash } from './tools/extensions.ts';
 import { DurationSequencer } from './tools/unit-shards.ts';
-import { coverageFloors } from './tools/coverage-floors.ts';
+import { coverageThresholds } from './tools/coverage-floors.ts';
 
 // The engine's own files by their real path (4.1.18): Windows' 8.3 short names would leave the page and its root apart.
 const r = (p: string) => {
@@ -257,7 +257,8 @@ export default defineConfig({
       // A shard (`VITEST_SHARD`, ci.yml's `unit` matrix, 4.5.4) measures a part of the suite: the floors apply to the
       // parts merged (`npm run test:merge`), never to one. The floors are tests/coverage-floors.json since 4.6.0
       // (#405): data read here, not an import, so raising one leaves every mutation set's cache key as it was.
-      thresholds: process.env.VITEST_SHARD ? undefined : coverageFloors(),
+      // Absent where the file is not shipped: a created project's build loads this file (tools/coverage-floors.ts).
+      thresholds: coverageThresholds(),
     },
   },
 });
