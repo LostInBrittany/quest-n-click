@@ -988,9 +988,13 @@ jobs:
         run: npm run fresh-install
 
   # The four archives installed outside the repository on three systems (4.1.18, plan §7): packed here (the candidate
-  # installs its own), a 4.1.17 game moved to them, the Bridge and a connector scenario from their archives.
+  # installs its own), a 4.1.17 game moved to them, the Bridge and a connector scenario from their archives. Skipped at
+  # the job level when the plan spares it (4 Nov 2026), unlike the other spared jobs: no macOS or Windows runner is
+  # asked for only to say "not needed" (that afternoon no macOS runner came, and every pull request waited on one).
+  # The ruleset requires `pr-gate` alone since 4.5.4, and `pr-gate` accepts this skip exactly when the plan spares it.
   external-consumer:
     needs: [plan, check]
+    if: fromJSON(needs.plan.outputs.plan).freshInstall
     strategy:
       fail-fast: false
       matrix:
@@ -1000,32 +1004,22 @@ jobs:
     defaults:
       run:
         shell: bash
-    env:
-      RUN: ${{ fromJSON(needs.plan.outputs.plan).freshInstall }}
     steps:
-      - if: env.RUN != 'true'
-        run: echo "::notice::external-consumer not needed by the plan (no package, template or authoring path changed)"
-      - if: env.RUN == 'true'
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - if: env.RUN == 'true'
-        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 22
           cache: npm
-      - if: env.RUN == 'true'
-        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7
         with:
           python-version: '3.12'
       # The install loops here have no `timeout <n>m` an attempt, unlike the Linux jobs' (4.5.5, #340): macOS has no
       # `timeout`, and on Windows System32's timeout.exe may come first in the PATH. The step's limit still holds.
-      - if: env.RUN == 'true'
-        run: for i in 1 2 3; do (pip install --require-hashes -r requirements.txt) && break; [ "$i" = 3 ] && exit 1; echo "retry $i"; sleep 15; done
+      - run: for i in 1 2 3; do (pip install --require-hashes -r requirements.txt) && break; [ "$i" = 3 ] && exit 1; echo "retry $i"; sleep 15; done
         timeout-minutes: 15
-      - if: env.RUN == 'true'
-        run: for i in 1 2 3; do (npm ci) && break; [ "$i" = 3 ] && exit 1; echo "retry $i"; sleep 15; done
+      - run: for i in 1 2 3; do (npm ci) && break; [ "$i" = 3 ] && exit 1; echo "retry $i"; sleep 15; done
         timeout-minutes: 20
-      - if: env.RUN == 'true'
-        run: npm run external-consumer
+      - run: npm run external-consumer
 
   # A game made on the previous release moved to this engine (4.0): created with that release's tarball, a save made by
   # it, then this engine installed, migrate --check, verify, build, and the old save played to the end. Its own build.
@@ -1338,6 +1332,7 @@ jobs:
         env:
           NEEDS: ${{ toJSON(needs) }}
           MUTATION: ${{ github.event_name == 'pull_request' && contains(github.event.pull_request.labels.*.name, 'full-ci') }}
+          EXTERNAL: ${{ fromJSON(needs.plan.outputs.plan).freshInstall }}
         run: |
           bad=0
           for row in $(echo "$NEEDS" | jq -r 'to_entries[] | "\(.key)=\(.value.result)"'); do
@@ -1346,6 +1341,9 @@ jobs:
               if [ "$result" = skipped ] && [ "$MUTATION" != true ]; then
                 echo "✔ $job: skipped (here on a full-ci pull request only; the nightly and the candidate run every set)"; continue
               fi ;;
+            # Skipped at the job level when the plan spares it (4 Nov 2026): no runner asked for, nothing to prove.
+            external-consumer) if [ "$result" = skipped ] && [ "$EXTERNAL" != true ]; then
+              echo "✔ $job: skipped (not needed by the plan: no package, template or authoring path changed)"; continue; fi ;;
             # Flaky (#257): said, not blocking, until fixed (4.5.4, #302).
             pwa-firefox) if [ "$result" != success ]; then echo "::warning::pwa-firefox: $result (flaky, #257: not blocking)"; continue; fi ;;
             esac

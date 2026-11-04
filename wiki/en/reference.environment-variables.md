@@ -1165,6 +1165,15 @@ candidate: the event that started the run; only a push to main can be a release'
 - Origin: set by a workflow of `.github/workflows/` (CI and releases).
 - Read by: [`.github/workflows/candidate.yml`](../../.github/workflows/candidate.yml), [`.github/workflows/nightly.yml`](../../.github/workflows/nightly.yml), [`.github/workflows/prove.yml`](../../.github/workflows/prove.yml).
 
+<a name="external"></a>
+
+### `EXTERNAL`
+
+ci: `true` when the plan asks for `external-consumer`; `pr-gate` accepts that job's skip only when it is not `true`.
+
+- Origin: set by a workflow of `.github/workflows/` (CI and releases).
+- Read by: [`.github/workflows/ci.yml`](../../.github/workflows/ci.yml).
+
 <a name="extra-assets"></a>
 
 ### `EXTRA_ASSETS`

@@ -1165,6 +1165,15 @@ candidate : l’événement qui a lancé l’exécution ; seul un push sur main 
 - Origine : posée par un workflow de `.github/workflows/` (CI et publications).
 - Lue par : [`.github/workflows/candidate.yml`](../../.github/workflows/candidate.yml), [`.github/workflows/nightly.yml`](../../.github/workflows/nightly.yml), [`.github/workflows/prove.yml`](../../.github/workflows/prove.yml).
 
+<a name="external"></a>
+
+### `EXTERNAL`
+
+ci : `true` quand le plan demande `external-consumer` ; `pr-gate` n'accepte que ce job soit sauté que s'il ne vaut pas `true`.
+
+- Origine : posée par un workflow de `.github/workflows/` (CI et publications).
+- Lue par : [`.github/workflows/ci.yml`](../../.github/workflows/ci.yml).
+
 <a name="extra-assets"></a>
 
 ### `EXTRA_ASSETS`

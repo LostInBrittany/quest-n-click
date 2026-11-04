@@ -1,0 +1,14 @@
+{
+  "format": "quest-n-click-docs-acks",
+  "version": 1,
+  "pairs": {
+    "reference.environment-variables#external": {
+      "enHash": "e9a186aba4593f9fa1e68b611b213b29ef11fa7676925dc6ab0ab30afbc29926",
+      "frHash": "646ad210ad5b514c5afe52cc8801c3dcc066659ac23bdf7eff376459a12eca87",
+      "reviewers": [
+        { "name": "claude-opus-5-5", "kind": "ai", "relation": "author", "date": "2026-11-04" }
+      ]
+    }
+  },
+  "claims": {}
+}
