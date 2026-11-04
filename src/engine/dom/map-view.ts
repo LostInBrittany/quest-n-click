@@ -2,17 +2,37 @@
 // Part of the player (4.1.0 "Clarity"): App's methods of the same name forward here.
 import { check } from '../core/cond';
 import { must } from '../core/must';
-import type { GameState, Id, PlaceDef } from '../core/types';
+import type { GameState, Id, MapDef, PlaceDef } from '../core/types';
 import { roving } from './a11y';
 import { el, esc, sleep } from './app-shared';
 import type { App } from './app';
 
 // ---------------------------------------------------------------- map
+/**
+ * The regions the map offers (4.6.1, #421): a region is open once a place in it, or in a region below it, is unlocked.
+ * The regions in `keep` (the one the map opens on, and `map.start`) are open too, so the player can always zoom back to
+ * where they stand. A child region that is not open has no zoom button and no frame on its parent's image.
+ */
+export function openRegions(map: MapDef, unlocked: readonly Id[], keep: readonly (Id | undefined)[] = []): Set<Id> {
+  const open = new Set<Id>();
+  const mark = (from: Id | undefined) => {
+    // Up the parents: a region holding an open one is open. Stopping at a region already open also ends a loop of parents.
+    for (let r = from; r !== undefined && !open.has(r); r = map.regions[r]?.parent) {
+      if (!map.regions[r]) return;
+      open.add(r);
+    }
+  };
+  for (const [id, p] of Object.entries(map.places)) if (unlocked.includes(id)) mark(p.region);
+  for (const r of keep) mark(r);
+  return open;
+}
+
 export async function openMap(app: App, state: GameState): Promise<Id | null> {
   const map = app.game.map;
   if (!map) return null;
   const here = Object.entries(map.places).find(([, p]) => p.room === state.room)?.[0];
   let region = here ? must(map.places[here], `place ${here}`).region : map.start;
+  const open = openRegions(map, state.unlocked, [region, map.start]);
   if (map.music) app.audio.push(map.music);
   const ov = el('div', 'overlay mapview');
   ov.style.background = '#000';
@@ -181,24 +201,57 @@ export async function openMap(app: App, state: GameState): Promise<Id | null> {
         li.onclick = () => void go(id);
         list.append(li);
       }
-      // zoom button to the parent or child region
-      const child = Object.entries(map.regions).find(([, r]) => r.parent === region);
-      const other = R.parent ?? child?.[0];
-      if (other) {
-        const sw = el('button', 'bigbtn', esc(R.parent ? app.game.ui.world + ' ⤢' : app.game.ui.zoomIn + ' ⤡'));
-        Object.assign(sw.style, {
+      // The open child regions (4.6.1, #421): their frames on this image, and the zoom button to the first one. A child
+      // region with no open place shows neither.
+      const children = Object.entries(map.regions).filter(([id, r]) => r.parent === region && open.has(id));
+      for (const [id, r] of children) {
+        if (!r.frame) continue;
+        const [x, y, w, h] = r.frame;
+        const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+        rect.setAttribute('class', 'region-frame');
+        rect.dataset.region = id;
+        for (const [k, v] of [
+          ['x', x],
+          ['y', y],
+          ['width', w],
+          ['height', h],
+        ] as const)
+          rect.setAttribute(k, `${v}`);
+        Object.assign(rect.style, {
+          fill: 'none',
+          stroke: '#ffd84d',
+          strokeWidth: '2',
+          vectorEffect: 'non-scaling-stroke',
+        });
+        svg.append(rect);
+      }
+      // The zoom buttons, bottom right: up to the parent region, and down to the first open child. A region in the
+      // middle (a child that has an open child itself, 4.6.1, #421) has both, the way down above the way up.
+      const zooms: [Id, string][] = [];
+      if (children[0]) zooms.push([children[0][0], app.game.ui.zoomIn + ' ⤡']);
+      if (R.parent) zooms.push([R.parent, app.game.ui.world + ' ⤢']);
+      if (zooms.length) {
+        const box = el('div', 'mapzoom');
+        Object.assign(box.style, {
           position: 'absolute',
           right: '2%',
           bottom: '3%',
-          color: '#ffd84d',
-          fontSize: `${Math.max(8, Math.round(app.sw * 0.016))}px`,
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'flex-end',
+          gap: '6px',
           zIndex: '20',
         });
-        sw.onclick = () => {
-          region = other;
-          draw();
-        };
-        ov.append(sw);
+        for (const [to, label] of zooms) {
+          const sw = el('button', 'bigbtn', esc(label));
+          Object.assign(sw.style, { color: '#ffd84d', fontSize: `${Math.max(8, Math.round(app.sw * 0.016))}px` });
+          sw.onclick = () => {
+            region = to;
+            draw();
+          };
+          box.append(sw);
+        }
+        ov.append(box);
       }
       const back = el('button', 'choice gl', '• ' + esc(app.game.ui.mapBack));
       back.onclick = () => {

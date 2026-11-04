@@ -21,7 +21,7 @@ map: {
 | Champ | Contenu |
 |---|---|
 | `start` | La région montrée à l'ouverture de la carte. |
-| `regions.<id>` | `name`, `image` (l'image de la carte), `parent` (la région d'où elle s'ouvre : la France depuis le Monde), `frame: [x, y, w, h]` (sa zone sur l'image du parent, en %, pour le bouton de zoom). |
+| `regions.<id>` | `name`, `image` (l'image de la carte), `parent` (la région d'où elle s'ouvre : la France depuis le Monde), `frame: [x, y, w, h]` (sa zone sur l'image du parent, en % : tracée en contour une fois la région ouverte). |
 | `places.<id>` | `name`, `room` (la salle qu'il ouvre), `region`, `pos: [x, y]` (en % de l'image de la région), `portrait`, `vehicle`, `news`, `joins`. |
 | `music` | La musique de la carte. |
 | `vehicles` | `{ car, plane, pin, news }` : des images qui remplacent, sur la carte, les icônes de l'habillage. |
@@ -64,6 +64,31 @@ places: {
 
 Le validateur veut que le lieu de l'épingle existe, dans la même région, et qu'il n'en rejoigne pas lui-même un autre
 (et refuse un lieu qui se rejoint lui-même). Une épingle qui n'a qu'un lieu s'affiche comme avant.
+
+<a name="regions"></a>
+<!-- applies: 4.6.1.. since 4.6.1 -->
+
+## Des régions dans des régions
+
+Une région qui a un `parent` s'ouvre depuis lui : la carte du parent a un bouton de zoom vers elle (`ui.zoomIn`) et,
+quand la région a un `frame`, sa zone tracée en contour sur l'image du parent. Les deux n'apparaissent qu'une fois la
+région ouverte : un lieu en elle, ou dans une région en dessous, est débloqué. Jusque-là le joueur n'en voit rien : elle
+ne gâche rien et ne mène jamais à une carte vide. Une région peut être dans une région elle-même dans une région : celle
+du milieu a le chemin vers le bas au-dessus du retour vers le haut (`ui.world`), toujours là.
+
+La région sur laquelle la carte s'ouvre (celle du lieu de la salle courante, sinon `start`) est toujours ouverte : le
+joueur peut toujours revenir là où il se trouve. Quand plusieurs régions enfants sont ouvertes, chacune a son cadre et
+le bouton mène à la première.
+
+```ts
+regions: {
+  land: { name: 'Terre', image: 'decor/map' },
+  // Cachée de la carte de la terre tant que le port (ou un lieu d'une région dans la côte) n'est pas débloqué.
+  coast: { name: 'Côte', image: 'decor/map_coast', parent: 'land', frame: [20, 10, 50, 30] },
+},
+```
+
+Ne peignez pas de cadre dans l'image du parent : la carte le trace quand la région s'ouvre.
 
 <a name="design"></a>
 
