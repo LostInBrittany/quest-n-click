@@ -32,17 +32,31 @@ export async function run(h) {
   await h.waitIdle();
   await h.screenshot('street');
 
-  // Into the office while Lou is still there.
+  // Lou at his desk, his paperwork just begun (2.5 s of its 3 s left, polled every 50 ms): he stands still there, then
+  // walks out in 2.6 s. Pixel comes in near the end of his first paperwork, so each check below waits for the start of
+  // one: on a slow runner a tap aimed at a walking Lou lands where he was, or after he left (CI's WebKit).
+  const atDesk = () =>
+    until(
+      () => {
+        const e = window.__game.engine;
+        const st = e.state.scripts.rounds;
+        return e.state.where.neighbor === 'hall' && st?.step === 'paperwork' && (st.route?.wait ?? 0) >= 2500;
+      },
+      undefined,
+      90000,
+    );
+
+  // Into the office: taking his map in front of him is refused.
   await h.play([{ verb: 'open', a: 'hall_door' }]);
   await until(() => window.__game.engine.state.room === 'hall');
   await h.waitIdle();
-  const first = await lou();
-  if (first.room !== 'hall') fail(`Lou left his office before Pixel came in (${JSON.stringify(first)})`);
+  await atDesk();
   await h.play([{ verb: 'take', a: 'map' }]);
   if (await E(() => window.__game.engine.state.inventory.includes('cable'))) fail('the cable was taken under Lou’s nose');
   await h.screenshot('office-lou');
 
   // Talking holds him: from the click to the end of the conversation, he does not move; Grandma goes on.
+  await atDesk();
   await h.verbById('talk');
   await h.target('neighbor');
   const held = await lou();
