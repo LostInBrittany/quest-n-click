@@ -280,7 +280,7 @@ export function candidateStep(
   if (attempt > 1)
     return {
       do: 'stop',
-      error: `candidate run ${o.id} ${view.conclusion === 'failure' ? 'failed' : view.conclusion} again (attempt ${attempt}): ${failed.join(', ') || 'no job failed'} (${url}). It was re-run once already: fix what failed, then re-run it by hand (${rerunCommand(o.id, view.jobs)}) and run ${releaseCommand(o.version, o.commit)} again`,
+      error: `candidate run ${o.id} ${view.conclusion === 'failure' ? 'failed' : view.conclusion} again (attempt ${attempt}): ${failed.join(', ') || 'no job failed'} (${url}). It was re-run once already. A passing failure: re-run it by hand (${rerunCommand(o.id, view.jobs)}) and run ${releaseCommand(o.version, o.commit)} again. A fix merged on main: release that commit, its own candidate started (git log --first-parent --oneline <remote>/main names it): npm run release -- ${o.version} --commit=<the fix's merge sha> --start-candidate`,
     };
   if (o.rerunAsked) return { do: 'wait' };
   const args = ['run', 'rerun', String(o.id), '--repo', REPO];

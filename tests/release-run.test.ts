@@ -504,3 +504,26 @@ describe('the re-run a stop says (#410)', () => {
     expect(stop.do === 'stop' && stop.error).toContain(`gh run rerun 9 --repo ${REPO_})`);
   });
 });
+
+describe('the way on from a red candidate (#410)', () => {
+  const job = (name: string, status: string, conclusion = '') => ({ name, status, conclusion });
+  const red = {
+    status: 'completed',
+    conclusion: 'failure',
+    attempt: 2,
+    jobs: [job('release-core', 'completed', 'failure')],
+  };
+  const at = { id: 41799735988, version: '4.6.0', rerunAsked: false, waitedMs: 0 };
+  it('names --commit and --start-candidate for a fix merged on main after the release merge (4.6.0, #411)', () => {
+    const stop = candidateStep(red, at);
+    expect(stop.do).toBe('stop');
+    if (stop.do !== 'stop') return;
+    expect(stop.error).toContain('npm run release -- 4.6.0 --commit=<the fix');
+    expect(stop.error).toMatch(/--commit=<[^>]+> --start-candidate/);
+    expect(stop.error).toContain('git log --first-parent');
+  });
+  it('keeps saying it on a run already given --commit', () => {
+    const stop = candidateStep(red, { ...at, commit: 'b'.repeat(40) });
+    expect(stop.do === 'stop' && stop.error).toMatch(/--commit=<[^>]+> --start-candidate/);
+  });
+});
