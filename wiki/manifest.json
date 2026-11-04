@@ -11289,6 +11289,7 @@
         "E2E_OUT",
         "E2E_WEIGHT_DEBUG",
         "EVENT",
+        "EXTERNAL",
         "EXTRA_ASSETS",
         "FILE",
         "FURNACE_BIN",

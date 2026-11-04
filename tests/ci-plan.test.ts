@@ -364,6 +364,20 @@ describe('the workflow, lot 0 details', () => {
     expect(yml).toContain(`    if: ${cond}`);
     expect(yml).toContain(`MUTATION: \${{ ${cond} }}`);
   });
+  it('external-consumer asks for no runner when the plan spares it, and pr-gate accepts its skip exactly then', () => {
+    const body = yml.slice(yml.indexOf('\n  external-consumer:\n'), yml.indexOf('\n  upgrade:\n'));
+    // Skipped at the job level: no macOS or Windows runner is requested only to say "not needed" (4 Nov 2026, the
+    // macOS runners unavailable for an afternoon held every pull request).
+    expect(body).toMatch(/^ {4}if: fromJSON\(needs\.plan\.outputs\.plan\)\.freshInstall$/m);
+    expect(body).not.toContain('env.RUN');
+    expect(body).not.toContain('not needed by the plan');
+    const gate = yml.slice(yml.indexOf('\n  pr-gate:\n'));
+    expect(gate).toContain('EXTERNAL: ${{ fromJSON(needs.plan.outputs.plan).freshInstall }}');
+    const skip = gate.indexOf('external-consumer) if [ "$result" = skipped ] && [ "$EXTERNAL" != true ]; then');
+    expect(skip).toBeGreaterThan(0);
+    expect(gate.slice(skip, skip + 220)).toContain('continue; fi ;;');
+    expect(gate.indexOf('else echo "::error::$job: $result"; bad=1; fi')).toBeGreaterThan(skip);
+  });
   it('pr-gate warns on pwa-firefox (#257) and fails on any other job', () => {
     const gate = yml.slice(yml.indexOf('\n  pr-gate:\n'));
     const warn = gate.indexOf('pwa-firefox) if [ "$result" != success ]; then echo "::warning::pwa-firefox: $result');
