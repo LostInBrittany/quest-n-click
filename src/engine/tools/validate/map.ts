@@ -35,8 +35,8 @@ export function mapChecks(
     }
     cond(p.news, w);
   }
-  if (m.pins !== undefined && m.pins !== 'faces' && m.pins !== 'hidden')
-    err('map', `unknown pins: "${String(m.pins)}" (faces or hidden)`);
+  if (m.pins !== undefined && !['faces', 'hidden', 'dots'].includes(m.pins))
+    err('map', `unknown pins: "${String(m.pins)}" (faces, hidden or dots)`);
   for (const v of Object.values(m.vehicles ?? {})) img(v, 'map.vehicles');
   if (m.music && !music[m.music]) err('map', `unknown music: "${m.music}"`);
 }

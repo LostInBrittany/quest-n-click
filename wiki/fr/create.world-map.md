@@ -24,8 +24,8 @@ map: {
 | `regions.<id>` | `name`, `image` (l'image de la carte), `parent` (la région d'où elle s'ouvre : la France depuis le Monde), `frame: [x, y, w, h]` (sa zone sur l'image du parent, en % : tracée en contour une fois la région ouverte). |
 | `places.<id>` | `name`, `room` (la salle qu'il ouvre), `region`, `pos: [x, y]` (en % de l'image de la région), `portrait`, `vehicle`, `news`, `joins`. |
 | `music` | La musique de la carte. |
-| `vehicles` | `{ car, plane, pin, news }` : des images qui remplacent, sur la carte, les icônes de l'habillage. |
-| `pins` | `'faces'` (par défaut) ou `'hidden'` : comment les lieux sont marqués sur la carte ([plus bas](#bare-pins)). |
+| `vehicles` | `{ car, plane, pin, news, dot }` : des images qui remplacent, sur la carte, les icônes de l'habillage (`dot` : le jeton de `pins: 'dots'`). |
+| `pins` | `'faces'` (par défaut), `'hidden'` ou `'dots'` : comment les lieux sont marqués sur la carte ([plus bas](#bare-pins)). |
 
 Le validateur veut que la région de départ, la salle et la région de chaque lieu, et le parent de chaque région
 existent.
@@ -106,7 +106,7 @@ Ne peignez pas de cadre dans l'image du parent : la carte le trace quand la rég
 <a name="bare-pins"></a>
 <!-- applies: 4.6.1.. since 4.6.1 -->
 
-## Une carte sans épingles
+## Une carte sans épingles, ou avec des jetons
 
 Quand l'image de la carte dessine déjà ses lieux (un village, une chapelle, un phare, chacun là où est le lieu),
 `pins: 'hidden'` retire les épingles : ni visage, ni disque, ni aiguille. Chaque lieu reste un bouton, nommé d'après lui
@@ -114,13 +114,26 @@ pour les lecteurs d'écran, de la taille d'un visage et centré sur sa `pos`, ma
 repère lui-même. Son « ! » (`news`) s'affiche toujours là, et le focus clavier l'entoure. Les lieux qui rejoignent une
 même épingle ont chacun un tel bouton, côte à côte à cet endroit. La liste « Où aller ? » à côté de la carte est la
 même, et le `portrait` n'est pas dessiné (on peut l'omettre). Placez chaque `pos` au milieu de son repère, pas
-dessous comme pour une aiguille. Par défaut, `pins: 'faces'` dessine les épingles comme avant.
+dessous comme pour une aiguille : le trajet du voyage va d'un repère à l'autre. Par défaut, `pins: 'faces'` dessine
+les épingles comme avant.
+
+`pins: 'dots'` est la voie du milieu : les mêmes boutons, chacun avec un petit jeton en son milieu (environ un tiers
+d'un visage, un disque couleur de pierre au contour sombre avec une ombre douce, ou l'image `vehicles.dot`, gardée
+nette), pour que le joueur voie où toucher sans que le dessin soit caché. Un jeton s'illumine d'une lueur chaude au
+survol et au focus clavier (sans grossir avec `prefers-reduced-motion`). La zone de tap garde la taille d'un visage.
+Sur le lieu actuel, à la place de son jeton, le héros que le joueur joue à ce moment se tient immobile : sa première
+image `idle`, telle que la salle le dessine (la variante et la palette qui s'appliquent), 12 % de la hauteur de la
+carte comme le marcheur de `vehicle: 'walk'`, les pieds sur le repère, avec une petite ombre ; le « ! » de ce lieu
+passe à côté de sa tête. Quand le joueur voyage, le héros quitte le repère (le marcheur, ou le véhicule, prend le
+relais) et se tient sur le nouveau lieu à l'arrivée, tourné du côté d'où il vient. Un héros sans image `idle` laisse au
+lieu son jeton. Le héros debout n'est dessiné qu'avec `dots` : avec `faces`, le lieu actuel est le visage cerclé, et
+`hidden` ne dessine rien, par choix.
 
 ```ts
-map: { start: 'leon', pins: 'hidden', regions: { leon: { name: 'Le Léon', image: 'decor/map_leon' } }, places: { … } },
+map: { start: 'leon', pins: 'dots', regions: { leon: { name: 'Le Léon', image: 'decor/map_leon' } }, places: { … } },
 ```
 
-Le validateur refuse toute autre valeur.
+Le validateur refuse toute autre valeur que `faces`, `hidden` et `dots`.
 
 <a name="design"></a>
 

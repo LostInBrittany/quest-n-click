@@ -23,8 +23,8 @@ map: {
 | `regions.<id>` | `name`, `image` (the map picture), `parent` (the region it opens from: France from World), `frame: [x, y, w, h]` (its area on the parent's image, in %: drawn as an outline once the region is open). |
 | `places.<id>` | `name`, `room` (the room it opens), `region`, `pos: [x, y]` (in % of the region's image), `portrait`, `vehicle`, `news`, `joins`. |
 | `music` | The map's music. |
-| `vehicles` | `{ car, plane, pin, news }`: images that replace the skin's icons on the map. |
-| `pins` | `'faces'` (the default) or `'hidden'`: how the places are marked on the map ([below](#bare-pins)). |
+| `vehicles` | `{ car, plane, pin, news, dot }`: images that replace the skin's icons on the map (`dot`: the token of `pins: 'dots'`). |
+| `pins` | `'faces'` (the default), `'hidden'` or `'dots'`: how the places are marked on the map ([below](#bare-pins)). |
 
 The validator wants the start region, each place's room and region, and each region's parent to exist.
 
@@ -99,21 +99,32 @@ Paint no frame into the parent's image: the map draws it when the region opens.
 <a name="bare-pins"></a>
 <!-- applies: 4.6.1.. since 4.6.1 -->
 
-## A map without pins
+## A map without pins, or with dots
 
 When the map's picture already draws its places (a village, a chapel, a lighthouse, each where the place is),
 `pins: 'hidden'` takes the pins away: no face, no disc, no needle. Each place is still a button, named after it for
 screen readers, the size of a face and centred on its `pos`, but transparent: the player taps the landmark itself. Its
 "!" (`news`) still shows there, and the keyboard focus rings it. Places that join one pin get one such button each,
 side by side on the spot. The "Where to?" list beside the map is the same, and `portrait` is not drawn (it can be left
-out). Put each `pos` on the middle of its landmark, not under it as for a needle. The default, `pins: 'faces'`, draws
-the pins as before.
+out). Put each `pos` on the middle of its landmark, not under it as for a needle: the journey's route runs from spot
+to spot. The default, `pins: 'faces'`, draws the pins as before.
+
+`pins: 'dots'` is the middle way: the same buttons, each with a small token in its middle (about a third of a face, a
+stone-coloured disc with a dark outline and a soft shadow, or the image `vehicles.dot`, kept crisp), so the player sees
+where to tap without the drawing being hidden. A token glows warm on hover and on keyboard focus (no growing with
+`prefers-reduced-motion`). The tap zone keeps a face's size. On the current place, instead of its token, the hero the
+player plays now stands still: their first `idle` frame, as the room paints them (the variant and palette that apply),
+12% of the map's height like the walker of `vehicle: 'walk'`, feet on the spot, with a small shadow; that place's "!"
+moves beside their head. When the player travels, the hero leaves the spot (the walker, or the vehicle, takes over) and
+stands on the new place on arrival, facing the way they came. A hero with no `idle` frame leaves the place its token.
+The standing hero is only drawn with `dots`: on `faces` the current place is the ringed face, and `hidden` draws
+nothing by design.
 
 ```ts
-map: { start: 'leon', pins: 'hidden', regions: { leon: { name: 'The Léon', image: 'decor/map_leon' } }, places: { … } },
+map: { start: 'leon', pins: 'dots', regions: { leon: { name: 'The Léon', image: 'decor/map_leon' } }, places: { … } },
 ```
 
-The validator refuses another value.
+The validator refuses another value than `faces`, `hidden` and `dots`.
 
 <a name="design"></a>
 

@@ -137,7 +137,19 @@ body { -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
 .mapview .pin.bare { transform: translate(-50%, -50%); }
 .mapview .pin.bare .face, .mapview .pin.bare .facebtn.here .face { border: 0; background: none; border-radius: 50%; }
 .mapview .pin.bare:focus-visible, .mapview .pin.bare .facebtn:focus-visible { outline: none; }
-.mapview .pin.bare:focus-visible .face, .mapview .pin.bare .facebtn:focus-visible .face { outline: 3px solid #ffd84d; outline-offset: -3px; }
+.mapview .pin.bare:not(.dots):focus-visible .face, .mapview .pin.bare:not(.dots) .facebtn:focus-visible .face { outline: 3px solid #ffd84d; outline-offset: -3px; }
+/* Dots (`map.pins: 'dots'`, 4.6.1, #428): a small stone token in the middle of the tap zone, a warm glow on hover and
+   focus; the hero standing on the current place, feet on its spot, with the same small shadow. */
+.mapview .pin.dots .face { display: flex; align-items: center; justify-content: center; }
+.mapview .pin .dot { display: block; flex: none; width: 40%; aspect-ratio: 1; box-sizing: border-box; border-radius: 50%; border: 2px solid #2b1d12; background: radial-gradient(circle at 38% 32%, #fff8e2 0 18%, #ead9b0 45%, #bfa676 100%); box-shadow: 0 2px 2px rgba(0, 0, 0, .55); transition: box-shadow .15s, transform .15s; }
+.mapview .pin img.dot { border: 0; border-radius: 0; background: none; box-shadow: none; object-fit: contain; image-rendering: pixelated; filter: drop-shadow(0 2px 1px rgba(0, 0, 0, .55)); transition: filter .15s, transform .15s; }
+.mapview .pin.dots:hover .dot, .mapview .pin.dots:focus-visible .dot, .mapview .pin.dots .facebtn:hover .dot, .mapview .pin.dots .facebtn:focus-visible .dot { transform: scale(1.2); box-shadow: 0 0 0 2px #ffd84d, 0 0 10px 6px rgba(255, 184, 77, .95), 0 0 22px 10px rgba(255, 150, 40, .45); }
+.mapview .pin.dots:hover img.dot, .mapview .pin.dots:focus-visible img.dot, .mapview .pin.dots .facebtn:hover img.dot, .mapview .pin.dots .facebtn:focus-visible img.dot { box-shadow: none; filter: drop-shadow(0 0 2px #ffd84d) drop-shadow(0 0 5px rgba(255, 184, 77, .9)) drop-shadow(0 2px 1px rgba(0, 0, 0, .55)); }
+.mapview .pin.dots .news { right: -5%; top: -45%; width: 50%; }
+.mapview .standing { position: absolute; transform: translate(-50%, -100%); z-index: 5; pointer-events: none; }
+.mapview .standing img { display: block; height: 100%; width: auto; position: relative; }
+.mapview .standing .news { position: absolute; left: 80%; top: -12%; height: 42%; width: auto; animation: bob 1s ease-in-out infinite; }
+.mapview .standing .shadow { position: absolute; left: 50%; bottom: 0; width: 85%; height: 14%; transform: translate(-50%, 50%); border-radius: 50%; background: radial-gradient(ellipse at center, rgba(0, 0, 0, .65) 0 35%, rgba(0, 0, 0, 0) 72%); }
 .mapview .pin .news { position: absolute; right: -35%; top: -30%; width: 60%; animation: bob 1s ease-in-out infinite; }
 .credits { position: absolute; inset: 0; background: #0a0612; z-index: 1200; overflow: hidden; display: flex; justify-content: center; }
 .credits > div { z-index: 1; position: absolute; top: 100%; text-align: center; color: #efe7d6; line-height: 2; animation: roll 22s linear forwards; }
@@ -157,7 +169,7 @@ body { -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
 .choicescreen .lines .choice { font-family: var(--font-pixel); background: rgba(20, 12, 30, .85); border: 2px solid #6a5a8a; padding: .4em .8em; }
 .choicescreen.still .choice.hero, .choicescreen.still .choice.hero img { animation: none; transition: none; }
 @keyframes rise { 0% { transform: translateY(12%); opacity: 0; } 100% { transform: translateY(0); opacity: 1; } }
-@media (prefers-reduced-motion: reduce) { .speech.shout, .spark, .tapnext, .verb.blink, .slot.blink, .scene.shake, .hintbadge, .rotate .ph, .mapview .pin .news, .credits > div, .choice.hero { animation: none; } .choice.hero img { transition: none; } .credits > div { top: auto; bottom: 10%; } }
+@media (prefers-reduced-motion: reduce) { .speech.shout, .spark, .tapnext, .verb.blink, .slot.blink, .scene.shake, .hintbadge, .rotate .ph, .mapview .pin .news, .mapview .standing .news, .credits > div, .choice.hero { animation: none; } .mapview .pin .dot { transition: none; transform: none !important; } .choice.hero img { transition: none; } .credits > div { top: auto; bottom: 10%; } }
 
 /* ---------- Desktop layout (mouse, large screen): classic SCUMM ---------- */
 .game.desk { flex-direction: column; }

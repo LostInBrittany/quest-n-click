@@ -3,15 +3,15 @@
   "version": 1,
   "pairs": {
     "create.world-map#bare-pins": {
-      "enHash": "83ea1127d9df5dd404c950d45f6a73e3272ec615694689beb80f994e575428f8",
-      "frHash": "8c62c846fa24840b01bdc27201dd6563ac43e46dacb4a5c974c3f95fc867a6f8",
+      "enHash": "474c61a245fee7c80d7dc5afb12c3802ffb1cc6e187d7f39cd442d4f3bb89536",
+      "frHash": "ffea05e8645fd0dc47933b5830a2607cd5a09aa1261efaeb6623e93ac442aba0",
       "reviewers": [
         { "name": "claude", "kind": "ai", "relation": "author", "date": "2026-11-04" }
       ]
     },
     "create.world-map#map": {
-      "enHash": "51b9c3d77843417784e51ea2eb8b6687cf581239dac6a5ed71d51a1981d13d17",
-      "frHash": "0fc267b56763dab6bbb6dbd95ba6f8e02b1f18301e50571bba090f094101a876",
+      "enHash": "2640533bd9e569dae1ac0b30861a6b7e63fb943c0cbf262005c5a9200e0d7698",
+      "frHash": "7c337c106fae9d248de6a4b4ffe2558a31c0c38b8db9c9d524345b323d2aacf6",
       "reviewers": [
         { "name": "claude", "kind": "ai", "relation": "author", "date": "2026-11-04" }
       ]
