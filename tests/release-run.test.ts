@@ -18,6 +18,8 @@ import {
   releaseCommit,
   releaseRefusals,
   releaseRunVerdict,
+  rerunArgs,
+  rerunCommand,
   stagedFromJson,
   verifiedState,
   verifySkip,
@@ -464,5 +466,41 @@ describe('the dispatch from prepare.ts (#348)', () => {
     const src = readFileSync('tools/release/release-run.ts', 'utf8');
     expect(src).not.toMatch(/from '\.\/prepare'/);
     expect(readFileSync('tools/release/prepare.ts', 'utf8')).toContain("await import('./release-run')");
+  });
+});
+
+describe('the re-run a stop says (#410)', () => {
+  const job = (name: string, status: string, conclusion = '') => ({ name, status, conclusion });
+  const REPO_ = 'Quest-n-Click/quest-n-click';
+  it('re-runs the failed jobs when one failed, was cancelled or timed out', () => {
+    for (const c of ['failure', 'cancelled', 'timed_out'])
+      expect(rerunCommand(7, [job('release', 'completed', 'success'), job('npm-stage', 'completed', c)])).toBe(
+        `gh run rerun 7 --repo ${REPO_} --failed`,
+      );
+  });
+  it('re-runs every job when none ran: run 41819835975, its main job never created, its dependents skipped', () => {
+    const skipped = [
+      job('npm-stage', 'completed', 'skipped'),
+      job('docs-publish / publish', 'completed', 'skipped'),
+      job('site-revalidate', 'completed', 'skipped'),
+    ];
+    expect(rerunCommand(41819835975, skipped)).toBe(`gh run rerun 41819835975 --repo ${REPO_}`);
+    expect(rerunArgs(41819835975, [])).toEqual(['run', 'rerun', '41819835975', '--repo', REPO_]);
+  });
+  it('the release run and the candidate stops say it through rerunCommand, never a bare --failed', () => {
+    const src = readFileSync('tools/release/release-run.ts', 'utf8');
+    expect(src).not.toMatch(/gh run rerun \$\{[^}]+\} --repo \$\{REPO\} --failed/);
+    const follow = src.slice(src.indexOf('async function followRelease'), src.indexOf('async function verifyOnce'));
+    expect(follow).toMatch(/rerunCommand\(run\.databaseId, view\.jobs\)/);
+  });
+  it("a candidate's second failure says its re-run by the same rule", () => {
+    const view = {
+      status: 'completed',
+      conclusion: 'cancelled',
+      attempt: 2,
+      jobs: [job('heavy', 'completed', 'skipped')],
+    };
+    const stop = candidateStep(view, { id: 9, version: '4.6.1', rerunAsked: false, waitedMs: 0 });
+    expect(stop.do === 'stop' && stop.error).toContain(`gh run rerun 9 --repo ${REPO_})`);
   });
 });

@@ -216,6 +216,19 @@ export function docsGatesStop(o: {
   ].join('\n');
 }
 
+/**
+ * The re-run a stop says (#410): `--failed` when a job failed, was cancelled or timed out; every job when none did. Run
+ * 41819835975 (4.6.0, a GitHub incident) never created its `release` job and skipped its dependents: `--failed` would
+ * have re-run nothing.
+ */
+export function rerunArgs(id: number, jobs: readonly Job[]): string[] {
+  const failed = jobs.some(
+    (j) => j.status === 'completed' && ['failure', 'cancelled', 'timed_out'].includes(j.conclusion),
+  );
+  return ['run', 'rerun', String(id), '--repo', REPO, ...(failed ? ['--failed'] : [])];
+}
+export const rerunCommand = (id: number, jobs: readonly Job[]) => `gh ${rerunArgs(id, jobs).join(' ')}`;
+
 /** One line for a wait: jobs done out of all, those running, those waiting, those failed. */
 export function candidateProgress(jobs: readonly Job[]): string {
   const done = jobs.filter((j) => j.status === 'completed');
@@ -267,7 +280,7 @@ export function candidateStep(
   if (attempt > 1)
     return {
       do: 'stop',
-      error: `candidate run ${o.id} ${view.conclusion === 'failure' ? 'failed' : view.conclusion} again (attempt ${attempt}): ${failed.join(', ') || 'no job failed'} (${url}). It was re-run once already: fix what failed, then re-run it by hand (gh run rerun ${o.id} --repo ${REPO} --failed) and run ${releaseCommand(o.version, o.commit)} again`,
+      error: `candidate run ${o.id} ${view.conclusion === 'failure' ? 'failed' : view.conclusion} again (attempt ${attempt}): ${failed.join(', ') || 'no job failed'} (${url}). It was re-run once already: fix what failed, then re-run it by hand (${rerunCommand(o.id, view.jobs)}) and run ${releaseCommand(o.version, o.commit)} again`,
     };
   if (o.rerunAsked) return { do: 'wait' };
   const args = ['run', 'rerun', String(o.id), '--repo', REPO];
@@ -564,7 +577,7 @@ async function followRelease(sha: string, version: string, again: string): Promi
     if (v.state === 'ready') return v.warnings;
     if (v.state === 'failed')
       throw new Error(
-        `release run ${run.databaseId}: ${v.failed.join(', ')} (https://github.com/${REPO}/actions/runs/${run.databaseId}); re-run it (gh run rerun ${run.databaseId} --repo ${REPO} --failed), then ${again} again`,
+        `release run ${run.databaseId}: ${v.failed.join(', ')} (https://github.com/${REPO}/actions/runs/${run.databaseId}); re-run it (${rerunCommand(run.databaseId, view.jobs)}), then ${again} again`,
       );
     await sleep(MINUTE);
   }
