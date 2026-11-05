@@ -12,6 +12,7 @@ import { Audio } from './audio';
 import { FONT_PIXEL, FONT_UI, fontStack } from './fonts';
 import { RoomView } from './room';
 import { type AssetGraph } from '../core/asset-graph';
+import { langImages } from '../core/lang-images';
 import { type OfflineStatus } from './offline';
 import { uiFallbacks, uiText, type UiKey } from './ui-defaults';
 import './style.css';
@@ -309,6 +310,8 @@ export class App {
     this.root = o.root;
     this.bank = new AssetBank(o.manifest, o.base ?? `${import.meta.env?.BASE_URL ?? '/'}assets`, o.version ?? '');
     this.bank.signal = this.aborter.signal; // a warm-up ends with the player (4.1.7)
+    // The images of the language being played (`i18n.images`): drawn in their sources' place everywhere.
+    this.bank.swap = langImages(o.game, o.languages?.current) ?? {};
     // `?music=mix|stems` forces the single mix or the director's stems (tests, the Studio); else the device decides.
     const musicMode = typeof location !== 'undefined' ? new URLSearchParams(location.search).get('music') : null;
     this.audio = new Audio(

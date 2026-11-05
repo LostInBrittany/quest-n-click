@@ -12,6 +12,7 @@ import { speedrunChecks } from './validate/speedrun';
 import { textSwitchChecks } from './validate/text-switches';
 import { seenTracker } from './validate/seen';
 import { checkpointChecks } from './validate/checkpoints';
+import { langImageChecks } from './validate/lang-images';
 import { type VoiceCheckOptions, voiceValueChecks } from './validate/voices';
 import { listId, listText } from '../core/list-lines';
 import { condFlags } from '../core/cond';
@@ -660,6 +661,7 @@ export function validate(gameIn: GameDef, layouts: Record<string, Layout>, opts:
     for (const [k, v] of Object.entries(sk.icons))
       for (const id of Array.isArray(v) ? v : [v]) img(id, `skin.icons.${k}`);
   }
+  langImageChecks(game, { img, err, warn, locales: opts.locales });
   if (game.audio?.maxDecodedMB !== undefined && !(game.audio.maxDecodedMB > 0))
     err('audio.maxDecodedMB', `a number of MB above 0 (got ${String(game.audio.maxDecodedMB)})`);
   for (const [id, sc] of Object.entries(game.audio?.scores ?? {}))

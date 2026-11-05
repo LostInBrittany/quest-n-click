@@ -126,6 +126,30 @@ i18n: { same: ['char:hero/name', 'ui/ok'] },
 `status` also lists the `ui` keys the game leaves to the engine's English defaults: a player sees those in English in
 every language.
 
+<a name="i18n-images"></a>
+<!-- applies: 4.6.1.. since 4.6.1 -->
+
+## `i18n.images`: an image per language
+
+An image with words in it (a title logo lettered on a ribbon, a shop sign) has a variant per language. `i18n.images`
+in `game.ts` names, for an image id, the image each language draws in its place:
+
+```ts
+titleScreen: { decor: 'title/back', logo: 'logo/r1c1' },
+i18n: { images: { 'logo/r1c1': { fr: 'logo/fr', es: 'logo/es' } } },
+```
+
+The content keeps the source id everywhere. Wherever that id is drawn (the title screen, a room, a prop, an icon, the
+map), the language being played draws its variant; the game's own language, and a language without a variant, draw
+the source. Draw the variants at the same size and with the same margins as the source: the placement (`logoWidth`,
+a layout's boxes) stays the one of the source. Changing the language in Settings reloads the page, which draws the
+new language's images.
+
+`npm run assets` prepares every variant. The validator checks that every id exists in the manifest, and warns of a
+variant for the game's own language or for a language the game does not ship (never drawn). Wherever the source is
+needed, the offline cache keeps every variant too, so a player who switches language offline still has them.
+Presentation only: rules, saves and the solver never see it.
+
 <a name="coverage"></a>
 
 ## Where else the coverage shows

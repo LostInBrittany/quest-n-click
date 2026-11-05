@@ -109,6 +109,8 @@ export function collectRefs({
   add(game.titleScreen?.logo);
   add(game.creditsScreen?.decor);
   scanParams(game.ending?.scratch);
+  // Images drawn in another's place in a language (`i18n.images`, 4.6.1): each variant.
+  for (const by of Object.values(game.i18n?.images ?? {})) Object.values(by ?? {}).forEach(add);
   // Images the game asks to keep even if nothing cites them.
   (extraImages ?? []).forEach(add);
 

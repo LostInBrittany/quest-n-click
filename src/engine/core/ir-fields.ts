@@ -60,6 +60,7 @@ const game: Classes<GameDef> = {
   actorGap: 'presentation',
   offline: 'meta',
   lint: 'meta',
+  // `same` is tooling; `images` (what a language draws) is presentation, read by core/fingerprint.ts `presentationOf`.
   i18n: 'meta',
   assetBudgets: 'meta',
   migrations: 'logic',
