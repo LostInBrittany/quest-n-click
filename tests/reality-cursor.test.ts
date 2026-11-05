@@ -229,13 +229,20 @@ describe('the port resumes from the acknowledged cursor, not from the delivered 
     const port = httpPort({ url: 'http://bridge.test/', capability: 'cap', fetch: b.fetch, mode: 'sse', retryMs: 5 });
     const ctrl = new AbortController();
     const got: string[] = [];
+    let secondHandedOver!: () => void;
+    const both = new Promise<void>((r) => (secondHandedOver = r));
     const reading = (async () => {
       for await (const jws of port.connect({ gameId: 'signals', playerId: 'p', after: 0, signal: ctrl.signal })) {
         got.push(jws);
         // The reader settles nothing here; the first acknowledgement lands later, from outside the loop.
-        if (got.length === 2) setTimeout(() => void port.acknowledge({ playerId: 'p', through: 1 }), 1);
+        if (got.length === 2) secondHandedOver();
       }
     })();
+    // Acknowledged once both are handed over, and awaited: the port's timer (5 ms, set when s1 was handed over) can
+    // only end the stream after it. A 1 ms timer here raced that one, and a loaded runner saw s1 asked for again.
+    await both;
+    await port.acknowledge({ playerId: 'p', through: 1 });
+    expect(b.acked).toEqual([1]);
     for (let i = 0; i < 400 && !b.asked.some((a) => a.after === 1); i++) await new Promise((r) => setTimeout(r, 5));
     for (let i = 0; i < 400 && got.filter((x) => x === 's2').length < 2; i++)
       await new Promise((r) => setTimeout(r, 5));

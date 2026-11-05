@@ -40,7 +40,7 @@ import {
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { harness, WIN, waitFor } from './lib/archive-harness.mjs';
-import { fetchRetry } from '../tools/release/fetch-retry.mjs';
+import { download } from '../tools/release/fetch-retry.mjs';
 import { KNOWN_ENGINES, sumFor, sumsAsset, upgradeSource } from './upgrade-source.mjs';
 
 const ROOT = resolve(import.meta.dirname, '..');
@@ -183,15 +183,12 @@ else {
   oldTgz = join(base, src.asset);
   const url = `https://github.com/Quest-n-Click/quest-n-click/releases/download/${src.tag}/${src.asset}`;
   console.log(`\n▶ the older engine: ${url}`);
-  // Tried again on a 5xx (4.1.20 PR 3): a 504 from GitHub's releases failed candidate 38236552662 on two runners.
-  const r = await fetchRetry(url);
-  if (!r.ok) throw new Error(`${url}: ${r.status}`);
-  const bytes = Buffer.from(await r.arrayBuffer());
+  // Tried again on a 5xx (4.1.20 PR 3): a 504 from GitHub's releases failed candidate 38236552662 on two runners; each
+  // failed try said and about three minutes of tries since 4.7.1 (#410: the 4.7.0 candidate's five 504s in a minute).
+  const bytes = await download(url);
   // Checked against the release's own sums (4.1.19): a stable tag and a pre-release alike.
   const sumsUrl = `https://github.com/Quest-n-Click/quest-n-click/releases/download/${src.tag}/${sumsAsset(src.tag)}`;
-  const s = await fetchRetry(sumsUrl);
-  if (!s.ok) throw new Error(`${sumsUrl}: ${s.status}`);
-  const want = sumFor(await s.text(), src.asset);
+  const want = sumFor((await download(sumsUrl)).toString('utf8'), src.asset);
   const got = createHash('sha256').update(bytes).digest('hex');
   if (got !== want) throw new Error(`${src.asset}: SHA-256 ${got}, the release says ${want}`);
   const known = KNOWN_ENGINES[src.tag];

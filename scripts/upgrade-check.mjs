@@ -8,6 +8,7 @@ import { execFileSync } from 'node:child_process';
 import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
+import { download } from '../tools/release/fetch-retry.mjs';
 import { upgradeSource } from './upgrade-source.mjs';
 
 const ROOT = resolve(import.meta.dirname, '..');
@@ -72,13 +73,13 @@ if (source.kind === 'previous') {
   console.log(`upgrade from the previous release: ${source.version}`);
 }
 const oldTgz = source.kind === 'tgz' ? resolve(source.path) : join(base, source.asset);
-if (source.kind === 'release')
-  show(
-    `download ${source.asset}`,
-    'gh',
-    ['release', 'download', source.tag, '-R', 'Quest-n-Click/quest-n-click', '-p', source.asset, '-D', base],
-    base,
-  );
+// The release's public download, tried again on a 5xx or a network error (4.7.1, #410), where `gh release download`
+// tried once.
+if (source.kind === 'release') {
+  const url = `https://github.com/Quest-n-Click/quest-n-click/releases/download/${source.tag}/${source.asset}`;
+  console.log(`\n▶ download ${source.asset}: ${url}`);
+  writeFileSync(oldTgz, await download(url));
+}
 show('create the game with the older engine', 'tar', ['-xzf', oldTgz, '-C', base], base);
 // The engine's name as the older release packed it (D47): `web-scumm` up to 4.2.4, `quest-n-click` up to 4.5.1,
 // `@quest-n-click/engine` since (D53). The new engine has no alias of a former name: the project moves as its author

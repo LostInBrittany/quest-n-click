@@ -101,13 +101,17 @@ export const pause = (ms) => {
  * `step()` tried again when it throws (#410), `tries` times in all, `waitMs` between, each failed try said; the last
  * error thrown as it was. For Git's network steps only, reads and idempotent writes: during 4.6.0's release (GitHub's
  * Git operations degraded) one failed fetch stopped the release command and one failed tag push stopped `ship tag`.
+ * `again(error)` false throws at once (4.7.1): the wiki's push, refused by the wiki itself, is no network failure.
  */
-export function retried(step, { tries = 4, waitMs = 15_000, what = 'a git step', wait = pause, tell } = {}) {
+export function retried(
+  step,
+  { tries = 4, waitMs = 15_000, what = 'a git step', wait = pause, tell, again = () => true } = {},
+) {
   for (let i = 1; ; i++) {
     try {
       return step();
     } catch (e) {
-      if (i >= tries) throw e;
+      if (i >= tries || !again(e)) throw e;
       const why =
         String(e?.message ?? e)
           .trim()
