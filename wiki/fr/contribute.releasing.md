@@ -68,14 +68,24 @@ du README, les guillemets du CHANGELOG ou la commande qu'elle affiche casseraien
 son marqueur `<!-- field:begin -->` (le tableau qu'elle recopie commence là), et, sauf `--no-pr`, nulle
 part où pousser (votre fork : `origin` quand c'en est un, sinon le seul fork parmi les remotes ; le dépôt de
 l'organisation quand aucun fork n'est un remote, une branche, jamais `main`) ou un `gh` non connecté. Puis, sur la branche `release/<version>`, elle fait ce qu'une
-branche de release faisait à la main, dans cet ordre : la version (`npm version --no-git-tag-version`), la section du
+branche de release faisait à la main, dans cet ordre : la version (`npm version --no-git-tag-version`), les pairs
+engine des verrous (sur une nouvelle mineure, chaque verrou versionné prend le pair `@quest-n-click/engine` de son
+manifeste, et rien d'autre n'y bouge ; 4.7.0, #410 : le verrou du Studio Server de la 4.6.0 gardait `4.5.x`), la section du
 CHANGELOG et les entrées du LOG depuis les fragments (`npm run changes -- --assemble`, qui crée son `## Unreleased` et
 replie un `.log.md` seul), l'entrée de release du LOG, les consignations en attente des branches versées dans
 `wiki/translations.json` et `wiki/reviews.json` (`npm run wiki -- acks --fold` ; ce qui ne tient plus à son texte est
-affiché, et repris dans l'arrêt), la section des notes de mise à jour (en et fr), les pages de
+affiché, et repris dans l'arrêt), la section des notes de mise à jour (en et fr ; une section déjà écrite à l'avance
+sous son ancre est gardée, jamais doublée, et les puces du CHANGELOG de la release vont dans un commentaire à sa fin
+pour son auteur, 4.7.0), les pages de
 transition, la sauvegarde de référence (listée dans `tests/fixtures/saves/index.json`), le run de référence, la fiche
 des passes et `passIssues`, la ligne de release actuelle du README (le résumé précédent gardé sous « Sur la … »), la
 ligne de base de qualité ; un commit, les relectures humaines des docs, puis la pull request.
+
+Sa récupération (`fetch`) du `main` de l'organisation est tentée quatre fois, à 15 s d'intervalle, chaque essai raté
+signalé, avant qu'elle s'arrête (4.7.0, #410 : pendant la release de la 4.6.0, une seule connexion SSH refusée se lisait
+« main is not the organisation's »). Elle reste sur `release/<version>`, où les corrections de la relecture se
+commitent pendant que la pull request est ouverte, et finit en donnant le chemin du retour pour la commande de release :
+`git switch main && git pull --ff-only <le remote de l'organisation> main`.
 
 Si une étape échoue, elle s'arrête et dit quoi faire : avant le commit, rien n'a été poussé (`git reset --hard`,
 `git clean`, retour sur `main`, la branche supprimée : elle affiche les commandes) ; après, elle affiche le
@@ -134,8 +144,9 @@ Une fois la pull request de release fusionnée, sur un `main` à jour :
 npm run release -- 4.5.4          # --dry-run dit ce qu'elle refuserait ; --key=<clé.pub> si git signe autrement
 ```
 
-Elle refuse d'abord ce qui échouerait plus tard (`package.json` pas à la version, une autre branche, des changements
-non commités, un `main` qui n'est pas celui de l'organisation, pas de section dans le CHANGELOG, pas de clé de
+Elle refuse d'abord ce qui échouerait plus tard (`package.json` pas à la version, une autre branche (sur
+`release/<version>`, où `prepare` la laisse, le refus donne la ligne à lancer : `git switch main && git pull --ff-only
+<le remote de l'organisation> main`), des changements non commités, un `main` qui n'est pas celui de l'organisation, pas de section dans le CHANGELOG, pas de clé de
 signature SSH, `gh` ou `npm` non connectés, un utilisateur npm qui n'est pas propriétaire). Puis elle trouve le
 candidat que le merge a lancé sur ce commit (`--start-candidate` en lance un s'il n'y en a pas) et l'attend (environ
 90 minutes), en disant combien de jobs sont faits et lesquels tournent à chaque changement et toutes les cinq minutes,
@@ -154,7 +165,12 @@ release que `ship verify` a déjà validée n'est pas vérifiée de nouveau (4.5
 empreintes des fichiers, la release immuable, tel que noté dans `.cache/release/v<version>.verified.json` ;
 `--reverify` la vérifie quand même), un paquet
 déjà sur npm n'est pas approuvé de nouveau ; une exécution de release en échec (son job `release` ou `npm-stage`) se
-relance d'abord (`gh run rerun <id> --failed`, la commande l'affiche). Une pré-release (`-rc.N`) se tague à la main
+relance d'abord, et la commande affiche la relance qui convient (4.7.0, #410) : `gh run rerun <id> --failed` quand un
+job a échoué, a été annulé ou a dépassé son délai, `gh run rerun <id>` (tous les jobs) quand aucun n'a tourné. Le run
+41819835975 de la 4.6.0 n'a jamais créé son job `release` et a sauté les trois suivants : `--failed` n'aurait rien
+relancé. Les étapes réseau de Git (sa récupération du `main` et des tags de l'organisation, les récupérations de `ship
+tag` et la poussée de son tag) sont tentées quatre fois, à 15 s d'intervalle, chaque essai raté signalé, avant que la
+commande s'arrête (4.7.0) : ce sont des lectures, et un tag poussé de nouveau sur le même objet est « up to date ». Une pré-release (`-rc.N`) se tague à la main
 (`ship tag`, plus bas). La chaîne ci-dessous est ce qu'elle lance, pour quand une étape doit se
 faire à la main.
 
@@ -172,6 +188,16 @@ git switch -c docs/<version> v<version>
 # enregistrer chaque relecture que l'arrêt a listée (elles vont dans changes/<version>.acks.json), commiter
 git push <le remote de l'organisation> docs/<version>
 gh workflow run docs-publish --ref docs/<version> -f mode=revision -f version=<version>
+```
+
+Quand le candidat échoue encore après son unique relance, l'arrêt donne les deux suites possibles (4.7.0, #410) : un
+échec qui passe au second essai, relancez-le à la main (la commande affichée) puis relancez la commande de release ; une
+correction fusionnée sur main après le merge de release (le cas de la 4.6.0 : le plancher de couverture, #411, corrigé
+par #412), publiez sur ce commit avec son propre candidat :
+
+```sh
+git log --first-parent --oneline <le remote de l'organisation>/main   # nomme le merge de la correction
+npm run release -- <version> --commit=<sha du merge de la correction> --start-candidate
 ```
 
 Quand la `ci` de main est rouge sur le merge de release lui-même, pour une raison corrigée seulement après lui, la
@@ -321,6 +347,12 @@ le sha256 de l'archive de documentation, promeut cette archive (celle du candida
 `release: published`, qu'une release publiée avec `GITHUB_TOKEN` ne déclenche pas. Seule la clé de déploiement du wiki,
 `WIKI_DEPLOY_KEY`, lui est passée. Voir [Écrire la documentation](contribute.writing-docs.md).
 
+À partir de la 4.7.1 (#410), le clone du wiki, et une poussée qui n'a jamais atteint le wiki, sont tentés quatre fois, à
+15 s d'intervalle, chaque essai raté signalé : le `docs-publish` de la 4.7.0 a rencontré un « Permission denied
+(publickey) » au clone, et sa relance est passée avec la même clé. Tout ce qui précède le clone ne fait que lire, et une
+poussée est la mise à jour d'une seule référence. Une poussée que le wiki a refusée (il a bougé depuis le clone, une
+branche protégée, une clé sans droit d'écriture) échoue tout de suite, comme avant : relancez `docs-publish`.
+
 <a name="maintainer-settings"></a>
 
 ### Ce que le mainteneur active, une fois (après la PR 3b de la 4.1.20)
@@ -429,6 +461,8 @@ vérifiée).
 |---|---|---|
 | ship tag : « no "## x.y.z" section in CHANGELOG.md at … » | Le commit n'est pas la fusion de la pull request de release | Fusionner la pull request de release, lancer un candidat sur son commit de fusion, taguer celui-là |
 | ship tag : « no git remote here points to Quest-n-Click/quest-n-click » | Seul un fork est un remote ici | `git remote add upstream git@github.com:Quest-n-Click/quest-n-click.git` |
+| release : « the checkout is on release/<version> » | `prepare` laisse le checkout sur sa branche | `git switch main && git pull --ff-only <le remote de l'organisation> main`, puis la commande de release |
+| release : « candidate run … failed again (attempt 2) » | Le candidat a échoué après son unique relance | Un échec passager : le `gh run rerun` affiché, puis la commande de nouveau ; une correction fusionnée sur main : `npm run release -- <version> --commit=<sha du merge de la correction> --start-candidate` |
 | release.yml : « names no candidate run » | Le tag a été fait sans `--candidate` | Taguer la version suivante (ou `rc.N+1`) avec `--candidate` : le ruleset refuse de supprimer un tag |
 | release.yml : « run … is not a green candidate started on main » | Le run est celui d'une pull request, d'une autre branche, ou rouge | Lancer `candidate` à la main sur main pour ce SHA |
 | release.yml : « has no candidate-site » (ou `-surfaces`, `-signing`, `-remix`, `-pack`, `-sbom`, `-image`) | Un candidat antérieur à l'étape | Lancer un nouveau candidat |
