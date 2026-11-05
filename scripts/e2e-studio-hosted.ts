@@ -324,13 +324,17 @@ try {
   // 2. Rooms: the editor comes from the game's origin.
   const editor = page.frameLocator('iframe.engine');
   await editor.locator('svg').first().waitFor({ timeout: 60_000 });
-  const frame = page.frames().find((f) => f.url().startsWith(playUrl)) as Frame | undefined;
+  const first = page.frames().find((f) => f.url().startsWith(playUrl)) as Frame | undefined;
   check(
     "the room editor is a revision's preview on the game origin",
-    !!frame && /^\/preview\/\d+\/$/.test(new URL(frame.url()).pathname),
-    frame?.url().split('?')[0],
+    !!first && /^\/preview\/\d+\/$/.test(new URL(first.url()).pathname),
+    first?.url().split('?')[0],
   );
-  if (!frame) throw new Error('no editor frame');
+  if (!first) throw new Error('no editor frame');
+  // The editor's frame, looked up again by step 4b (which may load a new Studio page).
+  let frame: Frame = first;
+  const editorEl = page.locator('iframe.engine');
+  const editorNow = async () => (await within(editorEl.elementHandle(), 2_000))?.contentFrame() ?? null;
 
   // 3. A save asked by the Studio is written by the Studio, through its API, as the member.
   const puts: number[] = [];
@@ -361,8 +365,28 @@ try {
   await page.waitForTimeout(1500);
   check('a layout the editor sends unasked is ignored (no nonce, a stale one, another room)', puts.length === n);
 
-  // 4b. A layout written meanwhile is what the view shows once its revision's preview is built (the view reloads by
-  // itself then; "Reload view" before that shows the last ready one).
+  // 4b. A layout written meanwhile is what the view shows once its revision's preview is built: the Studio reloads the
+  // view by itself then (previewReady), one navigation, as a member sees it (until 4.7.0 a "Reload view" click came
+  // first, on the stale preview: a second navigation, more chances for #406 below).
+  // The Studio's own witness of the view: the editor's `ready` messages its page receives. A silent frame with a new
+  // `ready` is only Playwright's handle on it; without one, the frame itself never loaded.
+  const witness = () =>
+    page.evaluate((origin) => {
+      const w = window as unknown as { __e2eReady?: number[] };
+      if (w.__e2eReady) return;
+      const seen: number[] = [];
+      w.__e2eReady = seen;
+      addEventListener('message', (e) => {
+        const d = e.data as { source?: string; type?: string } | null;
+        if (e.origin === origin && d?.source === 'web-scumm-editor' && d.type === 'ready') seen.push(Date.now());
+      });
+    }, new URL(playUrl).origin);
+  const readies = async () =>
+    (await within(
+      page.evaluate(() => (window as unknown as { __e2eReady?: number[] }).__e2eReady?.length ?? 0).catch(() => -1),
+      2_000,
+    )) ?? -1;
+  await witness();
   const moved = await page.evaluate(async () => {
     const r = await fetch('/api/room/garden', { headers: { 'x-studio-request': '1' } });
     const layout = ((await r.json()) as { layout: { entries?: Record<string, number[]> } }).layout;
@@ -375,45 +399,67 @@ try {
     });
     return w.status;
   });
-  const reloadView = page.getByRole('button', { name: 'Reload view' });
-  await reloadView.click({ timeout: 30_000 });
   let shown: unknown;
-  // In Firefox the frame caught as its navigation commits may never answer (#264, seen here on 24 October: four
-  // minutes of silence). Silent for 15 s: once, "Reload view" again (a new document, which answers), said in the log.
+  let editorAt = '';
+  // The frame is looked up again at each try, through its element, and each evaluation bounded. In Firefox the frame
+  // caught as its navigation commits may never answer again (#264, #406), and a new navigation of the same iframe does
+  // not bring it back (#356's second click did not): silent for 15 s, once, a new Studio page, whose new iframe is a
+  // new frame (said in the log, with the witness).
   let silentSince = 0;
-  let again = false;
-  for (let i = 0; i < 120; i++) {
-    await page.waitForTimeout(250);
-    const f = page.frames().find((x) => x.url().startsWith(playUrl) && x.url().includes('edit='));
-    const answer = await within(
-      f
-        ?.evaluate(
-          () =>
-            (
-              window as unknown as {
-                __game?: { engine: { layouts: Record<string, { entries?: Record<string, number[]> }> } };
-              }
-            ).__game?.engine.layouts.garden?.entries?.default,
+  let renewed = false;
+  for (let end = Date.now() + 60_000; Date.now() < end; ) {
+    const f = await editorNow();
+    editorAt = f?.url() ?? '';
+    const answer = f
+      ? await within(
+          f
+            .evaluate(
+              () =>
+                (
+                  window as unknown as {
+                    __game?: { engine: { layouts: Record<string, { entries?: Record<string, number[]> }> } };
+                  }
+                ).__game?.engine.layouts.garden?.entries?.default,
+            )
+            .then((value) => ({ value }))
+            .catch(() => ({ value: undefined })),
+          2_000,
         )
-        .then((value) => ({ value })),
-      2_000,
-    ).catch(() => ({ value: undefined }));
+      : undefined;
     shown = answer?.value;
-    if (JSON.stringify(shown) === '[123,321]') break;
+    if (f && JSON.stringify(shown) === '[123,321]') {
+      frame = f;
+      break;
+    }
     if (!f || answer) silentSince = 0;
     else if (!silentSince) silentSince = Date.now();
-    else if (!again && Date.now() - silentSince > 15_000) {
-      again = true;
+    else if (!renewed && Date.now() - silentSince > 15_000) {
+      renewed = true;
       silentSince = 0;
-      console.log(`  note: the room editor at ${f.url()} did not answer for 15 s, "Reload view" clicked again`);
-      await reloadView.click({ timeout: 30_000 });
+      console.log(
+        `  note: the room editor at ${editorAt} did not answer for 15 s (the Studio had ${await readies()} ready from it since the write), the Studio page loaded again`,
+      );
+      await page.reload();
+      await page.locator('header.top .game').waitFor({ timeout: 30_000 });
+      await witness();
+      end = Date.now() + 45_000;
     }
+    await page.waitForTimeout(250);
   }
+  const layoutShown = moved === 200 && JSON.stringify(shown) === '[123,321]';
   check(
     "a layout written meanwhile is what the view shows once its revision's preview is ready",
-    moved === 200 && JSON.stringify(shown) === '[123,321]',
-    `PUT ${moved}, shown ${JSON.stringify(shown)}`,
+    layoutShown,
+    `PUT ${moved}, shown ${JSON.stringify(shown)}` +
+      (layoutShown
+        ? ''
+        : `, frame at ${editorAt || 'none'}, ${await readies()} ready, frames ${page
+            .frames()
+            .map((x) => x.url().slice(0, 80))
+            .join(' ')}`),
   );
+  // Not the next step on a frame that does not answer: it would hold the run until its 8-min limit.
+  if (!layoutShown) throw new Error('the room editor never showed the layout written meanwhile');
   // 4c. The member's own undo (G5): their last write (the layout just written) is undone by a new revision.
   const before = await page.evaluate(async () => (await (await fetch('/api/revision')).json()) as { revision: number });
   await page.getByRole('button', { name: /Undo/ }).click();
@@ -434,40 +480,46 @@ try {
 
   // 5. The game's page cannot reach the Studio.
   await page.evaluate(() => localStorage.setItem('e2e.studio-secret', 'the Studio keeps this'));
-  const reach = await frame.evaluate(async (studio) => {
-    let parent = 'readable';
-    try {
-      void window.parent.document.title;
-    } catch {
-      parent = 'blocked';
-    }
-    let api = 'answered';
-    try {
-      const r = await fetch(`${studio}/api/game`, { credentials: 'include' });
-      api = `status ${r.status}`;
-    } catch {
-      api = 'blocked';
-    }
-    let write = 'answered';
-    try {
-      const r = await fetch(`${studio}/api/room/garden/layout`, {
-        method: 'PUT',
-        credentials: 'include',
-        headers: { 'content-type': 'application/json', 'x-studio-request': '1' },
-        body: '{}',
-      });
-      write = `status ${r.status}`;
-    } catch {
-      write = 'blocked';
-    }
-    let storage = 'unread';
-    try {
-      storage = localStorage.getItem('e2e.studio-secret') ?? 'absent';
-    } catch {
-      storage = 'blocked';
-    }
-    return { parent, api, write, storage };
-  }, studioUrl);
+  // Bounded, on the frame 4b saw answer: a silent one fails the step with what was seen, not the run's 8-min limit.
+  const reached = await within(
+    frame.evaluate(async (studio) => {
+      let parent = 'readable';
+      try {
+        void window.parent.document.title;
+      } catch {
+        parent = 'blocked';
+      }
+      let api = 'answered';
+      try {
+        const r = await fetch(`${studio}/api/game`, { credentials: 'include' });
+        api = `status ${r.status}`;
+      } catch {
+        api = 'blocked';
+      }
+      let write = 'answered';
+      try {
+        const r = await fetch(`${studio}/api/room/garden/layout`, {
+          method: 'PUT',
+          credentials: 'include',
+          headers: { 'content-type': 'application/json', 'x-studio-request': '1' },
+          body: '{}',
+        });
+        write = `status ${r.status}`;
+      } catch {
+        write = 'blocked';
+      }
+      let storage = 'unread';
+      try {
+        storage = localStorage.getItem('e2e.studio-secret') ?? 'absent';
+      } catch {
+        storage = 'blocked';
+      }
+      return { parent, api, write, storage };
+    }, studioUrl),
+    10_000,
+  );
+  if (!reached) throw new Error(`the room editor at ${frame.url()} did not answer the probe within 10 s`);
+  const reach = reached;
   check("the game's page cannot read the Studio's page", reach.parent === 'blocked');
   check(
     "the game's page cannot read the Studio's API",
