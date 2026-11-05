@@ -142,6 +142,73 @@ describe('the input hash', () => {
     expect(inputHash('core', root)).not.toBe(game);
   });
 
+  // 4.7.0's release pull request moved every entry's `revisit` from 4.7.0 to 4.8.0 (9ef34c7a): every set's hash moved,
+  // the warm-up's cache served none, and the candidate measured all 20 shards again (#410 PR 4). The verdict reads an
+  // entry by the mutant it names (`sameMutant`); the rest is checked by `checkKnown` on every run, a reuse included.
+  const survivor = {
+    file: 'src/engine/core/cond.ts',
+    operator: 'boolean',
+    from: 'true',
+    to: 'false',
+    context: 'export const ok = true;',
+    why: 'the value is never read: a long enough reason',
+    category: 'equivalent',
+    proof: 'argument',
+    owner: '@someone',
+    revisit: '4.7.0',
+  };
+  const other = {
+    ...survivor,
+    from: 'false',
+    to: 'true',
+    context: 'export const no = false;',
+  };
+
+  it("stays when only what an entry says of its mutant moves: revisit, why, owner, proof, category (4.7.0's reread)", () => {
+    const put = repo();
+    put('docs/dev/mutants.json', JSON.stringify([survivor, other], null, 1));
+    const before = inputHash('core', root);
+    put(
+      'docs/dev/mutants.json',
+      JSON.stringify(
+        [
+          {
+            ...survivor,
+            revisit: '4.8.0',
+            why: 'read again: the value is still never read',
+            owner: '@another',
+            proof: 'tests/core.test.ts',
+            category: 'unreachable',
+          },
+          { ...other, revisit: '4.8.0' },
+        ],
+        null,
+        2,
+      ),
+    );
+    expect(inputHash('core', root)).toBe(before);
+    put('docs/dev/mutants.json', JSON.stringify([other, survivor]));
+    expect(inputHash('core', root)).toBe(before);
+  });
+
+  it('moves when an entry names another mutant, or one is added or removed', () => {
+    const put = repo();
+    put('docs/dev/mutants.json', JSON.stringify([survivor]));
+    const seen = new Set([inputHash('core', root)]);
+    for (const k of ['file', 'operator', 'from', 'to', 'context'] as const) {
+      put('docs/dev/mutants.json', JSON.stringify([{ ...survivor, [k]: `${survivor[k]} (another)` }]));
+      seen.add(inputHash('core', root));
+    }
+    const { context: _, ...anywhere } = survivor;
+    put('docs/dev/mutants.json', JSON.stringify([anywhere]));
+    seen.add(inputHash('core', root));
+    put('docs/dev/mutants.json', JSON.stringify([survivor, other]));
+    seen.add(inputHash('core', root));
+    put('docs/dev/mutants.json', '[]');
+    seen.add(inputHash('core', root));
+    expect(seen.size).toBe(9);
+  });
+
   it('stays when a coverage floor moves (4.6.0, #405): the floors are data vite.config.ts reads, not an input', () => {
     const put = repo();
     put('tests/coverage-floors.json', '{"total":{"lines":75},"groups":[]}\n');

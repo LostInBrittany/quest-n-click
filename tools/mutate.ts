@@ -53,16 +53,18 @@ export const CONFIG_SKIPS: Record<string, string> = {
 
 /**
  * The hash of everything a run's verdict depends on (4.1.8): the set's sources and tests, the two configurations,
- * this tool, the named survivors, the lockfile. A report whose `inputHash` is the current one says what a new run
- * would say: the release reuses it instead of running the set again (`--reuse`, the default; `--fresh` runs anyway).
- * A commit that changes none of these (docs, a release's version) keeps the hash, so the key is not the commit.
+ * this tool, the mutants the named survivors name, the lockfile. A report whose `inputHash` is the current one says
+ * what a new run would say: the release reuses it instead of running the set again (`--reuse`, the default; `--fresh`
+ * runs anyway). A commit that changes none of these (docs, a release's version, a survivor's revisit) keeps the hash,
+ * so the key is not the commit.
  */
 export function inputHash(set: MutationSet | 'all', root = ROOT): string {
   const h = createHash('sha256');
   for (const f of inputFiles(set, root)) {
     h.update(f);
     h.update('\0');
-    h.update(existsSync(resolve(root, f)) ? readFileSync(resolve(root, f)) : 'missing');
+    const at = resolve(root, f);
+    h.update(!existsSync(at) ? 'missing' : f === KNOWN ? knownIdentity(readFileSync(at, 'utf8')) : readFileSync(at));
     h.update('\0');
   }
   // The lockfile says which dependencies the tests ran with; its own `version` fields move with every release and
@@ -76,6 +78,36 @@ export function inputHash(set: MutationSet | 'all', root = ROOT): string {
   h.update('package-lock.json\0');
   h.update(JSON.stringify(lock));
   return h.digest('hex').slice(0, 16);
+}
+
+const KNOWN = 'docs/dev/mutants.json';
+/**
+ * The named survivors as the verdict reads them (#410 PR 4): the mutant each entry names (`sameMutant`'s fields), in
+ * no order. What an entry says of it (why, category, proof, owner, revisit) is checked by `checkKnown` on every run, a
+ * reused report included, so a reread that only moves the revisits (4.7.0's release, every set's cache lost) keeps
+ * the hash. A file that does not parse is hashed as it is.
+ */
+function knownIdentity(text: string): string {
+  let entries: unknown;
+  try {
+    entries = JSON.parse(text);
+  } catch {
+    return text;
+  }
+  if (!Array.isArray(entries)) return text;
+  return JSON.stringify(
+    entries
+      .map((k: Partial<KnownSurvivor>) =>
+        JSON.stringify([
+          k?.file,
+          k?.operator,
+          k?.from,
+          k?.to,
+          k?.context === undefined ? null : ['context', k.context],
+        ]),
+      )
+      .sort(),
+  );
 }
 
 /** The repository files `inputHash` reads, sorted (the lockfile apart). */

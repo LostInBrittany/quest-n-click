@@ -113,7 +113,10 @@ The tool writes the source file it mutates: do not edit it while a run is going.
    game's settings, the values of `define`, the sets: `CONFIG_FOLLOWS` in `tools/mutate.ts`), not into the dev
    server's Studio plugin. A new import in `vite.config.ts` fails `tests/mutate-hash.test.ts` until it is placed in
    `CONFIG_FOLLOWS` or in `CONFIG_SKIPS` with its reason. The coverage floors are data the configuration reads
-   (`tests/coverage-floors.json`, 4.6.0, #405), never hashed: raising one re-runs no set.
+   (`tests/coverage-floors.json`, 4.6.0, #405), never hashed: raising one re-runs no set. Of the named survivors,
+   only the mutant each entry names is hashed (file, operator, from, to, context; #410): its why, category, proof,
+   owner and revisit are checked on every run, a reused report included, so a release that reads the entries again
+   and moves their revisit re-runs no set.
 
 <!-- step: kill -->
 3. **Kill the survivor with a test**, the usual answer: write the input that tells the mutant from the original, in a
