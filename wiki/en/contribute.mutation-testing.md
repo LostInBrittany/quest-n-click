@@ -31,7 +31,7 @@ explained, and an explanation is an exemption with terms (below), never "the sco
 ## Context and versions
 
 The engine repository. The tool since 4.1.0, the sets and the gate by identity since 4.1.2, sharding and exemption
-terms since 4.1.20; fourteen gated sets as of 4.6.1.
+terms since 4.1.20; fourteen gated sets as of 4.7.0.
 
 | Set | Mutates | Gated since |
 |---|---|---|
@@ -48,7 +48,7 @@ terms since 4.1.20; fourteen gated sets as of 4.6.1.
 | `studio-auth` | the Studio Server's gate, OpenID provider, auth routes and store, spans' leases, the game's origin | 4.2.1 |
 | `studio-workshop` | personal undo, health by revision, previews, builds, prepared assets, backup, journal shipped and collection | 4.2.3 |
 | `voices` | voices by value: a line's clip keys, the recording table and its CSV, the validator's check; the solver's sentences | 4.3.1 |
-| `routes` | the world's clock and its routes: `src/engine/core/{world,route-runtime}.ts` | 4.6.1 |
+| `routes` | the world's clock and its routes: `src/engine/core/{world,route-runtime}.ts` | 4.7.0 |
 
 The sets and the test files that judge each one are in [`tools/mutation-sets.ts`](../../tools/mutation-sets.ts)
 (`SETS`, `TESTS`, `GATED`); `MEASURED` (sets that report without gating) is empty since 4.2.1, but for `routes` in 4.6.0. Where each runs is in

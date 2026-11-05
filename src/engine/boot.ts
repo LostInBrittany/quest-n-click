@@ -73,7 +73,7 @@ export interface BootOptions {
   /** The page's URL parameters; default `location.search`. */
   query?: URLSearchParams;
   /**
-   * site.json's `i18n` (4.6.1): the page's title and description in other languages, applied when the page plays one
+   * site.json's `i18n` (4.7.0): the page's title and description in other languages, applied when the page plays one
    * of them. Default: what the site plugin wrote into the page (`#qnc-site-i18n`).
    */
   site?: SiteTexts;

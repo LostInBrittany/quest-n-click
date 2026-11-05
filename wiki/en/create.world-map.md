@@ -73,7 +73,7 @@ The validator wants the pin's place to exist, in the same region, and not to joi
 that joins itself). A pin with one place renders as before.
 
 <a name="regions"></a>
-<!-- applies: 4.6.1.. since 4.6.1 -->
+<!-- applies: 4.7.0.. since 4.7.0 -->
 
 ## Regions inside regions
 
@@ -97,7 +97,7 @@ regions: {
 Paint no frame into the parent's image: the map draws it when the region opens.
 
 <a name="bare-pins"></a>
-<!-- applies: 4.6.1.. since 4.6.1 -->
+<!-- applies: 4.7.0.. since 4.7.0 -->
 
 ## A map without pins, or with dots
 

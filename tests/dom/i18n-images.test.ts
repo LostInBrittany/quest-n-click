@@ -1,5 +1,5 @@
 // @vitest-environment happy-dom
-// Images by language (4.6.1, `GameDef.i18n.images`): wherever an image id is drawn, the language being played draws
+// Images by language (4.7.0, `GameDef.i18n.images`): wherever an image id is drawn, the language being played draws
 // its variant; the game's own language draws the source. The asset graph caches every variant beside the source, the
 // validator checks the ids, and the presentation fingerprint reads the map only when it is set.
 import { afterEach, describe, expect, it, vi } from 'vitest';

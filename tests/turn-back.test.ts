@@ -1,4 +1,4 @@
-// A character with `turnBack` turns back to its side once the hero is done with it (4.6.1, #417): after a whole
+// A character with `turnBack` turns back to its side once the hero is done with it (4.7.0, #417): after a whole
 // conversation (until "Bye") and after any other action, to the state's facing; never written to the state.
 import { describe, expect, it } from 'vitest';
 import { Engine } from '@engine/core/engine';

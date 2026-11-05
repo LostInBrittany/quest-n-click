@@ -1162,6 +1162,26 @@
       "owner": "@wanoo"
     },
     {
+      "id": "install.upgrade-notes-4-7",
+      "domain": "install",
+      "type": "reference",
+      "audience": ["author"],
+      "context": ["created-project"],
+      "title": { "en": "Upgrade notes: 4.7", "fr": "Notes de mise à jour : 4.7" },
+      "url": { "en": "EN-Install-Upgrade-Notes-4-7", "fr": "FR-Installer-Notes-Mise-A-Jour-4-7" },
+      "state": "ready",
+      "versions": { "appliesFrom": "4.7.0" },
+      "sources": ["CHANGELOG.md"],
+      "replaces": [],
+      "questions": { "en": [], "fr": [] },
+      "aliases": { "en": [], "fr": [] },
+      "keywords": { "en": ["4.7.0"], "fr": ["4.7.0"] },
+      "identifiers": [],
+      "related": ["install.upgrade", "install.upgrade-notes-4-6", "start.stability"],
+      "prerequisites": [],
+      "owner": "@wanoo"
+    },
+    {
       "id": "install.upgrade-notes-4-6",
       "domain": "install",
       "type": "reference",

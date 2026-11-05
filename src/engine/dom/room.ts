@@ -414,7 +414,7 @@ export class RoomView {
 
   /**
    * A character's frame as the room paints it: its image URL, recoloured when the sheet that applies has a palette and
-   * the room has the swap ready (the map's walker, 4.6.1, #422).
+   * the room has the swap ready (the map's walker, 4.7.0, #422).
    */
   characterImage(charId: Id, img: Id): string {
     const c = this.engine.character(charId);

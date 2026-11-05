@@ -140,7 +140,7 @@ export function presentationOf(game: CompiledGame | GameDef, manifest: unknown =
       ...(cards.length ? { choiceImages: cards } : {}),
       // Only when a choice is shown full screen (4.6.0): the same for a game without one.
       ...(screens.length ? { choiceScreens: screens } : {}),
-      // Images by language (4.6.1, `i18n.images`, a meta field whose `images` are presentation): only when set.
+      // Images by language (4.7.0, `i18n.images`, a meta field whose `images` are presentation): only when set.
       ...(g.i18n?.images ? { i18nImages: g.i18n.images } : {}),
     },
   };

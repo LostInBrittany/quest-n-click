@@ -102,7 +102,7 @@ export function faceEachOther(eng: Engine, id: Id, room: RoomDef) {
 }
 
 /**
- * After an action on a character with `turnBack` (4.6.1, #417), its rule or its whole conversation done: the character
+ * After an action on a character with `turnBack` (4.7.0, #417), its rule or its whole conversation done: the character
  * turns back to the side it stands facing in the state, the one a reload would draw (a `face` or `place` command's,
  * else the room's `facing`, else the layout's mirror). Presentation only: `faceEachOther` never wrote the state.
  * Nothing when the action left the room or hid the character.

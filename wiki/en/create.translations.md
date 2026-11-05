@@ -128,7 +128,7 @@ i18n: { same: ['char:hero/name', 'ui/ok'] },
 every language.
 
 <a name="i18n-images"></a>
-<!-- applies: 4.6.1.. since 4.6.1 -->
+<!-- applies: 4.7.0.. since 4.7.0 -->
 
 ## `i18n.images`: an image per language
 

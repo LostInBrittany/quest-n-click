@@ -1,5 +1,5 @@
 // @vitest-environment happy-dom
-// A child region of the map is offered only once it is open (4.6.1, #421): a place in it, or in a region below it, is
+// A child region of the map is offered only once it is open (4.7.0, #421): a place in it, or in a region below it, is
 // unlocked. Until then the parent's map has no zoom button to it and no frame drawn for it, so it spoils nothing and
 // never leads to an empty map. The way back up ("world") stays, and the region the map opens on stays reachable.
 import { afterEach, describe, expect, it, vi } from 'vitest';
@@ -44,7 +44,7 @@ const frames = () => [...document.querySelectorAll<SVGRectElement>('.mapview rec
 const names = () => [...document.querySelectorAll('.choices .choice')].map((c) => c.textContent);
 const close = () => (document.querySelector('.choice.gl') as HTMLElement).click();
 
-describe('a child region shows once one of its places is open (4.6.1, #421)', () => {
+describe('a child region shows once one of its places is open (4.7.0, #421)', () => {
   afterEach(() => {
     vi.restoreAllMocks();
     document.body.innerHTML = '';

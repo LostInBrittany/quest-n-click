@@ -1,4 +1,4 @@
-// The validator's check of images by language (4.6.1, #430, core/lang-images.ts): every source and variant id of
+// The validator's check of images by language (4.7.0, #430, core/lang-images.ts): every source and variant id of
 // `i18n.images` exists; a variant for the game's own language or for a language the game does not ship is never drawn.
 import type { GameDef } from '../../core/types';
 

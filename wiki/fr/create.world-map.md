@@ -79,7 +79,7 @@ Le validateur veut que le lieu de l'épingle existe, dans la même région, et q
 (et refuse un lieu qui se rejoint lui-même). Une épingle qui n'a qu'un lieu s'affiche comme avant.
 
 <a name="regions"></a>
-<!-- applies: 4.6.1.. since 4.6.1 -->
+<!-- applies: 4.7.0.. since 4.7.0 -->
 
 ## Des régions dans des régions
 
@@ -104,7 +104,7 @@ regions: {
 Ne peignez pas de cadre dans l'image du parent : la carte le trace quand la région s'ouvre.
 
 <a name="bare-pins"></a>
-<!-- applies: 4.6.1.. since 4.6.1 -->
+<!-- applies: 4.7.0.. since 4.7.0 -->
 
 ## Une carte sans épingles, ou avec des jetons
 

@@ -88,7 +88,7 @@ les `minigames` du jeu, ses `extraImages` (images à préparer même si aucun co
   Facebook et X ont besoin des deux, alors qu'un `og.png` relatif n'affiche souvent aucune image. Une adresse qui
   n'est pas une URL `http(s)` absolue, ou qui porte une requête, un fragment ou des
   identifiants, est ignorée.
-- `i18n` (facultatif, 4.6.1) donne `title`, `shortName` et `description` dans les autres langues du jeu :
+- `i18n` (facultatif, 4.7.0) donne `title`, `shortName` et `description` dans les autres langues du jeu :
   `"i18n": { "es": { "title": "El Gran Alboroto", "description": "…" } }`. Quand la page joue l'une d'elles (`?lang=`,
   Réglages, la langue du navigateur), le titre de l'onglet, la description et le nom à l'installation (un
   `manifest.<langue>.webmanifest` par langue, les champs absents pris au niveau du dessus) sont ceux de cette langue.
