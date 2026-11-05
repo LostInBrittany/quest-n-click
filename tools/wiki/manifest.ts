@@ -93,6 +93,8 @@ export function urlProblem(lang: Lang, domain: Domain, url: string): string | un
 
 const text = (max: number) => z.string().trim().min(1).max(max);
 const version = z.string().regex(SEMVER, 'a product version, as SemVer writes it (4.5.0, 4.5.0-rc.1)');
+/** A page's version field: a version, or `next` for the release a branch lands in (#443, written by the release). */
+const marked = z.union([version, z.literal('next')]);
 const bilingual = <T extends z.ZodType>(item: T) => z.object({ en: item, fr: item }).strict();
 const unique = <T extends z.ZodType>(item: T) =>
   z.array(item).refine((a) => new Set(a).size === a.length, { message: 'no item twice' });
@@ -116,7 +118,7 @@ const PageSchema = z
     generated: z.literal(true).optional(),
     /** The product versions for which what the page describes is true (§4.4.1); required from `draft` on. */
     versions: z
-      .object({ appliesFrom: version, appliesUntil: version.optional(), featureSince: version.optional() })
+      .object({ appliesFrom: marked, appliesUntil: marked.optional(), featureSince: marked.optional() })
       .strict()
       .refine((v) => !v.appliesUntil || compareVersions(v.appliesFrom, v.appliesUntil) <= 0, {
         message: 'appliesUntil is not before appliesFrom',

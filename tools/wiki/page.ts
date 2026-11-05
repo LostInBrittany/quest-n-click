@@ -26,9 +26,11 @@ export const SEMVER = new RegExp(`^${SEMVER_SOURCE}$`);
  * `<!-- applies: 4.2.2..4.4.0 -->` (both inclusive), `<!-- applies: ..4.4.0 -->` (until, from the page's), and
  * `since <v>` after the range for the version the feature appeared in (`<!-- applies: 4.2.2.. since 4.2.0 -->`), and
  * last `deprecated` or `archived` for a section kept for older versions (`<!-- applies: ..4.4.0 archived -->`).
+ * A version may be `next` (#443), the release a branch lands in, which the release writes (tools/next-mark.ts).
  */
+const MARKED = `(?:${SEMVER_SOURCE}|next)`;
 const APPLIES = new RegExp(
-  `^<!--\\s*applies:\\s*(${SEMVER_SOURCE})?\\.\\.(${SEMVER_SOURCE})?(?:\\s+since\\s+(${SEMVER_SOURCE}))?(?:\\s+(deprecated|archived))?\\s*-->$`,
+  `^<!--\\s*applies:\\s*(${MARKED})?\\.\\.(${MARKED})?(?:\\s+since\\s+(${MARKED}))?(?:\\s+(deprecated|archived))?\\s*-->$`,
 );
 /** Anything that looks like an applies marker, so a malformed one is reported rather than ignored. */
 const APPLIES_LIKE = /^<!--\s*applies\b/;

@@ -137,6 +137,33 @@ sheet's intro, the upgrade notes' opener.
 
 A + B together leave two or three sentences on release day, written in the pull requests that made the changes.
 
+**Implemented (4.7.1, branch `tools/410-pr6-prose`): the maintainer chose A + B.** What `prepare` writes now:
+
+- **Facts in the LOG's release entry**, each step filling the bullet it holds the data of: *What ships*, the pull
+  requests merged on main since the tag `v<previous>` (`git log --first-parent`, merges and squashes, the release
+  branch's own left out), number and title, oldest first; *Fragments*, how many, main's commit, their slugs and the
+  ones that gave the release lines; *Upgrade notes*, the section written ahead or appended; *Reviews*, the pending
+  files the fold took in (pairs and claims, a person's named, an AI's record only counted, what it could not keep);
+  *Fixtures*; *Passes*, against `passesFor(<previous>)`; *Signature*, a key `.github/allowed_signers` names.
+- **The passes sheet's intro** when `passesFor` asks the same passes as the previous version (4.6.0's and 4.7.0's
+  sentence); a change of passes stays a marker, the passes added or removed named in it.
+- **A fragment's `### Release`** (one or two sentences, `changes --check` refuses an empty one, a list, over 400
+  characters, no full stop, twice) joined in the assembly's order into the CHANGELOG's intro, after the LOG range and
+  before "The upgrade notes say what a game has to do.", and into the README's current-release line (option B: the
+  README line is the intro's sentences). **`### Release (fr)`** for `README.fr.md`, written only when every fragment
+  with a `### Release` has one: the CHANGELOG and the LOG are in English, the README is not, and a French line that
+  left a change out would say less than the English one. Translating at release day is the work this removes; the
+  author of a change writes both while it is fresh, as for a wiki pair.
+
+What stays a `TODO(release)`, and why: the LOG entry's **title** (the release's theme, a sentence about all of it),
+its **request** (who asked, when, in what words: a person's memory, not the repository's) and its **→ next** (a
+judgement); the **upgrade notes' opener** when `prepare` appends the section (what a reader upgrading must do, rewritten
+from the bullets; a section written ahead has none); an intro or README line no fragment gave a line for; a passes
+sheet whose passes changed; "What ships" in a clone without the previous tag. Counted on the 4.5.3 fixture
+(`tests/release-prepare.test.ts`): 16 markers before, 5 with release lines in both languages (the three LOG ones and
+the two openers), 8 without any (plus the intro and both README lines). The upgrade notes written ahead, as 4.6.0's and
+4.7.0's were, leave 3.
+
 ## 3. Decided by Claude (to check)
 
 - Item d: the refusal gives the commands; `prepare` stays on its branch (§2, PR 1 d).

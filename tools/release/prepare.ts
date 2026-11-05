@@ -13,13 +13,24 @@
 // release), and the pull request. It never invents prose: every part that needs a sentence carries `TODO(release)`,
 // and `check` fails while one is left. The helpers below are pure and tested against 4.5.3's release commit
 // (tests/release-prepare.test.ts); the commands they run are the ones 4.5.3's release ran by hand, in its order.
+// (#410, PR 6) It writes the facts it holds instead of a marker: the LOG entry's bullets (the pull requests merged since
+// the previous tag, the fragments and main's commit, the upgrade notes' section, the acks folded, the fixtures, the
+// passes, the signature), the passes sheet's intro when no pass changed, and the CHANGELOG's intro and the README lines
+// from the fragments' `### Release` lines (changes/README.md). What only a person knows stays a marker: the LOG entry's
+// title, its request and its next, the upgrade notes' opener, and an intro or a README line no fragment gave a line for.
+// (#443) It writes the version in place of the mark `next` (tools/next-mark.ts): in the fragments as it assembles them,
+// in the wiki and the code's comments in the step `next mark`, the docs' records carried over. `check`, and the stop
+// before the push, run the tests that depend on the version (VERSION_TESTS), which pull requests cannot run.
 import { execFileSync, spawnSync } from 'node:child_process';
 import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 // @ts-expect-error: a plain .mjs module without declarations
 import { LOCKED, lockWithPeers } from '../../scripts/pack-manifests.mjs';
 import { releaseNotes } from '../../scripts/release-notes.mjs';
-import { fragmentFiles, lastLogNumber, proseLines } from '../changes';
+import { fragmentFiles, lastLogNumber, proseLines, readFragments, releaseSummary } from '../changes';
+import { passesFor } from '../field/schema';
+import { rewriteMarkdown } from '../next-mark';
+import { type PendingFile, readPending } from '../wiki/pending';
 import { formatJson } from '../wiki/json';
 // @ts-expect-error: a plain .mjs module without declarations
 import { gitRetried, REPO, releaseRemote } from './lib.mjs';
@@ -49,13 +60,52 @@ export const upgradeNotesPage = (version: string) => {
 /** The CHANGELOG heading of a release. */
 export const releaseHeading = (version: string, date: string) => `## ${version} — ${date}`;
 
-/** The paragraph that opens a release's CHANGELOG section: the LOG range, the name, what it follows; the rest to write. */
-export function changelogIntro(o: { version: string; name: string; previous: string; first: number; last: number }) {
+/**
+ * The paragraph that opens a release's CHANGELOG section: the LOG range, the name, what it follows; then the fragments'
+ * release lines (`summary`, #410) and where a game reads what to do, or the rest to write when no fragment gave one.
+ */
+export function changelogIntro(o: {
+  version: string;
+  name: string;
+  previous: string;
+  first: number;
+  last: number;
+  summary?: string;
+}) {
   const [, minor, patch] = parts(o.version);
   const kind = patch > 0 ? 'a patch on' : minor > 0 ? 'a minor release after' : 'a major release after';
   // One LOG entry (the release's own) is `LOG #N`, never `LOG #N–#N` (#348).
   const range = o.first === o.last ? `#${o.first}` : `#${o.first}–#${o.last}`;
-  return `LOG ${range}: "${o.name}", ${kind} ${o.previous}. ${TODO}: what it changes, for whom, and what a game has to do (Upgrade notes).`;
+  const head = `LOG ${range}: "${o.name}", ${kind} ${o.previous}.`;
+  if (o.summary) return `${head} ${o.summary} The upgrade notes say what a game has to do.`;
+  return `${head} ${TODO}: what it changes, for whom, and what a game has to do (Upgrade notes).`;
+}
+
+const WIDTH = 120;
+
+/**
+ * `text` wrapped at 120 columns as the CHANGELOG and the LOG are, each line after the first starting with `indent`; a
+ * code span is never cut (a marker in a span cut over two lines would count, #364).
+ */
+export function wrap(text: string, indent: string, width = WIDTH) {
+  const atoms: string[] = [];
+  let open = false;
+  for (const word of text.split(' ')) {
+    if (open) atoms[atoms.length - 1] += ` ${word}`;
+    else atoms.push(word);
+    if ((word.match(/`/g) ?? []).length % 2) open = !open;
+  }
+  const lines: string[] = [];
+  let line = '';
+  for (const atom of atoms) {
+    const lead = lines.length ? indent : '';
+    if (line && lead.length + line.length + 1 + atom.length > width) {
+      lines.push(lead + line);
+      line = atom;
+    } else line = line ? `${line} ${atom}` : atom;
+  }
+  lines.push((lines.length ? indent : '') + line);
+  return lines.join('\n');
 }
 
 /**
@@ -70,26 +120,183 @@ export function releaseNameProblem(name: string): string | undefined {
   return `the release name ${JSON.stringify(name)} has ${bad.map((c) => JSON.stringify(c)).join(' ')}: the README's release link, the CHANGELOG's quotes and the command line cannot hold it; choose a name without ( ) [ ] " « » \` \\ $ < > |`;
 }
 
-/** The LOG's release entry: its heading and the bullets 4.5.3's had, each to fill. */
-export function logReleaseEntry(o: { n: number; date: string; version: string; name: string }) {
-  const bullets = [
-    'The request',
-    'What ships',
-    'Fragments',
-    'Upgrade notes',
-    'Reviews',
-    'Fixtures',
-    'Passes',
-    'Signature',
-  ];
+const LOG_BULLETS = [
+  'The request',
+  'What ships',
+  'Fragments',
+  'Upgrade notes',
+  'Reviews',
+  'Fixtures',
+  'Passes',
+  'Signature',
+] as const;
+export type LogBullet = (typeof LOG_BULLETS)[number];
+
+/** A bullet of the LOG's release entry, wrapped. */
+const logBullet = (b: LogBullet, text: string) => wrap(`- **${b}**: ${text}`, '  ');
+
+/**
+ * The LOG's release entry: its heading and the bullets 4.5.3's had, each the fact `facts` gives (#410) or to fill. The
+ * title, the request and the next are a person's.
+ */
+export function logReleaseEntry(o: {
+  n: number;
+  date: string;
+  version: string;
+  name: string;
+  facts?: Partial<Record<LogBullet, string>>;
+}) {
   return [
     `## #${o.n} · ${o.date} · Claude · release · ${o.version} "${o.name}": ${TODO}`,
     '',
-    ...bullets.map((b) => `- **${b}**: ${TODO}`),
+    ...LOG_BULLETS.map((b) => logBullet(b, o.facts?.[b] ?? TODO)),
     '',
     `→ next: ${TODO}`,
     '',
   ].join('\n');
+}
+
+/** The LOG with one bullet of `version`'s release entry, still to fill, given its fact (a later step's, #410). */
+export function withLogFact(log: string, version: string, bullet: LogBullet, text: string) {
+  const lines = log.split('\n');
+  const head = lines.findLastIndex((l) => /^## #\d+ · /.test(l) && l.includes(` · release · ${version} "`));
+  if (head < 0) return log;
+  const at = lines.findIndex((l, i) => i > head && l === `- **${bullet}**: ${TODO}`);
+  if (at < 0) return log;
+  lines.splice(at, 1, logBullet(bullet, text));
+  return lines.join('\n');
+}
+
+/**
+ * The pull requests merged on main, oldest first, from `git log --first-parent --format=%s%x1f%b%x1e <range>`: a merge
+ * commit's (`Merge pull request #n from <owner>/<branch>`, its title the body's first line) or a squash's (`<title>
+ * (#n)`). A release branch's merge is the previous release's, not a change of this one.
+ */
+export function mergedPulls(log: string): { n: number; title: string }[] {
+  const out: { n: number; title: string }[] = [];
+  for (const record of log.split('\x1e')) {
+    const [subject = '', body = ''] = record.replace(/^\n+/, '').split('\x1f');
+    const merge = /^Merge pull request #(\d+) from \S+?\/(\S+)/.exec(subject);
+    if (merge) {
+      if (merge[2]!.startsWith('release/')) continue;
+      out.push({
+        n: Number(merge[1]),
+        title:
+          body
+            .split('\n')
+            .find((l) => l.trim())
+            ?.trim() ?? '',
+      });
+      continue;
+    }
+    const squash = /^(.*\S) \(#(\d+)\)$/.exec(subject.trim());
+    if (squash) out.push({ n: Number(squash[2]), title: squash[1]! });
+  }
+  return out.reverse();
+}
+
+/** The LOG's "What ships": the pull requests by number and title, or a marker when the previous tag is not here. */
+export function shipsFact(previous: string, pulls: readonly { n: number; title: string }[] | undefined) {
+  if (!pulls)
+    return `${TODO}: the pull requests merged since v${previous}, by number and title (no tag v${previous} in this clone: git fetch --tags).`;
+  if (!pulls.length) return `no pull request merged since v${previous}.`;
+  return `the pull requests merged since v${previous}, oldest first: ${pulls.map((p) => (p.title ? `#${p.n} (${p.title})` : `#${p.n}`)).join(', ')}.`;
+}
+
+const ticks = (xs: readonly string[]) => xs.map((x) => `\`${x}\``).join(', ');
+
+/** The LOG's "Fragments": how many, main's commit, which, and which gave the release lines. */
+export function fragmentsFact(version: string, sha: string, slugs: readonly string[], release: readonly string[]) {
+  const lines = release.length
+    ? `the intro and the README line from the \`### Release\` lines of ${ticks(release)}`
+    : 'no `### Release` line';
+  return `${slugs.length} assembled by \`npm run release -- prepare ${version}\`, on main at \`${sha.slice(0, 8)}\`: ${ticks(slugs)}; ${lines}.`;
+}
+
+/** The LOG's "Upgrade notes": the release's section, written ahead or appended by prepare. */
+export function upgradeNotesFact(o: { previous: string; version: string; ahead: boolean }) {
+  const where = `"From ${o.previous} to ${o.version}" in \`${upgradeNotesPage(o.version)}\`, both languages`;
+  return o.ahead
+    ? `${where}, written ahead; the release's CHANGELOG bullets in a comment at its end, to check it against.`
+    : `${where}, appended by \`prepare\` from the release's CHANGELOG bullets, to rewrite for a reader upgrading.`;
+}
+
+const plural = (n: number, one: string, many = `${one}s`) => `${n} ${n === 1 ? one : many}`;
+
+/** The LOG's "Reviews": what the fold took in from the pending files (#360), a person's named, what it could not keep. */
+export function reviewsFact(
+  files: readonly Pick<PendingFile, 'file' | 'pairs' | 'claims'>[],
+  notKept: readonly string[],
+) {
+  if (!files.length) return 'no pending ack nor claim review to fold (`changes/*.acks.json`).';
+  const part = (kind: 'pairs' | 'claims', one: string, aiOnly: string) => {
+    const records = new Map<string, { kind: string; name: string }[]>();
+    for (const f of files)
+      for (const [id, r] of Object.entries(f[kind])) records.set(id, [...(records.get(id) ?? []), ...r.reviewers]);
+    if (!records.size) return '';
+    const all = [...records.values()];
+    const human = all.filter((rs) => rs.some((r) => r.kind === 'human'));
+    const names = [...new Set(human.flatMap((rs) => rs.filter((r) => r.kind === 'human').map((r) => r.name)))].sort();
+    const ai = all.length - human.length;
+    const said = [
+      human.length ? `${human.length} read by a person, ${names.join(', ')}` : '',
+      ai ? `${ai} ${aiOnly}` : '',
+    ]
+      .filter(Boolean)
+      .join('; ');
+    return `${plural(all.length, one)} (${said})`;
+  };
+  const what = [
+    part('pairs', 'translation pair', "with an AI's record only, D56"),
+    part('claims', 'claim', 'checked by an AI only'),
+  ]
+    .filter(Boolean)
+    .join(', ');
+  const lost = notKept.length
+    ? `; ${plural(notKept.length, 'pending ack')} not kept, ${notKept.length === 1 ? 'its text changed since it was' : 'their text changed since they were'} read (listed by \`prepare\`)`
+    : '';
+  return `folded by \`prepare\` from ${ticks(files.map((f) => f.file))}: ${what || 'no record'}${lost}.`;
+}
+
+/** The LOG's "Fixtures": what prepare writes. */
+export const fixturesFact = (version: string) =>
+  `golden save demo-${version}, reference run, quality baseline, written by \`prepare\` (the release's own write, \`quality:baseline -- --release --dist\`).`;
+
+/** The LOG's "Signature": the release command signs with a key `.github/allowed_signers` names, or refuses. */
+export const signatureFact = (version: string) =>
+  `the tag is signed with an SSH key \`.github/allowed_signers\` names (\`npm run release -- ${version}\` refuses any other).`;
+
+/** The passes `now` asks that `before` did not, and the other way round. */
+const passesDiff = (now: readonly string[], before: readonly string[]) => ({
+  added: now.filter((p) => !before.includes(p)),
+  removed: before.filter((p) => !now.includes(p)),
+});
+
+/** The LOG's "Passes": the sheet, against the previous version's passes. */
+export function passesFact(version: string, previous: string, now: readonly string[], before: readonly string[]) {
+  const { added, removed } = passesDiff(now, before);
+  if (!added.length && !removed.length) return `sheet ${version}, the ${now.length} of ${previous}, none new.`;
+  const kept = now.length - added.length;
+  const said = [
+    `the ${kept} of ${previous}`,
+    removed.length ? `${removed.length} of its no longer asked (${ticks(removed)})` : '',
+    added.length ? `${added.length} new (${ticks(added)})` : '',
+  ].filter(Boolean);
+  return `sheet ${version}, ${plural(now.length, 'pass', 'passes')}: ${said.slice(0, -1).join(', ')} and ${said.at(-1)}.`;
+}
+
+/** The passes sheet's intro: written when no pass changed (4.6.0's and 4.7.0's), else the change named, to write. */
+export function passesIntro(version: string, previous: string, now: readonly string[], before: readonly string[]) {
+  const { added, removed } = passesDiff(now, before);
+  if (!added.length && !removed.length)
+    return `${version} adds no pass (\`passesFor('${version}')\` equals ${previous}'s, ${now.length}, and \`docs/dev/contracts.json\`'s \`passIssues\` gives ${version} each pass's ${previous} issue). The ${now.length} stay open and are made on the ${version} candidate.`;
+  const change = [
+    added.length ? `${ticks(added)} new, each with its issue in \`passIssues\`` : '',
+    removed.length ? `${ticks(removed)} no longer asked` : '',
+  ]
+    .filter(Boolean)
+    .join('; ');
+  return `${TODO}: what ${version} changes for the passes (${change}; \`passesFor('${version}')\` against ${previous}'s), which stay open and which are carried.`;
 }
 
 /** The upgrade-notes page with `version` added to its lead's list of versions (`… 4.5.1 and 4.5.2 changed.`). */
@@ -191,8 +398,8 @@ export const passesSheetProblem = (sheet: string, previous: string) =>
     ? undefined
     : `docs/dev/passes/${previous}.md has no ${FIELD_BEGIN} marker: the table prepare copies starts there (docs/dev/passes/TEMPLATE.md has it); put it back above the table`;
 
-/** The passes sheet of `version`: the previous one's table and `field:` lines, its heading, the intro to write. */
-export function passesSheet(previousSheet: string, previous: string, version: string) {
+/** The passes sheet of `version`: the previous one's table and `field:` lines, its heading, its intro (`passesIntro`) or the one to write. */
+export function passesSheet(previousSheet: string, previous: string, version: string, opening?: string) {
   const problem = passesSheetProblem(previousSheet, previous);
   if (problem) throw new Error(problem);
   const start = previousSheet.indexOf(FIELD_BEGIN);
@@ -203,7 +410,8 @@ export function passesSheet(previousSheet: string, previous: string, version: st
   return [
     `# Passes, ${version}`,
     '',
-    `${TODO}: what ${version} changes for the passes (\`passesFor('${version}')\` against ${previous}'s), which stay open and which are carried.`,
+    opening ??
+      `${TODO}: what ${version} changes for the passes (\`passesFor('${version}')\` against ${previous}'s), which stay open and which are carried.`,
     ...field,
     '',
     previousSheet.slice(start),
@@ -228,10 +436,10 @@ export function withPassIssues<T extends Contracts>(contracts: T, previous: stri
 
 const LABEL = { en: 'Current release:', fr: 'Release actuelle :' } as const;
 
-/** The README's current-release line, its summary to write. */
-export function currentReleaseLine(lang: 'en' | 'fr', version: string, name: string) {
+/** The README's current-release line: its summary the fragments' release lines in its language (#410), or to write. */
+export function currentReleaseLine(lang: 'en' | 'fr', version: string, name: string, summary?: string) {
   const link = `[v${version} (${name})](https://github.com/${REPO}/releases/tag/v${version})`;
-  return lang === 'en' ? `${LABEL.en} ${link}: ${TODO}` : `${LABEL.fr} ${link} : ${TODO}`;
+  return lang === 'en' ? `${LABEL.en} ${link}: ${summary ?? TODO}` : `${LABEL.fr} ${link} : ${summary ?? TODO}`;
 }
 
 /**
@@ -239,13 +447,13 @@ export function currentReleaseLine(lang: 'en' | 'fr', version: string, name: str
  * only, the releases' history is the CHANGELOG's. Until 4.6.0 the previous line's summary was kept below it, so the
  * paragraph grew by a release each time.
  */
-export function withCurrentRelease(readme: string, lang: 'en' | 'fr', version: string, name: string) {
+export function withCurrentRelease(readme: string, lang: 'en' | 'fr', version: string, name: string, summary?: string) {
   const lines = readme.split('\n');
   const at = lines.findIndex((l) => l.startsWith(LABEL[lang]));
   if (at < 0) throw new Error(`no "${LABEL[lang]}" line`);
   if (!/\[v(\d+\.\d+\.\d+) \(([^)]+)\)\]\([^)]*\)\s*:\s*(.*)$/.test(lines[at]!))
     throw new Error(`the "${LABEL[lang]}" line names no release`);
-  lines.splice(at, 1, currentReleaseLine(lang, version, name));
+  lines.splice(at, 1, currentReleaseLine(lang, version, name, summary));
   return lines.join('\n');
 }
 
@@ -401,11 +609,15 @@ export function beforePushStop(o: {
   pr: boolean;
   /** The fold's ⚠ lines (step `wiki acks`): the pending acks it could not keep, said again when prepare stops. */
   folded?: readonly string[];
+  /** The tests that depend on the version (#443, `versionTestsResult`). */
+  tests?: { ok: boolean; detail: string };
 }) {
-  if (!o.todos.length && o.gates.ok) return undefined;
+  const testsOk = o.tests?.ok ?? true;
+  if (!o.todos.length && o.gates.ok && testsOk) return undefined;
   const why = [
     o.todos.length ? `${o.todos.length} ${TODO} left` : '',
     o.gates.ok ? '' : "the docs' human gates",
+    testsOk ? '' : 'the tests that depend on the version',
   ].filter(Boolean);
   const out = [
     `✖  ${why.join(' and ')} would fail the release pull request's CI: nothing is pushed, ${o.branch} is committed here.`,
@@ -424,6 +636,13 @@ export function beforePushStop(o: {
       'The reviews to record:',
       o.gates.detail.replace(/^/gm, '  '),
       'A person reads each one and types its command (prepare never records a review).',
+    );
+  if (!testsOk)
+    out.push(
+      '',
+      'The tests that depend on the version, red now that package.json names it:',
+      o.tests!.detail.replace(/^/gm, '  '),
+      'Fix what they say on this branch (a mutants.json entry due, a figure the release moved).',
     );
   if (o.folded?.length)
     out.push(
@@ -495,6 +714,54 @@ export const noPrNote = (repo: string) =>
   `--no-pr: nothing pushed, no warm-up started. Once you open the pull request, warm main's mutation cache for its candidate:\n  ${warmupCommand(repo)}`;
 
 /**
+ * The tests that depend on the version being released (#443): pull requests run them at package.json's version, so a
+ * release that moves it can turn them red only on its own pull request (4.7.0: `mutants.json`'s entries due, the first
+ * visit typed in a test). `check` runs them, and so does the stop before the push: a few seconds, on this machine.
+ */
+export const VERSION_TESTS = [
+  'tests/mutants-json.test.ts',
+  'tests/quality-baseline.test.ts',
+  'tests/readme-truth.test.ts',
+  'tests/readme-release.test.ts',
+] as const;
+export const versionTestsArgs = () => ['vitest', 'run', ...VERSION_TESTS];
+
+/** What a run of VERSION_TESTS says: ok, or its FAIL lines and the command to run them again. */
+export function versionTestsResult(r: { code: number; out: string }): { ok: boolean; detail: string } {
+  if (r.code === 0) return { ok: true, detail: '' };
+  const fails = r.out
+    .replace(/\x1b\[[0-9;]*m/g, '')
+    .split('\n')
+    .map((l) => l.trim())
+    .filter((l) => l.startsWith('FAIL '));
+  return {
+    ok: false,
+    detail: [
+      ...(fails.length ? [...new Set(fails)] : [`vitest exited ${r.code}`]),
+      `they fail once package.json names the version; run them: npx ${versionTestsArgs().join(' ')}`,
+    ].join('\n'),
+  };
+}
+
+/**
+ * `text` (the CHANGELOG, the LOG) with the mark `next` given `version` from the first line `from` matches to the next
+ * release heading of the CHANGELOG (`## x.y.z`), or the end: fragments assembled before the release kept their mark
+ * (#443); an older section, which may quote it, is left alone.
+ */
+export function withVersionInRelease(text: string, from: RegExp, version: string) {
+  const lines = text.split('\n');
+  const start = lines.findIndex((l) => from.test(l));
+  if (start < 0) return text;
+  let end = lines.findIndex((l, i) => i > start && /^## \d+\.\d+\.\d+/.test(l));
+  if (end < 0) end = lines.length;
+  return [
+    ...lines.slice(0, start),
+    ...rewriteMarkdown(lines.slice(start, end).join('\n'), version).split('\n'),
+    ...lines.slice(end),
+  ].join('\n');
+}
+
+/**
  * The `quality baseline` step (4.6.0, #405): the figures only a release writes (the test files and declarations, the
  * first visit in bytes, the READMEs' figures and install line), measured on a fresh build of the default game. A pull
  * request's `npm run quality:baseline` moves the behaviour only, so open pull requests never conflict on these.
@@ -511,6 +778,7 @@ export const PREPARE_STEPS = [
   'locks',
   'changelog',
   'wiki acks',
+  'next mark',
   'upgrade notes',
   'transition pages',
   'golden save',
@@ -595,6 +863,10 @@ export async function checkRelease(version: string, deps: CheckDeps) {
       ok: deps.run('npm', ['run', '-s', 'quality:baseline', '--', '--check']).code === 0,
       detail: 'see npm run quality:baseline -- --check',
     },
+    {
+      what: `the tests that depend on the version (${VERSION_TESTS.join(', ')})`,
+      ...versionTestsResult(deps.run('npx', versionTestsArgs())),
+    },
   ];
 }
 
@@ -632,6 +904,17 @@ function todoFiles(version: string) {
     `wiki/en/${upgradeNotesPage(version)}.md`,
     `wiki/fr/${upgradeNotesPage(version)}.md`,
   ];
+}
+
+/**
+ * The pull requests merged on main since the tag `v<previous>` (#410), oldest first, or undefined when this clone has no
+ * such tag (the LOG's "What ships" is then a marker).
+ */
+function pullsSince(previous: string) {
+  const tag = `v${previous}`;
+  if (spawnSync('git', ['rev-parse', '-q', '--verify', `refs/tags/${tag}`], { cwd: ROOT_() }).status !== 0)
+    return undefined;
+  return mergedPulls(sh('git', ['log', '--first-parent', '--format=%s%x1f%b%x1e', `${tag}..HEAD`]));
 }
 
 /** The newest passes sheet's version (docs/dev/passes/<x.y.z>.md). */
@@ -775,6 +1058,11 @@ function prepare(version: string, opts: { name: string; date: string; pr: boolea
   // On a resume package.json is at the version already; the previous one is only used by the steps it skips.
   const previous = current;
   const branch = `release/${version}`;
+  // The fragments' release lines (#410): read before `--assemble` deletes the fragments, written by the readme step.
+  let summary: ReturnType<typeof releaseSummary> = { slugs: [], missingFr: [] };
+  /** The LOG's release entry, one bullet given the fact a step just made (#410). */
+  const logFact = (bullet: LogBullet, text: string) =>
+    writeFileSync(file('docs/dev/LOG.md'), withLogFact(read('docs/dev/LOG.md'), version, bullet, text));
   const steps: Record<(typeof PREPARE_STEPS)[number], () => void> = {
     branch: () => sh('git', ['switch', '-c', branch]),
     version: () => sh('npm', ['version', version, '--no-git-tag-version']),
@@ -793,34 +1081,74 @@ function prepare(version: string, opts: { name: string; date: string; pr: boolea
     },
     changelog: () => {
       const first = lastLogNumber(read('docs/dev/LOG.md')) + 1;
-      sh('npm', ['run', '-s', 'changes', '--', '--assemble', `--date=${opts.date}`]);
+      // The fragments in the assembly's order, read before it deletes them: their slugs and their release lines.
+      const fragments = readFragments();
+      // Their release lines with the version in place of the mark, as --assemble writes the bullets (#443).
+      const lines = releaseSummary(fragments);
+      summary = {
+        ...lines,
+        ...(lines.en ? { en: rewriteMarkdown(lines.en, version) } : {}),
+        ...(lines.fr ? { fr: rewriteMarkdown(lines.fr, version) } : {}),
+      };
+      sh('npm', ['run', '-s', 'changes', '--', '--assemble', `--date=${opts.date}`, `--version=${version}`]);
       const last = lastLogNumber(read('docs/dev/LOG.md')) + 1;
-      const intro = changelogIntro({ version, name: opts.name, previous, first, last });
-      const changelog = read('CHANGELOG.md');
-      writeFileSync(file('CHANGELOG.md'), withReleaseSection(changelog, releaseHeading(version, opts.date), intro));
-      const log = read('docs/dev/LOG.md').replace(/\n*$/, '\n\n');
+      const intro = wrap(
+        changelogIntro({
+          version,
+          name: opts.name,
+          previous,
+          first,
+          last,
+          ...(summary.en ? { summary: summary.en } : {}),
+        }),
+        '',
+      );
+      const changelog = withReleaseSection(read('CHANGELOG.md'), releaseHeading(version, opts.date), intro);
+      // A fragment assembled before the release (on main, without --version) kept its mark: written here (#443).
+      const heading = new RegExp(`^${releaseHeading(version, opts.date).replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`);
+      writeFileSync(file('CHANGELOG.md'), withVersionInRelease(changelog, heading, version));
+      const log = withVersionInRelease(read('docs/dev/LOG.md'), new RegExp(`^## #${first} · `), version).replace(
+        /\n*$/,
+        '\n\n',
+      );
+      const facts = {
+        'What ships': shipsFact(previous, pullsSince(previous)),
+        Fragments: fragmentsFact(
+          version,
+          head,
+          fragments.map((f) => f.slug),
+          summary.slugs,
+        ),
+        Fixtures: fixturesFact(version),
+        Signature: signatureFact(version),
+      };
       writeFileSync(
         file('docs/dev/LOG.md'),
-        log + logReleaseEntry({ n: last, date: opts.date, version, name: opts.name }),
+        log + logReleaseEntry({ n: last, date: opts.date, version, name: opts.name, facts }),
       );
     },
     // The branches' pending acks into wiki/translations.json and wiki/reviews.json, as the fragments into the CHANGELOG
     // (#360); what no longer holds its text is printed, and kept for the stop before the push.
     'wiki acks': () => {
+      // What the fold takes in, read before it deletes the pending files: the LOG's "Reviews" (#410).
+      const pending = readPending(file('wiki')).files;
       const r = capture('npm', ['run', '-s', 'wiki', '--', 'acks', '--fold']);
       if (r.code !== 0) throw new Error(r.out.trim());
       for (const line of r.out.trim().split('\n')) say(line);
+      const notKept = r.out.split('\n').filter((l) => l.startsWith('⚠'));
       mkdirSync(file('.cache/release'), { recursive: true });
-      writeFileSync(
-        file(foldedFile(version)),
-        r.out
-          .split('\n')
-          .filter((l) => l.startsWith('⚠'))
-          .join('\n'),
-      );
+      writeFileSync(file(foldedFile(version)), notKept.join('\n'));
+      logFact('Reviews', reviewsFact(pending, notKept));
     },
+    // The mark `next` in the wiki and the code's comments given the version, the records carried over (#443): after the
+    // fold, so the two record files hold every ack.
+    'next mark': () => say(sh('npx', ['tsx', 'tools/next-mark.ts', '--write', `--version=${version}`])),
     'upgrade notes': () => {
       const bullets = changelogBullets(read('CHANGELOG.md'), version);
+      const ahead = read(`wiki/en/${upgradeNotesPage(version)}.md`)
+        .split('\n')
+        .includes(`<a name="${upgradeNotesAnchor(previous, version)}"></a>`);
+      logFact('Upgrade notes', upgradeNotesFact({ previous, version, ahead }));
       for (const lang of ['en', 'fr'] as const) {
         const page = `wiki/${lang}/${upgradeNotesPage(version)}.md`;
         writeFileSync(file(page), withUpgradeNotes(read(page), { previous, version, name: opts.name, lang, bullets }));
@@ -838,10 +1166,12 @@ function prepare(version: string, opts: { name: string; date: string; pr: boolea
     'reference run': () => sh('npx', ['tsx', 'tools/speedrun/reference-run.ts'], { GAME: 'reference' }),
     passes: () => {
       const sheet = newestSheet();
+      const [now, before] = [passesFor(version), passesFor(sheet)];
       writeFileSync(
         file(`docs/dev/passes/${version}.md`),
-        passesSheet(read(`docs/dev/passes/${sheet}.md`), sheet, version),
+        passesSheet(read(`docs/dev/passes/${sheet}.md`), sheet, version, passesIntro(version, sheet, now, before)),
       );
+      logFact('Passes', passesFact(version, sheet, now, before));
       const contracts = JSON.parse(read('docs/dev/contracts.json'));
       writeFileSync(file('docs/dev/contracts.json'), formatJson(withPassIssues(contracts, sheet, version)));
     },
@@ -850,7 +1180,7 @@ function prepare(version: string, opts: { name: string; date: string; pr: boolea
         ['en', 'README.md'],
         ['fr', 'README.fr.md'],
       ] as const)
-        writeFileSync(file(f), withCurrentRelease(read(f), lang, version, opts.name));
+        writeFileSync(file(f), withCurrentRelease(read(f), lang, version, opts.name, summary[lang]));
     },
     'quality baseline': () => {
       for (const [cmd, args] of QUALITY_BASELINE_COMMANDS) sh(cmd, args);
@@ -871,6 +1201,7 @@ function prepare(version: string, opts: { name: string; date: string; pr: boolea
         gates: humanGates(capture),
         pr: opts.pr,
         folded,
+        tests: versionTestsResult(capture('npx', versionTestsArgs())),
       });
       if (!stop) return;
       console.error(stop);

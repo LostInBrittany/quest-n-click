@@ -3,6 +3,7 @@
 import { createHash } from 'node:crypto';
 import { chmodSync, existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
+import { download } from '../../tools/release/fetch-retry.mjs';
 import { sleep } from './steps.mjs';
 
 export async function backupRestore(c) {
@@ -213,20 +214,15 @@ export async function oldStore(c) {
   // (second reading of 4.1.19 PR 5: the 4.1.17 code wrote no data before). `--short` leaves it out.
   if (!SHORT) {
     const OLD_SHA = 'a362ca2bbba48d06593d265ad4d6b01efdbc92d95b7165d988c5c2dffbe33d6f';
-    let oldBytes = flag('old-bridge') ? readFileSync(resolve(flag('old-bridge'))) : null;
-    for (let i = 1; !oldBytes && i <= 5; i++) {
-      try {
-        const got = await fetch(
-          'https://github.com/Quest-n-Click/quest-n-click/releases/download/v4.1.17/web-scumm-bridge-4.1.17.tgz',
-          { signal: AbortSignal.timeout(60_000) },
-        );
-        if (got.ok) oldBytes = Buffer.from(await got.arrayBuffer());
-      } catch {
-        /* again */
-      }
-      if (!oldBytes) await sleep(5000 * i);
-    }
-    if (!oldBytes) throw new Error('web-scumm-bridge-4.1.17.tgz could not be downloaded (--old-bridge=<tgz> offline)');
+    // GitHub's release download, tried again on a 5xx or a network error (next, #410: the shared `download`).
+    const url = 'https://github.com/Quest-n-Click/quest-n-click/releases/download/v4.1.17/web-scumm-bridge-4.1.17.tgz';
+    const oldBytes = flag('old-bridge')
+      ? readFileSync(resolve(flag('old-bridge')))
+      : await download(url).catch((e) => {
+          throw new Error(
+            `web-scumm-bridge-4.1.17.tgz could not be downloaded (--old-bridge=<tgz> offline): ${e.message}`,
+          );
+        });
     if (createHash('sha256').update(oldBytes).digest('hex') !== OLD_SHA)
       throw new Error('web-scumm-bridge-4.1.17.tgz: not the archive the 4.1.17 release published');
     const oldDir = join(base, 'bridge-4.1.17');

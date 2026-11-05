@@ -1,0 +1,42 @@
+{
+  "format": "quest-n-click-docs-acks",
+  "version": 1,
+  "pairs": {
+    "contribute.conventions#changes-fragments": {
+      "enHash": "361d064b6d436df10b3db306144ebbfb19cee14d098eb665025562df6e42309d",
+      "frHash": "54c943d6cb5024729d047e0f7dc02a1a1dcf4053c3a0464c1b073c7697c6d5de",
+      "reviewers": [
+        { "name": "claude-opus-5-5", "kind": "ai", "relation": "author", "date": "2026-11-05" }
+      ]
+    },
+    "contribute.conventions#next-mark": {
+      "enHash": "6521ecd3a412444ab564ba932547a02a9910cda006c4ead9d49504fb950b27e0",
+      "frHash": "d438bb119f160393cefce3cb70cc949674753dc04e13236c211bf0eb5c5184d4",
+      "reviewers": [
+        { "name": "claude-opus-5-5", "kind": "ai", "relation": "author", "date": "2026-11-05" }
+      ]
+    },
+    "contribute.releasing#docs-publish": {
+      "enHash": "17258fa31f3c5838ba8a44b534746c7b55edbe822dd5b70d7c8c423968c14e34",
+      "frHash": "3d11099fd5395237b64737eab35513df7fca1f37a8a7fa76f797d577c0d5d93e",
+      "reviewers": [
+        { "name": "claude-opus-5-5", "kind": "ai", "relation": "author", "date": "2026-11-05" }
+      ]
+    },
+    "contribute.releasing#prepare": {
+      "enHash": "42680da0ea2ea6140cbcd6f21b89a074ff2ffc1a2422aa7f131f7ec54eff138a",
+      "frHash": "fcb7ab63acb43ea80b7d158f337044592fd028529336837dff3dc0f3a0c3fb5d",
+      "reviewers": [
+        { "name": "claude-opus-5-5", "kind": "ai", "relation": "author", "date": "2026-11-05" }
+      ]
+    },
+    "contribute.writing-docs#page-anatomy": {
+      "enHash": "8eb2c7b311c8fe7ac2df52de873b046053ff4947bd4c8332cd7cab51cfd3e4bf",
+      "frHash": "155ac1ff157a2fdce9f21eec2470040940e600621240294e18e4efb6748f56c3",
+      "reviewers": [
+        { "name": "claude-opus-5-5", "kind": "ai", "relation": "author", "date": "2026-11-05" }
+      ]
+    }
+  },
+  "claims": {}
+}

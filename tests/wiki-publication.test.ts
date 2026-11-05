@@ -5,7 +5,18 @@
 // wiki: the content replaced (redirect pages kept), the record written, one commit, and no commit when nothing changed.
 import { execFileSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
-import { cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs';
+import {
+  chmodSync,
+  cpSync,
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  renameSync,
+  rmSync,
+  statSync,
+  writeFileSync,
+} from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { afterAll, describe, expect, it, vi } from 'vitest';
@@ -23,6 +34,7 @@ import {
   parsePublication,
   type Promotion,
   type Publication,
+  pushRefused,
   pushWiki,
   REDIRECT_MARKER,
 } from '../tools/wiki/publication';
@@ -196,6 +208,23 @@ describe('the doc revision a run from docs/<v> publishes', () => {
 });
 
 describe('how git reaches the wiki', () => {
+  it('tells a push the wiki refused (never tried again) from one that never reached it', () => {
+    for (const refused of [
+      ' ! [rejected]        HEAD -> master (fetch first)',
+      ' ! [rejected]        HEAD -> master (non-fast-forward)',
+      ' ! [remote rejected] HEAD -> master (pre-receive hook declined)',
+      'remote: error: GH006: Protected branch update failed for refs/heads/master.',
+      'ERROR: Permission to Quest-n-Click/quest-n-click.wiki.git denied to deploy key',
+    ])
+      expect(pushRefused(refused), refused).toBe(true);
+    for (const transient of [
+      'git@github.com: Permission denied (publickey).\nfatal: Could not read from remote repository.',
+      'ssh: connect to host github.com port 22: Connection refused',
+      'kex_exchange_identification: Connection closed by remote host',
+      "fatal: '/tmp/wiki.git' does not appear to be a git repository",
+    ])
+      expect(pushRefused(transient), transient).toBe(false);
+  });
   it('passes a token as a header, never in a URL or an argument', () => {
     const env = gitEnv({ kind: 'token', token: 'secret-token' });
     expect(env.GIT_CONFIG_KEY_0).toBe('http.https://github.com/.extraheader');
@@ -278,16 +307,27 @@ function tip(bare: string) {
     read: (f: string) => execFileSync('git', ['show', `HEAD:${f}`], { cwd: bare, encoding: 'utf8' }),
   };
 }
-const push = (bare: string, bytes: Buffer, p: Promotion, o: { rollbackTo?: string; beforePush?: () => void } = {}) =>
-  pushWiki({
+/** The lines a test's retries said, and the waits they asked for (instant: `wait` runs the test's own seam). */
+const said: string[] = [];
+const push = (
+  bare: string,
+  bytes: Buffer,
+  p: Promotion,
+  o: { rollbackTo?: string; beforePush?: () => void; onWait?: () => void } = {},
+) => {
+  said.length = 0;
+  const { onWait, ...rest } = o;
+  return pushWiki({
     remote: bare,
     auth: { kind: 'none' },
     workDir: join(tmp('wiki-work-'), 'clone'),
     promotion: p,
     wiki: wikiOf(bytes),
     push: true,
-    ...o,
+    retry: { tell: (l) => said.push(l), wait: () => onWait?.() },
+    ...rest,
   });
+};
 const sumOf = (b: Buffer) => createHash('sha256').update(b).digest('hex');
 
 // Each test pushes to a throwaway repository for real: a clone, a commit and a push by pushWiki, several pushes a test,
@@ -364,6 +404,53 @@ describe('the push to the wiki', { timeout: 30_000 }, () => {
     expect(r).toMatchObject({ ok: false });
     expect(!r.ok && r.problem).toMatch(/push was refused, nothing published \(the wiki moved since the clone\)/);
     expect(tip(bare).subject).toBe('a web edit');
+    // Refused by the wiki: never tried again (next).
+    expect(said).toEqual([]);
+  });
+
+  // GitHub refusing a connection now and then (4.7.0's docs-publish: "Permission denied (publickey)" on the clone, the
+  // same deploy key passing on the re-run): the clone, and a push that never reached the wiki, are tried again (next).
+  it('tries a clone that failed again, its folder emptied, then publishes', () => {
+    const bare = join(tmp('wiki-remote-'), 'wiki.git');
+    // Missing on the first try (the clone fails before anything is read), there after the wait.
+    const r = push(bare, r1.bytes, promo('4.5.0', 'r1', r1sum), {
+      onWait: () => cpSync(wikiRemote(), bare, { recursive: true }),
+    });
+    expect(r).toMatchObject({ ok: true, committed: true, pushed: true });
+    expect(said).toHaveLength(1);
+    expect(said[0]).toMatch(/^git clone .*wiki\.git.* failed \(.+\), try 1\/4: again in 15 s$/);
+    expect(tip(bare).subject).toBe(`wiki: 4.5.0 r1 (${'d'.repeat(40)})`);
+  });
+
+  it('stops after four tries of a clone, with the last error', () => {
+    const bare = join(tmp('wiki-remote-'), 'never.git');
+    expect(() => push(bare, r1.bytes, promo('4.5.0', 'r1', r1sum))).toThrow(/never\.git/);
+    expect(said).toHaveLength(3);
+  });
+
+  it('tries a push that never reached the wiki again, then publishes', () => {
+    const bare = wikiRemote();
+    const away = `${bare}.away`;
+    const r = push(bare, r1.bytes, promo('4.5.0', 'r1', r1sum), {
+      beforePush: () => renameSync(bare, away),
+      onWait: () => existsSync(away) && renameSync(away, bare),
+    });
+    expect(r).toMatchObject({ ok: true, committed: true, pushed: true });
+    expect(said).toHaveLength(1);
+    expect(said[0]).toMatch(/^git push origin HEAD failed \(.+\), try 1\/4: again in 15 s$/);
+    expect(tip(bare).subject).toBe(`wiki: 4.5.0 r1 (${'d'.repeat(40)})`);
+  });
+
+  it('a push the wiki declines (a protected branch, a hook) fails at once, saying why', () => {
+    const bare = wikiRemote();
+    const hook = join(bare, 'hooks', 'pre-receive');
+    writeFileSync(hook, '#!/bin/sh\necho "GH006: Protected branch update failed for refs/heads/master." >&2\nexit 1\n');
+    chmodSync(hook, 0o755);
+    const r = push(bare, r1.bytes, promo('4.5.0', 'r1', r1sum));
+    expect(r).toMatchObject({ ok: false });
+    expect(!r.ok && r.problem).toMatch(/push was refused, nothing published \(.*(GH006|declined).*\)/);
+    expect(!r.ok && r.problem).not.toMatch(/the wiki moved/);
+    expect(said).toEqual([]);
   });
 
   it('`wiki -- publish` writes from the one ref its mode allows: a rollback off main is refused', () => {

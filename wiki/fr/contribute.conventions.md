@@ -69,6 +69,13 @@ Une branche qui modifie le code ne touche ni `CHANGELOG.md` ni `docs/dev/LOG.md`
 - `changes/<slug>.md` : les puces du CHANGELOG, sous `### Breaking`, `### Fixed` ou `### Changes` (n'importe
   lesquelles, dans n'importe quel ordre). Écrivez-les comme le CHANGELOG : une amorce en gras, la version entre
   parenthèses, ce qu'un joueur, un auteur ou un hébergeur voit de différent.
+- Dans le même fichier, en option (next, #410), `### Release` : une ou deux phrases pour l'introduction de la
+  release, ce que le changement apporte et à qui, en une prose qui se lit bien jointe à celle des autres fragments.
+  `npm run release -- prepare` joint celles de tous les fragments, dans l'ordre où ils sont arrivés sur `main`, dans
+  l'introduction du CHANGELOG et la ligne de release actuelle du README ; s'il n'y en a aucune, les deux gardent un
+  `TODO(release)` pour le mainteneur. `### Release (fr)` en est la traduction française, pour `README.fr.md` : la ligne
+  française n'est écrite que si chaque fragment qui a un `### Release` a la sienne, sinon elle reste un
+  `TODO(release)`. Aucun des deux titres n'arrive dans les puces du CHANGELOG.
 - `changes/<slug>.log.md` (facultatif) : l'entrée du LOG. Première ligne `## <titre>` (ce qui suit
   `#n · date · Claude · proposal ·` dans le LOG), puis le corps, sa ligne `→ next:` en dernier. Le numéro et la date
   sont ceux de l'assemblage.
@@ -86,6 +93,22 @@ Une branche qui modifie le code ne touche ni `CHANGELOG.md` ni `docs/dev/LOG.md`
   "prepared from revision 3" with "Preparing the assets: done" when a late status answer arrives.
 ```
 
+Avec les lignes de la release, comme `changes/430-localized-images.md` aurait pu les écrire :
+
+```markdown
+### Release
+
+A game can letter its images in each language (`i18n.images`), its title logo included.
+
+### Release (fr)
+
+Un jeu peut écrire ses images dans chaque langue (`i18n.images`), son logo de titre compris.
+
+### Changes
+
+- **Images per language (4.7.0, #430)**: …
+```
+
 ### Contraintes
 
 ```sh
@@ -95,13 +118,19 @@ npm run changes -- --check [--base=origin/main]
 
 - Elle fait échouer une branche qui touche `src/`, `bridge/`, `tools/`, `scripts/`, `cli/`, `connectors/` ou `games/`
   sans fragment et sans modification du CHANGELOG : `✖ this branch changes the code and carries no fragment: write
-  changes/<slug>.md (### Fixed | ### Changes | ### Breaking, then the bullets)…`. Le job `check` de la CI la lance
+  changes/<slug>.md (### Fixed | ### Changes | ### Breaking, then the bullets; …)…`. Le job `check` de la CI la lance
   sur les pull requests. Un changement qui ne touche que `docs/`, `wiki/` ou `tests/` n'a pas besoin de fragment.
 - Elle lit aussi chaque fragment de `changes/`, ceux de la branche et les autres, comme `--assemble` le fera (4.5.5,
-  #335) : un titre autre que les trois (`### Added`, par exemple), du texte avant le premier titre, ou un `.log.md`
-  qui ne s'ouvre pas sur `## <title>` est refusé avec son fichier et sa ligne : `✖ changes/<slug>.md:5: "### Fixes"
-  is not a fragment heading: ### Breaking | ### Fixed | ### Changes`. `--assemble` refuse les mêmes, donc un fragment
-  sur lequel la release s'arrêterait fait échouer la pull request qui l'ajoute. Rien n'est rangé en silence.
+  #335) : un titre autre que les trois et les deux de la release (`### Added`, par exemple), du texte avant le premier
+  titre, ou un `.log.md` qui ne s'ouvre pas sur `## <title>` est refusé avec son fichier et sa ligne :
+  `✖ changes/<slug>.md:5: "### Fixes" is not a fragment heading: ### Breaking | ### Fixed | ### Changes, or ### Release | ### Release (fr)`.
+  `--assemble` refuse les mêmes, donc un fragment sur lequel la release s'arrêterait fait échouer la pull request qui
+  l'ajoute. Rien n'est rangé en silence.
+- Une partie `### Release` est refusée quand elle est vide, en liste, plus longue que 400 caractères, sans point final,
+  ou présente deux fois ; un `### Release (fr)` sans son `### Release` aussi (next, #410).
+- Une version postérieure à celle de `package.json` est refusée (next, #443) : `✖ changes/<slug>.md:3: 4.7.1 is after
+  package.json's 4.7.0: a fragment names the release it lands in as next…`. Écrivez `(next, #n)` ([La marque de la
+  prochaine release](#next-mark)) ; une version citée dans un bloc de code en ligne n'est pas lue.
 - Un `TODO(release)` nu dans un fragment est refusé aussi (4.5.5, #364) : il arriverait dans le CHANGELOG ou le LOG
   comme un marqueur que la release doit écrire, et ne le pourrait jamais. Citez-le entre accents graves, comme du code.
 - Une branche de release est l'exception : elle assemble les fragments et modifie le CHANGELOG elle-même.
@@ -111,8 +140,11 @@ npm run changes -- --check [--base=origin/main]
 
 ```sh
 # dans le dépôt du moteur, sur main, avec tout l'historique
-npm run changes -- --assemble [--date=YYYY-MM-DD]
+npm run changes -- --assemble [--date=YYYY-MM-DD] [--version=<x.y.z>]
 ```
+
+Avec `--version` (ce que passe `npm run release -- prepare`), les marques `next` des fragments deviennent cette
+version quand ils sont versés ; sans lui elles restent, pour que la release les écrive.
 
 Elle verse chaque fragment dans le `## Unreleased` du CHANGELOG (chaque puce sous sa section, Breaking, Fixed puis
 Changes) et numérote les entrées du LOG après la dernière, dans l'ordre où les fragments sont arrivés sur `main` (la
@@ -123,6 +155,40 @@ ne se marchent plus dessus sur le CHANGELOG, le LOG ou leurs numéros d'entrée.
 ### Depuis
 
 4.1.9 (lot 0 « cadence »).
+
+<a name="next-mark"></a>
+<!-- applies: next.. since next -->
+
+## La marque de la prochaine release (`next`)
+
+Une branche ne connaît pas le numéro de la release où elle arrivera : les branches de la 4.6.0 ont toutes deviné
+« 4.6.1 », la release fut la 4.7.0, et environ 80 marques ont été renommées à la main. Une branche écrit `next` à la
+place de la version ; la release écrit la version.
+
+| Où | La marque | Réécrite par |
+|---|---|---|
+| Un fragment (`changes/`) | `(next, #443)`, `(next)` | `npm run changes -- --assemble --version=<v>` |
+| La prose d'une page du wiki | `(next, #443)`, `(next)` | `npm run release -- prepare` (étape `next mark`) |
+| Le marqueur applies d'une section | `<!-- applies: next.. since next -->` | la même étape |
+| `wiki/manifest.json` | `"appliesFrom": "next"` (et `appliesUntil`, `featureSince`) | la même étape |
+| Un commentaire dans `src/`, `tools/`, `scripts/`, `bridge/`, `cli/`, `connectors/`, `studio-server/`, `tests/` | `// … (next, #443)`, `/* … (next) */` | la même étape |
+
+La marque est le mot dans une parenthèse qui s'ouvre sur lui, après une espace ou en début de ligne : `(next)` ou
+`(next, …)`. Ne sont jamais une marque, donc jamais réécrits : le mot dans un bloc de code en ligne ou un bloc délimité
+(c'est ainsi que cette page le cite), dans du code hors d'un commentaire (`if (next) {`), dans une chaîne (le nom d'un
+test est ce que nomme une garantie : n'y écrivez pas de version), un appel nommé dans un commentaire (`swap(next)`), un
+dossier de jeu (écrit par le journal du Studio ; à renommer à la main), et tout fichier historique (le LOG, les
+sections publiées du CHANGELOG, `docs/`, `tests/fixtures/`). Une version déjà écrite n'est jamais touchée.
+`npx tsx tools/next-mark.ts --version=<v>` liste ce que l'étape réécrirait.
+
+Une paire de traduction est hachée sur son texte : la réécriture des deux côtés la laisserait à relire ; la relecture
+d'une garantie retient de même le texte de son bloc et le hachage de son fichier de test. L'étape reporte donc chaque
+enregistrement qui tenait le texte avant la réécriture sur le texte réécrit (`wiki/translations.json`,
+`wiki/reviews.json`, un `changes/*.acks.json` en attente) : une réécriture mécanique ne laisse rien à relire, et un
+enregistrement périmé le reste.
+
+`changes -- --check` refuse une version postérieure à celle de `package.json` dans un fragment ; le wiki et le code ne
+sont pas vérifiés (une version écrite d'avance y est une supposition à éviter, pas une erreur).
 
 <a name="formatting-commits"></a>
 <!-- applies: .. since 4.1.0 -->

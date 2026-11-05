@@ -126,6 +126,8 @@ const WRITERS: Record<string, string> = {
   'tools/release/lib.mjs': 'elsewhere: release outputs',
   'tools/release/prepare.ts':
     'elsewhere: a release branch (CHANGELOG.md, docs/dev/, README*.md, wiki/*/install.upgrade-notes-*, tests/fixtures/)',
+  'tools/next-mark-records.ts':
+    "elsewhere: at a release, the files tools/next-mark.ts rewrote (wiki/, the comments of the code roots and tests/, never a game folder), and wiki/translations.json, wiki/reviews.json and changes/*.acks.json's hashes carried over (#443)",
   'tools/release/release-run.ts':
     'elsewhere: a temporary worktree of the release commit, removed after (#339), and .cache/release/ (the record of a passed ship verify, #343)',
   'tools/release/npm-stage.mjs': 'elsewhere: the run summary (GITHUB_STEP_SUMMARY)',

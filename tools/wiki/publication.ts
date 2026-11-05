@@ -14,11 +14,17 @@
 // `pushWiki` clones the wiki's repository, replaces its content with the archive's `wiki/` folder (keeping `.git` and
 // the generated redirect pages a later build no longer writes), writes the record, and pushes one commit, "wiki:
 // <version> r<n> (<docRevision>)"; nothing changed, no commit. The push is one ref update: a failure leaves the last
-// good state, and a rerun is a new dispatch.
+// good state, and a rerun is a new dispatch. The clone, and a push that never reached the wiki, are tried again
+// (next, #410: 4.7.0's docs-publish met one "Permission denied (publickey)" on the clone, its re-run passed with the
+// same key): everything before the clone only reads, nothing is pushed before it succeeds, and a push is one ref
+// update, so a try again is safe. A push the wiki refused (moved since the clone, a protected branch, a key without
+// write access) is never tried again.
 import { execFileSync } from 'node:child_process';
 import { chmodSync, existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { z } from 'zod';
+// @ts-expect-error: a plain .mjs module without declarations (the release tools' `retried`, shared, #410)
+import { retried } from '../release/lib.mjs';
 import { REVISION } from './archive';
 import { compareVersions } from './docs';
 import { formatJson } from './json';
@@ -302,7 +308,17 @@ export interface PushOptions {
   push: boolean;
   /** A test seam: runs between the commit and the push, where another publication could land. */
   beforePush?: () => void;
+  /** Test seams of the tries again: each failed try said (stderr by default), the wait between (15 s by default). */
+  retry?: { tell?: (line: string) => void; wait?: (ms: number) => void };
 }
+
+/** Whether a push failed because the wiki refused it (never tried again), not because it never reached the wiki. */
+export const pushRefused = (why: string): boolean =>
+  /\[(remote )?rejected\]|non-fast-forward|fetch first|GH006|protected branch|declined|Permission to \S+ denied/i.test(
+    why,
+  );
+
+const stderrOf = (e: unknown) => String((e as { stderr?: unknown }).stderr ?? (e as Error).message).trim();
 
 export type PushResult =
   | { ok: true; committed: boolean; pushed: boolean; wiki: boolean; note: string; record: Publication }
@@ -328,7 +344,16 @@ export function pushWiki(o: PushOptions): PushResult {
       stdio: ['ignore', 'pipe', 'pipe'],
       timeout: 120_000,
     }).trim();
-  git(['clone', '--depth', '1', '--no-tags', o.remote, o.workDir], dirname(o.workDir));
+  const seams = { ...o.retry };
+  let tries = 0;
+  retried(
+    () => {
+      // A failed clone may leave its folder behind: the next try starts from none.
+      if (tries++) rmSync(o.workDir, { recursive: true, force: true });
+      return git(['clone', '--depth', '1', '--no-tags', o.remote, o.workDir], dirname(o.workDir));
+    },
+    { what: `git clone ${o.remote}`, ...seams },
+  );
   const recordFile = join(o.workDir, 'publication.json');
   const record = existsSync(recordFile) ? parsePublication(readFileSync(recordFile, 'utf8')) : emptyPublication();
   const d = decide(record, o.promotion, o.rollbackTo ? { rollbackTo: o.rollbackTo } : {});
@@ -377,15 +402,20 @@ export function pushWiki(o: PushOptions): PushResult {
   if (o.push) {
     o.beforePush?.();
     try {
-      git(['push', 'origin', 'HEAD']);
+      retried(() => git(['push', 'origin', 'HEAD']), {
+        what: 'git push origin HEAD',
+        again: (e: unknown) => !pushRefused(stderrOf(e)),
+        ...seams,
+      });
     } catch (e) {
       // Never forced: the wiki moved since the clone (another publication, a web edit), so this one is refused whole
       // and the wiki keeps its last good state. Running docs-publish again decides on the new state.
-      const why = String((e as { stderr?: unknown }).stderr ?? (e as Error).message).trim();
-      return {
-        ok: false,
-        problem: `the push was refused, nothing published (${/non-fast-forward|fetch first|rejected/.test(why) ? 'the wiki moved since the clone' : why.split('\n')[0]}): run docs-publish again`,
-      };
+      const why = stderrOf(e);
+      const lines = why.split('\n');
+      const said = /non-fast-forward|fetch first/.test(why)
+        ? 'the wiki moved since the clone'
+        : (lines.find((l) => /GH006|declined|rejected|denied/i.test(l)) ?? lines[0])!.replace(/^remote:\s*/, '').trim();
+      return { ok: false, problem: `the push was refused, nothing published (${said}): run docs-publish again` };
     }
   }
   return { ok: true, committed: true, pushed: o.push, wiki: d.wiki, note: d.note, record: d.record };

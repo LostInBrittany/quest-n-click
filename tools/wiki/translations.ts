@@ -120,7 +120,7 @@ export interface PairState {
  * The current hashes of every section both languages of a written page hold (a draft's included: its records are
  * kept, a pair may be read before the page is ready), in the manifest's and the pages' order.
  */
-function currentPairHashes(
+export function currentPairHashes(
   wikiDir: string,
   manifest: Manifest,
 ): Map<string, { enHash: string; frHash: string; ready: boolean }> {

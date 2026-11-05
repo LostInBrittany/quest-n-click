@@ -35,6 +35,14 @@ const CONSUMERS: Record<string, { phase: Reads; reads: string }> = {
     phase: 'wiki',
     reads: 'the upgrade notes of wiki/en and wiki/fr it extends; runs `wiki -- transition` and `wiki -- check`',
   },
+  'tools/next-mark.ts': {
+    phase: 'wiki',
+    reads: 'the pages of wiki/en and wiki/fr and the manifest, for the next mark (#443)',
+  },
+  'tools/next-mark-records.ts': {
+    phase: 'wiki',
+    reads: "wiki/'s pages, manifest and records, to carry the pairs' and claims' hashes over the next mark's rewrite",
+  },
   // The generators and checks of the documentation.
   'tools/api-doc.ts': { phase: 'wiki', reads: 'the generated part of wiki/en|fr/engine.api.md' },
   'tools/docs-truth.ts': { phase: 'wiki', reads: 'every page of wiki/en and wiki/fr' },
@@ -54,6 +62,11 @@ const CONSUMERS: Record<string, { phase: Reads; reads: string }> = {
   'tests/docs-truth.test.ts': {
     phase: 'wiki',
     reads: 'contribute.architecture, contribute.code-tour, the EN/FR pairs',
+  },
+  'tests/changes.test.ts': { phase: 'wiki', reads: 'paths only, for needsFragment; package.json for the version' },
+  'tests/next-mark.test.ts': {
+    phase: 'wiki',
+    reads: 'paths only, for markKind; a copy of wiki/ and its manifest, rewritten (#443)',
   },
   'tests/propagation.test.ts': { phase: 'wiki', reads: 'wiki/en|fr/create.dsl.md' },
   'tests/release-prepare.test.ts': {
