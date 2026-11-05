@@ -109,7 +109,7 @@ The whole documentation is [the wiki](https://github.com/Quest-n-Click/quest-n-c
 
 ## Releases
 
-Current release: [v4.7.0 (Terra Incognita)](https://github.com/Quest-n-Click/quest-n-click/releases/tag/v4.7.0): TODO(release)
+Current release: [v4.7.0 (Terra Incognita)](https://github.com/Quest-n-Click/quest-n-click/releases/tag/v4.7.0): the world map reached on foot or drawn by the game's own picture, images and the page's title per language, the title screen placed by the game, and an end that rolls the credits and lets the world go on.
 Every earlier release is in the [CHANGELOG](CHANGELOG.md).
 
 ## Licences

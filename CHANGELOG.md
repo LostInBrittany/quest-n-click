@@ -2,7 +2,13 @@
 
 ## 4.7.0 — 2026-11-05
 
-LOG #361–#375: "Terra Incognita", a minor release after 4.6.0. TODO(release): what it changes, for whom, and what a game has to do (Upgrade notes).
+LOG #361–#375: "Terra Incognita", a minor release after 4.6.0. The world map and the page around a game grow: a place
+can be reached on foot, a map can draw its own places (`map.pins: 'hidden' | 'dots'`), a child region stays hidden
+until one of its places is unlocked and its `frame` is drawn. A game can letter its images and its page's title in
+each language (`i18n.images`, `site.json` `i18n`), place its title logo and buttons, turn a character back once the
+hero is done with it (`turnBack`), and end a chapter with the credits, the title and a world that goes on
+(`{ end: true, credits, title, keepPlaying }`). A thing's name no longer runs off the scene's edge. The support
+window becomes the latest minor only (D59), and the README is rewritten. Nothing to change in a game (Upgrade notes).
 
 ### Fixed
 

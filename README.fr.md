@@ -111,7 +111,7 @@ Toute la documentation est [le wiki](https://github.com/Quest-n-Click/quest-n-cl
 
 ## Releases
 
-Release actuelle : [v4.7.0 (Terra Incognita)](https://github.com/Quest-n-Click/quest-n-click/releases/tag/v4.7.0) : TODO(release)
+Release actuelle : [v4.7.0 (Terra Incognita)](https://github.com/Quest-n-Click/quest-n-click/releases/tag/v4.7.0) : la carte du monde parcourue à pied ou dessinée par l'image du jeu, des images et le titre de la page par langue, l'écran titre placé par le jeu, et une fin qui déroule le générique et laisse le monde continuer.
 Toutes les releases précédentes sont dans le [CHANGELOG](CHANGELOG.md).
 
 ## Licences

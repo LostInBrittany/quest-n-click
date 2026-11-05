@@ -9454,15 +9454,32 @@ the save and the reading now share one evaluation and no tick can come between t
 
 → next: nothing.
 
-## #375 · 2026-11-05 · Claude · release · 4.7.0 "Terra Incognita": TODO(release)
+## #375 · 2026-11-05 · Claude · release · 4.7.0 "Terra Incognita": the map, the page and the end of a game
 
-- **The request**: TODO(release)
-- **What ships**: TODO(release)
-- **Fragments**: TODO(release)
-- **Upgrade notes**: TODO(release)
-- **Reviews**: TODO(release)
-- **Fixtures**: TODO(release)
-- **Passes**: TODO(release)
-- **Signature**: TODO(release)
+- **The request**: on 5 November, after #433 merged, Horacio asked to release that day: "4.6.1? 4.7.0? Why? It
+  deserves it?" The changes since 4.6.0 add optional DSL fields and public types, so 4.7.0 under strict SemVer, not the
+  4.6.1 the fragments named (#434). The same day: the support window made the latest minor only (D59, « Latest minor
+  only »), the README rewritten (#434), the upgrade notes completed after #438 (#441), and the name, "Terra Incognita".
+- **What ships**: for authors and players, #415 (#414, a thing's name inside the scene), #419 (#417, `turnBack`), #420
+  (#418, the title screen's logo and buttons), #423 (#421 and #422, a child region shown once open, its `frame` drawn,
+  travel on foot), #429 (#428, `map.pins`), #432 (#430, `i18n.images`), #433 (#431, `site.json` `i18n`), #438 (#437,
+  the end's `credits`, `title` and `keepPlaying`); the release and CI, #416 (#410, the release commands), #425 (#413,
+  the `routes` mutation set gated), #427 (`external-consumer` skipped at the job level), #436 (the coverage ratchet
+  strict on pull requests), #440 (the routes e2e's save race); #434 (the version, D59, the README) and #441.
+- **Fragments**: assembled by `npm run release -- prepare 4.7.0`, on main at `14b907bd`.
+- **Upgrade notes**: "From 4.6.0 to 4.7.0" in `install.upgrade-notes-4-7`, a new page in both languages, written ahead
+  in #434 and completed in #441: the lead names `keepPlaying` as the one addition that is not presentation only; the
+  section lists every option, the new types, the two fixes, the support window, and for maintainers and contributors
+  the release commands, the `routes` set, `external-consumer` and the strict ratchet. The CHANGELOG bullets `prepare`
+  put in a comment were read against it and the comment removed.
+- **Reviews**: the pairs this release changes keep an AI author's record (D56); `prepare` could not fold fifteen acks
+  of the feature branches whose text #434's rename moved, which #434's own acks cover. Fifteen pairs a person
+  (wanoo) had read on 24 October now hold an AI author's record only, listed by `prepare`; none is a claim.
+- **Fixtures**: golden save demo-4.7.0, reference run, quality baseline, written by `prepare` (the release's own
+  write, `quality:baseline -- --release --dist`).
+- **Passes**: sheet 4.7.0, the twenty-two of 4.6.0, none new; none carried.
+- **Signature**: the tag is signed with LostInBrittany's SSH key (`npm run release -- 4.7.0`).
 
-→ next: TODO(release)
+→ next: the routes' three field passes made passes (ids, issues, `passIssues`), still open from 4.6.0; the map's
+`pins` and `vehicle: 'walk'`, images per language and `keepPlaying` on a real phone; the portrait layout in WebKit and
+on real phones (#397).
