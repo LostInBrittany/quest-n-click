@@ -2,7 +2,7 @@
 // write a release's files, each checked against what the 4.5.3 release commit (2afb9f51) wrote by hand, from the files
 // as they were before it (its parent). Prose is never invented: a helper leaves `TODO(release)` where it is needed.
 import { execFileSync, spawnSync } from 'node:child_process';
-import { cpSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
+import { cpSync, existsSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
@@ -43,7 +43,23 @@ import {
   withReleaseSection,
   withPassIssues,
   withUpgradeNotes,
+  fixturesFact,
+  fragmentsFact,
+  mergedPulls,
+  passesFact,
+  passesIntro,
+  reviewsFact,
+  shipsFact,
+  signatureFact,
+  upgradeNotesFact,
+  withLogFact,
+  wrap,
+  VERSION_TESTS,
+  versionTestsArgs,
+  versionTestsResult,
+  withVersionInRelease,
 } from '../tools/release/prepare';
+import { releaseSummary } from '../tools/changes';
 
 // The files as 4.5.3's release commit (2afb9f51) found and left them, kept as fixtures (CI checks out without history):
 // tests/fixtures/release-4.5.3/before and after; the CHANGELOG's head and the LOG's release line only.
@@ -303,6 +319,7 @@ describe('the command', () => {
       'locks',
       'changelog',
       'wiki acks',
+      'next mark',
       'upgrade notes',
       'transition pages',
       'golden save',
@@ -349,6 +366,7 @@ describe('the command', () => {
       ['npm run wiki -- check: no warning', true],
       ["the docs' human gates (wiki -- check --publish --reviews-only)", true],
       ['npm run quality:baseline -- --check', true],
+      [`the tests that depend on the version (${VERSION_TESTS.join(', ')})`, true],
     ]);
     expect(items[4]!.detail).toBe('CHANGELOG.md:5');
     // A red docs gate names what to do: the ✖ lines of the wiki's own output.
@@ -649,11 +667,13 @@ describe('the command on a clone (4.5.4)', () => {
         'tools/release/prepare.ts',
         'tools/release/gates.ts',
         'tools/changes.ts',
+        'tools/next-mark.ts',
         'tools/release/lib.mjs',
         'scripts/pack-manifests.mjs',
       ])
         cpSync(resolve(f), join(repo, f));
-      git('commit', '-q', '-am', 'tools', '--allow-empty');
+      git('add', '-A');
+      git('commit', '-q', '-m', 'tools', '--allow-empty');
       // A junction, which Windows makes without rights (a symlink elsewhere).
       symlinkSync(resolve('node_modules'), join(repo, 'node_modules'), 'junction');
       setup(git, repo);
@@ -809,5 +829,327 @@ describe('an upgrade-notes section written ahead (#410)', () => {
     const page = '# Upgrade notes: 4.6\n\nWhat 4.6.1 changed.\n';
     expect(upgradeNotesLead(page, '4.6.0', '4.6.1', 'en')).toBe(page);
     expect(upgradeNotesLead(page, '4.6.0', '4.6.10', 'en')).toContain('TODO(release)');
+  });
+});
+
+describe('the facts prepare writes into the prose (#410, PR 6)', () => {
+  it('opens the CHANGELOG section with the fragments’ release lines, then where a game reads what to do', () => {
+    const intro = changelogIntro({
+      version: '4.8.0',
+      name: 'N',
+      previous: '4.7.1',
+      first: 380,
+      last: 390,
+      summary: 'A one. C two.',
+    });
+    expect(intro).toBe(
+      'LOG #380–#390: "N", a minor release after 4.7.1. A one. C two. The upgrade notes say what a game has to do.',
+    );
+    expect(intro).not.toContain('TODO(release)');
+  });
+  it('writes the README line from the same lines, each language its own; none given, the marker as before', () => {
+    expect(currentReleaseLine('en', '4.8.0', 'N', 'A one.')).toBe(
+      'Current release: [v4.8.0 (N)](https://github.com/Quest-n-Click/quest-n-click/releases/tag/v4.8.0): A one.',
+    );
+    expect(currentReleaseLine('fr', '4.8.0', 'N', 'Un.')).toBe(
+      'Release actuelle : [v4.8.0 (N)](https://github.com/Quest-n-Click/quest-n-click/releases/tag/v4.8.0) : Un.',
+    );
+    expect(currentReleaseLine('fr', '4.8.0', 'N')).toMatch(/ : TODO\(release\)$/);
+    const readme = withCurrentRelease(before('README.md'), 'en', '4.8.0', 'N', 'A one.');
+    expect(readme).toContain('/releases/tag/v4.8.0): A one.\n');
+  });
+  it('reads the pull requests merged since the previous tag from git log, merges and squashes, no release branch', () => {
+    const log = [
+      'Merge pull request #445 from LostInBrittany/fix/core-mutants-after-end\x1fcore mutants: afterEnd tested (#444)\n',
+      'Merge pull request #442 from Quest-n-Click/release/4.7.0\x1f4.7.0: the release\n',
+      'Map: pins that draw nothing (#428) (#429)\x1f\n',
+      'A direct commit on main\x1f\n',
+      'Merge pull request #441 from Quest-n-Click/ccr-f06283fe\x1f\n',
+    ].join('\x1e');
+    // git log lists the newest first; the LOG reads oldest first.
+    expect(mergedPulls(log)).toEqual([
+      { n: 441, title: '' },
+      { n: 429, title: 'Map: pins that draw nothing (#428)' },
+      { n: 445, title: 'core mutants: afterEnd tested (#444)' },
+    ]);
+  });
+  it('says what ships as the pull requests by number and title, a marker when the previous tag is not there', () => {
+    expect(
+      shipsFact('4.7.0', [
+        { n: 441, title: '' },
+        { n: 445, title: 'core mutants: afterEnd tested (#444)' },
+      ]),
+    ).toBe('the pull requests merged since v4.7.0, oldest first: #441, #445 (core mutants: afterEnd tested (#444)).');
+    expect(shipsFact('4.7.0', undefined)).toMatch(/^TODO\(release\): .*v4\.7\.0/);
+  });
+  it('names the fragments, main’s commit and the ones that gave the release lines', () => {
+    expect(fragmentsFact('4.8.0', '14b907bd0123', ['a', 'b', 'c'], ['a', 'c'])).toBe(
+      '3 assembled by `npm run release -- prepare 4.8.0`, on main at `14b907bd`: `a`, `b`, `c`; the intro and the README line from the `### Release` lines of `a`, `c`.',
+    );
+    expect(fragmentsFact('4.8.0', '14b907bd0123', ['a'], [])).toBe(
+      '1 assembled by `npm run release -- prepare 4.8.0`, on main at `14b907bd`: `a`; no `### Release` line.',
+    );
+  });
+  it('says the upgrade notes’ section as written ahead or appended', () => {
+    expect(upgradeNotesFact({ previous: '4.7.0', version: '4.7.1', ahead: true })).toBe(
+      '"From 4.7.0 to 4.7.1" in `install.upgrade-notes-4-7`, both languages, written ahead; the release\'s CHANGELOG bullets in a comment at its end, to check it against.',
+    );
+    expect(upgradeNotesFact({ previous: '4.7.0', version: '4.7.1', ahead: false })).toBe(
+      '"From 4.7.0 to 4.7.1" in `install.upgrade-notes-4-7`, both languages, appended by `prepare` from the release\'s CHANGELOG bullets, to rewrite for a reader upgrading.',
+    );
+  });
+  it('sums up the reviews the fold takes in: pairs and claims, a person’s named, what it could not keep', () => {
+    const ai = { name: 'claude-opus-5-5', kind: 'ai', relation: 'author', date: '2026-11-05' } as const;
+    const human = { name: 'wanoo', kind: 'human', relation: 'independent', date: '2026-11-05' } as const;
+    const h = 'a'.repeat(64);
+    expect(
+      reviewsFact(
+        [
+          { file: 'changes/a.acks.json', pairs: { 'p#1': { enHash: h, frHash: h, reviewers: [ai] } }, claims: {} },
+          {
+            file: 'changes/b.acks.json',
+            pairs: { 'p#2': { enHash: h, frHash: h, reviewers: [ai, human] } },
+            claims: { c1: { claimTextHash: h, testFileHash: h, reviewers: [human] } },
+          },
+        ],
+        ['⚠  one'],
+      ),
+    ).toBe(
+      "folded by `prepare` from `changes/a.acks.json`, `changes/b.acks.json`: 2 translation pairs (1 read by a person, wanoo; 1 with an AI's record only, D56), 1 claim (1 read by a person, wanoo); 1 pending ack not kept, its text changed since it was read (listed by `prepare`).",
+    );
+    expect(reviewsFact([], [])).toBe('no pending ack nor claim review to fold (`changes/*.acks.json`).');
+  });
+  it('says the passes against the previous version’s, and writes the sheet’s intro when none changed', () => {
+    const p = ['a', 'b'];
+    expect(passesFact('4.7.1', '4.7.0', p, p)).toBe('sheet 4.7.1, the 2 of 4.7.0, none new.');
+    expect(passesFact('4.8.0', '4.7.1', [...p, 'c'], p)).toBe('sheet 4.8.0, 3 passes: the 2 of 4.7.1 and 1 new (`c`).');
+    const intro = passesIntro('4.7.1', '4.7.0', p, p);
+    expect(intro).toBe(
+      "4.7.1 adds no pass (`passesFor('4.7.1')` equals 4.7.0's, 2, and `docs/dev/contracts.json`'s `passIssues` gives 4.7.1 each pass's 4.7.0 issue). The 2 stay open and are made on the 4.7.1 candidate.",
+    );
+    expect(passesIntro('4.8.0', '4.7.1', [...p, 'c'], p)).toMatch(/^TODO\(release\): .*`c`/);
+    const sheet = passesSheet(before('docs/dev/passes/4.5.2.md'), '4.5.2', '4.5.3', intro);
+    expect(sheet.split('\n').slice(0, 3)).toEqual(['# Passes, 4.5.3', '', intro]);
+    expect(sheet).not.toContain('TODO(release)');
+  });
+  it('writes the fixtures and the signature as the release command makes them', () => {
+    expect(fixturesFact('4.7.1')).toBe(
+      "golden save demo-4.7.1, reference run, quality baseline, written by `prepare` (the release's own write, `quality:baseline -- --release --dist`).",
+    );
+    expect(signatureFact('4.7.1')).toBe(
+      'the tag is signed with an SSH key `.github/allowed_signers` names (`npm run release -- 4.7.1` refuses any other).',
+    );
+  });
+  it('fills a bullet of the release entry only, once, and leaves the rest of the LOG alone', () => {
+    const log = `## #1 · d · Claude · proposal · x\n\n- **Reviews**: TODO(release)\n\n${logReleaseEntry({ n: 2, date: 'd', version: '4.7.1', name: 'N' })}`;
+    const out = withLogFact(log, '4.7.1', 'Reviews', 'none.');
+    expect(out.split('\n')[2]).toBe('- **Reviews**: TODO(release)');
+    expect(out).toContain('\n- **Reviews**: none.\n');
+    expect(withLogFact(out, '4.7.1', 'Reviews', 'again.')).toBe(out);
+  });
+  it('wraps a bullet at 120 columns, its continuation indented, a code span never cut', () => {
+    const text = `- **Passes**: ${'word '.repeat(20)}\`a code span with spaces\` ${'tail '.repeat(10)}end.`;
+    const lines = wrap(text, '  ').split('\n');
+    expect(lines.every((l) => l.length <= 120)).toBe(true);
+    expect(lines.slice(1).every((l) => l.startsWith('  '))).toBe(true);
+    expect(lines.some((l) => l.includes('`a code span with spaces`'))).toBe(true);
+    expect(wrap(text, '  ').replace(/\n {2}/g, ' ')).toBe(text);
+  });
+});
+
+describe("prepare's prose on a fixture release, with and without release lines (#410, PR 6)", () => {
+  const fragments = (withRelease: boolean) => [
+    {
+      slug: '500-thing',
+      changelog: `${withRelease ? '### Release\n\nA thing does a new thing, for authors.\n\n### Release (fr)\n\nUne chose fait une chose nouvelle, pour les auteurs.\n\n' : ''}### Changes\n\n- **A thing (4.5.3)**: it does.\n`,
+    },
+    { slug: '501-ci', changelog: '### Fixed\n\n- **CI (4.5.3)**: green.\n' },
+  ];
+  /** The release's files as prepare's steps write them, in their order; `facts` off is the behaviour before PR 6. */
+  function prose(withRelease: boolean, facts: boolean) {
+    const version = '4.5.3';
+    const previous = '4.5.2';
+    const name = 'One pass';
+    const summary = facts ? releaseSummary(fragments(withRelease)) : { slugs: [], missingFr: [] };
+    const changelog = withReleaseSection(
+      '# Changelog\n\n## Unreleased\n\n### Changes\n\n- **A thing (4.5.3)**: it does.\n',
+      releaseHeading(version, '2026-10-25'),
+      changelogIntro({
+        version,
+        name,
+        previous,
+        first: 300,
+        last: 308,
+        ...(summary.en ? { summary: summary.en } : {}),
+      }),
+    );
+    let log = `# LOG\n\n${logReleaseEntry({
+      n: 308,
+      date: '2026-10-25',
+      version,
+      name,
+      ...(facts
+        ? {
+            facts: {
+              'What ships': shipsFact(previous, [{ n: 500, title: 'A thing' }]),
+              Fragments: fragmentsFact(version, 'abcdef0123', ['500-thing', '501-ci'], summary.slugs),
+              Fixtures: fixturesFact(version),
+              Signature: signatureFact(version),
+            },
+          }
+        : {}),
+    })}`;
+    if (facts) {
+      log = withLogFact(log, version, 'Reviews', reviewsFact([], []));
+      log = withLogFact(log, version, 'Upgrade notes', upgradeNotesFact({ previous, version, ahead: false }));
+      log = withLogFact(log, version, 'Passes', passesFact(version, previous, ['a'], ['a']));
+    }
+    const sheet = passesSheet(
+      before('docs/dev/passes/4.5.2.md'),
+      previous,
+      version,
+      facts ? passesIntro(version, previous, ['a'], ['a']) : undefined,
+    );
+    const readme = (lang: 'en' | 'fr', file: string) =>
+      withCurrentRelease(before(file), lang, version, name, facts ? summary[lang] : undefined);
+    const notes = (lang: 'en' | 'fr') =>
+      withUpgradeNotes(before(`wiki/${lang}/install.upgrade-notes-4-5.md`), {
+        previous,
+        version,
+        name,
+        lang,
+        bullets: changelogBullets(changelog, version),
+      });
+    return [
+      { path: 'CHANGELOG.md', text: changelog },
+      { path: 'docs/dev/LOG.md', text: log },
+      { path: 'README.md', text: readme('en', 'README.md') },
+      { path: 'README.fr.md', text: readme('fr', 'README.fr.md') },
+      { path: 'docs/dev/passes/4.5.3.md', text: sheet },
+      { path: 'wiki/en/install.upgrade-notes-4-5.md', text: notes('en') },
+      { path: 'wiki/fr/install.upgrade-notes-4-5.md', text: notes('fr') },
+    ];
+  }
+  const count = (files: { path: string; text: string }[]) =>
+    Object.fromEntries(files.map((f) => [f.path, todoMarkers([f]).length]));
+  it('before PR 6: 16 markers, every sentence to write', () => {
+    expect(count(prose(false, false))).toEqual({
+      'CHANGELOG.md': 1,
+      'docs/dev/LOG.md': 10,
+      'README.md': 1,
+      'README.fr.md': 1,
+      'docs/dev/passes/4.5.3.md': 1,
+      'wiki/en/install.upgrade-notes-4-5.md': 1,
+      'wiki/fr/install.upgrade-notes-4-5.md': 1,
+    });
+  });
+  it('with the release lines: 5, the LOG’s title, request and next, and the upgrade notes’ openers', () => {
+    const files = prose(true, true);
+    expect(count(files)).toEqual({
+      'CHANGELOG.md': 0,
+      'docs/dev/LOG.md': 3,
+      'README.md': 0,
+      'README.fr.md': 0,
+      'docs/dev/passes/4.5.3.md': 0,
+      'wiki/en/install.upgrade-notes-4-5.md': 1,
+      'wiki/fr/install.upgrade-notes-4-5.md': 1,
+    });
+    const log = files[1]!.text;
+    expect(todoBrief([files[1]!]).map((t) => t.what.replace(/^(- \*\*[^*]+\*\*|## #308).*$/, '$1'))).toEqual([
+      '## #308',
+      '- **The request**',
+      '→ next: TODO(release)',
+    ]);
+    expect(log).toContain('- **Passes**: sheet 4.5.3, the 1 of 4.5.2, none new.');
+    expect(files[2]!.text).toContain('/releases/tag/v4.5.3): A thing does a new thing, for authors.\n');
+    expect(files[3]!.text).toContain(') : Une chose fait une chose nouvelle, pour les auteurs.\n');
+  });
+  it('without a release line: 8, the CHANGELOG’s intro and the README lines still to write', () => {
+    expect(count(prose(false, true))).toEqual({
+      'CHANGELOG.md': 1,
+      'docs/dev/LOG.md': 3,
+      'README.md': 1,
+      'README.fr.md': 1,
+      'docs/dev/passes/4.5.3.md': 0,
+      'wiki/en/install.upgrade-notes-4-5.md': 1,
+      'wiki/fr/install.upgrade-notes-4-5.md': 1,
+    });
+  });
+});
+
+describe('the next mark and the tests that depend on the version (#443)', () => {
+  it('names the four tests a version moves, files that exist', () => {
+    expect(VERSION_TESTS).toEqual([
+      'tests/mutants-json.test.ts',
+      'tests/quality-baseline.test.ts',
+      'tests/readme-truth.test.ts',
+      'tests/readme-release.test.ts',
+    ]);
+    for (const f of VERSION_TESTS) expect(existsSync(f), f).toBe(true);
+    expect(versionTestsArgs()).toEqual(['vitest', 'run', ...VERSION_TESTS]);
+  });
+  it('says a red run with its failing tests and the command to run them again', () => {
+    expect(versionTestsResult({ code: 0, out: ' Test Files  4 passed (4)' })).toEqual({ ok: true, detail: '' });
+    const red = versionTestsResult({
+      code: 1,
+      out: [
+        ' ✓ tests/readme-release.test.ts (2 tests)',
+        ' FAIL  tests/mutants-json.test.ts > the exemptions > none is due at 4.7.0',
+        'AssertionError: expected [ …(135) ] to deeply equal []',
+        ' Test Files  1 failed | 3 passed (4)',
+      ].join('\n'),
+    });
+    expect(red.ok).toBe(false);
+    expect(red.detail).toBe(
+      [
+        'FAIL  tests/mutants-json.test.ts > the exemptions > none is due at 4.7.0',
+        `they fail once package.json names the version; run them: npx ${versionTestsArgs().join(' ')}`,
+      ].join('\n'),
+    );
+  });
+  it('stops prepare before the push when one fails, with the prose and the gates in the same stop', () => {
+    const stop = beforePushStop({
+      version: '4.7.1',
+      name: 'N',
+      branch: 'release/4.7.1',
+      todos: [],
+      gates: { ok: true, detail: '' },
+      tests: { ok: false, detail: 'FAIL  tests/mutants-json.test.ts > x' },
+      pr: true,
+    })!;
+    expect(stop).toMatch(/^✖  the tests that depend on the version would fail/);
+    expect(stop).toContain('  FAIL  tests/mutants-json.test.ts > x');
+    expect(
+      beforePushStop({
+        version: '4.7.1',
+        name: 'N',
+        branch: 'b',
+        todos: [],
+        gates: { ok: true, detail: '' },
+        tests: { ok: true, detail: '' },
+        pr: true,
+      }),
+    ).toBeUndefined();
+  });
+  it("writes the version in the marks of the release's own CHANGELOG section and LOG entries, nowhere older", () => {
+    const changelog = [
+      '# Changelog',
+      '',
+      '## 4.7.1 — d',
+      '',
+      '- **A (next, #443)**.',
+      '',
+      '## 4.7.0 — d',
+      '',
+      '- **Old (next) as quoted then**.',
+      '',
+    ].join('\n');
+    expect(withVersionInRelease(changelog, /^## 4\.7\.1 /, '4.7.1')).toBe(
+      changelog.replace('**A (next, #443)**', '**A (4.7.1, #443)**'),
+    );
+    const log = '## #374 · d · x\n\nOld (next).\n\n## #376 · d · x\n\nNew (next, #443).\n';
+    expect(withVersionInRelease(log, /^## #376 · /, '4.7.1')).toBe(
+      log.replace('New (next, #443)', 'New (4.7.1, #443)'),
+    );
   });
 });

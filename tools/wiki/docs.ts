@@ -341,10 +341,12 @@ const semver = (v: string) => {
   return { n: [n[0] ?? 0, n[1] ?? 0, n[2] ?? 0], pre: dash < 0 ? undefined : plain.slice(dash + 1).split('.') };
 };
 /**
- * -1, 0 or 1, SemVer's order (§11): a pre-release before its release; its identifiers compared one by one, numbers
+ * -1, 0 or 1, SemVer's order (§11), `next` last: a pre-release before its release; its identifiers compared one by one, numbers
  * numerically (rc.2 < rc.10) and before words, a shorter list first when all else is equal.
  */
 export function compareVersions(a: string, b: string): number {
+  // `next` (#443): the release a branch lands in, after every version written; the release writes it.
+  if (a === 'next' || b === 'next') return a === b ? 0 : a === 'next' ? 1 : -1;
   const x = semver(a);
   const y = semver(b);
   for (let i = 0; i < 3; i++) if (x.n[i] !== y.n[i]) return x.n[i]! < y.n[i]! ? -1 : 1;

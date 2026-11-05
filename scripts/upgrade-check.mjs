@@ -73,7 +73,7 @@ if (source.kind === 'previous') {
   console.log(`upgrade from the previous release: ${source.version}`);
 }
 const oldTgz = source.kind === 'tgz' ? resolve(source.path) : join(base, source.asset);
-// The release's public download, tried again on a 5xx or a network error (4.7.1, #410), where `gh release download`
+// The release's public download, tried again on a 5xx or a network error (next, #410), where `gh release download`
 // tried once.
 if (source.kind === 'release') {
   const url = `https://github.com/Quest-n-Click/quest-n-click/releases/download/${source.tag}/${source.asset}`;

@@ -15,7 +15,7 @@
 // the generated redirect pages a later build no longer writes), writes the record, and pushes one commit, "wiki:
 // <version> r<n> (<docRevision>)"; nothing changed, no commit. The push is one ref update: a failure leaves the last
 // good state, and a rerun is a new dispatch. The clone, and a push that never reached the wiki, are tried again
-// (4.7.1, #410: 4.7.0's docs-publish met one "Permission denied (publickey)" on the clone, its re-run passed with the
+// (next, #410: 4.7.0's docs-publish met one "Permission denied (publickey)" on the clone, its re-run passed with the
 // same key): everything before the clone only reads, nothing is pushed before it succeeds, and a push is one ref
 // update, so a try again is safe. A push the wiki refused (moved since the clone, a protected branch, a key without
 // write access) is never tried again.

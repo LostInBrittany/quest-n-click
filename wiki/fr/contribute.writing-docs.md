@@ -237,7 +237,9 @@ l'ensemble des ids d'étape est le même dans les deux langues.
 ancre, dans les bornes de la page et identiquement dans les deux langues : `<!-- applies: 4.2.2.. -->` (à partir de),
 `<!-- applies: 4.2.2..4.4.0 -->` (bornes incluses), `<!-- applies: ..4.4.0 -->` (jusqu'à), avec `since <v>` pour la
 version où la fonction est apparue et un `deprecated` ou `archived` final pour une section gardée pour d'anciennes
-versions. Un marqueur mal formé est une erreur, jamais ignoré.
+versions. Un marqueur mal formé est une erreur, jamais ignoré. Une branche écrit `next` pour la release où elle
+arrivera, jamais un numéro deviné (`<!-- applies: next.. since next -->`, et `"appliesFrom": "next"` dans le
+manifeste), que la release écrit (next, #443) : [Conventions](contribute.conventions.md#next-mark).
 
 <a name="structured-blocks"></a>
 

@@ -45,7 +45,7 @@ describe('a git network step, tried again (#410)', () => {
     expect(s.calls()).toBe(4);
     expect(waits).toHaveLength(3);
   });
-  it('throws at once an error `again` says is not worth another try (4.7.1: a push the wiki refused)', () => {
+  it('throws at once an error `again` says is not worth another try (a push the wiki refused)', () => {
     const waits: number[] = [];
     const s = failing(10);
     const again = (e: unknown) => !String((e as Error).message).includes('refused (1)');

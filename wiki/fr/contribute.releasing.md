@@ -63,7 +63,7 @@ Elle refuse, avant d'écrire quoi que ce soit : une version qui n'est pas un `x.
 `package.json`, des changements non commités, une autre branche, un clone superficiel, un `main` qui n'est pas celui de
 l'organisation (en retard ou en avance, ou aucun remote ne nomme le dépôt de l'organisation), aucun fragment dans
 `changes/`, une nouvelle mineure dont la page de notes de mise à jour n'existe pas encore, un nom de release que les
-fichiers ne peuvent pas contenir tel quel (4.5.5, #348 : un nom avec `( ) [ ] " « » \` \ $ < > |`, que le lien de release
+fichiers ne peuvent pas contenir tel quel (4.5.5, #348 : un nom avec ``( ) [ ] " « » ` \ $ < > |``, que le lien de release
 du README, les guillemets du CHANGELOG ou la commande qu'elle affiche casseraient), une dernière fiche de passes sans
 son marqueur `<!-- field:begin -->` (le tableau qu'elle recopie commence là), et, sauf `--no-pr`, nulle
 part où pousser (votre fork : `origin` quand c'en est un, sinon le seul fork parmi les remotes ; le dépôt de
@@ -71,14 +71,17 @@ l'organisation quand aucun fork n'est un remote, une branche, jamais `main`) ou 
 branche de release faisait à la main, dans cet ordre : la version (`npm version --no-git-tag-version`), les pairs
 engine des verrous (sur une nouvelle mineure, chaque verrou versionné prend le pair `@quest-n-click/engine` de son
 manifeste, et rien d'autre n'y bouge ; 4.7.0, #410 : le verrou du Studio Server de la 4.6.0 gardait `4.5.x`), la section du
-CHANGELOG et les entrées du LOG depuis les fragments (`npm run changes -- --assemble`, qui crée son `## Unreleased` et
-replie un `.log.md` seul), l'entrée de release du LOG, les consignations en attente des branches versées dans
-`wiki/translations.json` et `wiki/reviews.json` (`npm run wiki -- acks --fold` ; ce qui ne tient plus à son texte est
-affiché, et repris dans l'arrêt), la section des notes de mise à jour (en et fr ; une section déjà écrite à l'avance
+CHANGELOG et les entrées du LOG depuis les fragments (`npm run changes -- --assemble --version=<version>`, qui crée son
+`## Unreleased`, replie un `.log.md` seul et écrit la version à la place de la marque `next` de chaque fragment),
+l'entrée de release du LOG, les consignations en attente des branches versées dans `wiki/translations.json` et
+`wiki/reviews.json` (`npm run wiki -- acks --fold` ; ce qui ne tient plus à son texte est affiché, et repris dans
+l'arrêt), la marque `next` écrite comme la version dans le wiki et les commentaires du code (next, #443), les
+enregistrements des paires et des garanties touchées reportés pour que rien ne reste à relire (étape `next mark`,
+`tools/next-mark.ts` ; [Conventions](contribute.conventions.md#next-mark)), la section des notes de mise à jour (en et fr ; une section déjà écrite à l'avance
 sous son ancre est gardée, jamais doublée, et les puces du CHANGELOG de la release vont dans un commentaire à sa fin
 pour son auteur, 4.7.0), les pages de
 transition, la sauvegarde de référence (listée dans `tests/fixtures/saves/index.json`), le run de référence, la fiche
-des passes et `passIssues`, la ligne de release actuelle du README (le résumé précédent gardé sous « Sur la … »), la
+des passes et `passIssues`, la ligne de release actuelle du README (à la place de la précédente, 4.7.0), la
 ligne de base de qualité ; un commit, les relectures humaines des docs, puis la pull request.
 
 Sa récupération (`fetch`) du `main` de l'organisation est tentée quatre fois, à 15 s d'intervalle, chaque essai raté
@@ -91,17 +94,35 @@ Si une étape échoue, elle s'arrête et dit quoi faire : avant le commit, rien 
 `git clean`, retour sur `main`, la branche supprimée : elle affiche les commandes) ; après, elle affiche le
 `git push` et le `gh pr create` à lancer à la main.
 
-Elle n'écrit aucune prose : chaque endroit qui demande une phrase porte `TODO(release)` (l'intro du CHANGELOG,
-l'entrée de release du LOG, les notes de mise à jour, le README, la fiche des passes). Un `TODO(release)` cité comme
+Elle écrit la prose dont elle tient les faits (next, #410), et `TODO(release)` là où une phrase demande une personne :
+
+- l'entrée de release du LOG : ses puces depuis les données de chaque étape (les pull requests fusionnées depuis le
+  tag précédent, par numéro et titre ; les fragments et le commit de `main` ; la section des notes de mise à jour,
+  écrite à l'avance ou ajoutée ; les consignations reprises par le versement, celles d'une personne nommées ; les
+  fixtures ; les passes face à celles de la version précédente ; la signature). Son titre, sa demande et son `→ next`
+  restent des `TODO(release)` ;
+- l'intro du CHANGELOG et la ligne de release actuelle du README, depuis les lignes `### Release` des fragments (et
+  `README.fr.md` depuis leurs `### Release (fr)`, quand chaque fragment qui a une ligne a sa version française) : un
+  `TODO(release)` quand aucun fragment n'en donne ([Conventions](contribute.conventions.md#changes-fragments)) ;
+- l'intro de la fiche des passes quand aucune passe ne change, sinon un `TODO(release)` qui nomme les passes ajoutées
+  ou retirées ;
+- l'ouverture des notes de mise à jour reste un `TODO(release)` quand elle ajoute la section ; une section écrite à
+  l'avance n'en a pas.
+
+Un `TODO(release)` cité comme
 du code, entre accents graves ou dans un bloc délimité, est une citation et non un marqueur (4.5.5, #364) : une entrée
 du CHANGELOG qui parle des marqueurs, copiée dans les notes de mise à jour, n'est jamais comptée comme à écrire.
 
 Avant de pousser (depuis la 4.5.5), elle vérifie ce sur quoi la CI de la pull request de release échouerait : un
-`TODO(release)` restant (les mêmes marqueurs que compte `check`) et les relectures humaines des docs
-(`wiki -- check --publish --reviews-only`, une claim ou une paire qu'une personne doit encore lire). Quand il reste
+`TODO(release)` restant (les mêmes marqueurs que compte `check`), les relectures humaines des docs
+(`wiki -- check --publish --reviews-only`, une claim ou une paire qu'une personne doit encore lire), et les tests qui
+dépendent de la version (next, #443 : `tests/mutants-json.test.ts`, `tests/quality-baseline.test.ts`,
+`tests/readme-truth.test.ts`, `tests/readme-release.test.ts`, moins d'une seconde ; ils passent sur chaque pull request
+à la version de `package.json` et ne peuvent échouer qu'une fois que la release nomme la sienne, comme l'ont fait les
+entrées de `mutants.json` dues et la première visite écrite dans un test de la 4.7.0). Quand il reste
 quelque chose, elle s'arrête là et sort avec 1 : rien de poussé, pas de pull request, la branche commitée dans votre
 checkout. Un seul arrêt liste tout : chaque `TODO(release)` avec son fichier, sa ligne et sa consigne, puis chaque
-relecture avec sa commande. Sur la branche locale, écrivez la prose vous-même ou demandez-la à votre assistant IA, avec
+relecture avec sa commande, puis chaque test en échec. Sur la branche locale, écrivez la prose vous-même ou demandez-la à votre assistant IA, avec
 ces marqueurs comme consigne, et relisez le diff ; enregistrez les paires de traduction qui ont changé
 (`npm run wiki -- check` donne chaque commande) ; une personne lit chaque claim ou paire et tape sa commande de
 relecture (`prepare` n'écrit jamais de prose, n'enregistre jamais une relecture et n'appelle aucune IA). Commitez, puis
@@ -131,7 +152,7 @@ Elle dit, point par point, si `package.json` est à la version, si le CHANGELOG 
 fichier) sont là (4.5.5, #348), s'il reste un
 `TODO(release)`, si `npm run wiki -- check` avertit, si les relectures humaines des docs tiennent
 (`wiki -- check --publish --reviews-only` : une claim ou une paire qu'une personne doit lire, chacune affichée avec sa
-commande), et si la ligne de base de qualité tient. La CI de la pull request de release la lance aussi, avec la
+commande), si la ligne de base de qualité tient, et si les tests qui dépendent de la version passent (next, #443). La CI de la pull request de release la lance aussi, avec la
 version que nomme sa branche : fusionnez quand chaque point est ✔, et le merge lance le candidat.
 
 <a name="release-command"></a>
@@ -347,7 +368,7 @@ le sha256 de l'archive de documentation, promeut cette archive (celle du candida
 `release: published`, qu'une release publiée avec `GITHUB_TOKEN` ne déclenche pas. Seule la clé de déploiement du wiki,
 `WIKI_DEPLOY_KEY`, lui est passée. Voir [Écrire la documentation](contribute.writing-docs.md).
 
-À partir de la 4.7.1 (#410), le clone du wiki, et une poussée qui n'a jamais atteint le wiki, sont tentés quatre fois, à
+Le clone du wiki, et une poussée qui n'a jamais atteint le wiki, sont tentés quatre fois (next, #410), à
 15 s d'intervalle, chaque essai raté signalé : le `docs-publish` de la 4.7.0 a rencontré un « Permission denied
 (publickey) » au clone, et sa relance est passée avec la même clé. Tout ce qui précède le clone ne fait que lire, et une
 poussée est la mise à jour d'une seule référence. Une poussée que le wiki a refusée (il a bougé depuis le clone, une

@@ -1,6 +1,7 @@
 // The CHANGELOG and LOG fragments (4.1.9, lot 0, tools/changes.ts): a branch writes changes/<slug>.md and the
 // assembly on main folds them in order, under the right section, numbering the LOG entries after the last one. Only
 // the Unreleased block is rebuilt: the rest of the page is byte for byte the same.
+import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import {
   appendLog,
@@ -11,6 +12,9 @@ import {
   logEntryOf,
   mergeChangelog,
   needsFragment,
+  releaseOf,
+  releaseSummary,
+  versioned,
   sectionsOf,
 } from '../tools/changes';
 
@@ -136,7 +140,7 @@ describe('the files of the fragments (4.5.4)', () => {
 describe('the fragments the check reads (#335)', () => {
   it('refuses a heading --assemble refuses, with the file, the line and the three headings', () => {
     expect(fragmentProblems([{ name: 'a.md', text: '### Fixed\n\n- **x**.\n\n### Fixes\n\n- **y**.\n' }])).toEqual([
-      'changes/a.md:5: "### Fixes" is not a fragment heading: ### Breaking | ### Fixed | ### Changes',
+      'changes/a.md:5: "### Fixes" is not a fragment heading: ### Breaking | ### Fixed | ### Changes, or ### Release | ### Release (fr)',
     ]);
   });
   it('refuses text before the first heading, at its line', () => {
@@ -158,8 +162,8 @@ describe('the fragments the check reads (#335)', () => {
         { name: 'bad.md', text: '### Added\n- a\n### Security\n- b\n' },
       ]),
     ).toEqual([
-      'changes/bad.md:1: "### Added" is not a fragment heading: ### Breaking | ### Fixed | ### Changes',
-      'changes/bad.md:3: "### Security" is not a fragment heading: ### Breaking | ### Fixed | ### Changes',
+      'changes/bad.md:1: "### Added" is not a fragment heading: ### Breaking | ### Fixed | ### Changes, or ### Release | ### Release (fr)',
+      'changes/bad.md:3: "### Security" is not a fragment heading: ### Breaking | ### Fixed | ### Changes, or ### Release | ### Release (fr)',
     ]);
   });
   it('accepts what --assemble accepts: the same list of headings', () => {
@@ -177,8 +181,9 @@ describe('the fragments the check reads (#335)', () => {
       'changes/a.log.md:1: a bare TODO(release) would stay in the LOG as a marker to write: quote it in backticks',
     ]);
   });
-  it('passes on every fragment of this branch', () => {
-    expect(fragmentProblems(fragmentTexts())).toEqual([]);
+  it('passes on every fragment of this branch, no version after package.json’s among them (#443)', () => {
+    const current = JSON.parse(readFileSync('package.json', 'utf8')).version as string;
+    expect(fragmentProblems(fragmentTexts(), current)).toEqual([]);
   });
 });
 
@@ -193,5 +198,114 @@ describe('the check of a pull request', () => {
     );
     expect(needsFragment(['games/demo/game.ts'])).toBe(true); // the bundled games ship
     expect(needsFragment(['src/x.ts', 'changes/README.md'])).toBe(true);
+  });
+});
+
+describe("a fragment's release lines (#410, PR 6)", () => {
+  const fragment = [
+    '### Release',
+    '',
+    "A character walks its rounds through rooms on the world's clock, seen or not (`route`), for authors.",
+    '',
+    '### Release (fr)',
+    '',
+    'Un personnage fait sa tournée de salle en salle',
+    "à l'heure du monde, vu ou non (`route`), pour les auteurs.",
+    '',
+    '### Changes',
+    '',
+    '- **Routes (4.6.0)**: a bullet.',
+    '',
+  ].join('\n');
+  it('reads the English and the French lines, each as one line, and leaves them out of the CHANGELOG', () => {
+    expect(releaseOf(fragment)).toEqual({
+      en: "A character walks its rounds through rooms on the world's clock, seen or not (`route`), for authors.",
+      fr: "Un personnage fait sa tournée de salle en salle à l'heure du monde, vu ou non (`route`), pour les auteurs.",
+    });
+    expect(sectionsOf(fragment)).toEqual({ Changes: '- **Routes (4.6.0)**: a bullet.' });
+    expect(mergeChangelog('# C\n\n## Unreleased\n', [{ changelog: fragment }])).not.toMatch(/Release|tournée|rounds/);
+    expect(releaseOf('### Fixed\n- x\n')).toEqual({});
+  });
+  it('is accepted by the check, any heading else still refused', () => {
+    expect(fragmentProblems([{ name: 'r.md', text: fragment }])).toEqual([]);
+    expect(fragmentProblems([{ name: 'r.md', text: '### Release\n\nOnly a line.\n' }])).toEqual([]);
+    expect(fragmentProblems([{ name: 'r.md', text: '### Releases\n\nA line.\n' }])).toEqual([
+      'changes/r.md:1: "### Releases" is not a fragment heading: ### Breaking | ### Fixed | ### Changes, or ### Release | ### Release (fr)',
+    ]);
+  });
+  it('refuses a release part the intro could not hold: empty, a list, too long, no full stop, twice, French alone', () => {
+    const problems = (text: string) => fragmentProblems([{ name: 'r.md', text }]);
+    expect(problems('### Release\n\n### Fixed\n- x\n')).toEqual([
+      'changes/r.md:1: "### Release" is empty: one or two sentences for the release\'s intro, or no heading',
+    ]);
+    expect(problems('### Release\n\n- a bullet.\n')).toEqual([
+      'changes/r.md:3: "### Release" is one or two sentences of prose, not a list: the bullets go under ### Changes',
+    ]);
+    expect(problems(`### Release\n\n${'word '.repeat(90)}end.\n`)).toEqual([
+      'changes/r.md:1: "### Release" holds 454 characters: one or two sentences, 400 at most (the intro joins every fragment\'s)',
+    ]);
+    expect(problems('### Release\n\nNo full stop\n')).toEqual([
+      'changes/r.md:1: "### Release" ends without a full stop: the intro joins it to the next fragment\'s',
+    ]);
+    expect(problems('### Release\n\nOne.\n\n### Release\n\nTwo.\n')).toEqual([
+      'changes/r.md:5: "### Release" is there twice: one per fragment',
+    ]);
+    expect(problems('### Release (fr)\n\nUne ligne.\n')).toEqual([
+      'changes/r.md:1: "### Release (fr)" without "### Release": the French line translates the English one',
+    ]);
+    expect(() => releaseOf('### Release\n\n- a bullet.\n')).toThrow(/not a list/);
+  });
+  it("assembles the fragments' lines in their order, French only when every English line has its French", () => {
+    const f = (slug: string, en?: string, fr?: string) => ({
+      slug,
+      changelog: [en && `### Release\n\n${en}\n`, fr && `### Release (fr)\n\n${fr}\n`, '### Fixed\n\n- x\n']
+        .filter(Boolean)
+        .join('\n'),
+    });
+    expect(releaseSummary([f('a', 'A one.', 'Un.'), f('b'), f('c', 'C two.', 'Deux.')])).toEqual({
+      en: 'A one. C two.',
+      fr: 'Un. Deux.',
+      slugs: ['a', 'c'],
+      missingFr: [],
+    });
+    expect(releaseSummary([f('a', 'A one.', 'Un.'), f('c', 'C two.')])).toEqual({
+      en: 'A one. C two.',
+      slugs: ['a', 'c'],
+      missingFr: ['c'],
+    });
+    expect(releaseSummary([f('b'), { slug: 'log-only', changelog: '' }])).toEqual({ slugs: [], missingFr: [] });
+  });
+});
+
+describe('the next release named next, not guessed (#443)', () => {
+  it('refuses a version after package.json’s in a fragment, at its line; the mark, history and quoted code pass', () => {
+    const files = [
+      { name: 'a.md', text: '### Fixed\n\n- **A fix (4.7.1, #406)**: it was 4.6.0 (4.5.4, #348).\n' },
+      { name: 'a.log.md', text: '## a title\n\nThen 5.0.0 maybe.\n' },
+      { name: 'b.md', text: '### Changes\n\n- **A thing (next, #443)**: since 4.7.0, `--release=4.8.0` quoted.\n' },
+    ];
+    expect(fragmentProblems(files, '4.7.0')).toEqual([
+      "changes/a.md:3: 4.7.1 is after package.json's 4.7.0: a fragment names the release it lands in as next, (next, #n), which the release writes",
+      "changes/a.log.md:3: 5.0.0 is after package.json's 4.7.0: a fragment names the release it lands in as next, (next, #n), which the release writes",
+    ]);
+    // Without the current version (an old caller), nothing more is refused.
+    expect(fragmentProblems(files)).toEqual([]);
+  });
+  it('writes the version being released in place of the mark, in both parts of every fragment', () => {
+    const out = versioned(
+      [
+        {
+          slug: 'x',
+          date: 'd',
+          changelog: '### Changes\n\n- **A thing (next, #443)**: `(next, #n)` quoted, 4.6.0 kept.\n',
+          log: '## the mark (next)\n\nBody (next, #443).\n',
+        },
+        { slug: 'y', date: 'd', changelog: '### Fixed\n\n- **B (4.6.0)**.\n' },
+      ],
+      '4.7.1',
+    );
+    expect(out[0]!.changelog).toBe('### Changes\n\n- **A thing (4.7.1, #443)**: `(next, #n)` quoted, 4.6.0 kept.\n');
+    expect(out[0]!.log).toBe('## the mark (4.7.1)\n\nBody (4.7.1, #443).\n');
+    expect(out[1]).toEqual({ slug: 'y', date: 'd', changelog: '### Fixed\n\n- **B (4.6.0)**.\n' });
   });
 });
