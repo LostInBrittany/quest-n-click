@@ -1,6 +1,6 @@
 // Every rename and drop of a migration step, and the chain that brings a save to the game's version (core/migrate.ts).
 import { describe, expect, it } from 'vitest';
-import { applyMigration, migrate } from '@engine/core/migrate';
+import { afterEnd, applyMigration, migrate } from '@engine/core/migrate';
 import type { GameDef, GameState, Migration } from '@engine/core/types';
 import { mini } from './fixtures/mini';
 import { scale } from './fixtures/scale';
@@ -225,5 +225,18 @@ describe('applyMigration: an absent step or active player is not renamed', () =>
   it('leaves a save with no active player without one, whatever the player map holds', () => {
     const out = applyMigration(bare(), { from: 1, renamePlayer: { undefined: 'p2' } });
     expect(out.active).toBeUndefined();
+  });
+});
+
+describe('afterEnd: a save past an end that lets the world go on (4.7.0, #437)', () => {
+  it('clears `done` when the end kept playing, so the load goes back into a world that runs', () => {
+    const s = afterEnd(bare({ done: true, keepPlaying: true }));
+    expect(s?.done).toBeUndefined();
+    expect(s?.keepPlaying).toBe(true);
+  });
+  it('leaves any other save as it is: a plain end stays ended, a game in progress stays in progress', () => {
+    expect(afterEnd(bare({ done: true }))?.done).toBe(true);
+    expect(afterEnd(bare())?.done).toBeUndefined();
+    expect(afterEnd(null)).toBeNull();
   });
 });
