@@ -19,6 +19,8 @@ Le dépôt du moteur. Les seuils datent de la 4.1.0 « Clarity » (le niveau mes
 [`tools/coverage-ratchet.ts`](../../tools/coverage-ratchet.ts), de la 4.1.3 ; ses annotations GitHub de la 4.1.9 ; les seuils dans leur propre fichier, hors de
 `vite.config.ts`, de la 4.6.0 (#405), si bien qu'en relever un laisse intacte la clé de cache de chaque ensemble de
 mutation ([Tests de mutation](contribute.mutation-testing.md)).
+Depuis la 4.7.0 (#410), le cliquet est strict sur les pull requests comme sur `main`, le candidat ne fait qu'avertir,
+et `--write` relève les seuils qu'il nomme.
 
 Ce qui est mesuré : la couverture V8 de `src/**/*.ts` (pas les `*.d.ts`), `bridge/src/**/*.ts` et
 `studio-server/src/**/*.ts`, par la suite unitaire et les tests d'assets (`npm run test:coverage`). Les seuils en
@@ -82,7 +84,7 @@ Dans le dépôt du moteur, sur votre machine. La CI lance la même chose en quat
    ```sh
    # dans le dépôt du moteur, après test:coverage
    npx tsx tools/coverage-ratchet.ts            # avertit
-   npx tsx tools/coverage-ratchet.ts --strict   # échoue, comme sur main
+   npx tsx tools/coverage-ratchet.ts --strict   # échoue, comme sur une pull request et sur main
    ```
 
    Chaque ligne `⚠ <portée> <mesure>: floor <n>, measured <m>` est un seuil trois points ou plus sous ce que les tests
@@ -90,8 +92,8 @@ Dans le dépôt du moteur, sur votre machine. La CI lance la même chose en quat
    seuils à relever.
 
 <!-- step: raise -->
-4. **Relevez les seuils qu'il nomme** dans `tests/coverage-floors.json`, à une valeur égale ou un peu inférieure à la
-   mesure, et committez-les avec le changement qui les a mérités. Le fichier est relu par le mainteneur (`CODEOWNERS`).
+4. **Relevez les seuils qu'il nomme** : `npx tsx tools/coverage-ratchet.ts --write` met chacun à deux points sous la
+   mesure, arrondi vers le bas, dans `tests/coverage-floors.json` ; committez-les avec le changement qui les a mérités. Le fichier est relu par le mainteneur (`CODEOWNERS`).
    Il n'entre pas dans le cache des mutations : relever un seuil ne relance aucun ensemble de mutation.
 
 > [!LIMIT id=ratchet-scope]
@@ -112,8 +114,8 @@ Dans le dépôt du moteur, sur votre machine. La CI lance la même chose en quat
 | Symptôme | Cause | Correction |
 |---|---|---|
 | Vitest : un seuil de lignes, branches, fonctions ou instructions non atteint | Moins de lignes exécutées que le seuil | Ajoutez des tests (étape 2) |
-| Annotation `⚠ coverage ratchet` sur une pull request | Un seuil trois points ou plus sous la mesure | Pas bloquant sur une pull request : relevez-le (étape 4), ou laissez-le au prochain changement |
-| `✖ n floor(s) at least 3 points below…` sur `main`, un tag ou `release-check` | La même chose, sous `--strict` | Relevez les seuils, dans une pull request |
+| `✖ n floor(s) at least 3 points below…` sur une pull request ou sur `main` | Un seuil trois points ou plus sous la mesure | `npx tsx tools/coverage-ratchet.ts --write`, puis committez les seuils dans la pull request (étape 4) |
+| Annotation `⚠ coverage ratchet` dans le candidat | La même chose, là où il ne fait qu'avertir | Rien ne bloque la release : relevez-les dans la pull request suivante |
 | `✖ …: no coverage summary (npm run test:coverage first)` | Le cliquet a tourné sans mesure | Lancez d'abord `npm run test:coverage` (sortie 2 sinon) |
 
 <a name="files-changed"></a>

@@ -339,7 +339,9 @@ describe('ci.yml and the plan', () => {
     );
     expect(cov).toMatch(/- if: env\.RUN == 'true'\n {8}run: npm run test:merge\n/);
     expect(cov).toMatch(
-      /- if: env\.RUN == 'true'\n {8}run: npx tsx tools\/coverage-ratchet\.ts \$\{\{ github\.event_name != 'pull_request' && '--strict' \|\| '' \}\}/,
+      // Strict everywhere it runs, pull requests included (4.7.0, #410 PR 2): the pull request that lifts the coverage
+      // raises its floors, and main never turns red after a merge on a ratchet the pull request did not see.
+      /- if: env\.RUN == 'true'\n {8}run: npx tsx tools\/coverage-ratchet\.ts --strict\n/,
     );
     expect(cov).toContain('pattern: unit-blob-*');
     expect(cov).not.toContain('npm run test:coverage');
