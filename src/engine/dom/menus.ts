@@ -33,7 +33,8 @@ export function videoBg(app: App, file: string, poster?: Id): HTMLVideoElement {
   return v;
 }
 
-export function credits(app: App) {
+/** Rolls the credits; resolves once they are gone, at their end or on a tap (4.7.0: an `end` waits for them). */
+export function credits(app: App): Promise<void> {
   const box = el('div', 'credits');
   const C = app.game.creditsScreen ?? { video: app.game.titleScreen?.video, decor: app.game.titleScreen?.decor };
   if (C.video) {
@@ -43,14 +44,21 @@ export function credits(app: App) {
   }
   const inner = el('div', '', (app.game.credits ?? []).map((l) => esc(l) || '&nbsp;').join('<br>'));
   box.append(inner);
-  box.onclick = () => box.remove();
+  let gone!: () => void;
+  const closed = new Promise<void>((resolve) => (gone = resolve));
+  const close = () => {
+    box.remove();
+    gone();
+  };
+  box.onclick = close;
   app.scene.append(box);
   const h = app.scene.clientHeight;
   inner.animate([{ transform: `translateY(0)` }, { transform: `translateY(-${h + inner.scrollHeight + 40}px)` }], {
     duration: 22000,
     easing: 'linear',
     fill: 'forwards',
-  }).onfinish = () => box.remove();
+  }).onfinish = close;
+  return closed;
 }
 
 // ================================================================== out-of-game screens
@@ -141,7 +149,7 @@ export function pauseMenu(app: App) {
   );
   row(ui.credits, '★').onclick = () => {
     close();
-    app.credits();
+    void app.credits();
   };
   row(ui.restart, '!', 'warn').onclick = () => {
     m.innerHTML = `<h3>!</h3><p>${esc(ui.confirmErase)}</p>`;

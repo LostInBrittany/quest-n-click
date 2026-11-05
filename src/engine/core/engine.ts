@@ -1,6 +1,6 @@
 import { check, condAtoms } from './cond';
 import { compileGame, EMPTY_LAYOUT } from './define';
-import { migrate } from './migrate';
+import { afterEnd, migrate } from './migrate';
 import type { Presenter, SaveStore } from './ports';
 import type {
   Action,
@@ -350,7 +350,7 @@ export class Engine {
 
   /** Resumes from a state (the autosave, a manual slot, an imported file), migrated if it is older. */
   async load(saved: GameState): Promise<void> {
-    const s = migrate(this.game, saved);
+    const s = afterEnd(migrate(this.game, saved));
     if (!s) throw new Error(`save version ${saved.v} cannot be migrated to ${this.game.saveVersion}`);
     this.onLoad.before?.(s);
     try {

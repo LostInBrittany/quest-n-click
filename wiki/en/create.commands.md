@@ -120,6 +120,7 @@ In schema 3 each of `once`, `nth`, `cycle` and `random` needs a stable `id`: its
 | `{ hint: true }` | Give the current hint (same as talking to the hint item). |
 | `{ ending: true, after?: […] }` | The sealed ending (`GameDef.ending`): scratch ticket, confetti, then `after`, then the final card. `{ reveal: true }` is the old name, still accepted ([the sealed ending](create.sealed-ending.md)). |
 | `{ end: true }` | End of game. |
+| `{ end: true, credits: true, title: true, keepPlaying: true }` | The end of a chapter (4.7.0): the credits roll (`GameDef.credits`), then the title screen. With `keepPlaying`, Continue goes back into the world after the end, rooms, scripts and sequences running ([Title and credits](create.title-credits.md#end-of-chapter)). |
 
 > [!LIMIT id=custom-for-the-rest]
 > What none of these commands does needs a custom command, written in TypeScript with its declared effects

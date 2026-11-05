@@ -68,6 +68,7 @@ const GameStateSchema = z.looseObject({
   ),
   started: num(),
   done: opt(z.boolean()),
+  keepPlaying: opt(z.boolean()),
   music: opt(z.looseObject({ id, at: num().check(z.nonnegative()) })),
   reality: opt(
     z.strictObject({

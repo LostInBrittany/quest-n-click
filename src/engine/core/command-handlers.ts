@@ -462,6 +462,7 @@ const ending: Handler<'ending' | 'reveal'> = async (eng, c, ctx) => {
   // The sealed ending ends the game as `end` does: `state.done` is the one truth an e2e or a replay reads, the card
   // is only how it is shown.
   eng.state.done = true;
+  delete eng.state.keepPlaying;
   eng.objectives.check(); // the objectives the last action completed, before the ending
   eng.journal.emit({ kind: 'endingReached', ending: 'sealed' });
   eng.save();
@@ -542,13 +543,16 @@ export const HANDLERS: Handlers = {
   hint: (eng, _c, ctx) => eng.hint(ctx),
   ending,
   reveal: ending,
-  end: (eng) => {
+  end: (eng, c) => {
     eng.state.done = true;
+    // 4.7.0: a load clears `done` after this end, so Continue goes back into a world that runs.
+    if (c.keepPlaying) eng.state.keepPlaying = true;
+    else delete eng.state.keepPlaying;
     eng.objectives.check(); // the objectives the last action completed, before the ending
     eng.journal.emit({ kind: 'endingReached', ending: 'end' });
     eng.save();
     eng.journal.saved();
-    eng.ui.end();
+    eng.ui.end(c.credits || c.title ? { credits: !!c.credits, title: !!c.title } : undefined);
   },
 };
 

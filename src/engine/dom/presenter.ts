@@ -5,7 +5,7 @@
 // spark, the cutscene's skip) are DOM; the scene itself is the room view's.
 import { derive } from '../core/prng';
 import type { MotionSpec } from '../core/motion';
-import type { Presenter } from '../core/ports';
+import type { EndShow, Presenter } from '../core/ports';
 import type {
   ChoiceScreen,
   GameState,
@@ -319,7 +319,15 @@ export class DomPresenter implements Presenter {
     if (phase === 'open') await this.app.sealed.open();
     else await this.app.sealed.card();
   }
-  end() {
-    /* the sealed ending handles the end screen */
+  /**
+   * A plain end shows nothing (the sealed ending has its own screens). 4.7.0: the credits, then the title screen, as
+   * the end asks; the engine is not held while they play (the end is already saved).
+   */
+  end(how?: EndShow) {
+    if (!how?.credits && !how?.title) return;
+    void (async () => {
+      if (how.credits) await this.app.credits();
+      if (how.title) await this.app.showTitle();
+    })();
   }
 }

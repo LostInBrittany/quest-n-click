@@ -69,3 +69,12 @@ export function migrate(game: GameDef, save: GameState | null): GameState | null
   }
   return s.v === game.saveVersion ? s : null;
 }
+
+/**
+ * A save past an `{ end: true, keepPlaying: true }` (4.7.0, #437) loads with its end cleared: the end was reached, and
+ * the world goes on from it (rooms, scripts and sequences run again). Any other save is returned as it is.
+ */
+export function afterEnd(s: GameState | null): GameState | null {
+  if (s?.keepPlaying) delete s.done;
+  return s;
+}

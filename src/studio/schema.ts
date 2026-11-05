@@ -199,7 +199,11 @@ export const CMD_SPECS: Record<CmdKey, CmdSpec> = {
   hint: { label: 'Give a hint', value: { k: 'bool' } },
   ending: { label: 'The ending', value: { k: 'bool' }, extra: { after: opt(cmds) } },
   reveal: { label: 'Reveal the sealed ending', value: { k: 'bool' }, extra: { after: opt(cmds) } },
-  end: { label: 'End the game', value: { k: 'bool' } },
+  end: {
+    label: 'End the game',
+    value: { k: 'bool' },
+    extra: { credits: opt({ k: 'bool' }), title: opt({ k: 'bool' }), keepPlaying: opt({ k: 'bool' }) },
+  },
 };
 
 /** The kinds of a condition, as the form offers them (a bare string is a flag, `!flag` its negation). */

@@ -1,0 +1,49 @@
+{
+  "format": "quest-n-click-docs-acks",
+  "version": 1,
+  "pairs": {
+    "create.commands#sequences": {
+      "enHash": "772e89c95c8ebb0d9b2dfd851e08d305c90a3a801b7c2c9d7cdc0f356a610a8f",
+      "frHash": "47ae75f4eea55fda74d08b40f417768d305dbafcb1596590a4a9be834d634657",
+      "reviewers": [
+        { "name": "claude", "kind": "ai", "relation": "author", "date": "2026-11-05" }
+      ]
+    },
+    "create.dsl#commands": {
+      "enHash": "ae3ea7bc905e9f97416cf1448d432164fe6d0cd73282cdff84f4147750044092",
+      "frHash": "c123b186ca37e2d8961cfc45b962ddd3db20ad6fb08e952967120ae39b983073",
+      "reviewers": [
+        { "name": "claude", "kind": "ai", "relation": "author", "date": "2026-11-05" }
+      ]
+    },
+    "create.title-credits#end-of-chapter": {
+      "enHash": "ba1c7835c3c77bb8b789e00bca2b0b824da020293a0aa3d63b02424fd7f7c743",
+      "frHash": "5d14e90863868fbf6b11bbf28e9339283887dec6011ec0b72e62e14e617fcead",
+      "reviewers": [
+        { "name": "claude", "kind": "ai", "relation": "author", "date": "2026-11-05" }
+      ]
+    },
+    "create.title-credits#title-and-credits": {
+      "enHash": "b29c476e844e968c19dc62dfb547d6d6e0dcd27242a926fd35f24ab2bf780871",
+      "frHash": "7a056d7e5037f9910f2d7ec14db7750a25a06abd364d944581a0570fc9bc00a2",
+      "reviewers": [
+        { "name": "claude", "kind": "ai", "relation": "author", "date": "2026-11-05" }
+      ]
+    },
+    "engine.api#content-reference": {
+      "enHash": "cd2a49cac58667c059940e10bc61926861da66779fee1fb50e18195c9ef3a316",
+      "frHash": "cac024173b78009f73a6439e62b19b79aee2d5cf7589f7aad7ddbcc5e72e572d",
+      "reviewers": [
+        { "name": "claude", "kind": "ai", "relation": "author", "date": "2026-11-05" }
+      ]
+    },
+    "engine.api#player-reference": {
+      "enHash": "9176a8d47f5abb0732a11e7d18c6769aea20c58b0fe5f99b55f4daab6f497d08",
+      "frHash": "336db210c4883a34d93586a8945e5fae1bcbf8661ccbd67fc5ded17dd470dd93",
+      "reviewers": [
+        { "name": "claude", "kind": "ai", "relation": "author", "date": "2026-11-05" }
+      ]
+    }
+  },
+  "claims": {}
+}

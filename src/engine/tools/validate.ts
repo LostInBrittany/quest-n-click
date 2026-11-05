@@ -548,7 +548,12 @@ export function validate(gameIn: GameDef, layouts: Record<string, Layout>, opts:
       if (!game.ending) err(where, 'sealed ending without "ending" in the game');
       return;
     }
-    if ('hint' in c || 'end' in c) return;
+    if ('end' in c) {
+      // 4.7.0: the credits an end rolls are the game's.
+      if (c.credits && !game.credits?.length) err(where, 'end with "credits" but the game has no "credits" lines');
+      return;
+    }
+    if ('hint' in c) return;
     err(where, `unknown command: ${JSON.stringify(c)}`);
   };
   /** Commands nested in a block are not at a script's top level (where waitUntil / waitEvent pause the script). */

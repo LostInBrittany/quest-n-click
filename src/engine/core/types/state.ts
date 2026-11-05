@@ -71,6 +71,8 @@ export interface GameState {
   players?: Record<Id, { room: Id; inventory: Id[]; hero: Record<Id, Point>; used?: Id[] }>;
   started: number;
   done?: boolean;
+  /** The last end was an `{ end: true, keepPlaying: true }` (4.7.0): a load clears `done`, the world goes on. */
+  keepPlaying?: boolean;
   /** Where the music was when this was saved (3.6): its track and its position in the file, in seconds. Written by the
    *  player's app, read back by it to resume the music there; the engine and the tools never read it. */
   music?: { id: Id; at: number };
