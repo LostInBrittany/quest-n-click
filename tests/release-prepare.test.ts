@@ -213,14 +213,13 @@ describe('the README', () => {
         .split('\n')
         .find((l) => l.startsWith(lang === 'en' ? 'Current release:' : 'Release actuelle :'))!;
       expect(real.startsWith(line.replace(/ ?TODO\(release\)$/, ''))).toBe(true);
-      // The paragraph is the releases' history: the new line first, the previous summary kept under its version.
+      // The new line replaces the previous one (4.7.0): the releases' history is the CHANGELOG's, not the README's.
       const old = before(file).split('\n');
       const at = old.findIndex((l) => l.startsWith(lang === 'en' ? 'Current release:' : 'Release actuelle :'));
-      const rest = old[at]!.replace(/^.*?\]\([^)]*\)\s*:\s*/, '');
       const replaced = withCurrentRelease(before(file), lang, '4.5.3', 'One pass').split('\n');
       expect(replaced[at]).toBe(line);
-      expect(replaced[at + 1]).toBe(lang === 'en' ? `Over 4.5.2 "Org": ${rest}` : `Sur la 4.5.2 « Org » : ${rest}`);
-      expect(replaced.slice(at + 2)).toEqual(old.slice(at + 1));
+      expect(replaced.slice(0, at)).toEqual(old.slice(0, at));
+      expect(replaced.slice(at + 1)).toEqual(old.slice(at + 1));
     });
   }
 });

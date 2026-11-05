@@ -235,19 +235,17 @@ export function currentReleaseLine(lang: 'en' | 'fr', version: string, name: str
 }
 
 /**
- * The README with the new release's line opening its current-release paragraph, the releases' history: the previous
- * line's summary is kept below it, under its version ("Over 4.5.2 "Org": …", "Sur la 4.5.2 « Org » : …").
+ * The README with the new release's line in place of the previous one (4.7.0): the README names the current release
+ * only, the releases' history is the CHANGELOG's. Until 4.6.0 the previous line's summary was kept below it, so the
+ * paragraph grew by a release each time.
  */
 export function withCurrentRelease(readme: string, lang: 'en' | 'fr', version: string, name: string) {
   const lines = readme.split('\n');
   const at = lines.findIndex((l) => l.startsWith(LABEL[lang]));
   if (at < 0) throw new Error(`no "${LABEL[lang]}" line`);
-  const m = /\[v(\d+\.\d+\.\d+) \(([^)]+)\)\]\([^)]*\)\s*:\s*(.*)$/.exec(lines[at]!);
-  if (!m) throw new Error(`the "${LABEL[lang]}" line names no release`);
-  const [, previous, previousName, rest] = m;
-  const over =
-    lang === 'en' ? `Over ${previous} "${previousName}": ${rest}` : `Sur la ${previous} « ${previousName} » : ${rest}`;
-  lines.splice(at, 1, currentReleaseLine(lang, version, name), over);
+  if (!/\[v(\d+\.\d+\.\d+) \(([^)]+)\)\]\([^)]*\)\s*:\s*(.*)$/.test(lines[at]!))
+    throw new Error(`the "${LABEL[lang]}" line names no release`);
+  lines.splice(at, 1, currentReleaseLine(lang, version, name));
   return lines.join('\n');
 }
 
