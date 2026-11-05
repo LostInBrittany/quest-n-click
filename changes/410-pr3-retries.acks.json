@@ -36,7 +36,8 @@
       "claimTextHash": "8aab416052c08263b80aeec80955704f43aeecdf7d44d5a8b077e69b7c619e91",
       "testFileHash": "fe255678ee42fe0f37f8bfdfedafb1861946d3e300e50bfd6730670b13fbac5a",
       "reviewers": [
-        { "name": "claude-opus-5-5", "kind": "ai", "relation": "author", "date": "2026-11-05" }
+        { "name": "claude-opus-5-5", "kind": "ai", "relation": "author", "date": "2026-11-05" },
+        { "name": "LostInBrittany", "kind": "human", "relation": "independent", "date": "2026-11-05" }
       ]
     }
   }
