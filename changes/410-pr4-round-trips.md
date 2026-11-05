@@ -10,3 +10,8 @@
   pull request run is ordered by the minutes each shard takes cold (`MINUTES` in `tools/mutation-sets.ts`, from 4.7.0's
   first candidate), so the 8 jobs run at a time end together: a cold candidate's mutation from 114 min to about 81.
   `npx tsx tools/mutation-shards.ts --minutes` rebuilds the table from a run's jobs.
+- **`prepare` no longer starts the mutation cache's warm-up (next, refs #410)**: it took about 110 min and the release
+  pull requests of 4.6.0 and 4.7.0 merged after 24 and 52, so the candidate measured the same long shards beside it
+  (about 600 runner-minutes a release, 8 runners held). The candidate's own cache step restores and saves the same
+  keys. The pull request's body gives the command for a review that will last longer:
+  `gh workflow run nightly --repo <repository> --ref main -f jobs=mutation`.

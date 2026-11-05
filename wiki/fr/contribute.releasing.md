@@ -133,13 +133,12 @@ repartir de `main`. Pour voir les relectures plus tôt, lancez `npm run release 
 point sur les relectures humaines des docs liste les claims et les paires encore à relire (les points sur la release
 elle-même y échouent, comme il se doit avant `prepare`).
 
-Quand elle pousse (depuis la 4.5.5), elle lance aussi le préchauffage du cache de mutation de `main`,
-`gh workflow run nightly --repo <le dépôt de l'organisation> --ref main -f jobs=mutation`, et en donne le lien (le corps
-de la pull request le dit aussi) : le commit de release ne change que des champs de version, que les empreintes
-d'entrée des ensembles de mutation laissent de côté, donc le cache rempli pendant la relecture de la pull request est
-celui que lit le candidat lancé par son merge. Un lancement refusé (droits, `gh`) est un avertissement avec cette
-commande à lancer à la main, jamais un échec. `--no-pr` ne pousse rien et ne lance rien ; elle donne la commande pour
-le moment où vous ouvrez la pull request.
+Elle ne lance aucun workflow quand elle pousse (next, #410). De la 4.5.5 à la 4.7.0, elle lançait le préchauffage du
+cache de mutation de `main` ; il prend environ 110 minutes, et en 4.6.0 comme en 4.7.0 la pull request a été fusionnée
+24 et 52 minutes après `prepare` : le candidat mesurait donc les mêmes longs morceaux à côté de lui. L'étape de cache du
+candidat reprend et enregistre elle-même les mêmes clés. Quand la relecture durera plus de deux heures environ, lancez
+le préchauffage à la main pendant ce temps (le corps de la pull request donne la commande, de même que `--no-pr`, qui
+ne pousse rien) : `gh workflow run nightly --repo <le dépôt de l'organisation> --ref main -f jobs=mutation`.
 
 Pour vérifier la branche à tout moment :
 
@@ -268,11 +267,11 @@ utilise et, quand ce n'est pas le merge de release, elle le signale ; la command
    [plus haut](#release-command)).
 
    Ses morceaux de mutation reprennent les rapports que la nightly a enregistrés sur `main` (4.5.5, #329) : seuls les
-   ensembles dont les entrées ont bougé depuis tournent à nouveau, les autres prennent une ou deux minutes chacun. Un
-   changement que lisent tous les ensembles (le lockfile, `vite.config.ts`) les fait tous bouger : `prepare` lance le
-   préchauffage quand elle pousse la pull request de release ([plus haut](#prepare)) ; pour un autre candidat,
-   préchauffez le cache à la main après le dernier merge avec `gh workflow run nightly --ref main -f jobs=mutation`
-   (les jobs de mutation seulement, qui reprennent ce qui est déjà en cache).
+   ensembles dont les entrées ont bougé depuis tournent à nouveau, les autres prennent une ou deux minutes chacun, et
+   le candidat enregistre ce qu'il a mesuré : un second candidat le reprend. Un changement que lisent tous les
+   ensembles (le lockfile, `vite.config.ts`) les fait tous bouger ; pour une longue relecture, préchauffez le cache à
+   la main ([plus haut](#prepare)) avec `gh workflow run nightly --ref main -f jobs=mutation` (les jobs de mutation
+   seulement, qui reprennent ce qui est déjà en cache).
 
 <!-- step: tag -->
 2. **Un tag qui le nomme.**

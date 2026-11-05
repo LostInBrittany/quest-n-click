@@ -19,7 +19,6 @@ import {
   prepareRefusals,
   RESUME_STEPS,
   noPrNote,
-  startWarmup,
   warmupArgs,
   warmupBodyLine,
   warmupCommand,
@@ -569,11 +568,12 @@ describe('when a step fails', () => {
   });
 });
 
-describe('the mutation warm-up prepare starts when it pushes (4.5.5)', () => {
+// #410 PR 4: on 4.6.0 and 4.7.0 the warm-up `prepare` started (about 110 min) was still running when the merge started
+// the candidate (24 and 52 min later): the long shards were measured twice, and 4.7.0's warm-up served none. The
+// candidate's own cache step restores and saves the same keys; the warm-up by hand stays for a long review.
+describe('the mutation warm-up, no longer started by prepare (#410 PR 4)', () => {
   const REPO = 'Quest-n-Click/quest-n-click';
-  const RUN = 'https://github.com/Quest-n-Click/quest-n-click/actions/runs/40300000001';
-  const WORKFLOW = 'https://github.com/Quest-n-Click/quest-n-click/actions/workflows/nightly.yml';
-  it("is the nightly's mutation jobs on the organisation's main, the dispatch #330 added", () => {
+  it("is still the nightly's mutation jobs on the organisation's main, to run by hand", () => {
     expect(warmupArgs(REPO)).toEqual([
       'workflow',
       'run',
@@ -589,60 +589,27 @@ describe('the mutation warm-up prepare starts when it pushes (4.5.5)', () => {
     // A fork's maintainer (WEB_SCUMM_REPO) warms their own repository's main.
     expect(warmupArgs('someone/fork')).toContain('someone/fork');
   });
-  it('says the run started, with its link when gh prints one, else the workflow page', () => {
-    const calls: string[][] = [];
-    const w = startWarmup((cmd, args) => {
-      calls.push([cmd, ...args]);
-      return { code: 0, out: `✓ Created workflow_dispatch event for nightly.yml at main\n  ${RUN}\n` };
-    }, REPO);
-    expect(calls).toEqual([['gh', ...warmupArgs(REPO)]]);
-    expect(w).toMatchObject({ ok: true, url: RUN });
-    expect(w.say).toContain(RUN);
-    expect(w.say).toMatch(/warm-up/);
-    const quiet = startWarmup(
-      () => ({ code: 0, out: '✓ Created workflow_dispatch event for nightly.yml at main\n' }),
-      REPO,
-    );
-    expect(quiet).toMatchObject({ ok: true, url: WORKFLOW });
+  it("the pull request's body says none was started, the candidate's cache, and the command for a long review", () => {
+    const line = warmupBodyLine(REPO);
+    expect(line).toMatch(/no warm-up/i);
+    expect(line).toMatch(/candidate/);
+    expect(line).toContain(warmupCommand(REPO));
   });
-  it('never fails prepare: a refusal or a missing gh is a warning with the command to run by hand', () => {
-    const denied = startWarmup(
-      () => ({ code: 1, out: 'HTTP 403: Must have admin rights to Repository. (https://api.github.com/…)\n' }),
-      REPO,
-    );
-    expect(denied.ok).toBe(false);
-    expect(denied.say).toMatch(/^⚠/);
-    expect(denied.say).toContain('HTTP 403');
-    expect(denied.say).toContain(warmupCommand(REPO));
-    const missing = startWarmup(() => {
-      throw new Error('spawn gh ENOENT');
-    }, REPO);
-    expect(missing.ok).toBe(false);
-    expect(missing.say).toContain('ENOENT');
-    expect(missing.say).toContain(warmupCommand(REPO));
-  });
-  it("is said in the pull request's body, started or to start by hand", () => {
-    const started = startWarmup(() => ({ code: 0, out: RUN }), REPO);
-    expect(warmupBodyLine(started, REPO)).toContain(RUN);
-    expect(warmupBodyLine(started, REPO)).toMatch(/candidate/);
-    const failed = startWarmup(() => ({ code: 1, out: 'boom' }), REPO);
-    expect(warmupBodyLine(failed, REPO)).toContain(warmupCommand(REPO));
-  });
-  it('with --no-pr starts nothing and says the command for when the pull request is opened', () => {
+  it('with --no-pr says nothing was pushed, and the same command', () => {
     expect(noPrNote(REPO)).toMatch(/--no-pr: nothing pushed/);
     expect(noPrNote(REPO)).toContain(warmupCommand(REPO));
   });
-  it('runs in the pull request step, after the push, and never in the stop before it', () => {
+  it('starts no workflow: neither the pull request step nor the stop before it runs `gh workflow run`', () => {
     const src = readFileSync('tools/release/prepare.ts', 'utf8');
+    expect(src).not.toContain('startWarmup');
     const step = src.slice(
       src.indexOf("'pull request': () => {"),
       src.indexOf('\n  };\n', src.indexOf("'pull request': () => {")),
     );
     expect(step.indexOf("sh('git', ['push'")).toBeGreaterThan(-1);
-    expect(step.indexOf('startWarmup(')).toBeGreaterThan(step.indexOf("sh('git', ['push'"));
-    expect(step.indexOf('startWarmup(')).toBeLessThan(step.indexOf("'pr',\n          'create'"));
+    expect(step).not.toMatch(/warmupArgs\(|'workflow',\s*'run'/);
     const stop = src.slice(src.indexOf("'before the push': () => {"), src.indexOf("'pull request': () => {"));
-    expect(stop).not.toContain('startWarmup(');
+    expect(stop).not.toMatch(/warmupArgs\(|'workflow',\s*'run'/);
   });
 });
 
