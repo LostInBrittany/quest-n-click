@@ -2,7 +2,7 @@
 // write a release's files, each checked against what the 4.5.3 release commit (2afb9f51) wrote by hand, from the files
 // as they were before it (its parent). Prose is never invented: a helper leaves `TODO(release)` where it is needed.
 import { execFileSync, spawnSync } from 'node:child_process';
-import { cpSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
+import { cpSync, existsSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
@@ -54,6 +54,10 @@ import {
   upgradeNotesFact,
   withLogFact,
   wrap,
+  VERSION_TESTS,
+  versionTestsArgs,
+  versionTestsResult,
+  withVersionInRelease,
 } from '../tools/release/prepare';
 import { releaseSummary } from '../tools/changes';
 
@@ -315,6 +319,7 @@ describe('the command', () => {
       'locks',
       'changelog',
       'wiki acks',
+      'next mark',
       'upgrade notes',
       'transition pages',
       'golden save',
@@ -361,6 +366,7 @@ describe('the command', () => {
       ['npm run wiki -- check: no warning', true],
       ["the docs' human gates (wiki -- check --publish --reviews-only)", true],
       ['npm run quality:baseline -- --check', true],
+      [`the tests that depend on the version (${VERSION_TESTS.join(', ')})`, true],
     ]);
     expect(items[4]!.detail).toBe('CHANGELOG.md:5');
     // A red docs gate names what to do: the ✖ lines of the wiki's own output.
@@ -661,11 +667,13 @@ describe('the command on a clone (4.5.4)', () => {
         'tools/release/prepare.ts',
         'tools/release/gates.ts',
         'tools/changes.ts',
+        'tools/next-mark.ts',
         'tools/release/lib.mjs',
         'scripts/pack-manifests.mjs',
       ])
         cpSync(resolve(f), join(repo, f));
-      git('commit', '-q', '-am', 'tools', '--allow-empty');
+      git('add', '-A');
+      git('commit', '-q', '-m', 'tools', '--allow-empty');
       // A junction, which Windows makes without rights (a symlink elsewhere).
       symlinkSync(resolve('node_modules'), join(repo, 'node_modules'), 'junction');
       setup(git, repo);
@@ -1066,5 +1074,82 @@ describe("prepare's prose on a fixture release, with and without release lines (
       'wiki/en/install.upgrade-notes-4-5.md': 1,
       'wiki/fr/install.upgrade-notes-4-5.md': 1,
     });
+  });
+});
+
+describe('the next mark and the tests that depend on the version (#443)', () => {
+  it('names the four tests a version moves, files that exist', () => {
+    expect(VERSION_TESTS).toEqual([
+      'tests/mutants-json.test.ts',
+      'tests/quality-baseline.test.ts',
+      'tests/readme-truth.test.ts',
+      'tests/readme-release.test.ts',
+    ]);
+    for (const f of VERSION_TESTS) expect(existsSync(f), f).toBe(true);
+    expect(versionTestsArgs()).toEqual(['vitest', 'run', ...VERSION_TESTS]);
+  });
+  it('says a red run with its failing tests and the command to run them again', () => {
+    expect(versionTestsResult({ code: 0, out: ' Test Files  4 passed (4)' })).toEqual({ ok: true, detail: '' });
+    const red = versionTestsResult({
+      code: 1,
+      out: [
+        ' ✓ tests/readme-release.test.ts (2 tests)',
+        ' FAIL  tests/mutants-json.test.ts > the exemptions > none is due at 4.7.0',
+        'AssertionError: expected [ …(135) ] to deeply equal []',
+        ' Test Files  1 failed | 3 passed (4)',
+      ].join('\n'),
+    });
+    expect(red.ok).toBe(false);
+    expect(red.detail).toBe(
+      [
+        'FAIL  tests/mutants-json.test.ts > the exemptions > none is due at 4.7.0',
+        `they fail once package.json names the version; run them: npx ${versionTestsArgs().join(' ')}`,
+      ].join('\n'),
+    );
+  });
+  it('stops prepare before the push when one fails, with the prose and the gates in the same stop', () => {
+    const stop = beforePushStop({
+      version: '4.7.1',
+      name: 'N',
+      branch: 'release/4.7.1',
+      todos: [],
+      gates: { ok: true, detail: '' },
+      tests: { ok: false, detail: 'FAIL  tests/mutants-json.test.ts > x' },
+      pr: true,
+    })!;
+    expect(stop).toMatch(/^✖  the tests that depend on the version would fail/);
+    expect(stop).toContain('  FAIL  tests/mutants-json.test.ts > x');
+    expect(
+      beforePushStop({
+        version: '4.7.1',
+        name: 'N',
+        branch: 'b',
+        todos: [],
+        gates: { ok: true, detail: '' },
+        tests: { ok: true, detail: '' },
+        pr: true,
+      }),
+    ).toBeUndefined();
+  });
+  it("writes the version in the marks of the release's own CHANGELOG section and LOG entries, nowhere older", () => {
+    const changelog = [
+      '# Changelog',
+      '',
+      '## 4.7.1 — d',
+      '',
+      '- **A (next, #443)**.',
+      '',
+      '## 4.7.0 — d',
+      '',
+      '- **Old (next) as quoted then**.',
+      '',
+    ].join('\n');
+    expect(withVersionInRelease(changelog, /^## 4\.7\.1 /, '4.7.1')).toBe(
+      changelog.replace('**A (next, #443)**', '**A (4.7.1, #443)**'),
+    );
+    const log = '## #374 · d · x\n\nOld (next).\n\n## #376 · d · x\n\nNew (next, #443).\n';
+    expect(withVersionInRelease(log, /^## #376 · /, '4.7.1')).toBe(
+      log.replace('New (next, #443)', 'New (4.7.1, #443)'),
+    );
   });
 });

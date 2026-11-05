@@ -18,6 +18,9 @@
 // passes, the signature), the passes sheet's intro when no pass changed, and the CHANGELOG's intro and the README lines
 // from the fragments' `### Release` lines (changes/README.md). What only a person knows stays a marker: the LOG entry's
 // title, its request and its next, the upgrade notes' opener, and an intro or a README line no fragment gave a line for.
+// (#443) It writes the version in place of the mark `next` (tools/next-mark.ts): in the fragments as it assembles them,
+// in the wiki and the code's comments in the step `next mark`, the docs' records carried over. `check`, and the stop
+// before the push, run the tests that depend on the version (VERSION_TESTS), which pull requests cannot run.
 import { execFileSync, spawnSync } from 'node:child_process';
 import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
@@ -26,6 +29,7 @@ import { LOCKED, lockWithPeers } from '../../scripts/pack-manifests.mjs';
 import { releaseNotes } from '../../scripts/release-notes.mjs';
 import { fragmentFiles, lastLogNumber, proseLines, readFragments, releaseSummary } from '../changes';
 import { passesFor } from '../field/schema';
+import { rewriteMarkdown } from '../next-mark';
 import { type PendingFile, readPending } from '../wiki/pending';
 import { formatJson } from '../wiki/json';
 // @ts-expect-error: a plain .mjs module without declarations
@@ -605,11 +609,15 @@ export function beforePushStop(o: {
   pr: boolean;
   /** The fold's ⚠ lines (step `wiki acks`): the pending acks it could not keep, said again when prepare stops. */
   folded?: readonly string[];
+  /** The tests that depend on the version (#443, `versionTestsResult`). */
+  tests?: { ok: boolean; detail: string };
 }) {
-  if (!o.todos.length && o.gates.ok) return undefined;
+  const testsOk = o.tests?.ok ?? true;
+  if (!o.todos.length && o.gates.ok && testsOk) return undefined;
   const why = [
     o.todos.length ? `${o.todos.length} ${TODO} left` : '',
     o.gates.ok ? '' : "the docs' human gates",
+    testsOk ? '' : 'the tests that depend on the version',
   ].filter(Boolean);
   const out = [
     `✖  ${why.join(' and ')} would fail the release pull request's CI: nothing is pushed, ${o.branch} is committed here.`,
@@ -628,6 +636,13 @@ export function beforePushStop(o: {
       'The reviews to record:',
       o.gates.detail.replace(/^/gm, '  '),
       'A person reads each one and types its command (prepare never records a review).',
+    );
+  if (!testsOk)
+    out.push(
+      '',
+      'The tests that depend on the version, red now that package.json names it:',
+      o.tests!.detail.replace(/^/gm, '  '),
+      'Fix what they say on this branch (a mutants.json entry due, a figure the release moved).',
     );
   if (o.folded?.length)
     out.push(
@@ -699,6 +714,54 @@ export const noPrNote = (repo: string) =>
   `--no-pr: nothing pushed, no warm-up started. Once you open the pull request, warm main's mutation cache for its candidate:\n  ${warmupCommand(repo)}`;
 
 /**
+ * The tests that depend on the version being released (#443): pull requests run them at package.json's version, so a
+ * release that moves it can turn them red only on its own pull request (4.7.0: `mutants.json`'s entries due, the first
+ * visit typed in a test). `check` runs them, and so does the stop before the push: a few seconds, on this machine.
+ */
+export const VERSION_TESTS = [
+  'tests/mutants-json.test.ts',
+  'tests/quality-baseline.test.ts',
+  'tests/readme-truth.test.ts',
+  'tests/readme-release.test.ts',
+] as const;
+export const versionTestsArgs = () => ['vitest', 'run', ...VERSION_TESTS];
+
+/** What a run of VERSION_TESTS says: ok, or its FAIL lines and the command to run them again. */
+export function versionTestsResult(r: { code: number; out: string }): { ok: boolean; detail: string } {
+  if (r.code === 0) return { ok: true, detail: '' };
+  const fails = r.out
+    .replace(/\x1b\[[0-9;]*m/g, '')
+    .split('\n')
+    .map((l) => l.trim())
+    .filter((l) => l.startsWith('FAIL '));
+  return {
+    ok: false,
+    detail: [
+      ...(fails.length ? [...new Set(fails)] : [`vitest exited ${r.code}`]),
+      `they fail once package.json names the version; run them: npx ${versionTestsArgs().join(' ')}`,
+    ].join('\n'),
+  };
+}
+
+/**
+ * `text` (the CHANGELOG, the LOG) with the mark `next` given `version` from the first line `from` matches to the next
+ * release heading of the CHANGELOG (`## x.y.z`), or the end: fragments assembled before the release kept their mark
+ * (#443); an older section, which may quote it, is left alone.
+ */
+export function withVersionInRelease(text: string, from: RegExp, version: string) {
+  const lines = text.split('\n');
+  const start = lines.findIndex((l) => from.test(l));
+  if (start < 0) return text;
+  let end = lines.findIndex((l, i) => i > start && /^## \d+\.\d+\.\d+/.test(l));
+  if (end < 0) end = lines.length;
+  return [
+    ...lines.slice(0, start),
+    ...rewriteMarkdown(lines.slice(start, end).join('\n'), version).split('\n'),
+    ...lines.slice(end),
+  ].join('\n');
+}
+
+/**
  * The `quality baseline` step (4.6.0, #405): the figures only a release writes (the test files and declarations, the
  * first visit in bytes, the READMEs' figures and install line), measured on a fresh build of the default game. A pull
  * request's `npm run quality:baseline` moves the behaviour only, so open pull requests never conflict on these.
@@ -715,6 +778,7 @@ export const PREPARE_STEPS = [
   'locks',
   'changelog',
   'wiki acks',
+  'next mark',
   'upgrade notes',
   'transition pages',
   'golden save',
@@ -798,6 +862,10 @@ export async function checkRelease(version: string, deps: CheckDeps) {
       what: 'npm run quality:baseline -- --check',
       ok: deps.run('npm', ['run', '-s', 'quality:baseline', '--', '--check']).code === 0,
       detail: 'see npm run quality:baseline -- --check',
+    },
+    {
+      what: `the tests that depend on the version (${VERSION_TESTS.join(', ')})`,
+      ...versionTestsResult(deps.run('npx', versionTestsArgs())),
     },
   ];
 }
@@ -1015,8 +1083,14 @@ function prepare(version: string, opts: { name: string; date: string; pr: boolea
       const first = lastLogNumber(read('docs/dev/LOG.md')) + 1;
       // The fragments in the assembly's order, read before it deletes them: their slugs and their release lines.
       const fragments = readFragments();
-      summary = releaseSummary(fragments);
-      sh('npm', ['run', '-s', 'changes', '--', '--assemble', `--date=${opts.date}`]);
+      // Their release lines with the version in place of the mark, as --assemble writes the bullets (#443).
+      const lines = releaseSummary(fragments);
+      summary = {
+        ...lines,
+        ...(lines.en ? { en: rewriteMarkdown(lines.en, version) } : {}),
+        ...(lines.fr ? { fr: rewriteMarkdown(lines.fr, version) } : {}),
+      };
+      sh('npm', ['run', '-s', 'changes', '--', '--assemble', `--date=${opts.date}`, `--version=${version}`]);
       const last = lastLogNumber(read('docs/dev/LOG.md')) + 1;
       const intro = wrap(
         changelogIntro({
@@ -1029,9 +1103,14 @@ function prepare(version: string, opts: { name: string; date: string; pr: boolea
         }),
         '',
       );
-      const changelog = read('CHANGELOG.md');
-      writeFileSync(file('CHANGELOG.md'), withReleaseSection(changelog, releaseHeading(version, opts.date), intro));
-      const log = read('docs/dev/LOG.md').replace(/\n*$/, '\n\n');
+      const changelog = withReleaseSection(read('CHANGELOG.md'), releaseHeading(version, opts.date), intro);
+      // A fragment assembled before the release (on main, without --version) kept its mark: written here (#443).
+      const heading = new RegExp(`^${releaseHeading(version, opts.date).replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`);
+      writeFileSync(file('CHANGELOG.md'), withVersionInRelease(changelog, heading, version));
+      const log = withVersionInRelease(read('docs/dev/LOG.md'), new RegExp(`^## #${first} · `), version).replace(
+        /\n*$/,
+        '\n\n',
+      );
       const facts = {
         'What ships': shipsFact(previous, pullsSince(previous)),
         Fragments: fragmentsFact(
@@ -1061,6 +1140,9 @@ function prepare(version: string, opts: { name: string; date: string; pr: boolea
       writeFileSync(file(foldedFile(version)), notKept.join('\n'));
       logFact('Reviews', reviewsFact(pending, notKept));
     },
+    // The mark `next` in the wiki and the code's comments given the version, the records carried over (#443): after the
+    // fold, so the two record files hold every ack.
+    'next mark': () => say(sh('npx', ['tsx', 'tools/next-mark.ts', '--write', `--version=${version}`])),
     'upgrade notes': () => {
       const bullets = changelogBullets(read('CHANGELOG.md'), version);
       const ahead = read(`wiki/en/${upgradeNotesPage(version)}.md`)
@@ -1119,6 +1201,7 @@ function prepare(version: string, opts: { name: string; date: string; pr: boolea
         gates: humanGates(capture),
         pr: opts.pr,
         folded,
+        tests: versionTestsResult(capture('npx', versionTestsArgs())),
       });
       if (!stop) return;
       console.error(stop);
