@@ -100,6 +100,76 @@ candidate) and drop the rest from the path. Candidates: `qualify` on the release
 same tree (the release commit moves version fields only); the warm-up nightly folded into the candidate's own cache
 step. A measurement of 4.6.0's timeline first (`gh run list` for the day), then a proposal with minutes saved.
 
+**Measured (branch `ci/410-pr4-round-trips`, 5 November 2026)** from the Actions API: every run of 4 and 5 November,
+each job's created, started and completed times per attempt, and the mutation jobs' logs (a reused report says
+"measured on <commit>"). Times are UTC; "runner-min" sums job durations; "cold" is a mutation shard that ran its mutants
+(over 2.5 min) rather than restoring a passed report. Known events, not the workflows' doing: GitHub's incident on 4
+November (SSH and Actions degraded: the release run with no job, R10), the flakes (#406's `studio-hosted`, R5's
+`reality-cursor`), the coverage floor (#411), the two core mutants (#444), the 504 and the SSH refusal PR 3 retries.
+
+4.6.0, 4 November: 3 h 32 min from `prepare`'s push to npm's packages staged.
+
+| When | What | Took |
+|---|---|---|
+| 08:03 | `prepare` pushes `release/4.6.0` (#409) and dispatches the warm-up (nightly, `jobs=mutation`, on c934817b) | |
+| 08:03–08:26 | qualify red on the lock's peer (R4), fixed by hand (797ba349); the release PR's ci again: green | 23 min |
+| 08:28 | merged: main's ci (08:28–08:56, a job queued 20 min), qualify (4 min), candidate 1 | |
+| 08:55 | candidate 1's `release-core` red (#411); the run goes on to 10:07, 330 runner-min after that red | |
+| 08:59–09:13 | #412 (the floor), its ci, merged; main's ci on 95341b04 09:13–09:35 | 14 min |
+| 09:24–10:43 | candidate 2 (`--commit=95341b04`): 18 of 19 shards reused; its path is `studio-workshop`, cold, 66 min | 78 min |
+| 09:52, 10:33 | the warm-up ends red (R5, then `routes` on its re-run) | 109 + 36 min |
+| 11:17–11:35 | tag; the release run, attempt 1 without a job (incident), attempt 2 | 18 min |
+
+4.7.0, 5 November: 3 h 37 min to npm (the wiki at 17:07, after docs-publish's re-run).
+
+| When | What | Took |
+|---|---|---|
+| 12:24 | `prepare` pushes `release/4.7.0` (#442) and dispatches the warm-up (on 14b907bd) | |
+| 12:24–13:10 | the release PR's ci red (unit: every `docs/dev/mutants.json` entry due at 4.7.0; the baseline test), 9ef34c7a rereads the 135 entries (`revisit` 4.8.0), ci again: green | 46 min |
+| 13:15 | merged: main's ci (red on `studio-hosted`, #406; re-run green 13:50), qualify (5 min), candidate 1 | |
+| 13:15–15:32 | candidate 1: **all 20 shards cold**, shards queued up to 63 min (its 8 slots, the warm-up's 8 beside), `core` red at 13:47 (#444), path `studio-workshop` to 15:30; 520 runner-min after that red | 136 min |
+| 14:20 | the warm-up ends (red on `core`, as candidate 1); none of its 597 runner-min reused | 116 min |
+| 14:01–15:29 | #445 (ci green 14:05, merged 15:12), main's ci on e8fa47db | |
+| 15:31–15:54 | candidate 2 (`--commit=e8fa47db`): 19 of 20 shards reused from candidate 1; the 504, re-run | 23 min |
+| 15:55–16:01 | tag; the release run (npm's jobs green; docs-publish's SSH refusal, re-run 17:06) | 6 min |
+
+What the numbers say:
+
+- **The candidate is the path; the rest runs beside it.** Main's ci on the merge (26–29 min, release.yml's check) and
+  qualify (4–5 min) end long before any candidate. The release PR's ci (18–20 min) is the only wait before the merge.
+  A warm candidate takes 20–25 min (`release-core` 18–28, `heavy` 16, Windows' `external-consumer` 12); a cold one
+  117 min of mutation alone (modelled on 4.7.0's durations with 8 slots; observed 114).
+- **4.7.0's warm-up could serve nothing.** `docs/dev/mutants.json` is an input of every set's hash, and the release
+  PR's reread moved every entry's `revisit`: for each of the 14 sets it was the only input that differed between the
+  warm-up's commit and the release merge (`inputFiles` compared on both trees). About 600 runner-min of warm-up and
+  600 of candidate 1 measured the same mutants against the same code.
+- **The warm-up never finishes in time.** It needs about 110 min (20 shards, 8 at a time); the release PR stayed open
+  24 min (4.6.0) and 52 min (4.7.0). In 4.6.0 it served 11 of candidate 1's 19 shards (the short ones, "measured on
+  c934817"), never the long ones the candidate's path runs through: `remix` (75 min), `runs`, `studio-workshop`
+  were measured by the warm-up and by candidate 1 at once, and `studio-workshop` a third time by candidate 2, whose
+  66 min it was. The candidate's own cache step (restore and save on the same key) already does the warm-up's work:
+  4.7.0's candidate 2 took 23 min on candidate 1's reports.
+- **qualify on the release PR is not a duplicate.** The release commit changes `package.json`, `package-lock.json`
+  and the locks' peers, the very inputs qualify packs, and on 4.6.0 it was the check that caught R4. It costs no
+  minute of the path (5 min beside a 20-min ci).
+- **A red candidate keeps its runners.** 330 (4.6.0) and 520 (4.7.0) runner-min ran after the decisive red, while the
+  next candidate queued (4.6.0's candidate 2, up to 9 min).
+
+Proposals, in the recommended order:
+
+| # | Change | Saves | What it costs or moves | Status |
+|---|---|---|---|---|
+| a | `inputHash` reads `docs/dev/mutants.json` as the mutants it names only (file, operator, from, to, context, in no order); why, category, proof, owner and revisit stay checked by `checkKnown` on every run, a reused report included, and `mutation-merge` judges survivors by the same fields | on a release that rereads the entries, every set's measure (4.7.0: about 600 runner-min; candidate 1's path to about 14:53 instead of 15:30, 18 of 20 shards reusable once the warm-up's were saved) | no check lost or moved. Every key changes once (`tools/mutate.ts` is an input of every set): the next nightly measures fresh and saves | **implemented** (tests/mutate-hash.test.ts) |
+| b | The mutation matrix longest first: each shard ordered by its expected time (a weight kept beside `SHARDS`, or the last nightly's durations), so 8 slots end together | a cold candidate's mutation from 117 to 81 min (modelled), the nightly's and the warm-up's too | no check moved; one more table to keep, a wrong weight only costs time | proposed, ready |
+| c | `prepare` no longer dispatches the warm-up: the candidate's own cache step is the warm-up, the scheduled nightly (night, `--fresh`, saves) refills main's cache | about 600 runner-min a release, 8 runners free during the release PR's ci and the candidate (4.7.0's shards queued up to 63 min); 0 min of path in both releases measured | a release PR that stays open more than about 2 h loses a head start on its candidate; `gh workflow run nightly -f jobs=mutation` stays for that day. Changes what the release starts: the maintainer's | proposed |
+| d | `prepare` runs `checkKnown` at the new version before it pushes and says the entries due (or offers the reread), instead of the release PR's unit job | one release PR round trip when entries fall due (4.7.0: 28 min, the reread then made in review) | a check moved earlier, none removed; `prepare`'s behaviour: the maintainer's | proposed |
+| e | A candidate started on a later commit for the same version (`--commit … --start-candidate`) cancels the earlier one once it is red | 330 / 520 runner-min, the next candidate's queue | the red run's other verdicts are lost (4.7.0's maintainer may have wanted every set's); the maintainer's | proposed |
+| f | qualify on the release PR, main's ci on the merge: kept | – | see above: neither is on the path, and both check what the release commit changes | not proposed |
+
+With a, b and c, and no red, a release would be the release PR's ci (20 min), then a candidate of 25 min when main's
+inputs were measured the night before, about 85 min when not, then the release run (6 min): one to two hours from
+`prepare`, against three and a half on 4 and 5 November.
+
 ### PR 5 – claims reviewed in the pull request that changes them (R2) – a process change: the maintainer decides
 
 Today `wiki -- check --publish --reviews-only` fails only the release pull request (`release -- check`), so every claim
