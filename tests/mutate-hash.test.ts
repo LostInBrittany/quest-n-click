@@ -236,6 +236,13 @@ describe('the input files of this repository', () => {
     // Every set's import closure: over 5 s on a loaded CI runner (unit 4 on #407).
   }, 30_000);
 
+  it("leave the shards' minutes out of every set (#410 PR 4): refreshing the matrix's order re-runs no set", () => {
+    const files = inputFiles('all');
+    expect(files).not.toContain('tools/mutation-minutes.json');
+    expect(files).toContain('tools/mutation-sets.ts');
+    expect(readFileSync(join(ROOT, 'tools/mutation-sets.ts'), 'utf8')).not.toMatch(/MINUTES/);
+  }, 30_000);
+
   it('classify every module the two configurations import: followed for the tests, or skipped with a reason', () => {
     // A new import in vite.config.ts fails here until it is placed in one list or the other: a plugin that transforms
     // modules (a `transform`, a `resolveId`, a `load`) changes what the tests run, and belongs to CONFIG_FOLLOWS.

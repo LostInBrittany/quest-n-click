@@ -172,9 +172,10 @@ The tool writes the source file it mutates: do not edit it while a run is going.
 `mutation (<set>)` jobs and `mutation-merge` are green. On `main`, a shard's report is cached under its set's input
 hash: the nightly saves each shard it measured fresh and passed, the candidate restores it and runs again only the
 shards whose inputs moved since (4.5.5). The matrix starts the longest shards first (#410), by the minutes
-`MINUTES` in `tools/mutation-sets.ts` gives each, so the jobs run 8 at a time end together. A shard added or cut
-otherwise fails `tests/mutate-shards.test.ts` until it has its line; the table is rebuilt from a cold run (a
-nightly): `gh run view <id> --json jobs | npx tsx tools/mutation-shards.ts --minutes`.
+`tools/mutation-minutes.json` gives each, so the jobs run 8 at a time end together; the file is no input of any
+set's hash, so refreshing it re-runs no set. A shard added or cut otherwise fails `tests/mutate-shards.test.ts`
+until it has its line; the file is rebuilt from a cold run (a nightly):
+`gh run view <id> --json jobs | npx tsx tools/mutation-shards.ts --minutes > tools/mutation-minutes.json`.
 
 <a name="common-errors"></a>
 

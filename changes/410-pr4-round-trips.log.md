@@ -14,7 +14,8 @@ findings and the proposals are in `docs/dev/PLAN-4.6.x-RELEASE-IN-THREE-COMMANDS
 - The warm-up never finished in time (about 110 min against a release pull request open 24 and 52 min): the long
   shards on the candidate's path were measured twice, `studio-workshop` three times in 4.6.0. Proposed, then approved
   by the maintainer and implemented, one commit each: the matrix longest first from a table of each shard's cold
-  minutes (`MINUTES`, rebuilt by `mutation-shards.ts --minutes`; 117 to 81 min modelled); no warm-up started by
+  minutes (`tools/mutation-minutes.json`, no input of any hash, rebuilt by `mutation-shards.ts --minutes`; 117 to 81 min
+  modelled); no warm-up started by
   `prepare` (the by-hand command in the pull request's body for a long review); the exemptions due named in
   `prepare`'s stop before the push (the rule was already there through #443's version tests, only the FAIL line was
   said); a candidate's `supersede` job that cancels an earlier, still running red candidate of the same version and

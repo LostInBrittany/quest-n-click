@@ -178,10 +178,12 @@ L'outil réécrit le fichier source qu'il mute : ne le modifiez pas pendant une 
 les jobs `mutation (<ensemble>)` de l'ensemble et `mutation-merge` sont verts. Sur `main`, le rapport d'un morceau est
 mis en cache sous l'empreinte des entrées de son ensemble : la nightly enregistre chaque morceau qu'elle a mesuré de
 zéro et qui a réussi, le candidat le reprend et ne rejoue que les morceaux dont les entrées ont bougé depuis (4.5.5).
-La matrice lance les morceaux les plus longs d'abord (#410), selon les minutes que `MINUTES` donne à chacun dans
-`tools/mutation-sets.ts`, pour que les jobs lancés 8 à la fois finissent ensemble. Un morceau ajouté ou découpé
-autrement fait échouer `tests/mutate-shards.test.ts` tant qu'il n'a pas sa ligne ; la table se refait à partir
-d'une exécution à froid (une nightly) : `gh run view <id> --json jobs | npx tsx tools/mutation-shards.ts --minutes`.
+La matrice lance les morceaux les plus longs d'abord (#410), selon les minutes que
+`tools/mutation-minutes.json` donne à chacun, pour que les jobs lancés 8 à la fois finissent ensemble ; le fichier
+n'est une entrée d'aucune empreinte d'ensemble, le rafraîchir ne relance donc aucun ensemble. Un morceau ajouté ou
+découpé autrement fait échouer `tests/mutate-shards.test.ts` tant qu'il n'a pas sa ligne ; le fichier se refait à
+partir d'une exécution à froid (une nightly) :
+`gh run view <id> --json jobs | npx tsx tools/mutation-shards.ts --minutes > tools/mutation-minutes.json`.
 
 <a name="common-errors"></a>
 

@@ -7,8 +7,8 @@
   (about ten runner-hours, the warm-up's included) against code that had not moved. Every cache key changes once with
   this change; the next nightly refills them.
 - **The mutation jobs start with the longest (next, refs #410)**: the matrix the candidate, the nightly and a `full-ci`
-  pull request run is ordered by the minutes each shard takes cold (`MINUTES` in `tools/mutation-sets.ts`, from 4.7.0's
-  first candidate), so the 8 jobs run at a time end together: a cold candidate's mutation from 114 min to about 81.
+  pull request run is ordered by the minutes each shard takes cold (`tools/mutation-minutes.json`, from 4.7.0's first
+  candidate, no input of any set's hash), so the 8 jobs run at a time end together: a cold candidate's mutation from 114 min to about 81.
   `npx tsx tools/mutation-shards.ts --minutes` rebuilds the table from a run's jobs.
 - **`prepare` no longer starts the mutation cache's warm-up (next, refs #410)**: it took about 110 min and the release
   pull requests of 4.6.0 and 4.7.0 merged after 24 and 52, so the candidate measured the same long shards beside it

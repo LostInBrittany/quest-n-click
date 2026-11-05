@@ -10,8 +10,8 @@
       ]
     },
     "contribute.mutation-testing#expected-result": {
-      "enHash": "344fc540b36dc1627daebfe285551bc3c22549ef9916d8336d07b10e15726429",
-      "frHash": "0a24e4982a7cef908549d4bd0efb84685156bd37c3f7ce89deae71de6e4433c0",
+      "enHash": "ff0f6b3205fe0a2bc049aef5072c0c47307b9265abe148db0dc513215013d7f1",
+      "frHash": "897cb42795c2fb5be7b77a7e9cc231e6b2203e1f4a1eef85ad6555c65901717b",
       "reviewers": [
         { "name": "claude", "kind": "ai", "relation": "author", "date": "2026-11-05" }
       ]

@@ -4,8 +4,15 @@
 // passes on a part of its set. One generated matrix drives ci, candidate, nightly and release.
 import { describe, expect, it } from 'vitest';
 import { cutOf, type MutationReport } from '../tools/mutate';
-import { mergeReports, minutesOf, mutationMatrix, type ShardReport, shardFiles } from '../tools/mutation-shards';
-import { MEASURED, MINUTES } from '../tools/mutation-sets';
+import {
+  MINUTES,
+  mergeReports,
+  minutesOf,
+  mutationMatrix,
+  type ShardReport,
+  shardFiles,
+} from '../tools/mutation-shards';
+import { MEASURED } from '../tools/mutation-sets';
 
 const COUNTS: Record<string, number> = { 'a.ts': 358, 'b.ts': 201, 'c.ts': 99, 'd.ts': 97, 'e.ts': 83, 'f.ts': 4 };
 const FILES = Object.keys(COUNTS);
