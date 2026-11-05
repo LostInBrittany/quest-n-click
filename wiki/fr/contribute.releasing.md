@@ -368,7 +368,7 @@ le sha256 de l'archive de documentation, promeut cette archive (celle du candida
 `release: published`, qu'une release publiée avec `GITHUB_TOKEN` ne déclenche pas. Seule la clé de déploiement du wiki,
 `WIKI_DEPLOY_KEY`, lui est passée. Voir [Écrire la documentation](contribute.writing-docs.md).
 
-À partir de la 4.7.1 (#410), le clone du wiki, et une poussée qui n'a jamais atteint le wiki, sont tentés quatre fois, à
+Le clone du wiki, et une poussée qui n'a jamais atteint le wiki, sont tentés quatre fois (next, #410), à
 15 s d'intervalle, chaque essai raté signalé : le `docs-publish` de la 4.7.0 a rencontré un « Permission denied
 (publickey) » au clone, et sa relance est passée avec la même clé. Tout ce qui précède le clone ne fait que lire, et une
 poussée est la mise à jour d'une seule référence. Une poussée que le wiki a refusée (il a bougé depuis le clone, une

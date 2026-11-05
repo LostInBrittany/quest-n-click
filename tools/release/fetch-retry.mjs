@@ -2,7 +2,7 @@
 // (candidate 38236552662, two runners at once), and a gate failed on a download a second try would have made. A 5xx, a
 // 429 or a network error is tried again, `tries` times in all, waiting `waitMs(i)` after the i-th try; any other answer
 // (a 404 names a wrong URL) comes back at once, and the last answer or error comes back when every try is spent.
-// 4.7.1 (#410): the 4.7.0 candidate's external-consumer met five 504s in a minute and stopped without a word, its
+// (next, #410): the 4.7.0 candidate's external-consumer met five 504s in a minute and stopped without a word, its
 // re-run 18 minutes later passed. Each failed try is now said, and the default budget is about three minutes.
 
 /** 5 s after the first try, then doubled, at most a minute: 5, 10, 20, 40, 60, 60 s (about three minutes for 7 tries). */

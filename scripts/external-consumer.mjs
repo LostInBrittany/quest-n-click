@@ -184,7 +184,7 @@ else {
   const url = `https://github.com/Quest-n-Click/quest-n-click/releases/download/${src.tag}/${src.asset}`;
   console.log(`\n▶ the older engine: ${url}`);
   // Tried again on a 5xx (4.1.20 PR 3): a 504 from GitHub's releases failed candidate 38236552662 on two runners; each
-  // failed try said and about three minutes of tries since 4.7.1 (#410: the 4.7.0 candidate's five 504s in a minute).
+  // failed try said and about three minutes of tries (next, #410: the 4.7.0 candidate's five 504s in a minute).
   const bytes = await download(url);
   // Checked against the release's own sums (4.1.19): a stable tag and a pre-release alike.
   const sumsUrl = `https://github.com/Quest-n-Click/quest-n-click/releases/download/${src.tag}/${sumsAsset(src.tag)}`;

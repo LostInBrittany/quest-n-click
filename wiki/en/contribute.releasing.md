@@ -338,7 +338,7 @@ an rc publishes `/docs/<v-rc>/` only. It is never started by `release: published
 `GITHUB_TOKEN` does not fire. Only the wiki's deploy key `WIKI_DEPLOY_KEY` is passed to it. See
 [Writing documentation](contribute.writing-docs.md).
 
-From 4.7.1 (#410), the wiki's clone and a push that never reached the wiki are tried four times, 15 s apart, each
+The wiki's clone and a push that never reached the wiki are tried four times (next, #410), 15 s apart, each
 failed try said: 4.7.0's `docs-publish` met one "Permission denied (publickey)" on the clone, and its re-run passed with
 the same key. Everything before the clone only reads, and a push is one ref update. A push the wiki refused (moved
 since the clone, a protected branch, a key without write access) fails at once, as before: run `docs-publish` again.

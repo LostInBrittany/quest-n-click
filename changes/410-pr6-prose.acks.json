@@ -16,6 +16,13 @@
         { "name": "claude-opus-5-5", "kind": "ai", "relation": "author", "date": "2026-11-05" }
       ]
     },
+    "contribute.releasing#docs-publish": {
+      "enHash": "17258fa31f3c5838ba8a44b534746c7b55edbe822dd5b70d7c8c423968c14e34",
+      "frHash": "3d11099fd5395237b64737eab35513df7fca1f37a8a7fa76f797d577c0d5d93e",
+      "reviewers": [
+        { "name": "claude-opus-5-5", "kind": "ai", "relation": "author", "date": "2026-11-05" }
+      ]
+    },
     "contribute.releasing#prepare": {
       "enHash": "42680da0ea2ea6140cbcd6f21b89a074ff2ffc1a2422aa7f131f7ec54eff138a",
       "frHash": "fcb7ab63acb43ea80b7d158f337044592fd028529336837dff3dc0f3a0c3fb5d",
