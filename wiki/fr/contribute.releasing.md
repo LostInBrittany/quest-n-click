@@ -121,8 +121,10 @@ dépendent de la version (next, #443 : `tests/mutants-json.test.ts`, `tests/qual
 à la version de `package.json` et ne peuvent échouer qu'une fois que la release nomme la sienne, comme l'ont fait les
 entrées de `mutants.json` dues et la première visite écrite dans un test de la 4.7.0). Quand il reste
 quelque chose, elle s'arrête là et sort avec 1 : rien de poussé, pas de pull request, la branche commitée dans votre
-checkout. Un seul arrêt liste tout : chaque `TODO(release)` avec son fichier, sa ligne et sa consigne, puis chaque
-relecture avec sa commande, puis chaque test en échec. Sur la branche locale, écrivez la prose vous-même ou demandez-la à votre assistant IA, avec
+checkout. Un seul arrêt liste tout : chaque `TODO(release)` avec son fichier, sa ligne et sa consigne, les exemptions
+de mutation dues à la version, chacune nommée, avec la suite (next, #410 : relire chacune, la garder avec une relecture
+plus tardive ou la retirer, puis `npm run test:mutation:core -- --doc` ; ne déplacer que les relectures garde le cache
+de mutation de chaque ensemble), puis chaque relecture avec sa commande, puis chaque test en échec. Sur la branche locale, écrivez la prose vous-même ou demandez-la à votre assistant IA, avec
 ces marqueurs comme consigne, et relisez le diff ; enregistrez les paires de traduction qui ont changé
 (`npm run wiki -- check` donne chaque commande) ; une personne lit chaque claim ou paire et tape sa commande de
 relecture (`prepare` n'écrit jamais de prose, n'enregistre jamais une relecture et n'appelle aucune IA). Commitez, puis

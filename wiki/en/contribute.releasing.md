@@ -109,8 +109,10 @@ still to be read by a person), and the tests that depend on the version (next, #
 `tests/quality-baseline.test.ts`, `tests/readme-truth.test.ts`, `tests/readme-release.test.ts`, under a second; they
 pass on every pull request at `package.json`'s version and can fail only once the release names its own, as 4.7.0's
 `mutants.json` entries due and its first visit typed in a test did). When anything is left, it stops there and exits 1: nothing pushed, no pull request, the
-branch committed in your checkout. One stop lists it all: each `TODO(release)` with its file, line and brief, then each
-review with its command, then each failing test. On the local branch, write the prose yourself or ask your AI assistant to write it, with
+branch committed in your checkout. One stop lists it all: each `TODO(release)` with its file, line and brief, the
+mutation exemptions due at the version, each named, with the way on (next, #410: read each again, keep it with a later
+revisit or remove it, then `npm run test:mutation:core -- --doc`; moving only the revisits keeps every set's mutation
+cache), then each review with its command, then each failing test. On the local branch, write the prose yourself or ask your AI assistant to write it, with
 those markers as the brief, and read the diff; record the translation pairs that changed (`npm run wiki -- check`
 prints each command); a person reads each claim or pair and types its review command (`prepare` never writes prose
 and never records a review, and calls no AI). Commit, then run the same

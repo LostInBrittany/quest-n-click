@@ -15,3 +15,7 @@
   (about 600 runner-minutes a release, 8 runners held). The candidate's own cache step restores and saves the same
   keys. The pull request's body gives the command for a review that will last longer:
   `gh workflow run nightly --repo <repository> --ref main -f jobs=mutation`.
+- **`prepare` names the mutation exemptions due at the version before it pushes (next, refs #410)**: its stop already
+  failed on them through `tests/mutants-json.test.ts` (#443), with only that test's FAIL line; it now lists each entry
+  due, `checkKnown`'s rule, and the way on (read it again, keep it with a later revisit or remove it, then
+  `npm run test:mutation:core -- --doc`). 4.7.0's 135 were found by the release pull request's ci instead.

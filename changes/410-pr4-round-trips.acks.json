@@ -17,8 +17,8 @@
       ]
     },
     "contribute.releasing#prepare": {
-      "enHash": "e3d45d1c152a4f94083e5a964669515ac721b415b7b09fabd520138658468ac0",
-      "frHash": "93e95f998de9f313991c15343f3a97e95c738657a2704ab9f83e7693f5778df9",
+      "enHash": "52f514083f6482a44ed48cc527ac593657d7534e5ff535a248745e8bdfb9eca7",
+      "frHash": "f032718aa0bf420eccdb0412e8cb8d3d4fdc0644736f689d38bb4f19acda59a0",
       "reviewers": [
         { "name": "claude", "kind": "ai", "relation": "author", "date": "2026-11-05" }
       ]

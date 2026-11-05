@@ -8,6 +8,7 @@ import { join, resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import {
   changelogBullets,
+  dueExemptions,
   changelogIntro,
   checkRelease,
   beforePushStop,
@@ -1097,6 +1098,69 @@ describe('the next mark and the tests that depend on the version (#443)', () => 
         pr: true,
       }),
     ).toBeUndefined();
+  });
+  // #410 PR 4: 4.7.0's 135 entries were all due at 4.7.0; the stop said only the test's FAIL line, and the reread was
+  // made on the release pull request after its ci failed (one round trip, 28 min).
+  const due = (file: string, revisit: string) => ({
+    file,
+    operator: 'boolean',
+    from: 'true',
+    to: 'false',
+    context: 'x = true;',
+    why: 'never read: a reason long enough',
+    category: 'equivalent' as const,
+    proof: 'argument',
+    owner: '@someone',
+    revisit,
+  });
+  it("names the mutation exemptions due at the version, checkKnown's rule, and nothing else checkKnown says", () => {
+    const known = [due('a.ts', '4.7.0'), due('b.ts', '4.8.0'), { ...due('c.ts', '4.7.0'), owner: '' }];
+    expect(dueExemptions(known, '4.7.0')).toEqual([
+      'a.ts boolean: true → false: to be read again at 4.7.0 (this is 4.7.0)',
+      'c.ts boolean: true → false: to be read again at 4.7.0 (this is 4.7.0)',
+    ]);
+    expect(dueExemptions(known, '4.7.0-rc.1')).toHaveLength(2);
+    expect(dueExemptions(known, '4.6.9')).toEqual([]);
+  });
+  it('stops prepare on exemptions due, with each one and the way on (the reread, --doc), its cache kept', () => {
+    const lines = Array.from({ length: 12 }, (_, i) => `f${i}.ts boolean: true → false: to be read again at 4.7.0`);
+    const stop = beforePushStop({
+      version: '4.7.0',
+      name: 'N',
+      branch: 'release/4.7.0',
+      todos: [],
+      gates: { ok: true, detail: '' },
+      tests: { ok: true, detail: '' },
+      exemptions: lines,
+      pr: true,
+    })!;
+    expect(stop).toMatch(/^✖  12 mutation exemptions due at 4\.7\.0 would fail/);
+    expect(stop).toContain('docs/dev/mutants.json');
+    expect(stop).toContain(`  ${lines[0]}`);
+    expect(stop).toContain(`  ${lines[9]}`);
+    expect(stop).not.toContain(lines[10]);
+    expect(stop).toContain('and 2 more');
+    expect(stop).toContain('npm run test:mutation:core -- --doc');
+    expect(stop).toMatch(/revisit/);
+    expect(stop).toMatch(/cache/);
+    expect(stop).toContain('npm run release -- prepare 4.7.0 --name="N"');
+    expect(
+      beforePushStop({
+        version: '4.7.0',
+        name: 'N',
+        branch: 'b',
+        todos: [],
+        gates: { ok: true, detail: '' },
+        exemptions: [],
+        pr: true,
+      }),
+    ).toBeUndefined();
+  });
+  it("runs that check in the stop before the push, on the release branch's own docs/dev/mutants.json", () => {
+    const src = readFileSync('tools/release/prepare.ts', 'utf8');
+    const stop = src.slice(src.indexOf("'before the push': () => {"), src.indexOf("'pull request': () => {"));
+    expect(stop).toMatch(/exemptions: dueExemptions\(/);
+    expect(stop).toContain("read('docs/dev/mutants.json')");
   });
   it("writes the version in the marks of the release's own CHANGELOG section and LOG entries, nowhere older", () => {
     const changelog = [

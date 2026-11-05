@@ -29,6 +29,7 @@ import { join } from 'node:path';
 import { LOCKED, lockWithPeers } from '../../scripts/pack-manifests.mjs';
 import { releaseNotes } from '../../scripts/release-notes.mjs';
 import { fragmentFiles, lastLogNumber, proseLines, readFragments, releaseSummary } from '../changes';
+import { checkKnown, type KnownSurvivor } from '../mutate';
 import { passesFor } from '../field/schema';
 import { rewriteMarkdown } from '../next-mark';
 import { type PendingFile, readPending } from '../wiki/pending';
@@ -612,11 +613,15 @@ export function beforePushStop(o: {
   folded?: readonly string[];
   /** The tests that depend on the version (#443, `versionTestsResult`). */
   tests?: { ok: boolean; detail: string };
+  /** The mutation exemptions due at the version (#410 PR 4, `dueExemptions`). */
+  exemptions?: readonly string[];
 }) {
   const testsOk = o.tests?.ok ?? true;
-  if (!o.todos.length && o.gates.ok && testsOk) return undefined;
+  const due = o.exemptions ?? [];
+  if (!o.todos.length && o.gates.ok && testsOk && !due.length) return undefined;
   const why = [
     o.todos.length ? `${o.todos.length} ${TODO} left` : '',
+    due.length ? `${due.length} mutation exemption${due.length > 1 ? 's' : ''} due at ${o.version}` : '',
     o.gates.ok ? '' : "the docs' human gates",
     testsOk ? '' : 'the tests that depend on the version',
   ].filter(Boolean);
@@ -630,6 +635,16 @@ export function beforePushStop(o: {
       ...o.todos.map((t) => `  ${t.at}\n      ${t.what}`),
       'Write it yourself, or ask your AI assistant to write it with these markers as the brief; read the diff.',
       'The upgrade notes (en, fr) are a translation pair: record it as npm run wiki -- check prints.',
+    );
+  if (due.length)
+    out.push(
+      '',
+      `The mutation exemptions due at ${o.version} (docs/dev/mutants.json; tests/mutants-json.test.ts refuses them):`,
+      ...due.slice(0, 10).map((l) => `  ${l}`),
+      ...(due.length > 10 ? [`  … and ${due.length - 10} more`] : []),
+      'Read each one again against its file: keep it with a later revisit, or remove it if its mutant is gone or killed.',
+      'Then npm run test:mutation:core -- --doc (docs/dev/MUTANTS.md) and say the reread there. Moving only the revisits',
+      "keeps every mutation set's cache (#410): the candidate reuses what main measured.",
     );
   if (!o.gates.ok)
     out.push(
@@ -688,6 +703,14 @@ export const warmupBodyLine = (repo: string) =>
 /** What `--no-pr` says: nothing pushed, and the warm-up's command for a long review once the pull request is open. */
 export const noPrNote = (repo: string) =>
   `--no-pr: nothing pushed. Once you open the pull request, if its review will last more than about two hours, warm main's mutation cache for its candidate:\n  ${warmupCommand(repo)}`;
+
+/**
+ * The mutation exemptions due at `version` (#410 PR 4): `checkKnown`'s own lines for an entry whose revisit came, the
+ * rule tests/mutants-json.test.ts applies, so `prepare` names them before the push. 4.7.0's 135 entries were all due:
+ * the stop said only that test's FAIL line, and the reread was made on the pull request after its ci failed.
+ */
+export const dueExemptions = (known: readonly KnownSurvivor[], version: string) =>
+  checkKnown([...known], version).filter((l) => / to be read again at /.test(l));
 
 /**
  * The tests that depend on the version being released (#443): pull requests run them at package.json's version, so a
@@ -1178,6 +1201,7 @@ function prepare(version: string, opts: { name: string; date: string; pr: boolea
         pr: opts.pr,
         folded,
         tests: versionTestsResult(capture('npx', versionTestsArgs())),
+        exemptions: dueExemptions(JSON.parse(read('docs/dev/mutants.json') || '[]') as KnownSurvivor[], version),
       });
       if (!stop) return;
       console.error(stop);
