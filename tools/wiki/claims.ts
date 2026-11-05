@@ -418,7 +418,7 @@ export interface ClaimInput {
 }
 
 /** The hash a review records of the claim: its test's name and its block's text in both languages. */
-const claimTextHash = (c: ClaimInput): string =>
+export const claimTextHash = (c: ClaimInput): string =>
   sha256(
     JSON.stringify({
       test: c.claim.test,
