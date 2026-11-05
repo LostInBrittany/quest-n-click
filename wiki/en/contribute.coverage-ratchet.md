@@ -17,6 +17,8 @@ A `coverage` job green again: every floor met, and every floor within three poin
 The engine repository. The floors date from 4.1.0 "Clarity" (the level measured then); the ratchet,
 [`tools/coverage-ratchet.ts`](../../tools/coverage-ratchet.ts), from 4.1.3; its GitHub annotations from 4.1.9; the floors in their own file, out of `vite.config.ts`, from 4.6.0 (#405),
 so raising one leaves every mutation set's cache key as it was ([Mutation testing](contribute.mutation-testing.md)).
+Since 4.7.0 (#410) the ratchet is strict on pull requests as on `main`, the candidate only warns, and `--write` raises
+the floors it names.
 
 What is measured: V8 coverage of `src/**/*.ts` (not `*.d.ts`), `bridge/src/**/*.ts` and `studio-server/src/**/*.ts`,
 by the unit suite and the asset tests (`npm run test:coverage`). The floors as of 4.4.0:
@@ -79,15 +81,15 @@ In the engine repository, on your machine. CI runs the same in four shards (`uni
    ```sh
    # in the engine repository, after test:coverage
    npx tsx tools/coverage-ratchet.ts            # warns
-   npx tsx tools/coverage-ratchet.ts --strict   # fails, as on main
+   npx tsx tools/coverage-ratchet.ts --strict   # fails, as on a pull request and on main
    ```
 
    Each line `⚠ <scope> <metric>: floor <n>, measured <m>` is a floor three points or more under what the tests reach.
    The end says `✔ every coverage floor is within three points of what the tests reach`, or the count to raise.
 
 <!-- step: raise -->
-4. **Raise the floors it names** in `tests/coverage-floors.json`, to a value at or a little under what was measured, and
-   commit them with the change that earned them. The file is one the maintainer reviews (`CODEOWNERS`). It is not an
+4. **Raise the floors it names**: `npx tsx tools/coverage-ratchet.ts --write` sets each to two points under what was
+   measured, rounded down, in `tests/coverage-floors.json`; commit them with the change that earned them. The file is one the maintainer reviews (`CODEOWNERS`). It is not an
    input of the mutation cache: raising a floor re-runs no mutation set.
 
 > [!LIMIT id=ratchet-scope]
@@ -108,8 +110,8 @@ green with no "coverage ratchet" annotation.
 | Symptom | Cause | Fix |
 |---|---|---|
 | Vitest: a threshold for lines, branches, functions or statements not met | Fewer lines run than the floor | Add tests (step 2) |
-| `⚠ coverage ratchet` annotation on a pull request | A floor three points or more under the measure | Not blocking on a pull request: raise it (step 4), or leave it to the next change |
-| `✖ n floor(s) at least 3 points below…` on `main`, a tag or `release-check` | The same, under `--strict` | Raise the floors, in a pull request |
+| `✖ n floor(s) at least 3 points below…` on a pull request or on `main` | A floor three points or more under the measure | `npx tsx tools/coverage-ratchet.ts --write`, then commit the floors in the pull request (step 4) |
+| `⚠ coverage ratchet` annotation in the candidate | The same, where it only warns | Nothing blocks the release: raise them in the next pull request |
 | `✖ …: no coverage summary (npm run test:coverage first)` | The ratchet ran without a measure | Run `npm run test:coverage` first (exit 2 otherwise) |
 
 <a name="files-changed"></a>

@@ -196,8 +196,10 @@ jobs:
           merge-multiple: true
       - if: env.RUN == 'true'
         run: npm run test:merge
+      # Strict on pull requests too (4.7.0, #410 PR 2): the pull request that lifts the coverage raises its floors
+      # (`npx tsx tools/coverage-ratchet.ts --write`), instead of main turning red after the merge.
       - if: env.RUN == 'true'
-        run: npx tsx tools/coverage-ratchet.ts ${{ github.event_name != 'pull_request' && '--strict' || '' }}
+        run: npx tsx tools/coverage-ratchet.ts --strict
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: always() && env.RUN == 'true'
         with:

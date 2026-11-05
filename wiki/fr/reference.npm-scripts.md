@@ -1011,7 +1011,7 @@ Ce que lance la CI, d’un coup : doctor `--release`, quality, build, la couvert
 
 La même chose sans les ensembles de mutation (4.1.10 ; le workflow de publication les lance en jobs à côté), la couverture rapportée pour GitHub Actions et en JSON dans `.cache/test-report/vitest.json`.
 
-- Lance : `npm run doctor -- --release && npm run quality && npm run build && npm run test:coverage -- --reporter=default --reporter=github-actions --reporter=json --outputFile.json=.cache/test-report/vitest.json && npx tsx tools/coverage-ratchet.ts --strict && npm run verify:release && npm run prove:game && npm run solve -- --audit-abstractions && npm run reality:xcheck -- --require-rust && node scripts/pack.mjs --out=.cache/pack --publish-dry-run && npm run audit:deps && npm audit --audit-level=high`
+- Lance : `npm run doctor -- --release && npm run quality && npm run build && npm run test:coverage -- --reporter=default --reporter=github-actions --reporter=json --outputFile.json=.cache/test-report/vitest.json && npx tsx tools/coverage-ratchet.ts && npm run verify:release && npm run prove:game && npm run solve -- --audit-abstractions && npm run reality:xcheck -- --require-rust && node scripts/pack.mjs --out=.cache/pack --publish-dry-run && npm run audit:deps && npm audit --audit-level=high`
 
 <a name="release-check-local"></a>
 
