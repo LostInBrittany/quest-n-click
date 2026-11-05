@@ -64,13 +64,21 @@ release link, the CHANGELOG's quotes or the command it prints would break), a ne
 `<!-- field:begin -->` marker (the table it copies starts there), and, unless `--no-pr`, no place to push (your fork: `origin` when it is one, else the only fork among the remotes; the
 organisation's repository when no fork is a remote, a branch, never `main`) or a `gh` that is not signed in. Then, on the
 branch `release/<version>`, it runs what a release branch did by hand, in this order: the version
-(`npm version --no-git-tag-version`), the CHANGELOG section and the LOG entries from the fragments
+(`npm version --no-git-tag-version`), the locks' engine peers (on a new minor, each versioned lock takes its manifest's
+`@quest-n-click/engine` peer and nothing else in it moves; 4.7.0, #410: 4.6.0's Studio Server lock kept `4.5.x`), the CHANGELOG section and the LOG entries from the fragments
 (`npm run changes -- --assemble`, which makes its own `## Unreleased` and folds a `.log.md` alone), the LOG's release
 entry, the branches' pending acks folded into `wiki/translations.json` and `wiki/reviews.json` (`npm run wiki -- acks
---fold`; what no longer holds its text is printed, and repeated in the stop), the upgrade notes' section (en and fr), the transition pages, the golden save (listed in
+--fold`; what no longer holds its text is printed, and repeated in the stop), the upgrade notes' section (en and fr;
+a section already written ahead under its anchor is kept, never doubled, the release's CHANGELOG bullets put in a
+comment at its end for its author, 4.7.0), the transition pages, the golden save (listed in
 `tests/fixtures/saves/index.json`), the reference run, the passes sheet and `passIssues`, the README's current-release
 line (the previous summary kept under "Over …"), the quality baseline; one commit, the docs' human gates, then the pull
 request.
+
+Its fetch of the organisation's `main` is tried four times, 15 s apart, each failed try said, before it stops (4.7.0,
+#410: during 4.6.0's release one refused SSH connection read as "main is not the organisation's"). It stays on
+`release/<version>`, where the review's fixes are committed while the pull request is open, and ends by saying the way
+back for the release command: `git switch main && git pull --ff-only <the organisation's remote> main`.
 
 If a step fails, it stops and says what to do: before the commit, nothing was pushed (`git reset --hard`, `git clean`,
 back to `main`, the branch deleted: it prints the commands); after it, it prints the `git push` and `gh pr create` to
@@ -124,8 +132,9 @@ Once the release pull request is merged, on `main` up to date:
 npm run release -- 4.5.4          # --dry-run says what it would refuse; --key=<key.pub> if git signs otherwise
 ```
 
-It refuses first what would fail later (`package.json` not at the version, another branch, uncommitted changes, `main`
-not the organisation's, no CHANGELOG section, no SSH signing key, `gh` or `npm` not signed in, an npm user who is not
+It refuses first what would fail later (`package.json` not at the version, another branch (on `release/<version>`, as
+`prepare` leaves it, the refusal gives the one line to run: `git switch main && git pull --ff-only <the organisation's
+remote> main`), uncommitted changes, `main` not the organisation's, no CHANGELOG section, no SSH signing key, `gh` or `npm` not signed in, an npm user who is not
 an owner). Then it finds the candidate the merge started on that commit (`--start-candidate` starts one when there is
 none) and waits for it (about 90 minutes), saying how many jobs are done and which run at each change and every five
 minutes, re-running its failed jobs once (the whole run when it was cancelled before any job failed). Once is the
@@ -140,7 +149,12 @@ merged meanwhile does not move it. If it stops, run it again: a green candidate 
 pushed is followed, a release `ship verify` already passed on is not verified again (4.5.5, #343: the same tag,
 release and asset digests, the release immutable, as recorded in `.cache/release/v<version>.verified.json`;
 `--reverify` verifies it anyway), a package already on npm is not approved again; a release run that failed (its `release` or
-`npm-stage` job) is re-run first (`gh run rerun <id> --failed`, the command prints it). A pre-release (`-rc.N`) is
+`npm-stage` job) is re-run first, and the command prints the re-run that fits (4.7.0, #410): `gh run rerun <id>
+--failed` when a job failed, was cancelled or timed out, `gh run rerun <id>` (every job) when none ran. 4.6.0's run
+41819835975 never created its `release` job and skipped the three after it: `--failed` would have re-run nothing. Git's
+network steps (its fetch of the organisation's `main` and tags, `ship tag`'s fetches and tag push) are tried four
+times, 15 s apart, each failed try said, before the command stops (4.7.0): reads, and a tag pushed again at the same
+object is "up to date". A pre-release (`-rc.N`) is
 tagged by hand (`ship tag`, below). The chain below is what it runs, for when a step has to be done by hand.
 
 Its preflight also checks the docs' human gates on the release commit itself (4.5.5, #339), in a temporary worktree
@@ -156,6 +170,16 @@ git switch -c docs/<version> v<version>
 # record each review the stop listed (they land in changes/<version>.acks.json), commit
 git push <the organisation's remote> docs/<version>
 gh workflow run docs-publish --ref docs/<version> -f mode=revision -f version=<version>
+```
+
+When the candidate fails again after its one re-run, the stop gives both ways on (4.7.0, #410): a failure that passes
+on a second try, re-run it by hand (the command printed) and run the release command again; a fix merged on main
+after the release merge (4.6.0's case: the coverage floor, #411, fixed by #412), release on that commit with its own
+candidate:
+
+```sh
+git log --first-parent --oneline <the organisation's remote>/main   # names the fix's merge
+npm run release -- <version> --commit=<the fix's merge sha> --start-candidate
 ```
 
 When the release merge's own `ci` on main is red for a reason fixed only after it, the release cannot stand on it:
@@ -296,6 +320,11 @@ an rc publishes `/docs/<v-rc>/` only. It is never started by `release: published
 `GITHUB_TOKEN` does not fire. Only the wiki's deploy key `WIKI_DEPLOY_KEY` is passed to it. See
 [Writing documentation](contribute.writing-docs.md).
 
+From 4.7.1 (#410), the wiki's clone and a push that never reached the wiki are tried four times, 15 s apart, each
+failed try said: 4.7.0's `docs-publish` met one "Permission denied (publickey)" on the clone, and its re-run passed with
+the same key. Everything before the clone only reads, and a push is one ref update. A push the wiki refused (moved
+since the clone, a protected branch, a key without write access) fails at once, as before: run `docs-publish` again.
+
 <a name="maintainer-settings"></a>
 
 ### What the maintainer turns on, once (after 4.1.20 PR 3b)
@@ -399,6 +428,8 @@ verify` asks each release that way, and says that GitHub's own release attestati
 |---|---|---|
 | ship tag: "no \"## x.y.z\" section in CHANGELOG.md at …" | The commit is not the release pull request's merge | Merge the release pull request, start a candidate on its merge commit, tag that |
 | ship tag: "no git remote here points to Quest-n-Click/quest-n-click" | Only a fork is a remote here | `git remote add upstream git@github.com:Quest-n-Click/quest-n-click.git` |
+| release: "the checkout is on release/<version>" | `prepare` leaves the checkout on its branch | `git switch main && git pull --ff-only <the organisation's remote> main`, then the release command |
+| release: "candidate run … failed again (attempt 2)" | The candidate failed after its one re-run | A passing failure: the printed `gh run rerun`, then the command again; a fix merged on main: `npm run release -- <version> --commit=<the fix's merge sha> --start-candidate` |
 | release.yml: "names no candidate run" | The tag was made without `--candidate` | Tag the next version (or `rc.N+1`) with `--candidate`: the tag ruleset refuses deleting a tag |
 | release.yml: "run … is not a green candidate started on main" | The run is a pull request's, another branch's, or red | Start `candidate` by hand on main for that SHA |
 | release.yml: "has no candidate-site" (or `-surfaces`, `-signing`, `-remix`, `-pack`, `-sbom`, `-image`) | A candidate made before the step existed | Start a new candidate |
