@@ -7,6 +7,9 @@
 // `Unreleased` and numbers the LOG entries after the last one, in the order the fragments reached main (their first
 // commit's date: a rebase reorders them), then removes them. Two branches no longer conflict on the CHANGELOG, the LOG
 // or their entry numbers. Only the `Unreleased` block is rewritten: the rest of the page is byte for byte the same.
+// (#410, PR 6) A fragment may also carry `### Release` (and `### Release (fr)`): one or two sentences for the release's
+// intro, which `npm run release -- prepare` assembles into the CHANGELOG's intro and the README's current-release line.
+// They never reach the `Unreleased` block.
 import { execFileSync } from 'node:child_process';
 import { existsSync, readdirSync, readFileSync, statSync, unlinkSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
@@ -31,7 +34,39 @@ export interface Fragment {
 
 const isSection = (s: string): s is Section => (SECTIONS as readonly string[]).includes(s);
 
+/** The release's lines (#410, PR 6): never CHANGELOG bullets, read by `prepare` for the intro and the README. */
+export const RELEASE = { en: 'Release', fr: 'Release (fr)' } as const;
+const isRelease = (s: string) => s === RELEASE.en || s === RELEASE.fr;
+/** The longest release part, joined: the intro joins every fragment's (4.7.0's whole README line was 260). */
+const RELEASE_MAX = 400;
+
 const HEADINGS = SECTIONS.map((s) => `### ${s}`).join(' | ');
+const ALL_HEADINGS = `${HEADINGS}, or ### ${RELEASE.en} | ### ${RELEASE.fr}`;
+
+/** A release part's lines as one line: the text joined, its spaces collapsed. */
+const oneLine = (lines: readonly string[]) => lines.join(' ').replace(/\s+/g, ' ').trim();
+
+/** Why a release part (its heading at the 1-based `at`, its lines after it) cannot be assembled into the intro. */
+function releasePartProblem(heading: string, at: number, lines: readonly string[]) {
+  const text = oneLine(lines);
+  const where = `"### ${heading}"`;
+  if (!text)
+    return { line: at, problem: `${where} is empty: one or two sentences for the release's intro, or no heading` };
+  const list = lines.findIndex((l) => /^\s*([-*+]|\d+\.)\s/.test(l) || /^#/.test(l));
+  if (list >= 0)
+    return {
+      line: at + 1 + list,
+      problem: `${where} is one or two sentences of prose, not a list: the bullets go under ### Changes`,
+    };
+  if (text.length > RELEASE_MAX)
+    return {
+      line: at,
+      problem: `${where} holds ${text.length} characters: one or two sentences, ${RELEASE_MAX} at most (the intro joins every fragment's)`,
+    };
+  if (!/[.!?][)"»*_`]*$/.test(text))
+    return { line: at, problem: `${where} ends without a full stop: the intro joins it to the next fragment's` };
+  return undefined;
+}
 
 /**
  * Why a fragment's CHANGELOG part cannot be filed, each at its 1-based line: a heading the CHANGELOG does not use
@@ -43,12 +78,22 @@ function sectionProblems(text: string): { line: number; problem: string }[] {
   // `started`: a heading was seen; `stray`: text before it was already said (once, at its first line).
   let started = false;
   let stray = false;
+  // The release parts (#410, PR 6): each heading's line and the lines under it, checked once the text is read.
+  const release: { heading: string; at: number; lines: string[] }[] = [];
+  let open: string[] | undefined;
   text.split('\n').forEach((line, i) => {
     const m = /^### (.+?)\s*$/.exec(line);
     if (m) {
       started = true;
-      if (!isSection(m[1]!)) out.push({ line: i + 1, problem: `"### ${m[1]}" is not a fragment heading: ${HEADINGS}` });
-    } else if (!started && !stray && line.trim()) {
+      open = undefined;
+      if (isRelease(m[1]!)) {
+        if (release.some((r) => r.heading === m[1]))
+          out.push({ line: i + 1, problem: `"### ${m[1]}" is there twice: one per fragment` });
+        else release.push({ heading: m[1]!, at: i + 1, lines: (open = []) });
+      } else if (!isSection(m[1]!))
+        out.push({ line: i + 1, problem: `"### ${m[1]}" is not a fragment heading: ${ALL_HEADINGS}` });
+    } else if (open) open.push(line);
+    else if (!started && !stray && line.trim()) {
       stray = true;
       out.push({
         line: i + 1,
@@ -56,7 +101,17 @@ function sectionProblems(text: string): { line: number; problem: string }[] {
       });
     }
   });
-  return out;
+  for (const r of release) {
+    const p = releasePartProblem(r.heading, r.at, r.lines);
+    if (p) out.push(p);
+  }
+  const fr = release.find((r) => r.heading === RELEASE.fr);
+  if (fr && !release.some((r) => r.heading === RELEASE.en))
+    out.push({
+      line: fr.at,
+      problem: `"### ${RELEASE.fr}" without "### ${RELEASE.en}": the French line translates the English one`,
+    });
+  return out.sort((a, b) => a.line - b.line);
 }
 
 /** Why a `.log.md` fragment cannot be filed (its first line is not `## <title>`), at its 1-based line. */
@@ -124,8 +179,9 @@ export function sectionsOf(text: string): Partial<Record<Section, string>> {
   for (const line of text.split('\n')) {
     const m = /^### (.+?)\s*$/.exec(line);
     if (m) {
-      current = m[1] as Section;
-      out[current] ??= [];
+      // A release part is not a CHANGELOG section (#410, PR 6): `releaseOf` reads it.
+      current = isRelease(m[1]!) ? undefined : (m[1] as Section);
+      if (current) out[current] ??= [];
       continue;
     }
     if (current !== undefined) out[current]!.push(line);
@@ -136,6 +192,48 @@ export function sectionsOf(text: string): Partial<Record<Section, string>> {
     if (body) trimmed[s] = body;
   }
   return trimmed;
+}
+
+/**
+ * A fragment's release lines (#410, PR 6): `### Release` as `en`, `### Release (fr)` as `fr`, each as one line; none
+ * when the fragment has none. What `--check` refuses is an error here too.
+ */
+export function releaseOf(text: string): { en?: string; fr?: string } {
+  const problem = sectionProblems(text)[0];
+  if (problem) throw new Error(problem.problem);
+  const parts: Record<string, string[]> = {};
+  let open: string[] | undefined;
+  for (const line of text.split('\n')) {
+    const m = /^### (.+?)\s*$/.exec(line);
+    if (m) open = isRelease(m[1]!) ? (parts[m[1]!] = []) : undefined;
+    else open?.push(line);
+  }
+  const out: { en?: string; fr?: string } = {};
+  if (parts[RELEASE.en]) out.en = oneLine(parts[RELEASE.en]);
+  if (parts[RELEASE.fr]) out.fr = oneLine(parts[RELEASE.fr]);
+  return out;
+}
+
+/**
+ * The release's summary from its fragments, in the order given (the assembly's): the English lines joined, and the
+ * French ones only when every fragment with an English line has its French (`missingFr` names the others: a French
+ * README line missing a change would say less than the English one). `slugs`: the fragments that gave a line.
+ */
+export function releaseSummary(fragments: readonly Pick<Fragment, 'slug' | 'changelog'>[]): {
+  en?: string;
+  fr?: string;
+  slugs: string[];
+  missingFr: string[];
+} {
+  const lines = fragments.map((f) => ({ slug: f.slug, ...releaseOf(f.changelog) })).filter((l) => l.en);
+  const missingFr = lines.filter((l) => !l.fr).map((l) => l.slug);
+  const out: { en?: string; fr?: string; slugs: string[]; missingFr: string[] } = {
+    slugs: lines.map((l) => l.slug),
+    missingFr,
+  };
+  if (lines.length) out.en = lines.map((l) => l.en).join(' ');
+  if (lines.length && !missingFr.length) out.fr = lines.map((l) => l.fr).join(' ');
+  return out;
 }
 
 /**
@@ -312,7 +410,7 @@ if (process.argv[1]?.endsWith('changes.ts')) {
     }
     if (needsFragment(changed)) {
       console.error(
-        `✖  this branch changes the code and carries no fragment: write changes/<slug>.md (### Fixed | ### Changes | ### Breaking, then the bullets) and, for a LOG entry, changes/<slug>.log.md (## <title>, then the body). changes/README.md says how.`,
+        `✖  this branch changes the code and carries no fragment: write changes/<slug>.md (### Fixed | ### Changes | ### Breaking, then the bullets; ### Release, one or two sentences for the release's intro, optional) and, for a LOG entry, changes/<slug>.log.md (## <title>, then the body). changes/README.md says how.`,
       );
       process.exit(1);
     }

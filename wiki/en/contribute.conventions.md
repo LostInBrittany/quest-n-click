@@ -67,6 +67,12 @@ A branch that changes the code does not edit `CHANGELOG.md` nor `docs/dev/LOG.md
 - `changes/<slug>.md`: the CHANGELOG bullets, under `### Breaking`, `### Fixed` or `### Changes` (any of them, in any
   order). Write them as the CHANGELOG does: a bold lead, the version in parentheses, what a player, an author or a host
   sees differently.
+- In the same file, optionally (4.7.1, #410), `### Release`: one or two sentences for the release's intro, what the
+  change brings and for whom, in prose that reads well joined to the other fragments'. `npm run release -- prepare`
+  joins every fragment's, in the order they reached `main`, into the CHANGELOG's intro and the README's
+  current-release line; without any, both keep a `TODO(release)` for the maintainer. `### Release (fr)` is its French
+  translation, for `README.fr.md`: the French line is written only when every fragment with a `### Release` has one,
+  else it stays a `TODO(release)`. Neither heading reaches the CHANGELOG's bullets.
 - `changes/<slug>.log.md` (optional): the LOG entry. First line `## <title>` (what follows `#n · date · Claude ·
   proposal ·` in the LOG), then the body, its `→ next:` line last. The number and the date are the assembly's.
 
@@ -83,6 +89,22 @@ A branch that changes the code does not edit `CHANGELOG.md` nor `docs/dev/LOG.md
   "prepared from revision 3" with "Preparing the assets: done" when a late status answer arrives.
 ```
 
+With the release's lines, as `changes/430-localized-images.md` could have written them:
+
+```markdown
+### Release
+
+A game can letter its images in each language (`i18n.images`), its title logo included.
+
+### Release (fr)
+
+Un jeu peut écrire ses images dans chaque langue (`i18n.images`), son logo de titre compris.
+
+### Changes
+
+- **Images per language (4.7.0, #430)**: …
+```
+
 ### Constraints
 
 ```sh
@@ -92,13 +114,16 @@ npm run changes -- --check [--base=origin/main]
 
 - It fails a branch that touches `src/`, `bridge/`, `tools/`, `scripts/`, `cli/`, `connectors/` or `games/` without a
   fragment and without a CHANGELOG edit: `✖ this branch changes the code and carries no fragment: write
-  changes/<slug>.md (### Fixed | ### Changes | ### Breaking, then the bullets)…`. CI's `check` job runs it on pull
+  changes/<slug>.md (### Fixed | ### Changes | ### Breaking, then the bullets; …)…`. CI's `check` job runs it on pull
   requests. A change to `docs/`, `wiki/` or `tests/` alone needs no fragment.
 - It also reads every fragment in `changes/`, the branch's and the others, as `--assemble` will (4.5.5, #335): a
-  heading other than the three (`### Added`, for instance), text before the first heading, or a `.log.md` that does
-  not open on `## <title>` is refused with its file and line: `✖ changes/<slug>.md:5: "### Fixes" is not a fragment
-  heading: ### Breaking | ### Fixed | ### Changes`. `--assemble` refuses the same, so a fragment the release would
-  stop on fails the pull request that adds it. Nothing is filed silently.
+  heading other than the three and the two release ones (`### Added`, for instance), text before the first heading, or
+  a `.log.md` that does not open on `## <title>` is refused with its file and line: `✖ changes/<slug>.md:5: "### Fixes"
+  is not a fragment heading: ### Breaking | ### Fixed | ### Changes, or ### Release | ### Release (fr)`. `--assemble`
+  refuses the same, so a fragment the release would stop on fails the pull request that adds it. Nothing is filed
+  silently.
+- A `### Release` part is refused when it is empty, a list, longer than 400 characters, without a full stop at its
+  end, or there twice; a `### Release (fr)` without its `### Release` too (4.7.1, #410).
 - A bare `TODO(release)` in a fragment is refused too (4.5.5, #364): it would land in the CHANGELOG or the LOG as a
   marker the release must write, and never could. Quote it in backticks, as code.
 - A release branch is the exception: it assembles the fragments and edits the CHANGELOG itself.

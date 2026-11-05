@@ -11,6 +11,8 @@ import {
   logEntryOf,
   mergeChangelog,
   needsFragment,
+  releaseOf,
+  releaseSummary,
   sectionsOf,
 } from '../tools/changes';
 
@@ -136,7 +138,7 @@ describe('the files of the fragments (4.5.4)', () => {
 describe('the fragments the check reads (#335)', () => {
   it('refuses a heading --assemble refuses, with the file, the line and the three headings', () => {
     expect(fragmentProblems([{ name: 'a.md', text: '### Fixed\n\n- **x**.\n\n### Fixes\n\n- **y**.\n' }])).toEqual([
-      'changes/a.md:5: "### Fixes" is not a fragment heading: ### Breaking | ### Fixed | ### Changes',
+      'changes/a.md:5: "### Fixes" is not a fragment heading: ### Breaking | ### Fixed | ### Changes, or ### Release | ### Release (fr)',
     ]);
   });
   it('refuses text before the first heading, at its line', () => {
@@ -158,8 +160,8 @@ describe('the fragments the check reads (#335)', () => {
         { name: 'bad.md', text: '### Added\n- a\n### Security\n- b\n' },
       ]),
     ).toEqual([
-      'changes/bad.md:1: "### Added" is not a fragment heading: ### Breaking | ### Fixed | ### Changes',
-      'changes/bad.md:3: "### Security" is not a fragment heading: ### Breaking | ### Fixed | ### Changes',
+      'changes/bad.md:1: "### Added" is not a fragment heading: ### Breaking | ### Fixed | ### Changes, or ### Release | ### Release (fr)',
+      'changes/bad.md:3: "### Security" is not a fragment heading: ### Breaking | ### Fixed | ### Changes, or ### Release | ### Release (fr)',
     ]);
   });
   it('accepts what --assemble accepts: the same list of headings', () => {
@@ -193,5 +195,81 @@ describe('the check of a pull request', () => {
     );
     expect(needsFragment(['games/demo/game.ts'])).toBe(true); // the bundled games ship
     expect(needsFragment(['src/x.ts', 'changes/README.md'])).toBe(true);
+  });
+});
+
+describe("a fragment's release lines (#410, PR 6)", () => {
+  const fragment = [
+    '### Release',
+    '',
+    "A character walks its rounds through rooms on the world's clock, seen or not (`route`), for authors.",
+    '',
+    '### Release (fr)',
+    '',
+    'Un personnage fait sa tournée de salle en salle',
+    "à l'heure du monde, vu ou non (`route`), pour les auteurs.",
+    '',
+    '### Changes',
+    '',
+    '- **Routes (4.6.0)**: a bullet.',
+    '',
+  ].join('\n');
+  it('reads the English and the French lines, each as one line, and leaves them out of the CHANGELOG', () => {
+    expect(releaseOf(fragment)).toEqual({
+      en: "A character walks its rounds through rooms on the world's clock, seen or not (`route`), for authors.",
+      fr: "Un personnage fait sa tournée de salle en salle à l'heure du monde, vu ou non (`route`), pour les auteurs.",
+    });
+    expect(sectionsOf(fragment)).toEqual({ Changes: '- **Routes (4.6.0)**: a bullet.' });
+    expect(mergeChangelog('# C\n\n## Unreleased\n', [{ changelog: fragment }])).not.toMatch(/Release|tournée|rounds/);
+    expect(releaseOf('### Fixed\n- x\n')).toEqual({});
+  });
+  it('is accepted by the check, any heading else still refused', () => {
+    expect(fragmentProblems([{ name: 'r.md', text: fragment }])).toEqual([]);
+    expect(fragmentProblems([{ name: 'r.md', text: '### Release\n\nOnly a line.\n' }])).toEqual([]);
+    expect(fragmentProblems([{ name: 'r.md', text: '### Releases\n\nA line.\n' }])).toEqual([
+      'changes/r.md:1: "### Releases" is not a fragment heading: ### Breaking | ### Fixed | ### Changes, or ### Release | ### Release (fr)',
+    ]);
+  });
+  it('refuses a release part the intro could not hold: empty, a list, too long, no full stop, twice, French alone', () => {
+    const problems = (text: string) => fragmentProblems([{ name: 'r.md', text }]);
+    expect(problems('### Release\n\n### Fixed\n- x\n')).toEqual([
+      'changes/r.md:1: "### Release" is empty: one or two sentences for the release\'s intro, or no heading',
+    ]);
+    expect(problems('### Release\n\n- a bullet.\n')).toEqual([
+      'changes/r.md:3: "### Release" is one or two sentences of prose, not a list: the bullets go under ### Changes',
+    ]);
+    expect(problems(`### Release\n\n${'word '.repeat(90)}end.\n`)).toEqual([
+      'changes/r.md:1: "### Release" holds 454 characters: one or two sentences, 400 at most (the intro joins every fragment\'s)',
+    ]);
+    expect(problems('### Release\n\nNo full stop\n')).toEqual([
+      'changes/r.md:1: "### Release" ends without a full stop: the intro joins it to the next fragment\'s',
+    ]);
+    expect(problems('### Release\n\nOne.\n\n### Release\n\nTwo.\n')).toEqual([
+      'changes/r.md:5: "### Release" is there twice: one per fragment',
+    ]);
+    expect(problems('### Release (fr)\n\nUne ligne.\n')).toEqual([
+      'changes/r.md:1: "### Release (fr)" without "### Release": the French line translates the English one',
+    ]);
+    expect(() => releaseOf('### Release\n\n- a bullet.\n')).toThrow(/not a list/);
+  });
+  it("assembles the fragments' lines in their order, French only when every English line has its French", () => {
+    const f = (slug: string, en?: string, fr?: string) => ({
+      slug,
+      changelog: [en && `### Release\n\n${en}\n`, fr && `### Release (fr)\n\n${fr}\n`, '### Fixed\n\n- x\n']
+        .filter(Boolean)
+        .join('\n'),
+    });
+    expect(releaseSummary([f('a', 'A one.', 'Un.'), f('b'), f('c', 'C two.', 'Deux.')])).toEqual({
+      en: 'A one. C two.',
+      fr: 'Un. Deux.',
+      slugs: ['a', 'c'],
+      missingFr: [],
+    });
+    expect(releaseSummary([f('a', 'A one.', 'Un.'), f('c', 'C two.')])).toEqual({
+      en: 'A one. C two.',
+      slugs: ['a', 'c'],
+      missingFr: ['c'],
+    });
+    expect(releaseSummary([f('b'), { slug: 'log-only', changelog: '' }])).toEqual({ slugs: [], missingFr: [] });
   });
 });

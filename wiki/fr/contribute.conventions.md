@@ -69,6 +69,13 @@ Une branche qui modifie le code ne touche ni `CHANGELOG.md` ni `docs/dev/LOG.md`
 - `changes/<slug>.md` : les puces du CHANGELOG, sous `### Breaking`, `### Fixed` ou `### Changes` (n'importe
   lesquelles, dans n'importe quel ordre). Écrivez-les comme le CHANGELOG : une amorce en gras, la version entre
   parenthèses, ce qu'un joueur, un auteur ou un hébergeur voit de différent.
+- Dans le même fichier, en option (4.7.1, #410), `### Release` : une ou deux phrases pour l'introduction de la
+  release, ce que le changement apporte et à qui, en une prose qui se lit bien jointe à celle des autres fragments.
+  `npm run release -- prepare` joint celles de tous les fragments, dans l'ordre où ils sont arrivés sur `main`, dans
+  l'introduction du CHANGELOG et la ligne de release actuelle du README ; s'il n'y en a aucune, les deux gardent un
+  `TODO(release)` pour le mainteneur. `### Release (fr)` en est la traduction française, pour `README.fr.md` : la ligne
+  française n'est écrite que si chaque fragment qui a un `### Release` a la sienne, sinon elle reste un
+  `TODO(release)`. Aucun des deux titres n'arrive dans les puces du CHANGELOG.
 - `changes/<slug>.log.md` (facultatif) : l'entrée du LOG. Première ligne `## <titre>` (ce qui suit
   `#n · date · Claude · proposal ·` dans le LOG), puis le corps, sa ligne `→ next:` en dernier. Le numéro et la date
   sont ceux de l'assemblage.
@@ -86,6 +93,22 @@ Une branche qui modifie le code ne touche ni `CHANGELOG.md` ni `docs/dev/LOG.md`
   "prepared from revision 3" with "Preparing the assets: done" when a late status answer arrives.
 ```
 
+Avec les lignes de la release, comme `changes/430-localized-images.md` aurait pu les écrire :
+
+```markdown
+### Release
+
+A game can letter its images in each language (`i18n.images`), its title logo included.
+
+### Release (fr)
+
+Un jeu peut écrire ses images dans chaque langue (`i18n.images`), son logo de titre compris.
+
+### Changes
+
+- **Images per language (4.7.0, #430)**: …
+```
+
 ### Contraintes
 
 ```sh
@@ -95,13 +118,16 @@ npm run changes -- --check [--base=origin/main]
 
 - Elle fait échouer une branche qui touche `src/`, `bridge/`, `tools/`, `scripts/`, `cli/`, `connectors/` ou `games/`
   sans fragment et sans modification du CHANGELOG : `✖ this branch changes the code and carries no fragment: write
-  changes/<slug>.md (### Fixed | ### Changes | ### Breaking, then the bullets)…`. Le job `check` de la CI la lance
+  changes/<slug>.md (### Fixed | ### Changes | ### Breaking, then the bullets; …)…`. Le job `check` de la CI la lance
   sur les pull requests. Un changement qui ne touche que `docs/`, `wiki/` ou `tests/` n'a pas besoin de fragment.
 - Elle lit aussi chaque fragment de `changes/`, ceux de la branche et les autres, comme `--assemble` le fera (4.5.5,
-  #335) : un titre autre que les trois (`### Added`, par exemple), du texte avant le premier titre, ou un `.log.md`
-  qui ne s'ouvre pas sur `## <title>` est refusé avec son fichier et sa ligne : `✖ changes/<slug>.md:5: "### Fixes"
-  is not a fragment heading: ### Breaking | ### Fixed | ### Changes`. `--assemble` refuse les mêmes, donc un fragment
-  sur lequel la release s'arrêterait fait échouer la pull request qui l'ajoute. Rien n'est rangé en silence.
+  #335) : un titre autre que les trois et les deux de la release (`### Added`, par exemple), du texte avant le premier
+  titre, ou un `.log.md` qui ne s'ouvre pas sur `## <title>` est refusé avec son fichier et sa ligne :
+  `✖ changes/<slug>.md:5: "### Fixes" is not a fragment heading: ### Breaking | ### Fixed | ### Changes, or ### Release | ### Release (fr)`.
+  `--assemble` refuse les mêmes, donc un fragment sur lequel la release s'arrêterait fait échouer la pull request qui
+  l'ajoute. Rien n'est rangé en silence.
+- Une partie `### Release` est refusée quand elle est vide, en liste, plus longue que 400 caractères, sans point final,
+  ou présente deux fois ; un `### Release (fr)` sans son `### Release` aussi (4.7.1, #410).
 - Un `TODO(release)` nu dans un fragment est refusé aussi (4.5.5, #364) : il arriverait dans le CHANGELOG ou le LOG
   comme un marqueur que la release doit écrire, et ne le pourrait jamais. Citez-le entre accents graves, comme du code.
 - Une branche de release est l'exception : elle assemble les fragments et modifie le CHANGELOG elle-même.
