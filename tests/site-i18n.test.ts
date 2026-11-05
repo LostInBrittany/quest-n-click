@@ -1,4 +1,4 @@
-// site.json's `i18n` (4.6.1): the page's title, description and manifest in other languages. The site plugin writes
+// site.json's `i18n` (4.7.0): the page's title, description and manifest in other languages. The site plugin writes
 // them into the page (`#qnc-site-i18n`) and emits a manifest per language; `bootGame` applies the language played.
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';

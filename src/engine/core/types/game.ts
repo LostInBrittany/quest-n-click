@@ -108,7 +108,7 @@ export interface PlaceDef {
    */
   joins?: Id;
   /**
-   * How the journey to this place is drawn along the route: a car (the default) or a plane image, or `walk` (4.6.1):
+   * How the journey to this place is drawn along the route: a car (the default) or a plane image, or `walk` (4.7.0):
    * the current hero walking, with their walk frames (the car when they have none).
    */
   vehicle?: 'car' | 'plane' | 'walk';
@@ -123,10 +123,10 @@ export interface MapDef {
   start: Id;
   places: Record<Id, PlaceDef>;
   music?: Id;
-  /** Images that replace the skin's icons on the map; `dot` (4.6.1, #428): the token of `pins: 'dots'`. */
+  /** Images that replace the skin's icons on the map; `dot` (4.7.0, #428): the token of `pins: 'dots'`. */
   vehicles?: { car?: Id; plane?: Id; pin?: Id; news?: Id; dot?: Id };
   /**
-   * How the places are marked on the map (4.6.1, #428): `faces` (the default) draws a pin per place, its `portrait` (or
+   * How the places are marked on the map (4.7.0, #428): `faces` (the default) draws a pin per place, its `portrait` (or
    * the pin icon) in a disc above a needle. For a map whose drawing shows the places, `hidden` draws nothing: each place
    * is a transparent button the size of a face, centred on its `pos`, with its "!" (`news`) still shown; `dots` puts a
    * small token in that button (`vehicles.dot`, else a stone-coloured disc), glowing on hover and focus, and the hero
@@ -346,7 +346,7 @@ export interface GameDef {
   /**
    * Translations' extras. `same`: translation paths whose text stays the same in every language on purpose (a name,
    * "OK", ▲): every other text identical to the source is an untranslated line and fails `npm run i18n -- status`.
-   * `images` (4.6.1): images drawn in another image's place in a language, `{ '<image id>': { '<lang>': '<image id>' } }`
+   * `images` (4.7.0): images drawn in another image's place in a language, `{ '<image id>': { '<lang>': '<image id>' } }`
    * (a title logo lettered in each language, a sign): wherever the source id is drawn, the language being played
    * draws its variant; the game's own language and a language without a variant draw the source. The validator checks
    * every id; the offline cache keeps every variant. Presentation only: rules, saves and the solver never see it.
@@ -394,7 +394,7 @@ export interface GameDef {
     /** Silent looping video behind the title (file in public/assets/video/), the backdrop serves as a poster. */
     video?: string;
     /**
-     * Where the logo and the buttons go (4.6.1, #418), in units of the 640 x 400 scene, so a logo image needs no
+     * Where the logo and the buttons go (4.7.0, #418), in units of the 640 x 400 scene, so a logo image needs no
      * transparent padding to be sized or placed. The logo keeps its proportions: `logoWidth` sets its width (default
      * 430), `logoCenter` the x of its centre (default 370), `logoTop` the y of its top (default 8). `buttonsTop` is the
      * y of the top of the New game and Continue row (default 292, 73% of the scene's height). Upright

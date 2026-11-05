@@ -9,7 +9,7 @@ import type { App } from './app';
 
 // ---------------------------------------------------------------- map
 /**
- * The regions the map offers (4.6.1, #421): a region is open once a place in it, or in a region below it, is unlocked.
+ * The regions the map offers (4.7.0, #421): a region is open once a place in it, or in a region below it, is unlocked.
  * The regions in `keep` (the one the map opens on, and `map.start`) are open too, so the player can always zoom back to
  * where they stand. A child region that is not open has no zoom button and no frame on its parent's image.
  */
@@ -58,7 +58,7 @@ export async function openMap(app: App, state: GameState): Promise<Id | null> {
   const icons = app.game.skin.icons;
   const pin = map.vehicles?.pin ?? icons.pin,
     newsImg = map.vehicles?.news ?? icons.news;
-  // How the places are marked (4.6.1, #428). `hidden` and `dots` are "bare": no face, no needle, each place's button
+  // How the places are marked (4.7.0, #428). `hidden` and `dots` are "bare": no face, no needle, each place's button
   // centred on its `pos` (and the route ends there, not above a needle's tip). `dots` draws a small token in it and the
   // hero standing on the current place.
   const dots = map.pins === 'dots';
@@ -245,7 +245,7 @@ export async function openMap(app: App, state: GameState): Promise<Id | null> {
         li.onclick = () => void go(id);
         list.append(li);
       }
-      // The open child regions (4.6.1, #421): their frames on this image, and the zoom button to the first one. A child
+      // The open child regions (4.7.0, #421): their frames on this image, and the zoom button to the first one. A child
       // region with no open place shows neither.
       const children = Object.entries(map.regions).filter(([id, r]) => r.parent === region && open.has(id));
       for (const [id, r] of children) {
@@ -270,7 +270,7 @@ export async function openMap(app: App, state: GameState): Promise<Id | null> {
         svg.append(rect);
       }
       // The zoom buttons, bottom right: up to the parent region, and down to the first open child. A region in the
-      // middle (a child that has an open child itself, 4.6.1, #421) has both, the way down above the way up.
+      // middle (a child that has an open child itself, 4.7.0, #421) has both, the way down above the way up.
       const zooms: [Id, string][] = [];
       if (children[0]) zooms.push([children[0][0], app.game.ui.zoomIn + ' ⤡']);
       if (R.parent) zooms.push([R.parent, app.game.ui.world + ' ⤢']);
@@ -345,7 +345,7 @@ export async function openMap(app: App, state: GameState): Promise<Id | null> {
       // The hero leaves the place they stood on (`dots`): the walker (or the vehicle) takes over.
       standing?.remove();
       const veh = el('img') as HTMLImageElement;
-      // On foot (4.6.1, #422): the hero the player plays now (their variant, recoloured as the room paints them), with
+      // On foot (4.7.0, #422): the hero the player plays now (their variant, recoloured as the room paints them), with
       // their walk frames. A hero with no walk frames travels by car.
       const hero = p.vehicle === 'walk' ? app.engine.character(heroId) : undefined;
       const walking = !!hero?.sprites?.walk?.length;
@@ -408,11 +408,11 @@ export async function openMap(app: App, state: GameState): Promise<Id | null> {
   });
 }
 
-/** The walker's height on the map (4.6.1, #422), in % of the map's height: about a pin's size. */
+/** The walker's height on the map (4.7.0, #422), in % of the map's height: about a pin's size. */
 const MAP_WALKER_HEIGHT = 12;
 
 /**
- * The hero's image at one moment of a walk on the map (4.6.1, #422), as the room's walker chooses it: `walk_back` going
+ * The hero's image at one moment of a walk on the map (4.7.0, #422), as the room's walker chooses it: `walk_back` going
  * mostly up and `walk_front` going mostly down when the sheet has them, else `walk`, flipped when the way goes left (a
  * nearly vertical way keeps the side it had). `dx`, `dy`: the way of travel in pixels; `ms`: time since the start.
  */

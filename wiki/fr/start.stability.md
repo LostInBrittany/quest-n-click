@@ -87,13 +87,17 @@ Versionnage sémantique sur l’API publique :
 - une **majeure** (5.0) peut retirer ce qu’une mineure a déprécié, et dit comment passer dans les notes de mise à jour
   ([Mettre à jour](install.upgrade.md)).
 
-**Durée de suivi.** La dernière mineure de la majeure en cours reçoit tous les correctifs ; chaque mineure plus
-ancienne reçoit les correctifs de sécurité pendant trois mois après la mineure qui l’a suivie. Ce que cela donne à la
-4.5.0 (23 octobre 2026), le même tableau que la [politique de sécurité](contribute.security-policy.md#supported-versions) :
+**Durée de suivi.** Seule la dernière mineure est suivie : elle reçoit tous les correctifs, ceux de sécurité compris,
+et une mineure plus ancienne n’en reçoit aucun. Une mineure ne fait qu’ajouter : pour avoir un correctif, on passe à la
+dernière ([Mettre à jour](install.upgrade.md)). C’est vrai à partir de la 4.7.0 (D59) ; les lignes à qui des
+correctifs de sécurité ont été promis avant elle gardent leurs dates, et aucune ligne ne s’y ajoute. À la 4.7.0, le
+même tableau que la [politique de sécurité](contribute.security-policy.md#supported-versions) :
 
 | Ligne | Correctifs | Jusqu’au |
 | --- | --- | --- |
-| 4.5 | tous les correctifs | la mineure suivante, puis trois mois de correctifs de sécurité |
+| 4.7 | tous les correctifs | la mineure suivante |
+| 4.6 | aucun : passer à la 4.7 | 4.7.0 |
+| 4.5 | correctifs de sécurité (promis à la 4.6.0) | 4 février 2027 |
 | 4.4 | correctifs de sécurité | 23 janvier 2027 |
 | 4.3 | correctifs de sécurité | 22 janvier 2027 |
 | 4.2.5 | correctifs de sécurité, sur une branche partie de `v4.2.5` (SUPPORT, écrit à la 4.3.0) | 21 janvier 2027 |
@@ -102,6 +106,15 @@ La lignée 3.x s’est arrêtée à la 3.9 ; ses jeux passent à la
 4.0 avec `quest-n-click migrate` (rien à réécrire pour un jeu déjà au schéma 3).
 
 **Historique de la politique.** Chaque ligne ci-dessous a dit ce qu’elle changeait ; la plus récente d’abord.
+
+<a name="v470"></a>
+
+### 4.7.0 : la dernière mineure seulement (D59)
+
+Ne change le statut d’aucune surface. La durée de suivi devient la dernière mineure seulement : aucune mineure ne reçoit
+plus de correctifs de sécurité une fois la suivante sortie. Les mineures arrivent environ une fois par mois et ne font
+qu’ajouter : le correctif, c’est la mise à jour. Les durées promises avant la 4.7.0 (4.5, 4.4, 4.3, 4.2.5) sont tenues
+jusqu’à leurs dates ; la 4.6 est la première ligne que la nouvelle politique arrête à la mineure suivante.
 
 <a name="v440"></a>
 

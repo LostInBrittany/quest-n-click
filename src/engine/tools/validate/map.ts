@@ -1,6 +1,6 @@
 // The validator's checks of the travel map: its regions and their images, each place's room, region, faces (one
 // portrait or several, 4.4.0), news condition and the pin it joins (4.4.0: an existing place of the same region that
-// joins no other pin), the vehicles' images, the map's music and its `pins` (4.6.1, #428).
+// joins no other pin), the vehicles' images, the map's music and its `pins` (4.7.0, #428).
 import type { Cond, GameDef } from '../../core/types';
 
 export function mapChecks(

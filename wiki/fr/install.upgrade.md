@@ -33,7 +33,7 @@ et les sauvegardes de ses joueurs qui se chargent toujours.
   sur un Studio hébergé ont leur propre section plus bas.
 - Cette procédure vaut pour une cible en 4.3.0 ou après, où `quest-n-click migrate` renomme aussi un projet encore sous
   l'ancien nom `web-scumm`. Si vous venez d'avant la 4.2.5, lisez aussi [Venir de web-scumm](install.from-web-scumm.md).
-- Ce que change chaque version est dans les notes de mise à jour : [4.5](install.upgrade-notes-4-5.md),
+- Ce que change chaque version est dans les notes de mise à jour : [4.7](install.upgrade-notes-4-7.md), [4.6](install.upgrade-notes-4-6.md), [4.5](install.upgrade-notes-4-5.md),
   [4.4](install.upgrade-notes-4-4.md), [4.3](install.upgrade-notes-4-3.md), [4.2](install.upgrade-notes-4-2.md), [4.1](install.upgrade-notes-4-1.md),
   [v3](install.upgrade-notes-v3.md), [v2 vers v3](install.upgrade-notes-v2-to-v3.md). Quelles versions sont suivies, et
   combien de temps dure une dépréciation : voir [Stabilité](start.stability.md).
@@ -200,7 +200,7 @@ du serveur lui-même est décrite dans [Mettre à jour le serveur](clever.upgrad
 
 ## Références
 
-- Les notes de mise à jour : [4.5](install.upgrade-notes-4-5.md), [4.4](install.upgrade-notes-4-4.md), [4.3](install.upgrade-notes-4-3.md),
+- Les notes de mise à jour : [4.7](install.upgrade-notes-4-7.md), [4.6](install.upgrade-notes-4-6.md), [4.5](install.upgrade-notes-4-5.md), [4.4](install.upgrade-notes-4-4.md), [4.3](install.upgrade-notes-4-3.md),
   [4.2](install.upgrade-notes-4-2.md), [4.1](install.upgrade-notes-4-1.md), [v3](install.upgrade-notes-v3.md),
   [v2 vers v3](install.upgrade-notes-v2-to-v3.md)
 - [Stabilité](start.stability.md), [État et sauvegardes](create.state-saves.md), [Journal des versions](reference.changelog.md)

@@ -33,7 +33,7 @@ A verb is a button: Give, Open, Close, Pick up, Look at, Talk to, Use, Push, Pul
 - **Use and Give take two things**: pick the verb, the first thing (an item of the bag), then the second ("Use pipe
   with tank", "Give token to seller").
 - **Tap a thing with no verb chosen**: the hero walks to it. On a phone, its name shows above it for a moment, moved
-  inward when the thing is near the scene's edge, so it always shows whole (4.6.1).
+  inward when the thing is near the scene's edge, so it always shows whole (4.7.0).
 - **Tap an empty spot**: the hero walks there, within the floor.
 - **Tap an item of the bag with no verb**: it is picked for Use (or Give, on a character); the next tap on a target
   says what happens.

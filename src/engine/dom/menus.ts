@@ -367,7 +367,7 @@ type TitlePlacement = { logoWidth?: number; logoCenter?: number; logoTop?: numbe
 /**
  * Where the title screen puts its logo and its buttons, in percent of the 640 x 400 scene (so a resize keeps them in
  * place): the logo's left, top and width, the buttons row's top. Without fields, the places of every version before
- * 4.6.1: the logo 430 units wide, centred on x = 370, its top at y = 8; the buttons at 73% (y = 292).
+ * 4.7.0: the logo 430 units wide, centred on x = 370, its top at y = 8; the buttons at 73% (y = 292).
  */
 export function titleLayout(T?: TitlePlacement) {
   const width = T?.logoWidth ?? 430;

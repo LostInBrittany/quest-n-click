@@ -19,7 +19,7 @@ against each mutant. Each set is named for exactly the files it mutates (4.1.19,
 | `studio-auth` | the Studio Server's gate, OpenID provider, auth routes and store, spans' leases, the game's origin | gated (4.2.1) |
 | `studio-workshop` | the Studio Server's personal undo, health by revision, previews, builds, prepared assets, backup, journal shipped and collection | gated (4.2.3) |
 | `voices` | voices by value: a line's clip keys, the recording table and its CSV, the validator's check; the solver's sentences | gated (4.3.1) |
-| `routes` | the world's clock and its routes: `src/engine/core/{world,route-runtime}.ts` | gated (4.6.1, #413: measured in 4.6.0; its 53 survivors read, 49 killed by tests, 4 named below) |
+| `routes` | the world's clock and its routes: `src/engine/core/{world,route-runtime}.ts` | gated (4.7.0, #413: measured in 4.6.0; its 53 survivors read, 49 killed by tests, 4 named below) |
 
 A gated set fails its job on any survivor not named below; a measured set reports, toward being read and gated. The
 survivors named here are equivalent mutants: no input the engine or the Bridge can receive tells them from the

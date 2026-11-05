@@ -1,6 +1,6 @@
 ### Changes
 
-- **A map without pins, or with small dots (4.6.1, #428)**: `map.pins` says how the places are marked, for a map whose
+- **A map without pins, or with small dots (4.7.0, #428)**: `map.pins` says how the places are marked, for a map whose
   picture already draws them. `pins: 'hidden'` takes the pins away: each place is still a button, named for screen
   readers, the size of a face and centred on its `pos`, but transparent; its "!" still shows there and the keyboard
   focus rings it. `pins: 'dots'` puts a small token in each of those buttons (a stone-coloured disc with a soft shadow,

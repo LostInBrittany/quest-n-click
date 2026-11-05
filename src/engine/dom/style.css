@@ -133,12 +133,12 @@ body { -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
 .mapview div.pin.here .face { border-color: #fff; }
 .mapview .pin .facebtn.here .face { border-color: #ffd84d; }
 .mapview .pin .needle { width: 40%; display: block; margin: -6% auto 0; }
-/* Bare pins (`map.pins: 'hidden'`, 4.6.1, #428): a transparent tap zone centred on the place, its "!" and a focus ring only. */
+/* Bare pins (`map.pins: 'hidden'`, 4.7.0, #428): a transparent tap zone centred on the place, its "!" and a focus ring only. */
 .mapview .pin.bare { transform: translate(-50%, -50%); }
 .mapview .pin.bare .face, .mapview .pin.bare .facebtn.here .face { border: 0; background: none; border-radius: 50%; }
 .mapview .pin.bare:focus-visible, .mapview .pin.bare .facebtn:focus-visible { outline: none; }
 .mapview .pin.bare:not(.dots):focus-visible .face, .mapview .pin.bare:not(.dots) .facebtn:focus-visible .face { outline: 3px solid #ffd84d; outline-offset: -3px; }
-/* Dots (`map.pins: 'dots'`, 4.6.1, #428): a small stone token in the middle of the tap zone, a warm glow on hover and
+/* Dots (`map.pins: 'dots'`, 4.7.0, #428): a small stone token in the middle of the tap zone, a warm glow on hover and
    focus; the hero standing on the current place, feet on its spot, with the same small shadow. */
 .mapview .pin.dots .face { display: flex; align-items: center; justify-content: center; }
 .mapview .pin .dot { display: block; flex: none; width: 40%; aspect-ratio: 1; box-sizing: border-box; border-radius: 50%; border: 2px solid #2b1d12; background: radial-gradient(circle at 38% 32%, #fff8e2 0 18%, #ead9b0 45%, #bfa676 100%); box-shadow: 0 2px 2px rgba(0, 0, 0, .55); transition: box-shadow .15s, transform .15s; }

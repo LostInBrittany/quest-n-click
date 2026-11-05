@@ -282,7 +282,7 @@ export const GATED: MutationSet[] = [
   // 4.3.1: gated from the start, its survivors read before it joined (186 of 193 killed, 7 named in
   // docs/dev/mutants.json, each read again in a second context, which found one a bug: a `*=`-only line's sheet text).
   'voices',
-  // 4.6.1 (#413): its 53 survivors read (49 killed by tests/route-runtime-mutants and tests/world-mutants, which loads
+  // 4.7.0 (#413): its 53 survivors read (49 killed by tests/route-runtime-mutants and tests/world-mutants, which loads
   // the engine without the routes' engine; 4 named in docs/dev/mutants.json).
   'routes',
 ];
@@ -292,7 +292,7 @@ export const GATED: MutationSet[] = [
 // (PR 10) read its survivors.
 // 4.6.0: `routes` (the world's clock), 223 of its 264 mutants killed (tests/route-runtime-mutants.test.ts) before the
 // facade moved into world.ts; measured until its survivors are read, most of them guards for what validate refuses.
-// Empty again since 4.6.1 (#413): `routes` is gated.
+// Empty again since 4.7.0 (#413): `routes` is gated.
 export const MEASURED: MutationSet[] = [];
 
 /**

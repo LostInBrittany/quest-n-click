@@ -194,7 +194,7 @@ condition. `'room.prop'` reaches a prop of another room.
 lasting pose of its sprite sheet (`sleep`), `facing` its side, `visible` a condition, `name` a display name other than
 the character's, `interactive: false` makes it living scenery, neither clickable nor named
 ([characters](create.characters.md#presence)). A character the hero acts on turns to face the hero; with
-`turnBack: true` (4.6.1) it turns back to its side once the action is over (a conversation at "Bye"), e.g. two players
+`turnBack: true` (4.7.0) it turns back to its side once the action is over (a conversation at "Bye"), e.g. two players
 facing each other across their game ([approach points](create.geometry.md#approach)). The validator wants every actor placed in the layout, and warns about
 a `person` with no conversation topics.
 

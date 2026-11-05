@@ -1,5 +1,5 @@
 // @vitest-environment happy-dom
-// Travel on foot on the map (4.6.1, #422): `vehicle: 'walk'` draws the hero the player plays now (the variant that
+// Travel on foot on the map (4.7.0, #422): `vehicle: 'walk'` draws the hero the player plays now (the variant that
 // applies) walking along the route with their walk frames, flipped when the way goes left, `walk_back` / `walk_front`
 // on a mostly vertical way when the sheet has them. A hero without walk frames travels by car.
 import { afterEach, describe, expect, it, vi } from 'vitest';
@@ -9,7 +9,7 @@ import type { CharacterDef, GameDef, MapDef } from '@engine/core/types';
 import { game as demo } from '../../games/demo/game';
 import { mini, miniLayouts } from '../fixtures/mini';
 
-describe('mapWalkStep (4.6.1, #422)', () => {
+describe('mapWalkStep (4.7.0, #422)', () => {
   const sp = { walk: ['w/1', 'w/2', 'w/3'], walk_back: ['b/1', 'b/2'], walk_front: ['f/1'] };
 
   it('cycles the walk frames at the fps', () => {
@@ -87,7 +87,7 @@ async function travel(app: App) {
   return { open, seen };
 }
 
-describe("vehicle: 'walk' (4.6.1, #422)", () => {
+describe("vehicle: 'walk' (4.7.0, #422)", () => {
   afterEach(() => {
     vi.restoreAllMocks();
     vi.unstubAllGlobals();

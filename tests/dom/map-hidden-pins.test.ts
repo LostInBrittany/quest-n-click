@@ -1,5 +1,5 @@
 // @vitest-environment happy-dom
-// Bare pins (4.6.1, #428), for a map whose drawing shows the places. `map.pins: 'hidden'`: each place keeps its button
+// Bare pins (4.7.0, #428), for a map whose drawing shows the places. `map.pins: 'hidden'`: each place keeps its button
 // (named, centred on its `pos`, the size of a face) but no face, no needle; its "!" still shows; joined places get one
 // empty button each. `map.pins: 'dots'`: the same buttons with a small token in each, and the hero standing on the
 // current place instead of its token, who leaves it when travelling and stands on the new place on arrival. The "Where
@@ -43,7 +43,7 @@ async function start(map: MapDef, unlocked: string[], hero?: CharacterDef) {
 
 const pins = () => [...document.querySelectorAll<HTMLElement>('.mapview .pin')];
 
-describe("map pins that draw nothing (map.pins: 'hidden', 4.6.1)", () => {
+describe("map pins that draw nothing (map.pins: 'hidden', 4.7.0)", () => {
   afterEach(() => {
     vi.restoreAllMocks();
     document.body.innerHTML = '';
@@ -127,7 +127,7 @@ const DOTS: MapDef = {
 };
 const HERO: CharacterDef = { name: 'Hero', color: '#fff', sprites: { idle: ['h/1'], walk: ['h/w1', 'h/w2'] } };
 
-describe("map pins as small dots, the hero on the current place (map.pins: 'dots', 4.6.1)", () => {
+describe("map pins as small dots, the hero on the current place (map.pins: 'dots', 4.7.0)", () => {
   afterEach(() => {
     vi.restoreAllMocks();
     vi.unstubAllGlobals();

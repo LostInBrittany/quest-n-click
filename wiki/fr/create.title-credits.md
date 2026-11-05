@@ -12,7 +12,7 @@ puis Nouvelle partie et Continuer ; et le générique de fin, qui défile sur la
 ## Contexte et versions
 
 `game.ts` dans le dépôt du moteur (`games/<id>/game.ts`) ou dans un projet créé (`game/game.ts`). Les champs
-ci-dessous sont ceux de la 4.4.0, plus les places du logo et des boutons à partir de la 4.6.1 ; vrai à partir de la
+ci-dessous sont ceux de la 4.4.0, plus les places du logo et des boutons à partir de la 4.7.0 ; vrai à partir de la
 4.2.5 (le nom de commande `quest-n-click` utilisé plus bas).
 
 <a name="prerequisites"></a>
@@ -42,7 +42,7 @@ Modifiez `game.ts` ; lancez `npm run assets` à la racine du dépôt du moteur, 
 
    `decor` est obligatoire ; `logo`, `music`, `video` et `footer` sont optionnels.
 
-   Pour déplacer le logo ou les boutons, donnez leurs places en unités de la scène de 640 x 400 (4.6.1). Le logo garde
+   Pour déplacer le logo ou les boutons, donnez leurs places en unités de la scène de 640 x 400 (4.7.0). Le logo garde
    ses proportions : l’image n’a pas besoin de marges transparentes autour de lui.
 
    ```ts

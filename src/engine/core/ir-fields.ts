@@ -120,7 +120,7 @@ const actor: Classes<ActorDef> = {
   interactive: 'logic',
   pose: 'presentation',
   facing: 'presentation',
-  // Turning back after the hero's action (4.6.1): the drawing only, the state's facing is untouched.
+  // Turning back after the hero's action (4.7.0): the drawing only, the state's facing is untouched.
   turnBack: 'presentation',
   visible: 'logic',
   name: 'logic',

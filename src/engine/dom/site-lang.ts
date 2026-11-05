@@ -1,4 +1,4 @@
-// The page's title, description and PWA manifest in the language being played (4.6.1): site.json's `i18n` gives them
+// The page's title, description and PWA manifest in the language being played (4.7.0): site.json's `i18n` gives them
 // per language, the site plugin (tools/vite/plugins.ts) writes them into index.html as `#qnc-site-i18n` and emits one
 // `manifest.<lang>.webmanifest` per language; `bootGame` applies the chosen language's here. The language switch in
 // Settings reloads the page, so it applies there too. The HTML as served (what a link preview reads) stays in the

@@ -1,0 +1,46 @@
+# Notes de mise à jour : 4.7
+
+Ce que la 4.7.0 a changé. Rien à modifier dans un jeu : il se construit, se joue et se sauvegarde comme en 4.6.0.
+Chaque ajout est facultatif et visuel : règles, sauvegardes, solveur et empreinte logique ne le voient pas.
+
+La mise à jour elle-même : [Mettre à jour](install.upgrade.md).
+
+<a name="from-4-6-0-to-4-7-0"></a>
+<!-- applies: 4.7.0.. -->
+
+## De la 4.6.0 à la 4.7.0
+
+Installez `@quest-n-click/engine@4.7.0` ([Installer depuis npm](install.from-npm.md)). Ce qu'un jeu peut utiliser,
+chaque élément facultatif :
+
+- **Un personnage se retourne** une fois que le héros en a fini avec lui : `turnBack: true` sur l'acteur de la pièce
+  ([Salles](create.rooms.md#actors)).
+- **Le logo et les boutons de l'écran titre placés par le jeu** : `titleScreen` prend `logoWidth`, `logoCenter`,
+  `logoTop` et `buttonsTop`, en unités de la scène de 640 x 400 ([Titre et générique](create.title-credits.md)). Un
+  logo bordé de vide transparent pour le placer peut perdre cette bordure.
+- **Voyager à pied sur la carte** : `vehicle: 'walk'` sur un lieu fait marcher le héros le long du trajet, avec ses
+  images `walk` ([Carte du monde](create.world-map.md)).
+- **Une carte sans épingles, ou avec de petits points** : `map.pins: 'hidden' | 'dots'`, pour une carte dont l'image
+  dessine déjà ses lieux ([Carte du monde](create.world-map.md#bare-pins)). Par défaut, `'faces'`, rien ne change.
+- **Le `frame` d'une région est dessiné**, tracé sur l'image du parent une fois la région ouverte
+  ([Carte du monde](create.world-map.md#regions)). Retirez un cadre peint dans l'image du parent.
+- **Des images par langue** : `i18n.images` dans `game.ts` donne, pour un id d'image, l'image que chaque langue dessine
+  à sa place ([Traductions](create.translations.md#i18n-images)).
+- **Le titre et la description de la page par langue** : `site.json` prend `i18n`, le `title`, le `shortName` et la
+  `description` dans les autres langues du jeu ([Organisation d'un projet](create.project-layout.md#site-json)).
+
+**Pour le TypeScript d'un projet**, `quest-n-click/player` exporte les types `SiteText` et `SiteTexts` (des ajouts
+seulement).
+
+**Corrigé** : le nom d'une chose affiché au survol reste dans la scène près de son bord gauche ou droit, et la carte ne
+montre une région enfant qu'une fois un lieu débloqué en elle, ou plus bas (elle proposait une région vide dès le
+début).
+
+**Les versions suivies** changent : à partir de la 4.7.0, seule la dernière mineure reçoit des correctifs, ceux de
+sécurité compris ; la 4.6 n'en reçoit aucun, il faut donc mettre à jour. Les durées promises avant gardent leurs dates
+([Stabilité et support](start.stability.md#versions)).
+
+**Pour les mainteneurs**, les commandes de release réessaient les étapes réseau de git et indiquent la suite après un
+échec, et `prepare` fait suivre au moteur des verrous versionnés une nouvelle mineure. **Pour les contributeurs**,
+l'ensemble de mutation `routes` est bloquant, et le job `external-consumer` de la CI ne demande aucune machine quand le
+plan l'épargne.

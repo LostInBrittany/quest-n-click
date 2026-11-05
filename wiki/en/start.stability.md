@@ -83,13 +83,16 @@ Semantic versioning on the public API:
 - a **major** (5.0) may remove what a minor deprecated, and says how to move in the upgrade notes
   ([Upgrade](install.upgrade.md)).
 
-**Support window.** The current major's last minor gets every fix; each earlier minor gets security fixes for three
-months after the minor that followed it. What that gives at 4.5.0 (23 October 2026), the same table as the
-[security policy](contribute.security-policy.md#supported-versions):
+**Support window.** Only the latest minor is supported: it gets every fix, security fixes included, and an earlier
+minor gets none. A minor only adds, so the way to a fix is to upgrade to the latest one ([Upgrade](install.upgrade.md)).
+This holds from 4.7.0 (D59); the lines promised security fixes before it keep their dates, and no line is added to
+them. At 4.7.0, the same table as the [security policy](contribute.security-policy.md#supported-versions):
 
 | Line | Fixes | Until |
 | --- | --- | --- |
-| 4.5 | every fix | the next minor, then three months of security fixes |
+| 4.7 | every fix | the next minor |
+| 4.6 | none: upgrade to 4.7 | 4.7.0 |
+| 4.5 | security fixes (promised at 4.6.0) | 4 February 2027 |
 | 4.4 | security fixes | 23 January 2027 |
 | 4.3 | security fixes | 22 January 2027 |
 | 4.2.5 | security fixes, on a branch from `v4.2.5` (SUPPORT, written at 4.3.0) | 21 January 2027 |
@@ -98,6 +101,15 @@ The 3.x line ended with
 3.9; its games move to 4.0 with `quest-n-click migrate` (nothing to rewrite for a game already on schema 3).
 
 **History of the policy.** Each line below said what it changed; the newest first.
+
+<a name="v470"></a>
+
+### 4.7.0: the latest minor only (D59)
+
+Changes no surface's status. The support window becomes the latest minor only: no minor gets security fixes once the
+next one is out. The minors come about once a month and each only adds, so upgrading is the fix. The windows promised
+before 4.7.0 (4.5, 4.4, 4.3, 4.2.5) are kept to their dates; 4.6 is the first line the new policy ends at the next
+minor.
 
 <a name="v440"></a>
 

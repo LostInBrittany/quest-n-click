@@ -165,7 +165,7 @@ function siteUrl(v: unknown): string | undefined {
 }
 
 /**
- * site.json's `i18n` (4.6.1): the title, short name and description in other languages, `{ <lang>: { title?,
+ * site.json's `i18n` (4.7.0): the title, short name and description in other languages, `{ <lang>: { title?,
  * shortName?, description? } }`. Only strings are kept, and only languages whose code can name a file
  * (`manifest.<lang>.webmanifest`); the game's own language is the file's top level.
  */
