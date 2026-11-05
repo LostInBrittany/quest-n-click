@@ -90,9 +90,16 @@ export async function run(h) {
   if (!(await E(() => window.__game.engine.state.inventory.includes('cable')))) fail('no cable once Lou was out');
   await until(() => window.__game.engine.state.where.neighbor === 'kitchen');
 
-  // A reload in the middle of his rounds: the autosave keeps his step, his place and the clock.
-  await E(() => window.__game.engine.save());
-  const saved = await lou();
+  // A reload in the middle of his rounds: the autosave keeps his step, his place and the clock. Saved and read in one
+  // evaluation (save() is synchronous): read in a second one, the world's clock could tick in between, and the test
+  // compared a reload at the saved tick with the tick after it (#438's routes (webkit), 1072 saved, 1073 read).
+  const saved = await E(() => {
+    const e = window.__game.engine;
+    e.save();
+    const room = e.state.where.neighbor;
+    const a = e.state.actors[`${room}.neighbor`] ?? {};
+    return { room, x: a.x, y: a.y, step: e.state.scripts.rounds?.step, world: e.state.world ?? 0 };
+  });
   await page.reload();
   await page.waitForFunction(() => !!window.__game, null, { timeout: 15000 });
   await page.locator('.overlay .bigbtn').nth(1).tap();
