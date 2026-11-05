@@ -25,4 +25,4 @@ fixture: 16 markers before, 5 with release lines, 8 without; 3 when the upgrade 
 `wiki/en/contribute.releasing.md` (and its French) still says `prepare` "writes no prose"; it is #410 PR 3's page, left
 to that branch.
 
-→ next: the first release with `### Release` lines (4.7.1): count the markers left and reread the assembled intro.
+→ next: the first release with `### Release` lines (next): count the markers left and reread the assembled intro.

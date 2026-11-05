@@ -10,10 +10,14 @@
 // (#410, PR 6) A fragment may also carry `### Release` (and `### Release (fr)`): one or two sentences for the release's
 // intro, which `npm run release -- prepare` assembles into the CHANGELOG's intro and the README's current-release line.
 // They never reach the `Unreleased` block.
+// (#443) A fragment names the release it lands in `next` (`(next, #n)`), never a guessed number: `--check` refuses a
+// version after package.json's, and `--assemble --version=<x.y.z>` (as `prepare` runs it) writes the version in the
+// mark's place (tools/next-mark.ts). Without `--version` the marks stay, for the release to write.
 import { execFileSync } from 'node:child_process';
 import { existsSync, readdirSync, readFileSync, statSync, unlinkSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { ROOT } from './game';
+import { rewriteMarkdown } from './next-mark';
 
 export const SECTIONS = ['Breaking', 'Fixed', 'Changes'] as const;
 export type Section = (typeof SECTIONS)[number];
@@ -142,12 +146,19 @@ export function proseLines(text: string): string[] {
 
 const MARKER = 'TODO(release)';
 
+const SEMVER_IN_TEXT = /(?<![\w.])(\d+)\.(\d+)\.(\d+)(?![\w.-]*\d)/g;
+const after = (a: string, b: string) => {
+  const [x, y] = [a, b].map((v) => v.split('.').map(Number) as [number, number, number]);
+  return x[0] - y[0] || x[1] - y[1] || x[2] - y[2];
+};
+
 /**
  * Why `--assemble` would refuse these files of `changes/` (#335): every problem of every fragment, as
  * `changes/<name>:<line>: <problem>`. `changes/README.md` is not a fragment. `--check` runs it on the whole folder,
- * so a heading the release would stop on fails the pull request that adds it.
+ * so a heading the release would stop on fails the pull request that adds it. With `current` (package.json's
+ * version), a version after it, in prose, is refused too (#443): the release it lands in is `next`.
  */
-export function fragmentProblems(files: readonly { name: string; text: string }[]): string[] {
+export function fragmentProblems(files: readonly { name: string; text: string }[], current?: string): string[] {
   const out: string[] = [];
   for (const { name, text } of files) {
     if (name === 'README.md' || !name.endsWith('.md')) continue;
@@ -160,7 +171,15 @@ export function fragmentProblems(files: readonly { name: string; text: string }[
           line: i + 1,
           problem: `a bare ${MARKER} would stay in the ${log ? 'LOG' : 'CHANGELOG'} as a marker to write: quote it in backticks`,
         });
+      if (current)
+        for (const m of l.matchAll(SEMVER_IN_TEXT))
+          if (after(m[0], current) > 0)
+            problems.push({
+              line: i + 1,
+              problem: `${m[0]} is after package.json's ${current}: a fragment names the release it lands in as next, (next, #n), which the release writes`,
+            });
     });
+    problems.sort((a, b) => a.line - b.line);
     for (const p of problems) out.push(`changes/${name}:${p.line}: ${p.problem}`);
   }
   return out;
@@ -289,6 +308,18 @@ export function mergeChangelog(changelog: string, fragments: readonly Pick<Fragm
   return [...lines.slice(0, start + 1), ...block, ...lines.slice(end)].join('\n');
 }
 
+/** The fragments with the version being released in place of the mark `next` (#443), in both their parts. */
+export function versioned<F extends Pick<Fragment, 'changelog' | 'log'>>(
+  fragments: readonly F[],
+  version: string,
+): F[] {
+  return fragments.map((f) => ({
+    ...f,
+    changelog: rewriteMarkdown(f.changelog, version),
+    ...(f.log !== undefined ? { log: rewriteMarkdown(f.log, version) } : {}),
+  }));
+}
+
 /** The number of the last `## #n ·` entry of the LOG. */
 export function lastLogNumber(log: string): number {
   let n = 0;
@@ -402,7 +433,8 @@ if (process.argv[1]?.endsWith('changes.ts')) {
       changed = git('diff', '--name-only', base, 'HEAD').split('\n').filter(Boolean);
     }
     // Every fragment on the branch, not only its own: the ones `--assemble` will fold at the release (#335).
-    const problems = fragmentProblems(fragmentTexts());
+    const current = (JSON.parse(readFileSync(resolve(ROOT, 'package.json'), 'utf8')) as { version: string }).version;
+    const problems = fragmentProblems(fragmentTexts(), current);
     if (problems.length) {
       for (const p of problems) console.error(`✖  ${p}`);
       console.error(`✖  ${problems.length} fragment problem(s): --assemble would stop on them (changes/README.md)`);
@@ -426,7 +458,13 @@ if (process.argv[1]?.endsWith('changes.ts')) {
       );
       process.exit(1);
     }
-    const fragments = readFragments();
+    const version = opt('version');
+    if (version !== undefined && !/^\d+\.\d+\.\d+$/.test(version)) {
+      console.error(`✖  --version=${version} is not x.y.z`);
+      process.exit(2);
+    }
+    const read = readFragments();
+    const fragments = version ? versioned(read, version) : read;
     if (!fragments.length) {
       console.log('✔  no fragment to assemble');
       process.exit(0);
@@ -454,6 +492,8 @@ if (process.argv[1]?.endsWith('changes.ts')) {
     );
     process.exit(0);
   }
-  console.error('usage: npm run changes -- --check [--base=origin/main] | --assemble [--date=YYYY-MM-DD]');
+  console.error(
+    'usage: npm run changes -- --check [--base=origin/main] | --assemble [--date=YYYY-MM-DD] [--version=<x.y.z>]',
+  );
   process.exit(2);
 }

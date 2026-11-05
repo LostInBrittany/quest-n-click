@@ -1,6 +1,7 @@
 // The CHANGELOG and LOG fragments (4.1.9, lot 0, tools/changes.ts): a branch writes changes/<slug>.md and the
 // assembly on main folds them in order, under the right section, numbering the LOG entries after the last one. Only
 // the Unreleased block is rebuilt: the rest of the page is byte for byte the same.
+import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import {
   appendLog,
@@ -13,6 +14,7 @@ import {
   needsFragment,
   releaseOf,
   releaseSummary,
+  versioned,
   sectionsOf,
 } from '../tools/changes';
 
@@ -179,8 +181,9 @@ describe('the fragments the check reads (#335)', () => {
       'changes/a.log.md:1: a bare TODO(release) would stay in the LOG as a marker to write: quote it in backticks',
     ]);
   });
-  it('passes on every fragment of this branch', () => {
-    expect(fragmentProblems(fragmentTexts())).toEqual([]);
+  it('passes on every fragment of this branch, no version after package.json’s among them (#443)', () => {
+    const current = JSON.parse(readFileSync('package.json', 'utf8')).version as string;
+    expect(fragmentProblems(fragmentTexts(), current)).toEqual([]);
   });
 });
 
@@ -271,5 +274,38 @@ describe("a fragment's release lines (#410, PR 6)", () => {
       missingFr: ['c'],
     });
     expect(releaseSummary([f('b'), { slug: 'log-only', changelog: '' }])).toEqual({ slugs: [], missingFr: [] });
+  });
+});
+
+describe('the next release named next, not guessed (#443)', () => {
+  it('refuses a version after package.json’s in a fragment, at its line; the mark, history and quoted code pass', () => {
+    const files = [
+      { name: 'a.md', text: '### Fixed\n\n- **A fix (4.7.1, #406)**: it was 4.6.0 (4.5.4, #348).\n' },
+      { name: 'a.log.md', text: '## a title\n\nThen 5.0.0 maybe.\n' },
+      { name: 'b.md', text: '### Changes\n\n- **A thing (next, #443)**: since 4.7.0, `--release=4.8.0` quoted.\n' },
+    ];
+    expect(fragmentProblems(files, '4.7.0')).toEqual([
+      "changes/a.md:3: 4.7.1 is after package.json's 4.7.0: a fragment names the release it lands in as next, (next, #n), which the release writes",
+      "changes/a.log.md:3: 5.0.0 is after package.json's 4.7.0: a fragment names the release it lands in as next, (next, #n), which the release writes",
+    ]);
+    // Without the current version (an old caller), nothing more is refused.
+    expect(fragmentProblems(files)).toEqual([]);
+  });
+  it('writes the version being released in place of the mark, in both parts of every fragment', () => {
+    const out = versioned(
+      [
+        {
+          slug: 'x',
+          date: 'd',
+          changelog: '### Changes\n\n- **A thing (next, #443)**: `(next, #n)` quoted, 4.6.0 kept.\n',
+          log: '## the mark (next)\n\nBody (next, #443).\n',
+        },
+        { slug: 'y', date: 'd', changelog: '### Fixed\n\n- **B (4.6.0)**.\n' },
+      ],
+      '4.7.1',
+    );
+    expect(out[0]!.changelog).toBe('### Changes\n\n- **A thing (4.7.1, #443)**: `(next, #n)` quoted, 4.6.0 kept.\n');
+    expect(out[0]!.log).toBe('## the mark (4.7.1)\n\nBody (4.7.1, #443).\n');
+    expect(out[1]).toEqual({ slug: 'y', date: 'd', changelog: '### Fixed\n\n- **B (4.6.0)**.\n' });
   });
 });

@@ -11,7 +11,7 @@ request laisse dans son fragment, pour les mainteneurs.
 
 ### Changes
 
-- **`prepare` writes the release's prose it holds the facts of (4.7.1, #410)**: the LOG's release entry gets its
+- **`prepare` writes the release's prose it holds the facts of (next, #410)**: the LOG's release entry gets its
   bullets filled (the pull requests merged since the previous tag, the fragments and main's commit, the upgrade notes'
   section, the acks folded, the fixtures, the passes, the signature) and the passes sheet its intro when no pass
   changed. A fragment may carry `### Release` (and `### Release (fr)`), one or two sentences that `prepare` joins into

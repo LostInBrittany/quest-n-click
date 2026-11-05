@@ -67,7 +67,7 @@ A branch that changes the code does not edit `CHANGELOG.md` nor `docs/dev/LOG.md
 - `changes/<slug>.md`: the CHANGELOG bullets, under `### Breaking`, `### Fixed` or `### Changes` (any of them, in any
   order). Write them as the CHANGELOG does: a bold lead, the version in parentheses, what a player, an author or a host
   sees differently.
-- In the same file, optionally (4.7.1, #410), `### Release`: one or two sentences for the release's intro, what the
+- In the same file, optionally (next, #410), `### Release`: one or two sentences for the release's intro, what the
   change brings and for whom, in prose that reads well joined to the other fragments'. `npm run release -- prepare`
   joins every fragment's, in the order they reached `main`, into the CHANGELOG's intro and the README's
   current-release line; without any, both keep a `TODO(release)` for the maintainer. `### Release (fr)` is its French
@@ -123,7 +123,10 @@ npm run changes -- --check [--base=origin/main]
   refuses the same, so a fragment the release would stop on fails the pull request that adds it. Nothing is filed
   silently.
 - A `### Release` part is refused when it is empty, a list, longer than 400 characters, without a full stop at its
-  end, or there twice; a `### Release (fr)` without its `### Release` too (4.7.1, #410).
+  end, or there twice; a `### Release (fr)` without its `### Release` too (next, #410).
+- A version after `package.json`'s is refused (next, #443): `✖ changes/<slug>.md:3: 4.7.1 is after package.json's
+  4.7.0: a fragment names the release it lands in as next…`. Write `(next, #n)` ([The next release's
+  mark](#next-mark)); a version quoted in a code span is not read.
 - A bare `TODO(release)` in a fragment is refused too (4.5.5, #364): it would land in the CHANGELOG or the LOG as a
   marker the release must write, and never could. Quote it in backticks, as code.
 - A release branch is the exception: it assembles the fragments and edits the CHANGELOG itself.
@@ -133,8 +136,11 @@ npm run changes -- --check [--base=origin/main]
 
 ```sh
 # in the engine repository, on main, with the full history
-npm run changes -- --assemble [--date=YYYY-MM-DD]
+npm run changes -- --assemble [--date=YYYY-MM-DD] [--version=<x.y.z>]
 ```
+
+With `--version` (what `npm run release -- prepare` passes), the fragments' `next` marks become that version as they
+are folded; without it they stay, for the release to write.
 
 It folds every fragment into the CHANGELOG's `## Unreleased` (each bullet under its section, Breaking, Fixed, then
 Changes) and numbers the LOG entries after the last one, in the order the fragments reached `main` (their first
@@ -145,6 +151,38 @@ the CHANGELOG, the LOG or their entry numbers.
 ### Since
 
 4.1.9 (lot 0 "cadence").
+
+<a name="next-mark"></a>
+<!-- applies: next.. since next -->
+
+## The next release's mark (`next`)
+
+A branch does not know the number of the release it will land in: 4.6.0's branches all guessed "4.6.1", the release
+was 4.7.0, and about 80 marks were renamed by hand. A branch writes `next` in the version's place; the release writes
+the version.
+
+| Where | The mark | Rewritten by |
+|---|---|---|
+| A fragment (`changes/`) | `(next, #443)`, `(next)` | `npm run changes -- --assemble --version=<v>` |
+| A wiki page's prose | `(next, #443)`, `(next)` | `npm run release -- prepare` (step `next mark`) |
+| A section's applies marker | `<!-- applies: next.. since next -->` | the same step |
+| `wiki/manifest.json` | `"appliesFrom": "next"` (and `appliesUntil`, `featureSince`) | the same step |
+| A comment in `src/`, `tools/`, `scripts/`, `bridge/`, `cli/`, `connectors/`, `studio-server/`, `tests/` | `// … (next, #443)`, `/* … (next) */` | the same step |
+
+The mark is the word in a parenthesis that opens on it, after a space or a line start: `(next)` or `(next, …)`. Never
+a mark, so never rewritten: the word in a code span or a fenced block (this page quotes it so), in code outside a
+comment (`if (next) {`), in a string (a test's name is what a claim names: write no version in it), a call named in a
+comment (`swap(next)`), a game folder (written through the Studio's journal; rename by hand), and every historical
+file (the LOG, the CHANGELOG's released sections, `docs/`, `tests/fixtures/`). A version already written is never
+touched. `npx tsx tools/next-mark.ts --version=<v>` lists what the step would rewrite.
+
+A translation pair is hashed on its text, so the rewrite of both sides would leave it to review; a claim's review
+holds its block's text and its test file's hash the same way. The step therefore carries every record that held the
+text before the rewrite over to the rewritten text (`wiki/translations.json`, `wiki/reviews.json`, a pending
+`changes/*.acks.json`): a mechanical rewrite leaves nothing to review, and a record that was stale stays stale.
+
+`changes -- --check` refuses a version after `package.json`'s in a fragment; the wiki and the code are not checked
+(a version written there ahead is a guess to avoid, not an error).
 
 <a name="formatting-commits"></a>
 <!-- applies: .. since 4.1.0 -->
