@@ -26,7 +26,8 @@ Checked: Firefox 30 runs with the fix (the maintainer's 10, 20 here), step 4b gr
 the new Studio page (`1 ready` said); one run of the 20 hung later, in 6d "Prepare assets" with the machine loaded
 by a full `vitest run` alongside, nothing to do with the editor's frame. Chromium and WebKit green; a forced silent
 frame in Chromium recovers once (`1 ready` said), and a frame always silent fails the run in 68 s with the evidence,
-not 8 min.
+not 8 min. The baseline, main's step in Firefox on the same machine: 20 runs, 20 green, no silent frame. Locally the
+fault is too rare to show a before/after difference, so the quarantine stays until CI's Linux runs say more.
 
 → next: let the quarantined Firefox step run on CI; once it has a clean streak (or a failure with the witness says
 which side is silent), un-quarantine it in `ci.yml` and `tests/ci-plan.test.ts`.
