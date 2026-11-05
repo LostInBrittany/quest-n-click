@@ -1,7 +1,8 @@
 # Notes de mise à jour : 4.7
 
 Ce que la 4.7.0 a changé. Rien à modifier dans un jeu : il se construit, se joue et se sauvegarde comme en 4.6.0.
-Chaque ajout est facultatif et visuel : règles, sauvegardes, solveur et empreinte logique ne le voient pas.
+Chaque ajout est facultatif ; tous sauf `keepPlaying` de la fin sont visuels, invisibles aux règles, sauvegardes et
+solveur.
 
 La mise à jour elle-même : [Mettre à jour](install.upgrade.md).
 
@@ -26,11 +27,15 @@ chaque élément facultatif :
   ([Carte du monde](create.world-map.md#regions)). Retirez un cadre peint dans l'image du parent.
 - **Des images par langue** : `i18n.images` dans `game.ts` donne, pour un id d'image, l'image que chaque langue dessine
   à sa place ([Traductions](create.translations.md#i18n-images)).
+- **Une fin qui déroule le générique, montre le titre et laisse le monde continuer** : `{ end: true }` prend
+  `credits`, `title` et `keepPlaying` ([Titre et générique](create.title-credits.md#end-of-chapter)). Avec
+  `keepPlaying`, la fin est toujours atteinte et sauvegardée, mais un chargement remet le joueur dans le monde après
+  elle. Un simple `{ end: true }` ne change pas.
 - **Le titre et la description de la page par langue** : `site.json` prend `i18n`, le `title`, le `shortName` et la
   `description` dans les autres langues du jeu ([Organisation d'un projet](create.project-layout.md#site-json)).
 
-**Pour le TypeScript d'un projet**, `quest-n-click/player` exporte les types `SiteText` et `SiteTexts` (des ajouts
-seulement).
+**Pour le TypeScript d'un projet**, des ajouts seulement : `quest-n-click/player` exporte les types `SiteText`,
+`SiteTexts` et `EndShow` ; `Presenter.end` prend un `EndShow` facultatif, et `GameState` un `keepPlaying` facultatif.
 
 **Corrigé** : le nom d'une chose affiché au survol reste dans la scène près de son bord gauche ou droit, et la carte ne
 montre une région enfant qu'une fois un lieu débloqué en elle, ou plus bas (elle proposait une région vide dès le
@@ -42,5 +47,6 @@ sécurité compris ; la 4.6 n'en reçoit aucun, il faut donc mettre à jour. Les
 
 **Pour les mainteneurs**, les commandes de release réessaient les étapes réseau de git et indiquent la suite après un
 échec, et `prepare` fait suivre au moteur des verrous versionnés une nouvelle mineure. **Pour les contributeurs**,
-l'ensemble de mutation `routes` est bloquant, et le job `external-consumer` de la CI ne demande aucune machine quand le
-plan l'épargne.
+l'ensemble de mutation `routes` est bloquant, le job `external-consumer` de la CI ne demande aucune machine quand le
+plan l'épargne, et le cliquet de couverture est strict sur chaque pull request (`npx tsx tools/coverage-ratchet.ts
+--write` relève les planchers qu'il nomme).

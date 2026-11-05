@@ -87,15 +87,15 @@
       ]
     },
     "install.upgrade-notes-4-7#_lead": {
-      "enHash": "6c40dbd60dc8a3057eeae7907958ae90480ddde32f25a6dd406ba2f0937ff6c6",
-      "frHash": "4e1980102300264ca3f4889726ff0fd9b9518df8b5f47351175b0c7707e11857",
+      "enHash": "872e7c7a9eb131b12b1c3ecb9036bd3595e953ce42b911ac96e952e922ab4650",
+      "frHash": "e7d72229b650d526fff07e0a0fdda1c40630861e7f16b23f63f14161c58ebed8",
       "reviewers": [
         { "name": "Claude", "kind": "ai", "relation": "author", "date": "2026-11-05" }
       ]
     },
     "install.upgrade-notes-4-7#from-4-6-0-to-4-7-0": {
-      "enHash": "bc91fb1d9deceb002bfbf03ae274790ffc7febaa6570b45514a397000bfafa63",
-      "frHash": "20d86466c6091104d7e465fbf0fcec56753188ad7d9c3c055a85d71f3532ab9b",
+      "enHash": "ff40181814f1d0d5672520584f9f455fb731ebfb45928c59ca3153dbbd656bc6",
+      "frHash": "636093c359e0ad29d751805ab2eadfda8649bec8e92c185ca78cde0701346f0c",
       "reviewers": [
         { "name": "Claude", "kind": "ai", "relation": "author", "date": "2026-11-05" }
       ]

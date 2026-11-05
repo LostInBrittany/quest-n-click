@@ -1,7 +1,7 @@
 # Upgrade notes: 4.7
 
-What 4.7.0 changed. Nothing to change in a game: it builds, plays and saves as on 4.6.0. Every addition is optional
-and presentation only: rules, saves, the solver and the logic fingerprint do not see it.
+What 4.7.0 changed. Nothing to change in a game: it builds, plays and saves as on 4.6.0. Every addition is optional;
+all but the end's `keepPlaying` are presentation only, unseen by rules, saves and the solver.
 
 The upgrade itself is [Upgrade](install.upgrade.md).
 
@@ -25,11 +25,15 @@ Install `@quest-n-click/engine@4.7.0` ([Install from npm](install.from-npm.md)).
   ([World map](create.world-map.md#regions)). Remove a frame painted into the parent's image.
 - **Images per language**: `i18n.images` in `game.ts` names, for an image id, the image each language draws in its
   place ([Translations](create.translations.md#i18n-images)).
+- **An end that rolls the credits, shows the title, and lets the world go on**: `{ end: true }` takes `credits`,
+  `title` and `keepPlaying` ([Title and credits](create.title-credits.md#end-of-chapter)). With `keepPlaying`, the end
+  is still reached and saved, but a load puts the player back in the world after it. A plain `{ end: true }` is
+  unchanged.
 - **The page's title and description per language**: `site.json` takes `i18n`, the `title`, `shortName` and
   `description` in the game's other languages ([Layout of a created project](create.project-layout.md#site-json)).
 
-**For the TypeScript of a project**, `quest-n-click/player` exports the types `SiteText` and `SiteTexts` (additions
-only).
+**For the TypeScript of a project**, additions only: `quest-n-click/player` exports the types `SiteText`, `SiteTexts`
+and `EndShow`; `Presenter.end` takes an optional `EndShow`, and `GameState` an optional `keepPlaying`.
 
 **Fixed**: a thing's name shown on hover stays inside the scene near its left or right edge, and the travel map shows
 a child region only once a place in it, or below it, is unlocked (it offered an empty region from the start).
@@ -39,4 +43,5 @@ upgrade. The windows promised before keep their dates ([Stability and support](s
 
 **For the maintainers**, the release commands retry git's network steps and say the way on after a failure, and
 `prepare` moves the versioned locks' engine peer on a new minor. **For contributors**, the `routes` mutation set is
-gated, and CI's `external-consumer` job asks for no runner when the plan spares it.
+gated, CI's `external-consumer` job asks for no runner when the plan spares it, and the coverage ratchet is strict on every
+pull request (`npx tsx tools/coverage-ratchet.ts --write` raises the floors it names).
