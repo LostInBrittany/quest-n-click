@@ -9191,3 +9191,300 @@ e2e 30 s today.
 mutation set to read; the portrait layout in WebKit and on real phones (#397); E of #405, zod out of the first visit;
 `dismissTranscript`'s 30 s wait in the e2e harness; the revision dialog's Restart, which keeps the store during an
 intro (#401).
+
+## #361 · 2026-11-05 · Claude · proposal · a thing's name cut by the scene's edge
+
+The Great Racket's heath has its exit, "path to Le Folgoët", at the far right of the scene: on hover its name read
+"path to Le F". `showLabel` (`dom/input.ts`) put the label's centre on the thing's centre (`.label` is translated by
+-50%) and clamped only its top. Speech bubbles already keep inside the scene (`dom/speech.ts`).
+
+The label is now measured once appended, and its centre clamped by `labelLeft` (pure, tested) between a margin of
+4 units plus half its width and the scene's width (`640 * app.u`, the visible scene: `camera.toScreen` already gives
+scene pixels, so a wide room under a camera is handled) minus the same. Checked in Chromium on the heath at 844 x 390.
+
+→ next: nothing.
+
+
+## #362 · 2026-11-05 · Claude · proposal · A release in three commands: the plan, and the mechanical fixes
+
+#410 and its comment list what 4.6.0's release cost: 18 `TODO(release)`, 11 claim reviews typed that day, the upgrade
+notes' section doubled, the Studio Server's lock left at the peer `4.5.x` (797ba349 by hand), the candidate red on the
+strict coverage ratchet (#411, #412), a fetch and a tag push failing once during GitHub's incident, a release run with
+no job told to re-run `--failed`, and the checkout left on `release/4.6.0`. `docs/dev/PLAN-4.6.x-RELEASE-IN-THREE-COMMANDS.md`
+orders the pull requests that remove them, smallest first.
+
+This branch is its first pull request: six commits, each with its failing test first. `lib.mjs`'s `retried` and
+`gitRetried` (four tries, 15 s, on the release clock); `rerunArgs`/`rerunCommand` (`--failed` only when a job failed,
+was cancelled or timed out); the red candidate's stop naming `--commit … --start-candidate`; `releaseRefusals` with the
+organisation's remote, one line for the switch and the pull (prepare stays on its branch, where review fixes go);
+`lockWithPeers` in `pack-manifests.mjs` and `prepare`'s `locks` step; `withUpgradeNotes` (4.6.0's pages before e4df77a3
+as fixtures, `tests/fixtures/release-4.6.0/`).
+
+Planned, not done here: the coverage ratchet (strict on pull requests and main, a warning in the candidate,
+`--write`), which changes `ci.yml` and a gate; the flaky `reality-cursor` test and the release page; fewer CI round
+trips; claims reviewed in their pull request and `prepare` writing the prose, both the maintainer's decision.
+
+→ next: the maintainer picks the options of PR 5 and PR 6, and decides PR 2's ratchet design.
+
+
+## #363 · 2026-11-05 · Claude · proposal · a character turns back once the hero is done with it
+
+The Great Racket's village square has two players facing each other across their tiles. Talking to one turned him to
+the hero (`faceEachOther`, `core/movement.ts`, through `ui.face` only) and nothing turned him back, so after "Bye" the
+grumpy player stared at the hero for the rest of the visit.
+
+`ActorDef.turnBack` (presentation, `ir-fields.ts`): `Engine.act` calls `turnBack` after `resolve`, so after the rule,
+the look line or the fallback, and after a whole conversation, since `talkLoop` runs inside the action and returns at
+"Bye". The side is the state's (`state.actors[...].facing`, written by `face` and `place`), else the room's `facing`,
+else the layout's mirror: the side a reload draws, so a session and a reloaded one agree, and a topic that turned the
+character to the hero with `face` keeps it so. Nothing when the action left the room or hid the character. Tested in
+`tests/turn-back.test.ts` (talk until "Bye", a look line, a give rule, a `face` command, the option off).
+
+→ next: nothing.
+
+
+## #364 · 2026-11-05 · Claude · proposal · the title screen's logo and buttons placed by the game
+
+The Great Racket wants its title buttons lower (80% of the scene's height) than the fixed 73% of `showTitle`
+(`dom/menus.ts`), and padded its logo image with transparent space (and a nearly transparent pixel in two opposite
+corners, so the asset build's crop keeps it) to make it smaller and lower than the fixed 430 units at x = 155, y = 8.
+
+`titleScreen` gains four optional numbers in scene units: `logoWidth` (430), `logoCenter` (370), `logoTop` (8) and
+`buttonsTop` (292). `titleLayout` (pure, tested) turns them into the percentages `showTitle` already used; without
+fields it gives the exact same strings as before. Upright, style.css still puts the row below the picture with
+`!important`, so `buttonsTop` applies only sideways; the logo's fields apply in both. Checked in Chromium on The Great
+Racket's title at 844 x 390 and on a Pixel 7 upright.
+
+→ next: nothing.
+
+
+## #365 · 2026-11-05 · Claude · proposal · a child region of the map before any of its places is open
+
+The Great Racket's Léon has the Côte des Légendes as its child region; its three places open only when the bells ring.
+From the first map, "The coast ⤡" showed and led to an empty coast. `openMap` (`dom/map-view.ts`) took the first region
+whose `parent` was the shown one, whatever was unlocked. The game had also painted the coast's `frame` into the Léon's
+picture, because nothing in the engine drew it.
+
+`openRegions` (pure, tested) marks a region open when an unlocked place is in it or below it (walking up the parents),
+plus the region the map opens on and `start`, so the player can always zoom back to where they stand. Only open child
+regions get the zoom button and their `frame`, now an SVG outline on the parent's image. The zoom buttons sit in one
+column, the way down above the way up, so a region in the middle of three levels can go both ways (it could only go
+up). No sample game has a child region: the fix is the default, not an option. Tested in
+`tests/dom/map-open-regions.test.ts` (hidden while closed, shown once a place opens, two levels down, the region the
+map opens on kept); checked in Chromium on The Great Racket at 844 x 390.
+
+→ next: nothing.
+
+
+## #366 · 2026-11-05 · Claude · proposal · travel on foot on the map
+
+The Great Racket follows two korrigans who walk across Brittany, and its map sent them by car: `openMap`
+(`dom/map-view.ts`) drew one fixed image along the route (`map.vehicles.car`, else `skin.icons.car`). A fixed image
+cannot follow the hero chosen at New Game (a variant on a flag) nor walk.
+
+`vehicle: 'walk'` takes the hero's sheet that applies now (`Engine.character(heroId())`) and plays its `walk` frames
+along the route, chosen by `mapWalkStep` (pure, tested) as the room's walker does: the way of travel is the route's
+tangent in pixels of the map, flipped when it goes left, `walk_back` / `walk_front` on a mostly vertical stretch when
+the sheet has them, frames at the character's `fps`. Each frame goes through `RoomView.characterImage`, so a hero with
+a palette is recoloured as in the room (the room has the swaps ready). The walker is 12% of the map's height, about a
+pin, its feet on the route (the route runs 2% above the pins); the journey keeps the car's 1.6 s and makes no sound;
+pixel art stays crisp through `.scene.pixel img`. No walk frames: the car, as before. Tested in
+`tests/dom/map-walk.test.ts` (frames, facing, the variant, the fallback); checked in Chromium on The Great Racket at
+844 x 390 with both heroes.
+
+→ next: nothing.
+
+
+## #367 · 2026-11-05 · Claude · proposal · the `routes` mutation set gated: its 53 survivors read, 49 killed, 4 named
+
+#413: the 4.6.0 nightly measured `routes` at 226/279 (inputs 71164b654bf543d0), 36 survivors in `route-runtime.ts`
+and 17 in `world.ts`. Each was applied by hand against the set's tests, before and after the test meant to kill it.
+
+`world.ts`, 15 killed by `tests/world-mutants.test.ts`: every other route test imports `tools/replay`, which loads
+`route-runtime.ts` statically and sets `World.Engine` for its whole file, so "the routes' engine not loaded" was never
+reached. The new file imports the engine afresh in each test (`vi.resetModules`): a game without routes never loads
+it, ticks nothing, drains nothing and asks it nothing (`advanceTo`, `drain`, `nextPending`); a game with routes asks
+nothing of it before its first room, loads it once, and runs the clock forward only; a sync point outside any entry
+records nothing.
+
+`route-runtime.ts`, 34 killed by `tests/route-runtime-mutants.test.ts`. Many guards are for content `validate`
+refuses (an actor in every room a route walks), but a save, a `moveActor` or a layout not placed yet still reach them,
+as the file's earlier tests already pinned for a missing point: a character with no actor in a room waits, walks and
+leaves unseen (nothing written, nothing told, its exit taken at once), crosses into a room with no actor or no entry,
+or has no position at all. And the boundaries: a walker on its point or exactly half a unit from it does not move, the
+last step of a tick that reaches the foot of a ladder climbs it in that tick, a wait of exactly one tick is done in it,
+"until the next stop" runs ten minutes of the clock at most, an unreachable point with no closed link is not
+`blocked`. The test "a step past the last one wraps" did nothing: `scriptState` puts `pc` back from the saved step id,
+so it now drops the id too (a save whose `pc` is the steps' count, which load keeps). Three mutants are killed by an id
+written `undefined` (an actor, a state key, an exit): where a missing id would fall, never found.
+
+Named, 4, each `equivalent`: `world.ts`'s second `w.length - 1` (a sync point past the last recorded one: the clock
+already stands there and never goes back within an entry) and `t !== undefined` (`advanceTo(undefined)` does
+nothing); `route-runtime.ts`'s `dx < 0` under `if (dx)`, and the topology cache, whose rebuild gives the same floor
+(only the dev editor replaces a layout while an engine runs, and keeps the routes' old floor until a reload).
+
+`routes`: 275/279, 4 survivors explained, 0 not. It joins `GATED`; `MEASURED` is empty again. No production code
+changed.
+
+→ next: the dev editor's layout replaced while routes run keeps their cached floor until a reload; a cache keyed by
+the layout object would follow it.
+
+
+## #368 · 2026-11-05 · Claude · proposal · `external-consumer` skipped at the job level when the plan spares it
+
+On 4 November GitHub's Actions were degraded and no macOS runner came: `external-consumer (macos-15)` waited 15
+minutes and was cancelled, twice on #423 and once on #425, and `pr-gate` failed with it. Neither pull request touched
+a package: the job had nothing to do and would only have printed "not needed by the plan". Every spared job still runs
+and says so in a step, because the ruleset once required each job by name; since 4.5.4 it requires `pr-gate` alone.
+`external-consumer` now has a job-level `if` on the plan's `freshInstall`, so no runner is asked for, and `pr-gate`
+accepts its `skipped` exactly when the plan spares it (`EXTERNAL`); any other result still fails the gate. The other
+spared jobs keep their step: all on Ubuntu runners, plentiful, but `windows`, one runner and not this afternoon's
+shortage.
+
+→ next: the other spared jobs could follow the same way if Ubuntu runners ever queue.
+
+
+## #369 · 2026-11-05 · Claude · proposal · a map without pins, or with small dots
+
+The Great Racket's map is the author's drawing of the Léon, each place on a landmark he drew; the pins (a face in a
+white-ringed disc above a needle, or the pin icon in the same disc without a `portrait`) hid it, and he asked that they
+"simply not be there". No style hook let a game remove them. Seen bare, he asked for a middle way: a small token per
+place, and the hero standing where they are.
+
+`MapDef.pins` (`'faces' | 'hidden' | 'dots'`, default `'faces'`). `hidden` and `dots` are bare: `openMap`
+(`dom/map-view.ts`) builds the same buttons (`.pin.bare`, with `aria-label`, the same width) with an empty `span.face`
+instead of the image, no needle, centred on `pos` (`translate(-50%, -50%)`) instead of hanging above it, and the route
+runs from spot to spot (no 2% lift for a needle's tip); the `news` image keeps its corner; a joined group keeps its row
+of `facebtn`, one button per place. `dots` adds `.dot` in each face (CSS: a cream disc, dark outline, drop shadow,
+40% of the zone; or `img.dot` from `map.vehicles.dot`, pixelated), a warm glow on `:hover` / `:focus-visible` (the
+scale-up dropped under `prefers-reduced-motion`), and on the current place, instead of its dot, `.standing`: the hero's
+first `idle` frame through `RoomView.characterImage` (#424), 12% of the map's height like the walker, feet on the spot,
+an ellipse shadow, the spot's "!" beside the head. `go()` removes it when the journey starts and, on arrival, removes
+the walker or vehicle and stands the hero on the new place, flipped as the walker last was. Only `dots` has the
+standing hero: on `faces` the current face is ringed already, `hidden` is meant to draw nothing. The validator refuses
+another value (`validate/map.ts`); the presentation fingerprint takes `pins` (absent, the hash is unchanged). The
+branch merges #424 (the walker and `characterImage`). Tested in `tests/dom/map-hidden-pins.test.ts` (bare buttons,
+news, the list, joins, the default, dots, the dot image, no idle frame, the hand-over on a journey, the validator);
+checked in Chromium on The Great Racket at 844 x 390 (dots, hover, the hero on the beach).
+
+→ next: nothing.
+
+
+## #370 · 2026-11-05 · Claude · proposal · images per language
+
+The Great Racket, translated into French and Spanish, kept its English title screen: the logo is the title lettered on
+a ribbon (`titleScreen.logo`), and the engine drew an image id the same in every language. The author lettered
+`logo/fr` and `logo/es` at the same size.
+
+A general swap rather than a per-language `titleScreen.logo`: `GameDef.i18n.images` (`{ <id>: { <lang>: <id> } }`).
+`tools/refs.ts` lists every variant, so `npm run assets` prepares them. `core/lang-images.ts`: `langImages(game, lang)` (the swaps of a translation, none for the game's own language) and
+`imageVariants`. Every image URL goes through `AssetBank.img`, so the bank holds `swap` (set by the `App` from
+`languages.current`) and `img` and `size` follow it; `file(id)` is the file's own URL, which the warm-up
+(`dom/update.ts`) now caches by. The asset graph adds every variant wherever the source is (title, rooms, map, game,
+offline): a player who switches language offline has them. The validator checks the ids exist and warns of a variant
+for the game's own language or a language without a locale. The presentation fingerprint reads `i18n.images` only when
+set; `i18n` stays `meta` in `ir-fields` (`same` stays out of the IR). Tested in `tests/dom/i18n-images.test.ts`;
+documented in create.translations (EN, FR, `#i18n-images`). Checked in Chromium on The Great Racket at 844 x 390
+(`?lang=fr`, `?lang=es`, plain, and the Settings switch).
+
+→ next: nothing.
+
+
+## #371 · 2026-11-05 · Claude · proposal · the page's title and description per language
+
+The Great Racket plays in English, French and Spanish; its tab said "The Great Racket" in all three. `site.json`'s
+texts went into `index.html` and the manifest at build time, and nothing at run time knew them.
+
+`site.json` `i18n` (`{ <lang>: { title?, shortName?, description? } }`), beside the fields it translates rather than in
+the locale files (the page's texts, not the game's; the build reads them without loading the game). `siteLangs`
+(`tools/vite/plugins.ts`) keeps strings only and language codes that name a file, never the game's own; the site
+plugin writes them into the page (`#qnc-site-i18n`, `<` escaped) and emits `manifest.<lang>.webmanifest` per language
+(build and dev middleware), the missing fields from the top level. `bootGame` calls `applySiteLang`
+(`dom/site-lang.ts`) for a language other than the game's: `document.title`, the description and `og:` metas, the
+manifest link. `BootOptions.site` overrides the page's block. The leak audit (`inventory.ts`) classes the language
+manifests as code. Tested in `tests/site-i18n.test.ts`; documented in create.project-layout (`#site-json`) and
+create.translations (EN, FR), engine.api regenerated. Checked in Chromium on The Great Racket at 844 x 390.
+
+→ next: nothing.
+
+
+## #372 · 2026-11-05 · Claude · proposal · an end that rolls the credits, shows the title, and lets the world go on
+
+The Great Racket ends its first chapter with three pictures, an end card, the credits, then the title; Continue should
+bring the player back to wander. `{ end: true }` showed nothing in the browser (`DomPresenter.end()` was empty), so the
+game reached `App.credits()` and `App.showTitle()` through `ui.app` in a custom command. And the save it left had
+`done: true`: a load kept it, `exec` stopped every list after its first command and `advance` said `blocked`.
+
+`end` takes `credits`, `title`, `keepPlaying` beside its `true` (as `ending` takes `after`), so the Studio's form stays
+a switch with three optional ones. The handler hands `{ credits, title }` to `Presenter.end(how?)` (the port is
+additive: `EndShow`); `DomPresenter` rolls the credits (`menus.credits` now resolves once they are gone) then shows the
+title, without holding the engine, the end being saved already. `keepPlaying` is a state field (`GameState.keepPlaying`,
+in the save schema) rather than a save without `done`, so a later autosave of the live state cannot lose it; `load`
+clears `done` when it is set (`afterEnd`, core/migrate.ts), and a later end without it (or a sealed ending) deletes it. The solver and the replays
+still read `done` in the session: nothing changes for them. The validator refuses `credits` without `GameDef.credits`.
+Tested in `tests/end-credits.test.ts`; documented in create.title-credits (`#end-of-chapter`) and create.commands (EN,
+FR), create.dsl and engine.api regenerated.
+
+→ next: nothing.
+
+
+## #373 · 2026-11-05 · Claude · proposal · the coverage ratchet strict on pull requests, a warning in the candidate, and `--write`
+
+main's `coverage` job turned red after #432's merge: #425 read the routes set's survivors and its tests lifted
+`route-runtime.ts` and `world.ts` branches to 97.35 and 98.00, for floors of 87 and 86, and total functions to 74.00
+for 71. `coverage-ratchet --strict` ran only off pull requests, so #425 merged green; the day before, the same check
+stopped the 4.6.0 candidate (#411). PR 2 of `docs/dev/PLAN-4.6.x-RELEASE-IN-THREE-COMMANDS.md` (#410), done: the
+ratchet's logic moves into `tools/coverage-floors.ts` (`ratchetSlack`, `raiseFloors`, tested on their own), `ci.yml`'s
+`coverage` runs it `--strict` on pull requests too, `release-check:ci` without `--strict`, and `--write` raises each
+floor it names to two points under the measure, rounded down. On main's old floors and a local measure, `--write`
+gives exactly the four floors raised by hand in this pull request (statements was the next to trip: 77.06 for 74).
+`contribute.coverage-ratchet` (en, fr) says where it is strict and the one command.
+
+→ next: nothing; a pull request that lifts the coverage now raises its own floors.
+
+
+## #374 · 2026-11-05 · Claude · proposal · the routes e2e: the save and its reading in one evaluation
+
+#438's `routes (webkit)` failed on "after Continue, Lou is … world 1072, saved … world 1073". `games/routes/e2e.mjs`
+called `engine.save()` in one `page.evaluate`, then read Lou's place and the clock in another: the world loop, which
+ticks every frame, could move in between, so the test compared a reload at the saved tick 1072 with the tick 1073 it
+read afterwards. WebKit on CI leaves that gap more often; Chromium passed in the same run. `save()` is synchronous, so
+the save and the reading now share one evaluation and no tick can come between them. #438 touched the loading path
+(`afterEnd`), but only for a save with `keepPlaying`, which a routes save never has.
+
+→ next: nothing.
+
+## #375 · 2026-11-05 · Claude · release · 4.7.0 "Terra Incognita": the map, the page and the end of a game
+
+- **The request**: on 5 November, after #433 merged, Horacio asked to release that day: "4.6.1? 4.7.0? Why? It
+  deserves it?" The changes since 4.6.0 add optional DSL fields and public types, so 4.7.0 under strict SemVer, not the
+  4.6.1 the fragments named (#434). The same day: the support window made the latest minor only (D59, « Latest minor
+  only »), the README rewritten (#434), the upgrade notes completed after #438 (#441), and the name, "Terra Incognita".
+- **What ships**: for authors and players, #415 (#414, a thing's name inside the scene), #419 (#417, `turnBack`), #420
+  (#418, the title screen's logo and buttons), #423 (#421 and #422, a child region shown once open, its `frame` drawn,
+  travel on foot), #429 (#428, `map.pins`), #432 (#430, `i18n.images`), #433 (#431, `site.json` `i18n`), #438 (#437,
+  the end's `credits`, `title` and `keepPlaying`); the release and CI, #416 (#410, the release commands), #425 (#413,
+  the `routes` mutation set gated), #427 (`external-consumer` skipped at the job level), #436 (the coverage ratchet
+  strict on pull requests), #440 (the routes e2e's save race); #434 (the version, D59, the README) and #441.
+- **Fragments**: assembled by `npm run release -- prepare 4.7.0`, on main at `14b907bd`.
+- **Upgrade notes**: "From 4.6.0 to 4.7.0" in `install.upgrade-notes-4-7`, a new page in both languages, written ahead
+  in #434 and completed in #441: the lead names `keepPlaying` as the one addition that is not presentation only; the
+  section lists every option, the new types, the two fixes, the support window, and for maintainers and contributors
+  the release commands, the `routes` set, `external-consumer` and the strict ratchet. The CHANGELOG bullets `prepare`
+  put in a comment were read against it and the comment removed.
+- **Reviews**: the pairs this release changes keep an AI author's record (D56); `prepare` could not fold fifteen acks
+  of the feature branches whose text #434's rename moved, which #434's own acks cover. Fifteen pairs a person
+  (wanoo) had read on 24 October now hold an AI author's record only, listed by `prepare`; none is a claim.
+- **Fixtures**: golden save demo-4.7.0, reference run, quality baseline, written by `prepare` (the release's own
+  write, `quality:baseline -- --release --dist`).
+- **Mutation exemptions**: the 135 of `docs/dev/mutants.json` came due at 4.7.0 and stopped the release pull
+  request's `unit (4)`; read again (`docs/dev/MUTANTS.md`, "The rereads"): only `core/save.ts` changed since v4.6.0,
+  away from its entry; 135 kept, none killed, due at 4.8.0.
+  `tests/quality-baseline.test.ts` typed 4.6.0's first visit (138 KB) where it meant the committed baseline's; the
+  release's 140 KB broke it, so it reads the baseline now.
+- **Passes**: sheet 4.7.0, the twenty-two of 4.6.0, none new; none carried.
+- **Signature**: the tag is signed with LostInBrittany's SSH key (`npm run release -- 4.7.0`).
+
+→ next: the routes' three field passes made passes (ids, issues, `passIssues`), still open from 4.6.0; the map's
+`pins` and `vehicle: 'walk'`, images per language and `keepPlaying` on a real phone; the portrait layout in WebKit and
+on real phones (#397).

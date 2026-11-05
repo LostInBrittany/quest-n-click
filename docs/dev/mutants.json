@@ -9,7 +9,7 @@
   "category": "equivalent",
   "proof": "argument",
   "owner": "@wanoo",
-  "revisit": "4.7.0"
+  "revisit": "4.8.0"
  },
  {
   "file": "src/engine/core/session-runtime.ts",
@@ -21,7 +21,7 @@
   "category": "equivalent",
   "proof": "argument",
   "owner": "@wanoo",
-  "revisit": "4.7.0"
+  "revisit": "4.8.0"
  },
  {
   "file": "bridge/src/store.ts",
@@ -33,7 +33,7 @@
   "category": "equivalent",
   "proof": "argument",
   "owner": "@wanoo",
-  "revisit": "4.7.0"
+  "revisit": "4.8.0"
  },
  {
   "file": "bridge/src/store.ts",
@@ -45,7 +45,7 @@
   "category": "equivalent",
   "proof": "argument",
   "owner": "@wanoo",
-  "revisit": "4.7.0"
+  "revisit": "4.8.0"
  },
  {
   "file": "bridge/src/store.ts",
@@ -57,7 +57,7 @@
   "category": "equivalent",
   "proof": "argument",
   "owner": "@wanoo",
-  "revisit": "4.7.0"
+  "revisit": "4.8.0"
  },
  {
   "file": "bridge/src/store.ts",
@@ -69,7 +69,7 @@
   "category": "equivalent",
   "proof": "argument",
   "owner": "@wanoo",
-  "revisit": "4.7.0"
+  "revisit": "4.8.0"
  },
  {
   "file": "bridge/src/bridge.ts",
@@ -81,7 +81,7 @@
   "category": "unreachable",
   "proof": "tests/bridge.test.ts",
   "owner": "@wanoo",
-  "revisit": "4.7.0"
+  "revisit": "4.8.0"
  },
  {
   "file": "bridge/src/bridge.ts",
@@ -93,7 +93,7 @@
   "category": "equivalent",
   "proof": "argument",
   "owner": "@wanoo",
-  "revisit": "4.7.0"
+  "revisit": "4.8.0"
  },
  {
   "file": "src/engine/reality/http-port.ts",
@@ -105,7 +105,7 @@
   "category": "equivalent",
   "proof": "argument",
   "owner": "@wanoo",
-  "revisit": "4.7.0"
+  "revisit": "4.8.0"
  },
  {
   "file": "src/engine/reality/http-port.ts",
@@ -117,7 +117,7 @@
   "category": "equivalent",
   "proof": "argument",
   "owner": "@wanoo",
-  "revisit": "4.7.0"
+  "revisit": "4.8.0"
  },
  {
   "file": "src/engine/reality/http-port.ts",
@@ -129,7 +129,7 @@
   "category": "equivalent",
   "proof": "argument",
   "owner": "@wanoo",
-  "revisit": "4.7.0"
+  "revisit": "4.8.0"
  },
  {
   "file": "src/engine/reality/http-port.ts",
@@ -141,7 +141,7 @@
   "category": "equivalent",
   "proof": "argument",
   "owner": "@wanoo",
-  "revisit": "4.7.0"
+  "revisit": "4.8.0"
  },
  {
   "file": "src/engine/reality/http-port.ts",
@@ -153,7 +153,7 @@
   "category": "equivalent",
   "proof": "argument",
   "owner": "@wanoo",
-  "revisit": "4.7.0"
+  "revisit": "4.8.0"
  },
  {
   "file": "src/engine/reality/http-port.ts",
@@ -165,7 +165,7 @@
   "category": "equivalent",
   "proof": "argument",
   "owner": "@wanoo",
-  "revisit": "4.7.0"
+  "revisit": "4.8.0"
  },
  {
   "file": "src/engine/reality/http-port.ts",
@@ -177,7 +177,7 @@
   "category": "equivalent",
   "proof": "argument",
   "owner": "@wanoo",
-  "revisit": "4.7.0"
+  "revisit": "4.8.0"
  },
  {
   "file": "bridge/src/store.ts",
@@ -189,7 +189,7 @@
   "category": "equivalent",
   "proof": "argument",
   "owner": "@wanoo",
-  "revisit": "4.7.0"
+  "revisit": "4.8.0"
  },
  {
   "file": "bridge/src/store.ts",
@@ -201,7 +201,7 @@
   "category": "equivalent",
   "proof": "argument",
   "owner": "@wanoo",
-  "revisit": "4.7.0"
+  "revisit": "4.8.0"
  },
  {
   "file": "src/engine/core/save.ts",
@@ -213,7 +213,7 @@
   "category": "equivalent",
   "proof": "argument",
   "owner": "@wanoo",
-  "revisit": "4.7.0"
+  "revisit": "4.8.0"
  },
  {
   "file": "bridge/src/runs.ts",
@@ -225,7 +225,7 @@
   "category": "equivalent",
   "proof": "argument",
   "owner": "@wanoo",
-  "revisit": "4.7.0"
+  "revisit": "4.8.0"
  },
  {
   "file": "bridge/src/runs.ts",
@@ -237,7 +237,7 @@
   "category": "equivalent",
   "proof": "argument",
   "owner": "@wanoo",
-  "revisit": "4.7.0"
+  "revisit": "4.8.0"
  },
  {
   "file": "bridge/src/runs.ts",
@@ -249,7 +249,7 @@
   "category": "equivalent",
   "proof": "argument",
   "owner": "@wanoo",
-  "revisit": "4.7.0"
+  "revisit": "4.8.0"
  },
  {
   "file": "bridge/src/runs.ts",
@@ -261,7 +261,7 @@
   "category": "equivalent",
   "proof": "argument",
   "owner": "@wanoo",
-  "revisit": "4.7.0"
+  "revisit": "4.8.0"
  },
  {
   "file": "bridge/src/runs.ts",
@@ -273,7 +273,7 @@
   "category": "equivalent",
   "proof": "argument",
   "owner": "@wanoo",
-  "revisit": "4.7.0"
+  "revisit": "4.8.0"
  },
  {
   "file": "bridge/src/runs.ts",
@@ -285,7 +285,7 @@
   "category": "equivalent",
   "proof": "argument",
   "owner": "@wanoo",
-  "revisit": "4.7.0"
+  "revisit": "4.8.0"
  },
  {
   "file": "bridge/src/runs-store.ts",
@@ -297,7 +297,7 @@
   "category": "equivalent",
   "proof": "argument",
   "owner": "@wanoo",
-  "revisit": "4.7.0"
+  "revisit": "4.8.0"
  },
  {
   "file": "bridge/src/runs-store.ts",
@@ -309,7 +309,7 @@
   "category": "equivalent",
   "proof": "argument",
   "owner": "@wanoo",
-  "revisit": "4.7.0"
+  "revisit": "4.8.0"
  },
  {
   "file": "bridge/src/runs-store.ts",
@@ -321,7 +321,7 @@
   "category": "equivalent",
   "proof": "argument",
   "owner": "@wanoo",
-  "revisit": "4.7.0"
+  "revisit": "4.8.0"
  },
  {
   "file": "bridge/src/runs.ts",
@@ -333,7 +333,7 @@
   "category": "equivalent",
   "proof": "argument",
   "owner": "@wanoo",
-  "revisit": "4.7.0"
+  "revisit": "4.8.0"
  },
  {
   "file": "bridge/src/runs.ts",
@@ -345,7 +345,7 @@
   "category": "equivalent",
   "proof": "argument",
   "owner": "@wanoo",
-  "revisit": "4.7.0"
+  "revisit": "4.8.0"
  },
  {
   "file": "bridge/src/runs.ts",
@@ -357,7 +357,7 @@
   "category": "equivalent",
   "proof": "argument",
   "owner": "@wanoo",
-  "revisit": "4.7.0"
+  "revisit": "4.8.0"
  },
  {
   "file": "bridge/src/runs.ts",
@@ -369,7 +369,7 @@
   "category": "equivalent",
   "proof": "argument",
   "owner": "@wanoo",
-  "revisit": "4.7.0"
+  "revisit": "4.8.0"
  },
  {
   "file": "bridge/src/runs.ts",
@@ -381,7 +381,7 @@
   "category": "equivalent",
   "proof": "argument",
   "owner": "@wanoo",
-  "revisit": "4.7.0"
+  "revisit": "4.8.0"
  },
  {
   "file": "bridge/src/runs-store.ts",
@@ -393,7 +393,7 @@
   "category": "equivalent",
   "proof": "argument",
   "owner": "@wanoo",
-  "revisit": "4.7.0"
+  "revisit": "4.8.0"
  },
  {
   "file": "bridge/src/runs-store.ts",
@@ -405,7 +405,7 @@
   "category": "equivalent",
   "proof": "argument",
   "owner": "@wanoo",
-  "revisit": "4.7.0"
+  "revisit": "4.8.0"
  },
  {
   "file": "bridge/src/runs-store.ts",
@@ -417,7 +417,7 @@
   "category": "equivalent",
   "proof": "argument",
   "owner": "@wanoo",
-  "revisit": "4.7.0"
+  "revisit": "4.8.0"
  },
  {
   "file": "bridge/src/runs-store.ts",
@@ -429,7 +429,7 @@
   "category": "equivalent",
   "proof": "argument",
   "owner": "@wanoo",
-  "revisit": "4.7.0"
+  "revisit": "4.8.0"
  },
  {
   "file": "bridge/src/runs-store.ts",
@@ -441,7 +441,7 @@
   "category": "equivalent",
   "proof": "argument",
   "owner": "@wanoo",
-  "revisit": "4.7.0"
+  "revisit": "4.8.0"
  },
  {
   "file": "bridge/src/runs-store.ts",
@@ -453,7 +453,7 @@
   "category": "equivalent",
   "proof": "argument",
   "owner": "@wanoo",
-  "revisit": "4.7.0"
+  "revisit": "4.8.0"
  },
  {
   "file": "src/engine/tools/speedrun/recorder.ts",
@@ -465,7 +465,7 @@
   "category": "equivalent",
   "proof": "argument",
   "owner": "@wanoo",
-  "revisit": "4.7.0"
+  "revisit": "4.8.0"
  },
  {
   "file": "src/engine/tools/speedrun/recorder.ts",
@@ -477,7 +477,7 @@
   "category": "equivalent",
   "proof": "argument",
   "owner": "@wanoo",
-  "revisit": "4.7.0"
+  "revisit": "4.8.0"
  },
  {
   "file": "src/engine/tools/speedrun/verify.ts",
@@ -489,7 +489,7 @@
   "category": "equivalent",
   "proof": "argument",
   "owner": "@wanoo",
-  "revisit": "4.7.0"
+  "revisit": "4.8.0"
  },
  {
   "file": "src/engine/tools/speedrun/verify.ts",
@@ -501,7 +501,7 @@
   "category": "equivalent",
   "proof": "argument",
   "owner": "@wanoo",
-  "revisit": "4.7.0"
+  "revisit": "4.8.0"
  },
  {
   "file": "src/engine/tools/speedrun/verify.ts",
@@ -513,7 +513,7 @@
   "category": "equivalent",
   "proof": "argument",
   "owner": "@wanoo",
-  "revisit": "4.7.0"
+  "revisit": "4.8.0"
  },
  {
   "file": "src/engine/tools/speedrun/verify.ts",
@@ -525,7 +525,7 @@
   "category": "equivalent",
   "proof": "argument",
   "owner": "@wanoo",
-  "revisit": "4.7.0"
+  "revisit": "4.8.0"
  },
  {
   "file": "src/engine/tools/speedrun/verify.ts",
@@ -537,7 +537,7 @@
   "category": "equivalent",
   "proof": "argument",
   "owner": "@wanoo",
-  "revisit": "4.7.0"
+  "revisit": "4.8.0"
  },
  {
   "file": "src/engine/core/remix/apply.ts",
@@ -549,7 +549,7 @@
   "category": "equivalent",
   "proof": "argument",
   "owner": "@wanoo",
-  "revisit": "4.7.0"
+  "revisit": "4.8.0"
  },
  {
   "file": "src/engine/core/remix/apply.ts",
@@ -561,7 +561,7 @@
   "category": "equivalent",
   "proof": "argument",
   "owner": "@wanoo",
-  "revisit": "4.7.0"
+  "revisit": "4.8.0"
  },
  {
   "file": "src/engine/core/remix/apply.ts",
@@ -573,7 +573,7 @@
   "category": "equivalent",
   "proof": "argument",
   "owner": "@wanoo",
-  "revisit": "4.7.0"
+  "revisit": "4.8.0"
  },
  {
   "file": "src/engine/core/remix/apply.ts",
@@ -585,7 +585,7 @@
   "category": "equivalent",
   "proof": "argument",
   "owner": "@wanoo",
-  "revisit": "4.7.0"
+  "revisit": "4.8.0"
  },
  {
   "file": "src/engine/core/remix/apply.ts",
@@ -597,7 +597,7 @@
   "category": "equivalent",
   "proof": "argument",
   "owner": "@wanoo",
-  "revisit": "4.7.0"
+  "revisit": "4.8.0"
  },
  {
   "file": "src/engine/core/remix/apply.ts",
@@ -609,7 +609,7 @@
   "category": "equivalent",
   "proof": "argument",
   "owner": "@wanoo",
-  "revisit": "4.7.0"
+  "revisit": "4.8.0"
  },
  {
   "file": "src/engine/core/remix/apply.ts",
@@ -621,7 +621,7 @@
   "category": "equivalent",
   "proof": "argument",
   "owner": "@wanoo",
-  "revisit": "4.7.0"
+  "revisit": "4.8.0"
  },
  {
   "file": "src/engine/core/remix/compile.ts",
@@ -633,7 +633,7 @@
   "category": "equivalent",
   "proof": "argument",
   "owner": "@wanoo",
-  "revisit": "4.7.0"
+  "revisit": "4.8.0"
  },
  {
   "file": "src/engine/core/remix/compile.ts",
@@ -645,7 +645,7 @@
   "category": "equivalent",
   "proof": "argument",
   "owner": "@wanoo",
-  "revisit": "4.7.0"
+  "revisit": "4.8.0"
  },
  {
   "file": "src/engine/core/remix/compile.ts",
@@ -657,7 +657,7 @@
   "category": "equivalent",
   "proof": "argument",
   "owner": "@wanoo",
-  "revisit": "4.7.0"
+  "revisit": "4.8.0"
  },
  {
   "file": "src/engine/core/remix/compile.ts",
@@ -669,7 +669,7 @@
   "category": "equivalent",
   "proof": "argument",
   "owner": "@wanoo",
-  "revisit": "4.7.0"
+  "revisit": "4.8.0"
  },
  {
   "file": "src/engine/core/remix/compile.ts",
@@ -681,7 +681,7 @@
   "category": "equivalent",
   "proof": "argument",
   "owner": "@wanoo",
-  "revisit": "4.7.0"
+  "revisit": "4.8.0"
  },
  {
   "file": "src/engine/core/remix/compile.ts",
@@ -693,7 +693,7 @@
   "category": "equivalent",
   "proof": "argument",
   "owner": "@wanoo",
-  "revisit": "4.7.0"
+  "revisit": "4.8.0"
  },
  {
   "file": "src/engine/core/remix/compile.ts",
@@ -705,7 +705,7 @@
   "category": "equivalent",
   "proof": "argument",
   "owner": "@wanoo",
-  "revisit": "4.7.0"
+  "revisit": "4.8.0"
  },
  {
   "file": "src/engine/core/remix/compile.ts",
@@ -717,7 +717,7 @@
   "category": "equivalent",
   "proof": "argument",
   "owner": "@wanoo",
-  "revisit": "4.7.0"
+  "revisit": "4.8.0"
  },
  {
   "file": "src/engine/tools/speedrun/recorder.ts",
@@ -729,7 +729,7 @@
   "category": "equivalent",
   "proof": "argument",
   "owner": "@wanoo",
-  "revisit": "4.7.0"
+  "revisit": "4.8.0"
  },
  {
   "file": "connectors/src/badges/crypto.ts",
@@ -741,7 +741,7 @@
   "category": "equivalent",
   "proof": "argument",
   "owner": "@wanoo",
-  "revisit": "4.7.0"
+  "revisit": "4.8.0"
  },
  {
   "file": "connectors/src/badges/crypto.ts",
@@ -753,7 +753,7 @@
   "category": "equivalent",
   "proof": "argument",
   "owner": "@wanoo",
-  "revisit": "4.7.0"
+  "revisit": "4.8.0"
  },
  {
   "file": "connectors/src/badges/fetch.ts",
@@ -765,7 +765,7 @@
   "category": "equivalent",
   "proof": "argument",
   "owner": "@wanoo",
-  "revisit": "4.7.0"
+  "revisit": "4.8.0"
  },
  {
   "file": "connectors/src/run.ts",
@@ -777,7 +777,7 @@
   "category": "unreachable",
   "proof": "tests/connectors-rest-edge-mutants.test.ts",
   "owner": "@wanoo",
-  "revisit": "4.7.0"
+  "revisit": "4.8.0"
  },
  {
   "file": "connectors/src/run.ts",
@@ -789,7 +789,7 @@
   "category": "equivalent",
   "proof": "argument",
   "owner": "@wanoo",
-  "revisit": "4.7.0"
+  "revisit": "4.8.0"
  },
  {
   "file": "connectors/src/email/mime.ts",
@@ -801,7 +801,7 @@
   "category": "equivalent",
   "proof": "argument",
   "owner": "@wanoo",
-  "revisit": "4.7.0"
+  "revisit": "4.8.0"
  },
  {
   "file": "connectors/src/email/mime.ts",
@@ -813,7 +813,7 @@
   "category": "equivalent",
   "proof": "argument",
   "owner": "@wanoo",
-  "revisit": "4.7.0"
+  "revisit": "4.8.0"
  },
  {
   "file": "connectors/src/email/mime.ts",
@@ -825,7 +825,7 @@
   "category": "equivalent",
   "proof": "argument",
   "owner": "@wanoo",
-  "revisit": "4.7.0"
+  "revisit": "4.8.0"
  },
  {
   "file": "connectors/src/email/mime.ts",
@@ -837,7 +837,7 @@
   "category": "equivalent",
   "proof": "argument",
   "owner": "@wanoo",
-  "revisit": "4.7.0"
+  "revisit": "4.8.0"
  },
  {
   "file": "connectors/src/email/mime.ts",
@@ -849,7 +849,7 @@
   "category": "equivalent",
   "proof": "argument",
   "owner": "@wanoo",
-  "revisit": "4.7.0"
+  "revisit": "4.8.0"
  },
  {
   "file": "connectors/src/terminal/line.ts",
@@ -861,7 +861,7 @@
   "category": "equivalent",
   "proof": "argument",
   "owner": "@wanoo",
-  "revisit": "4.7.0"
+  "revisit": "4.8.0"
  },
  {
   "file": "connectors/src/terminal/line.ts",
@@ -873,7 +873,7 @@
   "category": "equivalent",
   "proof": "argument",
   "owner": "@wanoo",
-  "revisit": "4.7.0"
+  "revisit": "4.8.0"
  },
  {
   "file": "connectors/src/terminal/line.ts",
@@ -885,7 +885,7 @@
   "category": "equivalent",
   "proof": "argument",
   "owner": "@wanoo",
-  "revisit": "4.7.0"
+  "revisit": "4.8.0"
  },
  {
   "file": "bridge/src/store-postgres.ts",
@@ -897,7 +897,7 @@
   "category": "equivalent",
   "proof": "argument",
   "owner": "@wanoo",
-  "revisit": "4.7.0"
+  "revisit": "4.8.0"
  },
  {
   "file": "bridge/src/backup/canonical.ts",
@@ -909,7 +909,7 @@
   "category": "equivalent",
   "proof": "argument",
   "owner": "@wanoo",
-  "revisit": "4.7.0"
+  "revisit": "4.8.0"
  },
  {
   "file": "bridge/src/backup/canonical.ts",
@@ -921,7 +921,7 @@
   "category": "equivalent",
   "proof": "argument",
   "owner": "@wanoo",
-  "revisit": "4.7.0"
+  "revisit": "4.8.0"
  },
  {
   "file": "bridge/src/backup/canonical.ts",
@@ -933,7 +933,7 @@
   "category": "equivalent",
   "proof": "argument",
   "owner": "@wanoo",
-  "revisit": "4.7.0"
+  "revisit": "4.8.0"
  },
  {
   "file": "bridge/src/backup/canonical.ts",
@@ -945,7 +945,7 @@
   "category": "equivalent",
   "proof": "argument",
   "owner": "@wanoo",
-  "revisit": "4.7.0"
+  "revisit": "4.8.0"
  },
  {
   "file": "bridge/src/backup/files.ts",
@@ -957,7 +957,7 @@
   "category": "equivalent",
   "proof": "argument",
   "owner": "@wanoo",
-  "revisit": "4.7.0"
+  "revisit": "4.8.0"
  },
  {
   "file": "bridge/src/backup/files.ts",
@@ -969,7 +969,7 @@
   "category": "equivalent",
   "proof": "argument",
   "owner": "@wanoo",
-  "revisit": "4.7.0"
+  "revisit": "4.8.0"
  },
  {
   "file": "bridge/src/backup/restore.ts",
@@ -981,7 +981,7 @@
   "category": "equivalent",
   "proof": "argument",
   "owner": "@wanoo",
-  "revisit": "4.7.0"
+  "revisit": "4.8.0"
  },
  {
   "file": "connectors/src/badges/verify.ts",
@@ -993,7 +993,7 @@
   "category": "equivalent",
   "proof": "argument",
   "owner": "@wanoo",
-  "revisit": "4.7.0"
+  "revisit": "4.8.0"
  },
  {
   "file": "connectors/src/badges/verify.ts",
@@ -1005,7 +1005,7 @@
   "category": "equivalent",
   "proof": "argument",
   "owner": "@wanoo",
-  "revisit": "4.7.0"
+  "revisit": "4.8.0"
  },
  {
   "file": "connectors/src/badges/connector.ts",
@@ -1017,7 +1017,7 @@
   "category": "equivalent",
   "proof": "argument",
   "owner": "@wanoo",
-  "revisit": "4.7.0"
+  "revisit": "4.8.0"
  },
  {
   "file": "connectors/src/badges/connector.ts",
@@ -1029,7 +1029,7 @@
   "category": "equivalent",
   "proof": "argument",
   "owner": "@wanoo",
-  "revisit": "4.7.0"
+  "revisit": "4.8.0"
  },
  {
   "file": "connectors/src/email/connector.ts",
@@ -1041,7 +1041,7 @@
   "category": "equivalent",
   "proof": "argument",
   "owner": "@wanoo",
-  "revisit": "4.7.0"
+  "revisit": "4.8.0"
  },
  {
   "file": "connectors/src/email/imap.ts",
@@ -1053,7 +1053,7 @@
   "category": "unreachable",
   "proof": "tests/connectors-email-edge-mutants.test.ts",
   "owner": "@wanoo",
-  "revisit": "4.7.0"
+  "revisit": "4.8.0"
  },
  {
   "file": "connectors/src/email/imap.ts",
@@ -1065,7 +1065,7 @@
   "category": "equivalent",
   "proof": "argument",
   "owner": "@wanoo",
-  "revisit": "4.7.0"
+  "revisit": "4.8.0"
  },
  {
   "file": "connectors/src/email/imap.ts",
@@ -1077,7 +1077,7 @@
   "category": "equivalent",
   "proof": "argument",
   "owner": "@wanoo",
-  "revisit": "4.7.0"
+  "revisit": "4.8.0"
  },
  {
   "file": "connectors/src/email/imap.ts",
@@ -1089,7 +1089,7 @@
   "category": "equivalent",
   "proof": "argument",
   "owner": "@wanoo",
-  "revisit": "4.7.0"
+  "revisit": "4.8.0"
  },
  {
   "file": "connectors/src/email/parse.ts",
@@ -1101,7 +1101,7 @@
   "category": "unreachable",
   "proof": "tests/connectors-email.test.ts",
   "owner": "@wanoo",
-  "revisit": "4.7.0"
+  "revisit": "4.8.0"
  },
  {
   "file": "connectors/src/ssh/connector.ts",
@@ -1113,7 +1113,7 @@
   "category": "equivalent",
   "proof": "argument",
   "owner": "@wanoo",
-  "revisit": "4.7.0"
+  "revisit": "4.8.0"
  },
  {
   "file": "connectors/src/ssh/connector.ts",
@@ -1125,7 +1125,7 @@
   "category": "unreachable",
   "proof": "tests/connectors-terminal-edge-mutants.test.ts",
   "owner": "@wanoo",
-  "revisit": "4.7.0"
+  "revisit": "4.8.0"
  },
  {
   "file": "studio-server/src/ops/journal.ts",
@@ -1137,7 +1137,7 @@
   "category": "equivalent",
   "proof": "argument",
   "owner": "@wanoo",
-  "revisit": "4.7.0"
+  "revisit": "4.8.0"
  },
  {
   "file": "studio-server/src/ops/journal.ts",
@@ -1149,7 +1149,7 @@
   "category": "equivalent",
   "proof": "argument",
   "owner": "@wanoo",
-  "revisit": "4.7.0"
+  "revisit": "4.8.0"
  },
  {
   "file": "studio-server/src/ops/journal.ts",
@@ -1161,7 +1161,7 @@
   "category": "unreachable",
   "proof": "tests/studio-journal-mutants.test.ts",
   "owner": "@wanoo",
-  "revisit": "4.7.0"
+  "revisit": "4.8.0"
  },
  {
   "file": "studio-server/src/ops/journal.ts",
@@ -1173,7 +1173,7 @@
   "category": "equivalent",
   "proof": "argument",
   "owner": "@wanoo",
-  "revisit": "4.7.0"
+  "revisit": "4.8.0"
  },
  {
   "file": "studio-server/src/ops/journal.ts",
@@ -1185,7 +1185,7 @@
   "category": "equivalent",
   "proof": "argument",
   "owner": "@wanoo",
-  "revisit": "4.7.0"
+  "revisit": "4.8.0"
  },
  {
   "file": "studio-server/src/ops/journal.ts",
@@ -1197,7 +1197,7 @@
   "category": "equivalent",
   "proof": "argument",
   "owner": "@wanoo",
-  "revisit": "4.7.0"
+  "revisit": "4.8.0"
  },
  {
   "file": "studio-server/src/ops/durable.ts",
@@ -1209,7 +1209,7 @@
   "category": "equivalent",
   "proof": "argument",
   "owner": "@wanoo",
-  "revisit": "4.7.0"
+  "revisit": "4.8.0"
  },
  {
   "file": "studio-server/src/ops/durable.ts",
@@ -1221,7 +1221,7 @@
   "category": "equivalent",
   "proof": "argument",
   "owner": "@wanoo",
-  "revisit": "4.7.0"
+  "revisit": "4.8.0"
  },
  {
   "file": "studio-server/src/server/auth/gate.ts",
@@ -1233,7 +1233,7 @@
   "category": "equivalent",
   "proof": "argument",
   "owner": "@wanoo",
-  "revisit": "4.7.0"
+  "revisit": "4.8.0"
  },
  {
   "file": "studio-server/src/server/auth/oidc.ts",
@@ -1245,7 +1245,7 @@
   "category": "equivalent",
   "proof": "argument",
   "owner": "@wanoo",
-  "revisit": "4.7.0"
+  "revisit": "4.8.0"
  },
  {
   "file": "studio-server/src/server/auth/oidc.ts",
@@ -1257,7 +1257,7 @@
   "category": "unreachable",
   "proof": "tests/studio-oidc-mutants.test.ts",
   "owner": "@wanoo",
-  "revisit": "4.7.0"
+  "revisit": "4.8.0"
  },
  {
   "file": "studio-server/src/server/auth/store.ts",
@@ -1269,7 +1269,7 @@
   "category": "equivalent",
   "proof": "argument",
   "owner": "@wanoo",
-  "revisit": "4.7.0"
+  "revisit": "4.8.0"
  },
  {
   "file": "studio-server/src/server/auth/store.ts",
@@ -1281,7 +1281,7 @@
   "category": "equivalent",
   "proof": "argument",
   "owner": "@wanoo",
-  "revisit": "4.7.0"
+  "revisit": "4.8.0"
  },
  {
   "file": "studio-server/src/server/auth/store.ts",
@@ -1293,7 +1293,7 @@
   "category": "equivalent",
   "proof": "argument",
   "owner": "@wanoo",
-  "revisit": "4.7.0"
+  "revisit": "4.8.0"
  },
  {
   "file": "studio-server/src/server/auth/store.ts",
@@ -1305,7 +1305,7 @@
   "category": "equivalent",
   "proof": "argument",
   "owner": "@wanoo",
-  "revisit": "4.7.0"
+  "revisit": "4.8.0"
  },
  {
   "file": "studio-server/src/server/auth/store.ts",
@@ -1317,7 +1317,7 @@
   "category": "equivalent",
   "proof": "argument",
   "owner": "@wanoo",
-  "revisit": "4.7.0"
+  "revisit": "4.8.0"
  },
  {
   "file": "studio-server/src/server/play.ts",
@@ -1329,7 +1329,7 @@
   "category": "equivalent",
   "proof": "argument",
   "owner": "@wanoo",
-  "revisit": "4.7.0"
+  "revisit": "4.8.0"
  },
  {
   "file": "studio-server/src/ops/backup.ts",
@@ -1341,7 +1341,7 @@
   "category": "equivalent",
   "proof": "argument",
   "owner": "@wanoo",
-  "revisit": "4.7.0"
+  "revisit": "4.8.0"
  },
  {
   "file": "studio-server/src/ops/ship.ts",
@@ -1353,7 +1353,7 @@
   "category": "equivalent",
   "proof": "argument",
   "owner": "@wanoo",
-  "revisit": "4.7.0"
+  "revisit": "4.8.0"
  },
  {
   "file": "studio-server/src/ops/ship.ts",
@@ -1365,7 +1365,7 @@
   "category": "equivalent",
   "proof": "argument",
   "owner": "@wanoo",
-  "revisit": "4.7.0"
+  "revisit": "4.8.0"
  },
  {
   "file": "studio-server/src/server/health.ts",
@@ -1377,7 +1377,7 @@
   "category": "equivalent",
   "proof": "argument",
   "owner": "@wanoo",
-  "revisit": "4.7.0"
+  "revisit": "4.8.0"
  },
  {
   "file": "studio-server/src/server/previews.ts",
@@ -1389,7 +1389,7 @@
   "category": "equivalent",
   "proof": "argument",
   "owner": "@wanoo",
-  "revisit": "4.7.0"
+  "revisit": "4.8.0"
  },
  {
   "file": "studio-server/src/server/previews.ts",
@@ -1401,7 +1401,7 @@
   "category": "equivalent",
   "proof": "argument",
   "owner": "@wanoo",
-  "revisit": "4.7.0"
+  "revisit": "4.8.0"
  },
  {
   "file": "studio-server/src/server/builds.ts",
@@ -1413,7 +1413,7 @@
   "category": "equivalent",
   "proof": "argument",
   "owner": "@wanoo",
-  "revisit": "4.7.0"
+  "revisit": "4.8.0"
  },
  {
   "file": "studio-server/src/server/builds.ts",
@@ -1425,7 +1425,7 @@
   "category": "equivalent",
   "proof": "argument",
   "owner": "@wanoo",
-  "revisit": "4.7.0"
+  "revisit": "4.8.0"
  },
  {
   "file": "studio-server/src/ops/ship.ts",
@@ -1437,7 +1437,7 @@
   "category": "equivalent",
   "proof": "argument",
   "owner": "@wanoo",
-  "revisit": "4.7.0"
+  "revisit": "4.8.0"
  },
  {
   "file": "src/engine/tools/voices.ts",
@@ -1449,7 +1449,7 @@
   "category": "equivalent",
   "proof": "argument",
   "owner": "@wanoo",
-  "revisit": "4.7.0"
+  "revisit": "4.8.0"
  },
  {
   "file": "src/engine/tools/voices.ts",
@@ -1461,7 +1461,7 @@
   "category": "equivalent",
   "proof": "argument",
   "owner": "@wanoo",
-  "revisit": "4.7.0"
+  "revisit": "4.8.0"
  },
  {
   "file": "src/engine/tools/voices.ts",
@@ -1473,7 +1473,7 @@
   "category": "equivalent",
   "proof": "argument",
   "owner": "@wanoo",
-  "revisit": "4.7.0"
+  "revisit": "4.8.0"
  },
  {
   "file": "src/engine/tools/voices.ts",
@@ -1485,7 +1485,7 @@
   "category": "equivalent",
   "proof": "argument",
   "owner": "@wanoo",
-  "revisit": "4.7.0"
+  "revisit": "4.8.0"
  },
  {
   "file": "src/engine/tools/validate/voices.ts",
@@ -1497,7 +1497,7 @@
   "category": "equivalent",
   "proof": "argument",
   "owner": "@wanoo",
-  "revisit": "4.7.0"
+  "revisit": "4.8.0"
  },
  {
   "file": "src/engine/tools/validate/voices.ts",
@@ -1509,7 +1509,7 @@
   "category": "equivalent",
   "proof": "argument",
   "owner": "@wanoo",
-  "revisit": "4.7.0"
+  "revisit": "4.8.0"
  },
  {
   "file": "src/engine/tools/status.ts",
@@ -1521,7 +1521,7 @@
   "category": "equivalent",
   "proof": "argument",
   "owner": "@wanoo",
-  "revisit": "4.7.0"
+  "revisit": "4.8.0"
  },
  {
   "file": "studio-server/src/ops/spans.ts",
@@ -1533,7 +1533,7 @@
   "category": "equivalent",
   "proof": "argument",
   "owner": "@wanoo",
-  "revisit": "4.7.0"
+  "revisit": "4.8.0"
  },
  {
   "file": "studio-server/src/ops/spans.ts",
@@ -1545,7 +1545,7 @@
   "category": "equivalent",
   "proof": "argument",
   "owner": "@wanoo",
-  "revisit": "4.7.0"
+  "revisit": "4.8.0"
  },
  {
   "file": "studio-server/src/ops/spans.ts",
@@ -1557,7 +1557,7 @@
   "category": "equivalent",
   "proof": "argument",
   "owner": "@wanoo",
-  "revisit": "4.7.0"
+  "revisit": "4.8.0"
  },
  {
   "file": "studio-server/src/ops/spans.ts",
@@ -1569,7 +1569,7 @@
   "category": "equivalent",
   "proof": "argument",
   "owner": "@wanoo",
-  "revisit": "4.7.0"
+  "revisit": "4.8.0"
  },
  {
   "file": "src/engine/core/world.ts",
@@ -1581,7 +1581,7 @@
   "category": "equivalent",
   "proof": "argument",
   "owner": "@wanoo",
-  "revisit": "4.7.0"
+  "revisit": "4.8.0"
  },
  {
   "file": "src/engine/core/world.ts",
@@ -1593,7 +1593,7 @@
   "category": "equivalent",
   "proof": "argument",
   "owner": "@wanoo",
-  "revisit": "4.7.0"
+  "revisit": "4.8.0"
  },
  {
   "file": "src/engine/core/route-runtime.ts",
@@ -1605,7 +1605,7 @@
   "category": "equivalent",
   "proof": "argument",
   "owner": "@wanoo",
-  "revisit": "4.7.0"
+  "revisit": "4.8.0"
  },
  {
   "file": "src/engine/core/route-runtime.ts",
@@ -1617,6 +1617,6 @@
   "category": "equivalent",
   "proof": "argument",
   "owner": "@wanoo",
-  "revisit": "4.7.0"
+  "revisit": "4.8.0"
  }
 ]

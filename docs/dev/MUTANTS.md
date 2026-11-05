@@ -187,6 +187,7 @@ a test (and removed), or found wrong (corrected, or killed).
 | 4.4.0 | 137 | 133 | 16 | 4 | 2 | 4.5.0 |
 | 4.5.0 | 132 | 127 | 20 (1 wrong, 19 sharpened) | 5 | 0 | 4.6.0 |
 | 4.6.0 | 131 | 131 | 4 (sharpened) | 0 | 1 (found beside them) | 4.7.0 |
+| 4.7.0 | 135 | 135 | 0 | 0 | 0 | 4.8.0 |
 
 **4.5.0** (read against origin/main b3b54cdf, five read-only reviewers by set, each verdict checked again before acting
 on it; each kill checked by hand to fail with the mutant applied and pass without it):
@@ -229,6 +230,16 @@ acting on it):
   runs 20/0, speedrun 8/0, remix 15/0, connectors-pure 11/0, connectors-edge 14/0, studio-ops 12/0, studio-auth 9/0,
   studio-workshop 9/0, voices 7/0.
 - `tests/mutants-json.test.ts` checks the entries at 4.6.0 and its pre-releases: none is due.
+
+**4.7.0** (read against release/4.7.0 c87a0092, one day after 4.6.0's reread): the 131 of 4.6.0 and the four `routes`
+entries #413 named (`world.ts`, `route-runtime.ts`).
+
+- Of the 43 exempted files, only `core/save.ts` changed in its code since v4.6.0: `keepPlaying` added to
+  `GameStateSchema` (#437), away from its one entry, `savedWorld`'s `r.success ? r.data : undefined`, whose function
+  is unchanged; a failed `safeParse` still carries no `data`, so the why holds. Every other entry's file is as 4.6.0's
+  reread read it, and each entry's `context` line is still in its file.
+- Killed (0), wrong (0), sharpened (0): the 135 are kept, due again at 4.8.0.
+- `tests/mutants-json.test.ts` checks the entries at 4.7.0 and its pre-releases: none is due.
 
 ## The core set (4.1.0, measured again 2026-10-06)
 

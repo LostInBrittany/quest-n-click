@@ -31,7 +31,7 @@ ou Linux. Le moteur s'installe depuis l'archive d'une release, ou depuis npm à 
 est une fois approuvée par un propriétaire) :
 
 ```bash
-T=https://github.com/Quest-n-Click/quest-n-click/releases/download/v4.6.0/quest-n-click-4.6.0.tgz
+T=https://github.com/Quest-n-Click/quest-n-click/releases/download/v4.7.0/quest-n-click-4.7.0.tgz
 npx --package=$T quest-n-click create mon-jeu "Mon jeu" --engine=$T
 cd mon-jeu && npm install
 npm run assets && npm run dev        # y jouer ; puis npm run verify, npm run build
@@ -90,9 +90,9 @@ Chaque partie n'est promise que jusqu'où elle est testée ([Stabilité et suppo
 
 « Limité » veut dire que des machines le testent mais qu'aucune personne ne l'a encore confirmé sur de vrais appareils
 ([Passes de terrain](https://github.com/Quest-n-Click/quest-n-click/wiki/FR-Contribuer-Passes-De-Terrain)). Seule la dernière version mineure reçoit des correctifs.
-Aujourd'hui : <!-- metric:tests -->3747<!-- /metric --> déclarations de tests unitaires, le jeu de référence prouvé
+Aujourd'hui : <!-- metric:tests -->3846<!-- /metric --> déclarations de tests unitaires, le jeu de référence prouvé
 en <!-- metric:referenceStates -->288<!-- /metric --> états, une première visite de
-<!-- metric:initialJsKB -->138<!-- /metric --> Ko de JavaScript compressé.
+<!-- metric:initialJsKB -->140<!-- /metric --> Ko de JavaScript compressé.
 
 <a name="documentation"></a>
 
@@ -111,7 +111,7 @@ Toute la documentation est [le wiki](https://github.com/Quest-n-Click/quest-n-cl
 
 ## Releases
 
-Release actuelle : [v4.6.0 (Routes)](https://github.com/Quest-n-Click/quest-n-click/releases/tag/v4.6.0) : des personnages qui font leur tournée de salle en salle à l'horloge du monde, une mise en page pour un téléphone tenu droit, et un écran de choix du héros.
+Release actuelle : [v4.7.0 (Terra Incognita)](https://github.com/Quest-n-Click/quest-n-click/releases/tag/v4.7.0) : la carte du monde parcourue à pied ou dessinée par l'image du jeu, des images et le titre de la page par langue, l'écran titre placé par le jeu, et une fin qui déroule le générique et laisse le monde continuer.
 Toutes les releases précédentes sont dans le [CHANGELOG](CHANGELOG.md).
 
 ## Licences

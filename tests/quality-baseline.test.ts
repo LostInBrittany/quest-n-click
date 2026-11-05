@@ -93,14 +93,17 @@ describe('quality baseline', () => {
   });
 
   it("a pull request's write moves the behaviour only: no count, no bundle, no README figure but the proof's", () => {
-    const prev = { ...base(), bundle: { initialJsKB: 138, initialJsBytes: 141252 } };
+    // The committed baseline's first visit, which the READMEs carry: a figure typed here broke at the first release
+    // that moved it (4.7.0: 138 → 140 KB).
+    const bundle = base().bundle ?? { initialJsKB: 138, initialJsBytes: 141252 };
+    const prev = { ...base(), bundle };
     const got = structuredClone(prev);
     got.games.demo.witness.digests = 'moved';
     got.games.reference.proof.states += 1;
     got.saves['demo-4.0.0.json'].last = 'moved';
     got.surface.api = 'moved';
     got.tests = { files: prev.tests.files + 3, declarations: prev.tests.declarations + 9 };
-    got.bundle = { initialJsKB: 139, initialJsBytes: 142300 };
+    got.bundle = { initialJsKB: bundle.initialJsKB + 1, initialJsBytes: bundle.initialJsBytes + 1048 };
     const pr = toWrite(prev, got, 'pr');
     expect(pr.games).toEqual(got.games);
     expect(pr.saves).toEqual(got.saves);

@@ -30,7 +30,7 @@ Linux. The engine installs from a release's archive, or from npm since 4.5.2 (ea
 approves it):
 
 ```bash
-T=https://github.com/Quest-n-Click/quest-n-click/releases/download/v4.6.0/quest-n-click-4.6.0.tgz
+T=https://github.com/Quest-n-Click/quest-n-click/releases/download/v4.7.0/quest-n-click-4.7.0.tgz
 npx --package=$T quest-n-click create my-game "My Game" --engine=$T
 cd my-game && npm install
 npm run assets && npm run dev        # play it; then npm run verify, npm run build
@@ -88,9 +88,9 @@ Each part is promised only as far as it is tested ([Stability and support](https
 
 "Limited" means machines test it but no person has confirmed it on real devices yet
 ([Field passes](https://github.com/Quest-n-Click/quest-n-click/wiki/EN-Contribute-Field-Passes)). Only the latest minor version gets fixes. Today:
-<!-- metric:tests -->3747<!-- /metric --> unit test declarations, the reference game proved in
+<!-- metric:tests -->3846<!-- /metric --> unit test declarations, the reference game proved in
 <!-- metric:referenceStates -->288<!-- /metric --> states, a first visit of
-<!-- metric:initialJsKB -->138<!-- /metric --> KB of JavaScript, gzipped.
+<!-- metric:initialJsKB -->140<!-- /metric --> KB of JavaScript, gzipped.
 
 <a name="documentation"></a>
 
@@ -109,7 +109,7 @@ The whole documentation is [the wiki](https://github.com/Quest-n-Click/quest-n-c
 
 ## Releases
 
-Current release: [v4.6.0 (Routes)](https://github.com/Quest-n-Click/quest-n-click/releases/tag/v4.6.0): characters who walk their rounds through rooms on the world's clock, a layout for a phone held upright, and a hero choice screen.
+Current release: [v4.7.0 (Terra Incognita)](https://github.com/Quest-n-Click/quest-n-click/releases/tag/v4.7.0): the world map reached on foot or drawn by the game's own picture, images and the page's title per language, the title screen placed by the game, and an end that rolls the credits and lets the world go on.
 Every earlier release is in the [CHANGELOG](CHANGELOG.md).
 
 ## Licences
