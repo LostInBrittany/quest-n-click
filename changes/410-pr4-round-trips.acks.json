@@ -2,6 +2,13 @@
   "format": "quest-n-click-docs-acks",
   "version": 1,
   "pairs": {
+    "contribute.ci#workflows": {
+      "enHash": "a29dc2b49a251c13aca97919a860f5a37b9f9859d714ea8da38718b8aee9daa4",
+      "frHash": "0af3c375436f62df041b73144fe0cf0757f1786e9780f3f7da411e8e9c75d7c0",
+      "reviewers": [
+        { "name": "claude", "kind": "ai", "relation": "author", "date": "2026-11-05" }
+      ]
+    },
     "contribute.mutation-testing#expected-result": {
       "enHash": "344fc540b36dc1627daebfe285551bc3c22549ef9916d8336d07b10e15726429",
       "frHash": "0a24e4982a7cef908549d4bd0efb84685156bd37c3f7ce89deae71de6e4433c0",
