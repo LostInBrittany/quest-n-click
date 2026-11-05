@@ -19,3 +19,9 @@
   failed on them through `tests/mutants-json.test.ts` (#443), with only that test's FAIL line; it now lists each entry
   due, `checkKnown`'s rule, and the way on (read it again, keep it with a later revisit or remove it, then
   `npm run test:mutation:core -- --doc`). 4.7.0's 135 were found by the release pull request's ci instead.
+- **A later candidate of a version cancels an earlier red one (next, refs #410)**: the candidate's new `supersede` job
+  cancels a candidate on `main` started before it, of another SHA whose `package.json` names the same version, still
+  running with a job already failed or timed out; never a green or still-green run, another version's or a pull
+  request's. Its runners go to the new run (4.6.0's and 4.7.0's first candidates ran 72 and 105 min red). Each
+  candidate's name now says the SHA it tests. The release command stops on a candidate cancelled after a red job
+  instead of re-running it, with the `--commit … --start-candidate` line.

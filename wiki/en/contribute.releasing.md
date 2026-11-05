@@ -249,6 +249,12 @@ command to run again keeps `--commit`. Without it, nothing changes.
    warm the cache by hand ([above](#prepare)) with `gh workflow run nightly --ref main -f jobs=mutation` (the mutation
    jobs only, reusing what is already cached).
 
+   A later candidate of the same version cancels an earlier one that can no longer turn green (next, #410, its
+   `supersede` job): on `main` only, started before it, of another SHA whose `package.json` names the same version,
+   still running with a job already failed or timed out. A green or still-green run, another version's and a pull
+   request's are never touched. The release command waiting on a run cancelled that way stops instead of re-running
+   it, and says the way on: `npm run release -- <version> --commit=<the later SHA> --start-candidate`.
+
 <!-- step: tag -->
 2. **A tag that names it.**
 

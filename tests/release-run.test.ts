@@ -436,6 +436,25 @@ describe('the candidate wait: a deadline, one re-run that a relaunch keeps, what
     expect(JSON.stringify(step)).not.toContain('()');
     expect(candidateStep(view({ conclusion: 'cancelled', jobs: [] }), at).do).toBe('rerun');
   });
+  // #410 PR 4 e: a later candidate of the version cancels a red one; re-running it would revive what was superseded.
+  it('stops on a run cancelled after a job failed (superseded, or cancelled red), naming the job and the way on', () => {
+    const red = view({
+      conclusion: 'cancelled',
+      jobs: [
+        job('target', 'completed', 'success'),
+        job('mutation (core-1of1)', 'completed', 'failure'),
+        job('mutation (remix-1of1)', 'completed', 'cancelled'),
+      ],
+    });
+    const step = candidateStep(red, at);
+    expect(step.do).toBe('stop');
+    if (step.do !== 'stop') return;
+    expect(step.error).toMatch(/candidate run 42 was cancelled after mutation \(core-1of1\) failed/);
+    expect(step.error).toMatch(/a later candidate of 4\.5\.5/);
+    expect(step.error).toMatch(/--commit=<[^>]+> --start-candidate/);
+    const timedOut = view({ conclusion: 'cancelled', jobs: [job('heavy (1)', 'completed', 'timed_out')] });
+    expect(candidateStep(timedOut, at).do).toBe('stop');
+  });
   it('stops on a second attempt that failed, whoever re-ran it: the budget is the run’s, not the process’s', () => {
     const again = candidateStep(view({ attempt: 2 }), at);
     expect(again.do).toBe('stop');

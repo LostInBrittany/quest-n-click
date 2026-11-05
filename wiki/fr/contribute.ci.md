@@ -28,8 +28,10 @@ relançait). Un commit de release se reconnaît à son message : la fusion de `r
 from <owner>/release/<x.y.z> »), ou le sujet qu'écrit `prepare` (« <x.y.z>: the release (prepared by npm run release
 -- prepare) »), que le message d'un squash reprend et qu'un rebase garde. Tout autre commit de `main` partage un seul
 groupe : un temps chacun gardait son run, et quatre fusions d'affilée ont mis en file quatre runs complets qui ont
-privé les pull requests de runners. Un run lancé à la main a son propre groupe et n'annule rien ; `candidate`,
-`release` et `docs-publish` n'annulent jamais de run non plus.
+privé les pull requests de runners. Un run lancé à la main a son propre groupe et n'annule rien ; `release` et
+`docs-publish` n'annulent jamais de run non plus. `candidate` n'en annule qu'un : un candidat antérieur de la même
+version, sur `main`, d'un autre SHA, encore en cours avec un job déjà rouge (next, #410, son job `supersede`,
+[Publier une release](contribute.releasing.md)).
 
 **Les runs planifiés démarrent la nuit, jamais pendant la journée de travail** (4.5.6, #372). GitHub lance un run
 planifié quand il a de la place, pas à l'heure de son cron, et pour ce dépôt c'est des heures plus tard à chaque fois :

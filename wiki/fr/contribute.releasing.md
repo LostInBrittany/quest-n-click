@@ -275,6 +275,13 @@ utilise et, quand ce n'est pas le merge de release, elle le signale ; la command
    la main ([plus haut](#prepare)) avec `gh workflow run nightly --ref main -f jobs=mutation` (les jobs de mutation
    seulement, qui reprennent ce qui est déjà en cache).
 
+   Un candidat plus récent de la même version annule un candidat antérieur qui ne peut plus passer au vert (next,
+   #410, son job `supersede`) : sur `main` seulement, lancé avant lui, d'un autre SHA dont le `package.json` nomme la
+   même version, encore en cours avec un job déjà en échec ou hors délai. Un run vert ou encore vert, celui d'une autre
+   version et celui d'une pull request ne sont jamais touchés. La commande de release qui attend un run annulé ainsi
+   s'arrête au lieu de le relancer, et donne la suite :
+   `npm run release -- <version> --commit=<le SHA plus récent> --start-candidate`.
+
 <!-- step: tag -->
 2. **Un tag qui le nomme.**
 

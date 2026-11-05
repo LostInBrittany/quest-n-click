@@ -3,8 +3,8 @@
   "version": 1,
   "pairs": {
     "contribute.ci#workflows": {
-      "enHash": "a29dc2b49a251c13aca97919a860f5a37b9f9859d714ea8da38718b8aee9daa4",
-      "frHash": "0af3c375436f62df041b73144fe0cf0757f1786e9780f3f7da411e8e9c75d7c0",
+      "enHash": "52dbb3cae976ed4a0860b1f0263b6d9c098fc861e434d1ae884259a298e5ea15",
+      "frHash": "bd2212555c0ce1be74aeb425b36c02d839f6548f77526f1214cc8cfab6432b5c",
       "reviewers": [
         { "name": "claude", "kind": "ai", "relation": "author", "date": "2026-11-05" }
       ]
@@ -31,8 +31,8 @@
       ]
     },
     "contribute.releasing#the-chain": {
-      "enHash": "4c9e4c9c6ccfda45688c71d46a66aeaaf19327945c569a3eb0f06b4c2a544578",
-      "frHash": "cdb9231a9ed163b0ae6dcf4c877500151546d048e8ec8bd30b9f26e5a540a398",
+      "enHash": "b64c547a0d51cad9b188d14dcb40df7cffcf70c305d6cf51c493ef63a065ecda",
+      "frHash": "ec32695ef346311a4397f4df0b763e389ee934476884950c3958ff466efb322f",
       "reviewers": [
         { "name": "claude", "kind": "ai", "relation": "author", "date": "2026-11-05" }
       ]
