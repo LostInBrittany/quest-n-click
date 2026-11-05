@@ -308,6 +308,38 @@ export const SHARDS: Partial<Record<MutationSet, number>> = {
   speedrun: 2,
 };
 
+/**
+ * The minutes each shard's job takes cold on a GitHub runner, every mutant run (#410 PR 4): the matrix starts the
+ * longest first, so the 8 jobs a candidate runs at a time end together (114 min in the matrix's former order on 5
+ * November 2026, 81 modelled this way). Only an order: a wrong figure costs time, never a check.
+ * Measured on 4.7.0's first candidate (run 42034234870, every shard cold). Kept up to date from a cold run (a nightly
+ * measures fresh): `gh run view <id> --repo Quest-n-Click/quest-n-click --json jobs | npx tsx
+ * tools/mutation-shards.ts --minutes` prints the table to paste here. A shard added or a cut changed in SHARDS fails
+ * tests/mutate-shards.test.ts until its line is here.
+ */
+export const MINUTES: Record<string, number> = {
+  'remix-1of1': 76,
+  'runs-1of1': 69,
+  'studio-workshop-1of1': 67,
+  'connectors-pure-1of1': 46,
+  'speedrun-1of2': 41,
+  'reality-1of2': 38,
+  'reality-store-postgres-1of1': 32,
+  'reality-store-1of2': 30,
+  'studio-auth-1of1': 30,
+  'speedrun-2of2': 25,
+  'reality-2of2': 23,
+  'routes-1of1': 22,
+  'studio-ops-1of1': 19,
+  'connectors-edge-3of4': 17,
+  'connectors-edge-4of4': 15,
+  'reality-store-2of2': 13,
+  'voices-1of1': 12,
+  'core-1of1': 11,
+  'connectors-edge-1of4': 10,
+  'connectors-edge-2of4': 10,
+};
+
 /** The sets whose test files run one after the other: their tests share a real Postgres server (4.1.20 PR 2a). */
 export const SERIAL: (MutationSet | 'all')[] = ['reality-store-postgres'];
 

@@ -4,8 +4,8 @@
 // passes on a part of its set. One generated matrix drives ci, candidate, nightly and release.
 import { describe, expect, it } from 'vitest';
 import { cutOf, type MutationReport } from '../tools/mutate';
-import { mergeReports, mutationMatrix, type ShardReport, shardFiles } from '../tools/mutation-shards';
-import { MEASURED } from '../tools/mutation-sets';
+import { mergeReports, minutesOf, mutationMatrix, type ShardReport, shardFiles } from '../tools/mutation-shards';
+import { MEASURED, MINUTES } from '../tools/mutation-sets';
 
 const COUNTS: Record<string, number> = { 'a.ts': 358, 'b.ts': 201, 'c.ts': 99, 'd.ts': 97, 'e.ts': 83, 'f.ts': 4 };
 const FILES = Object.keys(COUNTS);
@@ -151,6 +151,43 @@ describe('the matrix of the workflows', () => {
     // Nothing measured only (4.1.20: every set gated): the nightly runs the gated matrix, no more.
     if (MEASURED.length === 0) expect(nightly).toEqual(gated);
     else expect(nightly.include.some((x) => !x.gated)).toBe(true);
+  });
+
+  // #410 PR 4: 8 shards at a time in the matrix's order put the longest ones last; a cold candidate's mutation took
+  // 114 min on 5 November 2026, 81 min modelled longest first.
+  it('starts the longest shards first, by the minutes MINUTES gives each, the name breaking a tie', () => {
+    for (const kind of ['gated', 'nightly'] as const) {
+      const names = mutationMatrix(kind).include.map((e) => e.name);
+      expect(names).toEqual(
+        [...names].sort((a, b) => (MINUTES[b] ?? 0) - (MINUTES[a] ?? 0) || (a < b ? -1 : a > b ? 1 : 0)),
+      );
+    }
+    expect(mutationMatrix('gated').include[0]!.name).toBe('remix-1of1');
+  });
+
+  it('has a time for every shard it runs, and none for a shard it no longer runs (a new set or cut: the table too)', () => {
+    const names = mutationMatrix('nightly').include.map((e) => e.name);
+    expect(names.filter((n) => !(n in MINUTES))).toEqual([]);
+    expect(Object.keys(MINUTES).filter((n) => !names.includes(n))).toEqual([]);
+    for (const [n, m] of Object.entries(MINUTES)) expect(Number.isInteger(m) && m > 0, n).toBe(true);
+  });
+
+  it("rebuilds the table from a cold run's jobs (`gh run view <id> --json jobs`): a mutation job's minutes, rounded up", () => {
+    const job = (name: string, from: string, to: string, conclusion = 'success') => ({
+      name,
+      conclusion,
+      startedAt: `2026-11-05T${from}:00Z`,
+      completedAt: `2026-11-05T${to}:00Z`,
+    });
+    expect(
+      minutesOf([
+        job('mutation (remix-1of1)', '13:37', '14:52'),
+        job('mutation (core-1of1)', '13:37', '13:46', 'failure'),
+        job('mutation (voices-1of1)', '14:32', '14:42'),
+        job('mutation-plan', '13:16', '13:29'),
+        job('heavy (1, 1)', '13:19', '13:29'),
+      ]),
+    ).toEqual({ 'remix-1of1': 75, 'core-1of1': 9, 'voices-1of1': 10 });
   });
 
   it('gives Postgres to the set that needs it only, and names each job and artifact uniquely', () => {
