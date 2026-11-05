@@ -9477,6 +9477,11 @@ the save and the reading now share one evaluation and no tick can come between t
   (wanoo) had read on 24 October now hold an AI author's record only, listed by `prepare`; none is a claim.
 - **Fixtures**: golden save demo-4.7.0, reference run, quality baseline, written by `prepare` (the release's own
   write, `quality:baseline -- --release --dist`).
+- **Mutation exemptions**: the 135 of `docs/dev/mutants.json` came due at 4.7.0 and stopped the release pull
+  request's `unit (4)`; read again (`docs/dev/MUTANTS.md`, "The rereads"): only `core/save.ts` changed since v4.6.0,
+  away from its entry; 135 kept, none killed, due at 4.8.0.
+  `tests/quality-baseline.test.ts` typed 4.6.0's first visit (138 KB) where it meant the committed baseline's; the
+  release's 140 KB broke it, so it reads the baseline now.
 - **Passes**: sheet 4.7.0, the twenty-two of 4.6.0, none new; none carried.
 - **Signature**: the tag is signed with LostInBrittany's SSH key (`npm run release -- 4.7.0`).
 
