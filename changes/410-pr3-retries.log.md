@@ -3,11 +3,15 @@
 Three network steps of a release that one refusal from GitHub cost a job's re-run, and the page that says what the
 release tools do.
 
-- The 4.7.0 candidate's external-consumer (macos-15, from 4.1.18-rc.1) failed on a 504. The download was not
-  single-shot, as the issue read it: `fetchRetry` (4.1.20) tried it five times, 5 to 20 s apart, 61 s in all, with no
-  line in the log. It now says each failed try and spends about three minutes (seven tries, 5 s doubled, a minute at
-  most); `download()` throws on what is not a 2xx in the end. `upgrade-check`'s single `gh release download` and
-  `ops-qualify`'s hand-rolled loop (which tried a 404 again) use it.
+- The 4.7.0 candidate's external-consumer (macos-15, from 4.1.18-rc.1) failed on a 504. A correction to #410's
+  comment: that download already had retries. `fetchRetry` (4.1.20) tried it five times, 5 to 20 s apart, and GitHub's
+  504s used them up in 61 s (attempt 1's log: "the older engine" at 15:33:38, the error at 15:34:40), without a line
+  saying so. What changed is the budget and the visibility: seven tries, 5 s doubled up to a minute between them (about
+  three minutes of waits), each failed try said on stderr; a 4xx other than 429 still at once. `download()` throws on
+  what is not a 2xx in the end. `upgrade-check`'s single `gh release download` (it really was single-shot) and
+  `ops-qualify`'s hand-rolled loop (which tried a 404 again) use it. Worst case, every try waiting out its 60 s
+  answer timeout: about 10 minutes a download, inside every caller's limit (external-consumer 1 to 14 minutes of 45,
+  ci's `upgrade` 1 of 30, `deployment-smoke` 4 of 60).
 - 4.7.0's `docs-publish` failed on the wiki's clone ("Permission denied (publickey)", the same key passed on the
   re-run). `pushWiki` takes #416's `retried` from `tools/release/lib.mjs`, which gains an `again(error)` predicate: the
   clone always, the push unless `pushRefused` (rejected, non-fast-forward, fetch first, GH006, a declining hook,
