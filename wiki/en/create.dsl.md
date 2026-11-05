@@ -150,7 +150,7 @@ A command is one key of `CMD_KEYS`; its fields are the Studio form’s. A plain 
 | `hint` | `{ hint: true }` | Gives the next hint of the room. |
 | `ending` | `{ ending: true, after?: [cmd, …] }` | The sealed ending: decrypted, scratched, celebrated, then its card. |
 | `reveal` | `{ reveal: true, after?: [cmd, …] }` | The old name of `ending` (removed in 5.0). |
-| `end` | `{ end: true }` | Ends the game. |
+| `end` | `{ end: true, credits?: true, title?: true, keepPlaying?: true }` | Ends the game. |
 
 <a name="objectives"></a>
 

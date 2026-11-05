@@ -238,7 +238,7 @@ npm run wiki -- generate engine.api
 | `GameIR` | `interface { schema, engine, gameId, world, rooms, entities, … 7 more }` | public | The intermediate representation of a game (schema 1): its logic as plain data, the provenance of its ids, the trusted extensions by name, an |
 | `GameRules` | `interface { fallbacks, kinds, on }` | public | The rules shared by every room: fallback responses per verb, reactions by kind, rules valid everywhere. |
 | `GameSource` | `type GameSource = GameDef` | public | A game as its sources write it: a `GameDef` before compilation. |
-| `GameState` | `interface { v, room, inventory, flags, props, actors, … 16 more }` | public | The state of a game in progress, serialised as-is in a save: room, inventory, flags, props, actors, counters, scripts. |
+| `GameState` | `interface { v, room, inventory, flags, props, actors, … 17 more }` | public | The state of a game in progress, serialised as-is in a save: room, inventory, flags, props, actors, counters, scripts. |
 | `generateWheel` | `(p: CodeWheelParams, seed: string, id?: string): CodeWheel` | public | The wheel of a seed (the `copy-protection` stream of `<seed>\|code-wheel\|<id>`). Throws on parameters `wheelProblems` refuses. |
 | `HintDef` | `interface { id, until, lines }` | public | A hint the hint item gives while its `until` condition is false, as lines said in order. |
 | `HotspotDef` | `interface { defaultVerb, name, kind, visible, exit, onTap }` | public | A named zone of the room the player can act on; its geometry lives in the layout. |
@@ -340,6 +340,7 @@ npm run wiki -- generate engine.api
 | `bootGame` | `(o: BootOptions): Promise<App>` | public | Boots the game in the page and returns the App (after the title screen is shown, or the dev tools started). |
 | `BootOptions` | `interface { game, layouts, manifest, minigames, commands, locales, … 10 more }` | public | What `bootGame` starts the game with: the game, its layouts and manifest, minigames, commands, locales, root, store, service worker, and the |
 | `EmitterSpec` | `interface { id, kind, url, color, rate, area, … 1 more }` | extension | A particle source, resolved for the painter: its kind, image, colour, rate and area. |
+| `EndShow` | `interface { credits, title }` | extension | What follows an `{ end: true }` on screen (4.7.0): the credits, then the title screen. |
 | `Intent` | `type Intent = union of 5` | extension | What a renderer sends the engine's side: the only thing it may (D21). A tap on a target with the verb the player chose (`act`, with `item` w |
 | `LayerSpec` | `interface { id, url, role, x, y, w, … 6 more }` | extension | A stage layer, resolved: its image, its box in the room (logical units, before parallax), its depth and look. |
 | `LightSpec` | `interface { id, kind, color, intensity, blend, at, … 2 more }` | extension | A light, resolved for the painter: its kind, colour, intensity and blend, and for a radial one its centre and radius. |

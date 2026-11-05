@@ -4,7 +4,7 @@ export { bootGame, openStore, pickLanguage } from '../boot';
 export type { BootOptions, Locales, StoreOpener, SwModule } from '../boot';
 export type { SiteText, SiteTexts } from '../dom/site-lang';
 export type { AssetManifest } from '../dom/assets';
-export type { SaveStore, SlotStore, Presenter } from '../core/ports';
+export type { EndShow, SaveStore, SlotStore, Presenter } from '../core/ports';
 export type {
   SceneRenderer,
   SpriteSpec,

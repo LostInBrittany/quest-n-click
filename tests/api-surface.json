@@ -153,6 +153,7 @@
   "AssetManifest",
   "BootOptions",
   "EmitterSpec",
+  "EndShow",
   "Intent",
   "LayerSpec",
   "LightSpec",

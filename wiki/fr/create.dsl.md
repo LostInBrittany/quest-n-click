@@ -152,7 +152,7 @@ Une commande est une clé de `CMD_KEYS` ; ses champs sont ceux du formulaire du 
 | `hint` | `{ hint: true }` | Donne l'indice suivant de la salle. |
 | `ending` | `{ ending: true, after?: [cmd, …] }` | La fin scellée : déchiffrée, grattée, fêtée, puis sa carte. |
 | `reveal` | `{ reveal: true, after?: [cmd, …] }` | L'ancien nom de `ending` (retiré en 5.0). |
-| `end` | `{ end: true }` | Termine le jeu. |
+| `end` | `{ end: true, credits?: true, title?: true, keepPlaying?: true }` | Termine le jeu. |
 
 <a name="objectives"></a>
 

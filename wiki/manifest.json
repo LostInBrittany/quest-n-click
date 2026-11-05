@@ -5321,6 +5321,7 @@
         "EMPTY_LAYOUT",
         "EmitterDef",
         "EmitterSpec",
+        "EndShow",
         "EndingDef",
         "Engine",
         "EventRule",

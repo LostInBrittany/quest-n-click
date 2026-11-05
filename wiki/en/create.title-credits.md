@@ -103,6 +103,27 @@ What the player sees:
 - The credits open from the pause menu (★, `ui.credits`) and from the sealed ending's card. They scroll over about
   22 seconds; a tap closes them.
 
+<a name="end-of-chapter"></a>
+
+### At the end of the game or of a chapter (4.7.0)
+
+The `end` command can roll the same credits, then show the title screen:
+
+```ts
+{ end: true, credits: true, title: true, keepPlaying: true }
+```
+
+| Option | What it does |
+|---|---|
+| `credits` | rolls `credits` as the pause menu does; a tap ends them sooner. The validator refuses it without `credits` lines |
+| `title` | then the title screen, New game and Continue |
+| `keepPlaying` | the world goes on after the end: the end is reached and saved (the solver's goal, the replays), and a load (Continue, a save slot) brings the player back into the world, its rooms, scripts and sequences running. Without it, a loaded end stays ended |
+
+Tests see the end in `FakePresenter`'s log: `END`, then `CREDITS` and `TITLE`.
+
+> [!LIMIT id=end-keep-playing-title]
+> `keepPlaying` acts on a load. Without `title`, the screen stays on the end until the page is reloaded.
+
 > [!LIMIT id=video-autoplay-blocked]
 > A browser that refuses to start the video (data saving, low-power mode) leaves the poster, the `decor`, in its
 > place. With `creditsScreen` given a `decor` but no `video`, the credits have no background image.

@@ -122,6 +122,7 @@ sauvegarde sous cet id (`key` est l'ancien nom, de la v2). Retenir quelque chose
 | `{ hint: true }` | Donner l'indice courant (comme parler à l'objet d'indices). |
 | `{ ending: true, after?: […] }` | La fin scellée (`GameDef.ending`) : ticket à gratter, confettis, puis `after`, puis la carte finale. `{ reveal: true }` est l'ancien nom, toujours accepté ([la fin scellée](create.sealed-ending.md)). |
 | `{ end: true }` | Fin de partie. |
+| `{ end: true, credits: true, title: true, keepPlaying: true }` | La fin d’un chapitre (4.7.0) : le générique défile (`GameDef.credits`), puis l’écran titre. Avec `keepPlaying`, Continuer ramène dans le monde après la fin, salles, scripts et séquences en marche ([Titre et générique](create.title-credits.md#end-of-chapter)). |
 
 > [!LIMIT id=custom-for-the-rest]
 > Ce qu'aucune de ces commandes ne fait demande une commande sur mesure, écrite en TypeScript avec ses effets déclarés

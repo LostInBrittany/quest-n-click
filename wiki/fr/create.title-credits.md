@@ -103,6 +103,27 @@ Ce que voit le joueur :
 - Le générique s’ouvre depuis le menu pause (★, `ui.credits`) et depuis la carte de la fin scellée. Il défile en
   22 secondes environ ; un tap le ferme.
 
+<a name="end-of-chapter"></a>
+
+### À la fin du jeu ou d’un chapitre (4.7.0)
+
+La commande `end` peut faire défiler le même générique, puis montrer l’écran titre :
+
+```ts
+{ end: true, credits: true, title: true, keepPlaying: true }
+```
+
+| Option | Ce qu’elle fait |
+|---|---|
+| `credits` | fait défiler `credits` comme le menu pause ; un tap l’arrête plus tôt. Le validateur la refuse sans lignes `credits` |
+| `title` | puis l’écran titre, Nouvelle partie et Continuer |
+| `keepPlaying` | le monde continue après la fin : la fin est atteinte et sauvegardée (le but du solveur, les rejeux), et un chargement (Continuer, un emplacement) ramène le joueur dans le monde, ses salles, scripts et séquences en marche. Sans elle, une fin chargée reste finie |
+
+Les tests voient la fin dans le journal de `FakePresenter` : `END`, puis `CREDITS` et `TITLE`.
+
+> [!LIMIT id=end-keep-playing-title]
+> `keepPlaying` agit au chargement. Sans `title`, l’écran reste sur la fin jusqu’au rechargement de la page.
+
 > [!LIMIT id=video-autoplay-blocked]
 > Un navigateur qui refuse de lancer la vidéo (économie de données, mode basse consommation) laisse l’affiche, le
 > `decor`, à sa place. Avec un `creditsScreen` qui a un `decor` mais pas de `video`, le générique n’a pas d’image de

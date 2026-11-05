@@ -192,7 +192,12 @@ export type Cmd =
    */
   | { ending: true; after?: Cmd[] }
   | { reveal: true; after?: Cmd[] }
-  | { end: true };
+  /**
+   * Ends the game (`state.done`). 4.7.0: `credits` rolls `GameDef.credits` (as the pause menu's ★ does), `title` then
+   * shows the title screen, and `keepPlaying` lets the world go on after the end: a load (Continue, a slot) clears
+   * `done`, so the rooms, scripts and sequences run again (a chapter's end, an epilogue to wander in).
+   */
+  | { end: true; credits?: boolean; title?: boolean; keepPlaying?: boolean };
 
 /**
  * A choice shown full screen (4.6.0, "hero choice screen"): its own backdrop instead of the side column over the

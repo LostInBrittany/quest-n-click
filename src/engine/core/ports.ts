@@ -57,7 +57,17 @@ export interface Presenter {
   cutscene(on: boolean): void;
   /** Sealed ending. 'open': decryption, scratch ticket, confetti rain. 'card': the final card. */
   ending(phase: 'open' | 'card'): Promise<void>;
-  end(): void;
+  /**
+   * The game ended (`{ end: true }`). 4.7.0: `credits`, roll the game's credits; `title`, then show the title screen.
+   * It does not hold the engine: the end is already saved.
+   */
+  end(how?: EndShow): void;
+}
+
+/** What follows an `{ end: true }` on screen (4.7.0): the credits, then the title screen. @extension */
+export interface EndShow {
+  credits?: boolean;
+  title?: boolean;
 }
 
 /** The autosave store a host provides: load, save, clear, and when the latest write is durable. @extension */
@@ -197,7 +207,10 @@ export class FakePresenter implements Presenter {
   async ending(phase: 'open' | 'card') {
     if (phase === 'open') this.log.push('ENDING');
   }
-  end() {
+  /** `END`, then `CREDITS` and `TITLE` when the end asks for them (4.7.0). */
+  end(how?: EndShow) {
     this.log.push('END');
+    if (how?.credits) this.log.push('CREDITS');
+    if (how?.title) this.log.push('TITLE');
   }
 }
