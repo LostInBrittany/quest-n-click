@@ -380,6 +380,20 @@ describe('the workflow, lot 0 details', () => {
     expect(gate.slice(skip, skip + 220)).toContain('continue; fi ;;');
     expect(gate.indexOf('else echo "::error::$job: $result"; bad=1; fi')).toBeGreaterThan(skip);
   });
+  it("studio-hosted's Firefox pass is quarantined (#406): its own step, not blocking, said; the rest still blocks", () => {
+    const body = yml.slice(yml.indexOf('\n  studio-hosted:\n'), yml.indexOf('\n  bridge-postgres:\n'));
+    // Chromium's pass and both collab passes stay in the blocking step.
+    expect(body).toContain(
+      'run: npm run studio-client && npm run e2e:studio-hosted && npm run e2e:studio-collab && npm run e2e:studio-collab -- --browser=firefox\n',
+    );
+    // Firefox's hosted pass alone, continue-on-error, and a warning when it fails.
+    expect(body).toMatch(
+      /- id: hosted-firefox\n {8}if: env\.RUN == 'true'\n {8}continue-on-error: true\n {8}run: npm run e2e:studio-hosted -- --browser=firefox\n/,
+    );
+    expect(body).toContain("if: env.RUN == 'true' && steps.hosted-firefox.outcome == 'failure'");
+    expect(body).toContain('::warning::studio-hosted (firefox): flaky, #406: not blocking');
+    expect(body.match(/continue-on-error: true/g)).toHaveLength(1);
+  });
   it('pr-gate warns on pwa-firefox (#257) and fails on any other job', () => {
     const gate = yml.slice(yml.indexOf('\n  pr-gate:\n'));
     const warn = gate.indexOf('pwa-firefox) if [ "$result" != success ]; then echo "::warning::pwa-firefox: $result');
