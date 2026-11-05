@@ -36,6 +36,41 @@
       "reviewers": [
         { "name": "claude", "kind": "ai", "relation": "author", "date": "2026-11-05" }
       ]
+    },
+    "reference.environment-variables#branch": {
+      "enHash": "d1ec1d85544a44c22c2f7a352e6336d066114b02517fb0d5691079f8074d0618",
+      "frHash": "bb4590f04105b337c041efe02e4883e8f9a32e367ee9bb1ed2eeb87f745e6a42",
+      "reviewers": [
+        { "name": "claude", "kind": "ai", "relation": "author", "date": "2026-11-05" }
+      ]
+    },
+    "reference.environment-variables#event": {
+      "enHash": "3f41fec23a885f41545229cea312d231a001a1e2fa0053629885a53fc6f0cc7d",
+      "frHash": "8a754625b9e876931350eaf7e0c57d301a46ef4663eeab4dd979a8dda3c4517f",
+      "reviewers": [
+        { "name": "claude", "kind": "ai", "relation": "author", "date": "2026-11-05" }
+      ]
+    },
+    "reference.environment-variables#github-repository": {
+      "enHash": "6d9bcc23f1bdc8a3b21a286daaa75af2f3e0e2414d161ef18bd905ce645c7fb7",
+      "frHash": "65d4175a13c4b24647a338226c100789b63e80c1c12fff06ae3612d78eef18a8",
+      "reviewers": [
+        { "name": "claude", "kind": "ai", "relation": "author", "date": "2026-11-05" }
+      ]
+    },
+    "reference.environment-variables#run-id": {
+      "enHash": "597b96252b5fdba758868c9ecbbed6f06ad5c861a0e7451d1b4e6503b2ea1246",
+      "frHash": "4ec421d52c1f153f4a4de4d8aac6bf25df71b7ce68fd37b36963254f7af3537f",
+      "reviewers": [
+        { "name": "claude", "kind": "ai", "relation": "author", "date": "2026-11-05" }
+      ]
+    },
+    "reference.environment-variables#sha": {
+      "enHash": "286652e77be42690f7f5b710e8547c57dca23d661ef824e9e59a51d88bf87e5b",
+      "frHash": "f1a1018d4b6e2d5a9b0c197a6275b1793b4e6f4c4c11200e8ee22e689435faf8",
+      "reviewers": [
+        { "name": "claude", "kind": "ai", "relation": "author", "date": "2026-11-05" }
+      ]
     }
   },
   "claims": {}

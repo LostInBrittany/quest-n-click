@@ -12,12 +12,18 @@ findings and the proposals are in `docs/dev/PLAN-4.6.x-RELEASE-IN-THREE-COMMANDS
   on every run and `mutation-merge` judges by the same fields, so no check is lost. With it, 18 of 4.7.0's 20 shards
   could have been reused.
 - The warm-up never finished in time (about 110 min against a release pull request open 24 and 52 min): the long
-  shards on the candidate's path were measured twice, `studio-workshop` three times in 4.6.0. Proposed, not
-  implemented (they change what the release starts or waits for, or move a check): the matrix longest first (a cold
-  mutation phase from 117 to 81 min, modelled), no warm-up dispatched by `prepare`, the revisits checked by `prepare`
-  before its push, a red candidate cancelled when a later one starts.
+  shards on the candidate's path were measured twice, `studio-workshop` three times in 4.6.0. Proposed, then approved
+  by the maintainer and implemented, one commit each: the matrix longest first from a table of each shard's cold
+  minutes (`MINUTES`, rebuilt by `mutation-shards.ts --minutes`; 117 to 81 min modelled); no warm-up started by
+  `prepare` (the by-hand command in the pull request's body for a long review); the exemptions due named in
+  `prepare`'s stop before the push (the rule was already there through #443's version tests, only the FAIL line was
+  said); a candidate's `supersede` job that cancels an earlier, still running red candidate of the same version and
+  another SHA on `main`, each run now named `candidate <sha>`, and the release command stopping on such a run rather
+  than re-running it.
 - qualify on the release pull request stays: the release commit changes what it packs, and it caught R4 on 4.6.0.
-- Not verified here: no workflow changed; the hash change is proved by its tests and by replaying `inputFiles` on the
-  4.7.0 trees, not by a candidate run.
+- Not verified on GitHub: the hash change is proved by its tests and by replaying `inputFiles` on the 4.7.0 trees; the
+  order by the model on 4.7.0's durations; `supersede` by its pure decision's tests and the workflow's pinned shape,
+  never by a run that cancels another.
 
-→ next: the maintainer's choice among proposals b to e; the first nightly after the merge refills every key.
+→ next: the first nightly after the merge refills every key (they all change once); the first release after it shows
+whether the order and the cache hold.
