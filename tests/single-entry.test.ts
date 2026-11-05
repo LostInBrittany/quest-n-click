@@ -119,6 +119,7 @@ const WRITERS: Record<string, string> = {
   'tools/proof-cache.ts': 'elsewhere: .cache/',
   'tools/prove-matrix.ts': 'elsewhere: reports',
   'tools/quality-baseline.ts': 'elsewhere: tests/quality-baseline.json',
+  'tools/coverage-ratchet.ts': 'elsewhere: tests/coverage-floors.json (--write only)',
   'tools/reality-fixtures.ts': 'elsewhere: tests/fixtures/',
   'tools/release/baseline.mjs': 'elsewhere: release outputs',
   'tools/release/candidate.mjs': 'elsewhere: release outputs',
