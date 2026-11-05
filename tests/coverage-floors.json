@@ -3,8 +3,8 @@
  "total": {
   "why": "The floor measured at 4.1.0 (the browser-only parts of src/, the player's UI and the Studio's, are covered by the e2e, not here).",
   "lines": 77,
-  "statements": 74,
-  "functions": 71,
+  "statements": 75,
+  "functions": 72,
   "branches": 70
  },
  "groups": [
@@ -34,15 +34,15 @@
    }
   },
   {
-   "why": "The world's clock and its routes (4.6.0): two points under what was measured when they arrived.",
+   "why": "The world's clock and its routes (4.6.0): two points under what was measured when they arrived; branches raised once #413 read the routes set's survivors (97.35 and 98.00 on main).",
    "files": {
     "src/engine/core/route-runtime.ts": {
      "lines": 98,
-     "branches": 87
+     "branches": 95
     },
     "src/engine/core/world.ts": {
      "lines": 98,
-     "branches": 86
+     "branches": 96
     }
    }
   },
