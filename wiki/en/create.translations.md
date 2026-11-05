@@ -107,7 +107,8 @@ The language is chosen when the page loads, the first that applies:
 3. the browser's language, when the game ships it (`fr-CA` picks `fr`);
 4. otherwise the game's own language.
 
-A text a file lacks stays as written. The voices follow the language: [Voices](create.voices.md#per-language).
+A text a file lacks stays as written. The voices follow the language: [Voices](create.voices.md#per-language). So do
+the tab's title and the page's description, from `site.json`'s `i18n` ([Project layout](create.project-layout.md#site-json)).
 
 > [!LIMIT id=lang-not-shipped]
 > `?lang=xx` for a language the game does not ship shows the texts as written, with no message.

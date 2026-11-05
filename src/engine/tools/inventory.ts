@@ -62,6 +62,8 @@ function classify(path: string, assets: Map<string, string>, data: Set<string>, 
   if (FONT.test(path)) return 'font';
   if (SHELL.has(path))
     return path.endsWith('.html') || path.endsWith('.js') || path.endsWith('.webmanifest') ? 'code' : 'shell';
+  // A language's manifest (4.6.1, site.json `i18n`): `manifest.<lang>.webmanifest`.
+  if (/^manifest\.[A-Za-z0-9-]+\.webmanifest$/.test(path)) return 'code';
   if (HASHED.test(path) || /^workbox-[\w-]+\.js$/.test(path)) return 'code';
   if (studio && (path === 'studio.html' || path.startsWith('studio-demo/'))) return 'code';
   return null;

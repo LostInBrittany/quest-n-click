@@ -109,7 +109,8 @@ La langue est choisie au chargement de la page, la première qui s’applique :
 3. la langue du navigateur, quand le jeu la livre (`fr-CA` prend `fr`) ;
 4. sinon la langue du jeu.
 
-Un texte absent d’un fichier reste comme écrit. Les voix suivent la langue : [Voix](create.voices.md#per-language).
+Un texte absent d’un fichier reste comme écrit. Les voix suivent la langue : [Voix](create.voices.md#per-language). Le
+titre de l’onglet et la description de la page aussi, depuis l’`i18n` de `site.json` ([Organisation du projet](create.project-layout.md#site-json)).
 
 > [!LIMIT id=lang-not-shipped]
 > `?lang=xx` pour une langue que le jeu ne livre pas montre les textes tels qu’écrits, sans message.

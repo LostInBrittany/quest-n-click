@@ -13,6 +13,7 @@ import { FONT_PIXEL, FONT_UI } from './dom/fonts';
 import { applyLocale } from './tools/i18n';
 import { langVoices } from './core/voice-key';
 import { uiText } from './dom/ui-defaults';
+import { applySiteLang, readSiteTexts, type SiteTexts } from './dom/site-lang';
 
 /** The translations a game ships, by language then by text path (`locales/<lang>.json`). @public */
 export type Locales = Record<string, Record<string, string>>;
@@ -71,6 +72,11 @@ export interface BootOptions {
   expose?: boolean;
   /** The page's URL parameters; default `location.search`. */
   query?: URLSearchParams;
+  /**
+   * site.json's `i18n` (4.6.1): the page's title and description in other languages, applied when the page plays one
+   * of them. Default: what the site plugin wrote into the page (`#qnc-site-i18n`).
+   */
+  site?: SiteTexts;
 }
 
 /** `?lang=`, then the player's saved choice, then the browser's language when the game ships it. @public */
@@ -201,6 +207,8 @@ export async function bootGame(o: BootOptions): Promise<App> {
   const byLang = langVoices(written, lang);
   const localized = byLang ? { ...translated, audio: { ...translated.audio, voices: byLang } } : translated;
   document.documentElement.lang = lang ?? written.lang ?? 'en';
+  // The tab's title, the description and the install name in that language (site.json `i18n`).
+  if (lang && lang !== (written.lang ?? 'en')) applySiteLang(document, o.site ?? readSiteTexts(document), lang);
   await waitFonts(localized);
 
   const dev = !!o.dev?.enabled(q);
