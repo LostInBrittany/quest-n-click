@@ -278,12 +278,12 @@ describe('the command prepare runs: --write on a copy of the repository', () => 
     const root = mkdtempSync(join(tmpdir(), 'next-mark-cli-'));
     try {
       for (const d of ['tools', 'wiki', 'package.json']) cpSync(resolve(d), join(root, d), { recursive: true });
-      symlinkSync(resolve('node_modules'), join(root, 'node_modules'));
+      symlinkSync(resolve('node_modules'), join(root, 'node_modules'), 'junction'); // a junction: no admin on Windows
       mkdirSync(join(root, 'src'));
       writeFileSync(join(root, 'src/x.ts'), '// fixed (next, #1)\nexport {};\n');
       execFileSync('git', ['init', '-q'], { cwd: root });
       execFileSync('git', ['add', 'src', 'package.json'], { cwd: root });
-      const run = spawnSync('npx', ['tsx', 'tools/next-mark.ts', '--write', '--version=9.9.9'], {
+      const run = spawnSync(process.execPath, ['--import', 'tsx', 'tools/next-mark.ts', '--write', '--version=9.9.9'], {
         cwd: root,
         encoding: 'utf8',
         timeout: 60_000,
