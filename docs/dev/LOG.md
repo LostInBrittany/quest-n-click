@@ -9663,9 +9663,13 @@ findings and the proposals are in `docs/dev/PLAN-4.6.x-RELEASE-IN-THREE-COMMANDS
 → next: the first nightly after the merge refills every key (they all change once); the first release after it shows
 whether the order and the cache hold.
 
-## #382 · 2026-11-06 · Claude · release · 4.7.1 "Shorter Road": TODO(release)
+## #382 · 2026-11-06 · Claude · release · 4.7.1 "Shorter Road": the release tools, first used on themselves
 
-- **The request**: TODO(release)
+- **The request**: on 6 November, after #451 merged and #410 closed, Horacio asked for 4.7.1 the same day, knowing
+  the candidate would measure every mutation set cold (#451 changes every cache key once): "I know it will take 3h, I
+  won't take it bad this time, as there is a reason." The first `prepare` stopped at its new `next mark` step, the CLI
+  waiting on itself (exit 13, nothing written); #452 fixed it and this is the second run. The name, "Shorter Road", is
+  #410's goal.
 - **What ships**: the pull requests merged since v4.7.0, oldest first: #447 (CI: studio-hosted's Firefox pass
   quarantined (#406)), #448 (Release: the flaky warm-up test, downloads and the wiki's clone tried again, the releasing
   page (#410 PR 3)), #449 (Release: prepare writes the prose it holds the facts of, and fragments name next (#410 PR 6,
@@ -9687,4 +9691,6 @@ whether the order and the cache hold.
 - **Signature**: the tag is signed with an SSH key `.github/allowed_signers` names (`npm run release -- 4.7.1` refuses
   any other).
 
-→ next: TODO(release)
+→ next: this candidate's durations against #451's model (a cold mutation in about 81 min instead of 114), then the
+first release with a warm cache; #406's quarantine lifted once `studio-hosted (firefox)`'s warnings stay silent; the
+22 field passes, still open.
