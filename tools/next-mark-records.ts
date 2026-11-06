@@ -2,14 +2,47 @@
 // pair's side, a claim's text and a claim's test file hashed before the rewrite are given their hash after it, in
 // wiki/translations.json, wiki/reviews.json and any pending file still there. Only a record that held the text before
 // moves: a stale one stays stale, and nothing becomes reviewed because of the rewrite.
+import { createHash } from 'node:crypto';
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
-import { rekey, textHashOf } from './next-mark';
 import { claimsOf, claimTextHash, readReviews, writeReviews } from './wiki/claims';
 import { type Manifest, readManifest } from './wiki/manifest';
 import { parsePage } from './wiki/page';
 import { writePending } from './wiki/pending';
 import { currentPairHashes, readTranslations, writeTranslations } from './wiki/translations';
+
+// Here and not in next-mark.ts: the CLI there imports this module, and an import back made a cycle that never settled
+// (4.7.1's prepare: "unsettled top-level await", exit 13).
+export const textHashOf = (s: string) => createHash('sha256').update(s).digest('hex');
+
+/**
+ * The records with each hash taken before the rewrite replaced by its value after (#443): a pair's side, a claim's text,
+ * a claim's test file. A hash that was not the current text's before (a stale record) stays stale; a record never
+ * becomes current because of the rewrite. `before` and `after` map a key to its current hash at each moment.
+ */
+export function rekey<R extends Record<string, unknown>>(
+  records: Record<string, R>,
+  fields: readonly {
+    field: keyof R & string;
+    before: (key: string, r: R) => string | undefined;
+    after: (key: string, r: R) => string | undefined;
+  }[],
+): { records: Record<string, R>; moved: number } {
+  let moved = 0;
+  const out: Record<string, R> = {};
+  for (const [key, r] of Object.entries(records)) {
+    const next = { ...r };
+    for (const f of fields) {
+      const [was, now] = [f.before(key, r), f.after(key, r)];
+      if (was !== undefined && now !== undefined && was !== now && r[f.field] === was) {
+        (next as Record<string, unknown>)[f.field] = now;
+        moved++;
+      }
+    }
+    out[key] = next;
+  }
+  return { records: out, moved };
+}
 
 /** Each claim's text hash, as a review records it, from the pages as they are on disk. */
 function claimHashes(wikiDir: string, manifest: Manifest) {

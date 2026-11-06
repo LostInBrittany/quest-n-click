@@ -1,13 +1,14 @@
 // The next release's mark (#443, tools/next-mark.ts): a branch writes `next` where the version will go, the release
 // writes the version. Only the exact mark moves: a code span, code outside a comment, a string, a call in a comment and
 // every historical version stay as written.
+import { execFileSync, spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
-import { cpSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { cpSync, mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { markKind, rekey, rewriteCode, rewriteFile, rewriteManifest, rewriteMarkdown } from '../tools/next-mark';
-import { rewriteWithRecords } from '../tools/next-mark-records';
+import { markKind, rewriteCode, rewriteFile, rewriteManifest, rewriteMarkdown } from '../tools/next-mark';
+import { rekey, rewriteWithRecords } from '../tools/next-mark-records';
 import { claimsOf, claimTextHash, readReviews, writeReviews } from '../tools/wiki/claims';
 import { readManifest } from '../tools/wiki/manifest';
 import { parsePage } from '../tools/wiki/page';
@@ -268,4 +269,30 @@ describe('the wiki reads the mark before the release writes it (#443)', () => {
     expect(withVersions({ appliesFrom: '4.5.0', featureSince: 'next' })).toBe(true);
     expect(withVersions({ appliesFrom: 'soon' })).toBe(false);
   });
+});
+
+describe('the command prepare runs: --write on a copy of the repository', () => {
+  // prepare stopped at 4.7.1's "next mark…" step: the CLI awaited, at the top level, a module that imports it back,
+  // and Node exited 13 ("unsettled top-level await") with nothing written.
+  it('writes the version where the mark was and exits 0', () => {
+    const root = mkdtempSync(join(tmpdir(), 'next-mark-cli-'));
+    try {
+      for (const d of ['tools', 'wiki', 'package.json']) cpSync(resolve(d), join(root, d), { recursive: true });
+      symlinkSync(resolve('node_modules'), join(root, 'node_modules'), 'junction'); // a junction: no admin on Windows
+      mkdirSync(join(root, 'src'));
+      writeFileSync(join(root, 'src/x.ts'), '// fixed (next, #1)\nexport {};\n');
+      execFileSync('git', ['init', '-q'], { cwd: root });
+      execFileSync('git', ['add', 'src', 'package.json'], { cwd: root });
+      const run = spawnSync(process.execPath, ['--import', 'tsx', 'tools/next-mark.ts', '--write', '--version=9.9.9'], {
+        cwd: root,
+        encoding: 'utf8',
+        timeout: 60_000,
+      });
+      expect(run.stderr).not.toContain('unsettled top-level await');
+      expect(run.status).toBe(0);
+      expect(readFileSync(join(root, 'src/x.ts'), 'utf8')).toBe('// fixed (9.9.9, #1)\nexport {};\n');
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  }, 90_000);
 });
