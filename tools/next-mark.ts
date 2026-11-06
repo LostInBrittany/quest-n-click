@@ -15,7 +15,6 @@
 // reviews recorded before the rewrite over to the rewritten text (`rekey`), so a mechanical rewrite leaves nothing to
 // review. Without `--write` it lists what it would rewrite.
 import { execFileSync } from 'node:child_process';
-import { createHash } from 'node:crypto';
 import { existsSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 
@@ -145,39 +144,6 @@ export function rewriteFile(kind: 'markdown' | 'code' | 'manifest', text: string
   if (kind === 'code') return rewriteCode(text, version);
   return rewriteManifest(text, version);
 }
-
-const sha256 = (s: string) => createHash('sha256').update(s).digest('hex');
-
-/**
- * The records with each hash taken before the rewrite replaced by its value after (#443): a pair's side, a claim's text,
- * a claim's test file. A hash that was not the current text's before (a stale record) stays stale; a record never
- * becomes current because of the rewrite. `before` and `after` map a key to its current hash at each moment.
- */
-export function rekey<R extends Record<string, unknown>>(
-  records: Record<string, R>,
-  fields: readonly {
-    field: keyof R & string;
-    before: (key: string, r: R) => string | undefined;
-    after: (key: string, r: R) => string | undefined;
-  }[],
-): { records: Record<string, R>; moved: number } {
-  let moved = 0;
-  const out: Record<string, R> = {};
-  for (const [key, r] of Object.entries(records)) {
-    const next = { ...r };
-    for (const f of fields) {
-      const [was, now] = [f.before(key, r), f.after(key, r)];
-      if (was !== undefined && now !== undefined && was !== now && r[f.field] === was) {
-        (next as Record<string, unknown>)[f.field] = now;
-        moved++;
-      }
-    }
-    out[key] = next;
-  }
-  return { records: out, moved };
-}
-
-export { sha256 as textHashOf };
 
 if (process.argv[1]?.endsWith('next-mark.ts')) {
   const args = process.argv.slice(2);
