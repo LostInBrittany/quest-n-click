@@ -109,8 +109,10 @@ still to be read by a person), and the tests that depend on the version (next, #
 `tests/quality-baseline.test.ts`, `tests/readme-truth.test.ts`, `tests/readme-release.test.ts`, under a second; they
 pass on every pull request at `package.json`'s version and can fail only once the release names its own, as 4.7.0's
 `mutants.json` entries due and its first visit typed in a test did). When anything is left, it stops there and exits 1: nothing pushed, no pull request, the
-branch committed in your checkout. One stop lists it all: each `TODO(release)` with its file, line and brief, then each
-review with its command, then each failing test. On the local branch, write the prose yourself or ask your AI assistant to write it, with
+branch committed in your checkout. One stop lists it all: each `TODO(release)` with its file, line and brief, the
+mutation exemptions due at the version, each named, with the way on (next, #410: read each again, keep it with a later
+revisit or remove it, then `npm run test:mutation:core -- --doc`; moving only the revisits keeps every set's mutation
+cache), then each review with its command, then each failing test. On the local branch, write the prose yourself or ask your AI assistant to write it, with
 those markers as the brief, and read the diff; record the translation pairs that changed (`npm run wiki -- check`
 prints each command); a person reads each claim or pair and types its review command (`prepare` never writes prose
 and never records a review, and calls no AI). Commit, then run the same
@@ -120,12 +122,12 @@ the pull request, so its CI runs once. Any other state of that branch is refused
 To see the reviews earlier, run `npm run release -- check <version>` on `main`: its docs' human gates item lists the
 claims and pairs still to review (the items about the release itself fail there, as they should before `prepare`).
 
-When it pushes (from 4.5.5), it also starts the warm-up of `main`'s mutation cache,
-`gh workflow run nightly --repo <the organisation's repository> --ref main -f jobs=mutation`, and prints the run's link
-(the pull request's body says it too): the release commit moves only version fields, which the mutation sets' input
-hashes leave out, so the cache filled while the pull request is in review is the one the candidate its merge starts
-reads. A dispatch refused (rights, `gh`) is a warning with that command to run by hand, never a failure. `--no-pr`
-pushes nothing and starts nothing; it prints the command for when you open the pull request.
+It starts no workflow when it pushes (next, #410). From 4.5.5 to 4.7.0 it started the warm-up of `main`'s mutation
+cache; the warm-up takes about 110 minutes, and on 4.6.0 and 4.7.0 the pull request was merged 24 and 52 minutes after
+`prepare`, so the candidate measured the same long shards beside it. The candidate's own cache step restores and saves
+the same keys. When the review will last more than about two hours, start the warm-up by hand while it runs (the pull
+request's body gives the command, and so does `--no-pr`, which pushes nothing):
+`gh workflow run nightly --repo <the organisation's repository> --ref main -f jobs=mutation`.
 
 To check the branch at any point:
 
@@ -242,10 +244,16 @@ command to run again keeps `--commit`. Without it, nothing changes.
    commit, [above](#release-command)).
 
    Its mutation shards reuse the reports the nightly saved on `main` (4.5.5, #329): only the sets whose inputs moved
-   since run again, the others take a minute or two each. A change every set reads (the lockfile, `vite.config.ts`)
-   moves them all: `prepare` starts the warm-up when it pushes the release pull request ([above](#prepare)); for
-   another candidate, warm the cache by hand after the last merge with
-   `gh workflow run nightly --ref main -f jobs=mutation` (the mutation jobs only, reusing what is already cached).
+   since run again, the others take a minute or two each, and the candidate saves what it measured, so a second
+   candidate reuses it. A change every set reads (the lockfile, `vite.config.ts`) moves them all; for a long review,
+   warm the cache by hand ([above](#prepare)) with `gh workflow run nightly --ref main -f jobs=mutation` (the mutation
+   jobs only, reusing what is already cached).
+
+   A later candidate of the same version cancels an earlier one that can no longer turn green (next, #410, its
+   `supersede` job): on `main` only, started before it, of another SHA whose `package.json` names the same version,
+   still running with a job already failed or timed out. A green or still-green run, another version's and a pull
+   request's are never touched. The release command waiting on a run cancelled that way stops instead of re-running
+   it, and says the way on: `npm run release -- <version> --commit=<the later SHA> --start-candidate`.
 
 <!-- step: tag -->
 2. **A tag that names it.**

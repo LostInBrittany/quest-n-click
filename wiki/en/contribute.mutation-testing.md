@@ -113,7 +113,10 @@ The tool writes the source file it mutates: do not edit it while a run is going.
    game's settings, the values of `define`, the sets: `CONFIG_FOLLOWS` in `tools/mutate.ts`), not into the dev
    server's Studio plugin. A new import in `vite.config.ts` fails `tests/mutate-hash.test.ts` until it is placed in
    `CONFIG_FOLLOWS` or in `CONFIG_SKIPS` with its reason. The coverage floors are data the configuration reads
-   (`tests/coverage-floors.json`, 4.6.0, #405), never hashed: raising one re-runs no set.
+   (`tests/coverage-floors.json`, 4.6.0, #405), never hashed: raising one re-runs no set. Of the named survivors,
+   only the mutant each entry names is hashed (file, operator, from, to, context; #410): its why, category, proof,
+   owner and revisit are checked on every run, a reused report included, so a release that reads the entries again
+   and moves their revisit re-runs no set.
 
 <!-- step: kill -->
 3. **Kill the survivor with a test**, the usual answer: write the input that tells the mutant from the original, in a
@@ -168,7 +171,11 @@ The tool writes the source file it mutates: do not edit it while a run is going.
 `✔ n/m mutants killed, k survivors explained, 0 not; report in .cache/mutation/…`, and exit code 0. In CI, the set's
 `mutation (<set>)` jobs and `mutation-merge` are green. On `main`, a shard's report is cached under its set's input
 hash: the nightly saves each shard it measured fresh and passed, the candidate restores it and runs again only the
-shards whose inputs moved since (4.5.5).
+shards whose inputs moved since (4.5.5). The matrix starts the longest shards first (#410), by the minutes
+`tools/mutation-minutes.json` gives each, so the jobs run 8 at a time end together; the file is no input of any
+set's hash, so refreshing it re-runs no set. A shard added or cut otherwise fails `tests/mutate-shards.test.ts`
+until it has its line; the file is rebuilt from a cold run (a nightly):
+`gh run view <id> --json jobs | npx tsx tools/mutation-shards.ts --minutes > tools/mutation-minutes.json`.
 
 <a name="common-errors"></a>
 

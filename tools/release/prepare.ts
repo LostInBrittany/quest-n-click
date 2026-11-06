@@ -4,8 +4,9 @@
 // its brief, for a person or their assistant to write) and the docs' human gates (a claim or a pair still to review,
 // each with its command for a person to type), in one stop, nothing pushed. The tool never writes prose nor records a
 // review; the same command, run again on `release/<x.y.z>` once they are committed, resumes there.
-// (4.5.5, #331) When it pushes, it starts the warm-up of main's mutation cache (the nightly's mutation jobs, #330), so
-// the candidate the merge starts reuses it; a dispatch refused is a warning with the command, never a failure.
+// (4.5.5, #331; next, #410 PR 4) It no longer starts the warm-up of main's mutation cache when it pushes: on 4.6.0 and
+// 4.7.0 it was still running when the merge started the candidate, which measured the same long shards beside it. The
+// candidate's own cache step is the warm-up; the pull request's body gives the command for a review expected long.
 // (4.5.4, part B of docs/dev/PLAN-4.5.4-SIMPLE-RELEASE.md.) `prepare` makes the release pull request: the branch
 // `release/<x.y.z>`, every file the tools already generate (version, CHANGELOG and LOG from the fragments, transition
 // pages, golden save, reference run, quality baseline), the files a release branch used to write by hand (the passes
@@ -28,6 +29,7 @@ import { join } from 'node:path';
 import { LOCKED, lockWithPeers } from '../../scripts/pack-manifests.mjs';
 import { releaseNotes } from '../../scripts/release-notes.mjs';
 import { fragmentFiles, lastLogNumber, proseLines, readFragments, releaseSummary } from '../changes';
+import { checkKnown, type KnownSurvivor } from '../mutate';
 import { passesFor } from '../field/schema';
 import { rewriteMarkdown } from '../next-mark';
 import { type PendingFile, readPending } from '../wiki/pending';
@@ -611,11 +613,15 @@ export function beforePushStop(o: {
   folded?: readonly string[];
   /** The tests that depend on the version (#443, `versionTestsResult`). */
   tests?: { ok: boolean; detail: string };
+  /** The mutation exemptions due at the version (#410 PR 4, `dueExemptions`). */
+  exemptions?: readonly string[];
 }) {
   const testsOk = o.tests?.ok ?? true;
-  if (!o.todos.length && o.gates.ok && testsOk) return undefined;
+  const due = o.exemptions ?? [];
+  if (!o.todos.length && o.gates.ok && testsOk && !due.length) return undefined;
   const why = [
     o.todos.length ? `${o.todos.length} ${TODO} left` : '',
+    due.length ? `${due.length} mutation exemption${due.length > 1 ? 's' : ''} due at ${o.version}` : '',
     o.gates.ok ? '' : "the docs' human gates",
     testsOk ? '' : 'the tests that depend on the version',
   ].filter(Boolean);
@@ -629,6 +635,16 @@ export function beforePushStop(o: {
       ...o.todos.map((t) => `  ${t.at}\n      ${t.what}`),
       'Write it yourself, or ask your AI assistant to write it with these markers as the brief; read the diff.',
       'The upgrade notes (en, fr) are a translation pair: record it as npm run wiki -- check prints.',
+    );
+  if (due.length)
+    out.push(
+      '',
+      `The mutation exemptions due at ${o.version} (docs/dev/mutants.json; tests/mutants-json.test.ts refuses them):`,
+      ...due.slice(0, 10).map((l) => `  ${l}`),
+      ...(due.length > 10 ? [`  … and ${due.length - 10} more`] : []),
+      'Read each one again against its file: keep it with a later revisit, or remove it if its mutant is gone or killed.',
+      'Then npm run test:mutation:core -- --doc (docs/dev/MUTANTS.md) and say the reread there. Moving only the revisits',
+      "keeps every mutation set's cache (#410): the candidate reuses what main measured.",
     );
   if (!o.gates.ok)
     out.push(
@@ -661,10 +677,11 @@ export function beforePushStop(o: {
 }
 
 /**
- * The warm-up of main's mutation cache (4.5.5): the nightly's mutation jobs only (#330, `-f jobs=mutation`), on the
- * organisation's main. A release commit moves only version fields, which the input hashes leave out, so main's hashes
- * are the release commit's: started when the pull request is pushed, it fills the cache while the pull request is in
- * review, and the candidate its merge starts reuses it.
+ * The warm-up of main's mutation cache (4.5.5), by hand only since #410 PR 4: the nightly's mutation jobs (#330,
+ * `-f jobs=mutation`) on the organisation's main. It takes about 110 min (20 shards, 8 at a time); the release pull
+ * requests of 4.6.0 and 4.7.0 were merged 24 and 52 min after `prepare`, so the candidate measured the long shards
+ * beside it. The candidate's cache step restores and saves the same keys: a review expected to last longer than the
+ * warm-up is the one case it shortens the candidate.
  */
 export const warmupArgs = (repo: string) => [
   'workflow',
@@ -679,39 +696,21 @@ export const warmupArgs = (repo: string) => [
 ];
 export const warmupCommand = (repo: string) => `gh ${warmupArgs(repo).join(' ')}`;
 
-/** Starts the warm-up through `run` (gh); never throws: a refusal is a warning with the command to run by hand. */
-export function startWarmup(run: Run, repo: string): { ok: boolean; url: string; say: string } {
-  const workflow = `https://github.com/${repo}/actions/workflows/nightly.yml`;
-  let r: { code: number; out: string };
-  try {
-    r = run('gh', warmupArgs(repo));
-  } catch (e) {
-    r = { code: 1, out: (e as Error).message };
-  }
-  if (r.code !== 0) {
-    const why = r.out.trim().split('\n').filter(Boolean).at(-1) ?? `gh exited ${r.code}`;
-    return {
-      ok: false,
-      url: workflow,
-      say: `⚠  the mutation cache's warm-up did not start (${why}); the candidate will measure every changed set. Run it by hand:\n  ${warmupCommand(repo)}`,
-    };
-  }
-  const url =
-    new RegExp(`https://github\\.com/${repo.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}/actions/runs/\\d+`).exec(
-      r.out,
-    )?.[0] ?? workflow;
-  return { ok: true, url, say: `✔  the mutation cache's warm-up started on main (nightly, jobs=mutation): ${url}` };
-}
+/** The pull request body's line about the warm-up: none started, and its command for a long review. */
+export const warmupBodyLine = (repo: string) =>
+  `No warm-up of main's mutation cache was started (#410): the candidate this merge starts restores main's cache and measures only the sets whose inputs moved. A review that will last more than about two hours can give it a head start: \`${warmupCommand(repo)}\`.`;
 
-/** The pull request body's line about the warm-up. */
-export const warmupBodyLine = (w: { ok: boolean; url: string }, repo: string) =>
-  w.ok
-    ? `\`prepare\` started the warm-up of main's mutation cache (the nightly's mutation jobs, ${w.url}): the candidate this merge starts reuses it for every set whose inputs did not move.`
-    : `The warm-up of main's mutation cache did not start; run it while this pull request is in review, so the candidate its merge starts reuses it: \`${warmupCommand(repo)}\`.`;
-
-/** What `--no-pr` says: nothing pushed, nothing started, and the warm-up's command for when the pull request opens. */
+/** What `--no-pr` says: nothing pushed, and the warm-up's command for a long review once the pull request is open. */
 export const noPrNote = (repo: string) =>
-  `--no-pr: nothing pushed, no warm-up started. Once you open the pull request, warm main's mutation cache for its candidate:\n  ${warmupCommand(repo)}`;
+  `--no-pr: nothing pushed. Once you open the pull request, if its review will last more than about two hours, warm main's mutation cache for its candidate:\n  ${warmupCommand(repo)}`;
+
+/**
+ * The mutation exemptions due at `version` (#410 PR 4): `checkKnown`'s own lines for an entry whose revisit came, the
+ * rule tests/mutants-json.test.ts applies, so `prepare` names them before the push. 4.7.0's 135 entries were all due:
+ * the stop said only that test's FAIL line, and the reread was made on the pull request after its ci failed.
+ */
+export const dueExemptions = (known: readonly KnownSurvivor[], version: string) =>
+  checkKnown([...known], version).filter((l) => / to be read again at /.test(l));
 
 /**
  * The tests that depend on the version being released (#443): pull requests run them at package.json's version, so a
@@ -1202,6 +1201,7 @@ function prepare(version: string, opts: { name: string; date: string; pr: boolea
         pr: opts.pr,
         folded,
         tests: versionTestsResult(capture('npx', versionTestsArgs())),
+        exemptions: dueExemptions(JSON.parse(read('docs/dev/mutants.json') || '[]') as KnownSurvivor[], version),
       });
       if (!stop) return;
       console.error(stop);
@@ -1211,9 +1211,6 @@ function prepare(version: string, opts: { name: string; date: string; pr: boolea
       if (!opts.pr) return say(noPrNote(REPO));
       if ('problem' in target) throw new Error(target.problem);
       sh('git', ['push', '-q', '-u', target.remote, branch]);
-      // Pushed: the warm-up of main's mutation cache, while the pull request is in review (4.5.5). Never fatal.
-      const warmup = startWarmup(capture, REPO);
-      say(warmup.say);
       const body = [
         `## What changes`,
         '',
@@ -1221,7 +1218,7 @@ function prepare(version: string, opts: { name: string; date: string; pr: boolea
         '',
         `Its prose is written and its docs' human gates hold: \`prepare\` pushes only then. \`npm run release -- check ${version}\` is this pull request's CI.`,
         '',
-        warmupBodyLine(warmup, REPO),
+        warmupBodyLine(REPO),
       ].join('\n');
       const head = `${target.head}${branch}`;
       say(

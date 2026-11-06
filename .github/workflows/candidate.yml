@@ -1,4 +1,7 @@
 name: candidate
+# The SHA each run tests, in its name (#410 PR 4): a later candidate of a version reads it to cancel an earlier red one
+# (the `supersede` job), since the runs API gives no dispatch's inputs.
+run-name: candidate ${{ github.event.inputs.sha || github.event.pull_request.head.sha || github.sha }}
 # The candidate gate (4.1.17, docs/dev/PLAN-4.1.17-STABILIZATION.md §4.2): every heavy family on one exact SHA, each in
 # a job of its own with its own timeout, then `candidate-gate`, which judges them all and writes
 # `candidate-manifest.json` (the SHA tested, this run's id, the SHA-256 of each file the release publishes). A stable
@@ -81,6 +84,32 @@ jobs:
           # A SHA given by hand is a full one: a short or wrong value is refused here, not by a later checkout.
           if [ -n "$WANT" ] && ! echo "$WANT" | grep -Eq '^[0-9a-f]{40}$'; then echo "::error::not a full SHA: $WANT"; exit 1; fi
           echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+  # A later candidate of the same version cancels an earlier one that can no longer turn green (#410 PR 4): on main
+  # only, a run started before this one, of another SHA whose package.json names this version, still running, a job
+  # already failed or timed out (tools/release/supersede.mjs, tests/release-supersede.test.ts). Never a green or
+  # running-green run, never another version's, never a pull request's. Its runners go to this run: 4.6.0's and
+  # 4.7.0's first candidates ran 72 and 105 min red. Never fails (the gate judges it): a problem is a warning.
+  supersede:
+    needs: target
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      actions: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ needs.target.outputs.sha }}
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 22
+      - env:
+          GH_TOKEN: ${{ github.token }}
+          RUN_ID: ${{ github.run_id }}
+          SHA: ${{ needs.target.outputs.sha }}
+          EVENT: ${{ github.event_name }}
+          BRANCH: ${{ github.ref_name }}
+        run: node tools/release/supersede.mjs
   # release-check (doctor --release, quality, build, coverage and its strict ratchet, the release gates, the proofs, the
   # Rust cross-check, the packages' dry run, the audits), without the mutation sets, which run as jobs below. Run here
   # only: release.yml ran it again up to 4.5.2, and since 4.5.3 (#291) trusts this run.
@@ -827,7 +856,7 @@ jobs:
         timeout-minutes: 15
   # The terminal gate: every job above `success` (a skipped or cancelled job is red), then the manifest of this run.
   candidate-gate:
-    needs: [release-merge, target, release-core, heavy, bridge-load-sqlite, bridge-load-postgres, cross-runtime, remix-proof, worker-container, mutation-plan, mutation, mutation-merge, pack, docs-archive, image, external-consumer, connector-archive-e2e, deployment-smoke, backup-memory, signing-rehearsal, readme-quickstart, studio-install-smoke]
+    needs: [release-merge, target, supersede, release-core, heavy, bridge-load-sqlite, bridge-load-postgres, cross-runtime, remix-proof, worker-container, mutation-plan, mutation, mutation-merge, pack, docs-archive, image, external-consumer, connector-archive-e2e, deployment-smoke, backup-memory, signing-rehearsal, readme-quickstart, studio-install-smoke]
     # A pull request without `full-ci` skips `target`: then there is no candidate to judge, and no red check either.
     if: always() && needs.target.result != 'skipped'
     # The manifest's provenance attestation (4.1.19, plan §6.5): only this job may sign, and only the manifest.

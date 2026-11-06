@@ -117,7 +117,10 @@ L'outil réécrit le fichier source qu'il mute : ne le modifiez pas pendant une 
    pas vers le plugin Studio du serveur de développement. Un nouvel import dans `vite.config.ts` fait échouer
    `tests/mutate-hash.test.ts` tant qu'il n'est pas rangé dans `CONFIG_FOLLOWS`, ou dans `CONFIG_SKIPS` avec sa raison.
    Les seuils de couverture sont des données que la configuration lit (`tests/coverage-floors.json`, 4.6.0, #405),
-   jamais hachées : en relever un ne relance aucun ensemble.
+   jamais hachées : en relever un ne relance aucun ensemble. Des survivants nommés, seul le mutant que chaque entrée
+   nomme est haché (fichier, opérateur, avant, après, contexte ; #410) : sa raison, sa catégorie, sa preuve, son
+   responsable et sa version de relecture sont vérifiés à chaque exécution, rapport réutilisé compris ; une version qui
+   relit les entrées et repousse leur relecture ne relance donc aucun ensemble.
 
 <!-- step: kill -->
 3. **Tuez le survivant avec un test**, la réponse habituelle : écrivez l'entrée qui distingue le mutant de l'original,
@@ -175,6 +178,12 @@ L'outil réécrit le fichier source qu'il mute : ne le modifiez pas pendant une 
 les jobs `mutation (<ensemble>)` de l'ensemble et `mutation-merge` sont verts. Sur `main`, le rapport d'un morceau est
 mis en cache sous l'empreinte des entrées de son ensemble : la nightly enregistre chaque morceau qu'elle a mesuré de
 zéro et qui a réussi, le candidat le reprend et ne rejoue que les morceaux dont les entrées ont bougé depuis (4.5.5).
+La matrice lance les morceaux les plus longs d'abord (#410), selon les minutes que
+`tools/mutation-minutes.json` donne à chacun, pour que les jobs lancés 8 à la fois finissent ensemble ; le fichier
+n'est une entrée d'aucune empreinte d'ensemble, le rafraîchir ne relance donc aucun ensemble. Un morceau ajouté ou
+découpé autrement fait échouer `tests/mutate-shards.test.ts` tant qu'il n'a pas sa ligne ; le fichier se refait à
+partir d'une exécution à froid (une nightly) :
+`gh run view <id> --json jobs | npx tsx tools/mutation-shards.ts --minutes > tools/mutation-minutes.json`.
 
 <a name="common-errors"></a>
 

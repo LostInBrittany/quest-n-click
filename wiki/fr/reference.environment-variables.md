@@ -950,7 +950,7 @@ Le fichier où une étape écrit ses sorties.
 Le dépôt où tourne un workflow (`owner/name`) ; le job `npm-stage` de release.yml y compare le `repository` de chaque paquet, comme le fait la provenance de npm, et `tools/release/main-ci.mjs` y liste les runs `ci` de main (4.5.3).
 
 - Origine : posée par GitHub Actions.
-- Lue par : [`.github/workflows/release.yml`](../../.github/workflows/release.yml), [`tools/release/main-ci.mjs`](../../tools/release/main-ci.mjs), [`tools/release/npm-stage.mjs`](../../tools/release/npm-stage.mjs).
+- Lue par : [`.github/workflows/release.yml`](../../.github/workflows/release.yml), [`tools/release/main-ci.mjs`](../../tools/release/main-ci.mjs), [`tools/release/npm-stage.mjs`](../../tools/release/npm-stage.mjs), et 1 de plus.
 
 <a name="github-sha"></a>
 
@@ -1118,7 +1118,7 @@ candidate : le commit où était main avant le push, pour distinguer le merge d�
 ci : la branche d’une pull request de release, `release/<version>`, dont `npm run release -- check` vérifie la version (4.5.4).
 
 - Origine : posée par un workflow de `.github/workflows/` (CI et publications).
-- Lue par : [`.github/workflows/ci.yml`](../../.github/workflows/ci.yml).
+- Lue par : [`.github/workflows/ci.yml`](../../.github/workflows/ci.yml), [`tools/release/supersede.mjs`](../../tools/release/supersede.mjs).
 
 <a name="called"></a>
 
@@ -1163,7 +1163,7 @@ release : l’archive de documentation de la version, quand elle en a une.
 candidate : l’événement qui a lancé l’exécution ; seul un push sur main peut être le merge d’une release (4.5.4). nightly et prove : une exécution `schedule` qui démarre pendant la journée de travail à Paris saute ses jobs (4.5.6, #372).
 
 - Origine : posée par un workflow de `.github/workflows/` (CI et publications).
-- Lue par : [`.github/workflows/candidate.yml`](../../.github/workflows/candidate.yml), [`.github/workflows/nightly.yml`](../../.github/workflows/nightly.yml), [`.github/workflows/prove.yml`](../../.github/workflows/prove.yml).
+- Lue par : [`.github/workflows/candidate.yml`](../../.github/workflows/candidate.yml), [`.github/workflows/nightly.yml`](../../.github/workflows/nightly.yml), [`.github/workflows/prove.yml`](../../.github/workflows/prove.yml), et 1 de plus.
 
 <a name="external"></a>
 
@@ -1379,7 +1379,7 @@ ci : si le plan demande les jobs Reality.
 docs-publish : l’identifiant de ce lancement, l’identifiant de construction de l’archive.
 
 - Origine : posée par un workflow de `.github/workflows/` (CI et publications).
-- Lue par : [`.github/workflows/docs-publish.yml`](../../.github/workflows/docs-publish.yml).
+- Lue par : [`.github/workflows/docs-publish.yml`](../../.github/workflows/docs-publish.yml), [`tools/release/supersede.mjs`](../../tools/release/supersede.mjs).
 
 <a name="run-ref"></a>
 
@@ -1406,7 +1406,7 @@ mutation : l’ensemble de mutation choisi à la main.
 release : le commit qu’a testé le lancement candidat.
 
 - Origine : posée par un workflow de `.github/workflows/` (CI et publications).
-- Lue par : [`.github/workflows/release.yml`](../../.github/workflows/release.yml).
+- Lue par : [`.github/workflows/release.yml`](../../.github/workflows/release.yml), [`tools/release/supersede.mjs`](../../tools/release/supersede.mjs).
 
 <a name="site-revalidate-secret"></a>
 

@@ -290,6 +290,14 @@ export function candidateStep(
       error: `candidate run ${o.id} ${view.conclusion === 'failure' ? 'failed' : view.conclusion} again (attempt ${attempt}): ${failed.join(', ') || 'no job failed'} (${url}). It was re-run once already. A passing failure: re-run it by hand (${rerunCommand(o.id, view.jobs)}) and run ${releaseCommand(o.version, o.commit)} again. A fix merged on main: release that commit, its own candidate started (git log --first-parent --oneline <remote>/main names it): npm run release -- ${o.version} --commit=<the fix's merge sha> --start-candidate`,
     };
   if (o.rerunAsked) return { do: 'wait' };
+  // Cancelled once a job had failed (#410 PR 4 e): a later candidate of the version cancels a red one (candidate.yml's
+  // `supersede`), and re-running it would revive what it superseded. A red run cancelled by hand reads the same.
+  const red = view.jobs.filter((j) => j.status === 'completed' && ['failure', 'timed_out'].includes(j.conclusion));
+  if (view.conclusion === 'cancelled' && red.length)
+    return {
+      do: 'stop',
+      error: `candidate run ${o.id} was cancelled after ${red.map((j) => j.name).join(', ')} failed (${url}): a later candidate of ${o.version} cancels a red one, and this one is not re-run. Release the commit that later candidate tests: npm run release -- ${o.version} --commit=<its sha> --start-candidate (it finds the running candidate of that SHA, or starts one)`,
+    };
   const args = ['run', 'rerun', String(o.id), '--repo', REPO];
   if (failed.length)
     return {

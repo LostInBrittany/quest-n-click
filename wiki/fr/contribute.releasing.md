@@ -121,8 +121,10 @@ dépendent de la version (next, #443 : `tests/mutants-json.test.ts`, `tests/qual
 à la version de `package.json` et ne peuvent échouer qu'une fois que la release nomme la sienne, comme l'ont fait les
 entrées de `mutants.json` dues et la première visite écrite dans un test de la 4.7.0). Quand il reste
 quelque chose, elle s'arrête là et sort avec 1 : rien de poussé, pas de pull request, la branche commitée dans votre
-checkout. Un seul arrêt liste tout : chaque `TODO(release)` avec son fichier, sa ligne et sa consigne, puis chaque
-relecture avec sa commande, puis chaque test en échec. Sur la branche locale, écrivez la prose vous-même ou demandez-la à votre assistant IA, avec
+checkout. Un seul arrêt liste tout : chaque `TODO(release)` avec son fichier, sa ligne et sa consigne, les exemptions
+de mutation dues à la version, chacune nommée, avec la suite (next, #410 : relire chacune, la garder avec une relecture
+plus tardive ou la retirer, puis `npm run test:mutation:core -- --doc` ; ne déplacer que les relectures garde le cache
+de mutation de chaque ensemble), puis chaque relecture avec sa commande, puis chaque test en échec. Sur la branche locale, écrivez la prose vous-même ou demandez-la à votre assistant IA, avec
 ces marqueurs comme consigne, et relisez le diff ; enregistrez les paires de traduction qui ont changé
 (`npm run wiki -- check` donne chaque commande) ; une personne lit chaque claim ou paire et tape sa commande de
 relecture (`prepare` n'écrit jamais de prose, n'enregistre jamais une relecture et n'appelle aucune IA). Commitez, puis
@@ -133,13 +135,12 @@ repartir de `main`. Pour voir les relectures plus tôt, lancez `npm run release 
 point sur les relectures humaines des docs liste les claims et les paires encore à relire (les points sur la release
 elle-même y échouent, comme il se doit avant `prepare`).
 
-Quand elle pousse (depuis la 4.5.5), elle lance aussi le préchauffage du cache de mutation de `main`,
-`gh workflow run nightly --repo <le dépôt de l'organisation> --ref main -f jobs=mutation`, et en donne le lien (le corps
-de la pull request le dit aussi) : le commit de release ne change que des champs de version, que les empreintes
-d'entrée des ensembles de mutation laissent de côté, donc le cache rempli pendant la relecture de la pull request est
-celui que lit le candidat lancé par son merge. Un lancement refusé (droits, `gh`) est un avertissement avec cette
-commande à lancer à la main, jamais un échec. `--no-pr` ne pousse rien et ne lance rien ; elle donne la commande pour
-le moment où vous ouvrez la pull request.
+Elle ne lance aucun workflow quand elle pousse (next, #410). De la 4.5.5 à la 4.7.0, elle lançait le préchauffage du
+cache de mutation de `main` ; il prend environ 110 minutes, et en 4.6.0 comme en 4.7.0 la pull request a été fusionnée
+24 et 52 minutes après `prepare` : le candidat mesurait donc les mêmes longs morceaux à côté de lui. L'étape de cache du
+candidat reprend et enregistre elle-même les mêmes clés. Quand la relecture durera plus de deux heures environ, lancez
+le préchauffage à la main pendant ce temps (le corps de la pull request donne la commande, de même que `--no-pr`, qui
+ne pousse rien) : `gh workflow run nightly --repo <le dépôt de l'organisation> --ref main -f jobs=mutation`.
 
 Pour vérifier la branche à tout moment :
 
@@ -268,11 +269,18 @@ utilise et, quand ce n'est pas le merge de release, elle le signale ; la command
    [plus haut](#release-command)).
 
    Ses morceaux de mutation reprennent les rapports que la nightly a enregistrés sur `main` (4.5.5, #329) : seuls les
-   ensembles dont les entrées ont bougé depuis tournent à nouveau, les autres prennent une ou deux minutes chacun. Un
-   changement que lisent tous les ensembles (le lockfile, `vite.config.ts`) les fait tous bouger : `prepare` lance le
-   préchauffage quand elle pousse la pull request de release ([plus haut](#prepare)) ; pour un autre candidat,
-   préchauffez le cache à la main après le dernier merge avec `gh workflow run nightly --ref main -f jobs=mutation`
-   (les jobs de mutation seulement, qui reprennent ce qui est déjà en cache).
+   ensembles dont les entrées ont bougé depuis tournent à nouveau, les autres prennent une ou deux minutes chacun, et
+   le candidat enregistre ce qu'il a mesuré : un second candidat le reprend. Un changement que lisent tous les
+   ensembles (le lockfile, `vite.config.ts`) les fait tous bouger ; pour une longue relecture, préchauffez le cache à
+   la main ([plus haut](#prepare)) avec `gh workflow run nightly --ref main -f jobs=mutation` (les jobs de mutation
+   seulement, qui reprennent ce qui est déjà en cache).
+
+   Un candidat plus récent de la même version annule un candidat antérieur qui ne peut plus passer au vert (next,
+   #410, son job `supersede`) : sur `main` seulement, lancé avant lui, d'un autre SHA dont le `package.json` nomme la
+   même version, encore en cours avec un job déjà en échec ou hors délai. Un run vert ou encore vert, celui d'une autre
+   version et celui d'une pull request ne sont jamais touchés. La commande de release qui attend un run annulé ainsi
+   s'arrête au lieu de le relancer, et donne la suite :
+   `npm run release -- <version> --commit=<le SHA plus récent> --start-candidate`.
 
 <!-- step: tag -->
 2. **Un tag qui le nomme.**
