@@ -1,6 +1,6 @@
 # Notes de mise à jour : 4.7
 
-Ce que la 4.7.0 a changé. Rien à modifier dans un jeu : il se construit, se joue et se sauvegarde comme en 4.6.0.
+Ce que la 4.7.0, puis la 4.7.1, ont changé. Rien à modifier dans un jeu : il se construit, se joue et se sauvegarde comme en 4.6.0.
 Chaque ajout est facultatif ; tous sauf `keepPlaying` de la fin sont visuels, invisibles aux règles, sauvegardes et
 solveur.
 
@@ -50,3 +50,24 @@ sécurité compris ; la 4.6 n'en reçoit aucun, il faut donc mettre à jour. Les
 l'ensemble de mutation `routes` est bloquant, le job `external-consumer` de la CI ne demande aucune machine quand le
 plan l'épargne, et le cliquet de couverture est strict sur chaque pull request (`npx tsx tools/coverage-ratchet.ts
 --write` relève les planchers qu'il nomme).
+
+<a name="from-4-7-0-to-4-7-1"></a>
+<!-- applies: 4.7.1.. -->
+
+## De la 4.7.0 à la 4.7.1 « Shorter Road »
+
+Rien à changer dans un jeu : il se construit, se joue et se sauvegarde comme en 4.7.0. Aucun code du moteur, du
+Studio ou du Bridge n'a bougé ; la 4.7.1 touche les outils de release et la CI.
+
+**Pour les mainteneurs**, `npm run release -- prepare` écrit l'essentiel de la prose d'une release : les faits de
+l'entrée du LOG, puis l'introduction du CHANGELOG et la ligne du README à partir des lignes `### Release` que chaque
+pull request laisse dans son fragment. Une branche nomme la release où elle arrive avec la marque `(next, #n)`, et la
+release écrit le numéro. `release -- check` lance les tests que la version fait bouger avant que la pull request de
+release ne le fasse. Un nouveau candidat annule un candidat antérieur de la même version déjà en échec, les jobs de
+mutation commencent par les plus longs, leur cache survit à une relecture de `docs/dev/mutants.json`, et `prepare` ne
+lance plus le préchauffage des mutations. Un téléchargement depuis les releases GitHub et le clone du wiki sont
+réessayés.
+
+**Pour les contributeurs**, un fragment écrit `(next, #n)` là où il écrivait une version devinée, et
+`changes -- --check` refuse une version postérieure à celle de `package.json`. La passe Firefox de `studio-hosted` est
+en quarantaine : elle avertit au lieu d'échouer tant que #406 n'est pas fermée.

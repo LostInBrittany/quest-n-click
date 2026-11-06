@@ -1,6 +1,6 @@
 # Upgrade notes: 4.7
 
-What 4.7.0 changed. Nothing to change in a game: it builds, plays and saves as on 4.6.0. Every addition is optional;
+What 4.7.0 changed, then 4.7.1. Nothing to change in a game: it builds, plays and saves as on 4.6.0. Every addition is optional;
 all but the end's `keepPlaying` are presentation only, unseen by rules, saves and the solver.
 
 The upgrade itself is [Upgrade](install.upgrade.md).
@@ -45,3 +45,23 @@ upgrade. The windows promised before keep their dates ([Stability and support](s
 `prepare` moves the versioned locks' engine peer on a new minor. **For contributors**, the `routes` mutation set is
 gated, CI's `external-consumer` job asks for no runner when the plan spares it, and the coverage ratchet is strict on every
 pull request (`npx tsx tools/coverage-ratchet.ts --write` raises the floors it names).
+
+<a name="from-4-7-0-to-4-7-1"></a>
+<!-- applies: 4.7.1.. -->
+
+## From 4.7.0 to 4.7.1 "Shorter Road"
+
+Nothing to change in a game: it builds, plays and saves as on 4.7.0. No engine, Studio or Bridge code moved; 4.7.1
+is the release tools and CI.
+
+**For the maintainers**, `npm run release -- prepare` writes most of a release's prose: the LOG entry's facts, and the
+CHANGELOG's intro and README line from the `### Release` lines each pull request leaves in its fragment. A branch names
+the release it lands in with the mark `(next, #n)`, and the release writes the number. `release -- check` runs the
+tests the version moves before the release pull request does. A new candidate cancels an earlier one of the same
+version that has already failed, the mutation jobs start with the longest, their cache survives a reread of
+`docs/dev/mutants.json`, and `prepare` no longer starts the mutation warm-up. A download from GitHub's releases and
+the wiki's clone are tried again.
+
+**For contributors**, a fragment writes `(next, #n)` where it wrote a guessed version, and `changes -- --check`
+refuses a version after `package.json`'s. `studio-hosted`'s Firefox pass is quarantined: it warns instead of failing
+until #406 is closed.

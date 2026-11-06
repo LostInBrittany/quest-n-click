@@ -239,7 +239,7 @@ ancre, dans les bornes de la page et identiquement dans les deux langues : `<!--
 version où la fonction est apparue et un `deprecated` ou `archived` final pour une section gardée pour d'anciennes
 versions. Un marqueur mal formé est une erreur, jamais ignoré. Une branche écrit `next` pour la release où elle
 arrivera, jamais un numéro deviné (`<!-- applies: next.. since next -->`, et `"appliesFrom": "next"` dans le
-manifeste), que la release écrit (next, #443) : [Conventions](contribute.conventions.md#next-mark).
+manifeste), que la release écrit (4.7.1, #443) : [Conventions](contribute.conventions.md#next-mark).
 
 <a name="structured-blocks"></a>
 

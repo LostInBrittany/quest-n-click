@@ -236,7 +236,7 @@ inside the page's range and the same in both languages: `<!-- applies: 4.2.2.. -
 4.2.2..4.4.0 -->` (both inclusive), `<!-- applies: ..4.4.0 -->` (until), with `since <v>` for the version the feature
 appeared in and a last `deprecated` or `archived` for a section kept for older versions. A malformed marker is an
 error, never ignored. A branch writes `next` for the release it lands in, never a guessed number (`<!-- applies:
-next.. since next -->`, and `"appliesFrom": "next"` in the manifest), which the release writes (next, #443):
+next.. since next -->`, and `"appliesFrom": "next"` in the manifest), which the release writes (4.7.1, #443):
 [Conventions](contribute.conventions.md#next-mark).
 
 <a name="structured-blocks"></a>

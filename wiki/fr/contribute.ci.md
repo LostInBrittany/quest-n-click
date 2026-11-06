@@ -30,7 +30,7 @@ from <owner>/release/<x.y.z> »), ou le sujet qu'écrit `prepare` (« <x.y.z>: t
 groupe : un temps chacun gardait son run, et quatre fusions d'affilée ont mis en file quatre runs complets qui ont
 privé les pull requests de runners. Un run lancé à la main a son propre groupe et n'annule rien ; `release` et
 `docs-publish` n'annulent jamais de run non plus. `candidate` n'en annule qu'un : un candidat antérieur de la même
-version, sur `main`, d'un autre SHA, encore en cours avec un job déjà rouge (next, #410, son job `supersede`,
+version, sur `main`, d'un autre SHA, encore en cours avec un job déjà rouge (4.7.1, #410, son job `supersede`,
 [Publier une release](contribute.releasing.md)).
 
 **Les runs planifiés démarrent la nuit, jamais pendant la journée de travail** (4.5.6, #372). GitHub lance un run

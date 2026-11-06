@@ -404,12 +404,12 @@ describe('the push to the wiki', { timeout: 30_000 }, () => {
     expect(r).toMatchObject({ ok: false });
     expect(!r.ok && r.problem).toMatch(/push was refused, nothing published \(the wiki moved since the clone\)/);
     expect(tip(bare).subject).toBe('a web edit');
-    // Refused by the wiki: never tried again (next).
+    // Refused by the wiki: never tried again (4.7.1).
     expect(said).toEqual([]);
   });
 
   // GitHub refusing a connection now and then (4.7.0's docs-publish: "Permission denied (publickey)" on the clone, the
-  // same deploy key passing on the re-run): the clone, and a push that never reached the wiki, are tried again (next).
+  // same deploy key passing on the re-run): the clone, and a push that never reached the wiki, are tried again (4.7.1).
   it('tries a clone that failed again, its folder emptied, then publishes', () => {
     const bare = join(tmp('wiki-remote-'), 'wiki.git');
     // Missing on the first try (the clone fails before anything is read), there after the wait.

@@ -9488,3 +9488,209 @@ the save and the reading now share one evaluation and no tick can come between t
 → next: the routes' three field passes made passes (ids, issues, `passIssues`), still open from 4.6.0; the map's
 `pins` and `vehicle: 'walk'`, images per language and `keepPlaying` on a real phone; the portrait layout in WebKit and
 on real phones (#397).
+
+## #376 · 2026-11-06 · Claude · proposal · `studio-hosted`'s Firefox pass in quarantine (#406)
+
+#406's flake ("a layout written meanwhile is what the view shows once its revision's preview is ready — PUT 200,
+shown undefined", the room editor silent for 15 s, then the run's 8-min limit) struck on #390, twice on #423 and
+#427's day, and on 4.7.0's release merge (run 42034234544, attempt 1). Always Firefox: Chromium's pass of
+`e2e:studio-hosted` was green in the same job. One `&&` chain ran the four passes, so it failed the job, the run, and
+with it what the release requires on main. Firefox's hosted pass now runs alone, `continue-on-error`, with a warning
+when it fails, as `pwa-firefox` is said in `pr-gate` (#257); the job-level choice was set aside because `pr-gate`
+alone cannot save a release, which reads main's whole run. Chromium's hosted pass and both collab passes still block.
+
+→ next: #406's fix (the preview's readiness in Firefox), then the step joins the blocking one again.
+
+
+## #377 · 2026-11-06 · Claude · proposal · #410 PR 3: the downloads and the wiki's clone tried again, the releasing page, a flaky test
+
+Three network steps of a release that one refusal from GitHub cost a job's re-run, and the page that says what the
+release tools do.
+
+- The 4.7.0 candidate's external-consumer (macos-15, from 4.1.18-rc.1) failed on a 504. A correction to #410's
+  comment: that download already had retries. `fetchRetry` (4.1.20) tried it five times, 5 to 20 s apart, and GitHub's
+  504s used them up in 61 s (attempt 1's log: "the older engine" at 15:33:38, the error at 15:34:40), without a line
+  saying so. What changed is the budget and the visibility: seven tries, 5 s doubled up to a minute between them (about
+  three minutes of waits), each failed try said on stderr; a 4xx other than 429 still at once. `download()` throws on
+  what is not a 2xx in the end. `upgrade-check`'s single `gh release download` (it really was single-shot) and
+  `ops-qualify`'s hand-rolled loop (which tried a 404 again) use it. Worst case, every try waiting out its 60 s
+  answer timeout: about 10 minutes a download, inside every caller's limit (external-consumer 1 to 14 minutes of 45,
+  ci's `upgrade` 1 of 30, `deployment-smoke` 4 of 60).
+- 4.7.0's `docs-publish` failed on the wiki's clone ("Permission denied (publickey)", the same key passed on the
+  re-run). `pushWiki` takes #416's `retried` from `tools/release/lib.mjs`, which gains an `again(error)` predicate: the
+  clone always, the push unless `pushRefused` (rejected, non-fast-forward, fetch first, GH006, a declining hook,
+  "Permission to … denied"). An SSH "Permission denied (publickey)" is tried again: it is GitHub refusing the
+  connection, not the key's rights.
+- `tests/reality-cursor.test.ts`'s SSE warm-up acknowledged on a 1 ms timer that raced the port's 5 ms one (set a
+  signal earlier); a 10 ms stall in the reader reproduced "s1 twice" every time. The test now awaits the
+  acknowledgement; 50 runs under a CPU load and three parallel fork runs, all green. Its file's hash moved, so the
+  claim `bridge-resume-from-durable` (the polling test, unchanged) has an AI author review recorded and needs a
+  person's again.
+- `contribute.releasing` (en, fr) says #416's behaviours; the coverage ratchet (#436) is not on that page.
+
+→ next: a person's review of `bridge-resume-from-durable` (`npm run wiki -- review-claim … --kind human`); #410's
+remaining PRs.
+
+
+## #378 · 2026-11-06 · Claude · proposal · #410 PR 6: `prepare` writes the release's prose it holds the facts of (options A + B)
+
+The maintainer chose options A and B of PR 6 (`docs/dev/PLAN-4.6.x-RELEASE-IN-THREE-COMMANDS.md`). Of the 16 to 18
+`TODO(release)` markers a release left, most were facts `prepare` holds; each step now writes the bullet of the LOG's
+release entry whose data it just produced (`withLogFact`): the pull requests merged since `v<previous>` (from `git log
+--first-parent`, merges and squashes, the release branch left out), the fragments with main's commit, the upgrade
+notes' section written ahead or appended, the pending acks the fold takes in (read before it deletes them), the
+fixtures, the passes against `passesFor(<previous>)`, the signature. The passes sheet's intro is 4.7.0's sentence when
+no pass changed. A fragment's `### Release` lines, read before `--assemble` deletes the fragments, make the CHANGELOG's
+intro and the README line (option B: one text for both).
+
+Decided here: **`### Release (fr)`** rather than an English line in `README.fr.md` or a marker there. The README is the
+one release text in French; translating it is release-day work this PR is meant to remove, and the author knows the
+change best. The French line is written only when every fragment with a `### Release` has its `(fr)`, so the French
+README never says less than the English one; otherwise it stays a marker. The CHANGELOG intro closes on "The upgrade
+notes say what a game has to do." rather than guessing "Nothing to change in a game": `### Breaking` does not say it
+(4.6.0 had none and one case to act on). The Signature bullet names `.github/allowed_signers`, not a person: `prepare`
+does not know who will run the release command, which refuses any other key. The LOG bullets and the intro are
+wrapped at 120 columns, a code span never cut.
+
+Left a marker, a person's to write: the LOG entry's title, its request and its next; the upgrade notes' opener when
+the section is appended; an intro or README line no fragment gave; a passes sheet whose passes changed. On the 4.5.3
+fixture: 16 markers before, 5 with release lines, 8 without; 3 when the upgrade notes were written ahead.
+
+`wiki/en/contribute.releasing.md` (and its French) still says `prepare` "writes no prose"; it is #410 PR 3's page, left
+to that branch.
+
+→ next: the first release with `### Release` lines (4.7.1): count the markers left and reread the assembled intro.
+
+
+## #379 · 2026-11-06 · Claude · proposal · #443: fragments name `next`, and `release -- check` runs the tests the version moves
+
+4.7.0's release was slow twice over (#442). Every fragment since 4.6.0 named "4.6.1"; the release was a minor, and
+#434 renamed about 80 marks by hand in fragments, comments and the wiki's "since" marks. Then `release -- check`
+passed and the release pull request went red: `mutants-json` (135 entries due at 4.7.0) and `quality-baseline` (4.6.0's
+first visit typed in the test) fail only once `package.json` names the version.
+
+The mark is `next` in a parenthesis that opens on it, `(next)` or `(next, …)`, after a space or a line start; in a
+section's `applies` marker and the manifest's version fields, the word itself. `(next)` alone was not enough for code:
+`if (next) {` and `swap(next)` are code, so in a source file only a comment is read (a comment opener inside a quote
+is not one), and a string never is (a test's name is what a claim names). A code span, wrapped over a line break or
+not, is a quotation. The rewrite skips `games/` (a game folder is written through the Studio's journal,
+`tests/single-entry.test.ts`), the LOG, `docs/`, the CHANGELOG's released sections and `tests/fixtures/`. On today's
+tree the dry run finds only the marks this branch wrote.
+
+The wiki reads `next` before the release writes it: `compareVersions` puts it after every version, so a section
+`applies: next..` is not true of the current product and a publication of it is refused as "after the released
+product"; the manifest accepts `next` in `appliesFrom`, `appliesUntil` and `featureSince` only.
+
+Translation pairs are hashed on their raw section text (and a claim's review on its block's text and its test file's
+hash), so rewriting the mark in both languages would leave every touched pair to review, and a claim to a person
+again. The step `next mark` runs after the fold and carries each hash that held the text before the rewrite over to
+its value after it, side by side (`tools/next-mark-records.ts`, `rekey`); a stale record stays stale. Tested on a copy
+of the wiki with a claim's block and its test file marked.
+
+`release -- check` and `prepare`'s stop before the push run the four tests (`VERSION_TESTS`), under a second. Nothing is
+added to pull requests' CI, and #443's "Not done, on purpose" stands.
+
+This branch converts its own fragments and `406-quarantine-firefox-hosted.md`, already on main: `--check` reads every
+fragment and would refuse its version. Fragments of branches still open that say a version number will need the mark once this
+lands.
+
+→ next: the first release that writes the mark (4.7.1): the dry run's list before `prepare`, and nothing to review after.
+
+
+## #380 · 2026-11-06 · Claude · proposal · `studio-hosted`, step 4b: one navigation, a new Studio page for a silent frame (#406)
+
+The failures (#390, #396, 4.7.0's release merge, run 42034234544) share one shape: in Firefox only, right after the
+PUT of `[123, 321]`, step 4b clicked "Reload view" (a navigation of the editor's iframe to revision 1's preview) and
+the Studio then reloaded the same iframe by itself when revision 2's preview was ready (`previewReady` →
+`reloadIfClean`): two navigations close together. Fifteen seconds later the frame, still reported at
+`/preview/1/?edit=garden`, answered no evaluation, and #356's second click did not bring it back: four minutes of
+2-second timeouts (`shown undefined`), then step 5's unbounded `frame.evaluate` held the run to its 8-minute limit.
+The Firefox CSP message in the trace is the Studio page's (127.0.0.1), zod's `new Function` probe, caught: unrelated.
+
+The cause, seen with the witness below (Playwright's Firefox runs on macOS 27 with `CFFIXED_USER_HOME` set to an
+empty folder, microsoft/playwright#42768): in one of the maintainer's ten local Firefox runs of the new step, with no
+click at all, the frame was still reported at `/preview/1/?edit=garden` and silent for 15 s while the Studio's page
+had received the editor's `ready` since the write, i.e. the iframe had loaded revision 2's preview and talked. The
+browser and the Studio were fine; Playwright's `Frame` for that iframe had lost its navigation and never answered
+again. Navigating the same iframe keeps that `Frame`; a new iframe gets a new one. So:
+
+- no click: the step waits for the Studio's own reload, the one navigation a member gets;
+- the frame looked up at each try through its element (`iframe.engine`), each evaluation bounded to 2 s;
+- silent 15 s: `page.reload()` once (a new iframe, hence a new `Frame`), then 45 s more;
+- a witness on the Studio page counts the editor's `ready` messages since the write: a silent frame with a `ready`
+  is Playwright's stale handle, without one the frame itself never loaded (a browser or product question);
+- a failure throws with the frame's URL, the count and `page.frames()`; step 5's probe is bounded to 10 s.
+
+Checked: Firefox 30 runs with the fix (the maintainer's 10, 20 here), step 4b green in all 30, one of them through
+the new Studio page (`1 ready` said); one run of the 20 hung later, in 6d "Prepare assets" with the machine loaded
+by a full `vitest run` alongside, nothing to do with the editor's frame. Chromium and WebKit green; a forced silent
+frame in Chromium recovers once (`1 ready` said), and a frame always silent fails the run in 68 s with the evidence,
+not 8 min. The baseline, main's step in Firefox on the same machine: 20 runs, 20 green, no silent frame. Locally the
+fault is too rare to show a before/after difference, so the quarantine stays until CI's Linux runs say more.
+
+→ next: let the quarantined Firefox step run on CI; once it has a clean streak (or a failure with the witness says
+which side is silent), un-quarantine it in `ci.yml` and `tests/ci-plan.test.ts`.
+
+
+## #381 · 2026-11-06 · Claude · proposal · #410 PR 4: 4.6.0's and 4.7.0's release days measured, the mutation cache kept across a reread of the survivors
+
+R6 of the plan ("long CI waits between each step"), measured before anything is changed: every run of 4 and 5
+November from the Actions API, job by job and attempt by attempt, and the mutation jobs' logs. The timelines, the
+findings and the proposals are in `docs/dev/PLAN-4.6.x-RELEASE-IN-THREE-COMMANDS.md`, PR 4.
+
+- Both days took about 3 h 35 min from `prepare` to npm. The candidate is the path; main's ci on the merge and qualify
+  end long before it. A warm candidate takes 20 to 25 min, a cold one about two hours, nearly all of it mutation.
+- 4.7.0's warm-up served nothing: `docs/dev/mutants.json` is an input of every set's hash, and the release pull
+  request's reread moved only the revisits (the one input that differed for each of the 14 sets, compared on both
+  trees). Implemented: the hash reads the mutants the entries name, nothing else; `checkKnown` still checks the rest
+  on every run and `mutation-merge` judges by the same fields, so no check is lost. With it, 18 of 4.7.0's 20 shards
+  could have been reused.
+- The warm-up never finished in time (about 110 min against a release pull request open 24 and 52 min): the long
+  shards on the candidate's path were measured twice, `studio-workshop` three times in 4.6.0. Proposed, then approved
+  by the maintainer and implemented, one commit each: the matrix longest first from a table of each shard's cold
+  minutes (`tools/mutation-minutes.json`, no input of any hash, rebuilt by `mutation-shards.ts --minutes`; 117 to 81 min
+  modelled); no warm-up started by
+  `prepare` (the by-hand command in the pull request's body for a long review); the exemptions due named in
+  `prepare`'s stop before the push (the rule was already there through #443's version tests, only the FAIL line was
+  said); a candidate's `supersede` job that cancels an earlier, still running red candidate of the same version and
+  another SHA on `main`, each run now named `candidate <sha>`, and the release command stopping on such a run rather
+  than re-running it.
+- qualify on the release pull request stays: the release commit changes what it packs, and it caught R4 on 4.6.0.
+- Not verified on GitHub: the hash change is proved by its tests and by replaying `inputFiles` on the 4.7.0 trees; the
+  order by the model on 4.7.0's durations; `supersede` by its pure decision's tests and the workflow's pinned shape,
+  never by a run that cancels another.
+
+→ next: the first nightly after the merge refills every key (they all change once); the first release after it shows
+whether the order and the cache hold.
+
+## #382 · 2026-11-06 · Claude · release · 4.7.1 "Shorter Road": the release tools, first used on themselves
+
+- **The request**: on 6 November, after #451 merged and #410 closed, Horacio asked for 4.7.1 the same day, knowing
+  the candidate would measure every mutation set cold (#451 changes every cache key once): "I know it will take 3h, I
+  won't take it bad this time, as there is a reason." The first `prepare` stopped at its new `next mark` step, the CLI
+  waiting on itself (exit 13, nothing written); #452 fixed it and this is the second run. The name, "Shorter Road", is
+  #410's goal.
+- **What ships**: the pull requests merged since v4.7.0, oldest first: #447 (CI: studio-hosted's Firefox pass
+  quarantined (#406)), #448 (Release: the flaky warm-up test, downloads and the wiki's clone tried again, the releasing
+  page (#410 PR 3)), #449 (Release: prepare writes the prose it holds the facts of, and fragments name next (#410 PR 6,
+  #443)), #450 (e2e studio-hosted: a silent editor frame gets a new Studio page, 4b waits for the Studio's own reload
+  (#406)), #451 (Release: fewer CI round trips – the mutation cache across a reread, longest shards first, no warm-up, a
+  red candidate superseded (#410 PR 4)), #452 (next-mark: the CLI no longer waits on itself under --write).
+- **Fragments**: 7 assembled by `npm run release -- prepare 4.7.1`, on main at `51a62009`:
+  `406-quarantine-firefox-hosted`, `410-pr3-retries`, `410-pr6-prose`, `443-next-mark`, `406-firefox-preview`,
+  `410-pr4-round-trips`, `next-mark-cycle`; the intro and the README line from the `### Release` lines of
+  `410-pr6-prose`, `443-next-mark`.
+- **Upgrade notes**: "From 4.7.0 to 4.7.1" in `install.upgrade-notes-4-7`, both languages, appended by `prepare` from
+  the release's CHANGELOG bullets, to rewrite for a reader upgrading.
+- **Reviews**: folded by `prepare` from `changes/410-pr3-retries.acks.json`, `changes/410-pr4-round-trips.acks.json`,
+  `changes/410-pr6-prose.acks.json`: 16 translation pairs (16 with an AI's record only, D56), 1 claim (1 read by a
+  person, LostInBrittany); 8 pending acks not kept, their text changed since they were read (listed by `prepare`).
+- **Fixtures**: golden save demo-4.7.1, reference run, quality baseline, written by `prepare` (the release's own write,
+  `quality:baseline -- --release --dist`).
+- **Passes**: sheet 4.7.1, the 22 of 4.7.0, none new.
+- **Signature**: the tag is signed with an SSH key `.github/allowed_signers` names (`npm run release -- 4.7.1` refuses
+  any other).
+
+→ next: this candidate's durations against #451's model (a cold mutation in about 81 min instead of 114), then the
+first release with a warm cache; #406's quarantine lifted once `studio-hosted (firefox)`'s warnings stay silent; the
+22 field passes, still open.

@@ -7,13 +7,13 @@ fragments reached `main`, at the release (or whenever). Two open branches never 
 - `changes/<slug>.md`: the CHANGELOG bullets, under `### Breaking`, `### Fixed` or `### Changes` (any of them, in any
   order; the assembly puts each under its section). Write them as the CHANGELOG does: a bold lead, the version in
   parentheses, what a player, an author or a host sees differently.
-- In the same file, optionally, `### Release` (next, #410): one or two sentences for the release's intro, what the
+- In the same file, optionally, `### Release` (4.7.1, #410): one or two sentences for the release's intro, what the
   change brings and for whom, prose that reads well joined to the other fragments'. `npm run release -- prepare` joins
   every fragment's, in the assembly's order, into the CHANGELOG's intro and the README's current-release line instead of
   a `TODO(release)`. `### Release (fr)` translates it for `README.fr.md`; the French line is written only when every
   fragment with a `### Release` has its `(fr)`. A fragment without one adds nothing to the intro: a CI fix needs none.
   Refused: empty, a list, over 400 characters, no full stop at the end, twice, or `(fr)` without the English one.
-- The release a fragment lands in is `next`, never a guessed number (next, #443): `(next, #417)` in a bullet's
+- The release a fragment lands in is `next`, never a guessed number (4.7.1, #443): `(next, #417)` in a bullet's
   parenthesis. `npm run changes -- --assemble --version=<x.y.z>`, as `prepare` runs it, writes the version in its
   place; `--check` refuses a version after `package.json`'s. The wiki's prose, its `applies` markers, the manifest and
   the code's comments use the same mark, which `prepare` rewrites (`tools/next-mark.ts`, contribute.conventions).

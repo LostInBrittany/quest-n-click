@@ -67,7 +67,7 @@ A branch that changes the code does not edit `CHANGELOG.md` nor `docs/dev/LOG.md
 - `changes/<slug>.md`: the CHANGELOG bullets, under `### Breaking`, `### Fixed` or `### Changes` (any of them, in any
   order). Write them as the CHANGELOG does: a bold lead, the version in parentheses, what a player, an author or a host
   sees differently.
-- In the same file, optionally (next, #410), `### Release`: one or two sentences for the release's intro, what the
+- In the same file, optionally (4.7.1, #410), `### Release`: one or two sentences for the release's intro, what the
   change brings and for whom, in prose that reads well joined to the other fragments'. `npm run release -- prepare`
   joins every fragment's, in the order they reached `main`, into the CHANGELOG's intro and the README's
   current-release line; without any, both keep a `TODO(release)` for the maintainer. `### Release (fr)` is its French
@@ -123,8 +123,8 @@ npm run changes -- --check [--base=origin/main]
   refuses the same, so a fragment the release would stop on fails the pull request that adds it. Nothing is filed
   silently.
 - A `### Release` part is refused when it is empty, a list, longer than 400 characters, without a full stop at its
-  end, or there twice; a `### Release (fr)` without its `### Release` too (next, #410).
-- A version after `package.json`'s is refused (next, #443): `✖ changes/<slug>.md:3: 4.7.1 is after package.json's
+  end, or there twice; a `### Release (fr)` without its `### Release` too (4.7.1, #410).
+- A version after `package.json`'s is refused (4.7.1, #443): `✖ changes/<slug>.md:3: 4.7.1 is after package.json's
   4.7.0: a fragment names the release it lands in as next…`. Write `(next, #n)` ([The next release's
   mark](#next-mark)); a version quoted in a code span is not read.
 - A bare `TODO(release)` in a fragment is refused too (4.5.5, #364): it would land in the CHANGELOG or the LOG as a
@@ -153,7 +153,7 @@ the CHANGELOG, the LOG or their entry numbers.
 4.1.9 (lot 0 "cadence").
 
 <a name="next-mark"></a>
-<!-- applies: next.. since next -->
+<!-- applies: 4.7.1.. since 4.7.1 -->
 
 ## The next release's mark (`next`)
 

@@ -29,7 +29,7 @@ release pull request's cancelled it, and `ship tag` re-ran it). A release commit
 Every other `main` commit shares one group: for a while each kept its own run, and four merges in a row queued four
 full runs that starved the pull requests of runners. A run started by hand has a group of its own and cancels
 nothing; `release` and `docs-publish` never cancel a run either. `candidate` cancels one only: an earlier candidate of
-the same version, on `main`, of another SHA, still running with a job already red (next, #410, its `supersede` job,
+the same version, on `main`, of another SHA, still running with a job already red (4.7.1, #410, its `supersede` job,
 [Releasing](contribute.releasing.md)).
 
 **The scheduled runs start in the night, never in the working day** (4.5.6, #372). GitHub starts a scheduled run when it
