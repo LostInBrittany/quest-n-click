@@ -70,7 +70,7 @@ branch `release/<version>`, it runs what a release branch did by hand, in this o
 and writes the version in place of each fragment's `next` mark), the LOG's release entry, the branches' pending acks
 folded into `wiki/translations.json` and `wiki/reviews.json` (`npm run wiki -- acks --fold`; what no longer holds its
 text is printed, and repeated in the stop), the `next` mark written as the version in the wiki and the code's comments
-(next, #443), the records of the pairs and claims it touches carried over so nothing is left to review (step `next
+(4.7.1, #443), the records of the pairs and claims it touches carried over so nothing is left to review (step `next
 mark`, `tools/next-mark.ts`; [Conventions](contribute.conventions.md#next-mark)), the upgrade notes' section (en and fr;
 a section already written ahead under its anchor is kept, never doubled, the release's CHANGELOG bullets put in a
 comment at its end for its author, 4.7.0), the transition pages, the golden save (listed in
@@ -87,7 +87,7 @@ If a step fails, it stops and says what to do: before the commit, nothing was pu
 back to `main`, the branch deleted: it prints the commands); after it, it prints the `git push` and `gh pr create` to
 run by hand.
 
-It writes the prose it holds the facts of (next, #410), and `TODO(release)` where a sentence needs a person:
+It writes the prose it holds the facts of (4.7.1, #410), and `TODO(release)` where a sentence needs a person:
 
 - the LOG's release entry: its bullets from the data each step produced (the pull requests merged since the previous
   tag, by number and title; the fragments and `main`'s commit; the upgrade notes' section, written ahead or appended;
@@ -105,12 +105,12 @@ notes, is never counted as one to write.
 
 Before it pushes (from 4.5.5), it checks what the release pull request's CI would fail on: a `TODO(release)` left (the
 same markers `check` counts), the docs' human gates (`wiki -- check --publish --reviews-only`, a claim or a pair
-still to be read by a person), and the tests that depend on the version (next, #443: `tests/mutants-json.test.ts`,
+still to be read by a person), and the tests that depend on the version (4.7.1, #443: `tests/mutants-json.test.ts`,
 `tests/quality-baseline.test.ts`, `tests/readme-truth.test.ts`, `tests/readme-release.test.ts`, under a second; they
 pass on every pull request at `package.json`'s version and can fail only once the release names its own, as 4.7.0's
 `mutants.json` entries due and its first visit typed in a test did). When anything is left, it stops there and exits 1: nothing pushed, no pull request, the
 branch committed in your checkout. One stop lists it all: each `TODO(release)` with its file, line and brief, the
-mutation exemptions due at the version, each named, with the way on (next, #410: read each again, keep it with a later
+mutation exemptions due at the version, each named, with the way on (4.7.1, #410: read each again, keep it with a later
 revisit or remove it, then `npm run test:mutation:core -- --doc`; moving only the revisits keeps every set's mutation
 cache), then each review with its command, then each failing test. On the local branch, write the prose yourself or ask your AI assistant to write it, with
 those markers as the brief, and read the diff; record the translation pairs that changed (`npm run wiki -- check`
@@ -122,7 +122,7 @@ the pull request, so its CI runs once. Any other state of that branch is refused
 To see the reviews earlier, run `npm run release -- check <version>` on `main`: its docs' human gates item lists the
 claims and pairs still to review (the items about the release itself fail there, as they should before `prepare`).
 
-It starts no workflow when it pushes (next, #410). From 4.5.5 to 4.7.0 it started the warm-up of `main`'s mutation
+It starts no workflow when it pushes (4.7.1, #410). From 4.5.5 to 4.7.0 it started the warm-up of `main`'s mutation
 cache; the warm-up takes about 110 minutes, and on 4.6.0 and 4.7.0 the pull request was merged 24 and 52 minutes after
 `prepare`, so the candidate measured the same long shards beside it. The candidate's own cache step restores and saves
 the same keys. When the review will last more than about two hours, start the warm-up by hand while it runs (the pull
@@ -139,7 +139,7 @@ It says, item by item, whether `package.json` is at the version, the CHANGELOG h
 `docs/dev/passes/<version>.md` and the golden save (its entry in `tests/fixtures/saves/index.json` and its file) are
 there (4.5.5, #348), a `TODO(release)` is left, `npm run wiki -- check` warns, the docs' human gates hold (`wiki -- check --publish --reviews-only`: a claim or a
 pair a person must read, each printed with its command), the quality baseline holds, and the tests that depend on the
-version pass (next, #443). The release pull request's
+version pass (4.7.1, #443). The release pull request's
 CI runs it too, with the version its branch names: merge when every item is ✔, and the merge starts the candidate.
 
 <a name="release-command"></a>
@@ -249,7 +249,7 @@ command to run again keeps `--commit`. Without it, nothing changes.
    warm the cache by hand ([above](#prepare)) with `gh workflow run nightly --ref main -f jobs=mutation` (the mutation
    jobs only, reusing what is already cached).
 
-   A later candidate of the same version cancels an earlier one that can no longer turn green (next, #410, its
+   A later candidate of the same version cancels an earlier one that can no longer turn green (4.7.1, #410, its
    `supersede` job): on `main` only, started before it, of another SHA whose `package.json` names the same version,
    still running with a job already failed or timed out. A green or still-green run, another version's and a pull
    request's are never touched. The release command waiting on a run cancelled that way stops instead of re-running
@@ -346,7 +346,7 @@ an rc publishes `/docs/<v-rc>/` only. It is never started by `release: published
 `GITHUB_TOKEN` does not fire. Only the wiki's deploy key `WIKI_DEPLOY_KEY` is passed to it. See
 [Writing documentation](contribute.writing-docs.md).
 
-The wiki's clone and a push that never reached the wiki are tried four times (next, #410), 15 s apart, each
+The wiki's clone and a push that never reached the wiki are tried four times (4.7.1, #410), 15 s apart, each
 failed try said: 4.7.0's `docs-publish` met one "Permission denied (publickey)" on the clone, and its re-run passed with
 the same key. Everything before the clone only reads, and a push is one ref update. A push the wiki refused (moved
 since the clone, a protected branch, a key without write access) fails at once, as before: run `docs-publish` again.

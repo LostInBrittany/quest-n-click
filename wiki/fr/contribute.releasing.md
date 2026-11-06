@@ -75,7 +75,7 @@ CHANGELOG et les entrées du LOG depuis les fragments (`npm run changes -- --ass
 `## Unreleased`, replie un `.log.md` seul et écrit la version à la place de la marque `next` de chaque fragment),
 l'entrée de release du LOG, les consignations en attente des branches versées dans `wiki/translations.json` et
 `wiki/reviews.json` (`npm run wiki -- acks --fold` ; ce qui ne tient plus à son texte est affiché, et repris dans
-l'arrêt), la marque `next` écrite comme la version dans le wiki et les commentaires du code (next, #443), les
+l'arrêt), la marque `next` écrite comme la version dans le wiki et les commentaires du code (4.7.1, #443), les
 enregistrements des paires et des garanties touchées reportés pour que rien ne reste à relire (étape `next mark`,
 `tools/next-mark.ts` ; [Conventions](contribute.conventions.md#next-mark)), la section des notes de mise à jour (en et fr ; une section déjà écrite à l'avance
 sous son ancre est gardée, jamais doublée, et les puces du CHANGELOG de la release vont dans un commentaire à sa fin
@@ -94,7 +94,7 @@ Si une étape échoue, elle s'arrête et dit quoi faire : avant le commit, rien 
 `git clean`, retour sur `main`, la branche supprimée : elle affiche les commandes) ; après, elle affiche le
 `git push` et le `gh pr create` à lancer à la main.
 
-Elle écrit la prose dont elle tient les faits (next, #410), et `TODO(release)` là où une phrase demande une personne :
+Elle écrit la prose dont elle tient les faits (4.7.1, #410), et `TODO(release)` là où une phrase demande une personne :
 
 - l'entrée de release du LOG : ses puces depuis les données de chaque étape (les pull requests fusionnées depuis le
   tag précédent, par numéro et titre ; les fragments et le commit de `main` ; la section des notes de mise à jour,
@@ -116,13 +116,13 @@ du CHANGELOG qui parle des marqueurs, copiée dans les notes de mise à jour, n'
 Avant de pousser (depuis la 4.5.5), elle vérifie ce sur quoi la CI de la pull request de release échouerait : un
 `TODO(release)` restant (les mêmes marqueurs que compte `check`), les relectures humaines des docs
 (`wiki -- check --publish --reviews-only`, une claim ou une paire qu'une personne doit encore lire), et les tests qui
-dépendent de la version (next, #443 : `tests/mutants-json.test.ts`, `tests/quality-baseline.test.ts`,
+dépendent de la version (4.7.1, #443 : `tests/mutants-json.test.ts`, `tests/quality-baseline.test.ts`,
 `tests/readme-truth.test.ts`, `tests/readme-release.test.ts`, moins d'une seconde ; ils passent sur chaque pull request
 à la version de `package.json` et ne peuvent échouer qu'une fois que la release nomme la sienne, comme l'ont fait les
 entrées de `mutants.json` dues et la première visite écrite dans un test de la 4.7.0). Quand il reste
 quelque chose, elle s'arrête là et sort avec 1 : rien de poussé, pas de pull request, la branche commitée dans votre
 checkout. Un seul arrêt liste tout : chaque `TODO(release)` avec son fichier, sa ligne et sa consigne, les exemptions
-de mutation dues à la version, chacune nommée, avec la suite (next, #410 : relire chacune, la garder avec une relecture
+de mutation dues à la version, chacune nommée, avec la suite (4.7.1, #410 : relire chacune, la garder avec une relecture
 plus tardive ou la retirer, puis `npm run test:mutation:core -- --doc` ; ne déplacer que les relectures garde le cache
 de mutation de chaque ensemble), puis chaque relecture avec sa commande, puis chaque test en échec. Sur la branche locale, écrivez la prose vous-même ou demandez-la à votre assistant IA, avec
 ces marqueurs comme consigne, et relisez le diff ; enregistrez les paires de traduction qui ont changé
@@ -135,7 +135,7 @@ repartir de `main`. Pour voir les relectures plus tôt, lancez `npm run release 
 point sur les relectures humaines des docs liste les claims et les paires encore à relire (les points sur la release
 elle-même y échouent, comme il se doit avant `prepare`).
 
-Elle ne lance aucun workflow quand elle pousse (next, #410). De la 4.5.5 à la 4.7.0, elle lançait le préchauffage du
+Elle ne lance aucun workflow quand elle pousse (4.7.1, #410). De la 4.5.5 à la 4.7.0, elle lançait le préchauffage du
 cache de mutation de `main` ; il prend environ 110 minutes, et en 4.6.0 comme en 4.7.0 la pull request a été fusionnée
 24 et 52 minutes après `prepare` : le candidat mesurait donc les mêmes longs morceaux à côté de lui. L'étape de cache du
 candidat reprend et enregistre elle-même les mêmes clés. Quand la relecture durera plus de deux heures environ, lancez
@@ -153,7 +153,7 @@ Elle dit, point par point, si `package.json` est à la version, si le CHANGELOG 
 fichier) sont là (4.5.5, #348), s'il reste un
 `TODO(release)`, si `npm run wiki -- check` avertit, si les relectures humaines des docs tiennent
 (`wiki -- check --publish --reviews-only` : une claim ou une paire qu'une personne doit lire, chacune affichée avec sa
-commande), si la ligne de base de qualité tient, et si les tests qui dépendent de la version passent (next, #443). La CI de la pull request de release la lance aussi, avec la
+commande), si la ligne de base de qualité tient, et si les tests qui dépendent de la version passent (4.7.1, #443). La CI de la pull request de release la lance aussi, avec la
 version que nomme sa branche : fusionnez quand chaque point est ✔, et le merge lance le candidat.
 
 <a name="release-command"></a>
@@ -275,7 +275,7 @@ utilise et, quand ce n'est pas le merge de release, elle le signale ; la command
    la main ([plus haut](#prepare)) avec `gh workflow run nightly --ref main -f jobs=mutation` (les jobs de mutation
    seulement, qui reprennent ce qui est déjà en cache).
 
-   Un candidat plus récent de la même version annule un candidat antérieur qui ne peut plus passer au vert (next,
+   Un candidat plus récent de la même version annule un candidat antérieur qui ne peut plus passer au vert (4.7.1,
    #410, son job `supersede`) : sur `main` seulement, lancé avant lui, d'un autre SHA dont le `package.json` nomme la
    même version, encore en cours avec un job déjà en échec ou hors délai. Un run vert ou encore vert, celui d'une autre
    version et celui d'une pull request ne sont jamais touchés. La commande de release qui attend un run annulé ainsi
@@ -376,7 +376,7 @@ le sha256 de l'archive de documentation, promeut cette archive (celle du candida
 `release: published`, qu'une release publiée avec `GITHUB_TOKEN` ne déclenche pas. Seule la clé de déploiement du wiki,
 `WIKI_DEPLOY_KEY`, lui est passée. Voir [Écrire la documentation](contribute.writing-docs.md).
 
-Le clone du wiki, et une poussée qui n'a jamais atteint le wiki, sont tentés quatre fois (next, #410), à
+Le clone du wiki, et une poussée qui n'a jamais atteint le wiki, sont tentés quatre fois (4.7.1, #410), à
 15 s d'intervalle, chaque essai raté signalé : le `docs-publish` de la 4.7.0 a rencontré un « Permission denied
 (publickey) » au clone, et sa relance est passée avec la même clé. Tout ce qui précède le clone ne fait que lire, et une
 poussée est la mise à jour d'une seule référence. Une poussée que le wiki a refusée (il a bougé depuis le clone, une

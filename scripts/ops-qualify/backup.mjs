@@ -214,7 +214,7 @@ export async function oldStore(c) {
   // (second reading of 4.1.19 PR 5: the 4.1.17 code wrote no data before). `--short` leaves it out.
   if (!SHORT) {
     const OLD_SHA = 'a362ca2bbba48d06593d265ad4d6b01efdbc92d95b7165d988c5c2dffbe33d6f';
-    // GitHub's release download, tried again on a 5xx or a network error (next, #410: the shared `download`).
+    // GitHub's release download, tried again on a 5xx or a network error (4.7.1, #410: the shared `download`).
     const url = 'https://github.com/Quest-n-Click/quest-n-click/releases/download/v4.1.17/web-scumm-bridge-4.1.17.tgz';
     const oldBytes = flag('old-bridge')
       ? readFileSync(resolve(flag('old-bridge')))

@@ -69,7 +69,7 @@ Une branche qui modifie le code ne touche ni `CHANGELOG.md` ni `docs/dev/LOG.md`
 - `changes/<slug>.md` : les puces du CHANGELOG, sous `### Breaking`, `### Fixed` ou `### Changes` (n'importe
   lesquelles, dans n'importe quel ordre). Écrivez-les comme le CHANGELOG : une amorce en gras, la version entre
   parenthèses, ce qu'un joueur, un auteur ou un hébergeur voit de différent.
-- Dans le même fichier, en option (next, #410), `### Release` : une ou deux phrases pour l'introduction de la
+- Dans le même fichier, en option (4.7.1, #410), `### Release` : une ou deux phrases pour l'introduction de la
   release, ce que le changement apporte et à qui, en une prose qui se lit bien jointe à celle des autres fragments.
   `npm run release -- prepare` joint celles de tous les fragments, dans l'ordre où ils sont arrivés sur `main`, dans
   l'introduction du CHANGELOG et la ligne de release actuelle du README ; s'il n'y en a aucune, les deux gardent un
@@ -127,8 +127,8 @@ npm run changes -- --check [--base=origin/main]
   `--assemble` refuse les mêmes, donc un fragment sur lequel la release s'arrêterait fait échouer la pull request qui
   l'ajoute. Rien n'est rangé en silence.
 - Une partie `### Release` est refusée quand elle est vide, en liste, plus longue que 400 caractères, sans point final,
-  ou présente deux fois ; un `### Release (fr)` sans son `### Release` aussi (next, #410).
-- Une version postérieure à celle de `package.json` est refusée (next, #443) : `✖ changes/<slug>.md:3: 4.7.1 is after
+  ou présente deux fois ; un `### Release (fr)` sans son `### Release` aussi (4.7.1, #410).
+- Une version postérieure à celle de `package.json` est refusée (4.7.1, #443) : `✖ changes/<slug>.md:3: 4.7.1 is after
   package.json's 4.7.0: a fragment names the release it lands in as next…`. Écrivez `(next, #n)` ([La marque de la
   prochaine release](#next-mark)) ; une version citée dans un bloc de code en ligne n'est pas lue.
 - Un `TODO(release)` nu dans un fragment est refusé aussi (4.5.5, #364) : il arriverait dans le CHANGELOG ou le LOG
@@ -157,7 +157,7 @@ ne se marchent plus dessus sur le CHANGELOG, le LOG ou leurs numéros d'entrée.
 4.1.9 (lot 0 « cadence »).
 
 <a name="next-mark"></a>
-<!-- applies: next.. since next -->
+<!-- applies: 4.7.1.. since 4.7.1 -->
 
 ## La marque de la prochaine release (`next`)
 

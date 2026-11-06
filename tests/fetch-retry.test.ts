@@ -2,7 +2,7 @@
 // external-consumer lines met an HTTP 504 on two runners at once (12 October, 14:17:17) and failed the gate on a
 // download that a second try would have made. A 5xx, a 429 or a network error is tried again, at most `tries` times;
 // any other answer (a 404 names a wrong URL) is given back at once.
-// (next, #410): the 4.7.0 candidate's five 504s in a minute ran the tries out without a word. Each failed try is said,
+// (4.7.1, #410): the 4.7.0 candidate's five 504s in a minute ran the tries out without a word. Each failed try is said,
 // the default budget is seven tries over about three minutes, and `download` throws on what is not a 2xx in the end.
 import { createServer, type Server } from 'node:http';
 import type { AddressInfo } from 'node:net';
