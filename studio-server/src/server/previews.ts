@@ -288,25 +288,34 @@ export async function storeFiles(
   limit = STORE_PARALLEL,
 ): Promise<Record<string, string>> {
   const all = [...files];
-  const hashes: string[] = new Array(all.length);
+  const hashes = await inLanes(all, ([, bytes]) => blobs.put(bytes), limit);
+  return Object.fromEntries(all.map(([path], i) => [path, hashes[i]!]));
+}
+
+/**
+ * `fn` over `items`, `limit` at a time at most, the results in the items' order. A call that fails starts no other,
+ * and fails the whole once the calls under way have ended (the blob store's puts and gets: S3 one request at a time).
+ */
+export async function inLanes<T, R>(items: T[], fn: (item: T) => Promise<R>, limit = STORE_PARALLEL): Promise<R[]> {
+  const out: R[] = new Array(items.length);
   let next = 0;
   const lane = async () => {
-    while (next < all.length) {
+    while (next < items.length) {
       const i = next++;
       try {
-        hashes[i] = await blobs.put(all[i]![1]);
+        out[i] = await fn(items[i]!);
       } catch (e) {
-        // No new put once one failed.
-        next = all.length;
+        // No new call once one failed.
+        next = items.length;
         throw e;
       }
     }
   };
-  const lanes = Array.from({ length: Math.max(1, Math.min(limit, all.length)) }, lane);
+  const lanes = Array.from({ length: Math.max(1, Math.min(limit, items.length)) }, lane);
   const settled = await Promise.allSettled(lanes);
   const failed = settled.find((r) => r.status === 'rejected');
   if (failed) throw (failed as PromiseRejectedResult).reason;
-  return Object.fromEntries(all.map(([path], i) => [path, hashes[i]!]));
+  return out;
 }
 
 export function text(res: ServerResponse, status: number, body: string) {

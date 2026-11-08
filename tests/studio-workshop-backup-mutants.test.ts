@@ -325,6 +325,7 @@ describe('the collection', () => {
       list: async function* () {
         yield* list;
       },
+      at: async () => 0,
       ...(o.remove === false ? {} : { remove: async () => undefined }),
     }) as unknown as BlobStore;
 
@@ -349,6 +350,23 @@ describe('the collection', () => {
       },
     });
     expect(got).toMatchObject({ unreferenced: [], staging: 0 });
+  });
+
+  it('keeps a blob stored again between the listing and its deletion', async () => {
+    const now = 100 * 3_600_000;
+    const removed: string[] = [];
+    const racing = {
+      ...store([
+        { hash: h('a'), at: 0 },
+        { hash: h('b'), at: 0 },
+      ]),
+      // `a` is put again while the collection runs: its date is now; `b` is still old.
+      at: async (x: string) => (x === h('a') ? now : 0),
+      remove: async (x: string) => void removed.push(x),
+    } as unknown as BlobStore;
+    const got = await collect(db, racing, { delete: true, now, graceMs: 1_000 });
+    expect(removed).toEqual([h('b')]);
+    expect(got.removed).toBe(1);
   });
 
   it('sweeps no staging when it is given none', async () => {

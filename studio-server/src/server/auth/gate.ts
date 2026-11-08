@@ -151,7 +151,17 @@ export class Gate {
     let flight = this.refreshing.get(s.idHash);
     if (!flight) {
       flight = (async () => {
-        const r = await this.o.oidc.refresh(refresh);
+        // Claimed in the database: another request or instance checking now carries on with the session, and the
+        // provider never sees the same refresh token twice (a provider with reuse detection would end the session).
+        if (!(await this.o.store.claimCheck(s.idHash, s.checkedAt, now))) return;
+        let r: { refreshToken?: string };
+        try {
+          r = await this.o.oidc.refresh(refresh);
+        } catch (e) {
+          // Not confirmed: the claim is given back, so R still runs from the last confirmation.
+          if (!(e instanceof DefinitiveRefusal)) await this.o.store.claimCheck(s.idHash, now, s.checkedAt);
+          throw e;
+        }
         const at = this.now();
         await this.o.store.touch(s.idHash, {
           checkedAt: at,
@@ -173,7 +183,10 @@ export class Gate {
       s.checkedAt = now;
       s.suspended = false;
     } catch (e) {
+      // A refusal of a token another instance has rotated since is no refusal of the session.
       if (e instanceof DefinitiveRefusal) {
+        const row = await this.o.store.sessionByHash(s.idHash);
+        if (row && row.refreshEnc !== s.refreshEnc) return;
         await this.o.store.endSession(s.idHash);
         this.revocations.emit('session-ended', [s.idHash]);
         throw this.unauthorized('the identity provider ended the session');

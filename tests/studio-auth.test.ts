@@ -2,6 +2,7 @@
 // login (code + PKCE + state + nonce), the four HTTP policies and their exceptions, invitations, the roles over every
 // route, the owner's routes, the back-channel logout, and the revocation bounds (R = 15 min) on a simulated clock.
 import { createHash } from 'node:crypto';
+import { EventEmitter } from 'node:events';
 import { cpSync, mkdirSync, mkdtempSync, rmSync } from 'node:fs';
 import { createServer } from 'node:net';
 import { join } from 'node:path';
@@ -14,7 +15,7 @@ import { routes } from '../studio-server/src/ops/routes';
 import { accessToken, deviceLogin } from '../studio-server/src/server/auth/device';
 import { Gate } from '../studio-server/src/server/auth/gate';
 import { Oidc } from '../studio-server/src/server/auth/oidc';
-import { authRoutes, safeReturn } from '../studio-server/src/server/auth/routes';
+import { authRoutes, readForm, safeReturn } from '../studio-server/src/server/auth/routes';
 import { AuthStore, Sealer } from '../studio-server/src/server/auth/store';
 import type { SqlDb } from '../bridge/src/store-sql';
 import { readJson, roleFor, send, studioServer } from '../studio-server/src/server/http';
@@ -23,6 +24,7 @@ import { TestOp } from './fixtures/oidc-op';
 
 const ROOT = join(import.meta.dirname, '..');
 let tmp: string, base: string, op: TestOp, store: AuthStore, gate: Gate, stop: () => Promise<void>, sql: SqlDb;
+let other: Gate;
 let clock = Date.now();
 
 const freePort = () =>
@@ -93,6 +95,8 @@ beforeAll(async () => {
   const sealer = new Sealer(['a-session-key-of-at-least-32-characters']);
   store = new AuthStore(db, () => clock);
   gate = new Gate({ store, oidc, sealer, publicUrl: base, now: () => clock });
+  // Another instance of the same deployment: its own process memory, the same database.
+  other = new Gate({ store, oidc, sealer, publicUrl: base, now: () => clock });
   const handle = authRoutes({
     gate,
     store,
@@ -370,6 +374,44 @@ describe('revocation within R (simulated clock)', () => {
     }
   });
 
+  it('two instances checking the same session at once refresh it once, and neither ends it', async () => {
+    op.user = { sub: 'u-ana', email: 'ana@example.org', emailVerified: true };
+    op.strictRotation = true;
+    try {
+      const s = (await login()).session!;
+      const req = { method: 'GET', headers: { cookie: `__Host-ws_session=${s}` } } as never;
+      op.refreshCalls = 0;
+      clock += 6 * 60_000;
+      const all = await Promise.allSettled([gate.authenticate(req), other.authenticate(req)]);
+      expect(all.map((r) => r.status)).toEqual(['fulfilled', 'fulfilled']);
+      expect(op.refreshCalls).toBe(1);
+      expect((await fetch(`${base}/api/game`, withCookie(s))).status).toBe(200);
+    } finally {
+      op.strictRotation = false;
+    }
+  });
+
+  it('a refusal of a token another instance has rotated since does not end the session', async () => {
+    op.user = { sub: 'u-ana', email: 'ana@example.org', emailVerified: true };
+    op.strictRotation = true;
+    try {
+      const s = (await login()).session!;
+      const req = { method: 'GET', headers: { cookie: `__Host-ws_session=${s}` } } as never;
+      clock += 6 * 60_000;
+      // This instance read the session (and its token) before the other one refreshed it.
+      const stale = (await store.session(s))!;
+      await other.authenticate(req);
+      clock += 6 * 60_000;
+      const g = gate as unknown as { check(x: unknown, now: number): Promise<void> };
+      await expect(
+        g.check({ ...stale, checkedAt: (await store.session(s))!.checkedAt }, clock),
+      ).resolves.toBeUndefined();
+      expect((await fetch(`${base}/api/game`, withCookie(s))).status).toBe(200);
+    } finally {
+      op.strictRotation = false;
+    }
+  });
+
   it('a refresh slower than the wait goes on and stores the rotated token', async () => {
     op.user = { sub: 'u-ana', email: 'ana@example.org', emailVerified: true };
     op.strictRotation = true;
@@ -480,5 +522,33 @@ describe('the roles over every route', () => {
         method === 'GET' || /^\/(validate|report|puzzle|coverage|playtests|lint|solve|screenshot)$/.test(sub);
       expect([method, sub, role]).toEqual([method, sub, reads ? 'reviewer' : 'dev']);
     }
+  });
+});
+
+describe('readForm', () => {
+  const mock = (headers: Record<string, string> = {}) => {
+    const req = Object.assign(new EventEmitter(), { headers, resumed: 0, resume: () => req.resumed++ });
+    return req;
+  };
+
+  it('answers 413 once over the limit and stops reading the rest of the body', async () => {
+    const req = mock();
+    const p = readForm(req as never, 10);
+    req.emit('data', Buffer.from('a=1234567890'));
+    await expect(p).rejects.toMatchObject({ status: 413 });
+    expect(req.listenerCount('data')).toBe(0);
+    expect(req.resumed).toBe(1);
+  });
+
+  it('refuses a content-length over the limit before reading, and counts bytes', async () => {
+    const big = mock({ 'content-length': '11' });
+    await expect(readForm(big as never, 10)).rejects.toMatchObject({ status: 413 });
+    expect(big.listenerCount('data')).toBe(0);
+    const req = mock();
+    const p = readForm(req as never, 10);
+    req.emit('data', Buffer.from('a=ééé')); // 5 chars, 8 bytes: fits
+    req.emit('data', Buffer.from('é')); // 10 bytes: still fits
+    req.emit('end');
+    expect((await p).get('a')).toBe('éééé');
   });
 });

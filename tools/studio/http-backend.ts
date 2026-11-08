@@ -35,6 +35,12 @@ export interface HttpBackendOptions {
   timeoutMs?: number;
   /** How a request is made (default `fetch`; `/mcp`'s loopback names the Studio's host). */
   fetch?: (url: string, init: RequestInit) => Promise<Response>;
+  /**
+   * The revision each whole file was last read or written at (the storyboard, a room's layout), sent as `x-studio-base`
+   * with its next whole-file write: a teammate's write since is a 409, never lost. Kept by the caller when the backend
+   * lives one request only (`/mcp`); one per backend otherwise.
+   */
+  revisions?: Map<string, string>;
 }
 
 /** What the API answered when it refused: its status and message, as the tool's error says them. */
@@ -48,33 +54,39 @@ export class ApiRefusal extends Error {
 }
 
 export function httpBackend(o: HttpBackendOptions): ToolBackend {
-  const call = async <T>(method: string, path: string, body?: unknown): Promise<T> => {
+  const revisions = o.revisions ?? new Map<string, string>();
+  /** `file`: the whole file this request reads or replaces, whose revision is kept for its next write. */
+  const call = async <T>(method: string, path: string, body?: unknown, file?: string): Promise<T> => {
     const write = method !== 'GET';
     const timeout = AbortSignal.timeout(o.timeoutMs ?? 300_000);
+    const base = write && file ? revisions.get(file) : undefined;
     const r = await (o.fetch ?? fetch)(`${o.api}/${path}`, {
       signal: o.signal ? AbortSignal.any([o.signal, timeout]) : timeout,
       method,
       headers: {
         authorization: `Bearer ${await o.token()}`,
         ...(write ? { 'content-type': 'application/json', 'x-studio-op': randomUUID() } : {}),
+        ...(base ? { 'x-studio-base': base } : {}),
         ...o.headers,
       },
       body: write ? JSON.stringify(body ?? {}) : undefined,
     });
     const data = (await r.json().catch(() => ({ error: `${r.status} ${r.statusText}` }))) as Record<string, unknown>;
     if (!r.ok) throw new ApiRefusal(`${r.status}: ${String(data.error ?? r.statusText)}`, r.status);
+    const rev = r.headers.get('x-studio-revision');
+    if (file && rev) revisions.set(file, rev);
     return data as T;
   };
   const room = (id: string) => `room/${encodeURIComponent(id)}`;
   return {
     game: () => call<GameInfo>('GET', 'game'),
-    room: (id) => call<RoomData>('GET', room(id)),
-    setLayout: (id, layout: Layout) => call('PUT', `${room(id)}/layout`, layout),
+    room: (id) => call<RoomData>('GET', room(id), undefined, `layout:${id}`),
+    setLayout: (id, layout: Layout) => call('PUT', `${room(id)}/layout`, layout, `layout:${id}`),
     setText: (id, path, value) => call('PUT', `${room(id)}/text`, { path, value }),
     setValue: (id, path, value, dry) => call('PUT', `${room(id)}/value`, { path, value, dry }),
     add: (id, e: AddEntity) => call('POST', `${room(id)}/add`, e),
-    storyboardRaw: () => call('GET', 'storyboard'),
-    setStoryboard: (sb) => call('PUT', 'storyboard', sb),
+    storyboardRaw: () => call('GET', 'storyboard', undefined, 'storyboard'),
+    setStoryboard: (sb) => call('PUT', 'storyboard', sb, 'storyboard'),
     notes: () => call<NotesFile>('GET', 'notes'),
     addNote: (n: NewNote) => call('POST', 'notes', { ...n, author: n.author ?? o.author?.() }),
     validate: () => call<ValidateResult>('POST', 'validate'),
