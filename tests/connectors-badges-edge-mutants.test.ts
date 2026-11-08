@@ -430,42 +430,59 @@ describe('OB2 hosted', () => {
 });
 
 describe('OB2 recipients', () => {
-  it('none is invalid; an email one needs the email; plain or hashed, any case', async () => {
+  it('none is invalid; a hashed email needs the email, any case; a plain one is readable in the badge', async () => {
     is(await hosted({ recipient: undefined }), 'invalid', 'no recipient');
     is(await hosted({}, {}), 'indeterminate', 'no email to match the recipient');
+    is(await hosted({}, { email: ' ROBIN@player.example ' }), 'valid');
+    is(
+      await hosted({
+        recipient: { ...RECIPIENT, identity: RECIPIENT.identity.toUpperCase().replace('SHA256$', 'sha256$') },
+      }),
+      'valid',
+    );
     is(
       await hosted(
         { recipient: { type: 'email', identity: 'Robin@Player.Example' } },
         { email: ' ROBIN@player.example ' },
       ),
-      'valid',
+      'indeterminate',
+      'recipient readable in the badge',
+    );
+    is(
+      await hosted({ recipient: { ...RECIPIENT, hashed: 'true' } }),
+      'indeterminate',
+      'recipient readable in the badge',
     );
     is(await hosted({}, { email: 'someone@else.example' }), 'invalid', 'another recipient');
   });
 
-  it('another type is matched as is against the recipient given', async () => {
+  it('another type is readable in the badge: indeterminate, never valid', async () => {
     const r = { recipient: { type: 'url', identity: PLAYER } };
-    is(await hosted(r, { recipient: PLAYER }), 'valid');
-    is(await hosted(r, { recipient: 'did:example:else' }), 'invalid', 'another recipient');
-    is(await hosted(r, {}), 'invalid', 'another recipient');
+    is(
+      await hosted(r, { recipient: PLAYER } as Partial<Submission>),
+      'indeterminate',
+      'recipient readable in the badge',
+    );
+    is(await hosted(r, {}), 'indeterminate', 'recipient readable in the badge');
   });
 });
 
 describe('OB3 recipients and dates', () => {
   const as = (extra: Obj, s: Partial<Submission> = { email: EMAIL }) => run({ badge: di(extra), ...s });
 
-  it('no subject, or a subject id, matched against the recipient given', async () => {
-    is(await run({ badge: signDi(without(cred(), 'credentialSubject')) }), 'invalid', 'another recipient');
+  it('no subject, or a subject id, is readable in the badge: indeterminate, never valid', async () => {
+    const readable = 'recipient readable in the badge';
+    is(await run({ badge: signDi(without(cred(), 'credentialSubject')) }), 'indeterminate', readable);
     const byId = { credentialSubject: { id: PLAYER } };
-    is(await as(byId, { recipient: PLAYER }), 'valid');
-    is(await as(byId, { recipient: 'did:example:else' }), 'invalid', 'another recipient');
-    is(await as(byId, {}), 'invalid', 'another recipient');
+    is(await as(byId, { recipient: PLAYER } as Partial<Submission>), 'indeterminate', readable);
+    is(await as(byId, {}), 'indeterminate', readable);
   });
 
-  it('an email identifier needs the email; plain or hashed', async () => {
+  it('a hashed email identifier needs the email; a plain one is readable in the badge', async () => {
     is(await as({}, {}), 'indeterminate', 'no email to match the recipient');
+    is(await as({}, { email: 'someone@else.example' }), 'invalid', 'another recipient');
     const plain = { credentialSubject: { identifier: [{ identityType: 'emailAddress', identityHash: EMAIL }] } };
-    is(await as(plain), 'valid');
+    is(await as(plain), 'indeterminate', 'recipient readable in the badge');
   });
 
   it('validFrom: up to the clock tolerance ahead is valid, one millisecond more is not', async () => {
@@ -707,16 +724,15 @@ describe('the badge form', () => {
     await vi.waitFor(() => expect(f.rejects).toEqual(['internal']));
   });
 
-  it('passes the email up to 320 characters and the recipient up to 512, nothing longer, nothing else', async () => {
+  it('passes the email up to 320 characters, nothing longer, nothing else (a `recipient` is not read)', async () => {
     const f = await form();
     f.swap();
     const e320 = `${'e'.repeat(310)}@ex.ample`.padEnd(320, 'x');
-    const r512 = 'r'.repeat(512);
-    await f.post({ code: 'GOOD', badge: 'b', email: e320, recipient: r512 });
-    await f.post({ code: 'GOOD', badge: 'b', email: `${e320}x`, recipient: `${r512}x` });
-    await f.post({ code: 'GOOD', badge: 'b', email: 42, recipient: 42 });
-    expect(f.seen).toEqual([{ badge: 'b', email: e320, recipient: r512 }, { badge: 'b' }, { badge: 'b' }]);
-    expect(f.seen.map((s) => Object.keys(s))).toEqual([['badge', 'email', 'recipient'], ['badge'], ['badge']]);
+    await f.post({ code: 'GOOD', badge: 'b', email: e320, recipient: 'r' });
+    await f.post({ code: 'GOOD', badge: 'b', email: `${e320}x` });
+    await f.post({ code: 'GOOD', badge: 'b', email: 42 });
+    expect(f.seen).toEqual([{ badge: 'b', email: e320 }, { badge: 'b' }, { badge: 'b' }]);
+    expect(f.seen.map((s) => Object.keys(s))).toEqual([['badge', 'email'], ['badge'], ['badge']]);
   });
 
   it('a verdict without a signal proposes nothing; the badge id names the proposal; refusals and duplicates said', async () => {

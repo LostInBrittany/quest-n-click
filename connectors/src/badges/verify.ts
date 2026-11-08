@@ -2,8 +2,9 @@
 // formats, verified separately. Open Badges 2.0: a hosted assertion (fetched again from its own `id`) or a signed one
 // (a compact JWS, the key named by `verification.creator`, owned by the issuer). Open Badges 3.0: a Verifiable
 // Credential secured as a VC-JWT or with a Data Integrity proof `eddsa-jcs-2022`. Then, for both: the issuer among the
-// game's, the recipient the player says, the dates, the revocation. A verdict is one of five words; what cannot be
-// checked is `indeterminate`, never `valid`. Every document comes through `fetch` (the SSRF-safe fetcher).
+// game's, the recipient (a hashed email, matched to the player's), the dates, the revocation. A verdict is one of five
+// words; what cannot be checked is `indeterminate`, never `valid`. Every document comes through `fetch` (the SSRF-safe
+// fetcher).
 import { createHash, type KeyObject } from 'node:crypto';
 import { gunzipSync } from 'node:zlib';
 import { didKey, jwkKey, multikey, parseJws, pemKey, verifyEddsaJcs, verifyJws } from './crypto';
@@ -27,8 +28,6 @@ export interface Submission {
   badge: unknown;
   /** The player's email, to match a hashed recipient; hashed at once, never kept. */
   email?: string;
-  /** Or the recipient's identifier (a DID, a URL). */
-  recipient?: string;
 }
 
 export interface VerifierOptions {
@@ -215,17 +214,16 @@ export class BadgeVerifier {
     }
   }
 
+  /**
+   * Only a hashed email proves whose badge it is: a recipient readable in the badge (a clear email, a URL, a DID) can
+   * be copied from it by anyone holding the badge, so it gives `indeterminate`, never `valid`.
+   */
   private recipientOb2(r: unknown, s: Submission): void {
     if (!isObj(r)) throw new Stop('invalid', 'no recipient');
-    const identity = String(r.identity ?? '');
-    if (r.type === 'email') {
-      if (!s.email) throw new Stop('indeterminate', 'no email to match the recipient');
-      const email = s.email.trim().toLowerCase();
-      const want = r.hashed ? `sha256$${sha256(email + String(r.salt ?? ''))}` : email;
-      if (identity.toLowerCase() !== want) throw new Stop('invalid', 'another recipient');
-      return;
-    }
-    if (!s.recipient || identity !== s.recipient) throw new Stop('invalid', 'another recipient');
+    if (r.type !== 'email' || r.hashed !== true) throw new Stop('indeterminate', 'recipient readable in the badge');
+    if (!s.email) throw new Stop('indeterminate', 'no email to match the recipient');
+    const want = `sha256$${sha256(s.email.trim().toLowerCase() + String(r.salt ?? ''))}`;
+    if (String(r.identity ?? '').toLowerCase() !== want) throw new Stop('invalid', 'another recipient');
   }
 
   /** Open Badges 3.0, after the proof is checked. */
@@ -238,18 +236,17 @@ export class BadgeVerifier {
   ): Promise<void> {
     this.allowed(v.issuer);
     const subject = isObj(c.credentialSubject) ? c.credentialSubject : {};
-    const ids = Array.isArray(subject.identifier) ? subject.identifier.filter(isObj) : [];
-    if (ids.length) {
-      if (!s.email) throw new Stop('indeterminate', 'no email to match the recipient');
-      const email = s.email.trim().toLowerCase();
-      const ok = ids.some(
-        (i) =>
-          i.identityType === 'emailAddress' &&
-          String(i.identityHash ?? '').toLowerCase() ===
-            (i.hashed ? `sha256$${sha256(email + String(i.salt ?? ''))}` : email),
-      );
-      if (!ok) throw new Stop('invalid', 'another recipient');
-    } else if (!s.recipient || subject.id !== s.recipient) throw new Stop('invalid', 'another recipient');
+    // As in OB2: a hashed email only (an `id` or a clear email can be copied from the credential).
+    const ids = (Array.isArray(subject.identifier) ? subject.identifier.filter(isObj) : []).filter(
+      (i) => i.identityType === 'emailAddress' && i.hashed === true,
+    );
+    if (!ids.length) throw new Stop('indeterminate', 'recipient readable in the badge');
+    if (!s.email) throw new Stop('indeterminate', 'no email to match the recipient');
+    const email = s.email.trim().toLowerCase();
+    const ok = ids.some(
+      (i) => String(i.identityHash ?? '').toLowerCase() === `sha256$${sha256(email + String(i.salt ?? ''))}`,
+    );
+    if (!ok) throw new Stop('invalid', 'another recipient');
     const from = Date.parse(String(c.validFrom ?? c.issuanceDate ?? ''));
     if (Number.isFinite(from) && from > this.now() + SKEW) throw new Stop('invalid', 'not valid yet');
     const until = Date.parse(String(c.validUntil ?? c.expirationDate ?? ''));

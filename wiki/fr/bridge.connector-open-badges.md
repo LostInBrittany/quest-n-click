@@ -87,8 +87,10 @@ configuration et son jeton. `npm run connector -- open-badge …` dans le dépô
      -d '{"code":"ABCD2345","badge":"https://badges.example.org/assertions/42","email":"player@example.org"}'
    ```
 
-   `badge` est une URL, un JWS compact, ou le justificatif lui-même ; `email` (ou `recipient`) est ce à quoi on
-   compare un destinataire haché. La réponse est `202 {"status":"valid","signal":"accepted"}`, ou
+   `badge` est une URL, un JWS compact, ou le justificatif lui-même ; `email` est ce à quoi on compare le
+   destinataire haché du badge. Seul un badge dont le destinataire est un e-mail haché peut être `valid` (next) : un
+   destinataire lisible dans le badge (un e-mail en clair, une URL, un DID, un `credentialSubject.id` OB3) peut être
+   recopié par quiconque voit le badge, il donne donc `indeterminate` ; un champ `recipient` n’est plus lu. La réponse est `202 {"status":"valid","signal":"accepted"}`, ou
    `200 {"status":"…","signal":"none"}` quand le jeu ne déclare aucun signal pour ce verdict.
 
 <a name="expected-result"></a>
@@ -107,7 +109,8 @@ configuration et son jeton. `npm run connector -- open-badge …` dans le dépô
 |---|---|---|
 | 422 `{"error":"pairing-pairing"}` | Le code est inconnu, expiré ou déjà utilisé : un code ne sert qu’une fois | Un nouveau code depuis le jeu |
 | 400 `{"error":"shape"}` | Pas du JSON, ou pas de `code` | Poster `{ code, badge, email? }` |
-| 202 avec `"status":"indeterminate"` | Une suite de preuve qu’il ne sait pas vérifier (`eddsa-rdfc-2022`…), ou un document qu’il n’a pas pu chercher sous sa politique | Demander à l’émetteur un format pris en charge ; vérifier `hosts` |
+| 202 avec `"status":"indeterminate"` | Une suite de preuve qu’il ne sait pas vérifier (`eddsa-rdfc-2022`…), un document qu’il n’a pas pu chercher sous sa politique, ou un destinataire qui n’est pas un e-mail haché | Demander à l’émetteur un format pris en charge ou un destinataire haché ; vérifier `hosts` |
+| 409 `{"status":"valid","signal":"claimed"}` | Un autre joueur a déjà utilisé ce badge (next) | — |
 | 202 avec `"status":"invalid"` | Un autre émetteur que ceux du jeu, un destinataire qui ne correspond pas, une signature mauvaise ou faible | — |
 | 413, ou 429 `{"error":"rate"}` | Un corps de plus de 64 Ko ; plus de 30 envois par minute depuis une adresse | — |
 
@@ -134,13 +137,14 @@ Arrêtez le processus (SIGTERM). Révoquez son jeton sur le Bridge s’il a fuit
 - **Open Badges 2.0** : hébergé (l’assertion recherchée de nouveau à partir de son propre id) ou signé (un JWS dont
   l’émetteur possède la clé). **3.0** : un VC-JWT, ou une preuve Data Integrity `eddsa-jcs-2022` ; les autres suites,
   comme `eddsa-rdfc-2022`, sont `indeterminate`, jamais `valid`.
-- L’émetteur parmi les `issuers` du jeu ; le destinataire contre l’e-mail (haché avec le sel du badge, puis
-  abandonné) ; les dates ; la révocation (listes de révocation OB2, `1EdTechRevocationList` OB3 et listes de statut
+- L’émetteur parmi les `issuers` du jeu ; le destinataire, qui doit être un e-mail haché, contre l’e-mail (haché avec
+  le sel du badge, puis abandonné) ; les dates ; la révocation (listes de révocation OB2, `1EdTechRevocationList` OB3 et listes de statut
   Bitstring, gardées un jour au plus).
 - Depuis la 4.3.0, une clé trop faible pour son algorithme rend le badge `invalid` (une clé RSA de moins de 2 048 bits,
   une autre courbe que P-256 pour ES256, autre chose qu’Ed25519 pour `eddsa-jcs-2022`).
-- La clé est `sha256('open-badge:' + joueur + ':' + id du badge + ':' + verdict)` : le même badge avec le même verdict
-  pour le même joueur fait un seul signal.
+- La clé est `sha256('open-badge:' + id du badge + ':' + verdict)` : le même badge avec le même verdict pour le même
+  joueur fait un seul signal. Un badge valide compte pour un seul joueur : le premier qui l’utilise le garde, un autre
+  reçoit 409 `claimed` (next). Le connecteur le retient en mémoire : un redémarrage l’oublie.
 
 <a name="network-policy"></a>
 
