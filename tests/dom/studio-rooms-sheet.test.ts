@@ -134,6 +134,25 @@ describe('entitySheet', () => {
     expect(spies.editRule).toHaveBeenCalledWith(0);
   });
 
+  it("a room with exits (#461): + Reaction appends after the written reactions; an exit's own is shown, not edited", () => {
+    // The room as the Studio receives it: normalizeExits appended the exit's rules after the written one.
+    const go = { id: 'exit.kitchen.door.go', verb: ['use'], a: 'door', do: [{ goto: 'hall' }], exit: 'door' };
+    const locked = { id: 'exit.kitchen.door.locked', verb: ['use'], a: 'door', do: ['Locked.'], exit: 'door' };
+    const { h, spies } = host({
+      def: { ...def, exits: { door: { name: 'door', to: 'hall', locked: 'Locked.' } }, on: [...def.on!, go, locked] },
+      layout: {},
+      texts,
+      file,
+    });
+    const rules = entitySheet(h, { kind: 'hotspot', id: 'door' })[3] as HTMLElement;
+    expect(rules.querySelector('h3 .muted')?.textContent).toBe('3');
+    const edits = [...rules.querySelectorAll('button')].filter((b) => b.textContent === 'Edit…');
+    expect(edits).toHaveLength(1); // the written reaction only
+    expect(text([rules], '.rulehead .muted')).toEqual(['on[0]', 'from exit door', 'from exit door']);
+    [...rules.querySelectorAll('button')].find((b) => b.textContent === '+ Reaction')?.click();
+    expect(spies.editRule).toHaveBeenCalledWith(1, { verb: 'look', a: 'door', do: [] });
+  });
+
   it("an exit's hotspot offers what a single tap does (#188): the game's setting, go through, or walk there", () => {
     const { h, spies } = host({
       def: { ...def, exits: { door: { name: 'door', to: 'hall', onTap: 'walk' } } },
