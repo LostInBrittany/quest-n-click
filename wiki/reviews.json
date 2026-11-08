@@ -44,18 +44,16 @@
     },
     "bridge-bad-token-before-player": {
       "claimTextHash": "ca4d05733dd6e4943c1ea1dd02b2edc3e2a2e8f7a65bdc2ce95048cad898d07f",
-      "testFileHash": "f8274c21f59b9c8d80e5b6e87755e58be130b2e0f8e1e8ffaeb42cd210b07f57",
+      "testFileHash": "597734f1c608db306ad4dea36acffe9b8cf66f6c4e018cb27107002f8ad48b0d",
       "reviewers": [
-        { "name": "claude-4.5-c2", "kind": "ai", "relation": "author", "date": "2026-10-23" },
-        { "name": "wanoo", "kind": "human", "relation": "independent", "date": "2026-10-24" }
+        { "name": "LostInBrittany", "kind": "human", "relation": "independent", "date": "2026-11-08" }
       ]
     },
     "bridge-badge-network-policy": {
       "claimTextHash": "45a565c2f47aab3eca3307f312bad8a15b670ad788610df8c82c7cb5503dd496",
-      "testFileHash": "ae468479a9f502867d2783007f51799e34d32fba4c4968cac7b26f4e0a8f3b7d",
+      "testFileHash": "fd29cd244be90fc31f33f59b9a3c846915bc74df9812c557bc8f6fdb7e16d66e",
       "reviewers": [
-        { "name": "claude-4.5-writers", "kind": "ai", "relation": "author", "date": "2026-10-23" },
-        { "name": "wanoo", "kind": "human", "relation": "independent", "date": "2026-10-24" }
+        { "name": "LostInBrittany", "kind": "human", "relation": "independent", "date": "2026-11-08" }
       ]
     },
     "bridge-busy-503": {
@@ -68,26 +66,23 @@
     },
     "bridge-dedupe-concurrent": {
       "claimTextHash": "6e8fe51f1ac0d6fdb8001ffef46489b88de6a60fc60f75a5734cc428e95a3442",
-      "testFileHash": "f8274c21f59b9c8d80e5b6e87755e58be130b2e0f8e1e8ffaeb42cd210b07f57",
+      "testFileHash": "597734f1c608db306ad4dea36acffe9b8cf66f6c4e018cb27107002f8ad48b0d",
       "reviewers": [
-        { "name": "claude-4.5-c2", "kind": "ai", "relation": "author", "date": "2026-10-23" },
-        { "name": "wanoo", "kind": "human", "relation": "independent", "date": "2026-10-24" }
+        { "name": "LostInBrittany", "kind": "human", "relation": "independent", "date": "2026-11-08" }
       ]
     },
     "bridge-duplicate-200": {
       "claimTextHash": "f59732398397f0844be63cc68716e592b2c47f5c179bb1bfa11f2f86b742aef9",
-      "testFileHash": "f8274c21f59b9c8d80e5b6e87755e58be130b2e0f8e1e8ffaeb42cd210b07f57",
+      "testFileHash": "597734f1c608db306ad4dea36acffe9b8cf66f6c4e018cb27107002f8ad48b0d",
       "reviewers": [
-        { "name": "claude-4.5-c2", "kind": "ai", "relation": "author", "date": "2026-10-23" },
-        { "name": "wanoo", "kind": "human", "relation": "independent", "date": "2026-10-24" }
+        { "name": "LostInBrittany", "kind": "human", "relation": "independent", "date": "2026-11-08" }
       ]
     },
     "bridge-email-unseen-when-away": {
       "claimTextHash": "2bed8ec9046edfd951e32a0c333d80a4b0897b827ed1e1b3d29c7898e01e0b23",
-      "testFileHash": "f75071be9c114271224cf55d18ba6717841e5b4862027fc8c9871ff66befd739",
+      "testFileHash": "46ae9c8084df2ec39ce663426fbd1083254f4de0d47698676b2b701560e33905",
       "reviewers": [
-        { "name": "claude-4.5-writers", "kind": "ai", "relation": "author", "date": "2026-10-23" },
-        { "name": "wanoo", "kind": "human", "relation": "independent", "date": "2026-10-24" }
+        { "name": "LostInBrittany", "kind": "human", "relation": "independent", "date": "2026-11-08" }
       ]
     },
     "bridge-proof-adversarial": {
@@ -148,10 +143,9 @@
     },
     "bridge-sequences-contiguous": {
       "claimTextHash": "dd3cb12205d9443de02f61270144123ce5ddebf553dbe2a66e8e27d076b71057",
-      "testFileHash": "f8274c21f59b9c8d80e5b6e87755e58be130b2e0f8e1e8ffaeb42cd210b07f57",
+      "testFileHash": "597734f1c608db306ad4dea36acffe9b8cf66f6c4e018cb27107002f8ad48b0d",
       "reviewers": [
-        { "name": "claude-4.5-c2", "kind": "ai", "relation": "author", "date": "2026-10-23" },
-        { "name": "wanoo", "kind": "human", "relation": "independent", "date": "2026-10-24" }
+        { "name": "LostInBrittany", "kind": "human", "relation": "independent", "date": "2026-11-08" }
       ]
     },
     "bridge-session-replays-offline": {
@@ -292,18 +286,16 @@
     },
     "dry-run-writes-nothing": {
       "claimTextHash": "55a909a006778dc6551addc5d54c3bf92a9c9fbb96634ff370e6a312fa6e5f20",
-      "testFileHash": "12507f48e679b2754e18bcc700c1204961301d9f731de869fa96dbf828d5f9a9",
+      "testFileHash": "7372900e6ba759b45f510c4d076ebad448b65268221e178458c5f56ab8c88193",
       "reviewers": [
-        { "name": "claude-4.5-writers", "kind": "ai", "relation": "author", "date": "2026-10-23" },
-        { "name": "wanoo", "kind": "human", "relation": "independent", "date": "2026-10-24" }
+        { "name": "LostInBrittany", "kind": "human", "relation": "independent", "date": "2026-11-08" }
       ]
     },
     "edit-taken-back": {
       "claimTextHash": "dc5450f49453432dc35b826b8ae0eb088ca14e9092e0b025fcabd3fcf6ca688f",
-      "testFileHash": "12507f48e679b2754e18bcc700c1204961301d9f731de869fa96dbf828d5f9a9",
+      "testFileHash": "7372900e6ba759b45f510c4d076ebad448b65268221e178458c5f56ab8c88193",
       "reviewers": [
-        { "name": "claude-4.5-writers", "kind": "ai", "relation": "author", "date": "2026-10-23" },
-        { "name": "wanoo", "kind": "human", "relation": "independent", "date": "2026-10-24" }
+        { "name": "LostInBrittany", "kind": "human", "relation": "independent", "date": "2026-11-08" }
       ]
     },
     "emit-order": {
@@ -411,10 +403,9 @@
     },
     "invitation-once-verified-email": {
       "claimTextHash": "78fab9fedd5eeb27cb476be31826f9f697d1a8bea8be1c46ce859d9cac934b87",
-      "testFileHash": "21bf03e22d469f7ef4402ea7f951260bbcad2f201b873415a0e50a107e64b621",
+      "testFileHash": "0ee1bc5c0db50fd457e26beeeeb88a8ec2cf8a35e1ee37b29e787ce572779375",
       "reviewers": [
-        { "name": "claude-4.5-writers", "kind": "ai", "relation": "author", "date": "2026-10-23" },
-        { "name": "wanoo", "kind": "human", "relation": "independent", "date": "2026-10-24" }
+        { "name": "LostInBrittany", "kind": "human", "relation": "independent", "date": "2026-11-08" }
       ]
     },
     "job-clock-skew": {
@@ -427,42 +418,37 @@
     },
     "lan-token-required": {
       "claimTextHash": "76630f63eb2511f6410d1ba6ceb076f697cd67f3499476e18c693e2824ffe938",
-      "testFileHash": "2b552df3107b95dd1f98419b9e569e95c435fd08e8d5ad2bbc899157ff8d3798",
+      "testFileHash": "639a7e4a9f76897b582e4bd3dcf67a58cb711d8ff76a174ba5750574f4d06e7b",
       "reviewers": [
-        { "name": "claude-4.5-writers", "kind": "ai", "relation": "author", "date": "2026-10-23" },
-        { "name": "wanoo", "kind": "human", "relation": "independent", "date": "2026-10-24" }
+        { "name": "LostInBrittany", "kind": "human", "relation": "independent", "date": "2026-11-08" }
       ]
     },
     "lan-token-same-origin": {
       "claimTextHash": "d05f539995712f16a96566e5deadd2ca54a0483ded5cd708d987e11e1e73ef5d",
-      "testFileHash": "2b552df3107b95dd1f98419b9e569e95c435fd08e8d5ad2bbc899157ff8d3798",
+      "testFileHash": "639a7e4a9f76897b582e4bd3dcf67a58cb711d8ff76a174ba5750574f4d06e7b",
       "reviewers": [
-        { "name": "claude-4.5-writers", "kind": "ai", "relation": "author", "date": "2026-10-23" },
-        { "name": "wanoo", "kind": "human", "relation": "independent", "date": "2026-10-24" }
+        { "name": "LostInBrittany", "kind": "human", "relation": "independent", "date": "2026-11-08" }
       ]
     },
     "lan-writes-need-token": {
       "claimTextHash": "f104277b001d81f277f87f7f7d209463e014478d18b845f294d25550ed781b36",
-      "testFileHash": "2b552df3107b95dd1f98419b9e569e95c435fd08e8d5ad2bbc899157ff8d3798",
+      "testFileHash": "639a7e4a9f76897b582e4bd3dcf67a58cb711d8ff76a174ba5750574f4d06e7b",
       "reviewers": [
-        { "name": "claude-4.5-writers", "kind": "ai", "relation": "author", "date": "2026-10-23" },
-        { "name": "wanoo", "kind": "human", "relation": "independent", "date": "2026-10-24" }
+        { "name": "LostInBrittany", "kind": "human", "relation": "independent", "date": "2026-11-08" }
       ]
     },
     "last-owner-stays": {
       "claimTextHash": "3cf29e98e4330db47ac4f7b99f56e2573a79428235dd1c73c41d641e62fa5453",
-      "testFileHash": "21bf03e22d469f7ef4402ea7f951260bbcad2f201b873415a0e50a107e64b621",
+      "testFileHash": "0ee1bc5c0db50fd457e26beeeeb88a8ec2cf8a35e1ee37b29e787ce572779375",
       "reviewers": [
-        { "name": "claude-4.5-writers", "kind": "ai", "relation": "author", "date": "2026-10-23" },
-        { "name": "wanoo", "kind": "human", "relation": "independent", "date": "2026-10-24" }
+        { "name": "LostInBrittany", "kind": "human", "relation": "independent", "date": "2026-11-08" }
       ]
     },
     "mcp-bearer-only": {
       "claimTextHash": "d9b1b239ce8dd56a875d924c80d2413ae21a16d3cc976f5c9522449a7a1874b9",
-      "testFileHash": "485f412feaa13bfdb8557b8002dcf8c96c374d91d2a03222f4713af8223781ea",
+      "testFileHash": "785573b4b67935f7d0fac79361db21522c83eb485eabcc2f727662e5f5d5de13",
       "reviewers": [
-        { "name": "claude-4.5-writers", "kind": "ai", "relation": "author", "date": "2026-10-23" },
-        { "name": "wanoo", "kind": "human", "relation": "independent", "date": "2026-10-24" }
+        { "name": "LostInBrittany", "kind": "human", "relation": "independent", "date": "2026-11-08" }
       ]
     },
     "metrics-404-without-token": {
@@ -499,10 +485,9 @@
     },
     "newer-schema-refused": {
       "claimTextHash": "a1ec3318524c6f481690916a531fbd7565126fa1cc879ab0e865f979a97ec950",
-      "testFileHash": "947631cc49a86edda1aece09b821204663153f98b4a93708c21a6ebd1a275f41",
+      "testFileHash": "573744f30221813e58fdfddd5a535236cfce86ccd0434575ed0701a32e073160",
       "reviewers": [
-        { "name": "claude-4.5-c2", "kind": "ai", "relation": "author", "date": "2026-10-23" },
-        { "name": "wanoo", "kind": "human", "relation": "independent", "date": "2026-10-24" }
+        { "name": "LostInBrittany", "kind": "human", "relation": "independent", "date": "2026-11-08" }
       ]
     },
     "no-silent-recut": {
@@ -523,18 +508,16 @@
     },
     "own-names-only": {
       "claimTextHash": "1d2c5154bd5f6d8ce6221c472accafb559951e141809db28a907f6f2286eb84e",
-      "testFileHash": "2b552df3107b95dd1f98419b9e569e95c435fd08e8d5ad2bbc899157ff8d3798",
+      "testFileHash": "639a7e4a9f76897b582e4bd3dcf67a58cb711d8ff76a174ba5750574f4d06e7b",
       "reviewers": [
-        { "name": "claude-4.5-writers", "kind": "ai", "relation": "author", "date": "2026-10-23" },
-        { "name": "wanoo", "kind": "human", "relation": "independent", "date": "2026-10-24" }
+        { "name": "LostInBrittany", "kind": "human", "relation": "independent", "date": "2026-11-08" }
       ]
     },
     "owner-last-owner-and-removal": {
       "claimTextHash": "cb8d703fe74851748e88ac6fbf1c48a7e478a8ee07a273dae3502e4ded9c30bb",
-      "testFileHash": "21bf03e22d469f7ef4402ea7f951260bbcad2f201b873415a0e50a107e64b621",
+      "testFileHash": "0ee1bc5c0db50fd457e26beeeeb88a8ec2cf8a35e1ee37b29e787ce572779375",
       "reviewers": [
-        { "name": "claude-4.5-writers", "kind": "ai", "relation": "author", "date": "2026-10-23" },
-        { "name": "wanoo", "kind": "human", "relation": "independent", "date": "2026-10-24" }
+        { "name": "LostInBrittany", "kind": "human", "relation": "independent", "date": "2026-11-08" }
       ]
     },
     "patrol-solved": {
@@ -563,10 +546,9 @@
     },
     "policy-provider-no-redirect": {
       "claimTextHash": "c5050d72bc34c35f22d7f411a012a8ec393b8e0a2090c04b8d27055948b717c2",
-      "testFileHash": "2b552df3107b95dd1f98419b9e569e95c435fd08e8d5ad2bbc899157ff8d3798",
+      "testFileHash": "639a7e4a9f76897b582e4bd3dcf67a58cb711d8ff76a174ba5750574f4d06e7b",
       "reviewers": [
-        { "name": "claude-4.5-writers", "kind": "ai", "relation": "author", "date": "2026-10-23" },
-        { "name": "wanoo", "kind": "human", "relation": "independent", "date": "2026-10-24" }
+        { "name": "LostInBrittany", "kind": "human", "relation": "independent", "date": "2026-11-08" }
       ]
     },
     "prng-same-seed-same-draws": {
@@ -587,26 +569,23 @@
     },
     "provider-answer-cap": {
       "claimTextHash": "938510bd8ceba766ef518818383ad32ebbabd6d8fd9e8071864516cd610c19bd",
-      "testFileHash": "2b552df3107b95dd1f98419b9e569e95c435fd08e8d5ad2bbc899157ff8d3798",
+      "testFileHash": "639a7e4a9f76897b582e4bd3dcf67a58cb711d8ff76a174ba5750574f4d06e7b",
       "reviewers": [
-        { "name": "claude-4.5-writers", "kind": "ai", "relation": "author", "date": "2026-10-23" },
-        { "name": "wanoo", "kind": "human", "relation": "independent", "date": "2026-10-24" }
+        { "name": "LostInBrittany", "kind": "human", "relation": "independent", "date": "2026-11-08" }
       ]
     },
     "provider-no-redirect": {
       "claimTextHash": "89bfed7224f3b0c6d0e35fecfbfe169d84205785e3212c281e9ba44a7a8a6ebb",
-      "testFileHash": "2b552df3107b95dd1f98419b9e569e95c435fd08e8d5ad2bbc899157ff8d3798",
+      "testFileHash": "639a7e4a9f76897b582e4bd3dcf67a58cb711d8ff76a174ba5750574f4d06e7b",
       "reviewers": [
-        { "name": "claude-4.5-writers", "kind": "ai", "relation": "author", "date": "2026-10-23" },
-        { "name": "wanoo", "kind": "human", "relation": "independent", "date": "2026-10-24" }
+        { "name": "LostInBrittany", "kind": "human", "relation": "independent", "date": "2026-11-08" }
       ]
     },
     "provider-unreachable-suspends": {
       "claimTextHash": "ebc62fa2c70869901b0f1d038265c64008cde060741a3c97b3d35a3dc0e31f1e",
-      "testFileHash": "21bf03e22d469f7ef4402ea7f951260bbcad2f201b873415a0e50a107e64b621",
+      "testFileHash": "0ee1bc5c0db50fd457e26beeeeb88a8ec2cf8a35e1ee37b29e787ce572779375",
       "reviewers": [
-        { "name": "claude-4.5-writers", "kind": "ai", "relation": "author", "date": "2026-10-23" },
-        { "name": "wanoo", "kind": "human", "relation": "independent", "date": "2026-10-24" }
+        { "name": "LostInBrittany", "kind": "human", "relation": "independent", "date": "2026-11-08" }
       ]
     },
     "restore-empty-db-only": {
@@ -620,10 +599,9 @@
     },
     "roles-read-review-write-dev": {
       "claimTextHash": "dd33a488ed5a5dfeed34f73acbc157881cdb1454086bb25662ec8d300c5233a3",
-      "testFileHash": "21bf03e22d469f7ef4402ea7f951260bbcad2f201b873415a0e50a107e64b621",
+      "testFileHash": "0ee1bc5c0db50fd457e26beeeeb88a8ec2cf8a35e1ee37b29e787ce572779375",
       "reviewers": [
-        { "name": "claude-4.5-writers", "kind": "ai", "relation": "author", "date": "2026-10-23" },
-        { "name": "wanoo", "kind": "human", "relation": "independent", "date": "2026-10-24" }
+        { "name": "LostInBrittany", "kind": "human", "relation": "independent", "date": "2026-11-08" }
       ]
     },
     "routes-arrival": {
@@ -852,10 +830,9 @@
     },
     "unreadable-session-ends": {
       "claimTextHash": "efc5319199981801970dda0994b1671eda896040784eb419c4e8404edc412df7",
-      "testFileHash": "21bf03e22d469f7ef4402ea7f951260bbcad2f201b873415a0e50a107e64b621",
+      "testFileHash": "0ee1bc5c0db50fd457e26beeeeb88a8ec2cf8a35e1ee37b29e787ce572779375",
       "reviewers": [
-        { "name": "claude-4.5-writers", "kind": "ai", "relation": "author", "date": "2026-10-23" },
-        { "name": "wanoo", "kind": "human", "relation": "independent", "date": "2026-10-24" }
+        { "name": "LostInBrittany", "kind": "human", "relation": "independent", "date": "2026-11-08" }
       ]
     },
     "voice-keyed-then-plain": {
