@@ -14,6 +14,7 @@ import type { SqlDb } from '../../../bridge/src/store-sql';
 import type { BlobStore } from '../ops/blobs';
 import { sha256 } from '../ops/durable';
 import { StudioError } from '../ops/errors';
+import { inLanes } from './previews';
 
 export interface GitConfig {
   /** The repository: `git@github.com:org/game.git`, `https://…` (public), `file://…` (tests). */
@@ -173,18 +174,16 @@ export class GitSync {
       }),
       { readOnly: true },
     );
-    const files = new Map<string, Buffer>();
-    for (const r of rows.files) {
-      const path = String(r.path);
-      if (excluded(path)) continue;
-      const blob = String(r.blob);
-      const bytes = (await this.o.blobs.has(blob))
-        ? await this.o.blobs.get(blob)
-        : readFileSync(join(this.o.gameDir, ...path.split('/')));
+    const kept = rows.files
+      .map((r) => ({ path: String(r.path), blob: String(r.blob) }))
+      .filter((r) => !excluded(r.path));
+    // One request per file (a get that fails on a missing blob reads the folder instead), several at a time.
+    const read = await inLanes(kept, async ({ path, blob }) => {
+      const bytes = await this.o.blobs.get(blob).catch(() => readFileSync(join(this.o.gameDir, ...path.split('/'))));
       if (sha256(bytes) !== blob) throw new StudioError(`${path}: the folder does not match the head; try again`, 409);
-      files.set(path, bytes);
-    }
-    return { revision: Number(rows.rev ?? 0), files };
+      return [path, bytes] as const;
+    });
+    return { revision: Number(rows.rev ?? 0), files: new Map(read) };
   }
 
   /** A game path's path in the repository. */

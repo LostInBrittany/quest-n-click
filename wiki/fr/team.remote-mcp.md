@@ -114,9 +114,12 @@ documentation par le MCP stdio local de la même version du moteur, sans `--serv
   rôle, vos pans, votre nom dans le journal et dans l'audit. L'agent d'un reviewer ne peut pas écrire (403).
 - **Une 423 comme vous.** Un pan tenu par un autre membre refuse l'écriture, et l'outil renvoie le message qui le
   nomme.
-- **Pas de révision de base.** Un agent n'envoie pas de `x-studio-base` : ses écritures sont calculées par le serveur
-  sur le fichier tel qu'il est maintenant et vérifiées par la garde de validation, mais pas refusées parce que
-  quelqu'un a écrit le fichier depuis la lecture de l'agent.
+- **Un fichier entier, d'après ce qu'il a lu.** `set_storyboard` et `set_layout` envoient en `x-studio-base` la
+  révision à laquelle l'agent a lu (ou écrit) ce fichier pour la dernière fois : un fichier écrit depuis par quelqu'un
+  d'autre est refusé (409), et l'agent le relit (next). Ses autres écritures n'envoient pas de base : calculées par le
+  serveur sur le fichier tel qu'il est maintenant et vérifiées par la garde de validation. Sur `/mcp`, les révisions
+  sont gardées par jeton par l'instance qui a servi la lecture : un nouveau jeton, ou une autre instance, écrit sans
+  base.
 - **Appliquée une fois.** Chaque écriture porte son propre identifiant d'opération.
 - **Les notes.** Une note qu'un agent ajoute sans auteur est signée `ai`, enregistrée quand même au nom de votre membre
   (en HTTP, le serveur ne voit jamais le nom du client MCP).

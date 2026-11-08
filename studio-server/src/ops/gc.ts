@@ -24,7 +24,7 @@ export async function collect(
     staging?: { list(prefix: string): AsyncIterable<{ key: string; at: number }>; delete(key: string): Promise<void> };
   },
 ): Promise<Collected> {
-  if (!blobs.list || !blobs.remove) throw new Error('gc: this blob store cannot be listed');
+  if (!blobs.list || !blobs.remove || !blobs.at) throw new Error('gc: this blob store cannot be listed');
   const now = o.now ?? Date.now();
   const grace = o.graceMs ?? 24 * 3_600_000;
   // The rows read once, as a backup reads them: one snapshot of what names a blob.
@@ -34,6 +34,10 @@ export async function collect(
   let removed = 0;
   if (o.delete)
     for (const h of unreferenced) {
+      // Stored again since the listing (a write naming it, its row not landed yet): kept, as any young blob.
+      // shortcut: a put between this check and the deletion is still lost; a conditional delete would close it.
+      const at = await blobs.at(h);
+      if (at === undefined || !(at < now - grace)) continue;
       await blobs.remove(h);
       removed++;
     }

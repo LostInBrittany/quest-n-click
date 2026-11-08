@@ -38,14 +38,26 @@ export function safeReturn(v: string | null): string {
   return v;
 }
 
-function readForm(req: IncomingMessage, limit = 16_384): Promise<URLSearchParams> {
+export function readForm(req: IncomingMessage, limit = 16_384): Promise<URLSearchParams> {
   return new Promise((ok, fail) => {
-    let s = '';
+    // As readJson: refused on its length, or answered with its 413 and the rest drained, never kept.
+    if (Number(req.headers['content-length'] ?? 0) > limit) {
+      req.resume();
+      return fail(new StudioError('body too large', 413));
+    }
+    let size = 0;
+    const chunks: Buffer[] = [];
     req.on('data', (c: Buffer) => {
-      s += c.toString('utf8');
-      if (s.length > limit) fail(new StudioError('body too large', 413));
+      size += c.length;
+      if (size > limit) {
+        fail(new StudioError('body too large', 413));
+        req.removeAllListeners('data');
+        req.resume();
+        return;
+      }
+      chunks.push(c);
     });
-    req.on('end', () => ok(new URLSearchParams(s)));
+    req.on('end', () => ok(new URLSearchParams(Buffer.concat(chunks).toString('utf8'))));
     req.on('error', fail);
   });
 }

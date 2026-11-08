@@ -251,6 +251,10 @@ export function s3BlobStore(
         if (/^[0-9a-f]{64}$/.test(h)) yield { hash: h, at: o.at };
       }
     },
+    async at(h) {
+      for await (const o of s3.list(key(h))) if (o.key === key(h)) return o.at;
+      return undefined;
+    },
     async remove(h) {
       written.delete(h);
       await s3.delete(key(h));
