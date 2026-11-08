@@ -17,7 +17,8 @@ network ("SSRF"). The Studio closes each one by default and opens only what you 
 ## Local and LAN
 
 - **Loopback by default.** `npm run studio` and `npm run dev` listen on `127.0.0.1` (port 5173): another machine cannot
-  reach their file-writing routes.
+  reach their file-writing routes. Started with `--host` instead, they still answer only to this machine (403 to any
+  other address, since next): `npm run studio:lan` is the way onto the network.
 - **Its own names only.** Every Studio, asset, layout and assistant route answers only to the names of this machine
   (`localhost`, `127.0.0.1`, `[::1]`), and in LAN mode to the addresses `studio:lan` serves. A page on another site
   that rebinds its name to your machine sends that name as `Host`: refused (403), even with a matching `Origin`.

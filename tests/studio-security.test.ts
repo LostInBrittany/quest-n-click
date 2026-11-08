@@ -171,3 +171,62 @@ describe('provider calls', () => {
     await expect(readCapped(body(32), 16)).rejects.toThrow(/exceeds/);
   });
 });
+
+describe('the Studio guard behind Vite', () => {
+  it('covers /__studio in any case: connect mounts its API routes without regard to case', async () => {
+    delete process.env.WEB_SCUMM_LAN;
+    const { createServer: createVite } = await import('vite');
+    const { studioPlugin } = await import('../tools/studio/plugin');
+    // The plugin stays out of the other suites' dev servers under Vitest; this one runs it.
+    const vitest = process.env.VITEST;
+    delete process.env.VITEST;
+    const vite = await createVite({
+      configFile: false,
+      logLevel: 'silent',
+      appType: 'custom',
+      plugins: [studioPlugin()],
+      server: { middlewareMode: true, hmr: false, watch: null },
+    }).finally(() => {
+      process.env.VITEST = vitest;
+    });
+    const server = createServer(vite.middlewares);
+    await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve));
+    const base = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
+    const post = (path: string) =>
+      fetch(`${base}${path}`, { method: 'POST', headers: { origin: 'https://evil.example' }, body: '{}' }).then(
+        (r) => r.status,
+      );
+    try {
+      expect(await post('/__studio/api/notes')).toBe(403);
+      expect(await post('/__STUDIO/api/notes')).toBe(403);
+      expect(await post('/__Studio/api/assets/decor')).toBe(403);
+    } finally {
+      await new Promise<void>((resolve) => server.close(() => resolve()));
+      await vite.close();
+    }
+  });
+});
+
+describe('outside LAN mode', () => {
+  it('serves this machine only, whatever Host and Origin say', async () => {
+    delete process.env.WEB_SCUMM_LAN;
+    const seen = (remoteAddress: string) => {
+      let status = 200;
+      const req = {
+        socket: { remoteAddress },
+        headers: { host: 'localhost:5173', origin: 'http://localhost:5173' },
+        method: 'POST',
+        url: '/__studio/api/notes',
+      };
+      const res = { statusCode: 200, end: () => {}, setHeader: () => {} };
+      const ok = authorizeStudioRequest(req as never, res as never);
+      status = ok ? 200 : res.statusCode;
+      return status;
+    };
+    expect(seen('127.0.0.1')).toBe(200);
+    expect(seen('::1')).toBe(200);
+    expect(seen('::ffff:127.0.0.1')).toBe(200);
+    expect(seen('192.168.1.30')).toBe(403);
+    expect(seen('::ffff:192.168.1.30')).toBe(403);
+  });
+});
