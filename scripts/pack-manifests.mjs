@@ -206,3 +206,43 @@ export function lockWithPeers(text, manifest) {
   else delete top.peerDependencies;
   return `${JSON.stringify(lock, null, 2)}\n`;
 }
+
+/** What the package ships, by tracked path. */
+export const SHIP = [
+  /^src\//,
+  /^tools\//,
+  // The Studio's operation core (4.2.1): the dev server, `ids` and the MCP server import it.
+  /^studio-server\//,
+  // Its journal's SQL layer (4.2.1), from the Bridge: the store, SQLite and the migrations runner, and the proxies'
+  // allowlist; nothing else.
+  /^bridge\/src\/(store|store-async|store-sql|store-sqlite|migrations|allowlist)\.ts$/,
+  /^cli\//,
+  /^games\/_template\//,
+  /^public\/(icons|fonts)\//,
+  /^public\/og\.png$/,
+  /^(index|studio)\.html$/,
+  /^vite\.config\.ts$/,
+  /^tsconfig\.json$/,
+  // The hashed Python requirements (D54): the processing worker's build hook installs them from the engine's package.
+  /^requirements\.txt$/,
+  /^LICENSE$/,
+  // The Studio's assistant imports it as its system prompt (src/studio/assistant.ts, #454).
+  /^AGENTS\.md$/,
+];
+// The Bridge's development tools (Biscuit's samples, the Rust cross-check) stay in the repository.
+export const SKIP = [
+  /__pycache__|\.pyc$/,
+  /^tools\/audit-assets\.ts$/,
+  /^tools\/reality-(xcheck|fixtures)\.ts$/,
+  // The connectors' fuzz harness reads the repository's corpus and sample game (4.1.9): a development tool.
+  /^tools\/fuzz-connectors\.ts$/,
+  // The maintainers' benches (#454): the load and cluster benches, the proof matrix and the golden save read the
+  // repository (tests/, games/demo, the Bridge's CLI), which the package does not carry. tools/release and tools/field
+  // stay: tools/wiki, which the Studio loads its docs with, imports them.
+  /^tools\/(audit-corpus|bridge-cluster|bridge-load|golden-save|prove-matrix|runs-load)\.ts$/,
+  // The release commands (`npm run release`), the maintainers' own: they read scripts/.
+  /^tools\/release\/(prepare|release-run)\.ts$/,
+];
+/** The engine package's files among `git ls-files` output (scripts/pack.mjs; tests/pack-manifests.test.ts). */
+export const engineShipped = (list) =>
+  list.split('\n').filter((f) => f && SHIP.some((r) => r.test(f)) && !SKIP.some((r) => r.test(f)));
