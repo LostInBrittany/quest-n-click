@@ -1,5 +1,5 @@
 // A minimal IMAP4rev1 client (4.1.9, docs/dev/threat-models/email.md): the seven commands the email connector needs
-// (LOGIN, SELECT, UID SEARCH, UID FETCH, UID STORE, EXPUNGE, LOGOUT) over TLS, and nothing else. Written here rather
+// (LOGIN, SELECT, UID SEARCH, UID FETCH, UID STORE, CAPABILITY, UID EXPUNGE, LOGOUT) over TLS, and nothing else. Written here rather
 // than taken from a library (ADR 0008): the usual client brings eight runtime packages (a logger, a SOCKS client,
 // charset tables) for what is, for this connector, a few hundred lines. Every read is bounded: a line at most 8 KB, a
 // literal at most `maxLiteral`, a command answered within `timeoutMs`, else the connection is closed.
@@ -31,6 +31,8 @@ const MAX_JOINED_LINE = 64 * 1024;
 const MAX_UNTAGGED = 1000;
 const MAX_LITERALS = 64;
 const MAX_RESPONSE_BYTES = 1024 * 1024;
+/** The keyword on every message the connector handled: the retention sweep and the expunge touch nothing else. */
+const KEYWORD = '$QuestNClick';
 
 /** An IMAP quoted string; a credential with CR, LF or NUL is refused, never sent. */
 function quote(s: string): string {
@@ -202,10 +204,12 @@ export class ImapClient {
     return this.search('UNSEEN');
   }
 
-  /** The UIDs of the messages seen, not flagged, received before `date` (the retention sweep). */
+  /** The UIDs of the messages it handled, seen, not flagged, received before `date` (the retention sweep). */
   seenBefore(date: Date): Promise<number[]> {
     const m = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][date.getUTCMonth()];
-    return this.search(`SEEN UNFLAGGED BEFORE ${date.getUTCDate()}-${m}-${date.getUTCFullYear()}`);
+    return this.search(
+      `KEYWORD ${KEYWORD} SEEN UNFLAGGED UNDELETED BEFORE ${date.getUTCDate()}-${m}-${date.getUTCFullYear()}`,
+    );
   }
 
   /** A message's size as the server declares it (checked before its body is fetched). */
@@ -222,12 +226,21 @@ export class ImapClient {
     return lit ? new Uint8Array(lit) : null;
   }
 
+  /** System flags on a message, then the connector's keyword apart: a server refusing keywords still gets `\Seen`. */
   async flag(uid: number, flags: string[]): Promise<void> {
     await this.command(`UID STORE ${uid} +FLAGS.SILENT (${flags.filter((f) => /^\\\w+$/.test(f)).join(' ')})`);
+    await this.command(`UID STORE ${uid} +FLAGS.SILENT (${KEYWORD})`);
   }
 
-  async expunge(): Promise<void> {
-    await this.command('EXPUNGE');
+  /**
+   * Removes these messages only (`UID EXPUNGE`, RFC 4315), never what another client marked deleted. Without UIDPLUS
+   * nothing is expunged (they stay flagged `\Deleted`) and it answers false.
+   */
+  async expunge(uids: number[]): Promise<boolean> {
+    const cap = await this.command('CAPABILITY');
+    if (!cap.untagged.some((u) => /^\* CAPABILITY\b.*\bUIDPLUS\b/i.test(u.line))) return false;
+    await this.command(`UID EXPUNGE ${uids.join(',')}`);
+    return true;
   }
 
   async logout(): Promise<void> {

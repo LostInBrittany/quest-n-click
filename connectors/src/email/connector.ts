@@ -240,6 +240,8 @@ export class EmailConnector implements RealityConnector {
   }
 
   private running: Promise<void> | null = null;
+  /** The server lacks UIDPLUS: said once, then the deleted messages are left flagged. */
+  private warnedExpunge = false;
   /** One pass over the mailbox (a pass already running is the one awaited): new messages, then the retention sweep. */
   poll(): Promise<void> {
     this.running ??= this.pollOnce().finally(() => {
@@ -262,7 +264,7 @@ export class EmailConnector implements RealityConnector {
         ...(c.mailbox ? { mailbox: c.mailbox } : {}),
         ...(c.tls === false ? { tls: false } : {}),
       });
-      let deleted = 0;
+      const deleted: number[] = [];
       for (const uid of (await imap.unseen()).slice(0, 50)) {
         if (this.stopping) break;
         if ((await imap.size(uid)) > this.maxBytes) {
@@ -278,17 +280,20 @@ export class EmailConnector implements RealityConnector {
         const done = o.kind === 'paired' || (o.kind === 'proposed' && o.result.ok);
         if (done && (c.keepDays ?? 0) === 0) {
           await imap.flag(uid, ['\\Seen', '\\Deleted']);
-          deleted++;
+          deleted.push(uid);
         } else await imap.flag(uid, done ? ['\\Seen'] : ['\\Seen', '\\Flagged']);
       }
       if ((c.keepDays ?? 0) > 0)
         for (const uid of await imap.seenBefore(new Date(Date.now() - (c.keepDays ?? 0) * 86_400_000))) {
           await imap.flag(uid, ['\\Deleted']);
-          deleted++;
+          deleted.push(uid);
         }
-      if (deleted) await imap.expunge();
+      if (deleted.length && !(await imap.expunge(deleted)) && !this.warnedExpunge) {
+        this.warnedExpunge = true;
+        ctx.log('email.expunge-unsupported');
+      }
       this.lastPoll = { ok: true, at: Date.now() };
-      ctx.log('email.polled', { deleted });
+      ctx.log('email.polled', { deleted: deleted.length });
     } catch {
       this.lastPoll = { ok: false, at: Date.now() };
       ctx.log('email.poll-failed');

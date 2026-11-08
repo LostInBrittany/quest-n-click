@@ -23,6 +23,7 @@ import {
   connectorsManifest,
   createManifest,
   lockFor,
+  engineShipped,
   lockProblems,
   studioServerManifest,
 } from './pack-manifests.mjs';
@@ -50,41 +51,11 @@ function writeLocked(dir, manifest, lockFile) {
   writeFileSync(join(dir, 'npm-shrinkwrap.json'), `${JSON.stringify(lockFor(lock, manifest), null, 2)}\n`);
 }
 
-/** What the package ships, by tracked path. */
-const SHIP = [
-  /^src\//,
-  /^tools\//,
-  // The Studio's operation core (4.2.1): the dev server, `ids` and the MCP server import it.
-  /^studio-server\//,
-  // Its journal's SQL layer (4.2.1), from the Bridge: the store, SQLite and the migrations runner, and the proxies'
-  // allowlist, and the config whose BridgeError the store throws; nothing else.
-  /^bridge\/src\/(store|store-async|store-sql|store-sqlite|migrations|allowlist|config)\.ts$/,
-  /^cli\//,
-  /^games\/_template\//,
-  /^public\/(icons|fonts)\//,
-  /^public\/og\.png$/,
-  /^(index|studio)\.html$/,
-  /^vite\.config\.ts$/,
-  /^tsconfig\.json$/,
-  // The hashed Python requirements (D54): the processing worker's build hook installs them from the engine's package.
-  /^requirements\.txt$/,
-  /^LICENSE$/,
-];
-// The Bridge's development tools (Biscuit's samples, the Rust cross-check) stay in the repository.
-const SKIP = [
-  /__pycache__|\.pyc$/,
-  /^tools\/audit-assets\.ts$/,
-  /^tools\/reality-(xcheck|fixtures)\.ts$/,
-  // The connectors' fuzz harness reads the repository's corpus and sample game (4.1.9): a development tool.
-  /^tools\/fuzz-connectors\.ts$/,
-];
-const shipped = (list) =>
-  list.split('\n').filter((f) => f && SHIP.some((r) => r.test(f)) && !SKIP.some((r) => r.test(f)));
 const git = (args) => execFileSync('git', args, { cwd: ROOT, encoding: 'utf8' });
 // Tracked files only (4.1.8): a package is what the repository holds, never a file of the machine that packs it. An
 // untracked file under a shipped root is refused rather than left out silently: either commit it or ignore it.
-const files = shipped(git(['ls-files', '--cached']));
-const untracked = shipped(git(['ls-files', '--others', '--exclude-standard']));
+const files = engineShipped(git(['ls-files', '--cached']));
+const untracked = engineShipped(git(['ls-files', '--others', '--exclude-standard']));
 if (untracked.length) {
   console.error(
     `✖  untracked file(s) under a shipped root: ${untracked.join(', ')} (git add or commit them, or add them to .gitignore)`,

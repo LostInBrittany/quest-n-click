@@ -54,6 +54,8 @@ function setup(
     session: async (t: string) => (t === 'tok' ? { ...session } : undefined),
     endSession: async (h: string) => void calls.ended.push(h),
     touch: async (_h: string, f: Record<string, unknown>) => void calls.touch.push(f),
+    claimCheck: async () => true,
+    sessionByHash: async () => ({ ...session }),
     userByIdentity: async () => ('byIdentity' in o ? o.byIdentity : user),
     role: async () => ('role' in o ? o.role : 'dev'),
   };

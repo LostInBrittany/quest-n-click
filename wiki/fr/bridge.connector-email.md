@@ -36,7 +36,8 @@ réponse, une fois par message : un message livré deux fois fait un seul signal
   ```
 
 - Pour le mode webhook : un fournisseur (ou un petit adaptateur devant lui) capable de poster le message brut, signé
-  comme plus bas. Pour le mode IMAP : une boîte joignable en TLS, et son mot de passe dans un fichier.
+  comme plus bas. Pour le mode IMAP : une boîte joignable en TLS, et son mot de passe dans un fichier. Donnez au
+  connecteur une boîte ou un dossier à lui (`imap.mailbox`) : il y lit chaque message non lu et le marque lu.
 
 <a name="where-to-run"></a>
 
@@ -152,9 +153,13 @@ dépôt du moteur, `npx quest-n-click-connector email …` avec le paquet `quest
 ## Fichiers ou données modifiés
 
 - Mode webhook : rien d’écrit ; le message est lu en mémoire puis abandonné.
-- Mode IMAP : des drapeaux dans la boîte. Avec `keepDays: 0` (par défaut), un message est supprimé dès que son signal
-  est accepté (ou trouvé déjà accepté) ; avec `keepDays: N`, au bout de N jours. Un message refusé pour de bon est
-  signalé (`\Flagged`) et gardé pour l’opérateur. Un message refusé pour une raison passagère (le Bridge absent ou
+- Mode IMAP : des drapeaux dans la boîte. Chaque message que le connecteur traite reçoit le mot-clé `$QuestNClick`.
+  Avec `keepDays: 0` (par défaut), un message est supprimé dès que son signal est accepté (ou trouvé déjà accepté) ;
+  avec `keepDays: N`, au bout de N jours. La rétention et la suppression ne touchent que les messages qui portent ce
+  mot-clé : le reste du courrier de l’opérateur dans le dossier, et ce qu’un autre client a marqué supprimé, ne sont
+  pas touchés (next). Supprimer demande un serveur avec UIDPLUS (`UID EXPUNGE`) ; sans lui, les messages sont
+  seulement marqués `\Deleted`, et le journal le dit une fois (`email.expunge-unsupported`). Un message refusé pour de
+  bon est signalé (`\Flagged`) et gardé pour l’opérateur. Un message refusé pour une raison passagère (le Bridge absent ou
   occupé, un quota) reste non lu et est relu au relevé suivant.
 
 > [!GUARANTEE id=bridge-email-unseen-when-away]
@@ -187,7 +192,7 @@ La section `email` :
 | `webhook.perMinutePerIp` | 120 | Envois par minute et par adresse |
 | `imap.host`, `imap.port` | —, 993 | Le serveur de la boîte, en TLS |
 | `imap.user`, `imap.passwordFile` | (obligatoires) | Son identifiant |
-| `imap.mailbox` | `INBOX` | Le dossier relevé |
+| `imap.mailbox` | `INBOX` | Le dossier relevé (de préférence un dossier dédié) |
 | `imap.tls` | `true` | `false` seulement vers cette machine |
 | `imap.pollS` | 60 | Secondes entre deux relevés (50 messages non lus au plus chacun) |
 | `imap.keepDays` | 0 | 0 : supprimer une fois accepté ; N : garder N jours |
@@ -213,7 +218,8 @@ La section `email` :
 
 - **Mode webhook :** rien ; le message est lu en mémoire puis abandonné.
 - **Mode IMAP :** le message reste dans la boîte de l’opérateur, là où il est arrivé, jusqu’à ce que `keepDays` le
-  supprime ; un message refusé reste signalé jusqu’à ce que l’opérateur le supprime.
+  supprime ; un message refusé reste signalé jusqu’à ce que l’opérateur le supprime. `keepDays` ne supprime que les
+  messages que le connecteur a traités (le mot-clé `$QuestNClick`), jamais le reste du courrier du dossier.
 - Un expéditeur qui a envoyé un code d’appairage est retenu sous la forme d’un SHA-256 salé de son adresse (le sel est
   aléatoire et vit aussi longtemps que le processus) associé au `playerId`, en mémoire, pendant `linkDays` ; un
   redémarrage l’oublie.

@@ -197,7 +197,7 @@ describe('the webhook mode', () => {
 /** A scripted IMAP server: the mailbox in memory, the commands the connector sends, and what it did. */
 function fakeImap(
   messages: Map<number, { raw: Buffer; flags: Set<string> }>,
-  o: { lie?: boolean; hostile?: 'zeros' | 'flood' } = {},
+  o: { lie?: boolean; hostile?: 'zeros' | 'flood'; uidplus?: boolean } = {},
 ) {
   const log: string[] = [];
   const server: Server = createServer((s: Socket) => {
@@ -225,11 +225,23 @@ function fakeImap(
           const uids = [...messages].filter(([, m]) => !m.flags.has('\\Seen')).map(([u]) => u);
           s.write(`* SEARCH ${uids.join(' ')}\r\n`);
           ok();
-        } else if (/^UID SEARCH SEEN/.test(cmd)) {
+        } else if (/^UID SEARCH /.test(cmd)) {
+          // The retention sweep's criteria (BEFORE is not modelled: every message counts as old).
+          const keyword = /KEYWORD (\S+)/.exec(cmd)?.[1];
           const uids = [...messages]
-            .filter(([, m]) => m.flags.has('\\Seen') && !m.flags.has('\\Flagged'))
+            .filter(([, m]) => !/\bSEEN\b/.test(cmd) || m.flags.has('\\Seen'))
+            .filter(([, m]) => !/\bUNFLAGGED\b/.test(cmd) || !m.flags.has('\\Flagged'))
+            .filter(([, m]) => !/\bUNDELETED\b/.test(cmd) || !m.flags.has('\\Deleted'))
+            .filter(([, m]) => !keyword || m.flags.has(keyword))
             .map(([u]) => u);
           s.write(`* SEARCH ${uids.join(' ')}\r\n`);
+          ok();
+        } else if (cmd === 'CAPABILITY') {
+          s.write(`* CAPABILITY IMAP4rev1${o.uidplus === false ? '' : ' UIDPLUS'}\r\n`);
+          ok();
+        } else if (/^UID EXPUNGE [\d,]+$/.test(cmd) && o.uidplus !== false) {
+          const set = new Set(cmd.slice(12).split(',').map(Number));
+          for (const [u, m] of messages) if (set.has(u) && m.flags.has('\\Deleted')) messages.delete(u);
           ok();
         } else if (/^UID FETCH (\d+) \(RFC822\.SIZE\)/.test(cmd)) {
           const uid = Number(/(\d+)/.exec(cmd)![1]);
@@ -287,32 +299,51 @@ describe('the IMAP mode', () => {
     await c.poll();
     expect(t.count(playerId)).toBe(1);
     expect([...pairingFirst.keys()]).toEqual([3]);
-    expect([...pairingFirst.get(3)!.flags].sort()).toEqual(['\\Flagged', '\\Seen']);
+    expect([...pairingFirst.get(3)!.flags].sort()).toEqual(['$QuestNClick', '\\Flagged', '\\Seen']);
     expect(imap.log).not.toContain(expect.stringContaining('pw'));
     expect((await c.health()).ok).toBe(true);
   }, 60_000);
 
-  it('keeps messages N days when asked, then sweeps them', async () => {
-    const t = await startBridge();
-    cleanup.push(() => t.close());
-    const { ctx } = await contextFor(t, 'email');
-    const box = new Map([
-      [7, { raw: Buffer.from(eml('plain-unclear.eml', { player: 'p-0123456789abcdef' })), flags: new Set(['\\Seen']) }],
-    ]);
-    const imap = fakeImap(box);
-    await new Promise<void>((ok) => imap.server.listen(0, '127.0.0.1', ok));
-    cleanup.push(() => new Promise<void>((ok) => imap.server.close(() => ok())));
-    const port = (imap.server.address() as { port: number }).port;
-    const c = new EmailConnector({
-      mode: 'imap',
-      imap: { host: '127.0.0.1', port, user: 'u', password: 'p', tls: false, pollS: 3600, keepDays: 7 },
-    });
-    await c.start(ctx);
-    cleanup.push(() => c.stop());
-    await c.poll();
-    expect(imap.log.some((l) => /^UID SEARCH SEEN UNFLAGGED BEFORE \d{1,2}-\w{3}-\d{4}$/.test(l))).toBe(true);
-    expect(box.size).toBe(0);
-  }, 60_000);
+  it.each([[true], [false]])(
+    'keeps messages N days, then sweeps only the ones it handled (UIDPLUS: %s)',
+    async (uidplus) => {
+      const t = await startBridge();
+      cleanup.push(() => t.close());
+      const { ctx, lines } = await contextFor(t, 'email');
+      const unclear = () => Buffer.from(eml('plain-unclear.eml', { player: 'p-0123456789abcdef' }));
+      const box = new Map([
+        [7, { raw: unclear(), flags: new Set(['\\Seen']) }], // the operator's own old mail, read
+        [8, { raw: unclear(), flags: new Set(['\\Seen', '\\Deleted']) }], // marked deleted by another client
+        [9, { raw: Buffer.from(eml('pairing.eml', { code: await t.code() })), flags: new Set<string>() }],
+      ]);
+      const imap = fakeImap(box, { uidplus });
+      await new Promise<void>((ok) => imap.server.listen(0, '127.0.0.1', ok));
+      cleanup.push(() => new Promise<void>((ok) => imap.server.close(() => ok())));
+      const port = (imap.server.address() as { port: number }).port;
+      const c = new EmailConnector({
+        mode: 'imap',
+        imap: { host: '127.0.0.1', port, user: 'u', password: 'p', tls: false, pollS: 3600, keepDays: 7 },
+      });
+      await c.start(ctx);
+      cleanup.push(() => c.stop());
+      await c.poll();
+      await c.poll();
+      expect(imap.log).toContain('UID STORE 9 +FLAGS.SILENT ($QuestNClick)');
+      expect(
+        imap.log.some((l) =>
+          /^UID SEARCH KEYWORD \$QuestNClick SEEN UNFLAGGED UNDELETED BEFORE \d{1,2}-\w{3}-\d{4}$/.test(l),
+        ),
+      ).toBe(true);
+      expect(imap.log).not.toContain('EXPUNGE');
+      if (uidplus) expect([...box.keys()]).toEqual([7, 8]);
+      else {
+        expect([...box.keys()]).toEqual([7, 8, 9]);
+        expect(box.get(9)!.flags.has('\\Deleted')).toBe(true);
+        expect(lines.filter((l) => l.includes('email.expunge-unsupported'))).toHaveLength(1);
+      }
+    },
+    60_000,
+  );
 
   it.each([['zeros'], ['flood']] as const)(
     'hangs up on a server that sends %s (a response bounded in lines, literals and bytes)',
@@ -371,7 +402,7 @@ describe('the IMAP mode', () => {
     await second.start(ctx);
     cleanup.push(() => second.stop());
     await second.poll();
-    expect([...box.get(1)!.flags].sort()).toEqual(['\\Flagged', '\\Seen']);
+    expect([...box.get(1)!.flags].sort()).toEqual(['$QuestNClick', '\\Flagged', '\\Seen']);
   }, 30_000);
 
   it('refuses an IMAP connection without TLS to anything but this machine', async () => {

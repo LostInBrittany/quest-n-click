@@ -16,6 +16,8 @@ export interface BlobStore {
   has(hash: string): Promise<boolean>;
   /** Every blob, with when it was written (4.2.2: the collection of the unreferenced). */
   list?(): AsyncIterable<{ hash: string; at: number }>;
+  /** When a blob was last written, undefined when missing (the collection checks it again right before a deletion). */
+  at?(hash: string): Promise<number | undefined>;
   /** Deletes one blob (the collection only). */
   remove?(hash: string): Promise<void>;
 }
@@ -55,6 +57,10 @@ export function fsBlobStore(dir: string): BlobStore {
         if (/^[0-9a-f]{2}$/.test(a))
           for (const b of readdirSync(join(dir, a)))
             if (/^[0-9a-f]{62}$/.test(b)) yield { hash: a + b, at: statSync(join(dir, a, b)).mtimeMs };
+    },
+    async at(hash) {
+      const file = path(hash);
+      return existsSync(file) ? statSync(file).mtimeMs : undefined;
     },
     async remove(hash) {
       rmSync(path(hash), { force: true });

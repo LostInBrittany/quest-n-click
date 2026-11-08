@@ -35,7 +35,8 @@ per message: a message delivered twice is one signal.
   ```
 
 - For the webhook mode: a provider (or a small adapter in front of it) able to post the raw message, signed as below.
-  For the IMAP mode: a mailbox reachable over TLS, and its password in a file.
+  For the IMAP mode: a mailbox reachable over TLS, and its password in a file. Give the connector a mailbox or a
+  folder of its own (`imap.mailbox`): it reads every unseen message there and marks it read.
 
 <a name="where-to-run"></a>
 
@@ -150,9 +151,12 @@ repository, `npx quest-n-click-connector email …` with the package `quest-n-cl
 ## Files or data changed
 
 - Webhook mode: nothing written; the message is read in memory and dropped.
-- IMAP mode: flags in the mailbox. With `keepDays: 0` (the default) a message is deleted as soon as its signal is
-  accepted (or found accepted already); with `keepDays: N`, after N days. A message refused for good is flagged
-  (`\Flagged`) and kept for the operator. A message refused for a reason that may pass (the Bridge away or busy, a
+- IMAP mode: flags in the mailbox. Every message the connector handles gets the keyword `$QuestNClick`. With
+  `keepDays: 0` (the default) a message is deleted as soon as its signal is accepted (or found accepted already); with
+  `keepDays: N`, after N days. Retention and deletion only touch messages carrying the keyword: the operator's other
+  mail in the folder, and what another client marked deleted, are left alone (next). Deletion needs a server with
+  UIDPLUS (`UID EXPUNGE`); without it the messages are only marked `\Deleted`, and the log says
+  `email.expunge-unsupported` once. A message refused for good is flagged (`\Flagged`) and kept for the operator. A message refused for a reason that may pass (the Bridge away or busy, a
   quota) stays unseen and is read again at the next poll.
 
 > [!GUARANTEE id=bridge-email-unseen-when-away]
@@ -184,7 +188,7 @@ The `email` section:
 | `webhook.perMinutePerIp` | 120 | Posts a minute per address |
 | `imap.host`, `imap.port` | —, 993 | The mailbox's server, over TLS |
 | `imap.user`, `imap.passwordFile` | (required) | Its login |
-| `imap.mailbox` | `INBOX` | The folder polled |
+| `imap.mailbox` | `INBOX` | The folder polled (a dedicated one is best) |
 | `imap.tls` | `true` | `false` only towards this machine |
 | `imap.pollS` | 60 | Seconds between two polls (at most 50 unseen messages each) |
 | `imap.keepDays` | 0 | 0: delete once accepted; N: keep N days |
@@ -209,7 +213,8 @@ The `email` section:
 
 - **Webhook mode:** nothing; the message is read in memory and dropped.
 - **IMAP mode:** the message stays in the operator's mailbox, where it arrived, until `keepDays` deletes it; a refused
-  one stays flagged until the operator deletes it.
+  one stays flagged until the operator deletes it. `keepDays` deletes only the messages the connector handled (the
+  `$QuestNClick` keyword), never other mail in the folder.
 - A sender who sent a pairing code is remembered as a salted SHA-256 of their address (the salt is random and lives
   as long as the process) mapped to the `playerId`, in memory, for `linkDays`; a restart forgets it.
 - The address, the subject and the text are never logged and never sent to the Bridge.

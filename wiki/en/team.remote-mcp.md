@@ -110,8 +110,11 @@ through the local stdio MCP of the same engine version, without `--server`.
 - **A member's write.** Each tool call is a request to the Studio's `/api` with your token: your role, your spans, your
   name in the journal and the audit. A reviewer's agent cannot write (403).
 - **423 like you.** A span another member holds refuses the write, and the tool returns the message naming them.
-- **No base revision.** An agent sends no `x-studio-base`: its writes are computed by the server on the file as it is
-  now and checked by the validation guard, but not refused because someone wrote the file since the agent read it.
+- **A whole file, from what it read.** `set_storyboard` and `set_layout` send the revision the agent last read (or
+  wrote) that file at as `x-studio-base`: a file someone else wrote since is refused (409), and the agent reads it again
+  (next). Its other writes send no base: computed by the server on the file as it is now and checked by the validation
+  guard. On `/mcp` the revisions are kept per token by the instance that served the read: a new token, or another
+  instance, writes with no base.
 - **Applied once.** Each write carries its own operation id.
 - **Notes.** A note an agent adds without an author is signed `ai`, recorded under your member's name all the same
   (over HTTP the server never sees the MCP client's name).

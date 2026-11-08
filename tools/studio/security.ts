@@ -32,8 +32,28 @@ export function allowedStudioHosts(env: Record<string, string | undefined> = pro
   return new Set([...own, ...lan]);
 }
 
+/**
+ * A path the guard covers (next): connect, Vite's router, mounts `/__studio/api` without regard to case, so
+ * `/__STUDIO/api/…` reaches the same handlers and must meet the same guard.
+ */
+export const isStudioPath = (path: string) => {
+  const p = path.toLowerCase();
+  return p === '/__studio' || p.startsWith('/__studio/');
+};
+
+/** This machine, in either IP family (an IPv4 peer on a dual-stack socket reads `::ffff:127.0.0.1`). */
+const loopback = (address: string | undefined) =>
+  !!address && (/^127\./.test(address) || address === '::1' || /^::ffff:127\./.test(address));
+
 /** Same-origin + optional LAN token guard shared by every file-writing development route. */
 export function authorizeStudioRequest(req: IncomingMessage, res: ServerResponse): boolean {
+  // Outside LAN mode only this machine is served (next): `--host` listens on the network, and Host and Origin are
+  // headers any peer outside a browser sets as it likes.
+  if (process.env.WEB_SCUMM_LAN !== '1' && !loopback(req.socket.remoteAddress)) {
+    res.statusCode = 403;
+    res.end('the Studio serves this machine only; npm run studio:lan serves the network, with a token');
+    return false;
+  }
   const host = req.headers.host;
   if (!host || /[\s/@\\]/.test(host)) {
     res.statusCode = 400;

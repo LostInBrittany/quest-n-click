@@ -5,7 +5,7 @@
 import { execFileSync } from 'node:child_process';
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { join, posix } from 'node:path';
 import { describe, expect, it } from 'vitest';
 // @ts-expect-error: a plain .mjs module without declarations
 import * as manifests from '../scripts/pack-manifests.mjs';
@@ -54,5 +54,32 @@ describe('the packages’ manifests (D53)', () => {
     } finally {
       rmSync(dir, { recursive: true, force: true });
     }
+  });
+});
+
+describe('the engine package’s files (#454)', () => {
+  const files = new Set<string>(manifests.engineShipped(execFileSync('git', ['ls-files'], { encoding: 'utf8' })));
+  // A relative import resolved as Vite and tsx resolve it: the path, `.js` written for `.ts`, an extension, an index.
+  const found = (from: string, spec: string) => {
+    const p = posix.normalize(posix.join(posix.dirname(from), spec.split('?')[0]!));
+    const bare = p.replace(/\.(m?js)$/, '');
+    return [p, `${bare}.ts`, `${bare}.tsx`, `${p}.ts`, `${p}.mjs`, `${p}.js`, `${p}/index.ts`].some((c) =>
+      files.has(c),
+    );
+  };
+
+  it('ships every file a shipped module imports by a relative path', () => {
+    const missing: string[] = [];
+    for (const f of files) {
+      if (!/\.(ts|tsx|mjs|js)$/.test(f)) continue;
+      const code = readFileSync(f, 'utf8');
+      for (const m of code.matchAll(
+        /^\s*(?:import|export)\b[^'"]*?\bfrom\s*['"](\.{1,2}\/[^'"]+)['"]|^\s*import\s*['"](\.{1,2}\/[^'"]+)['"]/gm,
+      )) {
+        const spec = (m[1] ?? m[2])!;
+        if (!found(f, spec)) missing.push(`${f} → ${spec}`);
+      }
+    }
+    expect(missing).toEqual([]);
   });
 });

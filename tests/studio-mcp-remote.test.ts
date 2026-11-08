@@ -249,6 +249,36 @@ describe('the remote MCP', () => {
     });
   });
 
+  it('refuses a whole-file write over a teammate edit made since the agent read the file (409)', async () => {
+    const release = async (sub: string) =>
+      fetch(`${base}/api/leases/release`, {
+        method: 'POST',
+        headers: { authorization: `Bearer ${await op.accessToken({ sub })}`, 'content-type': 'application/json' },
+        body: '{}',
+      });
+    const read = async (c: Client) =>
+      JSON.parse(text(await c.callTool({ name: 'get_storyboard', arguments: {} }))) as { title: string };
+    const tom = await client('u-tom');
+    const lea = await client('u-lea');
+    const seen = await read(tom);
+    // Léa writes the storyboard after Tom's agent read it.
+    expect(
+      (await lea.callTool({ name: 'set_storyboard', arguments: { storyboard: { ...seen, title: 'Léa' } } })).isError,
+    ).toBeFalsy();
+    await release('u-lea');
+    const stale = await tom.callTool({ name: 'set_storyboard', arguments: { storyboard: { ...seen, title: 'Tom' } } });
+    expect(stale.isError).toBe(true);
+    expect(text(stale)).toMatch(/409/);
+    // Read again, it writes; and its own write is no conflict for the next one.
+    const now = await read(tom);
+    expect(now.title).toBe('Léa');
+    const set = (title: string) =>
+      tom.callTool({ name: 'set_storyboard', arguments: { storyboard: { ...now, title } } });
+    expect((await set('Tom')).isError).toBeFalsy();
+    expect((await set('Tom again')).isError).toBeFalsy();
+    await Promise.all([tom.close(), lea.close(), release('u-tom')]);
+  });
+
   it("refuses a reviewer's write, another member's span, and a member removed since", async () => {
     const ana = await client('u-ana');
     const w = await ana.callTool({ name: 'add_note', arguments: { text: 'a reviewer writes' } });

@@ -18,7 +18,8 @@ demandez.
 ## En local et en réseau local
 
 - **La boucle locale par défaut.** `npm run studio` et `npm run dev` écoutent sur `127.0.0.1` (port 5173) : une autre
-  machine ne peut pas atteindre leurs routes d'écriture.
+  machine ne peut pas atteindre leurs routes d'écriture. Lancés plutôt avec `--host`, ils ne répondent toujours qu'à
+  cette machine (403 pour toute autre adresse, depuis next) : `npm run studio:lan` est le chemin vers le réseau.
 - **Ses propres noms seulement.** Chaque route du Studio, des assets, du layout et de l'assistant ne répond qu'aux noms
   de cette machine (`localhost`, `127.0.0.1`, `[::1]`), et en mode réseau local aux adresses que sert `studio:lan`. Une
   page d'un autre site qui fait pointer son nom vers votre machine envoie ce nom comme `Host` : refusé (403), même avec

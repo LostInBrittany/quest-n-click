@@ -193,13 +193,14 @@ export function drivers(fixtures: ReturnType<typeof badgeFixtures>): Driver[] {
         });
         return c;
       },
-      async deliver(t, c) {
+      async deliver(t, c, n) {
         const code = await t.code();
         await fetch(`http://127.0.0.1:${c.port}/v1/badges`, {
           method: 'POST',
           body: JSON.stringify({
             code,
-            badge: fixtures.cases['ob2-hosted-valid']!.submission.badge,
+            // Another badge for another `n`: a valid badge counts for the first player who redeems it.
+            badge: fixtures.cases[n % 2 ? 'ob2-hosted-valid' : 'ob2-signed-valid']!.submission.badge,
             email: 'robin@player.example',
           }),
         });

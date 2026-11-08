@@ -25,3 +25,6 @@ __pycache__/
 # The Rust cross-check builds here (bridge/xcheck, npm run reality:xcheck)
 bridge/xcheck/target/
 .python/
+
+# The knowledge graph graphify writes (a local index, never shipped).
+graphify-out/

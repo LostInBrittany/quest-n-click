@@ -36,6 +36,18 @@ export function mcpEndpoint(o: McpEndpointOptions) {
     res.writeHead(status, { 'content-type': 'application/json', 'cache-control': 'no-store', ...headers });
     res.end(JSON.stringify({ error }));
   };
+  // The revisions an agent read its whole files at, kept across its requests (each builds its own backend), per token.
+  // shortcut: in this instance's memory, oldest token dropped past 1000; an agent served by another instance, or with a
+  // new token, writes with no base, as before.
+  const revisions = new Map<string, Map<string, string>>();
+  const revisionsOf = (token: string) => {
+    let m = revisions.get(token);
+    if (!m) {
+      revisions.set(token, (m = new Map()));
+      if (revisions.size > 1000) revisions.delete(revisions.keys().next().value!);
+    }
+    return m;
+  };
 
   return {
     /** RFC 9728: the resource, its authorization server, how a token is sent. */
@@ -73,6 +85,7 @@ export function mcpEndpoint(o: McpEndpointOptions) {
       const backend = httpBackend({
         api: `http://${hostOf(req.socket.localAddress)}:${req.socket.localPort}/api`,
         token: () => token,
+        revisions: revisionsOf(token),
         signal: gone.signal,
         fetch: (url, init) => loopback(url, init, new URL(base).host),
       });
@@ -120,7 +133,16 @@ function loopback(url: string, init: RequestInit, host: string): Promise<Respons
       const chunks: Buffer[] = [];
       res.on('data', (c: Buffer) => chunks.push(c));
       res.on('end', () =>
-        ok(new Response(Buffer.concat(chunks), { status: res.statusCode ?? 500, statusText: res.statusMessage })),
+        ok(
+          new Response(Buffer.concat(chunks), {
+            status: res.statusCode ?? 500,
+            statusText: res.statusMessage,
+            // The revision a read or a write was made at (x-studio-revision), which the backend keeps.
+            headers: Object.entries(res.headers).flatMap(([k, v]) =>
+              v === undefined ? [] : (Array.isArray(v) ? v : [v]).map((x): [string, string] => [k, x]),
+            ),
+          }),
+        ),
       );
       res.on('error', ko);
     });

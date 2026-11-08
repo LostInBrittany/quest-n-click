@@ -290,6 +290,17 @@ export class AuthStore {
     await this.db.run(`UPDATE studio_sessions SET ${sets.join(', ')} WHERE id_hash = $${args.length}`, args);
   }
 
+  /** Moves `checked_at` from `from` to `to` if no one moved it first: whoever does is the one that checks (any instance). */
+  async claimCheck(idHash: string, from: number, to: number): Promise<boolean> {
+    return (
+      (await this.db.run('UPDATE studio_sessions SET checked_at = $1 WHERE id_hash = $2 AND checked_at = $3', [
+        to,
+        idHash,
+        from,
+      ])) === 1
+    );
+  }
+
   async endSession(idHash: string): Promise<void> {
     await this.db.run('DELETE FROM studio_sessions WHERE id_hash = $1', [idHash]);
   }
