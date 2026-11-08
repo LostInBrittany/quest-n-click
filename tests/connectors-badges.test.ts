@@ -9,8 +9,8 @@ import { afterAll, describe, expect, it } from 'vitest';
 import { hostsOf, OpenBadgeConnector } from '../connectors/src/badges/connector';
 import { base58Decode, base58Encode, didKey, parseJws } from '../connectors/src/badges/crypto';
 import { type Fetched, isPublicAddress, jsonDepth, SafeFetcher } from '../connectors/src/badges/fetch';
-import { BadgeVerifier } from '../connectors/src/badges/verify';
-import { type BadgeCase, badgeFixtures, DID, EMAIL, ISSUER } from './fixtures/connectors/badges';
+import { BadgeVerifier, type Submission } from '../connectors/src/badges/verify';
+import { type BadgeCase, badgeFixtures, credential, DID, EMAIL, ISSUER, signDi } from './fixtures/connectors/badges';
 import { contextFor, startBridge } from './fixtures/connectors/harness';
 
 const FILE = 'connectors/test-vectors/open-badge/fixtures.json';
@@ -115,6 +115,27 @@ describe('the twelve badge fixtures', () => {
     now += 86_400_001;
     await v.verify(s);
     expect(fetched).toBe(2);
+  });
+});
+
+describe('whose badge it is', () => {
+  const A = 'https://badges.example.org/assertions';
+  const clear = { ...(fixtures.documents[`${A}/ob2-hosted-valid`] as object), id: `${A}/clear` };
+  const docs = { ...fixtures.documents, [`${A}/clear`]: { ...clear, recipient: { type: 'email', identity: EMAIL } } };
+  const verifier = () => new BadgeVerifier({ issuers: [ISSUER, DID], fetch: fromDocuments(docs), now: () => NOW });
+
+  it('a recipient readable in the badge proves nothing: indeterminate, never valid', async () => {
+    const { identifier: _, ...subject } = credential('urn:uuid:by-id').credentialSubject;
+    const byId = signDi({
+      ...credential('urn:uuid:by-id'),
+      credentialSubject: { ...subject, id: 'did:example:robin' },
+    });
+    // The subject id copied from the badge (the form no longer reads a `recipient`; sent anyway, it changes nothing).
+    const copied = { badge: byId, recipient: 'did:example:robin' } as Submission;
+    expect((await verifier().verify(copied)).status).toBe('indeterminate');
+    expect((await verifier().verify({ badge: byId, email: EMAIL })).status).toBe('indeterminate');
+    expect((await verifier().verify({ badge: `${A}/clear`, email: EMAIL })).status).toBe('indeterminate');
+    expect((await verifier().verify({ badge: `${A}/ob2-hosted-valid`, email: EMAIL })).status).toBe('valid');
   });
 });
 
@@ -240,5 +261,15 @@ describe('the badge form, end to end', () => {
     ).toBe(413);
     expect((await fetch(`http://127.0.0.1:${c.port}/v1/badges`, { method: 'POST', body: '{nope' })).status).toBe(400);
     expect(lines.join('\n')).not.toMatch(/robin|badges\.example\.org|assertions/);
+    // The same valid badge: the first player keeps it, a second player is refused.
+    const signed = fixtures.cases['ob2-signed-valid']!.submission.badge;
+    const first = await t.code();
+    expect(await (await post({ code: first, badge: signed, email: EMAIL })).json()).toEqual({
+      status: 'valid',
+      signal: 'accepted',
+    });
+    const again = await post({ code: await t.code(), badge: signed, email: EMAIL });
+    expect(again.status).toBe(409);
+    expect(await again.json()).toEqual({ status: 'valid', signal: 'claimed' });
   }, 30_000);
 });

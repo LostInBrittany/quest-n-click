@@ -39,7 +39,7 @@ const VM = `${DID}#${DID.slice(8)}`;
 const NOW = '2026-10-07T00:00:00Z';
 
 /** A Data Integrity proof `eddsa-jcs-2022` over a credential (the W3C suite, as `verifyEddsaJcs` checks it). */
-function signDi(doc: Record<string, unknown>, extra: Record<string, string> = {}, priv = ob3Key.priv) {
+export function signDi(doc: Record<string, unknown>, extra: Record<string, string> = {}, priv = ob3Key.priv) {
   const proof = {
     type: 'DataIntegrityProof',
     cryptosuite: 'eddsa-jcs-2022',
@@ -53,7 +53,7 @@ function signDi(doc: Record<string, unknown>, extra: Record<string, string> = {}
   return { ...doc, proof: { ...proof, proofValue: `z${base58Encode(new Uint8Array(sig))}` } };
 }
 
-const credential = (id: string, extra: Record<string, unknown> = {}, subject: Record<string, unknown> = {}) => ({
+export const credential = (id: string, extra: Record<string, unknown> = {}, subject: Record<string, unknown> = {}) => ({
   '@context': ['https://www.w3.org/ns/credentials/v2', 'https://purl.imsglobal.org/spec/ob/v3p0/context-3.0.3.json'],
   id,
   type: ['VerifiableCredential', 'OpenBadgeCredential'],

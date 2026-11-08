@@ -42,6 +42,8 @@ export class OpenBadgeConnector implements RealityConnector {
   private since = new Date().toISOString();
   private inFlight = new Set<Promise<unknown>>();
   private verifier: BadgeVerifier | null = null;
+  /** The player who redeemed each valid badge, by its id. shortcut: in memory, lost on restart; persist it if needed. */
+  private claimed = new Map<string, string>();
   port = 0;
 
   constructor(private c: BadgeConfig) {}
@@ -97,7 +99,6 @@ export class OpenBadgeConnector implements RealityConnector {
     const verdict = await this.verifier!.verify({
       badge: body.badge,
       ...(typeof body.email === 'string' && body.email.length <= 320 ? { email: body.email } : {}),
-      ...(typeof body.recipient === 'string' && body.recipient.length <= 512 ? { recipient: body.recipient } : {}),
     });
     ctx.log('open-badge.verdict', { status: verdict.status, format: verdict.format });
     const signal = decl[verdict.status];
@@ -107,11 +108,18 @@ export class OpenBadgeConnector implements RealityConnector {
       createHash('sha256')
         .update(JSON.stringify(body.badge ?? ''))
         .digest('hex');
+    // A valid badge counts for one player: the first who redeems it keeps it.
+    if (verdict.status === 'valid') {
+      const owner = this.claimed.get(id);
+      if (owner !== undefined && owner !== paired.playerId)
+        return { http: 409, body: { status: verdict.status, signal: 'claimed' } };
+      this.claimed.set(id, paired.playerId);
+    }
     const r = await ctx.propose({
       source: 'open-badge',
       kind: signal,
       playerId: paired.playerId,
-      dedupeKey: dedupeKey('open-badge', `${paired.playerId}:${id}:${verdict.status}`),
+      dedupeKey: dedupeKey('open-badge', `${id}:${verdict.status}`),
       payload: {
         badgeId: createHash('sha256').update(id).digest('hex').slice(0, 32),
         issuer: createHash('sha256').update(verdict.issuer).digest('hex').slice(0, 32),

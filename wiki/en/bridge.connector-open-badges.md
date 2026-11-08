@@ -86,8 +86,10 @@ the package.
      -d '{"code":"ABCD2345","badge":"https://badges.example.org/assertions/42","email":"player@example.org"}'
    ```
 
-   `badge` is a URL, a compact JWS, or the credential itself; `email` (or `recipient`) is what a hashed recipient is
-   checked against. The answer is `202 {"status":"valid","signal":"accepted"}`, or `200 {"status":"…","signal":"none"}`
+   `badge` is a URL, a compact JWS, or the credential itself; `email` is what the badge's hashed recipient is checked
+   against. Only a badge whose recipient is a hashed email can be `valid` (next): a recipient readable in the badge (a
+   clear email, a URL, a DID, an OB3 `credentialSubject.id`) can be copied by anyone who sees the badge, so it gives
+   `indeterminate`; a `recipient` field is no longer read. The answer is `202 {"status":"valid","signal":"accepted"}`, or `200 {"status":"…","signal":"none"}`
    when the game declares no signal for that verdict.
 
 <a name="expected-result"></a>
@@ -106,7 +108,8 @@ the package.
 |---|---|---|
 | 422 `{"error":"pairing-pairing"}` | The code is unknown, expired or used already: a code serves once | A new code from the game |
 | 400 `{"error":"shape"}` | Not JSON, or no `code` | Post `{ code, badge, email? }` |
-| 202 with `"status":"indeterminate"` | A proof suite it cannot check (`eddsa-rdfc-2022`…), or a document it could not fetch under its policy | Ask the issuer for a supported format; check `hosts` |
+| 202 with `"status":"indeterminate"` | A proof suite it cannot check (`eddsa-rdfc-2022`…), a document it could not fetch under its policy, or a recipient that is not a hashed email | Ask the issuer for a supported format or a hashed recipient; check `hosts` |
+| 409 `{"status":"valid","signal":"claimed"}` | Another player already redeemed this badge (next) | — |
 | 202 with `"status":"invalid"` | Another issuer than the game's, a recipient that does not match, a bad or weak signature | — |
 | 413, or 429 `{"error":"rate"}` | A body over 64 KB; over 30 posts a minute from one address | — |
 
@@ -133,13 +136,14 @@ Stop the process (SIGTERM). Revoke its token on the Bridge if it leaked, and gra
 - **Open Badges 2.0**: hosted (the assertion fetched again from its own id) or signed (a JWS whose key the issuer
   owns). **3.0**: a VC-JWT, or a Data Integrity proof `eddsa-jcs-2022`; other suites, such as `eddsa-rdfc-2022`, are
   `indeterminate`, never `valid`.
-- The issuer among the game's `issuers`; the recipient against the email (hashed with the badge's salt, then
-  dropped); the dates; the revocation (OB2 revocation lists, OB3 `1EdTechRevocationList` and Bitstring status lists,
+- The issuer among the game's `issuers`; the recipient, which must be a hashed email, against the email (hashed with
+  the badge's salt, then dropped); the dates; the revocation (OB2 revocation lists, OB3 `1EdTechRevocationList` and Bitstring status lists,
   cached at most a day).
 - From 4.3.0, a key too weak for its algorithm makes the badge `invalid` (an RSA key under 2 048 bits, a curve other
   than P-256 for ES256, anything but Ed25519 for `eddsa-jcs-2022`).
-- The key is `sha256('open-badge:' + player + ':' + badge id + ':' + verdict)`: the same badge with the same verdict
-  for the same player is one signal.
+- The key is `sha256('open-badge:' + badge id + ':' + verdict)`: the same badge with the same verdict for the same
+  player is one signal. A valid badge counts for one player: the first who redeems it keeps it, another gets 409
+  `claimed` (next). The connector remembers this in memory: a restart forgets it.
 
 <a name="network-policy"></a>
 
