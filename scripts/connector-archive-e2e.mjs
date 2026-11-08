@@ -122,6 +122,12 @@ h.run(
   [BIN, 'init', `--dir=${data}`, `--manifest=${join(base, 'manifest.json')}`, '--no-demo-webhooks'],
   base,
 );
+// Every player is paired from 127.0.0.1: a test bench, over `limits.pairingsPerAddress`'s 5 per 10 minutes (#460).
+{
+  const cfg = JSON.parse(readFileSync(join(data, 'config.json'), 'utf8'));
+  cfg.limits = { ...cfg.limits, pairingsPerAddress: 50 };
+  writeFileSync(join(data, 'config.json'), JSON.stringify(cfg, null, 2));
+}
 const PORT = 6100 + Math.floor(Math.random() * 400);
 const URLB = `http://127.0.0.1:${PORT}/`;
 const serve = (cmd, a, log) => {
@@ -302,12 +308,29 @@ const imap = createServer((s) => {
         );
         ok();
       } else if (/^UID SEARCH/i.test(cmd)) {
+        // Retention's search (#459): KEYWORD $QuestNClick SEEN UNFLAGGED UNDELETED BEFORE <date>, the date not modelled.
+        const keyword = /\bKEYWORD (\S+)/i.exec(cmd)?.[1];
         s.write(
           `* SEARCH ${box
-            .filter((m) => m.flags.has('\\Seen') && !m.flags.has('\\Flagged'))
+            .filter(
+              (m) =>
+                m.flags.has('\\Seen') &&
+                !m.flags.has('\\Flagged') &&
+                !m.flags.has('\\Deleted') &&
+                (!keyword || m.flags.has(keyword)),
+            )
             .map((m) => m.uid)
             .join(' ')}\r\n`,
         );
+        ok();
+      } else if (/^CAPABILITY$/i.test(cmd)) {
+        // UIDPLUS, as most servers: the connector removes only the messages it handled, by UID (#459).
+        s.write('* CAPABILITY IMAP4rev1 UIDPLUS\r\n');
+        ok();
+      } else if (/^UID EXPUNGE ([\d,]+)$/i.test(cmd)) {
+        const uids = new Set(/^UID EXPUNGE ([\d,]+)$/i.exec(cmd)[1].split(',').map(Number));
+        for (let k = box.length - 1; k >= 0; k--)
+          if (uids.has(box[k].uid) && box[k].flags.has('\\Deleted')) box.splice(k, 1);
         ok();
       } else if (/^UID FETCH (\d+) \(RFC822\.SIZE\)/i.test(cmd)) {
         const m = box.find((x) => x.uid === Number(/(\d+)/.exec(cmd)[1]));
@@ -321,9 +344,6 @@ const imap = createServer((s) => {
         const [, uid, flags] = /^UID STORE (\d+) \+FLAGS\.SILENT \(([^)]*)\)/i.exec(cmd);
         const m = box.find((x) => x.uid === Number(uid));
         for (const f of flags.split(' ').filter(Boolean)) m?.flags.add(f);
-        ok();
-      } else if (/^EXPUNGE/i.test(cmd)) {
-        for (let k = box.length - 1; k >= 0; k--) if (box[k].flags.has('\\Deleted')) box.splice(k, 1);
         ok();
       } else if (/^LOGOUT/i.test(cmd)) {
         s.write('* BYE\r\n');
