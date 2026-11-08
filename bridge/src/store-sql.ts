@@ -4,6 +4,7 @@
 // transaction that orders anything: under the player's lock, the dedupe key looked up, `MAX(sequence) + 1` drawn,
 // the Bridge called back to check and sign, the row written; the unique keys of bridge/migrations/0001.up.sql back it.
 import type { WorldSignal } from '../../src/engine/reality/protocol';
+import { BridgeError } from './config';
 import { migrate, schemaVersion } from './migrations';
 import type { Pairing, Player } from './store';
 import {
@@ -360,6 +361,23 @@ export abstract class SqlRealityStore implements RealityStore {
   async putPlayer(tenantId: string, p: Player) {
     await upsertPlayer(this.db, checkTenant(tenantId), p);
   }
+  async renewPlayer(tenantId: string, playerId: string, capabilityExpiresAt: number) {
+    await this.db.run(
+      'UPDATE players SET capability_expires_at = $3 WHERE tenant_id = $1 AND player_id = $2 AND revoked = 0',
+      [checkTenant(tenantId), playerId, capabilityExpiresAt],
+    );
+  }
+  async revokePlayer(tenantId: string, playerId: string) {
+    checkTenant(tenantId);
+    // Under the player's lock: an `appendSignal` running reads the player before or after, never across.
+    return this.db.tx(`player:${tenantId}:${playerId}`, async (q) => {
+      const n = await q.run('UPDATE players SET revoked = 1 WHERE tenant_id = $1 AND player_id = $2', [
+        tenantId,
+        playerId,
+      ]);
+      return n === 1;
+    });
+  }
   async forgetPlayer(tenantId: string, playerId: string) {
     checkTenant(tenantId);
     await this.db.tx(`player:${tenantId}:${playerId}`, async (q) => {
@@ -375,6 +393,12 @@ export abstract class SqlRealityStore implements RealityStore {
     const { tenantId, playerId, dedupeKey } = input;
     checkTenant(tenantId);
     return this.db.tx(`player:${tenantId}:${playerId}`, async (q) => {
+      // The player read again under its lock: a forget or a revoke committed by another instance is seen here.
+      const [held] = await q.all('SELECT acked, revoked FROM players WHERE tenant_id = $1 AND player_id = $2', [
+        tenantId,
+        playerId,
+      ]);
+      if (!held || num(held.revoked) === 1) throw new BridgeError(404, 'player', 'unknown or revoked player');
       const [seen] = await q.all(
         `SELECT ${SIGNAL_COLUMNS} FROM signals WHERE tenant_id = $1 AND player_id = $2 AND dedupe_key = $3`,
         [tenantId, playerId, dedupeKey],
@@ -384,12 +408,8 @@ export abstract class SqlRealityStore implements RealityStore {
         'SELECT COALESCE(MAX(sequence), 0) AS last FROM signals WHERE tenant_id = $1 AND player_id = $2',
         [tenantId, playerId],
       );
-      const [ack] = await q.all('SELECT acked FROM players WHERE tenant_id = $1 AND player_id = $2', [
-        tenantId,
-        playerId,
-      ]);
       const sequence = num(last?.last) + 1;
-      const d = input.sign({ sequence, acked: num(ack?.acked) });
+      const d = input.sign({ sequence, acked: num(held.acked) });
       const row: StoredSignal = {
         tenantId,
         playerId,

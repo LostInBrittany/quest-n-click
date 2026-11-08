@@ -52,6 +52,8 @@ export interface Limits {
   streamBufferBytes: number;
   /** Pairing codes waiting for a confirmation, all players together: beyond, a 429 (anyone may ask). */
   pendingPairings: number;
+  /** Pairing codes one address (an IPv6 /64) may ask per 10 minutes (next): beyond, a 429 for that address only. */
+  pairingsPerAddress: number;
   /** The longest a capability lives, renewals included: then the player pairs again. */
   capabilityMaxMs: number;
   /** Signals signed again after a rotation and kept in memory (4.1.8): beyond, the least recently used is forgotten. */
@@ -70,6 +72,7 @@ export const DEFAULT_LIMITS: Limits = {
   streamsPerInstance: 10_000,
   streamBufferBytes: 64 * 1024,
   pendingPairings: 1000,
+  pairingsPerAddress: 5,
   capabilityMaxMs: 180 * 24 * 3_600_000,
   resignedCache: 10_000,
   streamPage: 100,

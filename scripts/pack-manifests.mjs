@@ -214,8 +214,8 @@ export const SHIP = [
   // The Studio's operation core (4.2.1): the dev server, `ids` and the MCP server import it.
   /^studio-server\//,
   // Its journal's SQL layer (4.2.1), from the Bridge: the store, SQLite and the migrations runner, and the proxies'
-  // allowlist; nothing else.
-  /^bridge\/src\/(store|store-async|store-sql|store-sqlite|migrations|allowlist)\.ts$/,
+  // allowlist, and the config whose BridgeError the store throws; nothing else.
+  /^bridge\/src\/(store|store-async|store-sql|store-sqlite|migrations|allowlist|config)\.ts$/,
   /^cli\//,
   /^games\/_template\//,
   /^public\/(icons|fonts)\//,

@@ -499,8 +499,13 @@ keeps its default.
 | `streamsPerInstance`: open event streams on one instance | 10 000 | 0 |
 | `streamBufferBytes`: bytes a stream may hold unsent | 65 536 | 1 |
 | `pendingPairings`: codes waiting for a confirmation, all players | 1 000 | 0 |
+| `pairingsPerAddress`: pairing codes one address may ask per 10 minutes (next) | 5 | 0 |
 | `resignedCache`: signals signed again after a rotation, kept in memory | 10 000 | 0 |
 | `streamPage`: signals a stream reads from the store at once | 100 | 1 |
+
+From next, one address (an IPv6 address counts by its /64) asks at most `pairingsPerAddress` codes per 10 minutes, per
+tenant: beyond, `POST /v1/pairings` answers 429 with `Retry-After` for that address only, long before `pendingPairings`
+is reached for every player. A host pairing many players from one address (a test, a kiosk) raises it.
 
 ### Constraints
 

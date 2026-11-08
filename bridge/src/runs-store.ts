@@ -155,8 +155,8 @@ export interface RunStore {
   complete(tenantId: string, id: string, workerId: string, out: RunOutcome): Promise<boolean>;
   setTrust(tenantId: string, id: string, trust: RunTrust): Promise<void>;
   delete(tenantId: string, id: string): Promise<void>;
-  /** Deletes the runs submitted before `before` (epoch ms); returns how many. */
-  purge(before: number): Promise<number>;
+  /** Deletes the runs submitted before `before` (epoch ms), a tenant's only when given; returns how many. */
+  purge(before: number, tenantId?: string): Promise<number>;
 }
 
 const matches = (r: RunRecord, t: string, f: RunFilter) =>
@@ -241,10 +241,10 @@ export class MemoryRunStore implements RunStore {
   async delete(t: string, id: string) {
     this.rows.delete(this.k(t, id));
   }
-  async purge(before: number) {
+  async purge(before: number, tenantId?: string) {
     let n = 0;
     for (const [k, r] of this.rows)
-      if (r.submittedAt < before) {
+      if ((tenantId === undefined || r.tenantId === tenantId) && r.submittedAt < before) {
         this.rows.delete(k);
         n++;
       }
@@ -455,7 +455,8 @@ export class SqlRunStore implements RunStore {
   async delete(t: string, id: string) {
     await this.db.run('DELETE FROM runs WHERE tenant_id = $1 AND id = $2', [t, id]);
   }
-  purge(before: number) {
-    return this.db.run('DELETE FROM runs WHERE submitted_at < $1', [before]);
+  purge(before: number, tenantId?: string) {
+    if (tenantId === undefined) return this.db.run('DELETE FROM runs WHERE submitted_at < $1', [before]);
+    return this.db.run('DELETE FROM runs WHERE submitted_at < $1 AND tenant_id = $2', [before, tenantId]);
   }
 }

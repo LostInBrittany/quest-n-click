@@ -61,19 +61,49 @@ const DAILY = (method: string | undefined, path: string) =>
 export { inAllowlist };
 const LOOPBACK = ['127.0.0.1', '::1'];
 
-/** Token buckets per address (4.1.2): one for the routes anyone may call, one for failed authentications. */
+/**
+ * The key an address is limited under (next): an IPv4 address as it is, an IPv6 one by its /64 (one host is usually
+ * handed a whole /64), an IPv4-mapped IPv6 address as its IPv4.
+ */
+export function addressKey(ip: string): string {
+  const bare = ip.split('%')[0]!;
+  if (!bare.includes(':')) return bare;
+  const mapped = /^::ffff:(\d+\.\d+\.\d+\.\d+)$/i.exec(bare);
+  if (mapped) return mapped[1]!;
+  const [head = '', tail] = bare.split('::');
+  const h = head ? head.split(':') : [];
+  const t = tail ? tail.split(':') : [];
+  const groups = tail === undefined ? h : [...h, ...Array(Math.max(0, 8 - h.length - t.length)).fill('0'), ...t];
+  return `${groups
+    .slice(0, 4)
+    .map((g) => (Number.parseInt(g, 16) || 0).toString(16))
+    .join(':')}::/64`;
+}
+
+/**
+ * Token buckets per address (4.1.2): one for the routes anyone may call, one for failed authentications, one for the
+ * pairing codes (next). `perWindow` tokens, refilled over `windowMs`.
+ */
 class Buckets {
   private b = new Map<string, { tokens: number; at: number }>();
-  constructor(private perMinute: number) {}
+  private lastSweep = 0;
+  constructor(
+    private perWindow: number,
+    private windowMs = 60_000,
+  ) {}
   private bucket(ip: string, now: number): { tokens: number; at: number } {
     let x = this.b.get(ip);
     if (!x) {
-      x = { tokens: this.perMinute, at: now };
+      x = { tokens: this.perWindow, at: now };
       this.b.set(ip, x);
-      // The map stays small: addresses idle for two minutes are forgotten once it grows.
-      if (this.b.size > 10_000) for (const [k, v] of this.b) if (now - v.at > 120_000) this.b.delete(k);
+      // The map stays small: addresses idle for two windows are forgotten once it grows, at most every 10 s (a flood
+      // of new addresses does not scan the whole map on each request).
+      if (this.b.size > 10_000 && now - this.lastSweep > 10_000) {
+        this.lastSweep = now;
+        for (const [k, v] of this.b) if (now - v.at > 2 * this.windowMs) this.b.delete(k);
+      }
     }
-    x.tokens = Math.min(this.perMinute, x.tokens + ((now - x.at) / 60_000) * this.perMinute);
+    x.tokens = Math.min(this.perWindow, x.tokens + ((now - x.at) / this.windowMs) * this.perWindow);
     x.at = now;
     return x;
   }
@@ -131,6 +161,8 @@ export function bridgeServer(bridges: Bridge | Bridge[], o: ServeOptions = {}): 
   const origins = new Set([...(o.origins ?? []), ...all.flatMap((b) => b.config.origins ?? [])]);
   const anonymous = new Buckets(o.perMinutePerIp ?? 60);
   const failures = new Buckets(o.perMinutePerIp ?? 60);
+  // Per tenant: each has its own `limits.pairingsPerAddress` and its own codes waiting.
+  const pairings = new Map(all.map((b) => [b, new Buckets(b.limits.pairingsPerAddress, 600_000)]));
   const proxies = o.trustProxy === true ? LOOPBACK : Array.isArray(o.trustProxy) ? o.trustProxy : [];
   const addressOf = (req: IncomingMessage) => {
     const peer = req.socket.remoteAddress ?? 'unknown';
@@ -169,7 +201,7 @@ export function bridgeServer(bridges: Bridge | Bridge[], o: ServeOptions = {}): 
       res.writeHead(status, data === undefined ? {} : { 'Content-Type': 'application/json' });
       res.end(data === undefined ? undefined : JSON.stringify(data));
     };
-    const ip = addressOf(req);
+    const ip = addressKey(addressOf(req));
     try {
       if (req.method === 'OPTIONS') return send(204);
       const url = new URL(req.url ?? '/', 'http://bridge');
@@ -243,6 +275,11 @@ export function bridgeServer(bridges: Bridge | Bridge[], o: ServeOptions = {}): 
       if (req.method === 'GET' && path === '/v1/manifest')
         return send(200, { manifest: bridge.config.manifest, hash: bridge.config.manifestHash });
       if (req.method === 'POST' && path === '/v1/pairings') {
+        // The codes waiting are bounded for every player together: one address takes only a few of them (next).
+        if (!pairings.get(bridge)?.take(ip)) {
+          res.setHeader('Retry-After', String(Math.ceil(600 / Math.max(1, bridge.limits.pairingsPerAddress))));
+          throw new BridgeError(429, 'rate', 'too many pairing codes from this address: try again in a few minutes');
+        }
         const b = json(await body(req, bridge.limits.bodyBytes)) as { gameId?: unknown };
         return send(
           201,
@@ -290,6 +327,8 @@ export function bridgeServer(bridges: Bridge | Bridge[], o: ServeOptions = {}): 
           if (res.writableLength > bridge.limits.streamBufferBytes) res.end();
         };
         const sub = await bridge.subscribe(cap, event, () => res.end(), { after: from });
+        // The client left during the subscription: its `close` is already past, so the stream goes now.
+        if (req.destroyed || res.destroyed) return void sub();
         res.writeHead(200, { 'Content-Type': 'text/event-stream', Connection: 'keep-alive' });
         res.flushHeaders();
         sending = false;

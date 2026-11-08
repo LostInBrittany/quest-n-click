@@ -459,7 +459,7 @@ export class Bridge {
   /** The player's side ends its own link (the pause menu's "Unlink"): revoked on the Bridge, not only forgotten. */
   async unlink(capability: string | undefined): Promise<void> {
     const p = await this.playerOf(capability);
-    await this.store.putPlayer(this.tenantId, { ...p, revoked: true });
+    await this.store.revokePlayer(this.tenantId, p.playerId);
     this.streams.endAll(p.playerId, 'revoked');
     this.log({ event: 'player.unlinked', playerId: p.playerId });
   }
@@ -525,7 +525,7 @@ export class Bridge {
     )
       throw new BridgeError(400, 'shape', '`through` is a sequence the Bridge sent');
     await this.store.acknowledge({ tenantId: this.tenantId, playerId: p.playerId, sequence: through });
-    await this.store.putPlayer(this.tenantId, { ...p, capabilityExpiresAt: this.now() + this.limits.capabilityMs });
+    await this.store.renewPlayer(this.tenantId, p.playerId, this.now() + this.limits.capabilityMs);
     this.telemetry.count('acks', { tenant: this.tenantId });
   }
 
@@ -542,11 +542,10 @@ export class Bridge {
   async revoke(adminToken: string | undefined, what: { playerId?: string; tokenId?: string }): Promise<void> {
     this.admin(adminToken);
     if (what.playerId) {
-      const p = await this.store.player(this.tenantId, what.playerId);
-      if (!p) throw new BridgeError(404, 'player', 'unknown player');
-      await this.store.putPlayer(this.tenantId, { ...p, revoked: true });
-      this.streams.endAll(p.playerId, 'revoked');
-      this.log({ event: 'player.revoked', playerId: p.playerId });
+      if (!(await this.store.revokePlayer(this.tenantId, what.playerId)))
+        throw new BridgeError(404, 'player', 'unknown player');
+      this.streams.endAll(what.playerId, 'revoked');
+      this.log({ event: 'player.revoked', playerId: what.playerId });
     }
     if (what.tokenId) {
       if (!/^[a-f0-9]{16,256}$/.test(what.tokenId)) throw new BridgeError(400, 'shape', 'a revocation id is hex');

@@ -24,8 +24,10 @@ export interface SubmissionLimiter {
 }
 
 export interface LimiterOptions {
-  /** Submissions a minute per client (default 10). */
+  /** Submissions a minute per client (default 10); per `windowMs` when it is given. */
   perMinute?: number;
+  /** The time a whole bucket refills in (default a minute; the Mystery commits: an hour). */
+  windowMs?: number;
   /** The secret the client key is made with; the same on every instance of a tenant (a SQL limiter needs it). */
   secret: string;
   /** The secret's version (default `1`): a new secret, a new version (`bridge serve`: the event key's id). */
@@ -39,9 +41,14 @@ export const clientKey = (secret: string, tenantId: string, client: string) =>
   createHmac('sha256', secret).update(`${tenantId}\u0000${client}`).digest('base64url');
 
 /** A bucket refilled to `now`, and whether a token was left. */
-function refill(b: { tokens: number; at: number } | undefined, per: number, now: number) {
-  const tokens = b ? Math.min(per, b.tokens + (Math.max(0, now - b.at) / 60_000) * per) : per;
-  if (tokens < 1) return { tokens, ok: false as const, retryAfterS: Math.max(1, Math.ceil(((1 - tokens) / per) * 60)) };
+function refill(b: { tokens: number; at: number } | undefined, per: number, now: number, windowMs = 60_000) {
+  const tokens = b ? Math.min(per, b.tokens + (Math.max(0, now - b.at) / windowMs) * per) : per;
+  if (tokens < 1)
+    return {
+      tokens,
+      ok: false as const,
+      retryAfterS: Math.max(1, Math.ceil(((1 - tokens) / per) * (windowMs / 1000))),
+    };
   return { tokens: tokens - 1, ok: true as const, retryAfterS: 0 };
 }
 
@@ -52,7 +59,7 @@ export class MemoryLimiter implements SubmissionLimiter {
   async take(tenantId: string, client: string, now: number): Promise<Take> {
     const per = this.o.perMinute ?? 10;
     const k = clientKey(this.o.secret, tenantId, client);
-    const r = refill(this.buckets.get(k), per, now);
+    const r = refill(this.buckets.get(k), per, now, this.o.windowMs);
     this.buckets.delete(k); // re-inserted last: the map's order is the least recently used first
     this.buckets.set(k, { tokens: r.tokens, at: now });
     const max = this.o.maxBuckets ?? 100_000;
@@ -94,7 +101,7 @@ export class SqlLimiter implements SubmissionLimiter {
         tenantId,
         k,
       ]);
-      const r = refill(row ? { tokens: Number(row.tokens), at: Number(row.at) } : undefined, per, now);
+      const r = refill(row ? { tokens: Number(row.tokens), at: Number(row.at) } : undefined, per, now, this.o.windowMs);
       if (row)
         await q.run(
           'UPDATE run_quota SET tokens = $3, at = $4, key_version = $5 WHERE tenant_id = $1 AND client_key = $2',

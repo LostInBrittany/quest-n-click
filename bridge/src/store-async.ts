@@ -101,10 +101,15 @@ export interface RealityStore {
   player(tenantId: string, playerId: string): Promise<Player | undefined>;
   playerByCapability(tenantId: string, hash: string): Promise<Player | undefined>;
   putPlayer(tenantId: string, p: Player): Promise<void>;
+  /** Moves a player's capability expiry, only if it is held and not revoked (an ack never brings a link back). */
+  renewPlayer(tenantId: string, playerId: string, capabilityExpiresAt: number): Promise<void>;
+  /** Marks a player revoked, nothing else of its row; false when the store holds no such player. */
+  revokePlayer(tenantId: string, playerId: string): Promise<boolean>;
   /** Deletes everything about a player: its link, journal, acknowledgement, pairing. */
   forgetPlayer(tenantId: string, playerId: string): Promise<void>;
 
   // The journal.
+  /** Refused (`BridgeError` 404) when the player is not held or revoked, read inside the same transaction. */
   appendSignal(input: ProposedSignalRow): Promise<AppendResult>;
   listAfter(cursor: { tenantId: string; playerId: string; after: number; limit: number }): Promise<StoredSignal[]>;
   lastSequence(tenantId: string, playerId: string): Promise<number>;

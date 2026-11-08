@@ -383,7 +383,7 @@ export class RunQueue {
     await this.limiter
       .purge(this.now() - 120_000, this.o.tenant)
       .catch((e) => this.log(`runs: the quota's purge failed: ${(e as Error).message}`));
-    return this.o.store.purge(this.now() - (this.o.retentionDays ?? 90) * 86_400_000);
+    return this.o.store.purge(this.now() - (this.o.retentionDays ?? 90) * 86_400_000, this.o.tenant);
   }
 
   /**

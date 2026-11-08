@@ -13,6 +13,7 @@
 // 4.1.16: a date is a real UTC day (`YYYY-MM-DD`), today or within `retentionDays`; a game id is one of `games`' own;
 // a reveal is signed; the commits counted per client are forgotten after their hour.
 import { createHmac, randomBytes } from 'node:crypto';
+import type { SubmissionLimiter } from './runs-limiter';
 import type { SqlDb } from './store-sql';
 import { b64url } from '../../src/engine/reality/protocol';
 import { encodeSeedCode, REMIX_ALGORITHM_VERSION, seedCommitment } from '../../src/engine/reality/daily';
@@ -87,6 +88,12 @@ export interface DailyOptions {
   now?: () => number;
   /** Mystery commits one client may ask per game and per hour (default 3): shopping for a seed costs that much. */
   commitsPerHour?: number;
+  /**
+   * Where the commits are counted when several instances serve the tenant (`bridge serve` on SQL): a limiter whose
+   * bucket refills in an hour (`windowMs`), `perMinute` the commits per hour, under its own `tenantId`. Absent: in
+   * this process.
+   */
+  commits?: { limiter: SubmissionLimiter; tenantId: string };
   /** How many past days a challenge can be asked for (default 30): older ones are refused, the store stays bounded. */
   retentionDays?: number;
 }
@@ -167,6 +174,20 @@ export function dailyRoutes(o: DailyOptions) {
   }
 
   const commits = new Map<string, number[]>();
+  let lastSweep = 0;
+  /** This process's count of `k`'s commits: false when its hour holds `commitsPerHour` already. */
+  function countHere(k: string, t: number): boolean {
+    const recent = (commits.get(k) ?? []).filter((x) => t - x < 3_600_000);
+    // The table forgets clients whose hour is over once it grows (a flood of addresses does not keep it), at most
+    // every 10 s: a new client on each request does not scan the whole table each time.
+    if (commits.size > 10_000 && t - lastSweep > 10_000) {
+      lastSweep = t;
+      for (const [c, xs] of commits) if (xs.every((x) => t - x >= 3_600_000)) commits.delete(c);
+    }
+    if (recent.length >= (o.commitsPerHour ?? 3)) return false;
+    commits.set(k, [...recent, t]);
+    return true;
+  }
   async function commit(body: unknown, client = 'anonymous'): Promise<DailyResponse> {
     const b = body && typeof body === 'object' ? (body as Record<string, unknown>) : {};
     const gameId = typeof b.game === 'string' ? b.game : '';
@@ -175,13 +196,8 @@ export function dailyRoutes(o: DailyOptions) {
     // Shopping for a Mystery seed (commit, reveal, look, commit again) is bounded: so many commits per client and hour.
     const t = now();
     const k = `${client}|${gameId}`;
-    const recent = (commits.get(k) ?? []).filter((x) => t - x < 3_600_000);
-    // The table forgets clients whose hour is over once it grows (a flood of addresses does not keep it).
-    if (commits.size > 10_000)
-      for (const [c, xs] of commits) if (xs.every((x) => t - x >= 3_600_000)) commits.delete(c);
-    if (recent.length >= (o.commitsPerHour ?? 3))
-      return { status: 429, body: { error: 'too many Mystery seeds this hour' } };
-    commits.set(k, [...recent, t]);
+    const allowed = o.commits ? (await o.commits.limiter.take(o.commits.tenantId, k, t)).ok : countHere(k, t);
+    if (!allowed) return { status: 429, body: { error: 'too many Mystery seeds this hour' } };
     const mode = game.mystery ?? game.daily;
     // Drawn here, before anything of the run exists; the body names the game, nothing else is read.
     const r = randomBytes(5);
@@ -231,8 +247,11 @@ export function dailyRoutes(o: DailyOptions) {
      * Deletes what is older than the retention and a day (the day tokens a request may still ask for are kept: a token
      * is written when first asked, never before its day); `serve` calls it hourly.
      */
-    purge(): Promise<number> {
-      return store.purge?.(now() - ((o.retentionDays ?? 30) + 2) * DAY) ?? Promise.resolve(0);
+    async purge(): Promise<number> {
+      const n = (await store.purge?.(now() - ((o.retentionDays ?? 30) + 2) * DAY)) ?? 0;
+      // The commit buckets idle for an hour are full again: they go too (after the records, which never wait on them).
+      await o.commits?.limiter.purge(now() - 3_600_000, o.commits.tenantId);
+      return n;
     },
     async handle(req: DailyRequest): Promise<DailyResponse | null> {
       const u = new URL(req.url, 'http://bridge.local');

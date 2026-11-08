@@ -15,6 +15,7 @@ import {
   type StoredSignal,
   type TenantExport,
 } from './store-async';
+import { BridgeError } from './config';
 import { type BridgeStore, type JournalEntry, MemoryBridgeStore, type Pairing, type Player } from './store';
 
 const stored = (tenantId: string, e: JournalEntry): StoredSignal => ({ ...e, tenantId });
@@ -101,6 +102,18 @@ class SyncBackedStore implements RealityStore {
   async putPlayer(tenantId: string, p: Player) {
     this.t(tenantId).write({ t: 'player', p });
   }
+  async renewPlayer(tenantId: string, playerId: string, capabilityExpiresAt: number) {
+    const s = this.t(tenantId);
+    const p = s.player(playerId);
+    if (p && !p.revoked) s.write({ t: 'player', p: { ...p, capabilityExpiresAt } });
+  }
+  async revokePlayer(tenantId: string, playerId: string) {
+    const s = this.t(tenantId);
+    const p = s.player(playerId);
+    if (!p) return false;
+    s.write({ t: 'player', p: { ...p, revoked: true } });
+    return true;
+  }
   async forgetPlayer(tenantId: string, playerId: string) {
     this.t(tenantId).write({ t: 'forget', playerId });
     const m = this.codes(tenantId);
@@ -111,6 +124,8 @@ class SyncBackedStore implements RealityStore {
   async appendSignal(input: ProposedSignalRow): Promise<AppendResult> {
     const s = this.t(input.tenantId);
     // One synchronous section: nothing else of this process runs between the reads and the write.
+    const p = s.player(input.playerId);
+    if (!p || p.revoked) throw new BridgeError(404, 'player', 'unknown or revoked player');
     const seen = s.bySequenceKey(input.playerId, input.dedupeKey);
     if (seen) return { signal: stored(input.tenantId, seen), duplicate: true };
     const sequence = s.lastSequence(input.playerId) + 1;

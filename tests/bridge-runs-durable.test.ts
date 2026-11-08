@@ -14,6 +14,7 @@ import { MemoryDailyStore, SqlDailyStore, dailyRoutes } from '../bridge/src/dail
 import { SqliteRealityStore } from '../bridge/src/store-sqlite';
 import { type PgModule, PostgresRealityStore } from '../bridge/src/store-postgres';
 import type { SqlDb } from '../bridge/src/store-sql';
+import { SqlLimiter } from '../bridge/src/runs-limiter';
 import { pgDatabase } from './fixtures/pg-database';
 
 const dir = mkdtempSync(join(tmpdir(), 'bridge-runs-'));
@@ -282,6 +283,33 @@ for (const kind of KINDS)
       // The purge is the tenant's own (an `_` in an id is not a wildcard).
       expect(await other.purge(Date.now() + 1000)).toBe(1);
       expect(await a.get(k)).toBe(x);
+    });
+
+    it('the Mystery commits a client may ask are counted once for every instance (next)', async () => {
+      const [da, db] = await kind.open();
+      const t = tenant();
+      const key = (await crypto.subtle.generateKey({ name: 'Ed25519' }, true, ['sign', 'verify'])) as CryptoKeyPair;
+      let now = Date.parse('2026-10-08T12:00:00Z');
+      const instance = (sql: SqlDb) =>
+        dailyRoutes({
+          games: { reference: { daily: 'daily', mystery: 'mystery' } },
+          key: key.privateKey,
+          kid: 'k',
+          secret: 's',
+          store: new SqlDailyStore(sql, t),
+          now: () => now,
+          commits: { limiter: new SqlLimiter(sql, { secret: 'q', windowMs: 3_600_000, perMinute: 3 }), tenantId: t },
+        });
+      const [a, b] = [instance(da), instance(db)];
+      const ask = (d: typeof a, client = 'c') =>
+        d.handle({ method: 'POST', url: '/v1/commit', body: { game: 'reference' }, client });
+      for (const d of [a, b, a]) expect((await ask(d))!.status).toBe(201);
+      expect((await ask(b))!.status).toBe(429);
+      expect((await ask(b, 'other'))!.status).toBe(201);
+      // A third of the hour later, one more.
+      now += 1_200_000;
+      expect((await ask(a))!.status).toBe(201);
+      expect((await ask(b))!.status).toBe(429);
     });
   });
 
