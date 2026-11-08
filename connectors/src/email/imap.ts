@@ -32,7 +32,7 @@ const MAX_UNTAGGED = 1000;
 const MAX_LITERALS = 64;
 const MAX_RESPONSE_BYTES = 1024 * 1024;
 /** The keyword on every message the connector handled: the retention sweep and the expunge touch nothing else. */
-export const KEYWORD = '$QuestNClick';
+const KEYWORD = '$QuestNClick';
 
 /** An IMAP quoted string; a credential with CR, LF or NUL is refused, never sent. */
 function quote(s: string): string {
