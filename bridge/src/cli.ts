@@ -355,10 +355,10 @@ export async function main(args: string[], game?: { manifest: RealityManifest | 
           key: await webcrypto.subtle.importKey('jwk', jwk, { name: 'Ed25519' }, false, ['sign']),
           secret: readFileSync(resolve(tenants[i]!, d.secretFile), 'utf8').trim(),
           store: new SqlDailyStore(sql, ids[i]!),
-          // One count of the Mystery commits for every instance (next), beside the runs' buckets under a tenant id of
-          // its own (a `|` no real tenant id holds), its secret derived from the event key as theirs is.
+          // One count of the Mystery commits for every instance (next), in the tenant's own limiter rows (a backup restores
+          // only real tenant ids): its secret of its own, derived from the event key, keeps its keys apart from the runs'.
           commits: {
-            tenantId: `${ids[i]!}|commits`,
+            tenantId: ids[i]!,
             limiter: new SqlLimiter(sql, {
               perMinute: 3,
               windowMs: 3_600_000,
