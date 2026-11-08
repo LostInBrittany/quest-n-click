@@ -576,8 +576,15 @@ export function setValueInSource(
   }
   const parent = resolve(root, parentSegs);
   const arr = parent && unwrap(parent.node);
-  if (!arr || !ts.isArrayLiteralExpression(arr) || last !== arr.elements.length)
-    throw new SourceError(`path not found: "${path}"`, 404);
+  if (!arr || !ts.isArrayLiteralExpression(arr)) throw new SourceError(`path not found: "${path}"`, 404);
+  if (last !== arr.elements.length) {
+    const list = formatPath(parentSegs);
+    const n = arr.elements.length;
+    throw new SourceError(
+      `cannot add "${path}": the written list "${list}" has ${n} entr${n === 1 ? 'y' : 'ies'} in the file, so a new one goes at "${list}[${n}]"`,
+      404,
+    );
+  }
   const e = insertItem(
     sf,
     arr.elements,

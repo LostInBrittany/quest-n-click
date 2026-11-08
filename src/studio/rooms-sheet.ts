@@ -24,6 +24,12 @@ export interface SheetHost extends LinesHost {
 // ---------------------------------------------------------------------------
 
 /** The parts of the selected entity's sheet; a hint alone when nothing (or nothing known) is selected. */
+/**
+ * How many of a room's rules are written in its file: the Studio receives the room with each exit's rules appended
+ * after them (normalizeExits marks them `exit`), so a new reaction goes here, not after those (#461).
+ */
+export const writtenRules = (on: readonly { exit?: string }[] | undefined) => (on ?? []).filter((r) => !r.exit).length;
+
 export function entitySheet(host: SheetHost, s: Sel): HTMLElement[] {
   const d = host.data?.def;
   if (!d || !s || !entityDef(d, s))
@@ -152,16 +158,20 @@ export function entitySheet(host: SheetHost, s: Sel): HTMLElement[] {
                 { class: 'rulehead' },
                 h('span', null, ruleHead(host.info, r)),
                 r.if !== undefined ? h('code', { class: 'cond' }, `if ${condText(r.if)}`) : null,
-                h('span', { class: 'muted small' }, `on[${i}]`),
-                h(
-                  'button',
-                  {
-                    class: 'small',
-                    title: 'Edit the verb, targets, condition and commands as a form',
-                    onclick: () => host.editRule(i),
-                  },
-                  'Edit…',
-                ),
+                // An exit's own rule is made from `exits` (normalizeExits) and is not in the file: shown, edited
+                // through the exit (#461).
+                h('span', { class: 'muted small' }, r.exit ? `from exit ${r.exit}` : `on[${i}]`),
+                r.exit
+                  ? null
+                  : h(
+                      'button',
+                      {
+                        class: 'small',
+                        title: 'Edit the verb, targets, condition and commands as a form',
+                        onclick: () => host.editRule(i),
+                      },
+                      'Edit…',
+                    ),
               ),
               cmds(host, r.do, `on[${i}].do`),
             ),
@@ -169,7 +179,7 @@ export function entitySheet(host: SheetHost, s: Sel): HTMLElement[] {
         : h('p', { class: 'muted' }, "None in this room: the game's fallback answers apply."),
       h(
         'button',
-        { class: 'small', onclick: () => host.editRule((d.on ?? []).length, { verb: 'look', a: id, do: [] }) },
+        { class: 'small', onclick: () => host.editRule(writtenRules(d.on), { verb: 'look', a: id, do: [] }) },
         '+ Reaction',
       ),
     ),
