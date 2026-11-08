@@ -16,7 +16,6 @@
     "tools/*.ts",
     "tools/studio/*.ts",
     "studio-server/src/ops/*.ts",
-    "studio-server/src/server/main.ts",
     "tools/speedrun/*.ts",
     "tools/wiki/html-search.ts",
     "tests/**/*.test.ts",
