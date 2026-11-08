@@ -233,6 +233,27 @@ describe.each(KINDS)('RealityStore: $name', (kind) => {
     if (!kind.multiTenant) await a.forgetPlayer(t, 'p-b');
   });
 
+  it('a revoked or forgotten player is not renewed, recreated, nor given a signal (next)', async () => {
+    const { a, b } = await kind.open();
+    const t = tenant(kind);
+    await a.putPlayer(t, player('p-v', { capabilityExpiresAt: 5 }));
+    await a.putPlayer(t, player('p-f'));
+    await a.renewPlayer(t, 'p-v', 7);
+    expect((await b.player(t, 'p-v'))?.capabilityExpiresAt).toBe(7);
+    expect(await b.revokePlayer(t, 'p-v')).toBe(true);
+    expect(await b.revokePlayer(t, 'p-none')).toBe(false);
+    await a.renewPlayer(t, 'p-v', 9);
+    expect(await a.player(t, 'p-v')).toMatchObject({ revoked: true, capabilityExpiresAt: 7 });
+    await b.forgetPlayer(t, 'p-f');
+    await a.renewPlayer(t, 'p-f', 9);
+    expect(await a.player(t, 'p-f')).toBeUndefined();
+    for (const p of ['p-v', 'p-f', 'p-none']) {
+      await expect(a.appendSignal(proposal(t, p, 'x'))).rejects.toThrow(/unknown or revoked/);
+      expect(await b.lastSequence(t, p)).toBe(0);
+    }
+    if (!kind.multiTenant) await a.forgetPlayer(t, 'p-v');
+  });
+
   it.runIf(kind.multiTenant)(
     'every read and write with the wrong tenant sees nothing of the other (property)',
     async () => {
@@ -268,8 +289,10 @@ describe.each(KINDS)('RealityStore: $name', (kind) => {
               const pl = player(p);
               hashes.push(pl.capabilityHash);
               await a.putPlayer(A, pl);
-            } else if (o.t === 'signal') await a.appendSignal(proposal(A, p, `k${o.k}`));
-            else if (o.t === 'ack') await a.acknowledge({ tenantId: A, playerId: p, sequence: 1 });
+            } else if (o.t === 'signal') {
+              // A signal is for a player the store holds (next).
+              if (await a.player(A, p)) await a.appendSignal(proposal(A, p, `k${o.k}`));
+            } else if (o.t === 'ack') await a.acknowledge({ tenantId: A, playerId: p, sequence: 1 });
             else if (o.t === 'revoke') await a.revokeToken(A, `tok${o.k}`);
             else if (o.t === 'key') await a.rotateKeys({ tenantId: A, keyId: `k${o.k}`, publicKey: 'x' });
             else await a.quarantine({ tenantId: A, playerId: p, sequence: 1, reason: 'r', at: 1 });

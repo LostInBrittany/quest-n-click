@@ -1,0 +1,14 @@
+{
+  "format": "quest-n-click-docs-acks",
+  "version": 1,
+  "pairs": {
+    "bridge.cli#limits": {
+      "enHash": "38041e9bcb74176f137750d2f030fc813aad0f6bd3d03e060a43192de74c7061",
+      "frHash": "2c364e5b697350880b15d9997f21323c3d9ff44ace993e3c13a370d7600d3929",
+      "reviewers": [
+        { "name": "Claude", "kind": "ai", "relation": "author", "date": "2026-11-08" }
+      ]
+    }
+  },
+  "claims": {}
+}

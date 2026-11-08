@@ -144,7 +144,7 @@ describe.each(CLUSTERS)('three processes, one $name, one killed', ({ store, env 
     const { token } = await initCluster(home, realityManifest(signals())!, {
       store,
       tenantId,
-      limits: { perMinutePerConnector: 1_000_000, pendingPerPlayer: 1_000_000 },
+      limits: { perMinutePerConnector: 1_000_000, pendingPerPlayer: 1_000_000, pairingsPerAddress: 100 },
     });
     const instances = await Promise.all([0, 1, 2].map(() => startInstance(home, { ...process.env, ...env })));
     children.push(...instances);

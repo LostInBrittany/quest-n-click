@@ -45,7 +45,8 @@ export async function startBridge(limits?: BridgeConfig['limits']): Promise<Test
       eventKey: { kid: 'k1', privateKey: ev.privateKey, raw },
       adminTokenHash: createHash('sha256').update('admin').digest('hex'),
       policyVersion: '1',
-      ...(limits ? { limits } : {}),
+      // Every test pairs from the loopback: the per-address pairing limit is lifted as the rate limit is below.
+      limits: { pairingsPerAddress: 100_000, ...limits },
     },
     store,
     { log: () => {} },

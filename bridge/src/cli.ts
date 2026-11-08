@@ -355,6 +355,17 @@ export async function main(args: string[], game?: { manifest: RealityManifest | 
           key: await webcrypto.subtle.importKey('jwk', jwk, { name: 'Ed25519' }, false, ['sign']),
           secret: readFileSync(resolve(tenants[i]!, d.secretFile), 'utf8').trim(),
           store: new SqlDailyStore(sql, ids[i]!),
+          // One count of the Mystery commits for every instance (next), beside the runs' buckets under a tenant id of
+          // its own (a `|` no real tenant id holds), its secret derived from the event key as theirs is.
+          commits: {
+            tenantId: `${ids[i]!}|commits`,
+            limiter: new SqlLimiter(sql, {
+              perMinute: 3,
+              windowMs: 3_600_000,
+              secret: createHmac('sha256', f.eventKey.pkcs8).update('quest-n-click mystery commits').digest('hex'),
+              keyVersion: f.eventKey.kid,
+            }),
+          },
           ...(d.retentionDays ? { retentionDays: d.retentionDays } : {}),
         });
         // The daily records older than their retention go hourly (the runs' queues purge their own).

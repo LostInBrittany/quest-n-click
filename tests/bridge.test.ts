@@ -16,7 +16,7 @@ import { httpPort, sseEvents } from '@engine/reality/http-port';
 import { Bridge, type BridgeConfig, type BridgeLog } from '../bridge/src/bridge';
 import { biscuitLib } from '../bridge/src/biscuit';
 import { grantToken } from '../bridge/src/policy';
-import { bridgeServer, type ServeOptions, webhookSignature } from '../bridge/src/server';
+import { addressKey, bridgeServer, type ServeOptions, webhookSignature } from '../bridge/src/server';
 import {
   inspectJournal,
   JournalLock,
@@ -440,6 +440,85 @@ describe('the reference Bridge', () => {
     expect((await ask()).status).toBe(201);
     expect((await ask()).status).toBe(429);
     expect(existsSync(file) ? readFileSync(file, 'utf8') : '').toBe('');
+  });
+
+  it('an acknowledgement or a proposal overlapping a revoke or a forget brings nothing back (next)', async () => {
+    // The racy order played in one process: the other instance's revoke or forget lands between the Bridge's read of
+    // the player and its write (the hooks run inside the store, after the read).
+    class Racy extends MemoryBridgeStore {
+      onAck?: () => void;
+      onTokenCheck?: () => void;
+      override write(e: Parameters<MemoryBridgeStore['write']>[0]) {
+        super.write(e);
+        if (e.t === 'ack') this.take('onAck');
+      }
+      override tokenRevoked(id: string) {
+        this.take('onTokenCheck');
+        return super.tokenRevoked(id);
+      }
+      private take(k: 'onAck' | 'onTokenCheck') {
+        const f = this[k];
+        this[k] = undefined;
+        f?.();
+      }
+    }
+    const store = new Racy();
+    const t = await setup({ store });
+    const ack = (cap: string) => t.call('v1/ack', { method: 'POST', token: cap, body: JSON.stringify({ through: 1 }) });
+    const forgotten = await t.pair();
+    await t.propose(forgotten.playerId, 'mail.answer.correct', 'f1');
+    store.onAck = () => store.write({ t: 'forget', playerId: forgotten.playerId });
+    expect((await ack(forgotten.capability)).status).toBe(204);
+    expect(store.player(forgotten.playerId)).toBeUndefined();
+    const revoked = await t.pair();
+    await t.propose(revoked.playerId, 'mail.answer.correct', 'r1');
+    store.onAck = () => store.write({ t: 'player', p: { ...store.player(revoked.playerId)!, revoked: true } });
+    expect((await ack(revoked.capability)).status).toBe(204);
+    expect(store.player(revoked.playerId)?.revoked).toBe(true);
+    // A proposal whose player is forgotten after the Bridge's last check: refused, nothing written.
+    const late = await t.pair();
+    store.onTokenCheck = () => store.write({ t: 'forget', playerId: late.playerId });
+    expect((await t.propose(late.playerId, 'mail.answer.correct', 'l1')).status).toBe(404);
+    expect(store.lastSequence(late.playerId)).toBe(0);
+  });
+
+  it('one address asks a few pairing codes, long before the cap of every player; another still pairs (next)', async () => {
+    const t = await setup({ limits: { pairingsPerAddress: 2 }, serve: { trustProxy: true } });
+    const ask = (from: string) =>
+      t.call('v1/pairings', {
+        method: 'POST',
+        body: JSON.stringify({ gameId: 'signals' }),
+        headers: { 'X-Forwarded-For': from },
+      });
+    expect((await ask('2001:db8:0:1::a')).status).toBe(201);
+    expect((await ask('2001:db8:0:1::b')).status).toBe(201);
+    // The same /64: the same address for the limit.
+    const refused = await ask('2001:db8:0:1:ffff::c');
+    expect(refused.status).toBe(429);
+    expect(refused.headers.get('retry-after')).toBe('300');
+    expect((await ask('2001:db8:0:2::a')).status).toBe(201);
+    expect((await ask('192.0.2.7')).status).toBe(201);
+    expect(addressKey('2001:DB8:0:1::A')).toBe('2001:db8:0:1::/64');
+    expect(addressKey('::ffff:192.0.2.7')).toBe('192.0.2.7');
+    expect(addressKey('fe80::1%eth0')).toBe('fe80:0:0:0::/64');
+  });
+
+  it('a stream whose client leaves while it opens is let go, not counted forever (next)', async () => {
+    const t = await setup();
+    const link = await t.pair();
+    const subscribe = t.bridge.subscribe.bind(t.bridge);
+    // The store slow to answer: the client is gone before the subscription is made.
+    t.bridge.subscribe = async (...a) => {
+      await new Promise((ok) => setTimeout(ok, 150));
+      return subscribe(...a);
+    };
+    const gone = new AbortController();
+    const open = t.call('v1/events', { token: link.capability, signal: gone.signal }).catch(() => undefined);
+    await new Promise((ok) => setTimeout(ok, 40));
+    gone.abort();
+    await open;
+    await new Promise((ok) => setTimeout(ok, 300));
+    expect((await t.bridge.ready()).streams).toBe(0);
   });
 
   it('a player ends its own link: revoked on the Bridge, not only forgotten; a link has a longest life', async () => {

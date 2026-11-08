@@ -499,7 +499,7 @@ The player is unknown to this Bridge, or was revoked (`quest-n-click-bridge revo
 
 Messages:
 
-- `unknown or revoked player` ([`bridge/src/bridge.ts`](../../bridge/src/bridge.ts))
+- `unknown or revoked player` ([`bridge/src/bridge.ts`](../../bridge/src/bridge.ts), [`bridge/src/store-memory.ts`](../../bridge/src/store-memory.ts), [`bridge/src/store-sql.ts`](../../bridge/src/store-sql.ts))
 - `unknown player` ([`bridge/src/bridge.ts`](../../bridge/src/bridge.ts))
 
 <a name="bridge-404-tenant"></a>
@@ -610,6 +610,7 @@ Too many requests from this address: the answer carries `Retry-After: 60`.
 
 Messages:
 
+- `too many pairing codes from this address: try again in a few minutes` ([`bridge/src/server.ts`](../../bridge/src/server.ts))
 - `too many requests from this address: try again in a minute` ([`bridge/src/server.ts`](../../bridge/src/server.ts))
 
 <a name="bridge-429-streams"></a>

@@ -142,8 +142,16 @@ for (const [name, make] of [
       const s = await make();
       await s.create(run({ id: 'old', submittedAt: 99 }));
       await s.create(run({ id: 'edge', submittedAt: 100 }));
-      expect(await s.purge(100)).toBe(1);
+      expect(await s.purge(100, 't')).toBe(1);
       expect((await s.list('t')).map((r) => r.id)).toEqual(['edge']);
+    });
+
+    it("purges one tenant's runs only: another tenant's retention never deletes them (next)", async () => {
+      const s = await make();
+      await s.create(run({ id: 'a', submittedAt: 1 }));
+      await s.create(run({ id: 'b', submittedAt: 1, tenantId: 'u' }));
+      expect(await s.purge(100, 't')).toBe(1);
+      expect((await s.list('u')).map((r) => r.id)).toEqual(['b']);
     });
   });
 

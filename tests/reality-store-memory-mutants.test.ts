@@ -146,6 +146,7 @@ describe('the memory store', () => {
     const woken: string[] = [];
     s.watch('t1', (p) => woken.push(`1:${p}`));
     s.watch('t1', (p) => woken.push(`2:${p}`));
+    await s.putPlayer('t1', player('A'));
     await s.appendSignal(propose('t1', 'A', 'd1'));
     expect(woken).toEqual(['1:A', '2:A']);
   });
