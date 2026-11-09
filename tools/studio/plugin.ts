@@ -1,52 +1,16 @@
 // Dev server only: the Studio API (/__studio/api/*, wiki/en/studio.api.md), its change feed (server-sent events) and the
 // Studio page itself (/__studio/ → studio.html, entry src/studio/main.ts). Every operation is a call into core.ts.
 import { createReadStream, watch, type FSWatcher } from 'node:fs';
-import type { IncomingMessage, ServerResponse } from 'node:http';
+import type { ServerResponse } from 'node:http';
 import { fileURLToPath } from 'node:url';
 import type { Plugin } from 'vite';
 
-import { isStudioError, StudioError } from '../../studio-server/src/ops/errors.ts';
+import { isStudioError } from '../../studio-server/src/ops/errors.ts';
 import type { StudioEvent } from './types.ts';
-import { isBody, routes } from '../../studio-server/src/ops/routes.ts';
-import { authorizeStudioRequest, isStudioPath } from './security.ts';
+import { routes } from '../../studio-server/src/ops/routes.ts';
+import { authorizeStudioRequest, isStudioPath, readJson, send } from './security.ts';
 
 const MAX_BODY = 8 * 1024 * 1024;
-
-function readBody(req: IncomingMessage): Promise<unknown> {
-  return new Promise((ok, fail) => {
-    let size = 0;
-    const chunks: Buffer[] = [];
-    req.on('data', (c: Buffer) => {
-      size += c.length;
-      if (size > MAX_BODY) {
-        fail(new StudioError('body too large', 413));
-        req.destroy();
-        return;
-      }
-      chunks.push(c);
-    });
-    req.on('end', () => {
-      const s = Buffer.concat(chunks).toString('utf8');
-      if (!s.trim()) {
-        ok({});
-        return;
-      }
-      try {
-        ok(JSON.parse(s));
-      } catch {
-        fail(new StudioError('the body is not valid JSON'));
-      }
-    });
-    req.on('error', fail);
-  });
-}
-
-function send(res: ServerResponse, status: number, data: unknown) {
-  res.statusCode = status;
-  res.setHeader('content-type', 'application/json; charset=utf-8');
-  res.setHeader('cache-control', 'no-store');
-  res.end(JSON.stringify(data));
-}
 
 export function studioPlugin(): Plugin {
   return {
@@ -153,8 +117,7 @@ export function studioPlugin(): Plugin {
             if (!hit) continue;
             matchedPath = true;
             if (m !== method) continue;
-            const body = method === 'GET' ? {} : await readBody(req);
-            if (!isBody(body)) throw new StudioError('the body must be a JSON object');
+            const body = method === 'GET' ? {} : await readJson(req, MAX_BODY);
             const baseUrl =
               server.resolvedUrls?.local[0] ??
               `http://localhost:${server.config.server.port ?? 5173}${server.config.base}`;

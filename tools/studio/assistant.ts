@@ -17,43 +17,11 @@ import {
   type Provider,
 } from './assistant-loop';
 import { coreBackend } from './backend';
+import { readJson, send } from './security';
 import { createStudio, StudioError, type Studio } from '../../studio-server/src/ops/core';
 
 const MAX_BODY = 4 * 1024 * 1024;
 const KINDS = new Set(['openai', 'anthropic', 'ollama']);
-
-function readJson(req: IncomingMessage): Promise<Record<string, unknown>> {
-  return new Promise((ok, fail) => {
-    let size = 0;
-    const chunks: Buffer[] = [];
-    req.on('data', (c: Buffer) => {
-      size += c.length;
-      if (size > MAX_BODY) {
-        fail(new StudioError('body too large', 413));
-        req.destroy();
-        return;
-      }
-      chunks.push(c);
-    });
-    req.on('end', () => {
-      try {
-        const v = JSON.parse(Buffer.concat(chunks).toString('utf8') || '{}');
-        if (!v || typeof v !== 'object' || Array.isArray(v)) throw new Error();
-        ok(v);
-      } catch {
-        fail(new StudioError('the body must be a JSON object'));
-      }
-    });
-    req.on('error', fail);
-  });
-}
-
-function sendJson(res: ServerResponse, status: number, data: unknown) {
-  res.statusCode = status;
-  res.setHeader('content-type', 'application/json; charset=utf-8');
-  res.setHeader('cache-control', 'no-store');
-  res.end(JSON.stringify(data));
-}
 
 const PROVIDER_ORIGINS = new Set(['https://api.openai.com', 'https://api.anthropic.com', 'https://api.mistral.ai']);
 /** `URL.hostname` as a host: IPv6 without its brackets, lower case; an IPv4-mapped IPv6 address becomes its IPv4. */
@@ -153,9 +121,9 @@ export function assistantHandler(studio: Studio, o: AssistantOptions) {
     }
     let body: Record<string, unknown>;
     try {
-      body = await readJson(req);
+      body = await readJson(req, MAX_BODY);
     } catch (e) {
-      sendJson(res, (e as StudioError).status ?? 400, { error: (e as Error).message });
+      send(res, (e as StudioError).status ?? 400, { error: (e as Error).message });
       return;
     }
 
@@ -168,9 +136,9 @@ export function assistantHandler(studio: Studio, o: AssistantOptions) {
           text: body.text,
           task: true,
         });
-        sendJson(res, 200, note);
+        send(res, 200, note);
       } catch (e) {
-        sendJson(res, e instanceof StudioError ? e.status : 500, { error: (e as Error).message });
+        send(res, e instanceof StudioError ? e.status : 500, { error: (e as Error).message });
       }
       return;
     }
@@ -180,7 +148,7 @@ export function assistantHandler(studio: Studio, o: AssistantOptions) {
       provider = parseProvider(body.provider, o.allowCustomProvider, o.allowPrivateProviderForTests);
       messages = parseMessages(body.messages);
     } catch (e) {
-      sendJson(res, 400, { error: (e as Error).message });
+      send(res, 400, { error: (e as Error).message });
       return;
     }
     const context = (body.context && typeof body.context === 'object' ? body.context : undefined) as
