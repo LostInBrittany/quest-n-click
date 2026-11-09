@@ -764,6 +764,17 @@ describe('the badge form', () => {
     });
   });
 
+  it('only a valid badge is claimed by its first player: a revoked one counts for each player (4.7.2)', async () => {
+    // Kills connector.ts's `if (verdict.status === 'valid')` → true: a revoked verdict must not be refused 409.
+    const f = await form({ pair: async (code: string) => ({ ok: true, playerId: code }) });
+    f.swap();
+    f.answer({ status: 'revoked', badgeId: 'urn:x', issuer: ISSUER });
+    const accepted = { status: 202, body: { status: 'revoked', signal: 'accepted' } };
+    expect(await f.post({ code: 'P1', badge: 'b' })).toEqual(accepted);
+    expect(await f.post({ code: 'P2', badge: 'b' })).toEqual(accepted);
+    expect(f.proposed.map((s) => s.playerId)).toEqual(['P1', 'P2']);
+  });
+
   it('without its context it answers 503 and says it is not healthy, though still listening', async () => {
     const f = await form();
     expect((await f.c.health()).ok).toBe(true);

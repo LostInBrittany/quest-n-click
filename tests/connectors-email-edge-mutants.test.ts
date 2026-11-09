@@ -789,6 +789,24 @@ describe('the IMAP pass', () => {
     expect(client.expunge).not.toHaveBeenCalled();
   });
 
+  it('says once, not at every pass, that the server cannot expunge; never when it could (4.7.2)', async () => {
+    // Kills connector.ts's `!(await imap.expunge(deleted)) && !this.warnedExpunge` → || and `warnedExpunge = true` → false.
+    const { client } = mailbox({ unseen: [1] });
+    client.unseen.mockImplementation(async () => [1]);
+    const ctx = fakeCtx();
+    const e = imapConnector();
+    (e as unknown as { ctx: ConnectorContext }).ctx = ctx;
+    const warned = () => vi.mocked(ctx.log).mock.calls.filter(([m]) => m === 'email.expunge-unsupported').length;
+    client.expunge.mockResolvedValue(true as never);
+    await e.poll();
+    expect(client.expunge).toHaveBeenCalledWith([1]);
+    expect(warned()).toBe(0);
+    client.expunge.mockResolvedValue(false as never);
+    await e.poll();
+    await e.poll();
+    expect(warned()).toBe(1);
+  });
+
   it('is healthy for three poll intervals after a good pass, and says why not', async () => {
     vi.useFakeTimers({ toFake: ['Date'], now: Date.parse('2026-10-13T10:00:00Z') });
     const T = Date.now();

@@ -335,8 +335,10 @@ describe('the IMAP mode', () => {
         ),
       ).toBe(true);
       expect(imap.log).not.toContain('EXPUNGE');
-      if (uidplus) expect([...box.keys()]).toEqual([7, 8]);
-      else {
+      if (uidplus) {
+        expect([...box.keys()]).toEqual([7, 8]);
+        expect(lines.filter((l) => l.includes('email.expunge-unsupported'))).toHaveLength(0); // imap.ts expunge answers true
+      } else {
         expect([...box.keys()]).toEqual([7, 8, 9]);
         expect(box.get(9)!.flags.has('\\Deleted')).toBe(true);
         expect(lines.filter((l) => l.includes('email.expunge-unsupported'))).toHaveLength(1);
