@@ -454,7 +454,14 @@ describe("a release pull request's check (4.5.4)", () => {
 describe('the unit suite in shards (4.5.4)', () => {
   const scripts = JSON.parse(readFileSync('package.json', 'utf8')).scripts as Record<string, string>;
   it('test:unit is test:coverage without the instrumentation: the same files', () => {
-    expect(scripts['test:coverage']).toBe(scripts['test:unit']!.replace(/^vitest run /, 'vitest run --coverage '));
+    expect(scripts['test:coverage']).toBe('npm run test:unit -- --coverage');
+  });
+  it('test:node and test:coverage derive from test:unit: the heavy list lives there and in test:heavy (#506)', () => {
+    expect(scripts['test:node']).toMatch(/^npm run test:unit -- /);
+    expect(scripts['test:node']).not.toContain('ownership.test.ts');
+    expect(scripts['release-check']).toContain('npm run build:game');
+    expect(scripts['release-check:ci']).toContain('npm run build:game');
+    expect(`${scripts['release-check']} ${scripts['release-check:ci']}`).not.toMatch(/npm run build &&/);
   });
   it('test:merge merges the shards under coverage', () => {
     expect(scripts['test:merge']).toBe('vitest --merge-reports --coverage');

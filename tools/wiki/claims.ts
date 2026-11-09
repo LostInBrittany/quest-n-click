@@ -226,10 +226,13 @@ function excludedFiles(root: string): (file: string) => string | undefined {
   let script = '';
   let include: string[] = [];
   try {
-    script =
-      (JSON.parse(readFileSync(join(root, 'package.json'), 'utf8')) as { scripts?: Record<string, string> }).scripts?.[
-        REPORT_SCRIPT
-      ] ?? '';
+    const scripts =
+      (JSON.parse(readFileSync(join(root, 'package.json'), 'utf8')) as { scripts?: Record<string, string> }).scripts ??
+      {};
+    script = scripts[REPORT_SCRIPT] ?? '';
+    // `npm run test:unit -- --coverage` (#506): the flags of the script it delegates to are its own.
+    for (let m, hops = 0; hops < 5 && (m = /^npm run (\S+)(?: --)?/.exec(script)) && scripts[m[1]!]; hops++)
+      script = scripts[m[1]!] + script.slice(m[0].length);
   } catch {}
   try {
     const config = readFileSync(join(root, 'vite.config.ts'), 'utf8');
