@@ -17,6 +17,7 @@ import {
 } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
+import { npmInstall } from './lib/archive-harness.mjs';
 
 const ROOT = resolve(import.meta.dirname, '..');
 const args = process.argv.slice(2);
@@ -24,11 +25,10 @@ const base = args.find((a) => a.startsWith('--dir='))?.slice(6) ?? mkdtempSync(j
 const version = JSON.parse(readFileSync(join(ROOT, 'package.json'), 'utf8')).version;
 const step = (title, cmd, a, cwd) => {
   console.log(`\n▶ ${title}`);
-  execFileSync(cmd, a, {
-    cwd,
-    stdio: 'inherit',
-    env: { ...process.env, GAME: '', GAME_DIR: '', WEB_SCUMM_PROJECT: '' },
-  });
+  const env = { ...process.env, GAME: '', GAME_DIR: '', WEB_SCUMM_PROJECT: '' };
+  // An install from the registry, no lockfile: tried again on a registry hiccup (#471).
+  if (cmd === 'npm' && a[0] === 'install') npmInstall(a, { cwd, env });
+  else execFileSync(cmd, a, { cwd, stdio: 'inherit', env });
 };
 
 step('pack', process.execPath, [join(ROOT, 'scripts', 'pack.mjs'), `--out=${join(base, 'pack')}`], ROOT);

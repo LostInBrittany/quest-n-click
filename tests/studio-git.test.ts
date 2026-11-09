@@ -74,7 +74,9 @@ afterAll(async () => {
 });
 
 // Each test runs real git commands (a bare repository, commits, pushes): seconds on a loaded runner, not 5.
-vi.setConfig({ testTimeout: 30_000 });
+// Windows gets 60 s (#471): a process start costs more there, and two tests passed 30 s on a slow runner (run
+// 42633058102).
+vi.setConfig({ testTimeout: process.platform === 'win32' ? 60_000 : 30_000 });
 
 describe('the game to and from Git', () => {
   it('pushes one commit of the revisions since the last push, each author co-authoring it', async () => {

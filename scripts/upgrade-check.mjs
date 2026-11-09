@@ -10,6 +10,7 @@ import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { download } from '../tools/release/fetch-retry.mjs';
 import { upgradeSource } from './upgrade-source.mjs';
+import { npmInstall } from './lib/archive-harness.mjs';
 
 const ROOT = resolve(import.meta.dirname, '..');
 let source;
@@ -33,7 +34,9 @@ const run = (title, cmd, args, cwd) => {
 };
 const show = (title, cmd, args, cwd) => {
   console.log(`\n▶ ${title}`);
-  execFileSync(cmd, args, { cwd, stdio: 'inherit', env });
+  // An install from the registry, no lockfile: tried again on a registry hiccup (#471).
+  if (cmd === 'npm' && args[0] === 'install') npmInstall(args, { cwd, env });
+  else execFileSync(cmd, args, { cwd, stdio: 'inherit', env });
 };
 
 // `--from=previous`: the newest published release older than this one (its tarball attached since 3.9).
