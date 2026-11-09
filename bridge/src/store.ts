@@ -7,7 +7,6 @@ import {
   existsSync,
   fstatSync,
   fsyncSync,
-  ftruncateSync,
   mkdirSync,
   openSync,
   readFileSync,
@@ -437,8 +436,9 @@ export class JsonlBridgeStore extends MemoryBridgeStore {
       writeAll(fd, `${JSON.stringify(stored)}\n`);
       fsyncSync(fd);
     } catch (err) {
-      // A line cut short is taken back: the next one must not join it.
-      ftruncateSync(fd, size);
+      // A line cut short is taken back: the next one must not join it. By path: Windows refuses to truncate
+      // through a handle opened to append (EPERM).
+      truncateSync(this.file, size);
       throw err;
     } finally {
       closeSync(fd);
