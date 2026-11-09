@@ -1,4 +1,9 @@
 // npm run release -- <x.y.z> [--key=<ssh public key>] [--start-candidate] [--docs-revision] [--reverify] [--commit=<sha>] [--dry-run]
+// (next, #471) Before anything is done, every gate that could stop the run is judged and said together, one line each
+// (judgeGates, gateReport): the preflight, main's ci on the release commit, the docs' human gates on its tree, its
+// candidate, and ship tag's own checks; one red gate and nothing is done, every red one named, then the next command.
+// A missing or superseded candidate names a later commit of main at the version, its run and the command in full; that
+// commit is never picked by itself. --dry-run is that report alone, its exit status the verdict.
 // (4.5.6) --commit=<sha> releases on a later commit of main than the release merge, when the merge's own ci is red for a
 // reason fixed after it (4.5.5: its windows job, fixed by #368): main-ci.mjs wants main's ci green on the tagged SHA.
 // That commit stands for the release commit everywhere (gates, candidate, tag, release run); commitRefusals says
@@ -30,6 +35,14 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { releaseNotes } from '../../scripts/release-notes.mjs';
 import { humanGates } from './gates';
+// @ts-expect-error: a plain .mjs module without declarations
+import { checkAncestry } from './ancestry.mjs';
+// @ts-expect-error: a plain .mjs module without declarations
+import { FIRST as FIRST_LISTED } from './artifacts.mjs';
+// @ts-expect-error: a plain .mjs module without declarations
+import { atLeast as atLeastVersion } from './candidate.mjs';
+// @ts-expect-error: a plain .mjs module without declarations
+import { candidateSha } from './supersede.mjs';
 // @ts-expect-error: a plain .mjs module without declarations
 import { clock, gitRetried, REPO, releaseRemote, sleep } from './lib.mjs';
 // @ts-expect-error: a plain .mjs module without declarations
@@ -153,14 +166,41 @@ interface Run {
   status: string;
   conclusion: string;
   createdAt: string;
+  /** candidate.yml's run-name, `candidate <sha>`: the SHA the run tests (#410). */
+  displayTitle?: string;
 }
 
-/** The runs of `sha` started on main (a release's merge, or by hand), newest first: the candidate is among them. */
-function candidateRuns(runs: readonly Run[], sha: string): Run[] {
-  return [...runs]
-    .filter((r) => r.headSha === sha && r.headBranch === 'main' && ['push', 'workflow_dispatch'].includes(r.event))
+/**
+ * The runs of `sha` started on main (a release's merge, or by hand), newest first: the candidate is among them. A run
+ * is `sha`'s by the SHA its name says (candidate.yml's run-name), its head only when its name says none (a run named
+ * before #410): a dispatch runs at main's tip, whatever SHA it tests (#471 review; 4.7.2 dispatched for older commits).
+ */
+function candidateRuns(runs: readonly Run[] | null, sha: string): Run[] {
+  return [...(runs ?? [])]
+    .filter(
+      (r) =>
+        (candidateSha(r.displayTitle) ?? r.headSha) === sha &&
+        r.headBranch === 'main' &&
+        ['push', 'workflow_dispatch'].includes(r.event),
+    )
     .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
 }
+
+/** candidate.yml's runs on main, listed by branch: `--commit` lists by head, and a dispatch's head is main's tip. */
+const CANDIDATE_LIST = [
+  'run',
+  'list',
+  '--repo',
+  REPO,
+  '--workflow',
+  'candidate.yml',
+  '--branch',
+  'main',
+  '--limit',
+  '100',
+  '--json',
+  'databaseId,event,headBranch,headSha,status,conclusion,createdAt,displayTitle',
+];
 
 /** The newest of them; `isCandidateRun` on its jobs says whether it is one (a push that was no release is not). */
 export const pickCandidate = (runs: readonly Run[], sha: string): Run | undefined => candidateRuns(runs, sha)[0];
@@ -269,7 +309,7 @@ interface CandidateView {
  */
 export function candidateStep(
   view: CandidateView,
-  o: { id: number; version: string; rerunAsked: boolean; waitedMs: number; commit?: string },
+  o: { id: number; version: string; rerunAsked: boolean; waitedMs: number; commit?: string; later?: Later },
 ): { do: 'done' } | { do: 'wait' } | { do: 'rerun'; args: string[]; line: string } | { do: 'stop'; error: string } {
   const url = `https://github.com/${REPO}/actions/runs/${o.id}`;
   if (view.status !== 'completed') {
@@ -287,7 +327,7 @@ export function candidateStep(
   if (attempt > 1)
     return {
       do: 'stop',
-      error: `candidate run ${o.id} ${view.conclusion === 'failure' ? 'failed' : view.conclusion} again (attempt ${attempt}): ${failed.join(', ') || 'no job failed'} (${url}). It was re-run once already. A passing failure: re-run it by hand (${rerunCommand(o.id, view.jobs)}) and run ${releaseCommand(o.version, o.commit)} again. A fix merged on main: release that commit, its own candidate started (git log --first-parent --oneline <remote>/main names it): npm run release -- ${o.version} --commit=<the fix's merge sha> --start-candidate`,
+      error: `candidate run ${o.id} ${view.conclusion === 'failure' ? 'failed' : view.conclusion} again (attempt ${attempt}): ${failed.join(', ') || 'no job failed'} (${url}). It was re-run once already. A passing failure: re-run it by hand (${rerunCommand(o.id, view.jobs)}) and run ${releaseCommand(o.version, o.commit)} again. A fix merged on main: release that commit, its own candidate started (git log --first-parent --oneline <remote>/main names it): npm run release -- ${o.version} --commit=<the fix's merge sha> --start-candidate${o.later ? `. ${laterWay(o.version, o.later)}` : ''}`,
     };
   if (o.rerunAsked) return { do: 'wait' };
   // Cancelled once a job had failed (#410 PR 4 e): a later candidate of the version cancels a red one (candidate.yml's
@@ -296,7 +336,7 @@ export function candidateStep(
   if (view.conclusion === 'cancelled' && red.length)
     return {
       do: 'stop',
-      error: `candidate run ${o.id} was cancelled after ${red.map((j) => j.name).join(', ')} failed (${url}): a later candidate of ${o.version} cancels a red one, and this one is not re-run. Release the commit that later candidate tests: npm run release -- ${o.version} --commit=<its sha> --start-candidate (it finds the running candidate of that SHA, or starts one)`,
+      error: `candidate run ${o.id} was cancelled after ${red.map((j) => j.name).join(', ')} failed (${url}): a later candidate of ${o.version} cancels a red one, and this one is not re-run. ${o.later ? laterWay(o.version, o.later) : `Release the commit that later candidate tests: npm run release -- ${o.version} --commit=<its sha> --start-candidate (it finds the running candidate of that SHA, or starts one)`}`,
     };
   const args = ['run', 'rerun', String(o.id), '--repo', REPO];
   if (failed.length)
@@ -310,6 +350,287 @@ export function candidateStep(
     args,
     line: `candidate ${view.conclusion} before any job failed: re-running the whole run once`,
   };
+}
+
+// ——— The gate report (#471): every gate that could stop the run, judged before anything is done, said together.
+// 4.7.2 met them one at a time, each after a command had started: the docs' human gates on --commit, then the candidate
+// of the release merge cancelled by a later one (the command said "--commit=<its sha>" without the SHA), with main's ci
+// on the SHA waited for by hand before both.
+
+/**
+ * A later commit of main at the same version than the release commit, and its candidate when one is green or running
+ * (`laterCandidate` below): the commit to release when the release commit's own candidate is red or was superseded.
+ * Never picked by itself: the release commit is the one the release pull request merged, and releasing a later one
+ * ships what was merged after it, which is the maintainer's call (`--commit`, 4.5.6). The command is said in full.
+ */
+export interface Later {
+  sha: string;
+  run?: { id: number; state: 'green' | 'running' };
+}
+
+/** The way on that a later commit of main gives, its SHA filled in. */
+export function laterWay(version: string, later: Later): string {
+  if (later.run)
+    return `A later candidate of ${version} is ${later.run.state} on ${later.sha.slice(0, 7)} (run ${later.run.id}, https://github.com/${REPO}/actions/runs/${later.run.id}): ${releaseCommand(version, later.sha)}${later.run.state === 'running' ? ' (it waits for that run)' : ''}`;
+  return `No later candidate of ${version}; main's latest commit at ${version} is ${later.sha.slice(0, 7)}: ${releaseCommand(version, later.sha)} --start-candidate`;
+}
+
+/**
+ * The later commit to name (`Later`): `commits` are main's first-parent commits after the release commit still at the
+ * version, newest first; `candidates(sha)` the candidate runs of one (status, conclusion), newest first, of which only
+ * the newest counts. A green one first (the newest commit that has one), else a running one, else the newest commit.
+ */
+export function pickLater(
+  commits: readonly string[],
+  candidates: (sha: string) => readonly { id: number; status: string; conclusion: string }[],
+): Later | undefined {
+  if (!commits.length) return undefined;
+  // Each commit judged by its newest candidate, the one the wait would take: an older green run under it is not it.
+  const newest = commits.map((sha) => ({ sha, run: candidates(sha)[0] }));
+  const green = newest.find((c) => c.run?.status === 'completed' && c.run.conclusion === 'success');
+  if (green) return { sha: green.sha, run: { id: green.run!.id, state: 'green' } };
+  const running = newest.find((c) => c.run && c.run.status !== 'completed');
+  if (running) return { sha: running.sha, run: { id: running.run!.id, state: 'running' } };
+  return { sha: commits[0]! };
+}
+
+/** A gate's state: it holds, the command waits for it (or acts, said), it goes on with a warning, it refuses, unchecked. */
+type GateState = 'ok' | 'wait' | 'warn' | 'red' | 'skip';
+export interface Gate {
+  name: string;
+  state: GateState;
+  line: string;
+  /** Said under the line, indented: the wiki's items, a stop's way on. */
+  detail?: string;
+}
+const MARK: Record<GateState, string> = { ok: '✔', wait: '…', warn: '⚠', red: '✖', skip: '–' };
+const runUrl = (id: number) => `https://github.com/${REPO}/actions/runs/${id}`;
+
+/** The preflight (`releaseRefusals`, the release commit, `--commit`): one line when it holds, one per refusal else. */
+export function preflightGates(refusals: readonly string[], o: { version: string; npmUser?: string }): Gate[] {
+  if (!refusals.length)
+    return [
+      {
+        name: 'preflight',
+        state: 'ok',
+        line: `preflight: main at ${o.version}, up to date and clean, its CHANGELOG section, the signing key in allowed_signers, gh and npm${o.npmUser ? ` (${o.npmUser})` : ''} signed in`,
+      },
+    ];
+  return refusals.map((r) => ({ name: 'preflight', state: 'red' as const, line: `preflight: ${r}` }));
+}
+
+interface CiRun {
+  databaseId: number;
+  event: string;
+  headBranch: string;
+  headSha: string;
+  status: string;
+  conclusion: string;
+  createdAt: string;
+  attempt?: number;
+}
+
+/**
+ * Main's `ci` on the SHA: what `ship tag` waits for (release.yml's main-ci.mjs refuses without it). Green: holds.
+ * Running: waited for. Failed, cancelled or timed out on its first attempt: `ship tag` re-runs it once (its rerunOnce),
+ * so a wait, with the command to re-run it now instead of after the candidate. A later attempt red, any other end
+ * (`skipped`, `startup_failure`, …: waitRun refuses those at once), or no run: refused.
+ */
+export function mainCiGate(o: { runs?: readonly CiRun[]; sha: string; tagged: boolean; error?: string }): Gate {
+  const name = "main's ci";
+  const at = `main's ci on ${o.sha.slice(0, 7)}`;
+  if (o.tagged) return { name, state: 'skip', line: `${at}: the tag is pushed, ship tag does not wait for it again` };
+  if (o.error !== undefined) return { name, state: 'red', line: `${at}: not read (${o.error})` };
+  const ours = [...(o.runs ?? [])]
+    .filter((r) => r.headSha === o.sha && r.event === 'push' && r.headBranch === 'main')
+    .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+  const green = ours.find((r) => r.status === 'completed' && r.conclusion === 'success');
+  if (green) return { name, state: 'ok', line: `${at}: green (run ${green.databaseId})` };
+  const last = ours[0];
+  if (!last)
+    return {
+      name,
+      state: 'red',
+      line: `${at}: no run of a push of main at this SHA: release.yml refuses a tag without main's green ci on it`,
+    };
+  if (last.status !== 'completed')
+    return { name, state: 'wait', line: `${at}: ${last.status}, ship tag waits for it (${runUrl(last.databaseId)})` };
+  // ship tag's waitRun re-runs these three once; anything else (skipped, startup_failure, …) it refuses at once.
+  if (!['failure', 'cancelled', 'timed_out'].includes(last.conclusion))
+    return {
+      name,
+      state: 'red',
+      line: `${at}: ${last.conclusion} (${runUrl(last.databaseId)}): ship tag does not re-run that, it refuses; start main's ci again on that SHA, or release a later commit with --commit`,
+    };
+  if ((last.attempt ?? 1) === 1)
+    return {
+      name,
+      state: 'wait',
+      line: `${at}: ${last.conclusion} (${runUrl(last.databaseId)}): ship tag re-runs its failed jobs once, after the candidate; to have it done sooner: ${rerunCommand(last.databaseId, [{ name: 'ci', status: 'completed', conclusion: last.conclusion }])}`,
+    };
+  return {
+    name,
+    state: 'red',
+    line: `${at}: ${last.conclusion} again (attempt ${last.attempt}, ${runUrl(last.databaseId)}): it was re-run once already; a passing failure: re-run it by hand; a fix merged on main: release that commit with --commit`,
+  };
+}
+
+/** The docs' human gates on the SHA's own tree (#339): `docsGatesStop` said as a gate; `--docs-revision` goes on. */
+export function docsGate(o: {
+  version: string;
+  sha: string;
+  tagged: boolean;
+  gates?: { ok: boolean; detail: string };
+  docsRevision: boolean;
+  commit?: string;
+}): Gate {
+  const name = "the docs' human gates";
+  const at = `the docs' human gates on ${o.sha.slice(0, 7)}`;
+  if (o.tagged) return { name, state: 'skip', line: `${at}: the tag is pushed, past them (its docs-publish has run)` };
+  if (!o.gates) return { name, state: 'skip', line: `${at}: not checked` };
+  if (o.gates.ok) return { name, state: 'ok', line: `${at}: they hold` };
+  if (o.docsRevision)
+    return {
+      name,
+      state: 'warn',
+      line: `${at}: pending; --docs-revision: the release and npm go on, the docs follow as a revision`,
+      detail: o.gates.detail,
+    };
+  const stop = docsGatesStop({
+    version: o.version,
+    sha: o.sha,
+    gates: o.gates,
+    docsRevision: false,
+    ...(o.commit ? { commit: o.commit } : {}),
+  })!;
+  // The other way on since --commit (4.5.6): the reviews recorded in a pull request, its merge released (4.7.2, #470).
+  const merged = `  Or record each review in a pull request and, once merged, release its merge: ${releaseCommand(o.version, '<its merge sha>')} --start-candidate`;
+  const [first, ...rest] = stop.split('\n');
+  return {
+    name,
+    state: 'red',
+    line: first!.replace(/^the docs' human gates fail on the release commit [0-9a-f]+ /, `${at}: pending `),
+    detail: [...rest, merged].join('\n'),
+  };
+}
+
+/**
+ * The candidate of the SHA, judged as the wait would judge it on its first look (`candidateStep`): green holds;
+ * running, or due a re-run, is waited for; none is started with --start-candidate; a red one that is not re-run
+ * refuses, with the later commit to release when there is one (`later`).
+ */
+export function candidateGate(o: {
+  version: string;
+  sha: string;
+  startCandidate: boolean;
+  commit?: string;
+  run?: { id: number; view: CandidateView };
+  later?: Later;
+  error?: string;
+}): Gate {
+  const name = 'candidate';
+  const at = `the candidate of ${o.sha.slice(0, 7)}`;
+  if (o.error !== undefined) return { name, state: 'red', line: `${at}: not read (${o.error})` };
+  if (!o.run) {
+    if (o.startCandidate)
+      return { name, state: 'wait', line: `${at}: none on main, the command starts one (about 90 min)` };
+    return {
+      name,
+      state: 'red',
+      line: `${at}: none on main: the release pull request's merge starts one; or run again with --start-candidate`,
+      ...(o.later ? { detail: `  ${laterWay(o.version, o.later)}` } : {}),
+    };
+  }
+  const step = candidateStep(o.run.view, {
+    id: o.run.id,
+    version: o.version,
+    rerunAsked: false,
+    waitedMs: 0,
+    ...(o.commit ? { commit: o.commit } : {}),
+    ...(o.later ? { later: o.later } : {}),
+  });
+  const url = runUrl(o.run.id);
+  if (step.do === 'done') return { name, state: 'ok', line: `${at}: green (run ${o.run.id})` };
+  if (step.do === 'wait')
+    return {
+      name,
+      state: 'wait',
+      line: `${at}: running, the command waits for it (${candidateProgress(o.run.view.jobs)}; ${url})`,
+    };
+  if (step.do === 'rerun') return { name, state: 'wait', line: `${at}: ${step.line}, then waits (${url})` };
+  return { name, state: 'red', line: `${at}: ${step.error}` };
+}
+
+/** What `ship tag` checks itself before it tags (ancestry, CHANGELOG at the SHA, immutable releases), said up front. */
+export function tagGates(o: {
+  version: string;
+  sha: string;
+  tagged: boolean;
+  section: boolean;
+  ancestry: { ok: boolean; reason: string };
+  /** undefined when the version predates the setting (ship tag does not ask then); 'unreadable' when gh did not answer. */
+  immutable?: boolean | 'unreadable';
+}): Gate[] {
+  const name = 'tag';
+  const s = o.sha.slice(0, 7);
+  if (o.tagged) return [{ name, state: 'ok', line: `tag: v${o.version} is pushed on ${s}, the command follows it` }];
+  const out: Gate[] = [];
+  if (!o.section)
+    out.push({
+      name,
+      state: 'red',
+      line: `tag: CHANGELOG.md at ${s} has no "## ${o.version}" section: release.yml's notes are that section`,
+    });
+  if (!o.ancestry.ok)
+    out.push({ name, state: 'red', line: `tag: ${o.ancestry.reason} (merge that tag into main first)` });
+  if (o.immutable === false)
+    out.push({
+      name,
+      state: 'red',
+      line: `tag: immutable releases are off on ${REPO} (Settings → General → Releases): ship verify needs them`,
+    });
+  if (o.immutable === 'unreadable')
+    out.push({ name, state: 'red', line: `tag: immutable releases on ${REPO}: unreadable (gh api)` });
+  if (out.length) return out;
+  return [
+    {
+      name,
+      state: 'ok',
+      line: `tag: CHANGELOG section at ${s}, ${o.ancestry.reason}${o.immutable === true ? ', immutable releases on' : ''}`,
+    },
+  ];
+}
+
+/**
+ * The report itself: a heading, a line per gate (indented details under it), then the verdict. It refuses when one gate
+ * is red, naming all of them, and says the next step: `next` when a gate knows it, else the command to run again.
+ */
+export function gateReport(
+  gates: readonly Gate[],
+  o: { version: string; sha?: string; found?: string; dryRun: boolean; again: string; next?: string },
+): { lines: string[]; refused: boolean } {
+  const head = o.sha ? commitLine(o.found, o.sha) : 'no release commit';
+  const lines = [`the gates of ${o.version}, ${head}, before anything is done:`];
+  for (const g of gates) {
+    lines.push(`  ${MARK[g.state]}  ${g.line}`);
+    if (g.detail) lines.push(...g.detail.split('\n').map((l) => `     ${l}`));
+  }
+  const red = gates.filter((g) => g.state === 'red');
+  const names = [...new Set(red.map((g) => g.name))];
+  if (red.length) {
+    lines.push(
+      `✖  ${red.length} ${red.length === 1 ? 'gate refuses' : 'gates refuse'} (${names.join(', ')}): nothing was done`,
+    );
+    lines.push(
+      `   next: ${o.next ?? `fix each ✖ above, then ${o.again} (--dry-run first: this report, nothing done)`}`,
+    );
+    return { lines, refused: true };
+  }
+  const waits = gates.filter((g) => g.state === 'wait').map((g) => g.name);
+  lines.push(
+    `✔  no gate refuses${waits.length ? `; the command waits for: ${[...new Set(waits)].join(', ')}` : ''}${o.dryRun ? `: ${o.again} would go through` : ''}`,
+  );
+  return { lines, refused: false };
 }
 
 /**
@@ -487,19 +808,9 @@ function findReleaseCommit(remote: string, version: string): string | undefined 
 }
 
 async function waitForCandidate(sha: string, version: string, startIt: boolean, commit?: string): Promise<number> {
-  const runsOf = () =>
-    ghJson<Run[]>([
-      'run',
-      'list',
-      '--repo',
-      REPO,
-      '--workflow',
-      'candidate.yml',
-      '--commit',
-      sha,
-      '--json',
-      'databaseId,event,headBranch,headSha,status,conclusion,createdAt',
-    ]);
+  // Listed by branch and matched by the SHA in the run's name (candidateRuns, #471 review): a run dispatched for a commit
+  // that is not main's tip has main's tip for its head, and `--commit <sha>` never listed it.
+  const runsOf = () => ghJson<Run[] | null>(CANDIDATE_LIST);
   const viewOf = (id: number) =>
     ghJson<CandidateView & { jobs: Job[] }>([
       'run',
@@ -511,7 +822,8 @@ async function waitForCandidate(sha: string, version: string, startIt: boolean, 
       'status,conclusion,jobs,attempt',
     ]);
   const find = async () => {
-    for (const r of candidateRuns(await runsOf(), sha)) if (isCandidateRun((await viewOf(r.databaseId)).jobs)) return r;
+    for (const r of candidateRuns(await runsOf(), sha))
+      if (isCandidateRun((await viewOf(r.databaseId))?.jobs ?? [])) return r;
     return undefined;
   };
   let run = await find();
@@ -698,6 +1010,183 @@ function gatesAt(sha: string) {
   }
 }
 
+/** gh's answer, or the first line of why not: a gate that cannot be read is said so, never read as a pass. */
+async function ghRead<T>(args: string[]): Promise<{ ok: T } | { error: string }> {
+  try {
+    return { ok: await ghJson<T>(args) };
+  } catch (e) {
+    return { error: String((e as Error).message).split('\n')[0]! };
+  }
+}
+
+const RUN_FIELDS = 'databaseId,event,headBranch,headSha,status,conclusion,createdAt';
+/** A candidate's view, or why not: a reply without its jobs is said as unexpected, never read as no candidate. */
+async function candidateViewOf(id: number): Promise<{ ok: CandidateView } | { error: string }> {
+  const r = await ghRead<CandidateView | null>([
+    'run',
+    'view',
+    String(id),
+    '--repo',
+    REPO,
+    '--json',
+    'status,conclusion,jobs,attempt',
+  ]);
+  if ('error' in r) return r;
+  if (!r.ok || !Array.isArray(r.ok.jobs)) return { error: `unexpected reply for run ${id}: no jobs` };
+  return { ok: r.ok };
+}
+
+/** The candidate of `sha` the wait would pick (the newest run of it on main whose target ran), with its view. */
+async function candidateOf(sha: string): Promise<{ run?: { id: number; view: CandidateView }; error?: string }> {
+  const runs = await ghRead<Run[] | null>(CANDIDATE_LIST);
+  if ('error' in runs) return { error: runs.error };
+  for (const r of candidateRuns(runs.ok, sha)) {
+    const view = await candidateViewOf(r.databaseId);
+    if ('error' in view) return { error: view.error };
+    if (isCandidateRun(view.ok.jobs)) return { run: { id: r.databaseId, view: view.ok } };
+  }
+  return {};
+}
+
+/**
+ * The later commit of main to name when the release commit's candidate is red or missing (`pickLater`): main's
+ * first-parent commits after `sha`, walked from `sha` up and stopped at the first at another version (main's tip may be
+ * at the next one already), and the newest candidate run on main of each, matched as the wait matches them
+ * (`candidateRuns`: the SHA in the run's name).
+ */
+async function laterCandidate(remote: string, version: string, sha: string): Promise<Later | undefined> {
+  const commits: string[] = [];
+  for (const c of quiet('git', ['rev-list', '--reverse', '--first-parent', `${sha}..${remote}/main`]).out.split('\n')) {
+    if (!c) continue;
+    const v = (JSON.parse(quiet('git', ['show', `${c}:package.json`]).out || '{}') as { version?: string }).version;
+    if (v !== version) break;
+    commits.push(c);
+  }
+  commits.reverse(); // newest first, as pickLater takes them
+  if (!commits.length) return undefined;
+  const listed = await ghRead<Run[] | null>(CANDIDATE_LIST);
+  if ('error' in listed) return { sha: commits[0]! };
+  const newest = new Map<string, { id: number; status: string; conclusion: string }>();
+  for (const c of commits)
+    for (const r of candidateRuns(listed.ok, c)) {
+      // A push that was no release is no candidate (its target skipped): the newest whose target ran is the one.
+      const view = await candidateViewOf(r.databaseId);
+      if ('error' in view || !isCandidateRun(view.ok.jobs)) continue;
+      newest.set(c, { id: r.databaseId, status: view.ok.status, conclusion: view.ok.conclusion });
+      break;
+    }
+  return pickLater(commits, (c) => {
+    const r = newest.get(c);
+    return r ? [r] : [];
+  });
+}
+
+/** Every gate that could stop the run, judged up front (#471): read-only, but for the docs' temporary worktree. */
+async function judgeGates(o: {
+  version: string;
+  sha: string | undefined;
+  found: string | undefined;
+  remote: string | undefined;
+  refusals: readonly string[];
+  /** The remote gates are judged only when the commit is known and gh can answer. */
+  remoteReady: boolean;
+  why: string;
+  tagged: boolean;
+  commit: string | undefined;
+  npmUser: string | undefined;
+  opts: { startCandidate: boolean; docsRevision: boolean };
+  /** `--key=…` when given: kept in every command the report says. */
+  key: string;
+}): Promise<{ gates: Gate[]; next?: string }> {
+  const gates = preflightGates(o.refusals, { version: o.version, ...(o.npmUser ? { npmUser: o.npmUser } : {}) });
+  const { sha } = o;
+  if (!sha || !o.remote || !o.remoteReady) {
+    for (const name of ["main's ci", "the docs' human gates", 'the candidate', 'tag'])
+      gates.push({ name, state: 'skip', line: `${name}: not checked (${o.why})` });
+    return { gates };
+  }
+  const ci = await ghRead<CiRun[]>([
+    'run',
+    'list',
+    '--repo',
+    REPO,
+    '--workflow',
+    'ci.yml',
+    '--commit',
+    sha,
+    '--branch',
+    'main',
+    '--json',
+    `${RUN_FIELDS},attempt`,
+  ]);
+  gates.push(mainCiGate({ sha, tagged: o.tagged, ...('error' in ci ? { error: ci.error } : { runs: ci.ok }) }));
+  const docs = docsGate({
+    version: o.version,
+    sha,
+    tagged: o.tagged,
+    ...(o.tagged ? {} : { gates: gatesAt(sha) }),
+    docsRevision: o.opts.docsRevision,
+    ...(o.commit ? { commit: o.commit } : {}),
+  });
+  gates.push(docs);
+  const cand = await candidateOf(sha);
+  // A later commit is looked for only when it is the way on: the release commit's candidate missing or not re-run.
+  const base = {
+    version: o.version,
+    sha,
+    startCandidate: o.opts.startCandidate,
+    ...(o.commit ? { commit: o.commit } : {}),
+    ...cand,
+  };
+  const first = candidateGate(base);
+  const later =
+    first.state === 'red' && !o.tagged && cand.error === undefined
+      ? await laterCandidate(o.remote, o.version, sha)
+      : undefined;
+  gates.push(later ? candidateGate({ ...base, later }) : first);
+  const imm = atLeastVersion(o.version, FIRST_LISTED) && !o.tagged ? immutableReleases() : undefined;
+  gates.push(
+    ...tagGates({
+      version: o.version,
+      sha,
+      tagged: o.tagged,
+      section: releaseNotes(quiet('git', ['show', `${sha}:CHANGELOG.md`]).out, `v${o.version}`) !== null,
+      ancestry: checkAncestry(o.version, sha, { cwd: ROOT() }),
+      ...(imm !== undefined ? { immutable: imm } : {}),
+    }),
+  );
+  // The release commit's tree cannot take a review: running the same command again never passes the docs' gates.
+  // The flags given are kept; a later commit's command says to fix the other red gates first when there are some.
+  const laterCommand =
+    later &&
+    `${releaseCommand(o.version, later.sha)}${o.key}${o.opts.docsRevision ? ' --docs-revision' : ''}${later.run ? '' : ' --start-candidate'}`;
+  const others = gates.some((g) => g.state === 'red' && g.name !== 'candidate');
+  const next = laterCommand
+    ? `${others ? 'fix the other ✖ above, then ' : ''}${laterCommand}`
+    : docs.state === 'red'
+      ? `${releaseCommand(o.version, o.commit)}${o.key} --docs-revision, or the reviews merged in a pull request and its merge released with --commit (both said above)`
+      : undefined;
+  return { gates, ...(next ? { next } : {}) };
+}
+
+/**
+ * Whether immutable releases are on, from `gh api repos/<repo>/immutable-releases` (ship tag's check, 4.1.20): exit 0
+ * with JSON says it; exit 1 with JSON is the 404 of a setting off; anything else (no reply, no JSON, another exit: auth,
+ * network) is unreadable, never read as off.
+ */
+export function immutableFrom(r: { code: number; out: string }): boolean | 'unreadable' {
+  if (r.code !== 0 && r.code !== 1) return 'unreadable';
+  let json: unknown;
+  try {
+    json = JSON.parse(r.out);
+  } catch {
+    return 'unreadable';
+  }
+  if (!json || typeof json !== 'object') return 'unreadable';
+  return r.code === 0 && (json as { enabled?: boolean }).enabled === true;
+}
+const immutableReleases = () => immutableFrom(quiet('gh', ['api', `repos/${REPO}/immutable-releases`]));
+
 export async function runRelease(
   version: string,
   opts: { key?: string; startCandidate: boolean; docsRevision: boolean; dryRun: boolean; commit?: string },
@@ -717,6 +1206,7 @@ export async function runRelease(
   const head = sh('git', ['rev-parse', 'HEAD']);
   const theirs = remote ? quiet('git', ['rev-parse', '-q', '--verify', `${remote}/main`]).out : '';
   const npmUser = quiet('npm', ['whoami']);
+  const ghReady = quiet('gh', ['auth', 'status', '--hostname', 'github.com']).code === 0;
   const refusals = releaseRefusals({
     version,
     current,
@@ -725,7 +1215,7 @@ export async function runRelease(
     upToDate: fetched && head === theirs,
     section: releaseNotes(readFileSync(join(ROOT(), 'CHANGELOG.md'), 'utf8'), `v${version}`) !== null,
     signing: signingReady(opts.key),
-    gh: quiet('gh', ['auth', 'status', '--hostname', 'github.com']).code === 0,
+    gh: ghReady,
     npm: npmUser.code === 0 && npmUser.out ? npmUser.out : undefined,
     owners: OWNERS,
     npmVersion: quiet('npm', ['--version']).out || '0.0.0',
@@ -737,6 +1227,7 @@ export async function runRelease(
     refusals.push(`no commit of main sets package.json to ${version}: merge the release pull request first`);
   // --commit=<sha> (4.5.6): a later commit of main in place of the release merge, everywhere below.
   let sha = found;
+  let commitRefused = false;
   if (opts.commit !== undefined && remote && found) {
     const given = opts.commit;
     const resolved = /^[0-9a-f]{7,40}$/i.test(given)
@@ -761,32 +1252,52 @@ export async function runRelease(
     });
     refusals.push(...bad);
     if (!bad.length) sha = resolved;
+    commitRefused = bad.length > 0;
   }
   const commit = opts.commit !== undefined ? sha : undefined;
-  // The docs' human gates on the release commit itself, before anything is waited for (#339); a tag already out is
-  // past them (its docs-publish has run or runs).
+  // A tag already out is past the docs' gates and main's ci (its docs-publish has run or runs, ship tag follows it).
   const tagged = !!remote && quiet('git', ['ls-remote', '--tags', remote, `refs/tags/v${version}`]).out.trim() !== '';
-  if (!refusals.length && sha) {
-    const stop = tagged
-      ? undefined
-      : docsGatesStop({
-          version,
-          sha,
-          gates: gatesAt(sha),
-          docsRevision: opts.docsRevision,
-          ...(commit ? { commit } : {}),
-        });
-    if (stop) refusals.push(stop);
-  }
-  for (const r of refusals) console.error(`✖  ${r}`);
+  // The command to run again keeps the flags given (#471 review): --key, --docs-revision.
+  const key = opts.key ? ` --key=${opts.key}` : '';
+  const again = `${releaseCommand(version, commit)}${key}${opts.docsRevision ? ' --docs-revision' : ''}`;
+  // Every gate judged before anything is done (#471), the docs' human gates on the release commit's own tree among
+  // them (#339), and said together: a refusal names every red gate, not the first one met.
+  const { gates, next } = await judgeGates({
+    version,
+    sha: commitRefused ? undefined : sha,
+    found,
+    remote,
+    refusals,
+    remoteReady: fetched && ghReady,
+    why: !sha
+      ? 'no release commit'
+      : commitRefused
+        ? '--commit refused'
+        : !ghReady
+          ? 'gh is not signed in'
+          : 'main not fetched',
+    tagged,
+    commit,
+    npmUser: npmUser.code === 0 && npmUser.out ? npmUser.out : undefined,
+    opts,
+    key,
+  });
+  const report = gateReport(gates, {
+    version,
+    ...(sha && !commitRefused ? { sha } : {}),
+    ...(found ? { found } : {}),
+    dryRun: opts.dryRun,
+    again: `${again}${opts.startCandidate ? ' --start-candidate' : ''}`,
+    ...(next ? { next } : {}),
+  });
+  for (const l of report.lines) (report.refused ? console.error : console.log)(l);
   if (opts.dryRun) {
     if (sha) say(commitLine(found, sha).replace(/^release commit /, 'release commit: '));
     for (const s of RELEASE_STEPS) say(`would run: ${s}`);
-    process.exit(refusals.length ? 1 : 0);
+    process.exit(report.refused ? 1 : 0);
   }
-  if (refusals.length || !sha) process.exit(1);
+  if (report.refused || !sha) process.exit(1);
   say(`preflight: ✔  ${commitLine(found, sha)}, ${version}, signed, gh and npm (${npmUser.out}) ready`);
-  const again = releaseCommand(version, commit);
   const candidate = await waitForCandidate(sha, version, opts.startCandidate, commit);
   say(`tag: ship tag ${version} ${sha.slice(0, 7)} --candidate=${candidate} --sign`);
   const tag = ['tools/release/ship.mjs', 'tag', version, sha, `--candidate=${candidate}`, '--sign', '--no-watch'];

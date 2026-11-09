@@ -163,8 +163,39 @@ version que nomme sa branche : fusionnez quand chaque point est ✔, et le merge
 Une fois la pull request de release fusionnée, sur un `main` à jour :
 
 ```sh
-npm run release -- 4.5.4          # --dry-run dit ce qu'elle refuserait ; --key=<clé.pub> si git signe autrement
+npm run release -- 4.5.4          # --dry-run affiche le rapport des barrières et ne fait rien ; --key=<clé.pub> si git signe autrement
 ```
+
+Avant de rien faire (next, #471), elle juge chaque barrière qui pourrait l'arrêter plus tard et les affiche ensemble,
+une ligne chacune : les vérifications préalables ci-dessous, la `ci` de main sur le commit de release (ce que `ship
+tag` attend), les barrières humaines de la doc sur l'arbre de ce commit, son candidat, et ce que `ship tag` vérifie
+lui-même (la section du CHANGELOG à ce commit, le tag stable précédent ancêtre de ce commit, les releases immuables
+activées). `✔` passe ; `…` est attendu (un candidat ou la `ci` de main qui tourne encore, ou en échec à sa première
+tentative et dû pour son unique relance, la commande de relance affichée) ; `⚠` continue avec un avertissement
+(`--docs-revision`) ; `✖` refuse ; `–` n'a pas été vérifié (pas de commit de release, `gh` non connecté). Un seul `✖`
+et rien n'est fait : chaque barrière rouge est nommée, pas seulement la première rencontrée, puis une ligne `next:`.
+Quand le candidat du commit de release manque, ou est rouge sans relance (annulé par un candidat plus récent de la
+version, ou rouge après sa relance), le rapport cherche un commit plus récent de main toujours à la version et le
+nomme, avec le run de son candidat quand l'un est vert ou en cours, et la commande en entier (le second arrêt de la
+4.7.2 disait `--commit=<its sha>` sans le SHA) :
+
+```text
+the gates of 4.7.2, release commit 25929cd, before anything is done:
+  ✔  preflight: main at 4.7.2, up to date and clean, its CHANGELOG section, the signing key in allowed_signers, gh and npm (lostinbrittany) signed in
+  ✔  main's ci on 25929cd: green (run 42522822757)
+  ✔  the docs' human gates on 25929cd: they hold
+  ✖  the candidate of 25929cd: candidate run 42522822642 was cancelled after connector-archive-e2e failed (…): a later candidate of 4.7.2 cancels a red one, and this one is not re-run. A later candidate of 4.7.2 is green on 39dbd36 (run 42638395971, …): npm run release -- 4.7.2 --commit=39dbd360…
+  ✔  tag: CHANGELOG section at 25929cd, v4.7.1 is an ancestor, immutable releases on
+✖  1 gate refuses (candidate): nothing was done
+   next: npm run release -- 4.7.2 --commit=39dbd360…
+```
+
+Elle ne choisit jamais ce commit d'elle-même : le commit de release est celui que la pull request de release a
+fusionné, et en publier un plus récent livre ce qui a été fusionné après lui, ce qui revient au mainteneur
+(`--commit`, plus bas). `--dry-run` affiche le même rapport et ne fait rien d'autre (sauf le worktree temporaire de la
+doc) ; son code de sortie est le verdict, 0 quand aucune barrière ne refuse (attentes comprises) et 1 quand l'une
+refuse : lancez-la d'abord pour savoir si une release passerait.
+
 
 Elle refuse d'abord ce qui échouerait plus tard (`package.json` pas à la version, une autre branche (sur
 `release/<version>`, où `prepare` la laisse, le refus donne la ligne à lancer : `git switch main && git pull --ff-only
