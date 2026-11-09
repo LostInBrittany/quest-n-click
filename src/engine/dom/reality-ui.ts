@@ -15,7 +15,7 @@ import { SignalSimulator } from '../reality/simulator';
 import { el, esc } from './app-shared';
 
 /** The texts of the link, overridable in the game's `ui` like every other (English defaults). */
-export const REALITY_UI = {
+const REALITY_UI = {
   realityLink: 'World link',
   realityStart: 'Link this game',
   realityCode: 'Give this code to the game: {code}',
