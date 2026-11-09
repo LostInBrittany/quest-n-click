@@ -42,6 +42,11 @@ const MAX_JSON = 1024 * 1024;
 
 /** The routes that only read, although they are POSTs (a check takes its options in a body). */
 const READ_POSTS = /^\/(validate|report|puzzle|coverage|playtests|lint|solve|screenshot)$/;
+/**
+ * The checks the processing worker runs: its executor packs the game folder synchronously when called (snapshot.ts
+ * `packSnapshot`), so the lock is held for the pack only and a write (and the reads behind it) does not wait for a solve.
+ */
+const PACKED_READS = /^\/(validate|playtests|lint|solve)$/;
 
 /** One writer or many readers at a time (plan §4: no read sees two revisions mixed). */
 class RwLock {
@@ -103,6 +108,8 @@ export interface StudioServerOptions {
   lease: ServiceLease;
   /** Proxies whose X-Forwarded-For is believed. */
   trustProxy?: string[];
+  /** The game's checks run on the processing worker (an executor): `PACKED_READS` hold the lock for their pack only. */
+  packedReads?: boolean;
   /** One line per request; the default writes JSON to stdout. */
   log?: (line: Record<string, unknown>) => void;
   /** Requests one address may make per minute on /auth/*, and failed authentications (default 30 each). */
@@ -701,6 +708,7 @@ export function studioServer(o: StudioServerOptions): StudioHttpServer {
       // A read says the revision it was made at (4.2.2, G3: a diagnostic shown at a later head is stale), read under the
       // same lock as the answer: no write lands between them.
       let revision: number | undefined;
+      let packed: Promise<unknown> | undefined;
       const result = await (write
         ? lock.write(async () => {
             replayed = await answered();
@@ -721,11 +729,19 @@ export function studioServer(o: StudioServerOptions): StudioHttpServer {
           })
         : lock.read(async () => {
             revision = await o.journal.revision();
-            return run();
+            // Packed when called (o.packedReads): the lock covers the pack, the worker's run is waited for outside it.
+            if (!o.packedReads || !PACKED_READS.test(sub)) return run();
+            packed = run();
+            return undefined;
           }));
       if (replayed)
         return send(res, Number(replayed.status), JSON.parse(String(replayed.body)), { 'x-studio-replayed': '1' });
-      return send(res, 200, result, revision === undefined ? {} : { 'x-studio-revision': String(revision) });
+      return send(
+        res,
+        200,
+        packed ? await packed : result,
+        revision === undefined ? {} : { 'x-studio-revision': String(revision) },
+      );
     } catch (e) {
       if (isStudioError(e)) {
         // Refused credentials are counted per address; past the limit that address gets 429 for its refusals only.

@@ -695,6 +695,7 @@ async function main(argv: string[]): Promise<number> {
     db,
     lease,
     trustProxy: config.trustProxy,
+    packedReads: !!executor,
     auth,
     mcp,
     leases,
