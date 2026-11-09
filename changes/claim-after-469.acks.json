@@ -1,0 +1,14 @@
+{
+  "format": "quest-n-click-docs-acks",
+  "version": 1,
+  "pairs": {},
+  "claims": {
+    "bridge-email-unseen-when-away": {
+      "claimTextHash": "2bed8ec9046edfd951e32a0c333d80a4b0897b827ed1e1b3d29c7898e01e0b23",
+      "testFileHash": "c77bce8c75f6a202085874af00ee2541d628809a2082bb8ea66d15109200d712",
+      "reviewers": [
+        { "name": "LostInBrittany", "kind": "human", "relation": "independent", "date": "2026-11-09" }
+      ]
+    }
+  }
+}
