@@ -29,7 +29,7 @@ qui dit ce qu'est chaque workflow et chaque job.
 | Matrice de preuve | `npm run prove:matrix` | les douze instances de `docs/dev/PROOF-MATRIX.md` | — | — | — | — | oui (`matrix`) | — |
 | Banc d'essai | `npm run bench` | un jeu généré de 100 lieux, chronométré et prouvé dans un budget | — | — | — | — | — | oui (`prove`, téléversé) |
 | Playtests | `npm run playtests` | les sessions committées rejouées et résumées | dans `verify:game` | oui | `--strict` dans `verify:release` | `--strict` dans `verify:release` | — | `--strict` (`prove`) |
-| e2e, Chromium | `npm run e2e`, `e2e:weight`, `e2e:music`, `e2e:visual`, `e2e:perf`, `e2e:studio`, `e2e:a11y`, `e2e:pwa`, `e2e:taps` | le build de production joué au toucher, au clavier, en français, avec Canvas | barrières `e2e`, `reference`, `secondGame` | oui | — | — | — | — |
+| e2e, Chromium | `npm run e2e`, `e2e:weight`, `e2e:music`, `e2e:visual`, `e2e:perf`, `e2e:studio`, `e2e:a11y`, `e2e:pwa`, `e2e:taps`, `e2e:portrait` | le build de production joué au toucher, au clavier, en français, avec Canvas | barrières `e2e`, `reference`, `secondGame` | oui | — | — | — | — |
 | e2e, WebKit | les mêmes scripts avec `E2E_BROWSER=webkit` | lignes générique et clavier, le chapitre de référence, `e2e:pwa` (hors ligne sauté) | barrières `e2e`, `reference` | oui | — | — | — | — |
 | e2e, Firefox | `npm run e2e:pwa`, `e2e:studio-hosted -- --browser=firefox` | le scénario PWA ; le Studio hébergé | barrières `pwaFirefox`, `studioHosted` | oui | — | — | — | — |
 | Cross-runtime | `npm run e2e:canonical`, `e2e:remix`, `e2e:speedrun`, `e2e:remix-speedrun` | les mêmes résultats sous Node, Chromium, WebKit et Firefox | oui (chaque changement) | oui | oui (500 graines Remix) | — | oui (500 graines Remix) | — |

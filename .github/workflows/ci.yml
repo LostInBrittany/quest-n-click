@@ -853,6 +853,12 @@ jobs:
       # Visual baselines (since 3.4): every room of the sample game, still, against tests/visual/demo/*.png.
       - if: env.RUN == 'true' && matrix.browser == 'chromium' && matrix.mode == 'full'
         run: npm run e2e:visual -- http://127.0.0.1:5173/
+      # The portrait layout (4.6.0, `skin.portrait`, switched on in the page): the rotate overlay, the panel at five
+      # upright sizes with and without safe areas, 44 px targets, a turn to landscape and back.
+      - if: env.RUN == 'true' && matrix.browser == 'chromium' && matrix.mode == 'full'
+        run: npm run e2e:portrait -- http://127.0.0.1:5173/
+        env:
+          E2E_OUT: /tmp/e2e-${{ matrix.browser }}/portrait
       - if: env.RUN == 'true' && matrix.mode == 'canvas'
         run: npm run e2e:visual -- http://127.0.0.1:5173/ --renderer=canvas
       - if: env.RUN == 'true' && matrix.mode == 'canvas'
