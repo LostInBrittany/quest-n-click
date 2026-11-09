@@ -27,7 +27,8 @@ ouvre le menu des sujets ; « Au revoir » le ferme.
 <!-- step: topics -->
 1. **Les sujets.** Dans la salle, `talk` liste les sujets par acteur : chacun a un `id` stable, la réplique que dit le
    héros (`topic`) et ce qui suit (`do`). Parler à l'acteur ouvre le menu ; choisir un sujet fait dire la réplique au
-   héros, puis lance `do`, et le menu revient jusqu'à ce que le joueur choisisse « Au revoir ».
+   héros, puis lance `do`, et le menu revient jusqu'à ce que le joueur choisisse « Au revoir ». Un sujet dont le `do`
+   change de salle (`goto`) ou termine le jeu ferme la conversation.
 
 <!-- step: gag -->
 2. **Un gag qui change.** Enveloppez la réponse dans `nth` (ou `cycle`, `random`) : une réponse différente à chaque
