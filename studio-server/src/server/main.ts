@@ -468,7 +468,7 @@ async function main(argv: string[]): Promise<number> {
         config: config.git,
         workDir: join(config.workDir, 'git'),
         key: secrets.STUDIO_GIT_KEY,
-        writeFiles: (what, files) => studio.writeFiles(what, files, { undo: false }),
+        writeFiles: (what, files) => server.write(what, files, { undo: false }),
         exclusive: exclusiveLease,
         noreplyDomain: `users.noreply.${new URL(config.publicUrl).hostname}`,
         log: logLine,
@@ -614,10 +614,7 @@ async function main(argv: string[]): Promise<number> {
           migrate: (bytes, at) => executor!.migrate(bytes, at),
           judge,
           validate: (bytes, at) => executor!.validateSnapshot(bytes, at),
-          write: async (what, files, o) => {
-            await studio.writeFiles(what, files, o);
-            return journal.revision();
-          },
+          write: (what, files, o) => server.write(what, files, o),
           exclusive: exclusiveLease,
           log: logLine,
         })

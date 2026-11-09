@@ -277,6 +277,12 @@ export async function serveFile(res: ServerResponse, file: string): Promise<void
 export interface StudioHttpServer extends Server {
   /** Runs `fn` holding the instance's lock alone (no request reads or writes meanwhile): the cache's repair. */
   exclusive<T>(fn: () => Promise<T>): Promise<T>;
+  /** The Studio's `writeFiles` holding the lock alone (a Git import, the engine's upgrade); the revision after it. */
+  write(
+    what: string,
+    files: Parameters<Studio['writeFiles']>[1],
+    opts?: Parameters<Studio['writeFiles']>[2],
+  ): Promise<number>;
 }
 
 export function studioServer(o: StudioServerOptions): StudioHttpServer {
@@ -746,5 +752,12 @@ export function studioServer(o: StudioServerOptions): StudioHttpServer {
   server.on('listening', () => {
     started = true;
   });
-  return Object.assign(server, { exclusive: <T>(fn: () => Promise<T>) => lock.write(fn) });
+  return Object.assign(server, {
+    exclusive: <T>(fn: () => Promise<T>) => lock.write(fn),
+    write: (what: string, files: Parameters<Studio['writeFiles']>[1], opts?: Parameters<Studio['writeFiles']>[2]) =>
+      lock.write(async () => {
+        await o.studio.writeFiles(what, files, opts);
+        return o.journal.revision();
+      }),
+  });
 }
