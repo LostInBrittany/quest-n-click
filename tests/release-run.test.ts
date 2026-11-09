@@ -98,9 +98,16 @@ describe("the docs' human gates on the release commit (#339)", () => {
   it("runRelease judges the release commit's own tree, before the candidate is waited for, unless the tag is out", () => {
     const src = readFileSync('tools/release/release-run.ts', 'utf8');
     const run = src.slice(src.indexOf('export async function runRelease('));
-    expect(run.indexOf('gatesAt(sha)')).toBeGreaterThan(0);
-    expect(run.indexOf('gatesAt(sha)')).toBeLessThan(run.indexOf('await waitForCandidate('));
-    expect(run).toMatch(/tagged\s*\?\s*undefined\s*:\s*docsGatesStop\(/);
+    // Through the gate report (#471): judgeGates judges them, runRelease calls it before the candidate's wait.
+    expect(run.indexOf('await judgeGates(')).toBeGreaterThan(0);
+    expect(run.indexOf('await judgeGates(')).toBeLessThan(run.indexOf('await waitForCandidate('));
+    const judge = src.slice(
+      src.indexOf('async function judgeGates('),
+      src.indexOf('export async function runRelease('),
+    );
+    // judgeGates reads them (gatesAt) and says them (docsGate): an order, the end-to-end tests pin what they do.
+    expect(judge.indexOf('gatesAt(sha)')).toBeGreaterThan(0);
+    expect(judge.indexOf('docsGate(')).toBeGreaterThan(0);
     const gatesAt = src.slice(src.indexOf('function gatesAt('), src.indexOf('export async function runRelease('));
     expect(gatesAt).toMatch(/'worktree', 'add', '--detach'/);
     expect(gatesAt).toMatch(/humanGates\(/);
@@ -134,6 +141,15 @@ describe('the candidate it names', () => {
         SHA,
       )?.databaseId,
     ).toBe(2);
+  });
+  it("is the run whose name says the SHA it tests: a dispatch at main's tip for an older commit is that commit's (#471)", () => {
+    const OTHER = 'b'.repeat(40);
+    const runs = [
+      run({ databaseId: 5, event: 'workflow_dispatch', headSha: SHA, displayTitle: `candidate ${OTHER}` }),
+      run({ databaseId: 6, event: 'workflow_dispatch', headSha: 'c'.repeat(40), displayTitle: `candidate ${SHA}` }),
+    ];
+    expect(pickCandidate(runs, SHA)?.databaseId).toBe(6);
+    expect(pickCandidate(runs, OTHER)?.databaseId).toBe(5);
   });
   it('is none when no run of that commit was started on main', () => {
     expect(pickCandidate([run({ headBranch: 'release/4.5.4' })], SHA)).toBeUndefined();
@@ -243,7 +259,7 @@ describe('--commit=<sha>: a later commit of main in place of the release merge (
     const src = readFileSync('tools/release/release-run.ts', 'utf8');
     const run = src.slice(src.indexOf('export async function runRelease('));
     expect(run.indexOf('commitRefusals(')).toBeGreaterThan(0);
-    expect(run.indexOf('commitRefusals(')).toBeLessThan(run.indexOf('gatesAt(sha)'));
+    expect(run.indexOf('commitRefusals(')).toBeLessThan(run.indexOf('await judgeGates('));
   });
 });
 

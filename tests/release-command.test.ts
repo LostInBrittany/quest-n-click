@@ -32,12 +32,20 @@ interface RunState {
   seen?: number;
   /** Listed only once this tag is on the remote (a release run starts on the tag's push). */
   afterTag?: string;
+  /** candidate.yml's run-name, `candidate <sha>`: a dispatch's head is main's tip, its name the SHA it tests. */
+  displayTitle?: string;
 }
 interface State {
   runs: Record<string, RunState>;
   release?: unknown;
   npm: { published: string[]; staged: { id: string; packageName: string; version: string }[] };
   ship?: { tagExit?: number; verifyExit?: number };
+  /** Immutable releases off on the repository (ship tag refuses, the gate report says it first), or no answer. */
+  immutable?: boolean | 'unreadable';
+  /** `gh run view` answers without its jobs. */
+  viewWithoutJobs?: boolean;
+  /** What `wiki -- check --publish --reviews-only` prints when the docs' human gates fail (a ✖ line each). */
+  docsPending?: string;
 }
 
 // ——— The fakes. Each logs `[tool, ...args]` as a JSON line to FAKE_LOG and reads FAKE_STATE.
@@ -60,7 +68,8 @@ const view = (id) => {
   return { ...views[Math.min(r.seen ?? 0, views.length - 1)], attempt: r.attempt ?? 1 };
 };
 const listed = (id, r) => ({ databaseId: Number(id), headSha: r.headSha, headBranch: r.headBranch, event: r.event,
-  createdAt: r.createdAt, ...(({ status, conclusion }) => ({ status, conclusion }))(view(id)) });
+  createdAt: r.createdAt, displayTitle: r.displayTitle, attempt: r.attempt ?? 1,
+  ...(({ status, conclusion }) => ({ status, conclusion }))(view(id)) });
 const [a, b] = args;
 if (a === 'auth') process.exit(0);
 if (a === 'run' && b === 'list') {
@@ -76,6 +85,8 @@ if (a === 'run' && b === 'list') {
 if (a === 'run' && b === 'view') {
   const id = args[2];
   if (!state.runs[id]) { console.error('run not found'); process.exit(1); }
+  // A reply without its jobs (#471 review): read as not read, never as a candidate or a crash.
+  if (state.viewWithoutJobs) { out({ status: 'completed', conclusion: 'success' }); process.exit(0); }
   const v = view(id);
   state.runs[id].seen = (state.runs[id].seen ?? 0) + 1;
   save();
@@ -88,6 +99,23 @@ if (a === 'run' && b === 'rerun') {
   r.attempt = (r.attempt ?? 1) + 1;
   r.seen = 0;
   save();
+  process.exit(0);
+}
+// As GitHub: a dispatch on main runs at main's tip, its name the SHA it tests (candidate.yml's run-name), green.
+if (a === 'workflow' && b === 'run') {
+  const sha = args.find((x) => x.startsWith('sha=')).slice(4);
+  const tip = execFileSync('git', ['rev-parse', 'upstream/main'], { encoding: 'utf8' }).trim();
+  state.runs['77'] = { workflow: 'candidate', headSha: tip, headBranch: 'main', event: 'workflow_dispatch',
+    createdAt: '2026-10-28T10:00:00Z', displayTitle: 'candidate ' + sha,
+    attempts: [[{ status: 'completed', conclusion: 'success', jobs: [{ name: 'target', status: 'completed', conclusion: 'success' }] }]] };
+  save();
+  process.exit(0);
+}
+// ship tag's own check (4.1.20), read up front by the gate report (#471): on unless the state says off; an answer
+// that is no JSON (a network error) when it says 'unreadable'.
+if (a === 'api' && /immutable-releases$/.test(b)) {
+  if (state.immutable === 'unreadable') { console.error('connection reset'); process.exit(1); }
+  out({ enabled: state.immutable !== false });
   process.exit(0);
 }
 if (a === 'api' && /releases\\/tags\\//.test(b)) {
@@ -104,8 +132,11 @@ log('npm');
 const [a, b] = args;
 if (a === 'whoami') out('lostinbrittany');
 else if (a === '--version') out('11.19.1');
-// The docs' human gates (humanGates): they hold.
-else if (a === 'run' && args.includes('--reviews-only')) out('✔  0 error(s)');
+// The docs' human gates (humanGates): they hold, unless the state says what is pending.
+else if (a === 'run' && args.includes('--reviews-only')) {
+  if (state.docsPending) { out(state.docsPending); process.exit(1); }
+  out('✔  0 error(s)');
+}
 else if (a === 'view') {
   const [pkg, v] = b.replace(/^@/, '\\u0000').split('@').map((x) => x.replace('\\u0000', '@'));
   if (args[2] === 'dist-tags.latest') out(state.npm.published.includes('@quest-n-click/engine') ? '${V}' : '4.5.4');
@@ -225,7 +256,24 @@ function scratch() {
   const state = join(dir, 'state.json');
   const logFile = join(dir, 'calls.jsonl');
   writeFileSync(logFile, '');
-  const setState = (s: State) => writeFileSync(state, JSON.stringify(s, null, 2));
+  // Main's ci green on every commit of main (what ship tag waits for and the gate report reads, #471), unless the
+  // test gives its own ci runs.
+  const setState = (s: State) => {
+    const ci = Object.values(s.runs).some((r) => r.workflow === 'ci');
+    const shas = git('rev-list', '--first-parent', 'main').split('\n');
+    if (!ci)
+      shas.forEach((sha, i) => {
+        s.runs[`9${i}`] = {
+          workflow: 'ci',
+          headSha: sha,
+          headBranch: 'main',
+          event: 'push',
+          createdAt: '2026-10-26T09:00:00Z',
+          attempts: [[{ status: 'completed', conclusion: 'success', jobs: [] }]],
+        };
+      });
+    writeFileSync(state, JSON.stringify(s, null, 2));
+  };
   const getState = () => JSON.parse(readFileSync(state, 'utf8')) as State;
   const calls = () =>
     readFileSync(logFile, 'utf8')
@@ -551,6 +599,297 @@ describe.skipIf(!POSIX)('npm run release -- <version>, end to end (#348)', () =>
     expect(of(missing.calls, 'npm').filter((c) => c.startsWith('stage approve'))).toEqual([]);
     expect(missing.status).toBe(1);
   }, 180_000);
+});
+
+describe.skipIf(!POSIX)('the gate report, before anything is done (#471)', () => {
+  const ciRun = (sha: string, conclusion: string, attempt = 1): RunState => ({
+    workflow: 'ci',
+    headSha: sha,
+    headBranch: 'main',
+    event: 'push',
+    createdAt: '2026-10-26T09:00:00Z',
+    attempt,
+    attempts: Array.from({ length: attempt }, () => [{ status: 'completed', conclusion, jobs: [] }]),
+  });
+  const PENDING =
+    "✖  create.rooms: the claim bridge-email-unseen-when-away's review is stale (its test file changed): npm run wiki -- review-claim bridge-email-unseen-when-away --by <name> --kind human --relation independent";
+  const sideEffects = (calls: string[][]) => [
+    ...of(calls, 'ship'),
+    ...of(calls, 'gh').filter((c) => /^run rerun|^workflow run|-X POST/.test(c)),
+    ...of(calls, 'npm').filter((c) => c.startsWith('stage approve')),
+  ];
+
+  it('all green: one line per gate, then the command goes on; the dry run says it would go through', () => {
+    const s = scratch();
+    s.setState({
+      runs: { '11': candidate(s.merge, [green]), '20': releaseRun(s.merge) },
+      release: releaseJson,
+      npm: { published: [], staged: staged(...PACKAGES) },
+    });
+    const dry = s.release('--dry-run');
+    expect(dry.out).toContain(`the gates of ${V}, release commit ${s.merge.slice(0, 7)}, before anything is done:`);
+    for (const line of [
+      `✔  preflight: main at ${V}`,
+      `✔  main's ci on ${s.merge.slice(0, 7)}: green`,
+      `✔  the docs' human gates on ${s.merge.slice(0, 7)}: they hold`,
+      `✔  the candidate of ${s.merge.slice(0, 7)}: green (run 11)`,
+      `✔  tag: CHANGELOG section at ${s.merge.slice(0, 7)}, no stable tag below it, immutable releases on`,
+      `✔  no gate refuses: npm run release -- ${V} would go through`,
+    ])
+      expect(dry.out).toContain(line);
+    expect(sideEffects(dry.calls)).toEqual([]);
+    expect(dry.status).toBe(0);
+  }, 120_000);
+
+  it("4.7.2's reset claim on --commit: refused before a candidate is started, the reviews' way on said", () => {
+    const s = scratch();
+    const later = s.git('rev-parse', 'HEAD');
+    s.setState({ runs: {}, docsPending: PENDING, npm: { published: [], staged: [] } });
+    const r = s.release(`--commit=${later}`, '--start-candidate');
+    expect(r.out).toContain(`✖  the docs' human gates on ${later.slice(0, 7)}: pending`);
+    expect(r.out).toContain('npm run wiki -- review-claim bridge-email-unseen-when-away');
+    expect(r.out).toContain(`npm run release -- ${V} --commit=${later} --docs-revision`);
+    expect(r.out).toContain(`npm run release -- ${V} --commit=<its merge sha> --start-candidate`);
+    // The candidate's state said too: it would have been started, but nothing is.
+    expect(r.out).toContain(`…  the candidate of ${later.slice(0, 7)}: none on main, the command starts one`);
+    expect(r.out).toContain("✖  1 gate refuses (the docs' human gates): nothing was done");
+    // Not "run it again": that tree can no longer take a review.
+    expect(r.out).toContain(
+      `   next: npm run release -- ${V} --commit=${later} --docs-revision, or the reviews merged`,
+    );
+    expect(sideEffects(r.calls)).toEqual([]);
+    expect(r.status).toBe(1);
+  }, 120_000);
+
+  it('every red gate in one refusal, not the first one met', () => {
+    const s = scratch();
+    s.setState({
+      runs: { '30': ciRun(s.merge, 'failure', 2) },
+      docsPending: PENDING,
+      immutable: false,
+      npm: { published: [], staged: [] },
+    });
+    const r = s.release();
+    expect(r.out).toMatch(/✖ {2}main's ci on [0-9a-f]{7}: failure again \(attempt 2/);
+    expect(r.out).toContain(`✖  the docs' human gates on ${s.merge.slice(0, 7)}: pending`);
+    expect(r.out).toContain(`✖  the candidate of ${s.merge.slice(0, 7)}: none on main`);
+    expect(r.out).toContain('✖  tag: immutable releases are off');
+    expect(r.out).toContain("✖  4 gates refuse (main's ci, the docs' human gates, candidate, tag): nothing was done");
+    expect(sideEffects(r.calls)).toEqual([]);
+    expect(r.status).toBe(1);
+    // The dry run says the same, its exit status the verdict (what a nightly reads).
+    const dry = s.release('--dry-run');
+    expect(dry.out).toContain('✖  4 gates refuse');
+    expect(dry.status).toBe(1);
+  }, 120_000);
+
+  it("main's ci red on its first attempt is waited for (ship tag re-runs it once), the re-run said", () => {
+    const s = scratch();
+    s.setState({
+      runs: { '30': ciRun(s.merge, 'failure'), '11': candidate(s.merge, [green]) },
+      npm: { published: [], staged: [] },
+    });
+    const dry = s.release('--dry-run');
+    expect(dry.out).toContain(`…  main's ci on ${s.merge.slice(0, 7)}: failure`);
+    expect(dry.out).toContain(`gh run rerun 30 --repo ${REPO} --failed`);
+    expect(dry.out).toContain("no gate refuses; the command waits for: main's ci");
+    expect(dry.status).toBe(0);
+  }, 120_000);
+
+  it("4.7.2's superseded candidate: the later green candidate's run and SHA said, its command in full, and it goes through", () => {
+    const s = scratch();
+    const later = s.git('rev-parse', 'HEAD');
+    const superseded = {
+      status: 'completed',
+      conclusion: 'cancelled',
+      jobs: [
+        job('target'),
+        job('connector-archive-e2e', 'completed', 'failure'),
+        job('heavy (1)', 'completed', 'cancelled'),
+      ],
+    };
+    s.setState({
+      runs: {
+        '11': candidate(s.merge, [superseded]),
+        '12': {
+          ...candidate(later, [green]),
+          event: 'workflow_dispatch',
+          createdAt: '2026-10-27T10:00:00Z',
+          displayTitle: `candidate ${later}`,
+        },
+        '20': releaseRun(later),
+      },
+      release: releaseJson,
+      npm: { published: [], staged: staged(...PACKAGES) },
+    });
+    const r = s.release();
+    expect(r.out).toContain(
+      `✖  the candidate of ${s.merge.slice(0, 7)}: candidate run 11 was cancelled after connector-archive-e2e failed`,
+    );
+    expect(r.out).toContain(`A later candidate of ${V} is green on ${later.slice(0, 7)} (run 12`);
+    expect(r.out).toContain(`   next: npm run release -- ${V} --commit=${later}`);
+    expect(r.out).not.toContain('<its sha>');
+    expect(sideEffects(r.calls)).toEqual([]);
+    expect(r.status).toBe(1);
+    // The command it says, as said: the later commit's candidate tagged.
+    const next = s.release(`--commit=${later}`);
+    expect(of(next.calls, 'ship')[0]).toBe(`tag ${V} ${later} --candidate=12 --sign --no-watch`);
+    expect(next.status).toBe(0);
+  }, 180_000);
+
+  // ——— The review of #471.
+  const supersededView = {
+    status: 'completed',
+    conclusion: 'cancelled',
+    jobs: [job('target'), job('connector-archive-e2e', 'completed', 'failure')],
+  };
+  /** The merge's candidate superseded, the commit before main's tip (still at the version) green by hand. */
+  const supersededState = (s: ReturnType<typeof scratch>, laterSha: string): State => ({
+    runs: {
+      '11': candidate(s.merge, [supersededView]),
+      '12': {
+        ...candidate(laterSha, [green]),
+        event: 'workflow_dispatch',
+        createdAt: '2026-10-27T10:00:00Z',
+        displayTitle: `candidate ${laterSha}`,
+      },
+    },
+    release: releaseJson,
+    npm: { published: [], staged: [] },
+  });
+
+  it("main's ci red after its re-run refuses with every other gate green: no ship call, exit 1", () => {
+    const s = scratch();
+    s.setState({
+      runs: { '30': ciRun(s.merge, 'failure', 2), '11': candidate(s.merge, [green]), '20': releaseRun(s.merge) },
+      release: releaseJson,
+      npm: { published: [], staged: staged(...PACKAGES) },
+    });
+    const r = s.release();
+    expect(r.out).toContain("✖  1 gate refuses (main's ci): nothing was done");
+    expect(sideEffects(r.calls)).toEqual([]);
+    expect(r.status).toBe(1);
+  }, 120_000);
+
+  it('immutable releases off refuses with every other gate green: no ship call, exit 1', () => {
+    const s = scratch();
+    s.setState({
+      runs: { '11': candidate(s.merge, [green]), '20': releaseRun(s.merge) },
+      immutable: false,
+      release: releaseJson,
+      npm: { published: [], staged: staged(...PACKAGES) },
+    });
+    const r = s.release();
+    expect(r.out).toContain('✖  1 gate refuses (tag): nothing was done');
+    expect(sideEffects(r.calls)).toEqual([]);
+    expect(r.status).toBe(1);
+  }, 120_000);
+
+  it('immutable releases unreadable (no JSON, gh failed) is said so, not read as off', () => {
+    const s = scratch();
+    s.setState({
+      runs: { '11': candidate(s.merge, [green]) },
+      immutable: 'unreadable',
+      npm: { published: [], staged: [] },
+    });
+    const r = s.release('--dry-run');
+    expect(r.out).toContain('✖  tag: immutable releases on Quest-n-Click/quest-n-click: unreadable');
+    expect(r.out).not.toContain('immutable releases are off');
+    expect(r.status).toBe(1);
+  }, 120_000);
+
+  it('a candidate view without its jobs is not read: red, said, no crash', () => {
+    const s = scratch();
+    s.setState({
+      runs: { '11': candidate(s.merge, [green]) },
+      viewWithoutJobs: true,
+      npm: { published: [], staged: [] },
+    });
+    const r = s.release('--dry-run');
+    expect(r.out).toContain(`✖  the candidate of ${s.merge.slice(0, 7)}: not read (unexpected reply`);
+    expect(r.out).not.toMatch(/TypeError|is not iterable/);
+    expect(r.status).toBe(1);
+  }, 120_000);
+
+  it("a dispatch made at main's tip for an older commit is that commit's candidate, never the tip's", () => {
+    const s = scratch();
+    const tip = s.git('rev-parse', 'HEAD');
+    s.setState({
+      runs: {
+        // Started while `tip` was main's head, testing the merge: its head is the tip, its name the merge.
+        '11': {
+          ...candidate(tip, [green]),
+          event: 'workflow_dispatch',
+          displayTitle: `candidate ${s.merge}`,
+        },
+      },
+      npm: { published: [], staged: [] },
+    });
+    const forTip = s.release(`--commit=${tip}`, '--dry-run');
+    expect(forTip.out).toContain(`✖  the candidate of ${tip.slice(0, 7)}: none on main`);
+    expect(forTip.status).toBe(1);
+    const forMerge = s.release('--dry-run');
+    expect(forMerge.out).toContain(`✔  the candidate of ${s.merge.slice(0, 7)}: green (run 11)`);
+    expect(forMerge.status).toBe(0);
+  }, 120_000);
+
+  it('--commit=<not the tip> --start-candidate finds the run it dispatched (its head is the tip) and tags it', () => {
+    const s = scratch();
+    const notTip = s.git('rev-parse', 'HEAD~1');
+    s.setState({
+      runs: { '20': releaseRun(notTip) },
+      release: releaseJson,
+      npm: { published: [], staged: staged(...PACKAGES) },
+    });
+    const r = s.release(`--commit=${notTip}`, '--start-candidate');
+    expect(of(r.calls, 'gh').filter((c) => c.startsWith('workflow run'))).toHaveLength(1);
+    expect(of(r.calls, 'ship')[0]).toBe(`tag ${V} ${notTip} --candidate=77 --sign --no-watch`);
+    expect(r.status).toBe(0);
+  }, 180_000);
+
+  it('names the later commit next to the release commit even with more than 50 commits of main after it', () => {
+    const s = scratch();
+    // The first commit of main after the release merge, green by hand; then 55 more merges at the version.
+    const later = s.git('rev-list', '--reverse', '--first-parent', `${s.merge}..HEAD`).split('\n')[0]!;
+    for (let i = 0; i < 55; i++) s.git('commit', '-q', '--allow-empty', '-m', `later ${i}`);
+    s.git('push', '-q', 'upstream', 'main');
+    s.setState(supersededState(s, later));
+    const r = s.release();
+    expect(r.out).toContain(`A later candidate of ${V} is green on ${later.slice(0, 7)} (run 12`);
+    expect(r.out).toContain(`   next: npm run release -- ${V} --commit=${later}`);
+    expect(r.status).toBe(1);
+  }, 120_000);
+
+  it('judges a later commit by its newest candidate only: an older green run under a newer red one is not named', () => {
+    const s = scratch();
+    const later = s.git('rev-parse', 'HEAD');
+    const st = supersededState(s, later);
+    st.runs['13'] = {
+      // Red after its re-run: the wait would stop on it.
+      ...candidate(later, [failed], [failed]),
+      attempt: 2,
+      event: 'workflow_dispatch',
+      createdAt: '2026-10-27T12:00:00Z',
+      displayTitle: `candidate ${later}`,
+    };
+    s.setState(st);
+    const r = s.release();
+    expect(r.out).not.toContain('(run 12');
+    expect(r.out).toContain(`--commit=${later} --start-candidate`);
+    expect(r.status).toBe(1);
+  }, 120_000);
+
+  it('the next step keeps --docs-revision and --key, and says to fix the other ✖ first when there is one', () => {
+    const s = scratch();
+    const later = s.git('rev-parse', 'HEAD');
+    s.setState({ ...supersededState(s, later), immutable: false });
+    const key = join(s.dir, 'key.pub');
+    const r = s.release('--docs-revision', `--key=${key}`);
+    expect(r.out).toContain(
+      `   next: fix the other ✖ above, then npm run release -- ${V} --commit=${later} --key=${key} --docs-revision`,
+    );
+    expect(r.status).toBe(1);
+  }, 120_000);
 });
 
 describe.skipIf(!POSIX)("ship main: main's ci, what ship tag waits on (#348)", () => {

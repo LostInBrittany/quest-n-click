@@ -149,8 +149,36 @@ CI runs it too, with the version its branch names: merge when every item is ✔,
 Once the release pull request is merged, on `main` up to date:
 
 ```sh
-npm run release -- 4.5.4          # --dry-run says what it would refuse; --key=<key.pub> if git signs otherwise
+npm run release -- 4.5.4          # --dry-run prints the gate report and does nothing; --key=<key.pub> if git signs otherwise
 ```
+
+Before it does anything (next, #471), it judges every gate that could stop it later and prints them together, one
+line each: the preflight below, main's `ci` on the release commit (what `ship tag` waits for), the docs' human gates on
+that commit's tree, its candidate, and what `ship tag` checks itself (the CHANGELOG section at that commit, the
+previous stable tag an ancestor of it, immutable releases on). `✔` holds; `…` is waited for (a candidate or main's
+`ci` still running, or red on its first attempt and due its one re-run, the re-run command said); `⚠` goes on with a
+warning (`--docs-revision`); `✖` refuses; `–` was not checked (no release commit, `gh` not signed in). One `✖` and
+nothing is done: every red gate is named, not only the first one met, then a `next:` line. When the release commit's
+candidate is missing, or red and not re-run (cancelled by a later candidate of the version, or red after its re-run),
+the report looks for a later commit of main still at the version and names it, with its candidate's run when one is
+green or running, and the command in full (4.7.2's second stop said `--commit=<its sha>` without the SHA):
+
+```text
+the gates of 4.7.2, release commit 25929cd, before anything is done:
+  ✔  preflight: main at 4.7.2, up to date and clean, its CHANGELOG section, the signing key in allowed_signers, gh and npm (lostinbrittany) signed in
+  ✔  main's ci on 25929cd: green (run 42522822757)
+  ✔  the docs' human gates on 25929cd: they hold
+  ✖  the candidate of 25929cd: candidate run 42522822642 was cancelled after connector-archive-e2e failed (…): a later candidate of 4.7.2 cancels a red one, and this one is not re-run. A later candidate of 4.7.2 is green on 39dbd36 (run 42638395971, …): npm run release -- 4.7.2 --commit=39dbd360…
+  ✔  tag: CHANGELOG section at 25929cd, v4.7.1 is an ancestor, immutable releases on
+✖  1 gate refuses (candidate): nothing was done
+   next: npm run release -- 4.7.2 --commit=39dbd360…
+```
+
+It never picks that commit by itself: the release commit is the one the release pull request merged, and releasing a
+later one ships what was merged after it, which is the maintainer's call (`--commit`, below). `--dry-run` prints the
+same report and does nothing else (but the docs' temporary worktree); its exit status is the verdict, 0 when no gate
+refuses (waits included) and 1 when one does: run it first to ask whether a release would go through.
+
 
 It refuses first what would fail later (`package.json` not at the version, another branch (on `release/<version>`, as
 `prepare` leaves it, the refusal gives the one line to run: `git switch main && git pull --ff-only <the organisation's
