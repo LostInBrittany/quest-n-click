@@ -54,11 +54,13 @@ interne.
 
 ### Dépendances
 
-Les dépendances d'exécution du moteur (`earcut`, `howler`, `navmesh`, `zod`) et ce dont les outils ont besoin dans un
+Les dépendances d'exécution du moteur (`earcut`, `howler`, `zod`) et ce dont les outils ont besoin dans un
 projet de jeu : Vite et `vite-plugin-pwa`, `tsx`, `@typescript/typescript6` (l'API du compilateur qu'utilisent les
 outils), `@types/node`, `@types/howler`, Tweakpane, le SDK MCP. Les tests et Playwright restent dehors : c'est pourquoi
 `quest-n-click doctor` demande un contournement dans un projet créé ([doctor](install.doctor.md#in-created-project)).
-Le paquet ne porte pas de verrou : npm résout ces plages à l'installation.
+Le paquet ne porte pas de verrou : npm résout ces plages à l'installation. Depuis next, navmesh (les chemins des zones
+de marche) est porté par le moteur (`src/engine/core/nav/navmesh/`) au lieu d'être installé : son paquet déclare une
+dépendance git, que npm 12 refuse (`EALLOWGIT`), et aucune dépendance du moteur ne vient donc de git.
 
 <a name="docs-bundle"></a>
 <!-- applies: .. since 4.5.0 -->

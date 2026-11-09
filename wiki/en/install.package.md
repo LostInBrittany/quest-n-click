@@ -53,11 +53,13 @@ internal.
 
 ### Dependencies
 
-The engine's runtime dependencies (`earcut`, `howler`, `navmesh`, `zod`) and what the tools need in a game project:
+The engine's runtime dependencies (`earcut`, `howler`, `zod`) and what the tools need in a game project:
 Vite and `vite-plugin-pwa`, `tsx`, `@typescript/typescript6` (the compiler API the tools use), `@types/node`,
 `@types/howler`, Tweakpane, the MCP SDK. Tests and Playwright stay out, which is why `quest-n-click doctor` needs a
 workaround in a created project ([doctor](install.doctor.md#in-created-project)). The package carries no lock: npm
-resolves these ranges at install.
+resolves these ranges at install. Since next, navmesh (the walk areas' paths) is carried in the engine
+(`src/engine/core/nav/navmesh/`) instead of installed: its package declares a git dependency, which npm 12 refuses
+(`EALLOWGIT`), so none of the engine's dependencies comes from git.
 
 <a name="docs-bundle"></a>
 <!-- applies: .. since 4.5.0 -->

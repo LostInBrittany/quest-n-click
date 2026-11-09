@@ -1,0 +1,12 @@
+[
+  {
+    "name": "navmesh",
+    "version": "2.3.1",
+    "licence": "MIT",
+    "purl": "pkg:npm/navmesh@2.3.1",
+    "source": "https://registry.npmjs.org/navmesh/-/navmesh-2.3.1.tgz",
+    "file": "src/engine/core/nav/navmesh/navmesh.js",
+    "notice": "src/engine/core/nav/navmesh/LICENSE",
+    "bundles": "javascript-astar 0.4.2 (github:mikewesthad/javascript-astar#c0304b12861eda334e27f2f15d701c10b296593f, MIT)"
+  }
+]

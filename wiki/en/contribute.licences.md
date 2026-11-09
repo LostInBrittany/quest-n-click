@@ -33,6 +33,9 @@ shipped commercially ([Asset provenance](create.asset-provenance.md)).
 quest'n'click (formerly web-scumm) engine and tools: MIT License, (c) 2026 Wano. Built with Vite, Vitest, Howler,
 earcut, navmesh, Tweakpane, Playwright and zod.
 
+- navmesh 2.3.1 (MIT, Michael Hadley), with the javascript-astar its build contains (MIT, Brian Grinstead), is carried
+  in the engine under `src/engine/core/nav/navmesh/` (next), their `LICENSE` beside it; a build's
+  `THIRD_PARTY_NOTICES.txt` and the engine's SBOM name it.
 - The Biscuit test vectors under `bridge/test-vectors/biscuit/` come from the Biscuit project (Apache-2.0, their
   `LICENSE` beside them).
 - The SSH connector (`@quest-n-click/connectors`, 4.1.9) runs on ssh2 (MIT, Brian White) and its dependencies asn1
