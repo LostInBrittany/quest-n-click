@@ -32,6 +32,9 @@ demandez.
   de l'assistant exige alors ce jeton, dans l'en-tête `x-web-scumm-token`, le paramètre `?token=` de l'URL affichée, ou
   le cookie que pose cette URL (`web_scumm_studio`, `HttpOnly`, `SameSite=Strict`). Les noms d'hôte permis sont les
   adresses IPv4 réseau de la machine (`WEB_SCUMM_STUDIO_HOSTS`, posé par la commande).
+- **Le `private/` d'un jeu n'est jamais servi** (next, #477) : les planches brutes et la configuration de la vraie
+  fin restent sur le disque. Le serveur de développement refuse tout chemin sous un dossier `private/` (403), en mode
+  LAN comme en boucle locale, jeton ou non.
 - **Jamais sur Internet.** N'exposez pas le port de développement à Internet : le jeton protège une session sur votre
   réseau, pas un serveur public. Pour mettre un Studio en ligne, c'est le Studio hébergé
   ([Ce qui tourne où](team.what-runs-where.md)).

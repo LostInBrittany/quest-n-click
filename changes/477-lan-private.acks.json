@@ -1,0 +1,14 @@
+{
+  "format": "quest-n-click-docs-acks",
+  "version": 1,
+  "pairs": {
+    "studio.security#local-and-lan": {
+      "enHash": "0758c8099a630c26dcd044cfd31d5a961f08b0dfbe4dd6c7fbf28b80e4148525",
+      "frHash": "0a8c32a7e57c8dc0e323155a06df6e42f9d58d0ea829edb4f6f2eb86335866a3",
+      "reviewers": [
+        { "name": "claude", "kind": "ai", "relation": "author", "date": "2026-11-09" }
+      ]
+    }
+  },
+  "claims": {}
+}
