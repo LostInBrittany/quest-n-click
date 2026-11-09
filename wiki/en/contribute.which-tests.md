@@ -29,7 +29,7 @@ says what each workflow and job is.
 | Proof matrix | `npm run prove:matrix` | the twelve instances of `docs/dev/PROOF-MATRIX.md` | — | — | — | — | yes (`matrix`) | — |
 | Bench | `npm run bench` | a generated 100-room game, timed and proved within a budget | — | — | — | — | — | yes (`prove`, uploaded) |
 | Playtests | `npm run playtests` | committed sessions replayed and summed up | inside `verify:game` | yes | `--strict` in `verify:release` | `--strict` in `verify:release` | — | `--strict` (`prove`) |
-| e2e, Chromium | `npm run e2e`, `e2e:weight`, `e2e:music`, `e2e:visual`, `e2e:perf`, `e2e:studio`, `e2e:a11y`, `e2e:pwa`, `e2e:taps` | the production build played by touch, at the keyboard, in French, with Canvas | gate `e2e`, `reference`, `secondGame` | yes | — | — | — | — |
+| e2e, Chromium | `npm run e2e`, `e2e:weight`, `e2e:music`, `e2e:visual`, `e2e:perf`, `e2e:studio`, `e2e:a11y`, `e2e:pwa`, `e2e:taps`, `e2e:portrait` | the production build played by touch, at the keyboard, in French, with Canvas | gate `e2e`, `reference`, `secondGame` | yes | — | — | — | — |
 | e2e, WebKit | the same scripts with `E2E_BROWSER=webkit` | generic and keyboard rows, the reference chapter, `e2e:pwa` (offline skipped) | gate `e2e`, `reference` | yes | — | — | — | — |
 | e2e, Firefox | `npm run e2e:pwa`, `e2e:studio-hosted -- --browser=firefox` | the PWA scenario; the hosted Studio | gate `pwaFirefox`, `studioHosted` | yes | — | — | — | — |
 | Cross-runtime | `npm run e2e:canonical`, `e2e:remix`, `e2e:speedrun`, `e2e:remix-speedrun` | the same results in Node, Chromium, WebKit and Firefox | yes (every change) | yes | yes (500 Remix seeds) | — | yes (500 Remix seeds) | — |
