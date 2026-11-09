@@ -195,6 +195,22 @@ describe('the Bridge at its edges (mutants of bridge.ts)', () => {
     expect((await t.bridge.exportPlayer(t.admin, other.playerId)).signals).toHaveLength(0);
   });
 
+  it('a player revoked while the proposal waits for the lock is refused as a player, before its token is looked at', async () => {
+    const store = new WindowStore();
+    const t = await setup({ store });
+    const link = await t.pair();
+    const id = await t.revocationId(t.mail);
+    // Between the two readings of the player, both the player and the token are revoked. The store's own check in
+    // `appendSignal` would refuse the player too, so what tells the two apart is the order: the player first (404).
+    // kills bridge.ts:297 condition false and || → && : the token's check would answer first (401).
+    store.arm('player', 1, () => {
+      const p = store.player(link.playerId);
+      if (p) store.write({ t: 'player', p: { ...p, revoked: true } });
+      store.write({ t: 'revoke-token', id });
+    });
+    await expect(t.propose(link.playerId, 'late-both')).rejects.toMatchObject({ status: 404, code: 'player' });
+  });
+
   it("a connector's minute is a sliding window of sixty seconds, the signal at its far edge excluded", async () => {
     let t0 = Date.now();
     const t = await setup({ now: () => t0, limits: { perMinutePerConnector: 1 } });

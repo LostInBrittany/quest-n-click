@@ -153,6 +153,16 @@ for (const [name, make] of [
       expect(await s.purge(100, 't')).toBe(1);
       expect((await s.list('u')).map((r) => r.id)).toEqual(['b']);
     });
+
+    it("purges every tenant's old runs when no tenant is named", async () => {
+      // Kills runs-store.ts:459 `tenantId === undefined` → false: no tenant named is every tenant, not tenant `undefined`.
+      const s = await make();
+      await s.create(run({ id: 'a', submittedAt: 1 }));
+      await s.create(run({ id: 'b', submittedAt: 1, tenantId: 'u' }));
+      await s.create(run({ id: 'c', submittedAt: 100, tenantId: 'u' }));
+      expect(await s.purge(100)).toBe(2);
+      expect([...(await s.list('t')), ...(await s.list('u'))].map((r) => r.id)).toEqual(['c']);
+    });
   });
 
 describe('the quota', () => {
