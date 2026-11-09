@@ -241,7 +241,13 @@ export const SKIP = [
   // stay: tools/wiki, which the Studio loads its docs with, imports them.
   /^tools\/(audit-corpus|bridge-cluster|bridge-load|golden-save|prove-matrix|runs-load)\.ts$/,
   // The release commands (`npm run release`), the maintainers' own: they read scripts/.
-  /^tools\/release\/(prepare|release-run)\.ts$/,
+  // mutation-verdict too: only release-run imports it, and it imports tools/mutate.ts.
+  /^tools\/release\/(prepare|release-run|mutation-verdict)\.ts$/,
+  // CI's own tools and their data (#514): shards, mutation, nightly, ratchet, benches. They read the repository
+  // (package.json's scripts, tests/, docs/dev/, the Bridge's PostgreSQL store); nothing shipped imports them.
+  /^tools\/(heavy-shards|mutate|mutation-shards|mutation-sets|schedule-guard|nightly-report|coverage-ratchet|backup-memory|oracle-case|load-median)\.ts$/,
+  /^tools\/(heavy-durations|mutation-minutes)\.json$/,
+  /^tools\/rename-org\.mjs$/,
 ];
 /** The engine package's files among `git ls-files` output (scripts/pack.mjs; tests/pack-manifests.test.ts). */
 export const engineShipped = (list) =>
