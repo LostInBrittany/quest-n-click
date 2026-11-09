@@ -184,7 +184,7 @@
     },
     "bridge/src/store.ts": {
      "lines": 96,
-     "branches": 92
+     "branches": 93
     },
     "bridge/src/server.ts": {
      "lines": 94,
