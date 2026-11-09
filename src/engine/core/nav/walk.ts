@@ -1,7 +1,6 @@
 import earcut from 'earcut';
-// The named export, not the default (4.1.8): `navmesh` is a CommonJS/UMD module, and a bundler that follows Node's
-// rule hands a default import the whole `module.exports`, not the class (Vite 8's Rolldown; Vite 6 took `.default`).
-import { NavMesh } from 'navmesh';
+// navmesh 2.3.1, vendored (next): its package's git dependency stops npm 12's installs (navmesh/README.md).
+import { NavMesh } from './navmesh/navmesh.js';
 import { must } from '../must';
 import type { Layout, Point } from '../types';
 import { depthScale, inPolygon, stageOf, type NormalLink, type NormalZone } from '../stage';

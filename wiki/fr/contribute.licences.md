@@ -34,6 +34,9 @@ d'un jeu peuvent être livrés commercialement ([Provenance des assets](create.a
 Moteur et outils de quest'n'click (anciennement web-scumm) : licence MIT, (c) 2026 Wano. Construit avec Vite, Vitest,
 Howler, earcut, navmesh, Tweakpane, Playwright et zod.
 
+- navmesh 2.3.1 (MIT, Michael Hadley), avec le javascript-astar que contient sa version construite (MIT, Brian
+  Grinstead), est porté par le moteur dans `src/engine/core/nav/navmesh/` (next), leur `LICENSE` à côté ; le
+  `THIRD_PARTY_NOTICES.txt` d'une version construite et le SBOM du moteur le nomment.
 - Les vecteurs de test Biscuit de `bridge/test-vectors/biscuit/` viennent du projet Biscuit (Apache-2.0, leur `LICENSE`
   à côté).
 - Le connecteur SSH (`@quest-n-click/connectors`, 4.1.9) tourne sur ssh2 (MIT, Brian White) et ses dépendances asn1

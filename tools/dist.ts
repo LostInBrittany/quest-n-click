@@ -79,7 +79,7 @@ function bundlePackages(): string[] {
       n.startsWith('workbox-') &&
       !/build|cli|webpack|recipes|streams|google-analytics|broadcast|background-sync|navigation-preload/.test(n),
   );
-  // And what they depend on: a package's own build may hold its dependencies' code (navmesh holds javascript-astar).
+  // And what they depend on: a package's own build may hold its dependencies' code.
   const all = new Set<string>();
   const add = (p: string) => {
     if (all.has(p) || !existsSync(join(moduleDir(p), 'package.json'))) return;
@@ -109,6 +109,10 @@ function licenceText(pkg: string): { version: string; licence: string; text: str
       : `(${meta.license ?? 'licence'}: no licence file in the package)`,
   };
 }
+
+/** Code the engine carries instead of a package (next): navmesh, whose package stops npm 12 (core/nav/navmesh). */
+type Vendored = { name: string; version: string; licence: string; notice: string };
+const vendored = () => readJson<Vendored[]>(resolve(ROOT, 'src/engine/core/nav/navmesh/vendored.json')) ?? [];
 
 function credits(): string {
   const lines = [
@@ -177,6 +181,13 @@ if (seal) {
       const l = licenceText(p);
       return ['='.repeat(72), `${p} ${l.version} (${l.licence})`, '='.repeat(72), l.text, ''];
     }),
+    ...vendored().flatMap((v) => [
+      '='.repeat(72),
+      `${v.name} ${v.version} (${v.licence}, carried in the engine)`,
+      '='.repeat(72),
+      readFileSync(resolve(ROOT, v.notice), 'utf8').trim(),
+      '',
+    ]),
     '='.repeat(72),
     'Fonts',
     '='.repeat(72),
