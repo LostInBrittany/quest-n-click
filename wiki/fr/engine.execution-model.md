@@ -198,7 +198,8 @@ n'avancent que quand on les fait avancer. Un `advance` :
 - à la fin, s'arrête (`done`), ou repart du début quand le script a `loop`.
 
 Changer de lieu arrête les boucles du lieu à leur pas suivant ; une nouvelle session (nouvelle partie, chargement,
-checkpoint) et un changement de personnage arrêtent aussi celles du jeu et les relancent. Un script qui lève une erreur
+checkpoint) et un changement de personnage arrêtent aussi celles du jeu et les relancent. Une boucle encore au milieu d'un pas (un `wait`) quand on la relance
+continue de là au lieu de tourner deux fois. Un script qui lève une erreur
 est arrêté et marqué `off` dans l'état : une sauvegarde ne le montre pas vivant. La position de chaque script (`pc`,
 et depuis les sauvegardes v3 son `step` nommé, qui suit le script quand ses commandes sont réordonnées) est dans
 l'état.
