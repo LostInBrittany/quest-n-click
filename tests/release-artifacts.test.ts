@@ -154,10 +154,11 @@ describe('the manifest of a release', () => {
       job: 'release-core',
       since: '4.5.2',
     });
-    // The candidate builds it under /demo/ with the Studio demo, after the site it publishes as dist.tar.gz.
+    // The candidate builds it under /demo/ with the Studio demo, after the site it publishes as dist.tar.gz, and runs the
+    // spoiler check on it before packing it (#507).
     const candidate = readFileSync('.github/workflows/candidate.yml', 'utf8');
     expect(candidate).toMatch(
-      /BASE_PATH=\/demo\/ STUDIO=1 VITE_STUDIO_DEMO=1 npm run build:web\n\s+tar -czf candidate-site\/web\.tar\.gz -C dist \./,
+      /BASE_PATH=\/demo\/ STUDIO=1 VITE_STUDIO_DEMO=1 npm run build:web\n(\s+#[^\n]*\n)*\s+npm run check:spoilers\n\s+tar -czf candidate-site\/web\.tar\.gz -C dist \./,
     );
     // The version probe: 0 builds, 10 skips (before 4.5.2), anything else fails the step (never a silent skip).
     expect(candidate).toMatch(
