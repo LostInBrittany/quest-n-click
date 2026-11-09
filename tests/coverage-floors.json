@@ -131,7 +131,7 @@
      "branches": 97
     },
     "studio-server/src/server/config.ts": {
-     "lines": 84,
+     "lines": 85,
      "branches": 83
     },
     "studio-server/src/server/http.ts": {
