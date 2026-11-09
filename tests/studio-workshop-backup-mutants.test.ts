@@ -369,6 +369,18 @@ describe('the collection', () => {
     expect(got.removed).toBe(1);
   });
 
+  it('keeps a blob whose date read again is exactly the grace period old, as the listing does', async () => {
+    const now = 100 * 3_600_000;
+    const removed: string[] = [];
+    const edge = {
+      ...store([{ hash: h('a'), at: 0 }]),
+      at: async () => now - 1_000,
+      remove: async (x: string) => void removed.push(x),
+    } as unknown as BlobStore;
+    expect((await collect(db, edge, { delete: true, now, graceMs: 1_000 })).removed).toBe(0);
+    expect(removed).toEqual([]);
+  });
+
   it('sweeps no staging when it is given none', async () => {
     expect(await collect(db, store([]), { delete: true })).toEqual({
       referenced: 0,

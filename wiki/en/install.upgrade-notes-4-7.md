@@ -1,6 +1,6 @@
 # Upgrade notes: 4.7
 
-What 4.7.0 changed, then 4.7.1. Nothing to change in a game: it builds, plays and saves as on 4.6.0. Every addition is optional;
+What 4.7.0 changed, then 4.7.1 and 4.7.2. Nothing to change in a game: it builds, plays and saves as on 4.6.0. Every addition is optional;
 all but the end's `keepPlaying` are presentation only, unseen by rules, saves and the solver.
 
 The upgrade itself is [Upgrade](install.upgrade.md).
@@ -65,3 +65,44 @@ the wiki's clone are tried again.
 **For contributors**, a fragment writes `(next, #n)` where it wrote a guessed version, and `changes -- --check`
 refuses a version after `package.json`'s. `studio-hosted`'s Firefox pass is quarantined: it warns instead of failing
 until #406 is closed.
+
+<a name="from-4-7-1-to-4-7-2"></a>
+<!-- applies: 4.7.2.. -->
+
+## From 4.7.1 to 4.7.2 "Audit fixes"
+
+Nothing to change in a game: it builds, plays and saves as on 4.7.1. 4.7.2 fixes what an audit of 4.7.1 found in the
+package, the Studio, the Studio Server, the connectors and the Bridge; three of the fixes change what a host sees.
+
+**In a game project**, `npm run studio` starts again from the installed engine (#454): the package now ships
+`AGENTS.md`, which the Studio's assistant imports, and no longer ships the maintainers' benches and release commands,
+which could not run outside the repository. In a room with exits, the Studio's "+ Reaction" works again (#461):
+it asked for a place after the exits' own reactions, which the room's file does not hold.
+
+**For the local Studio**, its guard covers its routes in any letter case, and outside LAN mode it answers this machine
+only: `npm run studio -- --host` (or `dev -- --host`) now gets 403 from another address, a container's port mapping
+included. Serve a phone or a container with `npm run studio:lan` and its token.
+
+**For a Studio Server**, nothing to configure. An agent's `set_storyboard` or `set_layout` is refused (409) when a
+teammate wrote the file since the agent read it; the agent reads it again. A session checked by two instances at once
+is refreshed once, so a provider that detects refresh-token reuse no longer ends sessions during a deploy. The
+back-channel logout answers 413 to a body over 16 KiB without keeping it, `gc --delete` keeps a blob stored again
+while it runs, and a git push or import reads the blobs eight at a time.
+
+**For a connector's host**, two changes of behaviour:
+
+- **Open Badges**: only a recipient hashed with the player's email makes a badge `valid`. A badge whose recipient can
+  be read in the badge (a clear email, a URL, a DID, an Open Badges 3.0 `credentialSubject.id`) now gives
+  `indeterminate`; ask the issuer for hashed recipients. A valid badge counts for the first player who redeems it;
+  another gets 409 `{"status":"valid","signal":"claimed"}`. That record is kept in memory and a restart forgets it.
+- **Email over IMAP**: the connector marks each message it handles with the keyword `$QuestNClick`, and retention and
+  the deletion after acceptance remove only those, by UID. A server without UIDPLUS keeps them marked `\Deleted`
+  (logged once as `email.expunge-unsupported`). A dedicated folder (`imap.mailbox`) is still the recommended setup.
+
+**For a Bridge's host**, one new limit: `limits.pairingsPerAddress` (default 5) is how many pairing codes one address
+may ask per 10 minutes, per tenant; beyond, `POST /v1/pairings` answers 429. A host pairing many players from one
+address (a test bench, a kiosk) raises it in `config.json`. IPv6 clients count as one address per /64, so their quota
+counters start again once. The rest needs nothing: a tenant's run retention deletes its own runs only, an
+acknowledgement never brings back a revoked or deleted player, a signal is never written for one revoked meanwhile, an
+event stream dropped while it opens no longer counts against `streamsPerPlayer`, and on a SQL store the Mystery commit
+quota (`commitsPerHour`) holds across instances.

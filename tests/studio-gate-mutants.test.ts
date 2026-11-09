@@ -31,10 +31,11 @@ function setup(
   } = {},
 ) {
   let now = 10_000_000;
-  const calls: { touch: Record<string, unknown>[]; ended: string[]; refreshed: number } = {
+  const calls: { touch: Record<string, unknown>[]; ended: string[]; refreshed: number; claims: unknown[][] } = {
     touch: [],
     ended: [],
     refreshed: 0,
+    claims: [],
   };
   const session: Session = {
     idHash: 'h1',
@@ -54,7 +55,7 @@ function setup(
     session: async (t: string) => (t === 'tok' ? { ...session } : undefined),
     endSession: async (h: string) => void calls.ended.push(h),
     touch: async (_h: string, f: Record<string, unknown>) => void calls.touch.push(f),
-    claimCheck: async () => true,
+    claimCheck: async (...a: unknown[]) => (calls.claims.push(a), true),
     sessionByHash: async () => ({ ...session }),
     userByIdentity: async () => ('byIdentity' in o ? o.byIdentity : user),
     role: async () => ('role' in o ? o.role : 'dev'),
@@ -184,6 +185,35 @@ describe('policy A (the session cookie)', () => {
     });
     expect(await status(refused.gate.authenticate(cookie()))).toBe(401);
     expect(refused.calls.ended).toEqual(['h1']);
+  });
+
+  it('joins a refresh already in flight for the session: two checks at once ask the provider once', async () => {
+    const pending: (() => void)[] = [];
+    const slow = () => new Promise<{ refreshToken?: string }>((ok) => pending.push(() => ok({})));
+    const s = setup({ session: { checkedAt: 0 }, refresh: slow });
+    const both = Promise.all([s.gate.authenticate(cookie()), s.gate.authenticate(cookie())]);
+    await new Promise((r) => setTimeout(r, 10));
+    for (const go of pending) go();
+    await both;
+    expect(s.calls.refreshed).toBe(1);
+  });
+
+  it('gives the claim back when the provider cannot be reached, never after a definitive refusal', async () => {
+    const down = setup({
+      session: { checkedAt: 10_000_000 - 10 * MIN },
+      refresh: () => Promise.reject(new Error('ECONNREFUSED')),
+    });
+    await down.gate.authenticate(cookie());
+    expect(down.calls.claims).toEqual([
+      ['h1', 10_000_000 - 10 * MIN, 10_000_000],
+      ['h1', 10_000_000, 10_000_000 - 10 * MIN],
+    ]);
+    const refused = setup({
+      session: { checkedAt: 0 },
+      refresh: () => Promise.reject(new DefinitiveRefusal('invalid_grant')),
+    });
+    await refused.gate.authenticate(cookie()).catch(() => {});
+    expect(refused.calls.claims).toEqual([['h1', 0, 10_000_000]]);
   });
 
   it('an unreachable provider: the session lives up to R exactly, then is suspended (503)', async () => {

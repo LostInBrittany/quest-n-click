@@ -8,7 +8,7 @@ import { Readable } from 'node:stream';
 import { describe, expect, it } from 'vitest';
 import { StudioError } from '../studio-server/src/ops/errors';
 import { PREAUTH_COOKIE } from '../studio-server/src/server/auth/gate';
-import { authRoutes } from '../studio-server/src/server/auth/routes';
+import { authRoutes, readForm } from '../studio-server/src/server/auth/routes';
 import { Sealer } from '../studio-server/src/server/auth/store';
 
 const PUBLIC = 'https://studio.example.fr';
@@ -285,5 +285,13 @@ describe("the owner's routes", () => {
     const s = setup();
     expect((await call(s, 'GET', '/api/audit')).handled).toBe(true);
     expect(s.sent.at(-1)!.body).toEqual({ entries: [] });
+  });
+});
+
+describe('the form of a POST', () => {
+  it('takes a body of exactly its limit, refuses one byte more on its length', async () => {
+    const at = (n: number) => request('POST', { 'content-length': String(n) }, 'a=bcd');
+    expect((await readForm(at(5), 5)).get('a')).toBe('bcd');
+    await expect(readForm(at(6), 5)).rejects.toMatchObject({ status: 413 });
   });
 });

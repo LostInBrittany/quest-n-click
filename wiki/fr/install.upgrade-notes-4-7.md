@@ -1,6 +1,6 @@
 # Notes de mise à jour : 4.7
 
-Ce que la 4.7.0, puis la 4.7.1, ont changé. Rien à modifier dans un jeu : il se construit, se joue et se sauvegarde comme en 4.6.0.
+Ce que la 4.7.0, puis la 4.7.1 et la 4.7.2, ont changé. Rien à modifier dans un jeu : il se construit, se joue et se sauvegarde comme en 4.6.0.
 Chaque ajout est facultatif ; tous sauf `keepPlaying` de la fin sont visuels, invisibles aux règles, sauvegardes et
 solveur.
 
@@ -71,3 +71,51 @@ réessayés.
 **Pour les contributeurs**, un fragment écrit `(next, #n)` là où il écrivait une version devinée, et
 `changes -- --check` refuse une version postérieure à celle de `package.json`. La passe Firefox de `studio-hosted` est
 en quarantaine : elle avertit au lieu d'échouer tant que #406 n'est pas fermée.
+
+<a name="from-4-7-1-to-4-7-2"></a>
+<!-- applies: 4.7.2.. -->
+
+## De la 4.7.1 à la 4.7.2 « Audit fixes »
+
+Rien à changer dans un jeu : il se construit, se joue et se sauvegarde comme en 4.7.1. La 4.7.2 corrige ce qu'un audit
+de la 4.7.1 a trouvé dans le paquet, le Studio, le Studio Server, les connecteurs et le Bridge ; trois des correctifs
+changent ce que voit un hébergeur.
+
+**Dans un projet de jeu**, `npm run studio` redémarre depuis le moteur installé (#454) : le paquet livre désormais
+`AGENTS.md`, qu'importe l'assistant du Studio, et ne livre plus les bancs et les commandes de release des mainteneurs,
+qui ne pouvaient pas tourner hors du dépôt. Dans une pièce qui a des sorties, le bouton « + Reaction » du Studio
+fonctionne de nouveau (#461) : il demandait une place après les réactions propres aux sorties, que le fichier de la
+pièce ne contient pas.
+
+**Pour le Studio local**, sa garde couvre ses routes quelle que soit la casse, et hors du mode LAN il ne répond qu'à
+cette machine : `npm run studio -- --host` (ou `dev -- --host`) reçoit désormais 403 depuis une autre adresse, y
+compris à travers la redirection de port d'un conteneur. Pour un téléphone ou un conteneur, lancez `npm run studio:lan`
+avec son jeton.
+
+**Pour un Studio Server**, rien à configurer. Un `set_storyboard` ou un `set_layout` d'un agent est refusé (409) quand
+un coéquipier a écrit le fichier depuis que l'agent l'a lu ; l'agent le relit. Une session vérifiée par deux instances à
+la fois n'est rafraîchie qu'une fois : un fournisseur qui détecte la réutilisation d'un refresh token ne met plus fin aux
+sessions pendant un déploiement. La déconnexion back-channel répond 413 à un corps de plus de 16 Kio sans le garder,
+`gc --delete` garde un blob stocké de nouveau pendant qu'il tourne, et un push ou un import git lit les blobs huit par
+huit.
+
+**Pour l'hébergeur d'un connecteur**, deux changements de comportement :
+
+- **Open Badges** : seul un destinataire haché avec l'e-mail du joueur rend un badge `valid`. Un badge dont le
+  destinataire se lit dans le badge (un e-mail en clair, une URL, un DID, un `credentialSubject.id` Open Badges 3.0)
+  donne désormais `indeterminate` ; demandez des destinataires hachés à l'émetteur. Un badge valide compte pour le
+  premier joueur qui l'utilise ; un autre reçoit 409 `{"status":"valid","signal":"claimed"}`. Cet enregistrement est
+  gardé en mémoire et un redémarrage l'oublie.
+- **E-mail par IMAP** : le connecteur marque chaque message qu'il traite du mot-clé `$QuestNClick`, et la rétention
+  comme la suppression après acceptation n'enlèvent que ceux-là, par UID. Un serveur sans UIDPLUS les garde marqués
+  `\Deleted` (journalisé une fois, `email.expunge-unsupported`). Un dossier dédié (`imap.mailbox`) reste la
+  configuration recommandée.
+
+**Pour l'hébergeur d'un Bridge**, une nouvelle limite : `limits.pairingsPerAddress` (5 par défaut) est le nombre de
+codes d'appairage qu'une adresse peut demander par 10 minutes, par tenant ; au-delà, `POST /v1/pairings` répond 429. Un
+hébergeur qui appaire beaucoup de joueurs depuis une adresse (un banc de test, une borne) l'augmente dans `config.json`.
+Les clients IPv6 comptent pour une adresse par /64, donc leurs compteurs de quota repartent une fois de zéro. Le reste
+ne demande rien : la rétention des runs d'un tenant ne supprime que les siennes, un acquittement ne fait jamais revenir
+un joueur révoqué ou supprimé, un signal n'est jamais écrit pour un joueur révoqué entre-temps, un flux d'événements
+abandonné pendant son ouverture ne compte plus dans `streamsPerPlayer`, et sur un store SQL le quota des engagements
+Mystery (`commitsPerHour`) tient sur toutes les instances.
