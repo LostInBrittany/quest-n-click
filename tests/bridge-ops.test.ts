@@ -9,6 +9,7 @@ import { join } from 'node:path';
 import { afterAll, describe, expect, it } from 'vitest';
 import { realityManifest } from '@engine/reality/manifest';
 import { loadBridge, main } from '../bridge/src/cli';
+import { loadConfig } from '../studio-server/src/server/config';
 import { bridgeServer, inAllowlist } from '../bridge/src/server';
 import { MemoryRealityStore } from '../bridge/src/store-memory';
 import { SqliteRealityStore } from '../bridge/src/store-sqlite';
@@ -311,6 +312,23 @@ describe('trust-proxy by allowlist (D20)', () => {
     expect(inAllowlist('::1', ['127.0.0.1', '::1'])).toBe(true);
     expect(inAllowlist('1.2.3.4', ['0.0.0.0/0'])).toBe(true);
     expect(inAllowlist('fe80::1', ['10.0.0.0/8'])).toBe(false);
+  });
+
+  it('never matches a malformed network, and the server refuses it at start (#483)', async () => {
+    // `10.0.0.0/` read as /0 and trusted every peer; /33 shifted by -1 (31); /abc was NaN.
+    for (const bad of ['10.0.0.0/', '10.0.0.0/33', '10.0.0.0/abc', '10.0.0.0/8/8', '10.0.0.0/ 8'])
+      expect(inAllowlist('10.0.0.1', [bad]), bad).toBe(false);
+    const t = await tenantBridge(new MemoryRealityStore());
+    expect(() => bridgeServer(t.bridge, { trustProxy: ['127.0.0.1', '10.0.0.0/'] })).toThrow(/10\.0\.0\.0\//);
+    expect(() => bridgeServer(t.bridge, { trustProxy: ['127.0.0.1', '10.0.0.0/8', '0.0.0.0/0'] })).not.toThrow();
+    // The Studio Server shares inAllowlist: its config refuses the same entry.
+    const example = JSON.parse(
+      readFileSync(new URL('../ops/studio/studio.config.example.json', import.meta.url), 'utf8'),
+    );
+    const studio = (trustProxy: string[]) =>
+      loadConfig('STUDIO_CONFIG_JSON', JSON.stringify({ ...example, trustProxy }));
+    expect(studio(['10.0.0.0/8']).trustProxy).toEqual(['10.0.0.0/8']);
+    expect(() => studio(['10.0.0.0/'])).toThrow(/trustProxy.*10\.0\.0\.0\//);
   });
 
   it('reads X-Forwarded-For only from a listed proxy, and takes its rightmost address that is not a proxy', async () => {

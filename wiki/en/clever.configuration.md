@@ -169,6 +169,7 @@ with a line naming the field ([First deployment](clever.first-deployment.md)).
 | `STUDIO_METRICS_TOKEN: 32 characters at least (openssl rand -base64 32)` | A short token | Step 2 |
 | `STUDIO_CONFIG_JSON: unknown key "…"` | A typo, or a field of a newer version | The field list below |
 | `trustProxy is required when the server is reachable beyond the loopback` | `trustProxy` left out with OIDC | Keep it |
+| `trustProxy: not an address or an IPv4 network a.b.c.d/0-32: …` | A malformed network, such as `10.0.0.0/` | Write the prefix: `10.0.0.0/8` |
 | `<NAME>_FILE (…) is readable by others: chmod 600` | A secret file with a loose mode (outside Clever) | `chmod 600` |
 
 <a name="files-changed"></a>

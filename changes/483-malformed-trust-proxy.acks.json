@@ -1,0 +1,21 @@
+{
+  "format": "quest-n-click-docs-acks",
+  "version": 1,
+  "pairs": {
+    "bridge.cli#serve": {
+      "enHash": "3502267bb77cbe5a06b03a3f4fb2de5a74c0a277e89d2cd5cbd171d44408f8f8",
+      "frHash": "6b8d61e1300157989fcfb842705410c7b33d6366e8e2b3233782c10cb0aa43d6",
+      "reviewers": [
+        { "name": "claude", "kind": "ai", "relation": "author", "date": "2026-11-09" }
+      ]
+    },
+    "clever.configuration#common-errors": {
+      "enHash": "b2d82f8d1c200c761e4fd000e8718a1252237823aae0f88701113aa7e9fe216a",
+      "frHash": "a8a6d0958f71edd607c57aadb5ef1d6625318779526206da1686fb113ab93a9e",
+      "reviewers": [
+        { "name": "claude", "kind": "ai", "relation": "author", "date": "2026-11-09" }
+      ]
+    }
+  },
+  "claims": {}
+}

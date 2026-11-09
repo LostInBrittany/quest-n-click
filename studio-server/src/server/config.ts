@@ -2,6 +2,7 @@
 // secrets each from a file (`<NAME>_FILE`, mode 0600, preferred) or from the environment (Clever Cloud injects add-on
 // credentials as variables). A secret read from the environment is then removed from `process.env`, so no child
 // process ever inherits it; no secret is ever logged; a value that is not text, or too short, is refused at start.
+import { malformedEntries } from '../../../bridge/src/allowlist';
 import { BRANCH, type GitConfig } from './git';
 import { readFileSync, statSync } from 'node:fs';
 
@@ -228,6 +229,9 @@ export function loadConfig(file: string, text?: string): StudioServerConfig {
   const trust = raw.trustProxy ?? [];
   if (!Array.isArray(trust) || !trust.every((t) => typeof t === 'string'))
     throw new ConfigError(`${file}: trustProxy is a list of addresses or networks`);
+  const bad = malformedEntries(trust as string[]);
+  if (bad.length)
+    throw new ConfigError(`${file}: trustProxy: not an address or an IPv4 network a.b.c.d/0-32: ${bad.join(', ')}`);
   const worker = raw.worker as StudioServerConfig['worker'];
   if (worker !== undefined) {
     if (!worker || !isUrl(worker.url) || typeof worker.instance !== 'string' || !/^[\w-]{3,64}$/.test(worker.instance))
