@@ -6,7 +6,7 @@
 // observed starts, then both workflows wired.
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
-import { decide, parisMinutes, WORKDAY } from '../tools/schedule-guard';
+import { decide, parisMinutes, type PastRun, WORKDAY } from '../tools/schedule-guard';
 
 const at = (iso: string) => new Date(iso);
 
@@ -87,6 +87,73 @@ describe('the decision', () => {
   it('never guards a run by hand, nor any event but schedule', () => {
     for (const event of ['workflow_dispatch', 'push', 'pull_request', ''])
       expect(decide({ event, now: at('2026-10-26T14:00:00Z') }), event).toMatchObject({ run: true });
+  });
+});
+
+// A scheduled night on the commit the last completed night already tested (#519): from 27 October to 8 November 2026,
+// 7 of the 13 scheduled nightlies did (0da4745 five nights in a row, red each time, #395 commented again each time).
+describe('the same commit as the last night', () => {
+  const night = at('2026-11-09T01:00:00Z');
+  const SHA = '0da47453e1abf590b8a82fa0b20e3a4d718f0e57';
+  const run = (databaseId: number, headSha: string, conclusion: string, tested = true): PastRun => ({
+    databaseId,
+    headSha,
+    conclusion,
+    tested,
+  });
+  const guard = (previous: PastRun[] | null, event = 'schedule') =>
+    decide({ event, now: night, sha: SHA, runId: 3, previous });
+
+  it('skips a scheduled night when the last completed night tested the same commit, green or red', () => {
+    for (const conclusion of ['success', 'failure']) {
+      const d = guard([run(2, SHA, conclusion)]);
+      expect(d, conclusion).toMatchObject({ run: false });
+      expect(d.say).toContain(`same commit as run 2 (${conclusion}): nothing to re-test`);
+    }
+  });
+
+  it('runs when the last night was cancelled, a new commit came, or there is no night before', () => {
+    expect(guard([run(2, SHA, 'cancelled')]).run).toBe(true);
+    expect(guard([run(2, SHA, '')]).run).toBe(true); // still running
+    expect(guard([run(2, 'ba328e784477fdde4d232fdc89322a673cec7848', 'success')]).run).toBe(true);
+    expect(guard([]).run).toBe(true);
+    // A cancelled night in between is passed over: the night before it tested this commit to its end.
+    expect(guard([run(2, SHA, 'cancelled'), run(1, SHA, 'failure')]).run).toBe(false);
+    // The newest completed night decides: an older one on this commit does not.
+    expect(guard([run(2, 'ba328e784477fdde4d232fdc89322a673cec7848', 'success'), run(1, SHA, 'success')]).run).toBe(
+      true,
+    );
+  });
+
+  it('never counts a night that tested nothing: skipped in the working day, or by this very rule', () => {
+    expect(guard([run(2, SHA, 'success', false)]).run).toBe(true);
+    // Skipped nights on the same commit chain back to the night that tested it.
+    expect(guard([run(2, SHA, 'success', false), run(1, SHA, 'failure')]).run).toBe(false);
+  });
+
+  it('never counts the current run', () => {
+    expect(guard([run(3, SHA, 'success')]).run).toBe(true);
+  });
+
+  it('runs when the previous runs could not be read (fail open), and never guards a run by hand', () => {
+    expect(guard(null)).toMatchObject({ run: true, say: expect.stringMatching(/could not be read/) });
+    expect(guard([run(2, SHA, 'success')], 'workflow_dispatch').run).toBe(true);
+  });
+
+  it('the working day still comes first, and no history given means no such check (the weekly prove)', () => {
+    expect(decide({ event: 'schedule', now: at('2026-11-09T12:00:00Z'), sha: SHA, previous: [] }).run).toBe(false);
+    expect(decide({ event: 'schedule', now: night }).run).toBe(true);
+  });
+
+  it('a skipped night reports nothing: the report job runs only when the guard said run (or failed)', () => {
+    // So the open nightly-red issue stays open (the commit is still red), and no issue is opened or commented.
+    const nightly = readFileSync('.github/workflows/nightly.yml', 'utf8');
+    expect(nightly).toMatch(
+      /^ {4}if: always\(\) && \(needs\.guard\.outputs\.run == 'true' \|\| needs\.guard\.result != 'success'\)$/m,
+    );
+    // The guard reads the previous nights: their commits, with read access to Actions and nothing more.
+    expect(nightly).toContain('--workflow=nightly.yml --sha="$SHA" --run-id="$RUN_ID"');
+    expect(nightly).toMatch(/ {4}permissions:\n {6}contents: read\n {6}actions: read\n {4}outputs:/);
   });
 });
 

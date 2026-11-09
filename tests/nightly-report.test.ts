@@ -260,7 +260,10 @@ describe('the workflow', () => {
     expect(text).toMatch(/\npermissions:\n {2}contents: read\njobs:/);
     expect(report).toMatch(/\n {4}permissions:\n {6}contents: read\n {6}issues: write\n/);
     expect(text.match(/^ +issues: write$/gm)).toHaveLength(1);
-    for (const [name, body] of jobs) if (name !== 'report') expect(body, name).not.toMatch(/^ {4}permissions:/m);
+    // The guard reads the previous runs (#519): read access to Actions, nothing written.
+    expect(jobs.get('guard')).toMatch(/\n {4}permissions:\n {6}contents: read\n {6}actions: read\n {4}outputs:/);
+    for (const [name, body] of jobs)
+      if (name !== 'report' && name !== 'guard') expect(body, name).not.toMatch(/^ {4}permissions:/m);
   });
 
   it('gives the tool every result, the open issues and the merged mutation reports; gh writes', () => {

@@ -950,7 +950,7 @@ Le fichier où une étape écrit ses sorties.
 Le dépôt où tourne un workflow (`owner/name`) ; le job `npm-stage` de release.yml y compare le `repository` de chaque paquet, comme le fait la provenance de npm, et `tools/release/main-ci.mjs` y liste les runs `ci` de main (4.5.3).
 
 - Origine : posée par GitHub Actions.
-- Lue par : [`.github/workflows/release.yml`](../../.github/workflows/release.yml), [`tools/release/main-ci.mjs`](../../tools/release/main-ci.mjs), [`tools/release/npm-stage.mjs`](../../tools/release/npm-stage.mjs), et 1 de plus.
+- Lue par : [`.github/workflows/release.yml`](../../.github/workflows/release.yml), [`tools/release/main-ci.mjs`](../../tools/release/main-ci.mjs), [`tools/release/npm-stage.mjs`](../../tools/release/npm-stage.mjs), et 2 de plus.
 
 <a name="github-sha"></a>
 
@@ -1379,7 +1379,7 @@ ci : si le plan demande les jobs Reality.
 docs-publish : l’identifiant de ce lancement, l’identifiant de construction de l’archive.
 
 - Origine : posée par un workflow de `.github/workflows/` (CI et publications).
-- Lue par : [`.github/workflows/docs-publish.yml`](../../.github/workflows/docs-publish.yml), [`tools/release/supersede.mjs`](../../tools/release/supersede.mjs).
+- Lue par : [`.github/workflows/docs-publish.yml`](../../.github/workflows/docs-publish.yml), [`.github/workflows/nightly.yml`](../../.github/workflows/nightly.yml), [`tools/release/supersede.mjs`](../../tools/release/supersede.mjs).
 
 <a name="run-ref"></a>
 
@@ -1406,7 +1406,7 @@ mutation : l’ensemble de mutation choisi à la main.
 release : le commit qu’a testé le lancement candidat.
 
 - Origine : posée par un workflow de `.github/workflows/` (CI et publications).
-- Lue par : [`.github/workflows/release.yml`](../../.github/workflows/release.yml), [`tools/release/supersede.mjs`](../../tools/release/supersede.mjs).
+- Lue par : [`.github/workflows/nightly.yml`](../../.github/workflows/nightly.yml), [`.github/workflows/release.yml`](../../.github/workflows/release.yml), [`tools/release/supersede.mjs`](../../tools/release/supersede.mjs).
 
 <a name="site-revalidate-secret"></a>
 

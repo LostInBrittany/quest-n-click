@@ -45,7 +45,9 @@ run that still starts in the Paris working day, 07:00 to 20:00 Paris time on any
 05:00 to 18:00 UTC in summer), says so in a notice and in the run's summary, and every other job is skipped, so the run
 stays green and takes no other runner. A run by hand (`workflow_dispatch`) is never guarded, nor is the warm-up of the
 mutation cache that `release -- prepare` starts; a skipped night is run by hand when it is needed, or waits for the next
-one.
+one. The nightly's `guard` also skips a scheduled night on the commit the last completed scheduled night (green or red)
+already tested, and says which run in the summary (#519): its report is skipped with it, so an open `nightly-red` issue
+stays open and is not commented again.
 
 **A red night opens an issue** (4.5.6, #379). A red nightly used to tell nobody but the cross on the Actions page: on
 26 October 2026 one was found at the next release's candidate, a day late. The nightly's last job, `report`, needs
