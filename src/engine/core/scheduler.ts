@@ -7,7 +7,8 @@ import type { Engine } from './engine';
 export class ScriptScheduler {
   private roomGen = 0;
   private sessionGen = 0;
-  private running = new Set<Id>();
+  /** Each live loop, with the generation that owns it: a relaunch hands it the new one rather than starting a second. */
+  private running = new Map<Id, { gen: number }>();
 
   constructor(private eng: Engine) {}
 
@@ -36,7 +37,11 @@ export class ScriptScheduler {
 
   /** Starts one script's loop in the current generation (a `startScript` command, auto mode). */
   launch(id: Id, global: boolean): void {
-    void this.loop(id, global, global ? this.sessionGen : this.roomGen);
+    const gen = global ? this.sessionGen : this.roomGen;
+    // A loop still inside a step (a `wait`) goes on in the new generation: a second one would skip a step (#484).
+    const live = this.running.get(id);
+    if (live) live.gen = gen;
+    else void this.loop(id, global, gen);
   }
 
   /** Ends every loop at its next step, and forgets them (`Engine.destroy`). */
@@ -47,9 +52,10 @@ export class ScriptScheduler {
 
   private async loop(id: Id, global: boolean, gen: number): Promise<void> {
     const eng = this.eng;
-    this.running.add(id);
+    const me = { gen };
+    this.running.set(id, me);
     try {
-      while (eng.state && !eng.state.done && !eng.destroyed && gen === (global ? this.sessionGen : this.roomGen)) {
+      while (eng.state && !eng.state.done && !eng.destroyed && me.gen === (global ? this.sessionGen : this.roomGen)) {
         let r: Awaited<ReturnType<Engine['advance']>>;
         try {
           r = await eng.advance(id);
@@ -64,7 +70,7 @@ export class ScriptScheduler {
         if (r !== 'ran') await eng.ui.wait(250, false);
       }
     } finally {
-      this.running.delete(id);
+      if (this.running.get(id) === me) this.running.delete(id);
     }
   }
 }

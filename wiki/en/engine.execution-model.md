@@ -187,7 +187,8 @@ the current room's scripts start on each room entry, the game's on a new session
 - at the end, stops (`done`), or starts again from the top when the script has `loop`.
 
 Changing room ends the room's loops at their next step; a new session (new game, load, checkpoint) and a player switch
-end the game's loops too and start them again. A script that throws is stopped and marked `off` in the state, so a
+end the game's loops too and start them again. A loop still inside a step (a `wait`) when it is started again
+goes on from there instead of running twice. A script that throws is stopped and marked `off` in the state, so a
 save does not show it alive. The position of each script (`pc`, and since v3 saves its named `step`, which follows
 the script when its commands are reordered) is in the state.
 
