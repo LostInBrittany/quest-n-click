@@ -37,7 +37,10 @@ const rich = (): GameState =>
     where: { annie: 'lobby', bob: 'yard' },
     scripts: { sc1: { pc: 1, step: 'sc1.a' }, sc2: { pc: 0 }, sc3: { pc: 2, step: 'sc3.x' }, dead: { pc: 0 } },
     active: 'laverne',
-    players: { laverne: { room: 'lobby', inventory: [], hero: {} }, hoagie: { room: 'yard', inventory: [], hero: {} } },
+    players: {
+      laverne: { room: 'lobby', inventory: [], hero: {} },
+      hoagie: { room: 'lobby', inventory: ['cle', 'gone', 'pen'], used: ['cle', 'gone'], hero: { lobby: [5, 6] } },
+    },
   });
 
 describe('applyMigration', () => {
@@ -82,8 +85,8 @@ describe('applyMigration', () => {
         scripts: { intro: { pc: 1, step: 'intro.a' }, sc2: { pc: 0 }, sc3: { pc: 2, step: 'sc3.x' } },
         active: 'verne',
         players: {
-          verne: { room: 'lobby', inventory: [], hero: {} },
-          hoagie: { room: 'yard', inventory: [], hero: {} },
+          verne: { room: 'hall', inventory: [], hero: {} },
+          hoagie: { room: 'hall', inventory: ['key', 'pen'], used: ['key'], hero: { hall: [5, 6] } },
         },
       }),
     );
@@ -115,6 +118,12 @@ describe('applyMigration', () => {
     expect('players' in s).toBe(false);
     expect('active' in s).toBe(true);
     expect(s.active).toBeUndefined();
+  });
+
+  it('copes with another player without an inventory, in a room the step does not rename', () => {
+    const s = bare({ players: { hoagie: { room: 'lobby', hero: {} } as never } });
+    applyMigration(s, { from: 1, renameItem: { cle: 'key' }, renameRoom: { yard: 'garden' } });
+    expect(s.players).toEqual({ hoagie: { room: 'lobby', inventory: [], hero: {} } });
   });
 
   it('renames the characters in where only when the step says so', () => {

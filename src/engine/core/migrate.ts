@@ -19,6 +19,15 @@ export function applyMigration(s: GameState, m: Migration): GameState {
   for (const f of m.dropFlag ?? []) delete s.flags[f];
   s.inventory = renameList(s.inventory, m.renameItem, m.dropItem) ?? [];
   if (s.used) s.used = renameList(s.used, m.renameItem, m.dropItem);
+  // The other playable characters keep their own inventory, room and positions.
+  for (const p of Object.values(s.players ?? {})) {
+    p.inventory = renameList(p.inventory, m.renameItem, m.dropItem) ?? [];
+    if (p.used) p.used = renameList(p.used, m.renameItem, m.dropItem);
+    if (m.renameRoom) {
+      p.room = m.renameRoom[p.room] ?? p.room;
+      p.hero = renameKeys(p.hero, m.renameRoom);
+    }
+  }
   if (m.renameRoom) {
     s.room = m.renameRoom[s.room] ?? s.room;
     s.hero = renameKeys(s.hero, m.renameRoom);

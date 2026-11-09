@@ -241,8 +241,8 @@ complet ([src/engine/core/types/game.ts](../../src/engine/core/types/game.ts)) :
 | Champ | Ce qu’il convertit |
 |---|---|
 | `renameFlag`, `dropFlag` | Les drapeaux. |
-| `renameItem`, `dropItem` | Les objets, dans l’inventaire du joueur actif et dans `used`. |
-| `renameRoom` | Le lieu courant, les positions du héros, `visited`, la partie lieu des clés d’accessoires et d’acteurs, `where`. |
+| `renameItem`, `dropItem` | Les objets, dans l’inventaire et `used` de chaque personnage jouable. |
+| `renameRoom` | Le lieu courant, les positions du héros, le lieu et les positions des autres joueurs, `visited`, la partie lieu des clés d’accessoires et d’acteurs, `where`. |
 | `renameProp`, `renameActor` | `lieu.accessoire` → `lieu.accessoire`, `lieu.acteur` → `lieu.acteur`. |
 | `renamePlace` | Les places débloquées de la carte. |
 | `renameCounter`, `dropCounter` | Les compteurs des blocs `once` / `nth` / `cycle` / `random`. |
@@ -251,9 +251,6 @@ complet ([src/engine/core/types/game.ts](../../src/engine/core/types/game.ts)) :
 | `renameScriptStep` | Id du script → ancien id d’étape → nouvel id d’étape. |
 | `renamePlayer` | Le joueur actif et les fiches des autres joueurs. |
 | `renameCharacter` | Les personnages mobiles dans `where`. |
-
-`renameItem` et `dropItem` n’atteignent pas les inventaires des autres personnages jouables (`players`) : un id d’objet
-renommé y devient inconnu, et le chargement l’élague avec l’avertissement ci-dessus.
 
 La chaîne s’applique dans l’ordre, sur une copie, jusqu’à ce que la sauvegarde atteigne `saveVersion`
 ([src/engine/core/migrate.ts](../../src/engine/core/migrate.ts)). Le validateur refuse deux étapes depuis la même

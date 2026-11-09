@@ -227,8 +227,8 @@ A step goes from `from` to `from + 1`; keys are old ids, values new ones. The co
 | Field | What it carries |
 |---|---|
 | `renameFlag`, `dropFlag` | Flags. |
-| `renameItem`, `dropItem` | Items, in the active player's inventory and in `used`. |
-| `renameRoom` | The current room, the hero's positions, `visited`, the room part of prop and actor keys, `where`. |
+| `renameItem`, `dropItem` | Items, in the inventory and `used` of every playable character. |
+| `renameRoom` | The current room, the hero's positions, the other players' rooms and positions, `visited`, the room part of prop and actor keys, `where`. |
 | `renameProp`, `renameActor` | `room.prop` → `room.prop`, `room.actor` → `room.actor`. |
 | `renamePlace` | Unlocked map places. |
 | `renameCounter`, `dropCounter` | The counters of `once` / `nth` / `cycle` / `random` blocks. |
@@ -237,9 +237,6 @@ A step goes from `from` to `from + 1`; keys are old ids, values new ones. The co
 | `renameScriptStep` | Script id → old step id → new step id. |
 | `renamePlayer` | The active player and the other players' records. |
 | `renameCharacter` | Moving characters in `where`. |
-
-`renameItem` and `dropItem` do not reach the inventories of the other playable characters (`players`): an item id
-renamed there is no longer known, and loading prunes it with the warning below.
 
 The chain is applied in order on a copy, until the save reaches `saveVersion`
 ([src/engine/core/migrate.ts](../../src/engine/core/migrate.ts)). The validator refuses two steps from the same
