@@ -200,7 +200,8 @@ The `email` section:
 - In a worker thread with a 64 MB heap and 2 seconds; at most 256 KB, 3 levels of multipart, 64 parts, 200 headers;
   HTML becomes inert text; a message with an attachment is refused; a message without a `Message-ID` is refused.
 - The player is the recipient's tag (`gate+p-…@<domain>`, with `domain` set) or the sender who sent a pairing code
-  (subject `PAIR ABCD2345`, `LINK …`, `CODE …` or the code alone).
+  (subject `PAIR ABCD2345`, `LINK …`, `CODE …` or the code alone). A code alone that the Bridge refuses, from a sender
+  already known, is read as an answer: a subject like `Treasure` is a word, not a failed pairing.
 - The first answer whose words all appear in the subject or the text (whole words, any case) proposes its signal,
   else `otherwise`.
 - The key is `sha256('email:' + Message-ID)`: a message delivered twice is one signal. The payload is a hash of the
