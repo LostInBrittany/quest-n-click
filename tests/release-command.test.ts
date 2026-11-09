@@ -27,7 +27,11 @@ interface RunState {
   event: string;
   createdAt: string;
   /** The views of each attempt, in turn (the last one repeats); `gh run rerun` starts the next attempt. */
-  attempts: { status: string; conclusion: string; jobs: { name: string; status: string; conclusion: string }[] }[][];
+  attempts: {
+    status: string;
+    conclusion: string;
+    jobs: { name: string; status: string; conclusion: string; databaseId?: number }[];
+  }[][];
   attempt?: number;
   seen?: number;
   /** Listed only once this tag is on the remote (a release run starts on the tag's push). */
@@ -46,6 +50,12 @@ interface State {
   viewWithoutJobs?: boolean;
   /** What `wiki -- check --publish --reviews-only` prints when the docs' human gates fail (a ✖ line each). */
   docsPending?: string;
+  /** The annotations of a job, by its id (`gh api repos/<repo>/check-runs/<id>/annotations`): `[]` when unlisted. */
+  annotations?: Record<string, { title: string; annotation_level: string; message: string }[]>;
+  /** The annotations endpoint fails (a 502 that does not pass). */
+  annotationsFail?: boolean;
+  /** How many empty lists a job's annotations answer before its own (written after the job ends, read too soon). */
+  annotationsLag?: Record<string, number>;
 }
 
 // ——— The fakes. Each logs `[tool, ...args]` as a JSON line to FAKE_LOG and reads FAKE_STATE.
@@ -116,6 +126,14 @@ if (a === 'workflow' && b === 'run') {
 if (a === 'api' && /immutable-releases$/.test(b)) {
   if (state.immutable === 'unreadable') { console.error('connection reset'); process.exit(1); }
   out({ enabled: state.immutable !== false });
+  process.exit(0);
+}
+// A job's annotations (#471): the mutation verdict a red shard writes, read by the release command.
+if (a === 'api' && /\\/check-runs\\/\\d+\\/annotations$/.test(b)) {
+  if (state.annotationsFail) { console.error('HTTP 502: Bad Gateway'); process.exit(1); }
+  const id = b.split('/').at(-2);
+  if ((state.annotationsLag ?? {})[id] > 0) { state.annotationsLag[id]--; save(); out([]); process.exit(0); }
+  out((state.annotations ?? {})[id] ?? []);
   process.exit(0);
 }
 if (a === 'api' && /releases\\/tags\\//.test(b)) {
@@ -326,7 +344,12 @@ function scratch() {
   return { dir, repo, git, merge, prepared, setState, getState, release, ship };
 }
 
-const job = (name: string, status = 'completed', conclusion = 'success') => ({ name, status, conclusion });
+const job = (name: string, status = 'completed', conclusion = 'success', databaseId?: number) => ({
+  name,
+  status,
+  conclusion,
+  ...(databaseId ? { databaseId } : {}),
+});
 const green = { status: 'completed', conclusion: 'success', jobs: [job('target'), job('heavy (1)'), job('pack')] };
 const running = { status: 'in_progress', conclusion: '', jobs: [job('target'), job('heavy (1)', 'in_progress', '')] };
 const failed = {
@@ -459,6 +482,248 @@ describe.skipIf(!POSIX)('npm run release -- <version>, end to end (#348)', () =>
     expect(r.out).toMatch(/candidate run 11 not done after 180 min/);
     expect(r.out).toContain(`run npm run release -- ${V} again to resume`);
     expect(of(r.calls, 'ship')).toEqual([]);
+    expect(r.status).toBe(1);
+  }, 120_000);
+
+  // ——— No blind re-run of a mutation verdict (#471): 4.7.2's candidate 42527046788, red on eleven survivors in six
+  // shards, was re-run by this command and spent 72 minutes failing the same six.
+  const verdict = (header: string, ...survivors: string[]) => [
+    { title: '', annotation_level: 'failure', message: 'Process completed with exit code 1.' },
+    { title: 'mutation verdict', annotation_level: 'failure', message: [header, ...survivors].join('\n') },
+  ];
+  const AUTH = verdict(
+    'studio-auth shard 1/1: 3 survivors not named in docs/dev/mutants.json',
+    'studio-server/src/server/auth/gate.ts:152 condition true: !flight → true',
+    'studio-server/src/server/auth/gate.ts:162 condition true: !(e instanceof DefinitiveRefusal) → true',
+    'studio-server/src/server/auth/routes.ts:44 operator: > → >=',
+  );
+  const RUNS = verdict(
+    'runs shard 1/1: 1 survivor not named in docs/dev/mutants.json',
+    'bridge/src/runs-store.ts:459 condition false: tenantId === undefined → false',
+  );
+  const survivors = (...more: ReturnType<typeof job>[]) => ({
+    status: 'completed',
+    conclusion: 'failure',
+    jobs: [
+      job('target'),
+      job('mutation (studio-auth-1of1)', 'completed', 'failure', 501),
+      job('mutation (runs-1of1)', 'completed', 'failure', 502),
+      job('mutation (core-1of1)', 'completed', 'success', 503),
+      job('mutation-merge', 'completed', 'failure', 504),
+      ...more,
+      job('candidate-gate', 'completed', 'failure', 505),
+    ],
+  });
+  const reruns = (calls: string[][]) => of(calls, 'gh').filter((c) => c.startsWith('run rerun'));
+
+  it("a candidate red on mutation survivors is not re-run: the stop lists them, exit 1 (4.7.2's 42527046788)", () => {
+    const s = scratch();
+    s.setState({
+      runs: { '11': candidate(s.merge, [running, survivors()], [green]) },
+      annotations: { '501': AUTH, '502': RUNS },
+      npm: { published: [], staged: [] },
+    });
+    const r = s.release();
+    expect(reruns(r.calls)).toEqual([]);
+    expect(of(r.calls, 'ship')).toEqual([]);
+    expect(r.out).toContain('candidate run 11: mutation survivors, not re-run');
+    expect(r.out).toContain('✖ mutation (studio-auth-1of1): studio-auth shard 1/1: 3 survivors not named');
+    expect(r.out).toContain('studio-server/src/server/auth/routes.ts:44 operator: > → >=');
+    expect(r.out).toContain('✖ mutation (runs-1of1): runs shard 1/1: 1 survivor not named');
+    expect(r.out).toContain('bridge/src/runs-store.ts:459 condition false: tenantId === undefined → false');
+    expect(r.out).toContain(`npm run release -- ${V} --commit=<the fix's merge sha> --start-candidate`);
+    // Only the red jobs' annotations are read; the green shard's are not asked for.
+    expect(of(r.calls, 'gh').some((c) => c.includes('check-runs/503/'))).toBe(false);
+    expect(r.status).toBe(1);
+  }, 120_000);
+
+  it('the gate report says it first: --dry-run refuses on the candidate line, survivors under it', () => {
+    const s = scratch();
+    s.setState({
+      runs: { '11': candidate(s.merge, [survivors()]) },
+      annotations: { '501': AUTH, '502': RUNS },
+      npm: { published: [], staged: [] },
+    });
+    const r = s.release('--dry-run');
+    expect(r.out).toMatch(/✖ {2}the candidate of [0-9a-f]{7}: candidate run 11: mutation survivors, not re-run/);
+    expect(r.out).toContain('studio-server/src/server/auth/gate.ts:152 condition true: !flight → true');
+    expect(r.out).toContain(
+      `next: kill or name each survivor above, merge the fix on main, then npm run release -- ${V} --commit=<the fix's merge sha> --start-candidate`,
+    );
+    expect(reruns(r.calls)).toEqual([]);
+    expect(r.status).toBe(1);
+  }, 120_000);
+
+  it('stops at the first verdict while the run goes on: no wait for the other shards, no re-run', () => {
+    const s = scratch();
+    const going = {
+      status: 'in_progress',
+      conclusion: '',
+      jobs: [
+        job('target'),
+        job('mutation (runs-1of1)', 'completed', 'failure', 502),
+        job('mutation (connectors-edge-1of4)', 'in_progress', '', 506),
+      ],
+    };
+    s.setState({
+      runs: { '11': candidate(s.merge, [running, going]) },
+      annotations: { '502': RUNS },
+      npm: { published: [], staged: [] },
+    });
+    const r = s.release();
+    expect(r.out).toContain('candidate run 11: mutation survivors, not re-run');
+    expect(r.out).toContain('the run goes on on GitHub, not waited for');
+    expect(r.out).not.toMatch(/not done after 180 min/);
+    expect(reruns(r.calls)).toEqual([]);
+    expect(r.status).toBe(1);
+  }, 120_000);
+
+  it('mixed reds (connector-archive-e2e beside the survivors): still no re-run, the other red named', () => {
+    const s = scratch();
+    const mixed = survivors(job('connector-archive-e2e', 'completed', 'failure', 507));
+    s.setState({
+      runs: { '11': candidate(s.merge, [running, mixed], [green]) },
+      annotations: { '501': AUTH, '502': RUNS },
+      npm: { published: [], staged: [] },
+    });
+    const r = s.release();
+    expect(reruns(r.calls)).toEqual([]);
+    expect(r.out).toMatch(/also red: .*connector-archive-e2e failure/);
+    expect(r.status).toBe(1);
+  }, 120_000);
+
+  it('a mutation job cancelled or timed out (no verdict) is re-run once as before, then tagged green', () => {
+    const s = scratch();
+    const died = {
+      status: 'completed',
+      conclusion: 'failure',
+      jobs: [
+        job('target'),
+        job('mutation (studio-auth-1of1)', 'completed', 'timed_out', 501),
+        job('mutation (runs-1of1)', 'completed', 'cancelled', 502),
+        job('mutation-merge', 'completed', 'failure', 504),
+      ],
+    };
+    s.setState({
+      runs: { '11': candidate(s.merge, [running, died], [running, green]), '20': releaseRun(s.merge) },
+      // A job that failed without a verdict carries only GitHub's own line.
+      annotations: {
+        '504': [{ title: '', annotation_level: 'failure', message: 'Process completed with exit code 2.' }],
+      },
+      release: releaseJson,
+      npm: { published: [], staged: staged(...PACKAGES) },
+    });
+    const r = s.release();
+    expect(r.out).toContain('re-running its failed jobs once');
+    expect(reruns(r.calls)).toEqual([`run rerun 11 --repo ${REPO} --failed`]);
+    expect(of(r.calls, 'ship')[0]).toBe(`tag ${V} ${s.merge} --candidate=11 --sign --no-watch`);
+    expect(r.status).toBe(0);
+  }, 120_000);
+
+  // ——— The review of #471 PR 4: an unreadable or empty annotations answer, the later commit beside a verdict.
+  it('an annotations read that keeps failing: one try per look, no false verdict, the single re-run as before', () => {
+    const s = scratch();
+    s.setState({
+      runs: { '11': candidate(s.merge, [running, survivors()], [running, green]), '20': releaseRun(s.merge) },
+      annotations: { '501': AUTH, '502': RUNS },
+      annotationsFail: true,
+      release: releaseJson,
+      npm: { published: [], staged: staged(...PACKAGES) },
+    });
+    const r = s.release();
+    expect(reruns(r.calls)).toEqual([`run rerun 11 --repo ${REPO} --failed`]);
+    expect(r.out).not.toContain('mutation survivors');
+    expect(of(r.calls, 'ship')[0]).toBe(`tag ${V} ${s.merge} --candidate=11 --sign --no-watch`);
+    // At most one annotations call per look at the run: never ghJson's eleven tries, never one per red job.
+    const looks = of(r.calls, 'gh').filter((c) => c.startsWith('run view 11')).length;
+    const asked = of(r.calls, 'gh').filter((c) => c.includes('/annotations')).length;
+    expect(asked).toBeGreaterThan(0);
+    expect(asked).toBeLessThanOrEqual(looks);
+    expect(r.status).toBe(0);
+  }, 120_000);
+
+  it('an empty annotations list (not written yet) is asked again at the next look, then stops on the verdict', () => {
+    const s = scratch();
+    s.setState({
+      runs: { '11': candidate(s.merge, [survivors()], [green]) },
+      annotations: { '501': AUTH, '502': RUNS },
+      // The gate report's look gets [] for both shards; the wait's first look gets the verdicts.
+      annotationsLag: { '501': 1, '502': 1 },
+      npm: { published: [], staged: [] },
+    });
+    const r = s.release();
+    expect(r.out).toContain('candidate run 11: mutation survivors, not re-run');
+    expect(reruns(r.calls)).toEqual([]);
+    expect(r.status).toBe(1);
+  }, 120_000);
+
+  it('a verdict and later commits without a candidate: the fix comes first, no later commit named', () => {
+    const s = scratch();
+    const tip = s.git('rev-parse', 'HEAD');
+    s.setState({
+      runs: { '11': candidate(s.merge, [survivors()]) },
+      annotations: { '501': AUTH, '502': RUNS },
+      npm: { published: [], staged: [] },
+    });
+    const r = s.release('--dry-run');
+    expect(r.out).toContain(
+      `next: kill or name each survivor above, merge the fix on main, then npm run release -- ${V} --commit=<the fix's merge sha> --start-candidate`,
+    );
+    expect(r.out).not.toContain(`--commit=${tip}`);
+    expect(r.out).not.toContain('No later candidate');
+    expect(r.status).toBe(1);
+  }, 120_000);
+
+  it('a verdict and a later commit with a green candidate: that commit is named, its command in full', () => {
+    const s = scratch();
+    const tip = s.git('rev-parse', 'HEAD');
+    s.setState({
+      runs: {
+        '11': candidate(s.merge, [survivors()]),
+        '12': { ...candidate(tip, [green]), event: 'workflow_dispatch', displayTitle: `candidate ${tip}` },
+      },
+      annotations: { '501': AUTH, '502': RUNS },
+      npm: { published: [], staged: [] },
+    });
+    const r = s.release('--dry-run');
+    expect(r.out).toContain(`A later candidate of ${V} is green on ${tip.slice(0, 7)} (run 12`);
+    expect(r.out).toContain(`   next: npm run release -- ${V} --commit=${tip}`);
+    expect(r.out).not.toContain('may not hold the fix');
+    expect(r.status).toBe(1);
+  }, 120_000);
+
+  it('a verdict and a later candidate still running: named, with "it may not hold the fix"', () => {
+    const s = scratch();
+    const tip = s.git('rev-parse', 'HEAD');
+    s.setState({
+      runs: {
+        '11': candidate(s.merge, [survivors()]),
+        '12': { ...candidate(tip, [running]), event: 'workflow_dispatch', displayTitle: `candidate ${tip}` },
+      },
+      annotations: { '501': AUTH, '502': RUNS },
+      npm: { published: [], staged: [] },
+    });
+    const r = s.release('--dry-run');
+    expect(r.out).toContain(`A later candidate of ${V} is running on ${tip.slice(0, 7)}`);
+    expect(r.out).toMatch(/A later candidate .* is running .*it may not hold the fix/);
+    expect(r.out).toMatch(/next: npm run release -- \S+ --commit=[0-9a-f]{40} \(it may not hold the fix\)/);
+    expect(r.status).toBe(1);
+  }, 120_000);
+
+  it("a verdict and the docs' human gates red: next keeps the docs' way on beside the fix", () => {
+    const s = scratch();
+    s.setState({
+      runs: { '11': candidate(s.merge, [survivors()]) },
+      annotations: { '501': AUTH, '502': RUNS },
+      docsPending:
+        "✖  create.rooms: the claim bridge-email-unseen-when-away's review is stale (its test file changed): npm run wiki -- review-claim bridge-email-unseen-when-away --by <name> --kind human --relation independent",
+      npm: { published: [], staged: [] },
+    });
+    const r = s.release('--dry-run');
+    const next = r.out.split('\n').find((l) => l.includes('next:')) ?? '';
+    expect(next).toContain('kill or name each survivor above');
+    expect(next).toContain('--docs-revision');
+    expect(next).not.toContain('fix the other ✖ above');
     expect(r.status).toBe(1);
   }, 120_000);
 

@@ -475,10 +475,19 @@ jobs:
         with:
           path: .cache/mutation
           key: mutation-${{ matrix.name }}-${{ steps.inputs.outputs.hash }}
-      - run: npm run test:mutation:core -- --set=${{ matrix.set }} --shard=${{ matrix.shard }}/${{ matrix.shards }} | tee mutation-${{ matrix.name }}.txt
+      - id: mutate
+        run: npm run test:mutation:core -- --set=${{ matrix.set }} --shard=${{ matrix.shard }}/${{ matrix.shards }} | tee mutation-${{ matrix.name }}.txt
         shell: bash
         env:
           BRIDGE_PG_URL: ${{ matrix.pg && 'postgres://bridge:bridge@127.0.0.1:5432/bridge' || '' }}
+      # The verdict, for the release command (next, #471): survivors nobody named (or docs/dev/mutants.json entries that
+      # do not hold) fail the same way on every try, so the shard says it in a `mutation verdict` annotation, and
+      # `npm run release` stops on it, listing them, instead of re-running the candidate. A shard that died otherwise
+      # (cancelled, timed out, a runner lost, npm ci) never reaches this step's verdict, and is re-run once as before.
+      # Written here, not by tools/mutate.ts: that file is an input of every set's hash.
+      - if: failure() && steps.mutate.outcome == 'failure'
+        name: The verdict, for the release command
+        run: npx tsx tools/release/mutation-verdict.ts --report=.cache/mutation/report-${{ matrix.set }}.shard-${{ matrix.shard }}of${{ matrix.shards }}.json --sha=${{ needs.target.outputs.sha }}
       - if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
