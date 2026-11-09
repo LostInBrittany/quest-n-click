@@ -680,7 +680,8 @@ export function studioServer(o: StudioServerOptions): StudioHttpServer {
       const run = () =>
         operationContext.run(
           {
-            id: op,
+            // The journal keys an operation by its id alone: it is namespaced by its author, as the answers are.
+            id: op && who ? `${who}/${op}` : op,
             author,
             readAt,
             client: clientHeader,
