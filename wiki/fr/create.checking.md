@@ -298,8 +298,8 @@ scellée au lieu de les passer, puis vérifie la carte finale.
 des spoilers et des assets) et `npm run prove:game` sur le jeu d'exemple ; les jobs plus lourds (l'e2e de production
 dans plusieurs navigateurs, les parties au clavier et en français, un second jeu fait depuis le modèle…) tournent
 quand [`ci:plan`](contribute.ci.md) dit que le changement en a besoin. `main` se déploie sur Pages ; un tag publie une
-release. Le workflow hebdomadaire `prove` (le lundi, ou à la main) lance `prove:game`, les playtests stricts et le
-bench sur un jeu généré de 100 lieux. Dependabot propose les mises à jour npm et Actions chaque semaine, pip chaque
+release. La `nightly` rejoue les playtests committés avec `--strict` ; le bench sur un jeu généré de 100 lieux se
+lance à la main (`npm run bench`). Dependabot propose les mises à jour npm et Actions chaque semaine, pip chaque
 mois ([PR des bots](contribute.bot-prs.md)).
 
 <a name="before-you-share"></a>

@@ -1,10 +1,10 @@
 // node --experimental-strip-types tools/schedule-guard.ts --event=<event> [--now=<ISO>] (4.5.6, #372): whether a
-// scheduled run of nightly.yml or prove.yml still runs its jobs. GitHub starts their scheduled runs hours after their
-// cron times, every time: from 6 to 26 October 2026 the nightly (then 03:17 UTC) started 4 h 36 min to 7 h 44 min late
-// and the weekly prove (then 04:00 UTC on Mondays) 5 h 37 min to 7 h 40 min late, in the working day, where their jobs
-// took the runners from a release's candidate and its pull requests. Their crons now start the evening before (20:17
-// UTC, Sunday 20:00 UTC), so those delays land them in the night; this guard skips a scheduled run that still starts
-// in the Paris working day. The workflows' first job, `guard`, runs it; every other job needs it and runs only on
+// scheduled run of nightly.yml still runs its jobs. GitHub starts scheduled runs hours after their cron times, every
+// time: from 6 to 26 October 2026 the nightly (then 03:17 UTC) started 4 h 36 min to 7 h 44 min late and the weekly
+// prove (then 04:00 UTC on Mondays, retired in #518) 5 h 37 min to 7 h 40 min late, in the working day, where their
+// jobs took the runners from a release's candidate and its pull requests. The nightly's cron now starts the evening
+// before (20:17 UTC), so those delays land it in the night; this guard skips a scheduled run that still starts in the
+// Paris working day. The workflow's first job, `guard`, runs it; every other job needs it and runs only on
 // `run=true`, so a skipped run takes one small runner for a few seconds and stays green. Only `schedule` is guarded: a
 // run by hand (`workflow_dispatch`, the release's warm-up of the mutation cache among them) always runs.
 // With `--workflow=<file> --sha=<commit> [--run-id=<id>] [--repo=<owner/name>]` (the nightly, #519), it also skips a

@@ -277,7 +277,7 @@ npm run bench -- --rooms=40 --prove --v3
 - `bench -- --matrix [--eras] [--max=20000]`: the 3.3 reference table, the proof on 20 or 40 rooms × 1, 2 or 3
   characters, and where the time goes (`--eras`: characters confined to eras).
 - `bench -- --rooms=40 [--prove --v3]`: a generated game of that size, every tool timed on it; `--prove` adds the
-  exhaustive proof, `--v3` generates it with stable ids. The weekly `prove` workflow runs it on 100 rooms.
+  exhaustive proof, `--v3` generates it with stable ids. Run it by hand: no workflow runs it (#518).
 
 The measures are in [Benchmarks](contribute.benchmarks.md#profile).
 

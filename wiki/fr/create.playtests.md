@@ -119,7 +119,7 @@ minute, notez-le : c'est un Regarder qui manque, un indice vague, ou une sortie 
    - sans `--strict` (ce que lancent `verify:game`, `npm run build`, et `verify` et `build` d'un projet créé), une
      session divergente est signalée, pas en erreur : un changement de contenu ne bloque jamais un push ;
    - avec `--strict` (le garde-fou de release : `verify:release` et `release-check` dans le dépôt du moteur,
-     `quest-n-click release` dans un projet créé, et le workflow hebdomadaire `prove`), une session divergente est une
+     `quest-n-click release` dans un projet créé, et chaque nuit dans la `nightly` du dépôt du moteur), une session divergente est une
      erreur, code 1 : réenregistrez-la ou supprimez-la.
 
    `--strict` seul ne demande aucun nombre de sessions : zéro session le passe, et il le dit.

@@ -1,0 +1,70 @@
+{
+  "format": "quest-n-click-docs-acks",
+  "version": 1,
+  "pairs": {
+    "contribute.benchmarks#v31": {
+      "enHash": "059a271ce23d6970a831438ac75cd82d242d052dbfdc873767bccb9b1ce326dd",
+      "frHash": "a58df0911aa17810980e3dc04c310876013d31e5174fde43f53cb87a7d73b757",
+      "reviewers": [
+        { "name": "claude", "kind": "ai", "relation": "author", "date": "2026-11-09" }
+      ]
+    },
+    "contribute.ci#workflows": {
+      "enHash": "197ea665cb0ac3442f595b42b601aa9379158cf54f1835c8c79f824c265f1133",
+      "frHash": "d1f8bf690b46fc9d97df332658f25a1881526dceed09cc475ba5cd8f6fab7a4e",
+      "reviewers": [
+        { "name": "claude", "kind": "ai", "relation": "author", "date": "2026-11-09" }
+      ]
+    },
+    "contribute.which-tests#_lead": {
+      "enHash": "af8c39e46884673e2bbec64ebab2084f4cf596830e40a87c0e2dcefa9b6b558f",
+      "frHash": "bf33cac05cf031db8ec9641b41595b705bba4d4f8127c386591af28ab29b1fea",
+      "reviewers": [
+        { "name": "claude", "kind": "ai", "relation": "author", "date": "2026-11-09" }
+      ]
+    },
+    "contribute.which-tests#suites": {
+      "enHash": "c34994fad9545ba8169826759dbc726725adaab105807ab50aa37d313a1b08b7",
+      "frHash": "b8c3e4e8e9a6171eb74ed6176ee0ca6d66e53d7021f2c984693912b2fc91baf0",
+      "reviewers": [
+        { "name": "claude", "kind": "ai", "relation": "author", "date": "2026-11-09" }
+      ]
+    },
+    "create.checking#prove-it-plays": {
+      "enHash": "f504f8bc58e368a611ef2e733284c8e9f1646bb16348c41bdd23298fb966ef98",
+      "frHash": "08c27d41cdba4b4294b132ee2653711c6e9074230eb405c12ac5a60f97d5b965",
+      "reviewers": [
+        { "name": "claude", "kind": "ai", "relation": "author", "date": "2026-11-09" }
+      ]
+    },
+    "create.playtests#steps": {
+      "enHash": "72fee695f0e021c541ae2b2535d141af1de26a9a16fc2b0fdb97162ed61d8bf2",
+      "frHash": "bb9e1a1c702b063cb091521c9efaa8b8782faf46f865c3de057795f0a38bd8a6",
+      "reviewers": [
+        { "name": "claude", "kind": "ai", "relation": "author", "date": "2026-11-09" }
+      ]
+    },
+    "create.solver-options#matrix-and-bench": {
+      "enHash": "57d62c46513c1ad9b20dd51873a26aaf7d9f50387bf9e2cd5327c28179936527",
+      "frHash": "8ea65f30a5c62e7a5ce19405dc1ca6b5a62ab24324c4999a78c1fd815c0446c8",
+      "reviewers": [
+        { "name": "claude", "kind": "ai", "relation": "author", "date": "2026-11-09" }
+      ]
+    },
+    "reference.environment-variables#event": {
+      "enHash": "1d15bb543896513d8a3591b76d4c2f931d4064fd9b282dcbd584c3802dbb1aef",
+      "frHash": "8bb0200e4d2e57b0181a6be3b7c440055e797620008c33eb7bb62d6cc6999dff",
+      "reviewers": [
+        { "name": "claude", "kind": "ai", "relation": "author", "date": "2026-11-09" }
+      ]
+    },
+    "reference.environment-variables#game": {
+      "enHash": "35fc1a6b2d5f597526b85dafa2f1cad4d49e67afc8b63628e6259a9695f335e4",
+      "frHash": "62f6e0b892e0801c27a9cc429eb3046adc448a0b55db5e18adf3e53758e8445a",
+      "reviewers": [
+        { "name": "claude", "kind": "ai", "relation": "author", "date": "2026-11-09" }
+      ]
+    }
+  },
+  "claims": {}
+}

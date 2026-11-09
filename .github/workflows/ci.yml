@@ -100,7 +100,7 @@ jobs:
         env:
           BRANCH: ${{ github.head_ref }}
         run: npm run release -- check "${BRANCH#release/}"
-      # The exhaustive proof of the sample game (seconds); a big game proves on the weekly prove workflow instead.
+      # The exhaustive proof of the sample game (seconds); a big game proves by hand or with a budget (`npm run bench`).
       - run: npm run prove:game
       # The shipped dependencies' advisories: when the lockfile or package.json moved, and always on main.
       - if: fromJSON(needs.plan.outputs.plan).auditDeps

@@ -114,7 +114,7 @@ minute, write it down: it is a missing Look line, a vague hint, or an exit nobod
    - without `--strict` (what `verify:game`, `npm run build` and a created project's `verify` and `build` run), a
      diverged session is reported, not an error, so a content change never blocks a push;
    - with `--strict` (the release gate: `verify:release` and `release-check` in the engine repository, `quest-n-click
-     release` in a created project, and the weekly `prove` workflow), a diverged session is an error, exit 1:
+     release` in a created project, and every night in the engine repository's `nightly`), a diverged session is an error, exit 1:
      re-record it or delete it.
 
    `--strict` alone asks for no number of sessions: zero sessions pass it, and it says so.

@@ -287,8 +287,8 @@ them, then checks the final card.
 `main`, every tag and every pull request runs `npm run build:game` (the game's gates, the bundle, the spoiler and asset
 audits) and `npm run prove:game` on the sample game; the heavier jobs (the production e2e in several browsers, the
 keyboard and French playthroughs, a second game made from the template…) run when [`ci:plan`](contribute.ci.md) says
-the change needs them. `main` deploys to Pages; a tag releases. The weekly `prove` workflow (Mondays, or by hand) runs
-`prove:game`, the strict playtests and the bench on a generated 100-room game. Dependabot proposes npm and Actions
+the change needs them. `main` deploys to Pages; a tag releases. The `nightly` replays the committed playtests with
+`--strict`; the bench on a generated 100-room game is run by hand (`npm run bench`). Dependabot proposes npm and Actions
 updates weekly, pip ones monthly ([Bot PRs](contribute.bot-prs.md)).
 
 <a name="before-you-share"></a>

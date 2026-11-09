@@ -213,7 +213,10 @@ describe('every output of the real wiki links to what exists (F01, F02)', () => 
       manifest.pages.flatMap((p) => [[`en/${p.id}`, p.url.en] as const, [`fr/${p.id}`, p.url.fr] as const]),
     );
     const missing: string[] = [];
+    // Files deleted since the audit, their links with them: prove.yml (#518).
+    const retired = new Set(['../../.github/workflows/prove.yml']);
     for (const [type, page, label, destination] of audit.links) {
+      if (retired.has(destination)) continue;
       const lang = page.startsWith('FR-') ? 'fr' : 'en';
       const hash = destination.indexOf('#');
       const anchor = hash < 0 ? '' : destination.slice(hash);

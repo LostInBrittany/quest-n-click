@@ -395,7 +395,7 @@ Le chemin de l’exécutable Furnace avec lequel la chaîne audio fait son rendu
 Le jeu de `games/` sur lequel travaillent les commandes du dépôt du moteur (`GAME=reference npm run validate`). Sans elle, le dernier jeu choisi (`npm run game -- <id>`), puis `config.game` de `package.json`, puis `demo`.
 
 - Origine : vous la posez ; le code la lit.
-- Lue par : [`.github/workflows/ci.yml`](../../.github/workflows/ci.yml), [`.github/workflows/prove.yml`](../../.github/workflows/prove.yml), [`scripts/e2e-studio.mjs`](../../scripts/e2e-studio.mjs), et 7 de plus.
+- Lue par : [`.github/workflows/ci.yml`](../../.github/workflows/ci.yml), [`scripts/e2e-studio.mjs`](../../scripts/e2e-studio.mjs), [`scripts/e2e-visual.mjs`](../../scripts/e2e-visual.mjs), et 6 de plus.
 
 <a name="game-dir"></a>
 
@@ -1160,10 +1160,10 @@ release : l’archive de documentation de la version, quand elle en a une.
 
 ### `EVENT`
 
-candidate : l’événement qui a lancé l’exécution ; seul un push sur main peut être le merge d’une release (4.5.4). nightly et prove : une exécution `schedule` qui démarre pendant la journée de travail à Paris saute ses jobs (4.5.6, #372).
+candidate : l’événement qui a lancé l’exécution ; seul un push sur main peut être le merge d’une release (4.5.4). nightly : une exécution `schedule` qui démarre pendant la journée de travail à Paris saute ses jobs (4.5.6, #372).
 
 - Origine : posée par un workflow de `.github/workflows/` (CI et publications).
-- Lue par : [`.github/workflows/candidate.yml`](../../.github/workflows/candidate.yml), [`.github/workflows/nightly.yml`](../../.github/workflows/nightly.yml), [`.github/workflows/prove.yml`](../../.github/workflows/prove.yml), et 1 de plus.
+- Lue par : [`.github/workflows/candidate.yml`](../../.github/workflows/candidate.yml), [`.github/workflows/nightly.yml`](../../.github/workflows/nightly.yml), [`tools/release/supersede.mjs`](../../tools/release/supersede.mjs).
 
 <a name="external"></a>
 
