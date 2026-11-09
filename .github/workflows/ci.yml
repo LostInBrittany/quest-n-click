@@ -115,6 +115,8 @@ jobs:
         env:
           STUDIO: '1'
           VITE_STUDIO_DEMO: '1'
+      # The shape the candidate publishes as web.tar.gz: a leak in the Studio snapshot fails here, not at the release.
+      - run: npm run check:spoilers
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: dist

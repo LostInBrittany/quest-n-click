@@ -1,0 +1,14 @@
+{
+  "format": "quest-n-click-docs-acks",
+  "version": 1,
+  "pairs": {
+    "contribute.ci#pages-only": {
+      "enHash": "a67a8964500e8961fcbd9367e3316383db169887404cd58cae62204f80c4c8b2",
+      "frHash": "c7fd62fefa7a2ac36b00eadaaaa18bc416d1d75f3ff8b6cacbfff990a63fc1ce",
+      "reviewers": [
+        { "name": "claude", "kind": "ai", "relation": "author", "date": "2026-11-09" }
+      ]
+    }
+  },
+  "claims": {}
+}

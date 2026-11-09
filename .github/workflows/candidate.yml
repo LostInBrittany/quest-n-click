@@ -182,6 +182,8 @@ jobs:
           case "$probe" in
             0)
               BASE_PATH=/demo/ STUDIO=1 VITE_STUDIO_DEMO=1 npm run build:web
+              # Plain vite build runs no spoiler check, and the Studio demo ships the storyboard and notes as JSON.
+              npm run check:spoilers
               tar -czf candidate-site/web.tar.gz -C dist .
               ;;
             10) echo "::notice::no web.tar.gz before 4.5.2" ;;
