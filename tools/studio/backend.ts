@@ -3,6 +3,7 @@
 import { execFile } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 import { join, resolve, sep } from 'node:path';
+import { npmSpawn } from '../npm-spawn';
 import { buildPrompts } from '../prompts';
 import { legacyDoc, resolveDocs } from '../wiki/docs-load';
 import type { Studio } from '../../studio-server/src/ops/core';
@@ -88,9 +89,10 @@ export function coreBackend(studio: Studio, o: CoreBackendOptions): ToolBackend 
     runTests: () =>
       new Promise<ToolResult>((done) => {
         execFile(
-          'npx',
+          npmSpawn('npx').command,
           ['vitest', 'run'],
           {
+            shell: npmSpawn('npx').shell,
             cwd: o.root,
             env: { ...process.env, CI: '1', NO_COLOR: '1' },
             maxBuffer: 32 * 1024 * 1024,
