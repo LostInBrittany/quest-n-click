@@ -550,7 +550,7 @@ The Python-backed image and asset-pipeline tests (`tests/pixel.test.ts`, `tests/
 
 The suite under V8 coverage (heavy tests excluded), against the floors of `tests/coverage-floors.json` (read by `vite.config.ts`, 4.6.0); then `npx tsx tools/coverage-ratchet.ts --strict` fails on a floor at least three points behind what the tests reach (CI on main and tags, release-check, 4.1.8; a warning on a pull request, 4.1.9).
 
-- Runs: `vitest run --coverage --exclude tests/ownership.test.ts --exclude tests/audit.test.ts --exclude tests/canonical.test.ts --exclude tests/memo.test.ts --exclude tests/reference-proof.test.ts --exclude tests/solver-oracle.test.ts --exclude tests/dominance.test.ts --exclude tests/partition.test.ts --exclude tests/checkpoint-matrix.test.ts`
+- Runs: `npm run test:unit -- --coverage`
 
 <a name="test-heavy"></a>
 
@@ -615,7 +615,7 @@ One mutation set (4.1.16): a run's envelope and `h0`, the recorder and the verif
 
 The unit suite without the Python-bound tests (`tests/pixel.test.ts`, `tests/studio-assets.test.ts`, `tests/talk-tools.test.ts`) and the CPU-bound ones (`test:heavy`'s files); `npm run check` runs it, the heavy ones run nightly.
 
-- Runs: `vitest run --exclude tests/pixel.test.ts --exclude tests/studio-assets.test.ts --exclude tests/talk-tools.test.ts --exclude tests/ownership.test.ts --exclude tests/audit.test.ts --exclude tests/canonical.test.ts --exclude tests/memo.test.ts --exclude tests/reference-proof.test.ts --exclude tests/solver-oracle.test.ts --exclude tests/dominance.test.ts --exclude tests/partition.test.ts --exclude tests/checkpoint-matrix.test.ts`
+- Runs: `npm run test:unit -- --exclude tests/pixel.test.ts --exclude tests/studio-assets.test.ts --exclude tests/talk-tools.test.ts`
 
 <a name="test-unit"></a>
 
@@ -1001,9 +1001,9 @@ The release in two commands (4.5.4): `<x.y.z>` after the release pull request's 
 
 #### `npm run release-check`
 
-What CI runs, in one go: doctor `--release`, quality, build, coverage and its strict ratchet, verify:release, prove:game, `solve --audit-abstractions`, the Rust cross-check (`--require-rust`), every mutation set (`--set=all`), the packages with `--publish-dry-run`, `audit:deps` and `npm audit --audit-level=high`.
+What CI runs, in one go: doctor `--release`, game, quality, build:game, coverage and its strict ratchet, verify:release, prove:game, `solve --audit-abstractions`, the Rust cross-check (`--require-rust`), every mutation set (`--set=all`), the packages with `--publish-dry-run`, `audit:deps` and `npm audit --audit-level=high`.
 
-- Runs: `npm run doctor -- --release && npm run quality && npm run build && npm run test:coverage && npx tsx tools/coverage-ratchet.ts --strict && npm run verify:release && npm run prove:game && npm run solve -- --audit-abstractions && npm run reality:xcheck -- --require-rust && npm run test:mutation:core -- --set=all && node scripts/pack.mjs --out=.cache/pack --publish-dry-run && npm run audit:deps && npm audit --audit-level=high`
+- Runs: `npm run doctor -- --release && npm run game && npm run quality && npm run build:game && npm run test:coverage && npx tsx tools/coverage-ratchet.ts --strict && npm run verify:release && npm run prove:game && npm run solve -- --audit-abstractions && npm run reality:xcheck -- --require-rust && npm run test:mutation:core -- --set=all && node scripts/pack.mjs --out=.cache/pack --publish-dry-run && npm run audit:deps && npm audit --audit-level=high`
 
 <a name="release-check-ci"></a>
 
@@ -1011,7 +1011,7 @@ What CI runs, in one go: doctor `--release`, quality, build, coverage and its st
 
 The same without the mutation sets (4.1.10; the release workflow runs them as jobs beside it), coverage reported for GitHub Actions and as JSON in `.cache/test-report/vitest.json`.
 
-- Runs: `npm run doctor -- --release && npm run quality && npm run build && npm run test:coverage -- --reporter=default --reporter=github-actions --reporter=json --outputFile.json=.cache/test-report/vitest.json && npx tsx tools/coverage-ratchet.ts && npm run verify:release && npm run prove:game && npm run solve -- --audit-abstractions && npm run reality:xcheck -- --require-rust && node scripts/pack.mjs --out=.cache/pack --publish-dry-run && npm run audit:deps && npm audit --audit-level=high`
+- Runs: `npm run doctor -- --release && npm run game && npm run quality && npm run build:game && npm run test:coverage -- --reporter=default --reporter=github-actions --reporter=json --outputFile.json=.cache/test-report/vitest.json && npx tsx tools/coverage-ratchet.ts && npm run verify:release && npm run prove:game && npm run solve -- --audit-abstractions && npm run reality:xcheck -- --require-rust && node scripts/pack.mjs --out=.cache/pack --publish-dry-run && npm run audit:deps && npm audit --audit-level=high`
 
 <a name="release-check-local"></a>
 

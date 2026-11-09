@@ -890,8 +890,8 @@
       "name": "release-check",
       "group": "release",
       "description": {
-        "en": "What CI runs, in one go: doctor `--release`, quality, build, coverage and its strict ratchet, verify:release, prove:game, `solve --audit-abstractions`, the Rust cross-check (`--require-rust`), every mutation set (`--set=all`), the packages with `--publish-dry-run`, `audit:deps` and `npm audit --audit-level=high`.",
-        "fr": "Ce que lance la CI, d’un coup : doctor `--release`, quality, build, la couverture et son cliquet strict, verify:release, prove:game, `solve --audit-abstractions`, la contre-vérification Rust (`--require-rust`), chaque ensemble de mutation (`--set=all`), les paquets avec `--publish-dry-run`, `audit:deps` et `npm audit --audit-level=high`."
+        "en": "What CI runs, in one go: doctor `--release`, game, quality, build:game, coverage and its strict ratchet, verify:release, prove:game, `solve --audit-abstractions`, the Rust cross-check (`--require-rust`), every mutation set (`--set=all`), the packages with `--publish-dry-run`, `audit:deps` and `npm audit --audit-level=high`.",
+        "fr": "Ce que lance la CI, d’un coup : doctor `--release`, game, quality, build:game, la couverture et son cliquet strict, verify:release, prove:game, `solve --audit-abstractions`, la contre-vérification Rust (`--require-rust`), chaque ensemble de mutation (`--set=all`), les paquets avec `--publish-dry-run`, `audit:deps` et `npm audit --audit-level=high`."
       }
     },
     {

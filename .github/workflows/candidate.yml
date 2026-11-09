@@ -110,7 +110,7 @@ jobs:
           EVENT: ${{ github.event_name }}
           BRANCH: ${{ github.ref_name }}
         run: node tools/release/supersede.mjs
-  # release-check (doctor --release, quality, build, coverage and its strict ratchet, the release gates, the proofs, the
+  # release-check (doctor --release, quality, build:game, coverage and its strict ratchet, the release gates, the proofs, the
   # Rust cross-check, the packages' dry run, the audits), without the mutation sets, which run as jobs below. Run here
   # only: release.yml ran it again up to 4.5.2, and since 4.5.3 (#291) trusts this run.
   release-core:

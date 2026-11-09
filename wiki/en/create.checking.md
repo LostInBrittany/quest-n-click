@@ -231,7 +231,7 @@ equivalent when there is one; "—" means the created project has none.
 | `npm run quality` | Biome formatting and lint, `knip`, `tsconfig.json` and `tsconfig.strictest.json`, then the content lint. |
 | `npm run quality:baseline -- --check [--dist]` | The behaviour of 4.0.0 kept: witnesses, proofs, golden saves, public surface, first visit ([The quality baseline](contribute.quality-baseline.md)). |
 | `npm run doctor [-- --release]` | Node, Python modules, ffmpeg, Playwright browsers ([`doctor`](install.doctor.md)). |
-| `npm run release-check` | What CI runs, in one go: `doctor --release`, `quality`, `build`, coverage and its strict ratchet, `verify:release`, `prove:game`, `solve --audit-abstractions`, the Rust cross-check, mutation of the core, the packages with `npm publish --dry-run`, the dependency audits. `release-check:ci` is the same without the mutation sets ([Releasing](contribute.releasing.md)). |
+| `npm run release-check` | What CI runs, in one go: `doctor --release`, `game`, `quality`, `build:game`, coverage and its strict ratchet, `verify:release`, `prove:game`, `solve --audit-abstractions`, the Rust cross-check, mutation of the core, the packages with `npm publish --dry-run`, the dependency audits. `release-check:ci` is the same without the mutation sets ([Releasing](contribute.releasing.md)). |
 | `npm run field:init`, `field:check`, `field:report`, `field:bundle`, `field:verify-bundle`, `field:carry` | The Field Kit: the people's passes as JSON reports bound to a candidate run ([Field passes](contribute.field-passes.md)). |
 
 **In a browser** (engine repository; the dev server or a production build already running at `<url>`)

@@ -550,7 +550,7 @@ Les tests d’images et de la chaîne d’assets qui passent par Python (`tests/
 
 La suite sous couverture V8 (sans les tests lourds), face aux planchers de `tests/coverage-floors.json` (lus par `vite.config.ts`, 4.6.0) ; puis `npx tsx tools/coverage-ratchet.ts --strict` échoue sur un plancher en retard d’au moins trois points sur ce que les tests atteignent (CI sur main et les tags, release-check, 4.1.8 ; un avertissement sur une pull request, 4.1.9).
 
-- Lance : `vitest run --coverage --exclude tests/ownership.test.ts --exclude tests/audit.test.ts --exclude tests/canonical.test.ts --exclude tests/memo.test.ts --exclude tests/reference-proof.test.ts --exclude tests/solver-oracle.test.ts --exclude tests/dominance.test.ts --exclude tests/partition.test.ts --exclude tests/checkpoint-matrix.test.ts`
+- Lance : `npm run test:unit -- --coverage`
 
 <a name="test-heavy"></a>
 
@@ -615,7 +615,7 @@ Un ensemble de mutation (4.1.16) : l’enveloppe et le `h0` d’une course, l’
 
 La suite unitaire sans les tests liés à Python (`tests/pixel.test.ts`, `tests/studio-assets.test.ts`, `tests/talk-tools.test.ts`) ni ceux qui saturent le processeur (les fichiers de `test:heavy`) ; `npm run check` la lance, les lourds tournent la nuit.
 
-- Lance : `vitest run --exclude tests/pixel.test.ts --exclude tests/studio-assets.test.ts --exclude tests/talk-tools.test.ts --exclude tests/ownership.test.ts --exclude tests/audit.test.ts --exclude tests/canonical.test.ts --exclude tests/memo.test.ts --exclude tests/reference-proof.test.ts --exclude tests/solver-oracle.test.ts --exclude tests/dominance.test.ts --exclude tests/partition.test.ts --exclude tests/checkpoint-matrix.test.ts`
+- Lance : `npm run test:unit -- --exclude tests/pixel.test.ts --exclude tests/studio-assets.test.ts --exclude tests/talk-tools.test.ts`
 
 <a name="test-unit"></a>
 
@@ -1001,9 +1001,9 @@ La release en deux commandes (4.5.4) : `<x.y.z>` après le merge de la pull requ
 
 #### `npm run release-check`
 
-Ce que lance la CI, d’un coup : doctor `--release`, quality, build, la couverture et son cliquet strict, verify:release, prove:game, `solve --audit-abstractions`, la contre-vérification Rust (`--require-rust`), chaque ensemble de mutation (`--set=all`), les paquets avec `--publish-dry-run`, `audit:deps` et `npm audit --audit-level=high`.
+Ce que lance la CI, d’un coup : doctor `--release`, game, quality, build:game, la couverture et son cliquet strict, verify:release, prove:game, `solve --audit-abstractions`, la contre-vérification Rust (`--require-rust`), chaque ensemble de mutation (`--set=all`), les paquets avec `--publish-dry-run`, `audit:deps` et `npm audit --audit-level=high`.
 
-- Lance : `npm run doctor -- --release && npm run quality && npm run build && npm run test:coverage && npx tsx tools/coverage-ratchet.ts --strict && npm run verify:release && npm run prove:game && npm run solve -- --audit-abstractions && npm run reality:xcheck -- --require-rust && npm run test:mutation:core -- --set=all && node scripts/pack.mjs --out=.cache/pack --publish-dry-run && npm run audit:deps && npm audit --audit-level=high`
+- Lance : `npm run doctor -- --release && npm run game && npm run quality && npm run build:game && npm run test:coverage && npx tsx tools/coverage-ratchet.ts --strict && npm run verify:release && npm run prove:game && npm run solve -- --audit-abstractions && npm run reality:xcheck -- --require-rust && npm run test:mutation:core -- --set=all && node scripts/pack.mjs --out=.cache/pack --publish-dry-run && npm run audit:deps && npm audit --audit-level=high`
 
 <a name="release-check-ci"></a>
 
@@ -1011,7 +1011,7 @@ Ce que lance la CI, d’un coup : doctor `--release`, quality, build, la couvert
 
 La même chose sans les ensembles de mutation (4.1.10 ; le workflow de publication les lance en jobs à côté), la couverture rapportée pour GitHub Actions et en JSON dans `.cache/test-report/vitest.json`.
 
-- Lance : `npm run doctor -- --release && npm run quality && npm run build && npm run test:coverage -- --reporter=default --reporter=github-actions --reporter=json --outputFile.json=.cache/test-report/vitest.json && npx tsx tools/coverage-ratchet.ts && npm run verify:release && npm run prove:game && npm run solve -- --audit-abstractions && npm run reality:xcheck -- --require-rust && node scripts/pack.mjs --out=.cache/pack --publish-dry-run && npm run audit:deps && npm audit --audit-level=high`
+- Lance : `npm run doctor -- --release && npm run game && npm run quality && npm run build:game && npm run test:coverage -- --reporter=default --reporter=github-actions --reporter=json --outputFile.json=.cache/test-report/vitest.json && npx tsx tools/coverage-ratchet.ts && npm run verify:release && npm run prove:game && npm run solve -- --audit-abstractions && npm run reality:xcheck -- --require-rust && node scripts/pack.mjs --out=.cache/pack --publish-dry-run && npm run audit:deps && npm audit --audit-level=high`
 
 <a name="release-check-local"></a>
 
