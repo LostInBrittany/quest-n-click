@@ -25,6 +25,8 @@ export interface StreamSource {
 
 export class Streams {
   private open = new Set<Stream>();
+  /** The same streams by player, so a wake-up, a count, the slow pass never scan every stream of the instance. */
+  private byPlayer = new Map<string, Set<Stream>>();
 
   constructor(
     private source: StreamSource,
@@ -37,28 +39,36 @@ export class Streams {
     return this.open.size;
   }
   count(playerId: string): number {
-    let n = 0;
-    for (const s of this.open) if (s.playerId === playerId) n++;
-    return n;
+    return this.byPlayer.get(playerId)?.size ?? 0;
   }
   /** The players with a stream on this instance (the slow timer wakes them). */
   players(): Set<string> {
-    return new Set([...this.open].map((s) => s.playerId));
+    return new Set(this.byPlayer.keys());
   }
   add(s: Stream): () => void {
     this.open.add(s);
-    return () => this.open.delete(s);
+    const mine = this.byPlayer.get(s.playerId);
+    if (mine) mine.add(s);
+    else this.byPlayer.set(s.playerId, new Set([s]));
+    return () => this.remove(s);
+  }
+  private remove(s: Stream): boolean {
+    if (!this.open.delete(s)) return false;
+    const mine = this.byPlayer.get(s.playerId);
+    mine?.delete(s);
+    if (mine?.size === 0) this.byPlayer.delete(s.playerId);
+    return true;
   }
   end(s: Stream, why: 'revoked' | 'expired'): void {
-    if (this.open.delete(s)) s.close(why);
+    if (this.remove(s)) s.close(why);
   }
   endAll(playerId: string, why: 'revoked' | 'expired'): void {
-    for (const s of [...this.open]) if (s.playerId === playerId) this.end(s, why);
+    for (const s of [...(this.byPlayer.get(playerId) ?? [])]) this.end(s, why);
   }
 
   /** Reads the store for every stream of a player; resolves once each has sent what was there. */
   wake(playerId: string): Promise<void> {
-    return Promise.all([...this.open].filter((s) => s.playerId === playerId).map((s) => this.read(s))).then(() => {});
+    return Promise.all([...(this.byPlayer.get(playerId) ?? [])].map((s) => this.read(s))).then(() => {});
   }
 
   /** One stream's read, serialised: a wake-up during a read makes it read once more, never twice at once. */
