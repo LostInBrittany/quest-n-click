@@ -83,6 +83,17 @@ const gameUsesReality = (() => {
  * no service worker. The Studio Server serves it (studio-server/src/server/client.ts).
  */
 const STUDIO_CLIENT = process.env.STUDIO_CLIENT === '1';
+// A game's private/ (raw sheets, the real ending's configuration) is never served, LAN mode included (#477). Setting
+// the list replaces Vite's defaults, so they are repeated.
+const DENY = [
+  '.env',
+  '.env.*',
+  '*.{crt,pem,key,p12,pfx,cer,der}',
+  '.npmrc',
+  '.yarnrc.yml',
+  '**/.git/**',
+  '**/private/**',
+];
 
 export default defineConfig({
   // The engine's pages (index.html, studio.html) are next to this file, wherever it is installed.
@@ -183,7 +194,7 @@ export default defineConfig({
       ],
   // File-writing Studio routes are intentionally loopback-only by default. `npm run dev:lan` / `studio:lan` opt in
   // to LAN access (the Studio adds an authentication token in that mode).
-  server: { port: 5173, host: process.env.WEB_SCUMM_LAN === '1' ? true : '127.0.0.1' },
+  server: { port: 5173, host: process.env.WEB_SCUMM_LAN === '1' ? true : '127.0.0.1', fs: { deny: DENY } },
   // The current game (GAME, otherwise package.json → config.game, otherwise demo): `@game` → games/<GAME>/index.ts.
   resolve: {
     alias: [
@@ -208,7 +219,7 @@ export default defineConfig({
         server: {
           port: 5173,
           host: process.env.WEB_SCUMM_LAN === '1' ? true : '127.0.0.1',
-          fs: { allow: [r('.'), PROJECT] },
+          fs: { allow: [r('.'), PROJECT], deny: DENY },
         },
       }
     : {}),

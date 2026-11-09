@@ -55,7 +55,8 @@ that line.
 
 > [!GUARANTEE id=lan-token-required]
 > On the LAN, the Studio refuses a request without the session's token, and a write from another origin. The test covers
-> the Studio's request check; it does not cover what a browser on the same network can read.
+> the Studio's request check. What a browser on the same network can read: a game's `private/` folder is refused to
+> everyone (next, #477, `tests/vite-private.test.ts`); the other files the dev server serves stay readable.
 
 ### Constraints
 

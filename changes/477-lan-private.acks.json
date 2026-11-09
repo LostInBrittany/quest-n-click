@@ -1,0 +1,29 @@
+{
+  "format": "quest-n-click-docs-acks",
+  "version": 1,
+  "pairs": {
+    "contribute.security-policy#dev-studio": {
+      "enHash": "c842118a13840f4e19279675667d9587d8f4d698f0bb4a71c8d91d83a6a6785b",
+      "frHash": "646f9b09d8756c9499c64bd3e40601b41d15212f16fa6bf7ba66033baa4fe20a",
+      "reviewers": [
+        { "name": "claude", "kind": "ai", "relation": "author", "date": "2026-11-09" }
+      ]
+    },
+    "studio.security#local-and-lan": {
+      "enHash": "0758c8099a630c26dcd044cfd31d5a961f08b0dfbe4dd6c7fbf28b80e4148525",
+      "frHash": "0a8c32a7e57c8dc0e323155a06df6e42f9d58d0ea829edb4f6f2eb86335866a3",
+      "reviewers": [
+        { "name": "claude", "kind": "ai", "relation": "author", "date": "2026-11-09" }
+      ]
+    }
+  },
+  "claims": {
+    "lan-token-required": {
+      "claimTextHash": "d8c2d340ce9ad21343a9777fac3388785097bfa89155b065ee3684da39128e16",
+      "testFileHash": "639a7e4a9f76897b582e4bd3dcf67a58cb711d8ff76a174ba5750574f4d06e7b",
+      "reviewers": [
+        { "name": "LostInBrittany", "kind": "human", "relation": "independent", "date": "2026-11-09" }
+      ]
+    }
+  }
+}
