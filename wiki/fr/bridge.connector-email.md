@@ -205,7 +205,9 @@ La section `email` :
   200 en-têtes ; le HTML devient du texte inerte ; un message avec pièce jointe est refusé ; un message sans
   `Message-ID` est refusé.
 - Le joueur est l’étiquette du destinataire (`gate+p-…@<domaine>`, avec `domain` défini) ou l’expéditeur qui a envoyé
-  un code d’appairage (sujet `PAIR ABCD2345`, `LINK …`, `CODE …` ou le code seul).
+  un code d’appairage (sujet `PAIR ABCD2345`, `LINK …`, `CODE …` ou le code seul). Un code seul que le Bridge refuse,
+  venu d’un expéditeur déjà connu, est lu comme une réponse : un sujet comme `Treasure` est un mot, pas un appairage
+  manqué.
 - La première réponse dont tous les mots figurent dans le sujet ou le texte (mots entiers, casse indifférente)
   propose son signal, sinon `otherwise`.
 - La clé est `sha256('email:' + Message-ID)` : un message livré deux fois fait un seul signal. La charge est une

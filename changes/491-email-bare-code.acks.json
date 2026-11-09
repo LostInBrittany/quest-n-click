@@ -1,0 +1,14 @@
+{
+  "format": "quest-n-click-docs-acks",
+  "version": 1,
+  "pairs": {
+    "bridge.connector-email#reading": {
+      "enHash": "c69f45c36bdffda752666d377c8070d64d8e56c650132e89bcf30b8caa9155b7",
+      "frHash": "8058eb56cab69d0a8094b4dc0a17a1005b8a611896c30a30febe8a52228c8d5b",
+      "reviewers": [
+        { "name": "claude", "kind": "ai", "relation": "author", "date": "2026-11-09" }
+      ]
+    }
+  },
+  "claims": {}
+}

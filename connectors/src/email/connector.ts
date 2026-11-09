@@ -10,6 +10,7 @@ import { readSecret } from '../config';
 import { closeServer, HttpError, listen, PerAddress, readBody, sendJson } from '../http';
 import {
   type ConnectorContext,
+  CODE_ALPHABET,
   type ConnectorHealth,
   dedupeKey,
   type ProposeResult,
@@ -68,7 +69,7 @@ export function emailConfig(raw: Record<string, unknown>, baseDir: string): Emai
 const sha256 = (s: string) => createHash('sha256').update(s).digest('hex');
 const TOKEN = /[\p{L}\p{N}'-]+/gu;
 const words = (s: string) => new Set((s.normalize('NFKC').toLowerCase().match(TOKEN) ?? []).slice(0, 100_000));
-const PAIR = /^\s*(?:pair|link|code)?\s*:?\s*([A-HJ-NP-Z2-9]{8})\s*$/i;
+const PAIR = new RegExp(`^\\s*(pair|link|code)?\\s*:?\\s*([${CODE_ALPHABET}]{8})\\s*$`, 'i');
 
 /** The answer a message gives: the first whose words all appear, or `otherwise`. Pure. */
 export function answerOf(
@@ -139,16 +140,19 @@ export class EmailConnector implements RealityConnector {
     const mail = parsed.mail;
     if (mail.attachments > 0) return reject('attachment');
     const sender = mail.from ? sha256(`${this.salt}:${mail.from}`) : '';
-    const code = PAIR.exec(mail.subject)?.[1]?.toUpperCase();
-    if (code) {
-      const r = await ctx.pair(code);
-      if (!r.ok) return reject(`pairing-${r.refusal}`);
-      if (sender) this.link(sender, r.playerId);
-      return { kind: 'paired', playerId: r.playerId };
-    }
     const now = Date.now();
     const linked = sender ? this.links.get(sender) : undefined;
     const playerId = taggedPlayer(mail.to, this.c.domain) ?? (linked && linked.until > now ? linked.playerId : null);
+    const pair = PAIR.exec(mail.subject);
+    if (pair) {
+      const r = await ctx.pair(pair[2]!.toUpperCase());
+      if (r.ok) {
+        if (sender) this.link(sender, r.playerId);
+        return { kind: 'paired', playerId: r.playerId };
+      }
+      // A bare word that only looks like a code ("Treasure") from a sender already known is that sender's answer.
+      if (pair[1] || !playerId) return reject(`pairing-${r.refusal}`);
+    }
     if (!playerId) return reject('no-player');
     const decl = ctx.manifest.connectors?.email;
     if (!decl) return reject('not-declared');

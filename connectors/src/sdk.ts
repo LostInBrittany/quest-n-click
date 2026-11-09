@@ -101,6 +101,9 @@ export interface ConnectorMetrics {
   retries: number;
 }
 
+/** The letters of a Bridge pairing code (its `CODE_ALPHABET`): no 0/O or 1/I/L. */
+export const CODE_ALPHABET = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
+
 /** How long `stop()` waits for work in flight (SIGTERM → stop → drain). */
 export const DRAIN_MS = 5000;
 

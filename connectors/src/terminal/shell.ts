@@ -6,7 +6,7 @@
 // key or code it authenticated with.
 import { randomBytes } from 'node:crypto';
 import { TERMINAL_BUILTINS } from '../../../src/engine/tools/validate-events';
-import { type ConnectorContext, dedupeKey } from '../sdk';
+import { CODE_ALPHABET, type ConnectorContext, dedupeKey } from '../sdk';
 import { VirtualDisk } from './vfs';
 
 /** A terminal as the game declares it. */
@@ -17,7 +17,7 @@ interface TerminalDecl {
   files?: Record<string, string>;
 }
 
-const ALPHABET = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
+const ALPHABET = CODE_ALPHABET;
 
 /** Resume words (`R` + 4 + `-` + 4): a session bound once may be resumed for 30 minutes by the same player. */
 export class ResumeWords {
