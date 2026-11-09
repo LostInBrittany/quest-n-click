@@ -29,22 +29,30 @@ export class Ending {
   private payload: EndingPayload | null = null;
   constructor(private h: EndingHost) {}
 
-  /** Decryption, scratch ticket, confetti rain. With no readable sealed file: a simple "…". */
-  async open(): Promise<void> {
+  /**
+   * Decryption, scratch ticket, confetti rain. A wrong typed password is asked again (an empty answer gives up). With
+   * nothing unsealed: a simple "…", and `false`, so the game goes on (#475).
+   */
+  async open(): Promise<boolean> {
     const E = this.h.game.ending;
-    if (!E) return;
+    if (!E) return false;
     let payload: EndingPayload | null = null;
     try {
       const buf = await (await fetch(`${import.meta.env?.BASE_URL ?? '/'}${E.file}`)).arrayBuffer();
-      let pwd = 'given' in E.password ? E.password.given : '';
-      if ('typed' in E.password) pwd = await this.askPassword(E.password.prompt);
+      const P = E.password;
+      let pwd = 'given' in P ? P.given : await this.askPassword(P.prompt);
       payload = await unseal(crypto.subtle, buf, pwd);
+      while (!payload && 'typed' in P && pwd) {
+        this.h.toast('…');
+        pwd = await this.askPassword(P.prompt);
+        payload = await unseal(crypto.subtle, buf, pwd);
+      }
     } catch (e) {
       console.error(e);
     }
     if (!payload) {
       this.h.toast('…');
-      return;
+      return false;
     }
     this.payload = payload;
     const S = this.h.game.skin.sounds ?? {};
@@ -54,6 +62,7 @@ export class Ending {
     if (S.jingle) this.h.once(S.jingle);
     this.celebrate();
     await sleep(1800);
+    return true;
   }
 
   /** The final card (after the celebration lines). */
