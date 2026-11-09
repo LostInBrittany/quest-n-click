@@ -55,7 +55,8 @@ says where it applies; the pages linked give the details.
 > after each burst of changes. A bisection names the first failing revision in at most ⌈log₂ n⌉ judgements, never who
 > made it. A solver cut short says "unknown", never "valid", and stops a bisection; a revision that fails to be judged
 > five times says "cannot be judged". An older verdict is shown greyed, never green. A Check run holds the instance's
-> reads while the worker runs its diagnostics: a write waits for it. See
+> lock only while it packs the game's files for the worker: a write, and the reads behind it, do not wait for the
+> worker's run, and the result says the revision it was packed at. See
 > [Health and metrics routes](team.health-metrics.md#game-health).
 
 <a name="worker"></a>

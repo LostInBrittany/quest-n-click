@@ -59,8 +59,9 @@ actuel. Chaque limite dit où elle s'applique ; les pages liées donnent le dét
 > plus), sur le worker, après chaque rafale de modifications. Une bissection nomme la première révision en échec en
 > ⌈log₂ n⌉ jugements au plus, jamais qui l'a faite. Un solveur interrompu dit « inconnu », jamais « valide », et arrête
 > une bissection ; une révision qui n'a pas pu être jugée cinq fois dit « ne peut être jugée ». Un verdict plus ancien
-> est affiché en gris, jamais en vert. Une passe de l'onglet Check retient les lectures de l'instance pendant que le
-> worker exécute ses diagnostics : une écriture l'attend. Voir
+> est affiché en gris, jamais en vert. Une passe de l'onglet Check ne tient le verrou de l'instance que le temps
+> d'empaqueter les fichiers du jeu pour le worker : une écriture, et les lectures derrière elle, n'attendent pas
+> l'exécution du worker, et le résultat dit la révision à laquelle il a été empaqueté. Voir
 > [Routes de santé et de métriques](team.health-metrics.md#game-health).
 
 <a name="worker"></a>
