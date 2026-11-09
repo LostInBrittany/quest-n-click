@@ -875,7 +875,7 @@ Vérifie qu’aucun texte de la fin scellée, quelle que soit l’issue, n’app
 
 #### `npm run connector-archive-e2e`
 
-Les quatre connecteurs joués de bout en bout depuis leur archive face à un Bridge depuis la sienne (4.1.19) : email par webhook et par IMAP (un serveur propre au script), Telnet, SSH et Open Badge ; le job `connector-archive-e2e` du candidat. Les vrais fournisseurs et l’exposition restent une passe humaine (`connectors-real-security`).
+Les quatre connecteurs joués de bout en bout depuis leur archive face à un Bridge depuis la sienne (4.1.19) : email par webhook et par IMAP (un serveur propre au script), Telnet, SSH et Open Badge ; le job `connector-archive-e2e` du candidat, et une étape du job `connectors` des pull requests sur les archives qu’il emballe (next, #471). Les vrais fournisseurs et l’exposition restent une passe humaine (`connectors-real-security`).
 
 - Lance : `node scripts/connector-archive-e2e.mjs`
 - Utilisation : `npm run connector-archive-e2e -- [--tarballs=<dir>] [--keep]`

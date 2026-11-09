@@ -133,8 +133,10 @@ export const RULES: readonly Rule[] = [
     gates: [...COVERAGE, 'reality', 'freshInstall', ...UNIT],
     why: 'the Reality Bridge (also a package)',
   },
+  // The connectors job (next, #471) also plays the connectors from their archive against a Bridge from its own
+  // (scripts/connector-archive-e2e.mjs) and installs them through scripts/npm-install.mjs: a change to either runs it.
   {
-    re: /^(connectors\/|games\/signals\/|scripts\/(e2e-reality|reality-spike)\.mjs$|tools\/(reality-xcheck|solve-reality|reality-fixtures)\.ts$)/,
+    re: /^(connectors\/|games\/signals\/|scripts\/(e2e-reality|reality-spike|connector-archive-e2e|npm-install)\.mjs$|tools\/(reality-xcheck|solve-reality|reality-fixtures)\.ts$)/,
     gates: [...COVERAGE, 'reality', ...UNIT],
     why: 'Reality',
   },
@@ -153,8 +155,20 @@ export const RULES: readonly Rule[] = [
     gates: [...UNIT],
     why: 'the qualification profile',
   },
+  // The packer and the archives' harness: what the packages' jobs read, and the archives the connectors job packs and
+  // plays end to end (next, #471; until then neither opened `reality`, and #466's own change ran no connectors job).
   {
-    re: /^(games\/_template\/|cli\/|scripts\/(pack|fresh-install|external-consumer|new-game)\.mjs$)/,
+    re: /^scripts\/pack\.mjs$/,
+    gates: [...COVERAGE, 'secondGame', 'freshInstall', 'upgrade', 'reality', ...UNIT],
+    why: 'the packer (also the archives the connectors job plays)',
+  },
+  {
+    re: /^scripts\/lib\/archive-harness\.mjs$/,
+    gates: [...AUTHORING, 'reality'],
+    why: "the archives' harness (the packages' jobs and the connectors job)",
+  },
+  {
+    re: /^(games\/_template\/|cli\/|scripts\/(fresh-install|external-consumer|new-game)\.mjs$)/,
     gates: [...COVERAGE, 'secondGame', 'freshInstall', 'upgrade', ...UNIT],
     why: 'the packages and the template',
   },
