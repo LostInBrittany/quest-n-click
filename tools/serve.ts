@@ -2,6 +2,7 @@
 import { randomBytes } from 'node:crypto';
 import { networkInterfaces } from 'node:os';
 import { spawn } from 'node:child_process';
+import { npmSpawn } from './npm-spawn';
 import { serveArgs } from './serve-args';
 
 const plan = serveArgs(
@@ -15,7 +16,9 @@ const plan = serveArgs(
       .map((i) => i.address),
 );
 for (const line of plan.banner) console.log(line);
-const child = spawn(process.platform === 'win32' ? 'npx.cmd' : 'npx', plan.args, {
+const npx = npmSpawn('npx');
+const child = spawn(npx.command, plan.args, {
+  shell: npx.shell,
   stdio: 'inherit',
   env: { ...process.env, ...plan.env },
 });

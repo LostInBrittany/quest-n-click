@@ -23,6 +23,7 @@ import { dirname, extname, join, relative, resolve, sep } from 'node:path';
 import type { GameDef } from '../../src/engine/core/types';
 import { imageSource } from '../pages/lib';
 import { buildPrompts } from '../prompts';
+import { npmSpawn } from '../npm-spawn';
 import { collectRefs } from '../refs';
 import { StudioError, type Studio } from '../../studio-server/src/ops/core';
 import { CutFailed, cutOnCopy, type CutRequest, imageType, run } from './cut';
@@ -747,7 +748,7 @@ export function createAssets(studio: Studio, o: { publicAssets?: () => string; c
       if (resolve(dir) !== resolve(root, 'games', studio.gameId))
         throw new StudioError('npm run assets only prepares a game under games/<id>/', 400);
       const r = await run(
-        process.platform === 'win32' ? 'npm.cmd' : 'npm',
+        npmSpawn('npm').command,
         ['run', 'assets'],
         root,
         { ...process.env, GAME: studio.gameId, GAME_DIR: dir },

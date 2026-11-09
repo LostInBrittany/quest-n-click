@@ -53,7 +53,13 @@ const walk = (d) => {
 walk(dir);
 
 // The current game is a link in .cache (tools/select-game.ts), never a change to package.json (4.1.6).
-execFileSync('npx', ['tsx', 'tools/select-game.ts'], { stdio: 'inherit', env: { ...process.env, GAME: id } });
+// npx is npx.cmd on Windows, spawned only through the shell (#490); the arguments are fixed.
+const WIN = process.platform === 'win32';
+execFileSync(WIN ? 'npx.cmd' : 'npx', ['tsx', 'tools/select-game.ts'], {
+  stdio: 'inherit',
+  env: { ...process.env, GAME: id },
+  shell: WIN,
+});
 
 console.log(`games/${id} created ("${title}") and set as the current game.
 Next:

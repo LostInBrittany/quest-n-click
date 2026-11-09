@@ -74,7 +74,10 @@ try {
     await run(harness);
   } else {
     console.log('e2e: no games/<id>/e2e.mjs — replaying `npm run solve -- --json`');
-    const r = spawnSync('npx', ['tsx', 'tools/solve.ts', '--json'], {
+    // npx.cmd through the shell on Windows (#490); the arguments are fixed.
+    const WIN = process.platform === 'win32';
+    const r = spawnSync(WIN ? 'npx.cmd' : 'npx', ['tsx', 'tools/solve.ts', '--json'], {
+      shell: WIN,
       cwd: ROOT,
       encoding: 'utf8',
       env: { ...process.env, GAME },

@@ -24,7 +24,8 @@ export function run(
 ): Promise<{ code: number; output: string }> {
   return new Promise((ok) => {
     let output = '';
-    const p = spawn(cmd, args, { cwd, env });
+    // A .cmd (npm.cmd) spawns only through the shell (#490); its arguments are the caller's fixed strings.
+    const p = spawn(cmd, args, { cwd, env, shell: /\.(cmd|bat)$/i.test(cmd) });
     const on = (c: Buffer) => {
       const s = c.toString('utf8');
       output += s;
