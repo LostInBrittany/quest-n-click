@@ -55,8 +55,9 @@ sort comme un correctif de cette ligne.
 
 > [!GUARANTEE id=lan-token-required]
 > Sur le réseau local, le Studio refuse une requête sans le jeton de la session, et une écriture venant d'une autre
-> origine. Le test couvre la vérification des requêtes par le Studio ; il ne couvre pas ce qu'un navigateur du même
-> réseau peut lire.
+> origine. Le test couvre la vérification des requêtes par le Studio. Ce qu'un navigateur du même réseau peut lire : le
+> dossier `private/` d'un jeu est refusé à tous (next, #477, `tests/vite-private.test.ts`) ; les autres fichiers que
+> sert le serveur de développement restent lisibles.
 
 ### Contraintes
 
