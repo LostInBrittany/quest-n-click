@@ -316,8 +316,8 @@ export class DomPresenter implements Presenter {
     return result ?? (entry.skipped ? 'skipped' : 'won');
   }
   async ending(phase: 'open' | 'card') {
-    if (phase === 'open') await this.app.sealed.open();
-    else await this.app.sealed.card();
+    if (phase === 'open') return this.app.sealed.open();
+    await this.app.sealed.card();
   }
   /**
    * A plain end shows nothing (the sealed ending has its own screens). 4.7.0: the credits, then the title screen, as

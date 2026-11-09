@@ -457,7 +457,8 @@ const guide: Handler<'guide'> = async (eng, c, ctx) => {
 };
 
 const ending: Handler<'ending' | 'reveal'> = async (eng, c, ctx) => {
-  await eng.ui.ending('open');
+  // Nothing unsealed (a wrong password, the file unreachable offline): not an ending, the game goes on (#475).
+  if ((await eng.ui.ending('open')) === false) return;
   await eng.exec(c.after, { ...ctx, fast: false });
   // The sealed ending ends the game as `end` does: `state.done` is the one truth an e2e or a replay reads, the card
   // is only how it is shown.
@@ -467,7 +468,7 @@ const ending: Handler<'ending' | 'reveal'> = async (eng, c, ctx) => {
   eng.journal.emit({ kind: 'endingReached', ending: 'sealed' });
   eng.save();
   eng.journal.saved();
-  return eng.ui.ending('card');
+  await eng.ui.ending('card');
 };
 
 export const HANDLERS: Handlers = {

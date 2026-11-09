@@ -73,7 +73,8 @@ a save). `{ reveal: true }` is the old name. Right before it, the script plays w
 the sofa, the lock melting away…).
 
 The ending texts are **never** in the game content: they live in `games/<GAME>/private/ending.config.ts`. If the file
-cannot be read or decrypted, the game shows "…" instead of the ending.
+cannot be read or decrypted, the game shows "…" instead of the ending, and the game goes on: nothing is saved as
+finished, so the player can try again (next, #475). A wrong typed password is asked again; an empty answer gives up.
 
 <a name="steps"></a>
 

@@ -55,8 +55,11 @@ export interface Presenter {
   phone(who: Id | Id[], ringing: boolean): Promise<void>;
   guide(g: { verb: VerbId; target: Id } | null): void;
   cutscene(on: boolean): void;
-  /** Sealed ending. 'open': decryption, scratch ticket, confetti rain. 'card': the final card. */
-  ending(phase: 'open' | 'card'): Promise<void>;
+  /**
+   * Sealed ending. 'open': decryption, scratch ticket, confetti rain. 'card': the final card. `false` from 'open':
+   * nothing could be unsealed, and the game goes on (#475).
+   */
+  ending(phase: 'open' | 'card'): Promise<boolean | void>;
   /**
    * The game ended (`{ end: true }`). 4.7.0: `credits`, roll the game's credits; `title`, then show the title screen.
    * It does not hold the engine: the end is already saved.
@@ -204,7 +207,7 @@ export class FakePresenter implements Presenter {
   }
   guide() {}
   cutscene() {}
-  async ending(phase: 'open' | 'card') {
+  async ending(phase: 'open' | 'card'): Promise<boolean | void> {
     if (phase === 'open') this.log.push('ENDING');
   }
   /** `END`, then `CREDITS` and `TITLE` when the end asks for them (4.7.0). */
