@@ -164,7 +164,7 @@ The `open-badge` section:
 |---|---|---|
 | `port`, `host` | —, `127.0.0.1` | Where `POST /v1/badges` listens |
 | `hosts` | the hosts of the game's `https:` issuers | Where documents may be fetched from |
-| `perMinutePerIp` | 30 | Posts a minute per address |
+| `perMinutePerIp` | 30 | Posts a minute per address (an IPv6 address counts by its /64, next) |
 | `maxBytes` | 65 536 | A post's body |
 
 <a name="privacy"></a>

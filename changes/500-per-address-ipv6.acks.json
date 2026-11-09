@@ -1,0 +1,21 @@
+{
+  "format": "quest-n-click-docs-acks",
+  "version": 1,
+  "pairs": {
+    "bridge.connector-email#configuration": {
+      "enHash": "cf1ac2ff00697fd0ecbd3f893a6562b9070fa0a507ea0f499e65611f931dac30",
+      "frHash": "c9ab66985c7be329311e98e3d6fd67cc7fe9722e77d6170ffc554181aeaa68d3",
+      "reviewers": [
+        { "name": "claude", "kind": "ai", "relation": "author", "date": "2026-11-09" }
+      ]
+    },
+    "bridge.connector-open-badges#network-policy": {
+      "enHash": "1c5c8af9748fbb81c83cb95a66e02571d369b14ddb8ec39fd541689783af48f2",
+      "frHash": "b85637e30751f66db2d1b5ee856cf5c8412e2f549ee4967b73866851951bbe15",
+      "reviewers": [
+        { "name": "claude", "kind": "ai", "relation": "author", "date": "2026-11-09" }
+      ]
+    }
+  },
+  "claims": {}
+}

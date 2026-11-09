@@ -189,7 +189,7 @@ La section `email` :
 | `webhook.port`, `webhook.host` | —, `127.0.0.1` | Où écoute `POST /v1/inbound` |
 | `webhook.secretFile` | (obligatoire) | Le fichier du secret HMAC |
 | `webhook.toleranceS` | 300 | L’écart permis entre l’horodatage et maintenant, en secondes |
-| `webhook.perMinutePerIp` | 120 | Envois par minute et par adresse |
+| `webhook.perMinutePerIp` | 120 | Envois par minute et par adresse (une adresse IPv6 compte par son /64, next) |
 | `imap.host`, `imap.port` | —, 993 | Le serveur de la boîte, en TLS |
 | `imap.user`, `imap.passwordFile` | (obligatoires) | Son identifiant |
 | `imap.mailbox` | `INBOX` | Le dossier relevé (de préférence un dossier dédié) |
