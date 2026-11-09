@@ -5,6 +5,7 @@
 import {
   closeSync,
   existsSync,
+  fstatSync,
   fsyncSync,
   mkdirSync,
   openSync,
@@ -376,6 +377,12 @@ function splitLines(text: string): { complete: string[]; tail: string } {
  * cut short by a crash (no newline, not JSON) is dropped and reported, never a reason not to start; any other line
  * that does not parse is corruption, and the Bridge refuses to start on it rather than guess.
  */
+/** Every byte or an error: on a nearly full disk one write can take part of what it is given and say so (#479). */
+function writeAll(fd: number, text: string): void {
+  const buf = Buffer.from(text);
+  for (let off = 0; off < buf.length; ) off += writeSync(fd, buf, off, buf.length - off);
+}
+
 export class JsonlBridgeStore extends MemoryBridgeStore {
   private lock: JournalLock | undefined;
   constructor(
@@ -424,9 +431,15 @@ export class JsonlBridgeStore extends MemoryBridgeStore {
     }
     const stored = e.t === 'pairing' ? { t: e.t, p: { ...e.p, capability: undefined } } : e;
     const fd = openSync(this.file, 'a');
+    const size = fstatSync(fd).size;
     try {
-      writeSync(fd, `${JSON.stringify(stored)}\n`);
+      writeAll(fd, `${JSON.stringify(stored)}\n`);
       fsyncSync(fd);
+    } catch (err) {
+      // A line cut short is taken back: the next one must not join it. By path: Windows refuses to truncate
+      // through a handle opened to append (EPERM).
+      truncateSync(this.file, size);
+      throw err;
     } finally {
       closeSync(fd);
     }
@@ -463,7 +476,7 @@ export class JsonlBridgeStore extends MemoryBridgeStore {
     const tmp = `${this.file}.tmp`;
     const fd = openSync(tmp, 'w');
     try {
-      writeSync(fd, lines.map((l) => `${l}\n`).join(''));
+      writeAll(fd, lines.map((l) => `${l}\n`).join(''));
       fsyncSync(fd);
     } finally {
       closeSync(fd);
