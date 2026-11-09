@@ -49,8 +49,9 @@ async function locked<T>(file: string, fn: () => Promise<T>): Promise<T> {
       break;
     } catch (e) {
       if ((e as NodeJS.ErrnoException).code !== 'EEXIST') throw e;
-      // A lock left by a run that died more than a minute ago is taken over.
-      if (Date.now() - statSync(lock, { throwIfNoEntry: false })!.mtimeMs > 60_000) rmSync(lock, { force: true });
+      // A lock left by a run that died more than a minute ago is taken over; one gone already is tried again.
+      const st = statSync(lock, { throwIfNoEntry: false });
+      if (st && Date.now() - st.mtimeMs > 60_000) rmSync(lock, { force: true });
       else if (i > 300) throw new Error(`${lock} is held by another run`);
       else await new Promise((ok) => setTimeout(ok, 100));
     }
