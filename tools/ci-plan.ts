@@ -61,8 +61,9 @@ interface Rule {
 
 // What a unit test or a build of the sample game cannot see: Node 24, Windows. Every code path asks for both.
 const UNIT = ['node24', 'windows'] as const;
-// The unit suite under coverage and its ratchet (4.5.4, #302): product code only; a change to the docs, a workflow,
-// the repository's own tools or the tests alone runs the same suite without coverage, and `main` runs it with `--all`.
+// The unit suite under coverage and its ratchet (4.5.4, #302): product code and the tests (next, #520: a test can lift
+// a file above its floor, and the strict ratchet must say so on the pull request, not on main); a change to the docs,
+// a workflow or the repository's own tools alone runs the same suite without coverage, and `main` runs it with `--all`.
 const COVERAGE = ['coverage'] as const;
 // The authoring pipeline (validate, solve, lint, build:game, pack, the template): every game's build goes through it.
 const AUTHORING = [...UNIT, ...COVERAGE, 'secondGame', 'freshInstall', 'upgrade', 'reference'] as const;
@@ -232,12 +233,21 @@ export const RULES: readonly Rule[] = [
   },
   { re: /^(tools|scripts)\//, gates: [...AUTHORING], why: 'the authoring pipeline' },
   {
-    re: /^(tests\/studio-(server|worker|collab|keycloak|client|diff-captures)\.test\.ts|ops\/studio\/(ci|keycloak)\/)/,
+    re: /^tests\/studio-(server|worker|collab|keycloak|client|diff-captures)\.test\.ts$/,
+    gates: [...COVERAGE, 'studioHosted'],
+    why: 'the hosted Studio against Postgres and S3 (4.2.1)',
+  },
+  {
+    re: /^ops\/studio\/(ci|keycloak)\//,
     gates: ['studioHosted'],
     why: 'the hosted Studio against Postgres and S3 (4.2.1)',
   },
-  { re: /^tests\/wiki-[^/]+\.test\.ts$/, gates: ['windows'], why: "the wiki tools' tests (on Windows too, #367)" },
-  { re: /^tests\//, gates: [], why: 'the unit tests' },
+  {
+    re: /^tests\/wiki-[^/]+\.test\.ts$/,
+    gates: [...COVERAGE, 'windows'],
+    why: "the wiki tools' tests (on Windows too, #367)",
+  },
+  { re: /^tests\//, gates: [...COVERAGE], why: 'the unit tests' },
 ];
 
 /** A glob as a regular expression over a whole path: `**` any folders, `*` and `?` inside one name, `{a,b*}`. */

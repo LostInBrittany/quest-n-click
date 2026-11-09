@@ -83,11 +83,11 @@ correctif arrive sur `main`, et la nuit verte suivante ferme l'issue.
   changement, partagés en quatre (`--shard=<i>/4`, 4.5.4). Le partage suit la durée enregistrée de chaque fichier, non
   leur nombre (4.5.5, #349, [plus bas](#shards)). Quand le changement touche le code du produit (la barrière
   `coverage` du plan : le moteur, un jeu, le Bridge, le Studio et son serveur, la CLI et les paquets, les sauvegardes
-  de référence, les outils d'écriture), chaque fragment tourne sous couverture V8 et garde un rapport blob ;
-  `coverage` fusionne les quatre (`test:merge` : les planchers de `tests/coverage-floors.json` sur toute la suite), puis lance le
-  cliquet : un avertissement sur une pull request, un échec sur `main`
-  ([Le cliquet de couverture](contribute.coverage-ratchet.md)). Sinon (la doc, un workflow, les outils de release et du
-  wiki, des tests seuls), les fragments passent les mêmes fichiers sans couverture (`test:unit`). Dans les deux cas,
+  de référence, les outils d'écriture) ou un test (next, #520 : un test peut porter un fichier au-dessus de son
+  plancher), chaque fragment tourne sous couverture V8 et garde un rapport blob ; `coverage` fusionne les quatre
+  (`test:merge` : les planchers de `tests/coverage-floors.json` sur toute la suite), puis lance le cliquet, strict sur
+  une pull request comme sur `main` (4.7.0, #410 ; [Le cliquet de couverture](contribute.coverage-ratchet.md)). Sinon
+  (la doc, un workflow, les outils de release et du wiki), les fragments passent les mêmes fichiers sans couverture (`test:unit`). Dans les deux cas,
   `coverage`, la vérification que le ruleset exige, est rouge quand un fragment n'est pas vert.
 
 **Le deuxième palier, ce que le changement peut casser.** Chaque job a besoin de `plan` (la plupart aussi de `check`)
@@ -182,13 +182,13 @@ l'union de ce que demandent ses fichiers :
 | `games/_template/`, `cli/`, `scripts/{fresh-install,external-consumer,new-game}.mjs` | `coverage`, `secondGame`, `freshInstall`, `upgrade`, `node24`, `windows` |
 | `scripts/pack.mjs`, `scripts/lib/archive-harness.mjs` | les mêmes, et `reality` (next, #471 : le job des connecteurs emballe les archives et les joue ; le harnais ouvre aussi `reference`, comme la règle de création qui le prenait jusque-là) |
 | `studio-server/` | les barrières de création et `studioHosted` |
-| `tools/wiki.ts` et `tools/wiki/` (sauf `docs`, `docs-load`, `glossary`, `manifest`, `page` et `site`, que le Studio et le serveur MCP lisent), et les tests du wiki `tests/wiki-*.test.ts` | `windows` (4.5.6, #367 : ils lisent des pages, des chemins et des fins de ligne qu'une copie Windows donne autrement ; les tests de #363 n'échouaient que là, vus d'abord sur une pull request de release) |
+| `tools/wiki.ts` et `tools/wiki/` (sauf `docs`, `docs-load`, `glossary`, `manifest`, `page` et `site`, que le Studio et le serveur MCP lisent), et les tests du wiki `tests/wiki-*.test.ts` | `windows` (4.5.6, #367 : ils lisent des pages, des chemins et des fins de ligne qu'une copie Windows donne autrement ; les tests de #363 n'échouaient que là, vus d'abord sur une pull request de release), et `coverage` pour les tests (next, #520) |
 | `tools/release/`, les outils du dépôt (`tools/mutate.ts`, `tools/changes.ts`, `tools/quality-baseline.ts`…, `scripts/release-notes.mjs`) | le palier rapide seulement (4.5.4) |
 | `scripts/ci-playwright-deps.sh` (les paquets système de Playwright sur le runner, 4.5.5, #353) | `studioHosted` |
 | `tools/studio/diff-rooms.ts` (les lieux que dessine le diff sémantique, dont se servent les captures du Studio hébergé) | les barrières de création et `studioHosted` (4.5.5, #349 : la règle ci-dessous le prenait d'abord jusque-là) |
 | les autres `tools/` et `scripts/` | les barrières de création (`coverage`, `node24`, `windows`, `secondGame`, `freshInstall`, `upgrade`, `reference`) |
-| les tests du Studio hébergé et ses fichiers de CI (`tests/studio-{server,worker,collab,keycloak,client,diff-captures}.test.ts`, `ops/studio/{ci,keycloak}/`) | `studioHosted` |
-| les autres `tests/` | le palier rapide seulement (4.5.4) |
+| les tests du Studio hébergé et ses fichiers de CI (`tests/studio-{server,worker,collab,keycloak,client,diff-captures}.test.ts`, `ops/studio/{ci,keycloak}/`) | `studioHosted`, et `coverage` pour les tests (next, #520) |
+| les autres `tests/` | `coverage` (next, #520 : un test peut porter un fichier au-dessus de son plancher, et le cliquet strict demande à la pull request, non à `main`, de le relever) |
 | un chemin qu'aucune règle ne connaît | tout |
 
 Une erreur de git lance tout aussi : le plan ne décide jamais qu'il n'a pas besoin d'être vérifié. **`docs`** est vrai
