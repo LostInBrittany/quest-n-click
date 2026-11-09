@@ -26,16 +26,44 @@ export async function readBody(req: IncomingMessage, limit: number): Promise<Buf
   return Buffer.concat(chunks);
 }
 
-/** Requests per address and minute; the map forgets idle addresses once it grows. */
+/**
+ * The key an address is limited under (next, #500): an IPv4 address as it is, an IPv6 one by its /64 (one host is
+ * usually handed a whole /64), an IPv4-mapped IPv6 address as its IPv4. The Bridge's `addressKey`, copied: the
+ * connectors' package does not depend on the Bridge's.
+ */
+function addressKey(ip: string): string {
+  const bare = ip.split('%')[0]!;
+  if (!bare.includes(':')) return bare;
+  const mapped = /^::ffff:(\d+\.\d+\.\d+\.\d+)$/i.exec(bare);
+  if (mapped) return mapped[1]!;
+  const [head = '', tail] = bare.split('::');
+  const h = head ? head.split(':') : [];
+  const t = tail ? tail.split(':') : [];
+  const groups = tail === undefined ? h : [...h, ...Array(Math.max(0, 8 - h.length - t.length)).fill('0'), ...t];
+  return `${groups
+    .slice(0, 4)
+    .map((g) => (Number.parseInt(g, 16) || 0).toString(16))
+    .join(':')}::/64`;
+}
+
+/**
+ * Requests per address (an IPv6 /64) and minute; once the map grows, it forgets idle addresses, at most one sweep a
+ * minute (#500).
+ */
 export class PerAddress {
   private m = new Map<string, number[]>();
+  private lastSweep = 0;
   constructor(
     private perMinute: number,
     private now: () => number = Date.now,
   ) {}
-  take(address: string): boolean {
+  take(ip: string): boolean {
     const t = this.now();
-    if (this.m.size > 10_000) for (const [k, v] of this.m) if (!v.some((x) => x > t - 60_000)) this.m.delete(k);
+    const address = addressKey(ip);
+    if (this.m.size > 10_000 && t - this.lastSweep >= 60_000) {
+      this.lastSweep = t;
+      for (const [k, v] of this.m) if (!v.some((x) => x > t - 60_000)) this.m.delete(k);
+    }
     const xs = (this.m.get(address) ?? []).filter((x) => x > t - 60_000);
     if (xs.length >= this.perMinute) {
       this.m.set(address, xs);

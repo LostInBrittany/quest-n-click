@@ -185,7 +185,7 @@ The `email` section:
 | `webhook.port`, `webhook.host` | —, `127.0.0.1` | Where `POST /v1/inbound` listens |
 | `webhook.secretFile` | (required) | The HMAC secret's file |
 | `webhook.toleranceS` | 300 | How far the timestamp may be from now, in seconds |
-| `webhook.perMinutePerIp` | 120 | Posts a minute per address |
+| `webhook.perMinutePerIp` | 120 | Posts a minute per address (an IPv6 address counts by its /64, next) |
 | `imap.host`, `imap.port` | —, 993 | The mailbox's server, over TLS |
 | `imap.user`, `imap.passwordFile` | (required) | Its login |
 | `imap.mailbox` | `INBOX` | The folder polled (a dedicated one is best) |
