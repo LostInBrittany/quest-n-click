@@ -28,6 +28,26 @@ describe('the plan of a change', () => {
     ],
     ['the Bridge', ['bridge/src/store.ts'], gates('coverage', 'reality', 'freshInstall', 'node24', 'windows')],
     ['the signals game', ['games/signals/index.ts'], gates('coverage', 'reality', 'node24', 'windows')],
+    // The connectors job plays the archives end to end (next, #471): #459 and #460 changed the email connector and the
+    // Bridge, and the script failed first in 4.7.2's candidate; its fix (#466) touched the script alone, which fell to
+    // the authoring rule and ran no connectors job.
+    ['the email connector', ['connectors/src/email/imap.ts'], gates('coverage', 'reality', 'node24', 'windows')],
+    ['the Bridge itself', ['bridge/src/bridge.ts'], gates('coverage', 'reality', 'freshInstall', 'node24', 'windows')],
+    [
+      'the archive e2e and its install helper',
+      ['scripts/connector-archive-e2e.mjs', 'scripts/npm-install.mjs'],
+      gates('coverage', 'reality', 'node24', 'windows'),
+    ],
+    [
+      "the archives' harness",
+      ['scripts/lib/archive-harness.mjs'],
+      gates('coverage', 'freshInstall', 'node24', 'reality', 'reference', 'secondGame', 'upgrade', 'windows'),
+    ],
+    [
+      'the packer',
+      ['scripts/pack.mjs'],
+      gates('coverage', 'freshInstall', 'node24', 'reality', 'secondGame', 'upgrade', 'windows'),
+    ],
     ['the engine core', ['src/engine/core/engine.ts'], EVERYTHING],
     ['a save module', ['src/engine/core/save.ts'], EVERYTHING],
     ['a painter', ['src/engine/dom/render-canvas.ts'], gates('coverage', 'e2e', 'reference', 'node24', 'windows')],
@@ -256,6 +276,18 @@ describe('ci.yml and the plan', () => {
       expect(e2e).toMatch(new RegExp(`- browser: ${browser}\\n\\s+mode: ${mode}\\n\\s+experimental: false`));
     expect(job('reference')).toContain('browser: [chromium, webkit]');
     expect(job('reality')).toContain('browser: [chromium, webkit]');
+  });
+
+  it('plays the connectors from the archives it packed, on the reality gate, as the candidate does (next, #471)', () => {
+    const connectors = job('connectors');
+    expect(connectors).toMatch(/RUN: \$\{\{ fromJSON\(needs\.plan\.outputs\.plan\)\.reality \}\}/);
+    const pack = connectors.indexOf('node scripts/pack.mjs --out=.cache/pack');
+    const e2e = connectors.indexOf('node scripts/connector-archive-e2e.mjs --tarballs=.cache/pack');
+    expect(pack).toBeGreaterThan(-1);
+    expect(e2e).toBeGreaterThan(pack);
+    expect(readFileSync('.github/workflows/candidate.yml', 'utf8')).toContain(
+      'node scripts/connector-archive-e2e.mjs --tarballs=candidate-pack',
+    );
   });
 
   it("splits the reference chapter's Chromium work over three jobs on its gate (#265), each check run once", () => {

@@ -335,7 +335,8 @@ jobs:
   # The connectors of the world outside (4.1.9, D19, wiki/en/bridge.connectors.md): the SDK's contract on the four connectors
   # against a real Bridge, their abuse and fuzz tests, the sample chapter's replays, a game without server code, then
   # the fuzz harness for half a minute per connector (the nightly runs a minute) and the connectors' tarball installed
-  # without native code (ssh2's install script attempts a build and fails: no .node file). Gate: `reality`.
+  # without native code (ssh2's install script attempts a build and fails: no .node file), then the four connectors
+  # played end to end from those archives against a Bridge from its own (next, #471). Gate: `reality`.
   connectors:
     needs: plan
     runs-on: ubuntu-24.04
@@ -381,6 +382,12 @@ jobs:
           # The former command (D47) went in 4.3.0: the archive no longer carries it.
           ! ls node_modules/.bin | grep -q '^web-scumm'
           ! find node_modules -name '*.node' | grep -q .
+      # The candidate's connector-archive-e2e on the archives just packed (next, #471): a change to a connector or to
+      # the Bridge sees it here, not first in the candidate (4.7.2: #459 and #460, fixed by #466). The candidate still
+      # runs it on the archives it ships.
+      - name: The four connectors played end to end from their archive
+        if: env.RUN == 'true'
+        run: node scripts/connector-archive-e2e.mjs --tarballs=.cache/pack
   # The hosted Studio (4.2.1): the journal on Postgres with its blobs in S3, the service lease, the processing worker
   # through presigned URLs, the spans' leases racing on Postgres, and the login, back-channel logout and a disabled
   # user against a real Keycloak (tests/studio-keycloak.test.ts, the realm of ops/studio/keycloak/). S3 is SeaweedFS

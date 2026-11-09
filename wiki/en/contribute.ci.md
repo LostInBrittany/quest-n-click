@@ -99,7 +99,7 @@ plan: it runs its real work, or one step that says "not needed by the plan" and 
 | `fresh-install` | `freshInstall` | the engine packed, a game created outside the repository, installed, built and played |
 | `external-consumer` (Ubuntu, macOS, Windows) | `freshInstall` | the archives installed outside the repository on three systems |
 | `upgrade` | `upgrade` | a game of the previous release moved to this engine, its old save played to the end |
-| `reality-xcheck`, `connectors`, `bridge-postgres`, `reality` (Chromium, WebKit) | `reality` | Biscuit's samples in JavaScript and Rust, the connectors against a real Bridge with their fuzz, the Bridge on Postgres 16, the signals game end to end |
+| `reality-xcheck`, `connectors`, `bridge-postgres`, `reality` (Chromium, WebKit) | `reality` | Biscuit's samples in JavaScript and Rust, the connectors against a real Bridge with their fuzz, then played end to end from the archives the job packs against a Bridge from its own (`connector-archive-e2e`, which the candidate runs on the archives it ships; next, #471), the Bridge on Postgres 16, the signals game end to end |
 | `studio-hosted` | `studioHosted` | the Studio Server on Postgres and S3 (SeaweedFS) with a real Keycloak, then the hosted Studio in Chromium and Firefox |
 | `cross-runtime` | none (every change) | the same canonical text, speedrun proofs and Remix worlds in Node, Chromium, WebKit and Firefox |
 
@@ -166,9 +166,11 @@ files ask:
 | any other file of `src/engine/` (the core) | everything |
 | `src/studio/` | `coverage`, `e2e`, `studioHosted`, `node24`, `windows` |
 | `bridge/` | `coverage`, `reality`, `freshInstall`, `node24`, `windows` (and `studioHosted` for its SQL layer) |
+| `connectors/`, `games/signals/`, the Reality scripts and tools, `scripts/connector-archive-e2e.mjs`, `scripts/npm-install.mjs` | `coverage`, `reality`, `node24`, `windows` |
 | `games/demo/` | `coverage`, `e2e`, `reference`, `node24`, `windows` |
 | `games/reference/`, `games/heroes/` | `coverage`, `reference`, `node24` |
-| `games/_template/`, `cli/`, `scripts/{pack,fresh-install,external-consumer,new-game}.mjs` | `coverage`, `secondGame`, `freshInstall`, `upgrade`, `node24`, `windows` |
+| `games/_template/`, `cli/`, `scripts/{fresh-install,external-consumer,new-game}.mjs` | `coverage`, `secondGame`, `freshInstall`, `upgrade`, `node24`, `windows` |
+| `scripts/pack.mjs`, `scripts/lib/archive-harness.mjs` | the same, and `reality` (next, #471: the connectors job packs the archives and plays them; the harness also opens `reference`, as the authoring rule that took it until then) |
 | `studio-server/` | the authoring gates and `studioHosted` |
 | `tools/wiki.ts` and `tools/wiki/` (but `docs`, `docs-load`, `glossary`, `manifest`, `page` and `site`, which the Studio and the MCP server read), and the wiki's tests `tests/wiki-*.test.ts` | `windows` (4.5.6, #367: they read pages, paths and line ends a Windows checkout gives differently; #363's tests failed there only, first seen on a release pull request) |
 | `tools/release/`, the repository tools (`tools/mutate.ts`, `tools/changes.ts`, `tools/quality-baseline.ts`…, `scripts/release-notes.mjs`) | the fast tier only (4.5.4) |

@@ -106,7 +106,7 @@ réussit.
 | `fresh-install` | `freshInstall` | le moteur empaqueté, un jeu créé hors du dépôt, installé, construit et joué |
 | `external-consumer` (Ubuntu, macOS, Windows) | `freshInstall` | les archives installées hors du dépôt sur trois systèmes |
 | `upgrade` | `upgrade` | un jeu de la release précédente passé à ce moteur, sa vieille sauvegarde jouée jusqu'au bout |
-| `reality-xcheck`, `connectors`, `bridge-postgres`, `reality` (Chromium, WebKit) | `reality` | les échantillons de Biscuit en JavaScript et en Rust, les connecteurs contre un vrai Bridge avec leur fuzz, le Bridge sur Postgres 16, le jeu à signaux de bout en bout |
+| `reality-xcheck`, `connectors`, `bridge-postgres`, `reality` (Chromium, WebKit) | `reality` | les échantillons de Biscuit en JavaScript et en Rust, les connecteurs contre un vrai Bridge avec leur fuzz, puis joués de bout en bout depuis les archives que le job emballe face à un Bridge depuis la sienne (`connector-archive-e2e`, que le candidat lance sur les archives qu'il publie ; next, #471), le Bridge sur Postgres 16, le jeu à signaux de bout en bout |
 | `studio-hosted` | `studioHosted` | le Studio Server sur Postgres et S3 (SeaweedFS) avec un vrai Keycloak, puis le Studio hébergé sous Chromium et Firefox |
 | `cross-runtime` | aucune (chaque changement) | le même texte canonique, les mêmes preuves de speedrun et les mêmes mondes Remix sous Node, Chromium, WebKit et Firefox |
 
@@ -176,9 +176,11 @@ l'union de ce que demandent ses fichiers :
 | tout autre fichier de `src/engine/` (le cœur) | tout |
 | `src/studio/` | `coverage`, `e2e`, `studioHosted`, `node24`, `windows` |
 | `bridge/` | `coverage`, `reality`, `freshInstall`, `node24`, `windows` (et `studioHosted` pour sa couche SQL) |
+| `connectors/`, `games/signals/`, les scripts et outils de Reality, `scripts/connector-archive-e2e.mjs`, `scripts/npm-install.mjs` | `coverage`, `reality`, `node24`, `windows` |
 | `games/demo/` | `coverage`, `e2e`, `reference`, `node24`, `windows` |
 | `games/reference/`, `games/heroes/` | `coverage`, `reference`, `node24` |
-| `games/_template/`, `cli/`, `scripts/{pack,fresh-install,external-consumer,new-game}.mjs` | `coverage`, `secondGame`, `freshInstall`, `upgrade`, `node24`, `windows` |
+| `games/_template/`, `cli/`, `scripts/{fresh-install,external-consumer,new-game}.mjs` | `coverage`, `secondGame`, `freshInstall`, `upgrade`, `node24`, `windows` |
+| `scripts/pack.mjs`, `scripts/lib/archive-harness.mjs` | les mêmes, et `reality` (next, #471 : le job des connecteurs emballe les archives et les joue ; le harnais ouvre aussi `reference`, comme la règle de création qui le prenait jusque-là) |
 | `studio-server/` | les barrières de création et `studioHosted` |
 | `tools/wiki.ts` et `tools/wiki/` (sauf `docs`, `docs-load`, `glossary`, `manifest`, `page` et `site`, que le Studio et le serveur MCP lisent), et les tests du wiki `tests/wiki-*.test.ts` | `windows` (4.5.6, #367 : ils lisent des pages, des chemins et des fins de ligne qu'une copie Windows donne autrement ; les tests de #363 n'échouaient que là, vus d'abord sur une pull request de release) |
 | `tools/release/`, les outils du dépôt (`tools/mutate.ts`, `tools/changes.ts`, `tools/quality-baseline.ts`…, `scripts/release-notes.mjs`) | le palier rapide seulement (4.5.4) |

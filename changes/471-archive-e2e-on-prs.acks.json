@@ -1,0 +1,28 @@
+{
+  "format": "quest-n-click-docs-acks",
+  "version": 1,
+  "pairs": {
+    "contribute.ci#the-plan": {
+      "enHash": "723a467afa14908060b4c2495a97251898ca975ba4b87cfffc564bba10bc554c",
+      "frHash": "2570c1c279d096f4fa546d443b7edb02083dbd4395dd7bb9dc2978f0a35e07eb",
+      "reviewers": [
+        { "name": "claude-opus-5-5", "kind": "ai", "relation": "author", "date": "2026-11-09" }
+      ]
+    },
+    "contribute.ci#tiers": {
+      "enHash": "2ddc3e3d2eadafc70292d4b94216ff5ad916fb31476bcd135c06c5bb60a0c35b",
+      "frHash": "4970f50072dd5389ed81f9264369a7acdbdf4f0ae091691ff8c4afd82c7cd446",
+      "reviewers": [
+        { "name": "claude-opus-5-5", "kind": "ai", "relation": "author", "date": "2026-11-09" }
+      ]
+    },
+    "reference.npm-scripts#connector-archive-e2e": {
+      "enHash": "92d06bf8d6f72ba6a4a5bc4c35c7e3f05beee7462b565fc3dbbdd008e7df0f0e",
+      "frHash": "10931f63fbba97daef6f18e8d8b319b0b1393b555f4ff1ecccaaebd4c6abf1cf",
+      "reviewers": [
+        { "name": "claude-opus-5-5", "kind": "ai", "relation": "author", "date": "2026-11-09" }
+      ]
+    }
+  },
+  "claims": {}
+}
