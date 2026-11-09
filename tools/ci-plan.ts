@@ -71,6 +71,7 @@ const AUTHORING = [...UNIT, ...COVERAGE, 'secondGame', 'freshInstall', 'upgrade'
 export const RULES: readonly Rule[] = [
   // The plan never vouches for itself, nor for what every job shares.
   { re: /^\.github\/workflows\/ci\.yml$/, gates: 'all', why: 'the workflow itself' },
+  { re: /^\.github\/actions\//, gates: 'all', why: "the jobs' setup action" },
   { re: /^tools\/ci-plan\.ts$/, gates: 'all', why: 'the plan itself' },
   { re: /^package(-lock)?\.json$/, gates: 'all', why: 'dependencies or scripts' },
   {

@@ -1,0 +1,37 @@
+# Node and the repository's dependencies, for every job that runs `npm ci` (#524): setup-node with the npm cache, then
+# `npm ci` three times at most, 15 s apart (4.5.5, #340). One `timeout-minutes` on the step alone let an attempt that
+# stalls spend the whole step: on Linux each attempt has its own `timeout <n>m`, and the calling step keeps a
+# `timeout-minutes` with room for the three and the two pauses (tests/ci-retry.test.ts). macOS has no `timeout`, and
+# on Windows System32's timeout.exe may come first in the PATH: there the attempts have the step's limit only.
+# The calling job checks the repository out first: a local action is read from the checkout.
+name: Node and npm ci
+description: setup-node with the npm cache, then npm ci tried three times, each attempt bounded on Linux.
+inputs:
+  node-version:
+    description: The Node version setup-node installs.
+    default: '22'
+  timeout:
+    description: Minutes an attempt of npm ci may take on Linux; 0 leaves it unbounded.
+    default: '6'
+  safe-directory:
+    description: >-
+      true in a container job: the checkout belongs to the runner's user, not root, and git is told it is safe.
+    default: 'false'
+runs:
+  using: composite
+  steps:
+    # `$(pwd)`, the step's directory, is the workspace as the container mounts it (`/__w/…`); `github.workspace` is the
+    # host's path.
+    - if: inputs.safe-directory == 'true'
+      shell: bash
+      run: git config --global --add safe.directory "$(pwd)"
+    - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+      with:
+        node-version: ${{ inputs.node-version }}
+        cache: npm
+    - shell: bash
+      env:
+        MINUTES: ${{ runner.os == 'Linux' && inputs.timeout || '0' }}
+      run: |
+        if [ "$MINUTES" != 0 ]; then t="timeout ${MINUTES}m"; else t=; fi
+        for i in 1 2 3; do ($t npm ci) && break; [ "$i" = 3 ] && exit 1; echo "retry $i"; sleep 15; done
