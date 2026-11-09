@@ -17,5 +17,13 @@
       ]
     }
   },
-  "claims": {}
+  "claims": {
+    "lan-token-required": {
+      "claimTextHash": "d8c2d340ce9ad21343a9777fac3388785097bfa89155b065ee3684da39128e16",
+      "testFileHash": "639a7e4a9f76897b582e4bd3dcf67a58cb711d8ff76a174ba5750574f4d06e7b",
+      "reviewers": [
+        { "name": "LostInBrittany", "kind": "human", "relation": "independent", "date": "2026-11-09" }
+      ]
+    }
+  }
 }
