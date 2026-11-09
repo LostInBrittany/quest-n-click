@@ -458,14 +458,14 @@ describe('the candidate wait: a deadline, one re-run that a relaunch keeps, what
       conclusion: 'cancelled',
       jobs: [
         job('target', 'completed', 'success'),
-        job('mutation (core-1of1)', 'completed', 'failure'),
-        job('mutation (remix-1of1)', 'completed', 'cancelled'),
+        job('mutation / mutation (core-1of1)', 'completed', 'failure'),
+        job('mutation / mutation (remix-1of1)', 'completed', 'cancelled'),
       ],
     });
     const step = candidateStep(red, at);
     expect(step.do).toBe('stop');
     if (step.do !== 'stop') return;
-    expect(step.error).toMatch(/candidate run 42 was cancelled after mutation \(core-1of1\) failed/);
+    expect(step.error).toMatch(/candidate run 42 was cancelled after mutation \/ mutation \(core-1of1\) failed/);
     expect(step.error).toMatch(/a later candidate of 4\.5\.5/);
     expect(step.error).toMatch(/--commit=<[^>]+> --start-candidate/);
     const timedOut = view({ conclusion: 'cancelled', jobs: [job('heavy (1)', 'completed', 'timed_out')] });

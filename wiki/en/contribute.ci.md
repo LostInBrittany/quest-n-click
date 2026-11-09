@@ -60,8 +60,7 @@ from the run's `mutation-merged` artefact (when no merged report names one, it p
 night comments "Green again on <run>" and closes it. A warm-up of the mutation cache (`-f jobs=mutation`) reports a red
 gate like a night, since the release's candidate would fail on it, but a green warm-up never closes the issue: it
 skipped every other job. `report` is the workflow's only job with `issues: write`; every other job keeps the read-only
-token. Jobs marked `continue-on-error` (the npm names, the connectors' fuzz, the measured mutation sets) gate nothing
-and open nothing. Nothing is closed by hand: the fix lands on `main`, and the next green night closes the issue.
+token. Jobs marked `continue-on-error` (the npm names, the connectors' fuzz) gate nothing and open nothing. Nothing is closed by hand: the fix lands on `main`, and the next green night closes the issue.
 
 <a name="tiers"></a>
 <!-- applies: .. since 4.1.9 -->
@@ -106,11 +105,14 @@ plan in a job-level `if:`: it runs when its gate is true and shows as skipped wh
 | `cross-runtime` | none (every change) | the same canonical text, speedrun proofs and Remix worlds in Node, Chromium, WebKit and Firefox |
 
 **The third tier, off the pull request path**: the mutation sets on a pull request labelled `full-ci` (`ci` runs
-them nowhere else), the nightly, and the candidate, the release's only test pass. `release` tests nothing again: it
+them nowhere else), the nightly, and the candidate, the release's only test pass. The three run the mutation sets
+through one reusable workflow, `.github/workflows/mutation-run.yml`, called from a job named `mutation` (next, #525):
+its checks read `mutation / plan`, `mutation / mutation (<set>-<i>of<n>)` and `mutation / merge`, and a job that
+needs `mutation` is red when any of them is. `release` tests nothing again: it
 checks that `main`'s `ci` and the candidate were green on the tag's SHA.
 
 **`pr-gate`** reads every job's result: each must be `success`; a gated job may be `skipped` only when its gate in
-the plan is false (a skip with the gate true, a failure or a cancellation is red), the mutation jobs where they do not
+the plan is false (a skip with the gate true, a failure or a cancellation is red), the `mutation` job where it does not
 run; `pwa-firefox`, flaky until #257 is fixed, is said as a warning and does not fail it (4.5.4). It is the one check
 that sums a pull request up, and the only one `main`'s ruleset requires: a red job, `windows` included, blocks the
 merge through it.
@@ -234,7 +236,7 @@ started (4.5.0 to 4.5.1) are gone.
    | `node-24` | `npm run test:node` under Node 24 |
    | `e2e`, `reference`, `second-game` | `npm run build:game`, `npm run preview -- --port 5173 &`, then the row's `npm run e2e -- http://127.0.0.1:5173/ --game demo --prod …` (`E2E_BROWSER=webkit` for a WebKit row) |
    | `fresh-install`, `external-consumer`, `upgrade` | `npm run fresh-install`, `npm run external-consumer`, `npm run upgrade-check -- --from=previous` |
-   | `mutation (<set>)` | `npm run test:mutation:core -- --set=<set>` ([Mutation testing](contribute.mutation-testing.md)) |
+   | `mutation / mutation (<set>-<i>of<n>)` | `npm run test:mutation:core -- --set=<set>` ([Mutation testing](contribute.mutation-testing.md)) |
 
    A failed e2e row uploads its screenshots as an artifact: read them first.
 

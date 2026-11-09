@@ -66,7 +66,7 @@ Une nuit verte commente « Green again on <run> » et la ferme. Un préchauffage
 signale un gate rouge comme une nuit, puisque le candidat de la release échouerait dessus, mais un préchauffage vert ne
 ferme jamais l'issue : il a sauté tous les autres jobs. `report` est le seul job du workflow avec `issues: write` ; tous
 les autres gardent le jeton en lecture seule. Les jobs marqués `continue-on-error` (les noms npm, le fuzz des
-connecteurs, les ensembles de mutation mesurés) ne bloquent rien et n'ouvrent rien. Rien ne se ferme à la main : le
+connecteurs) ne bloquent rien et n'ouvrent rien. Rien ne se ferme à la main : le
 correctif arrive sur `main`, et la nuit verte suivante ferme l'issue.
 
 <a name="tiers"></a>
@@ -116,11 +116,15 @@ comme sauté (`skipped`) quand elle est fausse (#529).
 
 **Le troisième palier, hors du chemin de la pull request** : les ensembles de mutation sur une pull request étiquetée
 `full-ci` (`ci` ne les lance nulle part ailleurs), la nightly, et le candidat, le seul passage de tests de la release.
+Les trois lancent les ensembles de mutation par un seul workflow réutilisable, `.github/workflows/mutation-run.yml`,
+appelé depuis un job nommé `mutation` (next, #525) : ses vérifications s'appellent `mutation / plan`,
+`mutation / mutation (<ensemble>-<i>of<n>)` et `mutation / merge`, et un job qui dépend de `mutation` est rouge dès que
+l'une d'elles l'est.
 `release` ne reteste rien : il vérifie que le `ci` de `main` et le candidat étaient verts sur le SHA du tag.
 
 **`pr-gate`** lit le résultat de chaque job : chacun doit être `success` ; un job à barrière peut être `skipped`
 seulement quand sa barrière est fausse dans le plan (sauté avec la barrière vraie, en échec ou annulé, il est rouge),
-les jobs de mutation là où ils ne tournent pas ; `pwa-firefox`, instable jusqu'à la correction de #257, est signalé par
+le job `mutation` là où il ne tourne pas ; `pwa-firefox`, instable jusqu'à la correction de #257, est signalé par
 un avertissement et ne le fait pas échouer (4.5.4). C'est la seule vérification qui résume une pull request, et la
 seule que le ruleset de `main` exige : un job rouge, `windows` compris, bloque la fusion à travers elle.
 
@@ -249,7 +253,7 @@ d'une version est le `quest-n-click-docs-<version>.tar.gz` de sa release. Le sit
    | `node-24` | `npm run test:node` sous Node 24 |
    | `e2e`, `reference`, `second-game` | `npm run build:game`, `npm run preview -- --port 5173 &`, puis la commande de la ligne `npm run e2e -- http://127.0.0.1:5173/ --game demo --prod …` (`E2E_BROWSER=webkit` pour une ligne WebKit) |
    | `fresh-install`, `external-consumer`, `upgrade` | `npm run fresh-install`, `npm run external-consumer`, `npm run upgrade-check -- --from=previous` |
-   | `mutation (<ensemble>)` | `npm run test:mutation:core -- --set=<ensemble>` ([Tests de mutation](contribute.mutation-testing.md)) |
+   | `mutation / mutation (<ensemble>-<i>of<n>)` | `npm run test:mutation:core -- --set=<ensemble>` ([Tests de mutation](contribute.mutation-testing.md)) |
 
    Une ligne e2e qui échoue téléverse ses captures en artefact : lisez-les d'abord.
 

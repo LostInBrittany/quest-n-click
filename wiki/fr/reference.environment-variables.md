@@ -620,7 +620,7 @@ Le module `pg` qu’importe `tools/backup-memory.ts`, quand ce n’est pas celui
 Une URL PostgreSQL sur laquelle les tests font tourner le stockage du Bridge et les mutations ; ces tests sont sautés sans elle.
 
 - Origine : vous la posez ; le code la lit.
-- Lue par : [`.github/workflows/candidate.yml`](../../.github/workflows/candidate.yml), [`.github/workflows/ci.yml`](../../.github/workflows/ci.yml), [`.github/workflows/mutation.yml`](../../.github/workflows/mutation.yml), et 2 de plus.
+- Lue par : [`.github/workflows/ci.yml`](../../.github/workflows/ci.yml), [`.github/workflows/mutation-run.yml`](../../.github/workflows/mutation-run.yml), [`.github/workflows/mutation.yml`](../../.github/workflows/mutation.yml), et 1 de plus.
 
 <a name="ci-apt-etc"></a>
 
@@ -950,7 +950,7 @@ Le fichier auquel une étape ajoute des lignes `NOM=valeur`, pour les étapes su
 Le fichier où une étape écrit ses sorties.
 
 - Origine : posée par GitHub Actions.
-- Lue par : [`.github/workflows/candidate.yml`](../../.github/workflows/candidate.yml), [`.github/workflows/ci.yml`](../../.github/workflows/ci.yml), [`.github/workflows/nightly.yml`](../../.github/workflows/nightly.yml), et 2 de plus.
+- Lue par : [`.github/workflows/candidate.yml`](../../.github/workflows/candidate.yml), [`.github/workflows/ci.yml`](../../.github/workflows/ci.yml), [`.github/workflows/mutation-run.yml`](../../.github/workflows/mutation-run.yml), et 2 de plus.
 
 <a name="github-repository"></a>
 
@@ -1307,7 +1307,7 @@ ci : le JSON du plan (`tools/ci-plan.ts`), un booléen par barrière ; `pr-gate`
 La base du conteneur de service PostgreSQL.
 
 - Origine : posée par un workflow de `.github/workflows/` (CI et publications).
-- Lue par : [`.github/workflows/candidate.yml`](../../.github/workflows/candidate.yml), [`.github/workflows/ci.yml`](../../.github/workflows/ci.yml), [`.github/workflows/mutation.yml`](../../.github/workflows/mutation.yml), et 1 de plus.
+- Lue par : [`.github/workflows/candidate.yml`](../../.github/workflows/candidate.yml), [`.github/workflows/ci.yml`](../../.github/workflows/ci.yml), [`.github/workflows/mutation-run.yml`](../../.github/workflows/mutation-run.yml), et 2 de plus.
 
 <a name="postgres-password"></a>
 
@@ -1316,7 +1316,7 @@ La base du conteneur de service PostgreSQL.
 Le mot de passe du conteneur de service PostgreSQL, pour la CI seulement.
 
 - Origine : posée par un workflow de `.github/workflows/` (CI et publications).
-- Lue par : [`.github/workflows/candidate.yml`](../../.github/workflows/candidate.yml), [`.github/workflows/ci.yml`](../../.github/workflows/ci.yml), [`.github/workflows/mutation.yml`](../../.github/workflows/mutation.yml), et 1 de plus.
+- Lue par : [`.github/workflows/candidate.yml`](../../.github/workflows/candidate.yml), [`.github/workflows/ci.yml`](../../.github/workflows/ci.yml), [`.github/workflows/mutation-run.yml`](../../.github/workflows/mutation-run.yml), et 2 de plus.
 
 <a name="postgres-user"></a>
 
@@ -1325,7 +1325,7 @@ Le mot de passe du conteneur de service PostgreSQL, pour la CI seulement.
 L’utilisateur du conteneur de service PostgreSQL, lu par son image.
 
 - Origine : posée par un workflow de `.github/workflows/` (CI et publications).
-- Lue par : [`.github/workflows/candidate.yml`](../../.github/workflows/candidate.yml), [`.github/workflows/ci.yml`](../../.github/workflows/ci.yml), [`.github/workflows/mutation.yml`](../../.github/workflows/mutation.yml), et 1 de plus.
+- Lue par : [`.github/workflows/candidate.yml`](../../.github/workflows/candidate.yml), [`.github/workflows/ci.yml`](../../.github/workflows/ci.yml), [`.github/workflows/mutation-run.yml`](../../.github/workflows/mutation-run.yml), et 2 de plus.
 
 <a name="product-tag"></a>
 

@@ -257,7 +257,9 @@ export const TESTS: Record<MutationSet, string[]> = {
 
 /** The sets `all` runs and the gate judges: every set, each a job of its own in ci, the nightly, the candidate and the release. */
 // `remix` and `speedrun` (4.1.16, measured) joined in 4.1.17; `connectors` and `reality-store` in 4.1.18 (D32, plan
-// §6): their survivors read one by one, each killed by a test or named in docs/dev/mutants.json.
+// §6): their survivors read one by one, each killed by a test or named in docs/dev/mutants.json. A new set is measured by
+// hand on its branch (`gh workflow run mutation -f set=…`) and joins here once its survivors are read; the list of sets
+// measured every night without gating (`MEASURED`) was empty from 4.7.0 and went in #525.
 export const GATED: MutationSet[] = [
   'core',
   'reality',
@@ -288,15 +290,6 @@ export const GATED: MutationSet[] = [
   // the engine without the routes' engine; 4 named in docs/dev/mutants.json).
   'routes',
 ];
-/** Measured on demand (`gh workflow run mutation -f set=…`) and every night, gating nothing until their survivors are read. */
-// Empty in 4.1.20 (plan §7.5): every set was gated; a set added later is measured here until its survivors are read.
-// Empty again since 4.2.1: the Studio Server's two sets are gated. 4.2.2's workshop was measured here until 4.2.3
-// (PR 10) read its survivors.
-// 4.6.0: `routes` (the world's clock), 223 of its 264 mutants killed (tests/route-runtime-mutants.test.ts) before the
-// facade moved into world.ts; measured until its survivors are read, most of them guards for what validate refuses.
-// Empty again since 4.7.0 (#413): `routes` is gated.
-export const MEASURED: MutationSet[] = [];
-
 /**
  * The shards a set's mutation runs in (4.1.20 PR 2a, plan §7.3), one job each, merged into the set's report. A set not
  * named here is one shard. `connectors-edge` ran 2 h 02 in one job; `reality` was the candidate's longest (79 min).

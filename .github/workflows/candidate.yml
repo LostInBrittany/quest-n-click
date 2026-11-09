@@ -389,125 +389,15 @@ jobs:
       - run: for i in 1 2 3; do (timeout 3m docker pull mirror.gcr.io/library/node:22-bookworm-slim@sha256:c3de60bf2f9dd0ac6370e6117950ff62d6e339527e7472301c9c78a017978392) && break; [ "$i" = 3 ] && exit 1; echo "retry $i"; sleep 15; done
         timeout-minutes: 10
       - run: npm run e2e:worker-container -- --image=mirror.gcr.io/library/node:22-bookworm-slim@sha256:c3de60bf2f9dd0ac6370e6117950ff62d6e339527e7472301c9c78a017978392
-  # The mutation matrix (4.1.20 PR 2a, plan §7.3): every shard of every gated set, from
-  # tools/mutation-shards.ts — no workflow writes its list of sets by hand (tests/mutate-shards.test.ts).
-  mutation-plan:
-    needs: [target]
-    runs-on: ubuntu-24.04
-    timeout-minutes: 15
-    outputs:
-      matrix: ${{ steps.m.outputs.matrix }}
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          ref: ${{ needs.target.outputs.sha }}
-      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
-        with:
-          node-version: 22
-          cache: npm
-      - run: for i in 1 2 3; do (timeout 6m npm ci) && break; [ "$i" = 3 ] && exit 1; echo "retry $i"; sleep 15; done
-        timeout-minutes: 20
-      - id: m
-        shell: bash
-        run: |
-          echo "matrix=$(npx tsx tools/mutation-shards.ts --matrix=gated)" >> "$GITHUB_OUTPUT"
-  # One job per shard (4.1.17: a set's length never cuts another's result short; 4.1.20: a long set in shards). Each
-  # job has a Postgres service; only the set that needs one is given its URL (the others' tests would run their
-  # Postgres cases too and judge mutants otherwise than the gate).
+  # The mutation matrix on the target SHA (mutation-run.yml, #525): 8 shards at a time (4.5.4, #302), so the
+  # organisation's runners stay free for pull requests, and the verdict the release command reads (#471).
   mutation:
-    needs: [target, mutation-plan]
-    name: mutation (${{ matrix.name }})
-    runs-on: ubuntu-24.04
-    timeout-minutes: 120
-    # 8 at a time (4.5.4, #302): the organisation's runners stay free for pull requests while a candidate runs.
-    strategy:
-      fail-fast: false
+    needs: target
+    uses: ./.github/workflows/mutation-run.yml
+    with:
+      ref: ${{ needs.target.outputs.sha }}
       max-parallel: 8
-      matrix: ${{ fromJSON(needs.mutation-plan.outputs.matrix) }}
-    services:
-      postgres:
-        image: mirror.gcr.io/library/postgres:16@sha256:65b16a8b326e0cfbdf33fa7e783f2a0cb352a61448616ccccfd616ef42aa0f65
-        env:
-          POSTGRES_USER: bridge
-          POSTGRES_PASSWORD: bridge
-          POSTGRES_DB: bridge
-        ports: ['5432:5432']
-        options: --health-cmd "pg_isready -U bridge" --health-interval 2s --health-retries 30
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          ref: ${{ needs.target.outputs.sha }}
-      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
-        with:
-          node-version: 22
-          cache: npm
-      - run: for i in 1 2 3; do (timeout 6m npm ci) && break; [ "$i" = 3 ] && exit 1; echo "retry $i"; sleep 15; done
-        timeout-minutes: 20
-      - id: inputs
-        run: echo "hash=$(npx tsx tools/mutate.ts --set=${{ matrix.set }} --hash)" >> "$GITHUB_OUTPUT"
-      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
-        with:
-          path: .cache/mutation
-          key: mutation-${{ matrix.name }}-${{ steps.inputs.outputs.hash }}
-      - id: mutate
-        run: npm run test:mutation:core -- --set=${{ matrix.set }} --shard=${{ matrix.shard }}/${{ matrix.shards }} | tee mutation-${{ matrix.name }}.txt
-        shell: bash
-        env:
-          BRIDGE_PG_URL: ${{ matrix.pg && 'postgres://bridge:bridge@127.0.0.1:5432/bridge' || '' }}
-      # The verdict, for the release command (next, #471): survivors nobody named (or docs/dev/mutants.json entries that
-      # do not hold) fail the same way on every try, so the shard says it in a `mutation verdict` annotation, and
-      # `npm run release` stops on it, listing them, instead of re-running the candidate. A shard that died otherwise
-      # (cancelled, timed out, a runner lost, npm ci) never reaches this step's verdict, and is re-run once as before.
-      # Written here, not by tools/mutate.ts: that file is an input of every set's hash.
-      - if: failure() && steps.mutate.outcome == 'failure'
-        name: The verdict, for the release command
-        run: npx tsx tools/release/mutation-verdict.ts --report=.cache/mutation/report-${{ matrix.set }}.shard-${{ matrix.shard }}of${{ matrix.shards }}.json --sha=${{ needs.target.outputs.sha }}
-      - if: always()
-        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
-        with:
-          name: mutation-shard-${{ matrix.name }}
-          path: |
-            mutation-${{ matrix.name }}.txt
-            .cache/mutation/report-${{ matrix.set }}.shard-${{ matrix.shard }}of${{ matrix.shards }}.json
-          include-hidden-files: true
-          if-no-files-found: ignore
-  # Each set's shards merged into its report (`mutation-<set>`, the artifact the gate, the baseline and the summaries
-  # read): a shard missing, doubled, cancelled or of other inputs fails it, so no gate passes on part of a set.
-  mutation-merge:
-    needs: [target, mutation-plan, mutation]
-    if: always() && needs.mutation-plan.result == 'success'
-    runs-on: ubuntu-24.04
-    timeout-minutes: 20
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          ref: ${{ needs.target.outputs.sha }}
-      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
-        with:
-          node-version: 22
-          cache: npm
-      - run: for i in 1 2 3; do (timeout 6m npm ci) && break; [ "$i" = 3 ] && exit 1; echo "retry $i"; sleep 15; done
-        timeout-minutes: 20
-      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
-        with:
-          pattern: mutation-shard-*
-          path: shards
-      - shell: bash
-        run: |
-          code=0
-          for set in $(echo '${{ needs.mutation-plan.outputs.matrix }}' | node -e "let s='';process.stdin.on('data',d=>s+=d).on('end',()=>console.log([...new Set(JSON.parse(s).include.filter(e=>e.gated).map(e=>e.set))].join(' ')))"); do
-            npx tsx tools/mutate.ts --set="$set" --merge --from=shards || code=1
-            mkdir -p merged/.cache/mutation && { cp ".cache/mutation/report-$set.json" merged/.cache/mutation/ 2>/dev/null || true; }
-          done
-
-          exit $code
-      - if: always()
-        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
-        with:
-          name: mutation-merged
-          path: merged
-          include-hidden-files: true
-          if-no-files-found: ignore
+      verdict: true
   # The four packages, packed once (4.1.18, plan §7): what the release publishes and what `external-consumer` installs
   # on three systems. Never packed again downstream: the manifest gives each its SHA-256 and release.yml checks it.
   pack:
@@ -826,7 +716,7 @@ jobs:
         timeout-minutes: 15
   # The terminal gate: every job above `success` (a skipped or cancelled job is red), then the manifest of this run.
   candidate-gate:
-    needs: [release-merge, target, supersede, release-core, heavy, bridge-load-sqlite, bridge-load-postgres, cross-runtime, remix-proof, worker-container, mutation-plan, mutation, mutation-merge, pack, docs-archive, image, external-consumer, connector-archive-e2e, deployment-smoke, backup-memory, signing-rehearsal, readme-quickstart, studio-install-smoke]
+    needs: [release-merge, target, supersede, release-core, heavy, bridge-load-sqlite, bridge-load-postgres, cross-runtime, remix-proof, worker-container, mutation, pack, docs-archive, image, external-consumer, connector-archive-e2e, deployment-smoke, backup-memory, signing-rehearsal, readme-quickstart, studio-install-smoke]
     # A pull request without `full-ci` skips `target`: then there is no candidate to judge, and no red check either.
     if: always() && needs.target.result != 'skipped'
     # The manifest's provenance attestation (4.1.19, plan §6.5): only this job may sign, and only the manifest.

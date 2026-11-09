@@ -1,0 +1,91 @@
+{
+  "format": "quest-n-click-docs-acks",
+  "version": 1,
+  "pairs": {
+    "contribute.ci#job-failed": {
+      "enHash": "f37e1fd33479f126549f43584011ff4b79a29183e788146cb47c5b8882652c47",
+      "frHash": "eedb60bd8153da6f27326bd64c9bd0f3e0877cbb4e18289a182abdaeadbe60c8",
+      "reviewers": [
+        { "name": "claude", "kind": "ai", "relation": "author", "date": "2026-11-09" }
+      ]
+    },
+    "contribute.ci#tiers": {
+      "enHash": "23761e439b43cf78131ed2bf96ee5c3538c3f5a2d12ed8d4781bfb0c0655adfa",
+      "frHash": "15fb1d7356b761921c0f842117ce2e38cd569d881f2a2015f07d7f23c0ae6f93",
+      "reviewers": [
+        { "name": "claude", "kind": "ai", "relation": "author", "date": "2026-11-09" }
+      ]
+    },
+    "contribute.ci#workflows": {
+      "enHash": "85632ad13dba7221d9f01a1c414d676ba6c5f0d9bc947b8672d3e0a199783565",
+      "frHash": "3902bb750ee342ccf9cf8fe1a9c7bf9cb9f7758d6a9f37980e3c49f709bca17c",
+      "reviewers": [
+        { "name": "claude", "kind": "ai", "relation": "author", "date": "2026-11-09" }
+      ]
+    },
+    "contribute.mutation-testing#common-errors": {
+      "enHash": "920db4a7c17f76cb7a9253c4d53abb2208ac6b081815d0a0c1492cd6af699095",
+      "frHash": "1ec1e13cebe016fceb691e04cf4ab1007fe31207c347d94f7fc12536cbbcfbab",
+      "reviewers": [
+        { "name": "claude", "kind": "ai", "relation": "author", "date": "2026-11-09" }
+      ]
+    },
+    "contribute.mutation-testing#context-and-versions": {
+      "enHash": "0add2120754b76fe4ecb2042c78d0fb3d4e684afd993f4eb7acf3d2839cd22c7",
+      "frHash": "a32c6b3c2588bc04b54a34348a28627d4a0b24c14ec0cd57c75dd25c736f5320",
+      "reviewers": [
+        { "name": "claude", "kind": "ai", "relation": "author", "date": "2026-11-09" }
+      ]
+    },
+    "contribute.mutation-testing#expected-result": {
+      "enHash": "754acf9cd4e7b5407fae79e7c515dcba4f6a32cf4237c21c9ad076c8bda70a23",
+      "frHash": "d06a36dd310326b727f1f294a892b58d463ee95d032a3f1539b283363ef977ca",
+      "reviewers": [
+        { "name": "claude", "kind": "ai", "relation": "author", "date": "2026-11-09" }
+      ]
+    },
+    "contribute.releasing#release-command": {
+      "enHash": "0363f5ea0449c1a1227f371d2d0dafab25ebc086493325fbc759452c1e860711",
+      "frHash": "7587389d04e8fab86f816719c9365ab581cbe67af5d03b1fe301a15220e91504",
+      "reviewers": [
+        { "name": "claude", "kind": "ai", "relation": "author", "date": "2026-11-09" }
+      ]
+    },
+    "reference.environment-variables#bridge-pg-url": {
+      "enHash": "5b546d837d0368fd65ed2a8509fc3d0e699748a82da7f76a3487c9d5ab6cbcea",
+      "frHash": "66434244e1368a79a1099398c1b157a5167cb37d3344d5442922b92ef0a62174",
+      "reviewers": [
+        { "name": "claude", "kind": "ai", "relation": "author", "date": "2026-11-09" }
+      ]
+    },
+    "reference.environment-variables#github-output": {
+      "enHash": "df9292b3e2f38780eb7e1317878d477ff68a77f3c3dc67992b90656b2cab444a",
+      "frHash": "462331a93c3f8739a4e6ef463e10c3babbab83da062b6208c33bc350ee5145b7",
+      "reviewers": [
+        { "name": "claude", "kind": "ai", "relation": "author", "date": "2026-11-09" }
+      ]
+    },
+    "reference.environment-variables#postgres-db": {
+      "enHash": "e3246963f283c06fcfefb3d2c12961eeeddaca16eafc38b59761461a6e64318a",
+      "frHash": "4cc7e5400a658f3753e52e50fc80d3e86e532fbd3bc573bdf406bf51361efaf6",
+      "reviewers": [
+        { "name": "claude", "kind": "ai", "relation": "author", "date": "2026-11-09" }
+      ]
+    },
+    "reference.environment-variables#postgres-password": {
+      "enHash": "20e7d1c066e342db011b7c56d9f8d0b9d1b45a90772374bac3b296f5b3f86f79",
+      "frHash": "109dc4e7838c28e48368efb08676095aa41d8d6746efd1b6240c53515ef21022",
+      "reviewers": [
+        { "name": "claude", "kind": "ai", "relation": "author", "date": "2026-11-09" }
+      ]
+    },
+    "reference.environment-variables#postgres-user": {
+      "enHash": "9bc06f3a1190ed9c3272e82a64e8f85053761c30c51a051b7e756a683455bf6c",
+      "frHash": "39efa117f4a6cb88d264e35eb452335a9cf7379cd9b8140a6df29bf324b82779",
+      "reviewers": [
+        { "name": "claude", "kind": "ai", "relation": "author", "date": "2026-11-09" }
+      ]
+    }
+  },
+  "claims": {}
+}

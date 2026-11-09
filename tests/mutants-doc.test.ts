@@ -4,7 +4,7 @@
 import { readdirSync, readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { type KnownSurvivor, withSurvivorsTable } from '../tools/mutate';
-import { GATED, MEASURED, SETS, setNamed } from '../tools/mutation-sets';
+import { GATED, SETS, setNamed } from '../tools/mutation-sets';
 
 const known = JSON.parse(readFileSync('docs/dev/mutants.json', 'utf8')) as KnownSurvivor[];
 
@@ -28,19 +28,18 @@ describe('the named survivors', () => {
     }
   });
 
-  it('MUTANTS.md names every set, gated or measured, and no set is both (4.1.19, plan §8.1)', () => {
+  it('MUTANTS.md names every set, and every set is gated (4.1.19, plan §8.1; nothing measured only since #525)', () => {
     const doc = readFileSync('docs/dev/MUTANTS.md', 'utf8');
     for (const s of Object.keys(SETS)) expect(doc, s).toContain(`| \`${s}\``);
-    for (const s of GATED) expect(MEASURED, s).not.toContain(s);
-    expect([...GATED, ...MEASURED].sort()).toEqual(Object.keys(SETS).sort());
+    expect([...GATED].sort()).toEqual(Object.keys(SETS).sort());
   });
 
-  it('MUTANTS.md says each set gated or measured as tools/mutation-sets.ts does (4.1.20: a merge once kept a stale row)', () => {
+  it('MUTANTS.md says each set gated, as tools/mutation-sets.ts does (4.1.20: a merge once kept a stale row)', () => {
     const doc = readFileSync('docs/dev/MUTANTS.md', 'utf8');
     for (const s of Object.keys(SETS)) {
       const row = doc.split('\n').find((l) => l.startsWith(`| \`${s}\``));
       const status = row?.split('|').at(-2)?.trim() ?? '';
-      expect(status, s).toMatch((GATED as string[]).includes(s) ? /^gated\b/ : /^measured\b/);
+      expect(status, s).toMatch(/^gated\b/);
     }
   });
 

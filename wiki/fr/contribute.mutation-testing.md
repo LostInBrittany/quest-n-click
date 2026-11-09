@@ -53,9 +53,11 @@ morceaux et les conditions d'exemption depuis la 4.1.20 ; quatorze ensembles bar
 | `routes` | l'horloge du monde et ses routes : `src/engine/core/{world,route-runtime}.ts` | 4.7.0 |
 
 Les ensembles et les fichiers de test qui jugent chacun sont dans [`tools/mutation-sets.ts`](../../tools/mutation-sets.ts)
-(`SETS`, `TESTS`, `GATED`) ; `MEASURED` (les ensembles qui rapportent sans barrière) est vide depuis la 4.2.1, sauf pour `routes` en 4.6.0. Où
-chacun tourne, c'est [Quels tests tournent quand](contribute.which-tests.md#suites) : une pull request étiquetée
-`full-ci`, la nightly (de zéro ; une nuit sur un commit déjà testé est sautée, #519), le candidat et la release.
+(`SETS`, `TESTS`, `GATED`). Chaque ensemble est une barrière : un nouveau se mesure à la main sur sa branche
+(`gh workflow run mutation -f set=<ensemble> -f ref=<branche>`) et rejoint `GATED` une fois ses survivants lus (la
+liste des ensembles mesurés chaque nuit sans barrière, `MEASURED`, est partie en next, #525). Où chacun tourne, c'est
+[Quels tests tournent quand](contribute.which-tests.md#suites) : une pull request étiquetée `full-ci`, la nightly (de
+zéro ; une nuit sur un commit déjà testé est sautée, #519), le candidat et la release, tous trois par un seul workflow réutilisable, `.github/workflows/mutation-run.yml`.
 
 <a name="prerequisites"></a>
 
@@ -175,7 +177,8 @@ L'outil réécrit le fichier source qu'il mute : ne le modifiez pas pendant une 
 ## Résultat attendu, et comment le vérifier
 
 `✔ n/m mutants killed, k survivors explained, 0 not; report in .cache/mutation/…`, et le code de sortie 0. Dans la CI,
-les jobs `mutation (<ensemble>)` de l'ensemble et `mutation-merge` sont verts. Sur `main`, le rapport d'un morceau est
+les jobs `mutation / mutation (<ensemble>-<i>of<n>)` de l'ensemble et `mutation / merge` sont verts (chaque workflow
+appelle `mutation-run.yml` depuis un job nommé `mutation`, d'où ce préfixe, next, #525). Sur `main`, le rapport d'un morceau est
 mis en cache sous l'empreinte des entrées de son ensemble : la nightly enregistre chaque morceau qu'elle a mesuré de
 zéro et qui a réussi, le candidat le reprend et ne rejoue que les morceaux dont les entrées ont bougé depuis (4.5.5).
 La matrice lance les morceaux les plus longs d'abord (#410), selon les minutes que
@@ -196,7 +199,7 @@ partir d'une exécution à froid (une nightly) :
 | `✖ docs/dev/mutants.json: n entries do not hold` | Une entrée sans ses conditions, ou dont le `revisit` est passé | Complétez-la, ou relisez-la et déplacez `revisit` |
 | `✖ --set=… mutates reality-store-postgres, which needs BRIDGE_PG_URL` | Aucun Postgres donné | Définissez `BRIDGE_PG_URL`, ou lancez un autre ensemble |
 | `ℹ --set=connectors is --set=connectors-pure since 4.1.19` | L'ancien nom | Utilisez le nouveau (l'alias marche jusqu'à la 4.2) |
-| `✖ <ensemble>: … nothing merged, the set is not judged` (CI) | Un morceau manquant, en double, annulé ou d'autres entrées | Relancez les jobs de morceaux en échec, puis `mutation-merge` |
+| `✖ <ensemble>: … nothing merged, the set is not judged` (CI) | Un morceau manquant, en double, annulé ou d'autres entrées | Relancez les jobs de morceaux en échec, puis `mutation / merge` |
 
 <a name="files-changed"></a>
 

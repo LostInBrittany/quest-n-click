@@ -270,14 +270,14 @@ que `--dry-run` le montre avant que rien ne soit attendu :
 
 ```text
   ✖  the candidate of 5fc74d4: candidate run 42527046788: mutation survivors, not re-run (…): a re-run measures the same inputs and finds them again
-       ✖ mutation (studio-auth-1of1): studio-auth shard 1/1: 3 survivors not named in docs/dev/mutants.json
+       ✖ mutation / mutation (studio-auth-1of1): studio-auth shard 1/1: 3 survivors not named in docs/dev/mutants.json
            studio-server/src/server/auth/gate.ts:152 condition true: !flight → true
            studio-server/src/server/auth/gate.ts:162 condition true: !(e instanceof DefinitiveRefusal) → true
            studio-server/src/server/auth/routes.ts:44 operator: > → >=
-       ✖ mutation (runs-1of1): runs shard 1/1: 1 survivor not named in docs/dev/mutants.json
+       ✖ mutation / mutation (runs-1of1): runs shard 1/1: 1 survivor not named in docs/dev/mutants.json
            bridge/src/runs-store.ts:459 condition false: tenantId === undefined → false
        …
-       also red: mutation-merge failure, candidate-gate failure (not re-run either: the fix's candidate runs them again)
+       also red: mutation / merge failure, candidate-gate failure (not re-run either: the fix's candidate runs them again)
        Kill each survivor with a test, or name it in docs/dev/mutants.json with its reason (…); merge the fix on main, then: npm run release -- 4.7.2 --commit=<the fix's merge sha> --start-candidate
 ✖  1 gate refuses (candidate): nothing was done
    next: kill or name each survivor above, merge the fix on main, then npm run release -- 4.7.2 --commit=<the fix's merge sha> --start-candidate

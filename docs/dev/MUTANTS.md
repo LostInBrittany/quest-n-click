@@ -21,7 +21,7 @@ against each mutant. Each set is named for exactly the files it mutates (4.1.19,
 | `voices` | voices by value: a line's clip keys, the recording table and its CSV, the validator's check; the solver's sentences | gated (4.3.1) |
 | `routes` | the world's clock and its routes: `src/engine/core/{world,route-runtime}.ts` | gated (4.7.0, #413: measured in 4.6.0; its 53 survivors read, 49 killed by tests, 4 named below) |
 
-A gated set fails its job on any survivor not named below; a measured set reports, toward being read and gated. The
+A gated set fails its job on any survivor not named below; a new set is measured by hand (`gh workflow run mutation`) until it is read and gated. The
 survivors named here are equivalent mutants: no input the engine or the Bridge can receive tells them from the
 original. Each is in `docs/dev/mutants.json` (file, operator, from, to, context, why), which is what the gate reads; a
 name whose mutant no longer survives is reported as stale. This page explains them; the JSON file is the list.

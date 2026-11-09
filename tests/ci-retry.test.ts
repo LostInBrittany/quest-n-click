@@ -55,7 +55,7 @@ describe('the retry loops of the workflows', () => {
   const { found } = loops();
 
   it('are found in the workflows that install something besides through the setup action (#524)', () => {
-    expect(found.length).toBeGreaterThan(30);
+    expect(found.length).toBeGreaterThan(20);
     expect(new Set(found.map((l) => l.where.split(' ')[0]))).toEqual(
       new Set(['candidate.yml', 'ci.yml', 'nightly.yml', 'release.yml']),
     );
@@ -140,13 +140,10 @@ describe('the retry loops of the workflows', () => {
 // One local composite action installs Node and runs `npm ci` for every job (#524), through scripts/npm-install.mjs
 // (#539): tried again on a registry hiccup only, four times at most, 30, 60 then 120 s apart (`NPM_WAITS`), each
 // attempt bounded off Windows by the action's `timeout` input, and every calling step keeps a `timeout-minutes` with
-// room for the four attempts and the three pauses. The mutation jobs keep their own loop until the mutation pipeline
-// becomes one reusable workflow.
+// room for the four attempts and the three pauses. The mutation jobs use it too, from their reusable
+// workflow (#525).
 const ACTION = '.github/actions/setup/action.yml';
 const USES = /\n {8}uses: \.\/\.github\/actions\/setup(\n|$)|\n {6}- uses: \.\/\.github\/actions\/setup(\n|$)/;
-const OWN_LOOP = ['candidate.yml', 'ci.yml', 'nightly.yml']
-  .flatMap((f) => ['mutation', 'mutation-merge', 'mutation-plan'].map((j) => `${f} ${j}`))
-  .sort();
 
 describe('the setup action (#524)', () => {
   const action = readFileSync(ACTION, 'utf8');
@@ -177,9 +174,9 @@ describe('the setup action (#524)', () => {
         expect(from, f).toMatch(/^node:|^\.\/lib\/archive-harness\.mjs$/);
   });
 
-  it('is what every job that runs npm ci uses, after its checkout, the mutation jobs aside', () => {
+  it('is what every job that runs npm ci uses, after its checkout', () => {
     const own = found.filter((l) => /\bnpm ci\b/.test(l.body));
-    expect([...new Set(own.map((l) => l.where))].sort()).toEqual(OWN_LOOP);
+    expect(own.map((l) => l.where)).toEqual([]);
     expect(calls.length).toBeGreaterThan(40);
     for (const c of calls) {
       expect(c.job.indexOf('uses: actions/checkout@'), c.where).toBeGreaterThan(-1);

@@ -34,6 +34,22 @@ describe('the candidate baseline', () => {
     // The workflow's own graph is read.
     expect(needsOf('.')['candidate-gate']).toContain('deployment-smoke');
   });
+  it("counts a called workflow's jobs (`mutation / …`, #525) as one chain under the caller's id", () => {
+    const timed = [
+      { name: 'target', seconds: 5 },
+      { name: 'pack', seconds: 1000 },
+      { name: 'mutation / plan', seconds: 60 },
+      { name: 'mutation / mutation (core-1of1)', seconds: 900 },
+      { name: 'mutation / mutation (remix-1of1)', seconds: 1200 },
+      { name: 'mutation / merge', seconds: 100 },
+    ];
+    expect(criticalPath(timed, { pack: ['target'], mutation: ['target'] })).toEqual({
+      seconds: 1365,
+      jobs: ['target', 'mutation'],
+    });
+    expect(needsOf('.').mutation).toEqual(['target']);
+    expect(needsOf('.')['candidate-gate']).toContain('mutation');
+  });
 
   it('reads every artifact it knows and the run jobs, without measuring again', () => {
     dir = mkdtempSync(join(tmpdir(), 'baseline-'));

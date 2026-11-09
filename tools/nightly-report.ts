@@ -17,8 +17,8 @@ import { join } from 'node:path';
 /** The label of the issue; `gh label create --force` makes it when it opens one. */
 export const LABEL = 'nightly-red';
 
-/** The jobs whose failure is the mutation gate's: their text lists the surviving mutants. */
-const MUTATION_JOBS = ['mutation-plan', 'mutation', 'mutation-merge'];
+/** The job whose failure is the mutation gate's (it calls mutation-run.yml, #525): its text lists the surviving mutants. */
+const MUTATION_JOB = 'mutation';
 /** How many surviving mutants the text lists; the rest are counted. */
 const MAX_MUTANTS = 20;
 /** After a red scheduled night (#519): the same words as tools/schedule-guard.ts's, pinned by tests/nightly-report.test.ts. */
@@ -119,7 +119,7 @@ function redSection(run: Run, red: { job: string; result: string }[], survivors:
     ...red.map((r) => `| \`${r.job}\` | ${r.result} |`),
   ];
   if (run.event === 'schedule') lines.push('', RERUN);
-  if (red.some((r) => MUTATION_JOBS.includes(r.job))) {
+  if (red.some((r) => r.job === MUTATION_JOB)) {
     lines.push('');
     if (survivors.length) {
       lines.push(
@@ -135,7 +135,7 @@ function redSection(run: Run, red: { job: string; result: string }[], survivors:
       if (survivors.length > MAX_MUTANTS) lines.push(`- and ${survivors.length - MAX_MUTANTS} more, in the artefact`);
     } else {
       lines.push(
-        `The mutation jobs are red and no merged report names a surviving mutant (a shard missing or cancelled, a merge refused, or the plan failed): see the \`mutation\` and \`mutation-merge\` jobs of ${runLink(run)}.`,
+        `The mutation jobs are red and no merged report names a surviving mutant (a shard missing or cancelled, a merge refused, or the plan failed): see the \`mutation / …\` jobs of ${runLink(run)}.`,
       );
     }
   }

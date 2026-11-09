@@ -51,12 +51,16 @@ describe('the earlier candidates a later one cancels', () => {
   });
   const versions: Record<string, string> = { [A]: '4.7.0', [B]: '4.7.0', [C]: '4.7.1' };
   const failed = (j: Record<number, string[]>) => (id: number) => j[id] ?? [];
-  const decide = (runs: unknown[], jobs: Record<number, string[]> = { 42: ['mutation (core-1of1)'] }) =>
+  const decide = (runs: unknown[], jobs: Record<number, string[]> = { 42: ['mutation / mutation (core-1of1)'] }) =>
     superseded({ self, runs, versionOf: (sha: string) => versions[sha], failedJobs: failed(jobs) });
 
   it("cancels 4.7.0's first candidate from its second: same version, another SHA, earlier, running, a job red", () => {
     expect(decide([run()])).toEqual([
-      { id: 42, sha: A, why: `candidate 42 (${A.slice(0, 7)}, 4.7.0) is red (mutation (core-1of1)) and still running` },
+      {
+        id: 42,
+        sha: A,
+        why: `candidate 42 (${A.slice(0, 7)}, 4.7.0) is red (mutation / mutation (core-1of1)) and still running`,
+      },
     ]);
   });
   it('never a running-green run: no job has failed yet', () => {

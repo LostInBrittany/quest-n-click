@@ -620,7 +620,7 @@ The `pg` module `tools/backup-memory.ts` imports, when it is not the repository'
 A PostgreSQL URL the tests run the Bridge's store and the mutation runs against; those tests are skipped without it.
 
 - Origin: you set it; the code reads it.
-- Read by: [`.github/workflows/candidate.yml`](../../.github/workflows/candidate.yml), [`.github/workflows/ci.yml`](../../.github/workflows/ci.yml), [`.github/workflows/mutation.yml`](../../.github/workflows/mutation.yml), and 2 more.
+- Read by: [`.github/workflows/ci.yml`](../../.github/workflows/ci.yml), [`.github/workflows/mutation-run.yml`](../../.github/workflows/mutation-run.yml), [`.github/workflows/mutation.yml`](../../.github/workflows/mutation.yml), and 1 more.
 
 <a name="ci-apt-etc"></a>
 
@@ -950,7 +950,7 @@ The file a step appends `NAME=value` lines to, for the next steps of its job.
 The file a step writes its outputs to.
 
 - Origin: set by GitHub Actions.
-- Read by: [`.github/workflows/candidate.yml`](../../.github/workflows/candidate.yml), [`.github/workflows/ci.yml`](../../.github/workflows/ci.yml), [`.github/workflows/nightly.yml`](../../.github/workflows/nightly.yml), and 2 more.
+- Read by: [`.github/workflows/candidate.yml`](../../.github/workflows/candidate.yml), [`.github/workflows/ci.yml`](../../.github/workflows/ci.yml), [`.github/workflows/mutation-run.yml`](../../.github/workflows/mutation-run.yml), and 2 more.
 
 <a name="github-repository"></a>
 
@@ -1307,7 +1307,7 @@ ci: the plan's JSON (`tools/ci-plan.ts`), one boolean per gate; `pr-gate` accept
 The PostgreSQL service container's database.
 
 - Origin: set by a workflow of `.github/workflows/` (CI and releases).
-- Read by: [`.github/workflows/candidate.yml`](../../.github/workflows/candidate.yml), [`.github/workflows/ci.yml`](../../.github/workflows/ci.yml), [`.github/workflows/mutation.yml`](../../.github/workflows/mutation.yml), and 1 more.
+- Read by: [`.github/workflows/candidate.yml`](../../.github/workflows/candidate.yml), [`.github/workflows/ci.yml`](../../.github/workflows/ci.yml), [`.github/workflows/mutation-run.yml`](../../.github/workflows/mutation-run.yml), and 2 more.
 
 <a name="postgres-password"></a>
 
@@ -1316,7 +1316,7 @@ The PostgreSQL service container's database.
 The PostgreSQL service container's password, CI only.
 
 - Origin: set by a workflow of `.github/workflows/` (CI and releases).
-- Read by: [`.github/workflows/candidate.yml`](../../.github/workflows/candidate.yml), [`.github/workflows/ci.yml`](../../.github/workflows/ci.yml), [`.github/workflows/mutation.yml`](../../.github/workflows/mutation.yml), and 1 more.
+- Read by: [`.github/workflows/candidate.yml`](../../.github/workflows/candidate.yml), [`.github/workflows/ci.yml`](../../.github/workflows/ci.yml), [`.github/workflows/mutation-run.yml`](../../.github/workflows/mutation-run.yml), and 2 more.
 
 <a name="postgres-user"></a>
 
@@ -1325,7 +1325,7 @@ The PostgreSQL service container's password, CI only.
 The PostgreSQL service container's user, read by its image.
 
 - Origin: set by a workflow of `.github/workflows/` (CI and releases).
-- Read by: [`.github/workflows/candidate.yml`](../../.github/workflows/candidate.yml), [`.github/workflows/ci.yml`](../../.github/workflows/ci.yml), [`.github/workflows/mutation.yml`](../../.github/workflows/mutation.yml), and 1 more.
+- Read by: [`.github/workflows/candidate.yml`](../../.github/workflows/candidate.yml), [`.github/workflows/ci.yml`](../../.github/workflows/ci.yml), [`.github/workflows/mutation-run.yml`](../../.github/workflows/mutation-run.yml), and 2 more.
 
 <a name="product-tag"></a>
 
