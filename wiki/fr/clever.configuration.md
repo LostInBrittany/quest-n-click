@@ -175,6 +175,7 @@ une configuration refusée l’arrête avec une ligne qui nomme le champ ([Premi
 | `STUDIO_METRICS_TOKEN: 32 characters at least (openssl rand -base64 32)` | Un jeton trop court | Étape 2 |
 | `STUDIO_CONFIG_JSON: unknown key "…"` | Une coquille, ou un champ d’une version plus récente | La liste des champs plus bas |
 | `trustProxy is required when the server is reachable beyond the loopback` | `trustProxy` omis avec OIDC | Gardez-le |
+| `trustProxy: not an address or an IPv4 network a.b.c.d/0-32: …` | Un réseau mal formé, comme `10.0.0.0/` | Écrivez le préfixe : `10.0.0.0/8` |
 | `<NAME>_FILE (…) is readable by others: chmod 600` | Un fichier de secret aux droits trop larges (hors de Clever) | `chmod 600` |
 
 <a name="files-changed"></a>

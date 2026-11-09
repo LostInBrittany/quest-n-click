@@ -8,7 +8,7 @@
 // limits and body limit as every other route.
 import { createHmac, timingSafeEqual } from 'node:crypto';
 import { createServer, type IncomingMessage, type Server } from 'node:http';
-import { inAllowlist } from './allowlist';
+import { inAllowlist, malformedEntries } from './allowlist';
 import { type Bridge, BridgeError } from './bridge';
 import type { DailyRequest, DailyResponse } from './daily';
 import { type RunQueue, runsRoute } from './runs';
@@ -164,6 +164,8 @@ export function bridgeServer(bridges: Bridge | Bridge[], o: ServeOptions = {}): 
   // Per tenant: each has its own `limits.pairingsPerAddress` and its own codes waiting.
   const pairings = new Map(all.map((b) => [b, new Buckets(b.limits.pairingsPerAddress, 600_000)]));
   const proxies = o.trustProxy === true ? LOOPBACK : Array.isArray(o.trustProxy) ? o.trustProxy : [];
+  const bad = malformedEntries(proxies);
+  if (bad.length) throw new Error(`trust-proxy: not an address or an IPv4 network a.b.c.d/0-32: ${bad.join(', ')}`);
   const addressOf = (req: IncomingMessage) => {
     const peer = req.socket.remoteAddress ?? 'unknown';
     if (!proxies.length || !inAllowlist(peer, proxies)) return peer;
