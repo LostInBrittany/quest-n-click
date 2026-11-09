@@ -13,11 +13,12 @@
 //   several tenants on one store; init --store=sqlite --tenant=<id> --environment=prod|staging|dev --signal-version=2.
 // Every secret `init` makes is written under --dir (not committed: .cache/ is ignored), never printed but the paths.
 // The Biscuit root's private half goes to `root.key`, read by `grant` only: `serve` never loads it (4.1.2).
-import { createHash, createHmac, randomBytes, webcrypto } from 'node:crypto';
+import { createHmac, randomBytes, webcrypto } from 'node:crypto';
 import { chmodSync, closeSync, existsSync, fstatSync, mkdirSync, openSync, readFileSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { manifestHash, type RealityManifest } from '../../src/engine/reality/manifest';
 import { Bridge, type BridgeConfig, type Limits } from './bridge';
+import { sha256 } from './config';
 import { biscuitLib } from './biscuit';
 import { grantToken } from './policy';
 import { LEASE_MS, opt, openStore, storeCommand, storeSpec } from './cli-store';
@@ -90,7 +91,6 @@ export interface BridgeFile {
 }
 
 const arg = opt;
-const sha256 = (s: string) => createHash('sha256').update(s).digest('hex');
 
 /** The Biscuit root's private half: `root.key` (4.1.2), else the 4.1.1 configuration's field. */
 function rootPrivateKey(dir: string, file: BridgeFile): string {

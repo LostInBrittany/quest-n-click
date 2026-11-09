@@ -27,6 +27,7 @@ import { npmSpawn } from '../npm-spawn';
 import { collectRefs } from '../refs';
 import { StudioError, type Studio } from '../../studio-server/src/ops/core';
 import { CutFailed, cutOnCopy, type CutRequest, imageType, run } from './cut';
+import { readJson, send } from './security';
 import type {
   AssetCell,
   AssetDecor,
@@ -780,44 +781,6 @@ export type Assets = ReturnType<typeof createAssets>;
 
 const MAX_BODY = 96 * 1024 * 1024;
 
-function readJson(req: IncomingMessage): Promise<Record<string, unknown>> {
-  return new Promise((ok, fail) => {
-    let size = 0;
-    const chunks: Buffer[] = [];
-    req.on('data', (c: Buffer) => {
-      size += c.length;
-      if (size > MAX_BODY) {
-        fail(new StudioError('body too large', 413));
-        req.destroy();
-        return;
-      }
-      chunks.push(c);
-    });
-    req.on('end', () => {
-      const s = Buffer.concat(chunks).toString('utf8');
-      if (!s.trim()) {
-        ok({});
-        return;
-      }
-      try {
-        const v = JSON.parse(s);
-        if (!v || typeof v !== 'object' || Array.isArray(v)) fail(new StudioError('the body must be a JSON object'));
-        else ok(v);
-      } catch {
-        fail(new StudioError('the body is not valid JSON'));
-      }
-    });
-    req.on('error', fail);
-  });
-}
-
-function send(res: ServerResponse, status: number, data: unknown) {
-  res.statusCode = status;
-  res.setHeader('content-type', 'application/json; charset=utf-8');
-  res.setHeader('cache-control', 'no-store');
-  res.end(JSON.stringify(data));
-}
-
 /** Connect middleware for /__studio/api/assets (mounted by tools/studio/plugin.ts before the rest of the API). */
 export function assetsMiddleware(studio: Studio, log?: { error: (msg: string) => void }) {
   const assets = createAssets(studio);
@@ -855,10 +818,10 @@ export function assetsMiddleware(studio: Studio, log?: { error: (msg: string) =>
       const routes: [string, string, () => Promise<unknown>][] = [
         ['GET', '/', () => assets.list()],
         ['GET', '/prompts', () => assets.prompts(q.get('missing') === '1')],
-        ['POST', '/sheet', async () => assets.uploadSheet((await readJson(req)) as unknown as SheetUpload)],
-        ['POST', '/cell', async () => assets.replaceCell((await readJson(req)) as unknown as CellReplace)],
-        ['POST', '/sound', async () => assets.uploadSound((await readJson(req)) as unknown as SoundUpload)],
-        ['POST', '/decor', async () => assets.uploadDecor((await readJson(req)) as unknown as DecorUpload)],
+        ['POST', '/sheet', async () => assets.uploadSheet((await readJson(req, MAX_BODY)) as unknown as SheetUpload)],
+        ['POST', '/cell', async () => assets.replaceCell((await readJson(req, MAX_BODY)) as unknown as CellReplace)],
+        ['POST', '/sound', async () => assets.uploadSound((await readJson(req, MAX_BODY)) as unknown as SoundUpload)],
+        ['POST', '/decor', async () => assets.uploadDecor((await readJson(req, MAX_BODY)) as unknown as DecorUpload)],
         ['POST', '/prepare', () => assets.prepare()],
       ];
       const p = path === '' ? '/' : path;

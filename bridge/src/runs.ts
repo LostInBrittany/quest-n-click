@@ -18,6 +18,7 @@ import type { IncomingMessage, ServerResponse } from 'node:http';
 import { MemoryLimiter, type SubmissionLimiter } from './runs-limiter';
 import { canonicalTime, type RunOutcome, type RunRecord, type RunStore } from './runs-store';
 import { StoreBusyError } from './store-async';
+import { sha256 } from './config';
 
 export { MemoryRunStore, SqlRunStore } from './runs-store';
 export type { RunRecord } from './runs-store';
@@ -97,7 +98,6 @@ class RunsError extends Error {
 const PSEUDONYM = /^[\p{L}\p{N} _.-]{2,32}$/u;
 const ID = /^[\w.%+-]{1,64}$/;
 const BOARD_KEY = /^[\w.%+-]{1,64}(:[\w.:-]{1,80})?$/;
-const sha256 = (s: string) => createHash('sha256').update(s).digest('hex');
 
 /** JSON with sorted keys (the Bridge does not import the engine's `canonicalJson`: it reaches only `reality/`). */
 const stable = (v: unknown): string =>

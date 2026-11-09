@@ -1,5 +1,44 @@
 import { timingSafeEqual } from 'node:crypto';
 import type { IncomingMessage, ServerResponse } from 'node:http';
+import { StudioError } from '../../studio-server/src/ops/errors.ts';
+
+/** A request's JSON object body, `maxBytes` at most (413 beyond); an empty body is `{}` (#513: the API, Assistant, Assets). */
+export function readJson(req: IncomingMessage, maxBytes: number): Promise<Record<string, unknown>> {
+  return new Promise((ok, fail) => {
+    let size = 0;
+    const chunks: Buffer[] = [];
+    req.on('data', (c: Buffer) => {
+      size += c.length;
+      if (size > maxBytes) {
+        fail(new StudioError('body too large', 413));
+        req.destroy();
+        return;
+      }
+      chunks.push(c);
+    });
+    req.on('end', () => {
+      const s = Buffer.concat(chunks).toString('utf8');
+      if (!s.trim()) return ok({});
+      let v: unknown;
+      try {
+        v = JSON.parse(s);
+      } catch {
+        return fail(new StudioError('the body is not valid JSON'));
+      }
+      if (!v || typeof v !== 'object' || Array.isArray(v)) fail(new StudioError('the body must be a JSON object'));
+      else ok(v as Record<string, unknown>);
+    });
+    req.on('error', fail);
+  });
+}
+
+/** A JSON answer, never cached. */
+export function send(res: ServerResponse, status: number, data: unknown) {
+  res.statusCode = status;
+  res.setHeader('content-type', 'application/json; charset=utf-8');
+  res.setHeader('cache-control', 'no-store');
+  res.end(JSON.stringify(data));
+}
 
 const COOKIE = 'web_scumm_studio';
 const equal = (a: string, b: string) => {

@@ -140,8 +140,8 @@ Messages:
 - `provider URLs cannot contain credentials` ([`tools/studio/assistant.ts`](../../tools/studio/assistant.ts))
 - `ref must be a branch of the repository or a commit` ([`studio-server/src/server/git.ts`](../../studio-server/src/server/git.ts))
 - `the body is a JSON object` ([`studio-server/src/server/play.ts`](../../studio-server/src/server/play.ts))
-- `the body is not valid JSON` ([`studio-server/src/server/http.ts`](../../studio-server/src/server/http.ts), [`tools/studio/assets.ts`](../../tools/studio/assets.ts), [`tools/studio/plugin.ts`](../../tools/studio/plugin.ts))
-- `the body must be a JSON object` ([`studio-server/src/server/http.ts`](../../studio-server/src/server/http.ts), [`tools/studio/assets.ts`](../../tools/studio/assets.ts), [`tools/studio/assistant.ts`](../../tools/studio/assistant.ts), [`tools/studio/plugin.ts`](../../tools/studio/plugin.ts))
+- `the body is not valid JSON` ([`studio-server/src/server/http.ts`](../../studio-server/src/server/http.ts), [`tools/studio/security.ts`](../../tools/studio/security.ts))
+- `the body must be a JSON object` ([`studio-server/src/server/http.ts`](../../studio-server/src/server/http.ts), [`tools/studio/security.ts`](../../tools/studio/security.ts))
 - `the last message must be the user's` ([`tools/studio/assistant.ts`](../../tools/studio/assistant.ts))
 - `the layout must be an object` ([`studio-server/src/ops/core.ts`](../../studio-server/src/ops/core.ts))
 - `the logout token is not valid` ([`studio-server/src/server/auth/routes.ts`](../../studio-server/src/server/auth/routes.ts))
@@ -247,7 +247,7 @@ Too big: a request body over the route's bound (`body too large`), an upload ove
 Messages:
 
 - `an upload is … MiB at most` ([`studio-server/src/server/hosted-assets.ts`](../../studio-server/src/server/hosted-assets.ts))
-- `body too large` ([`studio-server/src/server/auth/routes.ts`](../../studio-server/src/server/auth/routes.ts), [`studio-server/src/server/http.ts`](../../studio-server/src/server/http.ts), [`tools/studio/assets.ts`](../../tools/studio/assets.ts), [`tools/studio/assistant.ts`](../../tools/studio/assistant.ts), [`tools/studio/plugin.ts`](../../tools/studio/plugin.ts))
+- `body too large` ([`studio-server/src/server/auth/routes.ts`](../../studio-server/src/server/auth/routes.ts), [`studio-server/src/server/http.ts`](../../studio-server/src/server/http.ts), [`tools/studio/security.ts`](../../tools/studio/security.ts))
 - `more than 64 MiB to import` ([`studio-server/src/server/git.ts`](../../studio-server/src/server/git.ts))
 - `more than … files to import` ([`studio-server/src/server/git.ts`](../../studio-server/src/server/git.ts))
 
