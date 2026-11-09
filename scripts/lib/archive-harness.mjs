@@ -2,6 +2,8 @@
 // scripts/external-consumer.mjs): portable processes (npm and npx through the shell on Windows, arguments quoted),
 // unpacking with the system's own tar, servers left running and stopped by their PID, a URL awaited. Every command is
 // a step with an id and its duration; a failure names the first step that failed and the command that reproduces it.
+// (#471) An `npm install` without a lockfile is tried again on a registry hiccup (`npmInstall`), here for every script
+// that installs outside the repository, through `run` or on its own.
 import { spawn, spawnSync } from 'node:child_process';
 import { mkdtempSync, renameSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
@@ -13,6 +15,69 @@ const TAR = WIN ? join(process.env.SystemRoot ?? 'C:\\Windows', 'System32', 'tar
 /** Through the shell (npm and npx on Windows), an argument with a space is quoted, or cmd.exe splits it. */
 const quoted = (shell, a) => (shell ? a.map((x) => (/[\s"]/.test(x) ? `"${x.replaceAll('"', '\\"')}"` : x)) : a);
 
+/**
+ * Why a failed `npm install` may pass a little later, from its stderr, or null (#471): a tarball the registry's index
+ * lists but its CDN does not serve yet (run 42633058102: `404 Not Found - GET …/rollup-4.68.2.tgz`, published a minute
+ * before), a version not in a stale index yet (ETARGET), the network, a 5xx or a 429. A 404 on a package's index (a
+ * name that does not exist), a peer conflict or a failed build script is this tree's own fault: null.
+ */
+export function transientNpm(stderr) {
+  const tgz = /^npm (?:error|ERR!) 404 .*\/-\/\S+\.tgz/m.exec(stderr);
+  if (tgz) return `E404 on a tarball the registry's index already lists (${tgz[0].split(' GET ').pop()})`;
+  const code = /^npm (?:error|ERR!) code (ETARGET|ECONNRESET|ETIMEDOUT|ESOCKETTIMEDOUT|EAI_AGAIN|E429|E5\d\d)$/m.exec(
+    stderr,
+  );
+  return code ? code[1] : null;
+}
+
+/** The pauses before the second, third and fourth tries: 30, 60, 120 s (a CDN a few minutes behind its index). */
+export const NPM_WAITS = [30_000, 60_000, 120_000];
+const sleep = (ms) => Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms);
+
+/**
+ * `once(i)` (the i-th try, from 0, giving `{ status, stderr }`) again while it fails on a transient registry error
+ * (`transientNpm`), after each of `waits`; each new try said with its reason (`tell`, stderr). The last result comes
+ * back, whatever it is: the caller fails on it with npm's own output, already shown.
+ */
+export function retryNpm(once, { waits = NPM_WAITS, tell = (l) => console.error(`  ⚠  ${l}`), wait = sleep } = {}) {
+  for (let i = 0; ; i++) {
+    const r = once(i);
+    const why = r.status === 0 ? null : transientNpm(r.stderr ?? '');
+    if (!why || i >= waits.length) return r;
+    tell(`npm install failed on ${why}, try ${i + 1}/${waits.length + 1}: again in ${waits[i] / 1000} s`);
+    wait(waits[i]);
+  }
+}
+
+/**
+ * `npm <args>` (an install) in `cwd`, through `retryNpm`: stdout shown (or captured: `capture`), stderr read for the
+ * error's code and shown after each try. A try after the first adds `--prefer-online`, so that npm asks the registry
+ * again rather than its cache. Gives spawnSync's result; `npmInstall` throws on a failure in the end.
+ */
+function npmRun(args, { cwd, env = process.env, capture = false, ...retry } = {}) {
+  return retryNpm((i) => {
+    const a = i === 0 ? args : [...args, '--prefer-online'];
+    const r = spawnSync(WIN ? 'npm.cmd' : 'npm', quoted(WIN, a), {
+      cwd,
+      env,
+      stdio: ['ignore', capture ? 'pipe' : 'inherit', 'pipe'],
+      encoding: 'utf8',
+      maxBuffer: 1 << 26,
+      shell: WIN,
+    });
+    if (r.stderr) process.stderr.write(r.stderr);
+    return r;
+  }, retry);
+}
+
+/** `npm <args>` through `npmRun`, its stdout given back; throws on a non-zero exit in the end. */
+export function npmInstall(args, o = {}) {
+  const r = npmRun(args, o);
+  if (r.status !== 0)
+    throw new Error(`npm ${args.join(' ')} in ${o.cwd}: exit ${r.status}${r.error ? ` (${r.error.message})` : ''}`);
+  return r.stdout ?? '';
+}
+
 /** The harness of one script: its environment, its base folder, its steps. */
 export function harness({ env = process.env, base }) {
   let n = 0;
@@ -23,13 +88,16 @@ export function harness({ env = process.env, base }) {
     console.log(`\n▶ [${id}] ${title}`);
     const shell = WIN && (cmd === 'npm' || cmd === 'npx');
     const t0 = Date.now();
-    const r = spawnSync(shell ? `${cmd}.cmd` : cmd, quoted(shell, a), {
-      cwd,
-      stdio: o.capture ? ['ignore', 'pipe', 'inherit'] : 'inherit',
-      encoding: 'utf8',
-      env: { ...env, ...(o.env ?? {}) },
-      shell,
-    });
+    const r =
+      cmd === 'npm' && a[0] === 'install'
+        ? npmRun(a, { cwd, env: { ...env, ...(o.env ?? {}) }, capture: o.capture })
+        : spawnSync(shell ? `${cmd}.cmd` : cmd, quoted(shell, a), {
+            cwd,
+            stdio: o.capture ? ['ignore', 'pipe', 'inherit'] : 'inherit',
+            encoding: 'utf8',
+            env: { ...env, ...(o.env ?? {}) },
+            shell,
+          });
     const ms = Date.now() - t0;
     steps.push({ id, title, ms, status: r.status });
     console.log(`  [${id}] ${ms} ms`);

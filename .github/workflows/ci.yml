@@ -375,7 +375,8 @@ jobs:
         run: |
           node scripts/pack.mjs --out=.cache/pack
           mkdir -p .cache/operator && cd .cache/operator && echo '{"name":"operator","private":true}' > package.json
-          npm install --omit=optional --ignore-scripts --no-audit --no-fund ../pack/quest-n-click-connectors-[0-9]*.tgz
+          # No lockfile: tried again on a registry hiccup (#471).
+          node ../../scripts/npm-install.mjs --omit=optional --ignore-scripts --no-audit --no-fund ../pack/quest-n-click-connectors-[0-9]*.tgz
           npx quest-n-click-connector --help | grep -q 'usage: quest-n-click-connector'
           # The former command (D47) went in 4.3.0: the archive no longer carries it.
           ! ls node_modules/.bin | grep -q '^web-scumm'

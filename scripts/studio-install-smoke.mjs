@@ -16,6 +16,7 @@ import { cpSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writ
 import { createServer } from 'node:net';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
+import { npmInstall } from './lib/archive-harness.mjs';
 
 const dir = resolve(process.argv.find((a) => a.startsWith('--tarballs='))?.slice(11) ?? '');
 const version = JSON.parse(readFileSync(resolve(import.meta.dirname, '..', 'package.json'), 'utf8')).version;
@@ -24,7 +25,6 @@ const tgz = (name) => {
   if (!f) throw new Error(`${name}-${version}.tgz is not in ${dir}`);
   return join(dir, f);
 };
-const WIN = process.platform === 'win32';
 const freePort = () =>
   new Promise((ok) => {
     const s = createServer().listen(0, '127.0.0.1', () => {
@@ -50,10 +50,15 @@ const check = (name, ok, detail = '') => {
 /** The two archives installed into `dir` (`extra`: npm's options). */
 const install = (dir, extra = []) => {
   writeFileSync(join(dir, 'package.json'), '{"name":"studio-install-smoke","private":true,"type":"module"}\n');
-  execFileSync(
-    WIN ? 'npm.cmd' : 'npm',
+  // Tried again on a registry hiccup (#471), with short pauses: the candidate's step gives each run of this script
+  // 4 minutes, and runs it again after that.
+  npmInstall(
     ['install', '--no-audit', '--no-fund', ...extra, tgz('quest-n-click'), tgz('quest-n-click-studio-server')],
-    { cwd: dir, stdio: ['ignore', 'ignore', 'inherit'], shell: WIN },
+    {
+      cwd: dir,
+      capture: true,
+      waits: [15_000, 30_000],
+    },
   );
 };
 const binIn = (dir, name) => join(dir, 'node_modules', '@quest-n-click', 'studio-server', 'bin', `${name}.mjs`);

@@ -4,6 +4,7 @@ import { createHash } from 'node:crypto';
 import { chmodSync, existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { download } from '../../tools/release/fetch-retry.mjs';
+import { npmInstall } from '../lib/archive-harness.mjs';
 import { sleep } from './steps.mjs';
 
 export async function backupRestore(c) {
@@ -229,8 +230,15 @@ export async function oldStore(c) {
     mkdirSync(oldDir);
     writeFileSync(join(base, 'bridge-4.1.17.tgz'), oldBytes);
     sh('tar', ['-xzf', join(base, 'bridge-4.1.17.tgz'), '-C', oldDir, '--strip-components=1']);
-    sh('npm', ['install', '--omit=dev', '--ignore-scripts', '--no-audit', '--no-fund'], { cwd: oldDir });
-    sh('npm', ['install', '--no-save', '--ignore-scripts', '--no-audit', '--no-fund', 'pg@8.23.1'], { cwd: oldDir });
+    // From the registry, no lockfile: tried again on a registry hiccup (#471).
+    npmInstall(['install', '--omit=dev', '--ignore-scripts', '--no-audit', '--no-fund'], {
+      cwd: oldDir,
+      capture: true,
+    });
+    npmInstall(['install', '--no-save', '--ignore-scripts', '--no-audit', '--no-fund', 'pg@8.23.1'], {
+      cwd: oldDir,
+      capture: true,
+    });
     // Tenant a as 4.1.17 reads a backup (schema 1: the tenants only), from this run's own backup of schema 3.
     const tenantA = JSON.parse(backup).payload.tenants.find((x) => x.tenantId === 'a');
     writeFileSync(
