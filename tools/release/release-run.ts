@@ -4,6 +4,11 @@
 // candidate, and ship tag's own checks; one red gate and nothing is done, every red one named, then the next command.
 // A missing or superseded candidate names a later commit of main at the version, its run and the command in full; that
 // commit is never picked by itself. --dry-run is that report alone, its exit status the verdict.
+// (next, #471) A mutation verdict is never re-run: a shard red on survivors nobody named (or on docs/dev/mutants.json
+// entries that do not hold) says so in an annotation of its job (tools/release/mutation-verdict.ts), and the candidate
+// is not re-run (4.7.2's 42527046788 spent 72 minutes failing the same six shards again). The wait stops at the first
+// such shard, the run still going, and the gate report refuses on it; both list the survivors and the way on. A job
+// that died otherwise (cancelled, timed out, a runner lost) writes none and keeps the single re-run.
 // (4.5.6) --commit=<sha> releases on a later commit of main than the release merge, when the merge's own ci is red for a
 // reason fixed after it (4.5.5: its windows job, fixed by #368): main-ci.mjs wants main's ci green on the tagged SHA.
 // That commit stands for the release commit everywhere (gates, candidate, tag, release run); commitRefusals says
@@ -35,6 +40,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { releaseNotes } from '../../scripts/release-notes.mjs';
 import { humanGates } from './gates';
+import { readVerdict } from './mutation-verdict';
 // @ts-expect-error: a plain .mjs module without declarations
 import { checkAncestry } from './ancestry.mjs';
 // @ts-expect-error: a plain .mjs module without declarations
@@ -209,6 +215,56 @@ interface Job {
   name: string;
   status: string;
   conclusion: string;
+  /** The job's id (`gh run view --json jobs`), its check run's: where its annotations are read. */
+  databaseId?: number;
+}
+
+/** A red job's mutation verdict (its `mutation verdict` annotation): a heading, then a line per survivor. */
+export interface Verdict {
+  job: string;
+  lines: string[];
+}
+
+/** The wiki page a verdict's stop links: kill the survivor with a test, or name it. */
+const MUTATION_WIKI = `https://github.com/${REPO}/wiki/EN-Contribute-Mutation-Testing`;
+
+/**
+ * The stop on a mutation verdict (#471): never a re-run, since a re-run measures the same inputs and finds the same
+ * survivors; said at the first verdict, the run still going. Each red shard and its survivors, the other red jobs (not
+ * re-run either: the fix's candidate runs them again), then the way on. A later candidate is named only when one is
+ * green or running: main's latest commit alone may not hold the fix.
+ */
+function verdictStop(
+  view: { status: string; jobs: readonly Job[] },
+  o: { id: number; version: string; verdicts: readonly Verdict[]; later?: Later },
+): string {
+  const named = new Set(o.verdicts.map((v) => v.job));
+  // The same verdict in several shards (docs/dev/mutants.json entries that do not hold fail every one): said once.
+  const groups = new Map<string, { jobs: string[]; lines: string[] }>();
+  for (const v of o.verdicts) {
+    const key = v.lines.join('\n');
+    const g = groups.get(key);
+    if (g) g.jobs.push(v.job);
+    else groups.set(key, { jobs: [v.job], lines: v.lines });
+  }
+  const others = view.jobs
+    .filter((j) => j.status === 'completed' && ['failure', 'cancelled', 'timed_out'].includes(j.conclusion))
+    .filter((j) => !named.has(j.name))
+    .map((j) => `${j.name} ${j.conclusion}`);
+  return [
+    `candidate run ${o.id}: mutation survivors, not re-run (${runUrl(o.id)}): a re-run measures the same inputs and finds them again${view.status === 'completed' ? '' : '; the run goes on on GitHub, not waited for'}`,
+    ...[...groups.values()].flatMap((g) => [
+      `  ✖ ${g.jobs.join(', ')}: ${g.lines[0]}`,
+      ...g.lines.slice(1).map((l) => `      ${l}`),
+    ]),
+    ...(others.length
+      ? [`  also red: ${others.join(', ')} (not re-run either: the fix's candidate runs them again)`]
+      : []),
+    `  Kill each survivor with a test, or name it in docs/dev/mutants.json with its reason (${MUTATION_WIKI}); merge the fix on main, then: ${releaseCommand(o.version, "<the fix's merge sha>")} --start-candidate`,
+    ...(o.later?.run
+      ? [`  ${laterWay(o.version, o.later)}${o.later.run.state === 'running' ? '; it may not hold the fix' : ''}`]
+      : []),
+  ].join('\n');
 }
 
 /** A run is a candidate when its `target` ran: on a push that was no release, release-merge skips it and every job. */
@@ -309,9 +365,23 @@ interface CandidateView {
  */
 export function candidateStep(
   view: CandidateView,
-  o: { id: number; version: string; rerunAsked: boolean; waitedMs: number; commit?: string; later?: Later },
+  o: {
+    id: number;
+    version: string;
+    rerunAsked: boolean;
+    waitedMs: number;
+    commit?: string;
+    later?: Later;
+    /** The red jobs' mutation verdicts (#471): one and the run is never re-run, even still going. */
+    verdicts?: readonly Verdict[];
+  },
 ): { do: 'done' } | { do: 'wait' } | { do: 'rerun'; args: string[]; line: string } | { do: 'stop'; error: string } {
   const url = `https://github.com/${REPO}/actions/runs/${o.id}`;
+  const green = view.status === 'completed' && view.conclusion === 'success';
+  if (o.verdicts?.length && !green) {
+    const { id, version, verdicts, later } = o;
+    return { do: 'stop', error: verdictStop(view, { id, version, verdicts, ...(later ? { later } : {}) }) };
+  }
   if (view.status !== 'completed') {
     if (o.waitedMs < CANDIDATE_DEADLINE_MS) return { do: 'wait' };
     return {
@@ -402,6 +472,8 @@ export interface Gate {
   line: string;
   /** Said under the line, indented: the wiki's items, a stop's way on. */
   detail?: string;
+  /** The candidate red on a mutation verdict (#471): its next step is a fix, never the same command again. */
+  verdict?: true;
 }
 const MARK: Record<GateState, string> = { ok: '✔', wait: '…', warn: '⚠', red: '✖', skip: '–' };
 const runUrl = (id: number) => `https://github.com/${REPO}/actions/runs/${id}`;
@@ -524,7 +596,7 @@ export function candidateGate(o: {
   sha: string;
   startCandidate: boolean;
   commit?: string;
-  run?: { id: number; view: CandidateView };
+  run?: { id: number; view: CandidateView; verdicts?: readonly Verdict[] };
   later?: Later;
   error?: string;
 }): Gate {
@@ -548,6 +620,7 @@ export function candidateGate(o: {
     waitedMs: 0,
     ...(o.commit ? { commit: o.commit } : {}),
     ...(o.later ? { later: o.later } : {}),
+    ...(o.run.verdicts?.length ? { verdicts: o.run.verdicts } : {}),
   });
   const url = runUrl(o.run.id);
   if (step.do === 'done') return { name, state: 'ok', line: `${at}: green (run ${o.run.id})` };
@@ -558,7 +631,15 @@ export function candidateGate(o: {
       line: `${at}: running, the command waits for it (${candidateProgress(o.run.view.jobs)}; ${url})`,
     };
   if (step.do === 'rerun') return { name, state: 'wait', line: `${at}: ${step.line}, then waits (${url})` };
-  return { name, state: 'red', line: `${at}: ${step.error}` };
+  // A stop of several lines (a verdict's survivors): the first on the gate's line, the others under it.
+  const [first, ...rest] = step.error.split('\n');
+  return {
+    name,
+    state: 'red',
+    line: `${at}: ${first}`,
+    ...(rest.length ? { detail: rest.join('\n') } : {}),
+    ...(o.run.verdicts?.length ? { verdict: true as const } : {}),
+  };
 }
 
 /** What `ship tag` checks itself before it tags (ancestry, CHANGELOG at the SHA, immutable releases), said up front. */
@@ -807,7 +888,13 @@ function findReleaseCommit(remote: string, version: string): string | undefined 
   return releaseCommit(history, version);
 }
 
-async function waitForCandidate(sha: string, version: string, startIt: boolean, commit?: string): Promise<number> {
+async function waitForCandidate(
+  sha: string,
+  version: string,
+  startIt: boolean,
+  read: Map<number, string[] | null>,
+  commit?: string,
+): Promise<number> {
   // Listed by branch and matched by the SHA in the run's name (candidateRuns, #471 review): a run dispatched for a commit
   // that is not main's tip has main's tip for its head, and `--commit <sha>` never listed it.
   const runsOf = () => ghJson<Run[] | null>(CANDIDATE_LIST);
@@ -849,6 +936,7 @@ async function waitForCandidate(sha: string, version: string, startIt: boolean, 
   let said = 0;
   for (;;) {
     const view = await viewOf(run.databaseId);
+    const verdicts = await verdictsOf(view.jobs, read);
     if ((view.attempt ?? 1) > 1) rerunAsked = false; // the attempt asked for is the one shown now
     const line = candidateProgress(view.jobs);
     // Each change said, and a line every five minutes anyway.
@@ -863,6 +951,7 @@ async function waitForCandidate(sha: string, version: string, startIt: boolean, 
       rerunAsked,
       waitedMs: clock() - started,
       ...(commit ? { commit } : {}),
+      verdicts,
     });
     if (step.do === 'done') return run.databaseId;
     if (step.do === 'stop') throw new Error(step.error);
@@ -1036,14 +1125,48 @@ async function candidateViewOf(id: number): Promise<{ ok: CandidateView } | { er
   return { ok: r.ok };
 }
 
-/** The candidate of `sha` the wait would pick (the newest run of it on main whose target ran), with its view. */
-async function candidateOf(sha: string): Promise<{ run?: { id: number; view: CandidateView }; error?: string }> {
+/**
+ * The mutation verdicts of a run's red jobs (#471), each failed job's annotations asked once and kept in `read` (by job
+ * id), one map for the gate report and the wait. Only a job that failed is asked: a green, cancelled or timed-out one
+ * has no verdict. One quiet call each, never ghJson's tries: a release must not wait minutes per red job (4.7.2 had
+ * eight). The first answer that cannot be read ends the look: no verdict for the jobs left, asked again at the next
+ * look, so an endpoint that keeps failing leaves the run its single re-run, as before #471. An empty list is not kept
+ * either: a failed job always carries GitHub's "Process completed with exit code N.", so empty means not written yet.
+ */
+async function verdictsOf(jobs: readonly Job[], read: Map<number, string[] | null>): Promise<Verdict[]> {
+  const out: Verdict[] = [];
+  let unreadable = false;
+  for (const j of jobs) {
+    if (j.status !== 'completed' || j.conclusion !== 'failure' || !j.databaseId) continue;
+    if (!read.has(j.databaseId) && !unreadable) {
+      const r = quiet('gh', ['api', `repos/${REPO}/check-runs/${j.databaseId}/annotations`]);
+      let list: unknown;
+      try {
+        list = r.code === 0 ? JSON.parse(r.out || 'null') : undefined;
+      } catch {
+        list = undefined;
+      }
+      if (!Array.isArray(list)) unreadable = true;
+      else if (list.length) read.set(j.databaseId, readVerdict(list) ?? null);
+    }
+    const lines = read.get(j.databaseId);
+    if (lines) out.push({ job: j.name, lines });
+  }
+  return out;
+}
+
+/** The candidate of `sha` the wait would pick (the newest run of it on main whose target ran), its view and verdicts. */
+async function candidateOf(
+  sha: string,
+  read: Map<number, string[] | null>,
+): Promise<{ run?: { id: number; view: CandidateView; verdicts: Verdict[] }; error?: string }> {
   const runs = await ghRead<Run[] | null>(CANDIDATE_LIST);
   if ('error' in runs) return { error: runs.error };
   for (const r of candidateRuns(runs.ok, sha)) {
     const view = await candidateViewOf(r.databaseId);
     if ('error' in view) return { error: view.error };
-    if (isCandidateRun(view.ok.jobs)) return { run: { id: r.databaseId, view: view.ok } };
+    if (isCandidateRun(view.ok.jobs))
+      return { run: { id: r.databaseId, view: view.ok, verdicts: await verdictsOf(view.ok.jobs, read) } };
   }
   return {};
 }
@@ -1097,6 +1220,8 @@ async function judgeGates(o: {
   opts: { startCandidate: boolean; docsRevision: boolean };
   /** `--key=…` when given: kept in every command the report says. */
   key: string;
+  /** The mutation verdicts read (#471), by job id: the wait goes on from them. */
+  read: Map<number, string[] | null>;
 }): Promise<{ gates: Gate[]; next?: string }> {
   const gates = preflightGates(o.refusals, { version: o.version, ...(o.npmUser ? { npmUser: o.npmUser } : {}) });
   const { sha } = o;
@@ -1129,7 +1254,7 @@ async function judgeGates(o: {
     ...(o.commit ? { commit: o.commit } : {}),
   });
   gates.push(docs);
-  const cand = await candidateOf(sha);
+  const cand = await candidateOf(sha, o.read);
   // A later commit is looked for only when it is the way on: the release commit's candidate missing or not re-run.
   const base = {
     version: o.version,
@@ -1143,7 +1268,8 @@ async function judgeGates(o: {
     first.state === 'red' && !o.tagged && cand.error === undefined
       ? await laterCandidate(o.remote, o.version, sha)
       : undefined;
-  gates.push(later ? candidateGate({ ...base, later }) : first);
+  const candidate = later ? candidateGate({ ...base, later }) : first;
+  gates.push(candidate);
   const imm = atLeastVersion(o.version, FIRST_LISTED) && !o.tagged ? immutableReleases() : undefined;
   gates.push(
     ...tagGates({
@@ -1157,15 +1283,28 @@ async function judgeGates(o: {
   );
   // The release commit's tree cannot take a review: running the same command again never passes the docs' gates.
   // The flags given are kept; a later commit's command says to fix the other red gates first when there are some.
+  // On a mutation verdict (#471), main's latest commit alone may not hold the fix: a later commit is named only when its
+  // candidate is green or running, else the fix comes first.
+  const survivors = candidate.verdict === true;
+  const flags = `${o.key}${o.opts.docsRevision ? ' --docs-revision' : ''}`;
   const laterCommand =
     later &&
-    `${releaseCommand(o.version, later.sha)}${o.key}${o.opts.docsRevision ? ' --docs-revision' : ''}${later.run ? '' : ' --start-candidate'}`;
+    (!survivors || later.run) &&
+    `${releaseCommand(o.version, later.sha)}${flags}${later.run ? '' : ' --start-candidate'}${survivors && later.run?.state === 'running' ? ' (it may not hold the fix)' : ''}`;
   const others = gates.some((g) => g.state === 'red' && g.name !== 'candidate');
+  // Beside a verdict, the docs' gates keep their own way on: the fix's merge can carry their reviews.
+  const othersButDocs = gates.some((g) => g.state === 'red' && g.name !== 'candidate' && g !== docs);
+  const docsWay =
+    docs.state === 'red'
+      ? " (the docs' human gates: add --docs-revision, or merge their reviews with the fix: both said above)"
+      : '';
   const next = laterCommand
     ? `${others ? 'fix the other ✖ above, then ' : ''}${laterCommand}`
-    : docs.state === 'red'
-      ? `${releaseCommand(o.version, o.commit)}${o.key} --docs-revision, or the reviews merged in a pull request and its merge released with --commit (both said above)`
-      : undefined;
+    : survivors
+      ? `${othersButDocs ? 'fix the other ✖ above; ' : ''}kill or name each survivor above, merge the fix on main, then ${releaseCommand(o.version, "<the fix's merge sha>")}${flags} --start-candidate${docsWay}`
+      : docs.state === 'red'
+        ? `${releaseCommand(o.version, o.commit)}${o.key} --docs-revision, or the reviews merged in a pull request and its merge released with --commit (both said above)`
+        : undefined;
   return { gates, ...(next ? { next } : {}) };
 }
 
@@ -1262,6 +1401,8 @@ export async function runRelease(
   const again = `${releaseCommand(version, commit)}${key}${opts.docsRevision ? ' --docs-revision' : ''}`;
   // Every gate judged before anything is done (#471), the docs' human gates on the release commit's own tree among
   // them (#339), and said together: a refusal names every red gate, not the first one met.
+  // The mutation verdicts read (#471), one map for the report and the wait: a job's annotations are asked once.
+  const read = new Map<number, string[] | null>();
   const { gates, next } = await judgeGates({
     version,
     sha: commitRefused ? undefined : sha,
@@ -1281,6 +1422,7 @@ export async function runRelease(
     npmUser: npmUser.code === 0 && npmUser.out ? npmUser.out : undefined,
     opts,
     key,
+    read,
   });
   const report = gateReport(gates, {
     version,
@@ -1298,7 +1440,7 @@ export async function runRelease(
   }
   if (report.refused || !sha) process.exit(1);
   say(`preflight: ✔  ${commitLine(found, sha)}, ${version}, signed, gh and npm (${npmUser.out}) ready`);
-  const candidate = await waitForCandidate(sha, version, opts.startCandidate, commit);
+  const candidate = await waitForCandidate(sha, version, opts.startCandidate, read, commit);
   say(`tag: ship tag ${version} ${sha.slice(0, 7)} --candidate=${candidate} --sign`);
   const tag = ['tools/release/ship.mjs', 'tag', version, sha, `--candidate=${candidate}`, '--sign', '--no-watch'];
   if (opts.key) tag.push(`--key=${home(opts.key)}`);

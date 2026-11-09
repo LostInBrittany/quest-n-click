@@ -203,7 +203,8 @@ Elle refuse d'abord ce qui échouerait plus tard (`package.json` pas à la versi
 signature SSH, `gh` ou `npm` non connectés, un utilisateur npm qui n'est pas propriétaire). Puis elle trouve le
 candidat que le merge a lancé sur ce commit (`--start-candidate` en lance un s'il n'y en a pas) et l'attend (environ
 90 minutes), en disant combien de jobs sont faits et lesquels tournent à chaque changement et toutes les cinq minutes,
-en relançant une fois ses jobs en échec (le run entier s'il a été annulé avant qu'un job échoue). Cette fois est celle
+en relançant une fois ses jobs en échec (le run entier s'il a été annulé avant qu'un job échoue ; jamais un verdict de
+mutation, plus bas). Cette fois est celle
 du run : son numéro de tentative dit qu'il a été relancé, par la commande ou à la main, si bien qu'une relance de la
 commande ne le relance jamais une seconde fois (4.5.5, #348) ; il en va de même pour la relance de la `ci` de main par
 `ship`. Une tentative qui tourne encore au bout de 3 heures arrête la commande, avec le lien du run et la même
@@ -252,6 +253,36 @@ par #412), publiez sur ce commit avec son propre candidat :
 git log --first-parent --oneline <le remote de l'organisation>/main   # nomme le merge de la correction
 npm run release -- <version> --commit=<sha du merge de la correction> --start-candidate
 ```
+
+Un verdict de mutation n'est jamais relancé (next, #471). Un shard de mutation rouge sur des survivants que
+`docs/dev/mutants.json` ne nomme pas (ou sur une de ses entrées qui ne tient pas) échoue de la même façon à chaque essai :
+son verdict ne dépend que de ses entrées. Le candidat 42527046788 de la 4.7.2 a pourtant été relancé, et a passé 72
+minutes à faire échouer de nouveau les six mêmes shards. Un tel shard le dit désormais dans une annotation
+`mutation verdict` de son job (écrite par `candidate.yml` depuis le rapport du shard,
+`tools/release/mutation-verdict.ts`), et la commande la lit : elle s'arrête à la première, alors que le run tourne
+encore, et ne relance jamais le candidat, même quand d'autres jobs sont rouges à côté. L'arrêt liste chaque shard rouge et ses
+survivants (`fichier:ligne opérateur: avant → après`), les autres jobs rouges, puis la suite : tuer chaque survivant par
+un test, ou le nommer ([Tests de mutation](contribute.mutation-testing.md)), fusionner la correction sur main, puis
+publier ce merge avec son propre candidat. Le rapport des barrières le dit d'abord, sur la ligne du candidat, si bien
+que `--dry-run` le montre avant que rien ne soit attendu :
+
+```text
+  ✖  the candidate of 5fc74d4: candidate run 42527046788: mutation survivors, not re-run (…): a re-run measures the same inputs and finds them again
+       ✖ mutation (studio-auth-1of1): studio-auth shard 1/1: 3 survivors not named in docs/dev/mutants.json
+           studio-server/src/server/auth/gate.ts:152 condition true: !flight → true
+           studio-server/src/server/auth/gate.ts:162 condition true: !(e instanceof DefinitiveRefusal) → true
+           studio-server/src/server/auth/routes.ts:44 operator: > → >=
+       ✖ mutation (runs-1of1): runs shard 1/1: 1 survivor not named in docs/dev/mutants.json
+           bridge/src/runs-store.ts:459 condition false: tenantId === undefined → false
+       …
+       also red: mutation-merge failure, candidate-gate failure (not re-run either: the fix's candidate runs them again)
+       Kill each survivor with a test, or name it in docs/dev/mutants.json with its reason (…); merge the fix on main, then: npm run release -- 4.7.2 --commit=<the fix's merge sha> --start-candidate
+✖  1 gate refuses (candidate): nothing was done
+   next: kill or name each survivor above, merge the fix on main, then npm run release -- 4.7.2 --commit=<the fix's merge sha> --start-candidate
+```
+
+Un job de mutation mort autrement (annulé, hors délai, un runner perdu, `npm ci` en échec) n'écrit aucun verdict, et le
+candidat garde son unique relance.
 
 Quand la `ci` de main est rouge sur le merge de release lui-même, pour une raison corrigée seulement après lui, la
 release ne peut pas reposer sur ce commit : `release.yml` exige une `ci` de main verte sur le commit tagué
@@ -523,6 +554,7 @@ vérifiée).
 | ship tag : « no git remote here points to Quest-n-Click/quest-n-click » | Seul un fork est un remote ici | `git remote add upstream git@github.com:Quest-n-Click/quest-n-click.git` |
 | release : « the checkout is on release/<version> » | `prepare` laisse le checkout sur sa branche | `git switch main && git pull --ff-only <le remote de l'organisation> main`, puis la commande de release |
 | release : « candidate run … failed again (attempt 2) » | Le candidat a échoué après son unique relance | Un échec passager : le `gh run rerun` affiché, puis la commande de nouveau ; une correction fusionnée sur main : `npm run release -- <version> --commit=<sha du merge de la correction> --start-candidate` |
+| release : « candidate run …: mutation survivors, not re-run » | Un shard de mutation est rouge sur des survivants que personne n'a nommés : une relance les retrouverait | Tuer chaque survivant listé par un test, ou le nommer dans `docs/dev/mutants.json` ; fusionner la correction sur main, puis `npm run release -- <version> --commit=<sha du merge de la correction> --start-candidate` |
 | release.yml : « names no candidate run » | Le tag a été fait sans `--candidate` | Taguer la version suivante (ou `rc.N+1`) avec `--candidate` : le ruleset refuse de supprimer un tag |
 | release.yml : « run … is not a green candidate started on main » | Le run est celui d'une pull request, d'une autre branche, ou rouge | Lancer `candidate` à la main sur main pour ce SHA |
 | release.yml : « has no candidate-site » (ou `-surfaces`, `-signing`, `-remix`, `-pack`, `-sbom`, `-image`) | Un candidat antérieur à l'étape | Lancer un nouveau candidat |
