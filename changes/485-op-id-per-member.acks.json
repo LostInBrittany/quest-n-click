@@ -1,0 +1,14 @@
+{
+  "format": "quest-n-click-docs-acks",
+  "version": 1,
+  "pairs": {
+    "team.concepts#transaction": {
+      "enHash": "63594d4d4238d28a601ae44c5567753ddb6980863056137edeec377f8307ba18",
+      "frHash": "36be638429e084fa46e216ada19cc849187d6f02251443c8227502243a1ceee0",
+      "reviewers": [
+        { "name": "claude", "kind": "ai", "relation": "author", "date": "2026-11-09" }
+      ]
+    }
+  },
+  "claims": {}
+}
