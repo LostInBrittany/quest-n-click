@@ -82,4 +82,26 @@ describe('the engine package’s files (#454)', () => {
     }
     expect(missing).toEqual([]);
   });
+
+  it('leaves out the tools only the repository’s CI runs (#514)', () => {
+    const ci = [
+      'tools/heavy-shards.ts',
+      'tools/heavy-durations.json',
+      'tools/mutate.ts',
+      'tools/mutation-shards.ts',
+      'tools/mutation-sets.ts',
+      'tools/mutation-minutes.json',
+      'tools/release/mutation-verdict.ts',
+      'tools/schedule-guard.ts',
+      'tools/nightly-report.ts',
+      'tools/coverage-ratchet.ts',
+      'tools/backup-memory.ts',
+      'tools/oracle-case.ts',
+      'tools/load-median.ts',
+      'tools/rename-org.mjs',
+    ];
+    expect(ci.filter((f) => files.has(f))).toEqual([]);
+    // vite.config.ts imports these two: they stay.
+    expect(files.has('tools/unit-shards.ts') && files.has('tools/coverage-floors.ts')).toBe(true);
+  });
 });
