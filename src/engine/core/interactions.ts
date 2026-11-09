@@ -225,6 +225,8 @@ export async function talkLoop(eng: Engine, actor: Id, ctx: Ctx, saveTopics = fa
       // when nothing of the action follows the conversation: a talk in a cutscene, a topic's `do` or the middle of a
       // rule would save half a `do` that a reload never finishes.
       if (saveTopics) eng.save();
+      // A topic that changed room or ended the game closes the conversation, as "Bye" does (#494).
+      if (eng.state.room !== room.id || eng.state.done) return;
       continue;
     }
     if (g.hug && pick === topics.length) {

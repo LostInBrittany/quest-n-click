@@ -27,7 +27,8 @@ menu; "Bye" closes it.
 <!-- step: topics -->
 1. **Topics.** In the room, `talk` lists the topics per actor: each has a stable `id`, the line the hero says
    (`topic`) and what follows (`do`). Talking to the actor opens the menu; picking a topic makes the hero say it, then
-   runs `do`, and the menu comes back until the player picks "Bye".
+   runs `do`, and the menu comes back until the player picks "Bye". A topic whose `do` changes room (`goto`) or ends
+   the game closes the conversation.
 
 <!-- step: gag -->
 2. **A gag that changes.** Wrap the answer in `nth` (or `cycle`, `random`): a different answer each time, the last
