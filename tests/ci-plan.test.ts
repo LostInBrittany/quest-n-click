@@ -72,7 +72,7 @@ describe('the plan of a change', () => {
       ['studio-server/migrations/0005.up.sql'],
       gates('coverage', 'secondGame', 'freshInstall', 'upgrade', 'reference', 'node24', 'windows', 'studioHosted'),
     ],
-    ['its hosted tests', ['tests/studio-server.test.ts'], gates('studioHosted')],
+    ['its hosted tests', ['tests/studio-server.test.ts'], gates('coverage', 'studioHosted')],
     ['its CI S3 identity', ['ops/studio/ci/seaweedfs-s3.json'], gates('studioHosted')],
     ['its Keycloak realm', ['ops/studio/keycloak/realm.json'], gates('studioHosted')],
     [
@@ -99,7 +99,7 @@ describe('the plan of a change', () => {
       gates('windows'),
     ],
     // Their tests too: #363's tests/wiki-pending.test.ts failed on Windows only, first seen on a release PR (#367).
-    ['a wiki test', ['tests/wiki-pending.test.ts', 'tests/wiki-line-endings.test.ts'], gates('windows')],
+    ['a wiki test', ['tests/wiki-pending.test.ts', 'tests/wiki-line-endings.test.ts'], gates('coverage', 'windows')],
     [
       'the docs the Studio and the MCP server read',
       ['tools/wiki/docs-load.ts'],
@@ -115,7 +115,22 @@ describe('the plan of a change', () => {
       ['tests/fixtures/saves/demo-4.5.3.json'],
       gates('coverage', 'upgrade', 'node24', 'windows'),
     ],
-    ['a unit test', ['tests/core.test.ts'], []],
+    // A test can lift a file above its floor: the strict ratchet must see it on the pull request, not on main (next,
+    // #520). #425 changed tests, docs and the mutation sets only; main failed in `coverage` after its merge.
+    ['a unit test', ['tests/core.test.ts'], gates('coverage')],
+    [
+      'a PR that only changes tests runs coverage (#520)',
+      [
+        '.github/workflows/mutation.yml',
+        'changes/413-routes-survivors.md',
+        'docs/dev/mutants.json',
+        'tests/route-runtime-mutants.test.ts',
+        'tests/world-mutants.test.ts',
+        'tools/mutation-sets.ts',
+        'wiki/en/contribute.mutation-testing.md',
+      ],
+      gates('coverage'),
+    ],
     // A floor out of vite.config.ts (4.6.0, #405): the run under coverage holds it, nothing else reads it.
     ['a coverage floor', ['tests/coverage-floors.json'], gates('coverage')],
     ['the Windows launcher', ['scripts/start.mjs'], gates('coverage', 'node24', 'windows')],

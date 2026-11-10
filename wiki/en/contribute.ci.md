@@ -79,11 +79,12 @@ and open nothing. Nothing is closed by hand: the fix lands on `main`, and the ne
 - `unit` (four shards at once) and `coverage`: the unit suite and the asset tests, on every change, split in four
   (`--shard=<i>/4`, 4.5.4). The split follows each file's recorded duration, not the number of files (4.5.5, #349,
   [below](#shards)). When the change touches product code (the plan's `coverage` gate: the engine, a game, the
-  Bridge, the Studio and its server, the CLI and packages, the golden saves, the authoring tools), each shard runs
-  under V8 coverage and keeps a blob report; `coverage` merges the four (`test:merge`: the floors of
-  `tests/coverage-floors.json` on the whole suite), then runs the ratchet: a warning on a pull request, a failure on `main`
-  ([The coverage ratchet](contribute.coverage-ratchet.md)). Otherwise (the docs, a workflow, the release and wiki
-  tools, tests alone) the shards run the same files without coverage (`test:unit`). Either way `coverage`, the check
+  Bridge, the Studio and its server, the CLI and packages, the golden saves, the authoring tools) or a test (next,
+  #520: a test can lift a file above its floor), each shard runs under V8 coverage and keeps a blob report; `coverage`
+  merges the four (`test:merge`: the floors of `tests/coverage-floors.json` on the whole suite), then runs the ratchet,
+  strict on a pull request as on `main` (4.7.0, #410; [The coverage ratchet](contribute.coverage-ratchet.md)).
+  Otherwise (the docs, a workflow, the release and wiki tools) the shards run the same files without coverage
+  (`test:unit`). Either way `coverage`, the check
   the ruleset requires, is red when a shard is not green.
 
 **The second tier, what the change can break.** Each job needs `plan` (most also `check`) and reads its gate in the
@@ -174,13 +175,13 @@ files ask:
 | `games/_template/`, `cli/`, `scripts/{fresh-install,external-consumer,new-game}.mjs` | `coverage`, `secondGame`, `freshInstall`, `upgrade`, `node24`, `windows` |
 | `scripts/pack.mjs`, `scripts/lib/archive-harness.mjs` | the same, and `reality` (next, #471: the connectors job packs the archives and plays them; the harness also opens `reference`, as the authoring rule that took it until then) |
 | `studio-server/` | the authoring gates and `studioHosted` |
-| `tools/wiki.ts` and `tools/wiki/` (but `docs`, `docs-load`, `glossary`, `manifest`, `page` and `site`, which the Studio and the MCP server read), and the wiki's tests `tests/wiki-*.test.ts` | `windows` (4.5.6, #367: they read pages, paths and line ends a Windows checkout gives differently; #363's tests failed there only, first seen on a release pull request) |
+| `tools/wiki.ts` and `tools/wiki/` (but `docs`, `docs-load`, `glossary`, `manifest`, `page` and `site`, which the Studio and the MCP server read), and the wiki's tests `tests/wiki-*.test.ts` | `windows` (4.5.6, #367: they read pages, paths and line ends a Windows checkout gives differently; #363's tests failed there only, first seen on a release pull request), and `coverage` for the tests (next, #520) |
 | `tools/release/`, the repository tools (`tools/mutate.ts`, `tools/changes.ts`, `tools/quality-baseline.ts`…, `scripts/release-notes.mjs`) | the fast tier only (4.5.4) |
 | `scripts/ci-playwright-deps.sh` (Playwright's system packages on the runner, 4.5.5, #353) | `studioHosted` |
 | `tools/studio/diff-rooms.ts` (the rooms the semantic diff draws, which the hosted Studio's captures use) | the authoring gates and `studioHosted` (4.5.5, #349: the rule below took it first until then) |
 | other `tools/` and `scripts/` | the authoring gates (`coverage`, `node24`, `windows`, `secondGame`, `freshInstall`, `upgrade`, `reference`) |
-| the hosted Studio's tests and its CI files (`tests/studio-{server,worker,collab,keycloak,client,diff-captures}.test.ts`, `ops/studio/{ci,keycloak}/`) | `studioHosted` |
-| other `tests/` | the fast tier only (4.5.4) |
+| the hosted Studio's tests and its CI files (`tests/studio-{server,worker,collab,keycloak,client,diff-captures}.test.ts`, `ops/studio/{ci,keycloak}/`) | `studioHosted`, and `coverage` for the tests (next, #520) |
+| other `tests/` | `coverage` (next, #520: a test can lift a file above its floor, and the strict ratchet asks the pull request, not `main`, to raise it) |
 | a path no rule knows | everything |
 
 A git error runs everything too: the plan never decides that it does not need to be checked. **`docs`** is true when
