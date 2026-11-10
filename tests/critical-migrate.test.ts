@@ -124,6 +124,7 @@ describe('applyMigration', () => {
     const s = bare({ players: { hoagie: { room: 'lobby', hero: {} } as never } });
     applyMigration(s, { from: 1, renameItem: { cle: 'key' }, renameRoom: { yard: 'garden' } });
     expect(s.players).toEqual({ hoagie: { room: 'lobby', inventory: [], hero: {} } });
+    expect('used' in s.players!.hoagie!).toBe(false); // no `used` key made up for a player that had none
   });
 
   it('renames the characters in where only when the step says so', () => {
