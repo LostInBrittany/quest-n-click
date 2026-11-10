@@ -2,6 +2,10 @@
 // upgrade and external-consumer failed on `404 Not Found - GET …/rollup-4.68.2.tgz`, a tarball the registry's index
 // listed a minute after its publication while its CDN did not serve it yet. A transient error is tried again, said on
 // stderr; a failure of this tree's own (a name that does not exist, a peer conflict, a build script) comes back at once.
+import { spawnSync } from 'node:child_process';
+import { chmodSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join, resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { NPM_WAITS, retryNpm, transientNpm } from '../scripts/lib/archive-harness.mjs';
 
@@ -45,7 +49,7 @@ describe('transientNpm', () => {
 
 describe('retryNpm', () => {
   /** A fake npm answering each try with the next result; the pauses and the lines said, recorded. */
-  function fake(results: { status: number; stderr?: string }[]) {
+  function fake(results: { status: number | null; stderr?: string; error?: { code?: string } }[]) {
     const tries: number[] = [];
     const waited: number[] = [];
     const said: string[] = [];
@@ -93,5 +97,36 @@ describe('retryNpm', () => {
     const ok = fake([{ status: 0, stderr: 'npm error code ETARGET' }]);
     expect(ok.tries).toEqual([0]);
     expect(ok.waited).toEqual([]);
+  });
+
+  it('tries again an attempt killed by its own time limit (#539), not one that failed of itself', () => {
+    // What spawnSync gives for a process it killed on its `timeout`, checked on a real one.
+    const killed = spawnSync(process.execPath, ['-e', 'setTimeout(() => {}, 10_000)'], { timeout: 100 });
+    expect(killed.error).toMatchObject({ code: 'ETIMEDOUT' });
+    const stalled = fake([{ status: null, error: killed.error as NodeJS.ErrnoException }, { status: 0 }]);
+    expect(stalled.r.status).toBe(0);
+    expect(stalled.tries).toEqual([0, 1]);
+    expect(stalled.said).toEqual(["npm install failed on the try's time limit, try 1/4: again in 30 s"]);
+    const crashed = fake([
+      { status: null, error: Object.assign(new Error('spawnSync npm ENOENT'), { code: 'ENOENT' }) },
+    ]);
+    expect(crashed.tries).toEqual([0]);
+  });
+});
+
+// The CLI against a stand-in npm that logs its arguments (POSIX: npm.cmd through cmd.exe on Windows).
+describe.skipIf(process.platform === 'win32')('scripts/npm-install.mjs', () => {
+  it('runs npm ci for `ci` (#539, the setup action), npm install for anything else (#471)', () => {
+    const dir = mkdtempSync(join(tmpdir(), 'npm-install-'));
+    try {
+      writeFileSync(join(dir, 'npm'), '#!/bin/sh\necho "$*" >> "$LOG"\n');
+      chmodSync(join(dir, 'npm'), 0o755);
+      const env = { ...process.env, PATH: `${dir}:${process.env.PATH}`, LOG: join(dir, 'log'), NPM_TRY_MINUTES: '3' };
+      for (const a of [['ci'], ['--omit=optional', 'x.tgz']])
+        expect(spawnSync(process.execPath, [resolve('scripts/npm-install.mjs'), ...a], { env }).status).toBe(0);
+      expect(readFileSync(join(dir, 'log'), 'utf8')).toBe('ci\ninstall --omit=optional x.tgz\n');
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
   });
 });

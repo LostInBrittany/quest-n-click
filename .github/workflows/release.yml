@@ -151,7 +151,7 @@ jobs:
       # the manifest's checks and `ship verify`. No python, ffmpeg or browser (#291): release-check and the mutation
       # sets ran in the candidate this tag names, on this very SHA, and are not run again.
       - uses: ./.github/actions/setup
-        timeout-minutes: 10
+        timeout-minutes: 17
       - run: node scripts/release-notes.mjs "$TAG" > notes.md
       # The name this tag's files start with (4.2.5, D47): quest-n-click from v4.2.5, web-scumm before; a tag that
       # predates the command is a web-scumm one.

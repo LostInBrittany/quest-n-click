@@ -9,11 +9,12 @@
 // system packages go through scripts/ci-playwright-deps.sh; the browsers' download, no apt in it, keeps its limit an
 // attempt. In the script (#373), only the download is bounded, `timeout` being apt-get's own parent under sudo, and a
 // retry puts the runner's first apt mirror last: a mirror at 40 kB/s had spent the step on one attempt.
-import { execFileSync, spawnSync } from 'node:child_process';
+import { execFileSync } from 'node:child_process';
 import { chmodSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { afterAll, describe, expect, it } from 'vitest';
+import { NPM_WAITS } from '../scripts/lib/archive-harness.mjs';
 
 const DIR = '.github/workflows';
 const LOOP = /for i in 1 2 3; do (.*?) && break; \[ "\$i" = 3 \] && exit 1; echo "retry \$i"; sleep 15; done/g;
@@ -136,9 +137,11 @@ describe('the retry loops of the workflows', () => {
   });
 });
 
-// One local composite action installs Node and runs `npm ci` for every job (#524): its loop is the one above, each
-// attempt bounded on Linux by its `timeout` input, and every calling step keeps a `timeout-minutes` with room for the
-// three attempts. The mutation jobs keep their own loop until the mutation pipeline becomes one reusable workflow.
+// One local composite action installs Node and runs `npm ci` for every job (#524), through scripts/npm-install.mjs
+// (#539): tried again on a registry hiccup only, four times at most, 30, 60 then 120 s apart (`NPM_WAITS`), each
+// attempt bounded off Windows by the action's `timeout` input, and every calling step keeps a `timeout-minutes` with
+// room for the four attempts and the three pauses. The mutation jobs keep their own loop until the mutation pipeline
+// becomes one reusable workflow.
 const ACTION = '.github/actions/setup/action.yml';
 const USES = /\n {8}uses: \.\/\.github\/actions\/setup(\n|$)|\n {6}- uses: \.\/\.github\/actions\/setup(\n|$)/;
 const OWN_LOOP = ['candidate.yml', 'ci.yml', 'nightly.yml']
@@ -162,14 +165,16 @@ describe('the setup action (#524)', () => {
       })),
   );
 
-  it('installs Node from the npm cache, then npm ci three times, each attempt bounded on Linux only', () => {
+  it('installs Node from the npm cache, then npm ci through scripts/npm-install.mjs, each attempt bounded off Windows (#539)', () => {
     expect(action).toMatch(
-      /- uses: actions\/setup-node@[0-9a-f]{40} # v[\d.]+\n\s+with:\n\s+node-version: \$\{\{ inputs\.node-version \}\}\n\s+cache: npm\n/,
+      /- uses: actions\/setup-node@[0-9a-f]{40} # v[\d.]+\n\s+with:\n\s+node-version: \$\{\{ inputs\.node-version \}\}\n\s+cache: npm\n\s+- shell: bash\n\s+env:\n\s+NPM_TRY_MINUTES: \$\{\{ runner\.os != 'Windows' && inputs\.timeout \|\| '0' \}\}\n\s+run: node scripts\/npm-install\.mjs ci\n$/,
     );
-    expect([...action.matchAll(LOOP)].map((m) => m[1])).toEqual(['($t npm ci)']);
-    expect(action).toContain("MINUTES: ${{ runner.os == 'Linux' && inputs.timeout || '0' }}");
-    expect(action).toContain('if [ "$MINUTES" != 0 ]; then t="timeout ${MINUTES}m"; else t=; fi');
+    expect([...action.matchAll(LOOP)]).toEqual([]);
     expect(DEFAULT).toBeGreaterThanOrEqual(3);
+    // The script runs before npm ci: Node's own modules only, it and the helper it imports.
+    for (const f of ['scripts/npm-install.mjs', 'scripts/lib/archive-harness.mjs'])
+      for (const [, from] of readFileSync(f, 'utf8').matchAll(/^import .* from '([^']+)';$/gm))
+        expect(from, f).toMatch(/^node:|^\.\/lib\/archive-harness\.mjs$/);
   });
 
   it('is what every job that runs npm ci uses, after its checkout, the mutation jobs aside', () => {
@@ -182,47 +187,23 @@ describe('the setup action (#524)', () => {
     }
   });
 
-  it('bounds each attempt on Linux, inside a step that has room for the three and the two pauses', () => {
+  it('bounds each attempt on Linux, inside a step that has room for the four, the three pauses and a minute (#539)', () => {
+    const tries = NPM_WAITS.length + 1;
+    const pauses = NPM_WAITS.reduce((a, b) => a + b, 0) / 60_000;
     for (const c of calls) {
       expect(c.step, `${c.where}: the setup step has no timeout-minutes`).toBeDefined();
       if (!/^ubuntu-/.test(c.runsOn)) {
         expect(UNBOUNDED, `${c.where}: a job off Linux must be listed in UNBOUNDED`).toContain(c.where);
+        // Unbounded attempts: the step still leaves room for the pauses (Windows' attempts have no limit of their own).
+        expect(pauses + 1, `${c.where}: a step of ${c.step} minutes`).toBeLessThanOrEqual(c.step!);
         continue;
       }
       expect(c.timeout, c.where).toBeGreaterThanOrEqual(3);
-      expect(3 * c.timeout + 1, `${c.where}: timeout ${c.timeout} in a step of ${c.step} minutes`).toBeLessThanOrEqual(
-        c.step!,
-      );
+      const worst = tries * c.timeout + pauses;
+      expect(worst + 1, `${c.where}: timeout ${c.timeout} in a step of ${c.step} minutes`).toBeLessThanOrEqual(c.step!);
     }
-  });
-
-  // The action's own script, run against stand-ins for timeout, npm (failing `FAILS` times) and sleep, which log.
-  it.skipIf(process.platform === 'win32')('runs npm ci under `timeout` when given minutes, three times at most', () => {
-    const script = /run: \|\n((?: {8}.+\n?)+)$/.exec(action)![1]!.replace(/^ {8}/gm, '');
-    const dir = mkdtempSync(join(tmpdir(), 'ci-setup-'));
-    mkdirSync(join(dir, 'bin'));
-    for (const [name, body] of Object.entries({
-      timeout: 'echo "timeout $*" >> "$LOG"; shift; exec "$@"',
-      npm: 'echo "npm $*" >> "$LOG"; echo >> "$LOG.n"; [ "$(wc -l < "$LOG.n")" -gt "$FAILS" ]',
-      sleep: 'echo "sleep $*" >> "$LOG"',
-    })) {
-      writeFileSync(join(dir, 'bin', name), `#!/usr/bin/env bash\n${body}\n`);
-      chmodSync(join(dir, 'bin', name), 0o755);
-    }
-    const run = (MINUTES: string, FAILS: number, LOG = join(dir, `log-${MINUTES}-${FAILS}`)) => {
-      const PATH = `${join(dir, 'bin')}:${process.env.PATH}`;
-      const { status } = spawnSync('bash', ['-eo', 'pipefail', '-c', script], {
-        env: { PATH, LOG, MINUTES, FAILS: `${FAILS}` },
-      });
-      return [status, ...readFileSync(LOG, 'utf8').trim().split('\n')];
-    };
-    try {
-      expect(run('6', 1)).toEqual([0, 'timeout 6m npm ci', 'npm ci', 'sleep 15', 'timeout 6m npm ci', 'npm ci']);
-      expect(run('0', 0)).toEqual([0, 'npm ci']);
-      expect(run('0', 9)).toEqual([1, 'npm ci', 'sleep 15', 'npm ci', 'sleep 15', 'npm ci']);
-    } finally {
-      rmSync(dir, { recursive: true, force: true });
-    }
+    // 4 × 3 + 3.5 = 15.5 minutes for the default: a step of 17.
+    expect(Math.ceil(tries * DEFAULT + pauses + 1)).toBe(17);
   });
 });
 

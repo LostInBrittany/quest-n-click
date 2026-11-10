@@ -46,7 +46,7 @@ jobs:
           # The job's token never in .git/config (4.1.19): nothing the Bridges or the worker could read.
           persist-credentials: false
       - uses: ./.github/actions/setup
-        timeout-minutes: 10
+        timeout-minutes: 17
       - run: npm run ops:qualify -- --out=qualify
       - if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2

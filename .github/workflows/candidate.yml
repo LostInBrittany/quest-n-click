@@ -129,7 +129,7 @@ jobs:
       - run: bash scripts/ci-ffmpeg.sh
         timeout-minutes: 20
       - uses: ./.github/actions/setup
-        timeout-minutes: 10
+        timeout-minutes: 17
       - run: bash scripts/ci-playwright-deps.sh chromium
         timeout-minutes: 20
       - run: for i in 1 2 3; do (timeout 6m npx playwright install chromium) && break; [ "$i" = 3 ] && exit 1; echo "retry $i"; sleep 15; done
@@ -219,7 +219,7 @@ jobs:
         with:
           ref: ${{ needs.target.outputs.sha }}
       - uses: ./.github/actions/setup
-        timeout-minutes: 10
+        timeout-minutes: 17
       # The files on a line of their own: a failed or empty list stops the step here (`bash -e`), never a `vitest run`
       # with no filter, which would run every test of the repository.
       - name: The heavy suite, attempt ${{ matrix.attempt }}, shard ${{ matrix.shard }}/3
@@ -247,7 +247,7 @@ jobs:
         with:
           ref: ${{ needs.target.outputs.sha }}
       - uses: ./.github/actions/setup
-        timeout-minutes: 10
+        timeout-minutes: 17
       # Three loads (4.1.20, plan §8.3), each its p95 over its many requests; the proposals and, with them, the speedrun
       # leaderboard at 100 000 runs (4.1.17, plan §6.3: latency, memory and SQL plan, bounded). Every report checked.
       - shell: bash
@@ -294,7 +294,7 @@ jobs:
         with:
           ref: ${{ needs.target.outputs.sha }}
       - uses: ./.github/actions/setup
-        timeout-minutes: 10
+        timeout-minutes: 17
       # Three loads (4.1.20, plan §8.3), each its p95 over its many requests; the proposals and, with them, the speedrun
       # leaderboard at 100 000 runs (4.1.17, plan §6.3: latency, memory and SQL plan, bounded). Every report checked.
       - shell: bash
@@ -331,7 +331,7 @@ jobs:
         with:
           ref: ${{ needs.target.outputs.sha }}
       - uses: ./.github/actions/setup
-        timeout-minutes: 10
+        timeout-minutes: 17
       - run: bash scripts/ci-playwright-deps.sh chromium webkit firefox
         timeout-minutes: 20
       - run: for i in 1 2 3; do (timeout 6m npx playwright install chromium webkit firefox) && break; [ "$i" = 3 ] && exit 1; echo "retry $i"; sleep 15; done
@@ -361,7 +361,7 @@ jobs:
         with:
           ref: ${{ needs.target.outputs.sha }}
       - uses: ./.github/actions/setup
-        timeout-minutes: 10
+        timeout-minutes: 17
       - name: Remix catalogues, proved
         run: |
           mkdir -p candidate-remix
@@ -384,7 +384,7 @@ jobs:
         with:
           ref: ${{ needs.target.outputs.sha }}
       - uses: ./.github/actions/setup
-        timeout-minutes: 10
+        timeout-minutes: 17
       # The worker's image by its digest (4.1.19, plan §6.2), the same one the Bridge's image starts from.
       - run: for i in 1 2 3; do (timeout 3m docker pull mirror.gcr.io/library/node:22-bookworm-slim@sha256:c3de60bf2f9dd0ac6370e6117950ff62d6e339527e7472301c9c78a017978392) && break; [ "$i" = 3 ] && exit 1; echo "retry $i"; sleep 15; done
         timeout-minutes: 10
@@ -519,7 +519,7 @@ jobs:
         with:
           ref: ${{ needs.target.outputs.sha }}
       - uses: ./.github/actions/setup
-        timeout-minutes: 10
+        timeout-minutes: 17
       - run: |
           node scripts/pack.mjs --out=pack --publish-dry-run --build-id=${{ github.run_id }}
           mkdir -p candidate-pack && cp pack/*.tgz candidate-pack/ && ls -l candidate-pack
@@ -556,7 +556,7 @@ jobs:
         with:
           ref: ${{ needs.target.outputs.sha }}
       - uses: ./.github/actions/setup
-        timeout-minutes: 10
+        timeout-minutes: 17
       - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           name: candidate-test-report
@@ -679,7 +679,7 @@ jobs:
           ref: ${{ needs.target.outputs.sha }}
           persist-credentials: false
       - uses: ./.github/actions/setup
-        timeout-minutes: 10
+        timeout-minutes: 17
       - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           name: candidate-pack
@@ -732,7 +732,7 @@ jobs:
           ref: ${{ needs.target.outputs.sha }}
           persist-credentials: false
       - uses: ./.github/actions/setup
-        timeout-minutes: 10
+        timeout-minutes: 17
       - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           name: candidate-pack
