@@ -24,7 +24,7 @@ contents are in the bucket.
 A write may carry an **operation id** (`x-studio-op`, 8 to 64 letters, digits, `-` or `_`). A retry with the same id
 gets the first answer and is applied once; the answer comes back with `x-studio-replayed: 1`. The Studio, the CLI and
 the MCP send one with every write. Answers are kept 7 days, and only given back to the member who wrote: the same id
-sent by another member is a write of its own, applied as any other (next, #485).
+sent by another member is a write of its own, applied as any other (4.7.3, #485).
 
 <a name="revision"></a>
 

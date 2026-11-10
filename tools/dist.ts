@@ -171,7 +171,7 @@ if (seal) {
   );
   writeFileSync(join(out, 'CREDITS.md'), credits());
   const pkgs = bundlePackages();
-  // Code the engine carries instead of a package (next): navmesh. Its record missing fails the build, rather than
+  // Code the engine carries instead of a package (4.7.3): navmesh. Its record missing fails the build, rather than
   // leaving navmesh out of the notices.
   let vendored: string[];
   try {

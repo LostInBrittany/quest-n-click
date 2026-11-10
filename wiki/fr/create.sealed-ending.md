@@ -74,7 +74,7 @@ famille autour du canapé, le cadenas qui fond…).
 
 Les textes de la fin ne sont **jamais** dans le contenu du jeu : ils sont dans `games/<GAME>/private/ending.config.ts`.
 Si le fichier ne peut être lu ou déchiffré, le jeu affiche « … » à la place de la fin, et la partie continue : rien
-n'est enregistré comme terminé, le joueur peut réessayer (next, #475). Un mot de passe tapé faux est redemandé ; une
+n'est enregistré comme terminé, le joueur peut réessayer (4.7.3, #475). Un mot de passe tapé faux est redemandé ; une
 réponse vide abandonne.
 
 <a name="steps"></a>

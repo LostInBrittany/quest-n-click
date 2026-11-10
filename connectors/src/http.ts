@@ -27,7 +27,7 @@ export async function readBody(req: IncomingMessage, limit: number): Promise<Buf
 }
 
 /**
- * The key an address is limited under (next, #500): an IPv4 address as it is, an IPv6 one by its /64 (one host is
+ * The key an address is limited under (4.7.3, #500): an IPv4 address as it is, an IPv6 one by its /64 (one host is
  * usually handed a whole /64), an IPv4-mapped IPv6 address as its IPv4. The Bridge's `addressKey`, copied: the
  * connectors' package does not depend on the Bridge's.
  */

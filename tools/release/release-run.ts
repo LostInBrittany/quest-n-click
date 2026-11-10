@@ -1,10 +1,10 @@
 // npm run release -- <x.y.z> [--key=<ssh public key>] [--start-candidate] [--docs-revision] [--reverify] [--commit=<sha>] [--dry-run]
-// (next, #471) Before anything is done, every gate that could stop the run is judged and said together, one line each
+// (4.7.3, #471) Before anything is done, every gate that could stop the run is judged and said together, one line each
 // (judgeGates, gateReport): the preflight, main's ci on the release commit, the docs' human gates on its tree, its
 // candidate, and ship tag's own checks; one red gate and nothing is done, every red one named, then the next command.
 // A missing or superseded candidate names a later commit of main at the version, its run and the command in full; that
 // commit is never picked by itself. --dry-run is that report alone, its exit status the verdict.
-// (next, #471) A mutation verdict is never re-run: a shard red on survivors nobody named (or on docs/dev/mutants.json
+// (4.7.3, #471) A mutation verdict is never re-run: a shard red on survivors nobody named (or on docs/dev/mutants.json
 // entries that do not hold) says so in an annotation of its job (tools/release/mutation-verdict.ts), and the candidate
 // is not re-run (4.7.2's 42527046788 spent 72 minutes failing the same six shards again). The wait stops at the first
 // such shard, the run still going, and the gate report refuses on it; both list the survivors and the way on. A job

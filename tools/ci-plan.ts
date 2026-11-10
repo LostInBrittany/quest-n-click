@@ -61,7 +61,7 @@ interface Rule {
 
 // What a unit test or a build of the sample game cannot see: Node 24, Windows. Every code path asks for both.
 const UNIT = ['node24', 'windows'] as const;
-// The unit suite under coverage and its ratchet (4.5.4, #302): product code and the tests (next, #520: a test can lift
+// The unit suite under coverage and its ratchet (4.5.4, #302): product code and the tests (4.7.3, #520: a test can lift
 // a file above its floor, and the strict ratchet must say so on the pull request, not on main); a change to the docs,
 // a workflow or the repository's own tools alone runs the same suite without coverage, and `main` runs it with `--all`.
 const COVERAGE = ['coverage'] as const;
@@ -135,7 +135,7 @@ export const RULES: readonly Rule[] = [
     gates: [...COVERAGE, 'reality', 'freshInstall', ...UNIT],
     why: 'the Reality Bridge (also a package)',
   },
-  // The connectors job (next, #471) also plays the connectors from their archive against a Bridge from its own
+  // The connectors job (4.7.3, #471) also plays the connectors from their archive against a Bridge from its own
   // (scripts/connector-archive-e2e.mjs) and installs them through scripts/npm-install.mjs: a change to either runs it.
   {
     re: /^(connectors\/|games\/signals\/|scripts\/(e2e-reality|reality-spike|connector-archive-e2e|npm-install)\.mjs$|tools\/(reality-xcheck|solve-reality|reality-fixtures)\.ts$)/,
@@ -158,7 +158,7 @@ export const RULES: readonly Rule[] = [
     why: 'the qualification profile',
   },
   // The packer and the archives' harness: what the packages' jobs read, and the archives the connectors job packs and
-  // plays end to end (next, #471; until then neither opened `reality`, and #466's own change ran no connectors job).
+  // plays end to end (4.7.3, #471; until then neither opened `reality`, and #466's own change ran no connectors job).
   {
     re: /^scripts\/pack\.mjs$/,
     gates: [...COVERAGE, 'secondGame', 'freshInstall', 'upgrade', 'reality', ...UNIT],

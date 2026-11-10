@@ -9736,3 +9736,77 @@ hosted-Studio session for #149, #150, #166, #167, #196); the Dependabot alerts o
 override breaks the PWA precache; `keyOf` in the Open Badges verifier, which reads `controller` unchecked; the
 `studio-assets` test that fails on a clean main.
 
+## #384 · 2026-11-10 · Claude · release · 4.7.3 "Shipshape": TODO(release)
+
+- **The request**: TODO(release)
+- **What ships**: the pull requests merged since v4.7.2, oldest first: #472 (Dependencies (#457): the minor-and-patch
+  group, with the Studio Server's lock and knip's follow-up), #474 (Release (#471): every gate judged before anything is
+  done, one report, the next command in full), #473 (CI (#471): installs without a lockfile tried again on a registry
+  hiccup; Windows Git tests get 60 s), #476 (Sealed ending: a failed unseal no longer ends the game (#475)), #482
+  (Release (#471): a mutation verdict is never re-run; the release stops on it and lists the survivors), #481 (CI
+  (#471): the connectors job plays the four connectors from their archive, as the candidate does), #478 (Dev server: a
+  game's private/ folder is never served, LAN mode included (#477)), #488 (Scheduler: a loop restarted during a step
+  goes on instead of running twice (#484)), #487 (Studio Server: an operation id is its member's, in the journal too
+  (#485)), #492 (Connectors: a one-word email subject that looks like a pairing code reaches the answers (#491)), #489
+  (Engine: navmesh carried in the engine, so npm 12 installs it (no git dependency left)), #486 (Bridge: refuse a
+  malformed trusted-proxy network at start (#483)), #480 (Bridge: the journal survives a short write on a nearly full
+  disk (#479)), #493 (Tools: npm and npx spawn through the shell on Windows (#490)), #497 (Engine: a topic that changes
+  room or ends the game closes the conversation (#494)), #499 (Studio Server: a Git import and an engine upgrade write
+  under the instance's lock (#496)), #504 (Connectors: the per-address limit counts an IPv6 /64 as one address and
+  sweeps once a minute (#500)), #498 (Engine: save migrations rename items and rooms for every playable character
+  (#495)), #503 (Bridge: index the open streams by player (#501)), #510 (CI: run e2e:portrait in the e2e job's Chromium
+  full row (#508)), #509 (CI: run the spoiler check on the website's demo build (#507)), #505 (Studio Server: a check on
+  the worker holds the lock for its pack only (#502)), #511 (Release: run the unit suite once per release check, the
+  heavy list in one script (#506)), #515 (Studio Server: the CLI token lock retries when the lock vanishes before its
+  stat (#512)), #517 (Studio: one JSON body reader for the API, the Assistant and Assets (#513)), #516 (Packaging: leave
+  the repository's CI-only tools out of the engine package (#514)), #521 (CI: the nightly skips a night on a commit it
+  already tested (#519)), #523 (CI: a pull request that changes tests runs coverage (#520)), #526 (CI: one local setup
+  action for Node and npm ci (#524)), #522 (CI: retire the weekly prove workflow, run strict playtests nightly (#518)),
+  #532 (Docs: the ruleset requires pr-gate alone, the ratchet is strict on a pull request (#530)), #533 (CI: one npm ci
+  timeout for every job, 3 minutes an attempt (#531)), #537 (CI: the candidate's external consumer upgrades from the
+  previous release (#534)), #535 (CI: skip the jobs the plan spares at the job level (#529)), #540 (CI: a red night says
+  how to re-run it by hand (#538)), #536 (Tests: kill the eleven mutation survivors left by the audit fixes (#528)),
+  #541 (CI: the setup action runs npm ci through the registry retry, 17 minutes a step (#539)), #542 (Release: prepare
+  resets each game's first-visit budget to the measure plus 2 KB), #545 (Bridge: the SQLite fan-out test waits for a
+  slow runner and says what arrived (#544)), #543 (Licences: the vendored navmesh fails the build when its record is
+  missing, javascript-astar listed in the SBOM), #547 (Pack and SBOM: a locked archive without its npm-shrinkwrap.json
+  stops them (#546)), #527 (CI: the mutation jobs in one reusable workflow (#525)).
+- **Fragments**: 43 assembled by `npm run release -- prepare 4.7.3`, on main at `26e2d29a`: `457-minor-and-patch`,
+  `archive-e2e-459-460`, `mutants-after-460`, `471-ci-quick-fixes`, `471-release-gate-report`, `475-failed-unseal`,
+  `471-archive-e2e-on-prs`, `477-lan-private`, `479-journal-short-write`, `471-no-blind-reruns`,
+  `483-malformed-trust-proxy`, `485-op-id-per-member`, `484-script-loop-restart`, `npm12-vendor-navmesh`,
+  `491-email-bare-code`, `490-windows-npm-spawn`, `494-topic-leaves-talk`, `496-locked-import-writes`,
+  `495-migrate-other-players`, `501-streams-by-player`, `500-per-address-ipv6`, `502-solve-outside-lock`,
+  `507-demo-spoiler-check`, `508-ci-e2e-portrait`, `506-release-check-once`, `512-token-lock-race`,
+  `514-ci-tools-unpacked`, `513-one-json-helper`, `519-nightly-same-commit`, `520-tests-run-coverage`,
+  `524-ci-setup-action`, `518-retire-prove-workflow`, `528-audit-mutation-survivors`, `531-npm-timeout-3m`,
+  `534-consumer-from-previous`, `529-job-level-gates`, `538-nightly-rerun-hint`, `539-npm-ci-retry`, `initialjs-reset`,
+  `vendored-notices-loud`, `525-mutation-reusable-workflow`, `544-fanout-test-diagnostic`, `admit-duplicate-full`; no
+  `### Release` line.
+- **Upgrade notes**: "From 4.7.2 to 4.7.3" in `install.upgrade-notes-4-7`, both languages, appended by `prepare` from
+  the release's CHANGELOG bullets, to rewrite for a reader upgrading.
+- **Reviews**: folded by `prepare` from `changes/471-archive-e2e-on-prs.acks.json`,
+  `changes/471-no-blind-reruns.acks.json`, `changes/471-quick-fixes.acks.json`, `changes/471-release-gates.acks.json`,
+  `changes/475-failed-unseal.acks.json`, `changes/477-lan-private.acks.json`,
+  `changes/483-malformed-trust-proxy.acks.json`, `changes/484-script-loop-restart.acks.json`,
+  `changes/485-op-id-per-member.acks.json`, `changes/491-email-bare-code.acks.json`,
+  `changes/494-topic-leaves-talk.acks.json`, `changes/495-migrate-other-players.acks.json`,
+  `changes/500-per-address-ipv6.acks.json`, `changes/502-solve-outside-lock.acks.json`,
+  `changes/506-release-check-once.acks.json`, `changes/507-demo-spoiler-check.acks.json`,
+  `changes/508-ci-e2e-portrait.acks.json`, `changes/513-one-json-helper.acks.json`,
+  `changes/518-retire-prove-workflow.acks.json`, `changes/519-nightly-same-commit.acks.json`,
+  `changes/520-tests-run-coverage.acks.json`, `changes/524-ci-setup-action.acks.json`,
+  `changes/525-mutation-reusable-workflow.acks.json`, `changes/529-job-level-gates.acks.json`,
+  `changes/530-ci-docs-ruleset-ratchet.acks.json`, `changes/531-npm-timeout-3m.acks.json`,
+  `changes/534-consumer-from-previous.acks.json`, `changes/538-nightly-rerun-hint.acks.json`,
+  `changes/539-npm-ci-retry.acks.json`, `changes/claim-after-469.acks.json`, `changes/initialjs-reset.acks.json`,
+  `changes/npm12-vendor-navmesh.acks.json`, `changes/vendored-notices-loud.acks.json`: 61 translation pairs (61 with an
+  AI's record only, D56), 3 claims (3 read by a person, LostInBrittany); 48 pending acks not kept, their text changed
+  since they were read (listed by `prepare`).
+- **Fixtures**: golden save demo-4.7.3, reference run, quality baseline, written by `prepare` (the release's own write,
+  `quality:baseline -- --release --dist`).
+- **Passes**: sheet 4.7.3, the 22 of 4.7.2, none new.
+- **Signature**: the tag is signed with an SSH key `.github/allowed_signers` names (`npm run release -- 4.7.3` refuses
+  any other).
+
+→ next: TODO(release)

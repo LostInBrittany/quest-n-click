@@ -274,7 +274,7 @@ After the first visit the game caches every image and sound for offline play (`o
 | `decodedAudioMB` | the largest score decoded | 3.6 |
 | `offlineTotalKB` | the full warm-up | 3.6 |
 | `transitionPeakMB` | two scores, a bridge and a stinger decoded at once | 3.6.1 |
-| `initialJsKB` | the JavaScript of a first visit, checked on the build by `npm run verify:dist`, in bytes (`initialJsKB` × 1024, unrounded, 4.6.0); each release resets the default game's to its measure plus 2 KB (next) | 3.9 |
+| `initialJsKB` | the JavaScript of a first visit, checked on the build by `npm run verify:dist`, in bytes (`initialJsKB` × 1024, unrounded, 4.6.0); each release resets the default game's to its measure plus 2 KB (4.7.3) | 3.9 |
 
 `npm run weight` checks them, and a release requires them: see [Build and release](create.build-release.md).
 
