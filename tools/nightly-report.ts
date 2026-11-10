@@ -21,6 +21,9 @@ export const LABEL = 'nightly-red';
 const MUTATION_JOBS = ['mutation-plan', 'mutation', 'mutation-merge'];
 /** How many surviving mutants the text lists; the rest are counted. */
 const MAX_MUTANTS = 20;
+/** After a red scheduled night (#519): the same words as tools/schedule-guard.ts's, pinned by tests/nightly-report.test.ts. */
+export const RERUN =
+  'The next scheduled nights on this commit are skipped (#519): if the failure came from the infrastructure rather than the code, run the nightly again by hand: `gh workflow run nightly --ref main`.';
 
 export interface Run {
   number: number;
@@ -115,6 +118,7 @@ function redSection(run: Run, red: { job: string; result: string }[], survivors:
     '|---|---|',
     ...red.map((r) => `| \`${r.job}\` | ${r.result} |`),
   ];
+  if (run.event === 'schedule') lines.push('', RERUN);
   if (red.some((r) => MUTATION_JOBS.includes(r.job))) {
     lines.push('');
     if (survivors.length) {

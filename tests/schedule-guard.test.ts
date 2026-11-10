@@ -6,7 +6,7 @@
 // observed starts, then the nightly wired (the weekly prove is retired, #518; its observed starts stay as evidence).
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
-import { decide, parisMinutes, type PastRun, WORKDAY } from '../tools/schedule-guard';
+import { decide, parisMinutes, type PastRun, RERUN, WORKDAY } from '../tools/schedule-guard';
 
 const at = (iso: string) => new Date(iso);
 
@@ -110,6 +110,8 @@ describe('the same commit as the last night', () => {
       expect(d, conclusion).toMatchObject({ run: false });
       expect(d.say).toContain(`same commit as run 2 (${conclusion}): nothing to re-test`);
     }
+    // After a red night, how to re-run it by hand if the failure was the infrastructure's.
+    expect(guard([run(2, SHA, 'failure')]).say).toContain(RERUN);
   });
 
   it('runs when the last night was cancelled, a new commit came, or there is no night before', () => {

@@ -54,6 +54,10 @@ export interface PastRun {
 /** The conclusions of a run that went to its end; a cancelled run, or one still going, decided nothing. */
 export const DONE = new Set(['success', 'failure']);
 
+/** After a red night on the same commit: the same words as tools/nightly-report.ts's, pinned by tests/nightly-report.test.ts. */
+export const RERUN =
+  'The next scheduled nights on this commit are skipped (#519): if the failure came from the infrastructure rather than the code, run the nightly again by hand: `gh workflow run nightly --ref main`.';
+
 /** Whether a scheduled run on `sha` is worth it: not when the last completed run that tested a commit tested it. */
 export function sameCommit({
   sha,
@@ -69,7 +73,7 @@ export function sameCommit({
   if (last?.headSha === sha)
     return {
       run: false,
-      say: `same commit as run ${last.databaseId} (${last.conclusion}): nothing to re-test. Every job is skipped and the report with them, so an open nightly-red issue stays open, unchanged (#519). Run it by hand (workflow_dispatch) if it is needed anyway.`,
+      say: `same commit as run ${last.databaseId} (${last.conclusion}): nothing to re-test. Every job is skipped and the report with them, so an open nightly-red issue stays open, unchanged (#519). ${last.conclusion === 'failure' ? RERUN : 'Run it by hand (workflow_dispatch) if it is needed anyway.'}`,
     };
   return {
     run: true,

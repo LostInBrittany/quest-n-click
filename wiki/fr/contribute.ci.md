@@ -48,7 +48,10 @@ jobs sont sautés ; le run reste vert et ne prend aucun autre runner. Un run lan
 jamais filtré, pas plus que le préchauffage du cache de mutation que lance `release -- prepare` ; une nuit sautée se
 relance à la main si besoin, ou attend la suivante. Le `guard` de la nightly saute aussi une nuit planifiée sur le
 commit que la dernière nuit planifiée terminée (verte ou rouge) a déjà testé, et nomme ce run dans le résumé (#519) : son
-rapport est sauté avec elle, donc une issue `nightly-red` ouverte reste ouverte et ne reçoit pas de nouveau commentaire.
+rapport est sauté avec elle, donc une issue `nightly-red` ouverte reste ouverte et ne reçoit pas de nouveau commentaire. Une nuit rouge pour une raison extérieure (une erreur réseau, un problème de
+runner) reste donc rouge jusqu'au prochain commit : le texte de la nuit rouge dans l'issue, et le résumé du `guard` après
+une nuit rouge, le disent et donnent la commande qui relance la nightly à la main, tous les jobs :
+`gh workflow run nightly --ref main` (#538).
 
 **Une nuit rouge ouvre une issue** (4.5.6, #379). Une nightly rouge ne prévenait personne, hormis la croix sur la page
 Actions : le 26 octobre 2026, l'une d'elles a été découverte au candidat de la release suivante, avec un jour de retard.
