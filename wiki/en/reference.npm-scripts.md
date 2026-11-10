@@ -887,7 +887,7 @@ The four connectors played end to end from their archive against a Bridge from i
 The four archives used as a third party uses them, on Linux, macOS and Windows (4.1.18): read (names, versions, licences, binaries, exports, dependencies), a game made on the older release moved to them (since 4.3.0 as its author would: the old `web-scumm` package uninstalled, `quest-n-click` installed, migrate, verify, build, its save and a new game played to the end through `@quest-n-click/engine/testing`), `create-quest-n-click`, the Bridge (SQLite, Postgres with `CONSUMER_PG_URL`) and a connector scenario (a pairing code, a signed letter accepted, its duplicate, a forged one refused); no module of the checkout. The candidate runs it on its own archives.
 
 - Runs: `node scripts/external-consumer.mjs`
-- Usage: `npm run external-consumer -- [--tarballs=<dir>] [--from=4.1.17] [--dir=<folder>] [--keep]`
+- Usage: `npm run external-consumer -- [--tarballs=<dir>] [--from=<version|previous|tgz>] [--dir=<folder>] [--keep]`
 
 <a name="field-bundle"></a>
 

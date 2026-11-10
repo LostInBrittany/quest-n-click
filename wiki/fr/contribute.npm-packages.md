@@ -57,7 +57,8 @@ node scripts/pack.mjs --out=.cache/pack --publish-dry-run   # et ce que `npm pub
   les archives du candidat lui-même, `--tarballs=`) : les archives utilisées comme un tiers les utilise. Il lit chaque
   archive (nom, version, licence, binaires, exports, aucune dépendance `file:` ni `link:`, aucun chemin du dépôt ; les
   fichiers du bundle de documentation contre leur sha256) ; crée un jeu sur une release plus ancienne (`--from`, 4.1.17
-  par défaut), le fait passer au candidat comme son auteur le ferait (désinstaller l'ancien paquet, installer
+  par défaut ; `previous`, la release la plus récente avant le candidat, résolue comme le fait `upgrade-check` : les
+  lignes du candidat sous Ubuntu Node 22, macOS et Windows, 4.1.17 sous Node 24), le fait passer au candidat comme son auteur le ferait (désinstaller l'ancien paquet, installer
   `@quest-n-click/engine`, `npx quest-n-click migrate`), joue une ancienne sauvegarde et une nouvelle partie jusqu'à la fin ;
   appelle `read_doc`, `list_docs` et `search_docs` par un vrai client MCP en stdio ; lance `create-quest-n-click` depuis son archive ;
   installe le Bridge (init, doctor, serve sur SQLite, et sur Postgres quand `CONSUMER_PG_URL` est défini) et les

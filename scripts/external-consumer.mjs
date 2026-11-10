@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// npm run external-consumer -- [--tarballs=<dir>] [--from=<version|tgz>] [--dir=<folder>] [--keep] (4.1.18 "Dress
+// npm run external-consumer -- [--tarballs=<dir>] [--from=<version|previous|tgz>] [--dir=<folder>] [--keep] (4.1.18 "Dress
 // Rehearsal", plan §7): the archives used the way a third party uses them, on Linux, macOS and Windows. The
 // tarballs are the candidate run's (`--tarballs=`: never packed again in the line that judges them; without it, this
 // checkout is packed, for a local try). Nothing the consumer runs comes from the checkout: no module of it is imported
@@ -8,7 +8,8 @@
 //
 //   1. the archives read: name, version, licence, binaries, exports, no `file:`/`link:` dependency, no checkout path;
 //      the engine's documentation bundle (4.5.0), `docs-bundle/`, each file matching its manifest's sha256;
-//   2. a game created on the older release (`--from`, 4.1.17 by default), its assets, verify, and a save made by that
+//   2. a game created on the older release (`--from`, 4.1.17 by default; `previous`: the newest release older than the
+//      candidate, as upgrade-check resolves it, `gh` with GH_TOKEN), its assets, verify, and a save made by that
 //      engine; then moved to the candidate as its author would (4.3.0, D47: the former name's aliases are gone): the
 //      old package uninstalled, `quest-n-click` installed from its archive, `npx quest-n-click migrate` (which renames
 //      the `web-scumm/…` imports, the tsconfig's paths and the scripts' commands), migrate --check, assets, verify,
@@ -41,7 +42,7 @@ import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { harness, WIN, waitFor } from './lib/archive-harness.mjs';
 import { download } from '../tools/release/fetch-retry.mjs';
-import { KNOWN_ENGINES, sumFor, sumsAsset, upgradeSource } from './upgrade-source.mjs';
+import { KNOWN_ENGINES, previousRelease, publishedTags, sumFor, sumsAsset, upgradeSource } from './upgrade-source.mjs';
 
 const ROOT = resolve(import.meta.dirname, '..');
 const args = process.argv.slice(2);
@@ -175,11 +176,15 @@ if (!failed)
   console.log(`✔  ${NAMES.length} archives of ${version}: names, version, licence, binaries, exports, dependencies`);
 
 // ---------------------------------------------------------------- a game of the older release, moved to this one
-const src = upgradeSource(flag('from') ?? '4.1.17', existsSync);
+let src = upgradeSource(flag('from') ?? '4.1.17', existsSync);
+// `--from=previous` (#534): the newest release older than the candidate's version, through the same sums check below.
+if (src.kind === 'previous') {
+  src = upgradeSource(previousRelease(publishedTags(), version), () => false);
+  console.log(`\n▶ the previous release: ${src.version}`);
+}
 let oldTgz;
 if (src.kind === 'tgz') oldTgz = resolve(src.path);
 else {
-  if (src.kind === 'previous') throw new Error("--from=previous is upgrade-check's; name a version here");
   oldTgz = join(base, src.asset);
   const url = `https://github.com/Quest-n-Click/quest-n-click/releases/download/${src.tag}/${src.asset}`;
   console.log(`\n▶ the older engine: ${url}`);
