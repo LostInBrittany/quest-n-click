@@ -56,6 +56,21 @@ describe('admit, in one process', () => {
   });
 });
 
+describe('admit on the SQL store, in one process', () => {
+  // The race below kills `if (dup) return 'duplicate'` forced false only when a `same` arrives after the queue is full,
+  // which depends on how the three processes interleave: it survived the runs set of #527's run 42785051498. Here
+  // the order is fixed: once full, a duplicate is still said to be one, not "full".
+  it('a duplicate is said as such even when the queue is full', async () => {
+    const s = await SqliteRealityStore.open(join(dir, 'admit-one.sqlite'), { pollMs: 0 });
+    closers.push(() => s.close());
+    const store = new SqlRunStore(s.db);
+    expect(await store.admit(run('t', 'a'), 2)).toBe('created');
+    expect(await store.admit(run('t', 'b'), 2)).toBe('created');
+    expect(await store.admit(run('t', 'c'), 2)).toBe('full');
+    expect(await store.admit(run('t', 'a'), 2)).toBe('duplicate');
+  });
+});
+
 describe('admit and the quota, across processes on one SQLite file', () => {
   it('three instances at once: never more than the room, the same run once, one quota for a client', async () => {
     const file = join(dir, 'race.sqlite');
