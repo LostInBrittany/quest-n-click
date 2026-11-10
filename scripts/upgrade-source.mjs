@@ -3,7 +3,48 @@
 // for `web-scumm-v4.1.15.tgz` before 4.1.17), and a pre-release's tarball carries package.json's version without the
 // suffix (v4.1.16-rc.2 ships web-scumm-4.1.16.tgz). From 4.2.5 (D47) a release's own files are named quest-n-click-…;
 // every earlier one keeps its web-scumm-… names (GitHub serves them under the repository's new name too).
+import { execFileSync } from 'node:child_process';
 import { projectOf } from '../tools/release/artifacts.mjs';
+
+const cmp = (a, b) => {
+  const x = a.split('.').map(Number),
+    y = b.split('.').map(Number);
+  for (let i = 0; i < 3; i++) if (x[i] !== y[i]) return x[i] - y[i];
+  return 0;
+};
+
+/**
+ * `--from=previous`: the newest published release older than `here` (its tarball attached since 3.9); pre-releases
+ * left out. Throws when there is none. Shared by upgrade-check and, since #534, external-consumer.
+ */
+export function previousRelease(tags, here) {
+  const older = tags
+    .map((t) => t.replace(/^v/, ''))
+    .filter((v) => /^\d+\.\d+\.\d+$/.test(v) && cmp(v, here) < 0 && cmp(v, '3.9.0') >= 0)
+    .sort(cmp);
+  if (!older.length) throw new Error(`no published release with a package tarball before ${here}`);
+  return older.at(-1);
+}
+
+/** The repository's published release tags, drafts left out (`gh`; GH_TOKEN in CI). */
+export const publishedTags = () =>
+  JSON.parse(
+    execFileSync(
+      'gh',
+      [
+        'release',
+        'list',
+        '-R',
+        'Quest-n-Click/quest-n-click',
+        '--exclude-drafts',
+        '--limit',
+        '50',
+        '--json',
+        'tagName',
+      ],
+      { encoding: 'utf8' },
+    ),
+  ).map((r) => r.tagName);
 
 /** `{ kind: 'previous' }`, `{ kind: 'tgz', path }` or `{ kind: 'release', tag, asset, version }`; throws otherwise. */
 export function upgradeSource(from, exists) {

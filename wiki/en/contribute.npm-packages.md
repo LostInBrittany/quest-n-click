@@ -54,7 +54,9 @@ node scripts/pack.mjs --out=.cache/pack --publish-dry-run   # and what `npm publ
 - **`npm run external-consumer`** (CI job `external-consumer`, and in the candidate on Ubuntu, macOS and Windows on the
   candidate's own archives, `--tarballs=`): the archives used the way a third party uses them. It reads each archive
   (name, version, licence, binaries, exports, no `file:` or `link:` dependency, no checkout path; the documentation
-  bundle's files against their sha256); creates a game on an older release (`--from`, 4.1.17 by default), moves it to
+  bundle's files against their sha256); creates a game on an older release (`--from`, 4.1.17 by default; `previous`,
+  the newest release older than the candidate, as `upgrade-check` resolves it: the candidate's rows on Ubuntu Node 22,
+  macOS and Windows, 4.1.17 on Node 24), moves it to
   the candidate as its author would (uninstall the old package, install `@quest-n-click/engine`, `npx quest-n-click migrate`),
   plays an old save and a new game to the ending; calls `read_doc`, `list_docs` and `search_docs` through a real MCP
   client over stdio; runs `create-quest-n-click` from its archive; installs the Bridge (init, doctor, serve on SQLite, and on

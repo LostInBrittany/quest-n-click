@@ -599,7 +599,7 @@ jobs:
           if-no-files-found: error
           overwrite: true
   # Those very archives installed outside the repository (scripts/external-consumer.mjs): Ubuntu, macOS and Windows on
-  # Node 22, Ubuntu on Node 24 too; a 4.1.17 game moved to them, the Bridge (SQLite, and Postgres on Ubuntu) and a
+  # Node 22, Ubuntu on Node 24 too; a game of the previous release (4.1.17 on Node 24) moved to them, the Bridge (SQLite, and Postgres on Ubuntu) and a
   # connector scenario from their own archives.
   external-consumer:
     needs: [target, pack]
@@ -607,14 +607,12 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          # The older engine a game is created on (4.1.19, plan §7.4): fixed old releases, 4.1.17, 4.1.16 and the
-          # pre-release 4.1.18-rc.1 (its tarball named without the suffix), each checked against its release's sums.
-          # They were the previous stable, the one before it and a pre-release in 4.1.19; they do not move with the
-          # version. The upgrade from the actual previous stable is ci.yml's `upgrade` job (`upgrade-check --from=previous`).
-          - { os: ubuntu-24.04, node: 22, pg: true, from: 4.1.17 }
-          - { os: ubuntu-24.04, node: 24, pg: false, from: 4.1.16 }
-          - { os: macos-15, node: 22, pg: false, from: 4.1.18-rc.1 }
-          - { os: windows-2025, node: 22, pg: false, from: 4.1.17 }
+          # The older engine a game is created on (#534): the previous release on three systems, resolved at run time
+          # as upgrade-check resolves it, and 4.1.17 on Node 24 for the long path; each checked against its release's sums.
+          - { os: ubuntu-24.04, node: 22, pg: true, from: previous }
+          - { os: ubuntu-24.04, node: 24, pg: false, from: 4.1.17 }
+          - { os: macos-15, node: 22, pg: false, from: previous }
+          - { os: windows-2025, node: 22, pg: false, from: previous }
     runs-on: ${{ matrix.os }}
     timeout-minutes: 45
     defaults:
@@ -645,6 +643,9 @@ jobs:
           for i in $(seq 1 30); do docker exec consumer-pg pg_isready -U bridge && break; sleep 2; done
           echo "CONSUMER_PG_URL=postgres://bridge:bridge@127.0.0.1:55432/bridge" >> "$GITHUB_ENV"
       - run: node scripts/external-consumer.mjs --tarballs=candidate-pack --from=${{ matrix.from }}
+        env:
+          # `--from=previous` lists the releases with `gh`.
+          GH_TOKEN: ${{ github.token }}
   # The four connectors played end to end from their archive (4.1.19, plan §8.2): email by webhook and by IMAP (a
   # server of the script's own), Telnet, SSH and Open Badge, each against a Bridge from its archive. Linux only:
   # `external-consumer` proves the packages on three systems, this proves what the connectors do once started.

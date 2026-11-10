@@ -887,7 +887,7 @@ Les quatre connecteurs joués de bout en bout depuis leur archive face à un Bri
 Les quatre archives utilisées comme un tiers les utilise, sous Linux, macOS et Windows (4.1.18) : lues (noms, versions, licences, exécutables, exports, dépendances), un jeu fait sur l’ancienne version amené à elles (depuis 4.3.0 comme son auteur le ferait : l’ancien paquet `web-scumm` désinstallé, `quest-n-click` installé, migrate, verify, build, sa sauvegarde et une nouvelle partie jouées jusqu’au bout via `@quest-n-click/engine/testing`), `create-quest-n-click`, le Bridge (SQLite, Postgres avec `CONSUMER_PG_URL`) et un scénario de connecteur (un code d’appairage, une lettre signée acceptée, son doublon, une contrefaçon refusée) ; aucun module du dépôt. Le candidat le lance sur ses propres archives.
 
 - Lance : `node scripts/external-consumer.mjs`
-- Utilisation : `npm run external-consumer -- [--tarballs=<dir>] [--from=4.1.17] [--dir=<folder>] [--keep]`
+- Utilisation : `npm run external-consumer -- [--tarballs=<dir>] [--from=<version|previous|tgz>] [--dir=<folder>] [--keep]`
 
 <a name="field-bundle"></a>
 

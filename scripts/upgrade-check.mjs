@@ -9,7 +9,7 @@ import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'no
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { download } from '../tools/release/fetch-retry.mjs';
-import { upgradeSource } from './upgrade-source.mjs';
+import { previousRelease, publishedTags, upgradeSource } from './upgrade-source.mjs';
 import { npmInstall } from './lib/archive-harness.mjs';
 
 const ROOT = resolve(import.meta.dirname, '..');
@@ -39,40 +39,16 @@ const show = (title, cmd, args, cwd) => {
   else execFileSync(cmd, args, { cwd, stdio: 'inherit', env });
 };
 
-// `--from=previous`: the newest published release older than this one (its tarball attached since 3.9).
-const cmp = (a, b) => {
-  const x = a.split('.').map(Number),
-    y = b.split('.').map(Number);
-  for (let i = 0; i < 3; i++) if (x[i] !== y[i]) return x[i] - y[i];
-  return 0;
-};
+// `--from=previous`: the newest published release older than this one (scripts/upgrade-source.mjs).
 if (source.kind === 'previous') {
   const here = JSON.parse(readFileSync(join(ROOT, 'package.json'), 'utf8')).version;
-  const tags = JSON.parse(
-    execFileSync(
-      'gh',
-      [
-        'release',
-        'list',
-        '-R',
-        'Quest-n-Click/quest-n-click',
-        '--exclude-drafts',
-        '--limit',
-        '50',
-        '--json',
-        'tagName',
-      ],
-      { encoding: 'utf8' },
-    ),
-  )
-    .map((r) => r.tagName.replace(/^v/, ''))
-    .filter((v) => /^\d+\.\d+\.\d+$/.test(v) && cmp(v, here) < 0 && cmp(v, '3.9.0') >= 0)
-    .sort(cmp);
-  if (!tags.length) {
-    console.error('no published release with a package tarball before', here);
+  const tags = publishedTags();
+  try {
+    source = upgradeSource(previousRelease(tags, here), () => false);
+  } catch (e) {
+    console.error(e.message);
     process.exit(1);
   }
-  source = upgradeSource(tags.at(-1), () => false);
   console.log(`upgrade from the previous release: ${source.version}`);
 }
 const oldTgz = source.kind === 'tgz' ? resolve(source.path) : join(base, source.asset);
