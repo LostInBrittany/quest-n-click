@@ -875,7 +875,7 @@ Checks that no sealed-ending text, of any outcome, appears in clear in `dist/`.
 
 #### `npm run connector-archive-e2e`
 
-The four connectors played end to end from their archive against a Bridge from its archive (4.1.19): email by webhook and by IMAP (a server of the script's own), Telnet, SSH and Open Badge; the candidate's `connector-archive-e2e` job, and a step of the pull request's `connectors` job on the archives it packs (next, #471). Real providers and exposure stay a person's pass (`connectors-real-security`).
+The four connectors played end to end from their archive against a Bridge from its archive (4.1.19): email by webhook and by IMAP (a server of the script's own), Telnet, SSH and Open Badge; the candidate's `connector-archive-e2e` job, and a step of the pull request's `connectors` job on the archives it packs (4.7.3, #471). Real providers and exposure stay a person's pass (`connectors-real-security`).
 
 - Runs: `node scripts/connector-archive-e2e.mjs`
 - Usage: `npm run connector-archive-e2e -- [--tarballs=<dir>] [--keep]`

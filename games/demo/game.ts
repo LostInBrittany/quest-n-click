@@ -153,7 +153,7 @@ export const game = defineGame({
   // (next): the first visit it measures (tests/quality-baseline.json, bundle.initialJsBytes) plus 2 KB, rounded up to
   // the KB, down too. A pull request fails only when it eats that margin; the release decides whether the growth was
   // worth it.
-  assetBudgets: { initialKB: 2500, roomKB: 3000, chapterKB: 4500, backgroundScoreKB: 3500, offlineTotalKB: 9000, decodedAudioMB: 128, initialJsKB: 140 },
+  assetBudgets: { initialKB: 2500, roomKB: 3000, chapterKB: 4500, backgroundScoreKB: 3500, offlineTotalKB: 9000, decodedAudioMB: 128, initialJsKB: 142 },
   // Texts that stay the same in French on purpose: names, ▲ ▼, OK, words French borrowed (`npm run i18n -- status`).
   i18n: { same: ['room:market/props.oranges.name', 'room:market/props.bouquet.name', 'item:bouquet/name', 'char:hero/name', 'char:biscuit/name', 'char:neighbor/name', 'ui/pause', 'ui/remix', 'ui/zoomIn', 'ui/ok', 'ui/jump', 'ui/duck', 'ui/normal', 'ui/speedrun'] },
   settings: true,

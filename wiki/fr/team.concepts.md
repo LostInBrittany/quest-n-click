@@ -26,7 +26,7 @@ Une écriture peut porter un **identifiant d'opération** (`x-studio-op`, 8 à 6
 nouvelle tentative avec le même identifiant reçoit la première réponse et n'est appliquée qu'une fois ; la réponse
 revient avec `x-studio-replayed: 1`. Le Studio, la CLI et le MCP en envoient un à chaque écriture. Les réponses sont
 gardées 7 jours, et ne sont rendues qu'au membre qui a écrit : le même identifiant envoyé par un autre membre
-est une écriture à part, appliquée comme les autres (next, #485).
+est une écriture à part, appliquée comme les autres (4.7.3, #485).
 
 <a name="revision"></a>
 

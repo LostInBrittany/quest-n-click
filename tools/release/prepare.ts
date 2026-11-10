@@ -773,7 +773,7 @@ export const QUALITY_BASELINE_COMMANDS: [string, string[]][] = [
 ];
 
 /**
- * The `quality baseline` step's last move (next): the measured game's `assetBudgets.initialJsKB` reset to the first
+ * The `quality baseline` step's last move (4.7.3): the measured game's `assetBudgets.initialJsKB` reset to the first
  * visit just measured (tests/quality-baseline.json) plus 2 KB, up or down, so a pull request fails only when it eats
  * that margin. A game that sets no budget is left alone; one whose budget cannot be rewritten in place stops the step.
  * Returns the line `prepare` says, which the release pull request shows.

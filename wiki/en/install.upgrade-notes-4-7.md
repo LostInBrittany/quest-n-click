@@ -1,6 +1,6 @@
 # Upgrade notes: 4.7
 
-What 4.7.0 changed, then 4.7.1 and 4.7.2. Nothing to change in a game: it builds, plays and saves as on 4.6.0. Every addition is optional;
+What 4.7.0 changed, then 4.7.1, 4.7.2 and 4.7.3. Nothing to change in a game: it builds, plays and saves as on 4.6.0. Every addition is optional;
 all but the end's `keepPlaying` are presentation only, unseen by rules, saves and the solver.
 
 The upgrade itself is [Upgrade](install.upgrade.md).
@@ -106,3 +106,50 @@ counters start again once. The rest needs nothing: a tenant's run retention dele
 acknowledgement never brings back a revoked or deleted player, a signal is never written for one revoked meanwhile, an
 event stream dropped while it opens no longer counts against `streamsPerPlayer`, and on a SQL store the Mystery commit
 quota (`commitsPerHour`) holds across instances.
+
+<a name="from-4-7-2-to-4-7-3"></a>
+<!-- applies: 4.7.3.. -->
+
+## From 4.7.2 to 4.7.3 "Shipshape"
+
+Nothing to change in a game: it builds, plays and saves as on 4.7.2. 4.7.3 fixes what was found since 4.7.2 in the
+engine, the Studio Server, the connectors and the Bridge, and reworks CI and the release tools; one fix changes what a
+host sees at start.
+
+**In a game**, three bugs are gone. A sealed ending that could not be opened (a mistyped password, the file unreachable
+offline) no longer saves the game as finished, and a wrong password is asked again. A looping script restarted inside a
+`wait` (its room left and entered again, or the character switched) no longer skips its next step. A topic whose `do`
+changes room or ends the game closes the conversation, as "Bye" does. A save migration's `renameItem`, `dropItem` and
+`renameRoom` now reach every playable character, not only the active one. A presenter of your own may get `false` back
+from `ending('open')` when nothing was unsealed; one that returns nothing behaves as before.
+
+**In a game project**, the engine installs with npm 12: it carries navmesh's build itself, so no git dependency is left
+(npm 12 refused it with `EALLOWGIT`). Paths are unchanged, and a build's `THIRD_PARTY_NOTICES.txt` and the engine's SBOM
+still name navmesh and javascript-astar. `npm run dev:lan` and `studio:lan` no longer serve the game's `private/` folder
+(403), and on Windows with Node 22 they start again, as do the Studio's Assets "Prepare", `run_tests` and
+`npm run new-game`. The engine's package no longer carries the repository's CI tools; no `quest-n-click` command changes.
+
+**For a Studio Server's or a Bridge's host**, one change of behaviour: a malformed trusted-proxy network
+(`--trust-proxy=10.0.0.0/`, `"trustProxy": ["10.0.0.0/"]`, a `/33` or a `/abc`) now stops the server at start with an
+error naming the entry. Before, an empty prefix trusted every address, so any client could choose its own
+`X-Forwarded-For`. Plain addresses and `/0` to `/32` behave as before. Check your entries before you upgrade.
+
+**For a Studio Server**, nothing to configure. A Solve or another Check no longer holds the instance's lock while the
+worker runs, so the team's saves and page loads go through at once; a Git import or an engine upgrade now holds it, so a
+read made meanwhile never mixes two revisions. A write that reuses another member's operation id is applied, and two CLI
+runs asking for a token at once no longer crash. The sign-in libraries move to `jose@6.2.15` and `openid-client@6.8.9`.
+
+**For a Bridge's host**, nothing to configure. The journal survives a nearly full disk (a rewrite fails before its
+rename, a failed append takes its cut line back), and the open streams are indexed by player: about 6 ms per pass
+instead of 580 at 10 000 streams.
+
+**For a connector's host**, the email webhook's and the Open Badges endpoint's `perMinutePerIp` counts an IPv6 address
+by its /64, as the Bridge does since 4.7.2, so their counters start again once. An email whose subject is one word that
+looks like a pairing code (`Treasure`, `Thursday`) is read as an answer again.
+
+**For a maintainer**, the release command judges every gate before it does anything and never re-runs a mutation
+verdict, and `prepare` resets the measured game's first-visit budget to its measure plus 2 KB. CI installs through one
+setup action whose `npm ci` waits out a registry hiccup, skips the jobs the plan spares, writes the mutation jobs once
+(their checks now read `mutation / …`), and runs `e2e:portrait`, the website demo's spoiler check and, when a connector
+or the Bridge changes, the connectors from their archive. The nightly skips a commit it already tested and says how to
+re-run it by hand; the weekly `prove` workflow is gone. [`CHANGELOG.md`](../../CHANGELOG.md) has each change.

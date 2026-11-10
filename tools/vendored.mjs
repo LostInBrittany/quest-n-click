@@ -1,4 +1,4 @@
-// Code the engine carries instead of a package (next): navmesh, whose package declares a git dependency npm 12 refuses
+// Code the engine carries instead of a package (4.7.3): navmesh, whose package declares a git dependency npm 12 refuses
 // (src/engine/core/nav/navmesh/README.md). Its record, vendored.json, is read here for the two outputs that name
 // third-party code: a build's licenses/THIRD_PARTY_NOTICES.txt (tools/dist.ts) and the engine's SBOM
 // (scripts/sbom.mjs). The record missing is an error in both: navmesh would leave them without a word.

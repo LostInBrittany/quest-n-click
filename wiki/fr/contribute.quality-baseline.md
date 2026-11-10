@@ -43,7 +43,7 @@ autres chiffres des README sont écrits par la release, `npm run quality:baselin
 chaque jeu, comparé en octets (`initialJsKB` × 1024) : un octet de trop échoue, avec une marge de 2 Ko au-dessus de la
 taille mesurée, que chaque release remet à jour. La même étape réécrit l'`initialJsKB` du jeu mesuré à son
 `initialJsBytes` plus 2 Ko, arrondi au Ko supérieur (à la baisse aussi quand la première visite a maigri), et affiche
-l'ancien et le nouveau budget (next). Elle ne mesure que le jeu par défaut : le budget d'un autre jeu, comme celui du
+l'ancien et le nouveau budget (4.7.3). Elle ne mesure que le jeu par défaut : le budget d'un autre jeu, comme celui du
 chapitre de référence, se remet à jour à la main avec la même règle.
 
 <a name="prerequisites"></a>

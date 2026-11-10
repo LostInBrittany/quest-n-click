@@ -285,7 +285,7 @@ sur le téléphone.
 | `decodedAudioMB` | la plus grande partition décodée | 3.6 |
 | `offlineTotalKB` | le préchargement complet | 3.6 |
 | `transitionPeakMB` | deux partitions, un pont et un stinger décodés à la fois | 3.6.1 |
-| `initialJsKB` | le JavaScript d’une première visite, vérifié sur le build par `npm run verify:dist`, en octets (`initialJsKB` × 1024, sans arrondi, 4.6.0) ; chaque release remet celui du jeu par défaut à sa mesure plus 2 Ko (next) | 3.9 |
+| `initialJsKB` | le JavaScript d’une première visite, vérifié sur le build par `npm run verify:dist`, en octets (`initialJsKB` × 1024, sans arrondi, 4.6.0) ; chaque release remet celui du jeu par défaut à sa mesure plus 2 Ko (4.7.3) | 3.9 |
 
 `npm run weight` les vérifie, et une release les exige : voir [Build et release](create.build-release.md).
 

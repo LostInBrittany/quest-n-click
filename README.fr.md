@@ -31,7 +31,7 @@ ou Linux. Le moteur s'installe depuis l'archive d'une release, ou depuis npm à 
 est une fois approuvée par un propriétaire) :
 
 ```bash
-T=https://github.com/Quest-n-Click/quest-n-click/releases/download/v4.7.2/quest-n-click-4.7.2.tgz
+T=https://github.com/Quest-n-Click/quest-n-click/releases/download/v4.7.3/quest-n-click-4.7.3.tgz
 npx --package=$T quest-n-click create mon-jeu "Mon jeu" --engine=$T
 cd mon-jeu && npm install
 npm run assets && npm run dev        # y jouer ; puis npm run verify, npm run build
@@ -90,7 +90,7 @@ Chaque partie n'est promise que jusqu'où elle est testée ([Stabilité et suppo
 
 « Limité » veut dire que des machines le testent mais qu'aucune personne ne l'a encore confirmé sur de vrais appareils
 ([Passes de terrain](https://github.com/Quest-n-Click/quest-n-click/wiki/FR-Contribuer-Passes-De-Terrain)). Seule la dernière version mineure reçoit des correctifs.
-Aujourd'hui : <!-- metric:tests -->3939<!-- /metric --> déclarations de tests unitaires, le jeu de référence prouvé
+Aujourd'hui : <!-- metric:tests -->4101<!-- /metric --> déclarations de tests unitaires, le jeu de référence prouvé
 en <!-- metric:referenceStates -->288<!-- /metric --> états, une première visite de
 <!-- metric:initialJsKB -->140<!-- /metric --> Ko de JavaScript compressé.
 
@@ -111,7 +111,7 @@ Toute la documentation est [le wiki](https://github.com/Quest-n-Click/quest-n-cl
 
 ## Releases
 
-Release actuelle : [v4.7.2 (Audit fixes)](https://github.com/Quest-n-Click/quest-n-click/releases/tag/v4.7.2) : Un correctif pour les auteurs de jeux : le Studio redémarre depuis le moteur installé, et le paquet du moteur ne contient plus que des fichiers qui fonctionnent dans un projet de jeu.
+Release actuelle : [v4.7.3 (Shipshape)](https://github.com/Quest-n-Click/quest-n-click/releases/tag/v4.7.3) : Un correctif, surtout des corrections et du travail sur la CI : le moteur s'installe avec npm 12, et le moteur, le Studio Server, les connecteurs et le Bridge reçoivent les corrections trouvées depuis la 4.7.2.
 Toutes les releases précédentes sont dans le [CHANGELOG](CHANGELOG.md).
 
 ## Licences

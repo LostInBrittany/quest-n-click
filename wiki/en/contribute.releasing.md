@@ -76,7 +76,7 @@ a section already written ahead under its anchor is kept, never doubled, the rel
 comment at its end for its author, 4.7.0), the transition pages, the golden save (listed in
 `tests/fixtures/saves/index.json`), the reference run, the passes sheet and `passIssues`, the README's current-release
 line (in place of the previous one, 4.7.0), the quality baseline, with the measured game's first-visit budget
-(`initialJsKB`) reset to its measure plus 2 KB (next, [Quality baseline](contribute.quality-baseline.md#context-and-versions));
+(`initialJsKB`) reset to its measure plus 2 KB (4.7.3, [Quality baseline](contribute.quality-baseline.md#context-and-versions));
 one commit, the docs' human gates, then the pull request.
 
 Its fetch of the organisation's `main` is tried four times, 15 s apart, each failed try said, before it stops (4.7.0,
@@ -153,7 +153,7 @@ Once the release pull request is merged, on `main` up to date:
 npm run release -- 4.5.4          # --dry-run prints the gate report and does nothing; --key=<key.pub> if git signs otherwise
 ```
 
-Before it does anything (next, #471), it judges every gate that could stop it later and prints them together, one
+Before it does anything (4.7.3, #471), it judges every gate that could stop it later and prints them together, one
 line each: the preflight below, main's `ci` on the release commit (what `ship tag` waits for), the docs' human gates on
 that commit's tree, its candidate, and what `ship tag` checks itself (the CHANGELOG section at that commit, the
 previous stable tag an ancestor of it, immutable releases on). `✔` holds; `…` is waited for (a candidate or main's
@@ -232,7 +232,7 @@ git log --first-parent --oneline <the organisation's remote>/main   # names the 
 npm run release -- <version> --commit=<the fix's merge sha> --start-candidate
 ```
 
-A mutation verdict is never re-run (next, #471). A mutation shard red on survivors that `docs/dev/mutants.json` does
+A mutation verdict is never re-run (4.7.3, #471). A mutation shard red on survivors that `docs/dev/mutants.json` does
 not name (or on an entry there that does not hold) fails the same way on every try: its verdict depends on its inputs
 alone. 4.7.2's candidate 42527046788 was re-run anyway, and spent 72 minutes failing the same six shards again. Such a
 shard now says so in a `mutation verdict` annotation of its job (written by `candidate.yml` from the shard's report,

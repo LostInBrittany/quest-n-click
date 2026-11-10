@@ -118,7 +118,7 @@ its locks (five seconds at most) and exits 0. It logs JSON lines on standard out
 
 - `--tenants`: one folder per tenant, all on one SQL store.
 - `--trust-proxy` alone trusts the loopback; with a list, those addresses or IPv4 networks. A malformed network
-  (`10.0.0.0/`, `/33`) is refused at start (next, #483).
+  (`10.0.0.0/`, `/33`) is refused at start (4.7.3, #483).
 - `--tenant-header`: a request may name its tenant in `X-Web-Scumm-Tenant`.
 - The variables [`BRIDGE_STORE`](reference.environment-variables.md#bridge-store),
   [`BRIDGE_STORE_FILE`](reference.environment-variables.md#bridge-store-file) and

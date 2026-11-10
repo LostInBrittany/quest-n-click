@@ -42,7 +42,7 @@ behaviour, `referenceStates`. The test counts, the first visit and the other REA
 build). The first visit is held by each game's budget, compared in bytes (`initialJsKB` × 1024): one byte over fails,
 with a margin of 2 KB over the size measured, which each release resets. The same step writes the measured game's
 `initialJsKB` back to its `initialJsBytes` plus 2 KB, rounded up to the KB – down too when the first visit shrank – and
-prints the old and the new budget (next). It measures the default game only: another game's budget, such as the
+prints the old and the new budget (4.7.3). It measures the default game only: another game's budget, such as the
 reference chapter's, is reset by hand with the same rule.
 
 <a name="prerequisites"></a>

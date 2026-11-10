@@ -1,5 +1,5 @@
 import earcut from 'earcut';
-// navmesh 2.3.1, vendored (next): its package's git dependency stops npm 12's installs (navmesh/README.md).
+// navmesh 2.3.1, vendored (4.7.3): its package's git dependency stops npm 12's installs (navmesh/README.md).
 import { NavMesh } from './navmesh/navmesh.js';
 import { must } from '../must';
 import type { Layout, Point } from '../types';

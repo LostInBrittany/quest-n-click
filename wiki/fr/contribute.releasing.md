@@ -83,7 +83,7 @@ pour son auteur, 4.7.0), les pages de
 transition, la sauvegarde de référence (listée dans `tests/fixtures/saves/index.json`), le run de référence, la fiche
 des passes et `passIssues`, la ligne de release actuelle du README (à la place de la précédente, 4.7.0), la
 ligne de base de qualité, avec le budget de première visite du jeu mesuré (`initialJsKB`) remis à sa mesure plus 2 Ko
-(next, [Référence de qualité](contribute.quality-baseline.md#context-and-versions)) ; un commit, les relectures
+(4.7.3, [Référence de qualité](contribute.quality-baseline.md#context-and-versions)) ; un commit, les relectures
 humaines des docs, puis la pull request.
 
 Sa récupération (`fetch`) du `main` de l'organisation est tentée quatre fois, à 15 s d'intervalle, chaque essai raté
@@ -168,7 +168,7 @@ Une fois la pull request de release fusionnée, sur un `main` à jour :
 npm run release -- 4.5.4          # --dry-run affiche le rapport des barrières et ne fait rien ; --key=<clé.pub> si git signe autrement
 ```
 
-Avant de rien faire (next, #471), elle juge chaque barrière qui pourrait l'arrêter plus tard et les affiche ensemble,
+Avant de rien faire (4.7.3, #471), elle juge chaque barrière qui pourrait l'arrêter plus tard et les affiche ensemble,
 une ligne chacune : les vérifications préalables ci-dessous, la `ci` de main sur le commit de release (ce que `ship
 tag` attend), les barrières humaines de la doc sur l'arbre de ce commit, son candidat, et ce que `ship tag` vérifie
 lui-même (la section du CHANGELOG à ce commit, le tag stable précédent ancêtre de ce commit, les releases immuables
@@ -256,7 +256,7 @@ git log --first-parent --oneline <le remote de l'organisation>/main   # nomme le
 npm run release -- <version> --commit=<sha du merge de la correction> --start-candidate
 ```
 
-Un verdict de mutation n'est jamais relancé (next, #471). Un shard de mutation rouge sur des survivants que
+Un verdict de mutation n'est jamais relancé (4.7.3, #471). Un shard de mutation rouge sur des survivants que
 `docs/dev/mutants.json` ne nomme pas (ou sur une de ses entrées qui ne tient pas) échoue de la même façon à chaque essai :
 son verdict ne dépend que de ses entrées. Le candidat 42527046788 de la 4.7.2 a pourtant été relancé, et a passé 72
 minutes à faire échouer de nouveau les six mêmes shards. Un tel shard le dit désormais dans une annotation

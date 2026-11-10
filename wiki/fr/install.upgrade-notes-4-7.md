@@ -1,6 +1,6 @@
 # Notes de mise à jour : 4.7
 
-Ce que la 4.7.0, puis la 4.7.1 et la 4.7.2, ont changé. Rien à modifier dans un jeu : il se construit, se joue et se sauvegarde comme en 4.6.0.
+Ce que la 4.7.0, puis la 4.7.1, la 4.7.2 et la 4.7.3, ont changé. Rien à modifier dans un jeu : il se construit, se joue et se sauvegarde comme en 4.6.0.
 Chaque ajout est facultatif ; tous sauf `keepPlaying` de la fin sont visuels, invisibles aux règles, sauvegardes et
 solveur.
 
@@ -119,3 +119,56 @@ ne demande rien : la rétention des runs d'un tenant ne supprime que les siennes
 un joueur révoqué ou supprimé, un signal n'est jamais écrit pour un joueur révoqué entre-temps, un flux d'événements
 abandonné pendant son ouverture ne compte plus dans `streamsPerPlayer`, et sur un store SQL le quota des engagements
 Mystery (`commitsPerHour`) tient sur toutes les instances.
+
+<a name="from-4-7-2-to-4-7-3"></a>
+<!-- applies: 4.7.3.. -->
+
+## De la 4.7.2 à la 4.7.3 « Shipshape »
+
+Rien à changer dans un jeu : il se construit, se joue et se sauvegarde comme en 4.7.2. La 4.7.3 corrige ce qui a été
+trouvé depuis la 4.7.2 dans le moteur, le Studio Server, les connecteurs et le Bridge, et retravaille la CI et les outils
+de release ; un correctif change ce que voit un hébergeur au démarrage.
+
+**Dans un jeu**, trois bugs disparaissent. Une fin scellée qui n'a pas pu s'ouvrir (un mot de passe mal tapé, le fichier
+inaccessible hors ligne) n'enregistre plus la partie comme terminée, et un mauvais mot de passe est redemandé. Un script
+en boucle relancé pendant un `wait` (sa pièce quittée puis retrouvée, ou un changement de personnage) ne saute plus son
+étape suivante. Un sujet dont le `do` change de pièce ou termine le jeu ferme la conversation, comme « Au revoir ». Les
+`renameItem`, `dropItem` et `renameRoom` d'une migration de sauvegarde atteignent désormais chaque personnage jouable, et
+plus seulement le personnage actif. Un presenter à vous peut recevoir `false` de `ending('open')` quand rien n'a été
+descellé ; un presenter qui ne renvoie rien se comporte comme avant.
+
+**Dans un projet de jeu**, le moteur s'installe avec npm 12 : il contient lui-même le build de navmesh, si bien qu'il ne
+reste aucune dépendance git (npm 12 la refusait avec `EALLOWGIT`). Les chemins ne changent pas, et le
+`THIRD_PARTY_NOTICES.txt` d'un build comme le SBOM du moteur nomment toujours navmesh et javascript-astar.
+`npm run dev:lan` et `studio:lan` ne servent plus le dossier `private/` du jeu (403), et sous Windows avec Node 22 ils
+redémarrent, tout comme « Prepare » dans l'onglet Assets du Studio, `run_tests` et `npm run new-game`. Le paquet du moteur
+ne contient plus les outils de CI du dépôt ; aucune commande `quest-n-click` ne change.
+
+**Pour l'hébergeur d'un Studio Server ou d'un Bridge**, un changement de comportement : un réseau de proxy de confiance
+mal formé (`--trust-proxy=10.0.0.0/`, `"trustProxy": ["10.0.0.0/"]`, un `/33` ou un `/abc`) arrête désormais le serveur
+au démarrage, avec une erreur qui nomme l'entrée. Avant, un préfixe vide faisait confiance à toutes les adresses, et
+n'importe quel client pouvait choisir son propre `X-Forwarded-For`. Les adresses simples et `/0` à `/32` se comportent
+comme avant. Vérifiez vos entrées avant la mise à jour.
+
+**Pour un Studio Server**, rien à configurer. Un Solve ou une autre vérification ne garde plus le verrou de l'instance
+pendant que le worker tourne : les enregistrements et les chargements de page de l'équipe passent tout de suite. Un
+import Git ou une mise à jour du moteur le prend désormais, donc une lecture faite entre-temps ne mélange jamais deux
+révisions. Une écriture qui réutilise l'identifiant d'opération d'un autre membre est appliquée, et deux exécutions de la
+CLI qui demandent un jeton en même temps ne plantent plus. Les bibliothèques de connexion passent à `jose@6.2.15` et
+`openid-client@6.8.9`.
+
+**Pour l'hébergeur d'un Bridge**, rien à configurer. Le journal survit à un disque presque plein (une réécriture échoue
+avant son renommage, un ajout raté reprend sa ligne coupée), et les flux ouverts sont indexés par joueur : environ 6 ms
+par passage au lieu de 580 pour 10 000 flux.
+
+**Pour l'hébergeur d'un connecteur**, le `perMinutePerIp` du webhook e-mail et du point d'accès Open Badges compte une
+adresse IPv6 par son /64, comme le Bridge depuis la 4.7.2, donc leurs compteurs repartent une fois de zéro. Un e-mail dont
+le sujet est un seul mot qui ressemble à un code d'appairage (`Treasure`, `Thursday`) est de nouveau lu comme une réponse.
+
+**Pour un mainteneur**, la commande de release juge chaque contrôle avant de rien faire et ne relance jamais un verdict de
+mutation, et `prepare` remet le budget de première visite du jeu mesuré à sa mesure plus 2 Ko. La CI installe par une
+seule action de mise en place dont le `npm ci` attend la fin d'un hoquet du registre, saute les jobs que le plan épargne,
+écrit une seule fois les jobs de mutation (leurs vérifications s'appellent désormais `mutation / …`), et lance
+`e2e:portrait`, le contrôle des spoilers de la démo du site et, quand un connecteur ou le Bridge change, les connecteurs
+depuis leur archive. La nightly saute un commit déjà testé et dit comment la relancer à la main ; le workflow
+hebdomadaire `prove` a disparu. [`CHANGELOG.md`](../../CHANGELOG.md) détaille chaque changement.

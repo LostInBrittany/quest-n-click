@@ -35,7 +35,7 @@ Moteur et outils de quest'n'click (anciennement web-scumm) : licence MIT, (c) 20
 Howler, earcut, navmesh, Tweakpane, Playwright et zod.
 
 - navmesh 2.3.1 (MIT, Michael Hadley), avec le javascript-astar que contient sa version construite (MIT, Brian
-  Grinstead), est porté par le moteur dans `src/engine/core/nav/navmesh/` (next), leur `LICENSE` à côté. Son
+  Grinstead), est porté par le moteur dans `src/engine/core/nav/navmesh/` (4.7.3), leur `LICENSE` à côté. Son
   `vendored.json` les nomme pour le `THIRD_PARTY_NOTICES.txt` d'une version construite et pour le SBOM du moteur, où
   javascript-astar est un composant à part entière, imbriqué dans celui de navmesh ; si ce fichier manque, la
   construction et le SBOM échouent au lieu d'oublier navmesh.

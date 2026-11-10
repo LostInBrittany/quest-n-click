@@ -1,4 +1,4 @@
-// The mutation verdict, said for the release command (next, #471). A mutation shard that fails on survivors nobody
+// The mutation verdict, said for the release command (4.7.3, #471). A mutation shard that fails on survivors nobody
 // named fails the same way on a re-run: its verdict depends on its inputs alone (`inputHash`). 4.7.2's candidate
 // 42527046788 was re-run anyway and spent 72 minutes failing the same six shards again; the survivors had to be dug out
 // of the job logs. So a shard that fails on a verdict says it in an annotation of its job (title `mutation verdict`),

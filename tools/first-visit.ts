@@ -28,7 +28,7 @@ export function sinceRelease(release: number, now: number): string | undefined {
 /** The margin a release leaves above the measured first visit: a pull request fails only when it eats it. */
 export const RELEASE_MARGIN_BYTES = 2048;
 
-/** The budget a release writes (next): the measure plus 2 KB, rounded up to the KB; down too when the visit shrank. */
+/** The budget a release writes (4.7.3): the measure plus 2 KB, rounded up to the KB; down too when the visit shrank. */
 export const releaseBudget = (bytes: number) => Math.ceil((bytes + RELEASE_MARGIN_BYTES) / 1024);
 
 /**

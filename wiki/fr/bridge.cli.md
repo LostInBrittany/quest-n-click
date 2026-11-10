@@ -120,7 +120,7 @@ première `{"event":"bridge.listening","url":…,"game":…,"tenants":…,"store
 
 - `--tenants` : un dossier par tenant, tous sur un stockage SQL.
 - `--trust-proxy` seul fait confiance à la boucle locale ; avec une liste, à ces adresses ou réseaux IPv4. Un réseau
-  mal formé (`10.0.0.0/`, `/33`) est refusé au démarrage (next, #483).
+  mal formé (`10.0.0.0/`, `/33`) est refusé au démarrage (4.7.3, #483).
 - `--tenant-header` : une requête peut nommer son tenant dans `X-Web-Scumm-Tenant`.
 - Les variables [`BRIDGE_STORE`](reference.environment-variables.md#bridge-store),
   [`BRIDGE_STORE_FILE`](reference.environment-variables.md#bridge-store-file) et

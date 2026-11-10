@@ -29,7 +29,7 @@ describe('the plan of a change', () => {
     ],
     ['the Bridge', ['bridge/src/store.ts'], gates('coverage', 'reality', 'freshInstall', 'node24', 'windows')],
     ['the signals game', ['games/signals/index.ts'], gates('coverage', 'reality', 'node24', 'windows')],
-    // The connectors job plays the archives end to end (next, #471): #459 and #460 changed the email connector and the
+    // The connectors job plays the archives end to end (4.7.3, #471): #459 and #460 changed the email connector and the
     // Bridge, and the script failed first in 4.7.2's candidate; its fix (#466) touched the script alone, which fell to
     // the authoring rule and ran no connectors job.
     ['the email connector', ['connectors/src/email/imap.ts'], gates('coverage', 'reality', 'node24', 'windows')],
@@ -116,7 +116,7 @@ describe('the plan of a change', () => {
       ['tests/fixtures/saves/demo-4.5.3.json'],
       gates('coverage', 'upgrade', 'node24', 'windows'),
     ],
-    // A test can lift a file above its floor: the strict ratchet must see it on the pull request, not on main (next,
+    // A test can lift a file above its floor: the strict ratchet must see it on the pull request, not on main (4.7.3,
     // #520). #425 changed tests, docs and the mutation sets only; main failed in `coverage` after its merge.
     ['a unit test', ['tests/core.test.ts'], gates('coverage')],
     [

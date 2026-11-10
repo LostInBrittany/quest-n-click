@@ -34,7 +34,7 @@ quest'n'click (formerly web-scumm) engine and tools: MIT License, (c) 2026 Wano.
 earcut, navmesh, Tweakpane, Playwright and zod.
 
 - navmesh 2.3.1 (MIT, Michael Hadley), with the javascript-astar its build contains (MIT, Brian Grinstead), is carried
-  in the engine under `src/engine/core/nav/navmesh/` (next), their `LICENSE` beside it. Its `vendored.json` names both
+  in the engine under `src/engine/core/nav/navmesh/` (4.7.3), their `LICENSE` beside it. Its `vendored.json` names both
   for a build's `THIRD_PARTY_NOTICES.txt` and the engine's SBOM, where javascript-astar is a component of its own, nested
   in navmesh's; that record missing fails the build and the SBOM rather than leaving navmesh out.
 - The Biscuit test vectors under `bridge/test-vectors/biscuit/` come from the Biscuit project (Apache-2.0, their

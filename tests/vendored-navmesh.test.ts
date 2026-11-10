@@ -1,4 +1,4 @@
-// navmesh 2.3.1, vendored (next): its package declared a git dependency (javascript-astar), which npm 12 refuses by
+// navmesh 2.3.1, vendored (4.7.3): its package declared a git dependency (javascript-astar), which npm 12 refuses by
 // default (`allow-git` = none, EALLOWGIT), in this repository's `npm ci` and in a game's install of the engine. The
 // engine carries its build instead (src/engine/core/nav/navmesh/README.md). Checked here: the vendored line is
 // upstream's, byte for byte; it runs as an ES module; and no lock of the repository takes a package from git again.

@@ -98,7 +98,7 @@ for (const name of names) {
         writeFileSync(join(dir, 'package-lock.json'), JSON.stringify(lock));
       }
       sbom = JSON.parse(npm(['sbom', '--package-lock-only', '--sbom-format', 'cyclonedx', '--omit', 'dev'], dir));
-      // Code the engine carries instead of a package (next): navmesh, with the javascript-astar its build contains
+      // Code the engine carries instead of a package (4.7.3): navmesh, with the javascript-astar its build contains
       // (tools/vendored.mjs). The archive without its record throws: the SBOM would leave navmesh out.
       if (name === ENGINE) sbom = withVendored(sbom, dir);
     }

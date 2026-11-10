@@ -1,4 +1,4 @@
-// The release command never re-runs a mutation verdict (next, #471). 4.7.2's candidate 42527046788 failed on eleven
+// The release command never re-runs a mutation verdict (4.7.3, #471). 4.7.2's candidate 42527046788 failed on eleven
 // survivors in six shards; the command re-ran it (attempt 2), which spent 72 minutes failing the same six, and the
 // survivors were dug out of the job logs. A shard red on a verdict now says it in an annotation (`mutation verdict`,
 // written by candidate.yml from the shard's report), the release command reads it and stops at once, listing the

@@ -30,7 +30,7 @@ network ("SSRF"). The Studio closes each one by default and opens only what you 
   `x-web-scumm-token` header, the `?token=` parameter of the printed URL, or the cookie the URL sets
   (`web_scumm_studio`, `HttpOnly`, `SameSite=Strict`). The host names allowed are the machine's IPv4 network
   addresses (`WEB_SCUMM_STUDIO_HOSTS`, set by the command).
-- **A game's `private/` is never served** (next, #477): the raw sheets and the real ending's configuration stay
+- **A game's `private/` is never served** (4.7.3, #477): the raw sheets and the real ending's configuration stay
   on disk. The dev server refuses any path under a `private/` folder (403), in LAN mode as on loopback, token or not.
 - **Never on the Internet.** Do not expose the development port to the Internet: the token protects a session on your
   network, not a public server. To put a Studio online, use the hosted Studio ([What runs where](team.what-runs-where.md)).
