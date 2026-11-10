@@ -170,7 +170,7 @@ describe('the candidate of the SHA, judged as the wait would on its first look',
     jobs: [
       job('target'),
       job('connector-archive-e2e', 'completed', 'failure'),
-      job('mutation (core-1of1)', 'completed', 'cancelled'),
+      job('mutation / mutation (core-1of1)', 'completed', 'cancelled'),
     ],
   };
   it('green holds; running is waited for; a first red attempt is re-run then waited for', () => {
@@ -206,7 +206,7 @@ describe('the candidate of the SHA, judged as the wait would on its first look',
       ...green,
       conclusion: 'failure',
       attempt: 2,
-      jobs: [job('mutation (runs-1of1)', 'completed', 'failure')],
+      jobs: [job('mutation / mutation (runs-1of1)', 'completed', 'failure')],
     };
     const g = candidateGate({ ...at, run: { id: 42527046788, view: twice }, later: { sha: TIP } });
     expect(g.state).toBe('red');

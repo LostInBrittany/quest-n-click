@@ -17,9 +17,8 @@ const GREEN: Record<string, { result: string }> = {
   'fuzz-connectors': ok,
   corpus: ok,
   merge: ok,
-  'mutation-plan': ok,
+  // The mutation matrix in one job, which calls mutation-run.yml (#525): red when its plan, a shard or its merge is.
   mutation: ok,
-  'mutation-merge': ok,
   'bridge-load-sqlite': ok,
   'bridge-load-postgres': ok,
   matrix: ok,
@@ -37,10 +36,7 @@ const night: Run = {
 };
 const warmup: Run = { ...night, event: 'workflow_dispatch', jobs: 'mutation' };
 const skippedButMutation = Object.fromEntries(
-  Object.keys(GREEN).map((k) => [
-    k,
-    ['guard', 'mutation-plan', 'mutation', 'mutation-merge'].includes(k) ? ok : { result: 'skipped' },
-  ]),
+  Object.keys(GREEN).map((k) => [k, ['guard', 'mutation'].includes(k) ? ok : { result: 'skipped' }]),
 );
 const survivor = {
   set: 'core',
@@ -55,9 +51,9 @@ const survivor = {
 describe('the red jobs', () => {
   it('are the failed, cancelled and timed-out ones (a timeout is a failure), in the order of the workflow', () => {
     expect(redJobs(GREEN)).toEqual([]);
-    expect(redJobs({ ...GREEN, heavy: { result: 'failure' }, 'mutation-merge': { result: 'cancelled' } })).toEqual([
+    expect(redJobs({ ...GREEN, heavy: { result: 'failure' }, mutation: { result: 'cancelled' } })).toEqual([
       { job: 'heavy', result: 'failure' },
-      { job: 'mutation-merge', result: 'cancelled' },
+      { job: 'mutation', result: 'cancelled' },
     ]);
   });
 
@@ -177,7 +173,7 @@ describe('the decision', () => {
 
   it('a failed mutation gate lists the surviving mutants not named', () => {
     const d = decide({
-      needs: { ...GREEN, 'mutation-merge': { result: 'failure' } },
+      needs: { ...GREEN, mutation: { result: 'failure' } },
       run: night,
       open: [],
       survivors: [survivor],
@@ -191,7 +187,7 @@ describe('the decision', () => {
   it('caps the list at 20 mutants and says how many more', () => {
     const many = Array.from({ length: 23 }, (_, i) => ({ ...survivor, line: i + 1 }));
     const d = decide({
-      needs: { ...GREEN, 'mutation-merge': { result: 'failure' } },
+      needs: { ...GREEN, mutation: { result: 'failure' } },
       run: night,
       open: [],
       survivors: many,
@@ -201,16 +197,17 @@ describe('the decision', () => {
   });
 
   it('a failed mutation job without a report that names a survivor points to the jobs', () => {
-    for (const job of ['mutation', 'mutation-merge', 'mutation-plan']) {
-      const d = decide({ needs: { ...GREEN, [job]: { result: 'failure' } }, run: night, open: [], survivors: [] });
-      expect(d.body, job).toMatch(/no merged report names a surviving mutant/);
+    for (const result of ['failure', 'cancelled']) {
+      const d = decide({ needs: { ...GREEN, mutation: { result } }, run: night, open: [], survivors: [] });
+      expect(d.body, result).toMatch(/no merged report names a surviving mutant/);
+      expect(d.body, result).toContain('`mutation / …` jobs');
     }
     const other = decide({ needs: { ...GREEN, heavy: { result: 'failure' } }, run: night, open: [], survivors: [] });
     expect(other.body).not.toMatch(/mutant/);
   });
 
   it('a red warm-up of the mutation cache reports too: the candidate would fail on it', () => {
-    const red = { ...skippedButMutation, 'mutation-merge': { result: 'failure' } };
+    const red = { ...skippedButMutation, mutation: { result: 'failure' } };
     const d = decide({ needs: red, run: warmup, open: [], survivors: [survivor] });
     expect(d.action).toBe('open');
     expect(d.body).toContain('a warm-up of the mutation cache');

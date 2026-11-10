@@ -8,7 +8,7 @@ import { type KnownSurvivor, type MutationReport, sameMutant } from './mutate';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { ROOT } from './game';
-import { GATED, MEASURED, type MutationSet, SETS, SHARDS } from './mutation-sets';
+import { GATED, type MutationSet, SETS, SHARDS } from './mutation-sets';
 
 /** A shard's report: the set's report for its files only, with the cut it ran and the inputs of that cut. */
 export interface ShardReport extends MutationReport {
@@ -92,7 +92,6 @@ export interface MatrixEntry {
   set: MutationSet;
   shard: number;
   shards: number;
-  gated: boolean;
   pg: boolean;
   name: string;
 }
@@ -112,32 +111,24 @@ export const MINUTES: Record<string, number> = JSON.parse(
 );
 
 /**
- * The matrix the workflows run (`npx tsx tools/mutation-sets.ts --matrix=gated|nightly`): every shard of every gated
- * set; the nightly adds the measured sets, which gate nothing (`continue-on-error: ${{ !matrix.gated }}`). Longest
- * first by MINUTES (#410 PR 4), the name breaking a tie: GitHub starts a matrix's jobs in its order, `max-parallel` at a
- * time.
+ * The matrix the workflows run (`npx tsx tools/mutation-shards.ts --matrix=gated`, .github/workflows/mutation-run.yml):
+ * every shard of every gated set. Longest first by MINUTES (#410 PR 4), the name breaking a tie: GitHub starts a
+ * matrix's jobs in its order, `max-parallel` at a time.
  */
-export function mutationMatrix(kind: 'gated' | 'nightly'): { include: MatrixEntry[] } {
-  const sets: [MutationSet, boolean][] = [
-    ...GATED.map((s): [MutationSet, boolean] => [s, true]),
-    ...(kind === 'nightly' ? MEASURED.map((s): [MutationSet, boolean] => [s, false]) : []),
-  ];
+export function mutationMatrix(): { include: MatrixEntry[] } {
   return {
-    include: sets
-      .flatMap(([set, gated]) => {
-        const shards = Math.min(SHARDS[set] ?? 1, SETS[set].length);
-        return Array.from({ length: shards }, (_, i) => ({
-          set,
-          shard: i + 1,
-          shards,
-          gated,
-          pg: set === 'reality-store-postgres',
-          name: `${set}-${i + 1}of${shards}`,
-        }));
-      })
-      .sort(
-        (a, b) => (MINUTES[b.name] ?? 0) - (MINUTES[a.name] ?? 0) || (a.name < b.name ? -1 : a.name > b.name ? 1 : 0),
-      ),
+    include: GATED.flatMap((set) => {
+      const shards = Math.min(SHARDS[set] ?? 1, SETS[set].length);
+      return Array.from({ length: shards }, (_, i) => ({
+        set,
+        shard: i + 1,
+        shards,
+        pg: set === 'reality-store-postgres',
+        name: `${set}-${i + 1}of${shards}`,
+      }));
+    }).sort(
+      (a, b) => (MINUTES[b.name] ?? 0) - (MINUTES[a.name] ?? 0) || (a.name < b.name ? -1 : a.name > b.name ? 1 : 0),
+    ),
   };
 }
 
@@ -150,21 +141,22 @@ export interface RunJob {
 }
 
 /**
- * MINUTES from a run's jobs (#410 PR 4): each `mutation (<shard>)` job's minutes, rounded up. Run it on a cold run (a
- * nightly, `--fresh`): a shard whose report was reused takes a minute and would be ordered last.
+ * MINUTES from a run's jobs (#410 PR 4): each `mutation / mutation (<shard>)` job's minutes (`mutation (<shard>)` in a
+ * run before mutation-run.yml, #525), rounded up. Run it on a cold run (a nightly, `--fresh`): a shard whose report was
+ * reused takes a minute and would be ordered last.
  */
 export function minutesOf(jobs: readonly RunJob[]): Record<string, number> {
   const out: Record<string, number> = {};
   for (const j of jobs) {
-    const m = /^mutation \((.+)\)$/.exec(j.name);
+    const m = /^(?:mutation \/ )?mutation \((.+)\)$/.exec(j.name);
     if (!m || !j.startedAt || !j.completedAt) continue;
     out[m[1]!] = Math.max(1, Math.ceil((Date.parse(j.completedAt) - Date.parse(j.startedAt)) / 60_000));
   }
   return out;
 }
 
-// `npx tsx tools/mutation-shards.ts --matrix=gated|nightly` prints the matrix as JSON (a workflow's
-// `fromJSON(needs.mutation-plan.outputs.matrix)`); `--sets=gated|nightly` the sets, one per line (the merge's loop).
+// `npx tsx tools/mutation-shards.ts --matrix=gated` prints the matrix as JSON (mutation-run.yml's
+// `fromJSON(needs.plan.outputs.matrix)`); `--sets=gated` the sets, one per line (its merge's loop).
 if (process.argv[1]?.endsWith('mutation-shards.ts')) {
   const arg = (k: string) => process.argv.find((a) => a.startsWith(`--${k}=`))?.slice(k.length + 3);
   if (process.argv.includes('--minutes')) {
@@ -174,12 +166,12 @@ if (process.argv[1]?.endsWith('mutation-shards.ts')) {
     process.exit(0);
   }
   const kind = arg('matrix') ?? arg('sets');
-  if (kind !== 'gated' && kind !== 'nightly') {
+  if (kind !== 'gated') {
     console.error(
-      'usage: tsx tools/mutation-shards.ts --matrix=gated|nightly | --sets=gated|nightly | --minutes < jobs.json > tools/mutation-minutes.json',
+      'usage: tsx tools/mutation-shards.ts --matrix=gated | --sets=gated | --minutes < jobs.json > tools/mutation-minutes.json',
     );
     process.exit(2);
   }
-  const m = mutationMatrix(kind);
+  const m = mutationMatrix();
   console.log(arg('matrix') ? JSON.stringify(m) : [...new Set(m.include.map((e) => e.set))].join('\n'));
 }

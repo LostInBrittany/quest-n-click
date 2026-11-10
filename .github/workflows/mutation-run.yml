@@ -1,0 +1,146 @@
+name: mutation-run
+# The mutation matrix, written once (#525): ci.yml (a `full-ci` pull request), candidate.yml and nightly.yml each call
+# it from a job named `mutation`, so its jobs read `mutation / plan`, `mutation / mutation (<shard>)` and
+# `mutation / merge` in the checks and the API. A `needs: mutation` waits for the three: the caller's result is red
+# when the plan, a shard or the merge failed or was cancelled. Every shard of every gated set (4.1.20 PR 2a, plan §7.3)
+# from tools/mutation-shards.ts: no workflow writes its list of sets by hand (tests/mutate-shards.test.ts).
+on:
+  workflow_call:
+    inputs:
+      ref:
+        description: The commit to check out and the verdict's SHA (empty, the caller's own)
+        type: string
+        default: ''
+      fresh:
+        description: Measure every mutant again (the night, 4.1.8); otherwise reuse a passed shard from the cache
+        type: boolean
+        default: false
+      max-parallel:
+        description: Shards at a time (8 for the candidate and the nightly, #302; 256 is GitHub's matrix limit)
+        type: number
+        default: 256
+      verdict:
+        description: Say a failed shard's survivors in a `mutation verdict` annotation, for the release command (#471)
+        type: boolean
+        default: false
+permissions:
+  contents: read
+jobs:
+  plan:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    outputs:
+      matrix: ${{ steps.m.outputs.matrix }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ inputs.ref }}
+      - uses: ./.github/actions/setup
+        timeout-minutes: 17
+      - id: m
+        shell: bash
+        run: |
+          echo "matrix=$(npx tsx tools/mutation-shards.ts --matrix=gated)" >> "$GITHUB_OUTPUT"
+  # One job per shard (4.1.17: a set's length never cuts another's result short; 4.1.20: a long set in shards). Each
+  # job has a Postgres service; only the set that needs one is given its URL (the others' tests would run their
+  # Postgres cases too and judge mutants otherwise than the gate).
+  mutation:
+    needs: [plan]
+    name: mutation (${{ matrix.name }})
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+    strategy:
+      fail-fast: false
+      max-parallel: ${{ inputs.max-parallel }}
+      matrix: ${{ fromJSON(needs.plan.outputs.matrix) }}
+    services:
+      postgres:
+        image: mirror.gcr.io/library/postgres:16@sha256:65b16a8b326e0cfbdf33fa7e783f2a0cb352a61448616ccccfd616ef42aa0f65
+        env:
+          POSTGRES_USER: bridge
+          POSTGRES_PASSWORD: bridge
+          POSTGRES_DB: bridge
+        ports: ['5432:5432']
+        options: --health-cmd "pg_isready -U bridge" --health-interval 2s --health-retries 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ inputs.ref }}
+      - uses: ./.github/actions/setup
+        timeout-minutes: 17
+      # The cache key (4.5.5, #329): the shard's name and its set's input hash, read before any mutant. The nightly
+      # saves under it, the candidate restores it.
+      - id: inputs
+        run: echo "hash=$(npx tsx tools/mutate.ts --set=${{ matrix.set }} --hash)" >> "$GITHUB_OUTPUT"
+      # The night measures from scratch (`--fresh`, 4.1.8: under load a timeout counts as a kill); every other run
+      # reuses what the cache holds.
+      - id: restore
+        if: ${{ !inputs.fresh }}
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: .cache/mutation
+          key: mutation-${{ matrix.name }}-${{ steps.inputs.outputs.hash }}
+      - id: mutate
+        run: npm run test:mutation:core -- --set=${{ matrix.set }} --shard=${{ matrix.shard }}/${{ matrix.shards }} ${{ inputs.fresh && '--fresh' || '' }} | tee mutation-${{ matrix.name }}.txt
+        shell: bash
+        env:
+          BRIDGE_PG_URL: ${{ matrix.pg && 'postgres://bridge:bridge@127.0.0.1:5432/bridge' || '' }}
+      # The verdict, for the release command (next, #471): survivors nobody named (or docs/dev/mutants.json entries that
+      # do not hold) fail the same way on every try, so the shard says it in a `mutation verdict` annotation, and
+      # `npm run release` stops on it, listing them, instead of re-running the candidate. A shard that died otherwise
+      # (cancelled, timed out, a runner lost, npm ci) never reaches this step's verdict, and is re-run once as before.
+      # Written here, not by tools/mutate.ts: that file is an input of every set's hash.
+      - if: inputs.verdict && failure() && steps.mutate.outcome == 'failure'
+        name: The verdict, for the release command
+        run: npx tsx tools/release/mutation-verdict.ts --report=.cache/mutation/report-${{ matrix.set }}.shard-${{ matrix.shard }}of${{ matrix.shards }}.json --sha=${{ inputs.ref }}
+      # The shard's report saved under the very key the candidate restores (4.5.5, #329): on main, the release's
+      # candidate then reruns only the sets whose inputs moved since. Only a passed shard (this step's implicit
+      # success()); a key already saved (caches are immutable) is a warning, its entry a passed report of these inputs.
+      - if: steps.restore.outputs.cache-hit != 'true'
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: .cache/mutation
+          key: mutation-${{ matrix.name }}-${{ steps.inputs.outputs.hash }}
+      - if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: mutation-shard-${{ matrix.name }}
+          path: |
+            mutation-${{ matrix.name }}.txt
+            .cache/mutation/report-${{ matrix.set }}.shard-${{ matrix.shard }}of${{ matrix.shards }}.json
+          include-hidden-files: true
+          if-no-files-found: ignore
+  # Each set's shards merged into its report (`mutation-<set>`, the artifact the gate, the baseline and the summaries
+  # read): a shard missing, doubled, cancelled or of other inputs fails it, so no gate passes on part of a set.
+  merge:
+    needs: [plan, mutation]
+    if: always() && needs.plan.result == 'success'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ inputs.ref }}
+      - uses: ./.github/actions/setup
+        timeout-minutes: 17
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          pattern: mutation-shard-*
+          path: shards
+      - shell: bash
+        run: |
+          # On a line of its own: under `bash -e` a failed listing stops the step, never an empty loop that passes.
+          sets=$(npx tsx tools/mutation-shards.ts --sets=gated)
+          code=0
+          for set in $sets; do
+            npx tsx tools/mutate.ts --set="$set" --merge --from=shards || code=1
+            mkdir -p merged/.cache/mutation && { cp ".cache/mutation/report-$set.json" merged/.cache/mutation/ 2>/dev/null || true; }
+          done
+          exit $code
+      - if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: mutation-merged
+          path: merged
+          include-hidden-files: true
+          if-no-files-found: ignore

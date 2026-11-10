@@ -51,9 +51,11 @@ terms since 4.1.20; fourteen gated sets as of 4.7.0.
 | `routes` | the world's clock and its routes: `src/engine/core/{world,route-runtime}.ts` | 4.7.0 |
 
 The sets and the test files that judge each one are in [`tools/mutation-sets.ts`](../../tools/mutation-sets.ts)
-(`SETS`, `TESTS`, `GATED`); `MEASURED` (sets that report without gating) is empty since 4.2.1, but for `routes` in 4.6.0. Where each runs is in
+(`SETS`, `TESTS`, `GATED`). Every set is gated: a new one is measured by hand on its branch
+(`gh workflow run mutation -f set=<set> -f ref=<branch>`) and joins `GATED` once its survivors are read (the nightly's
+list of sets measured without gating, `MEASURED`, went in next, #525). Where each runs is in
 [Which tests run when](contribute.which-tests.md#suites): a pull request labelled `full-ci`, the nightly (from scratch; a night on a commit already tested is skipped, #519),
-the candidate and the release.
+the candidate and the release, all three through one reusable workflow, `.github/workflows/mutation-run.yml`.
 
 <a name="prerequisites"></a>
 
@@ -169,7 +171,8 @@ The tool writes the source file it mutates: do not edit it while a run is going.
 ## Expected result, and how to check it
 
 `✔ n/m mutants killed, k survivors explained, 0 not; report in .cache/mutation/…`, and exit code 0. In CI, the set's
-`mutation (<set>)` jobs and `mutation-merge` are green. On `main`, a shard's report is cached under its set's input
+`mutation / mutation (<set>-<i>of<n>)` jobs and `mutation / merge` are green (each workflow calls
+`mutation-run.yml` from a job named `mutation`, so its jobs carry that prefix, next, #525). On `main`, a shard's report is cached under its set's input
 hash: the nightly saves each shard it measured fresh and passed, the candidate restores it and runs again only the
 shards whose inputs moved since (4.5.5). The matrix starts the longest shards first (#410), by the minutes
 `tools/mutation-minutes.json` gives each, so the jobs run 8 at a time end together; the file is no input of any
@@ -188,7 +191,7 @@ until it has its line; the file is rebuilt from a cold run (a nightly):
 | `✖ docs/dev/mutants.json: n entries do not hold` | An entry without its terms, or past its `revisit` | Complete it, or read it again and move `revisit` |
 | `✖ --set=… mutates reality-store-postgres, which needs BRIDGE_PG_URL` | No Postgres given | Set `BRIDGE_PG_URL`, or run another set |
 | `ℹ --set=connectors is --set=connectors-pure since 4.1.19` | The old name | Use the new one (the alias works until 4.2) |
-| `✖ <set>: … nothing merged, the set is not judged` (CI) | A shard missing, doubled, cancelled or of other inputs | Rerun the set's failed shard jobs, then `mutation-merge` |
+| `✖ <set>: … nothing merged, the set is not judged` (CI) | A shard missing, doubled, cancelled or of other inputs | Rerun the set's failed shard jobs, then `mutation / merge` |
 
 <a name="files-changed"></a>
 

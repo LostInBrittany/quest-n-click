@@ -403,7 +403,45 @@ describe('the workflow, lot 0 details', () => {
     const cond = "github.event_name == 'pull_request' && contains(github.event.pull_request.labels.*.name, 'full-ci')";
     expect(yml).toContain(`    if: ${cond}`);
     expect(yml).toContain(`MUTATION: \${{ ${cond} }}`);
+    // One job, `mutation`, calls mutation-run.yml (#525): its result is red when the plan, a shard or the merge is,
+    // and only its skip is tolerated.
+    const mutation = yml.slice(yml.indexOf('\n  mutation:\n'), yml.indexOf('\n  reality-xcheck:\n'));
+    expect(mutation).toContain(`    if: ${cond}\n    uses: ./.github/workflows/mutation-run.yml\n`);
+    expect(yml).toContain('case "$job" in mutation)\n');
   });
+  it.skipIf(process.platform === 'win32')(
+    'pr-gate, run: red when the mutation job failed or was cancelled, or skipped on a full-ci pull request (#525)',
+    () => {
+      const gate = yml.slice(yml.indexOf('\n  pr-gate:\n'));
+      const script = gate
+        .slice(gate.indexOf('        run: |\n') + '        run: |\n'.length)
+        .split('\n')
+        .filter((l) => l.startsWith('          ') || l === '')
+        .map((l) => l.slice(10))
+        .join('\n');
+      const status = (mutation: string, full: boolean) => {
+        try {
+          execFileSync('bash', ['-c', script], {
+            env: {
+              ...process.env,
+              NEEDS: JSON.stringify({ plan: { result: 'success' }, mutation: { result: mutation } }),
+              MUTATION: String(full),
+            },
+            stdio: 'pipe',
+          });
+          return 0;
+        } catch (e) {
+          return (e as { status: number }).status;
+        }
+      };
+      expect(status('success', true)).toBe(0);
+      expect(status('failure', true)).toBe(1);
+      expect(status('cancelled', true)).toBe(1);
+      expect(status('skipped', true)).toBe(1);
+      expect(status('skipped', false)).toBe(0);
+      expect(status('failure', false)).toBe(1);
+    },
+  );
   it("pr-gate accepts a gated job's skip exactly when its gate is false (#529), run on every gated job", () => {
     const gate = yml.slice(yml.indexOf('\n  pr-gate:\n'));
     expect(gate).toContain('PLAN: ${{ needs.plan.outputs.plan }}');

@@ -12,7 +12,7 @@ import {
   type ShardReport,
   shardFiles,
 } from '../tools/mutation-shards';
-import { MEASURED } from '../tools/mutation-sets';
+import { GATED } from '../tools/mutation-sets';
 
 const COUNTS: Record<string, number> = { 'a.ts': 358, 'b.ts': 201, 'c.ts': 99, 'd.ts': 97, 'e.ts': 83, 'f.ts': 4 };
 const FILES = Object.keys(COUNTS);
@@ -145,35 +145,31 @@ describe('the shards merged into the set', () => {
 });
 
 describe('the matrix of the workflows', () => {
-  it('one entry per shard of every gated set; the nightly adds the measured ones, never gating', () => {
-    const gated = mutationMatrix('gated');
-    const sets = [...new Set(gated.include.map((e) => e.set))];
-    for (const e of gated.include) expect(e.gated).toBe(true);
-    expect(gated.include.filter((e) => e.set === sets[0]).map((e) => e.shard)).toEqual(
-      Array.from({ length: gated.include.filter((e) => e.set === sets[0]).length }, (_, i) => i + 1),
-    );
-    const nightly = mutationMatrix('nightly');
-    expect(nightly.include.length).toBeGreaterThanOrEqual(gated.include.length);
-    for (const e of nightly.include.filter((x) => !x.gated)) expect(sets).not.toContain(e.set);
-    // Nothing measured only (4.1.20: every set gated): the nightly runs the gated matrix, no more.
-    if (MEASURED.length === 0) expect(nightly).toEqual(gated);
-    else expect(nightly.include.some((x) => !x.gated)).toBe(true);
+  it('one entry per shard of every gated set, each set whole', () => {
+    const gated = mutationMatrix();
+    expect([...new Set(gated.include.map((e) => e.set))].sort()).toEqual([...GATED].sort());
+    for (const set of GATED)
+      expect(
+        gated.include
+          .filter((e) => e.set === set)
+          .map((e) => e.shard)
+          .sort((a, b) => a - b),
+        set,
+      ).toEqual(Array.from({ length: gated.include.filter((e) => e.set === set).length }, (_, i) => i + 1));
   });
 
   // #410 PR 4: 8 shards at a time in the matrix's order put the longest ones last; a cold candidate's mutation took
   // 114 min on 5 November 2026, 81 min modelled longest first.
   it('starts the longest shards first, by the minutes MINUTES gives each, the name breaking a tie', () => {
-    for (const kind of ['gated', 'nightly'] as const) {
-      const names = mutationMatrix(kind).include.map((e) => e.name);
-      expect(names).toEqual(
-        [...names].sort((a, b) => (MINUTES[b] ?? 0) - (MINUTES[a] ?? 0) || (a < b ? -1 : a > b ? 1 : 0)),
-      );
-    }
-    expect(mutationMatrix('gated').include[0]!.name).toBe('remix-1of1');
+    const names = mutationMatrix().include.map((e) => e.name);
+    expect(names).toEqual(
+      [...names].sort((a, b) => (MINUTES[b] ?? 0) - (MINUTES[a] ?? 0) || (a < b ? -1 : a > b ? 1 : 0)),
+    );
+    expect(mutationMatrix().include[0]!.name).toBe('remix-1of1');
   });
 
   it('has a time for every shard it runs, and none for a shard it no longer runs (a new set or cut: the table too)', () => {
-    const names = mutationMatrix('nightly').include.map((e) => e.name);
+    const names = mutationMatrix().include.map((e) => e.name);
     expect(names.filter((n) => !(n in MINUTES))).toEqual([]);
     expect(Object.keys(MINUTES).filter((n) => !names.includes(n))).toEqual([]);
     for (const [n, m] of Object.entries(MINUTES)) expect(Number.isInteger(m) && m > 0, n).toBe(true);
@@ -188,20 +184,22 @@ describe('the matrix of the workflows', () => {
     });
     expect(
       minutesOf([
-        job('mutation (remix-1of1)', '13:37', '14:52'),
-        job('mutation (core-1of1)', '13:37', '13:46', 'failure'),
+        // Called from a job named `mutation` (mutation-run.yml, #525); a run before it named the shard alone.
+        job('mutation / mutation (remix-1of1)', '13:37', '14:52'),
+        job('mutation / mutation (core-1of1)', '13:37', '13:46', 'failure'),
         job('mutation (voices-1of1)', '14:32', '14:42'),
-        job('mutation-plan', '13:16', '13:29'),
+        job('mutation / plan', '13:16', '13:29'),
+        job('mutation / merge', '14:52', '14:55'),
         job('heavy (1, 1)', '13:19', '13:29'),
       ]),
     ).toEqual({ 'remix-1of1': 75, 'core-1of1': 9, 'voices-1of1': 10 });
   });
 
   it('gives Postgres to the set that needs it only, and names each job and artifact uniquely', () => {
-    for (const e of mutationMatrix('nightly').include) expect(e.pg, e.set).toBe(e.set === 'reality-store-postgres');
-    const names = mutationMatrix('nightly').include.map((e) => e.name);
+    for (const e of mutationMatrix().include) expect(e.pg, e.set).toBe(e.set === 'reality-store-postgres');
+    const names = mutationMatrix().include.map((e) => e.name);
     expect(new Set(names).size).toBe(names.length);
-    for (const e of mutationMatrix('nightly').include) expect(e.name).toBe(`${e.set}-${e.shard}of${e.shards}`);
+    for (const e of mutationMatrix().include) expect(e.name).toBe(`${e.set}-${e.shard}of${e.shards}`);
   });
 });
 
@@ -209,7 +207,7 @@ describe('the speedrun set (4.5.6, #387)', () => {
   // 539 mutants in one job ran past its 120 minutes. A shard holds whole files: verify.ts, two thirds of the set, alone.
   it('runs in two shards, verify.ts alone in one', () => {
     expect(
-      mutationMatrix('gated')
+      mutationMatrix()
         .include.filter((e) => e.set === 'speedrun')
         .map((e) => e.name),
     ).toEqual(['speedrun-1of2', 'speedrun-2of2']);

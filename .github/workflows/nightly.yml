@@ -196,130 +196,17 @@ jobs:
             corpus.json
             corpus.txt
           if-no-files-found: ignore
-  # The mutation matrix (4.1.20 PR 2a, plan §7.3): every shard of every gated set, and the measured ones (gating nothing), from
-  # tools/mutation-shards.ts — no workflow writes its list of sets by hand (tests/mutate-shards.test.ts).
-  mutation-plan:
-    # Not in the working day (#372); the mutation jobs and their merge wait for this one.
+  # The mutation matrix (mutation-run.yml, #525), not in the working day (#372): the night measures every mutant again
+  # (`--fresh`) and saves each passed shard under the key the candidate restores (#329); a warm-up (`-f jobs=mutation`)
+  # reuses what the cache holds. 8 at a time, as the candidate (#302): a warm-up started by day leaves the runners to
+  # pull requests.
+  mutation:
     needs: guard
     if: needs.guard.outputs.run == 'true'
-    runs-on: ubuntu-24.04
-    timeout-minutes: 15
-    outputs:
-      matrix: ${{ steps.m.outputs.matrix }}
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
-        with:
-          node-version: 22
-          cache: npm
-      - run: for i in 1 2 3; do (timeout 6m npm ci) && break; [ "$i" = 3 ] && exit 1; echo "retry $i"; sleep 15; done
-        timeout-minutes: 20
-      - id: m
-        shell: bash
-        run: |
-          echo "matrix=$(npx tsx tools/mutation-shards.ts --matrix=nightly)" >> "$GITHUB_OUTPUT"
-  # One job per shard (4.1.17: a set's length never cuts another's result short; 4.1.20: a long set in shards). Each
-  # job has a Postgres service; only the set that needs one is given its URL (the others' tests would run their
-  # Postgres cases too and judge mutants otherwise than the gate).
-  mutation:
-    needs: [mutation-plan]
-    name: mutation (${{ matrix.name }})
-    runs-on: ubuntu-24.04
-    timeout-minutes: 120
-    continue-on-error: ${{ !matrix.gated }}
-    # 8 at a time, as the candidate (#302): a warm-up started by day leaves the runners to pull requests (#329).
-    strategy:
-      fail-fast: false
+    uses: ./.github/workflows/mutation-run.yml
+    with:
+      fresh: ${{ inputs.jobs != 'mutation' }}
       max-parallel: 8
-      matrix: ${{ fromJSON(needs.mutation-plan.outputs.matrix) }}
-    services:
-      postgres:
-        image: mirror.gcr.io/library/postgres:16@sha256:65b16a8b326e0cfbdf33fa7e783f2a0cb352a61448616ccccfd616ef42aa0f65
-        env:
-          POSTGRES_USER: bridge
-          POSTGRES_PASSWORD: bridge
-          POSTGRES_DB: bridge
-        ports: ['5432:5432']
-        options: --health-cmd "pg_isready -U bridge" --health-interval 2s --health-retries 30
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
-        with:
-          node-version: 22
-          cache: npm
-      - run: for i in 1 2 3; do (timeout 6m npm ci) && break; [ "$i" = 3 ] && exit 1; echo "retry $i"; sleep 15; done
-        timeout-minutes: 20
-      # The candidate's cache key (4.5.5, #329): the shard's name and its set's input hash, read before any mutant.
-      - id: inputs
-        run: echo "hash=$(npx tsx tools/mutate.ts --set=${{ matrix.set }} --hash)" >> "$GITHUB_OUTPUT"
-      # A warm-up reuses what the cache already holds; the night measures from scratch (`--fresh`, 4.1.8: under load a
-      # timeout counts as a kill, so a fresh measure each night).
-      - id: restore
-        if: inputs.jobs == 'mutation' && matrix.gated
-        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
-        with:
-          path: .cache/mutation
-          key: mutation-${{ matrix.name }}-${{ steps.inputs.outputs.hash }}
-      - run: npm run test:mutation:core -- --set=${{ matrix.set }} --shard=${{ matrix.shard }}/${{ matrix.shards }} ${{ inputs.jobs != 'mutation' && '--fresh' || '' }} | tee mutation-${{ matrix.name }}.txt
-        shell: bash
-        env:
-          BRIDGE_PG_URL: ${{ matrix.pg && 'postgres://bridge:bridge@127.0.0.1:5432/bridge' || '' }}
-      # The shard's report saved under the very key the candidate restores (4.5.5, #329), on main: the release's
-      # candidate then reruns only the sets whose inputs moved since. Only a passed shard (this step's implicit
-      # success()); a key already saved (caches are immutable) is a warning, its entry a passed report of these inputs.
-      - if: matrix.gated && steps.restore.outputs.cache-hit != 'true'
-        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
-        with:
-          path: .cache/mutation
-          key: mutation-${{ matrix.name }}-${{ steps.inputs.outputs.hash }}
-      - if: always()
-        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
-        with:
-          name: mutation-shard-${{ matrix.name }}
-          path: |
-            mutation-${{ matrix.name }}.txt
-            .cache/mutation/report-${{ matrix.set }}.shard-${{ matrix.shard }}of${{ matrix.shards }}.json
-          include-hidden-files: true
-          if-no-files-found: ignore
-  # Each set's shards merged into its report (`mutation-<set>`, the artifact the gate, the baseline and the summaries
-  # read): a shard missing, doubled, cancelled or of other inputs fails it, so no gate passes on part of a set.
-  mutation-merge:
-    needs: [mutation-plan, mutation]
-    if: always() && needs.mutation-plan.result == 'success'
-    runs-on: ubuntu-24.04
-    timeout-minutes: 20
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
-        with:
-          node-version: 22
-          cache: npm
-      - run: for i in 1 2 3; do (timeout 6m npm ci) && break; [ "$i" = 3 ] && exit 1; echo "retry $i"; sleep 15; done
-        timeout-minutes: 20
-      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
-        with:
-          pattern: mutation-shard-*
-          path: shards
-      - shell: bash
-        run: |
-          code=0
-          for set in $(echo '${{ needs.mutation-plan.outputs.matrix }}' | node -e "let s='';process.stdin.on('data',d=>s+=d).on('end',()=>console.log([...new Set(JSON.parse(s).include.filter(e=>e.gated).map(e=>e.set))].join(' ')))"); do
-            npx tsx tools/mutate.ts --set="$set" --merge --from=shards || code=1
-            mkdir -p merged/.cache/mutation && { cp ".cache/mutation/report-$set.json" merged/.cache/mutation/ 2>/dev/null || true; }
-          done
-          # The measured sets (gating nothing): merged and kept, a failure said, never the nightly's.
-          for set in $(echo '${{ needs.mutation-plan.outputs.matrix }}' | node -e "let s='';process.stdin.on('data',d=>s+=d).on('end',()=>console.log([...new Set(JSON.parse(s).include.filter(e=>!e.gated).map(e=>e.set))].join(' ')))"); do
-            npx tsx tools/mutate.ts --set="$set" --merge --from=shards || echo "::warning::the measured set $set is not clean (it gates nothing)"
-            cp ".cache/mutation/report-$set.json" merged/.cache/mutation/ 2>/dev/null || true
-          done
-          exit $code
-      - if: always()
-        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
-        with:
-          name: mutation-merged
-          path: merged
-          include-hidden-files: true
-          if-no-files-found: ignore
   # The Bridge under load (4.1.10, tools/bridge-load.ts, docs/dev/BENCH-BRIDGE.md): three instances, 1 000 players,
   # 50 000 proposals, on SQLite and on Postgres 16 (a service container pinned by digest), each a job of its own since
   # 4.1.17. In 4.1.16 the SQLite row was given BRIDGE_STORE="" and never opened SQLite, and its missing report failed
@@ -462,7 +349,7 @@ jobs:
   # (the candidate would fail on it) but never closes the issue: it skipped every other job. The only job with
   # `issues: write`; Node alone, no `npm ci`.
   report:
-    needs: [guard, npm-names, heavy, fuzz-connectors, corpus, merge, mutation-plan, mutation, mutation-merge, bridge-load-sqlite, bridge-load-postgres, matrix, cross-runtime, worker-container]
+    needs: [guard, npm-names, heavy, fuzz-connectors, corpus, merge, mutation, bridge-load-sqlite, bridge-load-postgres, matrix, cross-runtime, worker-container]
     if: always() && (needs.guard.outputs.run == 'true' || needs.guard.result != 'success')
     runs-on: ubuntu-24.04
     timeout-minutes: 10
@@ -476,7 +363,7 @@ jobs:
           node-version: 22
       # The merged reports of a failed gate: their survivors not named in docs/dev/mutants.json go in the text. None
       # when the merge wrote nothing; the text then points to the jobs.
-      - if: needs.mutation-merge.result == 'failure'
+      - if: needs.mutation.result == 'failure'
         continue-on-error: true
         uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:

@@ -248,6 +248,13 @@ export function criticalPath(timed, needs) {
   const id = (name) => name.split(' (')[0];
   const dur = {};
   for (const j of timed) dur[id(j.name)] = Math.max(dur[id(j.name)] ?? 0, j.seconds ?? 0);
+  // A called workflow's jobs (`mutation / plan`, `mutation / mutation (<shard>)`, `mutation / merge`, #525) are one
+  // chain under the caller's id in `needs`: the caller counts their sum.
+  for (const k of Object.keys(dur).filter((k) => k.includes(' / '))) {
+    const caller = k.split(' / ')[0];
+    dur[caller] = (dur[caller] ?? 0) + dur[k];
+    delete dur[k];
+  }
   const memo = {};
   const best = (job, seen) => {
     if (memo[job]) return memo[job];

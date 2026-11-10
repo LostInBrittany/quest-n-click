@@ -162,18 +162,23 @@ describe('the annotation, written then read back', () => {
     expect(none.stdout).not.toContain('::error');
     expect(none.stdout).toContain('no mutation verdict');
   }, 60_000);
-  it("candidate.yml's mutation job writes it after a failed mutation step, from the shard's report", () => {
-    const yml = readFileSync('.github/workflows/candidate.yml', 'utf8');
-    const job = yml.slice(yml.indexOf('\n  mutation:\n'), yml.indexOf('\n  mutation-merge:\n'));
+  it("the candidate's shards write it after a failed mutation step, from the shard's report (mutation-run.yml, #525)", () => {
+    const yml = readFileSync('.github/workflows/mutation-run.yml', 'utf8');
+    const job = yml.slice(yml.indexOf('\n  mutation:\n'), yml.indexOf('\n  merge:\n'));
     const mutate = job.indexOf('id: mutate');
     const step = job.indexOf('tools/release/mutation-verdict.ts');
     expect(mutate).toBeGreaterThan(0);
     expect(step).toBeGreaterThan(mutate);
-    expect(job).toMatch(/if: failure\(\) && steps\.mutate\.outcome == 'failure'/);
+    expect(job).toMatch(/if: inputs\.verdict && failure\(\) && steps\.mutate\.outcome == 'failure'/);
     expect(job).toContain(
       '--report=.cache/mutation/report-${{ matrix.set }}.shard-${{ matrix.shard }}of${{ matrix.shards }}.json',
     );
-    expect(job).toContain('--sha=${{ needs.target.outputs.sha }}');
+    // The SHA is the candidate's target: the ref its shards checked out.
+    expect(job).toContain('--sha=${{ inputs.ref }}');
+    const candidate = readFileSync('.github/workflows/candidate.yml', 'utf8');
+    const caller = candidate.slice(candidate.indexOf('\n  mutation:\n'), candidate.indexOf('\n  pack:\n'));
+    expect(caller).toContain('ref: ${{ needs.target.outputs.sha }}');
+    expect(caller).toMatch(/^ {6}verdict: true$/m);
   });
   it('tools/mutate.ts does not write it: that file is an input of every set, and editing it loses every cached shard', () => {
     expect(readFileSync('tools/mutate.ts', 'utf8')).not.toContain('mutation-verdict');
@@ -189,7 +194,7 @@ const job = (name: string, status = 'completed', conclusion = 'success', databas
 });
 const verdicts: Verdict[] = [
   {
-    job: 'mutation (studio-auth-1of1)',
+    job: 'mutation / mutation (studio-auth-1of1)',
     lines: [
       'studio-auth shard 1/1: 3 survivors not named in docs/dev/mutants.json',
       'studio-server/src/server/auth/gate.ts:152 condition true: !flight → true',
@@ -198,7 +203,7 @@ const verdicts: Verdict[] = [
     ],
   },
   {
-    job: 'mutation (runs-1of1)',
+    job: 'mutation / mutation (runs-1of1)',
     lines: [
       'runs shard 1/1: 1 survivor not named in docs/dev/mutants.json',
       'bridge/src/runs-store.ts:459 condition false: tenantId === undefined → false',
@@ -211,9 +216,9 @@ const red = {
   attempt: 1,
   jobs: [
     job('target'),
-    job('mutation (studio-auth-1of1)', 'completed', 'failure', 1),
-    job('mutation (runs-1of1)', 'completed', 'failure', 2),
-    job('mutation-merge', 'completed', 'failure'),
+    job('mutation / mutation (studio-auth-1of1)', 'completed', 'failure', 1),
+    job('mutation / mutation (runs-1of1)', 'completed', 'failure', 2),
+    job('mutation / merge', 'completed', 'failure'),
     job('candidate-gate', 'completed', 'failure'),
   ],
 };
@@ -233,10 +238,12 @@ describe('the wait, on a mutation verdict', () => {
     expect(lines[0]).toBe(
       `candidate run 42527046788: mutation survivors, not re-run (${URL}): a re-run measures the same inputs and finds them again`,
     );
-    expect(step.error).toContain('  ✖ mutation (studio-auth-1of1): studio-auth shard 1/1: 3 survivors not named');
+    expect(step.error).toContain(
+      '  ✖ mutation / mutation (studio-auth-1of1): studio-auth shard 1/1: 3 survivors not named',
+    );
     expect(step.error).toContain('      studio-server/src/server/auth/routes.ts:44 operator: > → >=');
     expect(step.error).toContain('      bridge/src/runs-store.ts:459 condition false: tenantId === undefined → false');
-    expect(step.error).toContain('also red: mutation-merge failure, candidate-gate failure');
+    expect(step.error).toContain('also red: mutation / merge failure, candidate-gate failure');
     expect(step.error).toContain('https://github.com/Quest-n-Click/quest-n-click/wiki/EN-Contribute-Mutation-Testing');
     expect(step.error).toContain("npm run release -- 4.7.2 --commit=<the fix's merge sha> --start-candidate");
   });
@@ -246,7 +253,7 @@ describe('the wait, on a mutation verdict', () => {
       conclusion: '',
       jobs: [
         job('target'),
-        job('mutation (runs-1of1)', 'completed', 'failure', 2),
+        job('mutation / mutation (runs-1of1)', 'completed', 'failure', 2),
         job('heavy (1)', 'in_progress', ''),
       ],
     };
@@ -270,7 +277,7 @@ describe('the wait, on a mutation verdict', () => {
   it('without a verdict (a shard cancelled, timed out, a runner lost): re-run once as before', () => {
     const died = {
       ...red,
-      jobs: [job('target'), job('mutation (runs-1of1)', 'completed', 'timed_out', 2)],
+      jobs: [job('target'), job('mutation / mutation (runs-1of1)', 'completed', 'timed_out', 2)],
     };
     expect(candidateStep(died, { ...at, verdicts: [] }).do).toBe('rerun');
     expect(candidateStep(died, at).do).toBe('rerun');
@@ -332,7 +339,11 @@ describe('the review of #471 PR 4', () => {
   });
   it('the same verdict in several shards (mutants.json entries that do not hold) is said once, its shards listed', () => {
     const due = ['docs/dev/mutants.json: 1 entry does not hold', 'a.ts operator: > → >=: to be read again at 4.7.2'];
-    const jobs = ['mutation (core-1of1)', 'mutation (runs-1of1)', 'mutation (reality-1of2)'];
+    const jobs = [
+      'mutation / mutation (core-1of1)',
+      'mutation / mutation (runs-1of1)',
+      'mutation / mutation (reality-1of2)',
+    ];
     const view = {
       status: 'completed',
       conclusion: 'failure',

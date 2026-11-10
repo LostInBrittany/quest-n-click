@@ -506,10 +506,10 @@ describe.skipIf(!POSIX)('npm run release -- <version>, end to end (#348)', () =>
     conclusion: 'failure',
     jobs: [
       job('target'),
-      job('mutation (studio-auth-1of1)', 'completed', 'failure', 501),
-      job('mutation (runs-1of1)', 'completed', 'failure', 502),
-      job('mutation (core-1of1)', 'completed', 'success', 503),
-      job('mutation-merge', 'completed', 'failure', 504),
+      job('mutation / mutation (studio-auth-1of1)', 'completed', 'failure', 501),
+      job('mutation / mutation (runs-1of1)', 'completed', 'failure', 502),
+      job('mutation / mutation (core-1of1)', 'completed', 'success', 503),
+      job('mutation / merge', 'completed', 'failure', 504),
       ...more,
       job('candidate-gate', 'completed', 'failure', 505),
     ],
@@ -527,9 +527,9 @@ describe.skipIf(!POSIX)('npm run release -- <version>, end to end (#348)', () =>
     expect(reruns(r.calls)).toEqual([]);
     expect(of(r.calls, 'ship')).toEqual([]);
     expect(r.out).toContain('candidate run 11: mutation survivors, not re-run');
-    expect(r.out).toContain('✖ mutation (studio-auth-1of1): studio-auth shard 1/1: 3 survivors not named');
+    expect(r.out).toContain('✖ mutation / mutation (studio-auth-1of1): studio-auth shard 1/1: 3 survivors not named');
     expect(r.out).toContain('studio-server/src/server/auth/routes.ts:44 operator: > → >=');
-    expect(r.out).toContain('✖ mutation (runs-1of1): runs shard 1/1: 1 survivor not named');
+    expect(r.out).toContain('✖ mutation / mutation (runs-1of1): runs shard 1/1: 1 survivor not named');
     expect(r.out).toContain('bridge/src/runs-store.ts:459 condition false: tenantId === undefined → false');
     expect(r.out).toContain(`npm run release -- ${V} --commit=<the fix's merge sha> --start-candidate`);
     // Only the red jobs' annotations are read; the green shard's are not asked for.
@@ -561,8 +561,8 @@ describe.skipIf(!POSIX)('npm run release -- <version>, end to end (#348)', () =>
       conclusion: '',
       jobs: [
         job('target'),
-        job('mutation (runs-1of1)', 'completed', 'failure', 502),
-        job('mutation (connectors-edge-1of4)', 'in_progress', '', 506),
+        job('mutation / mutation (runs-1of1)', 'completed', 'failure', 502),
+        job('mutation / mutation (connectors-edge-1of4)', 'in_progress', '', 506),
       ],
     };
     s.setState({
@@ -599,9 +599,9 @@ describe.skipIf(!POSIX)('npm run release -- <version>, end to end (#348)', () =>
       conclusion: 'failure',
       jobs: [
         job('target'),
-        job('mutation (studio-auth-1of1)', 'completed', 'timed_out', 501),
-        job('mutation (runs-1of1)', 'completed', 'cancelled', 502),
-        job('mutation-merge', 'completed', 'failure', 504),
+        job('mutation / mutation (studio-auth-1of1)', 'completed', 'timed_out', 501),
+        job('mutation / mutation (runs-1of1)', 'completed', 'cancelled', 502),
+        job('mutation / merge', 'completed', 'failure', 504),
       ],
     };
     s.setState({

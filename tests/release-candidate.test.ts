@@ -79,8 +79,12 @@ describe('the candidate of a release', () => {
 
   it('caps its mutation matrix at 8 jobs at once, so a pull request is not queued behind it (#302)', () => {
     const yml = readFileSync('.github/workflows/candidate.yml', 'utf8');
-    const job = yml.slice(yml.indexOf('\n  mutation:\n'), yml.indexOf('\n  mutation-merge:\n'));
-    expect(job).toMatch(/strategy:\n {6}fail-fast: false\n {6}max-parallel: 8\n {6}matrix:/);
+    const job = yml.slice(yml.indexOf('\n  mutation:\n'), yml.indexOf('\n  pack:\n'));
+    expect(job).toMatch(/^ {6}max-parallel: 8$/m);
+    const run = readFileSync('.github/workflows/mutation-run.yml', 'utf8');
+    expect(run).toMatch(
+      /strategy:\n {6}fail-fast: false\n {6}max-parallel: \$\{\{ inputs\.max-parallel \}\}\n {6}matrix:/,
+    );
   });
 
   it('is required from 4.1.17 on, pre-releases included', () => {
@@ -141,60 +145,79 @@ describe('the workflows that judge a candidate', () => {
   const jobs = (text: string) =>
     [...text.slice(text.indexOf('\njobs:\n')).matchAll(/^ {2}([a-z][a-z0-9-]*):$/gm)].map((m) => m[1]);
 
-  it('run every shard of every gated set from the one generated matrix, never a list of their own (4.1.20)', () => {
+  // A job's text: from its key to the next job's.
+  const job = (text: string, name: string) => {
+    const from = text.indexOf(`\n  ${name}:\n`);
+    const rest = text.slice(from + 1);
+    const next = rest.slice(1).search(/\n {2}[a-z][a-z0-9-]*:\n/);
+    return next < 0 ? rest : rest.slice(0, next + 1);
+  };
+  const run = wf('mutation-run');
+
+  it('run every shard of every gated set from the one generated matrix, in one reusable workflow (4.1.20, #525)', () => {
     for (const name of ['candidate', 'nightly', 'ci']) {
       const text = wf(name);
-      expect(text, name).not.toMatch(/^ {8}set: \[/m);
-      expect(text, name).not.toMatch(/--set=all/);
-      const kind = name === 'nightly' ? 'nightly' : 'gated';
-      expect(text, name).toContain(`npx tsx tools/mutation-shards.ts --matrix=${kind}`);
-      expect(text, name).toContain('matrix: ${{ fromJSON(needs.mutation-plan.outputs.matrix) }}');
-      expect(text, name).toContain('--shard=${{ matrix.shard }}/${{ matrix.shards }}');
-      expect(jobs(text), name).toEqual(expect.arrayContaining(['mutation-plan', 'mutation', 'mutation-merge']));
-      // The merge judges the set: a shard missing, doubled or of other inputs fails it (tools/mutation-shards.ts).
-      expect(text, name).toContain('npx tsx tools/mutate.ts --set="$set" --merge --from=shards || code=1');
-      // Postgres for the one set whose tests need it (the others would judge mutants otherwise than the gate).
-      expect(text, name).toContain(
-        "BRIDGE_PG_URL: ${{ matrix.pg && 'postgres://bridge:bridge@127.0.0.1:5432/bridge' || '' }}",
-      );
+      // One job, `mutation`, calls it: its jobs read `mutation / plan`, `mutation / mutation (<shard>)`, `mutation / merge`.
+      expect(job(text, 'mutation'), name).toMatch(/^ {4}uses: \.\/\.github\/workflows\/mutation-run\.yml$/m);
+      expect(jobs(text), name).not.toContain('mutation-plan');
+      expect(jobs(text), name).not.toContain('mutation-merge');
+      // No copy of its own: no matrix, no mutant run, no merge.
+      expect(text, name).not.toMatch(/mutation-shards\.ts|test:mutation:core|--merge --from=shards/);
     }
-    expect(wf('nightly')).toContain('continue-on-error: ${{ !matrix.gated }}');
-    for (const name of ['candidate', 'ci'])
-      expect(wf(name), name).not.toContain('continue-on-error: ${{ !matrix.gated }}');
+    expect(jobs(run)).toEqual(['plan', 'mutation', 'merge']);
+    expect(run).toMatch(/^on:\n {2}workflow_call:\n/m);
+    expect(run).not.toMatch(/^ {8}set: \[/m);
+    expect(run).not.toMatch(/--set=all/);
+    expect(run).toContain('npx tsx tools/mutation-shards.ts --matrix=gated');
+    expect(run).toContain('matrix: ${{ fromJSON(needs.plan.outputs.matrix) }}');
+    expect(run).toContain('--shard=${{ matrix.shard }}/${{ matrix.shards }}');
+    expect(job(run, 'mutation')).toMatch(/^ {4}name: mutation \(\$\{\{ matrix\.name \}\}\)$/m);
+    // The merge judges the set: a shard missing, doubled or of other inputs fails it (tools/mutation-shards.ts). Its
+    // sets come from the tool, on a line of their own (a failed listing stops the step under `bash -e`).
+    const merge = job(run, 'merge');
+    expect(merge).toMatch(/^ {4}if: always\(\) && needs\.plan\.result == 'success'$/m);
+    expect(merge).toContain('sets=$(npx tsx tools/mutation-shards.ts --sets=gated)\n');
+    expect(merge).toContain('npx tsx tools/mutate.ts --set="$set" --merge --from=shards || code=1');
+    expect(merge).toContain('exit $code');
+    expect(run).not.toMatch(/node -e|continue-on-error|matrix\.gated/);
+    // Postgres for the one set whose tests need it (the others would judge mutants otherwise than the gate).
+    expect(run).toContain("BRIDGE_PG_URL: ${{ matrix.pg && 'postgres://bridge:bridge@127.0.0.1:5432/bridge' || '' }}");
   });
 
-  it('the nightly saves each passed gated shard under the very key the candidate restores, on main (4.5.5, #329)', () => {
-    // A job's text: from its key to the next job's.
-    const job = (text: string, name: string) => {
-      const from = text.indexOf(`\n  ${name}:\n`);
-      const rest = text.slice(from + 1);
-      const next = rest.slice(1).search(/\n {2}[a-z][a-z0-9-]*:\n/);
-      return next < 0 ? rest : rest.slice(0, next + 1);
-    };
+  it('the nightly saves each passed shard under the very key the candidate restores, on main (4.5.5, #329)', () => {
     const KEY = 'key: mutation-${{ matrix.name }}-${{ steps.inputs.outputs.hash }}';
     const HASH = 'run: echo "hash=$(npx tsx tools/mutate.ts --set=${{ matrix.set }} --hash)" >> "$GITHUB_OUTPUT"';
-    const candidate = job(wf('candidate'), 'mutation');
-    const nightly = job(wf('nightly'), 'mutation');
-    for (const [name, text] of [
-      ['candidate', candidate],
-      ['nightly', nightly],
-    ] as const) {
-      expect(text, name).toContain(HASH);
-      expect(text, name).toContain(`path: .cache/mutation\n          ${KEY}`);
-    }
-    // The save: only a gated shard, only when it passed (no always(), so success() is implied), not on a warm-up's hit.
-    const at = nightly.lastIndexOf('\n      - ', nightly.indexOf('uses: actions/cache/save@'));
-    const save = nightly.slice(at, nightly.indexOf('\n      - ', at + 1));
-    expect(save).toMatch(/- if: matrix\.gated && steps\.restore\.outputs\.cache-hit != 'true'\n/);
+    const shard = job(run, 'mutation');
+    expect(shard).toContain(HASH);
+    expect(shard.split(`path: .cache/mutation\n          ${KEY}`)).toHaveLength(3);
+    // The restore: every run but a fresh one (the night).
+    expect(shard).toMatch(
+      /- id: restore\n {8}if: \$\{\{ !inputs\.fresh \}\}\n {8}uses: actions\/cache\/restore@[0-9a-f]{40} # v/,
+    );
+    // The save: only when the shard passed (no always(), so success() is implied), not on a hit.
+    const at = shard.lastIndexOf('\n      - ', shard.indexOf('uses: actions/cache/save@'));
+    const save = shard.slice(at, shard.indexOf('\n      - ', at + 1));
+    expect(save).toMatch(/- if: steps\.restore\.outputs\.cache-hit != 'true'\n/);
     expect(save).not.toMatch(/always\(\)|failure\(\)/);
     expect(save).toMatch(/actions\/cache\/save@[0-9a-f]{40} # v/);
     // It saves after the run, and the hash is read before any mutant.
-    expect(nightly.indexOf(HASH)).toBeLessThan(nightly.indexOf('npm run test:mutation:core'));
-    expect(nightly.indexOf('npm run test:mutation:core')).toBeLessThan(nightly.indexOf('actions/cache/save@'));
-    // The night measures fresh; a warm-up reuses what the cache holds. 8 at a time, as the candidate (#302).
-    expect(nightly).toContain("${{ inputs.jobs != 'mutation' && '--fresh' || '' }}");
-    expect(nightly).toMatch(/- id: restore\n {8}if: inputs\.jobs == 'mutation' && matrix\.gated\n/);
-    expect(nightly).toMatch(/strategy:\n {6}fail-fast: false\n {6}max-parallel: 8\n {6}matrix:/);
+    expect(shard.indexOf(HASH)).toBeLessThan(shard.indexOf('npm run test:mutation:core'));
+    expect(shard.indexOf('npm run test:mutation:core')).toBeLessThan(shard.indexOf('actions/cache/save@'));
+    expect(shard).toContain("${{ inputs.fresh && '--fresh' || '' }}");
+    // The night measures fresh; a warm-up reuses what the cache holds; the candidate and ci always reuse. 8 at a time,
+    // as the candidate (#302).
+    const nightly = job(wf('nightly'), 'mutation');
+    expect(nightly).toContain("fresh: ${{ inputs.jobs != 'mutation' }}");
+    expect(nightly).toMatch(/^ {6}max-parallel: 8$/m);
+    for (const name of ['candidate', 'ci']) expect(job(wf(name), 'mutation'), name).not.toMatch(/^ {6}fresh:/m);
+  });
+
+  it("the candidate's shards say their verdict on its target SHA; ci and the nightly say none (#471)", () => {
+    const candidate = job(wf('candidate'), 'mutation');
+    expect(candidate).toMatch(/^ {4}needs: target$/m);
+    expect(candidate).toContain('ref: ${{ needs.target.outputs.sha }}');
+    expect(candidate).toMatch(/^ {6}verdict: true$/m);
+    for (const name of ['nightly', 'ci']) expect(job(wf(name), 'mutation'), name).not.toMatch(/^ {6}(verdict|ref):/m);
   });
 
   it('the nightly by hand with jobs=mutation runs the mutation jobs only: a warm-up of the cache (#329)', () => {
@@ -224,7 +247,10 @@ describe('the workflows that judge a candidate', () => {
 
   it('judge a candidate only once every set is merged; the release job waits for no job', () => {
     const gate = wf('candidate').slice(wf('candidate').indexOf('\n  candidate-gate:'));
-    expect(gate.slice(0, gate.indexOf('\n    if:'))).toMatch(/needs: \[[^\]]*mutation-plan, mutation, mutation-merge/);
+    expect(gate.slice(0, gate.indexOf('\n    if:'))).toMatch(/needs: \[[^\]]*, mutation, /);
+    // The caller job's result is the called workflow's (#525): a shard or the merge red, cancelled or skipped is red.
+    for (const result of ['failure', 'cancelled', 'skipped'])
+      expect(judge({ target: { result: 'success' }, mutation: { result } }).ok, result).toBe(false);
     const release = wf('release').slice(wf('release').indexOf('\n  release:'));
     expect(release.slice(0, release.indexOf('\n    steps:'))).not.toMatch(/^ {4}needs:/m);
   });
