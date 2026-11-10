@@ -3872,8 +3872,7 @@
         "src/engine/tools/status.ts",
         "scripts/e2e.mjs",
         "games/demo/e2e.mjs",
-        ".github/workflows/ci.yml",
-        ".github/workflows/prove.yml"
+        ".github/workflows/ci.yml"
       ],
       "replaces": [
         "docs/en/CONTENT_GUIDE.md#checking-your-work",
@@ -10289,7 +10288,6 @@
         ".github/workflows/ci.yml",
         ".github/workflows/nightly.yml",
         ".github/workflows/candidate.yml",
-        ".github/workflows/prove.yml",
         "package.json"
       ],
       "replaces": [
@@ -10312,8 +10310,8 @@
         "fr": ["matrice des tests", "trouver le test d'une chose", "suites de tests"]
       },
       "keywords": {
-        "en": ["unit", "heavy", "coverage", "e2e", "WebKit", "Firefox", "nightly", "weekly", "candidate"],
-        "fr": ["unitaire", "lourd", "couverture", "e2e", "WebKit", "Firefox", "nightly", "hebdomadaire", "candidat"]
+        "en": ["unit", "heavy", "coverage", "e2e", "WebKit", "Firefox", "nightly", "candidate"],
+        "fr": ["unitaire", "lourd", "couverture", "e2e", "WebKit", "Firefox", "nightly", "candidat"]
       },
       "identifiers": [
         "npm run test",

@@ -1,9 +1,9 @@
 // The scheduled workflows and the Paris working day (4.5.6, #372, tools/schedule-guard.ts). GitHub starts their
 // scheduled runs hours after their cron times, every time: the nightly (then `17 3 * * *`) 4 h 36 min to 7 h 44 min
 // late from 6 to 26 October 2026, the weekly prove (then `0 4 * * 1`) 5 h 37 min to 7 h 40 min late, so both ran in
-// the working day and took the runners from the release's candidate and its pull requests. Their crons moved to the
-// evening before, and a guard skips a scheduled run that still starts in the Paris working day. The decisions, the
-// observed starts, then both workflows wired.
+// the working day and took the runners from the release's candidate and its pull requests. The nightly's cron moved to
+// the evening before, and a guard skips a scheduled run that still starts in the Paris working day. The decisions, the
+// observed starts, then the nightly wired (the weekly prove is retired, #518; its observed starts stay as evidence).
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { decide, parisMinutes, type PastRun, WORKDAY } from '../tools/schedule-guard';
@@ -36,8 +36,8 @@ const NIGHTLY_STARTS = [
 ];
 /** Every scheduled start of the weekly prove, the Mondays of 5 to 26 October 2026. */
 const PROVE_STARTS = ['2026-10-05T11:11:49Z', '2026-10-12T11:40:28Z', '2026-10-19T09:36:58Z', '2026-10-26T09:44:39Z'];
-/** The crons those runs were started from. */
-const OLD = { nightly: { h: 3, m: 17 }, prove: { h: 4, m: 0 } };
+/** The cron the nightly's runs were started from. */
+const OLD = { nightly: { h: 3, m: 17 } };
 
 /** Minutes between a start and its cron time that UTC day. */
 const delay = (iso: string, cron: { h: number; m: number }) => {
@@ -172,10 +172,7 @@ describe('the scheduled workflows', () => {
   };
 
   it('start in the evening before, so that every delay observed lands them in the night, summer or winter', () => {
-    const cases = [
-      { name: 'nightly', starts: NIGHTLY_STARTS, old: OLD.nightly },
-      { name: 'prove', starts: PROVE_STARTS, old: OLD.prove },
-    ];
+    const cases = [{ name: 'nightly', starts: NIGHTLY_STARTS, old: OLD.nightly }];
     for (const { name, starts, old } of cases) {
       const cron = cronOf(name);
       expect(cron.h, name).toBeGreaterThanOrEqual(19);
@@ -190,12 +187,10 @@ describe('the scheduled workflows', () => {
         }
       }
     }
-    // The prove still runs once a week, on Sunday evening for the Monday.
-    expect(cronOf('prove').dow).toBe('0');
     expect(cronOf('nightly').dow).toBe('*');
   });
 
-  for (const name of ['nightly', 'prove']) {
+  for (const name of ['nightly']) {
     it(`${name}: a guard job decides before any other job`, () => {
       const jobs = jobsOf(wf(name));
       const guard = jobs.get('guard');

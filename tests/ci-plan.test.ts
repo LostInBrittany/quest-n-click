@@ -136,7 +136,7 @@ describe('the plan of a change', () => {
     ['a coverage floor', ['tests/coverage-floors.json'], gates('coverage')],
     ['the Windows launcher', ['scripts/start.mjs'], gates('coverage', 'node24', 'windows')],
     ['a release tool', ['tools/release/ship.mjs', 'tools/mutate.ts'], []],
-    // The scheduled workflows' late-start guard (4.5.6, #372): read by nightly.yml and prove.yml only.
+    // The nightly's late-start guard (4.5.6, #372): read by nightly.yml only.
     ['the schedule guard', ['tools/schedule-guard.ts'], []],
     // The nightly's report of a red night (4.5.6, #379): read by nightly.yml only.
     ['the nightly report', ['tools/nightly-report.ts'], []],

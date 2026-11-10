@@ -51,7 +51,7 @@ describe('the YAML itself', () => {
 
 describe('no workflow starts on a release event', () => {
   it('neither docs-publish nor any other: a release published with GITHUB_TOKEN starts nothing (§4.5.2)', () => {
-    for (const name of ['docs-publish', 'release', 'candidate', 'ci', 'nightly', 'prove', 'qualify', 'mutation'])
+    for (const name of ['docs-publish', 'release', 'candidate', 'ci', 'nightly', 'qualify', 'mutation'])
       expect(keys(top(read(name), 'on'), 2), name).not.toContain('release');
   });
 });

@@ -395,7 +395,7 @@ The path of the Furnace executable the audio pipeline renders with, when it is n
 Which game of `games/` the engine repository's commands work on (`GAME=reference npm run validate`). Without it, the game last selected (`npm run game -- <id>`), then `config.game` of `package.json`, then `demo`.
 
 - Origin: you set it; the code reads it.
-- Read by: [`.github/workflows/ci.yml`](../../.github/workflows/ci.yml), [`.github/workflows/prove.yml`](../../.github/workflows/prove.yml), [`scripts/e2e-studio.mjs`](../../scripts/e2e-studio.mjs), and 7 more.
+- Read by: [`.github/workflows/ci.yml`](../../.github/workflows/ci.yml), [`scripts/e2e-studio.mjs`](../../scripts/e2e-studio.mjs), [`scripts/e2e-visual.mjs`](../../scripts/e2e-visual.mjs), and 6 more.
 
 <a name="game-dir"></a>
 
@@ -1160,10 +1160,10 @@ release: the documentation archive of the release, when it has one.
 
 ### `EVENT`
 
-candidate: the event that started the run; only a push to main can be a release's merge (4.5.4). nightly and prove: a `schedule` run that starts in the Paris working day skips its jobs (4.5.6, #372).
+candidate: the event that started the run; only a push to main can be a release's merge (4.5.4). nightly: a `schedule` run that starts in the Paris working day skips its jobs (4.5.6, #372).
 
 - Origin: set by a workflow of `.github/workflows/` (CI and releases).
-- Read by: [`.github/workflows/candidate.yml`](../../.github/workflows/candidate.yml), [`.github/workflows/nightly.yml`](../../.github/workflows/nightly.yml), [`.github/workflows/prove.yml`](../../.github/workflows/prove.yml), and 1 more.
+- Read by: [`.github/workflows/candidate.yml`](../../.github/workflows/candidate.yml), [`.github/workflows/nightly.yml`](../../.github/workflows/nightly.yml), [`tools/release/supersede.mjs`](../../tools/release/supersede.mjs).
 
 <a name="external"></a>
 

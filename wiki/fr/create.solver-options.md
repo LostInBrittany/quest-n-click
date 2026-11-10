@@ -286,8 +286,8 @@ npm run bench -- --rooms=40 --prove --v3
 - `bench -- --matrix [--eras] [--max=20000]` : la table de référence de la 3.3, la preuve sur 20 ou 40 lieux × 1, 2
   ou 3 personnages, et où passe le temps (`--eras` : personnages confinés à des époques).
 - `bench -- --rooms=40 [--prove --v3]` : un jeu généré de cette taille, chaque outil chronométré dessus ; `--prove`
-  ajoute la preuve exhaustive, `--v3` le génère avec des ids stables. Le workflow hebdomadaire `prove` le lance sur 100
-  lieux.
+  ajoute la preuve exhaustive, `--v3` le génère avec des ids stables. Il se lance à la main : aucun workflow
+  ne le lance (#518).
 
 Les mesures sont dans [Benchmarks](contribute.benchmarks.md#profile).
 

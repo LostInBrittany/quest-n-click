@@ -194,8 +194,8 @@ Le témoin n'a pas bougé entre la v2.3 et la v3.1 (mêmes états, mêmes exécu
 recherche). La preuve exhaustive, c'est autre chose : elle visite chaque état atteignable, la réduction d'ordre partiel
 est coupée dans ce mode (une réduction ne doit pas retirer une branche perdante d'une preuve tant qu'elle n'a pas sa
 propre preuve d'équivalence), et un jeu de 40 lieux dépasse déjà un budget de 50 000 états. `npm run prove:game` est donc
-une porte de release pour un petit jeu (la démo se prouve en 1,3 s) et un travail hebdomadaire borné pour un grand
-(`.github/workflows/prove.yml`) ; sur un jeu long, on prouve chapitre par chapitre (`--prove --chapters`), chaque
+une porte de release pour un petit jeu (la démo se prouve en 1,3 s) et un lancement à la main borné pour un grand
+(`npm run bench -- --rooms=100 --prove`) ; sur un jeu long, on prouve chapitre par chapitre (`--prove --chapters`), chaque
 recherche étant bornée par ses objectifs. Amener la réduction en mode preuve, avec les tests d'équivalence de
 `tests/por.test.ts` pour preuve, était alors le prochain pas du solveur.
 

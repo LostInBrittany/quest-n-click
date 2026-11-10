@@ -183,8 +183,8 @@ The witness did not move between v2.3 and v3.1 (same states, same runs: the stab
 The exhaustive proof is another matter: it visits every reachable state, the partial-order reduction is off in that mode
 (a reduction must not drop a losing branch from a proof until it has its own equivalence proof), and a 40-room game
 already exceeds a 50 000-state budget. So `npm run prove:game` is a release gate for a small game (the sample proves in
-1.3 s) and a weekly job with a budget for a big one (`.github/workflows/prove.yml`); on a long game, prove chapter by
-chapter (`--prove --chapters`), where each search is bounded by its goals. Bringing the reduction into proof mode, with
+1.3 s) and a run by hand with a budget for a big one (`npm run bench -- --rooms=100 --prove`); on a long game, prove
+chapter by chapter (`--prove --chapters`), where each search is bounded by its goals. Bringing the reduction into proof mode, with
 the equivalence tests of `tests/por.test.ts` as its proof, was then the next step for the solver.
 
 <a name="v32"></a>
