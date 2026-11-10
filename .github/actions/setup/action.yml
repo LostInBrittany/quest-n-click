@@ -12,7 +12,7 @@ inputs:
     default: '22'
   timeout:
     description: Minutes an attempt of npm ci may take on Linux; 0 leaves it unbounded.
-    default: '6'
+    default: '3'
   safe-directory:
     description: >-
       true in a container job: the checkout belongs to the runner's user, not root, and git is told it is safe.
