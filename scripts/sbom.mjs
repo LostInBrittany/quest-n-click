@@ -18,6 +18,7 @@ import { copyFileSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync,
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { PACKAGES } from '../tools/release/artifacts.mjs';
+import { withVendored } from '../tools/vendored.mjs';
 
 const ROOT = resolve(import.meta.dirname, '..');
 const root = JSON.parse(readFileSync(join(ROOT, 'package.json'), 'utf8'));
@@ -53,6 +54,8 @@ function named(sbom, name, tgz) {
   return sbom;
 }
 
+// The engine's archive (quest-n-click-<v>.tgz), by its package, not by what the archive lacks.
+const ENGINE = PACKAGES.find((p) => p.npm === '@quest-n-click/engine').name;
 const done = [];
 // The locked packages first, the engines, then their creators (each names its engine's archive).
 const order = (n) => (n.startsWith('create-') ? 2 : /-(bridge|connectors|studio-server)$/.test(n) ? 0 : 1);
@@ -95,19 +98,9 @@ for (const name of names) {
         writeFileSync(join(dir, 'package-lock.json'), JSON.stringify(lock));
       }
       sbom = JSON.parse(npm(['sbom', '--package-lock-only', '--sbom-format', 'cyclonedx', '--omit', 'dev'], dir));
-      // Code the engine carries instead of a package (next): navmesh, whose package stops npm 12's installs.
-      const vendoredFile = join(dir, 'src/engine/core/nav/navmesh/vendored.json');
-      if (existsSync(vendoredFile))
-        for (const v of JSON.parse(readFileSync(vendoredFile, 'utf8')))
-          (sbom.components ??= []).push({
-            type: 'library',
-            name: v.name,
-            version: v.version,
-            purl: v.purl,
-            licenses: [{ license: { id: v.licence } }],
-            hashes: [{ alg: 'SHA-256', content: sha256(join(dir, v.file)) }],
-            description: `Carried in the engine at ${v.file}, from ${v.source}; bundles ${v.bundles}`,
-          });
+      // Code the engine carries instead of a package (next): navmesh, with the javascript-astar its build contains
+      // (tools/vendored.mjs). The archive without its record throws: the SBOM would leave navmesh out.
+      if (name === ENGINE) sbom = withVendored(sbom, dir);
     }
     const file = join(out, `${name}.cdx.json`);
     writeFileSync(file, `${JSON.stringify(named(sbom, name, tgz), null, 2)}\n`);

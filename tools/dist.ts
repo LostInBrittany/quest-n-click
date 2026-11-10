@@ -20,6 +20,7 @@ import { realityManifest } from '../src/engine/reality/manifest';
 import { LOCK, PROVENANCE, readJson, shippedKeys, type Provenance, type ProvenanceLock } from './provenance-files';
 import { serverMarkers } from './server-code';
 import { firstVisitSize, overBudget } from './first-visit';
+import { unnamedVendored, vendoredNotices } from './vendored.mjs';
 
 const args = process.argv.slice(2);
 const arg = (k: string) =>
@@ -110,10 +111,6 @@ function licenceText(pkg: string): { version: string; licence: string; text: str
   };
 }
 
-/** Code the engine carries instead of a package (next): navmesh, whose package stops npm 12 (core/nav/navmesh). */
-type Vendored = { name: string; version: string; licence: string; notice: string };
-const vendored = () => readJson<Vendored[]>(resolve(ROOT, 'src/engine/core/nav/navmesh/vendored.json')) ?? [];
-
 function credits(): string {
   const lines = [
     `# Credits: ${game.title ?? GAME}`,
@@ -174,6 +171,15 @@ if (seal) {
   );
   writeFileSync(join(out, 'CREDITS.md'), credits());
   const pkgs = bundlePackages();
+  // Code the engine carries instead of a package (next): navmesh. Its record missing fails the build, rather than
+  // leaving navmesh out of the notices.
+  let vendored: string[];
+  try {
+    vendored = vendoredNotices(ROOT);
+  } catch (e) {
+    console.error(`✖  [${GAME}] ${(e as Error).message}`);
+    process.exit(1);
+  }
   const notices = [
     `Third-party software and fonts in this build of ${game.title ?? GAME}.`,
     '',
@@ -181,13 +187,7 @@ if (seal) {
       const l = licenceText(p);
       return ['='.repeat(72), `${p} ${l.version} (${l.licence})`, '='.repeat(72), l.text, ''];
     }),
-    ...vendored().flatMap((v) => [
-      '='.repeat(72),
-      `${v.name} ${v.version} (${v.licence}, carried in the engine)`,
-      '='.repeat(72),
-      readFileSync(resolve(ROOT, v.notice), 'utf8').trim(),
-      '',
-    ]),
+    ...vendored,
     '='.repeat(72),
     'Fonts',
     '='.repeat(72),
@@ -226,8 +226,12 @@ const serverCode = Object.keys(files)
   .flatMap((p) =>
     serverMarkers(readFileSync(resolve(dir, p), 'utf8')).map((m) => `${p}: carries server code ("${m}")`),
   );
+// The code the engine carries (navmesh), named in the notices (inventory reports the file itself missing).
+const noticesFile = resolve(dir, 'licenses/THIRD_PARTY_NOTICES.txt');
+const unnamed = existsSync(noticesFile) ? unnamedVendored(ROOT, readFileSync(noticesFile, 'utf8')) : [];
 const problems = [
   ...serverCode,
+  ...unnamed,
   ...(overJs ? [`${overJs} (${initial.join(', ')})`] : []),
   ...r.extra.map((p) => `${p}: not this game's (no lock entry, not code, not a notice)`),
   ...r.missing.map((p) => `${p}: missing`),

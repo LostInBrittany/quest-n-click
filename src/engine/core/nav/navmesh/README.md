@@ -22,8 +22,9 @@ javascript-astar. So the engine carries that build itself.
   `sha512-psNjH0lNJbprtlTNo4gmhqIgNhZxQgxiGtnGAOmtL7I/tByoGfAfDX+/LD/5b26XuLZw3XXTr0+tHScnm5MBWw==`).
 - `navmesh.d.ts`: its `dist/*.d.ts` folded into one file, with javascript-astar's `GridNode` written out.
 - `LICENSE`: navmesh's licence and copyright, then javascript-astar's.
-- `vendored.json`: name, version, licence and source, read by `tools/dist.ts` (a build's `THIRD_PARTY_NOTICES.txt`)
-  and `scripts/sbom.mjs` (the engine's SBOM).
+- `vendored.json`: name, version, licence, purl and source, and what the build contains (`bundled`: javascript-astar),
+  read by `tools/vendored.mjs` for `tools/dist.ts` (a build's `THIRD_PARTY_NOTICES.txt`) and `scripts/sbom.mjs` (the
+  engine's SBOM, javascript-astar nested in navmesh's component). Missing, it fails both.
 
 ## Updating it
 
