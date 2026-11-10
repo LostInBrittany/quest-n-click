@@ -16,6 +16,7 @@ import {
   isPrepared,
   PREPARE_STEPS,
   QUALITY_BASELINE_COMMANDS,
+  resetFirstVisitBudget,
   preparedSubject,
   prepareRefusals,
   RESUME_STEPS,
@@ -340,6 +341,35 @@ describe('the command', () => {
       ['npm', ['run', '-s', 'quality:baseline', '--', '--release', '--dist']],
     ]);
   });
+  it("resets the measured game's first-visit budget to the measure plus 2 KB, and says it", () => {
+    const files: Record<string, string> = {
+      'tests/quality-baseline.json': '{"bundle":{"initialJsKB":140,"initialJsBytes":143139}}',
+      'games/demo/game.ts': '  assetBudgets: { initialKB: 2500, initialJsKB: 140 },\n',
+      'games/bare/game.ts': '  assetBudgets: { initialKB: 2500 },\n',
+      'games/twice/game.ts': 'a: { initialJsKB: 140 }, b: { initialJsKB: 140 }',
+    };
+    const written: Record<string, string> = {};
+    const deps = (game: string) => ({
+      read: (f: string) => files[f] ?? '',
+      write: (f: string, text: string) => (written[f] = text),
+      game,
+    });
+    expect(resetFirstVisitBudget(deps('demo'))).toBe(
+      'games/demo/game.ts: initialJsKB 140 → 142 (143139 bytes measured + 2 KB)',
+    );
+    expect(written['games/demo/game.ts']).toBe('  assetBudgets: { initialKB: 2500, initialJsKB: 142 },\n');
+    // Already at the measure plus 2 KB: said, not written.
+    files['games/demo/game.ts'] = written['games/demo/game.ts']!;
+    delete written['games/demo/game.ts'];
+    expect(resetFirstVisitBudget(deps('demo'))).toBe(
+      'games/demo/game.ts: initialJsKB 142 kept (143139 bytes measured + 2 KB)',
+    );
+    expect(written).toEqual({});
+    expect(resetFirstVisitBudget(deps('bare'))).toBe('games/bare/game.ts sets no initialJsKB: left alone');
+    expect(written).toEqual({});
+    expect(() => resetFirstVisitBudget(deps('twice'))).toThrow(/games\/twice\/game\.ts: 2 initialJsKB keys/);
+    expect(() => resetFirstVisitBudget({ ...deps('demo'), read: () => '{}' })).toThrow(/no bundle\.initialJsBytes/);
+  });
   it('resumes a prepared branch with the stop before the push (prose and human gates) and the pull request only', () => {
     expect(RESUME_STEPS).toEqual(['before the push', 'pull request']);
   });
@@ -637,6 +667,7 @@ describe('the command on a clone (4.5.4)', () => {
         'tools/changes.ts',
         'tools/next-mark.ts',
         'tools/release/lib.mjs',
+        'tools/first-visit.ts',
         'scripts/pack-manifests.mjs',
       ])
         cpSync(resolve(f), join(repo, f));
