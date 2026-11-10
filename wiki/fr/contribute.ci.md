@@ -89,7 +89,7 @@ correctif arrive sur `main`, et la nuit verte suivante ferme l'issue.
   (`test:merge` : les planchers de `tests/coverage-floors.json` sur toute la suite), puis lance le cliquet, strict sur
   une pull request comme sur `main` (4.7.0, #410 ; [Le cliquet de couverture](contribute.coverage-ratchet.md)). Sinon
   (la doc, un workflow, les outils de release et du wiki), les fragments passent les mêmes fichiers sans couverture (`test:unit`). Dans les deux cas,
-  `coverage`, la vérification que le ruleset exige, est rouge quand un fragment n'est pas vert.
+  `coverage` est rouge quand un fragment n'est pas vert, et `pr-gate` avec lui.
 
 **Le deuxième palier, ce que le changement peut casser.** Chaque job a besoin de `plan` (la plupart aussi de `check`)
 et lit sa barrière dans le plan : il fait son vrai travail, ou une seule étape qui dit « not needed by the plan » et
@@ -115,9 +115,11 @@ réussit.
 `full-ci` (`ci` ne les lance nulle part ailleurs), la nightly, et le candidat, le seul passage de tests de la release.
 `release` ne reteste rien : il vérifie que le `ci` de `main` et le candidat étaient verts sur le SHA du tag.
 
-**`pr-gate`** lit le résultat de chaque job : chacun doit être `success` ; les jobs de mutation peuvent être `skipped`
-là où ils ne tournent pas ; `pwa-firefox`, instable jusqu'à la correction de #257, est signalé par un avertissement et
-ne le fait pas échouer (4.5.4). C'est la seule vérification qui résume une pull request.
+**`pr-gate`** lit le résultat de chaque job : chacun doit être `success` ; un `skipped` ne passe que là où le job
+n'avait pas à tourner (les jobs de mutation hors d'une pull request `full-ci`, `external-consumer` quand le plan
+l'épargne) ; `pwa-firefox`, instable jusqu'à la correction de #257, est signalé par un avertissement et ne le fait pas
+échouer (4.5.4). C'est la seule vérification qui résume une pull request, et la seule que le ruleset de `main` exige :
+un job rouge, `windows` compris, bloque la fusion à travers elle.
 
 Plus aucun job ne déploie GitHub Pages (4.5.2, voir [le site](#pages-only)).
 
@@ -272,9 +274,9 @@ d'une version est le `quest-n-click-docs-<version>.tar.gz` de sa release. Le sit
 | `e2e:a11y` s'arrête sur « neither a title button nor a running game exists » | `e2e` Chromium (clavier) | Le parcours lisait l'écran titre avant qu'il soit dessiné : il attend désormais jusqu'à 15 s un bouton du titre ou une partie lancée. Vu le 25 oct. 2026 | 4.5.5 (#356) |
 | WebKit ne sait pas naviguer hors ligne sous Playwright | `e2e:pwa` WebKit, `reality` WebKit | `--allow-skip` : cette étape dit « skipped », jamais comptée comme une preuve ; une personne vérifie Safari hors ligne avant chaque release ([Passes de terrain](contribute.field-passes.md)) | 3.1.1 |
 
-> [!LIMIT id=windows-not-required]
-> Le job `windows` lance la suite unitaire sans les fichiers qui supposent POSIX ; ce n'est pas une vérification
-> exigée par les règles du dépôt tant que le mainteneur ne l'y ajoute pas.
+> [!LIMIT id=windows-posix-files]
+> Le job `windows` lance la suite unitaire sans les fichiers qui supposent POSIX : ces fichiers ne tournent jamais
+> sous Windows.
 
 <a name="related"></a>
 

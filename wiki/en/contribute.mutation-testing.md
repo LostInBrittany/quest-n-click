@@ -52,7 +52,7 @@ terms since 4.1.20; fourteen gated sets as of 4.7.0.
 
 The sets and the test files that judge each one are in [`tools/mutation-sets.ts`](../../tools/mutation-sets.ts)
 (`SETS`, `TESTS`, `GATED`); `MEASURED` (sets that report without gating) is empty since 4.2.1, but for `routes` in 4.6.0. Where each runs is in
-[Which tests run when](contribute.which-tests.md#suites): a pull request labelled `full-ci`, every night (from scratch),
+[Which tests run when](contribute.which-tests.md#suites): a pull request labelled `full-ci`, the nightly (from scratch; a night on a commit already tested is skipped, #519),
 the candidate and the release.
 
 <a name="prerequisites"></a>

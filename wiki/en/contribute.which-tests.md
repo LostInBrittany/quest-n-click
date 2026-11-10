@@ -1,7 +1,7 @@
 # Which tests run when
 
 Every test suite of the engine repository, the command that runs it, and when CI runs it: on a pull request, on
-`main`, in a candidate, in the release, or every night. Read with [CI explained](contribute.ci.md), which
+`main`, in a candidate, in the release, or in the nightly. Read with [CI explained](contribute.ci.md), which
 says what each workflow and job is.
 
 <a name="suites"></a>

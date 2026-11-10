@@ -525,8 +525,8 @@
       "name": "test:coverage",
       "group": "tests",
       "description": {
-        "en": "The suite under V8 coverage (heavy tests excluded), against the floors of `tests/coverage-floors.json` (read by `vite.config.ts`, 4.6.0); then `npx tsx tools/coverage-ratchet.ts --strict` fails on a floor at least three points behind what the tests reach (CI on main and tags, release-check, 4.1.8; a warning on a pull request, 4.1.9).",
-        "fr": "La suite sous couverture V8 (sans les tests lourds), face aux planchers de `tests/coverage-floors.json` (lus par `vite.config.ts`, 4.6.0) ; puis `npx tsx tools/coverage-ratchet.ts --strict` échoue sur un plancher en retard d’au moins trois points sur ce que les tests atteignent (CI sur main et les tags, release-check, 4.1.8 ; un avertissement sur une pull request, 4.1.9)."
+        "en": "The suite under V8 coverage (heavy tests excluded), against the floors of `tests/coverage-floors.json` (read by `vite.config.ts`, 4.6.0); then `npx tsx tools/coverage-ratchet.ts --strict` fails on a floor at least three points behind what the tests reach (CI on main and tags, release-check, 4.1.8; on a pull request too since 4.7.0, #410).",
+        "fr": "La suite sous couverture V8 (sans les tests lourds), face aux planchers de `tests/coverage-floors.json` (lus par `vite.config.ts`, 4.6.0) ; puis `npx tsx tools/coverage-ratchet.ts --strict` échoue sur un plancher en retard d’au moins trois points sur ce que les tests atteignent (CI sur main et les tags, release-check, 4.1.8 ; sur une pull request aussi depuis la 4.7.0, #410)."
       }
     },
     {

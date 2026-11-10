@@ -82,8 +82,7 @@ and open nothing. Nothing is closed by hand: the fix lands on `main`, and the ne
   merges the four (`test:merge`: the floors of `tests/coverage-floors.json` on the whole suite), then runs the ratchet,
   strict on a pull request as on `main` (4.7.0, #410; [The coverage ratchet](contribute.coverage-ratchet.md)).
   Otherwise (the docs, a workflow, the release and wiki tools) the shards run the same files without coverage
-  (`test:unit`). Either way `coverage`, the check
-  the ruleset requires, is red when a shard is not green.
+  (`test:unit`). Either way `coverage` is red when a shard is not green, and `pr-gate` with it.
 
 **The second tier, what the change can break.** Each job needs `plan` (most also `check`) and reads its gate in the
 plan: it runs its real work, or one step that says "not needed by the plan" and succeeds.
@@ -108,9 +107,10 @@ plan: it runs its real work, or one step that says "not needed by the plan" and 
 them nowhere else), the nightly, and the candidate, the release's only test pass. `release` tests nothing again: it
 checks that `main`'s `ci` and the candidate were green on the tag's SHA.
 
-**`pr-gate`** reads every job's result: each must be `success`; the mutation jobs may be `skipped` where they do not
-run; `pwa-firefox`, flaky until #257 is fixed, is said as a warning and does not fail it (4.5.4). It is the one check
-that sums a pull request up.
+**`pr-gate`** reads every job's result: each must be `success`; a `skipped` passes only where the job was not to run
+(the mutation jobs off a `full-ci` pull request, `external-consumer` when the plan spares it); `pwa-firefox`, flaky
+until #257 is fixed, is said as a warning and does not fail it (4.5.4). It is the one check that sums a pull request
+up, and the only one `main`'s ruleset requires: a red job, `windows` included, blocks the merge through it.
 
 No job deploys GitHub Pages any more (4.5.2, see [the site](#pages-only)).
 
@@ -258,9 +258,8 @@ started (4.5.0 to 4.5.1) are gone.
 | `e2e:a11y` stops on "neither a title button nor a running game exists" | `e2e` Chromium (keyboard) | The walkthrough read the title before it was drawn: it now waits up to 15 s for a title button or a running game. Seen on 25 Oct 2026 | 4.5.5 (#356) |
 | WebKit cannot navigate offline under Playwright | `e2e:pwa` WebKit, `reality` WebKit | `--allow-skip`: that step reports "skipped", never counted as a proof; a person checks Safari offline before each release ([Field passes](contribute.field-passes.md)) | 3.1.1 |
 
-> [!LIMIT id=windows-not-required]
-> The `windows` job runs the unit suite without the files that assume POSIX; it is not a required check of the
-> ruleset until the maintainer adds it.
+> [!LIMIT id=windows-posix-files]
+> The `windows` job runs the unit suite without the files that assume POSIX: those files are never run on Windows.
 
 <a name="related"></a>
 

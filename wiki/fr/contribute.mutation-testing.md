@@ -55,7 +55,7 @@ morceaux et les conditions d'exemption depuis la 4.1.20 ; quatorze ensembles bar
 Les ensembles et les fichiers de test qui jugent chacun sont dans [`tools/mutation-sets.ts`](../../tools/mutation-sets.ts)
 (`SETS`, `TESTS`, `GATED`) ; `MEASURED` (les ensembles qui rapportent sans barrière) est vide depuis la 4.2.1, sauf pour `routes` en 4.6.0. Où
 chacun tourne, c'est [Quels tests tournent quand](contribute.which-tests.md#suites) : une pull request étiquetée
-`full-ci`, chaque nuit (de zéro), le candidat et la release.
+`full-ci`, la nightly (de zéro ; une nuit sur un commit déjà testé est sautée, #519), le candidat et la release.
 
 <a name="prerequisites"></a>
 

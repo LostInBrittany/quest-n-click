@@ -548,7 +548,7 @@ The Python-backed image and asset-pipeline tests (`tests/pixel.test.ts`, `tests/
 
 #### `npm run test:coverage`
 
-The suite under V8 coverage (heavy tests excluded), against the floors of `tests/coverage-floors.json` (read by `vite.config.ts`, 4.6.0); then `npx tsx tools/coverage-ratchet.ts --strict` fails on a floor at least three points behind what the tests reach (CI on main and tags, release-check, 4.1.8; a warning on a pull request, 4.1.9).
+The suite under V8 coverage (heavy tests excluded), against the floors of `tests/coverage-floors.json` (read by `vite.config.ts`, 4.6.0); then `npx tsx tools/coverage-ratchet.ts --strict` fails on a floor at least three points behind what the tests reach (CI on main and tags, release-check, 4.1.8; on a pull request too since 4.7.0, #410).
 
 - Runs: `npm run test:unit -- --coverage`
 
