@@ -86,7 +86,8 @@ describe("a build's THIRD_PARTY_NOTICES.txt", () => {
   });
 
   it('fails without the record, rather than leaving navmesh out', () => {
-    expect(() => vendoredNotices(temp())).toThrow(VENDORED);
+    const d = temp();
+    expect(() => vendoredNotices(d)).toThrow(join(d, VENDORED));
   });
 
   it('verify:dist finds navmesh named in notices that carry its block, and reports notices without it', () => {
