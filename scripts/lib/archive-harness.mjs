@@ -36,13 +36,15 @@ const sleep = (ms) => Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 
 
 /**
  * `once(i)` (the i-th try, from 0, giving `{ status, stderr }`) again while it fails on a transient registry error
- * (`transientNpm`), after each of `waits`; each new try said with its reason (`tell`, stderr). The last result comes
- * back, whatever it is: the caller fails on it with npm's own output, already shown.
+ * (`transientNpm`) or was killed by its own time limit (spawnSync's `ETIMEDOUT`, #539), after each of `waits`; each new
+ * try said with its reason (`tell`, stderr). The last result comes back, whatever it is: the caller fails on it with
+ * npm's own output, already shown.
  */
 export function retryNpm(once, { waits = NPM_WAITS, tell = (l) => console.error(`  ⚠  ${l}`), wait = sleep } = {}) {
   for (let i = 0; ; i++) {
     const r = once(i);
-    const why = r.status === 0 ? null : transientNpm(r.stderr ?? '');
+    const why =
+      r.status === 0 ? null : r.error?.code === 'ETIMEDOUT' ? "the try's time limit" : transientNpm(r.stderr ?? '');
     if (!why || i >= waits.length) return r;
     tell(`npm install failed on ${why}, try ${i + 1}/${waits.length + 1}: again in ${waits[i] / 1000} s`);
     wait(waits[i]);
@@ -52,9 +54,11 @@ export function retryNpm(once, { waits = NPM_WAITS, tell = (l) => console.error(
 /**
  * `npm <args>` (an install) in `cwd`, through `retryNpm`: stdout shown (or captured: `capture`), stderr read for the
  * error's code and shown after each try. A try after the first adds `--prefer-online`, so that npm asks the registry
- * again rather than its cache. Gives spawnSync's result; `npmInstall` throws on a failure in the end.
+ * again rather than its cache. `timeout` (ms) bounds each try, unbounded by default (#539): a try that stalls is killed
+ * with SIGTERM, as coreutils' `timeout` does, and tried again. Gives spawnSync's result; `npmInstall` throws on a
+ * failure in the end.
  */
-function npmRun(args, { cwd, env = process.env, capture = false, ...retry } = {}) {
+function npmRun(args, { cwd, env = process.env, capture = false, timeout, ...retry } = {}) {
   return retryNpm((i) => {
     const a = i === 0 ? args : [...args, '--prefer-online'];
     const r = spawnSync(WIN ? 'npm.cmd' : 'npm', quoted(WIN, a), {
@@ -64,6 +68,8 @@ function npmRun(args, { cwd, env = process.env, capture = false, ...retry } = {}
       encoding: 'utf8',
       maxBuffer: 1 << 26,
       shell: WIN,
+      timeout,
+      killSignal: 'SIGTERM',
     });
     if (r.stderr) process.stderr.write(r.stderr);
     return r;

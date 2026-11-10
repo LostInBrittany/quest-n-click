@@ -11342,6 +11342,7 @@
         "NPM_CONFIG_USERCONFIG",
         "NPM_PUBLISH_NODE",
         "NPM_PUBLISH_NPM",
+        "NPM_TRY_MINUTES",
         "OTEL_EXPORTER_OTLP_ENDPOINT",
         "P",
         "PATH",

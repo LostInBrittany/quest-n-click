@@ -38,7 +38,7 @@ jobs:
         with:
           ref: ${{ github.event.inputs.ref }}
       - uses: ./.github/actions/setup
-        timeout-minutes: 10
+        timeout-minutes: 17
       - shell: bash
         env:
           SET: ${{ github.event.inputs.set }}

@@ -739,6 +739,15 @@ Les résultats des jobs de la nightly, en JSON (`toJSON(needs)`), que lit `tools
 - Origine : vous la posez ; le code la lit.
 - Lue par : [`.github/workflows/nightly.yml`](../../.github/workflows/nightly.yml), [`tools/nightly-report.ts`](../../tools/nightly-report.ts).
 
+<a name="npm-try-minutes"></a>
+
+### `NPM_TRY_MINUTES`
+
+Les minutes que chaque essai de `scripts/npm-install.mjs` peut prendre avant d’être tué et retenté (#539) ; sans limite quand elle n’est pas posée ou vaut 0. L’action `.github/actions/setup` la pose depuis son entrée `timeout`, hors Windows.
+
+- Origine : vous la posez ; le code la lit.
+- Lue par : [`scripts/npm-install.mjs`](../../scripts/npm-install.mjs).
+
 <a name="qnc-release-clock"></a>
 
 ### `QNC_RELEASE_CLOCK`

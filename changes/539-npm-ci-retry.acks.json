@@ -1,0 +1,21 @@
+{
+  "format": "quest-n-click-docs-acks",
+  "version": 1,
+  "pairs": {
+    "contribute.ci#known-flakes": {
+      "enHash": "5cc94b41b7ae83437de3ea378940b7057f5b8ae2da9395a158027a767cc2c257",
+      "frHash": "f7dadded1db5df8691d8070754c8e3b2125147e689e7b6b0de17f5ea439dc65e",
+      "reviewers": [
+        { "name": "claude", "kind": "ai", "relation": "author", "date": "2026-11-10" }
+      ]
+    },
+    "reference.environment-variables#npm-try-minutes": {
+      "enHash": "ca489a5b0760d52c61315abdb51aba0c193abd21329aaa7efe58a8b62da8b44e",
+      "frHash": "2215fbb4267f1cde24aafeda2cdc1bdc67fd0f2a5eab31e5f2a3c93a58272420",
+      "reviewers": [
+        { "name": "claude", "kind": "ai", "relation": "author", "date": "2026-11-10" }
+      ]
+    }
+  },
+  "claims": {}
+}

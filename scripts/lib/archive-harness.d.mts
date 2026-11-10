@@ -1,7 +1,7 @@
 export const WIN: boolean;
 export function transientNpm(stderr: string): string | null;
 export const NPM_WAITS: number[];
-type Try = { status: number | null; stderr?: string };
+type Try = { status: number | null; stderr?: string; error?: { code?: string } };
 type RetryOptions = {
   /** The pauses before each new try (30, 60, 120 s by default). */
   waits?: number[];
@@ -13,7 +13,7 @@ type RetryOptions = {
 export function retryNpm<R extends Try>(once: (i: number) => R, o?: RetryOptions): R;
 export function npmInstall(
   args: string[],
-  o?: RetryOptions & { cwd?: string; env?: NodeJS.ProcessEnv; capture?: boolean },
+  o?: RetryOptions & { cwd?: string; env?: NodeJS.ProcessEnv; capture?: boolean; timeout?: number },
 ): string;
 export function harness(o: { env?: NodeJS.ProcessEnv; base: string }): {
   run: (
