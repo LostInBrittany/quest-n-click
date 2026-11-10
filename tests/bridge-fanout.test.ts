@@ -77,7 +77,12 @@ const until = async (ok: () => boolean, ms = 5000) => {
 };
 
 describe.each(PAIRS)('two instances of one tenant on $name', ({ open }) => {
+  // A CI runner's SQLite can be a hundred times slower than a laptop's (#544: 1–3.6 s there, 30 ms here): the test has
+  // 30 s, its wait 10 s, and a failure says when each sequence arrived (ms from the start), so a slow runner (all of
+  // them, late) reads apart from a lost wake-up (some never: the slow pass is off here, `pollMs: 0`).
   it('a signal accepted by A reaches the stream B holds, in order, once each', async () => {
+    const t0 = performance.now();
+    const ms = () => Math.round(performance.now() - t0);
     const [sa, sb] = await open();
     const tenantId = `t-${randomBytes(4).toString('hex')}`;
     const key = await eventKey();
@@ -86,13 +91,24 @@ describe.each(PAIRS)('two instances of one tenant on $name', ({ open }) => {
     const b = await tenantBridge(sb, { tenantId, key, rootPrivate: a.rootPrivate });
     const link = await a.pair();
     const got: number[] = [];
-    await b.bridge.subscribe(link.capability, (seq) => got.push(seq));
+    const arrivals: string[] = [];
+    await b.bridge.subscribe(link.capability, (seq) => {
+      got.push(seq);
+      arrivals.push(`${seq}@${ms()}`);
+    });
+    const proposed = ms();
     await Promise.all(Array.from({ length: 20 }, (_, i) => a.propose(link.playerId, `d-${i}`)));
-    await until(() => got.length >= 20);
-    expect(got).toEqual(Array.from({ length: 20 }, (_, i) => i + 1));
+    const accepted = ms();
+    await until(() => got.length >= 20, 10_000);
+    const said = [
+      `proposed at ${proposed} ms, all accepted at ${accepted} ms, ${await sb.lastSequence(tenantId, link.playerId)} stored`,
+      `arrivals: ${arrivals.join(' ') || 'none'}`,
+      `B's log: ${JSON.stringify(b.logs.filter((l) => l.event !== 'signal.accepted'))}`,
+    ].join('; ');
+    expect(got, said).toEqual(Array.from({ length: 20 }, (_, i) => i + 1));
     a.bridge.close();
     b.bridge.close();
-  });
+  }, 30_000);
 });
 
 describe('one instance, its limits and its quarantine', () => {
