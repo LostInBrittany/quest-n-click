@@ -147,14 +147,10 @@ jobs:
           # this job's token cannot read that setting (it needs admin read).
         env:
           GH_TOKEN: ${{ github.token }}
-      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
-        with:
-          node-version: 22
-          cache: npm
       # Node and the repository's dependencies only, for what still runs here: the release notes, speedrun:verify (tsx),
       # the manifest's checks and `ship verify`. No python, ffmpeg or browser (#291): release-check and the mutation
       # sets ran in the candidate this tag names, on this very SHA, and are not run again.
-      - run: for i in 1 2 3; do (timeout 6m npm ci) && break; [ "$i" = 3 ] && exit 1; echo "retry $i"; sleep 15; done
+      - uses: ./.github/actions/setup
         timeout-minutes: 20
       - run: node scripts/release-notes.mjs "$TAG" > notes.md
       # The name this tag's files start with (4.2.5, D47): quest-n-click from v4.2.5, web-scumm before; a tag that

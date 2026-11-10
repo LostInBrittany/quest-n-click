@@ -19,6 +19,7 @@ describe('the plan of a change', () => {
     ['the wiki sources', ['wiki/manifest.json', 'wiki/en/create.rooms.md', 'wiki/data/glossary.json'], []],
     ['a root markdown file', ['CHANGELOG.md', 'CONTRIBUTING.md'], []],
     ['another workflow', ['.github/workflows/nightly.yml'], []],
+    ["the jobs' setup action (#524)", ['.github/actions/setup/action.yml'], EVERYTHING],
     ["the documentation's publication workflow", ['.github/workflows/docs-publish.yml'], []],
     // The wiki's own tools read pages and paths a Windows checkout gives them differently (4.5.6, #367).
     [
@@ -507,10 +508,14 @@ describe("Playwright's image (#261)", () => {
     for (const j of inImage) {
       expect(j).not.toMatch(/playwright install/);
       expect(j).toMatch(/HOME: \/root/);
-      expect(j).toMatch(/safe\.directory "\$\(pwd\)"/);
+      // git told the checkout is safe, by the setup action (#524).
+      expect(j).toMatch(/uses: \.\/\.github\/actions\/setup\n {8}with:\n(?: {10}.+\n)* {10}safe-directory: true\n/);
       // The tool cache's `pip` starts with the host's path to Python (`/opt/hostedtoolcache/…`), absent in the
       // container: pip through the interpreter.
       expect(j).not.toMatch(/\(pip install/);
     }
+    expect(readFileSync('.github/actions/setup/action.yml', 'utf8')).toMatch(
+      /- if: inputs\.safe-directory == 'true'\n\s+shell: bash\n\s+run: git config --global --add safe\.directory "\$\(pwd\)"\n/,
+    );
   });
 });

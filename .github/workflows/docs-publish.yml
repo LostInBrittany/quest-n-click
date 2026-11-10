@@ -136,11 +136,7 @@ jobs:
           fetch-depth: 0
       - name: Every tag
         run: git fetch --force --tags origin
-      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
-        with:
-          node-version: 22
-          cache: npm
-      - run: for i in 1 2 3; do (timeout 6m npm ci) && break; [ "$i" = 3 ] && exit 1; echo "retry $i"; sleep 15; done
+      - uses: ./.github/actions/setup
         timeout-minutes: 20
 
       # ——— A release (from release.yml): the archive it carries, checked, then promoted.
