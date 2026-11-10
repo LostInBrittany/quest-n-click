@@ -16,9 +16,16 @@
         { "name": "claude", "kind": "ai", "relation": "author", "date": "2026-11-10" }
       ]
     },
+    "contribute.ci#known-flakes": {
+      "enHash": "12e5beb320c8474837a76b6ead1016d91bb93dd83537baf3ae7b854685be632d",
+      "frHash": "0237de53d70e840668f5a61a7f5acf19c0b19d041b33eab5a6ff358e09002b84",
+      "reviewers": [
+        { "name": "claude", "kind": "ai", "relation": "author", "date": "2026-11-10" }
+      ]
+    },
     "contribute.ci#tiers": {
-      "enHash": "44adfa639c3b9dd3dda1a59760b5abd564a46d747629e92a5e1e76754ebfa672",
-      "frHash": "64adf8f930477bab46cbab09fe123621b64b9a145d725d70a7c840d2c2f2df8d",
+      "enHash": "adbda40d828b13968b000e7c7b89516678c5adbf03dd7c36c6bc9cc6665e5019",
+      "frHash": "d0e3886d5bd60a2c55b50cc647ce70c5321992740ba78f6945b7d5da44df1b33",
       "reviewers": [
         { "name": "claude", "kind": "ai", "relation": "author", "date": "2026-11-10" }
       ]
