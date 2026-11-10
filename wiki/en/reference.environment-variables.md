@@ -950,7 +950,7 @@ The file a step writes its outputs to.
 The repository a workflow runs in (`owner/name`); release.yml's `npm-stage` checks each package's `repository` against it, as npm's provenance does, and `tools/release/main-ci.mjs` lists main's `ci` runs there (4.5.3).
 
 - Origin: set by GitHub Actions.
-- Read by: [`.github/workflows/release.yml`](../../.github/workflows/release.yml), [`tools/release/main-ci.mjs`](../../tools/release/main-ci.mjs), [`tools/release/npm-stage.mjs`](../../tools/release/npm-stage.mjs), and 1 more.
+- Read by: [`.github/workflows/release.yml`](../../.github/workflows/release.yml), [`tools/release/main-ci.mjs`](../../tools/release/main-ci.mjs), [`tools/release/npm-stage.mjs`](../../tools/release/npm-stage.mjs), and 2 more.
 
 <a name="github-sha"></a>
 
@@ -1379,7 +1379,7 @@ ci: whether the plan asks for the Reality jobs.
 docs-publish: this run's id, the archive's build id.
 
 - Origin: set by a workflow of `.github/workflows/` (CI and releases).
-- Read by: [`.github/workflows/docs-publish.yml`](../../.github/workflows/docs-publish.yml), [`tools/release/supersede.mjs`](../../tools/release/supersede.mjs).
+- Read by: [`.github/workflows/docs-publish.yml`](../../.github/workflows/docs-publish.yml), [`.github/workflows/nightly.yml`](../../.github/workflows/nightly.yml), [`tools/release/supersede.mjs`](../../tools/release/supersede.mjs).
 
 <a name="run-ref"></a>
 
@@ -1406,7 +1406,7 @@ mutation: the mutation set chosen by hand.
 release: the commit the candidate run tested.
 
 - Origin: set by a workflow of `.github/workflows/` (CI and releases).
-- Read by: [`.github/workflows/release.yml`](../../.github/workflows/release.yml), [`tools/release/supersede.mjs`](../../tools/release/supersede.mjs).
+- Read by: [`.github/workflows/nightly.yml`](../../.github/workflows/nightly.yml), [`.github/workflows/release.yml`](../../.github/workflows/release.yml), [`tools/release/supersede.mjs`](../../tools/release/supersede.mjs).
 
 <a name="site-revalidate-secret"></a>
 

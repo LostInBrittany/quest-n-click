@@ -25,10 +25,15 @@ jobs:
   # October 2026), so the cron is the evening before (20:17 UTC) and lands it in the night; a scheduled run that still
   # starts in the Paris working day (07:00 to 20:00 Paris time) skips every other job and stays green, its runners left
   # to the day's pull requests and releases. A run by hand always runs (tools/schedule-guard.ts,
-  # tests/schedule-guard.test.ts). Node alone, no `npm ci`.
+  # tests/schedule-guard.test.ts). Node alone, no `npm ci`. A scheduled run on the commit the last completed scheduled
+  # run already tested (success or failure) is skipped the same way, the report with it (#519): `actions: read` to read
+  # the previous runs; a failed read runs the night.
   guard:
     runs-on: ubuntu-24.04
     timeout-minutes: 5
+    permissions:
+      contents: read
+      actions: read
     outputs:
       run: ${{ steps.guard.outputs.run }}
     steps:
@@ -39,7 +44,10 @@ jobs:
       - id: guard
         env:
           EVENT: ${{ github.event_name }}
-        run: node --experimental-strip-types --no-warnings tools/schedule-guard.ts --event="$EVENT"
+          SHA: ${{ github.sha }}
+          RUN_ID: ${{ github.run_id }}
+          GH_TOKEN: ${{ github.token }}
+        run: node --experimental-strip-types --no-warnings tools/schedule-guard.ts --event="$EVENT" --workflow=nightly.yml --sha="$SHA" --run-id="$RUN_ID"
   # The npm names (4.1.20 PR 3b, D34: squatting accepted until 4.2): still free, or ours. Never gating: a name
   # taken by someone else is said as a warning and in the summary, for the maintainers to act. Since 4.5.2 (D53) the
   # packages are the organisation's scoped ones, ours when an owner of the organisation publishes them; the unscoped

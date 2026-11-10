@@ -47,7 +47,9 @@ qui démarre malgré tout pendant la journée de travail à Paris, de 07:00 à 2
 à 19:00 UTC en hiver, de 05:00 à 18:00 UTC en été), le dit dans une notice et dans le résumé du run, et tous les autres
 jobs sont sautés ; le run reste vert et ne prend aucun autre runner. Un run lancé à la main (`workflow_dispatch`) n'est
 jamais filtré, pas plus que le préchauffage du cache de mutation que lance `release -- prepare` ; une nuit sautée se
-relance à la main si besoin, ou attend la suivante.
+relance à la main si besoin, ou attend la suivante. Le `guard` de la nightly saute aussi une nuit planifiée sur le
+commit que la dernière nuit planifiée terminée (verte ou rouge) a déjà testé, et nomme ce run dans le résumé (#519) : son
+rapport est sauté avec elle, donc une issue `nightly-red` ouverte reste ouverte et ne reçoit pas de nouveau commentaire.
 
 **Une nuit rouge ouvre une issue** (4.5.6, #379). Une nightly rouge ne prévenait personne, hormis la croix sur la page
 Actions : le 26 octobre 2026, l'une d'elles a été découverte au candidat de la release suivante, avec un jour de retard.
