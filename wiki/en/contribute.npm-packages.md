@@ -23,7 +23,9 @@ The engine's package takes only tracked paths under its roots (`src/`, `tools/`,
 stops the pack ("git add or commit them, or add them to .gitignore") rather than being left out silently. The Bridge,
 the connectors and the Studio Server carry their versioned lock as `npm-shrinkwrap.json`; a lock that no longer fits
 its manifest stops the pack: `npm run locks` makes it again (review the diff, commit it), and `npm run locks -- --check`
-says whether each lock still fits without the network.
+says whether each lock still fits without the network. Each of those three archives is checked right after `npm pack`
+(next): one without `npm-shrinkwrap.json` stops the pack, naming the archive and the npm version that packed it (npm 12
+leaves the file out, npm 10 and 11 keep it), and its SBOM is never made from the root lock instead.
 
 From 4.2.5 to 4.2.x each package was also packed under its former web-scumm name, an alias with the same files and
 version (D47). 4.3.0 packs the new names only; `npx quest-n-click migrate` moves a game off the old ones.

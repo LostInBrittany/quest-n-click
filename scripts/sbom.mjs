@@ -6,7 +6,8 @@
 //     read by `npm sbom --package-lock-only`: nothing resolved;
 //   - quest-n-click (the engine): its archive carries no lock (a game resolves its own); its dependencies as the root
 //     lock resolves them, the way scripts/locks.mjs makes a lock (the root lock copied beside its manifest, `npm install
-//     --package-lock-only`, which keeps every version the root lock has), then read the same way;
+//     --package-lock-only`, which keeps every version the root lock has), then read the same way. The engine alone
+//     reads the root lock (next, #546): a locked archive without its shrinkwrap throws (scripts/locked.mjs);
 //   - create-quest-n-click: one dependency, the engine of the same version, named by its archive's SHA-256 (the
 //     engine's own SBOM lists the rest).
 // Through 4.2.x (D47) each package's alias under its former name (web-scumm, create-web-scumm, …) had its own SBOM
@@ -19,6 +20,7 @@ import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { PACKAGES } from '../tools/release/artifacts.mjs';
 import { withVendored } from '../tools/vendored.mjs';
+import { sbomLock } from './locked.mjs';
 
 const ROOT = resolve(import.meta.dirname, '..');
 const root = JSON.parse(readFileSync(join(ROOT, 'package.json'), 'utf8'));
@@ -87,7 +89,9 @@ for (const name of names) {
         ],
       };
     } else {
-      if (!existsSync(join(dir, 'npm-shrinkwrap.json'))) {
+      // The root lock for the engine only (next, #546): a locked archive without its npm-shrinkwrap.json throws (npm 12
+      // leaves it out of `npm pack`), rather than getting the root lock's SBOM (scripts/locked.mjs).
+      if (sbomLock(name, dir) === 'root') {
         // The engine: its dependencies as the root lock resolves them.
         copyFileSync(join(ROOT, 'package-lock.json'), join(dir, 'package-lock.json'));
         npm(['install', '--package-lock-only', '--ignore-scripts', '--no-audit', '--no-fund'], dir);

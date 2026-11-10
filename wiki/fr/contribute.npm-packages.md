@@ -23,7 +23,10 @@ Le paquet du moteur ne prend que des chemins suivis sous ses racines (`src/`, `t
 racines arrête l'empaquetage (« git add or commit them, or add them to .gitignore ») au lieu d'être oublié en silence.
 Le Bridge, les connecteurs et le Studio Server portent leur verrou versionné en `npm-shrinkwrap.json` ; un verrou qui ne
 correspond plus à son manifeste arrête l'empaquetage : `npm run locks` le refait (relire le diff, le commiter), et
-`npm run locks -- --check` dit, sans réseau, si chaque verrou correspond encore.
+`npm run locks -- --check` dit, sans réseau, si chaque verrou correspond encore. Chacune de ces trois archives est
+vérifiée juste après `npm pack` (next) : une archive sans `npm-shrinkwrap.json` arrête l'empaquetage, en nommant
+l'archive et la version de npm qui l'a faite (npm 12 omet ce fichier, npm 10 et 11 le gardent), et son SBOM n'est
+jamais fait à partir du verrou racine à la place.
 
 De la 4.2.5 à la 4.2.x, chaque paquet était aussi empaqueté sous son ancien nom web-scumm, un alias aux mêmes fichiers
 et à la même version (D47). La 4.3.0 n'empaquette plus que les nouveaux noms ; `npx quest-n-click migrate` fait quitter

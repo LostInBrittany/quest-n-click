@@ -27,6 +27,7 @@ import {
   lockProblems,
   studioServerManifest,
 } from './pack-manifests.mjs';
+import { archiveEntries, shrinkwrapProblem } from './locked.mjs';
 
 const ROOT = resolve(import.meta.dirname, '..');
 const out = resolve(ROOT, process.argv.find((a) => a.startsWith('--out='))?.slice(6) ?? '.cache/pack');
@@ -334,12 +335,17 @@ const ALL = [engine, create, bridge, connectors, studio];
 
 // npm names a scoped package's archive after its scope and name (`@quest-n-click/engine` → quest-n-click-engine-<v>.tgz):
 // each archive is renamed to its folder's name, the file name releases have always published (D53).
+// Each archive is checked right after (next, #546): a locked one without its npm-shrinkwrap.json (npm 12 leaves it out of
+// `npm pack`) stops the pack, naming the archive and the npm that packed it (scripts/locked.mjs).
+const npmVersion = npm(['--version'], { encoding: 'utf8' }).trim();
 for (const d of ALL) {
   npm(['pack', '--pack-destination', out, '--silent'], { cwd: d, stdio: ['ignore', 'inherit', 'inherit'] });
   const { name } = JSON.parse(readFileSync(join(d, 'package.json'), 'utf8'));
   const made = `${name.replace(/^@/, '').replace('/', '-')}-${root.version}.tgz`;
   const want = `${basename(d)}-${root.version}.tgz`;
   if (made !== want) renameSync(join(out, made), join(out, want));
+  const problem = shrinkwrapProblem(basename(d), archiveEntries(join(out, want)), npmVersion);
+  if (problem) throw new Error(problem);
 }
 console.log(
   `packed into ${out}: @quest-n-click/engine ${root.version} (${files.length} files and its docs-bundle/), @quest-n-click/create, @quest-n-click/bridge (one module, its policies), @quest-n-click/connectors (one module, its MIME worker), @quest-n-click/studio-server (two commands, the Studio's page); archives under their former names`,
