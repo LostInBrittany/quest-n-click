@@ -24,3 +24,23 @@ export function sinceRelease(release: number, now: number): string | undefined {
   if (!d) return undefined;
   return `first visit's JavaScript: ${d > 0 ? '+' : '−'}${plural(Math.abs(d))} since the release (${kb(release)} → ${kb(now)} gzipped)`;
 }
+
+/** The margin a release leaves above the measured first visit: a pull request fails only when it eats it. */
+export const RELEASE_MARGIN_BYTES = 2048;
+
+/** The budget a release writes (next): the measure plus 2 KB, rounded up to the KB; down too when the visit shrank. */
+export const releaseBudget = (bytes: number) => Math.ceil((bytes + RELEASE_MARGIN_BYTES) / 1024);
+
+/**
+ * A game's source with its `initialJsKB` set to `kb`, and the value it had; undefined when the game sets none. Refuses
+ * (throws) two keys, or one whose value is not a plain number: a release never skips a budget it was meant to reset.
+ */
+export function withInitialJsBudget(source: string, kb: number): { text: string; from: number } | undefined {
+  const keys = source.match(/\binitialJsKB\s*:/g)?.length ?? 0;
+  if (keys === 0) return undefined;
+  if (keys > 1) throw new Error(`${keys} initialJsKB keys, not one: set the budget by hand`);
+  const value = /\b(initialJsKB\s*:\s*)(\d+(?:\.\d+)?)\b/;
+  const m = value.exec(source);
+  if (!m) throw new Error('initialJsKB is not a number written in place: set the budget by hand');
+  return { text: source.replace(value, `$1${kb}`), from: Number(m[2]) };
+}

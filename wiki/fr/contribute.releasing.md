@@ -82,7 +82,9 @@ sous son ancre est gardée, jamais doublée, et les puces du CHANGELOG de la rel
 pour son auteur, 4.7.0), les pages de
 transition, la sauvegarde de référence (listée dans `tests/fixtures/saves/index.json`), le run de référence, la fiche
 des passes et `passIssues`, la ligne de release actuelle du README (à la place de la précédente, 4.7.0), la
-ligne de base de qualité ; un commit, les relectures humaines des docs, puis la pull request.
+ligne de base de qualité, avec le budget de première visite du jeu mesuré (`initialJsKB`) remis à sa mesure plus 2 Ko
+(next, [Référence de qualité](contribute.quality-baseline.md#context-and-versions)) ; un commit, les relectures
+humaines des docs, puis la pull request.
 
 Sa récupération (`fetch`) du `main` de l'organisation est tentée quatre fois, à 15 s d'intervalle, chaque essai raté
 signalé, avant qu'elle s'arrête (4.7.0, #410 : pendant la release de la 4.6.0, une seule connexion SSH refusée se lisait

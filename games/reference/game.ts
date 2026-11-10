@@ -170,11 +170,11 @@ export const game = defineGame({
   // Measured with `npm run weight` and `npm run e2e:weight` once built: see BENCH.md "3.4".
   // 3.7: two scores' stems (3.9 MB), the full warm-up (9.2 MB), the most decoded at once during a transition (128 MB:
   // both scores and a bridge).
-  // initialJsKB 142 since 4.4.0: the engine's first visit grew by 1 KB (a hotspot's single tap, a map pin's several faces).
-  // 143 since 4.6.0: the portrait layout (#397) runs with every resize, so it loads with the first visit (about 1 KB).
-  // 145 since #405 (4.6.0), compared in bytes: 146 260 bytes measured (142.8 KB, with #400), a margin of about 2 KB on
-  // purpose. Each release resets it (measured + about 2 KB): a pull request fails only when it eats the margin.
-  assetBudgets: { initialKB: 3000, roomKB: 3000, chapterKB: 6000, backgroundScoreKB: 4800, offlineTotalKB: 11000, decodedAudioMB: 128, transitionPeakMB: 150, initialJsKB: 145 },
+  // initialJsKB, compared in bytes (× 1024) since 4.6.0 (#405): the first visit measured plus 2 KB, rounded up to the
+  // KB, so a pull request fails only when it eats that margin. `npm run release -- prepare` measures the default game
+  // only, so this one is set by hand with the same rule: `GAME=reference npx vite build`, then `npx tsx tools/dist.ts
+  // --json` (initialJsBytes); 147 for 148 056 bytes (next).
+  assetBudgets: { initialKB: 3000, roomKB: 3000, chapterKB: 6000, backgroundScoreKB: 4800, offlineTotalKB: 11000, decodedAudioMB: 128, transitionPeakMB: 150, initialJsKB: 147 },
   i18n: { same: demo.i18n?.same?.filter((p) => p.startsWith('ui/') || p === 'char:hero/name' || p === 'char:biscuit/name' || p === 'char:neighbor/name').concat(['room:kitchen/props.radio.name', ...[0, 1, 3].map((i) => `room:hall/on.hall.use-map.do[1].params.actors[${i}].label`), ...['317', '542', '868'].map((n) => `room:hall/talk.neighbor.hall.neighbor.i-know-the-password.do[1].choice.hall.neighbor.i-know-the-password.c-${n}.text`)]) },
   ui: demo.ui,
 });

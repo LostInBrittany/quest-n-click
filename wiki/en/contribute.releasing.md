@@ -75,8 +75,9 @@ mark`, `tools/next-mark.ts`; [Conventions](contribute.conventions.md#next-mark))
 a section already written ahead under its anchor is kept, never doubled, the release's CHANGELOG bullets put in a
 comment at its end for its author, 4.7.0), the transition pages, the golden save (listed in
 `tests/fixtures/saves/index.json`), the reference run, the passes sheet and `passIssues`, the README's current-release
-line (in place of the previous one, 4.7.0), the quality baseline; one commit, the docs' human gates, then the pull
-request.
+line (in place of the previous one, 4.7.0), the quality baseline, with the measured game's first-visit budget
+(`initialJsKB`) reset to its measure plus 2 KB (next, [Quality baseline](contribute.quality-baseline.md#context-and-versions));
+one commit, the docs' human gates, then the pull request.
 
 Its fetch of the organisation's `main` is tried four times, 15 s apart, each failed try said, before it stops (4.7.0,
 #410: during 4.6.0's release one refused SSH connection read as "main is not the organisation's"). It stays on

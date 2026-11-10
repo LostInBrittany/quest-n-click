@@ -34,6 +34,8 @@ import { passesFor } from '../field/schema';
 import { rewriteMarkdown } from '../next-mark';
 import { type PendingFile, readPending } from '../wiki/pending';
 import { formatJson } from '../wiki/json';
+import { releaseBudget, withInitialJsBudget } from '../first-visit';
+import { gameId } from '../game';
 // @ts-expect-error: a plain .mjs module without declarations
 import { gitRetried, REPO, releaseRemote } from './lib.mjs';
 import { humanGates, type Run } from './gates';
@@ -770,6 +772,37 @@ export const QUALITY_BASELINE_COMMANDS: [string, string[]][] = [
   ['npm', ['run', '-s', 'quality:baseline', '--', '--release', '--dist']],
 ];
 
+/**
+ * The `quality baseline` step's last move (next): the measured game's `assetBudgets.initialJsKB` reset to the first
+ * visit just measured (tests/quality-baseline.json) plus 2 KB, up or down, so a pull request fails only when it eats
+ * that margin. A game that sets no budget is left alone; one whose budget cannot be rewritten in place stops the step.
+ * Returns the line `prepare` says, which the release pull request shows.
+ */
+export function resetFirstVisitBudget(deps: {
+  read: (file: string) => string;
+  write: (file: string, text: string) => void;
+  game: string;
+}): string {
+  const baseline = JSON.parse(deps.read('tests/quality-baseline.json') || '{}') as {
+    bundle?: { initialJsBytes?: number };
+  };
+  const bytes = baseline.bundle?.initialJsBytes;
+  if (typeof bytes !== 'number')
+    throw new Error('tests/quality-baseline.json holds no bundle.initialJsBytes to reset initialJsKB from');
+  const path = `games/${deps.game}/game.ts`;
+  const kb = releaseBudget(bytes);
+  let out: ReturnType<typeof withInitialJsBudget>;
+  try {
+    out = withInitialJsBudget(deps.read(path), kb);
+  } catch (e) {
+    throw new Error(`${path}: ${(e as Error).message}`);
+  }
+  if (!out) return `${path} sets no initialJsKB: left alone`;
+  if (out.from === kb) return `${path}: initialJsKB ${kb} kept (${bytes} bytes measured + 2 KB)`;
+  deps.write(path, out.text);
+  return `${path}: initialJsKB ${out.from} → ${kb} (${bytes} bytes measured + 2 KB)`;
+}
+
 /** The steps of `prepare`, in 4.5.3's order; before the push, the prose left and the human gates (4.5.5). */
 export const PREPARE_STEPS = [
   'branch',
@@ -1183,6 +1216,7 @@ function prepare(version: string, opts: { name: string; date: string; pr: boolea
     },
     'quality baseline': () => {
       for (const [cmd, args] of QUALITY_BASELINE_COMMANDS) sh(cmd, args);
+      say(resetFirstVisitBudget({ read, write: (f, text) => writeFileSync(file(f), text), game: gameId() }));
     },
     commit: () => {
       sh('git', ['add', '-A']);

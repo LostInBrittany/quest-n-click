@@ -40,8 +40,11 @@ aussi. `npm run quality:baseline` n'écrit que le comportement : les jeux, les s
 seul chiffre des README qui soit du comportement, `referenceStates`. Les nombres de tests, la première visite et les
 autres chiffres des README sont écrits par la release, `npm run quality:baseline -- --release --dist` (l'étape
 `quality baseline` de `npm run release -- prepare`, après un build). La première visite est tenue par le budget de
-chaque jeu, comparé en octets (`initialJsKB` × 1024) : un octet de trop échoue, avec une marge d'environ 2 Ko au-dessus
-de la taille mesurée, que chaque release remet à zéro volontairement.
+chaque jeu, comparé en octets (`initialJsKB` × 1024) : un octet de trop échoue, avec une marge de 2 Ko au-dessus de la
+taille mesurée, que chaque release remet à jour. La même étape réécrit l'`initialJsKB` du jeu mesuré à son
+`initialJsBytes` plus 2 Ko, arrondi au Ko supérieur (à la baisse aussi quand la première visite a maigri), et affiche
+l'ancien et le nouveau budget (next). Elle ne mesure que le jeu par défaut : le budget d'un autre jeu, comme celui du
+chapitre de référence, se remet à jour à la main avec la même règle.
 
 <a name="prerequisites"></a>
 
