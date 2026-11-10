@@ -28,7 +28,7 @@ permissions:
 jobs:
   plan:
     runs-on: ubuntu-24.04
-    timeout-minutes: 15
+    timeout-minutes: 25
     outputs:
       matrix: ${{ steps.m.outputs.matrix }}
     steps:
@@ -36,7 +36,7 @@ jobs:
         with:
           ref: ${{ inputs.ref }}
       - uses: ./.github/actions/setup
-        timeout-minutes: 20
+        timeout-minutes: 17
       - id: m
         shell: bash
         run: |
@@ -67,7 +67,7 @@ jobs:
         with:
           ref: ${{ inputs.ref }}
       - uses: ./.github/actions/setup
-        timeout-minutes: 20
+        timeout-minutes: 17
       # The cache key (4.5.5, #329): the shard's name and its set's input hash, read before any mutant. The nightly
       # saves under it, the candidate restores it.
       - id: inputs
@@ -116,13 +116,13 @@ jobs:
     needs: [plan, mutation]
     if: always() && needs.plan.result == 'success'
     runs-on: ubuntu-24.04
-    timeout-minutes: 20
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ inputs.ref }}
       - uses: ./.github/actions/setup
-        timeout-minutes: 20
+        timeout-minutes: 17
       - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           pattern: mutation-shard-*
