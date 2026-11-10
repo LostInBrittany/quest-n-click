@@ -5,7 +5,8 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { type KnownSurvivor, sameMutant } from '../tools/mutate';
-import { decide, LABEL, isKnown, redJobs, type Run, unexplained } from '../tools/nightly-report';
+import { decide, LABEL, isKnown, RERUN, redJobs, type Run, unexplained } from '../tools/nightly-report';
+import { RERUN as GUARD_RERUN } from '../tools/schedule-guard';
 
 const ok = { result: 'success' };
 /** Every job of a full night, green. */
@@ -137,6 +138,10 @@ describe('the decision', () => {
     // Says what closes it, and who wrote it.
     expect(d.body).toMatch(/tools\/nightly-report\.ts/);
     expect(d.body).toMatch(/closes it/);
+    // The following nights on this commit are skipped (#519): how to re-run one, in the guard's words.
+    expect(d.body).toContain(RERUN);
+    expect(RERUN).toBe(GUARD_RERUN);
+    expect(RERUN).toContain('`gh workflow run nightly --ref main`');
   });
 
   it('a red night with an issue open: comments on it, one issue per streak', () => {

@@ -45,7 +45,9 @@ stays green and takes no other runner. A run by hand (`workflow_dispatch`) is ne
 mutation cache that `release -- prepare` starts; a skipped night is run by hand when it is needed, or waits for the next
 one. The nightly's `guard` also skips a scheduled night on the commit the last completed scheduled night (green or red)
 already tested, and says which run in the summary (#519): its report is skipped with it, so an open `nightly-red` issue
-stays open and is not commented again.
+stays open and is not commented again. A night red for an outside reason (a network error, a runner problem) thus stays
+red until a new commit lands: the red night's text in the issue, and the guard's summary after a red night, say so and
+give the command that runs the nightly again by hand, every job: `gh workflow run nightly --ref main` (#538).
 
 **A red night opens an issue** (4.5.6, #379). A red nightly used to tell nobody but the cross on the Actions page: on
 26 October 2026 one was found at the next release's candidate, a day late. The nightly's last job, `report`, needs
