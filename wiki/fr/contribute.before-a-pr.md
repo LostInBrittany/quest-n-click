@@ -189,7 +189,7 @@ qu'elle était écrite :
 ## Résultat attendu, et comment le vérifier
 
 Chaque commande ci-dessus finit au vert. Sur la pull request, `pr-gate` passe au vert une fois que chaque job du plan
-a réussi ([La CI expliquée](contribute.ci.md)) ; un job que le plan épargne dit « not needed by the plan » et réussit.
+a réussi ([La CI expliquée](contribute.ci.md)) ; un job que le plan épargne apparaît comme sauté, et `pr-gate` accepte ce saut.
 
 <a name="common-errors"></a>
 

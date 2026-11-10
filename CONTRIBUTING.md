@@ -47,7 +47,7 @@ proof, `audit:deps` when the lockfile moved) beside `coverage` (the unit suite, 
 below what the tests reach fails it, on a pull request as on `main`, 4.7.0). The second tier waits for `check` and runs only what the change can break, as
 `tools/ci-plan.ts` reads the diff (`npm run ci:plan` shows it locally): a Bridge change runs Reality, a painter the
 browser rows and the reference chapter, the template the packaging jobs, a docs-only change none of them. A job the
-plan spares still appears and succeeds with "not needed by the plan". The workflow itself, the plan, a shared
+plan spares shows as skipped, a skip `pr-gate` accepts only then. The workflow itself, the plan, a shared
 configuration (`package.json`, the lockfile, `vite.config.ts`, the tsconfigs), the engine's core and any path the plan
 does not know run everything. On `main` and on a tag everything runs and the mutation
 sets run; label a pull request `full-ci` (then push) to get the same before merging. `pr-gate` sums every job up.

@@ -1165,15 +1165,6 @@ candidate: the event that started the run; only a push to main can be a release'
 - Origin: set by a workflow of `.github/workflows/` (CI and releases).
 - Read by: [`.github/workflows/candidate.yml`](../../.github/workflows/candidate.yml), [`.github/workflows/nightly.yml`](../../.github/workflows/nightly.yml), [`tools/release/supersede.mjs`](../../tools/release/supersede.mjs).
 
-<a name="external"></a>
-
-### `EXTERNAL`
-
-ci: `true` when the plan asks for `external-consumer`; `pr-gate` accepts that job's skip only when it is not `true`.
-
-- Origin: set by a workflow of `.github/workflows/` (CI and releases).
-- Read by: [`.github/workflows/ci.yml`](../../.github/workflows/ci.yml).
-
 <a name="extra-assets"></a>
 
 ### `EXTRA_ASSETS`
@@ -1191,6 +1182,15 @@ mutation: one file to mutate, chosen by hand.
 
 - Origin: set by a workflow of `.github/workflows/` (CI and releases).
 - Read by: [`.github/workflows/mutation.yml`](../../.github/workflows/mutation.yml).
+
+<a name="gates"></a>
+
+### `GATES`
+
+ci: each gated job's gate in the plan, as its job-level `if:` reads it (`pr-gate`; `tests/ci-plan.test.ts` checks the two agree).
+
+- Origin: set by a workflow of `.github/workflows/` (CI and releases).
+- Read by: [`.github/workflows/ci.yml`](../../.github/workflows/ci.yml).
 
 <a name="in-candidate"></a>
 
@@ -1281,6 +1281,15 @@ release: the release's file name prefix (`quest-n-click`).
 
 - Origin: set by a workflow of `.github/workflows/` (CI and releases).
 - Read by: [`.github/workflows/release.yml`](../../.github/workflows/release.yml).
+
+<a name="plan"></a>
+
+### `PLAN`
+
+ci: the plan's JSON (`tools/ci-plan.ts`), one boolean per gate; `pr-gate` accepts a gated job's skip only when its gate is `false` there.
+
+- Origin: set by a workflow of `.github/workflows/` (CI and releases).
+- Read by: [`.github/workflows/ci.yml`](../../.github/workflows/ci.yml).
 
 <a name="postgres-db"></a>
 

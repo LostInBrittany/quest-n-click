@@ -1,7 +1,7 @@
 # La CI expliquée
 
-Ce que GitHub Actions lance sur le dépôt du moteur, pourquoi un job a tourné ou a dit « not needed by the plan », et que
-faire quand l'un d'eux est rouge. Les workflows sont dans [`.github/workflows/`](../../.github/workflows/ci.yml) ; le
+Ce que GitHub Actions lance sur le dépôt du moteur, pourquoi un job a tourné ou a été sauté par le plan, et que faire
+quand l'un d'eux est rouge. Les workflows sont dans [`.github/workflows/`](../../.github/workflows/ci.yml) ; le
 plan qui décide de ce que lance une pull request est [`tools/ci-plan.ts`](../../tools/ci-plan.ts). Quelle suite de tests
 tourne dans quel job, c'est [Quels tests tournent quand](contribute.which-tests.md).
 
@@ -92,8 +92,8 @@ correctif arrive sur `main`, et la nuit verte suivante ferme l'issue.
   `coverage` est rouge quand un fragment n'est pas vert, et `pr-gate` avec lui.
 
 **Le deuxième palier, ce que le changement peut casser.** Chaque job a besoin de `plan` (la plupart aussi de `check`)
-et lit sa barrière dans le plan : il fait son vrai travail, ou une seule étape qui dit « not needed by the plan » et
-réussit.
+et lit sa barrière dans le plan dans un `if:` au niveau du job : il tourne quand sa barrière est vraie et apparaît
+comme sauté (`skipped`) quand elle est fausse (#529).
 
 | Job | Barrière | Lance |
 |---|---|---|
@@ -115,11 +115,11 @@ réussit.
 `full-ci` (`ci` ne les lance nulle part ailleurs), la nightly, et le candidat, le seul passage de tests de la release.
 `release` ne reteste rien : il vérifie que le `ci` de `main` et le candidat étaient verts sur le SHA du tag.
 
-**`pr-gate`** lit le résultat de chaque job : chacun doit être `success` ; un `skipped` ne passe que là où le job
-n'avait pas à tourner (les jobs de mutation hors d'une pull request `full-ci`, `external-consumer` quand le plan
-l'épargne) ; `pwa-firefox`, instable jusqu'à la correction de #257, est signalé par un avertissement et ne le fait pas
-échouer (4.5.4). C'est la seule vérification qui résume une pull request, et la seule que le ruleset de `main` exige :
-un job rouge, `windows` compris, bloque la fusion à travers elle.
+**`pr-gate`** lit le résultat de chaque job : chacun doit être `success` ; un job à barrière peut être `skipped`
+seulement quand sa barrière est fausse dans le plan (sauté avec la barrière vraie, en échec ou annulé, il est rouge),
+les jobs de mutation là où ils ne tournent pas ; `pwa-firefox`, instable jusqu'à la correction de #257, est signalé par
+un avertissement et ne le fait pas échouer (4.5.4). C'est la seule vérification qui résume une pull request, et la
+seule que le ruleset de `main` exige : un job rouge, `windows` compris, bloque la fusion à travers elle.
 
 Plus aucun job ne déploie GitHub Pages (4.5.2, voir [le site](#pages-only)).
 

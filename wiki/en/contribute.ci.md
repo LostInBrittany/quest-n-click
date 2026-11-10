@@ -1,7 +1,7 @@
 # CI explained
 
-What GitHub Actions runs on the engine repository, why a job ran or said "not needed by the plan", and what to do when
-one is red. The workflows are in [`.github/workflows/`](../../.github/workflows/ci.yml); the plan that decides what a
+What GitHub Actions runs on the engine repository, why a job ran or was skipped by the plan, and what to do when one is
+red. The workflows are in [`.github/workflows/`](../../.github/workflows/ci.yml); the plan that decides what a
 pull request runs is [`tools/ci-plan.ts`](../../tools/ci-plan.ts). Which test suite runs in which job is
 [Which tests run when](contribute.which-tests.md).
 
@@ -85,7 +85,7 @@ and open nothing. Nothing is closed by hand: the fix lands on `main`, and the ne
   (`test:unit`). Either way `coverage` is red when a shard is not green, and `pr-gate` with it.
 
 **The second tier, what the change can break.** Each job needs `plan` (most also `check`) and reads its gate in the
-plan: it runs its real work, or one step that says "not needed by the plan" and succeeds.
+plan in a job-level `if:`: it runs when its gate is true and shows as skipped when it is false (#529).
 
 | Job | Gate | Runs |
 |---|---|---|
@@ -107,10 +107,11 @@ plan: it runs its real work, or one step that says "not needed by the plan" and 
 them nowhere else), the nightly, and the candidate, the release's only test pass. `release` tests nothing again: it
 checks that `main`'s `ci` and the candidate were green on the tag's SHA.
 
-**`pr-gate`** reads every job's result: each must be `success`; a `skipped` passes only where the job was not to run
-(the mutation jobs off a `full-ci` pull request, `external-consumer` when the plan spares it); `pwa-firefox`, flaky
-until #257 is fixed, is said as a warning and does not fail it (4.5.4). It is the one check that sums a pull request
-up, and the only one `main`'s ruleset requires: a red job, `windows` included, blocks the merge through it.
+**`pr-gate`** reads every job's result: each must be `success`; a gated job may be `skipped` only when its gate in
+the plan is false (a skip with the gate true, a failure or a cancellation is red), the mutation jobs where they do not
+run; `pwa-firefox`, flaky until #257 is fixed, is said as a warning and does not fail it (4.5.4). It is the one check
+that sums a pull request up, and the only one `main`'s ruleset requires: a red job, `windows` included, blocks the
+merge through it.
 
 No job deploys GitHub Pages any more (4.5.2, see [the site](#pages-only)).
 

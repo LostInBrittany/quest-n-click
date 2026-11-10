@@ -25,13 +25,12 @@ concurrency:
 # Three tiers (4.1.9, lot 0). The fast tier, on every change: `plan`, `check` (format, lint, knip, types, the game's
 # gates, the build, the baseline), `unit` (the unit suite in four shards, 4.5.4, split by duration since 4.5.5) and
 # `coverage` (the shards merged, the floors, the ratchet). The second tier needs `plan` (most jobs `check` too) and
-# runs only what the change can break, as `plan` (tools/ci-plan.ts) classifies the diff: a job it spares still runs,
-# says "not needed by the plan" and succeeds, because the ruleset requires each job by name and a skipped job is not a
-# success. On main and on a pull request labelled `full-ci`: everything. The third tier runs off the pull request
-# path: the mutation sets here on a `full-ci` pull request only; the nightly (the corpus, the heavy suite, every
-# mutation set, which fills the cache the candidate reads); the candidate (release-check:ci and the heavy families,
-# the release's only test pass since 4.5.3). `pr-gate` reads every job's result: the candidate single required check,
-# once a few runs have been green.
+# runs only what the change can break, as `plan` (tools/ci-plan.ts) classifies the diff: a job it spares is skipped at
+# the job level (`if:` on its gate, #529). On main and on a pull request labelled `full-ci`: everything. The third
+# tier runs off the pull request path: the mutation sets here on a `full-ci` pull request only; the nightly (the
+# corpus, the heavy suite, every mutation set, which fills the cache the candidate reads); the candidate
+# (release-check:ci and the heavy families, the release's only test pass since 4.5.3). `pr-gate` reads every job's
+# result: the one check the ruleset requires, it accepts a spared job's skip and nothing else.
 jobs:
   plan:
     runs-on: ubuntu-24.04
@@ -160,7 +159,7 @@ jobs:
           include-hidden-files: true
           if-no-files-found: error
           retention-days: 1
-  # The check the ruleset requires by name: red when a shard is not green; under coverage, the four blob reports merged
+  # Red when a shard is not green; under coverage, the four blob reports merged
   # (`test:merge`: the floors of tests/coverage-floors.json on the whole suite), then the ratchet.
   coverage:
     needs: [plan, unit]
@@ -302,20 +301,14 @@ jobs:
   # verdict as the specification in both. The runner image has cargo. Gate: `reality`.
   reality-xcheck:
     needs: plan
+    if: fromJSON(needs.plan.outputs.plan).reality
     runs-on: ubuntu-24.04
     timeout-minutes: 20
-    env:
-      RUN: ${{ fromJSON(needs.plan.outputs.plan).reality }}
     steps:
-      - if: env.RUN != 'true'
-        run: echo "::notice::reality-xcheck not needed by the plan (no Reality path changed)"
-      - if: env.RUN == 'true'
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - if: env.RUN == 'true'
-        uses: ./.github/actions/setup
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: ./.github/actions/setup
         timeout-minutes: 10
-      - if: env.RUN == 'true'
-        run: npm run reality:xcheck -- --require-rust
+      - run: npm run reality:xcheck -- --require-rust
   # The connectors of the world outside (4.1.9, D19, wiki/en/bridge.connectors.md): the SDK's contract on the four connectors
   # against a real Bridge, their abuse and fuzz tests, the sample chapter's replays, a game without server code, then
   # the fuzz harness for half a minute per connector (the nightly runs a minute) and the connectors' tarball installed
@@ -323,22 +316,16 @@ jobs:
   # played end to end from those archives against a Bridge from its own (next, #471). Gate: `reality`.
   connectors:
     needs: plan
+    if: fromJSON(needs.plan.outputs.plan).reality
     runs-on: ubuntu-24.04
     timeout-minutes: 20
-    env:
-      RUN: ${{ fromJSON(needs.plan.outputs.plan).reality }}
     steps:
-      - if: env.RUN != 'true'
-        run: echo "::notice::connectors not needed by the plan (no Reality path changed)"
-      - if: env.RUN == 'true'
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - if: env.RUN == 'true'
-        uses: ./.github/actions/setup
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: ./.github/actions/setup
         timeout-minutes: 10
-      - if: env.RUN == 'true'
-        run: npx vitest run tests/connectors-*.test.ts tests/dist-no-server-code.test.ts
+      - run: npx vitest run tests/connectors-*.test.ts tests/dist-no-server-code.test.ts
       # A key pair ssh2 refused, kept with why (tests/fixtures/connectors/harness.ts, 4.1.19): the flake's evidence.
-      - if: always() && env.RUN == 'true'
+      - if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: flakes-connectors
@@ -346,12 +333,9 @@ jobs:
           include-hidden-files: true
           if-no-files-found: ignore
           overwrite: true
-      - if: env.RUN == 'true'
-        run: npm run fuzz:connectors -- --cases=10000 --seconds=30
-      - if: env.RUN == 'true'
-        run: GAME=signals npm run solve:reality
+      - run: npm run fuzz:connectors -- --cases=10000 --seconds=30
+      - run: GAME=signals npm run solve:reality
       - name: The connectors' tarball installs without native code and answers
-        if: env.RUN == 'true'
         run: |
           node scripts/pack.mjs --out=.cache/pack
           mkdir -p .cache/operator && cd .cache/operator && echo '{"name":"operator","private":true}' > package.json
@@ -365,7 +349,6 @@ jobs:
       # the Bridge sees it here, not first in the candidate (4.7.2: #459 and #460, fixed by #466). The candidate still
       # runs it on the archives it ships.
       - name: The four connectors played end to end from their archive
-        if: env.RUN == 'true'
         run: node scripts/connector-archive-e2e.mjs --tarballs=.cache/pack
   # The hosted Studio (4.2.1): the journal on Postgres with its blobs in S3, the service lease, the processing worker
   # through presigned URLs, the spans' leases racing on Postgres, and the login, back-channel logout and a disabled
@@ -375,10 +358,10 @@ jobs:
   # Gate: `studioHosted`.
   studio-hosted:
     needs: plan
+    if: fromJSON(needs.plan.outputs.plan).studioHosted
     runs-on: ubuntu-24.04
     timeout-minutes: 40
     env:
-      RUN: ${{ fromJSON(needs.plan.outputs.plan).studioHosted }}
       STUDIO_TEST_PG_URL: postgres://studio:studio@127.0.0.1:5432/studio
       STUDIO_TEST_S3: http://studio-ci:studio-ci-secret-not-for-production@127.0.0.1:8333/studio-ci
     services:
@@ -393,25 +376,17 @@ jobs:
         options: >-
           --health-cmd "pg_isready -U studio" --health-interval 2s --health-timeout 5s --health-retries 30
     steps:
-      - if: env.RUN != 'true'
-        run: echo "::notice::studio-hosted not needed by the plan (no Studio Server path changed)"
-      - if: env.RUN == 'true'
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - if: env.RUN == 'true'
-        uses: ./.github/actions/setup
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: ./.github/actions/setup
         timeout-minutes: 10
       # The asset tools (4.2.2 PR 6b): "Prepare assets" runs them in the worker's child of the e2e stack.
-      - if: env.RUN == 'true'
-        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7
         with:
           python-version: '3.12'
-      - if: env.RUN == 'true'
-        run: for i in 1 2 3; do (timeout 6m pip install --require-hashes -r requirements.txt) && break; [ "$i" = 3 ] && exit 1; echo "retry $i"; sleep 15; done
+      - run: for i in 1 2 3; do (timeout 6m pip install --require-hashes -r requirements.txt) && break; [ "$i" = 3 ] && exit 1; echo "retry $i"; sleep 15; done
         timeout-minutes: 20
-      - if: env.RUN == 'true'
-        run: bash scripts/ci-ffmpeg.sh
-      - if: env.RUN == 'true'
-        name: S3 (SeaweedFS)
+      - run: bash scripts/ci-ffmpeg.sh
+      - name: S3 (SeaweedFS)
         run: |
           docker run -d --name seaweedfs -p 127.0.0.1:8333:8333 \
             -v "$PWD/ops/studio/ci/seaweedfs-s3.json:/etc/s3.json:ro" \
@@ -428,8 +403,7 @@ jobs:
           bucket || { echo "no bucket"; docker logs seaweedfs; exit 1; }
           for i in $(seq 1 60); do npx tsx ops/studio/ci/s3-ready.ts && exit 0; sleep 1; done
           echo "the bucket is not writable"; docker logs seaweedfs; exit 1
-      - if: env.RUN == 'true'
-        name: Keycloak (the test realm)
+      - name: Keycloak (the test realm)
         # Pinned by digest; it reaches this runner as host.docker.internal for its back-channel logouts.
         run: |
           docker run -d --name keycloak -p 127.0.0.1:8080:8080 --add-host=host.docker.internal:host-gateway \
@@ -442,48 +416,42 @@ jobs:
             sleep 2
           done
           docker logs keycloak; exit 1
-      - if: env.RUN == 'true'
+      - run: npx vitest run tests/studio-server.test.ts tests/studio-worker.test.ts tests/studio-collab.test.ts tests/studio-keycloak.test.ts --maxWorkers=1 --no-file-parallelism
         env:
           STUDIO_TEST_KEYCLOAK: http://127.0.0.1:8080
           STUDIO_TEST_KEYCLOAK_ADMIN: admin:admin-ci-only
-        run: npx vitest run tests/studio-server.test.ts tests/studio-worker.test.ts tests/studio-collab.test.ts tests/studio-keycloak.test.ts --maxWorkers=1 --no-file-parallelism
       # The hosted Studio in a browser (4.2.1 PR 7): its page, the game on its own origin (another site), the editor's
       # solicited save, the wall between the two; Chromium over http, Firefox over https. Not WebKit here: on Linux it
       # stores no cookie a frame of another host sets (even one site), unlike Safari; it is run on macOS.
-      - if: env.RUN == 'true'
-        run: bash scripts/ci-playwright-deps.sh chromium firefox
+      - run: bash scripts/ci-playwright-deps.sh chromium firefox
         timeout-minutes: 20
-      - if: env.RUN == 'true'
-        run: for i in 1 2 3; do (timeout 6m npx playwright install chromium firefox) && break; [ "$i" = 3 ] && exit 1; echo "retry $i"; sleep 15; done
+      - run: for i in 1 2 3; do (timeout 6m npx playwright install chromium firefox) && break; [ "$i" = 3 ] && exit 1; echo "retry $i"; sleep 15; done
         timeout-minutes: 20
-      - if: env.RUN == 'true'
-        run: npm run studio-client && npm run e2e:studio-hosted && npm run e2e:studio-collab && npm run e2e:studio-collab -- --browser=firefox
+      - run: npm run studio-client && npm run e2e:studio-hosted && npm run e2e:studio-collab && npm run e2e:studio-collab -- --browser=firefox
       # Quarantined (4.7.0, #406): Firefox's pass of e2e:studio-hosted fails at random ("a layout written meanwhile …
       # shown undefined", then the 8-min limit), four times in two days, one of them on 4.7.0's release merge. Its own
       # step, not blocking, so neither a pull request nor main's ci (which the release requires green) stops on it;
       # Chromium's pass and both collab passes still block. A failure is said, as pwa-firefox's (#257), until #406 is
       # fixed and this step joins the one above again.
       - id: hosted-firefox
-        if: env.RUN == 'true'
         continue-on-error: true
         run: npm run e2e:studio-hosted -- --browser=firefox
-      - if: env.RUN == 'true' && steps.hosted-firefox.outcome == 'failure'
+      - if: steps.hosted-firefox.outcome == 'failure'
         run: 'echo "::warning::studio-hosted (firefox): flaky, #406: not blocking"'
       # The diff's captures (4.4.0): two revisions really built and drawn in Chromium, which the unit jobs do not
       # install (there the drawing test is skipped; here it is required).
-      - if: env.RUN == 'true'
+      - run: npx vitest run tests/studio-diff-captures.test.ts --maxWorkers=1
         env:
           STUDIO_TEST_CAPTURES: '1'
-        run: npx vitest run tests/studio-diff-captures.test.ts --maxWorkers=1
   # The Bridge's distributed profile (4.1.10, D20): the store contract, the tenants crossed and the fan-out across
   # instances, on a real Postgres 16 (a service container, pinned by digest). The truth for Postgres: the maintainer's
   # machine runs it only with a local server (wiki/en/bridge.install-run.md). Gate: `reality`.
   bridge-postgres:
     needs: plan
+    if: fromJSON(needs.plan.outputs.plan).reality
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     env:
-      RUN: ${{ fromJSON(needs.plan.outputs.plan).reality }}
       BRIDGE_PG_URL: postgres://bridge:bridge@127.0.0.1:5432/bridge
     services:
       postgres:
@@ -497,18 +465,13 @@ jobs:
         options: >-
           --health-cmd "pg_isready -U bridge" --health-interval 2s --health-timeout 5s --health-retries 30
     steps:
-      - if: env.RUN != 'true'
-        run: echo "::notice::bridge-postgres not needed by the plan (no Reality path changed)"
-      - if: env.RUN == 'true'
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - if: env.RUN == 'true'
-        uses: ./.github/actions/setup
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: ./.github/actions/setup
         timeout-minutes: 10
-      - if: env.RUN == 'true'
-        # Every file that judges the Postgres adapter (4.1.20 PR 2a: five of the eight were run here before), from the set's
-        # one list, one file after the other (each in a database of its own, tests/fixtures/pg-database.ts).
-        # The list first: a failed listing stops the step instead of running the whole suite.
-        run: |
+      # Every file that judges the Postgres adapter (4.1.20 PR 2a: five of the eight were run here before), from the set's
+      # one list, one file after the other (each in a database of its own, tests/fixtures/pg-database.ts).
+      # The list first: a failed listing stops the step instead of running the whole suite.
+      - run: |
           files=$(npx tsx tools/mutation-sets.ts --tests=reality-store-postgres)
           [ -n "$files" ]
           npx vitest run $files --maxWorkers=1 --no-file-parallelism
@@ -518,12 +481,13 @@ jobs:
   # (GAME=signals). Gate: `reality`.
   reality:
     needs: [plan, check]
+    if: fromJSON(needs.plan.outputs.plan).reality
     runs-on: ubuntu-24.04
     # Playwright's image (#261): the browsers and their system libraries are in it, so no apt mirror on the way
     # (`--with-deps` fetched 52 MB of fonts and libraries, at 50 kB/s on a bad day). Its version is the lockfile's
-    # (tests/ci-plan.test.ts). Root in it: Firefox wants HOME to be root's. A spared job runs on the runner.
+    # (tests/ci-plan.test.ts). Root in it: Firefox wants HOME to be root's.
     container:
-      image: ${{ fromJSON(needs.plan.outputs.plan).reality && 'mcr.microsoft.com/playwright:v1.64.1-noble@sha256:47b510dd9230bf0b9bfc9b20102241e577ea7a99334ab4c3ca19f19770e9b8ea' || '' }}
+      image: 'mcr.microsoft.com/playwright:v1.64.1-noble@sha256:47b510dd9230bf0b9bfc9b20102241e577ea7a99334ab4c3ca19f19770e9b8ea'
       options: --init --ipc=host
     timeout-minutes: 40
     strategy:
@@ -532,117 +496,84 @@ jobs:
         browser: [chromium, webkit]
     env:
       HOME: /root
-      RUN: ${{ fromJSON(needs.plan.outputs.plan).reality }}
     steps:
-      - if: env.RUN != 'true'
-        run: echo "::notice::reality (${{ matrix.browser }}) not needed by the plan (no Reality path changed)"
-      - if: env.RUN == 'true'
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - if: env.RUN == 'true'
-        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7
         with:
           python-version: '3.12'
-      - if: env.RUN == 'true'
-        run: for i in 1 2 3; do (timeout 6m python -m pip install --require-hashes -r requirements.txt) && break; [ "$i" = 3 ] && exit 1; echo "retry $i"; sleep 15; done
+      - run: for i in 1 2 3; do (timeout 6m python -m pip install --require-hashes -r requirements.txt) && break; [ "$i" = 3 ] && exit 1; echo "retry $i"; sleep 15; done
         timeout-minutes: 20
-      - if: env.RUN == 'true'
-        uses: ./.github/actions/setup
+      - uses: ./.github/actions/setup
         with:
           safe-directory: true
         timeout-minutes: 10
-      - if: env.RUN == 'true'
-        run: npm run assets
+      - run: npm run assets
         env:
           GAME: signals
-      - if: env.RUN == 'true'
-        run: npx vite build
+      - run: npx vite build
         env:
           GAME: signals
-      - if: env.RUN == 'true'
-        run: npm run solve:reality
+      - run: npm run solve:reality
         env:
           GAME: signals
-      - if: env.RUN == 'true'
-        run: npx vite preview --port 5176 --strictPort &
+      - run: npx vite preview --port 5176 --strictPort &
         env:
           GAME: signals
-      - if: env.RUN == 'true'
-        run: for i in $(seq 1 60); do curl -sf http://127.0.0.1:5176/ > /dev/null && break; sleep 1; done
-      - if: env.RUN == 'true'
-        run: npm run e2e:reality -- http://127.0.0.1:5176/ --browser=${{ matrix.browser }} ${{ matrix.browser == 'webkit' && '--allow-skip' || '' }}
+      - run: for i in $(seq 1 60); do curl -sf http://127.0.0.1:5176/ > /dev/null && break; sleep 1; done
+      - run: npm run e2e:reality -- http://127.0.0.1:5176/ --browser=${{ matrix.browser }} ${{ matrix.browser == 'webkit' && '--allow-skip' || '' }}
   # The next Node (4.1.3): `engines` says >= 22, so the unit suite runs on 24 as well; `quality` (format, lint, types)
   # does not depend on Node's version and runs once, in `check` (4.1.9). Gate: `node24` (any code path).
   node-24:
     needs: plan
+    if: fromJSON(needs.plan.outputs.plan).node24
     runs-on: ubuntu-24.04
     timeout-minutes: 30
-    env:
-      RUN: ${{ fromJSON(needs.plan.outputs.plan).node24 }}
     steps:
-      - if: env.RUN != 'true'
-        run: echo "::notice::node-24 not needed by the plan (no code changed)"
-      - if: env.RUN == 'true'
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       # The same prerequisites as `coverage`: the unit suite runs the art tools and probes the stems (tests/tooling.test.ts).
-      - if: env.RUN == 'true'
-        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7
         with:
           python-version: '3.12'
-      - if: env.RUN == 'true'
-        run: for i in 1 2 3; do (timeout 6m pip install --require-hashes -r requirements.txt) && break; [ "$i" = 3 ] && exit 1; echo "retry $i"; sleep 15; done
+      - run: for i in 1 2 3; do (timeout 6m pip install --require-hashes -r requirements.txt) && break; [ "$i" = 3 ] && exit 1; echo "retry $i"; sleep 15; done
         timeout-minutes: 20
-      - if: env.RUN == 'true'
-        uses: ./.github/actions/setup
+      - uses: ./.github/actions/setup
         with:
           node-version: 24
         timeout-minutes: 10
-      - if: env.RUN == 'true'
-        run: bash scripts/ci-ffmpeg.sh
+      - run: bash scripts/ci-ffmpeg.sh
         timeout-minutes: 20
-      - if: env.RUN == 'true'
-        run: npm run test:node
+      - run: npm run test:node
   # Windows (4.1.8, programme §4.4): what a studio on Windows runs every day, on a real Windows runner: the doctor, the
   # type checks and the unit suite, a build of the sample game, the production server answering. Its own build: the
-  # build on Windows is what it checks. Not a required check until the maintainer adds it to the ruleset; Python is
+  # build on Windows is what it checks. Blocking through `pr-gate`, as every job here; Python is
   # optional there (no assets rebuilt). Gate: `windows` (any code path).
   windows:
     needs: [plan, check]
+    if: fromJSON(needs.plan.outputs.plan).windows
     runs-on: windows-latest
     timeout-minutes: 45
     defaults:
       run:
         shell: bash
-    env:
-      RUN: ${{ fromJSON(needs.plan.outputs.plan).windows }}
     steps:
-      - if: env.RUN != 'true'
-        run: echo "::notice::windows not needed by the plan (no code changed)"
-      - if: env.RUN == 'true'
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       # The install loops here have no `timeout <n>m` an attempt, unlike the Linux jobs' (4.5.5, #340): macOS has no
       # `timeout`, and on Windows System32's timeout.exe may come first in the PATH. The step's limit still holds.
-      - if: env.RUN == 'true'
-        uses: ./.github/actions/setup
+      - uses: ./.github/actions/setup
         timeout-minutes: 10
-      - if: env.RUN == 'true'
-        run: for i in 1 2 3; do (npx playwright install chromium) && break; [ "$i" = 3 ] && exit 1; echo "retry $i"; sleep 15; done
+      - run: for i in 1 2 3; do (npx playwright install chromium) && break; [ "$i" = 3 ] && exit 1; echo "retry $i"; sleep 15; done
         timeout-minutes: 20
-      - if: env.RUN == 'true'
-        run: npm run doctor
+      - run: npm run doctor
       # The junction, the type checks, then the unit suite without six files that assume POSIX (file modes 0600,
       # `/` in paths, the shell's tools): named here, said in SUPPORT, ported by `fix/418-windows-tests`. Since 4.1.9
       # also the connectors' Telnet and SSH tests, and the two that drive them (the SDK's contract, the abuse run):
       # they time sockets, idle limits and a thousand connections the POSIX way, not yet ported (SUPPORT says so).
       # Since 4.2.1 also the Studio Server's processing worker, which runs on Linux only (process groups, `kill(-pid)`).
       # Then the game's gates and the build (`build` would run `check` a second time).
-      - if: env.RUN == 'true'
-        run: npx tsx tools/select-game.ts && npm run -s tsc -- --noEmit
-      - if: env.RUN == 'true'
-        run: npm run test:node -- --exclude tests/bridge.test.ts --exclude tests/file-size.test.ts --exclude tests/prompts.test.ts --exclude tests/status.test.ts --exclude tests/studio-demo.test.ts --exclude tests/tooling.test.ts --exclude tests/connectors-terminal.test.ts --exclude tests/connectors-ssh.test.ts --exclude tests/connectors-sdk.test.ts --exclude tests/connectors-abuse.test.ts --exclude tests/studio-worker.test.ts --exclude tests/studio-client.test.ts --exclude tests/studio-diff-captures.test.ts
-      - if: env.RUN == 'true'
-        run: npm run build:game
+      - run: npx tsx tools/select-game.ts && npm run -s tsc -- --noEmit
+      - run: npm run test:node -- --exclude tests/bridge.test.ts --exclude tests/file-size.test.ts --exclude tests/prompts.test.ts --exclude tests/status.test.ts --exclude tests/studio-demo.test.ts --exclude tests/tooling.test.ts --exclude tests/connectors-terminal.test.ts --exclude tests/connectors-ssh.test.ts --exclude tests/connectors-sdk.test.ts --exclude tests/connectors-abuse.test.ts --exclude tests/studio-worker.test.ts --exclude tests/studio-client.test.ts --exclude tests/studio-diff-captures.test.ts
+      - run: npm run build:game
       - name: The production server answers
-        if: env.RUN == 'true'
         run: |
           PORT=5191 node scripts/start.mjs > server.log 2>&1 &
           trap 'kill %1 2>/dev/null || true' EXIT
@@ -654,57 +585,43 @@ jobs:
   # build (GAME=second). Gate: `secondGame` (the template, the packages, the authoring tools, the e2e driver).
   second-game:
     needs: [plan, check]
+    if: fromJSON(needs.plan.outputs.plan).secondGame
     runs-on: ubuntu-24.04
     # Playwright's image, as `reality`'s (#261).
     container:
-      image: ${{ fromJSON(needs.plan.outputs.plan).secondGame && 'mcr.microsoft.com/playwright:v1.64.1-noble@sha256:47b510dd9230bf0b9bfc9b20102241e577ea7a99334ab4c3ca19f19770e9b8ea' || '' }}
+      image: 'mcr.microsoft.com/playwright:v1.64.1-noble@sha256:47b510dd9230bf0b9bfc9b20102241e577ea7a99334ab4c3ca19f19770e9b8ea'
       options: --init --ipc=host
     timeout-minutes: 40
     env:
       HOME: /root
-      RUN: ${{ fromJSON(needs.plan.outputs.plan).secondGame }}
     steps:
-      - if: env.RUN != 'true'
-        run: echo "::notice::second-game not needed by the plan (no template, package or authoring path changed)"
-      - if: env.RUN == 'true'
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - if: env.RUN == 'true'
-        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7
         with:
           python-version: '3.12'
-      - if: env.RUN == 'true'
-        run: for i in 1 2 3; do (timeout 6m python -m pip install --require-hashes -r requirements.txt) && break; [ "$i" = 3 ] && exit 1; echo "retry $i"; sleep 15; done
+      - run: for i in 1 2 3; do (timeout 6m python -m pip install --require-hashes -r requirements.txt) && break; [ "$i" = 3 ] && exit 1; echo "retry $i"; sleep 15; done
         timeout-minutes: 20
-      - if: env.RUN == 'true'
-        uses: ./.github/actions/setup
+      - uses: ./.github/actions/setup
         with:
           safe-directory: true
         timeout-minutes: 10
-      - if: env.RUN == 'true'
-        run: npm run new-game second "Second Game"
-      - if: env.RUN == 'true'
-        run: npm run assets
+      - run: npm run new-game second "Second Game"
+      - run: npm run assets
       # validate --release measures the stems with ffprobe (3.6).
-      - if: env.RUN == 'true'
-        run: bash scripts/ci-ffmpeg.sh
+      - run: bash scripts/ci-ffmpeg.sh
         timeout-minutes: 20
       # build:game (4.1.3): the game's own gates and the bundle, without the unit suite `unit` runs.
-      - if: env.RUN == 'true'
-        run: npm run build:game
+      - run: npm run build:game
         env:
           GAME: second
-      - if: env.RUN == 'true'
-        run: npm run prove:game
+      - run: npm run prove:game
         env:
           GAME: second
-      - if: env.RUN == 'true'
-        run: npm run preview -- --port 5174 &
+      - run: npm run preview -- --port 5174 &
         env:
           GAME: second
-      - if: env.RUN == 'true'
-        run: for i in $(seq 1 60); do curl -sf http://127.0.0.1:5174/ > /dev/null && break; sleep 1; done
-      - if: env.RUN == 'true'
-        run: npm run e2e -- http://127.0.0.1:5174/ --game second --prod --generic --axe --save
+      - run: for i in $(seq 1 60); do curl -sf http://127.0.0.1:5174/ > /dev/null && break; sleep 1; done
+      - run: npm run e2e -- http://127.0.0.1:5174/ --game second --prod --generic --axe --save
         env:
           GAME: second
   # The production bundle played by touch. Chromium runs the complete game-specific walkthrough and WebKit the
@@ -714,10 +631,11 @@ jobs:
   # sample game, the Studio, the e2e scripts, the visual references).
   e2e:
     needs: [plan, check]
+    if: fromJSON(needs.plan.outputs.plan).e2e
     runs-on: ubuntu-24.04
     # Playwright's image, as `reality`'s (#261).
     container:
-      image: ${{ fromJSON(needs.plan.outputs.plan).e2e && 'mcr.microsoft.com/playwright:v1.64.1-noble@sha256:47b510dd9230bf0b9bfc9b20102241e577ea7a99334ab4c3ca19f19770e9b8ea' || '' }}
+      image: 'mcr.microsoft.com/playwright:v1.64.1-noble@sha256:47b510dd9230bf0b9bfc9b20102241e577ea7a99334ab4c3ca19f19770e9b8ea'
       options: --init --ipc=host
     timeout-minutes: 45
     continue-on-error: ${{ matrix.experimental }}
@@ -750,65 +668,56 @@ jobs:
             experimental: false
     env:
       HOME: /root
-      RUN: ${{ fromJSON(needs.plan.outputs.plan).e2e }}
     steps:
-      - if: env.RUN != 'true'
-        run: echo "::notice::e2e (${{ matrix.browser }}, ${{ matrix.mode }}) not needed by the plan (nothing the sample game's browser rows play changed)"
-      - if: env.RUN == 'true'
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - if: env.RUN == 'true'
-        uses: ./.github/actions/setup
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: ./.github/actions/setup
         with:
           safe-directory: true
         timeout-minutes: 10
       # The two-entry build (game + Studio demo) `check` made from this very commit.
-      - if: env.RUN == 'true'
-        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           name: dist
           path: dist
-      - if: env.RUN == 'true'
-        run: npm run preview -- --port 5173 &
-      - if: env.RUN == 'true'
-        run: for i in $(seq 1 60); do curl -sf http://127.0.0.1:5173/ > /dev/null && break; sleep 1; done
-      - if: env.RUN == 'true'
-        run: npm run e2e -- http://127.0.0.1:5173/ --game demo --prod ${{ matrix.mode == 'generic' && '--generic' || matrix.mode == 'keyboard' && '--generic --keyboard --save --no-indexeddb --axe' || matrix.mode == 'fr' && '--generic --lang fr' || matrix.mode == 'canvas' && '--generic --renderer canvas' || '--save --axe' }}
+      - run: npm run preview -- --port 5173 &
+      - run: for i in $(seq 1 60); do curl -sf http://127.0.0.1:5173/ > /dev/null && break; sleep 1; done
+      - run: npm run e2e -- http://127.0.0.1:5173/ --game demo --prod ${{ matrix.mode == 'generic' && '--generic' || matrix.mode == 'keyboard' && '--generic --keyboard --save --no-indexeddb --axe' || matrix.mode == 'fr' && '--generic --lang fr' || matrix.mode == 'canvas' && '--generic --renderer canvas' || '--save --axe' }}
         env:
           E2E_BROWSER: ${{ matrix.browser }}
           E2E_OUT: /tmp/e2e-${{ matrix.browser }}
       # The weight budget against the bytes really transferred (since 3.4): a first visit with the warm-ups off, every
       # request inside the asset graph's prediction, the total within 10% of it.
-      - if: env.RUN == 'true' && matrix.browser == 'chromium' && matrix.mode == 'full'
+      - if: matrix.browser == 'chromium' && matrix.mode == 'full'
         run: npm run e2e:weight -- http://127.0.0.1:5173/
       # The music director (since 3.5): thirty minutes rendered offline without a sample of drift, 100 changes of mix
       # without a click, the theme's stems in the game; then each browser's real-time jitter (< 20 ms).
-      - if: env.RUN == 'true' && matrix.browser == 'chromium' && matrix.mode == 'full'
+      - if: matrix.browser == 'chromium' && matrix.mode == 'full'
         run: npm run e2e:music -- http://127.0.0.1:5173/ --only=offline && npm run e2e:music -- http://127.0.0.1:5173/ --only=game && npm run e2e:music -- http://127.0.0.1:5173/ --only=live --live=chromium
-      - if: env.RUN == 'true' && matrix.browser == 'webkit' && matrix.mode == 'generic'
+      - if: matrix.browser == 'webkit' && matrix.mode == 'generic'
         run: npm run e2e:music -- http://127.0.0.1:5173/ --only=live --live=webkit
       # Visual baselines (since 3.4): every room of the sample game, still, against tests/visual/demo/*.png.
-      - if: env.RUN == 'true' && matrix.browser == 'chromium' && matrix.mode == 'full'
+      - if: matrix.browser == 'chromium' && matrix.mode == 'full'
         run: npm run e2e:visual -- http://127.0.0.1:5173/
       # The portrait layout (4.6.0, `skin.portrait`, switched on in the page): the rotate overlay, the panel at five
       # upright sizes with and without safe areas, 44 px targets, a turn to landscape and back.
-      - if: env.RUN == 'true' && matrix.browser == 'chromium' && matrix.mode == 'full'
+      - if: matrix.browser == 'chromium' && matrix.mode == 'full'
         run: npm run e2e:portrait -- http://127.0.0.1:5173/
         env:
           E2E_OUT: /tmp/e2e-${{ matrix.browser }}/portrait
-      - if: env.RUN == 'true' && matrix.mode == 'canvas'
+      - if: matrix.mode == 'canvas'
         run: npm run e2e:visual -- http://127.0.0.1:5173/ --renderer=canvas
-      - if: env.RUN == 'true' && matrix.mode == 'canvas'
+      - if: matrix.mode == 'canvas'
         run: npm run e2e:perf -- http://127.0.0.1:5173/ --renderer=canvas && npm run e2e:perf -- http://127.0.0.1:5173/ --renderer=dom
       # The Studio edits a stage without JSON by hand (since 3.4): on its dev server, the Stage form, the diff, the
       # write, the game sees it, undo puts the file back.
-      - if: env.RUN == 'true' && matrix.mode == 'canvas'
+      - if: matrix.mode == 'canvas'
         run: STUDIO=1 npx vite --port 5317 --strictPort &
-      - if: env.RUN == 'true' && matrix.mode == 'canvas'
+      - if: matrix.mode == 'canvas'
         run: for i in $(seq 1 60); do curl -sf http://127.0.0.1:5317/__studio/ > /dev/null && break; sleep 1; done && npm run e2e:studio -- http://127.0.0.1:5317/__studio/
       # The accessibility and storage gates (since 3.3): axe on the conversation menu, the map, the save / load slots,
       # the confirmations and every built-in minigame; every minigame won at the keyboard; an older save (v2
       # localStorage, a 3.1.0 IndexedDB record) upgraded and resumed. Blocking in Chromium (keyboard row) and WebKit.
-      - if: env.RUN == 'true' && ((matrix.browser == 'chromium' && matrix.mode == 'keyboard') || (matrix.browser == 'webkit' && matrix.mode == 'generic'))
+      - if: ((matrix.browser == 'chromium' && matrix.mode == 'keyboard') || (matrix.browser == 'webkit' && matrix.mode == 'generic'))
         run: npm run e2e:a11y -- http://127.0.0.1:5173/
         env:
           E2E_BROWSER: ${{ matrix.browser }}
@@ -819,15 +728,15 @@ jobs:
       # the build itself to publish the second one. Chromium and WebKit here, Firefox in its own job below. WebKit
       # cannot navigate offline under Playwright: that last step reports "skipped", accepted here, never counted as
       # a proof; a person checks Safari offline before each release (docs/dev/SAFARI-OFFLINE.md, docs/dev/passes/).
-      - if: env.RUN == 'true' && ((matrix.browser == 'chromium' && matrix.mode == 'full') || (matrix.browser == 'webkit' && matrix.mode == 'generic'))
+      - if: ((matrix.browser == 'chromium' && matrix.mode == 'full') || (matrix.browser == 'webkit' && matrix.mode == 'generic'))
         run: npm run e2e:pwa -- --serve=dist --update --interrupted --reinstall ${{ matrix.browser == 'webkit' && '--allow-skip' || '' }}
         env:
           E2E_BROWSER: ${{ matrix.browser }}
-      - if: env.RUN == 'true' && !((matrix.browser == 'chromium' && matrix.mode == 'full') || (matrix.browser == 'webkit' && matrix.mode == 'generic'))
+      - if: ${{ !((matrix.browser == 'chromium' && matrix.mode == 'full') || (matrix.browser == 'webkit' && matrix.mode == 'generic')) }}
         run: npm run e2e:pwa -- http://127.0.0.1:5173/ ${{ matrix.browser == 'webkit' && '--allow-skip' || '' }}
         env:
           E2E_BROWSER: ${{ matrix.browser }}
-      - if: failure() && env.RUN == 'true'
+      - if: failure()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: e2e-screenshots-${{ matrix.browser }}-${{ matrix.mode }}
@@ -839,32 +748,26 @@ jobs:
   # It plays the dist `check` built (4.1.9). Gate: `pwaFirefox` (the worker, the storage, the PWA script, the engine).
   pwa-firefox:
     needs: [plan, check]
+    if: fromJSON(needs.plan.outputs.plan).pwaFirefox
     runs-on: ubuntu-24.04
     # Playwright's image, as `reality`'s (#261).
     container:
-      image: ${{ fromJSON(needs.plan.outputs.plan).pwaFirefox && 'mcr.microsoft.com/playwright:v1.64.1-noble@sha256:47b510dd9230bf0b9bfc9b20102241e577ea7a99334ab4c3ca19f19770e9b8ea' || '' }}
+      image: 'mcr.microsoft.com/playwright:v1.64.1-noble@sha256:47b510dd9230bf0b9bfc9b20102241e577ea7a99334ab4c3ca19f19770e9b8ea'
       options: --init --ipc=host
     timeout-minutes: 20
     env:
       HOME: /root
-      RUN: ${{ fromJSON(needs.plan.outputs.plan).pwaFirefox }}
     steps:
-      - if: env.RUN != 'true'
-        run: echo "::notice::pwa-firefox not needed by the plan (no PWA path changed)"
-      - if: env.RUN == 'true'
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - if: env.RUN == 'true'
-        uses: ./.github/actions/setup
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: ./.github/actions/setup
         with:
           safe-directory: true
         timeout-minutes: 10
-      - if: env.RUN == 'true'
-        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           name: dist
           path: dist
-      - if: env.RUN == 'true'
-        run: npm run e2e:pwa -- --serve=dist --update --interrupted --reinstall
+      - run: npm run e2e:pwa -- --serve=dist --update --interrupted --reinstall
         env:
           E2E_BROWSER: firefox
   # The same results in Node, Chromium, WebKit and Firefox (4.1.16, plan §10): the canonical text, the speedrun
@@ -896,40 +799,32 @@ jobs:
   # (the created game's). Gate: `freshInstall` (the packages, the template, the Bridge, the authoring tools).
   fresh-install:
     needs: [plan, check]
+    if: fromJSON(needs.plan.outputs.plan).freshInstall
     runs-on: ubuntu-24.04
     # Playwright's image, as `reality`'s (#261).
     container:
-      image: ${{ fromJSON(needs.plan.outputs.plan).freshInstall && 'mcr.microsoft.com/playwright:v1.64.1-noble@sha256:47b510dd9230bf0b9bfc9b20102241e577ea7a99334ab4c3ca19f19770e9b8ea' || '' }}
+      image: 'mcr.microsoft.com/playwright:v1.64.1-noble@sha256:47b510dd9230bf0b9bfc9b20102241e577ea7a99334ab4c3ca19f19770e9b8ea'
       options: --init --ipc=host
     timeout-minutes: 30
     env:
       HOME: /root
-      RUN: ${{ fromJSON(needs.plan.outputs.plan).freshInstall }}
     steps:
-      - if: env.RUN != 'true'
-        run: echo "::notice::fresh-install not needed by the plan (no package, template or authoring path changed)"
-      - if: env.RUN == 'true'
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - if: env.RUN == 'true'
-        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7
         with:
           python-version: '3.12'
-      - if: env.RUN == 'true'
-        run: for i in 1 2 3; do (timeout 6m python -m pip install --require-hashes -r requirements.txt) && break; [ "$i" = 3 ] && exit 1; echo "retry $i"; sleep 15; done
+      - run: for i in 1 2 3; do (timeout 6m python -m pip install --require-hashes -r requirements.txt) && break; [ "$i" = 3 ] && exit 1; echo "retry $i"; sleep 15; done
         timeout-minutes: 20
-      - if: env.RUN == 'true'
-        uses: ./.github/actions/setup
+      - uses: ./.github/actions/setup
         with:
           safe-directory: true
         timeout-minutes: 10
-      - if: env.RUN == 'true'
-        run: npm run fresh-install
+      - run: npm run fresh-install
 
   # The four archives installed outside the repository on three systems (4.1.18, plan §7): packed here (the candidate
-  # installs its own), a 4.1.17 game moved to them, the Bridge and a connector scenario from their archives. Skipped at
-  # the job level when the plan spares it (4 Nov 2026), unlike the other spared jobs: no macOS or Windows runner is
-  # asked for only to say "not needed" (that afternoon no macOS runner came, and every pull request waited on one).
-  # The ruleset requires `pr-gate` alone since 4.5.4, and `pr-gate` accepts this skip exactly when the plan spares it.
+  # installs its own), a 4.1.17 game moved to them, the Bridge and a connector scenario from their archives. The first job
+  # skipped at the job level when the plan spares it (4 Nov 2026; every gated job since #529): no macOS or Windows
+  # runner is asked for only to say "not needed" (that afternoon no macOS runner came, and every pull request waited).
   external-consumer:
     needs: [plan, check]
     if: fromJSON(needs.plan.outputs.plan).freshInstall
@@ -962,28 +857,21 @@ jobs:
   # Gate: `upgrade` (saves, migrations, storage, the packages, the authoring tools).
   upgrade:
     needs: [plan, check]
+    if: fromJSON(needs.plan.outputs.plan).upgrade
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     env:
       GH_TOKEN: ${{ github.token }}
-      RUN: ${{ fromJSON(needs.plan.outputs.plan).upgrade }}
     steps:
-      - if: env.RUN != 'true'
-        run: echo "::notice::upgrade not needed by the plan (no save, migration or package path changed)"
-      - if: env.RUN == 'true'
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - if: env.RUN == 'true'
-        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7
         with:
           python-version: '3.12'
-      - if: env.RUN == 'true'
-        run: for i in 1 2 3; do (timeout 6m pip install --require-hashes -r requirements.txt) && break; [ "$i" = 3 ] && exit 1; echo "retry $i"; sleep 15; done
+      - run: for i in 1 2 3; do (timeout 6m pip install --require-hashes -r requirements.txt) && break; [ "$i" = 3 ] && exit 1; echo "retry $i"; sleep 15; done
         timeout-minutes: 20
-      - if: env.RUN == 'true'
-        uses: ./.github/actions/setup
+      - uses: ./.github/actions/setup
         timeout-minutes: 10
-      - if: env.RUN == 'true'
-        run: npm run upgrade-check -- --from=previous
+      - run: npm run upgrade-check -- --from=previous
 
   # The reference chapter (games/reference, since 3.4): the second real game, the 3.4 exit gate. Built, proved whole and
   # chapter by chapter, played to the end at the keyboard in Chromium and WebKit, in French with no English default
@@ -993,10 +881,11 @@ jobs:
   # example `heroes`'s (4.5.0, #265): three jobs side by side instead of one that ended every run.
   reference:
     needs: [plan, check]
+    if: fromJSON(needs.plan.outputs.plan).reference
     runs-on: ubuntu-24.04
     # Playwright's image, as `reality`'s (#261).
     container:
-      image: ${{ fromJSON(needs.plan.outputs.plan).reference && 'mcr.microsoft.com/playwright:v1.64.1-noble@sha256:47b510dd9230bf0b9bfc9b20102241e577ea7a99334ab4c3ca19f19770e9b8ea' || '' }}
+      image: 'mcr.microsoft.com/playwright:v1.64.1-noble@sha256:47b510dd9230bf0b9bfc9b20102241e577ea7a99334ab4c3ca19f19770e9b8ea'
       options: --init --ipc=host
     timeout-minutes: 45
     strategy:
@@ -1006,51 +895,37 @@ jobs:
     env:
       HOME: /root
       GAME: reference
-      RUN: ${{ fromJSON(needs.plan.outputs.plan).reference }}
     steps:
-      - if: env.RUN != 'true'
-        run: echo "::notice::reference (${{ matrix.browser }}) not needed by the plan (nothing the reference chapter plays changed)"
-      - if: env.RUN == 'true'
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - if: env.RUN == 'true'
-        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7
         with:
           python-version: '3.12'
-      - if: env.RUN == 'true'
-        run: for i in 1 2 3; do (timeout 6m python -m pip install --require-hashes -r requirements.txt) && break; [ "$i" = 3 ] && exit 1; echo "retry $i"; sleep 15; done
+      - run: for i in 1 2 3; do (timeout 6m python -m pip install --require-hashes -r requirements.txt) && break; [ "$i" = 3 ] && exit 1; echo "retry $i"; sleep 15; done
         timeout-minutes: 20
-      - if: env.RUN == 'true'
-        uses: ./.github/actions/setup
+      - uses: ./.github/actions/setup
         with:
           safe-directory: true
         timeout-minutes: 10
       # validate --release measures the stems with ffprobe (3.6).
-      - if: env.RUN == 'true'
-        run: bash scripts/ci-ffmpeg.sh
+      - run: bash scripts/ci-ffmpeg.sh
         timeout-minutes: 20
-      - if: env.RUN == 'true'
-        run: npm run build:game
-      - if: env.RUN == 'true' && matrix.browser == 'chromium'
+      - run: npm run build:game
+      - if: matrix.browser == 'chromium'
         run: npm run prove:game
-      - if: env.RUN == 'true'
-        run: npm run preview -- --port 5175 &
-      - if: env.RUN == 'true'
-        run: for i in $(seq 1 60); do curl -sf http://127.0.0.1:5175/ > /dev/null && break; sleep 1; done
-      - if: env.RUN == 'true'
-        run: npm run e2e -- http://127.0.0.1:5175/ --game reference --prod --keyboard
+      - run: npm run preview -- --port 5175 &
+      - run: for i in $(seq 1 60); do curl -sf http://127.0.0.1:5175/ > /dev/null && break; sleep 1; done
+      - run: npm run e2e -- http://127.0.0.1:5175/ --game reference --prod --keyboard
         env:
           E2E_BROWSER: ${{ matrix.browser }}
           E2E_OUT: /tmp/e2e-reference-${{ matrix.browser }}
-      - if: env.RUN == 'true' && matrix.browser == 'chromium'
+      - if: matrix.browser == 'chromium'
         run: npm run e2e:visual -- http://127.0.0.1:5175/ && npm run e2e:perf -- http://127.0.0.1:5175/ && npm run e2e:weight -- http://127.0.0.1:5175/
       # Two scores and two bridges (3.7): a transition planned, restored, stopped, under transitionPeakMB; in WebKit
       # too since 3.8.
-      - if: env.RUN == 'true'
-        run: npm run e2e:music -- http://127.0.0.1:5175/ --only=reference --browser=${{ matrix.browser }}
+      - run: npm run e2e:music -- http://127.0.0.1:5175/ --only=reference --browser=${{ matrix.browser }}
       # The default verb (4.0): a double tap goes through a door, talks to a character; an item from the bag is given or used.
-      - if: env.RUN == 'true'
-        run: npm run e2e:taps -- http://127.0.0.1:5175/ --browser=${{ matrix.browser }}
-      - if: failure() && env.RUN == 'true'
+      - run: npm run e2e:taps -- http://127.0.0.1:5175/ --browser=${{ matrix.browser }}
+      - if: failure()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: e2e-reference-${{ matrix.browser }}
@@ -1060,48 +935,37 @@ jobs:
   # it). Its own build (GAME=reference), in Chromium. Gate: `reference`.
   reference-fr:
     needs: [plan, check]
+    if: fromJSON(needs.plan.outputs.plan).reference
     runs-on: ubuntu-24.04
     # Playwright's image, as `reality`'s (#261).
     container:
-      image: ${{ fromJSON(needs.plan.outputs.plan).reference && 'mcr.microsoft.com/playwright:v1.64.1-noble@sha256:47b510dd9230bf0b9bfc9b20102241e577ea7a99334ab4c3ca19f19770e9b8ea' || '' }}
+      image: 'mcr.microsoft.com/playwright:v1.64.1-noble@sha256:47b510dd9230bf0b9bfc9b20102241e577ea7a99334ab4c3ca19f19770e9b8ea'
       options: --init --ipc=host
     timeout-minutes: 30
     env:
       HOME: /root
       GAME: reference
-      RUN: ${{ fromJSON(needs.plan.outputs.plan).reference }}
     steps:
-      - if: env.RUN != 'true'
-        run: echo "::notice::reference-fr not needed by the plan (nothing the reference chapter plays changed)"
-      - if: env.RUN == 'true'
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - if: env.RUN == 'true'
-        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7
         with:
           python-version: '3.12'
-      - if: env.RUN == 'true'
-        run: for i in 1 2 3; do (timeout 6m python -m pip install --require-hashes -r requirements.txt) && break; [ "$i" = 3 ] && exit 1; echo "retry $i"; sleep 15; done
+      - run: for i in 1 2 3; do (timeout 6m python -m pip install --require-hashes -r requirements.txt) && break; [ "$i" = 3 ] && exit 1; echo "retry $i"; sleep 15; done
         timeout-minutes: 20
-      - if: env.RUN == 'true'
-        uses: ./.github/actions/setup
+      - uses: ./.github/actions/setup
         with:
           safe-directory: true
         timeout-minutes: 10
       # validate --release measures the stems with ffprobe (3.6).
-      - if: env.RUN == 'true'
-        run: bash scripts/ci-ffmpeg.sh
+      - run: bash scripts/ci-ffmpeg.sh
         timeout-minutes: 20
-      - if: env.RUN == 'true'
-        run: npm run build:game
-      - if: env.RUN == 'true'
-        run: npm run preview -- --port 5175 &
-      - if: env.RUN == 'true'
-        run: for i in $(seq 1 60); do curl -sf http://127.0.0.1:5175/ > /dev/null && break; sleep 1; done
-      - if: env.RUN == 'true'
-        run: npm run e2e -- http://127.0.0.1:5175/ --game reference --prod --lang fr && npm run e2e -- http://127.0.0.1:5175/ --game reference --prod --generic --axe --save
+      - run: npm run build:game
+      - run: npm run preview -- --port 5175 &
+      - run: for i in $(seq 1 60); do curl -sf http://127.0.0.1:5175/ > /dev/null && break; sleep 1; done
+      - run: npm run e2e -- http://127.0.0.1:5175/ --game reference --prod --lang fr && npm run e2e -- http://127.0.0.1:5175/ --game reference --prod --generic --axe --save
         env:
           E2E_OUT: /tmp/e2e-reference-fr
-      - if: failure() && env.RUN == 'true'
+      - if: failure()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: e2e-reference-fr
@@ -1111,48 +975,37 @@ jobs:
   # 4.5.0 (#265), now beside it. Gate: `reference` (games/heroes reads the sample game's cast, verbs and ui).
   heroes:
     needs: [plan, check]
+    if: fromJSON(needs.plan.outputs.plan).reference
     runs-on: ubuntu-24.04
     # Playwright's image, as `reality`'s (#261).
     container:
-      image: ${{ fromJSON(needs.plan.outputs.plan).reference && 'mcr.microsoft.com/playwright:v1.64.1-noble@sha256:47b510dd9230bf0b9bfc9b20102241e577ea7a99334ab4c3ca19f19770e9b8ea' || '' }}
+      image: 'mcr.microsoft.com/playwright:v1.64.1-noble@sha256:47b510dd9230bf0b9bfc9b20102241e577ea7a99334ab4c3ca19f19770e9b8ea'
       options: --init --ipc=host
     timeout-minutes: 30
     env:
       HOME: /root
       GAME: heroes
-      RUN: ${{ fromJSON(needs.plan.outputs.plan).reference }}
     steps:
-      - if: env.RUN != 'true'
-        run: echo "::notice::heroes not needed by the plan (nothing the hero choice example plays changed)"
-      - if: env.RUN == 'true'
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - if: env.RUN == 'true'
-        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7
         with:
           python-version: '3.12'
-      - if: env.RUN == 'true'
-        run: for i in 1 2 3; do (timeout 6m python -m pip install --require-hashes -r requirements.txt) && break; [ "$i" = 3 ] && exit 1; echo "retry $i"; sleep 15; done
+      - run: for i in 1 2 3; do (timeout 6m python -m pip install --require-hashes -r requirements.txt) && break; [ "$i" = 3 ] && exit 1; echo "retry $i"; sleep 15; done
         timeout-minutes: 20
-      - if: env.RUN == 'true'
-        uses: ./.github/actions/setup
+      - uses: ./.github/actions/setup
         with:
           safe-directory: true
         timeout-minutes: 10
       # validate --release measures the stems with ffprobe (3.6).
-      - if: env.RUN == 'true'
-        run: bash scripts/ci-ffmpeg.sh
+      - run: bash scripts/ci-ffmpeg.sh
         timeout-minutes: 20
-      - if: env.RUN == 'true'
-        run: npm run build:game && npm run solve -- --prove
-      - if: env.RUN == 'true'
-        run: npm run preview -- --port 5177 &
-      - if: env.RUN == 'true'
-        run: for i in $(seq 1 60); do curl -sf http://127.0.0.1:5177/ > /dev/null && break; sleep 1; done
-      - if: env.RUN == 'true'
-        run: npm run e2e -- http://127.0.0.1:5177/ --game heroes --prod
+      - run: npm run build:game && npm run solve -- --prove
+      - run: npm run preview -- --port 5177 &
+      - run: for i in $(seq 1 60); do curl -sf http://127.0.0.1:5177/ > /dev/null && break; sleep 1; done
+      - run: npm run e2e -- http://127.0.0.1:5177/ --game heroes --prod
         env:
           E2E_OUT: /tmp/e2e-heroes
-      - if: failure() && env.RUN == 'true'
+      - if: failure()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: e2e-heroes
@@ -1163,10 +1016,11 @@ jobs:
   # cast, rooms and rules).
   routes:
     needs: [plan, check]
+    if: fromJSON(needs.plan.outputs.plan).reference
     runs-on: ubuntu-24.04
     # Playwright's image, as `reality`'s (#261).
     container:
-      image: ${{ fromJSON(needs.plan.outputs.plan).reference && 'mcr.microsoft.com/playwright:v1.64.1-noble@sha256:47b510dd9230bf0b9bfc9b20102241e577ea7a99334ab4c3ca19f19770e9b8ea' || '' }}
+      image: 'mcr.microsoft.com/playwright:v1.64.1-noble@sha256:47b510dd9230bf0b9bfc9b20102241e577ea7a99334ab4c3ca19f19770e9b8ea'
       options: --init --ipc=host
     timeout-minutes: 30
     strategy:
@@ -1176,47 +1030,34 @@ jobs:
     env:
       HOME: /root
       GAME: routes
-      RUN: ${{ fromJSON(needs.plan.outputs.plan).reference }}
     steps:
-      - if: env.RUN != 'true'
-        run: echo "::notice::routes not needed by the plan (nothing the routes example plays changed)"
-      - if: env.RUN == 'true'
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - if: env.RUN == 'true'
-        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7
         with:
           python-version: '3.12'
-      - if: env.RUN == 'true'
-        run: for i in 1 2 3; do (timeout 6m python -m pip install --require-hashes -r requirements.txt) && break; [ "$i" = 3 ] && exit 1; echo "retry $i"; sleep 15; done
+      - run: for i in 1 2 3; do (timeout 6m python -m pip install --require-hashes -r requirements.txt) && break; [ "$i" = 3 ] && exit 1; echo "retry $i"; sleep 15; done
         timeout-minutes: 20
-      - if: env.RUN == 'true'
-        uses: ./.github/actions/setup
+      - uses: ./.github/actions/setup
         with:
           safe-directory: true
         timeout-minutes: 10
       # validate --release measures the stems with ffprobe (3.6).
-      - if: env.RUN == 'true'
-        run: bash scripts/ci-ffmpeg.sh
+      - run: bash scripts/ci-ffmpeg.sh
         timeout-minutes: 20
-      - if: env.RUN == 'true'
-        run: npm run build:game && npm run solve -- --prove
-      - if: env.RUN == 'true'
-        run: npm run preview -- --port 5178 &
-      - if: env.RUN == 'true'
-        run: for i in $(seq 1 60); do curl -sf http://127.0.0.1:5178/ > /dev/null && break; sleep 1; done
-      - if: env.RUN == 'true'
-        run: npm run e2e -- http://127.0.0.1:5178/ --game routes --prod
+      - run: npm run build:game && npm run solve -- --prove
+      - run: npm run preview -- --port 5178 &
+      - run: for i in $(seq 1 60); do curl -sf http://127.0.0.1:5178/ > /dev/null && break; sleep 1; done
+      - run: npm run e2e -- http://127.0.0.1:5178/ --game routes --prod
         env:
           E2E_OUT: /tmp/e2e-routes
           E2E_BROWSER: ${{ matrix.browser }}
-      - if: failure() && env.RUN == 'true'
+      - if: failure()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: e2e-routes-${{ matrix.browser }}
           path: /tmp/e2e-routes
-  # Every job's result in one check (4.1.9): each must be `success` (a job the plan spares succeeds in a step), mutation
-  # may be `skipped` where it does not run (an ordinary pull request). The candidate single required check: the
-  # ruleset still requires the seventeen names until a few runs of this job have been green (the maintainer's move).
+  # Every job's result in one check (4.1.9), the one the ruleset requires: each must be `success`; a gated job may be
+  # `skipped` when its gate in the plan is false (#529), mutation where it does not run (an ordinary pull request).
   pr-gate:
     needs: [plan, check, unit, coverage, mutation-plan, mutation, mutation-merge, reality-xcheck, connectors, bridge-postgres, studio-hosted, reality, node-24, windows, second-game, e2e, pwa-firefox, fresh-install, external-consumer, upgrade, reference, reference-fr, heroes, routes, cross-runtime]
     if: always()
@@ -1227,7 +1068,9 @@ jobs:
         env:
           NEEDS: ${{ toJSON(needs) }}
           MUTATION: ${{ github.event_name == 'pull_request' && contains(github.event.pull_request.labels.*.name, 'full-ci') }}
-          EXTERNAL: ${{ fromJSON(needs.plan.outputs.plan).freshInstall }}
+          PLAN: ${{ needs.plan.outputs.plan }}
+          # Each gated job's gate, as its job-level `if` reads it (tests/ci-plan.test.ts checks the two agree).
+          GATES: '{"reality-xcheck":"reality","connectors":"reality","studio-hosted":"studioHosted","bridge-postgres":"reality","reality":"reality","node-24":"node24","windows":"windows","second-game":"secondGame","e2e":"e2e","pwa-firefox":"pwaFirefox","fresh-install":"freshInstall","external-consumer":"freshInstall","upgrade":"upgrade","reference":"reference","reference-fr":"reference","heroes":"reference","routes":"reference"}'
         run: |
           bad=0
           for row in $(echo "$NEEDS" | jq -r 'to_entries[] | "\(.key)=\(.value.result)"'); do
@@ -1236,12 +1079,13 @@ jobs:
               if [ "$result" = skipped ] && [ "$MUTATION" != true ]; then
                 echo "✔ $job: skipped (here on a full-ci pull request only; the nightly and the candidate run every set)"; continue
               fi ;;
-            # Skipped at the job level when the plan spares it (4 Nov 2026): no runner asked for, nothing to prove.
-            external-consumer) if [ "$result" = skipped ] && [ "$EXTERNAL" != true ]; then
-              echo "✔ $job: skipped (not needed by the plan: no package, template or authoring path changed)"; continue; fi ;;
-            # Flaky (#257): said, not blocking, until fixed (4.5.4, #302).
-            pwa-firefox) if [ "$result" != success ]; then echo "::warning::pwa-firefox: $result (flaky, #257: not blocking)"; continue; fi ;;
+            # Flaky (#257): said, not blocking, until fixed (4.5.4, #302). Its skip is judged below, as any gated job's.
+            pwa-firefox) if [ "$result" != success ] && [ "$result" != skipped ]; then echo "::warning::pwa-firefox: $result (flaky, #257: not blocking)"; continue; fi ;;
             esac
+            # A gated job is skipped at the job level when the plan spares it (#529): that skip, and no other, is green.
+            gate=$(echo "$GATES" | jq -r --arg j "$job" '.[$j] // empty')
+            if [ "$result" = skipped ] && [ -n "$gate" ] && [ "$(echo "$PLAN" | jq --arg g "$gate" '.[$g]')" = false ]; then
+              echo "✔ $job: skipped (not needed by the plan: $gate)"; continue; fi
             if [ "$result" = success ]; then echo "✔ $job"; else echo "::error::$job: $result"; bad=1; fi
           done
           exit $bad

@@ -296,7 +296,7 @@ describe('ci.yml and the plan', () => {
 
   it('plays the connectors from the archives it packed, on the reality gate, as the candidate does (next, #471)', () => {
     const connectors = job('connectors');
-    expect(connectors).toMatch(/RUN: \$\{\{ fromJSON\(needs\.plan\.outputs\.plan\)\.reality \}\}/);
+    expect(connectors).toMatch(/^ {4}if: fromJSON\(needs\.plan\.outputs\.plan\)\.reality$/m);
     const pack = connectors.indexOf('node scripts/pack.mjs --out=.cache/pack');
     const e2e = connectors.indexOf('node scripts/connector-archive-e2e.mjs --tarballs=.cache/pack');
     expect(pack).toBeGreaterThan(-1);
@@ -309,7 +309,7 @@ describe('ci.yml and the plan', () => {
   it("splits the reference chapter's Chromium work over three jobs on its gate (#265), each check run once", () => {
     const runs = (id: string, cmd: string) => job(id).split(cmd).length - 1;
     for (const id of ['reference-fr', 'heroes'])
-      expect(job(id), id).toMatch(/RUN: \$\{\{ fromJSON\(needs\.plan\.outputs\.plan\)\.reference \}\}/);
+      expect(job(id), id).toMatch(/^ {4}if: fromJSON\(needs\.plan\.outputs\.plan\)\.reference$/m);
     expect(job('reference-fr')).toMatch(/GAME: reference\n/);
     expect(job('heroes')).toMatch(/GAME: heroes\n/);
     // The keyboard run, the proofs, visual, perf, weight, music and taps stay in `reference`.
@@ -332,31 +332,21 @@ describe('ci.yml and the plan', () => {
     expect(job('reference')).not.toContain('heroes');
   });
 
-  it('gates the work of a spared job inside it: no job-level `if` on a gated job, a step that succeeds instead', () => {
-    for (const id of [
-      'node-24',
-      'reality-xcheck',
-      'bridge-postgres',
-      'connectors',
-      'reality',
-      'e2e',
-      'reference',
-      'reference-fr',
-      'heroes',
-      'routes',
-      'pwa-firefox',
-      'windows',
-    ].concat(['second-game', 'fresh-install', 'upgrade'])) {
+  it('skips a spared job at the job level (#529): a job-level `if` on its gate, no step gated on `env.RUN`', () => {
+    const gates = JSON.parse(job('pr-gate').match(/GATES: '(.+)'$/m)![1]!) as Record<string, string>;
+    // Every job after `plan` is gated, but the fast tier, cross-runtime (every change) and pr-gate itself.
+    const after = [...yml.matchAll(/^ {2}([\w-]+):\n {4}needs: \[?plan\b/gm)].map((m) => m[1]!);
+    const ungated = ['check', 'unit', 'coverage', 'cross-runtime', 'pr-gate'];
+    expect(Object.keys(gates).sort()).toEqual(after.filter((id) => !ungated.includes(id)).sort());
+    for (const id of Object.keys(gates)) {
       const body = job(id);
-      expect(body, id).not.toMatch(/^ {4}if:/m);
-      expect(body, id).toMatch(/RUN: \$\{\{ fromJSON\(needs\.plan\.outputs\.plan\)\.\w+ \}\}/);
-      expect(body, id).toContain('not needed by the plan');
-      // Every step but the notice runs only when the plan asks.
-      const steps = body.split(/\n {6}- /).slice(1);
-      for (const s of steps)
-        expect(s.includes("env.RUN == 'true'") || s.includes("env.RUN != 'true'"), `${id}: ${s.slice(0, 80)}`).toBe(
-          true,
-        );
+      // The job's only condition is its gate, the one pr-gate reads for it.
+      expect(body.match(/^ {4}if: .*$/gm), id).toEqual([`    if: fromJSON(needs.plan.outputs.plan).${gates[id]}`]);
+      expect(body, id).not.toContain('env.RUN');
+      expect(body, id).not.toMatch(/^ {6}RUN:/m);
+      expect(body, id).not.toContain('not needed by the plan');
+      // A skipped job pulls nothing: its image is a plain pin, never chosen by the plan.
+      expect(body, id).not.toMatch(/image: \$\{\{/);
     }
   });
 
@@ -414,19 +404,48 @@ describe('the workflow, lot 0 details', () => {
     expect(yml).toContain(`    if: ${cond}`);
     expect(yml).toContain(`MUTATION: \${{ ${cond} }}`);
   });
-  it('external-consumer asks for no runner when the plan spares it, and pr-gate accepts its skip exactly then', () => {
-    const body = yml.slice(yml.indexOf('\n  external-consumer:\n'), yml.indexOf('\n  upgrade:\n'));
-    // Skipped at the job level: no macOS or Windows runner is requested only to say "not needed" (4 Nov 2026, the
-    // macOS runners unavailable for an afternoon held every pull request).
-    expect(body).toMatch(/^ {4}if: fromJSON\(needs\.plan\.outputs\.plan\)\.freshInstall$/m);
-    expect(body).not.toContain('env.RUN');
-    expect(body).not.toContain('not needed by the plan');
+  it("pr-gate accepts a gated job's skip exactly when its gate is false (#529), run on every gated job", () => {
     const gate = yml.slice(yml.indexOf('\n  pr-gate:\n'));
-    expect(gate).toContain('EXTERNAL: ${{ fromJSON(needs.plan.outputs.plan).freshInstall }}');
-    const skip = gate.indexOf('external-consumer) if [ "$result" = skipped ] && [ "$EXTERNAL" != true ]; then');
-    expect(skip).toBeGreaterThan(0);
-    expect(gate.slice(skip, skip + 220)).toContain('continue; fi ;;');
-    expect(gate.indexOf('else echo "::error::$job: $result"; bad=1; fi')).toBeGreaterThan(skip);
+    expect(gate).toContain('PLAN: ${{ needs.plan.outputs.plan }}');
+    const gates = JSON.parse(gate.match(/GATES: '(.+)'$/m)![1]!) as Record<string, string>;
+    const script = gate
+      .slice(gate.indexOf('        run: |\n') + '        run: |\n'.length)
+      .split('\n')
+      .filter((l) => l.startsWith('          ') || l === '')
+      .map((l) => l.slice(10))
+      .join('\n');
+    // One job's result at a time: the script judges each row alone.
+    const green = (id: string, result: string, open: boolean) => {
+      const needs = { [id]: { result } };
+      const plan = Object.fromEntries(GATES.map((g) => [g, true]));
+      if (gates[id]) plan[gates[id]] = open;
+      try {
+        execFileSync('bash', ['-c', script], {
+          env: {
+            ...process.env,
+            NEEDS: JSON.stringify(needs),
+            MUTATION: 'false',
+            PLAN: JSON.stringify(plan),
+            GATES: JSON.stringify(gates),
+          },
+          stdio: 'pipe',
+        });
+        return true;
+      } catch {
+        return false;
+      }
+    };
+    for (const id of Object.keys(gates)) {
+      expect(green(id, 'skipped', false), `${id} skipped, gate false`).toBe(true);
+      expect(green(id, 'success', true), `${id} success`).toBe(true);
+      expect(green(id, 'skipped', true), `${id} skipped, gate true`).toBe(false);
+      // pwa-firefox stays non-blocking when it ran (#257); every other job is red on a failure or a cancellation.
+      for (const result of ['failure', 'cancelled'])
+        expect(green(id, result, true), `${id} ${result}`).toBe(id === 'pwa-firefox');
+    }
+    // An ungated job's skip is never green, whatever the plan says.
+    for (const id of ['check', 'unit', 'coverage', 'cross-runtime'])
+      expect(green(id, 'skipped', false), `${id} skipped`).toBe(false);
   });
   it("studio-hosted's Firefox pass is quarantined (#406): its own step, not blocking, said; the rest still blocks", () => {
     const body = yml.slice(yml.indexOf('\n  studio-hosted:\n'), yml.indexOf('\n  bridge-postgres:\n'));
@@ -436,15 +455,17 @@ describe('the workflow, lot 0 details', () => {
     );
     // Firefox's hosted pass alone, continue-on-error, and a warning when it fails.
     expect(body).toMatch(
-      /- id: hosted-firefox\n {8}if: env\.RUN == 'true'\n {8}continue-on-error: true\n {8}run: npm run e2e:studio-hosted -- --browser=firefox\n/,
+      /- id: hosted-firefox\n {8}continue-on-error: true\n {8}run: npm run e2e:studio-hosted -- --browser=firefox\n/,
     );
-    expect(body).toContain("if: env.RUN == 'true' && steps.hosted-firefox.outcome == 'failure'");
+    expect(body).toContain("if: steps.hosted-firefox.outcome == 'failure'");
     expect(body).toContain('::warning::studio-hosted (firefox): flaky, #406: not blocking');
     expect(body.match(/continue-on-error: true/g)).toHaveLength(1);
   });
   it('pr-gate warns on pwa-firefox (#257) and fails on any other job', () => {
     const gate = yml.slice(yml.indexOf('\n  pr-gate:\n'));
-    const warn = gate.indexOf('pwa-firefox) if [ "$result" != success ]; then echo "::warning::pwa-firefox: $result');
+    const warn = gate.indexOf(
+      'pwa-firefox) if [ "$result" != success ] && [ "$result" != skipped ]; then echo "::warning::pwa-firefox: $result',
+    );
     expect(warn).toBeGreaterThan(0);
     expect(gate.slice(warn, warn + 200)).toContain('continue; fi ;;');
     // The generic check comes after, unchanged: any other job that is not a success fails the gate.
