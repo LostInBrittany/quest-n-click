@@ -2,9 +2,9 @@
 // tiers"; `npx tsx tools/ci-plan.ts` works the same): which of CI's heavier jobs a change needs. It reads the files the
 // branch changes (`git diff --name-only <base>...HEAD`), classifies each by the first rule of RULES that matches, and
 // prints one line of JSON: a boolean per gate, the union of what every file asks. The `plan` job of ci.yml writes it to
-// its output; each job reads its gate and runs its real work, or one step that says "not needed by the plan" and
-// succeeds (the ruleset requires the jobs by name, and a skipped job is not a success). On `main`, on a tag and on a
-// pull request labelled `full-ci`, the workflow passes `--all`. A path no rule knows, a shared configuration, the
+// its output; each job reads its gate in a job-level `if:` and is skipped when it is false, a skip `pr-gate` (the one
+// check the ruleset requires) accepts only then (#529). On `main`, on a tag and on a pull request labelled `full-ci`,
+// the workflow passes `--all`. A path no rule knows, a shared configuration, the
 // engine's core, this file and the workflow itself run everything: the plan never decides that it does not need to be
 // checked. A git error runs everything too. Self-contained (no import but Node's): the `plan` job runs it without
 // `npm ci`.

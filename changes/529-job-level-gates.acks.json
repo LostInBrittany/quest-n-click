@@ -1,0 +1,42 @@
+{
+  "format": "quest-n-click-docs-acks",
+  "version": 1,
+  "pairs": {
+    "contribute.before-a-pr#expected-result": {
+      "enHash": "03f61db4c2531f6acdbaab570fef20b68e17497e99d69f8b64ac36eae84d0b3d",
+      "frHash": "883c6732eb7375bbe4463ccda38bee3cfaacb734f0228d3043f91160ee5b0fa8",
+      "reviewers": [
+        { "name": "claude", "kind": "ai", "relation": "author", "date": "2026-11-10" }
+      ]
+    },
+    "contribute.ci#_lead": {
+      "enHash": "ad4315b1dcedb06ed817a77d3a43d48d09b8f3c154c322d678c4e1313271672c",
+      "frHash": "99a3c09ace42d9fc42d364009474850a0c4e784202e9a916817055e570e9321e",
+      "reviewers": [
+        { "name": "claude", "kind": "ai", "relation": "author", "date": "2026-11-10" }
+      ]
+    },
+    "contribute.ci#tiers": {
+      "enHash": "44adfa639c3b9dd3dda1a59760b5abd564a46d747629e92a5e1e76754ebfa672",
+      "frHash": "64adf8f930477bab46cbab09fe123621b64b9a145d725d70a7c840d2c2f2df8d",
+      "reviewers": [
+        { "name": "claude", "kind": "ai", "relation": "author", "date": "2026-11-10" }
+      ]
+    },
+    "reference.environment-variables#gates": {
+      "enHash": "d7be22ecadd3164d9b436f52811120b86c9655e446be2019e876cc39ff19be1f",
+      "frHash": "ac4a66d6617d59c0a11614a8103f05a0a4b328bf21c31a55167c8451c5aaf7e3",
+      "reviewers": [
+        { "name": "claude", "kind": "ai", "relation": "author", "date": "2026-11-10" }
+      ]
+    },
+    "reference.environment-variables#plan": {
+      "enHash": "e462883c481e792519abb7c64bb524cbf2c16a124d079da1cd09ddd9ab555ef3",
+      "frHash": "e1220224b8cafbabc608daacbd0ea26add75c493fa3a20fbf5128e620be8230c",
+      "reviewers": [
+        { "name": "claude", "kind": "ai", "relation": "author", "date": "2026-11-10" }
+      ]
+    }
+  },
+  "claims": {}
+}

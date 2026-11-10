@@ -184,7 +184,7 @@ The roadmap of the v1.3 to v2 milestones held its own list, run at every milesto
 ## Expected result, and how to check it
 
 Every command above ends green. On the pull request, `pr-gate` is green once every job of the plan succeeded
-([CI explained](contribute.ci.md)); a job the plan spares says "not needed by the plan" and succeeds.
+([CI explained](contribute.ci.md)); a job the plan spares shows as skipped, and `pr-gate` accepts that skip.
 
 <a name="common-errors"></a>
 

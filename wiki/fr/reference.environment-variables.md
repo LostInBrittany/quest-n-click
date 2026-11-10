@@ -1165,15 +1165,6 @@ candidate : l’événement qui a lancé l’exécution ; seul un push sur main 
 - Origine : posée par un workflow de `.github/workflows/` (CI et publications).
 - Lue par : [`.github/workflows/candidate.yml`](../../.github/workflows/candidate.yml), [`.github/workflows/nightly.yml`](../../.github/workflows/nightly.yml), [`tools/release/supersede.mjs`](../../tools/release/supersede.mjs).
 
-<a name="external"></a>
-
-### `EXTERNAL`
-
-ci : `true` quand le plan demande `external-consumer` ; `pr-gate` n'accepte que ce job soit sauté que s'il ne vaut pas `true`.
-
-- Origine : posée par un workflow de `.github/workflows/` (CI et publications).
-- Lue par : [`.github/workflows/ci.yml`](../../.github/workflows/ci.yml).
-
 <a name="extra-assets"></a>
 
 ### `EXTRA_ASSETS`
@@ -1191,6 +1182,15 @@ mutation : un seul fichier à muter, choisi à la main.
 
 - Origine : posée par un workflow de `.github/workflows/` (CI et publications).
 - Lue par : [`.github/workflows/mutation.yml`](../../.github/workflows/mutation.yml).
+
+<a name="gates"></a>
+
+### `GATES`
+
+ci : la barrière de chaque job à barrière dans le plan, telle que son `if:` de job la lit (`pr-gate` ; `tests/ci-plan.test.ts` vérifie qu'ils concordent).
+
+- Origine : posée par un workflow de `.github/workflows/` (CI et publications).
+- Lue par : [`.github/workflows/ci.yml`](../../.github/workflows/ci.yml).
 
 <a name="in-candidate"></a>
 
@@ -1281,6 +1281,15 @@ release : le préfixe des noms de fichiers de la version (`quest-n-click`).
 
 - Origine : posée par un workflow de `.github/workflows/` (CI et publications).
 - Lue par : [`.github/workflows/release.yml`](../../.github/workflows/release.yml).
+
+<a name="plan"></a>
+
+### `PLAN`
+
+ci : le JSON du plan (`tools/ci-plan.ts`), un booléen par barrière ; `pr-gate` n'accepte qu'un job à barrière soit sauté que si sa barrière y vaut `false`.
+
+- Origine : posée par un workflow de `.github/workflows/` (CI et publications).
+- Lue par : [`.github/workflows/ci.yml`](../../.github/workflows/ci.yml).
 
 <a name="postgres-db"></a>
 
