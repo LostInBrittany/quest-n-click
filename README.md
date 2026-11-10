@@ -109,7 +109,7 @@ The whole documentation is [the wiki](https://github.com/Quest-n-Click/quest-n-c
 
 ## Releases
 
-Current release: [v4.7.3 (Shipshape)](https://github.com/Quest-n-Click/quest-n-click/releases/tag/v4.7.3): TODO(release)
+Current release: [v4.7.3 (Shipshape)](https://github.com/Quest-n-Click/quest-n-click/releases/tag/v4.7.3): A patch of fixes and CI work: the engine installs with npm 12, and the engine, the Studio Server, the connectors and the Bridge get the fixes found since 4.7.2.
 Every earlier release is in the [CHANGELOG](CHANGELOG.md).
 
 ## Licences

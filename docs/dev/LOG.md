@@ -9736,9 +9736,17 @@ hosted-Studio session for #149, #150, #166, #167, #196); the Dependabot alerts o
 override breaks the PWA precache; `keyOf` in the Open Badges verifier, which reads `controller` unchecked; the
 `studio-assets` test that fails on a clean main.
 
-## #384 · 2026-11-10 · Claude · release · 4.7.3 "Shipshape": TODO(release)
+## #384 · 2026-11-10 · Claude · release · 4.7.3 "Shipshape": the fixes and the CI work since 4.7.2, the engine installable with npm 12
 
-- **The request**: TODO(release)
+- **The request**: after 4.7.2, whose first candidate failed on #459 and #460 and whose re-run spent 72 minutes on
+  the same mutation survivors, #471 listed what the release and CI had run into; bug reports and audit follow-ups
+  (#475 to #514) came in beside it. On 10 November, once every pull request had merged, Horacio asked: "All the PRs
+  are merged, I want to prepare a release 4.7.3. And find it a name, please". It stays a patch (weighed against 4.8.0
+  earlier that day): nothing is added for a game, and the changes a host sees are fixes (a malformed trusted-proxy
+  entry refused at start, #483; an IPv6 /64 counted as one address by the connectors, #500). The name is Claude's: a
+  release that puts things in order. `prepare` ran on `26e2d29a`. #547 is listed under its title, but it merged the
+  SQL store's duplicate-when-full test (`admit-duplicate-full`) only; the shrinkwrap check its title and body describe
+  (#546, closed by it) is not on `main`.
 - **What ships**: the pull requests merged since v4.7.2, oldest first: #472 (Dependencies (#457): the minor-and-patch
   group, with the Studio Server's lock and knip's follow-up), #474 (Release (#471): every gate judged before anything is
   done, one report, the next command in full), #473 (CI (#471): installs without a lockfile tried again on a registry
@@ -9809,4 +9817,5 @@ override breaks the PWA precache; `keyOf` in the Open Badges verifier, which rea
 - **Signature**: the tag is signed with an SSH key `.github/allowed_signers` names (`npm run release -- 4.7.3` refuses
   any other).
 
-→ next: TODO(release)
+→ next: the candidate started by the release's merge, then `npm run release -- 4.7.3`; #546's shrinkwrap check in
+`scripts/pack.mjs` and `scripts/sbom.mjs`, which did not land with #547.

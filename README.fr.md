@@ -111,7 +111,7 @@ Toute la documentation est [le wiki](https://github.com/Quest-n-Click/quest-n-cl
 
 ## Releases
 
-Release actuelle : [v4.7.3 (Shipshape)](https://github.com/Quest-n-Click/quest-n-click/releases/tag/v4.7.3) : TODO(release)
+Release actuelle : [v4.7.3 (Shipshape)](https://github.com/Quest-n-Click/quest-n-click/releases/tag/v4.7.3) : Un correctif, surtout des corrections et du travail sur la CI : le moteur s'installe avec npm 12, et le moteur, le Studio Server, les connecteurs et le Bridge reçoivent les corrections trouvées depuis la 4.7.2.
 Toutes les releases précédentes sont dans le [CHANGELOG](CHANGELOG.md).
 
 ## Licences

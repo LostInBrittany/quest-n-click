@@ -2,8 +2,10 @@
 
 ## 4.7.3 — 2026-11-10
 
-LOG #384: "Shipshape", a patch on 4.7.2. TODO(release): what it changes, for whom, and what a game has to do (Upgrade
-notes).
+LOG #384: "Shipshape", a patch on 4.7.2, mostly fixes and CI. In a game, a sealed ending that fails to open, a looping
+script restarted mid-step and a topic that leaves the room no longer go wrong, and the engine installs with npm 12. The
+Bridge, the Studio Server and the connectors get their fixes, and CI spends less and says more. Nothing to change in a
+game; a host checks its trusted-proxy entries, now refused at start when malformed. The upgrade notes have the details.
 
 ### Fixed
 
