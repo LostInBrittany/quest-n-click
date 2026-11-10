@@ -1,7 +1,7 @@
 # Quels tests tournent quand
 
 Chaque suite de tests du dépôt du moteur, la commande qui la lance, et quand la CI la lance : sur une pull request, sur
-`main`, dans un candidat, dans la release, ou chaque nuit. À lire avec [La CI expliquée](contribute.ci.md),
+`main`, dans un candidat, dans la release, ou dans la nightly. À lire avec [La CI expliquée](contribute.ci.md),
 qui dit ce qu'est chaque workflow et chaque job.
 
 <a name="suites"></a>

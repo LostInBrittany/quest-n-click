@@ -548,7 +548,7 @@ Les tests d’images et de la chaîne d’assets qui passent par Python (`tests/
 
 #### `npm run test:coverage`
 
-La suite sous couverture V8 (sans les tests lourds), face aux planchers de `tests/coverage-floors.json` (lus par `vite.config.ts`, 4.6.0) ; puis `npx tsx tools/coverage-ratchet.ts --strict` échoue sur un plancher en retard d’au moins trois points sur ce que les tests atteignent (CI sur main et les tags, release-check, 4.1.8 ; un avertissement sur une pull request, 4.1.9).
+La suite sous couverture V8 (sans les tests lourds), face aux planchers de `tests/coverage-floors.json` (lus par `vite.config.ts`, 4.6.0) ; puis `npx tsx tools/coverage-ratchet.ts --strict` échoue sur un plancher en retard d’au moins trois points sur ce que les tests atteignent (CI sur main et les tags, release-check, 4.1.8 ; sur une pull request aussi depuis la 4.7.0, #410).
 
 - Lance : `npm run test:unit -- --coverage`
 
