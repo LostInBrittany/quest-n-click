@@ -192,6 +192,8 @@ export const TESTS: Record<MutationSet, string[]> = {
     'tests/reality-store-backup-mutants.test.ts',
     'tests/bridge-maintenance.test.ts',
     'tests/reality-store-maintenance-mutants.test.ts',
+    // #528: the per-player index of streams.ts (#503).
+    'tests/bridge-streams-index.test.ts',
   ],
   remix: [
     'tests/remix-*.test.ts',

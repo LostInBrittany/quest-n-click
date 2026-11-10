@@ -20,6 +20,21 @@ describe('the per-address budget, by network', () => {
     expect(p.take('2001:DB8:0:0::abcd')).toBe(false);
   });
 
+  it('places the groups after :: where they belong, even when they reach into the /64', () => {
+    const p = new PerAddress(1, () => 0);
+    expect(p.take('1:0:2:3::9')).toBe(true);
+    expect(p.take('1::2:3:4:5:6:7')).toBe(false);
+    expect(p.take('1::4:5:6:7')).toBe(true);
+  });
+
+  it('keys an address a socket never gives (no ::, too few or too many groups) by its text, never by a guess', () => {
+    const p = new PerAddress(1, () => 0);
+    expect(p.take('1:2')).toBe(true);
+    expect(p.take('1:2:0:0::')).toBe(true);
+    expect(p.take('1:2:3:4::')).toBe(true);
+    expect(p.take('::1:2:3:4:5:6:7:8')).toBe(false);
+  });
+
   it('counts an IPv4-mapped address as its IPv4', () => {
     const p = new PerAddress(1, () => 0);
     expect(p.take('1.2.3.4')).toBe(true);
