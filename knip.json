@@ -70,8 +70,5 @@
     "nsExports": "error",
     "nsTypes": "error",
     "enumMembers": "off"
-  },
-  "ignoreUnresolved": [
-    "5"
-  ]
+  }
 }
