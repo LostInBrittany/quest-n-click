@@ -65,11 +65,21 @@ export function buildShell(app: App) {
   };
   app.invNav.append(up, pg, down);
   app.toolsEl = el('div', 'tools');
+  // Under a mouse, the sentence line names a tool instead of "Walk to", and gets the sentence back on leaving.
+  const nameOnHover = (b: HTMLButtonElement, label: string) => {
+    b.onpointerenter = (e) => {
+      if (e.pointerType === 'mouse' && !app.engine.busy && !app.speechEl) app.sbar.textContent = label;
+    };
+    b.onpointerleave = (e) => {
+      if (e.pointerType === 'mouse' && !app.speechEl) app.sentence();
+    };
+  };
   const tool = (icon: Id, label: string, fn: (b: HTMLButtonElement) => void) => {
     const b = el('button', 'tool', `<img src="${app.bank.img(icon)}" alt="">`);
     b.setAttribute('aria-label', label);
     b.title = label;
     b.onclick = () => fn(b);
+    nameOnHover(b, label);
     app.toolsEl.append(b);
     return b;
   };
@@ -90,6 +100,7 @@ export function buildShell(app: App) {
     b.onclick = () => {
       if (!app.engine.busy && !app.speechEl) void app.engine.switchTo(pid);
     };
+    nameOnHover(b, c?.name ?? pid);
     app.toolsEl.append(b);
   }
   tool(icons.map, app.game.ui.mapTitle, () => void app.presenter.intent({ kind: 'open', what: 'map' }));

@@ -20,7 +20,8 @@ otherwise, and it may have fewer or more verbs.
   the two layouts as you play.
 - **On a computer** with a mouse and a window at least 720 × 450 pixels, the classic layout: the scene on top, the
   sentence line, then the verbs, the bag and the tools in a row below. Hovering a thing names it in the sentence line
-  and turns the pointer into a hand.
+  and turns the pointer into a hand. Hovering a tool (the map, the pause, the music, a character to switch to) writes its
+  name there in place of "Walk to" (next).
 
 <a name="tap-and-verbs"></a>
 
