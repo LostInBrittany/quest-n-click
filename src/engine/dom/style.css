@@ -187,6 +187,8 @@ body { -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
 .game.desk .tools { grid-area: tools; flex-direction: column; margin: 0; }
 .game.desk .tools .tool { flex: 1; width: 3em; min-height: 0; }
 .game.desk .tools .tool img { height: 70%; max-height: 1.9em; }
+/* More than three visible tools (several playable characters): two columns, rows of equal height (#561). */
+.game.desk .tools.two { display: grid; grid-template-columns: repeat(2, 3em); grid-auto-rows: minmax(0, 1fr); gap: 5px; }
 .game.desk .invnav .tool { min-height: 0; }
 .game.desk .choices { grid-column: 1 / 4; grid-row: 2; }
 /* The desktop panel is wide and short: smaller cards, many per row, so the text lines stay in sight. */
