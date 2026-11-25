@@ -514,6 +514,8 @@ export class App {
     // The active character's button is hidden, the others show.
     for (const b of this.toolsEl.querySelectorAll<HTMLElement>('.tool.player'))
       b.hidden = b.dataset.player === this.engine.heroId();
+    // Past three visible tools, the desktop column becomes two, so the buttons keep their size (#561).
+    this.toolsEl.classList.toggle('two', this.toolsEl.querySelectorAll('.tool:not([hidden])').length > 3);
     this.renderA11yTargets();
     this.audio.remix();
   }
