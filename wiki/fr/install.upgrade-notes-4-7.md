@@ -1,5 +1,7 @@
 # Notes de mise à jour : 4.7
 
+TODO(release) : nommer la 4.7.4 dans cette introduction.
+
 Ce que la 4.7.0, puis la 4.7.1, la 4.7.2 et la 4.7.3, ont changé. Rien à modifier dans un jeu : il se construit, se joue et se sauvegarde comme en 4.6.0.
 Chaque ajout est facultatif ; tous sauf `keepPlaying` de la fin sont visuels, invisibles aux règles, sauvegardes et
 solveur.
@@ -172,3 +174,37 @@ seule action de mise en place dont le `npm ci` attend la fin d'un hoquet du regi
 `e2e:portrait`, le contrôle des spoilers de la démo du site et, quand un connecteur ou le Bridge change, les connecteurs
 depuis leur archive. La nightly saute un commit déjà testé et dit comment la relancer à la main ; le workflow
 hebdomadaire `prove` a disparu. [`CHANGELOG.md`](../../CHANGELOG.md) détaille chaque changement.
+
+<a name="from-4-7-3-to-4-7-4"></a>
+<!-- applies: 4.7.4.. -->
+
+## De la 4.7.3 à la 4.7.4 « Signposts »
+
+TODO(release) : ce qui change dans un jeu (« Rien à changer dans un jeu : il se construit, se joue et se sauvegarde comme en 4.7.3 » quand rien ne change), puis pour un hébergeur ou un mainteneur. Les entrées du CHANGELOG de la release, à réécrire pour qui met à jour :
+
+- **`prepare`'s next mark rewrites the wiki's generated sources too, so the pages match them (4.7.4, #550)**: the step
+  wrote the version in a generated page (`reference.npm-scripts`) but left `next` in `wiki/data/npm-scripts.json`, its
+  source, and the publication check refused both pages until the data was fixed by hand (4.7.3). Each string of
+  `wiki/data/*.json` is now read as prose, the way its page reads it, every other byte kept; and after the rewrite the
+  step checks every generated part against its source, stopping right there when one no longer matches.
+- **On a computer, the tool buttons keep their size in a game with several playable characters (4.7.4, #561)**: the
+  tools stood in one column beside the bag, each taking an equal share of its height, so a switch button per other
+  character made every button shorter and its icon smaller (11 px tall in the demo at 1024 × 640). More than three
+  visible tools now go into two columns: the demo's icons are 30 to 51 px tall from 1024 × 640 to 1920 × 1080, the bag
+  giving up the width of one button. A game with only the map, pause and music buttons looks as before.
+- **A locked archive without its lock stops the pack and its SBOM (4.7.4, #546)**: npm 12 leaves
+  `npm-shrinkwrap.json` out of `npm pack`; npm 10 and 11 keep it. Packed with npm 12, the Bridge, connectors and Studio
+  Server archives would have shipped without their locks, and `scripts/sbom.mjs` would have built their SBOMs quietly
+  from the root lock. Now `scripts/pack.mjs` checks each of those archives holds its `npm-shrinkwrap.json` and stops,
+  naming the archive and the npm that packed it; `sbom.mjs` reads the root lock for the engine only and refuses a locked
+  archive without its own. One module, `scripts/locked.mjs`, holds both checks. What is published is unchanged:
+  the candidate packs with npm 10.
+- **The Studio Server runs on newer releases of its sign-in libraries (4.7.4, refs #557)**: `jose@6.2.18` and
+  `openid-client@6.9.0`, its versioned lock updated with them. For contributors, `playwright@1.65.1`, with the Linux
+  browser jobs' image (`mcr.microsoft.com/playwright:v1.65.1-noble`, pinned by its index digest) moved with it,
+  `vite@8.3.8`, `vitest@5.1.1`, `@biomejs/biome@2.6.8`, `knip@6.46.1`, `fast-check@4.10.3` and
+  `fake-indexeddb@6.2.8`. knip 6.46 no longer needs `knip.json`'s `ignoreUnresolved` entry: removed.
+- **The tools name themselves under a mouse (4.7.4)**: hovering the map, pause or music button writes the button's
+  name in the sentence line in place of "Walk to", the same text as its tooltip; in a game with several playable
+  characters, each switch button names its character. Leaving the button gives the sentence back. A finger changes
+  nothing.
