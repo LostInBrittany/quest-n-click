@@ -2,8 +2,10 @@
 
 ## 4.7.4 — 2026-11-26
 
-LOG #385: "Signposts", a patch on 4.7.3. TODO(release): what it changes, for whom, and what a game has to do (Upgrade
-notes).
+LOG #385: "Signposts", a patch on 4.7.3. On a computer, the tool buttons say what they are: hovering one names it in
+the sentence line, and a game with several playable characters keeps them full size. The Studio Server moves to newer
+sign-in libraries, and packing with npm 12 can no longer ship a locked archive without its lock. Nothing to change in a
+game; the upgrade notes have the details.
 
 ### Fixed
 
@@ -35,7 +37,7 @@ notes).
   `vite@8.3.8`, `vitest@5.1.1`, `@biomejs/biome@2.6.8`, `knip@6.46.1`, `fast-check@4.10.3` and
   `fake-indexeddb@6.2.8`. knip 6.46 no longer needs `knip.json`'s `ignoreUnresolved` entry: removed.
 
-- **The tools name themselves under a mouse (4.7.4)**: hovering the map, pause or music button writes the button's
+- **The tools name themselves under a mouse (4.7.4, #559)**: hovering the map, pause or music button writes the button's
   name in the sentence line in place of "Walk to", the same text as its tooltip; in a game with several playable
   characters, each switch button names its character. Leaving the button gives the sentence back. A finger changes
   nothing.

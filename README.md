@@ -109,7 +109,7 @@ The whole documentation is [the wiki](https://github.com/Quest-n-Click/quest-n-c
 
 ## Releases
 
-Current release: [v4.7.4 (Signposts)](https://github.com/Quest-n-Click/quest-n-click/releases/tag/v4.7.4): TODO(release)
+Current release: [v4.7.4 (Signposts)](https://github.com/Quest-n-Click/quest-n-click/releases/tag/v4.7.4): A small patch: on a computer, the tool buttons name themselves under the mouse and keep their size with several playable characters, and the Studio Server moves to newer sign-in libraries.
 Every earlier release is in the [CHANGELOG](CHANGELOG.md).
 
 ## Licences

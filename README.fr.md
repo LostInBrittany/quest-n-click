@@ -111,7 +111,7 @@ Toute la documentation est [le wiki](https://github.com/Quest-n-Click/quest-n-cl
 
 ## Releases
 
-Release actuelle : [v4.7.4 (Signposts)](https://github.com/Quest-n-Click/quest-n-click/releases/tag/v4.7.4) : TODO(release)
+Release actuelle : [v4.7.4 (Signposts)](https://github.com/Quest-n-Click/quest-n-click/releases/tag/v4.7.4) : Un petit correctif : sur ordinateur, les boutons d'outils se nomment sous la souris et gardent leur taille avec plusieurs personnages jouables, et le Studio Server passe à des versions plus récentes de ses bibliothèques de connexion.
 Toutes les releases précédentes sont dans le [CHANGELOG](CHANGELOG.md).
 
 ## Licences
